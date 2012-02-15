@@ -1,0 +1,35 @@
+This is a verification tool for JavaScript programs. In time it will
+plug into eclipse, emacs and verification web services, to make
+writing correct, fast JavaScript easier to do.
+
+Prerequisites:
+
+1) ocaml 3.12 or higher: http://caml.inria.fr/ocaml/index.en.html
+   You can get this in ubuntu 11.10 and higher with:
+
+   sudo apt-get install ocaml
+
+2) the XML-light library: http://tech.motion-twin.com/xmllight
+   The ubuntu install didn't work for me. I got it from the website. YMMV.
+
+3) Java: http://www.oracle.com/technetwork/java/index.html 
+   You can get this in ubuntu with:
+
+   sudo apt-get install java7-jdk
+
+4) xdot: http://code.google.com/p/jrfonseca/wiki/XDot
+   You can get this in ubuntu with:
+
+   sudo apt-get install xdot
+
+To build:
+
+1) make init
+2) $EDITOR localconfig.ml          # Set all these options so they 
+   $EDITOR config/config.xml       # make sense on your system.
+3) make all
+
+If ocaml complains that you have stuff lying around that shouldn't be
+there, then run "make sanitize", or just delete the _build directory.
+
+From now on "make all" should be all you need.

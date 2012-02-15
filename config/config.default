@@ -1,0 +1,3 @@
+<CONFIG>
+  <JS_TO_XML_PARSER  location = "/home/gds/Documents/JS_Symbolic_Debugger/lib/js_parser.jar"/>
+</CONFIG>
