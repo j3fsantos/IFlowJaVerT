@@ -8,3 +8,5 @@ let rec intersperse x ys =
     | [] -> []
     | [y] -> [y]
     | y::ys -> y::x::(intersperse x ys)
+
+let flip f x y = f y x
