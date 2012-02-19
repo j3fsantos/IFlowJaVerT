@@ -1,5 +1,5 @@
 all: tags
-	ocamlbuild -classic-display -I strategies -tags dtypes -libs unix,xml-light main.native
+	ocamlbuild -classic-display -I strategies -I printing -tags dtypes -libs unix,xml-light main.native
 
 sanitize:
 	_build/sanitize.sh
