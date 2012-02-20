@@ -2,13 +2,6 @@ open List
 
 let flat_map f l = flatten (map f l)
 
-        
-(* let rec intersperse x ys = *)
-(*   match ys with *)
-(*     | [] -> [] *)
-(*     | [y] -> [y] *)
-(*     | y::ys -> y::x::(intersperse x ys) *)
-
 let flip f x y = f y x
 
 exception LessThanOne
@@ -35,3 +28,5 @@ let rec dropWhile p ys =
   match ys with
     | [] -> []
     | (x::xs) -> if (p x) then dropWhile p xs else xs
+
+
