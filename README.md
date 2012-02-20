@@ -40,6 +40,7 @@ To build:
 
 1.  `make init`
 2.  `$EDITOR localconfig.ml          # Set all these options so they`
+
     `$EDITOR config/config.xml       # make sense on your system.`
 3.  `make all`
 
