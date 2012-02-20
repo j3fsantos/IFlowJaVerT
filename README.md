@@ -39,8 +39,10 @@ Prerequisites:
 To build:
 
 1.  `make init`
-2.  `$EDITOR localconfig.ml          # Set all these options so they`
+2.  Set config options so they make sense on your system.
 
-    `$EDITOR config/config.xml       # make sense on your system.`
+        $EDITOR localconfig.ml
+        $EDITOR config/config.xml
+
 3.  `make all`
 
