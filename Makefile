@@ -7,3 +7,6 @@ init:
 
 tags:
 	etags -R .
+
+test:
+	cd tests ; make test
