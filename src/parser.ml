@@ -86,6 +86,9 @@ let rec xml_to_exp xml : exp =
       mk_exp (While (xml_to_exp condition, xml_to_exp block)) (get_offset attrs)
     | Element ("GETPROP", attrs, [child1; child2]) ->
       mk_exp (Access (xml_to_exp child1, string_element child2)) (get_offset attrs)
+    | Element ("STRING", attrs, []) -> mk_exp (String (string_element xml)) (get_offset attrs)
+    | Element ("TRUE", attrs, []) -> mk_exp (Bool true) (get_offset attrs)
+    | Element ("FALSE", attrs, []) -> mk_exp (Bool false) (get_offset attrs)
     | Element (tag_name, _, _) -> raise (Parser_Unknown_Tag tag_name) 
     | PCData _ -> raise Parser_PCData
 
