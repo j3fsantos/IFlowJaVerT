@@ -9,6 +9,7 @@ exception Parser_Unknown_Tag of string
 exception Parser_PCData
 exception Parser_ObjectList
 exception JS_To_XML_parser_failure
+exception OnlyIntegersAreImplemented
 
 let get_attr attrs attr_name =
   let offset_list = List.filter (fun (name, value) -> name = attr_name) attrs in
@@ -68,7 +69,12 @@ let rec xml_to_exp xml : exp =
       end
     | Element ("VAR", attrs, [child]) -> mk_exp (VarDec (xml_to_var child)) (get_offset attrs)
     | Element ("CALL", attrs, [child1; child2]) -> mk_exp (Call (xml_to_exp child1, xml_to_exp child2)) (get_offset attrs)
-    | Element ("NUMBER", attrs, _) -> mk_exp (Num (int_of_string (get_value attrs))) (get_offset attrs)
+    | Element ("NUMBER", attrs, _) -> 
+      let n_float = float_of_string (get_value attrs) in
+      if abs_float (n_float -. (floor n_float)) > epsilon_float then raise OnlyIntegersAreImplemented 
+      else 
+        let n_int = int_of_float n_float in
+        mk_exp (Num n_int) (get_offset attrs)
     | Element ("OBJECTLIT", attrs, objl) ->
       let l = map (fun obj -> 
         match obj with
