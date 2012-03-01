@@ -82,6 +82,7 @@ let rec xml_to_exp xml : exp =
     | Element ("IF", attrs, [condition; t_block; f_block]) ->
       mk_exp (If (xml_to_exp condition, xml_to_exp t_block, xml_to_exp f_block)) (get_offset attrs)
     | Element ("EQ", attrs, [e1; e2]) -> mk_exp (BinOp (xml_to_exp e1, Equal, xml_to_exp e2)) (get_offset attrs)
+    | Element ("SHEQ", attrs, [e1; e2]) -> mk_exp (BinOp (xml_to_exp e1, TripleEqual, xml_to_exp e2)) (get_offset attrs)
     | Element ("WHILE", attrs, [condition; block]) ->
       mk_exp (While (xml_to_exp condition, xml_to_exp block)) (get_offset attrs)
     | Element ("GETPROP", attrs, [child1; child2]) ->
@@ -89,6 +90,8 @@ let rec xml_to_exp xml : exp =
     | Element ("STRING", attrs, []) -> mk_exp (String (string_element xml)) (get_offset attrs)
     | Element ("TRUE", attrs, []) -> mk_exp (Bool true) (get_offset attrs)
     | Element ("FALSE", attrs, []) -> mk_exp (Bool false) (get_offset attrs)
+    | Element ("ADD", attrs, [child1; child2]) -> 
+      mk_exp (BinOp (xml_to_exp child1, Plus, xml_to_exp child2)) (get_offset attrs)
     | Element (tag_name, _, _) -> raise (Parser_Unknown_Tag tag_name) 
     | PCData _ -> raise Parser_PCData
 
