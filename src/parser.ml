@@ -47,8 +47,7 @@ let rec xml_to_exp xml : exp =
       begin
       match stmts with
         | [] -> raise Parser_No_Program
-        | [stmt] -> stmt
-        | stmt::stmts -> fold_right (fun s1 s2 -> (mk_exp (Seq (s1,s2)) s1.offset)) (stmt::stmts) (mk_exp Skip 0)
+        | stmts -> fold_right (fun s1 s2 -> (mk_exp (Seq (s1,s2)) s1.offset)) stmts (mk_exp Skip 0)
       end
     | Element ("EXPR_RESULT", _, [child]) -> xml_to_exp child
     | Element ("ASSIGN", attrs, [child1; child2]) -> mk_exp (Assign (xml_to_exp child1, xml_to_exp child2)) (get_offset attrs)
@@ -65,8 +64,7 @@ let rec xml_to_exp xml : exp =
       begin
       match stmts with
         | [] -> mk_exp Skip 0
-        | [stmt] -> stmt
-        | stmt::stmts -> fold_right (fun s1 s2 -> (mk_exp (Seq (s1,s2)) s1.offset)) (stmt::stmts) (mk_exp Skip 0)
+        | stmts -> fold_right (fun s1 s2 -> (mk_exp (Seq (s1,s2)) s1.offset)) stmts (mk_exp Skip 0)
       end
     | Element ("VAR", attrs, [child]) -> mk_exp (VarDec (name_element child)) (get_offset attrs)
     | Element ("CALL", attrs, child1 :: children) -> mk_exp (Call (xml_to_exp child1, (map xml_to_exp children))) (get_offset attrs)
