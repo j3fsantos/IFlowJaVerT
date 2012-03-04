@@ -10,6 +10,8 @@ exception Parser_PCData
 exception Parser_ObjectList
 exception JS_To_XML_parser_failure
 exception OnlyIntegersAreImplemented
+exception Parser_Name_Element
+exception Parser_Param_List
 
 let get_attr attrs attr_name =
   let offset_list = List.filter (fun (name, value) -> name = attr_name) attrs in
@@ -27,16 +29,15 @@ let string_element xml : string =
     | Element ("STRING", attrs, []) -> get_value attrs
     | _ -> raise Parser_Xml_To_String
 
-let xml_to_string xml : string =
+let name_element xml : string =
   match xml with
     | Element ("NAME", attrs, _) -> get_value attrs
-    | _ -> raise Parser_Xml_To_String
+    | _ -> raise Parser_Name_Element
 
-let rec xml_to_var xml : string = 
+let rec xml_to_vars xml : string list = 
   match xml with
-    | Element ("NAME", attrs, _) -> get_value attrs
-    | Element ("PARAM_LIST",_,[child]) -> xml_to_var child
-    | _ -> raise Parser_Xml_To_Var
+    | Element ("PARAM_LIST", _, childs) -> map name_element childs
+    | _ -> raise Parser_Param_List
   
 let rec xml_to_exp xml : exp =
   match xml with
@@ -54,8 +55,8 @@ let rec xml_to_exp xml : exp =
     | Element ("NAME", attrs, _) -> mk_exp (Var (get_value attrs)) (get_offset attrs)
     | Element ("NULL", attrs, _) -> mk_exp Null (get_offset attrs)
     | Element ("FUNCTION", attrs , [name; params; block]) ->
-      let fn_name = xml_to_string name in
-      let fn_params = xml_to_var params in
+      let fn_name = name_element name in
+      let fn_params = xml_to_vars params in
       let fn_body = xml_to_exp block in
       if (fn_name = "") then mk_exp (AnnonymousFun (fn_params,fn_body)) (get_offset attrs)
       else mk_exp (NamedFun (fn_name,fn_params,fn_body)) (get_offset attrs)
@@ -67,8 +68,8 @@ let rec xml_to_exp xml : exp =
         | [stmt] -> stmt
         | stmt::stmts -> fold_right (fun s1 s2 -> (mk_exp (Seq (s1,s2)) s1.offset)) (stmt::stmts) (mk_exp Skip 0)
       end
-    | Element ("VAR", attrs, [child]) -> mk_exp (VarDec (xml_to_var child)) (get_offset attrs)
-    | Element ("CALL", attrs, [child1; child2]) -> mk_exp (Call (xml_to_exp child1, xml_to_exp child2)) (get_offset attrs)
+    | Element ("VAR", attrs, [child]) -> mk_exp (VarDec (name_element child)) (get_offset attrs)
+    | Element ("CALL", attrs, child1 :: children) -> mk_exp (Call (xml_to_exp child1, (map xml_to_exp children))) (get_offset attrs)
     | Element ("NUMBER", attrs, _) -> 
       let n_float = float_of_string (get_value attrs) in
       if abs_float (n_float -. (floor n_float)) > epsilon_float then raise OnlyIntegersAreImplemented 
