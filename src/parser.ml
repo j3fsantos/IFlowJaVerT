@@ -89,7 +89,7 @@ let rec xml_to_exp xml : exp =
     | Element ("EQ", attrs, [e1; e2]) -> mk_exp (BinOp (xml_to_exp e1, Equal, xml_to_exp e2)) (get_offset attrs)
     | Element ("SHEQ", attrs, [e1; e2]) -> mk_exp (BinOp (xml_to_exp e1, TripleEqual, xml_to_exp e2)) (get_offset attrs)
     | Element ("WHILE", attrs, [condition; block]) ->
-      mk_exp (While (xml_to_exp condition, xml_to_exp block)) (get_offset attrs)
+      mk_exp (While (xml_to_exp condition, xml_to_exp block, "")) (get_offset attrs)
     | Element ("GETPROP", attrs, [child1; child2]) ->
       mk_exp (Access (xml_to_exp child1, string_element child2)) (get_offset attrs)
     | Element ("STRING", attrs, []) -> mk_exp (String (string_element xml)) (get_offset attrs)
