@@ -1,5 +1,5 @@
 all:
-	cd .. ; make
+	cd .. && make
 
 test:
-	cd .. ; make test
+	cd .. && make test

@@ -9,7 +9,7 @@ tags:
 	etags -R .
 
 parsing:
-	cd parsing ; make
+	cd src/parsing && make
 
 test:
-	cd tests ; make test
+	cd tests && make test
