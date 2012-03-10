@@ -52,6 +52,7 @@ let remove_annotation_elements children =
 let get_annot attrs : annotation =
   let atype = get_attr attrs "type" in
   let f = get_attr attrs "formula" in
+  let f = unescape_html f in
   match atype with
     | "requires" -> {atype = Requires; aformula = f}
     | "ensures" -> {atype = Ensures; aformula = f}

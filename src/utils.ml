@@ -10,3 +10,15 @@ exception NotImplemented
 (* For some reason, ocaml doesn't seem to have a boolean implication operator. Weird. *)
 
 let (==>) a b = (! a) || b
+
+let unescape_html s =
+  Str.global_substitute
+    (Str.regexp "&lt;\\|&gt;\\|&amp;\\|&quot;")
+    (fun s ->
+      match Str.matched_string s with
+        "&lt;" -> "<"
+      | "&gt;" -> ">"
+      | "&amp;" -> "&"
+      | "&quot;" -> "\""
+      | _ -> assert false)
+    s
