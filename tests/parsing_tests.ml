@@ -3,10 +3,7 @@ open Logic
 open Formula_parser
 open Formula_lexer
 open Syntax
-
-let parse_formula f = 
-  let lexbuf = Lexing.from_string f in
-  Formula_parser.main Formula_lexer.token lexbuf
+open Parsing_utils
     
 let test_formula1 () =
   let f = parse_formula "(#l1,x) |-> #(/)" in
