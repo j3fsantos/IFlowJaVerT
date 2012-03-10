@@ -6,6 +6,12 @@
       has = List.fold_left (fun l (x, v) -> EFields.add x v l) EFields.empty xvs; 
       hasnt = xs 
     }
+    
+	let parse_error s =
+	  let start_pos = Parsing.symbol_start () in
+	  let end_pos = Parsing.symbol_end () in
+	  Printf.printf "Error between %d and %d\n%s\n" start_pos end_pos s
+
 %}
 
 %token STAR
@@ -107,8 +113,9 @@ logical_bin_op:
   PLUS { Lbo_plus }
   
 location_list:
-    location location_list { $1 :: $2 }
-  | /*empty*/              { [] } 
+    location SEMICOLON location_list { $1 :: $3 }
+  | location                         { [$1] }
+  | /*empty*/                        { [] } 
 
 logical_exp :
     LE_VAR                                 { Le_Var $1 }
@@ -126,13 +133,15 @@ logical_exp :
   
 id_list :
     ID COMMA id_list { $1 :: $3 }
-  | /*empty*/  { [] }
+  | ID               { [$1] } 
+  | /*empty*/        { [] }
 
 id_value :
   ID COLON logical_exp { ($1, $3) }
 
 id_value_list :
     id_value COMMA id_value_list { $1 :: $3 }
-  | /*empty*/  { [] }
+  | id_value                     { [$1] }
+  | /*empty*/                    { [] }
 ;
 
