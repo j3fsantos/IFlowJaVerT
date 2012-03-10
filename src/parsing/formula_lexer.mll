@@ -43,7 +43,7 @@ rule token = parse
   | "#plist"            { PLIST }
   | "#store"            { STORE }
   | "#apl" digit+ as n  { PLLOC (int_of_string (String.tail n 4)) }
-  | "#sl" digit+ as n   { STORELOC (int_of_string (String.tail n 4)) }
+  | "#sl" digit+ as n   { STORELOC (int_of_string (String.tail n 3)) }
   | "#obj"              { OBJFOOTPRINT }
   | "undefined"         { UNDEFINED }
   | "null"              { NULL }
