@@ -1,4 +1,5 @@
 open Syntax
+open Logic
 
 exception No_Spec_In_Code
 
@@ -14,4 +15,5 @@ let get_pre_from_code exp =
         if (is_requires_annot annot) then annot
         else get_req tl in
   let req_annot = get_req exp.exp_annot in
-  parse_formula req_annot.aformula 
+  let f = parse_formula req_annot.aformula in
+  substitute_locs f
