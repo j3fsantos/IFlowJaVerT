@@ -87,7 +87,7 @@ formula:
       pl_tail = $5;  
 		  pl_fields = get_fields $8 $10 
 		}) }
-  | OBJFOOTPRINT LPAREN location SEMICOLON id_list RPAREN { ObjFootprint ($3, $5) }
+  | OBJFOOTPRINT LBRACKET location RBRACKET LPAREN id_list RPAREN { ObjFootprint ($3, $6) }
 	| STORE LBRACKET location RBRACKET LPAREN id_list VBAR id_value_list RPAREN
     { Store ({
       s_id = $3;
