@@ -1,4 +1,7 @@
+open Batteries_uni
 open List
+open Monad
+open Option.Monad
 
 let flat_map f l = flatten (map f l)
 
@@ -22,3 +25,5 @@ let unescape_html s =
       | "&quot;" -> "\""
       | _ -> assert false)
     s
+    
+let (>>=) = bind                        (* This SHOULD be in batteries dammit. *)
