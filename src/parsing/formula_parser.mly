@@ -1,5 +1,6 @@
 %{
   open Logic
+  open List
   
   let get_fields xs xvs = 
     {
@@ -11,6 +12,9 @@
 	  let start_pos = Parsing.symbol_start () in
 	  let end_pos = Parsing.symbol_end () in
 	  Printf.printf "Error between %d and %d\n%s\n" start_pos end_pos s
+    
+  let make_heaplets l hasnt has =
+    Star ( (map (fun x -> HeapletEmpty (l, x)) hasnt) @ (map (fun (x, v) -> Heaplet (l, x, v)) has)  )
 
 %}
 
@@ -35,6 +39,7 @@
 %token AHEAPLETS 
 %token APLIST
 %token OBJFOOTPRINT
+%token OBJECT
 %token STORE
 %token <int> NUM
 %token <string> STRING
@@ -106,6 +111,8 @@ formula:
       s_id = $3;
       s_fields = get_fields $6 $8
     }) }
+  | OBJECT LBRACKET location RBRACKET LPAREN id_list VBAR id_value_list RPAREN 
+    { make_heaplets $3 $6 $8  }
 ;
 
 location:
