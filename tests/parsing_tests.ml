@@ -54,7 +54,7 @@ let test_abs_heap () =
   ] in
   let f = parse_formula
     "#cScope = [#ahl1; #lg] *
-     #obj[#lg] (#proto , #this) * 
+     #footprint[#lg] (#proto , #this) * 
      (#lg,#proto) |-> #apl1 * 
      (#lg,#this) |-> #lg *
      #aheaplets[#ahl1](x, y|) *
@@ -86,7 +86,7 @@ let test_abs_heaplets_two_parts () =
   ] in
   let f = parse_formula
     "#cScope = [#ahl1; #lg] *
-     #obj[#lg] (#proto , #this) * 
+     #footprint[#lg] (#proto , #this) * 
      (#lg,#proto) |-> #lop * 
      #aheaplets[#ahl1,#lop,#ahl2](x, y|)(a|) *
      (#lg,#this) |-> #lg" in
