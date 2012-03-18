@@ -11,14 +11,18 @@ exception NotImplemented
 
 let (==>) a b = (! a) || b
 
+(* Apparently data constructors can't /quite/ be used as
+   functions. They can't be composed, for example. *)
+let some x = Some x
+
 let unescape_html s =
   Str.global_substitute
     (Str.regexp "&lt;\\|&gt;\\|&amp;\\|&quot;")
     (fun s ->
       match Str.matched_string s with
-        "&lt;" -> "<"
-      | "&gt;" -> ">"
-      | "&amp;" -> "&"
-      | "&quot;" -> "\""
-      | _ -> assert false)
+          "&lt;" -> "<"
+        | "&gt;" -> ">"
+        | "&amp;" -> "&"
+        | "&quot;" -> "\""
+        | _ -> assert false)
     s
