@@ -17,6 +17,16 @@ let test_string () =
   let f = parse_formula "(#l1,x) |-> 'abc'" in
   assert_equal (Heaplet (LocNum 1, "x", pv_le (Pv_String "abc"))) f
   
+let test_obj () =
+  let f = parse_formula "#obj[#l1](x,y,z | a:1,b:'abc')" in
+  assert_equal (Star [
+    HeapletEmpty (LocNum 1, "x");
+    HeapletEmpty (LocNum 1, "y");
+    HeapletEmpty (LocNum 1, "z");
+    Heaplet (LocNum 1, "a", pv_le (Pv_Num 1));
+    Heaplet (LocNum 1, "b", pv_le (Pv_String "abc"));
+    ]) f
+  
 (* TODO unescaping 
 let test_esc_string () =
   let f = parse_formula "(@l1,x) |-> \"\\n\\t\\\"\"" in
@@ -54,9 +64,8 @@ let test_abs_heap () =
   ] in
   let f = parse_formula
     "#cScope = [#ahl1; #lg] *
-     #obj[#lg] (#proto , #this) * 
-     (#lg,#proto) |-> #apl1 * 
-     (#lg,#this) |-> #lg *
+     #footprint[#lg] (#proto , #this) * 
+     #obj[#lg](|#proto : #apl1, #this : #lg) *
      #aheaplets[#ahl1](x, y|) *
      #plist[#apl1,#ahl1](x, y| )" in
   assert_equal (simplify abs_heap_f) (simplify f)
@@ -81,15 +90,15 @@ let test_abs_heaplets_two_parts () =
     CScopes [abs_node_f;Lg];
     ObjFootprint (Lg, ["#proto"; "#this"]);
     Heaplet (Lg, "#proto", lb_le (Lb_Loc Lop));
-    AbstractHeaplets sl_segment;
-    Heaplet (Lg, "#this", lb_le (Lb_Loc Lg))
+    Heaplet (Lg, "#this", lb_le (Lb_Loc Lg));
+    AbstractHeaplets sl_segment
   ] in
   let f = parse_formula
     "#cScope = [#ahl1; #lg] *
-     #obj[#lg] (#proto , #this) * 
-     (#lg,#proto) |-> #lop * 
-     #aheaplets[#ahl1,#lop,#ahl2](x, y|)(a|) *
-     (#lg,#this) |-> #lg" in
+     #footprint[#lg] (#proto , #this) * 
+     #obj[#lg](|#proto : #lop, #this : #lg) *
+     #aheaplets[#ahl1,#lop,#ahl2](x, y|)(a|) "
+    in
   assert_equal (simplify abs_heap_f) (simplify f)
 
 let suite = "Testing Parsing" >:::
@@ -98,4 +107,5 @@ let suite = "Testing Parsing" >:::
    "test string" >:: test_string;
    "test abs_heap" >:: test_abs_heap; 
    "test abs heaplets two parts" >:: test_abs_heaplets_two_parts;
+   "test obj" >:: test_obj
 ]

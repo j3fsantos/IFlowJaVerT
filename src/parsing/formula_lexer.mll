@@ -44,7 +44,8 @@ rule token = parse
   | "#store"            { STORE }
   | "#apl" digit+ as n  { PLLOC (int_of_string (String.tail n 4)) }
   | "#sl" digit+ as n   { STORELOC (int_of_string (String.tail n 3)) }
-  | "#obj"              { OBJFOOTPRINT }
+  | "#footprint"        { OBJFOOTPRINT }
+  | "#obj"              { OBJECT }
   | "undefined"         { UNDEFINED }
   | "null"              { NULL }
   | "#null"             { LOC_NULL }
