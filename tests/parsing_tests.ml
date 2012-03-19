@@ -26,11 +26,14 @@ let test_esc_string () =
 let test_abs_heap () =
   let abs_node = AbsLoc { lid = 1; ltype = LocAh } in
   let sl_segment = {
-      ah_loc = abs_node;
-      ah_fields = {
+      ah_loc_f = abs_node;
+      ah_loc_s = Lb_LocNull;
+      ah_tail = Lb_LocNull;
+      ah_fp_fields = {
         has = EFields.empty;
         hasnt = ["x"; "y"];
-      }
+      };
+      ah_sp_fields = empty_fields
   } in
   let apl = AbsLoc { lid = 1; ltype = LocApl } in
   let pl_heap = {
@@ -57,10 +60,42 @@ let test_abs_heap () =
      #aheaplets[#ahl1](x, y|) *
      #plist[#apl1,#ahl1](x, y| )" in
   assert_equal (simplify abs_heap_f) (simplify f)
+  
+let test_abs_heaplets_two_parts () =
+  let abs_node_f = AbsLoc { lid = 1; ltype = LocAh } in
+  let abs_node_s = Lb_Loc (AbsLoc { lid = 2; ltype = LocAh }) in
+  let sl_segment = {
+      ah_loc_f = abs_node_f;
+      ah_loc_s = abs_node_s;
+      ah_tail = Lb_Loc Lop;
+      ah_fp_fields = {
+        has = EFields.empty;
+        hasnt = ["x"; "y"];
+      };
+      ah_sp_fields = {
+        has = EFields.empty;
+        hasnt = ["a"];
+      };
+  } in
+  let abs_heap_f = Star [
+    CScopes [abs_node_f;Lg];
+    ObjFootprint (Lg, ["#proto"; "#this"]);
+    Heaplet (Lg, "#proto", lb_le (Lb_Loc Lop));
+    AbstractHeaplets sl_segment;
+    Heaplet (Lg, "#this", lb_le (Lb_Loc Lg))
+  ] in
+  let f = parse_formula
+    "#cScope = [#ahl1; #lg] *
+     #obj[#lg] (#proto , #this) * 
+     (#lg,#proto) |-> #lop * 
+     #aheaplets[#ahl1,#lop,#ahl2](x, y|)(a|) *
+     (#lg,#this) |-> #lg" in
+  assert_equal (simplify abs_heap_f) (simplify f)
 
 let suite = "Testing Parsing" >:::
   ["test formula 1" >:: test_formula1;
    "test formula 2" >:: test_formula2;
    "test string" >:: test_string;
-   "test abs_heap" >:: test_abs_heap;  
+   "test abs_heap" >:: test_abs_heap; 
+   "test abs heaplets two parts" >:: test_abs_heaplets_two_parts;
 ]

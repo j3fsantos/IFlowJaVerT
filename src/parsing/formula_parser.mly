@@ -78,8 +78,21 @@ formula:
   | CSCOPE EQ LBRACKET location_list RBRACKET            { CScopes $4 }
   | AHEAPLETS LBRACKET location RBRACKET LPAREN id_list VBAR id_value_list RPAREN 
     { AbstractHeaplets ({
-      ah_loc = $3; 
-      ah_fields = get_fields $6 $8
+      ah_loc_f = $3;
+      ah_loc_s = Lb_LocNull;
+      ah_tail = Lb_LocNull;
+      ah_fp_fields = get_fields $6 $8;
+      ah_sp_fields = empty_fields
+    }) }
+  | AHEAPLETS LBRACKET location COMMA location_b COMMA location_b RBRACKET 
+    LPAREN id_list VBAR id_value_list RPAREN 
+    LPAREN id_list VBAR id_value_list RPAREN
+    { AbstractHeaplets ({
+      ah_loc_f = $3;
+      ah_loc_s = $7;
+      ah_tail = $5;
+      ah_fp_fields = get_fields $10 $12;
+      ah_sp_fields = get_fields $15 $17
     }) }
 	| PLIST LBRACKET location COMMA location_b RBRACKET LPAREN id_list VBAR id_value_list RPAREN
 		{ AbstractProtoList ({

@@ -6,7 +6,7 @@ open Utils
 exception Parser_No_Program
 exception Parser_Xml_To_String
 exception Parser_Xml_To_Var
-exception Parser_Unknown_Tag of string
+exception Parser_Unknown_Tag of (string * int)
 exception Parser_PCData
 exception Parser_ObjectList
 exception JS_To_XML_parser_failure
@@ -107,7 +107,7 @@ let rec xml_to_exp xml : exp =
     | Element ("ASSIGN", attrs, children) -> 
       begin match (remove_annotation_elements children) with
         | [child1; child2] -> mk_exp (Assign (xml_to_exp child1, xml_to_exp child2)) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag "ASSIGN") 
+        | _ -> raise (Parser_Unknown_Tag ("ASSIGN", (get_offset attrs))) 
       end 
     | Element ("NAME", attrs, _) -> mk_exp (Var (get_value attrs)) (get_offset attrs)
     | Element ("NULL", attrs, _) -> mk_exp Null (get_offset attrs)
@@ -128,12 +128,12 @@ let rec xml_to_exp xml : exp =
     | Element ("VAR", attrs, children) -> 
       begin match (remove_annotation_elements children) with
         | [child] -> mk_exp (VarDec (name_element child)) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag "VAR") 
+        | _ -> raise (Parser_Unknown_Tag ("VAR", (get_offset attrs))) 
       end 
     | Element ("CALL", attrs, children) -> 
       begin match (remove_annotation_elements children) with
         | (child1 :: children) -> mk_exp (Call (xml_to_exp child1, (map xml_to_exp children))) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag "CALL") 
+        | _ -> raise (Parser_Unknown_Tag ("CALL", (get_offset attrs))) 
       end  
     | Element ("NUMBER", attrs, _) -> 
       let n_float = float_of_string (get_value attrs) in
@@ -151,7 +151,7 @@ let rec xml_to_exp xml : exp =
     | Element ("WITH", attrs, children) ->
       begin match (remove_annotation_elements children) with
         | [obj; block] -> mk_exp (With (xml_to_exp obj, xml_to_exp block)) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag "WITH") 
+        | _ -> raise (Parser_Unknown_Tag ("WITH", (get_offset attrs))) 
       end 
     | Element ("EMPTY", attrs, _) -> mk_exp Skip 0
     | Element ("IF", attrs, [condition; t_block; f_block]) ->
@@ -159,12 +159,12 @@ let rec xml_to_exp xml : exp =
     | Element ("EQ", attrs, children) -> 
       begin match (remove_annotation_elements children) with
         | [e1; e2] -> mk_exp (BinOp (xml_to_exp e1, Equal, xml_to_exp e2)) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag "EQ") 
+        | _ -> raise (Parser_Unknown_Tag ("EQ", (get_offset attrs))) 
       end 
     | Element ("SHEQ", attrs, children) -> 
       begin match (remove_annotation_elements children) with
         | [e1; e2] -> mk_exp (BinOp (xml_to_exp e1, TripleEqual, xml_to_exp e2)) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag "SHEQ") 
+        | _ -> raise (Parser_Unknown_Tag ("SHEQ", (get_offset attrs))) 
       end 
     | Element ("WHILE", attrs, [condition; block]) ->
       let invariant = get_invariant xml in
@@ -172,7 +172,7 @@ let rec xml_to_exp xml : exp =
     | Element ("GETPROP", attrs, children) ->
       begin match (remove_annotation_elements children) with
         | [child1; child2] -> mk_exp (Access (xml_to_exp child1, string_element child2)) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag "GETPROP") 
+        | _ -> raise (Parser_Unknown_Tag ("GETPROP", (get_offset attrs))) 
       end 
     | Element ("STRING", attrs, _) -> mk_exp (String (string_element xml)) (get_offset attrs)
     | Element ("TRUE", attrs, _) -> mk_exp (Bool true) (get_offset attrs)
@@ -180,9 +180,10 @@ let rec xml_to_exp xml : exp =
     | Element ("ADD", attrs, children) -> 
       begin match (remove_annotation_elements children) with
         | [child1; child2] -> mk_exp (BinOp (xml_to_exp child1, Plus, xml_to_exp child2)) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag "ADD") 
+        | _ -> raise (Parser_Unknown_Tag ("ADD", (get_offset attrs))) 
       end
-    | Element (tag_name, _, _) -> raise (Parser_Unknown_Tag tag_name) 
+    | Element ("THIS", attrs, _) -> mk_exp This (get_offset attrs)
+    | Element (tag_name, attrs, _) -> raise (Parser_Unknown_Tag (tag_name, (get_offset attrs)))
     | PCData _ -> raise Parser_PCData
 
 let js_to_xml (filename : string) : string =
