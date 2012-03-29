@@ -1,5 +1,6 @@
 open OUnit
 open Logic
+open Logic_Utils
 open Formula_parser
 open Formula_lexer
 open Syntax
