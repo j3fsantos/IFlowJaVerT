@@ -1,5 +1,6 @@
 open Syntax
 open Logic
+open Logic_Utils
 
 exception No_Spec_In_Code
 
