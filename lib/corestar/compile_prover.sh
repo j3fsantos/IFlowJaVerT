@@ -1,0 +1,1 @@
+ocamlbuild -I src/utils -I src/prover_syntax -I src/plugin_interface -I src/prover corestar.cma
