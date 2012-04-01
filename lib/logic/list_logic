@@ -1,0 +1,27 @@
+rule mem_empty :
+  | |- !mem (?x, empty())
+if
+
+rule mem_cons_eq :
+  | |- !mem (?x, cons(?y, ?xs))
+without
+  ?x != ?y
+if
+  | |- ?x = ?y
+  
+rule mem_cons_neq :
+  | |- !mem (?x, cons(?y, ?xs))
+without
+  ?x = ?y
+if
+  | |- ?x != ?y * !mem (?x, ?xs)
+     
+rule subset_empty :
+  | |- !subset(empty(), ?xs)
+if
+  | |-
+  
+rule subset_cons :
+  | |- !subset(cons(?x, ?xs1), ?xs2)
+if
+  | |- !mem (?x, ?xs2) * !subset(?xs1, ?xs2)
