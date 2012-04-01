@@ -44,7 +44,7 @@ REMOVE = src/*.cmo \
          src/parsing/*.cmi \
          src/parsing/formula_lexer.ml \
          src/parsing/formula_parser.ml \
-	 src/parsing/formula_parser.mli \
+         src/parsing/formula_parser.mli \
          src/strategies/store/*.cmo \
          src/strategies/store/*.cmi
 
