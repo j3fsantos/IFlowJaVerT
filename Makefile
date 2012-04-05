@@ -15,20 +15,20 @@ SOURCE = src/localconfig.ml \
          src/logic_Utils.ml \
          src/abduction.ml \
          src/graph.ml \
+         lib/corestar/corestar.cma \
+         src/corestar_frontend.ml \
          src/inference_rules.ml \
          src/strategies/store/store_rules.ml \
          src/parser.ml \
          src/control_flow_graph.ml \
-         src/strategies/store/store_naive.ml \
-         src/strategies/naive_strategy.ml \
-         src/strategies/store/store_finf.ml \
-         src/strategies/store/store_abduct.ml \
          src/parsing/formula_parser.mli \
          src/parsing/formula_parser.ml \
          src/parsing/formula_lexer.ml \
          src/parsing/parsing_utils.ml \
-         lib/corestar/corestar.cma \
-         src/corestar_frontend.ml \
+         src/strategies/store/store_naive.ml \
+         src/strategies/naive_strategy.ml \
+         src/strategies/store/store_finf.ml \
+         src/strategies/store/store_abduct.ml \
          src/symb_execution.ml \
          src/example.ml \
          src/spec.ml \
