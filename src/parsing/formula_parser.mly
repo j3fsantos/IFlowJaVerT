@@ -85,7 +85,7 @@ formula:
     { AbstractHeaplets ({
       ah_loc_f = $3;
       ah_loc_s = Lb_LocNull;
-      ah_tail = Lb_LocNull;
+      ah_tail = Some Lb_LocNull;
       ah_fp_fields = get_fields $6 $8;
       ah_sp_fields = empty_fields
     }) }
@@ -95,7 +95,7 @@ formula:
     { AbstractHeaplets ({
       ah_loc_f = $3;
       ah_loc_s = $7;
-      ah_tail = $5;
+      ah_tail = Some $5;
       ah_fp_fields = get_fields $10 $12;
       ah_sp_fields = get_fields $15 $17
     }) }
