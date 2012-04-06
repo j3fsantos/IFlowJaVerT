@@ -102,7 +102,7 @@ formula:
 	| PLIST LBRACKET location COMMA location_b RBRACKET LPAREN id_list VBAR id_value_list RPAREN
 		{ AbstractProtoList ({
 		  pl_id = $3;
-      pl_tail = $5;  
+      pl_tail = Some $5;  
 		  pl_fields = get_fields $8 $10 
 		}) }
   | OBJFOOTPRINT LBRACKET location RBRACKET LPAREN id_list RPAREN { ObjFootprint ($3, $6) }

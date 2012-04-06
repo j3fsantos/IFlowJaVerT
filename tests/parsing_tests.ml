@@ -49,7 +49,7 @@ let test_abs_heap () =
   let apl = AbsLoc { lid = 1; ltype = LocApl } in
   let pl_heap = {
     pl_id = apl;
-    pl_tail = Lb_Loc abs_node;
+    pl_tail = Some (Lb_Loc abs_node);
     pl_fields = {
       has = EFields.empty;
       hasnt = ["x"; "y"];

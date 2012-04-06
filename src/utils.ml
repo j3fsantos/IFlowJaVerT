@@ -10,6 +10,7 @@ let flat_map f l = flatten (map f l)
 exception ThereAreMorePossibilitiesThanYouThink of string
 exception NotImplemented
 exception CannotHappen
+exception InvalidArgument of string * string
 
 (* For some reason, ocaml doesn't seem to have a boolean implication operator. Weird. *)
 
