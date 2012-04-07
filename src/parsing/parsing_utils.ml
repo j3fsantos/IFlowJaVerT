@@ -10,6 +10,7 @@ let locMap : loc LocMap.t ref = ref ( LocMap.empty)
 
 let parse_formula f = 
   let lexbuf = Lexing.from_string f in
+  (* TODO: report parsing errors in a nicer way, catch exceptions such as Invalid_argument("index out of bounds")*)
   Formula_parser.main Formula_lexer.token lexbuf
   
 let get_annots_from_code exp annot_type = 

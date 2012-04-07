@@ -26,6 +26,8 @@
 %token <string> ID 
 %token EQ
 %token NEQ
+%token LE
+%token LT
 %token ISTRUE
 %token ISFALSE
 %token CSCOPES
@@ -77,6 +79,8 @@ formula:
   | LPAREN location COMMA ID RPAREN POINTSTO EMPTY       { HeapletEmpty ($2, $4) }
   | logical_exp EQ logical_exp                           { Eq ($1, $3) }
   | logical_exp NEQ logical_exp                          { NEq ($1, $3) }
+  | logical_exp LE logical_exp                           { IsTrue (Le_BinOp ($1, Lbo_le, $3)) }
+  | logical_exp LT logical_exp                           { IsTrue (Le_BinOp ($1, Lbo_lt, $3)) }
   | RETURN EQ logical_exp                                { REq $3 }
   | ISTRUE LPAREN logical_exp RPAREN                     { IsTrue $3 }
   | ISFALSE LPAREN logical_exp RPAREN                    { IsFalse $3 }

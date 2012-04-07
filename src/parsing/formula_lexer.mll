@@ -34,6 +34,8 @@ rule token = parse
   | ':'                 { COLON }
   | ';'                 { SEMICOLON }
   | '.'                 { DOT }
+  | "<="                { LE }
+  | '<'                 { LT }
   | "#lg"               { LG }
   | "#lop"              { LOP }
   | "#lfp"              { LFP }
