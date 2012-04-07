@@ -60,7 +60,8 @@ rule token = parse
   | "#this"             { ID "#this" }
   | "#body"             { ID "#body" }
   | "#scope"            { ID "#scope" }
-  | '?' id as n         { LE_VAR (String.tail n 1) }
+  | '?' id as n         { LE_VAR (Logic.AVar (String.tail n 1)) }
+  | '_' id as n         { LE_VAR (Logic.EVar (String.tail n 1)) }
   | id as s             { ID s }
   | '"' ((string_char|('\\' _))* as s) '"' { STRING s }
   | ''' ((string_char_quote|('\\' _))* as s) ''' { STRING s }

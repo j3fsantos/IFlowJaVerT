@@ -58,7 +58,7 @@
 %token <int> STORELOC
 %token LOC_NULL
 %token PLUS MINUS 
-%token <string> LE_VAR
+%token <Logic.logical_var> LE_VAR
 %token RETURN
 %token CSCOPE
 %token AHEAPLETS
