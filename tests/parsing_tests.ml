@@ -44,7 +44,7 @@ let test_abs_heap () =
         has = EFields.empty;
         hasnt = ["x"; "y"];
       };
-      ah_sp_fields = empty_fields ()
+      ah_sp_fields = empty_fields
   } in
   let apl = AbsLoc { lid = 1; ltype = LocApl } in
   let pl_heap = {

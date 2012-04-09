@@ -91,7 +91,7 @@ formula:
       ah_loc_s = Lb_LocNull;
       ah_tail = Some Lb_LocNull;
       ah_fp_fields = get_fields $6 $8;
-      ah_sp_fields = empty_fields ()
+      ah_sp_fields = empty_fields
     }) }
   | AHEAPLETS LBRACKET location COMMA location_b COMMA location_b RBRACKET 
     LPAREN id_list VBAR id_value_list RPAREN 
