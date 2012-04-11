@@ -8,24 +8,28 @@ open Parsing_utils
     
 let test_formula1 () =
   let f = parse_formula "(#l1,x) |-> #(/)" in
-  assert_equal (HeapletEmpty (LocNum 1, "x")) f
-  
+  assert_equal (HeapletEmpty (LocNum (AVar "1"), "x")) f
+ 
 let test_formula2 () =
   let f = parse_formula "(#l1,x) |-> #(/) * (#l1,y) |-> 5" in
-  assert_equal (Star [HeapletEmpty (LocNum 1, "x"); Heaplet (LocNum 1, "y", pv_le (Pv_Num 5))]) f
+  assert_equal (Star [HeapletEmpty (LocNum (AVar "1"), "x"); Heaplet (LocNum (AVar "1"), "y", pv_le (Pv_Num 5))]) f
+  
+let test_formula3 () =
+  let f = parse_formula "(_#l1,x) |-> #(/)" in
+  assert_equal (HeapletEmpty (LocNum (EVar "1"), "x")) f
 
 let test_string () =
   let f = parse_formula "(#l1,x) |-> 'abc'" in
-  assert_equal (Heaplet (LocNum 1, "x", pv_le (Pv_String "abc"))) f
+  assert_equal (Heaplet (LocNum (AVar "1"), "x", pv_le (Pv_String "abc"))) f
   
 let test_obj () =
   let f = parse_formula "#obj[#l1](x,y,z | a:1,b:'abc')" in
   assert_equal (Star [
-    HeapletEmpty (LocNum 1, "x");
-    HeapletEmpty (LocNum 1, "y");
-    HeapletEmpty (LocNum 1, "z");
-    Heaplet (LocNum 1, "a", pv_le (Pv_Num 1));
-    Heaplet (LocNum 1, "b", pv_le (Pv_String "abc"));
+    HeapletEmpty (LocNum (AVar "1"), "x");
+    HeapletEmpty (LocNum (AVar "1"), "y");
+    HeapletEmpty (LocNum (AVar "1"), "z");
+    Heaplet (LocNum (AVar "1"), "a", pv_le (Pv_Num 1));
+    Heaplet (LocNum (AVar "1"), "b", pv_le (Pv_String "abc"));
     ]) f
   
 (* TODO unescaping 
@@ -35,7 +39,7 @@ let test_esc_string () =
   assert_equal (Heaplet (LocNum 1, "x", pv_le (Pv_String "\n\t\""))) f *)
 
 let test_abs_heap () =
-  let abs_node = AbsLoc { lid = 1; ltype = LocAh } in
+  let abs_node = AbsLoc { lid = (AVar "1"); ltype = LocAh } in
   let sl_segment = {
       ah_loc_f = abs_node;
       ah_loc_s = Lb_LocNull;
@@ -46,7 +50,7 @@ let test_abs_heap () =
       };
       ah_sp_fields = empty_fields
   } in
-  let apl = AbsLoc { lid = 1; ltype = LocApl } in
+  let apl = AbsLoc { lid = (AVar "1"); ltype = LocApl } in
   let pl_heap = {
     pl_id = apl;
     pl_tail = Some (Lb_Loc abs_node);
@@ -72,8 +76,8 @@ let test_abs_heap () =
   assert_equal (simplify abs_heap_f) (simplify f)
   
 let test_abs_heaplets_two_parts () =
-  let abs_node_f = AbsLoc { lid = 1; ltype = LocAh } in
-  let abs_node_s = Lb_Loc (AbsLoc { lid = 2; ltype = LocAh }) in
+  let abs_node_f = AbsLoc { lid = (AVar "1"); ltype = LocAh } in
+  let abs_node_s = Lb_Loc (AbsLoc { lid = (AVar "2"); ltype = LocAh }) in
   let sl_segment = {
       ah_loc_f = abs_node_f;
       ah_loc_s = abs_node_s;
@@ -105,6 +109,7 @@ let test_abs_heaplets_two_parts () =
 let suite = "Testing Parsing" >:::
   ["test formula 1" >:: test_formula1;
    "test formula 2" >:: test_formula2;
+   "test formula 3" >:: test_formula3;
    "test string" >:: test_string;
    "test abs_heap" >:: test_abs_heap; 
    "test abs heaplets two parts" >:: test_abs_heaplets_two_parts;

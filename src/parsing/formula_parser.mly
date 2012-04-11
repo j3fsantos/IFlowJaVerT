@@ -52,10 +52,10 @@
 %token LG
 %token LOP
 %token LFP
-%token <int> LOC
-%token <int> AHLOC
-%token <int> PLLOC
-%token <int> STORELOC
+%token <Logic.logical_var> LOC
+%token <Logic.logical_var> AHLOC
+%token <Logic.logical_var> PLLOC
+%token <Logic.logical_var> STORELOC
 %token LOC_NULL
 %token PLUS MINUS 
 %token <Logic.logical_var> LE_VAR

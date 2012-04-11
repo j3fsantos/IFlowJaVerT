@@ -10,6 +10,8 @@ let letter = ['a'-'z''A'-'Z']
 
 let id = letter+(letter|digit)*
 
+let lid = (letter|digit)+
+
 let string_char = [^'"''\\']
 
 let string_char_quote = [^''''\\']
@@ -39,13 +41,17 @@ rule token = parse
   | "#lg"               { LG }
   | "#lop"              { LOP }
   | "#lfp"              { LFP }
-  | "#l" digit+ as n    { LOC (int_of_string (String.tail n 2)) }
-  | "#ahl" digit+ as n  { AHLOC (int_of_string (String.tail n 4)) }
+  | "_#l" (lid as n)      { LOC (Logic.EVar n) }
+  | "#l" (lid as n)      { LOC (Logic.AVar n) }
+  | "_#ahl" (lid as n)    { AHLOC (Logic.EVar n) }
+  | "#ahl" (lid as n)    { AHLOC (Logic.AVar n) }
   | "#aheaplets"        { AHEAPLETS }
   | "#plist"            { PLIST }
   | "#store"            { STORE }
-  | "#apl" digit+ as n  { PLLOC (int_of_string (String.tail n 4)) }
-  | "#sl" digit+ as n   { STORELOC (int_of_string (String.tail n 3)) }
+  | "_#apl" (lid as n)    { PLLOC (Logic.EVar n) }
+  | "#apl" (lid as n)    { PLLOC (Logic.AVar n) }
+  | "_#sl" (lid as n)     { STORELOC (Logic.EVar n) }
+  | "#sl" (lid as n)     { STORELOC (Logic.AVar n) }
   | "#footprint"        { OBJFOOTPRINT }
   | "#obj"              { OBJECT }
   | "undefined"         { UNDEFINED }

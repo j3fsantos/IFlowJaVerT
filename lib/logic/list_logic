@@ -25,3 +25,10 @@ rule subset_cons :
   | |- !subset(cons(?x, ?xs1), ?xs2)
 if
   | |- !mem (?x, ?xs2) * !subset(?xs1, ?xs2)
+  
+rule cons_inj:
+  |  |- cons(?x,?z) = cons(?y,?w)
+without 
+  ?x=?y * ?z=?w
+if
+  | |- ?x=?y * ?z=?w
