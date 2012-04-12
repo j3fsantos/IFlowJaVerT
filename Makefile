@@ -27,6 +27,7 @@ SOURCE = src/localconfig.ml \
          src/parsing/parsing_utils.ml \
          src/strategies/store/store_naive.ml \
          src/strategies/naive_strategy.ml \
+         src/strategies/naive_abduction.ml \
          src/strategies/store/store_finf.ml \
          src/strategies/store/store_abduct.ml \
          src/symb_execution.ml \
