@@ -32,3 +32,15 @@ without
   ?x=?y * ?z=?w
 if
   | |- ?x=?y * ?z=?w
+  
+rule not_mem_empty :
+  | |- !not_mem (?x, empty())
+if
+  | |-
+  
+rule not_mem_cons_neq :
+  | |- !not_mem (?x, cons(?y, ?xs))
+without
+  ?x = ?y 
+if
+  | |- ?x != ?y * !not_mem (?x, ?xs)
