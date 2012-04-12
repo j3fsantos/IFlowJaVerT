@@ -135,6 +135,11 @@ let rec xml_to_exp xml : exp =
         | (child1 :: children) -> mk_exp (Call (xml_to_exp child1, (map xml_to_exp children))) (get_offset attrs)
         | _ -> raise (Parser_Unknown_Tag ("CALL", (get_offset attrs))) 
       end  
+    | Element ("NEW", attrs, children) -> 
+      begin match (remove_annotation_elements children) with
+        | (child1 :: children) -> mk_exp (New (xml_to_exp child1, (map xml_to_exp children))) (get_offset attrs)
+        | _ -> raise (Parser_Unknown_Tag ("NEW", (get_offset attrs))) 
+      end
     | Element ("NUMBER", attrs, _) -> 
       let n_float = float_of_string (get_value attrs) in
       if abs_float (n_float -. (floor n_float)) > epsilon_float then raise OnlyIntegersAreImplemented 
