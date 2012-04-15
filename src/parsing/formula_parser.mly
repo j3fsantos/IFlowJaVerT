@@ -86,25 +86,25 @@ formula:
   | ISFALSE LPAREN logical_exp RPAREN                    { IsFalse $3 }
   | CSCOPE EQ LBRACKET location_list RBRACKET            { CScopes $4 }
   | AHEAPLETS LBRACKET location RBRACKET LPAREN id_list VBAR id_value_list RPAREN 
-    { AbstractHeaplets ({
-      ah_loc_f = $3;
-      ah_loc_s = Lb_LocNull;
-      ah_tail = Some Lb_LocNull;
-      ah_fp_fields = get_fields $6 $8;
-      ah_sp_fields = empty_fields
+    { Storelet ({
+      stl_loc_f = $3;
+      stl_loc_s = Lb_LocNull;
+      stl_tail = Some Lb_LocNull;
+      stl_fp_fields = get_fields $6 $8;
+      stl_sp_fields = empty_fields
     }) }
   | AHEAPLETS LBRACKET location COMMA location_b COMMA location_b RBRACKET 
     LPAREN id_list VBAR id_value_list RPAREN 
     LPAREN id_list VBAR id_value_list RPAREN
-    { AbstractHeaplets ({
-      ah_loc_f = $3;
-      ah_loc_s = $7;
-      ah_tail = Some $5;
-      ah_fp_fields = get_fields $10 $12;
-      ah_sp_fields = get_fields $15 $17
+    { Storelet ({
+      stl_loc_f = $3;
+      stl_loc_s = $7;
+      stl_tail = Some $5;
+      stl_fp_fields = get_fields $10 $12;
+      stl_sp_fields = get_fields $15 $17
     }) }
 	| PLIST LBRACKET location COMMA location_b RBRACKET LPAREN id_list VBAR id_value_list RPAREN
-		{ AbstractProtoList ({
+		{ PList ({
 		  pl_id = $3;
       pl_tail = Some $5;  
 		  pl_fields = get_fields $8 $10 
@@ -124,8 +124,8 @@ location:
   | LOP      { Lop }
   | LFP      { Lfp }
   | LOC      { LocNum $1 }
-  | AHLOC    { AbsLoc {lid = $1; ltype = LocAh} }
-  | PLLOC    { AbsLoc {lid = $1; ltype = LocApl} }
+  | AHLOC    { AbsLoc {lid = $1; ltype = LocStl} }
+  | PLLOC    { AbsLoc {lid = $1; ltype = LocPl} }
   | STORELOC { AbsLoc {lid = $1; ltype = LocS} }
 ;
 

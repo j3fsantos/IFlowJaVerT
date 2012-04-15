@@ -39,18 +39,18 @@ let test_esc_string () =
   assert_equal (Heaplet (LocNum 1, "x", pv_le (Pv_String "\n\t\""))) f *)
 
 let test_abs_heap () =
-  let abs_node = AbsLoc { lid = (AVar "1"); ltype = LocAh } in
-  let sl_segment = {
-      ah_loc_f = abs_node;
-      ah_loc_s = Lb_LocNull;
-      ah_tail = Some Lb_LocNull;
-      ah_fp_fields = {
+  let abs_node = AbsLoc { lid = (AVar "1"); ltype = LocStl } in
+  let stl = {
+      stl_loc_f = abs_node;
+      stl_loc_s = Lb_LocNull;
+      stl_tail = Some Lb_LocNull;
+      stl_fp_fields = {
         has = EFields.empty;
         hasnt = ["x"; "y"];
       };
-      ah_sp_fields = empty_fields
+      stl_sp_fields = empty_fields
   } in
-  let apl = AbsLoc { lid = (AVar "1"); ltype = LocApl } in
+  let apl = AbsLoc { lid = (AVar "1"); ltype = LocPl } in
   let pl_heap = {
     pl_id = apl;
     pl_tail = Some (Lb_Loc abs_node);
@@ -64,29 +64,29 @@ let test_abs_heap () =
     ObjFootprint (Lg, ["#proto"; "#this"]);
     Heaplet (Lg, "#proto", lb_le (Lb_Loc apl));
     Heaplet (Lg, "#this", lb_le (Lb_Loc Lg));
-    AbstractHeaplets sl_segment;
-    AbstractProtoList pl_heap;
+    Storelet stl;
+    PList pl_heap;
   ] in
   let f = parse_formula
-    "#cScope = [#ahl1; #lg] *
+    "#cScope = [#stl1; #lg] *
      #footprint[#lg] (#proto , #this) * 
-     #obj[#lg](|#proto : #apl1, #this : #lg) *
-     #aheaplets[#ahl1](x, y|) *
-     #plist[#apl1,#ahl1](x, y| )" in
+     #obj[#lg](|#proto : #pl1, #this : #lg) *
+     #storelet[#stl1](x, y|) *
+     #plist[#pl1,#stl1](x, y| )" in
   assert_equal (simplify abs_heap_f) (simplify f)
   
 let test_abs_heaplets_two_parts () =
-  let abs_node_f = AbsLoc { lid = (AVar "1"); ltype = LocAh } in
-  let abs_node_s = Lb_Loc (AbsLoc { lid = (AVar "2"); ltype = LocAh }) in
-  let sl_segment = {
-      ah_loc_f = abs_node_f;
-      ah_loc_s = abs_node_s;
-      ah_tail = Some (Lb_Loc Lop);
-      ah_fp_fields = {
+  let abs_node_f = AbsLoc { lid = (AVar "1"); ltype = LocStl } in
+  let abs_node_s = Lb_Loc (AbsLoc { lid = (AVar "2"); ltype = LocStl }) in
+  let stl = {
+      stl_loc_f = abs_node_f;
+      stl_loc_s = abs_node_s;
+      stl_tail = Some (Lb_Loc Lop);
+      stl_fp_fields = {
         has = EFields.empty;
         hasnt = ["x"; "y"];
       };
-      ah_sp_fields = {
+      stl_sp_fields = {
         has = EFields.empty;
         hasnt = ["a"];
       };
@@ -96,13 +96,13 @@ let test_abs_heaplets_two_parts () =
     ObjFootprint (Lg, ["#proto"; "#this"]);
     Heaplet (Lg, "#proto", lb_le (Lb_Loc Lop));
     Heaplet (Lg, "#this", lb_le (Lb_Loc Lg));
-    AbstractHeaplets sl_segment
+    Storelet stl
   ] in
   let f = parse_formula
-    "#cScope = [#ahl1; #lg] *
+    "#cScope = [#stl1; #lg] *
      #footprint[#lg] (#proto , #this) * 
      #obj[#lg](|#proto : #lop, #this : #lg) *
-     #aheaplets[#ahl1,#lop,#ahl2](x, y|)(a|) "
+     #storelet[#stl1,#lop,#stl2](x, y|)(a|) "
     in
   assert_equal (simplify abs_heap_f) (simplify f)
 

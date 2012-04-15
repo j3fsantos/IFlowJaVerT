@@ -43,13 +43,13 @@ rule token = parse
   | "#lfp"              { LFP }
   | "_#l" (lid as n)      { LOC (Logic.EVar n) }
   | "#l" (lid as n)      { LOC (Logic.AVar n) }
-  | "_#ahl" (lid as n)    { AHLOC (Logic.EVar n) }
-  | "#ahl" (lid as n)    { AHLOC (Logic.AVar n) }
-  | "#aheaplets"        { AHEAPLETS }
+  | "_#stl" (lid as n)    { AHLOC (Logic.EVar n) }
+  | "#stl" (lid as n)    { AHLOC (Logic.AVar n) }
+  | "#storelet"        { AHEAPLETS }
   | "#plist"            { PLIST }
   | "#store"            { STORE }
-  | "_#apl" (lid as n)    { PLLOC (Logic.EVar n) }
-  | "#apl" (lid as n)    { PLLOC (Logic.AVar n) }
+  | "_#pl" (lid as n)    { PLLOC (Logic.EVar n) }
+  | "#pl" (lid as n)    { PLLOC (Logic.AVar n) }
   | "_#sl" (lid as n)     { STORELOC (Logic.EVar n) }
   | "#sl" (lid as n)     { STORELOC (Logic.AVar n) }
   | "#footprint"        { OBJFOOTPRINT }
