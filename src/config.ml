@@ -1,5 +1,5 @@
-open Xml
 open Localconfig
+open Xml
 
 exception UnknownConfigParameter
 
