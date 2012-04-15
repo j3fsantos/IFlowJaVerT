@@ -1,6 +1,6 @@
 %{
-  open Logic
   open List
+  open Logic  
   
   let get_fields xs xvs = 
     {
@@ -153,7 +153,7 @@ logical_exp :
   | LPAREN logical_exp logical_bin_op logical_exp RPAREN { Le_BinOp ($2, $3, $4) }
   | location_b DOT ID                      { Le_Ref ($1, $3) }
   | LBRACKET location_list RBRACKET        { Le_Scope $2 }
-  /* Do not have function expression for now */
+   /* Do not have function expression for now */
   
 id_list :
     ID COMMA id_list { $1 :: $3 }

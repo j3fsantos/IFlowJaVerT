@@ -1,16 +1,17 @@
 open Syntax
+open List
 open Logic
 open Logic_Utils
-open List
+open Utils
 
 exception No_Spec_In_Code
 exception No_Invariant_In_Code
 
-let locMap : loc LocMap.t ref = ref ( LocMap.empty)
+let locMap : loc LocMap.t ref = ref (LocMap.empty)
 
 let parse_formula f = 
   let lexbuf = Lexing.from_string f in
-  (* TODO: report parsing errors in a nicer way, catch exceptions such as Invalid_argument("index out of bounds")*)
+  (* TODO: report parsing errors in a nicer way, catch exceptions such as Invalid_argument("index out of bounds") *)
   Formula_parser.main Formula_lexer.token lexbuf
   
 let get_annots_from_code exp annot_type = 
@@ -34,7 +35,9 @@ let get_pre_from_code exp = get_spec_from_code exp Requires
 let get_post_from_code exp = get_spec_from_code exp Ensures
 
 let get_annots exp =
-  get_annots_from_code exp Requires @ get_annots_from_code exp Ensures @ get_annots_from_code exp Invariant
+  get_annots_from_code exp Requires @ 
+  get_annots_from_code exp Ensures @ 
+  get_annots_from_code exp Invariant
 
 let rec get_all_annots_no_fun exp =
   let f = get_all_annots_no_fun in
@@ -47,9 +50,9 @@ let rec get_all_annots_no_fun exp =
 	    | Delete e -> f e
 	    | BinOp (e1, _, e2) -> (f e1) @ (f e2)
 	    | Access (e, _) -> f e
-	    | Call (e1, e2s) -> (f e1) @ (Utils.flat_map (fun e2 -> f e2) e2s)
+	    | Call (e1, e2s) -> (f e1) @ (flat_map (fun e2 -> f e2) e2s)
 	    | Assign (e1, e2) -> (f e1) @ (f e2)
-	    | New (e1, e2s) -> (f e1) @ (Utils.flat_map (fun e2 -> f e2) e2s)
+	    | New (e1, e2s) -> (f e1) @ (flat_map (fun e2 -> f e2) e2s)
 	    | Obj xs -> flatten (map (fun (_,e) -> f e) xs)
 	    | CAccess (e1, e2) -> (f e1) @ (f e2)
 	    | With (e1, e2) -> (f e1) @ (f e2)

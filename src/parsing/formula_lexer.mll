@@ -1,7 +1,8 @@
 {
-open Formula_parser  
-open Batteries_uni
-exception Lexing_failed of char      
+  open Batteries_uni
+  open Formula_parser  
+  
+  exception Lexing_failed of char      
 }
 
 let digit = ['0'-'9']
@@ -18,7 +19,7 @@ let string_char_quote = [^''''\\']
 
 rule token = parse
   | [' ' '\t' '\n']     { token lexbuf }
-  | digit+ as lxm       { NUM(int_of_string lxm) }
+  | digit+ as lxm       { NUM (int_of_string lxm) }
   | '+'                 { PLUS }
   | '-'                 { MINUS }
   | '*'                 { STAR }
@@ -41,17 +42,17 @@ rule token = parse
   | "#lg"               { LG }
   | "#lop"              { LOP }
   | "#lfp"              { LFP }
-  | "_#l" (lid as n)      { LOC (Logic.EVar n) }
-  | "#l" (lid as n)      { LOC (Logic.AVar n) }
-  | "_#stl" (lid as n)    { AHLOC (Logic.EVar n) }
-  | "#stl" (lid as n)    { AHLOC (Logic.AVar n) }
-  | "#storelet"        { AHEAPLETS }
+  | "_#l" (lid as n)    { LOC (Logic.EVar n) }
+  | "#l" (lid as n)     { LOC (Logic.AVar n) }
+  | "_#stl" (lid as n)  { AHLOC (Logic.EVar n) }
+  | "#stl" (lid as n)   { AHLOC (Logic.AVar n) }
+  | "#storelet"         { AHEAPLETS }
   | "#plist"            { PLIST }
   | "#store"            { STORE }
-  | "_#pl" (lid as n)    { PLLOC (Logic.EVar n) }
+  | "_#pl" (lid as n)   { PLLOC (Logic.EVar n) }
   | "#pl" (lid as n)    { PLLOC (Logic.AVar n) }
-  | "_#sl" (lid as n)     { STORELOC (Logic.EVar n) }
-  | "#sl" (lid as n)     { STORELOC (Logic.AVar n) }
+  | "_#sl" (lid as n)   { STORELOC (Logic.EVar n) }
+  | "#sl" (lid as n)    { STORELOC (Logic.AVar n) }
   | "#footprint"        { OBJFOOTPRINT }
   | "#obj"              { OBJECT }
   | "undefined"         { UNDEFINED }
@@ -69,7 +70,7 @@ rule token = parse
   | '?' id as n         { LE_VAR (Logic.AVar (String.tail n 1)) }
   | '_' id as n         { LE_VAR (Logic.EVar (String.tail n 1)) }
   | id as s             { ID s }
-  | '"' ((string_char|('\\' _))* as s) '"' { STRING s }
+  | '"' ((string_char|('\\' _))* as s) '"'       { STRING s }
   | ''' ((string_char_quote|('\\' _))* as s) ''' { STRING s }
-  | _ as c              { raise (Lexing_failed c) } (* Return position *)
+  | _ as c              { raise (Lexing_failed c) } (* Return position *) (* TODO : return a proper error message *)
   | eof                 { EOF }
