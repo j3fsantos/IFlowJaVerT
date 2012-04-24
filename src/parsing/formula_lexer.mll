@@ -9,7 +9,7 @@ let digit = ['0'-'9']
 
 let letter = ['a'-'z''A'-'Z']
 
-let id = letter+(letter|digit)*
+let id = letter+(letter|digit|'_')*
 
 let lid = (letter|digit)+
 
