@@ -1,0 +1,72 @@
+The coreStar Verification Framework
+===================================
+
+coreStar is a highly-customisable automatic generic core symbolic execution 
+engine for analysis and verification with separation logic.
+
+For more information, see http://www.jstarverifier.org
+
+
+
+Building on *nix / Mac OSX / Cygwin
+-----------------------------------
+
+Use the standard incantation.
+  ./configure --prefix DIR
+  make install
+
+(NOTE: In some environments, such as Mac OS Leopard, dynlink.cmxa is
+unavailable, leading to a compile error. In that case, try "make install.byte".)
+
+And then run, assuming DIR/bin is in your path.
+  corestar
+
+Optionally, run the tests to make sure all is OK.
+  make test
+
+Dependencies:
+
+* OCaml >=3.11
+  http://caml.inria.fr/download.en.html
+  Debian / Ubuntu: ocaml, ocaml-native-compilers
+
+
+Building on Win32 (native)
+--------------------------
+
+Open the Visual Studio Command Prompt. 
+ - If you obtained Microsoft tools not as a part of Visual Studio, just open
+   Command Prompt and manually set up necessary PATH and INCLUDE directories.)
+
+Check that the make tool is in path.
+ - If using Cywgin/MinGW based make, then just add Cygwin/MinGW bin directory
+   to path. In addition, set the LIB environment variable to empty. This is
+   due to problems that arise when make deals with directories containing
+   empty spaces (like "Program Files"). You will probably have to manually set
+   up additional include path for OCaml compiler to Visual C++ Runtime
+   Libraries and Windows SDK libraries.
+
+To run the build process, call: 
+  make build
+
+To set the environment variables necessary for coreStar to run:
+  setenv.bat
+
+After the build process has finished, you may have to add extension .exe to
+compiled binaries located in coreStar's bin subdirectory.
+
+
+Dependencies:
+
+* Microsoft-based native Win32 port of OCaml: 
+  http://caml.inria.fr/pub/distrib/ocaml-3.11/ocaml-3.11.0-win-msvc.exe
+
+* FlexDLL: http://alain.frisch.fr/flexdll.html
+  (solves the problem that Windows DLL cannot refer to symbols defined
+  in the main application or in previously loaded DLLs)
+
+* Microsoft Macro Assembler (ml.exe), Microsoft Visual C++ and 
+  Microsoft Windows SDK libraries. (if you are not using Visual Studio,
+  these tools can be obtained for free at Microsoft site)
+
+* Unix make tool (e.g., the one distributed with Cygwin or MinGW)
