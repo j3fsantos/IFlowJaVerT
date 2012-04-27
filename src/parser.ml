@@ -166,6 +166,9 @@ let rec xml_to_exp xml : exp =
         | _ -> raise (Parser_Unknown_Tag ("WITH", (get_offset attrs))) 
       end 
     | Element ("EMPTY", attrs, _) -> mk_exp Skip 0
+    | Element ("IF", attrs, [condition; t_block]) ->
+      let offset = get_offset attrs in
+      mk_exp (If (xml_to_exp condition, xml_to_exp t_block, mk_exp Skip offset)) offset
     | Element ("IF", attrs, [condition; t_block; f_block]) ->
       mk_exp (If (xml_to_exp condition, xml_to_exp t_block, xml_to_exp f_block)) (get_offset attrs)
     | Element ("EQ", attrs, children) -> 
