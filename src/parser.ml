@@ -127,7 +127,14 @@ let rec xml_to_exp xml : exp =
       end
     | Element ("VAR", attrs, children) -> 
       begin match (remove_annotation_elements children) with
-        | [child] -> mk_exp (VarDec (name_element child)) (get_offset attrs)
+        | [Element ("NAME", attrs, [])] -> 
+          mk_exp (VarDec (get_value attrs)) (get_offset attrs) 
+        | [Element ("NAME", attrs, [child])] -> 
+          let variable = get_value attrs in
+          let offset = get_offset attrs in
+          let vardec = mk_exp (VarDec variable) offset in
+          let vardec_exp = mk_exp (Assign (mk_exp (Var variable) offset, (xml_to_exp child))) offset in
+          mk_exp (Seq (mk_exp (Seq (vardec, vardec_exp)) offset, mk_exp Undefined offset)) offset
         | _ -> raise (Parser_Unknown_Tag ("VAR", (get_offset attrs))) 
       end 
     | Element ("CALL", attrs, children) -> 
