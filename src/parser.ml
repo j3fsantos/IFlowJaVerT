@@ -61,11 +61,17 @@ let get_annot attrs : annotation =
 
 let rec get_function_spec_inner (f : xml) = 
   match f with
-    | Element ("FUNCTION", _, _) -> []
+    | Element ("FUNCTION", _, children) -> 
+      let not_block = filter (fun child -> 
+        match child with
+          | Element ("BLOCK", _, _) -> false
+          | _ -> true
+      ) children in
+      flat_map get_function_spec_inner not_block
     | Element ("ANNOTATION", attrs, []) -> 
       let annot = get_annot attrs in
       if is_invariant_annot annot then [] else [annot]
-    | Element (_, _, children) -> flat_map (fun child -> get_function_spec_inner child) children
+    | Element (_, _, children) -> flat_map get_function_spec_inner children
     | _ -> []
  
 let get_function_spec (f : xml) =
@@ -111,13 +117,17 @@ let rec xml_to_exp xml : exp =
       end 
     | Element ("NAME", attrs, _) -> mk_exp (Var (get_value attrs)) (get_offset attrs)
     | Element ("NULL", attrs, _) -> mk_exp Null (get_offset attrs)
-    | Element ("FUNCTION", attrs , [name; params; block]) ->
-      let fn_name = name_element name in
-      let fn_params = xml_to_vars params in
-      let fn_body = xml_to_exp block in
-      let fn_spec = get_function_spec xml in
-      if (fn_name = "") then mk_exp_with_annot (AnnonymousFun (fn_params,fn_body)) (get_offset attrs) fn_spec
-      else mk_exp_with_annot (NamedFun (fn_name,fn_params,fn_body)) (get_offset attrs) fn_spec
+    | Element ("FUNCTION", attrs, children) ->
+      begin match (remove_annotation_elements children) with
+        | [name; params; block] ->
+		      let fn_name = name_element name in
+		      let fn_params = xml_to_vars params in
+		      let fn_body = xml_to_exp block in
+		      let fn_spec = get_function_spec xml in
+		      if (fn_name = "") then mk_exp_with_annot (AnnonymousFun (fn_params,fn_body)) (get_offset attrs) fn_spec
+		      else mk_exp_with_annot (NamedFun (fn_name,fn_params,fn_body)) (get_offset attrs) fn_spec
+        | _ -> raise (Parser_Unknown_Tag ("FUNCTION", (get_offset attrs))) 
+      end
     | Element ("BLOCK", _, children) ->  
       let stmts = map xml_to_exp children in
       begin
