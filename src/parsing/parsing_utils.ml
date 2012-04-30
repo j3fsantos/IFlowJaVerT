@@ -4,7 +4,7 @@ open Logic
 open Logic_Utils
 open Utils
 
-exception No_Spec_In_Code
+exception No_Spec_In_Code of string
 exception No_Invariant_In_Code
 
 let locMap : loc LocMap.t ref = ref (LocMap.empty)
@@ -21,7 +21,7 @@ let get_annots_from_code exp annot_type =
 let get_spec_from_code exp annot_type = 
   let res = get_annots_from_code exp annot_type in
   match res with
-    | [] -> raise No_Spec_In_Code
+    | [] -> raise (No_Spec_In_Code (PrintSyntax.string_of_annot_type annot_type))
     | hd :: tl -> hd
   
 let get_inv_from_code exp = 
