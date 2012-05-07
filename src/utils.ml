@@ -11,6 +11,7 @@ exception ThereAreMorePossibilitiesThanYouThink of string
 exception NotImplemented
 exception CannotHappen
 exception InvalidArgument of string * string
+exception NotAFunction
 
 (* For some reason, ocaml doesn't seem to have a boolean implication operator. Weird. *)
 
