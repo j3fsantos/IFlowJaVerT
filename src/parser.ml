@@ -57,6 +57,7 @@ let get_annot attrs : annotation =
     | "requires" -> {atype = Requires; aformula = f}
     | "ensures" -> {atype = Ensures; aformula = f}
     | "invariant" -> {atype = Invariant; aformula = f}
+    | "codename" -> {atype = Codename; aformula = f}
     | annot -> raise (Unknown_Annotation annot)
 
 let rec get_function_spec_inner (f : xml) = 

@@ -5,6 +5,7 @@ open Logic_Utils
 open Utils
 
 exception No_Spec_In_Code of string
+exception No_Codename
 exception No_Invariant_In_Code
 
 let locMap : loc LocMap.t ref = ref (LocMap.empty)
@@ -33,6 +34,12 @@ let get_inv_from_code exp =
 let get_pre_from_code exp = get_spec_from_code exp Requires
   
 let get_post_from_code exp = get_spec_from_code exp Ensures
+
+let get_codename exp =
+  let codenames = filter (fun annot -> annot.atype = Codename) exp.exp_annot in
+  match codenames with
+    | [codename] -> codename.aformula
+    | _ -> raise No_Codename
 
 let get_annots exp =
   get_annots_from_code exp Requires @ 
