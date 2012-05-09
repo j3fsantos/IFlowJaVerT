@@ -31,6 +31,8 @@ SOURCE = src/localconfig.ml \
 	 src/strategies/store/store_finf.ml \
 	 src/strategies/store/store_abduct.ml \
 	 src/symb_execution.ml \
+	 src/strategies/rec_strategy.ml \
+	 src/strategy.ml \
 	 src/example.ml \
 	 src/spec.ml \
 	 src/main.ml
