@@ -1,0 +1,9 @@
+TAGS
+config/config.xml
+lib/corestar/corestar_src/_build/
+main.byte
+src/localconfig.ml
+tests/all_elements.js
+tests/test_suite
+lib/corestar/corestar.cma
+lib/corestar/corestar.cmi
