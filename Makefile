@@ -60,7 +60,7 @@ NATIVE_REMOVE = src/*.cmx \
 	src/strategies/store/*.cmx \
 	src/strategies/store/*.o
 
-all: tags parsing
+all: tags parsing $(SOURCE)
 	ocamlfind ocamlc -g -package batteries,unix,xml-light,dynlink -linkpkg $(INCLUDES) $(SOURCE) -o main.byte
 	rm $(REMOVE)
 init:
@@ -72,6 +72,11 @@ tags:
 
 parsing:
 	cd src/parsing && make
+
+lib/corestar/corestar.cma:
+	cd lib/corestar/corestar_src;\
+	./compile_prover.sh;\
+	cp _build/corestar.cma _build/corestar.cmi ..
 
 test:
 	cd tests && make test
