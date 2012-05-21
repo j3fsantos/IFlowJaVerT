@@ -64,6 +64,7 @@
 %token AHEAPLETS
 %token PLIST
 %token STORE
+%token FUN
 %left STAR PLUS MINUS       
 %token EOF     
 %start main            
@@ -153,6 +154,7 @@ logical_exp :
   | LPAREN logical_exp logical_bin_op logical_exp RPAREN { Le_BinOp ($2, $3, $4) }
   | location_b DOT ID                      { Le_Ref ($1, $3) }
   | LBRACKET location_list RBRACKET        { Le_Scope $2 }
+  | FUN LPAREN id_list RPAREN ID           { Le_FunC ($3, $5) }
    /* Do not have function expression for now */
   
 id_list :
