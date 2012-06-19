@@ -55,7 +55,7 @@ rule token = parse
   | "#sl" (lid as n)    { STORELOC (Logic.AVar n) }
   | "#footprint"        { OBJFOOTPRINT }
   | "#obj"              { OBJECT }
-  | "undefined"         { UNDEFINED }
+  | "#undefined"         { UNDEFINED }
   | "null"              { NULL }
   | "#null"             { LOC_NULL }
   | "true"              { TRUE }
