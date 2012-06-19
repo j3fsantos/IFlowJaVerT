@@ -1,3 +1,4 @@
+open Batteries_uni
 open Xml
 open Syntax
 open List
@@ -134,7 +135,10 @@ let rec xml_to_exp xml : exp =
       begin
       match stmts with
         | [] -> mk_exp Skip 0
-        | stmts -> fold_right (fun s1 s2 -> (mk_exp (Seq (s1,s2)) s1.offset)) stmts (mk_exp Skip 0)
+        | stmts -> 
+          let last = List.last stmts in
+          let stmts = List.take (List.length stmts - 1) stmts in
+          fold_right (fun s1 s2 -> (mk_exp (Seq (s1,s2)) s1.offset)) stmts last
       end
     | Element ("VAR", attrs, children) -> 
       begin match (remove_annotation_elements children) with
