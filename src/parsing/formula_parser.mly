@@ -65,6 +65,7 @@
 %token PLIST
 %token STORE
 %token FUN
+%token <Udpreds.pname> PNAME
 %left STAR PLUS MINUS       
 %token EOF     
 %start main            
@@ -83,6 +84,7 @@ formula:
   | logical_exp LE logical_exp                           { IsTrue (Le_BinOp ($1, Lbo_le, $3)) }
   | logical_exp LT logical_exp                           { IsTrue (Le_BinOp ($1, Lbo_lt, $3)) }
   | RETURN EQ logical_exp                                { REq $3 }
+  | PNAME LPAREN logical_exp_list RPAREN                 { UDPred ($1, $3) }
   | ISTRUE LPAREN logical_exp RPAREN                     { IsTrue $3 }
   | ISFALSE LPAREN logical_exp RPAREN                    { IsFalse $3 }
   | CSCOPE EQ LBRACKET location_list RBRACKET            { CScopes $4 }
@@ -156,6 +158,12 @@ logical_exp :
   | LBRACKET location_list RBRACKET        { Le_Scope $2 }
   | FUN LPAREN id_list RPAREN ID           { Le_FunC ($3, $5) }
    /* Do not have function expression for now */
+
+logical_exp_list:
+    logical_exp COMMA logical_exp_list     { $1 :: $3 }
+  | logical_exp                            { [$1] }
+  | /*empty*/                              { [] } 
+
   
 id_list :
     ID COMMA id_list { $1 :: $3 }

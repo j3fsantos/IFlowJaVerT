@@ -7,6 +7,7 @@ INCLUDES = -I lib/corestar \
 
 SOURCE = src/localconfig.ml \
 	 src/config.ml \
+         src/udpreds.ml \
 	 src/utils.ml \
 	 src/syntax.ml \
 	 src/logic.ml \
