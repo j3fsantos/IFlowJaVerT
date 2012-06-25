@@ -65,7 +65,7 @@
 %token PLIST
 %token STORE
 %token FUN
-%token <Udpreds.pname> PNAME
+%token <Logic.pname> PNAME
 %left STAR PLUS MINUS       
 %token EOF     
 %start main            

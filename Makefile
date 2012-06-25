@@ -7,12 +7,12 @@ INCLUDES = -I lib/corestar \
 
 SOURCE = src/localconfig.ml \
 	 src/config.ml \
-         src/udpreds.ml \
 	 src/utils.ml \
 	 src/syntax.ml \
 	 src/logic.ml \
 	 src/printing/printSyntax.ml \
 	 src/printing/printLogic.ml \
+         src/udpreds.ml \
 	 src/logic_Utils.ml \
 	 src/abduction.ml \
 	 src/graph.ml \

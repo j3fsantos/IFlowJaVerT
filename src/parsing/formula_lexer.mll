@@ -73,7 +73,7 @@ rule token = parse
   | '?' id as n         { LE_VAR (Logic.AVar (String.tail n 1)) }
   | '_' id as n         { LE_VAR (Logic.EVar (String.tail n 1)) }
   | id as s             { ID s }
-  | prid as s           { PNAME (Udpreds.pname_from_string s) }
+  | prid as s           { PNAME (Logic.pname_from_string s) }
   | '"' ((string_char|('\\' _))* as s) '"'       { STRING s }
   | ''' ((string_char_quote|('\\' _))* as s) ''' { STRING s }
   | _ as c              { raise (Lexing_failed c) } (* Return position *) (* TODO : return a proper error message *)
