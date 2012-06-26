@@ -12,12 +12,23 @@ let locMap : loc LocMap.t ref = ref (LocMap.empty)
 
 let parse_formula f = 
   
-  print_string ("About to try to parse: " ^ f ^ "\n\n");
-
   let lexbuf = Lexing.from_string f in
   (* TODO: report parsing errors in a nicer way, catch exceptions such as Invalid_argument("index out of bounds") *)
-  Formula_parser.main Formula_lexer.token lexbuf
-  
+  match Formula_parser.main Formula_lexer.token lexbuf with
+    | ABFormula formula -> formula
+    | ABPredDefn _ -> raise (Failure "Predicate definition found when formula was expected")
+
+let parse_defns f = 
+
+  let lexbuf = Lexing.from_string f in
+  match Formula_parser.main Formula_lexer.token lexbuf with
+    | ABFormula _ -> raise (Failure "Formula found when predicate definition was expected")
+    | ABPredDefn defns -> defns
+
+let get_defns_from_code exp =
+  let xs = List.find (fun annot -> annot.atype = PredDefn) exp.exp_annot in
+    parse_defns xs.aformula
+
 let get_annots_from_code exp annot_type = 
   let annots = List.filter (fun annot -> annot.atype = annot_type) exp.exp_annot in
   List.map (fun annot -> parse_formula annot.aformula) annots

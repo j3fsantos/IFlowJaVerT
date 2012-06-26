@@ -22,6 +22,7 @@ let string_char_quote = [^''''\\']
 rule token = parse
   | [' ' '\t' '\n']     { token lexbuf }
   | digit+ as lxm       { NUM (int_of_string lxm) }
+  | ":="                { DEFEQ }
   | '+'                 { PLUS }
   | '-'                 { MINUS }
   | '*'                 { STAR }
@@ -70,6 +71,8 @@ rule token = parse
   | "#body"             { ID "#body" }
   | "#scope"            { ID "#scope" }
   | "#fun"              { FUN }
+  | "define"            { DEFINE }
+  | '|'                 { OR }
   | '?' id as n         { LE_VAR (Logic.AVar (String.tail n 1)) }
   | '_' id as n         { LE_VAR (Logic.EVar (String.tail n 1)) }
   | id as s             { ID s }

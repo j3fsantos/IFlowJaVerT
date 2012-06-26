@@ -66,14 +66,32 @@
 %token STORE
 %token FUN
 %token <Logic.pname> PNAME
+%token DEFEQ
+%token DEFINE
+%token OR
 %left STAR PLUS MINUS       
 %token EOF     
 %start main            
-%type <Logic.formula> main
+%type <Logic.annot_body> main
 %%
 main:
-    formula EOF                { $1 }
+    formula EOF                { ABFormula $1 }
+  | defn_list EOF                   { ABPredDefn $1 }
 ;
+
+defn:
+    DEFINE PNAME LPAREN logical_var_list RPAREN DEFEQ defn_body SEMICOLON  { { name = $2; args = $4; rhss = $7 } }
+;
+
+defn_list:
+    defn defn_list     { $1 :: $2 }
+  | defn               { [$1] }
+  | /*empty*/          { [] }
+
+defn_body:
+    formula OR defn_body     { $1 :: $3 }
+  | formula                  { [$1] }
+
 
 formula:
     formula STAR formula                                 { Star [$1; $3] }
@@ -164,7 +182,13 @@ logical_exp_list:
   | logical_exp                            { [$1] }
   | /*empty*/                              { [] } 
 
-  
+
+logical_var_list:
+    LE_VAR COMMA logical_var_list          { $1 :: $3 }
+  | LE_VAR                                 { [$1] }
+  | /*empty*/                              { [] } 
+
+
 id_list :
     ID COMMA id_list { $1 :: $3 }
   | ID               { [$1] } 

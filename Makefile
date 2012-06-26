@@ -12,7 +12,6 @@ SOURCE = src/localconfig.ml \
 	 src/logic.ml \
 	 src/printing/printSyntax.ml \
 	 src/printing/printLogic.ml \
-         src/udpreds.ml \
 	 src/logic_Utils.ml \
 	 src/abduction.ml \
 	 src/graph.ml \
@@ -26,6 +25,8 @@ SOURCE = src/localconfig.ml \
 	 src/parsing/formula_parser.ml \
 	 src/parsing/formula_lexer.ml \
 	 src/parsing/parsing_utils.ml \
+         src/udpreds.ml \
+         src/help.ml \
 	 src/strategies/store/store_naive.ml \
 	 src/strategies/naive_strategy.ml \
 	 src/strategies/naive_abduction.ml \
