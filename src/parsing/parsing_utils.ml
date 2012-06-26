@@ -20,7 +20,8 @@ let parse_formula f =
 
 let parse_defns f = 
 
-  let lexbuf = Lexing.from_string f in
+  let lexbuf = Lexing.from_string (unescape_html f) in      (* Possibly this unescape should be done elsewhere? *)
+  
   match Formula_parser.main Formula_lexer.token lexbuf with
     | ABFormula _ -> raise (Failure "Formula found when predicate definition was expected")
     | ABPredDefn defns -> defns

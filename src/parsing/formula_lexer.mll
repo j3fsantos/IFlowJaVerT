@@ -72,7 +72,6 @@ rule token = parse
   | "#scope"            { ID "#scope" }
   | "#fun"              { FUN }
   | "define"            { DEFINE }
-  | '|'                 { OR }
   | '?' id as n         { LE_VAR (Logic.AVar (String.tail n 1)) }
   | '_' id as n         { LE_VAR (Logic.EVar (String.tail n 1)) }
   | id as s             { ID s }

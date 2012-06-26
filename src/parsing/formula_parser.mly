@@ -68,7 +68,6 @@
 %token <Logic.pname> PNAME
 %token DEFEQ
 %token DEFINE
-%token OR
 %left STAR PLUS MINUS       
 %token EOF     
 %start main            
@@ -86,10 +85,9 @@ defn:
 defn_list:
     defn defn_list     { $1 :: $2 }
   | defn               { [$1] }
-  | /*empty*/          { [] }
 
 defn_body:
-    formula OR defn_body     { $1 :: $3 }
+    formula VBAR defn_body     { $1 :: $3 }
   | formula                  { [$1] }
 
 
