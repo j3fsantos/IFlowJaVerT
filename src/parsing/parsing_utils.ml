@@ -27,8 +27,11 @@ let parse_defns f =
     | ABPredDefn defns -> defns
 
 let get_defns_from_code exp =
-  let xs = List.find (fun annot -> annot.atype = PredDefn) exp.exp_annot in
-    parse_defns xs.aformula
+	try
+    let xs = List.find (fun annot -> annot.atype = PredDefn) exp.exp_annot in
+      parse_defns xs.aformula
+	with
+		| Not_found -> []
 
 let get_annots_from_code exp annot_type = 
   let annots = List.filter (fun annot -> annot.atype = annot_type) exp.exp_annot in
