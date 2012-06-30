@@ -79,7 +79,7 @@ main:
 ;
 
 defn:
-    DEFINE PNAME LPAREN logical_var_list RPAREN DEFEQ defn_body SEMICOLON  { { name = $2; args = $4; rhss = $7 } }
+    DEFINE PNAME LPAREN formal_udparg_list RPAREN DEFEQ defn_body SEMICOLON  { { name = $2; args = $4; rhss = $7 } }
 ;
 
 defn_list:
@@ -100,7 +100,7 @@ formula:
   | logical_exp LE logical_exp                           { IsTrue (Le_BinOp ($1, Lbo_le, $3)) }
   | logical_exp LT logical_exp                           { IsTrue (Le_BinOp ($1, Lbo_lt, $3)) }
   | RETURN EQ logical_exp                                { REq $3 }
-  | PNAME LPAREN logical_exp_list RPAREN                 { UDPred ($1, $3) }
+  | PNAME LPAREN logical_exp_list RPAREN                      { UDPred ($1, $3) }
   | ISTRUE LPAREN logical_exp RPAREN                     { IsTrue $3 }
   | ISFALSE LPAREN logical_exp RPAREN                    { IsFalse $3 }
   | CSCOPE EQ LBRACKET location_list RBRACKET            { CScopes $4 }
@@ -181,10 +181,24 @@ logical_exp_list:
   | /*empty*/                              { [] } 
 
 
-logical_var_list:
-    LE_VAR COMMA logical_var_list          { $1 :: $3 }
-  | LE_VAR                                 { [$1] }
-  | /*empty*/                              { [] } 
+formal_udparg:
+ | LE_VAR
+   {
+     match $1 with
+       | AVar s -> FormalVarArg (AVar s)
+       | EVar _ -> raise (Failure "You tried to use an e-var as a variable argument when defining a predicate")
+   }
+ | LOC
+   {
+     match $1 with
+       | AVar s -> FormalLocArg (AVar s)
+       | EVar _ -> raise (Failure "You tried to use an e-var as a logcation argument when defining a predicate")
+   }
+
+formal_udparg_list:
+    formal_udparg COMMA formal_udparg_list  { $1 :: $3 }
+  | formal_udparg                           { [$1] }
+  | /*empty*/                               { [] } 
 
 
 id_list :
