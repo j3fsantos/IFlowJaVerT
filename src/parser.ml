@@ -207,6 +207,11 @@ let rec xml_to_exp xml : exp =
         | [e1; e2] -> mk_exp (BinOp (xml_to_exp e1, Le, xml_to_exp e2)) (get_offset attrs)
         | _ -> raise (Parser_Unknown_Tag ("LE", (get_offset attrs))) 
       end
+    | Element ("THROW", attrs, children) ->
+      begin match (remove_annotation_elements children) with
+        | [e] -> mk_exp (Throw (xml_to_exp e)) (get_offset attrs)
+        | _ -> raise (Parser_Unknown_Tag ("LE", (get_offset attrs))) 
+      end
     | Element ("WHILE", attrs, [condition; block]) ->
       let invariant = get_invariant xml in
       mk_exp_with_annot (While (xml_to_exp condition, xml_to_exp block)) (get_offset attrs) invariant
