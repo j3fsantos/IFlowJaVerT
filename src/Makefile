@@ -3,3 +3,6 @@ all:
 
 test:
 	cd .. && make test
+
+clean:
+	cd .. && make clean

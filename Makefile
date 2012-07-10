@@ -25,8 +25,8 @@ SOURCE = src/localconfig.ml \
 	 src/parsing/formula_parser.ml \
 	 src/parsing/formula_lexer.ml \
 	 src/parsing/parsing_utils.ml \
-         src/udpreds.ml \
-         src/help.ml \
+	 src/udpreds.ml \
+	 src/help.ml \
 	 src/strategies/store/store_naive.ml \
 	 src/strategies/naive_strategy.ml \
 	 src/strategies/naive_abduction.ml \
@@ -68,6 +68,9 @@ all: tags parsing $(SOURCE)
 init:
 	cp src/localconfig.default src/localconfig.ml
 	cp config/config.default config/config.xml
+
+clean:
+	rm $(REMOVE)
 
 tags:
 	etags -R .
