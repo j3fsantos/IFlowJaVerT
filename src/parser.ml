@@ -228,6 +228,11 @@ let rec xml_to_exp xml : exp =
         | [child1; child2] -> mk_exp (BinOp (xml_to_exp child1, Plus, xml_to_exp child2)) (get_offset attrs)
         | _ -> raise (Parser_Unknown_Tag ("ADD", (get_offset attrs))) 
       end
+    | Element ("SUB", attrs, children) -> 
+      begin match (remove_annotation_elements children) with
+        | [child1; child2] -> mk_exp (BinOp (xml_to_exp child1, Minus, xml_to_exp child2)) (get_offset attrs)
+        | _ -> raise (Parser_Unknown_Tag ("SUB", (get_offset attrs))) 
+      end
     | Element ("THIS", attrs, _) -> mk_exp This (get_offset attrs)
     | Element (tag_name, attrs, _) -> raise (Parser_Unknown_Tag (tag_name, (get_offset attrs)))
     | PCData _ -> raise Parser_PCData
