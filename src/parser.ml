@@ -108,7 +108,9 @@ let rec xml_to_exp xml : exp =
       match stmts with
         | [] -> raise Parser_No_Program
         | stmt::stmts -> 
-          let program = fold_right (fun s1 s2 -> (mk_exp (Seq (s1,s2)) s1.offset)) stmts (mk_exp Skip 0) in
+          let last = List.last stmts in
+          let stmts = List.take (List.length stmts - 1) stmts in
+          let program = fold_right (fun s1 s2 -> (mk_exp (Seq (s1,s2)) s1.offset)) stmts last in
           let program_spec = get_function_spec xml in
           mk_exp_with_annot (Seq (stmt, program)) program.offset program_spec
       end

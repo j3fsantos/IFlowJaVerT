@@ -25,3 +25,8 @@ src/plugin_interface/plugin_callback
 src/plugin_interface/plugin_manager
 src/plugin_interface/plugin
 src/plugin_interface/registry
+src/symbexe_syntax/core
+src/symbexe_syntax/spec
+src/parsing/lexer
+src/parsing/load_logic
+src/parsing/parser
