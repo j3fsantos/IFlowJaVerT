@@ -38,6 +38,7 @@
 %token SEMICOLON
 %token DOT
 %token VBAR
+%token OR
 %token AHEAPLETS 
 %token APLIST
 %token OBJFOOTPRINT
@@ -87,7 +88,7 @@ defn_list:
   | defn               { [$1] }
 
 defn_body:
-    formula VBAR defn_body     { $1 :: $3 }
+    formula OR defn_body     { $1 :: $3 }
   | formula                  { [$1] }
 
 

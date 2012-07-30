@@ -32,6 +32,7 @@ rule token = parse
   | ']'                 { RBRACKET }
   | "|->"               { POINTSTO }
   | '|'                 { VBAR }
+  | "\\/"               { OR }
   | "#(/)"              { EMPTY }
   | "#r"                { RETURN }
   | '='                 { EQ }
