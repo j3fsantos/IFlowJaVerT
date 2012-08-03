@@ -16,6 +16,7 @@ exception Parser_Name_Element
 exception Parser_Param_List
 exception Unknown_Annotation of string
 exception InvalidArgument
+exception XmlParserException
 
 let get_attr attrs attr_name =
   let offset_list = List.filter (fun (name, value) -> name = attr_name) attrs in

@@ -23,13 +23,14 @@ let some x = Some x
 
 let unescape_html s =
   Str.global_substitute
-    (Str.regexp "&lt;\\|&gt;\\|&amp;\\|&quot;")
+    (Str.regexp "&lt;\\|&gt;\\|&amp;\\|&quot;\\|&#9;")
     (fun s ->
       match Str.matched_string s with
           "&lt;" -> "<"
         | "&gt;" -> ">"
         | "&amp;" -> "&"
         | "&quot;" -> "\""
+        | "&#9;" -> " "
         | _ -> assert false)
     s
     
