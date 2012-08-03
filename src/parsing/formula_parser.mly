@@ -75,20 +75,20 @@
 %type <Logic.annot_body> main
 %%
 main:
-    formula EOF                { ABFormulas [$1] }
+    disj_of_formulas EOF                { ABFormulas $1 }
   | defn_list EOF                   { ABPredDefn $1 }
 ;
 
 defn:
-    DEFINE PNAME LPAREN formal_udparg_list RPAREN DEFEQ defn_body SEMICOLON  { { name = $2; args = $4; rhss = $7 } }
+    DEFINE PNAME LPAREN formal_udparg_list RPAREN DEFEQ disj_of_formulas SEMICOLON  { { name = $2; args = $4; rhss = $7 } }
 ;
 
 defn_list:
     defn defn_list     { $1 :: $2 }
   | defn               { [$1] }
 
-defn_body:
-    formula OR defn_body     { $1 :: $3 }
+disj_of_formulas:
+    formula OR disj_of_formulas     { $1 :: $3 }
   | formula                  { [$1] }
 
 
