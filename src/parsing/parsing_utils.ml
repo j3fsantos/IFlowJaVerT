@@ -48,10 +48,28 @@ let get_inv_from_code exp =
   match res with
     | [] -> raise No_Invariant_In_Code
     | _ -> map (subs_locs !locMap) (flatten res)
-  
+
+
 let get_pre_from_code exp = get_spec_from_code exp Requires
-  
+
 let get_post_from_code exp = get_spec_from_code exp Ensures
+
+
+let get_preposts_from_code exp = 
+  let pres  = get_annots_from_code exp Requires in
+  let posts = get_annots_from_code exp Ensures  in
+  try
+    List.map2
+      (fun pre post ->
+        match pre with
+          | [formula] ->  { spec_pre = formula; spec_post = post }
+          | _ ->  raise (Failure "Found a disjunctive precondition when non-disjunctive formula expected")
+      )
+      pres posts
+  with
+     | Invalid_argument "map2: Different_list_size" -> 
+         raise (Failure "Number of preconditions differs from number of postconditions")
+
 
 let get_codename exp =
   let codenames = filter (fun annot -> annot.atype = Codename) exp.exp_annot in
