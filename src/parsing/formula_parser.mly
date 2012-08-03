@@ -75,7 +75,7 @@
 %type <Logic.annot_body> main
 %%
 main:
-    formula EOF                { ABFormula $1 }
+    formula EOF                { ABFormulas [$1] }
   | defn_list EOF                   { ABPredDefn $1 }
 ;
 
