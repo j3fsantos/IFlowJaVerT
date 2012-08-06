@@ -7,30 +7,30 @@ open Syntax
 open Parsing_utils
     
 let test_formula1 () =
-  let f = parse_formula "(#l1,x) |-> #(/)" in
-  assert_equal (HeapletEmpty (LocNum (AVar "1"), "x")) f
+  let f = parse_formulas "(#l1,x) |-> #(/)" in
+  assert_equal (HeapletEmpty (LocNum (AVar "1"), "x")) (List.hd f)
  
 let test_formula2 () =
-  let f = parse_formula "(#l1,x) |-> #(/) * (#l1,y) |-> 5" in
-  assert_equal (Star [HeapletEmpty (LocNum (AVar "1"), "x"); Heaplet (LocNum (AVar "1"), "y", pv_le (Pv_Num 5))]) f
+  let f = parse_formulas "(#l1,x) |-> #(/) * (#l1,y) |-> 5" in
+  assert_equal (Star [HeapletEmpty (LocNum (AVar "1"), "x"); Heaplet (LocNum (AVar "1"), "y", pv_le (Pv_Num 5))]) (List.hd f)
   
 let test_formula3 () =
-  let f = parse_formula "(_#l1,x) |-> #(/)" in
-  assert_equal (HeapletEmpty (LocNum (EVar "1"), "x")) f
+  let f = parse_formulas "(_#l1,x) |-> #(/)" in
+  assert_equal (HeapletEmpty (LocNum (EVar "1"), "x")) (List.hd f)
 
 let test_string () =
-  let f = parse_formula "(#l1,x) |-> 'abc'" in
-  assert_equal (Heaplet (LocNum (AVar "1"), "x", pv_le (Pv_String "abc"))) f
+  let f = parse_formulas "(#l1,x) |-> 'abc'" in
+  assert_equal (Heaplet (LocNum (AVar "1"), "x", pv_le (Pv_String "abc"))) (List.hd f)
   
 let test_obj () =
-  let f = parse_formula "#obj[#l1](x,y,z | a:1,b:'abc')" in
+  let f = parse_formulas "#obj[#l1](x,y,z | a:1,b:'abc')" in
   assert_equal (Star [
     HeapletEmpty (LocNum (AVar "1"), "x");
     HeapletEmpty (LocNum (AVar "1"), "y");
     HeapletEmpty (LocNum (AVar "1"), "z");
     Heaplet (LocNum (AVar "1"), "a", pv_le (Pv_Num 1));
     Heaplet (LocNum (AVar "1"), "b", pv_le (Pv_String "abc"));
-    ]) f
+    ]) (List.hd f)
   
 (* TODO unescaping 
 let test_esc_string () =
@@ -67,13 +67,13 @@ let test_abs_heap () =
     Storelet stl;
     PList pl_heap;
   ] in
-  let f = parse_formula
+  let f = parse_formulas
     "#cScope = [#stl1; #lg] *
      #footprint[#lg] (#proto , #this) * 
      #obj[#lg](|#proto : #pl1, #this : #lg) *
      #storelet[#stl1](x, y|) *
      #plist[#pl1,#stl1](x, y| )" in
-  assert_equal (simplify abs_heap_f) (simplify f)
+  assert_equal (simplify abs_heap_f) (simplify (List.hd f))
   
 let test_abs_heaplets_two_parts () =
   let abs_node_f = AbsLoc { lid = (AVar "1"); ltype = LocStl } in
@@ -98,13 +98,13 @@ let test_abs_heaplets_two_parts () =
     Heaplet (Lg, "#this", lb_le (Lb_Loc Lg));
     Storelet stl
   ] in
-  let f = parse_formula
+  let f = parse_formulas
     "#cScope = [#stl1; #lg] *
      #footprint[#lg] (#proto , #this) * 
      #obj[#lg](|#proto : #lop, #this : #lg) *
      #storelet[#stl1,#lop,#stl2](x, y|)(a|) "
     in
-  assert_equal (simplify abs_heap_f) (simplify f)
+  assert_equal (simplify abs_heap_f) (simplify (List.hd f))
 
 let suite = "Testing Parsing" >:::
   ["test formula 1" >:: test_formula1;
