@@ -6,7 +6,8 @@ let suite = "Test The Lot" >:::
     Parsing_tests.suite;
     Utils_tests.suite;
     Examples_tests.suite;
-    Rec_examples.suite
+    Rec_examples.suite;
+    Parser_tests.suite
   ]
 
 let _ = run_test_tt_main suite

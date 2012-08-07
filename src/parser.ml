@@ -108,12 +108,12 @@ let rec xml_to_exp xml : exp =
       begin
       match stmts with
         | [] -> raise Parser_No_Program
-        | stmt::stmts -> 
+        | stmts -> 
           let last = List.last stmts in
           let stmts = List.take (List.length stmts - 1) stmts in
           let program = fold_right (fun s1 s2 -> (mk_exp (Seq (s1,s2)) s1.offset)) stmts last in
           let program_spec = get_function_spec xml in
-          mk_exp_with_annot (Seq (stmt, program)) program.offset program_spec
+          mk_exp_with_annot program.stx program.offset program_spec
       end
     | Element ("EXPR_RESULT", _, [child]) -> xml_to_exp child
     | Element ("ASSIGN", attrs, children) -> 
@@ -145,16 +145,16 @@ let rec xml_to_exp xml : exp =
           fold_right (fun s1 s2 -> (mk_exp (Seq (s1,s2)) s1.offset)) stmts last
       end
     | Element ("VAR", attrs, children) -> 
+      let offset = get_offset attrs in
       begin match (remove_annotation_elements children) with
-        | [Element ("NAME", attrs, [])] -> 
-          mk_exp (VarDec (get_value attrs)) (get_offset attrs) 
-        | [Element ("NAME", attrs, [child])] -> 
-          let variable = get_value attrs in
-          let offset = get_offset attrs in
-          let vardec = mk_exp (VarDec variable) offset in
-          let vardec_exp = mk_exp (Assign (mk_exp (Var variable) offset, (xml_to_exp child))) offset in
-          mk_exp (Seq (mk_exp (Seq (vardec, vardec_exp)) offset, mk_exp Undefined offset)) offset
-        | _ -> raise (Parser_Unknown_Tag ("VAR", (get_offset attrs))) 
+        | [] -> raise (Parser_Unknown_Tag ("VAR", offset))
+        | children ->
+          let last = var_declaration (List.last children) offset in
+          let children = List.take (List.length children - 1) children in
+          fold_right (fun s1 s2 -> (
+            let s1 = var_declaration s1 offset in
+            mk_exp (Seq (s1, s2)) (s1.offset))
+          ) children last
       end 
     | Element ("CALL", attrs, children) -> 
       begin match (remove_annotation_elements children) with
@@ -239,6 +239,18 @@ let rec xml_to_exp xml : exp =
     | Element ("THIS", attrs, _) -> mk_exp This (get_offset attrs)
     | Element (tag_name, attrs, _) -> raise (Parser_Unknown_Tag (tag_name, (get_offset attrs)))
     | PCData _ -> raise Parser_PCData
+and 
+var_declaration vd offset = 
+  match vd with
+    | Element ("NAME", attrs, []) -> 
+      mk_exp (VarDec (get_value attrs)) (get_offset attrs) 
+    | Element ("NAME", attrs, [child]) -> 
+      let variable = get_value attrs in
+      let offset = get_offset attrs in
+      let vardec = mk_exp (VarDec variable) offset in
+      let vardec_exp = mk_exp (Assign (mk_exp (Var variable) offset, (xml_to_exp child))) offset in
+      mk_exp (Seq (mk_exp (Seq (vardec, vardec_exp)) offset, mk_exp Undefined offset)) offset
+    | _ -> raise (Parser_Unknown_Tag ("VAR", offset))
 
 let js_to_xml (filename : string) : string =
   match Unix.system ("java -jar " ^ !Config.js_to_xml_parser ^ " " ^ (Filename.quote filename)) with
