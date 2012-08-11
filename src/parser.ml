@@ -213,7 +213,7 @@ let rec xml_to_exp xml : exp =
     | Element ("THROW", attrs, children) ->
       begin match (remove_annotation_elements children) with
         | [e] -> mk_exp (Throw (xml_to_exp e)) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag ("LE", (get_offset attrs))) 
+        | _ -> raise (Parser_Unknown_Tag ("THROW", (get_offset attrs))) 
       end
     | Element ("WHILE", attrs, [condition; block]) ->
       let invariant = get_invariant xml in
@@ -237,6 +237,7 @@ let rec xml_to_exp xml : exp =
         | _ -> raise (Parser_Unknown_Tag ("SUB", (get_offset attrs))) 
       end
     | Element ("THIS", attrs, _) -> mk_exp This (get_offset attrs)
+    | Element ("RETURN", attrs, [child]) -> mk_exp (Return (xml_to_exp child)) (get_offset attrs)
     | Element (tag_name, attrs, _) -> raise (Parser_Unknown_Tag (tag_name, (get_offset attrs)))
     | PCData _ -> raise Parser_PCData
 and 
