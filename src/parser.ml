@@ -238,6 +238,9 @@ let rec xml_to_exp xml : exp =
       end
     | Element ("THIS", attrs, _) -> mk_exp This (get_offset attrs)
     | Element ("RETURN", attrs, [child]) -> mk_exp (Return (xml_to_exp child)) (get_offset attrs)
+    | Element ("REGEXP", attrs, [pattern]) -> mk_exp (RegExp ((string_element pattern), "")) (get_offset attrs)
+    | Element ("REGEXP", attrs, [pattern; flags]) -> 
+      mk_exp (RegExp ((string_element pattern), (string_element flags))) (get_offset attrs)
     | Element (tag_name, attrs, _) -> raise (Parser_Unknown_Tag (tag_name, (get_offset attrs)))
     | PCData _ -> raise Parser_PCData
 and 

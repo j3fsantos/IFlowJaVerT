@@ -36,9 +36,21 @@ let test_var_list () =
   let var_y_nul = mk_exp (Seq (var_y, assign_nul)) 11 in
   let seq2 = mk_exp (Seq (var_y_nul, undef2)) 11 in
   assert_equal (Seq (seq1, seq2)) exp.stx
+  
+let test_regexp () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "/^\\s+/" in
+  assert_equal (mk_exp (RegExp ("^\\s+", "")) 0) exp
+  
+let test_regexp_with_flags () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "/^\\s+/g" in
+  assert_equal (mk_exp (RegExp ("^\\s+", "g")) 0) exp
 
 let suite = "Testing Parser" >:::
   ["test var" >:: test_var;
    "test var with assignment" >:: test_var_value;
-   "test var list" >:: test_var_list
+   "test var list" >:: test_var_list;
+   "test regexp" >:: test_regexp;
+   "test regexp with flags" >:: test_regexp_with_flags;
   ]
