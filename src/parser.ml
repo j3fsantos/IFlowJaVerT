@@ -184,7 +184,7 @@ let rec xml_to_exp xml : exp =
         | [obj; block] -> mk_exp (With (xml_to_exp obj, xml_to_exp block)) (get_offset attrs)
         | _ -> raise (Parser_Unknown_Tag ("WITH", (get_offset attrs))) 
       end 
-    | Element ("EMPTY", attrs, _) -> mk_exp Skip 0
+    | Element ("EMPTY", attrs, _) -> mk_exp Skip (get_offset attrs)
     | Element ("IF", attrs, [condition; t_block]) ->
       let offset = get_offset attrs in
       mk_exp (If (xml_to_exp condition, xml_to_exp t_block, mk_exp Skip offset)) offset
@@ -244,6 +244,8 @@ let rec xml_to_exp xml : exp =
     | Element ("NOT", attrs, [child]) -> mk_exp (Unary_op (Not, xml_to_exp child)) (get_offset attrs)
     | Element ("GETELEM", attrs, [child1; child2]) -> mk_exp (CAccess (xml_to_exp child1, xml_to_exp child2)) (get_offset attrs)
     | Element ("AND", attrs, [child1; child2]) -> mk_exp (BinOp (xml_to_exp child1, And, xml_to_exp child2)) (get_offset attrs)
+    | Element ("ARRAYLIT", attrs, children) ->
+      convert_arraylist_to_object attrs children
     | Element (tag_name, attrs, _) -> raise (Parser_Unknown_Tag (tag_name, (get_offset attrs)))
     | PCData _ -> raise Parser_PCData
 and 
@@ -258,6 +260,18 @@ var_declaration vd offset =
       let vardec_exp = mk_exp (Assign (mk_exp (Var variable) offset, (xml_to_exp child))) offset in
       mk_exp (Seq (mk_exp (Seq (vardec, vardec_exp)) offset, mk_exp Undefined offset)) offset
     | _ -> raise (Parser_Unknown_Tag ("VAR", offset))
+and
+(* TODO: Does this work only with well-behaved Array constructor and without elisions? *)
+(* Closure compiler does not give the last elided element -- we do not need to worry about it *)
+convert_arraylist_to_object attrs children =
+  let l = mapi (fun index child -> 
+    match child with
+      | Element ("EMPTY", attrs, _) -> (string_of_int index, (mk_exp Undefined (get_offset attrs)))
+      | _ -> (string_of_int index, xml_to_exp child)
+  ) children in
+  let l = l @ ["length", mk_exp (Num (List.length l)) 0] in
+  mk_exp (Obj l) (get_offset attrs)
+  
 
 let js_to_xml (filename : string) : string =
   match Unix.system ("java -jar " ^ !Config.js_to_xml_parser ^ " " ^ (Filename.quote filename)) with
