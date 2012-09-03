@@ -67,7 +67,7 @@ let test_and () =
   let b = mk_exp (Var "b") 5 in
   assert_equal (mk_exp (BinOp (a, And, b)) 0) exp
   
-let test_array_literal_1 () =
+let test_array_literal () =
   Symb_execution.initialize ();
   let exp = make_exp_from_string "[,x,,y,]" in
   let e1 = mk_exp Undefined 1 in
@@ -76,6 +76,13 @@ let test_array_literal_1 () =
   let y = mk_exp (Var "y") 5 in
   let length = mk_exp (Num 4) 0 in
   assert_equal (mk_exp (Obj [("0", e1);("1", x);("2", e2);("3", y);("length", length)]) 0) exp
+  
+let test_ge () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "1 >= 2" in
+  let one = mk_exp (Num 1) 0 in
+  let two = mk_exp (Num 2) 5 in
+  assert_equal (mk_exp (BinOp (one, Ge, two)) 0) exp
 
 let suite = "Testing Parser" >:::
   ["test var" >:: test_var;
@@ -86,5 +93,6 @@ let suite = "Testing Parser" >:::
    "test not" >:: test_not;
    "test_caccess" >:: test_caccess;
    "test_and" >:: test_and;
-   "test_array_literal_1" >:: test_array_literal_1;
+   "test_array_literal" >:: test_array_literal;
+   "test_ge" >:: test_ge;
   ]
