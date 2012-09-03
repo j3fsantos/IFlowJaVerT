@@ -200,6 +200,11 @@ let rec xml_to_exp xml : exp =
         | [e1; e2] -> mk_exp (BinOp (xml_to_exp e1, TripleEqual, xml_to_exp e2)) (get_offset attrs)
         | _ -> raise (Parser_Unknown_Tag ("SHEQ", (get_offset attrs))) 
       end
+    | Element ("SHNE", attrs, children) -> 
+      begin match (remove_annotation_elements children) with
+        | [e1; e2] -> mk_exp (BinOp (xml_to_exp e1, NotTripleEqual, xml_to_exp e2)) (get_offset attrs)
+        | _ -> raise (Parser_Unknown_Tag ("SHNE", (get_offset attrs))) 
+      end
     | Element ("LT", attrs, children) ->
       begin match (remove_annotation_elements children) with
         | [e1; e2] -> mk_exp (BinOp (xml_to_exp e1, Lt, xml_to_exp e2)) (get_offset attrs)
