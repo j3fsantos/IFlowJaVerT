@@ -52,6 +52,13 @@ let test_not () =
   let exp = make_exp_from_string "!selector" in
   let selector = mk_exp (Var "selector") 1 in
   assert_equal (mk_exp (Unary_op (Not, selector)) 0) exp
+  
+let test_caccess () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "this[0]" in
+  let this = mk_exp This 0 in
+  let zero = mk_exp (Num 0) 5 in
+  assert_equal (mk_exp (CAccess (this, zero)) 0) exp
 
 let suite = "Testing Parser" >:::
   ["test var" >:: test_var;
@@ -60,4 +67,5 @@ let suite = "Testing Parser" >:::
    "test regexp" >:: test_regexp;
    "test regexp with flags" >:: test_regexp_with_flags;
    "test not" >:: test_not;
+   "test_caccess" >:: test_caccess
   ]
