@@ -83,6 +83,13 @@ let test_ge () =
   let one = mk_exp (Num 1) 0 in
   let two = mk_exp (Num 2) 5 in
   assert_equal (mk_exp (BinOp (one, Ge, two)) 0) exp
+  
+let test_or () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a || b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 5 in
+  assert_equal (mk_exp (BinOp (a, Or, b)) 0) exp
 
 let suite = "Testing Parser" >:::
   ["test var" >:: test_var;
@@ -95,4 +102,5 @@ let suite = "Testing Parser" >:::
    "test_and" >:: test_and;
    "test_array_literal" >:: test_array_literal;
    "test_ge" >:: test_ge;
+   "test_or" >:: test_or;
   ]
