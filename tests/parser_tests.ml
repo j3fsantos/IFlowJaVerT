@@ -46,6 +46,12 @@ let test_regexp_with_flags () =
   Symb_execution.initialize ();
   let exp = make_exp_from_string "/^\\s+/g" in
   assert_equal (mk_exp (RegExp ("^\\s+", "g")) 0) exp
+  
+let test_not () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "!selector" in
+  let selector = mk_exp (Var "selector") 1 in
+  assert_equal (mk_exp (Unary_op (Not, selector)) 0) exp
 
 let suite = "Testing Parser" >:::
   ["test var" >:: test_var;
@@ -53,4 +59,5 @@ let suite = "Testing Parser" >:::
    "test var list" >:: test_var_list;
    "test regexp" >:: test_regexp;
    "test regexp with flags" >:: test_regexp_with_flags;
+   "test not" >:: test_not;
   ]
