@@ -243,6 +243,7 @@ let rec xml_to_exp xml : exp =
       mk_exp (RegExp ((string_element pattern), (string_element flags))) (get_offset attrs)
     | Element ("NOT", attrs, [child]) -> mk_exp (Unary_op (Not, xml_to_exp child)) (get_offset attrs)
     | Element ("GETELEM", attrs, [child1; child2]) -> mk_exp (CAccess (xml_to_exp child1, xml_to_exp child2)) (get_offset attrs)
+    | Element ("AND", attrs, [child1; child2]) -> mk_exp (BinOp (xml_to_exp child1, And, xml_to_exp child2)) (get_offset attrs)
     | Element (tag_name, attrs, _) -> raise (Parser_Unknown_Tag (tag_name, (get_offset attrs)))
     | PCData _ -> raise Parser_PCData
 and 

@@ -59,6 +59,13 @@ let test_caccess () =
   let this = mk_exp This 0 in
   let zero = mk_exp (Num 0) 5 in
   assert_equal (mk_exp (CAccess (this, zero)) 0) exp
+  
+let test_and () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a && b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 5 in
+  assert_equal (mk_exp (BinOp (a, And, b)) 0) exp
 
 let suite = "Testing Parser" >:::
   ["test var" >:: test_var;
@@ -67,5 +74,6 @@ let suite = "Testing Parser" >:::
    "test regexp" >:: test_regexp;
    "test regexp with flags" >:: test_regexp_with_flags;
    "test not" >:: test_not;
-   "test_caccess" >:: test_caccess
+   "test_caccess" >:: test_caccess;
+   "test_and" >:: test_and;
   ]
