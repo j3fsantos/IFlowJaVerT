@@ -97,6 +97,16 @@ let test_not_triple_eq () =
   let a = mk_exp (Var "a") 0 in
   let b = mk_exp (Var "b") 6 in
   assert_equal (mk_exp (BinOp (a, NotTripleEqual, b)) 0) exp
+  
+let test_hook () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a >= b ? a : b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 5 in
+  let ab = mk_exp (BinOp (a, Ge, b)) 0 in
+  let a9 = mk_exp (Var "a") 9 in
+  let b13 = mk_exp (Var "b") 13 in
+  assert_equal (mk_exp (If (ab, a9, b13)) 0) exp
 
 let suite = "Testing Parser" >:::
   ["test var" >:: test_var;
@@ -111,4 +121,5 @@ let suite = "Testing Parser" >:::
    "test_ge" >:: test_ge;
    "test_or" >:: test_or;
    "test_not_triple_eq" >:: test_not_triple_eq;
+   "test_hook" >:: test_hook;
   ]
