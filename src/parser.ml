@@ -258,6 +258,16 @@ let rec xml_to_exp xml : exp =
     | Element ("REGEXP", attrs, [pattern; flags]) -> 
       mk_exp (RegExp ((string_element pattern), (string_element flags))) (get_offset attrs)
     | Element ("NOT", attrs, [child]) -> mk_exp (Unary_op (Not, xml_to_exp child)) (get_offset attrs)
+    | Element ("TYPEOF", attrs, children) -> 
+      begin match (remove_annotation_elements children) with
+        | [child] -> mk_exp (Unary_op (TypeOf, xml_to_exp child)) (get_offset attrs)
+        | _ -> raise (Parser_Unknown_Tag ("TYPEOF", get_offset attrs)) 
+      end
+    | Element ("POS", attrs, children) -> 
+      begin match (remove_annotation_elements children) with
+        | [child] -> mk_exp (Unary_op (Positive, xml_to_exp child)) (get_offset attrs)
+        | _ -> raise (Parser_Unknown_Tag ("POS", get_offset attrs)) 
+      end
     | Element ("GETELEM", attrs, [child1; child2]) -> mk_exp (CAccess (xml_to_exp child1, xml_to_exp child2)) (get_offset attrs)
     | Element ("AND", attrs, [child1; child2]) -> mk_exp (BinOp (xml_to_exp child1, And, xml_to_exp child2)) (get_offset attrs)
     | Element ("OR", attrs, [child1; child2]) -> mk_exp (BinOp (xml_to_exp child1, Or, xml_to_exp child2)) (get_offset attrs)

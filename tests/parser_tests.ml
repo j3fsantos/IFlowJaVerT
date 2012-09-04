@@ -114,6 +114,20 @@ let test_instanceof () =
   let a = mk_exp (Var "a") 0 in
   let b = mk_exp (Var "b") 13 in
   assert_equal (mk_exp (BinOp (a, InstanceOf, b)) 0) exp
+  
+let test_typeof () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "typeof selector" in
+  let selector = mk_exp (Var "selector") 7 in
+  assert_equal (mk_exp (Unary_op (TypeOf, selector)) 0) exp
+  
+let test_pos () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "+(a + 1)" in
+  let a = mk_exp (Var "a") 2 in
+  let one = mk_exp (Num 1) 6 in
+  let a1 = mk_exp (BinOp (a, Plus, one)) 2 in
+  assert_equal (mk_exp (Unary_op (Positive, a1)) 0) exp
 
 let suite = "Testing Parser" >:::
   ["test var" >:: test_var;
@@ -130,4 +144,6 @@ let suite = "Testing Parser" >:::
    "test_not_triple_eq" >:: test_not_triple_eq;
    "test_hook" >:: test_hook;
    "test_instanceof" >:: test_instanceof;
+   "test_typeof" >:: test_typeof;
+   "test_pos" >:: test_pos;
   ]
