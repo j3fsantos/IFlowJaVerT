@@ -107,6 +107,13 @@ let test_hook () =
   let a9 = mk_exp (Var "a") 9 in
   let b13 = mk_exp (Var "b") 13 in
   assert_equal (mk_exp (If (ab, a9, b13)) 0) exp
+  
+let test_instanceof () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a instanceof b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 13 in
+  assert_equal (mk_exp (BinOp (a, InstanceOf, b)) 0) exp
 
 let suite = "Testing Parser" >:::
   ["test var" >:: test_var;
@@ -122,4 +129,5 @@ let suite = "Testing Parser" >:::
    "test_or" >:: test_or;
    "test_not_triple_eq" >:: test_not_triple_eq;
    "test_hook" >:: test_hook;
+   "test_instanceof" >:: test_instanceof;
   ]
