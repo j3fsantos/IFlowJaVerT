@@ -17,6 +17,7 @@ exception Parser_Param_List
 exception Unknown_Annotation of string
 exception InvalidArgument
 exception XmlParserException
+exception Unknown_Dec_Inc_Position
 
 let get_attr attrs attr_name =
   let offset_list = List.filter (fun (name, value) -> name = attr_name) attrs in
@@ -63,6 +64,18 @@ let get_annot attrs : annotation =
     | "preddefn" -> {atype = PredDefn; aformula = f}
     | annot -> raise (Unknown_Annotation annot)
 
+
+type dec_inc_pos =
+  | DI_PRE
+  | DI_POST
+
+let get_dec_inc_pos attrs : dec_inc_pos = 
+  let pos = get_attr attrs "decpos" in
+  match pos with
+    | "pre" -> DI_PRE
+    | "post" -> DI_POST
+    | _ -> raise Unknown_Dec_Inc_Position
+ 
 let rec get_function_spec_inner (f : xml) = 
   match f with
     | Element ("FUNCTION", _, children) -> 
@@ -226,6 +239,16 @@ let rec xml_to_exp xml : exp =
     | Element ("NOT", attrs, children) -> parse_unary_op Not attrs children "NOT"
     | Element ("TYPEOF", attrs, children) -> parse_unary_op TypeOf attrs children "TYPEOF"
     | Element ("POS", attrs, children) -> parse_unary_op Positive attrs children "POS"
+    | Element ("DEC", attrs, children) -> 
+      begin match (get_dec_inc_pos attrs) with
+        | DI_PRE -> parse_unary_op Pre_Decr attrs children "DEC"
+        | DI_POST -> parse_unary_op Post_Decr attrs children "DEC"
+      end
+    | Element ("INC", attrs, children) -> 
+      begin match (get_dec_inc_pos attrs) with
+        | DI_PRE -> parse_unary_op Pre_Incr attrs children "INC"
+        | DI_POST -> parse_unary_op Post_Incr attrs children "INC"
+      end
     | Element ("GETELEM", attrs, [child1; child2]) -> mk_exp (CAccess (xml_to_exp child1, xml_to_exp child2)) (get_offset attrs)
     | Element ("ARRAYLIT", attrs, children) ->
       convert_arraylist_to_object attrs children

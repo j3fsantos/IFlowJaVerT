@@ -128,6 +128,30 @@ let test_pos () =
   let one = mk_exp (Num 1) 6 in
   let a1 = mk_exp (BinOp (a, Plus, one)) 2 in
   assert_equal (mk_exp (Unary_op (Positive, a1)) 0) exp
+  
+let test_dec_pre () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "--a" in
+  let a = mk_exp (Var "a") 2 in
+  assert_equal (mk_exp (Unary_op (Pre_Decr, a)) 0) exp
+  
+let test_dec_post () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a--" in
+  let a = mk_exp (Var "a") 0 in
+  assert_equal (mk_exp (Unary_op (Post_Decr, a)) 0) exp
+  
+let test_inc_pre () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "++a" in
+  let a = mk_exp (Var "a") 2 in
+  assert_equal (mk_exp (Unary_op (Pre_Incr, a)) 0) exp
+  
+let test_inc_post () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a++" in
+  let a = mk_exp (Var "a") 0 in
+  assert_equal (mk_exp (Unary_op (Post_Incr, a)) 0) exp
 
 let suite = "Testing Parser" >:::
   ["test var" >:: test_var;
@@ -146,4 +170,8 @@ let suite = "Testing Parser" >:::
    "test_instanceof" >:: test_instanceof;
    "test_typeof" >:: test_typeof;
    "test_pos" >:: test_pos;
+   "test_dec_pre" >:: test_dec_pre;
+   "test_dec_post" >:: test_dec_post;
+   "test_inc_pre" >:: test_inc_pre;
+   "test_inc_post" >:: test_inc_post;
   ]
