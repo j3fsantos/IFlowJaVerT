@@ -152,6 +152,22 @@ let test_inc_post () =
   let exp = make_exp_from_string "a++" in
   let a = mk_exp (Var "a") 0 in
   assert_equal (mk_exp (Unary_op (Post_Incr, a)) 0) exp
+  
+let test_for () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "for (; a < 5; a++ ) { /** @invariant #cScope = [#lg] */ x = 1 }" in
+  let empty = mk_exp Skip 5 in
+  let a = mk_exp (Var "a") 7 in
+  let five = mk_exp (Num 5) 11 in
+  let condition = mk_exp (BinOp (a, Lt, five)) 7 in
+  let a = mk_exp (Var "a") 14 in
+  let inc = mk_exp (Unary_op (Post_Incr, a)) 14 in
+  let one = mk_exp (Num 1) 60 in
+  let x = mk_exp (Var "x") 56 in
+  let assignment = mk_exp (Assign (x, one)) 56 in
+  let body = mk_exp (Seq (assignment, inc)) 0 in
+  let loop = mk_exp_with_annot (While (condition, body)) 0 [{atype = Invariant; aformula = "#cScope = [#lg]"}] in
+  assert_equal (mk_exp (Seq (empty, loop)) 0) exp
 
 let suite = "Testing Parser" >:::
   ["test var" >:: test_var;
@@ -174,4 +190,5 @@ let suite = "Testing Parser" >:::
    "test_dec_post" >:: test_dec_post;
    "test_inc_pre" >:: test_inc_pre;
    "test_inc_post" >:: test_inc_post;
+   "test_for" >:: test_for;
   ]

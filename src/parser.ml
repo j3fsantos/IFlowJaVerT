@@ -101,6 +101,7 @@ let get_function_spec (f : xml) =
 let rec get_invariant_inner (w : xml) =
   match w with 
     | Element ("WHILE", _, _) -> []
+    | Element ("FOR", _, _) -> []
     | Element ("ANNOTATION", attrs, []) -> 
       let annot = get_annot attrs in
       if is_invariant_annot annot then [annot] else []
@@ -110,6 +111,8 @@ let rec get_invariant_inner (w : xml) =
 let rec get_invariant (w : xml) =
   match w with
     | Element ("WHILE", _, children) ->
+      flat_map (fun child -> get_invariant_inner child) children
+    | Element ("FOR", _, children) ->
       flat_map (fun child -> get_invariant_inner child) children
     | _ -> raise InvalidArgument
   
@@ -252,6 +255,11 @@ let rec xml_to_exp xml : exp =
     | Element ("GETELEM", attrs, [child1; child2]) -> mk_exp (CAccess (xml_to_exp child1, xml_to_exp child2)) (get_offset attrs)
     | Element ("ARRAYLIT", attrs, children) ->
       convert_arraylist_to_object attrs children
+    | Element ("FOR", attrs, [init; condition; incr; exp]) ->
+      let invariant = get_invariant xml in
+      let body = mk_exp (Seq (xml_to_exp exp, xml_to_exp incr)) (get_offset attrs) in
+      let whileloop = mk_exp_with_annot (While (xml_to_exp condition, body)) (get_offset attrs) invariant in
+      mk_exp (Seq (xml_to_exp init, whileloop)) (get_offset attrs)
     | Element (tag_name, attrs, _) -> raise (Parser_Unknown_Tag (tag_name, (get_offset attrs)))
     | PCData _ -> raise Parser_PCData
 and 

@@ -91,6 +91,7 @@ let rec get_all_annots_no_fun exp =
 	    | If (e1, e2, e3) -> (f e1) @ (f e2) @ (f e3)
 	    | While (e1, e2) -> (f e1) @ (f e2)
 	    | Delete e -> f e
+	    | Unary_op (_, e) -> f e
 	    | BinOp (e1, _, e2) -> (f e1) @ (f e2)
 	    | Access (e, _) -> f e
 	    | Call (e1, e2s) -> (f e1) @ (flat_map (fun e2 -> f e2) e2s)
@@ -99,5 +100,18 @@ let rec get_all_annots_no_fun exp =
 	    | Obj xs -> flatten (map (fun (_,e) -> f e) xs)
 	    | CAccess (e1, e2) -> (f e1) @ (f e2)
 	    | With (e1, e2) -> (f e1) @ (f e2)
-	    | _ -> [] in
+	    | Throw e 
+	    | Return e -> f e
+	    | RegExp _
+	    | Num _
+	    | String _
+	    | Undefined
+	    | Null
+	    | Bool _
+	    | Var _
+	    | VarDec _
+	    | This
+	    | AnnonymousFun _
+	    | NamedFun _
+	    | Skip -> [] in
   annots @ rec_annots
