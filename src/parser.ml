@@ -191,41 +191,17 @@ let rec xml_to_exp xml : exp =
     | Element ("HOOK", attrs, [condition; t_block; f_block])
     | Element ("IF", attrs, [condition; t_block; f_block]) ->
       mk_exp (If (xml_to_exp condition, xml_to_exp t_block, xml_to_exp f_block)) (get_offset attrs)
-    | Element ("EQ", attrs, children) -> 
-      begin match (remove_annotation_elements children) with
-        | [e1; e2] -> mk_exp (BinOp (xml_to_exp e1, Equal, xml_to_exp e2)) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag ("EQ", (get_offset attrs))) 
-      end 
-    | Element ("SHEQ", attrs, children) -> 
-      begin match (remove_annotation_elements children) with
-        | [e1; e2] -> mk_exp (BinOp (xml_to_exp e1, TripleEqual, xml_to_exp e2)) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag ("SHEQ", (get_offset attrs))) 
-      end
-    | Element ("SHNE", attrs, children) -> 
-      begin match (remove_annotation_elements children) with
-        | [e1; e2] -> mk_exp (BinOp (xml_to_exp e1, NotTripleEqual, xml_to_exp e2)) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag ("SHNE", (get_offset attrs))) 
-      end
-    | Element ("LT", attrs, children) ->
-      begin match (remove_annotation_elements children) with
-        | [e1; e2] -> mk_exp (BinOp (xml_to_exp e1, Lt, xml_to_exp e2)) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag ("LT", (get_offset attrs))) 
-      end
-    | Element ("LE", attrs, children) ->
-      begin match (remove_annotation_elements children) with
-        | [e1; e2] -> mk_exp (BinOp (xml_to_exp e1, Le, xml_to_exp e2)) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag ("LE", (get_offset attrs))) 
-      end
-    | Element ("GE", attrs, children) ->
-      begin match (remove_annotation_elements children) with
-        | [e1; e2] -> mk_exp (BinOp (xml_to_exp e1, Ge, xml_to_exp e2)) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag ("GE", (get_offset attrs))) 
-      end
-    | Element ("INSTANCEOF", attrs, children) -> 
-      begin match (remove_annotation_elements children) with
-        | [e1; e2] -> mk_exp (BinOp (xml_to_exp e1, InstanceOf, xml_to_exp e2)) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag ("INSTANCEOF", (get_offset attrs))) 
-      end
+    | Element ("EQ", attrs, children) -> parse_binary_op Equal attrs children "EQ"
+    | Element ("SHEQ", attrs, children) -> parse_binary_op TripleEqual attrs children "SHEQ"
+    | Element ("SHNE", attrs, children) -> parse_binary_op NotTripleEqual attrs children "SHNE"
+    | Element ("LT", attrs, children) -> parse_binary_op Lt attrs children "LT"
+    | Element ("LE", attrs, children) -> parse_binary_op Le attrs children "LE"
+    | Element ("GE", attrs, children) -> parse_binary_op Ge attrs children "GE"
+    | Element ("INSTANCEOF", attrs, children) -> parse_binary_op InstanceOf attrs children "INSTANCEOF"
+    | Element ("ADD", attrs, children) -> parse_binary_op Plus attrs children "ADD"
+    | Element ("SUB", attrs, children) -> parse_binary_op Minus attrs children "SUB"
+    | Element ("AND", attrs, children) -> parse_binary_op And attrs children "AND"
+    | Element ("OR", attrs, children) -> parse_binary_op Or attrs children "OR"
     | Element ("THROW", attrs, children) ->
       begin match (remove_annotation_elements children) with
         | [e] -> mk_exp (Throw (xml_to_exp e)) (get_offset attrs)
@@ -242,35 +218,15 @@ let rec xml_to_exp xml : exp =
     | Element ("STRING", attrs, _) -> mk_exp (String (string_element xml)) (get_offset attrs)
     | Element ("TRUE", attrs, _) -> mk_exp (Bool true) (get_offset attrs)
     | Element ("FALSE", attrs, _) -> mk_exp (Bool false) (get_offset attrs)
-    | Element ("ADD", attrs, children) -> 
-      begin match (remove_annotation_elements children) with
-        | [child1; child2] -> mk_exp (BinOp (xml_to_exp child1, Plus, xml_to_exp child2)) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag ("ADD", (get_offset attrs))) 
-      end
-    | Element ("SUB", attrs, children) -> 
-      begin match (remove_annotation_elements children) with
-        | [child1; child2] -> mk_exp (BinOp (xml_to_exp child1, Minus, xml_to_exp child2)) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag ("SUB", (get_offset attrs))) 
-      end
     | Element ("THIS", attrs, _) -> mk_exp This (get_offset attrs)
     | Element ("RETURN", attrs, [child]) -> mk_exp (Return (xml_to_exp child)) (get_offset attrs)
     | Element ("REGEXP", attrs, [pattern]) -> mk_exp (RegExp ((string_element pattern), "")) (get_offset attrs)
     | Element ("REGEXP", attrs, [pattern; flags]) -> 
       mk_exp (RegExp ((string_element pattern), (string_element flags))) (get_offset attrs)
-    | Element ("NOT", attrs, [child]) -> mk_exp (Unary_op (Not, xml_to_exp child)) (get_offset attrs)
-    | Element ("TYPEOF", attrs, children) -> 
-      begin match (remove_annotation_elements children) with
-        | [child] -> mk_exp (Unary_op (TypeOf, xml_to_exp child)) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag ("TYPEOF", get_offset attrs)) 
-      end
-    | Element ("POS", attrs, children) -> 
-      begin match (remove_annotation_elements children) with
-        | [child] -> mk_exp (Unary_op (Positive, xml_to_exp child)) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag ("POS", get_offset attrs)) 
-      end
+    | Element ("NOT", attrs, children) -> parse_unary_op Not attrs children "NOT"
+    | Element ("TYPEOF", attrs, children) -> parse_unary_op TypeOf attrs children "TYPEOF"
+    | Element ("POS", attrs, children) -> parse_unary_op Positive attrs children "POS"
     | Element ("GETELEM", attrs, [child1; child2]) -> mk_exp (CAccess (xml_to_exp child1, xml_to_exp child2)) (get_offset attrs)
-    | Element ("AND", attrs, [child1; child2]) -> mk_exp (BinOp (xml_to_exp child1, And, xml_to_exp child2)) (get_offset attrs)
-    | Element ("OR", attrs, [child1; child2]) -> mk_exp (BinOp (xml_to_exp child1, Or, xml_to_exp child2)) (get_offset attrs)
     | Element ("ARRAYLIT", attrs, children) ->
       convert_arraylist_to_object attrs children
     | Element (tag_name, attrs, _) -> raise (Parser_Unknown_Tag (tag_name, (get_offset attrs)))
@@ -298,7 +254,18 @@ convert_arraylist_to_object attrs children =
   ) children in
   let l = l @ ["length", mk_exp (Num (List.length l)) 0] in
   mk_exp (Obj l) (get_offset attrs)
-  
+and 
+parse_unary_op uop attrs children uops =
+  begin match (remove_annotation_elements children) with
+    | [child] -> mk_exp (Unary_op (uop, xml_to_exp child)) (get_offset attrs)
+    | _ -> raise (Parser_Unknown_Tag (uops, get_offset attrs)) 
+  end 
+and
+parse_binary_op bop attrs children bops =  
+  begin match (remove_annotation_elements children) with
+    | [child1; child2] -> mk_exp (BinOp (xml_to_exp child1, bop, xml_to_exp child2)) (get_offset attrs)
+    | _ -> raise (Parser_Unknown_Tag (bops, get_offset attrs)) 
+  end
 
 let js_to_xml (filename : string) : string =
   match Unix.system ("java -jar " ^ !Config.js_to_xml_parser ^ " " ^ (Filename.quote filename)) with
