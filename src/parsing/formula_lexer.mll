@@ -7,6 +7,8 @@
 
 let digit = ['0'-'9']
 
+let float = digit+ ('.' digit*)?
+
 let letter = ['a'-'z''A'-'Z']
 
 let id = letter+(letter|digit|'_')*
@@ -21,7 +23,7 @@ let string_char_quote = [^''''\\']
 
 rule token = parse
   | [' ' '\t' '\n']     { token lexbuf }
-  | digit+ as lxm       { NUM (int_of_string lxm) }
+  | float as lxm       { NUM (float_of_string lxm) }
   | ":="                { DEFEQ }
   | '+'                 { PLUS }
   | '-'                 { MINUS }

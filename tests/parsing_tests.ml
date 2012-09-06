@@ -12,7 +12,7 @@ let test_formula1 () =
  
 let test_formula2 () =
   let f = parse_formulas "(#l1,x) |-> #(/) * (#l1,y) |-> 5" in
-  assert_equal (Star [HeapletEmpty (LocNum (AVar "1"), "x"); Heaplet (LocNum (AVar "1"), "y", pv_le (Pv_Num 5))]) (List.hd f)
+  assert_equal (Star [HeapletEmpty (LocNum (AVar "1"), "x"); Heaplet (LocNum (AVar "1"), "y", pv_le (Pv_Num 5.0))]) (List.hd f)
   
 let test_formula3 () =
   let f = parse_formulas "(_#l1,x) |-> #(/)" in
@@ -28,7 +28,7 @@ let test_obj () =
     HeapletEmpty (LocNum (AVar "1"), "x");
     HeapletEmpty (LocNum (AVar "1"), "y");
     HeapletEmpty (LocNum (AVar "1"), "z");
-    Heaplet (LocNum (AVar "1"), "a", pv_le (Pv_Num 1));
+    Heaplet (LocNum (AVar "1"), "a", pv_le (Pv_Num 1.0));
     Heaplet (LocNum (AVar "1"), "b", pv_le (Pv_String "abc"));
     ]) (List.hd f)
   

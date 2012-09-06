@@ -12,7 +12,7 @@ let test_var_value () =
   let exp = make_exp_from_string "var x = 5" in
   let var_x = mk_exp (VarDec "x") 4 in
   let x = mk_exp (Var "x") 4 in
-  let num_5 = mk_exp (Num 5) 8 in
+  let num_5 = mk_exp (Num 5.0) 8 in
   let assign_5 = mk_exp (Assign (x, num_5)) 4 in
   let undef = mk_exp Undefined 4 in
   let seq = mk_exp (Seq (var_x, assign_5)) 4 in
@@ -23,7 +23,7 @@ let test_var_list () =
   let exp = make_exp_from_string "var x = 5, y = null" in
   let var_x = mk_exp (VarDec "x") 4 in
   let x = mk_exp (Var "x") 4 in
-  let num_5 = mk_exp (Num 5) 8 in
+  let num_5 = mk_exp (Num 5.0) 8 in
   let assign_5 = mk_exp (Assign (x, num_5)) 4 in
   let undef = mk_exp Undefined 4 in
   let var_x_5 = mk_exp (Seq (var_x, assign_5)) 4 in
@@ -57,7 +57,7 @@ let test_caccess () =
   Symb_execution.initialize ();
   let exp = make_exp_from_string "this[0]" in
   let this = mk_exp This 0 in
-  let zero = mk_exp (Num 0) 5 in
+  let zero = mk_exp (Num 0.0) 5 in
   assert_equal (mk_exp (CAccess (this, zero)) 0) exp
   
 let test_and () =
@@ -74,14 +74,14 @@ let test_array_literal () =
   let x = mk_exp (Var "x") 2 in
   let e2 = mk_exp Undefined 4 in  
   let y = mk_exp (Var "y") 5 in
-  let length = mk_exp (Num 4) 0 in
+  let length = mk_exp (Num 4.0) 0 in
   assert_equal (mk_exp (Obj [("0", e1);("1", x);("2", e2);("3", y);("length", length)]) 0) exp
   
 let test_ge () =
   Symb_execution.initialize ();
   let exp = make_exp_from_string "1 >= 2" in
-  let one = mk_exp (Num 1) 0 in
-  let two = mk_exp (Num 2) 5 in
+  let one = mk_exp (Num 1.0) 0 in
+  let two = mk_exp (Num 2.0) 5 in
   assert_equal (mk_exp (BinOp (one, Ge, two)) 0) exp
   
 let test_or () =
@@ -125,7 +125,7 @@ let test_pos () =
   Symb_execution.initialize ();
   let exp = make_exp_from_string "+(a + 1)" in
   let a = mk_exp (Var "a") 2 in
-  let one = mk_exp (Num 1) 6 in
+  let one = mk_exp (Num 1.0) 6 in
   let a1 = mk_exp (BinOp (a, Plus, one)) 2 in
   assert_equal (mk_exp (Unary_op (Positive, a1)) 0) exp
   
@@ -158,11 +158,11 @@ let test_for () =
   let exp = make_exp_from_string "for (; a < 5; a++ ) { /** @invariant #cScope = [#lg] */ x = 1 }" in
   let empty = mk_exp Skip 5 in
   let a = mk_exp (Var "a") 7 in
-  let five = mk_exp (Num 5) 11 in
+  let five = mk_exp (Num 5.0) 11 in
   let condition = mk_exp (BinOp (a, Lt, five)) 7 in
   let a = mk_exp (Var "a") 14 in
   let inc = mk_exp (Unary_op (Post_Incr, a)) 14 in
-  let one = mk_exp (Num 1) 60 in
+  let one = mk_exp (Num 1.0) 60 in
   let x = mk_exp (Var "x") 56 in
   let assignment = mk_exp (Assign (x, one)) 56 in
   let body = mk_exp (Seq (assignment, inc)) 0 in

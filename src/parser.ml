@@ -184,10 +184,7 @@ let rec xml_to_exp xml : exp =
       end
     | Element ("NUMBER", attrs, _) -> 
       let n_float = float_of_string (get_value attrs) in
-      if abs_float (n_float -. (floor n_float)) > epsilon_float then raise OnlyIntegersAreImplemented 
-      else 
-        let n_int = int_of_float n_float in
-        mk_exp (Num n_int) (get_offset attrs)
+      mk_exp (Num n_float) (get_offset attrs)
     | Element ("OBJECTLIT", attrs, objl) ->
       let l = map (fun obj -> 
         match obj with
@@ -283,7 +280,7 @@ convert_arraylist_to_object attrs children =
       | Element ("EMPTY", attrs, _) -> (string_of_int index, (mk_exp Undefined (get_offset attrs)))
       | _ -> (string_of_int index, xml_to_exp child)
   ) children in
-  let l = l @ ["length", mk_exp (Num (List.length l)) 0] in
+  let l = l @ ["length", mk_exp (Num (float_of_int (List.length l))) 0] in
   mk_exp (Obj l) (get_offset attrs)
 and 
 parse_unary_op uop attrs children uops =

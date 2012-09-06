@@ -44,7 +44,7 @@
 %token OBJFOOTPRINT
 %token OBJECT
 %token STORE
-%token <int> NUM
+%token <float> NUM
 %token <string> STRING
 %token UNDEFINED
 %token NULL
