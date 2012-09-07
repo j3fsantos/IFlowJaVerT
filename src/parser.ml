@@ -257,6 +257,8 @@ let rec xml_to_exp xml : exp =
       let body = mk_exp (Seq (xml_to_exp exp, xml_to_exp incr)) (get_offset attrs) in
       let whileloop = mk_exp_with_annot (While (xml_to_exp condition, body)) (get_offset attrs) invariant in
       mk_exp (Seq (xml_to_exp init, whileloop)) (get_offset attrs)
+    | Element ("FOR", attrs, [var; obj; exp]) ->
+      mk_exp (ForIn (xml_to_exp var, xml_to_exp obj, xml_to_exp exp)) (get_offset attrs)
     | Element (tag_name, attrs, _) -> raise (Parser_Unknown_Tag (tag_name, (get_offset attrs)))
     | PCData _ -> raise Parser_PCData
 and 

@@ -168,6 +168,20 @@ let test_for () =
   let body = mk_exp (Seq (assignment, inc)) 0 in
   let loop = mk_exp_with_annot (While (condition, body)) 0 [{atype = Invariant; aformula = "#cScope = [#lg]"}] in
   assert_equal (mk_exp (Seq (empty, loop)) 0) exp
+  
+let test_forin () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "for (var prop in oldObj) { obj[prop] = oldObj[prop] }" in
+  let varprop = mk_exp (VarDec "prop") 9 in
+  let oldObj1= mk_exp (Var "oldObj") 17 in
+  let obj = mk_exp (Var "obj") 27 in
+  let prop1 = mk_exp (Var "prop") 31 in
+  let ca1 = mk_exp (CAccess (obj, prop1)) 27 in
+  let oldObj2 = mk_exp (Var "oldObj") 39 in
+  let prop2 = mk_exp (Var "prop") 46 in
+  let ca2 = mk_exp (CAccess (oldObj2, prop2)) 39 in
+  let assignment = mk_exp (Assign (ca1, ca2)) 27 in
+  assert_equal (mk_exp (ForIn (varprop, oldObj1, assignment)) 0) exp
 
 let suite = "Testing Parser" >:::
   ["test var" >:: test_var;
@@ -191,4 +205,4 @@ let suite = "Testing Parser" >:::
    "test_inc_pre" >:: test_inc_pre;
    "test_inc_post" >:: test_inc_post;
    "test_for" >:: test_for;
-  ]
+   "test_forin" >:: test_forin]
