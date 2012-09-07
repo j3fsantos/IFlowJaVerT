@@ -259,6 +259,51 @@ let rec xml_to_exp xml : exp =
       mk_exp (Seq (xml_to_exp init, whileloop)) (get_offset attrs)
     | Element ("FOR", attrs, [var; obj; exp]) ->
       mk_exp (ForIn (xml_to_exp var, xml_to_exp obj, xml_to_exp exp)) (get_offset attrs)
+    (* TODO *)  
+    | Element ("NEG", attrs, [child]) -> raise NotImplemented
+    | Element ("CONTINUE", attrs, []) -> raise NotImplemented
+    | Element ("NE", attrs, [child1; child2]) -> raise NotImplemented
+    | Element ("RETURN", attrs, []) -> raise NotImplemented
+    | Element ("BREAK", attrs, []) -> raise NotImplemented
+    | Element ("GT", attrs, [child1; child2]) -> raise NotImplemented
+    | Element ("TRY", attrs, [trychild; catchchild]) -> raise NotImplemented
+    | Element ("CATCH", attrs, [name; block]) -> raise NotImplemented
+    | Element ("DEBUGGER", attrs, []) -> raise NotImplemented
+    | Element ("TRY", attrs, [trychild; catchchild; finally]) -> raise NotImplemented
+    | Element ("IN", attrs, [child1; child2]) -> raise NotImplemented
+    | Element ("COMMA", attrs, [child1; child2]) -> raise NotImplemented
+    | Element ("DELPROP", attrs, [child]) -> raise NotImplemented
+    | Element ("ASSIGN_ADD", attrs, [child1; child2]) -> raise NotImplemented
+    | Element ("ASSIGN_SUB", attrs, [child1; child2]) -> raise NotImplemented
+    | Element ("ASSIGN_MUL", attrs, [child1; child2]) -> raise NotImplemented
+    | Element ("ASSIGN_DIV", attrs, [child1; child2]) -> raise NotImplemented
+    | Element ("ASSIGN_MOD", attrs, [child1; child2]) -> raise NotImplemented
+    | Element ("ASSIGN_URSH", attrs, [child1; child2]) -> raise NotImplemented
+    | Element ("ASSIGN_LSH", attrs, [child1; child2]) -> raise NotImplemented
+    | Element ("ASSIGN_RSH", attrs, [child1; child2]) -> raise NotImplemented
+    | Element ("ASSIGN_BITAND", attrs, [child1; child2]) -> raise NotImplemented
+    | Element ("ASSIGN_BITXOR", attrs, [child1; child2]) -> raise NotImplemented
+    | Element ("ASSIGN_BITOR", attrs, [child1; child2]) -> raise NotImplemented
+    | Element ("MUL", attrs, [child1; child2]) -> raise NotImplemented
+    | Element ("DIV", attrs, [child1; child2]) -> raise NotImplemented
+    | Element ("MOD", attrs, [child1; child2]) -> raise NotImplemented
+    | Element ("URSH", attrs, [child1; child2]) -> raise NotImplemented 
+    | Element ("LSH", attrs, [child1; child2]) -> raise NotImplemented 
+    | Element ("RSH", attrs, [child1; child2]) -> raise NotImplemented
+    | Element ("BITNOT", attrs, [child]) -> raise NotImplemented
+    | Element ("BITAND", attrs, [child1; child2]) -> raise NotImplemented 
+    | Element ("BITOR", attrs, [child1; child2]) -> raise NotImplemented
+    | Element ("BITXOR", attrs, [child1; child2]) -> raise NotImplemented 
+    | Element ("DO", attrs, [child1; child2]) -> raise NotImplemented
+    | Element ("SWITCH", attrs, children) -> raise NotImplemented 
+    | Element ("CASE", attrs, children) -> raise NotImplemented
+    | Element ("DEFAULT_CASE", attrs, [child]) -> raise NotImplemented
+    | Element ("GETTER_DEF", attrs, children) -> raise NotImplemented
+    | Element ("SETTER_DEF", attrs, children) -> raise NotImplemented
+    | Element ("LABEL", attrs, children) -> raise NotImplemented
+    | Element ("LABEL_NAME", attrs, children) -> raise NotImplemented
+    | Element ("STRING_KEY", attrs, children) -> raise NotImplemented
+    | Element ("VOID", attrs, children) -> raise NotImplemented 
     | Element (tag_name, attrs, _) -> raise (Parser_Unknown_Tag (tag_name, (get_offset attrs)))
     | PCData _ -> raise Parser_PCData
 and 
