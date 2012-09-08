@@ -259,6 +259,17 @@ let rec xml_to_exp xml : exp =
     | Element ("NEG", attrs, children) -> parse_unary_op Negative attrs children "NEG"
     | Element ("BITNOT", attrs, children) -> parse_unary_op Bitnot attrs children "BITNOT"
     | Element ("VOID", attrs, children) -> parse_unary_op Void attrs children "VOID" 
+    | Element ("ASSIGN_ADD", attrs, children) -> parse_assign_op Plus attrs children "ASSIGN_ADD"
+    | Element ("ASSIGN_SUB", attrs, children) -> parse_assign_op Minus attrs children "ASSIGN_SUB"
+    | Element ("ASSIGN_MUL", attrs, children) -> parse_assign_op Times attrs children "ASSIGN_MUL"
+    | Element ("ASSIGN_DIV", attrs, children) -> parse_assign_op Div attrs children "ASSIGN_DIV"
+    | Element ("ASSIGN_MOD", attrs, children) -> parse_assign_op Mod attrs children "ASSIGN_MOD"
+    | Element ("ASSIGN_URSH", attrs, children) -> parse_assign_op Ursh attrs children "ASSIGN_URSH"
+    | Element ("ASSIGN_LSH", attrs, children) -> parse_assign_op Lsh attrs children "ASSIGN_LSH"
+    | Element ("ASSIGN_RSH", attrs, children) -> parse_assign_op Rsh attrs children "ASSIGN_RSH"
+    | Element ("ASSIGN_BITAND", attrs, children) -> parse_assign_op Bitand attrs children "ASSIGN_BITAND"
+    | Element ("ASSIGN_BITXOR", attrs, children) -> parse_assign_op Bitxor attrs children "ASSIGN_BITXOR"
+    | Element ("ASSIGN_BITOR", attrs, children) -> parse_assign_op Bitor attrs children "ASSIGN_BITOR" 
     | Element ("DEC", attrs, children) -> 
       begin match (get_dec_inc_pos attrs) with
         | DI_PRE -> parse_unary_op Pre_Decr attrs children "DEC"
@@ -288,17 +299,6 @@ let rec xml_to_exp xml : exp =
     | Element ("DEBUGGER", attrs, []) -> raise NotImplemented
     | Element ("TRY", attrs, [trychild; catchchild; finally]) -> raise NotImplemented
     | Element ("DELPROP", attrs, [child]) -> raise NotImplemented
-    | Element ("ASSIGN_ADD", attrs, children) -> raise NotImplemented
-    | Element ("ASSIGN_SUB", attrs, children) -> raise NotImplemented
-    | Element ("ASSIGN_MUL", attrs, children) -> raise NotImplemented
-    | Element ("ASSIGN_DIV", attrs, children) -> raise NotImplemented
-    | Element ("ASSIGN_MOD", attrs, children) -> raise NotImplemented
-    | Element ("ASSIGN_URSH", attrs, children) -> raise NotImplemented
-    | Element ("ASSIGN_LSH", attrs, children) -> raise NotImplemented
-    | Element ("ASSIGN_RSH", attrs, children) -> raise NotImplemented
-    | Element ("ASSIGN_BITAND", attrs, children) -> raise NotImplemented
-    | Element ("ASSIGN_BITXOR", attrs, children) -> raise NotImplemented
-    | Element ("ASSIGN_BITOR", attrs, children) -> raise NotImplemented 
     | Element ("DO", attrs, [child1; child2]) -> raise NotImplemented
     | Element ("SWITCH", attrs, children) -> raise NotImplemented 
     | Element ("CASE", attrs, children) -> raise NotImplemented
@@ -354,6 +354,11 @@ parse_arith_op op attrs children tag =
 and
 parse_bool_op op attrs children tag =
   parse_binary_op (Boolean op) attrs children tag
+and parse_assign_op op attrs children tag =
+   begin match (remove_annotation_elements children) with
+     | [child1; child2] -> mk_exp (AssignOp (xml_to_exp child1, op, xml_to_exp child2)) (get_offset attrs)
+     | _ -> raise (Parser_Unknown_Tag (tag, (get_offset attrs))) 
+   end
 
 let js_to_xml (filename : string) : string =
   match Unix.system ("java -jar " ^ !Config.js_to_xml_parser ^ " " ^ (Filename.quote filename)) with

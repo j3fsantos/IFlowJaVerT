@@ -183,54 +183,82 @@ let test_forin () =
   let assignment = mk_exp (Assign (ca1, ca2)) 27 in
   assert_equal (mk_exp (ForIn (varprop, oldObj1, assignment)) 0) exp
   
-let test_mod () =
+let test_assign_add () =
   Symb_execution.initialize ();
-  let exp = make_exp_from_string "a % b" in
+  let exp = make_exp_from_string "a += b" in
   let a = mk_exp (Var "a") 0 in
-  let b = mk_exp (Var "b") 4 in
-  assert_equal (mk_exp (BinOp (a, Arith Mod, b)) 0) exp
+  let b = mk_exp (Var "b") 5 in
+  assert_equal (mk_exp (AssignOp (a, Plus, b)) 0) exp
   
-let test_ursh () =
+let test_assign_sub () =
   Symb_execution.initialize ();
-  let exp = make_exp_from_string "a >>> b" in
+  let exp = make_exp_from_string "a -= b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 5 in
+  assert_equal (mk_exp (AssignOp (a, Minus, b)) 0) exp
+  
+let test_assign_mul () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a *= b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 5 in
+  assert_equal (mk_exp (AssignOp (a, Times, b)) 0) exp
+  
+let test_assign_div () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a /= b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 5 in
+  assert_equal (mk_exp (AssignOp (a, Div, b)) 0) exp
+  
+let test_assign_mod () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a %= b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 5 in
+  assert_equal (mk_exp (AssignOp (a, Mod, b)) 0) exp
+  
+let test_assign_ursh () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a >>>= b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 7 in
+  assert_equal (mk_exp (AssignOp (a, Ursh, b)) 0) exp
+  
+let test_assign_lsh () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a <<= b" in
   let a = mk_exp (Var "a") 0 in
   let b = mk_exp (Var "b") 6 in
-  assert_equal (mk_exp (BinOp (a, Arith Ursh, b)) 0) exp
+  assert_equal (mk_exp (AssignOp (a, Lsh, b)) 0) exp
   
-let test_lsh () =
+let test_assign_rsh () =
   Symb_execution.initialize ();
-  let exp = make_exp_from_string "a << b" in
+  let exp = make_exp_from_string "a >>= b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 6 in
+  assert_equal (mk_exp (AssignOp (a, Rsh, b)) 0) exp
+  
+let test_assign_bitand () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a &= b" in
   let a = mk_exp (Var "a") 0 in
   let b = mk_exp (Var "b") 5 in
-  assert_equal (mk_exp (BinOp (a, Arith Lsh, b)) 0) exp
+  assert_equal (mk_exp (AssignOp (a, Bitand, b)) 0) exp
   
-let test_rsh () =
+let test_assign_bitor () =
   Symb_execution.initialize ();
-  let exp = make_exp_from_string "a >> b" in
+  let exp = make_exp_from_string "a |= b" in
   let a = mk_exp (Var "a") 0 in
   let b = mk_exp (Var "b") 5 in
-  assert_equal (mk_exp (BinOp (a, Arith Rsh, b)) 0) exp
+  assert_equal (mk_exp (AssignOp (a, Bitor, b)) 0) exp
   
-let test_bitand () =
+let test_assign_bitxor () =
   Symb_execution.initialize ();
-  let exp = make_exp_from_string "a & b" in
+  let exp = make_exp_from_string "a ^= b" in
   let a = mk_exp (Var "a") 0 in
-  let b = mk_exp (Var "b") 4 in
-  assert_equal (mk_exp (BinOp (a, Arith Bitand, b)) 0) exp
-  
-let test_bitor () =
-  Symb_execution.initialize ();
-  let exp = make_exp_from_string "a | b" in
-  let a = mk_exp (Var "a") 0 in
-  let b = mk_exp (Var "b") 4 in
-  assert_equal (mk_exp (BinOp (a, Arith Bitor, b)) 0) exp
-  
-let test_bitxor () =
-  Symb_execution.initialize ();
-  let exp = make_exp_from_string "a ^ b" in
-  let a = mk_exp (Var "a") 0 in
-  let b = mk_exp (Var "b") 4 in
-  assert_equal (mk_exp (BinOp (a, Arith Bitxor, b)) 0) exp
+  let b = mk_exp (Var "b") 5 in
+  assert_equal (mk_exp (AssignOp (a, Bitxor, b)) 0) exp
   
 let test_notequal () =
   Symb_execution.initialize ();
@@ -286,6 +314,55 @@ let test_void () =
   let exp = make_exp_from_string "void a" in
   let a = mk_exp (Var "a") 5 in
   assert_equal (mk_exp (Unary_op (Void, a)) 0) exp
+  
+let test_mod () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a % b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 4 in
+  assert_equal (mk_exp (BinOp (a, Arith Mod, b)) 0) exp
+  
+let test_ursh () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a >>> b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 6 in
+  assert_equal (mk_exp (BinOp (a, Arith Ursh, b)) 0) exp
+  
+let test_lsh () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a << b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 5 in
+  assert_equal (mk_exp (BinOp (a, Arith Lsh, b)) 0) exp
+  
+let test_rsh () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a >> b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 5 in
+  assert_equal (mk_exp (BinOp (a, Arith Rsh, b)) 0) exp
+  
+let test_bitand () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a & b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 4 in
+  assert_equal (mk_exp (BinOp (a, Arith Bitand, b)) 0) exp
+  
+let test_bitor () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a | b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 4 in
+  assert_equal (mk_exp (BinOp (a, Arith Bitor, b)) 0) exp
+  
+let test_bitxor () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a ^ b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 4 in
+  assert_equal (mk_exp (BinOp (a, Arith Bitxor, b)) 0) exp
 
 let suite = "Testing Parser" >:::
   ["test var" >:: test_var;
@@ -325,4 +402,15 @@ let suite = "Testing Parser" >:::
    "test_negative" >:: test_negative;
    "test_bitnot" >:: test_bitnot;
    "test_void" >:: test_void;
+   "test_assign_add" >:: test_assign_add;
+   "test_assign_sub" >:: test_assign_sub;
+   "test_assign_mul" >:: test_assign_mul;
+   "test_assign_div" >:: test_assign_div;
+   "test_assign_mod" >:: test_assign_mod;
+   "test_assign_ursh" >:: test_assign_ursh;
+   "test_assign_lsh" >:: test_assign_lsh;
+   "test_assign_rsh" >:: test_assign_rsh;
+   "test_assign_bitand" >:: test_assign_bitand;
+   "test_assign_bitor" >:: test_assign_bitor;
+   "test_assign_bitxor" >:: test_assign_bitxor;
   ]

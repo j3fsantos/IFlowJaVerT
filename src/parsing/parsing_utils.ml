@@ -95,7 +95,8 @@ let rec get_all_annots_no_fun exp =
 	    | BinOp (e1, _, e2) -> (f e1) @ (f e2)
 	    | Access (e, _) -> f e
 	    | Call (e1, e2s) -> (f e1) @ (flat_map (fun e2 -> f e2) e2s)
-	    | Assign (e1, e2) -> (f e1) @ (f e2)
+	    | Assign (e1, e2) 
+      | AssignOp (e1, _, e2) -> (f e1) @ (f e2)
 	    | New (e1, e2s) -> (f e1) @ (flat_map (fun e2 -> f e2) e2s)
 	    | Obj xs -> flatten (map (fun (_,e) -> f e) xs)
 	    | CAccess (e1, e2) -> (f e1) @ (f e2)
