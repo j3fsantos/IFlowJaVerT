@@ -252,6 +252,9 @@ let rec xml_to_exp xml : exp =
     | Element ("NOT", attrs, children) -> parse_unary_op Not attrs children "NOT"
     | Element ("TYPEOF", attrs, children) -> parse_unary_op TypeOf attrs children "TYPEOF"
     | Element ("POS", attrs, children) -> parse_unary_op Positive attrs children "POS"
+    | Element ("NEG", attrs, children) -> parse_unary_op Negative attrs children "NEG"
+    | Element ("BITNOT", attrs, children) -> parse_unary_op Bitnot attrs children "BITNOT"
+    | Element ("VOID", attrs, children) -> parse_unary_op Void attrs children "VOID" 
     | Element ("DEC", attrs, children) -> 
       begin match (get_dec_inc_pos attrs) with
         | DI_PRE -> parse_unary_op Pre_Decr attrs children "DEC"
@@ -273,7 +276,6 @@ let rec xml_to_exp xml : exp =
     | Element ("FOR", attrs, [var; obj; exp]) ->
       mk_exp (ForIn (xml_to_exp var, xml_to_exp obj, xml_to_exp exp)) (get_offset attrs)
     (* TODO *)  
-    | Element ("NEG", attrs, [child]) -> raise NotImplemented
     | Element ("CONTINUE", attrs, []) -> raise NotImplemented
     | Element ("RETURN", attrs, []) -> raise NotImplemented
     | Element ("BREAK", attrs, []) -> raise NotImplemented
@@ -282,7 +284,6 @@ let rec xml_to_exp xml : exp =
     | Element ("DEBUGGER", attrs, []) -> raise NotImplemented
     | Element ("TRY", attrs, [trychild; catchchild; finally]) -> raise NotImplemented
     | Element ("DELPROP", attrs, [child]) -> raise NotImplemented
-    | Element ("BITNOT", attrs, [child]) -> raise NotImplemented
     | Element ("ASSIGN_ADD", attrs, children) -> raise NotImplemented
     | Element ("ASSIGN_SUB", attrs, children) -> raise NotImplemented
     | Element ("ASSIGN_MUL", attrs, children) -> raise NotImplemented
@@ -303,7 +304,6 @@ let rec xml_to_exp xml : exp =
     | Element ("LABEL", attrs, children) -> raise NotImplemented
     | Element ("LABEL_NAME", attrs, children) -> raise NotImplemented
     | Element ("STRING_KEY", attrs, children) -> raise NotImplemented
-    | Element ("VOID", attrs, children) -> raise NotImplemented 
     | Element (tag_name, attrs, _) -> raise (Parser_Unknown_Tag (tag_name, (get_offset attrs)))
     | PCData _ -> raise Parser_PCData
 and 

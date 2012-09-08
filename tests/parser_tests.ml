@@ -268,6 +268,24 @@ let test_comma2 () =
   let c = mk_exp (Var "c") 6 in
   let ab = mk_exp (BinOp (a, Comma, b)) 0 in
   assert_equal (mk_exp (BinOp (ab, Comma, c)) 0) exp
+  
+let test_negative () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "-a" in
+  let a = mk_exp (Var "a") 1 in
+  assert_equal (mk_exp (Unary_op (Negative, a)) 0) exp
+  
+let test_bitnot () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "~a" in
+  let a = mk_exp (Var "a") 1 in
+  assert_equal (mk_exp (Unary_op (Bitnot, a)) 0) exp
+  
+let test_void () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "void a" in
+  let a = mk_exp (Var "a") 5 in
+  assert_equal (mk_exp (Unary_op (Void, a)) 0) exp
 
 let suite = "Testing Parser" >:::
   ["test var" >:: test_var;
@@ -304,4 +322,7 @@ let suite = "Testing Parser" >:::
    "test_in" >:: test_in;
    "test_comma1" >:: test_comma1;
    "test_comma2" >:: test_comma2;
+   "test_negative" >:: test_negative;
+   "test_bitnot" >:: test_bitnot;
+   "test_void" >:: test_void;
   ]
