@@ -377,6 +377,24 @@ let test_return_exp () =
   let gcall = mk_exp (Call (g, [])) 22 in
   let r = mk_exp (Return (Some gcall)) 14 in
   assert_equal (mk_exp (NamedFun ("f", [], r)) 0) exp
+  
+let test_do_while () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "do { /** @invariant #cScope = [#lg] */ a = 1 } while (a < 5)" in
+  let a = mk_exp (Var "a") 54 in
+  let five = mk_exp (Num 5.0) 58 in
+  let condition = mk_exp (BinOp (a, Comparison Lt, five)) 54 in
+  let a = mk_exp (Var "a") 39 in
+  let one = mk_exp (Num 1.0) 43 in
+  let assignment = mk_exp (Assign (a, one)) 39 in
+  let loop = mk_exp_with_annot (While (condition, assignment)) 0 [{atype = Invariant; aformula = "#cScope = [#lg]"}] in
+  assert_equal (mk_exp (Seq (assignment, loop)) 0) exp
+  
+let test_delete () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "delete a" in
+  let a = mk_exp (Var "a") 7 in
+  assert_equal (mk_exp (Delete a) 0) exp
 
 let suite = "Testing Parser" >:::
   ["test var" >:: test_var;
@@ -429,4 +447,6 @@ let suite = "Testing Parser" >:::
    "test_assign_bitxor" >:: test_assign_bitxor;
    "test_return" >:: test_return;
    "test_return_exp" >:: test_return_exp;
+   "test_do_while" >:: test_do_while;
+   "test_delete" >:: test_delete;
   ]

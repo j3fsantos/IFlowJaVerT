@@ -102,6 +102,8 @@ let rec get_invariant_inner (w : xml) =
   match w with 
     | Element ("WHILE", _, _) -> []
     | Element ("FOR", _, _) -> []
+    | Element ("DO", _, children) ->
+      flat_map (fun child -> get_invariant_inner child) children
     | Element ("ANNOTATION", attrs, []) -> 
       let annot = get_annot attrs in
       if is_invariant_annot annot then [annot] else []
@@ -113,6 +115,8 @@ let rec get_invariant (w : xml) =
     | Element ("WHILE", _, children) ->
       flat_map (fun child -> get_invariant_inner child) children
     | Element ("FOR", _, children) ->
+      flat_map (fun child -> get_invariant_inner child) children
+    | Element ("DO", _, children) ->
       flat_map (fun child -> get_invariant_inner child) children
     | _ -> raise InvalidArgument
   
@@ -289,8 +293,19 @@ let rec xml_to_exp xml : exp =
       let body = mk_exp (Seq (xml_to_exp exp, xml_to_exp incr)) (get_offset attrs) in
       let whileloop = mk_exp_with_annot (While (xml_to_exp condition, body)) (get_offset attrs) invariant in
       mk_exp (Seq (xml_to_exp init, whileloop)) (get_offset attrs)
+    | Element ("DO", attrs, [body; condition]) -> 
+      let offset = get_offset attrs in
+      let invariant = get_invariant xml in
+      let body = xml_to_exp body in
+      let whileloop = mk_exp_with_annot (While (xml_to_exp condition, body)) offset invariant in
+      mk_exp (Seq (body, whileloop)) offset
     | Element ("FOR", attrs, [var; obj; exp]) ->
       mk_exp (ForIn (xml_to_exp var, xml_to_exp obj, xml_to_exp exp)) (get_offset attrs)
+    | Element ("DELPROP", attrs, children) -> 
+      begin match (remove_annotation_elements children) with
+        | [child] -> mk_exp (Delete (xml_to_exp child)) (get_offset attrs)
+        | _ -> raise (Parser_Unknown_Tag ("DELPROP", (get_offset attrs))) 
+      end 
     (* TODO *)  
     | Element ("CONTINUE", attrs, []) -> raise NotImplemented
 
@@ -298,9 +313,6 @@ let rec xml_to_exp xml : exp =
     | Element ("TRY", attrs, [trychild; catchchild]) -> raise NotImplemented
     | Element ("TRY", attrs, [trychild; catchchild; finally]) -> raise NotImplemented
     | Element ("CATCH", attrs, [name; block]) -> raise NotImplemented
-
-    | Element ("DELPROP", attrs, [child]) -> raise NotImplemented
-    | Element ("DO", attrs, [child1; child2]) -> raise NotImplemented
 
     | Element ("SWITCH", attrs, children) -> raise NotImplemented 
     | Element ("CASE", attrs, children) -> raise NotImplemented
