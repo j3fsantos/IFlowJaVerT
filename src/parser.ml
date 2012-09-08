@@ -18,6 +18,7 @@ exception Unknown_Annotation of string
 exception InvalidArgument
 exception XmlParserException
 exception Unknown_Dec_Inc_Position
+exception Parser_Xml_To_Label_Name
 
 let get_attr attrs attr_name =
   let offset_list = List.filter (fun (name, value) -> name = attr_name) attrs in
@@ -29,6 +30,11 @@ let get_offset attrs : int =
   
 let get_value attrs : string =
   get_attr attrs "value"
+  
+let get_label_name xml : string =
+  match xml with
+    | Element ("LABEL_NAME", attrs, []) -> get_attr attrs "name"
+    | _ -> raise Parser_Xml_To_Label_Name
   
 let string_element xml : string =
   match xml with
@@ -102,13 +108,12 @@ let rec get_invariant_inner (w : xml) =
   match w with 
     | Element ("WHILE", _, _) -> []
     | Element ("FOR", _, _) -> []
-    | Element ("DO", _, children) ->
-      flat_map (fun child -> get_invariant_inner child) children
+    | Element ("DO", _, _) -> []
     | Element ("ANNOTATION", attrs, []) -> 
       let annot = get_annot attrs in
       if is_invariant_annot annot then [annot] else []
     | Element (_, _, children) -> flat_map (fun child -> get_invariant_inner child) children
-    | _ -> []
+    | PCData _ -> []
 
 let rec get_invariant (w : xml) =
   match w with
@@ -133,7 +138,7 @@ let rec xml_to_exp xml : exp =
           let stmts = List.take (List.length stmts - 1) stmts in
           let program = fold_right (fun s1 s2 -> (mk_exp (Seq (s1,s2)) s1.offset)) stmts last in
           let program_spec = get_function_spec xml in
-          mk_exp_with_annot program.stx program.offset program_spec
+          mk_exp_with_annot program.stx program.offset (program.exp_annot @ program_spec)
       end
     | Element ("EXPR_RESULT", _, [child]) -> xml_to_exp child
     | Element ("ASSIGN", attrs, children) -> 
@@ -306,10 +311,26 @@ let rec xml_to_exp xml : exp =
         | [child] -> mk_exp (Delete (xml_to_exp child)) (get_offset attrs)
         | _ -> raise (Parser_Unknown_Tag ("DELPROP", (get_offset attrs))) 
       end 
+    | Element ("LABEL", attrs, children) -> 
+      begin match (remove_annotation_elements children) with
+        | [lname; child] -> mk_exp (Label (get_label_name lname, xml_to_exp child)) (get_offset attrs)
+        | _ -> raise (Parser_Unknown_Tag ("LABEL", (get_offset attrs))) 
+      end 
+    | Element ("CONTINUE", attrs, children) -> 
+      let offset = get_offset attrs in
+      begin match (remove_annotation_elements children) with
+        | [] -> mk_exp (Continue None) offset
+        | [label] -> mk_exp (Continue (Some (get_label_name label))) offset 
+        | _ -> raise (Parser_Unknown_Tag ("CONTINUE", offset)) 
+      end 
+    | Element ("BREAK", attrs, children) -> 
+      let offset = get_offset attrs in
+      begin match (remove_annotation_elements children) with
+        | [] -> mk_exp (Break None) offset
+        | [label] -> mk_exp (Break (Some (get_label_name label))) offset 
+        | _ -> raise (Parser_Unknown_Tag ("BREAK", offset)) 
+      end 
     (* TODO *)  
-    | Element ("CONTINUE", attrs, []) -> raise NotImplemented
-
-    | Element ("BREAK", attrs, []) -> raise NotImplemented
     | Element ("TRY", attrs, [trychild; catchchild]) -> raise NotImplemented
     | Element ("TRY", attrs, [trychild; catchchild; finally]) -> raise NotImplemented
     | Element ("CATCH", attrs, [name; block]) -> raise NotImplemented
@@ -321,8 +342,6 @@ let rec xml_to_exp xml : exp =
     | Element ("DEBUGGER", attrs, []) -> raise NotImplemented 
     | Element ("GETTER_DEF", attrs, children) -> raise NotImplemented
     | Element ("SETTER_DEF", attrs, children) -> raise NotImplemented
-    | Element ("LABEL", attrs, children) -> raise NotImplemented
-    | Element ("LABEL_NAME", attrs, children) -> raise NotImplemented
     | Element ("STRING_KEY", attrs, children) -> raise NotImplemented
     | Element (tag_name, attrs, _) -> raise (Parser_Unknown_Tag (tag_name, (get_offset attrs)))
     | PCData _ -> raise Parser_PCData

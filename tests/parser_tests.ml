@@ -395,6 +395,75 @@ let test_delete () =
   let exp = make_exp_from_string "delete a" in
   let a = mk_exp (Var "a") 7 in
   assert_equal (mk_exp (Delete a) 0) exp
+  
+let test_continue () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "while (a > 5) {/** @invariant #cScope = [#lg] */ a++; continue}" in
+  let a = mk_exp (Var "a") 7 in
+  let five = mk_exp (Num 5.0) 11 in
+  let condition = mk_exp (BinOp (a, Comparison Gt, five)) 7 in
+  let a = mk_exp (Var "a") 49 in
+  let app = mk_exp (Unary_op (Post_Incr, a)) 49 in
+  let cont = mk_exp (Continue None) 54 in
+  let body = mk_exp (Seq (app, cont)) 49 in
+  assert_equal (mk_exp_with_annot (While (condition, body)) 0 [{atype = Invariant; aformula = "#cScope = [#lg]"}]) exp 
+  
+let test_continue_label () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "test: while (a > 5) {/** @invariant #cScope = [#lg] */ a++; continue test}" in
+  let a = mk_exp (Var "a") 13 in
+  let five = mk_exp (Num 5.0) 17 in
+  let condition = mk_exp (BinOp (a, Comparison Gt, five)) 13 in
+  let a = mk_exp (Var "a") 55 in
+  let app = mk_exp (Unary_op (Post_Incr, a)) 55 in
+  let cont = mk_exp (Continue (Some "test")) 60 in
+  let body = mk_exp (Seq (app, cont)) 55 in
+  let loop = mk_exp_with_annot (While (condition, body)) 6 [{atype = Invariant; aformula = "#cScope = [#lg]"}] in
+  assert_equal (mk_exp (Label ("test", loop)) 0) exp
+  
+let test_break () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "while (a > 5) {/** @invariant #cScope = [#lg] */ a++; break}" in
+  let a = mk_exp (Var "a") 7 in
+  let five = mk_exp (Num 5.0) 11 in
+  let condition = mk_exp (BinOp (a, Comparison Gt, five)) 7 in
+  let a = mk_exp (Var "a") 49 in
+  let app = mk_exp (Unary_op (Post_Incr, a)) 49 in
+  let cont = mk_exp (Break None) 54 in
+  let body = mk_exp (Seq (app, cont)) 49 in
+  assert_equal (mk_exp_with_annot (While (condition, body)) 0 [{atype = Invariant; aformula = "#cScope = [#lg]"}]) exp 
+  
+let test_break_label () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "test: while (a > 5) {/** @invariant #cScope = [#lg] */ a++; break test}" in
+  let a = mk_exp (Var "a") 13 in
+  let five = mk_exp (Num 5.0) 17 in
+  let condition = mk_exp (BinOp (a, Comparison Gt, five)) 13 in
+  let a = mk_exp (Var "a") 55 in
+  let app = mk_exp (Unary_op (Post_Incr, a)) 55 in
+  let cont = mk_exp (Break (Some "test")) 60 in
+  let body = mk_exp (Seq (app, cont)) 55 in
+  let loop = mk_exp_with_annot (While (condition, body)) 6 [{atype = Invariant; aformula = "#cScope = [#lg]"}] in
+  assert_equal (mk_exp (Label ("test", loop)) 0) exp
+  
+let test_get_invariant () =
+  let xml = " <WHILE pos=\"0\">
+						    <GT pos=\"7\">
+						      <NAME pos=\"7\" value=\"a\"/>
+						      <NUMBER pos=\"11\" value=\"5.0\"/>
+						    </GT>
+						    <BLOCK pos=\"14\">
+						      <EXPR_RESULT pos=\"49\">
+						        <INC decpos=\"post\" pos=\"49\">
+						          <ANNOTATION formula=\"#cScope = [#lg]\" pos=\"49\" type=\"invariant\"/>
+						          <NAME pos=\"49\" value=\"a\"/>
+						        </INC>
+						      </EXPR_RESULT>
+						      <CONTINUE pos=\"54\"/>
+						    </BLOCK>
+						  </WHILE>" in
+  let xml = Xml.parse_string xml in
+  assert_equal [{atype = Invariant; aformula = "#cScope = [#lg]"}] (Parser.get_invariant xml)
 
 let suite = "Testing Parser" >:::
   ["test var" >:: test_var;
@@ -449,4 +518,9 @@ let suite = "Testing Parser" >:::
    "test_return_exp" >:: test_return_exp;
    "test_do_while" >:: test_do_while;
    "test_delete" >:: test_delete;
+   "test_continue" >:: test_continue;
+   "test_continue_label" >:: test_continue_label;
+   "test_break" >:: test_break;
+   "test_break_label" >:: test_break_label;
+   "test_get_invariant" >:: test_get_invariant;
   ]

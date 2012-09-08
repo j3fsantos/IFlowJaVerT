@@ -96,15 +96,16 @@ let rec get_all_annots_no_fun exp =
 	    | Access (e, _) -> f e
 	    | Call (e1, e2s) -> (f e1) @ (flat_map (fun e2 -> f e2) e2s)
 	    | Assign (e1, e2) 
-        | AssignOp (e1, _, e2) -> (f e1) @ (f e2)
+      | AssignOp (e1, _, e2) -> (f e1) @ (f e2)
 	    | New (e1, e2s) -> (f e1) @ (flat_map (fun e2 -> f e2) e2s)
 	    | Obj xs -> flatten (map (fun (_,e) -> f e) xs)
 	    | CAccess (e1, e2) -> (f e1) @ (f e2)
 	    | With (e1, e2) -> (f e1) @ (f e2)
 	    | Throw e 
 	    | Return (Some e) -> f e
-        | ForIn (e1, e2, e3) -> (f e1) @ (f e2) @ (f e3)
-        | Comma (e1, e2) -> (f e1) @ (f e2)
+      | ForIn (e1, e2, e3) -> (f e1) @ (f e2) @ (f e3)
+      | Comma (e1, e2) -> (f e1) @ (f e2)
+      | Label (_, e) -> f e
 	    | RegExp _
 	    | Num _
 	    | String _
@@ -117,5 +118,7 @@ let rec get_all_annots_no_fun exp =
 	    | AnnonymousFun _
 	    | NamedFun _
 	    | Skip
-        | Return None -> [] in
+      | Return None 
+      | Break _
+      | Continue _ -> [] in
   annots @ rec_annots
