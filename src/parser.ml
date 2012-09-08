@@ -249,7 +249,8 @@ let rec xml_to_exp xml : exp =
     | Element ("TRUE", attrs, _) -> mk_exp (Bool true) (get_offset attrs)
     | Element ("FALSE", attrs, _) -> mk_exp (Bool false) (get_offset attrs)
     | Element ("THIS", attrs, _) -> mk_exp This (get_offset attrs)
-    | Element ("RETURN", attrs, [child]) -> mk_exp (Return (xml_to_exp child)) (get_offset attrs)
+    | Element ("RETURN", attrs, []) -> mk_exp (Return None) (get_offset attrs) 
+    | Element ("RETURN", attrs, [child]) -> mk_exp (Return (Some (xml_to_exp child))) (get_offset attrs)
     | Element ("REGEXP", attrs, [pattern]) -> mk_exp (RegExp ((string_element pattern), "")) (get_offset attrs)
     | Element ("REGEXP", attrs, [pattern; flags]) -> 
       mk_exp (RegExp ((string_element pattern), (string_element flags))) (get_offset attrs)
@@ -292,17 +293,20 @@ let rec xml_to_exp xml : exp =
       mk_exp (ForIn (xml_to_exp var, xml_to_exp obj, xml_to_exp exp)) (get_offset attrs)
     (* TODO *)  
     | Element ("CONTINUE", attrs, []) -> raise NotImplemented
-    | Element ("RETURN", attrs, []) -> raise NotImplemented
+
     | Element ("BREAK", attrs, []) -> raise NotImplemented
     | Element ("TRY", attrs, [trychild; catchchild]) -> raise NotImplemented
-    | Element ("CATCH", attrs, [name; block]) -> raise NotImplemented
-    | Element ("DEBUGGER", attrs, []) -> raise NotImplemented
     | Element ("TRY", attrs, [trychild; catchchild; finally]) -> raise NotImplemented
+    | Element ("CATCH", attrs, [name; block]) -> raise NotImplemented
+
     | Element ("DELPROP", attrs, [child]) -> raise NotImplemented
     | Element ("DO", attrs, [child1; child2]) -> raise NotImplemented
+
     | Element ("SWITCH", attrs, children) -> raise NotImplemented 
     | Element ("CASE", attrs, children) -> raise NotImplemented
     | Element ("DEFAULT_CASE", attrs, [child]) -> raise NotImplemented
+
+    | Element ("DEBUGGER", attrs, []) -> raise NotImplemented 
     | Element ("GETTER_DEF", attrs, children) -> raise NotImplemented
     | Element ("SETTER_DEF", attrs, children) -> raise NotImplemented
     | Element ("LABEL", attrs, children) -> raise NotImplemented

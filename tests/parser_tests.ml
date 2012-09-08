@@ -363,6 +363,20 @@ let test_bitxor () =
   let a = mk_exp (Var "a") 0 in
   let b = mk_exp (Var "b") 4 in
   assert_equal (mk_exp (BinOp (a, Arith Bitxor, b)) 0) exp
+  
+let test_return () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "function f() {return}" in
+  let r = mk_exp (Return None) 14 in
+  assert_equal (mk_exp (NamedFun ("f", [], r)) 0) exp
+  
+let test_return_exp () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "function f() {return g()}" in
+  let g = mk_exp (Var "g") 21 in
+  let gcall = mk_exp (Call (g, [])) 22 in
+  let r = mk_exp (Return (Some gcall)) 14 in
+  assert_equal (mk_exp (NamedFun ("f", [], r)) 0) exp
 
 let suite = "Testing Parser" >:::
   ["test var" >:: test_var;
@@ -413,4 +427,6 @@ let suite = "Testing Parser" >:::
    "test_assign_bitand" >:: test_assign_bitand;
    "test_assign_bitor" >:: test_assign_bitor;
    "test_assign_bitxor" >:: test_assign_bitxor;
+   "test_return" >:: test_return;
+   "test_return_exp" >:: test_return_exp;
   ]
