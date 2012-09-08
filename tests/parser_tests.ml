@@ -65,7 +65,7 @@ let test_and () =
   let exp = make_exp_from_string "a && b" in
   let a = mk_exp (Var "a") 0 in
   let b = mk_exp (Var "b") 5 in
-  assert_equal (mk_exp (BinOp (a, And, b)) 0) exp
+  assert_equal (mk_exp (BinOp (a, Boolean And, b)) 0) exp
   
 let test_array_literal () =
   Symb_execution.initialize ();
@@ -82,28 +82,28 @@ let test_ge () =
   let exp = make_exp_from_string "1 >= 2" in
   let one = mk_exp (Num 1.0) 0 in
   let two = mk_exp (Num 2.0) 5 in
-  assert_equal (mk_exp (BinOp (one, Ge, two)) 0) exp
+  assert_equal (mk_exp (BinOp (one, Comparison Ge, two)) 0) exp
   
 let test_or () =
   Symb_execution.initialize ();
   let exp = make_exp_from_string "a || b" in
   let a = mk_exp (Var "a") 0 in
   let b = mk_exp (Var "b") 5 in
-  assert_equal (mk_exp (BinOp (a, Or, b)) 0) exp
+  assert_equal (mk_exp (BinOp (a, Boolean Or, b)) 0) exp
   
 let test_not_triple_eq () =
   Symb_execution.initialize ();
   let exp = make_exp_from_string "a !== b" in
   let a = mk_exp (Var "a") 0 in
   let b = mk_exp (Var "b") 6 in
-  assert_equal (mk_exp (BinOp (a, NotTripleEqual, b)) 0) exp
+  assert_equal (mk_exp (BinOp (a, Comparison NotTripleEqual, b)) 0) exp
   
 let test_hook () =
   Symb_execution.initialize ();
   let exp = make_exp_from_string "a >= b ? a : b" in
   let a = mk_exp (Var "a") 0 in
   let b = mk_exp (Var "b") 5 in
-  let ab = mk_exp (BinOp (a, Ge, b)) 0 in
+  let ab = mk_exp (BinOp (a, Comparison Ge, b)) 0 in
   let a9 = mk_exp (Var "a") 9 in
   let b13 = mk_exp (Var "b") 13 in
   assert_equal (mk_exp (If (ab, a9, b13)) 0) exp
@@ -113,7 +113,7 @@ let test_instanceof () =
   let exp = make_exp_from_string "a instanceof b" in
   let a = mk_exp (Var "a") 0 in
   let b = mk_exp (Var "b") 13 in
-  assert_equal (mk_exp (BinOp (a, InstanceOf, b)) 0) exp
+  assert_equal (mk_exp (BinOp (a, Comparison InstanceOf, b)) 0) exp
   
 let test_typeof () =
   Symb_execution.initialize ();
@@ -126,7 +126,7 @@ let test_pos () =
   let exp = make_exp_from_string "+(a + 1)" in
   let a = mk_exp (Var "a") 2 in
   let one = mk_exp (Num 1.0) 6 in
-  let a1 = mk_exp (BinOp (a, Plus, one)) 2 in
+  let a1 = mk_exp (BinOp (a, Arith Plus, one)) 2 in
   assert_equal (mk_exp (Unary_op (Positive, a1)) 0) exp
   
 let test_dec_pre () =
@@ -159,7 +159,7 @@ let test_for () =
   let empty = mk_exp Skip 5 in
   let a = mk_exp (Var "a") 7 in
   let five = mk_exp (Num 5.0) 11 in
-  let condition = mk_exp (BinOp (a, Lt, five)) 7 in
+  let condition = mk_exp (BinOp (a, Comparison Lt, five)) 7 in
   let a = mk_exp (Var "a") 14 in
   let inc = mk_exp (Unary_op (Post_Incr, a)) 14 in
   let one = mk_exp (Num 1.0) 60 in
@@ -188,77 +188,77 @@ let test_mod () =
   let exp = make_exp_from_string "a % b" in
   let a = mk_exp (Var "a") 0 in
   let b = mk_exp (Var "b") 4 in
-  assert_equal (mk_exp (BinOp (a, Mod, b)) 0) exp
+  assert_equal (mk_exp (BinOp (a, Arith Mod, b)) 0) exp
   
 let test_ursh () =
   Symb_execution.initialize ();
   let exp = make_exp_from_string "a >>> b" in
   let a = mk_exp (Var "a") 0 in
   let b = mk_exp (Var "b") 6 in
-  assert_equal (mk_exp (BinOp (a, Ursh, b)) 0) exp
+  assert_equal (mk_exp (BinOp (a, Arith Ursh, b)) 0) exp
   
 let test_lsh () =
   Symb_execution.initialize ();
   let exp = make_exp_from_string "a << b" in
   let a = mk_exp (Var "a") 0 in
   let b = mk_exp (Var "b") 5 in
-  assert_equal (mk_exp (BinOp (a, Lsh, b)) 0) exp
+  assert_equal (mk_exp (BinOp (a, Arith Lsh, b)) 0) exp
   
 let test_rsh () =
   Symb_execution.initialize ();
   let exp = make_exp_from_string "a >> b" in
   let a = mk_exp (Var "a") 0 in
   let b = mk_exp (Var "b") 5 in
-  assert_equal (mk_exp (BinOp (a, Rsh, b)) 0) exp
+  assert_equal (mk_exp (BinOp (a, Arith Rsh, b)) 0) exp
   
 let test_bitand () =
   Symb_execution.initialize ();
   let exp = make_exp_from_string "a & b" in
   let a = mk_exp (Var "a") 0 in
   let b = mk_exp (Var "b") 4 in
-  assert_equal (mk_exp (BinOp (a, Bitand, b)) 0) exp
+  assert_equal (mk_exp (BinOp (a, Arith Bitand, b)) 0) exp
   
 let test_bitor () =
   Symb_execution.initialize ();
   let exp = make_exp_from_string "a | b" in
   let a = mk_exp (Var "a") 0 in
   let b = mk_exp (Var "b") 4 in
-  assert_equal (mk_exp (BinOp (a, Bitor, b)) 0) exp
+  assert_equal (mk_exp (BinOp (a, Arith Bitor, b)) 0) exp
   
 let test_bitxor () =
   Symb_execution.initialize ();
   let exp = make_exp_from_string "a ^ b" in
   let a = mk_exp (Var "a") 0 in
   let b = mk_exp (Var "b") 4 in
-  assert_equal (mk_exp (BinOp (a, Bitxor, b)) 0) exp
+  assert_equal (mk_exp (BinOp (a, Arith Bitxor, b)) 0) exp
   
 let test_notequal () =
   Symb_execution.initialize ();
   let exp = make_exp_from_string "a != b" in
   let a = mk_exp (Var "a") 0 in
   let b = mk_exp (Var "b") 5 in
-  assert_equal (mk_exp (BinOp (a, NotEqual, b)) 0) exp
+  assert_equal (mk_exp (BinOp (a, Comparison NotEqual, b)) 0) exp
   
 let test_gt () =
   Symb_execution.initialize ();
   let exp = make_exp_from_string "a > b" in
   let a = mk_exp (Var "a") 0 in
   let b = mk_exp (Var "b") 4 in
-  assert_equal (mk_exp (BinOp (a, Gt, b)) 0) exp
+  assert_equal (mk_exp (BinOp (a, Comparison Gt, b)) 0) exp
   
 let test_in () =
   Symb_execution.initialize ();
   let exp = make_exp_from_string "a in b" in
   let a = mk_exp (Var "a") 0 in
   let b = mk_exp (Var "b") 5 in
-  assert_equal (mk_exp (BinOp (a, In, b)) 0) exp
+  assert_equal (mk_exp (BinOp (a, Comparison In, b)) 0) exp
   
 let test_comma1 () =
   Symb_execution.initialize ();
   let exp = make_exp_from_string "a , b" in
   let a = mk_exp (Var "a") 0 in
   let b = mk_exp (Var "b") 4 in
-  assert_equal (mk_exp (BinOp (a, Comma, b)) 0) exp
+  assert_equal (mk_exp (Comma (a, b)) 0) exp
   
 let test_comma2 () =
   Symb_execution.initialize ();
@@ -266,8 +266,8 @@ let test_comma2 () =
   let a = mk_exp (Var "a") 0 in
   let b = mk_exp (Var "b") 3 in
   let c = mk_exp (Var "c") 6 in
-  let ab = mk_exp (BinOp (a, Comma, b)) 0 in
-  assert_equal (mk_exp (BinOp (ab, Comma, c)) 0) exp
+  let ab = mk_exp (Comma (a, b)) 0 in
+  assert_equal (mk_exp (Comma (ab, c)) 0) exp
   
 let test_negative () =
   Symb_execution.initialize ();

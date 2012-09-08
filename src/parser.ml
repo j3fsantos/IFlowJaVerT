@@ -204,30 +204,34 @@ let rec xml_to_exp xml : exp =
     | Element ("HOOK", attrs, [condition; t_block; f_block])
     | Element ("IF", attrs, [condition; t_block; f_block]) ->
       mk_exp (If (xml_to_exp condition, xml_to_exp t_block, xml_to_exp f_block)) (get_offset attrs)
-    | Element ("EQ", attrs, children) -> parse_binary_op Equal attrs children "EQ"
-    | Element ("NE", attrs, children) -> parse_binary_op NotEqual attrs children "NE"
-    | Element ("SHEQ", attrs, children) -> parse_binary_op TripleEqual attrs children "SHEQ"
-    | Element ("SHNE", attrs, children) -> parse_binary_op NotTripleEqual attrs children "SHNE"
-    | Element ("LT", attrs, children) -> parse_binary_op Lt attrs children "LT"
-    | Element ("LE", attrs, children) -> parse_binary_op Le attrs children "LE"
-    | Element ("GT", attrs, children) -> parse_binary_op Gt attrs children "GT"
-    | Element ("GE", attrs, children) -> parse_binary_op Ge attrs children "GE"
-    | Element ("IN", attrs, children) -> parse_binary_op In attrs children "IN"
-    | Element ("INSTANCEOF", attrs, children) -> parse_binary_op InstanceOf attrs children "INSTANCEOF"
-    | Element ("COMMA", attrs, children) -> parse_binary_op Comma attrs children "COMMA"
-    | Element ("ADD", attrs, children) -> parse_binary_op Plus attrs children "ADD"
-    | Element ("SUB", attrs, children) -> parse_binary_op Minus attrs children "SUB"
-    | Element ("MUL", attrs, children) -> parse_binary_op Times attrs children "MUL"
-    | Element ("DIV", attrs, children) -> parse_binary_op Div attrs children "DIV"
-    | Element ("MOD", attrs, children) -> parse_binary_op Mod attrs children "MOD"
-    | Element ("URSH", attrs, children) -> parse_binary_op Ursh attrs children "URSH" 
-    | Element ("LSH", attrs, children) -> parse_binary_op Lsh attrs children "LSH" 
-    | Element ("RSH", attrs, children) -> parse_binary_op Rsh attrs children "RSH"
-    | Element ("BITAND", attrs, children) -> parse_binary_op Bitand attrs children "BITAND"
-    | Element ("BITOR", attrs, children) -> parse_binary_op Bitor attrs children "BITOR"
-    | Element ("BITXOR", attrs, children) -> parse_binary_op Bitxor attrs children "BITXOR"
-    | Element ("AND", attrs, children) -> parse_binary_op And attrs children "AND"
-    | Element ("OR", attrs, children) -> parse_binary_op Or attrs children "OR"
+    | Element ("EQ", attrs, children) -> parse_comparison_op Equal attrs children "EQ"
+    | Element ("NE", attrs, children) -> parse_comparison_op NotEqual attrs children "NE"
+    | Element ("SHEQ", attrs, children) -> parse_comparison_op TripleEqual attrs children "SHEQ"
+    | Element ("SHNE", attrs, children) -> parse_comparison_op NotTripleEqual attrs children "SHNE"
+    | Element ("LT", attrs, children) -> parse_comparison_op Lt attrs children "LT"
+    | Element ("LE", attrs, children) -> parse_comparison_op Le attrs children "LE"
+    | Element ("GT", attrs, children) -> parse_comparison_op Gt attrs children "GT"
+    | Element ("GE", attrs, children) -> parse_comparison_op Ge attrs children "GE"
+    | Element ("IN", attrs, children) -> parse_comparison_op In attrs children "IN"
+    | Element ("INSTANCEOF", attrs, children) -> parse_comparison_op InstanceOf attrs children "INSTANCEOF"
+    | Element ("ADD", attrs, children) -> parse_arith_op Plus attrs children "ADD"
+    | Element ("SUB", attrs, children) -> parse_arith_op Minus attrs children "SUB"
+    | Element ("MUL", attrs, children) -> parse_arith_op Times attrs children "MUL"
+    | Element ("DIV", attrs, children) -> parse_arith_op Div attrs children "DIV"
+    | Element ("MOD", attrs, children) -> parse_arith_op Mod attrs children "MOD"
+    | Element ("URSH", attrs, children) -> parse_arith_op Ursh attrs children "URSH" 
+    | Element ("LSH", attrs, children) -> parse_arith_op Lsh attrs children "LSH" 
+    | Element ("RSH", attrs, children) -> parse_arith_op Rsh attrs children "RSH"
+    | Element ("BITAND", attrs, children) -> parse_arith_op Bitand attrs children "BITAND"
+    | Element ("BITOR", attrs, children) -> parse_arith_op Bitor attrs children "BITOR"
+    | Element ("BITXOR", attrs, children) -> parse_arith_op Bitxor attrs children "BITXOR"
+    | Element ("AND", attrs, children) -> parse_bool_op And attrs children "AND"
+    | Element ("OR", attrs, children) -> parse_bool_op Or attrs children "OR"
+    | Element ("COMMA", attrs, children) -> 
+      begin match (remove_annotation_elements children) with
+        | [child1; child2] -> mk_exp (Comma (xml_to_exp child1, xml_to_exp child2)) (get_offset attrs)
+        | _ -> raise (Parser_Unknown_Tag ("COMMA", (get_offset attrs))) 
+      end 
     | Element ("THROW", attrs, children) ->
       begin match (remove_annotation_elements children) with
         | [e] -> mk_exp (Throw (xml_to_exp e)) (get_offset attrs)
@@ -336,11 +340,20 @@ parse_unary_op uop attrs children uops =
     | _ -> raise (Parser_Unknown_Tag (uops, get_offset attrs)) 
   end 
 and
-parse_binary_op bop attrs children bops =  
+parse_binary_op (bop:bin_op) attrs children tag =  
   begin match (remove_annotation_elements children) with
     | [child1; child2] -> mk_exp (BinOp (xml_to_exp child1, bop, xml_to_exp child2)) (get_offset attrs)
-    | _ -> raise (Parser_Unknown_Tag (bops, get_offset attrs)) 
+    | _ -> raise (Parser_Unknown_Tag (tag, get_offset attrs)) 
   end
+and
+parse_comparison_op op attrs children tag =
+  parse_binary_op (Comparison op) attrs children tag
+and
+parse_arith_op op attrs children tag =
+  parse_binary_op (Arith op) attrs children tag
+and
+parse_bool_op op attrs children tag =
+  parse_binary_op (Boolean op) attrs children tag
 
 let js_to_xml (filename : string) : string =
   match Unix.system ("java -jar " ^ !Config.js_to_xml_parser ^ " " ^ (Filename.quote filename)) with

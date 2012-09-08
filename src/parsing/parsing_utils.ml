@@ -103,6 +103,7 @@ let rec get_all_annots_no_fun exp =
 	    | Throw e 
 	    | Return e -> f e
       | ForIn (e1, e2, e3) -> (f e1) @ (f e2) @ (f e3)
+      | Comma (e1, e2) -> (f e1) @ (f e2)
 	    | RegExp _
 	    | Num _
 	    | String _
