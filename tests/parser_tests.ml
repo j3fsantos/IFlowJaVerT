@@ -182,6 +182,92 @@ let test_forin () =
   let ca2 = mk_exp (CAccess (oldObj2, prop2)) 39 in
   let assignment = mk_exp (Assign (ca1, ca2)) 27 in
   assert_equal (mk_exp (ForIn (varprop, oldObj1, assignment)) 0) exp
+  
+let test_mod () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a % b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 4 in
+  assert_equal (mk_exp (BinOp (a, Mod, b)) 0) exp
+  
+let test_ursh () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a >>> b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 6 in
+  assert_equal (mk_exp (BinOp (a, Ursh, b)) 0) exp
+  
+let test_lsh () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a << b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 5 in
+  assert_equal (mk_exp (BinOp (a, Lsh, b)) 0) exp
+  
+let test_rsh () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a >> b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 5 in
+  assert_equal (mk_exp (BinOp (a, Rsh, b)) 0) exp
+  
+let test_bitand () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a & b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 4 in
+  assert_equal (mk_exp (BinOp (a, Bitand, b)) 0) exp
+  
+let test_bitor () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a | b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 4 in
+  assert_equal (mk_exp (BinOp (a, Bitor, b)) 0) exp
+  
+let test_bitxor () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a ^ b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 4 in
+  assert_equal (mk_exp (BinOp (a, Bitxor, b)) 0) exp
+  
+let test_notequal () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a != b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 5 in
+  assert_equal (mk_exp (BinOp (a, NotEqual, b)) 0) exp
+  
+let test_gt () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a > b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 4 in
+  assert_equal (mk_exp (BinOp (a, Gt, b)) 0) exp
+  
+let test_in () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a in b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 5 in
+  assert_equal (mk_exp (BinOp (a, In, b)) 0) exp
+  
+let test_comma1 () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a , b" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 4 in
+  assert_equal (mk_exp (BinOp (a, Comma, b)) 0) exp
+  
+let test_comma2 () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "a, b, c" in
+  let a = mk_exp (Var "a") 0 in
+  let b = mk_exp (Var "b") 3 in
+  let c = mk_exp (Var "c") 6 in
+  let ab = mk_exp (BinOp (a, Comma, b)) 0 in
+  assert_equal (mk_exp (BinOp (ab, Comma, c)) 0) exp
 
 let suite = "Testing Parser" >:::
   ["test var" >:: test_var;
@@ -205,4 +291,17 @@ let suite = "Testing Parser" >:::
    "test_inc_pre" >:: test_inc_pre;
    "test_inc_post" >:: test_inc_post;
    "test_for" >:: test_for;
-   "test_forin" >:: test_forin]
+   "test_forin" >:: test_forin;
+   "test_mod" >:: test_mod;
+   "test_ursh" >:: test_ursh;
+   "test_lsh" >:: test_lsh;
+   "test_rsh" >:: test_rsh;
+   "test_bitand" >:: test_bitand;
+   "test_bitor" >:: test_bitor;
+   "test_bitxor" >:: test_bitxor;
+   "test_notequal" >:: test_notequal;
+   "test_gt" >:: test_gt;
+   "test_in" >:: test_in;
+   "test_comma1" >:: test_comma1;
+   "test_comma2" >:: test_comma2;
+  ]

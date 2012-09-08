@@ -205,14 +205,27 @@ let rec xml_to_exp xml : exp =
     | Element ("IF", attrs, [condition; t_block; f_block]) ->
       mk_exp (If (xml_to_exp condition, xml_to_exp t_block, xml_to_exp f_block)) (get_offset attrs)
     | Element ("EQ", attrs, children) -> parse_binary_op Equal attrs children "EQ"
+    | Element ("NE", attrs, children) -> parse_binary_op NotEqual attrs children "NE"
     | Element ("SHEQ", attrs, children) -> parse_binary_op TripleEqual attrs children "SHEQ"
     | Element ("SHNE", attrs, children) -> parse_binary_op NotTripleEqual attrs children "SHNE"
     | Element ("LT", attrs, children) -> parse_binary_op Lt attrs children "LT"
     | Element ("LE", attrs, children) -> parse_binary_op Le attrs children "LE"
+    | Element ("GT", attrs, children) -> parse_binary_op Gt attrs children "GT"
     | Element ("GE", attrs, children) -> parse_binary_op Ge attrs children "GE"
+    | Element ("IN", attrs, children) -> parse_binary_op In attrs children "IN"
     | Element ("INSTANCEOF", attrs, children) -> parse_binary_op InstanceOf attrs children "INSTANCEOF"
+    | Element ("COMMA", attrs, children) -> parse_binary_op Comma attrs children "COMMA"
     | Element ("ADD", attrs, children) -> parse_binary_op Plus attrs children "ADD"
     | Element ("SUB", attrs, children) -> parse_binary_op Minus attrs children "SUB"
+    | Element ("MUL", attrs, children) -> parse_binary_op Times attrs children "MUL"
+    | Element ("DIV", attrs, children) -> parse_binary_op Div attrs children "DIV"
+    | Element ("MOD", attrs, children) -> parse_binary_op Mod attrs children "MOD"
+    | Element ("URSH", attrs, children) -> parse_binary_op Ursh attrs children "URSH" 
+    | Element ("LSH", attrs, children) -> parse_binary_op Lsh attrs children "LSH" 
+    | Element ("RSH", attrs, children) -> parse_binary_op Rsh attrs children "RSH"
+    | Element ("BITAND", attrs, children) -> parse_binary_op Bitand attrs children "BITAND"
+    | Element ("BITOR", attrs, children) -> parse_binary_op Bitor attrs children "BITOR"
+    | Element ("BITXOR", attrs, children) -> parse_binary_op Bitxor attrs children "BITXOR"
     | Element ("AND", attrs, children) -> parse_binary_op And attrs children "AND"
     | Element ("OR", attrs, children) -> parse_binary_op Or attrs children "OR"
     | Element ("THROW", attrs, children) ->
@@ -262,38 +275,25 @@ let rec xml_to_exp xml : exp =
     (* TODO *)  
     | Element ("NEG", attrs, [child]) -> raise NotImplemented
     | Element ("CONTINUE", attrs, []) -> raise NotImplemented
-    | Element ("NE", attrs, [child1; child2]) -> raise NotImplemented
     | Element ("RETURN", attrs, []) -> raise NotImplemented
     | Element ("BREAK", attrs, []) -> raise NotImplemented
-    | Element ("GT", attrs, [child1; child2]) -> raise NotImplemented
     | Element ("TRY", attrs, [trychild; catchchild]) -> raise NotImplemented
     | Element ("CATCH", attrs, [name; block]) -> raise NotImplemented
     | Element ("DEBUGGER", attrs, []) -> raise NotImplemented
     | Element ("TRY", attrs, [trychild; catchchild; finally]) -> raise NotImplemented
-    | Element ("IN", attrs, [child1; child2]) -> raise NotImplemented
-    | Element ("COMMA", attrs, [child1; child2]) -> raise NotImplemented
     | Element ("DELPROP", attrs, [child]) -> raise NotImplemented
-    | Element ("ASSIGN_ADD", attrs, [child1; child2]) -> raise NotImplemented
-    | Element ("ASSIGN_SUB", attrs, [child1; child2]) -> raise NotImplemented
-    | Element ("ASSIGN_MUL", attrs, [child1; child2]) -> raise NotImplemented
-    | Element ("ASSIGN_DIV", attrs, [child1; child2]) -> raise NotImplemented
-    | Element ("ASSIGN_MOD", attrs, [child1; child2]) -> raise NotImplemented
-    | Element ("ASSIGN_URSH", attrs, [child1; child2]) -> raise NotImplemented
-    | Element ("ASSIGN_LSH", attrs, [child1; child2]) -> raise NotImplemented
-    | Element ("ASSIGN_RSH", attrs, [child1; child2]) -> raise NotImplemented
-    | Element ("ASSIGN_BITAND", attrs, [child1; child2]) -> raise NotImplemented
-    | Element ("ASSIGN_BITXOR", attrs, [child1; child2]) -> raise NotImplemented
-    | Element ("ASSIGN_BITOR", attrs, [child1; child2]) -> raise NotImplemented
-    | Element ("MUL", attrs, [child1; child2]) -> raise NotImplemented
-    | Element ("DIV", attrs, [child1; child2]) -> raise NotImplemented
-    | Element ("MOD", attrs, [child1; child2]) -> raise NotImplemented
-    | Element ("URSH", attrs, [child1; child2]) -> raise NotImplemented 
-    | Element ("LSH", attrs, [child1; child2]) -> raise NotImplemented 
-    | Element ("RSH", attrs, [child1; child2]) -> raise NotImplemented
     | Element ("BITNOT", attrs, [child]) -> raise NotImplemented
-    | Element ("BITAND", attrs, [child1; child2]) -> raise NotImplemented 
-    | Element ("BITOR", attrs, [child1; child2]) -> raise NotImplemented
-    | Element ("BITXOR", attrs, [child1; child2]) -> raise NotImplemented 
+    | Element ("ASSIGN_ADD", attrs, children) -> raise NotImplemented
+    | Element ("ASSIGN_SUB", attrs, children) -> raise NotImplemented
+    | Element ("ASSIGN_MUL", attrs, children) -> raise NotImplemented
+    | Element ("ASSIGN_DIV", attrs, children) -> raise NotImplemented
+    | Element ("ASSIGN_MOD", attrs, children) -> raise NotImplemented
+    | Element ("ASSIGN_URSH", attrs, children) -> raise NotImplemented
+    | Element ("ASSIGN_LSH", attrs, children) -> raise NotImplemented
+    | Element ("ASSIGN_RSH", attrs, children) -> raise NotImplemented
+    | Element ("ASSIGN_BITAND", attrs, children) -> raise NotImplemented
+    | Element ("ASSIGN_BITXOR", attrs, children) -> raise NotImplemented
+    | Element ("ASSIGN_BITOR", attrs, children) -> raise NotImplemented 
     | Element ("DO", attrs, [child1; child2]) -> raise NotImplemented
     | Element ("SWITCH", attrs, children) -> raise NotImplemented 
     | Element ("CASE", attrs, children) -> raise NotImplemented
