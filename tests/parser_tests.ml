@@ -486,6 +486,19 @@ let test_try_finally () =
   let a = mk_exp (Var "a") 5 in
   let d = mk_exp (Var "d") 17 in
   assert_equal (mk_exp (Try (a, None, Some d)) 0) exp
+  
+let test_switch () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "switch (a) { case 1 : b; break; default : d; case 2 : c }" in
+  let a = mk_exp (Var "a") 8 in
+  let one = mk_exp (Num 1.0) 18 in
+  let b = mk_exp (Var "b") 22 in
+  let break = mk_exp (Break None) 25 in
+  let seq = mk_exp (Seq (b, break)) 22 in
+  let d = mk_exp (Var "d") 42 in
+  let two = mk_exp (Num 2.0) 50 in
+  let c = mk_exp (Var "c") 54 in
+  assert_equal (mk_exp (Switch (a, [(Case one, seq); (DefaultCase, d); (Case two, c)])) 0) exp
 
 let suite = "Testing Parser" >:::
   ["test var" >:: test_var;
@@ -548,4 +561,5 @@ let suite = "Testing Parser" >:::
    "test_try_catch" >:: test_try_catch;
    "test_try_catch_finally" >:: test_try_catch_finally;
    "test_try_finally" >:: test_try_finally;
+   "test_switch" >:: test_switch;
   ]

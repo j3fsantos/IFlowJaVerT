@@ -338,11 +338,16 @@ let rec xml_to_exp xml : exp =
           let catch, finally = get_catch_finally children offset in mk_exp (Try (xml_to_exp child1, catch, finally)) offset
         | _ -> raise (Parser_Unknown_Tag ("TRY", offset))
       end  
+    | Element ("SWITCH", attrs, children) -> 
+      let offset = get_offset attrs in
+      begin match (remove_annotation_elements children) with
+         | (child1 :: cases) ->
+           let cases = remove_annotation_elements cases in
+           let cases = map (fun c -> parse_case c offset) cases in
+           mk_exp (Switch (xml_to_exp child1, cases)) offset
+         | _ -> raise (Parser_Unknown_Tag ("SWITCH", offset))
+      end
     (* TODO *)  
-    | Element ("SWITCH", attrs, children) -> raise NotImplemented 
-    | Element ("CASE", attrs, children) -> raise NotImplemented
-    | Element ("DEFAULT_CASE", attrs, [child]) -> raise NotImplemented
-
     | Element ("DEBUGGER", attrs, []) -> raise NotImplemented 
     | Element ("GETTER_DEF", attrs, children) -> raise NotImplemented
     | Element ("SETTER_DEF", attrs, children) -> raise NotImplemented
@@ -429,7 +434,21 @@ and get_catch_finally children offset =
       end 
     | _ -> raise (Parser_Unknown_Tag ("TRY", offset))
   end
-
+and parse_case child offset =
+  begin match child with
+    | Element ("CASE", attrs, children) ->
+      begin match (remove_annotation_elements children) with
+        | [exp; block] -> Case (xml_to_exp exp), xml_to_exp block
+        | _ -> raise (Parser_Unknown_Tag ("CASE", get_offset attrs))
+      end
+    | Element ("DEFAULT_CASE", attrs, children) ->
+      begin match (remove_annotation_elements children) with
+        | [block] -> DefaultCase, xml_to_exp block
+        | _ -> raise (Parser_Unknown_Tag ("DEFAULT_CASE", get_offset attrs))
+      end
+    | _ -> raise (Parser_Unknown_Tag ("SWITCH", offset))
+  end
+     
 let js_to_xml (filename : string) : string =
   match Unix.system ("java -jar " ^ !Config.js_to_xml_parser ^ " " ^ (Filename.quote filename)) with
     | Unix.WEXITED _ -> String.sub filename 0 (String.length filename - 3) ^ ".xml"

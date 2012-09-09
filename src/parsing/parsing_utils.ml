@@ -110,6 +110,7 @@ let rec get_all_annots_no_fun exp =
       | Try (e1, Some (_, e2), None)
       | Try (e1, None, Some e2) -> (f e1) @ (f e2)
       | Try (e1, None, None) -> raise CannotHappen
+      | Switch (e1, e2s) -> map_switch f (e1, e2s)
 	    | RegExp _
 	    | Num _
 	    | String _
