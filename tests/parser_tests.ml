@@ -464,6 +464,28 @@ let test_get_invariant () =
 						  </WHILE>" in
   let xml = Xml.parse_string xml in
   assert_equal [{atype = Invariant; aformula = "#cScope = [#lg]"}] (Parser.get_invariant xml)
+  
+let test_try_catch () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "try {a} catch (b) {c}" in
+  let a = mk_exp (Var "a") 5 in
+  let c = mk_exp (Var "c") 19 in
+  assert_equal (mk_exp (Try (a, Some ("b", c), None)) 0) exp
+  
+let test_try_catch_finally () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "try {a} catch (b) {c} finally {d}" in
+  let a = mk_exp (Var "a") 5 in
+  let c = mk_exp (Var "c") 19 in
+  let d = mk_exp (Var "d") 31 in
+  assert_equal (mk_exp (Try (a, Some ("b", c), Some d)) 0) exp
+  
+let test_try_finally () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "try {a} finally {d}" in
+  let a = mk_exp (Var "a") 5 in
+  let d = mk_exp (Var "d") 17 in
+  assert_equal (mk_exp (Try (a, None, Some d)) 0) exp
 
 let suite = "Testing Parser" >:::
   ["test var" >:: test_var;
@@ -523,4 +545,7 @@ let suite = "Testing Parser" >:::
    "test_break" >:: test_break;
    "test_break_label" >:: test_break_label;
    "test_get_invariant" >:: test_get_invariant;
+   "test_try_catch" >:: test_try_catch;
+   "test_try_catch_finally" >:: test_try_catch_finally;
+   "test_try_finally" >:: test_try_finally;
   ]

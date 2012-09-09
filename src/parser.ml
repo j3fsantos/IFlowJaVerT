@@ -19,6 +19,7 @@ exception InvalidArgument
 exception XmlParserException
 exception Unknown_Dec_Inc_Position
 exception Parser_Xml_To_Label_Name
+exception More_Than_One_Finally
 
 let get_attr attrs attr_name =
   let offset_list = List.filter (fun (name, value) -> name = attr_name) attrs in
@@ -330,11 +331,14 @@ let rec xml_to_exp xml : exp =
         | [label] -> mk_exp (Break (Some (get_label_name label))) offset 
         | _ -> raise (Parser_Unknown_Tag ("BREAK", offset)) 
       end 
+    | Element ("TRY", attrs, children) ->
+      let offset = get_offset attrs in
+      begin match remove_annotation_elements children with
+        | (child1 :: children) ->
+          let catch, finally = get_catch_finally children offset in mk_exp (Try (xml_to_exp child1, catch, finally)) offset
+        | _ -> raise (Parser_Unknown_Tag ("TRY", offset))
+      end  
     (* TODO *)  
-    | Element ("TRY", attrs, [trychild; catchchild]) -> raise NotImplemented
-    | Element ("TRY", attrs, [trychild; catchchild; finally]) -> raise NotImplemented
-    | Element ("CATCH", attrs, [name; block]) -> raise NotImplemented
-
     | Element ("SWITCH", attrs, children) -> raise NotImplemented 
     | Element ("CASE", attrs, children) -> raise NotImplemented
     | Element ("DEFAULT_CASE", attrs, [child]) -> raise NotImplemented
@@ -375,7 +379,7 @@ parse_unary_op uop attrs children uops =
     | _ -> raise (Parser_Unknown_Tag (uops, get_offset attrs)) 
   end 
 and
-parse_binary_op (bop:bin_op) attrs children tag =  
+parse_binary_op bop attrs children tag =  
   begin match (remove_annotation_elements children) with
     | [child1; child2] -> mk_exp (BinOp (xml_to_exp child1, bop, xml_to_exp child2)) (get_offset attrs)
     | _ -> raise (Parser_Unknown_Tag (tag, get_offset attrs)) 
@@ -392,8 +396,39 @@ parse_bool_op op attrs children tag =
 and parse_assign_op op attrs children tag =
    begin match (remove_annotation_elements children) with
      | [child1; child2] -> mk_exp (AssignOp (xml_to_exp child1, op, xml_to_exp child2)) (get_offset attrs)
-     | _ -> raise (Parser_Unknown_Tag (tag, (get_offset attrs))) 
+     | _ -> raise (Parser_Unknown_Tag (tag, get_offset attrs)) 
    end
+and parse_catch_element catch offset =
+  match catch with
+      | Element ("CATCH", attrs, children) -> 
+        begin match (remove_annotation_elements children) with
+          | [name; exp] -> (name_element name, xml_to_exp exp)
+          | _ -> raise (Parser_Unknown_Tag ("CATCH", offset))
+        end
+      | _ -> raise (Parser_Unknown_Tag ("CATCH", offset))
+and get_catch_finally children offset =
+  begin match children with
+    | [catch_block; finally_block] ->
+      let catch = match catch_block with
+        | Element ("BLOCK", _, children) -> 
+          begin match (remove_annotation_elements children) with 
+            | [child] -> Some (parse_catch_element child offset)
+            | [] -> None
+            | _ -> raise (Parser_Unknown_Tag ("TRY", offset))
+          end
+        | _ -> raise (Parser_Unknown_Tag ("TRY", offset))
+      in catch, Some (xml_to_exp finally_block)
+    | [catch_block] ->
+      begin match catch_block with
+        | Element ("BLOCK", _, children) -> 
+          begin match (remove_annotation_elements children) with 
+            | [child] -> Some (parse_catch_element child offset), None
+            | _ -> raise (Parser_Unknown_Tag ("TRY", offset))
+          end
+        | _ -> raise (Parser_Unknown_Tag ("TRY", offset))
+      end 
+    | _ -> raise (Parser_Unknown_Tag ("TRY", offset))
+  end
 
 let js_to_xml (filename : string) : string =
   match Unix.system ("java -jar " ^ !Config.js_to_xml_parser ^ " " ^ (Filename.quote filename)) with

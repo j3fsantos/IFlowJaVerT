@@ -106,6 +106,10 @@ let rec get_all_annots_no_fun exp =
       | ForIn (e1, e2, e3) -> (f e1) @ (f e2) @ (f e3)
       | Comma (e1, e2) -> (f e1) @ (f e2)
       | Label (_, e) -> f e
+      | Try (e1, Some (_, e2), Some e3) -> (f e1) @ (f e2) @ (f e3)
+      | Try (e1, Some (_, e2), None)
+      | Try (e1, None, Some e2) -> (f e1) @ (f e2)
+      | Try (e1, None, None) -> raise CannotHappen
 	    | RegExp _
 	    | Num _
 	    | String _
