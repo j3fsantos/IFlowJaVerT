@@ -22,7 +22,9 @@ exception Parser_Xml_To_Label_Name
 exception More_Than_One_Finally
 
 let get_attr attrs attr_name =
-  let _, value = List.find (fun (name, value) -> name = attr_name) attrs in value
+  try
+    let _, value = List.find (fun (name, value) -> name = attr_name) attrs in value
+  with Not_found -> print_string ("Not_found" ^ attr_name); raise Not_found
 
 let get_offset attrs : int =
   int_of_string (get_attr attrs "pos")
@@ -32,12 +34,12 @@ let get_value attrs : string =
   
 let get_label_name xml : string =
   match xml with
-    | Element ("LABEL_NAME", attrs, []) -> get_attr attrs "name"
+    | Element ("LABEL_NAME", attrs, _) -> get_attr attrs "name"
     | _ -> raise Parser_Xml_To_Label_Name
   
 let string_element xml : string =
   match xml with
-    | Element ("STRING", attrs, []) -> get_value attrs
+    | Element ("STRING", attrs, _) -> get_value attrs
     | _ -> raise Parser_Xml_To_String
 
 let name_element xml : string =
@@ -134,7 +136,34 @@ let rec get_invariant (w : xml) =
     | Element ("DO", _, children) ->
       flat_map (fun child -> get_invariant_inner child) children
     | _ -> raise InvalidArgument
-  
+
+let get_xml_child xml =
+  match xml with 
+    | Element (tag, attrs, children) ->
+		  begin match (remove_annotation_elements children) with
+		    | [child1] -> child1
+		    | _ -> raise (Parser_Unknown_Tag (tag, (get_offset attrs))) 
+		  end
+    | _ -> raise CannotHappen
+
+let get_xml_two_children xml =
+  match xml with 
+    | Element (tag, attrs, children) ->
+      begin match (remove_annotation_elements children) with
+        | [child1; child2] -> child1, child2
+        | _ -> raise (Parser_Unknown_Tag (tag, (get_offset attrs))) 
+      end
+    | _ -> raise CannotHappen 
+
+let get_xml_three_children xml =
+  match xml with 
+    | Element (tag, attrs, children) ->
+      begin match (remove_annotation_elements children) with
+        | [child1; child2; child3] -> child1, child2, child3
+        | _ -> raise (Parser_Unknown_Tag (tag, (get_offset attrs))) 
+      end
+    | _ -> raise CannotHappen
+    
 let rec xml_to_exp xml : exp =
   match xml with
     (*Element (tag name, attributes, children )*)
@@ -150,34 +179,28 @@ let rec xml_to_exp xml : exp =
           let program_spec = get_program_spec xml in
           mk_exp_with_annot program.stx program.offset (program.exp_annot @ program_spec)
       end
-    | Element ("EXPR_RESULT", _, [child]) -> xml_to_exp child
+    | Element ("EXPR_RESULT", attrs, children) -> xml_to_exp (get_xml_child xml)
     | Element ("ASSIGN", attrs, children) -> 
-      begin match (remove_annotation_elements children) with
-        | [child1; child2] -> mk_exp (Assign (xml_to_exp child1, xml_to_exp child2)) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag ("ASSIGN", (get_offset attrs))) 
-      end 
+      let child1, child2 = get_xml_two_children xml in
+      mk_exp (Assign (xml_to_exp child1, xml_to_exp child2)) (get_offset attrs)
     | Element ("NAME", attrs, _) -> mk_exp (Var (get_value attrs)) (get_offset attrs)
     | Element ("NULL", attrs, _) -> mk_exp Null (get_offset attrs)
-    | Element ("FUNCTION", attrs, children) ->
-      begin match (remove_annotation_elements children) with
-        | [name; params; block] ->
-		      let fn_name = name_element name in
-		      let fn_params = xml_to_vars params in
-		      let fn_body = xml_to_exp block in
-		      let fn_spec = get_function_spec xml in
-		      if (fn_name = "") then mk_exp_with_annot (AnnonymousFun (fn_params,fn_body)) (get_offset attrs) fn_spec
-		      else mk_exp_with_annot (NamedFun (fn_name,fn_params,fn_body)) (get_offset attrs) fn_spec
-        | _ -> raise (Parser_Unknown_Tag ("FUNCTION", (get_offset attrs))) 
-      end
+    | Element ("FUNCTION", attrs, children) -> 
+      let name, params, block = get_xml_three_children xml in
+      let fn_name = name_element name in
+      let fn_params = xml_to_vars params in
+      let fn_body = xml_to_exp block in
+      let fn_spec = get_function_spec xml in
+      if (fn_name = "") then mk_exp_with_annot (AnnonymousFun (fn_params,fn_body)) (get_offset attrs) fn_spec
+      else mk_exp_with_annot (NamedFun (fn_name,fn_params,fn_body)) (get_offset attrs) fn_spec
     | Element ("BLOCK", _, children) ->  
-      let stmts = map xml_to_exp children in
-      begin
-      match stmts with
-        | [] -> mk_exp Skip 0
-        | stmts -> 
-          let last = List.last stmts in
-          let stmts = List.take (List.length stmts - 1) stmts in
-          fold_right (fun s1 s2 -> (mk_exp (Seq (s1,s2)) s1.offset)) stmts last
+      let stmts = map xml_to_exp (remove_annotation_elements children) in
+      begin match stmts with
+	        | [] -> mk_exp Skip 0
+	        | stmts -> 
+	          let last = List.last stmts in
+	          let stmts = List.take (List.length stmts - 1) stmts in
+	          fold_right (fun s1 s2 -> (mk_exp (Seq (s1, s2)) s1.offset)) stmts last
       end
     | Element ("VAR", attrs, children) -> 
       let offset = get_offset attrs in
@@ -194,12 +217,12 @@ let rec xml_to_exp xml : exp =
     | Element ("CALL", attrs, children) -> 
       begin match (remove_annotation_elements children) with
         | (child1 :: children) -> mk_exp (Call (xml_to_exp child1, (map xml_to_exp children))) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag ("CALL", (get_offset attrs))) 
+        | _ -> raise (Parser_Unknown_Tag ("CALL", get_offset attrs)) 
       end  
     | Element ("NEW", attrs, children) -> 
       begin match (remove_annotation_elements children) with
         | (child1 :: children) -> mk_exp (New (xml_to_exp child1, (map xml_to_exp children))) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag ("NEW", (get_offset attrs))) 
+        | _ -> raise (Parser_Unknown_Tag ("NEW", get_offset attrs)) 
       end
     | Element ("NUMBER", attrs, _) -> 
       let n_float = float_of_string (get_value attrs) in
@@ -207,22 +230,26 @@ let rec xml_to_exp xml : exp =
     | Element ("OBJECTLIT", attrs, objl) ->
       let l = map (fun obj -> 
         match obj with
-        | Element ("STRING", attrs, [e]) -> (get_value attrs, xml_to_exp e) 
-        | _ -> raise Parser_ObjectList
-      ) objl
+          | Element ("STRING", attrs, [e]) -> (get_value attrs, xml_to_exp e) 
+          | _ -> raise Parser_ObjectList
+      ) (remove_annotation_elements objl)
       in (mk_exp (Obj l) (get_offset attrs))
     | Element ("WITH", attrs, children) ->
-      begin match (remove_annotation_elements children) with
-        | [obj; block] -> mk_exp (With (xml_to_exp obj, xml_to_exp block)) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag ("WITH", (get_offset attrs))) 
-      end 
+      let obj, block = get_xml_two_children xml in  
+      mk_exp (With (xml_to_exp obj, xml_to_exp block)) (get_offset attrs)
     | Element ("EMPTY", attrs, _) -> mk_exp Skip (get_offset attrs)
-    | Element ("IF", attrs, [condition; t_block]) ->
+    | Element ("IF", attrs, children) ->
       let offset = get_offset attrs in
-      mk_exp (If (xml_to_exp condition, xml_to_exp t_block, mk_exp Skip offset)) offset
-    | Element ("HOOK", attrs, [condition; t_block; f_block])
-    | Element ("IF", attrs, [condition; t_block; f_block]) ->
-      mk_exp (If (xml_to_exp condition, xml_to_exp t_block, xml_to_exp f_block)) (get_offset attrs)
+      begin match (remove_annotation_elements children) with
+        | [condition; t_block] ->
+          mk_exp (If (xml_to_exp condition, xml_to_exp t_block, mk_exp Skip offset)) offset
+        | [condition; t_block; f_block] ->
+          mk_exp (If (xml_to_exp condition, xml_to_exp t_block, xml_to_exp f_block)) offset
+        | _ -> raise (Parser_Unknown_Tag ("IF", offset)) 
+      end
+    | Element ("HOOK", attrs, children) ->
+      let condition, t_block, f_block = get_xml_three_children xml in
+      mk_exp (If (xml_to_exp condition, xml_to_exp t_block, xml_to_exp f_block)) (get_offset attrs)    
     | Element ("EQ", attrs, children) -> parse_comparison_op Equal attrs children "EQ"
     | Element ("NE", attrs, children) -> parse_comparison_op NotEqual attrs children "NE"
     | Element ("SHEQ", attrs, children) -> parse_comparison_op TripleEqual attrs children "SHEQ"
@@ -247,32 +274,36 @@ let rec xml_to_exp xml : exp =
     | Element ("AND", attrs, children) -> parse_bool_op And attrs children "AND"
     | Element ("OR", attrs, children) -> parse_bool_op Or attrs children "OR"
     | Element ("COMMA", attrs, children) -> 
-      begin match (remove_annotation_elements children) with
-        | [child1; child2] -> mk_exp (Comma (xml_to_exp child1, xml_to_exp child2)) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag ("COMMA", (get_offset attrs))) 
-      end 
+      let child1, child2 = get_xml_two_children xml in
+      mk_exp (Comma (xml_to_exp child1, xml_to_exp child2)) (get_offset attrs)
     | Element ("THROW", attrs, children) ->
-      begin match (remove_annotation_elements children) with
-        | [e] -> mk_exp (Throw (xml_to_exp e)) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag ("THROW", (get_offset attrs))) 
-      end
-    | Element ("WHILE", attrs, [condition; block]) ->
+      let e = get_xml_child xml in
+      mk_exp (Throw (xml_to_exp e)) (get_offset attrs)
+    | Element ("WHILE", attrs, children) ->
       let invariant = get_invariant xml in
+      let condition, block = get_xml_two_children xml in
       mk_exp_with_annot (While (xml_to_exp condition, xml_to_exp block)) (get_offset attrs) invariant
     | Element ("GETPROP", attrs, children) ->
-      begin match (remove_annotation_elements children) with
-        | [child1; child2] -> mk_exp (Access (xml_to_exp child1, string_element child2)) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag ("GETPROP", (get_offset attrs))) 
-      end 
+      let child1, child2 = get_xml_two_children xml in
+      mk_exp (Access (xml_to_exp child1, string_element child2)) (get_offset attrs)
     | Element ("STRING", attrs, _) -> mk_exp (String (string_element xml)) (get_offset attrs)
     | Element ("TRUE", attrs, _) -> mk_exp (Bool true) (get_offset attrs)
     | Element ("FALSE", attrs, _) -> mk_exp (Bool false) (get_offset attrs)
     | Element ("THIS", attrs, _) -> mk_exp This (get_offset attrs)
-    | Element ("RETURN", attrs, []) -> mk_exp (Return None) (get_offset attrs) 
-    | Element ("RETURN", attrs, [child]) -> mk_exp (Return (Some (xml_to_exp child))) (get_offset attrs)
-    | Element ("REGEXP", attrs, [pattern]) -> mk_exp (RegExp ((string_element pattern), "")) (get_offset attrs)
-    | Element ("REGEXP", attrs, [pattern; flags]) -> 
-      mk_exp (RegExp ((string_element pattern), (string_element flags))) (get_offset attrs)
+    | Element ("RETURN", attrs, children) ->
+      let offset = get_offset attrs in
+      begin match (remove_annotation_elements children) with
+        | [] -> mk_exp (Return None) offset 
+        | [child]-> mk_exp (Return (Some (xml_to_exp child))) offset
+        | _ -> raise (Parser_Unknown_Tag ("RETURN", offset)) 
+      end
+    | Element ("REGEXP", attrs, children) ->
+      let offset = get_offset attrs in
+      begin match (remove_annotation_elements children) with
+        | [pattern] -> mk_exp (RegExp ((string_element pattern), "")) offset
+        | [pattern; flags] -> mk_exp (RegExp ((string_element pattern), (string_element flags))) offset
+        | _ -> raise (Parser_Unknown_Tag ("REGEXP", offset)) 
+      end
     | Element ("NOT", attrs, children) -> parse_unary_op Not attrs children "NOT"
     | Element ("TYPEOF", attrs, children) -> parse_unary_op TypeOf attrs children "TYPEOF"
     | Element ("POS", attrs, children) -> parse_unary_op Positive attrs children "POS"
@@ -300,32 +331,36 @@ let rec xml_to_exp xml : exp =
         | DI_PRE -> parse_unary_op Pre_Incr attrs children "INC"
         | DI_POST -> parse_unary_op Post_Incr attrs children "INC"
       end
-    | Element ("GETELEM", attrs, [child1; child2]) -> mk_exp (CAccess (xml_to_exp child1, xml_to_exp child2)) (get_offset attrs)
+    | Element ("GETELEM", attrs, children) -> 
+      let child1, child2 = get_xml_two_children xml in
+      mk_exp (CAccess (xml_to_exp child1, xml_to_exp child2)) (get_offset attrs)
     | Element ("ARRAYLIT", attrs, children) ->
       convert_arraylist_to_object attrs children
-    | Element ("FOR", attrs, [init; condition; incr; exp]) ->
-      let invariant = get_invariant xml in
-      let body = mk_exp (Seq (xml_to_exp exp, xml_to_exp incr)) (get_offset attrs) in
-      let whileloop = mk_exp_with_annot (While (xml_to_exp condition, body)) (get_offset attrs) invariant in
-      mk_exp (Seq (xml_to_exp init, whileloop)) (get_offset attrs)
-    | Element ("DO", attrs, [body; condition]) -> 
+    | Element ("FOR", attrs, children) ->
+      let offset = get_offset attrs in
+      begin match (remove_annotation_elements children) with
+        | [init; condition; incr; exp] ->
+          let invariant = get_invariant xml in
+          let body = mk_exp (Seq (xml_to_exp exp, xml_to_exp incr)) offset in
+          let whileloop = mk_exp_with_annot (While (xml_to_exp condition, body)) offset invariant in
+          mk_exp (Seq (xml_to_exp init, whileloop)) offset
+        | [var; obj; exp] ->
+          mk_exp (ForIn (xml_to_exp var, xml_to_exp obj, xml_to_exp exp)) offset
+        | _ -> raise (Parser_Unknown_Tag ("FOR", offset)) 
+      end
+    | Element ("DO", attrs, children) -> 
       let offset = get_offset attrs in
       let invariant = get_invariant xml in
+      let body, condition = get_xml_two_children xml in
       let body = xml_to_exp body in
       let whileloop = mk_exp_with_annot (While (xml_to_exp condition, body)) offset invariant in
       mk_exp (Seq (body, whileloop)) offset
-    | Element ("FOR", attrs, [var; obj; exp]) ->
-      mk_exp (ForIn (xml_to_exp var, xml_to_exp obj, xml_to_exp exp)) (get_offset attrs)
     | Element ("DELPROP", attrs, children) -> 
-      begin match (remove_annotation_elements children) with
-        | [child] -> mk_exp (Delete (xml_to_exp child)) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag ("DELPROP", (get_offset attrs))) 
-      end 
+      let child = get_xml_child xml in
+      mk_exp (Delete (xml_to_exp child)) (get_offset attrs)
     | Element ("LABEL", attrs, children) -> 
-      begin match (remove_annotation_elements children) with
-        | [lname; child] -> mk_exp (Label (get_label_name lname, xml_to_exp child)) (get_offset attrs)
-        | _ -> raise (Parser_Unknown_Tag ("LABEL", (get_offset attrs))) 
-      end 
+      let lname, child = get_xml_two_children xml in
+      mk_exp (Label (get_label_name lname, xml_to_exp child)) (get_offset attrs)
     | Element ("CONTINUE", attrs, children) -> 
       let offset = get_offset attrs in
       begin match (remove_annotation_elements children) with
@@ -344,7 +379,8 @@ let rec xml_to_exp xml : exp =
       let offset = get_offset attrs in
       begin match remove_annotation_elements children with
         | (child1 :: children) ->
-          let catch, finally = get_catch_finally children offset in mk_exp (Try (xml_to_exp child1, catch, finally)) offset
+          let catch, finally = get_catch_finally children offset in 
+          mk_exp (Try (xml_to_exp child1, catch, finally)) offset
         | _ -> raise (Parser_Unknown_Tag ("TRY", offset))
       end  
     | Element ("SWITCH", attrs, children) -> 
@@ -356,20 +392,24 @@ let rec xml_to_exp xml : exp =
            mk_exp (Switch (xml_to_exp child1, cases)) offset
          | _ -> raise (Parser_Unknown_Tag ("SWITCH", offset))
       end
-    | Element ("DEBUGGER", attrs, []) -> mk_exp Debugger (get_offset attrs)
-    | Element (tag_name, attrs, _) -> raise (Parser_Unknown_Tag (tag_name, (get_offset attrs)))
+    | Element ("DEBUGGER", attrs, _) -> mk_exp Debugger (get_offset attrs)
+    | Element (tag_name, attrs, _) -> raise (Parser_Unknown_Tag (tag_name, get_offset attrs))
     | PCData _ -> raise Parser_PCData
 and 
 var_declaration vd offset = 
   match vd with
-    | Element ("NAME", attrs, []) -> 
-      mk_exp (VarDec (get_value attrs)) (get_offset attrs) 
-    | Element ("NAME", attrs, [child]) -> 
-      let variable = get_value attrs in
+    | Element ("NAME", attrs, children) ->
       let offset = get_offset attrs in
-      let vardec = mk_exp (VarDec variable) offset in
-      let vardec_exp = mk_exp (Assign (mk_exp (Var variable) offset, (xml_to_exp child))) offset in
-      mk_exp (Seq (mk_exp (Seq (vardec, vardec_exp)) offset, mk_exp Undefined offset)) offset
+      begin match (remove_annotation_elements children) with 
+        | [] -> mk_exp (VarDec (get_value attrs)) offset 
+        | [child] -> 
+          let variable = get_value attrs in
+          let offset = get_offset attrs in
+          let vardec = mk_exp (VarDec variable) offset in
+          let vardec_exp = mk_exp (Assign (mk_exp (Var variable) offset, (xml_to_exp child))) offset in
+          mk_exp (Seq (mk_exp (Seq (vardec, vardec_exp)) offset, mk_exp Undefined offset)) offset
+       | _ -> raise (Parser_Unknown_Tag ("VAR", offset))
+     end
     | _ -> raise (Parser_Unknown_Tag ("VAR", offset))
 and
 (* TODO: Does this work only with well-behaved Array constructor and without elisions? *)
@@ -379,7 +419,7 @@ convert_arraylist_to_object attrs children =
     match child with
       | Element ("EMPTY", attrs, _) -> (string_of_int index, (mk_exp Undefined (get_offset attrs)))
       | _ -> (string_of_int index, xml_to_exp child)
-  ) children in
+  ) (remove_annotation_elements children) in
   let l = l @ ["length", mk_exp (Num (float_of_int (List.length l))) 0] in
   mk_exp (Obj l) (get_offset attrs)
 and 
@@ -411,10 +451,8 @@ and parse_assign_op op attrs children tag =
 and parse_catch_element catch offset =
   match catch with
       | Element ("CATCH", attrs, children) -> 
-        begin match (remove_annotation_elements children) with
-          | [name; exp] -> (name_element name, xml_to_exp exp)
-          | _ -> raise (Parser_Unknown_Tag ("CATCH", offset))
-        end
+          let name, exp = get_xml_two_children catch in
+          (name_element name, xml_to_exp exp)
       | _ -> raise (Parser_Unknown_Tag ("CATCH", offset))
 and get_catch_finally children offset =
   begin match children with
@@ -442,15 +480,11 @@ and get_catch_finally children offset =
 and parse_case child offset =
   begin match child with
     | Element ("CASE", attrs, children) ->
-      begin match (remove_annotation_elements children) with
-        | [exp; block] -> Case (xml_to_exp exp), xml_to_exp block
-        | _ -> raise (Parser_Unknown_Tag ("CASE", get_offset attrs))
-      end
+      let exp, block = get_xml_two_children child in
+      Case (xml_to_exp exp), xml_to_exp block
     | Element ("DEFAULT_CASE", attrs, children) ->
-      begin match (remove_annotation_elements children) with
-        | [block] -> DefaultCase, xml_to_exp block
-        | _ -> raise (Parser_Unknown_Tag ("DEFAULT_CASE", get_offset attrs))
-      end
+      let block = get_xml_child child in
+      DefaultCase, xml_to_exp block
     | _ -> raise (Parser_Unknown_Tag ("SWITCH", offset))
   end
      
