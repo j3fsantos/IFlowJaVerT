@@ -22,9 +22,7 @@ exception Parser_Xml_To_Label_Name
 exception More_Than_One_Finally
 
 let get_attr attrs attr_name =
-  let offset_list = List.filter (fun (name, value) -> name = attr_name) attrs in
-  let (name, value) = List.hd offset_list in
-  value
+  let _, value = List.find (fun (name, value) -> name = attr_name) attrs in value
 
 let get_offset attrs : int =
   int_of_string (get_attr attrs "pos")
@@ -47,30 +45,32 @@ let name_element xml : string =
     | Element ("NAME", attrs, _) -> get_value attrs
     | _ -> raise Parser_Name_Element
 
-let rec xml_to_vars xml : string list = 
-  match xml with
-    | Element ("PARAM_LIST", _, childs) -> map name_element childs
-    | _ -> raise Parser_Param_List
-
 let remove_annotation_elements children =
   filter (fun child -> 
     match child with
       | Element ("ANNOTATION", _, _) -> false
       | _ -> true
   ) children
+
+let rec xml_to_vars xml : string list = 
+  match xml with
+    | Element ("PARAM_LIST", _, children) -> 
+      map name_element (remove_annotation_elements children)
+    | _ -> raise Parser_Param_List
   
 let get_annot attrs : annotation =
   let atype = get_attr attrs "type" in
   let f = get_attr attrs "formula" in
   let f = unescape_html f in
   match atype with
+    | "toprequires" -> {atype = TopRequires; aformula = f}
+    | "topensures" -> {atype = TopEnsures; aformula = f}
     | "requires" -> {atype = Requires; aformula = f}
     | "ensures" -> {atype = Ensures; aformula = f}
     | "invariant" -> {atype = Invariant; aformula = f}
     | "codename" -> {atype = Codename; aformula = f}
     | "preddefn" -> {atype = PredDefn; aformula = f}
     | annot -> raise (Unknown_Annotation annot)
-
 
 type dec_inc_pos =
   | DI_PRE
@@ -83,7 +83,7 @@ let get_dec_inc_pos attrs : dec_inc_pos =
     | "post" -> DI_POST
     | _ -> raise Unknown_Dec_Inc_Position
  
-let rec get_function_spec_inner (f : xml) = 
+let rec get_program_spec_inner (f : xml) = 
   match f with
     | Element ("FUNCTION", _, children) -> 
       let not_block = filter (fun child -> 
@@ -91,18 +91,29 @@ let rec get_function_spec_inner (f : xml) =
           | Element ("BLOCK", _, _) -> false
           | _ -> true
       ) children in
-      flat_map get_function_spec_inner not_block
+      flat_map get_program_spec_inner not_block
     | Element ("ANNOTATION", attrs, []) -> 
       let annot = get_annot attrs in
-      if is_invariant_annot annot then [] else [annot]
-    | Element (_, _, children) -> flat_map get_function_spec_inner children
+      if is_top_spec annot then [annot] else []
+    | Element (_, _, children) -> flat_map get_program_spec_inner children
     | _ -> []
  
+let get_program_spec (f : xml) =
+  match f with
+    | Element ("SCRIPT", _, children) ->
+      flat_map (fun child -> get_program_spec_inner child) children
+    | _ -> raise InvalidArgument
+
+let get_annotations children =
+  flat_map (fun child -> 
+    match child with
+      | Element ("ANNOTATION", attrs, []) -> [get_annot attrs] 
+      | _ -> []
+   ) children
+      
 let get_function_spec (f : xml) =
   match f with
-    | Element ("FUNCTION", _, children)
-    | Element ("SCRIPT", _, children) ->
-      flat_map (fun child -> get_function_spec_inner child) children
+    | Element ("FUNCTION", _, children) -> List.filter is_function_spec (get_annotations children)
     | _ -> raise InvalidArgument
 
 let rec get_invariant_inner (w : xml) =
@@ -112,16 +123,14 @@ let rec get_invariant_inner (w : xml) =
     | Element ("DO", _, _) -> []
     | Element ("ANNOTATION", attrs, []) -> 
       let annot = get_annot attrs in
-      if is_invariant_annot annot then [annot] else []
+      if is_invariant annot then [annot] else []
     | Element (_, _, children) -> flat_map (fun child -> get_invariant_inner child) children
     | PCData _ -> []
 
 let rec get_invariant (w : xml) =
   match w with
-    | Element ("WHILE", _, children) ->
-      flat_map (fun child -> get_invariant_inner child) children
-    | Element ("FOR", _, children) ->
-      flat_map (fun child -> get_invariant_inner child) children
+    | Element ("WHILE", _, children) 
+    | Element ("FOR", _, children) 
     | Element ("DO", _, children) ->
       flat_map (fun child -> get_invariant_inner child) children
     | _ -> raise InvalidArgument
@@ -138,7 +147,7 @@ let rec xml_to_exp xml : exp =
           let last = List.last stmts in
           let stmts = List.take (List.length stmts - 1) stmts in
           let program = fold_right (fun s1 s2 -> (mk_exp (Seq (s1,s2)) s1.offset)) stmts last in
-          let program_spec = get_function_spec xml in
+          let program_spec = get_program_spec xml in
           mk_exp_with_annot program.stx program.offset (program.exp_annot @ program_spec)
       end
     | Element ("EXPR_RESULT", _, [child]) -> xml_to_exp child
@@ -348,10 +357,6 @@ let rec xml_to_exp xml : exp =
          | _ -> raise (Parser_Unknown_Tag ("SWITCH", offset))
       end
     | Element ("DEBUGGER", attrs, []) -> mk_exp Debugger (get_offset attrs)
-    (* TODO *)  
-    | Element ("GETTER_DEF", attrs, children) -> raise NotImplemented
-    | Element ("SETTER_DEF", attrs, children) -> raise NotImplemented
-    | Element ("STRING_KEY", attrs, children) -> raise NotImplemented
     | Element (tag_name, attrs, _) -> raise (Parser_Unknown_Tag (tag_name, (get_offset attrs)))
     | PCData _ -> raise Parser_PCData
 and 

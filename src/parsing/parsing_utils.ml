@@ -50,12 +50,12 @@ let get_inv_from_code exp =
     | _ -> map (subs_locs !locMap) (flatten res)
 
 
-let get_pre_from_code exp = get_spec_from_code exp Requires
+let get_program_pre exp = get_spec_from_code exp TopRequires
 
-let get_post_from_code exp = get_spec_from_code exp Ensures
+let get_program_post exp = get_spec_from_code exp TopEnsures
 
 
-let get_preposts_from_code exp = 
+let get_function_spec exp = 
   let pres  = get_annots_from_code exp Requires in
   let posts = get_annots_from_code exp Ensures  in
   try
@@ -78,9 +78,7 @@ let get_codename exp =
     | _ -> raise No_Codename
 
 let get_annots exp =
-  get_annots_from_code exp Requires @ 
-  get_annots_from_code exp Ensures @ 
-  get_annots_from_code exp Invariant
+  flat_map (get_annots_from_code exp) [TopRequires; TopEnsures; Requires; Ensures; Invariant; PredDefn]
 
 let rec get_all_annots_no_fun exp =
   let f = get_all_annots_no_fun in
