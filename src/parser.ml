@@ -347,8 +347,8 @@ let rec xml_to_exp xml : exp =
            mk_exp (Switch (xml_to_exp child1, cases)) offset
          | _ -> raise (Parser_Unknown_Tag ("SWITCH", offset))
       end
+    | Element ("DEBUGGER", attrs, []) -> mk_exp Debugger (get_offset attrs)
     (* TODO *)  
-    | Element ("DEBUGGER", attrs, []) -> raise NotImplemented 
     | Element ("GETTER_DEF", attrs, children) -> raise NotImplemented
     | Element ("SETTER_DEF", attrs, children) -> raise NotImplemented
     | Element ("STRING_KEY", attrs, children) -> raise NotImplemented

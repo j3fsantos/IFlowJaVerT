@@ -125,5 +125,6 @@ let rec get_all_annots_no_fun exp =
 	    | Skip
       | Return None 
       | Break _
-      | Continue _ -> [] in
+      | Continue _ 
+      | Debugger -> [] in
   annots @ rec_annots

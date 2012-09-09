@@ -499,6 +499,11 @@ let test_switch () =
   let two = mk_exp (Num 2.0) 50 in
   let c = mk_exp (Var "c") 54 in
   assert_equal (mk_exp (Switch (a, [(Case one, seq); (DefaultCase, d); (Case two, c)])) 0) exp
+  
+let test_debugger () =
+  Symb_execution.initialize ();
+  let exp = make_exp_from_string "debugger" in
+  assert_equal (mk_exp Debugger 0) exp
 
 let suite = "Testing Parser" >:::
   ["test var" >:: test_var;
@@ -562,4 +567,5 @@ let suite = "Testing Parser" >:::
    "test_try_catch_finally" >:: test_try_catch_finally;
    "test_try_finally" >:: test_try_finally;
    "test_switch" >:: test_switch;
+   "test_debugger" >:: test_debugger;
   ]
