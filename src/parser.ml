@@ -22,9 +22,7 @@ exception Parser_Xml_To_Label_Name
 exception More_Than_One_Finally
 
 let get_attr attrs attr_name =
-  try
-    let _, value = List.find (fun (name, value) -> name = attr_name) attrs in value
-  with Not_found -> print_string ("Not_found" ^ attr_name); raise Not_found
+  let _, value = List.find (fun (name, value) -> name = attr_name) attrs in value
 
 let get_offset attrs : int =
   int_of_string (get_attr attrs "pos")
