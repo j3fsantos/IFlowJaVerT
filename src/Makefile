@@ -6,3 +6,6 @@ test:
 
 clean:
 	cd .. && make clean
+
+native :
+	cd .. && make native
