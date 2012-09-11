@@ -16,6 +16,7 @@ SOURCE = ../src/localconfig.ml \
 	 ../src/printing/printSyntax.ml \
 	 ../src/printing/printLogic.ml \
 	 ../src/logic_Utils.ml \
+	 ../src/assert_gen.ml \
 	 ../src/abduction.ml \
 	 ../src/graph.ml \
 	 ../lib/corestar/corestar.cma \
@@ -48,6 +49,7 @@ SOURCE = ../src/localconfig.ml \
 	 rec_examples.ml \
 	 parser_tests.ml \
 	 bin_op_tests.ml \
+	 assert_gen_tests.ml \
 	 test_all.ml
 
 REMOVE = ../src/*.cmo \
