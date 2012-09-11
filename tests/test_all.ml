@@ -1,9 +1,13 @@
 open OUnit
 
-let suite = "Test The Lot" >:::
+let parsing_suite = "Test_Parsing" >:::
+  [ Parser_tests.suite;
+    Parsing_tests.suite
+  ]
+
+let suite = "Test_Main" >:::
   [ Paper_examples_tests.suite;
     Logictests.suite;
-    Parsing_tests.suite;
     Utils_tests.suite;
     Examples_tests.suite;
     Rec_examples.suite;
@@ -11,5 +15,9 @@ let suite = "Test The Lot" >:::
     Bin_op_tests.suite;
     Assert_gen_tests.suite;
   ]
+  
+let all_suite = "Test_All" >:::
+  [parsing_suite; suite] 
+  
 
-let _ = run_test_tt_main suite
+let _ = run_test_tt_main all_suite
