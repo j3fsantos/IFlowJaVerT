@@ -11,7 +11,9 @@ let suite = "Test_Main" >:::
     Utils_tests.suite;
     Examples_tests.suite;
     Rec_examples.suite;
-    Bin_op_tests.suite
+    Parser_tests.suite;
+    Bin_op_tests.suite;
+    Assert_gen_tests.suite;
   ]
   
 let all_suite = "Test_All" >:::
