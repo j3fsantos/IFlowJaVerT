@@ -8,7 +8,8 @@ let suite = "Test The Lot" >:::
     Examples_tests.suite;
     Rec_examples.suite;
     Parser_tests.suite;
-    Bin_op_tests.suite
+    Bin_op_tests.suite;
+    Assert_gen_tests.suite;
   ]
 
 let _ = run_test_tt_main suite
