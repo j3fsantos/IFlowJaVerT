@@ -91,7 +91,7 @@ let test_hook () =
   let ab = mk_exp (BinOp (a, Comparison Ge, b)) 0 in
   let a9 = mk_exp (Var "a") 9 in
   let b13 = mk_exp (Var "b") 13 in
-  assert_equal (mk_exp (If (ab, a9, b13)) 0) exp
+  assert_equal (mk_exp (If (ab, a9, Some b13)) 0) exp
   
 let test_instanceof () =
   Symb_execution.initialize ();

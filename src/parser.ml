@@ -240,14 +240,14 @@ let rec xml_to_exp xml : exp =
       let offset = get_offset attrs in
       begin match (remove_annotation_elements children) with
         | [condition; t_block] ->
-          mk_exp (If (xml_to_exp condition, xml_to_exp t_block, mk_exp Skip offset)) offset
+          mk_exp (If (xml_to_exp condition, xml_to_exp t_block, None)) offset
         | [condition; t_block; f_block] ->
-          mk_exp (If (xml_to_exp condition, xml_to_exp t_block, xml_to_exp f_block)) offset
+          mk_exp (If (xml_to_exp condition, xml_to_exp t_block, Some (xml_to_exp f_block))) offset
         | _ -> raise (Parser_Unknown_Tag ("IF", offset)) 
       end
     | Element ("HOOK", attrs, children) ->
       let condition, t_block, f_block = get_xml_three_children xml in
-      mk_exp (If (xml_to_exp condition, xml_to_exp t_block, xml_to_exp f_block)) (get_offset attrs)    
+      mk_exp (If (xml_to_exp condition, xml_to_exp t_block, Some (xml_to_exp f_block))) (get_offset attrs)    
     | Element ("EQ", attrs, children) -> parse_comparison_op Equal attrs children "EQ"
     | Element ("NE", attrs, children) -> parse_comparison_op NotEqual attrs children "NE"
     | Element ("SHEQ", attrs, children) -> parse_comparison_op TripleEqual attrs children "SHEQ"

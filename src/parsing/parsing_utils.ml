@@ -86,7 +86,8 @@ let rec get_all_annots_no_fun exp =
   let rec_annots = 
 	  match exp.stx with 
 	    | Seq (e1, e2) -> (f e1) @ (f e2)
-	    | If (e1, e2, e3) -> (f e1) @ (f e2) @ (f e3)
+      | If (e1, e2, None) -> (f e1) @ (f e2)
+	    | If (e1, e2, Some e3) -> (f e1) @ (f e2) @ (f e3)
 	    | While (e1, e2) -> (f e1) @ (f e2)
 	    | Delete e -> f e
 	    | Unary_op (_, e) -> f e
