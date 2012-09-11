@@ -399,13 +399,13 @@ var_declaration vd offset =
     | Element ("NAME", attrs, children) ->
       let offset = get_offset attrs in
       begin match (remove_annotation_elements children) with 
-        | [] -> mk_exp (VarDec (get_value attrs)) offset 
-        | [child] -> 
-          let variable = get_value attrs in
+        | [] -> mk_exp (VarDec (get_value attrs, None)) offset 
+        | [child] -> mk_exp (VarDec (get_value attrs, Some (xml_to_exp child))) offset 
+          (*let variable = get_value attrs in
           let offset = get_offset attrs in
           let vardec = mk_exp (VarDec variable) offset in
           let vardec_exp = mk_exp (Assign (mk_exp (Var variable) offset, (xml_to_exp child))) offset in
-          mk_exp (Seq (mk_exp (Seq (vardec, vardec_exp)) offset, mk_exp Undefined offset)) offset
+          mk_exp (Seq (mk_exp (Seq (vardec, vardec_exp)) offset, mk_exp Undefined offset)) offset*)
        | _ -> raise (Parser_Unknown_Tag ("VAR", offset))
      end
     | _ -> raise (Parser_Unknown_Tag ("VAR", offset))
