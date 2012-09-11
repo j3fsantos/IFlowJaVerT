@@ -130,35 +130,30 @@ let test_pos () =
   assert_equal (mk_exp (Unary_op (Positive, a1)) 0) exp
   
 let test_dec_pre () =
-  todo "The parser is still work in progress";
   Symb_execution.initialize ();
   let exp = make_exp_from_string "--a" in
   let a = mk_exp (Var "a") 2 in
   assert_equal (mk_exp (Unary_op (Pre_Decr, a)) 0) exp
   
 let test_dec_post () =
-  todo "The parser is still work in progress";
   Symb_execution.initialize ();
   let exp = make_exp_from_string "a--" in
   let a = mk_exp (Var "a") 0 in
   assert_equal (mk_exp (Unary_op (Post_Decr, a)) 0) exp
   
 let test_inc_pre () =
-  todo "The parser is still work in progress";
   Symb_execution.initialize ();
   let exp = make_exp_from_string "++a" in
   let a = mk_exp (Var "a") 2 in
   assert_equal (mk_exp (Unary_op (Pre_Incr, a)) 0) exp
   
 let test_inc_post () =
-  todo "The parser is still work in progress";
   Symb_execution.initialize ();
   let exp = make_exp_from_string "a++" in
   let a = mk_exp (Var "a") 0 in
   assert_equal (mk_exp (Unary_op (Post_Incr, a)) 0) exp
   
 let test_for () =
-  todo "The parser is still work in progress";
   Symb_execution.initialize ();
   let exp = make_exp_from_string "for (; a < 5; a++ ) { /** @invariant #cScope = [#lg] */ x = 1 }" in
   let empty = mk_exp Skip 5 in
@@ -402,7 +397,6 @@ let test_delete () =
   assert_equal (mk_exp (Delete a) 0) exp
   
 let test_continue () =
-  todo "The parser is still work in progress";
   Symb_execution.initialize ();
   let exp = make_exp_from_string "while (a > 5) {/** @invariant #cScope = [#lg] */ a++; continue}" in
   let a = mk_exp (Var "a") 7 in
@@ -415,7 +409,6 @@ let test_continue () =
   assert_equal (mk_exp_with_annot (While (condition, body)) 0 [{atype = Invariant; aformula = "#cScope = [#lg]"}]) exp 
   
 let test_continue_label () =
-  todo "The parser is still work in progress";
   Symb_execution.initialize ();
   let exp = make_exp_from_string "test: while (a > 5) {/** @invariant #cScope = [#lg] */ a++; continue test}" in
   let a = mk_exp (Var "a") 13 in
@@ -429,7 +422,6 @@ let test_continue_label () =
   assert_equal (mk_exp (Label ("test", loop)) 0) exp
   
 let test_break () =
-  todo "The parser is still work in progress";
   Symb_execution.initialize ();
   let exp = make_exp_from_string "while (a > 5) {/** @invariant #cScope = [#lg] */ a++; break}" in
   let a = mk_exp (Var "a") 7 in
@@ -442,7 +434,6 @@ let test_break () =
   assert_equal (mk_exp_with_annot (While (condition, body)) 0 [{atype = Invariant; aformula = "#cScope = [#lg]"}]) exp 
   
 let test_break_label () =
-  todo "The parser is still work in progress";
   Symb_execution.initialize ();
   let exp = make_exp_from_string "test: while (a > 5) {/** @invariant #cScope = [#lg] */ a++; break test}" in
   let a = mk_exp (Var "a") 13 in
