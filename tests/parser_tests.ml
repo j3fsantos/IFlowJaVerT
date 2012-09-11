@@ -505,7 +505,7 @@ let test_debugger () =
   let exp = make_exp_from_string "debugger" in
   assert_equal (mk_exp Debugger 0) exp
 
-let suite = "Testing Parser" >:::
+let suite = "Testing_Parser" >:::
   ["test var" >:: test_var;
    "test var with assignment" >:: test_var_value;
    "test var list" >:: test_var_list;
