@@ -245,6 +245,7 @@ let rec xml_to_exp xml : exp =
           mk_exp (If (xml_to_exp condition, xml_to_exp t_block, Some (xml_to_exp f_block))) offset
         | _ -> raise (Parser_Unknown_Tag ("IF", offset)) 
       end
+    (* TODO to have separate hook expression *)
     | Element ("HOOK", attrs, children) ->
       let condition, t_block, f_block = get_xml_three_children xml in
       mk_exp (If (xml_to_exp condition, xml_to_exp t_block, Some (xml_to_exp f_block))) (get_offset attrs)    
@@ -332,6 +333,7 @@ let rec xml_to_exp xml : exp =
     | Element ("GETELEM", attrs, children) -> 
       let child1, child2 = get_xml_two_children xml in
       mk_exp (CAccess (xml_to_exp child1, xml_to_exp child2)) (get_offset attrs)
+      (* TODO to have array literal expression *)
     | Element ("ARRAYLIT", attrs, children) ->
       convert_arraylist_to_object attrs children
     | Element ("FOR", attrs, children) ->
@@ -401,11 +403,6 @@ var_declaration vd offset =
       begin match (remove_annotation_elements children) with 
         | [] -> mk_exp (VarDec (get_value attrs, None)) offset 
         | [child] -> mk_exp (VarDec (get_value attrs, Some (xml_to_exp child))) offset 
-          (*let variable = get_value attrs in
-          let offset = get_offset attrs in
-          let vardec = mk_exp (VarDec variable) offset in
-          let vardec_exp = mk_exp (Assign (mk_exp (Var variable) offset, (xml_to_exp child))) offset in
-          mk_exp (Seq (mk_exp (Seq (vardec, vardec_exp)) offset, mk_exp Undefined offset)) offset*)
        | _ -> raise (Parser_Unknown_Tag ("VAR", offset))
      end
     | _ -> raise (Parser_Unknown_Tag ("VAR", offset))
