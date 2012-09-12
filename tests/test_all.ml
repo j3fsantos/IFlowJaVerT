@@ -13,11 +13,16 @@ let suite = "Test_Main" >:::
     Rec_examples.suite;
     Parser_tests.suite;
     Bin_op_tests.suite;
-    Assert_gen_tests.suite;
   ]
-  
+
+(* If we can test the graphing or other outputs, they might go here? *)
+let outputs = "Test_Outputs" >:::
+  [
+    Assert_gen_tests.suite
+  ]
+
 let all_suite = "Test_All" >:::
-  [parsing_suite; suite] 
-  
+  [parsing_suite; suite ; outputs]
+
 
 let _ = run_test_tt_main all_suite
