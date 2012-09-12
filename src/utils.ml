@@ -35,3 +35,14 @@ let unescape_html s =
     s
     
 let (>>=) = bind                        (* This SHOULD be in batteries dammit. *)
+
+(* This should always be "false" in checked-in code. Use it to check
+   if you should be printing debug messages in other modules. *)
+let debug = false
+  
+let debugPrint (s:string) =
+  if debug then
+    Printf.printf "\nDEBUG:\n%s\n\n" s
+  else
+    ()
+    
