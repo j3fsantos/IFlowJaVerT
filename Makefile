@@ -13,7 +13,7 @@ SOURCE1 = src/localconfig.ml \
 	 src/printing/printSyntax.ml \
 	 src/printing/printLogic.ml \
 	 src/logic_Utils.ml \
-	 src/assert_gen.ml \
+	 src/assert_Gen.ml \
 	 src/abduction.ml \
 	 src/graph.ml
 

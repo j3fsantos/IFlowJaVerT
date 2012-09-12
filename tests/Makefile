@@ -16,7 +16,7 @@ SOURCE = ../src/localconfig.ml \
 	 ../src/printing/printSyntax.ml \
 	 ../src/printing/printLogic.ml \
 	 ../src/logic_Utils.ml \
-	 ../src/assert_gen.ml \
+	 ../src/assert_Gen.ml \
 	 ../src/abduction.ml \
 	 ../src/graph.ml \
 	 ../lib/corestar/corestar.cma \
@@ -49,7 +49,7 @@ SOURCE = ../src/localconfig.ml \
 	 rec_examples.ml \
 	 parser_tests.ml \
 	 bin_op_tests.ml \
-	 assert_gen_tests.ml \
+	 assert_Gen_Tests.ml \
 	 test_all.ml
 
 REMOVE = ../src/*.cmo \
@@ -69,7 +69,11 @@ REMOVE = ../src/*.cmo \
 TESTS = test_all.ml logictests.ml
 
 test: test_suite
+ifdef TST
+	./test_suite -only-test $(TST)
+else
 	./test_suite
+endif
 
 test_suite: $(TESTS) parsing
 	ocamlfind ocamlc -o test_suite -package batteries,oUnit,unix,xml-light,dynlink -linkpkg $(INCLUDES) $(SOURCE)
