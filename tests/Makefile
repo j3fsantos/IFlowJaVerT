@@ -69,7 +69,11 @@ REMOVE = ../src/*.cmo \
 TESTS = test_all.ml logictests.ml
 
 test: test_suite
+ifdef TST
+	./test_suite -only-test $(TST)
+else
 	./test_suite
+endif
 
 test_suite: $(TESTS) parsing
 	ocamlfind ocamlc -o test_suite -package batteries,oUnit,unix,xml-light,dynlink -linkpkg $(INCLUDES) $(SOURCE)
