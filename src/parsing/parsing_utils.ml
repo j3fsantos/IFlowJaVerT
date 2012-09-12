@@ -113,7 +113,6 @@ let rec get_all_annots_no_fun exp =
 	    | RegExp _
 	    | Num _
 	    | String _
-	    | Undefined
 	    | Null
 	    | Bool _
 	    | Var _

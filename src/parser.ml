@@ -412,7 +412,7 @@ and
 convert_arraylist_to_object attrs children =
   let l = mapi (fun index child -> 
     match child with
-      | Element ("EMPTY", attrs, _) -> (string_of_int index, (mk_exp Undefined (get_offset attrs)))
+      | Element ("EMPTY", attrs, _) -> (string_of_int index, (mk_exp Skip (get_offset attrs)))
       | _ -> (string_of_int index, xml_to_exp child)
   ) (remove_annotation_elements children) in
   let l = l @ ["length", mk_exp (Num (float_of_int (List.length l))) 0] in
