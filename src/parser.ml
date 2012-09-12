@@ -333,9 +333,8 @@ let rec xml_to_exp xml : exp =
     | Element ("GETELEM", attrs, children) -> 
       let child1, child2 = get_xml_two_children xml in
       mk_exp (CAccess (xml_to_exp child1, xml_to_exp child2)) (get_offset attrs)
-      (* TODO to have array literal expression *)
     | Element ("ARRAYLIT", attrs, children) ->
-      convert_arraylist_to_object attrs children
+      parse_array_literal attrs children
     | Element ("FOR", attrs, children) ->
       let offset = get_offset attrs in
       begin match (remove_annotation_elements children) with
@@ -407,16 +406,13 @@ var_declaration vd offset =
      end
     | _ -> raise (Parser_Unknown_Tag ("VAR", offset))
 and
-(* TODO: Does this work only with well-behaved Array constructor and without elisions? *)
-(* Closure compiler does not give the last elided element -- we do not need to worry about it *)
-convert_arraylist_to_object attrs children =
+parse_array_literal attrs children =
   let l = mapi (fun index child -> 
     match child with
-      | Element ("EMPTY", attrs, _) -> (string_of_int index, (mk_exp Skip (get_offset attrs)))
-      | _ -> (string_of_int index, xml_to_exp child)
+      | Element ("EMPTY", attrs, _) -> None
+      | _ -> Some (xml_to_exp child)
   ) (remove_annotation_elements children) in
-  let l = l @ ["length", mk_exp (Num (float_of_int (List.length l))) 0] in
-  mk_exp (Obj l) (get_offset attrs)
+  mk_exp (Array l) (get_offset attrs)
 and 
 parse_unary_op uop attrs children uops =
   begin match (remove_annotation_elements children) with

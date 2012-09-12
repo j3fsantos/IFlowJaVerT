@@ -55,12 +55,9 @@ let test_and () =
 let test_array_literal () =
   Symb_execution.initialize ();
   let exp = make_exp_from_string "[,x,,y,]" in
-  let e1 = mk_exp Skip 1 in
-  let x = mk_exp (Var "x") 2 in
-  let e2 = mk_exp Skip 4 in  
+  let x = mk_exp (Var "x") 2 in 
   let y = mk_exp (Var "y") 5 in
-  let length = mk_exp (Num 4.0) 0 in
-  assert_equal (mk_exp (Obj [("0", e1);("1", x);("2", e2);("3", y);("length", length)]) 0) exp
+  assert_equal (mk_exp (Array [None; Some x; None; Some y]) 0) exp
   
 let test_ge () =
   Symb_execution.initialize ();

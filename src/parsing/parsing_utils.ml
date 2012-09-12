@@ -98,6 +98,7 @@ let rec get_all_annots_no_fun exp =
       | AssignOp (e1, _, e2) -> (f e1) @ (f e2)
 	    | New (e1, e2s) -> (f e1) @ (flat_map (fun e2 -> f e2) e2s)
 	    | Obj xs -> flatten (map (fun (_,e) -> f e) xs)
+      | Array es -> flat_map (fun e -> match e with None -> [] | Some e -> f e) es
 	    | CAccess (e1, e2) -> (f e1) @ (f e2)
 	    | With (e1, e2) -> (f e1) @ (f e2)
 	    | Throw e 
