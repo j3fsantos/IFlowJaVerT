@@ -18,7 +18,7 @@ let suite = "Test_Main" >:::
 (* If we can test the graphing or other outputs, they might go here? *)
 let outputs = "Test_Outputs" >:::
   [
-    Assert_gen_tests.suite
+    Assert_Gen_Tests.suite
   ]
 
 let all_suite = "Test_All" >:::
