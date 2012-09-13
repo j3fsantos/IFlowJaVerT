@@ -245,10 +245,9 @@ let rec xml_to_exp xml : exp =
           mk_exp (If (xml_to_exp condition, xml_to_exp t_block, Some (xml_to_exp f_block))) offset
         | _ -> raise (Parser_Unknown_Tag ("IF", offset)) 
       end
-    (* TODO to have separate hook expression *)
     | Element ("HOOK", attrs, children) ->
       let condition, t_block, f_block = get_xml_three_children xml in
-      mk_exp (If (xml_to_exp condition, xml_to_exp t_block, Some (xml_to_exp f_block))) (get_offset attrs)    
+      mk_exp (ConditionalOp (xml_to_exp condition, xml_to_exp t_block, xml_to_exp f_block)) (get_offset attrs)    
     | Element ("EQ", attrs, children) -> parse_comparison_op Equal attrs children "EQ"
     | Element ("NE", attrs, children) -> parse_comparison_op NotEqual attrs children "NE"
     | Element ("SHEQ", attrs, children) -> parse_comparison_op TripleEqual attrs children "SHEQ"
