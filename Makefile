@@ -3,6 +3,8 @@ INCLUDES = -I lib/corestar \
 	   -I src/printing \
 	   -I src/ \
 	   -I src/parsing \
+	   -I src/coq/ \
+	   -I src/parser/ \
 	   -I src/strategies/store
 
 SOURCE1 = src/localconfig.ml \
@@ -24,7 +26,10 @@ SOURCE2_native = lib/corestar/corestar_src/_build/corestar.cmx
 SOURCE3 = src/corestar_frontend.ml \
 	 src/inference_rules.ml \
 	 src/strategies/store/store_rules.ml \
-	 src/parser.ml \
+	 src/coq/coq_syntax.ml \
+	 src/parser/parser.ml \
+	 src/coq/coq_parser.ml \
+	 src/parser/parser_main.ml \
 	 src/control_flow_graph.ml \
 	 src/parsing/formula_parser.mli \
 	 src/parsing/formula_parser.ml \
@@ -50,6 +55,8 @@ REMOVE = src/*.cmo \
 	 src/strategies/*.cmi \
 	 src/printing/*.cmo \
 	 src/printing/*.cmi \
+	 src/parser/*.cmo \
+	 src/parser/*.cmi \
 	 src/parsing/*.cmo \
 	 src/parsing/*.cmi \
 	 src/parsing/formula_lexer.ml \
@@ -62,6 +69,8 @@ NATIVE_REMOVE = src/*.cmx \
 	src/*.o \
 	src/parsing/*.cmx \
 	src/parsing/*.o \
+	src/parser/*.cmx \
+	src/parser/*.o \
 	src/strategies/*.cmx \
 	src/strategies/*.o \
 	src/strategies/store/*.cmx \

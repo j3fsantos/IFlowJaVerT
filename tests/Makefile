@@ -5,7 +5,9 @@ INCLUDES = -I ../lib/corestar \
 	   -I ../src/ \
 	   -I ../src/strategies/ \
 	   -I ../src/printing/ \
-	   -I ../src/parsing \
+	   -I ../src/parsing/ \
+	   -I ../src/coq/ \
+	   -I ../src/parser/ \
 	   -I ../src/strategies/store/
 
 SOURCE = ../src/localconfig.ml \
@@ -23,7 +25,10 @@ SOURCE = ../src/localconfig.ml \
 	 ../src/corestar_frontend.ml \
 	 ../src/inference_rules.ml \
 	 ../src/strategies/store/store_rules.ml \
-	 ../src/parser.ml \
+	 ../src/coq/coq_syntax.ml \
+	 ../src/parser/parser.ml \
+	 ../src/coq/coq_parser.ml \
+	 ../src/parser/parser_main.ml \
 	 ../src/control_flow_graph.ml \
 	 ../src/parsing/formula_parser.mli \
 	 ../src/parsing/formula_parser.ml \
@@ -58,6 +63,8 @@ REMOVE = ../src/*.cmo \
 	  ../src/strategies/*.cmi \
 	  ../src/printing/*.cmo \
 	  ../src/printing/*.cmi \
+	  ../src/parser/*.cmo \
+	  ../src/parser/*.cmi \
 	  ../src/parsing/*.cmo \
 	  ../src/parsing/*.cmi \
 	  ../src/parsing/formula_lexer.ml \

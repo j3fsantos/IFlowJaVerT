@@ -477,8 +477,3 @@ and parse_case child offset =
       DefaultCase, xml_to_exp block
     | _ -> raise (Parser_Unknown_Tag ("SWITCH", offset))
   end
-     
-let js_to_xml (filename : string) : string =
-  match Unix.system ("java -jar " ^ !Config.js_to_xml_parser ^ " " ^ (Filename.quote filename)) with
-    | Unix.WEXITED _ -> String.sub filename 0 (String.length filename - 3) ^ ".xml"
-    | _ -> raise JS_To_XML_parser_failure
