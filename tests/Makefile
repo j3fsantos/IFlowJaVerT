@@ -4,20 +4,22 @@
 INCLUDES = -I ../lib/corestar \
 	   -I ../src/ \
 	   -I ../src/strategies/ \
-	   -I ../src/printing/ \
 	   -I ../src/formula_parser/ \
 	   -I ../src/coq/ \
 	   -I ../src/parser/ \
+	   -I ../src/syntax/ \
+	   -I ../src/logic/ \
+	   -I ../src/utils/ \
 	   -I ../src/strategies/store/
 
 SOURCE = ../src/localconfig.ml \
 	 ../src/config.ml \
-	 ../src/utils.ml \
-	 ../src/syntax.ml \
-	 ../src/logic.ml \
-	 ../src/printing/printSyntax.ml \
-	 ../src/printing/printLogic.ml \
-	 ../src/logic_Utils.ml \
+	 ../src/utils/utils.ml \
+	 ../src/syntax/syntax.ml \
+	 ../src/logic/logic.ml \
+	 ../src/syntax/printSyntax.ml \
+	 ../src/logic/printLogic.ml \
+	 ../src/logic/logic_Utils.ml \
 	 ../src/assert_Gen.ml \
 	 ../src/abduction.ml \
 	 ../src/graph.ml \
@@ -34,7 +36,7 @@ SOURCE = ../src/localconfig.ml \
 	 ../src/formula_parser/formula_parser.ml \
 	 ../src/formula_parser/formula_lexer.ml \
 	 ../src/formula_parser/formula_parser_utils.ml \
-	 ../src/udpreds.ml \
+	 ../src/logic/udpreds.ml \
 	 ../src/help.ml \
 	 ../src/strategies/store/store_naive.ml \
 	 ../src/strategies/naive_strategy.ml \
@@ -61,12 +63,16 @@ REMOVE = ../src/*.cmo \
 	  ../src/*.cmi \
 	  ../src/strategies/*.cmo \
 	  ../src/strategies/*.cmi \
-	  ../src/printing/*.cmo \
-	  ../src/printing/*.cmi \
 	  ../src/coq/*.cmo \
 	  ../src/coq/*.cmi \
 	  ../src/parser/*.cmo \
 	  ../src/parser/*.cmi \
+	  ../src/syntax/*.cmo \
+	  ../src/syntax/*.cmi \
+	  ../src/logic/*.cmo \
+	  ../src/logic/*.cmi \
+	  ../src/utils/*.cmo \
+	  ../src/utils/*.cmi \
 	  ../src/formula_parser/*.cmo \
 	  ../src/formula_parser/*.cmi \
 	  ../src/formula_parser/formula_lexer.ml \
