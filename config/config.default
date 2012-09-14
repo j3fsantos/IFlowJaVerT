@@ -1,5 +1,5 @@
 <CONFIG>
-  <JS_TO_XML_PARSER  location = "/home/gds/Documents/JS_Symbolic_Debugger/lib/js_parser.jar"/>
+  <JS_TO_XML_PARSER  location = "/home/gds/Documents/JS_Symbolic_Debugger/lib/parser/js_parser.jar"/>
   <LOGIC>
     <LOGIC_DIR>/home/gds/Documents/JS_Symbolic_Debugger/lib/logic/</LOGIC_DIR>
   </LOGIC>
