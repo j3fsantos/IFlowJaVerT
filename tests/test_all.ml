@@ -2,7 +2,7 @@ open OUnit
 
 let parsing_suite = "Test_Parsing" >:::
   [ Parser_tests.suite;
-    Parsing_tests.suite
+    Formula_parser_tests.suite
   ]
 
 let suite = "Test_Main" >:::

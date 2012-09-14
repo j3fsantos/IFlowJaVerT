@@ -5,7 +5,7 @@ INCLUDES = -I ../lib/corestar \
 	   -I ../src/ \
 	   -I ../src/strategies/ \
 	   -I ../src/printing/ \
-	   -I ../src/parsing/ \
+	   -I ../src/formula_parser/ \
 	   -I ../src/coq/ \
 	   -I ../src/parser/ \
 	   -I ../src/strategies/store/
@@ -30,10 +30,10 @@ SOURCE = ../src/localconfig.ml \
 	 ../src/coq/coq_parser.ml \
 	 ../src/parser/parser_main.ml \
 	 ../src/control_flow_graph.ml \
-	 ../src/parsing/formula_parser.mli \
-	 ../src/parsing/formula_parser.ml \
-	 ../src/parsing/formula_lexer.ml \
-	 ../src/parsing/parsing_utils.ml \
+	 ../src/formula_parser/formula_parser.mli \
+	 ../src/formula_parser/formula_parser.ml \
+	 ../src/formula_parser/formula_lexer.ml \
+	 ../src/formula_parser/formula_parser_utils.ml \
 	 ../src/udpreds.ml \
 	 ../src/help.ml \
 	 ../src/strategies/store/store_naive.ml \
@@ -48,7 +48,7 @@ SOURCE = ../src/localconfig.ml \
 	 ../src/spec.ml \
 	 paper_examples_tests.ml \
 	 logictests.ml \
-	 parsing_tests.ml \
+	 formula_parser_tests.ml \
 	 utils_tests.ml \
 	 examples_tests.ml \
 	 rec_examples.ml \
@@ -67,11 +67,11 @@ REMOVE = ../src/*.cmo \
 	  ../src/coq/*.cmi \
 	  ../src/parser/*.cmo \
 	  ../src/parser/*.cmi \
-	  ../src/parsing/*.cmo \
-	  ../src/parsing/*.cmi \
-	  ../src/parsing/formula_lexer.ml \
-	  ../src/parsing/formula_parser.ml \
-	  ../src/parsing/formula_parser.mli \
+	  ../src/formula_parser/*.cmo \
+	  ../src/formula_parser/*.cmi \
+	  ../src/formula_parser/formula_lexer.ml \
+	  ../src/formula_parser/formula_parser.ml \
+	  ../src/formula_parser/formula_parser.mli \
 	  ../src/strategies/store/*.cmo \
 	  ../src/strategies/store/*.cmi
 
@@ -89,4 +89,4 @@ test_suite: $(TESTS) parsing
 	rm *.cmo *.cmi $(REMOVE)
 
 parsing:
-	cd ../src/parsing && make
+	cd ../src/formula_parser && make
