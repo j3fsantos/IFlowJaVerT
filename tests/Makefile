@@ -63,6 +63,8 @@ REMOVE = ../src/*.cmo \
 	  ../src/strategies/*.cmi \
 	  ../src/printing/*.cmo \
 	  ../src/printing/*.cmi \
+	  ../src/coq/*.cmo \
+	  ../src/coq/*.cmi \
 	  ../src/parser/*.cmo \
 	  ../src/parser/*.cmi \
 	  ../src/parsing/*.cmo \

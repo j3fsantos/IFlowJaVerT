@@ -55,6 +55,8 @@ REMOVE = src/*.cmo \
 	 src/strategies/*.cmi \
 	 src/printing/*.cmo \
 	 src/printing/*.cmi \
+	 src/coq/*.cmo \
+	 src/coq/*.cmi \
 	 src/parser/*.cmo \
 	 src/parser/*.cmi \
 	 src/parsing/*.cmo \
@@ -69,6 +71,8 @@ NATIVE_REMOVE = src/*.cmx \
 	src/*.o \
 	src/parsing/*.cmx \
 	src/parsing/*.o \
+	src/coq/*.cmx \
+	src/coq/*.o \
 	src/parser/*.cmx \
 	src/parser/*.o \
 	src/strategies/*.cmx \
