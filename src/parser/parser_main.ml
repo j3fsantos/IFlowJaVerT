@@ -3,8 +3,10 @@ open Parser
 open PrintSyntax
 open Syntax
 
+let js_to_xml_parser = ref ""
+
 let js_to_xml (filename : string) : string =
-  match Unix.system ("java -jar " ^ !Config.js_to_xml_parser ^ " " ^ (Filename.quote filename)) with
+  match Unix.system ("java -jar " ^ !js_to_xml_parser ^ " " ^ (Filename.quote filename)) with
     | Unix.WEXITED _ -> String.sub filename 0 (String.length filename - 3) ^ ".xml"
     | _ -> raise JS_To_XML_parser_failure
 

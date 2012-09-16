@@ -3,15 +3,13 @@ open Xml
 
 exception UnknownConfigParameter
 
-let js_to_xml_parser = ref ""
-
 let logic_dirs = ref []
 
 let rec parse_config_xml xml : unit =
   match xml with
     | Element ("CONFIG", _, children) -> 
       List.iter parse_config_xml children
-    | Element ("JS_TO_XML_PARSER", [(name, value)], _) -> js_to_xml_parser := value
+    | Element ("JS_TO_XML_PARSER", [(name, value)], _) -> Parser_main.js_to_xml_parser := value
     | Element ("LOGIC", _, children) ->
       List.iter parse_config_xml children
     | Element ("LOGIC_DIR", _, [PCData dir]) -> logic_dirs := dir :: !logic_dirs

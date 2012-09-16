@@ -13,11 +13,15 @@ INCLUDES = -I ../lib/corestar \
 	   -I ../src/strategies/store/
 
 SOURCE = ../src/localconfig.ml \
-	 ../src/config.ml \
 	 ../src/utils/utils.ml \
 	 ../src/syntax/syntax.ml \
-	 ../src/logic/logic.ml \
 	 ../src/syntax/printSyntax.ml \
+	 ../src/coq/coq_syntax.ml \
+	 ../src/parser/parser.ml \
+	 ../src/coq/coq_parser.ml \
+	 ../src/parser/parser_main.ml \
+	 ../src/config.ml \
+	 ../src/logic/logic.ml \
 	 ../src/logic/printLogic.ml \
 	 ../src/logic/logic_Utils.ml \
 	 ../src/assert_Gen.ml \
@@ -27,10 +31,6 @@ SOURCE = ../src/localconfig.ml \
 	 ../src/corestar_frontend.ml \
 	 ../src/inference_rules.ml \
 	 ../src/strategies/store/store_rules.ml \
-	 ../src/coq/coq_syntax.ml \
-	 ../src/parser/parser.ml \
-	 ../src/coq/coq_parser.ml \
-	 ../src/parser/parser_main.ml \
 	 ../src/control_flow_graph.ml \
 	 ../src/formula_parser/formula_parser.mli \
 	 ../src/formula_parser/formula_parser.ml \

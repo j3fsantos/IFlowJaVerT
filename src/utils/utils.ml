@@ -21,6 +21,18 @@ let (==>) a b = (! a) || b
    functions. They can't be composed, for example. *)
 let some x = Some x
 
+let escape_html s =
+  Str.global_substitute
+    (Str.regexp "<\\|>\\|&\\|\"")
+    (fun s ->
+      match Str.matched_string s with
+          "<" -> "&lt;"
+        | ">" -> "&gt;"
+        | "&" -> "&amp;"
+        | "\"" -> "&quot;"
+        | _ -> assert false)
+    s
+
 let unescape_html s =
   Str.global_substitute
     (Str.regexp "&lt;\\|&gt;\\|&amp;\\|&quot;\\|&#9;")
