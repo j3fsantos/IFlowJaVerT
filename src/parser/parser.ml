@@ -77,7 +77,7 @@ type dec_inc_pos =
   | DI_POST
 
 let get_dec_inc_pos attrs : dec_inc_pos = 
-  let pos = get_attr attrs "decpos" in
+  let pos = get_attr attrs "incdec_pos" in
   match pos with
     | "pre" -> DI_PRE
     | "post" -> DI_POST
