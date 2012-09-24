@@ -54,7 +54,7 @@ let test_and () =
   
 let test_array_literal () =
   Symb_execution.initialize ();
-  let exp = make_exp_from_string "[,x,,y,]" in
+  let exp = make_exp_from_string "[,x,,y]" in
   let x = mk_exp (Var "x") 2 in 
   let y = mk_exp (Var "y") 5 in
   assert_equal (mk_exp (Array [None; Some x; None; Some y]) 0) exp
