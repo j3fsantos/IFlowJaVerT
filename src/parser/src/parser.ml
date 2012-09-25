@@ -2,7 +2,6 @@ open Batteries_uni
 open Xml
 open Parser_syntax
 open List
-open Utils
 
 exception Parser_No_Program
 exception Parser_Xml_To_String
@@ -20,6 +19,22 @@ exception XmlParserException
 exception Unknown_Dec_Inc_Position
 exception Parser_Xml_To_Label_Name
 exception More_Than_One_Finally
+exception CannotHappen
+
+let unescape_html s =
+  Str.global_substitute
+    (Str.regexp "&lt;\\|&gt;\\|&amp;\\|&quot;\\|&#9;")
+    (fun s ->
+      match Str.matched_string s with
+          "&lt;" -> "<"
+        | "&gt;" -> ">"
+        | "&amp;" -> "&"
+        | "&quot;" -> "\""
+        | "&#9;" -> " "
+        | _ -> assert false)
+    s
+    
+let flat_map f l = flatten (map f l)
 
 let get_attr attrs attr_name =
   let _, value = List.find (fun (name, value) -> name = attr_name) attrs in value

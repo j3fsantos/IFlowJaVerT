@@ -32,19 +32,6 @@ let escape_html s =
         | "\"" -> "&quot;"
         | _ -> assert false)
     s
-
-let unescape_html s =
-  Str.global_substitute
-    (Str.regexp "&lt;\\|&gt;\\|&amp;\\|&quot;\\|&#9;")
-    (fun s ->
-      match Str.matched_string s with
-          "&lt;" -> "<"
-        | "&gt;" -> ">"
-        | "&amp;" -> "&"
-        | "&quot;" -> "\""
-        | "&#9;" -> " "
-        | _ -> assert false)
-    s
     
 let (>>=) = bind                        (* This SHOULD be in batteries dammit. *)
 

@@ -1,6 +1,5 @@
 open Batteries_uni
 open List
-open Utils
 
 (* syntax *)
 

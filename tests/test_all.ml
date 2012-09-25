@@ -8,7 +8,6 @@ let parsing_suite = "Test_Parsing" >:::
 let suite = "Test_Main" >:::
   [ Paper_examples_tests.suite;
     Logictests.suite;
-    Utils_tests.suite;
     Examples_tests.suite;
     Rec_examples.suite;
     Bin_op_tests.suite;
