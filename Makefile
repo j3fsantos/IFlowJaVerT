@@ -2,8 +2,7 @@ INCLUDES = -I lib/corestar \
 	   -I src/strategies/ \
 	   -I src/ \
 	   -I src/formula_parser \
-	   -I src/coq/ \
-	   -I src/parser/ \
+	   -I src/parser/src \
 	   -I src/syntax/ \
 	   -I src/logic/ \
 	   -I src/utils/ \
@@ -12,11 +11,12 @@ INCLUDES = -I lib/corestar \
 SOURCE1 = src/localconfig.ml \
 	 src/utils/utils.ml \
 	 src/syntax/syntax.ml \
+	 src/parser/src/parser_syntax.ml \
+	 src/syntax/translate_syntax.ml \
 	 src/syntax/printSyntax.ml \
-	 src/coq/coq_syntax.ml \
-	 src/parser/parser.ml \
-	 src/coq/coq_parser.ml \
-	 src/parser/parser_main.ml \
+	 src/parser/src/parser.ml \
+	 src/parser/src/pretty_print.ml \
+	 src/parser/src/parser_main.ml \
 	 src/config.ml \
 	 src/logic/logic.ml \
 	 src/logic/printLogic.ml \
@@ -55,10 +55,8 @@ REMOVE = src/*.cmo \
 	 src/*.cmi \
 	 src/strategies/*.cmo \
 	 src/strategies/*.cmi \
-	 src/coq/*.cmo \
-	 src/coq/*.cmi \
-	 src/parser/*.cmo \
-	 src/parser/*.cmi \
+	 src/parser/src/*.cmo \
+	 src/parser/src/*.cmi \
 	 src/syntax/*.cmo \
 	 src/syntax/*.cmi \
 	 src/logic/*.cmo \
@@ -77,10 +75,8 @@ NATIVE_REMOVE = src/*.cmx \
 	src/*.o \
 	src/formula_parser/*.cmx \
 	src/formula_parser/*.o \
-	src/coq/*.cmx \
-	src/coq/*.o \
-	src/parser/*.cmx \
-	src/parser/*.o \
+	src/parser/src/*.cmx \
+	src/parser/src/*.o \
 	src/syntax/*.cmx \
 	src/syntax/*.o \
 	src/logic/*.cmx \

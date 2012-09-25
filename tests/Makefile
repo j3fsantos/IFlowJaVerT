@@ -5,8 +5,7 @@ INCLUDES = -I ../lib/corestar \
 	   -I ../src/ \
 	   -I ../src/strategies/ \
 	   -I ../src/formula_parser/ \
-	   -I ../src/coq/ \
-	   -I ../src/parser/ \
+	   -I ../src/parser/src/ \
 	   -I ../src/syntax/ \
 	   -I ../src/logic/ \
 	   -I ../src/utils/ \
@@ -15,11 +14,12 @@ INCLUDES = -I ../lib/corestar \
 SOURCE = ../src/localconfig.ml \
 	 ../src/utils/utils.ml \
 	 ../src/syntax/syntax.ml \
+	 ../src/parser/src/parser_syntax.ml \
+	 ../src/syntax/translate_syntax.ml \
 	 ../src/syntax/printSyntax.ml \
-	 ../src/coq/coq_syntax.ml \
-	 ../src/parser/parser.ml \
-	 ../src/coq/coq_parser.ml \
-	 ../src/parser/parser_main.ml \
+	 ../src/parser/src/parser.ml \
+	 ../src/parser/src/pretty_print.ml \
+	 ../src/parser/src/parser_main.ml \
 	 ../src/config.ml \
 	 ../src/logic/logic.ml \
 	 ../src/logic/printLogic.ml \
@@ -51,10 +51,8 @@ SOURCE = ../src/localconfig.ml \
 	 paper_examples_tests.ml \
 	 logictests.ml \
 	 formula_parser_tests.ml \
-	 utils_tests.ml \
 	 examples_tests.ml \
 	 rec_examples.ml \
-	 parser_tests.ml \
 	 bin_op_tests.ml \
 	 assert_Gen_Tests.ml \
 	 test_all.ml
@@ -63,10 +61,8 @@ REMOVE = ../src/*.cmo \
 	  ../src/*.cmi \
 	  ../src/strategies/*.cmo \
 	  ../src/strategies/*.cmi \
-	  ../src/coq/*.cmo \
-	  ../src/coq/*.cmi \
-	  ../src/parser/*.cmo \
-	  ../src/parser/*.cmi \
+	  ../src/parser/src/*.cmo \
+	  ../src/parser/src/*.cmi \
 	  ../src/syntax/*.cmo \
 	  ../src/syntax/*.cmi \
 	  ../src/logic/*.cmo \
