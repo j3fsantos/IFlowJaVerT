@@ -1,7 +1,7 @@
 open Batteries_uni
 open Parser
-open PrintSyntax
-open Syntax
+open Pretty_print
+open Parser_syntax
 
 let js_to_xml_parser = ref ""
 
@@ -29,11 +29,3 @@ let exp_from_string s =
   output_string out s;
   close_out out;
   exp_from_file file
-                  
-let coq_syntax_from_file filename =
-  let exp = exp_from_file filename in
-  Coq_parser.exp_to_prog exp
-  
-let coq_syntax_from_string s =
-  let exp = exp_from_string s in
-  Coq_parser.exp_to_prog exp

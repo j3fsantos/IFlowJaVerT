@@ -1,6 +1,6 @@
 open Batteries_uni
 open Xml
-open Syntax
+open Parser_syntax
 open List
 open Utils
 
@@ -63,13 +63,13 @@ let get_annot attrs : annotation =
   let f = get_attr attrs "formula" in
   let f = unescape_html f in
   match atype with
-    | "toprequires" -> {atype = TopRequires; aformula = f}
-    | "topensures" -> {atype = TopEnsures; aformula = f}
-    | "requires" -> {atype = Requires; aformula = f}
-    | "ensures" -> {atype = Ensures; aformula = f}
-    | "invariant" -> {atype = Invariant; aformula = f}
-    | "codename" -> {atype = Codename; aformula = f}
-    | "preddefn" -> {atype = PredDefn; aformula = f}
+    | "toprequires" -> {annot_type = TopRequires; annot_formula = f}
+    | "topensures" -> {annot_type = TopEnsures; annot_formula = f}
+    | "requires" -> {annot_type = Requires; annot_formula = f}
+    | "ensures" -> {annot_type = Ensures; annot_formula = f}
+    | "invariant" -> {annot_type = Invariant; annot_formula = f}
+    | "codename" -> {annot_type = Codename; annot_formula = f}
+    | "preddefn" -> {annot_type = PredDefn; annot_formula = f}
     | annot -> raise (Unknown_Annotation annot)
 
 type dec_inc_pos =
@@ -173,9 +173,9 @@ let rec xml_to_exp xml : exp =
         | stmts -> 
           let last = List.last stmts in
           let stmts = List.take (List.length stmts - 1) stmts in
-          let program = fold_right (fun s1 s2 -> (mk_exp (Seq (s1,s2)) s1.offset)) stmts last in
+          let program = fold_right (fun s1 s2 -> (mk_exp (Seq (s1,s2)) s1.exp_offset)) stmts last in
           let program_spec = get_program_spec xml in
-          mk_exp_with_annot program.stx program.offset (program.exp_annot @ program_spec)
+          mk_exp_with_annot program.exp_stx program.exp_offset (program.exp_annot @ program_spec)
       end
     | Element ("EXPR_RESULT", attrs, children) -> xml_to_exp (get_xml_child xml)
     | Element ("ASSIGN", attrs, children) -> 
@@ -198,7 +198,7 @@ let rec xml_to_exp xml : exp =
 	        | stmts -> 
 	          let last = List.last stmts in
 	          let stmts = List.take (List.length stmts - 1) stmts in
-	          fold_right (fun s1 s2 -> (mk_exp (Seq (s1, s2)) s1.offset)) stmts last
+	          fold_right (fun s1 s2 -> (mk_exp (Seq (s1, s2)) s1.exp_offset)) stmts last
       end
     | Element ("VAR", attrs, children) -> 
       let offset = get_offset attrs in
@@ -209,7 +209,7 @@ let rec xml_to_exp xml : exp =
           let children = List.take (List.length children - 1) children in
           fold_right (fun s1 s2 -> (
             let s1 = var_declaration s1 offset in
-            mk_exp (Seq (s1, s2)) (s1.offset))
+            mk_exp (Seq (s1, s2)) (s1.exp_offset))
           ) children last
       end 
     | Element ("CALL", attrs, children) -> 
