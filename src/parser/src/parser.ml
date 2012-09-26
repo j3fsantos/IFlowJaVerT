@@ -243,7 +243,7 @@ let rec xml_to_exp xml : exp =
     | Element ("OBJECTLIT", attrs, objl) ->
       let l = map (fun obj -> 
         match obj with
-          | Element ("STRING", attrs, [e]) -> (get_value attrs, xml_to_exp e) 
+          | Element ("STRING_KEY", attrs, [e]) -> (get_value attrs, xml_to_exp e) 
           | _ -> raise Parser_ObjectList
       ) (remove_annotation_elements objl)
       in (mk_exp (Obj l) (get_offset attrs))

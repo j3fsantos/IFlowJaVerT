@@ -309,7 +309,7 @@ let test_return () =
 let test_return_exp () =
   let exp = exp_from_string "function f() {return g()}" in
   let g = mk_exp (Var "g") 21 in
-  let gcall = mk_exp (Call (g, [])) 22 in
+  let gcall = mk_exp (Call (g, [])) 21 in
   let r = mk_exp (Return (Some gcall)) 14 in
   assert_equal (mk_exp (NamedFun ("f", [], r)) 0) exp
   
