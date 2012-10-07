@@ -20,6 +20,7 @@ val parse_debug : unit -> bool
 val smt_debug : unit -> bool
 val abs_int_join : unit -> bool
 val solver_path : string ref
+val smt_debug_ref : bool ref
 val smt_run : bool ref
 val smt_custom_commands : string ref
 val args_default : (string * Arg.spec * string) list

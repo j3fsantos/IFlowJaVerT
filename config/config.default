@@ -3,4 +3,5 @@
   <LOGIC>
     <LOGIC_DIR>/home/gds/Documents/JS_Symbolic_Debugger/lib/logic/</LOGIC_DIR>
   </LOGIC>
+  <SMT enabled="false" path="/home/gds/Documents/z3/bin/z3 -in -smt2"/>
 </CONFIG>

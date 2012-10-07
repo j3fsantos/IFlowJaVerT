@@ -67,7 +67,9 @@ let smt_init () : unit =
       begin
         if Config.smt_debug() then printf "@[Initialising SMT@.";
         let args = System.getenv "JSTAR_SMT_ARGUMENTS" in
-        let command = Filename.quote !smtpath ^ " " ^ args in
+        (* TODO: add default arguments *)
+        (* let command = Filename.quote !smtpath ^ " " ^ args in *)
+        let command = !smtpath in
         if log log_phase then
           fprintf logf "@[execute <%s>@." command;
         let o, i, e = Unix.open_process_full command (environment()) in
@@ -76,7 +78,8 @@ let smt_init () : unit =
         Config.smt_run := true;
         if Config.smt_debug() then printf "@[SMT running.@.";
         output_string i "(set-option :print-success false)\n";
-        send_custom_commands (); flush i
+        (* TODO: SMT dies if there is no custom commands *)
+        (*send_custom_commands ();*) flush i
       end
     with
     | Unix_error(err,f,a) ->

@@ -4,6 +4,8 @@ open Xml
 exception UnknownConfigParameter
 
 let logic_dirs = ref []
+let smt_path = ref ""
+let smt_enabled = ref false
 
 let rec parse_config_xml xml : unit =
   match xml with
@@ -13,6 +15,18 @@ let rec parse_config_xml xml : unit =
     | Element ("LOGIC", _, children) ->
       List.iter parse_config_xml children
     | Element ("LOGIC_DIR", _, [PCData dir]) -> logic_dirs := dir :: !logic_dirs
+    | Element ("SMT", attrs, _) ->
+      begin try
+        smt_enabled := bool_of_string (List.assoc "enabled" attrs) 
+      with
+        | Not_found -> ()
+        | Invalid_argument _ -> ()
+      end;
+      begin try
+        smt_path := List.assoc "path" attrs 
+      with
+        | Not_found -> ()
+      end
     | _ -> raise UnknownConfigParameter
 
 let apply_config () =
