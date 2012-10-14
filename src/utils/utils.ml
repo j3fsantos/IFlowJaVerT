@@ -45,3 +45,6 @@ let debugPrint (s:string) =
   else
     ()
     
+let is_int (f : float) : bool =
+  f -. floor f < Float.epsilon
+    

@@ -1,12 +1,12 @@
 rule builtin_lt_le :
 | !isTrue(builtin_lt(?x, ?y)) |-
 without
-  !isTrue(builtin_le(builtin_plus(?x, numeric_const("1.")),?y)) |-
+  !isTrue(builtin_le(builtin_plus(?x, numeric_const("1")),?y)) |-
 if
-| !isTrue(builtin_le(builtin_plus(?x, numeric_const("1.")),?y)) * !isTrue(builtin_lt(?x, ?y)) |- 
+| !isTrue(builtin_le(builtin_plus(?x, numeric_const("1")),?y)) * !isTrue(builtin_lt(?x, ?y)) |- 
         
 rule builtin_le_1 :
-| !isTrue(builtin_le(builtin_plus(?x, numeric_const("1.")),?y)) |-
+| !isTrue(builtin_le(builtin_plus(?x, numeric_const("1")),?y)) |-
 without
   !isTrue(builtin_le(?x,?y)) |-
 if

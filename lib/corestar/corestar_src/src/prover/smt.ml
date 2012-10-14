@@ -79,7 +79,7 @@ let smt_init () : unit =
         if Config.smt_debug() then printf "@[SMT running.@.";
         output_string i "(set-option :print-success false)\n";
         (* TODO: SMT dies if there is no custom commands *)
-        (*send_custom_commands ();*) flush i
+        (* send_custom_commands (); *) flush i
       end
     with
     | Unix_error(err,f,a) ->
