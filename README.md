@@ -36,6 +36,11 @@ Prerequisites:
 
     `sudo apt-get install xdot`
 
+7. [etags](http://ctags.sourceforge.net/)
+    You can get this in ubuntu with:
+
+    `sudo apt-get install exuberant-ctags`
+
 To build:
 
 1.  `make init`
