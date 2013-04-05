@@ -10,6 +10,7 @@ INCLUDES = -I lib/corestar \
 
 SOURCE1 = src/localconfig.ml \
 	 src/utils/utils.ml \
+	 src/utils/profiler.ml \
 	 src/syntax/syntax.ml \
 	 src/parser/src/parser_syntax.ml \
 	 src/syntax/translate_syntax.ml \
