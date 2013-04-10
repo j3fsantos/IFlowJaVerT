@@ -43,11 +43,11 @@ Prerequisites:
 
 To build:
 
-1.  `make init`
+0.  `git submodule init && git submodule update`
+1.  `cd JS_Symbolic_Debugger && make init`
 2.  Set config options so they make sense on your system.
 
-        $EDITOR localconfig.ml
+        $EDITOR src/localconfig.ml
         $EDITOR config/config.xml
 
 3.  `make all`
-

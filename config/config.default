@@ -1,7 +1,7 @@
 <CONFIG>
-  <JS_TO_XML_PARSER  location = "/home/gds/Documents/JS_Symbolic_Debugger/src/parser/lib/js_parser.jar"/>
+  <JS_TO_XML_PARSER  location = "/home/gds/Documents/JS_Symbolic_Debugger/JS_Parser/js_parser.jar"/>
   <LOGIC>
-    <LOGIC_DIR>/home/gds/Documents/JS_Symbolic_Debugger/lib/logic/</LOGIC_DIR>
+    <LOGIC_DIR>/home/gds/Documents/JS_Symbolic_Debugger/JS_Symbolic_Debugger/lib/logic/</LOGIC_DIR>
   </LOGIC>
   <SMT enabled="false" path="/home/gds/Documents/z3/bin/z3 -in -smt2"/>
 </CONFIG>

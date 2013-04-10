@@ -1,2 +1,2 @@
 let dotexe = "/usr/bin/dot"
-let xmlconfig = "/home/gds/Documents/JS_Symbolic_Debugger/config/config.xml"
+let xmlconfig = "/home/gds/Documents/JS_Symbolic_Debugger/JS_Symbolic_Debugger/config/config.xml"
