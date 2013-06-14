@@ -1,6 +1,6 @@
-open Batteries_uni
+open Batteries
 open List
-open Monad
+open BatResult
 open Option.Monad
 
 let flat_map f l = flatten (map f l)
