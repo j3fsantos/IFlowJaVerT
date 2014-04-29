@@ -15,6 +15,8 @@ type formal_param = string (* Formal parameters of functions *)
 
 type codename = string
 
+type label = string
+
 module CodenameMap = Map.Make (
   struct 
     type t = codename
@@ -25,8 +27,9 @@ module CodenameMap = Map.Make (
 type codename_spec = spec CodenameMap.t
 
 type builtin_function = (* todo *)
-  | Sigma
-  | Gamma
+  | Sigma of variable
+  | Gamma of variable (* Do I want to have types for variables ? For example here we have a reference type for a variable *)
+  | ObjCoercible of variable
 
 type comparison_op =
   | Equal
@@ -54,9 +57,10 @@ type call = {
 
 type expression = 
   | Literal of literal
+  | Empty (* special return value for the statements and internal reductions *)
   | Var of variable
   | BinOp of variable * bin_op * variable
-  | Member of variable * variable 
+  | Member of variable * variable
   | Call of call
   | Fun of codename 
   | Obj
@@ -69,11 +73,15 @@ type assignment = {
 
 type statement =
   | Skip
-  | Label of string
+  | Label of label
   | Assignment of assignment
   | Goto of string list
   | Assume of Logic.formula
   | Assert of Logic.formula
+  | Sugar of syntactic_sugar_statement
+and
+syntactic_sugar_statement =
+  | If of Logic.formula * statement list * statement list 
 
 type function_block = { 
     func_name : codename;
