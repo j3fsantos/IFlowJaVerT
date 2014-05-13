@@ -29,6 +29,9 @@ let string_of_codename cn = cn
 let string_of_vars xs =
   String.concat "," xs
   
+let string_of_formal_params fparams = 
+  String.concat "," fparams
+  
 let string_of_literal lit =
   match lit with
     | Num n -> string_of_float n
@@ -39,9 +42,9 @@ let string_of_literal lit =
   
 let string_of_builtin_function bf =
   match bf with
-    | Sigma x -> Printf.sprintf "\"Sigma ( %s )\"" x
-    | Gamma x -> Printf.sprintf "\"Gamma ( %s )\"" x
-    | ObjCoercible x -> Printf.sprintf "\"ObjCoercible ( %s )\"" x
+    | Sigma x -> Printf.sprintf "Sigma ( %s )" x
+    | Gamma x -> Printf.sprintf "Gamma ( %s )" x
+    | ObjCoercible x -> Printf.sprintf "ObjCoercible ( %s )" x
 
 let string_of_call c =
   Printf.sprintf "\"%s (@this %s, %s) \"" c.call_name c.call_this (string_of_vars c.call_args)
@@ -50,6 +53,7 @@ let string_of_expression e =
   let s = string_of_var in
   match e with
     | Literal l -> string_of_literal l
+    | Empty -> "#empty"
     | Var v -> s v
     | BinOp (v1, op, v2) -> Printf.sprintf "%s %s %s" (s v1) (string_of_bin_op op) (s v2)
     | Member (v1, v2) -> Printf.sprintf "%s.%s" (s v1) (s v2)
@@ -76,4 +80,7 @@ and string_of_sugar t =
       (PrintLogic.string_of_formula condition)
       (string_of_statement_list thenbranch)
       (string_of_statement_list elsebranch)
+      
+let string_of_func_block fb =
+   Printf.sprintf "function %s (%s) { \n %s \n}" fb.func_name (string_of_formal_params fb.func_params) (string_of_statement_list fb.func_body)
   

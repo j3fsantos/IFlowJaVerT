@@ -90,3 +90,12 @@ type function_block = {
     func_ret : variable;  (* A variable where the function result is stored *)
     func_excep : variable; (* A variable where an exception is stored *)
 }
+
+
+let make_function_block fn fb fparams fret fexcep = {
+    func_name = fn;
+    func_body = fb;
+    func_params = fparams;
+    func_ret = fret;
+    func_excep = fexcep;
+  }

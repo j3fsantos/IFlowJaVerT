@@ -4,26 +4,46 @@ open Logic
 
 exception PulpNotImplemented of string
 
-let fresh_variable : variable =
+let fresh_variable =
   let counter = ref 0 in
-  let rec f =
-    let v = "r" ^ (string_of_int !counter) in
+  let rec f name =
+    let v = name ^ (string_of_int !counter) in
     counter := !counter + 1;
     v
   in f
+  
+let fresh_r () : variable =
+  fresh_variable "r"
+  
+let fresh_name =
+  let counter = ref 0 in
+  let rec f name =
+    let v = name ^ (string_of_int !counter) in
+    counter := !counter + 1;
+    v
+  in f
+  
+let fresh_annonymous () : string =
+  fresh_name "annonymous"
+  
+let fresh_named n : string =
+  fresh_name (n ^ "_annonymous")
   
 let rthis : variable = "rthis"
 let rempty : variable = "rempty" (* Using this variable temporarily since logic at the moment does not have value "empty"*)
 
 let end_label : label = "theend"
 
-(* Assignment to a fresh variable *)
-let mk_assign exp = { 
-    assignment_left = fresh_variable; 
+(* Assignment *)
+let mk_assign var exp = { 
+    assignment_left = var; 
     assignment_right = exp
   }
+
+(* Assignment to a fresh variable *)
+let mk_assign_fresh exp = mk_assign (fresh_r ()) exp
   
-let mk_assign_lit lit = mk_assign (Literal lit)
+let mk_assign_fresh_lit lit = mk_assign_fresh (Literal lit)
 
 let tr_unary_op op =
   match op with
@@ -95,10 +115,19 @@ let mk_etf_return stmts lvar = {
      etf_lvar = lvar;
   }
   
-type labels_to_jump_to = {
-    label_normal : label;
+type translation_ctx = {
+    return_var : variable;
+    throw_var : variable;
     label_return : label;
     label_throw : label;
+  }
+  
+let create_ctx () =
+  {
+     return_var = fresh_r ();
+     throw_var = fresh_r ();
+     label_return = "return." ^ fresh_r ();
+     label_throw = "throw." ^ fresh_r ();
   }
   
 let join_etf_results (results : expr_to_fb_return list) : expr_to_fb_return =
@@ -111,55 +140,53 @@ let join_etf_results (results : expr_to_fb_return list) : expr_to_fb_return =
     ) (mk_etf_return [] lvar) results
   end
 
-let rec exp_to_fb labels exp : expr_to_fb_return = (* TODO : update labels *)
+let rec exp_to_fb ctx exp : expr_to_fb_return = 
   let mk_result = mk_etf_return in
-  let f = exp_to_fb labels in 
+  let f = exp_to_fb ctx in 
   match exp.Parser_syntax.exp_stx with
       (* Literals *)
       | Parser_syntax.Num n -> 
         begin
-          let assign = mk_assign_lit (Num n) in 
+          let assign = mk_assign_fresh_lit (Num n) in 
           mk_result [Assignment assign] assign.assignment_left
         end
       | Parser_syntax.String s -> 
         begin 
-          let assign = mk_assign_lit (String s) in 
+          let assign = mk_assign_fresh_lit (String s) in 
           mk_result [Assignment assign] assign.assignment_left
         end
       | Parser_syntax.Null ->
         begin 
-          let assign = mk_assign_lit Null in 
+          let assign = mk_assign_fresh_lit Null in 
           mk_result [Assignment assign] assign.assignment_left
         end
       | Parser_syntax.Bool b -> 
         begin 
-          let assign = mk_assign_lit (Bool b) in 
+          let assign = mk_assign_fresh_lit (Bool b) in 
           mk_result [Assignment assign] assign.assignment_left
         end
       | Parser_syntax.This -> 
         begin 
-          let assign = mk_assign (Var rthis) in 
+          let assign = mk_assign_fresh (Var rthis) in 
           mk_result [Assignment assign] assign.assignment_left
         end
       | Parser_syntax.Var v -> 
         begin 
-          let assign = mk_assign (BuiltInFunction(Sigma v)) in 
-          mk_result [Assignment assign] assign.assignment_left
+          let var = mk_assign_fresh_lit (String v) in
+          let sigma = mk_assign_fresh (BuiltInFunction(Sigma var.assignment_left)) in 
+          mk_result [Assignment var; Assignment sigma] sigma.assignment_left
         end
       | Parser_syntax.Access (e, v) -> 
         begin
           let r1 = f e in
-          let r2 = mk_assign (BuiltInFunction(Gamma r1.etf_lvar)) in
-          let r3 = mk_assign_lit (Pulp_Syntax.String v) in
-          let r4 = mk_assign (BuiltInFunction(ObjCoercible r2.assignment_left)) in
-          let cond = Eq(Le_Var (AVar r4.assignment_left), Le_Var (AVar rempty)) in
-          let r5 = mk_assign (Member(r2.assignment_left, r3.assignment_left)) in
-          let gotoend = Goto [end_label] in
-          let if_stmt = Sugar (If (cond, [Assignment r5], [gotoend])) in
-          mk_etf_return (List.flatten [r1.etf_stmts; [Assignment r2; Assignment r3; Assignment r4; if_stmt]]) r5.assignment_left;
+          let r2 = mk_assign_fresh (BuiltInFunction(Gamma r1.etf_lvar)) in
+          let r3 = mk_assign_fresh_lit (Pulp_Syntax.String v) in
+          let r4 = mk_assign_fresh (BuiltInFunction(ObjCoercible r2.assignment_left)) in
+          let r5 = mk_assign_fresh (Member(r2.assignment_left, r3.assignment_left)) in
+          mk_etf_return (List.flatten [r1.etf_stmts; [Assignment r2; Assignment r3; Assignment r4; Assignment r5]]) r5.assignment_left;
         end
-
-
+      | Parser_syntax.Script (_, es) ->
+        join_etf_results (List.map f es)
       | Parser_syntax.Delete _ (*e*)
       | Parser_syntax.BinOp _ (*(e1, op, e2)*)
       | Parser_syntax.Assign _ (*(e1, e2)*)  
@@ -175,7 +202,6 @@ let rec exp_to_fb labels exp : expr_to_fb_return = (* TODO : update labels *)
       | Parser_syntax.While _ (*(e1, e2)*)
       | Parser_syntax.If _ (*(e1, e2, e3)*)
       | Parser_syntax.Block _ (*es*)
-      | Parser_syntax.Script _ (*(_, es)*)
 
       | Parser_syntax.RegExp _
       | Parser_syntax.Unary_op _ 
@@ -195,7 +221,22 @@ let rec exp_to_fb labels exp : expr_to_fb_return = (* TODO : update labels *)
       | Parser_syntax.ForIn _
       | Parser_syntax.Switch _
         -> raise (PulpNotImplemented (Pretty_print.string_of_exp true exp))
+        
+let translate_function fb codename args =
+  let ctx = create_ctx () in
+  let pulpe = (exp_to_fb ctx fb).etf_stmts in
+  make_function_block codename pulpe args ctx.return_var ctx.throw_var
 
+(* TODO: use codename from annotations if provided *)
+let make_function_blocks es =
+  List.map (fun e ->
+    match e.Parser_syntax.exp_stx with
+      | Parser_syntax.AnnonymousFun (_, args, fb) -> translate_function fb (fresh_annonymous ()) args
+      | Parser_syntax.NamedFun (_, name, args, fb) -> translate_function fb (fresh_named name) args
+      | _ -> raise (Invalid_argument "Should be a function definition here")
+    ) es
 
 let exp_to_pulp e =
-  exp_to_fb (get_all_functions e)
+  let main = translate_function e "main" [] in
+  let all_functions = make_function_blocks (get_all_functions e) in
+  main:: all_functions

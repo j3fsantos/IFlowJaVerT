@@ -9,10 +9,12 @@ INCLUDES = -I ../lib/corestar \
 	   -I ../src/syntax/ \
 	   -I ../src/logic/ \
 	   -I ../src/utils/ \
+	   -I ../src/pulp/syntax/ \
 	   -I ../src/strategies/store/
 
 SOURCE = ../src/localconfig.ml \
 	 ../src/utils/utils.ml \
+	 ../src/utils/profiler.ml \
 	 ../src/syntax/syntax.ml \
 	 ../src/parser/src/parser_syntax.ml \
 	 ../src/syntax/translate_syntax.ml \
@@ -38,6 +40,10 @@ SOURCE = ../src/localconfig.ml \
 	 ../src/formula_parser/formula_parser_utils.ml \
 	 ../src/logic/udpreds.ml \
 	 ../src/help.ml \
+	 ../src/pulp/syntax/pulp_Syntax.ml \
+	 ../src/pulp/syntax/pulp_Syntax_Print.ml \
+	 ../src/pulp/syntax/pulp_Syntax_Utils.ml \
+	 ../src/pulp/syntax/pulp_Translate.ml \
 	 ../src/strategies/store/store_naive.ml \
 	 ../src/strategies/naive_strategy.ml \
 	 ../src/strategies/naive_abduction.ml \
@@ -55,6 +61,7 @@ SOURCE = ../src/localconfig.ml \
 	 rec_examples.ml \
 	 bin_op_tests.ml \
 	 assert_Gen_Tests.ml \
+	 pulp_Translation_Tests.ml \
 	 test_all.ml
 
 REMOVE = ../src/*.cmo \
@@ -75,7 +82,9 @@ REMOVE = ../src/*.cmo \
 	  ../src/formula_parser/formula_parser.ml \
 	  ../src/formula_parser/formula_parser.mli \
 	  ../src/strategies/store/*.cmo \
-	  ../src/strategies/store/*.cmi
+	  ../src/strategies/store/*.cmi \
+	  ../src/pulp/syntax/*.cmo \
+	  ../src/pulp/syntax/*cmi \
 
 TESTS = test_all.ml logictests.ml
 
