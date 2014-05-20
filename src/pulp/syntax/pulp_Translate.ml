@@ -299,21 +299,25 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
           let if1 = Sugar (If (cond12, gotothrow, [])) in
           let if2 = Sugar (If (cond13, gotothrow, [])) in
           let putvalue = translate_put_value r1.etf_lvar r3.assign_left ctx.throw_var ctx.label_throw in
-          mk_etf_return (List.flatten [r1.etf_stmts; r2.etf_stmts; [Assignment r3; if1; if2]; putvalue.etf_stmts]) putvalue.etf_lvar
+          let r4 = mk_assign_fresh (Var r3.assign_left) in
+          mk_etf_return (List.flatten [r1.etf_stmts; r2.etf_stmts; [Assignment r3; if1; if2]; putvalue.etf_stmts; [Assignment r4]]) r4.assign_left
         end
-      | Parser_syntax.Delete _ (*e*)
-      | Parser_syntax.BinOp _ (*(e1, op, e2)*) 
+      | Parser_syntax.Skip -> 
+        let r1 = mk_assign_fresh (Var rempty) in
+        mk_etf_return [Assignment r1] r1.assign_left 
+      | Parser_syntax.Block _ (*es*)
       | Parser_syntax.CAccess _ (* (e1, e2) *)
+      | Parser_syntax.AnnonymousFun _ (*(_, vs, e)*) 
+      | Parser_syntax.VarDec _ (*vars*)
+      | Parser_syntax.Return _ (*e*)
       | Parser_syntax.Call _ (*(e1, e2s)*)
       | Parser_syntax.New _ (*(e1, e2s)*)
-      | Parser_syntax.AnnonymousFun _ (*(_, vs, e)*) 
-      | Parser_syntax.NamedFun _ (*(_, n, vs, e)*)
-      | Parser_syntax.Skip
-      | Parser_syntax.Return _ (*e*)
-      | Parser_syntax.VarDec _ (*vars*)
-      | Parser_syntax.While _ (*(e1, e2)*)
+      | Parser_syntax.BinOp _ (*(e1, op, e2)*) 
       | Parser_syntax.If _ (*(e1, e2, e3)*)
-      | Parser_syntax.Block _ (*es*)
+      | Parser_syntax.While _ (*(e1, e2)*)
+      | Parser_syntax.Delete _ (*e*)
+
+      | Parser_syntax.NamedFun _ (*(_, n, vs, e)*)
 
       | Parser_syntax.RegExp _
       | Parser_syntax.Unary_op _ 
