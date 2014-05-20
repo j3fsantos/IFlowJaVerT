@@ -49,6 +49,23 @@ let string_of_builtin_function bf =
 let string_of_call c =
   Printf.sprintf "\"%s (@this %s, %s) \"" c.call_name c.call_this (string_of_vars c.call_args)
   
+let string_of_ref_type rt =
+  match rt with
+    | MemberReference -> "Member"
+    | VariableReference -> "Variable"
+  
+let string_of_reference r =
+  Printf.sprintf "%s.%s%s" 
+    (string_of_var r.ref_base) 
+    (match r.ref_type with
+      | MemberReference -> ""
+      | VariableReference -> "[v]"
+    ) 
+    (string_of_var r.ref_field)
+  
+let string_of_mutation m =
+  Printf.sprintf "%s <= %s" (string_of_var m.m_left) (string_of_var m.m_right)
+  
 let string_of_expression e =
   let s = string_of_var in
   match e with
@@ -56,7 +73,8 @@ let string_of_expression e =
     | Empty -> "#empty"
     | Var v -> s v
     | BinOp (v1, op, v2) -> Printf.sprintf "%s %s %s" (s v1) (string_of_bin_op op) (s v2)
-    | Member (v1, v2) -> Printf.sprintf "%s.%s" (s v1) (s v2)
+    | Member r -> string_of_reference r
+    | Lookup r -> Printf.sprintf "Read %s" (string_of_reference r)
     | Call c -> string_of_call c
     | Fun cn -> Printf.sprintf "function %s" (string_of_codename cn) (* Don't I want formal params here?*) (* I'm confused between function blocks and function expression? *)
     | Obj -> "new Obj()"
@@ -67,7 +85,9 @@ let rec string_of_statement t =
   match t with
     | Skip -> "Skip"
     | Label l -> Printf.sprintf "%s :" l
-    | Assignment a -> Printf.sprintf "%s = %s" (s a.assignment_left) (string_of_expression a.assignment_right)
+    | Assignment a -> Printf.sprintf "%s = %s" (s a.assign_left) (string_of_expression a.assign_right)
+    | Mutation m -> string_of_mutation m
+    | Deallocation r -> Printf.sprintf "Delete %s" (string_of_reference r)
     | Goto ls -> Printf.sprintf "Goto %s" (String.concat "," ls)
     | Assume f -> Printf.sprintf "Assume %s" (PrintLogic.string_of_formula f)
     | Assert f -> Printf.sprintf "Assert %s" (PrintLogic.string_of_formula f)

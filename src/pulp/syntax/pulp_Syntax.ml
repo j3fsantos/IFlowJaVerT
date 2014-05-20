@@ -24,6 +24,22 @@ module CodenameMap = Map.Make (
   end
 )
 
+type reference_type = 
+  | MemberReference (*A reference created by access x[y] *)
+  | VariableReference (* A reference created by sigma *)
+
+type reference = {
+    ref_base : variable;
+    ref_field : variable;
+    ref_type : reference_type
+  }
+  
+let mk_ref r f rt = {
+    ref_base = r;
+    ref_field = f;
+    ref_type = rt
+  }
+
 type codename_spec = spec CodenameMap.t
 
 type builtin_function = (* todo *)
@@ -60,21 +76,34 @@ type expression =
   | Empty (* special return value for the statements and internal reductions *)
   | Var of variable
   | BinOp of variable * bin_op * variable
-  | Member of variable * variable
+  | Member of reference
+  | Lookup of reference 
   | Call of call
   | Fun of codename 
   | Obj
   | BuiltInFunction of builtin_function
 
 type assignment = { 
-    assignment_left : variable; 
-    assignment_right : expression
+    assign_left : variable; 
+    assign_right : expression
+  }
+  
+type mutation = {
+    m_left : variable;
+    m_right : variable;
+  }
+  
+let mk_mutation r v = {
+    m_left = r;
+    m_right = v;
   }
 
 type statement =
   | Skip
   | Label of label
   | Assignment of assignment
+  | Mutation of mutation
+  | Deallocation of reference
   | Goto of string list
   | Assume of Logic.formula
   | Assert of Logic.formula
