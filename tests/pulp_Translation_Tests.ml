@@ -20,9 +20,13 @@ let test_assign () =
   
 let test_obj () =
   test_template ("obj = {x : 1, y : null, z : false}") 
+  
+let test_block () =
+  test_template ("x = y; y = z")
 
 
 let suite = "Testing Translation" >:::
   ["translating access" >:: test_access;
    "translating assignment" >:: test_assign;
-   "translating obj literal" >:: test_obj] 
+   "translating obj literal" >:: test_obj;
+   "translating block" >:: test_block] 

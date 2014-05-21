@@ -263,8 +263,22 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
           let r5 = mk_assign_fresh (Member(mk_ref r2.assign_left r3.assign_left MemberReference)) in
           mk_etf_return (List.flatten [r1.etf_stmts; [Assignment r2; Assignment r3; Assignment r4; Assignment r5]]) r5.assign_left;
         end
-      | Parser_syntax.Script (_, es) ->
-        join_etf_results (List.map f es)
+      | Parser_syntax.Script (_, es)
+      | Parser_syntax.Block es ->
+        let retv = mk_assign_fresh (Var rempty) in
+        let mk_if rval oldrval =
+          let cond = Logic.Eq (logic_var rval, logic_var rempty) in
+          let retv1 = mk_assign_fresh (Var oldrval) in
+          (* dynamic SSA *)
+          let retv2 = mk_assign retv1.assign_left (Var rval) in 
+          let ifstmt = Sugar (If (cond, [Assignment retv1], [Assignment retv2])) in 
+          mk_etf_return [ifstmt] retv1.assign_left in
+        let skip = mk_etf_return [Assignment retv] retv.assign_left in
+        List.fold_left (fun prev current -> 
+          let r1 = f current in
+          let ifstmt = mk_if r1.etf_lvar prev.etf_lvar in
+          join_etf_results [prev; r1; ifstmt]) 
+        skip es
       | Parser_syntax.Obj xs ->
         begin
           let r1 = mk_assign_fresh Obj in
@@ -305,7 +319,6 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
       | Parser_syntax.Skip -> 
         let r1 = mk_assign_fresh (Var rempty) in
         mk_etf_return [Assignment r1] r1.assign_left 
-      | Parser_syntax.Block _ (*es*)
       | Parser_syntax.CAccess _ (* (e1, e2) *)
       | Parser_syntax.AnnonymousFun _ (*(_, vs, e)*) 
       | Parser_syntax.VarDec _ (*vars*)
