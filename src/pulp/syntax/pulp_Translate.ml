@@ -189,7 +189,7 @@ let translate_error_throw error throw_var throw_label =
   let r1 = mk_assign_fresh Obj in
   let r2 = mk_assign_fresh_lit (String (string_of_builtin_field Proto)) in
   let r3 = mk_assign_fresh_lit (String (string_of_builtin_loc error)) in
-  let r4 = mk_assign_fresh (Member (mk_ref r1.assign_left r2.assign_left MemberReference)) in
+  let r4 = mk_assign_fresh (Ref (mk_ref r1.assign_left r2.assign_left MemberReference)) in
   let r5 = Mutation (mk_mutation r4.assign_left r3.assign_left) in
   let r6 = mk_assign throw_var (Var r1.assign_left) in
   let r7 = Goto [throw_label] in
@@ -260,7 +260,7 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
           let r2 = mk_assign_fresh (BuiltInFunction(Gamma r1.etf_lvar)) in
           let r3 = mk_assign_fresh_lit (Pulp_Syntax.String v) in
           let r4 = mk_assign_fresh (BuiltInFunction(ObjCoercible r2.assign_left)) in
-          let r5 = mk_assign_fresh (Member(mk_ref r2.assign_left r3.assign_left MemberReference)) in
+          let r5 = mk_assign_fresh (Ref(mk_ref r2.assign_left r3.assign_left MemberReference)) in
           mk_etf_return (List.flatten [r1.etf_stmts; [Assignment r2; Assignment r3; Assignment r4; Assignment r5]]) r5.assign_left;
         end
       | Parser_syntax.Script (_, es)
@@ -289,7 +289,7 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
                   let r2 = f e in
                   let r3 = mk_assign_fresh (BuiltInFunction(Gamma r2.etf_lvar)) in
                   let r4 = mk_assign_fresh_lit (String (Pretty_print.string_of_propname prop_name)) in
-                  let r5 = mk_assign_fresh (Member(mk_ref r1.assign_left r4.assign_left MemberReference)) in
+                  let r5 = mk_assign_fresh (Ref(mk_ref r1.assign_left r4.assign_left MemberReference)) in
                   let r6 = Mutation (mk_mutation r5.assign_left r3.assign_left) in
                   r2.etf_stmts @ [Assignment r3; Assignment r4; Assignment r5; r6]
                 end

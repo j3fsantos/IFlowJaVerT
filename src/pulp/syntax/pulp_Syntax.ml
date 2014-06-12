@@ -76,8 +76,8 @@ type expression =
   | Empty (* special return value for the statements and internal reductions *)
   | Var of variable
   | BinOp of variable * bin_op * variable
-  | Member of reference
-  | Lookup of reference 
+  | Ref of reference
+  | Lookup of variable 
   | Call of call
   | Fun of codename 
   | Obj
@@ -103,7 +103,7 @@ type statement =
   | Label of label
   | Assignment of assignment
   | Mutation of mutation
-  | Deallocation of reference
+  | Deallocation of variable
   | Goto of string list
   | Assume of Logic.formula
   | Assert of Logic.formula
