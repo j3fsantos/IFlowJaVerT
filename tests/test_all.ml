@@ -18,9 +18,12 @@ let outputs = "Test_Outputs" >:::
   [
     Assert_Gen_Tests.suite
   ]
+  
+let test_translation = "Test_Translation" >:::
+  [Pulp_Translation_Tests.suite]
 
 let all_suite = "Test_All" >:::
-  [parsing_suite; suite ; outputs]
+  [parsing_suite; suite ; outputs; test_translation]
 
 
 let _ = run_test_tt_main all_suite
