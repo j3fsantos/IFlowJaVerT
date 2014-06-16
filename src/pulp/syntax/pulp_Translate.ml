@@ -35,6 +35,8 @@ let rempty : variable = "rempty" (* Using this variable temporarily since logic 
 
 let end_label : label = "theend"
 
+let main_fun_id : function_id = "main"
+
 (* Logic *)
 type builtin_loc = 
   | LRError (* Reference Error *)
@@ -351,21 +353,27 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
       | Parser_syntax.Switch _
         -> raise (PulpNotImplemented (Pretty_print.string_of_exp true exp))
         
-let translate_function fb codename args =
+let translate_function fb codename args env =
   let ctx = create_ctx () in
   let pulpe = (exp_to_fb ctx fb).etf_stmts in
-  make_function_block codename pulpe args ctx.return_var ctx.throw_var
+  let vars = args @ (var_decls fb) in
+  let env = env @ [make_ctx_vars codename vars] in
+  make_fun_with_ctx env (make_function_block codename pulpe args ctx.return_var ctx.throw_var)
 
 (* TODO: use codename from annotations if provided *)
-let make_function_blocks es =
+let make_function_blocks env es =
   List.map (fun e ->
     match e.Parser_syntax.exp_stx with
-      | Parser_syntax.AnnonymousFun (_, args, fb) -> translate_function fb (fresh_annonymous ()) args
-      | Parser_syntax.NamedFun (_, name, args, fb) -> translate_function fb (fresh_named name) args
+      | Parser_syntax.AnnonymousFun (_, args, fb) -> translate_function fb (fresh_annonymous ()) args env
+      | Parser_syntax.NamedFun (_, name, args, fb) -> translate_function fb (fresh_named name) args env
       | _ -> raise (Invalid_argument "Should be a function definition here")
     ) es
 
 let exp_to_pulp e =
-  let main = translate_function e "main" [] in
-  let all_functions = make_function_blocks (get_all_functions e) in
-  main:: all_functions
+  let context = Context.empty in
+  let env = [] in
+  let main = translate_function e main_fun_id [] env in
+  let context = Context.add main_fun_id main context in
+  let all_functions = make_function_blocks env (get_all_functions e) in
+  let context = List.fold_left (fun c fs -> Context.add fs.fun_block.func_name fs c) context all_functions in
+  context

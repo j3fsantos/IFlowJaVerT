@@ -8,7 +8,7 @@ let test_template p =
   let exp = Parser_main.exp_from_string p in
   let _ = Printf.printf "%s \n" (Pretty_print.string_of_exp_syntax exp.Parser_syntax.exp_stx) in
   let p_exp = exp_to_pulp exp in
-  let _ = List.iter (fun fb -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_func_block fb)) p_exp in
+  let _ = Logic.Context.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_fun_with_ctx fwc)) p_exp in
   assert_bool "Incorrect Translation" true
   
 

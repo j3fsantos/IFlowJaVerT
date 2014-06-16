@@ -128,3 +128,27 @@ let make_function_block fn fb fparams fret fexcep = {
     func_ret = fret;
     func_excep = fexcep;
   }
+  
+type function_id = string  
+  
+type ctx_variables = {
+     func_id : function_id;
+     fun_bindings : variable list
+  }
+  
+let make_ctx_vars fid vars = 
+  { 
+    func_id = fid;
+    fun_bindings = vars
+  }
+
+type fun_with_ctx = {
+     ctx_vars : ctx_variables list;
+     fun_block : function_block;
+  }
+  
+let make_fun_with_ctx vars f =
+  {
+    ctx_vars = vars;
+    fun_block = f
+  }

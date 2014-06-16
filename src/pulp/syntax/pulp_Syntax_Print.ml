@@ -104,3 +104,10 @@ and string_of_sugar t =
 let string_of_func_block fb =
    Printf.sprintf "function %s (%s) { \n %s \n}" fb.func_name (string_of_formal_params fb.func_params) (string_of_statement_list fb.func_body)
   
+let string_of_ctx_vars v = 
+  Printf.sprintf "%s : [%s]" v.func_id (string_of_vars v.fun_bindings)
+  
+let string_of_fun_with_ctx fwc =
+  Printf.sprintf "%s \n with environment \n %s \n \n \n" (string_of_func_block fwc.fun_block) (String.concat ";" (List.map string_of_ctx_vars fwc.ctx_vars))
+  
+  
