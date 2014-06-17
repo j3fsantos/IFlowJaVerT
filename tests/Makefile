@@ -41,8 +41,8 @@ SOURCE = ../src/localconfig.ml \
 	 ../src/logic/udpreds.ml \
 	 ../src/help.ml \
 	 ../src/pulp/syntax/pulp_Syntax.ml \
-	 ../src/pulp/syntax/pulp_Syntax_Print.ml \
 	 ../src/pulp/syntax/pulp_Syntax_Utils.ml \
+	 ../src/pulp/syntax/pulp_Syntax_Print.ml \
 	 ../src/pulp/syntax/pulp_Translate.ml \
 	 ../src/strategies/store/store_naive.ml \
 	 ../src/strategies/naive_strategy.ml \

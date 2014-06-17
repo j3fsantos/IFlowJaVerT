@@ -16,26 +16,10 @@ let fresh_variable =
 let fresh_r () : variable =
   fresh_variable "r"
   
-let fresh_name =
-  let counter = ref 0 in
-  let rec f name =
-    let v = name ^ (string_of_int !counter) in
-    counter := !counter + 1;
-    v
-  in f
-  
-let fresh_annonymous () : string =
-  fresh_name "annonymous"
-  
-let fresh_named n : string =
-  fresh_name (n ^ "_annonymous")
-  
 let rthis : variable = "rthis"
 let rempty : variable = "rempty" (* Using this variable temporarily since logic at the moment does not have value "empty"*)
 
 let end_label : label = "theend"
-
-let main_fun_id : function_id = "main"
 
 (* Logic *)
 type builtin_loc = 
@@ -173,14 +157,16 @@ let mk_etf_return stmts lvar = {
   }
   
 type translation_ctx = {
+    env_vars : ctx_variables list; 
     return_var : variable;
     throw_var : variable;
     label_return : label;
     label_throw : label;
   }
   
-let create_ctx () =
+let create_ctx env =
   {
+     env_vars = env;
      return_var = fresh_r ();
      throw_var = fresh_r ();
      label_return = "return." ^ fresh_r ();
@@ -353,27 +339,25 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
       | Parser_syntax.Switch _
         -> raise (PulpNotImplemented (Pretty_print.string_of_exp true exp))
         
-let translate_function fb codename args env =
-  let ctx = create_ctx () in
+let translate_function fb fid args env =
+  let ctx = create_ctx env in
   let pulpe = (exp_to_fb ctx fb).etf_stmts in
-  let vars = args @ (var_decls fb) in
-  let env = env @ [make_ctx_vars codename vars] in
-  make_fun_with_ctx env (make_function_block codename pulpe args ctx.return_var ctx.throw_var)
+  make_fun_with_ctx env (make_function_block fid pulpe args ctx.return_var ctx.throw_var)
 
 (* TODO: use codename from annotations if provided *)
-let make_function_blocks env es =
-  List.map (fun e ->
+let translate_function_syntax id e env =
     match e.Parser_syntax.exp_stx with
-      | Parser_syntax.AnnonymousFun (_, args, fb) -> translate_function fb (fresh_annonymous ()) args env
-      | Parser_syntax.NamedFun (_, name, args, fb) -> translate_function fb (fresh_named name) args env
+      | Parser_syntax.AnnonymousFun (_, args, fb) -> translate_function fb id args env
+      | Parser_syntax.NamedFun (_, name, args, fb) -> translate_function fb id args env
+      | Parser_syntax.Script (_, es) -> translate_function e main_fun_id [] env
       | _ -> raise (Invalid_argument "Should be a function definition here")
-    ) es
 
 let exp_to_pulp e =
-  let context = Context.empty in
-  let env = [] in
-  let main = translate_function e main_fun_id [] env in
-  let context = Context.add main_fun_id main context in
-  let all_functions = make_function_blocks env (get_all_functions e) in
-  let context = List.fold_left (fun c fs -> Context.add fs.fun_block.func_name fs c) context all_functions in
+  let context = AllFunctions.empty in
+  let all_functions = get_all_functions_with_env [] e in
+    
+  let context = List.fold_left (fun c (fid, fexpr, fenv) -> 
+    let fb = translate_function_syntax fid fexpr fenv in
+    AllFunctions.add fid fb c
+   ) context all_functions in
   context
