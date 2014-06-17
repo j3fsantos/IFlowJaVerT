@@ -18,7 +18,7 @@ let fresh_annonymous () : string =
   fresh_name "annonymous"
   
 let fresh_named n : string =
-  fresh_name (n ^ "_annonymous") 
+  fresh_name n 
   
 type ctx_variables = {
      func_id : function_id;
@@ -96,7 +96,7 @@ let rec var_decls_inner exp =
   | Call (e1, e2s) 
   | New (e1, e2s) -> (f e1) @ (flat_map (fun e2 -> f e2) e2s)
   | AnnonymousFun (_,vs, e)
-  | NamedFun (_,_, vs, e) -> vs @ (f e)
+  | NamedFun (_,_, vs, e) -> []
   | Obj xs -> flat_map (fun (_,_,e) -> f e) xs 
   | Array es -> flat_map (fun e -> match e with None -> [] | Some e -> f e) es
   | Try (_, None, None) -> raise CannotHappen
@@ -106,8 +106,9 @@ let rec var_decls_inner exp =
 
 let var_decls exp = List.unique (var_decls_inner exp)
 
-let make_env env e fid =
-  env @ [make_ctx_vars fid (var_decls e)]
+let make_env env e args fid =
+  let vars = args @ (var_decls e) in
+  env @ [make_ctx_vars fid vars]
   
 
 
@@ -119,8 +120,8 @@ let rec get_all_functions_with_env env e : (function_id * exp * ctx_variables li
       | Some e -> f e
     end
   in
-  let make_result fid e fb env =
-    let new_env = make_env env fb fid in
+  let make_result fid e fb args env =
+    let new_env = make_env env fb args fid in
     (fid, e, new_env) :: (get_all_functions_with_env new_env fb) in
   begin match e.exp_stx with
       (* Literals *)
@@ -150,8 +151,8 @@ let rec get_all_functions_with_env env e : (function_id * exp * ctx_variables li
       | With (e1, e2) -> (f e1) @ (f e2)
       | Call (e1, e2s)
       | New (e1, e2s) -> f e1 @ (flat_map f e2s)
-      | AnnonymousFun (_, _, fb) -> make_result (fresh_annonymous ()) e fb env
-      | NamedFun (_, name, _, fb) -> make_result (fresh_named name) e fb env
+      | AnnonymousFun (_, args, fb) -> make_result (fresh_annonymous ()) e fb args env
+      | NamedFun (_, name, args, fb) -> make_result (fresh_named name) e fb args env
       | Obj xs -> flat_map (fun (_, _, e) -> f e) xs
       | Array es -> flat_map fo es
       | ConditionalOp (e1, e2, e3) 
@@ -169,7 +170,7 @@ let rec get_all_functions_with_env env e : (function_id * exp * ctx_variables li
           | DefaultCase -> []
           | Case e -> f e 
         @ (f e2))) sces
-      | Block es 
-      | Script (_, es) -> let new_env = make_env env e main_fun_id in
+      | Block es -> flat_map f es
+      | Script (_, es) -> let new_env = make_env env e [] main_fun_id in
         (main_fun_id, e, new_env) :: (flat_map (get_all_functions_with_env new_env) es) 
    end
