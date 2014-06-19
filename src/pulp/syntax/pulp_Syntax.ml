@@ -7,7 +7,8 @@ type literal =
   | Null                  
   | Bool of bool          
   | Num of float          
-  | String of string      
+  | String of string
+  | Undefined      
 
 type variable = string (* Variables of IVL *)
 

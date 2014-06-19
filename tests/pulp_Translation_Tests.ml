@@ -37,6 +37,9 @@ let test_fun_env () =
      (String.concat ";" (List.map Pulp_Syntax_Print.string_of_ctx_vars fenv)))
   all_functions in
   assert_bool "Incorrect Translation" true
+  
+let test_var_decl () = 
+  test_template ("var x,y = 5; x.y")
 
 
 let suite = "Testing Translation" >:::
@@ -44,4 +47,5 @@ let suite = "Testing Translation" >:::
    "translating assignment" >:: test_assign;
    "translating obj literal" >:: test_obj;
    "translating block" >:: test_block;
-   "testing function environments" >:: test_fun_env] 
+   "testing function environments" >:: test_fun_env;
+   "testing var declarations" >:: test_var_decl] 

@@ -39,6 +39,7 @@ let string_of_literal lit =
     | String x -> Printf.sprintf "\"%s\"" x
     | Null -> "null"
     | Bool b -> string_of_bool b
+    | Undefined -> "undefined"
 
   
 let string_of_builtin_function bf =
@@ -56,12 +57,12 @@ let string_of_ref_type rt =
     | VariableReference -> "Variable"
   
 let string_of_reference r =
-  Printf.sprintf "ref%s(%s, %s)" 
-    (string_of_var r.ref_base) 
+  Printf.sprintf "ref%s(%s, %s)"  
     (match r.ref_type with
       | MemberReference -> "_o"
       | VariableReference -> "_v"
     ) 
+    (string_of_var r.ref_base)
     (string_of_var r.ref_field)
   
 let string_of_mutation m =

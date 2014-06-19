@@ -18,6 +18,8 @@ let fresh_r () : variable =
   
 let rthis : variable = "rthis"
 let rempty : variable = "rempty" (* Using this variable temporarily since logic at the moment does not have value "empty"*)
+let rscope : variable = "rscope"
+let unknownscope : variable = "unknownscope"
 
 let end_label : label = "theend"
 
@@ -205,6 +207,15 @@ let join_etf_results (results : expr_to_fb_return list) : expr_to_fb_return =
       mk_etf_return (joined.etf_stmts @ left_to_join.etf_stmts) lvar
     ) (mk_etf_return [] lvar) results
   end
+  
+let find_var_scope var env =
+  try 
+  let scope = List.find (fun scope ->
+    List.exists (fun v -> v = var) scope.fun_bindings
+    ) env in
+  scope.func_id
+  with
+    | Not_found -> unknownscope
 
 let rec exp_to_fb ctx exp : expr_to_fb_return = 
   let mk_result = mk_etf_return in
@@ -238,9 +249,10 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
         end
       | Parser_syntax.Var v -> 
         begin 
+          let scope = find_var_scope v ctx.env_vars in
           let var = mk_assign_fresh_lit (String v) in
-          let sigma = mk_assign_fresh (BuiltInFunction(Sigma var.assign_left)) in 
-          mk_result [Assignment var; Assignment sigma] sigma.assign_left
+          let ref_assign = mk_assign_fresh (Ref (mk_ref scope var.assign_left VariableReference)) in
+          mk_result [Assignment var; Assignment ref_assign] ref_assign.assign_left         
         end
       | Parser_syntax.Access (e, v) -> 
         begin
@@ -307,9 +319,20 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
       | Parser_syntax.Skip -> 
         let r1 = mk_assign_fresh (Var rempty) in
         mk_etf_return [Assignment r1] r1.assign_left 
+      | Parser_syntax.VarDec vars ->
+        let result = List.map (fun var ->
+          match var with
+            | (v, Some exp) -> f ({exp with Parser_syntax.exp_stx = (Parser_syntax.Assign ({exp with Parser_syntax.exp_stx = Parser_syntax.Var v}, exp))})
+            | (v, None) -> f ({exp with Parser_syntax.exp_stx = Parser_syntax.Skip})
+          ) vars in
+        let stmts = (join_etf_results result).etf_stmts in
+        let empty = mk_assign_fresh (Var rempty) in
+        mk_etf_return (stmts @ [Assignment empty]) empty.assign_left
+      | Parser_syntax.AnnonymousFun (_, vs, e) ->
+        let fid = get_codename exp in
+        (*Create closure*)
+        raise (Invalid_argument "todo")
       | Parser_syntax.CAccess _ (* (e1, e2) *)
-      | Parser_syntax.AnnonymousFun _ (*(_, vs, e)*) 
-      | Parser_syntax.VarDec _ (*vars*)
       | Parser_syntax.Return _ (*e*)
       | Parser_syntax.Call _ (*(e1, e2s)*)
       | Parser_syntax.New _ (*(e1, e2s)*)
@@ -341,10 +364,29 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
         
 let translate_function fb fid args env =
   let ctx = create_ctx env in
-  let pulpe = (exp_to_fb ctx fb).etf_stmts in
-  make_fun_with_ctx env (make_function_block fid pulpe args ctx.return_var ctx.throw_var)
+  let other_env = match ctx.env_vars with
+    | current :: others -> others
+    | [] -> raise (Invalid_argument "Should be a function environment here") in
+  let init_e = List.map (fun env -> 
+     Assignment (mk_assign (env.func_id^"_scope") (Ref (mk_ref rscope env.func_id MemberReference))) 
+  ) other_env in
+  let current_scope_var = fid^"_scope" in
+  let current_scope = Assignment (mk_assign current_scope_var Obj) in
+  let init_vars = List.map (fun v ->
+      let ref_assign = mk_assign_fresh (Ref (mk_ref current_scope_var v MemberReference)) in 
+      let v_assign = mk_assign_fresh_lit (String v) in
+      Mutation (mk_mutation ref_assign.assign_left v_assign.assign_left)
+    ) args in
+  (* Assign undefined to var declarations *)
+  (* TODO : Fix the case when we already have formal parameter with the same name *)
+  let decl_vars = Utils.flat_map (fun v ->
+      let ref_assign = mk_assign_fresh (Ref (mk_ref current_scope_var v MemberReference)) in 
+      let und_assign = mk_assign_fresh_lit Undefined in
+      [Assignment ref_assign; Assignment und_assign; Mutation (mk_mutation ref_assign.assign_left und_assign.assign_left)]
+    ) (var_decls fb) in
+  let pulpe = init_e @ [current_scope] @ init_vars @ decl_vars @ (exp_to_fb ctx fb).etf_stmts in
+  make_fun_with_ctx env (make_function_block fid pulpe (rthis :: (rscope :: args)) ctx.return_var ctx.throw_var)
 
-(* TODO: use codename from annotations if provided *)
 let translate_function_syntax id e env =
     match e.Parser_syntax.exp_stx with
       | Parser_syntax.AnnonymousFun (_, args, fb) -> translate_function fb id args env

@@ -2,6 +2,20 @@ open Parser_syntax
 open Utils
 open Batteries
 
+exception No_Codename
+  
+let update_annotation annots atype new_value =
+  let old_removed = List.filter (fun annot -> annot.annot_type <> atype) annots in
+  let annot = {annot_type = atype; annot_formula = new_value} in
+  annot :: old_removed
+ 
+let get_codename exp =
+  let codenames = List.filter (fun annot -> annot.annot_type = Codename) exp.exp_annot in
+  match codenames with
+    | [codename] -> codename.annot_formula
+    | _ -> raise No_Codename
+
+
 type function_id = string 
 
 let main_fun_id : function_id = "main"
@@ -108,7 +122,7 @@ let var_decls exp = List.unique (var_decls_inner exp)
 
 let make_env env e args fid =
   let vars = args @ (var_decls e) in
-  env @ [make_ctx_vars fid vars]
+  [make_ctx_vars fid vars] @ env
   
 
 
@@ -122,7 +136,9 @@ let rec get_all_functions_with_env env e : (function_id * exp * ctx_variables li
   in
   let make_result fid e fb args env =
     let new_env = make_env env fb args fid in
-    (fid, e, new_env) :: (get_all_functions_with_env new_env fb) in
+    (* I use codename for now. It may be that I want a new annotation for function identifier. *)
+    let new_annots = update_annotation e.exp_annot Codename fid in
+    (fid, {e with exp_annot = new_annots}, new_env) :: (get_all_functions_with_env new_env fb) in
   begin match e.exp_stx with
       (* Literals *)
       | Num _ 
