@@ -393,7 +393,7 @@ let translate_function fb fid args env =
   let current_scope = Assignment (mk_assign current_scope_var Obj) in
   let init_vars = Utils.flat_map (fun v ->
       let ref_assign = mk_assign_fresh (Ref (mk_ref current_scope_var v MemberReference)) in 
-      let v_assign = mk_assign_fresh_lit (String v) in
+      let v_assign = mk_assign_fresh (Var v) in
       [Assignment ref_assign; Assignment v_assign; Mutation (mk_mutation ref_assign.assign_left v_assign.assign_left)]
     ) args in
   (* Assign undefined to var declarations *)
