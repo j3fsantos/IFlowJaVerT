@@ -124,9 +124,71 @@ let make_env env e args fid =
   let vars = args @ (var_decls e) in
   [make_ctx_vars fid vars] @ env
   
+ 
+let rec add_codenames exp : exp =
+  let f = add_codenames in
+  let fo e =
+    begin match e with
+      | None -> None
+      | Some e -> Some (f e)
+    end in
+  let m exp nstx = {exp with exp_stx = nstx} in
+  (* I use codename for now. It may be that I want a new annotation for function identifier. *)
+  let add_codename exp fid = update_annotation exp.exp_annot Codename fid
+  in
+  match exp.exp_stx with
+      (* Literals *)
+      | Num _ 
+      | String _
+      | Null 
+      | Bool _
+      | RegExp _
+      | This 
+      | Var _ 
+      | Skip 
+      | Break _
+      | Continue _
+      | Debugger -> exp 
+      | Delete e -> m exp (Delete (f e))
+      | Access (e, x) -> m exp (Access (f e, x))
+      | Unary_op (op, e) -> m exp (Unary_op (op, f e))
+      | Throw e -> m exp (Throw (f e))
+      | Label (l, e) -> m exp (Label (l, f e))
+      | BinOp (e1, op, e2) -> m exp (BinOp (f e1, op, f e2))
+      | Assign (e1, e2) -> m exp (Assign (f e1, f e2))
+      | AssignOp (e1, op, e2)  -> m exp (AssignOp (f e1, op, f e2))
+      | CAccess (e1, e2) -> m exp (CAccess (f e1, f e2))
+      | Comma (e1, e2) -> m exp (Comma (f e1, f e2))
+      | While (e1, e2) -> m exp (While (f e1, f e2))
+      | DoWhile (e1, e2) -> m exp (DoWhile (f e1, f e2))
+      | With (e1, e2) -> m exp (With (f e1, f e2))
+      | Call (e1, e2s) -> m exp (Call (f e1, List.map f e2s))
+      | New (e1, e2s) -> m exp (New (f e1, List.map f e2s))
+      | AnnonymousFun (str, args, fb) -> {exp with exp_stx = AnnonymousFun (str, args, f fb); exp_annot = add_codename exp (fresh_annonymous ())}
+      | NamedFun (str, name, args, fb) -> {exp with exp_stx = NamedFun (str, name, args, f fb); exp_annot = add_codename exp (fresh_named name)}
+      | Obj xs -> m exp (Obj (List.map (fun (pn, pt, e) -> (pn, pt, f e)) xs))
+      | Array es -> m exp (Array (List.map fo es))
+      | ConditionalOp (e1, e2, e3)  -> m exp (ConditionalOp (f e1, f e2, f e3))
+      | ForIn (e1, e2, e3) -> m exp (ForIn (f e1, f e2, f e3))
+      | Return e -> m exp (Return (fo e)) 
+      | VarDec vars -> m exp (VarDec (List.map (fun (n, e) -> (n, fo e)) vars))
+      | Try (e1, catch, finally) -> m exp (Try (f e1,  
+        (match catch with 
+          | None -> None
+          | Some (n, e) -> Some (n, f e)), (fo finally)))
+      | If (e1, e2, e3) -> m exp (If (f e1, f e2, fo e3))
+      | For (e1, e2, e3, e4) -> m exp (For (f e1, f e2, f e3, f e4))
+      | Switch (e1, sces) -> m exp (Switch (f e1, List.map (fun (sc, e2) -> 
+        (match sc with
+          | DefaultCase -> DefaultCase
+          | Case e -> Case (f e)),
+        f e2) sces))
+      | Block es -> m exp (Block (List.map f es))
+      | Script (str, es) -> 
+        {exp with exp_stx = Script (str, List.map f es); exp_annot = add_codename exp main_fun_id}
+  
 
-
-let rec get_all_functions_with_env env e : (function_id * exp * ctx_variables list) list =
+let rec get_all_functions_with_env env e : (exp * ctx_variables list) list =
   let f = get_all_functions_with_env env in 
   let fo e =
     begin match e with
@@ -134,11 +196,9 @@ let rec get_all_functions_with_env env e : (function_id * exp * ctx_variables li
       | Some e -> f e
     end
   in
-  let make_result fid e fb args env =
-    let new_env = make_env env fb args fid in
-    (* I use codename for now. It may be that I want a new annotation for function identifier. *)
-    let new_annots = update_annotation e.exp_annot Codename fid in
-    (fid, {e with exp_annot = new_annots}, new_env) :: (get_all_functions_with_env new_env fb) in
+  let make_result e fb args env =
+    let new_env = make_env env fb args (get_codename e) in
+    (e, new_env) :: (get_all_functions_with_env new_env fb) in
   begin match e.exp_stx with
       (* Literals *)
       | Num _ 
@@ -167,8 +227,8 @@ let rec get_all_functions_with_env env e : (function_id * exp * ctx_variables li
       | With (e1, e2) -> (f e1) @ (f e2)
       | Call (e1, e2s)
       | New (e1, e2s) -> f e1 @ (flat_map f e2s)
-      | AnnonymousFun (_, args, fb) -> make_result (fresh_annonymous ()) e fb args env
-      | NamedFun (_, name, args, fb) -> make_result (fresh_named name) e fb args env
+      | AnnonymousFun (_, args, fb) -> make_result e fb args env
+      | NamedFun (_, name, args, fb) -> make_result e fb args env
       | Obj xs -> flat_map (fun (_, _, e) -> f e) xs
       | Array es -> flat_map fo es
       | ConditionalOp (e1, e2, e3) 
@@ -188,5 +248,5 @@ let rec get_all_functions_with_env env e : (function_id * exp * ctx_variables li
         @ (f e2))) sces
       | Block es -> flat_map f es
       | Script (_, es) -> let new_env = make_env env e [] main_fun_id in
-        (main_fun_id, e, new_env) :: (flat_map (get_all_functions_with_env new_env) es) 
+        (e, new_env) :: (flat_map (get_all_functions_with_env new_env) es)
    end

@@ -16,10 +16,18 @@ let fresh_variable =
 let fresh_r () : variable =
   fresh_variable "r"
   
+type field = string
+  
 let rthis : variable = "rthis"
 let rempty : variable = "rempty" (* Using this variable temporarily since logic at the moment does not have value "empty"*)
 let rscope : variable = "rscope"
 let unknownscope : variable = "unknownscope"
+
+let field_fid : field = "#fid"
+let field_scope : field = "#scope"
+
+let function_scope_name fid =
+  fid^"_scope"
 
 let end_label : label = "theend"
 
@@ -330,8 +338,19 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
         mk_etf_return (stmts @ [Assignment empty]) empty.assign_left
       | Parser_syntax.AnnonymousFun (_, vs, e) ->
         let fid = get_codename exp in
-        (*Create closure*)
-        raise (Invalid_argument "todo")
+        let f_obj = mk_assign_fresh Obj in
+        let scope = mk_assign_fresh Obj in
+        let env_stmts = Utils.flat_map (fun env -> 
+          let env_scope = function_scope_name env.func_id in
+          let ref_assign = mk_assign_fresh (Ref (mk_ref scope.assign_left env.func_id MemberReference)) in 
+          [Assignment ref_assign; Mutation (mk_mutation ref_assign.assign_left env_scope)]
+          ) ctx.env_vars in
+        let f_codename_ref = mk_assign_fresh (Ref (mk_ref f_obj.assign_left field_fid MemberReference)) in
+        let f_codename_update = Mutation (mk_mutation f_codename_ref.assign_left fid) in
+        let f_scope_ref = mk_assign_fresh (Ref (mk_ref f_obj.assign_left field_scope MemberReference)) in
+        let f_scope_update = Mutation (mk_mutation f_scope_ref.assign_left scope.assign_left) in
+        let f_assign = mk_assign_fresh_lit (String fid) in
+        mk_etf_return ([Assignment f_obj; Assignment scope] @ env_stmts @ [Assignment f_codename_ref; f_codename_update; Assignment f_scope_ref; f_scope_update; Assignment f_assign]) f_assign.assign_left      
       | Parser_syntax.CAccess _ (* (e1, e2) *)
       | Parser_syntax.Return _ (*e*)
       | Parser_syntax.Call _ (*(e1, e2s)*)
@@ -368,14 +387,14 @@ let translate_function fb fid args env =
     | current :: others -> others
     | [] -> raise (Invalid_argument "Should be a function environment here") in
   let init_e = List.map (fun env -> 
-     Assignment (mk_assign (env.func_id^"_scope") (Ref (mk_ref rscope env.func_id MemberReference))) 
+     Assignment (mk_assign (function_scope_name env.func_id) (Ref (mk_ref rscope env.func_id MemberReference))) 
   ) other_env in
-  let current_scope_var = fid^"_scope" in
+  let current_scope_var = function_scope_name fid in
   let current_scope = Assignment (mk_assign current_scope_var Obj) in
-  let init_vars = List.map (fun v ->
+  let init_vars = Utils.flat_map (fun v ->
       let ref_assign = mk_assign_fresh (Ref (mk_ref current_scope_var v MemberReference)) in 
       let v_assign = mk_assign_fresh_lit (String v) in
-      Mutation (mk_mutation ref_assign.assign_left v_assign.assign_left)
+      [Assignment ref_assign; Assignment v_assign; Mutation (mk_mutation ref_assign.assign_left v_assign.assign_left)]
     ) args in
   (* Assign undefined to var declarations *)
   (* TODO : Fix the case when we already have formal parameter with the same name *)
@@ -396,9 +415,11 @@ let translate_function_syntax id e env =
 
 let exp_to_pulp e =
   let context = AllFunctions.empty in
+  let e = add_codenames e in
   let all_functions = get_all_functions_with_env [] e in
     
-  let context = List.fold_left (fun c (fid, fexpr, fenv) -> 
+  let context = List.fold_left (fun c (fexpr, fenv) -> 
+    let fid = get_codename fexpr in
     let fb = translate_function_syntax fid fexpr fenv in
     AllFunctions.add fid fb c
    ) context all_functions in

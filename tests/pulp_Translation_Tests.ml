@@ -30,16 +30,23 @@ let test_fun_env () =
   Parser_main.verbose := true;
   let exp = Parser_main.exp_from_string "var x = 1; var f = function (g) {var z = 1; var c = function (d) {}}; var g = function z () {var x, a, b; }" in
   let _ = Printf.printf "%s \n" (Pretty_print.string_of_exp_syntax exp.Parser_syntax.exp_stx) in
+  let exp = add_codenames exp in
+  let _ = Printf.printf "Added codenames %s \n" (Pretty_print.string_of_exp true exp) in
   let all_functions = get_all_functions_with_env [] exp in
-  let _ = List.iter (fun (fid, fexp, fenv) -> Printf.printf "Function id %s \n Function expression %s \n\n Function environment %s \n\n\n\n" 
+  let _ = List.iter (fun (fexp, fenv) -> 
+  let fid = get_codename fexp in
+  Printf.printf "Function id %s \n Function expression %s \n\n Function environment %s \n\n\n\n" 
      fid
-     (Pretty_print.string_of_exp_syntax fexp.Parser_syntax.exp_stx)
+     (Pretty_print.string_of_exp true fexp)
      (String.concat ";" (List.map Pulp_Syntax_Print.string_of_ctx_vars fenv)))
   all_functions in
   assert_bool "Incorrect Translation" true
   
 let test_var_decl () = 
   test_template ("var x,y = 5; x.y")
+  
+let test_fun_def () =
+  test_template ("var x = 1; var f = function (g) {var z = 1; x = 3; g = 4; var c = function (d) {}}; var g = function () {var x, a, b; }")
 
 
 let suite = "Testing Translation" >:::
@@ -48,4 +55,5 @@ let suite = "Testing Translation" >:::
    "translating obj literal" >:: test_obj;
    "translating block" >:: test_block;
    "testing function environments" >:: test_fun_env;
-   "testing var declarations" >:: test_var_decl] 
+   "testing var declarations" >:: test_var_decl;
+   "testing function definition" >:: test_fun_def] 
