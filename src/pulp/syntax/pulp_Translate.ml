@@ -350,10 +350,10 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
         let f_scope_ref = mk_assign_fresh (Ref (mk_ref f_obj.assign_left field_scope MemberReference)) in
         let f_scope_update = Mutation (mk_mutation f_scope_ref.assign_left scope.assign_left) in
         let f_assign = mk_assign_fresh_lit (String fid) in
-        mk_etf_return ([Assignment f_obj; Assignment scope] @ env_stmts @ [Assignment f_codename_ref; f_codename_update; Assignment f_scope_ref; f_scope_update; Assignment f_assign]) f_assign.assign_left      
+        mk_etf_return ([Assignment f_obj; Assignment scope] @ env_stmts @ [Assignment f_codename_ref; f_codename_update; Assignment f_scope_ref; f_scope_update; Assignment f_assign]) f_assign.assign_left  
+      | Parser_syntax.Call _ (*(e1, e2s)*)    
       | Parser_syntax.CAccess _ (* (e1, e2) *)
       | Parser_syntax.Return _ (*e*)
-      | Parser_syntax.Call _ (*(e1, e2s)*)
       | Parser_syntax.New _ (*(e1, e2s)*)
       | Parser_syntax.BinOp _ (*(e1, op, e2)*) 
       | Parser_syntax.If _ (*(e1, e2, e3)*)
@@ -393,8 +393,7 @@ let translate_function fb fid args env =
   let current_scope = Assignment (mk_assign current_scope_var Obj) in
   let init_vars = Utils.flat_map (fun v ->
       let ref_assign = mk_assign_fresh (Ref (mk_ref current_scope_var v MemberReference)) in 
-      let v_assign = mk_assign_fresh (Var v) in
-      [Assignment ref_assign; Assignment v_assign; Mutation (mk_mutation ref_assign.assign_left v_assign.assign_left)]
+      [Assignment ref_assign; Mutation (mk_mutation ref_assign.assign_left v)]
     ) args in
   (* Assign undefined to var declarations *)
   (* TODO : Fix the case when we already have formal parameter with the same name *)
