@@ -49,7 +49,7 @@ let string_of_builtin_function bf =
     | ObjCoercible x -> Printf.sprintf "ObjCoercible ( %s )" x
 
 let string_of_call c =
-  Printf.sprintf "\"%s (@this %s, %s) \"" c.call_name c.call_this (string_of_vars c.call_args)
+  Printf.sprintf "\"%s (%s, %s, %s) \"" c.call_name c.call_this c.call_scope (string_of_vars c.call_args)
   
 let string_of_ref_type rt =
   match rt with
@@ -76,6 +76,8 @@ let string_of_expression e =
     | Var v -> s v
     | BinOp (v1, op, v2) -> Printf.sprintf "%s %s %s" (s v1) (string_of_bin_op op) (s v2)
     | Ref r -> string_of_reference r
+    | Field v -> Printf.sprintf "field (%s)" (s v)
+    | Base v -> Printf.sprintf "base (%s)" (s v)
     | Lookup v -> Printf.sprintf "[%s]" (s v)
     | Call c -> string_of_call c
     | Fun cn -> Printf.sprintf "function %s" (string_of_codename cn) (* Don't I want formal params here?*) (* I'm confused between function blocks and function expression? *)

@@ -68,9 +68,17 @@ type bin_op =
 
 type call = { 
     call_name : variable;
+    call_scope : variable;
     call_args : variable list;
     call_this : variable;
    }
+  
+let mk_call name scope vthis args = {
+	  call_name = name;
+    call_scope = scope;
+	  call_args = args;
+	  call_this = vthis
+  }
 
 type expression = 
   | Literal of literal
@@ -78,6 +86,8 @@ type expression =
   | Var of variable
   | BinOp of variable * bin_op * variable
   | Ref of reference
+  | Field of variable
+  | Base of variable
   | Lookup of variable 
   | Call of call
   | Fun of codename 

@@ -83,6 +83,10 @@ let undef_ref_pred ref =
 let ref_prim_base_pred ref =
   UDPred ("ref_prim_base", [logic_var ref])
   
+(* type_of_pred (v, t) <=> type_of v = t *)
+let type_of_pred v (t : es_lang_type) =
+  UDPred ("type_of", [logic_var v; logic_string (PrintLogic.string_of_es_lang_type t)])
+  
 (* End of Logic *)
 
 (* Assignment *)
@@ -351,7 +355,43 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
         let f_scope_update = Mutation (mk_mutation f_scope_ref.assign_left scope.assign_left) in
         let f_assign = mk_assign_fresh_lit (String fid) in
         mk_etf_return ([Assignment f_obj; Assignment scope] @ env_stmts @ [Assignment f_codename_ref; f_codename_update; Assignment f_scope_ref; f_scope_update; Assignment f_assign]) f_assign.assign_left  
-      | Parser_syntax.Call _ (*(e1, e2s)*)    
+      | Parser_syntax.Call (e1, e2s) ->
+        let r1 = f e1 in
+        let r2 = mk_assign_fresh (BuiltInFunction(Gamma r1.etf_lvar)) in  
+        let arg_stmts = List.map (fun e ->
+            begin
+              let re1 = f e in
+              let re2 = mk_assign_fresh (BuiltInFunction(Gamma re1.etf_lvar)) in
+              (re2.assign_left, re1.etf_stmts @ [Assignment re2])
+            end
+         ) e2s in  
+        let arg_values, arg_stmts = List.split arg_stmts in
+        let arg_stmts = List.flatten arg_stmts in  
+			  let cond1 = type_of_pred r2.assign_left Logic.LT_Object in
+			  let cond2 = Logic.HeapletEmpty (Logic.LocNum ((AVar r1.etf_lvar)), field_fid) in
+			  let cond12 = Logic.Star [cond1; cond2] in
+			  let gotothrow = translate_error_throw LTError ctx.throw_var ctx.label_throw in
+			  let if1 = Sugar (If (cond12, gotothrow, [])) in
+			  let vthis = fresh_variable "r" in
+			  let cond3 = not_a_ref_pred r1.etf_lvar in
+			  let assign_vthis_und = Assignment (mk_assign vthis (Literal Undefined)) in
+			  let if2 = Sugar (If (cond3, [assign_vthis_und], [])) in
+			  let cond4 = ref_type_pred r1.etf_lvar VariableReference in
+			  let if3 = Sugar (If (cond4, [assign_vthis_und], [])) in
+			  let cond5 = ref_type_pred r1.etf_lvar MemberReference in
+			  let base_assign = mk_assign_fresh (Base r1.etf_lvar) in
+			  let assign_vthis_base = Assignment (mk_assign vthis (Var base_assign.assign_left)) in
+			  let if4 = Sugar (If (cond5, [Assignment base_assign; assign_vthis_base], [])) in
+			  (*TODO Eval*)
+			  let cond6 = Logic.NEq (logic_var r2.assign_left, lb_le (Lb_Loc LEval)) in
+        let fid_ref = mk_assign_fresh (Ref (mk_ref r2.assign_left field_fid MemberReference)) in
+        let fid = mk_assign_fresh (Lookup fid_ref.assign_left) in
+        let scope_ref = mk_assign_fresh (Ref (mk_ref r2.assign_left field_scope MemberReference)) in
+        let fscope = mk_assign_fresh (Lookup scope_ref.assign_left) in
+			  let call = mk_assign_fresh (Call (mk_call fid.assign_left fscope.assign_left vthis arg_values)) in
+			  let if5 = Sugar (If (cond6, [Assignment fid_ref; Assignment fid; Assignment scope_ref; Assignment fscope; Assignment call], [])) in
+			  mk_etf_return (r1.etf_stmts @ [Assignment r2] @ arg_stmts @ [if1; if2; if3; if4; if5]) call.assign_left
+        
       | Parser_syntax.CAccess _ (* (e1, e2) *)
       | Parser_syntax.Return _ (*e*)
       | Parser_syntax.New _ (*(e1, e2s)*)
