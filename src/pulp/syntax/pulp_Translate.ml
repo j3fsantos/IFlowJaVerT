@@ -31,7 +31,7 @@ let function_scope_name fid =
 
 let end_label : label = "theend"
 
-(* Logic *)
+(* Logic -- merge with existing logic or have a new one?? *)
 type builtin_loc = 
   | LRError (* Reference Error *)
   | LTError (* Type Error *)
@@ -187,15 +187,19 @@ let create_ctx env =
      label_throw = "throw." ^ fresh_r ();
   }
   
+let add_proto obj proto =
+  let r1 = mk_assign_fresh_lit (String (string_of_builtin_field Proto)) in
+  let r2 = mk_assign_fresh proto in
+  let r3 = mk_assign_fresh (Ref (mk_ref obj r1.assign_left MemberReference)) in
+  let r4 = Mutation (mk_mutation r3.assign_left r2.assign_left) in
+  [Assignment r1; Assignment r2; Assignment r3; r4]
+  
 let translate_error_throw error throw_var throw_label =
   let r1 = mk_assign_fresh Obj in
-  let r2 = mk_assign_fresh_lit (String (string_of_builtin_field Proto)) in
-  let r3 = mk_assign_fresh_lit (String (string_of_builtin_loc error)) in
-  let r4 = mk_assign_fresh (Ref (mk_ref r1.assign_left r2.assign_left MemberReference)) in
-  let r5 = Mutation (mk_mutation r4.assign_left r3.assign_left) in
-  let r6 = mk_assign throw_var (Var r1.assign_left) in
-  let r7 = Goto [throw_label] in
-  [Assignment r1; Assignment r2; Assignment r3; Assignment r4; r5; Assignment r6; r7]
+  let proto_stmts = add_proto r1.assign_left (Var (string_of_builtin_loc error)) in
+  let r2 = mk_assign throw_var (Var r1.assign_left) in
+  let r3 = Goto [throw_label] in
+  [Assignment r1] @ proto_stmts @ [Assignment r2; r3]
   
 let translate_put_value v1 v2 throw_var throw_label =
   let cond1 = not_a_ref_pred v1 in
@@ -294,6 +298,7 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
       | Parser_syntax.Obj xs ->
         begin
           let r1 = mk_assign_fresh Obj in
+          let proto_stmts = add_proto r1.assign_left (Var (PrintLogic.string_of_loc Logic.Lop)) in
           let stmts = List.map (fun (prop_name, prop_type, e) ->
             match prop_type with
               | Parser_syntax.PropbodyVal ->
@@ -308,7 +313,7 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
               | _ -> raise (PulpNotImplemented ("Getters and Setters are not yet implemented"))
             ) xs in
           let r6 = mk_assign_fresh (Var r1.assign_left) in
-          mk_etf_return (Assignment r1 :: (List.flatten stmts)) r6.assign_left 
+          mk_etf_return ([Assignment r1] @ proto_stmts @ (List.flatten stmts)) r6.assign_left 
         end
       | Parser_syntax.Assign (e1, e2) ->
         begin
@@ -343,7 +348,9 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
       | Parser_syntax.AnnonymousFun (_, vs, e) ->
         let fid = get_codename exp in
         let f_obj = mk_assign_fresh Obj in
+        let f_obj_proto_stmts = add_proto f_obj.assign_left (Var (PrintLogic.string_of_loc Lfp)) in
         let scope = mk_assign_fresh Obj in
+        let scope_proto_stmts = add_proto scope.assign_left (Literal Null) in
         let env_stmts = Utils.flat_map (fun env -> 
           let env_scope = function_scope_name env.func_id in
           let ref_assign = mk_assign_fresh (Ref (mk_ref scope.assign_left env.func_id MemberReference)) in 
@@ -354,7 +361,9 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
         let f_scope_ref = mk_assign_fresh (Ref (mk_ref f_obj.assign_left field_scope MemberReference)) in
         let f_scope_update = Mutation (mk_mutation f_scope_ref.assign_left scope.assign_left) in
         let f_assign = mk_assign_fresh_lit (String fid) in
-        mk_etf_return ([Assignment f_obj; Assignment scope] @ env_stmts @ [Assignment f_codename_ref; f_codename_update; Assignment f_scope_ref; f_scope_update; Assignment f_assign]) f_assign.assign_left  
+        mk_etf_return ([Assignment f_obj] @ f_obj_proto_stmts @ [Assignment scope] @ scope_proto_stmts
+                       @ env_stmts @ [Assignment f_codename_ref; f_codename_update; 
+                       Assignment f_scope_ref; f_scope_update; Assignment f_assign]) f_assign.assign_left  
       | Parser_syntax.Call (e1, e2s) ->
         let r1 = f e1 in
         let r2 = mk_assign_fresh (BuiltInFunction(Gamma r1.etf_lvar)) in  
@@ -431,18 +440,21 @@ let translate_function fb fid args env =
   ) other_env in
   let current_scope_var = function_scope_name fid in
   let current_scope = Assignment (mk_assign current_scope_var Obj) in
+  let proto_stmts = add_proto current_scope_var (Literal Null) in
   let init_vars = Utils.flat_map (fun v ->
-      let ref_assign = mk_assign_fresh (Ref (mk_ref current_scope_var v MemberReference)) in 
-      [Assignment ref_assign; Mutation (mk_mutation ref_assign.assign_left v)]
+      let v_assign = mk_assign_fresh_lit (String v) in
+      let ref_assign = mk_assign_fresh (Ref (mk_ref current_scope_var v_assign.assign_left MemberReference)) in 
+      [Assignment v_assign; Assignment ref_assign; Mutation (mk_mutation ref_assign.assign_left v)]
     ) args in
   (* Assign undefined to var declarations *)
   (* TODO : Fix the case when we already have formal parameter with the same name *)
   let decl_vars = Utils.flat_map (fun v ->
-      let ref_assign = mk_assign_fresh (Ref (mk_ref current_scope_var v MemberReference)) in 
+      let v_assign = mk_assign_fresh_lit (String v) in
+      let ref_assign = mk_assign_fresh (Ref (mk_ref current_scope_var v_assign.assign_left MemberReference)) in 
       let und_assign = mk_assign_fresh_lit Undefined in
-      [Assignment ref_assign; Assignment und_assign; Mutation (mk_mutation ref_assign.assign_left und_assign.assign_left)]
+      [Assignment v_assign; Assignment ref_assign; Assignment und_assign; Mutation (mk_mutation ref_assign.assign_left und_assign.assign_left)]
     ) (var_decls fb) in
-  let pulpe = init_e @ [current_scope] @ init_vars @ decl_vars @ (exp_to_fb ctx fb).etf_stmts in
+  let pulpe = init_e @ [current_scope] @ proto_stmts @ init_vars @ decl_vars @ (exp_to_fb ctx fb).etf_stmts in
   make_fun_with_ctx env (make_function_block fid pulpe (rthis :: (rscope :: args)) ctx.return_var ctx.throw_var)
 
 let translate_function_syntax id e env =
