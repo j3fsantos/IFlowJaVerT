@@ -265,7 +265,7 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
         end
       | Parser_syntax.Var v -> 
         begin 
-          let scope = find_var_scope v ctx.env_vars in
+          let scope = function_scope_name (find_var_scope v ctx.env_vars) in
           let var = mk_assign_fresh_lit (String v) in
           let ref_assign = mk_assign_fresh (Ref (mk_ref scope var.assign_left VariableReference)) in
           mk_result [Assignment var; Assignment ref_assign] ref_assign.assign_left         
