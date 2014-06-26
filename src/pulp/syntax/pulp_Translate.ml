@@ -360,7 +360,7 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
         let f_codename_update = Mutation (mk_mutation f_codename_ref.assign_left fid) in
         let f_scope_ref = mk_assign_fresh (Ref (mk_ref f_obj.assign_left field_scope MemberReference)) in
         let f_scope_update = Mutation (mk_mutation f_scope_ref.assign_left scope.assign_left) in
-        let f_assign = mk_assign_fresh_lit (String fid) in
+        let f_assign = mk_assign_fresh (Var f_obj.assign_left) in
         mk_etf_return ([Assignment f_obj] @ f_obj_proto_stmts @ [Assignment scope] @ scope_proto_stmts
                        @ env_stmts @ [Assignment f_codename_ref; f_codename_update; 
                        Assignment f_scope_ref; f_scope_update; Assignment f_assign]) f_assign.assign_left  
@@ -377,7 +377,7 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
         let arg_values, arg_stmts = List.split arg_stmts in
         let arg_stmts = List.flatten arg_stmts in  
 			  let cond1 = type_of_pred r2.assign_left Logic.LT_Object in
-			  let cond2 = Logic.HeapletEmpty (Logic.LocNum ((AVar r1.etf_lvar)), field_fid) in
+			  let cond2 = Logic.HeapletEmpty (Logic.LocNum ((AVar r2.assign_left)), field_fid) in
 			  let cond12 = Logic.Star [cond1; cond2] in
 			  let gotothrow = translate_error_throw LTError ctx.throw_var ctx.label_throw in
 			  let if1 = Sugar (If (cond12, gotothrow, [])) in
@@ -443,14 +443,14 @@ let translate_function fb fid args env =
   let proto_stmts = add_proto current_scope_var (Literal Null) in
   let init_vars = Utils.flat_map (fun v ->
       let v_assign = mk_assign_fresh_lit (String v) in
-      let ref_assign = mk_assign_fresh (Ref (mk_ref current_scope_var v_assign.assign_left MemberReference)) in 
+      let ref_assign = mk_assign_fresh (Ref (mk_ref current_scope_var v_assign.assign_left VariableReference)) in 
       [Assignment v_assign; Assignment ref_assign; Mutation (mk_mutation ref_assign.assign_left v)]
     ) args in
   (* Assign undefined to var declarations *)
   (* TODO : Fix the case when we already have formal parameter with the same name *)
   let decl_vars = Utils.flat_map (fun v ->
       let v_assign = mk_assign_fresh_lit (String v) in
-      let ref_assign = mk_assign_fresh (Ref (mk_ref current_scope_var v_assign.assign_left MemberReference)) in 
+      let ref_assign = mk_assign_fresh (Ref (mk_ref current_scope_var v_assign.assign_left VariableReference)) in 
       let und_assign = mk_assign_fresh_lit Undefined in
       [Assignment v_assign; Assignment ref_assign; Assignment und_assign; Mutation (mk_mutation ref_assign.assign_left und_assign.assign_left)]
     ) (var_decls fb) in

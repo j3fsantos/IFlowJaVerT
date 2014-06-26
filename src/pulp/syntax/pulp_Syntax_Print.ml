@@ -49,7 +49,7 @@ let string_of_builtin_function bf =
     | ObjCoercible x -> Printf.sprintf "ObjCoercible ( %s )" x
 
 let string_of_call c =
-  Printf.sprintf "\"%s (%s, %s, %s) \"" c.call_name c.call_this c.call_scope (string_of_vars c.call_args)
+  Printf.sprintf "%s (%s, %s, %s)" c.call_name c.call_this c.call_scope (string_of_vars c.call_args)
   
 let string_of_ref_type rt =
   match rt with
