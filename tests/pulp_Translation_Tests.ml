@@ -57,6 +57,9 @@ let test_new () =
 let test_caccess () =
   test_template ("x[y]")
   
+let test_delete () =
+  test_template ("delete x")
+  
 let test_popl12_example () =
   test_template ("var x = null, y = null, z = null; var f = function(w){x = v; v = 4; var v; y = v;}; v = 5; f(null); z = v;")
 
@@ -72,4 +75,5 @@ let suite = "Testing Translation" >:::
    "translating function call" >:: test_call;
    "translating new" >:: test_new;
    "translating computed access" >:: test_caccess;
+   "translating delete" >:: test_delete;
    "translating popl12 example" >:: test_popl12_example] 

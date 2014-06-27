@@ -447,11 +447,32 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
         let assign_rv_f = Assignment (mk_assign rv (Var vthis.assign_left)) in
         let if4 = Sugar (If (cond2, [assign_rv_t], [assign_rv_f])) in      
         mk_etf_return (stmts @ [Assignment prototype_ref; Assignment prototype; if2; Assignment vthis] @ proto_stmts @ [if3; if4]) rv
+      | Parser_syntax.Delete e ->
+        let r1 = f e in
+        let cond1 = not_a_ref_pred r1.etf_lvar in
+        let rv = fresh_variable "r" in
+        let assign_rv_true = mk_assign rv (Literal (Bool true)) in
+        let if_not_ref = Sugar (If (cond1, [Assignment assign_rv_true], [])) in
+        let cond2 = undef_ref_pred r1.etf_lvar in
+        let gotothrow = translate_error_throw LSError ctx.throw_var ctx.label_throw in
+        let if_undef_ref = Sugar (If (cond2, gotothrow, [])) in
+        let cond3 = ref_type_pred r1.etf_lvar VariableReference in
+        let if_variable_ref = Sugar (If (cond3, gotothrow, [])) in
+        let r2 = mk_assign_fresh (HasField r1.etf_lvar) in
+        let r3 = mk_assign_fresh (Field r1.etf_lvar) in
+        let r4 = mk_assign_fresh (Base r1.etf_lvar) in
+        let prototype_ref = mk_assign_fresh (Ref (mk_ref r4.assign_left (string_of_builtin_field FId) MemberReference)) in
+        let r5 = mk_assign_fresh (HasField prototype_ref.assign_left) in
+        let cond4 = Logic.Eq (logic_var r2.assign_left, logic_bool false) in
+        let cond5 = Logic.Star [Logic.Eq (logic_var r3.assign_left, logic_string (string_of_builtin_field FPrototype)); Logic.Eq (logic_var r5.assign_left, logic_bool true)] in
+        let gotothrow_type = translate_error_throw LTError ctx.throw_var ctx.label_throw in
+        let elsebranch = Sugar (If (cond5, gotothrow_type, [Assignment assign_rv_true])) in
+        let if1 = Sugar (If (cond4, [Assignment assign_rv_true], [elsebranch])) in
+        mk_etf_return (r1.etf_stmts @ [if_not_ref; if_undef_ref; if_variable_ref; Assignment r2; Assignment r3; Assignment r4; Assignment prototype_ref; Assignment r5; if1]) rv
       | Parser_syntax.Return _ (*e*)
       | Parser_syntax.BinOp _ (*(e1, op, e2)*) 
       | Parser_syntax.If _ (*(e1, e2, e3)*)
       | Parser_syntax.While _ (*(e1, e2)*)
-      | Parser_syntax.Delete _ (*e*)
 
       | Parser_syntax.NamedFun _ (*(_, n, vs, e)*)
 
