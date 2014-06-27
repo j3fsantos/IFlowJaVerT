@@ -69,6 +69,12 @@ let test_bin_op_and () =
 let test_bin_op_or () =
   test_template ("y || z")
   
+let test_if () =
+  test_template ("if (x == true) {x = 1} else {x = 2; y = 2}")
+  
+let test_if_no_else () =
+  test_template ("if (x == true) {x = 1}")
+  
 let test_popl12_example () =
   test_template ("var x = null, y = null, z = null; var f = function(w){x = v; v = 4; var v; y = v;}; v = 5; f(null); z = v;")
 
@@ -88,4 +94,6 @@ let suite = "Testing Translation" >:::
    "translating regular binary op" >:: test_bin_op_regular;
    "translating and" >:: test_bin_op_and;
    "translating or" >:: test_bin_op_or; 
+   "translating if" >:: test_if;
+   "translating if without else" >:: test_if_no_else;
    "translating popl12 example" >:: test_popl12_example] 

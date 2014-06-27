@@ -517,8 +517,24 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
               | Parser_syntax.Or -> translate_bin_op_logical f e1 e2 bop
             end
         end
+      | Parser_syntax.If (e1, e2, e3) ->
+        let r1 = f e1 in
+        let r2 = mk_assign_fresh (BuiltInFunction(Gamma r1.etf_lvar)) in
+        let condTrue = Logic.IsTrue (logic_var r2.assign_left) in
+        let r3 = f e2 in
+        let rv = fresh_variable "r" in
+        let assign_rv_r3 = Assignment (mk_assign rv (Var r3.etf_lvar)) in
+        let ifTrue = Sugar (If (condTrue, r3.etf_stmts @ [assign_rv_r3], [])) in
+        let condFalse = Logic.IsFalse (logic_var r2.assign_left) in
+        let elsebranch = match e3 with
+          | Some e3 -> 
+            let r4 = f e3 in
+            let assign_rv_r4 = Assignment (mk_assign rv (Var r4.etf_lvar)) in
+            let ifFalse = Sugar (If (condFalse, r4.etf_stmts @ [assign_rv_r4], [])) in
+            [ifFalse]
+          | None -> [] in        
+        mk_etf_return (r1.etf_stmts @ [Assignment r2; ifTrue] @ elsebranch) rv
       | Parser_syntax.Return _ (*e*)
-      | Parser_syntax.If _ (*(e1, e2, e3)*)
       | Parser_syntax.While _ (*(e1, e2)*)
 
       | Parser_syntax.NamedFun _ (*(_, n, vs, e)*)
