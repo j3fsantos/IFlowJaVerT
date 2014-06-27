@@ -421,6 +421,10 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
         let fid = get_codename exp in
         let f_obj = mk_assign_fresh Obj in
         let f_obj_proto_stmts = add_proto f_obj.assign_left (Var (PrintLogic.string_of_loc Lfp)) in
+        let prototype = mk_assign_fresh Obj in
+        let prototype_proto_stmts = add_proto prototype.assign_left (Var (PrintLogic.string_of_loc Lop)) in
+        let f_prototype_ref = mk_assign_fresh (Ref (mk_ref f_obj.assign_left (string_of_builtin_field FPrototype) MemberReference)) in
+        let f_prototype_update = Mutation (mk_mutation f_prototype_ref.assign_left prototype.assign_left) in
         let scope = mk_assign_fresh Obj in
         let scope_proto_stmts = add_proto scope.assign_left (Literal Null) in
         let env_stmts = Utils.flat_map (fun env -> 
@@ -433,7 +437,8 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
         let f_scope_ref = mk_assign_fresh (Ref (mk_ref f_obj.assign_left (string_of_builtin_field FScope) MemberReference)) in
         let f_scope_update = Mutation (mk_mutation f_scope_ref.assign_left scope.assign_left) in
         let f_assign = mk_assign_fresh (Var f_obj.assign_left) in
-        mk_etf_return ([Assignment f_obj] @ f_obj_proto_stmts @ [Assignment scope] @ scope_proto_stmts
+        mk_etf_return ([Assignment f_obj] @ f_obj_proto_stmts @ [Assignment prototype] @ prototype_proto_stmts @ 
+                       [Assignment f_prototype_ref; f_prototype_update] @ [Assignment scope] @ scope_proto_stmts
                        @ env_stmts @ [Assignment f_codename_ref; f_codename_update; 
                        Assignment f_scope_ref; f_scope_update; Assignment f_assign]) f_assign.assign_left  
       | Parser_syntax.Call (e1, e2s) ->
@@ -546,8 +551,13 @@ let translate_function fb fid args env =
      Assignment (mk_assign (function_scope_name env.func_id) (Ref (mk_ref rscope env.func_id MemberReference))) 
   ) other_env in
   let current_scope_var = function_scope_name fid in
-  let current_scope = Assignment (mk_assign current_scope_var Obj) in
-  let proto_stmts = add_proto current_scope_var (Literal Null) in
+  let current_scope, proto_stmts = 
+    if (fid = main_fun_id) then
+      (Assignment (mk_assign current_scope_var (Var (PrintLogic.string_of_loc Logic.Lg))),
+       add_proto current_scope_var (Var (PrintLogic.string_of_loc Logic.Lop)))
+  else 
+       (Assignment (mk_assign current_scope_var Obj),
+        add_proto current_scope_var (Literal Null)) in
   let init_vars = Utils.flat_map (fun v ->
       let v_assign = mk_assign_fresh_lit (String v) in
       let ref_assign = mk_assign_fresh (Ref (mk_ref current_scope_var v_assign.assign_left VariableReference)) in 

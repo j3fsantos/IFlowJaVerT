@@ -87,6 +87,5 @@ let suite = "Testing Translation" >:::
    "translating delete" >:: test_delete;
    "translating regular binary op" >:: test_bin_op_regular;
    "translating and" >:: test_bin_op_and;
-   "translating or" >:: test_bin_op_or;
-  
+   "translating or" >:: test_bin_op_or; 
    "translating popl12 example" >:: test_popl12_example] 
