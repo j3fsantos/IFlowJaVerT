@@ -255,6 +255,28 @@ let translate_call r2 vthis arg_values =
 		let call = mk_assign_fresh (Call (mk_call fid.assign_left fscope.assign_left vthis arg_values)) in
 		let if5 = Sugar (If (cond6, [Assignment fid_ref; Assignment fid; Assignment scope_ref; Assignment fscope; Assignment call], [])) in
     (if5, call)
+    
+let translate_regular_bin_op f op e1 e2 =
+  let r1 = f e1 in
+  let r2 = mk_assign_fresh (BuiltInFunction(Gamma r1.etf_lvar)) in
+  let r3 = f e2 in
+  let r4 = mk_assign_fresh (BuiltInFunction(Gamma r3.etf_lvar)) in
+  let r5 = mk_assign_fresh (BinOp (r2.assign_left, tr_bin_op op, r4.assign_left)) in
+  mk_etf_return (r1.etf_stmts @ [Assignment r2] @ r3.etf_stmts @ [Assignment r4; Assignment r5]) r5.assign_left
+  
+let translate_bin_op_logical f e1 e2 bop =
+  let op = tr_boolean_op bop in
+  let r1 = f e1 in
+  let r2 = mk_assign_fresh (BuiltInFunction(Gamma r1.etf_lvar)) in
+  let cond = if (op = And) then Logic.IsFalse (logic_var r2.assign_left) else Logic.IsTrue (logic_var r2.assign_left) in
+  let rv = fresh_variable "r" in
+  let assign_rv_r2 = Assignment (mk_assign rv (Var r2.assign_left)) in
+  let r3 = f e2 in
+  let r4 = mk_assign_fresh (BuiltInFunction(Gamma r3.etf_lvar)) in
+  let assign_rv_op = mk_assign rv (BinOp (r2.assign_left, Boolean op, r4.assign_left)) in
+  let if1 = Sugar (If (cond, [assign_rv_r2], (r3.etf_stmts) @ [Assignment r4; Assignment assign_rv_op])) in
+  mk_etf_return (r1.etf_stmts @ [Assignment r2] @ [if1]) rv
+ 
   
 let join_etf_results (results : expr_to_fb_return list) : expr_to_fb_return =
   if List.length results = 0 then raise (Invalid_argument "A list argument for the join_etf_results function should not be empty")
@@ -469,8 +491,28 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
         let elsebranch = Sugar (If (cond5, gotothrow_type, [Assignment assign_rv_true])) in
         let if1 = Sugar (If (cond4, [Assignment assign_rv_true], [elsebranch])) in
         mk_etf_return (r1.etf_stmts @ [if_not_ref; if_undef_ref; if_variable_ref; Assignment r2; Assignment r3; Assignment r4; Assignment prototype_ref; Assignment r5; if1]) rv
+      | Parser_syntax.BinOp (e1, op, e2) ->
+        begin match op with
+          | Parser_syntax.Comparison cop ->
+            begin match cop with
+              | Parser_syntax.Equal -> translate_regular_bin_op f op e1 e2
+              | _ -> raise (PulpNotImplemented (Pretty_print.string_of_exp true exp))
+            end
+          | Parser_syntax.Arith aop -> 
+            begin match aop with
+              | Parser_syntax.Plus
+						  | Parser_syntax.Minus
+						  | Parser_syntax.Times
+						  | Parser_syntax.Div -> translate_regular_bin_op f op e1 e2
+						  | _ -> raise (PulpNotImplemented (Pretty_print.string_of_exp true exp))
+            end
+          | Parser_syntax.Boolean bop -> 
+            begin match bop with
+              | Parser_syntax.And -> translate_bin_op_logical f e1 e2 bop
+              | Parser_syntax.Or -> translate_bin_op_logical f e1 e2 bop
+            end
+        end
       | Parser_syntax.Return _ (*e*)
-      | Parser_syntax.BinOp _ (*(e1, op, e2)*) 
       | Parser_syntax.If _ (*(e1, e2, e3)*)
       | Parser_syntax.While _ (*(e1, e2)*)
 

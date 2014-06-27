@@ -60,6 +60,15 @@ let test_caccess () =
 let test_delete () =
   test_template ("delete x")
   
+let test_bin_op_regular () =
+  test_template ("y + z")
+  
+let test_bin_op_and () =
+  test_template ("y && z")
+  
+let test_bin_op_or () =
+  test_template ("y || z")
+  
 let test_popl12_example () =
   test_template ("var x = null, y = null, z = null; var f = function(w){x = v; v = 4; var v; y = v;}; v = 5; f(null); z = v;")
 
@@ -76,4 +85,8 @@ let suite = "Testing Translation" >:::
    "translating new" >:: test_new;
    "translating computed access" >:: test_caccess;
    "translating delete" >:: test_delete;
+   "translating regular binary op" >:: test_bin_op_regular;
+   "translating and" >:: test_bin_op_and;
+   "translating or" >:: test_bin_op_or;
+  
    "translating popl12 example" >:: test_popl12_example] 
