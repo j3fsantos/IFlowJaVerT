@@ -321,6 +321,14 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
           let r5 = mk_assign_fresh (Ref(mk_ref r2.assign_left r3.assign_left MemberReference)) in
           mk_etf_return (List.flatten [r1.etf_stmts; [Assignment r2; Assignment r3; Assignment r4; Assignment r5]]) r5.assign_left;
         end
+      | Parser_syntax.CAccess (e1, e2) ->
+          let r1 = f e1 in
+          let r2 = mk_assign_fresh (BuiltInFunction(Gamma r1.etf_lvar)) in
+          let r3 = f e2 in
+          let r4 = mk_assign_fresh (BuiltInFunction(Gamma r3.etf_lvar)) in
+          let r5 = mk_assign_fresh (BuiltInFunction(ObjCoercible r2.assign_left)) in
+          let r6 = mk_assign_fresh (Ref(mk_ref r2.assign_left r4.assign_left MemberReference)) in
+          mk_etf_return (r1.etf_stmts @ [Assignment r2] @ r3.etf_stmts @ [Assignment r4; Assignment r5; Assignment r6]) r6.assign_left;
       | Parser_syntax.Script (_, es)
       | Parser_syntax.Block es ->
         let retv = mk_assign_fresh (Var rempty) in
@@ -439,8 +447,6 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
         let assign_rv_f = Assignment (mk_assign rv (Var vthis.assign_left)) in
         let if4 = Sugar (If (cond2, [assign_rv_t], [assign_rv_f])) in      
         mk_etf_return (stmts @ [Assignment prototype_ref; Assignment prototype; if2; Assignment vthis] @ proto_stmts @ [if3; if4]) rv
-        
-      | Parser_syntax.CAccess _ (* (e1, e2) *)
       | Parser_syntax.Return _ (*e*)
       | Parser_syntax.BinOp _ (*(e1, op, e2)*) 
       | Parser_syntax.If _ (*(e1, e2, e3)*)

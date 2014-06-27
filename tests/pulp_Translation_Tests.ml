@@ -54,6 +54,9 @@ let test_call () =
 let test_new () =
   test_template ("new f (1, \"a\")")
   
+let test_caccess () =
+  test_template ("x[y]")
+  
 let test_popl12_example () =
   test_template ("var x = null, y = null, z = null; var f = function(w){x = v; v = 4; var v; y = v;}; v = 5; f(null); z = v;")
 
@@ -68,4 +71,5 @@ let suite = "Testing Translation" >:::
    "translating function definition" >:: test_fun_def;
    "translating function call" >:: test_call;
    "translating new" >:: test_new;
+   "translating computed access" >:: test_caccess;
    "translating popl12 example" >:: test_popl12_example] 
