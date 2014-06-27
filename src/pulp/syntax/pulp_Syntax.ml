@@ -88,6 +88,7 @@ type expression =
   | Ref of reference
   | Field of variable
   | Base of variable
+  | HasField of variable
   | Lookup of variable 
   | Call of call
   | Fun of codename 

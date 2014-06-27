@@ -55,6 +55,9 @@ let logic_var v =
   
 let logic_string s =
   Logic.pv_le(Logic.Pv_String s)
+  
+let logic_bool b = 
+  Logic.pv_le(Logic.Pv_Bool b)
 
 (* ref_type (v, "Member") <=> exists b x, v = b . x *)
 (* ref_type (v, "Variable") <=> exists b x, v = b .[v] x *)
@@ -86,6 +89,11 @@ let ref_prim_base_pred ref =
 (* type_of_pred (v, t) <=> type_of v = t *)
 let type_of_pred v (t : es_lang_type) =
   UDPred ("type_of", [logic_var v; logic_string (PrintLogic.string_of_es_lang_type t)])
+  
+  
+(* not_type_of_pred (v, t) <=> type_of v <> t *)
+let not_type_of_pred v (t : es_lang_type) =
+  UDPred ("not_type_of", [logic_var v; logic_string (PrintLogic.string_of_es_lang_type t)])
   
 (* End of Logic *)
 
@@ -213,6 +221,27 @@ let translate_put_value v1 v2 throw_var throw_label =
   let update = Mutation (mk_mutation v1 v2) in
   let lvar = mk_assign_fresh (Var rempty) in
   mk_etf_return [if_not_ref; if_undef_ref; if_prim_ref; update; Assignment lvar] lvar.assign_left
+  
+let translate_call_construct_start f e1 e2s ctx =
+    let r1 = f e1 in
+    let r2 = mk_assign_fresh (BuiltInFunction(Gamma r1.etf_lvar)) in  
+    let arg_stmts = List.map (fun e ->
+        begin
+          let re1 = f e in
+          let re2 = mk_assign_fresh (BuiltInFunction(Gamma re1.etf_lvar)) in
+          (re2.assign_left, re1.etf_stmts @ [Assignment re2])
+        end
+     ) e2s in  
+    let arg_values, arg_stmts = List.split arg_stmts in
+    let arg_stmts = List.flatten arg_stmts in  
+    let cond1 = not_type_of_pred r2.assign_left Logic.LT_Object in
+    let gotothrow = translate_error_throw LTError ctx.throw_var ctx.label_throw in
+    let if1 = Sugar (If (cond1, gotothrow, [])) in
+    let fid_ref = mk_assign_fresh (Ref(mk_ref r2.assign_left field_fid MemberReference)) in
+    let hasfield = mk_assign_fresh (HasField fid_ref.assign_left) in
+    let cond2 = Logic.Eq (logic_var hasfield.assign_left, logic_bool false) in
+    let if2 = Sugar (If (cond2, gotothrow, [])) in
+    (r1.etf_stmts @ [Assignment r2] @ arg_stmts @ [if1; Assignment fid_ref; Assignment hasfield; if2], r1, r2, arg_values)
   
 let join_etf_results (results : expr_to_fb_return list) : expr_to_fb_return =
   if List.length results = 0 then raise (Invalid_argument "A list argument for the join_etf_results function should not be empty")
@@ -365,22 +394,7 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
                        @ env_stmts @ [Assignment f_codename_ref; f_codename_update; 
                        Assignment f_scope_ref; f_scope_update; Assignment f_assign]) f_assign.assign_left  
       | Parser_syntax.Call (e1, e2s) ->
-        let r1 = f e1 in
-        let r2 = mk_assign_fresh (BuiltInFunction(Gamma r1.etf_lvar)) in  
-        let arg_stmts = List.map (fun e ->
-            begin
-              let re1 = f e in
-              let re2 = mk_assign_fresh (BuiltInFunction(Gamma re1.etf_lvar)) in
-              (re2.assign_left, re1.etf_stmts @ [Assignment re2])
-            end
-         ) e2s in  
-        let arg_values, arg_stmts = List.split arg_stmts in
-        let arg_stmts = List.flatten arg_stmts in  
-			  let cond1 = type_of_pred r2.assign_left Logic.LT_Object in
-			  let cond2 = Logic.HeapletEmpty (Logic.LocNum ((AVar r2.assign_left)), field_fid) in
-			  let cond12 = Logic.Star [cond1; cond2] in
-			  let gotothrow = translate_error_throw LTError ctx.throw_var ctx.label_throw in
-			  let if1 = Sugar (If (cond12, gotothrow, [])) in
+        let stmts, r1, r2, arg_values = translate_call_construct_start f e1 e2s ctx in
 			  let vthis = fresh_variable "r" in
 			  let cond3 = not_a_ref_pred r1.etf_lvar in
 			  let assign_vthis_und = Assignment (mk_assign vthis (Literal Undefined)) in
@@ -399,11 +413,14 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
         let fscope = mk_assign_fresh (Lookup scope_ref.assign_left) in
 			  let call = mk_assign_fresh (Call (mk_call fid.assign_left fscope.assign_left vthis arg_values)) in
 			  let if5 = Sugar (If (cond6, [Assignment fid_ref; Assignment fid; Assignment scope_ref; Assignment fscope; Assignment call], [])) in
-			  mk_etf_return (r1.etf_stmts @ [Assignment r2] @ arg_stmts @ [if1; if2; if3; if4; if5]) call.assign_left
+			  mk_etf_return (stmts @ [if2; if3; if4; if5]) call.assign_left
+        
+      | Parser_syntax.New (e1, e2s) ->
+        
+        raise (Invalid_argument "WIP")
         
       | Parser_syntax.CAccess _ (* (e1, e2) *)
       | Parser_syntax.Return _ (*e*)
-      | Parser_syntax.New _ (*(e1, e2s)*)
       | Parser_syntax.BinOp _ (*(e1, op, e2)*) 
       | Parser_syntax.If _ (*(e1, e2, e3)*)
       | Parser_syntax.While _ (*(e1, e2)*)

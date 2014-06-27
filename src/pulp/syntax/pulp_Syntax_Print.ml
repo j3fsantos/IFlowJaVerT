@@ -78,6 +78,7 @@ let string_of_expression e =
     | Ref r -> string_of_reference r
     | Field v -> Printf.sprintf "field (%s)" (s v)
     | Base v -> Printf.sprintf "base (%s)" (s v)
+    | HasField v -> Printf.sprintf "has_field (%s)" (s v)
     | Lookup v -> Printf.sprintf "[%s]" (s v)
     | Call c -> string_of_call c
     | Fun cn -> Printf.sprintf "function %s" (string_of_codename cn) (* Don't I want formal params here?*) (* I'm confused between function blocks and function expression? *)
