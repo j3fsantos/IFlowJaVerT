@@ -48,6 +48,12 @@ let test_var_decl () =
 let test_fun_def () =
   test_template ("var x = 1; var f = function (g) {var z = 1; x = 3; g = 4; var c = function (d) {}}; var g = function () {var x, a, b; }")
   
+let test_call () =
+  test_template ("f (4, true)")
+  
+let test_new () =
+  test_template ("new f (1, \"a\")")
+  
 let test_popl12_example () =
   test_template ("var x = null, y = null, z = null; var f = function(w){x = v; v = 4; var v; y = v;}; v = 5; f(null); z = v;")
 
@@ -60,4 +66,6 @@ let suite = "Testing Translation" >:::
    "translating function environments" >:: test_fun_env;
    "translating var declarations" >:: test_var_decl;
    "translating function definition" >:: test_fun_def;
+   "translating function call" >:: test_call;
+   "translating new" >:: test_new;
    "translating popl12 example" >:: test_popl12_example] 

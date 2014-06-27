@@ -15,16 +15,12 @@ let fresh_variable =
   
 let fresh_r () : variable =
   fresh_variable "r"
-  
-type field = string
+ 
   
 let rthis : variable = "rthis"
 let rempty : variable = "rempty" (* Using this variable temporarily since logic at the moment does not have value "empty"*)
 let rscope : variable = "rscope"
 let unknownscope : variable = "unknownscope"
-
-let field_fid : field = "#fid"
-let field_scope : field = "#scope"
 
 let function_scope_name fid =
   fid^"_scope"
@@ -44,11 +40,17 @@ let string_of_builtin_loc l =
     | LSError -> "#lserror"
 
 type builtin_field =
-  | Proto
+  | FProto
+  | FId
+  | FScope
+  | FPrototype
 
 let string_of_builtin_field f =
   match f with
-    | Proto -> "#proto"
+    | FProto -> "#proto"
+    | FId -> "#fid"
+    | FScope -> "#scope"
+    | FPrototype -> "prototype"
 
 let logic_var v = 
   Logic.Le_Var (AVar v)
@@ -196,7 +198,7 @@ let create_ctx env =
   }
   
 let add_proto obj proto =
-  let r1 = mk_assign_fresh_lit (String (string_of_builtin_field Proto)) in
+  let r1 = mk_assign_fresh_lit (String (string_of_builtin_field FProto)) in
   let r2 = mk_assign_fresh proto in
   let r3 = mk_assign_fresh (Ref (mk_ref obj r1.assign_left MemberReference)) in
   let r4 = Mutation (mk_mutation r3.assign_left r2.assign_left) in
@@ -237,11 +239,22 @@ let translate_call_construct_start f e1 e2s ctx =
     let cond1 = not_type_of_pred r2.assign_left Logic.LT_Object in
     let gotothrow = translate_error_throw LTError ctx.throw_var ctx.label_throw in
     let if1 = Sugar (If (cond1, gotothrow, [])) in
-    let fid_ref = mk_assign_fresh (Ref(mk_ref r2.assign_left field_fid MemberReference)) in
+    let fid_ref = mk_assign_fresh (Ref(mk_ref r2.assign_left (string_of_builtin_field FId) MemberReference)) in
     let hasfield = mk_assign_fresh (HasField fid_ref.assign_left) in
     let cond2 = Logic.Eq (logic_var hasfield.assign_left, logic_bool false) in
     let if2 = Sugar (If (cond2, gotothrow, [])) in
     (r1.etf_stmts @ [Assignment r2] @ arg_stmts @ [if1; Assignment fid_ref; Assignment hasfield; if2], r1, r2, arg_values)
+    
+let translate_call r2 vthis arg_values =
+		(*TODO Eval*)
+    let cond6 = Logic.NEq (logic_var r2.assign_left, lb_le (Lb_Loc LEval)) in
+		let fid_ref = mk_assign_fresh (Ref (mk_ref r2.assign_left (string_of_builtin_field FId) MemberReference)) in
+		let fid = mk_assign_fresh (Lookup fid_ref.assign_left) in
+		let scope_ref = mk_assign_fresh (Ref (mk_ref r2.assign_left (string_of_builtin_field FScope) MemberReference)) in
+		let fscope = mk_assign_fresh (Lookup scope_ref.assign_left) in
+		let call = mk_assign_fresh (Call (mk_call fid.assign_left fscope.assign_left vthis arg_values)) in
+		let if5 = Sugar (If (cond6, [Assignment fid_ref; Assignment fid; Assignment scope_ref; Assignment fscope; Assignment call], [])) in
+    (if5, call)
   
 let join_etf_results (results : expr_to_fb_return list) : expr_to_fb_return =
   if List.length results = 0 then raise (Invalid_argument "A list argument for the join_etf_results function should not be empty")
@@ -385,9 +398,9 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
           let ref_assign = mk_assign_fresh (Ref (mk_ref scope.assign_left env.func_id MemberReference)) in 
           [Assignment ref_assign; Mutation (mk_mutation ref_assign.assign_left env_scope)]
           ) ctx.env_vars in
-        let f_codename_ref = mk_assign_fresh (Ref (mk_ref f_obj.assign_left field_fid MemberReference)) in
+        let f_codename_ref = mk_assign_fresh (Ref (mk_ref f_obj.assign_left (string_of_builtin_field FId) MemberReference)) in
         let f_codename_update = Mutation (mk_mutation f_codename_ref.assign_left fid) in
-        let f_scope_ref = mk_assign_fresh (Ref (mk_ref f_obj.assign_left field_scope MemberReference)) in
+        let f_scope_ref = mk_assign_fresh (Ref (mk_ref f_obj.assign_left (string_of_builtin_field FScope) MemberReference)) in
         let f_scope_update = Mutation (mk_mutation f_scope_ref.assign_left scope.assign_left) in
         let f_assign = mk_assign_fresh (Var f_obj.assign_left) in
         mk_etf_return ([Assignment f_obj] @ f_obj_proto_stmts @ [Assignment scope] @ scope_proto_stmts
@@ -405,19 +418,27 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
 			  let base_assign = mk_assign_fresh (Base r1.etf_lvar) in
 			  let assign_vthis_base = Assignment (mk_assign vthis (Var base_assign.assign_left)) in
 			  let if4 = Sugar (If (cond5, [Assignment base_assign; assign_vthis_base], [])) in
-			  (*TODO Eval*)
-			  let cond6 = Logic.NEq (logic_var r2.assign_left, lb_le (Lb_Loc LEval)) in
-        let fid_ref = mk_assign_fresh (Ref (mk_ref r2.assign_left field_fid MemberReference)) in
-        let fid = mk_assign_fresh (Lookup fid_ref.assign_left) in
-        let scope_ref = mk_assign_fresh (Ref (mk_ref r2.assign_left field_scope MemberReference)) in
-        let fscope = mk_assign_fresh (Lookup scope_ref.assign_left) in
-			  let call = mk_assign_fresh (Call (mk_call fid.assign_left fscope.assign_left vthis arg_values)) in
-			  let if5 = Sugar (If (cond6, [Assignment fid_ref; Assignment fid; Assignment scope_ref; Assignment fscope; Assignment call], [])) in
+			  let if5, call = translate_call r2 vthis arg_values in
 			  mk_etf_return (stmts @ [if2; if3; if4; if5]) call.assign_left
         
       | Parser_syntax.New (e1, e2s) ->
-        
-        raise (Invalid_argument "WIP")
+        let stmts, r1, r2, arg_values = translate_call_construct_start f e1 e2s ctx in
+        let prototype_ref = mk_assign_fresh (Ref (mk_ref r2.assign_left (string_of_builtin_field FPrototype) MemberReference)) in
+        let prototype = mk_assign_fresh (Lookup prototype_ref.assign_left) in        
+			  let vthisproto = fresh_variable "r" in
+			  let cond1 = type_of_pred prototype.assign_left Logic.LT_Object in
+			  let assign_vthis_r1 = Assignment (mk_assign vthisproto (Var r2.assign_left)) in
+        let assign_vthis_r2 = Assignment (mk_assign vthisproto (Var (PrintLogic.string_of_loc Logic.Lop))) in
+			  let if2 = Sugar (If (cond1, [assign_vthis_r1], [assign_vthis_r2])) in
+        let vthis = mk_assign_fresh Obj in
+        let proto_stmts = add_proto vthis.assign_left (Var vthisproto) in
+			  let if3, call = translate_call r2 vthis.assign_left arg_values in
+        let rv = fresh_variable "r" in
+        let cond2 = type_of_pred call.assign_left Logic.LT_Object in
+        let assign_rv_t = Assignment (mk_assign rv (Var call.assign_left)) in
+        let assign_rv_f = Assignment (mk_assign rv (Var vthis.assign_left)) in
+        let if4 = Sugar (If (cond2, [assign_rv_t], [assign_rv_f])) in      
+        mk_etf_return (stmts @ [Assignment prototype_ref; Assignment prototype; if2; Assignment vthis] @ proto_stmts @ [if3; if4]) rv
         
       | Parser_syntax.CAccess _ (* (e1, e2) *)
       | Parser_syntax.Return _ (*e*)
