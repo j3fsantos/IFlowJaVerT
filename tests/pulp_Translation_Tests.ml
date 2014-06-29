@@ -78,6 +78,12 @@ let test_if_no_else () =
 let test_while () =
   test_template ("while (x == 5) {x = x - 1; z = z + 1}")
   
+let test_return () =
+  test_template ("function () {return}")
+  
+let test_return_exp () =
+  test_template ("function () {var x; return x}")
+  
 let test_popl12_example () =
   test_template ("var x = null, y = null, z = null; var f = function(w){x = v; v = 4; var v; y = v;}; v = 5; f(null); z = v;")
 
@@ -100,4 +106,6 @@ let suite = "Testing Translation" >:::
    "translating if" >:: test_if;
    "translating if without else" >:: test_if_no_else;
    "translating while" >:: test_while;
+   "testing return" >:: test_return;
+   "testing return with expression" >:: test_return_exp;
    "translating popl12 example" >:: test_popl12_example] 

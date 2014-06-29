@@ -129,14 +129,18 @@ type function_block = {
     func_body : statement list;
     func_params : formal_param list;
     func_ret : variable;  (* A variable where the function result is stored *)
+    func_ret_label : label;
     func_excep : variable; (* A variable where an exception is stored *)
+    func_excep_label : label;
 }
 
 
-let make_function_block fn fb fparams fret fexcep = {
+let make_function_block fn fb fparams fret rlabel fexcep elabel = {
     func_name = fn;
     func_body = fb;
     func_params = fparams;
     func_ret = fret;
+    func_ret_label = rlabel;
     func_excep = fexcep;
+    func_excep_label = elabel
   }

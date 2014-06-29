@@ -547,8 +547,18 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
         let ifempty = Sugar (If (condNotEmpty, [Assignment r4], [])) in
         let ifTrue = Sugar (If (condTrue, r3.etf_stmts @ [ifempty; Goto [label1]], [])) in
         mk_etf_return ([assign_rv_empty; Label label1] @ r1.etf_stmts @ [Assignment r2; ifTrue]) rv
-      | Parser_syntax.Return _ (*e*)
-
+      | Parser_syntax.Return e ->
+        let stmts, rv = match e with
+          | None -> 
+            let und_assign = mk_assign_fresh_lit Undefined in
+            [Assignment und_assign], und_assign
+          | Some e -> 
+            let r1 = f e in
+            let r2 = mk_assign_fresh (BuiltInFunction(Gamma r1.etf_lvar)) in
+            r1.etf_stmts @ [Assignment r2], r2
+         in
+        let assignr = mk_assign ctx.return_var (Var rv.assign_left) in
+        mk_etf_return (stmts @ [Assignment assignr; Goto [ctx.label_return]]) ctx.return_var
       | Parser_syntax.NamedFun _ (*(_, n, vs, e)*)
 
       | Parser_syntax.RegExp _
@@ -600,7 +610,7 @@ let translate_function fb fid args env =
       [Assignment v_assign; Assignment ref_assign; Assignment und_assign; Mutation (mk_mutation ref_assign.assign_left und_assign.assign_left)]
     ) (var_decls fb) in
   let pulpe = init_e @ [current_scope] @ proto_stmts @ init_vars @ decl_vars @ (exp_to_fb ctx fb).etf_stmts in
-  make_fun_with_ctx env (make_function_block fid pulpe (rthis :: (rscope :: args)) ctx.return_var ctx.throw_var)
+  make_fun_with_ctx env (make_function_block fid pulpe (rthis :: (rscope :: args)) ctx.return_var ctx.label_return ctx.throw_var ctx.label_throw)
 
 let translate_function_syntax id e env =
     match e.Parser_syntax.exp_stx with

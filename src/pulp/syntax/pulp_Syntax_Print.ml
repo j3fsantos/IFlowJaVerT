@@ -107,7 +107,15 @@ and string_of_sugar t =
       (string_of_statement_list elsebranch)
       
 let string_of_func_block fb =
-   Printf.sprintf "function %s (%s) { \n %s \n}" fb.func_name (string_of_formal_params fb.func_params) (string_of_statement_list fb.func_body)
+   Printf.sprintf "function %s (%s) { \n %s \n} \n with \n return var %s return label %s exception var %s exception label %s \n \n \n" 
+   fb.func_name 
+   (string_of_formal_params fb.func_params) 
+   (string_of_statement_list fb.func_body) 
+   fb.func_ret 
+   fb.func_ret_label 
+   fb.func_excep 
+   fb.func_excep_label
+
   
 let string_of_ctx_vars v = 
   Printf.sprintf "%s : [%s]" v.func_id (string_of_vars v.fun_bindings)
