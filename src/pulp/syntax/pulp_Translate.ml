@@ -534,8 +534,20 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
             [ifFalse]
           | None -> [] in        
         mk_etf_return (r1.etf_stmts @ [Assignment r2; ifTrue] @ elsebranch) rv
+      | Parser_syntax.While (e1, e2) ->
+        let rv = fresh_r () in
+        let assign_rv_empty = Assignment (mk_assign rv (Var rempty)) in
+        let label1 = fresh_r () in
+        let r1 = f e1 in
+        let r2 = mk_assign_fresh (BuiltInFunction(Gamma r1.etf_lvar)) in
+        let condTrue = Logic.IsTrue (logic_var r2.assign_left) in
+        let r3 = f e2 in
+        let condNotEmpty = Logic.NEq (logic_var r3.etf_lvar, logic_var rempty) in
+        let r4 = mk_assign rv (Var r3.etf_lvar) in
+        let ifempty = Sugar (If (condNotEmpty, [Assignment r4], [])) in
+        let ifTrue = Sugar (If (condTrue, r3.etf_stmts @ [ifempty; Goto [label1]], [])) in
+        mk_etf_return ([assign_rv_empty; Label label1] @ r1.etf_stmts @ [Assignment r2; ifTrue]) rv
       | Parser_syntax.Return _ (*e*)
-      | Parser_syntax.While _ (*(e1, e2)*)
 
       | Parser_syntax.NamedFun _ (*(_, n, vs, e)*)
 

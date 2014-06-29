@@ -75,6 +75,9 @@ let test_if () =
 let test_if_no_else () =
   test_template ("if (x == true) {x = 1}")
   
+let test_while () =
+  test_template ("while (x == 5) {x = x - 1; z = z + 1}")
+  
 let test_popl12_example () =
   test_template ("var x = null, y = null, z = null; var f = function(w){x = v; v = 4; var v; y = v;}; v = 5; f(null); z = v;")
 
@@ -96,4 +99,5 @@ let suite = "Testing Translation" >:::
    "translating or" >:: test_bin_op_or; 
    "translating if" >:: test_if;
    "translating if without else" >:: test_if_no_else;
+   "translating while" >:: test_while;
    "translating popl12 example" >:: test_popl12_example] 
