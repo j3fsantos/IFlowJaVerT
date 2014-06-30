@@ -44,7 +44,6 @@ let string_of_literal lit =
   
 let string_of_builtin_function bf =
   match bf with
-    | ObjCoercible x -> Printf.sprintf "ObjCoercible ( %s )" x
     | Pi (b, x) -> Printf.sprintf "Pi ( %s, %s )" b x
 
 let string_of_call c =

@@ -62,6 +62,12 @@ let logic_string s =
   
 let logic_bool b = 
   Logic.pv_le(Logic.Pv_Bool b)
+  
+let logic_null = 
+  Logic.pv_le(Logic.Pv_Null)
+  
+let logic_undefined = 
+  Logic.pv_le(Logic.Pv_Undefined)
 
 (* ref_type (v, "Member") <=> exists b x, v = b . x *)
 (* ref_type (v, "Variable") <=> exists b x, v = b .[v] x *)
@@ -247,6 +253,16 @@ let translate_gamma r ctx =
   let if5 = Sugar (If (cond5, [Assignment base_assign; Assignment field_assign; Assignment rv_assign_pi], [])) in
   [if1; if2; if3; if4; if5], rv
   
+let translate_obj_coercible r ctx =
+  let rv = fresh_r () in
+  let cond1 = Logic.Eq (logic_var r, logic_null) in
+  let gotothrow = translate_error_throw LTError ctx.throw_var ctx.label_throw in
+  let if1 = Sugar (If (cond1, gotothrow, [])) in
+  let cond2 = Logic.Eq (logic_var r, logic_undefined) in
+  let if2 = Sugar (If (cond2, gotothrow, [])) in
+  let assign_rv_empty = mk_assign rv (Var rempty) in 
+  [if1; if2; Assignment assign_rv_empty], rv
+  
 let translate_call_construct_start f e1 e2s ctx =
     let r1 = f e1 in
     let r2_stmts, r2 = translate_gamma r1.etf_lvar ctx in 
@@ -361,18 +377,18 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
           let r1 = f e in
           let r2_stmts, r2 = translate_gamma r1.etf_lvar ctx in
           let r3 = mk_assign_fresh_lit (Pulp_Syntax.String v) in
-          let r4 = mk_assign_fresh (BuiltInFunction(ObjCoercible r2)) in
+          let r4_stmts, r4 = translate_obj_coercible r2 ctx in
           let r5 = mk_assign_fresh (Ref(mk_ref r2 r3.assign_left MemberReference)) in
-          mk_etf_return (r1.etf_stmts @ r2_stmts @ [Assignment r3; Assignment r4; Assignment r5]) r5.assign_left;
+          mk_etf_return (r1.etf_stmts @ r2_stmts @ [Assignment r3] @ r4_stmts @[Assignment r5]) r5.assign_left;
         end
       | Parser_syntax.CAccess (e1, e2) ->
           let r1 = f e1 in
           let r2_stmts, r2 = translate_gamma r1.etf_lvar ctx in
           let r3 = f e2 in
           let r4_stmts, r4 = translate_gamma r3.etf_lvar ctx in
-          let r5 = mk_assign_fresh (BuiltInFunction(ObjCoercible r2)) in
+          let r5_stmts, r5 = translate_obj_coercible r2 ctx in
           let r6 = mk_assign_fresh (Ref(mk_ref r2 r4 MemberReference)) in
-          mk_etf_return (r1.etf_stmts @ r2_stmts @ r3.etf_stmts @ r4_stmts @ [Assignment r5; Assignment r6]) r6.assign_left;
+          mk_etf_return (r1.etf_stmts @ r2_stmts @ r3.etf_stmts @ r4_stmts @ r5_stmts @ [Assignment r6]) r6.assign_left;
       | Parser_syntax.Script (_, es)
       | Parser_syntax.Block es ->
         let retv = mk_assign_fresh (Var rempty) in

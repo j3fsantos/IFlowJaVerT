@@ -44,7 +44,6 @@ let mk_ref r f rt = {
 type codename_spec = spec CodenameMap.t
 
 type builtin_function = (* todo *)
-  | ObjCoercible of variable
   | Pi of variable * variable
 
 type comparison_op =
