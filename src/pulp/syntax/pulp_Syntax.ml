@@ -89,7 +89,6 @@ type expression =
   | HasField of variable
   | Lookup of variable 
   | Call of call
-  | Fun of codename 
   | Obj
   | BuiltInFunction of builtin_function
 
