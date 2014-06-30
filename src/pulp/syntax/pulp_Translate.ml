@@ -640,14 +640,13 @@ let translate_function fb fid args env =
       let ref_assign = mk_assign_fresh (Ref (mk_ref current_scope_var v_assign.assign_left VariableReference)) in 
       [Assignment v_assign; Assignment ref_assign; Mutation (mk_mutation ref_assign.assign_left v)]
     ) args in
-  (* Assign undefined to var declarations *)
-  (* TODO : Fix the case when we already have formal parameter with the same name *)
+  (* Assigning undefined to var declarations *)
   let decl_vars = Utils.flat_map (fun v ->
       let v_assign = mk_assign_fresh_lit (String v) in
       let ref_assign = mk_assign_fresh (Ref (mk_ref current_scope_var v_assign.assign_left VariableReference)) in 
       let und_assign = mk_assign_fresh_lit Undefined in
       [Assignment v_assign; Assignment ref_assign; Assignment und_assign; Mutation (mk_mutation ref_assign.assign_left und_assign.assign_left)]
-    ) (var_decls fb) in
+    ) (List.filter (fun v -> not (List.mem v args)) (var_decls fb)) in
   let pulpe = init_e @ [current_scope] @ proto_stmts @ init_vars @ decl_vars @ (exp_to_fb ctx fb).etf_stmts in
   make_fun_with_ctx env (make_function_block fid pulpe (rthis :: (rscope :: args)) ctx.return_var ctx.label_return ctx.throw_var ctx.label_throw)
 

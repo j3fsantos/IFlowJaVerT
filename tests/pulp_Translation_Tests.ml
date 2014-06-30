@@ -84,6 +84,9 @@ let test_return () =
 let test_return_exp () =
   test_template ("function () {var x; return x}")
   
+let test_same_name_param_var () =
+  test_template ("function (b) {var b}")
+  
 let test_popl12_example () =
   test_template ("var x = null, y = null, z = null; var f = function(w){x = v; v = 4; var v; y = v;}; v = 5; f(null); z = v;")
 
@@ -108,4 +111,5 @@ let suite = "Testing Translation" >:::
    "translating while" >:: test_while;
    "testing return" >:: test_return;
    "testing return with expression" >:: test_return_exp;
+   "testing function that has same name for one of the parameters and variable declaration" >:: test_same_name_param_var;
    "translating popl12 example" >:: test_popl12_example] 
