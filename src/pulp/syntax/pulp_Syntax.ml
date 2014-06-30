@@ -44,9 +44,8 @@ let mk_ref r f rt = {
 type codename_spec = spec CodenameMap.t
 
 type builtin_function = (* todo *)
-  | Sigma of variable
-  | Gamma of variable (* Do I want to have types for variables ? For example here we have a reference type for a variable *)
   | ObjCoercible of variable
+  | Pi of variable * variable
 
 type comparison_op =
   | Equal
