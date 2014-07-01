@@ -3,27 +3,29 @@ open Pulp_Syntax
 open Pulp_Translate
 open Pulp_Syntax_Utils
 
-let test_template p =
+let test_template p name =
   Symb_execution.initialize ();
   Parser_main.verbose := true;
   let exp = Parser_main.exp_from_string p in
   let _ = Printf.printf "%s \n" (Pretty_print.string_of_exp_syntax exp.Parser_syntax.exp_stx) in
   let p_exp = exp_to_pulp exp in
-  let _ = AllFunctions.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_fun_with_ctx fwc)) p_exp in
+  let _ = AllFunctions.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_func_block fwc)) p_exp in
+  (* TODO fix path *)
+  let _ = Cfg.mk_cfg p_exp ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/"^name) in
   assert_bool "Incorrect Translation" true
   
 
 let test_access () = 
-  test_template ("x.y")
+  test_template ("x.y") "access"
   
 let test_assign () =
-  test_template ("x = y")
+  test_template ("x = y") "assign"
   
 let test_obj () =
-  test_template ("obj = {x : 1, y : null, z : false}") 
+  test_template ("obj = {x : 1, y : null, z : false}") "obj"
   
 let test_block () =
-  test_template ("x = y; y = z")
+  test_template ("x = y; y = z") "block"
   
 let test_fun_env () =
   Symb_execution.initialize ();
@@ -43,52 +45,52 @@ let test_fun_env () =
   assert_bool "Incorrect Translation" true
   
 let test_var_decl () = 
-  test_template ("var x,y = 5; x.y")
+  test_template ("var x,y = 5; x.y") "vardecl"
   
 let test_fun_def () =
-  test_template ("var x = 1; var f = function (g) {var z = 1; x = 3; g = 4; var c = function (d) {}}; var g = function () {var x, a, b; }")
+  test_template ("var x = 1; var f = function (g) {var z = 1; x = 3; g = 4; var c = function (d) {}}; var g = function () {var x, a, b; }") "fundef"
   
 let test_call () =
-  test_template ("f (4, true)")
+  test_template ("f (4, true)") "call"
   
 let test_new () =
-  test_template ("new f (1, \"a\")")
+  test_template ("new f (1, \"a\")") "new"
   
 let test_caccess () =
-  test_template ("x[y]")
+  test_template ("x[y]") "access"
   
 let test_delete () =
-  test_template ("delete x")
+  test_template ("delete x") "delete"
   
 let test_bin_op_regular () =
-  test_template ("y + z")
+  test_template ("y + z") "binopreg"
   
 let test_bin_op_and () =
-  test_template ("y && z")
+  test_template ("y && z") "binopand"
   
 let test_bin_op_or () =
-  test_template ("y || z")
+  test_template ("y || z") "binopor"
   
 let test_if () =
-  test_template ("if (x == true) {x = 1} else {x = 2; y = 2}")
+  test_template ("if (x == true) {x = 1} else {x = 2; y = 2}") "if"
   
 let test_if_no_else () =
-  test_template ("if (x == true) {x = 1}")
+  test_template ("if (x == true) {x = 1}") "ifnoelse"
   
 let test_while () =
-  test_template ("while (x == 5) {x = x - 1; z = z + 1}")
+  test_template ("while (x == 5) {x = x - 1; z = z + 1}") "while"
   
 let test_return () =
-  test_template ("function () {return}")
+  test_template ("function () {return}") "return"
   
 let test_return_exp () =
-  test_template ("function () {var x; return x}")
+  test_template ("function () {var x; return x}") "returnexp"
   
 let test_same_name_param_var () =
-  test_template ("function (b) {var b}")
+  test_template ("function (b) {var b}") "samevar"
   
 let test_popl12_example () =
-  test_template ("var x = null, y = null, z = null; var f = function(w){x = v; v = 4; var v; y = v;}; v = 5; f(null); z = v;")
+  test_template ("var x = null, y = null, z = null; var f = function(w){x = v; v = 4; var v; y = v;}; v = 5; f(null); z = v;") "popl12"
 
 
 let suite = "Testing Translation" >:::

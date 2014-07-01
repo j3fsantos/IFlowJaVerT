@@ -9,6 +9,7 @@ INCLUDES = -I ../lib/corestar \
 	   -I ../src/syntax/ \
 	   -I ../src/logic/ \
 	   -I ../src/utils/ \
+	   -I ../src/pulp/ \
 	   -I ../src/pulp/syntax/ \
 	   -I ../src/strategies/store/
 
@@ -43,6 +44,7 @@ SOURCE = ../src/localconfig.ml \
 	 ../src/pulp/syntax/pulp_Syntax.ml \
 	 ../src/pulp/syntax/pulp_Syntax_Utils.ml \
 	 ../src/pulp/syntax/pulp_Syntax_Print.ml \
+	 ../src/pulp/cfg.ml \
 	 ../src/pulp/syntax/pulp_Translate.ml \
 	 ../src/strategies/store/store_naive.ml \
 	 ../src/strategies/naive_strategy.ml \
@@ -84,7 +86,9 @@ REMOVE = ../src/*.cmo \
 	  ../src/strategies/store/*.cmo \
 	  ../src/strategies/store/*.cmi \
 	  ../src/pulp/syntax/*.cmo \
-	  ../src/pulp/syntax/*cmi \
+	  ../src/pulp/syntax/*.cmi \
+	  ../src/pulp/*.cmo \
+	  ../src/pulp/*.cmi \
 
 TESTS = test_all.ml logictests.ml
 

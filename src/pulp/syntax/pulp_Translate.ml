@@ -4,17 +4,6 @@ open Pulp_Syntax_Print
 open Logic
 
 exception PulpNotImplemented of string
-
-let fresh_variable =
-  let counter = ref 0 in
-  let rec f name =
-    let v = name ^ (string_of_int !counter) in
-    counter := !counter + 1;
-    v
-  in f
-  
-let fresh_r () : variable =
-  fresh_variable "r"
  
   
 let rthis : variable = "rthis"
@@ -188,23 +177,6 @@ let mk_etf_return stmts lvar = {
      etf_lvar = lvar;
   }
   
-type translation_ctx = {
-    env_vars : ctx_variables list; 
-    return_var : variable;
-    throw_var : variable;
-    label_return : label;
-    label_throw : label;
-  }
-  
-let create_ctx env =
-  {
-     env_vars = env;
-     return_var = fresh_r ();
-     throw_var = fresh_r ();
-     label_return = "return." ^ fresh_r ();
-     label_throw = "throw." ^ fresh_r ();
-  }
-  
 let add_proto obj proto =
   let r1 = mk_assign_fresh_lit (String (string_of_builtin_field FProto)) in
   let r2 = mk_assign_fresh proto in
@@ -315,6 +287,22 @@ let translate_bin_op_logical f e1 e2 bop ctx =
   let assign_rv_op = mk_assign rv (BinOp (r2, Boolean op, r4)) in
   let if1 = Sugar (If (cond, [assign_rv_r2], (r3.etf_stmts) @ r4_stmts @ [Assignment assign_rv_op])) in
   mk_etf_return (r1.etf_stmts @ r2_stmts @ [if1]) rv
+  
+let rec desugar stmts = 
+  List.flatten (List.map (fun stmt ->
+    match stmt with
+      | Sugar st -> 
+        begin match st with
+          | If (c, t1, t2) -> 
+            let label1 = fresh_r () in
+            let label2 = fresh_r () in
+            let label3 = fresh_r () in
+            let dt1 = desugar t1 in
+            let dt2 = desugar t2 in
+            [Goto [label1; label2]; Label label1; Assume c] @ dt1 @ [Goto [label3]; Label label2; Assume (Logic.Negation c)] @ dt2 @ [Goto [label3]; Label label3]
+        end
+      | stmt -> [stmt]
+  ) stmts)
   
 let join_etf_results (results : expr_to_fb_return list) : expr_to_fb_return =
   if List.length results = 0 then raise (Invalid_argument "A list argument for the join_etf_results function should not be empty")
@@ -648,7 +636,8 @@ let translate_function fb fid args env =
       [Assignment v_assign; Assignment ref_assign; Assignment und_assign; Mutation (mk_mutation ref_assign.assign_left und_assign.assign_left)]
     ) (List.filter (fun v -> not (List.mem v args)) (var_decls fb)) in
   let pulpe = init_e @ [current_scope] @ proto_stmts @ init_vars @ decl_vars @ (exp_to_fb ctx fb).etf_stmts in
-  make_fun_with_ctx env (make_function_block fid pulpe (rthis :: (rscope :: args)) ctx.return_var ctx.label_return ctx.throw_var ctx.label_throw)
+  let desugared_pulpe = desugar pulpe in
+  make_function_block fid desugared_pulpe (rthis :: (rscope :: args)) ctx
 
 let translate_function_syntax id e env =
     match e.Parser_syntax.exp_stx with

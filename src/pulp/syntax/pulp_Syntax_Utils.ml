@@ -13,12 +13,9 @@ let get_codename exp =
   let codenames = List.filter (fun annot -> annot.annot_type = Codename) exp.exp_annot in
   match codenames with
     | [codename] -> codename.annot_formula
-    | _ -> raise No_Codename
+    | _ -> raise No_Codename 
 
-
-type function_id = string 
-
-let main_fun_id : function_id = "main"
+let main_fun_id : Pulp_Syntax.function_id = "main"
 
 let fresh_name =
   let counter = ref 0 in
@@ -33,35 +30,6 @@ let fresh_annonymous () : string =
   
 let fresh_named n : string =
   fresh_name n 
-  
-type ctx_variables = {
-     func_id : function_id;
-     fun_bindings : Pulp_Syntax.variable list
-  }
-  
-let make_ctx_vars fid vars = 
-  { 
-    func_id = fid;
-    fun_bindings = vars
-  }
-
-type fun_with_ctx = {
-     ctx_vars : ctx_variables list;
-     fun_block : Pulp_Syntax.function_block;
-  }
-  
-let make_fun_with_ctx vars f =
-  {
-    ctx_vars = vars;
-    fun_block = f
-  }
-
-module AllFunctions = Map.Make ( 
-  struct 
-    type t = function_id
-    let compare = compare
-  end
-)
   
 let map_switch f (e1, e2s) =
     (f e1) @ flat_map (fun (e2, e3) ->
@@ -122,7 +90,7 @@ let var_decls exp = List.unique (var_decls_inner exp)
 
 let make_env env e args fid =
   let vars = args @ (var_decls e) in
-  [make_ctx_vars fid vars] @ env
+  [Pulp_Syntax.make_ctx_vars fid vars] @ env
   
  
 let rec add_codenames exp : exp =
@@ -188,7 +156,7 @@ let rec add_codenames exp : exp =
         {exp with exp_stx = Script (str, List.map f es); exp_annot = add_codename exp main_fun_id}
   
 
-let rec get_all_functions_with_env env e : (exp * ctx_variables list) list =
+let rec get_all_functions_with_env env e : (exp * Pulp_Syntax.ctx_variables list) list =
   let f = get_all_functions_with_env env in 
   let fo e =
     begin match e with

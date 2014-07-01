@@ -121,23 +121,65 @@ and
 syntactic_sugar_statement =
   | If of Logic.formula * statement list * statement list 
 
+type function_id = string
+
+let fresh_variable =
+  let counter = ref 0 in
+  let rec f name =
+    let v = name ^ (string_of_int !counter) in
+    counter := !counter + 1;
+    v
+  in f
+  
+let fresh_r () : variable =
+  fresh_variable "r"
+
+type ctx_variables = {
+     func_id : function_id;
+     fun_bindings : variable list
+  }
+  
+let make_ctx_vars fid vars = 
+  { 
+    func_id = fid;
+    fun_bindings = vars
+  }
+  
+  type translation_ctx = {
+    env_vars : ctx_variables list; 
+    return_var : variable;
+    throw_var : variable;
+    label_return : label;
+    label_throw : label;
+  }
+  
+let create_ctx env =
+  {
+     env_vars = env;
+     return_var = fresh_r ();
+     throw_var = fresh_r ();
+     label_return = "return." ^ fresh_r ();
+     label_throw = "throw." ^ fresh_r ();
+  }
+  
 type function_block = { 
     func_name : codename;
     func_body : statement list;
     func_params : formal_param list;
-    func_ret : variable;  (* A variable where the function result is stored *)
-    func_ret_label : label;
-    func_excep : variable; (* A variable where an exception is stored *)
-    func_excep_label : label;
+    func_ctx : translation_ctx;
 }
 
 
-let make_function_block fn fb fparams fret rlabel fexcep elabel = {
+let make_function_block fn fb fparams ctx = {
     func_name = fn;
     func_body = fb;
     func_params = fparams;
-    func_ret = fret;
-    func_ret_label = rlabel;
-    func_excep = fexcep;
-    func_excep_label = elabel
+    func_ctx = ctx
   }
+  
+module AllFunctions = Map.Make ( 
+  struct 
+    type t = function_id
+    let compare = compare
+  end
+)
