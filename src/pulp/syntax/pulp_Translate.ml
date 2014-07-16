@@ -43,20 +43,21 @@ let string_of_builtin_field f =
     | FScope -> "#scope"
     | FPrototype -> "prototype"
 
-let logic_var v = 
-  Logic.Le_Var (AVar v)
+let logic_var v = Logic.Le_Var (AVar v)
   
-let logic_string s =
-  Logic.pv_le(Logic.Pv_String s)
+let logic_string s = Logic.pv_le (Logic.Pv_String s)
   
-let logic_bool b = 
-  Logic.pv_le(Logic.Pv_Bool b)
+let logic_bool b = Logic.pv_le (Logic.Pv_Bool b)
   
-let logic_null = 
-  Logic.pv_le(Logic.Pv_Null)
+let logic_null = Logic.pv_le (Logic.Pv_Null)
   
-let logic_undefined = 
-  Logic.pv_le(Logic.Pv_Undefined)
+let logic_undefined = Logic.pv_le (Logic.Pv_Undefined)
+  
+let logic_eq_undef v = Logic.Eq (logic_var v, logic_undefined)
+
+let logic_eq_null v = Logic.Eq (logic_var v, logic_null)
+
+let logic_eq_bool v b = Logic.Eq (logic_var v, logic_bool b)
 
 (* ref_type (v, "Member") <=> exists b x, v = b . x *)
 (* ref_type (v, "Variable") <=> exists b x, v = b .[v] x *)
@@ -64,25 +65,10 @@ let ref_type_pred ref rt =
   let arg1 = logic_var ref in
   let arg2 =  logic_string (string_of_ref_type rt) in
   UDPred ("ref_type", [arg1; arg2])
-
-(* TODO remove *)  
-(* ref_field (r, f) <=> exists b, (r = b . f || r = b .[v] f) *)
-let ref_field_pred ref f =
-  UDPred ("ref_field", [logic_var ref; logic_string f])
   
 (* is_a_ref (r) <=> exists b f rt, r = b .[rt] f *)
 let is_a_ref_pred ref =
   UDPred ("is_a_ref", [logic_var ref])
-  
-(* TODO remove *)
-(* undef_ref (r) <=> ref_base (r, #undefined) *)
-let undef_ref_pred ref =
-  UDPred ("undef_ref", [logic_var ref])
-  
-(* TODO remove*)
-(* ref_prim_base (r) <=> exists b, ref_base (r, b) * b #in (#B #union #M #union #N) *)
-let ref_prim_base_pred ref =
-  UDPred ("ref_prim_base", [logic_var ref])
   
 (* type_of_pred (v, t) *)
 let type_of_pred v (t : es_lang_type) =
@@ -189,52 +175,65 @@ let translate_error_throw error throw_var throw_label =
   [Assignment r1] @ proto_stmts @ [Assignment r2; r3]
   
 let translate_put_value v1 v2 throw_var throw_label =
-  let cond1 = Logic.Negation (is_a_ref_pred v1) in
   let gotothrow = translate_error_throw LRError throw_var throw_label in
-  let if_not_ref = Sugar (If (cond1, gotothrow, [])) in
-  let cond2 = undef_ref_pred v1 in
-  let if_undef_ref = Sugar (If (cond2, gotothrow, [])) in
-  let cond3 = ref_prim_base_pred v1 in
   let gotothrowtype = translate_error_throw LTError throw_var throw_label in
-  let if_prim_ref = Sugar (If (cond3, gotothrowtype, [])) in
   let base = mk_assign_fresh (Base v1) in
   let field = mk_assign_fresh (Field v1) in
   let update = Mutation (mk_mutation base.assign_left field.assign_left v2) in
-  let lvar = mk_assign_fresh (Var rempty) in
-  mk_etf_return [if_not_ref; if_undef_ref; if_prim_ref; Assignment base; Assignment field; update; Assignment lvar] lvar.assign_left
+  let lvar = mk_assign_fresh (Var rempty) in  
+  let main = Sugar (If (is_a_ref_pred v1,
+    [
+      Assignment base;
+      Sugar (If (logic_eq_undef base.assign_left, 
+        gotothrow, 
+        [
+          Sugar (If (prim_pred base.assign_left, 
+            gotothrowtype, 
+            [
+              Assignment field; 
+              update; 
+              Assignment lvar
+            ]))
+        ]))
+    ],
+    gotothrow))
+  in
+  mk_etf_return [main] lvar.assign_left
   
 let translate_gamma r ctx =
   let rv = fresh_r () in
-  let cond1 = Logic.Negation (is_a_ref_pred r) in
-  let assign_rv_r = Assignment (mk_assign rv (Var r)) in
-  let if1 = Sugar (If (cond1, [assign_rv_r], [])) in
-  let cond2 = undef_ref_pred r in
-  let gotothrow1 = translate_error_throw LRError ctx.throw_var ctx.label_throw in 
-  let if2 = Sugar (If (cond2, gotothrow1, [])) in
-  let cond3 = ref_prim_base_pred r in
-  let gotothrow2 = translate_error_throw LNotImplemented ctx.throw_var ctx.label_throw in 
-  let if3 = Sugar (If (cond3, gotothrow2, [])) in
-  let cond4 = ref_type_pred r VariableReference in
   let base = mk_assign_fresh (Base r) in
   let field = mk_assign_fresh (Field r) in
   let assign_rv_lookup = mk_assign rv (Lookup (base.assign_left, field.assign_left)) in
-  let if4 = Sugar (If (cond4, [Assignment base; Assignment field; Assignment assign_rv_lookup], [])) in
-  let cond5 = ref_type_pred r MemberReference in
-  let base_assign = mk_assign_fresh (Base r) in
-  let field_assign = mk_assign_fresh (Field r) in
-  let rv_assign_pi = mk_assign rv (Pi (base_assign.assign_left, field_assign.assign_left)) in
-  let if5 = Sugar (If (cond5, [Assignment base_assign; Assignment field_assign; Assignment rv_assign_pi], [])) in
-  [if1; if2; if3; if4; if5], rv
-  
+  let rv_assign_pi = mk_assign rv (Pi (base.assign_left, field.assign_left)) in  
+  let main = Sugar (If (is_a_ref_pred r,
+    [
+      Assignment base;
+      Sugar (If (logic_eq_undef base.assign_left,
+        translate_error_throw LRError ctx.throw_var ctx.label_throw,
+        [
+          Sugar (If (prim_pred base.assign_left,
+            translate_error_throw LNotImplemented ctx.throw_var ctx.label_throw,
+            [
+              Assignment field;
+              Sugar (If (ref_type_pred r VariableReference,
+                [ Assignment assign_rv_lookup ],
+                [ Assignment rv_assign_pi ]))
+            ]))
+        ]))
+    ],
+    [ Assignment (mk_assign rv (Var r)) ]))
+  in
+  [main], rv
+
 let translate_obj_coercible r ctx =
   let rv = fresh_r () in
-  let cond1 = Logic.Eq (logic_var r, logic_null) in
-  let gotothrow = translate_error_throw LTError ctx.throw_var ctx.label_throw in
-  let if1 = Sugar (If (cond1, gotothrow, [])) in
-  let cond2 = Logic.Eq (logic_var r, logic_undefined) in
-  let if2 = Sugar (If (cond2, gotothrow, [])) in
-  let assign_rv_empty = mk_assign rv (Var rempty) in 
-  [if1; if2; Assignment assign_rv_empty], rv
+  let gotothrow = translate_error_throw LTError ctx.throw_var ctx.label_throw in 
+  [
+    Sugar (If (logic_eq_null r, gotothrow, [])); 
+    Sugar (If (logic_eq_undef r, gotothrow, [])); 
+    Assignment (mk_assign rv (Literal Empty))
+  ], rv
   
 let translate_call_construct_start f e1 e2s ctx =
     let r1 = f e1 in
@@ -248,14 +247,19 @@ let translate_call_construct_start f e1 e2s ctx =
      ) e2s in  
     let arg_values, arg_stmts = List.split arg_stmts in
     let arg_stmts = List.flatten arg_stmts in  
-    let cond1 = Logic.Negation (type_of_pred r2 Logic.LT_Object) in
     let gotothrow = translate_error_throw LTError ctx.throw_var ctx.label_throw in
-    let if1 = Sugar (If (cond1, gotothrow, [])) in
     let fid_field = mk_assign_fresh_lit (String (string_of_builtin_field FId)) in
     let hasfield = mk_assign_fresh (HasField (r2, fid_field.assign_left)) in
-    let cond2 = Logic.Eq (logic_var hasfield.assign_left, logic_bool false) in
-    let if2 = Sugar (If (cond2, gotothrow, [])) in
-    (r1.etf_stmts @ r2_stmts @ arg_stmts @ [if1; Assignment fid_field; Assignment hasfield; if2], r1, r2, arg_values)
+    (
+      r1.etf_stmts @ 
+      r2_stmts @ 
+      arg_stmts @ 
+      [
+        Sugar (If (type_of_pred r2 Logic.LT_Object, [], gotothrow)); 
+        Assignment fid_field; 
+        Assignment hasfield; 
+        Sugar (If (logic_eq_bool hasfield.assign_left false, gotothrow, []))
+      ], r1, r2, arg_values)
     
 let translate_call r2 vthis arg_values =
 		(*TODO Eval*)
@@ -418,18 +422,25 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
           let r1 = f e1 in
           let r2 = f e2 in
           let r3_stmts, r3 = translate_gamma r2.etf_lvar ctx in
-          (* TODO: Change logic to have || *)
-          let cond1 = ref_type_pred r1.etf_lvar VariableReference in
-          let cond2 = ref_field_pred r1.etf_lvar "arguments" in
-          let cond3 = ref_field_pred r1.etf_lvar "eval" in
-          let cond12 = Logic.Star [cond1; cond2] in
-          let cond13 = Logic.Star [cond1; cond3] in
+          let r4 = mk_assign_fresh (Field r1.etf_lvar) in
           let gotothrow = translate_error_throw LRError ctx.throw_var ctx.label_throw in
-          let if1 = Sugar (If (cond12, gotothrow, [])) in
-          let if2 = Sugar (If (cond13, gotothrow, [])) in
+          let throw_check = Sugar (If (ref_type_pred r1.etf_lvar VariableReference, 
+            [
+              Assignment r4;
+               (* TODO: Change logic to have || *)
+              Sugar (If (Logic.Eq (logic_var r4.assign_left, logic_string "arguments"), gotothrow, []));
+              Sugar (If (Logic.Eq (logic_var r4.assign_left, logic_string "eval"), gotothrow, []));
+            ], 
+            [])) 
+          in
           let putvalue = translate_put_value r1.etf_lvar r3 ctx.throw_var ctx.label_throw in
-          let r4 = mk_assign_fresh (Var r3) in
-          mk_etf_return (r1.etf_stmts @ r2.etf_stmts @ r3_stmts @ [if1; if2] @ putvalue.etf_stmts @ [Assignment r4]) r4.assign_left
+          mk_etf_return (
+            r1.etf_stmts @
+            r2.etf_stmts @
+            r3_stmts @
+            [throw_check] @
+            putvalue.etf_stmts
+            ) r3
         end
       | Parser_syntax.Skip -> 
         let r1 = mk_assign_fresh (Var rempty) in
@@ -506,13 +517,13 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
         let rv = fresh_r () in
         let assign_rv_true = mk_assign rv (Literal (Bool true)) in
         let if_not_ref = Sugar (If (cond1, [Assignment assign_rv_true], [])) in
-        let cond2 = undef_ref_pred r1.etf_lvar in
+        let r4 = mk_assign_fresh (Base r1.etf_lvar) in 
+        let cond2 = logic_eq_undef r4.assign_left in
         let gotothrow = translate_error_throw LSError ctx.throw_var ctx.label_throw in
         let if_undef_ref = Sugar (If (cond2, gotothrow, [])) in
         let cond3 = ref_type_pred r1.etf_lvar VariableReference in
         let if_variable_ref = Sugar (If (cond3, gotothrow, [])) in
-        let r3 = mk_assign_fresh (Field r1.etf_lvar) in
-        let r4 = mk_assign_fresh (Base r1.etf_lvar) in        
+        let r3 = mk_assign_fresh (Field r1.etf_lvar) in       
         let r2 = mk_assign_fresh (HasField (r3.assign_left, r4.assign_left)) in
         let prototype_field = mk_assign_fresh_lit (String (string_of_builtin_field FId)) in
         let r5 = mk_assign_fresh (HasField (r4.assign_left, prototype_field.assign_left)) in
@@ -521,7 +532,19 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
         let gotothrow_type = translate_error_throw LTError ctx.throw_var ctx.label_throw in
         let elsebranch = Sugar (If (cond5, gotothrow_type, [Assignment assign_rv_true])) in
         let if1 = Sugar (If (cond4, [Assignment assign_rv_true], [elsebranch])) in
-        mk_etf_return (r1.etf_stmts @ [if_not_ref; if_undef_ref; if_variable_ref; Assignment r3; Assignment r4; Assignment r2; Assignment prototype_field; Assignment r5; if1]) rv
+        mk_etf_return (
+          r1.etf_stmts @ 
+          [
+            if_not_ref; 
+            Assignment r4;
+            if_undef_ref; 
+            if_variable_ref; 
+            Assignment r3;  
+            Assignment r2; 
+            Assignment prototype_field; 
+            Assignment r5; 
+            if1
+          ]) rv
       | Parser_syntax.BinOp (e1, op, e2) ->
         begin match op with
           | Parser_syntax.Comparison cop ->
