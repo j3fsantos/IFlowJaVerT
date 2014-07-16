@@ -60,7 +60,7 @@ let string_of_reference r =
     (string_of_var r.ref_field)
   
 let string_of_mutation m =
-  Printf.sprintf "[%s] := %s" (string_of_var m.m_left) (string_of_var m.m_right)
+  Printf.sprintf "[%s.%s] := %s" (string_of_var m.m_loc) (string_of_var m.m_field) (string_of_var m.m_right)
   
 let string_of_expression e =
   let s = string_of_var in

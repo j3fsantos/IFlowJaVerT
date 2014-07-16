@@ -96,12 +96,14 @@ type assignment = {
   }
   
 type mutation = {
-    m_left : variable;
+    m_loc : variable;
+    m_field : variable;
     m_right : variable;
   }
   
-let mk_mutation r v = {
-    m_left = r;
+let mk_mutation l f v = {
+    m_loc = l;
+    m_field = f;
     m_right = v;
   }
 
