@@ -40,12 +40,7 @@ let string_of_literal lit =
     | Null -> "null"
     | Bool b -> string_of_bool b
     | Undefined -> "#undefined"
-    | Empty -> "#empty"
-
-  
-let string_of_builtin_function bf =
-  match bf with
-    | Pi (b, x) -> Printf.sprintf "Pi ( %s, %s )" b x
+    | Empty -> "#empty" 
 
 let string_of_call c =
   Printf.sprintf "%s (%s, %s, %s)" c.call_name c.call_this c.call_scope (string_of_vars c.call_args)
@@ -73,26 +68,26 @@ let string_of_expression e =
     | Literal l -> string_of_literal l
     | Var v -> s v
     | BinOp (v1, op, v2) -> Printf.sprintf "%s %s %s" (s v1) (string_of_bin_op op) (s v2)
-    | Ref r -> string_of_reference r
-    | Field v -> Printf.sprintf "field (%s)" (s v)
-    | Base v -> Printf.sprintf "base (%s)" (s v)
-    | HasField v -> Printf.sprintf "hasfield (%s)" (s v)
-    | Lookup v -> Printf.sprintf "[%s]" (s v)
     | Call c -> string_of_call c
+    | Ref r -> string_of_reference r
+    | Base v -> Printf.sprintf "base (%s)" (s v)
+    | Field v -> Printf.sprintf "field (%s)" (s v)
     | Obj -> "new ()"
-    | BuiltInFunction bf -> string_of_builtin_function bf
+    | HasField (v1, v2) -> Printf.sprintf "hasfield (%s, %s)" (s v1) (s v2)
+    | Lookup (v1, v2) -> Printf.sprintf "[%s.%s]" (s v1) (s v2)
+    | Deallocation (v1, v2) -> Printf.sprintf "Delete %s.%s" (s v1) (s v2)
+    | Pi (l, x) -> Printf.sprintf "Pi ( %s, %s )" l x
   
 let rec string_of_statement t =
   let s = string_of_var in
   match t with
     | Skip -> "Skip"
     | Label l -> Printf.sprintf "label %s" l
-    | Assignment a -> Printf.sprintf "%s := %s" (s a.assign_left) (string_of_expression a.assign_right)
-    | Mutation m -> string_of_mutation m
-    | Deallocation v -> Printf.sprintf "Delete %s" (s v)
     | Goto ls -> Printf.sprintf "goto %s" (String.concat "," ls)
     | Assume f -> Printf.sprintf "assume %s" (PrintLogic.string_of_formula f)
     | Assert f -> Printf.sprintf "assert %s" (PrintLogic.string_of_formula f)
+    | Assignment a -> Printf.sprintf "%s := %s" (s a.assign_left) (string_of_expression a.assign_right)
+    | Mutation m -> string_of_mutation m
     | Sugar s -> string_of_sugar s
 and string_of_statement_list ts = (String.concat "\n" (List.map string_of_statement ts))
 and string_of_sugar t =

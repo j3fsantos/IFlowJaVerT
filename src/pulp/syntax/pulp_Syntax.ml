@@ -42,10 +42,7 @@ let mk_ref r f rt = {
     ref_type = rt
   }
 
-type codename_spec = spec CodenameMap.t
-
-type builtin_function = (* todo *)
-  | Pi of variable * variable
+type codename_spec = spec CodenameMap.t  
 
 type comparison_op =
   | Equal
@@ -83,14 +80,15 @@ type expression =
   | Literal of literal
   | Var of variable
   | BinOp of variable * bin_op * variable
-  | Ref of reference
-  | Field of variable
-  | Base of variable
-  | HasField of variable
-  | Lookup of variable 
   | Call of call
+  | Ref of reference
+  | Base of variable
+  | Field of variable
   | Obj
-  | BuiltInFunction of builtin_function
+  | HasField of variable * variable
+  | Lookup of variable * variable
+  | Deallocation of variable * variable
+  | Pi of variable * variable
 
 type assignment = { 
     assign_left : variable; 
@@ -110,12 +108,11 @@ let mk_mutation r v = {
 type statement =
   | Skip
   | Label of label
-  | Assignment of assignment
-  | Mutation of mutation
-  | Deallocation of variable
   | Goto of string list
   | Assume of Logic.formula
   | Assert of Logic.formula
+  | Assignment of assignment
+  | Mutation of mutation
   | Sugar of syntactic_sugar_statement
 and
 syntactic_sugar_statement =

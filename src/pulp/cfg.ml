@@ -92,7 +92,6 @@ let stmt_to_cfg (stmt : statement) label_map (ctx : translation_ctx) (start : cf
   match stmt with
     | Skip
     | Mutation _
-    | Deallocation _
     | Assume _
     | Assert _ ->
       begin
@@ -111,20 +110,17 @@ let stmt_to_cfg (stmt : statement) label_map (ctx : translation_ctx) (start : cf
 			  | Base _
 			  | HasField _
 			  | Lookup _
+        | Deallocation _
 			  | Obj ->
            let n = make_new_node stmt in 
            if (connect_with_start = true)
             then connect start n else ();
            Some n
-          
-			  | BuiltInFunction bf ->
-          begin match bf with
-            | Pi (b, x) ->            
-              let n = make_new_node stmt in 
-              if (connect_with_start = true)
-                then connect start n else (); 
-              Some n
-          end
+        | Pi (b, x) ->            
+          let n = make_new_node stmt in 
+          if (connect_with_start = true)
+            then connect start n else (); 
+          Some n
         | Call c ->
            let n = make_new_node stmt in 
            if (connect_with_start = true)
