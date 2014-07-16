@@ -8,7 +8,8 @@ type literal =
   | Bool of bool          
   | Num of float          
   | String of string
-  | Undefined      
+  | Undefined
+  | Empty (* special return value for the statements and internal reductions *)     
 
 type variable = string (* Variables of IVL *)
 
@@ -80,7 +81,6 @@ let mk_call name scope vthis args = {
 
 type expression = 
   | Literal of literal
-  | Empty (* special return value for the statements and internal reductions *)
   | Var of variable
   | BinOp of variable * bin_op * variable
   | Ref of reference

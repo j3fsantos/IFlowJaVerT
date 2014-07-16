@@ -39,7 +39,8 @@ let string_of_literal lit =
     | String x -> Printf.sprintf "\"%s\"" x
     | Null -> "null"
     | Bool b -> string_of_bool b
-    | Undefined -> "undefined"
+    | Undefined -> "#undefined"
+    | Empty -> "#empty"
 
   
 let string_of_builtin_function bf =
@@ -55,12 +56,12 @@ let string_of_ref_type rt =
     | VariableReference -> "Variable"
   
 let string_of_reference r =
-  Printf.sprintf "ref%s(%s, %s)"  
+  Printf.sprintf "(%s .%s %s)"  
+    (string_of_var r.ref_base)
     (match r.ref_type with
       | MemberReference -> "_o"
       | VariableReference -> "_v"
     ) 
-    (string_of_var r.ref_base)
     (string_of_var r.ref_field)
   
 let string_of_mutation m =
@@ -70,13 +71,12 @@ let string_of_expression e =
   let s = string_of_var in
   match e with
     | Literal l -> string_of_literal l
-    | Empty -> "#empty"
     | Var v -> s v
     | BinOp (v1, op, v2) -> Printf.sprintf "%s %s %s" (s v1) (string_of_bin_op op) (s v2)
     | Ref r -> string_of_reference r
-    | Field v -> Printf.sprintf "Field (%s)" (s v)
-    | Base v -> Printf.sprintf "Base (%s)" (s v)
-    | HasField v -> Printf.sprintf "HasField (%s)" (s v)
+    | Field v -> Printf.sprintf "field (%s)" (s v)
+    | Base v -> Printf.sprintf "base (%s)" (s v)
+    | HasField v -> Printf.sprintf "hasfield (%s)" (s v)
     | Lookup v -> Printf.sprintf "[%s]" (s v)
     | Call c -> string_of_call c
     | Obj -> "new ()"
@@ -86,13 +86,13 @@ let rec string_of_statement t =
   let s = string_of_var in
   match t with
     | Skip -> "Skip"
-    | Label l -> Printf.sprintf "Label %s" l
+    | Label l -> Printf.sprintf "label %s" l
     | Assignment a -> Printf.sprintf "%s := %s" (s a.assign_left) (string_of_expression a.assign_right)
     | Mutation m -> string_of_mutation m
     | Deallocation v -> Printf.sprintf "Delete %s" (s v)
-    | Goto ls -> Printf.sprintf "Goto %s" (String.concat "," ls)
-    | Assume f -> Printf.sprintf "Assume %s" (PrintLogic.string_of_formula f)
-    | Assert f -> Printf.sprintf "Assert %s" (PrintLogic.string_of_formula f)
+    | Goto ls -> Printf.sprintf "goto %s" (String.concat "," ls)
+    | Assume f -> Printf.sprintf "assume %s" (PrintLogic.string_of_formula f)
+    | Assert f -> Printf.sprintf "assert %s" (PrintLogic.string_of_formula f)
     | Sugar s -> string_of_sugar s
 and string_of_statement_list ts = (String.concat "\n" (List.map string_of_statement ts))
 and string_of_sugar t =

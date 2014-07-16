@@ -91,6 +91,15 @@ let test_same_name_param_var () =
   
 let test_popl12_example () =
   test_template ("var x = null, y = null, z = null; var f = function(w){x = v; v = 4; var v; y = v;}; v = 5; f(null); z = v;") "popl12"
+  
+let test_small_example () =
+  test_template ("var x = {}; var f = function(field, value){x[field] = value}; f(\"a\", 1);") "small example"
+  
+let test_smaller_example () =
+  test_template ("var x = {}; x.a = 1; x.b = 2") "smaller example"
+  
+let test_example () =
+  test_template ("var x = {a : 1}; var y = x.a") "example"
 
 
 let suite = "Testing Translation" >:::
@@ -114,4 +123,7 @@ let suite = "Testing Translation" >:::
    "testing return" >:: test_return;
    "testing return with expression" >:: test_return_exp;
    "testing function that has same name for one of the parameters and variable declaration" >:: test_same_name_param_var;
-   "translating popl12 example" >:: test_popl12_example] 
+   "translating popl12 example" >:: test_popl12_example;
+   "translating small explample" >:: test_small_example;
+   "translating smaller explample" >:: test_smaller_example;
+   "test_example" >:: test_example] 

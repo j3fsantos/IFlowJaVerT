@@ -85,7 +85,10 @@ let get_all_labels fb =
    ) label_map labels
   
   
-let stmt_to_cfg (stmt : statement) label_map (ctx : translation_ctx) (start : cfg_node): cfg_node =
+let stmt_to_cfg (stmt : statement) label_map (ctx : translation_ctx) (start : cfg_node option) : cfg_node option =
+  let start, connect_with_start = match start with 
+    | None -> make_skip_node (), false
+    | Some node -> node, true in
   match stmt with
     | Skip
     | Mutation _
@@ -94,13 +97,13 @@ let stmt_to_cfg (stmt : statement) label_map (ctx : translation_ctx) (start : cf
     | Assert _ ->
       begin
 	      let n = make_new_node stmt in 
-	      connect start n; 
-	      n
+        if (connect_with_start = true)
+	        then connect start n else ();
+	      Some n
       end
 	  | Assignment assign ->
       begin match assign.assign_right with
 			  | Literal _
-			  | Empty 
 			  | Var _
 			  | BinOp _
 			  | Ref _
@@ -110,32 +113,40 @@ let stmt_to_cfg (stmt : statement) label_map (ctx : translation_ctx) (start : cf
 			  | Lookup _
 			  | Obj ->
            let n = make_new_node stmt in 
-           connect start n; 
-           n
+           if (connect_with_start = true)
+            then connect start n else ();
+           Some n
           
 			  | BuiltInFunction bf ->
           begin match bf with
             | Pi (b, x) ->            
               let n = make_new_node stmt in 
-              connect start n; 
-              n
+              if (connect_with_start = true)
+                then connect start n else (); 
+              Some n
           end
         | Call c ->
            let n = make_new_node stmt in 
-           connect start n; 
+           if (connect_with_start = true)
+            then connect start n else ();
            let throw_label_node = AllLabels.find ctx.label_throw label_map in
            let return_label_node = AllLabels.find ctx.label_return label_map in
            connect n return_label_node;
            connect_excep n throw_label_node;
-           return_label_node
+           Some return_label_node
       end
-    | Label l -> AllLabels.find l label_map
+    | Label l -> 
+      let lnode = AllLabels.find l label_map in
+      if (connect_with_start = true)
+        then connect start lnode else ();
+      Some lnode
 	  | Goto labels -> 
        let n = make_new_node stmt in 
        List.iter (fun label ->
           connect n (AllLabels.find label label_map)) labels; 
-       connect start n;
-       make_skip_node ()
+       if (connect_with_start = true)
+         then connect start n else ();
+       None
     | Sugar _ -> raise (Invalid_argument ("Should be desugared at this point"))
 
   let remove_skip_from_cfg (cfg : cf_graph) = 
@@ -167,9 +178,13 @@ let rec fun_to_cfg (fb : function_block) : cf_graph =
   let label_map = get_all_labels fb in
   let lastn = List.fold_left (fun prev stmt ->
     stmt_to_cfg stmt label_map fb.func_ctx prev
-    ) cfg.cfg_entry fb.func_body in
-  lastn.cfgn_children <- (cfg.cfg_exit) :: lastn.cfgn_children;
-  cfg.cfg_exit.cfgn_parents <- lastn :: cfg.cfg_exit.cfgn_parents;
+    ) (Some cfg.cfg_entry) fb.func_body in
+  begin match lastn with 
+    | None -> ()
+    | Some lastn ->
+		  lastn.cfgn_children <- (cfg.cfg_exit) :: lastn.cfgn_children;
+		  cfg.cfg_exit.cfgn_parents <- lastn :: cfg.cfg_exit.cfgn_parents;
+  end;
   remove_skip_from_cfg cfg;
   cfg
     

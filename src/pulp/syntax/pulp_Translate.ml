@@ -64,35 +64,33 @@ let ref_type_pred ref rt =
   let arg1 = logic_var ref in
   let arg2 =  logic_string (string_of_ref_type rt) in
   UDPred ("ref_type", [arg1; arg2])
-  
+
+(* TODO remove *)  
 (* ref_field (r, f) <=> exists b, (r = b . f || r = b .[v] f) *)
 let ref_field_pred ref f =
   UDPred ("ref_field", [logic_var ref; logic_string f])
   
-(* ref_base (r, b) <=> exists f, (r = b . f || r = b .[v] f) *)
-let ref_base_pred ref b =
-  UDPred ("ref_field", [logic_var ref; logic_var b])
+(* is_a_ref (r) <=> exists b f rt, r = b .[rt] f *)
+let is_a_ref_pred ref =
+  UDPred ("is_a_ref", [logic_var ref])
   
-(* not_a_ref (r) <=> forall b f, (r <> b . f && r <> b . [v] f) *)
-let not_a_ref_pred ref =
-  UDPred ("not_a_ref", [logic_var ref])
-  
+(* TODO remove *)
 (* undef_ref (r) <=> ref_base (r, #undefined) *)
 let undef_ref_pred ref =
   UDPred ("undef_ref", [logic_var ref])
   
+(* TODO remove*)
 (* ref_prim_base (r) <=> exists b, ref_base (r, b) * b #in (#B #union #M #union #N) *)
 let ref_prim_base_pred ref =
   UDPred ("ref_prim_base", [logic_var ref])
   
-(* type_of_pred (v, t) <=> type_of v = t *)
+(* type_of_pred (v, t) *)
 let type_of_pred v (t : es_lang_type) =
   UDPred ("type_of", [logic_var v; logic_string (PrintLogic.string_of_es_lang_type t)])
   
-  
-(* not_type_of_pred (v, t) <=> type_of v <> t *)
-let not_type_of_pred v (t : es_lang_type) =
-  UDPred ("not_type_of", [logic_var v; logic_string (PrintLogic.string_of_es_lang_type t)])
+(* prim (v) <=> type_of (v, #B) || type_of (v, #M) || type_of(v, #N) *)
+let prim_pred v =
+  UDPred ("prim", [logic_var v])
   
 (* End of Logic *)
 
@@ -192,7 +190,7 @@ let translate_error_throw error throw_var throw_label =
   [Assignment r1] @ proto_stmts @ [Assignment r2; r3]
   
 let translate_put_value v1 v2 throw_var throw_label =
-  let cond1 = not_a_ref_pred v1 in
+  let cond1 = Logic.Negation (is_a_ref_pred v1) in
   let gotothrow = translate_error_throw LRError throw_var throw_label in
   let if_not_ref = Sugar (If (cond1, gotothrow, [])) in
   let cond2 = undef_ref_pred v1 in
@@ -206,7 +204,7 @@ let translate_put_value v1 v2 throw_var throw_label =
   
 let translate_gamma r ctx =
   let rv = fresh_r () in
-  let cond1 = not_a_ref_pred r in
+  let cond1 = Logic.Negation (is_a_ref_pred r) in
   let assign_rv_r = Assignment (mk_assign rv (Var r)) in
   let if1 = Sugar (If (cond1, [assign_rv_r], [])) in
   let cond2 = undef_ref_pred r in
@@ -247,7 +245,7 @@ let translate_call_construct_start f e1 e2s ctx =
      ) e2s in  
     let arg_values, arg_stmts = List.split arg_stmts in
     let arg_stmts = List.flatten arg_stmts in  
-    let cond1 = not_type_of_pred r2 Logic.LT_Object in
+    let cond1 = Logic.Negation (type_of_pred r2 Logic.LT_Object) in
     let gotothrow = translate_error_throw LTError ctx.throw_var ctx.label_throw in
     let if1 = Sugar (If (cond1, gotothrow, [])) in
     let fid_ref = mk_assign_fresh (Ref(mk_ref r2 (string_of_builtin_field FId) MemberReference)) in
@@ -411,7 +409,7 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
               | _ -> raise (PulpNotImplemented ("Getters and Setters are not yet implemented"))
             ) xs in
           let r6 = mk_assign_fresh (Var r1.assign_left) in
-          mk_etf_return ([Assignment r1] @ proto_stmts @ (List.flatten stmts)) r6.assign_left 
+          mk_etf_return ([Assignment r1] @ proto_stmts @ (List.flatten stmts) @ [Assignment r6]) r6.assign_left 
         end
       | Parser_syntax.Assign (e1, e2) ->
         begin
@@ -470,7 +468,7 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
       | Parser_syntax.Call (e1, e2s) ->
         let stmts, r1, r2, arg_values = translate_call_construct_start f e1 e2s ctx in
 			  let vthis = fresh_r () in
-			  let cond3 = not_a_ref_pred r1.etf_lvar in
+			  let cond3 = Logic.Negation (is_a_ref_pred r1.etf_lvar) in
 			  let assign_vthis_und = Assignment (mk_assign vthis (Literal Undefined)) in
 			  let if2 = Sugar (If (cond3, [assign_vthis_und], [])) in
 			  let cond4 = ref_type_pred r1.etf_lvar VariableReference in
@@ -502,7 +500,7 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
         mk_etf_return (stmts @ [Assignment prototype_ref; Assignment prototype; if2; Assignment vthis] @ proto_stmts @ [if3; if4]) rv
       | Parser_syntax.Delete e ->
         let r1 = f e in
-        let cond1 = not_a_ref_pred r1.etf_lvar in
+        let cond1 = Logic.Negation (is_a_ref_pred r1.etf_lvar) in
         let rv = fresh_r () in
         let assign_rv_true = mk_assign rv (Literal (Bool true)) in
         let if_not_ref = Sugar (If (cond1, [Assignment assign_rv_true], [])) in
