@@ -163,16 +163,6 @@ let tr_propname pn : string =
   | Parser_syntax.PropnameId s -> s
   | Parser_syntax.PropnameString s -> s
   | Parser_syntax.PropnameNum f -> string_of_float f
-
-type expr_to_fb_return = {
-     etf_stmts : statement list;
-     etf_lvar : variable;
-  }
-  
-let mk_etf_return stmts lvar = {
-     etf_stmts = stmts;
-     etf_lvar = lvar;
-  }
   
 let add_proto obj proto = 
   let r1 = mk_assign_fresh_lit (String (string_of_builtin_field FProto)) in
@@ -259,13 +249,13 @@ let translate_obj_coercible r ctx =
   ], rv
   
 let translate_call_construct_start f e1 e2s ctx =
-    let r1 = f e1 in
-    let r2_stmts, r2 = translate_gamma r1.etf_lvar ctx in 
+    let r1_stmts, r1 = f e1 in
+    let r2_stmts, r2 = translate_gamma r1 ctx in 
     let arg_stmts = List.map (fun e ->
         begin
-          let re1 = f e in
-          let re2_stmts, re2 = translate_gamma re1.etf_lvar ctx in 
-          (re2, re1.etf_stmts @ re2_stmts)
+          let re1_stmts, re1 = f e in
+          let re2_stmts, re2 = translate_gamma re1 ctx in 
+          (re2, re1_stmts @ re2_stmts)
         end
      ) e2s in  
     let arg_values, arg_stmts = List.split arg_stmts in
@@ -274,7 +264,7 @@ let translate_call_construct_start f e1 e2s ctx =
     let fid_field = mk_assign_fresh_lit (String (string_of_builtin_field FId)) in
     let hasfield = mk_assign_fresh (HasField (r2, fid_field.assign_left)) in
     (
-      r1.etf_stmts @ 
+      r1_stmts @ 
       r2_stmts @ 
       arg_stmts @ 
       [
@@ -302,36 +292,34 @@ let translate_call r2 vthis arg_values =
      ])), call)
     
 let translate_regular_bin_op f op e1 e2 ctx =
-  let r1 = f e1 in
-  let r2_stmts, r2 = translate_gamma r1.etf_lvar ctx in
-  let r3 = f e2 in
-  let r4_stmts, r4 = translate_gamma r3.etf_lvar ctx in
+  let r1_stmts, r1 = f e1 in
+  let r2_stmts, r2 = translate_gamma r1 ctx in
+  let r3_stmts, r3 = f e2 in
+  let r4_stmts, r4 = translate_gamma r3 ctx in
   let r5 = mk_assign_fresh (BinOp (r2, tr_bin_op op, r4)) in
-  mk_etf_return (
-    r1.etf_stmts @ 
+    r1_stmts @ 
     r2_stmts @ 
-    r3.etf_stmts @ 
+    r3_stmts @ 
     r4_stmts @ 
-    [Assignment r5]
-  ) r5.assign_left
+    [Assignment r5],
+    r5.assign_left
   
 let translate_bin_op_logical f e1 e2 bop ctx =
   let op = tr_boolean_op bop in
-  let r1 = f e1 in
-  let r2_stmts, r2 = translate_gamma r1.etf_lvar ctx in
+  let r1_stmts, r1 = f e1 in
+  let r2_stmts, r2 = translate_gamma r1 ctx in
   let rv = fresh_r () in
-  let r3 = f e2 in
-  let r4_stmts, r4 = translate_gamma r3.etf_lvar ctx in
-  mk_etf_return (
-    r1.etf_stmts @ 
+  let r3_stmts, r3 = f e2 in
+  let r4_stmts, r4 = translate_gamma r3 ctx in
+    r1_stmts @ 
     r2_stmts @ 
     [
       Sugar (If ((if (op = And) then (logic_is_false r2) else (logic_is_true r2)), 
         [Assignment (mk_assign rv (Var r2))], 
-	      (r3.etf_stmts) @ 
+	      (r3_stmts) @ 
 	      r4_stmts @ 
 	      [Assignment (mk_assign rv (BinOp (r2, Boolean op, r4)))]))
-    ]) rv
+    ], rv
   
 let rec desugar stmts = 
   List.flatten (List.map (fun stmt ->
@@ -364,16 +352,6 @@ let rec desugar stmts =
       | stmt -> [stmt]
   ) stmts)
   
-let join_etf_results (results : expr_to_fb_return list) : expr_to_fb_return =
-  if List.length results = 0 then raise (Invalid_argument "A list argument for the join_etf_results function should not be empty")
-  else
-  begin
-    let lvar = (List.nth results (List.length results - 1)).etf_lvar in
-    List.fold_left (fun joined left_to_join -> 
-      mk_etf_return (joined.etf_stmts @ left_to_join.etf_stmts) lvar
-    ) (mk_etf_return [] lvar) results
-  end
-  
 let find_var_scope var env =
   try 
   let scope = List.find (fun scope ->
@@ -383,82 +361,75 @@ let find_var_scope var env =
   with
     | Not_found -> unknownscope
 
-let rec exp_to_fb ctx exp : expr_to_fb_return = 
-  let mk_result = mk_etf_return in
+let rec exp_to_fb ctx exp : statement list * variable = 
   let f = exp_to_fb ctx in 
   match exp.Parser_syntax.exp_stx with
       (* Literals *)
       | Parser_syntax.Num n -> 
         begin
           let assign = mk_assign_fresh_lit (Num n) in 
-          mk_result [Assignment assign] assign.assign_left
+          [Assignment assign], assign.assign_left
         end
       | Parser_syntax.String s -> 
         begin 
           let assign = mk_assign_fresh_lit (String s) in 
-          mk_result [Assignment assign] assign.assign_left
+          [Assignment assign], assign.assign_left
         end
       | Parser_syntax.Null ->
         begin 
           let assign = mk_assign_fresh_lit Null in 
-          mk_result [Assignment assign] assign.assign_left
+          [Assignment assign], assign.assign_left
         end
       | Parser_syntax.Bool b -> 
         begin 
           let assign = mk_assign_fresh_lit (Bool b) in 
-          mk_result [Assignment assign] assign.assign_left
+          [Assignment assign], assign.assign_left
         end
       | Parser_syntax.This -> 
         begin 
           let assign = mk_assign_fresh (Var rthis) in 
-          mk_result [Assignment assign] assign.assign_left
+          [Assignment assign], assign.assign_left
         end
       | Parser_syntax.Var v -> 
         begin 
           let scope = function_scope_name (find_var_scope v ctx.env_vars) in
           let var = mk_assign_fresh_lit (String v) in
           let ref_assign = mk_assign_fresh (Ref (mk_ref scope var.assign_left VariableReference)) in
-          mk_result 
             [
               Assignment var; 
               Assignment ref_assign
-            ] ref_assign.assign_left         
+            ], ref_assign.assign_left         
         end
       | Parser_syntax.Access (e, v) -> 
         begin
-          let r1 = f e in
-          let r2_stmts, r2 = translate_gamma r1.etf_lvar ctx in
+          let r1_stmts, r1 = f e in
+          let r2_stmts, r2 = translate_gamma r1 ctx in
           let r3 = mk_assign_fresh_lit (Pulp_Syntax.String v) in
           let r4_stmts, r4 = translate_obj_coercible r2 ctx in
           let r5 = mk_assign_fresh (Ref (mk_ref r2 r3.assign_left MemberReference)) in
-          mk_etf_return (
-            r1.etf_stmts @ 
+            r1_stmts @ 
             r2_stmts @ 
             [Assignment r3] @ 
             r4_stmts @
-            [Assignment r5]
-          ) r5.assign_left;
+            [Assignment r5], r5.assign_left;
         end
       | Parser_syntax.CAccess (e1, e2) ->
-          let r1 = f e1 in
-          let r2_stmts, r2 = translate_gamma r1.etf_lvar ctx in
-          let r3 = f e2 in
-          let r4_stmts, r4 = translate_gamma r3.etf_lvar ctx in
+          let r1_stmts, r1 = f e1 in
+          let r2_stmts, r2 = translate_gamma r1 ctx in
+          let r3_stmts, r3 = f e2 in
+          let r4_stmts, r4 = translate_gamma r3 ctx in
           let r5_stmts, r5 = translate_obj_coercible r2 ctx in
           let r6 = mk_assign_fresh (Ref (mk_ref r2 r4 MemberReference)) in
-          mk_etf_return (
-            r1.etf_stmts @ 
+            r1_stmts @ 
             r2_stmts @ 
-            r3.etf_stmts @ 
+            r3_stmts @ 
             r4_stmts @ 
             r5_stmts @ 
-            [Assignment r6]
-          ) r6.assign_left;
+            [Assignment r6], r6.assign_left;
       | Parser_syntax.Script (_, es)
       | Parser_syntax.Block es ->
         let mk_if rval oldrval =
-          let retv = fresh_r () in
-          mk_etf_return 
+          let retv = fresh_r () in 
             [
               (* DSA *) 
               Sugar (If (logic_eq_empty rval, 
@@ -468,16 +439,15 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
                 [
                   Assignment (mk_assign retv (Var rval))
                 ]))
-            ] retv in
+            ], retv in
          
-        let retv = mk_assign_fresh (Literal Empty) in   
-        let skip = mk_etf_return [Assignment retv] retv.assign_left in
+        let retv = mk_assign_fresh (Literal Empty) in
         
-        List.fold_left (fun prev current -> 
-          let r1 = f current in
-          let ifstmt = mk_if r1.etf_lvar prev.etf_lvar in
-          join_etf_results [prev; r1; ifstmt]) 
-        skip es
+        List.fold_left (fun (prev_stmts, prev) current -> 
+          let r1_stmts, r1 = f current in
+          let if_stmts, ifv = mk_if r1 prev in
+          (prev_stmts @ r1_stmts @ if_stmts, ifv)) 
+        ([Assignment retv], retv.assign_left) es
         
       | Parser_syntax.Obj xs ->
         begin
@@ -487,12 +457,12 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
             match prop_type with
               | Parser_syntax.PropbodyVal ->
                 begin
-                  let r2 = f e in
-                  let r3_stmts, r3 = translate_gamma r2.etf_lvar ctx in
+                  let r2_stmts, r2 = f e in
+                  let r3_stmts, r3 = translate_gamma r2 ctx in
                   let r4 = mk_assign_fresh_lit (String (Pretty_print.string_of_propname prop_name)) in
                   let r6 = Mutation (mk_mutation r1.assign_left r4.assign_left r3) in
                   
-                  r2.etf_stmts @ 
+                  r2_stmts @ 
                   r3_stmts @ 
                   [
                     Assignment r4; 
@@ -505,27 +475,25 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
             
           let r6 = mk_assign_fresh (Var r1.assign_left) in
           
-          mk_etf_return (
             [Assignment r1] @ 
             add_proto_lvalue r1.assign_left Logic.Lop @ 
             (List.flatten stmts) @ 
-            [Assignment r6]) r6.assign_left 
+            [Assignment r6], r6.assign_left 
         end
         
       | Parser_syntax.Assign (e1, e2) ->
         begin
-          let r1 = f e1 in
-          let r2 = f e2 in
-          let r3_stmts, r3 = translate_gamma r2.etf_lvar ctx in
-          let r4 = mk_assign_fresh (Field r1.etf_lvar) in
+          let r1_stmts, r1 = f e1 in
+          let r2_stmts, r2 = f e2 in
+          let r3_stmts, r3 = translate_gamma r2 ctx in
+          let r4 = mk_assign_fresh (Field r1) in
           let gotothrow = translate_error_throw LRError ctx.throw_var ctx.label_throw in
           
-          mk_etf_return (
-            r1.etf_stmts @
-            r2.etf_stmts @
+            r1_stmts @
+            r2_stmts @
             r3_stmts @
             [
-              Sugar (If (ref_type_pred r1.etf_lvar VariableReference, 
+              Sugar (If (ref_type_pred r1 VariableReference, 
 		            [
 		              Assignment r4;
 		               (* TODO: Change logic to have || *)
@@ -534,13 +502,12 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
 		            ], 
 		            []))
             ] @
-            [translate_put_value r1.etf_lvar r3 ctx.throw_var ctx.label_throw]
-            ) r3
+            [translate_put_value r1 r3 ctx.throw_var ctx.label_throw], r3
         end
         
       | Parser_syntax.Skip -> 
         let r1 = mk_assign_fresh (Literal Empty) in
-        mk_etf_return [Assignment r1] r1.assign_left 
+        [Assignment r1], r1.assign_left 
         
       | Parser_syntax.VarDec vars ->
         let result = List.map (fun var ->
@@ -548,9 +515,9 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
             | (v, Some exp) -> f ({exp with Parser_syntax.exp_stx = (Parser_syntax.Assign ({exp with Parser_syntax.exp_stx = Parser_syntax.Var v}, exp))})
             | (v, None) -> f ({exp with Parser_syntax.exp_stx = Parser_syntax.Skip})
           ) vars in
-        let stmts = (join_etf_results result).etf_stmts in
+        let stmts, _ = List.split result in
         let empty = mk_assign_fresh (Literal Empty) in
-        mk_etf_return (stmts @ [Assignment empty]) empty.assign_left
+        (List.flatten stmts) @ [Assignment empty], empty.assign_left
         
       | Parser_syntax.AnnonymousFun (_, vs, e) ->
         let fid = get_codename exp in
@@ -568,7 +535,6 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
         let f_codename_field = mk_assign_fresh_lit (String (string_of_builtin_field FId)) in
         let f_scope_field = mk_assign_fresh_lit (String (string_of_builtin_field FScope)) in
         let f_assign = mk_assign_fresh (Var f_obj.assign_left) in
-        mk_etf_return (
           [Assignment f_obj] @ 
           add_proto_lvalue f_obj.assign_left Lfp @ 
           [Assignment prototype] @ 
@@ -586,20 +552,19 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
             Assignment f_scope_field; 
             Mutation (mk_mutation f_obj.assign_left f_scope_field.assign_left scope.assign_left); 
             Assignment f_assign
-          ]) f_assign.assign_left  
+          ], f_assign.assign_left  
                       
       | Parser_syntax.Call (e1, e2s) ->
         let stmts, r1, r2, arg_values = translate_call_construct_start f e1 e2s ctx in
 			  let vthis = fresh_r () in
 			  let assign_vthis_und = Assignment (mk_assign vthis (Literal Undefined)) in
-        let base_assign = mk_assign_fresh (Base r1.etf_lvar) in
+        let base_assign = mk_assign_fresh (Base r1) in
 			  let if5, call = translate_call r2 vthis arg_values in
-			  mk_etf_return (
           stmts @ 
           [
-            Sugar (If (is_a_ref_pred r1.etf_lvar, 
+            Sugar (If (is_a_ref_pred r1, 
                 [
-                  Sugar (If (ref_type_pred r1.etf_lvar VariableReference, 
+                  Sugar (If (ref_type_pred r1 VariableReference, 
                     [assign_vthis_und], 
                     [
                       Assignment base_assign; 
@@ -608,8 +573,7 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
                 ],
                 [assign_vthis_und])); 
             if5
-          ]
-          ) call.assign_left
+          ], call.assign_left
         
       | Parser_syntax.New (e1, e2s) ->
         let stmts, r1, r2, arg_values = translate_call_construct_start f e1 e2s ctx in
@@ -619,7 +583,6 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
         let vthis = mk_assign_fresh Obj in
 			  let if3, call = translate_call r2 vthis.assign_left arg_values in
         let rv = fresh_r () in  
-        mk_etf_return (
           stmts @ 
           [
             Assignment prototype_field; 
@@ -635,28 +598,27 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
             Sugar (If (type_of_pred call.assign_left Logic.LT_Object, 
                 [Assignment (mk_assign rv (Var call.assign_left))], 
                 [Assignment (mk_assign rv (Var vthis.assign_left))]))
-          ]) rv
+          ], rv
         
       | Parser_syntax.Delete e ->
-        let r1 = f e in
+        let r1_stmts, r1 = f e in
         let rv = fresh_r () in
         let assign_rv_true = mk_assign rv (Literal (Bool true)) in
-        let r4 = mk_assign_fresh (Base r1.etf_lvar) in 
+        let r4 = mk_assign_fresh (Base r1) in 
         let gotothrow = translate_error_throw LSError ctx.throw_var ctx.label_throw in
-        let r3 = mk_assign_fresh (Field r1.etf_lvar) in       
+        let r3 = mk_assign_fresh (Field r1) in       
         let r2 = mk_assign_fresh (HasField (r4.assign_left, r3.assign_left)) in
         (* TODO : Changes when we add attributes *)
         let fid_field = mk_assign_fresh_lit (String (string_of_builtin_field FId)) in
         let r5 = mk_assign_fresh (HasField (r4.assign_left, fid_field.assign_left)) in
-        mk_etf_return (
-          r1.etf_stmts @ 
+          r1_stmts @ 
           [
-            Sugar (If (is_a_ref_pred r1.etf_lvar, 
+            Sugar (If (is_a_ref_pred r1, 
                 [ Assignment r4;
 			            Sugar (If (logic_eq_undef r4.assign_left, 
                     gotothrow, 
                     [])); 
-			            Sugar (If (ref_type_pred r1.etf_lvar VariableReference, 
+			            Sugar (If (ref_type_pred r1 VariableReference, 
                     gotothrow, 
                     [])); 
 			            Assignment r3;  
@@ -672,7 +634,7 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
                     ]))
                 ], 
                 [Assignment assign_rv_true])); 
-          ]) rv
+          ], rv
           
       | Parser_syntax.BinOp (e1, op, e2) ->
         begin match op with
@@ -697,54 +659,50 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
         end
         
       | Parser_syntax.If (e1, e2, e3) ->
-        let r1 = f e1 in
-        let r2_stmts, r2 = translate_gamma r1.etf_lvar ctx in
-        let r3 = f e2 in
+        let r1_stmts, r1 = f e1 in
+        let r2_stmts, r2 = translate_gamma r1 ctx in
+        let r3_stmts, r3 = f e2 in
         let rv = fresh_r () in
         let elsebranch = match e3 with
           | Some e3 -> 
-            let r4 = f e3 in
-            r4.etf_stmts @ 
-            [Assignment (mk_assign rv (Var r4.etf_lvar))]
+            let r4_stmts, r4 = f e3 in
+            r4_stmts @ 
+            [Assignment (mk_assign rv (Var r4))]
           | None -> [] in      
-        mk_etf_return (
-          r1.etf_stmts @ 
+          r1_stmts @ 
           r2_stmts @ 
           [ 
             Sugar (If (logic_is_true r2, 
-                r3.etf_stmts @ 
-                [Assignment (mk_assign rv (Var r3.etf_lvar))], 
+                r3_stmts @ 
+                [Assignment (mk_assign rv (Var r3))], 
                 elsebranch))
-          ]
-        ) rv
+          ], rv
         
       | Parser_syntax.While (e1, e2) ->
         let rv = fresh_r () in
         let assign_rv_empty = Assignment (mk_assign rv (Literal Empty)) in
         let label1 = fresh_r () in
-        let r1 = f e1 in
-        let r2_stmts, r2 = translate_gamma r1.etf_lvar ctx in
-        let r3 = f e2 in
-        mk_etf_return (
+        let r1_stmts, r1 = f e1 in
+        let r2_stmts, r2 = translate_gamma r1 ctx in
+        let r3_stmts, r3 = f e2 in
           [
             assign_rv_empty; 
             Label label1
           ] @ 
-          r1.etf_stmts @ 
+          r1_stmts @ 
           r2_stmts @ 
           [
             Sugar (If (logic_is_true r2, 
-                r3.etf_stmts @ 
+                r3_stmts @ 
                 [ 
-                  Sugar (If (logic_eq_empty r3.etf_lvar, 
+                  Sugar (If (logic_eq_empty r3, 
                     [], 
-                    [Assignment (mk_assign rv (Var r3.etf_lvar))])); 
+                    [Assignment (mk_assign rv (Var r3))])); 
                   Goto [label1]
                 ], 
                 
                 []))
-          ]
-         ) rv
+          ], rv
         
       | Parser_syntax.Return e ->
         let stmts, rv = match e with
@@ -752,17 +710,16 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
             let und_assign = mk_assign_fresh_lit Undefined in
             [Assignment und_assign], und_assign.assign_left
           | Some e -> 
-            let r1 = f e in
-            let r2_stmts, r2 = translate_gamma r1.etf_lvar ctx in
-            r1.etf_stmts @ r2_stmts, r2
+            let r1_stmts, r1 = f e in
+            let r2_stmts, r2 = translate_gamma r1 ctx in
+            r1_stmts @ r2_stmts, r2
          in
         let assignr = mk_assign ctx.return_var (Var rv) in
-        mk_etf_return (
           stmts @ 
           [
             Assignment assignr; 
             Goto [ctx.label_return]
-          ]) ctx.return_var
+          ], ctx.return_var
         
       | Parser_syntax.NamedFun _ (*(_, n, vs, e)*)
 
@@ -824,13 +781,15 @@ let translate_function fb fid args env =
       ]
     ) (List.filter (fun v -> not (List.mem v args)) (var_decls fb)) in
     
+  let pulp_fb, _ = exp_to_fb ctx fb in
+    
   let pulpe = 
     init_e @ 
     [current_scope] @ 
     proto_stmts @ 
     init_vars @ 
     decl_vars @ 
-    (exp_to_fb ctx fb).etf_stmts in
+    pulp_fb in
   
   let desugared_pulpe = desugar pulpe in
   
