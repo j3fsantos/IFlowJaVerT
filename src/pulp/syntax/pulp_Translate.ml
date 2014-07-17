@@ -174,15 +174,27 @@ let mk_etf_return stmts lvar = {
      etf_lvar = lvar;
   }
   
-let add_proto obj proto =
+let add_proto obj proto = 
   let r1 = mk_assign_fresh_lit (String (string_of_builtin_field FProto)) in
   let r2 = mk_assign_fresh proto in
   let r3 = Mutation (mk_mutation obj r1.assign_left r2.assign_left) in
   [Assignment r1; Assignment r2; r3]
   
+let add_proto_var obj proto =
+  add_proto obj (Var proto)
+  
+let add_proto_lvalue obj proto =
+  add_proto obj (Literal (String (PrintLogic.string_of_loc proto)))
+  
+let add_proto_value obj proto =
+  add_proto obj (Literal (String (string_of_builtin_loc proto)))
+  
+let add_proto_null obj =
+  add_proto obj (Literal (String (PrintLogic.string_of_loc_b Lb_LocNull)))
+  
 let translate_error_throw error throw_var throw_label =
   let r1 = mk_assign_fresh Obj in
-  let proto_stmts = add_proto r1.assign_left (Var (string_of_builtin_loc error)) in
+  let proto_stmts = add_proto_value r1.assign_left error in
   let r2 = mk_assign throw_var (Var r1.assign_left) in
   let r3 = Goto [throw_label] in
   [Assignment r1] @ proto_stmts @ [Assignment r2; r3]
@@ -495,7 +507,7 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
           
           mk_etf_return (
             [Assignment r1] @ 
-            add_proto r1.assign_left (Var (PrintLogic.string_of_loc Logic.Lop))  @ 
+            add_proto_lvalue r1.assign_left Logic.Lop @ 
             (List.flatten stmts) @ 
             [Assignment r6]) r6.assign_left 
         end
@@ -558,15 +570,15 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
         let f_assign = mk_assign_fresh (Var f_obj.assign_left) in
         mk_etf_return (
           [Assignment f_obj] @ 
-          (add_proto f_obj.assign_left (Var (PrintLogic.string_of_loc Lfp))) @ 
+          add_proto_lvalue f_obj.assign_left Lfp @ 
           [Assignment prototype] @ 
-          add_proto prototype.assign_left (Var (PrintLogic.string_of_loc Lop)) @ 
+          add_proto_lvalue prototype.assign_left Lop @ 
           [
             Assignment f_prototype_field; 
             Mutation (mk_mutation f_obj.assign_left f_prototype_field.assign_left prototype.assign_left)
           ] @ 
           [Assignment scope] @ 
-          (add_proto scope.assign_left (Var (PrintLogic.string_of_loc_b Lb_LocNull))) @ 
+          add_proto_null scope.assign_left @ 
           env_stmts @ 
           [
             Assignment f_codename_field; 
@@ -617,7 +629,7 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
                 [Assignment (mk_assign vthisproto (Var (PrintLogic.string_of_loc Logic.Lop)))])); 
             Assignment vthis
           ] @ 
-          add_proto vthis.assign_left (Var vthisproto) @ 
+          add_proto_var vthis.assign_left vthisproto @ 
           [
             if3; 
             Sugar (If (type_of_pred call.assign_left Logic.LT_Object, 
@@ -708,7 +720,7 @@ let rec exp_to_fb ctx exp : expr_to_fb_return =
         
       | Parser_syntax.While (e1, e2) ->
         let rv = fresh_r () in
-        let assign_rv_empty = Assignment (mk_assign rv (Var rempty)) in
+        let assign_rv_empty = Assignment (mk_assign rv (Literal Empty)) in
         let label1 = fresh_r () in
         let r1 = f e1 in
         let r2_stmts, r2 = translate_gamma r1.etf_lvar ctx in
@@ -788,10 +800,10 @@ let translate_function fb fid args env =
   let current_scope, proto_stmts = 
     if (fid = main_fun_id) then
       (Assignment (mk_assign current_scope_var (Var (PrintLogic.string_of_loc Logic.Lg))),
-       add_proto current_scope_var (Var (PrintLogic.string_of_loc Logic.Lop)))
+       add_proto_lvalue current_scope_var Lop)
   else 
        (Assignment (mk_assign current_scope_var Obj),
-        add_proto current_scope_var (Var (PrintLogic.string_of_loc_b Lb_LocNull))) in
+        add_proto_null current_scope_var) in
         
   let init_vars = Utils.flat_map (fun v ->
       let v_assign = mk_assign_fresh_lit (String v) in
