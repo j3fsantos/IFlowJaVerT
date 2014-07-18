@@ -229,7 +229,7 @@ let translate_gamma r ctx =
             translate_error_throw LNotImplemented ctx.throw_var ctx.label_throw,
             [
               Assignment field;
-              Sugar (If (ref_type_pred r VariableReference,
+              Sugar (If (Logic.Star[ref_type_pred r VariableReference; Negation (logic_eq_loc base.assign_left Lg)],
                 [ Assignment assign_rv_lookup ],
                 [ Assignment rv_assign_pi ]))
             ]))
