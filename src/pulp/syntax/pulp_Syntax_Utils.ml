@@ -25,8 +25,8 @@ let fresh_name =
     v
   in f
   
-let fresh_annonymous () : string =
-  fresh_name "annonymous"
+let fresh_anonymous () : string =
+  fresh_name "anonymous"
   
 let fresh_named n : string =
   fresh_name n 
@@ -132,7 +132,7 @@ let rec add_codenames exp : exp =
       | With (e1, e2) -> m exp (With (f e1, f e2))
       | Call (e1, e2s) -> m exp (Call (f e1, List.map f e2s))
       | New (e1, e2s) -> m exp (New (f e1, List.map f e2s))
-      | AnnonymousFun (str, args, fb) -> {exp with exp_stx = AnnonymousFun (str, args, f fb); exp_annot = add_codename exp (fresh_annonymous ())}
+      | AnnonymousFun (str, args, fb) -> {exp with exp_stx = AnnonymousFun (str, args, f fb); exp_annot = add_codename exp (fresh_anonymous ())}
       | NamedFun (str, name, args, fb) -> {exp with exp_stx = NamedFun (str, name, args, f fb); exp_annot = add_codename exp (fresh_named name)}
       | Obj xs -> m exp (Obj (List.map (fun (pn, pt, e) -> (pn, pt, f e)) xs))
       | Array es -> m exp (Array (List.map fo es))

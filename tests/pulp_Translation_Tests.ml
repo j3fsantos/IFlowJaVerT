@@ -99,8 +99,68 @@ let test_smaller_example () =
   test_template ("var x = {}; x.a = 1; x.b = 2") "smaller example"
   
 let test_example () =
-  test_template ("var x = {a : 1}; var y = x.a") "example"
+  test_template ("var s = function (n) { 
+   var t = function () { 
+      return {x : n} 
+    }; 
+   var d = t(n); 
+   return d 
+}; 
 
+var r = s(3).x") "example"
+
+let test_gamma () =
+  let ctx = create_ctx [] in
+  let gamma_stmts, r = translate_gamma "r" ctx in
+  let gamma_stmts = desugar gamma_stmts in
+  let cfg = Cfg.fun_to_cfg (make_function_block "gamma" gamma_stmts [] ctx) in
+  let cfgs = AllFunctions.add "gamma_id" cfg AllFunctions.empty in
+  let _ = Cfg.print_cfg cfgs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/gamma") in
+  assert_bool "Incorrect Translation" true
+
+ (*"var s = function (v) { var t = function () { var a = {x : v}; return a }; var b = t (v); return b }; var r = s(3).x"*)
+
+let cfg_anonymous2 () =
+  let ctx = create_ctx [] in
+  let anonymous1 = mk_assign_fresh_lit (String "anonymous1") in
+  let n = mk_assign_fresh_lit (String "n") in
+  let x = mk_assign_fresh_lit (String "x") in
+  let proto_stmts = add_proto_null "anonymous2_scope" in
+  let stmts = 
+    [
+	    Assignment anonymous1;
+	    Assignment (mk_assign ("anonymous1_scope") (Ref (mk_ref "rscope" anonymous1.assign_left MemberReference)));
+	    Assignment (mk_assign "anonymous2_scope" Obj)  
+    ] @
+    proto_stmts @
+    [
+      Assignment (mk_assign "r1" Obj)
+    ] @
+    add_proto_lvalue "r1" Logic.Lop @
+    [
+      Assignment (mk_assign "r2" (Lookup ("anonymous2_scope", n.assign_left)));
+      Mutation (mk_mutation "r1" x.assign_left "r2");
+      Goto [ctx.label_return]
+    ]
+    in
+  let stmts = desugar stmts in
+  let cfg = Cfg.fun_to_cfg (make_function_block "anonymous2" stmts [] ctx) in
+  let cfgs = AllFunctions.add "anonymous2" cfg AllFunctions.empty in
+  let _ = Cfg.print_cfg cfgs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/anonymous") in
+  assert_bool "Incorrect Translation" true
+  (* 
+   anonymous1_scope := (rscope ._o "anonymous1")
+   
+   anonymous2_scope := new ()
+   [anonymous2_scope."#proto"] := "#null"
+  
+   r4081 := new ()
+   [r4081."#proto"] := "#lop"       
+   r4084 := [anonymous1_scope."n"]
+   [r4081."x"] := r4084    
+   goto return.r4075
+  
+  *)
 
 let suite = "Testing Translation" >:::
   ["translating access" >:: test_access;
@@ -126,4 +186,6 @@ let suite = "Testing Translation" >:::
    "translating popl12 example" >:: test_popl12_example;
    "translating small explample" >:: test_small_example;
    "translating smaller explample" >:: test_smaller_example;
-   "test_example" >:: test_example] 
+   "test_example" >:: test_example;
+   "translating gamma" >:: test_gamma;
+   "cfg_anonymous2" >:: cfg_anonymous2] 

@@ -21,6 +21,7 @@ type cf_graph = {
   cfg_id: int;
   cfg_entry: cfg_node;
   cfg_exit: cfg_node;
+  cfg_nodes : cfg_node list
 }
 
 let make_node : statement -> cfg_node =
@@ -41,9 +42,9 @@ let make_new_node stmt : cfg_node =
 let make_skip_node () : cfg_node =
   make_new_node Skip    
   
-let make_graph () : cf_graph =
+let make_graph nodes : cf_graph =
   let x = ref 0 in incr x;
-  {cfg_id = !x; cfg_entry = make_skip_node (); cfg_exit = make_skip_node ()}
+  {cfg_id = !x; cfg_entry = make_skip_node (); cfg_exit = make_skip_node (); cfg_nodes = nodes}
   
 let connect node_start node_end =
   node_start.cfgn_children <- node_end :: node_start.cfgn_children;
@@ -168,10 +169,53 @@ let stmt_to_cfg (stmt : statement) label_map (ctx : translation_ctx) (start : cf
         ) node.cfgn_excep_parents        
       | _ -> ()
   ) nodes
+  
+let connect_goto node nodes =
+  match node.cfgn_statement with
+    | Goto ls ->
+      begin
+        List.iter (fun n -> 
+          match n.cfgn_statement with
+            | Label l -> if List.mem l ls then connect node n
+            | _ -> ()
+          ) nodes
+      end
+    | _ -> ()
+
+let connect_call_throw node nodes throw_label = 
+  match node.cfgn_statement with
+    | Assignment {assign_right = Call _} ->
+      begin
+        List.iter (fun n -> 
+          match n.cfgn_statement with
+            | Label l -> if (l = throw_label) then connect node n
+            | _ -> ()
+          ) nodes
+      end
+    | _ -> ()
+  
+
+let connect_nodes nodes cfg_end throw_label =
+  List.iteri (fun index node -> 
+    if index < List.length nodes - 2 then
+	    match node.cfgn_statement with
+	      | Goto _ -> connect_goto node nodes
+	      | Assignment {assign_right = Call _} ->
+	        let n = if index + 3 < List.length nodes then List.nth nodes (index + 1) else cfg_end in
+	        let _ = connect node n in
+	        connect_call_throw node nodes throw_label;
+	      | _ -> 
+	        let n = if index + 3 < List.length nodes then List.nth nodes (index + 1) else cfg_end in
+	        connect node n
+	) nodes
 
 let rec fun_to_cfg (fb : function_block) : cf_graph =
-  let cfg = make_graph () in
-  let label_map = get_all_labels fb in
+  let nodes = List.map make_new_node (fb.func_body @ [Label fb.func_ctx.label_throw; Label fb.func_ctx.label_return]) in
+  let cfg = make_graph (nodes) in
+  let _ = if (List.length nodes <> 0) then connect cfg.cfg_entry (List.hd nodes) in
+  let _ = connect_nodes nodes cfg.cfg_exit fb.func_ctx.label_throw in
+  
+  (*let label_map = get_all_labels fb in
   let lastn = List.fold_left (fun prev stmt ->
     stmt_to_cfg stmt label_map fb.func_ctx prev
     ) (Some cfg.cfg_entry) fb.func_body in
@@ -180,7 +224,7 @@ let rec fun_to_cfg (fb : function_block) : cf_graph =
     | Some lastn ->
 		  lastn.cfgn_children <- (cfg.cfg_exit) :: lastn.cfgn_children;
 		  cfg.cfg_exit.cfgn_parents <- lastn :: cfg.cfg_exit.cfgn_parents;
-  end;
+  end;*)
   remove_skip_from_cfg cfg;
   cfg
     
