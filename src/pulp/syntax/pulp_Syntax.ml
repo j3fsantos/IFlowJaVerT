@@ -30,18 +30,6 @@ type reference_type =
   | MemberReference (*A reference created by access x[y] *)
   | VariableReference (* A reference created by sigma *)
 
-type reference = {
-    ref_base : variable;
-    ref_field : variable;
-    ref_type : reference_type
-  }
-  
-let mk_ref r f rt = {
-    ref_base = r;
-    ref_field = f;
-    ref_type = rt
-  }
-
 type codename_spec = spec CodenameMap.t  
 
 type comparison_op =
@@ -62,33 +50,33 @@ type bin_op =
   | Arith of arith_op
   | Boolean of bool_op
 
-type call = { 
-    call_name : variable;
-    call_scope : variable;
-    call_args : variable list;
-    call_this : variable;
-   }
-  
-let mk_call name scope vthis args = {
-	  call_name = name;
-    call_scope = scope;
-	  call_args = args;
-	  call_this = vthis
-  }
-
 type expression = 
   | Literal of literal
   | Var of variable
-  | BinOp of variable * bin_op * variable
+  | BinOp of expression * bin_op * expression
+  | Ref of expression * expression * reference_type
+  | Base of expression
+  | Field of expression
+  (* Assignment expressions *)
   | Call of call
-  | Ref of reference
-  | Base of variable
-  | Field of variable
   | Obj
-  | HasField of variable * variable
-  | Lookup of variable * variable
-  | Deallocation of variable * variable
-  | Pi of variable * variable
+  | HasField of expression * expression
+  | Lookup of expression * expression
+  | Deallocation of expression * expression
+  | Pi of expression * expression
+and call = { 
+    call_name : expression;
+    call_scope : expression;
+    call_args : expression list;
+    call_this : expression;
+   }
+  
+let mk_call name scope vthis args = {
+      call_name = name;
+      call_scope = scope;
+      call_args = args;
+      call_this = vthis
+  }
 
 type assignment = { 
     assign_left : variable; 
@@ -96,9 +84,9 @@ type assignment = {
   }
   
 type mutation = {
-    m_loc : variable;
-    m_field : variable;
-    m_right : variable;
+    m_loc : expression;
+    m_field : expression;
+    m_right : expression;
   }
   
 let mk_mutation l f v = {

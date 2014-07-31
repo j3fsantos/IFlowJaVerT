@@ -41,42 +41,40 @@ let string_of_literal lit =
     | Bool b -> string_of_bool b
     | Undefined -> "#undefined"
     | Empty -> "#empty" 
-
-let string_of_call c =
-  Printf.sprintf "%s (%s, %s, %s)" c.call_name c.call_this c.call_scope (string_of_vars c.call_args)
   
 let string_of_ref_type rt =
   match rt with
     | MemberReference -> "Member"
     | VariableReference -> "Variable"
   
-let string_of_reference r =
-  Printf.sprintf "(%s .%s %s)"  
-    (string_of_var r.ref_base)
-    (match r.ref_type with
-      | MemberReference -> "_o"
-      | VariableReference -> "_v"
-    ) 
-    (string_of_var r.ref_field)
-  
-let string_of_mutation m =
-  Printf.sprintf "[%s.%s] := %s" (string_of_var m.m_loc) (string_of_var m.m_field) (string_of_var m.m_right)
-  
-let string_of_expression e =
-  let s = string_of_var in
+let rec string_of_expression e =
+  let se = string_of_expression in
   match e with
     | Literal l -> string_of_literal l
-    | Var v -> s v
-    | BinOp (v1, op, v2) -> Printf.sprintf "%s %s %s" (s v1) (string_of_bin_op op) (s v2)
+    | Var v -> string_of_var v
+    | BinOp (e1, op, e2) -> Printf.sprintf "%s %s %s" (se e1) (string_of_bin_op op) (se e2)
     | Call c -> string_of_call c
-    | Ref r -> string_of_reference r
-    | Base v -> Printf.sprintf "base (%s)" (s v)
-    | Field v -> Printf.sprintf "field (%s)" (s v)
+    | Ref (e1, e2, t) -> Printf.sprintf "(%s .%s %s)" (se e1)
+      (match t with
+        | MemberReference -> "_o"
+        | VariableReference -> "_v")
+      (se e2)
+    | Base e -> Printf.sprintf "base (%s)" (se e)
+    | Field e -> Printf.sprintf "field (%s)" (se e)
     | Obj -> "new ()"
-    | HasField (v1, v2) -> Printf.sprintf "hasfield (%s, %s)" (s v1) (s v2)
-    | Lookup (v1, v2) -> Printf.sprintf "[%s.%s]" (s v1) (s v2)
-    | Deallocation (v1, v2) -> Printf.sprintf "Delete %s.%s" (s v1) (s v2)
-    | Pi (l, x) -> Printf.sprintf "Pi ( %s, %s )" l x
+    | HasField (e1, e2) -> Printf.sprintf "hasfield (%s, %s)" (se e1) (se e2)
+    | Lookup (e1, e2) -> Printf.sprintf "[%s.%s]" (se e1) (se e2)
+    | Deallocation (e1, e2) -> Printf.sprintf "Delete %s.%s" (se e1) (se e2)
+    | Pi (l, x) -> Printf.sprintf "Pi ( %s, %s )" (se l) (se x)
+and string_of_call c =
+  let se = string_of_expression in
+  let ses xs = String.concat "," (List.map se xs) in
+  Printf.sprintf "%s (%s, %s, %s)" (se c.call_name) (se c.call_this) (se c.call_scope) (ses c.call_args)
+  
+  
+let string_of_mutation m =
+  let se = string_of_expression in
+  Printf.sprintf "[%s.%s] := %s" (se m.m_loc) (se m.m_field) (se m.m_right)
   
 let rec string_of_statement t =
   let s = string_of_var in

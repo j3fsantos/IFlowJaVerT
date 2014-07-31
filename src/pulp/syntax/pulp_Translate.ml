@@ -43,6 +43,9 @@ let string_of_builtin_field f =
     | FScope -> "#scope"
     | FPrototype -> "prototype"
 
+
+let literal_builtin_field f = Literal (String (string_of_builtin_field f))
+
 let logic_var v = Logic.Le_Var (AVar v)
   
 let logic_string s = Logic.pv_le (Logic.Pv_String s)
@@ -165,10 +168,7 @@ let tr_propname pn : string =
   | Parser_syntax.PropnameNum f -> string_of_float f
   
 let add_proto obj proto = 
-  let r1 = mk_assign_fresh_lit (String (string_of_builtin_field FProto)) in
-  let r2 = mk_assign_fresh proto in
-  let r3 = Mutation (mk_mutation obj r1.assign_left r2.assign_left) in
-  [Assignment r1; Assignment r2; r3]
+  Mutation (mk_mutation (Var obj) (literal_builtin_field FProto) proto)
   
 let add_proto_var obj proto =
   add_proto obj (Var proto)
@@ -184,17 +184,16 @@ let add_proto_null obj =
   
 let translate_error_throw error throw_var throw_label =
   let r1 = mk_assign_fresh Obj in
-  let proto_stmts = add_proto_value r1.assign_left error in
-  let r2 = mk_assign throw_var (Var r1.assign_left) in
-  let r3 = Goto [throw_label] in
-  [Assignment r1] @ proto_stmts @ [Assignment r2; r3]
+  [
+    Assignment r1; 
+    add_proto_value r1.assign_left error; 
+    Assignment (mk_assign throw_var (Var r1.assign_left)); 
+    Goto [throw_label]
+  ]
   
 let translate_put_value v1 v2 throw_var throw_label =
   let gotothrow = translate_error_throw LRError throw_var throw_label in
-  let gotothrowtype = translate_error_throw LTError throw_var throw_label in
-  let base = mk_assign_fresh (Base v1) in
-  let field = mk_assign_fresh (Field v1) in
-  let update = Mutation (mk_mutation base.assign_left field.assign_left v2) in  
+  let base = mk_assign_fresh (Base (Var v1)) in
   let main = Sugar (If (is_a_ref_pred v1,
     [
       Assignment base;
@@ -202,11 +201,8 @@ let translate_put_value v1 v2 throw_var throw_label =
         gotothrow, 
         [
           Sugar (If (prim_pred base.assign_left, 
-            gotothrowtype, 
-            [
-              Assignment field; 
-              update; 
-            ]))
+            translate_error_throw LTError throw_var throw_label, 
+            [Mutation (mk_mutation (Var base.assign_left) (Field (Var v1)) (Var v2))]))
         ]))
     ],
     gotothrow))
@@ -215,10 +211,10 @@ let translate_put_value v1 v2 throw_var throw_label =
   
 let translate_gamma r ctx =
   let rv = fresh_r () in
-  let base = mk_assign_fresh (Base r) in
-  let field = mk_assign_fresh (Field r) in
-  let assign_rv_lookup = mk_assign rv (Lookup (base.assign_left, field.assign_left)) in
-  let rv_assign_pi = mk_assign rv (Pi (base.assign_left, field.assign_left)) in  
+  let base = mk_assign_fresh (Base (Var r)) in
+  let field = mk_assign_fresh (Field (Var r)) in
+  let assign_rv_lookup = mk_assign rv (Lookup (Var base.assign_left, Var field.assign_left)) in
+  let rv_assign_pi = mk_assign rv (Pi (Var base.assign_left, Var field.assign_left)) in  
   let main = Sugar (If (is_a_ref_pred r,
     [
       Assignment base;
@@ -255,38 +251,32 @@ let translate_call_construct_start f e1 e2s ctx =
         begin
           let re1_stmts, re1 = f e in
           let re2_stmts, re2 = translate_gamma re1 ctx in 
-          (re2, re1_stmts @ re2_stmts)
+          (Var re2, re1_stmts @ re2_stmts)
         end
      ) e2s in  
     let arg_values, arg_stmts = List.split arg_stmts in
     let arg_stmts = List.flatten arg_stmts in  
     let gotothrow = translate_error_throw LTError ctx.throw_var ctx.label_throw in
-    let fid_field = mk_assign_fresh_lit (String (string_of_builtin_field FId)) in
-    let hasfield = mk_assign_fresh (HasField (r2, fid_field.assign_left)) in
+    let hasfield = mk_assign_fresh (HasField (Var r2, literal_builtin_field FId)) in
     (
       r1_stmts @ 
       r2_stmts @ 
       arg_stmts @ 
       [
         Sugar (If (type_of_pred r2 Logic.LT_Object, [], gotothrow)); 
-        Assignment fid_field; 
         Assignment hasfield; 
         Sugar (If (logic_eq_bool hasfield.assign_left false, gotothrow, []))
       ], r1, r2, arg_values)
     
-let translate_call r2 vthis arg_values =
-		(*TODO Eval*)
-		let fid_field = mk_assign_fresh_lit (String (string_of_builtin_field FId)) in
-		let fid = mk_assign_fresh (Lookup (r2, fid_field.assign_left)) in
-		let scope_field = mk_assign_fresh_lit (String (string_of_builtin_field FScope)) in
-		let fscope = mk_assign_fresh (Lookup (r2, scope_field.assign_left)) in
-		let call = mk_assign_fresh (Call (mk_call fid.assign_left fscope.assign_left vthis arg_values)) in
+let translate_call r2 vthis arg_values ctx =
+		let fid = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FId)) in
+		let fscope = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FScope)) in
+		let call = mk_assign_fresh (Call (mk_call (Var fid.assign_left) (Var fscope.assign_left) (Var vthis) arg_values)) in
     (Sugar (If (logic_eq_loc r2 LEval,
-        [], 
+        (*TODO Eval*)
+        translate_error_throw LNotImplemented ctx.throw_var ctx.label_throw, 
         [
-          Assignment fid_field; 
           Assignment fid; 
-          Assignment scope_field; 
           Assignment fscope; 
           Assignment call
      ])), call)
@@ -296,7 +286,7 @@ let translate_regular_bin_op f op e1 e2 ctx =
   let r2_stmts, r2 = translate_gamma r1 ctx in
   let r3_stmts, r3 = f e2 in
   let r4_stmts, r4 = translate_gamma r3 ctx in
-  let r5 = mk_assign_fresh (BinOp (r2, tr_bin_op op, r4)) in
+  let r5 = mk_assign_fresh (BinOp (Var r2, tr_bin_op op, Var r4)) in
     r1_stmts @ 
     r2_stmts @ 
     r3_stmts @ 
@@ -318,7 +308,7 @@ let translate_bin_op_logical f e1 e2 bop ctx =
         [Assignment (mk_assign rv (Var r2))], 
 	      (r3_stmts) @ 
 	      r4_stmts @ 
-	      [Assignment (mk_assign rv (BinOp (r2, Boolean op, r4)))]))
+	      [Assignment (mk_assign rv (BinOp (Var r2, Boolean op, Var r4)))]))
     ], rv
   
 let rec desugar stmts = 
@@ -393,23 +383,17 @@ let rec exp_to_fb ctx exp : statement list * variable =
       | Parser_syntax.Var v -> 
         begin 
           let scope = function_scope_name (find_var_scope v ctx.env_vars) in
-          let var = mk_assign_fresh_lit (String v) in
-          let ref_assign = mk_assign_fresh (Ref (mk_ref scope var.assign_left VariableReference)) in
-            [
-              Assignment var; 
-              Assignment ref_assign
-            ], ref_assign.assign_left         
+          let ref_assign = mk_assign_fresh (Ref (Var scope, Literal (String v) , VariableReference)) in
+          [Assignment ref_assign], ref_assign.assign_left         
         end
       | Parser_syntax.Access (e, v) -> 
         begin
           let r1_stmts, r1 = f e in
           let r2_stmts, r2 = translate_gamma r1 ctx in
-          let r3 = mk_assign_fresh_lit (Pulp_Syntax.String v) in
           let r4_stmts, r4 = translate_obj_coercible r2 ctx in
-          let r5 = mk_assign_fresh (Ref (mk_ref r2 r3.assign_left MemberReference)) in
+          let r5 = mk_assign_fresh (Ref (Var r2, Literal (String v), MemberReference)) in
             r1_stmts @ 
             r2_stmts @ 
-            [Assignment r3] @ 
             r4_stmts @
             [Assignment r5], r5.assign_left;
         end
@@ -419,7 +403,7 @@ let rec exp_to_fb ctx exp : statement list * variable =
           let r3_stmts, r3 = f e2 in
           let r4_stmts, r4 = translate_gamma r3 ctx in
           let r5_stmts, r5 = translate_obj_coercible r2 ctx in
-          let r6 = mk_assign_fresh (Ref (mk_ref r2 r4 MemberReference)) in
+          let r6 = mk_assign_fresh (Ref (Var r2, Var r4, MemberReference)) in
             r1_stmts @ 
             r2_stmts @ 
             r3_stmts @ 
@@ -459,26 +443,20 @@ let rec exp_to_fb ctx exp : statement list * variable =
                 begin
                   let r2_stmts, r2 = f e in
                   let r3_stmts, r3 = translate_gamma r2 ctx in
-                  let r4 = mk_assign_fresh_lit (String (Pretty_print.string_of_propname prop_name)) in
-                  let r6 = Mutation (mk_mutation r1.assign_left r4.assign_left r3) in
                   
                   r2_stmts @ 
                   r3_stmts @ 
-                  [
-                    Assignment r4; 
-                    r6
-                  ] 
+                  [Mutation (mk_mutation (Var r1.assign_left) (Literal (String (Pretty_print.string_of_propname prop_name))) (Var r3))] 
                    
                 end
               | _ -> raise (PulpNotImplemented ("Getters and Setters are not yet implemented"))
             ) xs in
-            
-          let r6 = mk_assign_fresh (Var r1.assign_left) in
-          
-            [Assignment r1] @ 
-            add_proto_lvalue r1.assign_left Logic.Lop @ 
-            (List.flatten stmts) @ 
-            [Assignment r6], r6.assign_left 
+                           
+            [
+              Assignment r1;
+              add_proto_lvalue r1.assign_left Logic.Lop
+            ] @ 
+            (List.flatten stmts), r1.assign_left
         end
         
       | Parser_syntax.Assign (e1, e2) ->
@@ -486,7 +464,7 @@ let rec exp_to_fb ctx exp : statement list * variable =
           let r1_stmts, r1 = f e1 in
           let r2_stmts, r2 = f e2 in
           let r3_stmts, r3 = translate_gamma r2 ctx in
-          let r4 = mk_assign_fresh (Field r1) in
+          let r4 = mk_assign_fresh (Field (Var r1)) in
           let gotothrow = translate_error_throw LRError ctx.throw_var ctx.label_throw in
           
             r1_stmts @
@@ -523,43 +501,31 @@ let rec exp_to_fb ctx exp : statement list * variable =
         let fid = get_codename exp in
         let f_obj = mk_assign_fresh Obj in
         let prototype = mk_assign_fresh Obj in
-        let f_prototype_field = mk_assign_fresh_lit (String (string_of_builtin_field FPrototype)) in
         let scope = mk_assign_fresh Obj in
         let env_stmts = Utils.flat_map (fun env -> 
-          let env_scope = function_scope_name env.func_id in
-          let ref_assign = mk_assign_fresh_lit (String env.func_id) in 
           [
-            Assignment ref_assign; 
-            Mutation (mk_mutation scope.assign_left ref_assign.assign_left env_scope)
+            Mutation (mk_mutation (Var scope.assign_left) (Literal (String env.func_id)) (Var (function_scope_name env.func_id)))
           ]) ctx.env_vars in
-        let f_codename_field = mk_assign_fresh_lit (String (string_of_builtin_field FId)) in
-        let f_scope_field = mk_assign_fresh_lit (String (string_of_builtin_field FScope)) in
-        let f_assign = mk_assign_fresh (Var f_obj.assign_left) in
-          [Assignment f_obj] @ 
-          add_proto_lvalue f_obj.assign_left Lfp @ 
-          [Assignment prototype] @ 
-          add_proto_lvalue prototype.assign_left Lop @ 
           [
-            Assignment f_prototype_field; 
-            Mutation (mk_mutation f_obj.assign_left f_prototype_field.assign_left prototype.assign_left)
+            Assignment f_obj;
+            add_proto_lvalue f_obj.assign_left Lfp;
+            Assignment prototype; 
+            add_proto_lvalue prototype.assign_left Lop; 
+            Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FPrototype) (Var prototype.assign_left));
+            Assignment scope;
+            add_proto_null scope.assign_left
           ] @ 
-          [Assignment scope] @ 
-          add_proto_null scope.assign_left @ 
           env_stmts @ 
           [
-            Assignment f_codename_field; 
-            Mutation (mk_mutation f_obj.assign_left f_codename_field.assign_left fid); 
-            Assignment f_scope_field; 
-            Mutation (mk_mutation f_obj.assign_left f_scope_field.assign_left scope.assign_left); 
-            Assignment f_assign
-          ], f_assign.assign_left  
+            Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FId) (Literal (String fid))); 
+            Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FScope) (Var scope.assign_left)); 
+          ], f_obj.assign_left  
                       
       | Parser_syntax.Call (e1, e2s) ->
         let stmts, r1, r2, arg_values = translate_call_construct_start f e1 e2s ctx in
 			  let vthis = fresh_r () in
 			  let assign_vthis_und = Assignment (mk_assign vthis (Literal Undefined)) in
-        let base_assign = mk_assign_fresh (Base r1) in
-			  let if5, call = translate_call r2 vthis arg_values in
+			  let if5, call = translate_call r2 vthis arg_values ctx in
           stmts @ 
           [
             Sugar (If (is_a_ref_pred r1, 
@@ -567,8 +533,7 @@ let rec exp_to_fb ctx exp : statement list * variable =
                   Sugar (If (ref_type_pred r1 VariableReference, 
                     [assign_vthis_und], 
                     [
-                      Assignment base_assign; 
-                      Assignment (mk_assign vthis (Var base_assign.assign_left))
+                      Assignment (mk_assign vthis (Base (Var r1)))
                     ]))
                 ],
                 [assign_vthis_und])); 
@@ -577,23 +542,19 @@ let rec exp_to_fb ctx exp : statement list * variable =
         
       | Parser_syntax.New (e1, e2s) ->
         let stmts, r1, r2, arg_values = translate_call_construct_start f e1 e2s ctx in
-        let prototype_field = mk_assign_fresh_lit (String (string_of_builtin_field FPrototype)) in
-        let prototype = mk_assign_fresh (Lookup (r2, prototype_field.assign_left)) in        
+        let prototype = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FPrototype)) in        
 			  let vthisproto = fresh_r () in
         let vthis = mk_assign_fresh Obj in
-			  let if3, call = translate_call r2 vthis.assign_left arg_values in
+			  let if3, call = translate_call r2 vthis.assign_left arg_values ctx in
         let rv = fresh_r () in  
           stmts @ 
           [
-            Assignment prototype_field; 
             Assignment prototype; 
             Sugar (If (type_of_pred prototype.assign_left Logic.LT_Object, 
                 [Assignment (mk_assign vthisproto (Var r2))], 
                 [Assignment (mk_assign vthisproto (Var (PrintLogic.string_of_loc Logic.Lop)))])); 
-            Assignment vthis
-          ] @ 
-          add_proto_var vthis.assign_left vthisproto @ 
-          [
+            Assignment vthis;
+            add_proto_var vthis.assign_left vthisproto;
             if3; 
             Sugar (If (type_of_pred call.assign_left Logic.LT_Object, 
                 [Assignment (mk_assign rv (Var call.assign_left))], 
@@ -604,13 +565,12 @@ let rec exp_to_fb ctx exp : statement list * variable =
         let r1_stmts, r1 = f e in
         let rv = fresh_r () in
         let assign_rv_true = mk_assign rv (Literal (Bool true)) in
-        let r4 = mk_assign_fresh (Base r1) in 
+        let r4 = mk_assign_fresh (Base (Var r1)) in 
         let gotothrow = translate_error_throw LSError ctx.throw_var ctx.label_throw in
-        let r3 = mk_assign_fresh (Field r1) in       
-        let r2 = mk_assign_fresh (HasField (r4.assign_left, r3.assign_left)) in
+        let r3 = mk_assign_fresh (Field (Var r1)) in      
+        let r2 = mk_assign_fresh (HasField (Var r4.assign_left, Var r3.assign_left)) in
         (* TODO : Changes when we add attributes *)
-        let fid_field = mk_assign_fresh_lit (String (string_of_builtin_field FId)) in
-        let r5 = mk_assign_fresh (HasField (r4.assign_left, fid_field.assign_left)) in
+        let r5 = mk_assign_fresh (HasField (Var r4.assign_left, literal_builtin_field FId)) in
           r1_stmts @ 
           [
             Sugar (If (is_a_ref_pred r1, 
@@ -626,7 +586,6 @@ let rec exp_to_fb ctx exp : statement list * variable =
 			            Sugar (If (logic_eq_bool r2.assign_left false, 
                     [Assignment assign_rv_true], 
                     [
-                      Assignment fid_field; 
                       Assignment r5; 
                       Sugar (If (Logic.Star [logic_eq_builtin_field r3.assign_left FPrototype; logic_eq_bool r5.assign_left true], 
                         translate_error_throw LTError ctx.throw_var ctx.label_throw, 
@@ -749,12 +708,12 @@ let translate_function fb fid args env =
     | [] -> raise (Invalid_argument "Should be a function environment here") in
     
   let init_e = List.map (fun env -> 
-     Assignment (mk_assign (function_scope_name env.func_id) (Ref (mk_ref rscope env.func_id MemberReference))) 
+     Assignment (mk_assign (function_scope_name env.func_id) (Ref (Var rscope, Literal (String env.func_id), MemberReference))) 
   ) other_env in
   
   let current_scope_var = function_scope_name fid in
   
-  let current_scope, proto_stmts = 
+  let current_scope, proto_stmt = 
     if (fid = main_fun_id) then
       (Assignment (mk_assign current_scope_var (Var (PrintLogic.string_of_loc Logic.Lg))),
        add_proto_lvalue current_scope_var Lop)
@@ -763,21 +722,15 @@ let translate_function fb fid args env =
         add_proto_null current_scope_var) in
         
   let init_vars = Utils.flat_map (fun v ->
-      let v_assign = mk_assign_fresh_lit (String v) in
       [
-        Assignment v_assign; 
-        Mutation (mk_mutation current_scope_var v_assign.assign_left v)
+        Mutation (mk_mutation (Var current_scope_var) (Literal (String v)) (Var v))
       ]
     ) args in
     
   (* Assigning undefined to var declarations *)
   let decl_vars = Utils.flat_map (fun v ->
-      let v_assign = mk_assign_fresh_lit (String v) in
-      let und_assign = mk_assign_fresh_lit Undefined in
       [
-        Assignment v_assign; 
-        Assignment und_assign; 
-        Mutation (mk_mutation current_scope_var v_assign.assign_left und_assign.assign_left)
+        Mutation (mk_mutation (Var current_scope_var) (Literal (String v)) (Literal Undefined))
       ]
     ) (List.filter (fun v -> not (List.mem v args)) (var_decls fb)) in
     
@@ -785,8 +738,7 @@ let translate_function fb fid args env =
     
   let pulpe = 
     init_e @ 
-    [current_scope] @ 
-    proto_stmts @ 
+    [current_scope; proto_stmt] @  
     init_vars @ 
     decl_vars @ 
     pulp_fb in

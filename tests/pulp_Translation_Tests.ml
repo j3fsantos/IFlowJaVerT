@@ -122,24 +122,16 @@ let test_gamma () =
 
 let cfg_anonymous2 () =
   let ctx = create_ctx [] in
-  let anonymous1 = mk_assign_fresh_lit (String "anonymous1") in
-  let n = mk_assign_fresh_lit (String "n") in
-  let x = mk_assign_fresh_lit (String "x") in
-  let proto_stmts = add_proto_null "anonymous2_scope" in
+  let proto_stmt = add_proto_null "anonymous2_scope" in
   let stmts = 
     [
-	    Assignment anonymous1;
-	    Assignment (mk_assign ("anonymous1_scope") (Ref (mk_ref "rscope" anonymous1.assign_left MemberReference)));
-	    Assignment (mk_assign "anonymous2_scope" Obj)  
-    ] @
-    proto_stmts @
-    [
-      Assignment (mk_assign "r1" Obj)
-    ] @
-    add_proto_lvalue "r1" Logic.Lop @
-    [
-      Assignment (mk_assign "r2" (Lookup ("anonymous2_scope", n.assign_left)));
-      Mutation (mk_mutation "r1" x.assign_left "r2");
+	    Assignment (mk_assign ("anonymous1_scope") (Ref (Var "rscope", Literal (String "anonymous1"), MemberReference)));
+	    Assignment (mk_assign "anonymous2_scope" Obj);
+      proto_stmt;
+      Assignment (mk_assign "r1" Obj);
+      add_proto_lvalue "r1" Logic.Lop;
+      Assignment (mk_assign "r2" (Lookup (Var "anonymous2_scope", Literal (String "n"))));
+      Mutation (mk_mutation (Var "r1") (Literal (String "x")) (Var "r2"));
       Goto [ctx.label_return]
     ]
     in
