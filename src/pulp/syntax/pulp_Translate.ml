@@ -1,13 +1,11 @@
 open Pulp_Syntax
 open Pulp_Syntax_Utils
 open Pulp_Syntax_Print
-open Logic
 
 exception PulpNotImplemented of string
  
   
 let rthis : variable = "rthis"
-let rempty : variable = "rempty" (* Using this variable temporarily since logic at the moment does not have value "empty"*)
 let rscope : variable = "rscope"
 let unknownscope : variable = "unknownscope"
 
@@ -15,20 +13,6 @@ let function_scope_name fid =
   fid^"_scope"
 
 let end_label : label = "theend"
-
-(* Logic -- merge with existing logic or have a new one?? *)
-type builtin_loc = 
-  | LRError (* Reference Error *)
-  | LTError (* Type Error *)
-  | LSError (* Syntax Error *)
-  | LNotImplemented (* The tool cannot handle this case atm *)
-
-let string_of_builtin_loc l =
-  match l with
-    | LRError -> "#lrerror"
-    | LTError -> "#lterror"
-    | LSError -> "#lserror"
-    | LNotImplemented -> "#lnotimplemented"
 
 type builtin_field =
   | FProto
@@ -46,55 +30,53 @@ let string_of_builtin_field f =
 
 let literal_builtin_field f = Literal (String (string_of_builtin_field f))
 
-let logic_var v = Logic.Le_Var (AVar v)
+let is_ref_inner ref rt =
+  IsTypeOf (Var ref, ReferenceType rt)
   
-let logic_string s = Logic.pv_le (Logic.Pv_String s)
+let is_oref_expr ref = is_ref_inner ref (Some MemberReference)
+let is_vref_expr ref = is_ref_inner ref (Some VariableReference)
+let is_ref_expr ref = is_ref_inner ref None
+let is_obj_var v = IsTypeOf (Var v, ObjectType)
+
+let or_expr e1 e2 = BinOp (e1, Boolean Or, e2)
+let and_expr e1 e2 = BinOp (e1, Boolean And, e2)
+let not_expr e1 = UnaryOp (Not, e1)
+let equal_expr v e2 = BinOp (Var v, Comparison Equal, e2)
   
-let logic_bool b = Logic.pv_le (Logic.Pv_Bool b)
-  
-let logic_null = Logic.pv_le (Logic.Pv_Null)
-  
-let logic_undefined = Logic.pv_le (Logic.Pv_Undefined)
+let istypeof_prim_expr v =
+  or_expr 
+  (IsTypeOf (Var v, BooleanType))
+  (or_expr 
+    (IsTypeOf (Var v, NumberType))
+    (IsTypeOf (Var v, StringType)))
+    
+let equal_lit_expr v lit = equal_expr v (Literal lit)
+let equal_undef_expr v = equal_lit_expr v Undefined
+let equal_null_expr v = equal_lit_expr v Null
+let equal_empty_expr v = equal_lit_expr v Empty
+let equal_bool_expr v b = equal_lit_expr v (Bool b)
+let equal_loc_expr v l = equal_lit_expr v (Loc l)
+let equal_string_expr v s = equal_lit_expr v (String s)
+let equal_int_expr v n = equal_lit_expr v (Num (float_of_int n))
 
-let logic_loc l = Logic.lb_le (Lb_Loc l)
-  
-let logic_eq_undef v = Logic.Eq (logic_var v, logic_undefined)
 
-let logic_eq_null v = Logic.Eq (logic_var v, logic_null)
-
-let logic_eq_bool v b = Logic.Eq (logic_var v, logic_bool b)
-
-let logic_eq_builtin_field v bf = Logic.Eq (logic_var v, logic_string (string_of_builtin_field bf))
-
-(* TODO : have value empty in logic *)
-let logic_eq_empty v = Logic.Eq (logic_var v, logic_var rempty)
-
-let logic_eq_loc v l = Logic.Eq (logic_var v, logic_loc l)
-
-let logic_is_false v = Logic.IsFalse (logic_var v)
-
-let logic_is_true v = Logic.IsTrue (logic_var v)
-
-(* ref_type (v, "Member") <=> exists b x, v = b . x *)
-(* ref_type (v, "Variable") <=> exists b x, v = b .[v] x *)
-let ref_type_pred ref rt =
-  let arg1 = logic_var ref in
-  let arg2 =  logic_string (string_of_ref_type rt) in
-  UDPred ("ref_type", [arg1; arg2])
-  
-(* is_a_ref (r) <=> exists b f rt, r = b .[rt] f *)
-let is_a_ref_pred ref =
-  UDPred ("is_a_ref", [logic_var ref])
-  
-(* type_of_pred (v, t) *)
-let type_of_pred v (t : es_lang_type) =
-  UDPred ("type_of", [logic_var v; logic_string (PrintLogic.string_of_es_lang_type t)])
-  
-(* prim (v) <=> type_of (v, #B) || type_of (v, #M) || type_of(v, #N) *)
-let prim_pred v =
-  UDPred ("prim", [logic_var v])
-  
-(* End of Logic *)
+let is_false_expr v =
+  or_expr
+  (equal_int_expr v 0)
+  (or_expr
+	  (equal_string_expr v "")
+    (or_expr
+		  (equal_undef_expr v)
+		  (equal_null_expr v)))
+      
+let is_true_expr v =   
+  and_expr
+  (not_expr (equal_int_expr v 0))
+  (and_expr
+    (not_expr (equal_string_expr v ""))
+    (and_expr
+          (not_expr (equal_undef_expr v))
+          (not_expr (equal_null_expr v))))
 
 (* Assignment *)
 let mk_assign var exp = { 
@@ -173,14 +155,11 @@ let add_proto obj proto =
 let add_proto_var obj proto =
   add_proto obj (Var proto)
   
-let add_proto_lvalue obj proto =
-  add_proto obj (Literal (String (PrintLogic.string_of_loc proto)))
-  
 let add_proto_value obj proto =
-  add_proto obj (Literal (String (string_of_builtin_loc proto)))
+  add_proto obj (Literal (Loc proto))
   
 let add_proto_null obj =
-  add_proto obj (Literal (String (PrintLogic.string_of_loc_b Lb_LocNull)))
+  add_proto obj (Literal Null)
   
 let translate_error_throw error throw_var throw_label =
   let r1 = mk_assign_fresh Obj in
@@ -194,13 +173,13 @@ let translate_error_throw error throw_var throw_label =
 let translate_put_value v1 v2 throw_var throw_label =
   let gotothrow = translate_error_throw LRError throw_var throw_label in
   let base = mk_assign_fresh (Base (Var v1)) in
-  let main = Sugar (If (is_a_ref_pred v1,
+  let main = Sugar (If (is_ref_expr v1,
     [
       Assignment base;
-      Sugar (If (logic_eq_undef base.assign_left, 
+      Sugar (If (equal_undef_expr base.assign_left, 
         gotothrow, 
         [
-          Sugar (If (prim_pred base.assign_left, 
+          Sugar (If (istypeof_prim_expr base.assign_left, 
             translate_error_throw LTError throw_var throw_label, 
             [Mutation (mk_mutation (Var base.assign_left) (Field (Var v1)) (Var v2))]))
         ]))
@@ -215,17 +194,17 @@ let translate_gamma r ctx =
   let field = mk_assign_fresh (Field (Var r)) in
   let assign_rv_lookup = mk_assign rv (Lookup (Var base.assign_left, Var field.assign_left)) in
   let rv_assign_pi = mk_assign rv (Pi (Var base.assign_left, Var field.assign_left)) in  
-  let main = Sugar (If (is_a_ref_pred r,
+  let main = Sugar (If (is_ref_expr r,
     [
       Assignment base;
-      Sugar (If (logic_eq_undef base.assign_left,
+      Sugar (If (equal_undef_expr base.assign_left,
         translate_error_throw LRError ctx.throw_var ctx.label_throw,
         [
-          Sugar (If (prim_pred base.assign_left,
+          Sugar (If (istypeof_prim_expr base.assign_left,
             translate_error_throw LNotImplemented ctx.throw_var ctx.label_throw,
             [
               Assignment field;
-              Sugar (If (Logic.Star[ref_type_pred r VariableReference; Negation (logic_eq_loc base.assign_left Lg)],
+              Sugar (If (and_expr (is_vref_expr r) (not_expr (equal_loc_expr base.assign_left Lg)),
                 [ Assignment assign_rv_lookup ],
                 [ Assignment rv_assign_pi ]))
             ]))
@@ -239,8 +218,8 @@ let translate_obj_coercible r ctx =
   let rv = fresh_r () in
   let gotothrow = translate_error_throw LTError ctx.throw_var ctx.label_throw in 
   [
-    Sugar (If (logic_eq_null r, gotothrow, [])); 
-    Sugar (If (logic_eq_undef r, gotothrow, [])); 
+    Sugar (If (equal_null_expr r, gotothrow, [])); 
+    Sugar (If (equal_undef_expr r, gotothrow, [])); 
     Assignment (mk_assign rv (Literal Empty))
   ], rv
   
@@ -263,16 +242,16 @@ let translate_call_construct_start f e1 e2s ctx =
       r2_stmts @ 
       arg_stmts @ 
       [
-        Sugar (If (type_of_pred r2 Logic.LT_Object, [], gotothrow)); 
+        Sugar (If (is_obj_var r2, [], gotothrow)); 
         Assignment hasfield; 
-        Sugar (If (logic_eq_bool hasfield.assign_left false, gotothrow, []))
+        Sugar (If (equal_bool_expr hasfield.assign_left false, gotothrow, []))
       ], r1, r2, arg_values)
     
 let translate_call r2 vthis arg_values ctx =
 		let fid = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FId)) in
 		let fscope = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FScope)) in
 		let call = mk_assign_fresh (Call (mk_call (Var fid.assign_left) (Var fscope.assign_left) (Var vthis) arg_values)) in
-    (Sugar (If (logic_eq_loc r2 LEval,
+    (Sugar (If (equal_loc_expr r2 LEval,
         (*TODO Eval*)
         translate_error_throw LNotImplemented ctx.throw_var ctx.label_throw, 
         [
@@ -304,7 +283,7 @@ let translate_bin_op_logical f e1 e2 bop ctx =
     r1_stmts @ 
     r2_stmts @ 
     [
-      Sugar (If ((if (op = And) then (logic_is_false r2) else (logic_is_true r2)), 
+      Sugar (If ((if (op = And) then (is_false_expr r2) else (is_true_expr r2)), 
         [Assignment (mk_assign rv (Var r2))], 
 	      (r3_stmts) @ 
 	      r4_stmts @ 
@@ -331,7 +310,7 @@ let rec desugar stmts =
             [
               Goto [label3]; 
               Label label2; 
-              Assume (Logic.Negation c)
+              Assume (not_expr c)
             ] @ 
             dt2 @ 
             [
@@ -416,7 +395,7 @@ let rec exp_to_fb ctx exp : statement list * variable =
           let retv = fresh_r () in 
             [
               (* DSA *) 
-              Sugar (If (logic_eq_empty rval, 
+              Sugar (If (equal_empty_expr rval, 
                 [
                   Assignment (mk_assign retv (Var oldrval))
                 ], 
@@ -454,7 +433,7 @@ let rec exp_to_fb ctx exp : statement list * variable =
                            
             [
               Assignment r1;
-              add_proto_lvalue r1.assign_left Logic.Lop
+              add_proto_value r1.assign_left Lop
             ] @ 
             (List.flatten stmts), r1.assign_left
         end
@@ -471,12 +450,12 @@ let rec exp_to_fb ctx exp : statement list * variable =
             r2_stmts @
             r3_stmts @
             [
-              Sugar (If (ref_type_pred r1 VariableReference, 
+              Sugar (If (is_vref_expr r1, 
 		            [
 		              Assignment r4;
-		               (* TODO: Change logic to have || *)
-		              Sugar (If (Logic.Eq (logic_var r4.assign_left, logic_string "arguments"), gotothrow, []));
-		              Sugar (If (Logic.Eq (logic_var r4.assign_left, logic_string "eval"), gotothrow, []));
+		              Sugar (If (or_expr 
+                             (equal_string_expr r4.assign_left "arguments") 
+                             (equal_string_expr r4.assign_left "eval"), gotothrow, []));
 		            ], 
 		            []))
             ] @
@@ -508,9 +487,9 @@ let rec exp_to_fb ctx exp : statement list * variable =
           ]) ctx.env_vars in
           [
             Assignment f_obj;
-            add_proto_lvalue f_obj.assign_left Lfp;
+            add_proto_value f_obj.assign_left Lfp;
             Assignment prototype; 
-            add_proto_lvalue prototype.assign_left Lop; 
+            add_proto_value prototype.assign_left Lop; 
             Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FPrototype) (Var prototype.assign_left));
             Assignment scope;
             add_proto_null scope.assign_left
@@ -528,9 +507,9 @@ let rec exp_to_fb ctx exp : statement list * variable =
 			  let if5, call = translate_call r2 vthis arg_values ctx in
           stmts @ 
           [
-            Sugar (If (is_a_ref_pred r1, 
+            Sugar (If (is_ref_expr r1, 
                 [
-                  Sugar (If (ref_type_pred r1 VariableReference, 
+                  Sugar (If (is_vref_expr r1, 
                     [assign_vthis_und], 
                     [
                       Assignment (mk_assign vthis (Base (Var r1)))
@@ -550,13 +529,13 @@ let rec exp_to_fb ctx exp : statement list * variable =
           stmts @ 
           [
             Assignment prototype; 
-            Sugar (If (type_of_pred prototype.assign_left Logic.LT_Object, 
+            Sugar (If (is_obj_var prototype.assign_left, 
                 [Assignment (mk_assign vthisproto (Var r2))], 
-                [Assignment (mk_assign vthisproto (Var (PrintLogic.string_of_loc Logic.Lop)))])); 
+                [Assignment (mk_assign vthisproto (Literal (Loc Lop)))])); 
             Assignment vthis;
             add_proto_var vthis.assign_left vthisproto;
             if3; 
-            Sugar (If (type_of_pred call.assign_left Logic.LT_Object, 
+            Sugar (If (is_obj_var call.assign_left, 
                 [Assignment (mk_assign rv (Var call.assign_left))], 
                 [Assignment (mk_assign rv (Var vthis.assign_left))]))
           ], rv
@@ -573,21 +552,23 @@ let rec exp_to_fb ctx exp : statement list * variable =
         let r5 = mk_assign_fresh (HasField (Var r4.assign_left, literal_builtin_field FId)) in
           r1_stmts @ 
           [
-            Sugar (If (is_a_ref_pred r1, 
+            Sugar (If (is_ref_expr r1, 
                 [ Assignment r4;
-			            Sugar (If (logic_eq_undef r4.assign_left, 
+			            Sugar (If (equal_undef_expr r4.assign_left, 
                     gotothrow, 
                     [])); 
-			            Sugar (If (ref_type_pred r1 VariableReference, 
+			            Sugar (If (is_vref_expr r1, 
                     gotothrow, 
                     [])); 
 			            Assignment r3;  
 			            Assignment r2; 
-			            Sugar (If (logic_eq_bool r2.assign_left false, 
+			            Sugar (If (equal_bool_expr r2.assign_left false, 
                     [Assignment assign_rv_true], 
                     [
                       Assignment r5; 
-                      Sugar (If (Logic.Star [logic_eq_builtin_field r3.assign_left FPrototype; logic_eq_bool r5.assign_left true], 
+                      Sugar (If (and_expr 
+                                (equal_expr r3.assign_left (literal_builtin_field FPrototype)) 
+                                (equal_bool_expr r5.assign_left true), 
                         translate_error_throw LTError ctx.throw_var ctx.label_throw, 
                         [Assignment assign_rv_true]))
                     ]))
@@ -596,6 +577,7 @@ let rec exp_to_fb ctx exp : statement list * variable =
           ], rv
           
       | Parser_syntax.BinOp (e1, op, e2) ->
+        (* TODO : conversions etc. *)
         begin match op with
           | Parser_syntax.Comparison cop ->
             begin match cop with
@@ -631,7 +613,7 @@ let rec exp_to_fb ctx exp : statement list * variable =
           r1_stmts @ 
           r2_stmts @ 
           [ 
-            Sugar (If (logic_is_true r2, 
+            Sugar (If (is_true_expr r2, 
                 r3_stmts @ 
                 [Assignment (mk_assign rv (Var r3))], 
                 elsebranch))
@@ -651,10 +633,10 @@ let rec exp_to_fb ctx exp : statement list * variable =
           r1_stmts @ 
           r2_stmts @ 
           [
-            Sugar (If (logic_is_true r2, 
+            Sugar (If (is_true_expr r2, 
                 r3_stmts @ 
                 [ 
-                  Sugar (If (logic_eq_empty r3, 
+                  Sugar (If (equal_empty_expr r3, 
                     [], 
                     [Assignment (mk_assign rv (Var r3))])); 
                   Goto [label1]
@@ -715,8 +697,8 @@ let translate_function fb fid args env =
   
   let current_scope, proto_stmt = 
     if (fid = main_fun_id) then
-      (Assignment (mk_assign current_scope_var (Var (PrintLogic.string_of_loc Logic.Lg))),
-       add_proto_lvalue current_scope_var Lop)
+      (Assignment (mk_assign current_scope_var (Literal (Loc Lg))),
+       add_proto_value current_scope_var Lop)
   else 
        (Assignment (mk_assign current_scope_var Obj),
         add_proto_null current_scope_var) in

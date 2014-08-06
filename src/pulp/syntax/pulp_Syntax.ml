@@ -2,8 +2,19 @@ type spec = { (* Move to spec *)
      spec_pre : Logic.formula;
      spec_post : Logic.formula
   }
+  
+type builtin_loc = 
+  | Lg (* Global Object *)
+  | Lop (* Object.Prototype Object *)
+  | Lfp (* Function.Prototype Object *)
+  | LEval (* Eval Function Object *)
+  | LRError (* Reference Error *)
+  | LTError (* Type Error *)
+  | LSError (* Syntax Error *)
+  | LNotImplemented (* The tool cannot handle this case atm *)
 
 type literal =
+  | Loc of builtin_loc
   | Null                  
   | Bool of bool          
   | Num of float          
@@ -32,6 +43,15 @@ type reference_type =
 
 type codename_spec = spec CodenameMap.t  
 
+type pulp_type =
+  | NullType
+  | UndefinedType
+  | BooleanType
+  | StringType
+  | NumberType
+  | ObjectType
+  | ReferenceType of reference_type option (* Option means member or variable *)
+
 type comparison_op =
   | Equal
 
@@ -50,13 +70,18 @@ type bin_op =
   | Arith of arith_op
   | Boolean of bool_op
 
+type unary_op = 
+  | Not
+
 type expression = 
   | Literal of literal
   | Var of variable
   | BinOp of expression * bin_op * expression
+  | UnaryOp of unary_op * expression
   | Ref of expression * expression * reference_type
   | Base of expression
   | Field of expression
+  | IsTypeOf of expression * pulp_type
   (* Assignment expressions *)
   | Call of call
   | Obj
@@ -99,14 +124,14 @@ type statement =
   | Skip
   | Label of label
   | Goto of string list
-  | Assume of Logic.formula
-  | Assert of Logic.formula
+  | Assume of expression
+  | Assert of expression
   | Assignment of assignment
   | Mutation of mutation
   | Sugar of syntactic_sugar_statement
 and
 syntactic_sugar_statement =
-  | If of Logic.formula * statement list * statement list 
+  | If of expression * statement list * statement list 
 
 type function_id = string
 

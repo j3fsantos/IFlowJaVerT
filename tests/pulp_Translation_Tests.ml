@@ -129,7 +129,7 @@ let cfg_anonymous2 () =
 	    Assignment (mk_assign "anonymous2_scope" Obj);
       proto_stmt;
       Assignment (mk_assign "r1" Obj);
-      add_proto_lvalue "r1" Logic.Lop;
+      add_proto_value "r1" Lop;
       Assignment (mk_assign "r2" (Lookup (Var "anonymous2_scope", Literal (String "n"))));
       Mutation (mk_mutation (Var "r1") (Literal (String "x")) (Var "r2"));
       Goto [ctx.label_return]
