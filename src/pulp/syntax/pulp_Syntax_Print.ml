@@ -122,7 +122,7 @@ and string_of_statement_list ts = (String.concat "\n" (List.map string_of_statem
 and string_of_sugar t =
   match t with
     | If (condition, thenbranch, elsebranch) -> 
-      Printf.sprintf "If (%s) Then {\n%s\n}\n Else{\n%s\n}\n" 
+      Printf.sprintf "if (%s) then {\n%s\n}\n else{\n%s\n}\n" 
       (string_of_expression condition)
       (string_of_statement_list thenbranch)
       (string_of_statement_list elsebranch)
@@ -130,18 +130,22 @@ and string_of_sugar t =
   
 let string_of_ctx_vars v = 
   Printf.sprintf "%s : [%s]" v.func_id (string_of_vars v.fun_bindings)
-      
-let string_of_translation_ctx ctx = 
-  Printf.sprintf "\n env variables %s \n return var %s return label %s exception var %s exception label %s \n \n \n" 
-  (String.concat ";" (List.map string_of_ctx_vars ctx.env_vars))
+  
+let string_of_returs_throws ctx =
+  Printf.sprintf "[return: variable %s label %s; throw: variable %s label %s]" 
   ctx.return_var
   ctx.label_return
   ctx.throw_var
   ctx.label_throw 
       
+let string_of_env_var ctx = 
+  Printf.sprintf "\n env variables %s \n \n \n " 
+  (String.concat ";" (List.map string_of_ctx_vars ctx.env_vars))
+
 let string_of_func_block fb =
-   Printf.sprintf "function %s (%s) { \n %s \n} \n with context %s \n \n \n" 
+   Printf.sprintf "procedure %s (%s) %s { \n %s \n} \n with context %s \n \n \n" 
    fb.func_name 
    (string_of_formal_params fb.func_params) 
+   (string_of_returs_throws fb.func_ctx)
    (string_of_statement_list fb.func_body) 
-   (string_of_translation_ctx fb.func_ctx)
+   (string_of_env_var fb.func_ctx)
