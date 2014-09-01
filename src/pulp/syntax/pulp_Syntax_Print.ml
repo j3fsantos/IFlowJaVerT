@@ -112,7 +112,8 @@ let rec string_of_statement t =
   match t with
     | Skip -> "Skip"
     | Label l -> Printf.sprintf "label %s" l
-    | Goto ls -> Printf.sprintf "goto %s" (String.concat "," ls)
+    | Goto s -> Printf.sprintf "goto %s" s
+    | GuardedGoto (e, s1, s2) -> Printf.sprintf "goto [%s] %s, %s" (string_of_expression e) s1 s2
     | Assume e -> Printf.sprintf "Assume %s" (string_of_expression e)
     | Assert e -> Printf.sprintf "Assert %s" (string_of_expression e)
     | Assignment a -> Printf.sprintf "%s := %s" (s a.assign_left) (string_of_expression a.assign_right)

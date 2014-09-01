@@ -123,7 +123,8 @@ let mk_mutation l f v = {
 type statement =
   | Skip
   | Label of label
-  | Goto of string list
+  | Goto of string
+  | GuardedGoto of expression * string * string
   | Assume of expression
   | Assert of expression
   | Assignment of assignment

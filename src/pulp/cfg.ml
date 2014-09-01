@@ -77,7 +77,8 @@ let get_all_labels fb =
   let labels = List.unique ((List.fold_left (fun lbs stmt -> 
     match stmt with
       | Label l -> l :: lbs
-      | Goto ls -> ls @ lbs
+      | Goto s -> s :: lbs
+      | GuardedGoto (e, s1, s2) -> [s1; s2] @ lbs
       | _ -> lbs
     ) [] fb.func_body) @ [fb.func_ctx.label_throw; fb.func_ctx.label_return]) in
   List.fold_left (fun lbs l -> 
@@ -112,12 +113,10 @@ let stmt_to_cfg (stmt : statement) label_map (ctx : translation_ctx) (start : cf
 			  | HasField _
 			  | Lookup _
         | Deallocation _
-			  | Obj ->
-           let n = make_new_node stmt in 
-           if (connect_with_start = true)
-            then connect start n else ();
-           Some n
-        | Pi (b, x) ->            
+	    | Obj
+        | IsTypeOf _
+        | UnaryOp _
+        | Pi _ ->            
           let n = make_new_node stmt in 
           if (connect_with_start = true)
             then connect start n else (); 
@@ -137,10 +136,16 @@ let stmt_to_cfg (stmt : statement) label_map (ctx : translation_ctx) (start : cf
       if (connect_with_start = true)
         then connect start lnode else ();
       Some lnode
-	  | Goto labels -> 
+	  | Goto l -> 
        let n = make_new_node stmt in 
-       List.iter (fun label ->
-          connect n (AllLabels.find label label_map)) labels; 
+       connect n (AllLabels.find l label_map); 
+       if (connect_with_start = true)
+         then connect start n else ();
+       None
+    | GuardedGoto (e, l1, l2) -> 
+       let n = make_new_node stmt in 
+       connect n (AllLabels.find l1 label_map); 
+       connect n (AllLabels.find l2 label_map); 
        if (connect_with_start = true)
          then connect start n else ();
        None
@@ -172,11 +177,19 @@ let stmt_to_cfg (stmt : statement) label_map (ctx : translation_ctx) (start : cf
   
 let connect_goto node nodes =
   match node.cfgn_statement with
-    | Goto ls ->
+    | Goto l1 ->
       begin
         List.iter (fun n -> 
           match n.cfgn_statement with
-            | Label l -> if List.mem l ls then connect node n
+            | Label l2 -> if l1 = l2 then connect node n
+            | _ -> ()
+          ) nodes
+      end
+    | GuardedGoto (e, l1, l2) ->
+      begin
+        List.iter (fun n -> 
+          match n.cfgn_statement with
+            | Label l3 -> if l1 = l3 or l2 = l3 then connect node n
             | _ -> ()
           ) nodes
       end

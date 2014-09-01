@@ -167,7 +167,7 @@ let translate_error_throw error throw_var throw_label =
     Assignment r1; 
     add_proto_value r1.assign_left error; 
     Assignment (mk_assign throw_var (Var r1.assign_left)); 
-    Goto [throw_label]
+    Goto throw_label
   ]
   
 let translate_put_value v1 v2 throw_var throw_label =
@@ -302,19 +302,17 @@ let rec desugar stmts =
             let dt1 = desugar t1 in
             let dt2 = desugar t2 in
             [
-              Goto [label1; label2]; 
-              Label label1; 
-              Assume c
+              GuardedGoto (c, label1, label2); 
+              Label label1
             ] @ 
             dt1 @ 
             [
-              Goto [label3]; 
-              Label label2; 
-              Assume (not_expr c)
+              Goto label3; 
+              Label label2
             ] @ 
             dt2 @ 
             [
-              Goto [label3]; 
+              Goto label3; 
               Label label3
             ]
         end
@@ -639,7 +637,7 @@ let rec exp_to_fb ctx exp : statement list * variable =
                   Sugar (If (equal_empty_expr r3, 
                     [], 
                     [Assignment (mk_assign rv (Var r3))])); 
-                  Goto [label1]
+                  Goto label1
                 ], 
                 
                 []))
@@ -659,7 +657,7 @@ let rec exp_to_fb ctx exp : statement list * variable =
           stmts @ 
           [
             Assignment assignr; 
-            Goto [ctx.label_return]
+            Goto ctx.label_return
           ], ctx.return_var
         
       | Parser_syntax.NamedFun _ (*(_, n, vs, e)*)

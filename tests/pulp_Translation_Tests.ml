@@ -100,7 +100,7 @@ let test_smaller_example () =
   
 let test_example () =
   test_template ("var s = function (n) { 
-   var t = function () { 
+   var t = function (m) { 
       return {x : n} 
     }; 
    var d = t(n); 
@@ -132,7 +132,7 @@ let cfg_anonymous2 () =
       add_proto_value "r1" Lop;
       Assignment (mk_assign "r2" (Lookup (Var "anonymous2_scope", Literal (String "n"))));
       Mutation (mk_mutation (Var "r1") (Literal (String "x")) (Var "r2"));
-      Goto [ctx.label_return]
+      Goto ctx.label_return
     ]
     in
   let stmts = desugar stmts in
@@ -155,7 +155,7 @@ let cfg_anonymous2 () =
   *)
 
 let suite = "Testing Translation" >:::
-  ["translating access" >:: test_access;
+  [(*"translating access" >:: test_access;
    "translating assignment" >:: test_assign;
    "translating obj literal" >:: test_obj;
    "translating block" >:: test_block;
@@ -177,7 +177,7 @@ let suite = "Testing Translation" >:::
    "testing function that has same name for one of the parameters and variable declaration" >:: test_same_name_param_var;
    "translating popl12 example" >:: test_popl12_example;
    "translating small explample" >:: test_small_example;
-   "translating smaller explample" >:: test_smaller_example;
+   "translating smaller explample" >:: test_smaller_example;*)
    "test_example" >:: test_example;
-   "translating gamma" >:: test_gamma;
-   "cfg_anonymous2" >:: cfg_anonymous2] 
+   (*"translating gamma" >:: test_gamma;
+   "cfg_anonymous2" >:: cfg_anonymous2*)] 
