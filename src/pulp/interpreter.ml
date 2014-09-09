@@ -2,6 +2,7 @@ open Pulp_Syntax
 open Pulp_Syntax_Utils
 
 exception InterpreterNotImplemented
+exception InterpreterStuck of string
 
 module LabelMap = Map.Make ( 
   struct 
@@ -39,6 +40,32 @@ type value =
   | VLiteral of literal
   | VRef of loc * string * reference_type
 
+let value_eq v1 v2 =
+  match v1, v2 with
+    | VLiteral lit1, VLiteral lit2 -> VLiteral (Bool (lit1 == lit2))
+    | VRef (l1, s1, rt1), VRef (l2, s2, rt2) -> VLiteral (Bool (l1 == l2 && s1 == s2 && rt1 == rt2))
+    | _, _ -> VLiteral (Bool false)
+
+let value_arith op v1 v2 =
+  match v1, v2 with
+    | VLiteral (Num n1), VLiteral (Num n2) -> 
+      begin match op with
+        | Plus -> VLiteral (Num (n1 +. n2))
+        | Minus -> VLiteral (Num (n1 -. n2))
+        | Times -> VLiteral (Num (n1 *. n2))
+        | Div -> VLiteral (Num (n1 /. n2))
+      end
+    | _, _ -> raise (InterpreterStuck "Arith Op on non-numbers")
+
+let value_bool op v1 v2 =
+  match v1, v2 with
+     | VLiteral (Bool b1), VLiteral (Bool b2) -> 
+      begin match op with
+        | And -> VLiteral (Bool (b1 && b2))
+        | Or -> VLiteral (Bool (b1 or b2))
+      end
+    | _, _ -> raise (InterpreterStuck "Boolean Op on non-boolean values")
+
 type heap_type = (value Object.t) Heap.t
 type stack_type = value Stack.t
 
@@ -52,13 +79,37 @@ type function_return_type =
   | Normal
   | Exception
   | Return
+
+let run_bin_op op v1 v2 : value =
+  begin match op with
+    | Comparison cop ->
+      begin match cop with
+        | Equal -> value_eq v1 v2
+      end
+    | Arith aop -> value_arith aop v1 v2
+    | Boolean bop -> value_bool bop v1 v2
+  end
   
-let run_expr (s : local_state) (e : expression) : local_state =
+let bool_not v =
+  match v with
+    | VLiteral (Bool (b)) -> VLiteral (Bool (not b))
+    | _ -> raise (InterpreterStuck "Not on non-boolean value")
+  
+let run_unary_op op v : value =
+  match op with
+    | Not -> bool_not v
+  
+let rec run_expr (s : local_state) (e : expression) : local_state * value =
   match e with
-	  | Literal l -> raise InterpreterNotImplemented
-	  | Var v -> raise InterpreterNotImplemented
-	  | BinOp (e1, op, e2) -> raise InterpreterNotImplemented
-	  | UnaryOp (op, e) -> raise InterpreterNotImplemented
+	  | Literal l -> s, VLiteral l
+	  | Var v -> s, Stack.find v s.lsstack
+	  | BinOp (e1, op, e2) -> 
+      let ls1, v1 = run_expr s e1 in
+      let ls2, v2 = run_expr ls1 e2 in
+      ls2, run_bin_op op v1 v2
+	  | UnaryOp (op, e) -> 
+      let ls1, v1 = run_expr s e in
+      ls1, run_unary_op op v1
 	  | Ref (e1, e2, rt) -> raise InterpreterNotImplemented
 	  | Base e -> raise InterpreterNotImplemented
 	  | Field e -> raise InterpreterNotImplemented
