@@ -714,14 +714,22 @@ let translate_function fb fid args env =
       ]
     ) (List.filter (fun v -> not (List.mem v args)) (var_decls fb)) in
     
-  let pulp_fb, _ = exp_to_fb ctx fb in
+  let pulp_fb, lvar = exp_to_fb ctx fb in
     
   let pulpe = 
     init_e @ 
     [current_scope; proto_stmt] @  
     init_vars @ 
     decl_vars @ 
-    pulp_fb in
+    pulp_fb @
+    [
+      Assignment (mk_assign ctx.end_var (Var lvar)); 
+      Goto ctx.label_end; 
+      Label ctx.label_end; 
+      Label ctx.label_return; 
+      Label ctx.label_throw
+    ]
+  in
   
   let desugared_pulpe = desugar pulpe in
   

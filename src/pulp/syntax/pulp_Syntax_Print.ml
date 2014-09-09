@@ -133,7 +133,9 @@ let string_of_ctx_vars v =
   Printf.sprintf "%s : [%s]" v.func_id (string_of_vars v.fun_bindings)
   
 let string_of_returs_throws ctx =
-  Printf.sprintf "[return: variable %s label %s; throw: variable %s label %s]" 
+  Printf.sprintf "[end: variable %s label %s; return: variable %s label %s; throw: variable %s label %s]" 
+  ctx.end_var
+  ctx.label_end
   ctx.return_var
   ctx.label_return
   ctx.throw_var

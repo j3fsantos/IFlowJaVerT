@@ -155,7 +155,7 @@ let cfg_anonymous2 () =
   *)
 
 let suite = "Testing Translation" >:::
-  [(*"translating access" >:: test_access;
+  ["translating access" >:: test_access;
    "translating assignment" >:: test_assign;
    "translating obj literal" >:: test_obj;
    "translating block" >:: test_block;
@@ -177,7 +177,7 @@ let suite = "Testing Translation" >:::
    "testing function that has same name for one of the parameters and variable declaration" >:: test_same_name_param_var;
    "translating popl12 example" >:: test_popl12_example;
    "translating small explample" >:: test_small_example;
-   "translating smaller explample" >:: test_smaller_example;*)
+   "translating smaller explample" >:: test_smaller_example;
    "test_example" >:: test_example;
-   (*"translating gamma" >:: test_gamma;
-   "cfg_anonymous2" >:: cfg_anonymous2*)] 
+   "translating gamma" >:: test_gamma;
+   "cfg_anonymous2" >:: cfg_anonymous2] 
