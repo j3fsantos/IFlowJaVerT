@@ -50,7 +50,7 @@ let string_of_formal_params fparams =
   
 let string_of_literal lit =
   match lit with
-    | Loc l -> string_of_builtin_loc l
+    | LLoc l -> string_of_builtin_loc l
     | Num n -> string_of_float n
     | String x -> Printf.sprintf "\"%s\"" x
     | Null -> "null"
@@ -84,7 +84,6 @@ let rec string_of_expression e =
     | BinOp (e1, op, e2) -> Printf.sprintf "%s %s %s" (se e1) (string_of_bin_op op) (se e2)
     | UnaryOp (op, e) -> Printf.sprintf "%s (%s)" (string_of_unary_op op) (se e)
     | IsTypeOf (e, t) -> Printf.sprintf "istypeof (%s, %s)" (se e) (string_of_pulp_type t)
-    | Call c -> string_of_call c
     | Ref (e1, e2, t) -> Printf.sprintf "(%s .%s %s)" (se e1)
       (match t with
         | MemberReference -> "_o"
@@ -92,16 +91,26 @@ let rec string_of_expression e =
       (se e2)
     | Base e -> Printf.sprintf "base (%s)" (se e)
     | Field e -> Printf.sprintf "field (%s)" (se e)
+
+let string_of_call c =
+  let se = string_of_expression in
+  let ses xs = String.concat "," (List.map se xs) in
+  Printf.sprintf "%s (%s, %s, %s)" (se c.call_name) (se c.call_this) (se c.call_scope) (ses c.call_args)
+ 
+let string_of_assign_right_expression aer =
+  let se = string_of_expression in
+  match aer with
+    | Call c -> string_of_call c
     | Obj -> "new ()"
     | HasField (e1, e2) -> Printf.sprintf "hasfield (%s, %s)" (se e1) (se e2)
     | Lookup (e1, e2) -> Printf.sprintf "[%s.%s]" (se e1) (se e2)
     | Deallocation (e1, e2) -> Printf.sprintf "delete %s.%s" (se e1) (se e2)
     | Pi (l, x) -> Printf.sprintf "Pi ( %s, %s )" (se l) (se x)
-and string_of_call c =
-  let se = string_of_expression in
-  let ses xs = String.concat "," (List.map se xs) in
-  Printf.sprintf "%s (%s, %s, %s)" (se c.call_name) (se c.call_this) (se c.call_scope) (ses c.call_args)
-  
+
+let string_of_assign_expression ae =
+  match ae with
+    | AE e -> string_of_expression e
+    | AER aer -> string_of_assign_right_expression aer
   
 let string_of_mutation m =
   let se = string_of_expression in
@@ -116,7 +125,7 @@ let rec string_of_statement t =
     | GuardedGoto (e, s1, s2) -> Printf.sprintf "goto [%s] %s, %s" (string_of_expression e) s1 s2
     | Assume e -> Printf.sprintf "Assume %s" (string_of_expression e)
     | Assert e -> Printf.sprintf "Assert %s" (string_of_expression e)
-    | Assignment a -> Printf.sprintf "%s := %s" (s a.assign_left) (string_of_expression a.assign_right)
+    | Assignment a -> Printf.sprintf "%s := %s" (s a.assign_left) (string_of_assign_expression a.assign_right)
     | Mutation m -> string_of_mutation m
     | Sugar s -> string_of_sugar s
 and string_of_statement_list ts = (String.concat "\n" (List.map string_of_statement ts))

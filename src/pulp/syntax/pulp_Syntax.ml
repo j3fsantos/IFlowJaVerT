@@ -14,7 +14,7 @@ type builtin_loc =
   | LNotImplemented (* The tool cannot handle this case atm *)
 
 type literal =
-  | Loc of builtin_loc
+  | LLoc of builtin_loc
   | Null                  
   | Bool of bool          
   | Num of float          
@@ -82,19 +82,25 @@ type expression =
   | Base of expression
   | Field of expression
   | IsTypeOf of expression * pulp_type
-  (* Assignment expressions *)
+
+type call = { 
+    call_name : expression;
+    call_scope : expression;
+    call_args : expression list;
+    call_this : expression;
+   }
+
+type assign_right_expression =
   | Call of call
   | Obj
   | HasField of expression * expression
   | Lookup of expression * expression
   | Deallocation of expression * expression
   | Pi of expression * expression
-and call = { 
-    call_name : expression;
-    call_scope : expression;
-    call_args : expression list;
-    call_this : expression;
-   }
+
+type assign_expression =
+  | AE of expression
+  | AER of assign_right_expression
   
 let mk_call name scope vthis args = {
       call_name = name;
@@ -105,7 +111,7 @@ let mk_call name scope vthis args = {
 
 type assignment = { 
     assign_left : variable; 
-    assign_right : expression
+    assign_right : assign_expression
   }
   
 type mutation = {

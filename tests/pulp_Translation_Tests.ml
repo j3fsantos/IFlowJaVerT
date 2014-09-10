@@ -125,12 +125,12 @@ let cfg_anonymous2 () =
   let proto_stmt = add_proto_null "anonymous2_scope" in
   let stmts = 
     [
-	    Assignment (mk_assign ("anonymous1_scope") (Ref (Var "rscope", Literal (String "anonymous1"), MemberReference)));
-	    Assignment (mk_assign "anonymous2_scope" Obj);
+	    Assignment (mk_assign ("anonymous1_scope") (AE (Ref (Var "rscope", Literal (String "anonymous1"), MemberReference))));
+	    Assignment (mk_assign "anonymous2_scope" (AER Obj));
       proto_stmt;
-      Assignment (mk_assign "r1" Obj);
+      Assignment (mk_assign "r1" (AER Obj));
       add_proto_value "r1" Lop;
-      Assignment (mk_assign "r2" (Lookup (Var "anonymous2_scope", Literal (String "n"))));
+      Assignment (mk_assign "r2" (AER (Lookup (Var "anonymous2_scope", Literal (String "n")))));
       Mutation (mk_mutation (Var "r1") (Literal (String "x")) (Var "r2"));
       Goto ctx.label_return
     ]

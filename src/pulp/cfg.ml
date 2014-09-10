@@ -104,32 +104,42 @@ let stmt_to_cfg (stmt : statement) label_map (ctx : translation_ctx) (start : cf
       end
 	  | Assignment assign ->
       begin match assign.assign_right with
-			  | Literal _
-			  | Var _
-			  | BinOp _
-			  | Ref _
-			  | Field _
-			  | Base _
-			  | HasField _
-			  | Lookup _
-        | Deallocation _
-	    | Obj
-        | IsTypeOf _
-        | UnaryOp _
-        | Pi _ ->            
-          let n = make_new_node stmt in 
-          if (connect_with_start = true)
-            then connect start n else (); 
-          Some n
-        | Call c ->
-           let n = make_new_node stmt in 
-           if (connect_with_start = true)
-            then connect start n else ();
-           let throw_label_node = AllLabels.find ctx.label_throw label_map in
-           let return_label_node = AllLabels.find ctx.label_return label_map in
-           connect n return_label_node;
-           connect_excep n throw_label_node;
-           Some return_label_node
+        | AE ae ->
+          begin match ae with
+          	| Literal _
+          	| Var _
+          	| BinOp _
+          	| IsTypeOf _
+          	| UnaryOp _
+          	| Ref _ 
+          	| Field _
+          	| Base _ ->
+		          let n = make_new_node stmt in 
+		          if (connect_with_start = true)
+		            then connect start n else (); 
+		          Some n
+          end
+        | AER aer ->
+          begin match aer with	 
+          	| HasField _            
+          	| Lookup _
+          	| Deallocation _
+          	| Obj
+          	| Pi _ ->            
+		          let n = make_new_node stmt in 
+		          if (connect_with_start = true)
+		            then connect start n else (); 
+		          Some n
+		    | Call c ->
+		           let n = make_new_node stmt in 
+		           if (connect_with_start = true)
+		            then connect start n else ();
+		           let throw_label_node = AllLabels.find ctx.label_throw label_map in
+		           let return_label_node = AllLabels.find ctx.label_return label_map in
+		           connect n return_label_node;
+		           connect_excep n throw_label_node;
+		           Some return_label_node
+           end
       end
     | Label l -> 
       let lnode = AllLabels.find l label_map in
@@ -197,7 +207,7 @@ let connect_goto node nodes =
 
 let connect_call_throw node nodes throw_label = 
   match node.cfgn_statement with
-    | Assignment {assign_right = Call _} ->
+    | Assignment {assign_right = AER (Call _)} ->
       begin
         List.iter (fun n -> 
           match n.cfgn_statement with
@@ -213,7 +223,7 @@ let connect_nodes nodes cfg_end throw_label =
     if index < List.length nodes - 2 then
 	    match node.cfgn_statement with
 	      | Goto _ -> connect_goto node nodes
-	      | Assignment {assign_right = Call _} ->
+	      | Assignment {assign_right = AER (Call _)} ->
 	        let n = if index + 3 < List.length nodes then List.nth nodes (index + 1) else cfg_end in
 	        let _ = connect node n in
 	        connect_call_throw node nodes throw_label;

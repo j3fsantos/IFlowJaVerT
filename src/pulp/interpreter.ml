@@ -36,34 +36,56 @@ module Object = Map.Make (
   end
 )
 
+type heap_value =
+  | HVLiteral of literal
+  | HVObj of loc
+
+(* Do I still need this if I always evaluate literal builtin location to hbobj builtin location? Doesn't feel clean to have same things at different places *)
+let heap_value_eq v1 v2 =
+  match v1, v2 with
+    | HVLiteral lit1, HVLiteral lit2 -> lit1 == lit2
+    | HVObj l1, HVObj l2 -> l1 == l2
+    | HVLiteral (LLoc l1), HVObj (BLoc l2) -> l1 == l2
+    | _, _ -> false
+
 type value =
-  | VLiteral of literal
+  | VHValue of heap_value
   | VRef of loc * string * reference_type
 
 let value_eq v1 v2 =
   match v1, v2 with
-    | VLiteral lit1, VLiteral lit2 -> VLiteral (Bool (lit1 == lit2))
-    | VRef (l1, s1, rt1), VRef (l2, s2, rt2) -> VLiteral (Bool (l1 == l2 && s1 == s2 && rt1 == rt2))
-    | _, _ -> VLiteral (Bool false)
+    | VHValue hv1, VHValue hv2 -> heap_value_eq hv1 hv2
+    | VRef (l1, s1, rt1), VRef (l2, s2, rt2) -> l1 == l2 && s1 == s2 && rt1 == rt2
+    | _, _ -> false
 
-let value_arith op v1 v2 =
+let heap_value_arith op v1 v2 =
   match v1, v2 with
-    | VLiteral (Num n1), VLiteral (Num n2) -> 
+    |  HVLiteral (Num n1),  HVLiteral (Num n2) -> 
       begin match op with
-        | Plus -> VLiteral (Num (n1 +. n2))
-        | Minus -> VLiteral (Num (n1 -. n2))
-        | Times -> VLiteral (Num (n1 *. n2))
-        | Div -> VLiteral (Num (n1 /. n2))
+        | Plus -> HVLiteral (Num (n1 +. n2))
+        | Minus -> HVLiteral (Num (n1 -. n2))
+        | Times -> HVLiteral (Num (n1 *. n2))
+        | Div -> HVLiteral (Num (n1 /. n2))
       end
     | _, _ -> raise (InterpreterStuck "Arith Op on non-numbers")
 
+let value_arith op v1 v2 = 
+  match v1, v2 with
+    | (VHValue hv1), (VHValue hv2) -> VHValue (heap_value_arith op hv1 hv2)
+    | _, _ -> raise (InterpreterStuck "Arith Op on non-numbers")
+
+let heap_value_bool op v1 v2 =
+  match v1, v2 with
+     | HVLiteral (Bool b1), HVLiteral (Bool b2) -> 
+      begin match op with
+        | And -> HVLiteral (Bool (b1 && b2))
+        | Or -> HVLiteral (Bool (b1 or b2))
+      end
+    | _, _ -> raise (InterpreterStuck "Boolean Op on non-boolean values")
+
 let value_bool op v1 v2 =
   match v1, v2 with
-     | VLiteral (Bool b1), VLiteral (Bool b2) -> 
-      begin match op with
-        | And -> VLiteral (Bool (b1 && b2))
-        | Or -> VLiteral (Bool (b1 or b2))
-      end
+    | (VHValue hv1), (VHValue hv2) -> VHValue (heap_value_bool op hv1 hv2)
     | _, _ -> raise (InterpreterStuck "Boolean Op on non-boolean values")
 
 type heap_type = (value Object.t) Heap.t
@@ -84,7 +106,7 @@ let run_bin_op op v1 v2 : value =
   begin match op with
     | Comparison cop ->
       begin match cop with
-        | Equal -> value_eq v1 v2
+        | Equal -> VHValue (HVLiteral (Bool (value_eq v1 v2)))
       end
     | Arith aop -> value_arith aop v1 v2
     | Boolean bop -> value_bool bop v1 v2
@@ -92,29 +114,94 @@ let run_bin_op op v1 v2 : value =
   
 let bool_not v =
   match v with
-    | VLiteral (Bool (b)) -> VLiteral (Bool (not b))
+    | VHValue (HVLiteral (Bool (b))) -> VHValue (HVLiteral (Bool (not b)))
     | _ -> raise (InterpreterStuck "Not on non-boolean value")
   
 let run_unary_op op v : value =
   match op with
     | Not -> bool_not v
+
+let type_of_literal l =
+  match l with
+    | LLoc _ -> ObjectType
+	  | Null -> NullType               
+	  | Bool _ -> BooleanType         
+	  | Num _ -> NumberType          
+	  | String _ -> StringType
+	  | Undefined
+	  | Empty -> UndefinedType
+
+let type_of v =
+  match v with
+    | VHValue hv ->
+      begin match hv with
+        | HVLiteral lit -> type_of_literal lit
+        | HVObj _ -> ObjectType
+      end
+    | VRef (_, _, rt) -> ReferenceType (Some rt)
+
+let is_type_of v pt =
+  let vtype = type_of v in
+  match pt with
+    | ReferenceType None -> 
+      begin match pt with
+        | ReferenceType _ -> true
+        | _ -> false
+      end
+    | _ -> pt == vtype
   
-let rec run_expr (s : local_state) (e : expression) : local_state * value =
+let rec run_expr (s : local_state) (e : expression) : value =
   match e with
-	  | Literal l -> s, VLiteral l
-	  | Var v -> s, Stack.find v s.lsstack
+	  | Literal l ->
+      begin match l with
+        | LLoc bl -> VHValue (HVObj (BLoc bl))
+        | _ -> VHValue (HVLiteral l)
+      end
+	  | Var v -> Stack.find v s.lsstack
 	  | BinOp (e1, op, e2) -> 
-      let ls1, v1 = run_expr s e1 in
-      let ls2, v2 = run_expr ls1 e2 in
-      ls2, run_bin_op op v1 v2
+      let v1 = run_expr s e1 in
+      let v2 = run_expr s e2 in
+      run_bin_op op v1 v2
 	  | UnaryOp (op, e) -> 
-      let ls1, v1 = run_expr s e in
-      ls1, run_unary_op op v1
-	  | Ref (e1, e2, rt) -> raise InterpreterNotImplemented
-	  | Base e -> raise InterpreterNotImplemented
-	  | Field e -> raise InterpreterNotImplemented
-	  | IsTypeOf (e, pt) -> raise InterpreterNotImplemented
-	  (* Assignment expressions *)
+      let v1 = run_expr s e in
+      run_unary_op op v1
+	  | Ref (e1, e2, rt) -> 
+      let l = run_expr s e1 in
+      let x = run_expr s e2 in
+      let lobj = 
+        match l with
+          | VHValue hv ->
+            begin match hv with
+              | HVLiteral (LLoc l) -> BLoc l
+              | HVObj l -> l
+              | _ -> raise (InterpreterStuck "First element of reference should be object ")
+            end
+          | _ -> raise (InterpreterStuck "First element of reference should be object ") in
+      let xstring =
+        match x with
+          | VHValue (HVLiteral (String x)) -> x
+          | _ -> raise (InterpreterStuck "Second element of reference should be string ") in
+      VRef (lobj, xstring, rt)
+	  | Base e -> 
+      let v = run_expr s e in
+      begin match v with
+        | VRef (l, x, rt) -> VHValue (HVObj l)
+        | _ -> raise (InterpreterStuck "Base is only defined on references")
+      end
+	  | Field e ->       
+      let v = run_expr s e in
+      begin match v with
+        | VRef (l, x, rt) -> VHValue (HVLiteral (String x))
+        | _ -> raise (InterpreterStuck "Field is only defined on references")
+      end
+	  | IsTypeOf (e, pt) -> 
+      let v = run_expr s e in
+      let b = is_type_of v pt in
+      VHValue (HVLiteral (Bool b))
+
+let run_assing_expr (s : local_state) (e : assign_right_expression) : local_state * value =
+	(* Assignment expressions *)
+  match e with
 	  | Call c -> raise InterpreterNotImplemented
 	  | Obj -> raise InterpreterNotImplemented
 	  | HasField (e1, e2) -> raise InterpreterNotImplemented
