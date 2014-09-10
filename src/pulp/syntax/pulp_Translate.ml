@@ -14,20 +14,6 @@ let function_scope_name fid =
 
 let end_label : label = "theend"
 
-type builtin_field =
-  | FProto
-  | FId
-  | FScope
-  | FPrototype
-
-let string_of_builtin_field f =
-  match f with
-    | FProto -> "#proto"
-    | FId -> "#fid"
-    | FScope -> "#scope"
-    | FPrototype -> "prototype"
-
-
 let literal_builtin_field f = Literal (String (string_of_builtin_field f))
 
 let is_ref_inner ref rt =

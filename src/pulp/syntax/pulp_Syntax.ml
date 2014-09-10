@@ -13,6 +13,12 @@ type builtin_loc =
   | LSError (* Syntax Error *)
   | LNotImplemented (* The tool cannot handle this case atm *)
 
+type builtin_field =
+  | FProto
+  | FId
+  | FScope
+  | FPrototype
+
 type literal =
   | LLoc of builtin_loc
   | Null                  

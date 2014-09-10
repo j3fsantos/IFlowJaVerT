@@ -38,6 +38,13 @@ let string_of_builtin_loc l =
     | LSError -> "#lserror"
     | LNotImplemented -> "#lnotimplemented"
 
+let string_of_builtin_field f =
+  match f with
+    | FProto -> "#proto"
+    | FId -> "#fid"
+    | FScope -> "#scope"
+    | FPrototype -> "prototype"
+
 let string_of_var x = x
 
 let string_of_codename cn = cn
