@@ -330,7 +330,21 @@ let run_stmt (s : local_state) (stmt : statement) (labelmap : int LabelMap.t) : 
         | AE ae -> s, run_expr s ae 
         | AER aer -> run_assign_expr s aer in
       {s with lsstack = Stack.add assign.assign_left v s.lsstack}
-    | Mutation m -> raise InterpreterNotImplemented
+    | Mutation m -> 
+      let v1 = run_expr s m.m_loc in
+      let v2 = run_expr s m.m_field in
+      let v3 = run_expr s m.m_right in
+      begin 
+        try
+            let l, x, obj = object_field_check v1 v2 s.lsheap "First argument of Mutation must be an object" "Second argument of Mutation must be a string" in
+            let v3 = match v3 with
+              | VHValue v -> v
+              | VRef _ -> raise (InterpreterStuck "Right hand side of mutation cannot be a reference") in
+            let newobj = Object.add x v3 obj in
+            {s with lsheap = Heap.add l newobj s.lsheap}
+        with
+          | Not_found -> raise (InterpreterStuck "Object must exists for Deallocation")
+      end  
     | Sugar sss -> raise InterpreterNotImplemented
 
 let end_label stmt labelmap ctx =
