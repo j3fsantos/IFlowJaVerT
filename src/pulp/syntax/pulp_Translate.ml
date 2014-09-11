@@ -704,6 +704,12 @@ let translate_function fb fid args env =
     ) (List.filter (fun v -> not (List.mem v args)) (var_decls fb)) in
     
   let pulp_fb, lvar = exp_to_fb ctx fb in
+  
+  let end_stmt =
+    if (fid = main_fun_id) then
+      Assignment (mk_assign ctx.return_var (AE (Var lvar)))
+    else
+      Assignment (mk_assign ctx.return_var (AE (Literal Empty))) in
     
   let pulpe = 
     init_e @ 
@@ -712,9 +718,8 @@ let translate_function fb fid args env =
     decl_vars @ 
     pulp_fb @
     [
-      Assignment (mk_assign ctx.end_var (AE (Var lvar))); 
-      Goto ctx.label_end; 
-      Label ctx.label_end; 
+      end_stmt; 
+      Goto ctx.label_return; 
       Label ctx.label_return; 
       Label ctx.label_throw
     ]

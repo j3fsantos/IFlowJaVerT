@@ -174,10 +174,8 @@ let make_ctx_vars fid vars =
     env_vars : ctx_variables list; 
     return_var : variable;
     throw_var : variable;
-    end_var : variable;
     label_return : label;
     label_throw : label;
-    label_end : label;
   }
   
 let create_ctx env =
@@ -185,10 +183,8 @@ let create_ctx env =
      env_vars = env;
      return_var = fresh_r ();
      throw_var = fresh_r ();
-     end_var = fresh_r ();
      label_return = "return." ^ fresh_r ();
      label_throw = "throw." ^ fresh_r ();
-     label_end = "end." ^ fresh_r ();
   }
   
 type function_block = { 

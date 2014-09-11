@@ -103,17 +103,6 @@ let value_bool op v1 v2 =
 type heap_type = (heap_value Object.t) Heap.t
 type stack_type = value Stack.t
 
-type local_state = {
-  lsheap : heap_type;
-  lsstack : stack_type;
-  lscounter : int
-}
-
-type function_return_type =
-  | Normal
-  | Exception
-  | Return
-
 let run_bin_op op v1 v2 : value =
   begin match op with
     | Comparison cop ->
@@ -168,15 +157,37 @@ let object_check v error =
     | VHValue (HVObj l) -> l
     | _ -> raise (InterpreterStuck error)
 
-let field_check v error = 
+let string_check v error = 
   match v with
     | VHValue (HVLiteral (String x)) -> x
     | _ -> raise (InterpreterStuck error)
 
 let object_field_check v1 v2 h error_obj error_field =
 	  let l = object_check v1 error_obj in
-	  let x = field_check v2 error_field in
+	  let x = string_check v2 error_field in
     (l, x, Heap.find l h)
+    
+type local_state = {
+  lsheap : heap_type;
+  lsstack : stack_type;
+  lscounter : int;
+  lsexcep : bool;
+}
+
+type function_return_type =
+  | FTException
+  | FTReturn      
+      
+type function_state = {
+    fs_heap : heap_type;
+    fs_return_type : function_return_type;
+    fs_return_value : value 
+} 
+
+let end_label stmt labelmap ctx =
+  match stmt with
+    | Label l -> l == ctx.label_return || l == ctx.label_throw
+    | _ -> false
   
 let rec run_expr (s : local_state) (e : expression) : value =
   match e with
@@ -197,7 +208,7 @@ let rec run_expr (s : local_state) (e : expression) : value =
       let l = run_expr s e1 in
       let x = run_expr s e2 in
       let lobj = object_check l "First element of reference should be object" in
-      let xstring = field_check x "Second element of reference should be string" in
+      let xstring = string_check x "Second element of reference should be string" in
       VRef (lobj, xstring, rt)
 	  | Base e -> 
       let v = run_expr s e in
@@ -243,11 +254,24 @@ let rec get_value_proto v x h =
 		  end   
       
 (* TODO -- I don't like the code here *)
-
-let run_assign_expr (s : local_state) (e : assign_right_expression) : local_state * value =
+let rec run_assign_expr (s : local_state) (e : assign_right_expression) (funcs : function_block AllFunctions.t) : local_state * value =
 	(* Assignment expressions *)
   match e with
-	  | Call c -> raise InterpreterNotImplemented
+	  | Call c -> 
+      let fid = run_expr s c.call_name in
+      let fid_string = string_check fid "Function name should be a string" in
+      let fblock = 
+        try AllFunctions.find fid_string funcs 
+        with | Not_found -> raise (InterpreterStuck ("Cannot find the function by name" ^ fid_string))
+      in  
+      let vthis = run_expr s c.call_this in
+      let vscope = run_expr s c.call_scope in
+      let vargs = List.map (run_expr s) c.call_args in
+      let fs = run_function s.lsheap fblock ([vthis; vscope] @ vargs) funcs in
+      begin match fs.fs_return_type with
+        | FTException -> {s with lsheap = fs.fs_heap; lsexcep = true}, fs.fs_return_value
+        | FTReturn -> {s with lsheap = fs.fs_heap}, fs.fs_return_value
+      end
 	  | Obj -> 
       let l = Loc (fresh_loc ()) in
       {s with lsheap = Heap.add l  Object.empty s.lsheap}, VHValue (HVObj l)
@@ -308,8 +332,30 @@ let run_assign_expr (s : local_state) (e : assign_right_expression) : local_stat
         with
           | Not_found -> raise (InterpreterStuck "Object must exists for Proto")
       end   
+and
+run_function (h : heap_type) (f : function_block) (args : value list) (fs : function_block AllFunctions.t) : function_state =
+  let s = List.fold_left2 (fun st param arg -> Stack.add param arg st) Stack.empty f.func_params args in
+    
+  let _, label_index = List.fold_left (fun (index, li) stmt ->
+    match stmt with
+      | Label l -> (index + 1, LabelMap.add l index li)
+      | _ -> index + 1, li
+    ) (0, LabelMap.empty) f.func_body in
+    
+  let result = run_stmts f.func_body f.func_ctx {lsheap = h; lsstack = s; lscounter = 0; lsexcep = false} label_index fs in
+  
+  let ret_type, ret_val = 
+    let stmt = List.nth f.func_body result.lscounter in
+    let l = match stmt with
+      | Label l -> l
+      | _ -> raise (Invalid_argument "Shouldn't be other stametemnt than Label statemment here") in
+    if l == f.func_ctx.label_return then FTReturn, Stack.find f.func_ctx.return_var result.lsstack
+    else if l == f.func_ctx.label_throw then FTException, Stack.find f.func_ctx.throw_var result.lsstack
+    else raise (Invalid_argument "Shouldn't be other label than end label here")
+  in 
+  {fs_heap = result.lsheap; fs_return_type = ret_type; fs_return_value = ret_val}
 
-let run_stmt (s : local_state) (stmt : statement) (labelmap : int LabelMap.t) : local_state =
+and run_stmt (s : local_state) (throw_label : string) (stmt : statement) (labelmap : int LabelMap.t) (fs : function_block AllFunctions.t) : local_state =
   match stmt with
     | Skip -> {s with lscounter = s.lscounter + 1}
     | Label l -> {s with lscounter = s.lscounter + 1}
@@ -328,8 +374,10 @@ let run_stmt (s : local_state) (stmt : statement) (labelmap : int LabelMap.t) : 
     | Assignment assign -> 
       let s, v = match assign.assign_right with
         | AE ae -> s, run_expr s ae 
-        | AER aer -> run_assign_expr s aer in
-      {s with lsstack = Stack.add assign.assign_left v s.lsstack}
+        | AER aer -> run_assign_expr s aer fs in
+      if s.lsexcep then
+        {s with lscounter = LabelMap.find throw_label labelmap}
+      else {s with lsstack = Stack.add assign.assign_left v s.lsstack; lscounter = s.lscounter + 1}
     | Mutation m -> 
       let v1 = run_expr s m.m_loc in
       let v2 = run_expr s m.m_field in
@@ -347,48 +395,12 @@ let run_stmt (s : local_state) (stmt : statement) (labelmap : int LabelMap.t) : 
       end  
     | Sugar sss -> raise InterpreterNotImplemented
 
-let end_label stmt labelmap ctx =
-  match stmt with
-    | Label l -> l == ctx.label_end || l == ctx.label_return || l == ctx.label_throw
-    | _ -> false
-
-let rec run_stmts stmts ctx lstate labelmap =
+and run_stmts stmts ctx lstate labelmap fs =
   let next_stmt = List.nth stmts lstate.lscounter in
   if end_label next_stmt labelmap ctx then lstate 
   else 
-    let state = run_stmt lstate next_stmt labelmap in
-    run_stmts stmts ctx state labelmap
-
-type function_state = {
-    fs_heap : heap_type;
-    fs_return_type : function_return_type;
-    fs_return_value : value 
-}
-    
-let run_function (h : heap_type) (f : function_block) (args : value list) (fs : function_block AllFunctions.t) : function_state =
-  let s = List.fold_left2 (fun st param arg -> Stack.add param arg st) Stack.empty f.func_params args in
-    
-  let _, label_index = List.fold_left (fun (index, li) stmt ->
-    match stmt with
-      | Label l -> (index + 1, LabelMap.add l index li)
-      | _ -> index + 1, li
-    ) (0, LabelMap.empty) f.func_body in
-    
-  let result = run_stmts f.func_body f.func_ctx {lsheap = h; lsstack = s; lscounter = 0} label_index in
-  
-  let ret_type, ret_val = 
-    let stmt = List.nth f.func_body result.lscounter in
-    let l = match stmt with
-      | Label l -> l
-      | _ -> raise (Invalid_argument "Shouldn't be other stametemnt than Label statemment here") in
-    if l == f.func_ctx.label_end then Normal, Stack.find f.func_ctx.end_var result.lsstack
-    else if l == f.func_ctx.label_return then Return, Stack.find f.func_ctx.return_var result.lsstack
-    else if l == f.func_ctx.label_throw then Exception, Stack.find f.func_ctx.throw_var result.lsstack
-    else raise (Invalid_argument "Shouldn't be other label than end label here")
-  in
-  
-  {fs_heap = result.lsheap; fs_return_type = ret_type; fs_return_value = ret_val}
-  
+    let state = run_stmt lstate ctx.label_throw next_stmt labelmap fs in
+    run_stmts stmts ctx state labelmap fs
 
 let run (h: heap_type) (fs : function_block AllFunctions.t) : function_state = 
   let main = AllFunctions.find main_fun_id fs in
