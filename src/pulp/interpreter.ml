@@ -55,9 +55,9 @@ type heap_value =
 (* Do I still need this if I always evaluate literal builtin location to hbobj builtin location? Doesn't feel clean to have same things at different places *)
 let heap_value_eq v1 v2 =
   match v1, v2 with
-    | HVLiteral lit1, HVLiteral lit2 -> lit1 == lit2
-    | HVObj l1, HVObj l2 -> l1 == l2
-    | HVLiteral (LLoc l1), HVObj (BLoc l2) -> l1 == l2
+    | HVLiteral lit1, HVLiteral lit2 -> lit1 = lit2
+    | HVObj l1, HVObj l2 -> l1 = l2
+    | HVLiteral (LLoc l1), HVObj (BLoc l2) -> l1 = l2
     | _, _ -> false
 
 type value =
@@ -67,7 +67,7 @@ type value =
 let value_eq v1 v2 =
   match v1, v2 with
     | VHValue hv1, VHValue hv2 -> heap_value_eq hv1 hv2
-    | VRef (l1, s1, rt1), VRef (l2, s2, rt2) -> l1 == l2 && s1 == s2 && rt1 == rt2
+    | VRef (l1, s1, rt1), VRef (l2, s2, rt2) -> l1 = l2 && s1 = s2 && rt1 = rt2
     | _, _ -> false
 
 let heap_value_arith op v1 v2 =
@@ -149,7 +149,7 @@ let is_type_of v pt =
         | ReferenceType _ -> true
         | _ -> false
       end
-    | _ -> pt == vtype
+    | _ -> pt = vtype
 
 let object_check v error = 
   match v with
@@ -186,7 +186,7 @@ type function_state = {
 
 let end_label stmt labelmap ctx =
   match stmt with
-    | Label l -> l == ctx.label_return || l == ctx.label_throw
+    | Label l -> l = ctx.label_return || l = ctx.label_throw
     | _ -> false
   
 let rec run_expr (s : local_state) (e : expression) : value =
@@ -349,8 +349,8 @@ run_function (h : heap_type) (f : function_block) (args : value list) (fs : func
     let l = match stmt with
       | Label l -> l
       | _ -> raise (Invalid_argument "Shouldn't be other stametemnt than Label statemment here") in
-    if l == f.func_ctx.label_return then FTReturn, Stack.find f.func_ctx.return_var result.lsstack
-    else if l == f.func_ctx.label_throw then FTException, Stack.find f.func_ctx.throw_var result.lsstack
+    if l = f.func_ctx.label_return then FTReturn, Stack.find f.func_ctx.return_var result.lsstack
+    else if l = f.func_ctx.label_throw then FTException, Stack.find f.func_ctx.throw_var result.lsstack
     else raise (Invalid_argument "Shouldn't be other label than end label here")
   in 
   {fs_heap = result.lsheap; fs_return_type = ret_type; fs_return_value = ret_val}
@@ -389,7 +389,7 @@ and run_stmt (s : local_state) (throw_label : string) (stmt : statement) (labelm
               | VHValue v -> v
               | VRef _ -> raise (InterpreterStuck "Right hand side of mutation cannot be a reference") in
             let newobj = Object.add x v3 obj in
-            {s with lsheap = Heap.add l newobj s.lsheap}
+            {s with lsheap = Heap.add l newobj s.lsheap; lscounter = s.lscounter + 1}
         with
           | Not_found -> raise (InterpreterStuck "Object must exists for Deallocation")
       end  
@@ -402,9 +402,9 @@ and run_stmts stmts ctx lstate labelmap fs =
     let state = run_stmt lstate ctx.label_throw next_stmt labelmap fs in
     run_stmts stmts ctx state labelmap fs
     
-let run (h: heap_type) (fs : function_block AllFunctions.t) : function_state = 
+let run (h: heap_type) main_this main_scope (fs : function_block AllFunctions.t) : function_state = 
   let main = AllFunctions.find main_fun_id fs in
-  run_function h main [] fs
+  run_function h main [main_this; main_scope] fs
   
 let built_in_obj_proto_lop h obj =
   let l = Object.add (string_of_builtin_field FProto) (HVObj (BLoc Lop)) Object.empty in
@@ -419,7 +419,12 @@ let initial_heap () =
   h
   
 let run_with_initial_heap (fs : function_block AllFunctions.t) : function_state =
-  run (initial_heap ()) fs
+  let h = initial_heap () in
+  let main_this = VHValue (HVObj (BLoc Lg)) in
+  let main_scope_obj = Object.add (main_fun_id) (HVObj (BLoc Lg)) Object.empty in
+  let main_scope_l = Loc (fresh_loc ()) in
+  let h = Heap.add main_scope_l main_scope_obj h in
+  run h main_this (VHValue (HVObj main_scope_l)) fs
 
   
 

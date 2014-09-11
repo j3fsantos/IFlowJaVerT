@@ -20,7 +20,7 @@ let outputs = "Test_Outputs" >:::
   ]
   
 let test_translation = "Test_Translation" >:::
-  [Pulp_Translation_Tests.suite]
+  [Pulp_Translation_Tests.suite; Pulp_Interpreter_Tests.suite]
 
 let all_suite = "Test_All" >:::
   [parsing_suite; suite ; outputs; test_translation]
