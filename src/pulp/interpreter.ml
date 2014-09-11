@@ -401,10 +401,28 @@ and run_stmts stmts ctx lstate labelmap fs =
   else 
     let state = run_stmt lstate ctx.label_throw next_stmt labelmap fs in
     run_stmts stmts ctx state labelmap fs
-
+    
 let run (h: heap_type) (fs : function_block AllFunctions.t) : function_state = 
   let main = AllFunctions.find main_fun_id fs in
   run_function h main [] fs
+  
+let built_in_obj_proto_lop h obj =
+  let l = Object.add (string_of_builtin_field FProto) (HVObj (BLoc Lop)) Object.empty in
+  Heap.add (BLoc obj) l h
+    
+let initial_heap () =
+  let h = Heap.empty in
+  let lop = Object.add (string_of_builtin_field FProto) (HVLiteral Null) Object.empty in
+  let h = Heap.add (BLoc Lop) lop h in
+  (* Do I want Error object too? Rather then going directly to Lop for errors *)
+  let h = List.fold_left built_in_obj_proto_lop h [Lg; Lfp; LEval; LRError; LTError; LSError; LNotImplemented] in
+  h
+  
+let run_with_initial_heap (fs : function_block AllFunctions.t) : function_state =
+  run (initial_heap ()) fs
+
+  
+
   
 
     
