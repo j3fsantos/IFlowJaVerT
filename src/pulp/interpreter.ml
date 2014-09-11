@@ -145,7 +145,7 @@ let is_type_of v pt =
   let vtype = type_of v in
   match pt with
     | ReferenceType None -> 
-      begin match pt with
+      begin match vtype with
         | ReferenceType _ -> true
         | _ -> false
       end

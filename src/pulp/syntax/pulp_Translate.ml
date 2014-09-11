@@ -705,11 +705,12 @@ let translate_function fb fid args env =
     
   let pulp_fb, lvar = exp_to_fb ctx fb in
   
-  let end_stmt =
+  let end_stmts =
     if (fid = main_fun_id) then
-      Assignment (mk_assign ctx.return_var (AE (Var lvar)))
+      let gamma_stmts, gamma_lvar = translate_gamma lvar ctx in 
+      gamma_stmts @ [Assignment (mk_assign ctx.return_var (AE (Var gamma_lvar)))]
     else
-      Assignment (mk_assign ctx.return_var (AE (Literal Empty))) in
+      [Assignment (mk_assign ctx.return_var (AE (Literal Empty)))] in
     
   let pulpe = 
     init_e @ 
@@ -717,8 +718,8 @@ let translate_function fb fid args env =
     init_vars @ 
     decl_vars @ 
     pulp_fb @
+    end_stmts @
     [
-      end_stmt; 
       Goto ctx.label_return; 
       Label ctx.label_return; 
       Label ctx.label_throw
