@@ -135,7 +135,8 @@ let rec string_of_statement t =
     | Assignment a -> Printf.sprintf "%s := %s" (s a.assign_left) (string_of_assign_expression a.assign_right)
     | Mutation m -> string_of_mutation m
     | Sugar s -> string_of_sugar s
-and string_of_statement_list ts = (String.concat "\n" (List.map string_of_statement ts))
+and string_of_statement_list ts = String.concat "\n" 
+ (List.mapi (fun i t -> (string_of_int i) ^ ". " ^ (string_of_statement t)) ts)
 and string_of_sugar t =
   match t with
     | If (condition, thenbranch, elsebranch) -> 

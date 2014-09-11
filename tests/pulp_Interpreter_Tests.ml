@@ -17,11 +17,27 @@ let test_template p name expected_value =
   
 
 let test_program1 () = 
-  test_template "1" "access" (VHValue (HVLiteral (Num 1.0)))
+  test_template "1" "P1" (VHValue (HVLiteral (Num 1.0)))
   
 let test_program2 () = 
-  test_template "var x = 2; x" "access" (VHValue (HVLiteral (Num 2.0)))
+  test_template "var x = 2; x" "P2" (VHValue (HVLiteral (Num 2.0)))
+  
+let test_program3 () =
+  test_template ("var x = {}; x.a = 1; x.b = 2; x.a + x.b") "P3" (VHValue (HVLiteral (Num 3.0)))
+  
+let test_program4 () =
+  test_template ("var s = function (n) { 
+   var t = function (m) { 
+      return {x : n} 
+    }; 
+   var d = t(n); 
+   return d 
+}; 
+
+var r = s(3).x; r") "P4" (VHValue (HVLiteral (Num 3.0)))
   
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
-   "running program2" >:: test_program2;] 
+   "running program2" >:: test_program2;
+   "running_program3" >:: test_program3;
+   "running_program4" >:: test_program4] 

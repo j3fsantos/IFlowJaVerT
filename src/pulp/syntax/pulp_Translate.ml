@@ -677,7 +677,7 @@ let translate_function fb fid args env =
     | [] -> raise (Invalid_argument "Should be a function environment here") in
     
   let init_e = List.map (fun env -> 
-     Assignment (mk_assign (function_scope_name env.func_id) (AE (Ref (Var rscope, Literal (String env.func_id), MemberReference)))) 
+     Assignment (mk_assign (function_scope_name env.func_id) (AER (Lookup (Var rscope, Literal (String env.func_id))))) 
   ) other_env in
   
   let current_scope_var = function_scope_name fid in

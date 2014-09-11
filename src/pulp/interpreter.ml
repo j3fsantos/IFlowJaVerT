@@ -32,14 +32,14 @@ module Heap = Map.Make (
 
 let fresh_int =
   let counter = ref 0 in
-  let rec f =
+  let rec f () =
     let v = !counter in
     counter := !counter + 1;
     v
   in f
   
 let fresh_loc () : int =
-  fresh_int
+  fresh_int ()
 
 module Object = Map.Make ( 
   struct 
