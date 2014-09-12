@@ -11,6 +11,7 @@ INCLUDES = -I ../lib/corestar \
 	   -I ../src/utils/ \
 	   -I ../src/pulp/ \
 	   -I ../src/pulp/syntax/ \
+	   -I ../src/pulp/interpreter/ \
 	   -I ../src/strategies/store/
 
 SOURCE = ../src/localconfig.ml \
@@ -45,8 +46,8 @@ SOURCE = ../src/localconfig.ml \
 	 ../src/pulp/syntax/pulp_Syntax_Utils.ml \
 	 ../src/pulp/syntax/pulp_Syntax_Print.ml \
 	 ../src/pulp/cfg.ml \
-	 ../src/pulp/interpreter.ml \
-	 ../src/pulp/interpreter_Print.ml \
+	 ../src/pulp/interpreter/interpreter.ml \
+	 ../src/pulp/interpreter/interpreter_Print.ml \
 	 ../src/pulp/syntax/pulp_Translate.ml \
 	 ../src/strategies/store/store_naive.ml \
 	 ../src/strategies/naive_strategy.ml \
