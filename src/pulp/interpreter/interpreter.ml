@@ -1,9 +1,11 @@
 open Pulp_Syntax 
 open Pulp_Syntax_Utils
 open Pulp_Syntax_Print
+open Interpreter_Memory_Model
+open Interpreter_Print
 
 exception InterpreterNotImplemented
-exception InterpreterStuck of string
+exception InterpreterStuck of string * int
 
 module LabelMap = Map.Make ( 
   struct 
@@ -12,65 +14,7 @@ module LabelMap = Map.Make (
   end
 )
 
-module Stack = Map.Make ( 
-  struct 
-    type t = variable
-    let compare = compare
-  end
-)
-
-type loc =
-  | BLoc of builtin_loc
-  | Loc of int
-
-module Heap = Map.Make ( 
-  struct 
-    type t = loc
-    let compare = compare
-  end
-)
-
-let fresh_int =
-  let counter = ref 0 in
-  let rec f () =
-    let v = !counter in
-    counter := !counter + 1;
-    v
-  in f
-  
-let fresh_loc () : int =
-  fresh_int ()
-
-module Object = Map.Make ( 
-  struct 
-    type t = string
-    let compare = compare
-  end
-)
-
-type heap_value =
-  | HVLiteral of literal
-  | HVObj of loc
-
-(* Do I still need this if I always evaluate literal builtin location to hbobj builtin location? Doesn't feel clean to have same things at different places *)
-let heap_value_eq v1 v2 =
-  match v1, v2 with
-    | HVLiteral lit1, HVLiteral lit2 -> lit1 = lit2
-    | HVObj l1, HVObj l2 -> l1 = l2
-    | HVLiteral (LLoc l1), HVObj (BLoc l2) -> l1 = l2
-    | _, _ -> false
-
-type value =
-  | VHValue of heap_value
-  | VRef of loc * string * reference_type
-
-let value_eq v1 v2 =
-  match v1, v2 with
-    | VHValue hv1, VHValue hv2 -> heap_value_eq hv1 hv2
-    | VRef (l1, s1, rt1), VRef (l2, s2, rt2) -> l1 = l2 && s1 = s2 && rt1 = rt2
-    | _, _ -> false
-
-let heap_value_arith op v1 v2 =
+let heap_value_arith op v1 v2 counter =
   match v1, v2 with
     |  HVLiteral (Num n1),  HVLiteral (Num n2) -> 
       begin match op with
@@ -79,48 +23,47 @@ let heap_value_arith op v1 v2 =
         | Times -> HVLiteral (Num (n1 *. n2))
         | Div -> HVLiteral (Num (n1 /. n2))
       end
-    | _, _ -> raise (InterpreterStuck "Arith Op on non-numbers")
+    | _, _ -> raise (InterpreterStuck ("Arith Op on non-numbers", counter))
 
-let value_arith op v1 v2 = 
+let value_arith op v1 v2 counter = 
   match v1, v2 with
-    | (VHValue hv1), (VHValue hv2) -> VHValue (heap_value_arith op hv1 hv2)
-    | _, _ -> raise (InterpreterStuck "Arith Op on non-numbers")
+    | (VHValue hv1), (VHValue hv2) -> VHValue (heap_value_arith op hv1 hv2 counter)
+    | _, _ -> raise (InterpreterStuck ("Arith Op on non-numbers", counter))
 
-let heap_value_bool op v1 v2 =
+let heap_value_bool op v1 v2 counter =
   match v1, v2 with
      | HVLiteral (Bool b1), HVLiteral (Bool b2) -> 
       begin match op with
         | And -> HVLiteral (Bool (b1 && b2))
         | Or -> HVLiteral (Bool (b1 or b2))
       end
-    | _, _ -> raise (InterpreterStuck "Boolean Op on non-boolean values")
+    | _, _ -> 
+      raise (InterpreterStuck ("Boolean Op on non-boolean values\n", counter))
 
-let value_bool op v1 v2 =
+let value_bool op v1 v2 counter =
   match v1, v2 with
-    | (VHValue hv1), (VHValue hv2) -> VHValue (heap_value_bool op hv1 hv2)
-    | _, _ -> raise (InterpreterStuck "Boolean Op on non-boolean values")
+    | (VHValue hv1), (VHValue hv2) -> VHValue (heap_value_bool op hv1 hv2 counter)
+    | _, _ -> 
+      raise (InterpreterStuck ("Boolean Op on non-boolean values", counter))
 
-type heap_type = (heap_value Object.t) Heap.t
-type stack_type = value Stack.t
-
-let run_bin_op op v1 v2 : value =
+let run_bin_op op v1 v2 counter : value =
   begin match op with
     | Comparison cop ->
       begin match cop with
         | Equal -> VHValue (HVLiteral (Bool (value_eq v1 v2)))
       end
-    | Arith aop -> value_arith aop v1 v2
-    | Boolean bop -> value_bool bop v1 v2
+    | Arith aop -> value_arith aop v1 v2 counter
+    | Boolean bop -> value_bool bop v1 v2 counter
   end
   
-let bool_not v =
+let bool_not v counter =
   match v with
     | VHValue (HVLiteral (Bool (b))) -> VHValue (HVLiteral (Bool (not b)))
-    | _ -> raise (InterpreterStuck "Not on non-boolean value")
+    | _ -> raise (InterpreterStuck ("Not on non-boolean value", counter))
   
-let run_unary_op op v : value =
+let run_unary_op op v counter : value =
   match op with
-    | Not -> bool_not v
+    | Not -> bool_not v counter 
 
 let type_of_literal l =
   match l with
@@ -151,20 +94,20 @@ let is_type_of v pt =
       end
     | _ -> pt = vtype
 
-let object_check v error = 
+let object_check v error counter = 
   match v with
     | VHValue (HVLiteral (LLoc l)) -> BLoc l
     | VHValue (HVObj l) -> l
-    | _ -> raise (InterpreterStuck error)
+    | _ -> raise (InterpreterStuck (error, counter))
 
-let string_check v error = 
+let string_check v error counter = 
   match v with
     | VHValue (HVLiteral (String x)) -> x
-    | _ -> raise (InterpreterStuck error)
+    | _ -> raise (InterpreterStuck (error, counter))
 
-let object_field_check v1 v2 h error_obj error_field =
-	  let l = object_check v1 error_obj in
-	  let x = string_check v2 error_field in
+let object_field_check v1 v2 h error_obj error_field counter =
+	  let l = object_check v1 error_obj counter in
+	  let x = string_check v2 error_field counter in
     (l, x, Heap.find l h)
     
 type local_state = {
@@ -200,41 +143,43 @@ let rec run_expr (s : local_state) (e : expression) : value =
 	  | BinOp (e1, op, e2) -> 
       let v1 = run_expr s e1 in
       let v2 = run_expr s e2 in
-      run_bin_op op v1 v2
+      run_bin_op op v1 v2 s.lscounter
 	  | UnaryOp (op, e) -> 
       let v1 = run_expr s e in
-      run_unary_op op v1
+      run_unary_op op v1 s.lscounter
 	  | Ref (e1, e2, rt) -> 
-      let l = run_expr s e1 in
+      let v = run_expr s e1 in
       let x = run_expr s e2 in
-      let lobj = object_check l "First element of reference should be object" in
-      let xstring = string_check x "Second element of reference should be string" in
-      VRef (lobj, xstring, rt)
+      let hv = match v with
+        | VHValue hv -> hv
+        | VRef _ -> raise (InterpreterStuck ("First parameter of reference cannot be a reference", s.lscounter)) in
+      let xstring = string_check x "Second element of reference should be string" s.lscounter in
+      VRef (hv, xstring, rt)
 	  | Base e -> 
       let v = run_expr s e in
       begin match v with
-        | VRef (l, x, rt) -> VHValue (HVObj l)
-        | _ -> raise (InterpreterStuck "Base is only defined on references")
+        | VRef (v, x, rt) -> VHValue v
+        | _ -> raise (InterpreterStuck ("Base is only defined on references", s.lscounter))
       end
 	  | Field e ->       
       let v = run_expr s e in
       begin match v with
         | VRef (l, x, rt) -> VHValue (HVLiteral (String x))
-        | _ -> raise (InterpreterStuck "Field is only defined on references")
+        | _ -> raise (InterpreterStuck ("Field is only defined on references", s.lscounter))
       end
 	  | IsTypeOf (e, pt) -> 
       let v = run_expr s e in
       let b = is_type_of v pt in
       VHValue (HVLiteral (Bool b))
       
-let rec get_value_proto v x h =
+let rec get_value_proto v x h counter =
   match v with
     (* Should it be undefined descriptor? *)
     | VHValue (HVLiteral Null) -> VHValue (HVLiteral Undefined)
     | _ ->
 		  begin 
 		    try
-          let l = object_check v "First argument of Proto must be an object" in
+          let l = object_check v "First argument of Proto must be an object" counter in
 		      let obj = Heap.find l h in
 		        begin 
 		        try
@@ -244,13 +189,13 @@ let rec get_value_proto v x h =
 		              begin
 		                try 
 		                  let proto = Object.find (string_of_builtin_field FProto) obj in
-		                  get_value_proto (VHValue proto) x h
+		                  get_value_proto (VHValue proto) x h counter
 		                with
-		                  | Not_found -> raise (InterpreterStuck "Object must have prototype in Proto")
+		                  | Not_found -> raise (InterpreterStuck ("Object must have prototype in Proto", counter))
 		              end
 		        end
 		    with
-		      | Not_found -> raise (InterpreterStuck "Object must exists for Proto")
+		      | Not_found -> raise (InterpreterStuck ("Object must exists for Proto", counter))
 		  end   
       
 (* TODO -- I don't like the code here *)
@@ -259,10 +204,10 @@ let rec run_assign_expr (s : local_state) (e : assign_right_expression) (funcs :
   match e with
 	  | Call c -> 
       let fid = run_expr s c.call_name in
-      let fid_string = string_check fid "Function name should be a string" in
+      let fid_string = string_check fid "Function name should be a string" s.lscounter in
       let fblock = 
         try AllFunctions.find fid_string funcs 
-        with | Not_found -> raise (InterpreterStuck ("Cannot find the function by name" ^ fid_string))
+        with | Not_found -> raise (InterpreterStuck ("Cannot find the function by name" ^ fid_string, s.lscounter))
       in  
       let vthis = run_expr s c.call_this in
       let vscope = run_expr s c.call_scope in
@@ -280,7 +225,7 @@ let rec run_assign_expr (s : local_state) (e : assign_right_expression) (funcs :
       let v2 = run_expr s e2 in
       begin 
         try
-          let l, x, obj = object_field_check v1 v2 s.lsheap "First argument of HasField must be an object" "Second argument of HasField must be a string" in
+          let l, x, obj = object_field_check v1 v2 s.lsheap "First argument of HasField must be an object" "Second argument of HasField must be a string" s.lscounter in
 	        begin 
             try
 	            let _ = Object.find x obj in s, VHValue (HVLiteral (Bool true))
@@ -288,49 +233,49 @@ let rec run_assign_expr (s : local_state) (e : assign_right_expression) (funcs :
 	            | Not_found -> s, VHValue (HVLiteral (Bool false))
 	        end
         with
-          | Not_found -> raise (InterpreterStuck "Object must exists for HasField")
+          | Not_found -> raise (InterpreterStuck ("Object must exists for HasField", s.lscounter))
       end
 	  | Lookup (e1, e2) -> 
       let v1 = run_expr s e1 in
       let v2 = run_expr s e2 in
       begin 
         try
-            let l, x, obj = object_field_check v1 v2 s.lsheap "First argument of Lookup must be an object" "Second argument of Lookup must be a string" in
+            let l, x, obj = object_field_check v1 v2 s.lsheap "First argument of Lookup must be an object" "Second argument of Lookup must be a string" s.lscounter in
             begin 
             try
                 let v = Object.find x obj in s, (VHValue v)
               with
-                | Not_found -> raise (InterpreterStuck "Couldn't proceed with Lookup")
+                | Not_found -> raise (InterpreterStuck ("Couldn't proceed with Lookup", s.lscounter))
             end
         with
-          | Not_found -> raise (InterpreterStuck "Object must exists for Lookup")
+          | Not_found -> raise (InterpreterStuck ("Object must exists for Lookup", s.lscounter))
       end     
 	  | Deallocation (e1, e2) -> 
       let v1 = run_expr s e1 in
       let v2 = run_expr s e2 in
       begin 
         try
-            let l, x, obj = object_field_check v1 v2 s.lsheap "First argument of Deallocation must be an object" "Second argument of Deallocation must be a string" in
+            let l, x, obj = object_field_check v1 v2 s.lsheap "First argument of Deallocation must be an object" "Second argument of Deallocation must be a string" s.lscounter in
             begin 
             try
                 let _ = Object.find x obj in 
                 let newobj = Object.remove x obj in
                 {s with lsheap = Heap.add l newobj s.lsheap}, VHValue (HVLiteral (Bool true))
               with
-                | Not_found -> raise (InterpreterStuck "Couldn't proceed with Deallocation")
+                | Not_found -> raise (InterpreterStuck ("Couldn't proceed with Deallocation", s.lscounter))
             end
         with
-          | Not_found -> raise (InterpreterStuck "Object must exists for Deallocation")
+          | Not_found -> raise (InterpreterStuck ("Object must exists for Deallocation", s.lscounter))
       end   
 	  | Pi (e1, e2) -> 
       let v1 = run_expr s e1 in
       let v2 = run_expr s e2 in
       begin 
         try
-            let l, x, obj = object_field_check v1 v2 s.lsheap "First argument of Proto must be an object" "Second argument of Proto must be a string" in
-            let v = get_value_proto (VHValue (HVObj l)) x s.lsheap in s, v
+            let l, x, obj = object_field_check v1 v2 s.lsheap "First argument of Proto must be an object" "Second argument of Proto must be a string" s.lscounter in
+            let v = get_value_proto (VHValue (HVObj l)) x s.lsheap s.lscounter in s, v
         with
-          | Not_found -> raise (InterpreterStuck "Object must exists for Proto")
+          | Not_found -> raise (InterpreterStuck ("Object must exists for Proto", s.lscounter))
       end   
 and
 run_function (h : heap_type) (f : function_block) (args : value list) (fs : function_block AllFunctions.t) : function_state =
@@ -367,7 +312,7 @@ and run_stmt (s : local_state) (throw_label : string) (stmt : statement) (labelm
           {s with lscounter = LabelMap.find l1 labelmap}
         | VHValue (HVLiteral (Bool false)) ->
           {s with lscounter = LabelMap.find l2 labelmap}
-        | _ -> raise (InterpreterStuck "GuardedGoto expression must evaluate to boolean value")
+        | _ -> raise (InterpreterStuck ("GuardedGoto expression must evaluate to boolean value", s.lscounter))
       end
     | Assume e -> raise InterpreterNotImplemented
     | Assert e -> raise InterpreterNotImplemented
@@ -384,14 +329,14 @@ and run_stmt (s : local_state) (throw_label : string) (stmt : statement) (labelm
       let v3 = run_expr s m.m_right in
       begin 
         try
-            let l, x, obj = object_field_check v1 v2 s.lsheap "First argument of Mutation must be an object" "Second argument of Mutation must be a string" in
+            let l, x, obj = object_field_check v1 v2 s.lsheap "First argument of Mutation must be an object" "Second argument of Mutation must be a string" s.lscounter in
             let v3 = match v3 with
               | VHValue v -> v
-              | VRef _ -> raise (InterpreterStuck "Right hand side of mutation cannot be a reference") in
+              | VRef _ -> raise (InterpreterStuck ("Right hand side of mutation cannot be a reference", s.lscounter)) in
             let newobj = Object.add x v3 obj in
             {s with lsheap = Heap.add l newobj s.lsheap; lscounter = s.lscounter + 1}
         with
-          | Not_found -> raise (InterpreterStuck "Object must exists for Deallocation")
+          | Not_found -> raise (InterpreterStuck ("Object must exists for Deallocation", s.lscounter))
       end  
     | Sugar sss -> raise InterpreterNotImplemented
 

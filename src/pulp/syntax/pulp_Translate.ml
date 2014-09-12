@@ -7,10 +7,11 @@ exception PulpNotImplemented of string
   
 let rthis : variable = "rthis"
 let rscope : variable = "rscope"
-let unknownscope : variable = "unknownscope"
 
 let function_scope_name fid =
   fid^"_scope"
+  
+let unknownscope : string = "UNKNOWN_SCOPE"
 
 let end_label : label = "theend"
 
@@ -186,7 +187,7 @@ let translate_gamma r ctx =
   let main = Sugar (If (is_ref_expr r,
     [
       Assignment base;
-      Sugar (If (equal_undef_expr base.assign_left,
+      Sugar (If (or_expr (equal_undef_expr base.assign_left) (equal_string_expr base.assign_left unknownscope),
         translate_error_throw LRError ctx.throw_var ctx.label_throw,
         [
           Sugar (If (istypeof_prim_expr base.assign_left,
@@ -313,9 +314,9 @@ let find_var_scope var env =
   let scope = List.find (fun scope ->
     List.exists (fun v -> v = var) scope.fun_bindings
     ) env in
-  scope.func_id
+  Var (function_scope_name (scope.func_id))
   with
-    | Not_found -> unknownscope
+    | Not_found -> Literal (String unknownscope)
 
 let rec exp_to_fb ctx exp : statement list * variable = 
   let f = exp_to_fb ctx in 
@@ -348,8 +349,8 @@ let rec exp_to_fb ctx exp : statement list * variable =
         end
       | Parser_syntax.Var v -> 
         begin 
-          let scope = function_scope_name (find_var_scope v ctx.env_vars) in
-          let ref_assign = mk_assign_fresh_e (Ref (Var scope, Literal (String v) , VariableReference)) in
+          let scope = find_var_scope v ctx.env_vars in
+          let ref_assign = mk_assign_fresh_e (Ref (scope, Literal (String v) , VariableReference)) in
           [Assignment ref_assign], ref_assign.assign_left         
         end
       | Parser_syntax.Access (e, v) -> 

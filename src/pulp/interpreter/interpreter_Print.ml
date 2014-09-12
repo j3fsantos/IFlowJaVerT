@@ -1,4 +1,4 @@
-open Interpreter
+open Interpreter_Memory_Model
 open Pulp_Syntax
 open Pulp_Syntax_Print
 
@@ -15,9 +15,9 @@ let string_of_heap_value hv =
 let string_of_value v =
   match v with
     | VHValue hv -> string_of_heap_value hv
-    | VRef (l, x, rt) -> 
+    | VRef (hv, x, rt) -> 
       Printf.sprintf "(%s .%s %s)" 
-      (string_of_loc l)
+      (string_of_heap_value hv)
       (match rt with
         | MemberReference -> "_o"
         | VariableReference -> "_v")
