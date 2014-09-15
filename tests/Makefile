@@ -46,7 +46,7 @@ SOURCE = ../src/localconfig.ml \
 	 ../src/pulp/syntax/pulp_Syntax_Utils.ml \
 	 ../src/pulp/syntax/pulp_Syntax_Print.ml \
 	 ../src/pulp/cfg.ml \
-	 ../src/pulp/interpreter/interpreter_Memory_Model.ml \
+	 ../src/pulp/interpreter/memory_Model.ml \
 	 ../src/pulp/interpreter/interpreter_Print.ml \
 	 ../src/pulp/interpreter/interpreter.ml \
 	 ../src/pulp/syntax/pulp_Translate.ml \

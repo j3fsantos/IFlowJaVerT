@@ -1,4 +1,4 @@
-open Interpreter_Memory_Model
+open Memory_Model
 open Pulp_Syntax
 open Pulp_Syntax_Print
 

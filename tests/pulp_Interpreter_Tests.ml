@@ -5,7 +5,7 @@ open Pulp_Syntax_Utils
 open Pulp_Syntax_Print
 open Interpreter
 open Interpreter_Print
-open Interpreter_Memory_Model
+open Memory_Model
 
 let test_template p =
   Symb_execution.initialize ();
