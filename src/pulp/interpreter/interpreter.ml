@@ -105,10 +105,14 @@ let string_check v error counter =
     | VHValue (HVLiteral (String x)) -> x
     | _ -> raise (InterpreterStuck (error, counter))
 
-let object_field_check v1 v2 h error_obj error_field counter =
-	  let l = object_check v1 error_obj counter in
-	  let x = string_check v2 error_field counter in
-    (l, x, Heap.find l h)
+let object_field_check v1 v2 h cmd_name counter = 
+	  let l = object_check v1 ("First argument of " ^ cmd_name ^ " must be an object") counter in
+	  let x = string_check v2 ("Second argument of " ^ cmd_name ^ " must be a string") counter in
+    try
+      (l, x, Heap.find l h)
+    with
+      | Not_found -> raise (InterpreterStuck ("Object must exists for " ^ cmd_name, counter))
+
     
 type local_state = {
   lsheap : heap_type;
@@ -177,26 +181,19 @@ let rec get_value_proto v x h counter =
     (* Should it be undefined descriptor? *)
     | VHValue (HVLiteral Null) -> VHValue (HVLiteral Undefined)
     | _ ->
-		  begin 
-		    try
-          let l = object_check v "First argument of Proto must be an object" counter in
-		      let obj = Heap.find l h in
-		        begin 
-		        try
-		            let v = Object.find x obj in VHValue v
-		          with
-		            | Not_found -> 
-		              begin
-		                try 
-		                  let proto = Object.find (string_of_builtin_field FProto) obj in
-		                  get_value_proto (VHValue proto) x h counter
-		                with
-		                  | Not_found -> raise (InterpreterStuck ("Object must have prototype in Proto", counter))
-		              end
-		        end
+      let l = object_check v "First argument of Proto must be an object" counter in
+		  let obj = 
+        try Heap.find l h 
+        with | Not_found -> raise (InterpreterStuck ("Object must exists for Proto", counter)) in
+	    try
+	      let v = Object.find x obj in VHValue v
+	    with | Not_found -> 
+		    try 
+		      let proto = Object.find (string_of_builtin_field FProto) obj in
+		      get_value_proto (VHValue proto) x h counter
 		    with
-		      | Not_found -> raise (InterpreterStuck ("Object must exists for Proto", counter))
-		  end   
+		      | Not_found -> raise (InterpreterStuck ("Object must have prototype in Proto", counter))
+		    
       
 (* TODO -- I don't like the code here *)
 let rec run_assign_expr (s : local_state) (e : assign_right_expression) (funcs : function_block AllFunctions.t) : local_state * value =
@@ -222,61 +219,35 @@ let rec run_assign_expr (s : local_state) (e : assign_right_expression) (funcs :
       {s with lsheap = Heap.add l  Object.empty s.lsheap}, VHValue (HVObj l)
 	  | HasField (e1, e2) -> 
       let v1 = run_expr s e1 in
-      let v2 = run_expr s e2 in
-      begin 
-        try
-          let l, x, obj = object_field_check v1 v2 s.lsheap "First argument of HasField must be an object" "Second argument of HasField must be a string" s.lscounter in
-	        begin 
-            try
-	            let _ = Object.find x obj in s, VHValue (HVLiteral (Bool true))
-	          with
-	            | Not_found -> s, VHValue (HVLiteral (Bool false))
-	        end
-        with
-          | Not_found -> raise (InterpreterStuck ("Object must exists for HasField", s.lscounter))
-      end
+      let v2 = run_expr s e2 in 
+      let l, x, obj = object_field_check v1 v2 s.lsheap "HasField" s.lscounter in
+      let rv = 
+        try let _ = Object.find x obj in true
+        with | Not_found -> false in
+      s, VHValue (HVLiteral (Bool rv))
 	  | Lookup (e1, e2) -> 
       let v1 = run_expr s e1 in
       let v2 = run_expr s e2 in
-      begin 
-        try
-            let l, x, obj = object_field_check v1 v2 s.lsheap "First argument of Lookup must be an object" "Second argument of Lookup must be a string" s.lscounter in
-            begin 
-            try
-                let v = Object.find x obj in s, (VHValue v)
-              with
-                | Not_found -> raise (InterpreterStuck ("Couldn't proceed with Lookup", s.lscounter))
-            end
-        with
-          | Not_found -> raise (InterpreterStuck ("Object must exists for Lookup", s.lscounter))
-      end     
+			let l, x, obj = object_field_check v1 v2 s.lsheap "Lookup" s.lscounter in
+      let v = 
+        try Object.find x obj 
+			  with | Not_found -> raise (InterpreterStuck ("Couldn't proceed with Lookup", s.lscounter)) in
+      s, (VHValue v)
 	  | Deallocation (e1, e2) -> 
       let v1 = run_expr s e1 in
       let v2 = run_expr s e2 in
-      begin 
-        try
-            let l, x, obj = object_field_check v1 v2 s.lsheap "First argument of Deallocation must be an object" "Second argument of Deallocation must be a string" s.lscounter in
-            begin 
-            try
-                let _ = Object.find x obj in 
-                let newobj = Object.remove x obj in
-                {s with lsheap = Heap.add l newobj s.lsheap}, VHValue (HVLiteral (Bool true))
-              with
-                | Not_found -> raise (InterpreterStuck ("Couldn't proceed with Deallocation", s.lscounter))
-            end
-        with
-          | Not_found -> raise (InterpreterStuck ("Object must exists for Deallocation", s.lscounter))
-      end   
+			let l, x, obj = object_field_check v1 v2 s.lsheap "Deallocation" s.lscounter in
+	    let _ = 
+        try Object.find x obj 
+        with | Not_found -> raise (InterpreterStuck ("Couldn't proceed with Deallocation", s.lscounter)) in
+	    let newobj = Object.remove x obj in
+	    {s with lsheap = Heap.add l newobj s.lsheap}, VHValue (HVLiteral (Bool true))
+
 	  | Pi (e1, e2) -> 
       let v1 = run_expr s e1 in
-      let v2 = run_expr s e2 in
-      begin 
-        try
-            let l, x, obj = object_field_check v1 v2 s.lsheap "First argument of Proto must be an object" "Second argument of Proto must be a string" s.lscounter in
-            let v = get_value_proto (VHValue (HVObj l)) x s.lsheap s.lscounter in s, v
-        with
-          | Not_found -> raise (InterpreterStuck ("Object must exists for Proto", s.lscounter))
-      end   
+      let v2 = run_expr s e2 in	
+			let l, x, obj = object_field_check v1 v2 s.lsheap "Proto" s.lscounter in
+			let v = get_value_proto (VHValue (HVObj l)) x s.lsheap s.lscounter in s, v 
 and
 run_function (h : heap_type) (f : function_block) (args : value list) (fs : function_block AllFunctions.t) : function_state =
   let s = List.fold_left2 (fun st param arg -> Stack.add param arg st) Stack.empty f.func_params args in
@@ -327,17 +298,12 @@ and run_stmt (s : local_state) (throw_label : string) (stmt : statement) (labelm
       let v1 = run_expr s m.m_loc in
       let v2 = run_expr s m.m_field in
       let v3 = run_expr s m.m_right in
-      begin 
-        try
-            let l, x, obj = object_field_check v1 v2 s.lsheap "First argument of Mutation must be an object" "Second argument of Mutation must be a string" s.lscounter in
-            let v3 = match v3 with
-              | VHValue v -> v
-              | VRef _ -> raise (InterpreterStuck ("Right hand side of mutation cannot be a reference", s.lscounter)) in
-            let newobj = Object.add x v3 obj in
-            {s with lsheap = Heap.add l newobj s.lsheap; lscounter = s.lscounter + 1}
-        with
-          | Not_found -> raise (InterpreterStuck ("Object must exists for Deallocation", s.lscounter))
-      end  
+			let l, x, obj = object_field_check v1 v2 s.lsheap "Mutation" s.lscounter in
+			let v3 = match v3 with
+			  | VHValue v -> v
+			  | VRef _ -> raise (InterpreterStuck ("Right hand side of mutation cannot be a reference", s.lscounter)) in
+			let newobj = Object.add x v3 obj in
+			{s with lsheap = Heap.add l newobj s.lsheap; lscounter = s.lscounter + 1}
     | Sugar sss -> raise InterpreterNotImplemented
 
 and run_stmts stmts ctx lstate labelmap fs =
@@ -366,9 +332,8 @@ let initial_heap () =
 let run_with_initial_heap (fs : function_block AllFunctions.t) : function_state =
   let h = initial_heap () in
   let main_this = VHValue (HVObj (BLoc Lg)) in
-  let main_scope_obj = Object.add (main_fun_id) (HVObj (BLoc Lg)) Object.empty in
   let main_scope_l = Loc (fresh_loc ()) in
-  let h = Heap.add main_scope_l main_scope_obj h in
+  let h = Heap.add main_scope_l Object.empty h in
   run h main_this (VHValue (HVObj main_scope_l)) fs
 
   
