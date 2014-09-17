@@ -55,9 +55,20 @@ var r = s(3).x; r") (VHValue (HVLiteral (Num 3.0)))
 let test_program5 () = 
   test_template_exception "var x = 2; y" LRError
   
+let test_program6 () =
+  test_template_exception ("var a = function () { 
+   var b = function () { 
+      c 
+    }; 
+   var d = t() 
+}; 
+
+s()") LRError
+  
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
    "running program2" >:: test_program2;
    "running_program3" >:: test_program3;
    "running_program4" >:: test_program4;
-   "running_program5" >:: test_program5] 
+   "running_program5" >:: test_program5;
+   "running_program6" >:: test_program6] 
