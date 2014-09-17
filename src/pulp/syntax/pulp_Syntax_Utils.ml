@@ -39,7 +39,9 @@ let map_switch f (e1, e2s) =
      ) e2s
 
 let rec var_decls_inner exp = 
-  let f = var_decls_inner in match exp.exp_stx with
+  let f = var_decls_inner in 
+  let fo e = match e with None -> [] | Some e -> f e in
+  match exp.exp_stx with
   | Num _
   | String _
   | Null 
@@ -74,7 +76,8 @@ let rec var_decls_inner exp =
   | ForIn (e1, e2, e3) 
   | Try (e1, Some (_, e2), Some e3) 
   | ConditionalOp (e1, e2, e3)-> (f e1) @ (f e2) @ (f e3)
-  | For (e1, e2, e3, e4) -> (f e1) @ (f e2) @ (f e3) @ (f e4)
+  | For (e1, e2, e3, e4) -> 
+    (fo e1) @ (fo e2) @ (fo e3) @ (f e4)
   | Call (e1, e2s) 
   | New (e1, e2s) -> (f e1) @ (flat_map (fun e2 -> f e2) e2s)
   | AnnonymousFun (_,vs, e)
@@ -145,7 +148,7 @@ let rec add_codenames exp : exp =
           | None -> None
           | Some (n, e) -> Some (n, f e)), (fo finally)))
       | If (e1, e2, e3) -> m exp (If (f e1, f e2, fo e3))
-      | For (e1, e2, e3, e4) -> m exp (For (f e1, f e2, f e3, f e4))
+      | For (e1, e2, e3, e4) -> m exp (For (fo e1, fo e2, fo e3, f e4))
       | Switch (e1, sces) -> m exp (Switch (f e1, List.map (fun (sc, e2) -> 
         (match sc with
           | DefaultCase -> DefaultCase
@@ -208,7 +211,7 @@ let rec get_all_functions_with_env env e : (exp * Pulp_Syntax.ctx_variables list
           | None -> []
           | Some (_, e) -> f e) @ (fo finally)
       | If (e1, e2, e3) -> (f e1) @ (f e2) @ (fo e3)
-      | For (e1, e2, e3, e4) -> (f e1) @ (f e2) @ (f e3) @ (f e4)
+      | For (e1, e2, e3, e4) -> (fo e1) @ (fo e2) @ (fo e3) @ (f e4)
       | Switch (e1, sces) -> (f e1) @ flat_map (fun (sc, e2) -> 
         (match sc with
           | DefaultCase -> []
