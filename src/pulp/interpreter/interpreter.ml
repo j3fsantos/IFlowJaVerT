@@ -329,14 +329,15 @@ let initial_heap () =
   let h = List.fold_left built_in_obj_proto_lop h [Lg; Lfp; LEval; LRError; LTError; LSError; LNotImplemented] in
   h
   
-let run_with_initial_heap (fs : function_block AllFunctions.t) : function_state =
-  let h = initial_heap () in
+let run_with_heap h (fs : function_block AllFunctions.t) : function_state =
   let main_this = VHValue (HVObj (BLoc Lg)) in
   let main_scope_l = Loc (fresh_loc ()) in
   let h = Heap.add main_scope_l Object.empty h in
   run h main_this (VHValue (HVObj main_scope_l)) fs
-
   
+let run_with_initial_heap (fs : function_block AllFunctions.t) : function_state =
+  let h = initial_heap () in
+  run_with_heap h fs
 
   
 

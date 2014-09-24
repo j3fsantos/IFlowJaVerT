@@ -8,7 +8,7 @@ open Interpreter_Print
 open Memory_Model
 
 let test_template p =
-  Symb_execution.initialize ();
+  Config.apply_config ();
   Parser_main.verbose := true;
   let exp = Parser_main.exp_from_string p in
   let _ = Printf.printf "%s \n" (Pretty_print.string_of_exp_syntax exp.Parser_syntax.exp_stx) in
