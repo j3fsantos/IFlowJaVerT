@@ -46,7 +46,7 @@ let equal_loc_expr v l = equal_lit_expr v (LLoc l)
 let equal_string_expr v s = equal_lit_expr v (String s)
 let equal_int_expr v n = equal_lit_expr v (Num (float_of_int n))
 
-
+(* What about not a number? *)
 let is_false_expr v =
   or_expr
   (equal_int_expr v 0)
@@ -81,7 +81,7 @@ let mk_assign_fresh_aer aer = mk_assign_fresh (AER aer)
 
 let tr_unary_op op =
   match op with
-      | Parser_syntax.Not
+      | Parser_syntax.Not -> Not
       | Parser_syntax.TypeOf 
       | Parser_syntax.Positive
       | Parser_syntax.Negative
@@ -649,11 +649,30 @@ let rec exp_to_fb ctx exp : statement list * variable =
             Assignment assignr; 
             Goto ctx.label_return
           ], ctx.return_var
+          
+      | Parser_syntax.Unary_op (op, e) ->
+        begin match op with 
+          | Parser_syntax.Not ->
+		        let r1_stmts, r1 = f e in
+		        let r2_stmts, r2 = translate_gamma r1 ctx in
+            let rv = fresh_r () in 
+            let if1 = 
+              Sugar (If (is_false_expr r2, 
+                [
+                  Assignment (mk_assign rv (AE (Literal (Bool true))))
+                ], 
+                [
+                  Assignment (mk_assign rv (AE (Literal (Bool false))))
+                ])) in
+		        r1_stmts @
+            r2_stmts @
+            [if1], rv
+          | _ -> raise (PulpNotImplemented (Pretty_print.string_of_exp true exp))
+        end
         
       | Parser_syntax.NamedFun _ (*(_, n, vs, e)*)
 
-      | Parser_syntax.RegExp _
-      | Parser_syntax.Unary_op _ 
+      | Parser_syntax.RegExp _ 
       | Parser_syntax.AssignOp _
       | Parser_syntax.Comma _
       | Parser_syntax.Array _

@@ -53,6 +53,20 @@ let run_program path =
         Printf.printf "\nParsing problems with the file '%s'.\n" file;
         exit 1 
   in
+  let prelude_exp = 
+    try 
+      Parser_main.exp_from_file (List.hd !test_prelude)
+    with
+      | Parser.ParserFailure file ->
+        Printf.printf "\nParsing problems with the prelude file '%s'.\n" file;
+        exit 1
+  in 
+  let exp = 
+    match prelude_exp.Parser_syntax.exp_stx, exp.Parser_syntax.exp_stx with
+      | Parser_syntax.Script (_, es1), Parser_syntax.Script (str, es2) -> {exp with Parser_syntax.exp_stx = Parser_syntax.Script (str, es1 @ es2)}
+      | _ -> Printf.printf "\nSomething wrong with adding prelude.\n"; exit 1
+  in
+    
   let p_exp = 
     try 
       exp_to_pulp exp 
@@ -63,7 +77,7 @@ let run_program path =
  
   let h = initial_heap () in
   let lop = Heap.find (BLoc Lop) h in
-  let lop = Object.add ("__ERROR__") (HVLiteral (String "")) lop in
+  let lop = Object.add ("__$ERROR__") (HVLiteral (String "")) lop in
   let h = Heap.add (BLoc Lop) lop h in
   
   let result = run_with_heap h p_exp in

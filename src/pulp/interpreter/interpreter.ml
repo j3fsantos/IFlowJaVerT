@@ -1,3 +1,4 @@
+open Batteries
 open Pulp_Syntax 
 open Pulp_Syntax_Utils
 open Pulp_Syntax_Print
@@ -23,6 +24,7 @@ let heap_value_arith op v1 v2 counter =
         | Times -> HVLiteral (Num (n1 *. n2))
         | Div -> HVLiteral (Num (n1 /. n2))
       end
+    | HVLiteral (String s1),  HVLiteral (String s2) -> HVLiteral (String (s1 ^ s2))
     | _, _ -> raise (InterpreterStuck ("Arith Op on non-numbers", counter))
 
 let value_arith op v1 v2 counter = 
@@ -56,10 +58,29 @@ let run_bin_op op v1 v2 counter : value =
     | Boolean bop -> value_bool bop v1 v2 counter
   end
   
+let to_boolean v counter =
+  match v with
+    | HVLiteral lit ->
+      begin match lit with
+        | LLoc _ -> true
+			  | Null -> false                  
+			  | Bool b -> b         
+			  | Num n -> 
+          begin match Float.classify n with
+            | FP_zero
+            | FP_nan -> false
+            | _ -> true    
+          end  
+			  | String s -> not (s = "")
+			  | Undefined -> false
+			  | Empty -> raise (InterpreterStuck ("Cannot proceed with ! on empty value", counter))
+      end
+    | HVObj _ -> true
+  
 let bool_not v counter =
   match v with
-    | VHValue (HVLiteral (Bool (b))) -> VHValue (HVLiteral (Bool (not b)))
-    | _ -> raise (InterpreterStuck ("Not on non-boolean value", counter))
+    | VHValue hv -> VHValue (HVLiteral (Bool (not (to_boolean hv counter))))
+    | _ -> raise (InterpreterStuck ("Cannot proceed with ! on reference value", counter))
   
 let run_unary_op op v counter : value =
   match op with
