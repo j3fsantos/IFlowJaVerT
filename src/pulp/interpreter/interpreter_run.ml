@@ -83,7 +83,7 @@ let run_program path =
   let result = run_with_heap h p_exp in
   match result.fs_return_type with
     | FTReturn -> pr_test result.fs_heap
-    | FTException -> pr_test result.fs_heap; exit 1 
+    | FTException -> pr_test result.fs_heap; Printf.printf "\nException was thrown.\n"; exit 1 
 
 let main () =
   Config.apply_config ();

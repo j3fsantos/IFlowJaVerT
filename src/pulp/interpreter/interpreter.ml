@@ -164,7 +164,10 @@ let rec run_expr (s : local_state) (e : expression) : value =
         | LLoc bl -> VHValue (HVObj (BLoc bl))
         | _ -> VHValue (HVLiteral l)
       end
-	  | Var v -> Stack.find v s.lsstack
+	  | Var v -> 
+      (try 
+        Stack.find v s.lsstack
+      with Not_found -> raise (InterpreterStuck ("Cannot find a variable" ^ v ^ "in the stack", s.lscounter)))
 	  | BinOp (e1, op, e2) -> 
       let v1 = run_expr s e1 in
       let v2 = run_expr s e2 in
@@ -272,6 +275,8 @@ let rec run_assign_expr (s : local_state) (e : assign_right_expression) (funcs :
 and
 run_function (h : heap_type) (f : function_block) (args : value list) (fs : function_block AllFunctions.t) : function_state =
   let s = List.fold_left2 (fun st param arg -> Stack.add param arg st) Stack.empty f.func_params args in
+  let s = Stack.add f.func_ctx.return_var (VHValue (HVLiteral Empty)) s in
+  let s = Stack.add f.func_ctx.throw_var (VHValue (HVLiteral Empty)) s in
     
   let _, label_index = List.fold_left (fun (index, li) stmt ->
     match stmt with
@@ -286,8 +291,12 @@ run_function (h : heap_type) (f : function_block) (args : value list) (fs : func
     let l = match stmt with
       | Label l -> l
       | _ -> raise (Invalid_argument "Shouldn't be other stametemnt than Label statemment here") in
-    if l = f.func_ctx.label_return then FTReturn, Stack.find f.func_ctx.return_var result.lsstack
-    else if l = f.func_ctx.label_throw then FTException, Stack.find f.func_ctx.throw_var result.lsstack
+    if l = f.func_ctx.label_return then FTReturn, 
+       (try Stack.find f.func_ctx.return_var result.lsstack 
+        with Not_found -> raise (InterpreterStuck ("Cannot find return variable", result.lscounter)))
+    else if l = f.func_ctx.label_throw then FTException, 
+       (try Stack.find f.func_ctx.throw_var result.lsstack
+        with Not_found -> raise (InterpreterStuck ("Cannot find throw variable", result.lscounter)))
     else raise (Invalid_argument "Shouldn't be other label than end label here")
   in 
   {fs_heap = result.lsheap; fs_return_type = ret_type; fs_return_value = ret_val}
