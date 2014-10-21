@@ -49,21 +49,25 @@ let equal_int_expr v n = equal_lit_expr v (Num (float_of_int n))
 (* What about not a number? *)
 let is_false_expr v =
   or_expr
-  (equal_int_expr v 0)
-  (or_expr
-	  (equal_string_expr v "")
-    (or_expr
-		  (equal_undef_expr v)
-		  (equal_null_expr v)))
+  (equal_bool_expr v false)
+	  (or_expr
+	  (equal_int_expr v 0)
+	  (or_expr
+		  (equal_string_expr v "")
+	    (or_expr
+			  (equal_undef_expr v)
+			  (equal_null_expr v))))
       
-let is_true_expr v =   
+let is_true_expr v =  
   and_expr
-  (not_expr (equal_int_expr v 0))
-  (and_expr
-    (not_expr (equal_string_expr v ""))
-    (and_expr
-          (not_expr (equal_undef_expr v))
-          (not_expr (equal_null_expr v))))
+  (not_expr (equal_bool_expr v false)) 
+	  (and_expr
+	  (not_expr (equal_int_expr v 0))
+	  (and_expr
+	    (not_expr (equal_string_expr v ""))
+	    (and_expr
+	          (not_expr (equal_undef_expr v))
+	          (not_expr (equal_null_expr v)))))
 
 (* Assignment *)
 let mk_assign var exp = { 
@@ -597,7 +601,7 @@ let rec exp_to_fb ctx exp : statement list * variable =
             let r4_stmts, r4 = f e3 in
             r4_stmts @ 
             [Assignment (mk_assign rv (AE (Var r4)))]
-          | None -> [] in      
+          | None -> [Assignment (mk_assign rv (AE (Literal Empty)))] in      
           r1_stmts @ 
           r2_stmts @ 
           [ 
