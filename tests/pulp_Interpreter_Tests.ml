@@ -66,7 +66,10 @@ let test_program6 () =
 s()") LRError
 
 let test_if () =
-  test_template_normal ("var x = 1; if (false) {x = 2}; x ") (VHValue (HVLiteral (Num 1.0)))
+  test_template_normal ("var x = 1; if (false) {x = 2}; x") (VHValue (HVLiteral (Num 1.0)))
+  
+let test_undefined () =
+  test_template_normal ("var x = undefined;") (VHValue (HVLiteral Empty))
   
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
@@ -75,4 +78,5 @@ let suite = "Testing_Interpreter" >:::
    "running_program4" >:: test_program4;
    "running_program5" >:: test_program5;
    "running_program6" >:: test_program6;
-   "running_if" >:: test_if] 
+   "running_if" >:: test_if;
+   "running_undefined" >:: test_undefined] 

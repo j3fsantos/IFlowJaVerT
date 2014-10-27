@@ -706,13 +706,14 @@ let translate_function fb fid args env =
   
   let current_scope_var = function_scope_name fid in
   
-  let current_scope, proto_stmt = 
+  let current_scope_stmts = 
     if (fid = main_fun_id) then
-      (Assignment (mk_assign current_scope_var (AE (Literal (LLoc Lg)))),
-       add_proto_value current_scope_var Lop)
+      [Assignment (mk_assign current_scope_var (AE (Literal (LLoc Lg))));
+       add_proto_value current_scope_var Lop;
+       Mutation (mk_mutation (Literal (LLoc Lg)) (Literal (String "undefined")) (Literal Undefined))]
   else 
-       (Assignment (mk_assign current_scope_var (AER Obj)),
-        add_proto_null current_scope_var) in
+       [Assignment (mk_assign current_scope_var (AER Obj));
+        add_proto_null current_scope_var] in
         
   let init_vars = Utils.flat_map (fun v ->
       [
@@ -738,7 +739,7 @@ let translate_function fb fid args env =
     
   let pulpe = 
     init_e @ 
-    [current_scope; proto_stmt] @  
+    current_scope_stmts @  
     init_vars @ 
     decl_vars @ 
     pulp_fb @

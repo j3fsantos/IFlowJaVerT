@@ -218,6 +218,6 @@ let rec get_all_functions_with_env env e : (exp * Pulp_Syntax.ctx_variables list
           | Case e -> f e 
         @ (f e2))) sces
       | Block es -> flat_map f es
-      | Script (_, es) -> let new_env = make_env env e [] main_fun_id in
+      | Script (_, es) -> let new_env = make_env env e ["undefined"] main_fun_id in
         (e, new_env) :: (flat_map (get_all_functions_with_env new_env) es)
    end
