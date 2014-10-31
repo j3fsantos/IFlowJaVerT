@@ -674,24 +674,30 @@ let rec exp_to_fb ctx exp : statement list * variable =
           | _ -> raise (PulpNotImplemented (Pretty_print.string_of_exp true exp))
         end
         
+      (* Next TODO *)  
+      | Parser_syntax.Throw _
+      | Parser_syntax.Try _
       | Parser_syntax.NamedFun _ (*(_, n, vs, e)*)
-
-      | Parser_syntax.RegExp _ 
+        
+      (* Should not change IVL too much *)
       | Parser_syntax.AssignOp _
       | Parser_syntax.Comma _
       | Parser_syntax.Array _
+      
       | Parser_syntax.ConditionalOp _
+      | Parser_syntax.DoWhile _
+      | Parser_syntax.For _
+      | Parser_syntax.Switch _
+      
+      | Parser_syntax.Label _
       | Parser_syntax.Break _
       | Parser_syntax.Continue _
-      | Parser_syntax.Debugger
-      | Parser_syntax.Throw _
-      | Parser_syntax.Label _
-      | Parser_syntax.DoWhile _
-      | Parser_syntax.With _
-      | Parser_syntax.Try _
-      | Parser_syntax.For _
+
+      (* I am not considering those *)  
+      | Parser_syntax.RegExp _ 
       | Parser_syntax.ForIn _
-      | Parser_syntax.Switch _
+      | Parser_syntax.Debugger
+      | Parser_syntax.With _
         -> raise (PulpNotImplemented (Pretty_print.string_of_exp true exp))
         
 let translate_function fb fid args env =
