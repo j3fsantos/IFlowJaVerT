@@ -167,3 +167,6 @@ let string_of_func_block fb =
    (string_of_returs_throws fb.func_ctx)
    (string_of_statement_list fb.func_body) 
    (string_of_env_var fb.func_ctx)
+  
+let string_of_all_functions p_exp =
+  AllFunctions.fold (fun fid fwc content -> content ^ Printf.sprintf "%s \n\n" (string_of_func_block fwc)) p_exp ""

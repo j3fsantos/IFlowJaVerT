@@ -153,8 +153,20 @@ let cfg_anonymous2 () =
    goto return.r4075
   
   *)
+  
+let test_invest_example () =
+  test_template ("var r = 'To Store The Result';
 
-let suite = "Testing Translation" >:::
+var person = {
+ name: 'David',
+ sayHi: function() {
+  return 'Hello ' + this.name;
+ }
+};
+
+r = person.sayHi();") "invest example"
+
+let suite = "Testing_Translation" >:::
   ["translating access" >:: test_access;
    "translating assignment" >:: test_assign;
    "translating obj literal" >:: test_obj;
@@ -180,4 +192,5 @@ let suite = "Testing Translation" >:::
    "translating smaller explample" >:: test_smaller_example;
    "test_example" >:: test_example;
    "translating gamma" >:: test_gamma;
-   "cfg_anonymous2" >:: cfg_anonymous2] 
+   "cfg_anonymous2" >:: cfg_anonymous2;
+   "test_invest_example" >:: test_invest_example;] 
