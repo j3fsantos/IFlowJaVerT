@@ -147,7 +147,7 @@ let cfg_anonymous2 () =
    [anonymous2_scope."#proto"] := "#null"
   
    r4081 := new ()
-   [r4081."#proto"] := "#lop"       
+   [r4081."#proto"] := "#ObjectPrototype"       
    r4084 := [anonymous1_scope."n"]
    [r4081."x"] := r4084    
    goto return.r4075
