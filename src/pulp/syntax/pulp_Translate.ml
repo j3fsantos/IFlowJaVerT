@@ -3,6 +3,11 @@ open Pulp_Syntax_Utils
 open Pulp_Syntax_Print
 
 exception PulpNotImplemented of string
+
+type translation_level =
+  | IVL_buitin_functions
+  | IVL_conditionals
+  | IVL_goto
  
   
 let rthis : variable = "rthis"
@@ -284,33 +289,33 @@ let translate_bin_op_logical f e1 e2 bop ctx =
 	      [Assignment (mk_assign rv (AE (BinOp (Var r2, Boolean op, Var r4))))]))
     ], rv
   
-let rec desugar stmts = 
+let rec to_ivl_goto stmts = 
   List.flatten (List.map (fun stmt ->
-    match stmt with
-      | Sugar st -> 
-        begin match st with
-          | If (c, t1, t2) -> 
-            let label1 = fresh_r () in
-            let label2 = fresh_r () in
-            let label3 = fresh_r () in
-            let dt1 = desugar t1 in
-            let dt2 = desugar t2 in
-            [
-              GuardedGoto (c, label1, label2); 
-              Label label1
-            ] @ 
-            dt1 @ 
-            [
-              Goto label3; 
-              Label label2
-            ] @ 
-            dt2 @ 
-            [
-              Goto label3; 
-              Label label3
-            ]
-        end
-      | stmt -> [stmt]
+	  match stmt with
+	      | Sugar st -> 
+	        begin match st with
+	          | If (c, t1, t2) -> 
+	            let label1 = fresh_r () in
+	            let label2 = fresh_r () in
+	            let label3 = fresh_r () in
+	            let dt1 = to_ivl_goto t1 in
+	            let dt2 = to_ivl_goto t2 in
+	            [
+	              GuardedGoto (c, label1, label2); 
+	              Label label1
+	            ] @ 
+	            dt1 @ 
+	            [
+	              Goto label3; 
+	              Label label2
+	            ] @ 
+	            dt2 @ 
+	            [
+	              Goto label3; 
+	              Label label3
+	            ]
+	        end
+	      | stmt -> [stmt]
   ) stmts)
   
 let find_var_scope var env =
@@ -757,25 +762,28 @@ let translate_function fb fid args env =
     ]
   in
   
-  let desugared_pulpe = desugar pulpe in
-  
-  make_function_block fid desugared_pulpe (rthis :: (rscope :: args)) ctx
+  make_function_block fid pulpe (rthis :: (rscope :: args)) ctx
 
-let translate_function_syntax id e env =
+let translate_function_syntax level id e env =
+  let pulpe = 
     match e.Parser_syntax.exp_stx with
       | Parser_syntax.AnnonymousFun (_, args, fb) -> translate_function fb id args env
       | Parser_syntax.NamedFun (_, name, args, fb) -> translate_function fb id args env
       | Parser_syntax.Script (_, es) -> translate_function e main_fun_id [] env
-      | _ -> raise (Invalid_argument "Should be a function definition here")
+      | _ -> raise (Invalid_argument "Should be a function definition here") in
+  match level with
+    | IVL_buitin_functions -> raise (Utils.InvalidArgument ("pulp_Translate", "builtin_functions level not implemented yet"))
+    | IVL_conditionals -> pulpe
+    | IVL_goto -> {pulpe with func_body = to_ivl_goto pulpe.func_body}
 
-let exp_to_pulp e =
+let exp_to_pulp level e =
   let context = AllFunctions.empty in
   let e = add_codenames e in
   let all_functions = get_all_functions_with_env [] e in
     
   let context = List.fold_left (fun c (fexpr, fenv) -> 
     let fid = get_codename fexpr in
-    let fb = translate_function_syntax fid fexpr fenv in
+    let fb = translate_function_syntax level fid fexpr fenv in
     AllFunctions.add fid fb c
    ) context all_functions in
   context

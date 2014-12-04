@@ -8,7 +8,7 @@ let test_template p name =
   Parser_main.verbose := true;
   let exp = Parser_main.exp_from_string p in
   let _ = Printf.printf "%s \n" (Pretty_print.string_of_exp_syntax exp.Parser_syntax.exp_stx) in
-  let p_exp = exp_to_pulp exp in
+  let p_exp = exp_to_pulp IVL_goto exp in
   let _ = AllFunctions.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_func_block fwc)) p_exp in
   (* TODO fix path *)
   let _ = Cfg.mk_cfg p_exp ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/"^name) in
@@ -112,7 +112,7 @@ var r = s(3).x") "example"
 let test_gamma () =
   let ctx = create_ctx [] in
   let gamma_stmts, r = translate_gamma "r" ctx in
-  let gamma_stmts = desugar gamma_stmts in
+  let gamma_stmts = to_ivl_goto gamma_stmts in
   let cfg = Cfg.fun_to_cfg (make_function_block "gamma" gamma_stmts [] ctx) in
   let cfgs = AllFunctions.add "gamma_id" cfg AllFunctions.empty in
   let _ = Cfg.print_cfg cfgs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/gamma") in
@@ -135,7 +135,7 @@ let cfg_anonymous2 () =
       Goto ctx.label_return
     ]
     in
-  let stmts = desugar stmts in
+  let stmts = to_ivl_goto stmts in
   let cfg = Cfg.fun_to_cfg (make_function_block "anonymous2" stmts [] ctx) in
   let cfgs = AllFunctions.add "anonymous2" cfg AllFunctions.empty in
   let _ = Cfg.print_cfg cfgs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/anonymous") in

@@ -5,13 +5,24 @@ open Pulp_Syntax
 open Interpreter_Print
 
 let file = ref ""
+let level = ref IVL_goto
+
+let set_level s = 
+ level := match s with
+	| "b" -> IVL_buitin_functions
+	| "c" -> IVL_conditionals
+	| "g" -> IVL_goto
+	| _ -> raise (Arg.Bad("Shouldn't happen"))
 
 let arguments () =
   let usage_msg="Usage: -file <path>" in
   Arg.parse
     [ "-file",
       Arg.String(fun f -> file := f),
-      "file to run"
+      "file to run";
+      "-level",
+      Arg.Symbol (["b"; "c"; "g"], set_level),
+      "level of IVL"
     ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
@@ -34,7 +45,7 @@ let translate_exp path =
     
   let p_exp = 
     try 
-      exp_to_pulp exp 
+      exp_to_pulp (!level) exp 
     with
       | PulpNotImplemented exp -> Printf.printf "\nTranslation of Javascript syntax does not support '%s' yet.\n" exp; exit 2
       | Invalid_argument arg -> Printf.printf "\nSomething wrong with the translation '%s'.\n" arg; exit 1
