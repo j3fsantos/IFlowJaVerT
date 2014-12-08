@@ -527,7 +527,7 @@ let rec exp_to_fb ctx exp : statement list * variable =
           [
             Assignment prototype; 
             Sugar (If (is_obj_var prototype.assign_left, 
-                [Assignment (mk_assign vthisproto (AE (Var r2)))], 
+                [Assignment (mk_assign vthisproto (AE (Var prototype.assign_left)))], 
                 [Assignment (mk_assign vthisproto (AE (Literal (LLoc Lop))))])); 
             Assignment vthis;
             add_proto_var vthis.assign_left vthisproto;
