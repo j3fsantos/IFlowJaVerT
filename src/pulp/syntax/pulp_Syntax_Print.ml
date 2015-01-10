@@ -130,8 +130,6 @@ let rec string_of_statement t =
     | Label l -> Printf.sprintf "label %s" l
     | Goto s -> Printf.sprintf "goto %s" s
     | GuardedGoto (e, s1, s2) -> Printf.sprintf "goto [%s] %s, %s" (string_of_expression e) s1 s2
-    | Assume e -> Printf.sprintf "Assume %s" (string_of_expression e)
-    | Assert e -> Printf.sprintf "Assert %s" (string_of_expression e)
     | Assignment a -> Printf.sprintf "%s := %s" (s a.assign_left) (string_of_assign_expression a.assign_right)
     | Mutation m -> string_of_mutation m
     | Sugar s -> string_of_sugar s

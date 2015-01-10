@@ -315,8 +315,6 @@ and run_stmt (s : local_state) (throw_label : string) (stmt : statement) (labelm
           {s with lscounter = LabelMap.find l2 labelmap}
         | _ -> raise (InterpreterStuck ("GuardedGoto expression must evaluate to boolean value", s.lscounter))
       end
-    | Assume e -> raise InterpreterNotImplemented
-    | Assert e -> raise InterpreterNotImplemented
     | Assignment assign -> 
       let s, v = match assign.assign_right with
         | AE ae -> s, run_expr s ae 

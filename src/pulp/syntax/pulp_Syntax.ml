@@ -137,8 +137,6 @@ type statement =
   | Label of label
   | Goto of string
   | GuardedGoto of expression * string * string
-  | Assume of expression
-  | Assert of expression
   | Assignment of assignment
   | Mutation of mutation
   | Sugar of syntactic_sugar_statement
@@ -170,7 +168,7 @@ let make_ctx_vars fid vars =
     fun_bindings = vars
   }
   
-  type translation_ctx = {
+  type translation_ctx = { (* Special constants for throws and returns *)
     env_vars : ctx_variables list; 
     return_var : variable;
     throw_var : variable;

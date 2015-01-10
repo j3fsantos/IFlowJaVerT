@@ -93,9 +93,7 @@ let stmt_to_cfg (stmt : statement) label_map (ctx : translation_ctx) (start : cf
     | Some node -> node, true in
   match stmt with
     | Skip
-    | Mutation _
-    | Assume _
-    | Assert _ ->
+    | Mutation _ ->
       begin
 	      let n = make_new_node stmt in 
         if (connect_with_start = true)
