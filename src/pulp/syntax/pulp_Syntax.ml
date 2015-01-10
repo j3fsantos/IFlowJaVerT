@@ -95,18 +95,6 @@ type call = {
     call_args : expression list;
     call_this : expression;
    }
-
-type assign_right_expression =
-  | Call of call
-  | Obj
-  | HasField of expression * expression
-  | Lookup of expression * expression
-  | Deallocation of expression * expression
-  | Pi of expression * expression
-
-type assign_expression =
-  | AE of expression
-  | AER of assign_right_expression
   
 let mk_call name scope vthis args = {
       call_name = name;
@@ -115,11 +103,6 @@ let mk_call name scope vthis args = {
       call_this = vthis
   }
 
-type assignment = { 
-    assign_left : variable; 
-    assign_right : assign_expression
-  }
-  
 type mutation = {
     m_loc : expression;
     m_field : expression;
@@ -131,14 +114,31 @@ let mk_mutation l f v = {
     m_field = f;
     m_right = v;
   }
+  
+type assign_right_expression =
+  | Expression of expression
+  | Call of call
+  | Obj
+  | HasField of expression * expression
+  | Lookup of expression * expression
+  | Deallocation of expression * expression
+  | Pi of expression * expression
+
+type assignment = { 
+    assign_left : variable; 
+    assign_right : assign_right_expression
+  }
+  
+type basic_statement =
+  | Skip
+  | Assignment of assignment
+  | Mutation of mutation
 
 type statement =
-  | Skip
   | Label of label
   | Goto of string
   | GuardedGoto of expression * string * string
-  | Assignment of assignment
-  | Mutation of mutation
+  | Basic of basic_statement 
   | Sugar of syntactic_sugar_statement
 and
 syntactic_sugar_statement =

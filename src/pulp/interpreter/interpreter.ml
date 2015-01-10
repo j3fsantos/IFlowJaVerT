@@ -223,6 +223,7 @@ let rec get_value_proto v x h counter =
 let rec run_assign_expr (s : local_state) (e : assign_right_expression) (funcs : function_block AllFunctions.t) : local_state * value =
 	(* Assignment expressions *)
   match e with
+    | Expression ae -> s, run_expr s ae
 	  | Call c -> 
       let fid = run_expr s c.call_name in
       let fid_string = string_check fid "Function name should be a string" s.lscounter in
@@ -300,10 +301,28 @@ run_function (h : heap_type) (f : function_block) (args : value list) (fs : func
     else raise (Invalid_argument "Shouldn't be other label than end label here")
   in 
   {fs_heap = result.lsheap; fs_return_type = ret_type; fs_return_value = ret_val}
+  
+and run_basic_stmt (s : local_state) (throw_label : string) (stmt : basic_statement) (labelmap : int LabelMap.t) (fs : function_block AllFunctions.t) : local_state =
+   match stmt with
+    | Skip -> {s with lscounter = s.lscounter + 1}
+    | Assignment assign -> 
+      let s, v = run_assign_expr s assign.assign_right fs in
+      if s.lsexcep then
+        {s with lscounter = LabelMap.find throw_label labelmap}
+      else {s with lsstack = Stack.add assign.assign_left v s.lsstack; lscounter = s.lscounter + 1}
+    | Mutation m -> 
+      let v1 = run_expr s m.m_loc in
+      let v2 = run_expr s m.m_field in
+      let v3 = run_expr s m.m_right in
+            let l, x, obj = object_field_check v1 v2 s.lsheap "Mutation" s.lscounter in
+            let v3 = match v3 with
+              | VHValue v -> v
+              | VRef _ -> raise (InterpreterStuck ("Right hand side of mutation cannot be a reference", s.lscounter)) in
+            let newobj = Object.add x v3 obj in
+            {s with lsheap = Heap.add l newobj s.lsheap; lscounter = s.lscounter + 1}
 
 and run_stmt (s : local_state) (throw_label : string) (stmt : statement) (labelmap : int LabelMap.t) (fs : function_block AllFunctions.t) : local_state =
   match stmt with
-    | Skip -> {s with lscounter = s.lscounter + 1}
     | Label l -> {s with lscounter = s.lscounter + 1}
     | Goto l -> {s with lscounter = LabelMap.find l labelmap}
     | GuardedGoto (e, l1, l2) -> 
@@ -315,23 +334,7 @@ and run_stmt (s : local_state) (throw_label : string) (stmt : statement) (labelm
           {s with lscounter = LabelMap.find l2 labelmap}
         | _ -> raise (InterpreterStuck ("GuardedGoto expression must evaluate to boolean value", s.lscounter))
       end
-    | Assignment assign -> 
-      let s, v = match assign.assign_right with
-        | AE ae -> s, run_expr s ae 
-        | AER aer -> run_assign_expr s aer fs in
-      if s.lsexcep then
-        {s with lscounter = LabelMap.find throw_label labelmap}
-      else {s with lsstack = Stack.add assign.assign_left v s.lsstack; lscounter = s.lscounter + 1}
-    | Mutation m -> 
-      let v1 = run_expr s m.m_loc in
-      let v2 = run_expr s m.m_field in
-      let v3 = run_expr s m.m_right in
-			let l, x, obj = object_field_check v1 v2 s.lsheap "Mutation" s.lscounter in
-			let v3 = match v3 with
-			  | VHValue v -> v
-			  | VRef _ -> raise (InterpreterStuck ("Right hand side of mutation cannot be a reference", s.lscounter)) in
-			let newobj = Object.add x v3 obj in
-			{s with lsheap = Heap.add l newobj s.lsheap; lscounter = s.lscounter + 1}
+    | Basic bs -> run_basic_stmt s throw_label bs labelmap fs
     | Sugar sss -> raise InterpreterNotImplemented
 
 and run_stmts stmts ctx lstate labelmap fs =

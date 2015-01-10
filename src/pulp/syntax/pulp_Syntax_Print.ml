@@ -104,34 +104,33 @@ let string_of_call c =
   let ses xs = String.concat "," (List.map se xs) in
   Printf.sprintf "%s (%s, %s, %s)" (se c.call_name) (se c.call_this) (se c.call_scope) (ses c.call_args)
  
-let string_of_assign_right_expression aer =
+let string_of_assign_right aer =
   let se = string_of_expression in
   match aer with
+    | Expression e -> se e
     | Call c -> string_of_call c
     | Obj -> "new ()"
     | HasField (e1, e2) -> Printf.sprintf "hasfield (%s, %s)" (se e1) (se e2)
     | Lookup (e1, e2) -> Printf.sprintf "[%s.%s]" (se e1) (se e2)
     | Deallocation (e1, e2) -> Printf.sprintf "delete %s.%s" (se e1) (se e2)
     | Pi (l, x) -> Printf.sprintf "Pi ( %s, %s )" (se l) (se x)
-
-let string_of_assign_expression ae =
-  match ae with
-    | AE e -> string_of_expression e
-    | AER aer -> string_of_assign_right_expression aer
   
 let string_of_mutation m =
   let se = string_of_expression in
   Printf.sprintf "[%s.%s] := %s" (se m.m_loc) (se m.m_field) (se m.m_right)
   
-let rec string_of_statement t =
-  let s = string_of_var in
-  match t with
+let string_of_basic_statement bs =
+  match bs with
     | Skip -> "Skip"
+    | Assignment a -> Printf.sprintf "%s := %s" (string_of_var a.assign_left) (string_of_assign_right a.assign_right)
+    | Mutation m -> string_of_mutation m
+ 
+let rec string_of_statement t =
+  match t with
     | Label l -> Printf.sprintf "label %s" l
     | Goto s -> Printf.sprintf "goto %s" s
     | GuardedGoto (e, s1, s2) -> Printf.sprintf "goto [%s] %s, %s" (string_of_expression e) s1 s2
-    | Assignment a -> Printf.sprintf "%s := %s" (s a.assign_left) (string_of_assign_expression a.assign_right)
-    | Mutation m -> string_of_mutation m
+    | Basic bs -> string_of_basic_statement bs
     | Sugar s -> string_of_sugar s
 and string_of_statement_list ts = String.concat "\n" 
  (List.mapi (fun i t -> (string_of_int i) ^ ". " ^ (string_of_statement t)) ts)

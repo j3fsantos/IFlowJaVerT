@@ -83,9 +83,8 @@ let mk_assign var exp = {
 (* Assignment to a fresh variable *)
 let mk_assign_fresh exp = mk_assign (fresh_r ()) exp
   
-let mk_assign_fresh_e e = mk_assign_fresh (AE e)
+let mk_assign_fresh_e e = mk_assign_fresh (Expression e)
 let mk_assign_fresh_lit lit = mk_assign_fresh_e (Literal lit)
-let mk_assign_fresh_aer aer = mk_assign_fresh (AER aer)
 
 
 let tr_unary_op op =
@@ -149,7 +148,7 @@ let tr_propname pn : string =
   | Parser_syntax.PropnameNum f -> string_of_float f
   
 let add_proto obj proto = 
-  Mutation (mk_mutation (Var obj) (literal_builtin_field FProto) proto)
+  Basic (Mutation (mk_mutation (Var obj) (literal_builtin_field FProto) proto))
   
 let add_proto_var obj proto =
   add_proto obj (Var proto)
@@ -161,11 +160,11 @@ let add_proto_null obj =
   add_proto obj (Literal Null)
   
 let translate_error_throw error throw_var throw_label =
-  let r1 = mk_assign_fresh_aer Obj in
+  let r1 = mk_assign_fresh Obj in
   [
-    Assignment r1; 
+    Basic (Assignment r1); 
     add_proto_value r1.assign_left error; 
-    Assignment (mk_assign throw_var (AE (Var r1.assign_left))); 
+    Basic (Assignment (mk_assign throw_var (Expression (Var r1.assign_left)))); 
     Goto throw_label
   ]
   
@@ -174,13 +173,13 @@ let translate_put_value v1 v2 throw_var throw_label =
   let base = mk_assign_fresh_e (Base (Var v1)) in
   let main = Sugar (If (is_ref_expr v1,
     [
-      Assignment base;
+      Basic (Assignment base);
       Sugar (If (equal_undef_expr base.assign_left, 
         gotothrow, 
         [
           Sugar (If (istypeof_prim_expr base.assign_left, 
             translate_error_throw LTError throw_var throw_label, 
-            [Mutation (mk_mutation (Var base.assign_left) (Field (Var v1)) (Var v2))]))
+            [Basic (Mutation (mk_mutation (Var base.assign_left) (Field (Var v1)) (Var v2)))]))
         ]))
     ],
     gotothrow))
@@ -191,25 +190,25 @@ let translate_gamma r ctx =
   let rv = fresh_r () in
   let base = mk_assign_fresh_e (Base (Var r)) in
   let field = mk_assign_fresh_e (Field (Var r)) in
-  let assign_rv_lookup = mk_assign rv (AER (Lookup (Var base.assign_left, Var field.assign_left))) in
-  let rv_assign_pi = mk_assign rv (AER (Pi (Var base.assign_left, Var field.assign_left))) in  
+  let assign_rv_lookup = mk_assign rv (Lookup (Var base.assign_left, Var field.assign_left)) in
+  let rv_assign_pi = mk_assign rv (Pi (Var base.assign_left, Var field.assign_left)) in  
   let main = Sugar (If (is_ref_expr r,
     [
-      Assignment base;
+      Basic (Assignment base);
       Sugar (If (or_expr (equal_undef_expr base.assign_left) (equal_string_expr base.assign_left unknownscope),
         translate_error_throw LRError ctx.throw_var ctx.label_throw,
         [
           Sugar (If (istypeof_prim_expr base.assign_left,
             translate_error_throw LNotImplemented ctx.throw_var ctx.label_throw,
             [
-              Assignment field;
+              Basic (Assignment field);
               Sugar (If (and_expr (is_vref_expr r) (not_expr (equal_loc_expr base.assign_left Lg)),
-                [ Assignment assign_rv_lookup ],
-                [ Assignment rv_assign_pi ]))
+                [ Basic (Assignment assign_rv_lookup) ],
+                [ Basic (Assignment rv_assign_pi) ]))
             ]))
         ]))
     ],
-    [ Assignment (mk_assign rv (AE (Var r))) ]))
+    [ Basic (Assignment (mk_assign rv (Expression (Var r)))) ]))
   in
   [main], rv
 
@@ -219,7 +218,7 @@ let translate_obj_coercible r ctx =
   [
     Sugar (If (equal_null_expr r, gotothrow, [])); 
     Sugar (If (equal_undef_expr r, gotothrow, [])); 
-    Assignment (mk_assign rv (AE (Literal Empty)))
+    Basic (Assignment (mk_assign rv (Expression (Literal Empty))))
   ], rv
   
 let translate_call_construct_start f e1 e2s ctx =
@@ -235,28 +234,28 @@ let translate_call_construct_start f e1 e2s ctx =
     let arg_values, arg_stmts = List.split arg_stmts in
     let arg_stmts = List.flatten arg_stmts in  
     let gotothrow = translate_error_throw LTError ctx.throw_var ctx.label_throw in
-    let hasfield = mk_assign_fresh_aer (HasField (Var r2, literal_builtin_field FId)) in
+    let hasfield = mk_assign_fresh (HasField (Var r2, literal_builtin_field FId)) in
     (
       r1_stmts @ 
       r2_stmts @ 
       arg_stmts @ 
       [
         Sugar (If (is_obj_var r2, [], gotothrow)); 
-        Assignment hasfield; 
+        Basic (Assignment hasfield); 
         Sugar (If (equal_bool_expr hasfield.assign_left false, gotothrow, []))
       ], r1, r2, arg_values)
     
 let translate_call r2 vthis arg_values ctx =
-		let fid = mk_assign_fresh_aer (Lookup (Var r2, literal_builtin_field FId)) in
-		let fscope = mk_assign_fresh_aer (Lookup (Var r2, literal_builtin_field FScope)) in
-		let call = mk_assign_fresh_aer (Call (mk_call (Var fid.assign_left) (Var fscope.assign_left) (Var vthis) arg_values)) in
+		let fid = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FId)) in
+		let fscope = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FScope)) in
+		let call = mk_assign_fresh (Call (mk_call (Var fid.assign_left) (Var fscope.assign_left) (Var vthis) arg_values)) in
     (Sugar (If (equal_loc_expr r2 LEval,
         (*TODO Eval*)
         translate_error_throw LNotImplemented ctx.throw_var ctx.label_throw, 
         [
-          Assignment fid; 
-          Assignment fscope; 
-          Assignment call
+          Basic (Assignment fid); 
+          Basic (Assignment fscope); 
+          Basic (Assignment call)
      ])), call)
     
 let translate_regular_bin_op f op e1 e2 ctx =
@@ -269,7 +268,7 @@ let translate_regular_bin_op f op e1 e2 ctx =
     r2_stmts @ 
     r3_stmts @ 
     r4_stmts @ 
-    [Assignment r5],
+    [Basic (Assignment r5)],
     r5.assign_left
   
 let translate_bin_op_logical f e1 e2 bop ctx =
@@ -283,10 +282,10 @@ let translate_bin_op_logical f e1 e2 bop ctx =
     r2_stmts @ 
     [
       Sugar (If ((if (op = And) then (is_false_expr r2) else (is_true_expr r2)), 
-        [Assignment (mk_assign rv (AE (Var r2)))], 
+        [Basic (Assignment (mk_assign rv (Expression (Var r2))))], 
 	      (r3_stmts) @ 
 	      r4_stmts @ 
-	      [Assignment (mk_assign rv (AE (BinOp (Var r2, Boolean op, Var r4))))]))
+	      [Basic (Assignment (mk_assign rv (Expression (BinOp (Var r2, Boolean op, Var r4)))))]))
     ], rv
   
 let rec to_ivl_goto stmts = 
@@ -334,33 +333,33 @@ let rec exp_to_fb ctx exp : statement list * variable =
       | Parser_syntax.Num n -> 
         begin
           let assign = mk_assign_fresh_lit (Num n) in 
-          [Assignment assign], assign.assign_left
+          [Basic (Assignment assign)], assign.assign_left
         end
       | Parser_syntax.String s -> 
         begin 
           let assign = mk_assign_fresh_lit (String s) in 
-          [Assignment assign], assign.assign_left
+          [Basic (Assignment assign)], assign.assign_left
         end
       | Parser_syntax.Null ->
         begin 
           let assign = mk_assign_fresh_lit Null in 
-          [Assignment assign], assign.assign_left
+          [Basic (Assignment assign)], assign.assign_left
         end
       | Parser_syntax.Bool b -> 
         begin 
           let assign = mk_assign_fresh_lit (Bool b) in 
-          [Assignment assign], assign.assign_left
+          [Basic (Assignment assign)], assign.assign_left
         end
       | Parser_syntax.This -> 
         begin 
           let assign = mk_assign_fresh_e (Var rthis) in 
-          [Assignment assign], assign.assign_left
+          [Basic (Assignment assign)], assign.assign_left
         end
       | Parser_syntax.Var v -> 
         begin 
           let scope = find_var_scope v ctx.env_vars in
           let ref_assign = mk_assign_fresh_e (Ref (scope, Literal (String v) , VariableReference)) in
-          [Assignment ref_assign], ref_assign.assign_left         
+          [Basic (Assignment ref_assign)], ref_assign.assign_left         
         end
       | Parser_syntax.Access (e, v) -> 
         begin
@@ -371,7 +370,7 @@ let rec exp_to_fb ctx exp : statement list * variable =
             r1_stmts @ 
             r2_stmts @ 
             r4_stmts @
-            [Assignment r5], r5.assign_left;
+            [Basic (Assignment r5)], r5.assign_left;
         end
       | Parser_syntax.CAccess (e1, e2) ->
           let r1_stmts, r1 = f e1 in
@@ -385,7 +384,7 @@ let rec exp_to_fb ctx exp : statement list * variable =
             r3_stmts @ 
             r4_stmts @ 
             r5_stmts @ 
-            [Assignment r6], r6.assign_left;
+            [Basic (Assignment r6)], r6.assign_left;
       | Parser_syntax.Script (_, es)
       | Parser_syntax.Block es ->
         let mk_if rval oldrval =
@@ -394,10 +393,10 @@ let rec exp_to_fb ctx exp : statement list * variable =
               (* DSA *) 
               Sugar (If (equal_empty_expr rval, 
                 [
-                  Assignment (mk_assign retv (AE (Var oldrval)))
+                  Basic (Assignment (mk_assign retv (Expression (Var oldrval))))
                 ], 
                 [
-                  Assignment (mk_assign retv (AE (Var rval)))
+                  Basic (Assignment (mk_assign retv (Expression (Var rval))))
                 ]))
             ], retv in
          
@@ -407,11 +406,11 @@ let rec exp_to_fb ctx exp : statement list * variable =
           let r1_stmts, r1 = f current in
           let if_stmts, ifv = mk_if r1 prev in
           (prev_stmts @ r1_stmts @ if_stmts, ifv)) 
-        ([Assignment retv], retv.assign_left) es
+        ([Basic (Assignment retv)], retv.assign_left) es
         
       | Parser_syntax.Obj xs ->
         begin
-          let r1 = mk_assign_fresh_aer Obj in
+          let r1 = mk_assign_fresh Obj in
           
           let stmts = List.map (fun (prop_name, prop_type, e) ->
             match prop_type with
@@ -422,14 +421,14 @@ let rec exp_to_fb ctx exp : statement list * variable =
                   
                   r2_stmts @ 
                   r3_stmts @ 
-                  [Mutation (mk_mutation (Var r1.assign_left) (Literal (String (Pretty_print.string_of_propname prop_name))) (Var r3))] 
+                  [Basic (Mutation (mk_mutation (Var r1.assign_left) (Literal (String (Pretty_print.string_of_propname prop_name))) (Var r3)))] 
                    
                 end
               | _ -> raise (PulpNotImplemented ("Getters and Setters are not yet implemented"))
             ) xs in
                            
             [
-              Assignment r1;
+              Basic (Assignment r1);
               add_proto_value r1.assign_left Lop
             ] @ 
             (List.flatten stmts), r1.assign_left
@@ -449,7 +448,7 @@ let rec exp_to_fb ctx exp : statement list * variable =
             [
               Sugar (If (is_vref_expr r1, 
 		            [
-		              Assignment r4;
+		              Basic (Assignment r4);
 		              Sugar (If (or_expr 
                              (equal_string_expr r4.assign_left "arguments") 
                              (equal_string_expr r4.assign_left "eval"), gotothrow, []));
@@ -461,7 +460,7 @@ let rec exp_to_fb ctx exp : statement list * variable =
         
       | Parser_syntax.Skip -> 
         let r1 = mk_assign_fresh_lit Empty in
-        [Assignment r1], r1.assign_left 
+        [Basic (Assignment r1)], r1.assign_left 
         
       | Parser_syntax.VarDec vars ->
         let result = List.map (fun var ->
@@ -471,36 +470,36 @@ let rec exp_to_fb ctx exp : statement list * variable =
           ) vars in
         let stmts, _ = List.split result in
         let empty = mk_assign_fresh_lit Empty in
-        (List.flatten stmts) @ [Assignment empty], empty.assign_left
+        (List.flatten stmts) @ [Basic (Assignment empty)], empty.assign_left
         
       | Parser_syntax.AnnonymousFun (_, vs, e) ->
         let fid = get_codename exp in
-        let f_obj = mk_assign_fresh_aer Obj in
-        let prototype = mk_assign_fresh_aer Obj in
-        let scope = mk_assign_fresh_aer Obj in
+        let f_obj = mk_assign_fresh Obj in
+        let prototype = mk_assign_fresh Obj in
+        let scope = mk_assign_fresh Obj in
         let env_stmts = Utils.flat_map (fun env -> 
           [
-            Mutation (mk_mutation (Var scope.assign_left) (Literal (String env.func_id)) (Var (function_scope_name env.func_id)))
+            Basic (Mutation (mk_mutation (Var scope.assign_left) (Literal (String env.func_id)) (Var (function_scope_name env.func_id))))
           ]) ctx.env_vars in
           [
-            Assignment f_obj;
+            Basic (Assignment f_obj);
             add_proto_value f_obj.assign_left Lfp;
-            Assignment prototype; 
+            Basic (Assignment prototype); 
             add_proto_value prototype.assign_left Lop; 
-            Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FPrototype) (Var prototype.assign_left));
-            Assignment scope;
+            Basic (Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FPrototype) (Var prototype.assign_left)));
+            Basic (Assignment scope);
             add_proto_null scope.assign_left
           ] @ 
           env_stmts @ 
           [
-            Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FId) (Literal (String fid))); 
-            Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FScope) (Var scope.assign_left)); 
+            Basic (Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FId) (Literal (String fid)))); 
+            Basic (Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FScope) (Var scope.assign_left))); 
           ], f_obj.assign_left  
                       
       | Parser_syntax.Call (e1, e2s) ->
         let stmts, r1, r2, arg_values = translate_call_construct_start f e1 e2s ctx in
 			  let vthis = fresh_r () in
-			  let assign_vthis_und = Assignment (mk_assign vthis (AE (Literal Undefined))) in
+			  let assign_vthis_und = Basic (Assignment (mk_assign vthis (Expression (Literal Undefined)))) in
 			  let if5, call = translate_call r2 vthis arg_values ctx in
           stmts @ 
           [
@@ -509,7 +508,7 @@ let rec exp_to_fb ctx exp : statement list * variable =
                   Sugar (If (is_vref_expr r1, 
                     [assign_vthis_und], 
                     [
-                      Assignment (mk_assign vthis (AE (Base (Var r1))))
+                      Basic (Assignment (mk_assign vthis (Expression (Base (Var r1)))))
                     ]))
                 ],
                 [assign_vthis_und])); 
@@ -518,59 +517,59 @@ let rec exp_to_fb ctx exp : statement list * variable =
         
       | Parser_syntax.New (e1, e2s) ->
         let stmts, r1, r2, arg_values = translate_call_construct_start f e1 e2s ctx in
-        let prototype = mk_assign_fresh_aer (Lookup (Var r2, literal_builtin_field FPrototype)) in        
+        let prototype = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FPrototype)) in        
 			  let vthisproto = fresh_r () in
-        let vthis = mk_assign_fresh_aer Obj in
+        let vthis = mk_assign_fresh Obj in
 			  let if3, call = translate_call r2 vthis.assign_left arg_values ctx in
         let rv = fresh_r () in  
           stmts @ 
           [
-            Assignment prototype; 
+            Basic (Assignment prototype); 
             Sugar (If (is_obj_var prototype.assign_left, 
-                [Assignment (mk_assign vthisproto (AE (Var prototype.assign_left)))], 
-                [Assignment (mk_assign vthisproto (AE (Literal (LLoc Lop))))])); 
-            Assignment vthis;
+                [Basic (Assignment (mk_assign vthisproto (Expression (Var prototype.assign_left))))], 
+                [Basic (Assignment (mk_assign vthisproto (Expression (Literal (LLoc Lop)))))])); 
+            Basic (Assignment vthis);
             add_proto_var vthis.assign_left vthisproto;
             if3; 
             Sugar (If (is_obj_var call.assign_left, 
-                [Assignment (mk_assign rv (AE (Var call.assign_left)))], 
-                [Assignment (mk_assign rv (AE (Var vthis.assign_left)))]))
+                [Basic (Assignment (mk_assign rv (Expression (Var call.assign_left))))], 
+                [Basic (Assignment (mk_assign rv (Expression (Var vthis.assign_left))))]))
           ], rv
         
       | Parser_syntax.Delete e ->
         let r1_stmts, r1 = f e in
         let rv = fresh_r () in
-        let assign_rv_true = mk_assign rv (AE (Literal (Bool true))) in
+        let assign_rv_true = mk_assign rv (Expression (Literal (Bool true))) in
         let r4 = mk_assign_fresh_e (Base (Var r1)) in 
         let gotothrow = translate_error_throw LSError ctx.throw_var ctx.label_throw in
         let r3 = mk_assign_fresh_e (Field (Var r1)) in      
-        let r2 = mk_assign_fresh_aer (HasField (Var r4.assign_left, Var r3.assign_left)) in
+        let r2 = mk_assign_fresh (HasField (Var r4.assign_left, Var r3.assign_left)) in
         (* TODO : Changes when we add attributes *)
-        let r5 = mk_assign_fresh_aer (HasField (Var r4.assign_left, literal_builtin_field FId)) in
+        let r5 = mk_assign_fresh (HasField (Var r4.assign_left, literal_builtin_field FId)) in
           r1_stmts @ 
           [
             Sugar (If (is_ref_expr r1, 
-                [ Assignment r4;
+                [ Basic (Assignment r4);
 			            Sugar (If (equal_undef_expr r4.assign_left, 
                     gotothrow, 
                     [])); 
 			            Sugar (If (is_vref_expr r1, 
                     gotothrow, 
                     [])); 
-			            Assignment r3;  
-			            Assignment r2; 
+			            Basic (Assignment r3);  
+			            Basic (Assignment r2); 
 			            Sugar (If (equal_bool_expr r2.assign_left false, 
-                    [Assignment assign_rv_true], 
+                    [Basic (Assignment assign_rv_true)], 
                     [
-                      Assignment r5; 
+                      Basic (Assignment r5); 
                       Sugar (If (and_expr 
                                 (equal_expr r3.assign_left (literal_builtin_field FPrototype)) 
                                 (equal_bool_expr r5.assign_left true), 
                         translate_error_throw LTError ctx.throw_var ctx.label_throw, 
-                        [Assignment assign_rv_true]))
+                        [Basic (Assignment assign_rv_true)]))
                     ]))
                 ], 
-                [Assignment assign_rv_true])); 
+                [Basic (Assignment assign_rv_true)])); 
           ], rv
           
       | Parser_syntax.BinOp (e1, op, e2) ->
@@ -605,20 +604,20 @@ let rec exp_to_fb ctx exp : statement list * variable =
           | Some e3 -> 
             let r4_stmts, r4 = f e3 in
             r4_stmts @ 
-            [Assignment (mk_assign rv (AE (Var r4)))]
-          | None -> [Assignment (mk_assign rv (AE (Literal Empty)))] in      
+            [Basic (Assignment (mk_assign rv (Expression (Var r4))))]
+          | None -> [Basic (Assignment (mk_assign rv (Expression (Literal Empty))))] in      
           r1_stmts @ 
           r2_stmts @ 
           [ 
             Sugar (If (is_true_expr r2, 
                 r3_stmts @ 
-                [Assignment (mk_assign rv (AE (Var r3)))], 
+                [Basic (Assignment (mk_assign rv (Expression (Var r3))))], 
                 elsebranch))
           ], rv
         
       | Parser_syntax.While (e1, e2) ->
         let rv = fresh_r () in
-        let assign_rv_empty = Assignment (mk_assign rv (AE (Literal Empty))) in
+        let assign_rv_empty = Basic (Assignment (mk_assign rv (Expression (Literal Empty)))) in
         let label1 = fresh_r () in
         let r1_stmts, r1 = f e1 in
         let r2_stmts, r2 = translate_gamma r1 ctx in
@@ -635,7 +634,7 @@ let rec exp_to_fb ctx exp : statement list * variable =
                 [ 
                   Sugar (If (equal_empty_expr r3, 
                     [], 
-                    [Assignment (mk_assign rv (AE (Var r3)))])); 
+                    [Basic (Assignment (mk_assign rv (Expression (Var r3))))])); 
                   Goto label1
                 ], 
                 
@@ -646,16 +645,16 @@ let rec exp_to_fb ctx exp : statement list * variable =
         let stmts, rv = match e with
           | None -> 
             let und_assign = mk_assign_fresh_lit Undefined in
-            [Assignment und_assign], und_assign.assign_left
+            [Basic (Assignment und_assign)], und_assign.assign_left
           | Some e -> 
             let r1_stmts, r1 = f e in
             let r2_stmts, r2 = translate_gamma r1 ctx in
             r1_stmts @ r2_stmts, r2
          in
-        let assignr = mk_assign ctx.return_var (AE (Var rv)) in
+        let assignr = mk_assign ctx.return_var (Expression (Var rv)) in
           stmts @ 
           [
-            Assignment assignr; 
+            Basic (Assignment assignr); 
             Goto ctx.label_return
           ], ctx.return_var
           
@@ -668,10 +667,10 @@ let rec exp_to_fb ctx exp : statement list * variable =
             let if1 = 
               Sugar (If (is_false_expr r2, 
                 [
-                  Assignment (mk_assign rv (AE (Literal (Bool true))))
+                  Basic (Assignment (mk_assign rv (Expression (Literal (Bool true)))))
                 ], 
                 [
-                  Assignment (mk_assign rv (AE (Literal (Bool false))))
+                  Basic (Assignment (mk_assign rv (Expression (Literal (Bool false)))))
                 ])) in
 		        r1_stmts @
             r2_stmts @
@@ -712,30 +711,30 @@ let translate_function fb fid args env =
     | [] -> raise (Invalid_argument "Should be a function environment here") in
     
   let init_e = List.map (fun env -> 
-     Assignment (mk_assign (function_scope_name env.func_id) (AER (Lookup (Var rscope, Literal (String env.func_id))))) 
+     Basic (Assignment (mk_assign (function_scope_name env.func_id) (Lookup (Var rscope, Literal (String env.func_id)))))
   ) other_env in
   
   let current_scope_var = function_scope_name fid in
   
   let current_scope_stmts = 
     if (fid = main_fun_id) then
-      [Assignment (mk_assign current_scope_var (AE (Literal (LLoc Lg))));
+      [Basic (Assignment (mk_assign current_scope_var (Expression (Literal (LLoc Lg)))));
        add_proto_value current_scope_var Lop;
-       Mutation (mk_mutation (Literal (LLoc Lg)) (Literal (String "undefined")) (Literal Undefined))]
+       Basic (Mutation (mk_mutation (Literal (LLoc Lg)) (Literal (String "undefined")) (Literal Undefined)))]
   else 
-       [Assignment (mk_assign current_scope_var (AER Obj));
+       [Basic (Assignment (mk_assign current_scope_var Obj));
         add_proto_null current_scope_var] in
         
   let init_vars = Utils.flat_map (fun v ->
       [
-        Mutation (mk_mutation (Var current_scope_var) (Literal (String v)) (Var v))
+        Basic (Mutation (mk_mutation (Var current_scope_var) (Literal (String v)) (Var v)))
       ]
     ) args in
     
   (* Assigning undefined to var declarations *)
   let decl_vars = Utils.flat_map (fun v ->
       [
-        Mutation (mk_mutation (Var current_scope_var) (Literal (String v)) (Literal Undefined))
+        Basic (Mutation (mk_mutation (Var current_scope_var) (Literal (String v)) (Literal Undefined)))
       ]
     ) (List.filter (fun v -> not (List.mem v args)) (var_decls fb)) in
     
@@ -744,9 +743,9 @@ let translate_function fb fid args env =
   let end_stmts =
     if (fid = main_fun_id) then
       let gamma_stmts, gamma_lvar = translate_gamma lvar ctx in 
-      gamma_stmts @ [Assignment (mk_assign ctx.return_var (AE (Var gamma_lvar)))]
+      gamma_stmts @ [Basic (Assignment (mk_assign ctx.return_var (Expression (Var gamma_lvar))))]
     else
-      [Assignment (mk_assign ctx.return_var (AE (Literal Empty)))] in
+      [Basic (Assignment (mk_assign ctx.return_var (Expression (Literal Empty))))] in
     
   let pulpe = 
     init_e @ 

@@ -40,7 +40,7 @@ let make_new_node stmt : cfg_node =
   make_node stmt
   
 let make_skip_node () : cfg_node =
-  make_new_node Skip    
+  make_new_node (Basic Skip)    
   
 let make_graph nodes : cf_graph =
   let x = ref 0 in incr x;
@@ -86,59 +86,59 @@ let get_all_labels fb =
     AllLabels.add l label_node lbs
    ) label_map labels
   
+let bs_stmt_to_cfg stmt label_map ctx start connect_with_start =
+  match stmt with
+    | Skip
+    | Mutation _ ->
+      begin
+          let n = make_new_node (Basic stmt) in 
+        if (connect_with_start = true)
+            then connect start n else ();
+          Some n
+      end
+    | Assignment assign ->
+      begin match assign.assign_right with
+        | Expression ae ->
+          begin match ae with
+            | Literal _
+            | Var _
+            | BinOp _
+            | IsTypeOf _
+            | UnaryOp _
+            | Ref _ 
+            | Field _
+            | Base _ ->
+                  let n = make_new_node (Basic stmt) in 
+                  if (connect_with_start = true)
+                    then connect start n else (); 
+                  Some n
+          end  
+        | HasField _            
+        | Lookup _
+        | Deallocation _
+        | Obj
+        | Pi _ ->            
+              let n = make_new_node (Basic stmt) in 
+              if (connect_with_start = true)
+                then connect start n else (); 
+              Some n
+        | Call c ->
+               let n = make_new_node (Basic stmt) in 
+               if (connect_with_start = true)
+                then connect start n else ();
+               let throw_label_node = AllLabels.find ctx.label_throw label_map in
+               let return_label_node = AllLabels.find ctx.label_return label_map in
+               connect n return_label_node;
+               connect_excep n throw_label_node;
+               Some return_label_node
+           
+      end
   
 let stmt_to_cfg (stmt : statement) label_map (ctx : translation_ctx) (start : cfg_node option) : cfg_node option =
   let start, connect_with_start = match start with 
     | None -> make_skip_node (), false
     | Some node -> node, true in
   match stmt with
-    | Skip
-    | Mutation _ ->
-      begin
-	      let n = make_new_node stmt in 
-        if (connect_with_start = true)
-	        then connect start n else ();
-	      Some n
-      end
-	  | Assignment assign ->
-      begin match assign.assign_right with
-        | AE ae ->
-          begin match ae with
-          	| Literal _
-          	| Var _
-          	| BinOp _
-          	| IsTypeOf _
-          	| UnaryOp _
-          	| Ref _ 
-          	| Field _
-          	| Base _ ->
-		          let n = make_new_node stmt in 
-		          if (connect_with_start = true)
-		            then connect start n else (); 
-		          Some n
-          end
-        | AER aer ->
-          begin match aer with	 
-          	| HasField _            
-          	| Lookup _
-          	| Deallocation _
-          	| Obj
-          	| Pi _ ->            
-		          let n = make_new_node stmt in 
-		          if (connect_with_start = true)
-		            then connect start n else (); 
-		          Some n
-		    | Call c ->
-		           let n = make_new_node stmt in 
-		           if (connect_with_start = true)
-		            then connect start n else ();
-		           let throw_label_node = AllLabels.find ctx.label_throw label_map in
-		           let return_label_node = AllLabels.find ctx.label_return label_map in
-		           connect n return_label_node;
-		           connect_excep n throw_label_node;
-		           Some return_label_node
-           end
-      end
     | Label l -> 
       let lnode = AllLabels.find l label_map in
       if (connect_with_start = true)
@@ -157,6 +157,7 @@ let stmt_to_cfg (stmt : statement) label_map (ctx : translation_ctx) (start : cf
        if (connect_with_start = true)
          then connect start n else ();
        None
+    | Basic bs -> bs_stmt_to_cfg bs label_map ctx start connect_with_start
     | Sugar _ -> raise (Invalid_argument ("Should be desugared at this point"))
 
   let remove_skip_from_cfg (cfg : cf_graph) = 
@@ -164,7 +165,7 @@ let stmt_to_cfg (stmt : statement) label_map (ctx : translation_ctx) (start : cf
   List.iter (fun node -> 
     if (node.cfgn_id = cfg.cfg_entry.cfgn_id || node.cfgn_id = cfg.cfg_exit.cfgn_id) then ()
     else match node.cfgn_statement with
-      | Skip -> 
+      | Basic Skip -> 
         List.iter (fun parent -> 
           List.iter (fun child -> 
             connect parent child;
@@ -205,7 +206,7 @@ let connect_goto node nodes =
 
 let connect_call_throw node nodes throw_label = 
   match node.cfgn_statement with
-    | Assignment {assign_right = AER (Call _)} ->
+    | Basic (Assignment {assign_right = (Call _)}) ->
       begin
         List.iter (fun n -> 
           match n.cfgn_statement with
@@ -221,7 +222,7 @@ let connect_nodes nodes cfg_end throw_label =
     if index < List.length nodes - 2 then
 	    match node.cfgn_statement with
 	      | Goto _ -> connect_goto node nodes
-	      | Assignment {assign_right = AER (Call _)} ->
+	      | Basic (Assignment {assign_right = (Call _)}) ->
 	        let n = if index + 3 < List.length nodes then List.nth nodes (index + 1) else cfg_end in
 	        let _ = connect node n in
 	        connect_call_throw node nodes throw_label;
