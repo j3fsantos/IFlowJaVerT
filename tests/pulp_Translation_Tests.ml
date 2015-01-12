@@ -171,7 +171,7 @@ r = person.sayHi();") "invest example"
 
 let suite = "Testing_Translation" >:::
   ["translating access" >:: test_access;
-   (*"translating assignment" >:: test_assign;
+   "translating assignment" >:: test_assign;
    "translating obj literal" >:: test_obj;
    "translating block" >:: test_block;
    "translating function environments" >:: test_fun_env;
@@ -196,4 +196,4 @@ let suite = "Testing_Translation" >:::
    "test_example" >:: test_example;
    "translating gamma" >:: test_gamma;
    "cfg_anonymous2" >:: cfg_anonymous2;
-   "test_invest_example" >:: test_invest_example;*)] 
+   "test_invest_example" >:: test_invest_example;] 
