@@ -1,13 +1,6 @@
 open Graphs
 open Pulp_Syntax
-
-let entry = "Entry"
-
-type edge_type =
-  | Edge_Normal
-  | Edge_Excep
-  | Edge_True
-  | Edge_False
+open Simp_Common
 
 module CFG = AbstractGraph (struct type t = statement end) (struct type t = edge_type end)
 
@@ -77,6 +70,9 @@ let fb_to_cfg fb : CFG.graph =
   
 let program_to_cfg (all_functions : function_block AllFunctions.t) : CFG.graph AllFunctions.t =
   AllFunctions.map fb_to_cfg all_functions
+  
+  
+  
   
 let print_cfg (cfgs : CFG.graph AllFunctions.t) (filename : string) : unit =
   let d_cfgedge chan dest src =

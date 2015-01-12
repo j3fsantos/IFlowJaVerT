@@ -19,6 +19,8 @@ sig
    val rm_edge : graph -> node -> node -> unit
   
    val get_node_data : graph -> node -> NodeData.t
+   val set_node_data : graph -> node -> NodeData.t -> unit
    val get_edge_data : graph -> node -> node -> EdgeData.t
+   val set_edge_data : graph -> node -> node -> EdgeData.t -> unit
 
 end 

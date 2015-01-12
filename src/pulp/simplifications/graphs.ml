@@ -84,8 +84,16 @@ struct
      try Hashtbl.find g.graph_node_data n
      with Not_found -> raise (GraphException ("Data not found for node " ^ (string_of_int n)))
     
+   let set_node_data g n nd =
+     let _ = get_node_data g n in
+     Hashtbl.replace g.graph_node_data n nd
+    
    let get_edge_data g src dest = 
      try Hashtbl.find g.graph_edge_data (src, dest)
      with Not_found -> raise (GraphException ("Data not found for edge " ^ (string_of_int src) ^ "-->" ^ (string_of_int dest)))
+    
+   let set_edge_data g src dest ed =
+     let _ = get_edge_data g src dest in
+     Hashtbl.replace g.graph_edge_data (src, dest) ed
 
 end
