@@ -59,6 +59,29 @@ let transform_to_basic_blocks (input : CFG.graph) : CFG_BB.graph =
   match CFG_BB.nodes g with
     | [] -> g
     | start :: tail -> traverse_node g nodedone start; g
+
+
+let print_cfg_bb (cfgs : CFG_BB.graph AllFunctions.t) (filename : string) : unit =
+  let d_cfgedge chan dest src =
+    Printf.fprintf chan "\t\t%i -> %i\n" (CFG_BB.node_id src) (CFG_BB.node_id dest) in
+  let d_cfgnode chan (cfg : CFG_BB.graph) (n : CFG_BB.node) (nd : statement list) =
+    Printf.fprintf chan 
+      "\t\t%i [label=\"%i: %s\"]\n" 
+      (CFG_BB.node_id n)
+      (CFG_BB.node_id n) 
+      (String.escaped (Pulp_Syntax_Print.string_of_statement_list nd));    
+      List.iter (fun dest -> d_cfgedge chan dest n) (CFG_BB.succ cfg n) in
+  let chan = open_out (filename ^ ".cfg.dot") in
+  Printf.fprintf chan "digraph iCFG {\n\tnode [shape=box,  labeljust=l]\n";
+  AllFunctions.iter 
+    (fun name cfg -> 
+      Printf.fprintf chan "\tsubgraph \"cluster_%s\" {\n\t\tlabel=\"%s\"\n" name (String.escaped name);
+      List.iter (fun n -> d_cfgnode chan cfg n (CFG_BB.get_node_data cfg n)) (CFG_BB.nodes cfg);
+      Printf.fprintf chan  "\t}\n";
+    ) 
+    cfgs;
+  Printf.fprintf chan "}\n";
+  close_out chan
   
   
   

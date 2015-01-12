@@ -61,8 +61,8 @@ struct
      if not (Hashtbl.mem g.graph_edge_data (src, dest)) 
      then raise (GraphException ("Cannot remove non-existing edge " ^ (string_of_int src) ^ "-->" ^ (string_of_int dest)))
      else begin
-	     Hashtbl.replace g.graph_succs src (List.filter (fun n -> n = dest) (succ g src));
-	     Hashtbl.replace g.graph_preds dest (List.filter (fun n -> n = src) (pred g dest));
+	     Hashtbl.replace g.graph_succs src (List.filter (fun n -> n <> dest) (succ g src));
+	     Hashtbl.replace g.graph_preds dest (List.filter (fun n -> n <> src) (pred g dest));
 	     Hashtbl.remove g.graph_edge_data (src, dest)
      end
   
@@ -77,7 +77,7 @@ struct
 	     Hashtbl.remove g.graph_succs n;
 	     Hashtbl.remove g.graph_preds n;
 	     Hashtbl.remove g.graph_node_data n;
-	     g.graph_nodes <- (List.filter (fun rm -> n = rm) g.graph_nodes)
+	     g.graph_nodes <- (List.filter (fun rm -> n <> rm) g.graph_nodes)
     end
   
    let get_node_data g n = 

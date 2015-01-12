@@ -12,7 +12,9 @@ let test_template p name =
   let p_exp = exp_to_pulp IVL_goto exp in
   let _ = AllFunctions.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_func_block fwc)) p_exp in
   (* TODO fix path *)
-  let _ = Control_Flow.mk_cfg p_exp ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/"^name) in
+  let cfg = Control_Flow.mk_cfg p_exp ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/"^name) in
+  let cfg_bbs = AllFunctions.map (Basic_Blocks.transform_to_basic_blocks) cfg in
+  let _ = Basic_Blocks.print_cfg_bb cfg_bbs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/bb/"^name) in
   assert_bool "Incorrect Translation" true
   
 
@@ -169,7 +171,7 @@ r = person.sayHi();") "invest example"
 
 let suite = "Testing_Translation" >:::
   ["translating access" >:: test_access;
-   "translating assignment" >:: test_assign;
+   (*"translating assignment" >:: test_assign;
    "translating obj literal" >:: test_obj;
    "translating block" >:: test_block;
    "translating function environments" >:: test_fun_env;
@@ -194,4 +196,4 @@ let suite = "Testing_Translation" >:::
    "test_example" >:: test_example;
    "translating gamma" >:: test_gamma;
    "cfg_anonymous2" >:: cfg_anonymous2;
-   "test_invest_example" >:: test_invest_example;] 
+   "test_invest_example" >:: test_invest_example;*)] 

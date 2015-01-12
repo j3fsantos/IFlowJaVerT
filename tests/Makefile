@@ -49,7 +49,9 @@ SOURCE = ../src/localconfig.ml \
 	 ../src/pulp/cfg.ml \
 	 ../src/pulp/simplifications/graphs.mli \
    ../src/pulp/simplifications/graphs.ml \
+    ../src/pulp/simplifications/simp_Common.ml \
    ../src/pulp/simplifications/control_Flow.ml \
+   ../src/pulp/simplifications/basic_Blocks.ml \
 	 ../src/pulp/interpreter/memory_Model.ml \
 	 ../src/pulp/interpreter/interpreter_Print.ml \
 	 ../src/pulp/interpreter/interpreter.ml \
