@@ -2,6 +2,7 @@ open OUnit
 open Pulp_Syntax
 open Pulp_Translate
 open Pulp_Syntax_Utils
+open Control_Flow
 
 let test_template p name =
   Symb_execution.initialize ();
@@ -11,7 +12,7 @@ let test_template p name =
   let p_exp = exp_to_pulp IVL_goto exp in
   let _ = AllFunctions.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_func_block fwc)) p_exp in
   (* TODO fix path *)
-  let _ = Cfg.mk_cfg p_exp ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/"^name) in
+  let _ = Control_Flow.mk_cfg p_exp ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/"^name) in
   assert_bool "Incorrect Translation" true
   
 

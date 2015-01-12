@@ -1,10 +1,11 @@
 module AbstractGraph (NodeData : sig type t end) (EdgeData : sig type t end) :
 sig 
    type graph 
-   type node (* node id *)
+   type node
   
    exception GraphException of string
    
+   val node_id : node -> int
    val nodes : graph -> node list
    val succ : graph -> node -> node list
    val pred : graph -> node -> node list

@@ -14,6 +14,8 @@ struct
     }
     
    exception GraphException of string
+  
+   let node_id n = n
    
    let nodes g = g.graph_nodes
   
