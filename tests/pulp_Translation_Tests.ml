@@ -13,7 +13,9 @@ let test_template p name =
   let _ = AllFunctions.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_func_block fwc)) p_exp in
   (* TODO fix path *)
   let cfg = Control_Flow.mk_cfg p_exp ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/"^name) in
-  let cfg_bbs = AllFunctions.map (Basic_Blocks.transform_to_basic_blocks) cfg in
+  let cfg_bbs = AllFunctions.map (Basic_Blocks.transform_to_basic_blocks_from_cfg) cfg in
+  let cfg_bbs = AllFunctions.map (Basic_Blocks.transform_to_basic_blocks) cfg_bbs in
+  Reaching_Defs.debug_print_cfg_bb_with_defs cfg_bbs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/rd/"^name);
   let _ = Basic_Blocks.print_cfg_bb cfg_bbs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/bb/"^name) in
   assert_bool "Incorrect Translation" true
   

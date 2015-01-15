@@ -1,8 +1,20 @@
 open Parser_syntax
 open Utils
 open Batteries
-
+ 
 exception No_Codename
+
+let rec get_variables_in_expression e =
+  let f = get_variables_in_expression in
+  match e with
+    | Pulp_Syntax.Literal l -> []
+    | Pulp_Syntax.Var v -> [v]
+    | Pulp_Syntax.BinOp (e1, _, e2) -> f e1 @ f e2
+    | Pulp_Syntax.UnaryOp (_, e) -> f e
+    | Pulp_Syntax.Ref (e1, e2, _) -> f e1 @ f e2
+    | Pulp_Syntax.Base e -> f e
+    | Pulp_Syntax.Field e -> f e
+    | Pulp_Syntax.IsTypeOf (e, _) -> f e
   
 let update_annotation annots atype new_value =
   let old_removed = List.filter (fun annot -> annot.annot_type <> atype) annots in

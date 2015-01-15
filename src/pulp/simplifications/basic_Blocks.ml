@@ -53,12 +53,19 @@ let rec traverse_node (g : CFG_BB.graph) nodedone current =
     end
   end
   
-let transform_to_basic_blocks (input : CFG.graph) : CFG_BB.graph =
-  let g = copy input in
+let transform_to_basic_blocks (g : CFG_BB.graph) : CFG_BB.graph =
   let nodedone = Hashtbl.create 100 in
   match CFG_BB.nodes g with
     | [] -> g
-    | start :: tail -> traverse_node g nodedone start; g
+    | start :: tail -> traverse_node g nodedone start;
+  
+  (* Remove unreachable nodes *)
+  List.iter (fun n -> if not (Hashtbl.mem nodedone n) then CFG_BB.rm_node g n) (CFG_BB.nodes g);
+  g
+  
+let transform_to_basic_blocks_from_cfg (input : CFG.graph) : CFG_BB.graph =
+  let g = copy input in
+  transform_to_basic_blocks g
 
 
 let print_cfg_bb (cfgs : CFG_BB.graph AllFunctions.t) (filename : string) : unit =
