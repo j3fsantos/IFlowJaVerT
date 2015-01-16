@@ -86,13 +86,13 @@ let test_while () =
   test_template ("while (x == 5) {x = x - 1; z = z + 1}") "while"
   
 let test_return () =
-  test_template ("function () {return}") "return"
+  test_template ("var f = function () {return}") "return"
   
 let test_return_exp () =
-  test_template ("function () {var x; return x}") "returnexp"
+  test_template ("var f = function () {var x; return x}") "returnexp"
   
 let test_same_name_param_var () =
-  test_template ("function (b) {var b}") "samevar"
+  test_template ("var f = function (b) {var b}") "samevar"
   
 let test_popl12_example () =
   test_template ("var x = null, y = null, z = null; var f = function(w){x = v; v = 4; var v; y = v;}; v = 5; f(null); z = v;") "popl12"

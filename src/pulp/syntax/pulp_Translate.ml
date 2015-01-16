@@ -3,6 +3,7 @@ open Pulp_Syntax_Utils
 open Pulp_Syntax_Print
 
 exception PulpNotImplemented of string
+exception PulpInvalid of string
 
 type translation_level =
   | IVL_buitin_functions
@@ -326,20 +327,10 @@ let find_var_scope var env =
   with
     | Not_found -> Literal (String unknownscope)
 
-let rec exp_to_fb ctx exp : statement list * variable = 
-  let f = exp_to_fb ctx in 
+
+let translate_literal exp : statement list * variable =
   match exp.Parser_syntax.exp_stx with
       (* Literals *)
-      | Parser_syntax.Num n -> 
-        begin
-          let assign = mk_assign_fresh_lit (Num n) in 
-          [Basic (Assignment assign)], assign.assign_left
-        end
-      | Parser_syntax.String s -> 
-        begin 
-          let assign = mk_assign_fresh_lit (String s) in 
-          [Basic (Assignment assign)], assign.assign_left
-        end
       | Parser_syntax.Null ->
         begin 
           let assign = mk_assign_fresh_lit Null in 
@@ -350,63 +341,39 @@ let rec exp_to_fb ctx exp : statement list * variable =
           let assign = mk_assign_fresh_lit (Bool b) in 
           [Basic (Assignment assign)], assign.assign_left
         end
+     | Parser_syntax.String s -> 
+        begin 
+          let assign = mk_assign_fresh_lit (String s) in 
+          [Basic (Assignment assign)], assign.assign_left
+        end
+     | Parser_syntax.Num n -> 
+        begin
+          let assign = mk_assign_fresh_lit (Num n) in 
+          [Basic (Assignment assign)], assign.assign_left
+        end
+      | _ -> raise (PulpInvalid ("Expected literal. Actual " ^ (Pretty_print.string_of_exp true exp)))
+
+let rec translate_exp ctx exp : statement list * variable =
+  let f = translate_exp ctx in 
+  match exp.Parser_syntax.exp_stx with
+      (* Literals *)
+      | Parser_syntax.Null 
+      | Parser_syntax.Bool _
+      | Parser_syntax.String _  
+      | Parser_syntax.Num _  -> translate_literal exp
+      
       | Parser_syntax.This -> 
         begin 
           let assign = mk_assign_fresh_e (Var rthis) in 
           [Basic (Assignment assign)], assign.assign_left
         end
+        
       | Parser_syntax.Var v -> 
         begin 
           let scope = find_var_scope v ctx.env_vars in
           let ref_assign = mk_assign_fresh_e (Ref (scope, Literal (String v) , VariableReference)) in
           [Basic (Assignment ref_assign)], ref_assign.assign_left         
         end
-      | Parser_syntax.Access (e, v) -> 
-        begin
-          let r1_stmts, r1 = f e in
-          let r2_stmts, r2 = translate_gamma r1 ctx in
-          let r4_stmts, r4 = translate_obj_coercible r2 ctx in
-          let r5 = mk_assign_fresh_e (Ref (Var r2, Literal (String v), MemberReference)) in
-            r1_stmts @ 
-            r2_stmts @ 
-            r4_stmts @
-            [Basic (Assignment r5)], r5.assign_left;
-        end
-      | Parser_syntax.CAccess (e1, e2) ->
-          let r1_stmts, r1 = f e1 in
-          let r2_stmts, r2 = translate_gamma r1 ctx in
-          let r3_stmts, r3 = f e2 in
-          let r4_stmts, r4 = translate_gamma r3 ctx in
-          let r5_stmts, r5 = translate_obj_coercible r2 ctx in
-          let r6 = mk_assign_fresh_e (Ref (Var r2, Var r4, MemberReference)) in
-            r1_stmts @ 
-            r2_stmts @ 
-            r3_stmts @ 
-            r4_stmts @ 
-            r5_stmts @ 
-            [Basic (Assignment r6)], r6.assign_left;
-      | Parser_syntax.Script (_, es)
-      | Parser_syntax.Block es ->
-        let mk_if rval oldrval =
-          let retv = fresh_r () in 
-            [
-              (* DSA *) 
-              Sugar (If (equal_empty_expr rval, 
-                [
-                  Basic (Assignment (mk_assign retv (Expression (Var oldrval))))
-                ], 
-                [
-                  Basic (Assignment (mk_assign retv (Expression (Var rval))))
-                ]))
-            ], retv in
-         
-        let retv = mk_assign_fresh_lit Empty in
-        
-        List.fold_left (fun (prev_stmts, prev) current -> 
-          let r1_stmts, r1 = f current in
-          let if_stmts, ifv = mk_if r1 prev in
-          (prev_stmts @ r1_stmts @ if_stmts, ifv)) 
-        ([Basic (Assignment retv)], retv.assign_left) es
         
       | Parser_syntax.Obj xs ->
         begin
@@ -434,45 +401,71 @@ let rec exp_to_fb ctx exp : statement list * variable =
             (List.flatten stmts), r1.assign_left
         end
         
-      | Parser_syntax.Assign (e1, e2) ->
-        begin
+      | Parser_syntax.Access (e, v) -> 
+          let r1_stmts, r1 = f e in
+          let r2_stmts, r2 = translate_gamma r1 ctx in
+          let r4_stmts, r4 = translate_obj_coercible r2 ctx in
+          let r5 = mk_assign_fresh_e (Ref (Var r2, Literal (String v), MemberReference)) in
+            r1_stmts @ 
+            r2_stmts @ 
+            r4_stmts @
+            [Basic (Assignment r5)], r5.assign_left
+        
+      | Parser_syntax.CAccess (e1, e2) ->
           let r1_stmts, r1 = f e1 in
-          let r2_stmts, r2 = f e2 in
-          let r3_stmts, r3 = translate_gamma r2 ctx in
-          let r4 = mk_assign_fresh_e (Field (Var r1)) in
-          let gotothrow = translate_error_throw LRError ctx.throw_var ctx.label_throw in
+          let r2_stmts, r2 = translate_gamma r1 ctx in
+          let r3_stmts, r3 = f e2 in
+          let r4_stmts, r4 = translate_gamma r3 ctx in
+          let r5_stmts, r5 = translate_obj_coercible r2 ctx in
+          let r6 = mk_assign_fresh_e (Ref (Var r2, Var r4, MemberReference)) in
+            r1_stmts @ 
+            r2_stmts @ 
+            r3_stmts @ 
+            r4_stmts @ 
+            r5_stmts @ 
+            [Basic (Assignment r6)], r6.assign_left
+            
+      | Parser_syntax.New (e1, e2s) ->
+        let stmts, r1, r2, arg_values = translate_call_construct_start f e1 e2s ctx in
+        let prototype = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FPrototype)) in        
+              let vthisproto = fresh_r () in
+        let vthis = mk_assign_fresh Obj in
+              let if3, call = translate_call r2 vthis.assign_left arg_values ctx in
+        let rv = fresh_r () in  
+          stmts @ 
+          [
+            Basic (Assignment prototype); 
+            Sugar (If (is_obj_var prototype.assign_left, 
+                [Basic (Assignment (mk_assign vthisproto (Expression (Var prototype.assign_left))))], 
+                [Basic (Assignment (mk_assign vthisproto (Expression (Literal (LLoc Lop)))))])); 
+            Basic (Assignment vthis);
+            add_proto_var vthis.assign_left vthisproto;
+            if3; 
+            Sugar (If (is_obj_var call.assign_left, 
+                [Basic (Assignment (mk_assign rv (Expression (Var call.assign_left))))], 
+                [Basic (Assignment (mk_assign rv (Expression (Var vthis.assign_left))))]))
+          ], rv
+        
+      | Parser_syntax.Call (e1, e2s) ->
+        let stmts, r1, r2, arg_values = translate_call_construct_start f e1 e2s ctx in
+              let vthis = fresh_r () in
+              let assign_vthis_und = Basic (Assignment (mk_assign vthis (Expression (Literal Undefined)))) in
+              let if5, call = translate_call r2 vthis arg_values ctx in
+          stmts @ 
+          [
+            Sugar (If (is_ref_expr r1, 
+                [
+                  Sugar (If (is_vref_expr r1, 
+                    [assign_vthis_und], 
+                    [
+                      Basic (Assignment (mk_assign vthis (Expression (Base (Var r1)))))
+                    ]))
+                ],
+                [assign_vthis_und])); 
+            if5
+          ], call.assign_left
           
-            r1_stmts @
-            r2_stmts @
-            r3_stmts @
-            [
-              Sugar (If (is_vref_expr r1, 
-		            [
-		              Basic (Assignment r4);
-		              Sugar (If (or_expr 
-                             (equal_string_expr r4.assign_left "arguments") 
-                             (equal_string_expr r4.assign_left "eval"), gotothrow, []));
-		            ], 
-		            []))
-            ] @
-            [translate_put_value r1 r3 ctx.throw_var ctx.label_throw], r3
-        end
-        
-      | Parser_syntax.Skip -> 
-        let r1 = mk_assign_fresh_lit Empty in
-        [Basic (Assignment r1)], r1.assign_left 
-        
-      | Parser_syntax.VarDec vars ->
-        let result = List.map (fun var ->
-          match var with
-            | (v, Some exp) -> f ({exp with Parser_syntax.exp_stx = (Parser_syntax.Assign ({exp with Parser_syntax.exp_stx = Parser_syntax.Var v}, exp))})
-            | (v, None) -> f ({exp with Parser_syntax.exp_stx = Parser_syntax.Skip})
-          ) vars in
-        let stmts, _ = List.split result in
-        let empty = mk_assign_fresh_lit Empty in
-        (List.flatten stmts) @ [Basic (Assignment empty)], empty.assign_left
-        
-      | Parser_syntax.AnnonymousFun (_, vs, e) ->
+     | Parser_syntax.AnnonymousFun (_, vs, e) ->
         let fid = get_codename exp in
         let f_obj = mk_assign_fresh Obj in
         let prototype = mk_assign_fresh Obj in
@@ -494,47 +487,27 @@ let rec exp_to_fb ctx exp : statement list * variable =
           [
             Basic (Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FId) (Literal (String fid)))); 
             Basic (Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FScope) (Var scope.assign_left))); 
-          ], f_obj.assign_left  
-                      
-      | Parser_syntax.Call (e1, e2s) ->
-        let stmts, r1, r2, arg_values = translate_call_construct_start f e1 e2s ctx in
-			  let vthis = fresh_r () in
-			  let assign_vthis_und = Basic (Assignment (mk_assign vthis (Expression (Literal Undefined)))) in
-			  let if5, call = translate_call r2 vthis arg_values ctx in
-          stmts @ 
-          [
-            Sugar (If (is_ref_expr r1, 
+          ], f_obj.assign_left 
+          
+      | Parser_syntax.Unary_op (op, e) ->
+        begin match op with 
+          | Parser_syntax.Not ->
+                let r1_stmts, r1 = f e in
+                let r2_stmts, r2 = translate_gamma r1 ctx in
+            let rv = fresh_r () in 
+            let if1 = 
+              Sugar (If (is_false_expr r2, 
                 [
-                  Sugar (If (is_vref_expr r1, 
-                    [assign_vthis_und], 
-                    [
-                      Basic (Assignment (mk_assign vthis (Expression (Base (Var r1)))))
-                    ]))
-                ],
-                [assign_vthis_und])); 
-            if5
-          ], call.assign_left
-        
-      | Parser_syntax.New (e1, e2s) ->
-        let stmts, r1, r2, arg_values = translate_call_construct_start f e1 e2s ctx in
-        let prototype = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FPrototype)) in        
-			  let vthisproto = fresh_r () in
-        let vthis = mk_assign_fresh Obj in
-			  let if3, call = translate_call r2 vthis.assign_left arg_values ctx in
-        let rv = fresh_r () in  
-          stmts @ 
-          [
-            Basic (Assignment prototype); 
-            Sugar (If (is_obj_var prototype.assign_left, 
-                [Basic (Assignment (mk_assign vthisproto (Expression (Var prototype.assign_left))))], 
-                [Basic (Assignment (mk_assign vthisproto (Expression (Literal (LLoc Lop)))))])); 
-            Basic (Assignment vthis);
-            add_proto_var vthis.assign_left vthisproto;
-            if3; 
-            Sugar (If (is_obj_var call.assign_left, 
-                [Basic (Assignment (mk_assign rv (Expression (Var call.assign_left))))], 
-                [Basic (Assignment (mk_assign rv (Expression (Var vthis.assign_left))))]))
-          ], rv
+                  Basic (Assignment (mk_assign rv (Expression (Literal (Bool true)))))
+                ], 
+                [
+                  Basic (Assignment (mk_assign rv (Expression (Literal (Bool false)))))
+                ])) in
+                r1_stmts @
+            r2_stmts @
+            [if1], rv
+          | _ -> raise (PulpNotImplemented (Pretty_print.string_of_exp true exp))
+        end 
         
       | Parser_syntax.Delete e ->
         let r1_stmts, r1 = f e in
@@ -550,15 +523,15 @@ let rec exp_to_fb ctx exp : statement list * variable =
           [
             Sugar (If (is_ref_expr r1, 
                 [ Basic (Assignment r4);
-			            Sugar (If (equal_undef_expr r4.assign_left, 
+                        Sugar (If (equal_undef_expr r4.assign_left, 
                     gotothrow, 
                     [])); 
-			            Sugar (If (is_vref_expr r1, 
+                        Sugar (If (is_vref_expr r1, 
                     gotothrow, 
                     [])); 
-			            Basic (Assignment r3);  
-			            Basic (Assignment r2); 
-			            Sugar (If (equal_bool_expr r2.assign_left false, 
+                        Basic (Assignment r3);  
+                        Basic (Assignment r2); 
+                        Sugar (If (equal_bool_expr r2.assign_left false, 
                     [Basic (Assignment assign_rv_true)], 
                     [
                       Basic (Assignment r5); 
@@ -583,10 +556,10 @@ let rec exp_to_fb ctx exp : statement list * variable =
           | Parser_syntax.Arith aop -> 
             begin match aop with
               | Parser_syntax.Plus
-						  | Parser_syntax.Minus
-						  | Parser_syntax.Times
-						  | Parser_syntax.Div -> translate_regular_bin_op f op e1 e2 ctx
-						  | _ -> raise (PulpNotImplemented (Pretty_print.string_of_exp true exp))
+                          | Parser_syntax.Minus
+                          | Parser_syntax.Times
+                          | Parser_syntax.Div -> translate_regular_bin_op f op e1 e2 ctx
+                          | _ -> raise (PulpNotImplemented (Pretty_print.string_of_exp true exp))
             end
           | Parser_syntax.Boolean bop -> 
             begin match bop with
@@ -594,6 +567,133 @@ let rec exp_to_fb ctx exp : statement list * variable =
               | Parser_syntax.Or -> translate_bin_op_logical f e1 e2 bop ctx
             end
         end
+        
+      | Parser_syntax.Assign (e1, e2) ->
+        begin
+          let r1_stmts, r1 = f e1 in
+          let r2_stmts, r2 = f e2 in
+          let r3_stmts, r3 = translate_gamma r2 ctx in
+          let r4 = mk_assign_fresh_e (Field (Var r1)) in
+          let gotothrow = translate_error_throw LRError ctx.throw_var ctx.label_throw in
+          
+            r1_stmts @
+            r2_stmts @
+            r3_stmts @
+            [
+              Sugar (If (is_vref_expr r1, 
+                    [
+                      Basic (Assignment r4);
+                      Sugar (If (or_expr 
+                             (equal_string_expr r4.assign_left "arguments") 
+                             (equal_string_expr r4.assign_left "eval"), gotothrow, []));
+                    ], 
+                    []))
+            ] @
+            [translate_put_value r1 r3 ctx.throw_var ctx.label_throw], r3
+        end
+      
+      | Parser_syntax.Array _
+      | Parser_syntax.NamedFun _
+      | Parser_syntax.ConditionalOp _
+      | Parser_syntax.AssignOp _
+      | Parser_syntax.Comma _ 
+      | Parser_syntax.RegExp _ -> raise (PulpNotImplemented (Pretty_print.string_of_exp true exp))   
+
+      (*Statements*)
+      | Parser_syntax.Block _
+      | Parser_syntax.Script _ 
+      | Parser_syntax.VarDec _
+      | Parser_syntax.Skip
+      | Parser_syntax.If _
+      | Parser_syntax.While _
+      | Parser_syntax.Return _
+      | Parser_syntax.DoWhile _
+      | Parser_syntax.For _
+      | Parser_syntax.ForIn _
+      | Parser_syntax.Continue _
+      | Parser_syntax.Break _
+      | Parser_syntax.With _
+      | Parser_syntax.Switch _  
+      | Parser_syntax.Label _
+      | Parser_syntax.Throw _
+      | Parser_syntax.Try _    
+      | Parser_syntax.Debugger -> raise (PulpInvalid ("Expected expression. Actual " ^ (Pretty_print.string_of_exp true exp)))
+
+let translate_block es f =
+     let mk_if rval oldrval =
+      let retv = fresh_r () in 
+        [
+          (* DSA *) 
+          Sugar (If (equal_empty_expr rval, 
+            [
+              Basic (Assignment (mk_assign retv (Expression (Var oldrval))))
+            ], 
+            [
+              Basic (Assignment (mk_assign retv (Expression (Var rval))))
+            ]))
+        ], retv in
+     
+    let retv = mk_assign_fresh_lit Empty in
+    
+    List.fold_left (fun (prev_stmts, prev) current -> 
+      let r1_stmts, r1 = f current in
+      let if_stmts, ifv = mk_if r1 prev in
+      (prev_stmts @ r1_stmts @ if_stmts, ifv)) 
+    ([Basic (Assignment retv)], retv.assign_left) es
+
+let rec translate_stmt ctx exp : statement list * variable =
+  let f = translate_stmt ctx in 
+  match exp.Parser_syntax.exp_stx with
+        (* Literals *)
+      | Parser_syntax.Null 
+      | Parser_syntax.Bool _
+      | Parser_syntax.String _  
+      | Parser_syntax.Num _
+      
+      (* Expressions *) 
+      | Parser_syntax.This
+      | Parser_syntax.Var _
+      | Parser_syntax.Obj _
+      | Parser_syntax.Access _
+      | Parser_syntax.CAccess _
+      | Parser_syntax.New _
+      | Parser_syntax.Call _
+      | Parser_syntax.Unary_op _ 
+      | Parser_syntax.Delete _ 
+      | Parser_syntax.BinOp _ 
+      | Parser_syntax.Assign _  
+      | Parser_syntax.Array _
+      | Parser_syntax.ConditionalOp _
+      | Parser_syntax.AssignOp _
+      | Parser_syntax.Comma _ 
+      | Parser_syntax.RegExp _  -> 
+        let stmts, r1 = translate_exp ctx exp in
+        let gamma_stmts, r2  = translate_gamma r1 ctx in
+        stmts @ gamma_stmts, r2
+
+      | Parser_syntax.AnnonymousFun _
+      | Parser_syntax.NamedFun _ -> raise (PulpInvalid ("Expected statement. Actual " ^ (Pretty_print.string_of_exp true exp)))
+         (* If a function appears in the middle of a statement, it shall not be interpreted as an expression function, but as a function declaration *)
+         (* NOTE in spec p.86 *)
+         (* ... It is recommended that ECMAScript implementations either disallow this usage of FunctionDeclaration or issue a warning *)
+
+      (*Statements*)
+      | Parser_syntax.Script _ -> raise (PulpInvalid ("Expected Statememnt. Got Script"))
+      | Parser_syntax.Block es -> translate_block es f
+
+      | Parser_syntax.VarDec vars ->
+        let result = List.map (fun var ->
+          match var with
+            | (v, Some exp) -> f ({exp with Parser_syntax.exp_stx = (Parser_syntax.Assign ({exp with Parser_syntax.exp_stx = Parser_syntax.Var v}, exp))})
+            | (v, None) -> f ({exp with Parser_syntax.exp_stx = Parser_syntax.Skip})
+          ) vars in
+        let stmts, _ = List.split result in
+        let empty = mk_assign_fresh_lit Empty in
+        (List.flatten stmts) @ [Basic (Assignment empty)], empty.assign_left
+
+      | Parser_syntax.Skip -> 
+        let r1 = mk_assign_fresh_lit Empty in
+        [Basic (Assignment r1)], r1.assign_left 
         
       | Parser_syntax.If (e1, e2, e3) ->
         let r1_stmts, r1 = f e1 in
@@ -614,7 +714,7 @@ let rec exp_to_fb ctx exp : statement list * variable =
                 [Basic (Assignment (mk_assign rv (Expression (Var r3))))], 
                 elsebranch))
           ], rv
-        
+          
       | Parser_syntax.While (e1, e2) ->
         let rv = fresh_r () in
         let assign_rv_empty = Basic (Assignment (mk_assign rv (Expression (Literal Empty)))) in
@@ -658,51 +758,36 @@ let rec exp_to_fb ctx exp : statement list * variable =
             Goto ctx.label_return
           ], ctx.return_var
           
-      | Parser_syntax.Unary_op (op, e) ->
-        begin match op with 
-          | Parser_syntax.Not ->
-		        let r1_stmts, r1 = f e in
-		        let r2_stmts, r2 = translate_gamma r1 ctx in
-            let rv = fresh_r () in 
-            let if1 = 
-              Sugar (If (is_false_expr r2, 
-                [
-                  Basic (Assignment (mk_assign rv (Expression (Literal (Bool true)))))
-                ], 
-                [
-                  Basic (Assignment (mk_assign rv (Expression (Literal (Bool false)))))
-                ])) in
-		        r1_stmts @
-            r2_stmts @
-            [if1], rv
-          | _ -> raise (PulpNotImplemented (Pretty_print.string_of_exp true exp))
-        end
-        
       (* Next TODO *)  
       | Parser_syntax.Throw _
       | Parser_syntax.Try _
-      | Parser_syntax.NamedFun _ (*(_, n, vs, e)*)
+
+      | Parser_syntax.Continue _
+      | Parser_syntax.Break _
+      | Parser_syntax.Label _
         
-      (* Should not change IVL too much *)
-      | Parser_syntax.AssignOp _
-      | Parser_syntax.Comma _
-      | Parser_syntax.Array _
-      
-      | Parser_syntax.ConditionalOp _
       | Parser_syntax.DoWhile _
       | Parser_syntax.For _
       | Parser_syntax.Switch _
-      
-      | Parser_syntax.Label _
-      | Parser_syntax.Break _
-      | Parser_syntax.Continue _
 
       (* I am not considering those *)  
-      | Parser_syntax.RegExp _ 
+      
       | Parser_syntax.ForIn _
-      | Parser_syntax.Debugger
       | Parser_syntax.With _
-        -> raise (PulpNotImplemented (Pretty_print.string_of_exp true exp))
+      | Parser_syntax.Debugger -> raise (PulpNotImplemented (Pretty_print.string_of_exp true exp))
+
+      
+
+let exp_to_elem ctx exp : statement list * variable = 
+    match exp.Parser_syntax.exp_stx with
+      | Parser_syntax.NamedFun (s, name, args, body) -> raise (PulpNotImplemented (Pretty_print.string_of_exp true exp))
+      | _ ->  translate_stmt ctx exp
+
+let rec exp_to_fb ctx exp : statement list * variable =
+  match exp.Parser_syntax.exp_stx with
+    | Parser_syntax.Script (_, es) 
+    | Parser_syntax.Block (es) -> translate_block es (exp_to_elem ctx)
+    | _ -> exp_to_elem ctx exp
         
 let translate_function fb fid args env =
   let ctx = create_ctx env in
@@ -742,8 +827,7 @@ let translate_function fb fid args env =
   
   let end_stmts =
     if (fid = main_fun_id) then
-      let gamma_stmts, gamma_lvar = translate_gamma lvar ctx in 
-      gamma_stmts @ [Basic (Assignment (mk_assign ctx.return_var (Expression (Var gamma_lvar))))]
+      [Basic (Assignment (mk_assign ctx.return_var (Expression (Var lvar))))]
     else
       [Basic (Assignment (mk_assign ctx.return_var (Expression (Literal Empty))))] in
     

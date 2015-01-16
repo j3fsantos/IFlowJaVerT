@@ -71,6 +71,9 @@ let test_if () =
 let test_undefined () =
   test_template_normal ("var x = undefined;") (VHValue (HVLiteral Empty))
   
+let test_exception () = 
+  test_template_exception "y; 1" LRError
+  
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
    "running program2" >:: test_program2;
@@ -79,4 +82,5 @@ let suite = "Testing_Interpreter" >:::
    "running_program5" >:: test_program5;
    "running_program6" >:: test_program6;
    "running_if" >:: test_if;
-   "running_undefined" >:: test_undefined] 
+   "running_undefined" >:: test_undefined;
+   "testing exception" >:: test_exception] 
