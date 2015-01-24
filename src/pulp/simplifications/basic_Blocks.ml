@@ -5,6 +5,8 @@ open Control_Flow
 
 module CFG_BB = AbstractGraph (struct type t = statement list end) (struct type t = edge_type end)
 
+exception BBInvalid of string
+
 let copy (input : CFG.graph) : CFG_BB.graph = 
   let g = CFG_BB.mk_graph () in 
   
@@ -66,6 +68,62 @@ let transform_to_basic_blocks (g : CFG_BB.graph) : CFG_BB.graph =
 let transform_to_basic_blocks_from_cfg (input : CFG.graph) : CFG_BB.graph =
   let g = copy input in
   transform_to_basic_blocks g
+  
+let rec filter_goto_label stmts throwl returnl =
+  match stmts with
+    | Goto l1 :: tail ->
+      begin match tail with
+        | Label l2 :: tail2 -> if (l1 = l2 && throwl <> l1 && returnl <> l1) then filter_goto_label tail2 throwl returnl
+                               else [Goto l1; Label l2] @ filter_goto_label tail2 throwl returnl
+        | _ -> Goto l1 :: filter_goto_label tail throwl returnl
+      end
+   | stmt :: tail -> stmt :: (filter_goto_label tail throwl returnl)
+   | [] -> []
+  
+let remove_unnecessary_goto_label (g : CFG_BB.graph) throwl returnl =
+  List.iter (fun n ->
+    let stmts = CFG_BB.get_node_data g n in
+    let filtered_stmts = filter_goto_label stmts throwl returnl in
+    CFG_BB.set_node_data g n filtered_stmts
+  ) (CFG_BB.nodes g)
+  
+let is_block_empty stmts =
+  match stmts with
+    | [Label l2; Goto l1] -> 
+      true, l1, l2
+    | _ -> false, "", ""
+  
+let remove_empty_blocks g =
+  let change_if_equal l1 l2 tol =
+    if l1 == l2 then tol else l1 in
+  
+  let change_last_goto stmts newl oldl = 
+    let rev = List.rev stmts in
+    match rev with
+      | Goto l1 :: tail -> (List.rev tail) @ [Goto (change_if_equal l1 oldl newl)]
+      | GuardedGoto (e, l1, l2) :: tail -> (List.rev tail) @ [GuardedGoto (e, (change_if_equal l1 oldl newl), (change_if_equal l2 oldl newl))]
+      | _ -> raise (BBInvalid "Expected Goto in removing empty blocks") in
+  
+  List.iter (fun n ->
+    let nd = CFG_BB.get_node_data g n in
+    let is_empty, newl, oldl = is_block_empty nd in
+    if is_empty then begin
+      let succs = CFG_BB.succ g n in
+      match succs with
+        | [thesucc] -> 
+           let preds = CFG_BB.pred g n in
+           let sd = CFG_BB.get_edge_data g n thesucc in
+           List.iter (fun pred -> 
+             let stmts = CFG_BB.get_node_data g pred in
+             let new_stmts = change_last_goto stmts newl oldl in
+             CFG_BB.set_node_data g pred new_stmts;
+             CFG_BB.mk_edge g pred thesucc sd
+           ) preds;   
+           CFG_BB.rm_node g n;
+        | _ -> raise (BBInvalid "Goto should have excatly one successor")
+	  end
+    else ()
+  ) (CFG_BB.nodes g)
 
 
 let print_cfg_bb (cfgs : CFG_BB.graph AllFunctions.t) (filename : string) : unit =

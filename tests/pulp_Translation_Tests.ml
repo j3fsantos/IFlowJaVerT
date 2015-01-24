@@ -15,8 +15,17 @@ let test_template p name =
   let cfg = Control_Flow.mk_cfg p_exp ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/"^name) in
   let cfg_bbs = AllFunctions.map (Basic_Blocks.transform_to_basic_blocks_from_cfg) cfg in
   let cfg_bbs = AllFunctions.map (Basic_Blocks.transform_to_basic_blocks) cfg_bbs in
-  Reaching_Defs.debug_print_cfg_bb_with_defs cfg_bbs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/rd/"^name);
+  
+  AllFunctions.iter (fun name cfg -> 
+    let fb = AllFunctions.find name p_exp in
+    Basic_Blocks.remove_unnecessary_goto_label cfg fb.func_ctx.label_throw fb.func_ctx.label_return
+  ) cfg_bbs;
+  
+  AllFunctions.iter (fun name cfg -> Basic_Blocks.remove_empty_blocks cfg) cfg_bbs;
   let _ = Basic_Blocks.print_cfg_bb cfg_bbs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/bb/"^name) in
+  
+  Reaching_Defs.debug_print_cfg_bb_with_defs cfg_bbs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/rd/"^name);
+  
   assert_bool "Incorrect Translation" true
   
 
