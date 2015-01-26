@@ -2,6 +2,7 @@ open Graphs
 open Pulp_Syntax
 open Basic_Blocks
 open Pulp_Syntax_Utils
+open Simp_Common
 
 type definition_id = int * int
 
@@ -123,6 +124,67 @@ let calculate_reaching_defs g =
 	let ins, outs = reaching_defs (CFG_BB.nodes g) g gens kills in
   ins, outs
   
+let update_stmt stmt var const =
+  let _ = Printf.printf "   Updating stmt %s with var %s with const %s\n" 
+     (Pulp_Syntax_Print.string_of_statement stmt) 
+     (Pulp_Syntax_Print.string_of_var var)
+     (Pulp_Syntax_Print.string_of_expression const) in
+  let updated = Simp_Common.update_stmt var const stmt in
+  let _ = Printf.printf "    Updated stmt %s \n" 
+     (Pulp_Syntax_Print.string_of_statement updated) in
+  let simp_stmt = Simp_Common.simplify_stmt updated in 
+  let _ = Printf.printf " Simplified stmt %s\n -- \n" 
+     (Pulp_Syntax_Print.string_of_statement simp_stmt) in simp_stmt
+   (*Find x in stmt replace with const and do simplification if possible*)
+  
+let rec propagate_const stmts var const =
+  match stmts with
+    | [] -> []
+    | Basic (Assignment a) :: tail ->
+      if a.assign_left = var then stmts
+      else (update_stmt (Basic (Assignment a)) var const) :: (propagate_const tail var const)
+    | stmt :: tail -> (update_stmt stmt var const) :: (propagate_const tail var const)
+  
+let constant_propagation g =
+  let nodes = CFG_BB.nodes g in
+  let ins, outs = calculate_reaching_defs g in
+  let tbl, tblinv = var_defid_tbl g in
+  
+  List.iter (fun n -> 
+    let vars = Hashtbl.create 5 in
+    let nins = Hashtbl.find ins n in
+    
+    List.iter (fun defid -> 
+      let var = Hashtbl.find tblinv defid in
+      Hashtbl.add vars var defid;
+    ) nins;
+    
+    Hashtbl.iter (fun var _ -> 
+      let deflist = Hashtbl.find_all vars var in
+      match deflist with
+        | [(nid, index)] ->
+          begin
+            let stmts = CFG_BB.get_node_data g nid in
+            let stmt = List.nth stmts index in
+              match stmt with
+                | Basic (Assignment a) ->
+                  begin match a.assign_right with
+                    | Expression e -> 
+                      begin
+				                 if is_const_expr e then begin
+				                    let current_node_stmts = CFG_BB.get_node_data g n in
+				                    let new_current_node_stmts = propagate_const current_node_stmts var e in
+				                    CFG_BB.set_node_data g n new_current_node_stmts
+				                 end else ()
+                      end
+                    | _ -> ()
+                  end
+                | _ -> ()
+          end
+        | _ -> ()
+    ) vars;
+  ) nodes
+  
 let debug_print_cfg_bb_with_defs (cfgs : CFG_BB.graph AllFunctions.t) (filename : string) : unit =
   let d_cfgedge chan dest src =
     Printf.fprintf chan "\t\t%i -> %i\n" (CFG_BB.node_id src) (CFG_BB.node_id dest) in
@@ -143,6 +205,7 @@ let debug_print_cfg_bb_with_defs (cfgs : CFG_BB.graph AllFunctions.t) (filename 
   AllFunctions.iter 
     (fun name cfg -> 
       let ins, outs = calculate_reaching_defs cfg in
+      let _ = constant_propagation cfg in
       Printf.fprintf chan "\tsubgraph \"cluster_%s\" {\n\t\tlabel=\"%s\"\n" name (String.escaped name);
       List.iter (fun n -> d_cfgnode chan cfg n (CFG_BB.get_node_data cfg n) ins outs) (CFG_BB.nodes cfg);
       Printf.fprintf chan  "\t}\n";

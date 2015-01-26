@@ -17,8 +17,6 @@ let rscope : variable = "rscope"
 let function_scope_name fid =
   fid^"_scope"
   
-let unknownscope : string = "UNKNOWN_SCOPE"
-
 let end_label : label = "theend"
 
 let literal_builtin_field f = Literal (String (string_of_builtin_field f))
@@ -196,7 +194,7 @@ let translate_gamma r ctx =
   let main = Sugar (If (is_ref_expr r,
     [
       Basic (Assignment base);
-      Sugar (If (or_expr (equal_undef_expr base.assign_left) (equal_string_expr base.assign_left unknownscope),
+      Sugar (If (or_expr (equal_undef_expr base.assign_left) (equal_loc_expr base.assign_left LUnknownScope),
         translate_error_throw LRError ctx.throw_var ctx.label_throw,
         [
           Sugar (If (istypeof_prim_expr base.assign_left,
@@ -325,7 +323,7 @@ let find_var_scope var env =
     ) env in
   Var (function_scope_name (scope.func_id))
   with
-    | Not_found -> Literal (String unknownscope)
+    | Not_found -> Literal (LLoc LUnknownScope) 
 
 
 let translate_literal exp : statement list * variable =
