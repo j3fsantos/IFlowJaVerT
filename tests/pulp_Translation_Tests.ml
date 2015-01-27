@@ -46,6 +46,7 @@ let test_template p name =
       let _ = Basic_Blocks.transform_to_basic_blocks cfg in
       let fb = AllFunctions.find name p_exp in
       Basic_Blocks.remove_unnecessary_goto_label cfg fb.func_ctx.label_throw fb.func_ctx.label_return;
+      dead_code_elimination cfg fb.func_ctx.throw_var fb.func_ctx.return_var;
       cfg
   ) cfg_bbs in
   

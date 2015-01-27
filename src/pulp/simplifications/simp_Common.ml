@@ -8,6 +8,52 @@ type edge_type =
   | Edge_True
   | Edge_False
 
+let rec get_vars_in_expr e =
+  let f = get_vars_in_expr in
+  match e with
+    | Literal l -> []
+    | Var v -> [v]
+    | BinOp (e1, _, e2) -> f e1 @ f e2
+    | UnaryOp (_, e) -> f e
+    | Ref (e1, e2, _) -> f e1 @ f e2
+    | Base e -> f e
+    | Field e -> f e
+    | IsTypeOf (e, _) -> f e
+
+let get_vars_in_call c  =
+  let f = get_vars_in_expr in
+  (f c.call_name) @ (f c.call_scope) @ (f c.call_this) @ (List.flatten (List.map f c.call_args))
+
+let get_vars_in_assign_expr e =
+  let f = get_vars_in_expr in
+  match e with
+      | Expression expr -> f expr
+      | Call c -> get_vars_in_call c
+      | Obj -> []
+      | HasField (e1, e2) -> f e1 @ f e2
+      | Lookup (e1, e2) -> f e1 @ f e2
+      | Deallocation (e1, e2) -> f e1 @ f e2
+      | Pi (e1, e2) -> f e1 @ f e2
+
+let get_vars_in_bs_stmt stmt =
+  let f = get_vars_in_expr in
+  match stmt with
+    | Skip -> []
+    | Assignment {assign_left = al; assign_right = ar} -> get_vars_in_assign_expr ar
+    | Mutation m -> (f m.m_loc) @ (f m.m_field) @ (f m.m_right)
+
+let rec get_vars_in_stmt stmt = 
+  match stmt with
+    | Label _ 
+    | Goto _ -> []
+    | GuardedGoto (e, l1, l2) -> get_vars_in_expr e
+    | Basic bs -> get_vars_in_bs_stmt bs
+    | Sugar sstmt -> get_vars_in_sugar_stmt sstmt
+and
+get_vars_in_sugar_stmt stmt =
+  match stmt with
+  | If (e, t1, t2) -> (get_vars_in_expr e) @ (List.flatten (List.map get_vars_in_stmt t1)) @ (List.flatten (List.map get_vars_in_stmt t2))
+
 let rec is_const_expr e =
   let f = is_const_expr in
   match e with

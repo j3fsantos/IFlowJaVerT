@@ -227,8 +227,147 @@ let simplify_guarded_gotos g =
     CFG_BB.set_node_data g n (update_last stmts)
     
   ) nodes
-
   
+(* Liveness *)
+  
+let liveness_gen_kill_stmt stmt =
+  match stmt with
+    | Basic (Assignment a) -> get_vars_in_assign_expr a.assign_right, [a.assign_left]  
+    | stmt -> get_vars_in_stmt stmt, []
+  
+let liveness_gen_kill_node n stmts =
+   let gen_kills = List.map (fun stmt -> liveness_gen_kill_stmt stmt) stmts in
+  
+   List.fold_left (fun (gen_p, kill_p) (gen_n, kill_n) ->  
+     (union gen_p (subtract gen_n kill_p)), (union kill_n kill_p)
+    ) ([], []) gen_kills
+  
+  
+let liveness_gens_kills g = 
+  let nodes = CFG_BB.nodes g in
+  let node_gens = Hashtbl.create 100 in
+  let node_kills = Hashtbl.create 100 in
+  List.iter (fun n -> 
+    let (gen, kill) = liveness_gen_kill_node n (CFG_BB.get_node_data g n) in 
+    Printf.printf "Gen Kill of Node %i \n" (CFG_BB.node_id n);
+    Printf.printf "Gen: ";
+    let _ = List.iter (Printf.printf "%s ") gen in
+    Printf.printf "Kill: ";
+    let _ = List.iter (Printf.printf "%s ") kill in
+    Printf.printf "Gen Kill end \n";
+    Hashtbl.add node_gens n gen;
+    Hashtbl.add node_kills n kill;
+  ) nodes;
+  node_gens, node_kills
+  
+  
+let rec repeat_until_equal_liveness ins outs wnodes g gens kills =
+  match wnodes with
+    | [] -> ()
+    | n :: tail ->
+      let old = Hashtbl.find ins n in
+      let succs = CFG_BB.succ g n in
+      let outn = List.fold_left (fun in_s succ -> union in_s (Hashtbl.find ins succ)) [] succs in
+      Hashtbl.replace ins n (union (Hashtbl.find gens n) (subtract outn (Hashtbl.find kills n)));
+      Hashtbl.replace outs n outn;
+      let wnodes = 
+      if (list_eq old (Hashtbl.find ins n)) then tail
+      else union tail (CFG_BB.pred g n) in
+      repeat_until_equal_liveness ins outs wnodes g gens kills
+      
+      
+let liveness nodes g gens kills =
+  let ins = Hashtbl.create 100 in
+  let outs = Hashtbl.create 100 in
+  List.iter (fun n -> Hashtbl.add ins n []; Hashtbl.add outs n []) nodes;
+  (* Do I want to reverse nodes? *)
+  repeat_until_equal_liveness ins outs (List.rev nodes) g gens kills;
+    Printf.printf "Liveness ins \n";
+    let _ = Hashtbl.iter (fun n vars -> Printf.printf "Node %i -> ins : %s \n" (CFG_BB.node_id n) (String.concat " " vars)) ins in
+    Printf.printf "Liveness ins end \n";
+   Printf.printf "Liveness outs \n";
+    let _ = Hashtbl.iter (fun n vars -> Printf.printf "Node %i -> outs : %s \n" (CFG_BB.node_id n) (String.concat " " vars)) outs in
+    Printf.printf "Liveness outs end \n";
+  ins, outs
+  
+let calculate_liveness g =
+    let gens, kills = liveness_gens_kills g in
+    let ins, outs = liveness (CFG_BB.nodes g) g gens kills in
+  ins, outs  
+
+let dead_code_elimination g throw_var return_var =
+  let ins, outs = calculate_liveness g in
+  let nodes = CFG_BB.nodes g in
+  
+  List.iter (fun n ->
+    let var_defid = Hashtbl.create 10 in
+    let defid_var = Hashtbl.create 10 in
+    let defid_used = Hashtbl.create 10 in
+  
+	  let rec iter_block index stmts =
+	    match stmts with
+	      | [] -> []
+	      | stmt :: stmts ->
+          let vars = get_vars_in_stmt stmt in
+          
+          List.iter (fun var -> 
+            if Hashtbl.mem var_defid var then
+              let defid = Hashtbl.find var_defid var in
+              Hashtbl.replace defid_used defid true
+          ) vars;
+          
+	        begin match stmt with
+	          | Basic (Assignment a) ->
+              Hashtbl.replace var_defid a.assign_left index;
+              Hashtbl.replace defid_var index a.assign_left;
+              if a.assign_left = throw_var || a.assign_left = return_var then Hashtbl.add defid_used index true
+              else Hashtbl.add defid_used index false;
+	          | _ -> ()
+	        end; 
+	        stmt :: (iter_block (index + 1) stmts)
+	   in    
+    
+     let stmts = CFG_BB.get_node_data g n in
+     let stmts = iter_block 0 stmts in
+    
+    Printf.printf "Node %i \n" (CFG_BB.node_id n);
+    
+    Printf.printf "Var defid map ";
+    let _ = Hashtbl.iter (fun var defid -> Printf.printf "%s -> %i " var defid) var_defid in
+    Printf.printf "Var defid map end \n";
+    
+    Printf.printf "Defid used map ";
+    let _ = Hashtbl.iter (fun defid used -> Printf.printf "%i -> %b " defid used) defid_used in
+    Printf.printf "Defid used map end \n";
+    
+    let outn = Hashtbl.find outs n in
+    
+    Printf.printf "Out stmts ";
+    let _ = List.iter (Printf.printf "%s ") outn in
+    Printf.printf "Out stmts end \n";   
+  
+    let dead = Hashtbl.fold (fun defid used dead ->
+      if used = true then dead
+      else (* id not used inside the block *)
+        begin if List.mem (Hashtbl.find defid_var defid) outn then dead (* id is in out *)
+              else defid :: dead
+        end
+      
+    ) defid_used [] in
+    
+    Printf.printf "Dead stmts ";
+    let _ = List.iter (Printf.printf "%i ") dead in
+    Printf.printf "Dead stmts end \n";
+    
+    let rest = List.mapi (fun index stmt -> 
+      if List.mem index dead then []
+      else [stmt]
+    ) stmts in
+    
+    let rest = List.flatten rest in
+    CFG_BB.set_node_data g n rest
+    
+  ) nodes
   
 let debug_print_cfg_bb_with_defs (cfgs : CFG_BB.graph AllFunctions.t) (filename : string) : unit =
   let d_cfgedge chan dest src =
