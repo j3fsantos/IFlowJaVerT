@@ -125,23 +125,14 @@ let calculate_reaching_defs g =
   ins, outs
   
 let update_stmt stmt var const =
-  let _ = Printf.printf "   Updating stmt %s with var %s with const %s\n" 
-     (Pulp_Syntax_Print.string_of_statement stmt) 
-     (Pulp_Syntax_Print.string_of_var var)
-     (Pulp_Syntax_Print.string_of_expression const) in
   let updated = Simp_Common.update_stmt var const stmt in
-  let _ = Printf.printf "    Updated stmt %s \n" 
-     (Pulp_Syntax_Print.string_of_statement updated) in
-  let simp_stmt = Simp_Common.simplify_stmt updated in 
-  let _ = Printf.printf " Simplified stmt %s\n -- \n" 
-     (Pulp_Syntax_Print.string_of_statement simp_stmt) in simp_stmt
-   (*Find x in stmt replace with const and do simplification if possible*)
-  
+  Simp_Common.simplify_stmt updated
+    
 let rec propagate_const stmts var const =
   match stmts with
     | [] -> []
     | Basic (Assignment a) :: tail ->
-      if a.assign_left = var then stmts
+      if a.assign_left = var then (update_stmt (Basic (Assignment a)) var const) :: tail
       else (update_stmt (Basic (Assignment a)) var const) :: (propagate_const tail var const)
     | stmt :: tail -> (update_stmt stmt var const) :: (propagate_const tail var const)
   
@@ -167,23 +158,77 @@ let constant_propagation g =
             let stmts = CFG_BB.get_node_data g nid in
             let stmt = List.nth stmts index in
               match stmt with
-                | Basic (Assignment a) ->
-                  begin match a.assign_right with
-                    | Expression e -> 
-                      begin
-				                 if is_const_expr e then begin
-				                    let current_node_stmts = CFG_BB.get_node_data g n in
-				                    let new_current_node_stmts = propagate_const current_node_stmts var e in
-				                    CFG_BB.set_node_data g n new_current_node_stmts
-				                 end else ()
-                      end
-                    | _ -> ()
+                | Basic (Assignment {assign_right = Expression e}) ->
+                  begin
+			                 if is_const_expr e then begin
+			                    let current_node_stmts = CFG_BB.get_node_data g n in
+			                    let new_current_node_stmts = propagate_const current_node_stmts var e in
+			                    CFG_BB.set_node_data g n new_current_node_stmts
+			                 end else ()
                   end
                 | _ -> ()
           end
         | _ -> ()
     ) vars;
   ) nodes
+  
+let const_prop_node g n =
+  let vars_expr = Hashtbl.create 5 in
+  
+  let rec iter_block stmts =
+    match stmts with
+      | [] -> []
+      | stmt :: stmts ->
+        let stmt = Hashtbl.fold (fun var expr stmt -> update_stmt stmt var expr) vars_expr stmt in
+        begin match stmt with
+          | Basic (Assignment a) ->
+           begin match a.assign_right with
+            | Expression e ->
+		           if is_const_expr e then begin
+                 Hashtbl.replace vars_expr a.assign_left e
+		           end else Hashtbl.remove vars_expr a.assign_left
+            | _ -> Hashtbl.remove vars_expr a.assign_left
+           end
+          | _ -> ()
+        end; 
+        stmt :: (iter_block stmts)
+    in
+  
+  let stmts = CFG_BB.get_node_data g n in
+  CFG_BB.set_node_data g n (iter_block stmts)
+  
+
+let simplify_guarded_gotos g =
+  let nodes = CFG_BB.nodes g in
+  let nodemap = Hashtbl.create 100 in
+  List.iter (fun n ->
+    let stmts = CFG_BB.get_node_data g n in
+    match stmts with
+      | Label l :: tail -> Hashtbl.add nodemap l n
+      | _ -> ()
+  ) nodes;
+  
+  List.iter (fun n ->
+    let rec update_last stmts = 
+      match stmts with
+        | [] -> []
+        | [GuardedGoto ((Literal (Bool true)), l1, l2)] -> 
+          CFG_BB.rm_edge g n (Hashtbl.find nodemap l2);
+          CFG_BB.set_edge_data g n (Hashtbl.find nodemap l1) Edge_Normal;
+          [Goto l1] 
+        | [GuardedGoto ((Literal (Bool false)), l1, l2)] -> 
+          CFG_BB.rm_edge g n (Hashtbl.find nodemap l1);
+          CFG_BB.set_edge_data g n (Hashtbl.find nodemap l2) Edge_Normal;
+          [Goto l2]
+        | stmt :: tail -> stmt :: (update_last tail)
+    in
+    
+    let stmts = CFG_BB.get_node_data g n in
+    CFG_BB.set_node_data g n (update_last stmts)
+    
+  ) nodes
+
+  
   
 let debug_print_cfg_bb_with_defs (cfgs : CFG_BB.graph AllFunctions.t) (filename : string) : unit =
   let d_cfgedge chan dest src =
@@ -204,8 +249,13 @@ let debug_print_cfg_bb_with_defs (cfgs : CFG_BB.graph AllFunctions.t) (filename 
   Printf.fprintf chan "digraph iCFG {\n\tnode [shape=box,  labeljust=l]\n";
   AllFunctions.iter 
     (fun name cfg -> 
-      let ins, outs = calculate_reaching_defs cfg in
+      List.iter (fun n -> const_prop_node cfg n) (CFG_BB.nodes cfg);
       let _ = constant_propagation cfg in
+      let _ = simplify_guarded_gotos cfg in
+      let _ = remove_unreachable cfg in
+      let _ = remove_empty_blocks cfg in
+      let _ = transform_to_basic_blocks cfg in
+      let ins, outs = calculate_reaching_defs cfg in
       Printf.fprintf chan "\tsubgraph \"cluster_%s\" {\n\t\tlabel=\"%s\"\n" name (String.escaped name);
       List.iter (fun n -> d_cfgnode chan cfg n (CFG_BB.get_node_data cfg n) ins outs) (CFG_BB.nodes cfg);
       Printf.fprintf chan  "\t}\n";

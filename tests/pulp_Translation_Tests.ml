@@ -3,6 +3,7 @@ open Pulp_Syntax
 open Pulp_Translate
 open Pulp_Syntax_Utils
 open Control_Flow
+open Reaching_Defs
 
 let test_template p name =
   Symb_execution.initialize ();
@@ -14,7 +15,9 @@ let test_template p name =
   (* TODO fix path *)
   let cfg = Control_Flow.mk_cfg p_exp ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/"^name) in
   let cfg_bbs = AllFunctions.map (Basic_Blocks.transform_to_basic_blocks_from_cfg) cfg in
+  let cfg_bbs = AllFunctions.map (Basic_Blocks.remove_unreachable) cfg_bbs in
   let cfg_bbs = AllFunctions.map (Basic_Blocks.transform_to_basic_blocks) cfg_bbs in
+  let cfg_bbs = AllFunctions.map (Basic_Blocks.remove_unreachable) cfg_bbs in  
   
   AllFunctions.iter (fun name cfg -> 
     let fb = AllFunctions.find name p_exp in
@@ -22,12 +25,37 @@ let test_template p name =
   ) cfg_bbs;
   
   AllFunctions.iter (fun name cfg -> Basic_Blocks.remove_empty_blocks cfg) cfg_bbs;
-  let _ = Basic_Blocks.print_cfg_bb cfg_bbs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/bb/"^name) in
   
-  Reaching_Defs.debug_print_cfg_bb_with_defs cfg_bbs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/rd/cp/"^name);
+  (*Reaching_Defs.debug_print_cfg_bb_with_defs cfg_bbs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/rd/cp/"^name);*)
+  
+  (* TODO clean up *)
+  let cfg_bbs = AllFunctions.mapi (fun name cfg ->
+      List.iter (fun n -> const_prop_node cfg n) (Basic_Blocks.CFG_BB.nodes cfg);
+      let _ = constant_propagation cfg in
+      let _ = simplify_guarded_gotos cfg in
+      let _ = Basic_Blocks.remove_unreachable cfg in
+      let _ = Basic_Blocks.remove_empty_blocks cfg in
+      let _ = Basic_Blocks.transform_to_basic_blocks cfg in
+      let fb = AllFunctions.find name p_exp in
+      Basic_Blocks.remove_unnecessary_goto_label cfg fb.func_ctx.label_throw fb.func_ctx.label_return;
+      List.iter (fun n -> const_prop_node cfg n) (Basic_Blocks.CFG_BB.nodes cfg);
+      let _ = constant_propagation cfg in
+      let _ = simplify_guarded_gotos cfg in
+      let _ = Basic_Blocks.remove_unreachable cfg in
+      let _ = Basic_Blocks.remove_empty_blocks cfg in
+      let _ = Basic_Blocks.transform_to_basic_blocks cfg in
+      let fb = AllFunctions.find name p_exp in
+      Basic_Blocks.remove_unnecessary_goto_label cfg fb.func_ctx.label_throw fb.func_ctx.label_return;
+      cfg
+  ) cfg_bbs in
+  
+  let _ = Basic_Blocks.print_cfg_bb cfg_bbs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/bb/"^name) in
+
   
   assert_bool "Incorrect Translation" true
   
+let test_simple () = 
+  test_template ("var x = 1; x") "simple"  
 
 let test_access () = 
   test_template ("x.y") "access"
@@ -181,7 +209,8 @@ var person = {
 r = person.sayHi();") "invest example"
 
 let suite = "Testing_Translation" >:::
-  ["translating access" >:: test_access;
+  [ "translating simple" >:: test_simple;
+   "translating access" >:: test_access;
    "translating assignment" >:: test_assign;
    "translating obj literal" >:: test_obj;
    "translating block" >:: test_block;

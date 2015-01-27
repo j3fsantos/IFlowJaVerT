@@ -79,36 +79,71 @@ update_sugar_stmt var const stmt =
 
 let rec simplify_expr e = 
   let f = simplify_expr in
+  
+  let e = match e with
+    | Literal _ 
+    | Var _ -> e
+    | BinOp (e1, binop, e2) -> BinOp (f e1, binop, f e2)
+    | UnaryOp (uop, e) -> UnaryOp (uop, f e)
+    | Ref (e1, e2, reftype) -> Ref (f e1, f e2, reftype)
+    | Base e -> Base (f e)
+    | Field e -> Field (f e)
+    | IsTypeOf (e, t) -> IsTypeOf (f e, t) in
+  
   match e with
-    | Literal l -> e
-    | Var v -> e
-    | BinOp (e1, binop, e2) -> BinOp (f e1, binop, f e2) (* TODO *)
-    | UnaryOp (uop, e) -> UnaryOp (uop, f e) (* TODO *)
-    | Ref (e1, e2, reftype) -> 
-      let fe1 = f e1 in
-      let fe2 = f e2 in
-      begin match fe1, fe2 with
-        | Base ref1, Field ref2 -> 
-          if ref1 = ref2 then ref1 else Ref (fe1, fe2, reftype)
-        | _, _ -> Ref (fe1, fe2, reftype)
+    | Literal _ 
+    | Var _ -> e
+    | BinOp (e1, binop, e2) -> 
+      begin match binop with
+        | Comparison Equal ->
+          begin match e1, e2 with
+            | Literal lit1, Literal lit2 ->
+              begin match lit1, lit2 with
+                | LLoc l1, LLoc l2 -> Literal (Bool (l1 = l2))
+							  | Null, Null -> Literal (Bool true)                  
+							  | Bool b1, Bool b2 -> Literal (Bool (b1 = b2))         
+							  | Num n1, Num n2 -> Literal (Bool (n1 = n2))         
+							  | String s1, String s2 -> Literal (Bool (s1 = s2))  
+							  | Undefined, Undefined -> Literal (Bool true)   
+							  | Empty, Empty -> Literal (Bool true) 
+                | _, _ -> Literal (Bool false)
+              end
+            | _ -> e
+          end
+        | Arith aop -> e (* TODO *)
+        | Boolean Or ->
+          begin match e1, e2 with
+            | Literal (Bool true), e2 -> Literal (Bool true)
+            | Literal (Bool false), e2 -> e2
+            | e1, Literal (Bool true) -> Literal (Bool true)
+            | e1, Literal (Bool false) -> e1
+            | _, _ -> e
+          end
+        | Boolean And ->
+          begin match e1, e2 with
+            | Literal (Bool true), e2 -> e2
+            | Literal (Bool false), e2 -> Literal (Bool false)
+            | e1, Literal (Bool true) -> e1
+            | e1, Literal (Bool false) -> Literal (Bool false)
+            | _, _ -> e
+          end
       end
-    | Base exp -> 
-      let fexp = f exp in
-      begin match fexp with
-        | Ref (e1, e2, reftype) -> e1
-        | _ -> Base fexp
+    | UnaryOp (Not, e1) -> 
+      begin match e1 with
+        | Literal (Bool b) -> Literal (Bool (not b))
+        | _ -> e
       end
-    | Field exp -> 
-      let fexp = f exp in
-      begin match fexp with
-        | Ref (e1, e2, reftype) -> e2
-        | _ -> Field fexp
-      end
+    | Ref (Base ref1, Field ref2, reftype) -> 
+       if ref1 = ref2 then ref1 else e
+    | Ref _ -> e
+    | Base (Ref (e1, e2, reftype)) -> e1
+    | Base _ -> e
+    | Field (Ref (e1, e2, reftype)) -> e2
+    | Field _ -> e
     | IsTypeOf (exp, t) -> 
-      let fexp = f exp in
       begin match t with
         | ReferenceType (Some MemberReference) ->
-          begin match fexp with
+          begin match exp with
             | Ref (_, _, MemberReference) ->  Literal (Bool true)
             | Ref _
             | Literal _ -> Literal (Bool false)
@@ -117,10 +152,10 @@ let rec simplify_expr e =
             | UnaryOp _
             | Base _
             | Field _
-            | IsTypeOf _ -> IsTypeOf (fexp, t)
+            | IsTypeOf _ -> IsTypeOf (exp, t)
           end
         | ReferenceType (Some VariableReference) ->
-          begin match fexp with
+          begin match exp with
             | Ref (_, _, VariableReference) -> Literal (Bool true)
             | Ref _
             | Literal _ -> Literal (Bool false)
@@ -129,10 +164,10 @@ let rec simplify_expr e =
             | UnaryOp _
             | Base _
             | Field _
-            | IsTypeOf _ -> IsTypeOf (fexp, t)
+            | IsTypeOf _ -> IsTypeOf (exp, t)
           end
         | ReferenceType None -> 
-          begin match fexp with
+          begin match exp with
             | Ref _ -> Literal (Bool true)
             | Literal _ -> Literal (Bool false)
             | Var _ 
@@ -140,10 +175,10 @@ let rec simplify_expr e =
             | UnaryOp _
             | Base _
             | Field _
-            | IsTypeOf _ -> IsTypeOf (fexp, t)
+            | IsTypeOf _ -> IsTypeOf (exp, t)
           end
         | NullType ->
-          begin match fexp with
+          begin match exp with
             | Literal Null -> Literal (Bool true)
             | Literal _
             | Ref _ -> Literal (Bool false)
@@ -152,10 +187,10 @@ let rec simplify_expr e =
             | UnaryOp _
             | Base _
             | Field _
-            | IsTypeOf _ -> IsTypeOf (fexp, t)
+            | IsTypeOf _ -> IsTypeOf (exp, t)
           end
         | UndefinedType ->
-          begin match fexp with
+          begin match exp with
             | Literal Undefined -> Literal (Bool true)
             | Literal _
             | Ref _ -> Literal (Bool false)
@@ -164,10 +199,10 @@ let rec simplify_expr e =
             | UnaryOp _
             | Base _
             | Field _
-            | IsTypeOf _ -> IsTypeOf (fexp, t)
+            | IsTypeOf _ -> IsTypeOf (exp, t)
           end
         | BooleanType ->
-          begin match fexp with
+          begin match exp with
             | Literal (Bool _) 
             | IsTypeOf _ -> Literal (Bool true)
             | Literal _
@@ -176,10 +211,10 @@ let rec simplify_expr e =
             | BinOp _
             | UnaryOp _
             | Base _
-            | Field _ -> IsTypeOf (fexp, t)
+            | Field _ -> IsTypeOf (exp, t)
           end
         | StringType ->   
-          begin match fexp with
+          begin match exp with
             | Literal (String _) -> Literal (Bool true)
             | Literal _
             | Ref _ -> Literal (Bool false)
@@ -188,10 +223,10 @@ let rec simplify_expr e =
             | UnaryOp _
             | Base _
             | Field _
-            | IsTypeOf _ -> IsTypeOf (fexp, t)
+            | IsTypeOf _ -> IsTypeOf (exp, t)
           end
         | NumberType ->
-          begin match fexp with
+          begin match exp with
             | Literal (Num _) -> Literal (Bool true)
             | Literal _
             | Ref _ -> Literal (Bool false)
@@ -200,10 +235,10 @@ let rec simplify_expr e =
             | UnaryOp _
             | Base _
             | Field _
-            | IsTypeOf _ -> IsTypeOf (fexp, t)
+            | IsTypeOf _ -> IsTypeOf (exp, t)
           end
         | ObjectType ->
-          begin match fexp with
+          begin match exp with
             | Literal (LLoc _) -> Literal (Bool true)
             | Literal _
             | Ref _ -> Literal (Bool false)
@@ -212,9 +247,11 @@ let rec simplify_expr e =
             | UnaryOp _
             | Base _
             | Field _
-            | IsTypeOf _ -> IsTypeOf (fexp, t)
+            | IsTypeOf _ -> IsTypeOf (exp, t)
           end
      end
+    
+ (* TODO : cleanup : make a generic functions stmt (f : expr->expr) -> stmt *)
     
  let simplify_call c =
   let f = simplify_expr in
