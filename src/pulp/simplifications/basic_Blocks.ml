@@ -55,14 +55,13 @@ let rec traverse_node (g : CFG_BB.graph) nodedone current =
     end
   end
   
-let transform_to_basic_blocks (g : CFG_BB.graph) : CFG_BB.graph =
+let transform_to_basic_blocks (g : CFG_BB.graph) =
   let nodedone = Hashtbl.create 100 in
   match CFG_BB.nodes g with
-    | [] -> g
-    | start :: tail -> traverse_node g nodedone start;
-  g
+    | [] -> ()
+    | start :: tail -> traverse_node g nodedone start
   
-let remove_unreachable (g : CFG_BB.graph) : CFG_BB.graph =
+let remove_unreachable (g : CFG_BB.graph) =
   let nodedone = Hashtbl.create 100 in
   let rec traverse_graph current =
     if Hashtbl.mem nodedone current then ()
@@ -70,16 +69,16 @@ let remove_unreachable (g : CFG_BB.graph) : CFG_BB.graph =
   in
     
   match CFG_BB.nodes g with
-    | [] -> g
+    | [] -> ()
     | start :: tail -> traverse_graph start;
       
-  List.iter (fun n -> if not (Hashtbl.mem nodedone n) then CFG_BB.rm_node g n) (CFG_BB.nodes g);
-  g
+  List.iter (fun n -> if not (Hashtbl.mem nodedone n) then CFG_BB.rm_node g n) (CFG_BB.nodes g)
   
   
 let transform_to_basic_blocks_from_cfg (input : CFG.graph) : CFG_BB.graph =
   let g = copy input in
-  transform_to_basic_blocks g
+  transform_to_basic_blocks g;
+  g
   
 let rec filter_goto_label stmts throwl returnl =
   match stmts with
@@ -165,5 +164,33 @@ let print_cfg_bb (cfgs : CFG_BB.graph AllFunctions.t) (filename : string) : unit
   close_out chan
   
   
+let cfg_to_fb cfg return_label throw_label =
+  let rec traverse cfg nodedone current =
+      if Hashtbl.mem nodedone current then [] 
+      else begin
+          let stmts = CFG_BB.get_node_data cfg current in
+          let succs = CFG_BB.succ cfg current in
+          let normalsuccs, throwsuccs = List.partition (fun succ ->
+             match CFG_BB.get_edge_data cfg current succ with
+              | Edge_Normal
+              | Edge_True
+              | Edge_False -> true
+              | Edge_Excep -> false
+          ) succs in
+          Hashtbl.add nodedone current (); 
+          (List.filter (fun stmt ->
+          match stmt with
+            | Label l -> 
+              if l = return_label || l = throw_label then false
+              else true
+            | _ -> true ) stmts) @ 
+          (List.flatten (List.map (traverse cfg nodedone) normalsuccs)) @ 
+          (List.flatten (List.map (traverse cfg nodedone) throwsuccs))
+      end 
+  in
   
-
+  let nodedone = Hashtbl.create 100 in
+  let stmts = match CFG_BB.nodes cfg with
+    | [] -> []
+    | start :: tail -> traverse cfg nodedone start in
+  stmts  @ [Label return_label; Label throw_label]

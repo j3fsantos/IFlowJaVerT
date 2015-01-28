@@ -249,12 +249,6 @@ let liveness_gens_kills g =
   let node_kills = Hashtbl.create 100 in
   List.iter (fun n -> 
     let (gen, kill) = liveness_gen_kill_node n (CFG_BB.get_node_data g n) in 
-    Printf.printf "Gen Kill of Node %i \n" (CFG_BB.node_id n);
-    Printf.printf "Gen: ";
-    let _ = List.iter (Printf.printf "%s ") gen in
-    Printf.printf "Kill: ";
-    let _ = List.iter (Printf.printf "%s ") kill in
-    Printf.printf "Gen Kill end \n";
     Hashtbl.add node_gens n gen;
     Hashtbl.add node_kills n kill;
   ) nodes;
@@ -282,12 +276,6 @@ let liveness nodes g gens kills =
   List.iter (fun n -> Hashtbl.add ins n []; Hashtbl.add outs n []) nodes;
   (* Do I want to reverse nodes? *)
   repeat_until_equal_liveness ins outs (List.rev nodes) g gens kills;
-    Printf.printf "Liveness ins \n";
-    let _ = Hashtbl.iter (fun n vars -> Printf.printf "Node %i -> ins : %s \n" (CFG_BB.node_id n) (String.concat " " vars)) ins in
-    Printf.printf "Liveness ins end \n";
-   Printf.printf "Liveness outs \n";
-    let _ = Hashtbl.iter (fun n vars -> Printf.printf "Node %i -> outs : %s \n" (CFG_BB.node_id n) (String.concat " " vars)) outs in
-    Printf.printf "Liveness outs end \n";
   ins, outs
   
 let calculate_liveness g =
@@ -330,21 +318,7 @@ let dead_code_elimination g throw_var return_var =
      let stmts = CFG_BB.get_node_data g n in
      let stmts = iter_block 0 stmts in
     
-    Printf.printf "Node %i \n" (CFG_BB.node_id n);
-    
-    Printf.printf "Var defid map ";
-    let _ = Hashtbl.iter (fun var defid -> Printf.printf "%s -> %i " var defid) var_defid in
-    Printf.printf "Var defid map end \n";
-    
-    Printf.printf "Defid used map ";
-    let _ = Hashtbl.iter (fun defid used -> Printf.printf "%i -> %b " defid used) defid_used in
-    Printf.printf "Defid used map end \n";
-    
     let outn = Hashtbl.find outs n in
-    
-    Printf.printf "Out stmts ";
-    let _ = List.iter (Printf.printf "%s ") outn in
-    Printf.printf "Out stmts end \n";   
   
     let dead = Hashtbl.fold (fun defid used dead ->
       if used = true then dead
@@ -354,10 +328,6 @@ let dead_code_elimination g throw_var return_var =
         end
       
     ) defid_used [] in
-    
-    Printf.printf "Dead stmts ";
-    let _ = List.iter (Printf.printf "%i ") dead in
-    Printf.printf "Dead stmts end \n";
     
     let rest = List.mapi (fun index stmt -> 
       if List.mem index dead then []

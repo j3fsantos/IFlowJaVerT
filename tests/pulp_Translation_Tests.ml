@@ -14,42 +14,28 @@ let test_template p name =
   let _ = AllFunctions.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_func_block fwc)) p_exp in
   (* TODO fix path *)
   let cfg = Control_Flow.mk_cfg p_exp ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/"^name) in
-  let cfg_bbs = AllFunctions.map (Basic_Blocks.transform_to_basic_blocks_from_cfg) cfg in
-  let cfg_bbs = AllFunctions.map (Basic_Blocks.remove_unreachable) cfg_bbs in
-  let cfg_bbs = AllFunctions.map (Basic_Blocks.transform_to_basic_blocks) cfg_bbs in
-  let cfg_bbs = AllFunctions.map (Basic_Blocks.remove_unreachable) cfg_bbs in  
   
-  AllFunctions.iter (fun name cfg -> 
+  let cfg_bbs = AllFunctions.mapi (fun name cfg ->
     let fb = AllFunctions.find name p_exp in
-    Basic_Blocks.remove_unnecessary_goto_label cfg fb.func_ctx.label_throw fb.func_ctx.label_return
-  ) cfg_bbs;
-  
-  AllFunctions.iter (fun name cfg -> Basic_Blocks.remove_empty_blocks cfg) cfg_bbs;
+    Simp_Main.basic_block_simplifications cfg fb.func_ctx) cfg in
   
   (*Reaching_Defs.debug_print_cfg_bb_with_defs cfg_bbs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/rd/cp/"^name);*)
   
   (* TODO clean up *)
   let cfg_bbs = AllFunctions.mapi (fun name cfg ->
-      List.iter (fun n -> const_prop_node cfg n) (Basic_Blocks.CFG_BB.nodes cfg);
-      let _ = constant_propagation cfg in
-      let _ = simplify_guarded_gotos cfg in
-      let _ = Basic_Blocks.remove_unreachable cfg in
-      let _ = Basic_Blocks.remove_empty_blocks cfg in
-      let _ = Basic_Blocks.transform_to_basic_blocks cfg in
+    
       let fb = AllFunctions.find name p_exp in
-      Basic_Blocks.remove_unnecessary_goto_label cfg fb.func_ctx.label_throw fb.func_ctx.label_return;
-      List.iter (fun n -> const_prop_node cfg n) (Basic_Blocks.CFG_BB.nodes cfg);
-      let _ = constant_propagation cfg in
-      let _ = simplify_guarded_gotos cfg in
-      let _ = Basic_Blocks.remove_unreachable cfg in
-      let _ = Basic_Blocks.remove_empty_blocks cfg in
-      let _ = Basic_Blocks.transform_to_basic_blocks cfg in
-      let fb = AllFunctions.find name p_exp in
-      Basic_Blocks.remove_unnecessary_goto_label cfg fb.func_ctx.label_throw fb.func_ctx.label_return;
+      Simp_Main.constant_propagation cfg fb.func_ctx;
+      Simp_Main.constant_propagation cfg fb.func_ctx;
+        
       dead_code_elimination cfg fb.func_ctx.throw_var fb.func_ctx.return_var;
+      
+      let stmts = Basic_Blocks.cfg_to_fb cfg fb.func_ctx.label_throw fb.func_ctx.label_return in
+      Printf.printf "Procedure %s \n %s \n" name (Pulp_Syntax_Print.string_of_statement_list stmts);
+      
       cfg
   ) cfg_bbs in
-  
+    
   let _ = Basic_Blocks.print_cfg_bb cfg_bbs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/bb/"^name) in
 
   
