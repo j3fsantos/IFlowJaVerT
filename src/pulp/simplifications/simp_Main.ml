@@ -14,6 +14,7 @@ let basic_block_simplifications cfg ctx =
 let constant_propagation cfg ctx =
   List.iter (fun n -> const_prop_node cfg n) (CFG_BB.nodes cfg);
   constant_propagation cfg;
+  copy_propagation cfg;
   simplify_guarded_gotos cfg;  
   remove_unreachable cfg;
   remove_empty_blocks cfg;
@@ -32,6 +33,7 @@ let simplify exp =
     constant_propagation cfg_bb fb.func_ctx;
         
     dead_code_elimination cfg_bb fb.func_ctx.throw_var fb.func_ctx.return_var;
+    
     cfg_bb
   ) cfg in
     
