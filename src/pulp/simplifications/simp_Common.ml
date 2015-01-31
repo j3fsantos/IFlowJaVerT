@@ -342,28 +342,23 @@ let rec get_type_info_expr type_info e =
       let e1_type = f e1 in
       let e2_type = f e2 in
       begin match binop with
-        | Comparison Equal -> if e1_type = e2_type then Some (TI_Type BooleanType) else None
+        | Comparison Equal -> Some (TI_Type BooleanType) 
         | Arith aop ->
           begin match aop with
             | Plus ->
               begin
                 if e1_type = e2_type then
                   if e1_type = Some (TI_Type StringType) || e1_type = Some (TI_Type NumberType) then e1_type
-                  else None
-                else None
+                  else Some TI_Value
+                else Some TI_Value
               end
             | Minus 
             | Times
-            | Div -> if e1_type = e2_type && e1_type = Some (TI_Type NumberType) then Some (TI_Type NumberType)
-                     else None
+            | Div -> Some (TI_Type NumberType)
          end
-        | Boolean bop -> if e1_type = e2_type && e1_type = Some (TI_Type BooleanType) then Some (TI_Type BooleanType)
-                         else None
+        | Boolean bop -> Some (TI_Type BooleanType) 
       end
-    | UnaryOp (Not, e) -> 
-      let e_type = f e in
-      if e_type = Some (TI_Type BooleanType) then Some (TI_Type BooleanType)
-      else None
+    | UnaryOp (Not, e) -> Some (TI_Type BooleanType)
     | Ref (e1, e2, ref_type) -> Some (TI_Type (ReferenceType (Some ref_type)))
     | Base e -> Some TI_Value
     | Field e -> Some (TI_Type StringType)
@@ -385,14 +380,23 @@ let rec simplify_type_of type_info e =
   match e with
     | IsTypeOf (e1, t) -> 
       let fe_type = get_type_info_expr type_info e1 in
-      let t = Some (TI_Type t) in
-      if upper_bound_type fe_type t = t then
+      let t1 = Some (TI_Type t) in
+      if upper_bound_type fe_type t1 = t1 then
         Literal (Bool true)
-      else if upper_bound_type fe_type t = fe_type then e
+      else if upper_bound_type fe_type t1 = fe_type then IsTypeOf (f e1, t)
       else Literal (Bool false)
     | Literal _
     | Var _ -> e
-    | BinOp (e1, binop, e2) -> BinOp (f e1, binop, f e2)
+    | BinOp (e1, binop, e2) -> 
+      begin match binop with 
+        | Comparison Equal ->
+          let e1_type = get_type_info_expr type_info e1 in
+          let e2_type = get_type_info_expr type_info e2 in
+          let upper = upper_bound_type e1_type e2_type in
+          if upper <> e1_type && upper <> e2_type then Literal (Bool false)
+          else BinOp (f e1, binop, f e2)
+        | _ -> BinOp (f e1, binop, f e2)
+      end
     | UnaryOp (uop, e) -> UnaryOp (uop, f e)
     | Ref (e1, e2, reftype) -> Ref (f e1, f e2, reftype)
     | Base e -> Base (f e)
