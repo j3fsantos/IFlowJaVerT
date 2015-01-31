@@ -15,6 +15,7 @@ let constant_propagation cfg ctx =
   List.iter (fun n -> const_prop_node cfg n) (CFG_BB.nodes cfg);
   constant_propagation cfg;
   copy_propagation cfg;
+  type_simplifications cfg;
   simplify_guarded_gotos cfg;  
   remove_unreachable cfg;
   remove_empty_blocks cfg;

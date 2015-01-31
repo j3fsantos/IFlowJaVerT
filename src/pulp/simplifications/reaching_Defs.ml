@@ -464,6 +464,98 @@ let copy_propagation g =
     
   ) nodes
   
+(* Type propagation *)
+  
+let type_simplifications g = 
+  let def = calculate_defs g in
+  let ins, outs = calculate_reaching_defs g in
+  let nodes = CFG_BB.nodes g in
+  let tbl, tblinv = var_defid_tbl g in
+  
+  let defid_type_depend = Hashtbl.create 100 in (* def_id -> var, def_id list *)
+  
+  (* Type dependence graph *)
+  List.iter (fun n ->
+    let stmts = CFG_BB.get_node_data g n in
+    let inn = Hashtbl.find ins n in
+    
+    let _ = List.fold_left (fun (inn, index) stmt ->
+      let var_defid = Hashtbl.create 5 in (* var -> defid list *)
+    
+	    List.iter (fun defid -> 
+	      let var = Hashtbl.find tblinv defid in
+	      Hashtbl.add var_defid var defid;
+	    ) inn;
+    
+      begin match stmt with
+        | Basic (Assignment a) ->
+          begin match a.assign_right with
+            | Expression e -> 
+              let vars = Simp_Common.get_vars_in_expr e in
+              let defids = List.fold_left (fun defids var -> 
+                union (List.map (fun defid -> var, defid) (Hashtbl.find_all var_defid var)) defids
+              ) [] vars in
+              Hashtbl.add defid_type_depend (n, index) defids
+            | _ -> Hashtbl.add defid_type_depend (n, index) []
+          end
+        | _ -> ()
+      end;
+          
+     let (gen, kill) = gen_kill_stmt (n, index) stmt def in 
+     (union gen (subtract inn kill)), index + 1
+      
+   ) (inn, 0) stmts in ()
+    
+  ) nodes;
+
+  let defid_type = Hashtbl.create 100 in (* def_id -> type *)
+  
+	let type_info depend v = 
+		let defids = List.filter (fun (var, defid) -> var = v) depend in
+		let types = List.map (fun (var, defid) -> Hashtbl.find defid_type defid) defids in
+		match types with
+		  | [] -> None
+		  | t :: types -> List.fold_left upper_bound_type t types in
+  
+  let rec infer_type defid = 
+    if Hashtbl.mem defid_type defid then ()
+    else begin
+      let depend = Hashtbl.find defid_type_depend defid in
+      Hashtbl.add defid_type defid None;
+      List.iter (fun (var, defid) -> infer_type defid) depend;
+      let (nodeid, index) = defid in
+      let stmt = List.nth (CFG_BB.get_node_data g nodeid) index in
+      let def_id_t = match stmt with
+        | Basic (Assignment a) -> Simp_Common.get_type_info_assign_expr (type_info depend) a.assign_right
+        | _ -> None in
+      Hashtbl.replace defid_type defid def_id_t
+    end
+  in
+  
+  Hashtbl.iter (fun defid _ -> infer_type defid) defid_type_depend;
+  
+  (* Simplifications *)
+  List.iter (fun n ->
+    let stmts = CFG_BB.get_node_data g n in
+    let inn = Hashtbl.find ins n in
+  
+    let _, updated_stmts, _ = List.fold_left (fun (inn, updated_stmts, index) stmt ->
+      let var_defid = List.map (fun defid -> 
+	      let var = Hashtbl.find tblinv defid in
+	      (var, defid)
+	    ) inn in
+      
+      let updated_stmt = simplify_stmt (simplify_type_of_in_stmt (type_info var_defid) stmt) in 
+          
+      let (gen, kill) = gen_kill_stmt (n, index) stmt def in 
+      (union gen (subtract inn kill)), updated_stmt :: updated_stmts, index + 1
+      
+    ) (inn, [], 0) stmts in 
+    
+    CFG_BB.set_node_data g n (List.rev updated_stmts)
+    
+  ) nodes
+  
 
   
 let debug_print_cfg_bb_with_defs (cfgs : CFG_BB.graph AllFunctions.t) (filename : string) : unit =

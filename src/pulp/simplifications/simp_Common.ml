@@ -75,6 +75,41 @@ let is_const_stmt stmt =
       end
     | _ -> false
 
+ (* A generic functions stmt (f : expr->expr) -> stmt *)
+
+let transform_expr_in_call f c =
+  mk_call (f c.call_name) (f c.call_scope) (f c.call_this) (List.map f c.call_args)
+
+let transform_expr_in_assign_expr f e =
+  match e with
+      | Expression expr -> Expression (f expr)
+      | Call c -> Call (transform_expr_in_call f c)
+      | Obj -> Obj
+      | HasField (e1, e2) -> HasField (f e1, f e2)
+      | Lookup (e1, e2) -> Lookup (f e1, f e2)
+      | Deallocation (e1, e2) -> Deallocation (f e1, f e2)
+      | Pi (e1, e2) -> Pi (f e1, f e2)
+
+let transform_expr_in_basic_stmt f stmt =
+  match stmt with
+    | Skip -> Skip
+    | Assignment {assign_left = al; assign_right = ar} -> 
+      Assignment {assign_left = al; assign_right = transform_expr_in_assign_expr f ar}
+    | Mutation m -> Mutation (mk_mutation (f m.m_loc) (f m.m_field) (f m.m_right))
+
+let rec transform_expr_in_stmt f stmt = 
+  match stmt with
+    | Label _ 
+    | Goto _ -> stmt
+    | GuardedGoto (e, l1, l2) -> GuardedGoto (f e, l1, l2)
+    | Basic bs -> Basic (transform_expr_in_basic_stmt f bs)
+    | Sugar sstmt -> Sugar (transform_expr_in_sugar_stmt f sstmt)
+and
+transform_expr_in_sugar_stmt f stmt =
+  match stmt with
+  | If (e, t1, t2) -> If (f e, List.map (transform_expr_in_stmt f) t1, List.map (transform_expr_in_stmt f) t2)
+
+
 (* Constant Propagation *)
 
 let rec update_expr var const e =
@@ -89,39 +124,7 @@ let rec update_expr var const e =
     | Field e -> Field (f e)
     | IsTypeOf (e, t) -> IsTypeOf (f e, t)
 
-let update_call c var const =
-  let f = update_expr var const in
-  mk_call (f c.call_name) (f c.call_scope) (f c.call_this) (List.map f c.call_args)
-
-let update_assign_expr var const e =
-  let f = update_expr var const in
-  match e with
-	  | Expression expr -> Expression (f expr)
-	  | Call c -> Call (update_call c var const)
-	  | Obj -> Obj
-	  | HasField (e1, e2) -> HasField (f e1, f e2)
-	  | Lookup (e1, e2) -> Lookup (f e1, f e2)
-	  | Deallocation (e1, e2) -> Deallocation (f e1, f e2)
-	  | Pi (e1, e2) -> Pi (f e1, f e2)
-
-let update_basic_stmt var const stmt =
-  let f = update_expr var const in
-  match stmt with
-    | Skip -> Skip
-    | Assignment {assign_left = al; assign_right = ar} -> Assignment {assign_left = al; assign_right = update_assign_expr var const ar}
-    | Mutation m -> Mutation (mk_mutation (f m.m_loc) (f m.m_field) (f m.m_right))
-
-let rec update_stmt var const stmt = 
-  match stmt with
-    | Label _ 
-    | Goto _ -> stmt
-    | GuardedGoto (e, l1, l2) -> GuardedGoto (update_expr var const e, l1, l2)
-    | Basic bs -> Basic (update_basic_stmt var const bs)
-    | Sugar sstmt -> Sugar (update_sugar_stmt var const sstmt)
-and
-update_sugar_stmt var const stmt =
-  match stmt with
-  | If (e, t1, t2) -> If (update_expr var const e, List.map (update_stmt var const) t1, List.map (update_stmt var const) t2)
+let update_stmt var const stmt = transform_expr_in_stmt (update_expr var const) stmt
 
 let rec simplify_expr e = 
   let f = simplify_expr in
@@ -297,38 +300,103 @@ let rec simplify_expr e =
           end
      end
     
- (* TODO : cleanup : make a generic functions stmt (f : expr->expr) -> stmt *)
-    
- let simplify_call c =
-  let f = simplify_expr in
-  mk_call (f c.call_name) (f c.call_scope) (f c.call_this) (List.map f c.call_args)
+let simplify_stmt stmt = transform_expr_in_stmt simplify_expr stmt
 
-let simplify_assign_expr e =
-  let f = simplify_expr in
+type type_info = 
+  | TI_Type of pulp_type
+  | TI_Value (*Not a Reference && Not Empty*)
+  | TI_Empty
+
+let upper_bound_type t1 t2 =
+  if t1 = t2 then t1 else 
+    begin match t1, t2 with
+      | None, _ -> None
+      | _, None -> None
+      | Some t1, Some t2 -> 
+        begin match t1, t2 with
+          | TI_Type (ReferenceType _), TI_Type (ReferenceType _) -> Some (TI_Type (ReferenceType None))
+          | TI_Type (ReferenceType _), _ -> None
+          | _, TI_Type (ReferenceType _) -> None
+          | TI_Empty, _ -> None
+          | _, TI_Empty -> None
+          | _, _ -> Some (TI_Value)
+        end
+    end
+
+let get_type_info_literal lit =
+  Some (match lit with
+    | LLoc _ -> TI_Type ObjectType
+    | Null -> TI_Type NullType               
+    | Bool _ -> TI_Type BooleanType         
+    | Num _ -> TI_Type NumberType          
+    | String _ -> TI_Type StringType
+    | Undefined -> TI_Type UndefinedType
+    | Empty -> TI_Empty)
+
+let rec get_type_info_expr type_info e =
+  let f = get_type_info_expr type_info in
   match e with
-      | Expression expr -> Expression (f expr)
-      | Call c -> Call (simplify_call c)
-      | Obj -> Obj
-      | HasField (e1, e2) -> HasField (f e1, f e2)
-      | Lookup (e1, e2) -> Lookup (f e1, f e2)
-      | Deallocation (e1, e2) -> Deallocation (f e1, f e2)
-      | Pi (e1, e2) -> Pi (f e1, f e2)
+    | Literal l -> get_type_info_literal l
+    | Var v -> type_info v
+    | BinOp (e1, binop, e2) -> 
+      let e1_type = f e1 in
+      let e2_type = f e2 in
+      begin match binop with
+        | Comparison Equal -> if e1_type = e2_type then Some (TI_Type BooleanType) else None
+        | Arith aop ->
+          begin match aop with
+            | Plus ->
+              begin
+                if e1_type = e2_type then
+                  if e1_type = Some (TI_Type StringType) || e1_type = Some (TI_Type NumberType) then e1_type
+                  else None
+                else None
+              end
+            | Minus 
+            | Times
+            | Div -> if e1_type = e2_type && e1_type = Some (TI_Type NumberType) then Some (TI_Type NumberType)
+                     else None
+         end
+        | Boolean bop -> if e1_type = e2_type && e1_type = Some (TI_Type BooleanType) then Some (TI_Type BooleanType)
+                         else None
+      end
+    | UnaryOp (Not, e) -> 
+      let e_type = f e in
+      if e_type = Some (TI_Type BooleanType) then Some (TI_Type BooleanType)
+      else None
+    | Ref (e1, e2, ref_type) -> Some (TI_Type (ReferenceType (Some ref_type)))
+    | Base e -> Some TI_Value
+    | Field e -> Some (TI_Type StringType)
+    | IsTypeOf (e, _) -> Some (TI_Type BooleanType)
 
-let simplify_basic_stmt stmt =
-  let f = simplify_expr in
-  match stmt with
-    | Skip -> Skip
-    | Assignment {assign_left = al; assign_right = ar} -> Assignment {assign_left = al; assign_right = simplify_assign_expr ar}
-    | Mutation m -> Mutation (mk_mutation (f m.m_loc) (f m.m_field) (f m.m_right))
+let get_type_info_assign_expr type_info e =
+  let f = get_type_info_expr type_info in
+  match e with
+      | Expression expr -> f expr
+      | Call c -> Some TI_Value
+      | Obj -> Some (TI_Type ObjectType)
+      | HasField (e1, e2) -> Some (TI_Type BooleanType)
+      | Lookup (e1, e2) -> Some TI_Value
+      | Deallocation (e1, e2) -> Some (TI_Type BooleanType)
+      | Pi (e1, e2) -> Some TI_Value
 
-let rec simplify_stmt stmt = 
-  match stmt with
-    | Label _ 
-    | Goto _ -> stmt
-    | GuardedGoto (e, l1, l2) -> GuardedGoto (simplify_expr e, l1, l2)
-    | Basic bs -> Basic (simplify_basic_stmt bs)
-    | Sugar sstmt -> Sugar (simplify_sugar_stmt sstmt)
-and
-simplify_sugar_stmt stmt =
-  match stmt with
-  | If (e, t1, t2) -> If (simplify_expr e, List.map simplify_stmt t1, List.map simplify_stmt t2)
+let rec simplify_type_of type_info e =
+  let f = simplify_type_of type_info in
+  match e with
+    | IsTypeOf (e1, t) -> 
+      let fe_type = get_type_info_expr type_info e1 in
+      let t = Some (TI_Type t) in
+      if upper_bound_type fe_type t = t then
+        Literal (Bool true)
+      else if upper_bound_type fe_type t = fe_type then e
+      else Literal (Bool false)
+    | Literal _
+    | Var _ -> e
+    | BinOp (e1, binop, e2) -> BinOp (f e1, binop, f e2)
+    | UnaryOp (uop, e) -> UnaryOp (uop, f e)
+    | Ref (e1, e2, reftype) -> Ref (f e1, f e2, reftype)
+    | Base e -> Base (f e)
+    | Field e -> Field (f e)
+
+let simplify_type_of_in_stmt type_info stmt =
+  transform_expr_in_stmt (simplify_type_of type_info) stmt

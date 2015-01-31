@@ -76,6 +76,7 @@ type bin_op =
   | Comparison of comparison_op
   | Arith of arith_op
   | Boolean of bool_op
+  (* TODO | Concat *)
 
 type unary_op = 
   | Not
