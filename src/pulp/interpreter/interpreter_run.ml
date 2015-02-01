@@ -6,6 +6,7 @@ open Interpreter_Print
 
 let file = ref ""
 let test_prelude = ref []
+let calculate_stats = ref false
 
 (* Borrowed from run_js.ml *)
 let string_to_list str =
@@ -29,7 +30,10 @@ let arguments () =
       "-test_prelude",
       Arg.String(fun f ->
          test_prelude := !test_prelude @ string_to_list f),
-      "include the given files before runnning the specified file."
+      "include the given files before runnning the specified file.";
+      "-stats",
+      Arg.Unit(fun () -> calculate_stats := true),
+      "to calculate stats";
     ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
@@ -73,14 +77,31 @@ let run_program path =
     with
       | PulpNotImplemented exp -> Printf.printf "\nTranslation of Javascript syntax does not support '%s' yet.\n" exp; exit 2
       | Invalid_argument arg -> Printf.printf "\nSomething wrong with the translation '%s'.\n" arg; exit 1
-  in    
+  in  
+  
+  let p_exp_simpl = Simp_Main.simplify p_exp in 
+  
+  if (!calculate_stats) then begin
+	  let exp_string = Pretty_print.string_of_exp false exp in
+	  let exp_string_lines = List.length (Str.split (Str.regexp "\\n") exp_string) in
+	  let p_exp_string = Pulp_Syntax_Print.string_of_all_functions p_exp in
+	  let p_exp_string_lines = List.length (Str.split (Str.regexp "\\n") p_exp_string) in 
+	  
+	  let p_exp_simpl_string = Pulp_Syntax_Print.string_of_all_functions p_exp_simpl in
+	  let p_exp_simpl_string_lines = List.length (Str.split (Str.regexp "\\n") p_exp_simpl_string) in
+	  
+	  let name = Filename.basename path in
+	  Printf.printf "\nLine count: %s, %i, JS\n" name exp_string_lines;
+	  Printf.printf "\nLine count: %s, %i, IVL\n" name p_exp_string_lines;
+	  Printf.printf "\nLine count: %s, %i, IVL_SIMP\n" name p_exp_simpl_string_lines; exit 1
+  end;
  
   let h = initial_heap () in
   let lop = Heap.find (BLoc Lop) h in
   let lop = Object.add ("__$ERROR__") (HVLiteral (String "")) lop in
   let h = Heap.add (BLoc Lop) lop h in
   
-  let result = run_with_heap h p_exp in
+  let result = run_with_heap h p_exp_simpl in
   match result.fs_return_type with
     | FTReturn -> pr_test result.fs_heap
     | FTException -> pr_test result.fs_heap; Printf.printf "\nException was thrown.\n"; exit 1 

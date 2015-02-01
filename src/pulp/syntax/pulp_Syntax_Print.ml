@@ -159,7 +159,7 @@ let string_of_env_var ctx =
   (String.concat ";" (List.map string_of_ctx_vars ctx.env_vars))
 
 let string_of_func_block fb =
-   Printf.sprintf "procedure %s (%s) %s { \n %s \n} \n with context %s \n \n \n" 
+   Printf.sprintf "procedure %s (%s) %s { \n %s \n} \n with context %s \n" 
    fb.func_name 
    (string_of_formal_params fb.func_params) 
    (string_of_returs_throws fb.func_ctx)
@@ -167,4 +167,4 @@ let string_of_func_block fb =
    (string_of_env_var fb.func_ctx)
   
 let string_of_all_functions p_exp =
-  AllFunctions.fold (fun fid fwc content -> content ^ Printf.sprintf "%s \n\n" (string_of_func_block fwc)) p_exp ""
+  AllFunctions.fold (fun fid fwc content -> content ^ Printf.sprintf "%s \n" (string_of_func_block fwc)) p_exp ""
