@@ -823,7 +823,66 @@ let rec translate_stmt ctx exp : statement list * variable =
         ], rv
 
       (* Next TODO *) 
-      | Parser_syntax.Try _ 
+      | Parser_syntax.Try (e1, None, Some e3) ->
+        let finally_label = "finally." ^ fresh_r () in
+        let return_finally_label = "finally." ^ fresh_r () in
+        let throw_finally_label = "finally." ^ fresh_r () in
+        let exit_label = fresh_r () in
+        let new_ctx = {ctx with label_throw = throw_finally_label; label_return = return_finally_label} in
+        let r1_stmts, r1 = translate_stmt new_ctx e1 in
+        let r3_stmts, r3 = f e3 in
+            
+        r1_stmts @
+        r3_stmts @
+        [
+          Goto exit_label;
+          Label return_finally_label      
+        ] @
+        r3_stmts @
+        [
+          Goto ctx.label_return;
+          Label throw_finally_label      
+        ] @
+        r3_stmts @
+        [
+          Goto ctx.label_throw;
+          Label exit_label
+        ], r1
+        
+      | Parser_syntax.Try (e1, Some (id, e2), None) ->
+        let catch_label = "catch." ^ fresh_r () in
+        let exit_label = fresh_r () in
+        let throw_var = fresh_r () in
+        let new_ctx = {ctx with label_throw = catch_label; throw_var = throw_var} in
+        let r1_stmts, r1 = translate_stmt new_ctx e1 in
+        let rv = fresh_r () in
+        
+        let catch_id = "catch" ^ fresh_r () in
+        let catch_scope = catch_id ^ "_scope" in
+        
+        let catch_ctx = {ctx with 
+          env_vars = (make_ctx_vars catch_id [id]) :: ctx.env_vars;
+        } in
+        let r2_stmts, r2 = translate_stmt catch_ctx e2 in
+            
+        r1_stmts @
+        [
+          Basic (Assignment (mk_assign rv (Expression (Var r1))));
+          Goto exit_label;
+          Label catch_label;
+          Basic (Assignment (mk_assign catch_scope Obj));
+          add_proto_null catch_scope;
+          Basic (Mutation (mk_mutation (Var catch_scope) (Literal (String id)) (Var throw_var)))
+        ] @
+        r2_stmts @
+        [
+          Basic (Assignment (mk_assign rv (Expression (Var r2))));
+          Goto exit_label;
+          Label exit_label;
+        ], rv  
+        
+      | Parser_syntax.Try _ -> raise (PulpInvalid "Try _ None None")
+        
       | Parser_syntax.Throw _
 
       | Parser_syntax.Continue _

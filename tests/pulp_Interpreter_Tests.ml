@@ -131,6 +131,41 @@ let test_program_try4 () =
     try {} catch (e) {} finally {y}; 
   }; f();") LRError
   
+let test_program_try8 () =
+  test_template_normal ("var x = 5; var f = function () {
+    try {return x} catch (e) {}; x = 8 
+  }; f(); x") (VHValue (HVLiteral (Num 5.0)))
+  
+let test_program_try9 () =
+  test_template_normal ("var x = 5; var f = function () {
+    try {return x} finally {x=7}; x = 8 
+  }; var y = f(); y") (VHValue (HVLiteral (Num 5.0)))
+  
+let test_program_try10 () =
+  test_template_normal ("var x = 5; var f = function () {
+    try {} catch (e) {}; x = 8 
+  }; f(); x") (VHValue (HVLiteral (Num 8.0)))
+  
+let test_program_try11 () =
+  test_template_exception ("var x = 5; var f = function () {
+    try {y} finally {}; 
+  }; f(); x") LRError
+  
+ let test_program_try12 () =
+  test_template_normal ("var x = 5; var f = function () {
+    try {} catch (e) {y}; 
+  }; f(); x") (VHValue (HVLiteral (Num 5.0)))
+  
+ let test_program_try13 () =
+  test_template_exception ("var x = 5; var f = function () {
+    try {y} catch (e) {y}; 
+  }; f();") LRError
+  
+ let test_program_try14 () =
+  test_template_exception ("var x = 5; var f = function () {
+    try {} finally {y}; 
+  }; f();") LRError
+  
 let test_cav_example_1 () =
   test_template_normal ("var object = {
  property: 'some property',
@@ -169,5 +204,12 @@ let suite = "Testing_Interpreter" >:::
    "test_program_try5" >:: test_program_try5;
    "test_program_try6" >:: test_program_try6;
    "test_program_try7" >:: test_program_try7;
+   "test_program_try8" >:: test_program_try8;
+   "test_program_try9" >:: test_program_try9;
+   "test_program_try10" >:: test_program_try10;
+   "test_program_try11" >:: test_program_try11;
+   "test_program_try12" >:: test_program_try12;
+   "test_program_try13" >:: test_program_try13;
+   "test_program_try14" >:: test_program_try14;
    "test_cav_example_1" >:: test_cav_example_1;
    "test_cav_example_2" >:: test_cav_example_2] 
