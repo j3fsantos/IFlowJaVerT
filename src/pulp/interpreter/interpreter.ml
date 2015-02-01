@@ -302,13 +302,13 @@ run_function (h : heap_type) (f : function_block) (args : value list) (fs : func
   in 
   {fs_heap = result.lsheap; fs_return_type = ret_type; fs_return_value = ret_val}
   
-and run_basic_stmt (s : local_state) (throw_label : string) (stmt : basic_statement) (labelmap : int LabelMap.t) (fs : function_block AllFunctions.t) : local_state =
+and run_basic_stmt (s : local_state) (throw_label : string) (var_throw : variable) (stmt : basic_statement) (labelmap : int LabelMap.t) (fs : function_block AllFunctions.t) : local_state =
    match stmt with
     | Skip -> {s with lscounter = s.lscounter + 1}
     | Assignment assign -> 
       let s, v = run_assign_expr s assign.assign_right fs in
       if s.lsexcep then
-        {s with lscounter = LabelMap.find throw_label labelmap}
+        {s with lsstack = Stack.add var_throw v s.lsstack; lscounter = LabelMap.find throw_label labelmap}
       else {s with lsstack = Stack.add assign.assign_left v s.lsstack; lscounter = s.lscounter + 1}
     | Mutation m -> 
       let v1 = run_expr s m.m_loc in
@@ -321,8 +321,8 @@ and run_basic_stmt (s : local_state) (throw_label : string) (stmt : basic_statem
             let newobj = Object.add x v3 obj in
             {s with lsheap = Heap.add l newobj s.lsheap; lscounter = s.lscounter + 1}
 
-and run_stmt (s : local_state) (throw_label : string) (stmt : statement) (labelmap : int LabelMap.t) (fs : function_block AllFunctions.t) : local_state =
-  match stmt with
+and run_stmt (s : local_state) (throw_label : string) (var_throw : variable) (stmt : statement) (labelmap : int LabelMap.t) (fs : function_block AllFunctions.t) : local_state =
+   match stmt with
     | Label l -> {s with lscounter = s.lscounter + 1}
     | Goto l -> {s with lscounter = LabelMap.find l labelmap}
     | GuardedGoto (e, l1, l2) -> 
@@ -334,14 +334,14 @@ and run_stmt (s : local_state) (throw_label : string) (stmt : statement) (labelm
           {s with lscounter = LabelMap.find l2 labelmap}
         | _ -> raise (InterpreterStuck ("GuardedGoto expression must evaluate to boolean value", s.lscounter))
       end
-    | Basic bs -> run_basic_stmt s throw_label bs labelmap fs
+    | Basic bs -> run_basic_stmt s throw_label var_throw bs labelmap fs
     | Sugar sss -> raise InterpreterNotImplemented
 
 and run_stmts stmts ctx lstate labelmap fs =
   let next_stmt = List.nth stmts lstate.lscounter in
   if end_label next_stmt labelmap ctx then lstate 
   else 
-    let state = run_stmt lstate ctx.label_throw next_stmt labelmap fs in
+    let state = run_stmt lstate ctx.label_throw ctx.throw_var next_stmt labelmap fs in
     run_stmts stmts ctx state labelmap fs
     
 let run (h: heap_type) main_this main_scope (fs : function_block AllFunctions.t) : function_state = 

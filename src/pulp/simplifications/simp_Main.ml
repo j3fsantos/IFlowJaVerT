@@ -11,16 +11,16 @@ let basic_block_simplifications cfg ctx =
   remove_empty_blocks cfg_bb;
   cfg_bb
   
-let constant_propagation cfg ctx =
+let constant_propagation cfg fb =
   List.iter (fun n -> const_prop_node cfg n) (CFG_BB.nodes cfg);
   constant_propagation cfg;
   copy_propagation cfg;
-  type_simplifications cfg;
+  type_simplifications cfg fb.func_params;
   simplify_guarded_gotos cfg;  
   remove_unreachable cfg;
   remove_empty_blocks cfg;
   transform_to_basic_blocks cfg;
-  remove_unnecessary_goto_label cfg ctx.label_throw ctx.label_return
+  remove_unnecessary_goto_label cfg fb.func_ctx.label_throw fb.func_ctx.label_return
   
 let simplify exp =
   let cfg = Control_Flow.program_to_cfg exp in
@@ -30,8 +30,8 @@ let simplify exp =
     
     let cfg_bb = basic_block_simplifications cfg fb.func_ctx in
     
-    constant_propagation cfg_bb fb.func_ctx;
-    constant_propagation cfg_bb fb.func_ctx;
+    constant_propagation cfg_bb fb;
+    constant_propagation cfg_bb fb;
         
     dead_code_elimination cfg_bb fb.func_ctx.throw_var fb.func_ctx.return_var;
     

@@ -466,7 +466,7 @@ let copy_propagation g =
   
 (* Type propagation *)
   
-let type_simplifications g = 
+let type_simplifications g params = 
   let def = calculate_defs g in
   let ins, outs = calculate_reaching_defs g in
   let nodes = CFG_BB.nodes g in
@@ -511,11 +511,14 @@ let type_simplifications g =
   let defid_type = Hashtbl.create 100 in (* def_id -> type *)
   
 	let type_info depend v = 
-		let defids = List.filter (fun (var, defid) -> var = v) depend in
-		let types = List.map (fun (var, defid) -> Hashtbl.find defid_type defid) defids in
-		match types with
-		  | [] -> None
-		  | t :: types -> List.fold_left upper_bound_type t types in
+    if List.mem v params then Some (TI_Value) 
+    else begin
+			let defids = List.filter (fun (var, defid) -> var = v) depend in
+			let types = List.map (fun (var, defid) -> Hashtbl.find defid_type defid) defids in
+			match types with
+			  | [] -> None
+			  | t :: types -> List.fold_left upper_bound_type t types
+     end in
   
   let rec infer_type defid = 
     if Hashtbl.mem defid_type defid then ()

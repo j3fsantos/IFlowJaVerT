@@ -25,8 +25,8 @@ let test_template p name =
   let cfg_bbs = AllFunctions.mapi (fun name cfg ->
     
       let fb = AllFunctions.find name p_exp in
-      Simp_Main.constant_propagation cfg fb.func_ctx;
-      Simp_Main.constant_propagation cfg fb.func_ctx;
+      Simp_Main.constant_propagation cfg fb;
+      Simp_Main.constant_propagation cfg fb;
         
       dead_code_elimination cfg fb.func_ctx.throw_var fb.func_ctx.return_var;
       
@@ -195,6 +195,27 @@ var person = {
 
 r = person.sayHi();") "invest example"
 
+let test_cav_example_1 () =
+  test_template ("var object = {
+ property: 'some property',
+ method: function() {
+   return this.property;
+ }
+};
+
+object.method()") "CAV example 1"
+
+let test_cav_example_2 () =
+  test_template ("var object = {
+ property: 'some property',
+ method: function() {
+   return this.property;
+ }
+};
+
+var f = object.method;
+f() ") "CAV example 2"
+
 let suite = "Testing_Translation" >:::
   [ "translating simple" >:: test_simple;
    "translating access" >:: test_access;
@@ -223,4 +244,6 @@ let suite = "Testing_Translation" >:::
    "test_example" >:: test_example;
    "translating gamma" >:: test_gamma;
    "cfg_anonymous2" >:: cfg_anonymous2;
-   "test_invest_example" >:: test_invest_example;] 
+   "test_invest_example" >:: test_invest_example;
+   "test_cav_example_1" >:: test_cav_example_1;
+   "test_cav_example_2" >:: test_cav_example_2] 
