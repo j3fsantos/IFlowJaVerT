@@ -78,7 +78,7 @@ let is_const_stmt stmt =
  (* A generic functions stmt (f : expr->expr) -> stmt *)
 
 let transform_expr_in_call f c =
-  mk_call (f c.call_name) (f c.call_scope) (f c.call_this) (List.map f c.call_args)
+  mk_call (f c.call_name) (f c.call_scope) (f c.call_this) (List.map f c.call_args) (c.call_throw_label)
 
 let transform_expr_in_assign_expr f e =
   match e with

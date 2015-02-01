@@ -14,11 +14,11 @@ let get_all_labels g =
     ) (CFG.nodes g) in
   label_map
   
-let connect_calls_throw g throwl node = 
+let connect_calls_throw g label_map node = 
   let stmt = CFG.get_node_data g node in
   match stmt with
-    | Basic (Assignment {assign_right = (Call _)}) -> 
-      CFG.mk_edge g node throwl Edge_Excep
+    | Basic (Assignment {assign_right = (Call {call_throw_label = throwl})}) -> 
+      CFG.mk_edge g node (Hashtbl.find label_map throwl) Edge_Excep
     | _ -> ()
   
   
@@ -64,7 +64,7 @@ let fb_to_cfg fb : CFG.graph =
   let label_map = get_all_labels g in
   connect_nodes g start nodes label_map;
   
-  List.iter (connect_calls_throw g (Hashtbl.find label_map fb.func_ctx.label_throw)) nodes;
+  List.iter (connect_calls_throw g label_map) nodes;
   g
   
   

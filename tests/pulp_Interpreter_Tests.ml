@@ -96,6 +96,41 @@ let test_undefined () =
 let test_exception () = 
   test_template_exception "y; 1" LRError
   
+let test_program_try1 () =
+  test_template_normal ("var x = 5; var f = function () {
+    try {return x} catch (e) {} finally {x=7}; x = 8 
+  }; f(); x") (VHValue (HVLiteral (Num 7.0)))
+  
+let test_program_try2 () =
+  test_template_normal ("var x = 5; var f = function () {
+    try {return x} catch (e) {} finally {x=7}; x = 8 
+  }; var y = f(); y") (VHValue (HVLiteral (Num 5.0)))
+  
+let test_program_try3 () =
+  test_template_normal ("var x = 5; var f = function () {
+    try {} catch (e) {} finally {x=7}; x = 8 
+  }; f(); x") (VHValue (HVLiteral (Num 8.0)))
+  
+let test_program_try4 () =
+  test_template_normal ("var x = 5; var f = function () {
+    try {y} catch (e) {x = 6} finally {}; 
+  }; f(); x") (VHValue (HVLiteral (Num 6.0)))
+  
+ let test_program_try5 () =
+  test_template_normal ("var x = 5; var f = function () {
+    try {} catch (e) {y} finally {}; 
+  }; f(); x") (VHValue (HVLiteral (Num 5.0)))
+  
+ let test_program_try6 () =
+  test_template_exception ("var x = 5; var f = function () {
+    try {y} catch (e) {y} finally {}; 
+  }; f();") LRError
+  
+ let test_program_try7 () =
+  test_template_exception ("var x = 5; var f = function () {
+    try {} catch (e) {} finally {y}; 
+  }; f();") LRError
+  
 let test_cav_example_1 () =
   test_template_normal ("var object = {
  property: 'some property',
@@ -127,5 +162,12 @@ let suite = "Testing_Interpreter" >:::
    "running_if" >:: test_if;
    "running_undefined" >:: test_undefined;
    "testing exception" >:: test_exception;
+   "test_program_try1" >:: test_program_try1;
+   "test_program_try2" >:: test_program_try2;
+   "test_program_try3" >:: test_program_try3;
+   "test_program_try4" >:: test_program_try4;
+   "test_program_try5" >:: test_program_try5;
+   "test_program_try6" >:: test_program_try6;
+   "test_program_try7" >:: test_program_try7;
    "test_cav_example_1" >:: test_cav_example_1;
    "test_cav_example_2" >:: test_cav_example_2] 

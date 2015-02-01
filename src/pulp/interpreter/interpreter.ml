@@ -139,7 +139,7 @@ type local_state = {
   lsheap : heap_type;
   lsstack : stack_type;
   lscounter : int;
-  lsexcep : bool;
+  lsexcep : label option;
 }
 
 type function_return_type =
@@ -236,7 +236,7 @@ let rec run_assign_expr (s : local_state) (e : assign_right_expression) (funcs :
       let vargs = List.map (run_expr s) c.call_args in
       let fs = run_function s.lsheap fblock ([vthis; vscope] @ vargs) funcs in
       begin match fs.fs_return_type with
-        | FTException -> {s with lsheap = fs.fs_heap; lsexcep = true}, fs.fs_return_value
+        | FTException -> {s with lsheap = fs.fs_heap; lsexcep = Some (c.call_throw_label)}, fs.fs_return_value
         | FTReturn -> {s with lsheap = fs.fs_heap}, fs.fs_return_value
       end
 	  | Obj -> 
@@ -285,7 +285,7 @@ run_function (h : heap_type) (f : function_block) (args : value list) (fs : func
       | _ -> index + 1, li
     ) (0, LabelMap.empty) f.func_body in
     
-  let result = run_stmts f.func_body f.func_ctx {lsheap = h; lsstack = s; lscounter = 0; lsexcep = false} label_index fs in
+  let result = run_stmts f.func_body f.func_ctx {lsheap = h; lsstack = s; lscounter = 0; lsexcep = None} label_index fs in
   
   let ret_type, ret_val = 
     let stmt = List.nth f.func_body result.lscounter in
@@ -302,14 +302,20 @@ run_function (h : heap_type) (f : function_block) (args : value list) (fs : func
   in 
   {fs_heap = result.lsheap; fs_return_type = ret_type; fs_return_value = ret_val}
   
-and run_basic_stmt (s : local_state) (throw_label : string) (var_throw : variable) (stmt : basic_statement) (labelmap : int LabelMap.t) (fs : function_block AllFunctions.t) : local_state =
+and run_basic_stmt (s : local_state) (stmt : basic_statement) (labelmap : int LabelMap.t) (fs : function_block AllFunctions.t) : local_state =
    match stmt with
     | Skip -> {s with lscounter = s.lscounter + 1}
     | Assignment assign -> 
       let s, v = run_assign_expr s assign.assign_right fs in
-      if s.lsexcep then
-        {s with lsstack = Stack.add var_throw v s.lsstack; lscounter = LabelMap.find throw_label labelmap}
-      else {s with lsstack = Stack.add assign.assign_left v s.lsstack; lscounter = s.lscounter + 1}
+      begin match s.lsexcep with
+        | Some throwl ->
+        {s with 
+          lsstack = Stack.add assign.assign_left v s.lsstack; 
+          lscounter = LabelMap.find throwl labelmap;
+          lsexcep = None
+        }
+        | None -> {s with lsstack = Stack.add assign.assign_left v s.lsstack; lscounter = s.lscounter + 1}
+      end
     | Mutation m -> 
       let v1 = run_expr s m.m_loc in
       let v2 = run_expr s m.m_field in
@@ -321,8 +327,9 @@ and run_basic_stmt (s : local_state) (throw_label : string) (var_throw : variabl
             let newobj = Object.add x v3 obj in
             {s with lsheap = Heap.add l newobj s.lsheap; lscounter = s.lscounter + 1}
 
-and run_stmt (s : local_state) (throw_label : string) (var_throw : variable) (stmt : statement) (labelmap : int LabelMap.t) (fs : function_block AllFunctions.t) : local_state =
-   match stmt with
+and run_stmt (s : local_state) (stmt : statement) (labelmap : int LabelMap.t) (fs : function_block AllFunctions.t) : local_state =
+  (*Printf.printf "Running stmt %s \n" (Pulp_Syntax_Print.string_of_statement stmt);*) 
+  match stmt with
     | Label l -> {s with lscounter = s.lscounter + 1}
     | Goto l -> {s with lscounter = LabelMap.find l labelmap}
     | GuardedGoto (e, l1, l2) -> 
@@ -334,14 +341,14 @@ and run_stmt (s : local_state) (throw_label : string) (var_throw : variable) (st
           {s with lscounter = LabelMap.find l2 labelmap}
         | _ -> raise (InterpreterStuck ("GuardedGoto expression must evaluate to boolean value", s.lscounter))
       end
-    | Basic bs -> run_basic_stmt s throw_label var_throw bs labelmap fs
+    | Basic bs -> run_basic_stmt s bs labelmap fs
     | Sugar sss -> raise InterpreterNotImplemented
 
 and run_stmts stmts ctx lstate labelmap fs =
   let next_stmt = List.nth stmts lstate.lscounter in
   if end_label next_stmt labelmap ctx then lstate 
   else 
-    let state = run_stmt lstate ctx.label_throw ctx.throw_var next_stmt labelmap fs in
+    let state = run_stmt lstate next_stmt labelmap fs in
     run_stmts stmts ctx state labelmap fs
     
 let run (h: heap_type) main_this main_scope (fs : function_block AllFunctions.t) : function_state = 

@@ -96,13 +96,15 @@ type call = {
     call_scope : expression;
     call_args : expression list;
     call_this : expression;
+    call_throw_label : label;
    }
   
-let mk_call name scope vthis args = {
+let mk_call name scope vthis args throwl = {
       call_name = name;
       call_scope = scope;
       call_args = args;
-      call_this = vthis
+      call_this = vthis;
+      call_throw_label = throwl
   }
 
 type mutation = {

@@ -103,7 +103,7 @@ let rec string_of_expression e =
 let string_of_call c =
   let se = string_of_expression in
   let ses xs = String.concat "," (List.map se xs) in
-  Printf.sprintf "%s (%s, %s, %s)" (se c.call_name) (se c.call_this) (se c.call_scope) (ses c.call_args)
+  Printf.sprintf "%s (%s, %s, %s) throws %s" (se c.call_name) (se c.call_this) (se c.call_scope) (ses c.call_args) (c.call_throw_label)
  
 let string_of_assign_right aer =
   let se = string_of_expression in

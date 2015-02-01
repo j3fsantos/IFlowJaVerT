@@ -247,14 +247,27 @@ let translate_call_construct_start f e1 e2s ctx =
 let translate_call r2 vthis arg_values ctx =
 		let fid = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FId)) in
 		let fscope = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FScope)) in
-		let call = mk_assign_fresh (Call (mk_call (Var fid.assign_left) (Var fscope.assign_left) (Var vthis) arg_values)) in
+    let excep_label = "call_excep." ^ fresh_r () in
+    let exit_label = fresh_r () in
+		let call = mk_assign_fresh (Call (mk_call 
+	    (Var fid.assign_left) 
+	    (Var fscope.assign_left) 
+	    (Var vthis) 
+      arg_values
+      excep_label
+    )) in
     (Sugar (If (equal_loc_expr r2 LEval,
         (*TODO Eval*)
         translate_error_throw LNotImplemented ctx.throw_var ctx.label_throw, 
         [
           Basic (Assignment fid); 
           Basic (Assignment fscope); 
-          Basic (Assignment call)
+          Basic (Assignment call);
+          Goto exit_label;
+          Label excep_label;
+          Basic (Assignment (mk_assign ctx.throw_var (Expression (Var call.assign_left))));
+          Goto ctx.label_throw;
+          Label exit_label;
      ])), call)
     
 let translate_regular_bin_op f op e1 e2 ctx =
@@ -682,7 +695,7 @@ let rec translate_stmt ctx exp : statement list * variable =
       | Parser_syntax.VarDec vars ->
         let result = List.map (fun var ->
           match var with
-            | (v, Some exp) -> f ({exp with Parser_syntax.exp_stx = (Parser_syntax.Assign ({exp with Parser_syntax.exp_stx = Parser_syntax.Var v}, exp))})
+            | (v, Some exp) -> translate_exp ctx ({exp with Parser_syntax.exp_stx = (Parser_syntax.Assign ({exp with Parser_syntax.exp_stx = Parser_syntax.Var v}, exp))})
             | (v, None) -> f ({exp with Parser_syntax.exp_stx = Parser_syntax.Skip})
           ) vars in
         let stmts, _ = List.split result in
@@ -694,7 +707,7 @@ let rec translate_stmt ctx exp : statement list * variable =
         [Basic (Assignment r1)], r1.assign_left 
         
       | Parser_syntax.If (e1, e2, e3) ->
-        let r1_stmts, r1 = f e1 in
+        let r1_stmts, r1 = translate_exp ctx e1 in
         let r2_stmts, r2 = translate_gamma r1 ctx in
         let r3_stmts, r3 = f e2 in
         let rv = fresh_r () in
@@ -717,7 +730,7 @@ let rec translate_stmt ctx exp : statement list * variable =
         let rv = fresh_r () in
         let assign_rv_empty = Basic (Assignment (mk_assign rv (Expression (Literal Empty)))) in
         let label1 = fresh_r () in
-        let r1_stmts, r1 = f e1 in
+        let r1_stmts, r1 = translate_exp ctx e1 in
         let r2_stmts, r2 = translate_gamma r1 ctx in
         let r3_stmts, r3 = f e2 in
           [
@@ -745,7 +758,7 @@ let rec translate_stmt ctx exp : statement list * variable =
             let und_assign = mk_assign_fresh_lit Undefined in
             [Basic (Assignment und_assign)], und_assign.assign_left
           | Some e -> 
-            let r1_stmts, r1 = f e in
+            let r1_stmts, r1 = translate_exp ctx e in
             let r2_stmts, r2 = translate_gamma r1 ctx in
             r1_stmts @ r2_stmts, r2
          in
@@ -755,10 +768,63 @@ let rec translate_stmt ctx exp : statement list * variable =
             Basic (Assignment assignr); 
             Goto ctx.label_return
           ], ctx.return_var
-          
-      (* Next TODO *)  
+           
+      | Parser_syntax.Try (e1, Some (id, e2), Some e3) ->
+        let catch_label = "catch." ^ fresh_r () in
+        let finally_label = "finally." ^ fresh_r () in
+        let return_finally_label = "finally." ^ fresh_r () in
+        let throw_finally_label = "finally." ^ fresh_r () in
+        let exit_label = fresh_r () in
+        let throw_var = fresh_r () in
+        let new_ctx = {ctx with label_throw = catch_label; label_return = return_finally_label; throw_var = throw_var} in
+        let r1_stmts, r1 = translate_stmt new_ctx e1 in
+        let rv = fresh_r () in
+        
+        let catch_id = "catch" ^ fresh_r () in
+        let catch_scope = catch_id ^ "_scope" in
+        
+        let catch_ctx = {ctx with 
+          env_vars = (make_ctx_vars catch_id [id]) :: ctx.env_vars;
+          label_throw = throw_finally_label;
+          label_return = return_finally_label;
+        } in
+        let r2_stmts, r2 = translate_stmt catch_ctx e2 in
+        let r3_stmts, r3 = f e3 in
+            
+        r1_stmts @
+        [
+          Basic (Assignment (mk_assign rv (Expression (Var r1))));
+          Goto finally_label;
+          Label catch_label;
+          Basic (Assignment (mk_assign catch_scope Obj));
+          add_proto_null catch_scope;
+          Basic (Mutation (mk_mutation (Var catch_scope) (Literal (String id)) (Var throw_var)))
+        ] @
+        r2_stmts @
+        [
+          Basic (Assignment (mk_assign rv (Expression (Var r2))));
+          Goto finally_label;
+          Label finally_label;
+        ] @
+        r3_stmts @
+        [
+          Goto exit_label;
+          Label return_finally_label      
+        ] @
+        r3_stmts @
+        [
+          Goto ctx.label_return;
+          Label throw_finally_label      
+        ] @
+        r3_stmts @
+        [
+          Goto ctx.label_throw;
+          Label exit_label
+        ], rv
+
+      (* Next TODO *) 
+      | Parser_syntax.Try _ 
       | Parser_syntax.Throw _
-      | Parser_syntax.Try _
 
       | Parser_syntax.Continue _
       | Parser_syntax.Break _
