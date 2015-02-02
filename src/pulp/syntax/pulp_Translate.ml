@@ -821,10 +821,8 @@ let rec translate_stmt ctx exp : statement list * variable =
           Goto ctx.label_throw;
           Label exit_label
         ], rv
-
-      (* Next TODO *) 
+        
       | Parser_syntax.Try (e1, None, Some e3) ->
-        let finally_label = "finally." ^ fresh_r () in
         let return_finally_label = "finally." ^ fresh_r () in
         let throw_finally_label = "finally." ^ fresh_r () in
         let exit_label = fresh_r () in
@@ -883,8 +881,16 @@ let rec translate_stmt ctx exp : statement list * variable =
         
       | Parser_syntax.Try _ -> raise (PulpInvalid "Try _ None None")
         
-      | Parser_syntax.Throw _
+      | Parser_syntax.Throw e ->
+        let r1_stmts, r1 = translate_exp ctx e in
+        let r2_stmts, r2 = translate_gamma r1 ctx in 
+        
+        r1_stmts @ 
+        r2_stmts @
+        [ Basic (Assignment (mk_assign ctx.throw_var (Expression (Var r2))));
+          Goto ctx.label_throw], r2
 
+      (* Next TODO *) 
       | Parser_syntax.Continue _
       | Parser_syntax.Break _
       | Parser_syntax.Label _
