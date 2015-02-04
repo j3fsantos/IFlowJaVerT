@@ -15,6 +15,7 @@ let string_of_heap_value hv =
 let string_of_value v =
   match v with
     | VHValue hv -> string_of_heap_value hv
+    | VType t -> string_of_pulp_type t
     | VRef (hv, x, rt) -> 
       Printf.sprintf "(%s .%s %s)" 
       (string_of_heap_value hv)

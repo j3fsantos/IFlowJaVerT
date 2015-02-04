@@ -3,6 +3,7 @@ open Utils
 open Batteries
  
 exception No_Codename
+exception PulpInvalid of string
   
 let update_annotation annots atype new_value =
   let old_removed = List.filter (fun annot -> annot.annot_type <> atype) annots in
@@ -91,8 +92,25 @@ let rec var_decls_inner exp =
 
 let var_decls exp = List.unique (var_decls_inner exp)
 
+let func_decls_in_elem exp : exp list = 
+    match exp.Parser_syntax.exp_stx with
+      | Parser_syntax.NamedFun (s, name, args, body) -> [exp]
+      | _ ->  []
+
+let rec func_decls_in_exp exp : exp list =
+  match exp.Parser_syntax.exp_stx with
+    | Parser_syntax.Script (_, es) 
+    | Parser_syntax.Block (es) -> List.flatten (List.map (func_decls_in_elem) es)
+    | _ -> func_decls_in_elem exp  
+
 let make_env env e args fid =
-  let vars = args @ (var_decls e) in
+  let f_decls = func_decls_in_exp e in
+  let fnames = List.map (fun f ->
+    match f.Parser_syntax.exp_stx with
+      | Parser_syntax.NamedFun (s, name, args, body) -> name
+      | _ -> raise (PulpInvalid ("Must be function declaration " ^ (Pretty_print.string_of_exp true f)))
+  ) f_decls in
+  let vars = args @ (var_decls e) @ fnames in
   [Pulp_Syntax.make_ctx_vars fid vars] @ env
   
  

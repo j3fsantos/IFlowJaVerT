@@ -104,6 +104,7 @@ let bs_stmt_to_cfg stmt label_map ctx start connect_with_start =
             | Var _
             | BinOp _
             | IsTypeOf _
+            | TypeOf _
             | UnaryOp _
             | Ref _ 
             | Field _

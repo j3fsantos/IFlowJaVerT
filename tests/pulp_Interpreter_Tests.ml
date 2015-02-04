@@ -182,6 +182,18 @@ let test_program_try11 () =
  let test_throw () =
   test_template_exception_any ("throw 3") (VHValue (HVLiteral (Num 3.0)))
   
+ let test_strict_equal () =
+  test_template_normal ("1 === 1") (VHValue (HVLiteral (Bool true)))
+  
+ let test_strict_not_equal () =
+  test_template_normal ("1 !== 1") (VHValue (HVLiteral (Bool false)))
+  
+ let test_function_decl_1 () =
+   test_template_normal ("function f () {return 5}; f()") (VHValue (HVLiteral (Num 5.0)))
+  
+ let test_function_decl_2 () =
+   test_template_normal ("f(); function f () {return 5};") (VHValue (HVLiteral (Num 5.0)))
+  
 let test_cav_example_1 () =
   test_template_normal ("var object = {
  property: 'some property',
@@ -251,6 +263,10 @@ let suite = "Testing_Interpreter" >:::
    "test_program_try13" >:: test_program_try13;
    "test_program_try14" >:: test_program_try14;
    "test_throw" >:: test_throw;
+   "test_strict_equal" >:: test_strict_equal;
+   "test_strict_not_equal" >:: test_strict_not_equal;
+   "test_function_decl_1" >:: test_function_decl_1;
+   "test_function_decl_2" >:: test_function_decl_2;
    "test_cav_example_1" >:: test_cav_example_1;
    "test_cav_example_2" >:: test_cav_example_2;
    "test_cav_example_3" >:: test_cav_example_3;

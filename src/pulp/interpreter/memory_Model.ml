@@ -50,6 +50,7 @@ type heap_value =
 
 type value =
   | VHValue of heap_value
+  | VType of pulp_type
   | VRef of heap_value * string * reference_type
 
 (* Do I still need this if I always evaluate literal builtin location to hbobj builtin location? Doesn't feel clean to have same things at different places *)
@@ -64,6 +65,7 @@ let value_eq v1 v2 =
   match v1, v2 with
     | VHValue hv1, VHValue hv2 -> heap_value_eq hv1 hv2
     | VRef (l1, s1, rt1), VRef (l2, s2, rt2) -> l1 = l2 && s1 = s2 && rt1 = rt2
+    | VType t1, VType t2 -> t1 = t2
     | _, _ -> false
 
 type heap_type = (heap_value Object.t) Heap.t

@@ -32,7 +32,8 @@ let is_obj_var v = IsTypeOf (Var v, ObjectType)
 let or_expr e1 e2 = BinOp (e1, Boolean Or, e2)
 let and_expr e1 e2 = BinOp (e1, Boolean And, e2)
 let not_expr e1 = UnaryOp (Not, e1)
-let equal_expr v e2 = BinOp (Var v, Comparison Equal, e2)
+let equal_exprs e1 e2 = BinOp (e1, Comparison Equal, e2)
+let equal_expr v e2 = equal_exprs (Var v) e2
   
 let istypeof_prim_expr v =
   or_expr 
@@ -157,6 +158,56 @@ let add_proto_value obj proto =
   
 let add_proto_null obj =
   add_proto obj (Literal Null)
+  
+let translate_strict_equality_comparison x y = 
+  let rv = fresh_r() in
+  let rv_true = Basic (Assignment (mk_assign rv (Expression (Literal (Bool true))))) in
+  let rv_false = Basic (Assignment (mk_assign rv (Expression (Literal (Bool false))))) in
+  
+  let if1 = Sugar (If (equal_exprs (TypeOf (Var x)) (TypeOf (Var y)), 
+    [
+      Sugar (If (or_expr (IsTypeOf (Var x, UndefinedType)) (IsTypeOf (Var x, NullType)),
+        [rv_true], 
+        [
+          Sugar (If (or_expr 
+                        (IsTypeOf (Var x, StringType))
+                        (or_expr 
+                            (IsTypeOf (Var x, ObjectType))
+                            (IsTypeOf (Var x, BooleanType))),
+          [
+            Sugar (If (equal_expr x (Var y), [rv_true], [rv_false]))
+          ],
+          [
+            Sugar (If (IsTypeOf (Var x, NumberType),
+            [
+              Sugar (If (equal_expr x (Literal (String "NaN")), (* TODO *)
+              [rv_false],
+              [
+                Sugar (If (equal_expr y (Literal (String "NaN")), (* TODO *)
+                [rv_false],
+                [
+                  Sugar (If (equal_expr x (Var y), 
+                  [rv_true], 
+                  [
+                    Sugar (If (and_expr (equal_expr x (Literal (String "+0"))) (equal_expr x (Literal (String "-0"))),
+                    [rv_true],
+                    [
+                      Sugar (If (and_expr (equal_expr x (Literal (String "-0"))) (equal_expr x (Literal (String "+0"))),
+	                    [rv_true],
+	                    [rv_false]))
+                    ]))
+                  ]))
+                ]))
+              ]))
+            ],
+            [rv_false]))
+          ]
+          ))
+        ]))
+    ],
+    [ rv_false ]))
+  
+  in if1, rv
   
 let translate_error_throw error throw_var throw_label =
   let r1 = mk_assign_fresh Obj in
@@ -364,6 +415,30 @@ let translate_literal exp : statement list * variable =
         end
       | _ -> raise (PulpInvalid ("Expected literal. Actual " ^ (Pretty_print.string_of_exp true exp)))
 
+let translate_function_expression exp ctx =
+  let fid = get_codename exp in
+  let f_obj = mk_assign_fresh Obj in
+  let prototype = mk_assign_fresh Obj in
+  let scope = mk_assign_fresh Obj in
+  let env_stmts = Utils.flat_map (fun env -> 
+  [
+    Basic (Mutation (mk_mutation (Var scope.assign_left) (Literal (String env.func_id)) (Var (function_scope_name env.func_id))))
+  ]) ctx.env_vars in
+  [
+    Basic (Assignment f_obj);
+    add_proto_value f_obj.assign_left Lfp;
+    Basic (Assignment prototype); 
+    add_proto_value prototype.assign_left Lop; 
+    Basic (Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FPrototype) (Var prototype.assign_left)));
+    Basic (Assignment scope);
+    add_proto_null scope.assign_left
+  ] @ 
+  env_stmts @ 
+  [
+    Basic (Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FId) (Literal (String fid)))); 
+    Basic (Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FScope) (Var scope.assign_left))); 
+  ], f_obj.assign_left 
+
 let rec translate_exp ctx exp : statement list * variable =
   let f = translate_exp ctx in 
   match exp.Parser_syntax.exp_stx with
@@ -476,29 +551,8 @@ let rec translate_exp ctx exp : statement list * variable =
             if5
           ], call.assign_left
           
-     | Parser_syntax.AnnonymousFun (_, vs, e) ->
-        let fid = get_codename exp in
-        let f_obj = mk_assign_fresh Obj in
-        let prototype = mk_assign_fresh Obj in
-        let scope = mk_assign_fresh Obj in
-        let env_stmts = Utils.flat_map (fun env -> 
-          [
-            Basic (Mutation (mk_mutation (Var scope.assign_left) (Literal (String env.func_id)) (Var (function_scope_name env.func_id))))
-          ]) ctx.env_vars in
-          [
-            Basic (Assignment f_obj);
-            add_proto_value f_obj.assign_left Lfp;
-            Basic (Assignment prototype); 
-            add_proto_value prototype.assign_left Lop; 
-            Basic (Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FPrototype) (Var prototype.assign_left)));
-            Basic (Assignment scope);
-            add_proto_null scope.assign_left
-          ] @ 
-          env_stmts @ 
-          [
-            Basic (Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FId) (Literal (String fid)))); 
-            Basic (Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FScope) (Var scope.assign_left))); 
-          ], f_obj.assign_left 
+     | Parser_syntax.AnnonymousFun (_, _, e) ->
+        translate_function_expression exp ctx
           
       | Parser_syntax.Unary_op (op, e) ->
         begin match op with 
@@ -571,8 +625,31 @@ let rec translate_exp ctx exp : statement list * variable =
             begin match cop with
               | Parser_syntax.Equal -> translate_regular_bin_op f op e1 e2 ctx
               | Parser_syntax.NotEqual -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.9.2 The Does-not-equals Operator.")))
-						  | Parser_syntax.TripleEqual -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.9.4 The Strict Equals Operator.")))
-						  | Parser_syntax.NotTripleEqual -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.9.5 The Strict Does-not-equal Operator.")))
+						  | Parser_syntax.TripleEqual -> 
+                  let r1_stmts, r1 = f e1 in
+								  let r2_stmts, r2 = translate_gamma r1 ctx in
+								  let r3_stmts, r3 = f e2 in
+								  let r4_stmts, r4 = translate_gamma r3 ctx in
+								  let r5, rv = translate_strict_equality_comparison r2 r4 in
+								    r1_stmts @ 
+								    r2_stmts @ 
+								    r3_stmts @ 
+								    r4_stmts @ 
+								    [r5], rv
+						  | Parser_syntax.NotTripleEqual ->
+                  let r1_stmts, r1 = f e1 in
+                  let r2_stmts, r2 = translate_gamma r1 ctx in
+                  let r3_stmts, r3 = f e2 in
+                  let r4_stmts, r4 = translate_gamma r3 ctx in
+                  let r5, rv = translate_strict_equality_comparison r2 r4 in
+                  let r6 = mk_assign_fresh (Expression (UnaryOp (Not, (Var rv)))) in
+                    r1_stmts @ 
+                    r2_stmts @ 
+                    r3_stmts @ 
+                    r4_stmts @ 
+                    [r5;
+                     Basic (Assignment r6)
+                    ], r6.assign_left
 						  | Parser_syntax.Lt -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.8.1 The Less-than Operator")))
 						  | Parser_syntax.Le -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.8.3 The Less-than-or-equal Operator.")))
 						  | Parser_syntax.Gt -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.8.2 The Greater-than Operator.")))
@@ -930,8 +1007,9 @@ let rec translate_stmt ctx exp : statement list * variable =
       
 
 let exp_to_elem ctx exp : statement list * variable = 
+    let r = fresh_r() in
     match exp.Parser_syntax.exp_stx with
-      | Parser_syntax.NamedFun (s, name, args, body) -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:13 Function Declarations.")))
+      | Parser_syntax.NamedFun (s, name, args, body) -> [Basic (Assignment (mk_assign r (Expression (Literal Empty))))], r (* Things done already *)
       | _ ->  translate_stmt ctx exp
 
 let rec exp_to_fb ctx exp : statement list * variable =
@@ -967,12 +1045,27 @@ let translate_function fb fid args env =
       ]
     ) args in
     
+  (* Creating function declarations *)
+  let func_decls_used_vars = List.map (fun f ->
+     match f.Parser_syntax.exp_stx with
+      | Parser_syntax.NamedFun (_, name, _, body) -> 
+        let stmts, lvar = translate_function_expression f ctx in
+        stmts @
+	      [
+	        Basic (Mutation (mk_mutation (Var current_scope_var) (Literal (String name)) (Var lvar)))
+	      ], name
+      | _ ->  [], "" (* TODO *)   
+    ) (func_decls_in_exp fb) in
+    
+   let func_decls, used_vars = List.split func_decls_used_vars in
+   let used_vars = used_vars @ args in
+    
   (* Assigning undefined to var declarations *)
   let decl_vars = Utils.flat_map (fun v ->
       [
         Basic (Mutation (mk_mutation (Var current_scope_var) (Literal (String v)) (Literal Undefined)))
       ]
-    ) (List.filter (fun v -> not (List.mem v args)) (var_decls fb)) in
+    ) (List.filter (fun v -> not (List.mem v used_vars)) (var_decls fb)) in
     
   let pulp_fb, lvar = exp_to_fb ctx fb in
   
@@ -986,6 +1079,7 @@ let translate_function fb fid args env =
     init_e @ 
     current_scope_stmts @  
     init_vars @ 
+    (List.flatten func_decls) @
     decl_vars @ 
     pulp_fb @
     end_stmts @

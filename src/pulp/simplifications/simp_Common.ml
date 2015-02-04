@@ -19,6 +19,7 @@ let rec get_vars_in_expr e =
     | Base e -> f e
     | Field e -> f e
     | IsTypeOf (e, _) -> f e
+    | TypeOf e -> f e
 
 let get_vars_in_call c  =
   let f = get_vars_in_expr in
@@ -65,6 +66,7 @@ let rec is_const_expr e =
     | Base e -> f e
     | Field e -> f e
     | IsTypeOf (e, _) -> f e
+    | TypeOf e -> f e
 
 let is_const_stmt stmt =
   match stmt with
@@ -123,6 +125,7 @@ let rec update_expr var const e =
     | Base e -> Base (f e)
     | Field e -> Field (f e)
     | IsTypeOf (e, t) -> IsTypeOf (f e, t)
+    | TypeOf (e) -> TypeOf (f e)
 
 let update_stmt var const stmt = transform_expr_in_stmt (update_expr var const) stmt
 
@@ -137,7 +140,8 @@ let rec simplify_expr e =
     | Ref (e1, e2, reftype) -> Ref (f e1, f e2, reftype)
     | Base e -> Base (f e)
     | Field e -> Field (f e)
-    | IsTypeOf (e, t) -> IsTypeOf (f e, t) in
+    | IsTypeOf (e, t) -> IsTypeOf (f e, t) 
+    | TypeOf (e) -> TypeOf (f e) in
   
   match e with
     | Literal _ 
@@ -201,6 +205,7 @@ let rec simplify_expr e =
             | UnaryOp _
             | Base _
             | Field _
+            | TypeOf _
             | IsTypeOf _ -> IsTypeOf (exp, t)
           end
         | ReferenceType (Some VariableReference) ->
@@ -213,6 +218,7 @@ let rec simplify_expr e =
             | UnaryOp _
             | Base _
             | Field _
+            | TypeOf _
             | IsTypeOf _ -> IsTypeOf (exp, t)
           end
         | ReferenceType None -> 
@@ -224,6 +230,7 @@ let rec simplify_expr e =
             | UnaryOp _
             | Base _
             | Field _
+            | TypeOf _
             | IsTypeOf _ -> IsTypeOf (exp, t)
           end
         | NullType ->
@@ -236,6 +243,7 @@ let rec simplify_expr e =
             | UnaryOp _
             | Base _
             | Field _
+            | TypeOf _
             | IsTypeOf _ -> IsTypeOf (exp, t)
           end
         | UndefinedType ->
@@ -248,6 +256,7 @@ let rec simplify_expr e =
             | UnaryOp _
             | Base _
             | Field _
+            | TypeOf _
             | IsTypeOf _ -> IsTypeOf (exp, t)
           end
         | BooleanType ->
@@ -260,6 +269,7 @@ let rec simplify_expr e =
             | BinOp _
             | UnaryOp _
             | Base _
+            | TypeOf _
             | Field _ -> IsTypeOf (exp, t)
           end
         | StringType ->   
@@ -272,6 +282,7 @@ let rec simplify_expr e =
             | UnaryOp _
             | Base _
             | Field _
+            | TypeOf _
             | IsTypeOf _ -> IsTypeOf (exp, t)
           end
         | NumberType ->
@@ -284,6 +295,7 @@ let rec simplify_expr e =
             | UnaryOp _
             | Base _
             | Field _
+            | TypeOf _
             | IsTypeOf _ -> IsTypeOf (exp, t)
           end
         | ObjectType ->
@@ -296,9 +308,32 @@ let rec simplify_expr e =
             | UnaryOp _
             | Base _
             | Field _
+            | TypeOf _
             | IsTypeOf _ -> IsTypeOf (exp, t)
           end
-     end
+        end
+	    | TypeOf exp -> 
+	      begin match exp with
+	        | Literal l -> 
+            begin match l with
+              | LLoc _ -> Literal (Type ObjectType)
+						  | Null -> Literal (Type NullType)                 
+						  | Bool _ -> Literal (Type BooleanType)          
+						  | Num _ -> Literal (Type NumberType)         
+						  | String _ -> Literal (Type StringType)
+						  | Undefined -> Literal (Type UndefinedType)
+						  | Type _ 
+						  | Empty -> TypeOf (exp)
+            end
+			    | Var _ 
+			    | BinOp _
+			    | UnaryOp _ -> exp
+			    | Ref (e1, e2, rt) -> Literal (Type (ReferenceType (Some rt)))
+			    | Base e -> exp
+			    | Field e -> Literal (Type StringType)
+			    | IsTypeOf (e, _) -> Literal (Type BooleanType)
+			    | TypeOf e -> exp
+	      end 
     
 let simplify_stmt stmt = transform_expr_in_stmt simplify_expr stmt
 
@@ -331,6 +366,7 @@ let get_type_info_literal lit =
     | Num _ -> TI_Type NumberType          
     | String _ -> TI_Type StringType
     | Undefined -> TI_Type UndefinedType
+    | Type _ ->  TI_Type StringType (* TODO *)
     | Empty -> TI_Empty)
 
 let rec get_type_info_expr type_info e =
@@ -363,6 +399,7 @@ let rec get_type_info_expr type_info e =
     | Base e -> Some TI_Value
     | Field e -> Some (TI_Type StringType)
     | IsTypeOf (e, _) -> Some (TI_Type BooleanType)
+    | TypeOf e -> Some (TI_Type StringType)
 
 let get_type_info_assign_expr type_info e =
   let f = get_type_info_expr type_info in
@@ -385,6 +422,7 @@ let rec simplify_type_of type_info e =
         Literal (Bool true)
       else if upper_bound_type fe_type t1 = fe_type then IsTypeOf (f e1, t)
       else Literal (Bool false)
+    | TypeOf e1 -> TypeOf (f e1)
     | Literal _
     | Var _ -> e
     | BinOp (e1, binop, e2) -> 

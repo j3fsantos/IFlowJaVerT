@@ -73,6 +73,7 @@ let to_boolean v counter =
           end  
 			  | String s -> not (s = "")
 			  | Undefined -> false
+        | Type t -> raise (InterpreterStuck ("Cannot proceed with ! on type", counter))
 			  | Empty -> raise (InterpreterStuck ("Cannot proceed with ! on empty value", counter))
       end
     | HVObj _ -> true
@@ -93,8 +94,9 @@ let type_of_literal l =
 	  | Bool _ -> BooleanType         
 	  | Num _ -> NumberType          
 	  | String _ -> StringType
-	  | Undefined
-	  | Empty -> UndefinedType
+	  | Undefined -> UndefinedType
+	  | Empty -> UndefinedType (*TODO*)
+    | Type _ -> StringType (* TODO *)
 
 let type_of v =
   match v with
@@ -104,6 +106,7 @@ let type_of v =
         | HVObj _ -> ObjectType
       end
     | VRef (_, _, rt) -> ReferenceType (Some rt)
+    | VType _ -> StringType (* Shouldn't be called at all? *)
 
 let is_type_of v pt =
   let vtype = type_of v in
@@ -180,6 +183,7 @@ let rec run_expr (s : local_state) (e : expression) : value =
       let x = run_expr s e2 in
       let hv = match v with
         | VHValue hv -> hv
+        | VType _ -> raise (InterpreterStuck ("First parameter of reference cannot be a type", s.lscounter))
         | VRef _ -> raise (InterpreterStuck ("First parameter of reference cannot be a reference", s.lscounter)) in
       let xstring = string_check x "Second element of reference should be string" s.lscounter in
       VRef (hv, xstring, rt)
@@ -199,6 +203,11 @@ let rec run_expr (s : local_state) (e : expression) : value =
       let v = run_expr s e in
       let b = is_type_of v pt in
       VHValue (HVLiteral (Bool b))
+    | TypeOf (e) ->
+      let v = run_expr s e in
+      let t = type_of v in
+      VType t
+      
       
 let rec get_value_proto v x h counter =
   match v with
@@ -323,6 +332,7 @@ and run_basic_stmt (s : local_state) (stmt : basic_statement) (labelmap : int La
             let l, x, obj = object_field_check v1 v2 s.lsheap "Mutation" s.lscounter in
             let v3 = match v3 with
               | VHValue v -> v
+              | VType _ -> raise (InterpreterStuck ("Right hand side of mutation cannot be a type", s.lscounter))
               | VRef _ -> raise (InterpreterStuck ("Right hand side of mutation cannot be a reference", s.lscounter)) in
             let newobj = Object.add x v3 obj in
             {s with lsheap = Heap.add l newobj s.lsheap; lscounter = s.lscounter + 1}

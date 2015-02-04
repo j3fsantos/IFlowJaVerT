@@ -20,6 +20,20 @@ type builtin_field =
   | FScope
   | FPrototype
 
+
+type reference_type = 
+  | MemberReference (*A reference created by access x[y] *)
+  | VariableReference (* A reference created by sigma *)
+
+type pulp_type =
+  | NullType
+  | UndefinedType
+  | BooleanType
+  | StringType
+  | NumberType
+  | ObjectType
+  | ReferenceType of reference_type option (* Option means member or variable *)
+
 type literal =
   | LLoc of builtin_loc
   | Null                  
@@ -27,7 +41,8 @@ type literal =
   | Num of float          
   | String of string
   | Undefined
-  | Empty (* special return value for the statements and internal reductions *)     
+  | Type of pulp_type
+  | Empty (* special return value for the statements and internal reductions *)   
 
 type variable = string (* Variables of IVL *)
 
@@ -44,20 +59,7 @@ module CodenameMap = Map.Make (
   end
 )
 
-type reference_type = 
-  | MemberReference (*A reference created by access x[y] *)
-  | VariableReference (* A reference created by sigma *)
-
 type codename_spec = spec CodenameMap.t  
-
-type pulp_type =
-  | NullType
-  | UndefinedType
-  | BooleanType
-  | StringType
-  | NumberType
-  | ObjectType
-  | ReferenceType of reference_type option (* Option means member or variable *)
 
 type comparison_op =
   | Equal
@@ -90,6 +92,7 @@ type expression =
   | Base of expression
   | Field of expression
   | IsTypeOf of expression * pulp_type
+  | TypeOf of expression
 
 type call = { 
     call_name : expression;

@@ -56,16 +56,6 @@ let string_of_vars xs =
 let string_of_formal_params fparams = 
   String.concat "," fparams
   
-let string_of_literal lit =
-  match lit with
-    | LLoc l -> string_of_builtin_loc l
-    | Num n -> string_of_float n
-    | String x -> Printf.sprintf "\"%s\"" x
-    | Null -> "null"
-    | Bool b -> string_of_bool b
-    | Undefined -> "#undefined"
-    | Empty -> "#empty" 
-  
 let string_of_ref_type rt =
   match rt with
     | MemberReference -> "Member"
@@ -82,7 +72,18 @@ let string_of_pulp_type t =
   | ReferenceType r ->
     match r with
       | None -> "Reference"
-      | Some r -> (string_of_ref_type r)^"Reference" 
+      | Some r -> (string_of_ref_type r)^"Reference"
+  
+let string_of_literal lit =
+  match lit with
+    | LLoc l -> string_of_builtin_loc l
+    | Num n -> string_of_float n
+    | String x -> Printf.sprintf "\"%s\"" x
+    | Null -> "null"
+    | Bool b -> string_of_bool b
+    | Undefined -> "#undefined"
+    | Empty -> "#empty" 
+    | Type t -> string_of_pulp_type t 
   
 let rec string_of_expression e =
   let se = string_of_expression in
@@ -92,6 +93,7 @@ let rec string_of_expression e =
     | BinOp (e1, op, e2) -> Printf.sprintf "%s %s %s" (se e1) (string_of_bin_op op) (se e2)
     | UnaryOp (op, e) -> Printf.sprintf "%s (%s)" (string_of_unary_op op) (se e)
     | IsTypeOf (e, t) -> Printf.sprintf "istypeof (%s, %s)" (se e) (string_of_pulp_type t)
+    | TypeOf e -> Printf.sprintf "typeof (%s)" (se e) 
     | Ref (e1, e2, t) -> Printf.sprintf "(%s .%s %s)" (se e1)
       (match t with
         | MemberReference -> "_o"
