@@ -89,15 +89,15 @@ let mk_assign_fresh_lit lit = mk_assign_fresh_e (Literal lit)
 let tr_unary_op op =
   match op with
       | Parser_syntax.Not -> Not
-      | Parser_syntax.TypeOf 
-      | Parser_syntax.Positive
-      | Parser_syntax.Negative
-      | Parser_syntax.Pre_Decr
-      | Parser_syntax.Post_Decr
-      | Parser_syntax.Pre_Incr
-      | Parser_syntax.Post_Incr
-      | Parser_syntax.Bitnot
-      | Parser_syntax.Void -> raise (PulpNotImplemented (Pretty_print.string_of_unary_op op))
+      | Parser_syntax.TypeOf -> raise (PulpNotImplemented ((Pretty_print.string_of_unary_op op ^ " REF:11.4.3 The typeof Operator.")))
+      | Parser_syntax.Positive -> raise (PulpNotImplemented ((Pretty_print.string_of_unary_op op ^ " REF:11.4.6 Unary + Operator.")))
+      | Parser_syntax.Negative -> raise (PulpNotImplemented ((Pretty_print.string_of_unary_op op ^ " REF:11.4.7 Unary - Operator.")))
+      | Parser_syntax.Pre_Decr -> raise (PulpNotImplemented ((Pretty_print.string_of_unary_op op ^ " REF:11.4.5 Prefix Decrement Operator.")))
+      | Parser_syntax.Post_Decr -> raise (PulpNotImplemented ((Pretty_print.string_of_unary_op op ^ " REF:11.3.2 Postfix Decrement Operator.")))
+      | Parser_syntax.Pre_Incr -> raise (PulpNotImplemented ((Pretty_print.string_of_unary_op op ^ " REF:11.4.4 Prefix Increment Operator.")))
+      | Parser_syntax.Post_Incr -> raise (PulpNotImplemented ((Pretty_print.string_of_unary_op op ^ " REF:11.3.1 Postfix Increment Operator.")))
+      | Parser_syntax.Bitnot -> raise (PulpNotImplemented ((Pretty_print.string_of_unary_op op ^ " REF:11.4.8 Bitwise NOT Operator.")))
+      | Parser_syntax.Void -> raise (PulpNotImplemented ((Pretty_print.string_of_unary_op op ^ " REF:11.4.2 The void Operator.")))
 
 let tr_arith_op op =
   begin match op with
@@ -105,27 +105,27 @@ let tr_arith_op op =
       | Parser_syntax.Minus -> Minus
       | Parser_syntax.Times -> Times
       | Parser_syntax.Div -> Div
-      | Parser_syntax.Mod
-      | Parser_syntax.Ursh 
-      | Parser_syntax.Lsh 
-      | Parser_syntax.Rsh
-      | Parser_syntax.Bitand
-      | Parser_syntax.Bitor
-      | Parser_syntax.Bitxor -> raise (PulpNotImplemented (Pretty_print.string_of_arith_op op))
+      | Parser_syntax.Mod -> raise (PulpNotImplemented ((Pretty_print.string_of_arith_op op ^ " REF:11.5.3 Applying the % Operator.")))
+      | Parser_syntax.Ursh -> raise (PulpNotImplemented ((Pretty_print.string_of_arith_op op ^ " REF:11.7.3 The Unsigned Right Shift Operator.")))
+      | Parser_syntax.Lsh -> raise (PulpNotImplemented ((Pretty_print.string_of_arith_op op ^ " REF:11.7.1 The Left Shift Operator.")))
+      | Parser_syntax.Rsh -> raise (PulpNotImplemented ((Pretty_print.string_of_arith_op op ^ " REF:11.7.2 The Signed Right Shift Operator.")))
+      | Parser_syntax.Bitand -> raise (PulpNotImplemented ((Pretty_print.string_of_arith_op op ^ " REF:11.10 Binary Bitwise Operators.And.")))
+      | Parser_syntax.Bitor -> raise (PulpNotImplemented ((Pretty_print.string_of_arith_op op ^ " REF:11.10 Binary Bitwise Operators.Or.")))
+      | Parser_syntax.Bitxor -> raise (PulpNotImplemented ((Pretty_print.string_of_arith_op op ^ " REF:11.10 Binary Bitwise Operators.Xor.")))
   end
   
 let tr_comparison_op op =
   begin match op with
     | Parser_syntax.Equal -> Equal
-    | Parser_syntax.NotEqual 
-    | Parser_syntax.TripleEqual 
-    | Parser_syntax.NotTripleEqual 
-    | Parser_syntax.Lt 
-    | Parser_syntax.Le 
-    | Parser_syntax.Gt 
-    | Parser_syntax.Ge 
-    | Parser_syntax.In 
-    | Parser_syntax.InstanceOf -> raise (PulpNotImplemented (Pretty_print.string_of_comparison_op op))
+    | Parser_syntax.NotEqual -> raise (PulpNotImplemented ((Pretty_print.string_of_comparison_op op ^ " REF:11.9.2 The Does-not-equals Operator.")))
+    | Parser_syntax.TripleEqual -> raise (PulpNotImplemented ((Pretty_print.string_of_comparison_op op ^ " REF:11.9.4 The Strict Equals Operator.")))
+    | Parser_syntax.NotTripleEqual -> raise (PulpNotImplemented ((Pretty_print.string_of_comparison_op op ^ " REF:11.9.5 The Strict Does-not-equal Operator.")))
+    | Parser_syntax.Lt -> raise (PulpNotImplemented ((Pretty_print.string_of_comparison_op op ^ " REF:11.8.1 The Less-than Operator")))
+    | Parser_syntax.Le -> raise (PulpNotImplemented ((Pretty_print.string_of_comparison_op op ^ " REF:11.8.3 The Less-than-or-equal Operator.")))
+    | Parser_syntax.Gt -> raise (PulpNotImplemented ((Pretty_print.string_of_comparison_op op ^ " REF:11.8.2 The Greater-than Operator.")))
+    | Parser_syntax.Ge -> raise (PulpNotImplemented ((Pretty_print.string_of_comparison_op op ^ " REF:11.8.4 The Greater-than-or-equal Operator.")))
+    | Parser_syntax.In -> raise (PulpNotImplemented ((Pretty_print.string_of_comparison_op op ^ " REF:11.8.7 The in operator.")))
+    | Parser_syntax.InstanceOf -> raise (PulpNotImplemented ((Pretty_print.string_of_comparison_op op ^ " REF:11.8.6 The instanceof operator.")))
   end
   
 let tr_boolean_op op =
@@ -402,7 +402,7 @@ let rec translate_exp ctx exp : statement list * variable =
                   [Basic (Mutation (mk_mutation (Var r1.assign_left) (Literal (String (Pretty_print.string_of_propname prop_name))) (Var r3)))] 
                    
                 end
-              | _ -> raise (PulpNotImplemented ("Getters and Setters are not yet implemented"))
+              | _ -> raise (PulpNotImplemented ("Getters and Setters are not yet implemented REF:11.1.5 Object Initialiser.Get.Set."))
             ) xs in
                            
             [
@@ -503,8 +503,8 @@ let rec translate_exp ctx exp : statement list * variable =
       | Parser_syntax.Unary_op (op, e) ->
         begin match op with 
           | Parser_syntax.Not ->
-                let r1_stmts, r1 = f e in
-                let r2_stmts, r2 = translate_gamma r1 ctx in
+            let r1_stmts, r1 = f e in
+            let r2_stmts, r2 = translate_gamma r1 ctx in
             let rv = fresh_r () in 
             let if1 = 
               Sugar (If (is_false_expr r2, 
@@ -517,7 +517,15 @@ let rec translate_exp ctx exp : statement list * variable =
                 r1_stmts @
             r2_stmts @
             [if1], rv
-          | _ -> raise (PulpNotImplemented (Pretty_print.string_of_exp true exp))
+          | Parser_syntax.TypeOf -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.4.3 The typeof Operator.")))
+					| Parser_syntax.Positive -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.4.6 Unary + Operator.")))
+					| Parser_syntax.Negative -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.4.7 Unary - Operator.")))
+					| Parser_syntax.Pre_Decr -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.4.5 Prefix Decrement Operator.")))
+					| Parser_syntax.Post_Decr -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.3.2 Postfix Decrement Operator.")))
+					| Parser_syntax.Pre_Incr -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.4.4 Prefix Increment Operator.")))
+					| Parser_syntax.Post_Incr -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.3.1 Postfix Increment Operator.")))
+					| Parser_syntax.Bitnot -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.4.8 Bitwise NOT Operator.")))
+					| Parser_syntax.Void -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.4.2 The void Operator.")))
         end 
         
       | Parser_syntax.Delete e ->
@@ -562,15 +570,29 @@ let rec translate_exp ctx exp : statement list * variable =
           | Parser_syntax.Comparison cop ->
             begin match cop with
               | Parser_syntax.Equal -> translate_regular_bin_op f op e1 e2 ctx
-              | _ -> raise (PulpNotImplemented (Pretty_print.string_of_exp true exp))
+              | Parser_syntax.NotEqual -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.9.2 The Does-not-equals Operator.")))
+						  | Parser_syntax.TripleEqual -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.9.4 The Strict Equals Operator.")))
+						  | Parser_syntax.NotTripleEqual -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.9.5 The Strict Does-not-equal Operator.")))
+						  | Parser_syntax.Lt -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.8.1 The Less-than Operator")))
+						  | Parser_syntax.Le -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.8.3 The Less-than-or-equal Operator.")))
+						  | Parser_syntax.Gt -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.8.2 The Greater-than Operator.")))
+						  | Parser_syntax.Ge -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.8.4 The Greater-than-or-equal Operator.")))
+						  | Parser_syntax.In -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.8.7 The in operator.")))
+						  | Parser_syntax.InstanceOf -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.8.6 The instanceof operator.")))
             end
           | Parser_syntax.Arith aop -> 
             begin match aop with
               | Parser_syntax.Plus
-                          | Parser_syntax.Minus
-                          | Parser_syntax.Times
-                          | Parser_syntax.Div -> translate_regular_bin_op f op e1 e2 ctx
-                          | _ -> raise (PulpNotImplemented (Pretty_print.string_of_exp true exp))
+              | Parser_syntax.Minus
+              | Parser_syntax.Times
+              | Parser_syntax.Div -> translate_regular_bin_op f op e1 e2 ctx
+              | Parser_syntax.Mod -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.5.3 Applying the % Operator.")))
+						  | Parser_syntax.Ursh -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.7.3 The Unsigned Right Shift Operator.")))
+						  | Parser_syntax.Lsh -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.7.1 The Left Shift Operator.")))
+						  | Parser_syntax.Rsh -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.7.2 The Signed Right Shift Operator.")))
+						  | Parser_syntax.Bitand -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.10 Binary Bitwise Operators.And.")))
+						  | Parser_syntax.Bitor -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.10 Binary Bitwise Operators.Or.")))
+						  | Parser_syntax.Bitxor -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.10 Binary Bitwise Operators.Xor.")))
             end
           | Parser_syntax.Boolean bop -> 
             begin match bop with
@@ -603,12 +625,12 @@ let rec translate_exp ctx exp : statement list * variable =
             [translate_put_value r1 r3 ctx.throw_var ctx.label_throw], r3
         end
       
-      | Parser_syntax.Array _
-      | Parser_syntax.NamedFun _
-      | Parser_syntax.ConditionalOp _
-      | Parser_syntax.AssignOp _
-      | Parser_syntax.Comma _ 
-      | Parser_syntax.RegExp _ -> raise (PulpNotImplemented (Pretty_print.string_of_exp true exp))   
+      | Parser_syntax.Array _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.1.4 Array Initialiser.")))
+      | Parser_syntax.NamedFun _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.2.5 Function Expressions.Named.")))
+      | Parser_syntax.ConditionalOp _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.2 Conditional Operator.")))
+      | Parser_syntax.AssignOp _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.13.2 Compound Assignment.")))
+      | Parser_syntax.Comma _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.4 Comma Operator.")))
+      | Parser_syntax.RegExp _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:7.8.5 Regular Expression Literals.")))   
 
       (*Statements*)
       | Parser_syntax.Block _
@@ -891,25 +913,25 @@ let rec translate_stmt ctx exp : statement list * variable =
           Goto ctx.label_throw], r2
 
       (* Next TODO *) 
-      | Parser_syntax.Continue _
-      | Parser_syntax.Break _
-      | Parser_syntax.Label _
+      | Parser_syntax.Continue _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.7 The continue Statement.")))  
+      | Parser_syntax.Break _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.8 The break Statement.")))
+      | Parser_syntax.Label _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.12 Labelled Statement.")))
         
-      | Parser_syntax.DoWhile _
-      | Parser_syntax.For _
-      | Parser_syntax.Switch _
+      | Parser_syntax.DoWhile _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.6.1 The do-while Statement.")))
+      | Parser_syntax.For _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.6.3 The for Statement.")))
+      | Parser_syntax.Switch _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.11 Switch Statement.")))
 
       (* I am not considering those *)  
       
-      | Parser_syntax.ForIn _
-      | Parser_syntax.With _
-      | Parser_syntax.Debugger -> raise (PulpNotImplemented (Pretty_print.string_of_exp true exp))
+      | Parser_syntax.ForIn _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.6.4 The for-in Statement.")))
+      | Parser_syntax.With _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.10 With Statemenet.")))
+      | Parser_syntax.Debugger -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.15 The debugger Statement.")))
 
       
 
 let exp_to_elem ctx exp : statement list * variable = 
     match exp.Parser_syntax.exp_stx with
-      | Parser_syntax.NamedFun (s, name, args, body) -> raise (PulpNotImplemented (Pretty_print.string_of_exp true exp))
+      | Parser_syntax.NamedFun (s, name, args, body) -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:13 Function Declarations.")))
       | _ ->  translate_stmt ctx exp
 
 let rec exp_to_fb ctx exp : statement list * variable =
