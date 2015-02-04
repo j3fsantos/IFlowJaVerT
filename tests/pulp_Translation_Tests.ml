@@ -17,7 +17,13 @@ let test_template p name =
   
   let cfg_bbs = AllFunctions.mapi (fun name cfg ->
     let fb = AllFunctions.find name p_exp in
-    Simp_Main.basic_block_simplifications cfg fb.func_ctx) cfg in
+    let cfg_bb = Simp_Main.basic_block_simplifications cfg fb.func_ctx in
+    let stmts = Basic_Blocks.cfg_to_fb cfg_bb fb.func_ctx.label_throw fb.func_ctx.label_return in
+    Printf.printf "Procedure %s \n %s \n" name (Pulp_Syntax_Print.string_of_statement_list stmts);
+    cfg_bb
+    ) cfg in
+  
+  Basic_Blocks.print_cfg_bb cfg_bbs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/bb/"^name);
   
   (*Reaching_Defs.debug_print_cfg_bb_with_defs cfg_bbs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/rd/cp/"^name);*)
   
@@ -216,6 +222,29 @@ let test_cav_example_2 () =
 var f = object.method;
 f() ") "CAV example 2"
 
+let test_cav_example_3 () =
+  test_template ("var MyObject = function(p) {
+    this.property = p;
+    this.method = function() {
+      return this.property;
+    }
+};
+
+var obj = new MyObject('some property');
+obj.method();") "CAV example 3"
+
+let test_cav_example_4 () =
+  test_template ("var MyObject = function(p) {
+    this.property = p;
+    this.method = function() {
+      return this.property;
+    }
+};
+
+var obj = new MyObject('some property');
+var f = obj.method;
+f()") "CAV example 4"
+
 let suite = "Testing_Translation" >:::
   [ "translating simple" >:: test_simple;
    "translating access" >:: test_access;
@@ -246,4 +275,6 @@ let suite = "Testing_Translation" >:::
    "cfg_anonymous2" >:: cfg_anonymous2;
    "test_invest_example" >:: test_invest_example;
    "test_cav_example_1" >:: test_cav_example_1;
-   "test_cav_example_2" >:: test_cav_example_2] 
+   "test_cav_example_2" >:: test_cav_example_2;
+   "test_cav_example_3" >:: test_cav_example_3;
+   "test_cav_example_4" >:: test_cav_example_4] 

@@ -59,16 +59,22 @@ let run_program path =
   in
   let prelude_exp = 
     try 
-      Parser_main.exp_from_file (List.hd !test_prelude)
+      match !test_prelude with
+        | [] -> None 
+        | hd :: _ -> Some (Parser_main.exp_from_file (List.hd !test_prelude))
     with
       | Parser.ParserFailure file ->
         Printf.printf "\nParsing problems with the prelude file '%s'.\n" file;
         exit 1
   in 
   let exp = 
-    match prelude_exp.Parser_syntax.exp_stx, exp.Parser_syntax.exp_stx with
-      | Parser_syntax.Script (_, es1), Parser_syntax.Script (str, es2) -> {exp with Parser_syntax.exp_stx = Parser_syntax.Script (str, es1 @ es2)}
-      | _ -> Printf.printf "\nSomething wrong with adding prelude.\n"; exit 1
+    match prelude_exp with
+      | None -> exp
+      | Some prelude_exp -> 
+		    begin match prelude_exp.Parser_syntax.exp_stx, exp.Parser_syntax.exp_stx with
+		      | Parser_syntax.Script (_, es1), Parser_syntax.Script (str, es2) -> {exp with Parser_syntax.exp_stx = Parser_syntax.Script (str, es1 @ es2)}
+		      | _ -> Printf.printf "\nSomething wrong with adding prelude.\n"; exit 1 
+        end
   in
     
   let p_exp = 
@@ -83,12 +89,12 @@ let run_program path =
   
   if (!calculate_stats) then begin
 	  let exp_string = Pretty_print.string_of_exp false exp in
-	  let exp_string_lines = List.length (Str.split (Str.regexp "\\n") exp_string) in
+	  let exp_string_lines = List.length (Str.split (Str.regexp "\n") exp_string) in
 	  let p_exp_string = Pulp_Syntax_Print.string_of_all_functions p_exp in
-	  let p_exp_string_lines = List.length (Str.split (Str.regexp "\\n") p_exp_string) in 
+	  let p_exp_string_lines = List.length (Str.split (Str.regexp "\n") p_exp_string) in 
 	  
 	  let p_exp_simpl_string = Pulp_Syntax_Print.string_of_all_functions p_exp_simpl in
-	  let p_exp_simpl_string_lines = List.length (Str.split (Str.regexp "\\n") p_exp_simpl_string) in
+	  let p_exp_simpl_string_lines = List.length (Str.split (Str.regexp "\n") p_exp_simpl_string) in
 	  
 	  let name = Filename.basename path in
 	  Printf.printf "\nLine count: %s, %i, JS\n" name exp_string_lines;

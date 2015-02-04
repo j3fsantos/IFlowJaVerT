@@ -202,6 +202,29 @@ let test_cav_example_2 () =
 
 var f = object.method;
 f() ") LTError
+
+let test_cav_example_3 () =
+  test_template_normal ("var MyObject = function(p) {
+    this.property = p;
+    this.method = function() {
+      return this.property;
+    }
+};
+
+var obj = new MyObject('some property');
+obj.method();") (VHValue (HVLiteral (String "some property")))
+
+let test_cav_example_4 () =
+  test_template_exception ("var MyObject = function(p) {
+    this.property = p;
+    this.method = function() {
+      return this.property;
+    }
+};
+
+var obj = new MyObject('some property');
+var f = obj.method;
+f()") LTError
   
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
@@ -229,4 +252,6 @@ let suite = "Testing_Interpreter" >:::
    "test_program_try14" >:: test_program_try14;
    "test_throw" >:: test_throw;
    "test_cav_example_1" >:: test_cav_example_1;
-   "test_cav_example_2" >:: test_cav_example_2] 
+   "test_cav_example_2" >:: test_cav_example_2;
+   "test_cav_example_3" >:: test_cav_example_3;
+   "test_cav_example_4" >:: test_cav_example_4] 
