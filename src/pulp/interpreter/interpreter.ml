@@ -212,7 +212,7 @@ let rec run_expr (s : local_state) (e : expression) : value =
 let rec get_value_proto v x h counter =
   match v with
     (* Should it be undefined descriptor? *)
-    | VHValue (HVLiteral Null) -> VHValue (HVLiteral Undefined)
+    | VHValue (HVLiteral Null) -> VHValue (HVLiteral Empty)
     | _ ->
       let l = object_check v "First argument of Proto must be an object" counter in
 		  let obj = 

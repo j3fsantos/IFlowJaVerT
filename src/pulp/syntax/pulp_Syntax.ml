@@ -11,7 +11,6 @@ type builtin_loc =
   | LRError (* Reference Error *)
   | LTError (* Type Error *)
   | LSError (* Syntax Error *)
-  | LUnknownScope (* Variable is not being found when doing closure conversion *)
   | LNotImplemented (* The tool cannot handle this case atm *)
 
 type builtin_field =

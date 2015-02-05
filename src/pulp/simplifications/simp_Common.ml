@@ -352,8 +352,6 @@ let upper_bound_type t1 t2 =
           | TI_Type (ReferenceType _), TI_Type (ReferenceType _) -> Some (TI_Type (ReferenceType None))
           | TI_Type (ReferenceType _), _ -> None
           | _, TI_Type (ReferenceType _) -> None
-          | TI_Empty, _ -> None
-          | _, TI_Empty -> None
           | _, _ -> Some (TI_Value)
         end
     end

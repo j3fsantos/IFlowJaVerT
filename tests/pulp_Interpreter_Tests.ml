@@ -237,6 +237,31 @@ let test_cav_example_4 () =
 var obj = new MyObject('some property');
 var f = obj.method;
 f()") LTError
+
+let test_cav_example_5 () =
+  test_template_normal ("
+  var prop = 'global property';
+  var obj = {
+ prop: 'some property',
+ m: function() {
+   return this.prop === prop;
+ }
+};
+
+obj.m()") (VHValue (HVLiteral (Bool false)))
+
+let test_cav_example_6 () =
+  test_template_exception ("
+  var prop = 'global property';
+  var obj = {
+ prop: 'some property',
+ m: function() {
+   return this.prop === prop;
+ }
+};
+
+var f = obj.m;
+f()") LTError
   
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
@@ -270,4 +295,6 @@ let suite = "Testing_Interpreter" >:::
    "test_cav_example_1" >:: test_cav_example_1;
    "test_cav_example_2" >:: test_cav_example_2;
    "test_cav_example_3" >:: test_cav_example_3;
-   "test_cav_example_4" >:: test_cav_example_4] 
+   "test_cav_example_4" >:: test_cav_example_4;
+    "test_cav_example_5" >:: test_cav_example_5;
+    "test_cav_example_6" >:: test_cav_example_6] 

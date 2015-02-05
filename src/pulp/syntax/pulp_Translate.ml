@@ -241,20 +241,34 @@ let translate_gamma r ctx =
   let base = mk_assign_fresh_e (Base (Var r)) in
   let field = mk_assign_fresh_e (Field (Var r)) in
   let assign_rv_lookup = mk_assign rv (Lookup (Var base.assign_left, Var field.assign_left)) in
-  let rv_assign_pi = mk_assign rv (Pi (Var base.assign_left, Var field.assign_left)) in  
+  let assign_pi_1 = mk_assign_fresh (Pi (Var base.assign_left, Var field.assign_left)) in  
+  let assign_pi_2 = mk_assign_fresh (Pi (Var base.assign_left, Var field.assign_left)) in  
   let main = Sugar (If (is_ref_expr r,
     [
       Basic (Assignment base);
-      Sugar (If (or_expr (equal_undef_expr base.assign_left) (equal_loc_expr base.assign_left LUnknownScope),
+      Sugar (If (equal_undef_expr base.assign_left,
         translate_error_throw LRError ctx.throw_var ctx.label_throw,
         [
           Sugar (If (istypeof_prim_expr base.assign_left,
             translate_error_throw LNotImplemented ctx.throw_var ctx.label_throw,
             [
               Basic (Assignment field);
-              Sugar (If (and_expr (is_vref_expr r) (not_expr (equal_loc_expr base.assign_left Lg)),
-                [ Basic (Assignment assign_rv_lookup) ],
-                [ Basic (Assignment rv_assign_pi) ]))
+              Sugar (If (is_vref_expr r,
+                [ 
+                  Sugar (If (equal_loc_expr base.assign_left Lg,
+                  [
+                    Basic (Assignment assign_pi_1);
+                    Sugar (If (equal_empty_expr assign_pi_1.assign_left,
+                      translate_error_throw LRError ctx.throw_var ctx.label_throw,
+                      [Basic (Assignment (mk_assign rv (Expression(Var assign_pi_1.assign_left))))]))
+                  ],
+                  [Basic (Assignment assign_rv_lookup)])) 
+                ],
+                [ Basic (Assignment assign_pi_2);
+                  Sugar (If (equal_empty_expr assign_pi_2.assign_left,
+                    [Basic (Assignment (mk_assign rv (Expression(Literal Empty))))],
+                    [Basic (Assignment (mk_assign rv (Expression(Var assign_pi_2.assign_left))))])) ]))
+                (*not_expr (equal_loc_expr base.assign_left Lg*)
             ]))
         ]))
     ],
@@ -387,7 +401,7 @@ let find_var_scope var env =
     ) env in
   Var (function_scope_name (scope.func_id))
   with
-    | Not_found -> Literal (LLoc LUnknownScope) 
+    | Not_found -> Literal (LLoc Lg) 
 
 
 let translate_literal exp : statement list * variable =

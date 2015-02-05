@@ -36,7 +36,6 @@ let string_of_builtin_loc l =
     | LRError -> "#lrerror"
     | LTError -> "#lterror"
     | LSError -> "#lserror"
-    | LUnknownScope  -> "#lunknownscope"
     | LNotImplemented -> "#lnotimplemented"
 
 let string_of_builtin_field f =

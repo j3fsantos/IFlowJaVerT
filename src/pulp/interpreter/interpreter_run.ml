@@ -83,7 +83,7 @@ let run_program path =
     with
       | PulpNotImplemented exp -> Printf.printf "\nTranslation of Javascript syntax does not support '%s' yet.\n" exp; exit 2
       | Invalid_argument arg -> Printf.printf "\nSomething wrong with the translation '%s'.\n" arg; exit 1
-  in  
+  in 
   
   let p_exp_simpl = Simp_Main.simplify p_exp in 
   
@@ -110,7 +110,7 @@ let run_program path =
   let result = run_with_heap h p_exp_simpl in
   match result.fs_return_type with
     | FTReturn -> pr_test result.fs_heap
-    | FTException -> pr_test result.fs_heap; Printf.printf "\nException was thrown.\n"; exit 1 
+    | FTException -> pr_test result.fs_heap; Printf.printf "\nException was thrown.\n"; exit 1
 
 let main () =
   Config.apply_config ();
