@@ -29,7 +29,8 @@ let get_vars_in_assign_expr e =
   let f = get_vars_in_expr in
   match e with
       | Expression expr -> f expr
-      | Call c -> get_vars_in_call c
+      | Call c 
+      | Eval c -> get_vars_in_call c
       | Obj -> []
       | HasField (e1, e2) -> f e1 @ f e2
       | Lookup (e1, e2) -> f e1 @ f e2
@@ -85,7 +86,8 @@ let transform_expr_in_call f c =
 let transform_expr_in_assign_expr f e =
   match e with
       | Expression expr -> Expression (f expr)
-      | Call c -> Call (transform_expr_in_call f c)
+      | Call c 
+      | Eval c -> Call (transform_expr_in_call f c)
       | Obj -> Obj
       | HasField (e1, e2) -> HasField (f e1, f e2)
       | Lookup (e1, e2) -> Lookup (f e1, f e2)
@@ -403,7 +405,8 @@ let get_type_info_assign_expr type_info e =
   let f = get_type_info_expr type_info in
   match e with
       | Expression expr -> f expr
-      | Call c -> Some TI_Value
+      | Call c 
+      | Eval c -> Some TI_Value
       | Obj -> Some (TI_Type ObjectType)
       | HasField (e1, e2) -> Some (TI_Type BooleanType)
       | Lookup (e1, e2) -> Some TI_Value

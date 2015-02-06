@@ -79,13 +79,13 @@ let run_program path =
     
   let p_exp = 
     try 
-      exp_to_pulp IVL_goto exp 
+      exp_to_pulp IVL_goto exp Pulp_Syntax_Utils.main_fun_id
     with
       | PulpNotImplemented exp -> Printf.printf "\nTranslation of Javascript syntax does not support '%s' yet.\n" exp; exit 2
       | Invalid_argument arg -> Printf.printf "\nSomething wrong with the translation '%s'.\n" arg; exit 1
   in 
   
-  let p_exp_simpl = Simp_Main.simplify p_exp in 
+  let p_exp_simpl = (*Simp_Main.simplify*) p_exp in 
   
   if (!calculate_stats) then begin
 	  let exp_string = Pretty_print.string_of_exp false exp in

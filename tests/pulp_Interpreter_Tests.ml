@@ -12,7 +12,7 @@ let get_expr p =
   Parser_main.verbose := true;
   let exp = Parser_main.exp_from_string p in
   let _ = Printf.printf "%s \n" (Pretty_print.string_of_exp_syntax exp.Parser_syntax.exp_stx) in
-  let p_exp = exp_to_pulp IVL_goto exp in
+  let p_exp = exp_to_pulp IVL_goto exp main_fun_id in
   let _ = AllFunctions.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_func_block fwc)) p_exp in
   p_exp
 
@@ -194,6 +194,9 @@ let test_program_try11 () =
  let test_function_decl_2 () =
    test_template_normal ("f(); function f () {return 5};") (VHValue (HVLiteral (Num 5.0)))
   
+ let test_eval_1 () =
+   test_template_normal ("eval ('1')") (VHValue (HVLiteral (Num 1.0)))
+  
 let test_cav_example_1 () =
   test_template_normal ("var object = {
  property: 'some property',
@@ -241,30 +244,30 @@ f()") LTError
 let test_cav_example_5 () =
   test_template_normal ("
   var prop = 'global property';
-  var obj = {
+  var object = {
  prop: 'some property',
- m: function() {
+ method: function() {
    return this.prop === prop;
  }
 };
 
-obj.m()") (VHValue (HVLiteral (Bool false)))
+object.method()") (VHValue (HVLiteral (Bool false)))
 
 let test_cav_example_6 () =
   test_template_exception ("
   var prop = 'global property';
-  var obj = {
+  var object = {
  prop: 'some property',
- m: function() {
+ method: function() {
    return this.prop === prop;
  }
 };
 
-var f = obj.m;
+var f = object.method;
 f()") LTError
   
 let suite = "Testing_Interpreter" >:::
-  ["running program1" >:: test_program1;
+  [(*"running program1" >:: test_program1;
    "running program2" >:: test_program2;
    "running_program3" >:: test_program3;
    "running_program4" >:: test_program4;
@@ -292,9 +295,10 @@ let suite = "Testing_Interpreter" >:::
    "test_strict_not_equal" >:: test_strict_not_equal;
    "test_function_decl_1" >:: test_function_decl_1;
    "test_function_decl_2" >:: test_function_decl_2;
+    "test_eval_1" >:: test_eval_1;
    "test_cav_example_1" >:: test_cav_example_1;
    "test_cav_example_2" >:: test_cav_example_2;
    "test_cav_example_3" >:: test_cav_example_3;
-   "test_cav_example_4" >:: test_cav_example_4;
+   "test_cav_example_4" >:: test_cav_example_4;*)
     "test_cav_example_5" >:: test_cav_example_5;
-    "test_cav_example_6" >:: test_cav_example_6] 
+    (*"test_cav_example_6" >:: test_cav_example_6*)] 

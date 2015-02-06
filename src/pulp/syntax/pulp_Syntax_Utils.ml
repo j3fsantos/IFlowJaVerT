@@ -114,8 +114,8 @@ let make_env env e args fid =
   [Pulp_Syntax.make_ctx_vars fid vars] @ env
   
  
-let rec add_codenames exp : exp =
-  let f = add_codenames in
+let rec add_codenames main exp  : exp =
+  let f = add_codenames main in
   let fo e =
     begin match e with
       | None -> None
@@ -174,7 +174,7 @@ let rec add_codenames exp : exp =
         f e2) sces))
       | Block es -> m exp (Block (List.map f es))
       | Script (str, es) -> 
-        {exp with exp_stx = Script (str, List.map f es); exp_annot = add_codename exp main_fun_id}
+        {exp with exp_stx = Script (str, List.map f es); exp_annot = add_codename exp main}
   
 
 let rec get_all_functions_with_env env e : (exp * Pulp_Syntax.ctx_variables list) list =

@@ -248,6 +248,33 @@ let rec run_assign_expr (s : local_state) (e : assign_right_expression) (funcs :
         | FTException -> {s with lsheap = fs.fs_heap; lsexcep = Some (c.call_throw_label)}, fs.fs_return_value
         | FTReturn -> {s with lsheap = fs.fs_heap}, fs.fs_return_value
       end
+    | Eval c -> 
+      let vthis = run_expr s c.call_this in
+      let vscope = run_expr s c.call_scope in
+      let arg = match c.call_args with
+        | [] -> raise (InterpreterStuck ("Eval should have one argument", s.lscounter))
+        | arg :: tail -> arg in
+      let varg = run_expr s arg in
+      let varg = match varg with
+        | VHValue (HVLiteral (String s)) -> s
+        | _ -> raise (InterpreterStuck ("Eval argument must be string", s.lscounter)) in
+             
+     let exp = Parser_main.exp_from_string varg in  
+    
+     (* TODO update all_functions *)
+     let eval_main = fresh_named "eval" in
+     let pexp = Pulp_Translate.exp_to_pulp Pulp_Translate.IVL_goto exp eval_main in
+    
+     let funcs = AllFunctions.fold (fun key value result -> AllFunctions.add key value result) pexp funcs in
+      
+     let main = AllFunctions.find eval_main pexp in  
+   
+      let fs = run_function s.lsheap main ([vthis; vscope]) funcs in
+      begin match fs.fs_return_type with
+        | FTException -> {s with lsheap = fs.fs_heap; lsexcep = Some (c.call_throw_label)}, fs.fs_return_value
+        | FTReturn -> {s with lsheap = fs.fs_heap}, fs.fs_return_value
+      end
+      
 	  | Obj -> 
       let l = Loc (fresh_loc ()) in
       {s with lsheap = Heap.add l  Object.empty s.lsheap}, VHValue (HVObj l)
@@ -338,7 +365,7 @@ and run_basic_stmt (s : local_state) (stmt : basic_statement) (labelmap : int La
             {s with lsheap = Heap.add l newobj s.lsheap; lscounter = s.lscounter + 1}
 
 and run_stmt (s : local_state) (stmt : statement) (labelmap : int LabelMap.t) (fs : function_block AllFunctions.t) : local_state =
-  (*Printf.printf "Running stmt %s \n" (Pulp_Syntax_Print.string_of_statement stmt);*) 
+  (*Printf.printf "Running stmt %s \n" (Pulp_Syntax_Print.string_of_statement stmt);*)
   match stmt with
     | Label l -> {s with lscounter = s.lscounter + 1}
     | Goto l -> {s with lscounter = LabelMap.find l labelmap}
@@ -368,6 +395,11 @@ let run (h: heap_type) main_this main_scope (fs : function_block AllFunctions.t)
 let built_in_obj_proto_lop h obj =
   let l = Object.add (string_of_builtin_field FProto) (HVObj (BLoc Lop)) Object.empty in
   Heap.add (BLoc obj) l h
+  
+let add_field h l f v =
+  let obj = Heap.find l h in
+  let obj = Object.add f v obj in
+  Heap.add l obj h
     
 let initial_heap () =
   let h = Heap.empty in
@@ -375,6 +407,9 @@ let initial_heap () =
   let h = Heap.add (BLoc Lop) lop h in
   (* Do I want Error object too? Rather then going directly to Lop for errors *)
   let h = List.fold_left built_in_obj_proto_lop h [Lg; Lfp; LEval; LRError; LTError; LSError; LNotImplemented] in
+  let h = add_field h (BLoc Lg) "eval" (HVObj (BLoc LEval)) in
+  let h = Heap.add (BLoc LEval) Object.empty h in
+  let h = add_field h (BLoc LEval) (string_of_builtin_field FId) (HVLiteral (String ("eval"))) in
   h
   
 let run_with_heap h (fs : function_block AllFunctions.t) : function_state =

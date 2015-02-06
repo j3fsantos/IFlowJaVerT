@@ -3,12 +3,12 @@ open Pulp_Syntax_Utils
 
 let string_of_comparison_op x =
   match x with
-    | Equal -> "=="
+    | Equal -> "="
 
 let string_of_bool_op x =
   match x with
-    | And -> "&&"
-    | Or -> "||"
+    | And -> "and"
+    | Or -> "or"
 
 let string_of_arith_op x =
   match x with
@@ -91,8 +91,8 @@ let rec string_of_expression e =
     | Var v -> string_of_var v
     | BinOp (e1, op, e2) -> Printf.sprintf "%s %s %s" (se e1) (string_of_bin_op op) (se e2)
     | UnaryOp (op, e) -> Printf.sprintf "%s (%s)" (string_of_unary_op op) (se e)
-    | IsTypeOf (e, t) -> Printf.sprintf "istypeof (%s, %s)" (se e) (string_of_pulp_type t)
-    | TypeOf e -> Printf.sprintf "typeof (%s)" (se e) 
+    | IsTypeOf (e, t) -> Printf.sprintf "typeOf (%s) = %s" (se e) (string_of_pulp_type t)
+    | TypeOf e -> Printf.sprintf "typeOf (%s)" (se e) 
     | Ref (e1, e2, t) -> Printf.sprintf "(%s .%s %s)" (se e1)
       (match t with
         | MemberReference -> "_o"
@@ -110,12 +110,13 @@ let string_of_assign_right aer =
   let se = string_of_expression in
   match aer with
     | Expression e -> se e
-    | Call c -> string_of_call c
+    | Call c
+    | Eval c -> string_of_call c
     | Obj -> "new ()"
-    | HasField (e1, e2) -> Printf.sprintf "hasfield (%s, %s)" (se e1) (se e2)
+    | HasField (e1, e2) -> Printf.sprintf "hasField (%s, %s)" (se e1) (se e2)
     | Lookup (e1, e2) -> Printf.sprintf "[%s.%s]" (se e1) (se e2)
     | Deallocation (e1, e2) -> Printf.sprintf "delete %s.%s" (se e1) (se e2)
-    | Pi (l, x) -> Printf.sprintf "Pi ( %s, %s )" (se l) (se x)
+    | Pi (l, x) -> Printf.sprintf "proto ( %s, %s )" (se l) (se x)
   
 let string_of_mutation m =
   let se = string_of_expression in

@@ -124,6 +124,7 @@ let mk_mutation l f v = {
 type assign_right_expression =
   | Expression of expression
   | Call of call
+  | Eval of call
   | Obj
   | HasField of expression * expression
   | Lookup of expression * expression

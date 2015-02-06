@@ -266,9 +266,8 @@ let translate_gamma r ctx =
                 ],
                 [ Basic (Assignment assign_pi_2);
                   Sugar (If (equal_empty_expr assign_pi_2.assign_left,
-                    [Basic (Assignment (mk_assign rv (Expression(Literal Empty))))],
+                    [Basic (Assignment (mk_assign rv (Expression(Literal Undefined))))],
                     [Basic (Assignment (mk_assign rv (Expression(Var assign_pi_2.assign_left))))])) ]))
-                (*not_expr (equal_loc_expr base.assign_left Lg*)
             ]))
         ]))
     ],
@@ -314,16 +313,29 @@ let translate_call r2 vthis arg_values ctx =
 		let fscope = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FScope)) in
     let excep_label = "call_excep." ^ fresh_r () in
     let exit_label = fresh_r () in
-		let call = mk_assign_fresh (Call (mk_call 
+    let rv = fresh_r() in
+		let call = mk_assign rv (Call (mk_call 
 	    (Var fid.assign_left) 
 	    (Var fscope.assign_left) 
 	    (Var vthis) 
       arg_values
       excep_label
     )) in
+    let first_argument = match arg_values with
+      | [] -> Literal Undefined
+      | arg :: tail -> arg in
+    let eval_call = mk_assign rv (Eval (mk_call 
+        (Var fid.assign_left) 
+        (Var rscope) 
+        (Var vthis) 
+        [first_argument]
+        excep_label)) in
     (Sugar (If (equal_loc_expr r2 LEval,
-        (*TODO Eval*)
-        translate_error_throw LNotImplemented ctx.throw_var ctx.label_throw, 
+        [Sugar (If ((*equal_exprs (TypeOf first_argument) (Literal (Type StringType))*) IsTypeOf (first_argument, StringType),
+	        [Basic (Assignment fid); 
+           Basic (Assignment eval_call)],
+	        [Basic (Assignment (mk_assign rv (Expression first_argument)))]))
+        ],
         [
           Basic (Assignment fid); 
           Basic (Assignment fscope); 
@@ -333,7 +345,7 @@ let translate_call r2 vthis arg_values ctx =
           Basic (Assignment (mk_assign ctx.throw_var (Expression (Var call.assign_left))));
           Goto ctx.label_throw;
           Label exit_label;
-     ])), call)
+     ])), rv)
     
 let translate_regular_bin_op f op e1 e2 ctx =
   let r1_stmts, r1 = f e1 in
@@ -528,9 +540,9 @@ let rec translate_exp ctx exp : statement list * variable =
       | Parser_syntax.New (e1, e2s) ->
         let stmts, r1, r2, arg_values = translate_call_construct_start f e1 e2s ctx in
         let prototype = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FPrototype)) in        
-              let vthisproto = fresh_r () in
+        let vthisproto = fresh_r () in
         let vthis = mk_assign_fresh Obj in
-              let if3, call = translate_call r2 vthis.assign_left arg_values ctx in
+        let if3, call_lvar = translate_call r2 vthis.assign_left arg_values ctx in
         let rv = fresh_r () in  
           stmts @ 
           [
@@ -541,8 +553,8 @@ let rec translate_exp ctx exp : statement list * variable =
             Basic (Assignment vthis);
             add_proto_var vthis.assign_left vthisproto;
             if3; 
-            Sugar (If (is_obj_var call.assign_left, 
-                [Basic (Assignment (mk_assign rv (Expression (Var call.assign_left))))], 
+            Sugar (If (is_obj_var call_lvar, 
+                [Basic (Assignment (mk_assign rv (Expression (Var call_lvar))))], 
                 [Basic (Assignment (mk_assign rv (Expression (Var vthis.assign_left))))]))
           ], rv
         
@@ -563,7 +575,7 @@ let rec translate_exp ctx exp : statement list * variable =
                 ],
                 [assign_vthis_und])); 
             if5
-          ], call.assign_left
+          ], call
           
      | Parser_syntax.AnnonymousFun (_, _, e) ->
         translate_function_expression exp ctx
@@ -1106,26 +1118,26 @@ let translate_function fb fid args env =
   
   make_function_block fid pulpe (rthis :: (rscope :: args)) ctx
 
-let translate_function_syntax level id e env =
+let translate_function_syntax level id e env main =
   let pulpe = 
     match e.Parser_syntax.exp_stx with
       | Parser_syntax.AnnonymousFun (_, args, fb) -> translate_function fb id args env
       | Parser_syntax.NamedFun (_, name, args, fb) -> translate_function fb id args env
-      | Parser_syntax.Script (_, es) -> translate_function e main_fun_id [] env
+      | Parser_syntax.Script (_, es) -> translate_function e main [] env
       | _ -> raise (Invalid_argument "Should be a function definition here") in
   match level with
     | IVL_buitin_functions -> raise (Utils.InvalidArgument ("pulp_Translate", "builtin_functions level not implemented yet"))
     | IVL_conditionals -> pulpe
     | IVL_goto -> {pulpe with func_body = to_ivl_goto pulpe.func_body}
 
-let exp_to_pulp level e =
+let exp_to_pulp level e main =
   let context = AllFunctions.empty in
-  let e = add_codenames e in
+  let e = add_codenames main e in
   let all_functions = get_all_functions_with_env [] e in
     
   let context = List.fold_left (fun c (fexpr, fenv) -> 
     let fid = get_codename fexpr in
-    let fb = translate_function_syntax level fid fexpr fenv in
+    let fb = translate_function_syntax level fid fexpr fenv main in
     AllFunctions.add fid fb c
    ) context all_functions in
   context

@@ -7,3 +7,4 @@ tests/all_elements.js
 tests/test_suite
 lib/corestar/corestar.cma
 lib/corestar/corestar.cmi
+test262

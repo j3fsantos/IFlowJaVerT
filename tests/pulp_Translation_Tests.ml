@@ -10,7 +10,7 @@ let test_template p name =
   Parser_main.verbose := true;
   let exp = Parser_main.exp_from_string p in
   let _ = Printf.printf "%s \n" (Pretty_print.string_of_exp_syntax exp.Parser_syntax.exp_stx) in
-  let p_exp = exp_to_pulp IVL_goto exp in
+  let p_exp = exp_to_pulp IVL_goto exp main_fun_id in
   let _ = AllFunctions.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_func_block fwc)) p_exp in
   (* TODO fix path *)
   let cfg = Control_Flow.mk_cfg p_exp ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/"^name) in
@@ -42,7 +42,7 @@ let test_template p name =
       cfg
   ) cfg_bbs in
     
-  let _ = Basic_Blocks.print_cfg_bb cfg_bbs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/bb/"^name) in
+  let _ = Basic_Blocks.print_cfg_bb cfg_bbs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/bb/bbsimp/"^name) in
 
   
   assert_bool "Incorrect Translation" true
@@ -67,7 +67,7 @@ let test_fun_env () =
   Parser_main.verbose := true;
   let exp = Parser_main.exp_from_string "var x = 1; var f = function (g) {var z = 1; var c = function (d) {}}; var g = function z () {var x, a, b; }" in
   let _ = Printf.printf "%s \n" (Pretty_print.string_of_exp_syntax exp.Parser_syntax.exp_stx) in
-  let exp = add_codenames exp in
+  let exp = add_codenames main_fun_id exp in
   let _ = Printf.printf "Added codenames %s \n" (Pretty_print.string_of_exp true exp) in
   let all_functions = get_all_functions_with_env [] exp in
   let _ = List.iter (fun (fexp, fenv) -> 
@@ -143,6 +143,9 @@ let test_example () =
 }; 
 
 var r = s(3).x") "example"
+
+ let test_eval_1 () =
+   test_template ("eval ('1')") "eval"
 
 let test_gamma () =
   let ctx = create_ctx [] in
@@ -245,8 +248,20 @@ var obj = new MyObject('some property');
 var f = obj.method;
 f()") "CAV example 4"
 
+let test_cav_example_5 () =
+  test_template ("
+  var prop = 'global property';
+  var object = {
+ prop: 'some property',
+ method: function() {
+   return this.prop === prop;
+ }
+};
+
+object.method()") "CAV example 5"
+
 let suite = "Testing_Translation" >:::
-  [ "translating simple" >:: test_simple;
+  [ (*"translating simple" >:: test_simple;
    "translating access" >:: test_access;
    "translating assignment" >:: test_assign;
    "translating obj literal" >:: test_obj;
@@ -277,4 +292,6 @@ let suite = "Testing_Translation" >:::
    "test_cav_example_1" >:: test_cav_example_1;
    "test_cav_example_2" >:: test_cav_example_2;
    "test_cav_example_3" >:: test_cav_example_3;
-   "test_cav_example_4" >:: test_cav_example_4] 
+   "test_cav_example_4" >:: test_cav_example_4
+   "test_eval_1">::test_eval_1*)
+   "test_cav_example_5">::test_cav_example_5] 
