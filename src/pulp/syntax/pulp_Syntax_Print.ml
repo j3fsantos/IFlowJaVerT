@@ -93,34 +93,38 @@ let rec string_of_expression e =
     | UnaryOp (op, e) -> Printf.sprintf "%s (%s)" (string_of_unary_op op) (se e)
     | IsTypeOf (e, t) -> Printf.sprintf "typeOf (%s) = %s" (se e) (string_of_pulp_type t)
     | TypeOf e -> Printf.sprintf "typeOf (%s)" (se e) 
-    | Ref (e1, e2, t) -> Printf.sprintf "(%s .%s %s)" (se e1)
+    | Ref (e1, e2, t) -> Printf.sprintf "ref(%s,%s,%s)" (se e1) (se e2)
       (match t with
-        | MemberReference -> "_o"
-        | VariableReference -> "_v")
-      (se e2)
+        | MemberReference -> "o"
+        | VariableReference -> "v")
     | Base e -> Printf.sprintf "base (%s)" (se e)
     | Field e -> Printf.sprintf "field (%s)" (se e)
 
 let string_of_call c =
   let se = string_of_expression in
   let ses xs = String.concat "," (List.map se xs) in
-  Printf.sprintf "%s (%s, %s, %s) throws %s" (se c.call_name) (se c.call_this) (se c.call_scope) (ses c.call_args) (c.call_throw_label)
+  Printf.sprintf "%s (%s, %s, %s) with %s" (se c.call_name) (se c.call_this) (se c.call_scope) (ses c.call_args) (c.call_throw_label)
  
+let string_of_eval c =
+  let se = string_of_expression in
+  let ses xs = String.concat "," (List.map se xs) in
+  Printf.sprintf "eval (%s, %s, %s) with %s" (se c.call_this) (se c.call_scope) (ses c.call_args) (c.call_throw_label)
+
 let string_of_assign_right aer =
   let se = string_of_expression in
   match aer with
     | Expression e -> se e
-    | Call c
-    | Eval c -> string_of_call c
+    | Call c -> string_of_call c
+    | Eval c -> string_of_eval c
     | Obj -> "new ()"
     | HasField (e1, e2) -> Printf.sprintf "hasField (%s, %s)" (se e1) (se e2)
-    | Lookup (e1, e2) -> Printf.sprintf "[%s.%s]" (se e1) (se e2)
-    | Deallocation (e1, e2) -> Printf.sprintf "delete %s.%s" (se e1) (se e2)
-    | Pi (l, x) -> Printf.sprintf "proto ( %s, %s )" (se l) (se x)
+    | Lookup (e1, e2) -> Printf.sprintf "[%s,%s]" (se e1) (se e2)
+    | Deallocation (e1, e2) -> Printf.sprintf "delete (%s,%s)" (se e1) (se e2)
+    | Pi (l, x) -> Printf.sprintf "proto_field ( %s, %s )" (se l) (se x)
   
 let string_of_mutation m =
   let se = string_of_expression in
-  Printf.sprintf "[%s.%s] := %s" (se m.m_loc) (se m.m_field) (se m.m_right)
+  Printf.sprintf "[%s,%s] := %s" (se m.m_loc) (se m.m_field) (se m.m_right)
   
 let string_of_basic_statement bs =
   match bs with

@@ -1044,7 +1044,7 @@ let rec exp_to_fb ctx exp : statement list * variable =
     | Parser_syntax.Block (es) -> translate_block es (exp_to_elem ctx)
     | _ -> exp_to_elem ctx exp
         
-let translate_function fb fid args env =
+let translate_function fb fid main args env =
   let ctx = create_ctx env in
   let other_env = match ctx.env_vars with
     | current :: others -> others
@@ -1096,7 +1096,7 @@ let translate_function fb fid args env =
   let pulp_fb, lvar = exp_to_fb ctx fb in
   
   let end_stmts =
-    if (fid = main_fun_id) then
+    if (fid = main) then
       [Basic (Assignment (mk_assign ctx.return_var (Expression (Var lvar))))]
     else
       [Basic (Assignment (mk_assign ctx.return_var (Expression (Literal Empty))))] in
@@ -1121,9 +1121,9 @@ let translate_function fb fid args env =
 let translate_function_syntax level id e env main =
   let pulpe = 
     match e.Parser_syntax.exp_stx with
-      | Parser_syntax.AnnonymousFun (_, args, fb) -> translate_function fb id args env
-      | Parser_syntax.NamedFun (_, name, args, fb) -> translate_function fb id args env
-      | Parser_syntax.Script (_, es) -> translate_function e main [] env
+      | Parser_syntax.AnnonymousFun (_, args, fb) -> translate_function fb id main args env
+      | Parser_syntax.NamedFun (_, name, args, fb) -> translate_function fb id main args env
+      | Parser_syntax.Script (_, es) -> translate_function e main main [] env
       | _ -> raise (Invalid_argument "Should be a function definition here") in
   match level with
     | IVL_buitin_functions -> raise (Utils.InvalidArgument ("pulp_Translate", "builtin_functions level not implemented yet"))

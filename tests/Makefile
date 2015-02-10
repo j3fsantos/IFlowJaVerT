@@ -56,8 +56,8 @@ SOURCE = ../src/localconfig.ml \
    ../src/pulp/simplifications/simp_Main.ml \
 	 ../src/pulp/interpreter/memory_Model.ml \
 	 ../src/pulp/interpreter/interpreter_Print.ml \
-	 ../src/pulp/interpreter/interpreter.ml \
 	 ../src/pulp/syntax/pulp_Translate.ml \
+	 ../src/pulp/interpreter/interpreter.ml \
 	 ../src/strategies/store/store_naive.ml \
 	 ../src/strategies/naive_strategy.ml \
 	 ../src/strategies/naive_abduction.ml \

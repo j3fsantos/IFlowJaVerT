@@ -86,8 +86,8 @@ let transform_expr_in_call f c =
 let transform_expr_in_assign_expr f e =
   match e with
       | Expression expr -> Expression (f expr)
-      | Call c 
-      | Eval c -> Call (transform_expr_in_call f c)
+      | Call c -> Call (transform_expr_in_call f c)
+      | Eval c -> Eval (transform_expr_in_call f c)
       | Obj -> Obj
       | HasField (e1, e2) -> HasField (f e1, f e2)
       | Lookup (e1, e2) -> Lookup (f e1, f e2)

@@ -264,10 +264,10 @@ let test_cav_example_6 () =
 };
 
 var f = object.method;
-f()") LTError
+f()") LTError 
   
 let suite = "Testing_Interpreter" >:::
-  [(*"running program1" >:: test_program1;
+  ["running program1" >:: test_program1;
    "running program2" >:: test_program2;
    "running_program3" >:: test_program3;
    "running_program4" >:: test_program4;
@@ -299,6 +299,6 @@ let suite = "Testing_Interpreter" >:::
    "test_cav_example_1" >:: test_cav_example_1;
    "test_cav_example_2" >:: test_cav_example_2;
    "test_cav_example_3" >:: test_cav_example_3;
-   "test_cav_example_4" >:: test_cav_example_4;*)
+   "test_cav_example_4" >:: test_cav_example_4;
     "test_cav_example_5" >:: test_cav_example_5;
-    (*"test_cav_example_6" >:: test_cav_example_6*)] 
+    "test_cav_example_6" >:: test_cav_example_6] 

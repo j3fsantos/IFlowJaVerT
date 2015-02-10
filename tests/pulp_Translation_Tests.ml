@@ -45,7 +45,7 @@ let test_template p name =
   let _ = Basic_Blocks.print_cfg_bb cfg_bbs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/bb/bbsimp/"^name) in
 
   
-  assert_bool "Incorrect Translation" true
+  assert_bool "Incorrect Translation" true 
   
 let test_simple () = 
   test_template ("var x = 1; x") "simple"  
@@ -250,18 +250,17 @@ f()") "CAV example 4"
 
 let test_cav_example_5 () =
   test_template ("
-  var prop = 'global property';
-  var object = {
- prop: 'some property',
- method: function() {
-   return this.prop === prop;
- }
+  var prop = 'global';
+var obj = {
+  prop: 'local',
+  m: function() {
+    return this.prop === prop;
+  }
 };
-
-object.method()") "CAV example 5"
+obj.m()") "CAV example 5"
 
 let suite = "Testing_Translation" >:::
-  [ (*"translating simple" >:: test_simple;
+  ["translating simple" >:: test_simple;
    "translating access" >:: test_access;
    "translating assignment" >:: test_assign;
    "translating obj literal" >:: test_obj;
@@ -292,6 +291,6 @@ let suite = "Testing_Translation" >:::
    "test_cav_example_1" >:: test_cav_example_1;
    "test_cav_example_2" >:: test_cav_example_2;
    "test_cav_example_3" >:: test_cav_example_3;
-   "test_cav_example_4" >:: test_cav_example_4
-   "test_eval_1">::test_eval_1*)
+   "test_cav_example_4" >:: test_cav_example_4;
+   "test_eval_1">::test_eval_1;
    "test_cav_example_5">::test_cav_example_5] 

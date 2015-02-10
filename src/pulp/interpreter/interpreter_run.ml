@@ -99,7 +99,7 @@ let run_program path =
 	  let name = Filename.basename path in
 	  Printf.printf "\nLine count: %s, %i, JS\n" name exp_string_lines;
 	  Printf.printf "\nLine count: %s, %i, IVL\n" name p_exp_string_lines;
-	  Printf.printf "\nLine count: %s, %i, IVL_SIMP\n" name p_exp_simpl_string_lines; exit 1
+	  Printf.printf "\nLine count: %s, %i, IVL_SIMP\n" name p_exp_simpl_string_lines; exit 1;
   end;
  
   let h = initial_heap () in
