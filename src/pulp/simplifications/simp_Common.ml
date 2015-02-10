@@ -35,7 +35,8 @@ let get_vars_in_assign_expr e =
       | HasField (e1, e2) -> f e1 @ f e2
       | Lookup (e1, e2) -> f e1 @ f e2
       | Deallocation (e1, e2) -> f e1 @ f e2
-      | Pi (e1, e2) -> f e1 @ f e2
+      | ProtoF (e1, e2) -> f e1 @ f e2
+      | ProtoO (e1, e2) -> f e1 @ f e2
 
 let get_vars_in_bs_stmt stmt =
   let f = get_vars_in_expr in
@@ -92,7 +93,8 @@ let transform_expr_in_assign_expr f e =
       | HasField (e1, e2) -> HasField (f e1, f e2)
       | Lookup (e1, e2) -> Lookup (f e1, f e2)
       | Deallocation (e1, e2) -> Deallocation (f e1, f e2)
-      | Pi (e1, e2) -> Pi (f e1, f e2)
+      | ProtoF (e1, e2) -> ProtoF (f e1, f e2)
+      | ProtoO (e1, e2) -> ProtoO (f e1, f e2)
 
 let transform_expr_in_basic_stmt f stmt =
   match stmt with
@@ -161,6 +163,7 @@ let rec simplify_expr e =
 							  | String s1, String s2 -> Literal (Bool (s1 = s2))  
 							  | Undefined, Undefined -> Literal (Bool true)   
 							  | Empty, Empty -> Literal (Bool true) 
+                | Type t1, Type t2 -> Literal (Bool (t1 = t2))
                 | _, _ -> Literal (Bool false)
               end
             | _ -> e
@@ -329,12 +332,12 @@ let rec simplify_expr e =
             end
 			    | Var _ 
 			    | BinOp _
-			    | UnaryOp _ -> exp
+			    | UnaryOp _ -> TypeOf exp
 			    | Ref (e1, e2, rt) -> Literal (Type (ReferenceType (Some rt)))
-			    | Base e -> exp
+			    | Base e -> TypeOf exp
 			    | Field e -> Literal (Type StringType)
 			    | IsTypeOf (e, _) -> Literal (Type BooleanType)
-			    | TypeOf e -> exp
+			    | TypeOf e -> TypeOf exp
 	      end 
     
 let simplify_stmt stmt = transform_expr_in_stmt simplify_expr stmt
@@ -411,7 +414,8 @@ let get_type_info_assign_expr type_info e =
       | HasField (e1, e2) -> Some (TI_Type BooleanType)
       | Lookup (e1, e2) -> Some TI_Value
       | Deallocation (e1, e2) -> Some (TI_Type BooleanType)
-      | Pi (e1, e2) -> Some TI_Value
+      | ProtoF (e1, e2) -> Some TI_Value
+      | ProtoO (e1, e2) -> Some (TI_Type ObjectType)
 
 let rec simplify_type_of type_info e =
   let f = simplify_type_of type_info in

@@ -27,11 +27,11 @@ let test_template_simp p =
   Interpreter.run_with_initial_heap p_exp
   
 let test_template_normal p expected_value =
-  let result = test_template_simp p in
+ let result = test_template p in
   assert_bool ("Incorrect Interpreter. Expected : Normal, Got Exception") (FTReturn = result.fs_return_type);
   assert_bool ("Incorrect Interpreter. Expected :" ^ (string_of_value expected_value) ^ " Actual: " ^ (string_of_value result.fs_return_value)) (value_eq expected_value ((result.fs_return_value)));
   
-  let result = test_template p in
+  let result = test_template_simp p in
   assert_bool ("Incorrect Interpreter. Expected : Normal, Got Exception") (FTReturn = result.fs_return_type);
   assert_bool ("Incorrect Interpreter. Expected :" ^ (string_of_value expected_value) ^ " Actual: " ^ (string_of_value result.fs_return_value)) (value_eq expected_value ((result.fs_return_value)))
   
@@ -47,22 +47,22 @@ let get_actual_excep result =
     | _ -> assert_failure "An exception must be a builtin object"
   
 let test_template_exception p expected_excep =
-  let result = test_template_simp p in
+  let result = test_template p in
   let actual_excep = get_actual_excep result in
   assert_bool ("Incorrect Interpreter. Expected : Normal, Got Exception") (FTException = result.fs_return_type);
   assert_bool ("Incorrect Interpreter. Expected Exception :" ^ (string_of_builtin_loc expected_excep) ^ " Actual: " ^ (string_of_builtin_loc actual_excep)) (expected_excep = actual_excep);
   
-  let result = test_template p in
+  let result = test_template_simp p in
   let actual_excep = get_actual_excep result in
   assert_bool ("Incorrect Interpreter. Expected : Normal, Got Exception") (FTException = result.fs_return_type);
   assert_bool ("Incorrect Interpreter. Expected Exception :" ^ (string_of_builtin_loc expected_excep) ^ " Actual: " ^ (string_of_builtin_loc actual_excep)) (expected_excep = actual_excep)
 
 let test_template_exception_any p expected_value =
-  let result = test_template_simp p in
+  let result = test_template p in
   assert_bool ("Incorrect Interpreter. Expected : Normal, Got Exception") (FTException = result.fs_return_type);
   assert_bool ("Incorrect Interpreter. Expected :" ^ (string_of_value expected_value) ^ " Actual: " ^ (string_of_value result.fs_return_value)) (value_eq expected_value ((result.fs_return_value)));
   
-  let result = test_template p in
+  let result = test_template_simp p in
   assert_bool ("Incorrect Interpreter. Expected : Normal, Got Exception") (FTException = result.fs_return_type);
   assert_bool ("Incorrect Interpreter. Expected :" ^ (string_of_value expected_value) ^ " Actual: " ^ (string_of_value result.fs_return_value)) (value_eq expected_value ((result.fs_return_value)))
       
@@ -265,6 +265,14 @@ let test_cav_example_6 () =
 
 var f = object.method;
 f()") LTError 
+
+let test_instance_of_true () =
+  test_template_normal ("function C(){}; function D(){}; var o = new C(); o instanceof C")
+  (VHValue (HVLiteral (Bool true)))
+  
+let test_instance_of_false () =
+  test_template_normal ("function C(){}; function D(){}; var o = new C(); o instanceof D")
+  (VHValue (HVLiteral (Bool false)))
   
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
@@ -301,4 +309,6 @@ let suite = "Testing_Interpreter" >:::
    "test_cav_example_3" >:: test_cav_example_3;
    "test_cav_example_4" >:: test_cav_example_4;
     "test_cav_example_5" >:: test_cav_example_5;
-    "test_cav_example_6" >:: test_cav_example_6] 
+    "test_cav_example_6" >:: test_cav_example_6;
+    "test_instance_of_true" >:: test_instance_of_true;
+    "test_instance_of_false" >:: test_instance_of_false] 

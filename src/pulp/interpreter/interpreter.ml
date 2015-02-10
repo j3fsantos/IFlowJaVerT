@@ -165,6 +165,7 @@ let rec run_expr (s : local_state) (e : expression) : value =
 	  | Literal l ->
       begin match l with
         | LLoc bl -> VHValue (HVObj (BLoc bl))
+        | Type t -> VType t
         | _ -> VHValue (HVLiteral l)
       end
 	  | Var v -> 
@@ -206,6 +207,7 @@ let rec run_expr (s : local_state) (e : expression) : value =
     | TypeOf (e) ->
       let v = run_expr s e in
       let t = type_of v in
+      (*Printf.printf "TypeOf (%s) = %s \n" (Interpreter_Print.string_of_value v) (Pulp_Syntax_Print.string_of_pulp_type t);*)
       VType t
       
       
@@ -226,7 +228,25 @@ let rec get_value_proto v x h counter =
 		      get_value_proto (VHValue proto) x h counter
 		    with
 		      | Not_found -> raise (InterpreterStuck ("Object must have prototype in Proto", counter))
-		    
+
+let rec is_proto_obj l o h counter =
+  match l with
+    (* Should it be undefined descriptor? *)
+    | VHValue (HVLiteral Null) -> VHValue (HVLiteral (Bool false))
+    | _ ->
+      let ll = object_check l "First argument of proto_obj must be an object" counter in     
+      if (ll = o)  then VHValue (HVLiteral (Bool true))     
+		  else begin	  
+			  let obj = 
+			    try Heap.find ll h 
+			    with 
+			      | Not_found -> raise (InterpreterStuck ("Object must exists for proto_obj", counter)) in
+			    try 
+			      let proto = Object.find (string_of_builtin_field FProto) obj in
+			      is_proto_obj (VHValue proto) o h counter
+			    with
+			      | Not_found -> raise (InterpreterStuck ("Object must have prototype in proto_obj", counter))
+			end 
       
 (* TODO -- I don't like the code here *)
 let rec run_assign_expr (s : local_state) (e : assign_right_expression) (funcs : function_block AllFunctions.t) : local_state * value =
@@ -304,11 +324,18 @@ let rec run_assign_expr (s : local_state) (e : assign_right_expression) (funcs :
 	    let newobj = Object.remove x obj in
 	    {s with lsheap = Heap.add l newobj s.lsheap}, VHValue (HVLiteral (Bool true))
 
-	  | Pi (e1, e2) -> 
+	  | ProtoF (e1, e2) -> 
       let v1 = run_expr s e1 in
       let v2 = run_expr s e2 in	
-			let l, x, obj = object_field_check v1 v2 s.lsheap "Proto" s.lscounter in
+			let l, x, obj = object_field_check v1 v2 s.lsheap "proto_field" s.lscounter in
 			let v = get_value_proto (VHValue (HVObj l)) x s.lsheap s.lscounter in s, v 
+      
+   | ProtoO (e1, e2) -> 
+      let v1 = run_expr s e1 in
+      let v2 = run_expr s e2 in 
+      let l1 = object_check v1 "proto_obj" s.lscounter in
+      let l2 = object_check v2 "proto_obj" s.lscounter in
+      let v = is_proto_obj (VHValue (HVObj l1)) l2 s.lsheap s.lscounter in s, v 
 and
 run_function (h : heap_type) (f : function_block) (args : value list) (fs : function_block AllFunctions.t) : function_state =
   let s = List.fold_left2 (fun st param arg -> Stack.add param arg st) Stack.empty f.func_params args in

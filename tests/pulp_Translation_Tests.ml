@@ -259,6 +259,14 @@ var obj = {
 };
 obj.m()") "CAV example 5"
 
+let test_instance_of_true () =
+  test_template ("function C(){}; function D(){}; var o = new C(); o instanceof C")
+  "intance of true"
+  
+let test_instance_of_false () =
+  test_template ("function C(){}; function D(){}; var o = new C(); o instanceof D")
+  "instance of false"
+
 let suite = "Testing_Translation" >:::
   ["translating simple" >:: test_simple;
    "translating access" >:: test_access;
@@ -293,4 +301,6 @@ let suite = "Testing_Translation" >:::
    "test_cav_example_3" >:: test_cav_example_3;
    "test_cav_example_4" >:: test_cav_example_4;
    "test_eval_1">::test_eval_1;
-   "test_cav_example_5">::test_cav_example_5] 
+   "test_cav_example_5">::test_cav_example_5;
+   "test_instance_of_true" >:: test_instance_of_true;
+   "test_instance_of_false" >:: test_instance_of_false] 

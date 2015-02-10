@@ -118,7 +118,9 @@ let bs_stmt_to_cfg stmt label_map ctx start connect_with_start =
         | Lookup _
         | Deallocation _
         | Obj
-        | Pi _ ->            
+        | Eval _
+        | ProtoO _
+        | ProtoF _ ->            
               let n = make_new_node (Basic stmt) in 
               if (connect_with_start = true)
                 then connect start n else (); 

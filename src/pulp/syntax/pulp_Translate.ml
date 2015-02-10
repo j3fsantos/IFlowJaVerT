@@ -241,8 +241,8 @@ let translate_gamma r ctx =
   let base = mk_assign_fresh_e (Base (Var r)) in
   let field = mk_assign_fresh_e (Field (Var r)) in
   let assign_rv_lookup = mk_assign rv (Lookup (Var base.assign_left, Var field.assign_left)) in
-  let assign_pi_1 = mk_assign_fresh (Pi (Var base.assign_left, Var field.assign_left)) in  
-  let assign_pi_2 = mk_assign_fresh (Pi (Var base.assign_left, Var field.assign_left)) in  
+  let assign_pi_1 = mk_assign_fresh (ProtoF (Var base.assign_left, Var field.assign_left)) in  
+  let assign_pi_2 = mk_assign_fresh (ProtoF (Var base.assign_left, Var field.assign_left)) in  
   let main = Sugar (If (is_ref_expr r,
     [
       Basic (Assignment base);
@@ -464,6 +464,34 @@ let translate_function_expression exp ctx =
     Basic (Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FId) (Literal (String fid)))); 
     Basic (Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FScope) (Var scope.assign_left))); 
   ], f_obj.assign_left 
+  
+let translate_get o (* variable containing object *) p (* variable, string, or built-in field name *) = 
+   (* TODO : Update everywhere *)
+   let rv = fresh_r () in
+   let desc = mk_assign_fresh (ProtoF (Var o, p)) in
+   [Basic (Assignment desc);
+    Sugar (If (equal_empty_expr desc.assign_left,
+      [Basic (Assignment (mk_assign rv (Expression(Literal Undefined))))],
+      [Basic (Assignment (mk_assign rv (Expression(Var desc.assign_left))))]))
+   ], rv
+  
+let translate_has_instance f v ctx =
+  let rv = fresh_r () in
+  let get_stmts, o = translate_get f (literal_builtin_field FPrototype) in
+  let proto = mk_assign_fresh (Lookup (Var v, literal_builtin_field FProto)) in
+  let proto_o = mk_assign_fresh (ProtoO (Var proto.assign_left, Var o)) in
+  [ Sugar (If (equal_exprs (TypeOf (Var v)) (Literal (Type ObjectType)), 
+    get_stmts @
+    [ Sugar (If (equal_exprs (TypeOf (Var o)) (Literal (Type ObjectType)),
+      [ Basic (Assignment proto);
+        Basic (Assignment proto_o);
+        Basic (Assignment (mk_assign rv (Expression (Var proto_o.assign_left))))
+      ],
+      translate_error_throw LTError ctx.throw_var ctx.label_throw))
+    ],
+    [Basic (Assignment (mk_assign rv (Expression (Literal (Bool false)))))]))
+  ], rv
+
 
 let rec translate_exp ctx exp : statement list * variable =
   let f = translate_exp ctx in 
@@ -681,7 +709,27 @@ let rec translate_exp ctx exp : statement list * variable =
 						  | Parser_syntax.Gt -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.8.2 The Greater-than Operator.")))
 						  | Parser_syntax.Ge -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.8.4 The Greater-than-or-equal Operator.")))
 						  | Parser_syntax.In -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.8.7 The in operator.")))
-						  | Parser_syntax.InstanceOf -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.8.6 The instanceof operator.")))
+						  | Parser_syntax.InstanceOf -> 
+                let r1_stmts, r1 = f e1 in
+                let r2_stmts, r2 = translate_gamma r1 ctx in
+                let r3_stmts, r3 = f e2 in
+                let r4_stmts, r4 = translate_gamma r3 ctx in
+                let hasfield = mk_assign_fresh (HasField (Var r4, literal_builtin_field FId)) in
+                let gotothrow = translate_error_throw LTError ctx.throw_var ctx.label_throw in
+                let r5_stmts, r5 = translate_has_instance r4 r2 ctx in
+                r1_stmts @ 
+                r2_stmts @ 
+                r3_stmts @ 
+                r4_stmts @
+                [ Sugar (If (equal_exprs (TypeOf (Var r4)) (Literal (Type ObjectType)), 
+                    [ Basic (Assignment hasfield);
+                      Sugar (If (equal_bool_expr hasfield.assign_left false, (* [[HasInstance]] *)
+                      gotothrow, 
+                      r5_stmts))
+                    ],
+                    gotothrow))
+                ], r5
+                
             end
           | Parser_syntax.Arith aop -> 
             begin match aop with

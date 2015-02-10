@@ -120,7 +120,8 @@ let string_of_assign_right aer =
     | HasField (e1, e2) -> Printf.sprintf "hasField (%s, %s)" (se e1) (se e2)
     | Lookup (e1, e2) -> Printf.sprintf "[%s,%s]" (se e1) (se e2)
     | Deallocation (e1, e2) -> Printf.sprintf "delete (%s,%s)" (se e1) (se e2)
-    | Pi (l, x) -> Printf.sprintf "proto_field ( %s, %s )" (se l) (se x)
+    | ProtoF (l, x) -> Printf.sprintf "proto_field ( %s, %s )" (se l) (se x)
+    | ProtoO (l, x) -> Printf.sprintf "proto_obj ( %s, %s )" (se l) (se x)
   
 let string_of_mutation m =
   let se = string_of_expression in

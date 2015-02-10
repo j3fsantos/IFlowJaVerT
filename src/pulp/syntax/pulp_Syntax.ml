@@ -129,7 +129,8 @@ type assign_right_expression =
   | HasField of expression * expression
   | Lookup of expression * expression
   | Deallocation of expression * expression
-  | Pi of expression * expression
+  | ProtoF of expression * expression
+  | ProtoO of expression * expression
 
 type assignment = { 
     assign_left : variable; 
