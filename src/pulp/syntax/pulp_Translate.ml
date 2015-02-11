@@ -34,6 +34,11 @@ let and_expr e1 e2 = BinOp (e1, Boolean And, e2)
 let not_expr e1 = UnaryOp (Not, e1)
 let equal_exprs e1 e2 = BinOp (e1, Comparison Equal, e2)
 let equal_expr v e2 = equal_exprs (Var v) e2
+ 
+let type_of_var v t = equal_exprs (TypeOf (Var v)) (Literal (Type t))
+let type_of_oref_var ref = type_of_var ref (ReferenceType (Some MemberReference))
+let type_of_vref_var ref = type_of_var ref (ReferenceType (Some VariableReference))
+let type_of_ref_var ref = type_of_var ref (ReferenceType None)
   
 let istypeof_prim_expr v =
   or_expr 
@@ -480,9 +485,9 @@ let translate_has_instance f v ctx =
   let get_stmts, o = translate_get f (literal_builtin_field FPrototype) in
   let proto = mk_assign_fresh (Lookup (Var v, literal_builtin_field FProto)) in
   let proto_o = mk_assign_fresh (ProtoO (Var proto.assign_left, Var o)) in
-  [ Sugar (If (equal_exprs (TypeOf (Var v)) (Literal (Type ObjectType)), 
+  [ Sugar (If (type_of_var v ObjectType, 
     get_stmts @
-    [ Sugar (If (equal_exprs (TypeOf (Var o)) (Literal (Type ObjectType)),
+    [ Sugar (If (type_of_var o ObjectType,
       [ Basic (Assignment proto);
         Basic (Assignment proto_o);
         Basic (Assignment (mk_assign rv (Expression (Var proto_o.assign_left))))
@@ -625,7 +630,58 @@ let rec translate_exp ctx exp : statement list * variable =
                 r1_stmts @
             r2_stmts @
             [if1], rv
-          | Parser_syntax.TypeOf -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.4.3 The typeof Operator.")))
+          | Parser_syntax.TypeOf -> 
+            begin
+              let rv = fresh_r () in
+              let r1_stmts, r1 = f e in
+              let base = mk_assign_fresh (Expression (Base (Var r1))) in
+              let value = fresh_r () in
+              let r2_stmts, r2 = translate_gamma r1 ctx in
+              let hasfield = mk_assign_fresh (HasField (Var value, literal_builtin_field FId)) in
+              let exit_label = fresh_r () in
+              let proto = mk_assign_fresh (ProtoF (Var base.assign_left, Field (Var r1))) in
+              let if_lg_undefined = and_expr (equal_expr base.assign_left (Literal (LLoc Lg)))
+                                             (equal_empty_expr proto.assign_left) in
+              let assign_rv v = 
+                [Basic (Assignment (mk_assign rv (Expression (Literal (String v)))));
+                 Goto exit_label] in
+              r1_stmts @
+              [
+                Sugar (If (is_ref_expr r1,
+                [
+                  Basic (Assignment base);
+                  Basic (Assignment proto);
+                  Sugar (If (or_expr (equal_undef_expr base.assign_left) if_lg_undefined,
+                   assign_rv "undefined",
+                   r2_stmts @
+                   [
+                    Basic (Assignment (mk_assign value (Expression (Var r2))))
+                   ]))
+                ],
+                [Basic (Assignment (mk_assign value (Expression (Var r1))))]));
+                Sugar (If (type_of_var value UndefinedType,
+                  assign_rv "undefined",
+                  [Sugar (If (type_of_var value NullType,
+                    assign_rv "object",
+                    [Sugar (If (type_of_var value BooleanType,
+                      assign_rv "boolean",
+                      [Sugar (If (type_of_var value NumberType,
+                        assign_rv "number",
+                        [Sugar (If (type_of_var value StringType,
+                          assign_rv "string",
+                          (* Must be an object *)
+                          [ Basic (Assignment hasfield);
+                            Sugar (If (equal_bool_expr hasfield.assign_left true,
+                              assign_rv "function",
+                              assign_rv "object"))
+                          ]))
+                        ]))
+                      ]))
+                    ]))
+                  ]));
+                Label exit_label;
+              ], rv
+            end
 					| Parser_syntax.Positive -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.4.6 Unary + Operator.")))
 					| Parser_syntax.Negative -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.4.7 Unary - Operator.")))
 					| Parser_syntax.Pre_Decr -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.4.5 Prefix Decrement Operator.")))

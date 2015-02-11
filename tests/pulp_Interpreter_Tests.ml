@@ -274,6 +274,30 @@ let test_instance_of_false () =
   test_template_normal ("function C(){}; function D(){}; var o = new C(); o instanceof D")
   (VHValue (HVLiteral (Bool false)))
   
+let test_type_of_undefined () =
+  test_template_normal ("typeof undefined") (VHValue (HVLiteral (String "undefined")))
+  
+let test_type_of_bool () =
+  test_template_normal ("typeof true") (VHValue (HVLiteral (String "boolean")))
+  
+let test_type_of_string () =
+  test_template_normal ("typeof 'a'") (VHValue (HVLiteral (String "string")))
+  
+let test_type_of_number () =
+  test_template_normal ("typeof 1") (VHValue (HVLiteral (String "number")))
+  
+let test_type_of_null () =
+  test_template_normal ("typeof null") (VHValue (HVLiteral (String "object")))
+    
+let test_type_of_object () =
+  test_template_normal ("var x = {}; typeof x") (VHValue (HVLiteral (String "object")))
+  
+let test_type_of_function () =
+  test_template_normal ("function x () {}; typeof x") (VHValue (HVLiteral (String "function")))
+  
+let test_type_of_undefined_ref () =
+  test_template_normal ("typeof x") (VHValue (HVLiteral (String "undefined")))
+  
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
    "running program2" >:: test_program2;
@@ -311,4 +335,13 @@ let suite = "Testing_Interpreter" >:::
     "test_cav_example_5" >:: test_cav_example_5;
     "test_cav_example_6" >:: test_cav_example_6;
     "test_instance_of_true" >:: test_instance_of_true;
-    "test_instance_of_false" >:: test_instance_of_false] 
+    "test_instance_of_false" >:: test_instance_of_false;
+    "test_type_of_undefined">::test_type_of_undefined;
+    "test_type_of_bool">::test_type_of_bool;
+    "test_type_of_number">::test_type_of_number;
+    "test_type_of_string">::test_type_of_string;
+    "test_type_of_null">::test_type_of_null;
+    "test_type_of_object">::test_type_of_object;
+    "test_type_of_function">::test_type_of_function;
+    "test_type_of_undefined_ref">::test_type_of_undefined_ref;
+    ] 

@@ -110,6 +110,7 @@ let type_of v =
 
 let is_type_of v pt =
   let vtype = type_of v in
+  (*Printf.printf "VType = %s\n" (Pulp_Syntax_Print.string_of_pulp_type vtype);*)
   match pt with
     | ReferenceType None -> 
       begin match vtype with
