@@ -212,6 +212,22 @@ let test_program_try11 () =
   (* TODO conversions *)
   test_template_normal ("2 >= 1") (VHValue (HVLiteral (Bool true)))
   
+ let test_assign_plus () =
+  (* TODO conversions *)
+  test_template_normal ("var x = 1; x += 1; x") (VHValue (HVLiteral (Num 2.0)))
+  
+ let test_assign_minus () =
+  (* TODO conversions *)
+  test_template_normal ("var x = 2; x -= 1; x") (VHValue (HVLiteral (Num 1.0)))
+  
+ let test_assign_div () =
+  (* TODO conversions *)
+  test_template_normal ("var x = 4; x /= 2; x") (VHValue (HVLiteral (Num 2.0)))
+  
+ let test_assign_mult () =
+  (* TODO conversions *)
+  test_template_normal ("var x = 2; x *= 2; x") (VHValue (HVLiteral (Num 4.0)))
+  
  let test_function_decl_1 () =
    test_template_normal ("function f () {return 5}; f()") (VHValue (HVLiteral (Num 5.0)))
   
@@ -354,7 +370,11 @@ let suite = "Testing_Interpreter" >:::
    "test_lt" >:: test_lt;
    "test_gt" >:: test_gt;
    "test_le" >:: test_le;
-   "test_ge" >:: test_ge;  
+   "test_ge" >:: test_ge; 
+   "test_assign_plus" >:: test_assign_plus;
+   "test_assign_minus" >:: test_assign_minus;
+   "test_assign_div" >:: test_assign_div;
+   "test_assign_mult" >:: test_assign_mult;
    "test_function_decl_1" >:: test_function_decl_1;
    "test_function_decl_2" >:: test_function_decl_2;
     "test_eval_1" >:: test_eval_1;

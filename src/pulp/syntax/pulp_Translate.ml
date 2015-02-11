@@ -913,7 +913,33 @@ let rec translate_exp ctx exp : statement list * variable =
       | Parser_syntax.Array _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.1.4 Array Initialiser.")))
       | Parser_syntax.NamedFun _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.2.5 Function Expressions.Named.")))
       | Parser_syntax.ConditionalOp _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.2 Conditional Operator.")))
-      | Parser_syntax.AssignOp _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.13.2 Compound Assignment.")))
+      | Parser_syntax.AssignOp (e1, aop, e2) -> 
+          let r1_stmts, r1 = f e1 in
+				  let r2_stmts, r2 = translate_gamma r1 ctx in
+				  let r3_stmts, r3 = f e2 in
+				  let r4_stmts, r4 = translate_gamma r3 ctx in
+          let label = fresh_r () in
+				  let r5 = mk_assign_fresh_e (BinOp (Var r2, tr_bin_op (Parser_syntax.Arith aop), Var r4)) in
+          let field = mk_assign_fresh_e (Field (Var r1)) in
+				    r1_stmts @ 
+				    r2_stmts @ 
+				    r3_stmts @ 
+				    r4_stmts @ 
+				    [Basic (Assignment r5);
+             Sugar (If (type_of_vref_var r1,
+		          [Basic (Assignment field);
+               Sugar (If (or_expr 
+                             (equal_string_expr field.assign_left "arguments") 
+                             (equal_string_expr field.assign_left "eval"), 
+                 translate_error_throw LSError ctx.throw_var ctx.label_throw, 
+                 [Goto label]))
+              ],
+		          [ Label label;
+                translate_put_value r1 r5.assign_left ctx.throw_var ctx.label_throw
+              ]))
+            ],
+				    r5.assign_left
+
       | Parser_syntax.Comma _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.4 Comma Operator.")))
       | Parser_syntax.RegExp _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:7.8.5 Regular Expression Literals.")))   
 
