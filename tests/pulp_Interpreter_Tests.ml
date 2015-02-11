@@ -236,6 +236,21 @@ let test_program_try11 () =
   (* TODO conversions *)
   test_template_normal ("var x = 2; -x") (VHValue (HVLiteral (Num (-.2.0))))
   
+ let test_mod () =
+  test_template_normal ("var x = 5; x % 2") (VHValue (HVLiteral (Num 1.0)))
+  
+ let test_assign_mod () =
+  (* TODO conversions *)
+  test_template_normal ("var x = 6; x %= 4; x") (VHValue (HVLiteral (Num 2.0)))
+  
+ let test_assign_void () =
+  (* TODO conversions *)
+  test_template_normal ("var x; void (x = 6)") (VHValue (HVLiteral Undefined)) 
+  
+ let test_assign_void_expr () =
+  (* TODO conversions *)
+  test_template_normal ("var x; void (x = 6); x") (VHValue (HVLiteral (Num 6.0))) 
+  
  let test_function_decl_1 () =
    test_template_normal ("function f () {return 5}; f()") (VHValue (HVLiteral (Num 5.0)))
   
@@ -385,6 +400,10 @@ let suite = "Testing_Interpreter" >:::
    "test_assign_mult" >:: test_assign_mult;
    "test_positive" >:: test_positive;
    "test_negative" >:: test_negative;
+   "test_mod" >:: test_mod;
+   "test_assign_mod" >:: test_assign_mod;
+   "test_assign_void" >:: test_assign_void;
+   "test_assign_void_expr" >:: test_assign_void_expr;
    "test_function_decl_1" >:: test_function_decl_1;
    "test_function_decl_2" >:: test_function_decl_2;
     "test_eval_1" >:: test_eval_1;

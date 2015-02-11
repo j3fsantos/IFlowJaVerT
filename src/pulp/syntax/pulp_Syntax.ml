@@ -69,6 +69,7 @@ type arith_op =
   | Minus
   | Times
   | Div
+  | Mod
 
 type bool_op =
   | And 

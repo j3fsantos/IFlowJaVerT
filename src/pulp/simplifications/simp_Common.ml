@@ -407,7 +407,8 @@ let rec get_type_info_expr type_info e =
               end
             | Minus 
             | Times
-            | Div -> Some (TI_Type NumberType)
+            | Div 
+            | Mod -> Some (TI_Type NumberType)
          end
         | Boolean bop -> Some (TI_Type BooleanType) 
       end

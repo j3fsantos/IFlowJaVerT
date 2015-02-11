@@ -113,7 +113,7 @@ let tr_arith_op op =
       | Parser_syntax.Minus -> Minus
       | Parser_syntax.Times -> Times
       | Parser_syntax.Div -> Div
-      | Parser_syntax.Mod -> raise (PulpNotImplemented ((Pretty_print.string_of_arith_op op ^ " REF:11.5.3 Applying the % Operator.")))
+      | Parser_syntax.Mod -> Mod
       | Parser_syntax.Ursh -> raise (PulpNotImplemented ((Pretty_print.string_of_arith_op op ^ " REF:11.7.3 The Unsigned Right Shift Operator.")))
       | Parser_syntax.Lsh -> raise (PulpNotImplemented ((Pretty_print.string_of_arith_op op ^ " REF:11.7.1 The Left Shift Operator.")))
       | Parser_syntax.Rsh -> raise (PulpNotImplemented ((Pretty_print.string_of_arith_op op ^ " REF:11.7.2 The Signed Right Shift Operator.")))
@@ -399,9 +399,27 @@ let translate_to_number arg ctx =
         ]))
       ]))
     ])), rv
+    
+let translate_to_number_bin_op f op e1 e2 ctx =
+  let r1_stmts, r1 = f e1 in
+  let r2_stmts, r2 = translate_gamma r1 ctx in
+  let r3_stmts, r3 = f e2 in
+  let r4_stmts, r4 = translate_gamma r3 ctx in
+  let r5_stmt, r5 = translate_to_number r2 ctx in
+  let r6_stmt, r6 = translate_to_number r4 ctx in 
+  let r7 = mk_assign_fresh_e (BinOp (Var r5, tr_bin_op op, Var r6)) in
+    r1_stmts @ 
+    r2_stmts @ 
+    r3_stmts @ 
+    r4_stmts @ 
+    [ r5_stmt;
+      r6_stmt; 
+      Basic (Assignment r7)],
+    r7.assign_left
   
    
 let translate_bin_op_logical f e1 e2 bop ctx =
+  (* TODO do conversion for boolean *)
   let op = tr_boolean_op bop in
   let r1_stmts, r1 = f e1 in
   let r2_stmts, r2 = translate_gamma r1 ctx in
@@ -745,7 +763,13 @@ let rec translate_exp ctx exp : statement list * variable =
 					| Parser_syntax.Pre_Incr -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.4.4 Prefix Increment Operator.")))
 					| Parser_syntax.Post_Incr -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.3.1 Postfix Increment Operator.")))
 					| Parser_syntax.Bitnot -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.4.8 Bitwise NOT Operator.")))
-					| Parser_syntax.Void -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.4.2 The void Operator.")))
+					| Parser_syntax.Void -> 
+            let r1_stmts, r1 = f e in
+            let r2_stmts, _ = translate_gamma r1 ctx in
+            let rv = mk_assign_fresh_e (Literal Undefined) in
+            r1_stmts @
+            r2_stmts @
+            [Basic (Assignment rv)], rv.assign_left
         end 
         
       | Parser_syntax.Delete e ->
@@ -909,11 +933,11 @@ let rec translate_exp ctx exp : statement list * variable =
             end
           | Parser_syntax.Arith aop -> 
             begin match aop with
-              | Parser_syntax.Plus
+              | Parser_syntax.Plus -> translate_regular_bin_op f op e1 e2 ctx
               | Parser_syntax.Minus
               | Parser_syntax.Times
-              | Parser_syntax.Div -> translate_regular_bin_op f op e1 e2 ctx
-              | Parser_syntax.Mod -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.5.3 Applying the % Operator.")))
+              | Parser_syntax.Div 
+              | Parser_syntax.Mod -> translate_to_number_bin_op f op e1 e2 ctx
 						  | Parser_syntax.Ursh -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.7.3 The Unsigned Right Shift Operator.")))
 						  | Parser_syntax.Lsh -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.7.1 The Left Shift Operator.")))
 						  | Parser_syntax.Rsh -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.7.2 The Signed Right Shift Operator.")))

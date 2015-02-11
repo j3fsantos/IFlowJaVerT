@@ -17,6 +17,7 @@ let string_of_arith_op x =
     | Minus -> "-"
     | Times -> "*"
     | Div -> "/"
+    | Mod -> "%"
 
 let string_of_bin_op x =
   match x with

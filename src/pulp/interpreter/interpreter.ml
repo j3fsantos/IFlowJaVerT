@@ -23,6 +23,7 @@ let heap_value_arith op v1 v2 counter =
         | Minus -> HVLiteral (Num (n1 -. n2))
         | Times -> HVLiteral (Num (n1 *. n2))
         | Div -> HVLiteral (Num (n1 /. n2))
+        | Mod -> HVLiteral (Num (Float.modulo n1 n2))
       end
     | HVLiteral (String s1),  HVLiteral (String s2) -> HVLiteral (String (s1 ^ s2))
     | _, _ -> raise (InterpreterStuck ("Arith Op on non-numbers", counter))
