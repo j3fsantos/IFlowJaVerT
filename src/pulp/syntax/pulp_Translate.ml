@@ -1052,7 +1052,16 @@ let rec translate_exp ctx exp : statement list * variable =
             ],
 				    r5.assign_left
 
-      | Parser_syntax.Comma _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.4 Comma Operator.")))
+      | Parser_syntax.Comma (e1, e2) -> 
+        let r1_stmts, r1 = f e1 in
+        let r2_stmts, _ = translate_gamma r1 ctx in
+        let r3_stmts, r3 = f e2 in
+        let r4_stmts, r4 = translate_gamma r3 ctx in
+          r1_stmts @ 
+          r2_stmts @ 
+          r3_stmts @ 
+          r4_stmts, r4
+          
       | Parser_syntax.RegExp _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:7.8.5 Regular Expression Literals.")))   
 
       (*Statements*)

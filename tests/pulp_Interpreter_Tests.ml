@@ -287,6 +287,12 @@ let test_program_try11 () =
  let test_conditional_expr_false () =
    test_template_normal ("var x = 2; (x === 1 ? 'one' : 'not one')") (VHValue (HVLiteral (String "not one")))
   
+ let test_comma () =
+   test_template_normal ("(1, 2)") (VHValue (HVLiteral (Num 2.0)))
+ 
+ let test_comma_after () =
+   test_template_normal ("var y = 1; (y++, 1); y") (VHValue (HVLiteral (Num 2.0)))
+  
 let test_cav_example_1 () =
   test_template_normal ("var object = {
  property: 'some property',
@@ -458,5 +464,7 @@ let suite = "Testing_Interpreter" >:::
     "test_type_of_undefined_ref">::test_type_of_undefined_ref;
     "test_do_while" >:: test_do_while;
     "test_conditional_expr_true" >:: test_conditional_expr_true;
-    "test_conditional_expr_false" >:: test_conditional_expr_false  
+    "test_conditional_expr_false" >:: test_conditional_expr_false;
+    "test_comma" >:: test_comma;
+    "test_comma_after" >:: test_comma_after  
     ] 
