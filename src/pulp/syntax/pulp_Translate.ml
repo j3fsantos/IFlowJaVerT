@@ -364,6 +364,15 @@ let translate_regular_bin_op f op e1 e2 ctx =
     r4_stmts @ 
     [Basic (Assignment r5)],
     r5.assign_left
+    
+let translate_not_equal_bin_op f op e1 e2 ctx =
+  let r1_stmts, r1 = translate_regular_bin_op f (Parser_syntax.Comparison (Parser_syntax.Equal)) e1 e2 ctx in
+  let r2 = mk_assign_fresh (Expression (UnaryOp (Not, (Var r1)))) in
+    r1_stmts @ 
+    [
+     Basic (Assignment r2)
+    ], r2.assign_left
+
   
 let translate_bin_op_logical f e1 e2 bop ctx =
   let op = tr_boolean_op bop in
@@ -734,7 +743,7 @@ let rec translate_exp ctx exp : statement list * variable =
           | Parser_syntax.Comparison cop ->
             begin match cop with
               | Parser_syntax.Equal -> translate_regular_bin_op f op e1 e2 ctx
-              | Parser_syntax.NotEqual -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.9.2 The Does-not-equals Operator.")))
+              | Parser_syntax.NotEqual -> translate_not_equal_bin_op f op e1 e2 ctx
 						  | Parser_syntax.TripleEqual -> 
                   let r1_stmts, r1 = f e1 in
 								  let r2_stmts, r2 = translate_gamma r1 ctx in
