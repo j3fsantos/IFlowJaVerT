@@ -1006,7 +1006,25 @@ let rec translate_exp ctx exp : statement list * variable =
       
       | Parser_syntax.Array _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.1.4 Array Initialiser.")))
       | Parser_syntax.NamedFun _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.2.5 Function Expressions.Named.")))
-      | Parser_syntax.ConditionalOp _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.2 Conditional Operator.")))
+      | Parser_syntax.ConditionalOp (e1, e2, e3) ->
+        let r1_stmts, r1 = f e1 in
+        let r2_stmts, r2 = translate_gamma r1 ctx in
+        let r3_stmts, r3 = f e2 in
+        let r4_stmts, r4 = translate_gamma r3 ctx in
+        let r5_stmts, r5 = f e3 in
+        let r6_stmts, r6 = translate_gamma r5 ctx in
+        let rv = fresh_r () in     
+          r1_stmts @ 
+          r2_stmts @ 
+          [ 
+            Sugar (If (is_true_expr r2, 
+                r3_stmts @ 
+                r4_stmts @
+                [Basic (Assignment (mk_assign rv (Expression (Var r4))))], 
+                r5_stmts @ 
+                r6_stmts @
+                [Basic (Assignment (mk_assign rv (Expression (Var r6))))]))
+          ], rv
       | Parser_syntax.AssignOp (e1, aop, e2) -> 
           let r1_stmts, r1 = f e1 in
 				  let r2_stmts, r2 = translate_gamma r1 ctx in
