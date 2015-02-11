@@ -103,11 +103,17 @@ let to_boolean v counter =
 let bool_not v counter =
   match v with
     | VHValue hv -> VHValue (HVLiteral (Bool (not (to_boolean hv counter))))
-    | _ -> raise (InterpreterStuck ("Cannot proceed with ! on reference value", counter))
+    | _ -> raise (InterpreterStuck ("Cannot proceed with ! on reference/type value", counter))
+
+let num_negative v counter =
+  match v with
+    | VHValue (HVLiteral (Num n)) -> VHValue (HVLiteral (Num (-.n))) 
+    | _ -> raise (InterpreterStuck ("Cannot proceed with negative on not number value", counter))
   
 let run_unary_op op v counter : value =
   match op with
     | Not -> bool_not v counter 
+    | Negative -> num_negative v counter
 
 let type_of_literal l =
   match l with

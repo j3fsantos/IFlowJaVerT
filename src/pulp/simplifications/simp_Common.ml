@@ -200,6 +200,11 @@ let rec simplify_expr e =
         | Literal (Bool b) -> Literal (Bool (not b))
         | _ -> e
       end
+    | UnaryOp (Negative, e1) -> 
+      begin match e1 with
+        | Literal (Num b) -> Literal (Num (-.b))
+        | _ -> e
+      end
     | Ref (Base ref1, Field ref2, reftype) -> 
        if ref1 = ref2 then ref1 else e
     | Ref _ -> e
@@ -407,6 +412,7 @@ let rec get_type_info_expr type_info e =
         | Boolean bop -> Some (TI_Type BooleanType) 
       end
     | UnaryOp (Not, e) -> Some (TI_Type BooleanType)
+    | UnaryOp (Negative, e) -> Some (TI_Type NumberType)
     | Ref (e1, e2, ref_type) -> Some (TI_Type (ReferenceType (Some ref_type)))
     | Base e -> Some TI_Value
     | Field e -> Some (TI_Type StringType)

@@ -82,6 +82,7 @@ type bin_op =
 
 type unary_op = 
   | Not
+  | Negative
 
 type expression = 
   | Literal of literal

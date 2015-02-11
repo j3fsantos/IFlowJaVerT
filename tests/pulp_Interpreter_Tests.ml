@@ -228,6 +228,14 @@ let test_program_try11 () =
   (* TODO conversions *)
   test_template_normal ("var x = 2; x *= 2; x") (VHValue (HVLiteral (Num 4.0)))
   
+ let test_positive () =
+  (* TODO conversions *)
+  test_template_normal ("var x = 2; +x") (VHValue (HVLiteral (Num 2.0)))
+  
+ let test_negative () =
+  (* TODO conversions *)
+  test_template_normal ("var x = 2; -x") (VHValue (HVLiteral (Num (-.2.0))))
+  
  let test_function_decl_1 () =
    test_template_normal ("function f () {return 5}; f()") (VHValue (HVLiteral (Num 5.0)))
   
@@ -375,6 +383,8 @@ let suite = "Testing_Interpreter" >:::
    "test_assign_minus" >:: test_assign_minus;
    "test_assign_div" >:: test_assign_div;
    "test_assign_mult" >:: test_assign_mult;
+   "test_positive" >:: test_positive;
+   "test_negative" >:: test_negative;
    "test_function_decl_1" >:: test_function_decl_1;
    "test_function_decl_2" >:: test_function_decl_2;
     "test_eval_1" >:: test_eval_1;

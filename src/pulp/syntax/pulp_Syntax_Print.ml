@@ -27,6 +27,7 @@ let string_of_bin_op x =
 let string_of_unary_op op =
   match op with
     | Not -> "not"
+    | Negative -> "-"
 
 let string_of_builtin_loc l =
   match l with

@@ -1,3 +1,4 @@
+open Batteries
 open Pulp_Syntax
 open Pulp_Syntax_Utils
 open Pulp_Syntax_Print
@@ -55,6 +56,7 @@ let equal_bool_expr v b = equal_lit_expr v (Bool b)
 let equal_loc_expr v l = equal_lit_expr v (LLoc l)
 let equal_string_expr v s = equal_lit_expr v (String s)
 let equal_int_expr v n = equal_lit_expr v (Num (float_of_int n))
+let equal_num_expr v n = equal_lit_expr v (Num n)
 
 (* What about not a number? *)
 let is_false_expr v =
@@ -378,6 +380,26 @@ let translate_abstract_relation x y leftfirst =
   let r6 = mk_assign_fresh_e (BinOp (Var x, Comparison LessThan, Var y)) in
   [Basic (Assignment r6)], r6.assign_left
   
+let translate_to_number arg ctx =
+  let rv = fresh_r () in
+  let assign_rv v = [Basic (Assignment (mk_assign rv (Expression (Literal (Num v)))))] in
+  let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
+  Sugar (If (type_of_var arg UndefinedType,
+    assign_rv Float.nan, (* TODO *)
+    [ Sugar (If (type_of_var arg NullType,
+      assign_rv 0.0,
+      [ Sugar (If (type_of_var arg BooleanType,
+        [ Sugar (If (equal_bool_expr arg true, 
+          assign_rv 1.0,
+          assign_rv 0.0))
+        ],
+        [ Sugar (If (type_of_var arg NumberType,
+          assign_rv_var arg,
+          translate_error_throw LNotImplemented ctx.throw_var ctx.label_throw))
+        ]))
+      ]))
+    ])), rv
+  
    
 let translate_bin_op_logical f e1 e2 bop ctx =
   let op = tr_boolean_op bop in
@@ -696,8 +718,28 @@ let rec translate_exp ctx exp : statement list * variable =
                 Label exit_label;
               ], rv
             end
-					| Parser_syntax.Positive -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.4.6 Unary + Operator.")))
-					| Parser_syntax.Negative -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.4.7 Unary - Operator.")))
+					| Parser_syntax.Positive -> 
+            let r1_stmts, r1 = f e in
+            let r2_stmts, r2 = translate_gamma r1 ctx in
+            let r3_stmt, r3 = translate_to_number r2 ctx in
+            r1_stmts @
+            r2_stmts @
+            [r3_stmt], r3
+					| Parser_syntax.Negative -> 
+            let r1_stmts, r1 = f e in
+            let r2_stmts, r2 = translate_gamma r1 ctx in
+            let r3_stmt, r3 = translate_to_number r2 ctx in
+            let rv = fresh_r () in
+            let assign_rv n = [Basic (Assignment (mk_assign rv (Expression n)))] in
+            let negative = mk_assign_fresh_e (UnaryOp (Negative, (Var r3))) in
+            r1_stmts @
+            r2_stmts @
+            [r3_stmt;
+             Sugar (If (equal_num_expr r3 Float.nan,
+               assign_rv (Literal (Num Float.nan)),
+               [Basic (Assignment negative)] @
+               assign_rv (Var negative.assign_left)))
+            ], negative.assign_left
 					| Parser_syntax.Pre_Decr -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.4.5 Prefix Decrement Operator.")))
 					| Parser_syntax.Post_Decr -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.3.2 Postfix Decrement Operator.")))
 					| Parser_syntax.Pre_Incr -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.4.4 Prefix Increment Operator.")))
