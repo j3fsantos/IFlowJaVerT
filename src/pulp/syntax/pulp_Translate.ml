@@ -1152,8 +1152,9 @@ let rec translate_stmt ctx exp : statement list * variable =
                 [Basic (Assignment (mk_assign rv (Expression (Var r3))))], 
                 elsebranch))
           ], rv
-          
+           
       | Parser_syntax.While (e1, e2) ->
+        (* TODO: Update with continue/break *)
         let rv = fresh_r () in
         let assign_rv_empty = Basic (Assignment (mk_assign rv (Expression (Literal Empty)))) in
         let label1 = fresh_r () in
@@ -1178,6 +1179,39 @@ let rec translate_stmt ctx exp : statement list * variable =
                 
                 []))
           ], rv
+          
+      | Parser_syntax.DoWhile (e1, e2) -> 
+        (* TODO: Update with continue/break *)
+        let rv = fresh_r () in
+        let iterating = fresh_r () in
+        let assign_rv_empty = Basic (Assignment (mk_assign rv (Expression (Literal Empty)))) in
+        let label1 = fresh_r () in
+        let r3_stmts, r3 = f e1 in
+        let r1_stmts, r1 = translate_exp ctx e2 in
+        let r2_stmts, r2 = translate_gamma r1 ctx in
+          [
+            assign_rv_empty; 
+            Basic (Assignment (mk_assign iterating (Expression (Literal (Bool true)))));
+            Label label1;
+            Sugar (If (equal_bool_expr iterating true, 
+                r3_stmts @ 
+                [ 
+                  Sugar (If (equal_empty_expr r3, 
+                    [], 
+                    [Basic (Assignment (mk_assign rv (Expression (Var r3))))]));
+                ] @
+                r1_stmts @ 
+                r2_stmts @ 
+                [     
+                  Sugar (If (is_false_expr r2,
+                    [Basic (Assignment (mk_assign iterating (Expression (Literal (Bool false)))))],
+                    []));
+                  Goto label1
+                ], 
+                
+                []))
+          ], rv
+
         
       | Parser_syntax.Return e ->
         let stmts, rv = match e with
@@ -1322,7 +1356,6 @@ let rec translate_stmt ctx exp : statement list * variable =
       | Parser_syntax.Break _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.8 The break Statement.")))
       | Parser_syntax.Label _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.12 Labelled Statement.")))
         
-      | Parser_syntax.DoWhile _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.6.1 The do-while Statement.")))
       | Parser_syntax.For _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.6.3 The for Statement.")))
       | Parser_syntax.Switch _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.11 Switch Statement.")))
 
