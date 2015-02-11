@@ -58,6 +58,8 @@ let equal_string_expr v s = equal_lit_expr v (String s)
 let equal_int_expr v n = equal_lit_expr v (Num (float_of_int n))
 let equal_num_expr v n = equal_lit_expr v (Num n)
 
+let equal_string_exprs e s = equal_exprs e (Literal (String s))
+
 (* What about not a number? *)
 let is_false_expr v =
   or_expr
@@ -550,6 +552,24 @@ let translate_has_instance f v ctx =
     ],
     [Basic (Assignment (mk_assign rv (Expression (Literal (Bool false)))))]))
   ], rv
+  
+let translate_inc_dec f e op ctx =
+  let r1_stmts, r1 = f e in
+  let r2_stmts, r2 = translate_gamma r1 ctx in
+  let to_number_stmt, oldvalue = translate_to_number r2 ctx in
+  let newvalue = mk_assign_fresh_e (BinOp (Var oldvalue, Arith op, (Literal (Num 1.0)))) in          
+    r1_stmts @  
+    [Sugar (If (and_expr (is_vref_expr r1)
+                  (or_expr 
+                  (equal_string_exprs (Field (Var r1)) "arguments") 
+                  (equal_string_exprs (Field (Var r1)) "eval")), 
+      translate_error_throw LSError ctx.throw_var ctx.label_throw, 
+      r2_stmts @  
+      [ to_number_stmt;
+        Basic (Assignment newvalue);
+        translate_put_value r1 newvalue.assign_left ctx.throw_var ctx.label_throw
+      ]))
+    ], oldvalue, newvalue.assign_left
 
 
 let rec translate_exp ctx exp : statement list * variable =
@@ -758,12 +778,20 @@ let rec translate_exp ctx exp : statement list * variable =
                [Basic (Assignment negative)] @
                assign_rv (Var negative.assign_left)))
             ], negative.assign_left
-					| Parser_syntax.Pre_Decr -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.4.5 Prefix Decrement Operator.")))
-					| Parser_syntax.Post_Decr -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.3.2 Postfix Decrement Operator.")))
-					| Parser_syntax.Pre_Incr -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.4.4 Prefix Increment Operator.")))
-					| Parser_syntax.Post_Incr -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.3.1 Postfix Increment Operator.")))
-					| Parser_syntax.Bitnot -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.4.8 Bitwise NOT Operator.")))
-					| Parser_syntax.Void -> 
+		  | Parser_syntax.Pre_Decr -> 
+            let stmts, _, newvalue = translate_inc_dec f e Minus ctx
+            in stmts, newvalue
+					| Parser_syntax.Post_Decr -> 
+            let stmts, oldvalue, _ = translate_inc_dec f e Minus ctx
+            in stmts, oldvalue
+					| Parser_syntax.Pre_Incr -> 
+            let stmts, _, newvalue = translate_inc_dec f e Plus ctx
+            in stmts, newvalue
+					| Parser_syntax.Post_Incr -> 
+            let stmts, oldvalue, _ = translate_inc_dec f e Plus ctx
+            in stmts, oldvalue
+		  | Parser_syntax.Bitnot -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.4.8 Bitwise NOT Operator.")))
+		  | Parser_syntax.Void -> 
             let r1_stmts, r1 = f e in
             let r2_stmts, _ = translate_gamma r1 ctx in
             let rv = mk_assign_fresh_e (Literal Undefined) in

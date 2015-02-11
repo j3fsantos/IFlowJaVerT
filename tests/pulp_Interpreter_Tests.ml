@@ -251,6 +251,24 @@ let test_program_try11 () =
   (* TODO conversions *)
   test_template_normal ("var x; void (x = 6); x") (VHValue (HVLiteral (Num 6.0))) 
   
+ let test_pre_inc () =
+  test_template_normal ("var x = 1; ++x") (VHValue (HVLiteral (Num 2.0))) 
+  
+ let test_pre_dec () =
+  test_template_normal ("var x = 2; --x") (VHValue (HVLiteral (Num 1.0)))
+  
+ let test_post_inc () =
+  test_template_normal ("var x = 3; x++") (VHValue (HVLiteral (Num 3.0))) 
+  
+ let test_post_dec () =
+  test_template_normal ("var x = 4; x--;") (VHValue (HVLiteral (Num 4.0)))
+  
+ let test_post_inc_after () =
+  test_template_normal ("var x = 3; x++; x") (VHValue (HVLiteral (Num 4.0))) 
+  
+ let test_post_dec_after () =
+  test_template_normal ("var x = 4; x--; x") (VHValue (HVLiteral (Num 3.0)))
+  
  let test_function_decl_1 () =
    test_template_normal ("function f () {return 5}; f()") (VHValue (HVLiteral (Num 5.0)))
   
@@ -404,6 +422,12 @@ let suite = "Testing_Interpreter" >:::
    "test_assign_mod" >:: test_assign_mod;
    "test_assign_void" >:: test_assign_void;
    "test_assign_void_expr" >:: test_assign_void_expr;
+   "test_pre_inc" >:: test_pre_inc;
+   "test_pre_dec" >:: test_pre_dec; 
+   "test_post_inc" >:: test_post_inc; 
+   "test_post_dec" >:: test_post_dec;  
+   "test_post_inc_after" >:: test_post_inc_after; 
+   "test_post_dec_after" >:: test_post_dec_after; 
    "test_function_decl_1" >:: test_function_decl_1;
    "test_function_decl_2" >:: test_function_decl_2;
     "test_eval_1" >:: test_eval_1;
