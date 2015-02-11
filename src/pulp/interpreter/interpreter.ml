@@ -47,12 +47,34 @@ let value_bool op v1 v2 counter =
     | (VHValue hv1), (VHValue hv2) -> VHValue (heap_value_bool op hv1 hv2 counter)
     | _, _ -> 
       raise (InterpreterStuck ("Boolean Op on non-boolean values", counter))
+      
+let heap_value_less_than v1 v2 counter =
+  match v1, v2 with
+    | HVLiteral (Num n1), HVLiteral (Num n2) -> n1 < n2
+    | _,_ -> raise (InterpreterStuck ("< on non-number values", counter))
+
+let type_less_than t1 t2 =
+  match t2 with
+    | ReferenceType None -> 
+      begin match t1 with
+        | ReferenceType (Some _) -> true
+        | _ -> false
+      end
+    | _ -> false
+
+let value_less_than v1 v2 counter =
+  match v1, v2 with
+    | VHValue hv1, VHValue hv2 -> heap_value_less_than hv1 hv2 counter
+    | VRef (l1, s1, rt1), VRef (l2, s2, rt2) -> false
+    | VType t1, VType t2 -> type_less_than t1 t2
+    | _, _ -> false
 
 let run_bin_op op v1 v2 counter : value =
   begin match op with
     | Comparison cop ->
       begin match cop with
         | Equal -> VHValue (HVLiteral (Bool (value_eq v1 v2)))
+        | LessThan -> VHValue (HVLiteral (Bool (value_less_than v1 v2 counter)))
       end
     | Arith aop -> value_arith aop v1 v2 counter
     | Boolean bop -> value_bool bop v1 v2 counter

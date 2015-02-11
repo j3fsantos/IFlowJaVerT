@@ -168,6 +168,15 @@ let rec simplify_expr e =
               end
             | _ -> e
           end
+        | Comparison LessThan ->
+          begin match e1, e2 with
+            | Literal lit1, Literal lit2 ->
+              begin match lit1, lit2 with                         
+                | Num n1, Num n2 -> Literal (Bool (n1 < n2))         
+                | _, _ -> e
+              end
+            | _ -> e
+          end
         | Arith aop -> e (* TODO *)
         | Boolean Or ->
           begin match e1, e2 with
@@ -381,7 +390,7 @@ let rec get_type_info_expr type_info e =
       let e1_type = f e1 in
       let e2_type = f e2 in
       begin match binop with
-        | Comparison Equal -> Some (TI_Type BooleanType) 
+        | Comparison _ -> Some (TI_Type BooleanType) 
         | Arith aop ->
           begin match aop with
             | Plus ->

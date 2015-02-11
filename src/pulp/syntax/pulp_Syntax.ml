@@ -62,6 +62,7 @@ type codename_spec = spec CodenameMap.t
 
 type comparison_op =
   | Equal
+  | LessThan
 
 type arith_op =
   | Plus

@@ -126,10 +126,10 @@ let tr_comparison_op op =
     | Parser_syntax.NotEqual -> raise (PulpNotImplemented ((Pretty_print.string_of_comparison_op op ^ " REF:11.9.2 The Does-not-equals Operator.")))
     | Parser_syntax.TripleEqual -> raise (PulpNotImplemented ((Pretty_print.string_of_comparison_op op ^ " REF:11.9.4 The Strict Equals Operator.")))
     | Parser_syntax.NotTripleEqual -> raise (PulpNotImplemented ((Pretty_print.string_of_comparison_op op ^ " REF:11.9.5 The Strict Does-not-equal Operator.")))
-    | Parser_syntax.Lt -> raise (PulpNotImplemented ((Pretty_print.string_of_comparison_op op ^ " REF:11.8.1 The Less-than Operator")))
-    | Parser_syntax.Le -> raise (PulpNotImplemented ((Pretty_print.string_of_comparison_op op ^ " REF:11.8.3 The Less-than-or-equal Operator.")))
-    | Parser_syntax.Gt -> raise (PulpNotImplemented ((Pretty_print.string_of_comparison_op op ^ " REF:11.8.2 The Greater-than Operator.")))
-    | Parser_syntax.Ge -> raise (PulpNotImplemented ((Pretty_print.string_of_comparison_op op ^ " REF:11.8.4 The Greater-than-or-equal Operator.")))
+    | Parser_syntax.Lt -> LessThan
+    | Parser_syntax.Le -> LessThan
+    | Parser_syntax.Gt -> LessThan
+    | Parser_syntax.Ge -> LessThan
     | Parser_syntax.In -> raise (PulpNotImplemented ((Pretty_print.string_of_comparison_op op ^ " REF:11.8.7 The in operator.")))
     | Parser_syntax.InstanceOf -> raise (PulpNotImplemented ((Pretty_print.string_of_comparison_op op ^ " REF:11.8.6 The instanceof operator.")))
   end
@@ -372,8 +372,13 @@ let translate_not_equal_bin_op f op e1 e2 ctx =
     [
      Basic (Assignment r2)
     ], r2.assign_left
-
+    
+let translate_abstract_relation x y leftfirst =
+  (* TODO Type Conversions *)
+  let r6 = mk_assign_fresh_e (BinOp (Var x, Comparison LessThan, Var y)) in
+  [Basic (Assignment r6)], r6.assign_left
   
+   
 let translate_bin_op_logical f e1 e2 bop ctx =
   let op = tr_boolean_op bop in
   let r1_stmts, r1 = f e1 in
@@ -769,10 +774,74 @@ let rec translate_exp ctx exp : statement list * variable =
                     [r5;
                      Basic (Assignment r6)
                     ], r6.assign_left
-						  | Parser_syntax.Lt -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.8.1 The Less-than Operator")))
-						  | Parser_syntax.Le -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.8.3 The Less-than-or-equal Operator.")))
-						  | Parser_syntax.Gt -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.8.2 The Greater-than Operator.")))
-						  | Parser_syntax.Ge -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.8.4 The Greater-than-or-equal Operator.")))
+						  | Parser_syntax.Lt -> 
+                  let r1_stmts, r1 = f e1 in
+								  let r2_stmts, r2 = translate_gamma r1 ctx in
+								  let r3_stmts, r3 = f e2 in
+								  let r4_stmts, r4 = translate_gamma r3 ctx in
+                  let r5_stmts, r5 = translate_abstract_relation r2 r4 true in
+                  let rv = fresh_r() in
+                  let assign_rv v = Basic (Assignment (mk_assign rv (Expression v))) in                  
+								    r1_stmts @ 
+								    r2_stmts @ 
+								    r3_stmts @ 
+								    r4_stmts @
+                    r5_stmts @ 
+								    [Sugar (If (equal_undef_expr r5, 
+                      [assign_rv (Literal (Bool false))], 
+                      [assign_rv (Var r5)]))
+                    ], rv
+						  | Parser_syntax.Le -> 
+                  let r1_stmts, r1 = f e1 in
+                  let r2_stmts, r2 = translate_gamma r1 ctx in
+                  let r3_stmts, r3 = f e2 in
+                  let r4_stmts, r4 = translate_gamma r3 ctx in
+                  let r5_stmts, r5 = translate_abstract_relation r4 r2 false in
+                  let rv = fresh_r() in
+                  let assign_rv v = Basic (Assignment (mk_assign rv (Expression v))) in                  
+                    r1_stmts @ 
+                    r2_stmts @ 
+                    r3_stmts @ 
+                    r4_stmts @
+                    r5_stmts @ 
+                    [Sugar (If (or_expr (equal_bool_expr r5 true) (equal_undef_expr r5), 
+                      [assign_rv (Literal (Bool false))], 
+                      [assign_rv (Literal (Bool true))]))
+                    ], rv
+						  | Parser_syntax.Gt -> 
+                  let r1_stmts, r1 = f e1 in
+                  let r2_stmts, r2 = translate_gamma r1 ctx in
+                  let r3_stmts, r3 = f e2 in
+                  let r4_stmts, r4 = translate_gamma r3 ctx in
+                  let r5_stmts, r5 = translate_abstract_relation r4 r2 false in
+                  let rv = fresh_r() in
+                  let assign_rv v = Basic (Assignment (mk_assign rv (Expression v))) in                  
+                    r1_stmts @ 
+                    r2_stmts @ 
+                    r3_stmts @ 
+                    r4_stmts @
+                    r5_stmts @ 
+                    [Sugar (If (equal_undef_expr r5, 
+                      [assign_rv (Literal (Bool false))], 
+                      [assign_rv (Var r5)]))
+                    ], rv
+						  | Parser_syntax.Ge -> 
+                  let r1_stmts, r1 = f e1 in
+                  let r2_stmts, r2 = translate_gamma r1 ctx in
+                  let r3_stmts, r3 = f e2 in
+                  let r4_stmts, r4 = translate_gamma r3 ctx in
+                  let r5_stmts, r5 = translate_abstract_relation r2 r4 true in
+                  let rv = fresh_r() in
+                  let assign_rv v = Basic (Assignment (mk_assign rv (Expression v))) in                  
+                    r1_stmts @ 
+                    r2_stmts @ 
+                    r3_stmts @ 
+                    r4_stmts @
+                    r5_stmts @ 
+                    [Sugar (If (or_expr (equal_bool_expr r5 true) (equal_undef_expr r5), 
+                      [assign_rv (Literal (Bool false))], 
+                      [assign_rv (Literal (Bool true))]))
+                    ], rv
 						  | Parser_syntax.In -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.8.7 The in operator.")))
 						  | Parser_syntax.InstanceOf -> 
                 let r1_stmts, r1 = f e1 in

@@ -196,6 +196,22 @@ let test_program_try11 () =
   (* TODO conversions *)
   test_template_normal ("1 != 1") (VHValue (HVLiteral (Bool false)))
   
+ let test_lt () =
+  (* TODO conversions *)
+  test_template_normal ("1 < 1") (VHValue (HVLiteral (Bool false)))
+  
+ let test_le () =
+  (* TODO conversions *)
+  test_template_normal ("1 <= 1") (VHValue (HVLiteral (Bool true)))
+  
+ let test_gt () =
+  (* TODO conversions *)
+  test_template_normal ("2 > 1") (VHValue (HVLiteral (Bool true)))
+  
+ let test_ge () =
+  (* TODO conversions *)
+  test_template_normal ("2 >= 1") (VHValue (HVLiteral (Bool true)))
+  
  let test_function_decl_1 () =
    test_template_normal ("function f () {return 5}; f()") (VHValue (HVLiteral (Num 5.0)))
   
@@ -335,6 +351,10 @@ let suite = "Testing_Interpreter" >:::
    "test_strict_not_equal" >:: test_strict_not_equal;
    "test_equal" >:: test_equal;
    "test_not_equal" >:: test_not_equal;
+   "test_lt" >:: test_lt;
+   "test_gt" >:: test_gt;
+   "test_le" >:: test_le;
+   "test_ge" >:: test_ge;  
    "test_function_decl_1" >:: test_function_decl_1;
    "test_function_decl_2" >:: test_function_decl_2;
     "test_eval_1" >:: test_eval_1;

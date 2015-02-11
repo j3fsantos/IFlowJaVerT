@@ -4,6 +4,7 @@ open Pulp_Syntax_Utils
 let string_of_comparison_op x =
   match x with
     | Equal -> "="
+    | LessThan -> "<"
 
 let string_of_bool_op x =
   match x with
