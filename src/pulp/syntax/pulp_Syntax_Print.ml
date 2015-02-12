@@ -30,6 +30,12 @@ let string_of_unary_op op =
     | Not -> "not"
     | Negative -> "-"
 
+let string_of_feature f =
+  match f with
+    | GetValuePrim -> "getvalueprim"
+    | ToNumber -> "tonumber"
+    | ToString -> "tostring"
+
 let string_of_builtin_loc l =
   match l with
     | Lg -> "#lg"
@@ -39,7 +45,7 @@ let string_of_builtin_loc l =
     | LRError -> "#lrerror"
     | LTError -> "#lterror"
     | LSError -> "#lserror"
-    | LNotImplemented -> "#lnotimplemented"
+    | LNotImplemented f -> "#lnotimplemented_" ^ (string_of_feature f)
 
 let string_of_builtin_field f =
   match f with

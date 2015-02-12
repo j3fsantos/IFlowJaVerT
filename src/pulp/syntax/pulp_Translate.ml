@@ -259,7 +259,7 @@ let translate_gamma r ctx =
         translate_error_throw LRError ctx.throw_var ctx.label_throw,
         [
           Sugar (If (istypeof_prim_expr base.assign_left,
-            translate_error_throw LNotImplemented ctx.throw_var ctx.label_throw,
+            translate_error_throw (LNotImplemented GetValuePrim) ctx.throw_var ctx.label_throw,
             [
               Basic (Assignment field);
               Sugar (If (is_vref_expr r,
@@ -398,7 +398,7 @@ let translate_to_number arg ctx =
         ],
         [ Sugar (If (type_of_var arg NumberType,
           assign_rv_var arg,
-          translate_error_throw LNotImplemented ctx.throw_var ctx.label_throw))
+          translate_error_throw (LNotImplemented ToNumber) ctx.throw_var ctx.label_throw))
         ]))
       ]))
     ])), rv
@@ -418,7 +418,7 @@ let translate_to_string arg ctx =
         ],
         [ Sugar (If (type_of_var arg StringType,
           assign_rv_var arg,
-          translate_error_throw LNotImplemented ctx.throw_var ctx.label_throw))
+          translate_error_throw (LNotImplemented ToString) ctx.throw_var ctx.label_throw))
         ]))
       ]))
     ])), rv

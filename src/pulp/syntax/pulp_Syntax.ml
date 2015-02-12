@@ -2,6 +2,11 @@ type spec = { (* Move to spec *)
      spec_pre : Logic.formula;
      spec_post : Logic.formula
   }
+ 
+type feature =
+  | GetValuePrim
+  | ToNumber
+  | ToString
   
 type builtin_loc = 
   | Lg (* Global Object *)
@@ -11,7 +16,7 @@ type builtin_loc =
   | LRError (* Reference Error *)
   | LTError (* Type Error *)
   | LSError (* Syntax Error *)
-  | LNotImplemented (* The tool cannot handle this case atm *)
+  | LNotImplemented of feature (* The tool cannot handle this case atm *)
 
 type builtin_field =
   | FProto
