@@ -370,6 +370,14 @@ let test_instance_of_false () =
   test_template_normal ("function C(){}; function D(){}; var o = new C(); o instanceof D")
   (VHValue (HVLiteral (Bool false)))
   
+let test_in_true () =
+  test_template_normal ("var x = {a : 1, b : 2}; 'a' in x ")
+  (VHValue (HVLiteral (Bool true)))
+  
+let test_in_false () =
+  test_template_normal ("var x = {a : 1, b : 2}; 'c' in x ")
+  (VHValue (HVLiteral (Bool false)))
+  
 let test_type_of_undefined () =
   test_template_normal ("typeof undefined") (VHValue (HVLiteral (String "undefined")))
   
@@ -454,6 +462,8 @@ let suite = "Testing_Interpreter" >:::
     "test_cav_example_6" >:: test_cav_example_6;
     "test_instance_of_true" >:: test_instance_of_true;
     "test_instance_of_false" >:: test_instance_of_false;
+    "test_in_true" >:: test_in_true;
+    "test_in_false" >:: test_in_false;
     "test_type_of_undefined">::test_type_of_undefined;
     "test_type_of_bool">::test_type_of_bool;
     "test_type_of_number">::test_type_of_number;

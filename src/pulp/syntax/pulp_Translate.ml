@@ -276,7 +276,8 @@ let translate_gamma r ctx =
                 [ Basic (Assignment assign_pi_2);
                   Sugar (If (equal_empty_expr assign_pi_2.assign_left,
                     [Basic (Assignment (mk_assign rv (Expression(Literal Undefined))))],
-                    [Basic (Assignment (mk_assign rv (Expression(Var assign_pi_2.assign_left))))])) ]))
+                    [Basic (Assignment (mk_assign rv (Expression(Var assign_pi_2.assign_left))))])) 
+                ]))
             ]))
         ]))
     ],
@@ -396,6 +397,26 @@ let translate_to_number arg ctx =
           assign_rv 0.0))
         ],
         [ Sugar (If (type_of_var arg NumberType,
+          assign_rv_var arg,
+          translate_error_throw LNotImplemented ctx.throw_var ctx.label_throw))
+        ]))
+      ]))
+    ])), rv
+    
+let translate_to_string arg ctx =
+  let rv = fresh_r () in
+  let assign_rv v = [Basic (Assignment (mk_assign rv (Expression (Literal (String v)))))] in
+  let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
+  Sugar (If (type_of_var arg UndefinedType,
+    assign_rv "undefined", (* TODO *)
+    [ Sugar (If (type_of_var arg NullType,
+      assign_rv "null",
+      [ Sugar (If (type_of_var arg BooleanType,
+        [ Sugar (If (equal_bool_expr arg true, 
+          assign_rv "true",
+          assign_rv "false"))
+        ],
+        [ Sugar (If (type_of_var arg StringType,
           assign_rv_var arg,
           translate_error_throw LNotImplemented ctx.throw_var ctx.label_throw))
         ]))
@@ -552,6 +573,16 @@ let translate_has_instance f v ctx =
     ],
     [Basic (Assignment (mk_assign rv (Expression (Literal (Bool false)))))]))
   ], rv
+    
+let translate_has_property o p =
+  (* TODO use this in other places too *) 
+  let rv = fresh_r () in  
+  let assign_pi = mk_assign_fresh (ProtoF (Var o, p)) in 
+	[ Basic (Assignment assign_pi);
+	  Sugar (If (equal_empty_expr assign_pi.assign_left,
+	    [Basic (Assignment (mk_assign rv (Expression(Literal (Bool false)))))],
+	    [Basic (Assignment (mk_assign rv (Expression(Literal (Bool true)))))])) 
+	], rv
   
 let translate_inc_dec f e op ctx =
   let r1_stmts, r1 = f e in
@@ -936,8 +967,22 @@ let rec translate_exp ctx exp : statement list * variable =
                       [assign_rv (Literal (Bool false))], 
                       [assign_rv (Literal (Bool true))]))
                     ], rv
-						  | Parser_syntax.In -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.8.7 The in operator.")))
-						  | Parser_syntax.InstanceOf -> 
+			 | Parser_syntax.In -> 
+                let r1_stmts, r1 = f e1 in
+                let r2_stmts, r2 = translate_gamma r1 ctx in
+                let r3_stmts, r3 = f e2 in
+                let r4_stmts, r4 = translate_gamma r3 ctx in
+                let r5_stmt, r5 = translate_to_string r2 ctx in
+                let r6_stmts, r6 = translate_has_property r4 (Var r5) in
+                r1_stmts @ 
+                r2_stmts @ 
+                r3_stmts @ 
+                r4_stmts @
+                [ Sugar (If (equal_exprs (TypeOf (Var r4)) (Literal (Type ObjectType)), 
+                    [r5_stmt] @ r6_stmts,
+                    translate_error_throw LTError ctx.throw_var ctx.label_throw))
+                ], r6
+			| Parser_syntax.InstanceOf -> 
                 let r1_stmts, r1 = f e1 in
                 let r2_stmts, r2 = translate_gamma r1 ctx in
                 let r3_stmts, r3 = f e2 in
