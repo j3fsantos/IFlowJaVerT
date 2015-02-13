@@ -402,6 +402,15 @@ let test_type_of_function () =
 let test_type_of_undefined_ref () =
   test_template_normal ("typeof x") (VHValue (HVLiteral (String "undefined")))
   
+let test_named_function () =
+  test_template_normal ("var f = function m (x) {
+    if (x === 0) return 0;
+    if (x === 1) return 1;
+    return m(x-2) + m(x-1);
+};
+
+f(6)") (VHValue (HVLiteral (Num 8.0)))
+  
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
    "running program2" >:: test_program2;
@@ -453,7 +462,7 @@ let suite = "Testing_Interpreter" >:::
    "test_post_dec_after" >:: test_post_dec_after; 
    "test_function_decl_1" >:: test_function_decl_1;
    "test_function_decl_2" >:: test_function_decl_2;
-    "test_eval_1" >:: test_eval_1;
+   "test_eval_1" >:: test_eval_1;
    "test_cav_example_1" >:: test_cav_example_1;
    "test_cav_example_2" >:: test_cav_example_2;
    "test_cav_example_3" >:: test_cav_example_3;
@@ -476,5 +485,6 @@ let suite = "Testing_Interpreter" >:::
     "test_conditional_expr_true" >:: test_conditional_expr_true;
     "test_conditional_expr_false" >:: test_conditional_expr_false;
     "test_comma" >:: test_comma;
-    "test_comma_after" >:: test_comma_after  
+    "test_comma_after" >:: test_comma_after;
+    "test_named_function" >:: test_named_function
     ] 

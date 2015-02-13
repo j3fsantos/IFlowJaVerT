@@ -69,8 +69,8 @@ let test_fun_env () =
   let _ = Printf.printf "%s \n" (Pretty_print.string_of_exp_syntax exp.Parser_syntax.exp_stx) in
   let exp = add_codenames main_fun_id exp in
   let _ = Printf.printf "Added codenames %s \n" (Pretty_print.string_of_exp true exp) in
-  let all_functions = get_all_functions_with_env [] exp in
-  let _ = List.iter (fun (fexp, fenv) -> 
+  let all_functions = get_all_functions_with_env_in_fb [] exp in
+  let _ = List.iter (fun (fexp, fnamed, fenv) -> 
   let fid = get_codename fexp in
   Printf.printf "Function id %s \n Function expression %s \n\n Function environment %s \n\n\n\n" 
      fid

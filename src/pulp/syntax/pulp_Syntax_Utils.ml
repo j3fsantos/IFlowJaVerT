@@ -4,6 +4,9 @@ open Batteries
  
 exception No_Codename
 exception PulpInvalid of string
+
+let named_function_decl fid = 
+  fid^"_decl"
   
 let update_annotation annots atype new_value =
   let old_removed = List.filter (fun annot -> annot.annot_type <> atype) annots in
@@ -175,67 +178,158 @@ let rec add_codenames main exp  : exp =
       | Block es -> m exp (Block (List.map f es))
       | Script (str, es) -> 
         {exp with exp_stx = Script (str, List.map f es); exp_annot = add_codename exp main}
-  
 
-let rec get_all_functions_with_env env e : (exp * Pulp_Syntax.ctx_variables list) list =
-  let f = get_all_functions_with_env env in 
+let rec make_result e fb args env named frec =
+	let fid = (get_codename e) in
+	let new_env = make_env env fb args fid in
+	let new_env, named_bool = 
+	  begin match named with
+	    | None -> new_env, None
+	    | Some name -> [Pulp_Syntax.make_ctx_vars (named_function_decl fid) [name]] @ new_env, (Some name)
+	  end in
+	(e, named_bool, new_env) :: (get_all_functions_with_env_in_fb new_env fb)    
+and 
+get_all_functions_with_env_in_exp env e =
+  (*Printf.printf "get_all_functions_with_env_in_expr %s\n" (Pretty_print.string_of_exp true e);*)
+  let f = get_all_functions_with_env_in_exp env in 
   let fo e =
     begin match e with
       | None -> []
       | Some e -> f e
     end
   in
-  let make_result e fb args env =
-    let new_env = make_env env fb args (get_codename e) in
-    (e, new_env) :: (get_all_functions_with_env new_env fb) in
-  begin match e.exp_stx with
-      (* Literals *)
-      | Num _ 
-      | String _
+  match e.exp_stx with
+    (* Literals *)
+    | Null 
+    | Bool _
+    | String _  
+    | Num _      
+    | This        
+    | Var _ -> []      
+    | Obj xs -> flat_map (fun (_, _, e) -> f e) xs       
+    | Access (e, v) -> f e        
+    | CAccess (e1, e2) -> (f e1) @ (f e2)           
+    | New (e1, e2s)
+    | Call (e1, e2s) -> f e1 @ (flat_map f e2s)          
+    | AnnonymousFun (_, args, fb) -> make_result e fb args env None get_all_functions_with_env_in_fb  
+    | NamedFun (_, name, args, fb) -> make_result e fb args env (Some name) get_all_functions_with_env_in_fb       
+    | Unary_op (_, e) -> f e        
+    | Delete e -> f e
+    | BinOp (e1, _, e2) -> (f e1) @ (f e2)         
+    | Assign (e1, e2) ->  (f e1) @ (f e2)  
+    | Array es -> flat_map fo es
+    | ConditionalOp (e1, e2, e3) -> (f e1) @ (f e2) @ (f e3)
+    | AssignOp (e1, _, e2) -> (f e1) @ (f e2) 
+    | Comma (e1, e2) -> (f e1) @ (f e2)           
+    | RegExp _ -> []
+
+      (*Statements*)
+      | Parser_syntax.Block _
+      | Parser_syntax.Script _ 
+      | Parser_syntax.VarDec _
+      | Parser_syntax.Skip
+      | Parser_syntax.If _
+      | Parser_syntax.While _
+      | Parser_syntax.Return _
+      | Parser_syntax.DoWhile _
+      | Parser_syntax.For _
+      | Parser_syntax.ForIn _
+      | Parser_syntax.Continue _
+      | Parser_syntax.Break _
+      | Parser_syntax.With _
+      | Parser_syntax.Switch _  
+      | Parser_syntax.Label _
+      | Parser_syntax.Throw _
+      | Parser_syntax.Try _    
+      | Parser_syntax.Debugger -> raise (PulpInvalid ("Expected expression. Actual " ^ (Pretty_print.string_of_exp true e)))
+and
+get_all_functions_with_env_in_stmt env e =
+  (*Printf.printf "get_all_functions_with_env_in_stmt %s\n" (Pretty_print.string_of_exp true e);*)
+  let f = get_all_functions_with_env_in_stmt env in 
+  let fe = get_all_functions_with_env_in_exp env in 
+  let fo e =
+    begin match e with
+      | None -> []
+      | Some e -> f e
+    end
+  in
+  let feo e =
+    begin match e with
+      | None -> []
+      | Some e -> fe e
+    end
+  in
+  match e.Parser_syntax.exp_stx with
+        (* Literals *)
       | Null 
       | Bool _
-      | RegExp _
-      | This 
-      | Var _ 
-      | Skip 
-      | Break _
-      | Continue _
-      | Debugger -> [] 
-      | Delete e 
-      | Access (e, _) 
-      | Unary_op (_, e) 
-      | Throw e
-      | Label (_, e) -> f e
-      | BinOp (e1, _, e2)
-      | Assign (e1, e2)  
-      | AssignOp (e1, _, e2) 
-      | CAccess (e1, e2) 
-      | Comma (e1, e2) 
-      | While (e1, e2)
-      | DoWhile (e1, e2)
-      | With (e1, e2) -> (f e1) @ (f e2)
-      | Call (e1, e2s)
-      | New (e1, e2s) -> f e1 @ (flat_map f e2s)
-      | AnnonymousFun (_, args, fb) -> make_result e fb args env
-      | NamedFun (_, name, args, fb) -> make_result e fb args env
-      | Obj xs -> flat_map (fun (_, _, e) -> f e) xs
-      | Array es -> flat_map fo es
-      | ConditionalOp (e1, e2, e3) 
-      | ForIn (e1, e2, e3) -> (f e1) @ (f e2) @ (f e3)
-      | Return e -> fo e 
-      | VarDec vars -> flat_map (fun (_, e) -> fo e) vars
-      | Try (e1, catch, finally) -> (f e1) @ 
-        (match catch with 
-          | None -> []
-          | Some (_, e) -> f e) @ (fo finally)
-      | If (e1, e2, e3) -> (f e1) @ (f e2) @ (fo e3)
-      | For (e1, e2, e3, e4) -> (fo e1) @ (fo e2) @ (fo e3) @ (f e4)
-      | Switch (e1, sces) -> (f e1) @ flat_map (fun (sc, e2) -> 
+      | String _  
+      | Num _
+      
+      (* Expressions *) 
+      | This
+      | Var _  
+      | Obj _ 
+      | Access _
+      | CAccess _
+      | New _
+      | Call _
+      | Unary_op _ 
+      | Delete _ 
+      | BinOp _ 
+      | Assign _  
+      | Array _
+      | ConditionalOp _
+      | AssignOp _
+      | Comma _ 
+      | RegExp _  -> fe e
+
+      | AnnonymousFun _
+      | NamedFun _ -> raise (PulpInvalid ("Expected statement. Actual " ^ (Pretty_print.string_of_exp true e)))
+         (* If a function appears in the middle of a statement, it shall not be interpreted as an expression function, but as a function declaration *)
+         (* NOTE in spec p.86 *)
+         (* ... It is recommended that ECMAScript implementations either disallow this usage of FunctionDeclaration or issue a warning *)
+
+      (*Statements*)
+      | Script _ -> raise (PulpInvalid ("Expected Statememnt. Got Script"))
+      | Block es -> flat_map f es
+      | VarDec vars -> flat_map (fun (_, e) -> feo e) vars
+      | Skip -> []       
+      | If (e1, e2, e3) -> (fe e1) @ (f e2) @ (fo e3)           
+      | While (e1, e2) -> (fe e1) @ (f e2)        
+      | DoWhile (e1, e2) -> (f e1) @ (fe e2)       
+      | Return e -> feo e           
+      | Try (e1, Some (id, e2), Some e3) -> (f e1) @ (f e2) @ (f e3)      
+      | Try (e1, None, Some e3) -> (f e1) @ (f e3)          
+      | Try (e1, Some (id, e2), None) -> (f e1) @ (f e2)       
+      | Try _ -> raise (PulpInvalid "Try _ None None")        
+      | Throw e -> fe e
+      | Continue _ 
+      | Break _ -> []
+      | Label (_, e) -> f e       
+      | For (e1, e2, e3, e4) -> (feo e1) @ (feo e2) @ (feo e3) @ (f e4) 
+      | Switch (e1, sces) -> (fe e1) @ flat_map (fun (sc, e2) -> 
         (match sc with
           | DefaultCase -> []
-          | Case e -> f e 
-        @ (f e2))) sces
-      | Block es -> flat_map f es
-      | Script (_, es) -> let new_env = make_env env e ["undefined"] main_fun_id in
-        (e, new_env) :: (flat_map (get_all_functions_with_env new_env) es)
-   end
+          | Case e -> fe e 
+        @ (f e2))) sces       
+      | ForIn (e1, e2, e3) -> (fe e1) @ (fe e2) @ (f e3)
+      | With (e1, e2) -> (fe e1) @ (f e2)
+      | Debugger -> []
+and
+get_all_functions_with_env_in_elem env e = 
+	(*Printf.printf "get_all_functions_with_env_in_elem %s\n" (Pretty_print.string_of_exp true e);*)
+	match e.Parser_syntax.exp_stx with
+	  | Parser_syntax.NamedFun (s, name, args, fb) -> 
+	    make_result e fb args env None get_all_functions_with_env_in_fb
+	  | _ ->  get_all_functions_with_env_in_stmt env e
+and
+get_all_functions_with_env_in_fb env e : (exp * string option * Pulp_Syntax.ctx_variables list) list =
+  (* (expression, if it's named expr, environment *)
+  (*Printf.printf "get_all_functions_with_env_in_fb %s\n" (Pretty_print.string_of_exp true e); *)
+  match e.Parser_syntax.exp_stx with
+    | Parser_syntax.Script (_, es) ->
+      let new_env = make_env env e ["undefined"] main_fun_id in
+        (e, None, new_env) :: (flat_map (get_all_functions_with_env_in_elem new_env) es)
+    | Parser_syntax.Block (es) -> Utils.flat_map (get_all_functions_with_env_in_elem env) es
+    | _ -> get_all_functions_with_env_in_elem env e

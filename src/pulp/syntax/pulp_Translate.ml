@@ -383,6 +383,35 @@ let translate_abstract_relation x y leftfirst =
   let r6 = mk_assign_fresh_e (BinOp (Var x, Comparison LessThan, Var y)) in
   [Basic (Assignment r6)], r6.assign_left
   
+(* TODO : redo *)
+let translate_to_boolean arg ctx =
+  let rv = fresh_r () in
+  let assign_rv b = [Basic (Assignment (mk_assign rv (Expression (Literal (Bool b)))))] in
+  let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
+  Sugar (If (type_of_var arg UndefinedType,
+    assign_rv false,
+    [ Sugar (If (type_of_var arg NullType,
+      assign_rv false,
+      [ Sugar (If (type_of_var arg BooleanType,
+        assign_rv_var arg,
+        [ Sugar (If (type_of_var arg StringType,
+          [ Sugar (If (equal_string_expr arg "",
+              assign_rv false,
+              assign_rv true))
+          ],
+          [ Sugar (If (type_of_var arg ObjectType,
+              assign_rv true,
+              [ Sugar (If (or_expr 
+                            (or_expr (equal_num_expr arg Float.nan) (equal_num_expr arg 0.0)) 
+                            (equal_num_expr arg (-0.0)),
+                  assign_rv false,
+                  assign_rv true))
+              ])) (* Must be a number *)
+          ]))
+        ]))
+      ]))
+    ])), rv
+  
 let translate_to_number arg ctx =
   let rv = fresh_r () in
   let assign_rv v = [Basic (Assignment (mk_assign rv (Expression (Literal (Num v)))))] in
@@ -523,15 +552,28 @@ let translate_literal exp : statement list * variable =
         end
       | _ -> raise (PulpInvalid ("Expected literal. Actual " ^ (Pretty_print.string_of_exp true exp)))
 
-let translate_function_expression exp ctx =
+let translate_function_expression exp ctx named =
   let fid = get_codename exp in
   let f_obj = mk_assign_fresh Obj in
   let prototype = mk_assign_fresh Obj in
   let scope = mk_assign_fresh Obj in
+  
+  let decl_stmts = match named with
+    | None -> []
+    | Some name ->
+      let fid_decl = named_function_decl fid in
+      let decl = mk_assign_fresh Obj in
+        [Basic (Assignment decl);
+         add_proto_null decl.assign_left;    
+         Basic (Mutation (mk_mutation (Var decl.assign_left) (Literal (String name)) (Var f_obj.assign_left)));
+         Basic (Mutation (mk_mutation (Var scope.assign_left) (Literal (String fid_decl)) (Var decl.assign_left)))
+        ] in
+    
   let env_stmts = Utils.flat_map (fun env -> 
   [
     Basic (Mutation (mk_mutation (Var scope.assign_left) (Literal (String env.func_id)) (Var (function_scope_name env.func_id))))
   ]) ctx.env_vars in
+  
   [
     Basic (Assignment f_obj);
     add_proto_value f_obj.assign_left Lfp;
@@ -541,6 +583,7 @@ let translate_function_expression exp ctx =
     Basic (Assignment scope);
     add_proto_null scope.assign_left
   ] @ 
+  decl_stmts @
   env_stmts @ 
   [
     Basic (Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FId) (Literal (String fid)))); 
@@ -715,8 +758,11 @@ let rec translate_exp ctx exp : statement list * variable =
             if5
           ], call
           
-     | Parser_syntax.AnnonymousFun (_, _, e) ->
-        translate_function_expression exp ctx
+      | Parser_syntax.AnnonymousFun _ ->
+        translate_function_expression exp ctx None
+        
+      | Parser_syntax.NamedFun (_, name, _, _) -> 
+        translate_function_expression exp ctx (Some name)
           
       | Parser_syntax.Unary_op (op, e) ->
         begin match op with 
@@ -1050,7 +1096,6 @@ let rec translate_exp ctx exp : statement list * variable =
         end
       
       | Parser_syntax.Array _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.1.4 Array Initialiser.")))
-      | Parser_syntax.NamedFun _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.2.5 Function Expressions.Named.")))
       | Parser_syntax.ConditionalOp (e1, e2, e3) ->
         let r1_stmts, r1 = f e1 in
         let r2_stmts, r2 = translate_gamma r1 ctx in
@@ -1451,11 +1496,17 @@ let rec exp_to_fb ctx exp : statement list * variable =
     | Parser_syntax.Block (es) -> translate_block es (exp_to_elem ctx)
     | _ -> exp_to_elem ctx exp
         
-let translate_function fb fid main args env =
+let translate_function fb fid main args env named =
   let ctx = create_ctx env in
-  let other_env = match ctx.env_vars with
-    | current :: others -> others
-    | [] -> raise (Invalid_argument "Should be a function environment here") in
+  
+  let other_env = match ctx.env_vars, named with
+    | current :: others, None -> others
+    | current_decl :: others, Some _ ->
+      begin match others with
+        | [] -> raise (Invalid_argument "Should be a function environment here")
+        | current :: others -> current_decl :: others
+      end
+    | [], _ -> raise (Invalid_argument "Should be a function environment here") in
     
   let init_e = List.map (fun env -> 
      Basic (Assignment (mk_assign (function_scope_name env.func_id) (Lookup (Var rscope, Literal (String env.func_id)))))
@@ -1482,7 +1533,7 @@ let translate_function fb fid main args env =
   let func_decls_used_vars = List.map (fun f ->
      match f.Parser_syntax.exp_stx with
       | Parser_syntax.NamedFun (_, name, _, body) -> 
-        let stmts, lvar = translate_function_expression f ctx in
+        let stmts, lvar = translate_function_expression f ctx None in
         stmts @
 	      [
 	        Basic (Mutation (mk_mutation (Var current_scope_var) (Literal (String name)) (Var lvar)))
@@ -1525,12 +1576,12 @@ let translate_function fb fid main args env =
   
   make_function_block fid pulpe (rthis :: (rscope :: args)) ctx
 
-let translate_function_syntax level id e env main =
+let translate_function_syntax level id e named env main =
   let pulpe = 
     match e.Parser_syntax.exp_stx with
-      | Parser_syntax.AnnonymousFun (_, args, fb) -> translate_function fb id main args env
-      | Parser_syntax.NamedFun (_, name, args, fb) -> translate_function fb id main args env
-      | Parser_syntax.Script (_, es) -> translate_function e main main [] env
+      | Parser_syntax.AnnonymousFun (_, args, fb) -> translate_function fb id main args env None
+      | Parser_syntax.NamedFun (_, name, args, fb) -> translate_function fb id main args env named
+      | Parser_syntax.Script (_, es) -> translate_function e main main [] env None
       | _ -> raise (Invalid_argument "Should be a function definition here") in
   match level with
     | IVL_buitin_functions -> raise (Utils.InvalidArgument ("pulp_Translate", "builtin_functions level not implemented yet"))
@@ -1540,11 +1591,11 @@ let translate_function_syntax level id e env main =
 let exp_to_pulp level e main =
   let context = AllFunctions.empty in
   let e = add_codenames main e in
-  let all_functions = get_all_functions_with_env [] e in
+  let all_functions = get_all_functions_with_env_in_fb [] e in
     
-  let context = List.fold_left (fun c (fexpr, fenv) -> 
+  let context = List.fold_left (fun c (fexpr, fnamed, fenv) -> 
     let fid = get_codename fexpr in
-    let fb = translate_function_syntax level fid fexpr fenv main in
+    let fb = translate_function_syntax level fid fexpr fnamed fenv main in
     AllFunctions.add fid fb c
    ) context all_functions in
   context

@@ -464,10 +464,14 @@ let initial_heap () =
   let h = Heap.add (BLoc Lop) lop h in
   (* Do I want Error object too? Rather then going directly to Lop for errors *)
   let h = List.fold_left built_in_obj_proto_lop h [Lg; Lfp; LEval; LRError; LTError; LSError; 
-    LNotImplemented GetValuePrim; LNotImplemented ToNumber; LNotImplemented ToString] in
+    LNotImplemented GetValuePrim; LNotImplemented ToNumber; LNotImplemented ToString; LObject] in
+    
   let h = add_field h (BLoc Lg) "eval" (HVObj (BLoc LEval)) in
   let h = Heap.add (BLoc LEval) Object.empty h in
   let h = add_field h (BLoc LEval) (string_of_builtin_field FId) (HVLiteral (String ("eval"))) in
+  
+  let h = add_field h (BLoc Lg) "Object" (HVObj (BLoc LObject)) in
+  let h = add_field h (BLoc LObject) (string_of_builtin_field FId) (HVLiteral (String ("#object_call"))) in
   h
   
 let run_with_heap h (fs : function_block AllFunctions.t) : function_state =

@@ -111,17 +111,18 @@ let run_program path =
   match result.fs_return_type with
     | FTReturn -> pr_test result.fs_heap
     | FTException -> pr_test result.fs_heap; Printf.printf "\nException was thrown.\n";
-      match result.fs_return_value with
+      begin match result.fs_return_value with
         | VHValue (HVObj l) -> 
           begin
             let actual_excep_obj = Heap.find l result.fs_heap in
             let actual_excep_proto = Object.find (Pulp_Syntax_Print.string_of_builtin_field FProto) actual_excep_obj in
-              match actual_excep_proto with
+              begin match actual_excep_proto with
                 | HVObj (BLoc l) -> Printf.printf "\n %s \n" (Pulp_Syntax_Print.string_of_builtin_loc l)
                 | _ -> ()
+              end
           end
-        | _ -> ();
-      exit 1
+        | _ -> ()
+      end; exit 1
 
 let main () =
   Config.apply_config ();

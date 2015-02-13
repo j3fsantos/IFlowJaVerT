@@ -16,6 +16,7 @@ type builtin_loc =
   | LRError (* Reference Error *)
   | LTError (* Type Error *)
   | LSError (* Syntax Error *)
+  | LObject (* Object Object *)
   | LNotImplemented of feature (* The tool cannot handle this case atm *)
 
 type builtin_field =
