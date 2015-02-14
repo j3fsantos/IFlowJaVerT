@@ -368,7 +368,14 @@ let rec run_assign_expr (s : local_state) (e : assign_right_expression) (funcs :
       let v = is_proto_obj (VHValue (HVObj l1)) l2 s.lsheap s.lscounter in s, v 
 and
 run_function (h : heap_type) (f : function_block) (args : value list) (fs : function_block AllFunctions.t) : function_state =
-  let s = List.fold_left2 (fun st param arg -> Stack.add param arg st) Stack.empty f.func_params args in
+  (* I cannot do the following syntactically, can I? *)
+  let args_mod = List.mapi (fun index param -> 
+    if List.length args > index then List.nth args index
+    else (VHValue (HVLiteral Undefined))
+  ) f.func_params in
+  
+  let s = List.fold_left2 (fun st param arg -> Stack.add param arg st) Stack.empty f.func_params args_mod in
+  
   let s = Stack.add f.func_ctx.return_var (VHValue (HVLiteral Empty)) s in
   let s = Stack.add f.func_ctx.throw_var (VHValue (HVLiteral Empty)) s in
     
