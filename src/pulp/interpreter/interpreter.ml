@@ -473,6 +473,7 @@ let initial_heap () =
   
   let h = add_field h (BLoc Lg) "Object" (HVObj (BLoc LObject)) in
   let h = add_field h (BLoc LObject) (string_of_builtin_field FId) (HVLiteral (String ("#object_call"))) in
+  let h = add_field h (BLoc LObject) (string_of_builtin_field FPrototype) (HVObj (BLoc Lop)) in
   h
   
 let run_with_heap h (fs : function_block AllFunctions.t) : function_state =
