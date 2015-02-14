@@ -319,15 +319,23 @@ let translate_call_construct_start f e1 e2s ctx =
       ], r1, r2, arg_values)
     
 let translate_call r2 vthis arg_values ctx =
-		let fid = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FId)) in
-		let fscope = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FScope)) in
+    let fid = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FId)) in
+	let fscope = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FScope)) in
     let excep_label = "call_excep." ^ fresh_r () in
     let exit_label = fresh_r () in
     let rv = fresh_r() in
-		let call = mk_assign rv (Call (mk_call 
-	    (Var fid.assign_left) 
-	    (Var fscope.assign_left) 
-	    (Var vthis) 
+    
+    let fscope_eval = mk_assign_fresh Obj in
+    let env_stmts = Utils.flat_map (fun env -> 
+      [
+        Basic (Mutation (mk_mutation (Var fscope_eval.assign_left) (Literal (String env.func_id)) (Var (function_scope_name env.func_id))))
+      ]) ctx.env_vars in
+    
+      
+	let call = mk_assign rv (Call (mk_call 
+	  (Var fid.assign_left) 
+	  (Var fscope.assign_left) 
+	  (Var vthis) 
       arg_values
       excep_label
     )) in
@@ -336,14 +344,17 @@ let translate_call r2 vthis arg_values ctx =
       | arg :: tail -> arg in
     let eval_call = mk_assign rv (Eval (mk_call 
         (Var fid.assign_left) 
-        (Var rscope) 
+        (Var fscope_eval.assign_left) 
         (Var vthis) 
         [first_argument]
         excep_label)) in
     (Sugar (If (equal_loc_expr r2 LEval,
         [Sugar (If ((*equal_exprs (TypeOf first_argument) (Literal (Type StringType))*) IsTypeOf (first_argument, StringType),
 	        [Basic (Assignment fid); 
-           Basic (Assignment eval_call)],
+             Basic (Assignment fscope_eval);
+             add_proto_null fscope_eval.assign_left] @
+            env_stmts @
+            [Basic (Assignment eval_call)],
 	        [Basic (Assignment (mk_assign rv (Expression first_argument)))]))
         ],
         [
@@ -1591,7 +1602,7 @@ let translate_function_syntax level id e named env main =
 let exp_to_pulp level e main =
   let context = AllFunctions.empty in
   let e = add_codenames main e in
-  let all_functions = get_all_functions_with_env_in_fb [] e in
+  let all_functions = get_all_functions_with_env_in_fb [] e main in
     
   let context = List.fold_left (fun c (fexpr, fnamed, fenv) -> 
     let fid = get_codename fexpr in

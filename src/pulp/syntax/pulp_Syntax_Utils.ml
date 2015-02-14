@@ -187,7 +187,7 @@ let rec make_result e fb args env named frec =
 	    | None -> new_env, None
 	    | Some name -> [Pulp_Syntax.make_ctx_vars (named_function_decl fid) [name]] @ new_env, (Some name)
 	  end in
-	(e, named_bool, new_env) :: (get_all_functions_with_env_in_fb new_env fb)    
+	(e, named_bool, new_env) :: (get_all_functions_with_env_in_fb new_env fb "")    
 and 
 get_all_functions_with_env_in_exp env e =
   (*Printf.printf "get_all_functions_with_env_in_expr %s\n" (Pretty_print.string_of_exp true e);*)
@@ -324,12 +324,12 @@ get_all_functions_with_env_in_elem env e =
 	    make_result e fb args env None get_all_functions_with_env_in_fb
 	  | _ ->  get_all_functions_with_env_in_stmt env e
 and
-get_all_functions_with_env_in_fb env e : (exp * string option * Pulp_Syntax.ctx_variables list) list =
+get_all_functions_with_env_in_fb env e main : (exp * string option * Pulp_Syntax.ctx_variables list) list =
   (* (expression, if it's named expr, environment *)
   (*Printf.printf "get_all_functions_with_env_in_fb %s\n" (Pretty_print.string_of_exp true e); *)
   match e.Parser_syntax.exp_stx with
     | Parser_syntax.Script (_, es) ->
-      let new_env = make_env env e ["undefined"] main_fun_id in
+      let new_env = make_env env e [] main in
         (e, None, new_env) :: (flat_map (get_all_functions_with_env_in_elem new_env) es)
     | Parser_syntax.Block (es) -> Utils.flat_map (get_all_functions_with_env_in_elem env) es
     | _ -> get_all_functions_with_env_in_elem env e
