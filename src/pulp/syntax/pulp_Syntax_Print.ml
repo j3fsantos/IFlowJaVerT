@@ -45,6 +45,7 @@ let string_of_builtin_loc l =
     | LRError -> "#lrerror"
     | LTError -> "#lterror"
     | LSError -> "#lserror"
+    | LObject -> "#lobject"
     | LNotImplemented f -> "#lnotimplemented_" ^ (string_of_feature f)
 
 let string_of_builtin_field f =
@@ -76,7 +77,8 @@ let string_of_pulp_type t =
   | BooleanType -> "Boolean"
   | StringType -> "String"
   | NumberType -> "Number"
-  | ObjectType -> "Object"
+  | ObjectType (Some Builtin) -> "Builtin Object"
+  | ObjectType _ -> "Object"
   | ReferenceType r ->
     match r with
       | None -> "Reference"
@@ -125,6 +127,7 @@ let string_of_assign_right aer =
     | Expression e -> se e
     | Call c -> string_of_call c
     | Eval c -> string_of_eval c
+    | BuiltinCall c -> string_of_call c
     | Obj -> "new ()"
     | HasField (e1, e2) -> Printf.sprintf "hasField (%s, %s)" (se e1) (se e2)
     | Lookup (e1, e2) -> Printf.sprintf "[%s,%s]" (se e1) (se e2)

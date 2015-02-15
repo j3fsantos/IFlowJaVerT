@@ -30,7 +30,8 @@ let get_vars_in_assign_expr e =
   match e with
       | Expression expr -> f expr
       | Call c 
-      | Eval c -> get_vars_in_call c
+      | Eval c 
+      | BuiltinCall c -> get_vars_in_call c
       | Obj -> []
       | HasField (e1, e2) -> f e1 @ f e2
       | Lookup (e1, e2) -> f e1 @ f e2
@@ -89,6 +90,7 @@ let transform_expr_in_assign_expr f e =
       | Expression expr -> Expression (f expr)
       | Call c -> Call (transform_expr_in_call f c)
       | Eval c -> Eval (transform_expr_in_call f c)
+      | BuiltinCall c -> BuiltinCall (transform_expr_in_call f c)
       | Obj -> Obj
       | HasField (e1, e2) -> HasField (f e1, f e2)
       | Lookup (e1, e2) -> Lookup (f e1, f e2)
@@ -317,9 +319,9 @@ let rec simplify_expr e =
             | TypeOf _
             | IsTypeOf _ -> IsTypeOf (exp, t)
           end
-        | ObjectType ->
+        | ObjectType ot ->
           begin match exp with
-            | Literal (LLoc _) -> Literal (Bool true)
+            | Literal (LLoc _) -> Literal (Bool (ot <> (Some Normal)))
             | Literal _
             | Ref _ -> Literal (Bool false)
             | Var _ 
@@ -335,7 +337,7 @@ let rec simplify_expr e =
 	      begin match exp with
 	        | Literal l -> 
             begin match l with
-              | LLoc _ -> Literal (Type ObjectType)
+              | LLoc _ -> Literal (Type (ObjectType (Some Builtin)))
 						  | Null -> Literal (Type NullType)                 
 						  | Bool _ -> Literal (Type BooleanType)          
 						  | Num _ -> Literal (Type NumberType)         
@@ -371,13 +373,14 @@ let upper_bound_type t1 t2 =
           | TI_Type (ReferenceType _), TI_Type (ReferenceType _) -> Some (TI_Type (ReferenceType None))
           | TI_Type (ReferenceType _), _ -> None
           | _, TI_Type (ReferenceType _) -> None
+          | TI_Type (ObjectType _), TI_Type (ObjectType _) -> Some (TI_Type (ObjectType None))
           | _, _ -> Some (TI_Value)
         end
     end
 
 let get_type_info_literal lit =
   Some (match lit with
-    | LLoc _ -> TI_Type ObjectType
+    | LLoc _ -> TI_Type (ObjectType (Some Builtin))
     | Null -> TI_Type NullType               
     | Bool _ -> TI_Type BooleanType         
     | Num _ -> TI_Type NumberType          
@@ -425,13 +428,14 @@ let get_type_info_assign_expr type_info e =
   match e with
       | Expression expr -> f expr
       | Call c 
-      | Eval c -> Some TI_Value
-      | Obj -> Some (TI_Type ObjectType)
+      | Eval c 
+      | BuiltinCall c -> Some TI_Value
+      | Obj -> Some (TI_Type (ObjectType (Some Normal)))
       | HasField (e1, e2) -> Some (TI_Type BooleanType)
       | Lookup (e1, e2) -> Some TI_Value
       | Deallocation (e1, e2) -> Some (TI_Type BooleanType)
       | ProtoF (e1, e2) -> Some TI_Value
-      | ProtoO (e1, e2) -> Some (TI_Type ObjectType)
+      | ProtoO (e1, e2) -> Some (TI_Type (ObjectType None))
 
 let rec simplify_type_of type_info e =
   let f = simplify_type_of type_info in

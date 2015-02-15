@@ -30,13 +30,17 @@ type reference_type =
   | MemberReference (*A reference created by access x[y] *)
   | VariableReference (* A reference created by sigma *)
 
+type object_type =
+  | Normal
+  | Builtin
+
 type pulp_type =
   | NullType
   | UndefinedType
   | BooleanType
   | StringType
   | NumberType
-  | ObjectType
+  | ObjectType of object_type option
   | ReferenceType of reference_type option (* Option means member or variable *)
 
 type literal =
@@ -134,6 +138,7 @@ type assign_right_expression =
   | Expression of expression
   | Call of call
   | Eval of call
+  | BuiltinCall of call (* Have eval here? *)
   | Obj
   | HasField of expression * expression
   | Lookup of expression * expression

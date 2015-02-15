@@ -119,6 +119,7 @@ let bs_stmt_to_cfg stmt label_map ctx start connect_with_start =
         | Deallocation _
         | Obj
         | Eval _
+        | BuiltinCall _
         | ProtoO _
         | ProtoF _ ->            
               let n = make_new_node (Basic stmt) in 

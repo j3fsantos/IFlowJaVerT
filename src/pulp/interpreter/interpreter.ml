@@ -61,6 +61,11 @@ let type_less_than t1 t2 =
         | ReferenceType (Some _) -> true
         | _ -> false
       end
+    | ObjectType None -> 
+      begin match t1 with
+        | ObjectType (Some _) -> true
+        | _ -> false
+      end
     | _ -> false
 
 let value_less_than v1 v2 counter =
@@ -118,7 +123,7 @@ let run_unary_op op v counter : value =
 
 let type_of_literal l =
   match l with
-    | LLoc _ -> ObjectType
+    | LLoc _ -> ObjectType (Some Builtin)
 	  | Null -> NullType               
 	  | Bool _ -> BooleanType         
 	  | Num _ -> NumberType          
@@ -132,7 +137,8 @@ let type_of v =
     | VHValue hv ->
       begin match hv with
         | HVLiteral lit -> type_of_literal lit
-        | HVObj _ -> ObjectType
+        | HVObj (BLoc _) -> ObjectType (Some Builtin)
+        | HVObj (Loc _) -> ObjectType (Some Normal)
       end
     | VRef (_, _, rt) -> ReferenceType (Some rt)
     | VType _ -> StringType (* Shouldn't be called at all? *)
@@ -144,6 +150,11 @@ let is_type_of v pt =
     | ReferenceType None -> 
       begin match vtype with
         | ReferenceType _ -> true
+        | _ -> false
+      end
+    | ObjectType None -> 
+      begin match vtype with
+        | ObjectType _ -> true
         | _ -> false
       end
     | _ -> pt = vtype
@@ -283,6 +294,7 @@ let rec run_assign_expr (s : local_state) (e : assign_right_expression) (funcs :
 	(* Assignment expressions *)
   match e with
     | Expression ae -> s, run_expr s ae
+    | BuiltinCall c -> raise (InterpreterStuck ("BuiltinCallNotImplementedYet", s.lscounter))
 	  | Call c -> 
       let fid = run_expr s c.call_name in
       let fid_string = string_check fid "Function name should be a string" s.lscounter in

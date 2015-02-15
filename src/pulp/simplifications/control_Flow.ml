@@ -21,6 +21,8 @@ let connect_calls_throw g label_map node =
       CFG.mk_edge g node (Hashtbl.find label_map throwl) Edge_Excep
     | Basic (Assignment {assign_right = (Eval {call_throw_label = throwl})}) -> 
       CFG.mk_edge g node (Hashtbl.find label_map throwl) Edge_Excep
+    | Basic (Assignment {assign_right = (BuiltinCall {call_throw_label = throwl})}) -> 
+      CFG.mk_edge g node (Hashtbl.find label_map throwl) Edge_Excep
     | _ -> ()
   
   

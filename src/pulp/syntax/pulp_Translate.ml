@@ -28,15 +28,19 @@ let is_ref_inner ref rt =
 let is_oref_expr ref = is_ref_inner ref (Some MemberReference)
 let is_vref_expr ref = is_ref_inner ref (Some VariableReference)
 let is_ref_expr ref = is_ref_inner ref None
-let is_obj_var v = IsTypeOf (Var v, ObjectType)
+let is_obj_var v = IsTypeOf (Var v, (ObjectType None))
 
 let or_expr e1 e2 = BinOp (e1, Boolean Or, e2)
 let and_expr e1 e2 = BinOp (e1, Boolean And, e2)
 let not_expr e1 = UnaryOp (Not, e1)
 let equal_exprs e1 e2 = BinOp (e1, Comparison Equal, e2)
 let equal_expr v e2 = equal_exprs (Var v) e2
+
+let lessthan_exprs e1 e2 = or_expr 
+    (BinOp (e1, Comparison LessThan, e2)) 
+    (BinOp (e1, Comparison Equal, e2))
  
-let type_of_var v t = equal_exprs (TypeOf (Var v)) (Literal (Type t))
+let type_of_var v t = lessthan_exprs (TypeOf (Var v)) (Literal (Type t))
 let type_of_oref_var ref = type_of_var ref (ReferenceType (Some MemberReference))
 let type_of_vref_var ref = type_of_var ref (ReferenceType (Some VariableReference))
 let type_of_ref_var ref = type_of_var ref (ReferenceType None)
@@ -47,6 +51,14 @@ let istypeof_prim_expr v =
   (or_expr 
     (IsTypeOf (Var v, NumberType))
     (IsTypeOf (Var v, StringType)))
+    
+let is_prim_value v =
+  or_expr 
+  (type_of_var v UndefinedType)
+  (or_expr 
+    (type_of_var v NullType)
+    (istypeof_prim_expr v)
+  )  
     
 let equal_lit_expr v lit = equal_expr v (Literal lit)
 let equal_undef_expr v = equal_lit_expr v Undefined
@@ -181,7 +193,7 @@ let translate_strict_equality_comparison x y =
           Sugar (If (or_expr 
                         (IsTypeOf (Var x, StringType))
                         (or_expr 
-                            (IsTypeOf (Var x, ObjectType))
+                            (IsTypeOf (Var x, (ObjectType None)))
                             (IsTypeOf (Var x, BooleanType))),
           [
             Sugar (If (equal_expr x (Var y), [rv_true], [rv_false]))
@@ -324,14 +336,7 @@ let translate_call r2 vthis arg_values ctx =
     let excep_label = "call_excep." ^ fresh_r () in
     let exit_label = fresh_r () in
     let rv = fresh_r() in
-    
-    let fscope_eval = mk_assign_fresh Obj in
-    let env_stmts = Utils.flat_map (fun env -> 
-      [
-        Basic (Mutation (mk_mutation (Var fscope_eval.assign_left) (Literal (String env.func_id)) (Var (function_scope_name env.func_id))))
-      ]) ctx.env_vars in
-    
-      
+         
 	let call = mk_assign rv (Call (mk_call 
 	  (Var fid.assign_left) 
 	  (Var fscope.assign_left) 
@@ -339,24 +344,6 @@ let translate_call r2 vthis arg_values ctx =
       arg_values
       excep_label
     )) in
-    let first_argument = match arg_values with
-      | [] -> Literal Undefined
-      | arg :: tail -> arg in
-    let eval_call = mk_assign rv (Eval (mk_call 
-        (Var fid.assign_left) 
-        (Var fscope_eval.assign_left) 
-        (Var vthis) 
-        [first_argument]
-        excep_label)) in
-    (Sugar (If (equal_loc_expr r2 LEval,
-        [Sugar (If ((*equal_exprs (TypeOf first_argument) (Literal (Type StringType))*) IsTypeOf (first_argument, StringType),
-	        [Basic (Assignment fid); 
-             Basic (Assignment fscope_eval);
-             add_proto_null fscope_eval.assign_left] @
-            env_stmts @
-            [Basic (Assignment eval_call)],
-	        [Basic (Assignment (mk_assign rv (Expression first_argument)))]))
-        ],
         [
           Basic (Assignment fid); 
           Basic (Assignment fscope); 
@@ -366,7 +353,7 @@ let translate_call r2 vthis arg_values ctx =
           Basic (Assignment (mk_assign ctx.throw_var (Expression (Var call.assign_left))));
           Goto ctx.label_throw;
           Label exit_label;
-     ])), rv)
+        ], rv
     
 let translate_regular_bin_op f op e1 e2 ctx =
   let r1_stmts, r1 = f e1 in
@@ -394,6 +381,114 @@ let translate_abstract_relation x y leftfirst =
   let r6 = mk_assign_fresh_e (BinOp (Var x, Comparison LessThan, Var y)) in
   [Basic (Assignment r6)], r6.assign_left
   
+let translate_get o (* variable containing object *) p (* variable, string, or built-in field name *) = 
+   (* TODO : Update everywhere *)
+   let rv = fresh_r () in
+   let desc = mk_assign_fresh (ProtoF (Var o, p)) in
+   [Basic (Assignment desc);
+    Sugar (If (equal_empty_expr desc.assign_left,
+      [Basic (Assignment (mk_assign rv (Expression(Literal Undefined))))],
+      [Basic (Assignment (mk_assign rv (Expression(Var desc.assign_left))))]))
+   ], rv
+  
+let translate_inner_call obj vthis args ctx =
+  (* TODO *)
+  let rv = fresh_r () in
+  let excep_label = "call_excep." ^ fresh_r () in
+  let exit_label = fresh_r () in
+  
+  let fid = mk_assign_fresh (Lookup (Var obj, literal_builtin_field FId)) in
+  let builtincall = mk_assign rv (BuiltinCall (mk_call 
+      (Var fid.assign_left) 
+      (Literal Empty)  (* No scope for builtin function *)
+      (Var vthis) 
+      args
+      excep_label
+    )) in
+    
+  let fscope_eval = mk_assign_fresh Obj in
+    let env_stmts = Utils.flat_map (fun env -> 
+      [
+        Basic (Mutation (mk_mutation (Var fscope_eval.assign_left) (Literal (String env.func_id)) (Var (function_scope_name env.func_id))))
+      ]) ctx.env_vars in  
+  let first_argument = match args with
+      | [] -> Literal Undefined
+      | arg :: tail -> arg in
+    let eval_call = mk_assign rv (Eval (mk_call 
+        (Var fid.assign_left) 
+        (Var fscope_eval.assign_left) 
+        (Var vthis) 
+        [first_argument]
+        excep_label)) in
+  
+  let r1_stmts, r1 = translate_call obj vthis args ctx in
+  [ Sugar (If (type_of_var obj (ObjectType (Some Builtin)),
+    [ Basic (Assignment fid);
+      Sugar (If (equal_loc_expr obj LEval,
+        [Sugar (If ((*equal_exprs (TypeOf first_argument) (Literal (Type StringType))*) IsTypeOf (first_argument, StringType),
+            [
+             Basic (Assignment fscope_eval);
+             add_proto_null fscope_eval.assign_left] @
+            env_stmts @
+            [Basic (Assignment eval_call);
+            ],
+            [Basic (Assignment (mk_assign rv (Expression first_argument)))]))
+        ], [Basic (Assignment builtincall)]));
+      Goto exit_label;
+      Label excep_label;
+      Basic (Assignment (mk_assign ctx.throw_var (Expression (Var rv))));
+      Goto ctx.label_throw;
+      Label exit_label; 
+    ],
+    r1_stmts @ [Basic (Assignment (mk_assign rv (Expression (Var r1))))]))
+  ], rv
+  
+let default_value_inner arg m rv exit_label next_label ctx =
+  let r1_stmts, r1 = translate_get arg (Literal (String m)) in
+  let hasfield = mk_assign_fresh (HasField (Var r1, literal_builtin_field FId)) in
+  let fid = mk_assign_fresh (Lookup (Var r1, literal_builtin_field FId)) in
+  let r2_stmts, r2 = translate_inner_call r1 r1 [] ctx in
+  let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
+  r1_stmts @                          
+  [ Basic (Assignment hasfield);
+    Sugar (If (equal_bool_expr hasfield.assign_left true, 
+    [ Basic (Assignment fid) ] @ 
+      r2_stmts @
+    [ Sugar (If (is_prim_value r2,
+      assign_rv_var r2 @ [Goto exit_label],
+      []))
+    ],
+    [Goto next_label]))
+  ]
+  
+let translate_default_value arg preftype ctx =
+  let first, second = 
+    (if preftype = (Some StringType) then "toString", "toValue"
+                                     else "toValue", "toString") in
+  let rv = fresh_r () in
+  let exit_label = fresh_r () in
+  let next_label1 = fresh_r () in
+  let next_label2 = fresh_r () in
+  let r1_stmts = default_value_inner arg first rv exit_label next_label1 ctx in
+  let r2_stmts = default_value_inner arg second rv exit_label next_label2 ctx in
+  r1_stmts @
+  [Label next_label1] @
+  r2_stmts @
+  [Label next_label2] @
+  translate_error_throw LRError ctx.throw_var ctx.label_throw @
+  [Label exit_label], rv
+
+  
+let translate_to_primitive arg preftype ctx =
+  let rv = fresh_r () in
+  let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
+  let r1_stmts, r1 = translate_default_value arg preftype ctx in
+  [
+    Sugar (If (type_of_var arg (ObjectType None),
+    r1_stmts @ assign_rv_var r1,
+    assign_rv_var arg))
+  ], rv  
+  
 (* TODO : redo *)
 let translate_to_boolean arg ctx =
   let rv = fresh_r () in
@@ -410,7 +505,7 @@ let translate_to_boolean arg ctx =
               assign_rv false,
               assign_rv true))
           ],
-          [ Sugar (If (type_of_var arg ObjectType,
+          [ Sugar (If (type_of_var arg (ObjectType None),
               assign_rv true,
               [ Sugar (If (or_expr 
                             (or_expr (equal_num_expr arg Float.nan) (equal_num_expr arg 0.0)) 
@@ -601,24 +696,14 @@ let translate_function_expression exp ctx named =
     Basic (Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FScope) (Var scope.assign_left))); 
   ], f_obj.assign_left 
   
-let translate_get o (* variable containing object *) p (* variable, string, or built-in field name *) = 
-   (* TODO : Update everywhere *)
-   let rv = fresh_r () in
-   let desc = mk_assign_fresh (ProtoF (Var o, p)) in
-   [Basic (Assignment desc);
-    Sugar (If (equal_empty_expr desc.assign_left,
-      [Basic (Assignment (mk_assign rv (Expression(Literal Undefined))))],
-      [Basic (Assignment (mk_assign rv (Expression(Var desc.assign_left))))]))
-   ], rv
-  
 let translate_has_instance f v ctx =
   let rv = fresh_r () in
   let get_stmts, o = translate_get f (literal_builtin_field FPrototype) in
   let proto = mk_assign_fresh (Lookup (Var v, literal_builtin_field FProto)) in
   let proto_o = mk_assign_fresh (ProtoO (Var proto.assign_left, Var o)) in
-  [ Sugar (If (type_of_var v ObjectType, 
+  [ Sugar (If (type_of_var v (ObjectType None), 
     get_stmts @
-    [ Sugar (If (type_of_var o ObjectType,
+    [ Sugar (If (type_of_var o (ObjectType None),
       [ Basic (Assignment proto);
         Basic (Assignment proto_o);
         Basic (Assignment (mk_assign rv (Expression (Var proto_o.assign_left))))
@@ -743,9 +828,10 @@ let rec translate_exp ctx exp : statement list * variable =
                 [Basic (Assignment (mk_assign vthisproto (Expression (Var prototype.assign_left))))], 
                 [Basic (Assignment (mk_assign vthisproto (Expression (Literal (LLoc Lop)))))])); 
             Basic (Assignment vthis);
-            add_proto_var vthis.assign_left vthisproto;
-            if3; 
-            Sugar (If (is_obj_var call_lvar, 
+            add_proto_var vthis.assign_left vthisproto 
+          ] @
+          if3 @ 
+          [  Sugar (If (is_obj_var call_lvar, 
                 [Basic (Assignment (mk_assign rv (Expression (Var call_lvar))))], 
                 [Basic (Assignment (mk_assign rv (Expression (Var vthis.assign_left))))]))
           ], rv
@@ -754,7 +840,7 @@ let rec translate_exp ctx exp : statement list * variable =
         let stmts, r1, r2, arg_values = translate_call_construct_start f e1 e2s ctx in
               let vthis = fresh_r () in
               let assign_vthis_und = Basic (Assignment (mk_assign vthis (Expression (Literal Undefined)))) in
-              let if5, call = translate_call r2 vthis arg_values ctx in
+              let if5, call = translate_inner_call r2 vthis arg_values ctx in
           stmts @ 
           [
             Sugar (If (is_ref_expr r1, 
@@ -765,9 +851,9 @@ let rec translate_exp ctx exp : statement list * variable =
                       Basic (Assignment (mk_assign vthis (Expression (Base (Var r1)))))
                     ]))
                 ],
-                [assign_vthis_und])); 
-            if5
-          ], call
+                [assign_vthis_und]))
+          ] @
+          if5, call
           
       | Parser_syntax.AnnonymousFun _ ->
         translate_function_expression exp ctx None
@@ -1035,7 +1121,7 @@ let rec translate_exp ctx exp : statement list * variable =
                 r2_stmts @ 
                 r3_stmts @ 
                 r4_stmts @
-                [ Sugar (If (equal_exprs (TypeOf (Var r4)) (Literal (Type ObjectType)), 
+                [ Sugar (If (lessthan_exprs (TypeOf (Var r4)) (Literal (Type (ObjectType None))), 
                     [r5_stmt] @ r6_stmts,
                     translate_error_throw LTError ctx.throw_var ctx.label_throw))
                 ], r6
@@ -1051,7 +1137,7 @@ let rec translate_exp ctx exp : statement list * variable =
                 r2_stmts @ 
                 r3_stmts @ 
                 r4_stmts @
-                [ Sugar (If (equal_exprs (TypeOf (Var r4)) (Literal (Type ObjectType)), 
+                [ Sugar (If (lessthan_exprs (TypeOf (Var r4)) (Literal (Type (ObjectType None))), 
                     [ Basic (Assignment hasfield);
                       Sugar (If (equal_bool_expr hasfield.assign_left false, (* [[HasInstance]] *)
                       gotothrow, 
