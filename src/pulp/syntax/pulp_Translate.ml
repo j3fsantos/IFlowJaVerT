@@ -72,29 +72,6 @@ let equal_num_expr v n = equal_lit_expr v (Num n)
 
 let equal_string_exprs e s = equal_exprs e (Literal (String s))
 
-(* What about not a number? *)
-let is_false_expr v =
-  or_expr
-  (equal_bool_expr v false)
-	  (or_expr
-	  (equal_int_expr v 0)
-	  (or_expr
-		  (equal_string_expr v "")
-	    (or_expr
-			  (equal_undef_expr v)
-			  (equal_null_expr v))))
-      
-let is_true_expr v =  
-  and_expr
-  (not_expr (equal_bool_expr v false)) 
-	  (and_expr
-	  (not_expr (equal_int_expr v 0))
-	  (and_expr
-	    (not_expr (equal_string_expr v ""))
-	    (and_expr
-	          (not_expr (equal_undef_expr v))
-	          (not_expr (equal_null_expr v)))))
-
 (* Assignment *)
 let mk_assign var exp = { 
     assign_left = var; 
@@ -479,30 +456,21 @@ let translate_to_primitive arg preftype ctx =
 let translate_to_boolean arg ctx =
   let rv = fresh_r () in
   let assign_rv b = [Basic (Assignment (mk_assign rv (Expression (Literal (Bool b)))))] in
-  let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
-  Sugar (If (type_of_var arg UndefinedType,
+  Sugar (If (or_expr 
+            (equal_undef_expr arg)
+            (or_expr 
+              (equal_null_expr arg)
+              (or_expr 
+                (equal_bool_expr arg false)
+                (or_expr 
+                  (equal_string_expr arg "")
+                  (or_expr 
+                    (equal_num_expr arg (-0.0))
+                    (or_expr 
+                      (equal_num_expr arg Float.nan) 
+                      (equal_num_expr arg 0.0)))))),
     assign_rv false,
-    [ Sugar (If (type_of_var arg NullType,
-      assign_rv false,
-      [ Sugar (If (type_of_var arg BooleanType,
-        assign_rv_var arg,
-        [ Sugar (If (type_of_var arg StringType,
-          [ Sugar (If (equal_string_expr arg "",
-              assign_rv false,
-              assign_rv true))
-          ],
-          [ Sugar (If (type_of_var arg (ObjectType None),
-              assign_rv true,
-              [ Sugar (If (or_expr 
-                            (or_expr (equal_num_expr arg Float.nan) (equal_num_expr arg 0.0)) 
-                            (equal_num_expr arg (-0.0)),
-                  assign_rv false,
-                  assign_rv true))
-              ])) (* Must be a number *)
-          ]))
-        ]))
-      ]))
-    ])), rv
+    assign_rv true)), rv
   
 let translate_to_number arg ctx =
   let rv = fresh_r () in
@@ -570,10 +538,11 @@ let translate_bin_op_logical f e1 e2 bop ctx =
   let rv = fresh_r () in
   let r3_stmts, r3 = f e2 in
   let r4_stmts, r4 = translate_gamma r3 ctx in
+  let to_boolean, r5 = translate_to_boolean r2 ctx in
     r1_stmts @ 
     r2_stmts @ 
-    [
-      Sugar (If ((if (op = And) then (is_false_expr r2) else (is_true_expr r2)), 
+    [ to_boolean;
+      Sugar (If ((if (op = And) then (equal_bool_expr r5 false) else (equal_bool_expr r5 true)), 
         [Basic (Assignment (mk_assign rv (Expression (Var r2))))], 
 	      (r3_stmts) @ 
 	      r4_stmts @ 
@@ -853,8 +822,9 @@ let rec translate_exp ctx exp : statement list * variable =
             let r1_stmts, r1 = f e in
             let r2_stmts, r2 = translate_gamma r1 ctx in
             let rv = fresh_r () in 
+            let to_boolean, r3 = translate_to_boolean r2 ctx in
             let if1 = 
-              Sugar (If (is_false_expr r2, 
+              Sugar (If (equal_bool_expr r3 false, 
                 [
                   Basic (Assignment (mk_assign rv (Expression (Literal (Bool true)))))
                 ], 
@@ -863,7 +833,7 @@ let rec translate_exp ctx exp : statement list * variable =
                 ])) in
                 r1_stmts @
             r2_stmts @
-            [if1], rv
+            [to_boolean; if1], rv
           | Parser_syntax.TypeOf -> 
             begin
               let rv = fresh_r () in
@@ -1186,11 +1156,12 @@ let rec translate_exp ctx exp : statement list * variable =
         let r4_stmts, r4 = translate_gamma r3 ctx in
         let r5_stmts, r5 = f e3 in
         let r6_stmts, r6 = translate_gamma r5 ctx in
+        let to_boolean, r7 = translate_to_boolean r2 ctx in
         let rv = fresh_r () in     
           r1_stmts @ 
           r2_stmts @ 
-          [ 
-            Sugar (If (is_true_expr r2, 
+          [ to_boolean;
+            Sugar (If (equal_bool_expr r7 true, 
                 r3_stmts @ 
                 r4_stmts @
                 [Basic (Assignment (mk_assign rv (Expression (Var r4))))], 
@@ -1337,6 +1308,7 @@ let rec translate_stmt ctx exp : statement list * variable =
         let r1_stmts, r1 = translate_exp ctx e1 in
         let r2_stmts, r2 = translate_gamma r1 ctx in
         let r3_stmts, r3 = f e2 in
+        let to_boolean, r5 = translate_to_boolean r2 ctx in
         let rv = fresh_r () in
         let elsebranch = match e3 with
           | Some e3 -> 
@@ -1346,8 +1318,8 @@ let rec translate_stmt ctx exp : statement list * variable =
           | None -> [Basic (Assignment (mk_assign rv (Expression (Literal Empty))))] in      
           r1_stmts @ 
           r2_stmts @ 
-          [ 
-            Sugar (If (is_true_expr r2, 
+          [ to_boolean;
+            Sugar (If (equal_bool_expr r5 true, 
                 r3_stmts @ 
                 [Basic (Assignment (mk_assign rv (Expression (Var r3))))], 
                 elsebranch))
@@ -1361,14 +1333,15 @@ let rec translate_stmt ctx exp : statement list * variable =
         let r1_stmts, r1 = translate_exp ctx e1 in
         let r2_stmts, r2 = translate_gamma r1 ctx in
         let r3_stmts, r3 = f e2 in
+        let to_boolean, r4 = translate_to_boolean r2 ctx in
           [
             assign_rv_empty; 
             Label label1
           ] @ 
           r1_stmts @ 
           r2_stmts @ 
-          [
-            Sugar (If (is_true_expr r2, 
+          [ to_boolean;
+            Sugar (If (equal_bool_expr r4 true, 
                 r3_stmts @ 
                 [ 
                   Sugar (If (equal_empty_expr r3, 
@@ -1389,6 +1362,7 @@ let rec translate_stmt ctx exp : statement list * variable =
         let r3_stmts, r3 = f e1 in
         let r1_stmts, r1 = translate_exp ctx e2 in
         let r2_stmts, r2 = translate_gamma r1 ctx in
+        let to_boolean, r4 = translate_to_boolean r2 ctx in
           [
             assign_rv_empty; 
             Basic (Assignment (mk_assign iterating (Expression (Literal (Bool true)))));
@@ -1402,8 +1376,8 @@ let rec translate_stmt ctx exp : statement list * variable =
                 ] @
                 r1_stmts @ 
                 r2_stmts @ 
-                [     
-                  Sugar (If (is_false_expr r2,
+                [ to_boolean;    
+                  Sugar (If (equal_bool_expr r4 false,
                     [Basic (Assignment (mk_assign iterating (Expression (Literal (Bool false)))))],
                     []));
                   Goto label1
