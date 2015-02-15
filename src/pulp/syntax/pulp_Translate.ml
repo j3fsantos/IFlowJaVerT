@@ -330,31 +330,6 @@ let translate_call_construct_start f e1 e2s ctx =
         Sugar (If (equal_bool_expr hasfield.assign_left false, gotothrow, []))
       ], r1, r2, arg_values)
     
-let translate_call r2 vthis arg_values ctx =
-    let fid = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FId)) in
-	let fscope = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FScope)) in
-    let excep_label = "call_excep." ^ fresh_r () in
-    let exit_label = fresh_r () in
-    let rv = fresh_r() in
-         
-	let call = mk_assign rv (Call (mk_call 
-	  (Var fid.assign_left) 
-	  (Var fscope.assign_left) 
-	  (Var vthis) 
-      arg_values
-      excep_label
-    )) in
-        [
-          Basic (Assignment fid); 
-          Basic (Assignment fscope); 
-          Basic (Assignment call);
-          Goto exit_label;
-          Label excep_label;
-          Basic (Assignment (mk_assign ctx.throw_var (Expression (Var call.assign_left))));
-          Goto ctx.label_throw;
-          Label exit_label;
-        ], rv
-    
 let translate_regular_bin_op f op e1 e2 ctx =
   let r1_stmts, r1 = f e1 in
   let r2_stmts, r2 = translate_gamma r1 ctx in
@@ -390,7 +365,7 @@ let translate_get o (* variable containing object *) p (* variable, string, or b
       [Basic (Assignment (mk_assign rv (Expression(Literal Undefined))))],
       [Basic (Assignment (mk_assign rv (Expression(Var desc.assign_left))))]))
    ], rv
-  
+    
 let translate_inner_call obj vthis args ctx =
   (* TODO *)
   let rv = fresh_r () in
@@ -398,49 +373,60 @@ let translate_inner_call obj vthis args ctx =
   let exit_label = fresh_r () in
   
   let fid = mk_assign_fresh (Lookup (Var obj, literal_builtin_field FId)) in
+  
   let builtincall = mk_assign rv (BuiltinCall (mk_call 
-      (Var fid.assign_left) 
-      (Literal Empty)  (* No scope for builtin function *)
-      (Var vthis) 
-      args
-      excep_label
-    )) in
+    (Var fid.assign_left) 
+    (Literal Empty)  (* No scope for builtin function *)
+    (Var vthis) 
+    args
+    excep_label
+  )) in
     
   let fscope_eval = mk_assign_fresh Obj in
-    let env_stmts = Utils.flat_map (fun env -> 
-      [
-        Basic (Mutation (mk_mutation (Var fscope_eval.assign_left) (Literal (String env.func_id)) (Var (function_scope_name env.func_id))))
-      ]) ctx.env_vars in  
+  let env_stmts = Utils.flat_map (fun env -> 
+    [
+      Basic (Mutation (mk_mutation (Var fscope_eval.assign_left) (Literal (String env.func_id)) (Var (function_scope_name env.func_id))))
+    ]) ctx.env_vars in  
   let first_argument = match args with
-      | [] -> Literal Undefined
-      | arg :: tail -> arg in
-    let eval_call = mk_assign rv (Eval (mk_call 
-        (Var fid.assign_left) 
-        (Var fscope_eval.assign_left) 
-        (Var vthis) 
-        [first_argument]
-        excep_label)) in
+    | [] -> Literal Undefined
+    | arg :: tail -> arg in
+  let eval_call = mk_assign rv (Eval (mk_call 
+    (Var fid.assign_left) 
+    (Var fscope_eval.assign_left) 
+    (Var vthis) 
+    [first_argument]
+    excep_label)) in
+        
+  let fscope = mk_assign_fresh (Lookup (Var obj, literal_builtin_field FScope)) in
+  let call = mk_assign rv (Call (mk_call 
+    (Var fid.assign_left) 
+    (Var fscope.assign_left) 
+    (Var vthis) 
+    args
+    excep_label
+  )) in
   
-  let r1_stmts, r1 = translate_call obj vthis args ctx in
-  [ Sugar (If (type_of_var obj (ObjectType (Some Builtin)),
-    [ Basic (Assignment fid);
-      Sugar (If (equal_loc_expr obj LEval,
-        [Sugar (If ((*equal_exprs (TypeOf first_argument) (Literal (Type StringType))*) IsTypeOf (first_argument, StringType),
-            [
-             Basic (Assignment fscope_eval);
-             add_proto_null fscope_eval.assign_left] @
-            env_stmts @
-            [Basic (Assignment eval_call);
-            ],
-            [Basic (Assignment (mk_assign rv (Expression first_argument)))]))
-        ], [Basic (Assignment builtincall)]));
-      Goto exit_label;
-      Label excep_label;
-      Basic (Assignment (mk_assign ctx.throw_var (Expression (Var rv))));
-      Goto ctx.label_throw;
-      Label exit_label; 
+  [ Basic (Assignment fid);
+    Sugar (If (type_of_var obj (ObjectType (Some Builtin)),
+    [ Sugar (If (equal_loc_expr obj LEval,
+      [ Sugar (If ((*equal_exprs (TypeOf first_argument) (Literal (Type StringType))*) IsTypeOf (first_argument, StringType),
+        [ Basic (Assignment fscope_eval);
+          add_proto_null fscope_eval.assign_left
+        ] @
+        env_stmts @
+        [Basic (Assignment eval_call)],       
+        [Basic (Assignment (mk_assign rv (Expression first_argument)))]))
+      ], 
+      [Basic (Assignment builtincall)]));
     ],
-    r1_stmts @ [Basic (Assignment (mk_assign rv (Expression (Var r1))))]))
+    [ Basic (Assignment fscope); 
+      Basic (Assignment call) 
+    ]));
+    Goto exit_label;
+    Label excep_label;
+    Basic (Assignment (mk_assign ctx.throw_var (Expression (Var rv))));
+    Goto ctx.label_throw;
+    Label exit_label; 
   ], rv
   
 let default_value_inner arg m rv exit_label next_label ctx =
@@ -819,7 +805,7 @@ let rec translate_exp ctx exp : statement list * variable =
         let prototype = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FPrototype)) in        
         let vthisproto = fresh_r () in
         let vthis = mk_assign_fresh Obj in
-        let if3, call_lvar = translate_call r2 vthis.assign_left arg_values ctx in
+        let if3, call_lvar = translate_inner_call r2 vthis.assign_left arg_values ctx in
         let rv = fresh_r () in  
           stmts @ 
           [
