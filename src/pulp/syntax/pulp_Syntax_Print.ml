@@ -29,6 +29,8 @@ let string_of_unary_op op =
   match op with
     | Not -> "not"
     | Negative -> "-"
+    | ToStringOp -> "num_to_string"
+    | ToNumberOp -> "string_to_num"
 
 let string_of_feature f =
   match f with

@@ -475,21 +475,22 @@ let translate_to_boolean arg ctx =
   
 let translate_to_number_prim arg ctx =
   let rv = fresh_r () in
-  let assign_rv v = [Basic (Assignment (mk_assign rv (Expression (Literal (Num v)))))] in
-  let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
+  let assign_rv_expr e = [Basic (Assignment (mk_assign rv (Expression e)))] in
+  let assign_rv_num v = assign_rv_expr (Literal (Num v)) in
+  let assign_rv_var var = assign_rv_expr (Var var) in
   Sugar (If (type_of_var arg UndefinedType,
-    assign_rv Float.nan, (* TODO *)
+    assign_rv_num Float.nan, (* TODO *)
     [ Sugar (If (type_of_var arg NullType,
-      assign_rv 0.0,
+      assign_rv_num 0.0,
       [ Sugar (If (type_of_var arg BooleanType,
         [ Sugar (If (equal_bool_expr arg true, 
-          assign_rv 1.0,
-          assign_rv 0.0))
+          assign_rv_num 1.0,
+          assign_rv_num 0.0))
         ],
         [ Sugar (If (type_of_var arg NumberType,
           assign_rv_var arg,
           (* Must be StringType *)
-          translate_error_throw (LNotImplemented ToNumber) ctx.throw_var ctx.label_throw))
+          assign_rv_expr (UnaryOp (ToNumberOp, Var arg))))
         ]))
       ]))
     ])), rv
@@ -505,22 +506,23 @@ let translate_to_number arg ctx =
      [to_number] @ (assign_rv_var r1))), rv
     
 let rec translate_to_string_prim arg ctx =
-  let rv = fresh_r () in
-  let assign_rv v = [Basic (Assignment (mk_assign rv (Expression (Literal (String v)))))] in
-  let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
+  let rv = fresh_r () in  
+  let assign_rv_expr e = [Basic (Assignment (mk_assign rv (Expression e)))] in
+  let assign_rv_str v = assign_rv_expr (Literal (String v)) in
+  let assign_rv_var var = assign_rv_expr (Var var) in
   Sugar (If (type_of_var arg UndefinedType,
-    assign_rv "undefined", (* TODO *)
+    assign_rv_str "undefined", (* TODO *)
     [ Sugar (If (type_of_var arg NullType,
-      assign_rv "null",
+      assign_rv_str "null",
       [ Sugar (If (type_of_var arg BooleanType,
         [ Sugar (If (equal_bool_expr arg true, 
-          assign_rv "true",
-          assign_rv "false"))
+          assign_rv_str "true",
+          assign_rv_str "false"))
         ],
         [ Sugar (If (type_of_var arg StringType,
           assign_rv_var arg,
           (* Must be NumberType *)
-          translate_error_throw (LNotImplemented ToNumber) ctx.throw_var ctx.label_throw))
+          assign_rv_expr (UnaryOp (ToStringOp, Var arg))))
           ]))
         ]))
       ])), rv

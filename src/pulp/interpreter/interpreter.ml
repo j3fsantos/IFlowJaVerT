@@ -115,11 +115,23 @@ let num_negative v counter =
   match v with
     | VHValue (HVLiteral (Num n)) -> VHValue (HVLiteral (Num (-.n))) 
     | _ -> raise (InterpreterStuck ("Cannot proceed with negative on not number value", counter))
+
+let num_to_string v counter =
+  match v with
+    | VHValue (HVLiteral (Num n)) -> VHValue (HVLiteral (String (string_of_float n))) 
+    | _ -> raise (InterpreterStuck ("Cannot proceed with num_to_string on not number value", counter))
+
+let string_to_num v counter =
+  match v with
+    | VHValue (HVLiteral (String s)) -> VHValue (HVLiteral (Num (float_of_string s))) 
+    | _ -> raise (InterpreterStuck ("Cannot proceed with string_to_num on not string value", counter))
   
 let run_unary_op op v counter : value =
   match op with
     | Not -> bool_not v counter 
     | Negative -> num_negative v counter
+    | ToStringOp -> num_to_string v counter
+    | ToNumberOp -> string_to_num v counter
 
 let type_of_literal l =
   match l with

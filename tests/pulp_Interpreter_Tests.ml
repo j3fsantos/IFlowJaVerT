@@ -410,6 +410,9 @@ let test_named_function () =
 };
 
 f(6)") (VHValue (HVLiteral (Num 8.0)))
+
+let test_to_num_1 () =
+  test_template_normal ("2 * '4'") (VHValue (HVLiteral (Num 8.0)))
   
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
@@ -486,5 +489,6 @@ let suite = "Testing_Interpreter" >:::
     "test_conditional_expr_false" >:: test_conditional_expr_false;
     "test_comma" >:: test_comma;
     "test_comma_after" >:: test_comma_after;
-    "test_named_function" >:: test_named_function
+    "test_named_function" >:: test_named_function;
+    "test_to_num_1" >:: test_to_num_1;
     ] 

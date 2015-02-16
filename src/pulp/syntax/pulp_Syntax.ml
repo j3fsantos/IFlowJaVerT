@@ -94,6 +94,8 @@ type bin_op =
 type unary_op = 
   | Not
   | Negative
+  | ToStringOp
+  | ToNumberOp
 
 type expression = 
   | Literal of literal
