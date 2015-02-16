@@ -162,6 +162,7 @@ let translate_strict_equality_comparison x y =
   let rv_true = Basic (Assignment (mk_assign rv (Expression (Literal (Bool true))))) in
   let rv_false = Basic (Assignment (mk_assign rv (Expression (Literal (Bool false))))) in
   
+  (* Change this to less branch *)
   let if1 = Sugar (If (equal_exprs (TypeOf (Var x)) (TypeOf (Var y)), 
     [
       Sugar (If (or_expr (IsTypeOf (Var x, UndefinedType)) (IsTypeOf (Var x, NullType)),
@@ -178,19 +179,19 @@ let translate_strict_equality_comparison x y =
           [
             Sugar (If (IsTypeOf (Var x, NumberType),
             [
-              Sugar (If (equal_expr x (Literal (String "NaN")), (* TODO *)
+              Sugar (If (equal_num_expr x Float.nan, 
               [rv_false],
               [
-                Sugar (If (equal_expr y (Literal (String "NaN")), (* TODO *)
+                Sugar (If (equal_num_expr y Float.nan, 
                 [rv_false],
                 [
                   Sugar (If (equal_expr x (Var y), 
                   [rv_true], 
                   [
-                    Sugar (If (and_expr (equal_expr x (Literal (String "+0"))) (equal_expr x (Literal (String "-0"))),
+                    Sugar (If (and_expr (equal_num_expr x 0.0) (equal_num_expr x (-0.0)),
                     [rv_true],
                     [
-                      Sugar (If (and_expr (equal_expr x (Literal (String "-0"))) (equal_expr x (Literal (String "+0"))),
+                      Sugar (If (and_expr (equal_num_expr x (-0.0)) (equal_num_expr x 0.0),
 	                    [rv_true],
 	                    [rv_false]))
                     ]))
@@ -472,7 +473,7 @@ let translate_to_boolean arg ctx =
     assign_rv false,
     assign_rv true)), rv
   
-let translate_to_number arg ctx =
+let translate_to_number_prim arg ctx =
   let rv = fresh_r () in
   let assign_rv v = [Basic (Assignment (mk_assign rv (Expression (Literal (Num v)))))] in
   let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
@@ -487,12 +488,23 @@ let translate_to_number arg ctx =
         ],
         [ Sugar (If (type_of_var arg NumberType,
           assign_rv_var arg,
+          (* Must be StringType *)
           translate_error_throw (LNotImplemented ToNumber) ctx.throw_var ctx.label_throw))
         ]))
       ]))
     ])), rv
     
-let translate_to_string arg ctx =
+let translate_to_number arg ctx = 
+  let to_primitive, primValue = translate_to_primitive arg (Some NumberType) ctx in
+  let to_number_prim, r1_prim = translate_to_number_prim primValue ctx in
+  let to_number, r1 = translate_to_number_prim arg ctx in
+  let rv = fresh_r () in
+  let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
+  Sugar (If (type_of_var arg (ObjectType None),
+     to_primitive @ [to_number] @ (assign_rv_var r1_prim),
+     [to_number] @ (assign_rv_var r1))), rv
+    
+let rec translate_to_string_prim arg ctx =
   let rv = fresh_r () in
   let assign_rv v = [Basic (Assignment (mk_assign rv (Expression (Literal (String v)))))] in
   let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
@@ -507,11 +519,22 @@ let translate_to_string arg ctx =
         ],
         [ Sugar (If (type_of_var arg StringType,
           assign_rv_var arg,
-          translate_error_throw (LNotImplemented ToString) ctx.throw_var ctx.label_throw))
+          (* Must be NumberType *)
+          translate_error_throw (LNotImplemented ToNumber) ctx.throw_var ctx.label_throw))
+          ]))
         ]))
-      ]))
-    ])), rv
-    
+      ])), rv
+      
+let translate_to_string arg ctx = 
+  let to_primitive, primValue = translate_to_primitive arg (Some StringType) ctx in
+  let to_string_prim, r1_prim = translate_to_string_prim primValue ctx in
+  let to_string, r1 = translate_to_string_prim arg ctx in
+  let rv = fresh_r () in
+  let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
+  Sugar (If (type_of_var arg (ObjectType None),
+     to_primitive @ [to_string_prim] @ (assign_rv_var r1_prim),
+     [to_string] @ (assign_rv_var r1))), rv    
+         
 let translate_to_number_bin_op f op e1 e2 ctx =
   let r1_stmts, r1 = f e1 in
   let r2_stmts, r2 = translate_gamma r1 ctx in

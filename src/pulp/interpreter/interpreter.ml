@@ -487,6 +487,8 @@ let initial_heap () =
     
   let h = add_field h (BLoc Lg) "eval" (HVObj (BLoc LEval)) in
   let h = add_field h (BLoc Lg) "undefined" (HVLiteral Undefined) in
+  let h = add_field h (BLoc Lg) "NaN" (HVLiteral (Num Float.nan)) in
+  let h = add_field h (BLoc Lg) "Infinity" (HVLiteral (Num Float.infinity)) in
   let h = Heap.add (BLoc LEval) Object.empty h in
   let h = add_field h (BLoc LEval) (string_of_builtin_field FId) (HVLiteral (String ("eval"))) in
   
