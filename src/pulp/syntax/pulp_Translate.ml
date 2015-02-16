@@ -535,7 +535,35 @@ let translate_to_string arg ctx =
   let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
   Sugar (If (type_of_var arg (ObjectType None),
      to_primitive @ [to_string_prim] @ (assign_rv_var r1_prim),
-     [to_string] @ (assign_rv_var r1))), rv    
+     [to_string] @ (assign_rv_var r1))), rv  
+    
+let translate_to_object arg ctx =
+  let rv = fresh_r () in
+  let excep_label = fresh_r () in
+  let exit_label = fresh_r () in
+  let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
+  let bobj = mk_assign rv (BuiltinCall (mk_call 
+     (Literal (String "#boolean_construct")) 
+     (Literal Empty)  (* No scope for builtin function *)
+     (Literal Empty) 
+     [Var arg]
+     excep_label
+  )) in
+  Sugar (If (or_expr (equal_undef_expr arg) (equal_null_expr arg),
+    translate_error_throw LTError ctx.throw_var ctx.label_throw,
+    [ Sugar (If (type_of_var arg (ObjectType None),
+      assign_rv_var arg,
+      [ Sugar (If (type_of_var arg BooleanType,
+        [ Basic (Assignment bobj);
+          Goto exit_label;
+          Label excep_label;
+          Basic (Assignment (mk_assign ctx.throw_var (Expression (Var rv))));
+          Goto ctx.label_throw;
+          Label exit_label
+        ],
+        translate_error_throw (LNotImplemented ToObject) ctx.throw_var ctx.label_throw))
+      ]))
+    ])) 
          
 let translate_to_number_bin_op f op e1 e2 ctx =
   let r1_stmts, r1 = f e1 in

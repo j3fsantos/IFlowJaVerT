@@ -38,6 +38,7 @@ let string_of_feature f =
     | GetValuePrim -> "getvalueprim"
     | ToNumber -> "tonumber"
     | ToString -> "tostring"
+    | ToObject -> "toobject"
 
 let string_of_builtin_loc l =
   match l with

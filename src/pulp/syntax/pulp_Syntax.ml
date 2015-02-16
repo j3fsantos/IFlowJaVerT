@@ -7,6 +7,7 @@ type feature =
   | GetValuePrim
   | ToNumber
   | ToString
+  | ToObject
   
 type builtin_loc = 
   | Lg (* Global Object *)
