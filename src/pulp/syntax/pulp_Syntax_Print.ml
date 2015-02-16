@@ -49,6 +49,8 @@ let string_of_builtin_loc l =
     | LTError -> "#lterror"
     | LSError -> "#lserror"
     | LObject -> "#lobject"
+    | LBoolean -> "#lboolean"
+    | Lbp -> "#lbp"
     | LNotImplemented f -> "#lnotimplemented_" ^ (string_of_feature f)
 
 let string_of_builtin_field f =
@@ -58,6 +60,8 @@ let string_of_builtin_field f =
     | FScope -> "#scope"
     | FPrototype -> "prototype"
     | FConstructId -> "#constructid"
+    | FPrimitiveValue -> "#primvalue"
+    | FClass -> "#class"
 
 let string_of_var x = x
 

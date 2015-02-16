@@ -1613,7 +1613,36 @@ let rec translate_stmt ctx exp : statement list * variable =
       | Parser_syntax.With _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.10 With Statemenet.")))
       | Parser_syntax.Debugger -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.15 The debugger Statement.")))
 
-      
+let builtin_call_boolean_call () =
+  let v = fresh_r () in
+  let ctx = create_ctx [] in
+  let stmt, r1 = translate_to_boolean v ctx in
+  let body = to_ivl_goto (* TODO translation level *)
+    [ stmt;
+      Basic (Assignment (mk_assign ctx.return_var (Expression (Var r1))));
+      Goto ctx.label_return; 
+      Label ctx.label_return; 
+      Label ctx.label_throw
+    ] in    
+  make_function_block "#boolean_call" body [rthis; rscope; v] ctx
+  
+let builtin_call_boolean_construct () =
+  let v = fresh_r () in
+  let ctx = create_ctx [] in
+  let new_obj = mk_assign_fresh Obj in
+  let stmt, r1 = translate_to_boolean v ctx in
+  let body = to_ivl_goto (* TODO translation level *)
+    [ Basic (Assignment new_obj);
+      add_proto_value new_obj.assign_left Lbp;
+      Basic (Mutation (mk_mutation (Var new_obj.assign_left) (literal_builtin_field FClass) (Literal (String "Boolean"))));
+      stmt;
+      Basic (Mutation (mk_mutation (Var new_obj.assign_left) (literal_builtin_field FPrimitiveValue) (Var r1)));
+      Basic (Assignment (mk_assign ctx.return_var (Expression (Var new_obj.assign_left))));
+      Goto ctx.label_return; 
+      Label ctx.label_return; 
+      Label ctx.label_throw
+    ] in    
+  make_function_block "#boolean_construct" body [rthis; rscope; v] ctx
 
 let exp_to_elem ctx exp : statement list * variable = 
     let r = fresh_r() in
@@ -1729,4 +1758,9 @@ let exp_to_pulp level e main =
     let fb = translate_function_syntax level fid fexpr fnamed fenv main in
     AllFunctions.add fid fb c
    ) context all_functions in
+  
+  (* Make the id's as constants, not strings *)
+  let context = AllFunctions.add "#boolean_call" (builtin_call_boolean_call()) context in
+  let context = AllFunctions.add "#boolean_construct" (builtin_call_boolean_construct()) context in
+  
   context

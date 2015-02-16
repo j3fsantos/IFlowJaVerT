@@ -320,7 +320,7 @@ let rec run_assign_expr (s : local_state) (e : assign_right_expression) (funcs :
 	(* Assignment expressions *)
   match e with
     | Expression ae -> s, run_expr s ae
-    | BuiltinCall c -> raise (InterpreterStuck ("BuiltinCallNotImplementedYet", s.lscounter))
+    | BuiltinCall c 
 	  | Call c -> 
       let fid = run_expr s c.call_name in
       let fid_string = string_check fid "Function name should be a string" s.lscounter in
@@ -509,7 +509,7 @@ let initial_heap () =
   let h = Heap.add (BLoc Lop) lop h in
   (* Do I want Error object too? Rather then going directly to Lop for errors *)
   let h = List.fold_left built_in_obj_proto_lop h [Lg; Lfp; LEval; LRError; LTError; LSError; 
-    LNotImplemented GetValuePrim; LNotImplemented ToNumber; LNotImplemented ToString; LObject] in
+    LNotImplemented GetValuePrim; LNotImplemented ToNumber; LNotImplemented ToString; LObject; Lbp] in
     
   let h = add_field h (BLoc Lg) "eval" (HVObj (BLoc LEval)) in
   let h = add_field h (BLoc Lg) "undefined" (HVLiteral Undefined) in
@@ -522,6 +522,13 @@ let initial_heap () =
   let h = add_field h (BLoc LObject) (string_of_builtin_field FId) (HVLiteral (String ("#object_call"))) in
   let h = add_field h (BLoc LObject) (string_of_builtin_field FConstructId) (HVLiteral (String ("#object_construct"))) in
   let h = add_field h (BLoc LObject) (string_of_builtin_field FPrototype) (HVObj (BLoc Lop)) in
+  
+  let h = add_field h (BLoc Lg) "Boolean" (HVObj (BLoc LBoolean)) in
+  let lboolean = Object.add (string_of_builtin_field FProto) (HVObj (BLoc Lfp)) Object.empty in
+  let h = Heap.add (BLoc LBoolean) lboolean h in
+  let h = add_field h (BLoc LBoolean) (string_of_builtin_field FId) (HVLiteral (String ("#boolean_call"))) in
+  let h = add_field h (BLoc LBoolean) (string_of_builtin_field FConstructId) (HVLiteral (String ("#boolean_construct"))) in
+  let h = add_field h (BLoc LBoolean) (string_of_builtin_field FPrototype) (HVObj (BLoc Lbp)) in
   h
   
 let run_with_heap h (fs : function_block AllFunctions.t) : function_state =

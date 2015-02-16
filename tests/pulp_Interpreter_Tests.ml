@@ -420,6 +420,9 @@ let test_plus_string () =
 let test_plus_num () =
   test_template_normal ("2 + 5") (VHValue (HVLiteral (Num 7.0)))
   
+let test_boolean_call () =
+  test_template_normal ("Boolean('true')") (VHValue (HVLiteral (Bool true)))
+    
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
    "running program2" >:: test_program2;
@@ -498,5 +501,6 @@ let suite = "Testing_Interpreter" >:::
     "test_named_function" >:: test_named_function;
     "test_to_num_1" >:: test_to_num_1;
     "test_plus_string" >:: test_plus_string;
-    "test_plus_num" >:: test_plus_num
+    "test_plus_num" >:: test_plus_num;
+    "test_boolean_call" >:: test_boolean_call
     ] 

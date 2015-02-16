@@ -17,6 +17,8 @@ type builtin_loc =
   | LTError (* Type Error *)
   | LSError (* Syntax Error *)
   | LObject (* Object Object *)
+  | LBoolean (* Boolean Object *)
+  | Lbp (* Boolean.prototype *)
   | LNotImplemented of feature (* The tool cannot handle this case atm *)
 
 type builtin_field =
@@ -25,6 +27,8 @@ type builtin_field =
   | FScope
   | FPrototype
   | FConstructId
+  | FPrimitiveValue
+  | FClass (* TODO : Update Everywhere *)
 
 
 type reference_type = 
