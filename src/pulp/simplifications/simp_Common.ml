@@ -154,6 +154,11 @@ let rec simplify_expr e =
     | Var _ -> e
     | BinOp (e1, binop, e2) -> 
       begin match binop with
+        | Concat ->
+          begin match e1, e2 with
+            | Literal (String s1), (Literal (String s2)) -> Literal (String (s1 ^ s2))
+            | _ -> e
+          end
         | Comparison Equal ->
           begin match e1, e2 with
             | Literal lit1, Literal lit2 ->
@@ -207,16 +212,7 @@ let rec simplify_expr e =
         | Literal (Num b) -> Literal (Num (-.b))
         | _ -> e
       end
-    | UnaryOp (ToStringOp, e1) -> 
-      begin match e1 with
-        | Literal (Num b) -> Literal (String (string_of_float b))
-        | _ -> e
-      end
-   | UnaryOp (ToNumberOp, e1) -> 
-      begin match e1 with
-        | Literal (String b) -> Literal (Num (float_of_string b))
-        | _ -> e
-      end
+    | UnaryOp _ -> e (* TODO *)
     | Ref (Base ref1, Field ref2, reftype) -> 
        if ref1 = ref2 then ref1 else e
     | Ref _ -> e
@@ -408,13 +404,14 @@ let rec get_type_info_expr type_info e =
       let e1_type = f e1 in
       let e2_type = f e2 in
       begin match binop with
+        | Concat -> Some (TI_Type StringType)
         | Comparison _ -> Some (TI_Type BooleanType) 
         | Arith aop ->
           begin match aop with
             | Plus ->
               begin
                 if e1_type = e2_type then
-                  if e1_type = Some (TI_Type StringType) || e1_type = Some (TI_Type NumberType) then e1_type
+                  if e1_type = Some (TI_Type NumberType) then e1_type
                   else Some TI_Value
                 else Some TI_Value
               end

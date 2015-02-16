@@ -414,6 +414,12 @@ f(6)") (VHValue (HVLiteral (Num 8.0)))
 let test_to_num_1 () =
   test_template_normal ("2 * '4'") (VHValue (HVLiteral (Num 8.0)))
   
+let test_plus_string () =
+  test_template_normal ("2 + '5'") (VHValue (HVLiteral (String "25")))
+  
+let test_plus_num () =
+  test_template_normal ("2 + 5") (VHValue (HVLiteral (Num 7.0)))
+  
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
    "running program2" >:: test_program2;
@@ -491,4 +497,6 @@ let suite = "Testing_Interpreter" >:::
     "test_comma_after" >:: test_comma_after;
     "test_named_function" >:: test_named_function;
     "test_to_num_1" >:: test_to_num_1;
+    "test_plus_string" >:: test_plus_string;
+    "test_plus_num" >:: test_plus_num
     ] 

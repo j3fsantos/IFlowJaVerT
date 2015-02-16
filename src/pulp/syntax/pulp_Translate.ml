@@ -553,6 +553,32 @@ let translate_to_number_bin_op f op e1 e2 ctx =
       r6_stmt; 
       Basic (Assignment r7)],
     r7.assign_left
+    
+let translate_bin_op_plus f op e1 e2 ctx =
+  let r1_stmts, r1 = f e1 in
+  let r2_stmts, r2 = translate_gamma r1 ctx in
+  let r3_stmts, r3 = f e2 in
+  let r4_stmts, r4 = translate_gamma r3 ctx in
+  let r5_stmts, lprim = translate_to_primitive r2 None ctx in
+  let r6_stmts, rprim = translate_to_primitive r4 None ctx in
+  let r7_stmt, lstring = translate_to_string_prim lprim ctx in
+  let r8_stmt, rstring = translate_to_string_prim rprim ctx in  
+  let r9_stmt, lnum = translate_to_number_prim lprim ctx in
+  let r10_stmt, rnum = translate_to_number_prim rprim ctx in
+  let rv = fresh_r () in
+  let assign_rv_expr e = Basic (Assignment (mk_assign rv (Expression e))) in
+    r1_stmts @ 
+    r2_stmts @ 
+    r3_stmts @ 
+    r4_stmts @
+    r5_stmts @
+    r6_stmts @
+    [ Sugar (If (or_expr 
+                  (type_of_var lprim StringType)
+                  (type_of_var rprim StringType),
+      [r7_stmt; r8_stmt; assign_rv_expr (BinOp (Var lstring, Concat, Var rstring))],
+      [r9_stmt; r10_stmt; assign_rv_expr (BinOp (Var lnum, Arith Plus, Var rnum))]))
+    ], rv
   
    
 let translate_bin_op_logical f e1 e2 bop ctx =
@@ -1130,7 +1156,7 @@ let rec translate_exp ctx exp : statement list * variable =
             end
           | Parser_syntax.Arith aop -> 
             begin match aop with
-              | Parser_syntax.Plus -> translate_regular_bin_op f op e1 e2 ctx
+              | Parser_syntax.Plus -> translate_bin_op_plus f op e1 e2 ctx
               | Parser_syntax.Minus
               | Parser_syntax.Times
               | Parser_syntax.Div 

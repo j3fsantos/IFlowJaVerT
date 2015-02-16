@@ -21,6 +21,7 @@ let string_of_arith_op x =
 
 let string_of_bin_op x =
   match x with
+    | Concat -> "^"
     | Comparison op -> string_of_comparison_op op
     | Arith op -> string_of_arith_op op
     | Boolean op -> string_of_bool_op op

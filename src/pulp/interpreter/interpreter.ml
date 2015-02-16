@@ -77,6 +77,11 @@ let value_less_than v1 v2 counter =
 
 let run_bin_op op v1 v2 counter : value =
   begin match op with
+    | Concat ->
+      begin match v1, v2 with
+        | VHValue (HVLiteral (String s1)),  VHValue (HVLiteral (String s2)) -> VHValue (HVLiteral (String (s1 ^ s2)))
+        | _ -> raise (InterpreterStuck ("Concatenation non-string values", counter))
+      end
     | Comparison cop ->
       begin match cop with
         | Equal -> VHValue (HVLiteral (Bool (value_eq v1 v2)))
@@ -116,14 +121,23 @@ let num_negative v counter =
     | VHValue (HVLiteral (Num n)) -> VHValue (HVLiteral (Num (-.n))) 
     | _ -> raise (InterpreterStuck ("Cannot proceed with negative on not number value", counter))
 
+let float_to_string_inner n = (* TODO *)
+  let string_of_number n =
+    let inum = int_of_float n in
+    if (float_of_int inum = n) then string_of_int inum else string_of_float n in
+  if Float.is_nan n then "NaN"
+  else if n = 0.0 or n = -0.0 then "0"
+  else if n = Float.infinity then "Infinity"
+  else string_of_number n
+
 let num_to_string v counter =
   match v with
-    | VHValue (HVLiteral (Num n)) -> VHValue (HVLiteral (String (string_of_float n))) 
+    | VHValue (HVLiteral (Num n)) -> VHValue (HVLiteral (String (float_to_string_inner n))) 
     | _ -> raise (InterpreterStuck ("Cannot proceed with num_to_string on not number value", counter))
 
 let string_to_num v counter =
   match v with
-    | VHValue (HVLiteral (String s)) -> VHValue (HVLiteral (Num (float_of_string s))) 
+    | VHValue (HVLiteral (String s)) -> VHValue (HVLiteral (Num (Float.of_string s))) 
     | _ -> raise (InterpreterStuck ("Cannot proceed with string_to_num on not string value", counter))
   
 let run_unary_op op v counter : value =

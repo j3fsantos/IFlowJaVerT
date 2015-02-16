@@ -88,6 +88,7 @@ type bool_op =
 type bin_op = 
   | Comparison of comparison_op
   | Arith of arith_op
+  | Concat
   | Boolean of bool_op
   (* TODO | Concat *)
 
