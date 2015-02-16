@@ -520,6 +520,7 @@ let initial_heap () =
   
   let h = add_field h (BLoc Lg) "Object" (HVObj (BLoc LObject)) in
   let h = add_field h (BLoc LObject) (string_of_builtin_field FId) (HVLiteral (String ("#object_call"))) in
+  let h = add_field h (BLoc LObject) (string_of_builtin_field FConstructId) (HVLiteral (String ("#object_construct"))) in
   let h = add_field h (BLoc LObject) (string_of_builtin_field FPrototype) (HVObj (BLoc Lop)) in
   h
   

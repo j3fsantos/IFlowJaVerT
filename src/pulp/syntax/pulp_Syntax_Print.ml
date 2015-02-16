@@ -57,6 +57,7 @@ let string_of_builtin_field f =
     | FId -> "#fid"
     | FScope -> "#scope"
     | FPrototype -> "prototype"
+    | FConstructId -> "#constructid"
 
 let string_of_var x = x
 

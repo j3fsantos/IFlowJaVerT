@@ -297,7 +297,7 @@ let translate_call_construct_start f e1 e2s ctx =
     let arg_values, arg_stmts = List.split arg_stmts in
     let arg_stmts = List.flatten arg_stmts in  
     let gotothrow = translate_error_throw LTError ctx.throw_var ctx.label_throw in
-    let hasfield = mk_assign_fresh (HasField (Var r2, literal_builtin_field FId)) in
+    let hasfield = mk_assign_fresh (HasField (Var r2, literal_builtin_field FId)) in (* TODO - Check for contruct id for new *)
     (
       r1_stmts @ 
       r2_stmts @ 
@@ -825,21 +825,44 @@ let rec translate_exp ctx exp : statement list * variable =
         let prototype = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FPrototype)) in        
         let vthisproto = fresh_r () in
         let vthis = mk_assign_fresh Obj in
-        let if3, call_lvar = translate_inner_call r2 vthis.assign_left arg_values ctx in
+        let if3, call_lvar = translate_inner_call r2 vthis.assign_left arg_values ctx in        
         let rv = fresh_r () in  
+        let excep_label = fresh_r () in
+        let exit_label = fresh_r () in
+        
+        (* TODO : move together with builtin function call *)
+        let cid = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FConstructId)) in 
+	    let builtinconstr = mk_assign rv (BuiltinCall (mk_call 
+		  (Var cid.assign_left) 
+		  (Literal Empty)  (* No scope for builtin function *)
+		  (Var vthis.assign_left) 
+		  arg_values
+          excep_label
+		)) in
+        
           stmts @ 
-          [
-            Basic (Assignment prototype); 
-            Sugar (If (is_obj_var prototype.assign_left, 
-                [Basic (Assignment (mk_assign vthisproto (Expression (Var prototype.assign_left))))], 
-                [Basic (Assignment (mk_assign vthisproto (Expression (Literal (LLoc Lop)))))])); 
-            Basic (Assignment vthis);
-            add_proto_var vthis.assign_left vthisproto 
-          ] @
-          if3 @ 
-          [  Sugar (If (is_obj_var call_lvar, 
-                [Basic (Assignment (mk_assign rv (Expression (Var call_lvar))))], 
-                [Basic (Assignment (mk_assign rv (Expression (Var vthis.assign_left))))]))
+          [ Sugar (If (type_of_var r2 (ObjectType (Some Builtin)),
+	          [ Basic (Assignment cid);
+              Basic (Assignment builtinconstr);
+              Goto exit_label;
+					    Label excep_label;
+					    Basic (Assignment (mk_assign ctx.throw_var (Expression (Var rv))));
+					    Goto ctx.label_throw;
+					    Label exit_label
+            ],
+	          [
+	            Basic (Assignment prototype); 
+	            Sugar (If (is_obj_var prototype.assign_left, 
+	                [Basic (Assignment (mk_assign vthisproto (Expression (Var prototype.assign_left))))], 
+	                [Basic (Assignment (mk_assign vthisproto (Expression (Literal (LLoc Lop)))))])); 
+	            Basic (Assignment vthis);
+	            add_proto_var vthis.assign_left vthisproto 
+	          ] @
+	          if3 @ 
+	          [  Sugar (If (is_obj_var call_lvar, 
+	                [Basic (Assignment (mk_assign rv (Expression (Var call_lvar))))], 
+	                [Basic (Assignment (mk_assign rv (Expression (Var vthis.assign_left))))]))
+	          ]))
           ], rv
         
       | Parser_syntax.Call (e1, e2s) ->

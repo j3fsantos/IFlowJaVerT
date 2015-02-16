@@ -24,6 +24,7 @@ type builtin_field =
   | FId
   | FScope
   | FPrototype
+  | FConstructId
 
 
 type reference_type = 
