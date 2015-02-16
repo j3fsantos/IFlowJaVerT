@@ -64,6 +64,13 @@ let string_of_builtin_field f =
     | FPrimitiveValue -> "#primvalue"
     | FClass -> "#class"
 
+let string_of_builtin_function f =
+  match f with
+    | Boolean_Call -> "#boolean_call"
+    | Boolean_Construct -> "#boolean_construct"
+    | Object_Call -> "#object_call"
+    | Object_Construct -> "#object_consturct"
+
 let string_of_var x = x
 
 let string_of_codename cn = cn

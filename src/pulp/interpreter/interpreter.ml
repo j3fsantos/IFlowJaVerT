@@ -526,8 +526,8 @@ let initial_heap () =
   let h = add_field h (BLoc Lg) "Boolean" (HVObj (BLoc LBoolean)) in
   let lboolean = Object.add (string_of_builtin_field FProto) (HVObj (BLoc Lfp)) Object.empty in
   let h = Heap.add (BLoc LBoolean) lboolean h in
-  let h = add_field h (BLoc LBoolean) (string_of_builtin_field FId) (HVLiteral (String ("#boolean_call"))) in
-  let h = add_field h (BLoc LBoolean) (string_of_builtin_field FConstructId) (HVLiteral (String ("#boolean_construct"))) in
+  let h = add_field h (BLoc LBoolean) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Boolean_Call))) in
+  let h = add_field h (BLoc LBoolean) (string_of_builtin_field FConstructId) (HVLiteral (String (string_of_builtin_function Boolean_Construct))) in
   let h = add_field h (BLoc LBoolean) (string_of_builtin_field FPrototype) (HVObj (BLoc Lbp)) in
   h
   

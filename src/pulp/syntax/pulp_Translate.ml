@@ -343,6 +343,27 @@ let translate_get o (* variable containing object *) p (* variable, string, or b
       [Basic (Assignment (mk_assign rv (Expression(Literal Undefined))))],
       [Basic (Assignment (mk_assign rv (Expression(Var desc.assign_left))))]))
    ], rv
+  
+let make_builtin_call id rv args ctx =
+  let excep_label = "call_excep." ^ fresh_r () in
+  let exit_label = fresh_r () in
+  
+  let builtincall = mk_assign rv (BuiltinCall (mk_call 
+    (Literal (String (string_of_builtin_function id)))
+    (Literal Empty)  (* No scope for builtin function *)
+    (Literal Empty)  (* No this for builtin function *)
+    args
+    excep_label
+  )) in
+  [ Basic (Assignment builtincall);
+    Goto exit_label;
+    Label excep_label;
+    Basic (Assignment (mk_assign ctx.throw_var (Expression (Var rv))));
+    Goto ctx.label_throw;
+    Label exit_label;
+  ]
+    
+  
     
 let translate_inner_call obj vthis args ctx =
   (* TODO *)
@@ -539,28 +560,14 @@ let translate_to_string arg ctx =
     
 let translate_to_object arg ctx =
   let rv = fresh_r () in
-  let excep_label = fresh_r () in
-  let exit_label = fresh_r () in
   let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
-  let bobj = mk_assign rv (BuiltinCall (mk_call 
-     (Literal (String "#boolean_construct")) 
-     (Literal Empty)  (* No scope for builtin function *)
-     (Literal Empty) 
-     [Var arg]
-     excep_label
-  )) in
+  let bobj = make_builtin_call (Boolean_Construct) rv [Var arg] ctx in
   Sugar (If (or_expr (equal_undef_expr arg) (equal_null_expr arg),
     translate_error_throw LTError ctx.throw_var ctx.label_throw,
     [ Sugar (If (type_of_var arg (ObjectType None),
       assign_rv_var arg,
       [ Sugar (If (type_of_var arg BooleanType,
-        [ Basic (Assignment bobj);
-          Goto exit_label;
-          Label excep_label;
-          Basic (Assignment (mk_assign ctx.throw_var (Expression (Var rv))));
-          Goto ctx.label_throw;
-          Label exit_label
-        ],
+        bobj,
         translate_error_throw (LNotImplemented ToObject) ctx.throw_var ctx.label_throw))
       ]))
     ])) 
@@ -863,7 +870,7 @@ let rec translate_exp ctx exp : statement list * variable =
 	    let builtinconstr = mk_assign rv (BuiltinCall (mk_call 
 		  (Var cid.assign_left) 
 		  (Literal Empty)  (* No scope for builtin function *)
-		  (Var vthis.assign_left) 
+		  (Literal Empty)  (* No this either? *)
 		  arg_values
           excep_label
 		)) in
@@ -1652,7 +1659,7 @@ let builtin_call_boolean_call () =
       Label ctx.label_return; 
       Label ctx.label_throw
     ] in    
-  make_function_block "#boolean_call" body [rthis; rscope; v] ctx
+  make_function_block (string_of_builtin_function Boolean_Call) body [rthis; rscope; v] ctx
   
 let builtin_call_boolean_construct () =
   let v = fresh_r () in
@@ -1670,7 +1677,7 @@ let builtin_call_boolean_construct () =
       Label ctx.label_return; 
       Label ctx.label_throw
     ] in    
-  make_function_block "#boolean_construct" body [rthis; rscope; v] ctx
+  make_function_block (string_of_builtin_function Boolean_Construct) body [rthis; rscope; v] ctx
 
 let exp_to_elem ctx exp : statement list * variable = 
     let r = fresh_r() in
@@ -1787,8 +1794,7 @@ let exp_to_pulp level e main =
     AllFunctions.add fid fb c
    ) context all_functions in
   
-  (* Make the id's as constants, not strings *)
-  let context = AllFunctions.add "#boolean_call" (builtin_call_boolean_call()) context in
-  let context = AllFunctions.add "#boolean_construct" (builtin_call_boolean_construct()) context in
+  let context = AllFunctions.add (string_of_builtin_function Boolean_Call) (builtin_call_boolean_call()) context in
+  let context = AllFunctions.add (string_of_builtin_function Boolean_Construct) (builtin_call_boolean_construct()) context in
   
   context

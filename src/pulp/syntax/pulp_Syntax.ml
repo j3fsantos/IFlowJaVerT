@@ -22,6 +22,12 @@ type builtin_loc =
   | Lbp (* Boolean.prototype *)
   | LNotImplemented of feature (* The tool cannot handle this case atm *)
 
+type builtin_function = 
+  | Boolean_Call
+  | Boolean_Construct
+  | Object_Call
+  | Object_Construct
+
 type builtin_field =
   | FProto
   | FId

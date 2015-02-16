@@ -422,6 +422,9 @@ let test_plus_num () =
   
 let test_boolean_call () =
   test_template_normal ("Boolean('true')") (VHValue (HVLiteral (Bool true)))
+  
+let test_boolean_construct () =
+  test_template_normal ("typeof (new Boolean('true'))") (VHValue (HVLiteral (String "object")))
     
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
@@ -502,5 +505,6 @@ let suite = "Testing_Interpreter" >:::
     "test_to_num_1" >:: test_to_num_1;
     "test_plus_string" >:: test_plus_string;
     "test_plus_num" >:: test_plus_num;
-    "test_boolean_call" >:: test_boolean_call
+    "test_boolean_call" >:: test_boolean_call;
+    "test_boolean_construct" >:: test_boolean_construct
     ] 
