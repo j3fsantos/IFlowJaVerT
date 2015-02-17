@@ -409,7 +409,7 @@ let test_named_function () =
     return m(x-2) + m(x-1);
 };
 
-f(6)") (VHValue (HVLiteral (Num 8.0)))
+f(4)") (VHValue (HVLiteral (Num 3.0)))
 
 let test_to_num_1 () =
   test_template_normal ("2 * '4'") (VHValue (HVLiteral (Num 8.0)))
@@ -425,6 +425,15 @@ let test_boolean_call () =
   
 let test_boolean_construct () =
   test_template_normal ("typeof (new Boolean('true'))") (VHValue (HVLiteral (String "object")))
+  
+let test_object_construct () =
+  test_template_normal ("var x = new Object(); x.toString()") (VHValue (HVLiteral (String "[object Object]")))
+  
+let test_object_construct_value () =
+  test_template_normal ("var n_obj = new Object(function func(){return 1;}); n_obj ()") (VHValue (HVLiteral (Num 1.0)))
+  
+(*let test_plus_to_primitive_boolean () =
+  test_template_normal ("'' + (new Boolean('true'))") (VHValue (HVLiteral (String "true")))*)
     
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
@@ -506,5 +515,8 @@ let suite = "Testing_Interpreter" >:::
     "test_plus_string" >:: test_plus_string;
     "test_plus_num" >:: test_plus_num;
     "test_boolean_call" >:: test_boolean_call;
-    "test_boolean_construct" >:: test_boolean_construct
+    "test_boolean_construct" >:: test_boolean_construct;
+    "test_object_construct" >:: test_object_construct;
+    "test_object_construct_value" >:: test_object_construct_value;
+    (*"test_plus_to_primitive_boolean" >:: test_plus_to_primitive_boolean;*)
     ] 

@@ -407,7 +407,7 @@ let rec run_assign_expr (s : local_state) (e : assign_right_expression) (funcs :
 and
 run_function (h : heap_type) (f : function_block) (args : value list) (fs : function_block AllFunctions.t) : function_state =
   (* I cannot do the following syntactically, can I? *)
-  Printf.printf "Running function %s \n" f.func_name;
+  (*Printf.printf "Running function %s \n" f.func_name;*)
   let args_mod = List.mapi (fun index param -> 
     if List.length args > index then List.nth args index
     else (VHValue (HVLiteral Undefined))
@@ -425,7 +425,7 @@ run_function (h : heap_type) (f : function_block) (args : value list) (fs : func
     ) (0, LabelMap.empty) f.func_body in
     
   let result = run_stmts f.func_body f.func_ctx {lsheap = h; lsstack = s; lscounter = 0; lsexcep = None} label_index fs in
-  Printf.printf "End of function %s \n" f.func_name;
+  (*Printf.printf "End of function %s \n" f.func_name;*)
   let ret_type, ret_val = 
     let stmt = List.nth f.func_body result.lscounter in
     let l = match stmt with
@@ -468,7 +468,7 @@ and run_basic_stmt (s : local_state) (stmt : basic_statement) (labelmap : int La
             {s with lsheap = Heap.add l newobj s.lsheap; lscounter = s.lscounter + 1}
 
 and run_stmt (s : local_state) (stmt : statement) (labelmap : int LabelMap.t) (fs : function_block AllFunctions.t) : local_state =
-  Printf.printf "Running stmt %s \n" (Pulp_Syntax_Print.string_of_statement stmt);
+  (*Printf.printf "Running stmt %s \n" (Pulp_Syntax_Print.string_of_statement stmt);*)
   match stmt with
     | Label l -> {s with lscounter = s.lscounter + 1}
     | Goto l -> {s with lscounter = LabelMap.find l labelmap}

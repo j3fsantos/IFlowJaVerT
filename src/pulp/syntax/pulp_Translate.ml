@@ -1724,6 +1724,33 @@ let builtin_lop_valueOf () =
       Label ctx.label_throw
     ] in    
   make_function_block (string_of_builtin_function Object_Prototype_valueOf) body [rthis; rscope] ctx
+  
+let builtin_object_construct () =
+  let v = fresh_r () in
+  let ctx = create_ctx [] in
+  let rv = fresh_r () in
+  let assign_rv e = Basic (Assignment (mk_assign rv (Expression e))) in  
+  let stmt, r1 = translate_to_boolean v ctx in
+  let new_obj = mk_assign_fresh Obj in
+  let body = to_ivl_goto (* TODO translation level *)
+    [ Sugar (If (type_of_var v (ObjectType None),
+        [assign_rv (Var v)],
+        [ Sugar (If (istypeof_prim_expr v,
+            [ stmt; 
+              assign_rv (Var r1)
+            ],
+            [ Basic (Assignment new_obj);
+              add_proto_value new_obj.assign_left Lop;
+              Basic (Mutation (mk_mutation (Var new_obj.assign_left) (literal_builtin_field FClass) (Literal (String "Object"))));
+              assign_rv (Var new_obj.assign_left)
+            ]))
+        ]));
+      Basic (Assignment (mk_assign ctx.return_var (Expression (Var rv))));
+      Goto ctx.label_return; 
+      Label ctx.label_return; 
+      Label ctx.label_throw
+    ] in    
+  make_function_block (string_of_builtin_function Object_Construct) body [rthis; rscope; v] ctx
 
 let exp_to_elem ctx exp : statement list * variable = 
     let r = fresh_r() in
@@ -1844,5 +1871,6 @@ let exp_to_pulp level e main =
   let context = AllFunctions.add (string_of_builtin_function Boolean_Construct) (builtin_call_boolean_construct()) context in
   let context = AllFunctions.add (string_of_builtin_function Object_Prototype_toString) (builtin_lop_toString()) context in
   let context = AllFunctions.add (string_of_builtin_function Object_Prototype_valueOf) (builtin_lop_valueOf()) context in
+  let context = AllFunctions.add (string_of_builtin_function Object_Construct) (builtin_object_construct()) context in
   
   context
