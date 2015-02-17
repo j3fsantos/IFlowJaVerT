@@ -235,6 +235,39 @@ let translate_put_value v1 v2 throw_var throw_label =
   in
   main
   
+let make_builtin_call id rv args ctx =
+  let excep_label = "call_excep." ^ fresh_r () in
+  let exit_label = fresh_r () in
+  
+  let builtincall = mk_assign rv (BuiltinCall (mk_call 
+    (Literal (String (string_of_builtin_function id)))
+    (Literal Empty)  (* No scope for builtin function *)
+    (Literal Empty)  (* No this for builtin function *)
+    args
+    excep_label
+  )) in
+  [ Basic (Assignment builtincall);
+    Goto exit_label;
+    Label excep_label;
+    Basic (Assignment (mk_assign ctx.throw_var (Expression (Var rv))));
+    Goto ctx.label_throw;
+    Label exit_label;
+  ]
+  
+let translate_to_object arg ctx =
+  let rv = fresh_r () in
+  let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
+  let bobj = make_builtin_call (Boolean_Construct) rv [Var arg] ctx in
+  Sugar (If (or_expr (equal_undef_expr arg) (equal_null_expr arg),
+    translate_error_throw LTError ctx.throw_var ctx.label_throw,
+    [ Sugar (If (type_of_var arg (ObjectType None),
+      assign_rv_var arg,
+      [ Sugar (If (type_of_var arg BooleanType,
+        bobj,
+        translate_error_throw (LNotImplemented ToObject) ctx.throw_var ctx.label_throw))
+      ]))
+    ])), rv
+  
 let translate_gamma r ctx =
   let rv = fresh_r () in
   let base = mk_assign_fresh_e (Base (Var r)) in
@@ -242,16 +275,22 @@ let translate_gamma r ctx =
   let assign_rv_lookup = mk_assign rv (Lookup (Var base.assign_left, Var field.assign_left)) in
   let assign_pi_1 = mk_assign_fresh (ProtoF (Var base.assign_left, Var field.assign_left)) in  
   let assign_pi_2 = mk_assign_fresh (ProtoF (Var base.assign_left, Var field.assign_left)) in  
+  let to_object_stmt, r1 = translate_to_object base.assign_left ctx in
+  let assign_pi = mk_assign_fresh (ProtoF (Var r1, Var field.assign_left)) in 
   let main = Sugar (If (is_ref_expr r,
     [
       Basic (Assignment base);
       Sugar (If (equal_undef_expr base.assign_left,
         translate_error_throw LRError ctx.throw_var ctx.label_throw,
-        [
+        [ Basic (Assignment field);
           Sugar (If (istypeof_prim_expr base.assign_left,
-            translate_error_throw (LNotImplemented GetValuePrim) ctx.throw_var ctx.label_throw,
-            [
-              Basic (Assignment field);
+            [ to_object_stmt;
+              Basic (Assignment assign_pi);
+              Sugar (If (equal_empty_expr assign_pi.assign_left,
+                [Basic (Assignment (mk_assign rv (Expression(Literal Undefined))))],
+                [Basic (Assignment (mk_assign rv (Expression(Var assign_pi.assign_left))))]))
+            ],
+            [             
               Sugar (If (is_vref_expr r,
                 [ 
                   Sugar (If (equal_loc_expr base.assign_left Lg,
@@ -342,28 +381,7 @@ let translate_get o (* variable containing object *) p (* variable, string, or b
     Sugar (If (equal_empty_expr desc.assign_left,
       [Basic (Assignment (mk_assign rv (Expression(Literal Undefined))))],
       [Basic (Assignment (mk_assign rv (Expression(Var desc.assign_left))))]))
-   ], rv
-  
-let make_builtin_call id rv args ctx =
-  let excep_label = "call_excep." ^ fresh_r () in
-  let exit_label = fresh_r () in
-  
-  let builtincall = mk_assign rv (BuiltinCall (mk_call 
-    (Literal (String (string_of_builtin_function id)))
-    (Literal Empty)  (* No scope for builtin function *)
-    (Literal Empty)  (* No this for builtin function *)
-    args
-    excep_label
-  )) in
-  [ Basic (Assignment builtincall);
-    Goto exit_label;
-    Label excep_label;
-    Basic (Assignment (mk_assign ctx.throw_var (Expression (Var rv))));
-    Goto ctx.label_throw;
-    Label exit_label;
-  ]
-    
-  
+   ], rv 
     
 let translate_inner_call obj vthis args ctx =
   (* TODO *)
@@ -557,20 +575,6 @@ let translate_to_string arg ctx =
   Sugar (If (type_of_var arg (ObjectType None),
      to_primitive @ [to_string_prim] @ (assign_rv_var r1_prim),
      [to_string] @ (assign_rv_var r1))), rv  
-    
-let translate_to_object arg ctx =
-  let rv = fresh_r () in
-  let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
-  let bobj = make_builtin_call (Boolean_Construct) rv [Var arg] ctx in
-  Sugar (If (or_expr (equal_undef_expr arg) (equal_null_expr arg),
-    translate_error_throw LTError ctx.throw_var ctx.label_throw,
-    [ Sugar (If (type_of_var arg (ObjectType None),
-      assign_rv_var arg,
-      [ Sugar (If (type_of_var arg BooleanType,
-        bobj,
-        translate_error_throw (LNotImplemented ToObject) ctx.throw_var ctx.label_throw))
-      ]))
-    ])) 
          
 let translate_to_number_bin_op f op e1 e2 ctx =
   let r1_stmts, r1 = f e1 in

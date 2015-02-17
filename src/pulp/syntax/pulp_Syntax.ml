@@ -158,7 +158,7 @@ type assign_right_expression =
   | HasField of expression * expression
   | Lookup of expression * expression
   | Deallocation of expression * expression
-  | ProtoF of expression * expression
+  | ProtoF of expression * expression (* TODO: A bit different for String Objects. *)
   | ProtoO of expression * expression
 
 type assignment = { 
