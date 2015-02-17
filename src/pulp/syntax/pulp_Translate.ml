@@ -39,6 +39,8 @@ let equal_expr v e2 = equal_exprs (Var v) e2
 let lessthan_exprs e1 e2 = or_expr 
     (BinOp (e1, Comparison LessThan, e2)) 
     (BinOp (e1, Comparison Equal, e2))
+    
+let concat_exprs e1 e2 = BinOp (e1, Concat, e2)
  
 let type_of_var v t = lessthan_exprs (TypeOf (Var v)) (Literal (Type t))
 let type_of_oref_var ref = type_of_var ref (ReferenceType (Some MemberReference))
@@ -235,14 +237,18 @@ let translate_put_value v1 v2 throw_var throw_label =
   in
   main
   
-let make_builtin_call id rv args ctx =
+let make_builtin_call id rv vthis args ctx =
+  let vthis = match vthis with
+    | None -> Literal Empty
+    | Some v -> Var v in
+  
   let excep_label = "call_excep." ^ fresh_r () in
   let exit_label = fresh_r () in
   
   let builtincall = mk_assign rv (BuiltinCall (mk_call 
     (Literal (String (string_of_builtin_function id)))
     (Literal Empty)  (* No scope for builtin function *)
-    (Literal Empty)  (* No this for builtin function *)
+    vthis
     args
     excep_label
   )) in
@@ -257,7 +263,7 @@ let make_builtin_call id rv args ctx =
 let translate_to_object arg ctx =
   let rv = fresh_r () in
   let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
-  let bobj = make_builtin_call (Boolean_Construct) rv [Var arg] ctx in
+  let bobj = make_builtin_call (Boolean_Construct) rv None [Var arg] ctx in
   Sugar (If (or_expr (equal_undef_expr arg) (equal_null_expr arg),
     translate_error_throw LTError ctx.throw_var ctx.label_throw,
     [ Sugar (If (type_of_var arg (ObjectType None),
@@ -450,7 +456,7 @@ let default_value_inner arg m rv exit_label next_label ctx =
   let r1_stmts, r1 = translate_get arg (Literal (String m)) in
   let hasfield = mk_assign_fresh (HasField (Var r1, literal_builtin_field FId)) in
   let fid = mk_assign_fresh (Lookup (Var r1, literal_builtin_field FId)) in
-  let r2_stmts, r2 = translate_inner_call r1 r1 [] ctx in
+  let r2_stmts, r2 = translate_inner_call r1 arg [] ctx in
   let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
   r1_stmts @                          
   [ Basic (Assignment hasfield);
@@ -459,15 +465,16 @@ let default_value_inner arg m rv exit_label next_label ctx =
       r2_stmts @
     [ Sugar (If (is_prim_value r2,
       assign_rv_var r2 @ [Goto exit_label],
-      []))
+      [Goto next_label]))
     ],
     [Goto next_label]))
   ]
   
 let translate_default_value arg preftype ctx =
   let first, second = 
-    (if preftype = (Some StringType) then "toString", "toValue"
-                                     else "toValue", "toString") in
+    (* TODO change to enumeration *)
+    (if preftype = (Some StringType) then "toString", "valueOf"
+                                     else "valueOf", "toString") in
   let rv = fresh_r () in
   let exit_label = fresh_r () in
   let next_label1 = fresh_r () in
@@ -1682,6 +1689,41 @@ let builtin_call_boolean_construct () =
       Label ctx.label_throw
     ] in    
   make_function_block (string_of_builtin_function Boolean_Construct) body [rthis; rscope; v] ctx
+  
+let builtin_lop_toString () =
+  let ctx = create_ctx [] in
+  let rv = fresh_r () in
+  let assign_rv e = Basic (Assignment (mk_assign rv (Expression e))) in  
+  let to_object, r1 = translate_to_object rthis ctx in
+  let class_lookup = mk_assign_fresh (Lookup (Var r1, literal_builtin_field FClass)) in
+  let body = to_ivl_goto (* TODO translation level *)
+    [ Sugar (If (equal_undef_expr rthis,
+        [ assign_rv (Literal (String "[object Undefined]"))],
+        [ Sugar (If (equal_null_expr rthis,
+            [ assign_rv (Literal (String "[object Null]"))],
+            [ to_object;
+              Basic (Assignment class_lookup);
+              assign_rv (concat_exprs (concat_exprs (Literal (String "[object ")) (Var class_lookup.assign_left)) (Literal (String "]")));
+              ]))
+        ]));
+      Basic (Assignment (mk_assign ctx.return_var (Expression (Var rv))));
+      Goto ctx.label_return; 
+      Label ctx.label_return; 
+      Label ctx.label_throw
+    ] in    
+  make_function_block (string_of_builtin_function Object_Prototype_toString) body [rthis; rscope] ctx
+  
+let builtin_lop_valueOf () =
+  let ctx = create_ctx [] in
+  let to_object, r1 = translate_to_object rthis ctx in
+  let body = to_ivl_goto (* TODO translation level *)
+    [ to_object;
+      Basic (Assignment (mk_assign ctx.return_var (Expression (Var r1))));
+      Goto ctx.label_return; 
+      Label ctx.label_return; 
+      Label ctx.label_throw
+    ] in    
+  make_function_block (string_of_builtin_function Object_Prototype_valueOf) body [rthis; rscope] ctx
 
 let exp_to_elem ctx exp : statement list * variable = 
     let r = fresh_r() in
@@ -1800,5 +1842,7 @@ let exp_to_pulp level e main =
   
   let context = AllFunctions.add (string_of_builtin_function Boolean_Call) (builtin_call_boolean_call()) context in
   let context = AllFunctions.add (string_of_builtin_function Boolean_Construct) (builtin_call_boolean_construct()) context in
+  let context = AllFunctions.add (string_of_builtin_function Object_Prototype_toString) (builtin_lop_toString()) context in
+  let context = AllFunctions.add (string_of_builtin_function Object_Prototype_valueOf) (builtin_lop_valueOf()) context in
   
   context

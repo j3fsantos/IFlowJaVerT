@@ -407,6 +407,7 @@ let rec run_assign_expr (s : local_state) (e : assign_right_expression) (funcs :
 and
 run_function (h : heap_type) (f : function_block) (args : value list) (fs : function_block AllFunctions.t) : function_state =
   (* I cannot do the following syntactically, can I? *)
+  Printf.printf "Running function %s \n" f.func_name;
   let args_mod = List.mapi (fun index param -> 
     if List.length args > index then List.nth args index
     else (VHValue (HVLiteral Undefined))
@@ -424,7 +425,7 @@ run_function (h : heap_type) (f : function_block) (args : value list) (fs : func
     ) (0, LabelMap.empty) f.func_body in
     
   let result = run_stmts f.func_body f.func_ctx {lsheap = h; lsstack = s; lscounter = 0; lsexcep = None} label_index fs in
-  
+  Printf.printf "End of function %s \n" f.func_name;
   let ret_type, ret_val = 
     let stmt = List.nth f.func_body result.lscounter in
     let l = match stmt with
@@ -467,7 +468,7 @@ and run_basic_stmt (s : local_state) (stmt : basic_statement) (labelmap : int La
             {s with lsheap = Heap.add l newobj s.lsheap; lscounter = s.lscounter + 1}
 
 and run_stmt (s : local_state) (stmt : statement) (labelmap : int LabelMap.t) (fs : function_block AllFunctions.t) : local_state =
-  (*Printf.printf "Running stmt %s \n" (Pulp_Syntax_Print.string_of_statement stmt);*)
+  Printf.printf "Running stmt %s \n" (Pulp_Syntax_Print.string_of_statement stmt);
   match stmt with
     | Label l -> {s with lscounter = s.lscounter + 1}
     | Goto l -> {s with lscounter = LabelMap.find l labelmap}
@@ -511,6 +512,13 @@ let initial_heap () =
   let h = List.fold_left built_in_obj_proto_lop h [Lg; Lfp; LEval; LRError; LTError; LSError; 
     LNotImplemented GetValuePrim; LNotImplemented ToNumber; LNotImplemented ToString; LObject; Lbp] in
     
+  let l_lop_toString =  Object.add (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Object_Prototype_toString))) Object.empty in 
+  let h = Heap.add (BLoc Lop_toString) l_lop_toString h in
+  let h = add_field h (BLoc Lop) "toString" (HVObj (BLoc Lop_toString)) in
+  let l_lop_valueOf =  Object.add (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Object_Prototype_valueOf))) Object.empty in 
+  let h = Heap.add (BLoc Lop_valueOf) l_lop_valueOf h in
+  let h = add_field h (BLoc Lop) "valueOf" (HVObj (BLoc Lop_valueOf)) in
+    
   let h = add_field h (BLoc Lg) "eval" (HVObj (BLoc LEval)) in
   let h = add_field h (BLoc Lg) "undefined" (HVLiteral Undefined) in
   let h = add_field h (BLoc Lg) "NaN" (HVLiteral (Num Float.nan)) in
@@ -519,8 +527,8 @@ let initial_heap () =
   let h = add_field h (BLoc LEval) (string_of_builtin_field FId) (HVLiteral (String ("eval"))) in
   
   let h = add_field h (BLoc Lg) "Object" (HVObj (BLoc LObject)) in
-  let h = add_field h (BLoc LObject) (string_of_builtin_field FId) (HVLiteral (String ("#object_call"))) in
-  let h = add_field h (BLoc LObject) (string_of_builtin_field FConstructId) (HVLiteral (String ("#object_construct"))) in
+  let h = add_field h (BLoc LObject) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Object_Call))) in
+  let h = add_field h (BLoc LObject) (string_of_builtin_field FConstructId) (HVLiteral (String (string_of_builtin_function Object_Construct))) in
   let h = add_field h (BLoc LObject) (string_of_builtin_field FPrototype) (HVObj (BLoc Lop)) in
   
   let h = add_field h (BLoc Lg) "Boolean" (HVObj (BLoc LBoolean)) in

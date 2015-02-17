@@ -12,6 +12,8 @@ type feature =
 type builtin_loc = 
   | Lg (* Global Object *)
   | Lop (* Object.Prototype Object *)
+  | Lop_toString
+  | Lop_valueOf
   | Lfp (* Function.Prototype Object *)
   | LEval (* Eval Function Object *)
   | LRError (* Reference Error *)
@@ -27,6 +29,8 @@ type builtin_function =
   | Boolean_Construct
   | Object_Call
   | Object_Construct
+  | Object_Prototype_toString
+  | Object_Prototype_valueOf
 
 type builtin_field =
   | FProto

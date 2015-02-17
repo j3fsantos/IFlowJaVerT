@@ -44,6 +44,8 @@ let string_of_builtin_loc l =
   match l with
     | Lg -> "#lg"
     | Lop -> "#lop"
+    | Lop_toString -> "#lop_toString"
+    | Lop_valueOf -> "#lop_valueOf"
     | Lfp -> "#lfp"
     | LEval -> "#leval"
     | LRError -> "#lrerror"
@@ -69,7 +71,9 @@ let string_of_builtin_function f =
     | Boolean_Call -> "#boolean_call"
     | Boolean_Construct -> "#boolean_construct"
     | Object_Call -> "#object_call"
-    | Object_Construct -> "#object_consturct"
+    | Object_Construct -> "#object_construct"
+    | Object_Prototype_toString -> "#object_prototype_to_string"
+    | Object_Prototype_valueOf -> "#object_prototype_value_of"
 
 let string_of_var x = x
 
