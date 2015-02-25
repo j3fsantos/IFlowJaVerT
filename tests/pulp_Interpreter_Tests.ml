@@ -443,6 +443,9 @@ let test_S11_9_1_A3_3__1 () =
   
 let test_S11_9_1_A3_3__2 () =
   test_template_normal ("('1' == true) !== true") (VHValue (HVLiteral (Bool false)))
+  
+let test_S11_9_1_A7_8 () =
+   test_template_normal ("({valueOf: function() {return 1}} == true) !== true") (VHValue (HVLiteral (Bool false)))
     
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
@@ -530,5 +533,6 @@ let suite = "Testing_Interpreter" >:::
     "test_S11_9_4_A2_4_T1" >:: test_S11_9_4_A2_4_T1;
     "test_S11_9_1_A3_3__1" >:: test_S11_9_1_A3_3__1;
     "test_S11_9_1_A3_3__2" >:: test_S11_9_1_A3_3__2;
+    "test_S11_9_1_A7_8" >:: test_S11_9_1_A7_8;
     (*"test_plus_to_primitive_boolean" >:: test_plus_to_primitive_boolean;*)
     ] 

@@ -620,22 +620,10 @@ let translate_regular_bin_op f op e1 e2 ctx =
       Sugar (If (equal_exprs (TypeOf (Var r2)) (TypeOf (Var r4)),
         types_equal_stmts_1 @ [Goto exit_label],
 		    [ 
-		      Sugar (If (and_expr 
-		                  (or_expr 
-		                    (type_of_var r2 StringType) 
-		                    (or_expr 
-                          (type_of_var r2 NumberType)
-                          (type_of_var r2 BooleanType)))
-		                  (type_of_var r4 (ObjectType None)),
+		      Sugar (If (type_of_var r4 (ObjectType None),
 		        to_primitive_y1 @ [assign_rv y1_to_prim (Var y1_prim)],
 		        [assign_rv y1_to_prim (Var r4)]));
-		      Sugar (If (and_expr 
-		                  (or_expr 
-                        (type_of_var r2 StringType) 
-                            (or_expr 
-                          (type_of_var r2 NumberType)
-                          (type_of_var r2 BooleanType)))
-		                  (type_of_var r2 (ObjectType None)),
+		      Sugar (If (type_of_var r2 (ObjectType None),
 		          to_primitive_x1 @ [assign_rv x1_to_prim (Var x1_prim)],
 		          [assign_rv x1_to_prim (Var r2)]));
 		      Sugar (If (type_of_var x1_to_prim BooleanType,
