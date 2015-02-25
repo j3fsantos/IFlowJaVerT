@@ -113,7 +113,8 @@ let remove_empty_blocks g =
     match rev with
       | Goto l1 :: tail -> (List.rev tail) @ [Goto (change_if_equal l1 oldl newl)]
       | GuardedGoto (e, l1, l2) :: tail -> (List.rev tail) @ [GuardedGoto (e, (change_if_equal l1 oldl newl), (change_if_equal l2 oldl newl))]
-      | _ -> raise (BBInvalid "Expected Goto in removing empty blocks") in
+      | [] ->  raise (BBInvalid "Expected Goto in removing empty blocks. Got empty list of statements")
+      | stmt :: tail -> raise (BBInvalid ("Expected Goto in removing empty blocks. Got " ^ Pulp_Syntax_Print.string_of_statement stmt)) in
   
   List.iter (fun n ->
     let nd = CFG_BB.get_node_data g n in

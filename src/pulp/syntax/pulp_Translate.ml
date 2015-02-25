@@ -159,13 +159,11 @@ let add_proto_value obj proto =
 let add_proto_null obj =
   add_proto obj (Literal Null)
   
-let translate_strict_equality_comparison x y = 
-  let rv = fresh_r() in
+let translate_strict_equality_comparison_types_equal x y rv = 
   let rv_true = Basic (Assignment (mk_assign rv (Expression (Literal (Bool true))))) in
   let rv_false = Basic (Assignment (mk_assign rv (Expression (Literal (Bool false))))) in
   
-  (* Change this to less branch *)
-  let if1 = Sugar (If (equal_exprs (TypeOf (Var x)) (TypeOf (Var y)), 
+  (* Change this to less branch *) 
     [
       Sugar (If (or_expr (IsTypeOf (Var x, UndefinedType)) (IsTypeOf (Var x, NullType)),
         [rv_true], 
@@ -205,10 +203,14 @@ let translate_strict_equality_comparison x y =
           ]
           ))
         ]))
-    ],
-    [ rv_false ]))
+    ]
   
-  in if1, rv
+let translate_strict_equality_comparison x y = 
+  let rv = fresh_r() in
+  let stmts = translate_strict_equality_comparison_types_equal x y rv in
+  Sugar (If (equal_exprs (TypeOf (Var x)) (TypeOf (Var y)), 
+    stmts,
+    [ Basic (Assignment (mk_assign rv (Expression (Literal (Bool false))))) ])), rv
   
 let translate_error_throw error throw_var throw_label =
   let r1 = mk_assign_fresh Obj in
@@ -353,27 +355,6 @@ let translate_call_construct_start f e1 e2s ctx =
         Sugar (If (equal_bool_expr hasfield.assign_left false, gotothrow, []))
       ], r1, r2, arg_values)
     
-let translate_regular_bin_op f op e1 e2 ctx =
-  let r1_stmts, r1 = f e1 in
-  let r2_stmts, r2 = translate_gamma r1 ctx in
-  let r3_stmts, r3 = f e2 in
-  let r4_stmts, r4 = translate_gamma r3 ctx in
-  let r5 = mk_assign_fresh_e (BinOp (Var r2, tr_bin_op op, Var r4)) in
-    r1_stmts @ 
-    r2_stmts @ 
-    r3_stmts @ 
-    r4_stmts @ 
-    [Basic (Assignment r5)],
-    r5.assign_left
-    
-let translate_not_equal_bin_op f op e1 e2 ctx =
-  let r1_stmts, r1 = translate_regular_bin_op f (Parser_syntax.Comparison (Parser_syntax.Equal)) e1 e2 ctx in
-  let r2 = mk_assign_fresh (Expression (UnaryOp (Not, (Var r1)))) in
-    r1_stmts @ 
-    [
-     Basic (Assignment r2)
-    ], r2.assign_left
-    
 let translate_abstract_relation x y leftfirst =
   (* TODO Type Conversions *)
   let r6 = mk_assign_fresh_e (BinOp (Var x, Comparison LessThan, Var y)) in
@@ -499,7 +480,6 @@ let translate_to_primitive arg preftype ctx =
     assign_rv_var arg))
   ], rv  
   
-(* TODO : redo *)
 let translate_to_boolean arg ctx =
   let rv = fresh_r () in
   let assign_rv b = [Basic (Assignment (mk_assign rv (Expression (Literal (Bool b)))))] in
@@ -542,14 +522,19 @@ let translate_to_number_prim arg ctx =
     ])), rv
     
 let translate_to_number arg ctx = 
+  let r2 = fresh_r () in
   let to_primitive, primValue = translate_to_primitive arg (Some NumberType) ctx in
-  let to_number_prim, r1_prim = translate_to_number_prim primValue ctx in
-  let to_number, r1 = translate_to_number_prim arg ctx in
+  let to_number, r1 = translate_to_number_prim r2 ctx in
   let rv = fresh_r () in
-  let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
-  Sugar (If (type_of_var arg (ObjectType None),
-     to_primitive @ [to_number] @ (assign_rv_var r1_prim),
-     [to_number] @ (assign_rv_var r1))), rv
+  let assign_rv_var var = Basic (Assignment (mk_assign rv (Expression (Var var)))) in
+  let assign_r2_var var = [Basic (Assignment (mk_assign r2 (Expression (Var var))))] in
+  [
+    Sugar (If (type_of_var arg (ObjectType None),
+      to_primitive @ (assign_r2_var primValue),
+      (assign_r2_var arg)));
+    to_number;
+    assign_rv_var r1
+  ], rv
     
 let rec translate_to_string_prim arg ctx =
   let rv = fresh_r () in  
@@ -574,31 +559,116 @@ let rec translate_to_string_prim arg ctx =
       ])), rv
       
 let translate_to_string arg ctx = 
+  let r2 = fresh_r () in
   let to_primitive, primValue = translate_to_primitive arg (Some StringType) ctx in
-  let to_string_prim, r1_prim = translate_to_string_prim primValue ctx in
-  let to_string, r1 = translate_to_string_prim arg ctx in
+  let to_string, r1 = translate_to_string_prim r2 ctx in
   let rv = fresh_r () in
-  let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
-  Sugar (If (type_of_var arg (ObjectType None),
-     to_primitive @ [to_string_prim] @ (assign_rv_var r1_prim),
-     [to_string] @ (assign_rv_var r1))), rv  
+  let assign_rv_var var = Basic (Assignment (mk_assign rv (Expression (Var var)))) in
+  let assign_r2_var var = [Basic (Assignment (mk_assign r2 (Expression (Var var))))] in
+  [
+    Sugar (If (type_of_var arg (ObjectType None),
+      to_primitive @ (assign_r2_var primValue),
+      (assign_r2_var arg)));
+    to_string;
+    (assign_rv_var r2)
+  ], rv  
          
 let translate_to_number_bin_op f op e1 e2 ctx =
   let r1_stmts, r1 = f e1 in
   let r2_stmts, r2 = translate_gamma r1 ctx in
   let r3_stmts, r3 = f e2 in
   let r4_stmts, r4 = translate_gamma r3 ctx in
-  let r5_stmt, r5 = translate_to_number r2 ctx in
-  let r6_stmt, r6 = translate_to_number r4 ctx in 
+  let r5_stmts, r5 = translate_to_number r2 ctx in
+  let r6_stmts, r6 = translate_to_number r4 ctx in 
   let r7 = mk_assign_fresh_e (BinOp (Var r5, tr_bin_op op, Var r6)) in
     r1_stmts @ 
     r2_stmts @ 
     r3_stmts @ 
     r4_stmts @ 
-    [ r5_stmt;
-      r6_stmt; 
-      Basic (Assignment r7)],
+    r5_stmts @
+    r6_stmts @
+    [Basic (Assignment r7)],
     r7.assign_left
+        
+let translate_regular_bin_op f op e1 e2 ctx =
+  let r1_stmts, r1 = f e1 in
+  let r2_stmts, r2 = translate_gamma r1 ctx in
+  let r3_stmts, r3 = f e2 in
+  let r4_stmts, r4 = translate_gamma r3 ctx in
+  let rv = fresh_r () in
+  let assign_rv rvar e = Basic (Assignment (mk_assign rvar (Expression e))) in 
+  let exit_label = fresh_r () in
+  let types_equal_stmts_1 = translate_strict_equality_comparison_types_equal r2 r4 rv in
+  let y1_to_prim = fresh_r () in
+  let to_primitive_y1, y1_prim = translate_to_primitive r4 None ctx in
+  let x1_to_prim = fresh_r () in
+  let to_primitive_x1, x1_prim = translate_to_primitive r2 None ctx in
+  let x2_to_number = fresh_r () in
+  let to_number_x2, x2_number = translate_to_number_prim x1_to_prim ctx in
+  let y2_to_number = fresh_r () in
+  let to_number_y2, y2_number = translate_to_number_prim y1_to_prim ctx in
+  let y3 = fresh_r () in
+  let to_number_y3, y3_number = translate_to_number_prim y2_to_number ctx in
+  let x3 = fresh_r () in
+  let to_number_x3, x3_number = translate_to_number_prim x2_to_number ctx in
+  let types_equal_stmts_2 = translate_strict_equality_comparison_types_equal x3 y3 rv in
+    r1_stmts @ 
+    r2_stmts @ 
+    r3_stmts @ 
+    r4_stmts @ 
+    [
+      Sugar (If (equal_exprs (TypeOf (Var r2)) (TypeOf (Var r4)),
+        types_equal_stmts_1 @ [Goto exit_label],
+		    [ 
+		      Sugar (If (and_expr 
+		                  (or_expr 
+		                    (type_of_var r2 StringType) 
+		                    (or_expr 
+                          (type_of_var r2 NumberType)
+                          (type_of_var r2 BooleanType)))
+		                  (type_of_var r4 (ObjectType None)),
+		        to_primitive_y1 @ [assign_rv y1_to_prim (Var y1_prim)],
+		        [assign_rv y1_to_prim (Var r4)]));
+		      Sugar (If (and_expr 
+		                  (or_expr 
+                        (type_of_var r2 StringType) 
+                            (or_expr 
+                          (type_of_var r2 NumberType)
+                          (type_of_var r2 BooleanType)))
+		                  (type_of_var r2 (ObjectType None)),
+		          to_primitive_x1 @ [assign_rv x1_to_prim (Var x1_prim)],
+		          [assign_rv x1_to_prim (Var r2)]));
+		      Sugar (If (type_of_var x1_to_prim BooleanType,
+		        [ to_number_x2] @ [assign_rv x2_to_number (Var x2_number)],
+            [ assign_rv x2_to_number (Var x1_to_prim)]));
+		      Sugar (If (type_of_var y1_to_prim BooleanType,
+		          [ to_number_y2] @ [assign_rv y2_to_number (Var y2_number)],
+              [ assign_rv y2_to_number (Var y1_to_prim)]));
+          Sugar (If (or_expr 
+                    (and_expr (equal_null_expr x2_to_number) (equal_undef_expr y2_to_number)) 
+                    (and_expr (equal_undef_expr x2_to_number) (equal_null_expr y2_to_number)),
+            [assign_rv rv (Literal (Bool true))] @ [Goto exit_label],
+            []));
+          Sugar (If (and_expr (type_of_var x2_to_number NumberType) (type_of_var y2_to_number StringType),
+              [ to_number_y3] @ [assign_rv y3 (Var y3_number)],
+              [ assign_rv y3 (Var y2_to_number)]));
+          Sugar (If (and_expr (type_of_var x2_to_number StringType) (type_of_var y2_to_number NumberType),
+             [ to_number_x3] @ [assign_rv x3 (Var x3_number)],
+             [ assign_rv x3 (Var x2_to_number)]));
+          Sugar (If (equal_exprs (TypeOf (Var r2)) (TypeOf (Var r4)),
+            types_equal_stmts_2 @ [Goto exit_label],
+            [assign_rv rv (Literal (Bool false))] @ [Goto exit_label]))
+      ]));        
+    Label exit_label],
+    rv
+    
+let translate_not_equal_bin_op f op e1 e2 ctx =
+  let r1_stmts, r1 = translate_regular_bin_op f (Parser_syntax.Comparison (Parser_syntax.Equal)) e1 e2 ctx in
+  let r2 = mk_assign_fresh (Expression (UnaryOp (Not, (Var r1)))) in
+    r1_stmts @ 
+    [
+     Basic (Assignment r2)
+    ], r2.assign_left
     
 let translate_bin_op_plus f op e1 e2 ctx =
   let r1_stmts, r1 = f e1 in
@@ -737,6 +807,7 @@ let translate_function_expression exp ctx named =
     add_proto_value f_obj.assign_left Lfp;
     Basic (Assignment prototype); 
     add_proto_value prototype.assign_left Lop; 
+    Basic (Mutation (mk_mutation (Var prototype.assign_left) (Literal (String "constructor")) (Var f_obj.assign_left)));
     Basic (Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FPrototype) (Var prototype.assign_left)));
     Basic (Assignment scope);
     add_proto_null scope.assign_left
@@ -778,7 +849,7 @@ let translate_has_property o p =
 let translate_inc_dec f e op ctx =
   let r1_stmts, r1 = f e in
   let r2_stmts, r2 = translate_gamma r1 ctx in
-  let to_number_stmt, oldvalue = translate_to_number r2 ctx in
+  let to_number_stmts, oldvalue = translate_to_number r2 ctx in
   let newvalue = mk_assign_fresh_e (BinOp (Var oldvalue, Arith op, (Literal (Num 1.0)))) in          
     r1_stmts @  
     [Sugar (If (and_expr (is_vref_expr r1)
@@ -787,7 +858,8 @@ let translate_inc_dec f e op ctx =
                   (equal_string_exprs (Field (Var r1)) "eval")), 
       translate_error_throw LSError ctx.throw_var ctx.label_throw, 
       r2_stmts @  
-      [ to_number_stmt;
+      to_number_stmts @
+      [
         Basic (Assignment newvalue);
         translate_put_value r1 newvalue.assign_left ctx.throw_var ctx.label_throw
       ]))
@@ -1009,21 +1081,21 @@ let rec translate_exp ctx exp : statement list * variable =
 					| Parser_syntax.Positive -> 
             let r1_stmts, r1 = f e in
             let r2_stmts, r2 = translate_gamma r1 ctx in
-            let r3_stmt, r3 = translate_to_number r2 ctx in
+            let r3_stmts, r3 = translate_to_number r2 ctx in
             r1_stmts @
             r2_stmts @
-            [r3_stmt], r3
+            r3_stmts, r3
 					| Parser_syntax.Negative -> 
             let r1_stmts, r1 = f e in
             let r2_stmts, r2 = translate_gamma r1 ctx in
-            let r3_stmt, r3 = translate_to_number r2 ctx in
+            let r3_stmts, r3 = translate_to_number r2 ctx in
             let rv = fresh_r () in
             let assign_rv n = [Basic (Assignment (mk_assign rv (Expression n)))] in
             let negative = mk_assign_fresh_e (UnaryOp (Negative, (Var r3))) in
             r1_stmts @
             r2_stmts @
-            [r3_stmt;
-             Sugar (If (equal_num_expr r3 Float.nan,
+            r3_stmts @
+            [ Sugar (If (equal_num_expr r3 Float.nan,
                assign_rv (Literal (Num Float.nan)),
                [Basic (Assignment negative)] @
                assign_rv (Var negative.assign_left)))
@@ -1191,14 +1263,14 @@ let rec translate_exp ctx exp : statement list * variable =
                 let r2_stmts, r2 = translate_gamma r1 ctx in
                 let r3_stmts, r3 = f e2 in
                 let r4_stmts, r4 = translate_gamma r3 ctx in
-                let r5_stmt, r5 = translate_to_string r2 ctx in
+                let r5_stmts, r5 = translate_to_string r2 ctx in
                 let r6_stmts, r6 = translate_has_property r4 (Var r5) in
                 r1_stmts @ 
                 r2_stmts @ 
                 r3_stmts @ 
                 r4_stmts @
                 [ Sugar (If (lessthan_exprs (TypeOf (Var r4)) (Literal (Type (ObjectType None))), 
-                    [r5_stmt] @ r6_stmts,
+                    r5_stmts @ r6_stmts,
                     translate_error_throw LTError ctx.throw_var ctx.label_throw))
                 ], r6
 			| Parser_syntax.InstanceOf -> 

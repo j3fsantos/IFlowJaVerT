@@ -518,6 +518,7 @@ let initial_heap () =
   let l_lop_valueOf =  Object.add (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Object_Prototype_valueOf))) Object.empty in 
   let h = Heap.add (BLoc Lop_valueOf) l_lop_valueOf h in
   let h = add_field h (BLoc Lop) "valueOf" (HVObj (BLoc Lop_valueOf)) in
+  let h = add_field h (BLoc Lop) ("constructor") (HVObj (BLoc LObject)) in
     
   let h = add_field h (BLoc Lg) "eval" (HVObj (BLoc LEval)) in
   let h = add_field h (BLoc Lg) "undefined" (HVLiteral Undefined) in
@@ -537,6 +538,8 @@ let initial_heap () =
   let h = add_field h (BLoc LBoolean) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Boolean_Call))) in
   let h = add_field h (BLoc LBoolean) (string_of_builtin_field FConstructId) (HVLiteral (String (string_of_builtin_function Boolean_Construct))) in
   let h = add_field h (BLoc LBoolean) (string_of_builtin_field FPrototype) (HVObj (BLoc Lbp)) in
+  
+  let h = add_field h (BLoc Lbp) ("constructor") (HVObj (BLoc LBoolean)) in
   h
   
 let run_with_heap h (fs : function_block AllFunctions.t) : function_state =
