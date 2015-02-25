@@ -432,8 +432,8 @@ let test_object_construct () =
 let test_object_construct_value () =
   test_template_normal ("var n_obj = new Object(function func(){return 1;}); n_obj ()") (VHValue (HVLiteral (Num 1.0)))
   
-(*let test_plus_to_primitive_boolean () =
-  test_template_normal ("'' + (new Boolean('true'))") (VHValue (HVLiteral (String "true")))*)
+let test_plus_to_primitive_boolean () =
+  test_template_normal ("'' + (new Boolean('true'))") (VHValue (HVLiteral (String "true")))
   
 let test_S11_9_4_A2_4_T1 () =
   test_template_normal ("var x = 0; (x === (x = 1))") (VHValue (HVLiteral (Bool false)))
@@ -534,5 +534,5 @@ let suite = "Testing_Interpreter" >:::
     "test_S11_9_1_A3_3__1" >:: test_S11_9_1_A3_3__1;
     "test_S11_9_1_A3_3__2" >:: test_S11_9_1_A3_3__2;
     "test_S11_9_1_A7_8" >:: test_S11_9_1_A7_8;
-    (*"test_plus_to_primitive_boolean" >:: test_plus_to_primitive_boolean;*)
+    "test_plus_to_primitive_boolean" >:: test_plus_to_primitive_boolean;
     ] 

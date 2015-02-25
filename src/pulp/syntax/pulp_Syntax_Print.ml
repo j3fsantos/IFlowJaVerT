@@ -54,6 +54,8 @@ let string_of_builtin_loc l =
     | LObject -> "#lobject"
     | LBoolean -> "#lboolean"
     | Lbp -> "#lbp"
+    | Lbp_toString -> "#lbp_toString"
+    | Lbp_valueOf -> "#lbp_valueOf"
     | LNotImplemented f -> "#lnotimplemented_" ^ (string_of_feature f)
 
 let string_of_builtin_field f =
@@ -74,6 +76,8 @@ let string_of_builtin_function f =
     | Object_Construct -> "#object_construct"
     | Object_Prototype_toString -> "#object_prototype_to_string"
     | Object_Prototype_valueOf -> "#object_prototype_value_of"
+    | Boolean_Prototype_toString -> "#boolean_prototype_to_string"
+    | Boolean_Prototype_valueOf -> "#boolean_prototype_value_of"
 
 let string_of_var x = x
 

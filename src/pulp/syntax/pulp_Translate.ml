@@ -1750,6 +1750,54 @@ let builtin_call_boolean_construct () =
     ] in    
   make_function_block (string_of_builtin_function Boolean_Construct) body [rthis; rscope; v] ctx
   
+let lbp_common ctx =
+  let b = fresh_r () in
+  let assign_b e = Basic (Assignment (mk_assign b (Expression e))) in  
+  let class_lookup = mk_assign_fresh (Lookup (Var rthis, literal_builtin_field FClass)) in
+  let prim_value = mk_assign_fresh (Lookup (Var rthis, literal_builtin_field FPrimitiveValue)) in
+  Sugar (If (type_of_var rthis BooleanType,
+        [ assign_b (Var rthis)],
+        [ Sugar (If (type_of_var rthis (ObjectType None),
+            [ 
+              Basic (Assignment class_lookup);
+              Sugar (If (equal_string_expr class_lookup.assign_left "Boolean",
+                [ Basic (Assignment prim_value);
+                  assign_b (Var prim_value.assign_left)
+                ],
+                []));
+            ],
+            translate_error_throw LTError ctx.throw_var ctx.label_throw))
+        ])), b
+  
+let builtin_lbp_toString () =
+  let ctx = create_ctx [] in
+  let rv = fresh_r () in
+  let assign_rv rv e = Basic (Assignment (mk_assign rv (Expression e))) in  
+  let stmt, b = lbp_common ctx in
+  let body = to_ivl_goto (* TODO translation level *)
+    [ stmt;
+      Sugar (If (equal_bool_expr b true,
+        [assign_rv rv (Literal (String "true"))],
+        [assign_rv rv (Literal (String "false"))]));
+      Basic (Assignment (mk_assign ctx.return_var (Expression (Var rv))));
+      Goto ctx.label_return; 
+      Label ctx.label_return; 
+      Label ctx.label_throw
+    ] in    
+  make_function_block (string_of_builtin_function Boolean_Prototype_toString) body [rthis; rscope] ctx
+  
+let builtin_lbp_valueOf () =
+  let ctx = create_ctx [] in
+  let stmt, b = lbp_common ctx in
+  let body = to_ivl_goto (* TODO translation level *)
+    [ stmt;
+      Basic (Assignment (mk_assign ctx.return_var (Expression (Var b))));
+      Goto ctx.label_return; 
+      Label ctx.label_return; 
+      Label ctx.label_throw
+    ] in    
+  make_function_block (string_of_builtin_function Boolean_Prototype_valueOf) body [rthis; rscope] ctx
+  
 let builtin_lop_toString () =
   let ctx = create_ctx [] in
   let rv = fresh_r () in
@@ -1929,6 +1977,8 @@ let exp_to_pulp level e main =
   
   let context = AllFunctions.add (string_of_builtin_function Boolean_Call) (builtin_call_boolean_call()) context in
   let context = AllFunctions.add (string_of_builtin_function Boolean_Construct) (builtin_call_boolean_construct()) context in
+  let context = AllFunctions.add (string_of_builtin_function Boolean_Prototype_toString) (builtin_lbp_toString()) context in
+  let context = AllFunctions.add (string_of_builtin_function Boolean_Prototype_valueOf) (builtin_lbp_valueOf()) context in
   let context = AllFunctions.add (string_of_builtin_function Object_Prototype_toString) (builtin_lop_toString()) context in
   let context = AllFunctions.add (string_of_builtin_function Object_Prototype_valueOf) (builtin_lop_valueOf()) context in
   let context = AllFunctions.add (string_of_builtin_function Object_Construct) (builtin_object_construct()) context in

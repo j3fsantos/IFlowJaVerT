@@ -22,6 +22,8 @@ type builtin_loc =
   | LObject (* Object Object *)
   | LBoolean (* Boolean Object *)
   | Lbp (* Boolean.prototype *)
+  | Lbp_toString
+  | Lbp_valueOf
   | LNotImplemented of feature (* The tool cannot handle this case atm *)
 
 type builtin_function = 
@@ -31,6 +33,8 @@ type builtin_function =
   | Object_Construct
   | Object_Prototype_toString
   | Object_Prototype_valueOf
+  | Boolean_Prototype_toString
+  | Boolean_Prototype_valueOf
 
 type builtin_field =
   | FProto
