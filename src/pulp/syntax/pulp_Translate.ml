@@ -179,19 +179,19 @@ let translate_strict_equality_comparison_types_equal x y rv =
           [
             Sugar (If (IsTypeOf (Var x, NumberType),
             [
-              Sugar (If (equal_num_expr x Float.nan, 
+              Sugar (If (equal_num_expr x nan, 
               [rv_false],
               [
-                Sugar (If (equal_num_expr y Float.nan, 
+                Sugar (If (equal_num_expr y nan, 
                 [rv_false],
                 [
                   Sugar (If (equal_expr x (Var y), 
                   [rv_true], 
                   [
-                    Sugar (If (and_expr (equal_num_expr x 0.0) (equal_num_expr x (-0.0)),
+                    Sugar (If (and_expr (equal_num_expr x 0.0) (equal_num_expr y (-0.0)),
                     [rv_true],
                     [
-                      Sugar (If (and_expr (equal_num_expr x (-0.0)) (equal_num_expr x 0.0),
+                      Sugar (If (and_expr (equal_num_expr x (-0.0)) (equal_num_expr y 0.0),
 	                    [rv_true],
 	                    [rv_false]))
                     ]))
@@ -494,7 +494,7 @@ let translate_to_boolean arg ctx =
                   (or_expr 
                     (equal_num_expr arg (-0.0))
                     (or_expr 
-                      (equal_num_expr arg Float.nan) 
+                      (equal_num_expr arg nan) 
                       (equal_num_expr arg 0.0)))))),
     assign_rv false,
     assign_rv true)), rv
@@ -505,7 +505,7 @@ let translate_to_number_prim arg ctx =
   let assign_rv_num v = assign_rv_expr (Literal (Num v)) in
   let assign_rv_var var = assign_rv_expr (Var var) in
   Sugar (If (type_of_var arg UndefinedType,
-    assign_rv_num Float.nan, (* TODO *)
+    assign_rv_num nan, (* TODO *)
     [ Sugar (If (type_of_var arg NullType,
       assign_rv_num 0.0,
       [ Sugar (If (type_of_var arg BooleanType,
@@ -655,7 +655,7 @@ let translate_regular_bin_op f op e1 e2 ctx =
           Sugar (If (and_expr (type_of_var x2_to_number StringType) (type_of_var y2_to_number NumberType),
              [ to_number_x3] @ [assign_rv x3 (Var x3_number)],
              [ assign_rv x3 (Var x2_to_number)]));
-          Sugar (If (equal_exprs (TypeOf (Var r2)) (TypeOf (Var r4)),
+          Sugar (If (equal_exprs (TypeOf (Var x3)) (TypeOf (Var y3)),
             types_equal_stmts_2 @ [Goto exit_label],
             [assign_rv rv (Literal (Bool false))] @ [Goto exit_label]))
       ]));        
@@ -1095,8 +1095,8 @@ let rec translate_exp ctx exp : statement list * variable =
             r1_stmts @
             r2_stmts @
             r3_stmts @
-            [ Sugar (If (equal_num_expr r3 Float.nan,
-               assign_rv (Literal (Num Float.nan)),
+            [ Sugar (If (equal_num_expr r3 nan,
+               assign_rv (Literal (Num nan)),
                [Basic (Assignment negative)] @
                assign_rv (Var negative.assign_left)))
             ], negative.assign_left

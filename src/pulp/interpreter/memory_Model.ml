@@ -56,7 +56,7 @@ type value =
 (* Do I still need this if I always evaluate literal builtin location to hbobj builtin location? Doesn't feel clean to have same things at different places *)
 let heap_value_eq v1 v2 =
   match v1, v2 with
-    | HVLiteral lit1, HVLiteral lit2 -> lit1 = lit2
+    | HVLiteral lit1, HVLiteral lit2 -> 0 = (compare lit1 lit2)
     | HVObj l1, HVObj l2 -> l1 = l2
     | HVLiteral (LLoc l1), HVObj (BLoc l2) -> l1 = l2
     | _, _ -> false

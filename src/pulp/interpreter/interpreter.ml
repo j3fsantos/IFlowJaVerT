@@ -23,7 +23,7 @@ let heap_value_arith op v1 v2 counter =
         | Minus -> HVLiteral (Num (n1 -. n2))
         | Times -> HVLiteral (Num (n1 *. n2))
         | Div -> HVLiteral (Num (n1 /. n2))
-        | Mod -> HVLiteral (Num (Float.modulo n1 n2))
+        | Mod -> HVLiteral (Num (mod_float n1 n2))
       end
     | HVLiteral (String s1),  HVLiteral (String s2) -> HVLiteral (String (s1 ^ s2))
     | _, _ -> raise (InterpreterStuck ("Arith Op on non-numbers", counter))
@@ -51,7 +51,7 @@ let value_bool op v1 v2 counter =
       
 let heap_value_less_than v1 v2 counter =
   match v1, v2 with
-    | HVLiteral (Num n1), HVLiteral (Num n2) -> n1 < n2
+    | HVLiteral (Num n1), HVLiteral (Num n2) -> compare n1 n2 < 0
     | _,_ -> raise (InterpreterStuck ("< on non-number values", counter))
 
 let type_less_than t1 t2 =
@@ -91,29 +91,9 @@ let run_bin_op op v1 v2 counter : value =
     | Boolean bop -> value_bool bop v1 v2 counter
   end
   
-let to_boolean v counter =
-  match v with
-    | HVLiteral lit ->
-      begin match lit with
-        | LLoc _ -> true
-			  | Null -> false                  
-			  | Bool b -> b         
-			  | Num n -> 
-          begin match Float.classify n with
-            | FP_zero
-            | FP_nan -> false
-            | _ -> true    
-          end  
-			  | String s -> not (s = "")
-			  | Undefined -> false
-        | Type t -> raise (InterpreterStuck ("Cannot proceed with ! on type", counter))
-			  | Empty -> raise (InterpreterStuck ("Cannot proceed with ! on empty value", counter))
-      end
-    | HVObj _ -> true
-  
 let bool_not v counter =
   match v with
-    | VHValue hv -> VHValue (HVLiteral (Bool (not (to_boolean hv counter))))
+    | VHValue HVLiteral (Bool b) -> VHValue (HVLiteral (Bool (not b)))
     | _ -> raise (InterpreterStuck ("Cannot proceed with ! on reference/type value", counter))
 
 let num_negative v counter =
@@ -522,8 +502,8 @@ let initial_heap () =
     
   let h = add_field h (BLoc Lg) "eval" (HVObj (BLoc LEval)) in
   let h = add_field h (BLoc Lg) "undefined" (HVLiteral Undefined) in
-  let h = add_field h (BLoc Lg) "NaN" (HVLiteral (Num Float.nan)) in
-  let h = add_field h (BLoc Lg) "Infinity" (HVLiteral (Num Float.infinity)) in
+  let h = add_field h (BLoc Lg) "NaN" (HVLiteral (Num nan)) in
+  let h = add_field h (BLoc Lg) "Infinity" (HVLiteral (Num infinity)) in
   let h = Heap.add (BLoc LEval) Object.empty h in
   let h = add_field h (BLoc LEval) (string_of_builtin_field FId) (HVLiteral (String ("eval"))) in
   
