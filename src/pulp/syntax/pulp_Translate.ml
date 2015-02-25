@@ -159,6 +159,19 @@ let add_proto_value obj proto =
 let add_proto_null obj =
   add_proto obj (Literal Null)
   
+let is_callable arg =
+  let rv =  fresh_r () in
+  let rv_true = Basic (Assignment (mk_assign rv (Expression (Literal (Bool true))))) in
+  let rv_false = Basic (Assignment (mk_assign rv (Expression (Literal (Bool false))))) in
+  let hasfield = mk_assign_fresh (HasField (Var arg, literal_builtin_field FId)) in
+  Sugar (If (type_of_var arg (ObjectType None),
+    [Basic (Assignment hasfield);
+     Sugar (If (equal_bool_expr hasfield.assign_left true,
+       [rv_true],
+       [rv_false]))
+    ],
+    [rv_false])), rv
+  
 let translate_strict_equality_comparison_types_equal x y rv = 
   let rv_true = Basic (Assignment (mk_assign rv (Expression (Literal (Bool true))))) in
   let rv_false = Basic (Assignment (mk_assign rv (Expression (Literal (Bool false))))) in
@@ -344,15 +357,15 @@ let translate_call_construct_start f e1 e2s ctx =
     let arg_values, arg_stmts = List.split arg_stmts in
     let arg_stmts = List.flatten arg_stmts in  
     let gotothrow = translate_error_throw LTError ctx.throw_var ctx.label_throw in
-    let hasfield = mk_assign_fresh (HasField (Var r2, literal_builtin_field FId)) in (* TODO - Check for contruct id for new *)
+    let is_callable_stmt, is_callable = is_callable r2 in  (* TODO - Check for contruct id for new *)
     (
       r1_stmts @ 
       r2_stmts @ 
       arg_stmts @ 
       [
         Sugar (If (is_obj_var r2, [], gotothrow)); 
-        Basic (Assignment hasfield); 
-        Sugar (If (equal_bool_expr hasfield.assign_left false, gotothrow, []))
+        is_callable_stmt; 
+        Sugar (If (equal_bool_expr is_callable false, gotothrow, []))
       ], r1, r2, arg_values)
     
 let translate_abstract_relation x y leftfirst =
@@ -435,14 +448,12 @@ let translate_inner_call obj vthis args ctx =
   
 let default_value_inner arg m rv exit_label next_label ctx =
   let r1_stmts, r1 = translate_get arg (Literal (String m)) in
-  let hasfield = mk_assign_fresh (HasField (Var r1, literal_builtin_field FId)) in
-  let fid = mk_assign_fresh (Lookup (Var r1, literal_builtin_field FId)) in
+  let is_callable_stmt, is_callable = is_callable r1 in
   let r2_stmts, r2 = translate_inner_call r1 arg [] ctx in
   let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
   r1_stmts @                          
-  [ Basic (Assignment hasfield);
-    Sugar (If (equal_bool_expr hasfield.assign_left true, 
-    [ Basic (Assignment fid) ] @ 
+  [ is_callable_stmt;
+    Sugar (If (equal_bool_expr is_callable true,  
       r2_stmts @
     [ Sugar (If (is_prim_value r2,
       assign_rv_var r2 @ [Goto exit_label],
@@ -931,7 +942,7 @@ let rec translate_exp ctx exp : statement list * variable =
         let prototype = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FPrototype)) in        
         let vthisproto = fresh_r () in
         let vthis = mk_assign_fresh Obj in
-        let if3, call_lvar = translate_inner_call r2 vthis.assign_left arg_values ctx in        
+        let if3, call_lvar = translate_inner_call r2 vthis.assign_left arg_values ctx in (* TODO Construct vs. Call *)    
         let rv = fresh_r () in  
         let excep_label = fresh_r () in
         let exit_label = fresh_r () in
@@ -1124,15 +1135,15 @@ let rec translate_exp ctx exp : statement list * variable =
           [
             Sugar (If (is_ref_expr r1, 
                 [ Basic (Assignment r4);
-                        Sugar (If (equal_undef_expr r4.assign_left, 
+                  Sugar (If (equal_undef_expr r4.assign_left, 
                     gotothrow, 
                     [])); 
-                        Sugar (If (is_vref_expr r1, 
+                  Sugar (If (is_vref_expr r1, 
                     gotothrow, 
                     [])); 
-                        Basic (Assignment r3);  
-                        Basic (Assignment r2); 
-                        Sugar (If (equal_bool_expr r2.assign_left false, 
+                  Basic (Assignment r3);  
+                  Basic (Assignment r2); 
+                  Sugar (If (equal_bool_expr r2.assign_left false, 
                     [Basic (Assignment assign_rv_true)], 
                     [
                       Basic (Assignment r5); 
