@@ -494,8 +494,8 @@ let initial_heap () =
   let h = Heap.add (BLoc Lop) lop h in
   (* Do I want Error object too? Rather then going directly to Lop for errors *)
   let h = List.fold_left built_in_obj_proto_lop h [Lg; Lfp; LEval; LRError; LTError; LSError; 
-    LNotImplemented GetValuePrim; LNotImplemented ToNumber; LNotImplemented ToString; Lbp; Lnp] in
-  let h = List.fold_left built_in_obj_proto_lfp h [LObject; LBoolean; LNumber] in
+    LNotImplemented GetValuePrim; LNotImplemented ToNumber; LNotImplemented ToString; Lbp; Lnp; Lsp] in
+  let h = List.fold_left built_in_obj_proto_lfp h [LObject; LBoolean; LNumber; LString] in
     
   let l_lop_toString =  Object.add (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Object_Prototype_toString))) Object.empty in 
   let h = Heap.add (BLoc Lop_toString) l_lop_toString h in
@@ -546,6 +546,19 @@ let initial_heap () =
   let l_lbp_valueOf =  Object.add (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Number_Prototype_valueOf))) Object.empty in 
   let h = Heap.add (BLoc Lnp_valueOf) l_lbp_valueOf h in
   let h = add_field h (BLoc Lnp) "valueOf" (HVObj (BLoc Lnp_valueOf)) in
+  
+  let h = add_field h (BLoc Lg) "String" (HVObj (BLoc LString)) in
+  let h = add_field h (BLoc LString) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function String_Call))) in
+  let h = add_field h (BLoc LString) (string_of_builtin_field FConstructId) (HVLiteral (String (string_of_builtin_function String_Construct))) in
+  let h = add_field h (BLoc LString) (string_of_builtin_field FPrototype) (HVObj (BLoc Lsp)) in
+  let h = add_field h (BLoc Lsp) (string_of_builtin_field FClass) (HVLiteral (String "String")) in
+  let h = add_field h (BLoc Lsp) ("constructor") (HVObj (BLoc LString)) in
+  let l_lsp_toString =  Object.add (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function String_Prototype_toString))) Object.empty in 
+  let h = Heap.add (BLoc Lsp_toString) l_lsp_toString h in
+  let h = add_field h (BLoc Lsp) "toString" (HVObj (BLoc Lsp_toString)) in
+  let l_lsp_valueOf =  Object.add (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function String_Prototype_valueOf))) Object.empty in 
+  let h = Heap.add (BLoc Lsp_valueOf) l_lsp_valueOf h in
+  let h = add_field h (BLoc Lsp) "valueOf" (HVObj (BLoc Lsp_valueOf)) in
   h
   
 let run_with_heap h (fs : function_block AllFunctions.t) : function_state =

@@ -280,6 +280,7 @@ let translate_to_object arg ctx =
   let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
   let bobj = make_builtin_call (Boolean_Construct) rv None [Var arg] ctx in
   let nobj = make_builtin_call (Number_Construct) rv None [Var arg] ctx in
+  let sobj = make_builtin_call (String_Construct) rv None [Var arg] ctx in
   Sugar (If (or_expr (equal_undef_expr arg) (equal_null_expr arg),
     translate_error_throw LTError ctx.throw_var ctx.label_throw,
     [ Sugar (If (type_of_var arg (ObjectType None),
@@ -288,7 +289,7 @@ let translate_to_object arg ctx =
         bobj,
         [ Sugar (If (type_of_var arg NumberType,
             nobj,
-            translate_error_throw (LNotImplemented ToObject) ctx.throw_var ctx.label_throw))
+            sobj))
         ]))
       ]))
     ])), rv
@@ -585,7 +586,7 @@ let translate_to_string arg ctx =
       to_primitive @ (assign_r2_var primValue),
       (assign_r2_var arg)));
     to_string;
-    (assign_rv_var r2)
+    (assign_rv_var r1)
   ], rv  
          
 let translate_to_number_bin_op f op e1 e2 ctx =
@@ -1940,7 +1941,7 @@ let builtin_lnp_toString () = (* Todo for other redices too *)
       Label ctx.label_throw
     ] in    
   make_function_block (string_of_builtin_function Number_Prototype_toString) body [rthis; rscope] ctx
-  
+    
 let builtin_lnp_valueOf () =
   let ctx = create_ctx [] in
   let stmt, b = lnp_common ctx in
@@ -1952,6 +1953,65 @@ let builtin_lnp_valueOf () =
       Label ctx.label_throw
     ] in    
   make_function_block (string_of_builtin_function Number_Prototype_valueOf) body [rthis; rscope] ctx
+  
+let builtin_call_string_call () =
+  let v = fresh_r () in
+  let ctx = create_ctx [] in
+  let stmts, r1 = translate_to_string v ctx in (* TODO when the value is not given, should be "", not "undefined" *)
+  let body = to_ivl_goto (* TODO translation level *)
+    stmts @
+    [ Basic (Assignment (mk_assign ctx.return_var (Expression (Var r1))));
+      Goto ctx.label_return; 
+      Label ctx.label_return; 
+      Label ctx.label_throw
+    ] in    
+  make_function_block (string_of_builtin_function String_Call) body [rthis; rscope; v] ctx
+  
+let builtin_call_string_construct () =
+  let v = fresh_r () in
+  let ctx = create_ctx [] in
+  let new_obj = mk_assign_fresh Obj in
+  let stmts, r1 = translate_to_string v ctx in (* TODO when the value is not given, should be "", not "undefined" *)
+  let body = to_ivl_goto (* TODO translation level *)
+    ([ Basic (Assignment new_obj);
+      add_proto_value new_obj.assign_left Lsp;
+      Basic (Mutation (mk_mutation (Var new_obj.assign_left) (literal_builtin_field FClass) (Literal (String "String"))))
+    ] @
+    stmts @
+    [ Basic (Mutation (mk_mutation (Var new_obj.assign_left) (literal_builtin_field FPrimitiveValue) (Var r1)));
+      Basic (Assignment (mk_assign ctx.return_var (Expression (Var new_obj.assign_left))));
+      Goto ctx.label_return; 
+      Label ctx.label_return; 
+      Label ctx.label_throw
+    ]) in    
+  make_function_block (string_of_builtin_function String_Construct) body [rthis; rscope; v] ctx
+    
+let builtin_lsp_toString_valueOf () =
+  let ctx = create_ctx [] in
+  let b = fresh_r () in
+  let assign_b e = Basic (Assignment (mk_assign b (Expression e))) in  
+  let class_lookup = mk_assign_fresh (Lookup (Var rthis, literal_builtin_field FClass)) in
+  let prim_value = mk_assign_fresh (Lookup (Var rthis, literal_builtin_field FPrimitiveValue)) in
+  let body = to_ivl_goto (* TODO translation level *)
+    [ Sugar (If (type_of_var rthis StringType,
+        [ assign_b (Var rthis)],
+        [ Sugar (If (type_of_var rthis (ObjectType None),
+            [ 
+              Basic (Assignment class_lookup);
+              Sugar (If (equal_string_expr class_lookup.assign_left "String",
+                [ Basic (Assignment prim_value);
+                  assign_b (Var prim_value.assign_left)
+                ],
+                []));
+            ],
+            translate_error_throw LTError ctx.throw_var ctx.label_throw))
+        ]));
+      Basic (Assignment (mk_assign ctx.return_var (Expression (Var b))));
+      Goto ctx.label_return; 
+      Label ctx.label_return; 
+      Label ctx.label_throw
+    ] in    
+  make_function_block (string_of_builtin_function String_Prototype_valueOf) body [rthis; rscope] ctx
 
 let exp_to_elem ctx exp : statement list * variable = 
     let r = fresh_r() in
@@ -2079,5 +2139,9 @@ let exp_to_pulp level e main =
   let context = AllFunctions.add (string_of_builtin_function Number_Construct) (builtin_call_number_construct()) context in
   let context = AllFunctions.add (string_of_builtin_function Number_Prototype_toString) (builtin_lnp_toString()) context in
   let context = AllFunctions.add (string_of_builtin_function Number_Prototype_valueOf) (builtin_lnp_valueOf()) context in
+  let context = AllFunctions.add (string_of_builtin_function String_Call) (builtin_call_string_call()) context in
+  let context = AllFunctions.add (string_of_builtin_function String_Construct) (builtin_call_string_construct()) context in
+  let context = AllFunctions.add (string_of_builtin_function String_Prototype_toString) (builtin_lsp_toString_valueOf()) context in
+  let context = AllFunctions.add (string_of_builtin_function String_Prototype_valueOf) (builtin_lsp_toString_valueOf()) context in
   
   context

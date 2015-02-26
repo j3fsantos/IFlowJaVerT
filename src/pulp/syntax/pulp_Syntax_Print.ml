@@ -60,6 +60,10 @@ let string_of_builtin_loc l =
     | Lnp -> "#lnp"
     | Lnp_toString -> "#lnp_toString"
     | Lnp_valueOf -> "#lnp_valueOf"
+    | LString -> "#lstring"
+    | Lsp -> "#lsp"
+    | Lsp_toString -> "#lsp_toString"
+    | Lsp_valueOf -> "#lsp_valueOf"
     | LNotImplemented f -> "#lnotimplemented_" ^ (string_of_feature f)
 
 let string_of_builtin_field f =
@@ -85,7 +89,11 @@ let string_of_builtin_function f =
     | Number_Call -> "#number_call"
     | Number_Construct -> "#number_construct"
     | Number_Prototype_toString -> "#number_prototype_to_string"
-    | Number_Prototype_valueOf -> "#numbr_prototype_value_of"
+    | Number_Prototype_valueOf -> "#number_prototype_value_of"
+    | String_Call -> "#string_call"
+    | String_Construct -> "#string_construct"
+    | String_Prototype_toString -> "#string_prototype_to_string"
+    | String_Prototype_valueOf -> "#string_prototype_value_of"
 
 
 let string_of_var x = x

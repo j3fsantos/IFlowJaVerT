@@ -28,6 +28,10 @@ type builtin_loc =
   | Lnp 
   | Lnp_toString 
   | Lnp_valueOf 
+  | LString 
+  | Lsp 
+  | Lsp_toString 
+  | Lsp_valueOf 
   | LNotImplemented of feature (* The tool cannot handle this case atm *)
 
 type builtin_function = 
@@ -43,6 +47,10 @@ type builtin_function =
   | Number_Construct 
   | Number_Prototype_toString 
   | Number_Prototype_valueOf 
+  | String_Call 
+  | String_Construct 
+  | String_Prototype_toString 
+  | String_Prototype_valueOf 
 
 type builtin_field =
   | FProto
