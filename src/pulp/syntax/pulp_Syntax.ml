@@ -24,17 +24,25 @@ type builtin_loc =
   | Lbp (* Boolean.prototype *)
   | Lbp_toString
   | Lbp_valueOf
+  | LNumber 
+  | Lnp 
+  | Lnp_toString 
+  | Lnp_valueOf 
   | LNotImplemented of feature (* The tool cannot handle this case atm *)
 
 type builtin_function = 
   | Boolean_Call
   | Boolean_Construct
+  | Boolean_Prototype_toString
+  | Boolean_Prototype_valueOf
   | Object_Call
   | Object_Construct
   | Object_Prototype_toString
   | Object_Prototype_valueOf
-  | Boolean_Prototype_toString
-  | Boolean_Prototype_valueOf
+  | Number_Call 
+  | Number_Construct 
+  | Number_Prototype_toString 
+  | Number_Prototype_valueOf 
 
 type builtin_field =
   | FProto

@@ -479,6 +479,10 @@ let built_in_obj_proto_lop h obj =
   let l = Object.add (string_of_builtin_field FProto) (HVObj (BLoc Lop)) Object.empty in
   Heap.add (BLoc obj) l h
   
+let built_in_obj_proto_lfp h obj =
+  let l = Object.add (string_of_builtin_field FProto) (HVObj (BLoc Lfp)) Object.empty in
+  Heap.add (BLoc obj) l h
+  
 let add_field h l f v =
   let obj = Heap.find l h in
   let obj = Object.add f v obj in
@@ -490,7 +494,8 @@ let initial_heap () =
   let h = Heap.add (BLoc Lop) lop h in
   (* Do I want Error object too? Rather then going directly to Lop for errors *)
   let h = List.fold_left built_in_obj_proto_lop h [Lg; Lfp; LEval; LRError; LTError; LSError; 
-    LNotImplemented GetValuePrim; LNotImplemented ToNumber; LNotImplemented ToString; LObject; Lbp] in
+    LNotImplemented GetValuePrim; LNotImplemented ToNumber; LNotImplemented ToString; Lbp; Lnp] in
+  let h = List.fold_left built_in_obj_proto_lfp h [LObject; LBoolean; LNumber] in
     
   let l_lop_toString =  Object.add (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Object_Prototype_toString))) Object.empty in 
   let h = Heap.add (BLoc Lop_toString) l_lop_toString h in
@@ -513,12 +518,9 @@ let initial_heap () =
   let h = add_field h (BLoc LObject) (string_of_builtin_field FPrototype) (HVObj (BLoc Lop)) in
   
   let h = add_field h (BLoc Lg) "Boolean" (HVObj (BLoc LBoolean)) in
-  let lboolean = Object.add (string_of_builtin_field FProto) (HVObj (BLoc Lfp)) Object.empty in
-  let h = Heap.add (BLoc LBoolean) lboolean h in
   let h = add_field h (BLoc LBoolean) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Boolean_Call))) in
   let h = add_field h (BLoc LBoolean) (string_of_builtin_field FConstructId) (HVLiteral (String (string_of_builtin_function Boolean_Construct))) in
   let h = add_field h (BLoc LBoolean) (string_of_builtin_field FPrototype) (HVObj (BLoc Lbp)) in
-  
   let h = add_field h (BLoc Lbp) ("constructor") (HVObj (BLoc LBoolean)) in
   let l_lbp_toString =  Object.add (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Boolean_Prototype_toString))) Object.empty in 
   let h = Heap.add (BLoc Lbp_toString) l_lbp_toString h in
@@ -526,6 +528,24 @@ let initial_heap () =
   let l_lbp_valueOf =  Object.add (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Boolean_Prototype_valueOf))) Object.empty in 
   let h = Heap.add (BLoc Lbp_valueOf) l_lbp_valueOf h in
   let h = add_field h (BLoc Lbp) "valueOf" (HVObj (BLoc Lbp_valueOf)) in
+  
+  let h = add_field h (BLoc Lg) "Number" (HVObj (BLoc LNumber)) in
+  let h = add_field h (BLoc LNumber) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Number_Call))) in
+  let h = add_field h (BLoc LNumber) (string_of_builtin_field FConstructId) (HVLiteral (String (string_of_builtin_function Number_Construct))) in
+  let h = add_field h (BLoc LNumber) (string_of_builtin_field FPrototype) (HVObj (BLoc Lnp)) in
+  let h = add_field h (BLoc LNumber) ("MAX_VALUE") (HVLiteral (Num max_float)) in
+  let h = add_field h (BLoc LNumber) ("MIN_VALUE") (HVLiteral (Num min_float)) in
+  let h = add_field h (BLoc LNumber) "NaN" (HVLiteral (Num nan)) in
+  let h = add_field h (BLoc LNumber) ("NEGATIVE_INFINITY") (HVLiteral (Num neg_infinity)) in
+  let h = add_field h (BLoc LNumber) ("POSITIVE_INFINITY") (HVLiteral (Num infinity)) in
+  let h = add_field h (BLoc Lnp) (string_of_builtin_field FClass) (HVLiteral (String "Number")) in
+  let h = add_field h (BLoc Lnp) ("constructor") (HVObj (BLoc LNumber)) in
+  let l_lnp_toString =  Object.add (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Number_Prototype_toString))) Object.empty in 
+  let h = Heap.add (BLoc Lnp_toString) l_lnp_toString h in
+  let h = add_field h (BLoc Lnp) "toString" (HVObj (BLoc Lnp_toString)) in
+  let l_lbp_valueOf =  Object.add (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Number_Prototype_valueOf))) Object.empty in 
+  let h = Heap.add (BLoc Lnp_valueOf) l_lbp_valueOf h in
+  let h = add_field h (BLoc Lnp) "valueOf" (HVObj (BLoc Lnp_valueOf)) in
   h
   
 let run_with_heap h (fs : function_block AllFunctions.t) : function_state =
