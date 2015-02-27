@@ -297,11 +297,7 @@ let rec is_proto_obj l o h counter =
       
 (* TODO -- I don't like the code here *)
 let rec run_assign_expr (s : local_state) (e : assign_right_expression) (funcs : function_block AllFunctions.t) : local_state * value =
-	(* Assignment expressions *)
-  match e with
-    | Expression ae -> s, run_expr s ae
-    | BuiltinCall c 
-	  | Call c -> 
+  let run_call c builtin =
       let fid = run_expr s c.call_name in
       let fid_string = string_check fid "Function name should be a string" s.lscounter in
       let fblock = 
@@ -311,11 +307,16 @@ let rec run_assign_expr (s : local_state) (e : assign_right_expression) (funcs :
       let vthis = run_expr s c.call_this in
       let vscope = run_expr s c.call_scope in
       let vargs = List.map (run_expr s) c.call_args in
-      let fs = run_function s.lsheap fblock ([vthis; vscope] @ vargs) funcs in
+      let fs = run_function s.lsheap fblock ([vthis; vscope] @ vargs) funcs builtin in
       begin match fs.fs_return_type with
         | FTException -> {s with lsheap = fs.fs_heap; lsexcep = Some (c.call_throw_label)}, fs.fs_return_value
         | FTReturn -> {s with lsheap = fs.fs_heap}, fs.fs_return_value
-      end
+      end in
+	(* Assignment expressions *)
+  match e with
+    | Expression ae -> s, run_expr s ae
+    | BuiltinCall c -> run_call c true
+	  | Call c -> run_call c false
     | Eval c -> 
       let vthis = run_expr s c.call_this in
       let vscope = run_expr s c.call_scope in
@@ -337,7 +338,7 @@ let rec run_assign_expr (s : local_state) (e : assign_right_expression) (funcs :
       
      let main = AllFunctions.find eval_main pexp in  
    
-      let fs = run_function s.lsheap main ([vthis; vscope]) funcs in
+      let fs = run_function s.lsheap main ([vthis; vscope]) funcs true in
       begin match fs.fs_return_type with
         | FTException -> {s with lsheap = fs.fs_heap; lsexcep = Some (c.call_throw_label)}, fs.fs_return_value
         | FTReturn -> {s with lsheap = fs.fs_heap}, fs.fs_return_value
@@ -385,12 +386,12 @@ let rec run_assign_expr (s : local_state) (e : assign_right_expression) (funcs :
       let l2 = object_check v2 "proto_obj" s.lscounter in
       let v = is_proto_obj (VHValue (HVObj l1)) l2 s.lsheap s.lscounter in s, v 
 and
-run_function (h : heap_type) (f : function_block) (args : value list) (fs : function_block AllFunctions.t) : function_state =
+run_function (h : heap_type) (f : function_block) (args : value list) (fs : function_block AllFunctions.t) (is_builtin) : function_state =
   (* I cannot do the following syntactically, can I? *)
   (*Printf.printf "Running function %s \n" f.func_name;*)
   let args_mod = List.mapi (fun index param -> 
     if List.length args > index then List.nth args index
-    else (VHValue (HVLiteral Undefined))
+    else (if is_builtin then (VHValue (HVLiteral Empty)) else (VHValue (HVLiteral Undefined)))
   ) f.func_params in
   
   let s = List.fold_left2 (fun st param arg -> Stack.add param arg st) Stack.empty f.func_params args_mod in
@@ -473,7 +474,7 @@ and run_stmts stmts ctx lstate labelmap fs =
     
 let run (h: heap_type) main_this main_scope (fs : function_block AllFunctions.t) : function_state = 
   let main = AllFunctions.find main_fun_id fs in
-  run_function h main [main_this; main_scope] fs
+  run_function h main [main_this; main_scope] fs false
   
 let built_in_obj_proto_lop h obj =
   let l = Object.add (string_of_builtin_field FProto) (HVObj (BLoc Lop)) Object.empty in

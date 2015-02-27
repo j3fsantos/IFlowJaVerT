@@ -1879,33 +1879,37 @@ let builtin_object_construct () =
 let builtin_call_number_call () =
   let v = fresh_r () in
   let ctx = create_ctx [] in
-  let stmts, r1 = translate_to_number v ctx in (* TODO when the value is not given, should be +0, not NaN *)
+  let stmts, r1 = translate_to_number v ctx in 
   let body = to_ivl_goto (* TODO translation level *)
-    stmts @
-    [ Basic (Assignment (mk_assign ctx.return_var (Expression (Var r1))));
+    ([ 
+      Sugar (If (equal_empty_expr v,
+        [ Basic (Assignment (mk_assign ctx.return_var (Expression (Literal (Num 0.)))))],
+        stmts @ 
+        [ Basic (Assignment (mk_assign ctx.return_var (Expression (Var r1))))]));
       Goto ctx.label_return; 
       Label ctx.label_return; 
       Label ctx.label_throw
-    ] in    
+    ]) in    
   make_function_block (string_of_builtin_function Number_Call) body [rthis; rscope; v] ctx
   
 let builtin_call_number_construct () =
   let v = fresh_r () in
   let ctx = create_ctx [] in
   let new_obj = mk_assign_fresh Obj in
-  let stmts, r1 = translate_to_number v ctx in (* TODO when the value is not given, should be +0, not NaN *)
+  let stmts, r1 = translate_to_number v ctx in
   let body = to_ivl_goto (* TODO translation level *)
     ([ Basic (Assignment new_obj);
-      add_proto_value new_obj.assign_left Lnp;
-      Basic (Mutation (mk_mutation (Var new_obj.assign_left) (literal_builtin_field FClass) (Literal (String "Number"))))
-    ] @
-    stmts @
-    [ Basic (Mutation (mk_mutation (Var new_obj.assign_left) (literal_builtin_field FPrimitiveValue) (Var r1)));
-      Basic (Assignment (mk_assign ctx.return_var (Expression (Var new_obj.assign_left))));
-      Goto ctx.label_return; 
-      Label ctx.label_return; 
-      Label ctx.label_throw
-    ]) in    
+       add_proto_value new_obj.assign_left Lnp;
+       Basic (Mutation (mk_mutation (Var new_obj.assign_left) (literal_builtin_field FClass) (Literal (String "Number"))));
+       Sugar (If (equal_empty_expr v,
+         [ Basic (Assignment (mk_assign r1 (Expression (Literal (Num 0.)))))],
+         stmts));
+       Basic (Mutation (mk_mutation (Var new_obj.assign_left) (literal_builtin_field FPrimitiveValue) (Var r1)));
+       Basic (Assignment (mk_assign ctx.return_var (Expression (Var new_obj.assign_left))));
+       Goto ctx.label_return; 
+       Label ctx.label_return; 
+       Label ctx.label_throw
+     ]) in    
   make_function_block (string_of_builtin_function Number_Construct) body [rthis; rscope; v] ctx
   
 let lnp_common ctx =
@@ -1957,13 +1961,15 @@ let builtin_lnp_valueOf () =
 let builtin_call_string_call () =
   let v = fresh_r () in
   let ctx = create_ctx [] in
-  let stmts, r1 = translate_to_string v ctx in (* TODO when the value is not given, should be "", not "undefined" *)
+  let stmts, r1 = translate_to_string v ctx in 
   let body = to_ivl_goto (* TODO translation level *)
-    stmts @
-    [ Basic (Assignment (mk_assign ctx.return_var (Expression (Var r1))));
-      Goto ctx.label_return; 
-      Label ctx.label_return; 
-      Label ctx.label_throw
+   [ Sugar (If (equal_empty_expr v,
+       [ Basic (Assignment (mk_assign r1 (Expression (Literal (String "")))))],
+       stmts));
+     Basic (Assignment (mk_assign ctx.return_var (Expression (Var r1))));
+     Goto ctx.label_return; 
+     Label ctx.label_return; 
+     Label ctx.label_throw
     ] in    
   make_function_block (string_of_builtin_function String_Call) body [rthis; rscope; v] ctx
   
@@ -1971,14 +1977,15 @@ let builtin_call_string_construct () =
   let v = fresh_r () in
   let ctx = create_ctx [] in
   let new_obj = mk_assign_fresh Obj in
-  let stmts, r1 = translate_to_string v ctx in (* TODO when the value is not given, should be "", not "undefined" *)
+  let stmts, r1 = translate_to_string v ctx in 
   let body = to_ivl_goto (* TODO translation level *)
     ([ Basic (Assignment new_obj);
       add_proto_value new_obj.assign_left Lsp;
-      Basic (Mutation (mk_mutation (Var new_obj.assign_left) (literal_builtin_field FClass) (Literal (String "String"))))
-    ] @
-    stmts @
-    [ Basic (Mutation (mk_mutation (Var new_obj.assign_left) (literal_builtin_field FPrimitiveValue) (Var r1)));
+      Basic (Mutation (mk_mutation (Var new_obj.assign_left) (literal_builtin_field FClass) (Literal (String "String")))); 
+      Sugar (If (equal_empty_expr v,
+       [ Basic (Assignment (mk_assign r1 (Expression (Literal (String "")))))],
+       stmts));
+      Basic (Mutation (mk_mutation (Var new_obj.assign_left) (literal_builtin_field FPrimitiveValue) (Var r1)));
       Basic (Assignment (mk_assign ctx.return_var (Expression (Var new_obj.assign_left))));
       Goto ctx.label_return; 
       Label ctx.label_return; 
