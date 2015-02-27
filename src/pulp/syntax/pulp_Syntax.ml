@@ -16,8 +16,11 @@ type builtin_loc =
   | Lop_valueOf
   | Lfp (* Function.Prototype Object *)
   | LEval (* Eval Function Object *)
+  | LError 
+  | Lep
   | LRError (* Reference Error *)
   | LTError (* Type Error *)
+  | Ltep
   | LSError (* Syntax Error *)
   | LObject (* Object Object *)
   | LBoolean (* Boolean Object *)
@@ -51,6 +54,8 @@ type builtin_function =
   | String_Construct 
   | String_Prototype_toString 
   | String_Prototype_valueOf 
+  | TypeError_Call
+  | TypeError_Construct
 
 type builtin_field =
   | FProto

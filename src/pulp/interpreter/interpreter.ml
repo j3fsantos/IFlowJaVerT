@@ -277,6 +277,7 @@ let rec get_value_proto v x h counter =
 		      | Not_found -> raise (InterpreterStuck ("Object must have prototype in Proto", counter))
 
 let rec is_proto_obj l o h counter =
+  (*Printf.printf "Running is_proto %s %s \n" (Interpreter_Print.string_of_value l) (Interpreter_Print.string_of_loc o);*)
   match l with
     (* Should it be undefined descriptor? *)
     | VHValue (HVLiteral Null) -> VHValue (HVLiteral (Bool false))
@@ -494,9 +495,9 @@ let initial_heap () =
   let lop = Object.add (string_of_builtin_field FProto) (HVLiteral Null) Object.empty in
   let h = Heap.add (BLoc Lop) lop h in
   (* Do I want Error object too? Rather then going directly to Lop for errors *)
-  let h = List.fold_left built_in_obj_proto_lop h [Lg; Lfp; LEval; LRError; LTError; LSError; 
-    LNotImplemented GetValuePrim; LNotImplemented ToNumber; LNotImplemented ToString; Lbp; Lnp; Lsp] in
-  let h = List.fold_left built_in_obj_proto_lfp h [LObject; LBoolean; LNumber; LString] in
+  let h = List.fold_left built_in_obj_proto_lop h [Lg; Lfp; LEval; LRError; LSError; 
+    LNotImplemented GetValuePrim; LNotImplemented ToNumber; LNotImplemented ToString; Lbp; Lnp; Lsp; Lep] in
+  let h = List.fold_left built_in_obj_proto_lfp h [LObject; LBoolean; LNumber; LString; LError; LTError] in
     
   let l_lop_toString =  Object.add (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Object_Prototype_toString))) Object.empty in 
   let h = Heap.add (BLoc Lop_toString) l_lop_toString h in
@@ -560,6 +561,15 @@ let initial_heap () =
   let l_lsp_valueOf =  Object.add (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function String_Prototype_valueOf))) Object.empty in 
   let h = Heap.add (BLoc Lsp_valueOf) l_lsp_valueOf h in
   let h = add_field h (BLoc Lsp) "valueOf" (HVObj (BLoc Lsp_valueOf)) in
+  
+  let h = add_field h (BLoc Lg) "Error" (HVObj (BLoc LError)) in
+  let h = add_field h (BLoc LError) (string_of_builtin_field FPrototype) (HVObj (BLoc Lep)) in
+  let h = add_field h (BLoc Lg) "TypeError" (HVObj (BLoc LTError)) in
+  let h = add_field h (BLoc LTError) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function TypeError_Call))) in
+  let h = add_field h (BLoc LTError) (string_of_builtin_field FConstructId) (HVLiteral (String (string_of_builtin_function TypeError_Construct))) in
+  let h = add_field h (BLoc LTError) (string_of_builtin_field FPrototype) (HVObj (BLoc Ltep)) in
+  let ltep = Object.add (string_of_builtin_field FProto) (HVObj (BLoc Lep)) Object.empty in
+  let h = Heap.add (BLoc Ltep) ltep h in
   h
   
 let run_with_heap h (fs : function_block AllFunctions.t) : function_state =

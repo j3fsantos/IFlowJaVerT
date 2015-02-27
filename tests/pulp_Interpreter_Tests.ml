@@ -312,7 +312,7 @@ let test_cav_example_2 () =
 };
 
 var f = object.method;
-f() ") LTError
+f() ") Ltep
 
 let test_cav_example_3 () =
   test_template_normal ("var MyObject = function(p) {
@@ -335,7 +335,7 @@ let test_cav_example_4 () =
 
 var obj = new MyObject('some property');
 var f = obj.method;
-f()") LTError
+f()") Ltep
 
 let test_cav_example_5 () =
   test_template_normal ("
@@ -360,7 +360,7 @@ let test_cav_example_6 () =
 };
 
 var f = object.method;
-f()") LTError 
+f()") Ltep 
 
 let test_instance_of_true () =
   test_template_normal ("function C(){}; function D(){}; var o = new C(); o instanceof C")
@@ -452,6 +452,18 @@ let test_plus_to_primitive_number () =
   
 let test_plus_to_primitive_string () =
   test_template_normal ("6 + (new String(7))") (VHValue (HVLiteral (String "67")))
+  
+let test_S15_6_4_3_A2_T4 () =
+   test_template_normal ("try{
+     var s1 = new Object();
+     s1.valueOf = Boolean.prototype.valueOf;
+     var v1 = s1.valueOf(); 
+     }
+    catch(e){
+      e instanceof TypeError
+     }") (VHValue (HVLiteral (Bool true)))
+  
+
     
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
@@ -543,4 +555,5 @@ let suite = "Testing_Interpreter" >:::
     "test_plus_to_primitive_boolean" >:: test_plus_to_primitive_boolean;
     "test_plus_to_primitive_number" >:: test_plus_to_primitive_number;
     "test_plus_to_primitive_string" >:: test_plus_to_primitive_string;
+    "test_S15_6_4_3_A2_T4" >:: test_S15_6_4_3_A2_T4;
     ] 

@@ -225,7 +225,7 @@ let translate_strict_equality_comparison x y =
     stmts,
     [ Basic (Assignment (mk_assign rv (Expression (Literal (Bool false))))) ])), rv
   
-let translate_error_throw error throw_var throw_label =
+let translate_error_throw error throw_var throw_label = (* TODO: Change to use Error.prototype for other errors too *)
   let r1 = mk_assign_fresh Obj in
   [
     Basic (Assignment r1); 
@@ -244,7 +244,7 @@ let translate_put_value v1 v2 throw_var throw_label =
         gotothrow, 
         [
           Sugar (If (istypeof_prim_expr base.assign_left, 
-            translate_error_throw LTError throw_var throw_label, 
+            translate_error_throw Ltep throw_var throw_label, 
             [Basic (Mutation (mk_mutation (Var base.assign_left) (Field (Var v1)) (Var v2)))]))
         ]))
     ],
@@ -282,7 +282,7 @@ let translate_to_object arg ctx =
   let nobj = make_builtin_call (Number_Construct) rv None [Var arg] ctx in
   let sobj = make_builtin_call (String_Construct) rv None [Var arg] ctx in
   Sugar (If (or_expr (equal_undef_expr arg) (equal_null_expr arg),
-    translate_error_throw LTError ctx.throw_var ctx.label_throw,
+    translate_error_throw Ltep ctx.throw_var ctx.label_throw,
     [ Sugar (If (type_of_var arg (ObjectType None),
       assign_rv_var arg,
       [ Sugar (If (type_of_var arg BooleanType,
@@ -342,7 +342,7 @@ let translate_gamma r ctx =
 
 let translate_obj_coercible r ctx =
   let rv = fresh_r () in
-  let gotothrow = translate_error_throw LTError ctx.throw_var ctx.label_throw in 
+  let gotothrow = translate_error_throw Ltep ctx.throw_var ctx.label_throw in 
   [
     Sugar (If (equal_null_expr r, gotothrow, [])); 
     Sugar (If (equal_undef_expr r, gotothrow, [])); 
@@ -361,7 +361,7 @@ let translate_call_construct_start f e1 e2s ctx =
      ) e2s in  
     let arg_values, arg_stmts = List.split arg_stmts in
     let arg_stmts = List.flatten arg_stmts in  
-    let gotothrow = translate_error_throw LTError ctx.throw_var ctx.label_throw in
+    let gotothrow = translate_error_throw Ltep ctx.throw_var ctx.label_throw in
     let is_callable_stmt, is_callable = is_callable r2 in  (* TODO - Check for contruct id for new *)
     (
       r1_stmts @ 
@@ -835,7 +835,7 @@ let translate_has_instance f v ctx =
         Basic (Assignment proto_o);
         Basic (Assignment (mk_assign rv (Expression (Var proto_o.assign_left))))
       ],
-      translate_error_throw LTError ctx.throw_var ctx.label_throw))
+      translate_error_throw Ltep ctx.throw_var ctx.label_throw))
     ],
     [Basic (Assignment (mk_assign rv (Expression (Literal (Bool false)))))]))
   ], rv
@@ -1155,7 +1155,7 @@ let rec translate_exp ctx exp : statement list * variable =
                       Sugar (If (and_expr 
                                 (equal_expr r3.assign_left (literal_builtin_field FPrototype)) 
                                 (equal_bool_expr r5.assign_left true), 
-                        translate_error_throw LTError ctx.throw_var ctx.label_throw, 
+                        translate_error_throw Ltep ctx.throw_var ctx.label_throw, 
                         [Basic (Assignment assign_rv_true)]))
                     ]))
                 ], 
@@ -1275,7 +1275,7 @@ let rec translate_exp ctx exp : statement list * variable =
                 r4_stmts @
                 [ Sugar (If (lessthan_exprs (TypeOf (Var r4)) (Literal (Type (ObjectType None))), 
                     r5_stmts @ r6_stmts,
-                    translate_error_throw LTError ctx.throw_var ctx.label_throw))
+                    translate_error_throw Ltep ctx.throw_var ctx.label_throw))
                 ], r6
 			| Parser_syntax.InstanceOf -> 
                 let r1_stmts, r1 = f e1 in
@@ -1283,7 +1283,7 @@ let rec translate_exp ctx exp : statement list * variable =
                 let r3_stmts, r3 = f e2 in
                 let r4_stmts, r4 = translate_gamma r3 ctx in
                 let hasfield = mk_assign_fresh (HasField (Var r4, literal_builtin_field FId)) in
-                let gotothrow = translate_error_throw LTError ctx.throw_var ctx.label_throw in
+                let gotothrow = translate_error_throw Ltep ctx.throw_var ctx.label_throw in
                 let r5_stmts, r5 = translate_has_instance r4 r2 ctx in
                 r1_stmts @ 
                 r2_stmts @ 
@@ -1780,9 +1780,9 @@ let lbp_common ctx =
                 [ Basic (Assignment prim_value);
                   assign_b (Var prim_value.assign_left)
                 ],
-                []));
+                translate_error_throw Ltep ctx.throw_var ctx.label_throw))
             ],
-            translate_error_throw LTError ctx.throw_var ctx.label_throw))
+            translate_error_throw Ltep ctx.throw_var ctx.label_throw))
         ])), b
   
 let builtin_lbp_toString () =
@@ -1926,9 +1926,9 @@ let lnp_common ctx =
                 [ Basic (Assignment prim_value);
                   assign_b (Var prim_value.assign_left)
                 ],
-                []));
+                translate_error_throw Ltep ctx.throw_var ctx.label_throw))
             ],
-            translate_error_throw LTError ctx.throw_var ctx.label_throw))
+            translate_error_throw Ltep ctx.throw_var ctx.label_throw))
         ])), b
   
 let builtin_lnp_toString () = (* Todo for other redices too *)
@@ -2009,9 +2009,9 @@ let builtin_lsp_toString_valueOf () =
                 [ Basic (Assignment prim_value);
                   assign_b (Var prim_value.assign_left)
                 ],
-                []));
+                translate_error_throw Ltep ctx.throw_var ctx.label_throw));
             ],
-            translate_error_throw LTError ctx.throw_var ctx.label_throw))
+            translate_error_throw Ltep ctx.throw_var ctx.label_throw))
         ]));
       Basic (Assignment (mk_assign ctx.return_var (Expression (Var b))));
       Goto ctx.label_return; 
