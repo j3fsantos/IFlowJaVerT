@@ -1909,6 +1909,30 @@ let builtin_object_construct () =
     ] in    
   make_function_block (string_of_builtin_function Object_Construct) body [rthis; rscope; v] ctx
   
+let builtin_object_call () =
+  let v = fresh_r () in
+  let ctx = create_ctx [] in
+  let rv = fresh_r () in
+  let assign_rv e = Basic (Assignment (mk_assign rv (Expression e))) in  
+  let stmt, r1 = translate_to_object v ctx in
+  let new_obj = mk_assign_fresh Obj in
+  let body = to_ivl_goto (* TODO translation level *)
+    [ Sugar (If (or_expr 
+                   (equal_empty_expr v)
+                   (or_expr (equal_undef_expr v) (equal_null_expr v)),
+        [ Basic (Assignment new_obj); (* TODO to make this a function for Object(), new Object(), Object literal *)
+          add_proto_value new_obj.assign_left Lop;
+          Basic (Mutation (mk_mutation (Var new_obj.assign_left) (literal_builtin_field FClass) (Literal (String "Object"))));
+          assign_rv (Var new_obj.assign_left)
+        ],
+        [ stmt; assign_rv (Var r1)]));
+      Basic (Assignment (mk_assign ctx.return_var (Expression (Var rv))));
+      Goto ctx.label_return; 
+      Label ctx.label_return; 
+      Label ctx.label_throw
+    ] in    
+  make_function_block (string_of_builtin_function Object_Call) body [rthis; rscope; v] ctx
+
 let builtin_call_number_call () =
   let v = fresh_r () in
   let ctx = create_ctx [] in
@@ -2175,6 +2199,7 @@ let exp_to_pulp level e main =
   let context = AllFunctions.add (string_of_builtin_function Object_Prototype_toString) (builtin_lop_toString()) context in
   let context = AllFunctions.add (string_of_builtin_function Object_Prototype_valueOf) (builtin_lop_valueOf()) context in
   let context = AllFunctions.add (string_of_builtin_function Object_Construct) (builtin_object_construct()) context in
+  let context = AllFunctions.add (string_of_builtin_function Object_Call) (builtin_object_call()) context in
   let context = AllFunctions.add (string_of_builtin_function Number_Call) (builtin_call_number_call()) context in
   let context = AllFunctions.add (string_of_builtin_function Number_Construct) (builtin_call_number_construct()) context in
   let context = AllFunctions.add (string_of_builtin_function Number_Prototype_toString) (builtin_lnp_toString()) context in
