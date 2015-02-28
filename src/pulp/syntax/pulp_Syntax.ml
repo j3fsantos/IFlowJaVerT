@@ -113,7 +113,7 @@ type codename_spec = spec CodenameMap.t
 
 type comparison_op =
   | Equal
-  | LessThan
+  | LessThan (* TODO : Have a different one for strings? *)
 
 type arith_op =
   | Plus

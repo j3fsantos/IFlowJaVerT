@@ -52,6 +52,7 @@ let value_bool op v1 v2 counter =
 let heap_value_less_than v1 v2 counter =
   match v1, v2 with
     | HVLiteral (Num n1), HVLiteral (Num n2) -> compare n1 n2 < 0
+    | HVLiteral (String s1), HVLiteral (String s2) -> compare s1 s2 < 0
     | _,_ -> raise (InterpreterStuck ("< on non-number values", counter))
 
 let type_less_than t1 t2 =
