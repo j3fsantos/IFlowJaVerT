@@ -1931,7 +1931,7 @@ let builtin_object_construct () =
   let ctx = create_ctx [] in
   let rv = fresh_r () in
   let assign_rv e = Basic (Assignment (mk_assign rv (Expression e))) in  
-  let stmt, r1 = translate_to_boolean v ctx in
+  let stmt, r1 = translate_to_object v ctx in
   let new_obj = mk_assign_fresh Obj in
   let body = to_ivl_goto (* TODO translation level *)
     [ Sugar (If (type_of_var v (ObjectType None),

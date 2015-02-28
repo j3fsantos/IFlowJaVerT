@@ -472,6 +472,9 @@ let test_S11_13_2_A3_2_T9 () =
 let test_S9_5_A2_3_T1 () =
   test_template_normal ("(2147483647 << 0) === 2147483647") (VHValue (HVLiteral (Bool true))) 
   
+let test_S15_2_2_1_A5_T2 () =
+  test_template_normal ("var num = NaN; var n_obj = new Object(num); n_obj.constructor === Number") (VHValue (HVLiteral (Bool true))) 
+  
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
    "running program2" >:: test_program2;
@@ -565,5 +568,6 @@ let suite = "Testing_Interpreter" >:::
     "test_S15_6_4_3_A2_T4" >:: test_S15_6_4_3_A2_T4;
     "test_S8_5_A5" >:: test_S8_5_A5;
     "test_S11_13_2_A3_2_T9" >:: test_S11_13_2_A3_2_T9;
-    "test_S9_5_A2_3_T1" >:: test_S9_5_A2_3_T1
+    "test_S9_5_A2_3_T1" >:: test_S9_5_A2_3_T1;
+    "test_S15_2_2_1_A5_T2" >::test_S15_2_2_1_A5_T2
     ] 
