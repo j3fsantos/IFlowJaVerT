@@ -372,12 +372,7 @@ let translate_call_construct_start f e1 e2s ctx =
         is_callable_stmt; 
         Sugar (If (equal_bool_expr is_callable false, gotothrow, []))
       ], r1, r2, arg_values)
-    
-let translate_abstract_relation x y leftfirst =
-  (* TODO Type Conversions *)
-  let r6 = mk_assign_fresh_e (BinOp (Var x, Comparison LessThan, Var y)) in
-  [Basic (Assignment r6)], r6.assign_left
-  
+      
 let translate_get o (* variable containing object *) p (* variable, string, or built-in field name *) = 
    (* TODO : Update everywhere *)
    let rv = fresh_r () in
@@ -387,7 +382,7 @@ let translate_get o (* variable containing object *) p (* variable, string, or b
       [Basic (Assignment (mk_assign rv (Expression(Literal Undefined))))],
       [Basic (Assignment (mk_assign rv (Expression(Var desc.assign_left))))]))
    ], rv 
-    
+  
 let translate_inner_call obj vthis args ctx =
   (* TODO *)
   let rv = fresh_r () in
@@ -450,7 +445,7 @@ let translate_inner_call obj vthis args ctx =
     Goto ctx.label_throw;
     Label exit_label; 
   ], rv
-  
+      
 let default_value_inner arg m rv exit_label next_label ctx =
   let r1_stmts, r1 = translate_get arg (Literal (String m)) in
   let is_callable_stmt, is_callable = is_callable r1 in
@@ -483,9 +478,8 @@ let translate_default_value arg preftype ctx =
   r2_stmts @
   [Label next_label2] @
   translate_error_throw LRError ctx.throw_var ctx.label_throw @
-  [Label exit_label], rv
-
-  
+  [Label exit_label], rv 
+      
 let translate_to_primitive arg preftype ctx =
   let rv = fresh_r () in
   let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
@@ -494,26 +488,7 @@ let translate_to_primitive arg preftype ctx =
     Sugar (If (type_of_var arg (ObjectType None),
     r1_stmts @ assign_rv_var r1,
     assign_rv_var arg))
-  ], rv  
-  
-let translate_to_boolean arg ctx =
-  let rv = fresh_r () in
-  let assign_rv b = [Basic (Assignment (mk_assign rv (Expression (Literal (Bool b)))))] in
-  Sugar (If (or_expr 
-            (equal_undef_expr arg)
-            (or_expr 
-              (equal_null_expr arg)
-              (or_expr 
-                (equal_bool_expr arg false)
-                (or_expr 
-                  (equal_string_expr arg "")
-                  (or_expr 
-                    (equal_num_expr arg (-0.0))
-                    (or_expr 
-                      (equal_num_expr arg nan) 
-                      (equal_num_expr arg 0.0)))))),
-    assign_rv false,
-    assign_rv true)), rv
+  ], rv 
   
 let translate_to_number_prim arg ctx =
   let rv = fresh_r () in
@@ -536,6 +511,60 @@ let translate_to_number_prim arg ctx =
         ]))
       ]))
     ])), rv
+    
+let translate_abstract_relation x y leftfirst ctx =
+  let to_primitive_x, px = translate_to_primitive x (Some NumberType) ctx in
+  let to_primitive_y, py = translate_to_primitive y (Some NumberType) ctx in
+  let to_prim_stmts =
+    if leftfirst then (to_primitive_x @ to_primitive_y) 
+                 else (to_primitive_y @ to_primitive_x) in
+  let to_number_x, nx = translate_to_number_prim x ctx in
+  let to_number_y, ny = translate_to_number_prim y ctx in
+  let rv = fresh_r () in
+  let assign_rv e = [Basic (Assignment (mk_assign rv (Expression e)))] in
+  to_prim_stmts @
+  [ Sugar (If (and_expr (type_of_var px StringType) (type_of_var py StringType),
+      assign_rv (BinOp (Var px, Comparison LessThan, Var py)),
+      [ to_number_x; 
+        to_number_y;
+        Sugar (If (or_expr (equal_num_expr nx nan) (equal_num_expr ny nan),
+          assign_rv (Literal Undefined),
+          [ Sugar (If (or_expr 
+                        (equal_exprs (Var nx) (Var ny))
+                        (or_expr 
+                          (and_expr (equal_num_expr nx 0.) (equal_num_expr ny (-0.))) 
+                          (or_expr 
+                            (and_expr (equal_num_expr nx (-0.)) (equal_num_expr ny 0.)) 
+                            (or_expr 
+                              (equal_num_expr nx infinity)
+                              (equal_num_expr ny neg_infinity)))),
+              assign_rv (Literal (Bool false)),
+              [ Sugar (If (or_expr (equal_num_expr nx neg_infinity) (equal_num_expr ny infinity),
+                  assign_rv (Literal (Bool true)),
+                  assign_rv (BinOp (Var nx, Comparison LessThan, Var ny))))
+              ]))
+          ]))
+      ]));
+  ], rv
+  
+let translate_to_boolean arg ctx =
+  let rv = fresh_r () in
+  let assign_rv b = [Basic (Assignment (mk_assign rv (Expression (Literal (Bool b)))))] in
+  Sugar (If (or_expr 
+            (equal_undef_expr arg)
+            (or_expr 
+              (equal_null_expr arg)
+              (or_expr 
+                (equal_bool_expr arg false)
+                (or_expr 
+                  (equal_string_expr arg "")
+                  (or_expr 
+                    (equal_num_expr arg (-0.0))
+                    (or_expr 
+                      (equal_num_expr arg nan) 
+                      (equal_num_expr arg 0.0)))))),
+    assign_rv false,
+    assign_rv true)), rv
     
 let translate_to_number arg ctx = 
   let r2 = fresh_r () in
@@ -1199,7 +1228,7 @@ let rec translate_exp ctx exp : statement list * variable =
 								  let r2_stmts, r2 = translate_gamma r1 ctx in
 								  let r3_stmts, r3 = f e2 in
 								  let r4_stmts, r4 = translate_gamma r3 ctx in
-                  let r5_stmts, r5 = translate_abstract_relation r2 r4 true in
+                  let r5_stmts, r5 = translate_abstract_relation r2 r4 true ctx in
                   let rv = fresh_r() in
                   let assign_rv v = Basic (Assignment (mk_assign rv (Expression v))) in                  
 								    r1_stmts @ 
@@ -1216,7 +1245,7 @@ let rec translate_exp ctx exp : statement list * variable =
                   let r2_stmts, r2 = translate_gamma r1 ctx in
                   let r3_stmts, r3 = f e2 in
                   let r4_stmts, r4 = translate_gamma r3 ctx in
-                  let r5_stmts, r5 = translate_abstract_relation r4 r2 false in
+                  let r5_stmts, r5 = translate_abstract_relation r4 r2 false ctx in
                   let rv = fresh_r() in
                   let assign_rv v = Basic (Assignment (mk_assign rv (Expression v))) in                  
                     r1_stmts @ 
@@ -1233,7 +1262,7 @@ let rec translate_exp ctx exp : statement list * variable =
                   let r2_stmts, r2 = translate_gamma r1 ctx in
                   let r3_stmts, r3 = f e2 in
                   let r4_stmts, r4 = translate_gamma r3 ctx in
-                  let r5_stmts, r5 = translate_abstract_relation r4 r2 false in
+                  let r5_stmts, r5 = translate_abstract_relation r4 r2 false ctx in
                   let rv = fresh_r() in
                   let assign_rv v = Basic (Assignment (mk_assign rv (Expression v))) in                  
                     r1_stmts @ 
@@ -1250,7 +1279,7 @@ let rec translate_exp ctx exp : statement list * variable =
                   let r2_stmts, r2 = translate_gamma r1 ctx in
                   let r3_stmts, r3 = f e2 in
                   let r4_stmts, r4 = translate_gamma r3 ctx in
-                  let r5_stmts, r5 = translate_abstract_relation r2 r4 true in
+                  let r5_stmts, r5 = translate_abstract_relation r2 r4 true ctx in
                   let rv = fresh_r() in
                   let assign_rv v = Basic (Assignment (mk_assign rv (Expression v))) in                  
                     r1_stmts @ 

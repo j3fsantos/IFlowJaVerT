@@ -463,7 +463,8 @@ let test_S15_6_4_3_A2_T4 () =
       e instanceof TypeError
      }") (VHValue (HVLiteral (Bool true)))
   
-
+let test_S8_5_A5 () =
+  test_template_normal ("var x = NaN; var x_leq_0=(x <= 0.0); x_leq_0") (VHValue (HVLiteral (Bool false))) 
     
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
@@ -556,4 +557,5 @@ let suite = "Testing_Interpreter" >:::
     "test_plus_to_primitive_number" >:: test_plus_to_primitive_number;
     "test_plus_to_primitive_string" >:: test_plus_to_primitive_string;
     "test_S15_6_4_3_A2_T4" >:: test_S15_6_4_3_A2_T4;
+    "test_S8_5_A5" >:: test_S8_5_A5;
     ] 
