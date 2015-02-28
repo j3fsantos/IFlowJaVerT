@@ -201,6 +201,7 @@ let rec simplify_expr e =
             | e1, Literal (Bool false) -> Literal (Bool false)
             | _, _ -> e
           end
+        | Bitwise _ -> e
       end
     | UnaryOp (Not, e1) -> 
       begin match e1 with
@@ -421,11 +422,15 @@ let rec get_type_info_expr type_info e =
             | Mod -> Some (TI_Type NumberType)
          end
         | Boolean bop -> Some (TI_Type BooleanType) 
+        | Bitwise _ -> Some (TI_Type NumberType) 
       end
     | UnaryOp (Not, e) -> Some (TI_Type BooleanType)
     | UnaryOp (Negative, e) -> Some (TI_Type NumberType)
     | UnaryOp (ToStringOp, e) -> Some (TI_Type StringType)
     | UnaryOp (ToNumberOp, e) -> Some (TI_Type NumberType)
+    | UnaryOp (ToInt32Op, e) -> Some (TI_Type NumberType)
+    | UnaryOp (ToUint32Op, e) -> Some (TI_Type NumberType)
+    | UnaryOp (BitwiseNot, e) -> Some (TI_Type NumberType)
     | Ref (e1, e2, ref_type) -> Some (TI_Type (ReferenceType (Some ref_type)))
     | Base e -> Some TI_Value
     | Field e -> Some (TI_Type StringType)

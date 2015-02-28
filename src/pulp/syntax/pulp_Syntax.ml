@@ -129,11 +129,17 @@ type bool_op =
   | And 
   | Or
 
+type bitwise_op =
+  | BitwiseAnd
+  | BitwiseOr
+  | BitwiseXor
+
 type bin_op = 
   | Comparison of comparison_op
   | Arith of arith_op
   | Concat
   | Boolean of bool_op
+  | Bitwise of bitwise_op
   (* TODO | Concat *)
 
 type unary_op = 
@@ -141,6 +147,9 @@ type unary_op =
   | Negative
   | ToStringOp
   | ToNumberOp
+  | ToInt32Op
+  | ToUint32Op
+  | BitwiseNot
 
 type expression = 
   | Literal of literal

@@ -76,6 +76,53 @@ let value_less_than v1 v2 counter =
     | VType t1, VType t2 -> type_less_than t1 t2
     | _, _ -> false
 
+(* Taken from jscert *)
+let to_int32 = fun n ->
+  match classify_float n with
+  | FP_normal | FP_subnormal ->
+    let i32 = 2. ** 32. in
+    let i31 = 2. ** 31. in
+    let posint = (if n < 0. then (-1.) else 1.) *. (floor (abs_float n)) in
+    let int32bit =
+      let smod = mod_float posint i32 in
+      if smod < 0. then smod +. i32 else smod
+    in
+    (if int32bit >= i31 then int32bit -. i32 else int32bit)
+  | _ -> 0.
+
+let to_uint32 = fun n ->
+  match classify_float n with
+  | FP_normal | FP_subnormal ->
+    let i32 = 2. ** 32. in
+    let posint = (if n < 0. then (-1.) else 1.) *. (floor (abs_float n)) in
+    let int32bit =
+      let smod = mod_float posint i32 in
+      if smod < 0. then smod +. i32 else smod
+    in
+    int32bit
+  | _ -> 0.
+
+let modulo_32 = (fun x -> let r = mod_float x 32. in if x < 0. then r +. 32. else r)
+
+let int32_bitwise_not = fun x -> Int32.to_float (Int32.lognot (Int32.of_float x))
+
+let int32_bitwise_and = fun x y -> Int32.to_float (Int32.logand (Int32.of_float x) (Int32.of_float y))
+
+let int32_bitwise_or = fun x y -> Int32.to_float (Int32.logor (Int32.of_float x) (Int32.of_float y))
+
+let int32_bitwise_xor = fun x y -> Int32.to_float (Int32.logxor (Int32.of_float x) (Int32.of_float y))
+
+let int32_left_shift = (fun x y -> Int32.to_float (Int32.shift_left (Int32.of_float x) (int_of_float y)))
+
+let int32_right_shift = (fun x y -> Int32.to_float (Int32.shift_right (Int32.of_float x) (int_of_float y)))
+
+let uint32_right_shift = (fun x y ->
+  let i31 = 2. ** 31. in
+  let i32 = 2. ** 32. in
+  let newx = if x >= i31 then x -. i32 else x in
+  let r = Int32.to_float (Int32.shift_right_logical (Int32.of_float newx) (int_of_float y)) in
+  if r < 0. then r +. i32 else r)
+
 let run_bin_op op v1 v2 counter : value =
   begin match op with
     | Concat ->
@@ -90,12 +137,22 @@ let run_bin_op op v1 v2 counter : value =
       end
     | Arith aop -> value_arith aop v1 v2 counter
     | Boolean bop -> value_bool bop v1 v2 counter
+    | Bitwise bop ->
+      let n1, n2 = match v1, v2 with
+        | VHValue (HVLiteral (Num n1)),  VHValue (HVLiteral (Num n2)) -> n1, n2 
+        | _ -> raise (InterpreterStuck ("Bitwise on non-number values", counter)) in
+      VHValue (HVLiteral (Num ( 
+        begin match bop with
+          | BitwiseAnd -> int32_bitwise_and n1 n2
+          | BitwiseOr -> int32_bitwise_or n1 n2
+          | BitwiseXor -> int32_bitwise_xor n1 n2
+        end)))
   end
   
 let bool_not v counter =
   match v with
     | VHValue HVLiteral (Bool b) -> VHValue (HVLiteral (Bool (not b)))
-    | _ -> raise (InterpreterStuck ("Cannot proceed with ! on reference/type value", counter))
+    | _ -> raise (InterpreterStuck ("Cannot proceed with not on reference/type value", counter))
 
 let num_negative v counter =
   match v with
@@ -120,6 +177,21 @@ let string_to_num v counter =
   match v with
     | VHValue (HVLiteral (String s)) -> VHValue (HVLiteral (Num (Float.of_string s))) 
     | _ -> raise (InterpreterStuck ("Cannot proceed with string_to_num on not string value", counter))
+
+let num_to_int32 v counter =
+  match v with
+    | VHValue (HVLiteral (Num n)) -> VHValue (HVLiteral (Num (to_int32 n))) 
+    | _ -> raise (InterpreterStuck ("Cannot proceed with num_to_int32 on not number value", counter))
+
+let num_to_uint32 v counter =
+  match v with
+    | VHValue (HVLiteral (Num n)) -> VHValue (HVLiteral (Num (to_uint32 n))) 
+    | _ -> raise (InterpreterStuck ("Cannot proceed with num_to_uint32 on not number value", counter))
+
+let bitwise_not v counter =
+  match v with
+    | VHValue (HVLiteral (Num n)) -> VHValue (HVLiteral (Num (int32_bitwise_not n))) 
+    | _ -> raise (InterpreterStuck ("Cannot proceed with ! on not number value", counter))
   
 let run_unary_op op v counter : value =
   match op with
@@ -127,7 +199,10 @@ let run_unary_op op v counter : value =
     | Negative -> num_negative v counter
     | ToStringOp -> num_to_string v counter
     | ToNumberOp -> string_to_num v counter
-
+    | ToInt32Op ->  num_to_int32 v counter
+    | ToUint32Op ->  num_to_uint32 v counter
+    | BitwiseNot -> bitwise_not v counter
+ 
 let type_of_literal l =
   match l with
     | LLoc _ -> ObjectType (Some Builtin)

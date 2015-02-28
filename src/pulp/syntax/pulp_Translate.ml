@@ -102,17 +102,17 @@ let tr_unary_op op =
 
 let tr_arith_op op =
   begin match op with
-      | Parser_syntax.Plus -> Plus
-      | Parser_syntax.Minus -> Minus
-      | Parser_syntax.Times -> Times
-      | Parser_syntax.Div -> Div
-      | Parser_syntax.Mod -> Mod
+      | Parser_syntax.Plus -> Arith Plus
+      | Parser_syntax.Minus -> Arith Minus
+      | Parser_syntax.Times -> Arith Times
+      | Parser_syntax.Div -> Arith Div
+      | Parser_syntax.Mod -> Arith Mod
       | Parser_syntax.Ursh -> raise (PulpNotImplemented ((Pretty_print.string_of_arith_op op ^ " REF:11.7.3 The Unsigned Right Shift Operator.")))
       | Parser_syntax.Lsh -> raise (PulpNotImplemented ((Pretty_print.string_of_arith_op op ^ " REF:11.7.1 The Left Shift Operator.")))
       | Parser_syntax.Rsh -> raise (PulpNotImplemented ((Pretty_print.string_of_arith_op op ^ " REF:11.7.2 The Signed Right Shift Operator.")))
-      | Parser_syntax.Bitand -> raise (PulpNotImplemented ((Pretty_print.string_of_arith_op op ^ " REF:11.10 Binary Bitwise Operators.And.")))
-      | Parser_syntax.Bitor -> raise (PulpNotImplemented ((Pretty_print.string_of_arith_op op ^ " REF:11.10 Binary Bitwise Operators.Or.")))
-      | Parser_syntax.Bitxor -> raise (PulpNotImplemented ((Pretty_print.string_of_arith_op op ^ " REF:11.10 Binary Bitwise Operators.Xor.")))
+      | Parser_syntax.Bitand -> Bitwise BitwiseAnd
+      | Parser_syntax.Bitor -> Bitwise BitwiseOr
+      | Parser_syntax.Bitxor -> Bitwise BitwiseXor
   end
   
 let tr_comparison_op op =
@@ -138,7 +138,7 @@ let tr_boolean_op op =
 let tr_bin_op op =
   match op with
     | Parser_syntax.Comparison op -> Comparison (tr_comparison_op op)
-    | Parser_syntax.Arith op -> Arith (tr_arith_op op)
+    | Parser_syntax.Arith op -> tr_arith_op op
     | Parser_syntax.Boolean op -> Boolean (tr_boolean_op op)
 
 let tr_propname pn : string =
@@ -634,7 +634,25 @@ let translate_to_number_bin_op f op e1 e2 ctx =
     r6_stmts @
     [Basic (Assignment r7)],
     r7.assign_left
-        
+    
+let translate_bitwise_bin_op f op e1 e2 ctx =
+  let r1_stmts, r1 = f e1 in
+  let r2_stmts, r2 = translate_gamma r1 ctx in
+  let r3_stmts, r3 = f e2 in
+  let r4_stmts, r4 = translate_gamma r3 ctx in
+  let r5 = mk_assign_fresh_e (UnaryOp (ToInt32Op, Var r2)) in
+  let r6 = mk_assign_fresh_e (UnaryOp (ToInt32Op, Var r4)) in
+  let r7 = mk_assign_fresh_e (BinOp (Var r5.assign_left, tr_bin_op op, Var r6.assign_left)) in
+    r1_stmts @ 
+    r2_stmts @ 
+    r3_stmts @ 
+    r4_stmts @ 
+    [Basic (Assignment r5);
+     Basic (Assignment r6);
+     Basic (Assignment r7)
+    ],
+    r7.assign_left
+  
 let translate_regular_bin_op f op e1 e2 ctx =
   let r1_stmts, r1 = f e1 in
   let r2_stmts, r2 = translate_gamma r1 ctx in
@@ -1145,8 +1163,16 @@ let rec translate_exp ctx exp : statement list * variable =
 					| Parser_syntax.Post_Incr -> 
             let stmts, oldvalue, _ = translate_inc_dec f e Plus ctx
             in stmts, oldvalue
-		  | Parser_syntax.Bitnot -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.4.8 Bitwise NOT Operator.")))
-		  | Parser_syntax.Void -> 
+		      | Parser_syntax.Bitnot -> 
+            let r1_stmts, r1 = f e in
+            let r2_stmts, r2 = translate_gamma r1 ctx in
+            let r3 = mk_assign_fresh_e (UnaryOp (ToInt32Op, Var r2)) in
+            let r4 = mk_assign_fresh_e (UnaryOp (BitwiseNot, Var r3.assign_left)) in
+            r1_stmts @
+            r2_stmts @
+            [Basic (Assignment r3);
+             Basic (Assignment r4)], r4.assign_left
+		      | Parser_syntax.Void -> 
             let r1_stmts, r1 = f e in
             let r2_stmts, _ = translate_gamma r1 ctx in
             let rv = mk_assign_fresh_e (Literal Undefined) in
@@ -1338,9 +1364,9 @@ let rec translate_exp ctx exp : statement list * variable =
 						  | Parser_syntax.Ursh -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.7.3 The Unsigned Right Shift Operator.")))
 						  | Parser_syntax.Lsh -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.7.1 The Left Shift Operator.")))
 						  | Parser_syntax.Rsh -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.7.2 The Signed Right Shift Operator.")))
-						  | Parser_syntax.Bitand -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.10 Binary Bitwise Operators.And.")))
-						  | Parser_syntax.Bitor -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.10 Binary Bitwise Operators.Or.")))
-						  | Parser_syntax.Bitxor -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.10 Binary Bitwise Operators.Xor.")))
+						  | Parser_syntax.Bitand 
+						  | Parser_syntax.Bitor 
+						  | Parser_syntax.Bitxor -> translate_bitwise_bin_op f op e1 e2 ctx
             end
           | Parser_syntax.Boolean bop -> 
             begin match bop with

@@ -19,12 +19,19 @@ let string_of_arith_op x =
     | Div -> "/"
     | Mod -> "%"
 
+let string_of_bitwise_op x =
+  match x with
+    | BitwiseAnd -> "&"
+    | BitwiseOr -> "^"
+    | BitwiseXor -> "|"
+
 let string_of_bin_op x =
   match x with
     | Concat -> "^"
     | Comparison op -> string_of_comparison_op op
     | Arith op -> string_of_arith_op op
     | Boolean op -> string_of_bool_op op
+    | Bitwise op -> string_of_bitwise_op op
 
 let string_of_unary_op op =
   match op with
@@ -32,6 +39,9 @@ let string_of_unary_op op =
     | Negative -> "-"
     | ToStringOp -> "num_to_string"
     | ToNumberOp -> "string_to_num"
+    | ToInt32Op -> "num_to_int32"
+    | ToUint32Op -> "num_to_unit32"
+    | BitwiseNot -> "!"
 
 let string_of_feature f =
   match f with
