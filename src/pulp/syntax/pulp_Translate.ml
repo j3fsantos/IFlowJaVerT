@@ -1769,7 +1769,9 @@ let builtin_call_boolean_call () =
   let ctx = create_ctx [] in
   let stmt, r1 = translate_to_boolean v ctx in
   let body = to_ivl_goto (* TODO translation level *)
-    [ stmt;
+    [ Sugar (If (equal_empty_expr v,
+       [ Basic (Assignment (mk_assign r1 (Expression (Literal (Bool false)))))],
+       [stmt]));
       Basic (Assignment (mk_assign ctx.return_var (Expression (Var r1))));
       Goto ctx.label_return; 
       Label ctx.label_return; 
@@ -1786,7 +1788,9 @@ let builtin_call_boolean_construct () =
     [ Basic (Assignment new_obj);
       add_proto_value new_obj.assign_left Lbp;
       Basic (Mutation (mk_mutation (Var new_obj.assign_left) (literal_builtin_field FClass) (Literal (String "Boolean"))));
-      stmt;
+      Sugar (If (equal_empty_expr v,
+       [ Basic (Assignment (mk_assign r1 (Expression (Literal (Bool false)))))],
+       [stmt]));
       Basic (Mutation (mk_mutation (Var new_obj.assign_left) (literal_builtin_field FPrimitiveValue) (Var r1)));
       Basic (Assignment (mk_assign ctx.return_var (Expression (Var new_obj.assign_left))));
       Goto ctx.label_return; 
