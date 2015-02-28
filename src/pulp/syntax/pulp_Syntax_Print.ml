@@ -49,8 +49,9 @@ let string_of_builtin_loc l =
     | Lfp -> "#lfp"
     | LEval -> "#leval"
     | LError -> "#lerror"
-    | Lep -> "lep"
+    | Lep -> "#lep"
     | LRError -> "#lrerror"
+    | Lrep -> "#lrep"
     | LTError -> "#lterror"
     | Ltep -> "#ltep"
     | LSError -> "#lserror"
@@ -99,6 +100,8 @@ let string_of_builtin_function f =
     | String_Prototype_valueOf -> "#string_prototype_value_of"
     | TypeError_Call -> "#terror_call"
     | TypeError_Construct -> "#terror_construct"
+    | ReferenceError_Call -> "#rerror_call"
+    | ReferenceError_Construct -> "#rerror_construct"
 
 
 let string_of_var x = x

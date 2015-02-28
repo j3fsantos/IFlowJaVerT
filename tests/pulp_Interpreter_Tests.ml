@@ -88,7 +88,7 @@ let test_program4 () =
 var r = s(3).x; r") (VHValue (HVLiteral (Num 3.0)))
 
 let test_program5 () = 
-  test_template_exception "var x = 2; y" LRError
+  test_template_exception "var x = 2; y" Lrep
   
 let test_program6 () =
   test_template_exception ("var a = function () { 
@@ -98,7 +98,7 @@ let test_program6 () =
    var d = t() 
 }; 
 
-s()") LRError
+s()") Lrep
 
 let test_if () =
   test_template_normal ("var x = 1; if (false) {x = 2}; x") (VHValue (HVLiteral (Num 1.0)))
@@ -107,7 +107,7 @@ let test_undefined () =
   test_template_normal ("var x = undefined;") (VHValue (HVLiteral Empty))
   
 let test_exception () = 
-  test_template_exception "y; 1" LRError
+  test_template_exception "y; 1" Lrep
   
 let test_program_try1 () =
   test_template_normal ("var x = 5; var f = function () {
@@ -137,12 +137,12 @@ let test_program_try4 () =
  let test_program_try6 () =
   test_template_exception ("var x = 5; var f = function () {
     try {y} catch (e) {y} finally {}; 
-  }; f();") LRError
+  }; f();") Lrep
   
  let test_program_try7 () =
   test_template_exception ("var x = 5; var f = function () {
     try {} catch (e) {} finally {y}; 
-  }; f();") LRError
+  }; f();") Lrep
   
 let test_program_try8 () =
   test_template_normal ("var x = 5; var f = function () {
@@ -162,7 +162,7 @@ let test_program_try10 () =
 let test_program_try11 () =
   test_template_exception ("var x = 5; var f = function () {
     try {y} finally {}; 
-  }; f(); x") LRError
+  }; f(); x") Lrep
   
  let test_program_try12 () =
   test_template_normal ("var x = 5; var f = function () {
@@ -172,12 +172,12 @@ let test_program_try11 () =
  let test_program_try13 () =
   test_template_exception ("var x = 5; var f = function () {
     try {y} catch (e) {y}; 
-  }; f();") LRError
+  }; f();") Lrep
   
  let test_program_try14 () =
   test_template_exception ("var x = 5; var f = function () {
     try {} finally {y}; 
-  }; f();") LRError
+  }; f();") Lrep
   
  let test_throw () =
   test_template_exception_any ("throw 3") (VHValue (HVLiteral (Num 3.0)))

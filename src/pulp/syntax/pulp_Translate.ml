@@ -235,7 +235,7 @@ let translate_error_throw error throw_var throw_label = (* TODO: Change to use E
   ]
   
 let translate_put_value v1 v2 throw_var throw_label =
-  let gotothrow = translate_error_throw LRError throw_var throw_label in
+  let gotothrow = translate_error_throw Lrep throw_var throw_label in
   let base = mk_assign_fresh_e (Base (Var v1)) in
   let main = Sugar (If (is_ref_expr v1,
     [
@@ -307,7 +307,7 @@ let translate_gamma r ctx =
     [
       Basic (Assignment base);
       Sugar (If (equal_undef_expr base.assign_left,
-        translate_error_throw LRError ctx.throw_var ctx.label_throw,
+        translate_error_throw Lrep ctx.throw_var ctx.label_throw,
         [ Basic (Assignment field);
           Sugar (If (istypeof_prim_expr base.assign_left,
             [ to_object_stmt;
@@ -323,7 +323,7 @@ let translate_gamma r ctx =
                   [
                     Basic (Assignment assign_pi_1);
                     Sugar (If (equal_empty_expr assign_pi_1.assign_left,
-                      translate_error_throw LRError ctx.throw_var ctx.label_throw,
+                      translate_error_throw Lrep ctx.throw_var ctx.label_throw,
                       [Basic (Assignment (mk_assign rv (Expression(Var assign_pi_1.assign_left))))]))
                   ],
                   [Basic (Assignment assign_rv_lookup)])) 
@@ -477,7 +477,7 @@ let translate_default_value arg preftype ctx =
   [Label next_label1] @
   r2_stmts @
   [Label next_label2] @
-  translate_error_throw LRError ctx.throw_var ctx.label_throw @
+  translate_error_throw Lrep ctx.throw_var ctx.label_throw @
   [Label exit_label], rv 
       
 let translate_to_primitive arg preftype ctx =
@@ -1355,7 +1355,7 @@ let rec translate_exp ctx exp : statement list * variable =
           let r2_stmts, r2 = f e2 in
           let r3_stmts, r3 = translate_gamma r2 ctx in
           let r4 = mk_assign_fresh_e (Field (Var r1)) in
-          let gotothrow = translate_error_throw LRError ctx.throw_var ctx.label_throw in
+          let gotothrow = translate_error_throw Lrep ctx.throw_var ctx.label_throw in
           
             r1_stmts @
             r2_stmts @

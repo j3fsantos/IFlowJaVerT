@@ -571,6 +571,18 @@ let initial_heap () =
   let h = add_field h (BLoc LTError) (string_of_builtin_field FPrototype) (HVObj (BLoc Ltep)) in
   let ltep = Object.add (string_of_builtin_field FProto) (HVObj (BLoc Lep)) Object.empty in
   let h = Heap.add (BLoc Ltep) ltep h in
+  let h = add_field h (BLoc Ltep) "name" (HVLiteral (String "TypeError")) in
+  let h = add_field h (BLoc Ltep) "message" (HVLiteral (String "")) in
+  let h = add_field h (BLoc Lg) "ReferenceError" (HVObj (BLoc LRError)) in
+  let h = add_field h (BLoc LRError) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function ReferenceError_Call))) in
+  let h = add_field h (BLoc LRError) (string_of_builtin_field FConstructId) (HVLiteral (String (string_of_builtin_function ReferenceError_Construct))) in
+  let h = add_field h (BLoc LRError) (string_of_builtin_field FPrototype) (HVObj (BLoc Lrep)) in
+  let lrep = Object.add (string_of_builtin_field FProto) (HVObj (BLoc Lep)) Object.empty in
+  let h = Heap.add (BLoc Lrep) lrep h in
+  let h = add_field h (BLoc Lrep) "name" (HVLiteral (String "ReferenceError")) in
+  let h = add_field h (BLoc Lrep) "message" (HVLiteral (String "")) in
+  let h = add_field h (BLoc Lep) "name" (HVLiteral (String "Error")) in
+  let h = add_field h (BLoc Lep) "message" (HVLiteral (String "")) in
   h
   
 let run_with_heap h (fs : function_block AllFunctions.t) : function_state =

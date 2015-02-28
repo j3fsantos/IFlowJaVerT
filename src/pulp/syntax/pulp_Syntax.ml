@@ -19,6 +19,7 @@ type builtin_loc =
   | LError 
   | Lep
   | LRError (* Reference Error *)
+  | Lrep
   | LTError (* Type Error *)
   | Ltep
   | LSError (* Syntax Error *)
@@ -56,6 +57,8 @@ type builtin_function =
   | String_Prototype_valueOf 
   | TypeError_Call
   | TypeError_Construct
+  | ReferenceError_Call
+  | ReferenceError_Construct
 
 type builtin_field =
   | FProto
