@@ -652,6 +652,24 @@ let translate_bitwise_bin_op f op e1 e2 ctx =
      Basic (Assignment r7)
     ],
     r7.assign_left
+    
+let translate_bitwise_shift f op1 op2 op3 e1 e2 ctx = 
+  let r1_stmts, r1 = f e1 in
+  let r2_stmts, r2 = translate_gamma r1 ctx in
+  let r3_stmts, r3 = f e2 in
+  let r4_stmts, r4 = translate_gamma r3 ctx in
+  let r5 = mk_assign_fresh_e (UnaryOp (op1, Var r2)) in
+  let r6 = mk_assign_fresh_e (UnaryOp (op2, Var r4)) in
+  let r7 = mk_assign_fresh_e (BinOp (Var r5.assign_left, Bitwise op3, Var r6.assign_left)) in
+    r1_stmts @ 
+    r2_stmts @ 
+    r3_stmts @ 
+    r4_stmts @ 
+    [Basic (Assignment r5);
+     Basic (Assignment r6);
+     Basic (Assignment r7)
+    ],
+    r7.assign_left
   
 let translate_regular_bin_op f op e1 e2 ctx =
   let r1_stmts, r1 = f e1 in
@@ -1361,9 +1379,9 @@ let rec translate_exp ctx exp : statement list * variable =
               | Parser_syntax.Times
               | Parser_syntax.Div 
               | Parser_syntax.Mod -> translate_to_number_bin_op f op e1 e2 ctx
-						  | Parser_syntax.Ursh -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.7.3 The Unsigned Right Shift Operator.")))
-						  | Parser_syntax.Lsh -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.7.1 The Left Shift Operator.")))
-						  | Parser_syntax.Rsh -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.7.2 The Signed Right Shift Operator.")))
+						  | Parser_syntax.Ursh -> translate_bitwise_shift f ToUint32Op ToUint32Op UnsignedRightShift e1 e2 ctx
+						  | Parser_syntax.Lsh -> translate_bitwise_shift f ToInt32Op ToUint32Op LeftShift e1 e2 ctx
+						  | Parser_syntax.Rsh -> translate_bitwise_shift f ToInt32Op ToUint32Op SignedRightShift e1 e2 ctx
 						  | Parser_syntax.Bitand 
 						  | Parser_syntax.Bitor 
 						  | Parser_syntax.Bitxor -> translate_bitwise_bin_op f op e1 e2 ctx

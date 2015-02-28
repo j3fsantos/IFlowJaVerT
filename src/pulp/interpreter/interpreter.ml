@@ -146,6 +146,9 @@ let run_bin_op op v1 v2 counter : value =
           | BitwiseAnd -> int32_bitwise_and n1 n2
           | BitwiseOr -> int32_bitwise_or n1 n2
           | BitwiseXor -> int32_bitwise_xor n1 n2
+          | LeftShift -> int32_left_shift n1 n2
+          | SignedRightShift -> int32_right_shift n1 n2
+          | UnsignedRightShift -> uint32_right_shift n1 n2
         end)))
   end
   

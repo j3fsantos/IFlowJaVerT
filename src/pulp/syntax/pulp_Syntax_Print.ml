@@ -24,6 +24,9 @@ let string_of_bitwise_op x =
     | BitwiseAnd -> "&"
     | BitwiseOr -> "^"
     | BitwiseXor -> "|"
+    | LeftShift -> "<<"
+    | SignedRightShift -> ">>"
+    | UnsignedRightShift -> ">>>"
 
 let string_of_bin_op x =
   match x with

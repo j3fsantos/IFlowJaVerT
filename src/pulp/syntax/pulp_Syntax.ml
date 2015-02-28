@@ -133,6 +133,9 @@ type bitwise_op =
   | BitwiseAnd
   | BitwiseOr
   | BitwiseXor
+  | LeftShift
+  | SignedRightShift
+  | UnsignedRightShift
 
 type bin_op = 
   | Comparison of comparison_op
