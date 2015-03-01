@@ -316,7 +316,10 @@ let dead_code_elimination g throw_var return_var =
               Hashtbl.replace var_defid a.assign_left index;
               Hashtbl.replace defid_var index a.assign_left;
               if a.assign_left = throw_var || a.assign_left = return_var then Hashtbl.add defid_used index true
-              else Hashtbl.add defid_used index false;
+              else begin match a.assign_right with
+                  | Expression _ -> Hashtbl.add defid_used index false 
+                  | _ -> Hashtbl.add defid_used index true
+              end
 	          | _ -> ()
 	        end; 
 	        stmt :: (iter_block (index + 1) stmts)

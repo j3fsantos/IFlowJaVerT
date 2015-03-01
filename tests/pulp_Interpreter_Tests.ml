@@ -482,6 +482,9 @@ let test_S11_9_2_A7_8 () =
 catch (e) {
   e instanceof TypeError 
 }") (VHValue (HVLiteral (Bool true)))
+
+let test_S8_7_1_A1 () =
+  test_template_normal ("this.y = 1; delete this.y; this.y") (VHValue (HVLiteral Undefined))
   
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
@@ -578,5 +581,6 @@ let suite = "Testing_Interpreter" >:::
     "test_S11_13_2_A3_2_T9" >:: test_S11_13_2_A3_2_T9;
     "test_S9_5_A2_3_T1" >:: test_S9_5_A2_3_T1;
     "test_S15_2_2_1_A5_T2" >::test_S15_2_2_1_A5_T2;
-    "test_S11_9_2_A7_8" >:: test_S11_9_2_A7_8
+    "test_S11_9_2_A7_8" >:: test_S11_9_2_A7_8;
+    "test_S8_7_1_A1" >:: test_S8_7_1_A1
     ] 

@@ -1229,7 +1229,9 @@ let rec translate_exp ctx exp : statement list * variable =
                                 (equal_expr r3.assign_left (literal_builtin_field FPrototype)) 
                                 (equal_bool_expr r5.assign_left true), 
                         translate_error_throw Ltep ctx.throw_var ctx.label_throw, 
-                        [Basic (Assignment assign_rv_true)]))
+                        [ Basic (Assignment (mk_assign_fresh (Deallocation (Var r4.assign_left, Var r3.assign_left))));
+                          Basic (Assignment assign_rv_true)
+                        ]))
                     ]))
                 ], 
                 [Basic (Assignment assign_rv_true)])); 
