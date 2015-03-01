@@ -477,7 +477,7 @@ let translate_default_value arg preftype ctx =
   [Label next_label1] @
   r2_stmts @
   [Label next_label2] @
-  translate_error_throw Lrep ctx.throw_var ctx.label_throw @
+  translate_error_throw Ltep ctx.throw_var ctx.label_throw @
   [Label exit_label], rv 
       
 let translate_to_primitive arg preftype ctx =
