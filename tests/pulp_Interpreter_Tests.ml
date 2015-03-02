@@ -510,6 +510,22 @@ let test_11_2_3_3_5 () =
       }
     };
     testcase();") (VHValue (HVLiteral (Bool true)))
+    
+let test_S15_2_4_6_A6 () =
+  test_template_normal ("Object.prototype.isPrototypeOf.prototype") (VHValue (HVLiteral Undefined))
+  
+let test_S15_7_4_4_A2_T05 () =
+  test_template_normal ("try{
+  var s1 = {x: 1};
+  s1.valueOf = Number.prototype.valueOf;
+  var v1 = s1.valueOf(); 
+}
+catch(e){
+  e instanceof TypeError
+}") (VHValue (HVLiteral (Bool true)))
+
+let test_S15_6_4_3_A1_T2 () =
+  test_template_normal ("Boolean.prototype.valueOf(true)") (VHValue (HVLiteral (Bool false)))
   
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
@@ -611,5 +627,7 @@ let suite = "Testing_Interpreter" >:::
     "test_S15_6_4_A2" >:: test_S15_6_4_A2;
     "test_get_prototype_of" >:: test_get_prototype_of;
     "test_S11_4_1_A3_3" >:: test_S11_4_1_A3_3;
-    "test_11_2_3_3_5" >:: test_11_2_3_3_5
+    "test_11_2_3_3_5" >:: test_11_2_3_3_5;
+    "test_S15_2_4_6_A6" >:: test_S15_2_4_6_A6;
+    "test_S15_7_4_4_A2_T05" >:: test_S15_7_4_4_A2_T05;
     ] 

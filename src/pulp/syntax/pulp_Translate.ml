@@ -642,19 +642,23 @@ let translate_to_number_bin_op f op e1 e2 ctx =
     r6_stmts @
     [Basic (Assignment r7)],
     r7.assign_left
-    
+        
 let translate_bitwise_bin_op f op e1 e2 ctx =
   let r1_stmts, r1 = f e1 in
   let r2_stmts, r2 = translate_gamma r1 ctx in
   let r3_stmts, r3 = f e2 in
   let r4_stmts, r4 = translate_gamma r3 ctx in
-  let r5 = mk_assign_fresh_e (UnaryOp (ToInt32Op, Var r2)) in
-  let r6 = mk_assign_fresh_e (UnaryOp (ToInt32Op, Var r4)) in
+  let r2_to_number, r2_number = translate_to_number r2 ctx in
+  let r4_to_number, r4_number = translate_to_number r4 ctx in
+  let r5 = mk_assign_fresh_e (UnaryOp (ToInt32Op, Var r2_number)) in
+  let r6 = mk_assign_fresh_e (UnaryOp (ToInt32Op, Var r4_number)) in
   let r7 = mk_assign_fresh_e (BinOp (Var r5.assign_left, tr_bin_op op, Var r6.assign_left)) in
     r1_stmts @ 
     r2_stmts @ 
     r3_stmts @ 
     r4_stmts @ 
+    r2_to_number @
+    r4_to_number @
     [Basic (Assignment r5);
      Basic (Assignment r6);
      Basic (Assignment r7)
@@ -666,13 +670,17 @@ let translate_bitwise_shift f op1 op2 op3 e1 e2 ctx =
   let r2_stmts, r2 = translate_gamma r1 ctx in
   let r3_stmts, r3 = f e2 in
   let r4_stmts, r4 = translate_gamma r3 ctx in
-  let r5 = mk_assign_fresh_e (UnaryOp (op1, Var r2)) in
-  let r6 = mk_assign_fresh_e (UnaryOp (op2, Var r4)) in
+  let r2_to_number, r2_number = translate_to_number r2 ctx in
+  let r4_to_number, r4_number = translate_to_number r4 ctx in
+  let r5 = mk_assign_fresh_e (UnaryOp (op1, Var r2_number)) in
+  let r6 = mk_assign_fresh_e (UnaryOp (op2, Var r4_number)) in
   let r7 = mk_assign_fresh_e (BinOp (Var r5.assign_left, Bitwise op3, Var r6.assign_left)) in
     r1_stmts @ 
     r2_stmts @ 
     r3_stmts @ 
     r4_stmts @ 
+    r2_to_number @
+    r4_to_number @
     [Basic (Assignment r5);
      Basic (Assignment r6);
      Basic (Assignment r7)
@@ -986,7 +994,8 @@ let rec translate_exp ctx exp : statement list * variable =
                            
             [
               Basic (Assignment r1);
-              add_proto_value r1.assign_left Lop
+              add_proto_value r1.assign_left Lop; 
+              Basic (Mutation (mk_mutation (Var r1.assign_left) (literal_builtin_field FClass) (Literal (String "Object"))));
             ] @ 
             (List.flatten stmts), r1.assign_left
         end
@@ -1192,10 +1201,12 @@ let rec translate_exp ctx exp : statement list * variable =
 		      | Parser_syntax.Bitnot -> 
             let r1_stmts, r1 = f e in
             let r2_stmts, r2 = translate_gamma r1 ctx in
-            let r3 = mk_assign_fresh_e (UnaryOp (ToInt32Op, Var r2)) in
+            let r2_to_number, r2_number = translate_to_number r2 ctx in
+            let r3 = mk_assign_fresh_e (UnaryOp (ToInt32Op, Var r2_number)) in
             let r4 = mk_assign_fresh_e (UnaryOp (BitwiseNot, Var r3.assign_left)) in
             r1_stmts @
             r2_stmts @
+            r2_to_number @
             [Basic (Assignment r3);
              Basic (Assignment r4)], r4.assign_left
 		      | Parser_syntax.Void -> 
