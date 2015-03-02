@@ -2180,6 +2180,8 @@ let rec exp_to_fb ctx exp : statement list * variable =
 let translate_function fb fid main args env named =
   let ctx = create_ctx env in
   
+  (*Printf.printf "Env vars in %s: %s" (match named with None -> "None " | Some n -> n)  (String.concat "\n" (List.map (Pulp_Syntax_Print.string_of_ctx_vars) ctx.env_vars));*)
+  
   let other_env = match ctx.env_vars, named with
     | current :: others, None -> others
     | current_decl :: others, Some _ ->
@@ -2269,14 +2271,14 @@ let translate_function_syntax level id e named env main =
     | IVL_conditionals -> pulpe
     | IVL_goto -> {pulpe with func_body = to_ivl_goto pulpe.func_body}
 
-let exp_to_pulp level e main =
+let exp_to_pulp level e main ctx_vars =
   let context = AllFunctions.empty in
   let e = add_codenames main e in
   let all_functions = get_all_functions_with_env_in_fb [] e main in
     
   let context = List.fold_left (fun c (fexpr, fnamed, fenv) -> 
     let fid = get_codename fexpr in
-    let fb = translate_function_syntax level fid fexpr fnamed fenv main in
+    let fb = translate_function_syntax level fid fexpr fnamed  (fenv @ ctx_vars) main in
     AllFunctions.add fid fb c
    ) context all_functions in
   

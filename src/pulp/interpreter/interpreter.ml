@@ -376,7 +376,7 @@ let rec is_proto_obj l o h counter =
 			end 
       
 (* TODO -- I don't like the code here *)
-let rec run_assign_expr (s : local_state) (e : assign_right_expression) (funcs : function_block AllFunctions.t) : local_state * value =
+let rec run_assign_expr (s : local_state) (e : assign_right_expression) ctx (funcs : function_block AllFunctions.t) : local_state * value =
   let run_call c builtin =
       let fid = run_expr s c.call_name in
       let fid_string = string_check fid "Function name should be a string" s.lscounter in
@@ -412,7 +412,9 @@ let rec run_assign_expr (s : local_state) (e : assign_right_expression) (funcs :
     
      (* TODO update all_functions *)
      let eval_main = fresh_named "eval" in
-     let pexp = Pulp_Translate.exp_to_pulp Pulp_Translate.IVL_goto exp eval_main in
+    
+     (*Printf.printf "Env vars in Eval: %s" (String.concat "\n" (List.map (Pulp_Syntax_Print.string_of_ctx_vars) ctx.env_vars));*)
+     let pexp = Pulp_Translate.exp_to_pulp Pulp_Translate.IVL_goto exp eval_main ctx.env_vars in
     
      let funcs = AllFunctions.fold (fun key value result -> AllFunctions.add key value result) pexp funcs in
       
@@ -502,11 +504,11 @@ run_function (h : heap_type) (f : function_block) (args : value list) (fs : func
   in 
   {fs_heap = result.lsheap; fs_return_type = ret_type; fs_return_value = ret_val}
   
-and run_basic_stmt (s : local_state) (stmt : basic_statement) (labelmap : int LabelMap.t) (fs : function_block AllFunctions.t) : local_state =
+and run_basic_stmt (s : local_state) (stmt : basic_statement) (labelmap : int LabelMap.t) ctx (fs : function_block AllFunctions.t) : local_state =
    match stmt with
     | Skip -> {s with lscounter = s.lscounter + 1}
     | Assignment assign -> 
-      let s, v = run_assign_expr s assign.assign_right fs in
+      let s, v = run_assign_expr s assign.assign_right ctx fs in
       begin match s.lsexcep with
         | Some throwl ->
         {s with 
@@ -528,7 +530,7 @@ and run_basic_stmt (s : local_state) (stmt : basic_statement) (labelmap : int La
             let newobj = Object.add x v3 obj in
             {s with lsheap = Heap.add l newobj s.lsheap; lscounter = s.lscounter + 1}
 
-and run_stmt (s : local_state) (stmt : statement) (labelmap : int LabelMap.t) (fs : function_block AllFunctions.t) : local_state =
+and run_stmt (s : local_state) (stmt : statement) (labelmap : int LabelMap.t) (ctx) (fs : function_block AllFunctions.t) : local_state =
   (*Printf.printf "Running stmt %s \n" (Pulp_Syntax_Print.string_of_statement stmt);*)
   match stmt with
     | Label l -> {s with lscounter = s.lscounter + 1}
@@ -542,14 +544,14 @@ and run_stmt (s : local_state) (stmt : statement) (labelmap : int LabelMap.t) (f
           {s with lscounter = LabelMap.find l2 labelmap}
         | _ -> raise (InterpreterStuck ("GuardedGoto expression must evaluate to boolean value", s.lscounter))
       end
-    | Basic bs -> run_basic_stmt s bs labelmap fs
+    | Basic bs -> run_basic_stmt s bs labelmap ctx fs
     | Sugar sss -> raise InterpreterNotImplemented
 
 and run_stmts stmts ctx lstate labelmap fs =
   let next_stmt = List.nth stmts lstate.lscounter in
   if end_label next_stmt labelmap ctx then lstate 
   else 
-    let state = run_stmt lstate next_stmt labelmap fs in
+    let state = run_stmt lstate next_stmt labelmap ctx fs in
     run_stmts stmts ctx state labelmap fs
     
 let run (h: heap_type) main_this main_scope (fs : function_block AllFunctions.t) : function_state = 

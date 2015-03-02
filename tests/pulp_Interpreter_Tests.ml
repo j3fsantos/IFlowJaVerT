@@ -12,7 +12,7 @@ let get_expr p =
   Parser_main.verbose := true;
   let exp = Parser_main.exp_from_string p in
   let _ = Printf.printf "%s \n" (Pretty_print.string_of_exp_syntax exp.Parser_syntax.exp_stx) in
-  let p_exp = exp_to_pulp IVL_goto exp main_fun_id in
+  let p_exp = exp_to_pulp IVL_goto exp main_fun_id [] in
   let _ = AllFunctions.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_func_block fwc)) p_exp in
   p_exp
 
@@ -495,6 +495,22 @@ let test_get_prototype_of () =
 let test_S11_4_1_A3_3 () =
   test_template_normal ("try { x = 1; delete x; x} catch (e) {e instanceof ReferenceError}") (VHValue (HVLiteral (Bool true)))
   
+let test_11_2_3_3_5 () =
+  test_template_normal (
+    " function testcase() {
+      var fooCalled = false;
+      function foo(){ fooCalled = true; } 
+    
+      var o = { }; 
+      try {
+        eval('o.bar( foo() );');
+        throw new Exception('o.bar does not exist!');
+      } catch(e) {
+        return (e instanceof TypeError) && (fooCalled===true);
+      }
+    };
+    testcase();") (VHValue (HVLiteral (Bool true)))
+  
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
    "running program2" >:: test_program2;
@@ -594,5 +610,6 @@ let suite = "Testing_Interpreter" >:::
     "test_S8_7_1_A1" >:: test_S8_7_1_A1;
     "test_S15_6_4_A2" >:: test_S15_6_4_A2;
     "test_get_prototype_of" >:: test_get_prototype_of;
-    "test_S11_4_1_A3_3" >:: test_S11_4_1_A3_3
+    "test_S11_4_1_A3_3" >:: test_S11_4_1_A3_3;
+    "test_11_2_3_3_5" >:: test_11_2_3_3_5
     ] 
