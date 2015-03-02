@@ -486,6 +486,15 @@ catch (e) {
 let test_S8_7_1_A1 () =
   test_template_normal ("this.y = 1; delete this.y; this.y") (VHValue (HVLiteral Undefined))
   
+let test_S15_6_4_A2 () =
+  test_template_normal ("!Object.prototype.isPrototypeOf(Boolean.prototype)") (VHValue (HVLiteral (Bool false)))
+  
+let test_get_prototype_of () =
+  test_template_normal ("Object.getPrototypeOf(Boolean)") (VHValue (HVObj (BLoc Lfp)))
+  
+let test_S11_4_1_A3_3 () =
+  test_template_normal ("try { x = 1; delete x; x} catch (e) {e instanceof ReferenceError}") (VHValue (HVLiteral (Bool true)))
+  
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
    "running program2" >:: test_program2;
@@ -582,5 +591,8 @@ let suite = "Testing_Interpreter" >:::
     "test_S9_5_A2_3_T1" >:: test_S9_5_A2_3_T1;
     "test_S15_2_2_1_A5_T2" >::test_S15_2_2_1_A5_T2;
     "test_S11_9_2_A7_8" >:: test_S11_9_2_A7_8;
-    "test_S8_7_1_A1" >:: test_S8_7_1_A1
+    "test_S8_7_1_A1" >:: test_S8_7_1_A1;
+    "test_S15_6_4_A2" >:: test_S15_6_4_A2;
+    "test_get_prototype_of" >:: test_get_prototype_of;
+    "test_S11_4_1_A3_3" >:: test_S11_4_1_A3_3
     ] 

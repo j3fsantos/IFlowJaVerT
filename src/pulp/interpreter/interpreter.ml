@@ -584,6 +584,9 @@ let initial_heap () =
   let l_lop_valueOf =  Object.add (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Object_Prototype_valueOf))) Object.empty in 
   let h = Heap.add (BLoc Lop_valueOf) l_lop_valueOf h in
   let h = add_field h (BLoc Lop) "valueOf" (HVObj (BLoc Lop_valueOf)) in
+  let l_lop_isPrototypeOf =  Object.add (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Object_Prototype_isPrototypeOf))) Object.empty in 
+  let h = Heap.add (BLoc Lop_isPrototypeOf) l_lop_isPrototypeOf h in
+  let h = add_field h (BLoc Lop) "isPrototypeOf" (HVObj (BLoc Lop_isPrototypeOf)) in
   let h = add_field h (BLoc Lop) ("constructor") (HVObj (BLoc LObject)) in
     
   let h = add_field h (BLoc Lg) "eval" (HVObj (BLoc LEval)) in
@@ -596,6 +599,9 @@ let initial_heap () =
   let h = add_field h (BLoc Lg) "Object" (HVObj (BLoc LObject)) in
   let h = add_field h (BLoc LObject) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Object_Call))) in
   let h = add_field h (BLoc LObject) (string_of_builtin_field FConstructId) (HVLiteral (String (string_of_builtin_function Object_Construct))) in
+  let l_obj_get_proto_of =  Object.add (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Object_getPrototypeOf))) Object.empty in
+  let h = Heap.add (BLoc LObjectGetPrototypeOf) l_obj_get_proto_of h in 
+  let h = add_field h (BLoc LObject) "getPrototypeOf" (HVObj (BLoc LObjectGetPrototypeOf)) in
   let h = add_field h (BLoc LObject) (string_of_builtin_field FPrototype) (HVObj (BLoc Lop)) in
   
   let h = add_field h (BLoc Lg) "Boolean" (HVObj (BLoc LBoolean)) in

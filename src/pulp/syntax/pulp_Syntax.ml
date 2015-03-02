@@ -14,6 +14,7 @@ type builtin_loc =
   | Lop (* Object.Prototype Object *)
   | Lop_toString
   | Lop_valueOf
+  | Lop_isPrototypeOf
   | Lfp (* Function.Prototype Object *)
   | LEval (* Eval Function Object *)
   | LError 
@@ -24,6 +25,7 @@ type builtin_loc =
   | Ltep
   | LSError (* Syntax Error *)
   | LObject (* Object Object *)
+  | LObjectGetPrototypeOf
   | LBoolean (* Boolean Object *)
   | Lbp (* Boolean.prototype *)
   | Lbp_toString
@@ -45,8 +47,10 @@ type builtin_function =
   | Boolean_Prototype_valueOf
   | Object_Call
   | Object_Construct
+  | Object_getPrototypeOf
   | Object_Prototype_toString
   | Object_Prototype_valueOf
+  | Object_Prototype_isPrototypeOf
   | Number_Call 
   | Number_Construct 
   | Number_Prototype_toString 
