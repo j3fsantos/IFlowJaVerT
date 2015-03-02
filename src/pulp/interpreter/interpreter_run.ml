@@ -43,8 +43,13 @@ let pr_test h =
   let lg_obj = Heap.find (BLoc Lg) h in
   try
      let error = Object.find "__$ERROR__" lg_obj in
-     Printf.printf "\nA variable [__$ERROR__] is defined at global scope.  Its value is:\n\t %s \n" (string_of_heap_value error);
-     exit 1
+     match error with
+      | (HVLiteral (String "")) ->  Printf.printf "No variable [__$ERROR__] is defined at global scope.\n" 
+      | _ -> 
+        begin
+         Printf.printf "\nA variable [__$ERROR__] is defined at global scope.  Its value is:\n\t %s \n" (string_of_heap_value error);
+         exit 1 
+        end
   with | Not_found ->
      Printf.printf "No variable [__$ERROR__] is defined at global scope.\n"
 
@@ -103,9 +108,9 @@ let run_program path =
   end;
  
   let h = initial_heap () in
-  let lop = Heap.find (BLoc Lop) h in
-  let lop = Object.add ("__$ERROR__") (HVLiteral (String "")) lop in
-  let h = Heap.add (BLoc Lop) lop h in
+  let lg = Heap.find (BLoc Lg) h in
+  let lg = Object.add ("__$ERROR__") (HVLiteral (String "")) lg in
+  let h = Heap.add (BLoc Lg) lg h in
   
   let result = run_with_heap h p_exp_simpl in
   match result.fs_return_type with
