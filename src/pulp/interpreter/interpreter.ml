@@ -170,7 +170,14 @@ let num_to_string v counter =
 let string_to_num v counter =
   match v with
     | VHValue (HVLiteral (String "")) -> VHValue (HVLiteral (Num 0.)) 
-    | VHValue (HVLiteral (String s)) -> VHValue (HVLiteral (Num (Float.of_string s))) 
+    | VHValue (HVLiteral (String s)) -> 
+      begin 
+        let num = 
+          try
+             Float.of_string s 
+          with Failure "float_of_string" -> nan in
+        VHValue (HVLiteral (Num num)) 
+      end
     | _ -> raise (InterpreterStuck ("Cannot proceed with string_to_num on not string value", counter))
 
 let num_to_int32 v counter =
