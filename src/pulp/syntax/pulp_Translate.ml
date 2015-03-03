@@ -982,11 +982,25 @@ let rec translate_exp ctx exp : statement list * variable =
               | Parser_syntax.PropbodyVal ->
                 begin
                   let r2_stmts, r2 = f e in
-                  let r3_stmts, r3 = translate_gamma r2 ctx in
-                  
+                  let r3_stmts, r3 = translate_gamma r2 ctx in 
+                  let propname_string = fresh_r () in
+                  let propname_stmts = 
+                    match prop_name with
+                      | Parser_syntax.PropnameId s
+                      | Parser_syntax.PropnameString s -> [Basic (Assignment (mk_assign propname_string (Expression (Literal (String s)))))]
+                      | Parser_syntax.PropnameNum f -> 
+                        begin
+                          let f_var = mk_assign_fresh_e (Literal (Num f)) in
+                          let propname_to_string, lvar = translate_to_string_prim f_var.assign_left ctx in 
+                          [ Basic (Assignment f_var);
+                            propname_to_string;
+                            Basic (Assignment (mk_assign propname_string (Expression (Var lvar))))
+                          ]
+                        end in
                   r2_stmts @ 
                   r3_stmts @ 
-                  [Basic (Mutation (mk_mutation (Var r1.assign_left) (Literal (String (Pretty_print.string_of_propname prop_name))) (Var r3)))] 
+                  propname_stmts @
+                  [ Basic (Mutation (mk_mutation (Var r1.assign_left) (Var propname_string) (Var r3)))] 
                    
                 end
               | _ -> raise (PulpNotImplemented ("Getters and Setters are not yet implemented REF:11.1.5 Object Initialiser.Get.Set."))
@@ -1016,12 +1030,14 @@ let rec translate_exp ctx exp : statement list * variable =
           let r3_stmts, r3 = f e2 in
           let r4_stmts, r4 = translate_gamma r3 ctx in
           let r5_stmts, r5 = translate_obj_coercible r2 ctx in
-          let r6 = mk_assign_fresh_e (Ref (Var r2, Var r4, MemberReference)) in
+          let r4_to_string, r4_string = translate_to_string r4 ctx in
+          let r6 = mk_assign_fresh_e (Ref (Var r2, Var r4_string, MemberReference)) in
             r1_stmts @ 
             r2_stmts @ 
             r3_stmts @ 
             r4_stmts @ 
             r5_stmts @ 
+            r4_to_string @
             [Basic (Assignment r6)], r6.assign_left
             
       | Parser_syntax.New (e1, e2s) ->

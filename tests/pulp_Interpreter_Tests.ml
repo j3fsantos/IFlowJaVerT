@@ -527,6 +527,9 @@ catch(e){
 let test_S15_6_4_3_A1_T2 () =
   test_template_normal ("Boolean.prototype.valueOf(true)") (VHValue (HVLiteral (Bool false)))
   
+let test_S8_12_3_A3 () =
+  test_template_normal ("var __map={shape:'cube', 5:'five', '6':'six'}; __map['5']") (VHValue (HVLiteral (String "five")))
+  
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
    "running program2" >:: test_program2;
@@ -630,4 +633,5 @@ let suite = "Testing_Interpreter" >:::
     "test_11_2_3_3_5" >:: test_11_2_3_3_5;
     "test_S15_2_4_6_A6" >:: test_S15_2_4_6_A6;
     "test_S15_7_4_4_A2_T05" >:: test_S15_7_4_4_A2_T05;
+    "test_S8_12_3_A3" >:: test_S8_12_3_A3
     ] 

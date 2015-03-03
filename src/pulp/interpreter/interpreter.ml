@@ -162,18 +162,9 @@ let num_negative v counter =
     | VHValue (HVLiteral (Num n)) -> VHValue (HVLiteral (Num (-.n))) 
     | _ -> raise (InterpreterStuck ("Cannot proceed with negative on not number value", counter))
 
-let float_to_string_inner n = (* TODO *)
-  let string_of_number n =
-    let inum = int_of_float n in
-    if (float_of_int inum = n) then string_of_int inum else string_of_float n in
-  if Float.is_nan n then "NaN"
-  else if n = 0.0 or n = -0.0 then "0"
-  else if n = Float.infinity then "Infinity"
-  else string_of_number n
-
 let num_to_string v counter =
   match v with
-    | VHValue (HVLiteral (Num n)) -> VHValue (HVLiteral (String (float_to_string_inner n))) 
+    | VHValue (HVLiteral (Num n)) -> VHValue (HVLiteral (String (Utils.float_to_string_inner n))) 
     | _ -> raise (InterpreterStuck ("Cannot proceed with num_to_string on not number value", counter))
 
 let string_to_num v counter =
