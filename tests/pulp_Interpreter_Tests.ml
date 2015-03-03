@@ -542,6 +542,9 @@ let test_S11_11_2_A3_T2 () =
 let test_S11_8_4_A3_1_T2_4 () =
   test_template_normal ("undefined >= new Number(1)") (VHValue (HVLiteral (Bool false)))
   
+let test_do_while_break () =
+   test_template_normal ("var x = 1; do { if (x == 4) {break}; x++ } while (x < 10)") (VHValue (HVLiteral (Num 3.0)))
+  
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
    "running program2" >:: test_program2;
@@ -649,5 +652,6 @@ let suite = "Testing_Interpreter" >:::
     "test_S11_9_2_A4_1_T1" >:: test_S11_9_2_A4_1_T1;
     "test_S11_10_3_A3_T1_5" >:: test_S11_10_3_A3_T1_5;
     "test_S11_11_2_A3_T2" >:: test_S11_11_2_A3_T2;
-    "test_S11_8_4_A3_1_T2_4" >:: test_S11_8_4_A3_1_T2_4
+    "test_S11_8_4_A3_1_T2_4" >:: test_S11_8_4_A3_1_T2_4;
+    "test_do_while_break" >:: test_do_while_break
     ] 

@@ -107,9 +107,9 @@ let tr_arith_op op =
       | Parser_syntax.Times -> Arith Times
       | Parser_syntax.Div -> Arith Div
       | Parser_syntax.Mod -> Arith Mod
-      | Parser_syntax.Ursh -> raise (PulpNotImplemented ((Pretty_print.string_of_arith_op op ^ " REF:11.7.3 The Unsigned Right Shift Operator.")))
-      | Parser_syntax.Lsh -> raise (PulpNotImplemented ((Pretty_print.string_of_arith_op op ^ " REF:11.7.1 The Left Shift Operator.")))
-      | Parser_syntax.Rsh -> raise (PulpNotImplemented ((Pretty_print.string_of_arith_op op ^ " REF:11.7.2 The Signed Right Shift Operator.")))
+      | Parser_syntax.Ursh -> Bitwise UnsignedRightShift
+      | Parser_syntax.Lsh -> Bitwise LeftShift
+      | Parser_syntax.Rsh -> Bitwise SignedRightShift
       | Parser_syntax.Bitand -> Bitwise BitwiseAnd
       | Parser_syntax.Bitor -> Bitwise BitwiseOr
       | Parser_syntax.Bitxor -> Bitwise BitwiseXor
@@ -1556,8 +1556,8 @@ let translate_block es f =
       (prev_stmts @ r1_stmts @ if_stmts, ifv)) 
     ([Basic (Assignment retv)], retv.assign_left) es
 
-let rec translate_stmt ctx exp : statement list * variable =
-  let f = translate_stmt ctx in 
+let rec translate_stmt ctx labelset exp : statement list * variable =
+  let f = translate_stmt ctx [] in 
   match exp.Parser_syntax.exp_stx with
         (* Literals *)
       | Parser_syntax.Null 
@@ -1632,17 +1632,21 @@ let rec translate_stmt ctx exp : statement list * variable =
           ], rv
            
       | Parser_syntax.While (e1, e2) ->
-        (* TODO: Update with continue/break *)
         let rv = fresh_r () in
         let assign_rv_empty = Basic (Assignment (mk_assign rv (Expression (Literal Empty)))) in
-        let label1 = fresh_r () in
         let r1_stmts, r1 = translate_exp ctx e1 in
         let r2_stmts, r2 = translate_gamma r1 ctx in
-        let r3_stmts, r3 = f e2 in
+        let continue = fresh_r () in
+        let break = fresh_r () in
+        let new_ctx = {ctx with
+          label_continue = (("", continue) :: (List.map (fun l -> (l, continue)) labelset)) @ ctx.label_continue;
+          label_break = (("", break) :: (List.map (fun l -> (l, break)) labelset)) @ ctx.label_break
+        } in
+        let r3_stmts, r3 = translate_stmt new_ctx [] e2 in
         let to_boolean, r4 = translate_to_boolean r2 ctx in
           [
             assign_rv_empty; 
-            Label label1
+            Label continue
           ] @ 
           r1_stmts @ 
           r2_stmts @ 
@@ -1653,19 +1657,25 @@ let rec translate_stmt ctx exp : statement list * variable =
                   Sugar (If (equal_empty_expr r3, 
                     [], 
                     [Basic (Assignment (mk_assign rv (Expression (Var r3))))])); 
-                  Goto label1
+                  Goto continue
                 ], 
                 
-                []))
+                []));
+            Label break
           ], rv
           
       | Parser_syntax.DoWhile (e1, e2) -> 
-        (* TODO: Update with continue/break *)
         let rv = fresh_r () in
         let iterating = fresh_r () in
         let assign_rv_empty = Basic (Assignment (mk_assign rv (Expression (Literal Empty)))) in
         let label1 = fresh_r () in
-        let r3_stmts, r3 = f e1 in
+        let continue = fresh_r () in
+        let break = fresh_r () in
+        let new_ctx = {ctx with
+          label_continue = (("", continue) :: (List.map (fun l -> (l, continue)) labelset)) @ ctx.label_continue;
+          label_break = (("", break) :: (List.map (fun l -> (l, break)) labelset)) @ ctx.label_break
+        } in
+        let r3_stmts, r3 = translate_stmt new_ctx [] e1 in
         let r1_stmts, r1 = translate_exp ctx e2 in
         let r2_stmts, r2 = translate_gamma r1 ctx in
         let to_boolean, r4 = translate_to_boolean r2 ctx in
@@ -1679,6 +1689,7 @@ let rec translate_stmt ctx exp : statement list * variable =
                   Sugar (If (equal_empty_expr r3, 
                     [], 
                     [Basic (Assignment (mk_assign rv (Expression (Var r3))))]));
+                  Label continue
                 ] @
                 r1_stmts @ 
                 r2_stmts @ 
@@ -1687,9 +1698,9 @@ let rec translate_stmt ctx exp : statement list * variable =
                     [Basic (Assignment (mk_assign iterating (Expression (Literal (Bool false)))))],
                     []));
                   Goto label1
-                ], 
-                
-                []))
+                ],                
+                []));
+            Label break
           ], rv
 
         
@@ -1715,10 +1726,18 @@ let rec translate_stmt ctx exp : statement list * variable =
         let finally_label = "finally." ^ fresh_r () in
         let return_finally_label = "finally." ^ fresh_r () in
         let throw_finally_label = "finally." ^ fresh_r () in
+        let continue_finally_label = List.map (fun (l,c) -> (l, "finally." ^ fresh_r ())) ctx.label_continue in
+        let break_finally_label = List.map (fun (l,c) -> (l, "finally." ^ fresh_r ())) ctx.label_break in  
         let exit_label = fresh_r () in
         let throw_var = fresh_r () in
-        let new_ctx = {ctx with label_throw = catch_label; label_return = return_finally_label; throw_var = throw_var} in
-        let r1_stmts, r1 = translate_stmt new_ctx e1 in
+        let new_ctx = {ctx with 
+          label_throw = catch_label; 
+          label_return = return_finally_label; 
+          throw_var = throw_var;
+          label_continue = continue_finally_label;
+          label_break = break_finally_label;
+        } in
+        let r1_stmts, r1 = translate_stmt new_ctx [] e1 in
         let rv = fresh_r () in
         
         let catch_id = "catch" ^ fresh_r () in
@@ -1727,10 +1746,24 @@ let rec translate_stmt ctx exp : statement list * variable =
         let catch_ctx = {ctx with 
           env_vars = (make_ctx_vars catch_id [id]) :: ctx.env_vars;
           label_throw = throw_finally_label;
-          label_return = return_finally_label;
+          label_return = return_finally_label;          
+          label_continue = continue_finally_label;
+          label_break = break_finally_label;
         } in
-        let r2_stmts, r2 = translate_stmt catch_ctx e2 in
+        let r2_stmts, r2 = translate_stmt catch_ctx [] e2 in
         let r3_stmts, r3 = f e3 in
+        
+        let continue_finally_stmts = List.map (fun ((_, c1), (_, c2)) ->
+          [Label c1] @
+          r3_stmts @
+          [Goto c2]
+        ) (List.combine continue_finally_label ctx.label_continue) in
+        
+        let break_finally_stmts = List.map (fun ((_, b1), (_, b2)) ->
+          [Label b1] @
+          r3_stmts @
+          [Goto b2]
+        ) (List.combine break_finally_label ctx.label_break) in
             
         r1_stmts @
         [
@@ -1759,17 +1792,39 @@ let rec translate_stmt ctx exp : statement list * variable =
         ] @
         r3_stmts @
         [
-          Goto ctx.label_throw;
-          Label exit_label
+          Goto ctx.label_throw
+        ] @
+        List.flatten continue_finally_stmts @
+        List.flatten break_finally_stmts @
+        [  Label exit_label
         ], rv
         
       | Parser_syntax.Try (e1, None, Some e3) ->
         let return_finally_label = "finally." ^ fresh_r () in
         let throw_finally_label = "finally." ^ fresh_r () in
+        let continue_finally_label = List.map (fun (l,c) -> (l, "finally." ^ fresh_r ())) ctx.label_continue in
+        let break_finally_label = List.map (fun (l,c) -> (l, "finally." ^ fresh_r ())) ctx.label_break in  
         let exit_label = fresh_r () in
-        let new_ctx = {ctx with label_throw = throw_finally_label; label_return = return_finally_label} in
-        let r1_stmts, r1 = translate_stmt new_ctx e1 in
+        let new_ctx = {ctx with 
+          label_throw = throw_finally_label; 
+          label_return = return_finally_label;
+          label_continue = continue_finally_label;
+          label_break = break_finally_label;
+        } in
+        let r1_stmts, r1 = translate_stmt new_ctx [] e1 in
         let r3_stmts, r3 = f e3 in
+        
+        let continue_finally_stmts = List.map (fun ((_, c1), (_, c2)) ->
+          [Label c1] @
+          r3_stmts @
+          [Goto c2]
+        ) (List.combine continue_finally_label ctx.label_continue) in
+        
+        let break_finally_stmts = List.map (fun ((_, b1), (_, b2)) ->
+          [Label b1] @
+          r3_stmts @
+          [Goto b2]
+        ) (List.combine break_finally_label ctx.label_break) in
             
         r1_stmts @
         r3_stmts @
@@ -1783,17 +1838,17 @@ let rec translate_stmt ctx exp : statement list * variable =
           Label throw_finally_label      
         ] @
         r3_stmts @
-        [
-          Goto ctx.label_throw;
-          Label exit_label
-        ], r1
+        [  Goto ctx.label_throw] @
+        List.flatten continue_finally_stmts @
+        List.flatten break_finally_stmts @
+        [  Label exit_label], r1
         
       | Parser_syntax.Try (e1, Some (id, e2), None) ->
         let catch_label = "catch." ^ fresh_r () in
         let exit_label = fresh_r () in
         let throw_var = fresh_r () in
         let new_ctx = {ctx with label_throw = catch_label; throw_var = throw_var} in
-        let r1_stmts, r1 = translate_stmt new_ctx e1 in
+        let r1_stmts, r1 = translate_stmt new_ctx [] e1 in
         let rv = fresh_r () in
         
         let catch_id = "catch" ^ fresh_r () in
@@ -1802,7 +1857,7 @@ let rec translate_stmt ctx exp : statement list * variable =
         let catch_ctx = {ctx with 
           env_vars = (make_ctx_vars catch_id [id]) :: ctx.env_vars;
         } in
-        let r2_stmts, r2 = translate_stmt catch_ctx e2 in
+        let r2_stmts, r2 = translate_stmt catch_ctx [] e2 in
             
         r1_stmts @
         [
@@ -1830,12 +1885,29 @@ let rec translate_stmt ctx exp : statement list * variable =
         r2_stmts @
         [ Basic (Assignment (mk_assign ctx.throw_var (Expression (Var r2))));
           Goto ctx.label_throw], r2
+          
+      | Parser_syntax.Label (l, t) -> translate_stmt ctx (l::labelset) t
+      
+      | Parser_syntax.Continue l -> 
+        let rv = mk_assign_fresh_e (Literal Empty) in
+        let l = match l with
+          | None -> ""
+          | Some l -> l in
+        let label = List.assoc l ctx.label_continue in
+        [ Basic (Assignment rv);
+          Goto label
+        ], rv.assign_left 
+      | Parser_syntax.Break l ->
+        let rv = mk_assign_fresh_e (Literal Empty) in
+        let l = match l with
+          | None -> ""
+          | Some l -> l in
+        let label = List.assoc l ctx.label_break in
+        [ Basic (Assignment rv);
+          Goto label
+        ], rv.assign_left
 
       (* Next TODO *) 
-      | Parser_syntax.Continue _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.7 The continue Statement.")))  
-      | Parser_syntax.Break _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.8 The break Statement.")))
-      | Parser_syntax.Label _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.12 Labelled Statement.")))
-        
       | Parser_syntax.For _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.6.3 The for Statement.")))
       | Parser_syntax.Switch _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.11 Switch Statement.")))
 
@@ -2196,7 +2268,7 @@ let exp_to_elem ctx exp : statement list * variable =
     let r = fresh_r() in
     match exp.Parser_syntax.exp_stx with
       | Parser_syntax.NamedFun (s, name, args, body) -> [Basic (Assignment (mk_assign r (Expression (Literal Empty))))], r (* Things done already *)
-      | _ ->  translate_stmt ctx exp
+      | _ ->  translate_stmt ctx [] exp
 
 let rec exp_to_fb ctx exp : statement list * variable =
   match exp.Parser_syntax.exp_stx with

@@ -259,6 +259,8 @@ let make_ctx_vars fid vars =
     throw_var : variable;
     label_return : label;
     label_throw : label;
+    label_continue : (string * label) list;
+    label_break : (string * label) list
   }
   
 let create_ctx env =
@@ -268,6 +270,8 @@ let create_ctx env =
      throw_var = fresh_r ();
      label_return = "return." ^ fresh_r ();
      label_throw = "throw." ^ fresh_r ();
+     label_continue = [];
+     label_break = []
   }
   
 type function_block = { 
