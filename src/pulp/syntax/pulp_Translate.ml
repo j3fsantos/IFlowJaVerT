@@ -526,8 +526,8 @@ let translate_abstract_relation x y leftfirst ctx =
   let to_prim_stmts =
     if leftfirst then (to_primitive_x @ to_primitive_y) 
                  else (to_primitive_y @ to_primitive_x) in
-  let to_number_x, nx = translate_to_number_prim x ctx in
-  let to_number_y, ny = translate_to_number_prim y ctx in
+  let to_number_x, nx = translate_to_number_prim px ctx in
+  let to_number_y, ny = translate_to_number_prim py ctx in
   let rv = fresh_r () in
   let assign_rv e = [Basic (Assignment (mk_assign rv (Expression e)))] in
   to_prim_stmts @
