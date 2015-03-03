@@ -783,7 +783,6 @@ let translate_bin_op_plus f op e1 e2 ctx =
   
    
 let translate_bin_op_logical f e1 e2 bop ctx =
-  (* TODO do conversion for boolean *)
   let op = tr_boolean_op bop in
   let r1_stmts, r1 = f e1 in
   let r2_stmts, r2 = translate_gamma r1 ctx in
@@ -798,7 +797,7 @@ let translate_bin_op_logical f e1 e2 bop ctx =
         [Basic (Assignment (mk_assign rv (Expression (Var r2))))], 
 	      (r3_stmts) @ 
 	      r4_stmts @ 
-	      [Basic (Assignment (mk_assign rv (Expression (BinOp (Var r2, Boolean op, Var r4)))))]))
+	      [Basic (Assignment (mk_assign rv (Expression (Var r4))))]))
     ], rv
   
 let rec to_ivl_goto stmts = 

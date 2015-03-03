@@ -536,6 +536,9 @@ let test_S11_9_2_A4_1_T1 () =
 let test_S11_10_3_A3_T1_5 () =
   test_template_normal ("({} | function(){return 1})") (VHValue (HVLiteral (Num 0.)))
   
+let test_S11_11_2_A3_T2 () =
+  test_template_normal ("(0 || -0)") (VHValue (HVLiteral (Num 0.)))
+  
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
    "running program2" >:: test_program2;
@@ -641,5 +644,6 @@ let suite = "Testing_Interpreter" >:::
     "test_S15_7_4_4_A2_T05" >:: test_S15_7_4_4_A2_T05;
     "test_S8_12_3_A3" >:: test_S8_12_3_A3; 
     "test_S11_9_2_A4_1_T1" >:: test_S11_9_2_A4_1_T1;
-    "test_S11_10_3_A3_T1_5" >:: test_S11_10_3_A3_T1_5
+    "test_S11_10_3_A3_T1_5" >:: test_S11_10_3_A3_T1_5;
+    "test_S11_11_2_A3_T2" >:: test_S11_11_2_A3_T2
     ] 
