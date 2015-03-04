@@ -1480,7 +1480,6 @@ let rec translate_exp ctx exp : statement list * variable =
 				  let r2_stmts, r2 = translate_gamma r1 ctx in
 				  let r3_stmts, r3 = f e2 in
 				  let r4_stmts, r4 = translate_gamma r3 ctx in
-          let label = fresh_r () in
 				  let r5 = mk_assign_fresh_e (BinOp (Var r2, tr_bin_op (Parser_syntax.Arith aop), Var r4)) in
           let field = mk_assign_fresh_e (Field (Var r1)) in
 				    r1_stmts @ 
@@ -1494,11 +1493,10 @@ let rec translate_exp ctx exp : statement list * variable =
                              (equal_string_expr field.assign_left "arguments") 
                              (equal_string_expr field.assign_left "eval"), 
                  translate_error_throw LSError ctx.throw_var ctx.label_throw, 
-                 [Goto label]))
+                 []))
               ],
-		          [ Label label;
-                translate_put_value r1 r5.assign_left ctx.throw_var ctx.label_throw
-              ]))
+		          []));
+              translate_put_value r1 r5.assign_left ctx.throw_var ctx.label_throw
             ],
 				    r5.assign_left
 
