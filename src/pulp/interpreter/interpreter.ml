@@ -578,7 +578,7 @@ let initial_heap () =
   let h = List.fold_left built_in_obj_proto_lop h [Lg; Lfp; LEval; LRError; LSError; 
     LNotImplemented GetValuePrim; LNotImplemented ToNumber; LNotImplemented ToString; Lbp; Lnp; Lsp; Lep] in
   let h = List.fold_left built_in_obj_proto_lfp h [LObject; LFunction; LBoolean; LNumber; LString; LError; LTError; Lop_toString; Lop_valueOf; Lop_isPrototypeOf; 
-    LObjectGetPrototypeOf; Lbp_toString; Lbp_valueOf; Lnp_toString; Lnp_valueOf; Lsp_toString; Lsp_valueOf] in
+    LObjectGetPrototypeOf; Lbp_toString; Lbp_valueOf; Lnp_toString; Lnp_valueOf; Lsp_toString; Lsp_valueOf; LEval] in
     
   let h = add_field h (BLoc Lop) (string_of_builtin_field FClass) (HVLiteral (String "Object")) in
   let h = add_field h (BLoc Lop_toString) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Object_Prototype_toString))) in 
@@ -593,7 +593,6 @@ let initial_heap () =
   let h = add_field h (BLoc Lg) "undefined" (HVLiteral Undefined) in
   let h = add_field h (BLoc Lg) "NaN" (HVLiteral (Num nan)) in
   let h = add_field h (BLoc Lg) "Infinity" (HVLiteral (Num infinity)) in
-  let h = Heap.add (BLoc LEval) Object.empty h in
   let h = add_field h (BLoc LEval) (string_of_builtin_field FId) (HVLiteral (String ("eval"))) in
   
   let h = add_field h (BLoc Lg) "Object" (HVObj (BLoc LObject)) in
