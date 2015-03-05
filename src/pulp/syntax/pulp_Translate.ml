@@ -171,6 +171,10 @@ let is_callable arg =
        [rv_false]))
     ],
     [rv_false])), rv
+    
+let is_constructor arg =
+  let hasfield = mk_assign_fresh (HasField (Var arg, literal_builtin_field FConstructId)) in
+  Basic (Assignment hasfield), hasfield.assign_left
   
 let translate_strict_equality_comparison_types_equal x y rv = 
   let rv_true = Basic (Assignment (mk_assign rv (Expression (Literal (Bool true))))) in
@@ -357,7 +361,7 @@ let translate_obj_coercible r ctx =
     Basic (Assignment (mk_assign rv (Expression (Literal Empty))))
   ], rv
   
-let translate_call_construct_start f e1 e2s ctx =
+let translate_call_construct_start f e1 e2s ctx construct =
     let r1_stmts, r1 = f e1 in
     let r2_stmts, r2 = translate_gamma r1 ctx in 
     let arg_stmts = List.map (fun e ->
@@ -370,7 +374,9 @@ let translate_call_construct_start f e1 e2s ctx =
     let arg_values, arg_stmts = List.split arg_stmts in
     let arg_stmts = List.flatten arg_stmts in  
     let gotothrow = translate_error_throw Ltep ctx.throw_var ctx.label_throw in
-    let is_callable_stmt, is_callable = is_callable r2 in  (* TODO - Check for contruct id for new *)
+    let is_callable_stmt, is_callable = 
+      if construct then is_constructor r2
+      else is_callable r2 in  
     (
       r1_stmts @ 
       r2_stmts @ 
@@ -901,6 +907,7 @@ let translate_function_expression exp ctx named =
   env_stmts @ 
   [
     Basic (Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FId) (Literal (String fid)))); 
+    Basic (Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FConstructId) (Literal (String fid))));
     Basic (Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FScope) (Var scope.assign_left))); 
   ], f_obj.assign_left 
   
@@ -1041,7 +1048,7 @@ let rec translate_exp ctx exp : statement list * variable =
             [Basic (Assignment r6)], r6.assign_left
             
       | Parser_syntax.New (e1, e2s) ->
-        let stmts, r1, r2, arg_values = translate_call_construct_start f e1 e2s ctx in
+        let stmts, r1, r2, arg_values = translate_call_construct_start f e1 e2s ctx true in
         let prototype = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FPrototype)) in        
         let vthisproto = fresh_r () in
         let vthis = mk_assign_fresh Obj in
@@ -1086,7 +1093,7 @@ let rec translate_exp ctx exp : statement list * variable =
           ], rv
         
       | Parser_syntax.Call (e1, e2s) ->
-        let stmts, r1, r2, arg_values = translate_call_construct_start f e1 e2s ctx in
+        let stmts, r1, r2, arg_values = translate_call_construct_start f e1 e2s ctx false in
               let vthis = fresh_r () in
               let assign_vthis_und = Basic (Assignment (mk_assign vthis (Expression (Literal Undefined)))) in
               let if5, call = translate_inner_call r2 vthis arg_values ctx in
@@ -1555,6 +1562,8 @@ let translate_block es f =
     ([Basic (Assignment retv)], retv.assign_left) es
 
 let rec translate_stmt ctx labelset exp : statement list * variable =
+  (*Printf.printf ("Translating stmt %s with break labels %s") (Pretty_print.string_of_exp false exp) (string_of_break_continue_labels ctx);
+  Printf.printf ("\n labelset %s \n") (String.concat ";" labelset);*)
   let f = translate_stmt ctx [] in 
   match exp.Parser_syntax.exp_stx with
         (* Literals *)
