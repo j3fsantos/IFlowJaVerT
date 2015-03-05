@@ -234,6 +234,7 @@ let translate_error_throw error throw_var throw_label = (* TODO: Change to use E
   [
     Basic (Assignment r1); 
     add_proto_value r1.assign_left error; 
+    Basic (Mutation (mk_mutation (Var r1.assign_left) (literal_builtin_field FClass) (Literal (String "Error"))));
     Basic (Assignment (mk_assign throw_var (Expression (Var r1.assign_left)))); 
     Goto throw_label
   ]
