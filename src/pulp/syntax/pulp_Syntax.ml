@@ -11,6 +11,8 @@ type feature =
   
 type builtin_loc = 
   | Lg (* Global Object *)
+  | Lg_isNaN
+  | Lg_isFinite
   | Lop (* Object.Prototype Object *)
   | Lop_toString
   | Lop_valueOf
@@ -42,6 +44,8 @@ type builtin_loc =
   | LNotImplemented of feature (* The tool cannot handle this case atm *)
 
 type builtin_function = 
+  | Global_isNaN
+  | Global_isFinite
   | Boolean_Call
   | Boolean_Construct
   | Boolean_Prototype_toString

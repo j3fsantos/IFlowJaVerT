@@ -545,6 +545,19 @@ let test_S11_8_4_A3_1_T2_4 () =
 let test_do_while_break () =
    test_template_normal ("var x = 1; do { if (x == 4) {break}; x++ } while (x < 10)") (VHValue (HVLiteral (Num 3.0)))
   
+let test_is_nan_false () =
+  test_template_normal ("isNaN (1)") (VHValue (HVLiteral (Bool false)))
+  
+let test_is_nan_true () =
+  test_template_normal ("isNaN (NaN)") (VHValue (HVLiteral (Bool true)))
+  
+let test_is_finite_false () =
+  test_template_normal ("isFinite (Infinity)") (VHValue (HVLiteral (Bool false)))
+  
+let test_is_finite_true () =
+  test_template_normal ("isFinite (7)") (VHValue (HVLiteral (Bool true)))
+
+  
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
    "running program2" >:: test_program2;
@@ -653,5 +666,9 @@ let suite = "Testing_Interpreter" >:::
     "test_S11_10_3_A3_T1_5" >:: test_S11_10_3_A3_T1_5;
     "test_S11_11_2_A3_T2" >:: test_S11_11_2_A3_T2;
     "test_S11_8_4_A3_1_T2_4" >:: test_S11_8_4_A3_1_T2_4;
-    "test_do_while_break" >:: test_do_while_break
+    "test_do_while_break" >:: test_do_while_break;
+    "test_is_nan_false" >:: test_is_nan_false;
+    "test_is_nan_true" >:: test_is_nan_true;
+    "test_is_finite_false" >:: test_is_finite_false;
+    "test_is_finite_true" >:: test_is_finite_true;
     ] 

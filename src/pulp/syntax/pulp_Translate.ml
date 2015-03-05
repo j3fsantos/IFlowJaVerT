@@ -2221,6 +2221,42 @@ let builtin_lnp_valueOf () =
     ] in    
   make_function_block (string_of_builtin_function Number_Prototype_valueOf) body [rthis; rscope] ctx
   
+let builtin_global_is_nan () =
+  let n = fresh_r () in
+  let ctx = create_ctx [] in
+  let stmts, r1 = translate_to_number n ctx in 
+  let body = to_ivl_goto (* TODO translation level *)
+    (stmts @
+    [ Sugar (If (equal_num_expr r1 nan,
+       [ Basic (Assignment (mk_assign ctx.return_var (Expression (Literal (Bool true)))))],
+       [ Basic (Assignment (mk_assign ctx.return_var (Expression (Literal (Bool false)))))]
+      ));
+      Goto ctx.label_return; 
+      Label ctx.label_return; 
+      Label ctx.label_throw
+    ]) in    
+  make_function_block (string_of_builtin_function Global_isNaN) body [rthis; rscope; n] ctx
+  
+let builtin_global_is_finite () =
+  let n = fresh_r () in
+  let ctx = create_ctx [] in
+  let stmts, r1 = translate_to_number n ctx in 
+  let body = to_ivl_goto (* TODO translation level *)
+    (stmts @
+    [ Sugar (If (or_expr 
+                  (equal_num_expr r1 nan)
+                  (or_expr 
+                    (equal_num_expr r1 infinity) 
+                    (equal_num_expr r1 neg_infinity)),
+       [ Basic (Assignment (mk_assign ctx.return_var (Expression (Literal (Bool false)))))],
+       [ Basic (Assignment (mk_assign ctx.return_var (Expression (Literal (Bool true)))))]
+      ));
+      Goto ctx.label_return; 
+      Label ctx.label_return; 
+      Label ctx.label_throw
+    ]) in    
+  make_function_block (string_of_builtin_function Global_isFinite) body [rthis; rscope; n] ctx
+  
 let builtin_call_string_call () =
   let v = fresh_r () in
   let ctx = create_ctx [] in
@@ -2419,5 +2455,7 @@ let exp_to_pulp level e main ctx_vars =
   let context = AllFunctions.add (string_of_builtin_function String_Prototype_toString) (builtin_lsp_toString_valueOf()) context in
   let context = AllFunctions.add (string_of_builtin_function String_Prototype_valueOf) (builtin_lsp_toString_valueOf()) context in
   let context = AllFunctions.add (string_of_builtin_function Function_Prototype_Call) (builtin_lfp_call()) context in
+  let context = AllFunctions.add (string_of_builtin_function Global_isNaN) (builtin_global_is_nan()) context in
+  let context = AllFunctions.add (string_of_builtin_function Global_isFinite) (builtin_global_is_finite()) context in
   
   context

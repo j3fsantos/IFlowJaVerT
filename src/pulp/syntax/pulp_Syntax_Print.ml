@@ -56,6 +56,8 @@ let string_of_feature f =
 let string_of_builtin_loc l =
   match l with
     | Lg -> "#lg"
+    | Lg_isNaN -> "#lg_isNan"
+    | Lg_isFinite -> "#lg_isFinite"
     | Lop -> "#lop"
     | Lop_toString -> "#lop_toString"
     | Lop_valueOf -> "#lop_valueOf"
@@ -98,6 +100,8 @@ let string_of_builtin_field f =
 
 let string_of_builtin_function f =
   match f with
+    | Global_isNaN -> "#global_is_nan"
+    | Global_isFinite -> "#global_is_finite"
     | Boolean_Call -> "#boolean_call"
     | Boolean_Construct -> "#boolean_construct"
     | Boolean_Prototype_toString -> "#boolean_prototype_to_string"
@@ -245,6 +249,11 @@ let string_of_returs_throws ctx =
 let string_of_env_var ctx = 
   Printf.sprintf "\n env variables %s \n \n \n " 
   (String.concat ";" (List.map string_of_ctx_vars ctx.env_vars))
+  
+let string_of_break_continue_labels ctx =
+  Printf.sprintf "\n break labels %s \n continue labels %s \n " 
+  (String.concat ";" (List.map (fun (l1, l2) -> "(" ^ l1 ^ "," ^ l2 ^ ")") ctx.label_break))
+  (String.concat ";" (List.map (fun (l1, l2) -> "(" ^ l1 ^ "," ^ l2 ^ ")") ctx.label_continue))
 
 let string_of_func_block fb =
    Printf.sprintf "procedure %s (%s) %s { \n %s \n} \n with context %s \n" 
