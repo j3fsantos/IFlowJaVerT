@@ -871,7 +871,7 @@ let translate_literal exp : statement list * variable =
         end
       | _ -> raise (PulpInvalid ("Expected literal. Actual " ^ (Pretty_print.string_of_exp true exp)))
 
-let translate_function_expression exp ctx named =
+let translate_function_expression exp params ctx named =
   let fid = get_codename exp in
   let f_obj = mk_assign_fresh Obj in
   let prototype = mk_assign_fresh Obj in
@@ -909,6 +909,7 @@ let translate_function_expression exp ctx named =
   [
     Basic (Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FId) (Literal (String fid)))); 
     Basic (Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FConstructId) (Literal (String fid))));
+    Basic (Mutation (mk_mutation (Var f_obj.assign_left) (Literal (String "length")) (Literal (Num (float_of_int (List.length params)))))); 
     Basic (Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FScope) (Var scope.assign_left))); 
   ], f_obj.assign_left 
   
@@ -1112,11 +1113,11 @@ let rec translate_exp ctx exp : statement list * variable =
           ] @
           if5, call
           
-      | Parser_syntax.AnnonymousFun _ ->
-        translate_function_expression exp ctx None
+      | Parser_syntax.AnnonymousFun (_, params, _) ->
+        translate_function_expression exp params ctx None
         
-      | Parser_syntax.NamedFun (_, name, _, _) -> 
-        translate_function_expression exp ctx (Some name)
+      | Parser_syntax.NamedFun (_, name, params, _) -> 
+        translate_function_expression exp params ctx (Some name)
           
       | Parser_syntax.Unary_op (op, e) ->
         begin match op with 
@@ -2369,8 +2370,8 @@ let translate_function fb fid main args env named =
   (* Creating function declarations *)
   let func_decls_used_vars = List.map (fun f ->
      match f.Parser_syntax.exp_stx with
-      | Parser_syntax.NamedFun (_, name, _, body) -> 
-        let stmts, lvar = translate_function_expression f ctx None in
+      | Parser_syntax.NamedFun (_, name, params, body) -> 
+        let stmts, lvar = translate_function_expression f params ctx None in
         stmts @
 	      [
 	        Basic (Mutation (mk_mutation (Var current_scope_var) (Literal (String name)) (Var lvar)))
