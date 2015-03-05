@@ -556,7 +556,9 @@ let test_is_finite_false () =
   
 let test_is_finite_true () =
   test_template_normal ("isFinite (7)") (VHValue (HVLiteral (Bool true)))
-
+  
+let test_negative_nan () =
+  test_template_normal ("isNaN(-{})") (VHValue (HVLiteral (Bool true)))
   
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
@@ -671,4 +673,5 @@ let suite = "Testing_Interpreter" >:::
     "test_is_nan_true" >:: test_is_nan_true;
     "test_is_finite_false" >:: test_is_finite_false;
     "test_is_finite_true" >:: test_is_finite_true;
+    "test_negative_nan" >:: test_negative_nan
     ] 

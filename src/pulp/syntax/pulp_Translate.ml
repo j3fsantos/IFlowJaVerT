@@ -1209,7 +1209,7 @@ let rec translate_exp ctx exp : statement list * variable =
                assign_rv (Literal (Num nan)),
                [Basic (Assignment negative)] @
                assign_rv (Var negative.assign_left)))
-            ], negative.assign_left
+            ], rv
 		  | Parser_syntax.Pre_Decr -> 
             let stmts, _, newvalue = translate_inc_dec f e Minus ctx
             in stmts, newvalue
