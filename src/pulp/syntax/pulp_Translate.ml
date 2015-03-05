@@ -2117,6 +2117,17 @@ let builtin_lop_is_prototype_of () =
       Label ctx.label_throw
     ] in    
   make_function_block (string_of_builtin_function Object_getPrototypeOf) body [rthis; rscope; v] ctx
+  
+let builtin_lfp_call () = 
+  let ctx = create_ctx [] in
+  let body = to_ivl_goto (* TODO translation level *)
+    ([ 
+      Basic (Assignment (mk_assign ctx.return_var (Expression (Literal Undefined))));
+      Goto ctx.label_return; 
+      Label ctx.label_return; 
+      Label ctx.label_throw
+    ]) in    
+  make_function_block (string_of_builtin_function Function_Call) body [rthis; rscope] ctx
 
 let builtin_call_number_call () =
   let v = fresh_r () in
@@ -2397,5 +2408,6 @@ let exp_to_pulp level e main ctx_vars =
   let context = AllFunctions.add (string_of_builtin_function String_Construct) (builtin_call_string_construct()) context in
   let context = AllFunctions.add (string_of_builtin_function String_Prototype_toString) (builtin_lsp_toString_valueOf()) context in
   let context = AllFunctions.add (string_of_builtin_function String_Prototype_valueOf) (builtin_lsp_toString_valueOf()) context in
+  let context = AllFunctions.add (string_of_builtin_function Function_Prototype_Call) (builtin_lfp_call()) context in
   
   context

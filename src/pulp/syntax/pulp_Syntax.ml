@@ -15,6 +15,7 @@ type builtin_loc =
   | Lop_toString
   | Lop_valueOf
   | Lop_isPrototypeOf
+  | LFunction
   | Lfp (* Function.Prototype Object *)
   | LEval (* Eval Function Object *)
   | LError 
@@ -63,6 +64,9 @@ type builtin_function =
   | TypeError_Construct
   | ReferenceError_Call
   | ReferenceError_Construct
+  | Function_Call
+  | Function_Construct
+  | Function_Prototype_Call
 
 type builtin_field =
   | FProto

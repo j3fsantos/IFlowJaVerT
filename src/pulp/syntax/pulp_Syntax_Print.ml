@@ -60,6 +60,7 @@ let string_of_builtin_loc l =
     | Lop_toString -> "#lop_toString"
     | Lop_valueOf -> "#lop_valueOf"
     | Lop_isPrototypeOf -> "#lop_isPrototypeOf"
+    | LFunction -> "lfunction"
     | Lfp -> "#lfp"
     | LEval -> "#leval"
     | LError -> "#lerror"
@@ -119,7 +120,9 @@ let string_of_builtin_function f =
     | TypeError_Construct -> "#terror_construct"
     | ReferenceError_Call -> "#rerror_call"
     | ReferenceError_Construct -> "#rerror_construct"
-
+    | Function_Call -> "#function_call"
+    | Function_Construct -> "#function_construct"
+    | Function_Prototype_Call -> "#function_protottype_call"
 
 let string_of_var x = x
 
