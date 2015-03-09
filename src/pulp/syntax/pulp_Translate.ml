@@ -446,7 +446,11 @@ let translate_inner_call obj vthis args ctx =
           add_proto_null fscope_eval.assign_left
         ] @
         env_stmts @
-        [Basic (Assignment eval_call)],       
+        [Basic (Assignment eval_call);
+         Sugar (If (equal_empty_expr rv,
+           [Basic (Assignment (mk_assign rv (Expression (Literal Undefined))))],
+           []))
+        ],       
         [Basic (Assignment (mk_assign rv (Expression first_argument)))]))
       ], 
       [Basic (Assignment builtincall)]));
@@ -1559,7 +1563,12 @@ let translate_block es f =
     
     List.fold_left (fun (prev_stmts, prev) current -> 
       let r1_stmts, r1 = f current in
-      let if_stmts, ifv = mk_if r1 prev in
+      
+      let if_stmts, ifv = match current.Parser_syntax.exp_stx with 
+        | Parser_syntax.Break _ 
+        | Parser_syntax.Continue _ -> [], prev
+        | _ -> mk_if r1 prev in
+      
       (prev_stmts @ r1_stmts @ if_stmts, ifv)) 
     ([Basic (Assignment retv)], retv.assign_left) es
 
@@ -1670,7 +1679,10 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
                 ], 
                 
                 []));
-            Label break
+            Label break;
+            Sugar (If (equal_empty_expr r3, 
+              [], 
+              [Basic (Assignment (mk_assign rv (Expression (Var r3))))]));
           ], rv
           
       | Parser_syntax.DoWhile (e1, e2) -> 

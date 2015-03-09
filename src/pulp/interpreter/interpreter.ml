@@ -457,6 +457,7 @@ let rec run_assign_expr (s : local_state) (e : assign_right_expression) ctx (fun
 	  | ProtoF (e1, e2) -> 
       let v1 = run_expr s e1 in
       let v2 = run_expr s e2 in	
+      (*Printf.printf ("proto_field (%s, %s)") (string_of_value v1) (string_of_value v2);*)
 			let l, x, obj = object_field_check v1 v2 s.lsheap "proto_field" s.lscounter in
 			let v = get_value_proto (VHValue (HVObj l)) x s.lsheap s.lscounter in s, v 
       
@@ -499,8 +500,9 @@ run_function (h : heap_type) (f : function_block) (args : value list) (fs : func
     else if l = f.func_ctx.label_throw then FTException, 
        (try Stack.find f.func_ctx.throw_var result.lsstack
         with Not_found -> raise (InterpreterStuck ("Cannot find throw variable", result.lscounter)))
-    else raise (Invalid_argument "Shouldn't be other label than end label here")
+    else raise (Invalid_argument "Shouldn't be other label than end label here");    
   in 
+  (*Printf.printf "End of function %s \n" f.func_name;*)
   {fs_heap = result.lsheap; fs_return_type = ret_type; fs_return_value = ret_val}
   
 and run_basic_stmt (s : local_state) (stmt : basic_statement) (labelmap : int LabelMap.t) ctx (fs : function_block AllFunctions.t) : local_state =
