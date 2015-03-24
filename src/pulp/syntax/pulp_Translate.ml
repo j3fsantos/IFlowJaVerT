@@ -1679,10 +1679,7 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
                 ], 
                 
                 []));
-            Label break;
-            Sugar (If (equal_empty_expr r3, 
-              [], 
-              [Basic (Assignment (mk_assign rv (Expression (Var r3))))]));
+            Label break
           ], rv
           
       | Parser_syntax.DoWhile (e1, e2) -> 
@@ -1721,7 +1718,7 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
                   Goto label1
                 ],                
                 []));
-            Label break
+            Label break;
           ], rv
 
         
@@ -2123,7 +2120,6 @@ let builtin_object_get_prototype_of () =
 let builtin_lop_is_prototype_of () =
   let v = fresh_r () in
   let ctx = create_ctx [] in
-  let rv = fresh_r () in
   let to_obj_stmt, o = translate_to_object rthis ctx in
   let proto = mk_assign_fresh (Lookup (Var v, literal_builtin_field FProto)) in
   let proto_o = mk_assign_fresh (ProtoO (Var proto.assign_left, Var o)) in
@@ -2132,14 +2128,14 @@ let builtin_lop_is_prototype_of () =
 	      [ to_obj_stmt;
           Basic (Assignment proto);
 	        Basic (Assignment proto_o);
-	        Basic (Assignment (mk_assign rv (Expression (Var proto_o.assign_left))))
+	        Basic (Assignment (mk_assign ctx.return_var (Expression (Var proto_o.assign_left))))
 	      ],
-	      [Basic (Assignment (mk_assign rv (Expression (Literal (Bool false)))))]));
+	      [Basic (Assignment (mk_assign ctx.return_var (Expression (Literal (Bool false)))))]));
       Goto ctx.label_return; 
       Label ctx.label_return; 
       Label ctx.label_throw
     ] in    
-  make_function_block (string_of_builtin_function Object_getPrototypeOf) body [rthis; rscope; v] ctx
+  make_function_block (string_of_builtin_function Object_Prototype_isPrototypeOf) body [rthis; rscope; v] ctx
   
 let builtin_lfp_call () = 
   let ctx = create_ctx [] in
@@ -2405,7 +2401,10 @@ let translate_function fb fid main args env named =
   
   let end_stmts =
     if (fid = main) then
-      [Basic (Assignment (mk_assign ctx.return_var (Expression (Var lvar))))]
+      [ Sugar (If (equal_empty_expr lvar,
+        [Basic (Assignment (mk_assign ctx.return_var (Expression (Literal Undefined))))],
+        [Basic (Assignment (mk_assign ctx.return_var (Expression (Var lvar))))]))
+      ]
     else
       [Basic (Assignment (mk_assign ctx.return_var (Expression (Literal Empty))))] in
     
