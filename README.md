@@ -56,7 +56,7 @@ Updated Instructions
 
 
 1) Obtain the code of the compiler: 
-	i) git clone https://github.com/resource-reasoning/JS_Symbolic_Debugger/tree/master/JS_Symbolic_Debugger
+	i) git clone https://github.com/resource-reasoning/JS_Symbolic_Debugger.git
 	ii) git submodule init && git submodule update
 
 2) Obtain the OCaml package manager and install OCaml (brew is required)
