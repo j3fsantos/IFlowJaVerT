@@ -174,7 +174,7 @@ type expression =
   | Ref of expression * expression * reference_type
   | Base of expression
   | Field of expression
-  | IsTypeOf of expression * pulp_type
+  | IsTypeOf of expression * pulp_type (* TODO remove *)
   | TypeOf of expression
 
 type call = { 
