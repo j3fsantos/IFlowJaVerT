@@ -33,7 +33,7 @@ let create_output (content : string) path =
   output_string oc content;
   close_out oc
     
-let translate_exp path =
+let translate_exp path level =
   let exp = 
     try 
       Parser_main.exp_from_file path 
@@ -45,14 +45,14 @@ let translate_exp path =
     
   let p_exp = 
     try 
-      exp_to_pulp (!level) exp Pulp_Syntax_Utils.main_fun_id []
+      exp_to_pulp level exp Pulp_Syntax_Utils.main_fun_id []
     with
       | PulpNotImplemented exp -> Printf.printf "\nTranslation of Javascript syntax does not support '%s' yet.\n" exp; exit 2
       | Invalid_argument arg -> Printf.printf "\nSomething wrong with the translation '%s'.\n" arg; exit 1
   in p_exp
 
-let translate path = 
-  let p_exp = translate_exp path in
+let translate path level = 
+  let p_exp = translate_exp path level in
   let p_exp = Simp_Main.simplify p_exp in
   create_output (Pulp_Syntax_Print.string_of_all_functions p_exp) path    
 
@@ -60,7 +60,7 @@ let main () =
   Config.apply_config ();
   Parser_main.verbose := false;
   arguments ();
-  translate !file
+  translate !file !level
   
 
 let _ = main()

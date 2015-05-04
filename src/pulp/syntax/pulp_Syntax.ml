@@ -287,14 +287,24 @@ type function_block = {
     func_body : statement list;
     func_params : formal_param list;
     func_ctx : translation_ctx;
+    func_spec : Logic.spec_pre_post list
 }
 
 
+let make_function_block_with_spec fn fb fparams ctx spec = {
+    func_name = fn;
+    func_body = fb;
+    func_params = fparams;
+    func_ctx = ctx;
+    func_spec = spec
+  }
+  
 let make_function_block fn fb fparams ctx = {
     func_name = fn;
     func_body = fb;
     func_params = fparams;
-    func_ctx = ctx
+    func_ctx = ctx;
+    func_spec = []
   }
   
 module AllFunctions = Map.Make ( 

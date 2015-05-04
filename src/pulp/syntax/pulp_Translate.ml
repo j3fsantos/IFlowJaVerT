@@ -2340,7 +2340,7 @@ let rec exp_to_fb ctx exp : statement list * variable =
     | Parser_syntax.Block (es) -> translate_block es (exp_to_elem ctx)
     | _ -> exp_to_elem ctx exp
         
-let translate_function fb fid main args env named =
+let translate_function fb annots fid main args env named =
   let ctx = create_ctx env in
   
   (*Printf.printf "Env vars in %s: %s" (match named with None -> "None " | Some n -> n)  (String.concat "\n" (List.map (Pulp_Syntax_Print.string_of_ctx_vars) ctx.env_vars));*)
@@ -2423,14 +2423,16 @@ let translate_function fb fid main args env named =
     ]
   in
   
-  make_function_block fid pulpe (rthis :: (rscope :: args)) ctx
+  let spec = Formula_parser_utils.get_function_spec annots in
+  
+  make_function_block_with_spec fid pulpe (rthis :: (rscope :: args)) ctx spec
 
 let translate_function_syntax level id e named env main =
   let pulpe = 
     match e.Parser_syntax.exp_stx with
-      | Parser_syntax.AnnonymousFun (_, args, fb) -> translate_function fb id main args env None
-      | Parser_syntax.NamedFun (_, name, args, fb) -> translate_function fb id main args env named
-      | Parser_syntax.Script (_, es) -> translate_function e main main [] env None
+      | Parser_syntax.AnnonymousFun (_, args, fb) -> translate_function fb e.Parser_syntax.exp_annot id main args env None
+      | Parser_syntax.NamedFun (_, name, args, fb) -> translate_function fb e.Parser_syntax.exp_annot id main args env named
+      | Parser_syntax.Script (_, es) -> translate_function e e.Parser_syntax.exp_annot main main [] env None
       | _ -> raise (Invalid_argument "Should be a function definition here") in
   match level with
     | IVL_buitin_functions -> raise (Utils.InvalidArgument ("pulp_Translate", "builtin_functions level not implemented yet"))

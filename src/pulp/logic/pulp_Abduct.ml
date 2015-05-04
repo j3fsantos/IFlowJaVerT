@@ -1,0 +1,1 @@
+let execute f fs = ()
