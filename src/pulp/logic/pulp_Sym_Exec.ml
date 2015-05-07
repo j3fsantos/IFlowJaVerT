@@ -2,6 +2,7 @@ open Pulp_Syntax
 open State_Graph
 open Control_Flow
 open Logic
+open Pulp_Logic_Rules
 
 exception NotImplemented of string
 
@@ -31,11 +32,24 @@ let rec execute_stmt f sg cfg fs snode_id =
   let new_snode id state =
     execute_stmt f sg cfg fs (StateG.mk_node sg (mk_sg_node id state)) in
     
+  let new_snode_cond id state edge e =
+    match edge with
+      | Simp_Common.Edge_True -> new_snode id (Logic.Star (Logic.Eq (e, Logic.pv_le (Logic.Pv_Bool true)) :: [state]))
+      | Simp_Common.Edge_False -> new_snode id (Logic.Star (Logic.Eq (e, Logic.pv_le (Logic.Pv_Bool false)) :: [state]))
+      | _ -> raise (Invalid_argument "Expected true and false edges") in
+    
   let get_single_succ id =
     let succs = CFG.succ cfg id in
       begin match succs with
         | [succ] -> succ
         | _ -> raise (Invalid_argument "Expected single successor")
+      end in
+      
+  let get_two_succs id =
+    let succs = CFG.succ cfg id in
+      begin match succs with
+        | [succ1; succ2] -> succ1, succ2
+        | _ -> raise (Invalid_argument "Expected two successor")
       end in
  
   let snode = StateG.get_node_data sg snode_id in
@@ -49,7 +63,13 @@ let rec execute_stmt f sg cfg fs snode_id =
       
     | Goto l -> new_snode (get_single_succ snode.sgn_id) snode.sgn_state
     
-    | GuardedGoto (e, l1, l2) -> ()
+    | GuardedGoto (e, l1, l2) -> 
+      let succ1, succ2 = get_two_succs snode.sgn_id in
+      let edge1 = CFG.get_edge_data cfg snode.sgn_id succ1 in
+      let edge2 = CFG.get_edge_data cfg snode.sgn_id succ2 in
+      new_snode_cond succ1 snode.sgn_state edge1 (expr_to_logical_expr e);
+      new_snode_cond succ2 snode.sgn_state edge2 (expr_to_logical_expr e)
+    
     | Basic (Assignment {assign_right = (Call {call_throw_label = throwl})})      
     | Basic (Assignment {assign_right = (Eval {call_throw_label = throwl})}) 
     | Basic (Assignment {assign_right = (BuiltinCall {call_throw_label = throwl})}) -> 

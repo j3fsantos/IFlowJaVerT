@@ -1,8 +1,3 @@
-type spec = { (* Move to spec *)
-     spec_pre : Logic.formula;
-     spec_post : Logic.formula
-  }
- 
 type feature =
   | GetValuePrim
   | ToNumber
@@ -122,9 +117,7 @@ module CodenameMap = Map.Make (
     type t = codename
     let compare = compare
   end
-)
-
-type codename_spec = spec CodenameMap.t  
+) 
 
 type comparison_op =
   | Equal
