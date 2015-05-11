@@ -104,7 +104,7 @@ let test_if () =
   test_template_normal ("var x = 1; if (false) {x = 2}; x") (VHValue (HVLiteral (Num 1.0)))
   
 let test_undefined () =
-  test_template_normal ("var x = undefined;") (VHValue (HVLiteral Empty))
+  test_template_normal ("1; var x = undefined;") (VHValue (HVLiteral (Num 1.0)))
   
 let test_exception () = 
   test_template_exception "y; 1" Lrep
@@ -559,9 +559,35 @@ let test_is_finite_true () =
   
 let test_negative_nan () =
   test_template_normal ("isNaN(-{})") (VHValue (HVLiteral (Bool true)))
+ 
+(* TODO *)
   
 let test_while_break () =
-  test_template_normal ("var x = 2; while(true) {x++; break}") (VHValue (HVLiteral (Num 2.)))
+  test_template_normal ("var x = 2; while(true) {x++; break; 1}") (VHValue (HVLiteral (Num 2.)))
+  
+let test_while_false () =
+  test_template_normal "var __in__do; while ( false ) __in__do=1; __in__do" (VHValue (HVLiteral Undefined))
+  
+let test_ () =
+  test_template_normal " // CHECK#3
+try{
+  throw \"ex1\";
+}
+catch(er1){
+  if (er1!==\"ex1\") $ERROR('#3.1: Exception ===\"ex1\". Actual:  Exception ==='+ er1  );
+}
+finally{
+  try{
+    throw \"ex2\";
+  }
+  catch(er1){
+
+  }
+}
+
+
+
+" (VHValue (HVLiteral (Bool true)))
   
 let suite = "Testing_Interpreter" >:::
   ["running program1" >:: test_program1;
@@ -677,5 +703,7 @@ let suite = "Testing_Interpreter" >:::
     "test_is_finite_false" >:: test_is_finite_false;
     "test_is_finite_true" >:: test_is_finite_true;
     "test_negative_nan" >:: test_negative_nan;
-    "test_while_break" >:: test_while_break;
+    (*"test_while_break" >:: test_while_break;*)
+    (*"test_while_false" >:: test_while_false; *)
+    (*"test_" >:: test_*)
     ] 
