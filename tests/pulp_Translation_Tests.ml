@@ -2,6 +2,7 @@ open OUnit
 open Pulp_Syntax
 open Pulp_Translate
 open Pulp_Syntax_Utils
+open Pulp_Procedure
 open Control_Flow
 open Reaching_Defs
 
@@ -266,6 +267,22 @@ let test_instance_of_true () =
 let test_instance_of_false () =
   test_template ("function C(){}; function D(){}; var o = new C(); o instanceof D")
   "instance of false"
+  
+let test_ () =
+  test_template ("try{
+  throw \"ex1\";
+}
+catch(er1){
+  if (er1!==\"ex1\") $ERROR('#3.1: Exception ===\"ex1\". Actual:  Exception ==='+ er1  );
+}
+finally{
+  try{
+    throw \"ex2\";
+  }
+  catch(er1){
+
+  }
+}") "nested try catch in flow graph"
 
 let suite = "Testing_Translation" >:::
   ["translating simple" >:: test_simple;
@@ -303,4 +320,6 @@ let suite = "Testing_Translation" >:::
    "test_eval_1">::test_eval_1;
    "test_cav_example_5">::test_cav_example_5;
    "test_instance_of_true" >:: test_instance_of_true;
-   "test_instance_of_false" >:: test_instance_of_false] 
+   "test_instance_of_false" >:: test_instance_of_false
+   (*"test_" >:: test_*)
+   ] 

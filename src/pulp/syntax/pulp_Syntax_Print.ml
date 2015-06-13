@@ -1,5 +1,6 @@
 open Pulp_Syntax
 open Pulp_Syntax_Utils
+open Pulp_Procedure
 
 let string_of_comparison_op x =
   match x with

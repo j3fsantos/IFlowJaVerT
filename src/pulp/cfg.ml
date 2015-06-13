@@ -1,4 +1,5 @@
 open Pulp_Syntax
+open Pulp_Procedure
 open Batteries
 
 module AllLabels = Map.Make ( 

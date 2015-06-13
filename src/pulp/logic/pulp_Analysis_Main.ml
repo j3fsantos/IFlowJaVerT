@@ -47,6 +47,6 @@ let main () =
    let expression_map = Translate.translate_exp !file Pulp_Translate.IVL_goto in  
    let expression_map = Simp_Main.simplify expression_map in 
      
-   Pulp_Syntax.AllFunctions.iter (fun fid f -> ignore (analyse_function f expression_map)) expression_map
+   Pulp_Procedure.AllFunctions.iter (fun fid f -> ignore (analyse_function f expression_map)) expression_map
       
 let _ = main ()

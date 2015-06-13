@@ -4,7 +4,7 @@ open Control_Flow
 
 type state_graph_node = {
     sgn_id : CFG.node;
-    sgn_state : Logic.formula
+    sgn_state : Pulp_Logic.formula
   }
   
 let mk_sg_node id s = {

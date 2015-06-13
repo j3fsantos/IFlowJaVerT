@@ -1,5 +1,6 @@
 open Graphs
 open Pulp_Syntax
+open Pulp_Procedure
 open Simp_Common
 
 module CFG = AbstractGraph (struct type t = statement end) (struct type t = edge_type end)

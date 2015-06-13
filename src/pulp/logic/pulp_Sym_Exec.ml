@@ -1,12 +1,13 @@
 open Pulp_Syntax
+open Pulp_Procedure
 open State_Graph
 open Control_Flow
-open Logic
+open Pulp_Logic
 open Pulp_Logic_Rules
 
 exception NotImplemented of string
 
-let execute_basic_stmt bs pre : Logic.formula =
+let execute_basic_stmt bs pre : formula =
   (* pre => pre_stmt' * F*)
   (* post_stmt' * F *)
   match bs with
@@ -34,8 +35,8 @@ let rec execute_stmt f sg cfg fs snode_id =
     
   let new_snode_cond id state edge e =
     match edge with
-      | Simp_Common.Edge_True -> new_snode id (Logic.Star (Logic.Eq (e, Logic.pv_le (Logic.Pv_Bool true)) :: [state]))
-      | Simp_Common.Edge_False -> new_snode id (Logic.Star (Logic.Eq (e, Logic.pv_le (Logic.Pv_Bool false)) :: [state]))
+      | Simp_Common.Edge_True -> new_snode id (Star (Eq (e, Le_Literal (Bool true)) :: [state]))
+      | Simp_Common.Edge_False -> new_snode id (Star (Eq (e, Le_Literal (Bool false)) :: [state]))
       | _ -> raise (Invalid_argument "Expected true and false edges") in
     
   let get_single_succ id =

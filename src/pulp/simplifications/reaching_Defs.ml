@@ -1,5 +1,6 @@
 open Graphs
 open Pulp_Syntax
+open Pulp_Procedure
 open Basic_Blocks
 open Pulp_Syntax_Utils
 open Simp_Common

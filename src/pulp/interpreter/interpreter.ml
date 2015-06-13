@@ -2,6 +2,7 @@ open Batteries
 open Pulp_Syntax 
 open Pulp_Syntax_Utils
 open Pulp_Syntax_Print
+open Pulp_Procedure
 open Memory_Model
 open Interpreter_Print
 

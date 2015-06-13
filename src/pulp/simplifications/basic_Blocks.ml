@@ -1,5 +1,6 @@
 open Graphs
 open Pulp_Syntax
+open Pulp_Procedure
 open Simp_Common
 open Control_Flow
 
@@ -155,10 +156,12 @@ let print_cfg_bb (cfgs : CFG_BB.graph AllFunctions.t) (filename : string) : unit
   Printf.fprintf chan "digraph iCFG {\n\tnode [shape=box,  labeljust=l]\n";
   AllFunctions.iter 
     (fun name cfg -> 
+      (*if name = "main" then begin*)
       cfg_index := !cfg_index + 1;
       Printf.fprintf chan "\tsubgraph \"cluster_%s\" {\n\t\tlabel=\"%s\"\n" name (String.escaped name);
       List.iter (fun n -> d_cfgnode chan cfg n (CFG_BB.get_node_data cfg n)) (CFG_BB.nodes cfg);
       Printf.fprintf chan  "\t}\n";
+      (*end*)
     ) 
     cfgs;
   Printf.fprintf chan "}\n";

@@ -3,6 +3,7 @@ open Pulp_Syntax
 open Pulp_Translate
 open Pulp_Syntax_Utils
 open Pulp_Syntax_Print
+open Pulp_Procedure
 open Interpreter
 open Interpreter_Print
 open Memory_Model

@@ -2,6 +2,7 @@ open Batteries
 open Pulp_Syntax
 open Pulp_Syntax_Utils
 open Pulp_Syntax_Print
+open Pulp_Procedure
 
 exception PulpNotImplemented of string
 exception PulpInvalid of string
@@ -2423,7 +2424,7 @@ let translate_function fb annots fid main args env named =
     ]
   in
   
-  let spec = Formula_parser_utils.get_function_spec annots in
+  let spec = Pulp_Formula_Parser_Utils.get_function_spec annots in
   
   make_function_block_with_spec fid pulpe (rthis :: (rscope :: args)) ctx spec
 

@@ -19,7 +19,7 @@ let get_codename exp =
     | [codename] -> codename.annot_formula
     | _ -> raise No_Codename 
 
-let main_fun_id : Pulp_Syntax.function_id = "main"
+let main_fun_id : Pulp_Procedure.function_id = "main"
 
 let fresh_name =
   let counter = ref 0 in
@@ -114,7 +114,7 @@ let make_env env e args fid =
       | _ -> raise (PulpInvalid ("Must be function declaration " ^ (Pretty_print.string_of_exp true f)))
   ) f_decls in
   let vars = args @ (var_decls e) @ fnames in
-  [Pulp_Syntax.make_ctx_vars fid vars] @ env
+  [Pulp_Procedure.make_ctx_vars fid vars] @ env
   
  
 let rec add_codenames main exp  : exp =
@@ -185,7 +185,7 @@ let rec make_result e fb args env named frec =
 	let new_env, named_bool = 
 	  begin match named with
 	    | None -> new_env, None
-	    | Some name -> [Pulp_Syntax.make_ctx_vars (named_function_decl fid) [name]] @ new_env, (Some name)
+	    | Some name -> [Pulp_Procedure.make_ctx_vars (named_function_decl fid) [name]] @ new_env, (Some name)
 	  end in
 	(e, named_bool, new_env) :: (get_all_functions_with_env_in_fb new_env fb "")    
 and 
@@ -324,7 +324,7 @@ get_all_functions_with_env_in_elem env e =
 	    make_result e fb args env None get_all_functions_with_env_in_fb
 	  | _ ->  get_all_functions_with_env_in_stmt env e
 and
-get_all_functions_with_env_in_fb env e main : (exp * string option * Pulp_Syntax.ctx_variables list) list =
+get_all_functions_with_env_in_fb env e main : (exp * string option * Pulp_Procedure.ctx_variables list) list =
   (* (expression, if it's named expr, environment *)
   (*Printf.printf "get_all_functions_with_env_in_fb %s\n" (Pretty_print.string_of_exp true e); *)
   match e.Parser_syntax.exp_stx with
