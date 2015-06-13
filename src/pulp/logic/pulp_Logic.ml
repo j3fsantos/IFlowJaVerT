@@ -21,6 +21,7 @@ type codename = string
 type logical_exp =
   | Le_Var of logical_var
   | Le_PVar of variable
+  | Le_None
   | Le_Literal of literal
   | Le_UnOp of unary_op * logical_exp
   | Le_BinOp of logical_exp * bin_op * logical_exp 
@@ -43,7 +44,6 @@ let le_lit (le : logical_exp) : literal =
 
 type formula =
   | Star of formula list           (* F * ... * F *)
-  | HeapletEmpty of logical_exp * logical_exp           (* (l,x) |-> empty*)
   | Heaplet of logical_exp * logical_exp * logical_exp      (* (l,x) |-> E *)
   | Eq of logical_exp * logical_exp        (* (E = E) ^ emp *)
   | NEq of logical_exp * logical_exp       (* (E != E) ^ emp *) 

@@ -86,6 +86,7 @@ let rec subs_vars_in_exp vmap exp  =
     | Le_Var x -> Le_Var (subs x)
     | Le_PVar x -> Le_PVar x
     | Le_Literal l -> Le_Literal l
+    | Le_None -> Le_None
     | Le_UnOp (op, e) -> Le_UnOp (op, g e) 
     | Le_BinOp (e1, bop, e2) -> Le_BinOp (g e1, bop, g e2)
     | Le_Ref (e1, e2, rt) -> Le_Ref (g e1, g e2, rt)
@@ -98,7 +99,6 @@ let rec subs_vars vmap (f : formula) =
   let ge = subs_vars_in_exp vmap in
   match f with
     | Star fl -> Star (map g fl)
-    | HeapletEmpty (e1, e2) -> HeapletEmpty (ge e1, ge e2)
     | Heaplet (e1, e2, e3) -> Heaplet (ge e1, ge e2, ge e3)
     | Eq (f1, f2) -> Eq (ge f1, ge f2)
     | NEq (f1, f2) -> NEq (ge f1, ge f2)
@@ -116,13 +116,13 @@ let rec get_logical_vars_exp e =
     | Le_TypeOf e
     | Le_UnOp (_, e) -> f e
     | Le_Literal _
+    | Le_None
     | Le_PVar _ -> []
       
 let rec get_logical_vars f =
   let g = get_logical_vars_exp in
   match f with
     | Star fl -> flat_map get_logical_vars fl
-    | HeapletEmpty (le1, le2) -> (g le1) @ (g le2)
     | Heaplet (le1, le2, le3) -> (g le1) @ (g le2) @ (g le3)
     | Eq (f1, f2) -> (g f1) @ (g f2)
     | NEq (f1, f2) -> (g f1) @ (g f2)
@@ -136,13 +136,11 @@ let pretty_string_of_formula x =
     | f -> [f] in
   let (heaplets, others) = List.partition (fun f -> 
     match f with
-      | HeapletEmpty _
       | Heaplet _ -> true
       | _ -> false
   ) fs in
   let es = unique (map (fun h ->
     match h with
-      | HeapletEmpty (e1, _)
       | Heaplet (e1, _, _) -> e1
       | _ -> raise (InvalidParameter "Must be a heaplet")
   ) heaplets) in
@@ -172,6 +170,7 @@ let rec outside_of_footprint (l : logical_exp) (x : logical_exp) (p : formula) :
   )
 
 (* Get the value v of the (l,x) -> v if it exists in p *)
+(* v can be (/) *)
 let rec get_heaplet (l : logical_exp) (x : logical_exp) (p : formula) : logical_exp option = Profiler.track Profiler.SymExec (fun () ->
   let f = get_heaplet l x in
   match p with
@@ -181,23 +180,8 @@ let rec get_heaplet (l : logical_exp) (x : logical_exp) (p : formula) : logical_
   )
 
 (* returns true if (l,x) |-> (/) exists in p *)
-let rec is_heaplet_empty_inner (l : logical_exp) (x : logical_exp) (p : formula) : bool =
-  let f = is_heaplet_empty_inner l x in
-  match p with
-    | Star l -> List.exists f l
-    | HeapletEmpty (l1, x1) -> (l1 = l && x1 = x)
-    | _ -> false
-
 let is_heaplet_empty (l : logical_exp) (x : logical_exp) (p : formula) : bool = Profiler.track Profiler.SymExec (fun () ->
-  outside_of_footprint l x p || is_heaplet_empty_inner l x p
-  )
-
-let rec remove_heaplet_empty l x p = Profiler.track Profiler.SymExec (fun () ->
-  let f = remove_heaplet_empty l x in
-  match p with
-    | Star l -> Star (map f l)
-    | HeapletEmpty (l1, x1) -> if (l1 = l && x1 = x) then empty_f else p
-    | _ -> p
+  outside_of_footprint l x p || (get_heaplet l x p = Some Le_None)
   )
 
 let rec remove_heaplet l x p = Profiler.track Profiler.SymExec (fun () ->
@@ -206,31 +190,12 @@ let rec remove_heaplet l x p = Profiler.track Profiler.SymExec (fun () ->
     | Star l -> Star (map f l)
     | Heaplet (l1, x1, _) -> if (l1 = l && x1 = x) then empty_f else p
     | _ -> p
-  )
-
-let rec update_heaplet_inner (l : logical_exp) (x : logical_exp) (e : logical_exp) (p : formula) : formula =
-  let f = update_heaplet_inner l x e in
-  match get_heaplet l x p with
-    | None -> Star [Heaplet (l, x, e); remove_heaplet_empty l x p]
-    | Some _ ->
-      begin
-        match p with
-          | Star ps ->                                     
-            begin
-              Star (map (fun p ->
-                match get_heaplet l x p with
-                  | Some _ -> f p
-                  | None -> p
-              ) ps)
-            end
-          | Heaplet (l', x', _) -> 
-            if (l = l' && x = x') then Heaplet (l, x, e) else p
-          | _ -> p
-      end
+  )  
       
 let update_heaplet (l : logical_exp) (x : logical_exp) (e : logical_exp) (p : formula) = Profiler.track Profiler.SymExec (fun () ->
   let p = increase_footprint l x p in 
-  update_heaplet_inner l x e p
+  let p = remove_heaplet l x p in
+  combine (Heaplet (l, x, e)) p
   )
   
 let rec subs_pvar_in_exp x xle le =

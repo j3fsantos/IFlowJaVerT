@@ -20,6 +20,7 @@ let rec expr_to_logical_expr expr : logical_exp =
     | TypeOf e -> Le_TypeOf (f e)
 
 let small_axiom_basic_stmt bs : (formula * formula) list =
+  let f = expr_to_logical_expr in
   match bs with
     | Skip -> [empty_f, empty_f]
     | Assignment a ->
@@ -40,24 +41,47 @@ let small_axiom_basic_stmt bs : (formula * formula) list =
             ObjFootprint (l, [])
           ]]
         | HasField (e1, e2) -> 
-          (* TODO: Heaplet should have logical_exp instead of string *)
-          (*let l = fresh_loc_e () in
-          let e1_logical = expr_to_logical_expr e1 in
-          [ Star [
-              Eq (Le_Value (Lv_Loc (Lb_Loc l)), e1_logical);
-              Logic.HeapletEmpty (l, expr_to_logical_expr e2)
-            ], 
+          let v = Le_Var (fresh_e ()) in 
+          [ Heaplet (f e1, f e2, Le_None), 
 	          Star [
-              Eq (Le_Value (Lv_Loc (Lb_Loc l)), e1_logical);
-	            Logic.HeapletEmpty (expr_to_logical_expr e1, expr_to_logical_expr e2); 
-	            Eq (var, Le_Value (Lv_Value (LT_Boolean false)));
-	           ]
+	            Heaplet (f e1, f e2, Le_None); 
+	            Eq (var, Le_Literal (Bool false));
+	           ];
             
-          ]*)
-          raise (NotImplemented "HasField")
-        | Lookup (e1, e2) -> raise (NotImplemented "Lookup")
-        | Deallocation (e1, e2) -> raise (NotImplemented "Deallocation")
+            Star [ 
+              Heaplet (f e1, f e2, v);
+              NEq (v, Le_None)
+            ], 
+            Star [
+              Heaplet (f e1, f e2, v); 
+              Eq (var, Le_Literal (Bool true));
+            ]             
+          ]
+        | Lookup (e1, e2) -> 
+          let v = Le_Var (fresh_e ()) in 
+          [Star [ 
+            Heaplet (f e1, f e2, v);
+            NEq (v, Le_None)
+          ],
+          Star [ 
+            Heaplet (f e1, f e2, v);
+            NEq (v, Le_None);
+            Eq (var, v)
+          ]]
+          
+        | Deallocation (e1, e2) -> 
+          let v = Le_Var (fresh_e ()) in
+          [ 
+            Heaplet (f e1, f e2, v),
+            Star [ 
+              Heaplet (f e1, f e2, Le_None);
+            ]
+          ]
         | ProtoF (e1, e2) -> raise (NotImplemented "ProtoField")
         | ProtoO (e1, e2) -> raise (NotImplemented "ProtoObj")
       end
-    | Mutation m -> raise (NotImplemented "Mutation")
+    | Mutation m -> 
+      let v = Le_Var (fresh_e ()) in
+      [ Heaplet (f m.m_loc, f m.m_field, v),
+        Heaplet (f m.m_loc, f m.m_field, f m.m_right)
+      ]

@@ -18,6 +18,7 @@ let rec string_of_logical_exp x =
     | Le_Literal x -> string_of_literal x
     | Le_PVar x -> string_of_var x
     | Le_Var x -> string_of_logical_var x
+    | Le_None -> "#(/)"
     | Le_BinOp (x, op, y) -> Printf.sprintf "(%s %s %s)" (string_of_logical_exp x) 
                              (string_of_bin_op op) (string_of_logical_exp y)
     | Le_Ref (x, y, rt) -> Printf.sprintf "ref(%s,%s,%s)" 
@@ -33,6 +34,7 @@ let rec get_non_empty_heaplets_for_expr e f =
   let rec inner f fields =
       match f with
         | Star fl -> fold_left (fun vl f -> (inner f vl)) fields fl
+        | Heaplet (_, _, Le_None) -> fields
         | Heaplet (e1, e2, e3) -> if (e1 = e) then (ExpMap.add e2 e3 fields) else fields 
         | _ -> fields in
    inner f ExpMap.empty
@@ -40,14 +42,13 @@ let rec get_non_empty_heaplets_for_expr e f =
 let rec get_empty_heaplets_for_expr e f =
   match f with 
     | Star fl -> fold_left (fun vl f -> unique (vl @ (get_empty_heaplets_for_expr e f))) [] fl
-    | HeapletEmpty (e1, e2) -> if (e = e1) then [e2] else []
+    | Heaplet (e1, e2, Le_None) -> if (e = e1) then [e2] else []
     | _ -> []
 
 let rec string_of_formula x =
   let fe = string_of_logical_exp in
   match x with
     | Star l -> "  " ^ String.concat "\n* " (map (Printf.sprintf "(%s)") (map string_of_formula l))
-    | HeapletEmpty (e1, e2) -> Printf.sprintf "%s.%s |-> #(/)" (fe e1) (fe e2)
     | Heaplet (e1, e2, e3) -> Printf.sprintf "%s.%s |-> %s" (fe e1) (fe e2) (fe e3)
     | Eq (x, y) -> Printf.sprintf "%s = %s" (fe x) (fe y)
     | NEq (x, y) -> Printf.sprintf "%s != %s" (fe x) (fe y)

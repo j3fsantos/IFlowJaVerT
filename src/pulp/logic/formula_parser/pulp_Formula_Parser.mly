@@ -9,7 +9,7 @@
       Printf.printf "Error between %d and %d\n%s\n" start_pos end_pos s
     
   let make_heaplets l hasnt has =
-    Star ( (map (fun x -> HeapletEmpty (l, x)) hasnt) @ (map (fun (x, v) -> Heaplet (l, x, v)) has)  )
+    Star ( (map (fun x -> Heaplet (l, x, Le_None)) hasnt) @ (map (fun (x, v) -> Heaplet (l, x, v)) has)  )
 
 %}
 
@@ -17,7 +17,6 @@
 %token LPAREN
 %token RPAREN
 %token POINTSTO
-%token EMPTY
 %token <string> ID 
 %token EQ
 %token NEQ
@@ -37,6 +36,7 @@
 %token <string> STRING
 %token UNDEFINED
 %token EMPTY
+%token NONE
 %token NULLTYPE
 %token UNDEFINEDTYPE
 %token BOOLEANTYPE
@@ -81,7 +81,6 @@ disj_of_formulas:
 formula:
     formula STAR formula                                 { Star [$1; $3] }
   | LPAREN logical_exp COMMA logical_exp RPAREN POINTSTO logical_exp { Heaplet ($2, $4, $7) }
-  | LPAREN logical_exp COMMA logical_exp RPAREN POINTSTO EMPTY       { HeapletEmpty ($2, $4) }
   | logical_exp EQ logical_exp                           { Eq ($1, $3) }
   | logical_exp NEQ logical_exp                          { NEq ($1, $3) }
   | RETURN EQ logical_exp                                { REq $3 }
@@ -133,6 +132,7 @@ literal :
 
 logical_exp :
     LE_VAR                                                          { Le_Var $1 }
+  | NONE                                                            { Le_None }
   | ID                                                              { Le_PVar $1 } 
   | literal                                                         { Le_Literal $1 }
   | LPAREN logical_unary_op logical_exp RPAREN                      { Le_UnOp ( $2, $3) }
