@@ -19,47 +19,39 @@ let rec expr_to_logical_expr expr : logical_exp =
     | IsTypeOf (e, t) -> raise (NotImplemented "is type of deprecated")
     | TypeOf e -> Le_TypeOf (f e)
 
-let small_axiom_basic_stmt bs : (formula * formula) list =
+let small_axiom_basic_stmt bs : (formula * formula) =
   let f = expr_to_logical_expr in
   match bs with
-    | Skip -> [empty_f, empty_f]
+    | Skip -> empty_f, empty_f
     | Assignment a ->
       let var = Le_PVar a.assign_left in
       begin match a.assign_right with
         | Expression e -> 
           let old = fresh_e () in
           let logic_e = expr_to_logical_expr e in
-          [Eq (var, Le_Var old), Eq (var, subs_pvar_in_exp a.assign_left (Le_Var old) logic_e)]
+          Eq (var, Le_Var old), Eq (var, subs_pvar_in_exp a.assign_left (Le_Var old) logic_e)
         | Call _ 
         | Eval _
         | BuiltinCall _ -> raise (Invalid_argument "Call")
         | Obj ->
           let l = Le_Var (fresh_e ()) in 
-          [empty_f, 
+          empty_f, 
           Star [
             Eq (var, l);
             ObjFootprint (l, [])
-          ]]
+          ]
         | HasField (e1, e2) -> 
           let v = Le_Var (fresh_e ()) in 
-          [ Heaplet (f e1, f e2, Le_None), 
+          Heaplet (f e1, f e2, v), 
 	          Star [
-	            Heaplet (f e1, f e2, Le_None); 
-	            Eq (var, Le_Literal (Bool false));
+	            Heaplet (f e1, f e2, v); 
+	            Eq (var, (Le_UnOp (Not, (Le_BinOp (v, Comparison Equal, Le_None)))));
 	           ];
-            
-            Star [ 
-              Heaplet (f e1, f e2, v);
-              NEq (v, Le_None)
-            ], 
-            Star [
-              Heaplet (f e1, f e2, v); 
-              Eq (var, Le_Literal (Bool true));
-            ]             
-          ]
+                        
+          
         | Lookup (e1, e2) -> 
           let v = Le_Var (fresh_e ()) in 
-          [Star [ 
+          Star [ 
             Heaplet (f e1, f e2, v);
             NEq (v, Le_None)
           ],
@@ -67,21 +59,20 @@ let small_axiom_basic_stmt bs : (formula * formula) list =
             Heaplet (f e1, f e2, v);
             NEq (v, Le_None);
             Eq (var, v)
-          ]]
+          ]
           
         | Deallocation (e1, e2) -> 
-          let v = Le_Var (fresh_e ()) in
-          [ 
-            Heaplet (f e1, f e2, v),
-            Star [ 
-              Heaplet (f e1, f e2, Le_None);
-            ]
+          let v = Le_Var (fresh_e ()) in          
+          Heaplet (f e1, f e2, v),
+          Star [ 
+            Heaplet (f e1, f e2, Le_None);
           ]
+          
         | ProtoF (e1, e2) -> raise (NotImplemented "ProtoField")
         | ProtoO (e1, e2) -> raise (NotImplemented "ProtoObj")
       end
     | Mutation m -> 
       let v = Le_Var (fresh_e ()) in
-      [ Heaplet (f m.m_loc, f m.m_field, v),
-        Heaplet (f m.m_loc, f m.m_field, f m.m_right)
-      ]
+      Heaplet (f m.m_loc, f m.m_field, v),
+      Heaplet (f m.m_loc, f m.m_field, f m.m_right)
+     
