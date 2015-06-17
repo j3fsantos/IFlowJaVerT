@@ -63,7 +63,7 @@ let string_of_builtin_loc l =
     | Lop_toString -> "#lop_toString"
     | Lop_valueOf -> "#lop_valueOf"
     | Lop_isPrototypeOf -> "#lop_isPrototypeOf"
-    | LFunction -> "lfunction"
+    | LFunction -> "#lfunction"
     | Lfp -> "#lfp"
     | LEval -> "#leval"
     | LError -> "#lerror"

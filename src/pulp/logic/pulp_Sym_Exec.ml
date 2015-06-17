@@ -4,34 +4,38 @@ open State_Graph
 open Control_Flow
 open Pulp_Logic
 open Pulp_Logic_Rules
+open Pulp_Logic_Utils
 
 exception NotImplemented of string
+
+type sym_exec_error =
+  | FrameNotFound
+
+exception SymExecException of sym_exec_error
 
 let execute_basic_stmt bs pre : formula =
   (* pre => pre_stmt' * F*)
   (* post_stmt' * F *)
-  match bs with
-    | Skip -> raise (NotImplemented "Skip")
-    | Assignment a ->
-      begin match a.assign_right with
-        | Expression e -> raise (NotImplemented "Expression")
-        | Call _ 
-        | Eval _
-        | BuiltinCall _ -> raise (Invalid_argument "Call")
-        | Obj -> raise (NotImplemented "Obj")
-        | HasField (e1, e2) -> raise (NotImplemented "HasField")
-        | Lookup (e1, e2) -> raise (NotImplemented "Lookup")
-        | Deallocation (e1, e2) -> raise (NotImplemented "Deallocation")
-        | ProtoF (e1, e2) -> raise (NotImplemented "ProtoField")
-        | ProtoO (e1, e2) -> raise (NotImplemented "ProtoObj")
+  
+  let cmd_pre, cmd_post = small_axiom_basic_stmt bs in
+  
+  let frames = CoreStar_Frontend_Pulp.frame pre cmd_pre in
+  
+  match frames with
+    | None -> raise (SymExecException FrameNotFound) 
+    | Some frames ->
+      begin match frames with 
+        | [frame] -> combine cmd_post frame
+        | frames -> raise (NotImplemented "Multiple frames")
       end
-    | Mutation m -> raise (NotImplemented "Mutation")
  
 
-let rec execute_stmt f sg cfg fs snode_id = 
+let rec execute_stmt f sg cfg fs snode_id cmd_st_tbl = 
   (* Hashtable cfg_node -> state_node list for termination *)
   let new_snode id state =
-    execute_stmt f sg cfg fs (StateG.mk_node sg (mk_sg_node id state)) in
+    let new_sn = StateG.mk_node sg (mk_sg_node id state) in
+    Hashtbl.add cmd_st_tbl id new_sn;
+    execute_stmt f sg cfg fs new_sn cmd_st_tbl in
     
   let new_snode_cond id state edge e =
     match edge with
@@ -74,7 +78,7 @@ let rec execute_stmt f sg cfg fs snode_id =
     | Basic (Assignment {assign_right = (Call {call_throw_label = throwl})})      
     | Basic (Assignment {assign_right = (Eval {call_throw_label = throwl})}) 
     | Basic (Assignment {assign_right = (BuiltinCall {call_throw_label = throwl})}) -> 
-      ()
+      raise (NotImplemented "Calls")
     | Basic bs -> 
       let post = execute_basic_stmt bs snode.sgn_state in
       new_snode (get_single_succ snode.sgn_id) post 
@@ -86,10 +90,16 @@ let execute f cfg fs spec =
   let nodes = CFG.nodes cfg in
   let start = List.hd nodes in
   
+  (* cfg_node -> state_node list *)
+  let cmd_st_tbl = Hashtbl.create 100 in
+  
   (* state graph *)
   let sg = StateG.mk_graph () in
   let first = StateG.mk_node sg (mk_sg_node start spec.spec_pre) in
-  execute_stmt f sg cfg fs first
+  
+  Hashtbl.add cmd_st_tbl start first;
+  
+  execute_stmt f sg cfg fs first cmd_st_tbl
   
 
 let execute_all (f : function_block) (fs : function_block AllFunctions.t) : unit = 

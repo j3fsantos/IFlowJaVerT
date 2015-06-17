@@ -81,7 +81,7 @@ let map_af_antiframe f fa =
 let rec subs_vars_in_exp vmap exp  =
   let g = subs_vars_in_exp vmap in
   let subs x = 
-    if VarMap.mem x vmap then VarMap.find x vmap else x in
+    if LogicalVarMap.mem x vmap then LogicalVarMap.find x vmap else x in
   match exp with
     | Le_Var x -> Le_Var (subs x)
     | Le_PVar x -> Le_PVar x
@@ -118,6 +118,20 @@ let rec get_logical_vars_exp e =
     | Le_Literal _
     | Le_None
     | Le_PVar _ -> []
+
+let rec get_program_vars_exp e =
+  let f = get_program_vars_exp in
+  match e with
+    | Le_PVar v -> [v]
+    | Le_BinOp (le1, _, le2)
+    | Le_Ref (le1, le2, _) -> (f le1) @ (f le2)
+    | Le_Base e
+    | Le_Field e 
+    | Le_TypeOf e
+    | Le_UnOp (_, e) -> f e
+    | Le_Literal _
+    | Le_None
+    | Le_Var _ -> []
       
 let rec get_logical_vars f =
   let g = get_logical_vars_exp in
@@ -128,6 +142,17 @@ let rec get_logical_vars f =
     | NEq (f1, f2) -> (g f1) @ (g f2)
     | REq f1 -> g f1       
     | ObjFootprint (e, es) -> (g e) @ (flat_map g es) 
+
+let rec get_program_vars f =
+  let g = get_program_vars_exp in
+  match f with
+    | Star fl -> flat_map get_program_vars fl
+    | Heaplet (le1, le2, le3) -> (g le1) @ (g le2) @ (g le3)
+    | Eq (f1, f2) -> (g f1) @ (g f2)
+    | NEq (f1, f2) -> (g f1) @ (g f2)
+    | REq f1 -> g f1       
+    | ObjFootprint (e, es) -> (g e) @ (flat_map g es)
+    
            
 let pretty_string_of_formula x =
   let f = simplify x in
@@ -201,6 +226,14 @@ let update_heaplet (l : logical_exp) (x : logical_exp) (e : logical_exp) (p : fo
 let rec subs_pvar_in_exp x xle le =
   let f = subs_pvar_in_exp x xle in
   match le with
+    | Le_Var x -> Le_Var x
     | Le_PVar y -> if x = y then xle else le
-    | _ -> f le
+    | Le_Literal l -> Le_Literal l
+    | Le_None -> Le_None
+    | Le_UnOp (op, e) -> Le_UnOp (op, f e) 
+    | Le_BinOp (e1, bop, e2) -> Le_BinOp (f e1, bop, f e2)
+    | Le_Ref (e1, e2, rt) -> Le_Ref (f e1, f e2, rt)
+    | Le_Base e -> Le_Base (f e)
+    | Le_Field e -> Le_Field (f e)
+    | Le_TypeOf e -> Le_TypeOf (f e)
 

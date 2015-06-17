@@ -8,10 +8,21 @@ exception Non_Existing_Field
 type logical_var = 
   | AVar of string  (* ?X, ?Y, ?Z, ...*)
   | EVar of string  (* _X, _Y, _Z, ... *)
-                            
-module VarMap = Map.Make ( 
+
+type variable_types = 
+  | LogicalVariable of logical_var
+  | ProgramVariable of variable
+                                                     
+module LogicalVarMap = Map.Make ( 
   struct 
     type t = logical_var
+    let compare = compare
+  end
+)
+
+module VarMap = Map.Make ( 
+  struct 
+    type t = variable_types
     let compare = compare
   end
 )
