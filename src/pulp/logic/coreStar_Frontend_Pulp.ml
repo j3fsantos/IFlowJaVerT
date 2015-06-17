@@ -16,30 +16,14 @@ let logic = ref Psyntax.empty_logic
 let numeric_const = "numeric_const"
 let undefined = "undefined"
 let null = "null"
-let null_loc = "null_loc"
 let cons = "cons"
 let empty_list = "empty_list"
 let empty = "empty"
-let scope = "scope"
 let footprint = "footprint"
 let reference = "ref"
-let function_body = "function_body"
-let function_body_codename = "function_body_codename"
-let field_empty = "field_empty"
 let none = "none"
 let field = "field"
-let isTrue = "isTrue"
-let isFalse = "isFalse"
-let cScope = "cScope"
-let storelet = "storelet"
-let storelet_fp_sp = "storelet_fp_sp"
-let storelet_tail = "storelet_tail"
-let plist = "plist"
-let plist_tail = "plist_tail"
-let store = "store"
-let ministore = "ministore"
 let ret_v1 = "$ret_v1"
-let userdef = "userdef_"
 let ref_base = "ref_base"
 let ref_field = "ref_field"
 let type_of = "type_of"
@@ -61,7 +45,8 @@ let initialize () = Profiler.track Profiler.CoreStar (fun () ->
     | _ -> ()
   end;
   let dirs = get_logic_dirs () in
-  let sr, rr, cn = Load_logic.load_logic_extra_rules dirs "js_logic" [] in
+  (* TODO pulp logic *)
+  let sr, rr, cn = Load_logic.load_logic_extra_rules dirs "pulp_logic" [] in
   logic := {Psyntax.empty_logic with Psyntax.seq_rules = sr; Psyntax.rw_rules = rr; Psyntax.consdecl = cn}
   )
 
@@ -286,15 +271,6 @@ let rec args_to_footprint varmap arg =
     | Psyntax.Arg_op ("empty_list", []) -> []
     | _ -> raise (BadArgument "in args_to_footprint")
 
-  
-(*let fields_to_preds l fs pred_name varmap =
-  let has_preds = flat_map (
-    fun (k, v) -> Psyntax.mkSPred (pred_name, [le_to_args varmap l; Psyntax.Arg_string k; le_to_args varmap v])) 
-  (Map.bindings fs.has) in
-  let hasnt_preds = flat_map (
-    fun x -> Psyntax.mkSPred (pred_name ^ "e", [loc_to_args varmap l; Psyntax.Arg_string x;])) 
-  fs.hasnt in 
-  has_preds @ hasnt_preds*)
   
 (* Lift boolean expressions to predicates *)
 (* TODO : for other operators that return boolean *)
