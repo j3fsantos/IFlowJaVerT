@@ -1,0 +1,6 @@
+a := true;
+a := false;
+b := 5.2;
+c := "fo\"o";
+d := undefined;
+e := null
