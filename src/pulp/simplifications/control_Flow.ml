@@ -78,7 +78,7 @@ let program_to_cfg (all_functions : function_block AllFunctions.t) : CFG.graph A
   
   
   
-  
+(* Print one cfg at a time *)  
 let print_cfg (cfgs : CFG.graph AllFunctions.t) (filename : string) : unit =
   let d_cfgedge chan dest src =
     Printf.fprintf chan "\t\t%i -> %i\n" (CFG.node_id src) (CFG.node_id dest) in

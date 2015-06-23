@@ -121,19 +121,6 @@ let elim_vars pf =
       elim_ident pf
     with Not_found -> pf
   ) pf vars
-  
-let clean_return pf varmap = 
-  let r = Vars.concretep_str ret_v1 in
-  let v = Vars.freshe_str "N" in 
-  try
-    let _ = find_var_eq r pf in pf, varmap
-  with Not_found -> 
-    begin    
-        let pf = substitute_eq_pform r (Psyntax.Arg_var v) pf in
-        let req = Psyntax.P_EQ (Psyntax.Arg_var r, Psyntax.Arg_var v) in
-        let varmap = LVarMap.add v (LogicalVariable (fresh_e())) varmap in
-        ((req :: pf), varmap)
-    end
 
 let invert_varmap varmap : variable_types LVarMap.t =
   VarMap.fold (fun k v -> LVarMap.add v k) varmap LVarMap.empty 
@@ -340,7 +327,6 @@ let convert_from_pform_at varmap pfa : formula =
   
 let convert_from_pform varmap (pf : Psyntax.pform) : formula =
   let pf = elim_vars pf in
-  let pf,varmap = clean_return pf varmap in
   let f = List.map (convert_from_pform_at varmap) pf in
   simplify (Star f)
   

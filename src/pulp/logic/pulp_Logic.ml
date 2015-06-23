@@ -72,6 +72,9 @@ type spec_pre_post =
   spec_post : formula list;
 }
 
+let mk_spec pre post = 
+  { spec_pre = pre; spec_post = post }
+
 type formula_antiframe = 
   {
     af_formula : formula;

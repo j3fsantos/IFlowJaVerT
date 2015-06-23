@@ -14,6 +14,7 @@ type sym_exec_error =
 exception SymExecException of sym_exec_error
 
 let execute_basic_stmt bs pre : formula =
+  Printf.printf "Execute Basic Stmt \n" ;
   (* pre => pre_stmt' * F*)
   (* post_stmt' * F *)
   
@@ -21,16 +22,18 @@ let execute_basic_stmt bs pre : formula =
   
   let frames = CoreStar_Frontend_Pulp.frame pre cmd_pre in
   
+  
   match frames with
     | None -> raise (SymExecException FrameNotFound) 
     | Some frames ->
       begin match frames with 
-        | [frame] -> combine cmd_post frame
+        | [frame] -> begin Printf.printf "%s \n" (Pulp_Logic_Print.string_of_formula frame); combine cmd_post frame end
         | frames -> raise (NotImplemented "Multiple frames")
       end
  
 
 let rec execute_stmt f sg cfg fs snode_id cmd_st_tbl = 
+ 
   (* Hashtable cfg_node -> state_node list for termination *)
   let new_snode id state =
     let new_sn = StateG.mk_node sg (mk_sg_node id state) in
@@ -60,6 +63,8 @@ let rec execute_stmt f sg cfg fs snode_id cmd_st_tbl =
   let snode = StateG.get_node_data sg snode_id in
   let stmt = CFG.get_node_data cfg snode.sgn_id in
   
+  Printf.printf "Execute Stmt %s \n" (Pulp_Syntax_Print.string_of_statement stmt);
+  
   match stmt with
     | Label l -> 
       if l = f.func_ctx.label_return or l = f.func_ctx.label_throw 
@@ -83,12 +88,22 @@ let rec execute_stmt f sg cfg fs snode_id cmd_st_tbl =
       let post = execute_basic_stmt bs snode.sgn_state in
       new_snode (get_single_succ snode.sgn_id) post 
     | Sugar s -> raise (Invalid_argument "Symbolic execution does not work on syntactic sugar")
-  
+
+
+(* I have assumptions about return labels. Do I want to add "exit" labels to the cfg interface *)
+let get_posts fb cfg fs spec sg cmd_st_tbl =
+  let return_label = fb.func_ctx.label_return in
+  let label_map = get_all_labels cfg in (* Something not right in the interface *)
+  let return_label_node = Hashtbl.find label_map return_label in
+  let posts_nodes = Hashtbl.find_all cmd_st_tbl return_label_node in
+  let posts = List.map (fun id -> let snode = StateG.get_node_data sg id in snode.sgn_state) posts_nodes in
+  posts
   
 
 let execute f cfg fs spec =
-  let nodes = CFG.nodes cfg in
-  let start = List.hd nodes in
+  let label_map = get_all_labels cfg in (* Something not right in the interface *)
+  
+  let start = Hashtbl.find label_map Simp_Common.entry in
   
   (* cfg_node -> state_node list *)
   let cmd_st_tbl = Hashtbl.create 100 in
@@ -99,9 +114,10 @@ let execute f cfg fs spec =
   
   Hashtbl.add cmd_st_tbl start first;
   
-  execute_stmt f sg cfg fs first cmd_st_tbl
+  execute_stmt f sg cfg fs first cmd_st_tbl; 
+  sg, cmd_st_tbl
   
 
-let execute_all (f : function_block) (fs : function_block AllFunctions.t) : unit = 
+let execute_all (f : function_block) (fs : function_block AllFunctions.t) = 
   let cfg = fb_to_cfg f in
-  List.iter (execute f cfg fs) f.func_spec
+  List.iter (fun spec -> ignore (execute f cfg fs spec)) f.func_spec
