@@ -38,12 +38,12 @@ let test_program_template f spec =
   print_cfg all_cfgs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/fid1");
   
   let sg, cmd_st_tbl = execute f cfg all_functions spec in
-  let posts = get_posts f cfg all_functions spec sg cmd_st_tbl in
+  let posts = get_posts f cfg sg cmd_st_tbl in
   
    assert_bool ("Symbolic Execution. Postcondition. 
      Expected :" ^ (String.concat "\n" (List.map string_of_formula spec.spec_post)) ^ 
    " Actual: " ^ (String.concat "\n" (List.map string_of_formula posts))) 
-     (List.map simplify posts=List.map simplify (spec.spec_post)) 
+     (List.for_all (fun post -> CoreStar_Frontend_Pulp.implies_or_list (simplify post) spec.spec_post) posts)
 
 let test_empty_program () =
   let ctx = create_ctx [] in
@@ -80,10 +80,9 @@ let test_empty_program_non_empty_pre () =
       Label ctx.label_return
   ] in
   let post = [Star [
-    Eq (Le_Literal (Num 1.0), Le_PVar "y");
-    NEq (Le_Literal (Num 1.0), Le_None);
+    Eq (Le_PVar "y", Le_Literal (Num 1.0));
     ObjFootprint (Le_PVar "x", [Le_Literal (String "f")]);
-    Heaplet (Le_PVar "x", Le_Literal (String "f"), Le_PVar "y")
+    Heaplet (Le_PVar "x", Le_Literal (String "f"), Le_Literal (Num 1.0))
   ]] in 
   let spec = mk_spec empty_f post in
   let f = make_function_block_with_spec "fid1" p [] ctx [spec] in

@@ -98,7 +98,7 @@ let rec execute_stmt f sg cfg fs snode_id cmd_st_tbl =
 
 
 (* I have assumptions about return labels. Do I want to add "exit" labels to the cfg interface *)
-let get_posts fb cfg fs spec sg cmd_st_tbl =
+let get_posts fb cfg sg cmd_st_tbl =
   let return_label = fb.func_ctx.label_return in
   let label_map = get_all_labels cfg in (* Something not right in the interface *)
   let return_label_node = Hashtbl.find label_map return_label in
@@ -106,7 +106,8 @@ let get_posts fb cfg fs spec sg cmd_st_tbl =
   let posts = List.map (fun id -> let snode = StateG.get_node_data sg id in snode.sgn_state) posts_nodes in
   posts
   
-
+(* returns a state graph *)
+(*         and a map cfg_node -> state_node list*)
 let execute f cfg fs spec =
   let label_map = get_all_labels cfg in (* Something not right in the interface *)
   
@@ -124,7 +125,11 @@ let execute f cfg fs spec =
   execute_stmt f sg cfg fs first cmd_st_tbl; 
   sg, cmd_st_tbl
   
-
+let execute_check_post f cfg fs spec =
+  let sg, cmd_st_tbl = execute f cfg fs spec in
+  let posts = get_posts f cfg sg cmd_st_tbl in
+  List.for_all (fun post -> CoreStar_Frontend_Pulp.implies_or_list (simplify post) spec.spec_post) posts
+  
 let execute_all (f : function_block) (fs : function_block AllFunctions.t) = 
   let cfg = fb_to_cfg f in
   List.iter (fun spec -> ignore (execute f cfg fs spec)) f.func_spec
