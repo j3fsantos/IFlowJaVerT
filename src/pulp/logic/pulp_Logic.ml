@@ -70,10 +70,14 @@ type spec_pre_post =
 {
   spec_pre  : formula;
   spec_post : formula list;
+  spec_excep_post : formula list;
 }
 
+let mk_spec_with_excep pre post excep_post = 
+  { spec_pre = pre; spec_post = post; spec_excep_post = excep_post }
+  
 let mk_spec pre post = 
-  { spec_pre = pre; spec_post = post }
+  { spec_pre = pre; spec_post = post; spec_excep_post = [] }  
 
 type formula_antiframe = 
   {

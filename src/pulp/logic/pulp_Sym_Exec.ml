@@ -37,6 +37,11 @@ let execute_basic_stmt bs pre : formula =
           end
         | posts -> raise (NotImplemented "Multiple frames")
       end
+      
+let execute_call_stmt fs c current : formula list * formula list =
+  (*let fb = AllFunctions.find c.call_name fs in
+  let f_spec = c.func_spec in*)
+  [], []
  
 
 let rec execute_stmt f sg cfg fs snode_id cmd_st_tbl = 
@@ -52,6 +57,12 @@ let rec execute_stmt f sg cfg fs snode_id cmd_st_tbl =
       | Simp_Common.Edge_True -> new_snode id (Star (Eq (e, Le_Literal (Bool true)) :: [state]))
       | Simp_Common.Edge_False -> new_snode id (Star (Eq (e, Le_Literal (Bool false)) :: [state]))
       | _ -> raise (Invalid_argument "Expected true and false edges") in
+
+  let new_snode_call id edge p_normal p_excep =
+    match edge with
+      | Simp_Common.Edge_Normal -> new_snode id p_normal
+      | Simp_Common.Edge_Excep -> new_snode id p_excep
+      | _ -> raise (Invalid_argument "Expected normal and exceptional edges") in
     
   let get_single_succ id =
     let succs = CFG.succ cfg id in
@@ -87,10 +98,17 @@ let rec execute_stmt f sg cfg fs snode_id cmd_st_tbl =
       new_snode_cond succ1 snode.sgn_state edge1 (expr_to_logical_expr e);
       new_snode_cond succ2 snode.sgn_state edge2 (expr_to_logical_expr e)
     
-    | Basic (Assignment {assign_right = (Call {call_throw_label = throwl})})      
-    | Basic (Assignment {assign_right = (Eval {call_throw_label = throwl})}) 
-    | Basic (Assignment {assign_right = (BuiltinCall {call_throw_label = throwl})}) -> 
-      raise (NotImplemented "Calls")
+    | Basic (Assignment {assign_right = (Call c)})      
+    | Basic (Assignment {assign_right = (Eval c)}) 
+    | Basic (Assignment {assign_right = (BuiltinCall c)}) -> 
+      let succ1, succ2 = get_two_succs snode.sgn_id in
+      let edge1 = CFG.get_edge_data cfg snode.sgn_id succ1 in
+      let edge2 = CFG.get_edge_data cfg snode.sgn_id succ2 in
+      
+      let post_normal, post_excep = execute_call_stmt fs c snode.sgn_state in
+      List.iter2 (new_snode_call succ1 edge1) post_normal post_excep;
+      List.iter2 (new_snode_call succ2 edge2) post_normal post_excep
+      
     | Basic bs -> 
       let post = execute_basic_stmt bs snode.sgn_state in
       new_snode (get_single_succ snode.sgn_id) post 

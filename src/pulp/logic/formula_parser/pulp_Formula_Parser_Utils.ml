@@ -28,6 +28,7 @@ let get_inv_from_code annots =
     | [] -> raise No_Invariant_In_Code
     | _ -> res
 
+ (* TODO Exceptional specification *)
 let get_function_spec annots = 
   let pres  = get_annots_from_code annots Requires in
   let posts = get_annots_from_code annots Ensures  in
@@ -35,7 +36,7 @@ let get_function_spec annots =
     List.map2
       (fun pre post ->
         match pre with
-          | [formula] ->  { spec_pre = formula; spec_post = post }
+          | [formula] ->  mk_spec formula post
           | _ ->  raise (Failure "Found a disjunctive precondition when non-disjunctive formula expected")
       )
       pres posts
