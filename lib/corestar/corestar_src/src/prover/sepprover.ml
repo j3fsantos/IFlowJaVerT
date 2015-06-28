@@ -52,7 +52,7 @@ open Psyntax
         with Contradiction -> None
         
     let convert_back : inner_form -> form =
-      Clogic.ts_form_to_pform
+      Clogic.ts_form_to_pform_with_eq
 
     let conjoin : form -> inner_form -> inner_form
       = fun form inner_form -> Clogic.conjoin false inner_form (Clogic.convert_to_inner form)

@@ -2,17 +2,6 @@ open Pulp_Syntax
 
 type function_id = string
 
-let fresh_variable =
-  let counter = ref 0 in
-  let rec f name =
-    let v = name ^ (string_of_int !counter) in
-    counter := !counter + 1;
-    v
-  in f
-  
-let fresh_r () : variable =
-  fresh_variable "r"
-
 type ctx_variables = {
      func_id : function_id;
      fun_bindings : variable list

@@ -54,7 +54,11 @@ let rec simplify (p : formula) : formula = Profiler.track Profiler.SymExec (fun 
 	  | Star l ->
 	    let l = map simplify l in
 	    let star_list p' = match p' with Star l' -> l' | _ -> [p'] in
-      Star (flat_map star_list l)
+      begin match flat_map star_list l with
+        | [] -> empty_f
+        | [single] -> single
+        | l -> Star l
+      end   
     | _ -> p  
   )
 

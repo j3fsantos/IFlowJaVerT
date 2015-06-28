@@ -1,0 +1,16 @@
+import "field_logic";
+import "list_logic";
+import "le_lt_logic";
+import "pulp_footprint_logic";
+  
+rule field_loc:
+  | field(?x,?f,?t) |-  field(?z,?f,?t) 
+without
+  ?x!=?z
+if
+  field(?x,?f,?t) | |- ?x=?z 
+  
+rule value_not_none:
+  | |- numeric_const(?x) != none()
+if
+  | |-

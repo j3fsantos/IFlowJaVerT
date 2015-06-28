@@ -810,6 +810,9 @@ let ts_form_to_pform ts_form =
 
 let ts_form_to_pform_no_ts ts_form =
   convert_to_pform (make_syntactic_none ts_form)
+  
+let ts_form_to_pform_with_eq ts_form =
+  convert_to_pform (make_syntactic ts_form)
 
 let pform_to_ts_form pform =
   convert_with_eqs false pform

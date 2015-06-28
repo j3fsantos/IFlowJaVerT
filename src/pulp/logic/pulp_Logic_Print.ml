@@ -11,6 +11,11 @@ let string_of_logical_var x =
   
 let string_of_var x = x
 
+let string_of_variable_types x =
+  match x with
+    | LogicalVariable x -> string_of_logical_var x
+    | ProgramVariable x -> string_of_var x
+
 let string_of_codename x = x
       
 let rec string_of_logical_exp x =

@@ -5,4 +5,5 @@ ocamlbuild \
    -I src/prover \
    -I src/symbexe_syntax \
    -I src/parsing \
+   -I src/symbexe \
    corestar.cma

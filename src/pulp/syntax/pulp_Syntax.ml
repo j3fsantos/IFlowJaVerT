@@ -214,6 +214,29 @@ type assignment = {
     assign_right : assign_right_expression
   }
   
+let fresh_variable =
+  let counter = ref 0 in
+  let rec f name =
+    let v = name ^ (string_of_int !counter) in
+    counter := !counter + 1;
+    v
+  in f
+  
+let fresh_r () : variable =
+  fresh_variable "r"
+  
+(* Assignment *)
+let mk_assign var exp = { 
+    assign_left = var; 
+    assign_right = exp
+  }
+
+(* Assignment to a fresh variable *)
+let mk_assign_fresh exp = mk_assign (fresh_r ()) exp
+  
+let mk_assign_fresh_e e = mk_assign_fresh (Expression e)
+let mk_assign_fresh_lit lit = mk_assign_fresh_e (Literal lit)
+  
 type basic_statement =
   | Skip
   | Assignment of assignment

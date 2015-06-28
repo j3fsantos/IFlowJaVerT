@@ -17,8 +17,8 @@ let numeric_const = "numeric_const"
 let undefined = "undefined"
 let null = "null"
 let cons = "cons"
-let empty_list = "empty_list"
-let empty = "empty"
+let empty_list = "empty"
+let empty_value = "empty_value"
 let footprint = "footprint"
 let reference = "ref"
 let none = "none"
@@ -113,12 +113,18 @@ let elim_ident pf =
   ) pf
   
 let elim_vars pf =
+  Printf.printf "\nEliminating variables\n";
   let vars = get_vars_from_pform pf in
   List.fold_left (fun pf v -> 
     try 
+      Printf.printf "\nVariable %s\n" (Vars.string_var v);
       let veq = find_var_eq v pf in
+      Format.fprintf (Format.std_formatter) "Equality: %a \n" Psyntax.string_args veq; Format.pp_print_flush(Format.std_formatter)();     
       let pf = substitute_eq_pform v veq pf in
-      elim_ident pf
+      Format.fprintf (Format.std_formatter) "Before elim_ident %a \n" Psyntax.string_form pf; Format.pp_print_flush(Format.std_formatter)();     
+      let pf = elim_ident pf in
+      Format.fprintf (Format.std_formatter) "After elim_ident %a \n" Psyntax.string_form pf; Format.pp_print_flush(Format.std_formatter)();     
+      pf
     with Not_found -> pf
   ) pf vars
 
@@ -153,7 +159,7 @@ let literal_to_args lit =
 	  | String s -> Psyntax.Arg_string s
 	  | Undefined -> Psyntax.Arg_op (undefined, [])
 	  | Type pt -> Psyntax.Arg_op (op_of_pulp_type pt, [])
-	  | Empty -> Psyntax.Arg_op (empty, [])
+	  | Empty -> Psyntax.Arg_op (empty_value, [])
 
 let rec le_to_args (varmap : Vars.var VarMap.t) le : Psyntax.args =
   let f = le_to_args varmap in
@@ -227,7 +233,7 @@ let rec args_to_le (lvarmap : variable_types LVarMap.t) arg =
         | "lop", [] 
         | "lfp", []
         | "leval", [] -> Le_Literal (LLoc (args_to_bloc arg))
-        | "empty", [] -> Le_Literal Empty
+        | "empty_value", [] -> Le_Literal Empty
         | "NullType", [] ->  Le_Literal (Type NullType)
         | "UndefinedType", [] -> Le_Literal (Type UndefinedType)
         | "BooleanType", [] -> Le_Literal (Type BooleanType)
@@ -255,7 +261,7 @@ let rec args_to_le (lvarmap : variable_types LVarMap.t) arg =
 let rec args_to_footprint varmap arg =
   match arg with
     | Psyntax.Arg_op ("cons", [x; xs]) -> (args_to_le varmap x) :: (args_to_footprint varmap xs)
-    | Psyntax.Arg_op ("empty_list", []) -> []
+    | Psyntax.Arg_op ("empty", []) -> []
     | _ -> raise (BadArgument "in args_to_footprint")
 
   
@@ -326,7 +332,8 @@ let convert_from_pform_at varmap pfa : formula =
       | Psyntax.P_False -> raise NotImplemented
   
 let convert_from_pform varmap (pf : Psyntax.pform) : formula =
-  let pf = elim_vars pf in
+  (*let pf = elim_vars pf in*)
+  Printf.printf "Variable map %s" (String.concat "\n" (List.map (fun (k, v) -> (Vars.string_var k) ^  ":" ^ (string_of_variable_types v)) (LVarMap.bindings varmap)));
   let f = List.map (convert_from_pform_at varmap) pf in
   simplify (Star f)
   
@@ -341,6 +348,37 @@ let rename_evars f =
   let evars = List.unique evars in 
   let vmap = List.fold_left (fun vmap x -> LogicalVarMap.add x (fresh_e ()) vmap) LogicalVarMap.empty evars in
   subs_vars vmap f
+ 
+(* does frame inference : current_state |- pre * ?F *)
+(* returns : ?F * post *)
+(* returns : None if contradiction found when translating to inner form *)
+(*                or if frame ?F is not found *)
+(* returns list of formulae because of possible multiple frames *) 
+let apply_spec current_state pre post =
+  let fs, varmap = convert_to_pform [current_state; pre; post] in
+  let pf, pre, post = match fs with
+      | [pf; pre; post] -> pf, pre, post
+      | _ -> raise CannotHappen in
+  match (Sepprover.convert pf) with
+    | Some inner -> 
+      begin
+        let inner = Sepprover.lift_inner_form inner in
+			  let spec = Spec.mk_spec pre post Spec.ClassMap.empty in
+			  let posts = Specification.jsr (!logic) inner spec false in 
+			  begin match posts with
+			     | None -> (* Couldn't find any frames *) None 
+			     | Some posts -> Some (List.map (fun post -> 
+			        let post = Sepprover.inner_form_af_to_form post in
+			        Format.fprintf (Format.std_formatter) "%a  \n" Sepprover.string_inner_form post; Format.pp_print_flush(Format.std_formatter)();
+			        let pf = Sepprover.convert_back post in
+			        let cf = convert_from_pform (invert_varmap varmap) pf in
+			        Printf.printf "\nPrinting frames as formula: %s\n" (Pulp_Logic_Print.string_of_formula cf);
+              cf
+			        ) posts)
+        end
+      end
+    | None -> (* Contradiction found *) None
+  
 
 let frame_inner f1 f2 : Sepprover.inner_form list option * Vars.var VarMap.t =
   Profiler.track Profiler.CoreStar (fun () ->
@@ -390,9 +428,11 @@ let frame f1 f2 : formula list option = Profiler.track Profiler.CoreStar (fun ()
     | Some [] -> Sepprover.print_counter_example (); None
     | Some frames -> 
       Printf.printf "\nPrinting frames: %d\n" (List.length frames);
-      List.iter (fun f -> Format.fprintf (Format.std_formatter) "%a" Sepprover.string_inner_form f) frames; 
       Some (List.map (fun f -> 
-        let cf = convert_from_pform (invert_varmap varmap) (Sepprover.convert_back f) in
+        Format.fprintf (Format.std_formatter) "%a  \n" Sepprover.string_inner_form f; Format.pp_print_flush(Format.std_formatter)();
+        let pf = Sepprover.convert_back f in
+        Format.fprintf (Format.std_formatter) "After convert back %a \n" Psyntax.string_form pf; Format.pp_print_flush(Format.std_formatter)();
+        let cf = convert_from_pform (invert_varmap varmap) pf in
         Printf.printf "\nPrinting frames as formula: %s\n" (Pulp_Logic_Print.string_of_formula cf);
         cf
       ) frames)

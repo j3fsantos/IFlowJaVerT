@@ -9,7 +9,7 @@ open Pulp_Logic_Utils
 exception NotImplemented of string
 
 type sym_exec_error =
-  | FrameNotFound
+  | CouldNotApplySpec
 
 exception SymExecException of sym_exec_error
 
@@ -20,15 +20,22 @@ let execute_basic_stmt bs pre : formula =
   
   let cmd_pre, cmd_post = small_axiom_basic_stmt bs in
   
-  let frames = CoreStar_Frontend_Pulp.frame pre cmd_pre in
+  let posts = CoreStar_Frontend_Pulp.apply_spec pre cmd_pre cmd_post in
   
-  
-  match frames with
-    | None -> raise (SymExecException FrameNotFound) 
-    | Some frames ->
-      begin match frames with 
-        | [frame] -> begin Printf.printf "%s \n" (Pulp_Logic_Print.string_of_formula frame); combine cmd_post frame end
-        | frames -> raise (NotImplemented "Multiple frames")
+  match posts with
+    | None -> 
+      begin 
+        Printf.printf "Could Not Apply Spec";
+        raise (SymExecException CouldNotApplySpec) 
+      end
+    | Some posts ->
+      begin match posts with 
+        | [post] -> 
+          begin 
+            Printf.printf "Postcondition %s \n" (Pulp_Logic_Print.string_of_formula post);
+            post
+          end
+        | posts -> raise (NotImplemented "Multiple frames")
       end
  
 

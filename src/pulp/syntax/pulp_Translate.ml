@@ -75,19 +75,6 @@ let equal_num_expr v n = equal_lit_expr v (Num n)
 
 let equal_string_exprs e s = equal_exprs e (Literal (String s))
 
-(* Assignment *)
-let mk_assign var exp = { 
-    assign_left = var; 
-    assign_right = exp
-  }
-
-(* Assignment to a fresh variable *)
-let mk_assign_fresh exp = mk_assign (fresh_r ()) exp
-  
-let mk_assign_fresh_e e = mk_assign_fresh (Expression e)
-let mk_assign_fresh_lit lit = mk_assign_fresh_e (Literal lit)
-
-
 let tr_unary_op op =
   match op with
       | Parser_syntax.Not -> Not
