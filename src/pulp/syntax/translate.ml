@@ -27,8 +27,9 @@ let arguments () =
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
     
-let create_output (content : string) path = 
-  let path = (Filename.chop_extension path) ^ ".pulp" in
+let create_output (fb : Pulp_Procedure.function_block) path = 
+  let content = Pulp_Syntax_Print.string_of_func_block fb in
+  let path = (Filename.chop_extension path) ^ "." ^ fb.Pulp_Procedure.func_name ^ ".pulp" in
   let oc = open_out path in
   output_string oc content;
   close_out oc
@@ -54,7 +55,9 @@ let translate_exp path level =
 let translate path level = 
   let p_exp = translate_exp path level in
   let p_exp = Simp_Main.simplify p_exp in
-  create_output (Pulp_Syntax_Print.string_of_all_functions p_exp) path    
+  (* TODO: Constructs cfg twice adding entry label twice *)
+  let _ = Control_Flow.mk_cfg p_exp (Filename.chop_extension path) in
+  Pulp_Procedure.AllFunctions.iter (fun fid fwc -> create_output fwc path) p_exp
 
 let main () =
   Config.apply_config ();

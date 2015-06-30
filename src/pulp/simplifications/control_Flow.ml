@@ -89,18 +89,19 @@ let print_cfg (cfgs : CFG.graph AllFunctions.t) (filename : string) : unit =
       (CFG.node_id n) 
       (String.escaped (Pulp_Syntax_Print.string_of_statement nd));    
       List.iter (fun dest -> d_cfgedge chan dest n) (CFG.succ cfg n) in
-  let chan = open_out (filename ^ ".cfg.dot") in
-  Printf.fprintf chan "digraph iCFG {\n\tnode [shape=box,  labeljust=l]\n";
+  
   AllFunctions.iter 
     (fun name cfg -> 
+      let chan = open_out (filename ^ "." ^ name ^ ".cfg.dot") in
+      Printf.fprintf chan "digraph iCFG {\n\tnode [shape=box,  labeljust=l]\n";
       Printf.fprintf chan "\tsubgraph \"cluster_%s\" {\n\t\tlabel=\"%s\"\n" name (String.escaped name);
       List.iter (fun n -> d_cfgnode chan cfg n (CFG.get_node_data cfg n)) (CFG.nodes cfg);
       Printf.fprintf chan  "\t}\n";
+      Printf.fprintf chan "}\n";
+      close_out chan
     ) 
-    cfgs;
-  Printf.fprintf chan "}\n";
-  close_out chan
-  
+    cfgs
+ 
 let mk_cfg prog file = 
   let cfg = program_to_cfg prog in
   print_cfg cfg file;
