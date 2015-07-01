@@ -7,6 +7,7 @@ open Control_Flow
 open Pulp_Logic_Print
 open Pulp_Logic_Utils
 open CoreStar_Frontend_Pulp
+open Pulp_Translate
 
 let test_apply_spec_template formula cmd_pre cmd_post expected_post =
   Config.apply_config ();
@@ -56,17 +57,25 @@ let test_apply_spec1 () =
   ]] in
   test_apply_spec_template formula cmd_pre cmd_post expected_post
   
+ 
+let make_and_print_cfg f path =
+  let all_functions = AllFunctions.add f.func_name f AllFunctions.empty in
+  let cfg = fb_to_cfg f in
+  let all_cfgs = AllFunctions.add f.func_name cfg AllFunctions.empty in
+  print_cfg all_cfgs path;
+  cfg, all_functions
 
 let test_program_template f spec = 
   Config.apply_config ();
   CoreStar_Frontend_Pulp.initialize ();
-  let all_functions = AllFunctions.add f.func_name f AllFunctions.empty in
-  let cfg = fb_to_cfg f in
-  let all_cfgs = AllFunctions.add f.func_name cfg AllFunctions.empty in
-  print_cfg all_cfgs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/fid1");
+  (* TODO : fix the path *)
+  let path = "/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/" ^ f.func_name; in
+  let cfg, all_functions = make_and_print_cfg f path in 
   
   let sg, cmd_st_tbl = execute f cfg all_functions spec in
   let posts = get_posts f cfg sg cmd_st_tbl in
+  
+  State_Graph.print_state_graph sg cfg f.func_name path;
   
    assert_bool ("Symbolic Execution. Postcondition. 
      Expected :" ^ (String.concat "\n" (List.map string_of_formula spec.spec_post)) ^ 
@@ -115,10 +124,49 @@ let test_empty_program_non_empty_pre () =
   let spec = mk_spec empty_f post in
   let f = make_function_block_with_spec "fid1" p [] ctx [spec] in
   test_program_template f spec
+  
+let translate_jstools_example_person () =
+  let ctx = create_ctx [] in
+  let person0_scope = mk_assign "Person0_scope" Obj in
+  let label_true = "label_true" in
+  let label_false1 = "label_false1" in
+  let label_false2 = "label_false2" in
+  let label_false3 = "label_false3" in
+  let label_false4 = "label_false4" in
+  let label_false5 = "label_false5" in
+  let p = [
+      Basic (Assignment person0_scope);    
+      Basic (Mutation ((mk_mutation (Var person0_scope.assign_left) (Literal (String "name")) (Var "name"))));  
+      (*GuardedGoto (is_prim_value "rthis", label_true, label_false);*)
+      GuardedGoto ((type_of_var "rthis" UndefinedType), label_true, label_false1);
+      Label label_false1;     
+      GuardedGoto ((type_of_var "rthis" NullType), label_true, label_false2);
+      Label label_false2;  
+      GuardedGoto ((type_of_var "rthis" BooleanType), label_true, label_false3);
+      Label label_false3; 
+      GuardedGoto ((type_of_var "rthis" StringType), label_true, label_false4);
+      Label label_false4; 
+      GuardedGoto ((type_of_var "rthis" NumberType), label_true, label_false5);
+      Label label_false5; 
+      Basic (Mutation ((mk_mutation (Var "rthis") (Literal (String "name")) (Var "name"))));  
+      Basic (Assignment (mk_assign ctx.return_var (Expression (Literal Empty))));
+      Goto ctx.label_return;
+      Label label_true; ] 
+   @  translate_error_throw Ltep ctx.throw_var ctx.label_throw 
+   @ [
+      Label ctx.label_throw;
+      Label ctx.label_return
+  ] in 
+  let pre = Heaplet (Le_PVar "rthis", Le_Literal (String "name"), Le_Var (fresh_a())) in
+  let spec = mk_spec pre [empty_f] in
+  let f = make_function_block_with_spec "Person0" p ["rthis"; "rscope"; "name"] ctx [spec] in
+  test_program_template f spec
+  
    
 let suite = "Testing_Sym_Exec" >:::
   [ "test_function_call_name" >:: test_function_call_name;
     "test_jsr" >:: test_apply_spec1;
     "running program1" >:: test_empty_program;
    "test_empty_program_non_empty_pre" >:: test_empty_program_non_empty_pre;
-   "sym exec program1" >:: test_program1]
+   "sym exec program1" >:: test_program1;
+   "translate_jstools_example_person" >:: translate_jstools_example_person]

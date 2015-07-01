@@ -43,17 +43,28 @@ let lessthan_exprs e1 e2 = or_expr
     
 let concat_exprs e1 e2 = BinOp (e1, Concat, e2)
  
-let type_of_var v t = lessthan_exprs (TypeOf (Var v)) (Literal (Type t))
+let type_of_var v t = 
+  let typeof = TypeOf (Var v) in
+  let typelit = Literal (Type t) in
+  match t with
+    | NullType
+    | UndefinedType
+    | NumberType
+    | StringType
+    | BooleanType ->  BinOp (typeof, Comparison Equal, typelit)
+    | ObjectType _
+    | ReferenceType _ -> lessthan_exprs typeof typelit
+    
 let type_of_oref_var ref = type_of_var ref (ReferenceType (Some MemberReference))
 let type_of_vref_var ref = type_of_var ref (ReferenceType (Some VariableReference))
 let type_of_ref_var ref = type_of_var ref (ReferenceType None)
   
 let istypeof_prim_expr v =
   or_expr 
-  (IsTypeOf (Var v, BooleanType))
+  (type_of_var v BooleanType)
   (or_expr 
-    (IsTypeOf (Var v, NumberType))
-    (IsTypeOf (Var v, StringType)))
+     (type_of_var v NumberType)
+     (type_of_var v StringType))
     
 let is_prim_value v =
   or_expr 

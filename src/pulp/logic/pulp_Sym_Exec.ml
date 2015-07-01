@@ -19,8 +19,12 @@ let execute_basic_stmt bs pre : formula =
   (* post_stmt' * F *)
   
   let cmd_pre, cmd_post = small_axiom_basic_stmt bs in
+  Printf.printf "Got spec for Basic Stmt \n" ;
   
   let posts = CoreStar_Frontend_Pulp.apply_spec pre cmd_pre cmd_post in
+  
+  Printf.printf "Got Postcondition \n" ;
+
   
   match posts with
     | None -> 
@@ -50,6 +54,7 @@ let rec execute_stmt f sg cfg fs snode_id cmd_st_tbl =
   let new_snode id state =
     let new_sn = StateG.mk_node sg (mk_sg_node id state) in
     Hashtbl.add cmd_st_tbl id new_sn;
+    StateG.mk_edge sg snode_id new_sn ();
     execute_stmt f sg cfg fs new_sn cmd_st_tbl in
     
   let new_snode_cond id state edge e =

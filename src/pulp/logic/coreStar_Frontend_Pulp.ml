@@ -10,6 +10,7 @@ open Utils
 
 exception BadArgument of string
 exception StarShouldntBeThere
+exception NotImplemented of string
 
 let logic = ref Psyntax.empty_logic
 
@@ -113,9 +114,12 @@ let elim_ident pf =
   ) pf
   
 let elim_vars pf =
-  Printf.printf "\nEliminating variables\n";
+  Printf.printf "\nEliminating existential variables\n";
   let vars = get_vars_from_pform pf in
   List.fold_left (fun pf v -> 
+    match v with
+      | Vars.PVar _ -> pf
+      | _ ->
     try 
       Printf.printf "\nVariable %s\n" (Vars.string_var v);
       let veq = find_var_eq v pf in
@@ -177,7 +181,7 @@ let rec le_to_args (varmap : Vars.var VarMap.t) le : Psyntax.args =
       | Le_TypeOf le -> Psyntax.Arg_op (type_of, [f le])
       | Le_Ref (lb, v, rt) -> Psyntax.Arg_op (reference, [f lb; f v; Psyntax.Arg_op ((string_of_ref_type rt^reference), [])])
       | Le_BinOp _ 
-      | Le_UnOp _ -> raise NotImplemented
+      | Le_UnOp _ -> raise (NotImplemented ("le_to_args" ^ (string_of_logical_exp le)))
         
 let footprint_to_args varmap l obj_fields = 
   let arg = List.fold_right (fun x arg -> 
@@ -199,7 +203,8 @@ let args_to_bloc args =
         | "lop", [] -> Lop
         | "lfp", [] -> Lfp
         | "leval", [] -> LEval
-        | _ -> raise NotImplemented
+        | "#ltep", [] -> Ltep
+        | _ -> raise (NotImplemented ("args_to_bloc " ^ s))
       end
     | _ -> raise (BadArgument "in args_to_loc")
 
@@ -232,6 +237,7 @@ let rec args_to_le (lvarmap : variable_types LVarMap.t) arg =
         | "lg", [] 
         | "lop", [] 
         | "lfp", []
+        | "#ltep", []
         | "leval", [] -> Le_Literal (LLoc (args_to_bloc arg))
         | "empty_value", [] -> Le_Literal Empty
         | "NullType", [] ->  Le_Literal (Type NullType)
@@ -329,10 +335,10 @@ let convert_from_pform_at varmap pfa : formula =
       | Psyntax.P_Wand _
       | Psyntax.P_Or _
       | Psyntax.P_Septract _
-      | Psyntax.P_False -> raise NotImplemented
+      | Psyntax.P_False -> raise (NotImplemented ("convert_from_pform_at"))
   
 let convert_from_pform varmap (pf : Psyntax.pform) : formula =
-  (*let pf = elim_vars pf in*)
+  let pf = elim_vars pf in
   Printf.printf "Variable map %s" (String.concat "\n" (List.map (fun (k, v) -> (Vars.string_var k) ^  ":" ^ (string_of_variable_types v)) (LVarMap.bindings varmap)));
   let f = List.map (convert_from_pform_at varmap) pf in
   simplify (Star f)
