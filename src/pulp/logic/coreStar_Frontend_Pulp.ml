@@ -11,6 +11,7 @@ open Utils
 exception BadArgument of string
 exception StarShouldntBeThere
 exception NotImplemented of string
+exception ContradictionFound
 
 let logic = ref Psyntax.empty_logic
 
@@ -277,10 +278,14 @@ let rec remove_is_true_is_false (f : formula) : formula =
   let r = remove_is_true_is_false in
   match f with
     | Star fs -> Star (List.map r fs)
-    | Eq (Le_Literal (Bool true), Le_BinOp (le, Comparison Equal, Le_Literal (Bool true))) -> Eq (le, Le_Literal (Bool true))
-    | Eq (Le_Literal (Bool true), Le_UnOp (Not, Le_BinOp (le, Comparison Equal, Le_Literal (Bool true)))) -> NEq (le, Le_Literal (Bool true))
-    | Eq (Le_Literal (Bool true), Le_BinOp (le, Comparison Equal, Le_Literal (Bool false))) -> Eq (le, Le_Literal (Bool false))
-    | Eq (Le_Literal (Bool true), Le_UnOp (Not, Le_BinOp (le, Comparison Equal, Le_Literal (Bool false)))) -> NEq (le, Le_Literal (Bool false))
+    | Eq (Le_Literal (Bool true), Le_BinOp (le1, Comparison Equal, le2)) -> Eq (le1, le2)
+    | Eq (Le_Literal (Bool false), Le_BinOp (le1, Comparison Equal, le2)) -> NEq (le1, le2)
+    | Eq (Le_Literal (Bool true), Le_UnOp (Not, Le_BinOp (le1, Comparison Equal, le2))) -> NEq (le1, le2)
+    | Eq (Le_Literal (Bool false), Le_UnOp (Not, Le_BinOp (le1, Comparison Equal, le2))) -> Eq (le1, le2)
+    | Eq (Le_BinOp (le1, Comparison Equal, le2), Le_Literal (Bool true)) -> Eq (le1, le2)
+    | Eq (Le_BinOp (le1, Comparison Equal, le2), Le_Literal (Bool false)) -> NEq (le1, le2)
+    | Eq (Le_UnOp (Not, Le_BinOp (le1, Comparison Equal, le2)), Le_Literal (Bool true)) -> NEq (le1, le2)
+    | Eq (Le_UnOp (Not, Le_BinOp (le1, Comparison Equal, le2)), Le_Literal (Bool false)) -> Eq (le1, le2)
     | _ -> f
   
 let rec convert_to_pform_inner (varmap : Vars.var VarMap.t) (f: formula) : Psyntax.pform =
@@ -383,7 +388,7 @@ let apply_spec current_state pre post =
 			        ) posts)
         end
       end
-    | None -> (* Contradiction found *) None
+    | None -> (* Contradiction found *) raise ContradictionFound
   
 
 let frame_inner f1 f2 : Sepprover.inner_form list option * Vars.var VarMap.t =

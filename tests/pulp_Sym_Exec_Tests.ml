@@ -73,20 +73,22 @@ let test_program_template f spec =
   let cfg, all_functions = make_and_print_cfg f path in 
   
   let sg, cmd_st_tbl = execute f cfg all_functions spec in
-  let posts = get_posts f cfg sg cmd_st_tbl in
+  let posts, throw_posts = get_posts f cfg sg cmd_st_tbl in
   
   State_Graph.print_state_graph sg cfg f.func_name path;
   
    assert_bool ("Symbolic Execution. Postcondition. 
-     Expected :" ^ (String.concat "\n" (List.map string_of_formula spec.spec_post)) ^ 
-   " Actual: " ^ (String.concat "\n" (List.map string_of_formula posts))) 
-     (List.for_all (fun post -> CoreStar_Frontend_Pulp.implies_or_list (simplify post) spec.spec_post) posts)
+     Expected :" ^ (String.concat "\n" (List.map string_of_formula spec.spec_post)) ^ "Excep" ^  (String.concat "\n" (List.map string_of_formula spec.spec_excep_post)) ^
+   " Actual: " ^ (String.concat "\n" (List.map string_of_formula posts)) ^ "Excep" ^ (String.concat "\n Posts" (List.map string_of_formula throw_posts))) 
+     ((List.for_all (fun post -> CoreStar_Frontend_Pulp.implies_or_list (simplify post) spec.spec_post) posts)
+     && (List.for_all (fun post -> CoreStar_Frontend_Pulp.implies_or_list (simplify post) spec.spec_excep_post) throw_posts))
 
 let test_empty_program () =
   let ctx = create_ctx [] in
   let p = [
       Basic Skip;       
       Goto ctx.label_return; 
+      Label ctx.label_throw;
       Label ctx.label_return
   ] in
   let spec = mk_spec empty_f [empty_f] in
@@ -98,6 +100,7 @@ let test_empty_program_non_empty_pre () =
   let p = [
       Basic Skip;       
       Goto ctx.label_return; 
+      Label ctx.label_throw;
       Label ctx.label_return
   ] in
   let formula = Heaplet (Le_Var (fresh_a ()), Le_Var (fresh_a ()), Le_Var (fresh_a ())) in
@@ -114,6 +117,7 @@ let test_empty_program_non_empty_pre () =
       Basic (Mutation ((mk_mutation (Var x.assign_left) (Literal (String "f")) (Literal (Num 1.0)))));  
       Basic (Assignment y); 
       Goto ctx.label_return; 
+      Label ctx.label_throw;
       Label ctx.label_return
   ] in
   let post = [Star [
@@ -157,10 +161,36 @@ let translate_jstools_example_person () =
       Label ctx.label_throw;
       Label ctx.label_return
   ] in 
-  let pre = Heaplet (Le_PVar "rthis", Le_Literal (String "name"), Le_Var (fresh_a())) in
-  let spec = mk_spec pre [empty_f] in
+  let spec = mk_spec empty_f [] in
   let f = make_function_block_with_spec "Person0" p ["rthis"; "rscope"; "name"] ctx [spec] in
-  test_program_template f spec
+  f
+ 
+let test_jstools_example_person_1 () =
+  let p = translate_jstools_example_person () in
+  let pre = Star [
+    Heaplet (Le_PVar "rthis", Le_Literal (String "name"), Le_Var (fresh_a()));
+    NEq (Le_Literal (Type UndefinedType), Le_TypeOf (Le_PVar "rthis"));
+    NEq (Le_Literal (Type NullType), Le_TypeOf (Le_PVar "rthis"));
+    NEq (Le_Literal (Type StringType), Le_TypeOf (Le_PVar "rthis"));
+    NEq (Le_Literal (Type BooleanType), Le_TypeOf (Le_PVar "rthis"));
+    NEq (Le_Literal (Type NumberType), Le_TypeOf (Le_PVar "rthis"));
+  ] in
+  let spec = mk_spec_with_excep pre [Heaplet (Le_PVar "rthis", Le_Literal (String "name"), Le_PVar "name")] [] in
+  test_program_template p spec
+  
+let get_excep_post throw_var = 
+  let excep = fresh_e() in
+  Star [
+    Eq (Le_PVar throw_var, Le_Var excep);
+    Heaplet (Le_Var excep, Le_Literal (String "#class"), Le_Literal (String "Error"));
+    Heaplet (Le_Var excep, Le_Literal (String "#proto"), Le_Literal (LLoc Ltep));
+  ]
+  
+let test_jstools_example_person_2 () =
+  let p = translate_jstools_example_person () in
+  let pre = Eq (Le_Literal (Type UndefinedType), Le_TypeOf (Le_PVar "rthis")) in
+  let spec = mk_spec_with_excep pre [] [get_excep_post p.func_ctx.throw_var] in
+  test_program_template p spec
   
    
 let suite = "Testing_Sym_Exec" >:::
@@ -169,4 +199,5 @@ let suite = "Testing_Sym_Exec" >:::
     "running program1" >:: test_empty_program;
    "test_empty_program_non_empty_pre" >:: test_empty_program_non_empty_pre;
    "sym exec program1" >:: test_program1;
-   "translate_jstools_example_person" >:: translate_jstools_example_person]
+   "test_jstools_example_person_1" >:: test_jstools_example_person_1;
+   "test_jstools_example_person_2" >:: test_jstools_example_person_2]

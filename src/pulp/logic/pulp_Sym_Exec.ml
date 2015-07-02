@@ -115,8 +115,18 @@ let rec execute_stmt f sg cfg fs snode_id cmd_st_tbl =
       List.iter2 (new_snode_call succ2 edge2) post_normal post_excep
       
     | Basic bs -> 
-      let post = execute_basic_stmt bs snode.sgn_state in
-      new_snode (get_single_succ snode.sgn_id) post 
+        let id = get_single_succ snode.sgn_id in
+        begin try
+          let post = execute_basic_stmt bs snode.sgn_state in
+          new_snode id post 
+        with CoreStar_Frontend_Pulp.ContradictionFound ->
+          begin
+             let new_sn = StateG.mk_node sg (mk_sg_node id (Eq(Le_Literal(Bool true), Le_Literal(Bool false)))) in
+             Hashtbl.add cmd_st_tbl id new_sn;
+             StateG.mk_edge sg snode_id new_sn ();
+          end
+        end
+        
     | Sugar s -> raise (Invalid_argument "Symbolic execution does not work on syntactic sugar")
 
 
@@ -127,7 +137,12 @@ let get_posts fb cfg sg cmd_st_tbl =
   let return_label_node = Hashtbl.find label_map return_label in
   let posts_nodes = Hashtbl.find_all cmd_st_tbl return_label_node in
   let posts = List.map (fun id -> let snode = StateG.get_node_data sg id in snode.sgn_state) posts_nodes in
-  posts
+  
+  let throw_label = fb.func_ctx.label_throw in
+  let throw_label_node = Hashtbl.find label_map throw_label in
+  let posts_nodes_throw = Hashtbl.find_all cmd_st_tbl throw_label_node in
+  let posts_throw = List.map (fun id -> let snode = StateG.get_node_data sg id in snode.sgn_state) posts_nodes_throw in
+  posts, posts_throw
   
 (* returns a state graph *)
 (*         and a map cfg_node -> state_node list*)
@@ -150,7 +165,7 @@ let execute f cfg fs spec =
   
 let execute_check_post f cfg fs spec =
   let sg, cmd_st_tbl = execute f cfg fs spec in
-  let posts = get_posts f cfg sg cmd_st_tbl in
+  let posts, throw_posts = get_posts f cfg sg cmd_st_tbl in
   List.for_all (fun post -> CoreStar_Frontend_Pulp.implies_or_list (simplify post) spec.spec_post) posts
   
 let execute_all (f : function_block) (fs : function_block AllFunctions.t) = 
