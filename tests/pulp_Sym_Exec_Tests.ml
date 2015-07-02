@@ -68,8 +68,7 @@ let make_and_print_cfg f path =
 let test_program_template f spec = 
   Config.apply_config ();
   CoreStar_Frontend_Pulp.initialize ();
-  (* TODO : fix the path *)
-  let path = "/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/" ^ f.func_name; in
+  let path = "tests/dot/" ^ f.func_name; in
   let cfg, all_functions = make_and_print_cfg f path in 
   
   let sg, cmd_st_tbl = execute f cfg all_functions spec in
@@ -105,7 +104,7 @@ let test_empty_program_non_empty_pre () =
   ] in
   let formula = Heaplet (Le_Var (fresh_a ()), Le_Var (fresh_a ()), Le_Var (fresh_a ())) in
   let spec = mk_spec formula [formula] in
-  let f = make_function_block_with_spec "fid1" p [] ctx [spec] in
+  let f = make_function_block_with_spec "fid2" p [] ctx [spec] in
   test_program_template f spec
   
   let test_program1 () =
@@ -126,7 +125,7 @@ let test_empty_program_non_empty_pre () =
     Heaplet (Le_PVar "x", Le_Literal (String "f"), Le_Literal (Num 1.0))
   ]] in 
   let spec = mk_spec empty_f post in
-  let f = make_function_block_with_spec "fid1" p [] ctx [spec] in
+  let f = make_function_block_with_spec "fid3" p [] ctx [spec] in
   test_program_template f spec
   
 let translate_jstools_example_person () =
