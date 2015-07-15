@@ -26,7 +26,6 @@ let test_function_call_name () =
   let e = Corestar.Vars.freshe_str "lv" in
   let x = Corestar.Vars.freshp_str "x" in
   let z = Corestar.Vars.freshp_str "z" in
-  let y = Corestar.Vars.freshe_str "lv" in
   let f1 = Corestar.Psyntax.P_EQ (Corestar.Psyntax.Arg_var x, Corestar.Psyntax.Arg_var z) in
   let f2 = Corestar.Psyntax.P_EQ (Corestar.Psyntax.Arg_var z, Corestar.Psyntax.Arg_string "fid1") in
   let Some formula = Corestar.Sepprover.convert [f1; f2] in
@@ -166,14 +165,7 @@ let translate_jstools_example_person () =
  
 let test_jstools_example_person_1 () =
   let p = translate_jstools_example_person () in
-  let pre = Star [
-    Heaplet (Le_PVar "rthis", Le_Literal (String "name"), Le_Var (fresh_a()));
-    NEq (Le_Literal (Type UndefinedType), Le_TypeOf (Le_PVar "rthis"));
-    NEq (Le_Literal (Type NullType), Le_TypeOf (Le_PVar "rthis"));
-    NEq (Le_Literal (Type StringType), Le_TypeOf (Le_PVar "rthis"));
-    NEq (Le_Literal (Type BooleanType), Le_TypeOf (Le_PVar "rthis"));
-    NEq (Le_Literal (Type NumberType), Le_TypeOf (Le_PVar "rthis"));
-  ] in
+  let pre = Heaplet (Le_PVar "rthis", Le_Literal (String "name"), Le_Var (fresh_a())) in
   let spec = mk_spec_with_excep pre [Heaplet (Le_PVar "rthis", Le_Literal (String "name"), Le_PVar "name")] [] in
   test_program_template p spec
   

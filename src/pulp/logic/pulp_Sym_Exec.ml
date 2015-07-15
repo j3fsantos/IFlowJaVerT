@@ -34,12 +34,15 @@ let execute_basic_stmt bs pre : formula =
       end
     | Some posts ->
       begin match posts with 
+        | [] -> raise (NotImplemented "Frame Not Found")
         | [post] -> 
           begin 
             Printf.printf "Postcondition %s \n" (Pulp_Logic_Print.string_of_formula post);
             post
           end
-        | posts -> raise (NotImplemented "Multiple frames")
+        | posts -> 
+          List.iter (fun post -> Printf.printf "Postcondition %s \n" (Pulp_Logic_Print.string_of_formula post)) posts;
+          raise (NotImplemented "Multiple frames")
       end
       
 let execute_call_stmt fs c current : formula list * formula list =
@@ -49,6 +52,11 @@ let execute_call_stmt fs c current : formula list * formula list =
  
 
 let rec execute_stmt f sg cfg fs snode_id cmd_st_tbl = 
+  let contradiction id =
+    let new_sn = StateG.mk_node sg (mk_sg_node id (Eq(Le_Literal(Bool true), Le_Literal(Bool false)))) in
+    Hashtbl.add cmd_st_tbl id new_sn;
+    StateG.mk_edge sg snode_id new_sn () in
+         
  
   (* Hashtable cfg_node -> state_node list for termination *)
   let new_snode id state =
@@ -58,9 +66,17 @@ let rec execute_stmt f sg cfg fs snode_id cmd_st_tbl =
     execute_stmt f sg cfg fs new_sn cmd_st_tbl in
     
   let new_snode_cond id state edge e =
+    let state_true = (Star (Eq (e, Le_Literal (Bool true)) :: [state])) in
+    let state_false = (Star (Eq (e, Le_Literal (Bool false)) :: [state])) in
     match edge with
-      | Simp_Common.Edge_True -> new_snode id (Star (Eq (e, Le_Literal (Bool true)) :: [state]))
-      | Simp_Common.Edge_False -> new_snode id (Star (Eq (e, Le_Literal (Bool false)) :: [state]))
+      | Simp_Common.Edge_True -> 
+        if CoreStar_Frontend_Pulp.inconsistent state_true then
+          contradiction id 
+        else new_snode id state_true
+      | Simp_Common.Edge_False -> 
+          if CoreStar_Frontend_Pulp.inconsistent state_false then
+          contradiction id 
+          else new_snode id state_false
       | _ -> raise (Invalid_argument "Expected true and false edges") in
 
   let new_snode_call id edge p_normal p_excep =
@@ -100,6 +116,7 @@ let rec execute_stmt f sg cfg fs snode_id cmd_st_tbl =
       let succ1, succ2 = get_two_succs snode.sgn_id in
       let edge1 = CFG.get_edge_data cfg snode.sgn_id succ1 in
       let edge2 = CFG.get_edge_data cfg snode.sgn_id succ2 in
+      
       new_snode_cond succ1 snode.sgn_state edge1 (expr_to_logical_expr e);
       new_snode_cond succ2 snode.sgn_state edge2 (expr_to_logical_expr e)
     
@@ -120,11 +137,7 @@ let rec execute_stmt f sg cfg fs snode_id cmd_st_tbl =
           let post = execute_basic_stmt bs snode.sgn_state in
           new_snode id post 
         with CoreStar_Frontend_Pulp.ContradictionFound ->
-          begin
-             let new_sn = StateG.mk_node sg (mk_sg_node id (Eq(Le_Literal(Bool true), Le_Literal(Bool false)))) in
-             Hashtbl.add cmd_st_tbl id new_sn;
-             StateG.mk_edge sg snode_id new_sn ();
-          end
+          contradiction id
         end
         
     | Sugar s -> raise (Invalid_argument "Symbolic execution does not work on syntactic sugar")

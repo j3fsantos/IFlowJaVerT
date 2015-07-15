@@ -266,3 +266,7 @@ let string_of_func_block fb =
   
 let string_of_all_functions p_exp =
   AllFunctions.fold (fun fid fwc content -> content ^ Printf.sprintf "%s \n" (string_of_func_block fwc)) p_exp ""
+  
+let string_of_functions p_exp fs =
+  let p_exp = AllFunctions.filter (fun fid fwc -> List.mem fid fs) p_exp in
+  AllFunctions.fold (fun fid fwc content -> Printf.printf "%s\n" fid; content ^ Printf.sprintf "%s \n" (string_of_func_block fwc)) p_exp ""
