@@ -448,7 +448,7 @@ let get_type_info_assign_expr type_info e =
       | HasField (e1, e2) -> Some (TI_Type BooleanType)
       | Lookup (e1, e2) -> Some TI_Value
       | Deallocation (e1, e2) -> Some (TI_Type BooleanType)
-      | ProtoF (e1, e2) -> Some TI_Value
+      | ProtoF (e1, e2) -> Some TI_Value (* TODO Can be empty too *)
       | ProtoO (e1, e2) -> Some (TI_Type (ObjectType None))
 
 let rec simplify_type_of type_info e =
