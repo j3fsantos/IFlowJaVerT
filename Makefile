@@ -3,21 +3,29 @@ INCLUDES = -I lib/corestar \
 	   -I src/ \
 	   -I src/formula_parser \
 	   -I src/parser/src \
+	   -I src/parser/_build/src \
 	   -I src/syntax/ \
 	   -I src/logic/ \
 	   -I src/utils/ \
-	   -I src/strategies/store
+	   -I src/strategies/store \
+     -I src/pulp \
+     -I src/pulp/syntax \
+     -I src/pulp/interpreter \
+     -I src/pulp/simplifications \
+     -I src/pulp/logic \
+     -I src/pulp/logic/formula_parser
 
 SOURCE1 = src/localconfig.ml \
 	 src/utils/utils.ml \
 	 src/utils/profiler.ml \
+	 src/parser/src/pretty_print.ml \
+	 src/parser/src/parser_syntax.ml \
+	 src/parser/src/parser.ml \
+	 src/parser/src/parser_main.ml \
 	 src/syntax/syntax.ml \
 	 src/parser/src/parser_syntax.ml \
 	 src/syntax/translate_syntax.ml \
 	 src/syntax/printSyntax.ml \
-	 src/parser/src/parser.ml \
-	 src/parser/src/pretty_print.ml \
-	 src/parser/src/parser_main.ml \
 	 src/config.ml \
 	 src/logic/logic.ml \
 	 src/logic/printLogic.ml \
@@ -30,6 +38,9 @@ SOURCE2_byte = lib/corestar/corestar.cma
 
 SOURCE2_native = lib/corestar/corestar_src/_build/corestar.cmx
 
+   #src/pulp/logic/pulp_Analysis_Main.ml
+   #src/pulp/interpreter/interpreter_run.ml
+	 #src/main.ml
 SOURCE3 = src/corestar_frontend.ml \
 	 src/inference_rules.ml \
 	 src/strategies/store/store_rules.ml \
@@ -50,7 +61,36 @@ SOURCE3 = src/corestar_frontend.ml \
 	 src/strategy.ml \
 	 src/example.ml \
 	 src/spec.ml \
-	 src/main.ml
+   src/pulp/simplifications/graphs.mli \
+   src/pulp/simplifications/graphs.ml \
+   src/pulp/logic/pulp_Abduct.ml \
+   src/pulp/syntax/pulp_Syntax.ml \
+   src/pulp/logic/pulp_Logic.ml \
+   src/pulp/syntax/pulp_Procedure.ml \
+   src/pulp/simplifications/simp_Common.ml \
+   src/pulp/syntax/pulp_Syntax_Utils.ml \
+   src/pulp/syntax/pulp_Syntax_Print.ml \
+   src/pulp/simplifications/control_Flow.ml \
+   src/pulp/logic/pulp_Logic_Print.ml \
+   src/pulp/logic/state_Graph.ml \
+   src/pulp/logic/pulp_Logic_Utils.ml \
+   src/pulp/logic/pulp_Logic_Rules.ml \
+   src/pulp/logic/coreStar_Frontend_Pulp.ml \
+   src/pulp/logic/pulp_Sym_Exec.ml \
+   src/pulp/logic/formula_parser/pulp_Formula_Parser.mli \
+   src/pulp/logic/formula_parser/pulp_Formula_Parser.ml \
+   src/pulp/logic/formula_parser/pulp_Formula_Lexer.ml \
+   src/pulp/logic/formula_parser/pulp_Formula_Parser_Utils.ml \
+   src/pulp/syntax/pulp_Translate.ml \
+   src/pulp/interpreter/memory_Model.ml \
+   src/pulp/interpreter/interpreter_Print.ml \
+   src/pulp/interpreter/interpreter.ml \
+   src/pulp/simplifications/basic_Blocks.ml \
+   src/pulp/simplifications/reaching_Defs.ml \
+   src/pulp/simplifications/simp_Main.ml \
+   src/pulp/syntax/translate.ml \
+   src/pulp/logic/pulp_SE_Print.ml \
+   src/pulp/cfg.ml
 
 REMOVE = src/*.cmo \
 	 src/*.cmi \
@@ -90,7 +130,7 @@ NATIVE_REMOVE = src/*.cmx \
 	src/strategies/store/*.o
 
 byte: tags parsing $(SOURCE1) $(SOURCE2_byte) $(SOURCE3)
-	ocamlfind ocamlc -g -package batteries,unix,xml-light,dynlink -linkpkg $(INCLUDES) $(SOURCE1) $(SOURCE2_byte) $(SOURCE3) -o main.byte
+	ocamlfind ocamlc -g -package batteries,unix,xml-light,dynlink -linkpkg $(INCLUDES) $(SOURCE1) $(SOURCE2_byte) $(SOURCE3) -o translate.byte
 	rm $(REMOVE)
 init:
 	cp src/localconfig.default src/localconfig.ml

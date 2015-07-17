@@ -13,18 +13,21 @@ INCLUDES = -I ../lib/corestar \
 	   -I ../src/pulp/syntax/ \
 	   -I ../src/pulp/interpreter/ \
 	   -I ../src/pulp/simplifications/ \
+		 -I ../src/pulp/logic \
+		 -I ../src/pulp/logic/formula_parser \
 	   -I ../src/strategies/store/
 
 SOURCE = ../src/localconfig.ml \
 	 ../src/utils/utils.ml \
 	 ../src/utils/profiler.ml \
+	 ../src/parser/src/parser_syntax.ml \
+	 ../src/parser/src/parser.ml \
+	 ../src/parser/src/pretty_print.ml \
+	 ../src/parser/src/parser_main.ml \
 	 ../src/syntax/syntax.ml \
 	 ../src/parser/src/parser_syntax.ml \
 	 ../src/syntax/translate_syntax.ml \
 	 ../src/syntax/printSyntax.ml \
-	 ../src/parser/src/parser.ml \
-	 ../src/parser/src/pretty_print.ml \
-	 ../src/parser/src/parser_main.ml \
 	 ../src/config.ml \
 	 ../src/logic/logic.ml \
 	 ../src/logic/printLogic.ml \
@@ -43,21 +46,35 @@ SOURCE = ../src/localconfig.ml \
 	 ../src/formula_parser/formula_parser_utils.ml \
 	 ../src/logic/udpreds.ml \
 	 ../src/help.ml \
-	 ../src/pulp/syntax/pulp_Syntax.ml \
-	 ../src/pulp/syntax/pulp_Syntax_Utils.ml \
-	 ../src/pulp/syntax/pulp_Syntax_Print.ml \
-	 ../src/pulp/cfg.ml \
-	 ../src/pulp/simplifications/graphs.mli \
+   ../src/pulp/simplifications/graphs.mli \
    ../src/pulp/simplifications/graphs.ml \
-    ../src/pulp/simplifications/simp_Common.ml \
+   ../src/pulp/logic/pulp_Abduct.ml \
+   ../src/pulp/syntax/pulp_Syntax.ml \
+   ../src/pulp/logic/pulp_Logic.ml \
+   ../src/pulp/syntax/pulp_Procedure.ml \
+   ../src/pulp/simplifications/simp_Common.ml \
+   ../src/pulp/syntax/pulp_Syntax_Utils.ml \
+   ../src/pulp/syntax/pulp_Syntax_Print.ml \
    ../src/pulp/simplifications/control_Flow.ml \
+   ../src/pulp/logic/pulp_Logic_Print.ml \
+   ../src/pulp/logic/state_Graph.ml \
+   ../src/pulp/logic/pulp_Logic_Utils.ml \
+   ../src/pulp/logic/pulp_Logic_Rules.ml \
+   ../src/pulp/logic/coreStar_Frontend_Pulp.ml \
+   ../src/pulp/logic/pulp_Sym_Exec.ml \
+   ../src/pulp/logic/formula_parser/pulp_Formula_Parser.mli \
+   ../src/pulp/logic/formula_parser/pulp_Formula_Parser.ml \
+   ../src/pulp/logic/formula_parser/pulp_Formula_Lexer.ml \
+   ../src/pulp/logic/formula_parser/pulp_Formula_Parser_Utils.ml \
+   ../src/pulp/syntax/pulp_Translate.ml \
+   ../src/pulp/interpreter/memory_Model.ml \
+   ../src/pulp/interpreter/interpreter_Print.ml \
+   ../src/pulp/interpreter/interpreter.ml \
    ../src/pulp/simplifications/basic_Blocks.ml \
    ../src/pulp/simplifications/reaching_Defs.ml \
    ../src/pulp/simplifications/simp_Main.ml \
-	 ../src/pulp/interpreter/memory_Model.ml \
-	 ../src/pulp/interpreter/interpreter_Print.ml \
-	 ../src/pulp/syntax/pulp_Translate.ml \
-	 ../src/pulp/interpreter/interpreter.ml \
+   ../src/pulp/logic/pulp_SE_Print.ml \
+   ../src/pulp/cfg.ml \
 	 ../src/strategies/store/store_naive.ml \
 	 ../src/strategies/naive_strategy.ml \
 	 ../src/strategies/naive_abduction.ml \
@@ -77,6 +94,7 @@ SOURCE = ../src/localconfig.ml \
 	 assert_Gen_Tests.ml \
 	 pulp_Translation_Tests.ml \
 	 pulp_Interpreter_Tests.ml \
+	 pulp_Sym_Exec_Tests.ml \
 	 test_all.ml
 
 REMOVE = ../src/*.cmo \
