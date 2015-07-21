@@ -199,9 +199,9 @@ let test_function_call_template fid_stmts fid_expr =
   ] in
   let spec = mk_spec empty_f [] in
   let fid1 = make_function_block_with_spec "fid1" p ["rthis"; "rscope"] ctx [spec] in
-  let spec = mk_spec_with_excep empty_f [Eq (Le_Literal (Bool false), Le_Literal (Bool true))] [REq (Le_Literal (Bool false))] in
+  let spec = mk_spec_with_excep empty_f [false_f] [REq (Le_Literal (Bool false))] in
   
-  let spec_f = mk_spec_with_excep (Eq (Le_PVar "rthis", Le_Literal Undefined)) [Eq (Le_Literal (Bool false), Le_Literal (Bool true))] 
+  let spec_f = mk_spec_with_excep (Eq (Le_PVar "rthis", Le_Literal Undefined)) [false_f] 
     [Star [Eq (Le_PVar "rthis", Le_Literal Undefined); REq (Le_Literal (Bool false))]] in
   let f = make_function_block_with_spec "f" p ["rthis"; "rscope"] ctx [spec_f] in
   

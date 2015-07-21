@@ -61,7 +61,7 @@ let execute_call_stmt fs c current : formula list * formula list =
       | None -> result
       | Some post -> post :: result) [] posts)) f_spec in
     match posts with
-      | [] -> [(Eq(Le_Literal(Bool true), Le_Literal(Bool false)))]
+      | [] -> [false_f]
       | posts -> posts in
 
   
@@ -75,7 +75,7 @@ let execute_call_stmt fs c current : formula list * formula list =
 
 let rec execute_stmt f sg cfg fs snode_id cmd_st_tbl = 
   let contradiction id =
-    let new_sn = StateG.mk_node sg (mk_sg_node id (Eq(Le_Literal(Bool true), Le_Literal(Bool false)))) in
+    let new_sn = StateG.mk_node sg (mk_sg_node id false_f) in
     Hashtbl.add cmd_st_tbl id new_sn;
     StateG.mk_edge sg snode_id new_sn () in
          

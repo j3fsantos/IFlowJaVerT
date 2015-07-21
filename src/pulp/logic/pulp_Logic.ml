@@ -64,6 +64,8 @@ type formula =
 
 let empty_f = Star []
 
+let false_f = Eq (Le_Literal (Bool false), Le_Literal (Bool true))
+
 type annot_body = formula list
 
 type spec_pre_post =
