@@ -17,7 +17,7 @@ let test_apply_spec_template formula cmd_pre cmd_post expected_post =
     | Some posts -> assert_bool ("Symbolic Execution. Postcondition. 
        Expected :" ^ (String.concat "\n" (List.map string_of_formula expected_post)) ^ 
        " Actual: " ^ (String.concat "\n" (List.map string_of_formula posts))) 
-       (List.map simplify posts=List.map simplify expected_post)
+      (List.for_all (fun post -> CoreStar_Frontend_Pulp.implies_or_list (simplify post) expected_post) posts)
     | _ -> assert_failure "Postcondition not found."
 
 let test_function_call_name () =
@@ -51,24 +51,23 @@ let test_apply_spec1 () =
   
   let expected_post = [Star [
     Eq (Le_Literal (Num 1.0), Le_PVar "y");
-    NEq (Le_Literal (Num 1.0), Le_None);
     Heaplet (Le_PVar "x", Le_Literal (String "f"), Le_PVar "y")
   ]] in
   test_apply_spec_template formula cmd_pre cmd_post expected_post
   
  
-let make_and_print_cfg f path =
-  let all_functions = AllFunctions.add f.func_name f AllFunctions.empty in
+let make_and_print_cfg f fs path =
+  let all_functions = AllFunctions.add f.func_name f fs in
   let cfg = fb_to_cfg f in
   let all_cfgs = AllFunctions.add f.func_name cfg AllFunctions.empty in
   print_cfg all_cfgs path;
   cfg, all_functions
 
-let test_program_template f spec = 
+let test_program_template f fs spec = 
   Config.apply_config ();
   CoreStar_Frontend_Pulp.initialize ();
   let path = "tests/dot/" ^ f.func_name; in
-  let cfg, all_functions = make_and_print_cfg f path in 
+  let cfg, all_functions = make_and_print_cfg f fs path in 
   
   let sg, cmd_st_tbl = execute f cfg all_functions spec in
   let posts, throw_posts = get_posts f cfg sg cmd_st_tbl in
@@ -91,7 +90,7 @@ let test_empty_program () =
   ] in
   let spec = mk_spec empty_f [empty_f] in
   let f = make_function_block_with_spec "fid1" p [] ctx [spec] in
-  test_program_template f spec
+  test_program_template f AllFunctions.empty spec
   
 let test_empty_program_non_empty_pre () =
   let ctx = create_ctx [] in
@@ -104,7 +103,7 @@ let test_empty_program_non_empty_pre () =
   let formula = Heaplet (Le_Var (fresh_a ()), Le_Var (fresh_a ()), Le_Var (fresh_a ())) in
   let spec = mk_spec formula [formula] in
   let f = make_function_block_with_spec "fid2" p [] ctx [spec] in
-  test_program_template f spec
+  test_program_template f  AllFunctions.empty spec
   
   let test_program1 () =
   let ctx = create_ctx [] in
@@ -125,7 +124,7 @@ let test_empty_program_non_empty_pre () =
   ]] in 
   let spec = mk_spec empty_f post in
   let f = make_function_block_with_spec "fid3" p [] ctx [spec] in
-  test_program_template f spec
+  test_program_template f  AllFunctions.empty spec
   
 let translate_jstools_example_person () =
   let ctx = create_ctx [] in
@@ -167,7 +166,7 @@ let test_jstools_example_person_1 () =
   let p = translate_jstools_example_person () in
   let pre = Heaplet (Le_PVar "rthis", Le_Literal (String "name"), Le_Var (fresh_a())) in
   let spec = mk_spec_with_excep pre [Heaplet (Le_PVar "rthis", Le_Literal (String "name"), Le_PVar "name")] [] in
-  test_program_template p spec
+  test_program_template p  AllFunctions.empty spec
   
 let get_excep_post throw_var = 
   let excep = fresh_e() in
@@ -181,8 +180,41 @@ let test_jstools_example_person_2 () =
   let p = translate_jstools_example_person () in
   let pre = Eq (Le_Literal (Type UndefinedType), Le_TypeOf (Le_PVar "rthis")) in
   let spec = mk_spec_with_excep pre [] [get_excep_post p.func_ctx.throw_var] in
-  test_program_template p spec
+  test_program_template p  AllFunctions.empty spec
+
   
+let test_function_call_template fid_stmts fid_expr =
+  let ctx = create_ctx [] in
+  let with_label = "label_call_throw" in
+  let x = mk_assign "x" (Call (mk_call fid_expr (Var "scope") (Literal Undefined) [] with_label))  in
+  let p = fid_stmts @
+  [  
+      Basic (Assignment (x));
+      Basic (Assignment (mk_assign ctx.return_var (Expression (Var x.assign_left))));  
+      Goto ctx.label_return;
+      Label with_label;
+      Goto ctx.label_throw;
+      Label ctx.label_throw;
+      Label ctx.label_return
+  ] in
+  let spec = mk_spec empty_f [] in
+  let fid1 = make_function_block_with_spec "fid1" p ["rthis"; "rscope"] ctx [spec] in
+  let spec = mk_spec_with_excep empty_f [Eq (Le_Literal (Bool false), Le_Literal (Bool true))] [REq (Le_Literal (Bool false))] in
+  
+  let spec_f = mk_spec_with_excep (Eq (Le_PVar "rthis", Le_Literal Undefined)) [Eq (Le_Literal (Bool false), Le_Literal (Bool true))] 
+    [Star [Eq (Le_PVar "rthis", Le_Literal Undefined); REq (Le_Literal (Bool false))]] in
+  let f = make_function_block_with_spec "f" p ["rthis"; "rscope"] ctx [spec_f] in
+  
+  let fs = AllFunctions.add f.func_name f AllFunctions.empty in
+  
+  test_program_template fid1 fs spec
+  
+let test_function_call () =
+  let name = mk_assign "name" (Expression (Literal (String "f"))) in
+  test_function_call_template [Basic (Assignment name)] (Var name.assign_left)
+
+let test_function_call_fid_string () =
+  test_function_call_template [] (Literal (String "f"))
    
 let suite = "Testing_Sym_Exec" >:::
   [ "test_function_call_name" >:: test_function_call_name;
@@ -191,4 +223,7 @@ let suite = "Testing_Sym_Exec" >:::
    "test_empty_program_non_empty_pre" >:: test_empty_program_non_empty_pre;
    "sym exec program1" >:: test_program1;
    "test_jstools_example_person_1" >:: test_jstools_example_person_1;
-   "test_jstools_example_person_2" >:: test_jstools_example_person_2]
+   "test_jstools_example_person_2" >:: test_jstools_example_person_2;
+    "test_function_call" >:: test_function_call;
+    "test_function_call_fid_string" >:: test_function_call_fid_string;
+    ]

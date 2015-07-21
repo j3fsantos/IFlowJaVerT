@@ -10,6 +10,7 @@ exception NotImplemented of string
 
 type sym_exec_error =
   | CouldNotApplySpec
+  | CouldNotExecuteCall
 
 exception SymExecException of sym_exec_error
 
@@ -46,9 +47,30 @@ let execute_basic_stmt bs pre : formula =
       end
       
 let execute_call_stmt fs c current : formula list * formula list =
-  (*let fb = AllFunctions.find c.call_name fs in
-  let f_spec = c.func_spec in*)
-  [], []
+  let get_posts fb f_spec excep = 
+    let posts = Utils.flat_map (fun spec -> 
+    let spec_post = if excep then spec.spec_excep_post else spec.spec_post in
+    let call_args = [c.call_this; c.call_scope] @ c.call_args in
+    (* TODO undefined if too little arguments *)
+    Printf.printf "Map2 lenght1 %d lenght2 %d \n" (List.length fb.func_params) (List.length call_args);
+    let args_eqs = Star (List.map2 (fun p a -> Eq (Le_PVar p, expr_to_logical_expr a)) fb.func_params call_args) in
+    let current = combine args_eqs current in
+    let posts = List.map (CoreStar_Frontend_Pulp.apply_spec current spec.spec_pre) spec_post in
+    
+    List.flatten (List.fold_left (fun result post -> match post with
+      | None -> result
+      | Some post -> post :: result) [] posts)) f_spec in
+    match posts with
+      | [] -> [(Eq(Le_Literal(Bool true), Le_Literal(Bool false)))]
+      | posts -> posts in
+
+  
+  let fid = CoreStar_Frontend_Pulp.get_function_id_from_expression current (expr_to_logical_expr c.call_name) in
+  let fb = AllFunctions.find fid fs in
+  let f_spec = fb.func_spec in
+  let posts_normal = get_posts fb f_spec false in
+  let posts_excep = get_posts fb f_spec true in
+  posts_normal, posts_excep
  
 
 let rec execute_stmt f sg cfg fs snode_id cmd_st_tbl = 

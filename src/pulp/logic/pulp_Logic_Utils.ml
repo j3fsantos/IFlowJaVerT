@@ -241,3 +241,11 @@ let rec subs_pvar_in_exp x xle le =
     | Le_Field e -> Le_Field (f e)
     | Le_TypeOf e -> Le_TypeOf (f e)
 
+let rec get_equalities_of_expr e f  =
+  let f = simplify f in
+  match f with
+    | Star fs -> flat_map (get_equalities_of_expr e) fs
+    | Eq (e1, e2) -> if (e = e1 || e = e2) then [Eq(e1, e2)] else []
+    | _ -> []
+   
+

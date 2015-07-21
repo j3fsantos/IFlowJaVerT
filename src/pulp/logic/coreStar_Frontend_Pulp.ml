@@ -12,6 +12,7 @@ exception BadArgument of string
 exception StarShouldntBeThere
 exception NotImplemented of string
 exception ContradictionFound
+exception CouldntFindFunctionId
 
 let logic = ref Psyntax.empty_logic
 
@@ -325,8 +326,9 @@ let convert_from_pform_at varmap pfa : formula =
   let f = args_to_le varmap in
   match pfa with
       | Psyntax.P_EQ (a1, a2) -> 
-      begin match a1 with
-        | Psyntax.Arg_var (Vars.PVar (_, "$ret_v1")) -> REq (f a2)
+      begin match a1, a2 with
+        | Psyntax.Arg_var (Vars.PVar (_, "$ret_v1")), a2 -> REq (f a2)
+        | a1, Psyntax.Arg_var (Vars.PVar (_, "$ret_v1")) -> REq (f a1)
         | _ -> Eq (f a1, f a2)
       end
       | Psyntax.P_NEQ (a1, a2) -> NEq (f a1, f a2) 
@@ -342,8 +344,22 @@ let convert_from_pform_at varmap pfa : formula =
       | Psyntax.P_Septract _
       | Psyntax.P_False -> raise (NotImplemented ("convert_from_pform_at"))
   
+let clean_return pf varmap = 
+  let r = Vars.concretep_str ret_v1 in
+  let v = Vars.freshe_str "N" in 
+  try
+    let _ = find_var_eq r pf in pf, varmap
+  with Not_found -> 
+    begin    
+        let pf = substitute_eq_pform r (Psyntax.Arg_var v) pf in
+        let req = Psyntax.P_EQ (Psyntax.Arg_var r, Psyntax.Arg_var v) in
+        let varmap = LVarMap.add v (LogicalVariable (fresh_e())) varmap in
+        ((req :: pf), varmap)
+    end  
+  
 let convert_from_pform varmap (pf : Psyntax.pform) : formula =
   let pf = elim_vars pf in
+  let pf,varmap = clean_return pf varmap in
   Printf.printf "Variable map %s" (String.concat "\n" (List.map (fun (k, v) -> (Vars.string_var k) ^  ":" ^ (string_of_variable_types v)) (LVarMap.bindings varmap)));
   let f = List.map (convert_from_pform_at varmap) pf in
   simplify (Star f)
@@ -389,8 +405,38 @@ let apply_spec current_state pre post =
         end
       end
     | None -> (* Contradiction found *) raise ContradictionFound
-  
 
+let get_function_id_from_expression f e =
+  match e with 
+    | Le_Literal (String id) -> id
+    | _ -> begin let v = Le_Var (fresh_e ()) in
+		  let pre_post = Eq (e, v) in
+		  let posts = apply_spec f pre_post pre_post in
+		  match posts with
+		    | None -> raise CouldntFindFunctionId
+		    | Some posts ->
+		      begin match posts with
+		        | [post] ->        
+		          let eqs = get_equalities_of_expr e post in
+		          Printf.printf "\nPrinting  eqs: %s\n" (String.concat "\n" (List.map (Pulp_Logic_Print.string_of_formula) eqs));
+		          let ids = match eqs with
+		            | [] -> raise CouldntFindFunctionId
+		            | eqs -> 
+		              begin
+		                flat_map (fun eq -> 
+		                  match eq with
+		                    | Eq (e1, Le_Literal (String s))
+		                    | Eq (Le_Literal (String s), e1) -> if e1 = e then [s] else []
+		                    | _ -> []) eqs
+		              end in
+		           begin match List.unique ids with
+		            | [s] -> s
+		            | _ -> raise CouldntFindFunctionId
+		           end
+		        | _ -> raise CouldntFindFunctionId
+		      end
+       end
+  
 let frame_inner f1 f2 : Sepprover.inner_form list option * Vars.var VarMap.t =
   Profiler.track Profiler.CoreStar (fun () ->
       let pf1, pf2, varmap = match (convert_to_pform [f1; f2]) with
