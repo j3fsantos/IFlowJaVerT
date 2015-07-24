@@ -189,7 +189,7 @@ let test_function_call_template fid_stmts fid_expr =
   let x = mk_assign "x" (Call (mk_call fid_expr (Var "scope") (Literal Undefined) [] with_label))  in
   let p = fid_stmts @
   [  
-      Basic (Assignment (x));
+      Basic (Assignment x);
       Basic (Assignment (mk_assign ctx.return_var (Expression (Var x.assign_left))));  
       Goto ctx.label_return;
       Label with_label;
@@ -215,6 +215,28 @@ let test_function_call () =
 
 let test_function_call_fid_string () =
   test_function_call_template [] (Literal (String "f"))
+  
+let test_proto_field () =
+  let ctx = create_ctx [] in
+  let x = mk_assign "x" Obj  in
+  let proto = mk_assign "proto" Obj in
+  let p = 
+  [  
+      Basic (Assignment x);
+      Basic (Assignment proto);
+      add_proto x.assign_left (Var proto.assign_left);
+      Basic (Mutation ((mk_mutation (Var proto.assign_left) (Literal (String "a")) (Literal (Num 4.0)))));  
+      Basic (Assignment (mk_assign ctx.return_var (ProtoF (Var x.assign_left, (Literal (String "a"))))));  
+      Goto ctx.label_return;
+      Label ctx.label_throw;
+      Label ctx.label_return
+  ] in
+  let spec = mk_spec empty_f [] in
+  let f = make_function_block_with_spec "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
+  
+  let spec = mk_spec empty_f [Eq (Le_PVar ctx.return_var, Le_Literal (Num 4.0))] in
+  test_program_template f  AllFunctions.empty spec
+  
    
 let suite = "Testing_Sym_Exec" >:::
   [ "test_function_call_name" >:: test_function_call_name;
@@ -226,4 +248,5 @@ let suite = "Testing_Sym_Exec" >:::
    "test_jstools_example_person_2" >:: test_jstools_example_person_2;
     "test_function_call" >:: test_function_call;
     "test_function_call_fid_string" >:: test_function_call_fid_string;
+    "test_proto_field" >:: test_proto_field
     ]

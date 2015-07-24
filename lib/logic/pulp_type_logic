@@ -30,30 +30,3 @@ if
 rule obj_number_contr :
   field(?x,?f,?y) | type_of(?x)=NumberType() |- 
 if
-
-/*
-rule field_obj_not_null :
-  field(?x,?f,?y) | |- type_of(?x)!=NullType()
-if
- field(?x,?f,?y) | |-
- 
- rule field_obj_not_undef :
-  field(?x,?f,?y) | |- type_of(?x)!=UndefinedType()
-if
- field(?x,?f,?y) | |-
- 
- rule field_obj_not_bool :
-  field(?x,?f,?y) | |- type_of(?x)!=BooleanType()
-if
- field(?x,?f,?y) | |-
- 
- rule field_obj_not_string :
-  field(?x,?f,?y) | |- type_of(?x)!=StringType()
-if
- field(?x,?f,?y) | |-
- 
- rule field_obj_not_number :
-  field(?x,?f,?y) | |- type_of(?x)!=NumberType()
-if
- field(?x,?f,?y) | |-
- */

@@ -68,8 +68,8 @@ let small_axiom_basic_stmt bs : (formula * formula) =
             Heaplet (f e1, f e2, Le_None);
           ]
           
-        | ProtoF (e1, e2) -> raise (NotImplemented "ProtoField")
-        | ProtoO (e1, e2) -> raise (NotImplemented "ProtoObj")
+        | ProtoF (e1, e2) -> raise (Invalid_argument "ProtoF")
+        | ProtoO (e1, e2) -> raise (Invalid_argument "ProtoO")
       end
     | Mutation m -> 
       let v = Le_Var (fresh_e ()) in

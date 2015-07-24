@@ -8,6 +8,7 @@ open Pulp_Logic_Print
 exception InconsistentState of string
 exception InvalidParameter of string
 exception CannotRemoveHeaplet
+exception TooManyReturns
 
 let fresh_a_suggest =
   let counter = ref 0 in
@@ -108,6 +109,7 @@ let rec subs_vars vmap (f : formula) =
     | NEq (f1, f2) -> NEq (ge f1, ge f2)
     | REq f1 -> REq (ge f1)       
     | ObjFootprint (e, es) -> ObjFootprint (ge e, map ge es)
+    | Pi pi -> Pi (mk_pi_pred (ge pi.pi_list) (ge pi.pi_obj) (ge pi.pi_field) (ge pi.pi_loc) (ge pi.pi_value))
 
 let rec get_logical_vars_exp e =
   let f = get_logical_vars_exp in
@@ -146,6 +148,7 @@ let rec get_logical_vars f =
     | NEq (f1, f2) -> (g f1) @ (g f2)
     | REq f1 -> g f1       
     | ObjFootprint (e, es) -> (g e) @ (flat_map g es) 
+    | Pi pi -> (g pi.pi_list) @ (g pi.pi_obj) @ (g pi.pi_field) @ (g pi.pi_loc) @ (g pi.pi_value)
 
 let rec get_program_vars f =
   let g = get_program_vars_exp in
@@ -156,6 +159,7 @@ let rec get_program_vars f =
     | NEq (f1, f2) -> (g f1) @ (g f2)
     | REq f1 -> g f1       
     | ObjFootprint (e, es) -> (g e) @ (flat_map g es)
+    | Pi pi -> (g pi.pi_list) @ (g pi.pi_obj) @ (g pi.pi_field) @ (g pi.pi_loc) @ (g pi.pi_value)
     
            
 let pretty_string_of_formula x =

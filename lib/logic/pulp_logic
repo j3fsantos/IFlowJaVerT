@@ -2,6 +2,7 @@ import "field_logic";
 import "list_logic";
 import "le_lt_logic";
 import "pulp_footprint_logic";
+import "proto_field_logic";
 import "pulp_type_logic";
   
 rule field_loc:

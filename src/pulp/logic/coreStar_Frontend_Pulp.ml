@@ -30,6 +30,7 @@ let ret_v1 = "$ret_v1"
 let ref_base = "ref_base"
 let ref_field = "ref_field"
 let type_of = "type_of"
+let proto_pred = "proto_pred"
 
 module LVarMap = Map.Make (
   struct 
@@ -99,7 +100,13 @@ let rec substitute_eq_pform v a pf =
 and substitute_eq_pform_at v a pfa = 
   let sea = substitute_eq_args v a in
   match pfa with
-      | Psyntax.P_EQ (a1, a2) -> Psyntax.P_EQ (sea a1, sea a2)
+      | Psyntax.P_EQ (a1, a2) -> 
+        (* Leaving #r = smth *)
+        begin match a1, a2 with
+          | Psyntax.Arg_var Vars.PVar (_, "$ret_v1"), _
+          | _, Psyntax.Arg_var Vars.PVar (_, "$ret_v1") -> pfa
+          | _ -> Psyntax.P_EQ (sea a1, sea a2)
+        end
       | Psyntax.P_NEQ (a1, a2) -> Psyntax.P_NEQ (sea a1, sea a2)
       | Psyntax.P_PPred (s, args) -> Psyntax.P_PPred (s, List.map sea args)
       | Psyntax.P_SPred (s, args)  -> Psyntax.P_SPred (s, List.map sea args)
@@ -195,7 +202,9 @@ let args_to_logical_var lvarmap v =
   match v with 
     | Vars.PVar (_, "$ret_v1") -> raise (BadArgument "$ret_v1")
     | v -> try LVarMap.find v lvarmap
-      with Not_found -> raise (BadArgument ("not found variable " ^ (Vars.string_var v)))    
+      (* Generally we do not want logical variables that do not exist in the lvarmap *)
+      (* An exception is a first parameter for the pi predicate *)
+      with Not_found -> LogicalVariable (fresh_e())
 
 let args_to_bloc args =
   match args with 
@@ -298,11 +307,13 @@ let rec convert_to_pform_inner (varmap : Vars.var VarMap.t) (f: formula) : Psynt
       | NEq (e1, e2) -> [Psyntax.P_NEQ (lta e1, lta e2)]
       | REq e -> [Psyntax.P_EQ (Psyntax.Arg_var (Vars.concretep_str ret_v1), lta e)]
       | ObjFootprint (l, xs) -> footprint_to_args varmap l xs
+      | Pi p -> Psyntax.mkSPred (proto_pred, [lta p.pi_list; lta p.pi_obj; lta p.pi_field; lta p.pi_loc; lta p.pi_value])
 
 let convert_to_pform fs =
   let fs = List.map remove_is_true_is_false fs in
   let fs = List.map simplify fs in
   let logical_vars = List.unique (get_logical_vars (Star fs)) in
+  Printf.printf "Logical variables %s" (String.concat "\n" (List.map (Pulp_Logic_Print.string_of_logical_var) logical_vars));
   let varmap = List.fold_left (
     fun varmap v -> 
       let cv = match v with
@@ -311,6 +322,7 @@ let convert_to_pform fs =
         | EVar v -> Vars.freshe_str ("lv_" ^ v) in
       VarMap.add (LogicalVariable v) cv varmap
   ) VarMap.empty logical_vars in 
+  Printf.printf "Variable map %s" (String.concat "\n" (List.map (fun (k, v) -> (string_of_variable_types k) ^  ":" ^ (Vars.string_var v)) (VarMap.bindings varmap)));
   let program_vars = List.unique (get_program_vars (Star fs)) in
   let varmap = List.fold_left (
     fun varmap v -> 
@@ -337,6 +349,7 @@ let convert_from_pform_at varmap pfa : formula =
       begin match s, al with
         | "footprint", [l; arg] -> ObjFootprint (args_to_le varmap l, args_to_footprint varmap arg)
         | "field", [l; x; arg] -> Heaplet (f l, f x, f arg)
+        | "proto_pred", [a1; a2; a3; a4; a5] -> Pi (mk_pi_pred (f a1) (f a2) (f a3) (f a4) (f a5))
         | _ ->   raise (BadArgument (s ^ " in convert_from_pform_at"))                      
        end
       | Psyntax.P_Wand _
@@ -348,7 +361,8 @@ let clean_return pf varmap =
   let r = Vars.concretep_str ret_v1 in
   let v = Vars.freshe_str "N" in 
   try
-    let _ = find_var_eq r pf in pf, varmap
+    let req = find_var_eq r pf in 
+    let pf = substitute_eq_pform r req pf in pf, varmap
   with Not_found -> 
     begin    
         let pf = substitute_eq_pform r (Psyntax.Arg_var v) pf in

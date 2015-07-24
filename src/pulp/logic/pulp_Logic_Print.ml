@@ -50,6 +50,15 @@ let rec get_empty_heaplets_for_expr e f =
     | Heaplet (e1, e2, Le_None) -> if (e = e1) then [e2] else []
     | _ -> []
 
+let string_of_pi pi = 
+  let fe = string_of_logical_exp in
+  Printf.sprintf "#pi (%s, %s, %s, %s, %s)" 
+    (fe pi.pi_list)
+    (fe pi.pi_obj)
+    (fe pi.pi_field)
+    (fe pi.pi_loc)
+    (fe pi.pi_value)
+    
 let rec string_of_formula x =
   let fe = string_of_logical_exp in
   match x with
@@ -60,6 +69,7 @@ let rec string_of_formula x =
     | REq x -> Printf.sprintf "#r = %s" (fe x)
     | ObjFootprint (e, es) -> Printf.sprintf "#footprint [%s] (%s)" (fe e) 
         (String.concat "," (map fe es))
+    | Pi p -> string_of_pi p 
         
 let rec string_of_fields hasnt has = 
   Printf.sprintf "(%s | %s)" 

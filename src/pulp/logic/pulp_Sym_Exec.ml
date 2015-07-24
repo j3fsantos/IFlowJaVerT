@@ -63,7 +63,6 @@ let execute_call_stmt fs c current : formula list * formula list =
     match posts with
       | [] -> [false_f]
       | posts -> posts in
-
   
   let fid = CoreStar_Frontend_Pulp.get_function_id_from_expression current (expr_to_logical_expr c.call_name) in
   let fb = AllFunctions.find fid fs in
@@ -71,8 +70,24 @@ let execute_call_stmt fs c current : formula list * formula list =
   let posts_normal = get_posts fb f_spec false in
   let posts_excep = get_posts fb f_spec true in
   posts_normal, posts_excep
+  
+let execute_proto_field current e1 e2 =
+  let ls = Le_Var (fresh_e ()) in
+  let l = Le_Var (fresh_e ()) in
+  let v = Le_Var (fresh_e ()) in
+  let pi = Pi (mk_pi_pred ls e1 e2 l v) in
+  let posts = CoreStar_Frontend_Pulp.apply_spec current pi (Star [pi; REq v]) in
+  let posts = match posts with
+    | None -> raise (SymExecException CouldNotApplySpec)
+    | Some posts -> posts in
+  let values = List.map get_return posts in 
+  let values = List.fold_left (fun result v -> match v with 
+    | None -> result
+    | Some v -> v :: result) [] values in
+  match values with
+    | [] -> raise (SymExecException CouldNotApplySpec)
+    | _ -> values
  
-
 let rec execute_stmt f sg cfg fs snode_id cmd_st_tbl = 
   let contradiction id =
     let new_sn = StateG.mk_node sg (mk_sg_node id false_f) in
@@ -153,6 +168,18 @@ let rec execute_stmt f sg cfg fs snode_id cmd_st_tbl =
       List.iter2 (new_snode_call succ1 edge1) post_normal post_excep;
       List.iter2 (new_snode_call succ2 edge2) post_normal post_excep
       
+    | Basic (Assignment {assign_left = x; assign_right = (ProtoF (e1, e2))}) -> 
+      Printf.printf "Execute protoField \n";
+      let id = get_single_succ snode.sgn_id in
+      let values = execute_proto_field snode.sgn_state (expr_to_logical_expr e1) (expr_to_logical_expr e2) in
+      Printf.printf "GotValues \n";
+      List.iter (fun value ->
+        let post = combine snode.sgn_state (Eq (Le_PVar x, value)) in
+        new_snode id post
+      ) values
+      
+    | Basic (Assignment {assign_right = (ProtoO (e1, e2))}) -> raise (NotImplemented "ProtoObj")
+     
     | Basic bs -> 
         let id = get_single_succ snode.sgn_id in
         begin try
