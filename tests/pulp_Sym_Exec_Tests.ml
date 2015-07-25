@@ -237,9 +237,45 @@ let test_proto_field () =
   let spec = mk_spec empty_f [Eq (Le_PVar ctx.return_var, Le_Literal (Num 4.0))] in
   test_program_template f  AllFunctions.empty spec
   
+let test_proto_field_direct () =
+  let ctx = create_ctx [] in
+  let x = mk_assign "x" Obj  in
+  let p = 
+  [  
+      Basic (Assignment x);
+      Basic (Mutation ((mk_mutation (Var x.assign_left) (Literal (String "a")) (Literal Undefined))));  
+      Basic (Assignment (mk_assign ctx.return_var (ProtoF (Var x.assign_left, (Literal (String "a"))))));  
+      Goto ctx.label_return;
+      Label ctx.label_throw;
+      Label ctx.label_return
+  ] in
+  let spec = mk_spec empty_f [] in
+  let f = make_function_block_with_spec "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
+  
+  let spec = mk_spec empty_f [Eq (Le_PVar ctx.return_var, Le_Literal Undefined)] in
+  test_program_template f  AllFunctions.empty spec
+  
+let test_proto_field_empty () =
+  let ctx = create_ctx [] in
+  let x = mk_assign "x" Obj  in
+  let p = 
+  [  
+      Basic (Assignment x);
+      add_proto x.assign_left (Literal Null);
+      Basic (Assignment (mk_assign ctx.return_var (ProtoF (Var x.assign_left, (Literal (String "a"))))));  
+      Goto ctx.label_return;
+      Label ctx.label_throw;
+      Label ctx.label_return
+  ] in
+  let spec = mk_spec empty_f [] in
+  let f = make_function_block_with_spec "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
+  
+  let spec = mk_spec empty_f [Eq (Le_PVar ctx.return_var, Le_Literal Empty)] in
+  test_program_template f  AllFunctions.empty spec
+  
    
 let suite = "Testing_Sym_Exec" >:::
-  [ "test_function_call_name" >:: test_function_call_name;
+  ["test_function_call_name" >:: test_function_call_name;
     "test_jsr" >:: test_apply_spec1;
     "running program1" >:: test_empty_program;
    "test_empty_program_non_empty_pre" >:: test_empty_program_non_empty_pre;
@@ -248,5 +284,7 @@ let suite = "Testing_Sym_Exec" >:::
    "test_jstools_example_person_2" >:: test_jstools_example_person_2;
     "test_function_call" >:: test_function_call;
     "test_function_call_fid_string" >:: test_function_call_fid_string;
-    "test_proto_field" >:: test_proto_field
+    "test_proto_field" >:: test_proto_field;
+    "test_proto_field_direct" >:: test_proto_field_direct;
+    "test_proto_field_empty" >:: test_proto_field_empty
     ]

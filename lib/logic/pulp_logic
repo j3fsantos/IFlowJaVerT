@@ -13,4 +13,6 @@ if
   field(?x,?f,?t) | |- ?x=?z 
   
 constructor numeric_const
+constructor undefined
+constructor null
 constructor none
