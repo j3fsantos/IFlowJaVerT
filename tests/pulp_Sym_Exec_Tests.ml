@@ -55,20 +55,22 @@ let test_apply_spec1 () =
   ]] in
   test_apply_spec_template formula cmd_pre cmd_post expected_post
   
- 
-let make_and_print_cfg f fs path =
-  let all_functions = AllFunctions.add f.func_name f fs in
+let apply_config () =  
+  Config.apply_config ();
+  CoreStar_Frontend_Pulp.initialize ()
+
+let get_pexp js_program =
+  apply_config ();
+  let exp = Parser_main.exp_from_string js_program in
+  let p_exp = exp_to_pulp IVL_goto exp "main" [] in
+  let p_exp = Simp_Main.simplify p_exp in
+  p_exp
+  
+let check_single_spec name f all_functions spec n =
+  let path = "tests/dot/" ^ name ^ f.func_name ^ (string_of_int n); in
   let cfg = fb_to_cfg f in
   let all_cfgs = AllFunctions.add f.func_name cfg AllFunctions.empty in
   print_cfg all_cfgs path;
-  cfg, all_functions
-
-let test_program_template f fs spec = 
-  Config.apply_config ();
-  CoreStar_Frontend_Pulp.initialize ();
-  let path = "tests/dot/" ^ f.func_name; in
-  let cfg, all_functions = make_and_print_cfg f fs path in 
-  
   let sg, cmd_st_tbl = execute f cfg all_functions spec in
   let posts, throw_posts = get_posts f cfg sg cmd_st_tbl in
   
@@ -80,6 +82,13 @@ let test_program_template f fs spec =
      ((List.for_all (fun post -> CoreStar_Frontend_Pulp.implies_or_list (simplify post) spec.spec_post) posts)
      && (List.for_all (fun post -> CoreStar_Frontend_Pulp.implies_or_list (simplify post) spec.spec_excep_post) throw_posts))
 
+let test_program_template name f fs = 
+  apply_config ();
+  List.iteri (fun i s -> check_single_spec name f fs s i) f.func_spec
+  
+let test_js_program_template name f fs =
+  List.iteri (fun i s -> check_single_spec name f fs s i) f.func_spec
+
 let test_empty_program () =
   let ctx = create_ctx [] in
   let p = [
@@ -90,7 +99,7 @@ let test_empty_program () =
   ] in
   let spec = mk_spec empty_f [empty_f] in
   let f = make_function_block_with_spec "fid1" p [] ctx [spec] in
-  test_program_template f AllFunctions.empty spec
+  test_program_template "test_empty_program" f (AllFunctions.add f.func_name f AllFunctions.empty)
   
 let test_empty_program_non_empty_pre () =
   let ctx = create_ctx [] in
@@ -103,7 +112,7 @@ let test_empty_program_non_empty_pre () =
   let formula = Heaplet (Le_Var (fresh_a ()), Le_Var (fresh_a ()), Le_Var (fresh_a ())) in
   let spec = mk_spec formula [formula] in
   let f = make_function_block_with_spec "fid2" p [] ctx [spec] in
-  test_program_template f  AllFunctions.empty spec
+  test_program_template "test_empty_program_non_empty_pre" f (AllFunctions.add f.func_name f AllFunctions.empty)
   
   let test_program1 () =
   let ctx = create_ctx [] in
@@ -124,7 +133,7 @@ let test_empty_program_non_empty_pre () =
   ]] in 
   let spec = mk_spec empty_f post in
   let f = make_function_block_with_spec "fid3" p [] ctx [spec] in
-  test_program_template f  AllFunctions.empty spec
+  test_program_template "test_program1" f  (AllFunctions.add f.func_name f AllFunctions.empty)
   
 let translate_jstools_example_person () =
   let ctx = create_ctx [] in
@@ -158,15 +167,15 @@ let translate_jstools_example_person () =
       Label ctx.label_throw;
       Label ctx.label_return
   ] in 
-  let spec = mk_spec empty_f [] in
-  let f = make_function_block_with_spec "Person0" p ["rthis"; "rscope"; "name"] ctx [spec] in
+  let f = make_function_block "Person0" p ["rthis"; "rscope"; "name"] ctx  in
   f
  
 let test_jstools_example_person_1 () =
   let p = translate_jstools_example_person () in
   let pre = Heaplet (Le_PVar "rthis", Le_Literal (String "name"), Le_Var (fresh_a())) in
   let spec = mk_spec_with_excep pre [Heaplet (Le_PVar "rthis", Le_Literal (String "name"), Le_PVar "name")] [] in
-  test_program_template p  AllFunctions.empty spec
+  let p = {p with func_spec = [spec]} in
+  test_program_template "test_jstools_example_person_1" p (AllFunctions.add p.func_name p AllFunctions.empty)
   
 let get_excep_post throw_var = 
   let excep = fresh_e() in
@@ -180,10 +189,11 @@ let test_jstools_example_person_2 () =
   let p = translate_jstools_example_person () in
   let pre = Eq (Le_Literal (Type UndefinedType), Le_TypeOf (Le_PVar "rthis")) in
   let spec = mk_spec_with_excep pre [] [get_excep_post p.func_ctx.throw_var] in
-  test_program_template p  AllFunctions.empty spec
+  let p = {p with func_spec = [spec]} in
+  test_program_template "test_jstools_example_person_2" p (AllFunctions.add p.func_name p AllFunctions.empty)
 
   
-let test_function_call_template fid_stmts fid_expr =
+let test_function_call_template name fid_stmts fid_expr =
   let ctx = create_ctx [] in
   let with_label = "label_call_throw" in
   let x = mk_assign "x" (Call (mk_call fid_expr (Var "scope") (Literal Undefined) [] with_label))  in
@@ -197,24 +207,26 @@ let test_function_call_template fid_stmts fid_expr =
       Label ctx.label_throw;
       Label ctx.label_return
   ] in
-  let spec = mk_spec empty_f [] in
-  let fid1 = make_function_block_with_spec "fid1" p ["rthis"; "rscope"] ctx [spec] in
+  
   let spec = mk_spec_with_excep empty_f [false_f] [REq (Le_Literal (Bool false))] in
+  let fid = make_function_block_with_spec "fid" p ["rthis"; "rscope"] ctx [spec] in
   
   let spec_f = mk_spec_with_excep (Eq (Le_PVar "rthis", Le_Literal Undefined)) [false_f] 
     [Star [Eq (Le_PVar "rthis", Le_Literal Undefined); REq (Le_Literal (Bool false))]] in
   let f = make_function_block_with_spec "f" p ["rthis"; "rscope"] ctx [spec_f] in
   
   let fs = AllFunctions.add f.func_name f AllFunctions.empty in
+  let fs = AllFunctions.add "fid" fid fs in
   
-  test_program_template fid1 fs spec
+  test_program_template name fid fs
   
 let test_function_call () =
   let name = mk_assign "name" (Expression (Literal (String "f"))) in
-  test_function_call_template [Basic (Assignment name)] (Var name.assign_left)
+  test_function_call_template "test_function_call" [Basic (Assignment name)] (Var name.assign_left)
 
 let test_function_call_fid_string () =
-  test_function_call_template [] (Literal (String "f"))
+  apply_config ();
+  test_function_call_template "test_function_call_fid_string" [] (Literal (String "f"))
   
 let test_proto_field () =
   let ctx = create_ctx [] in
@@ -231,11 +243,10 @@ let test_proto_field () =
       Label ctx.label_throw;
       Label ctx.label_return
   ] in
-  let spec = mk_spec empty_f [] in
-  let f = make_function_block_with_spec "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
   
   let spec = mk_spec empty_f [Eq (Le_PVar ctx.return_var, Le_Literal (Num 4.0))] in
-  test_program_template f  AllFunctions.empty spec
+  let f = make_function_block_with_spec "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
+  test_program_template "test_proto_field" f (AllFunctions.add f.func_name f AllFunctions.empty)
   
 let test_proto_field_direct () =
   let ctx = create_ctx [] in
@@ -249,11 +260,10 @@ let test_proto_field_direct () =
       Label ctx.label_throw;
       Label ctx.label_return
   ] in
-  let spec = mk_spec empty_f [] in
+  let spec = mk_spec empty_f [Eq (Le_PVar ctx.return_var, Le_Literal Undefined)] in
   let f = make_function_block_with_spec "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
   
-  let spec = mk_spec empty_f [Eq (Le_PVar ctx.return_var, Le_Literal Undefined)] in
-  test_program_template f  AllFunctions.empty spec
+  test_program_template "test_proto_field_direct" f (AllFunctions.add f.func_name f AllFunctions.empty)
   
 let test_proto_field_empty () =
   let ctx = create_ctx [] in
@@ -267,15 +277,48 @@ let test_proto_field_empty () =
       Label ctx.label_throw;
       Label ctx.label_return
   ] in
-  let spec = mk_spec empty_f [] in
+  let spec = mk_spec empty_f [Eq (Le_PVar ctx.return_var, Le_Literal Empty)] in
   let f = make_function_block_with_spec "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
   
-  let spec = mk_spec empty_f [Eq (Le_PVar ctx.return_var, Le_Literal Empty)] in
-  test_program_template f  AllFunctions.empty spec
+  test_program_template "test_proto_field_empty" f (AllFunctions.add f.func_name f AllFunctions.empty)
+
+let test_js_program_cav_example () =
+  let js_program = "
+    var prop = 'global';
+    var obj = {
+      prop: 'local',
+      m: function() {
+        return this.prop === prop;
+      }
+    };
+    obj.m()" in
+  let p_exp = get_pexp js_program in
   
-   
+  (* TODO spec parsing *)
+
+  let p_exp = AllFunctions.mapi (fun id fb ->
+    match id with
+      | "main" -> 
+        let spec_main = mk_spec empty_f [Eq (Le_PVar fb.func_ctx.return_var, Le_Literal (Bool false))] in
+        {fb with func_spec = [spec_main]}
+      | "anonymous0" -> 
+        let p1 = Le_Var (fresh_e ()) in
+        let p2 = Le_Var (fresh_e ()) in
+			  let spec_anonymous_pre = Star [
+			    Heaplet (Le_Literal (LLoc Lg), Le_Literal (String "prop"), p1);
+			    Heaplet (Le_PVar rthis, Le_Literal (String "prop"), p2);
+			  ] in
+			  let spec_anonymous0 = mk_spec 
+			    spec_anonymous_pre 
+			    [(combine spec_anonymous_pre (Eq (Le_PVar fb.func_ctx.return_var, Le_BinOp (p1, Comparison Equal, p2))))] in
+			    {fb with func_spec = [spec_anonymous0]}
+      | _ -> fb
+  ) p_exp in
+  
+  AllFunctions.iter (fun id f -> test_js_program_template "test_js_program_cav_example" f p_exp) p_exp
+  
 let suite = "Testing_Sym_Exec" >:::
-  ["test_function_call_name" >:: test_function_call_name;
+  [ "test_function_call_name" >:: test_function_call_name;
     "test_jsr" >:: test_apply_spec1;
     "running program1" >:: test_empty_program;
    "test_empty_program_non_empty_pre" >:: test_empty_program_non_empty_pre;
@@ -286,5 +329,6 @@ let suite = "Testing_Sym_Exec" >:::
     "test_function_call_fid_string" >:: test_function_call_fid_string;
     "test_proto_field" >:: test_proto_field;
     "test_proto_field_direct" >:: test_proto_field_direct;
-    "test_proto_field_empty" >:: test_proto_field_empty
+    "test_proto_field_empty" >:: test_proto_field_empty;
+    (*"test_js_program_cav_example" >:: test_js_program_cav_example*)
     ]
