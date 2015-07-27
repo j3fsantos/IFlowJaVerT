@@ -2438,16 +2438,20 @@ let translate_function_syntax level id e named env main =
     | IVL_conditionals -> pulpe
     | IVL_goto -> {pulpe with func_body = to_ivl_goto pulpe.func_body}
 
-let exp_to_pulp level e main ctx_vars =
+let exp_to_pulp_no_builtin level e main ctx_vars = 
   let context = AllFunctions.empty in
   let e = add_codenames main e in
   let all_functions = get_all_functions_with_env_in_fb [] e main in
     
-  let context = List.fold_left (fun c (fexpr, fnamed, fenv) -> 
+  List.fold_left (fun c (fexpr, fnamed, fenv) -> 
     let fid = get_codename fexpr in
     let fb = translate_function_syntax level fid fexpr fnamed  (fenv @ ctx_vars) main in
     AllFunctions.add fid fb c
-   ) context all_functions in
+   ) context all_functions
+  
+
+let exp_to_pulp level e main ctx_vars =
+  let context = exp_to_pulp_no_builtin level e main ctx_vars in
   
   let context = AllFunctions.add (string_of_builtin_function Boolean_Call) (builtin_call_boolean_call()) context in
   let context = AllFunctions.add (string_of_builtin_function Boolean_Construct) (builtin_call_boolean_construct()) context in

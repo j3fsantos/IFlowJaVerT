@@ -161,7 +161,7 @@ let op_of_pulp_type pt =
 
 let literal_to_args lit =
   match lit with
-    | LLoc bl -> Psyntax.Arg_op (string_of_builtin_loc bl, [])
+    | LLoc bl -> Psyntax.Arg_op (string_of_builtin_loc_no_hash bl, [])
 	  | Null -> Psyntax.Arg_op (null, [])                  
 	  | Bool b -> Psyntax.Arg_op (string_of_bool b, [])  
 	  | Num n -> 
@@ -214,7 +214,7 @@ let args_to_bloc args =
         | "lop", [] -> Lop
         | "lfp", [] -> Lfp
         | "leval", [] -> LEval
-        | "#ltep", [] -> Ltep
+        | "ltep", [] -> Ltep
         | _ -> raise (NotImplemented ("args_to_bloc " ^ s))
       end
     | _ -> raise (BadArgument "in args_to_loc")
@@ -248,7 +248,7 @@ let rec args_to_le (lvarmap : variable_types LVarMap.t) arg =
         | "lg", [] 
         | "lop", [] 
         | "lfp", []
-        | "#ltep", []
+        | "ltep", []
         | "leval", [] -> Le_Literal (LLoc (args_to_bloc arg))
         | "empty_value", [] -> Le_Literal Empty
         | "NullType", [] ->  Le_Literal (Type NullType)

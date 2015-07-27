@@ -62,7 +62,7 @@ let apply_config () =
 let get_pexp js_program =
   apply_config ();
   let exp = Parser_main.exp_from_string js_program in
-  let p_exp = exp_to_pulp IVL_goto exp "main" [] in
+  let p_exp = exp_to_pulp_no_builtin IVL_goto exp "main" [] in
   let p_exp = Simp_Main.simplify p_exp in
   p_exp
   
@@ -284,14 +284,17 @@ let test_proto_field_empty () =
 
 let test_js_program_cav_example () =
   let js_program = "
-    var prop = 'global';
-    var obj = {
-      prop: 'local',
-      m: function() {
-        return this.prop === prop;
-      }
-    };
-    obj.m()" in
+    function Person (name) {
+       this.name = name;
+    }
+
+    Person.prototype.sayHi = function () {
+      return 'Hi ' + this.name
+    }
+
+    var alice = new Person ('Alice');
+    alice.sayHi()" in
+    
   let p_exp = get_pexp js_program in
   
   (* TODO spec parsing *)
@@ -299,21 +302,29 @@ let test_js_program_cav_example () =
   let p_exp = AllFunctions.mapi (fun id fb ->
     match id with
       | "main" -> 
-        let spec_main = mk_spec empty_f [Eq (Le_PVar fb.func_ctx.return_var, Le_Literal (Bool false))] in
+        let spec_main = mk_spec empty_f [Eq (Le_PVar fb.func_ctx.return_var, Le_Literal (String "Hi Alice"))] in
         {fb with func_spec = [spec_main]}
-      | "anonymous0" -> 
-        let p1 = Le_Var (fresh_e ()) in
-        let p2 = Le_Var (fresh_e ()) in
-			  let spec_anonymous_pre = Star [
-			    Heaplet (Le_Literal (LLoc Lg), Le_Literal (String "prop"), p1);
-			    Heaplet (Le_PVar rthis, Le_Literal (String "prop"), p2);
-			  ] in
-			  let spec_anonymous0 = mk_spec 
-			    spec_anonymous_pre 
-			    [(combine spec_anonymous_pre (Eq (Le_PVar fb.func_ctx.return_var, Le_BinOp (p1, Comparison Equal, p2))))] in
+      | "anonymous1" -> 
+        let v = Le_Var (fresh_a()) in
+        let pre = Star [
+          Heaplet (Le_PVar "rscope", Le_Literal (String "main"), Le_Literal (LLoc Lg));
+          Heaplet (Le_PVar "rthis", Le_Literal (String "name"), v)
+        ] in
+        let spec_anonymous0 = mk_spec pre [Star [pre; (REq v)]] in
 			    {fb with func_spec = [spec_anonymous0]}
+      | "Person0" ->
+        let v = Le_Var (fresh_a()) in
+        let pre = Star [
+          Heaplet (Le_PVar "rscope", Le_Literal (String "main"), Le_Literal (LLoc Lg));
+          Heaplet (Le_PVar "rthis", Le_Literal (String "name"), v)
+        ] in
+        let post = Heaplet (Le_PVar "rthis", Le_Literal (String "name"), Le_PVar "name") in
+        let spec_person0 = mk_spec pre [post] in
+          {fb with func_spec = [spec_person0]}
       | _ -> fb
   ) p_exp in
+  
+  Printf.printf "Specs %s" (String.concat "\n" (List.map (fun (id, fb) -> Printf.sprintf "%s : %s" id (Pulp_Logic_Print.string_of_spec_pre_post_list fb.func_spec "\n")) (AllFunctions.bindings p_exp)));
   
   AllFunctions.iter (fun id f -> test_js_program_template "test_js_program_cav_example" f p_exp) p_exp
   

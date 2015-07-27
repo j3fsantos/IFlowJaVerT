@@ -70,6 +70,9 @@ let rec string_of_formula x =
     | ObjFootprint (e, es) -> Printf.sprintf "#footprint [%s] (%s)" (fe e) 
         (String.concat "," (map fe es))
     | Pi p -> string_of_pi p 
+
+let string_of_formula_list fs sep =
+  String.concat sep (List.map string_of_formula fs)
         
 let rec string_of_fields hasnt has = 
   Printf.sprintf "(%s | %s)" 
@@ -80,4 +83,8 @@ let rec string_of_fields hasnt has =
     (string_of_logical_exp v)
   ) (ExpMap.bindings has)))
 
-
+let string_of_spec_pre_post s =
+  Printf.sprintf "{%s} {%s}{%s}" (string_of_formula s.spec_pre) (string_of_formula_list s.spec_post "\\/") (string_of_formula_list s.spec_excep_post "\\/")
+  
+let string_of_spec_pre_post_list ss sep =
+  String.concat sep (List.map string_of_spec_pre_post ss)

@@ -16,3 +16,4 @@ constructor numeric_const
 constructor undefined
 constructor null
 constructor none
+constructor lg

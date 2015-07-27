@@ -89,6 +89,10 @@ let string_of_builtin_loc l =
     | Lsp_valueOf -> "#lsp_valueOf"
     | LNotImplemented f -> "#lnotimplemented_" ^ (string_of_feature f)
 
+let string_of_builtin_loc_no_hash l =
+  let s = string_of_builtin_loc l in
+  String.sub s 1 (String.length s - 1)
+
 let string_of_builtin_field f =
   match f with
     | FProto -> "#proto"
