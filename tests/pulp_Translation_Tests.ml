@@ -13,8 +13,7 @@ let test_template p name =
   let _ = Printf.printf "%s \n" (Pretty_print.string_of_exp_syntax exp.Parser_syntax.exp_stx) in
   let p_exp = exp_to_pulp IVL_goto exp main_fun_id [] in
   let _ = AllFunctions.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_func_block fwc)) p_exp in
-  (* TODO fix path *)
-  let cfg = Control_Flow.mk_cfg p_exp ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/"^name) in
+  let cfg = Control_Flow.mk_cfg p_exp ("tests/dot/"^name) in
   
   let cfg_bbs = AllFunctions.mapi (fun name cfg ->
     let fb = AllFunctions.find name p_exp in
@@ -24,9 +23,9 @@ let test_template p name =
     cfg_bb
     ) cfg in
   
-  Basic_Blocks.print_cfg_bb cfg_bbs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/bb/"^name);
+  Basic_Blocks.print_cfg_bb cfg_bbs ("tests/dot/bb/"^name);
   
-  (*Reaching_Defs.debug_print_cfg_bb_with_defs cfg_bbs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/rd/cp/"^name);*)
+  (*Reaching_Defs.debug_print_cfg_bb_with_defs cfg_bbs ("tests/dot/rd/cp/"^name);*)
   
   (* TODO clean up *)
   let cfg_bbs = AllFunctions.mapi (fun name cfg ->
@@ -43,7 +42,7 @@ let test_template p name =
       cfg
   ) cfg_bbs in
     
-  let _ = Basic_Blocks.print_cfg_bb cfg_bbs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/bb/bbsimp/"^name) in
+  let _ = Basic_Blocks.print_cfg_bb cfg_bbs ("tests/dot/bb/bbsimp/"^name) in
 
   
   assert_bool "Incorrect Translation" true 
@@ -154,7 +153,7 @@ let test_gamma () =
   let gamma_stmts = to_ivl_goto gamma_stmts in
   let cfg = Cfg.fun_to_cfg (make_function_block "gamma" gamma_stmts [] ctx) in
   let cfgs = AllFunctions.add "gamma_id" cfg AllFunctions.empty in
-  let _ = Cfg.print_cfg cfgs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/gamma") in
+  let _ = Cfg.print_cfg cfgs ("tests/dot/gamma") in
   assert_bool "Incorrect Translation" true
 
  (*"var s = function (v) { var t = function () { var a = {x : v}; return a }; var b = t (v); return b }; var r = s(3).x"*)
@@ -177,7 +176,7 @@ let cfg_anonymous2 () =
   let stmts = to_ivl_goto stmts in
   let cfg = Cfg.fun_to_cfg (make_function_block "anonymous2" stmts [] ctx) in
   let cfgs = AllFunctions.add "anonymous2" cfg AllFunctions.empty in
-  let _ = Cfg.print_cfg cfgs ("/Users/daiva/Documents/workspace/JS_Symbolic_Debugger/JS_Symbolic_Debugger/tests/dot/anonymous") in
+  let _ = Cfg.print_cfg cfgs ("tests/dot/anonymous") in
   assert_bool "Incorrect Translation" true
   (* 
    anonymous1_scope := (rscope ._o "anonymous1")
