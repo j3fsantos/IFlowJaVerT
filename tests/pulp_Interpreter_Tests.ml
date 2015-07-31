@@ -30,12 +30,12 @@ let test_template_simp p =
 let test_template_normal p expected_value =
  let result = test_template p in
   assert_bool ("Incorrect Interpreter. Expected : Normal, Got Exception") (FTReturn = result.fs_return_type);
-  assert_bool ("Incorrect Interpreter. Expected :" ^ (string_of_value expected_value) ^ " Actual: " ^ (string_of_value result.fs_return_value)) (value_eq expected_value ((result.fs_return_value)));
-  
-  let result = test_template_simp p in
-  assert_bool ("Incorrect Interpreter. Expected : Normal, Got Exception") (FTReturn = result.fs_return_type);
   assert_bool ("Incorrect Interpreter. Expected :" ^ (string_of_value expected_value) ^ " Actual: " ^ (string_of_value result.fs_return_value)) (value_eq expected_value ((result.fs_return_value)))
   
+(*  let result = test_template_simp p in
+  assert_bool ("Incorrect Interpreter. Expected : Normal, Got Exception") (FTReturn = result.fs_return_type);
+  assert_bool ("Incorrect Interpreter. Expected :" ^ (string_of_value expected_value) ^ " Actual: " ^ (string_of_value result.fs_return_value)) (value_eq expected_value ((result.fs_return_value)))
+*)  
   
 let get_actual_excep result =
   let actual_excep_l = match result.fs_return_value with
@@ -348,6 +348,7 @@ let test_cav_example_5 () =
  }
 };
 
+
 object.method()") (VHValue (HVLiteral (Bool false)))
 
 let test_cav_example_6 () =
@@ -585,13 +586,193 @@ finally{
 
   }
 }
-
-
-
 " (VHValue (HVLiteral (Bool true)))
-  
+
+let test_program_switch1 () =
+  test_template_normal ("var x1;
+	  var x2; 
+		var x3; 
+		var x4;
+		var x5; 
+		var i; 
+		i = 0;
+		x1 = 1; 
+		x2 = 1; 
+		x3 = 1; 
+		x4 = 1;
+		x5 = 1; 
+		switch(i) { 
+			 case 0: x1 = 2
+			 case 1: x2 = 3 
+			 default: x3 = 5
+			case 2: x4 = 7
+			case 3: x5 = 11
+		} 
+		x1 * x2 * x3 * x4 * x5")  (VHValue (HVLiteral (Num 2310.0)))
+
+let test_program_switch2 () =
+  test_template_normal ("var x1;
+	  var x2; 
+		var x3; 
+		var x4;
+		var x5; 
+		var i; 
+		i = 1;
+		x1 = 1; 
+		x2 = 1; 
+		x3 = 1; 
+		x4 = 1;
+		x5 = 1; 
+		switch(i) { 
+			 case 0: x1 = 2
+			 case 1: x2 = 3 
+			 default: x3 = 5
+			case 2: x4 = 7
+			case 3: x5 = 11
+		} 
+		x1 * x2 * x3 * x4 * x5")  (VHValue (HVLiteral (Num 1155.0)))
+
+let test_program_switch3 () =
+  test_template_normal ("var x1;
+	  var x2; 
+		var x3; 
+		var x4;
+		var x5; 
+		var i; 
+		i = 2;
+		x1 = 1; 
+		x2 = 1; 
+		x3 = 1; 
+		x4 = 1;
+		x5 = 1; 
+		switch(i) { 
+			 case 0: x1 = 2
+			 case 1: x2 = 3 
+			 default: x3 = 5
+			case 2: x4 = 7
+			case 3: x5 = 11
+		} 
+		x1 * x2 * x3 * x4 * x5")  (VHValue (HVLiteral (Num 77.0)))
+	
+let test_program_switch4 () =
+  test_template_normal ("var x1;
+	  var x2; 
+		var x3; 
+		var x4;
+		var x5; 
+		var i; 
+		i = 3;
+		x1 = 1; 
+		x2 = 1; 
+		x3 = 1; 
+		x4 = 1;
+		x5 = 1; 
+		switch(i) { 
+			 case 0: x1 = 2
+			 case 1: x2 = 3 
+			 default: x3 = 5
+			case 2: x4 = 7
+			case 3: x5 = 11
+		} 
+		x1 * x2 * x3 * x4 * x5")  (VHValue (HVLiteral (Num 11.0)))		
+
+let test_program_switch5 () =
+  test_template_normal ("var x1;
+	  var x2; 
+		var x3; 
+		var x4;
+		var x5; 
+		var i; 
+		i = 4;
+		x1 = 1; 
+		x2 = 1; 
+		x3 = 1; 
+		x4 = 1;
+		x5 = 1; 
+		switch(i) { 
+			 case 0: x1 = 2
+			 case 1: x2 = 3 
+			 default: x3 = 5
+			case 2: x4 = 7
+			case 3: x5 = 11
+		} 
+		x1 * x2 * x3 * x4 * x5")  (VHValue (HVLiteral (Num 385.0)))		
+		
+ let test_program_switch6 () =
+  test_template_normal ("var x1, x2, x3, x4, x5; 
+		var i; 
+		i = 0;
+		switch(i) { 
+			 case 0: x1 = 2; break;
+			 case 1: x2 = 3 
+			 default: x3 = 5
+			case 2: x4 = 7
+			case 3: x5 = 11
+		}")  (VHValue (HVLiteral (Num 2.0)))		
+
+ let test_program_switch7 () =
+  test_template_normal ("var x1, x2, x3, x4, x5; 
+		var i; 
+		i = 1;
+		switch(i) { 
+			 case 0: x1 = 2; 
+			 case 1: x2 = 3; break;  
+			 default: x3 = 5
+			case 2: x4 = 7
+			case 3: x5 = 11
+		}")  (VHValue (HVLiteral (Num 3.0)))		
+
+ let test_program_switch8 () =
+  test_template_normal ("var x1, x2, x3, x4, x5; 
+		var i; 
+		i = 2;
+		switch(i) { 
+			 case 0: x1 = 2
+			 case 1: x2 = 3 
+			 default: x3 = 5
+			case 2: x4 = 7; break; 
+			case 3: x5 = 11
+		}")  (VHValue (HVLiteral (Num 7.0)))				
+ 
+ let test_program_switch9 () =
+  test_template_normal ("var x1, x2, x3, x4, x5; 
+		var i; 
+		i = 3;
+		switch(i) { 
+			 case 0: x1 = 2
+			 case 1: x2 = 3 
+			 default: x3 = 5
+			case 2: x4 = 7;  
+			case 3: x5 = 11
+		}")  (VHValue (HVLiteral (Num 11.0)))				
+																
+
+let test_program_switch10 () =
+  test_template_normal ("var x1, x2, x3, x4, x5; 
+		var i; 
+		i = 4;
+		switch(i) { 
+			 case 0: x1 = 2
+			 case 1: x2 = 3 
+			 default: x3 = 5; break;
+			case 2: x4 = 7;  
+			case 3: x5 = 11
+		}")  (VHValue (HVLiteral (Num 5.0)))				
+
+ 
 let suite = "Testing_Interpreter" >:::
-  ["running program1" >:: test_program1;
+  [
+		"test_program_switch1" >:: test_program_switch1;
+		"test_program_switch2" >:: test_program_switch2;
+		"test_program_switch3" >:: test_program_switch3;
+		"test_program_switch4" >:: test_program_switch4;
+		"test_program_switch5" >:: test_program_switch5;
+		(*"test_program_switch6" >:: test_program_switch6;
+		"test_program_switch7" >:: test_program_switch7;
+		"test_program_switch8" >:: test_program_switch8;
+		"test_program_switch9" >:: test_program_switch9;
+		"test_program_switch10" >:: test_program_switch10 *)
+	  "running program1" >:: test_program1;
    "running program2" >:: test_program2;
    "running_program3" >:: test_program3;
    "running_program4" >:: test_program4;
@@ -706,5 +887,5 @@ let suite = "Testing_Interpreter" >:::
     "test_negative_nan" >:: test_negative_nan;
     (*"test_while_break" >:: test_while_break;*)
     (*"test_while_false" >:: test_while_false; *)
-    (*"test_" >:: test_*)
+    (*"test_" >:: test_*) 
     ] 

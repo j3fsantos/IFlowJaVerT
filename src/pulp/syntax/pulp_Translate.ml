@@ -11,7 +11,12 @@ type translation_level =
   | IVL_buitin_functions
   | IVL_conditionals
   | IVL_goto
- 
+
+type switch_record = { (* Special constants for throws and returns *)
+    a_cases : (Parser_syntax.exp * Parser_syntax.exp) list; 
+		b_cases : (Parser_syntax.exp * Parser_syntax.exp) list; 
+		default : Parser_syntax.exp option
+}	
   
 let rthis : variable = "rthis"
 let rscope : variable = "rscope"
@@ -74,6 +79,7 @@ let is_prim_value v =
     (istypeof_prim_expr v)
   )  
     
+		
 let equal_lit_expr v lit = equal_expr v (Literal lit)
 let equal_undef_expr v = equal_lit_expr v Undefined
 let equal_null_expr v = equal_lit_expr v Null
@@ -1925,9 +1931,159 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
         ], rv.assign_left
 
       (* Next TODO *) 
-      | Parser_syntax.For _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.6.3 The for Statement.")))
-      | Parser_syntax.Switch _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.11 Switch Statement.")))
-
+  	| Parser_syntax.For (e1, e2, e3, e4) ->   
+				let rv = fresh_r () in
+				let r_init_none = fresh_r () in 
+				let r_test_none = fresh_r () in
+			  let r_incr_none = fresh_r () in  
+				let label1 = fresh_r () in
+        let continue = fresh_r () in
+        let break = fresh_r () in
+        let new_ctx = {ctx with
+          label_continue = (("", continue) :: (List.map (fun l -> (l, continue)) labelset)) @ ctx.label_continue;
+          label_break = (("", break) :: (List.map (fun l -> (l, break)) labelset)) @ ctx.label_break
+        } in
+				let r1_stmts, _ = match e1 with 
+				   | None -> [ ], r_init_none (* Basic (Assignment (mk_assign r_init_none (Expression (Literal (Empty))))) *)
+					 | Some e -> translate_exp ctx e in
+					
+				let r21_stmts, r21 = match e2 with 
+				   | None -> [ Basic (Assignment (mk_assign r_test_none (Expression (Literal (Bool (true)))))) ], r_test_none 
+					 | Some e -> translate_exp ctx e in
+				
+				let r22_stmts, r22 = match e2 with
+				   | None -> [ ], r_test_none
+					 | Some e -> translate_gamma r21 ctx in
+		    
+				let r23_stmts, r23 = match e2 with
+				   | None -> [ ], r_test_none
+					 | Some e -> 
+						  let r23_stmt, r231 = translate_to_boolean r22 ctx in
+							   [ r23_stmt ], r231 in
+					
+				let r3_stmts, _ = match e3 with 
+				   | None -> [ ], r_incr_none (* Basic (Assignment (mk_assign r_incr_none (Expression (Literal (Empty))))) *)
+					 | Some e -> translate_exp ctx e in
+							
+				let r4_stmts, r4 = translate_stmt new_ctx [] e4 in
+				
+				(* let r1 = mk_assign_fresh_lit (String "banana") in *)
+				  [ Basic (Assignment (mk_assign rv (Expression (Literal Empty)))) ] @
+          r1_stmts @  
+					[ Label label1 ] @ 
+					r21_stmts @ r22_stmts @ r23_stmts @
+					[ Sugar (If (equal_bool_expr r23 true,
+					  r4_stmts 
+						@
+						[ Label continue ]
+						@
+						r3_stmts
+						@
+					  [ Goto label1 ], 
+						[])) ] @
+				  [Label break], rv
+			
+			| Parser_syntax.Switch 	(e, xs) -> 
+				(* print_string "Started to switch \n";*)
+			  let r_test_stmts1, r_test1 = translate_exp ctx e in
+				let r_test_stmts2, r_test2 = translate_gamma r_test1 ctx in
+				let break = fresh_r () in
+				let r_found_a = fresh_r () in
+				let r_found_b = fresh_r () in
+				let r_banana = fresh_r () in
+				let switch_var = fresh_r () in
+				let new_ctx = {ctx with
+          label_break = ("", break) :: ctx.label_break
+        } in
+				(* *)
+				let acumulator = List.fold_left (fun acumulator elem ->
+					match acumulator.default with
+					| None ->
+						(match elem with 
+						| (Parser_syntax.Case e_case, stmt) ->
+							{acumulator with	a_cases = acumulator.a_cases @ [(e_case, stmt)] }
+					  | (Parser_syntax.DefaultCase, stmt) -> 
+							{acumulator with default = (Some stmt) }) 
+					| Some _ ->
+						(match elem with 
+						| (Parser_syntax.Case e_case, stmt) ->
+							let new_acumulator = {acumulator with	b_cases = acumulator.b_cases @ [(e_case, stmt)] } in
+								new_acumulator 
+						|	(Parser_syntax.DefaultCase, stmt) -> raise (PulpInvalid ("Invalid Syntax. One switch with more than one default.")))) 
+			  {a_cases = []; b_cases = []; default = None } xs in	
+				(* *)
+				let a_stmts = List.map (fun (e_case, stmt) ->  
+					let r_case_stmts1, r_case1 = translate_exp new_ctx e_case in
+					let r_case_stmts2, r_case2 = translate_gamma r_case1 new_ctx in
+					let r_case_stmt3, r_case3 = translate_strict_equality_comparison r_case2 r_test2 in
+					let r_case_stmts4, r_stmt = translate_stmt new_ctx [] stmt in 
+						[ Basic (Assignment (mk_assign r_banana (Expression (Literal (String "entrei num case!")))));
+							Sugar (If (equal_bool_expr r_found_a false, 
+							r_case_stmts1 @
+							r_case_stmts2 @
+							[ r_case_stmt3;
+							  Basic (Assignment (mk_assign r_banana (Expression (Literal (String "avaliei a guarda do case")))));
+								Sugar (If (equal_bool_expr r_case3 true, 
+									[ Basic (Assignment (mk_assign r_found_a  (Expression (Literal (Bool true))))) ] @							 
+				      		r_case_stmts4 @
+									[ Basic (Assignment (mk_assign switch_var (Expression (Var r_stmt)))) ],
+									[]))], 
+							[  Basic (Assignment (mk_assign r_banana (Expression (Literal (String "fall through is starting"))))) ] @
+							r_case_stmts4 @
+						  [ Basic (Assignment (mk_assign switch_var (Expression (Var r_stmt)))) ])) ]) acumulator.a_cases in 
+			  (* *)
+			  let b_stmts = List.map (fun (e_case, stmt) ->  
+					let r_case_stmts1, r_case1 = translate_exp new_ctx e_case in
+					let r_case_stmts2, r_case2 = translate_gamma r_case1 new_ctx in
+					let r_case_stmt3, r_case3 = translate_strict_equality_comparison r_case2 r_test2 in
+					let r_case_stmts4, r_stmt = translate_stmt new_ctx [] stmt in 
+						[ Basic (Assignment (mk_assign r_banana (Expression (Literal (String "entrei num case!")))));
+							Sugar (If (equal_bool_expr r_found_b false, 
+							r_case_stmts1 @
+							r_case_stmts2 @
+							[ r_case_stmt3;
+							  Basic (Assignment (mk_assign r_banana (Expression (Literal (String "avaliei a guarda do case")))));
+								Sugar (If (equal_bool_expr r_case3 true, 
+									[ Basic (Assignment (mk_assign r_found_b  (Expression (Literal (Bool true))))) ] @							 
+				      		r_case_stmts4 @
+									[ Basic (Assignment (mk_assign switch_var (Expression (Var r_stmt)))) ],
+									[]))], 
+							[  Basic (Assignment (mk_assign r_banana (Expression (Literal (String "fall through is starting"))))) ] @
+							r_case_stmts4 @
+							[ Basic (Assignment (mk_assign switch_var (Expression (Var r_stmt)))) ])) ]) acumulator.b_cases in
+				(* *)
+				let simple_b_stmts = List.map (fun (e_case, stmt) ->
+					let compiled_stmts, r_stmt = translate_stmt new_ctx [] stmt in
+					compiled_stmts @
+					[ Basic (Assignment (mk_assign switch_var (Expression (Var r_stmt)))) ]) acumulator.b_cases in 
+				(* *)
+				let default_stmts = 
+					(match acumulator.default with 
+					| None -> []
+					| Some stmt ->
+						let compiled_default_stmts, r_default = translate_stmt new_ctx [] stmt in
+							[ Sugar (If (equal_bool_expr r_found_b false,
+									compiled_default_stmts @
+									[ Basic (Assignment (mk_assign switch_var (Expression (Var r_default)))) ] @
+									List.flatten simple_b_stmts, 
+									[]))]) in
+				(* *)						
+			  (* print_string "stop switching now \n"; *)
+				[  Basic (Assignment (mk_assign r_banana (Expression (Literal (String "entrei no switch"))))) ] @
+				[ Basic (Assignment (mk_assign switch_var (Expression (Literal Empty)))) ] @ 
+				r_test_stmts1 @ 
+			  r_test_stmts2 @ 
+				[ Basic (Assignment (mk_assign r_banana (Expression (Literal (String "avaliei a guarda"))))) ] @
+				[ Basic (Assignment (mk_assign r_found_a (Expression (Literal (Bool false))))) ] @
+				List.flatten a_stmts @
+				[ Basic (Assignment (mk_assign r_found_b (Expression (Literal (Bool false))))) ] @
+				[ Sugar (If (equal_bool_expr r_found_a false,
+							List.flatten b_stmts, 
+							[])); 
+					Sugar (If (equal_bool_expr r_found_b false,
+							default_stmts, 
+							[])); 
+					Label break ], switch_var
       (* I am not considering those *)  
       
       | Parser_syntax.ForIn _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.6.4 The for-in Statement.")))

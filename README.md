@@ -78,7 +78,7 @@ Updated Instructions
       	* Help -> Eclipse MarketPlace -> EGit
 
     iii) Compile Corestar
-        * Go to the directory PROJECT_PATH/lib/corestar
+        * Go to the directory PROJECT_PATH/lib/corestar/corestar_src
         E.g. PROJECT_PATH = /Users/josesantos/projects/JS_Symbolic_Debugger/JS_Symbolic_Debugger
 
         * Run the script compile_prover.sh
