@@ -1290,6 +1290,7 @@ let rec translate_exp ctx exp : statement list * variable =
                 [Basic (Assignment assign_rv_true)])); 
           ], rv
           
+					
       | Parser_syntax.BinOp (e1, op, e2) ->
         (* TODO : conversions etc. *)
         begin match op with
@@ -1996,7 +1997,7 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
           label_break = ("", break) :: ctx.label_break 
         } in
 				begin 
-				Hashtbl.add new_ctx.breaks_to_switches break switch_var;
+				Hashtbl.add new_ctx.breaks_to_vars break switch_var;
 				(* *)
 				let acumulator = List.fold_left (fun acumulator elem ->
 					match acumulator.default with
