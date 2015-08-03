@@ -759,20 +759,30 @@ let test_program_switch10 () =
 			case 3: x5 = 11
 		}")  (VHValue (HVLiteral (Num 5.0)))				
 
+
+let test_while_completion () =
+  test_template_normal ("var x; 
+		while (2) { x = 3; break }")  (VHValue (HVLiteral (Num 3.0)))		
+
+let test_do_while_completion () =
+  test_template_normal ("var x; 
+		do { x = 3; break } while(2) ")  (VHValue (HVLiteral (Num 3.0)))		
  
 let suite = "Testing_Interpreter" >:::
   [
-		"test_program_switch1" >:: test_program_switch1;
+		(*"test_program_switch1" >:: test_program_switch1;
 		"test_program_switch2" >:: test_program_switch2;
 		"test_program_switch3" >:: test_program_switch3;
-		"test_program_switch4" >:: test_program_switch4;
+		"test_program_switch4" >:: test_proram_switch4;
 		"test_program_switch5" >:: test_program_switch5;
-		(*"test_program_switch6" >:: test_program_switch6;
+		"test_program_switch6" >:: test_program_switch6;
 		"test_program_switch7" >:: test_program_switch7;
 		"test_program_switch8" >:: test_program_switch8;
 		"test_program_switch9" >:: test_program_switch9;
-		"test_program_switch10" >:: test_program_switch10 *)
-	  "running program1" >:: test_program1;
+		"test_program_switch10" >:: test_program_switch10; *)
+		"test_while_completion" >:: test_while_completion;
+		"test_do_while_completion" >:: test_do_while_completion
+	  (*"running program1" >:: test_program1;
    "running program2" >:: test_program2;
    "running_program3" >:: test_program3;
    "running_program4" >:: test_program4;
@@ -884,7 +894,7 @@ let suite = "Testing_Interpreter" >:::
     "test_is_nan_true" >:: test_is_nan_true;
     "test_is_finite_false" >:: test_is_finite_false;
     "test_is_finite_true" >:: test_is_finite_true;
-    "test_negative_nan" >:: test_negative_nan;
+    "test_negative_nan" >:: test_negative_nan; *)
     (*"test_while_break" >:: test_while_break;*)
     (*"test_while_false" >:: test_while_false; *)
     (*"test_" >:: test_*) 

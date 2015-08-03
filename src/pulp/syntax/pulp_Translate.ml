@@ -1993,8 +1993,10 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
 				let r_banana = fresh_r () in
 				let switch_var = fresh_r () in
 				let new_ctx = {ctx with
-          label_break = ("", break) :: ctx.label_break
+          label_break = ("", break) :: ctx.label_break 
         } in
+				begin 
+				Hashtbl.add new_ctx.breaks_to_switches break switch_var;
 				(* *)
 				let acumulator = List.fold_left (fun acumulator elem ->
 					match acumulator.default with
@@ -2084,6 +2086,7 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
 							default_stmts, 
 							[])); 
 					Label break ], switch_var
+		  end
       (* I am not considering those *)  
       
       | Parser_syntax.ForIn _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.6.4 The for-in Statement.")))

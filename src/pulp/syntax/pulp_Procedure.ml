@@ -20,7 +20,8 @@ let make_ctx_vars fid vars =
     label_return : label;
     label_throw : label;
     label_continue : (string * label) list;
-    label_break : (string * label) list
+    label_break : (string * label) list; 
+		breaks_to_switches : (Pulp_Syntax.variable, Pulp_Syntax.variable) Hashtbl.t
   }
   
 let create_ctx env =
@@ -31,7 +32,8 @@ let create_ctx env =
      label_return = "return." ^ fresh_r ();
      label_throw = "throw." ^ fresh_r ();
      label_continue = [];
-     label_break = []
+     label_break = []; 
+		 breaks_to_switches = Hashtbl.create 123456
   }
   
 type function_block = { 
