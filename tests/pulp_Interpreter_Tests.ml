@@ -754,35 +754,95 @@ let test_program_switch10 () =
 		switch(i) { 
 			 case 0: x1 = 2
 			 case 1: x2 = 3 
-			 default: x3 = 5; break;
+			 default: x3 = 5; 
 			case 2: x4 = 7;  
 			case 3: x5 = 11
 		}")  (VHValue (HVLiteral (Num 5.0)))				
 
+let test_if_completion_1 () =
+  test_template_normal ("var x, y;
+	  x = 1; 
+		y = 0; 
+		if (x) { 
+			y = 3
+	  } else {
+			y = 4
+	 }")  (VHValue (HVLiteral (Num 3.0)))
 
-let test_while_completion () =
+let test_if_completion_2 () =
+  test_template_normal ("var x, y;
+	  x = 0; 
+		if (x) { 
+			y = 3
+	  } else {
+			y = 4
+	 }")  (VHValue (HVLiteral (Num 4.0)))
+
+let test_while_completion_1 () =
   test_template_normal ("var x; 
 		while (2) { x = 3; break }")  (VHValue (HVLiteral (Num 3.0)))		
 
-let test_do_while_completion () =
+let test_while_completion_2 () =
+  test_template_normal ("var x, y; 
+	  x = 0; 
+		y = 0;
+		while (x < 4) { y += x; x += 1; }")  (VHValue (HVLiteral (Num 4.0)))	
+
+let test_do_while_completion_1 () =
   test_template_normal ("var x; 
-		do { x = 3; break } while(2) ")  (VHValue (HVLiteral (Num 3.0)))		
- 
+		do { x = 3; break } while (true)")  (VHValue (HVLiteral (Num 3.0)))		
+
+let test_do_while_completion_2 () =
+  test_template_normal ("var x, y; 
+	  x = 0; 
+		y = 0;
+		do { y += x; x += 1; } while (x < 4)")  (VHValue (HVLiteral (Num 4.0)))	
+
+let test_for_completion_1 () =
+  test_template_normal ("var x, y; 
+	  x = 0; 
+		y = 5;
+		for (x = 0; x < y; x++) { y += 1; x += 2; }")  (VHValue (HVLiteral (Num 8.0)))	
+
+
+let test_for_completion_2 () =
+  test_template_normal ("var x, y; 
+	  x = 0; 
+		y = 5;
+		for (x = 0; x < y; x++) { 
+			if (x > y/2) { break }
+	  }")  (VHValue (HVLiteral (Num 5.0)))
+
+let test_try_catch_completion_1 () =
+  test_template_normal ("try { 0 } finally { 1 } ")  (VHValue (HVLiteral (Num 1.0)))
+
+let test_try_catch_completion_2 () =
+  test_template_normal ("try { throw 3} catch (e) { e } ")  (VHValue (HVLiteral (Num 3.0)))
+
+
+
 let suite = "Testing_Interpreter" >:::
   [
-		(*"test_program_switch1" >:: test_program_switch1;
+		"test_program_switch1" >:: test_program_switch1;
 		"test_program_switch2" >:: test_program_switch2;
 		"test_program_switch3" >:: test_program_switch3;
-		"test_program_switch4" >:: test_proram_switch4;
 		"test_program_switch5" >:: test_program_switch5;
 		"test_program_switch6" >:: test_program_switch6;
 		"test_program_switch7" >:: test_program_switch7;
 		"test_program_switch8" >:: test_program_switch8;
 		"test_program_switch9" >:: test_program_switch9;
-		"test_program_switch10" >:: test_program_switch10; *)
-		"test_while_completion" >:: test_while_completion;
-		"test_do_while_completion" >:: test_do_while_completion
-	  (*"running program1" >:: test_program1;
+		"test_program_switch10" >:: test_program_switch10;
+		"test_if_completion_1" >:: test_if_completion_1; 
+		"test_if_completion_2" >:: test_if_completion_2; 
+		"test_while_completion_1" >:: test_while_completion_1;
+		"test_while_completion_2" >:: test_while_completion_2;
+		"test_do_while_completion_1" >:: test_do_while_completion_1;
+		"test_do_while_completion_2" >:: test_do_while_completion_2;
+		"test_for_completion_1" >:: test_for_completion_1;
+		"test_for_completion_2" >:: test_for_completion_2;
+		"test_try_catch_completion_1" >:: test_try_catch_completion_1; 
+		"test_try_catch_completion_2" >:: test_try_catch_completion_2;
+	 "running program1" >:: test_program1;
    "running program2" >:: test_program2;
    "running_program3" >:: test_program3;
    "running_program4" >:: test_program4;
@@ -894,8 +954,6 @@ let suite = "Testing_Interpreter" >:::
     "test_is_nan_true" >:: test_is_nan_true;
     "test_is_finite_false" >:: test_is_finite_false;
     "test_is_finite_true" >:: test_is_finite_true;
-    "test_negative_nan" >:: test_negative_nan; *)
-    (*"test_while_break" >:: test_while_break;*)
-    (*"test_while_false" >:: test_while_false; *)
+    "test_negative_nan" >:: test_negative_nan; 
     (*"test_" >:: test_*) 
     ] 

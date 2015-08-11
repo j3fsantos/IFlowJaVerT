@@ -21,7 +21,7 @@ let make_ctx_vars fid vars =
     label_throw : label;
     label_continue : (string * label) list;
     label_break : (string * label) list; 
-		breaks_to_vars : (Pulp_Syntax.variable, Pulp_Syntax.variable) Hashtbl.t
+		stmt_return_var : variable; 
   }
   
 let create_ctx env =
@@ -33,7 +33,7 @@ let create_ctx env =
      label_throw = "throw." ^ fresh_r ();
      label_continue = [];
      label_break = []; 
-		 breaks_to_vars = Hashtbl.create 123456
+		 stmt_return_var = fresh_r (); 
   }
   
 type function_block = { 
@@ -42,6 +42,7 @@ type function_block = {
     func_params : formal_param list;
     func_ctx : translation_ctx;
     func_spec : Pulp_Logic.spec_pre_post list
+		
 }
 
 

@@ -1551,37 +1551,18 @@ let rec translate_exp ctx exp : statement list * variable =
       | Parser_syntax.Try _    
       | Parser_syntax.Debugger -> raise (PulpInvalid ("Expected expression. Actual " ^ (Pretty_print.string_of_exp true exp)))
 
-let translate_block es f =
-     let mk_if rval oldrval =
-      let retv = fresh_r () in 
-        [
-          (* DSA *) 
-          Sugar (If (equal_empty_expr rval, 
-            [
-              Basic (Assignment (mk_assign retv (Expression (Var oldrval))))
-            ], 
-            [
-              Basic (Assignment (mk_assign retv (Expression (Var rval))))
-            ]))
-        ], retv in
-     
-    let retv = mk_assign_fresh_lit Empty in
-    
-    List.fold_left (fun (prev_stmts, prev) current -> 
-      let r1_stmts, r1 = f current in
-      
-      let if_stmts, ifv = match current.Parser_syntax.exp_stx with 
-        | Parser_syntax.Break _ 
-        | Parser_syntax.Continue _ -> [], prev
-        | _ -> mk_if r1 prev in
-      
-      (prev_stmts @ r1_stmts @ if_stmts, ifv)) 
-    ([Basic (Assignment retv)], retv.assign_left) es
+let translate_block es f ret_f =
+    let compiled_stmts = List.map 
+			(fun stmt ->
+				let compiled_stmt, _ = f stmt in 
+					compiled_stmt) es in 
+    List.flatten compiled_stmts, ret_f
 
 let rec translate_stmt ctx labelset exp : statement list * variable =
   (*Printf.printf ("Translating stmt %s with break labels %s") (Pretty_print.string_of_exp false exp) (string_of_break_continue_labels ctx);
   Printf.printf ("\n labelset %s \n") (String.concat ";" labelset);*)
   let f = translate_stmt ctx [] in 
+	let ret_def = ctx.stmt_return_var in 
   match exp.Parser_syntax.exp_stx with
         (* Literals *)
       | Parser_syntax.Null 
@@ -1608,7 +1589,13 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
       | Parser_syntax.RegExp _  -> 
         let stmts, r1 = translate_exp ctx exp in
         let gamma_stmts, r2  = translate_gamma r1 ctx in
-        stmts @ gamma_stmts, r2
+				let ret_val_stmts = [ 
+          Sugar (If (equal_empty_expr r2, 
+            [ ], 
+            [
+              Basic (Assignment (mk_assign ret_def (Expression (Var r2))))
+            ]))] in 
+        stmts @ gamma_stmts @ ret_val_stmts, ret_def
 
       | Parser_syntax.AnnonymousFun _
       | Parser_syntax.NamedFun _ -> raise (PulpInvalid ("Expected statement. Actual " ^ (Pretty_print.string_of_exp true exp)))
@@ -1618,7 +1605,7 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
 
       (*Statements*)
       | Parser_syntax.Script _ -> raise (PulpInvalid ("Expected Statememnt. Got Script"))
-      | Parser_syntax.Block es -> translate_block es f
+      | Parser_syntax.Block es -> translate_block es f ret_def
 
       | Parser_syntax.VarDec vars ->
         let result = List.map (fun var ->
@@ -1639,25 +1626,20 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
         let r2_stmts, r2 = translate_gamma r1 ctx in
         let r3_stmts, r3 = f e2 in
         let to_boolean, r5 = translate_to_boolean r2 ctx in
-        let rv = fresh_r () in
         let elsebranch = match e3 with
           | Some e3 -> 
             let r4_stmts, r4 = f e3 in
-            r4_stmts @ 
-            [Basic (Assignment (mk_assign rv (Expression (Var r4))))]
-          | None -> [Basic (Assignment (mk_assign rv (Expression (Literal Empty))))] in      
+            r4_stmts
+          | None -> [] in      
           r1_stmts @ 
           r2_stmts @ 
           [ to_boolean;
             Sugar (If (equal_bool_expr r5 true, 
-                r3_stmts @ 
-                [Basic (Assignment (mk_assign rv (Expression (Var r3))))], 
+                r3_stmts, 
                 elsebranch))
-          ], rv
+          ], ret_def
            
       | Parser_syntax.While (e1, e2) ->
-        let rv = fresh_r () in
-        let assign_rv_empty = Basic (Assignment (mk_assign rv (Expression (Literal Empty)))) in
         let r1_stmts, r1 = translate_exp ctx e1 in
         let r2_stmts, r2 = translate_gamma r1 ctx in
         let continue = fresh_r () in
@@ -1669,7 +1651,6 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
         let r3_stmts, r3 = translate_stmt new_ctx [] e2 in
         let to_boolean, r4 = translate_to_boolean r2 ctx in
           [
-            assign_rv_empty; 
             Label continue
           ] @ 
           r1_stmts @ 
@@ -1678,20 +1659,15 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
             Sugar (If (equal_bool_expr r4 true, 
                 r3_stmts @ 
                 [ 
-                  Sugar (If (equal_empty_expr r3, 
-                    [], 
-                    [Basic (Assignment (mk_assign rv (Expression (Var r3))))])); 
                   Goto continue
                 ], 
                 
                 []));
             Label break
-          ], rv
+          ], ret_def
           
       | Parser_syntax.DoWhile (e1, e2) -> 
-        let rv = fresh_r () in
         let iterating = fresh_r () in
-        let assign_rv_empty = Basic (Assignment (mk_assign rv (Expression (Literal Empty)))) in
         let label1 = fresh_r () in
         let continue = fresh_r () in
         let break = fresh_r () in
@@ -1704,15 +1680,11 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
         let r2_stmts, r2 = translate_gamma r1 ctx in
         let to_boolean, r4 = translate_to_boolean r2 ctx in
           [
-            assign_rv_empty; 
             Basic (Assignment (mk_assign iterating (Expression (Literal (Bool true)))));
             Label label1;
             Sugar (If (equal_bool_expr iterating true, 
                 r3_stmts @ 
                 [ 
-                  Sugar (If (equal_empty_expr r3, 
-                    [], 
-                    [Basic (Assignment (mk_assign rv (Expression (Var r3))))]));
                   Label continue
                 ] @
                 r1_stmts @ 
@@ -1725,7 +1697,7 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
                 ],                
                 []));
             Label break;
-          ], rv
+          ], ret_def
 
         
       | Parser_syntax.Return e ->
@@ -1762,7 +1734,6 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
           label_break = break_finally_label;
         } in
         let r1_stmts, r1 = translate_stmt new_ctx [] e1 in
-        let rv = fresh_r () in
         
         let catch_id = "catch" ^ fresh_r () in
         let catch_scope = catch_id ^ "_scope" in
@@ -1791,7 +1762,6 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
             
         r1_stmts @
         [
-          Basic (Assignment (mk_assign rv (Expression (Var r1))));
           Goto finally_label;
           Label catch_label;
           Basic (Assignment (mk_assign catch_scope Obj));
@@ -1800,7 +1770,6 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
         ] @
         r2_stmts @
         [
-          Basic (Assignment (mk_assign rv (Expression (Var r2))));
           Goto finally_label;
           Label finally_label;
         ] @
@@ -1821,7 +1790,7 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
         List.flatten continue_finally_stmts @
         List.flatten break_finally_stmts @
         [  Label exit_label
-        ], rv
+        ], ret_def
         
       | Parser_syntax.Try (e1, None, Some e3) ->
         let return_finally_label = "finally." ^ fresh_r () in
@@ -1865,7 +1834,7 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
         [  Goto ctx.label_throw] @
         List.flatten continue_finally_stmts @
         List.flatten break_finally_stmts @
-        [  Label exit_label], r1
+        [  Label exit_label], ret_def
         
       | Parser_syntax.Try (e1, Some (id, e2), None) ->
         let catch_label = "catch." ^ fresh_r () in
@@ -1873,7 +1842,6 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
         let throw_var = fresh_r () in
         let new_ctx = {ctx with label_throw = catch_label; throw_var = throw_var} in
         let r1_stmts, r1 = translate_stmt new_ctx [] e1 in
-        let rv = fresh_r () in
         
         let catch_id = "catch" ^ fresh_r () in
         let catch_scope = catch_id ^ "_scope" in
@@ -1885,7 +1853,6 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
             
         r1_stmts @
         [
-          Basic (Assignment (mk_assign rv (Expression (Var r1))));
           Goto exit_label;
           Label catch_label;
           Basic (Assignment (mk_assign catch_scope Obj));
@@ -1894,10 +1861,9 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
         ] @
         r2_stmts @
         [
-          Basic (Assignment (mk_assign rv (Expression (Var r2))));
           Goto exit_label;
           Label exit_label;
-        ], rv  
+        ], ret_def
         
       | Parser_syntax.Try _ -> raise (PulpInvalid "Try _ None None")
         
@@ -1933,7 +1899,6 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
 
       (* Next TODO *) 
   	| Parser_syntax.For (e1, e2, e3, e4) ->   
-				let rv = fresh_r () in
 				let r_init_none = fresh_r () in 
 				let r_test_none = fresh_r () in
 			  let r_incr_none = fresh_r () in  
@@ -1969,7 +1934,6 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
 				let r4_stmts, r4 = translate_stmt new_ctx [] e4 in
 				
 				(* let r1 = mk_assign_fresh_lit (String "banana") in *)
-				  [ Basic (Assignment (mk_assign rv (Expression (Literal Empty)))) ] @
           r1_stmts @  
 					[ Label label1 ] @ 
 					r21_stmts @ r22_stmts @ r23_stmts @
@@ -1982,7 +1946,7 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
 						@
 					  [ Goto label1 ], 
 						[])) ] @
-				  [Label break], rv
+				  [Label break], ret_def
 			
 			| Parser_syntax.Switch 	(e, xs) -> 
 				(* print_string "Started to switch \n";*)
@@ -1997,7 +1961,6 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
           label_break = ("", break) :: ctx.label_break 
         } in
 				begin 
-				Hashtbl.add new_ctx.breaks_to_vars break switch_var;
 				(* *)
 				let acumulator = List.fold_left (fun acumulator elem ->
 					match acumulator.default with
@@ -2032,8 +1995,7 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
 									[ Basic (Assignment (mk_assign switch_var (Expression (Var r_stmt)))) ],
 									[]))], 
 							[  Basic (Assignment (mk_assign r_banana (Expression (Literal (String "fall through is starting"))))) ] @
-							r_case_stmts4 @
-						  [ Basic (Assignment (mk_assign switch_var (Expression (Var r_stmt)))) ])) ]) acumulator.a_cases in 
+							r_case_stmts4)) ]) acumulator.a_cases in 
 			  (* *)
 			  let b_stmts = List.map (fun (e_case, stmt) ->  
 					let r_case_stmts1, r_case1 = translate_exp new_ctx e_case in
@@ -2052,8 +2014,7 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
 									[ Basic (Assignment (mk_assign switch_var (Expression (Var r_stmt)))) ],
 									[]))], 
 							[  Basic (Assignment (mk_assign r_banana (Expression (Literal (String "fall through is starting"))))) ] @
-							r_case_stmts4 @
-							[ Basic (Assignment (mk_assign switch_var (Expression (Var r_stmt)))) ])) ]) acumulator.b_cases in
+							r_case_stmts4 )) ]) acumulator.b_cases in
 				(* *)
 				let simple_b_stmts = List.map (fun (e_case, stmt) ->
 					let compiled_stmts, r_stmt = translate_stmt new_ctx [] stmt in
@@ -2072,8 +2033,7 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
 									[]))]) in
 				(* *)						
 			  (* print_string "stop switching now \n"; *)
-				[  Basic (Assignment (mk_assign r_banana (Expression (Literal (String "entrei no switch"))))) ] @
-				[ Basic (Assignment (mk_assign switch_var (Expression (Literal Empty)))) ] @ 
+				[  Basic (Assignment (mk_assign r_banana (Expression (Literal (String "entrei no switch"))))) ] @ 
 				r_test_stmts1 @ 
 			  r_test_stmts2 @ 
 				[ Basic (Assignment (mk_assign r_banana (Expression (Literal (String "avaliei a guarda"))))) ] @
@@ -2086,7 +2046,7 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
 					Sugar (If (equal_bool_expr r_found_b false,
 							default_stmts, 
 							[])); 
-					Label break ], switch_var
+					Label break ], ret_def
 		  end
       (* I am not considering those *)  
       
@@ -2496,7 +2456,7 @@ let exp_to_elem ctx exp : statement list * variable =
 let rec exp_to_fb ctx exp : statement list * variable =
   match exp.Parser_syntax.exp_stx with
     | Parser_syntax.Script (_, es) 
-    | Parser_syntax.Block (es) -> translate_block es (exp_to_elem ctx)
+    | Parser_syntax.Block (es) -> translate_block es (exp_to_elem ctx) ctx.stmt_return_var
     | _ -> exp_to_elem ctx exp
         
 let translate_function fb annots fid main args env named =
