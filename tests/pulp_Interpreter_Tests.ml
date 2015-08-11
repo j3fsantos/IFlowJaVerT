@@ -757,7 +757,7 @@ let test_program_switch10 () =
 			 default: x3 = 5; 
 			case 2: x4 = 7;  
 			case 3: x5 = 11
-		}")  (VHValue (HVLiteral (Num 5.0)))				
+		}")  (VHValue (HVLiteral (Num 11.0)))				
 
 let test_if_completion_1 () =
   test_template_normal ("var x, y;
