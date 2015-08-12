@@ -1,32 +1,95 @@
-constructor NullType
-constructor UndefinedType
-constructor BooleanType
-constructor StringType
-constructor NumberType
-constructor BObjectType
-constructor NObjectType
-constructor ObjectType
-constructor ReferenceType
-constructor MemberReference
-constructor VariableReference
-
-
-rule obj_null_contr :
-  field(?x,?f,?y) | type_of(?x)=NullType() |- 
+rule field_null_contr :
+   | field(?x,?f,?y) * type_of(?x)=NullType() |- 
 if
 
-rule obj_undef_contr :
-  field(?x,?f,?y) | type_of(?x)=UndefinedType() |- 
+rule field_null_value_contr :
+   | field(?x,?f,?y) * ?x=null() |- 
 if
 
-rule obj_bool_contr :
-  field(?x,?f,?y) | type_of(?x)=BooleanType() |- 
+rule field_undef_contr :
+  | field(?x,?f,?y) * type_of(?x)=UndefinedType() |- 
 if
 
-rule obj_string_contr :
-  field(?x,?f,?y) | type_of(?x)=StringType() |- 
+rule obj_undef_value_contr :
+  | field(?x,?f,?y) * ?x=undefined() |- 
 if
 
-rule obj_number_contr :
-  field(?x,?f,?y) | type_of(?x)=NumberType() |- 
+rule field_bool_contr :
+  | field(?x,?f,?y) * type_of(?x)=BooleanType() |- 
+if
+
+rule field_string_contr :
+  | field(?x,?f,?y) * type_of(?x)=StringType() |- 
+if
+
+rule field_number_contr :
+  | field(?x,?f,?y) * type_of(?x)=NumberType() |- 
+if
+
+rule string_empty_contr :
+  | type_of(?x)=StringType() * ?x=empty_value() |-
+if
+
+rule type_of_string_bool_contr :
+  | type_of(?x)=StringType() * type_of(?x)=BooleanType() |- 
+if
+
+rule type_of_string_undef_value_contr :
+  | type_of(?x)=StringType() * ?x=undefined() |- 
+if
+
+rule type_of_string_undef_contr :
+  | type_of(?x)=StringType() * type_of(?x)=UndefinedType() |- 
+if
+
+rule type_of_string_null_value_contr :
+  | type_of(?x)=StringType() * ?x=null() |- 
+if
+
+rule type_of_string_null_contr :
+  | type_of(?x)=StringType() * type_of(?x)=NullType() |- 
+if
+
+rule obj_empty_contr :
+  | type_of(?x)=ObjectType() * ?x=empty_value() * |- 
+if
+
+rule field_not_an_object_contr :
+   | field(?x,?f,?y) * type_of(?x)!=ObjectType() |- 
+if
+
+rule field_empty_contr :
+  | field(?x,?f,?y) * ?x=empty_value() |- 
+if
+
+rule type_of_nobj_bool_contr :
+  | type_of(?x)=NObjectType() * type_of(?x)=BooleanType() |- 
+if
+
+rule type_of_obj_bool_contr :
+  | type_of(?x)=ObjectType() * type_of(?x)=BooleanType() |- 
+if
+
+rule type_of_obj_empty_contr :
+  | type_of(?x)=ObjectType() * ?x=empty_value() |- 
+if
+
+rule type_of_lt_obj_empty_contr :
+  | true()=builtin_lt(type_of(?x), ObjectType()) * ?x=empty_value() |- 
+if
+
+rule type_of_obj_nobj_contr :
+  | type_of(?x)=ObjectType() * type_of(?x)=NObjectType() |- 
+if
+
+rule type_of_obj_bobj_contr :
+  | type_of(?x)=ObjectType() * type_of(?x)=BObjectType() |- 
+if
+
+rule type_of_nobj_bobj_contr :
+  | type_of(?x)=NObjectType() * type_of(?x)=BObjectType() |- 
+if
+
+rule type_of_lt_bobj_nobj_contr :
+  | true()=builtin_lt(type_of(?x), BObjectType()) * type_of(?x)=NObjectType() |- 
 if

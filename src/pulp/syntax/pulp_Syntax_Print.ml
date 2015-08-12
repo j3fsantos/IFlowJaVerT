@@ -156,7 +156,8 @@ let string_of_pulp_type t =
   | StringType -> "String"
   | NumberType -> "Number"
   | ObjectType (Some Builtin) -> "Builtin Object"
-  | ObjectType _ -> "Object"
+  | ObjectType (Some Normal) -> "Normal Object"
+  | ObjectType None -> "Object"
   | ReferenceType r ->
     match r with
       | None -> "Reference"

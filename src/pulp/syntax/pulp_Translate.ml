@@ -29,7 +29,6 @@ let is_ref_inner ref rt =
 let is_oref_expr ref = is_ref_inner ref (Some MemberReference)
 let is_vref_expr ref = is_ref_inner ref (Some VariableReference)
 let is_ref_expr ref = is_ref_inner ref None
-let is_obj_var v = IsTypeOf (Var v, (ObjectType None))
 
 let or_expr e1 e2 = BinOp (e1, Boolean Or, e2)
 let and_expr e1 e2 = BinOp (e1, Boolean And, e2)
@@ -58,6 +57,8 @@ let type_of_var v t =
 let type_of_oref_var ref = type_of_var ref (ReferenceType (Some MemberReference))
 let type_of_vref_var ref = type_of_var ref (ReferenceType (Some VariableReference))
 let type_of_ref_var ref = type_of_var ref (ReferenceType None)
+
+let type_of_obj obj = type_of_var obj (ObjectType None)
   
 let istypeof_prim_expr v =
   or_expr 
@@ -382,7 +383,7 @@ let translate_call_construct_start f e1 e2s ctx construct =
       r2_stmts @ 
       arg_stmts @ 
       [
-        Sugar (If (is_obj_var r2, [], gotothrow)); 
+        Sugar (If (type_of_obj r2, [], gotothrow)); 
         is_callable_stmt; 
         Sugar (If (equal_bool_expr is_callable false, gotothrow, []))
       ], r1, r2, arg_values)
@@ -1084,14 +1085,14 @@ let rec translate_exp ctx exp : statement list * variable =
             ],
 	          [
 	            Basic (Assignment prototype); 
-	            Sugar (If (is_obj_var prototype.assign_left, 
+	            Sugar (If (type_of_obj prototype.assign_left, 
 	                [Basic (Assignment (mk_assign vthisproto (Expression (Var prototype.assign_left))))], 
 	                [Basic (Assignment (mk_assign vthisproto (Expression (Literal (LLoc Lop)))))])); 
 	            Basic (Assignment vthis);
 	            add_proto_var vthis.assign_left vthisproto 
 	          ] @
 	          if3 @ 
-	          [  Sugar (If (is_obj_var call_lvar, 
+	          [  Sugar (If (type_of_obj call_lvar, 
 	                [Basic (Assignment (mk_assign rv (Expression (Var call_lvar))))], 
 	                [Basic (Assignment (mk_assign rv (Expression (Var vthis.assign_left))))]))
 	          ]))

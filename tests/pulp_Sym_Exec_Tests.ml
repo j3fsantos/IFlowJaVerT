@@ -71,16 +71,22 @@ let check_single_spec name f all_functions spec n =
   let cfg = fb_to_cfg f in
   let all_cfgs = AllFunctions.add f.func_name cfg AllFunctions.empty in
   print_cfg all_cfgs path;
-  let sg, cmd_st_tbl = execute f cfg all_functions spec in
-  let posts, throw_posts = get_posts f cfg sg cmd_st_tbl in
   
-  State_Graph.print_state_graph sg cfg f.func_name path;
-  
-   assert_bool ("Symbolic Execution. Postcondition. 
-     Expected :" ^ (String.concat "\n" (List.map string_of_formula spec.spec_post)) ^ "Excep" ^  (String.concat "\n" (List.map string_of_formula spec.spec_excep_post)) ^
-   " Actual: " ^ (String.concat "\n" (List.map string_of_formula posts)) ^ "Excep" ^ (String.concat "\n Posts" (List.map string_of_formula throw_posts))) 
-     ((List.for_all (fun post -> CoreStar_Frontend_Pulp.implies_or_list (simplify post) spec.spec_post) posts)
-     && (List.for_all (fun post -> CoreStar_Frontend_Pulp.implies_or_list (simplify post) spec.spec_excep_post) throw_posts))
+	  let sg, cmd_st_tbl = execute f cfg all_functions spec in
+	  let posts, throw_posts = get_posts f cfg sg cmd_st_tbl in
+	  
+	  Printf.printf "Printing state graph for %s" path; 
+	  State_Graph.print_state_graph sg cfg f.func_name path;
+    
+    (* For checking if end state implies given postcondition we need to subsitute #r with return/throw context var *)
+   let spec_post = List.map (change_return f.func_ctx.return_var) spec.spec_post in     
+   let spec_excep_post = List.map (change_return f.func_ctx.throw_var) spec.spec_excep_post in 
+	  
+	   assert_bool ("Symbolic Execution. Postcondition. 
+	     Expected :" ^ (String.concat "\n" (List.map string_of_formula spec_post)) ^ "Excep" ^  (String.concat "\n" (List.map string_of_formula spec_excep_post)) ^
+	   " Actual: " ^ (String.concat "\n" (List.map string_of_formula posts)) ^ "Excep" ^ (String.concat "\n Posts" (List.map string_of_formula throw_posts))) 
+	     ((List.for_all (fun post -> CoreStar_Frontend_Pulp.implies_or_list (simplify post) spec_post) posts)
+	     && (List.for_all (fun post -> CoreStar_Frontend_Pulp.implies_or_list (simplify post) spec_excep_post) throw_posts))
 
 let test_program_template name f fs = 
   apply_config ();
@@ -180,7 +186,7 @@ let test_jstools_example_person_1 () =
 let get_excep_post throw_var = 
   let excep = fresh_e() in
   Star [
-    Eq (Le_PVar throw_var, Le_Var excep);
+    REq (Le_Var excep);
     Heaplet (Le_Var excep, Le_Literal (String "#class"), Le_Literal (String "Error"));
     Heaplet (Le_Var excep, Le_Literal (String "#proto"), Le_Literal (LLoc Ltep));
   ]
@@ -203,6 +209,7 @@ let test_function_call_template name fid_stmts fid_expr =
       Basic (Assignment (mk_assign ctx.return_var (Expression (Var x.assign_left))));  
       Goto ctx.label_return;
       Label with_label;
+      Basic (Assignment (mk_assign ctx.throw_var (Expression (Var x.assign_left)))); 
       Goto ctx.label_throw;
       Label ctx.label_throw;
       Label ctx.label_return
@@ -244,7 +251,7 @@ let test_proto_field () =
       Label ctx.label_return
   ] in
   
-  let spec = mk_spec empty_f [Eq (Le_PVar ctx.return_var, Le_Literal (Num 4.0))] in
+  let spec = mk_spec empty_f [REq (Le_Literal (Num 4.0))] in
   let f = make_function_block_with_spec "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
   test_program_template "test_proto_field" f (AllFunctions.add f.func_name f AllFunctions.empty)
   
@@ -260,7 +267,7 @@ let test_proto_field_direct () =
       Label ctx.label_throw;
       Label ctx.label_return
   ] in
-  let spec = mk_spec empty_f [Eq (Le_PVar ctx.return_var, Le_Literal Undefined)] in
+  let spec = mk_spec empty_f [REq (Le_Literal Undefined)] in
   let f = make_function_block_with_spec "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
   
   test_program_template "test_proto_field_direct" f (AllFunctions.add f.func_name f AllFunctions.empty)
@@ -277,7 +284,7 @@ let test_proto_field_empty () =
       Label ctx.label_throw;
       Label ctx.label_return
   ] in
-  let spec = mk_spec empty_f [Eq (Le_PVar ctx.return_var, Le_Literal Empty)] in
+  let spec = mk_spec empty_f [REq (Le_Literal Empty)] in
   let f = make_function_block_with_spec "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
   
   test_program_template "test_proto_field_empty" f (AllFunctions.add f.func_name f AllFunctions.empty)
@@ -302,15 +309,28 @@ let test_js_program_cav_example () =
   let p_exp = AllFunctions.mapi (fun id fb ->
     match id with
       | "main" -> 
-        let spec_main = mk_spec empty_f [Eq (Le_PVar fb.func_ctx.return_var, Le_Literal (String "Hi Alice"))] in
+        let person = Le_Var (fresh_e()) in
+        let alice = Le_Var (fresh_e()) in
+        let pre = Star [
+          Heaplet (Le_Literal (LLoc Lg), Le_Literal (String "#proto"), Le_Literal (LLoc Lop));
+          Heaplet (Le_Literal (LLoc Lg), Le_Literal (String "undefined"), Le_Literal Undefined);
+          Heaplet (Le_Literal (LLoc Lg), Le_Literal (String "Person"), person);
+          Heaplet (Le_Literal (LLoc Lg), Le_Literal (String "alice"), alice);
+          Eq (Le_TypeOf (Le_Literal (String "Hi ")), Le_Literal (Type StringType));
+          Eq (Le_TypeOf (Le_Literal (String "Alice")), Le_Literal (Type StringType));          
+          Eq (Le_TypeOf (Le_Literal (String "Hi Alice")), Le_Literal (Type StringType));
+        ] in
+        let spec_main = mk_spec pre [REq (Le_Literal (String "Hi Alice"))] in
         {fb with func_spec = [spec_main]}
       | "anonymous1" -> 
         let v = Le_Var (fresh_a()) in
         let pre = Star [
           Heaplet (Le_PVar "rscope", Le_Literal (String "main"), Le_Literal (LLoc Lg));
-          Heaplet (Le_PVar "rthis", Le_Literal (String "name"), v)
+          Heaplet (Le_PVar "rthis", Le_Literal (String "name"), v);
+          Eq (Le_TypeOf (v), Le_Literal (Type StringType));
+          Eq (Le_TypeOf (Le_Literal (String "Hi ")), Le_Literal (Type StringType));
         ] in
-        let spec_anonymous0 = mk_spec pre [Star [pre; (REq v)]] in
+        let spec_anonymous0 = mk_spec pre [Star [pre; REq (Le_BinOp (Le_Literal (String "Hi "), Concat, v))]] in
 			    {fb with func_spec = [spec_anonymous0]}
       | "Person0" ->
         let v = Le_Var (fresh_a()) in
@@ -318,7 +338,7 @@ let test_js_program_cav_example () =
           Heaplet (Le_PVar "rscope", Le_Literal (String "main"), Le_Literal (LLoc Lg));
           Heaplet (Le_PVar "rthis", Le_Literal (String "name"), v)
         ] in
-        let post = Heaplet (Le_PVar "rthis", Le_Literal (String "name"), Le_PVar "name") in
+        let post = Star [Heaplet (Le_PVar "rthis", Le_Literal (String "name"), Le_PVar "name"); REq (Le_Literal Empty)] in
         let spec_person0 = mk_spec pre [post] in
           {fb with func_spec = [spec_person0]}
       | _ -> fb
@@ -332,14 +352,14 @@ let suite = "Testing_Sym_Exec" >:::
   [ "test_function_call_name" >:: test_function_call_name;
     "test_jsr" >:: test_apply_spec1;
     "running program1" >:: test_empty_program;
-   "test_empty_program_non_empty_pre" >:: test_empty_program_non_empty_pre;
-   "sym exec program1" >:: test_program1;
-   "test_jstools_example_person_1" >:: test_jstools_example_person_1;
-   "test_jstools_example_person_2" >:: test_jstools_example_person_2;
+    "test_empty_program_non_empty_pre" >:: test_empty_program_non_empty_pre;
+    "sym exec program1" >:: test_program1;
+    "test_jstools_example_person_1" >:: test_jstools_example_person_1;
+    "test_jstools_example_person_2" >:: test_jstools_example_person_2;
     "test_function_call" >:: test_function_call;
     "test_function_call_fid_string" >:: test_function_call_fid_string;
     "test_proto_field" >:: test_proto_field;
     "test_proto_field_direct" >:: test_proto_field_direct;
     "test_proto_field_empty" >:: test_proto_field_empty;
-    (*"test_js_program_cav_example" >:: test_js_program_cav_example*)
+    "test_js_program_cav_example" >:: test_js_program_cav_example
     ]

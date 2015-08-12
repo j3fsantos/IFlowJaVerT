@@ -27,6 +27,13 @@ module VarMap = Map.Make (
   end
 )
 
+module ProgramVarMap = Map.Make ( 
+  struct 
+    type t = variable
+    let compare = compare
+  end
+)
+
 type codename = string
 
 type logical_exp =
