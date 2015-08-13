@@ -311,14 +311,13 @@ let test_js_program_cav_example () =
       | "main" -> 
         let person = Le_Var (fresh_e()) in
         let alice = Le_Var (fresh_e()) in
+        let proto = Le_Var (fresh_e()) in
+        let undefined = Le_Var (fresh_e()) in
         let pre = Star [
-          Heaplet (Le_Literal (LLoc Lg), Le_Literal (String "#proto"), Le_Literal (LLoc Lop));
-          Heaplet (Le_Literal (LLoc Lg), Le_Literal (String "undefined"), Le_Literal Undefined);
+          Heaplet (Le_Literal (LLoc Lg), Le_Literal (String "#proto"), proto);
+          Heaplet (Le_Literal (LLoc Lg), Le_Literal (String "undefined"), undefined);
           Heaplet (Le_Literal (LLoc Lg), Le_Literal (String "Person"), person);
           Heaplet (Le_Literal (LLoc Lg), Le_Literal (String "alice"), alice);
-          Eq (Le_TypeOf (Le_Literal (String "Hi ")), Le_Literal (Type StringType));
-          Eq (Le_TypeOf (Le_Literal (String "Alice")), Le_Literal (Type StringType));          
-          Eq (Le_TypeOf (Le_Literal (String "Hi Alice")), Le_Literal (Type StringType));
         ] in
         let spec_main = mk_spec pre [REq (Le_Literal (String "Hi Alice"))] in
         {fb with func_spec = [spec_main]}
@@ -328,7 +327,6 @@ let test_js_program_cav_example () =
           Heaplet (Le_PVar "rscope", Le_Literal (String "main"), Le_Literal (LLoc Lg));
           Heaplet (Le_PVar "rthis", Le_Literal (String "name"), v);
           Eq (Le_TypeOf (v), Le_Literal (Type StringType));
-          Eq (Le_TypeOf (Le_Literal (String "Hi ")), Le_Literal (Type StringType));
         ] in
         let spec_anonymous0 = mk_spec pre [Star [pre; REq (Le_BinOp (Le_Literal (String "Hi "), Concat, v))]] in
 			    {fb with func_spec = [spec_anonymous0]}

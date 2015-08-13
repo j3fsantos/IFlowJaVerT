@@ -18,6 +18,7 @@ exception CoreStarContradiction of string
 let logic = ref Psyntax.empty_logic
 
 let numeric_const = "numeric_const"
+let string_const = "string_const"
 let undefined = "undefined"
 let null = "null"
 let cons = "cons"
@@ -104,9 +105,8 @@ and substitute_eq_pform_at v a pfa =
   match pfa with
       | Psyntax.P_EQ (a1, a2) -> 
         (* Leaving #r = smth *)
-        begin match a1, a2 with
-          | Psyntax.Arg_var Vars.PVar (_, "$ret_v1"), _
-          | _, Psyntax.Arg_var Vars.PVar (_, "$ret_v1") -> pfa
+        begin match v with
+          | Vars.PVar (_, "$ret_v1") -> pfa
           | _ -> Psyntax.P_EQ (sea a1, sea a2)
         end
       | Psyntax.P_NEQ (a1, a2) -> Psyntax.P_NEQ (sea a1, sea a2)
@@ -171,7 +171,7 @@ let literal_to_args lit =
       if Utils.is_int n then string_of_int (int_of_float n)
       else string_of_float n in
       Psyntax.Arg_op (numeric_const, [Psyntax.Arg_string n_string])         
-	  | String s -> Psyntax.Arg_string s
+	  | String s -> Psyntax.Arg_op (string_const, [Psyntax.Arg_string s])
 	  | Undefined -> Psyntax.Arg_op (undefined, [])
 	  | Type pt -> Psyntax.Arg_op (op_of_pulp_type pt, [])
 	  | Empty -> Psyntax.Arg_op (empty_value, [])
@@ -245,6 +245,7 @@ let rec args_to_le (lvarmap : variable_types LVarMap.t) arg =
     | Psyntax.Arg_op (s, args) -> 
       begin match s, args with
         | "numeric_const", [Psyntax.Arg_string n] -> Le_Literal (Num (float_of_string n))
+        | "string_const", [Psyntax.Arg_string s] -> Le_Literal (String s)
         | "undefined", [] -> Le_Literal Undefined
         | "null", [] -> Le_Literal Null
         | "true", [] -> Le_Literal (Bool true)
@@ -269,7 +270,13 @@ let rec args_to_le (lvarmap : variable_types LVarMap.t) arg =
         | "builtin_plus", [arg1; arg2] -> Le_BinOp (f arg1, Arith Plus, f arg2)
         | "builtin_minus", [arg1; arg2] -> Le_BinOp (f arg1, Arith Minus, f arg2)
         | "builtin_lt", [arg1; arg2] -> Le_BinOp (f arg1, Comparison LessThan, f arg2)
-        | "concat", [arg1; arg2] -> Le_BinOp (f arg1, Concat, f arg2) 
+        | "concat", [arg1; arg2] -> 
+          let a1 = f arg1 in
+          let a2 = f arg2 in
+          begin match a1, a2 with
+            | Le_Literal (String s1), Le_Literal (String s2) -> Le_Literal (String (s1 ^ s2))
+            | _ , _ -> Le_BinOp (a1, Concat, a2) 
+          end
         | "triple_eq", [arg1; arg2] -> Le_BinOp (f arg1, Comparison Equal, f arg2)
         | "ref", [lb; v; rt] -> Le_Ref (f lb, f v, args_to_ref_type rt)
         | "none", [] -> Le_None

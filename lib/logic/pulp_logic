@@ -4,6 +4,7 @@ import "le_lt_logic";
 import "pulp_footprint_logic";
 import "proto_field_logic";
 import "pulp_type_logic";
+import "string_logic";
   
 rule field_loc:
   | field(?x,?f,?t) |-  field(?z,?f,?t) 
@@ -28,19 +29,6 @@ rule lg_not_none :
 without lg()!=none()
 if
   | |-
-
-/* TODO add string_const */
-rule person0_not_none :
-  | |- "Person0"!=none()
-without "Person0"!=none()
-if
- | |-
- 
-rule anonymous1_not_none :
-  | |- "anonymous1"!=none()
-without "anonymous1"!=none()
-if
- | |-
  
 rule empty_not_none :
   | |- empty_value() !=none()
@@ -60,6 +48,18 @@ without ?x !=none()
 if
  | |-
  
+ rule string_const_not_none :
+  | |- string_const(?x)!=none()
+without string_const(?x)!=none()
+if
+ | |-
+ 
+rule type_of_object_not_none :
+  | type_of (?x) = ObjectType() |- ?x !=none()
+without ?x !=none()
+if
+ | |-
+ 
 rule numeric_const_not_none :
   | |- numeric_const(?x) !=none()
 without numeric_const(?x) !=none()
@@ -70,13 +70,5 @@ if
 rewrite not_undefined_none : 
   bool_not(triple_eq(undefined(), none())) = true()
   
-rewrite not_Person0_none : 
-  bool_not(triple_eq("Person0", none())) = true()
-  
-rewrite not_anonymous1_none : 
-  bool_not(triple_eq("anonymous1", none())) = true()
-
- /* TODO: Implement string concatanation properly */  
-rewrite concat_hi_alice : 
-  concat("Hi ", "Alice") = "Hi Alice"
- 
+rewrite not_string_none : 
+  bool_not(triple_eq(string_const(?x), none())) = true()
