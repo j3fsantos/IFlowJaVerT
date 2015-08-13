@@ -196,7 +196,18 @@ let rec execute_stmt f sg cfg fs snode_id cmd_st_tbl =
       
       new_snode_cond succ1 snode.sgn_state edge1 (expr_to_logical_expr e);
       new_snode_cond succ2 snode.sgn_state edge2 (expr_to_logical_expr e)
-    
+      
+    | Basic (Assignment {assign_left = x; assign_right = (Expression e)}) ->
+      
+      let id = get_single_succ snode.sgn_id in
+      let old = fresh_e () in
+      let logic_e = expr_to_logical_expr e in
+      
+      let varmap = ProgramVarMap.add x (Le_Var old) ProgramVarMap.empty in    
+      let post = combine (Eq (Le_PVar x, subs_pvar_in_exp x (Le_Var old) logic_e)) (subs_pvars varmap snode.sgn_state) in
+      
+      new_snode id post 
+              
     | Basic (Assignment {assign_left = x; assign_right = (Call c)})      
     | Basic (Assignment {assign_left = x; assign_right = (Eval c)}) 
     | Basic (Assignment {assign_left = x; assign_right = (BuiltinCall c)}) -> 
