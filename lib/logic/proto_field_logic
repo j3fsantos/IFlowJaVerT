@@ -14,10 +14,8 @@ if
  
 rule proto_field_proto_fold :
  | |- proto_pred (?x,?o2,?f,?o3,?v) 
- without
-  ?o2!=?o1 
 if
- | |- field(?o1,?f,none()) * field(?o1,string_const("#proto"),?l1) * proto_pred (?x1,?l1,?f,?o3,?v) * ?o1=?o2 * ?x = cons (?o1,?x1)
+ | |- field(?o2,?f,none()) * field(?o2,string_const("#proto"),?l1) * proto_pred (?x1,?l1,?f,?o3,?v) * ?x = cons (?o2,?x1)
  
  
 

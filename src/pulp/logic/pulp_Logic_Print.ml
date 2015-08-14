@@ -59,6 +59,12 @@ let string_of_pi pi =
     (fe pi.pi_loc)
     (fe pi.pi_value)
     
+let string_of_proto_chain p = 
+  let fe = string_of_logical_exp in
+  Printf.sprintf "#proto_chain (%s, %s)" 
+    (fe p.proto_chain_obj)
+    (fe p.proto_chain_list)
+    
 let rec string_of_formula x =
   let fe = string_of_logical_exp in
   match x with
@@ -70,6 +76,7 @@ let rec string_of_formula x =
     | ObjFootprint (e, es) -> Printf.sprintf "#footprint [%s] (%s)" (fe e) 
         (String.concat "," (map fe es))
     | Pi p -> string_of_pi p 
+    | ProtoChain p -> string_of_proto_chain p
 
 let string_of_formula_list fs sep =
   String.concat sep (List.map string_of_formula fs)

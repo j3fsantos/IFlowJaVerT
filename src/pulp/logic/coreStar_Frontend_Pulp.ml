@@ -33,6 +33,7 @@ let ref_base = "ref_base"
 let ref_field = "ref_field"
 let type_of = "type_of"
 let proto_pred = "proto_pred"
+let proto_chain_pred = "proto_chain_pred"
 let bool_not = "bool_not"
 
 module LVarMap = Map.Make (
@@ -304,6 +305,7 @@ let rec convert_to_pform_inner (varmap : Vars.var VarMap.t) (f: formula) : Psynt
       | REq e -> [Psyntax.P_EQ (Psyntax.Arg_var (Vars.concretep_str ret_v1), lta e)]
       | ObjFootprint (l, xs) -> footprint_to_args varmap l xs
       | Pi p -> Psyntax.mkSPred (proto_pred, [lta p.pi_list; lta p.pi_obj; lta p.pi_field; lta p.pi_loc; lta p.pi_value])
+      | ProtoChain p -> Psyntax.mkSPred (proto_chain_pred, [lta p.proto_chain_obj; lta p.proto_chain_list])
 
 let convert_to_pform fs =
   let fs = List.map lift_equalities fs in
@@ -346,6 +348,7 @@ let convert_from_pform_at varmap pfa : formula =
         | "footprint", [l; arg] -> ObjFootprint (args_to_le varmap l, args_to_footprint varmap arg)
         | "field", [l; x; arg] -> Heaplet (f l, f x, f arg)
         | "proto_pred", [a1; a2; a3; a4; a5] -> Pi (mk_pi_pred (Le_Var (fresh_e())) (f a2) (f a3) (f a4) (f a5))
+        | "proto_chain_pred", [a1; a2] -> ProtoChain (mk_proto_chain_pred (f a1) (Le_Var (fresh_e())))
         | _ ->   raise (BadArgument (s ^ " in convert_from_pform_at"))                      
        end
       | Psyntax.P_Wand _
