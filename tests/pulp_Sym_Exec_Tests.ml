@@ -336,7 +336,7 @@ let test_js_program_cav_example () =
           Heaplet (Le_PVar "rscope", Le_Literal (String "main"), Le_Literal (LLoc Lg));
           Heaplet (Le_PVar "rthis", Le_Literal (String "name"), v)
         ] in
-        let post = Star [Heaplet (Le_PVar "rthis", Le_Literal (String "name"), Le_PVar "name"); REq (Le_Literal Empty)] in
+        let post = Star [Heaplet (Le_PVar "rthis", Le_Literal (String "name"), Le_PVar "name"); REq (Le_Literal Undefined)] in
         let spec_person0 = mk_spec pre [post] in
           {fb with func_spec = [spec_person0]}
       | _ -> fb

@@ -2526,7 +2526,7 @@ let translate_function fb annots fid main args env named =
         [Basic (Assignment (mk_assign ctx.return_var (Expression (Var lvar))))]))
       ]
     else
-      [Basic (Assignment (mk_assign ctx.return_var (Expression (Literal Empty))))] in
+      [Basic (Assignment (mk_assign ctx.return_var (Expression (Literal Undefined))))] in
     
   let pulpe = 
     init_e @ 
