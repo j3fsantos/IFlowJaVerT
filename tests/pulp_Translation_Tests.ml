@@ -150,10 +150,9 @@ var r = s(3).x") "example"
 let test_gamma () =
   let ctx = create_ctx [] in
   let gamma_stmts, r = translate_gamma "r" ctx in
-  let gamma_stmts = to_ivl_goto gamma_stmts in
-  let cfg = Cfg.fun_to_cfg (make_function_block "gamma" gamma_stmts [] ctx) in
-  let cfgs = AllFunctions.add "gamma_id" cfg AllFunctions.empty in
-  let _ = Cfg.print_cfg cfgs ("tests/dot/gamma") in
+  let gamma_stmts = (to_ivl_goto gamma_stmts) @ [Label ctx.label_return; Label ctx.label_throw] in
+  let p_exp = AllFunctions.add "gamma" (make_function_block "gamma" gamma_stmts [] ctx) AllFunctions.empty in
+  ignore (Control_Flow.mk_cfg p_exp ("tests/dot/gamma"));
   assert_bool "Incorrect Translation" true
 
  (*"var s = function (v) { var t = function () { var a = {x : v}; return a }; var b = t (v); return b }; var r = s(3).x"*)
@@ -170,13 +169,14 @@ let cfg_anonymous2 () =
       add_proto_value "r1" Lop;
       Basic (Assignment (mk_assign "r2" (Lookup (Var "anonymous2_scope", Literal (String "n")))));
       Basic (Mutation (mk_mutation (Var "r1") (Literal (String "x")) (Var "r2")));
-      Goto ctx.label_return
+      Goto ctx.label_return;
+      Label ctx.label_return;
+      Label ctx.label_throw;
     ]
     in
   let stmts = to_ivl_goto stmts in
-  let cfg = Cfg.fun_to_cfg (make_function_block "anonymous2" stmts [] ctx) in
-  let cfgs = AllFunctions.add "anonymous2" cfg AllFunctions.empty in
-  let _ = Cfg.print_cfg cfgs ("tests/dot/anonymous") in
+  let p_exp = AllFunctions.add "anonymous2" (make_function_block "anonymous2" stmts [] ctx) AllFunctions.empty in
+  ignore (Control_Flow.mk_cfg p_exp ("tests/dot/anonymous2"));
   assert_bool "Incorrect Translation" true
   (* 
    anonymous1_scope := (rscope ._o "anonymous1")
