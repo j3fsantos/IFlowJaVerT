@@ -139,7 +139,7 @@ let rec subs_vars vmap (f : formula) =
     | REq f1 -> REq (ge f1)       
     | ObjFootprint (e, es) -> ObjFootprint (ge e, map ge es)
     | Pi pi -> Pi (mk_pi_pred (ge pi.pi_list) (ge pi.pi_obj) (ge pi.pi_field) (ge pi.pi_loc) (ge pi.pi_value))
-    | ProtoChain p -> ProtoChain (mk_proto_chain_pred (ge p.proto_chain_obj) (ge p.proto_chain_list))
+    | ProtoChain (e1, e2, e3) -> ProtoChain (ge e1, ge e2, ge e3)
 
 let rec get_logical_vars_exp e =
   let f = get_logical_vars_exp in
@@ -179,7 +179,7 @@ let rec get_logical_vars f =
     | REq f1 -> g f1       
     | ObjFootprint (e, es) -> (g e) @ (flat_map g es) 
     | Pi pi -> (g pi.pi_list) @ (g pi.pi_obj) @ (g pi.pi_field) @ (g pi.pi_loc) @ (g pi.pi_value)
-    | ProtoChain p -> (g p.proto_chain_obj) @ (g p.proto_chain_list)
+    | ProtoChain (le1, le2, le3) -> (g le1) @ (g le2) @ (g le3)
 
 
 let rec get_program_vars f =
@@ -192,7 +192,7 @@ let rec get_program_vars f =
     | REq f1 -> g f1       
     | ObjFootprint (e, es) -> (g e) @ (flat_map g es)
     | Pi pi -> (g pi.pi_list) @ (g pi.pi_obj) @ (g pi.pi_field) @ (g pi.pi_loc) @ (g pi.pi_value)
-    | ProtoChain p -> (g p.proto_chain_obj) @ (g p.proto_chain_list)
+    | ProtoChain (le1, le2, le3) -> (g le1) @ (g le2) @ (g le3)
     
            
 let pretty_string_of_formula x =
@@ -306,7 +306,7 @@ let rec subs_pvars vmap (f : formula) =
     | REq f1 -> REq (ge f1)       
     | ObjFootprint (e, es) -> ObjFootprint (ge e, map ge es)
     | Pi pi -> Pi (mk_pi_pred (ge pi.pi_list) (ge pi.pi_obj) (ge pi.pi_field) (ge pi.pi_loc) (ge pi.pi_value))
-    | ProtoChain p -> ProtoChain (mk_proto_chain_pred (ge p.proto_chain_obj) (ge p.proto_chain_list))
+    | ProtoChain (e1, e2, e3) -> ProtoChain (ge e1, ge e2, ge e3)
 
 let rec get_equalities_of_expr e f  =
   let f = simplify f in

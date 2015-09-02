@@ -288,6 +288,24 @@ let test_proto_field_empty () =
   let f = make_function_block_with_spec "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
   
   test_program_template "test_proto_field_empty" f (AllFunctions.add f.func_name f AllFunctions.empty)
+  
+let test_proto_field_last () =
+  let ctx = create_ctx [] in
+  let x = mk_assign "x" Obj  in
+  let p = 
+  [  
+      Basic (Assignment x);
+      add_proto x.assign_left (Literal Null);
+      Basic (Mutation ((mk_mutation (Var x.assign_left) (Literal (String "a")) (Literal (Num 3.0)))));  
+      Basic (Assignment (mk_assign ctx.return_var (ProtoF (Var x.assign_left, (Literal (String "a"))))));  
+      Goto ctx.label_return;
+      Label ctx.label_throw;
+      Label ctx.label_return
+  ] in
+  let spec = mk_spec empty_f [REq (Le_Literal (Num 3.0))] in
+  let f = make_function_block_with_spec "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
+  
+  test_program_template "test_proto_field_empty" f (AllFunctions.add f.func_name f AllFunctions.empty)
 
 let test_js_program_cav_example () =
   let js_program = "
@@ -359,5 +377,6 @@ let suite = "Testing_Sym_Exec" >:::
     "test_proto_field" >:: test_proto_field;
     "test_proto_field_direct" >:: test_proto_field_direct;
     "test_proto_field_empty" >:: test_proto_field_empty;
+    "test_proto_field_last" >:: test_proto_field_last;
     "test_js_program_cav_example" >:: test_js_program_cav_example
     ]

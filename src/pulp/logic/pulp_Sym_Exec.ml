@@ -95,8 +95,8 @@ let execute_proto_field current e1 e2 =
   let ls = Le_Var (fresh_e ()) in
   let l = Le_Var (fresh_e ()) in
   let v = Le_Var (fresh_e ()) in
-  let pi = Pi (mk_pi_pred ls e1 e2 l v) in
-  let posts = CoreStar_Frontend_Pulp.apply_spec current pi (Star [pi; REq v]) in
+  let pi = Star [ProtoChain (e1, ls, l); Pi (mk_pi_pred ls e1 e2 l v)] in
+  let posts = CoreStar_Frontend_Pulp.apply_spec current pi (combine pi (REq v)) in
   let posts = match posts with
     | None -> raise (SymExecException "CouldNotApplySpec")
     | Some posts -> posts in
@@ -183,7 +183,7 @@ let rec execute_stmt f sg cfg fs snode_id cmd_st_tbl =
   
   match stmt with
     | Label l -> 
-      if l = f.func_ctx.label_return or l = f.func_ctx.label_throw 
+      if l = f.func_ctx.label_return || l = f.func_ctx.label_throw 
       then () 
       else new_snode (get_single_succ snode.sgn_id) snode.sgn_state
       

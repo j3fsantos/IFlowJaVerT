@@ -69,12 +69,7 @@ type pi_predicate =
     pi_value : logical_exp  
   } 
   
-type proto_chain_predicate =
-  {
-    proto_chain_list : logical_exp; (* TODO :What if I want to have a logical variable here? To represent the whole list. Does it mean I need list in my logic? *)
-    proto_chain_obj : logical_exp;
-  } 
-  
+
 let mk_pi_pred list obj field loc value =
   {
     pi_list = list;
@@ -82,12 +77,6 @@ let mk_pi_pred list obj field loc value =
     pi_field = field;
     pi_loc = loc;
     pi_value = value  
-  }
-  
-let mk_proto_chain_pred obj list =
-  {
-    proto_chain_list = list;
-    proto_chain_obj = obj; 
   }
     
 type formula =
@@ -98,7 +87,7 @@ type formula =
   | REq of logical_exp                 (* (r = E) ^ emp *)
   | ObjFootprint of logical_exp * logical_exp list
   | Pi of pi_predicate
-  | ProtoChain of proto_chain_predicate
+  | ProtoChain of logical_exp * logical_exp * logical_exp
 
 
 let empty_f = Star []
