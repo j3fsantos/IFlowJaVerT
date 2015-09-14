@@ -27,6 +27,7 @@ let small_axiom_basic_stmt bs : (formula * formula) =
       let var = Le_PVar a.assign_left in
       begin match a.assign_right with
         | Expression e -> 
+          (* Only valid if in DSA form. At the moment it is not used. *)
           let old = fresh_e () in
           let logic_e = expr_to_logical_expr e in
           Eq (var, Le_Var old), Eq (var, subs_pvar_in_exp a.assign_left (Le_Var old) logic_e)
@@ -67,6 +68,7 @@ let small_axiom_basic_stmt bs : (formula * formula) =
           Heaplet (f e1, f e2, v),
           Star [ 
             Heaplet (f e1, f e2, Le_None);
+            Eq (var, Le_Literal (Bool true))
           ]
           
         | ProtoF (e1, e2) -> raise (Invalid_argument "ProtoF")
