@@ -5,14 +5,15 @@ import "pulp_footprint_logic";
 import "proto_field_logic";
 import "pulp_type_logic";
 import "string_logic";
-  
+ 
+/*  
 rule field_loc:
   | field(?x,?f,?t) |-  field(?z,?f,?t) 
 without
   ?x!=?z
 if
   field(?x,?f,?t) | |- ?x=?z 
-
+*/
 
 rule true_false_contr :
   | true() = false() |-

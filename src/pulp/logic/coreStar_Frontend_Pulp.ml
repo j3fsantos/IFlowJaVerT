@@ -347,8 +347,14 @@ let convert_from_pform_at varmap pfa : formula =
       begin match s, al with
         | "footprint", [l; arg] -> ObjFootprint (args_to_le varmap l, args_to_footprint varmap arg)
         | "field", [l; x; arg] -> Heaplet (f l, f x, f arg)
-        | "proto_pred", [a1; a2; a3; a4; a5] -> Pi (mk_pi_pred (Le_Var (fresh_e())) (f a2) (f a3) (f a4) (f a5))
-        | "proto_chain_pred", [a1; a2; a3] -> ProtoChain (f a1, Le_Var (fresh_e()), f a3)
+        | "proto_pred", [a1; a2; a3; a4; a5] -> 
+          let ls = try f a1 with
+            | BadArgument _ -> Le_Var (fresh_e()) in 
+          Pi (mk_pi_pred ls (f a2) (f a3) (f a4) (f a5))
+        | "proto_chain_pred", [a1; a2; a3] -> 
+          let ls = try f a2 with
+            | BadArgument _ ->  Le_Var (fresh_e()) in
+           ProtoChain (f a1, ls, f a3)
         | _ ->   raise (BadArgument (s ^ " in convert_from_pform_at"))                      
        end
       | Psyntax.P_Wand _

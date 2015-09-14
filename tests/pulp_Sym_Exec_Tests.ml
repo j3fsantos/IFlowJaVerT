@@ -306,6 +306,46 @@ let test_proto_field_last () =
   let f = make_function_block_with_spec "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
   
   test_program_template "test_proto_field_empty" f (AllFunctions.add f.func_name f AllFunctions.empty)
+  
+let test_proto_field_with_proto_in_spec () =
+  let ctx = create_ctx [] in
+  let ls = Le_Var (fresh_e()) in
+  let l' = Le_Var (fresh_e()) in
+  let pi = Pi (mk_pi_pred ls (Le_PVar "x") (Le_Literal (String "a")) l' (Le_Literal (Num 3.0))) in
+  let p = 
+  [   
+      Basic (Assignment (mk_assign ctx.return_var (ProtoF (Var "x", (Literal (String "a"))))));  
+      Goto ctx.label_return;
+      Label ctx.label_throw;
+      Label ctx.label_return
+  ] in
+  let spec = mk_spec (Star [pi; ProtoChain (Le_PVar "x", ls, l')]) [REq (Le_Literal (Num 3.0))] in
+  let f = make_function_block_with_spec "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
+  
+  test_program_template "test_proto_field_in_spec" f (AllFunctions.add f.func_name f AllFunctions.empty)
+ 
+(* Different part of prototype chain *)   
+let test_proto_field_with_two_proto_in_spec () =
+  let ctx = create_ctx [] in
+  let ls = Le_Var (fresh_e()) in
+  let l' = Le_Var (fresh_e()) in
+  let xa = mk_assign_fresh (ProtoF (Var "x", (Literal (String "a")))) in
+  let xb = mk_assign_fresh (ProtoF (Var "x", (Literal (String "b")))) in
+  let pix = Pi (mk_pi_pred ls (Le_PVar "x") (Le_Literal (String "a")) l' (Le_Literal (Num 3.0))) in
+  let piy = Pi (mk_pi_pred ls (Le_PVar "x") (Le_Literal (String "b")) l' (Le_Literal (Num 2.0))) in
+  let p = 
+  [   
+      Basic (Assignment xa);
+      Basic (Assignment xb);
+      Basic (Assignment (mk_assign ctx.return_var (Expression (BinOp (Var xa.assign_left, Arith Plus, Var xb.assign_left)))));  
+      Goto ctx.label_return;
+      Label ctx.label_throw;
+      Label ctx.label_return
+  ] in
+  let spec = mk_spec (Star [pix; piy; ProtoChain (Le_PVar "x", ls, l')]) [REq (Le_Literal (Num 5.0))] in
+  let f = make_function_block_with_spec "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
+  
+  test_program_template "test_two_proto_field_in_spec" f (AllFunctions.add f.func_name f AllFunctions.empty)
 
 let test_js_program_cav_example () =
   let js_program = "
@@ -363,7 +403,7 @@ let test_js_program_cav_example () =
   Printf.printf "Specs %s" (String.concat "\n" (List.map (fun (id, fb) -> Printf.sprintf "%s : %s" id (Pulp_Logic_Print.string_of_spec_pre_post_list fb.func_spec "\n")) (AllFunctions.bindings p_exp)));
   
   AllFunctions.iter (fun id f -> test_js_program_template "test_js_program_cav_example" f p_exp) p_exp
-  
+    
 let suite = "Testing_Sym_Exec" >:::
   [ "test_function_call_name" >:: test_function_call_name;
     "test_jsr" >:: test_apply_spec1;
@@ -378,5 +418,7 @@ let suite = "Testing_Sym_Exec" >:::
     "test_proto_field_direct" >:: test_proto_field_direct;
     "test_proto_field_empty" >:: test_proto_field_empty;
     "test_proto_field_last" >:: test_proto_field_last;
+    "test_proto_field_with_proto_in_spec" >:: test_proto_field_with_proto_in_spec;
+    "test_proto_field_with_two_proto_in_spec" >:: test_proto_field_with_two_proto_in_spec;
     "test_js_program_cav_example" >:: test_js_program_cav_example
     ]
