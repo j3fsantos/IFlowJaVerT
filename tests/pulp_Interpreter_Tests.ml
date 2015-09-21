@@ -30,12 +30,12 @@ let test_template_simp p =
 let test_template_normal p expected_value =
  let result = test_template p in
   assert_bool ("Incorrect Interpreter. Expected : Normal, Got Exception") (FTReturn = result.fs_return_type);
-  assert_bool ("Incorrect Interpreter. Expected :" ^ (string_of_value expected_value) ^ " Actual: " ^ (string_of_value result.fs_return_value)) (value_eq expected_value ((result.fs_return_value)))
+  assert_bool ("Incorrect Interpreter. Expected :" ^ (string_of_value expected_value) ^ " Actual: " ^ (string_of_value result.fs_return_value)) (value_eq expected_value ((result.fs_return_value)));
   
-(*  let result = test_template_simp p in
+(* by uncommenting the following 3 lines you also run the tests using simplifications *)
+ let result = test_template_simp p in
   assert_bool ("Incorrect Interpreter. Expected : Normal, Got Exception") (FTReturn = result.fs_return_type);
-  assert_bool ("Incorrect Interpreter. Expected :" ^ (string_of_value expected_value) ^ " Actual: " ^ (string_of_value result.fs_return_value)) (value_eq expected_value ((result.fs_return_value)))
-*)  
+  assert_bool ("Incorrect Interpreter. Expected :" ^ (string_of_value expected_value) ^ " Actual: " ^ (string_of_value result.fs_return_value)) (value_eq expected_value ((result.fs_return_value)))  
   
 let get_actual_excep result =
   let actual_excep_l = match result.fs_return_value with
@@ -588,6 +588,11 @@ finally{
 }
 " (VHValue (HVLiteral (Bool true)))
 
+let test_program_switch_aux () =
+  test_template_normal ("
+		switch(0) { }")  (VHValue (HVLiteral Empty))
+
+
 let test_program_switch1 () =
   test_template_normal ("var x1;
 	  var x2; 
@@ -823,7 +828,8 @@ let test_try_catch_completion_2 () =
 
 let suite = "Testing_Interpreter" >:::
   [
-		"test_program_switch1" >:: test_program_switch1;
+		"test_program_switch_aux" >:: test_program_switch_aux;
+		(*"test_program_switch1" >:: test_program_switch1;
 		"test_program_switch2" >:: test_program_switch2;
 		"test_program_switch3" >:: test_program_switch3;
 		"test_program_switch5" >:: test_program_switch5;
@@ -954,6 +960,6 @@ let suite = "Testing_Interpreter" >:::
     "test_is_nan_true" >:: test_is_nan_true;
     "test_is_finite_false" >:: test_is_finite_false;
     "test_is_finite_true" >:: test_is_finite_true;
-    "test_negative_nan" >:: test_negative_nan; 
+    "test_negative_nan" >:: test_negative_nan; *)
     (*"test_" >:: test_*) 
     ] 
