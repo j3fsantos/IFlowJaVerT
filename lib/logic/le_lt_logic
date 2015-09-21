@@ -24,3 +24,15 @@ rule builtin_le_antisym :
 if
 | ?x = ?y |-
 
+/* TODO : Complete */
+rule builtin_lt_string_obj_contr :
+| true()=builtin_lt(StringType(), ObjectType()) |-
+if
+
+rule builtin_lt_obj_obj_contr :
+| true()=builtin_lt(ObjectType(), ObjectType()) |-
+if
+
+rule builtin_lt_nobj_obj_false_contr :
+| false()=builtin_lt(NObjectType(), ObjectType()) |-
+if

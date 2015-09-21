@@ -49,11 +49,27 @@ let forget_return p =
   in
   forget_return_with p
   
+(* Lift boolean expressions to predicates *)
+(* TODO : for other operators that return boolean *)
+let rec lift_equalities (f : formula) : formula =
+  let l = lift_equalities in
+  match f with
+    | Star fs -> Star (List.map l fs)
+    | Eq (Le_Literal (Bool true), Le_BinOp (le1, Comparison Equal, le2)) -> Eq (le1, le2)
+    | Eq (Le_Literal (Bool false), Le_BinOp (le1, Comparison Equal, le2)) -> NEq (le1, le2)
+    | Eq (Le_Literal (Bool true), Le_UnOp (Not, Le_BinOp (le1, Comparison Equal, le2))) -> NEq (le1, le2)
+    | Eq (Le_Literal (Bool false), Le_UnOp (Not, Le_BinOp (le1, Comparison Equal, le2))) -> Eq (le1, le2)
+    | Eq (Le_BinOp (le1, Comparison Equal, le2), Le_Literal (Bool true)) -> Eq (le1, le2)
+    | Eq (Le_BinOp (le1, Comparison Equal, le2), Le_Literal (Bool false)) -> NEq (le1, le2)
+    | Eq (Le_UnOp (Not, Le_BinOp (le1, Comparison Equal, le2)), Le_Literal (Bool true)) -> NEq (le1, le2)
+    | Eq (Le_UnOp (Not, Le_BinOp (le1, Comparison Equal, le2)), Le_Literal (Bool false)) -> Eq (le1, le2)
+    | _ -> f
+  
 (* simplify don't need? *)  
-let rec simplify (p : formula) : formula = Profiler.track Profiler.SymExec (fun () ->
+let rec simplify_inner (p : formula) : formula = Profiler.track Profiler.SymExec (fun () ->
   match p with
 	  | Star l ->
-	    let l = map simplify l in
+	    let l = map simplify_inner l in
 	    let star_list p' = match p' with Star l' -> l' | _ -> [p'] in
       begin match flat_map star_list l with
         | [] -> empty_f
@@ -62,9 +78,22 @@ let rec simplify (p : formula) : formula = Profiler.track Profiler.SymExec (fun 
       end   
     | _ -> p  
   )
+  
+let simplify p =
+  let p = simplify_inner p in
+  lift_equalities p
 
 let combine (p:formula) (q:formula) : formula = 
   simplify (Star [p;q])
+  
+ (* Substitute #r = E to x = E *)   
+let change_return x p =
+  let e = get_return p in
+  let e = match e with
+    | None -> Le_Var (fresh_e())
+    | Some e -> e in
+  let p = forget_return p in
+  combine p (Eq (Le_PVar x, e))
 
 let join_antiframe af1 af2 =
   match af1, af2 with
@@ -86,9 +115,9 @@ let map_af_antiframe f fa =
 let rec subs_vars_in_exp vmap exp  =
   let g = subs_vars_in_exp vmap in
   let subs x = 
-    if LogicalVarMap.mem x vmap then LogicalVarMap.find x vmap else x in
+    if LogicalVarMap.mem x vmap then LogicalVarMap.find x vmap else (Le_Var x) in
   match exp with
-    | Le_Var x -> Le_Var (subs x)
+    | Le_Var x -> subs x
     | Le_PVar x -> Le_PVar x
     | Le_Literal l -> Le_Literal l
     | Le_None -> Le_None
@@ -110,6 +139,7 @@ let rec subs_vars vmap (f : formula) =
     | REq f1 -> REq (ge f1)       
     | ObjFootprint (e, es) -> ObjFootprint (ge e, map ge es)
     | Pi pi -> Pi (mk_pi_pred (ge pi.pi_list) (ge pi.pi_obj) (ge pi.pi_field) (ge pi.pi_loc) (ge pi.pi_value))
+    | ProtoChain (e1, e2, e3) -> ProtoChain (ge e1, ge e2, ge e3)
 
 let rec get_logical_vars_exp e =
   let f = get_logical_vars_exp in
@@ -149,6 +179,8 @@ let rec get_logical_vars f =
     | REq f1 -> g f1       
     | ObjFootprint (e, es) -> (g e) @ (flat_map g es) 
     | Pi pi -> (g pi.pi_list) @ (g pi.pi_obj) @ (g pi.pi_field) @ (g pi.pi_loc) @ (g pi.pi_value)
+    | ProtoChain (le1, le2, le3) -> (g le1) @ (g le2) @ (g le3)
+
 
 let rec get_program_vars f =
   let g = get_program_vars_exp in
@@ -160,6 +192,7 @@ let rec get_program_vars f =
     | REq f1 -> g f1       
     | ObjFootprint (e, es) -> (g e) @ (flat_map g es)
     | Pi pi -> (g pi.pi_list) @ (g pi.pi_obj) @ (g pi.pi_field) @ (g pi.pi_loc) @ (g pi.pi_value)
+    | ProtoChain (le1, le2, le3) -> (g le1) @ (g le2) @ (g le3)
     
            
 let pretty_string_of_formula x =
@@ -245,11 +278,105 @@ let rec subs_pvar_in_exp x xle le =
     | Le_Field e -> Le_Field (f e)
     | Le_TypeOf e -> Le_TypeOf (f e)
 
+let rec subs_pvars_in_exp varmap le =
+  let f = subs_pvars_in_exp varmap in
+  let subs x = 
+    if ProgramVarMap.mem x varmap then ProgramVarMap.find x varmap else (Le_PVar x) in
+  match le with
+    | Le_Var x -> Le_Var x
+    | Le_PVar y -> subs y
+    | Le_Literal l -> Le_Literal l
+    | Le_None -> Le_None
+    | Le_UnOp (op, e) -> Le_UnOp (op, f e) 
+    | Le_BinOp (e1, bop, e2) -> Le_BinOp (f e1, bop, f e2)
+    | Le_Ref (e1, e2, rt) -> Le_Ref (f e1, f e2, rt)
+    | Le_Base e -> Le_Base (f e)
+    | Le_Field e -> Le_Field (f e)
+    | Le_TypeOf e -> Le_TypeOf (f e)
+
+let rec subs_pvars vmap (f : formula) =
+  let g = subs_pvars vmap in
+  let ge = subs_pvars_in_exp vmap 
+  in
+  match f with
+    | Star fl -> Star (map g fl)
+    | Heaplet (e1, e2, e3) -> Heaplet (ge e1, ge e2, ge e3)
+    | Eq (f1, f2) -> Eq (ge f1, ge f2)
+    | NEq (f1, f2) -> NEq (ge f1, ge f2)
+    | REq f1 -> REq (ge f1)       
+    | ObjFootprint (e, es) -> ObjFootprint (ge e, map ge es)
+    | Pi pi -> Pi (mk_pi_pred (ge pi.pi_list) (ge pi.pi_obj) (ge pi.pi_field) (ge pi.pi_loc) (ge pi.pi_value))
+    | ProtoChain (e1, e2, e3) -> ProtoChain (ge e1, ge e2, ge e3)
+
 let rec get_equalities_of_expr e f  =
   let f = simplify f in
   match f with
     | Star fs -> flat_map (get_equalities_of_expr e) fs
     | Eq (e1, e2) -> if (e = e1 || e = e2) then [Eq(e1, e2)] else []
     | _ -> []
-   
 
+let rec get_expr_from_equalities_of_expr e f  =
+  let f = simplify f in
+  match f with
+    | Star fs -> flat_map (get_expr_from_equalities_of_expr e) fs
+    | Eq (e1, e2) -> if (e = e1) then [e2] else if (e = e2) then [e1] else []
+    | _ -> []
+
+(* Substitution only for existential variables *)
+let substitute_existentials f =
+  let all_vars = get_logical_vars f in
+  let evars = List.filter (fun x -> 
+    match x with
+      | EVar _ -> true
+      | _ -> false
+  ) all_vars in
+  let evars = List.unique evars in 
+  let varmap = List.fold_left (fun vmap evar ->
+    let equalities = get_expr_from_equalities_of_expr (Le_Var evar) f in
+    match equalities with
+      | [] -> vmap
+      | eq :: _ -> LogicalVarMap.add evar eq vmap
+  ) LogicalVarMap.empty evars in
+  subs_vars varmap f
+  
+(* fs1 = x1 \/ x2 \/ x3 \/ x4 *)
+(* fs2 = x5 \/ x6  *)
+(* result x1 * x5 \/ x1 * x6 \/ x2 * x5 \/ x2 * x6 \/ x3 * x5 \/ x3 * x6 \/ x4 * x5 \/ x4 * x6  *)
+let join_two_disjuncs fs1 fs2 =
+  let rec join_two_disjuncs_inner fs1 fs2 =
+  match fs1 with
+    | [] -> [] 
+    | f :: fs1 ->
+       (map (combine f) fs2) @ join_two_disjuncs_inner fs1 fs2 in
+  match fs1, fs2 with
+    | [], fs2 -> fs2
+    | fs1, [] -> fs1
+    | _ -> join_two_disjuncs_inner fs1 fs2 
+
+(* TODO Not *)
+let rec get_proof_cases_eq_false e =
+ let g = get_proof_cases_eq_false in
+  match e with
+    | Le_BinOp (e1, Boolean Or, e2) -> 
+      let cases1 = g e1 in
+      let cases2 = g e2 in
+      [List.fold_left combine empty_f (cases1 @ cases2)]
+    | Le_BinOp (e1, Boolean And, e2) ->
+      let cases1 = g e1 in
+      let cases2 = g e2 in
+      join_two_disjuncs cases1 cases2
+    | _ -> [Eq (e, Le_Literal (Bool false))]
+
+(* TODO Not *)  
+let rec get_proof_cases_eq_true e =
+  let g = get_proof_cases_eq_true in
+  match e with
+    | Le_BinOp (e1, Boolean Or, e2) -> 
+      let cases1 = g e1 in
+      let cases2 = g e2 in
+      cases1 @ cases2
+    | Le_BinOp (e1, Boolean And, e2) ->
+      let cases1 = g e1 in
+      let cases2 = g e2 in
+      join_two_disjuncs cases1 cases2
+    | _ -> [Eq (e, Le_Literal (Bool true))]

@@ -4,16 +4,72 @@ import "le_lt_logic";
 import "pulp_footprint_logic";
 import "proto_field_logic";
 import "pulp_type_logic";
-  
+import "string_logic";
+ 
+/*  
 rule field_loc:
   | field(?x,?f,?t) |-  field(?z,?f,?t) 
 without
   ?x!=?z
 if
   field(?x,?f,?t) | |- ?x=?z 
+*/
+
+rule true_false_contr :
+  | true() = false() |-
+if
+
+rule field_not_none :
+   | field(?x,?f,?y) |- ?x!=none()
+if
+   | field(?x,?f,?y)  * ?x!=none() |-
+ 
+/* TODO : add location_const */
+rule lg_not_none :
+   | |- lg() != none()
+without lg()!=none()
+if
+  | |-
+ 
+rule empty_not_none :
+  | |- empty_value() !=none()
+without empty_value() !=none()
+if
+ | |-
+ 
+rule undefined_not_none :
+  | |- undefined() !=none()
+without undefined() !=none()
+if
+ | |-
+ 
+rule type_of_string_not_none :
+  | type_of (?x) = StringType() |- ?x !=none()
+without ?x !=none()
+if
+ | |-
+ 
+ rule string_const_not_none :
+  | |- string_const(?x)!=none()
+without string_const(?x)!=none()
+if
+ | |-
+ 
+rule type_of_object_not_none :
+  | type_of (?x) = ObjectType() |- ?x !=none()
+without ?x !=none()
+if
+ | |-
+ 
+rule numeric_const_not_none :
+  | |- numeric_const(?x) !=none()
+without numeric_const(?x) !=none()
+if
+ | |-
+
+ /* TODO: Implement negation properly */
+rewrite not_undefined_none : 
+  bool_not(triple_eq(undefined(), none())) = true()
   
-constructor numeric_const
-constructor undefined
-constructor null
-constructor none
-constructor lg
+rewrite not_string_none : 
+  bool_not(triple_eq(string_const(?x), none())) = true()

@@ -1,23 +1,37 @@
-rule proto_field_proto_base_1 :
-  | |- proto_pred (?x,null(),?f,?l,?v) 
-without ?v != empty_value() * ?l!=null()
+
+rule proto_field_proto_direct :
+ | proto_pred (?x1,?o2,?f,?o31,?v1) * proto_chain_pred (?o2,?x1,?o31) |- proto_pred (?x,?o2,?f,?o3,?v) * proto_chain_pred (?o2,?x,?o3) 
+without 
+  ?x1 != ?x * ?o31 != ?o3 * ?v1 != ?v
 if
-  | |- ?x = empty() * ?v = empty_value() * ?l=null()
-  
+ proto_pred (?x1,?o2,?f,?o31,?v1) * proto_chain_pred (?o2,?x1,?o31) | |- ?x1 = ?x * ?o31 = ?o3 * ?v1 = ?v
+ 
+
 rule proto_field_proto_base_2 :
- | field(?o1,?f,?v1) |- proto_pred (?x,?o1,?f,?o3,?v2) 
+ | field(?o1,?f,?v1) |- proto_pred (?x,?o1,?f,?o3,?v2) * proto_chain_pred (?o1, ?x, ?o3) 
 without
   ?o1!=?o3 * ?v1=none() * ?v1!=?v2
 if
  field(?o1,?f,?v1) | |- ?o3=?o1 * ?v1!=none() * ?x = cons (?o1,empty()) * ?v1=?v2
+ 
+rule proto_field_proto_base_2_1 :
+ | field(?o1,?f,?v1) * ?o1 = ?o11 |- proto_pred (?x,?o11,?f,?o3,?v2) * proto_chain_pred (?o11, ?x, ?o3) 
+without
+  ?o1!=?o3 * ?v1=none() * ?v1!=?v2
+if
+ field(?o1,?f,?v1) | |- ?o3=?o1 * ?v1!=none() * ?x = cons (?o11,empty()) * ?v1=?v2
+
+rule proto_field_proto_base_1 :
+  | field(?l1, string_const("#proto"), null())  |- proto_pred (?x,?l1,?f,?l,?v) * proto_chain_pred (?l1, ?x, ?l) 
+without ?v != empty_value() * ?l!=null()
+if
+  field(?l1, string_const("#proto"), null())  | |- ?x = cons (l1, empty()) * ?v = empty_value() * ?l=null()
 
  
 rule proto_field_proto_fold :
- | |- proto_pred (?x,?o2,?f,?o3,?v) 
- without
-  ?o2!=?o1 
+ | field(?o2,string_const("#proto"),?l1) |- proto_pred (?x,?o2,?f,?o3,?v) * proto_chain_pred (?o2, ?x, ?o3) 
 if
- | |- field(?o1,?f,none()) * field(?o1,"#proto",?l1) * proto_pred (?x1,?l1,?f,?o3,?v) * ?o1=?o2 * ?x = cons (?o1,?x1)
+ field(?o2,string_const("#proto"),?l1) | |- field(?o2,?f,none()) * proto_pred (?x1,?l1,?f,?o3,?v) * proto_chain_pred(?l1, ?x1, ?o3) * ?x = cons (?o2,?x1)
  
  
 

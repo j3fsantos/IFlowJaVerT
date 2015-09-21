@@ -89,8 +89,7 @@ SOURCE3 = src/corestar_frontend.ml \
    src/pulp/simplifications/reaching_Defs.ml \
    src/pulp/simplifications/simp_Main.ml \
    src/pulp/syntax/translate.ml \
-   src/pulp/logic/pulp_SE_Print.ml \
-   src/pulp/cfg.ml
+   src/pulp/logic/pulp_SE_Print.ml
 
 REMOVE = src/*.cmo \
 	 src/*.cmi \

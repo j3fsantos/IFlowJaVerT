@@ -74,7 +74,6 @@ SOURCE = ../src/localconfig.ml \
    ../src/pulp/simplifications/reaching_Defs.ml \
    ../src/pulp/simplifications/simp_Main.ml \
    ../src/pulp/logic/pulp_SE_Print.ml \
-   ../src/pulp/cfg.ml \
 	 ../src/strategies/store/store_naive.ml \
 	 ../src/strategies/naive_strategy.ml \
 	 ../src/strategies/naive_abduction.ml \

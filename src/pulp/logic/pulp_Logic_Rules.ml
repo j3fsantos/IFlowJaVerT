@@ -16,7 +16,7 @@ let rec expr_to_logical_expr expr : logical_exp =
     | Ref (e1, e2, rt) -> Le_Ref (f e1, f e2, rt)
     | Base e -> Le_Base (f e)
     | Field e -> Le_Field (f e)
-    | IsTypeOf (e, t) -> raise (NotImplemented "is type of deprecated")
+    | IsTypeOf (e, t) -> Le_BinOp (Le_TypeOf (f e), Comparison Equal, f (Literal (Type t))) 
     | TypeOf e -> Le_TypeOf (f e)
 
 let small_axiom_basic_stmt bs : (formula * formula) =
@@ -27,6 +27,7 @@ let small_axiom_basic_stmt bs : (formula * formula) =
       let var = Le_PVar a.assign_left in
       begin match a.assign_right with
         | Expression e -> 
+          (* Only valid if in DSA form. At the moment it is not used. *)
           let old = fresh_e () in
           let logic_e = expr_to_logical_expr e in
           Eq (var, Le_Var old), Eq (var, subs_pvar_in_exp a.assign_left (Le_Var old) logic_e)
@@ -38,7 +39,8 @@ let small_axiom_basic_stmt bs : (formula * formula) =
           empty_f, 
           Star [
             Eq (var, l);
-            ObjFootprint (l, [])
+            ObjFootprint (l, []);
+            Eq (Le_TypeOf l, Le_Literal (Type (ObjectType (Some Normal))))
           ]
         | HasField (e1, e2) -> 
           let v = Le_Var (fresh_e ()) in 
@@ -66,6 +68,7 @@ let small_axiom_basic_stmt bs : (formula * formula) =
           Heaplet (f e1, f e2, v),
           Star [ 
             Heaplet (f e1, f e2, Le_None);
+            Eq (var, Le_Literal (Bool true))
           ]
           
         | ProtoF (e1, e2) -> raise (Invalid_argument "ProtoF")

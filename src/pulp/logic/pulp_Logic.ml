@@ -27,6 +27,13 @@ module VarMap = Map.Make (
   end
 )
 
+module ProgramVarMap = Map.Make ( 
+  struct 
+    type t = variable
+    let compare = compare
+  end
+)
+
 type codename = string
 
 type logical_exp =
@@ -62,6 +69,7 @@ type pi_predicate =
     pi_value : logical_exp  
   } 
   
+
 let mk_pi_pred list obj field loc value =
   {
     pi_list = list;
@@ -70,7 +78,7 @@ let mk_pi_pred list obj field loc value =
     pi_loc = loc;
     pi_value = value  
   }
-
+    
 type formula =
   | Star of formula list           (* F * ... * F *)
   | Heaplet of logical_exp * logical_exp * logical_exp      (* (l,x) |-> E *)
@@ -79,6 +87,7 @@ type formula =
   | REq of logical_exp                 (* (r = E) ^ emp *)
   | ObjFootprint of logical_exp * logical_exp list
   | Pi of pi_predicate
+  | ProtoChain of logical_exp * logical_exp * logical_exp
 
 
 let empty_f = Star []

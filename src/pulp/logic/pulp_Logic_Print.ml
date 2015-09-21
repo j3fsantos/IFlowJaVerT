@@ -70,6 +70,7 @@ let rec string_of_formula x =
     | ObjFootprint (e, es) -> Printf.sprintf "#footprint [%s] (%s)" (fe e) 
         (String.concat "," (map fe es))
     | Pi p -> string_of_pi p 
+    | ProtoChain (e1, e2, e3) -> Printf.sprintf "#proto_chain (%s, %s, %s)" (fe e1) (fe e2) (fe e3)
 
 let string_of_formula_list fs sep =
   String.concat sep (List.map string_of_formula fs)

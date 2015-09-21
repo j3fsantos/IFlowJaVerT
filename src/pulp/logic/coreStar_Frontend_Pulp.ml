@@ -13,10 +13,12 @@ exception StarShouldntBeThere
 exception NotImplemented of string
 exception ContradictionFound
 exception CouldntFindFunctionId
+exception CoreStarContradiction of string
 
 let logic = ref Psyntax.empty_logic
 
 let numeric_const = "numeric_const"
+let string_const = "string_const"
 let undefined = "undefined"
 let null = "null"
 let cons = "cons"
@@ -31,6 +33,8 @@ let ref_base = "ref_base"
 let ref_field = "ref_field"
 let type_of = "type_of"
 let proto_pred = "proto_pred"
+let proto_chain_pred = "proto_chain_pred"
+let bool_not = "bool_not"
 
 module LVarMap = Map.Make (
   struct 
@@ -102,9 +106,8 @@ and substitute_eq_pform_at v a pfa =
   match pfa with
       | Psyntax.P_EQ (a1, a2) -> 
         (* Leaving #r = smth *)
-        begin match a1, a2 with
-          | Psyntax.Arg_var Vars.PVar (_, "$ret_v1"), _
-          | _, Psyntax.Arg_var Vars.PVar (_, "$ret_v1") -> pfa
+        begin match v with
+          | Vars.PVar (_, "$ret_v1") -> pfa
           | _ -> Psyntax.P_EQ (sea a1, sea a2)
         end
       | Psyntax.P_NEQ (a1, a2) -> Psyntax.P_NEQ (sea a1, sea a2)
@@ -169,7 +172,7 @@ let literal_to_args lit =
       if Utils.is_int n then string_of_int (int_of_float n)
       else string_of_float n in
       Psyntax.Arg_op (numeric_const, [Psyntax.Arg_string n_string])         
-	  | String s -> Psyntax.Arg_string s
+	  | String s -> Psyntax.Arg_op (string_const, [Psyntax.Arg_string s])
 	  | Undefined -> Psyntax.Arg_op (undefined, [])
 	  | Type pt -> Psyntax.Arg_op (op_of_pulp_type pt, [])
 	  | Empty -> Psyntax.Arg_op (empty_value, [])
@@ -184,11 +187,13 @@ let rec le_to_args (varmap : Vars.var VarMap.t) le : Psyntax.args =
       | Le_BinOp (le1, Arith Plus, le2) -> Psyntax.Arg_op ("builtin_plus", [f le1; f le2])
       | Le_BinOp (le1, Arith Minus, le2) -> Psyntax.Arg_op ("builtin_minus", [f le1; f le2])
       | Le_BinOp (le1, Comparison LessThan, le2) -> Psyntax.Arg_op ("builtin_lt", [f le1; f le2])
+      | Le_BinOp (le1, Concat, le2) -> Psyntax.Arg_op ("concat", [f le1; f le2]) (* TODO *)
       | Le_BinOp (le1, Comparison Equal, le2) -> Psyntax.Arg_op ("triple_eq", [f le1; f le2]) (* TODO *)
       | Le_Base le -> Psyntax.Arg_op (ref_base, [f le])
       | Le_Field le -> Psyntax.Arg_op (ref_field, [f le])
       | Le_TypeOf le -> Psyntax.Arg_op (type_of, [f le])
       | Le_Ref (lb, v, rt) -> Psyntax.Arg_op (reference, [f lb; f v; Psyntax.Arg_op ((string_of_ref_type rt^reference), [])])
+      | Le_UnOp (Not, le1) -> Psyntax.Arg_op (bool_not, [f le1])
       | Le_BinOp _ 
       | Le_UnOp _ -> raise (NotImplemented ("le_to_args" ^ (string_of_logical_exp le)))
         
@@ -241,6 +246,7 @@ let rec args_to_le (lvarmap : variable_types LVarMap.t) arg =
     | Psyntax.Arg_op (s, args) -> 
       begin match s, args with
         | "numeric_const", [Psyntax.Arg_string n] -> Le_Literal (Num (float_of_string n))
+        | "string_const", [Psyntax.Arg_string s] -> Le_Literal (String s)
         | "undefined", [] -> Le_Literal Undefined
         | "null", [] -> Le_Literal Null
         | "true", [] -> Le_Literal (Bool true)
@@ -265,12 +271,20 @@ let rec args_to_le (lvarmap : variable_types LVarMap.t) arg =
         | "builtin_plus", [arg1; arg2] -> Le_BinOp (f arg1, Arith Plus, f arg2)
         | "builtin_minus", [arg1; arg2] -> Le_BinOp (f arg1, Arith Minus, f arg2)
         | "builtin_lt", [arg1; arg2] -> Le_BinOp (f arg1, Comparison LessThan, f arg2)
+        | "concat", [arg1; arg2] -> 
+          let a1 = f arg1 in
+          let a2 = f arg2 in
+          begin match a1, a2 with
+            | Le_Literal (String s1), Le_Literal (String s2) -> Le_Literal (String (s1 ^ s2))
+            | _ , _ -> Le_BinOp (a1, Concat, a2) 
+          end
         | "triple_eq", [arg1; arg2] -> Le_BinOp (f arg1, Comparison Equal, f arg2)
         | "ref", [lb; v; rt] -> Le_Ref (f lb, f v, args_to_ref_type rt)
         | "none", [] -> Le_None
         | "ref_base", [le] -> Le_Base (f le)
         | "ref_field", [le] -> Le_Field (f le)
         | "type_of", [le] -> Le_TypeOf (f le)
+        | "bool_not", [le] -> Le_UnOp (Not, f le)
         | str, args -> raise (BadArgument (str ^ " in args_to_le"))
       end
     | arg -> raise (BadArgument "in args_to_le")
@@ -280,23 +294,6 @@ let rec args_to_footprint varmap arg =
     | Psyntax.Arg_op ("cons", [x; xs]) -> (args_to_le varmap x) :: (args_to_footprint varmap xs)
     | Psyntax.Arg_op ("empty", []) -> []
     | _ -> raise (BadArgument "in args_to_footprint")
-
-  
-(* Lift boolean expressions to predicates *)
-(* TODO : for other operators that return boolean *)
-let rec remove_is_true_is_false (f : formula) : formula =
-  let r = remove_is_true_is_false in
-  match f with
-    | Star fs -> Star (List.map r fs)
-    | Eq (Le_Literal (Bool true), Le_BinOp (le1, Comparison Equal, le2)) -> Eq (le1, le2)
-    | Eq (Le_Literal (Bool false), Le_BinOp (le1, Comparison Equal, le2)) -> NEq (le1, le2)
-    | Eq (Le_Literal (Bool true), Le_UnOp (Not, Le_BinOp (le1, Comparison Equal, le2))) -> NEq (le1, le2)
-    | Eq (Le_Literal (Bool false), Le_UnOp (Not, Le_BinOp (le1, Comparison Equal, le2))) -> Eq (le1, le2)
-    | Eq (Le_BinOp (le1, Comparison Equal, le2), Le_Literal (Bool true)) -> Eq (le1, le2)
-    | Eq (Le_BinOp (le1, Comparison Equal, le2), Le_Literal (Bool false)) -> NEq (le1, le2)
-    | Eq (Le_UnOp (Not, Le_BinOp (le1, Comparison Equal, le2)), Le_Literal (Bool true)) -> NEq (le1, le2)
-    | Eq (Le_UnOp (Not, Le_BinOp (le1, Comparison Equal, le2)), Le_Literal (Bool false)) -> Eq (le1, le2)
-    | _ -> f
   
 let rec convert_to_pform_inner (varmap : Vars.var VarMap.t) (f: formula) : Psyntax.pform =
   let lta = le_to_args varmap in
@@ -308,9 +305,10 @@ let rec convert_to_pform_inner (varmap : Vars.var VarMap.t) (f: formula) : Psynt
       | REq e -> [Psyntax.P_EQ (Psyntax.Arg_var (Vars.concretep_str ret_v1), lta e)]
       | ObjFootprint (l, xs) -> footprint_to_args varmap l xs
       | Pi p -> Psyntax.mkSPred (proto_pred, [lta p.pi_list; lta p.pi_obj; lta p.pi_field; lta p.pi_loc; lta p.pi_value])
+      | ProtoChain (e1, e2, e3) -> Psyntax.mkSPred (proto_chain_pred, [lta e1; lta e2; lta e3])
 
 let convert_to_pform fs =
-  let fs = List.map remove_is_true_is_false fs in
+  let fs = List.map lift_equalities fs in
   let fs = List.map simplify fs in
   let logical_vars = List.unique (get_logical_vars (Star fs)) in
   Printf.printf "Logical variables %s" (String.concat "\n" (List.map (Pulp_Logic_Print.string_of_logical_var) logical_vars));
@@ -349,7 +347,14 @@ let convert_from_pform_at varmap pfa : formula =
       begin match s, al with
         | "footprint", [l; arg] -> ObjFootprint (args_to_le varmap l, args_to_footprint varmap arg)
         | "field", [l; x; arg] -> Heaplet (f l, f x, f arg)
-        | "proto_pred", [a1; a2; a3; a4; a5] -> Pi (mk_pi_pred (Le_Var (fresh_e())) (f a2) (f a3) (f a4) (f a5))
+        | "proto_pred", [a1; a2; a3; a4; a5] -> 
+          let ls = try f a1 with
+            | BadArgument _ -> Le_Var (fresh_e()) in 
+          Pi (mk_pi_pred ls (f a2) (f a3) (f a4) (f a5))
+        | "proto_chain_pred", [a1; a2; a3] -> 
+          let ls = try f a2 with
+            | BadArgument _ ->  Le_Var (fresh_e()) in
+           ProtoChain (f a1, ls, f a3)
         | _ ->   raise (BadArgument (s ^ " in convert_from_pform_at"))                      
        end
       | Psyntax.P_Wand _
@@ -387,7 +392,7 @@ let rename_evars f =
       | _ -> false
   ) all_vars in
   let evars = List.unique evars in 
-  let vmap = List.fold_left (fun vmap x -> LogicalVarMap.add x (fresh_e ()) vmap) LogicalVarMap.empty evars in
+  let vmap = List.fold_left (fun vmap x -> LogicalVarMap.add x (Le_Var (fresh_e ())) vmap) LogicalVarMap.empty evars in
   subs_vars vmap f
  
 (* does frame inference : current_state |- pre * ?F *)
@@ -402,13 +407,17 @@ let apply_spec current_state pre post =
       | _ -> raise CannotHappen in
   match (Sepprover.convert pf) with
     | Some inner -> 
-      begin
-        let inner = Sepprover.lift_inner_form inner in
+      begin 
+        let inner = 
+          try Sepprover.lift_inner_form inner
+          with Psyntax.Contradiction -> raise (CoreStarContradiction "Lifting Inner Form") in
 			  let spec = Spec.mk_spec pre post Spec.ClassMap.empty in
-			  let posts = Specification.jsr (!logic) inner spec false in 
+			  let posts = 
+          try Specification.jsr (!logic) inner spec false 
+          with Psyntax.Contradiction -> raise (CoreStarContradiction "in jsr") in 
 			  begin match posts with
 			     | None -> (* Couldn't find any frames *) None 
-			     | Some posts -> Some (List.map (fun post -> 
+			     | Some posts ->   Some (List.map (fun post -> 
 			        let post = Sepprover.inner_form_af_to_form post in
 			        Format.fprintf (Format.std_formatter) "%a  \n" Sepprover.string_inner_form post; Format.pp_print_flush(Format.std_formatter)();
 			        let pf = Sepprover.convert_back post in
@@ -416,8 +425,9 @@ let apply_spec current_state pre post =
 			        Printf.printf "\nPrinting frames as formula: %s\n" (Pulp_Logic_Print.string_of_formula cf);
               cf
 			        ) posts)
+               
         end
-      end
+      end 
     | None -> (* Contradiction found *) raise ContradictionFound
 
 let get_function_id_from_expression f e =
@@ -479,11 +489,11 @@ let inconsistent f : bool = Profiler.track Profiler.CoreStar (fun () ->
       | _ -> raise CannotHappen
   in
   let maybe_inner = Sepprover.convert pf in
-
-    if maybe_inner = None then false
-    else
-      Option.is_some 
-        (Sepprover.frame_inner !logic (Option.get maybe_inner) Sepprover.inner_falsum)
+        
+        try
+        Sepprover.inconsistent_opt !logic maybe_inner
+        with Psyntax.Contradiction -> Sepprover.print_counter_example(); false
+        
   )
 
 let implies_or_list f1 f2s : bool = Profiler.track Profiler.CoreStar (fun () ->
@@ -514,33 +524,12 @@ let frame_or_list f1 f2s : formula list option = Profiler.track Profiler.CoreSta
   with Not_found -> None
   )
 
-let universal_to_substitutable_logical_var varmap lv : logical_var =
-  try
-    LogicalVarMap.find lv varmap
-  with Not_found ->
-    lv
-
-let rec universal_to_substitutable_exp varmap e : logical_exp =
-  let g = universal_to_substitutable_exp varmap in
-  let glv = universal_to_substitutable_logical_var varmap in
-  match e with
-    | Le_Var lv -> Le_Var (glv lv)
-    | Le_BinOp (e1, op, e2) -> Le_BinOp (g e1, op, g e2)
-    | Le_Ref (lb, v, rt) -> Le_Ref (g lb, g v, rt)
-    | Le_Base e -> Le_Base (g e)
-    | Le_Field e -> Le_Field (g e)
-    | Le_TypeOf e -> Le_TypeOf (g e)
-    | Le_UnOp (op, e) -> Le_UnOp (op, g e)
-    | Le_Literal _ 
-    | Le_PVar _
-    | Le_None -> e
-
 let universal_to_substitutable fs =
   let logical_vars = List.unique (get_logical_vars (Star fs)) in
   let varmap = List.fold_left (
     fun varmap v -> 
       match v with
-        | AVar v -> LogicalVarMap.add (AVar v) (fresh_e_suggest v) varmap
+        | AVar v -> LogicalVarMap.add (AVar v) (Le_Var (fresh_e_suggest v)) varmap
         | EVar v -> varmap
   ) LogicalVarMap.empty logical_vars in 
   List.map (subs_vars varmap) fs
