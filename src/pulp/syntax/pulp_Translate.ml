@@ -93,6 +93,7 @@ let equal_num_expr v n = equal_lit_expr v (Num n)
 
 let equal_string_exprs e s = equal_exprs e (Literal (String s))
 
+(* TODO Change NotImplemented --> CannotHappen *)
 let tr_unary_op op =
   match op with
       | Parser_syntax.Not -> Not
@@ -186,7 +187,7 @@ let translate_strict_equality_comparison_types_equal x y rv =
   let rv_true = Basic (Assignment (mk_assign rv (Expression (Literal (Bool true))))) in
   let rv_false = Basic (Assignment (mk_assign rv (Expression (Literal (Bool false))))) in
   
-  (* Change this to less branch *) 
+  (* TODO Change this to less branch *) 
     [
       Sugar (If (or_expr (IsTypeOf (Var x, UndefinedType)) (IsTypeOf (Var x, NullType)),
         [rv_true], 
@@ -979,11 +980,7 @@ let rec translate_exp ctx exp : statement list * variable =
       | Parser_syntax.String _  
       | Parser_syntax.Num _  -> translate_literal exp
       
-      | Parser_syntax.This -> 
-        begin 
-          let assign = mk_assign_fresh_e (Var rthis) in 
-          [Basic (Assignment assign)], assign.assign_left
-        end
+      | Parser_syntax.This -> [], rthis
         
       | Parser_syntax.Var v -> 
         begin 
@@ -994,6 +991,7 @@ let rec translate_exp ctx exp : statement list * variable =
         
       | Parser_syntax.Obj xs ->
         begin
+          (* TODO Make sure the behaviour is as in new Object() *)
           let r1 = mk_assign_fresh Obj in
           
           let stmts = List.map (fun (prop_name, prop_type, e) ->
@@ -1002,24 +1000,21 @@ let rec translate_exp ctx exp : statement list * variable =
                 begin
                   let r2_stmts, r2 = f e in
                   let r3_stmts, r3 = translate_gamma r2 ctx in 
-                  let propname_string = fresh_r () in
-                  let propname_stmts = 
+                  let propname_stmts, propname_expr = 
                     match prop_name with
                       | Parser_syntax.PropnameId s
-                      | Parser_syntax.PropnameString s -> [Basic (Assignment (mk_assign propname_string (Expression (Literal (String s)))))]
+                      | Parser_syntax.PropnameString s -> [],  Literal (String s)
                       | Parser_syntax.PropnameNum f -> 
                         begin
                           let f_var = mk_assign_fresh_e (Literal (Num f)) in
                           let propname_to_string, lvar = translate_to_string_prim f_var.assign_left ctx in 
                           [ Basic (Assignment f_var);
-                            propname_to_string;
-                            Basic (Assignment (mk_assign propname_string (Expression (Var lvar))))
-                          ]
+                            propname_to_string ], Var lvar
                         end in
                   r2_stmts @ 
                   r3_stmts @ 
                   propname_stmts @
-                  [ Basic (Mutation (mk_mutation (Var r1.assign_left) (Var propname_string) (Var r3)))] 
+                  [ Basic (Mutation (mk_mutation (Var r1.assign_left) propname_expr (Var r3)))] 
                    
                 end
               | _ -> raise (PulpNotImplemented ("Getters and Setters are not yet implemented REF:11.1.5 Object Initialiser.Get.Set."))
