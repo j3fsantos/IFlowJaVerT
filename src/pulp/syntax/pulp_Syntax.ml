@@ -243,24 +243,24 @@ type basic_statement =
   | Mutation of mutation
 
 type specification_function =
-  | GetValue of expression
-  | PutValue of expression * expression
-  | Get of expression
-  | Put of expression * expression
-  | HasProperty of expression
-  | Delete of expression
-  | DefaultValue of expression
-  | ToPrimitive of expression
-  | ToBoolean of expression
-  | ToNumber of expression
-  | ToInteger of expression
-  | ToString of expression 
-  | ToObject of expression
-  | CheckObjectCoercible of expression
-  | IsCallable of expression
-  | SameValue of expression * expression
-  | AbstractEquality of expression * expression
-  | StrictEquality of expression * expression
+  | GetValue of variable
+  | PutValue of variable * variable
+  | Get of variable
+  | Put of variable * variable
+  | HasProperty of variable
+  | Delete of variable
+  | DefaultValue of variable
+  | ToPrimitive of variable
+  | ToBoolean of variable
+  | ToNumber of variable
+  | ToInteger of variable
+  | ToString of variable 
+  | ToObject of variable
+  | CheckObjectCoercible of variable
+  | IsCallable of variable
+  | SameValue of variable * variable
+  | AbstractEquality of variable * variable
+  | StrictEquality of variable * variable
 
 type statement =
   | Label of label
@@ -271,4 +271,5 @@ type statement =
 and
 syntactic_sugar_statement =
   | If of expression * statement list * statement list 
-  | SpecFunction of variable * specification_function
+  (* Last two variables to remember the throw_label and throw_variable from the context *)
+  | SpecFunction of variable * specification_function * variable * variable

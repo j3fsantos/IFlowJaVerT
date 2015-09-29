@@ -225,26 +225,25 @@ let string_of_basic_statement bs =
     | Mutation m -> string_of_mutation m
 
 let string_of_spec_function sf =
-  let f = string_of_expression in
   match sf with
-    | GetValue e -> Printf.sprintf "GetValue(%s)" (f e)
-    | PutValue (e1, e2) -> Printf.sprintf "PutValue(%s, %s)" (f e1) (f e2)
-    | Get e -> Printf.sprintf "[[Get]](%s)" (f e)
-    | Put (e1, e2) -> Printf.sprintf "[[Put]](%s, %s)" (f e1) (f e2)
-    | HasProperty e -> Printf.sprintf "[[HasProperty]](%s)" (f e)
-    | Delete e -> Printf.sprintf "[[Delete]](%s)" (f e)
-    | DefaultValue e -> Printf.sprintf "[[DefaultValue]](%s)" (f e)
-    | ToPrimitive e -> Printf.sprintf "ToPrimitive(%s)" (f e)
-    | ToBoolean e -> Printf.sprintf "ToBoolean(%s)" (f e)
-    | ToNumber e -> Printf.sprintf "ToNumber(%s)" (f e)
-    | ToInteger e -> Printf.sprintf "ToInteger(%s)" (f e)
-    | ToString e -> Printf.sprintf "ToString(%s)" (f e)
-    | ToObject e -> Printf.sprintf "ToObject(%s)" (f e)
-    | CheckObjectCoercible e -> Printf.sprintf "CheckObjectCoercible(%s)" (f e)
-    | IsCallable e -> Printf.sprintf "IsCallable(%s)" (f e)
-    | SameValue (e1, e2) -> Printf.sprintf "SameValue(%s, %s)" (f e1) (f e2)
-    | AbstractEquality (e1, e2) -> Printf.sprintf "AbstractEquality(%s, %s)" (f e1) (f e2)
-    | StrictEquality (e1, e2) -> Printf.sprintf "StrictEquality(%s, %s)" (f e1) (f e2)
+    | GetValue v -> Printf.sprintf "GetValue(%s)" v
+    | PutValue (v1, v2) -> Printf.sprintf "PutValue(%s, %s)" v1 v2
+    | Get v -> Printf.sprintf "[[Get]](%s)" v
+    | Put (v1, v2) -> Printf.sprintf "[[Put]](%s, %s)" v1 v2
+    | HasProperty v -> Printf.sprintf "[[HasProperty]](%s)" v
+    | Delete v -> Printf.sprintf "[[Delete]](%s)" v
+    | DefaultValue v -> Printf.sprintf "[[DefaultValue]](%s)" v
+    | ToPrimitive v -> Printf.sprintf "ToPrimitive(%s)" v
+    | ToBoolean v -> Printf.sprintf "ToBoolean(%s)" v
+    | ToNumber v -> Printf.sprintf "ToNumber(%s)" v
+    | ToInteger v -> Printf.sprintf "ToInteger(%s)" v
+    | ToString v -> Printf.sprintf "ToString(%s)" v
+    | ToObject v -> Printf.sprintf "ToObject(%s)" v
+    | CheckObjectCoercible v -> Printf.sprintf "CheckObjectCoercible(%s)" v
+    | IsCallable v -> Printf.sprintf "IsCallable(%s)" v
+    | SameValue (v1, v2) -> Printf.sprintf "SameValue(%s, %s)" v1 v2
+    | AbstractEquality (v1, v2) -> Printf.sprintf "AbstractEquality(%s, %s)" v1 v2
+    | StrictEquality (v1, v2) -> Printf.sprintf "StrictEquality(%s, %s)" v1 v2
  
 let rec string_of_statement t =
   match t with
@@ -262,7 +261,8 @@ and string_of_sugar t =
       (string_of_expression condition)
       (string_of_statement_list thenbranch)
       (string_of_statement_list elsebranch)
-    | SpecFunction (v, sf) -> Printf.sprintf "%s = %s" v (string_of_spec_function sf)
+    | SpecFunction (v, sf, throw_var, label_throw) -> Printf.sprintf "%s = %s with (%s, %s)" 
+      v (string_of_spec_function sf) throw_var label_throw
       
   
 let string_of_ctx_vars v = 
