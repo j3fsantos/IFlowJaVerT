@@ -223,6 +223,28 @@ let string_of_basic_statement bs =
     | Skip -> "Skip"
     | Assignment a -> Printf.sprintf "%s := %s" (string_of_var a.assign_left) (string_of_assign_right a.assign_right)
     | Mutation m -> string_of_mutation m
+
+let string_of_spec_function sf =
+  let f = string_of_expression in
+  match sf with
+    | GetValue e -> Printf.sprintf "GetValue(%s)" (f e)
+    | PutValue (e1, e2) -> Printf.sprintf "PutValue(%s, %s)" (f e1) (f e2)
+    | Get e -> Printf.sprintf "[[Get]](%s)" (f e)
+    | Put (e1, e2) -> Printf.sprintf "[[Put]](%s, %s)" (f e1) (f e2)
+    | HasProperty e -> Printf.sprintf "[[HasProperty]](%s)" (f e)
+    | Delete e -> Printf.sprintf "[[Delete]](%s)" (f e)
+    | DefaultValue e -> Printf.sprintf "[[DefaultValue]](%s)" (f e)
+    | ToPrimitive e -> Printf.sprintf "ToPrimitive(%s)" (f e)
+    | ToBoolean e -> Printf.sprintf "ToBoolean(%s)" (f e)
+    | ToNumber e -> Printf.sprintf "ToNumber(%s)" (f e)
+    | ToInteger e -> Printf.sprintf "ToInteger(%s)" (f e)
+    | ToString e -> Printf.sprintf "ToString(%s)" (f e)
+    | ToObject e -> Printf.sprintf "ToObject(%s)" (f e)
+    | CheckObjectCoercible e -> Printf.sprintf "CheckObjectCoercible(%s)" (f e)
+    | IsCallable e -> Printf.sprintf "IsCallable(%s)" (f e)
+    | SameValue (e1, e2) -> Printf.sprintf "SameValue(%s, %s)" (f e1) (f e2)
+    | AbstractEquality (e1, e2) -> Printf.sprintf "AbstractEquality(%s, %s)" (f e1) (f e2)
+    | StrictEquality (e1, e2) -> Printf.sprintf "StrictEquality(%s, %s)" (f e1) (f e2)
  
 let rec string_of_statement t =
   match t with
@@ -240,6 +262,7 @@ and string_of_sugar t =
       (string_of_expression condition)
       (string_of_statement_list thenbranch)
       (string_of_statement_list elsebranch)
+    | SpecFunction (v, sf) -> Printf.sprintf "%s = %s" v (string_of_spec_function sf)
       
   
 let string_of_ctx_vars v = 

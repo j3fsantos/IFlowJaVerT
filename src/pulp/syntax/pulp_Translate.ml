@@ -817,8 +817,42 @@ let translate_bin_op_logical f e1 e2 bop ctx =
 	      r4_stmts @ 
 	      [Basic (Assignment (mk_assign rv (Expression (Var r4))))]))
     ], rv
+    
+let unfold_spec_function sf =
+  match sf with
+    | GetValue e -> raise (PulpNotImplemented "Unfolding Spec Function")
+    | PutValue (e1, e2) -> raise (PulpNotImplemented "Unfolding Spec Function")
+    | Get e -> raise (PulpNotImplemented "Unfolding Spec Function")
+    | Put (e1, e2) -> raise (PulpNotImplemented "Unfolding Spec Function")
+    | HasProperty e -> raise (PulpNotImplemented "Unfolding Spec Function")
+    | Delete e -> raise (PulpNotImplemented "Unfolding Spec Function")
+    | DefaultValue e -> raise (PulpNotImplemented "Unfolding Spec Function")
+    | ToPrimitive e -> raise (PulpNotImplemented "Unfolding Spec Function")
+    | ToBoolean e -> raise (PulpNotImplemented "Unfolding Spec Function")
+    | ToNumber e -> raise (PulpNotImplemented "Unfolding Spec Function")
+    | ToInteger e -> raise (PulpNotImplemented "Unfolding Spec Function")
+    | ToString e -> raise (PulpNotImplemented "Unfolding Spec Function")
+    | ToObject e -> raise (PulpNotImplemented "Unfolding Spec Function")
+    | CheckObjectCoercible e -> raise (PulpNotImplemented "Unfolding Spec Function")
+    | IsCallable e -> raise (PulpNotImplemented "Unfolding Spec Function")
+    | SameValue (e1, e2) -> raise (PulpNotImplemented "Unfolding Spec Function")
+    | AbstractEquality (e1, e2) -> raise (PulpNotImplemented "Unfolding Spec Function")
+    | StrictEquality (e1, e2) -> raise (PulpNotImplemented "Unfolding Spec Function")
+    
+let rec unfold_spec_functions stmts = 
+  let f = unfold_spec_functions in
+    List.flatten (List.map (fun stmt ->
+      match stmt with
+          | Sugar st -> 
+            begin match st with
+              | If (c, t1, t2) -> [Sugar (If (c, f t1, f t2))]
+              | SpecFunction (v, sf) -> unfold_spec_function sf
+            end
+          | stmt -> [stmt]
+  ) stmts)
   
 let rec to_ivl_goto stmts = 
+  let stmts = unfold_spec_functions stmts in
   List.flatten (List.map (fun stmt ->
 	  match stmt with
 	      | Sugar st -> 
@@ -843,6 +877,7 @@ let rec to_ivl_goto stmts =
 	              Goto label3; 
 	              Label label3
 	            ]
+            | SpecFunction _ -> raise (Invalid_argument "Spec Functions must have been unfolded")
 	        end
 	      | stmt -> [stmt]
   ) stmts)
@@ -2551,8 +2586,8 @@ let translate_function_syntax level id e named env main =
       | Parser_syntax.Script (_, es) -> translate_function e e.Parser_syntax.exp_annot main main [] env None
       | _ -> raise (Invalid_argument "Should be a function definition here") in
   match level with
-    | IVL_buitin_functions -> raise (Utils.InvalidArgument ("pulp_Translate", "builtin_functions level not implemented yet"))
-    | IVL_conditionals -> pulpe
+    | IVL_buitin_functions -> pulpe
+    | IVL_conditionals -> {pulpe with func_body = unfold_spec_functions pulpe.func_body}
     | IVL_goto -> {pulpe with func_body = to_ivl_goto pulpe.func_body}
 
 let exp_to_pulp_no_builtin level e main ctx_vars = 

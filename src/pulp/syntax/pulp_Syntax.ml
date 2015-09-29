@@ -242,6 +242,26 @@ type basic_statement =
   | Assignment of assignment
   | Mutation of mutation
 
+type specification_function =
+  | GetValue of expression
+  | PutValue of expression * expression
+  | Get of expression
+  | Put of expression * expression
+  | HasProperty of expression
+  | Delete of expression
+  | DefaultValue of expression
+  | ToPrimitive of expression
+  | ToBoolean of expression
+  | ToNumber of expression
+  | ToInteger of expression
+  | ToString of expression 
+  | ToObject of expression
+  | CheckObjectCoercible of expression
+  | IsCallable of expression
+  | SameValue of expression * expression
+  | AbstractEquality of expression * expression
+  | StrictEquality of expression * expression
+
 type statement =
   | Label of label
   | Goto of string
@@ -251,3 +271,4 @@ type statement =
 and
 syntactic_sugar_statement =
   | If of expression * statement list * statement list 
+  | SpecFunction of variable * specification_function
