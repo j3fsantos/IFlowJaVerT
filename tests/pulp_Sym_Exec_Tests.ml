@@ -62,7 +62,7 @@ let apply_config () =
 let get_pexp js_program =
   apply_config ();
   let exp = Parser_main.exp_from_string js_program in
-  let p_exp = exp_to_pulp_no_builtin IVL_goto exp "main" [] in
+  let p_exp = exp_to_pulp_no_builtin IVL_goto_unfold_functions exp "main" [] in
   let p_exp = Simp_Main.simplify p_exp in
   p_exp
   
