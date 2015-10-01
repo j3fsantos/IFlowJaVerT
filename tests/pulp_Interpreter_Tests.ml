@@ -8,35 +8,39 @@ open Interpreter
 open Interpreter_Print
 open Memory_Model
 
-let get_expr p = 
+let get_expr p level = 
   Config.apply_config ();
   Parser_main.verbose := true;
   let exp = Parser_main.exp_from_string p in
   let _ = Printf.printf "%s \n" (Pretty_print.string_of_exp_syntax exp.Parser_syntax.exp_stx) in
-  let p_exp = exp_to_pulp IVL_goto exp main_fun_id [] in
+  let p_exp = exp_to_pulp level exp main_fun_id [] in
   let _ = AllFunctions.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_func_block fwc)) p_exp in
   p_exp
-
+  
 let test_template p =
-  let p_exp = get_expr p in
+  let p_exp = get_expr p IVL_goto_unfold_functions in
   Interpreter.run_with_initial_heap p_exp
   
 let test_template_simp p =
-  let p_exp = get_expr p in
+  let p_exp = get_expr p IVL_goto_unfold_functions in
   let p_exp = Simp_Main.simplify p_exp in
   let _ = AllFunctions.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_func_block fwc)) p_exp in
   Interpreter.run_with_initial_heap p_exp
   
+let test_template_no_simplifications p expected_value = 
+  let result = test_template p in
+  assert_bool ("Incorrect Interpreter. Expected : Normal, Got Exception") (FTReturn = result.fs_return_type);
+  assert_bool ("Incorrect Interpreter. Expected :" ^ (string_of_value expected_value) ^ " Actual: " ^ (string_of_value result.fs_return_value)) (value_eq expected_value ((result.fs_return_value)))
+  
 let test_template_normal p expected_value =
- let result = test_template p in
+   test_template_no_simplifications p expected_value;
+   
+ (* by uncommenting the following 3 lines you also run the tests using simplifications *)
+  let result = test_template_simp p in
   assert_bool ("Incorrect Interpreter. Expected : Normal, Got Exception") (FTReturn = result.fs_return_type);
-  assert_bool ("Incorrect Interpreter. Expected :" ^ (string_of_value expected_value) ^ " Actual: " ^ (string_of_value result.fs_return_value)) (value_eq expected_value ((result.fs_return_value)));
+  assert_bool ("Incorrect Interpreter. Expected :" ^ (string_of_value expected_value) ^ " Actual: " ^ (string_of_value result.fs_return_value)) (value_eq expected_value ((result.fs_return_value)))
   
-(* by uncommenting the following 3 lines you also run the tests using simplifications *)
- let result = test_template_simp p in
-  assert_bool ("Incorrect Interpreter. Expected : Normal, Got Exception") (FTReturn = result.fs_return_type);
-  assert_bool ("Incorrect Interpreter. Expected :" ^ (string_of_value expected_value) ^ " Actual: " ^ (string_of_value result.fs_return_value)) (value_eq expected_value ((result.fs_return_value)))  
-  
+ 
 let get_actual_excep result =
   let actual_excep_l = match result.fs_return_value with
     | VHValue (HVObj l) -> l
@@ -594,7 +598,7 @@ let test_program_switch_aux () =
 
 
 let test_program_switch1 () =
-  test_template_normal ("var x1;
+  test_template_no_simplifications ("var x1;
 	  var x2; 
 		var x3; 
 		var x4;
@@ -616,7 +620,7 @@ let test_program_switch1 () =
 		x1 * x2 * x3 * x4 * x5")  (VHValue (HVLiteral (Num 2310.0)))
 
 let test_program_switch2 () =
-  test_template_normal ("var x1;
+  test_template_no_simplifications ("var x1;
 	  var x2; 
 		var x3; 
 		var x4;
@@ -638,7 +642,7 @@ let test_program_switch2 () =
 		x1 * x2 * x3 * x4 * x5")  (VHValue (HVLiteral (Num 1155.0)))
 
 let test_program_switch3 () =
-  test_template_normal ("var x1;
+  test_template_no_simplifications ("var x1;
 	  var x2; 
 		var x3; 
 		var x4;
@@ -660,7 +664,7 @@ let test_program_switch3 () =
 		x1 * x2 * x3 * x4 * x5")  (VHValue (HVLiteral (Num 77.0)))
 	
 let test_program_switch4 () =
-  test_template_normal ("var x1;
+  test_template_no_simplifications ("var x1;
 	  var x2; 
 		var x3; 
 		var x4;
@@ -682,7 +686,7 @@ let test_program_switch4 () =
 		x1 * x2 * x3 * x4 * x5")  (VHValue (HVLiteral (Num 11.0)))		
 
 let test_program_switch5 () =
-  test_template_normal ("var x1;
+  test_template_no_simplifications ("var x1;
 	  var x2; 
 		var x3; 
 		var x4;
@@ -704,7 +708,7 @@ let test_program_switch5 () =
 		x1 * x2 * x3 * x4 * x5")  (VHValue (HVLiteral (Num 385.0)))		
 		
  let test_program_switch6 () =
-  test_template_normal ("var x1, x2, x3, x4, x5; 
+  test_template_no_simplifications ("var x1, x2, x3, x4, x5; 
 		var i; 
 		i = 0;
 		switch(i) { 
@@ -716,7 +720,7 @@ let test_program_switch5 () =
 		}")  (VHValue (HVLiteral (Num 2.0)))		
 
  let test_program_switch7 () =
-  test_template_normal ("var x1, x2, x3, x4, x5; 
+  test_template_no_simplifications ("var x1, x2, x3, x4, x5; 
 		var i; 
 		i = 1;
 		switch(i) { 
@@ -728,7 +732,7 @@ let test_program_switch5 () =
 		}")  (VHValue (HVLiteral (Num 3.0)))		
 
  let test_program_switch8 () =
-  test_template_normal ("var x1, x2, x3, x4, x5; 
+  test_template_no_simplifications ("var x1, x2, x3, x4, x5; 
 		var i; 
 		i = 2;
 		switch(i) { 
@@ -740,7 +744,7 @@ let test_program_switch5 () =
 		}")  (VHValue (HVLiteral (Num 7.0)))				
  
  let test_program_switch9 () =
-  test_template_normal ("var x1, x2, x3, x4, x5; 
+  test_template_no_simplifications ("var x1, x2, x3, x4, x5; 
 		var i; 
 		i = 3;
 		switch(i) { 
@@ -753,7 +757,7 @@ let test_program_switch5 () =
 																
 
 let test_program_switch10 () =
-  test_template_normal ("var x1, x2, x3, x4, x5; 
+  test_template_no_simplifications ("var x1, x2, x3, x4, x5; 
 		var i; 
 		i = 4;
 		switch(i) { 
@@ -828,8 +832,8 @@ let test_try_catch_completion_2 () =
 
 let suite = "Testing_Interpreter" >:::
   [
-		"test_program_switch_aux" >:: test_program_switch_aux;
-		(*"test_program_switch1" >:: test_program_switch1;
+		(*"test_program_switch_aux" >:: test_program_switch_aux;*)
+	  "test_program_switch1" >:: test_program_switch1;
 		"test_program_switch2" >:: test_program_switch2;
 		"test_program_switch3" >:: test_program_switch3;
 		"test_program_switch5" >:: test_program_switch5;
@@ -848,7 +852,7 @@ let suite = "Testing_Interpreter" >:::
 		"test_for_completion_2" >:: test_for_completion_2;
 		"test_try_catch_completion_1" >:: test_try_catch_completion_1; 
 		"test_try_catch_completion_2" >:: test_try_catch_completion_2;
-	 "running program1" >:: test_program1;
+	  "running program1" >:: test_program1;
    "running program2" >:: test_program2;
    "running_program3" >:: test_program3;
    "running_program4" >:: test_program4;
@@ -960,6 +964,6 @@ let suite = "Testing_Interpreter" >:::
     "test_is_nan_true" >:: test_is_nan_true;
     "test_is_finite_false" >:: test_is_finite_false;
     "test_is_finite_true" >:: test_is_finite_true;
-    "test_negative_nan" >:: test_negative_nan; *)
+    "test_negative_nan" >:: test_negative_nan; 
     (*"test_" >:: test_*) 
     ] 

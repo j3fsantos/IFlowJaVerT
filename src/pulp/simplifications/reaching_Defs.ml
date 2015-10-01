@@ -5,11 +5,52 @@ open Basic_Blocks
 open Pulp_Syntax_Utils
 open Simp_Common
 
-type definition_id = int * int
+type definition_id = CFG_BB.node * int
 
-let string_of_definition_id (n1, n2) = (string_of_int n1) ^ "-" ^ (string_of_int n1)
+let string_of_definition_id id = let n1, n2 = id in (string_of_int (CFG_BB.node_id n1)) ^ "-" ^ (string_of_int n2) 
 
 type n = int
+
+module DefIdSet = Set.Make (
+  struct 
+    type t = definition_id
+    let compare (n1, int1) (n2, int2) =
+      compare (CFG_BB.node_id n1, int1) (CFG_BB.node_id n2, int2)
+  end
+)
+
+module NodeSet = Set.Make (
+  struct 
+    type t = CFG_BB.node
+    let compare = compare
+  end
+)
+
+module VarSet = Set.Make (
+  struct 
+    type t = variable
+    let compare = compare
+  end
+)
+
+module AssignSet = Set.Make (
+  struct 
+    type t = Pulp_Syntax.assignment
+    let compare = compare
+  end
+)
+
+let def_id_set_of_list l =
+  List.fold_left (fun s el -> DefIdSet.add el s) DefIdSet.empty l
+  
+let node_set_of_list l =
+  List.fold_left (fun s el -> NodeSet.add el s) NodeSet.empty l
+  
+let var_set_of_list l =
+  List.fold_left (fun s el -> VarSet.add el s) VarSet.empty l
+  
+let assign_set_of_list l =
+  List.fold_left (fun s el -> AssignSet.add el s) AssignSet.empty l
 
 let add_to_hashtbl tbl var def_id = 
   let def_ids = 
@@ -47,8 +88,11 @@ let calculate_defs (g : CFG_BB.graph) =
   
 let gen_kill_stmt def_id stmt def =
   match stmt with
-    | Basic (Assignment stmt) -> [def_id], List.filter (fun id -> id <> def_id) (Hashtbl.find def stmt.assign_left) 
-    | _ -> [], []
+    | Basic (Assignment stmt) -> 
+      let kills = List.filter (fun id -> id <> def_id) (Hashtbl.find def stmt.assign_left) in
+      DefIdSet.singleton def_id, def_id_set_of_list kills
+    | _ -> DefIdSet.empty, DefIdSet.empty
+
 
 let rec union l1 l2 =
   match l1 with
@@ -56,29 +100,12 @@ let rec union l1 l2 =
     | hd :: tail ->
       if List.mem hd l2 then union tail l2
       else hd :: (union tail l2)
-      
-let rec intersection l1 l2 =
-  match l1 with
-    | [] -> []
-    | hd :: tail ->
-      if List.mem hd l2 then hd :: (intersection tail l2)
-      else intersection tail l2
-      
-let rec subtract l1 l2 =
-  match l1 with
-    | [] -> []
-    | hd :: tail ->
-      if List.mem hd l2 then subtract tail l2
-      else hd :: (subtract tail l2)
-      
-let list_eq l1 l2 =
-  (subtract l1 l2 = []) && (subtract l2 l1 = [])
   
 let gen_kill_node n stmts def =
    let gen_kills = List.mapi (fun i stmt -> gen_kill_stmt (n, i) stmt def) stmts in
    List.fold_left (fun (gen_p, kill_p) (gen_n, kill_n) ->  
-     (union gen_n (subtract gen_p kill_n)), (union kill_p kill_n)
-    ) ([], []) gen_kills
+     (DefIdSet.union gen_n (DefIdSet.diff gen_p kill_n)), (DefIdSet.union kill_p kill_n)
+    ) (DefIdSet.empty, DefIdSet.empty) gen_kills
   
   
 let calculate_gens_kills g def = 
@@ -107,22 +134,21 @@ let var_defid_tbl g =
 let rec repeat_until_equal ins outs wnodes g gens kills =
   match wnodes with
     | [] -> ()
-    | n :: tail ->
-      let old = Hashtbl.find outs n in
-      let preds = CFG_BB.pred g n in
-      let inn = List.fold_left (fun un pred -> union un (Hashtbl.find outs pred)) [] preds in
-      Hashtbl.replace outs n (union (Hashtbl.find gens n) (subtract inn (Hashtbl.find kills n)));
-      Hashtbl.replace ins n inn;
-      let wnodes = 
-      if (list_eq old (Hashtbl.find outs n)) then tail
-      else union tail (CFG_BB.succ g n) in
-      repeat_until_equal ins outs wnodes g gens kills
-      
+    | n :: tail ->  
+	  let old = Hashtbl.find outs n in
+	  let preds = CFG_BB.pred g n in
+	  let inn = List.fold_left (fun un pred -> DefIdSet.union un (Hashtbl.find outs pred)) DefIdSet.empty preds in
+	  Hashtbl.replace outs n (DefIdSet.union (Hashtbl.find gens n) (DefIdSet.diff inn (Hashtbl.find kills n)));
+	  Hashtbl.replace ins n inn;
+	  let wnodes = 
+	  if (DefIdSet.equal old (Hashtbl.find outs n)) then tail
+	  else union tail (CFG_BB.succ g n) in
+	  repeat_until_equal ins outs wnodes g gens kills   
       
 let reaching_defs nodes g gens kills =
   let ins = Hashtbl.create 100 in
   let outs = Hashtbl.create 100 in
-  List.iter (fun n -> Hashtbl.add ins n []; Hashtbl.add outs n []) nodes;
+  List.iter (fun n -> Hashtbl.add ins n DefIdSet.empty; Hashtbl.add outs n DefIdSet.empty) nodes;
   repeat_until_equal ins outs nodes g gens kills;
   ins, outs
   
@@ -153,7 +179,7 @@ let constant_propagation g =
     let vars = Hashtbl.create 5 in
     let nins = Hashtbl.find ins n in
     
-    List.iter (fun defid -> 
+    DefIdSet.iter (fun defid -> 
       let var = Hashtbl.find tblinv defid in
       Hashtbl.add vars var defid;
     ) nins;
@@ -240,15 +266,15 @@ let simplify_guarded_gotos g =
   
 let liveness_gen_kill_stmt stmt =
   match stmt with
-    | Basic (Assignment a) -> get_vars_in_assign_expr a.assign_right, [a.assign_left]  
-    | stmt -> get_vars_in_stmt stmt, []
+    | Basic (Assignment a) -> var_set_of_list(get_vars_in_assign_expr a.assign_right), VarSet.singleton (a.assign_left) 
+    | stmt -> var_set_of_list(get_vars_in_stmt stmt), VarSet.empty
   
 let liveness_gen_kill_node n stmts =
    let gen_kills = List.map (fun stmt -> liveness_gen_kill_stmt stmt) stmts in
   
    List.fold_left (fun (gen_p, kill_p) (gen_n, kill_n) ->  
-     (union gen_p (subtract gen_n kill_p)), (union kill_n kill_p)
-    ) ([], []) gen_kills
+     (VarSet.union gen_p (VarSet.diff gen_n kill_p)), (VarSet.union kill_n kill_p)
+    ) (VarSet.empty, VarSet.empty) gen_kills
   
   
 let liveness_gens_kills g = 
@@ -269,11 +295,11 @@ let rec repeat_until_equal_liveness ins outs wnodes g gens kills =
     | n :: tail ->
       let old = Hashtbl.find ins n in
       let succs = CFG_BB.succ g n in
-      let outn = List.fold_left (fun in_s succ -> union in_s (Hashtbl.find ins succ)) [] succs in
-      Hashtbl.replace ins n (union (Hashtbl.find gens n) (subtract outn (Hashtbl.find kills n)));
+      let outn = List.fold_left (fun in_s succ -> VarSet.union in_s (Hashtbl.find ins succ)) VarSet.empty succs in
+      Hashtbl.replace ins n (VarSet.union (Hashtbl.find gens n) (VarSet.diff outn (Hashtbl.find kills n)));
       Hashtbl.replace outs n outn;
       let wnodes = 
-      if (list_eq old (Hashtbl.find ins n)) then tail
+      if (VarSet.equal old (Hashtbl.find ins n)) then tail
       else union tail (CFG_BB.pred g n) in
       repeat_until_equal_liveness ins outs wnodes g gens kills
       
@@ -281,7 +307,7 @@ let rec repeat_until_equal_liveness ins outs wnodes g gens kills =
 let liveness nodes g gens kills =
   let ins = Hashtbl.create 100 in
   let outs = Hashtbl.create 100 in
-  List.iter (fun n -> Hashtbl.add ins n []; Hashtbl.add outs n []) nodes;
+  List.iter (fun n -> Hashtbl.add ins n VarSet.empty; Hashtbl.add outs n VarSet.empty) nodes;
   (* Do I want to reverse nodes? *)
   repeat_until_equal_liveness ins outs (List.rev nodes) g gens kills;
   ins, outs
@@ -334,7 +360,7 @@ let dead_code_elimination g throw_var return_var =
     let dead = Hashtbl.fold (fun defid used dead ->
       if used = true then dead
       else (* id not used inside the block *)
-        begin if List.mem (Hashtbl.find defid_var defid) outn then dead (* id is in out *)
+        begin if VarSet.mem (Hashtbl.find defid_var defid) outn then dead (* id is in out *)
               else defid :: dead
         end
       
@@ -377,18 +403,18 @@ let copy_gen_kill_stmt stmt exprs =
   match stmt with
     | Basic (Assignment a) -> 
       begin match a.assign_right with
-        | Expression e -> [a], get_from_hashtbl exprs a.assign_left  
-        | _ -> [], get_from_hashtbl exprs a.assign_left
+        | Expression e -> AssignSet.singleton a, assign_set_of_list (get_from_hashtbl exprs a.assign_left)  
+        | _ -> AssignSet.empty, assign_set_of_list (get_from_hashtbl exprs a.assign_left)
       end
-    | stmt -> [], []
+    | stmt -> AssignSet.empty, AssignSet.empty
   
   
 let copy_gen_kill_node n stmts exprs =
    let gen_kills = List.map (fun stmt -> copy_gen_kill_stmt stmt exprs) stmts in
   
    List.fold_left (fun (gen_p, kill_p) (gen_n, kill_n) ->  
-     (union gen_n (subtract gen_p kill_n)), (union kill_p kill_n)
-    ) ([], []) gen_kills
+     (AssignSet.union gen_n (AssignSet.diff gen_p kill_n)), (AssignSet.union kill_p kill_n)
+    ) (AssignSet.empty, AssignSet.empty) gen_kills
   
   
 let copy_gens_kills g exprs = 
@@ -410,13 +436,13 @@ let rec repeat_until_equal_copy ins outs wnodes g gens kills =
       let preds = CFG_BB.pred g n in
       let inn = 
         match preds with 
-          | [] -> []
+          | [] -> AssignSet.empty
           | firstp :: tail -> 
-            List.fold_left (fun un pred -> intersection un (Hashtbl.find outs pred)) (Hashtbl.find outs firstp) tail in
-      Hashtbl.replace outs n (union (Hashtbl.find gens n) (subtract inn (Hashtbl.find kills n)));
+            List.fold_left (fun un pred -> AssignSet.inter un (Hashtbl.find outs pred)) (Hashtbl.find outs firstp) tail in
+      Hashtbl.replace outs n (AssignSet.union (Hashtbl.find gens n) (AssignSet.diff inn (Hashtbl.find kills n)));
       Hashtbl.replace ins n inn;
       let wnodes = 
-      if (list_eq old (Hashtbl.find outs n)) then tail
+      if (AssignSet.equal old (Hashtbl.find outs n)) then tail
       else union tail (CFG_BB.succ g n) in
       repeat_until_equal_copy ins outs wnodes g gens kills
       
@@ -424,9 +450,9 @@ let rec repeat_until_equal_copy ins outs wnodes g gens kills =
 let copy_ins_out nodes g gens kills all_exprs =
   let ins = Hashtbl.create 100 in
   let outs = Hashtbl.create 100 in
-  List.iter (fun n -> Hashtbl.add ins n all_exprs; Hashtbl.add outs n []) nodes;
+  List.iter (fun n -> Hashtbl.add ins n (assign_set_of_list all_exprs); Hashtbl.add outs n AssignSet.empty) nodes;
   begin match nodes with
-    | start :: tail -> Hashtbl.add ins start []
+    | start :: tail -> Hashtbl.add ins start AssignSet.empty
     | [] -> ()
   end;
   repeat_until_equal_copy ins outs nodes g gens kills;
@@ -452,7 +478,7 @@ let copy_propagation g =
       let updated_stmt = 
           List.fold_left (fun stmt var -> 
             try
-              let s = List.find (fun s -> s.assign_left = var) inn in
+              let s = AssignSet.choose (AssignSet.filter (fun s -> s.assign_left = var) inn) in
               match s.assign_right with
                 | Expression e -> update_stmt stmt var e
                 | _ -> stmt
@@ -461,7 +487,7 @@ let copy_propagation g =
           ) stmt vars 
       in
       let (gen, kill) = copy_gen_kill_stmt stmt exprs in
-      (union gen (subtract inn kill)), updated_stmt :: updated_stmts
+      (AssignSet.union gen (AssignSet.diff inn kill)), updated_stmt :: updated_stmts
     ) (inn, []) stmts in
     
     CFG_BB.set_node_data g n (List.rev updated_stmts)
@@ -486,7 +512,7 @@ let type_simplifications g params =
     let _ = List.fold_left (fun (inn, index) stmt ->
       let var_defid = Hashtbl.create 5 in (* var -> defid list *)
     
-	    List.iter (fun defid -> 
+	    DefIdSet.iter (fun defid -> 
 	      let var = Hashtbl.find tblinv defid in
 	      Hashtbl.add var_defid var defid;
 	    ) inn;
@@ -506,7 +532,7 @@ let type_simplifications g params =
       end;
           
      let (gen, kill) = gen_kill_stmt (n, index) stmt def in 
-     (union gen (subtract inn kill)), index + 1
+     (DefIdSet.union gen (DefIdSet.diff inn kill)), index + 1
       
    ) (inn, 0) stmts in ()
     
@@ -550,12 +576,12 @@ let type_simplifications g params =
       let var_defid = List.map (fun defid -> 
 	      let var = Hashtbl.find tblinv defid in
 	      (var, defid)
-	    ) inn in
+	    ) (DefIdSet.elements inn) in
       
       let updated_stmt = simplify_stmt (simplify_type_of_in_stmt (type_info var_defid) stmt) in 
           
       let (gen, kill) = gen_kill_stmt (n, index) stmt def in 
-      (union gen (subtract inn kill)), updated_stmt :: updated_stmts, index + 1
+      (DefIdSet.union gen (DefIdSet.diff inn kill)), updated_stmt :: updated_stmts, index + 1
       
     ) (inn, [], 0) stmts in 
     
@@ -569,10 +595,9 @@ let debug_print_cfg_bb_with_defs (cfgs : CFG_BB.graph AllFunctions.t) (filename 
   let d_cfgedge chan dest src =
     Printf.fprintf chan "\t\t%i -> %i\n" (CFG_BB.node_id src) (CFG_BB.node_id dest) in
   let d_cfgnode chan (cfg : CFG_BB.graph) (n : CFG_BB.node) (nd : statement list) ins outs =
-    let ins_ids = Hashtbl.find ins n in
-    let string_of_definition_id id = let n1, n2 = id in (string_of_int (CFG_BB.node_id n1)) ^ "-" ^ (string_of_int n2) in
+    let ins_ids = DefIdSet.elements (Hashtbl.find ins n) in
     let ins_string = String.concat ";" (List.map string_of_definition_id ins_ids) in
-    let outs_ids = Hashtbl.find outs n in
+    let outs_ids = DefIdSet.elements (Hashtbl.find outs n) in
     let out_string = String.concat ";" (List.map string_of_definition_id outs_ids) in
     Printf.fprintf chan 
       "\t\t%i [label=\"%i: %s\"]\n" 

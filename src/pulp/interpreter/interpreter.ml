@@ -6,7 +6,7 @@ open Pulp_Procedure
 open Memory_Model
 open Interpreter_Print
 
-exception InterpreterNotImplemented
+exception InterpreterNotImplemented of string
 exception InterpreterStuck of string * int
 
 module LabelMap = Map.Make ( 
@@ -39,7 +39,7 @@ let heap_value_bool op v1 v2 counter =
      | HVLiteral (Bool b1), HVLiteral (Bool b2) -> 
       begin match op with
         | And -> HVLiteral (Bool (b1 && b2))
-        | Or -> HVLiteral (Bool (b1 or b2))
+        | Or -> HVLiteral (Bool (b1 || b2))
       end
     | _, _ -> 
       raise (InterpreterStuck ("Boolean Op on non-boolean values\n", counter))
@@ -414,7 +414,7 @@ let rec run_assign_expr (s : local_state) (e : assign_right_expression) ctx (fun
      let eval_main = fresh_named "eval" in
     
      (*Printf.printf "Env vars in Eval: %s" (String.concat "\n" (List.map (Pulp_Syntax_Print.string_of_ctx_vars) ctx.env_vars));*)
-     let pexp = Pulp_Translate.exp_to_pulp Pulp_Translate.IVL_goto exp eval_main ctx.env_vars in
+     let pexp = Pulp_Translate.exp_to_pulp Pulp_Translate.IVL_goto_unfold_functions exp eval_main ctx.env_vars in
     
      let funcs = AllFunctions.fold (fun key value result -> AllFunctions.add key value result) pexp funcs in
       
@@ -547,7 +547,7 @@ and run_stmt (s : local_state) (stmt : statement) (labelmap : int LabelMap.t) (c
         | _ -> raise (InterpreterStuck ("GuardedGoto expression must evaluate to boolean value", s.lscounter))
       end
     | Basic bs -> run_basic_stmt s bs labelmap ctx fs
-    | Sugar sss -> raise InterpreterNotImplemented
+    | Sugar sss -> raise (InterpreterNotImplemented ("Syntactic Sugar" ^ (Pulp_Syntax_Print.string_of_sugar sss)))
 
 and run_stmts stmts ctx lstate labelmap fs =
   let next_stmt = List.nth stmts lstate.lscounter in

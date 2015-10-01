@@ -46,6 +46,28 @@ let get_vars_in_bs_stmt stmt =
     | Assignment {assign_left = al; assign_right = ar} -> get_vars_in_assign_expr ar
     | Mutation m -> (f m.m_loc) @ (f m.m_field) @ (f m.m_right)
 
+let get_vars_in_spec_functions sf =
+  let f = get_vars_in_expr in
+  match sf with
+    | GetValue e 
+    | Get e
+    | HasProperty e 
+    | Delete e 
+    | DefaultValue e
+    | ToPrimitive e 
+    | ToBoolean e 
+    | ToNumber e 
+    | ToInteger e 
+    | ToString e 
+    | ToObject e 
+    | CheckObjectCoercible e 
+    | IsCallable e -> f e
+    | PutValue (e1, e2) 
+    | Put (e1, e2) 
+    | SameValue (e1, e2) 
+    | AbstractEquality (e1, e2) 
+    | StrictEquality (e1, e2) -> (f e1) @ (f e2)
+
 let rec get_vars_in_stmt stmt = 
   match stmt with
     | Label _ 
@@ -57,6 +79,7 @@ and
 get_vars_in_sugar_stmt stmt =
   match stmt with
   | If (e, t1, t2) -> (get_vars_in_expr e) @ (List.flatten (List.map get_vars_in_stmt t1)) @ (List.flatten (List.map get_vars_in_stmt t2))
+  | SpecFunction (left, sf, throw_var, throw_label) -> [left; throw_var] @ get_vars_in_spec_functions sf
 
 let rec is_const_expr e =
   let f = is_const_expr in
@@ -84,6 +107,27 @@ let is_const_stmt stmt =
 
 let transform_expr_in_call f c =
   mk_call (f c.call_name) (f c.call_scope) (f c.call_this) (List.map f c.call_args) (c.call_throw_label)
+  
+let transform_expr_in_spec_funcs f sf =
+  match sf with
+    | GetValue e -> GetValue (f e)
+    | Get e -> Get (f e)
+    | HasProperty e -> HasProperty (f e)
+    | Delete e -> Delete (f e)
+    | DefaultValue e -> DefaultValue (f e)
+    | ToPrimitive e -> ToPrimitive (f e)
+    | ToBoolean e -> ToBoolean (f e)
+    | ToNumber e -> ToNumber (f e)
+    | ToInteger e -> ToInteger (f e)
+    | ToString e -> ToString (f e)
+    | ToObject e -> ToObject (f e)
+    | CheckObjectCoercible e -> CheckObjectCoercible (f e)
+    | IsCallable e -> IsCallable (f e)
+    | PutValue (e1, e2) -> PutValue (f e1, f e2)
+    | Put (e1, e2) -> Put (f e1, f e2)
+    | SameValue (e1, e2) -> SameValue (f e1, f e2)
+    | AbstractEquality (e1, e2) -> AbstractEquality (f e1, f e2)
+    | StrictEquality (e1, e2) -> StrictEquality (f e1, f e2)
 
 let transform_expr_in_assign_expr f e =
   match e with
@@ -116,6 +160,7 @@ and
 transform_expr_in_sugar_stmt f stmt =
   match stmt with
   | If (e, t1, t2) -> If (f e, List.map (transform_expr_in_stmt f) t1, List.map (transform_expr_in_stmt f) t2)
+  | SpecFunction (left, sf, throw_var, throw_label) -> SpecFunction (left, transform_expr_in_spec_funcs f sf, throw_var, throw_label)
 
 
 (* Constant Propagation *)

@@ -154,15 +154,15 @@ let translate_jstools_example_person () =
       Basic (Assignment person0_scope);    
       Basic (Mutation ((mk_mutation (Var person0_scope.assign_left) (Literal (String "name")) (Var "name"))));  
       (*GuardedGoto (is_prim_value "rthis", label_true, label_false);*)
-      GuardedGoto ((type_of_var "rthis" UndefinedType), label_true, label_false1);
+      GuardedGoto ((type_of_exp (Var "rthis") UndefinedType), label_true, label_false1);
       Label label_false1;     
-      GuardedGoto ((type_of_var "rthis" NullType), label_true, label_false2);
+      GuardedGoto ((type_of_exp (Var "rthis") NullType), label_true, label_false2);
       Label label_false2;  
-      GuardedGoto ((type_of_var "rthis" BooleanType), label_true, label_false3);
+      GuardedGoto ((type_of_exp (Var "rthis") BooleanType), label_true, label_false3);
       Label label_false3; 
-      GuardedGoto ((type_of_var "rthis" StringType), label_true, label_false4);
+      GuardedGoto ((type_of_exp (Var "rthis") StringType), label_true, label_false4);
       Label label_false4; 
-      GuardedGoto ((type_of_var "rthis" NumberType), label_true, label_false5);
+      GuardedGoto ((type_of_exp (Var "rthis") NumberType), label_true, label_false5);
       Label label_false5; 
       Basic (Mutation ((mk_mutation (Var "rthis") (Literal (String "name")) (Var "name"))));  
       Basic (Assignment (mk_assign ctx.return_var (Expression (Literal Empty))));

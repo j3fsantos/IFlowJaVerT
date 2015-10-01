@@ -11,7 +11,7 @@ let test_template p name =
   Parser_main.verbose := true;
   let exp = Parser_main.exp_from_string p in
   let _ = Printf.printf "%s \n" (Pretty_print.string_of_exp_syntax exp.Parser_syntax.exp_stx) in
-  let p_exp = exp_to_pulp IVL_goto exp main_fun_id [] in
+  let p_exp = exp_to_pulp IVL_goto_unfold_functions exp main_fun_id [] in
   let _ = AllFunctions.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_func_block fwc)) p_exp in
   let cfg = Control_Flow.mk_cfg p_exp ("tests/dot/"^name) in
   
@@ -150,8 +150,8 @@ var r = s(3).x") "example"
 let test_gamma () =
   let ctx = create_ctx [] in
   let r = fresh_r () in
-  let gamma_stmt = translate_gamma "r" r ctx.throw_var ctx.label_throw in
-  let gamma_stmts = (to_ivl_goto [gamma_stmt]) @ [Label ctx.label_return; Label ctx.label_throw] in
+  let gamma_stmt = translate_gamma (Var "r") r ctx.throw_var ctx.label_throw in
+  let gamma_stmts = (to_ivl_goto_unfold [gamma_stmt]) @ [Label ctx.label_return; Label ctx.label_throw] in
   let p_exp = AllFunctions.add "gamma" (make_function_block "gamma" gamma_stmts [] ctx) AllFunctions.empty in
   ignore (Control_Flow.mk_cfg p_exp ("tests/dot/gamma"));
   assert_bool "Incorrect Translation" true
@@ -175,7 +175,7 @@ let cfg_anonymous2 () =
       Label ctx.label_throw;
     ]
     in
-  let stmts = to_ivl_goto stmts in
+  let stmts = to_ivl_goto_unfold stmts in
   let p_exp = AllFunctions.add "anonymous2" (make_function_block "anonymous2" stmts [] ctx) AllFunctions.empty in
   ignore (Control_Flow.mk_cfg p_exp ("tests/dot/anonymous2"));
   assert_bool "Incorrect Translation" true
