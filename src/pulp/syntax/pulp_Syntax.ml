@@ -245,11 +245,9 @@ type basic_statement =
 type specification_function =
   | GetValue of expression
   | PutValue of expression * expression
-  | Get of expression
-  | Put of expression * expression
-  | HasProperty of expression
-  | Delete of expression
-  | DefaultValue of expression
+  | Get of expression * expression
+  | HasProperty of expression * expression
+  | DefaultValue of expression * pulp_type option
   | ToPrimitive of expression
   | ToBoolean of expression
   | ToNumber of expression
@@ -271,5 +269,5 @@ type statement =
 and
 syntactic_sugar_statement =
   | If of expression * statement list * statement list 
-  (* Last two variables to remember the throw_label and throw_variable from the context *)
-  | SpecFunction of variable * specification_function * variable * label
+  (* Last three variables to remember the throw_label and throw_variable from the context and with label *)
+  | SpecFunction of variable * specification_function * variable * label * label 

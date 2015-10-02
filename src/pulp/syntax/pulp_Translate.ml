@@ -93,32 +93,46 @@ let equal_num_expr v n = equal_lit_expr v (Num n)
 
 let equal_string_exprs e s = equal_exprs e (Literal (String s))
 
-let spec_func_get_value arg ctx = 
+let spec_func_get_value arg ctx excep_label = 
   let left = fresh_r () in
-  Sugar (SpecFunction (left, (GetValue arg), ctx.throw_var, ctx.label_throw)), left
+  Sugar (SpecFunction (left, (GetValue arg), ctx.throw_var, ctx.label_throw, excep_label)), left
   
-let spec_func_to_object arg ctx = 
+let spec_func_to_object arg ctx excep_label = 
   let left = fresh_r () in
-  Sugar (SpecFunction (left, (ToObject arg), ctx.throw_var, ctx.label_throw)), left
-
+  Sugar (SpecFunction (left, (ToObject arg), ctx.throw_var, ctx.label_throw, excep_label)), left
+  
+let spec_func_put_value arg1 arg2 ctx excep_label = 
+  let left = fresh_r () in
+  Sugar (SpecFunction (left, (PutValue (arg1, arg2)), ctx.throw_var, ctx.label_throw, excep_label)), left
+  
+let spec_func_get arg1 arg2 ctx excep_label = 
+  let left = fresh_r () in
+  Sugar (SpecFunction (left, (Get (arg1, arg2)), ctx.throw_var, ctx.label_throw, excep_label)), left
+  
+let spec_func_has_property arg1 arg2 ctx excep_label = 
+  let left = fresh_r () in
+  Sugar (SpecFunction (left, (HasProperty (arg1, arg2)), ctx.throw_var, ctx.label_throw, excep_label)), left
+  
+let spec_func_default_value arg1 arg2 ctx excep_label = 
+  let left = fresh_r () in
+  Sugar (SpecFunction (left, (DefaultValue (arg1, arg2)), ctx.throw_var, ctx.label_throw, excep_label)), left
+  
 let spec_func_call sp ctx =
   let excep_label = "spec_call_excep." ^ (fresh_r ()) in
   let exit_label = "spec_call_normal." ^ (fresh_r ()) in
   let sp_stmt, left = 
     match sp with
-      | GetValue e -> spec_func_get_value e ctx
-      | PutValue (e1, e2) -> raise (PulpNotImplemented "Spec Function Call")
-      | Get e -> raise (PulpNotImplemented "Unfolding Spec Function")
-      | Put (e1, e2) -> raise (PulpNotImplemented "Unfolding Spec Function")
-      | HasProperty e -> raise (PulpNotImplemented "Unfolding Spec Function")
-      | Delete e -> raise (PulpNotImplemented "Unfolding Spec Function")
-      | DefaultValue e -> raise (PulpNotImplemented "Unfolding Spec Function")
+      | GetValue e -> spec_func_get_value e ctx excep_label
+      | PutValue (e1, e2) -> spec_func_put_value e1 e2 ctx excep_label
+      | Get (e1, e2) -> spec_func_get e1 e2 ctx excep_label
+      | HasProperty (e1, e2) -> spec_func_has_property e1 e2 ctx excep_label
+      | DefaultValue (e, pt) -> spec_func_default_value e pt ctx excep_label
       | ToPrimitive e -> raise (PulpNotImplemented "Unfolding Spec Function")
       | ToBoolean e -> raise (PulpNotImplemented "Unfolding Spec Function")
       | ToNumber e -> raise (PulpNotImplemented "Unfolding Spec Function")
       | ToInteger e -> raise (PulpNotImplemented "Unfolding Spec Function")
       | ToString e -> raise (PulpNotImplemented "Unfolding Spec Function")
-      | ToObject e -> spec_func_to_object e ctx
+      | ToObject e -> spec_func_to_object e ctx excep_label
       | CheckObjectCoercible e -> raise (PulpNotImplemented "Unfolding Spec Function")
       | IsCallable e -> raise (PulpNotImplemented "Unfolding Spec Function")
       | SameValue (e1, e2) -> raise (PulpNotImplemented "Unfolding Spec Function")
@@ -309,7 +323,7 @@ let translate_put_value v1 v2 throw_var throw_label =
     ],
     gotothrow))
   in
-  main
+  [main]
   
 let make_builtin_call id rv vthis args throw_var label_throw =
   let vthis = match vthis with
@@ -339,7 +353,7 @@ let translate_to_object arg left throw_var label_throw =
   let bobj = make_builtin_call (Boolean_Construct) left None [arg] throw_var label_throw in
   let nobj = make_builtin_call (Number_Construct) left None [arg] throw_var label_throw in
   let sobj = make_builtin_call (String_Construct) left None [arg] throw_var label_throw in
-  Sugar (If (or_expr (equal_undef_expr arg) (equal_null_expr arg),
+  [Sugar (If (or_expr (equal_undef_expr arg) (equal_null_expr arg),
     translate_error_throw Ltep throw_var label_throw,
     [ Sugar (If (type_of_exp arg (ObjectType None),
       assign_rv_var arg,
@@ -350,7 +364,7 @@ let translate_to_object arg left throw_var label_throw =
             sobj))
         ]))
       ]))
-    ]))
+    ]))]
   
 let translate_gamma r left throw_var label_throw =
   let base = mk_assign_fresh_e (Base r) in
@@ -368,7 +382,8 @@ let translate_gamma r left throw_var label_throw =
         translate_error_throw Lrep throw_var label_throw,
         [ Basic (Assignment field);
           Sugar (If (istypeof_prim_expr (Var base.assign_left),
-            [ to_object_stmt;
+             to_object_stmt @
+            [
               Basic (Assignment assign_pi);
               Sugar (If (equal_empty_expr (Var assign_pi.assign_left),
                 [Basic (Assignment (mk_assign left (Expression(Literal Undefined))))],
@@ -396,7 +411,7 @@ let translate_gamma r left throw_var label_throw =
     ],
     [ Basic (Assignment (mk_assign left (Expression r))) ]))
   in
-  main
+  [main]
 
 let translate_obj_coercible r ctx =
   let rv = fresh_r () in
@@ -433,15 +448,14 @@ let translate_call_construct_start f e1 e2s ctx construct =
         Sugar (If (equal_bool_expr (Var is_callable) false, gotothrow, []))
       ], r1, r2, arg_values)
       
-let translate_get o (* variable containing object *) p (* variable, string, or built-in field name *) = 
+let translate_get o (* variable containing object *) p (* variable, string, or built-in field name *) left = 
    (* TODO : Update everywhere *)
-   let rv = fresh_r () in
    let desc = mk_assign_fresh (ProtoF (o, p)) in
    [Basic (Assignment desc);
     Sugar (If (equal_empty_expr (Var desc.assign_left),
-      [Basic (Assignment (mk_assign rv (Expression(Literal Undefined))))],
-      [Basic (Assignment (mk_assign rv (Expression(Var desc.assign_left))))]))
-   ], rv 
+      [Basic (Assignment (mk_assign left (Expression(Literal Undefined))))],
+      [Basic (Assignment (mk_assign left (Expression(Var desc.assign_left))))]))
+   ] 
   
 let translate_inner_call obj vthis args ctx =
   (* TODO *)
@@ -511,7 +525,8 @@ let translate_inner_call obj vthis args ctx =
   ], rv
       
 let default_value_inner arg m rv exit_label next_label ctx =
-  let r1_stmts, r1 = translate_get arg (Literal (String m)) in
+  let r1 = fresh_r () in
+  let r1_stmts = translate_get arg (Literal (String m)) r1 in
   let is_callable_stmt, is_callable = is_callable (Var r1) in
   let r2_stmts, r2 = translate_inner_call (Var r1) arg [] ctx in
   let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
@@ -855,15 +870,22 @@ let translate_bin_op_logical f e1 e2 bop ctx =
 	      [ Basic (Assignment (mk_assign rv (Expression (Var r4))))]))
     ], rv
     
+let translate_has_property o p rv =
+  (* TODO use this in other places too *) 
+  let assign_pi = mk_assign_fresh (ProtoF (o, p)) in 
+    [ Basic (Assignment assign_pi);
+      Sugar (If (equal_empty_expr (Var assign_pi.assign_left),
+        [Basic (Assignment (mk_assign rv (Expression(Literal (Bool false)))))],
+        [Basic (Assignment (mk_assign rv (Expression(Literal (Bool true)))))])) 
+    ]
+    
 let unfold_spec_function sf left throw_var label_throw =
   match sf with
-    | GetValue v -> translate_gamma v left throw_var label_throw
-    | PutValue (e1, e2) -> raise (PulpNotImplemented "Unfolding Spec Function")
-    | Get e -> raise (PulpNotImplemented "Unfolding Spec Function")
-    | Put (e1, e2) -> raise (PulpNotImplemented "Unfolding Spec Function")
-    | HasProperty e -> raise (PulpNotImplemented "Unfolding Spec Function")
-    | Delete e -> raise (PulpNotImplemented "Unfolding Spec Function")
-    | DefaultValue e -> raise (PulpNotImplemented "Unfolding Spec Function")
+    | GetValue e -> translate_gamma e left throw_var label_throw
+    | PutValue (e1, e2) -> translate_put_value e1 e2 throw_var label_throw
+    | Get (e1, e2) -> translate_get e1 e2 left
+    | HasProperty (e1, e2) -> translate_has_property e1 e2 left
+    | DefaultValue (e, pt) -> raise (PulpNotImplemented "Unfolding Spec Function")
     | ToPrimitive e -> raise (PulpNotImplemented "Unfolding Spec Function")
     | ToBoolean e -> raise (PulpNotImplemented "Unfolding Spec Function")
     | ToNumber e -> raise (PulpNotImplemented "Unfolding Spec Function")
@@ -883,8 +905,8 @@ let rec unfold_spec_functions stmts =
           | Sugar st -> 
             begin match st with
               | If (c, t1, t2) -> [Sugar (If (c, f t1, f t2))]
-              | SpecFunction (left, sf, throw_var, label_throw) -> 
-                [unfold_spec_function sf left throw_var label_throw]
+              | SpecFunction (left, sf, throw_var, label_throw, excep_label) -> 
+                unfold_spec_function sf left throw_var label_throw
             end
           | stmt -> [stmt]
   ) stmts)
@@ -1000,7 +1022,8 @@ let translate_function_expression exp params ctx named =
   
 let translate_has_instance f v ctx =
   let rv = fresh_r () in
-  let get_stmts, o = translate_get f (literal_builtin_field FPrototype) in
+  let o = fresh_r () in
+  let get_stmts = translate_get f (literal_builtin_field FPrototype) o in
   let proto = mk_assign_fresh (Lookup (v, literal_builtin_field FProto)) in
   let proto_o = mk_assign_fresh (ProtoO (Var proto.assign_left, Var o)) in
   [ Sugar (If (type_of_exp v (ObjectType None), 
@@ -1014,22 +1037,13 @@ let translate_has_instance f v ctx =
     ],
     [Basic (Assignment (mk_assign rv (Expression (Literal (Bool false)))))]))
   ], rv
-    
-let translate_has_property o p =
-  (* TODO use this in other places too *) 
-  let rv = fresh_r () in  
-  let assign_pi = mk_assign_fresh (ProtoF (o, p)) in 
-	[ Basic (Assignment assign_pi);
-	  Sugar (If (equal_empty_expr (Var assign_pi.assign_left),
-	    [Basic (Assignment (mk_assign rv (Expression(Literal (Bool false)))))],
-	    [Basic (Assignment (mk_assign rv (Expression(Literal (Bool true)))))])) 
-	], rv
   
 let translate_inc_dec f e op ctx =
   let r1_stmts, r1 = f e in
   let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
   let to_number_stmts, oldvalue = translate_to_number (Var r2) ctx in
-  let newvalue = mk_assign_fresh_e (BinOp (Var oldvalue, Arith op, (Literal (Num 1.0)))) in          
+  let newvalue = mk_assign_fresh_e (BinOp (Var oldvalue, Arith op, (Literal (Num 1.0)))) in     
+  let putvalue_stmts, _ = spec_func_call (PutValue (Var r1 , Var newvalue.assign_left)) ctx in  
     r1_stmts @  
     [Sugar (If (and_expr (is_vref_expr (Var r1))
                   (or_expr 
@@ -1038,10 +1052,8 @@ let translate_inc_dec f e op ctx =
       translate_error_throw LSError ctx.throw_var ctx.label_throw, 
       r2_stmts @  
       to_number_stmts @
-      [
-        Basic (Assignment newvalue);
-        translate_put_value (Var r1) (Var newvalue.assign_left) ctx.throw_var ctx.label_throw
-      ]))
+      [Basic (Assignment newvalue)] @ 
+      putvalue_stmts))
     ], oldvalue, newvalue.assign_left
 
 
@@ -1465,7 +1477,7 @@ let rec translate_exp ctx exp : statement list * variable =
                 let r3_stmts, r3 = f e2 in
                 let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
                 let r5_stmts, r5 = translate_to_string (Var r2) ctx in
-                let r6_stmts, r6 = translate_has_property (Var r4) (Var r5) in
+                let r6_stmts, r6 = spec_func_call (HasProperty (Var r4, Var r5)) ctx in
                 r1_stmts @ 
                 r2_stmts @ 
                 r3_stmts @ 
@@ -1524,7 +1536,7 @@ let rec translate_exp ctx exp : statement list * variable =
           let r3_stmts, r3 = spec_func_call (GetValue (Var r2)) ctx in
           let r4 = mk_assign_fresh_e (Field (Var r1)) in
           let gotothrow = translate_error_throw Lrep ctx.throw_var ctx.label_throw in
-          
+          let putvalue_stmts, _ = spec_func_call (PutValue (Var r1 , Var r3)) ctx in
             r1_stmts @
             r2_stmts @
             r3_stmts @
@@ -1538,7 +1550,7 @@ let rec translate_exp ctx exp : statement list * variable =
                     ], 
                     []))
             ] @
-            [translate_put_value (Var r1) (Var r3) ctx.throw_var ctx.label_throw], r3
+            putvalue_stmts, r3
         end
       
       | Parser_syntax.Array _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.1.4 Array Initialiser.")))
@@ -1569,6 +1581,7 @@ let rec translate_exp ctx exp : statement list * variable =
 				  let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
 				  let r5 = mk_assign_fresh_e (BinOp (Var r2, tr_bin_op (Parser_syntax.Arith aop), Var r4)) in
           let field = mk_assign_fresh_e (Field (Var r1)) in
+          let putvalue_stmts, _ = spec_func_call (PutValue (Var r1 , Var r5.assign_left)) ctx in
 				    r1_stmts @ 
 				    r2_stmts @ 
 				    r3_stmts @
@@ -1583,9 +1596,8 @@ let rec translate_exp ctx exp : statement list * variable =
                  translate_error_throw LSError ctx.throw_var ctx.label_throw, 
                  []))
               ],
-		          []));
-              translate_put_value (Var r1) (Var r5.assign_left) ctx.throw_var ctx.label_throw
-            ],
+		          []));] @
+            putvalue_stmts,
 				    r5.assign_left
 
       | Parser_syntax.Comma (e1, e2) -> 

@@ -229,11 +229,9 @@ let string_of_spec_function sf =
   match sf with
     | GetValue e -> Printf.sprintf "GetValue(%s)" (f e)
     | PutValue (e1, e2) -> Printf.sprintf "PutValue(%s, %s)" (f e1) (f e2)
-    | Get e -> Printf.sprintf "[[Get]](%s)" (f e)
-    | Put (e1, e2) -> Printf.sprintf "[[Put]](%s, %s)" (f e1) (f e2)
-    | HasProperty e -> Printf.sprintf "[[HasProperty]](%s)" (f e)
-    | Delete e -> Printf.sprintf "[[Delete]](%s)" (f e)
-    | DefaultValue e -> Printf.sprintf "[[DefaultValue]](%s)" (f e)
+    | Get (e1, e2) -> Printf.sprintf "[[Get]](%s, %s)" (f e1) (f e2)
+    | HasProperty (e1, e2) -> Printf.sprintf "[[HasProperty]](%s, %s)" (f e1) (f e2)
+    | DefaultValue (e, pt) -> Printf.sprintf "[[DefaultValue]](%s, %s)" (f e) (match pt with None -> "" | Some pt -> string_of_pulp_type pt)
     | ToPrimitive e -> Printf.sprintf "ToPrimitive(%s)" (f e)
     | ToBoolean e -> Printf.sprintf "ToBoolean(%s)" (f e)
     | ToNumber e -> Printf.sprintf "ToNumber(%s)" (f e)
@@ -262,8 +260,8 @@ and string_of_sugar t =
       (string_of_expression condition)
       (string_of_statement_list thenbranch)
       (string_of_statement_list elsebranch)
-    | SpecFunction (v, sf, throw_var, label_throw) -> Printf.sprintf "%s = %s with (%s, %s)" 
-      v (string_of_spec_function sf) throw_var label_throw
+    | SpecFunction (v, sf, throw_var, label_throw, excel_label) -> Printf.sprintf "%s = %s with (%s, %s, %s)" 
+      v (string_of_spec_function sf) throw_var label_throw excel_label
       
   
 let string_of_ctx_vars v = 
