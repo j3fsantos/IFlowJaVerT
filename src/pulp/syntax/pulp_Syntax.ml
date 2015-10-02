@@ -248,10 +248,11 @@ type specification_function =
   | Get of expression * expression
   | HasProperty of expression * expression
   | DefaultValue of expression * pulp_type option
-  | ToPrimitive of expression
+  (* TODO | InnerCall *)
+  | ToPrimitive of expression * pulp_type option
   | ToBoolean of expression
   | ToNumber of expression
-  | ToInteger of expression
+  | ToNumberPrim of expression
   | ToString of expression 
   | ToObject of expression
   | CheckObjectCoercible of expression

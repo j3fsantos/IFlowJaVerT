@@ -51,10 +51,10 @@ let get_vars_in_spec_functions sf =
   match sf with
     | GetValue e  
     | DefaultValue (e, _)
-    | ToPrimitive e 
+    | ToPrimitive (e, _) 
     | ToBoolean e 
-    | ToNumber e 
-    | ToInteger e 
+    | ToNumber e
+    | ToNumberPrim e 
     | ToString e 
     | ToObject e 
     | CheckObjectCoercible e 
@@ -112,10 +112,10 @@ let transform_expr_in_spec_funcs f sf =
     | Get (e1, e2) -> Get (f e1, f e2)
     | HasProperty (e1, e2) -> HasProperty (f e1, f e2)
     | DefaultValue (e, pt) -> DefaultValue (f e, pt)
-    | ToPrimitive e -> ToPrimitive (f e)
+    | ToPrimitive (e, pt) -> ToPrimitive (f e, pt)
     | ToBoolean e -> ToBoolean (f e)
     | ToNumber e -> ToNumber (f e)
-    | ToInteger e -> ToInteger (f e)
+    | ToNumberPrim e -> ToNumberPrim (f e)
     | ToString e -> ToString (f e)
     | ToObject e -> ToObject (f e)
     | CheckObjectCoercible e -> CheckObjectCoercible (f e)

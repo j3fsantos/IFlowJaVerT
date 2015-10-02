@@ -116,9 +116,25 @@ let spec_func_has_property arg1 arg2 ctx excep_label =
 let spec_func_default_value arg1 arg2 ctx excep_label = 
   let left = fresh_r () in
   Sugar (SpecFunction (left, (DefaultValue (arg1, arg2)), ctx.throw_var, ctx.label_throw, excep_label)), left
+   
+let spec_func_to_primitive arg1 arg2 ctx excep_label = 
+  let left = fresh_r () in
+  Sugar (SpecFunction (left, (ToPrimitive (arg1, arg2)), ctx.throw_var, ctx.label_throw, excep_label)), left
+  
+let spec_func_to_boolean arg ctx excep_label = 
+  let left = fresh_r () in
+  Sugar (SpecFunction (left, (ToBoolean arg), ctx.throw_var, ctx.label_throw, excep_label)), left
+  
+let spec_func_to_number arg ctx excep_label = 
+  let left = fresh_r () in
+  Sugar (SpecFunction (left, (ToNumber arg), ctx.throw_var, ctx.label_throw, excep_label)), left
+  
+let spec_func_to_number_prim arg ctx excep_label = 
+  let left = fresh_r () in
+  Sugar (SpecFunction (left, (ToNumberPrim arg), ctx.throw_var, ctx.label_throw, excep_label)), left
   
 let spec_func_call sp ctx =
-  let excep_label = "spec_call_excep." ^ (fresh_r ()) in
+  let excep_label = "spec_call_excep." ^ (fresh_r ()) in (* TODO some of the functions definetely fo not throw exceptions *)
   let exit_label = "spec_call_normal." ^ (fresh_r ()) in
   let sp_stmt, left = 
     match sp with
@@ -126,11 +142,11 @@ let spec_func_call sp ctx =
       | PutValue (e1, e2) -> spec_func_put_value e1 e2 ctx excep_label
       | Get (e1, e2) -> spec_func_get e1 e2 ctx excep_label
       | HasProperty (e1, e2) -> spec_func_has_property e1 e2 ctx excep_label
-      | DefaultValue (e, pt) -> spec_func_default_value e pt ctx excep_label
-      | ToPrimitive e -> raise (PulpNotImplemented "Unfolding Spec Function")
-      | ToBoolean e -> raise (PulpNotImplemented "Unfolding Spec Function")
-      | ToNumber e -> raise (PulpNotImplemented "Unfolding Spec Function")
-      | ToInteger e -> raise (PulpNotImplemented "Unfolding Spec Function")
+      | DefaultValue (e, pt) -> spec_func_default_value e pt ctx excep_label (* This not being used at the moment since only to_primitive is using it which is itself a primitive operation *)
+      | ToPrimitive (e, pt) -> spec_func_to_primitive e pt ctx excep_label
+      | ToBoolean e -> spec_func_to_boolean e ctx excep_label
+      | ToNumber e -> spec_func_to_number e ctx excep_label
+      | ToNumberPrim e -> spec_func_to_number_prim e ctx excep_label
       | ToString e -> raise (PulpNotImplemented "Unfolding Spec Function")
       | ToObject e -> spec_func_to_object e ctx excep_label
       | CheckObjectCoercible e -> raise (PulpNotImplemented "Unfolding Spec Function")
@@ -457,7 +473,7 @@ let translate_get o (* variable containing object *) p (* variable, string, or b
       [Basic (Assignment (mk_assign left (Expression(Var desc.assign_left))))]))
    ] 
   
-let translate_inner_call obj vthis args ctx =
+let translate_inner_call obj vthis args throw_var label_throw env_vars =
   (* TODO *)
   let rv = fresh_r () in
   let excep_label = "call_excep." ^ fresh_r () in
@@ -477,7 +493,7 @@ let translate_inner_call obj vthis args ctx =
   let env_stmts = Utils.flat_map (fun env -> 
     [
       Basic (Mutation (mk_mutation (Var fscope_eval.assign_left) (Literal (String env.func_id)) (Var (function_scope_name env.func_id))))
-    ]) ctx.env_vars in  
+    ]) env_vars in  
   let first_argument = match args with
     | [] -> Literal Undefined
     | arg :: tail -> arg in
@@ -519,16 +535,16 @@ let translate_inner_call obj vthis args ctx =
     ]));
     Goto exit_label;
     Label excep_label;
-    Basic (Assignment (mk_assign ctx.throw_var (Expression (Var rv))));
-    Goto ctx.label_throw;
+    Basic (Assignment (mk_assign throw_var (Expression (Var rv))));
+    Goto label_throw;
     Label exit_label; 
   ], rv
       
-let default_value_inner arg m rv exit_label next_label ctx =
+let default_value_inner arg m rv exit_label next_label throw_var label_throw =
   let r1 = fresh_r () in
   let r1_stmts = translate_get arg (Literal (String m)) r1 in
   let is_callable_stmt, is_callable = is_callable (Var r1) in
-  let r2_stmts, r2 = translate_inner_call (Var r1) arg [] ctx in
+  let r2_stmts, r2 = translate_inner_call (Var r1) arg [] throw_var label_throw [] in
   let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
   r1_stmts @                          
   [ is_callable_stmt;
@@ -541,39 +557,37 @@ let default_value_inner arg m rv exit_label next_label ctx =
     [Goto next_label]))
   ]
   
-let translate_default_value arg preftype ctx =
+let translate_default_value arg preftype rv throw_var label_throw =
   let first, second = 
     (* TODO change to enumeration *)
     (if preftype = (Some StringType) then "toString", "valueOf"
                                      else "valueOf", "toString") in
-  let rv = fresh_r () in
   let exit_label = fresh_r () in
   let next_label1 = fresh_r () in
   let next_label2 = fresh_r () in
-  let r1_stmts = default_value_inner arg first rv exit_label next_label1 ctx in
-  let r2_stmts = default_value_inner arg second rv exit_label next_label2 ctx in
+  let r1_stmts = default_value_inner arg first rv exit_label next_label1 throw_var label_throw in
+  let r2_stmts = default_value_inner arg second rv exit_label next_label2 throw_var label_throw in
   r1_stmts @
   [Label next_label1] @
   r2_stmts @
   [Label next_label2] @
-  translate_error_throw Ltep ctx.throw_var ctx.label_throw @
-  [Label exit_label], rv 
+  translate_error_throw Ltep throw_var label_throw @
+  [Label exit_label]
       
-let translate_to_primitive arg preftype ctx =
-  let rv = fresh_r () in
+let translate_to_primitive arg preftype rv throw_var label_throw =
   let assign_rv_expr var = [Basic (Assignment (mk_assign rv (Expression var)))] in
-  let r1_stmts, r1 = translate_default_value arg preftype ctx in
+  let r1 = fresh_r () in
+  let r1_stmts = translate_default_value arg preftype r1 throw_var label_throw in
   [
     Sugar (If (type_of_exp arg (ObjectType None),
     r1_stmts @ assign_rv_expr (Var r1),
     assign_rv_expr arg))
-  ], rv 
+  ] 
   
-let translate_to_number_prim arg ctx =
-  let rv = fresh_r () in
+let translate_to_number_prim arg rv =
   let assign_rv_expr e = [Basic (Assignment (mk_assign rv (Expression e)))] in
   let assign_rv_num v = assign_rv_expr (Literal (Num v)) in
-  Sugar (If (type_of_exp arg UndefinedType,
+  [Sugar (If (type_of_exp arg UndefinedType,
     assign_rv_num nan, (* TODO *)
     [ Sugar (If (type_of_exp arg NullType,
       assign_rv_num 0.0,
@@ -588,24 +602,28 @@ let translate_to_number_prim arg ctx =
           assign_rv_expr (UnaryOp (ToNumberOp, arg))))
         ]))
       ]))
-    ])), rv
+    ]))]
     
-let translate_abstract_relation x y leftfirst ctx =
-  let to_primitive_x, px = translate_to_primitive x (Some NumberType) ctx in
-  let to_primitive_y, py = translate_to_primitive y (Some NumberType) ctx in
+let translate_abstract_relation x y leftfirst throw_var label_throw =
+  let px = fresh_r () in
+  let to_primitive_x = translate_to_primitive x (Some NumberType) px throw_var label_throw in
+  let py = fresh_r () in
+  let to_primitive_y = translate_to_primitive y (Some NumberType) py throw_var label_throw in
   let to_prim_stmts =
     if leftfirst then (to_primitive_x @ to_primitive_y) 
                  else (to_primitive_y @ to_primitive_x) in
-  let to_number_x, nx = translate_to_number_prim (Var px) ctx in
-  let to_number_y, ny = translate_to_number_prim (Var py) ctx in
+  let nx = fresh_r () in
+  let to_number_x = translate_to_number_prim (Var px) nx in
+  let ny = fresh_r () in
+  let to_number_y = translate_to_number_prim (Var py) ny in
   let rv = fresh_r () in
   let assign_rv e = [Basic (Assignment (mk_assign rv (Expression e)))] in
   to_prim_stmts @
   [ Sugar (If (and_expr (type_of_exp (Var px) StringType) (type_of_exp (Var py) StringType),
       assign_rv (BinOp (Var px, Comparison LessThan, Var py)),
-      [ to_number_x; 
-        to_number_y;
-        Sugar (If (or_expr (equal_num_expr (Var nx) nan) (equal_num_expr (Var ny) nan),
+        to_number_x @
+        to_number_y @
+      [ Sugar (If (or_expr (equal_num_expr (Var nx) nan) (equal_num_expr (Var ny) nan),
           assign_rv (Literal Undefined),
           [ Sugar (If (or_expr 
                         (equal_exprs (Var nx) (Var ny))
@@ -625,10 +643,9 @@ let translate_abstract_relation x y leftfirst ctx =
       ]));
   ], rv
   
-let translate_to_boolean arg ctx =
-  let rv = fresh_r () in
+let translate_to_boolean arg rv =
   let assign_rv b = [Basic (Assignment (mk_assign rv (Expression (Literal (Bool b)))))] in
-  Sugar (If (or_expr 
+  [Sugar (If (or_expr 
             (equal_undef_expr arg)
             (or_expr 
               (equal_null_expr arg)
@@ -642,24 +659,24 @@ let translate_to_boolean arg ctx =
                       (equal_num_expr arg nan) 
                       (equal_num_expr arg 0.0)))))),
     assign_rv false,
-    assign_rv true)), rv
+    assign_rv true))]
     
-let translate_to_number arg ctx = 
+let translate_to_number arg rv throw_var label_throw = 
   let r2 = fresh_r () in
-  let to_primitive, primValue = translate_to_primitive arg (Some NumberType) ctx in
-  let to_number, r1 = translate_to_number_prim (Var r2) ctx in
-  let rv = fresh_r () in
+  let primValue = fresh_r () in
+  let to_primitive = translate_to_primitive arg (Some NumberType) primValue throw_var label_throw in
+  let r1 = fresh_r () in
+  let to_number = translate_to_number_prim (Var r2) r1 in
   let assign_rv_var var = Basic (Assignment (mk_assign rv (Expression (Var var)))) in
   let assign_r2_var var = [Basic (Assignment (mk_assign r2 (Expression var)))] in
-  [
-    Sugar (If (type_of_exp arg (ObjectType None),
+  [ Sugar (If (type_of_exp arg (ObjectType None),
       to_primitive @ (assign_r2_var (Var primValue)),
-      (assign_r2_var arg)));
-    to_number;
-    assign_rv_var r1
-  ], rv
+      (assign_r2_var arg))); 
+  ] @
+    to_number @
+  [ assign_rv_var r1 ]
     
-let rec translate_to_string_prim arg ctx =
+let rec translate_to_string_prim arg =
   let rv = fresh_r () in  
   let assign_rv_expr e = [Basic (Assignment (mk_assign rv (Expression e)))] in
   let assign_rv_str v = assign_rv_expr (Literal (String v)) in
@@ -680,10 +697,11 @@ let rec translate_to_string_prim arg ctx =
         ]))
       ])), rv
       
-let translate_to_string arg ctx = 
+let translate_to_string arg throw_var label_throw = 
   let r2 = fresh_r () in
-  let to_primitive, primValue = translate_to_primitive arg (Some StringType) ctx in
-  let to_string, r1 = translate_to_string_prim (Var r2) ctx in
+  let primValue = fresh_r () in
+  let to_primitive = translate_to_primitive arg (Some StringType) primValue throw_var label_throw in
+  let to_string, r1 = translate_to_string_prim (Var r2) in
   let rv = fresh_r () in
   let assign_rv_var var = Basic (Assignment (mk_assign rv (Expression (Var var)))) in
   let assign_r2_var var = [Basic (Assignment (mk_assign r2 (Expression var)))] in
@@ -700,8 +718,8 @@ let translate_to_number_bin_op f op e1 e2 ctx =
   let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
   let r3_stmts, r3 = f e2 in
   let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
-  let r5_stmts, r5 = translate_to_number (Var r2) ctx in
-  let r6_stmts, r6 = translate_to_number (Var r4) ctx in 
+  let r5_stmts, r5 = spec_func_call (ToNumber (Var r2)) ctx in
+  let r6_stmts, r6 = spec_func_call (ToNumber (Var r4)) ctx in 
   let r7 = mk_assign_fresh_e (BinOp (Var r5, tr_bin_op op, Var r6)) in
     r1_stmts @ 
     r2_stmts @ 
@@ -717,8 +735,8 @@ let translate_bitwise_bin_op f op e1 e2 ctx =
   let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
   let r3_stmts, r3 = f e2 in
   let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
-  let r2_to_number, r2_number = translate_to_number (Var r2) ctx in
-  let r4_to_number, r4_number = translate_to_number (Var r4) ctx in
+  let r2_to_number, r2_number = spec_func_call (ToNumber (Var r2)) ctx in
+  let r4_to_number, r4_number = spec_func_call (ToNumber (Var r4)) ctx in
   let r5 = mk_assign_fresh_e (UnaryOp (ToInt32Op, Var r2_number)) in
   let r6 = mk_assign_fresh_e (UnaryOp (ToInt32Op, Var r4_number)) in
   let r7 = mk_assign_fresh_e (BinOp (Var r5.assign_left, tr_bin_op op, Var r6.assign_left)) in
@@ -739,8 +757,8 @@ let translate_bitwise_shift f op1 op2 op3 e1 e2 ctx =
   let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
   let r3_stmts, r3 = f e2 in
   let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
-  let r2_to_number, r2_number = translate_to_number (Var r2) ctx in
-  let r4_to_number, r4_number = translate_to_number (Var r4) ctx in
+  let r2_to_number, r2_number = spec_func_call (ToNumber (Var r2)) ctx in
+  let r4_to_number, r4_number = spec_func_call (ToNumber (Var r4)) ctx in
   let r5 = mk_assign_fresh_e (UnaryOp (op1, Var r2_number)) in
   let r6 = mk_assign_fresh_e (UnaryOp (op2, Var r4_number)) in
   let r7 = mk_assign_fresh_e (BinOp (Var r5.assign_left, Bitwise op3, Var r6.assign_left)) in
@@ -766,17 +784,17 @@ let translate_regular_bin_op f op e1 e2 ctx =
   let exit_label = fresh_r () in
   let types_equal_stmts_1 = translate_strict_equality_comparison_types_equal (Var r2) (Var r4) rv in
   let y1_to_prim = fresh_r () in
-  let to_primitive_y1, y1_prim = translate_to_primitive (Var r4) None ctx in
+  let to_primitive_y1, y1_prim = spec_func_call (ToPrimitive (Var r4, None)) ctx in
   let x1_to_prim = fresh_r () in
-  let to_primitive_x1, x1_prim = translate_to_primitive (Var r2) None ctx in
+  let to_primitive_x1, x1_prim = spec_func_call (ToPrimitive (Var r2, None)) ctx in
   let x2_to_number = fresh_r () in
-  let to_number_x2, x2_number = translate_to_number_prim (Var x1_to_prim) ctx in
+  let to_number_x2, x2_number = spec_func_call (ToNumberPrim (Var x1_to_prim)) ctx in
   let y2_to_number = fresh_r () in
-  let to_number_y2, y2_number = translate_to_number_prim (Var y1_to_prim) ctx in
+  let to_number_y2, y2_number = spec_func_call (ToNumberPrim (Var y1_to_prim)) ctx in
   let y3 = fresh_r () in
-  let to_number_y3, y3_number = translate_to_number_prim (Var y2_to_number) ctx in
+  let to_number_y3, y3_number = spec_func_call (ToNumberPrim (Var y2_to_number)) ctx in
   let x3 = fresh_r () in
-  let to_number_x3, x3_number = translate_to_number_prim (Var x2_to_number) ctx in
+  let to_number_x3, x3_number = spec_func_call (ToNumberPrim (Var x2_to_number)) ctx in
   let types_equal_stmts_2 = translate_strict_equality_comparison_types_equal (Var x3) (Var y3) rv in
     r1_stmts @ 
     r2_stmts @ 
@@ -793,10 +811,10 @@ let translate_regular_bin_op f op e1 e2 ctx =
 		          to_primitive_x1 @ [assign_rv x1_to_prim (Var x1_prim)],
 		          [assign_rv x1_to_prim (Var r2)]));
 		      Sugar (If (type_of_exp (Var x1_to_prim) BooleanType,
-		        [ to_number_x2] @ [assign_rv x2_to_number (Var x2_number)],
+		        to_number_x2 @ [assign_rv x2_to_number (Var x2_number)],
             [ assign_rv x2_to_number (Var x1_to_prim)]));
 		      Sugar (If (type_of_exp (Var y1_to_prim) BooleanType,
-		          [ to_number_y2] @ [assign_rv y2_to_number (Var y2_number)],
+		          to_number_y2 @ [assign_rv y2_to_number (Var y2_number)],
               [ assign_rv y2_to_number (Var y1_to_prim)]));
           Sugar (If (or_expr 
                     (and_expr (equal_null_expr (Var x2_to_number)) (equal_undef_expr (Var y2_to_number))) 
@@ -804,10 +822,10 @@ let translate_regular_bin_op f op e1 e2 ctx =
             [assign_rv rv (Literal (Bool true))] @ [Goto exit_label],
             []));
           Sugar (If (and_expr (type_of_exp (Var x2_to_number) NumberType) (type_of_exp (Var y2_to_number) StringType),
-              [ to_number_y3] @ [assign_rv y3 (Var y3_number)],
+              to_number_y3 @ [assign_rv y3 (Var y3_number)],
               [ assign_rv y3 (Var y2_to_number)]));
           Sugar (If (and_expr (type_of_exp (Var x2_to_number) StringType) (type_of_exp (Var y2_to_number) NumberType),
-             [ to_number_x3] @ [assign_rv x3 (Var x3_number)],
+              to_number_x3 @ [assign_rv x3 (Var x3_number)],
              [ assign_rv x3 (Var x2_to_number)]));
           Sugar (If (equal_exprs (TypeOf (Var x3)) (TypeOf (Var y3)),
             types_equal_stmts_2 @ [Goto exit_label],
@@ -829,12 +847,12 @@ let translate_bin_op_plus f op e1 e2 ctx =
   let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
   let r3_stmts, r3 = f e2 in
   let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
-  let r5_stmts, lprim = translate_to_primitive (Var r2) None ctx in
-  let r6_stmts, rprim = translate_to_primitive (Var r4) None ctx in
-  let r7_stmt, lstring = translate_to_string_prim (Var lprim) ctx in
-  let r8_stmt, rstring = translate_to_string_prim (Var rprim) ctx in  
-  let r9_stmt, lnum = translate_to_number_prim (Var lprim) ctx in
-  let r10_stmt, rnum = translate_to_number_prim (Var rprim) ctx in
+  let r5_stmts, lprim = spec_func_call (ToPrimitive (Var r2, None)) ctx in
+  let r6_stmts, rprim = spec_func_call (ToPrimitive (Var r4, None)) ctx in
+  let r7_stmt, lstring = translate_to_string_prim (Var lprim) in
+  let r8_stmt, rstring = translate_to_string_prim (Var rprim) in  
+  let r9_stmt, lnum = spec_func_call (ToNumberPrim (Var lprim)) ctx in
+  let r10_stmt, rnum = spec_func_call (ToNumberPrim (Var rprim)) ctx in
   let rv = fresh_r () in
   let assign_rv_expr e = Basic (Assignment (mk_assign rv (Expression e))) in
     r1_stmts @ 
@@ -847,7 +865,7 @@ let translate_bin_op_plus f op e1 e2 ctx =
                   (type_of_exp (Var lprim) StringType)
                   (type_of_exp (Var rprim) StringType),
       [r7_stmt; r8_stmt; assign_rv_expr (BinOp (Var lstring, Concat, Var rstring))],
-      [r9_stmt; r10_stmt; assign_rv_expr (BinOp (Var lnum, Arith Plus, Var rnum))]))
+      r9_stmt @ r10_stmt @ [assign_rv_expr (BinOp (Var lnum, Arith Plus, Var rnum))]))
     ], rv
   
    
@@ -858,11 +876,11 @@ let translate_bin_op_logical f e1 e2 bop ctx =
   let rv = fresh_r () in
   let r3_stmts, r3 = f e2 in
   let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
-  let to_boolean, r5 = translate_to_boolean (Var r2) ctx in
+  let to_boolean, r5 = spec_func_call (ToBoolean (Var r2)) ctx in
     r1_stmts @  
     r2_stmts @  
+    to_boolean @
     [
-      to_boolean;
       Sugar (If ((if (op = And) then (equal_bool_expr (Var r5) false) else (equal_bool_expr (Var r5) true)), 
         [Basic (Assignment (mk_assign rv (Expression (Var r2))))], 
 	      r3_stmts @  
@@ -885,11 +903,11 @@ let unfold_spec_function sf left throw_var label_throw =
     | PutValue (e1, e2) -> translate_put_value e1 e2 throw_var label_throw
     | Get (e1, e2) -> translate_get e1 e2 left
     | HasProperty (e1, e2) -> translate_has_property e1 e2 left
-    | DefaultValue (e, pt) -> raise (PulpNotImplemented "Unfolding Spec Function")
-    | ToPrimitive e -> raise (PulpNotImplemented "Unfolding Spec Function")
-    | ToBoolean e -> raise (PulpNotImplemented "Unfolding Spec Function")
-    | ToNumber e -> raise (PulpNotImplemented "Unfolding Spec Function")
-    | ToInteger e -> raise (PulpNotImplemented "Unfolding Spec Function")
+    | DefaultValue (e, pt) -> translate_default_value e pt left throw_var label_throw
+    | ToPrimitive (e, pt) -> translate_to_primitive e pt left throw_var label_throw
+    | ToBoolean e -> translate_to_boolean e left
+    | ToNumber e -> translate_to_number e left throw_var label_throw
+    | ToNumberPrim e -> translate_to_number_prim e left
     | ToString e -> raise (PulpNotImplemented "Unfolding Spec Function")
     | ToObject e -> translate_to_object e left throw_var label_throw
     | CheckObjectCoercible e -> raise (PulpNotImplemented "Unfolding Spec Function")
@@ -1041,7 +1059,7 @@ let translate_has_instance f v ctx =
 let translate_inc_dec f e op ctx =
   let r1_stmts, r1 = f e in
   let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
-  let to_number_stmts, oldvalue = translate_to_number (Var r2) ctx in
+  let to_number_stmts, oldvalue = spec_func_call (ToNumber (Var r2)) ctx in
   let newvalue = mk_assign_fresh_e (BinOp (Var oldvalue, Arith op, (Literal (Num 1.0)))) in     
   let putvalue_stmts, _ = spec_func_call (PutValue (Var r1 , Var newvalue.assign_left)) ctx in  
     r1_stmts @  
@@ -1093,7 +1111,7 @@ let rec translate_exp ctx exp : statement list * variable =
                       | Parser_syntax.PropnameNum f -> 
                         begin
                           let f_var = mk_assign_fresh_e (Literal (Num f)) in
-                          let propname_to_string, lvar = translate_to_string_prim (Var f_var.assign_left) ctx in 
+                          let propname_to_string, lvar = translate_to_string_prim (Var f_var.assign_left) in 
                           [ Basic (Assignment f_var);
                             propname_to_string ], Var lvar
                         end in
@@ -1130,7 +1148,7 @@ let rec translate_exp ctx exp : statement list * variable =
           let r3_stmts, r3 = f e2 in
           let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
           let r5_stmts, r5 = translate_obj_coercible (Var r2) ctx in
-          let r4_to_string, r4_string = translate_to_string (Var r4) ctx in
+          let r4_to_string, r4_string = translate_to_string (Var r4) ctx.throw_var ctx.label_throw in
           let r6 = mk_assign_fresh_e (Ref (Var r2, Var r4_string, MemberReference)) in
             r1_stmts @ 
             r2_stmts @
@@ -1145,7 +1163,7 @@ let rec translate_exp ctx exp : statement list * variable =
         let prototype = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FPrototype)) in        
         let vthisproto = fresh_r () in
         let vthis = mk_assign_fresh Obj in
-        let if3, call_lvar = translate_inner_call (Var r2) (Var vthis.assign_left) arg_values ctx in (* TODO Construct vs. Call *)    
+        let if3, call_lvar = translate_inner_call (Var r2) (Var vthis.assign_left) arg_values ctx.throw_var ctx.label_throw [] (* Cannot be new eval *) in (* TODO Construct vs. Call *)    
         let rv = fresh_r () in  
         let excep_label = fresh_r () in
         let exit_label = fresh_r () in
@@ -1189,7 +1207,7 @@ let rec translate_exp ctx exp : statement list * variable =
         let stmts, r1, r2, arg_values = translate_call_construct_start f e1 e2s ctx false in
               let vthis = fresh_r () in
               let assign_vthis_und = Basic (Assignment (mk_assign vthis (Expression (Literal Undefined)))) in
-              let if5, call = translate_inner_call (Var r2) (Var vthis) arg_values ctx in
+              let if5, call = translate_inner_call (Var r2) (Var vthis) arg_values ctx.throw_var ctx.label_throw ctx.env_vars in
           stmts @ 
           [
             Sugar (If (is_ref_expr (Var r1), 
@@ -1216,7 +1234,7 @@ let rec translate_exp ctx exp : statement list * variable =
             let r1_stmts, r1 = f e in
             let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
             let rv = fresh_r () in 
-            let to_boolean, r3 = translate_to_boolean (Var r2) ctx in
+            let to_boolean, r3 = spec_func_call (ToBoolean (Var r2)) ctx in
             let if1 = 
               Sugar (If (equal_bool_expr (Var r3) false, 
                 [
@@ -1227,7 +1245,8 @@ let rec translate_exp ctx exp : statement list * variable =
                 ])) in
                 r1_stmts @
                 r2_stmts @
-            [to_boolean; if1], rv
+                to_boolean @
+                [if1], rv
           | Parser_syntax.TypeOf -> 
             begin
               let rv = fresh_r () in
@@ -1281,14 +1300,14 @@ let rec translate_exp ctx exp : statement list * variable =
 					| Parser_syntax.Positive -> 
             let r1_stmts, r1 = f e in
             let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
-            let r3_stmts, r3 = translate_to_number (Var r2) ctx in
+            let r3_stmts, r3 = spec_func_call (ToNumber (Var r2)) ctx in
             r1_stmts @
             r2_stmts @
             r3_stmts, r3
 					| Parser_syntax.Negative -> 
             let r1_stmts, r1 = f e in
             let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
-            let r3_stmts, r3 = translate_to_number (Var r2) ctx in
+            let r3_stmts, r3 = spec_func_call (ToNumber (Var r2)) ctx in
             let rv = fresh_r () in
             let assign_rv n = [Basic (Assignment (mk_assign rv (Expression n)))] in
             let negative = mk_assign_fresh_e (UnaryOp (Negative, (Var r3))) in
@@ -1315,7 +1334,7 @@ let rec translate_exp ctx exp : statement list * variable =
 		      | Parser_syntax.Bitnot -> 
             let r1_stmts, r1 = f e in
             let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
-            let r2_to_number, r2_number = translate_to_number (Var r2) ctx in
+            let r2_to_number, r2_number = spec_func_call (ToNumber (Var r2)) ctx in
             let r3 = mk_assign_fresh_e (UnaryOp (ToInt32Op, Var r2_number)) in
             let r4 = mk_assign_fresh_e (UnaryOp (BitwiseNot, Var r3.assign_left)) in
             r1_stmts @
@@ -1408,7 +1427,7 @@ let rec translate_exp ctx exp : statement list * variable =
 								  let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
 								  let r3_stmts, r3 = f e2 in
 								  let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
-                  let r5_stmts, r5 = translate_abstract_relation (Var r2) (Var r4) true ctx in
+                  let r5_stmts, r5 = translate_abstract_relation (Var r2) (Var r4) true ctx.throw_var ctx.label_throw in
                   let rv = fresh_r() in
                   let assign_rv v = Basic (Assignment (mk_assign rv (Expression v))) in                  
 								    r1_stmts @ 
@@ -1425,7 +1444,7 @@ let rec translate_exp ctx exp : statement list * variable =
                   let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
                   let r3_stmts, r3 = f e2 in
                   let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
-                  let r5_stmts, r5 = translate_abstract_relation (Var r4) (Var r2) false ctx in
+                  let r5_stmts, r5 = translate_abstract_relation (Var r4) (Var r2) false ctx.throw_var ctx.label_throw in
                   let rv = fresh_r() in
                   let assign_rv v = Basic (Assignment (mk_assign rv (Expression v))) in                  
                     r1_stmts @ 
@@ -1442,7 +1461,7 @@ let rec translate_exp ctx exp : statement list * variable =
                   let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
                   let r3_stmts, r3 = f e2 in
                   let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
-                  let r5_stmts, r5 = translate_abstract_relation (Var r4) (Var r2) false ctx in
+                  let r5_stmts, r5 = translate_abstract_relation (Var r4) (Var r2) false ctx.throw_var ctx.label_throw in
                   let rv = fresh_r() in
                   let assign_rv v = Basic (Assignment (mk_assign rv (Expression v))) in                  
                     r1_stmts @ 
@@ -1459,7 +1478,7 @@ let rec translate_exp ctx exp : statement list * variable =
                   let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
                   let r3_stmts, r3 = f e2 in
                   let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
-                  let r5_stmts, r5 = translate_abstract_relation (Var r2) (Var r4) true ctx in
+                  let r5_stmts, r5 = translate_abstract_relation (Var r2) (Var r4) true ctx.throw_var ctx.label_throw in
                   let rv = fresh_r() in
                   let assign_rv v = Basic (Assignment (mk_assign rv (Expression v))) in                  
                     r1_stmts @ 
@@ -1476,7 +1495,7 @@ let rec translate_exp ctx exp : statement list * variable =
                 let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
                 let r3_stmts, r3 = f e2 in
                 let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
-                let r5_stmts, r5 = translate_to_string (Var r2) ctx in
+                let r5_stmts, r5 = translate_to_string (Var r2) ctx.throw_var ctx.label_throw in
                 let r6_stmts, r6 = spec_func_call (HasProperty (Var r4, Var r5)) ctx in
                 r1_stmts @ 
                 r2_stmts @ 
@@ -1561,18 +1580,18 @@ let rec translate_exp ctx exp : statement list * variable =
         let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
         let r5_stmts, r5 = f e3 in
         let r6_stmts, r6 = spec_func_call (GetValue (Var r5)) ctx in
-        let to_boolean, r7 = translate_to_boolean (Var r2) ctx in
+        let to_boolean, r7 = spec_func_call (ToBoolean (Var r2)) ctx in
         let rv = fresh_r () in     
           r1_stmts @
           r2_stmts @ 
-          [ to_boolean;
-            Sugar (If (equal_bool_expr (Var r7) true, 
-                r3_stmts @ 
-                r4_stmts @ 
-                [Basic (Assignment (mk_assign rv (Expression (Var r4))))], 
-                r5_stmts @
-                r6_stmts @ 
-                [Basic (Assignment (mk_assign rv (Expression (Var r6))))]))
+          to_boolean @
+          [ Sugar (If (equal_bool_expr (Var r7) true, 
+            r3_stmts @ 
+            r4_stmts @ 
+            [Basic (Assignment (mk_assign rv (Expression (Var r4))))], 
+            r5_stmts @
+            r6_stmts @ 
+            [Basic (Assignment (mk_assign rv (Expression (Var r6))))]))
           ], rv
       | Parser_syntax.AssignOp (e1, aop, e2) -> 
           let r1_stmts, r1 = f e1 in
@@ -1706,7 +1725,7 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
         let r1_stmts, r1 = translate_exp ctx e1 in
         let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
         let r3_stmts, r3 = f e2 in
-        let to_boolean, r5 = translate_to_boolean (Var r2) ctx in
+        let to_boolean, r5 = spec_func_call (ToBoolean  (Var r2)) ctx in
         let elsebranch = match e3 with
           | Some e3 -> 
             let r4_stmts, r4 = f e3 in
@@ -1714,11 +1733,10 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
           | None -> [] in      
           r1_stmts @ 
           r2_stmts @ 
-          [ 
-            to_boolean;
-            Sugar (If (equal_bool_expr (Var r5) true, 
-                r3_stmts, 
-                elsebranch))
+          to_boolean @
+          [ Sugar (If (equal_bool_expr (Var r5) true, 
+              r3_stmts, 
+              elsebranch))
           ], ret_def
            
       | Parser_syntax.While (e1, e2) ->
@@ -1731,21 +1749,17 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
           label_break = (("", break) :: (List.map (fun l -> (l, break)) labelset)) @ ctx.label_break
         } in
         let r3_stmts, r3 = translate_stmt new_ctx [] e2 in
-        let to_boolean, r4 = translate_to_boolean (Var r2) ctx in
+        let to_boolean, r4 = spec_func_call (ToBoolean (Var r2)) ctx in
           [
             Label continue
           ] @ 
           r1_stmts @ 
           r2_stmts @ 
-          [
-            to_boolean;
-            Sugar (If (equal_bool_expr (Var r4) true, 
-                r3_stmts @ 
-                [ 
-                  Goto continue
-                ], 
-                
-                []));
+          to_boolean @
+          [ Sugar (If (equal_bool_expr (Var r4) true, 
+              r3_stmts @ 
+              [ Goto continue ],                 
+              []));
             Label break
           ], ret_def
           
@@ -1761,20 +1775,17 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
         let r3_stmts, r3 = translate_stmt new_ctx [] e1 in
         let r1_stmts, r1 = translate_exp ctx e2 in
         let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
-        let to_boolean, r4 = translate_to_boolean (Var r2) ctx in
+        let to_boolean, r4 = spec_func_call (ToBoolean (Var r2)) ctx in
           [
             Basic (Assignment (mk_assign iterating (Expression (Literal (Bool true)))));
             Label label1;
             Sugar (If (equal_bool_expr (Var iterating) true, 
                 r3_stmts @ 
-                [ 
-                  Label continue
-                ] @
+                [ Label continue ] @
                 r1_stmts @ 
                 r2_stmts @ 
-                [
-                  to_boolean;    
-                  Sugar (If (equal_bool_expr (Var r4) false,
+                to_boolean @
+                [ Sugar (If (equal_bool_expr (Var r4) false,
                     [Basic (Assignment (mk_assign iterating (Expression (Literal (Bool false)))))],
                     []));
                   Goto label1
@@ -2014,9 +2025,7 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
 		    
 				let r23_stmts, r23 = match e2 with
 				   | None -> [ ], r_test_none
-					 | Some e -> 
-						  let r23_stmt, r231 = translate_to_boolean (Var r22) ctx in
-							   [ r23_stmt ], r231 in
+					 | Some e -> spec_func_call (ToBoolean (Var r22)) ctx in
 					
 				let r3_stmts, _ = match e3 with 
 				   | None -> [ ], r_incr_none (* Basic (Assignment (mk_assign r_incr_none (Expression (Literal (Empty))))) *)
@@ -2148,11 +2157,11 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
 let builtin_call_boolean_call () =
   let v = fresh_r () in
   let ctx = create_ctx [] in
-  let stmt, r1 = translate_to_boolean (Var v) ctx in
+  let stmts, r1 = spec_func_call (ToBoolean (Var v)) ctx in
   let body = to_ivl_goto_unfold (* TODO translation level *)
     [ Sugar (If (equal_empty_expr (Var v),
        [ Basic (Assignment (mk_assign r1 (Expression (Literal (Bool false)))))],
-       [stmt]));
+       stmts));
       Basic (Assignment (mk_assign ctx.return_var (Expression (Var r1))));
       Goto ctx.label_return; 
       Label ctx.label_return; 
@@ -2164,14 +2173,14 @@ let builtin_call_boolean_construct () =
   let v = fresh_r () in
   let ctx = create_ctx [] in
   let new_obj = mk_assign_fresh Obj in
-  let stmt, r1 = translate_to_boolean (Var v) ctx in
+  let stmts, r1 = spec_func_call (ToBoolean (Var v)) ctx in
   let body = to_ivl_goto_unfold (* TODO translation level *)
     [ Basic (Assignment new_obj);
       add_proto_value new_obj.assign_left Lbp;
       Basic (Mutation (mk_mutation (Var new_obj.assign_left) (literal_builtin_field FClass) (Literal (String "Boolean"))));
       Sugar (If (equal_empty_expr (Var v),
        [ Basic (Assignment (mk_assign r1 (Expression (Literal (Bool false)))))],
-       [stmt]));
+       stmts));
       Basic (Mutation (mk_mutation (Var new_obj.assign_left) (literal_builtin_field FPrimitiveValue) (Var r1)));
       Basic (Assignment (mk_assign ctx.return_var (Expression (Var new_obj.assign_left))));
       Goto ctx.label_return; 
@@ -2366,7 +2375,7 @@ let builtin_lfp_call () =
 let builtin_call_number_call () =
   let v = fresh_r () in
   let ctx = create_ctx [] in
-  let stmts, r1 = translate_to_number (Var v) ctx in 
+  let stmts, r1 = spec_func_call (ToNumber (Var v)) ctx in 
   let body = to_ivl_goto_unfold (* TODO translation level *)
     ([ 
       Sugar (If (equal_empty_expr (Var v),
@@ -2383,7 +2392,7 @@ let builtin_call_number_construct () =
   let v = fresh_r () in
   let ctx = create_ctx [] in
   let new_obj = mk_assign_fresh Obj in
-  let stmts, r1 = translate_to_number (Var v) ctx in
+  let stmts, r1 = spec_func_call (ToNumber (Var v)) ctx in
   let body = to_ivl_goto_unfold (* TODO translation level *)
     ([ Basic (Assignment new_obj);
        add_proto_value new_obj.assign_left Lnp;
@@ -2448,7 +2457,7 @@ let builtin_lnp_valueOf () =
 let builtin_global_is_nan () =
   let n = fresh_r () in
   let ctx = create_ctx [] in
-  let stmts, r1 = translate_to_number (Var n) ctx in 
+  let stmts, r1 = spec_func_call (ToNumber (Var n)) ctx in 
   let body = to_ivl_goto_unfold (* TODO translation level *)
     (stmts @
     [ Sugar (If (equal_num_expr (Var r1) nan,
@@ -2464,7 +2473,7 @@ let builtin_global_is_nan () =
 let builtin_global_is_finite () =
   let n = fresh_r () in
   let ctx = create_ctx [] in
-  let stmts, r1 = translate_to_number (Var n) ctx in 
+  let stmts, r1 = spec_func_call (ToNumber (Var n)) ctx in 
   let body = to_ivl_goto_unfold (* TODO translation level *)
     (stmts @
     [ Sugar (If (or_expr 
@@ -2484,7 +2493,7 @@ let builtin_global_is_finite () =
 let builtin_call_string_call () =
   let v = fresh_r () in
   let ctx = create_ctx [] in
-  let stmts, r1 = translate_to_string (Var v) ctx in 
+  let stmts, r1 = translate_to_string (Var v) ctx.throw_var ctx.label_throw in 
   let body = to_ivl_goto_unfold (* TODO translation level *)
    [ Sugar (If (equal_empty_expr (Var v),
        [ Basic (Assignment (mk_assign r1 (Expression (Literal (String "")))))],
@@ -2500,7 +2509,7 @@ let builtin_call_string_construct () =
   let v = fresh_r () in
   let ctx = create_ctx [] in
   let new_obj = mk_assign_fresh Obj in
-  let stmts, r1 = translate_to_string (Var v) ctx in 
+  let stmts, r1 = translate_to_string (Var v) ctx.throw_var ctx.label_throw in 
   let body = to_ivl_goto_unfold (* TODO translation level *)
     ([ Basic (Assignment new_obj);
       add_proto_value new_obj.assign_left Lsp;
