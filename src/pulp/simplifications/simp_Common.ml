@@ -56,15 +56,16 @@ let get_vars_in_spec_functions sf =
     | ToNumber e
     | ToNumberPrim e 
     | ToString e 
+    | ToStringPrim e 
     | ToObject e 
     | CheckObjectCoercible e 
     | IsCallable e -> f e
     | Get (e1, e2)
     | HasProperty (e1, e2)
     | PutValue (e1, e2)  
-    | SameValue (e1, e2) 
-    | AbstractEquality (e1, e2) 
-    | StrictEquality (e1, e2) -> (f e1) @ (f e2)
+    | AbstractEquality (e1, e2, _) 
+    | StrictEquality (e1, e2)
+    | StrictEqualitySameType (e1, e2) -> (f e1) @ (f e2)
 
 let rec get_vars_in_stmt stmt = 
   match stmt with
@@ -117,13 +118,14 @@ let transform_expr_in_spec_funcs f sf =
     | ToNumber e -> ToNumber (f e)
     | ToNumberPrim e -> ToNumberPrim (f e)
     | ToString e -> ToString (f e)
+    | ToStringPrim e -> ToStringPrim (f e)
     | ToObject e -> ToObject (f e)
     | CheckObjectCoercible e -> CheckObjectCoercible (f e)
     | IsCallable e -> IsCallable (f e)
     | PutValue (e1, e2) -> PutValue (f e1, f e2)
-    | SameValue (e1, e2) -> SameValue (f e1, f e2)
-    | AbstractEquality (e1, e2) -> AbstractEquality (f e1, f e2)
+    | AbstractEquality (e1, e2, b) -> AbstractEquality (f e1, f e2, b)
     | StrictEquality (e1, e2) -> StrictEquality (f e1, f e2)
+    | StrictEqualitySameType (e1, e2) -> StrictEqualitySameType (f e1, f e2)
 
 let transform_expr_in_assign_expr f e =
   match e with

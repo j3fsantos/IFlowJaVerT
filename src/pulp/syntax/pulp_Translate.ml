@@ -133,6 +133,34 @@ let spec_func_to_number_prim arg ctx excep_label =
   let left = fresh_r () in
   Sugar (SpecFunction (left, (ToNumberPrim arg), ctx.throw_var, ctx.label_throw, excep_label)), left
   
+let spec_func_to_string arg ctx excep_label = 
+  let left = fresh_r () in
+  Sugar (SpecFunction (left, (ToString arg), ctx.throw_var, ctx.label_throw, excep_label)), left
+  
+let spec_func_to_string_prim arg ctx excep_label = 
+  let left = fresh_r () in
+  Sugar (SpecFunction (left, (ToStringPrim arg), ctx.throw_var, ctx.label_throw, excep_label)), left
+  
+let spec_func_check_obj_coer arg ctx excep_label = 
+  let left = fresh_r () in
+  Sugar (SpecFunction (left, (CheckObjectCoercible arg), ctx.throw_var, ctx.label_throw, excep_label)), left
+  
+let spec_func_is_callable arg ctx excep_label = 
+  let left = fresh_r () in
+  Sugar (SpecFunction (left, (IsCallable arg), ctx.throw_var, ctx.label_throw, excep_label)), left
+  
+let spec_func_abstract_equality arg1 arg2 arg3 ctx excep_label = 
+  let left = fresh_r () in
+  Sugar (SpecFunction (left, (AbstractEquality (arg1, arg2, arg3)), ctx.throw_var, ctx.label_throw, excep_label)), left
+  
+let spec_func_strict_equality arg1 arg2 ctx excep_label = 
+  let left = fresh_r () in
+  Sugar (SpecFunction (left, (StrictEquality (arg1, arg2)), ctx.throw_var, ctx.label_throw, excep_label)), left
+  
+let spec_func_strict_equality_same_type arg1 arg2 ctx excep_label = 
+  let left = fresh_r () in
+  Sugar (SpecFunction (left, (StrictEqualitySameType (arg1, arg2)), ctx.throw_var, ctx.label_throw, excep_label)), left
+  
 let spec_func_call sp ctx =
   let excep_label = "spec_call_excep." ^ (fresh_r ()) in (* TODO some of the functions definetely fo not throw exceptions *)
   let exit_label = "spec_call_normal." ^ (fresh_r ()) in
@@ -147,13 +175,14 @@ let spec_func_call sp ctx =
       | ToBoolean e -> spec_func_to_boolean e ctx excep_label
       | ToNumber e -> spec_func_to_number e ctx excep_label
       | ToNumberPrim e -> spec_func_to_number_prim e ctx excep_label
-      | ToString e -> raise (PulpNotImplemented "Unfolding Spec Function")
+      | ToString e -> spec_func_to_string e ctx excep_label
+      | ToStringPrim e -> spec_func_to_string_prim e ctx excep_label
       | ToObject e -> spec_func_to_object e ctx excep_label
-      | CheckObjectCoercible e -> raise (PulpNotImplemented "Unfolding Spec Function")
-      | IsCallable e -> raise (PulpNotImplemented "Unfolding Spec Function")
-      | SameValue (e1, e2) -> raise (PulpNotImplemented "Unfolding Spec Function")
-      | AbstractEquality (e1, e2) -> raise (PulpNotImplemented "Unfolding Spec Function")
-      | StrictEquality (e1, e2) -> raise (PulpNotImplemented "Unfolding Spec Function") in
+      | CheckObjectCoercible e -> spec_func_check_obj_coer e ctx excep_label
+      | IsCallable e -> spec_func_is_callable e ctx excep_label
+      | AbstractEquality (e1, e2, b) -> spec_func_abstract_equality e1 e2 b ctx excep_label
+      | StrictEquality (e1, e2) -> spec_func_strict_equality e1 e2 ctx excep_label
+      | StrictEqualitySameType (e1, e2) -> spec_func_strict_equality_same_type e1 e2 ctx excep_label in
     [ sp_stmt;
       Goto exit_label;
       Label excep_label;
@@ -235,18 +264,17 @@ let add_proto_value obj proto =
 let add_proto_null obj =
   add_proto obj (Literal Null)
   
-let is_callable arg =
-  let rv =  fresh_r () in
+let is_callable arg rv =
   let rv_true = Basic (Assignment (mk_assign rv (Expression (Literal (Bool true))))) in
   let rv_false = Basic (Assignment (mk_assign rv (Expression (Literal (Bool false))))) in
   let hasfield = mk_assign_fresh (HasField (arg, literal_builtin_field FId)) in
-  Sugar (If (type_of_exp arg (ObjectType None),
+  [ Sugar (If (type_of_exp arg (ObjectType None),
     [Basic (Assignment hasfield);
      Sugar (If (equal_bool_expr (Var hasfield.assign_left) true,
        [rv_true],
        [rv_false]))
     ],
-    [rv_false])), rv
+    [rv_false]))]
     
 let is_constructor arg =
   let hasfield = mk_assign_fresh (HasField (Var arg, literal_builtin_field FConstructId)) in
@@ -298,12 +326,11 @@ let translate_strict_equality_comparison_types_equal x y rv =
         ]))
     ]
   
-let translate_strict_equality_comparison x y = 
-  let rv = fresh_r() in
+let translate_strict_equality_comparison x y rv = 
   let stmts = translate_strict_equality_comparison_types_equal x y rv in
-  Sugar (If (equal_exprs (TypeOf x) (TypeOf y), 
+  [ Sugar (If (equal_exprs (TypeOf x) (TypeOf y), 
     stmts,
-    [ Basic (Assignment (mk_assign rv (Expression (Literal (Bool false))))) ])), rv
+    [ Basic (Assignment (mk_assign rv (Expression (Literal (Bool false))))) ]))]
   
 let translate_error_throw error throw_var throw_label = (* TODO: Change to use Error.prototype for other errors too *)
   let r1 = mk_assign_fresh Obj in
@@ -429,14 +456,13 @@ let translate_gamma r left throw_var label_throw =
   in
   [main]
 
-let translate_obj_coercible r ctx =
-  let rv = fresh_r () in
-  let gotothrow = translate_error_throw Ltep ctx.throw_var ctx.label_throw in 
+let translate_obj_coercible r rv throw_var label_throw =
+  let gotothrow = translate_error_throw Ltep throw_var label_throw in 
   [
     Sugar (If (equal_null_expr r, gotothrow, [])); 
     Sugar (If (equal_undef_expr r, gotothrow, [])); 
     Basic (Assignment (mk_assign rv (Expression (Literal Empty))))
-  ], rv
+  ]
   
 let translate_call_construct_start f e1 e2s ctx construct =
     let r1_stmts, r1 = f e1 in
@@ -451,17 +477,16 @@ let translate_call_construct_start f e1 e2s ctx construct =
     let arg_values, arg_stmts = List.split arg_stmts in
     let arg_stmts = List.flatten arg_stmts in  
     let gotothrow = translate_error_throw Ltep ctx.throw_var ctx.label_throw in
-    let is_callable_stmt, is_callable = 
-      if construct then is_constructor r2
-      else is_callable (Var r2) in  
+    let is_callable_stmts, is_callable = 
+      if construct then begin let stmt, var = is_constructor r2 in [stmt], var end
+      else spec_func_call (IsCallable (Var r2)) ctx in  
     (
       r1_stmts @ 
       r2_stmts @ 
       arg_stmts @ 
-      [
-        Sugar (If (type_of_obj (Var r2), [], gotothrow)); 
-        is_callable_stmt; 
-        Sugar (If (equal_bool_expr (Var is_callable) false, gotothrow, []))
+      [ Sugar (If (type_of_obj (Var r2), [], gotothrow)) ] @ 
+      is_callable_stmts @ 
+      [ Sugar (If (equal_bool_expr (Var is_callable) false, gotothrow, []))
       ], r1, r2, arg_values)
       
 let translate_get o (* variable containing object *) p (* variable, string, or built-in field name *) left = 
@@ -543,12 +568,13 @@ let translate_inner_call obj vthis args throw_var label_throw env_vars =
 let default_value_inner arg m rv exit_label next_label throw_var label_throw =
   let r1 = fresh_r () in
   let r1_stmts = translate_get arg (Literal (String m)) r1 in
-  let is_callable_stmt, is_callable = is_callable (Var r1) in
+  let is_callable_var = fresh_r() in
+  let is_callable_stmts = is_callable (Var r1) is_callable_var in
   let r2_stmts, r2 = translate_inner_call (Var r1) arg [] throw_var label_throw [] in
   let assign_rv_var var = [Basic (Assignment (mk_assign rv (Expression (Var var))))] in
   r1_stmts @                          
-  [ is_callable_stmt;
-    Sugar (If (equal_bool_expr (Var is_callable) true,  
+  is_callable_stmts @
+  [ Sugar (If (equal_bool_expr (Var is_callable_var) true,  
       r2_stmts @
     [ Sugar (If (is_prim_value (Var r2),
       assign_rv_var r2 @ [Goto exit_label],
@@ -604,7 +630,7 @@ let translate_to_number_prim arg rv =
       ]))
     ]))]
     
-let translate_abstract_relation x y leftfirst throw_var label_throw =
+let translate_abstract_relation x y leftfirst rv throw_var label_throw =
   let px = fresh_r () in
   let to_primitive_x = translate_to_primitive x (Some NumberType) px throw_var label_throw in
   let py = fresh_r () in
@@ -616,7 +642,6 @@ let translate_abstract_relation x y leftfirst throw_var label_throw =
   let to_number_x = translate_to_number_prim (Var px) nx in
   let ny = fresh_r () in
   let to_number_y = translate_to_number_prim (Var py) ny in
-  let rv = fresh_r () in
   let assign_rv e = [Basic (Assignment (mk_assign rv (Expression e)))] in
   to_prim_stmts @
   [ Sugar (If (and_expr (type_of_exp (Var px) StringType) (type_of_exp (Var py) StringType),
@@ -641,7 +666,7 @@ let translate_abstract_relation x y leftfirst throw_var label_throw =
               ]))
           ]))
       ]));
-  ], rv
+  ]
   
 let translate_to_boolean arg rv =
   let assign_rv b = [Basic (Assignment (mk_assign rv (Expression (Literal (Bool b)))))] in
@@ -676,11 +701,10 @@ let translate_to_number arg rv throw_var label_throw =
     to_number @
   [ assign_rv_var r1 ]
     
-let rec translate_to_string_prim arg =
-  let rv = fresh_r () in  
+let rec translate_to_string_prim arg rv =
   let assign_rv_expr e = [Basic (Assignment (mk_assign rv (Expression e)))] in
   let assign_rv_str v = assign_rv_expr (Literal (String v)) in
-  Sugar (If (type_of_exp arg UndefinedType,
+  [ Sugar (If (type_of_exp arg UndefinedType,
     assign_rv_str "undefined", (* TODO *)
     [ Sugar (If (type_of_exp arg NullType,
       assign_rv_str "null",
@@ -695,23 +719,22 @@ let rec translate_to_string_prim arg =
           assign_rv_expr (UnaryOp (ToStringOp, arg))))
           ]))
         ]))
-      ])), rv
+      ]))]
       
-let translate_to_string arg throw_var label_throw = 
+let translate_to_string arg rv throw_var label_throw = 
   let r2 = fresh_r () in
   let primValue = fresh_r () in
   let to_primitive = translate_to_primitive arg (Some StringType) primValue throw_var label_throw in
-  let to_string, r1 = translate_to_string_prim (Var r2) in
-  let rv = fresh_r () in
+  let r1 = fresh_r () in
+  let to_string = translate_to_string_prim (Var r2) r1 in
   let assign_rv_var var = Basic (Assignment (mk_assign rv (Expression (Var var)))) in
   let assign_r2_var var = [Basic (Assignment (mk_assign r2 (Expression var)))] in
-  [
-    Sugar (If (type_of_exp arg (ObjectType None),
+  [ Sugar (If (type_of_exp arg (ObjectType None),
       to_primitive @ (assign_r2_var (Var primValue)),
-      (assign_r2_var arg)));
-    to_string;
-    (assign_rv_var r1)
-  ], rv  
+      (assign_r2_var arg)))
+  ] @
+    to_string @
+  [  (assign_rv_var r1) ] 
          
 let translate_to_number_bin_op f op e1 e2 ctx =
   let r1_stmts, r1 = f e1 in
@@ -782,7 +805,7 @@ let translate_regular_bin_op f op e1 e2 ctx =
   let rv = fresh_r () in
   let assign_rv rvar e = Basic (Assignment (mk_assign rvar (Expression e))) in 
   let exit_label = fresh_r () in
-  let types_equal_stmts_1 = translate_strict_equality_comparison_types_equal (Var r2) (Var r4) rv in
+  let types_equal_stmts_1, rv1 = spec_func_call (StrictEqualitySameType (Var r2, Var r4)) ctx in
   let y1_to_prim = fresh_r () in
   let to_primitive_y1, y1_prim = spec_func_call (ToPrimitive (Var r4, None)) ctx in
   let x1_to_prim = fresh_r () in
@@ -795,14 +818,14 @@ let translate_regular_bin_op f op e1 e2 ctx =
   let to_number_y3, y3_number = spec_func_call (ToNumberPrim (Var y2_to_number)) ctx in
   let x3 = fresh_r () in
   let to_number_x3, x3_number = spec_func_call (ToNumberPrim (Var x2_to_number)) ctx in
-  let types_equal_stmts_2 = translate_strict_equality_comparison_types_equal (Var x3) (Var y3) rv in
+  let types_equal_stmts_2, rv2 = spec_func_call (StrictEqualitySameType (Var x3, Var y3)) ctx in
     r1_stmts @ 
     r2_stmts @ 
     r3_stmts @  
     r4_stmts @  
     [ 
       Sugar (If (equal_exprs (TypeOf (Var r2)) (TypeOf (Var r4)),
-        types_equal_stmts_1 @ [Goto exit_label],
+        types_equal_stmts_1 @ [assign_rv rv (Var rv1); Goto exit_label],
 		    [ 
 		      Sugar (If (type_of_exp (Var r4) (ObjectType None),
 		        to_primitive_y1 @ [assign_rv y1_to_prim (Var y1_prim)],
@@ -828,7 +851,7 @@ let translate_regular_bin_op f op e1 e2 ctx =
               to_number_x3 @ [assign_rv x3 (Var x3_number)],
              [ assign_rv x3 (Var x2_to_number)]));
           Sugar (If (equal_exprs (TypeOf (Var x3)) (TypeOf (Var y3)),
-            types_equal_stmts_2 @ [Goto exit_label],
+            types_equal_stmts_2 @ [assign_rv rv (Var rv2); Goto exit_label],
             [assign_rv rv (Literal (Bool false))] @ [Goto exit_label]))
       ]));        
     Label exit_label],
@@ -849,8 +872,8 @@ let translate_bin_op_plus f op e1 e2 ctx =
   let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
   let r5_stmts, lprim = spec_func_call (ToPrimitive (Var r2, None)) ctx in
   let r6_stmts, rprim = spec_func_call (ToPrimitive (Var r4, None)) ctx in
-  let r7_stmt, lstring = translate_to_string_prim (Var lprim) in
-  let r8_stmt, rstring = translate_to_string_prim (Var rprim) in  
+  let r7_stmt, lstring = spec_func_call (ToStringPrim (Var lprim)) ctx in
+  let r8_stmt, rstring = spec_func_call (ToStringPrim (Var rprim)) ctx in  
   let r9_stmt, lnum = spec_func_call (ToNumberPrim (Var lprim)) ctx in
   let r10_stmt, rnum = spec_func_call (ToNumberPrim (Var rprim)) ctx in
   let rv = fresh_r () in
@@ -864,7 +887,7 @@ let translate_bin_op_plus f op e1 e2 ctx =
     [ Sugar (If (or_expr 
                   (type_of_exp (Var lprim) StringType)
                   (type_of_exp (Var rprim) StringType),
-      [r7_stmt; r8_stmt; assign_rv_expr (BinOp (Var lstring, Concat, Var rstring))],
+      r7_stmt @ r8_stmt @ [assign_rv_expr (BinOp (Var lstring, Concat, Var rstring))],
       r9_stmt @ r10_stmt @ [assign_rv_expr (BinOp (Var lnum, Arith Plus, Var rnum))]))
     ], rv
   
@@ -908,13 +931,14 @@ let unfold_spec_function sf left throw_var label_throw =
     | ToBoolean e -> translate_to_boolean e left
     | ToNumber e -> translate_to_number e left throw_var label_throw
     | ToNumberPrim e -> translate_to_number_prim e left
-    | ToString e -> raise (PulpNotImplemented "Unfolding Spec Function")
+    | ToString e -> translate_to_string e left throw_var label_throw
+    | ToStringPrim e -> translate_to_string_prim e left
     | ToObject e -> translate_to_object e left throw_var label_throw
-    | CheckObjectCoercible e -> raise (PulpNotImplemented "Unfolding Spec Function")
-    | IsCallable e -> raise (PulpNotImplemented "Unfolding Spec Function")
-    | SameValue (e1, e2) -> raise (PulpNotImplemented "Unfolding Spec Function")
-    | AbstractEquality (e1, e2) -> raise (PulpNotImplemented "Unfolding Spec Function")
-    | StrictEquality (e1, e2) -> raise (PulpNotImplemented "Unfolding Spec Function")
+    | CheckObjectCoercible e -> translate_obj_coercible e left throw_var label_throw
+    | IsCallable e -> is_callable e left
+    | AbstractEquality (e1, e2, b) -> translate_abstract_relation e1 e2 b left throw_var label_throw
+    | StrictEquality (e1, e2) -> translate_strict_equality_comparison e1 e2 left
+    | StrictEqualitySameType (e1, e2) -> translate_strict_equality_comparison_types_equal e1 e2 left
     
 let rec unfold_spec_functions stmts = 
   let f = unfold_spec_functions in
@@ -1111,9 +1135,9 @@ let rec translate_exp ctx exp : statement list * variable =
                       | Parser_syntax.PropnameNum f -> 
                         begin
                           let f_var = mk_assign_fresh_e (Literal (Num f)) in
-                          let propname_to_string, lvar = translate_to_string_prim (Var f_var.assign_left) in 
-                          [ Basic (Assignment f_var);
-                            propname_to_string ], Var lvar
+                          let propname_to_string, lvar = spec_func_call (ToStringPrim (Var f_var.assign_left)) ctx in 
+                          [ Basic (Assignment f_var) ]
+                          @  propname_to_string, Var lvar
                         end in
                   r2_stmts @ 
                   r3_stmts @ 
@@ -1135,7 +1159,7 @@ let rec translate_exp ctx exp : statement list * variable =
       | Parser_syntax.Access (e, v) -> 
           let r1_stmts, r1 = f e in
           let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
-          let r4_stmts, r4 = translate_obj_coercible (Var r2) ctx in
+          let r4_stmts, r4 = spec_func_call (CheckObjectCoercible (Var r2)) ctx in
           let r5 = mk_assign_fresh_e (Ref (Var r2, Literal (String v), MemberReference)) in
             r1_stmts @ 
             r2_stmts @ 
@@ -1147,8 +1171,8 @@ let rec translate_exp ctx exp : statement list * variable =
           let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
           let r3_stmts, r3 = f e2 in
           let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
-          let r5_stmts, r5 = translate_obj_coercible (Var r2) ctx in
-          let r4_to_string, r4_string = translate_to_string (Var r4) ctx.throw_var ctx.label_throw in
+          let r5_stmts, r5 = spec_func_call (CheckObjectCoercible (Var r2)) ctx in
+          let r4_to_string, r4_string = spec_func_call (ToString (Var r4)) ctx in
           let r6 = mk_assign_fresh_e (Ref (Var r2, Var r4_string, MemberReference)) in
             r1_stmts @ 
             r2_stmts @
@@ -1402,32 +1426,31 @@ let rec translate_exp ctx exp : statement list * variable =
 								  let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
 								  let r3_stmts, r3 = f e2 in
 								  let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
-								  let r5, rv = translate_strict_equality_comparison (Var r2) (Var r4) in
+								  let r5, rv = spec_func_call (StrictEquality (Var r2, Var r4)) ctx in
 								    r1_stmts @ 
 								    r2_stmts @ 
 								    r3_stmts @ 
 								    r4_stmts @ 
-								    [r5], rv
+								    r5, rv
 						  | Parser_syntax.NotTripleEqual ->
                   let r1_stmts, r1 = f e1 in
                   let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
                   let r3_stmts, r3 = f e2 in
                   let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
-                  let r5, rv = translate_strict_equality_comparison (Var r2) (Var r4) in
+                  let r5, rv = spec_func_call (StrictEquality (Var r2, Var r4)) ctx in
                   let r6 = mk_assign_fresh (Expression (UnaryOp (Not, (Var rv)))) in
                     r1_stmts @ 
                     r2_stmts @ 
                     r3_stmts @ 
                     r4_stmts @ 
-                    [r5;
-                     Basic (Assignment r6)
-                    ], r6.assign_left
+                    r5 @
+                    [ Basic (Assignment r6)], r6.assign_left
 						  | Parser_syntax.Lt -> 
                   let r1_stmts, r1 = f e1 in
 								  let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
 								  let r3_stmts, r3 = f e2 in
 								  let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
-                  let r5_stmts, r5 = translate_abstract_relation (Var r2) (Var r4) true ctx.throw_var ctx.label_throw in
+                  let r5_stmts, r5 = spec_func_call (AbstractEquality (Var r2, Var r4, true)) ctx in
                   let rv = fresh_r() in
                   let assign_rv v = Basic (Assignment (mk_assign rv (Expression v))) in                  
 								    r1_stmts @ 
@@ -1444,7 +1467,7 @@ let rec translate_exp ctx exp : statement list * variable =
                   let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
                   let r3_stmts, r3 = f e2 in
                   let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
-                  let r5_stmts, r5 = translate_abstract_relation (Var r4) (Var r2) false ctx.throw_var ctx.label_throw in
+                  let r5_stmts, r5 = spec_func_call (AbstractEquality (Var r4, Var r2, false)) ctx in
                   let rv = fresh_r() in
                   let assign_rv v = Basic (Assignment (mk_assign rv (Expression v))) in                  
                     r1_stmts @ 
@@ -1461,7 +1484,7 @@ let rec translate_exp ctx exp : statement list * variable =
                   let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
                   let r3_stmts, r3 = f e2 in
                   let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
-                  let r5_stmts, r5 = translate_abstract_relation (Var r4) (Var r2) false ctx.throw_var ctx.label_throw in
+                  let r5_stmts, r5 = spec_func_call (AbstractEquality (Var r4, Var r2, false)) ctx in
                   let rv = fresh_r() in
                   let assign_rv v = Basic (Assignment (mk_assign rv (Expression v))) in                  
                     r1_stmts @ 
@@ -1478,7 +1501,7 @@ let rec translate_exp ctx exp : statement list * variable =
                   let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
                   let r3_stmts, r3 = f e2 in
                   let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
-                  let r5_stmts, r5 = translate_abstract_relation (Var r2) (Var r4) true ctx.throw_var ctx.label_throw in
+                  let r5_stmts, r5 = spec_func_call (AbstractEquality (Var r2, Var r4, true)) ctx in
                   let rv = fresh_r() in
                   let assign_rv v = Basic (Assignment (mk_assign rv (Expression v))) in                  
                     r1_stmts @ 
@@ -1495,7 +1518,7 @@ let rec translate_exp ctx exp : statement list * variable =
                 let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
                 let r3_stmts, r3 = f e2 in
                 let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
-                let r5_stmts, r5 = translate_to_string (Var r2) ctx.throw_var ctx.label_throw in
+                let r5_stmts, r5 = spec_func_call (ToString (Var r2)) ctx in
                 let r6_stmts, r6 = spec_func_call (HasProperty (Var r4, Var r5)) ctx in
                 r1_stmts @ 
                 r2_stmts @ 
@@ -2081,14 +2104,14 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
 				let a_stmts = List.map (fun (e_case, stmt) ->  
 					let r_case_stmts1, r_case1 = translate_exp new_ctx e_case in
 					let r_case_stmts2, r_case2 = spec_func_call (GetValue (Var r_case1)) new_ctx in
-					let r_case_stmt3, r_case3 = translate_strict_equality_comparison (Var r_case2) (Var r_test2) in
+					let r_case_stmts3, r_case3 = spec_func_call (StrictEquality (Var r_case2, Var r_test2)) new_ctx in
 					let r_case_stmts4, r_stmt = translate_stmt new_ctx [] stmt in 
 						[ Basic (Assignment (mk_assign r_banana (Expression (Literal (String "entrei num case!")))));
 							Sugar (If (equal_bool_expr (Var r_found_a) false, 
 							r_case_stmts1 @
               r_case_stmts2 @
-							[ r_case_stmt3;
-							  Basic (Assignment (mk_assign r_banana (Expression (Literal (String "avaliei a guarda do case")))));
+              r_case_stmts3 @
+							[ Basic (Assignment (mk_assign r_banana (Expression (Literal (String "avaliei a guarda do case")))));
 								Sugar (If (equal_bool_expr (Var r_case3) true, 
 									[ Basic (Assignment (mk_assign r_found_a  (Expression (Literal (Bool true))))) ] @							 
 				      		r_case_stmts4 @
@@ -2100,14 +2123,14 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
 			  let b_stmts = List.map (fun (e_case, stmt) ->  
 					let r_case_stmts1, r_case1 = translate_exp new_ctx e_case in
 					let r_case_stmts2, r_case2 = spec_func_call (GetValue (Var r_case1)) new_ctx in
-					let r_case_stmt3, r_case3 = translate_strict_equality_comparison (Var r_case2) (Var r_test2) in
+					let r_case_stmts3, r_case3 = spec_func_call (StrictEquality (Var r_case2, Var r_test2)) new_ctx in
 					let r_case_stmts4, r_stmt = translate_stmt new_ctx [] stmt in 
 						[ Basic (Assignment (mk_assign r_banana (Expression (Literal (String "entrei num case!")))));
 							Sugar (If (equal_bool_expr (Var r_found_b) false, 
 							r_case_stmts1 @
               r_case_stmts2 @
-							[ r_case_stmt3;
-							  Basic (Assignment (mk_assign r_banana (Expression (Literal (String "avaliei a guarda do case")))));
+              r_case_stmts3 @
+							[ Basic (Assignment (mk_assign r_banana (Expression (Literal (String "avaliei a guarda do case")))));
 								Sugar (If (equal_bool_expr (Var r_case3) true, 
 									[ Basic (Assignment (mk_assign r_found_b  (Expression (Literal (Bool true))))) ] @							 
 				      		r_case_stmts4 @
@@ -2493,7 +2516,7 @@ let builtin_global_is_finite () =
 let builtin_call_string_call () =
   let v = fresh_r () in
   let ctx = create_ctx [] in
-  let stmts, r1 = translate_to_string (Var v) ctx.throw_var ctx.label_throw in 
+  let stmts, r1 = spec_func_call (ToString (Var v)) ctx in 
   let body = to_ivl_goto_unfold (* TODO translation level *)
    [ Sugar (If (equal_empty_expr (Var v),
        [ Basic (Assignment (mk_assign r1 (Expression (Literal (String "")))))],
@@ -2509,7 +2532,7 @@ let builtin_call_string_construct () =
   let v = fresh_r () in
   let ctx = create_ctx [] in
   let new_obj = mk_assign_fresh Obj in
-  let stmts, r1 = translate_to_string (Var v) ctx.throw_var ctx.label_throw in 
+  let stmts, r1 = spec_func_call (ToString (Var v)) ctx in 
   let body = to_ivl_goto_unfold (* TODO translation level *)
     ([ Basic (Assignment new_obj);
       add_proto_value new_obj.assign_left Lsp;

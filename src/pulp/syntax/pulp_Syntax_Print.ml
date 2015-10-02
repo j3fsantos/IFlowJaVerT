@@ -237,12 +237,13 @@ let string_of_spec_function sf =
     | ToNumber e -> Printf.sprintf "ToNumber(%s)" (f e)
     | ToNumberPrim e -> Printf.sprintf "ToNumberPrim(%s)" (f e)
     | ToString e -> Printf.sprintf "ToString(%s)" (f e)
+    | ToStringPrim e -> Printf.sprintf "ToStringPrim(%s)" (f e)
     | ToObject e -> Printf.sprintf "ToObject(%s)" (f e)
     | CheckObjectCoercible e -> Printf.sprintf "CheckObjectCoercible(%s)" (f e)
     | IsCallable e -> Printf.sprintf "IsCallable(%s)" (f e)
-    | SameValue (e1, e2) -> Printf.sprintf "SameValue(%s, %s)" (f e1) (f e2)
-    | AbstractEquality (e1, e2) -> Printf.sprintf "AbstractEquality(%s, %s)" (f e1) (f e2)
+    | AbstractEquality (e1, e2, b) -> Printf.sprintf "AbstractEquality(%s, %s, %b)" (f e1) (f e2) b
     | StrictEquality (e1, e2) -> Printf.sprintf "StrictEquality(%s, %s)" (f e1) (f e2)
+    | StrictEqualitySameType (e1, e2) -> Printf.sprintf "StrictEqualitySameType(%s, %s)" (f e1) (f e2)
  
 let rec string_of_statement t =
   match t with

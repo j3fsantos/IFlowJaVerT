@@ -254,12 +254,13 @@ type specification_function =
   | ToNumber of expression
   | ToNumberPrim of expression
   | ToString of expression 
+  | ToStringPrim of expression
   | ToObject of expression
   | CheckObjectCoercible of expression
   | IsCallable of expression
-  | SameValue of expression * expression
-  | AbstractEquality of expression * expression
+  | AbstractEquality of expression * expression * bool
   | StrictEquality of expression * expression
+  | StrictEqualitySameType of expression * expression
 
 type statement =
   | Label of label
