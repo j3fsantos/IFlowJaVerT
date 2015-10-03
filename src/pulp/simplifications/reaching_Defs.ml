@@ -78,7 +78,7 @@ let calculate_defs (g : CFG_BB.graph) =
   List.iter (fun n ->
 	  let stmts = CFG_BB.get_node_data g n in
 	  List.iteri (fun i stmt ->
-	    match stmt with
+	    match stmt.as_stmt with
 	      | Basic (Assignment stmt) ->
 	        add_to_hashtbl def stmt.assign_left (n, i)
 	      | _ -> ()
@@ -87,7 +87,7 @@ let calculate_defs (g : CFG_BB.graph) =
   def
   
 let gen_kill_stmt def_id stmt def =
-  match stmt with
+  match stmt.as_stmt with
     | Basic (Assignment stmt) -> 
       let kills = List.filter (fun id -> id <> def_id) (Hashtbl.find def stmt.assign_left) in
       DefIdSet.singleton def_id, def_id_set_of_list kills
@@ -125,7 +125,7 @@ let var_defid_tbl g =
   List.iter (fun n -> 
     let stmts = CFG_BB.get_node_data g n in
     List.iteri (fun i stmt ->
-    match stmt with
+    match stmt.as_stmt with
       | Basic (Assignment stmt) -> Hashtbl.add tbl stmt.assign_left (n, i);  Hashtbl.add tbl_inverse (n, i) stmt.assign_left
       | _ -> ()) stmts;
   ) (CFG_BB.nodes g);
@@ -159,15 +159,15 @@ let calculate_reaching_defs g =
   ins, outs
   
 let update_stmt stmt var const =
-  let updated = Simp_Common.update_stmt var const stmt in
-  Simp_Common.simplify_stmt updated
+  let updated = Simp_Common.update_stmt var const stmt.as_stmt in
+  {stmt with as_stmt = Simp_Common.simplify_stmt updated}
     
 let rec propagate_const stmts var const =
   match stmts with
     | [] -> []
-    | Basic (Assignment a) :: tail ->
-      if a.assign_left = var then (update_stmt (Basic (Assignment a)) var const) :: tail
-      else (update_stmt (Basic (Assignment a)) var const) :: (propagate_const tail var const)
+    | ({as_stmt = Basic (Assignment a)} as s1) :: tail ->
+      if a.assign_left = var then (update_stmt s1 var const) :: tail
+      else (update_stmt s1 var const) :: (propagate_const tail var const)
     | stmt :: tail -> (update_stmt stmt var const) :: (propagate_const tail var const)
   
 let constant_propagation g =
@@ -191,7 +191,7 @@ let constant_propagation g =
           begin
             let stmts = CFG_BB.get_node_data g nid in
             let stmt = List.nth stmts index in
-              match stmt with
+              match stmt.as_stmt with
                 | Basic (Assignment {assign_right = Expression e}) ->
                   begin
 			                 if is_const_expr e then begin
@@ -214,7 +214,7 @@ let const_prop_node g n =
       | [] -> []
       | stmt :: stmts ->
         let stmt = Hashtbl.fold (fun var expr stmt -> update_stmt stmt var expr) vars_expr stmt in
-        begin match stmt with
+        begin match stmt.as_stmt with
           | Basic (Assignment a) ->
            begin match a.assign_right with
             | Expression e ->
@@ -238,7 +238,7 @@ let simplify_guarded_gotos g =
   List.iter (fun n ->
     let stmts = CFG_BB.get_node_data g n in
     match stmts with
-      | Label l :: tail -> Hashtbl.add nodemap l n
+      | {as_stmt = Label l} :: tail -> Hashtbl.add nodemap l n
       | _ -> ()
   ) nodes;
   
@@ -246,14 +246,14 @@ let simplify_guarded_gotos g =
     let rec update_last stmts = 
       match stmts with
         | [] -> []
-        | [GuardedGoto ((Literal (Bool true)), l1, l2)] -> 
+        | [{as_stmt = GuardedGoto ((Literal (Bool true)), l1, l2)} as s1] -> 
           CFG_BB.rm_edge g n (Hashtbl.find nodemap l2);
           CFG_BB.set_edge_data g n (Hashtbl.find nodemap l1) Edge_Normal;
-          [Goto l1] 
-        | [GuardedGoto ((Literal (Bool false)), l1, l2)] -> 
+          [{s1 with as_stmt = Goto l1}] 
+        | [{as_stmt = GuardedGoto ((Literal (Bool false)), l1, l2)} as s2] -> 
           CFG_BB.rm_edge g n (Hashtbl.find nodemap l1);
           CFG_BB.set_edge_data g n (Hashtbl.find nodemap l2) Edge_Normal;
-          [Goto l2]
+          [{s2 with as_stmt = Goto l2}]
         | stmt :: tail -> stmt :: (update_last tail)
     in
     
@@ -265,7 +265,7 @@ let simplify_guarded_gotos g =
 (* Liveness *)
   
 let liveness_gen_kill_stmt stmt =
-  match stmt with
+  match stmt.as_stmt with
     | Basic (Assignment a) -> var_set_of_list(get_vars_in_assign_expr a.assign_right), VarSet.singleton (a.assign_left) 
     | stmt -> var_set_of_list(get_vars_in_stmt stmt), VarSet.empty
   
@@ -330,7 +330,7 @@ let dead_code_elimination g throw_var return_var =
 	    match stmts with
 	      | [] -> []
 	      | stmt :: stmts ->
-          let vars = get_vars_in_stmt stmt in
+          let vars = get_vars_in_stmt stmt.as_stmt in
           
           List.iter (fun var -> 
             if Hashtbl.mem var_defid var then
@@ -338,7 +338,7 @@ let dead_code_elimination g throw_var return_var =
               Hashtbl.replace defid_used defid true
           ) vars;
           
-	        begin match stmt with
+	        begin match stmt.as_stmt with
 	          | Basic (Assignment a) ->
               Hashtbl.replace var_defid a.assign_left index;
               Hashtbl.replace defid_var index a.assign_left;
@@ -384,7 +384,7 @@ let calculate_exprs g =
   List.iter (fun n ->
       let stmts = CFG_BB.get_node_data g n in
       List.iteri (fun i stmt ->
-        match stmt with
+        match stmt.as_stmt with
           | Basic (Assignment a) ->
             begin match a.assign_right with
               | Expression e ->
@@ -400,7 +400,7 @@ let calculate_exprs g =
   exprs, all_exprs
   
 let copy_gen_kill_stmt stmt exprs =
-  match stmt with
+  match stmt.as_stmt with
     | Basic (Assignment a) -> 
       begin match a.assign_right with
         | Expression e -> AssignSet.singleton a, assign_set_of_list (get_from_hashtbl exprs a.assign_left)  
@@ -469,7 +469,7 @@ let copy_propagation g =
     let inn = Hashtbl.find ins n in
     
     let inn, updated_stmts = List.fold_left (fun (inn, updated_stmts) stmt ->
-      let vars = match stmt with
+      let vars = match stmt.as_stmt with
         | Basic (Assignment a) ->
           Simp_Common.get_vars_in_assign_expr a.assign_right
         | other -> 
@@ -517,7 +517,7 @@ let type_simplifications g params =
 	      Hashtbl.add var_defid var defid;
 	    ) inn;
     
-      begin match stmt with
+      begin match stmt.as_stmt with
         | Basic (Assignment a) ->
           begin match a.assign_right with
             | Expression e -> 
@@ -558,7 +558,7 @@ let type_simplifications g params =
       List.iter (fun (var, defid) -> infer_type defid) depend;
       let (nodeid, index) = defid in
       let stmt = List.nth (CFG_BB.get_node_data g nodeid) index in
-      let def_id_t = match stmt with
+      let def_id_t = match stmt.as_stmt with
         | Basic (Assignment a) -> Simp_Common.get_type_info_assign_expr (type_info depend) a.assign_right
         | _ -> None in
       Hashtbl.replace defid_type defid def_id_t
@@ -578,7 +578,7 @@ let type_simplifications g params =
 	      (var, defid)
 	    ) (DefIdSet.elements inn) in
       
-      let updated_stmt = simplify_stmt (simplify_type_of_in_stmt (type_info var_defid) stmt) in 
+      let updated_stmt = {stmt with as_stmt = simplify_stmt (simplify_type_of_in_stmt (type_info var_defid) stmt.as_stmt)} in 
           
       let (gen, kill) = gen_kill_stmt (n, index) stmt def in 
       (DefIdSet.union gen (DefIdSet.diff inn kill)), updated_stmt :: updated_stmts, index + 1
@@ -594,7 +594,7 @@ let type_simplifications g params =
 let debug_print_cfg_bb_with_defs (cfgs : CFG_BB.graph AllFunctions.t) (filename : string) : unit =
   let d_cfgedge chan dest src =
     Printf.fprintf chan "\t\t%i -> %i\n" (CFG_BB.node_id src) (CFG_BB.node_id dest) in
-  let d_cfgnode chan (cfg : CFG_BB.graph) (n : CFG_BB.node) (nd : statement list) ins outs =
+  let d_cfgnode chan (cfg : CFG_BB.graph) (n : CFG_BB.node) (nd : annotated_statement list) ins outs =
     let ins_ids = DefIdSet.elements (Hashtbl.find ins n) in
     let ins_string = String.concat ";" (List.map string_of_definition_id ins_ids) in
     let outs_ids = DefIdSet.elements (Hashtbl.find outs n) in
@@ -603,7 +603,7 @@ let debug_print_cfg_bb_with_defs (cfgs : CFG_BB.graph AllFunctions.t) (filename 
       "\t\t%i [label=\"%i: %s\"]\n" 
       (CFG_BB.node_id n)
       (CFG_BB.node_id n) 
-      (String.escaped (Pulp_Syntax_Print.string_of_statement_list nd) ^ "\n" ^ ins_string ^ "\n" ^ out_string);    
+      (String.escaped (string_of_annot_stmts nd) ^ "\n" ^ ins_string ^ "\n" ^ out_string);    
       List.iter (fun dest -> d_cfgedge chan dest n) (CFG_BB.succ cfg n) in
   let chan = open_out (filename ^ ".cfg.dot") in
   Printf.fprintf chan "digraph iCFG {\n\tnode [shape=box,  labeljust=l]\n";
