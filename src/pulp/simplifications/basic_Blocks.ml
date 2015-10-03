@@ -4,12 +4,14 @@ open Pulp_Procedure
 open Simp_Common
 open Control_Flow
 
-type annotation = unit
+type annotation = {
+  annot_type_info : (variable * type_info) list
+}
 
 let string_of_annotation a =
   match a with 
     | None -> ""
-    | Some a -> ""
+    | Some a -> " | " ^ (String.concat ", " (List.map (fun (v, ty) -> v ^ (string_of_type_info ty)) a.annot_type_info))
 
 type annotated_statement = {
   as_stmt : statement; 

@@ -579,6 +579,15 @@ let type_simplifications g params =
 	    ) (DefIdSet.elements inn) in
       
       let updated_stmt = {stmt with as_stmt = simplify_stmt (simplify_type_of_in_stmt (type_info var_defid) stmt.as_stmt)} in 
+      
+      let vars = get_vars_in_stmt stmt.as_stmt in
+      
+      let vars_type_info = List.fold_left (fun result var -> 
+        match type_info var_defid var with
+          | None -> result
+          | Some info -> (var, info) :: result) [] vars in
+      
+      let updated_stmt = {updated_stmt with as_annot = Some {annot_type_info = vars_type_info}} in
           
       let (gen, kill) = gen_kill_stmt (n, index) stmt def in 
       (DefIdSet.union gen (DefIdSet.diff inn kill)), updated_stmt :: updated_stmts, index + 1

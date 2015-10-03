@@ -413,6 +413,12 @@ type type_info =
   | TI_Value (*Not a Reference && Not Empty*)
   | TI_Empty
 
+let string_of_type_info ty = 
+  match ty with
+    | TI_Type pt -> Pulp_Syntax_Print.string_of_pulp_type pt
+    | TI_Value -> "TI_Value"
+    | TI_Empty -> "TI_Empty"
+
 let upper_bound_type t1 t2 =
   if t1 = t2 then t1 else 
     begin match t1, t2 with
