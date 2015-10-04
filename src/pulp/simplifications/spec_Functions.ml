@@ -6,6 +6,105 @@ open Pulp_Procedure
 open Control_Flow
 open Pulp_Translate
 
+let get_type_info var annot = 
+  try
+    let _, ty = List.find (fun (v, ty) -> var = v) annot in
+    Some ty
+  with Not_found -> None
+
+let simplify_get_value e left annot throw_var label_throw =
+  let simplify_not_a_ref = [Basic (Assignment (mk_assign left (Expression e)))] in
+  match e with
+    | Literal _
+    | BinOp _
+    | UnaryOp _
+    | Base _
+    | Field _
+    | IsTypeOf _
+    | TypeOf _ -> simplify_not_a_ref
+    | Var var -> 
+      begin 
+        match get_type_info var annot with
+          | None -> translate_gamma e left throw_var label_throw
+          | Some pt ->
+            begin match pt with
+              | TI_Type pt ->
+                begin
+                  match pt with
+                    | NullType
+                    | UndefinedType
+                    | BooleanType
+                    | StringType
+                    | NumberType
+                    | ObjectType _ -> simplify_not_a_ref
+                    | ReferenceType _ -> translate_gamma_reference e left throw_var label_throw
+                end
+              | TI_Value -> simplify_not_a_ref
+              | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to get_value")
+            end
+      end
+    | Ref (e1, e2, rt) -> 
+      begin match e1 with
+        | Literal lit ->
+          begin match lit with
+            | LLoc l -> (* TODO *) translate_gamma_reference e left throw_var label_throw
+            | Null ->  raise (Invalid_argument "Ref base cannot be null ")             
+            | Bool _          
+            | Num _       
+            | String _ ->  translate_gamma_reference_prim_base e1 e2 left throw_var label_throw
+            | Undefined -> translate_error_throw Lrep throw_var label_throw
+            | Type pt -> raise (Invalid_argument "Type cannot be as an argument to Reference")
+            | Empty -> raise (Invalid_argument "Empty cannot be as an argument to Reference")   
+           end
+        | BinOp _
+        | UnaryOp _
+        | Base _
+        | Field _
+        | IsTypeOf _
+        | TypeOf _ -> (* TODO *) translate_gamma_reference e left throw_var label_throw
+        | Var var ->        
+	        begin match get_type_info var annot with
+	          | None -> translate_gamma_reference e left throw_var label_throw (* No need to do base *)
+	          | Some pt ->
+	            begin match pt with
+	              | TI_Type pt ->
+	                begin
+	                  match pt with
+	                    | NullType -> raise (Invalid_argument "Ref base cannot be null ") 
+	                    | UndefinedType -> translate_error_throw Lrep throw_var label_throw
+	                    | BooleanType
+	                    | StringType
+	                    | NumberType -> translate_gamma_reference_prim_base e1 e2 left throw_var label_throw
+	                    | ObjectType _ -> (* TODO *) translate_gamma_reference e left throw_var label_throw
+	                    | ReferenceType _ -> translate_gamma_reference e left throw_var label_throw
+	                end
+	              | TI_Value -> translate_gamma_reference e left throw_var label_throw (* No need to do base *)
+	              | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to Reference")
+	            end
+	      end
+        | Ref _ -> raise (Invalid_argument "Reference cannot be as an argument to Reference")
+     end
+
+let simplify_spec_func sf left annot throw_var label_throw =
+  match sf with
+    | GetValue e -> translate_gamma e left throw_var label_throw
+    | PutValue (e1, e2) -> translate_put_value e1 e2 throw_var label_throw
+    | Get (e1, e2) -> translate_get e1 e2 left
+    | HasProperty (e1, e2) -> translate_has_property e1 e2 left
+    | DefaultValue (e, pt) -> translate_default_value e pt left throw_var label_throw
+    | ToPrimitive (e, pt) -> translate_to_primitive e pt left throw_var label_throw
+    | ToBoolean e -> translate_to_boolean e left
+    | ToNumber e -> translate_to_number e left throw_var label_throw
+    | ToNumberPrim e -> translate_to_number_prim e left
+    | ToString e -> translate_to_string e left throw_var label_throw
+    | ToStringPrim e -> translate_to_string_prim e left
+    | ToObject e -> translate_to_object e left throw_var label_throw
+    | CheckObjectCoercible e -> translate_obj_coercible e left throw_var label_throw
+    | IsCallable e -> is_callable e left
+    | AbstractEquality (e1, e2, b) -> translate_abstract_relation e1 e2 b left throw_var label_throw
+    | StrictEquality (e1, e2) -> translate_strict_equality_comparison e1 e2 left
+    | StrictEqualitySameType (e1, e2) -> translate_strict_equality_comparison_types_equal e1 e2 left
+
 let unfold_spec_func left sf annot =
   let ctx =  {
      env_vars = [];  (*unused*)
@@ -20,7 +119,7 @@ let unfold_spec_func left sf annot =
   } in
   let throw_var = ctx.throw_var in
   let label_throw = ctx.label_throw in
-  let stmts = to_ivl_goto (unfold_spec_function sf left throw_var label_throw) in
+  let stmts = to_ivl_goto (simplify_spec_func sf left annot throw_var label_throw) in
   let stmts = stmts @ [Goto ctx.label_return; Label ctx.label_return; Label ctx.label_throw] in
   Printf.printf "Simplified spec function %s : %s" (Pulp_Syntax_Print.string_of_spec_function sf) (Pulp_Syntax_Print.string_of_statement_list stmts);
   make_function_block "" stmts [] ctx

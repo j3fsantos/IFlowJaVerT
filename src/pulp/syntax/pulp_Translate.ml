@@ -408,30 +408,31 @@ let translate_to_object arg left throw_var label_throw =
         ]))
       ]))
     ]))]
-  
-let translate_gamma r left throw_var label_throw =
+    
+let translate_gamma_reference_prim_base base field left throw_var label_throw =
+   let r1 = fresh_r () in 
+   let to_object_stmt = translate_to_object base r1 throw_var label_throw in
+   let assign_pi = mk_assign_fresh (ProtoF (Var r1, field)) in 
+   to_object_stmt @
+   [ Basic (Assignment assign_pi);
+     Sugar (If (equal_empty_expr (Var assign_pi.assign_left),
+       [Basic (Assignment (mk_assign left (Expression(Literal Undefined))))],
+       [Basic (Assignment (mk_assign left (Expression(Var assign_pi.assign_left))))]))
+   ]   
+    
+    
+let translate_gamma_reference r left throw_var label_throw = 
   let base = mk_assign_fresh_e (Base r) in
   let field = mk_assign_fresh_e (Field r) in
   let assign_rv_lookup = mk_assign left (Lookup (Var base.assign_left, Var field.assign_left)) in
   let assign_pi_1 = mk_assign_fresh (ProtoF (Var base.assign_left, Var field.assign_left)) in  
-  let assign_pi_2 = mk_assign_fresh (ProtoF (Var base.assign_left, Var field.assign_left)) in
-  let r1 = fresh_r () in  
-  let to_object_stmt = translate_to_object (Var base.assign_left) r1 throw_var label_throw in
-  let assign_pi = mk_assign_fresh (ProtoF (Var r1, Var field.assign_left)) in 
-  let main = Sugar (If (is_ref_expr r,
-    [
-      Basic (Assignment base);
+  let assign_pi_2 = mk_assign_fresh (ProtoF (Var base.assign_left, Var field.assign_left)) in 
+    [ Basic (Assignment base);
       Sugar (If (equal_undef_expr (Var base.assign_left),
         translate_error_throw Lrep throw_var label_throw,
         [ Basic (Assignment field);
           Sugar (If (istypeof_prim_expr (Var base.assign_left),
-             to_object_stmt @
-            [
-              Basic (Assignment assign_pi);
-              Sugar (If (equal_empty_expr (Var assign_pi.assign_left),
-                [Basic (Assignment (mk_assign left (Expression(Literal Undefined))))],
-                [Basic (Assignment (mk_assign left (Expression(Var assign_pi.assign_left))))]))
-            ],
+            translate_gamma_reference_prim_base (Var base.assign_left) (Var field.assign_left) left throw_var label_throw,
             [             
               Sugar (If (is_vref_expr r,
                 [ 
@@ -451,7 +452,11 @@ let translate_gamma r left throw_var label_throw =
                 ]))
             ]))
         ]))
-    ],
+     ]
+  
+let translate_gamma r left throw_var label_throw =
+  let main = Sugar (If (is_ref_expr r,
+    translate_gamma_reference r left throw_var label_throw,
     [ Basic (Assignment (mk_assign left (Expression r))) ]))
   in
   [main]
