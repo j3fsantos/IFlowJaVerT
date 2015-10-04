@@ -4,32 +4,47 @@ open Pulp_Syntax
 open Simp_Common
 open Pulp_Procedure
 open Control_Flow
+open Pulp_Translate
 
-let unfold_spec_func left sf annot excep_label return_label  =
-  let stmts = [] in
+let unfold_spec_func left sf annot =
   let ctx =  {
      env_vars = [];  (*unused*)
      return_var = left;
      throw_var = left;
      label_entry = "entry." ^ fresh_r (); 
-     label_return = return_label;
-     label_throw = excep_label;
+     label_return = "return." ^ fresh_r (); 
+     label_throw = "throw." ^ fresh_r (); 
      label_continue = [];  (*unused*)
      label_break = [];  (*unused*)
      stmt_return_var = fresh_r();  (*unused*)
   } in
+  let throw_var = ctx.throw_var in
+  let label_throw = ctx.label_throw in
+  let stmts = to_ivl_goto (unfold_spec_function sf left throw_var label_throw) in
+  let stmts = stmts @ [Goto ctx.label_return; Label ctx.label_return; Label ctx.label_throw] in
+  Printf.printf "Simplified spec function %s : %s" (Pulp_Syntax_Print.string_of_spec_function sf) (Pulp_Syntax_Print.string_of_statement_list stmts);
   make_function_block "" stmts [] ctx
   
 
 let transform_spec_funcs cfg sf_annot n_normal n_excep = 
   match sf_annot.as_stmt with
-    | Sugar (SpecFunction (left, sf, excep_label)) -> 
-      let return_label = get_block_label cfg n_normal in
-      let fb = unfold_spec_func left sf sf_annot.as_annot excep_label return_label in
+    | Sugar (SpecFunction (left, sf, excep_label)) ->       
+      let fb = unfold_spec_func left sf sf_annot.as_annot in
+      
       let fb_cfg = fb_to_cfg fb in
-      let fb_cfg_bb = transform_to_basic_blocks_from_cfg fb_cfg in
+      let fb_cfg_bb = transform_to_basic_blocks_from_cfg fb_cfg fb.func_ctx in
       CFG_BB.inject_graph cfg fb_cfg_bb;
-      raise NotImplemented
+      print_cfg_bb_single fb_cfg_bb "test";
+      
+      let all_labels = get_block_labels cfg in
+      let return_node = Hashtbl.find all_labels fb.func_ctx.label_return in
+      let throw_node = Hashtbl.find all_labels fb.func_ctx.label_throw in
+      
+      (* connect inject subgraph *)
+      connect_blocks cfg return_node n_normal;
+      connect_blocks cfg throw_node n_excep;
+      
+      Hashtbl.find all_labels fb.func_ctx.label_entry
     | _ -> raise (Invalid_argument "Expected SpecFunction")
 
 (* Assumptions -- spec functions last commands in the block*)
@@ -55,6 +70,10 @@ let simplify_spec_functions cfg =
               end
             | _ -> raise (Invalid_argument "Spec Functions should have two successors") in
           (* Entry node of the unfolded spec func control flow subgraph *)
+          
+          let n_normal_stmts = CFG_BB.get_node_data cfg n_normal in
+          CFG_BB.set_node_data cfg n_normal ((as_annot_stmt(Label (fresh_r()))) :: n_normal_stmts);
+          
           CFG_BB.rm_edge cfg n n_normal;
           CFG_BB.rm_edge cfg n n_excep;
           

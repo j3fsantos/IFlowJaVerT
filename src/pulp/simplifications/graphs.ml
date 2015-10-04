@@ -36,7 +36,7 @@ struct
      graph_preds = Hashtbl.create 100;
      graph_node_data = Hashtbl.create 100;
      graph_edge_data = Hashtbl.create 100;
-     graph_last_node = 0;
+     graph_last_node = 0; (* last used, 0 is not used *)
    }
     
    let mk_node g nd = 
@@ -96,6 +96,16 @@ struct
      let _ = get_edge_data g src dest in
      Hashtbl.replace g.graph_edge_data (src, dest) ed
     
-   let inject_graph g subg = ()
+   let inject_graph g subg = 
+     let transform_node n = n + g.graph_last_node + 1 in
+     let transform_nodes ns = List.map transform_node ns in
+    
+     g.graph_nodes <- g.graph_nodes @ (transform_nodes subg.graph_nodes);
+     
+     Hashtbl.iter (fun id succs -> Hashtbl.add g.graph_succs (transform_node id) (transform_nodes succs)) subg.graph_succs;
+     Hashtbl.iter (fun id preds -> Hashtbl.add g.graph_preds (transform_node id) (transform_nodes preds)) subg.graph_preds;
+     Hashtbl.iter (fun id data -> Hashtbl.add g.graph_node_data (transform_node id) data) subg.graph_node_data;
+     Hashtbl.iter (fun (id1, id2) data -> Hashtbl.add g.graph_edge_data (transform_node id1, transform_node id2) data) subg.graph_edge_data;
 
+     g.graph_last_node <- transform_node (subg.graph_last_node)
 end

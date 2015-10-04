@@ -22,7 +22,7 @@ let test_template p =
   Interpreter.run_with_initial_heap p_exp
   
 let test_template_simp p =
-  let p_exp = get_expr p IVL_goto_unfold_functions in
+  let p_exp = get_expr p IVL_goto in
   let p_exp = Simp_Main.simplify p_exp in
   let _ = AllFunctions.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_func_block fwc)) p_exp in
   Interpreter.run_with_initial_heap p_exp
@@ -964,6 +964,6 @@ let suite = "Testing_Interpreter" >:::
     "test_is_nan_true" >:: test_is_nan_true;
     "test_is_finite_false" >:: test_is_finite_false;
     "test_is_finite_true" >:: test_is_finite_true;
-    "test_negative_nan" >:: test_negative_nan; 
+    "test_negative_nan" >:: test_negative_nan;
     (*"test_" >:: test_*) 
     ] 

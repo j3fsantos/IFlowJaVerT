@@ -40,7 +40,28 @@ let get_block_label cfg n =
   let stmts = CFG_BB.get_node_data cfg n in
   match stmts with
     | {as_stmt = Label l} :: tail -> l
-    | _ -> raise (BBInvalid "Block does not start with a label")
+    | _ -> raise (BBInvalid ("Block does not start with a label" ^ (string_of_annot_stmts stmts)))
+
+let get_block_labels g =
+	let label_map = Hashtbl.create 100 in
+	  let _ = List.iter (fun n -> 
+	    let d = CFG_BB.get_node_data g n in
+	    match d with
+	      | {as_stmt = Label l} :: tail -> Hashtbl.add label_map l n
+	      | _ -> ()
+	    ) (CFG_BB.nodes g) in
+	  label_map
+    
+(* Assumption: n1 is unfinished block without goto at the end *)
+(* n2 begins with label *)    
+let connect_blocks cfg n1 n2 =
+  let n2_label = get_block_label cfg n2 in
+  
+  let stmts = CFG_BB.get_node_data cfg n1 in
+  let stmts = List.rev ((as_annot_stmt (Goto n2_label)) :: (List.rev stmts)) in
+  CFG_BB.set_node_data cfg n1 stmts;  
+  
+  CFG_BB.mk_edge cfg n1 n2 Edge_Normal
 
 let copy (input : CFG.graph) : CFG_BB.graph = 
   let g = CFG_BB.mk_graph () in 
@@ -75,26 +96,33 @@ let merge_two_nodes n1 n2 g =
   ) n2succs_edges_data
   
 
-let rec traverse_node (g : CFG_BB.graph) nodedone current =
+let rec traverse_node (g : CFG_BB.graph) ctx nodedone current =
   if Hashtbl.mem nodedone current then () 
   else begin
 	  let succs = CFG_BB.succ g current in
+    let continue_traverse () = Hashtbl.add nodedone current (); List.iter (traverse_node g ctx nodedone) succs in
 	  begin match succs with
 	    | [succ] -> 
         let preds = CFG_BB.pred g succ in
         begin match preds with
-          | [pred] -> merge_two_nodes current succ g; traverse_node g nodedone current 
-          | _ -> Hashtbl.add nodedone current (); List.iter (traverse_node g nodedone) succs
+          | [pred] -> 
+            let stmts = CFG_BB.get_node_data g succ in
+            let can_merge = match stmts with
+              | [{as_stmt = Label l}] -> l <> ctx.label_return && l <> ctx.label_throw            
+              | _ -> true in
+            if can_merge then begin merge_two_nodes current succ g; traverse_node g ctx nodedone current end 
+            else continue_traverse ()
+          | _ -> continue_traverse ()
         end;
-	    | _ -> Hashtbl.add nodedone current (); List.iter (traverse_node g nodedone) succs
+	    | _ -> continue_traverse ()
     end
   end
   
-let transform_to_basic_blocks (g : CFG_BB.graph) =
+let transform_to_basic_blocks (g : CFG_BB.graph) ctx =
   let nodedone = Hashtbl.create 100 in
   match CFG_BB.nodes g with
     | [] -> ()
-    | start :: tail -> traverse_node g nodedone start
+    | start :: tail -> traverse_node g ctx nodedone start
   
 let remove_unreachable (g : CFG_BB.graph) =
   let nodedone = Hashtbl.create 100 in
@@ -110,9 +138,9 @@ let remove_unreachable (g : CFG_BB.graph) =
   List.iter (fun n -> if not (Hashtbl.mem nodedone n) then CFG_BB.rm_node g n) (CFG_BB.nodes g)
   
   
-let transform_to_basic_blocks_from_cfg (input : CFG.graph) : CFG_BB.graph =
+let transform_to_basic_blocks_from_cfg (input : CFG.graph) ctx : CFG_BB.graph =
   let g = copy input in
-  transform_to_basic_blocks g;
+  transform_to_basic_blocks g ctx;
   g
   
 let rec filter_goto_label stmts throwl returnl =
@@ -176,7 +204,6 @@ let remove_empty_blocks g =
     else ()
   ) (CFG_BB.nodes g)
 
-
 let print_cfg_bb (cfgs : CFG_BB.graph AllFunctions.t) (filename : string) : unit =
   let cfg_index = ref 0 in
   let node_name n = 
@@ -205,6 +232,9 @@ let print_cfg_bb (cfgs : CFG_BB.graph AllFunctions.t) (filename : string) : unit
   Printf.fprintf chan "}\n";
   close_out chan
   
+let print_cfg_bb_single cfg filename =
+  let all = AllFunctions.add "" cfg AllFunctions.empty in
+  print_cfg_bb all filename  
   
 let cfg_to_fb cfg return_label throw_label =
   let rec traverse cfg nodedone current =

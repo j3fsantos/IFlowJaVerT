@@ -5,9 +5,9 @@ open Reaching_Defs
 open Spec_Functions
 
 let basic_block_simplifications cfg ctx =
-  let cfg_bb = transform_to_basic_blocks_from_cfg cfg in
+  let cfg_bb = transform_to_basic_blocks_from_cfg cfg ctx in
   remove_unreachable cfg_bb;
-  transform_to_basic_blocks cfg_bb;
+  transform_to_basic_blocks cfg_bb ctx;
   remove_unreachable cfg_bb;
   remove_unnecessary_goto_label cfg_bb ctx.label_throw ctx.label_return;
   remove_empty_blocks cfg_bb;
@@ -22,7 +22,7 @@ let constant_propagation cfg fb =
   simplify_spec_functions cfg;
   remove_unreachable cfg;
   remove_empty_blocks cfg;
-  transform_to_basic_blocks cfg;
+  transform_to_basic_blocks cfg fb.func_ctx;
   remove_unnecessary_goto_label cfg fb.func_ctx.label_throw fb.func_ctx.label_return
   
 let simplify exp =
