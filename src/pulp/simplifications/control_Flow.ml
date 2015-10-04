@@ -24,7 +24,7 @@ let connect_calls_throw g label_map node =
       CFG.mk_edge g node (Hashtbl.find label_map throwl) Edge_Excep
     | Basic (Assignment {assign_right = (BuiltinCall {call_throw_label = throwl})}) -> 
       CFG.mk_edge g node (Hashtbl.find label_map throwl) Edge_Excep
-    | Sugar (SpecFunction (left, sf, _, _, excep_label)) -> 
+    | Sugar (SpecFunction (left, sf, excep_label)) -> 
       CFG.mk_edge g node (Hashtbl.find label_map excep_label) Edge_Excep
     | _ -> ()
   
@@ -53,11 +53,10 @@ let rec connect_nodes g current nodes label_map =
       connect_nodes g hd tail label_map
    end
    
-
 let fb_to_cfg fb : CFG.graph = 
   let g = CFG.mk_graph () in
   
-  let start = CFG.mk_node g (Label entry) in
+  let start = CFG.mk_node g (Label fb.func_ctx.label_entry) in
   
   let nodes = List.map (CFG.mk_node g) (fb.func_body) in
     
@@ -73,7 +72,6 @@ let fb_to_cfg fb : CFG.graph =
   
   List.iter (connect_calls_throw g label_map) nodes;
   g
-  
   
 let program_to_cfg (all_functions : function_block AllFunctions.t) : CFG.graph AllFunctions.t =
   AllFunctions.map fb_to_cfg all_functions

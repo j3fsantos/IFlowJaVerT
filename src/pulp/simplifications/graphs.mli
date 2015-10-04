@@ -22,5 +22,7 @@ sig
    val set_node_data : graph -> node -> NodeData.t -> unit
    val get_edge_data : graph -> node -> node -> EdgeData.t
    val set_edge_data : graph -> node -> node -> EdgeData.t -> unit
+  
+   val inject_graph : graph -> graph -> unit
 
 end 

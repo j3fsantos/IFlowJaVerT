@@ -36,6 +36,12 @@ module CFG_BB = AbstractGraph (struct type t = annotated_statement list end) (st
 
 exception BBInvalid of string
 
+let get_block_label cfg n =
+  let stmts = CFG_BB.get_node_data cfg n in
+  match stmts with
+    | {as_stmt = Label l} :: tail -> l
+    | _ -> raise (BBInvalid "Block does not start with a label")
+
 let copy (input : CFG.graph) : CFG_BB.graph = 
   let g = CFG_BB.mk_graph () in 
   

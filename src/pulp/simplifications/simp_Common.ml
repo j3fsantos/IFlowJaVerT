@@ -1,7 +1,5 @@
 open Pulp_Syntax
 
-let entry = "Entry"
-
 type edge_type =
   | Edge_Normal
   | Edge_Excep
@@ -78,7 +76,7 @@ and
 get_vars_in_sugar_stmt stmt =
   match stmt with
   | If (e, t1, t2) -> (get_vars_in_expr e) @ (List.flatten (List.map get_vars_in_stmt t1)) @ (List.flatten (List.map get_vars_in_stmt t2))
-  | SpecFunction (left, sf, throw_var, throw_label, excep_label) -> [left; throw_var] @ get_vars_in_spec_functions sf
+  | SpecFunction (left, sf, excep_label) -> left :: (get_vars_in_spec_functions sf)
 
 let rec is_const_expr e =
   let f = is_const_expr in
@@ -158,7 +156,7 @@ and
 transform_expr_in_sugar_stmt f stmt =
   match stmt with
   | If (e, t1, t2) -> If (f e, List.map (transform_expr_in_stmt f) t1, List.map (transform_expr_in_stmt f) t2)
-  | SpecFunction (left, sf, throw_var, throw_label, excep_label) -> SpecFunction (left, transform_expr_in_spec_funcs f sf, throw_var, throw_label, excep_label)
+  | SpecFunction (left, sf, excep_label) -> SpecFunction (left, transform_expr_in_spec_funcs f sf, excep_label)
 
 
 (* Constant Propagation *)

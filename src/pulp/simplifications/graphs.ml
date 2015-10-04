@@ -95,5 +95,7 @@ struct
    let set_edge_data g src dest ed =
      let _ = get_edge_data g src dest in
      Hashtbl.replace g.graph_edge_data (src, dest) ed
+    
+   let inject_graph g subg = ()
 
 end

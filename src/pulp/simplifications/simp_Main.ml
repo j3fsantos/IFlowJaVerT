@@ -2,6 +2,7 @@ open Pulp_Syntax
 open Pulp_Procedure
 open Basic_Blocks
 open Reaching_Defs
+open Spec_Functions
 
 let basic_block_simplifications cfg ctx =
   let cfg_bb = transform_to_basic_blocks_from_cfg cfg in
@@ -18,6 +19,7 @@ let constant_propagation cfg fb =
   copy_propagation cfg; (* TODO: Do I need constant_progation if I have copy_propagation? *)
   type_simplifications cfg fb.func_params;
   simplify_guarded_gotos cfg;  
+  simplify_spec_functions cfg;
   remove_unreachable cfg;
   remove_empty_blocks cfg;
   transform_to_basic_blocks cfg;

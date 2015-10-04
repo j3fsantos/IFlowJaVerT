@@ -93,96 +93,96 @@ let equal_num_expr v n = equal_lit_expr v (Num n)
 
 let equal_string_exprs e s = equal_exprs e (Literal (String s))
 
-let spec_func_get_value arg ctx excep_label = 
+let spec_func_get_value arg excep_label = 
   let left = fresh_r () in
-  Sugar (SpecFunction (left, (GetValue arg), ctx.throw_var, ctx.label_throw, excep_label)), left
+  Sugar (SpecFunction (left, (GetValue arg), excep_label)), left
   
-let spec_func_to_object arg ctx excep_label = 
+let spec_func_to_object arg excep_label = 
   let left = fresh_r () in
-  Sugar (SpecFunction (left, (ToObject arg), ctx.throw_var, ctx.label_throw, excep_label)), left
+  Sugar (SpecFunction (left, (ToObject arg), excep_label)), left
   
-let spec_func_put_value arg1 arg2 ctx excep_label = 
+let spec_func_put_value arg1 arg2 excep_label = 
   let left = fresh_r () in
-  Sugar (SpecFunction (left, (PutValue (arg1, arg2)), ctx.throw_var, ctx.label_throw, excep_label)), left
+  Sugar (SpecFunction (left, (PutValue (arg1, arg2)), excep_label)), left
   
-let spec_func_get arg1 arg2 ctx excep_label = 
+let spec_func_get arg1 arg2 excep_label = 
   let left = fresh_r () in
-  Sugar (SpecFunction (left, (Get (arg1, arg2)), ctx.throw_var, ctx.label_throw, excep_label)), left
+  Sugar (SpecFunction (left, (Get (arg1, arg2)), excep_label)), left
   
-let spec_func_has_property arg1 arg2 ctx excep_label = 
+let spec_func_has_property arg1 arg2 excep_label = 
   let left = fresh_r () in
-  Sugar (SpecFunction (left, (HasProperty (arg1, arg2)), ctx.throw_var, ctx.label_throw, excep_label)), left
+  Sugar (SpecFunction (left, (HasProperty (arg1, arg2)), excep_label)), left
   
-let spec_func_default_value arg1 arg2 ctx excep_label = 
+let spec_func_default_value arg1 arg2 excep_label = 
   let left = fresh_r () in
-  Sugar (SpecFunction (left, (DefaultValue (arg1, arg2)), ctx.throw_var, ctx.label_throw, excep_label)), left
+  Sugar (SpecFunction (left, (DefaultValue (arg1, arg2)), excep_label)), left
    
-let spec_func_to_primitive arg1 arg2 ctx excep_label = 
+let spec_func_to_primitive arg1 arg2 excep_label = 
   let left = fresh_r () in
-  Sugar (SpecFunction (left, (ToPrimitive (arg1, arg2)), ctx.throw_var, ctx.label_throw, excep_label)), left
+  Sugar (SpecFunction (left, (ToPrimitive (arg1, arg2)), excep_label)), left
   
-let spec_func_to_boolean arg ctx excep_label = 
+let spec_func_to_boolean arg excep_label = 
   let left = fresh_r () in
-  Sugar (SpecFunction (left, (ToBoolean arg), ctx.throw_var, ctx.label_throw, excep_label)), left
+  Sugar (SpecFunction (left, (ToBoolean arg), excep_label)), left
   
-let spec_func_to_number arg ctx excep_label = 
+let spec_func_to_number arg excep_label = 
   let left = fresh_r () in
-  Sugar (SpecFunction (left, (ToNumber arg), ctx.throw_var, ctx.label_throw, excep_label)), left
+  Sugar (SpecFunction (left, (ToNumber arg), excep_label)), left
   
-let spec_func_to_number_prim arg ctx excep_label = 
+let spec_func_to_number_prim arg excep_label = 
   let left = fresh_r () in
-  Sugar (SpecFunction (left, (ToNumberPrim arg), ctx.throw_var, ctx.label_throw, excep_label)), left
+  Sugar (SpecFunction (left, (ToNumberPrim arg), excep_label)), left
   
-let spec_func_to_string arg ctx excep_label = 
+let spec_func_to_string arg excep_label = 
   let left = fresh_r () in
-  Sugar (SpecFunction (left, (ToString arg), ctx.throw_var, ctx.label_throw, excep_label)), left
+  Sugar (SpecFunction (left, (ToString arg), excep_label)), left
   
-let spec_func_to_string_prim arg ctx excep_label = 
+let spec_func_to_string_prim arg excep_label = 
   let left = fresh_r () in
-  Sugar (SpecFunction (left, (ToStringPrim arg), ctx.throw_var, ctx.label_throw, excep_label)), left
+  Sugar (SpecFunction (left, (ToStringPrim arg), excep_label)), left
   
-let spec_func_check_obj_coer arg ctx excep_label = 
+let spec_func_check_obj_coer arg excep_label = 
   let left = fresh_r () in
-  Sugar (SpecFunction (left, (CheckObjectCoercible arg), ctx.throw_var, ctx.label_throw, excep_label)), left
+  Sugar (SpecFunction (left, (CheckObjectCoercible arg), excep_label)), left
   
-let spec_func_is_callable arg ctx excep_label = 
+let spec_func_is_callable arg excep_label = 
   let left = fresh_r () in
-  Sugar (SpecFunction (left, (IsCallable arg), ctx.throw_var, ctx.label_throw, excep_label)), left
+  Sugar (SpecFunction (left, (IsCallable arg), excep_label)), left
   
-let spec_func_abstract_equality arg1 arg2 arg3 ctx excep_label = 
+let spec_func_abstract_equality arg1 arg2 arg3 excep_label = 
   let left = fresh_r () in
-  Sugar (SpecFunction (left, (AbstractEquality (arg1, arg2, arg3)), ctx.throw_var, ctx.label_throw, excep_label)), left
+  Sugar (SpecFunction (left, (AbstractEquality (arg1, arg2, arg3)), excep_label)), left
   
-let spec_func_strict_equality arg1 arg2 ctx excep_label = 
+let spec_func_strict_equality arg1 arg2 excep_label = 
   let left = fresh_r () in
-  Sugar (SpecFunction (left, (StrictEquality (arg1, arg2)), ctx.throw_var, ctx.label_throw, excep_label)), left
+  Sugar (SpecFunction (left, (StrictEquality (arg1, arg2)), excep_label)), left
   
-let spec_func_strict_equality_same_type arg1 arg2 ctx excep_label = 
+let spec_func_strict_equality_same_type arg1 arg2 excep_label = 
   let left = fresh_r () in
-  Sugar (SpecFunction (left, (StrictEqualitySameType (arg1, arg2)), ctx.throw_var, ctx.label_throw, excep_label)), left
+  Sugar (SpecFunction (left, (StrictEqualitySameType (arg1, arg2)), excep_label)), left
   
 let spec_func_call sp ctx =
   let excep_label = "spec_call_excep." ^ (fresh_r ()) in (* TODO some of the functions definetely fo not throw exceptions *)
   let exit_label = "spec_call_normal." ^ (fresh_r ()) in
   let sp_stmt, left = 
     match sp with
-      | GetValue e -> spec_func_get_value e ctx excep_label
-      | PutValue (e1, e2) -> spec_func_put_value e1 e2 ctx excep_label
-      | Get (e1, e2) -> spec_func_get e1 e2 ctx excep_label
-      | HasProperty (e1, e2) -> spec_func_has_property e1 e2 ctx excep_label
-      | DefaultValue (e, pt) -> spec_func_default_value e pt ctx excep_label (* This not being used at the moment since only to_primitive is using it which is itself a primitive operation *)
-      | ToPrimitive (e, pt) -> spec_func_to_primitive e pt ctx excep_label
-      | ToBoolean e -> spec_func_to_boolean e ctx excep_label
-      | ToNumber e -> spec_func_to_number e ctx excep_label
-      | ToNumberPrim e -> spec_func_to_number_prim e ctx excep_label
-      | ToString e -> spec_func_to_string e ctx excep_label
-      | ToStringPrim e -> spec_func_to_string_prim e ctx excep_label
-      | ToObject e -> spec_func_to_object e ctx excep_label
-      | CheckObjectCoercible e -> spec_func_check_obj_coer e ctx excep_label
-      | IsCallable e -> spec_func_is_callable e ctx excep_label
-      | AbstractEquality (e1, e2, b) -> spec_func_abstract_equality e1 e2 b ctx excep_label
-      | StrictEquality (e1, e2) -> spec_func_strict_equality e1 e2 ctx excep_label
-      | StrictEqualitySameType (e1, e2) -> spec_func_strict_equality_same_type e1 e2 ctx excep_label in
+      | GetValue e -> spec_func_get_value e excep_label
+      | PutValue (e1, e2) -> spec_func_put_value e1 e2 excep_label
+      | Get (e1, e2) -> spec_func_get e1 e2 excep_label
+      | HasProperty (e1, e2) -> spec_func_has_property e1 e2 excep_label
+      | DefaultValue (e, pt) -> spec_func_default_value e pt excep_label (* This not being used at the moment since only to_primitive is using it which is itself a primitive operation *)
+      | ToPrimitive (e, pt) -> spec_func_to_primitive e pt excep_label
+      | ToBoolean e -> spec_func_to_boolean e excep_label
+      | ToNumber e -> spec_func_to_number e excep_label
+      | ToNumberPrim e -> spec_func_to_number_prim e excep_label
+      | ToString e -> spec_func_to_string e excep_label
+      | ToStringPrim e -> spec_func_to_string_prim e excep_label
+      | ToObject e -> spec_func_to_object e excep_label
+      | CheckObjectCoercible e -> spec_func_check_obj_coer e excep_label
+      | IsCallable e -> spec_func_is_callable e excep_label
+      | AbstractEquality (e1, e2, b) -> spec_func_abstract_equality e1 e2 b excep_label
+      | StrictEquality (e1, e2) -> spec_func_strict_equality e1 e2 excep_label
+      | StrictEqualitySameType (e1, e2) -> spec_func_strict_equality_same_type e1 e2 excep_label in
     [ sp_stmt;
       Goto exit_label;
       Label excep_label;
@@ -947,8 +947,8 @@ let rec unfold_spec_functions stmts =
           | Sugar st -> 
             begin match st with
               | If (c, t1, t2) -> [Sugar (If (c, f t1, f t2))]
-              | SpecFunction (left, sf, throw_var, label_throw, excep_label) -> 
-                unfold_spec_function sf left throw_var label_throw
+              | SpecFunction (left, sf, excep_label) -> 
+                unfold_spec_function sf left left excep_label
             end
           | stmt -> [stmt]
   ) stmts)

@@ -17,6 +17,7 @@ let make_ctx_vars fid vars =
     env_vars : ctx_variables list; 
     return_var : variable;
     throw_var : variable;
+    label_entry : label;
     label_return : label;
     label_throw : label;
     label_continue : (string * label) list;
@@ -29,6 +30,7 @@ let create_ctx env =
      env_vars = env;
      return_var = fresh_r ();
      throw_var = fresh_r ();
+     label_entry = "entry." ^ fresh_r (); 
      label_return = "return." ^ fresh_r ();
      label_throw = "throw." ^ fresh_r ();
      label_continue = [];

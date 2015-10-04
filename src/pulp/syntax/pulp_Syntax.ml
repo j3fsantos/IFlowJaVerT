@@ -272,4 +272,4 @@ and
 syntactic_sugar_statement =
   | If of expression * statement list * statement list 
   (* Last three variables to remember the throw_label and throw_variable from the context and with label *)
-  | SpecFunction of variable * specification_function * variable * label * label 
+  | SpecFunction of variable * specification_function * label 

@@ -261,8 +261,8 @@ and string_of_sugar t =
       (string_of_expression condition)
       (string_of_statement_list thenbranch)
       (string_of_statement_list elsebranch)
-    | SpecFunction (v, sf, throw_var, label_throw, excel_label) -> Printf.sprintf "%s = %s with (%s, %s, %s)" 
-      v (string_of_spec_function sf) throw_var label_throw excel_label
+    | SpecFunction (v, sf, excel_label) -> Printf.sprintf "%s = %s with (%s)" 
+      v (string_of_spec_function sf) excel_label
       
   
 let string_of_ctx_vars v = 

@@ -263,7 +263,7 @@ let get_posts fb cfg sg cmd_st_tbl =
 let execute f cfg fs spec =
   let label_map = get_all_labels cfg in (* Something not right in the interface *)
   
-  let start = Hashtbl.find label_map Simp_Common.entry in
+  let start = Hashtbl.find label_map (f.func_ctx.label_entry) in
   
   (* cfg_node -> state_node list *)
   let cmd_st_tbl = Hashtbl.create 100 in
