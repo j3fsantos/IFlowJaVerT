@@ -15,33 +15,20 @@ let get_type_info var annot =
 let simplify_get_value e left annot throw_var label_throw =
   let simplify_not_a_ref = [Basic (Assignment (mk_assign left (Expression e)))] in
   match e with
-    | Literal _
-    | BinOp _
-    | UnaryOp _
-    | Base _
-    | Field _
-    | IsTypeOf _
-    | TypeOf _ -> simplify_not_a_ref
+    | Literal _ | BinOp _ | UnaryOp _ | Base _ | Field _ | IsTypeOf _ | TypeOf _ -> simplify_not_a_ref
     | Var var -> 
-      begin 
-        match get_type_info var annot with
-          | None -> translate_gamma e left throw_var label_throw
-          | Some pt ->
-            begin match pt with
-              | TI_Type pt ->
-                begin
-                  match pt with
-                    | NullType
-                    | UndefinedType
-                    | BooleanType
-                    | StringType
-                    | NumberType
-                    | ObjectType _ -> simplify_not_a_ref
-                    | ReferenceType _ -> translate_gamma_reference e left throw_var label_throw
-                end
-              | TI_Value -> simplify_not_a_ref
-              | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to get_value")
-            end
+      begin match get_type_info var annot with
+        | None -> translate_gamma e left throw_var label_throw
+        | Some pt ->
+          begin match pt with
+            | TI_Type pt ->
+              begin match pt with
+                | NullType | UndefinedType | BooleanType | StringType | NumberType | ObjectType _ -> simplify_not_a_ref
+                | ReferenceType _ -> translate_gamma_reference e left throw_var label_throw
+              end
+            | TI_Value -> simplify_not_a_ref
+            | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to get_value")
+          end
       end
     | Ref (e1, e2, rt) -> 
       begin match e1 with
@@ -49,34 +36,24 @@ let simplify_get_value e left annot throw_var label_throw =
           begin match lit with
             | LLoc l -> (* TODO *) translate_gamma_reference e left throw_var label_throw
             | Null ->  raise (Invalid_argument "Ref base cannot be null ")             
-            | Bool _          
-            | Num _       
-            | String _ ->  translate_gamma_reference_prim_base e1 e2 left throw_var label_throw
+            | Bool _  | Num _  | String _ ->  translate_gamma_reference_prim_base e1 e2 left throw_var label_throw
             | Undefined -> translate_error_throw Lrep throw_var label_throw
             | Type pt -> raise (Invalid_argument "Type cannot be as an argument to Reference")
             | Empty -> raise (Invalid_argument "Empty cannot be as an argument to Reference")   
            end
-        | BinOp _
-        | UnaryOp _
-        | Base _
-        | Field _
-        | IsTypeOf _
-        | TypeOf _ -> (* TODO *) translate_gamma_reference e left throw_var label_throw
+        | BinOp _ | UnaryOp _ | Base _ | Field _ | IsTypeOf _ | TypeOf _ -> (* TODO *) translate_gamma_reference e left throw_var label_throw
         | Var var ->        
 	        begin match get_type_info var annot with
 	          | None -> translate_gamma_reference e left throw_var label_throw (* No need to do base *)
 	          | Some pt ->
 	            begin match pt with
 	              | TI_Type pt ->
-	                begin
-	                  match pt with
-	                    | NullType -> raise (Invalid_argument "Ref base cannot be null ") 
-	                    | UndefinedType -> translate_error_throw Lrep throw_var label_throw
-	                    | BooleanType
-	                    | StringType
-	                    | NumberType -> translate_gamma_reference_prim_base e1 e2 left throw_var label_throw
-	                    | ObjectType _ -> (* TODO *) translate_gamma_reference e left throw_var label_throw
-	                    | ReferenceType _ -> translate_gamma_reference e left throw_var label_throw
+	                begin match pt with
+	                  | NullType -> raise (Invalid_argument "Ref base cannot be null ") 
+	                  | UndefinedType -> translate_error_throw Lrep throw_var label_throw
+	                  | BooleanType | StringType | NumberType -> translate_gamma_reference_prim_base e1 e2 left throw_var label_throw
+	                  | ObjectType _ -> (* TODO *) translate_gamma_reference e left throw_var label_throw
+	                  | ReferenceType _ -> translate_gamma_reference e left throw_var label_throw
 	                end
 	              | TI_Value -> translate_gamma_reference e left throw_var label_throw (* No need to do base *)
 	              | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to Reference")
