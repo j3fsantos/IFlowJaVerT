@@ -171,18 +171,72 @@ let simplify_put_value e1 e2 annot throw_var label_throw =
           end
         | Ref _ -> raise (Invalid_argument "Reference cannot be as an argument to Reference")
      end
-
+    
+let simplify_to_boolean e annot left =
+  match e with
+    | Literal Undefined | Literal Null  | Literal (Bool false) | Literal (String "") | Literal (Num 0.0) -> [assign_false left] 
+    | Literal (Num nan) -> [assign_false left] (* Why does it complain for nan? *)
+    | Literal Empty | Literal Type _ |IsTypeOf _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To boolean cannot take empty / type / typeof / ref as an argument") 
+    | Literal _ | Base _ | Field _ -> [assign_true left] (* Base return object; Field cannot be empty *)
+    | BinOp _ | UnaryOp _  -> translate_to_boolean e left
+    | Var var -> 
+      begin match get_type_info var annot with
+        | None -> translate_to_boolean e left
+        | Some pt ->
+          begin match pt with
+            | TI_Type pt ->
+              begin match pt with
+                | NullType | UndefinedType -> [assign_false left]
+                | BooleanType | StringType | NumberType -> translate_to_boolean e left
+                | ObjectType _ ->  [assign_true left]
+                | ReferenceType _ -> raise (Invalid_argument "To boolean cannot take referece as an argument") 
+              end
+            | TI_Value -> translate_to_boolean e left
+            | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to to_boolean")
+          end
+      end
+      
+let simplify_to_number_prim e annot left =
+  match e with
+    | Literal Undefined -> [assign_num left nan]
+    | Literal Null | Literal (Bool false) -> [assign_num left 0.0]
+    | Literal (Bool true) -> [assign_num left 1.0]
+    | Literal (String s) -> [assign_to_number left s] 
+    | Literal (Num n) -> [assign_num left n]
+    | Literal Empty | Literal (LLoc _) | Literal Type _ | IsTypeOf _ | TypeOf _ | Ref _ | Base _ -> raise (Invalid_argument "To number prim cannot take empty / object / type / typeof / ref as an argument") 
+    | Field _ -> [assign_uop left ToNumberOp e] (* Field return string *)
+    | BinOp _ | UnaryOp _  -> translate_to_number_prim e left
+    | Var var -> 
+      begin match get_type_info var annot with
+        | None -> translate_to_number_prim e left
+        | Some pt ->
+          begin match pt with
+            | TI_Type pt ->
+              begin match pt with
+                | NullType -> [assign_num left 0.0]
+                | UndefinedType -> [assign_num left nan]
+                | BooleanType -> translate_to_number_bool e left
+                | StringType -> [assign_uop left ToNumberOp e]
+                | NumberType -> [assign_expr left e]
+                | ObjectType _
+                | ReferenceType _ -> raise (Invalid_argument "To number prim cannot take objects and references as arguments") 
+              end
+            | TI_Value -> translate_to_number_prim e left
+            | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to to_number_prim")
+          end
+      end
+  
 let simplify_spec_func sf left annot throw_var label_throw =
   match sf with
     | GetValue e -> simplify_get_value e left annot throw_var label_throw
     | PutValue (e1, e2) -> simplify_put_value e1 e2 annot throw_var label_throw
-    | Get (e1, e2) -> translate_get e1 e2 left
-    | HasProperty (e1, e2) -> translate_has_property e1 e2 left
-    | DefaultValue (e, pt) -> translate_default_value e pt left throw_var label_throw
-    | ToPrimitive (e, pt) -> translate_to_primitive e pt left throw_var label_throw
-    | ToBoolean e -> translate_to_boolean e left
+    | Get (e1, e2) -> translate_get e1 e2 left (* No simplifications. Might change after we have getters/setters *)
+    | HasProperty (e1, e2) -> translate_has_property e1 e2 left (* No simplifications *)
+    | DefaultValue (e, pt) -> translate_default_value e pt left throw_var label_throw (* Cannot do simplifications at this time. But this exploads a lot. Possible simplifications with separation logic reasoning *)
+    | ToPrimitive (e, pt) -> translate_to_primitive e pt left throw_var label_throw (* Cannot do simplifications at this time. Depends on Default Value *)
+    | ToBoolean e -> simplify_to_boolean e annot left
     | ToNumber e -> translate_to_number e left throw_var label_throw
-    | ToNumberPrim e -> translate_to_number_prim e left
+    | ToNumberPrim e -> simplify_to_number_prim e annot left
     | ToString e -> translate_to_string e left throw_var label_throw
     | ToStringPrim e -> translate_to_string_prim e left
     | ToObject e -> translate_to_object e left throw_var label_throw

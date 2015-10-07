@@ -93,6 +93,16 @@ let equal_num_expr v n = equal_lit_expr v (Num n)
 
 let equal_string_exprs e s = equal_exprs e (Literal (String s))
 
+let assign_expr var e = Basic (Assignment (mk_assign var (Expression e)))
+let assign_uop var op e = assign_expr var (UnaryOp (op, e))
+let assign_to_number var s = assign_uop var ToNumberOp (Literal (String s))
+let assign_lit var lit = assign_expr var (Literal lit)
+let assign_boolean var b = assign_lit var (Bool b)
+let assign_num var n = assign_lit var (Num n)
+
+let assign_true var = assign_boolean var true
+let assign_false var = assign_boolean var false
+
 let spec_func_get_value arg excep_label = 
   let left = fresh_r () in
   Sugar (SpecFunction (left, (GetValue arg), excep_label)), left
@@ -638,23 +648,24 @@ let translate_to_primitive arg preftype rv throw_var label_throw =
     r1_stmts @ assign_rv_expr (Var r1),
     assign_rv_expr arg))
   ] 
+ 
+let translate_to_number_bool arg rv =
+  [ Sugar (If (equal_bool_expr arg true, 
+      [assign_num rv 1.0],
+      [assign_num rv 0.0]))
+  ]
   
 let translate_to_number_prim arg rv =
-  let assign_rv_expr e = [Basic (Assignment (mk_assign rv (Expression e)))] in
-  let assign_rv_num v = assign_rv_expr (Literal (Num v)) in
   [Sugar (If (type_of_exp arg UndefinedType,
-    assign_rv_num nan, (* TODO *)
+    [assign_num rv nan], 
     [ Sugar (If (type_of_exp arg NullType,
-      assign_rv_num 0.0,
+      [assign_num rv 0.0],
       [ Sugar (If (type_of_exp arg BooleanType,
-        [ Sugar (If (equal_bool_expr arg true, 
-          assign_rv_num 1.0,
-          assign_rv_num 0.0))
-        ],
+        translate_to_number_bool arg rv,
         [ Sugar (If (type_of_exp arg NumberType,
-          assign_rv_expr arg,
+          [assign_expr rv arg],
           (* Must be StringType *)
-          assign_rv_expr (UnaryOp (ToNumberOp, arg))))
+          [assign_uop rv ToNumberOp arg]))
         ]))
       ]))
     ]))]
@@ -698,7 +709,6 @@ let translate_abstract_relation x y leftfirst rv throw_var label_throw =
   ]
   
 let translate_to_boolean arg rv =
-  let assign_rv b = [Basic (Assignment (mk_assign rv (Expression (Literal (Bool b)))))] in
   [Sugar (If (or_expr 
             (equal_undef_expr arg)
             (or_expr 
@@ -712,8 +722,8 @@ let translate_to_boolean arg rv =
                     (or_expr 
                       (equal_num_expr arg nan) 
                       (equal_num_expr arg 0.0)))))),
-    assign_rv false,
-    assign_rv true))]
+    [assign_false rv],
+    [assign_true rv]))]
     
 let translate_to_number arg rv throw_var label_throw = 
   let r2 = fresh_r () in
