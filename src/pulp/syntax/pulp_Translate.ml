@@ -725,26 +725,29 @@ let translate_to_boolean arg rv =
     [assign_false rv],
     [assign_true rv]))]
     
+let translate_to_number_object arg rv throw_var label_throw = 
+  let primValue = fresh_r () in
+  let to_primitive = translate_to_primitive arg (Some NumberType) primValue throw_var label_throw in
+  let to_number = translate_to_number_prim (Var primValue) rv in
+     to_primitive @ to_number
+    
 let translate_to_number arg rv throw_var label_throw = 
   let r2 = fresh_r () in
   let primValue = fresh_r () in
   let to_primitive = translate_to_primitive arg (Some NumberType) primValue throw_var label_throw in
-  let r1 = fresh_r () in
-  let to_number = translate_to_number_prim (Var r2) r1 in
-  let assign_rv_var var = Basic (Assignment (mk_assign rv (Expression (Var var)))) in
+  let to_number = translate_to_number_prim (Var r2) rv in
   let assign_r2_var var = [Basic (Assignment (mk_assign r2 (Expression var)))] in
   [ Sugar (If (type_of_exp arg (ObjectType None),
       to_primitive @ (assign_r2_var (Var primValue)),
       (assign_r2_var arg))); 
   ] @
-    to_number @
-  [ assign_rv_var r1 ]
+    to_number
     
 let rec translate_to_string_prim arg rv =
   let assign_rv_expr e = [Basic (Assignment (mk_assign rv (Expression e)))] in
   let assign_rv_str v = assign_rv_expr (Literal (String v)) in
   [ Sugar (If (type_of_exp arg UndefinedType,
-    assign_rv_str "undefined", (* TODO *)
+    assign_rv_str "undefined",
     [ Sugar (If (type_of_exp arg NullType,
       assign_rv_str "null",
       [ Sugar (If (type_of_exp arg BooleanType,

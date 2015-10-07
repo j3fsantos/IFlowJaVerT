@@ -225,6 +225,27 @@ let simplify_to_number_prim e annot left =
             | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to to_number_prim")
           end
       end
+      
+let simplify_to_number e annot left throw_var label_throw =
+  match e with
+    | Literal (LLoc _) | Base _ -> translate_to_number_object e left throw_var label_throw
+    | Literal Undefined | Literal Null | Literal (Bool _) | Literal (String _) | Literal (Num _) | Field _ | BinOp _ | UnaryOp _ -> simplify_to_number_prim e annot left
+    | Literal Empty | Literal Type _ | IsTypeOf _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To number prim cannot take empty / object / type / typeof / ref as an argument") 
+    | Var var -> 
+      begin match get_type_info var annot with
+        | None -> translate_to_number e left throw_var label_throw
+        | Some pt ->
+          begin match pt with
+            | TI_Type pt ->
+              begin match pt with
+                | NullType | UndefinedType | BooleanType | StringType | NumberType -> simplify_to_number_prim e annot left
+                | ObjectType _ -> translate_to_number_object e left throw_var label_throw
+                | ReferenceType _ -> raise (Invalid_argument "To number cannot take and references as arguments") 
+              end
+            | TI_Value -> translate_to_number e left throw_var label_throw
+            | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to to_number")
+          end
+      end
   
 let simplify_spec_func sf left annot throw_var label_throw =
   match sf with
@@ -235,7 +256,7 @@ let simplify_spec_func sf left annot throw_var label_throw =
     | DefaultValue (e, pt) -> translate_default_value e pt left throw_var label_throw (* Cannot do simplifications at this time. But this exploads a lot. Possible simplifications with separation logic reasoning *)
     | ToPrimitive (e, pt) -> translate_to_primitive e pt left throw_var label_throw (* Cannot do simplifications at this time. Depends on Default Value *)
     | ToBoolean e -> simplify_to_boolean e annot left
-    | ToNumber e -> translate_to_number e left throw_var label_throw
+    | ToNumber e -> simplify_to_number e annot left throw_var label_throw
     | ToNumberPrim e -> simplify_to_number_prim e annot left
     | ToString e -> translate_to_string e left throw_var label_throw
     | ToStringPrim e -> translate_to_string_prim e left
