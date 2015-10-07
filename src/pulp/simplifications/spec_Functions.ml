@@ -205,7 +205,7 @@ let simplify_to_number_prim e annot left =
     | Literal (Num n) -> [assign_num left n]
     | Literal Empty | Literal (LLoc _) | Literal Type _ | IsTypeOf _ | TypeOf _ | Ref _ | Base _ -> raise (Invalid_argument "To number prim cannot take empty / object / type / typeof / ref as an argument") 
     | Field _ -> [assign_uop left ToNumberOp e] (* Field return string *)
-    | BinOp _ | UnaryOp _  -> translate_to_number_prim e left
+    | BinOp _ | UnaryOp _  -> translate_to_number_prim e left  (* TODO: Different types for different operators *)
     | Var var -> 
       begin match get_type_info var annot with
         | None -> translate_to_number_prim e left
@@ -230,7 +230,7 @@ let simplify_to_number e annot left throw_var label_throw =
   match e with
     | Literal (LLoc _) | Base _ -> translate_to_number_object e left throw_var label_throw
     | Literal Undefined | Literal Null | Literal (Bool _) | Literal (String _) | Literal (Num _) | Field _ | BinOp _ | UnaryOp _ -> simplify_to_number_prim e annot left
-    | Literal Empty | Literal Type _ | IsTypeOf _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To number prim cannot take empty / object / type / typeof / ref as an argument") 
+    | Literal Empty | Literal Type _ | IsTypeOf _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To number cannot take empty / type / typeof / ref as an argument") 
     | Var var -> 
       begin match get_type_info var annot with
         | None -> translate_to_number e left throw_var label_throw
@@ -246,6 +246,58 @@ let simplify_to_number e annot left throw_var label_throw =
             | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to to_number")
           end
       end
+      
+let simplify_to_string_prim e annot left =
+  match e with
+    | Literal Undefined -> [assign_string left "undefined"]
+    | Literal Null -> [assign_string left "null"]
+    | Literal (Bool false) -> [assign_string left "false"]
+    | Literal (Bool true) -> [assign_string left "true"]
+    | Literal (String s) -> [assign_string left s] 
+    | Literal (Num n) -> [assign_to_string left n]
+    | Literal Empty | Literal (LLoc _) | Literal Type _ | IsTypeOf _ | TypeOf _ | Ref _ | Base _ -> raise (Invalid_argument "To_string_prim cannot take empty / object / type / typeof / ref / base as an argument") 
+    | Field _ -> [assign_expr left e] (* Field return string *)
+    | BinOp _ | UnaryOp _  -> translate_to_string_prim e left (* TODO: Different types for different operators *)
+    | Var var -> 
+      begin match get_type_info var annot with
+        | None -> translate_to_string_prim e left
+        | Some pt ->
+          begin match pt with
+            | TI_Type pt ->
+              begin match pt with
+                | NullType -> [assign_string left "null"]
+                | UndefinedType -> [assign_string left "undefined"]
+                | BooleanType -> translate_to_string_bool e left
+                | StringType -> [assign_expr left e]
+                | NumberType -> [assign_uop left ToStringOp e]
+                | ObjectType _
+                | ReferenceType _ -> raise (Invalid_argument "To string prim cannot take objects and references as arguments") 
+              end
+            | TI_Value -> translate_to_string_prim e left
+            | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to to_string_prim")
+          end
+      end
+      
+let simplify_to_string e annot left throw_var label_throw =
+  match e with
+    | Literal (LLoc _) | Base _ -> translate_to_string_object e left throw_var label_throw
+    | Literal Undefined | Literal Null | Literal (Bool _) | Literal (String _) | Literal (Num _) | Field _ | BinOp _ | UnaryOp _ -> simplify_to_string_prim e annot left
+    | Literal Empty | Literal Type _ | IsTypeOf _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To string cannot take empty / type / typeof / ref as an argument") 
+    | Var var -> 
+      begin match get_type_info var annot with
+        | None -> translate_to_string e left throw_var label_throw
+        | Some pt ->
+          begin match pt with
+            | TI_Type pt ->
+              begin match pt with
+                | NullType | UndefinedType | BooleanType | StringType | NumberType -> simplify_to_string_prim e annot left
+                | ObjectType _ -> translate_to_string_object e left throw_var label_throw
+                | ReferenceType _ -> raise (Invalid_argument "To_string cannot take and references as arguments") 
+              end
+            | TI_Value -> translate_to_string e left throw_var label_throw
+            | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to to_string")
+          end
+      end
   
 let simplify_spec_func sf left annot throw_var label_throw =
   match sf with
@@ -258,8 +310,8 @@ let simplify_spec_func sf left annot throw_var label_throw =
     | ToBoolean e -> simplify_to_boolean e annot left
     | ToNumber e -> simplify_to_number e annot left throw_var label_throw
     | ToNumberPrim e -> simplify_to_number_prim e annot left
-    | ToString e -> translate_to_string e left throw_var label_throw
-    | ToStringPrim e -> translate_to_string_prim e left
+    | ToString e -> simplify_to_string e annot left throw_var label_throw
+    | ToStringPrim e -> simplify_to_string_prim e annot left 
     | ToObject e -> translate_to_object e left throw_var label_throw
     | CheckObjectCoercible e -> translate_obj_coercible e left throw_var label_throw
     | IsCallable e -> is_callable e left
