@@ -7,10 +7,14 @@ open Control_Flow
 open Pulp_Translate
 
 let get_type_info var annot = 
-  try
-    let _, ty = List.find (fun (v, ty) -> var = v) annot in
-    Some ty
-  with Not_found -> None
+  match annot with 
+    | None -> None
+    | Some annot -> 
+      begin try
+        let _, ty = List.find (fun (v, ty) -> var = v) annot.annot_type_info in
+        Some ty
+      with Not_found -> None 
+  end
 
 let simplify_get_value e left annot throw_var label_throw =
   let simplify_not_a_ref = [Basic (Assignment (mk_assign left (Expression e)))] in
@@ -21,13 +25,13 @@ let simplify_get_value e left annot throw_var label_throw =
        | VariableReference ->
         begin match e1 with
            | Literal (LLoc Lg) -> translate_gamma_variable_reference_object_lg e1 e2 left throw_var label_throw
-           | Literal _ ->  translate_gamma_variable_reference_object_not_lg e1 e2 left
-           | BinOp _ | UnaryOp _ | Base _ | Field _ | IsTypeOf _ | TypeOf _ | Ref _ ->  raise (Invalid_argument "Cannot Happen in simplify_ref_object") 
+           | Literal (LLoc _) ->  translate_gamma_variable_reference_object_not_lg e1 e2 left
+           | Literal _ | BinOp _ | UnaryOp _ | Base _ | Field _ | IsTypeOf _ | TypeOf _ | Ref _ ->  raise (Invalid_argument "Cannot Happen in simplify_ref_object") 
            | Var v ->
             begin match e1_ty with
               | Some Normal -> (* Definetely not Lg *) translate_gamma_variable_reference_object_not_lg e1 e2 left
               | Some Builtin -> translate_gamma_variable_reference_object e1 e2 left throw_var label_throw
-              | None -> raise (Invalid_argument "Cannot Happen in simplify_ref_object for object type")
+              | None -> raise (Invalid_argument "Cannot Happen in simplify_ref_object for object type in get value")
             end 
         end
     in
@@ -42,7 +46,12 @@ let simplify_get_value e left annot throw_var label_throw =
             | TI_Type pt ->
               begin match pt with
                 | NullType | UndefinedType | BooleanType | StringType | NumberType | ObjectType _ -> simplify_not_a_ref
-                | ReferenceType _ -> translate_gamma_reference e left throw_var label_throw
+                | ReferenceType rt -> 
+                  begin match rt with
+                    | Some MemberReference ->  translate_gamma_member_reference_object (Base e) (Field e) left
+                    | Some VariableReference -> translate_gamma_variable_reference_object (Base e) (Field e) left throw_var label_throw
+                    | None -> translate_gamma_reference e left throw_var label_throw
+                 end   
               end
             | TI_Value -> simplify_not_a_ref
             | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to get_value")
@@ -85,10 +94,88 @@ let simplify_get_value e left annot throw_var label_throw =
         | Ref _ -> raise (Invalid_argument "Reference cannot be as an argument to Reference")
      end
 
+let simplify_put_value e1 e2 annot throw_var label_throw =
+  let gotothrow = translate_error_throw Lrep throw_var label_throw in
+    
+  let simplify_ref_object base e1_ty field rt throw_var label_throw =
+    match rt with
+       | MemberReference -> translate_put_value_member_variable_not_lg_reference_object base field e2
+       | VariableReference ->
+        begin match base with
+           | Literal (LLoc Lg) -> translate_put_value_variable_reference_object_lg base field e2 throw_var label_throw
+           | Literal (LLoc _) ->  translate_put_value_member_variable_not_lg_reference_object base field e2
+           | Literal _ | BinOp _ | UnaryOp _ | Base _ | Field _ | IsTypeOf _ | TypeOf _ | Ref _ ->  raise (Invalid_argument "Cannot Happen in simplify_ref_object") 
+           | Var v ->
+            begin match e1_ty with
+              | Some Normal -> (* Definetely not Lg *) translate_put_value_member_variable_not_lg_reference_object base field e2
+              | Some Builtin -> translate_put_value_reference_object_base_field e1 base field e2 throw_var label_throw
+              | None -> raise (Invalid_argument "Cannot Happen in simplify_ref_object for object type in put_value")
+            end 
+        end
+    in
+    
+  match e1 with
+    | Literal _ | BinOp _ | UnaryOp _ | Base _ | Field _ | IsTypeOf _ | TypeOf _ -> gotothrow
+    | Var var -> 
+      begin match get_type_info var annot with
+        | None -> translate_put_value e1 e2 throw_var label_throw
+        | Some pt ->
+          begin match pt with
+            | TI_Type pt ->
+              begin match pt with
+                | NullType | UndefinedType | BooleanType | StringType | NumberType | ObjectType _ -> gotothrow
+                | ReferenceType rt ->                   
+                  begin match rt with
+                    | Some MemberReference ->  translate_put_value_member_variable_not_lg_reference_object (Base e1) (Field e1) e2
+                    | Some VariableReference
+                    | None -> translate_put_value_reference_object e1 e2 throw_var label_throw
+                 end 
+              end
+            | TI_Value -> gotothrow
+            | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to get_value")
+          end
+      end
+    | Ref (base, field, rt) -> 
+      begin match base with
+        | Literal lit ->
+          begin match lit with
+            | LLoc l -> simplify_ref_object base None field rt throw_var label_throw
+            | Null ->  raise (Invalid_argument "Ref base cannot be null ")             
+            | Bool _  | Num _  | String _ -> gotothrow
+            | Undefined -> gotothrow
+            | Type pt -> raise (Invalid_argument "Type cannot be as an argument to Reference")
+            | Empty -> raise (Invalid_argument "Empty cannot be as an argument to Reference")   
+           end
+        | BinOp _ 
+        | UnaryOp _ -> (* TODO simplify more *) translate_put_value_reference_base e1 base e2 throw_var label_throw
+        | Field _ -> gotothrow (* Field (_) always return string *)
+        | IsTypeOf _ -> raise (Invalid_argument "TypeOf is deprecated")
+        | TypeOf _ -> raise (Invalid_argument "Not well formed expression Ref (BinOp | UnartOp | Field | TypeOf, _, _)") (* To introduce well formed expressions in normal form? *)
+        | Base _ -> (* TODO *) translate_put_value_reference e1 e2 throw_var label_throw (* if it's base of some variable and we know that variable is a type of member of object reference  *)
+        | Var var ->        
+            begin match get_type_info var annot with
+              | None -> translate_put_value_reference_base e1 base e2 throw_var label_throw
+              | Some pt ->
+                begin match pt with
+                  | TI_Type pt ->
+                    begin match pt with
+                      | NullType -> raise (Invalid_argument "Ref base cannot be null ") 
+                      | UndefinedType -> gotothrow
+                      | BooleanType | StringType | NumberType -> gotothrow
+                      | ObjectType ot -> simplify_ref_object base ot field rt throw_var label_throw
+                      | ReferenceType _ -> raise (Invalid_argument "Reference cannot be as an argument to Reference") 
+                    end
+                  | TI_Value -> translate_put_value_reference_base e1 base e2 throw_var label_throw
+                  | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to Reference")
+                end
+          end
+        | Ref _ -> raise (Invalid_argument "Reference cannot be as an argument to Reference")
+     end
+
 let simplify_spec_func sf left annot throw_var label_throw =
   match sf with
-    | GetValue e -> translate_gamma e left throw_var label_throw
-    | PutValue (e1, e2) -> translate_put_value e1 e2 throw_var label_throw
+    | GetValue e -> simplify_get_value e left annot throw_var label_throw
+    | PutValue (e1, e2) -> simplify_put_value e1 e2 annot throw_var label_throw
     | Get (e1, e2) -> translate_get e1 e2 left
     | HasProperty (e1, e2) -> translate_has_property e1 e2 left
     | DefaultValue (e, pt) -> translate_default_value e pt left throw_var label_throw

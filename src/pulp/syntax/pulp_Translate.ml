@@ -342,31 +342,46 @@ let translate_error_throw error throw_var throw_label = (* TODO: Change to use E
     Goto throw_label
   ]
   
-let translate_put_value v1 v2 throw_var throw_label =
+let translate_put_value_member_variable_not_lg_reference_object base field value =
+  [Basic (Mutation (mk_mutation base field value))]
+  
+let translate_put_value_variable_reference_object_lg base field value throw_var throw_label =
+  let hasField = mk_assign_fresh (HasField (base, field)) in
+  [ Basic (Assignment (hasField));
+    Sugar (If (equal_bool_expr (Var hasField.assign_left) true,
+      translate_put_value_member_variable_not_lg_reference_object base field value,
+      translate_error_throw Lrep throw_var throw_label))
+  ]
+  
+let translate_put_value_reference_object_base_field ref base field value throw_var throw_label =
+  (* The following condition comes from the step 3 in PutValue. In our setting after closure conversion all undefined.[v]x are converted to lg *)
+  [ Sugar (If (and_expr (is_vref_expr ref) (equal_loc_expr base Lg), 
+     translate_put_value_variable_reference_object_lg base field value throw_var throw_label,
+     translate_put_value_member_variable_not_lg_reference_object base field value))
+  ]
+  
+let translate_put_value_reference_object ref value throw_var throw_label =
+  translate_put_value_reference_object_base_field ref (Base ref) (Field ref) value throw_var throw_label
+  
+let translate_put_value_reference_base v1 base v2 throw_var throw_label =
   let gotothrow = translate_error_throw Lrep throw_var throw_label in
-  let base = mk_assign_fresh_e (Base v1) in
-  let hasField = mk_assign_fresh (HasField (Var base.assign_left, Field v1)) in
-  let main = Sugar (If (is_ref_expr v1,
-    [
-      Basic (Assignment base);
-      Sugar (If (equal_undef_expr (Var base.assign_left), 
-        gotothrow, 
-        [
-          Sugar (If (istypeof_prim_expr (Var base.assign_left), 
-            translate_error_throw Ltep throw_var throw_label, 
-            [ Sugar (If (and_expr (is_vref_expr v1) (equal_loc_expr (Var base.assign_left) Lg), 
-              [Basic (Assignment (hasField));
-               Sugar (If (equal_bool_expr (Var hasField.assign_left) true,
-                 [Basic (Mutation (mk_mutation (Var base.assign_left) (Field v1) v2))],
-                  gotothrow))
-              ],
-              [Basic (Mutation (mk_mutation (Var base.assign_left) (Field v1) v2))]))
-            ]))
-        ]))
-    ],
-    gotothrow))
-  in
-  [main]
+  [ Sugar (If (equal_undef_expr base, 
+      gotothrow, 
+      [
+        Sugar (If (istypeof_prim_expr base, 
+          gotothrow, 
+          translate_put_value_reference_object v1 v2 throw_var throw_label))
+      ]))
+    ]
+    
+let translate_put_value_reference v1 v2 throw_var throw_label =
+  translate_put_value_reference_base v1 (Base v1) v2 throw_var throw_label
+  
+let translate_put_value v1 v2 throw_var throw_label =
+  [Sugar (If (is_ref_expr v1,
+    translate_put_value_reference v1 v2 throw_var throw_label,
+    translate_error_throw Lrep throw_var throw_label))
+  ]
   
 let make_builtin_call id rv vthis args throw_var label_throw =
   let vthis = match vthis with
@@ -460,11 +475,7 @@ let translate_gamma_reference_base_field r base field left throw_var label_throw
      ]  
      
 let translate_gamma_reference r left throw_var label_throw = 
-  let base = mk_assign_fresh_e (Base r) in
-  let field = mk_assign_fresh_e (Field r) in
-    [ Basic (Assignment base);
-      Basic (Assignment field);
-    ] @ translate_gamma_reference_base_field r (Var base.assign_left) (Var field.assign_left) left throw_var label_throw
+  translate_gamma_reference_base_field r (Base r) (Field r) left throw_var label_throw
     
   
 let translate_gamma r left throw_var label_throw =
