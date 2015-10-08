@@ -418,7 +418,7 @@ let make_builtin_call id rv vthis args throw_var label_throw =
     Label exit_label;
   ]
   
-let trasnlate_to_object_prim arg left throw_var label_throw =
+let translate_to_object_prim arg left throw_var label_throw =
   let bobj = make_builtin_call (Boolean_Construct) left None [arg] throw_var label_throw in
   let nobj = make_builtin_call (Number_Construct) left None [arg] throw_var label_throw in
   let sobj = make_builtin_call (String_Construct) left None [arg] throw_var label_throw in
@@ -435,7 +435,7 @@ let translate_to_object arg left throw_var label_throw =
     translate_error_throw Ltep throw_var label_throw,
     [ Sugar (If (type_of_exp arg (ObjectType None),
       [assign_expr left arg],
-      trasnlate_to_object_prim arg left throw_var label_throw))
+      translate_to_object_prim arg left throw_var label_throw))
     ]))]
     
 let translate_gamma_variable_reference_object_lg base field left throw_var label_throw =
@@ -499,12 +499,11 @@ let translate_gamma r left throw_var label_throw =
   in
   [main]
 
-let translate_obj_coercible r rv throw_var label_throw =
+let translate_obj_coercible r throw_var label_throw =
   let gotothrow = translate_error_throw Ltep throw_var label_throw in 
   [
     Sugar (If (equal_null_expr r, gotothrow, [])); 
     Sugar (If (equal_undef_expr r, gotothrow, [])); 
-    Basic (Assignment (mk_assign rv (Expression (Literal Empty))))
   ]
   
 let translate_call_construct_start f e1 e2s ctx construct =
@@ -983,7 +982,7 @@ let unfold_spec_function sf left throw_var label_throw =
     | ToString e -> translate_to_string e left throw_var label_throw
     | ToStringPrim e -> translate_to_string_prim e left
     | ToObject e -> translate_to_object e left throw_var label_throw
-    | CheckObjectCoercible e -> translate_obj_coercible e left throw_var label_throw
+    | CheckObjectCoercible e -> translate_obj_coercible e throw_var label_throw
     | IsCallable e -> is_callable e left
     | AbstractEquality (e1, e2, b) -> translate_abstract_relation e1 e2 b left throw_var label_throw
     | StrictEquality (e1, e2) -> translate_strict_equality_comparison e1 e2 left
@@ -1208,7 +1207,7 @@ let rec translate_exp ctx exp : statement list * variable =
       | Parser_syntax.Access (e, v) -> 
           let r1_stmts, r1 = f e in
           let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
-          let r4_stmts, r4 = spec_func_call (CheckObjectCoercible (Var r2)) ctx in
+          let r4_stmts, _ = spec_func_call (CheckObjectCoercible (Var r2)) ctx in
           let r5 = mk_assign_fresh_e (Ref (Var r2, Literal (String v), MemberReference)) in
             r1_stmts @ 
             r2_stmts @ 
@@ -1220,7 +1219,7 @@ let rec translate_exp ctx exp : statement list * variable =
           let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
           let r3_stmts, r3 = f e2 in
           let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
-          let r5_stmts, r5 = spec_func_call (CheckObjectCoercible (Var r2)) ctx in
+          let r5_stmts, _ = spec_func_call (CheckObjectCoercible (Var r2)) ctx in
           let r4_to_string, r4_string = spec_func_call (ToString (Var r4)) ctx in
           let r6 = mk_assign_fresh_e (Ref (Var r2, Var r4_string, MemberReference)) in
             r1_stmts @ 
