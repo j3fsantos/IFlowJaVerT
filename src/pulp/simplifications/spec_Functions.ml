@@ -347,6 +347,48 @@ let simplify_to_object_coercible e annot throw_var label_throw =
             | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to CheckObjectCoercible")
           end
       end
+      
+let simplify_to_primitive e preftype annot left throw_var label_throw =
+  match e with
+    | Literal (LLoc _) | Base _ -> translate_default_value e preftype left throw_var label_throw
+    | Literal Undefined | Literal Null | Literal (Bool _) | Literal (String _) | Field _ | Literal (Num _) | BinOp _ | UnaryOp _ -> [assign_expr left e]
+    | Literal Empty | Literal Type _ | IsTypeOf _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To object cannot take empty / type / typeof / ref as an argument") 
+    | Var var -> 
+      begin match get_type_info var annot with
+        | None -> translate_to_primitive e preftype left throw_var label_throw
+        | Some pt ->
+          begin match pt with
+            | TI_Type pt ->
+              begin match pt with
+                | NullType | UndefinedType | BooleanType | StringType | NumberType -> [assign_expr left e]
+                | ObjectType _ -> translate_default_value e preftype left throw_var label_throw
+                | ReferenceType _ -> raise (Invalid_argument "To_primitive cannot take and references as arguments") 
+              end
+            | TI_Value -> translate_to_primitive e preftype left throw_var label_throw
+            | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to to_primitive")
+          end
+      end
+      
+let simplify_is_callable e annot left =
+  match e with
+    | Literal (LLoc _) | Base _ -> is_callable_object e left
+    | Literal Undefined | Literal Null | Literal (Bool _) | Literal (String _) | Field _ | Literal (Num _) | BinOp _ | UnaryOp _ -> [assign_false left]
+    | Literal Empty | Literal Type _ | IsTypeOf _ | TypeOf _ | Ref _ -> raise (Invalid_argument "IsCallable cannot take empty / type / typeof / ref as an argument") 
+    | Var var -> 
+      begin match get_type_info var annot with
+        | None -> is_callable e left
+        | Some pt ->
+          begin match pt with
+            | TI_Type pt ->
+              begin match pt with
+                | NullType | UndefinedType | BooleanType | StringType | NumberType -> [assign_false left]
+                | ObjectType _ -> is_callable_object e left
+                | ReferenceType _ -> raise (Invalid_argument "IsCallable cannot take and references as arguments") 
+              end
+            | TI_Value -> is_callable e left
+            | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to IsCallable")
+          end
+      end
   
 let simplify_spec_func sf left annot throw_var label_throw =
   match sf with
@@ -355,7 +397,7 @@ let simplify_spec_func sf left annot throw_var label_throw =
     | Get (e1, e2) -> translate_get e1 e2 left (* No simplifications. Might change after we have getters/setters *)
     | HasProperty (e1, e2) -> translate_has_property e1 e2 left (* No simplifications *)
     | DefaultValue (e, pt) -> translate_default_value e pt left throw_var label_throw (* Cannot do simplifications at this time. But this exploads a lot. Possible simplifications with separation logic reasoning *)
-    | ToPrimitive (e, pt) -> translate_to_primitive e pt left throw_var label_throw (* Cannot do simplifications at this time. Depends on Default Value *)
+    | ToPrimitive (e, pt) -> simplify_to_primitive e pt annot left throw_var label_throw (* Cannot do more simplifications at this time. Depends on Default Value *)
     | ToBoolean e -> simplify_to_boolean e annot left
     | ToNumber e -> simplify_to_number e annot left throw_var label_throw
     | ToNumberPrim e -> simplify_to_number_prim e annot left
@@ -363,7 +405,7 @@ let simplify_spec_func sf left annot throw_var label_throw =
     | ToStringPrim e -> simplify_to_string_prim e annot left 
     | ToObject e -> simplify_to_object e annot left throw_var label_throw
     | CheckObjectCoercible e -> simplify_to_object_coercible e annot throw_var label_throw
-    | IsCallable e -> is_callable e left
+    | IsCallable e -> simplify_is_callable e annot left
     | AbstractEquality (e1, e2, b) -> translate_abstract_relation e1 e2 b left throw_var label_throw
     | StrictEquality (e1, e2) -> translate_strict_equality_comparison e1 e2 left
     | StrictEqualitySameType (e1, e2) -> translate_strict_equality_comparison_types_equal e1 e2 left

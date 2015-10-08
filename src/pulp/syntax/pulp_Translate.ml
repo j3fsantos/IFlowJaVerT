@@ -276,17 +276,18 @@ let add_proto_value obj proto =
 let add_proto_null obj =
   add_proto obj (Literal Null)
   
-let is_callable arg rv =
-  let rv_true = Basic (Assignment (mk_assign rv (Expression (Literal (Bool true))))) in
-  let rv_false = Basic (Assignment (mk_assign rv (Expression (Literal (Bool false))))) in
+let is_callable_object arg rv = 
   let hasfield = mk_assign_fresh (HasField (arg, literal_builtin_field FId)) in
-  [ Sugar (If (type_of_exp arg (ObjectType None),
-    [Basic (Assignment hasfield);
+  [  Basic (Assignment hasfield);
      Sugar (If (equal_bool_expr (Var hasfield.assign_left) true,
-       [rv_true],
-       [rv_false]))
-    ],
-    [rv_false]))]
+       [assign_true rv],
+       [assign_false rv]))
+  ]
+  
+let is_callable arg rv =
+  [ Sugar (If (type_of_exp arg (ObjectType None),
+    is_callable_object arg rv,
+    [assign_true rv]))]
     
 let is_constructor arg =
   let hasfield = mk_assign_fresh (HasField (Var arg, literal_builtin_field FConstructId)) in
@@ -641,15 +642,13 @@ let translate_default_value arg preftype rv throw_var label_throw =
   [Label next_label2] @
   translate_error_throw Ltep throw_var label_throw @
   [Label exit_label]
-      
+       
 let translate_to_primitive arg preftype rv throw_var label_throw =
-  let assign_rv_expr var = [Basic (Assignment (mk_assign rv (Expression var)))] in
-  let r1 = fresh_r () in
-  let r1_stmts = translate_default_value arg preftype r1 throw_var label_throw in
+  let r1_stmts = translate_default_value arg preftype rv throw_var label_throw in
   [
     Sugar (If (type_of_exp arg (ObjectType None),
-    r1_stmts @ assign_rv_expr (Var r1),
-    assign_rv_expr arg))
+    r1_stmts,
+    [assign_expr rv arg]))
   ] 
  
 let translate_to_number_bool arg rv =
@@ -688,7 +687,7 @@ let translate_abstract_relation x y leftfirst rv throw_var label_throw =
   let assign_rv e = [Basic (Assignment (mk_assign rv (Expression e)))] in
   to_prim_stmts @
   [ Sugar (If (and_expr (type_of_exp (Var px) StringType) (type_of_exp (Var py) StringType),
-      assign_rv (BinOp (Var px, Comparison LessThan, Var py)),
+      assign_rv (BinOp (Var px, Comparison LessThan, Var py)), (* TODO: change for new binop prefix? *)
         to_number_x @
         to_number_y @
       [ Sugar (If (or_expr (equal_num_expr (Var nx) nan) (equal_num_expr (Var ny) nan),
