@@ -418,22 +418,24 @@ let make_builtin_call id rv vthis args throw_var label_throw =
     Label exit_label;
   ]
   
-let translate_to_object arg left throw_var label_throw =
-  let assign_rv_var var = [Basic (Assignment (mk_assign left (Expression var)))] in
+let trasnlate_to_object_prim arg left throw_var label_throw =
   let bobj = make_builtin_call (Boolean_Construct) left None [arg] throw_var label_throw in
   let nobj = make_builtin_call (Number_Construct) left None [arg] throw_var label_throw in
   let sobj = make_builtin_call (String_Construct) left None [arg] throw_var label_throw in
+  [ Sugar (If (type_of_exp arg BooleanType,
+      bobj,
+      [ Sugar (If (type_of_exp arg NumberType,
+          nobj,
+          sobj))
+      ]))
+  ]
+  
+let translate_to_object arg left throw_var label_throw =
   [Sugar (If (or_expr (equal_undef_expr arg) (equal_null_expr arg),
     translate_error_throw Ltep throw_var label_throw,
     [ Sugar (If (type_of_exp arg (ObjectType None),
-      assign_rv_var arg,
-      [ Sugar (If (type_of_exp arg BooleanType,
-        bobj,
-        [ Sugar (If (type_of_exp arg NumberType,
-            nobj,
-            sobj))
-        ]))
-      ]))
+      [assign_expr left arg],
+      trasnlate_to_object_prim arg left throw_var label_throw))
     ]))]
     
 let translate_gamma_variable_reference_object_lg base field left throw_var label_throw =

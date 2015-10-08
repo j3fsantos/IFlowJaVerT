@@ -298,6 +298,34 @@ let simplify_to_string e annot left throw_var label_throw =
             | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to to_string")
           end
       end
+      
+let simplify_to_object e annot left throw_var label_throw =
+  match e with
+    | Literal (LLoc _) | Base _ -> [assign_expr left e]
+    | Literal Undefined | Literal Null -> translate_error_throw Ltep throw_var label_throw
+    | Literal (Bool _) -> make_builtin_call (Boolean_Construct) left None [e] throw_var label_throw
+    | Literal (String _) | Field _ -> make_builtin_call (String_Construct) left None [e] throw_var label_throw
+    | Literal (Num _) -> make_builtin_call (Number_Construct) left None [e] throw_var label_throw
+    | BinOp _ | UnaryOp _ -> trasnlate_to_object_prim e left throw_var label_throw (* TODO simplify more for the specific op *)
+    | Literal Empty | Literal Type _ | IsTypeOf _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To object cannot take empty / type / typeof / ref as an argument") 
+    | Var var -> 
+      begin match get_type_info var annot with
+        | None -> translate_to_object e left throw_var label_throw
+        | Some pt ->
+          begin match pt with
+            | TI_Type pt ->
+              begin match pt with
+                | NullType | UndefinedType -> translate_error_throw Ltep throw_var label_throw
+                | BooleanType -> make_builtin_call (Boolean_Construct) left None [e] throw_var label_throw
+                | StringType -> make_builtin_call (String_Construct) left None [e] throw_var label_throw
+                | NumberType -> make_builtin_call (Number_Construct) left None [e] throw_var label_throw
+                | ObjectType _ -> [assign_expr left e]
+                | ReferenceType _ -> raise (Invalid_argument "To_object cannot take and references as arguments") 
+              end
+            | TI_Value -> translate_to_object e left throw_var label_throw
+            | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to to_object")
+          end
+      end
   
 let simplify_spec_func sf left annot throw_var label_throw =
   match sf with
@@ -312,7 +340,7 @@ let simplify_spec_func sf left annot throw_var label_throw =
     | ToNumberPrim e -> simplify_to_number_prim e annot left
     | ToString e -> simplify_to_string e annot left throw_var label_throw
     | ToStringPrim e -> simplify_to_string_prim e annot left 
-    | ToObject e -> translate_to_object e left throw_var label_throw
+    | ToObject e -> simplify_to_object e annot left throw_var label_throw
     | CheckObjectCoercible e -> translate_obj_coercible e left throw_var label_throw
     | IsCallable e -> is_callable e left
     | AbstractEquality (e1, e2, b) -> translate_abstract_relation e1 e2 b left throw_var label_throw
