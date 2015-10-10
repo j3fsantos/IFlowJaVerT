@@ -26,7 +26,7 @@ let simplify_get_value e left annot throw_var label_throw =
         begin match e1 with
            | Literal (LLoc Lg) -> translate_gamma_variable_reference_object_lg e1 e2 left throw_var label_throw
            | Literal (LLoc _) ->  translate_gamma_variable_reference_object_not_lg e1 e2 left
-           | Literal _ | BinOp _ | UnaryOp _ | Base _ | Field _ | IsTypeOf _ | TypeOf _ | Ref _ ->  raise (Invalid_argument "Cannot Happen in simplify_ref_object") 
+           | Literal _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ | Ref _ ->  raise (Invalid_argument "Cannot Happen in simplify_ref_object") 
            | Var v ->
             begin match e1_ty with
               | Some Normal -> (* Definetely not Lg *) translate_gamma_variable_reference_object_not_lg e1 e2 left
@@ -37,7 +37,7 @@ let simplify_get_value e left annot throw_var label_throw =
     in
     
   match e with
-    | Literal _ | BinOp _ | UnaryOp _ | Base _ | Field _ | IsTypeOf _ | TypeOf _ -> simplify_not_a_ref
+    | Literal _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ -> simplify_not_a_ref
     | Var var -> 
       begin match get_type_info var annot with
         | None -> translate_gamma e left throw_var label_throw
@@ -71,7 +71,6 @@ let simplify_get_value e left annot throw_var label_throw =
         | BinOp _ 
         | UnaryOp _ -> (* TODO simplify more *) translate_gamma_reference e left throw_var label_throw
         | Field _ -> translate_gamma_reference_prim_base e1 e2 left throw_var label_throw (* Field (_) always return string *)
-        | IsTypeOf _ -> raise (Invalid_argument "TypeOf is deprecated")
         | TypeOf _ -> raise (Invalid_argument "Not well formed expression Ref (BinOp | UnartOp | Field | TypeOf, _, _)") (* To introduce well formed expressions in normal form? *)
         | Base _ -> (* TODO *) translate_gamma_reference e left throw_var label_throw (* if it's base of some variable and we know that variable is a type of member of object reference  *)
         | Var var ->        
@@ -104,7 +103,7 @@ let simplify_put_value e1 e2 annot throw_var label_throw =
         begin match base with
            | Literal (LLoc Lg) -> translate_put_value_variable_reference_object_lg base field e2 throw_var label_throw
            | Literal (LLoc _) ->  translate_put_value_member_variable_not_lg_reference_object base field e2
-           | Literal _ | BinOp _ | UnaryOp _ | Base _ | Field _ | IsTypeOf _ | TypeOf _ | Ref _ ->  raise (Invalid_argument "Cannot Happen in simplify_ref_object") 
+           | Literal _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ | Ref _ ->  raise (Invalid_argument "Cannot Happen in simplify_ref_object") 
            | Var v ->
             begin match e1_ty with
               | Some Normal -> (* Definetely not Lg *) translate_put_value_member_variable_not_lg_reference_object base field e2
@@ -115,7 +114,7 @@ let simplify_put_value e1 e2 annot throw_var label_throw =
     in
     
   match e1 with
-    | Literal _ | BinOp _ | UnaryOp _ | Base _ | Field _ | IsTypeOf _ | TypeOf _ -> gotothrow
+    | Literal _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ -> gotothrow
     | Var var -> 
       begin match get_type_info var annot with
         | None -> translate_put_value e1 e2 throw_var label_throw
@@ -149,7 +148,6 @@ let simplify_put_value e1 e2 annot throw_var label_throw =
         | BinOp _ 
         | UnaryOp _ -> (* TODO simplify more *) translate_put_value_reference_base e1 base e2 throw_var label_throw
         | Field _ -> gotothrow (* Field (_) always return string *)
-        | IsTypeOf _ -> raise (Invalid_argument "TypeOf is deprecated")
         | TypeOf _ -> raise (Invalid_argument "Not well formed expression Ref (BinOp | UnartOp | Field | TypeOf, _, _)") (* To introduce well formed expressions in normal form? *)
         | Base _ -> (* TODO *) translate_put_value_reference e1 e2 throw_var label_throw (* if it's base of some variable and we know that variable is a type of member of object reference  *)
         | Var var ->        
@@ -176,9 +174,9 @@ let simplify_to_boolean e annot left =
   match e with
     | Literal Undefined | Literal Null  | Literal (Bool false) | Literal (String "") | Literal (Num 0.0) -> [assign_false left] 
     | Literal (Num nan) -> [assign_false left] (* Why does it complain for nan? *)
-    | Literal Empty | Literal Type _ |IsTypeOf _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To boolean cannot take empty / type / typeof / ref as an argument") 
-    | Literal _ | Base _ | Field _ -> [assign_true left] (* Base return object; Field cannot be empty *)
-    | BinOp _ | UnaryOp _  -> translate_to_boolean e left
+    | Literal Empty | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To boolean cannot take empty / type / typeof / ref as an argument") 
+    | Literal _ | Field _ -> [assign_true left] (* Field cannot be empty *)
+    | BinOp _ | UnaryOp _ | Base _ -> translate_to_boolean e left
     | Var var -> 
       begin match get_type_info var annot with
         | None -> translate_to_boolean e left
@@ -203,9 +201,9 @@ let simplify_to_number_prim e annot left =
     | Literal (Bool true) -> [assign_num left 1.0]
     | Literal (String s) -> [assign_to_number left s] 
     | Literal (Num n) -> [assign_num left n]
-    | Literal Empty | Literal (LLoc _) | Literal Type _ | IsTypeOf _ | TypeOf _ | Ref _ | Base _ -> raise (Invalid_argument "To number prim cannot take empty / object / type / typeof / ref as an argument") 
+    | Literal Empty | Literal (LLoc _) | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To number prim cannot take empty / object / type / typeof / ref as an argument") 
     | Field _ -> [assign_uop left ToNumberOp e] (* Field return string *)
-    | BinOp _ | UnaryOp _  -> translate_to_number_prim e left  (* TODO: Different types for different operators *)
+    | BinOp _ | UnaryOp _ | Base _ -> translate_to_number_prim e left  (* TODO: Different types for different operators *)
     | Var var -> 
       begin match get_type_info var annot with
         | None -> translate_to_number_prim e left
@@ -228,9 +226,10 @@ let simplify_to_number_prim e annot left =
       
 let simplify_to_number e annot left throw_var label_throw =
   match e with
-    | Literal (LLoc _) | Base _ -> translate_to_number_object e left throw_var label_throw
+    | Literal (LLoc _) -> translate_to_number_object e left throw_var label_throw
     | Literal Undefined | Literal Null | Literal (Bool _) | Literal (String _) | Literal (Num _) | Field _ | BinOp _ | UnaryOp _ -> simplify_to_number_prim e annot left
-    | Literal Empty | Literal Type _ | IsTypeOf _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To number cannot take empty / type / typeof / ref as an argument") 
+    | Literal Empty | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To number cannot take empty / type / ref as an argument") 
+    | Base _ -> translate_to_number e left throw_var label_throw
     | Var var -> 
       begin match get_type_info var annot with
         | None -> translate_to_number e left throw_var label_throw
@@ -255,9 +254,9 @@ let simplify_to_string_prim e annot left =
     | Literal (Bool true) -> [assign_string left "true"]
     | Literal (String s) -> [assign_string left s] 
     | Literal (Num n) -> [assign_to_string left n]
-    | Literal Empty | Literal (LLoc _) | Literal Type _ | IsTypeOf _ | TypeOf _ | Ref _ | Base _ -> raise (Invalid_argument "To_string_prim cannot take empty / object / type / typeof / ref / base as an argument") 
+    | Literal Empty | Literal (LLoc _) | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To_string_prim cannot take empty / object / type / ref / base as an argument") 
     | Field _ -> [assign_expr left e] (* Field return string *)
-    | BinOp _ | UnaryOp _  -> translate_to_string_prim e left (* TODO: Different types for different operators *)
+    | BinOp _ | UnaryOp _  | Base _ -> translate_to_string_prim e left (* TODO: Different types for different operators *)
     | Var var -> 
       begin match get_type_info var annot with
         | None -> translate_to_string_prim e left
@@ -280,10 +279,11 @@ let simplify_to_string_prim e annot left =
       
 let simplify_to_string e annot left throw_var label_throw =
   match e with
-    | Literal (LLoc _) | Base _ -> translate_to_string_object e left throw_var label_throw
+    | Literal (LLoc _) -> translate_to_string_object e left throw_var label_throw
     | Literal Undefined | Literal Null | Literal (Bool _) | Literal (String _) | Literal (Num _) | Field _ | BinOp _ | UnaryOp _ -> simplify_to_string_prim e annot left
-    | Literal Empty | Literal Type _ | IsTypeOf _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To string cannot take empty / type / typeof / ref as an argument") 
-    | Var var -> 
+    | Literal Empty | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To string cannot take empty / type / typeof / ref as an argument") 
+    | Base _ -> translate_to_string e left throw_var label_throw
+     | Var var -> 
       begin match get_type_info var annot with
         | None -> translate_to_string e left throw_var label_throw
         | Some pt ->
@@ -301,13 +301,14 @@ let simplify_to_string e annot left throw_var label_throw =
       
 let simplify_to_object e annot left throw_var label_throw =
   match e with
-    | Literal (LLoc _) | Base _ -> [assign_expr left e]
+    | Literal (LLoc _) -> [assign_expr left e]
     | Literal Undefined | Literal Null -> translate_error_throw Ltep throw_var label_throw
     | Literal (Bool _) -> make_builtin_call (Boolean_Construct) left None [e] throw_var label_throw
     | Literal (String _) | Field _ -> make_builtin_call (String_Construct) left None [e] throw_var label_throw
     | Literal (Num _) -> make_builtin_call (Number_Construct) left None [e] throw_var label_throw
     | BinOp _ | UnaryOp _ -> translate_to_object_prim e left throw_var label_throw (* TODO simplify more for the specific op *)
-    | Literal Empty | Literal Type _ | IsTypeOf _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To object cannot take empty / type / typeof / ref as an argument") 
+    | Literal Empty | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To object cannot take empty / type / ref as an argument") 
+    | Base _ -> translate_to_object e left throw_var label_throw
     | Var var -> 
       begin match get_type_info var annot with
         | None -> translate_to_object e left throw_var label_throw
@@ -330,8 +331,9 @@ let simplify_to_object e annot left throw_var label_throw =
 let simplify_to_object_coercible e annot throw_var label_throw =
   match e with
     | Literal Undefined | Literal Null -> translate_error_throw Ltep throw_var label_throw
-    | Literal (Bool _) | Literal (String _) | Field _ | Literal (Num _) | BinOp _ | UnaryOp _ | Literal (LLoc _) | Base _ -> []
-    | Literal Empty | Literal Type _ | IsTypeOf _ | TypeOf _ | Ref _ -> raise (Invalid_argument "CheckObjectCoercible cannot take empty / type / typeof / ref as an argument") 
+    | Literal (Bool _) | Literal (String _) | Field _ | Literal (Num _) | BinOp _ | UnaryOp _ | Literal (LLoc _) -> []
+    | Literal Empty | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "CheckObjectCoercible cannot take empty / type / typeof / ref as an argument") 
+    | Base _ -> translate_obj_coercible e throw_var label_throw
     | Var var -> 
       begin match get_type_info var annot with
         | None -> translate_obj_coercible e throw_var label_throw
@@ -350,9 +352,10 @@ let simplify_to_object_coercible e annot throw_var label_throw =
       
 let simplify_to_primitive e preftype annot left throw_var label_throw =
   match e with
-    | Literal (LLoc _) | Base _ -> translate_default_value e preftype left throw_var label_throw
+    | Literal (LLoc _) -> translate_default_value e preftype left throw_var label_throw
     | Literal Undefined | Literal Null | Literal (Bool _) | Literal (String _) | Field _ | Literal (Num _) | BinOp _ | UnaryOp _ -> [assign_expr left e]
-    | Literal Empty | Literal Type _ | IsTypeOf _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To object cannot take empty / type / typeof / ref as an argument") 
+    | Literal Empty | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To object cannot take empty / type / typeof / ref as an argument") 
+    | Base _ -> translate_to_primitive e preftype left throw_var label_throw
     | Var var -> 
       begin match get_type_info var annot with
         | None -> translate_to_primitive e preftype left throw_var label_throw
@@ -371,9 +374,10 @@ let simplify_to_primitive e preftype annot left throw_var label_throw =
       
 let simplify_is_callable e annot left =
   match e with
-    | Literal (LLoc _) | Base _ -> is_callable_object e left
+    | Literal (LLoc _) -> is_callable_object e left
     | Literal Undefined | Literal Null | Literal (Bool _) | Literal (String _) | Field _ | Literal (Num _) | BinOp _ | UnaryOp _ -> [assign_false left]
-    | Literal Empty | Literal Type _ | IsTypeOf _ | TypeOf _ | Ref _ -> raise (Invalid_argument "IsCallable cannot take empty / type / typeof / ref as an argument") 
+    | Literal Empty | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "IsCallable cannot take empty / type / typeof / ref as an argument") 
+    | Base _ -> is_callable e left
     | Var var -> 
       begin match get_type_info var annot with
         | None -> is_callable e left

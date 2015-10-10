@@ -326,10 +326,6 @@ let rec run_expr (s : local_state) (e : expression) : value =
         | VRef (l, x, rt) -> VHValue (HVLiteral (String x))
         | _ -> raise (InterpreterStuck ("Field is only defined on references", s.lscounter))
       end
-	  | IsTypeOf (e, pt) -> 
-      let v = run_expr s e in
-      let b = is_type_of v pt in
-      VHValue (HVLiteral (Bool b))
     | TypeOf (e) ->
       let v = run_expr s e in
       let t = type_of v in

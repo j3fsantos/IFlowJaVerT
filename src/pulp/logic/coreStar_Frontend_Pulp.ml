@@ -219,6 +219,7 @@ let args_to_bloc args =
         | "lop", [] -> Lop
         | "lfp", [] -> Lfp
         | "leval", [] -> LEval
+        | "lrep", [] -> Lrep
         | "ltep", [] -> Ltep
         | _ -> raise (NotImplemented ("args_to_bloc " ^ s))
       end
@@ -230,7 +231,7 @@ let args_to_ref_type args =
       begin match s, args with
         | "Memberref", [] -> MemberReference
         | "Variableref", [] -> VariableReference
-        | _ -> raise (BadArgument "in args_to_ref_type")
+        | s, _ -> raise (BadArgument ("in args_to_ref_type " ^ s))
       end
     | _ -> raise (BadArgument "in args_to_ref_type") 
 
@@ -255,6 +256,7 @@ let rec args_to_le (lvarmap : variable_types LVarMap.t) arg =
         | "lop", [] 
         | "lfp", []
         | "ltep", []
+        | "lrep", []
         | "leval", [] -> Le_Literal (LLoc (args_to_bloc arg))
         | "empty_value", [] -> Le_Literal Empty
         | "NullType", [] ->  Le_Literal (Type NullType)
@@ -266,8 +268,8 @@ let rec args_to_le (lvarmap : variable_types LVarMap.t) arg =
         | "NObjectType", [] ->  Le_Literal (Type (ObjectType (Some Normal)))
         | "ObjectType", [] ->  Le_Literal (Type (ObjectType None))
         | "ReferenceType", [] ->  Le_Literal (Type (ReferenceType None))
-        | "MemberReference", [] ->  Le_Literal (Type (ReferenceType (Some MemberReference)))
-        | "VariableReference", [] ->  Le_Literal (Type (ReferenceType (Some VariableReference)))
+        | "MemberReferenceType", [] ->  Le_Literal (Type (ReferenceType (Some MemberReference)))
+        | "VariableReferenceType", [] ->  Le_Literal (Type (ReferenceType (Some VariableReference)))
         | "builtin_plus", [arg1; arg2] -> Le_BinOp (f arg1, Arith Plus, f arg2)
         | "builtin_minus", [arg1; arg2] -> Le_BinOp (f arg1, Arith Minus, f arg2)
         | "builtin_lt", [arg1; arg2] -> Le_BinOp (f arg1, Comparison LessThan, f arg2)

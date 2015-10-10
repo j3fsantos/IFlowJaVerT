@@ -181,7 +181,6 @@ let rec string_of_expression e =
     | Var v -> string_of_var v
     | BinOp (e1, op, e2) -> Printf.sprintf "%s %s %s" (se e1) (string_of_bin_op op) (se e2)
     | UnaryOp (op, e) -> Printf.sprintf "%s (%s)" (string_of_unary_op op) (se e)
-    | IsTypeOf (e, t) -> Printf.sprintf "typeOf (%s) = %s" (se e) (string_of_pulp_type t)
     | TypeOf e -> Printf.sprintf "typeOf (%s)" (se e) 
     | Ref (e1, e2, t) -> Printf.sprintf "ref(%s,%s,%s)" (se e1) (se e2)
       (match t with

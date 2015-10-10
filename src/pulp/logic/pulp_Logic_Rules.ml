@@ -16,7 +16,6 @@ let rec expr_to_logical_expr expr : logical_exp =
     | Ref (e1, e2, rt) -> Le_Ref (f e1, f e2, rt)
     | Base e -> Le_Base (f e)
     | Field e -> Le_Field (f e)
-    | IsTypeOf (e, t) -> Le_BinOp (Le_TypeOf (f e), Comparison Equal, f (Literal (Type t))) 
     | TypeOf e -> Le_TypeOf (f e)
 
 let small_axiom_basic_stmt bs : (formula * formula) =

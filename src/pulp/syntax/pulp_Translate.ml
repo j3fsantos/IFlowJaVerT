@@ -29,35 +29,26 @@ let end_label : label = "theend"
 
 let literal_builtin_field f = Literal (String (string_of_builtin_field f))
 
-let is_ref_inner ref rt =
-  IsTypeOf (ref, ReferenceType rt)
-  
-let is_oref_expr ref = is_ref_inner ref (Some MemberReference)
-let is_vref_expr ref = is_ref_inner ref (Some VariableReference)
-let is_ref_expr ref = is_ref_inner ref None
-
 let or_expr e1 e2 = BinOp (e1, Boolean Or, e2)
 let and_expr e1 e2 = BinOp (e1, Boolean And, e2)
 let not_expr e1 = UnaryOp (Not, e1)
 let equal_exprs e1 e2 = BinOp (e1, Comparison Equal, e2)
-
-let lessthan_exprs e1 e2 = or_expr 
-    (BinOp (e1, Comparison LessThan, e2)) 
-    (BinOp (e1, Comparison Equal, e2))
-    
+ 
 let concat_exprs e1 e2 = BinOp (e1, Concat, e2)
  
 let type_of_exp e t = 
   let typeof = TypeOf e in
   let typelit = Literal (Type t) in
   match t with
+    | ObjectType None
+    | ReferenceType None -> (BinOp (typeof, Comparison LessThan, typelit)) 
     | NullType
     | UndefinedType
     | NumberType
     | StringType
-    | BooleanType ->  BinOp (typeof, Comparison Equal, typelit)
+    | BooleanType 
     | ObjectType _
-    | ReferenceType _ -> lessthan_exprs typeof typelit
+    | ReferenceType _ -> BinOp (typeof, Comparison Equal, typelit)
     
 let type_of_oref ref = type_of_exp ref (ReferenceType (Some MemberReference))
 let type_of_vref ref = type_of_exp ref (ReferenceType (Some VariableReference))
@@ -293,47 +284,44 @@ let is_constructor arg =
   let hasfield = mk_assign_fresh (HasField (Var arg, literal_builtin_field FConstructId)) in
   Basic (Assignment hasfield), hasfield.assign_left
   
-let translate_strict_equality_comparison_types_equal x y rv = 
-  let rv_true = Basic (Assignment (mk_assign rv (Expression (Literal (Bool true))))) in
-  let rv_false = Basic (Assignment (mk_assign rv (Expression (Literal (Bool false))))) in
-  
+let translate_strict_equality_comparison_types_equal x y rv =   
   (* TODO Change this to less branch *) 
     [
-      Sugar (If (or_expr (IsTypeOf (x, UndefinedType)) (IsTypeOf (x, NullType)),
-        [rv_true], 
+      Sugar (If (or_expr (type_of_exp x UndefinedType) (type_of_exp x NullType),
+        [assign_true rv], 
         [
           Sugar (If (or_expr 
-                        (IsTypeOf (x, StringType))
+                        (type_of_exp x StringType)
                         (or_expr 
-                            (IsTypeOf (x, (ObjectType None)))
-                            (IsTypeOf (x, BooleanType))),
+                            (type_of_exp x (ObjectType None))
+                            (type_of_exp x BooleanType)),
           [
-            Sugar (If (equal_exprs x y, [rv_true], [rv_false]))
+            Sugar (If (equal_exprs x y, [assign_true rv], [assign_false rv]))
           ],
           [
-            Sugar (If (IsTypeOf (x, NumberType),
+            Sugar (If (type_of_exp x NumberType,
             [
               Sugar (If (equal_num_expr x nan, 
-              [rv_false],
+              [assign_false rv],
               [
                 Sugar (If (equal_num_expr y nan, 
-                [rv_false],
+                [assign_false rv],
                 [
                   Sugar (If (equal_exprs x y, 
-                  [rv_true], 
+                  [assign_true rv], 
                   [
                     Sugar (If (and_expr (equal_num_expr x 0.0) (equal_num_expr y (-0.0)),
-                    [rv_true],
+                    [assign_true rv],
                     [
                       Sugar (If (and_expr (equal_num_expr x (-0.0)) (equal_num_expr y 0.0),
-	                    [rv_true],
-	                    [rv_false]))
+	                    [assign_true rv],
+	                    [assign_false rv]))
                     ]))
                   ]))
                 ]))
               ]))
             ],
-            [rv_false]))
+            [assign_false rv]))
           ]
           ))
         ]))
@@ -368,7 +356,7 @@ let translate_put_value_variable_reference_object_lg base field value throw_var 
   
 let translate_put_value_reference_object_base_field ref base field value throw_var throw_label =
   (* The following condition comes from the step 3 in PutValue. In our setting after closure conversion all undefined.[v]x are converted to lg *)
-  [ Sugar (If (and_expr (is_vref_expr ref) (equal_loc_expr base Lg), 
+  [ Sugar (If (and_expr (type_of_vref ref) (equal_loc_expr base Lg), 
      translate_put_value_variable_reference_object_lg base field value throw_var throw_label,
      translate_put_value_member_variable_not_lg_reference_object base field value))
   ]
@@ -391,7 +379,7 @@ let translate_put_value_reference v1 v2 throw_var throw_label =
   translate_put_value_reference_base v1 (Base v1) v2 throw_var throw_label
   
 let translate_put_value v1 v2 throw_var throw_label =
-  [Sugar (If (is_ref_expr v1,
+  [Sugar (If (type_of_ref v1,
     translate_put_value_reference v1 v2 throw_var throw_label,
     translate_error_throw Lrep throw_var throw_label))
   ]
@@ -482,7 +470,7 @@ let translate_gamma_reference_base_field r base field left throw_var label_throw
         [ Sugar (If (istypeof_prim_expr base,
             translate_gamma_reference_prim_base base field left throw_var label_throw,
             [             
-              Sugar (If (is_vref_expr r,
+              Sugar (If (type_of_vref r,
                 translate_gamma_variable_reference_object base field left throw_var label_throw,
                 translate_gamma_member_reference_object base field left ))
             ]))
@@ -494,7 +482,7 @@ let translate_gamma_reference r left throw_var label_throw =
     
   
 let translate_gamma r left throw_var label_throw =
-  let main = Sugar (If (is_ref_expr r,
+  let main = Sugar (If (type_of_ref r,
     translate_gamma_reference r left throw_var label_throw,
     [ Basic (Assignment (mk_assign left (Expression r))) ]))
   in
@@ -584,7 +572,7 @@ let translate_inner_call obj vthis args throw_var label_throw env_vars =
   [ Basic (Assignment fid);
     Sugar (If (type_of_exp obj (ObjectType (Some Builtin)),
     [ Sugar (If (equal_loc_expr obj LEval,
-      [ Sugar (If ((*equal_exprs (TypeOf first_argument) (Literal (Type StringType))*) IsTypeOf (first_argument, StringType),
+      [ Sugar (If (type_of_exp first_argument StringType,
         [ Basic (Assignment fscope_eval);
           add_proto_null fscope_eval.assign_left
         ] @
@@ -1134,7 +1122,7 @@ let translate_inc_dec f e op ctx =
   let newvalue = mk_assign_fresh_e (BinOp (Var oldvalue, Arith op, (Literal (Num 1.0)))) in     
   let putvalue_stmts, _ = spec_func_call (PutValue (Var r1 , Var newvalue.assign_left)) ctx in  
     r1_stmts @  
-    [Sugar (If (and_expr (is_vref_expr (Var r1))
+    [Sugar (If (and_expr (type_of_vref (Var r1))
                   (or_expr 
                   (equal_string_exprs (Field (Var r1)) "arguments") 
                   (equal_string_exprs (Field (Var r1)) "eval")), 
@@ -1281,9 +1269,9 @@ let rec translate_exp ctx exp : statement list * variable =
               let if5, call = translate_inner_call (Var r2) (Var vthis) arg_values ctx.throw_var ctx.label_throw ctx.env_vars in
           stmts @ 
           [
-            Sugar (If (is_ref_expr (Var r1), 
+            Sugar (If (type_of_ref (Var r1), 
                 [
-                  Sugar (If (is_vref_expr (Var r1), 
+                  Sugar (If (type_of_vref (Var r1), 
                     [assign_vthis_und], 
                     [
                       Basic (Assignment (mk_assign vthis (Expression (Base (Var r1)))))
@@ -1335,7 +1323,7 @@ let rec translate_exp ctx exp : statement list * variable =
                  Goto exit_label] in
               r1_stmts @
               [
-                Sugar (If (is_ref_expr (Var r1),
+                Sugar (If (type_of_ref (Var r1),
                 [
                   Basic (Assignment base);
                   Basic (Assignment proto);
@@ -1434,12 +1422,12 @@ let rec translate_exp ctx exp : statement list * variable =
         let r5 = mk_assign_fresh (HasField (Var r4.assign_left, literal_builtin_field FId)) in
           r1_stmts @ 
           [
-            Sugar (If (is_ref_expr (Var r1), 
+            Sugar (If (type_of_ref (Var r1), 
                 [ Basic (Assignment r4);
                   Sugar (If (equal_undef_expr (Var r4.assign_left), 
                     gotothrow, 
                     [])); 
-                  Sugar (If (is_vref_expr (Var r1), 
+                  Sugar (If (type_of_vref (Var r1), 
                     gotothrow, 
                     [])); 
                   Basic (Assignment r3);  
@@ -1571,7 +1559,7 @@ let rec translate_exp ctx exp : statement list * variable =
                 r2_stmts @ 
                 r3_stmts @ 
                 r4_stmts @
-                [ Sugar (If (lessthan_exprs (TypeOf (Var r4)) (Literal (Type (ObjectType None))), 
+                [ Sugar (If (type_of_exp (Var r4) (ObjectType None), 
                     r5_stmts @ r6_stmts,
                     translate_error_throw Ltep ctx.throw_var ctx.label_throw))
                 ], r6
@@ -1587,7 +1575,7 @@ let rec translate_exp ctx exp : statement list * variable =
                 r2_stmts @ 
                 r3_stmts @ 
                 r4_stmts @
-                [ Sugar (If (lessthan_exprs (TypeOf (Var r4)) (Literal (Type (ObjectType None))), 
+                [ Sugar (If (type_of_exp (Var r4) (ObjectType None), 
                     [ Basic (Assignment hasfield);
                       Sugar (If (equal_bool_expr (Var hasfield.assign_left) false, (* [[HasInstance]] *)
                       gotothrow, 
@@ -1630,7 +1618,7 @@ let rec translate_exp ctx exp : statement list * variable =
             r2_stmts @
             r3_stmts @
             [
-              Sugar (If (is_vref_expr (Var r1), 
+              Sugar (If (type_of_vref (Var r1), 
                     [
                       Basic (Assignment r4);
                       Sugar (If (or_expr 

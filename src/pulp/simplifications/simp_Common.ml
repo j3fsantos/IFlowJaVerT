@@ -16,7 +16,6 @@ let rec get_vars_in_expr e =
     | Ref (e1, e2, _) -> f e1 @ f e2
     | Base e -> f e
     | Field e -> f e
-    | IsTypeOf (e, _) -> f e
     | TypeOf e -> f e
 
 let get_vars_in_call c  =
@@ -88,7 +87,6 @@ let rec is_const_expr e =
     | Ref (e1, e2, _) -> (f e1) && (f e2)
     | Base e -> f e
     | Field e -> f e
-    | IsTypeOf (e, _) -> f e
     | TypeOf e -> f e
 
 let is_const_stmt stmt =
@@ -171,10 +169,17 @@ let rec update_expr var const e =
     | Ref (e1, e2, reftype) -> Ref (f e1, f e2, reftype)
     | Base e -> Base (f e)
     | Field e -> Field (f e)
-    | IsTypeOf (e, t) -> IsTypeOf (f e, t)
     | TypeOf (e) -> TypeOf (f e)
 
 let update_stmt var const stmt = transform_expr_in_stmt (update_expr var const) stmt
+
+let type_lt t1 t2 =
+  match (t1, t2) with
+    | ReferenceType (Some MemberReference), ReferenceType None 
+    | ReferenceType (Some VariableReference), ReferenceType None 
+    | ObjectType (Some Normal), ObjectType None
+    | ObjectType (Some Builtin), ObjectType None -> true
+    | _, _ -> false
 
 let rec simplify_expr e = 
   let f = simplify_expr in
@@ -187,7 +192,6 @@ let rec simplify_expr e =
     | Ref (e1, e2, reftype) -> Ref (f e1, f e2, reftype)
     | Base e -> Base (f e)
     | Field e -> Field (f e)
-    | IsTypeOf (e, t) -> IsTypeOf (f e, t) 
     | TypeOf (e) -> TypeOf (f e) in
   
   match e with
@@ -214,15 +218,127 @@ let rec simplify_expr e =
                 | Type t1, Type t2 -> Literal (Bool (t1 = t2))
                 | _, _ -> Literal (Bool false)
               end
+            | TypeOf (e1), Literal (Type pt) -> (* TODO do we need these simplifications or are they taken care by equality *)
+               begin match pt with
+                 | ReferenceType (Some MemberReference) ->
+					          begin match e1 with
+					            | Ref (_, _, MemberReference) ->  Literal (Bool true)
+					            | Ref _ | Literal _ -> Literal (Bool false)
+					            | Var _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ -> e
+					          end
+				        | ReferenceType (Some VariableReference) ->
+				          begin match e1 with
+				            | Ref (_, _, VariableReference) -> Literal (Bool true)
+				            | Ref _ | Literal _ -> Literal (Bool false)
+				            | Var _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ -> e
+				          end
+				        | ReferenceType None -> 
+				          begin match e1 with
+				            | Literal _ | Ref _ -> Literal (Bool false)
+				            | Var _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ -> e
+				          end
+				        | NullType ->
+				          begin match e1 with
+				            | Literal Null -> Literal (Bool true)
+				            | Literal _ | Ref _ -> Literal (Bool false)
+				            | Var _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ -> e
+				          end
+			          | UndefinedType ->
+				          begin match e1 with
+				            | Literal Undefined -> Literal (Bool true)
+				            | Literal _ | Ref _ -> Literal (Bool false)
+				            | Var _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ -> e
+				          end
+			         | BooleanType ->
+			           begin match e1 with
+			             | Literal (Bool _) -> Literal (Bool true)
+			             | Literal _ | Ref _ -> Literal (Bool false)
+			             | Var _  | BinOp _ | UnaryOp _ | Base _ | Field _  | TypeOf _ -> e
+			          end
+			         | StringType ->   
+			           begin match e1 with
+			             | Literal (String _) -> Literal (Bool true)
+			             | Literal _ | Ref _ -> Literal (Bool false)
+			             | Var _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ -> e
+			           end
+			         | NumberType ->
+			           begin match e1 with
+			             | Literal (Num _) -> Literal (Bool true)
+			             | Literal _ | Ref _ -> Literal (Bool false)
+			             | Var _  | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ -> e
+			          end
+		          | ObjectType ot ->
+		            begin match e1 with
+		             | Literal (LLoc _) -> Literal (Bool (ot = (Some Builtin))) 
+		             | Literal _ | Ref _ -> Literal (Bool false)
+		             | Var _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ -> e
+		          end
+            end
             | _ -> e
           end
         | Comparison LessThan ->
           begin match e1, e2 with
             | Literal lit1, Literal lit2 ->
               begin match lit1, lit2 with                         
-                | Num n1, Num n2 -> Literal (Bool (n1 < n2))         
+                | Num n1, Num n2 -> Literal (Bool (n1 < n2))   
+                | Type t1, Type t2 -> Literal (Bool (type_lt t1 t2))      
                 | _, _ -> e
               end
+          | TypeOf (e1), Literal (Type pt) -> (* TODO do we need these simplifications or are they taken care by equality *)
+               begin match pt with
+                 | ReferenceType (Some MemberReference) ->
+                              begin match e1 with
+                                | Ref _ | Literal _ -> Literal (Bool false)
+                                | Var _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ -> e
+                              end
+                        | ReferenceType (Some VariableReference) ->
+                          begin match e1 with
+                            | Ref _ | Literal _ -> Literal (Bool false)
+                            | Var _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ -> e
+                          end
+                        | ReferenceType None -> 
+                          begin match e1 with
+                            | Ref _ -> Literal (Bool true)
+                            | Literal _ -> Literal (Bool false)
+                            | Var _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ -> e
+                          end
+                        | NullType ->
+                          begin match e1 with
+                            | Literal Null -> Literal (Bool true)
+                            | Literal _ | Ref _ -> Literal (Bool false)
+                            | Var _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ -> e
+                          end
+                      | UndefinedType ->
+                          begin match e1 with
+                            | Literal Undefined -> Literal (Bool true)
+                            | Literal _ | Ref _ -> Literal (Bool false)
+                            | Var _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ -> e
+                          end
+                     | BooleanType ->
+                       begin match e1 with
+                         | Literal (Bool _) -> Literal (Bool true)
+                         | Literal _ | Ref _ -> Literal (Bool false)
+                         | Var _  | BinOp _ | UnaryOp _ | Base _ | Field _  | TypeOf _ -> e
+                      end
+                     | StringType ->   
+                       begin match e1 with
+                         | Literal (String _) -> Literal (Bool true)
+                         | Literal _ | Ref _ -> Literal (Bool false)
+                         | Var _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ -> e
+                       end
+                     | NumberType ->
+                       begin match e1 with
+                         | Literal (Num _) -> Literal (Bool true)
+                         | Literal _ | Ref _ -> Literal (Bool false)
+                         | Var _  | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ -> e
+                      end
+                  | ObjectType ot ->
+                    begin match e1 with
+                     | Literal (LLoc _) -> Literal (Bool (ot <> (Some Normal)))
+                     | Literal _ | Ref _ -> Literal (Bool false)
+                     | Var _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ -> e
+                  end
+            end
             | _ -> e
           end
         | Arith aop -> e (* TODO *)
@@ -262,127 +378,8 @@ let rec simplify_expr e =
     | Base _ -> e
     | Field (Ref (e1, e2, reftype)) -> e2
     | Field _ -> e
-    | IsTypeOf (exp, t) -> 
-      begin match t with
-        | ReferenceType (Some MemberReference) ->
-          begin match exp with
-            | Ref (_, _, MemberReference) ->  Literal (Bool true)
-            | Ref _
-            | Literal _ -> Literal (Bool false)
-            | Var _ 
-            | BinOp _
-            | UnaryOp _
-            | Base _
-            | Field _
-            | TypeOf _
-            | IsTypeOf _ -> IsTypeOf (exp, t)
-          end
-        | ReferenceType (Some VariableReference) ->
-          begin match exp with
-            | Ref (_, _, VariableReference) -> Literal (Bool true)
-            | Ref _
-            | Literal _ -> Literal (Bool false)
-            | Var _ 
-            | BinOp _
-            | UnaryOp _
-            | Base _
-            | Field _
-            | TypeOf _
-            | IsTypeOf _ -> IsTypeOf (exp, t)
-          end
-        | ReferenceType None -> 
-          begin match exp with
-            | Ref _ -> Literal (Bool true)
-            | Literal _ -> Literal (Bool false)
-            | Var _ 
-            | BinOp _
-            | UnaryOp _
-            | Base _
-            | Field _
-            | TypeOf _
-            | IsTypeOf _ -> IsTypeOf (exp, t)
-          end
-        | NullType ->
-          begin match exp with
-            | Literal Null -> Literal (Bool true)
-            | Literal _
-            | Ref _ -> Literal (Bool false)
-            | Var _ 
-            | BinOp _
-            | UnaryOp _
-            | Base _
-            | Field _
-            | TypeOf _
-            | IsTypeOf _ -> IsTypeOf (exp, t)
-          end
-        | UndefinedType ->
-          begin match exp with
-            | Literal Undefined -> Literal (Bool true)
-            | Literal _
-            | Ref _ -> Literal (Bool false)
-            | Var _ 
-            | BinOp _
-            | UnaryOp _
-            | Base _
-            | Field _
-            | TypeOf _
-            | IsTypeOf _ -> IsTypeOf (exp, t)
-          end
-        | BooleanType ->
-          begin match exp with
-            | Literal (Bool _) 
-            | IsTypeOf _ -> Literal (Bool true)
-            | Literal _
-            | Ref _ -> Literal (Bool false)
-            | Var _ 
-            | BinOp _
-            | UnaryOp _
-            | Base _
-            | TypeOf _
-            | Field _ -> IsTypeOf (exp, t)
-          end
-        | StringType ->   
-          begin match exp with
-            | Literal (String _) -> Literal (Bool true)
-            | Literal _
-            | Ref _ -> Literal (Bool false)
-            | Var _ 
-            | BinOp _
-            | UnaryOp _
-            | Base _
-            | Field _
-            | TypeOf _
-            | IsTypeOf _ -> IsTypeOf (exp, t)
-          end
-        | NumberType ->
-          begin match exp with
-            | Literal (Num _) -> Literal (Bool true)
-            | Literal _
-            | Ref _ -> Literal (Bool false)
-            | Var _ 
-            | BinOp _
-            | UnaryOp _
-            | Base _
-            | Field _
-            | TypeOf _
-            | IsTypeOf _ -> IsTypeOf (exp, t)
-          end
-        | ObjectType ot ->
-          begin match exp with
-            | Literal (LLoc _) -> Literal (Bool (ot <> (Some Normal)))
-            | Literal _
-            | Ref _ -> Literal (Bool false)
-            | Var _ 
-            | BinOp _
-            | UnaryOp _
-            | Base _
-            | Field _
-            | TypeOf _
-            | IsTypeOf _ -> IsTypeOf (exp, t)
-          end
-        end
-	    | TypeOf exp -> 
-	      begin match exp with
+	  | TypeOf exp ->
+	     begin match exp with
 	        | Literal l -> 
             begin match l with
               | LLoc _ -> Literal (Type (ObjectType (Some Builtin)))
@@ -400,7 +397,6 @@ let rec simplify_expr e =
 			    | Ref (e1, e2, rt) -> Literal (Type (ReferenceType (Some rt)))
 			    | Base e -> TypeOf exp
 			    | Field e -> Literal (Type StringType)
-			    | IsTypeOf (e, _) -> Literal (Type BooleanType)
 			    | TypeOf e -> TypeOf exp
 	      end 
     
@@ -410,6 +406,12 @@ type type_info =
   | TI_Type of pulp_type
   | TI_Value (*Not a Reference && Not Empty*)
   | TI_Empty
+
+let ground_type pt =
+  match pt with
+    | NullType | UndefinedType | StringType | NumberType | BooleanType | ObjectType (Some Builtin) 
+    | ObjectType (Some Normal) | ReferenceType (Some MemberReference) | ReferenceType (Some VariableReference) -> true
+    | ObjectType None | ReferenceType None -> false
 
 let string_of_type_info ty = 
   match ty with
@@ -481,7 +483,6 @@ let rec get_type_info_expr type_info e =
     | Ref (e1, e2, ref_type) -> Some (TI_Type (ReferenceType (Some ref_type)))
     | Base e -> Some TI_Value
     | Field e -> Some (TI_Type StringType)
-    | IsTypeOf (e, _) -> Some (TI_Type BooleanType)
     | TypeOf e -> Some (TI_Type StringType)
 
 let get_type_info_assign_expr type_info e =
@@ -501,24 +502,46 @@ let get_type_info_assign_expr type_info e =
 let rec simplify_type_of type_info e =
   let f = simplify_type_of type_info in
   match e with
-    | IsTypeOf (e1, t) -> 
-      let fe_type = get_type_info_expr type_info e1 in
-      let t1 = Some (TI_Type t) in
-      if upper_bound_type fe_type t1 = t1 then
-        Literal (Bool true)
-      else if upper_bound_type fe_type t1 = fe_type then IsTypeOf (f e1, t)
-      else Literal (Bool false)
     | TypeOf e1 -> TypeOf (f e1)
     | Literal _
     | Var _ -> e
     | BinOp (e1, binop, e2) -> 
       begin match binop with 
         | Comparison Equal ->
-          let e1_type = get_type_info_expr type_info e1 in
-          let e2_type = get_type_info_expr type_info e2 in
-          let upper = upper_bound_type e1_type e2_type in
-          if upper <> e1_type && upper <> e2_type then Literal (Bool false)
-          else BinOp (f e1, binop, f e2)
+          begin match (e1, e2) with
+            | TypeOf(exp), Literal (Type t) ->
+              begin
+                let fexp = f exp in
+                let fe_type = get_type_info_expr type_info fexp in
+				        let t1 = Some (TI_Type t) in
+				        if fe_type = t1 then Literal (Bool true)               
+				        else if upper_bound_type fe_type t1 = fe_type then BinOp (f e1, binop, Literal (Type t))
+				        else Literal (Bool false)
+             end
+            | _ -> 
+              begin
+	              let e1_type = get_type_info_expr type_info e1 in
+	              let e2_type = get_type_info_expr type_info e2 in
+	              let upper = upper_bound_type e1_type e2_type in
+	              if upper <> e1_type && upper <> e2_type then Literal (Bool false)
+	              else BinOp (f e1, binop, f e2)
+              end
+           end
+        | Comparison LessThan ->
+          begin match (e1, e2) with
+            | TypeOf(exp), Literal (Type t) ->
+              begin
+                let fe_type = get_type_info_expr type_info (f exp) in
+                if ground_type t then Literal (Bool false)
+                else begin
+                  let t1 = Some (TI_Type t) in
+                  if (upper_bound_type fe_type t1 = t1) then Literal (Bool true)
+                  else if (upper_bound_type fe_type t1 <> fe_type) then Literal (Bool false)
+                       else BinOp (f e1, binop, Literal (Type t)) 
+               end
+             end
+            | _ -> BinOp (f e1, binop, f e2)
+           end
         | _ -> BinOp (f e1, binop, f e2)
       end
     | UnaryOp (uop, e) -> UnaryOp (uop, f e)
