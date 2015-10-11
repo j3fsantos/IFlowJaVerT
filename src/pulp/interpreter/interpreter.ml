@@ -56,25 +56,11 @@ let heap_value_less_than v1 v2 counter =
     | HVLiteral (String s1), HVLiteral (String s2) -> compare s1 s2 < 0
     | _,_ -> raise (InterpreterStuck ("< on non-number values", counter))
 
-let type_less_than t1 t2 =
-  match t2 with
-    | ReferenceType None -> 
-      begin match t1 with
-        | ReferenceType (Some _) -> true
-        | _ -> false
-      end
-    | ObjectType None -> 
-      begin match t1 with
-        | ObjectType (Some _) -> true
-        | _ -> false
-      end
-    | _ -> false
-
 let value_less_than v1 v2 counter =
   match v1, v2 with
     | VHValue hv1, VHValue hv2 -> heap_value_less_than hv1 hv2 counter
     | VRef (l1, s1, rt1), VRef (l2, s2, rt2) -> false
-    | VType t1, VType t2 -> type_less_than t1 t2
+    | VType t1, VType t2 -> Type_Info.type_lt t1 t2
     | _, _ -> false
 
 (* Taken from jscert *)
@@ -207,15 +193,9 @@ let run_unary_op op v counter : value =
     | BitwiseNot -> bitwise_not v counter
  
 let type_of_literal l =
-  match l with
-    | LLoc _ -> ObjectType (Some Builtin)
-	  | Null -> NullType               
-	  | Bool _ -> BooleanType         
-	  | Num _ -> NumberType          
-	  | String _ -> StringType
-	  | Undefined -> UndefinedType
-	  | Empty -> UndefinedType (*TODO*)
-    | Type _ -> StringType (* TODO *)
+  match Type_Info.get_pulp_type (Type_Info.get_type_info_literal(l)) with
+    | None -> raise (InterpreterStuck ("Empty does not have a type", 0))
+    | Some pt -> pt
 
 let type_of v =
   match v with
@@ -227,22 +207,6 @@ let type_of v =
       end
     | VRef (_, _, rt) -> ReferenceType (Some rt)
     | VType _ -> StringType (* Shouldn't be called at all? *)
-
-let is_type_of v pt =
-  let vtype = type_of v in
-  (*Printf.printf "VType = %s\n" (Pulp_Syntax_Print.string_of_pulp_type vtype);*)
-  match pt with
-    | ReferenceType None -> 
-      begin match vtype with
-        | ReferenceType _ -> true
-        | _ -> false
-      end
-    | ObjectType None -> 
-      begin match vtype with
-        | ObjectType _ -> true
-        | _ -> false
-      end
-    | _ -> pt = vtype
 
 let object_check v error counter = 
   match v with

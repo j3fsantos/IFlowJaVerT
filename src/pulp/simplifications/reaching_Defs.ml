@@ -4,6 +4,7 @@ open Pulp_Procedure
 open Basic_Blocks
 open Pulp_Syntax_Utils
 open Simp_Common
+open Type_Info
 
 type definition_id = CFG_BB.node * int
 
@@ -541,7 +542,7 @@ let type_simplifications g params =
   let defid_type = Hashtbl.create 100 in (* def_id -> type *)
   
 	let type_info depend v = 
-    if List.mem v params then Some (TI_Value) 
+    if List.mem v params then Some (TI_NotARef) 
     else begin
 			let defids = List.filter (fun (var, defid) -> var = v) depend in
 			let types = List.map (fun (var, defid) -> Hashtbl.find defid_type defid) defids in
@@ -559,7 +560,7 @@ let type_simplifications g params =
       let (nodeid, index) = defid in
       let stmt = List.nth (CFG_BB.get_node_data g nodeid) index in
       let def_id_t = match stmt.as_stmt with
-        | Basic (Assignment a) -> Simp_Common.get_type_info_assign_expr (type_info depend) a.assign_right
+        | Basic (Assignment a) -> get_type_info_assign_expr (type_info depend) a.assign_right
         | _ -> None in
       Hashtbl.replace defid_type defid def_id_t
     end

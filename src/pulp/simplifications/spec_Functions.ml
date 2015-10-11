@@ -5,6 +5,7 @@ open Simp_Common
 open Pulp_Procedure
 open Control_Flow
 open Pulp_Translate
+open Type_Info
 
 let get_type_info var annot = 
   match annot with 
@@ -53,7 +54,7 @@ let simplify_get_value e left annot throw_var label_throw =
                     | None -> translate_gamma_reference e left throw_var label_throw
                  end   
               end
-            | TI_Value -> simplify_not_a_ref
+            | TI_Value | TI_NotARef -> simplify_not_a_ref
             | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to get_value")
           end
       end
@@ -86,7 +87,7 @@ let simplify_get_value e left annot throw_var label_throw =
 	                  | ObjectType ot -> simplify_ref_object e1 ot e2 rt throw_var label_throw
 	                  | ReferenceType _ -> raise (Invalid_argument "Reference cannot be as an argument to Reference") 
 	                end
-	              | TI_Value -> translate_gamma_reference_base_field e e1 e2 left throw_var label_throw
+	              | TI_Value | TI_NotARef -> translate_gamma_reference_base_field e e1 e2 left throw_var label_throw
 	              | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to Reference")
 	            end
 	      end
@@ -130,7 +131,7 @@ let simplify_put_value e1 e2 annot throw_var label_throw =
                     | None -> translate_put_value_reference_object e1 e2 throw_var label_throw
                  end 
               end
-            | TI_Value -> gotothrow
+            | TI_Value | TI_NotARef -> gotothrow
             | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to get_value")
           end
       end
@@ -163,7 +164,7 @@ let simplify_put_value e1 e2 annot throw_var label_throw =
                       | ObjectType ot -> simplify_ref_object base ot field rt throw_var label_throw
                       | ReferenceType _ -> raise (Invalid_argument "Reference cannot be as an argument to Reference") 
                     end
-                  | TI_Value -> translate_put_value_reference_base e1 base e2 throw_var label_throw
+                  | TI_Value | TI_NotARef -> translate_put_value_reference_base e1 base e2 throw_var label_throw
                   | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to Reference")
                 end
           end
@@ -189,7 +190,7 @@ let simplify_to_boolean e annot left =
                 | ObjectType _ ->  [assign_true left]
                 | ReferenceType _ -> raise (Invalid_argument "To boolean cannot take referece as an argument") 
               end
-            | TI_Value -> translate_to_boolean e left
+            | TI_Value | TI_NotARef -> translate_to_boolean e left
             | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to to_boolean")
           end
       end
@@ -219,7 +220,7 @@ let simplify_to_number_prim e annot left =
                 | ObjectType _
                 | ReferenceType _ -> raise (Invalid_argument "To number prim cannot take objects and references as arguments") 
               end
-            | TI_Value -> translate_to_number_prim e left
+            | TI_Value | TI_NotARef -> translate_to_number_prim e left
             | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to to_number_prim")
           end
       end
@@ -241,7 +242,7 @@ let simplify_to_number e annot left throw_var label_throw =
                 | ObjectType _ -> translate_to_number_object e left throw_var label_throw
                 | ReferenceType _ -> raise (Invalid_argument "To number cannot take and references as arguments") 
               end
-            | TI_Value -> translate_to_number e left throw_var label_throw
+            | TI_Value | TI_NotARef -> translate_to_number e left throw_var label_throw
             | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to to_number")
           end
       end
@@ -272,7 +273,7 @@ let simplify_to_string_prim e annot left =
                 | ObjectType _
                 | ReferenceType _ -> raise (Invalid_argument "To string prim cannot take objects and references as arguments") 
               end
-            | TI_Value -> translate_to_string_prim e left
+            | TI_Value | TI_NotARef -> translate_to_string_prim e left
             | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to to_string_prim")
           end
       end
@@ -294,7 +295,7 @@ let simplify_to_string e annot left throw_var label_throw =
                 | ObjectType _ -> translate_to_string_object e left throw_var label_throw
                 | ReferenceType _ -> raise (Invalid_argument "To_string cannot take and references as arguments") 
               end
-            | TI_Value -> translate_to_string e left throw_var label_throw
+            | TI_Value | TI_NotARef -> translate_to_string e left throw_var label_throw
             | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to to_string")
           end
       end
@@ -323,7 +324,7 @@ let simplify_to_object e annot left throw_var label_throw =
                 | ObjectType _ -> [assign_expr left e]
                 | ReferenceType _ -> raise (Invalid_argument "To_object cannot take and references as arguments") 
               end
-            | TI_Value -> translate_to_object e left throw_var label_throw
+            | TI_Value | TI_NotARef -> translate_to_object e left throw_var label_throw
             | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to to_object")
           end
       end
@@ -345,7 +346,7 @@ let simplify_to_object_coercible e annot throw_var label_throw =
                 | BooleanType | StringType | NumberType | ObjectType _ -> []
                 | ReferenceType _ -> raise (Invalid_argument "CheckObjectCoercible cannot take and references as arguments") 
               end
-            | TI_Value -> translate_obj_coercible e throw_var label_throw
+            | TI_Value | TI_NotARef -> translate_obj_coercible e throw_var label_throw
             | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to CheckObjectCoercible")
           end
       end
@@ -367,7 +368,7 @@ let simplify_to_primitive e preftype annot left throw_var label_throw =
                 | ObjectType _ -> translate_default_value e preftype left throw_var label_throw
                 | ReferenceType _ -> raise (Invalid_argument "To_primitive cannot take and references as arguments") 
               end
-            | TI_Value -> translate_to_primitive e preftype left throw_var label_throw
+            | TI_Value | TI_NotARef -> translate_to_primitive e preftype left throw_var label_throw
             | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to to_primitive")
           end
       end
@@ -389,7 +390,7 @@ let simplify_is_callable e annot left =
                 | ObjectType _ -> is_callable_object e left
                 | ReferenceType _ -> raise (Invalid_argument "IsCallable cannot take and references as arguments") 
               end
-            | TI_Value -> is_callable e left
+            | TI_Value | TI_NotARef -> is_callable e left
             | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to IsCallable")
           end
       end

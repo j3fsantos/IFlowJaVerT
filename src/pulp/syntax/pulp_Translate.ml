@@ -2339,25 +2339,27 @@ let builtin_object_construct () =
   let assign_rv e = Basic (Assignment (mk_assign rv (Expression e))) in  
   let stmts, r1 = spec_func_call (ToObject (Var v)) ctx in
   let new_obj = mk_assign_fresh Obj in
+  let label_create = fresh_r () in
   let body = to_ivl_goto_unfold (* TODO translation level *)
-    [ Sugar (If (type_of_exp (Var v) (ObjectType None),
-        [assign_rv (Var v)],
-        [ Sugar (If (istypeof_prim_expr (Var v),
-          stmts @ 
-            [ 
-              assign_rv (Var r1)
-            ],
-            [ Basic (Assignment new_obj);
-              add_proto_value new_obj.assign_left Lop;
-              Basic (Mutation (mk_mutation (Var new_obj.assign_left) (literal_builtin_field FClass) (Literal (String "Object"))));
-              assign_rv (Var new_obj.assign_left)
-            ]))
-        ]));
-      Basic (Assignment (mk_assign ctx.return_var (Expression (Var rv))));
-      Goto ctx.label_return; 
-      Label ctx.label_return; 
-      Label ctx.label_throw
-    ] in    
+    [ Sugar (If (equal_empty_expr (Var v), 
+      [ Goto label_create ], 
+	    [ Sugar (If (type_of_exp (Var v) (ObjectType None),
+	        [assign_rv (Var v)],
+	        [ Sugar (If (istypeof_prim_expr (Var v),
+	          stmts @ 
+	          [ assign_rv (Var r1) ],
+	          [ Label label_create;
+              Basic (Assignment new_obj);
+	            add_proto_value new_obj.assign_left Lop;
+	            Basic (Mutation (mk_mutation (Var new_obj.assign_left) (literal_builtin_field FClass) (Literal (String "Object"))));
+	            assign_rv (Var new_obj.assign_left)
+	          ]))
+	        ]))]));
+	      Basic (Assignment (mk_assign ctx.return_var (Expression (Var rv))));
+	      Goto ctx.label_return; 
+	      Label ctx.label_return; 
+	      Label ctx.label_throw
+	    ] in    
   make_function_block (string_of_builtin_function Object_Construct) body [rthis; rscope; v] ctx
   
 let builtin_object_call () =

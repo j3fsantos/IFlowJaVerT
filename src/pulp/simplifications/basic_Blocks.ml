@@ -3,6 +3,7 @@ open Pulp_Syntax
 open Pulp_Procedure
 open Simp_Common
 open Control_Flow
+open Type_Info
 
 type annotation = {
   annot_type_info : (variable * type_info) list
