@@ -391,7 +391,37 @@ let simplify_is_callable e annot left =
                 | ReferenceType _ -> raise (Invalid_argument "IsCallable cannot take and references as arguments") 
               end
             | TI_Value | TI_NotARef -> is_callable e left
-            | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to IsCallable")
+            | TI_Empty -> raise (Invalid_argument "IsCallable cannot be as an argument to IsCallable")
+          end
+      end
+      
+let simplify_strict_equality_comparison_types_equal e1 e2 annot left =
+  match e1 with
+    | Literal Undefined | Literal Null -> [assign_true left]
+    | Literal (LLoc _) | Literal (Bool _) | Literal (String _) | Field _ -> translate_strict_equality_comparison_types_equal_if_equal e1 e2 left (* TODO: Do I really want to use field as String? *)
+    | Literal (Num n1) ->
+      begin
+        match e2 with
+          | Literal (Num n2) ->
+            if (n1 = n2) (* nan != nan and TODO check: 0.0 == -0.0 *) then [assign_true left] else [assign_false left]
+          | _ -> translate_strict_equality_comparison_types_equal_number e1 e2 left
+      end
+    | BinOp _ | UnaryOp _ | Base _ -> translate_strict_equality_comparison_types_equal e1 e2 left
+    | Literal Empty | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "=== same types cannot take empty / type / typeof / ref as an argument") 
+    | Var var -> 
+      begin match get_type_info var annot with
+        | None -> translate_strict_equality_comparison_types_equal e1 e2 left
+        | Some pt ->
+          begin match pt with
+            | TI_Type pt ->
+              begin match pt with
+                | NullType | UndefinedType -> [assign_true left]
+                | BooleanType | StringType | ObjectType _ -> translate_strict_equality_comparison_types_equal_if_equal e1 e2 left
+                | NumberType -> translate_strict_equality_comparison_types_equal_number e1 e2 left               
+                | ReferenceType _ -> raise (Invalid_argument "=== same types cannot take and references as arguments") 
+              end
+            | TI_Value | TI_NotARef -> translate_strict_equality_comparison_types_equal_if_equal e1 e2 left
+            | TI_Empty -> raise (Invalid_argument "=== same types cannot be as an argument to IsCallable")
           end
       end
   
@@ -413,7 +443,7 @@ let simplify_spec_func sf left annot throw_var label_throw =
     | IsCallable e -> simplify_is_callable e annot left
     | AbstractEquality (e1, e2, b) -> translate_abstract_relation e1 e2 b left throw_var label_throw
     | StrictEquality (e1, e2) -> translate_strict_equality_comparison e1 e2 left
-    | StrictEqualitySameType (e1, e2) -> translate_strict_equality_comparison_types_equal e1 e2 left
+    | StrictEqualitySameType (e1, e2) -> simplify_strict_equality_comparison_types_equal e1 e2 annot left
 
 let unfold_spec_func left sf annot =
   let ctx =  {

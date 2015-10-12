@@ -284,54 +284,44 @@ let is_constructor arg =
   let hasfield = mk_assign_fresh (HasField (Var arg, literal_builtin_field FConstructId)) in
   Basic (Assignment hasfield), hasfield.assign_left
   
+let translate_strict_equality_comparison_types_equal_if_equal x y rv =
+  [ Sugar (If (equal_exprs x y, [assign_true rv], [assign_false rv])) ]
+  
+let translate_strict_equality_comparison_types_equal_number_not_nan x y rv =
+  [ Sugar (If (or_expr (equal_exprs x y) 
+                (or_expr (and_expr (equal_num_expr x 0.0) (equal_num_expr y (-0.0))) 
+                         (and_expr (equal_num_expr x (-0.0)) (equal_num_expr y 0.0))), 
+      [assign_true rv], 
+      [assign_false rv]))
+  ]
+  
+let translate_strict_equality_comparison_types_equal_number x y rv =
+  [ Sugar (If (or_expr (equal_num_expr x nan) (equal_num_expr y nan), 
+      [assign_false rv],
+      translate_strict_equality_comparison_types_equal_number_not_nan x y rv))
+  ]
+  
 let translate_strict_equality_comparison_types_equal x y rv =   
-  (* TODO Change this to less branch *) 
     [
       Sugar (If (or_expr (type_of_exp x UndefinedType) (type_of_exp x NullType),
         [assign_true rv], 
-        [
-          Sugar (If (or_expr 
+        [ Sugar (If (or_expr 
                         (type_of_exp x StringType)
                         (or_expr 
                             (type_of_exp x (ObjectType None))
                             (type_of_exp x BooleanType)),
-          [
-            Sugar (If (equal_exprs x y, [assign_true rv], [assign_false rv]))
-          ],
-          [
-            Sugar (If (type_of_exp x NumberType,
-            [
-              Sugar (If (equal_num_expr x nan, 
-              [assign_false rv],
-              [
-                Sugar (If (equal_num_expr y nan, 
-                [assign_false rv],
-                [
-                  Sugar (If (equal_exprs x y, 
-                  [assign_true rv], 
-                  [
-                    Sugar (If (and_expr (equal_num_expr x 0.0) (equal_num_expr y (-0.0)),
-                    [assign_true rv],
-                    [
-                      Sugar (If (and_expr (equal_num_expr x (-0.0)) (equal_num_expr y 0.0),
-	                    [assign_true rv],
-	                    [assign_false rv]))
-                    ]))
-                  ]))
-                ]))
-              ]))
-            ],
-            [assign_false rv]))
-          ]
-          ))
+          translate_strict_equality_comparison_types_equal_if_equal x y rv,
+          [ Sugar (If (type_of_exp x NumberType,
+              translate_strict_equality_comparison_types_equal_number x y rv,
+              [assign_false rv]))
+          ]))
         ]))
     ]
   
 let translate_strict_equality_comparison x y rv = 
-  let stmts = translate_strict_equality_comparison_types_equal x y rv in
   [ Sugar (If (equal_exprs (TypeOf x) (TypeOf y), 
-    stmts,
-    [ Basic (Assignment (mk_assign rv (Expression (Literal (Bool false))))) ]))]
+    translate_strict_equality_comparison_types_equal x y rv,
+    [ assign_false rv ]))]
   
 let translate_error_throw error throw_var throw_label = (* TODO: Change to use Error.prototype for other errors too *)
   let r1 = mk_assign_fresh Obj in
@@ -2332,6 +2322,7 @@ let builtin_lop_valueOf () =
     ] in    
   make_function_block (string_of_builtin_function Object_Prototype_valueOf) body [rthis; rscope] ctx
   
+(* TODO fix empty value issue in other built-in function too. *)  
 let builtin_object_construct () =
   let v = fresh_r () in
   let ctx = create_ctx [] in
