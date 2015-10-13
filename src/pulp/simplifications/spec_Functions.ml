@@ -7,7 +7,7 @@ open Control_Flow
 open Pulp_Translate
 open Type_Info
 
-let get_type_info var annot = 
+let get_type_info annot var = 
   match annot with 
     | None -> None
     | Some annot -> 
@@ -40,7 +40,7 @@ let simplify_get_value e left annot throw_var label_throw =
   match e with
     | Literal _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ -> simplify_not_a_ref
     | Var var -> 
-      begin match get_type_info var annot with
+      begin match get_type_info annot var with
         | None -> translate_gamma e left throw_var label_throw
         | Some pt ->
           begin match pt with
@@ -75,7 +75,7 @@ let simplify_get_value e left annot throw_var label_throw =
         | TypeOf _ -> raise (Invalid_argument "Not well formed expression Ref (BinOp | UnartOp | Field | TypeOf, _, _)") (* To introduce well formed expressions in normal form? *)
         | Base _ -> (* TODO *) translate_gamma_reference e left throw_var label_throw (* if it's base of some variable and we know that variable is a type of member of object reference  *)
         | Var var ->        
-	        begin match get_type_info var annot with
+	        begin match get_type_info annot var with
 	          | None -> translate_gamma_reference_base_field e e1 e2 left throw_var label_throw
 	          | Some pt ->
 	            begin match pt with
@@ -117,7 +117,7 @@ let simplify_put_value e1 e2 annot throw_var label_throw =
   match e1 with
     | Literal _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ -> gotothrow
     | Var var -> 
-      begin match get_type_info var annot with
+      begin match get_type_info annot var with
         | None -> translate_put_value e1 e2 throw_var label_throw
         | Some pt ->
           begin match pt with
@@ -152,7 +152,7 @@ let simplify_put_value e1 e2 annot throw_var label_throw =
         | TypeOf _ -> raise (Invalid_argument "Not well formed expression Ref (BinOp | UnartOp | Field | TypeOf, _, _)") (* To introduce well formed expressions in normal form? *)
         | Base _ -> (* TODO *) translate_put_value_reference e1 e2 throw_var label_throw (* if it's base of some variable and we know that variable is a type of member of object reference  *)
         | Var var ->        
-            begin match get_type_info var annot with
+            begin match get_type_info annot var with
               | None -> translate_put_value_reference_base e1 base e2 throw_var label_throw
               | Some pt ->
                 begin match pt with
@@ -179,7 +179,7 @@ let simplify_to_boolean e annot left =
     | Literal _ | Field _ -> [assign_true left] (* Field cannot be empty *)
     | BinOp _ | UnaryOp _ | Base _ -> translate_to_boolean e left
     | Var var -> 
-      begin match get_type_info var annot with
+      begin match get_type_info annot var with
         | None -> translate_to_boolean e left
         | Some pt ->
           begin match pt with
@@ -206,7 +206,7 @@ let simplify_to_number_prim e annot left =
     | Field _ -> [assign_uop left ToNumberOp e] (* Field return string *)
     | BinOp _ | UnaryOp _ | Base _ -> translate_to_number_prim e left  (* TODO: Different types for different operators *)
     | Var var -> 
-      begin match get_type_info var annot with
+      begin match get_type_info annot var with
         | None -> translate_to_number_prim e left
         | Some pt ->
           begin match pt with
@@ -232,7 +232,7 @@ let simplify_to_number e annot left throw_var label_throw =
     | Literal Empty | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To number cannot take empty / type / ref as an argument") 
     | Base _ -> translate_to_number e left throw_var label_throw
     | Var var -> 
-      begin match get_type_info var annot with
+      begin match get_type_info annot var with
         | None -> translate_to_number e left throw_var label_throw
         | Some pt ->
           begin match pt with
@@ -259,7 +259,7 @@ let simplify_to_string_prim e annot left =
     | Field _ -> [assign_expr left e] (* Field return string *)
     | BinOp _ | UnaryOp _  | Base _ -> translate_to_string_prim e left (* TODO: Different types for different operators *)
     | Var var -> 
-      begin match get_type_info var annot with
+      begin match get_type_info annot var with
         | None -> translate_to_string_prim e left
         | Some pt ->
           begin match pt with
@@ -285,7 +285,7 @@ let simplify_to_string e annot left throw_var label_throw =
     | Literal Empty | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To string cannot take empty / type / typeof / ref as an argument") 
     | Base _ -> translate_to_string e left throw_var label_throw
      | Var var -> 
-      begin match get_type_info var annot with
+      begin match get_type_info annot var with
         | None -> translate_to_string e left throw_var label_throw
         | Some pt ->
           begin match pt with
@@ -311,7 +311,7 @@ let simplify_to_object e annot left throw_var label_throw =
     | Literal Empty | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To object cannot take empty / type / ref as an argument") 
     | Base _ -> translate_to_object e left throw_var label_throw
     | Var var -> 
-      begin match get_type_info var annot with
+      begin match get_type_info annot var with
         | None -> translate_to_object e left throw_var label_throw
         | Some pt ->
           begin match pt with
@@ -336,7 +336,7 @@ let simplify_to_object_coercible e annot throw_var label_throw =
     | Literal Empty | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "CheckObjectCoercible cannot take empty / type / typeof / ref as an argument") 
     | Base _ -> translate_obj_coercible e throw_var label_throw
     | Var var -> 
-      begin match get_type_info var annot with
+      begin match get_type_info annot var with
         | None -> translate_obj_coercible e throw_var label_throw
         | Some pt ->
           begin match pt with
@@ -358,7 +358,7 @@ let simplify_to_primitive e preftype annot left throw_var label_throw =
     | Literal Empty | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To object cannot take empty / type / typeof / ref as an argument") 
     | Base _ -> translate_to_primitive e preftype left throw_var label_throw
     | Var var -> 
-      begin match get_type_info var annot with
+      begin match get_type_info annot var with
         | None -> translate_to_primitive e preftype left throw_var label_throw
         | Some pt ->
           begin match pt with
@@ -380,7 +380,7 @@ let simplify_is_callable e annot left =
     | Literal Empty | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "IsCallable cannot take empty / type / typeof / ref as an argument") 
     | Base _ -> is_callable e left
     | Var var -> 
-      begin match get_type_info var annot with
+      begin match get_type_info annot var with
         | None -> is_callable e left
         | Some pt ->
           begin match pt with
@@ -409,7 +409,7 @@ let simplify_strict_equality_comparison_types_equal e1 e2 annot left =
     | BinOp _ | UnaryOp _ | Base _ -> translate_strict_equality_comparison_types_equal e1 e2 left
     | Literal Empty | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "=== same types cannot take empty / type / typeof / ref as an argument") 
     | Var var -> 
-      begin match get_type_info var annot with
+      begin match get_type_info annot var with
         | None -> translate_strict_equality_comparison_types_equal e1 e2 left
         | Some pt ->
           begin match pt with
@@ -424,7 +424,28 @@ let simplify_strict_equality_comparison_types_equal e1 e2 annot left =
             | TI_Empty -> raise (Invalid_argument "=== same types cannot be as an argument to IsCallable")
           end
       end
+      
+let simplify_strict_equality_comparison e1 e2 annot left =
+
+  let type_of_e1 = Type_Info.get_type_info_expr (get_type_info annot) e1 in
+  let type_of_e2 = Type_Info.get_type_info_expr (get_type_info annot) e2 in
   
+  match type_of_e1, type_of_e2 with
+    | None, _
+    | _, None -> translate_strict_equality_comparison e1 e2 left
+    | Some t1, Some t2 ->
+      begin
+        let t1 = Type_Info.get_pulp_type t1 in
+        let t2 = Type_Info.get_pulp_type t2 in
+        begin match t1, t2 with
+          | None, _
+          | _, None -> translate_strict_equality_comparison e1 e2 left
+          | Some t1, Some t2 ->
+            if t1 = t2 then simplify_strict_equality_comparison_types_equal e1 e2 annot left
+            else [assign_false left]
+        end
+      end
+ 
 let simplify_spec_func sf left annot throw_var label_throw =
   match sf with
     | GetValue e -> simplify_get_value e left annot throw_var label_throw
@@ -442,7 +463,7 @@ let simplify_spec_func sf left annot throw_var label_throw =
     | CheckObjectCoercible e -> simplify_to_object_coercible e annot throw_var label_throw
     | IsCallable e -> simplify_is_callable e annot left
     | AbstractEquality (e1, e2, b) -> translate_abstract_relation e1 e2 b left throw_var label_throw
-    | StrictEquality (e1, e2) -> translate_strict_equality_comparison e1 e2 left
+    | StrictEquality (e1, e2) -> simplify_strict_equality_comparison e1 e2 annot left
     | StrictEqualitySameType (e1, e2) -> simplify_strict_equality_comparison_types_equal e1 e2 annot left
 
 let unfold_spec_func left sf annot =
