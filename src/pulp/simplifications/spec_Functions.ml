@@ -6,6 +6,7 @@ open Pulp_Procedure
 open Control_Flow
 open Pulp_Translate
 open Type_Info
+open Pulp_Translate_Aux
 
 let get_type_info annot var = 
   match annot with 

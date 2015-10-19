@@ -8,6 +8,7 @@ open Pulp_Logic_Print
 open Pulp_Logic_Utils
 open CoreStar_Frontend_Pulp
 open Pulp_Translate
+open Pulp_Translate_Aux
 
 let test_apply_spec_template formula cmd_pre cmd_post expected_post =
   Config.apply_config ();

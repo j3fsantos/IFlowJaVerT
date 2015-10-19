@@ -13,19 +13,20 @@ let get_expr p level =
   Parser_main.verbose := true;
   let exp = Parser_main.exp_from_string p in
   let _ = Printf.printf "%s \n" (Pretty_print.string_of_exp_syntax exp.Parser_syntax.exp_stx) in
-  let p_exp = exp_to_pulp level exp main_fun_id [] in
+  let p_exp, env = exp_to_pulp level exp main_fun_id [] in
   let _ = AllFunctions.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_func_block fwc)) p_exp in
-  p_exp
+  p_exp, env
   
 let test_template p =
-  let p_exp = get_expr p IVL_goto_unfold_functions in
-  Interpreter.run_with_initial_heap p_exp
+  let p_exp, env = get_expr p IVL_goto_unfold_functions in
+  Interpreter.run_with_initial_heap p_exp env
   
 let test_template_simp p =
-  let p_exp = get_expr p IVL_goto in
+  let p_exp, env = get_expr p IVL_goto in
   let p_exp = Simp_Main.simplify p_exp in
+  let env = Simp_Main.simplify env in
   let _ = AllFunctions.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_func_block fwc)) p_exp in
-  Interpreter.run_with_initial_heap p_exp
+  Interpreter.run_with_initial_heap p_exp env
   
 let test_template_no_simplifications p expected_value = 
   let result = test_template p in

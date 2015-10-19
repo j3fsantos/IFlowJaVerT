@@ -5,13 +5,14 @@ open Pulp_Syntax_Utils
 open Pulp_Procedure
 open Control_Flow
 open Reaching_Defs
+open Pulp_Translate_Aux
 
 let test_template p name =
   Symb_execution.initialize ();
   Parser_main.verbose := true;
   let exp = Parser_main.exp_from_string p in
   let _ = Printf.printf "%s \n" (Pretty_print.string_of_exp_syntax exp.Parser_syntax.exp_stx) in
-  let p_exp = exp_to_pulp IVL_goto_unfold_functions exp main_fun_id [] in
+  let p_exp = exp_to_pulp_no_builtin IVL_goto_unfold_functions exp main_fun_id [] in
   let _ = AllFunctions.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_func_block fwc)) p_exp in
   let cfg = Control_Flow.mk_cfg p_exp ("tests/dot/"^name) in
   

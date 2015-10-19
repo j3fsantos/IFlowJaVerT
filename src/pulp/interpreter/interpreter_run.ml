@@ -82,7 +82,7 @@ let run_program path =
         end
   in
     
-  let p_exp = 
+  let p_exp, env = 
     try 
       exp_to_pulp IVL_goto exp Pulp_Syntax_Utils.main_fun_id []
     with
@@ -90,7 +90,7 @@ let run_program path =
       | Invalid_argument arg -> Printf.printf "\nSomething wrong with the translation '%s'.\n" arg; exit 1
   in 
   
-  let p_exp_simpl = (*Simp_Main.simplify*) p_exp in 
+  let p_exp_simpl = Simp_Main.simplify p_exp in (* TODO : Add an option for simplification or not *)
   
   if (!calculate_stats) then begin
 	  let exp_string = Pretty_print.string_of_exp false exp in
@@ -112,7 +112,7 @@ let run_program path =
   let lg = Object.add ("__$ERROR__") (HVLiteral (String "")) lg in
   let h = Heap.add (BLoc Lg) lg h in
   
-  let result = run_with_heap h p_exp_simpl in
+  let result = run_with_heap h p_exp_simpl env in
   match result.fs_return_type with
     | FTReturn -> pr_test result.fs_heap
     | FTException -> pr_test result.fs_heap; Printf.printf "\nException was thrown.\n";

@@ -336,18 +336,22 @@ let rec is_proto_obj l o h counter =
 			end 
       
 (* TODO -- I don't like the code here *)
-let rec run_assign_expr (s : local_state) (e : assign_right_expression) ctx (funcs : function_block AllFunctions.t) : local_state * value =
+let rec run_assign_expr (s : local_state) (e : assign_right_expression) ctx (funcs : function_block AllFunctions.t) (env : function_block AllFunctions.t) : local_state * value =
   let run_call c builtin =
       let fid = run_expr s c.call_name in
       let fid_string = string_check fid "Function name should be a string" s.lscounter in
       let fblock = 
         try AllFunctions.find fid_string funcs 
-        with | Not_found -> raise (InterpreterStuck ("Cannot find the function by name" ^ fid_string, s.lscounter))
+        with | Not_found -> 
+          begin 
+            try AllFunctions.find fid_string env with
+              | Not_found -> raise (InterpreterStuck ("Cannot find the function by name" ^ fid_string, s.lscounter))
+          end
       in  
       let vthis = run_expr s c.call_this in
       let vscope = run_expr s c.call_scope in
       let vargs = List.map (run_expr s) c.call_args in
-      let fs = run_function s.lsheap fblock ([vthis; vscope] @ vargs) funcs builtin in
+      let fs = run_function s.lsheap fblock ([vthis; vscope] @ vargs) funcs env builtin in
       begin match fs.fs_return_type with
         | FTException -> {s with lsheap = fs.fs_heap; lsexcep = Some (c.call_throw_label)}, fs.fs_return_value
         | FTReturn -> {s with lsheap = fs.fs_heap}, fs.fs_return_value
@@ -374,13 +378,13 @@ let rec run_assign_expr (s : local_state) (e : assign_right_expression) ctx (fun
      let eval_main = fresh_named "eval" in
     
      (*Printf.printf "Env vars in Eval: %s" (String.concat "\n" (List.map (Pulp_Syntax_Print.string_of_ctx_vars) ctx.env_vars));*)
-     let pexp = Pulp_Translate.exp_to_pulp Pulp_Translate.IVL_goto_unfold_functions exp eval_main ctx.env_vars in
+     let pexp, penv = Pulp_Translate.exp_to_pulp Pulp_Translate.IVL_goto_unfold_functions exp eval_main ctx.env_vars in
     
      let funcs = AllFunctions.fold (fun key value result -> AllFunctions.add key value result) pexp funcs in
       
      let main = AllFunctions.find eval_main pexp in  
    
-      let fs = run_function s.lsheap main ([vthis; vscope]) funcs true in
+      let fs = run_function s.lsheap main ([vthis; vscope]) funcs env true in
       begin match fs.fs_return_type with
         | FTException -> {s with lsheap = fs.fs_heap; lsexcep = Some (c.call_throw_label)}, fs.fs_return_value
         | FTReturn -> {s with lsheap = fs.fs_heap}, fs.fs_return_value
@@ -429,7 +433,7 @@ let rec run_assign_expr (s : local_state) (e : assign_right_expression) ctx (fun
       let l2 = object_check v2 "proto_obj" s.lscounter in
       let v = is_proto_obj (VHValue (HVObj l1)) l2 s.lsheap s.lscounter in s, v 
 and
-run_function (h : heap_type) (f : function_block) (args : value list) (fs : function_block AllFunctions.t) (is_builtin) : function_state =
+run_function (h : heap_type) (f : function_block) (args : value list) (fs : function_block AllFunctions.t) (env : function_block AllFunctions.t) (is_builtin) : function_state =
   (* I cannot do the following syntactically, can I? *)
   (*Printf.printf "Running function %s \n" f.func_name;*)
   let args_mod = List.mapi (fun index param -> 
@@ -448,7 +452,7 @@ run_function (h : heap_type) (f : function_block) (args : value list) (fs : func
       | _ -> index + 1, li
     ) (0, LabelMap.empty) f.func_body in
     
-  let result = run_stmts f.func_body f.func_ctx {lsheap = h; lsstack = s; lscounter = 0; lsexcep = None} label_index fs in
+  let result = run_stmts f.func_body f.func_ctx {lsheap = h; lsstack = s; lscounter = 0; lsexcep = None} label_index fs env in
   (*Printf.printf "End of function %s \n" f.func_name;*)
   let ret_type, ret_val = 
     let stmt = List.nth f.func_body result.lscounter in
@@ -466,11 +470,11 @@ run_function (h : heap_type) (f : function_block) (args : value list) (fs : func
   (*Printf.printf "End of function %s \n" f.func_name;*)
   {fs_heap = result.lsheap; fs_return_type = ret_type; fs_return_value = ret_val}
   
-and run_basic_stmt (s : local_state) (stmt : basic_statement) (labelmap : int LabelMap.t) ctx (fs : function_block AllFunctions.t) : local_state =
+and run_basic_stmt (s : local_state) (stmt : basic_statement) (labelmap : int LabelMap.t) ctx (fs : function_block AllFunctions.t) (env : function_block AllFunctions.t) : local_state =
    match stmt with
     | Skip -> {s with lscounter = s.lscounter + 1}
     | Assignment assign -> 
-      let s, v = run_assign_expr s assign.assign_right ctx fs in
+      let s, v = run_assign_expr s assign.assign_right ctx fs env in
       begin match s.lsexcep with
         | Some throwl ->
         {s with 
@@ -492,7 +496,7 @@ and run_basic_stmt (s : local_state) (stmt : basic_statement) (labelmap : int La
             let newobj = Object.add x v3 obj in
             {s with lsheap = Heap.add l newobj s.lsheap; lscounter = s.lscounter + 1}
 
-and run_stmt (s : local_state) (stmt : statement) (labelmap : int LabelMap.t) (ctx) (fs : function_block AllFunctions.t) : local_state =
+and run_stmt (s : local_state) (stmt : statement) (labelmap : int LabelMap.t) (ctx) (fs : function_block AllFunctions.t) (env : function_block AllFunctions.t) : local_state =
   (*Printf.printf "Running stmt %s \n" (Pulp_Syntax_Print.string_of_statement stmt);*)
   match stmt with
     | Label l -> {s with lscounter = s.lscounter + 1}
@@ -506,19 +510,19 @@ and run_stmt (s : local_state) (stmt : statement) (labelmap : int LabelMap.t) (c
           {s with lscounter = LabelMap.find l2 labelmap}
         | _ -> raise (InterpreterStuck ("GuardedGoto expression must evaluate to boolean value", s.lscounter))
       end
-    | Basic bs -> run_basic_stmt s bs labelmap ctx fs
+    | Basic bs -> run_basic_stmt s bs labelmap ctx fs env
     | Sugar sss -> raise (InterpreterNotImplemented ("Syntactic Sugar" ^ (Pulp_Syntax_Print.string_of_sugar sss)))
 
-and run_stmts stmts ctx lstate labelmap fs =
+and run_stmts stmts ctx lstate labelmap fs env =
   let next_stmt = List.nth stmts lstate.lscounter in
   if end_label next_stmt labelmap ctx then lstate 
   else 
-    let state = run_stmt lstate next_stmt labelmap ctx fs in
-    run_stmts stmts ctx state labelmap fs
+    let state = run_stmt lstate next_stmt labelmap ctx fs env in
+    run_stmts stmts ctx state labelmap fs env
     
-let run (h: heap_type) main_this main_scope (fs : function_block AllFunctions.t) : function_state = 
+let run (h: heap_type) main_this main_scope (fs : function_block AllFunctions.t) (env : function_block AllFunctions.t) : function_state = 
   let main = AllFunctions.find main_fun_id fs in
-  run_function h main [main_this; main_scope] fs false
+  run_function h main [main_this; main_scope] fs env false
   
 let built_in_obj_proto_lop h obj =
   let l = Object.add (string_of_builtin_field FProto) (HVObj (BLoc Lop)) Object.empty in
@@ -682,15 +686,15 @@ let initial_heap () =
   let h = add_field h (BLoc Lep) "message" (HVLiteral (String "")) in
   h
   
-let run_with_heap h (fs : function_block AllFunctions.t) : function_state =
+let run_with_heap h (fs : function_block AllFunctions.t) (env : function_block AllFunctions.t) : function_state =
   let main_this = VHValue (HVObj (BLoc Lg)) in
   let main_scope_l = Loc (fresh_loc ()) in
   let h = Heap.add main_scope_l Object.empty h in
-  run h main_this (VHValue (HVObj main_scope_l)) fs
+  run h main_this (VHValue (HVObj main_scope_l)) fs env
   
-let run_with_initial_heap (fs : function_block AllFunctions.t) : function_state =
+let run_with_initial_heap (fs : function_block AllFunctions.t) env : function_state =
   let h = initial_heap () in
-  run_with_heap h fs
+  run_with_heap h fs env
 
   
 
