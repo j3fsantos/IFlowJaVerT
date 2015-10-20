@@ -93,16 +93,6 @@ let string_of_builtin_loc_no_hash l =
   let s = string_of_builtin_loc l in
   String.sub s 1 (String.length s - 1)
 
-let string_of_builtin_field f =
-  match f with
-    | FProto -> "#proto"
-    | FId -> "#fid"
-    | FScope -> "#scope"
-    | FPrototype -> "prototype"
-    | FConstructId -> "#constructid"
-    | FPrimitiveValue -> "#primvalue"
-    | FClass -> "#class"
-
 let string_of_builtin_function f =
   match f with
     | Global_isNaN -> "#global_is_nan"
@@ -223,26 +213,47 @@ let string_of_basic_statement bs =
     | Assignment a -> Printf.sprintf "%s := %s" (string_of_var a.assign_left) (string_of_assign_right a.assign_right)
     | Mutation m -> string_of_mutation m
 
+let string_of_spec_fun_id sf =
+  match sf with
+    | GetValue _ -> "#GetValue"
+    | PutValue _ -> "#PutValue"
+    | Get _ -> "#[[Get]]"
+    | HasProperty _ -> "#[[HasProperty]]"
+    | DefaultValue _ -> "#[[DefaultValue]]"
+    | ToPrimitive _ -> "#ToPrimitive"
+    | ToBoolean _ -> "#ToBoolean"
+    | ToNumber _ -> "#ToNumber"
+    | ToNumberPrim _ -> "#ToNumberPrim"
+    | ToString _ -> "#ToString"
+    | ToStringPrim _ -> "#ToStringPrim"
+    | ToObject _ -> "#ToObject"
+    | CheckObjectCoercible _ -> "#CheckObjectCoercible" 
+    | IsCallable _ -> "#IsCallable"
+    | AbstractEquality _ -> "#AbstractEquality"
+    | StrictEquality _ -> "#StrictEquality"
+    | StrictEqualitySameType _ -> "#StrictEqualitySameType"
+
 let string_of_spec_function sf =
   let f = string_of_expression in
+  let id = string_of_spec_fun_id sf in
   match sf with
-    | GetValue e -> Printf.sprintf "GetValue(%s)" (f e)
-    | PutValue (e1, e2) -> Printf.sprintf "PutValue(%s, %s)" (f e1) (f e2)
-    | Get (e1, e2) -> Printf.sprintf "[[Get]](%s, %s)" (f e1) (f e2)
-    | HasProperty (e1, e2) -> Printf.sprintf "[[HasProperty]](%s, %s)" (f e1) (f e2)
-    | DefaultValue (e, pt) -> Printf.sprintf "[[DefaultValue]](%s, %s)" (f e) (match pt with None -> "" | Some pt -> string_of_pulp_type pt)
-    | ToPrimitive (e, pt) -> Printf.sprintf "ToPrimitive(%s, %s)" (f e)  (match pt with None -> "" | Some pt -> string_of_pulp_type pt)
-    | ToBoolean e -> Printf.sprintf "ToBoolean(%s)" (f e)
-    | ToNumber e -> Printf.sprintf "ToNumber(%s)" (f e)
-    | ToNumberPrim e -> Printf.sprintf "ToNumberPrim(%s)" (f e)
-    | ToString e -> Printf.sprintf "ToString(%s)" (f e)
-    | ToStringPrim e -> Printf.sprintf "ToStringPrim(%s)" (f e)
-    | ToObject e -> Printf.sprintf "ToObject(%s)" (f e)
-    | CheckObjectCoercible e -> Printf.sprintf "CheckObjectCoercible(%s)" (f e)
-    | IsCallable e -> Printf.sprintf "IsCallable(%s)" (f e)
-    | AbstractEquality (e1, e2, b) -> Printf.sprintf "AbstractEquality(%s, %s, %b)" (f e1) (f e2) b
-    | StrictEquality (e1, e2) -> Printf.sprintf "StrictEquality(%s, %s)" (f e1) (f e2)
-    | StrictEqualitySameType (e1, e2) -> Printf.sprintf "StrictEqualitySameType(%s, %s)" (f e1) (f e2)
+    | GetValue e -> Printf.sprintf "%s(%s)" id (f e)
+    | PutValue (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
+    | Get (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
+    | HasProperty (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
+    | DefaultValue (e, pt) -> Printf.sprintf "%s(%s, %s)" id (f e) (match pt with None -> "" | Some pt -> string_of_pulp_type pt)
+    | ToPrimitive (e, pt) -> Printf.sprintf "%s(%s, %s)" id (f e)  (match pt with None -> "" | Some pt -> string_of_pulp_type pt)
+    | ToBoolean e -> Printf.sprintf "%s(%s)" id (f e)
+    | ToNumber e -> Printf.sprintf "%s(%s)" id (f e)
+    | ToNumberPrim e -> Printf.sprintf "%s(%s)" id (f e)
+    | ToString e -> Printf.sprintf "%s(%s)" id (f e)
+    | ToStringPrim e -> Printf.sprintf "%s(%s)" id (f e)
+    | ToObject e -> Printf.sprintf "%s(%s)" id (f e)
+    | CheckObjectCoercible e -> Printf.sprintf "%s(%s)" id (f e)
+    | IsCallable e -> Printf.sprintf "%s(%s)" id (f e)
+    | AbstractEquality (e1, e2, b) -> Printf.sprintf "%s(%s, %s, %b)" id (f e1) (f e2) b
+    | StrictEquality (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
+    | StrictEqualitySameType (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
  
 let rec string_of_statement t =
   match t with

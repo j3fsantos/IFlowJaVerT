@@ -2,7 +2,6 @@ open Pulp_Syntax
 open Pulp_Syntax_Print
 open Pulp_Procedure
 open Pulp_Translate_Aux
-open Pulp_Translate_Spec_Fun
 
 let builtin_call_boolean_call () =
   let v = fresh_r () in

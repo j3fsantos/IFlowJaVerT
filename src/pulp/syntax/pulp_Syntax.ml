@@ -76,6 +76,15 @@ type builtin_field =
   | FPrimitiveValue
   | FClass (* TODO : Update Everywhere *)
 
+let string_of_builtin_field f =
+  match f with
+    | FProto -> "#proto"
+    | FId -> "#fid"
+    | FScope -> "#scope"
+    | FPrototype -> "prototype"
+    | FConstructId -> "#constructid"
+    | FPrimitiveValue -> "#primvalue"
+    | FClass -> "#class"
 
 type reference_type = 
   | MemberReference (*A reference created by access x[y] *)

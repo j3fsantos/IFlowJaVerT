@@ -92,7 +92,23 @@ type formula =
 
 let empty_f = Star []
 
-let false_f = Eq (Le_Literal (Bool false), Le_Literal (Bool true))
+let eq_true le = Eq (le, Le_Literal (Bool true))
+
+let false_f = eq_true (Le_Literal (Bool false))
+
+let eq_pvars_f x1 x2 = Eq (Le_PVar x1, Le_PVar x2)
+
+let type_of_f x t = Eq (Le_TypeOf (Le_PVar x), Le_Literal (Type t))
+let not_type_of_f x t = NEq (Le_TypeOf (Le_PVar x), Le_Literal (Type t))
+
+let type_of_mref_f x = type_of_f x (ReferenceType (Some MemberReference))
+let type_of_vref_f x = type_of_f x (ReferenceType (Some VariableReference))
+let not_type_of_mref_f x = not_type_of_f x (ReferenceType (Some MemberReference))
+let not_type_of_vref_f x = not_type_of_f x (ReferenceType (Some VariableReference))
+
+let type_of_obj_f x = eq_true (Le_BinOp (x, Comparison LessThan, Le_Literal (Type (ObjectType None))))
+let proto_heaplet_f le1 le2 = Heaplet (le1, Le_Literal (String (string_of_builtin_field FProto)), le2)
+let class_heaplet_f le1 le2 = Heaplet (le1, Le_Literal (String (string_of_builtin_field FClass)), (Le_Literal (String le2)))
 
 type annot_body = formula list
 
