@@ -29,6 +29,10 @@ rule builtin_lt_string_obj_contr :
 | true()=builtin_lt(StringType(), ObjectType()) |-
 if
 
+rule builtin_lt_boolean_obj_contr :
+| true()=builtin_lt(BooleanType(), ObjectType()) |-
+if
+
 rule builtin_lt_obj_obj_contr :
 | true()=builtin_lt(ObjectType(), ObjectType()) |-
 if

@@ -109,3 +109,16 @@ if
 rule type_of_lt_bobj_nobj_contr :
   | true()=builtin_lt(type_of(?x), BObjectType()) * type_of(?x)=NObjectType() |- 
 if
+
+/* TODO: More abstract */
+rule type_of_lg_not_boolean :
+  | type_of(lg()) = BooleanType() |-
+if
+
+rule type_of_lg_not_number :
+  | type_of(lg()) = NumberType() |-
+if
+
+rule type_of_lg_not_string :
+  | type_of(lg()) = StringType() |-
+if
