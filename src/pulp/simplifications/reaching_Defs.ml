@@ -497,7 +497,7 @@ let copy_propagation g =
   
 (* Type propagation *)
   
-let type_simplifications g params = 
+let type_simplifications g params proc_type = 
   let def = calculate_defs g in
   let ins, outs = calculate_reaching_defs g in
   let nodes = CFG_BB.nodes g in
@@ -542,7 +542,7 @@ let type_simplifications g params =
   let defid_type = Hashtbl.create 100 in (* def_id -> type *)
   
 	let type_info depend v = 
-    if List.mem v params then Some (TI_NotARef) 
+    if (proc_type = Procedure_User && List.mem v params) then Some (TI_NotARef)
     else begin
 			let defids = List.filter (fun (var, defid) -> var = v) depend in
 			let types = List.map (fun (var, defid) -> Hashtbl.find defid_type defid) defids in

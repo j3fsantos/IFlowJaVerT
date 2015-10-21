@@ -36,3 +36,19 @@ if
 rule builtin_lt_nobj_obj_false_contr :
 | false()=builtin_lt(NObjectType(), ObjectType()) |-
 if
+
+rule builtin_lt_oref_ref_false_contr :
+| false()=builtin_lt(MemberReferenceType(), ReferenceType()) |-
+if 
+
+rule builtin_lt_vref_ref_false_contr :
+| false()=builtin_lt(VariableReferenceType(), ReferenceType()) |-
+if
+
+rule builtin_lt_oref_vref_contr :
+| true()=builtin_lt(MemberReferenceType(), VariableReferenceType()) |-
+if
+
+rule builtin_lt_not_a_ref_contr :
+| type_of(?x)!=MemberReferenceType() * type_of(?x)!=VariableReferenceType() * true()=builtin_lt(type_of(?x), ReferenceType()) |-
+if

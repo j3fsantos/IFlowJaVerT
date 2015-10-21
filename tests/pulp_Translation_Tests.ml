@@ -153,7 +153,7 @@ let test_gamma () =
   let r = fresh_r () in
   let gamma_stmt = translate_gamma (Var "r") r ctx.throw_var ctx.label_throw in
   let gamma_stmts = (to_ivl_goto_unfold gamma_stmt) @ [Label ctx.label_return; Label ctx.label_throw] in
-  let p_exp = AllFunctions.add "gamma" (make_function_block "gamma" gamma_stmts [] ctx) AllFunctions.empty in
+  let p_exp = AllFunctions.add "gamma" (make_function_block Procedure_Spec "gamma" gamma_stmts [] ctx) AllFunctions.empty in
   ignore (Control_Flow.mk_cfg p_exp ("tests/dot/gamma"));
   assert_bool "Incorrect Translation" true
 
@@ -177,7 +177,7 @@ let cfg_anonymous2 () =
     ]
     in
   let stmts = to_ivl_goto_unfold stmts in
-  let p_exp = AllFunctions.add "anonymous2" (make_function_block "anonymous2" stmts [] ctx) AllFunctions.empty in
+  let p_exp = AllFunctions.add "anonymous2" (make_function_block Procedure_User "anonymous2" stmts [] ctx) AllFunctions.empty in
   ignore (Control_Flow.mk_cfg p_exp ("tests/dot/anonymous2"));
   assert_bool "Incorrect Translation" true
   (* 

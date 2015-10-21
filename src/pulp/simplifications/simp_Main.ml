@@ -17,7 +17,7 @@ let constant_propagation cfg fb =
   List.iter (fun n -> const_prop_node cfg n) (CFG_BB.nodes cfg);
   constant_propagation cfg;
   copy_propagation cfg; (* TODO: Do I need constant_progation if I have copy_propagation? *)
-  type_simplifications cfg fb.func_params;
+  type_simplifications cfg fb.func_params fb.func_type;
   simplify_guarded_gotos cfg;  
   simplify_spec_functions cfg;
   remove_unreachable cfg;

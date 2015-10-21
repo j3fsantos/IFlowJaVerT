@@ -16,7 +16,7 @@ let builtin_call_boolean_call () =
       Label ctx.label_return; 
       Label ctx.label_throw
     ] in    
-  make_function_block (string_of_builtin_function Boolean_Call) body [rthis; rscope; v] ctx
+  make_function_block Procedure_Builtin (string_of_builtin_function Boolean_Call) body [rthis; rscope; v] ctx
   
 let builtin_call_boolean_construct () =
   let v = fresh_r () in
@@ -36,7 +36,7 @@ let builtin_call_boolean_construct () =
       Label ctx.label_return; 
       Label ctx.label_throw
     ] in    
-  make_function_block (string_of_builtin_function Boolean_Construct) body [rthis; rscope; v] ctx
+  make_function_block Procedure_Builtin (string_of_builtin_function Boolean_Construct) body [rthis; rscope; v] ctx
   
 let lbp_common ctx =
   let b = fresh_r () in
@@ -72,7 +72,7 @@ let builtin_lbp_toString () =
       Label ctx.label_return; 
       Label ctx.label_throw
     ] in    
-  make_function_block (string_of_builtin_function Boolean_Prototype_toString) body [rthis; rscope] ctx
+  make_function_block Procedure_Builtin (string_of_builtin_function Boolean_Prototype_toString) body [rthis; rscope] ctx
   
 let builtin_lbp_valueOf () =
   let ctx = create_ctx [] in
@@ -84,7 +84,7 @@ let builtin_lbp_valueOf () =
       Label ctx.label_return; 
       Label ctx.label_throw
     ] in    
-  make_function_block (string_of_builtin_function Boolean_Prototype_valueOf) body [rthis; rscope] ctx
+  make_function_block Procedure_Builtin (string_of_builtin_function Boolean_Prototype_valueOf) body [rthis; rscope] ctx
   
 let builtin_lop_toString () =
   let ctx = create_ctx [] in
@@ -108,7 +108,7 @@ let builtin_lop_toString () =
       Label ctx.label_return; 
       Label ctx.label_throw
     ] in    
-  make_function_block (string_of_builtin_function Object_Prototype_toString) body [rthis; rscope] ctx
+  make_function_block Procedure_Builtin (string_of_builtin_function Object_Prototype_toString) body [rthis; rscope] ctx
   
 let builtin_lop_valueOf () =
   let ctx = create_ctx [] in
@@ -121,7 +121,7 @@ let builtin_lop_valueOf () =
       Label ctx.label_return; 
       Label ctx.label_throw
     ] in    
-  make_function_block (string_of_builtin_function Object_Prototype_valueOf) body [rthis; rscope] ctx
+  make_function_block Procedure_Builtin (string_of_builtin_function Object_Prototype_valueOf) body [rthis; rscope] ctx
   
 (* TODO fix empty value issue in other built-in function too. *)  
 let builtin_object_construct () =
@@ -152,7 +152,7 @@ let builtin_object_construct () =
           Label ctx.label_return; 
           Label ctx.label_throw
         ] in    
-  make_function_block (string_of_builtin_function Object_Construct) body [rthis; rscope; v] ctx
+  make_function_block Procedure_Builtin (string_of_builtin_function Object_Construct) body [rthis; rscope; v] ctx
   
 let builtin_object_call () =
   let v = fresh_r () in
@@ -177,7 +177,7 @@ let builtin_object_call () =
       Label ctx.label_return; 
       Label ctx.label_throw
     ] in    
-  make_function_block (string_of_builtin_function Object_Call) body [rthis; rscope; v] ctx
+  make_function_block Procedure_Builtin (string_of_builtin_function Object_Call) body [rthis; rscope; v] ctx
   
 let builtin_object_get_prototype_of () =
   let v = fresh_r () in
@@ -190,7 +190,7 @@ let builtin_object_get_prototype_of () =
       Label ctx.label_return; 
       Label ctx.label_throw
     ] in    
-  make_function_block (string_of_builtin_function Object_getPrototypeOf) body [rthis; rscope; v] ctx
+  make_function_block Procedure_Builtin (string_of_builtin_function Object_getPrototypeOf) body [rthis; rscope; v] ctx
   
 let builtin_lop_is_prototype_of () =
   let v = fresh_r () in
@@ -211,7 +211,7 @@ let builtin_lop_is_prototype_of () =
       Label ctx.label_return; 
       Label ctx.label_throw
     ] in    
-  make_function_block (string_of_builtin_function Object_Prototype_isPrototypeOf) body [rthis; rscope; v] ctx
+  make_function_block Procedure_Builtin (string_of_builtin_function Object_Prototype_isPrototypeOf) body [rthis; rscope; v] ctx
   
 let builtin_lfp_call () = 
   let ctx = create_ctx [] in
@@ -222,7 +222,7 @@ let builtin_lfp_call () =
       Label ctx.label_return; 
       Label ctx.label_throw
     ]) in    
-  make_function_block (string_of_builtin_function Function_Call) body [rthis; rscope] ctx
+  make_function_block Procedure_Builtin (string_of_builtin_function Function_Call) body [rthis; rscope] ctx
 
 let builtin_call_number_call () =
   let v = fresh_r () in
@@ -238,7 +238,7 @@ let builtin_call_number_call () =
       Label ctx.label_return; 
       Label ctx.label_throw
     ]) in    
-  make_function_block (string_of_builtin_function Number_Call) body [rthis; rscope; v] ctx
+  make_function_block Procedure_Builtin (string_of_builtin_function Number_Call) body [rthis; rscope; v] ctx
   
 let builtin_call_number_construct () =
   let v = fresh_r () in
@@ -258,7 +258,7 @@ let builtin_call_number_construct () =
        Label ctx.label_return; 
        Label ctx.label_throw
      ]) in    
-  make_function_block (string_of_builtin_function Number_Construct) body [rthis; rscope; v] ctx
+  make_function_block Procedure_Builtin (string_of_builtin_function Number_Construct) body [rthis; rscope; v] ctx
   
 let lnp_common ctx =
   let b = fresh_r () in
@@ -292,7 +292,7 @@ let builtin_lnp_toString () = (* Todo for other redices too *)
       Label ctx.label_return; 
       Label ctx.label_throw
     ] in    
-  make_function_block (string_of_builtin_function Number_Prototype_toString) body [rthis; rscope] ctx
+  make_function_block Procedure_Builtin (string_of_builtin_function Number_Prototype_toString) body [rthis; rscope] ctx
     
 let builtin_lnp_valueOf () =
   let ctx = create_ctx [] in
@@ -304,7 +304,7 @@ let builtin_lnp_valueOf () =
       Label ctx.label_return; 
       Label ctx.label_throw
     ] in    
-  make_function_block (string_of_builtin_function Number_Prototype_valueOf) body [rthis; rscope] ctx
+  make_function_block Procedure_Builtin (string_of_builtin_function Number_Prototype_valueOf) body [rthis; rscope] ctx
   
 let builtin_global_is_nan () =
   let n = fresh_r () in
@@ -320,7 +320,7 @@ let builtin_global_is_nan () =
       Label ctx.label_return; 
       Label ctx.label_throw
     ]) in    
-  make_function_block (string_of_builtin_function Global_isNaN) body [rthis; rscope; n] ctx
+  make_function_block Procedure_Builtin (string_of_builtin_function Global_isNaN) body [rthis; rscope; n] ctx
   
 let builtin_global_is_finite () =
   let n = fresh_r () in
@@ -340,7 +340,7 @@ let builtin_global_is_finite () =
       Label ctx.label_return; 
       Label ctx.label_throw
     ]) in    
-  make_function_block (string_of_builtin_function Global_isFinite) body [rthis; rscope; n] ctx
+  make_function_block Procedure_Builtin (string_of_builtin_function Global_isFinite) body [rthis; rscope; n] ctx
   
 let builtin_call_string_call () =
   let v = fresh_r () in
@@ -355,7 +355,7 @@ let builtin_call_string_call () =
      Label ctx.label_return; 
      Label ctx.label_throw
     ] in    
-  make_function_block (string_of_builtin_function String_Call) body [rthis; rscope; v] ctx
+  make_function_block Procedure_Builtin (string_of_builtin_function String_Call) body [rthis; rscope; v] ctx
   
 let builtin_call_string_construct () =
   let v = fresh_r () in
@@ -375,7 +375,7 @@ let builtin_call_string_construct () =
       Label ctx.label_return; 
       Label ctx.label_throw
     ]) in    
-  make_function_block (string_of_builtin_function String_Construct) body [rthis; rscope; v] ctx
+  make_function_block Procedure_Builtin (string_of_builtin_function String_Construct) body [rthis; rscope; v] ctx
     
 let builtin_lsp_toString_valueOf () =
   let ctx = create_ctx [] in
@@ -402,7 +402,7 @@ let builtin_lsp_toString_valueOf () =
       Label ctx.label_return; 
       Label ctx.label_throw
     ] in    
-  make_function_block (string_of_builtin_function String_Prototype_valueOf) body [rthis; rscope] ctx
+  make_function_block Procedure_Builtin (string_of_builtin_function String_Prototype_valueOf) body [rthis; rscope] ctx
 
 
 let get_env () =

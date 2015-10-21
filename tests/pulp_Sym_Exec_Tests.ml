@@ -80,7 +80,7 @@ let test_empty_program () =
       Label ctx.label_return
   ] in
   let spec = mk_spec empty_f [empty_f] in
-  let f = make_function_block_with_spec "fid1" p [] ctx [spec] in
+  let f = make_function_block_with_spec Procedure_User "fid1" p [] ctx [spec] in
   test_program_template "test_empty_program" f (AllFunctions.add f.func_name f AllFunctions.empty)
   
 let test_empty_program_non_empty_pre () =
@@ -93,7 +93,7 @@ let test_empty_program_non_empty_pre () =
   ] in
   let formula = Heaplet (Le_Var (fresh_a ()), Le_Var (fresh_a ()), Le_Var (fresh_a ())) in
   let spec = mk_spec formula [formula] in
-  let f = make_function_block_with_spec "fid2" p [] ctx [spec] in
+  let f = make_function_block_with_spec Procedure_User "fid2" p [] ctx [spec] in
   test_program_template "test_empty_program_non_empty_pre" f (AllFunctions.add f.func_name f AllFunctions.empty)
   
   let test_program1 () =
@@ -114,7 +114,7 @@ let test_empty_program_non_empty_pre () =
     Heaplet (Le_PVar "x", Le_Literal (String "f"), Le_Literal (Num 1.0))
   ]] in 
   let spec = mk_spec empty_f post in
-  let f = make_function_block_with_spec "fid3" p [] ctx [spec] in
+  let f = make_function_block_with_spec Procedure_User "fid3" p [] ctx [spec] in
   test_program_template "test_program1" f  (AllFunctions.add f.func_name f AllFunctions.empty)
   
 let translate_jstools_example_person () =
@@ -149,7 +149,7 @@ let translate_jstools_example_person () =
       Label ctx.label_throw;
       Label ctx.label_return
   ] in 
-  let f = make_function_block "Person0" p ["rthis"; "rscope"; "name"] ctx  in
+  let f = make_function_block Procedure_User "Person0" p ["rthis"; "rscope"; "name"] ctx  in
   f
  
 let test_jstools_example_person_1 () =
@@ -192,11 +192,11 @@ let test_function_call_template name fid_stmts fid_expr =
   ] in
   
   let spec = mk_spec_with_excep empty_f [false_f] [REq (Le_Literal (Bool false))] in
-  let fid = make_function_block_with_spec "fid" p ["rthis"; "rscope"] ctx [spec] in
+  let fid = make_function_block_with_spec Procedure_User "fid" p ["rthis"; "rscope"] ctx [spec] in
   
   let spec_f = mk_spec_with_excep (Eq (Le_PVar "rthis", Le_Literal Undefined)) [false_f] 
     [Star [Eq (Le_PVar "rthis", Le_Literal Undefined); REq (Le_Literal (Bool false))]] in
-  let f = make_function_block_with_spec "f" p ["rthis"; "rscope"] ctx [spec_f] in
+  let f = make_function_block_with_spec Procedure_User "f" p ["rthis"; "rscope"] ctx [spec_f] in
   
   let fs = AllFunctions.add f.func_name f AllFunctions.empty in
   let fs = AllFunctions.add "fid" fid fs in
@@ -228,7 +228,7 @@ let test_proto_field () =
   ] in
   
   let spec = mk_spec empty_f [REq (Le_Literal (Num 4.0))] in
-  let f = make_function_block_with_spec "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
+  let f = make_function_block_with_spec Procedure_User "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
   test_program_template "test_proto_field" f (AllFunctions.add f.func_name f AllFunctions.empty)
   
 let test_proto_field_direct () =
@@ -244,7 +244,7 @@ let test_proto_field_direct () =
       Label ctx.label_return
   ] in
   let spec = mk_spec empty_f [REq (Le_Literal Undefined)] in
-  let f = make_function_block_with_spec "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
+  let f = make_function_block_with_spec Procedure_User "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
   
   test_program_template "test_proto_field_direct" f (AllFunctions.add f.func_name f AllFunctions.empty)
   
@@ -261,7 +261,7 @@ let test_proto_field_empty () =
       Label ctx.label_return
   ] in
   let spec = mk_spec empty_f [REq (Le_Literal Empty)] in
-  let f = make_function_block_with_spec "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
+  let f = make_function_block_with_spec Procedure_User "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
   
   test_program_template "test_proto_field_empty" f (AllFunctions.add f.func_name f AllFunctions.empty)
   
@@ -279,7 +279,7 @@ let test_proto_field_last () =
       Label ctx.label_return
   ] in
   let spec = mk_spec empty_f [REq (Le_Literal (Num 3.0))] in
-  let f = make_function_block_with_spec "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
+  let f = make_function_block_with_spec Procedure_User "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
   
   test_program_template "test_proto_field_empty" f (AllFunctions.add f.func_name f AllFunctions.empty)
   
@@ -296,7 +296,7 @@ let test_proto_field_with_proto_in_spec () =
       Label ctx.label_return
   ] in
   let spec = mk_spec (Star [pi; ProtoChain (Le_PVar "x", ls, l')]) [REq (Le_Literal (Num 3.0))] in
-  let f = make_function_block_with_spec "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
+  let f = make_function_block_with_spec Procedure_User "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
   
   test_program_template "test_proto_field_in_spec" f (AllFunctions.add f.func_name f AllFunctions.empty)
  
@@ -319,7 +319,7 @@ let test_proto_field_with_two_proto_in_spec () =
       Label ctx.label_return
   ] in
   let spec = mk_spec (Star [pix; piy; ProtoChain (Le_PVar "x", ls, l')]) [REq (Le_Literal (Num 5.0))] in
-  let f = make_function_block_with_spec "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
+  let f = make_function_block_with_spec Procedure_User "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
   
   test_program_template "test_two_proto_field_in_spec" f (AllFunctions.add f.func_name f AllFunctions.empty)
 

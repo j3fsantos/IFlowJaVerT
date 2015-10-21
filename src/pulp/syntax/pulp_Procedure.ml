@@ -38,7 +38,13 @@ let create_ctx env =
 		 stmt_return_var = fresh_r (); 
   }
   
+type procedure_type = 
+  | Procedure_User
+  | Procedure_Builtin
+  | Procedure_Spec
+  
 type function_block = { 
+    func_type : procedure_type;
     func_name : codename;
     func_body : statement list;
     func_params : formal_param list;
@@ -48,7 +54,8 @@ type function_block = {
 }
 
 
-let make_function_block_with_spec fn fb fparams ctx spec = {
+let make_function_block_with_spec ft fn fb fparams ctx spec = {
+    func_type = ft;
     func_name = fn;
     func_body = fb;
     func_params = fparams;
@@ -56,7 +63,8 @@ let make_function_block_with_spec fn fb fparams ctx spec = {
     func_spec = spec
   }
   
-let make_function_block fn fb fparams ctx = {
+let make_function_block ft fn fb fparams ctx = {
+    func_type = ft;
     func_name = fn;
     func_body = fb;
     func_params = fparams;

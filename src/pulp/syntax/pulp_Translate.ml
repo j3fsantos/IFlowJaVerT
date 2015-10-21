@@ -1546,7 +1546,7 @@ let translate_function fb annots fid main args env named =
   
   let spec = Pulp_Formula_Parser_Utils.get_function_spec annots in
   
-  make_function_block_with_spec fid pulpe (rthis :: (rscope :: args)) ctx spec
+  make_function_block_with_spec Procedure_User fid pulpe (rthis :: (rscope :: args)) ctx spec
 
 let translate_function_syntax level id e named env main =
   let pulpe = 
