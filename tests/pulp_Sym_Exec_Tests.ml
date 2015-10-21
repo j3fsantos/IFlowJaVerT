@@ -62,7 +62,6 @@ let get_pexp js_program =
   let exp = Parser_main.exp_from_string js_program in
   let p_exp = exp_to_pulp_no_builtin IVL_goto_unfold_functions exp "main" [] in
   let p_exp = Simp_Main.simplify p_exp in
-  let _ = Spec_fun_specs.get_env_spec (AllFunctions.empty) in
   p_exp
 
 let test_program_template name f fs = 
