@@ -42,11 +42,30 @@ let get_value_spec param ctx =
       proto_heaplet_f lerror (Le_Literal (LLoc Lrep));
       class_heaplet_f lerror "Error"
     ]) in
+    
+   let pre_mref_empty = Star [
+    type_of_mref_f param; 
+    type_of_obj_f (Le_Base (Le_PVar param));
+    ProtoChain (Le_Base (Le_PVar param), ls, l); 
+    Pi (mk_pi_pred ls (Le_Base (Le_PVar param)) (Le_Field (Le_PVar param)) l v);
+   
+    Eq (v, Le_Literal Empty) 
+  ] in
+  
+  let pre_mref_not_empty = Star [
+    type_of_mref_f param; 
+    type_of_obj_f (Le_Base (Le_PVar param));
+    ProtoChain (Le_Base (Le_PVar param), ls, l); 
+    Pi (mk_pi_pred ls (Le_Base (Le_PVar param)) (Le_Field (Le_PVar param)) l v);  
+    NEq (v, Le_Literal Empty) 
+  ] in
   
   [(mk_spec_with_excep pre_not_a_ref [combine pre_not_a_ref (REq (Le_PVar param))] [false_f]);
    (mk_spec_with_excep pre_unresolvable_ref [false_f] [post_unresolvable_ref]);
    (mk_spec_with_excep pre_vref_obj [combine pre_vref_obj (REq v)] [false_f]);
-   (mk_spec_with_excep pre_vref_lg [combine pre_vref_lg (REq v)] [false_f])
+   (mk_spec_with_excep pre_vref_lg [combine pre_vref_lg (REq v)] [false_f]);
+   (mk_spec_with_excep pre_mref_empty [combine pre_mref_empty (REq (Le_Literal Undefined))] [false_f]);
+   (mk_spec_with_excep pre_mref_not_empty [combine pre_mref_not_empty (REq v)] [false_f])
   ] 
   
 let get_value_fb () =

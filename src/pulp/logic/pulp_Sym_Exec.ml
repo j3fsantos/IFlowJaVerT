@@ -81,8 +81,6 @@ let execute_call_stmt x fs c current : formula list * formula list =
     match posts with
       | [] -> [false_f]
       | posts -> posts in
-    
-
   
   let fid = CoreStar_Frontend_Pulp.get_function_id_from_expression current (expr_to_logical_expr c.call_name) in
   let fb = AllFunctions.find fid fs in

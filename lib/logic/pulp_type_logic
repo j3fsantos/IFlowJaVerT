@@ -122,3 +122,7 @@ if
 rule type_of_lg_not_string :
   | type_of(lg()) = StringType() |-
 if
+
+rule type_of_vref_mref_contr :
+  | type_of(?x)=VariableReferenceType() * type_of(?x)=MemberReferenceType() |- 
+if
