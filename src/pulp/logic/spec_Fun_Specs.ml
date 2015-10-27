@@ -15,7 +15,6 @@ let get_value_spec param ctx =
   let v = Le_Var (fresh_a()) in
   let pre_vref_obj = Star [
     type_of_vref_f param; 
-    type_of_obj_f (Le_Base (Le_PVar param));
     NEq (Le_Base (Le_PVar param), Le_Literal (LLoc Lg));
     Heaplet (Le_Base (Le_PVar param), Le_Field (Le_PVar param), v);
     NEq (v, Le_None) 
@@ -23,17 +22,21 @@ let get_value_spec param ctx =
   
  let ls = Le_Var (fresh_e()) in
  let l = Le_Var (fresh_e()) in 
- let pre_vref_lg_empty = Star [
+ let pre_vref_lg = Star [
     type_of_vref_f param; 
     Eq (Le_Base (Le_PVar param), Le_Literal (LLoc Lg));
     ProtoChain (Le_Literal (LLoc Lg), ls, l); 
     Pi (mk_pi_pred ls (Le_Literal (LLoc Lg)) (Le_Field (Le_PVar param)) l v);
-    Eq (v, Le_Literal Empty) 
+    NEq (v, Le_Literal Empty) 
   ] in
   
+  let pre_unresolvable_ref = Star [
+    type_of_ref_f (Le_PVar param); 
+    Eq (Le_Base (Le_PVar param), Le_Literal Undefined)
+  ] in
   
   let lerror = Le_Var (fresh_e()) in
-  let post_vref_lg_empty = combine pre_vref_lg_empty
+  let post_unresolvable_ref = combine pre_unresolvable_ref
     (Star [
       REq lerror;
       proto_heaplet_f lerror (Le_Literal (LLoc Lrep));
@@ -41,8 +44,9 @@ let get_value_spec param ctx =
     ]) in
   
   [(mk_spec_with_excep pre_not_a_ref [combine pre_not_a_ref (REq (Le_PVar param))] [false_f]);
+   (mk_spec_with_excep pre_unresolvable_ref [false_f] [post_unresolvable_ref]);
    (mk_spec_with_excep pre_vref_obj [combine pre_vref_obj (REq v)] [false_f]);
-   (mk_spec_with_excep pre_vref_lg_empty [false_f] [post_vref_lg_empty])
+   (mk_spec_with_excep pre_vref_lg [combine pre_vref_lg (REq v)] [false_f])
   ] 
   
 let get_value_fb () =

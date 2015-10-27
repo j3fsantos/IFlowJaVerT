@@ -339,21 +339,17 @@ let translate_to_object arg left throw_var label_throw =
       translate_to_object_prim arg left throw_var label_throw))
     ]))]
     
-let translate_gamma_variable_reference_object_lg base field left throw_var label_throw =
-  let assign_pi_1 = mk_assign_fresh (ProtoF (base, field)) in  
-  [ Basic (Assignment assign_pi_1);
-    Sugar (If (equal_empty_expr (Var assign_pi_1.assign_left),
-      translate_error_throw Lrep throw_var label_throw,
-      [Basic (Assignment (mk_assign left (Expression(Var assign_pi_1.assign_left))))]))
-  ]
+let translate_gamma_variable_reference_object_lg base field left =
+  let assign_pi_1 = mk_assign left (ProtoF (base, field)) in  
+  [ Basic (Assignment assign_pi_1) ]
   
 let translate_gamma_variable_reference_object_not_lg base field left =
   let assign_rv_lookup = mk_assign left (Lookup (base, field)) in   
   [Basic (Assignment assign_rv_lookup)]
   
-let translate_gamma_variable_reference_object base field left throw_var label_throw =
+let translate_gamma_variable_reference_object base field left =
   [ Sugar (If (equal_loc_expr base Lg,
-      translate_gamma_variable_reference_object_lg base field left throw_var label_throw,
+      translate_gamma_variable_reference_object_lg base field left,
       translate_gamma_variable_reference_object_not_lg base field left)) 
   ]
 
@@ -383,7 +379,7 @@ let translate_gamma_reference_base_field r base field left throw_var label_throw
             translate_gamma_reference_prim_base base field left throw_var label_throw,
             [             
               Sugar (If (type_of_vref r,
-                translate_gamma_variable_reference_object base field left throw_var label_throw,
+                translate_gamma_variable_reference_object base field left,
                 translate_gamma_member_reference_object base field left ))
             ]))
         ]))
@@ -493,26 +489,11 @@ let translate_strict_equality_comparison x y rv =
     translate_strict_equality_comparison_types_equal x y rv,
     [ assign_false rv ]))]
   
-let translate_put_value_member_variable_not_lg_reference_object base field value =
+let translate_put_value_reference_object_base_field base field value =
   [Basic (Mutation (mk_mutation base field value))]
   
-let translate_put_value_variable_reference_object_lg base field value throw_var throw_label =
-  let hasField = mk_assign_fresh (HasField (base, field)) in
-  [ Basic (Assignment (hasField));
-    Sugar (If (equal_bool_expr (Var hasField.assign_left) true,
-      translate_put_value_member_variable_not_lg_reference_object base field value,
-      translate_error_throw Lrep throw_var throw_label))
-  ]
-  
-let translate_put_value_reference_object_base_field ref base field value throw_var throw_label =
-  (* The following condition comes from the step 3 in PutValue. In our setting after closure conversion all undefined.[v]x are converted to lg *)
-  [ Sugar (If (and_expr (type_of_vref ref) (equal_loc_expr base Lg), 
-     translate_put_value_variable_reference_object_lg base field value throw_var throw_label,
-     translate_put_value_member_variable_not_lg_reference_object base field value))
-  ]
-  
-let translate_put_value_reference_object ref value throw_var throw_label =
-  translate_put_value_reference_object_base_field ref (Base ref) (Field ref) value throw_var throw_label
+let translate_put_value_reference_object ref value =
+  translate_put_value_reference_object_base_field (Base ref) (Field ref) value
   
 let translate_put_value_reference_base v1 base v2 throw_var throw_label =
   let gotothrow = translate_error_throw Lrep throw_var throw_label in
@@ -521,7 +502,7 @@ let translate_put_value_reference_base v1 base v2 throw_var throw_label =
       [
         Sugar (If (istypeof_prim_expr base, 
           gotothrow, 
-          translate_put_value_reference_object v1 v2 throw_var throw_label))
+          translate_put_value_reference_object v1 v2))
       ]))
     ]
     

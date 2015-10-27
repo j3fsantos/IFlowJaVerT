@@ -106,7 +106,8 @@ let type_of_vref_f x = type_of_f x (ReferenceType (Some VariableReference))
 let not_type_of_mref_f x = not_type_of_f x (ReferenceType (Some MemberReference))
 let not_type_of_vref_f x = not_type_of_f x (ReferenceType (Some VariableReference))
 
-let type_of_obj_f x = eq_true (Le_BinOp (x, Comparison LessThan, Le_Literal (Type (ObjectType None))))
+let type_of_obj_f x = eq_true (Le_BinOp (Le_TypeOf x, Comparison LessThan, Le_Literal (Type (ObjectType None))))
+let type_of_ref_f x = eq_true (Le_BinOp (Le_TypeOf x, Comparison LessThan, Le_Literal (Type (ReferenceType None))))
 let proto_heaplet_f le1 le2 = Heaplet (le1, Le_Literal (String (string_of_builtin_field FProto)), le2)
 let class_heaplet_f le1 le2 = Heaplet (le1, Le_Literal (String (string_of_builtin_field FClass)), (Le_Literal (String le2)))
 

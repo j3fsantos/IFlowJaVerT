@@ -261,9 +261,9 @@ let find_var_scope var env =
   let scope = List.find (fun scope ->
     List.exists (fun v -> v = var) scope.fun_bindings
     ) env in
-  Var (function_scope_name (scope.func_id))
+  Some (Var (function_scope_name (scope.func_id)))
   with
-    | Not_found -> Literal (LLoc Lg) 
+    | Not_found -> None
 
 
 let translate_literal exp : statement list * variable =
@@ -384,8 +384,17 @@ let rec translate_exp ctx exp : statement list * variable =
       | Parser_syntax.Var v -> 
         begin 
           let scope = find_var_scope v ctx.env_vars in
-          let ref_assign = mk_assign_fresh_e (Ref (scope, Literal (String v) , VariableReference)) in
-          [Basic (Assignment ref_assign)], ref_assign.assign_left         
+          let rv = fresh_r () in
+          match scope with
+            | Some scope -> 
+              [assign_expr rv (Ref (scope, Literal (String v) , VariableReference))], rv    
+            | None -> 
+              let r1 = mk_assign_fresh (ProtoF (Literal (LLoc Lg), Literal (String v))) in
+              [ Basic (Assignment r1);
+                Sugar (If (equal_empty_expr (Var r1.assign_left), 
+                  [ assign_expr rv (Ref (Literal Undefined, Literal (String v) , VariableReference)) ], 
+                  [ assign_expr rv (Ref (Literal (LLoc Lg), Literal (String v) , VariableReference)) ]));
+              ], rv     
         end
         
       | Parser_syntax.Obj xs ->
@@ -551,9 +560,6 @@ let rec translate_exp ctx exp : statement list * variable =
               let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
               let hasfield = mk_assign_fresh (HasField (Var value, literal_builtin_field FId)) in
               let exit_label = fresh_r () in
-              let proto = mk_assign_fresh (ProtoF (Var base.assign_left, Field (Var r1))) in
-              let if_lg_undefined = and_expr (equal_exprs (Var base.assign_left) (Literal (LLoc Lg)))
-                                             (equal_empty_expr (Var proto.assign_left)) in
               let assign_rv v = 
                 [Basic (Assignment (mk_assign rv (Expression (Literal (String v)))));
                  Goto exit_label] in
@@ -562,8 +568,7 @@ let rec translate_exp ctx exp : statement list * variable =
                 Sugar (If (type_of_ref (Var r1),
                 [
                   Basic (Assignment base);
-                  Basic (Assignment proto);
-                  Sugar (If (or_expr (equal_undef_expr (Var base.assign_left)) if_lg_undefined,
+                  Sugar (If (equal_undef_expr (Var base.assign_left),
                    assign_rv "undefined",
                    r2_stmts @
                    [ Basic (Assignment (mk_assign value (Expression (Var r2)))) ]))

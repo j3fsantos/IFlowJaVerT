@@ -21,18 +21,18 @@ let get_type_info annot var =
 let simplify_get_value e left annot throw_var label_throw =
   let simplify_not_a_ref = [Basic (Assignment (mk_assign left (Expression e)))] in
   
-  let simplify_ref_object e1 e1_ty e2 rt throw_var label_throw =
+  let simplify_ref_object e1 e1_ty e2 rt =
     match rt with
        | MemberReference ->  translate_gamma_member_reference_object e1 e2 left
        | VariableReference ->
         begin match e1 with
-           | Literal (LLoc Lg) -> translate_gamma_variable_reference_object_lg e1 e2 left throw_var label_throw
+           | Literal (LLoc Lg) -> translate_gamma_variable_reference_object_lg e1 e2 left
            | Literal (LLoc _) ->  translate_gamma_variable_reference_object_not_lg e1 e2 left
            | Literal _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ | Ref _ ->  raise (Invalid_argument "Cannot Happen in simplify_ref_object") 
            | Var v ->
             begin match e1_ty with
               | Some Normal -> (* Definetely not Lg *) translate_gamma_variable_reference_object_not_lg e1 e2 left
-              | Some Builtin -> translate_gamma_variable_reference_object e1 e2 left throw_var label_throw
+              | Some Builtin -> translate_gamma_variable_reference_object e1 e2 left
               | None -> raise (Invalid_argument "Cannot Happen in simplify_ref_object for object type in get value")
             end 
         end
@@ -48,12 +48,7 @@ let simplify_get_value e left annot throw_var label_throw =
             | TI_Type pt ->
               begin match pt with
                 | NullType | UndefinedType | BooleanType | StringType | NumberType | ObjectType _ -> simplify_not_a_ref
-                | ReferenceType rt -> 
-                  begin match rt with
-                    | Some MemberReference ->  translate_gamma_member_reference_object (Base e) (Field e) left
-                    | Some VariableReference -> translate_gamma_variable_reference_object (Base e) (Field e) left throw_var label_throw
-                    | None -> translate_gamma_reference e left throw_var label_throw
-                 end   
+                | ReferenceType _ -> translate_gamma_reference e left throw_var label_throw  
               end
             | TI_Value | TI_NotARef -> simplify_not_a_ref
             | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to get_value")
@@ -63,7 +58,7 @@ let simplify_get_value e left annot throw_var label_throw =
       begin match e1 with
         | Literal lit ->
           begin match lit with
-            | LLoc l -> simplify_ref_object e1 None e2 rt throw_var label_throw
+            | LLoc l -> simplify_ref_object e1 None e2 rt
             | Null ->  raise (Invalid_argument "Ref base cannot be null ")             
             | Bool _  | Num _  | String _ ->  translate_gamma_reference_prim_base e1 e2 left throw_var label_throw
             | Undefined -> translate_error_throw Lrep throw_var label_throw
@@ -85,7 +80,7 @@ let simplify_get_value e left annot throw_var label_throw =
 	                  | NullType -> raise (Invalid_argument "Ref base cannot be null ") 
 	                  | UndefinedType -> translate_error_throw Lrep throw_var label_throw
 	                  | BooleanType | StringType | NumberType -> translate_gamma_reference_prim_base e1 e2 left throw_var label_throw
-	                  | ObjectType ot -> simplify_ref_object e1 ot e2 rt throw_var label_throw
+	                  | ObjectType ot -> simplify_ref_object e1 ot e2 rt
 	                  | ReferenceType _ -> raise (Invalid_argument "Reference cannot be as an argument to Reference") 
 	                end
 	              | TI_Value | TI_NotARef -> translate_gamma_reference_base_field e e1 e2 left throw_var label_throw
@@ -98,23 +93,6 @@ let simplify_get_value e left annot throw_var label_throw =
 let simplify_put_value e1 e2 annot throw_var label_throw =
   let gotothrow = translate_error_throw Lrep throw_var label_throw in
     
-  let simplify_ref_object base e1_ty field rt throw_var label_throw =
-    match rt with
-       | MemberReference -> translate_put_value_member_variable_not_lg_reference_object base field e2
-       | VariableReference ->
-        begin match base with
-           | Literal (LLoc Lg) -> translate_put_value_variable_reference_object_lg base field e2 throw_var label_throw
-           | Literal (LLoc _) ->  translate_put_value_member_variable_not_lg_reference_object base field e2
-           | Literal _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ | Ref _ ->  raise (Invalid_argument "Cannot Happen in simplify_ref_object") 
-           | Var v ->
-            begin match e1_ty with
-              | Some Normal -> (* Definetely not Lg *) translate_put_value_member_variable_not_lg_reference_object base field e2
-              | Some Builtin -> translate_put_value_reference_object_base_field e1 base field e2 throw_var label_throw
-              | None -> raise (Invalid_argument "Cannot Happen in simplify_ref_object for object type in put_value")
-            end 
-        end
-    in
-    
   match e1 with
     | Literal _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ -> gotothrow
     | Var var -> 
@@ -125,12 +103,7 @@ let simplify_put_value e1 e2 annot throw_var label_throw =
             | TI_Type pt ->
               begin match pt with
                 | NullType | UndefinedType | BooleanType | StringType | NumberType | ObjectType _ -> gotothrow
-                | ReferenceType rt ->                   
-                  begin match rt with
-                    | Some MemberReference ->  translate_put_value_member_variable_not_lg_reference_object (Base e1) (Field e1) e2
-                    | Some VariableReference
-                    | None -> translate_put_value_reference_object e1 e2 throw_var label_throw
-                 end 
+                | ReferenceType _ ->  translate_put_value_reference e1 e2 throw_var label_throw
               end
             | TI_Value | TI_NotARef -> gotothrow
             | TI_Empty -> raise (Invalid_argument "Empty cannot be as an argument to get_value")
@@ -140,7 +113,7 @@ let simplify_put_value e1 e2 annot throw_var label_throw =
       begin match base with
         | Literal lit ->
           begin match lit with
-            | LLoc l -> simplify_ref_object base None field rt throw_var label_throw
+            | LLoc l -> translate_put_value_reference_object_base_field base field e2
             | Null ->  raise (Invalid_argument "Ref base cannot be null ")             
             | Bool _  | Num _  | String _ -> gotothrow
             | Undefined -> gotothrow
@@ -162,7 +135,7 @@ let simplify_put_value e1 e2 annot throw_var label_throw =
                       | NullType -> raise (Invalid_argument "Ref base cannot be null ") 
                       | UndefinedType -> gotothrow
                       | BooleanType | StringType | NumberType -> gotothrow
-                      | ObjectType ot -> simplify_ref_object base ot field rt throw_var label_throw
+                      | ObjectType ot -> translate_put_value_reference_object_base_field base field e2
                       | ReferenceType _ -> raise (Invalid_argument "Reference cannot be as an argument to Reference") 
                     end
                   | TI_Value | TI_NotARef -> translate_put_value_reference_base e1 base e2 throw_var label_throw
