@@ -7,6 +7,7 @@ open Interpreter_Print
 let file = ref ""
 let test_prelude = ref []
 let calculate_stats = ref false
+let simp = ref false
 
 (* Borrowed from run_js.ml *)
 let string_to_list str =
@@ -34,9 +35,21 @@ let arguments () =
       "-stats",
       Arg.Unit(fun () -> calculate_stats := true),
       "to calculate stats";
+      "-simp",
+      Arg.Unit(fun () -> simp := true),
+      "to simplify program";
     ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
+    
+(* boolean tag unfold says if the specification functions are being unfolded or not *)    
+let get_pulp_expression unfold exp =  
+    try 
+      let level = if unfold then IVL_goto_unfold_functions else IVL_goto in
+      exp_to_pulp level exp Pulp_Syntax_Utils.main_fun_id []
+    with
+      | PulpNotImplemented exp -> Printf.printf "\nTranslation of Javascript syntax does not support '%s' yet.\n" exp; exit 2
+      | Invalid_argument arg -> Printf.printf "\nSomething wrong with the translation '%s'.\n" arg; exit 1
 
 
 let pr_test h =
@@ -82,17 +95,14 @@ let run_program path =
         end
   in
     
-  let p_exp, env = 
-    try 
-      exp_to_pulp IVL_goto exp Pulp_Syntax_Utils.main_fun_id []
-    with
-      | PulpNotImplemented exp -> Printf.printf "\nTranslation of Javascript syntax does not support '%s' yet.\n" exp; exit 2
-      | Invalid_argument arg -> Printf.printf "\nSomething wrong with the translation '%s'.\n" arg; exit 1
-  in 
+
   
-  let p_exp_simpl = Simp_Main.simplify p_exp in (* TODO : Add an option for simplification or not *)
-  
-  if (!calculate_stats) then begin
+  if (!calculate_stats) then begin   
+    let p_exp, _ = get_pulp_expression true exp in
+    
+    let p_exp_pre_simp, _ = get_pulp_expression false exp in
+    let p_exp_simpl = Simp_Main.simplify p_exp_pre_simp in
+    
 	  let exp_string = Pretty_print.string_of_exp false exp in
 	  let exp_string_lines = List.length (Str.split (Str.regexp "\n") exp_string) in
 	  let p_exp_string = Pulp_Syntax_Print.string_of_all_functions p_exp in
@@ -106,13 +116,23 @@ let run_program path =
 	  Printf.printf "\nLine count: %s, %i, IVL\n" name p_exp_string_lines;
 	  Printf.printf "\nLine count: %s, %i, IVL_SIMP\n" name p_exp_simpl_string_lines; exit 1;
   end;
- 
+  
+  (* To run the code *)
+  let expr_to_run, env = 
+    if (!simp) then begin
+      let p_exp_pre_simp, env = get_pulp_expression false exp in
+      let p_exp_simpl = Simp_Main.simplify p_exp_pre_simp in
+      p_exp_simpl, env
+    end
+    else get_pulp_expression true exp
+  in
+    
   let h = initial_heap () in
   let lg = Heap.find (BLoc Lg) h in
   let lg = Object.add ("__$ERROR__") (HVLiteral (String "")) lg in
   let h = Heap.add (BLoc Lg) lg h in
   
-  let result = run_with_heap h p_exp_simpl env in
+  let result = run_with_heap h expr_to_run env in
   match result.fs_return_type with
     | FTReturn -> pr_test result.fs_heap
     | FTException -> pr_test result.fs_heap; Printf.printf "\nException was thrown.\n";
