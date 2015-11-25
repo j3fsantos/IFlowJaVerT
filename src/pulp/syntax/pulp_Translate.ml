@@ -13,6 +13,7 @@ type translation_level =
   | IVL_conditionals
   | IVL_goto_unfold_functions
   | IVL_goto
+  | IVL_goto_with_get_value
 
 type switch_record = { (* Special constants for throws and returns *)
     a_cases : (Parser_syntax.exp * Parser_syntax.exp) list; 
@@ -1562,8 +1563,9 @@ let translate_function_syntax level id e named env main =
       | _ -> raise (Invalid_argument "Should be a function definition here") in
   match level with
     | IVL_buitin_functions -> pulpe
-    | IVL_conditionals -> {pulpe with func_body = unfold_spec_functions pulpe.func_body}
+    | IVL_conditionals -> {pulpe with func_body = unfold_spec_functions unfold_spec_function pulpe.func_body}
     | IVL_goto_unfold_functions -> {pulpe with func_body = to_ivl_goto_unfold pulpe.func_body}
+    | IVL_goto_with_get_value -> {pulpe with func_body = to_ivl_goto_unfold_leave_gamma pulpe.func_body}
     | IVL_goto -> {pulpe with func_body = to_ivl_goto pulpe.func_body}
 
 let exp_to_pulp_no_builtin level e main ctx_vars = 

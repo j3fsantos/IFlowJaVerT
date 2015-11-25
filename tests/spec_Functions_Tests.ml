@@ -8,7 +8,7 @@ let test_program_template name f fs =
   List.iteri (fun i s -> check_single_spec name f fs s i) f.func_spec
   
 let test_get_value () =
-  let env = get_env_spec (AllFunctions.empty) in
+  let env = get_env_spec () in
   let get_value_fb = AllFunctions.find (get_value_fn ()) env in
   test_program_template "test_get_value" get_value_fb env
 

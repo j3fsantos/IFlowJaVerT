@@ -60,9 +60,9 @@ let test_apply_spec1 () =
 let get_pexp js_program =
   apply_config ();
   let exp = Parser_main.exp_from_string js_program in
-  let p_exp = exp_to_pulp_no_builtin IVL_goto_unfold_functions exp "main" [] in
+  let p_exp, p_env = exp_to_pulp IVL_goto_unfold_functions exp "main" [] in
   let p_exp = Simp_Main.simplify p_exp in
-  p_exp
+  p_exp, p_env
 
 let test_program_template name f fs = 
   apply_config ();
@@ -322,6 +322,26 @@ let test_proto_field_with_two_proto_in_spec () =
   let f = make_function_block_with_spec Procedure_User "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
   
   test_program_template "test_two_proto_field_in_spec" f (AllFunctions.add f.func_name f AllFunctions.empty)
+  
+(* TODO work in progress *)  
+let test_get_value_se_1 () =
+  let ctx = create_ctx [] in
+  let getBValueStmts, y = spec_func_call (GetValue (Var "x")) ctx in 
+  let v = Le_Var (fresh_a()) in
+  let pre = Heaplet (Le_PVar "x", Le_Literal (String "f"), v) in
+  let post = combine pre (REq (Le_PVar "x")) in
+  let p = 
+    getBValueStmts @
+  [   
+      Basic (Assignment (mk_assign ctx.return_var (Expression (Var y))));    
+      Goto ctx.label_return;
+      Label ctx.label_throw;
+      Label ctx.label_return
+  ] in
+  let spec = mk_spec pre [post] in
+  let f = make_function_block_with_spec Procedure_User "test" p ["rthis"; "rscope"] ctx [spec] in
+  
+  test_program_template "test_get_value_se_1" f (AllFunctions.add f.func_name f AllFunctions.empty)
 
 let test_js_program_cav_example () =
   let js_program = "
@@ -336,7 +356,7 @@ let test_js_program_cav_example () =
     var alice = new Person ('Alice');
     alice.sayHi()" in
     
-  let p_exp = get_pexp js_program in
+  let p_exp, p_env = get_pexp js_program in
   
   (* TODO spec parsing *)
 
@@ -376,6 +396,8 @@ let test_js_program_cav_example () =
       | _ -> fb
   ) p_exp in
   
+  
+  
   Printf.printf "Specs %s" (String.concat "\n" (List.map (fun (id, fb) -> Printf.sprintf "%s : %s" id (Pulp_Logic_Print.string_of_spec_pre_post_list fb.func_spec "\n")) (AllFunctions.bindings p_exp)));
   
   AllFunctions.iter (fun id f -> test_js_program_template "test_js_program_cav_example" f p_exp) p_exp
@@ -396,5 +418,6 @@ let suite = "Testing_Sym_Exec" >:::
     "test_proto_field_last" >:: test_proto_field_last;
     "test_proto_field_with_proto_in_spec" >:: test_proto_field_with_proto_in_spec;
     "test_proto_field_with_two_proto_in_spec" >:: test_proto_field_with_two_proto_in_spec;
+    "test_get_value_se_1" >:: test_get_value_se_1;
     "test_js_program_cav_example" >:: test_js_program_cav_example
     ]

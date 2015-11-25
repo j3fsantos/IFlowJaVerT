@@ -456,7 +456,7 @@ let unfold_spec_func left sf annot =
   let label_throw = ctx.label_throw in
   let stmts = to_ivl_goto (simplify_spec_func sf left annot throw_var label_throw) in
   let stmts = stmts @ [Goto ctx.label_return; Label ctx.label_return; Label ctx.label_throw] in
-  Printf.printf "Simplified spec function %s : %s" (Pulp_Syntax_Print.string_of_spec_function sf) (Pulp_Syntax_Print.string_of_statement_list stmts);
+  (*Printf.printf "Simplified spec function %s : %s" (Pulp_Syntax_Print.string_of_spec_function sf) (Pulp_Syntax_Print.string_of_statement_list stmts);*)
   make_function_block Procedure_Spec "" stmts [] ctx
   
 

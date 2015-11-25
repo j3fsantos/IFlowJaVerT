@@ -78,8 +78,8 @@ let get_value_fb () =
   let bd = to_ivl_goto bd in
   make_function_block_with_spec Procedure_Spec (get_value_fn()) bd [param] ctx (get_value_spec param ctx)
 
-let get_env_spec env = 
-  let env = AllFunctions.add (get_value_fn()) (get_value_fb ()) env in
+let get_env_spec () = 
+  let env = AllFunctions.add (get_value_fn()) (get_value_fb ()) (AllFunctions.empty) in
   let env = Simp_Main.simplify env in
   env
 

@@ -719,17 +719,23 @@ let unfold_spec_function sf left throw_var label_throw =
     | StrictEquality (e1, e2) -> translate_strict_equality_comparison e1 e2 left
     | StrictEqualitySameType (e1, e2) -> translate_strict_equality_comparison_types_equal e1 e2 left
 
-let rec unfold_spec_functions stmts = 
-  let f = unfold_spec_functions in
+let unfold_spec_function_leave_gamma sf left throw_var label_throw =
+  match sf with
+    | GetValue e -> [Sugar (SpecFunction (left, sf, label_throw))]
+    | _ -> unfold_spec_function sf left throw_var label_throw
+
+let rec unfold_spec_functions unfold_f stmts = 
+  let f = unfold_spec_functions unfold_f in
     List.flatten (List.map (fun stmt ->
       match stmt with
           | Sugar st -> 
             begin match st with
               | If (c, t1, t2) -> [Sugar (If (c, f t1, f t2))]
               | SpecFunction (left, sf, excep_label) -> 
-                unfold_spec_function sf left left excep_label
+                unfold_f sf left left excep_label
             end
           | stmt -> [stmt]
   ) stmts)
   
-let to_ivl_goto_unfold stmts = to_ivl_goto (unfold_spec_functions stmts)
+let to_ivl_goto_unfold stmts = to_ivl_goto (unfold_spec_functions unfold_spec_function stmts)
+let to_ivl_goto_unfold_leave_gamma stmts = to_ivl_goto (unfold_spec_functions unfold_spec_function_leave_gamma stmts)

@@ -828,8 +828,9 @@ let test_try_catch_completion_1 () =
 
 let test_try_catch_completion_2 () =
   test_template_normal ("try { throw 3} catch (e) { e } ")  (VHValue (HVLiteral (Num 3.0)))
-
-
+  
+let test_11_2_1_A1_2 () =
+  test_template_exception "var object; object[1];" Ltep
 
 let suite = "Testing_Interpreter" >:::
   [
@@ -966,5 +967,6 @@ let suite = "Testing_Interpreter" >:::
     "test_is_finite_false" >:: test_is_finite_false;
     "test_is_finite_true" >:: test_is_finite_true;
     "test_negative_nan" >:: test_negative_nan;
+    "test_11_2_1_A1_2" >:: test_11_2_1_A1_2;
     (*"test_" >:: test_*) 
     ] 

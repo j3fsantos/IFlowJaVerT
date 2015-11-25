@@ -77,3 +77,39 @@ rewrite not_string_none :
 rule lg_not_undefined :
   | lg() = undefined() |-
 if
+
+
+rule field_not_a_vref :
+   | field(?x,?f,?y) |- type_of(?x) != VariableReferenceType()
+if
+   | field(?x,?f,?y) |-
+   
+
+rule field_not_a_mref :
+   | field(?x,?f,?y) |- type_of(?x) != MemberReferenceType()
+if
+   | field(?x,?f,?y) |-
+   
+rewrite base_ref:
+  ref_base(ref(?x,string_const(?f),?t)) = ?x
+  
+rewrite field_base:
+  ref_field(ref(?x,string_const(?f),?t)) = string_const(?f)
+  
+rewrite lt_type_of_vref_ref :
+  builtin_lt(type_of(ref(?x, string_const(?f), Variableref())), ReferenceType())=true()
+  
+rewrite lt_type_of_mref_ref :
+  builtin_lt(type_of(ref(?x, string_const(?f), Memberref())), ReferenceType())=true()
+  
+rule type_of_ref_vref :  
+  | |- type_of(ref(?x, string_const(?f), Variableref()))=VariableReferenceType()
+without type_of(ref(?x, string_const(?f), Variableref()))=VariableReferenceType()
+if
+  | |-
+
+/* TODO  Make more general */
+rule nobj_not_lg :
+  | type_of (?x) = NObjectType() |- ?x != lg()  
+without ?x != lg()
+if | |-

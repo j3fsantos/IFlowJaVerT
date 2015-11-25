@@ -35,10 +35,10 @@ let initialize () =
   Config.apply_config ();
   Corestar_frontend.initialize ()
   
-let analyse_function current_fun all_funcs =
+let analyse_function current_fun all_funcs env =
     match (!analysis_op) with
-      | SymbolicExec -> Pulp_Sym_Exec.execute_all current_fun all_funcs
-      | BiAbduct -> Pulp_Abduct.execute current_fun all_funcs
+      | SymbolicExec -> Pulp_Sym_Exec.execute_all current_fun all_funcs env
+      | BiAbduct -> Pulp_Abduct.execute current_fun all_funcs env
 
 let main () = 
    parse_flags ();   
@@ -47,6 +47,6 @@ let main () =
    let expression_map = Translate.translate_exp !file Pulp_Translate.IVL_goto in  
    let expression_map = Simp_Main.simplify expression_map in 
      
-   Pulp_Procedure.AllFunctions.iter (fun fid f -> ignore (analyse_function f expression_map)) expression_map
+   Pulp_Procedure.AllFunctions.iter (fun fid f -> ignore (analyse_function f expression_map (Spec_Fun_Specs.get_env_spec()))) expression_map
       
 let _ = main ()

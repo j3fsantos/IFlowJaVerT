@@ -15,7 +15,7 @@ let check_single_spec name f all_functions spec n =
   let cfg = fb_to_cfg f in
   let all_cfgs = AllFunctions.add f.func_name cfg AllFunctions.empty in
   print_cfg all_cfgs path;
-      let sg, cmd_st_tbl = execute f cfg all_functions spec in
+      let sg, cmd_st_tbl = execute f cfg all_functions (Spec_Fun_Specs.get_env_spec()) spec in
       let posts, throw_posts = get_posts f cfg sg cmd_st_tbl in
       
       Printf.printf "Printing state graph for %s" path; 

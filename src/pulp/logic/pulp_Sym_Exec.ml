@@ -42,23 +42,11 @@ let execute_basic_stmt bs pre : formula =
           raise (NotImplemented "Multiple frames")
       end
       
-let execute_call_stmt x fs c current : formula list * formula list =
+
+let execute_call_stmt varmap x fid fb fs current : formula list * formula list =
   let get_posts fb f_spec excep = 
     let posts = Utils.flat_map (fun spec -> 
     let spec_post = if excep then spec.spec_excep_post else spec.spec_post in
-    let call_args = [c.call_this; c.call_scope] @ c.call_args in
-
-    Printf.printf "Map2 lenght1 %d lenght2 %d \n" (List.length fb.func_params) (List.length call_args);
-    
-    let used_args = List.mapi (fun i p ->
-      if i < List.length call_args then expr_to_logical_expr (List.nth call_args i)
-      else Le_Literal Undefined
-      ) fb.func_params in
-    
-    (* Make a varmap formal_param -> argument *)
-    let varmap = List.fold_left2 (fun varmap param arg ->
-      ProgramVarMap.add param arg varmap
-    ) ProgramVarMap.empty fb.func_params used_args in
     
     let posts = List.map (fun post ->
       (* Substituting formal params in the spec *)
@@ -82,12 +70,45 @@ let execute_call_stmt x fs c current : formula list * formula list =
       | [] -> [false_f]
       | posts -> posts in
   
-  let fid = CoreStar_Frontend_Pulp.get_function_id_from_expression current (expr_to_logical_expr c.call_name) in
-  let fb = AllFunctions.find fid fs in
   let f_spec = fb.func_spec in
   let posts_normal = get_posts fb f_spec false in
   let posts_excep = get_posts fb f_spec true in
   posts_normal, posts_excep
+      
+let execute_normal_call_stmt c x fs current : formula list * formula list =
+   let fid = CoreStar_Frontend_Pulp.get_function_id_from_expression current (expr_to_logical_expr c.call_name) in
+   let fb = AllFunctions.find fid fs in
+   let call_args = [c.call_this; c.call_scope] @ c.call_args in
+
+    Printf.printf "Map2 lenght1 %d lenght2 %d \n" (List.length fb.func_params) (List.length call_args);
+    
+    let used_args = List.mapi (fun i p ->
+      if i < List.length call_args then expr_to_logical_expr (List.nth call_args i)
+      else Le_Literal Undefined
+      ) fb.func_params in
+    
+    (* Make a varmap formal_param -> argument *)
+    let varmap = List.fold_left2 (fun varmap param arg ->
+      ProgramVarMap.add param arg varmap
+    ) ProgramVarMap.empty fb.func_params used_args in
+    
+  execute_call_stmt varmap x fid fb fs current
+  
+let execute_spec_func_call_stmt sf x fs current : formula list * formula list =
+  let make_varmap fb sp =
+    match sp with
+      | GetValue e1 -> 
+        begin match fb.func_params with
+          | [param] -> ProgramVarMap.add param (expr_to_logical_expr e1) ProgramVarMap.empty
+          | _ -> raise Utils.CannotHappen 
+        end
+      | sp -> raise (NotImplemented (Pulp_Syntax_Print.string_of_spec_fun_id sp)) in
+
+  let fid = Pulp_Syntax_Print.string_of_spec_fun_id sf in
+  let fb = AllFunctions.find fid fs in
+  (* Make a varmap formal_param -> argument *)
+  let varmap = make_varmap fb sf in
+  execute_call_stmt varmap x fid fb fs current
   
 let execute_proto_field current e1 e2 =
   let ls = Le_Var (fresh_e ()) in
@@ -106,7 +127,7 @@ let execute_proto_field current e1 e2 =
     | [] -> raise (SymExecException "CouldNotApplySpec")
     | _ -> values
  
-let rec execute_stmt f sg cfg fs snode_id cmd_st_tbl = 
+let rec execute_stmt f sg cfg fs env snode_id cmd_st_tbl = 
   let contradiction id =
     let new_sn = StateG.mk_node sg (mk_sg_node id false_f) in
     Hashtbl.add cmd_st_tbl id new_sn;
@@ -118,7 +139,7 @@ let rec execute_stmt f sg cfg fs snode_id cmd_st_tbl =
     let new_sn = StateG.mk_node sg (mk_sg_node id state) in
     Hashtbl.add cmd_st_tbl id new_sn;
     StateG.mk_edge sg snode_id new_sn ();
-    execute_stmt f sg cfg fs new_sn cmd_st_tbl in
+    execute_stmt f sg cfg fs env new_sn cmd_st_tbl in
     
   let new_snode_cond id state edge e =
     
@@ -176,6 +197,15 @@ let rec execute_stmt f sg cfg fs snode_id cmd_st_tbl =
  
   let snode = StateG.get_node_data sg snode_id in
   let stmt = CFG.get_node_data cfg snode.sgn_id in
+        
+  let symbexec_call call_f funcs x =
+      let succ1, succ2 = get_two_succs snode.sgn_id in
+      let edge1 = CFG.get_edge_data cfg snode.sgn_id succ1 in
+      let edge2 = CFG.get_edge_data cfg snode.sgn_id succ2 in
+      
+      let post_normal, post_excep = call_f x funcs snode.sgn_state in
+      List.iter2 (new_snode_call succ1 edge1) post_normal post_excep;
+      List.iter2 (new_snode_call succ2 edge2) post_normal post_excep in
   
   Printf.printf "********Execute Stmt %s *********\n" (Pulp_Syntax_Print.string_of_statement stmt);
   
@@ -209,14 +239,7 @@ let rec execute_stmt f sg cfg fs snode_id cmd_st_tbl =
     | Basic (Assignment {assign_left = x; assign_right = (Call c)})      
     | Basic (Assignment {assign_left = x; assign_right = (Eval c)}) 
     | Basic (Assignment {assign_left = x; assign_right = (BuiltinCall c)}) -> 
-      
-      let succ1, succ2 = get_two_succs snode.sgn_id in
-      let edge1 = CFG.get_edge_data cfg snode.sgn_id succ1 in
-      let edge2 = CFG.get_edge_data cfg snode.sgn_id succ2 in
-      
-      let post_normal, post_excep = execute_call_stmt x fs c snode.sgn_state in
-      List.iter2 (new_snode_call succ1 edge1) post_normal post_excep;
-      List.iter2 (new_snode_call succ2 edge2) post_normal post_excep
+      symbexec_call (execute_normal_call_stmt c) fs x
       
     | Basic (Assignment {assign_left = x; assign_right = (ProtoF (e1, e2))}) -> 
       Printf.printf "Execute protoField \n";
@@ -239,7 +262,11 @@ let rec execute_stmt f sg cfg fs snode_id cmd_st_tbl =
           contradiction id
         end
         
-    | Sugar s -> raise (Invalid_argument "Symbolic execution does not work on syntactic sugar")
+    | Sugar s -> 
+      begin match s with
+        | SpecFunction (x, sf, l) -> symbexec_call (execute_spec_func_call_stmt sf) env x      
+        | If _ -> raise (Invalid_argument "Symbolic execution does not work on syntactic sugar")
+      end
 
 
 (* I have assumptions about return labels. Do I want to add "exit" labels to the cfg interface *)
@@ -258,7 +285,7 @@ let get_posts fb cfg sg cmd_st_tbl =
   
 (* returns a state graph *)
 (*         and a map cfg_node -> state_node list*)
-let execute f cfg fs spec =
+let execute f cfg fs env spec =
   let label_map = get_all_labels cfg in (* Something not right in the interface *)
   
   let start = Hashtbl.find label_map (f.func_ctx.label_entry) in
@@ -274,14 +301,14 @@ let execute f cfg fs spec =
   
   Hashtbl.add cmd_st_tbl start first;
   
-  execute_stmt f sg cfg fs first cmd_st_tbl; 
+  execute_stmt f sg cfg fs env first cmd_st_tbl; 
   sg, cmd_st_tbl
   
-let execute_check_post f cfg fs spec =
-  let sg, cmd_st_tbl = execute f cfg fs spec in
+let execute_check_post f cfg fs env spec =
+  let sg, cmd_st_tbl = execute f cfg fs env spec in
   let posts, throw_posts = get_posts f cfg sg cmd_st_tbl in
   List.for_all (fun post -> CoreStar_Frontend_Pulp.implies_or_list (simplify post) spec.spec_post) posts
   
-let execute_all (f : function_block) (fs : function_block AllFunctions.t) = 
+let execute_all (f : function_block) (fs : function_block AllFunctions.t) env = 
   let cfg = fb_to_cfg f in
-  List.iter (fun spec -> ignore (execute f cfg fs spec)) f.func_spec
+  List.iter (fun spec -> ignore (execute f cfg fs env spec)) f.func_spec
