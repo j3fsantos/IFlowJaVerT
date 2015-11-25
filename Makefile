@@ -1,3 +1,14 @@
+default:
+	ocamlbuild -verbose 1 -use-ocamlfind src/pulp/interpreter/interpreter_run.byte
+	ocamlbuild -verbose 1 -use-ocamlfind src/pulp/interpreter/interpreter_run.native
+
+init:
+	cp src/localconfig.default src/localconfig.ml
+	cp config/config.default config/config.xml
+
+
+# Old Makefile below
+
 INCLUDES = -I lib/corestar \
 	   -I src/strategies/ \
 	   -I src/ \
@@ -131,10 +142,6 @@ NATIVE_REMOVE = src/*.cmx \
 byte: tags parsing $(SOURCE1) $(SOURCE2_byte) $(SOURCE3)
 	ocamlfind ocamlc -g -package batteries,unix,xml-light,dynlink -linkpkg $(INCLUDES) $(SOURCE1) $(SOURCE2_byte) $(SOURCE3) -o translate.byte
 	rm $(REMOVE)
-init:
-	cp src/localconfig.default src/localconfig.ml
-	cp config/config.default config/config.xml
-
 clean:
 	rm $(REMOVE)
 
