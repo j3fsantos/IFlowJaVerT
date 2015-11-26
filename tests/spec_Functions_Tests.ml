@@ -5,7 +5,7 @@ open Spec_Fun_Specs
 
 let test_program_template name f fs = 
   apply_config ();
-  List.iteri (fun i s -> check_single_spec name f fs s i) f.func_spec
+  List.iteri (fun i s -> check_single_spec name f fs s i "tests/dot/spec/") f.func_spec
   
 let test_get_value () =
   let env = get_env_spec () in

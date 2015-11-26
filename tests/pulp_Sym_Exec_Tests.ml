@@ -57,19 +57,12 @@ let test_apply_spec1 () =
   ]] in
   test_apply_spec_template formula cmd_pre cmd_post expected_post
 
-let get_pexp js_program =
-  apply_config ();
-  let exp = Parser_main.exp_from_string js_program in
-  let p_exp, p_env = exp_to_pulp IVL_goto_unfold_functions exp "main" [] in
-  let p_exp = Simp_Main.simplify p_exp in
-  p_exp, p_env
-
 let test_program_template name f fs = 
   apply_config ();
-  List.iteri (fun i s -> check_single_spec name f fs s i) f.func_spec
+  List.iteri (fun i s -> check_single_spec name f fs s i "tests/dot/symexec/") f.func_spec
   
 let test_js_program_template name f fs =
-  List.iteri (fun i s -> check_single_spec name f fs s i) f.func_spec
+  List.iteri (fun i s -> check_single_spec name f fs s i "tests/dot/symexec/js/") f.func_spec
 
 let test_empty_program () =
   let ctx = create_ctx [] in

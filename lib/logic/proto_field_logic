@@ -10,14 +10,14 @@ if
 rule proto_field_proto_base_2 :
  | field(?o1,?f,?v1) |- proto_pred (?x,?o1,?f,?o3,?v2) * proto_chain_pred (?o1, ?x, ?o3) 
 without
-  ?o1!=?o3 * ?v1=none() * ?v1!=?v2
+  ?v1=none()
 if
  field(?o1,?f,?v1) | |- ?o3=?o1 * ?v1!=none() * ?x = cons (?o1,empty()) * ?v1=?v2
  
 rule proto_field_proto_base_2_1 :
  | field(?o1,?f,?v1) * ?o1 = ?o11 |- proto_pred (?x,?o11,?f,?o3,?v2) * proto_chain_pred (?o11, ?x, ?o3) 
 without
-  ?o1!=?o3 * ?v1=none() * ?v1!=?v2
+  ?v1=none()
 if
  field(?o1,?f,?v1) | |- ?o3=?o1 * ?v1!=none() * ?x = cons (?o11,empty()) * ?v1=?v2
 

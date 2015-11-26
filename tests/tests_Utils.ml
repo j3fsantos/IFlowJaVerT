@@ -5,13 +5,14 @@ open Pulp_Sym_Exec
 open Pulp_Logic
 open Pulp_Logic_Utils
 open Pulp_Logic_Print
+open Pulp_Translate
 
 let apply_config () =  
   Config.apply_config ();
   CoreStar_Frontend_Pulp.initialize ()
 
-let check_single_spec name f all_functions spec n =
-  let path = "tests/dot/spec/" ^ name ^ f.func_name ^ (string_of_int n); in (* Fix if tests/dot/spec doesn't exist *)
+let check_single_spec name f all_functions spec n path =
+  let path = path ^ name ^ f.func_name ^ (string_of_int n); in (* Fix if tests/dot/spec doesn't exist *)
   let cfg = fb_to_cfg f in
   let all_cfgs = AllFunctions.add f.func_name cfg AllFunctions.empty in
   print_cfg all_cfgs path;
@@ -30,3 +31,10 @@ let check_single_spec name f all_functions spec n =
        " Actual: " ^ (String.concat "\n" (List.map string_of_formula posts)) ^ "Excep" ^ (String.concat "\n Posts" (List.map string_of_formula throw_posts))) 
          ((List.for_all (fun post -> CoreStar_Frontend_Pulp.implies_or_list (simplify post) spec_post) posts)
          && (List.for_all (fun post -> CoreStar_Frontend_Pulp.implies_or_list (simplify post) spec_excep_post) throw_posts))
+        
+let get_pexp js_program =
+  apply_config ();
+  let exp = Parser_main.exp_from_string js_program in
+  let p_exp, p_env = exp_to_pulp IVL_goto_unfold_functions exp "main" [] in
+  let p_exp = Simp_Main.simplify p_exp in
+  p_exp, p_env

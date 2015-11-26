@@ -110,6 +110,7 @@ let type_of_obj_f x = eq_true (Le_BinOp (Le_TypeOf x, Comparison LessThan, Le_Li
 let type_of_ref_f x = eq_true (Le_BinOp (Le_TypeOf x, Comparison LessThan, Le_Literal (Type (ReferenceType None))))
 let proto_heaplet_f le1 le2 = Heaplet (le1, Le_Literal (String (string_of_builtin_field FProto)), le2)
 let class_heaplet_f le1 le2 = Heaplet (le1, Le_Literal (String (string_of_builtin_field FClass)), (Le_Literal (String le2)))
+let fid_heaplet_f le1 le2 = Heaplet (le1, Le_Literal (String (string_of_builtin_field FId)), le2)
 
 type annot_body = formula list
 

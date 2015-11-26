@@ -123,6 +123,26 @@ rule type_of_lg_not_string :
   | type_of(lg()) = StringType() |-
 if
 
+rule type_of_leval_not_boolean :
+  | type_of(leval()) = BooleanType() |-
+if
+
+rule type_of_leval_not_number :
+  | type_of(leval()) = NumberType() |-
+if
+
+rule type_of_leval_not_string :
+  | type_of(leval()) = StringType() |-
+if
+
+rule type_of_lt_leval_obj_contr :
+  | false()=builtin_lt(type_of(leval()), ObjectType()) |- 
+if
+
+rule type_of_leval_bobj_contr :
+  | type_of(leval()) != BObjectType() |- 
+if
+
 rule type_of_vref_mref_contr :
   | type_of(?x)=VariableReferenceType() * type_of(?x)=MemberReferenceType() |- 
 if

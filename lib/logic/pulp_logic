@@ -30,6 +30,12 @@ rule lg_not_none :
 without lg()!=none()
 if
   | |-
+  
+rule leval_not_none :
+   | |- leval() != none()
+without leval()!=none()
+if
+  | |-
  
 rule empty_not_none :
   | |- empty_value() !=none()
