@@ -112,6 +112,8 @@ let proto_heaplet_f le1 le2 = Heaplet (le1, Le_Literal (String (string_of_builti
 let class_heaplet_f le1 le2 = Heaplet (le1, Le_Literal (String (string_of_builtin_field FClass)), (Le_Literal (String le2)))
 let fid_heaplet_f le1 le2 = Heaplet (le1, Le_Literal (String (string_of_builtin_field FId)), le2)
 
+let proto_pred_f ls start field found value = Star [ProtoChain (start, ls, found); Pi (mk_pi_pred ls start field found value)]
+
 type annot_body = formula list
 
 type spec_pre_post =

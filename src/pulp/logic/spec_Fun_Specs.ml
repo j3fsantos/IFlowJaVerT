@@ -22,13 +22,13 @@ let get_value_spec param ctx =
   
  let ls = Le_Var (fresh_e()) in
  let l = Le_Var (fresh_e()) in 
- let pre_vref_lg = Star [
+ let pre_vref_lg = combine
+    (proto_pred_f ls (Le_Literal (LLoc Lg)) (Le_Field (Le_PVar param)) l v)
+    (Star [
     type_of_vref_f param; 
     Eq (Le_Base (Le_PVar param), Le_Literal (LLoc Lg));
-    ProtoChain (Le_Literal (LLoc Lg), ls, l); 
-    Pi (mk_pi_pred ls (Le_Literal (LLoc Lg)) (Le_Field (Le_PVar param)) l v);
     NEq (v, Le_Literal Empty) 
-  ] in
+  ]) in
   
   let pre_unresolvable_ref = Star [
     type_of_ref_f (Le_PVar param); 
@@ -43,22 +43,21 @@ let get_value_spec param ctx =
       class_heaplet_f lerror "Error"
     ]) in
     
-   let pre_mref_empty = Star [
-    type_of_mref_f param; 
-    type_of_obj_f (Le_Base (Le_PVar param));
-    ProtoChain (Le_Base (Le_PVar param), ls, l); 
-    Pi (mk_pi_pred ls (Le_Base (Le_PVar param)) (Le_Field (Le_PVar param)) l v);
-   
-    Eq (v, Le_Literal Empty) 
-  ] in
+   let pre_mref_empty = combine
+     (proto_pred_f ls (Le_Base (Le_PVar param)) (Le_Field (Le_PVar param)) l v)   
+     (Star [
+      type_of_mref_f param; 
+      type_of_obj_f (Le_Base (Le_PVar param));
+      Eq (v, Le_Literal Empty)])
+   in
   
-  let pre_mref_not_empty = Star [
+  let pre_mref_not_empty = combine 
+    (proto_pred_f ls (Le_Base (Le_PVar param)) (Le_Field (Le_PVar param)) l v)
+    (Star [
     type_of_mref_f param; 
     type_of_obj_f (Le_Base (Le_PVar param));
-    ProtoChain (Le_Base (Le_PVar param), ls, l); 
-    Pi (mk_pi_pred ls (Le_Base (Le_PVar param)) (Le_Field (Le_PVar param)) l v);  
     NEq (v, Le_Literal Empty) 
-  ] in
+  ]) in
   
   [(mk_spec_with_excep pre_not_a_ref [combine pre_not_a_ref (REq (Le_PVar param))] [false_f]);
    (mk_spec_with_excep pre_unresolvable_ref [false_f] [post_unresolvable_ref]);

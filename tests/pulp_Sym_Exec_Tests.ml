@@ -280,7 +280,7 @@ let test_proto_field_with_proto_in_spec () =
   let ctx = create_ctx [] in
   let ls = Le_Var (fresh_e()) in
   let l' = Le_Var (fresh_e()) in
-  let pi = Pi (mk_pi_pred ls (Le_PVar "x") (Le_Literal (String "a")) l' (Le_Literal (Num 3.0))) in
+  let pi = proto_pred_f ls (Le_PVar "x") (Le_Literal (String "a")) l' (Le_Literal (Num 3.0)) in
   let p = 
   [   
       Basic (Assignment (mk_assign ctx.return_var (ProtoF (Var "x", (Literal (String "a"))))));  
@@ -288,7 +288,7 @@ let test_proto_field_with_proto_in_spec () =
       Label ctx.label_throw;
       Label ctx.label_return
   ] in
-  let spec = mk_spec (Star [pi; ProtoChain (Le_PVar "x", ls, l')]) [REq (Le_Literal (Num 3.0))] in
+  let spec = mk_spec pi [REq (Le_Literal (Num 3.0))] in
   let f = make_function_block_with_spec Procedure_User "f_proto_field" p ["rthis"; "rscope"] ctx [spec] in
   
   test_program_template "test_proto_field_in_spec" f (AllFunctions.add f.func_name f AllFunctions.empty)

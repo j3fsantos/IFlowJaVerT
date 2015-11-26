@@ -16,6 +16,10 @@ let test_8_7_2_1_s () =
     
   let p_exp, p_env = get_pexp js_program in
   
+  let ls = Le_Var (fresh_e ()) in
+  let l = Le_Var (fresh_e ()) in
+  let pi = proto_pred_f ls (Le_Literal (LLoc Lg)) (Le_Literal (String "_8_7_2_1")) l (Le_Literal Empty) in
+  
   let lerror = Le_Var (fresh_e()) in
   let post_ref_exception = combine empty_f
     (Star [
@@ -23,19 +27,18 @@ let test_8_7_2_1_s () =
       proto_heaplet_f lerror (Le_Literal (LLoc Lrep));
       class_heaplet_f lerror "Error"
     ]) in
-  
 
   let p_exp = AllFunctions.mapi (fun id fb ->
     match id with
       | "main" -> 
         let undefined = Le_Var (fresh_e()) in
-        let pre = Star [
-          Pulp_Logic.proto_heaplet_f (Le_Literal (LLoc Lg)) (Le_Literal (LLoc Lop));
-          Pulp_Logic.proto_heaplet_f (Le_Literal (LLoc Lop)) (Le_Literal Null);
+        let proto = Le_Var (fresh_e()) in
+        let pre = Pulp_Logic_Utils.combine
+          pi 
+          (Star [
+          Pulp_Logic.proto_heaplet_f (Le_Literal (LLoc Lg)) proto;
           Heaplet (Le_Literal (LLoc Lg), Le_Literal (String "undefined"), undefined);
-          Heaplet (Le_Literal (LLoc Lg), Le_Literal (String "_8_7_2_1"), Le_None);
-          Heaplet (Le_Literal (LLoc Lop), Le_Literal (String "_8_7_2_1"), Le_None);
-        ] in
+        ]) in
         let spec_main = mk_spec_with_excep pre [false_f] [post_ref_exception] in
         {fb with func_spec = [spec_main]}
       | _ -> fb

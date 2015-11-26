@@ -114,7 +114,7 @@ let execute_proto_field current e1 e2 =
   let ls = Le_Var (fresh_e ()) in
   let l = Le_Var (fresh_e ()) in
   let v = Le_Var (fresh_e ()) in
-  let pi = Star [ProtoChain (e1, ls, l); Pi (mk_pi_pred ls e1 e2 l v)] in
+  let pi = proto_pred_f ls e1 e2 l v in
   let posts = CoreStar_Frontend_Pulp.apply_spec current pi (combine pi (REq v)) in
   let posts = match posts with
     | None -> raise (SymExecException "CouldNotApplySpec")
