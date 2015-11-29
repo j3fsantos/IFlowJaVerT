@@ -32,6 +32,9 @@
 %token OR
 %token OBJFOOTPRINT
 %token OBJECT
+%token PROTO_VALUE
+%token PROTO_CHAIN
+%token PROTO_PRED
 %token <float> NUM
 %token <string> STRING
 %token UNDEFINED
@@ -54,6 +57,7 @@
 %token LG
 %token LOP
 %token LFP
+%token LREP
 %token REF
 %token VREF
 %token OREF
@@ -70,7 +74,7 @@
 %type <Pulp_Logic.annot_body> main
 %%
 main:
-    disj_of_formulas EOF            { $1 }
+    formula EOF            { $1 }
 ;
 
 disj_of_formulas:
@@ -87,6 +91,12 @@ formula:
   | OBJFOOTPRINT LBRACKET logical_exp RBRACKET LPAREN logical_exp_list RPAREN { ObjFootprint ($3, $6) }
   | OBJECT LBRACKET logical_exp RBRACKET LPAREN logical_exp_list VBAR logical_exp_value_list RPAREN 
     { make_heaplets $3 $6 $8  }
+  | PROTO_VALUE LPAREN logical_exp COMMA logical_exp COMMA logical_exp COMMA logical_exp COMMA logical_exp RPAREN 
+    { Pi (mk_pi_pred $3 $5 $7 $9 $11) }
+  | PROTO_CHAIN LPAREN logical_exp COMMA logical_exp COMMA logical_exp RPAREN 
+    { ProtoChain ($3, $5, $7) }
+  | PROTO_PRED LPAREN logical_exp COMMA logical_exp COMMA logical_exp COMMA logical_exp COMMA logical_exp RPAREN 
+    { proto_pred_f $3 $5 $7 $9 $11 } 
 ;
 
 /* TODO */
@@ -94,6 +104,7 @@ location:
     LG       { Lg }
   | LOP      { Lop }
   | LFP      { Lfp }
+  | LREP     { Lrep }
 ;
 
 logical_bin_op:

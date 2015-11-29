@@ -2,7 +2,7 @@
   open Batteries
   open Pulp_Formula_Parser  
   
-  exception Lexing_failed of char      
+  exception Lexing_failed of string      
 }
 
 let digit = ['0'-'9']
@@ -46,8 +46,12 @@ rule token = parse
   | "#GlobalObject"     { LG }
   | "#ObjectPrototype"  { LOP }
   | "#FunctionPrototype"{ LFP }
+  | "#ReferenceErrorPrototype"{ LREP }
   | "#footprint"        { OBJFOOTPRINT }
   | "#obj"              { OBJECT }
+  | "#protoValue"       { PROTO_VALUE }
+  | "#protoChain"       { PROTO_CHAIN }
+  | "#protoPred"        { PROTO_PRED }
   | "#undefined"        { UNDEFINED }
   | "#empty"            { EMPTY }
   | "#ref"              { REF }
@@ -70,13 +74,15 @@ rule token = parse
   | "null"              { NULL }
   | "true"              { TRUE }
   | "false"             { FALSE }
-  | "#proto"            { ID "#proto" }
-  | "#fid"              { ID "#fid" }
-  | "#scope"            { ID "#scope" }
+  | "#proto"            { STRING "#proto" }
+  | "#fid"              { STRING "#fid" }
+  | "#scope"            { STRING "#scope" }
+  | "#class"            { STRING "#class" }
   | '?' id as n         { LE_VAR (Pulp_Logic.AVar (String.tail n 1)) }
   | '_' id as n         { LE_VAR (Pulp_Logic.EVar (String.tail n 1)) }
   | id as s             { ID s }
   | '"' ((string_char|('\\' _))* as s) '"'       { STRING s }
   | ''' ((string_char_quote|('\\' _))* as s) ''' { STRING s }
-  | _ as c              { raise (Lexing_failed c) } (* Return position *) (* TODO : return a proper error message *)
+  | "#" id as s              { raise (Lexing_failed ("Unknown Keyword : " ^ s)) }
+  | _ as c              { raise (Lexing_failed ("Unknown Character : " ^ (Char.escaped c))) } 
   | eof                 { EOF }

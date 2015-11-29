@@ -28,22 +28,54 @@ let get_inv_from_code annots =
     | [] -> raise No_Invariant_In_Code
     | _ -> res
 
- (* TODO Exceptional specification *)
 let get_function_spec annots = 
-  let pres  = get_annots_from_code annots Requires in
-  let posts = get_annots_from_code annots Ensures  in
-  try
-    List.map2
-      (fun pre post ->
-        match pre with
-          | [formula] ->  mk_spec formula post
-          | _ ->  raise (Failure "Found a disjunctive precondition when non-disjunctive formula expected")
-      )
-      pres posts
-  with
-     | Invalid_argument "map2: Different_list_size" -> 
-         raise (Failure "Number of preconditions differs from number of postconditions")
+  
+  let rec get_fspec_inner annots current_spec =
+    match annots with
+      | annot1 :: rest ->
+        begin match annot1.annot_type with
+          | Requires
+          | TopRequires -> 
+            begin match current_spec with
+              | [] -> get_fspec_inner rest [annot1]
+              | _ -> current_spec :: (get_fspec_inner rest [annot1])
+            end
+          | Ensures
+          | EnsuresErr
+          | TopEnsures
+          | TopEnsuresErr -> get_fspec_inner rest (annot1 :: current_spec)
+          | t -> raise (Invalid_argument (Pretty_print.string_of_annot_type t))
+        end
+      | [] -> [current_spec] in
 
+  let annots = List.filter (fun annot -> 
+    annot.annot_type = Requires || 
+    annot.annot_type = Ensures || 
+    annot.annot_type = EnsuresErr || 
+    annot.annot_type = TopRequires || 
+    annot.annot_type = TopEnsures ||
+    annot.annot_type = TopEnsuresErr
+  ) annots in
+  
+  let specs = get_fspec_inner annots [] in
+
+  let rec make_spec spec annots =
+    match annots with
+      | annot :: rest ->
+        begin 
+          let spec = match annot.annot_type with
+          | Requires
+          | TopRequires ->  { spec with spec_pre = parse_formulas annot.annot_formula }
+          | Ensures
+          | TopEnsures -> { spec with spec_post = (parse_formulas annot.annot_formula) :: spec.spec_post }
+          | EnsuresErr
+          | TopEnsuresErr -> { spec with spec_excep_post = (parse_formulas annot.annot_formula) :: spec.spec_excep_post }
+          | t -> raise (Invalid_argument (Pretty_print.string_of_annot_type t)) in
+          make_spec spec rest
+        end
+      | [] -> spec in
+  
+  List.map (make_spec (mk_spec empty_f [])) specs
 
 let get_codename annots =
   let codenames = filter (fun annot -> annot.annot_type = Codename) annots in
