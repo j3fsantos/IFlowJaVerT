@@ -34,6 +34,10 @@ rule string_const_empty_contr :
   | ?x=string_const(?y) * ?x=empty_value() |-
 if
 
+rule numeric_const_empty_contr :
+  | ?x=numeric_const(?y) * ?x=empty_value() |-
+if
+
 rule concat_string_const_empty_contr :
   | ?x=concat(?y, ?z) * ?x=empty_value() |-
 if
