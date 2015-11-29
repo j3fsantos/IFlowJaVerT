@@ -9,6 +9,7 @@ open Pulp_Logic_Utils
 exception NotImplemented of string
 
 exception SymExecException of string
+exception SymExecExcepWithGraph of string * StateG.graph
 
 let execute_basic_stmt bs pre : formula =
   Printf.printf "Execute Basic Stmt \n" ;
@@ -301,8 +302,12 @@ let execute f cfg fs env spec =
   
   Hashtbl.add cmd_st_tbl start first;
   
-  execute_stmt f sg cfg fs env first cmd_st_tbl; 
-  sg, cmd_st_tbl
+  try 
+    execute_stmt f sg cfg fs env first cmd_st_tbl;
+    sg, cmd_st_tbl 
+  with SymExecException msg -> 
+    raise (SymExecExcepWithGraph (msg, sg))
+  
   
 let execute_check_post f cfg fs env spec =
   let sg, cmd_st_tbl = execute f cfg fs env spec in
