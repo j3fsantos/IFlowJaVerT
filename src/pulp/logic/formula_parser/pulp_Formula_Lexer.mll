@@ -23,6 +23,7 @@ rule token = parse
   | [' ' '\t' '\n']     { token lexbuf }
   | float as lxm        { NUM (float_of_string lxm) }
   | '+'                 { PLUS }
+  | '^'                 { CONCAT }
   | '-'                 { MINUS }
   | '*'                 { STAR }
   | '('                 { LPAREN }

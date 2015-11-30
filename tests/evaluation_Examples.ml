@@ -283,6 +283,40 @@ let test_paper_example_2 () =
     f(1);" in
   test_template js_program "test_example_2"
   
+  let test_cav_example_exception () =
+    let js_program = "
+    
+    /** @toprequires #obj[#GlobalObject](|'Person':_P, 'alice': _A, 'f' : _F, #proto:_P,'undefined':#undefined) 
+        @topensureserr #r = _E * #obj[_E](|#proto:#TypeErrorPrototype, #class:'Error') */
+        
+    var alice, f;    
+    
+    /** @requires #obj[rscope](|'main':#GlobalObject) * (rthis,'name') |-> _V 
+        @ensures (rthis,'name') |-> name * #r = #undefined
+        
+        @requires #obj[rscope](|'main':#GlobalObject) * rthis = #undefined
+        @ensureserr #r = _E * #obj[_E](|#proto:#TypeErrorPrototype, #class:'Error') */
+    function Person (name) {
+       this.name = name;
+    }
+
+    Person.prototype.sayHi = 
+       /** @requires #obj[rscope](|'main':#GlobalObject) * (rthis,'name') |-> ?V * #typeof(?V) = #String 
+           @ensures  #obj[rscope](|'main':#GlobalObject) * (rthis,'name') |-> ?V * #typeof(?V) = #String * #r = ('Hi ' ^ ?V)
+          
+           @requires #obj[rscope](|'main':#GlobalObject) * rthis = #undefined 
+           @ensureserr #r = _E * #obj[_E](|#proto:#TypeErrorPrototype, #class:'Error') */
+      function () {
+        return 'Hi ' + this.name
+      }
+
+    alice = new Person ('Alice');
+    f = alice.sayHi;
+    f();
+    " in
+ 
+   test_template js_program "test_cav_example_exception"
+  
  let suite = "Testing_Evaluation_Examples" >:::
   [ "test_8_7_2_1_s" >:: test_8_7_2_1_s;
     "test_S11_1_2_A1_T2" >:: test_S11_1_2_A1_T2;
@@ -298,4 +332,5 @@ let test_paper_example_2 () =
     "test_S11_2_2_A3_T1_part2" >:: test_S11_2_2_A3_T1_part2;
     "test_S11_2_2_A3_T1_part3" >:: test_S11_2_2_A3_T1_part3;
     "test_paper_example_1" >:: test_paper_example_1;
+    "test_cav_example_exception" >:: test_cav_example_exception;
     (*"test_paper_example_2" >:: test_paper_example_2*) ]

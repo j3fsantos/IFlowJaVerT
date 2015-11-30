@@ -66,7 +66,7 @@
 %token FIELD
 %token TYPEOF
 %token NOT
-%token PLUS MINUS 
+%token PLUS MINUS CONCAT 
 %token <Pulp_Logic.logical_var> LE_VAR
 %token RETURN
 %left STAR PLUS MINUS       
@@ -110,7 +110,8 @@ location:
 ;
 
 logical_bin_op:
-  PLUS { Arith Plus } 
+    PLUS { Arith Plus }
+  | CONCAT { Concat } 
   
 logical_unary_op:
   NOT { Not }
