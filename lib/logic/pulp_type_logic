@@ -26,6 +26,14 @@ rule field_number_contr :
   | field(?x,?f,?y) * type_of(?x)=NumberType() |- 
 if
 
+rule undefined_empty_contr :
+  | ?x=undefined() * ?x=empty_value() |-
+if
+
+rule undefined_empty_contr :
+  | ?x=undefined() * ?x=null() |-
+if
+
 rule string_empty_contr :
   | type_of(?x)=StringType() * ?x=empty_value() |-
 if
@@ -98,6 +106,15 @@ rule type_of_lt_obj_empty_contr :
   | true()=builtin_lt(type_of(?x), ObjectType()) * ?x=empty_value() |- 
 if
 
+rule type_of_lt_obj_true_contr :
+  | true()=builtin_lt(type_of(?x), ObjectType()) * ?x=true() |- 
+if
+
+rule type_of_lt_obj_false_contr :
+  | true()=builtin_lt(type_of(?x), ObjectType()) * ?x=false() |- 
+if
+
+
 rule type_of_obj_nobj_contr :
   | type_of(?x)=ObjectType() * type_of(?x)=NObjectType() |- 
 if
@@ -150,3 +167,9 @@ if
 rule type_of_vref_mref_contr :
   | type_of(?x)=VariableReferenceType() * type_of(?x)=MemberReferenceType() |- 
 if
+
+rule type_of_numeric_const :
+   | |- type_of(numeric_const(?x)) = NumberType()
+without type_of(numeric_const(?x)) = NumberType()
+if
+  | |-

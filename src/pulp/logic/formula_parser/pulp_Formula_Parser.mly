@@ -58,6 +58,7 @@
 %token LOP
 %token LFP
 %token LREP
+%token LTEP
 %token REF
 %token VREF
 %token OREF
@@ -105,6 +106,7 @@ location:
   | LOP      { Lop }
   | LFP      { Lfp }
   | LREP     { Lrep }
+  | LTEP     { Ltep }
 ;
 
 logical_bin_op:
@@ -150,8 +152,8 @@ logical_exp :
   | LPAREN logical_exp logical_bin_op logical_exp RPAREN            { Le_BinOp ($2, $3, $4) }
   | REF LPAREN logical_exp COMMA logical_exp COMMA reference_type   { Le_Ref ($3, $5, $7) }
   | BASE LPAREN logical_exp RPAREN                                  { Le_Base ($3) }
-  | FIELD LPAREN logical_exp RPAREN                                 { Le_Base ($3) }
-  | TYPEOF LPAREN logical_exp RPAREN                                { Le_Base ($3) }
+  | FIELD LPAREN logical_exp RPAREN                                 { Le_Field ($3) }
+  | TYPEOF LPAREN logical_exp RPAREN                                { Le_TypeOf ($3) }
 
 logical_exp_list:
     logical_exp COMMA logical_exp_list     { $1 :: $3 }

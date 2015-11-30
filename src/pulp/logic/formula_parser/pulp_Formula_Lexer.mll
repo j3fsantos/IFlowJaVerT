@@ -47,6 +47,7 @@ rule token = parse
   | "#ObjectPrototype"  { LOP }
   | "#FunctionPrototype"{ LFP }
   | "#ReferenceErrorPrototype"{ LREP }
+  | "#TypeErrorPrototype"{ LTEP }
   | "#footprint"        { OBJFOOTPRINT }
   | "#obj"              { OBJECT }
   | "#protoValue"       { PROTO_VALUE }
@@ -59,7 +60,7 @@ rule token = parse
   | "#o"                { OREF }
   | "#base"             { BASE }
   | "#field"            { FIELD }
-  | "#typeOf"           { TYPEOF }
+  | "#typeof"           { TYPEOF }
   | "#Null"             { NULLTYPE }
   | "#Undefined"        { UNDEFINEDTYPE }
   | "#Boolean"          { BOOLEANTYPE }

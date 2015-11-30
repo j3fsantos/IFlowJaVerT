@@ -72,6 +72,18 @@ rule numeric_const_not_none :
 without numeric_const(?x) !=none()
 if
  | |-
+ 
+rule true_not_none :
+  | |- true() !=none()
+without true() !=none()
+if
+ | |-
+ 
+rule false_not_none :
+  | |- false() !=none()
+without false() !=none()
+if
+ | |-
 
  /* TODO: Implement negation properly */
 rewrite not_undefined_none : 
