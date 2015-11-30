@@ -43,6 +43,78 @@ let test_S11_1_2_A1_T2 () =
     
   test_template js_program "test_S11_1_2_A1_T2"
   
+(* ch11/11.10/11.10.1/S11.10.1_A2.1_T2.js *)
+let test_S11_10_1_A2_1_T2 () =
+  let js_program = "/**
+    @toprequires #protoPred(_LS, #ObjectPrototype,'x', _L, #empty) *
+                 #obj[#GlobalObject]('x'|#proto:_P,'undefined':#undefined)
+    
+    @topensureserr #r = _E * #obj[_E](|#proto:#ReferenceErrorPrototype, #class:'Error')             
+    */
+    x & 1;" in
+    
+  test_template js_program "test_S11_10_1_A2_1_T2"
+  
+(* ch11/11.10/11.10.1/S11.10.1_A2.1_T3.js *)
+let test_S11_10_1_A2_1_T3 () =
+  let js_program = "/**
+    @toprequires #protoPred(_LS, #ObjectPrototype,'y', _L, #empty) *
+                 #obj[#GlobalObject]('y'|#proto:_P,'undefined':#undefined)
+    
+    @topensureserr #r = _E * #obj[_E](|#proto:#ReferenceErrorPrototype, #class:'Error')             
+    */
+    1 & y;" in
+    
+  test_template js_program "test_S11_10_1_A2_1_T3"
+  
+(* ch11/11.10/11.10.2/S11.10.2_A2.1_T2.js *)
+let test_S11_10_2_A2_1_T2 () =
+  let js_program = "/**
+    @toprequires #protoPred(_LS, #ObjectPrototype,'x', _L, #empty) *
+                 #obj[#GlobalObject]('x'|#proto:_P,'undefined':#undefined)
+    
+    @topensureserr #r = _E * #obj[_E](|#proto:#ReferenceErrorPrototype, #class:'Error')             
+    */
+    x ^ 1;" in
+    
+  test_template js_program "test_S11_10_2_A2_1_T2"
+  
+(* ch11/11.10/11.10.2/S11.10.2_A2.1_T3.js *)
+let test_S11_10_2_A2_1_T3 () =
+  let js_program = "/**
+    @toprequires #protoPred(_LS, #ObjectPrototype,'y', _L, #empty) *
+                 #obj[#GlobalObject]('y'|#proto:_P,'undefined':#undefined)
+    
+    @topensureserr #r = _E * #obj[_E](|#proto:#ReferenceErrorPrototype, #class:'Error')             
+    */
+    1 ^ y;" in
+    
+  test_template js_program "test_S11_10_2_A2_1_T3"
+  
+(* ch11/11.10/11.10.3/S11.10.3_A2.1_T2.js *)
+let test_S11_10_3_A2_1_T2 () =
+  let js_program = "/**
+    @toprequires #protoPred(_LS, #ObjectPrototype,'x', _L, #empty) *
+                 #obj[#GlobalObject]('x'|#proto:_P,'undefined':#undefined)
+    
+    @topensureserr #r = _E * #obj[_E](|#proto:#ReferenceErrorPrototype, #class:'Error')             
+    */
+    x | 1;" in
+    
+  test_template js_program "test_S11_10_3_A2_1_T2"
+  
+(* ch11/11.10/11.10.3/S11.10.3_A2.1_T3.js *)
+let test_S11_10_3_A2_1_T3 () =
+  let js_program = "/**
+    @toprequires #protoPred(_LS, #ObjectPrototype,'y', _L, #empty) *
+                 #obj[#GlobalObject]('y'|#proto:_P,'undefined':#undefined)
+    
+    @topensureserr #r = _E * #obj[_E](|#proto:#ReferenceErrorPrototype, #class:'Error')             
+    */
+    1 | y;" in
+    
+  test_template js_program "test_S11_10_3_A2_1_T3"
+  
 (* ch11/11.2/11.2.1/S11.2.1_A2.js *)  
 let test_S11_2_1_A2_part1 () =
   let js_program = "/**
@@ -320,6 +392,12 @@ let test_paper_example_2 () =
  let suite = "Testing_Evaluation_Examples" >:::
   [ "test_8_7_2_1_s" >:: test_8_7_2_1_s;
     "test_S11_1_2_A1_T2" >:: test_S11_1_2_A1_T2;
+    "test_S11_10_1_A2_1_T2" >:: test_S11_10_1_A2_1_T2;
+    "test_S11_10_1_A2_1_T3" >:: test_S11_10_1_A2_1_T3;
+    "test_S11_10_2_A2_1_T2" >:: test_S11_10_2_A2_1_T2;
+    "test_S11_10_2_A2_1_T3" >:: test_S11_10_2_A2_1_T3;
+    "test_S11_10_3_A2_1_T2" >:: test_S11_10_3_A2_1_T2;
+    "test_S11_10_3_A2_1_T3" >:: test_S11_10_3_A2_1_T3;
     "test_S11_2_1_A2_part1" >:: test_S11_2_1_A2_part1;
     "test_S11_2_1_A2_part2" >:: test_S11_2_1_A2_part2;
     "test_S11_2_1_A3_T4_part1" >:: test_S11_2_1_A3_T4_part1;
