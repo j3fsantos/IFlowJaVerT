@@ -2,6 +2,8 @@ open Pulp_Syntax
 open Pulp_Syntax_Print
 open Pulp_Procedure
 open Pulp_Translate_Aux
+open Pulp_Logic
+open Pulp_Logic_Utils
 
 let builtin_call_boolean_call () =
   let v = fresh_r () in
@@ -152,7 +154,16 @@ let builtin_object_construct () =
           Label ctx.label_return; 
           Label ctx.label_throw
         ] in    
-  make_function_block Procedure_Builtin (string_of_builtin_function Object_Construct) body [rthis; rscope; v] ctx
+  let pre = Eq (Le_PVar v, Le_Literal (Empty)) in
+  let new_obj = Le_Var (fresh_e()) in
+  let post = [Star [
+    REq new_obj;
+    ObjFootprint (new_obj, [Le_Literal (String (string_of_builtin_field FProto)); Le_Literal (String (string_of_builtin_field FClass))]);
+    proto_heaplet_f new_obj (Le_Literal (LLoc Lop));
+    class_heaplet_f new_obj "Object";
+  ]] in
+  let spec = [mk_spec_with_excep pre post []] in
+  make_function_block_with_spec Procedure_Builtin (string_of_builtin_function Object_Construct) body [rthis; rscope; v] ctx spec
   
 let builtin_object_call () =
   let v = fresh_r () in

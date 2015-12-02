@@ -221,6 +221,8 @@ let args_to_bloc args =
         | "leval", [] -> LEval
         | "lrep", [] -> Lrep
         | "ltep", [] -> Ltep
+        | "lobject", [] -> LObject
+        | "lstring", [] -> LString
         | _ -> raise (NotImplemented ("args_to_bloc " ^ s))
       end
     | _ -> raise (BadArgument "in args_to_loc")
@@ -257,7 +259,9 @@ let rec args_to_le (lvarmap : variable_types LVarMap.t) arg =
         | "lfp", []
         | "ltep", []
         | "lrep", []
-        | "leval", [] -> Le_Literal (LLoc (args_to_bloc arg))
+        | "leval", [] 
+        | "lobject", []
+        | "lstring", []-> Le_Literal (LLoc (args_to_bloc arg))
         | "empty_value", [] -> Le_Literal Empty
         | "NullType", [] ->  Le_Literal (Type NullType)
         | "UndefinedType", [] -> Le_Literal (Type UndefinedType)

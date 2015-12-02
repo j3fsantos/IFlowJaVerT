@@ -55,6 +55,8 @@
 %token TRUE
 %token FALSE
 %token LG
+%token LOBJECT
+%token LSTRING
 %token LOP
 %token LFP
 %token LREP
@@ -107,6 +109,8 @@ location:
   | LFP      { Lfp }
   | LREP     { Lrep }
   | LTEP     { Ltep }
+  | LOBJECT    { LObject }
+  | LOBJECT    { LString }
 ;
 
 logical_bin_op:

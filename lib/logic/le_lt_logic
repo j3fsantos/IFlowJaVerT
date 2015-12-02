@@ -45,6 +45,10 @@ rule builtin_lt_nobj_obj_false_contr :
 | false()=builtin_lt(NObjectType(), ObjectType()) |-
 if
 
+rule builtin_lt_bobj_obj_false_contr :
+| false()=builtin_lt(BObjectType(), ObjectType()) |-
+if
+
 rule builtin_lt_oref_ref_false_contr :
 | false()=builtin_lt(MemberReferenceType(), ReferenceType()) |-
 if 
