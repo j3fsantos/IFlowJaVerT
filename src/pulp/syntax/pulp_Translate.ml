@@ -1042,8 +1042,8 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
       | Parser_syntax.While (e1, e2) ->
         let r1_stmts, r1 = translate_exp ctx e1 in
         let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
-        let continue = fresh_r () in
-        let break = fresh_r () in
+        let continue = "continue" ^ (fresh_r ()) in
+        let break = "break" ^ (fresh_r ()) in
         let new_ctx = {ctx with
           label_continue = (("", continue) :: (List.map (fun l -> (l, continue)) labelset)) @ ctx.label_continue;
           label_break = (("", break) :: (List.map (fun l -> (l, break)) labelset)) @ ctx.label_break

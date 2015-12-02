@@ -101,7 +101,35 @@ let rec traverse_node (g : CFG_BB.graph) ctx nodedone current =
   if Hashtbl.mem nodedone current then () 
   else begin
 	  let succs = CFG_BB.succ g current in
-    let continue_traverse () = Hashtbl.add nodedone current (); List.iter (traverse_node g ctx nodedone) succs in
+    let continue_traverse () = 
+      (* Adding missing gotos at the end of bb *) 
+      let stmts = List.rev (CFG_BB.get_node_data g current) in
+      begin match stmts with
+        | [] -> ()
+        | stmt :: tail -> 
+          begin match stmt.as_stmt with
+            | Goto _ 
+            | GuardedGoto _
+            | Basic (Assignment {assign_right = Call _})
+            | Basic (Assignment {assign_right = BuiltinCall _})
+            | Basic (Assignment {assign_right = Eval _}) 
+            | Sugar (SpecFunction _) -> ()
+            | stmt -> 
+              begin match succs with
+                | [succ] -> let succ_stmts = CFG_BB.get_node_data g succ in
+                   let lbl = match succ_stmts with
+                     | {as_stmt = Label l} :: tail -> l           
+                     | stmt :: tail -> raise (BBInvalid ("Expected label, but found " ^ Pulp_Syntax_Print.string_of_statement stmt.as_stmt))
+                     | [] ->  raise (BBInvalid "Expected label, but found empty list of statements")
+                   in 
+                  let new_stmts = List.rev ((as_annot_stmt (Goto lbl)) :: stmts) in
+                  CFG_BB.set_node_data g current new_stmts
+                | [] -> ()
+                | _ -> raise (BBInvalid ("Expected one successor of " ^ Pulp_Syntax_Print.string_of_statement stmt))
+              end
+          end
+      end;
+      Hashtbl.add nodedone current (); List.iter (traverse_node g ctx nodedone) succs in
 	  begin match succs with
 	    | [succ] -> 
         let preds = CFG_BB.pred g succ in

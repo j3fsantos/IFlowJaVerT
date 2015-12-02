@@ -19,6 +19,17 @@ let get_expr p level =
   
 let test_template p =
   let p_exp, env = get_expr p IVL_goto_unfold_functions in
+  
+  (*let cfg = Control_Flow.mk_cfg p_exp ("tests/dot/interpreter/"^name) in
+	let cfg_bbs = AllFunctions.mapi (fun name cfg ->
+	let fb = AllFunctions.find name p_exp in
+	let cfg_bb = Simp_Main.basic_block_simplifications cfg fb.func_ctx in
+	let stmts = Basic_Blocks.cfg_to_fb cfg_bb fb.func_ctx.label_throw fb.func_ctx.label_return in
+	Printf.printf "Procedure %s \n %s \n" name (Pulp_Syntax_Print.string_of_statement_list stmts);
+	cfg_bb
+	) cfg in
+  
+  Basic_Blocks.print_cfg_bb cfg_bbs ("tests/dot/interpreter/bb/"^name);*)
   Interpreter.run_with_initial_heap p_exp env
   
 let test_template_simp p =
@@ -831,6 +842,25 @@ let test_try_catch_completion_2 () =
   
 let test_11_2_1_A1_2 () =
   test_template_exception "var object; object[1];" Ltep
+  
+let test_S12_14_A10_T3 () =
+  test_template_normal ("var c7=0;
+try{
+  while(c7<2){
+    try{
+      c7+=1;
+      throw 'ex1';
+    }
+    finally{
+      break;
+    }
+    c7+=2;
+  }
+}
+catch(ex1){
+  c7=10;
+}
+") (VHValue (HVLiteral (Num 1.0)))
 
 let suite = "Testing_Interpreter" >:::
   [
@@ -968,5 +998,6 @@ let suite = "Testing_Interpreter" >:::
     "test_is_finite_true" >:: test_is_finite_true;
     "test_negative_nan" >:: test_negative_nan;
     "test_11_2_1_A1_2" >:: test_11_2_1_A1_2;
+    "test_S12_14_A10_T3" >:: test_S12_14_A10_T3;
     (*"test_" >:: test_*) 
     ] 
