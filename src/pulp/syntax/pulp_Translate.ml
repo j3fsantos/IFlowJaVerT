@@ -1355,7 +1355,6 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
 				let break = fresh_r () in
 				let r_found_a = fresh_r () in
 				let r_found_b = fresh_r () in
-				let r_banana = fresh_r () in
 				let switch_var = fresh_r () in
 				let new_ctx = {ctx with
           label_break = ("", break) :: ctx.label_break 
@@ -1383,18 +1382,15 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
 					let r_case_stmts2, r_case2 = spec_func_call (GetValue (Var r_case1)) new_ctx in
 					let r_case_stmts3, r_case3 = spec_func_call (StrictEquality (Var r_case2, Var r_test2)) new_ctx in
 					let r_case_stmts4, r_stmt = translate_stmt new_ctx [] stmt in 
-						[ Basic (Assignment (mk_assign r_banana (Expression (Literal (String "entrei num case!")))));
-							Sugar (If (equal_bool_expr (Var r_found_a) false, 
+						[ Sugar (If (equal_bool_expr (Var r_found_a) false, 
 							r_case_stmts1 @
               r_case_stmts2 @
               r_case_stmts3 @
-							[ Basic (Assignment (mk_assign r_banana (Expression (Literal (String "avaliei a guarda do case")))));
-								Sugar (If (equal_bool_expr (Var r_case3) true, 
+							[ Sugar (If (equal_bool_expr (Var r_case3) true, 
 									[ Basic (Assignment (mk_assign r_found_a  (Expression (Literal (Bool true))))) ] @							 
 				      		r_case_stmts4 @
 									[ Basic (Assignment (mk_assign switch_var (Expression (Var r_stmt)))) ],
 									[]))], 
-							[  Basic (Assignment (mk_assign r_banana (Expression (Literal (String "fall through is starting"))))) ] @
 							r_case_stmts4)) ]) acumulator.a_cases in 
 			  (* *)
 			  let b_stmts = List.map (fun (e_case, stmt) ->  
@@ -1402,18 +1398,15 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
 					let r_case_stmts2, r_case2 = spec_func_call (GetValue (Var r_case1)) new_ctx in
 					let r_case_stmts3, r_case3 = spec_func_call (StrictEquality (Var r_case2, Var r_test2)) new_ctx in
 					let r_case_stmts4, r_stmt = translate_stmt new_ctx [] stmt in 
-						[ Basic (Assignment (mk_assign r_banana (Expression (Literal (String "entrei num case!")))));
-							Sugar (If (equal_bool_expr (Var r_found_b) false, 
+						[ Sugar (If (equal_bool_expr (Var r_found_b) false, 
 							r_case_stmts1 @
               r_case_stmts2 @
               r_case_stmts3 @
-							[ Basic (Assignment (mk_assign r_banana (Expression (Literal (String "avaliei a guarda do case")))));
-								Sugar (If (equal_bool_expr (Var r_case3) true, 
+							[ Sugar (If (equal_bool_expr (Var r_case3) true, 
 									[ Basic (Assignment (mk_assign r_found_b  (Expression (Literal (Bool true))))) ] @							 
 				      		r_case_stmts4 @
 									[ Basic (Assignment (mk_assign switch_var (Expression (Var r_stmt)))) ],
 									[]))], 
-							[  Basic (Assignment (mk_assign r_banana (Expression (Literal (String "fall through is starting"))))) ] @
 							r_case_stmts4 )) ]) acumulator.b_cases in
 				(* *)
 				let simple_b_stmts = List.map (fun (e_case, stmt) ->
@@ -1431,22 +1424,27 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
 									[ Basic (Assignment (mk_assign switch_var (Expression (Var r_default)))) ] @
 									List.flatten simple_b_stmts, 
 									[]))]) in
-				(* *)						
+				(* *)				
+        let b_stmts = List.flatten b_stmts in
+        let b_stmts_if = match b_stmts with
+          | [] -> []
+          | _ -> [ Sugar (If (equal_bool_expr (Var r_found_a) false,
+                     b_stmts, 
+                     []));] in	
+        let default_stmts_if = match default_stmts with
+          | [] -> []
+          | _ -> [ Sugar (If (equal_bool_expr (Var r_found_b) false,
+                     default_stmts, 
+                     [])); ] in
 			  (* print_string "stop switching now \n"; *)
-				[  Basic (Assignment (mk_assign r_banana (Expression (Literal (String "entrei no switch"))))) ] @ 
 				r_test_stmts1 @ 
 			  r_test_stmts2 @ 
-				[ Basic (Assignment (mk_assign r_banana (Expression (Literal (String "avaliei a guarda"))))) ] @
 				[ Basic (Assignment (mk_assign r_found_a (Expression (Literal (Bool false))))) ] @
 				List.flatten a_stmts @
 				[ Basic (Assignment (mk_assign r_found_b (Expression (Literal (Bool false))))) ] @
-				[ Sugar (If (equal_bool_expr (Var r_found_a) false,
-							List.flatten b_stmts, 
-							[])); 
-					Sugar (If (equal_bool_expr (Var r_found_b) false,
-							default_stmts, 
-							[])); 
-					Label break ], ret_def
+        b_stmts_if @
+        default_stmts_if @
+				[ Label break ], ret_def
 		  end
       (* I am not considering those *)  
       

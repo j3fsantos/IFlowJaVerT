@@ -610,7 +610,7 @@ let test_program_switch_aux () =
 
 
 let test_program_switch1 () =
-  test_template_no_simplifications ("var x1;
+  test_template_normal ("var x1;
 	  var x2; 
 		var x3; 
 		var x4;
@@ -632,7 +632,7 @@ let test_program_switch1 () =
 		x1 * x2 * x3 * x4 * x5")  (VHValue (HVLiteral (Num 2310.0)))
 
 let test_program_switch2 () =
-  test_template_no_simplifications ("var x1;
+  test_template_normal ("var x1;
 	  var x2; 
 		var x3; 
 		var x4;
@@ -654,7 +654,7 @@ let test_program_switch2 () =
 		x1 * x2 * x3 * x4 * x5")  (VHValue (HVLiteral (Num 1155.0)))
 
 let test_program_switch3 () =
-  test_template_no_simplifications ("var x1;
+  test_template_normal ("var x1;
 	  var x2; 
 		var x3; 
 		var x4;
@@ -676,7 +676,7 @@ let test_program_switch3 () =
 		x1 * x2 * x3 * x4 * x5")  (VHValue (HVLiteral (Num 77.0)))
 	
 let test_program_switch4 () =
-  test_template_no_simplifications ("var x1;
+  test_template_normal ("var x1;
 	  var x2; 
 		var x3; 
 		var x4;
@@ -698,7 +698,7 @@ let test_program_switch4 () =
 		x1 * x2 * x3 * x4 * x5")  (VHValue (HVLiteral (Num 11.0)))		
 
 let test_program_switch5 () =
-  test_template_no_simplifications ("var x1;
+  test_template_normal ("var x1;
 	  var x2; 
 		var x3; 
 		var x4;
@@ -720,7 +720,7 @@ let test_program_switch5 () =
 		x1 * x2 * x3 * x4 * x5")  (VHValue (HVLiteral (Num 385.0)))		
 		
  let test_program_switch6 () =
-  test_template_no_simplifications ("var x1, x2, x3, x4, x5; 
+  test_template_normal ("var x1, x2, x3, x4, x5; 
 		var i; 
 		i = 0;
 		switch(i) { 
@@ -732,7 +732,7 @@ let test_program_switch5 () =
 		}")  (VHValue (HVLiteral (Num 2.0)))		
 
  let test_program_switch7 () =
-  test_template_no_simplifications ("var x1, x2, x3, x4, x5; 
+  test_template_normal ("var x1, x2, x3, x4, x5; 
 		var i; 
 		i = 1;
 		switch(i) { 
@@ -744,7 +744,7 @@ let test_program_switch5 () =
 		}")  (VHValue (HVLiteral (Num 3.0)))		
 
  let test_program_switch8 () =
-  test_template_no_simplifications ("var x1, x2, x3, x4, x5; 
+  test_template_normal ("var x1, x2, x3, x4, x5; 
 		var i; 
 		i = 2;
 		switch(i) { 
@@ -756,7 +756,7 @@ let test_program_switch5 () =
 		}")  (VHValue (HVLiteral (Num 7.0)))				
  
  let test_program_switch9 () =
-  test_template_no_simplifications ("var x1, x2, x3, x4, x5; 
+  test_template_normal ("var x1, x2, x3, x4, x5; 
 		var i; 
 		i = 3;
 		switch(i) { 
@@ -769,7 +769,7 @@ let test_program_switch5 () =
 																
 
 let test_program_switch10 () =
-  test_template_no_simplifications ("var x1, x2, x3, x4, x5; 
+  test_template_normal ("var x1, x2, x3, x4, x5; 
 		var i; 
 		i = 4;
 		switch(i) { 
@@ -860,7 +860,7 @@ try{
 catch(ex1){
   c7=10;
 }
-") (VHValue (HVLiteral (Num 1.0)))
+") (VHValue (HVLiteral (Num 1.0))) 
 
 let suite = "Testing_Interpreter" >:::
   [
