@@ -313,6 +313,25 @@ let test_S11_8_7_A3_part5 () =
     
     test_template js_program "test_S11_8_7_A3_part5"
     
+ (* ch11/11.2/11.2.3/11.2.3-3_2.js *)
+let test_11_2_3_3_2 () =
+  let js_program = "/**
+    @toprequires #obj[#GlobalObject](|'fooCalled':_FC, 'foo': _F, 'o' : _O, #proto:_P,'undefined':#undefined) * 
+                 #protoPred(_LS, #ObjectPrototype,'bar', _L, #empty)
+    
+    @topensureserr #r = _E * #obj[_E](|#proto:#TypeErrorPrototype, #class:'Error')             
+    */
+    var fooCalled = false;
+    var foo = 
+      /** @requires #obj[rscope](|'main':#GlobalObject) * #obj[#GlobalObject](|'fooCalled':_FC1) 
+          @ensures #r = #undefined *  #obj[#GlobalObject](|'fooCalled':true) */
+      function (){ fooCalled = true; } 
+    var o = { }; 
+    o.bar( foo() );" in
+    
+    test_template js_program "test_11_2_3_3_2"
+
+    
 (* ch08/8.12/8.12.8/S8.12.8_A1.js *)
 (* TODO : need higher order assertions *)
 let test_S8_12_8_A1 () =
@@ -495,6 +514,7 @@ let test_paper_example_2 () =
     "test_S11_8_7_A3_part3" >:: test_S11_8_7_A3_part3;
     "test_S11_8_7_A3_part4" >:: test_S11_8_7_A3_part4;
     "test_S11_8_7_A3_part5" >:: test_S11_8_7_A3_part5;
+    "test_11_2_3_3_2" >:: test_11_2_3_3_2;
     (*"test_S8_12_8_A1" >:: test_S8_12_8_A1;*)
     "test_paper_example_1" >:: test_paper_example_1;
     "test_cav_example_exception" >:: test_cav_example_exception;
