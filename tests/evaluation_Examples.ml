@@ -252,6 +252,66 @@ let test_S11_2_2_A3_T1_part3 () =
     new x();" in
     
     test_template js_program "test_S11_2_2_A3_T1_part3"
+
+(* ch11/11.8/11.8.7/S11.8.7_A3.js *)
+let test_S11_8_7_A3_part1 () =
+  let js_program = "/**
+    @toprequires #obj[#GlobalObject](|#proto:_P,'undefined':#undefined)
+        
+    
+    @topensureserr #r = _E * #obj[_E](|#proto:#TypeErrorPrototype, #class:'Error')             
+    */
+    'toString' in true;" in
+    
+    test_template js_program "test_S11_8_7_A3_part1"
+    
+ (* ch11/11.8/11.8.7/S11.8.7_A3.js *)
+let test_S11_8_7_A3_part2 () =
+  let js_program = "/**
+    @toprequires #obj[#GlobalObject](|#proto:_P,'undefined':#undefined)
+        
+    
+    @topensureserr #r = _E * #obj[_E](|#proto:#TypeErrorPrototype, #class:'Error')             
+    */
+    'MAX_VALUE' in 1;" in
+    
+    test_template js_program "test_S11_8_7_A3_part2"
+    
+ (* ch11/11.8/11.8.7/S11.8.7_A3.js *)
+let test_S11_8_7_A3_part3 () =
+  let js_program = "/**
+    @toprequires #obj[#GlobalObject](|#proto:_P,'undefined':#undefined)
+        
+    
+    @topensureserr #r = _E * #obj[_E](|#proto:#TypeErrorPrototype, #class:'Error')             
+    */
+    'length' in 'string';" in
+    
+    test_template js_program "test_S11_8_7_A3_part3"
+    
+ (* ch11/11.8/11.8.7/S11.8.7_A3.js *)
+let test_S11_8_7_A3_part4 () =
+  let js_program = "/**
+    @toprequires #obj[#GlobalObject](|#proto:_P,'undefined':#undefined)
+        
+    
+    @topensureserr #r = _E * #obj[_E](|#proto:#TypeErrorPrototype, #class:'Error')             
+    */
+    'toString' in undefined;" in
+    
+    test_template js_program "test_S11_8_7_A3_part4"
+    
+ (* ch11/11.8/11.8.7/S11.8.7_A3.js *)
+let test_S11_8_7_A3_part5 () =
+  let js_program = "/**
+    @toprequires #obj[#GlobalObject](|#proto:_P,'undefined':#undefined)
+        
+    
+    @topensureserr #r = _E * #obj[_E](|#proto:#TypeErrorPrototype, #class:'Error')             
+    */
+    'toString' in null;" in
+    
+    test_template js_program "test_S11_8_7_A3_part5"
     
 (* ch08/8.12/8.12.8/S8.12.8_A1.js *)
 (* TODO : need higher order assertions *)
@@ -430,6 +490,11 @@ let test_paper_example_2 () =
     "test_S11_2_2_A3_T1_part1" >:: test_S11_2_2_A3_T1_part1;
     "test_S11_2_2_A3_T1_part2" >:: test_S11_2_2_A3_T1_part2;
     "test_S11_2_2_A3_T1_part3" >:: test_S11_2_2_A3_T1_part3;
+    "test_S11_8_7_A3_part1" >:: test_S11_8_7_A3_part1;
+    "test_S11_8_7_A3_part2" >:: test_S11_8_7_A3_part2;
+    "test_S11_8_7_A3_part3" >:: test_S11_8_7_A3_part3;
+    "test_S11_8_7_A3_part4" >:: test_S11_8_7_A3_part4;
+    "test_S11_8_7_A3_part5" >:: test_S11_8_7_A3_part5;
     (*"test_S8_12_8_A1" >:: test_S8_12_8_A1;*)
     "test_paper_example_1" >:: test_paper_example_1;
     "test_cav_example_exception" >:: test_cav_example_exception;
