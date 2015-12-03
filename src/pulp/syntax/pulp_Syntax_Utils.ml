@@ -313,9 +313,9 @@ get_all_functions_with_env_in_stmt env e =
           | DefaultCase -> []
           | Case e -> fe e 
         @ (f e2))) sces       
-      | ForIn (e1, e2, e3) -> match e1.Parser_syntax.exp_stx with
+      | ForIn (e1, e2, e3) -> (match e1.Parser_syntax.exp_stx with
         | VarDec _ -> (f e1)  @ (fe e2) @ (f e3)
-        | _        -> (fe e1) @ (fe e2) @ (f e3)
+        | _        -> (fe e1) @ (fe e2) @ (f e3))
       | With (e1, e2) -> (fe e1) @ (f e2)
       | Debugger -> []
 and
