@@ -92,6 +92,9 @@ rewrite not_undefined_none :
 rewrite not_string_none : 
   bool_not(triple_eq(string_const(?x), none())) = true()
   
+rewrite not_empty_eq_empty : 
+  bool_not(triple_eq(none(), none())) = false()
+  
 rule lg_not_undefined :
   | lg() = undefined() |-
 if

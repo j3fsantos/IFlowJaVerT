@@ -330,7 +330,56 @@ let test_11_2_3_3_2 () =
     o.bar( foo() );" in
     
     test_template js_program "test_11_2_3_3_2"
+    
+(* ch13/13.0/S13_A17_T2.js *)
+let test_S13_A17_T2_part () =
+  let js_program = "/**
+    @toprequires #obj[#GlobalObject](|'result':_R, '__func': _F, #proto:_P,'undefined':#undefined) * 
+                 #protoPred(_LS, #ObjectPrototype,'bar', _L, #empty)
+    
+    @topensureserr #r = _E * #obj[_E](|#proto:#TypeErrorPrototype, #class:'Error')             
+    */
+    var result = __func();
+    var __func = 
+      /** @requires #obj[rscope](|'main':#GlobalObject) 
+          @ensures #r = 'ONE' */
+      function (){ return 'ONE'; };" in
+    
+    test_template js_program "test_S13_A17_T2_part"
+    
+(* ch13/13.2/S13.2.2_A2.js *)
+let test_S13_2_2_A2 () =
+  let js_program = "/**
+    @toprequires #obj[#GlobalObject](|'__PLANT':_P, '__ROSE': _F, '__PROTO' : _PR, '__FACTORY' : _F, '__rose' : _r, #proto:_P,'undefined':#undefined)
+    
+    @topensureserr #r = _E * #obj[_E](|#proto:#TypeErrorPrototype, #class:'Error')             
+    */
+    
+    var __PLANT= 'flower';
+    var __ROSE='rose';
 
+    /** @requires #obj[rscope](|'main':#GlobalObject) 
+        @ensures #r = #undefined */
+    function __PROTO(){};
+
+    try {
+       __PROTO.type = __PLANT;
+    }
+    catch(e){
+      $ERROR('#0: __PROTO.type=__PLANT does not lead to throwing exception')
+    }
+
+    /** @requires #obj[rscope](|'main':#GlobalObject) * #protoPred(_LS, #GlobalObject,'__ROSE', _L, ?R) * ?R != #(/) * (rthis,'name') |-> _N
+        @ensures #r = #undefined * (rthis,'name') |-> ?R */
+    function __FACTORY(){this.name=__ROSE};
+
+   __FACTORY.prototype=__PROTO;
+
+    var __rose = new __FACTORY();
+      
+     __rose();" in
+    
+    test_template js_program "test_S13_2_2_A2"
     
 (* ch08/8.12/8.12.8/S8.12.8_A1.js *)
 (* TODO : need higher order assertions *)
@@ -515,6 +564,8 @@ let test_paper_example_2 () =
     "test_S11_8_7_A3_part4" >:: test_S11_8_7_A3_part4;
     "test_S11_8_7_A3_part5" >:: test_S11_8_7_A3_part5;
     "test_11_2_3_3_2" >:: test_11_2_3_3_2;
+    "test_S13_A17_T2_part" >:: test_S13_A17_T2_part;
+    "test_S13_2_2_A2" >:: test_S13_2_2_A2;
     (*"test_S8_12_8_A1" >:: test_S8_12_8_A1;*)
     "test_paper_example_1" >:: test_paper_example_1;
     "test_cav_example_exception" >:: test_cav_example_exception;
