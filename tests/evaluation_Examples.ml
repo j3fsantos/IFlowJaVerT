@@ -381,6 +381,31 @@ let test_S13_2_2_A2 () =
     
     test_template js_program "test_S13_2_2_A2"
     
+(* ch11/11.2/11.2.3/S11.2.3_A3_T2.js *)
+let test_S11_2_3_A3_T2_part1 () =
+  let js_program = "/**
+    @toprequires #obj[#GlobalObject](|#proto:_P,'undefined':#undefined)
+        
+    
+    @topensureserr #r = _E * #obj[_E](|#proto:#TypeErrorPrototype, #class:'Error')             
+    */
+    1();" in
+    
+    test_template js_program "test_S11_2_3_A3_T2_part1"
+    
+(* ch11/11.2/11.2.3/S11.2.3_A3_T2.js *)
+let test_S11_2_3_A3_T2_part2 () =
+  let js_program = "/**
+    @toprequires #obj[#GlobalObject](|'x':_X,#proto:_P,'undefined':#undefined)
+        
+    
+    @topensureserr #r = _E * #obj[_E](|#proto:#TypeErrorPrototype, #class:'Error')             
+    */
+    var x = 1;
+    x();" in
+    
+    test_template js_program "test_S11_2_3_A3_T2_part2"
+    
 (* ch08/8.12/8.12.8/S8.12.8_A1.js *)
 (* TODO : need higher order assertions *)
 let test_S8_12_8_A1 () =
@@ -566,6 +591,8 @@ let test_paper_example_2 () =
     "test_11_2_3_3_2" >:: test_11_2_3_3_2;
     "test_S13_A17_T2_part" >:: test_S13_A17_T2_part;
     "test_S13_2_2_A2" >:: test_S13_2_2_A2;
+    "test_S11_2_3_A3_T2_part1" >:: test_S11_2_3_A3_T2_part1;
+    "test_S11_2_3_A3_T2_part2" >:: test_S11_2_3_A3_T2_part2;
     (*"test_S8_12_8_A1" >:: test_S8_12_8_A1;*)
     "test_paper_example_1" >:: test_paper_example_1;
     "test_cav_example_exception" >:: test_cav_example_exception;
