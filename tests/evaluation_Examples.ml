@@ -431,6 +431,44 @@ let test_S11_2_3_A4_T1_part2 () =
     
     test_template js_program "test_S11_2_3_A4_T1_part2"
     
+(* ch11/11.2/11.2.2/S11.2.2_A4_T3.js *)
+let test_S11_2_2_A4_T3_part1 () =
+  let js_program = "/**
+    @toprequires #obj[#GlobalObject](|'String':#LString, #proto:_P,'undefined':#undefined) * #obj[#LString](|#constructid:#string_construct) * #typeof(#LString) = #BObject
+        
+    
+    @topensureserr #r = _E * #obj[_E](|#proto:#TypeErrorPrototype, #class:'Error')             
+    */
+      new new String('1');" in
+    
+    test_template js_program "test_S11_2_2_A4_T3_part1"
+    
+(* ch11/11.2/11.2.2/S11.2.2_A4_T3.js *)
+let test_S11_2_2_A4_T3_part2 () =
+  let js_program = "/**
+    @toprequires #obj[#GlobalObject](|'x':_X,'String':#LString, #proto:_P,'undefined':#undefined) * #obj[#LString](|#constructid:#string_construct) * #typeof(#LString) = #BObject
+        
+    
+    @topensureserr #r = _E * #obj[_E](|#proto:#TypeErrorPrototype, #class:'Error')             
+    */
+      var x = new String('1');
+      new x;" in
+    
+    test_template js_program "test_S11_2_2_A4_T3_part2"
+    
+(* ch11/11.2/11.2.2/S11.2.2_A4_T3.js *)
+let test_S11_2_2_A4_T3_part3 () =
+  let js_program = "/**
+    @toprequires #obj[#GlobalObject](|'x':_X,'String':#LString, #proto:_P,'undefined':#undefined) * #obj[#LString](|#constructid:#string_construct) * #typeof(#LString) = #BObject
+        
+    
+    @topensureserr #r = _E * #obj[_E](|#proto:#TypeErrorPrototype, #class:'Error')             
+    */
+      var x = new String('1');
+      new x();" in
+    
+    test_template js_program "test_S11_2_2_A4_T3_part3"
+    
 (* ch08/8.12/8.12.8/S8.12.8_A1.js *)
 (* TODO : need higher order assertions *)
 let test_S8_12_8_A1 () =
@@ -620,6 +658,9 @@ let test_paper_example_2 () =
     "test_S11_2_3_A3_T2_part2" >:: test_S11_2_3_A3_T2_part2;
     "test_S11_2_3_A4_T1_part1" >:: test_S11_2_3_A4_T1_part1;
     "test_S11_2_3_A4_T1_part2" >:: test_S11_2_3_A4_T1_part2;
+    "test_S11_2_2_A4_T3_part1" >:: test_S11_2_2_A4_T3_part1;
+    "test_S11_2_2_A4_T3_part2" >:: test_S11_2_2_A4_T3_part2;
+    "test_S11_2_2_A4_T3_part3" >:: test_S11_2_2_A4_T3_part3;
     (*"test_S8_12_8_A1" >:: test_S8_12_8_A1;*)
     "test_paper_example_1" >:: test_paper_example_1;
     "test_cav_example_exception" >:: test_cav_example_exception;

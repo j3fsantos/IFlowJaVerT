@@ -112,7 +112,7 @@ location:
   | LTEP     { Ltep }
   | LOBJECT    { LObject }
   | LBOOLEAN   { LBoolean }
-  | LOBJECT    { LString }
+  | LSTRING    { LString }
 ;
 
 logical_bin_op:

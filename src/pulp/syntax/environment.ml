@@ -42,7 +42,7 @@ let builtin_call_boolean_construct () =
   let new_obj = Le_Var (fresh_e()) in  
   let post = [Star [
     REq new_obj;
-    ObjFootprint (new_obj, [Le_Literal (String (string_of_builtin_field FProto)); Le_Literal (String (string_of_builtin_field FClass))]);
+    ObjFootprint (new_obj, [Le_Literal (String (string_of_builtin_field FProto)); Le_Literal (String (string_of_builtin_field FClass)); Le_Literal (String (string_of_builtin_field FPrimitiveValue))]);
     proto_heaplet_f new_obj (Le_Literal (LLoc Lbp));
     class_heaplet_f new_obj "Boolean";
     primitive_value_heaplet_f new_obj (Le_PVar v);
@@ -396,7 +396,17 @@ let builtin_call_string_construct () =
       Label ctx.label_return; 
       Label ctx.label_throw
     ]) in    
-  make_function_block Procedure_Builtin (string_of_builtin_function String_Construct) body [rthis; rscope; v] ctx
+  let pre = type_of_f v StringType in
+  let new_obj = Le_Var (fresh_e()) in  
+  let post = [Star [
+    REq new_obj;
+    ObjFootprint (new_obj, [Le_Literal (String (string_of_builtin_field FProto)); Le_Literal (String (string_of_builtin_field FClass)); Le_Literal (String (string_of_builtin_field FPrimitiveValue))]);
+    proto_heaplet_f new_obj (Le_Literal (LLoc Lsp));
+    class_heaplet_f new_obj "String";
+    primitive_value_heaplet_f new_obj (Le_PVar v);
+  ]] in
+  let spec = [mk_spec_with_excep pre post []] in 
+  make_function_block_with_spec Procedure_Builtin (string_of_builtin_function String_Construct) body [rthis; rscope; v] ctx spec
     
 let builtin_lsp_toString_valueOf () =
   let ctx = create_ctx [] in

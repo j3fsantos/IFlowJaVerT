@@ -87,6 +87,7 @@ rule token = parse
   | "#object_construct"  { STRING "#object_construct" }
   | "#boolean_construct"  { STRING "#boolean_construct" }
   | "#string_call"  { STRING "#string_call" }
+  | "#string_construct"  { STRING "#string_construct" }
   | '?' id as n         { LE_VAR (Pulp_Logic.AVar (String.tail n 1)) }
   | '_' id as n         { LE_VAR (Pulp_Logic.EVar (String.tail n 1)) }
   | id as s             { ID s }
