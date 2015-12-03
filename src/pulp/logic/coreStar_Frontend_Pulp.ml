@@ -217,10 +217,15 @@ let args_to_bloc args =
       begin match s, args with
         | "lg", [] -> Lg
         | "lop", [] -> Lop
+        | "lbp", [] -> Lbp
+        | "lsp", [] -> Lsp
         | "lfp", [] -> Lfp
         | "leval", [] -> LEval
         | "lrep", [] -> Lrep
         | "ltep", [] -> Ltep
+        | "lobject", [] -> LObject
+        | "lboolean", [] -> LBoolean
+        | "lstring", [] -> LString
         | _ -> raise (NotImplemented ("args_to_bloc " ^ s))
       end
     | _ -> raise (BadArgument "in args_to_loc")
@@ -253,11 +258,16 @@ let rec args_to_le (lvarmap : variable_types LVarMap.t) arg =
         | "true", [] -> Le_Literal (Bool true)
         | "false", [] -> Le_Literal (Bool false)
         | "lg", [] 
-        | "lop", [] 
+        | "lop", []
+        | "lbp", [] 
+        | "lsp", []
         | "lfp", []
         | "ltep", []
         | "lrep", []
-        | "leval", [] -> Le_Literal (LLoc (args_to_bloc arg))
+        | "leval", [] 
+        | "lobject", []
+        | "lboolean", []
+        | "lstring", []-> Le_Literal (LLoc (args_to_bloc arg))
         | "empty_value", [] -> Le_Literal Empty
         | "NullType", [] ->  Le_Literal (Type NullType)
         | "UndefinedType", [] -> Le_Literal (Type UndefinedType)

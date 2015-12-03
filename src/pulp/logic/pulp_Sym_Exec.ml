@@ -76,7 +76,7 @@ let execute_call_stmt varmap x fid fb fs current : formula list * formula list =
   let posts_excep = get_posts fb f_spec true in
   posts_normal, posts_excep
       
-let execute_normal_call_stmt c x fs current : formula list * formula list =
+let execute_normal_call_stmt c is_builtin x fs current : formula list * formula list =
    let fid = CoreStar_Frontend_Pulp.get_function_id_from_expression current (expr_to_logical_expr c.call_name) in
    let fb = AllFunctions.find fid fs in
    let call_args = [c.call_this; c.call_scope] @ c.call_args in
@@ -85,7 +85,7 @@ let execute_normal_call_stmt c x fs current : formula list * formula list =
     
     let used_args = List.mapi (fun i p ->
       if i < List.length call_args then expr_to_logical_expr (List.nth call_args i)
-      else Le_Literal Undefined
+      else if is_builtin then Le_Literal Empty else Le_Literal Undefined
       ) fb.func_params in
     
     (* Make a varmap formal_param -> argument *)
@@ -128,7 +128,7 @@ let execute_proto_field current e1 e2 =
     | [] -> raise (SymExecException "CouldNotApplySpec")
     | _ -> values
  
-let rec execute_stmt f sg cfg fs env snode_id cmd_st_tbl = 
+let rec execute_stmt f sg cfg fs env spec_env snode_id cmd_st_tbl = 
   let contradiction id =
     let new_sn = StateG.mk_node sg (mk_sg_node id false_f) in
     Hashtbl.add cmd_st_tbl id new_sn;
@@ -140,7 +140,7 @@ let rec execute_stmt f sg cfg fs env snode_id cmd_st_tbl =
     let new_sn = StateG.mk_node sg (mk_sg_node id state) in
     Hashtbl.add cmd_st_tbl id new_sn;
     StateG.mk_edge sg snode_id new_sn ();
-    execute_stmt f sg cfg fs env new_sn cmd_st_tbl in
+    execute_stmt f sg cfg fs env spec_env new_sn cmd_st_tbl in
     
   let new_snode_cond id state edge e =
     
@@ -237,10 +237,11 @@ let rec execute_stmt f sg cfg fs env snode_id cmd_st_tbl =
       
       new_snode id post 
               
-    | Basic (Assignment {assign_left = x; assign_right = (Call c)})      
-    | Basic (Assignment {assign_left = x; assign_right = (Eval c)}) 
+    | Basic (Assignment {assign_left = x; assign_right = (Call c)}) ->  
+      symbexec_call (execute_normal_call_stmt c false) (AllFunctions.fold AllFunctions.add env fs) x
+    | Basic (Assignment {assign_left = x; assign_right = (Eval c)})   
     | Basic (Assignment {assign_left = x; assign_right = (BuiltinCall c)}) -> 
-      symbexec_call (execute_normal_call_stmt c) fs x
+      symbexec_call (execute_normal_call_stmt c true) (AllFunctions.fold AllFunctions.add env fs) x
       
     | Basic (Assignment {assign_left = x; assign_right = (ProtoF (e1, e2))}) -> 
       Printf.printf "Execute protoField \n";
@@ -265,7 +266,7 @@ let rec execute_stmt f sg cfg fs env snode_id cmd_st_tbl =
         
     | Sugar s -> 
       begin match s with
-        | SpecFunction (x, sf, l) -> symbexec_call (execute_spec_func_call_stmt sf) env x      
+        | SpecFunction (x, sf, l) -> symbexec_call (execute_spec_func_call_stmt sf) spec_env x      
         | If _ -> raise (Invalid_argument "Symbolic execution does not work on syntactic sugar")
       end
 
@@ -286,7 +287,7 @@ let get_posts fb cfg sg cmd_st_tbl =
   
 (* returns a state graph *)
 (*         and a map cfg_node -> state_node list*)
-let execute f cfg fs env spec =
+let execute f cfg fs spec_env spec =
   let label_map = get_all_labels cfg in (* Something not right in the interface *)
   
   let start = Hashtbl.find label_map (f.func_ctx.label_entry) in
@@ -302,18 +303,20 @@ let execute f cfg fs env spec =
   
   Hashtbl.add cmd_st_tbl start first;
   
+  let env = Environment.get_env() in
+  
   try 
-    execute_stmt f sg cfg fs env first cmd_st_tbl;
+    execute_stmt f sg cfg fs env spec_env first cmd_st_tbl;
     sg, cmd_st_tbl 
   with SymExecException msg -> 
     raise (SymExecExcepWithGraph (msg, sg))
   
   
-let execute_check_post f cfg fs env spec =
-  let sg, cmd_st_tbl = execute f cfg fs env spec in
+let execute_check_post f cfg fs spec_env spec =
+  let sg, cmd_st_tbl = execute f cfg fs spec_env spec in
   let posts, throw_posts = get_posts f cfg sg cmd_st_tbl in
   List.for_all (fun post -> CoreStar_Frontend_Pulp.implies_or_list (simplify post) spec.spec_post) posts
   
-let execute_all (f : function_block) (fs : function_block AllFunctions.t) env = 
+let execute_all (f : function_block) (fs : function_block AllFunctions.t) spec_env = 
   let cfg = fb_to_cfg f in
-  List.iter (fun spec -> ignore (execute f cfg fs env spec)) f.func_spec
+  List.iter (fun spec -> ignore (execute f cfg fs spec_env spec)) f.func_spec
