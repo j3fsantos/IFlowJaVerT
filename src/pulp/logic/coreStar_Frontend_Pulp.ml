@@ -218,6 +218,7 @@ let args_to_bloc args =
         | "lg", [] -> Lg
         | "lop", [] -> Lop
         | "lbp", [] -> Lbp
+        | "lsp", [] -> Lsp
         | "lfp", [] -> Lfp
         | "leval", [] -> LEval
         | "lrep", [] -> Lrep
@@ -259,6 +260,7 @@ let rec args_to_le (lvarmap : variable_types LVarMap.t) arg =
         | "lg", [] 
         | "lop", []
         | "lbp", [] 
+        | "lsp", []
         | "lfp", []
         | "ltep", []
         | "lrep", []
