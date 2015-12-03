@@ -119,6 +119,11 @@ rule type_of_lt_obj_number_contr :
 if
 
 
+rule type_of_lt_obj_field_contr :
+| false()=builtin_lt(type_of(?x), ObjectType()) * field(?x,?y,?v) |-
+if
+
+
 rule type_of_obj_nobj_contr :
   | type_of(?x)=ObjectType() * type_of(?x)=NObjectType() |- 
 if

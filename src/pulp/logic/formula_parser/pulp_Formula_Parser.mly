@@ -56,6 +56,7 @@
 %token FALSE
 %token LG
 %token LOBJECT
+%token LBOOLEAN
 %token LSTRING
 %token LOP
 %token LFP
@@ -110,6 +111,7 @@ location:
   | LREP     { Lrep }
   | LTEP     { Ltep }
   | LOBJECT    { LObject }
+  | LBOOLEAN   { LBoolean }
   | LOBJECT    { LString }
 ;
 

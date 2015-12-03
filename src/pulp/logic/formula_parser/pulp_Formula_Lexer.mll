@@ -46,6 +46,7 @@ rule token = parse
   | '<'                 { LT }
   | "#GlobalObject"     { LG }
   | "#LObject"          { LOBJECT }
+  | "#LBoolean"          { LBOOLEAN }
   | "#LString"          { LSTRING }
   | "#ObjectPrototype"  { LOP }
   | "#FunctionPrototype"{ LFP }
@@ -84,6 +85,7 @@ rule token = parse
   | "#scope"            { STRING "#scope" }
   | "#class"            { STRING "#class" }
   | "#object_construct"  { STRING "#object_construct" }
+  | "#boolean_construct"  { STRING "#boolean_construct" }
   | "#string_call"  { STRING "#string_call" }
   | '?' id as n         { LE_VAR (Pulp_Logic.AVar (String.tail n 1)) }
   | '_' id as n         { LE_VAR (Pulp_Logic.EVar (String.tail n 1)) }

@@ -84,6 +84,12 @@ rule false_not_none :
 without false() !=none()
 if
  | |-
+ 
+rule type_of_true :
+  | |- type_of(true()) = BooleanType()
+without type_of(true()) = BooleanType()
+if
+ | |- 
 
  /* TODO: Implement negation properly */
 rewrite not_undefined_none : 
