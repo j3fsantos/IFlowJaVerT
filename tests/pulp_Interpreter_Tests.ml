@@ -862,6 +862,13 @@ catch(ex1){
 }
 ") (VHValue (HVLiteral (Num 1.0))) 
 
+let test_S8_7_A4 () =
+  test_template_normal ("
+    var item = new String('test');
+    var itemRef = item;
+    item += 'ing';"
+    ) (VHValue (HVLiteral (String "testing"))) 
+
 let suite = "Testing_Interpreter" >:::
   [
 		(*"test_program_switch_aux" >:: test_program_switch_aux;*)
@@ -999,5 +1006,6 @@ let suite = "Testing_Interpreter" >:::
     "test_negative_nan" >:: test_negative_nan;
     "test_11_2_1_A1_2" >:: test_11_2_1_A1_2;
     "test_S12_14_A10_T3" >:: test_S12_14_A10_T3;
+    "test_S8_7_A4" >:: test_S8_7_A4;
     (*"test_" >:: test_*) 
     ] 

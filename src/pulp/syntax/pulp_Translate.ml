@@ -81,38 +81,22 @@ let tr_propname pn : string =
   | Parser_syntax.PropnameId s -> s
   | Parser_syntax.PropnameString s -> s
   | Parser_syntax.PropnameNum f -> string_of_float f
-         
-let translate_to_number_bin_op f op e1 e2 ctx =
-  let r1_stmts, r1 = f e1 in
-  let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
-  let r3_stmts, r3 = f e2 in
-  let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
+
+let translate_to_number_bin_op op r2 r4 ctx =
   let r5_stmts, r5 = spec_func_call (ToNumber (Var r2)) ctx in
   let r6_stmts, r6 = spec_func_call (ToNumber (Var r4)) ctx in 
-  let r7 = mk_assign_fresh_e (BinOp (Var r5, tr_bin_op op, Var r6)) in
-    r1_stmts @ 
-    r2_stmts @ 
-    r3_stmts @ 
-    r4_stmts @ 
+  let r7 = mk_assign_fresh_e (BinOp (Var r5, tr_arith_op op, Var r6)) in
     r5_stmts @
     r6_stmts @
     [Basic (Assignment r7)],
     r7.assign_left
         
-let translate_bitwise_bin_op f op e1 e2 ctx =
-  let r1_stmts, r1 = f e1 in
-  let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
-  let r3_stmts, r3 = f e2 in
-  let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
+let translate_bitwise_bin_op op r2 r4 ctx =
   let r2_to_number, r2_number = spec_func_call (ToNumber (Var r2)) ctx in
   let r4_to_number, r4_number = spec_func_call (ToNumber (Var r4)) ctx in
   let r5 = mk_assign_fresh_e (UnaryOp (ToInt32Op, Var r2_number)) in
   let r6 = mk_assign_fresh_e (UnaryOp (ToInt32Op, Var r4_number)) in
-  let r7 = mk_assign_fresh_e (BinOp (Var r5.assign_left, tr_bin_op op, Var r6.assign_left)) in
-    r1_stmts @ 
-    r2_stmts @ 
-    r3_stmts @ 
-    r4_stmts @ 
+  let r7 = mk_assign_fresh_e (BinOp (Var r5.assign_left, tr_arith_op op, Var r6.assign_left)) in
     r2_to_number @
     r4_to_number @
     [Basic (Assignment r5);
@@ -121,20 +105,12 @@ let translate_bitwise_bin_op f op e1 e2 ctx =
     ],
     r7.assign_left
     
-let translate_bitwise_shift f op1 op2 op3 e1 e2 ctx = 
-  let r1_stmts, r1 = f e1 in
-  let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
-  let r3_stmts, r3 = f e2 in
-  let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
+let translate_bitwise_shift op1 op2 op3 r2 r4 ctx = 
   let r2_to_number, r2_number = spec_func_call (ToNumber (Var r2)) ctx in
   let r4_to_number, r4_number = spec_func_call (ToNumber (Var r4)) ctx in
   let r5 = mk_assign_fresh_e (UnaryOp (op1, Var r2_number)) in
   let r6 = mk_assign_fresh_e (UnaryOp (op2, Var r4_number)) in
   let r7 = mk_assign_fresh_e (BinOp (Var r5.assign_left, Bitwise op3, Var r6.assign_left)) in
-    r1_stmts @ 
-    r2_stmts @ 
-    r3_stmts @ 
-    r4_stmts @ 
     r2_to_number @
     r4_to_number @
     [Basic (Assignment r5);
@@ -211,11 +187,7 @@ let translate_not_equal_bin_op f op e1 e2 ctx =
      Basic (Assignment r2)
     ], r2.assign_left
     
-let translate_bin_op_plus f op e1 e2 ctx =
-  let r1_stmts, r1 = f e1 in
-  let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
-  let r3_stmts, r3 = f e2 in
-  let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
+let translate_bin_op_plus r2 r4 ctx =
   let r5_stmts, lprim = spec_func_call (ToPrimitive (Var r2, None)) ctx in
   let r6_stmts, rprim = spec_func_call (ToPrimitive (Var r4, None)) ctx in
   let r7_stmt, lstring = spec_func_call (ToStringPrim (Var lprim)) ctx in
@@ -224,10 +196,6 @@ let translate_bin_op_plus f op e1 e2 ctx =
   let r10_stmt, rnum = spec_func_call (ToNumberPrim (Var rprim)) ctx in
   let rv = fresh_r () in
   let assign_rv_expr e = Basic (Assignment (mk_assign rv (Expression e))) in
-    r1_stmts @ 
-    r2_stmts @ 
-    r3_stmts @ 
-    r4_stmts @
     r5_stmts @
     r6_stmts @
     [ Sugar (If (or_expr 
@@ -236,7 +204,6 @@ let translate_bin_op_plus f op e1 e2 ctx =
       r7_stmt @ r8_stmt @ [assign_rv_expr (BinOp (Var lstring, Concat, Var rstring))],
       r9_stmt @ r10_stmt @ [assign_rv_expr (BinOp (Var lnum, Arith Plus, Var rnum))]))
     ], rv
-  
    
 let translate_bin_op_logical f e1 e2 bop ctx =
   let op = tr_boolean_op bop in
@@ -828,19 +795,30 @@ let rec translate_exp ctx exp : statement list * variable =
                 
             end
           | Parser_syntax.Arith aop -> 
-            begin match aop with
-              | Parser_syntax.Plus -> translate_bin_op_plus f op e1 e2 ctx
-              | Parser_syntax.Minus
-              | Parser_syntax.Times
-              | Parser_syntax.Div 
-              | Parser_syntax.Mod -> translate_to_number_bin_op f op e1 e2 ctx
-						  | Parser_syntax.Ursh -> translate_bitwise_shift f ToUint32Op ToUint32Op UnsignedRightShift e1 e2 ctx
-						  | Parser_syntax.Lsh -> translate_bitwise_shift f ToInt32Op ToUint32Op LeftShift e1 e2 ctx
-						  | Parser_syntax.Rsh -> translate_bitwise_shift f ToInt32Op ToUint32Op SignedRightShift e1 e2 ctx
-						  | Parser_syntax.Bitand 
-						  | Parser_syntax.Bitor 
-						  | Parser_syntax.Bitxor -> translate_bitwise_bin_op f op e1 e2 ctx
-            end
+              let r1_stmts, r1 = f e1 in
+              let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
+              let r3_stmts, r3 = f e2 in
+              let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
+              let rest, rv =
+	            begin match aop with
+	              | Parser_syntax.Plus -> translate_bin_op_plus r2 r4 ctx
+	              | Parser_syntax.Minus
+	              | Parser_syntax.Times
+	              | Parser_syntax.Div 
+	              | Parser_syntax.Mod -> translate_to_number_bin_op aop r2 r4 ctx
+							  | Parser_syntax.Ursh -> translate_bitwise_shift ToUint32Op ToUint32Op UnsignedRightShift r2 r4 ctx
+							  | Parser_syntax.Lsh -> translate_bitwise_shift ToInt32Op ToUint32Op LeftShift r2 r4 ctx
+							  | Parser_syntax.Rsh -> translate_bitwise_shift ToInt32Op ToUint32Op SignedRightShift r2 r4 ctx
+							  | Parser_syntax.Bitand 
+							  | Parser_syntax.Bitor 
+							  | Parser_syntax.Bitxor -> translate_bitwise_bin_op aop r2 r4 ctx
+	            end in
+	            r1_stmts @ 
+	            r2_stmts @ 
+	            r3_stmts @ 
+	            r4_stmts @
+	            rest, rv
+            
           | Parser_syntax.Boolean bop -> 
             begin match bop with
               | Parser_syntax.And -> translate_bin_op_logical f e1 e2 bop ctx
@@ -898,15 +876,28 @@ let rec translate_exp ctx exp : statement list * variable =
 				  let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
 				  let r3_stmts, r3 = f e2 in
 				  let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx in
-				  let r5 = mk_assign_fresh_e (BinOp (Var r2, tr_bin_op (Parser_syntax.Arith aop), Var r4)) in
+                    
+          let r5_stmts, r5 = match aop with
+              | Parser_syntax.Plus -> translate_bin_op_plus r2 r4 ctx
+              | Parser_syntax.Minus
+              | Parser_syntax.Times
+              | Parser_syntax.Div 
+              | Parser_syntax.Mod -> translate_to_number_bin_op aop r2 r4 ctx
+              | Parser_syntax.Ursh -> translate_bitwise_shift ToUint32Op ToUint32Op UnsignedRightShift r2 r4 ctx
+              | Parser_syntax.Lsh -> translate_bitwise_shift ToInt32Op ToUint32Op LeftShift r2 r4 ctx
+              | Parser_syntax.Rsh -> translate_bitwise_shift ToInt32Op ToUint32Op SignedRightShift r2 r4 ctx
+              | Parser_syntax.Bitand 
+              | Parser_syntax.Bitor 
+              | Parser_syntax.Bitxor -> translate_bitwise_bin_op aop r2 r4 ctx in
+                 
           let field = mk_assign_fresh_e (Field (Var r1)) in
-          let putvalue_stmts, _ = spec_func_call (PutValue (Var r1 , Var r5.assign_left)) ctx in
+          let putvalue_stmts, _ = spec_func_call (PutValue (Var r1 , Var r5)) ctx in
 				    r1_stmts @ 
 				    r2_stmts @ 
 				    r3_stmts @
             r4_stmts @ 
+            r5_stmts @
 				    [
-             Basic (Assignment r5);
              Sugar (If (type_of_vref (Var r1),
 		          [Basic (Assignment field);
                Sugar (If (or_expr 
@@ -917,7 +908,7 @@ let rec translate_exp ctx exp : statement list * variable =
               ],
 		          []));] @
             putvalue_stmts,
-				    r5.assign_left
+				    r5
 
       | Parser_syntax.Comma (e1, e2) -> 
         let r1_stmts, r1 = f e1 in
