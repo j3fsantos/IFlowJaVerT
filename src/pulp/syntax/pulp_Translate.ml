@@ -998,7 +998,7 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
         stmts @ gamma_stmts @ ret_val_stmts, ret_def
 
       | Parser_syntax.AnnonymousFun _
-      | Parser_syntax.NamedFun _ -> raise (PulpInvalid ("Expected statement. Actual " ^ (Pretty_print.string_of_exp true exp)))
+      | Parser_syntax.NamedFun _ -> raise (PulpInvalid ("Expected statement not Function Declaration. Actual " ^ (Pretty_print.string_of_exp true exp)))
          (* If a function appears in the middle of a statement, it shall not be interpreted as an expression function, but as a function declaration *)
          (* NOTE in spec p.86 *)
          (* ... It is recommended that ECMAScript implementations either disallow this usage of FunctionDeclaration or issue a warning *)
