@@ -989,7 +989,7 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
         stmts @ gamma_stmts @ ret_val_stmts, ret_def
 
       | Parser_syntax.AnnonymousFun _
-      | Parser_syntax.NamedFun _ -> raise (PulpInvalid ("Expected statement. Actual " ^ (Pretty_print.string_of_exp true exp)))
+      | Parser_syntax.NamedFun _ -> raise (PulpInvalid ("Expected statement not Function Declaration. Actual " ^ (Pretty_print.string_of_exp true exp)))
          (* If a function appears in the middle of a statement, it shall not be interpreted as an expression function, but as a function declaration *)
          (* NOTE in spec p.86 *)
          (* ... It is recommended that ECMAScript implementations either disallow this usage of FunctionDeclaration or issue a warning *)
@@ -1291,54 +1291,45 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
         ], rv.assign_left
 
       (* Next TODO *) 
-  	| Parser_syntax.For (e1, e2, e3, e4) ->   
-				let r_init_none = fresh_r () in 
-				let r_test_none = fresh_r () in
-			  let r_incr_none = fresh_r () in  
-				let label1 = fresh_r () in
+      | Parser_syntax.For (e1, e2, e3, e4) ->
+        let r_init_none = fresh_r () in
+        let r_test_none = fresh_r () in
+        let r_incr_none = fresh_r () in
+        let label1 = fresh_r () in
         let continue = fresh_r () in
         let break = fresh_r () in
         let new_ctx = {ctx with
           label_continue = (("", continue) :: (List.map (fun l -> (l, continue)) labelset)) @ ctx.label_continue;
           label_break = (("", break) :: (List.map (fun l -> (l, break)) labelset)) @ ctx.label_break
         } in
-				let r1_stmts, _ = match e1 with 
-				   | None -> [ ], r_init_none (* Basic (Assignment (mk_assign r_init_none (Expression (Literal (Empty))))) *)
-					 | Some e -> translate_exp ctx e in
-					
-				let r21_stmts, r21 = match e2 with 
-				   | None -> [ Basic (Assignment (mk_assign r_test_none (Expression (Literal (Bool (true)))))) ], r_test_none 
-					 | Some e -> translate_exp ctx e in
-				
-				let r22_stmts, r22 = match e2 with
-				   | None -> [ ], r_test_none
-					 | Some e -> spec_func_call (GetValue (Var r21)) ctx in
-		    
-				let r23_stmts, r23 = match e2 with
-				   | None -> [ ], r_test_none
-					 | Some e -> spec_func_call (ToBoolean (Var r22)) ctx in
-					
-				let r3_stmts, _ = match e3 with 
-				   | None -> [ ], r_incr_none (* Basic (Assignment (mk_assign r_incr_none (Expression (Literal (Empty))))) *)
-					 | Some e -> translate_exp ctx e in
-							
-				let r4_stmts, r4 = translate_stmt new_ctx [] e4 in
-				
-				(* let r1 = mk_assign_fresh_lit (String "banana") in *)
-          r1_stmts @  
-					[ Label label1 ] @ 
-					r21_stmts @ r22_stmts @ r23_stmts @
-					[ Sugar (If (equal_bool_expr (Var r23) true,
-					  r4_stmts 
-						@
-						[ Label continue ]
-						@
-						r3_stmts
-						@
-					  [ Goto label1 ], 
-						[])) ] @
-				  [Label break], ret_def
-			
+        let r1_stmts, _ = match e1 with
+          | None -> [ ], r_init_none (* Basic (Assignment (mk_assign r_init_none (Expression (Literal (Empty))))) *)
+          | Some e -> f e in
+
+        let r21_stmts, r21 = match e2 with
+          | None -> [ Basic (Assignment (mk_assign r_test_none (Expression (Literal (Bool (true)))))) ], r_test_none
+          | Some e -> translate_exp ctx e in
+
+        let r22_stmts, r22 = match e2 with
+          | None -> [ ], r_test_none
+          | Some e -> spec_func_call (GetValue (Var r21)) ctx in
+
+        let r23_stmts, r23 = match e2 with
+          | None -> [ ], r_test_none
+          | Some e -> spec_func_call (ToBoolean (Var r22)) ctx in
+
+        let r3_stmts, _ = match e3 with 
+          | None -> [ ], r_incr_none (* Basic (Assignment (mk_assign r_incr_none (Expression (Literal (Empty))))) *)
+          | Some e -> translate_exp ctx e in
+
+        let r4_stmts, r4 = translate_stmt new_ctx [] e4 in
+          (* let r1 = mk_assign_fresh_lit (String "banana") in *)
+          r1_stmts @ [ Label label1 ] @ r21_stmts @ r22_stmts @ r23_stmts @ [
+            Sugar (If (equal_bool_expr (Var r23) true,
+                       r4_stmts @ [ Label continue ] @ r3_stmts @ [ Goto label1 ],
+                       []
+          ))] @ [Label break], ret_def
+
 			| Parser_syntax.Switch 	(e, xs) -> 
 				(* print_string "Started to switch \n";*)
 			  let r_test_stmts1, r_test1 = translate_exp ctx e in

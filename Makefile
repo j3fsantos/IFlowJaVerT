@@ -1,5 +1,6 @@
 default:
 	ocamlbuild -verbose 1 -use-ocamlfind src/pulp/interpreter/interpreter_run.byte
+	ocamlbuild -verbose 1 -use-ocamlfind src/pulp/interpreter/interpreter_run.d.byte
 	ocamlbuild -verbose 1 -use-ocamlfind src/pulp/interpreter/interpreter_run.native
 
 init:
