@@ -1311,8 +1311,11 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
         } in
         let r1_stmts, _ = match e1 with
           | None -> [ ], r_init_none (* Basic (Assignment (mk_assign r_init_none (Expression (Literal (Empty))))) *)
-          | Some e -> f e in
-
+          | Some e ->  
+            begin match e.Parser_syntax.exp_stx with
+              | Parser_syntax.VarDec _ -> f e
+              | _ -> translate_exp ctx e
+            end in
         let r21_stmts, r21 = match e2 with
           | None -> [ Basic (Assignment (mk_assign r_test_none (Expression (Literal (Bool (true)))))) ], r_test_none
           | Some e -> translate_exp ctx e in
