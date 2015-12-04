@@ -307,7 +307,7 @@ get_all_functions_with_env_in_stmt env e =
       | Continue _ 
       | Break _ -> []
       | Label (_, e) -> f e       
-      | For (e1, e2, e3, e4) -> (feo e1) @ (feo e2) @ (feo e3) @ (f e4) 
+      | For (e1, e2, e3, e4) -> (fo e1) @ (feo e2) @ (feo e3) @ (f e4)
       | Switch (e1, sces) -> (fe e1) @ flat_map (fun (sc, e2) -> 
         (match sc with
           | DefaultCase -> []
