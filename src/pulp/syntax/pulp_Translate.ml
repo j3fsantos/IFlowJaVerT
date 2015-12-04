@@ -1037,7 +1037,7 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
         let break = "break" ^ (fresh_r ()) in
         let new_ctx = {ctx with
           label_continue = (("", continue) :: (List.map (fun l -> (l, continue)) labelset)) @ ctx.label_continue;
-          label_break = (("", break) :: (List.map (fun l -> (l, break)) labelset)) @ ctx.label_break
+          label_break = ("", break) :: ctx.label_break
         } in
         let r3_stmts, r3 = translate_stmt new_ctx [] e2 in
         let to_boolean, r4 = spec_func_call (ToBoolean (Var r2)) ctx in
@@ -1061,7 +1061,7 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
         let break = fresh_r () in
         let new_ctx = {ctx with
           label_continue = (("", continue) :: (List.map (fun l -> (l, continue)) labelset)) @ ctx.label_continue;
-          label_break = (("", break) :: (List.map (fun l -> (l, break)) labelset)) @ ctx.label_break
+          label_break = ("", break) :: ctx.label_break
         } in
         let r3_stmts, r3 = translate_stmt new_ctx [] e1 in
         let r1_stmts, r1 = translate_exp ctx e2 in
@@ -1269,7 +1269,14 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
         [ Basic (Assignment (mk_assign ctx.throw_var (Expression (Var r2))));
           Goto ctx.label_throw], r2
           
-      | Parser_syntax.Label (l, t) -> translate_stmt ctx (l::labelset) t
+      | Parser_syntax.Label (l, t) -> 
+        let break = "break" ^ (fresh_r ()) in
+        let new_ctx = {ctx with
+          label_break = (l , break) :: ctx.label_break
+        } in
+        
+        let stmts, rv = translate_stmt new_ctx (l::labelset) t in
+        stmts @ [Label break], rv
       
       | Parser_syntax.Continue l -> 
         let rv = mk_assign_fresh_e (Literal Empty) in
@@ -1300,7 +1307,7 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
         let break = fresh_r () in
         let new_ctx = {ctx with
           label_continue = (("", continue) :: (List.map (fun l -> (l, continue)) labelset)) @ ctx.label_continue;
-          label_break = (("", break) :: (List.map (fun l -> (l, break)) labelset)) @ ctx.label_break
+          label_break = ("", break) :: ctx.label_break
         } in
         let r1_stmts, _ = match e1 with
           | None -> [ ], r_init_none (* Basic (Assignment (mk_assign r_init_none (Expression (Literal (Empty))))) *)

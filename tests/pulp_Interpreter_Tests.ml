@@ -868,6 +868,17 @@ let test_S8_7_A4 () =
     var itemRef = item;
     item += 'ing';"
     ) (VHValue (HVLiteral (String "testing"))) 
+    
+let test_12_6_1_A4_T5 () =
+  test_template_normal ("var i=0;
+woohoo:{ 
+  do{
+    i++;
+    if ( ! (i < 10) ) {
+      break woohoo;
+    }
+  } while ( true );
+}") (VHValue (HVLiteral (Num 9.0))) 
 
 let suite = "Testing_Interpreter" >:::
   [
@@ -1007,5 +1018,6 @@ let suite = "Testing_Interpreter" >:::
     "test_11_2_1_A1_2" >:: test_11_2_1_A1_2;
     "test_S12_14_A10_T3" >:: test_S12_14_A10_T3;
     "test_S8_7_A4" >:: test_S8_7_A4;
+    "test_12_6_1_A4_T5" >:: test_12_6_1_A4_T5
     (*"test_" >:: test_*) 
     ] 
