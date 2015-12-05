@@ -48,12 +48,15 @@ let debugPrint (s:string) =
 let is_int (f : float) : bool =
   f -. floor f < Float.epsilon
   
-let float_to_string_inner n = (* TODO *)
+let rec float_to_string_inner n = (* TODO *)
   let string_of_number n =
     let inum = int_of_float n in
-    if (float_of_int inum = n) then string_of_int inum else string_of_float n in
+    if (float_of_int inum = n) then string_of_int inum
+    else if n > 1e+9 && n < 1e+21 then Printf.sprintf "%.0f" n
+    else string_of_float n in
   if Float.is_nan n then "NaN"
   else if n = 0.0 or n = -0.0 then "0"
   else if n = Float.infinity then "Infinity"
+  else if n < 0. then "-" ^ (float_to_string_inner (-. n))
   else string_of_number n
     
