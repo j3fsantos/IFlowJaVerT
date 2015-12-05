@@ -435,7 +435,6 @@ let builtin_lsp_toString_valueOf () =
     ] in    
   make_function_block Procedure_Builtin (string_of_builtin_function String_Prototype_valueOf) body [rthis; rscope] ctx
 
-
 let get_env () =
   let context = AllFunctions.empty in
   

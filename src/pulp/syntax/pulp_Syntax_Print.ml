@@ -83,11 +83,20 @@ let string_of_builtin_loc l =
     | Lnp -> "#lnp"
     | Lnp_toString -> "#lnp_toString"
     | Lnp_valueOf -> "#lnp_valueOf"
+    | LMath -> "#lmath"
     | LString -> "#lstring"
     | Lsp -> "#lsp"
     | Lsp_toString -> "#lsp_toString"
     | Lsp_valueOf -> "#lsp_valueOf"
+    | LArray -> "#larray"
+    | LArrayp -> "#larrayp"
+    | LDate -> "#ldate"
+    | Ldp -> "#ldp"
+    | LRegExp -> "#lregexp"
+    | LRegExpP -> "#lregexpp"
+    | LJSON -> "#ljson"
     | LNotImplemented f -> "#lnotimplemented_" ^ (string_of_feature f)
+    | LStub s -> "#lstub##" ^ s
 
 let string_of_builtin_loc_no_hash l =
   let s = string_of_builtin_loc l in
@@ -105,7 +114,7 @@ let string_of_builtin_function f =
     | Object_Construct -> "#object_construct"
     | Object_Prototype_toString -> "#object_prototype_to_string"
     | Object_Prototype_valueOf -> "#object_prototype_value_of"
-    | Object_Prototype_isPrototypeOf -> "#object_prototype_is_prototype_of" 
+    | Object_Prototype_isPrototypeOf -> "#object_prototype_is_prototype_of"
     | Object_getPrototypeOf -> "#object_get_prototype_of"
     | Number_Call -> "#number_call"
     | Number_Construct -> "#number_construct"
@@ -122,6 +131,7 @@ let string_of_builtin_function f =
     | Function_Call -> "#function_call"
     | Function_Construct -> "#function_construct"
     | Function_Prototype_Call -> "#function_protottype_call"
+    | Not_Implemented_Stub s -> "#not_implemented_stub##" ^ s
 
 let string_of_var x = x
 

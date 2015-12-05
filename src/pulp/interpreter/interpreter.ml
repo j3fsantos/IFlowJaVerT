@@ -536,15 +536,27 @@ let add_field h l f v =
   let obj = Heap.find l h in
   let obj = Object.add f v obj in
   Heap.add l obj h
-    
+
+let add_stub_function h parent field =
+  let fl = LStub field in
+  let h = built_in_obj_proto_lfp h fl in
+  let str = string_of_builtin_function (Not_Implemented_Stub field) in
+  let h = add_field h (BLoc fl) (string_of_builtin_field FClass) (HVLiteral (String str)) in
+  let h = add_field h (BLoc fl) (string_of_builtin_field FId) (HVLiteral (String str)) in
+  add_field h (BLoc parent) field (HVObj (BLoc fl))
+
+let fold_add_stub_function h parent = List.fold_left ((flip add_stub_function) parent) h
+
 let initial_heap () =
   let h = Heap.empty in
   let lop = Object.add (string_of_builtin_field FProto) (HVLiteral Null) Object.empty in
   let h = Heap.add (BLoc Lop) lop h in
   (* Do I want Error object too? Rather then going directly to Lop for errors *)
-  let h = List.fold_left built_in_obj_proto_lop h [Lg; Lfp; LEval; LRError; LSError; 
+  let h = List.fold_left built_in_obj_proto_lop h [Lg; Lfp; LEval; LRError; LSError;
+    LMath; Ldp; LRegExpP; LArrayp; LJSON;
     LNotImplemented GetValuePrim; LNotImplemented ToNumber; LNotImplemented ToString; Lbp; Lnp; Lsp; Lep] in
   let h = List.fold_left built_in_obj_proto_lfp h [LObject; LFunction; LBoolean; LNumber; LString; LError; LTError; Lop_toString; Lop_valueOf; Lop_isPrototypeOf; 
+    LRegExp; LDate; LArray;
     LObjectGetPrototypeOf; Lbp_toString; Lbp_valueOf; Lnp_toString; Lnp_valueOf; Lsp_toString; Lsp_valueOf; LEval; Lg_isNaN; Lg_isFinite] in
     
   let h = add_field h (BLoc Lop) (string_of_builtin_field FClass) (HVLiteral (String "Object")) in
@@ -558,6 +570,9 @@ let initial_heap () =
   let h = add_field h (BLoc Lop_isPrototypeOf) "length" (HVLiteral (Num 1.)) in
   let h = add_field h (BLoc Lop) "isPrototypeOf" (HVObj (BLoc Lop_isPrototypeOf)) in
   let h = add_field h (BLoc Lop) ("constructor") (HVObj (BLoc LObject)) in
+  let h = add_stub_function h Lop "toLocaleString" in
+  let h = add_stub_function h Lop "hasOwnProperty" in
+  let h = add_stub_function h Lop "propertyIsEnumerable" in
     
   let h = add_field h (BLoc Lg) "eval" (HVObj (BLoc LEval)) in
   let h = add_field h (BLoc Lg) "undefined" (HVLiteral Undefined) in
@@ -571,6 +586,8 @@ let initial_heap () =
   let h = add_field h (BLoc Lg_isFinite) "length" (HVLiteral (Num 1.)) in
   let h = add_field h (BLoc LEval) (string_of_builtin_field FId) (HVLiteral (String ("eval"))) in
   let h = add_field h (BLoc LEval) "length" (HVLiteral (Num 1.)) in
+  let h = fold_add_stub_function h Lg
+    ["parseInt"; "parseFloat"; "decodeURI"; "decodeURIComponent"; "encodeURI"; "encodeURIComponent"] in
   
   let h = add_field h (BLoc Lg) "Object" (HVObj (BLoc LObject)) in
   let h = add_field h (BLoc LObject) (string_of_builtin_field FClass) (HVLiteral (String "Function")) in
@@ -581,6 +598,9 @@ let initial_heap () =
   let h = add_field h (BLoc LObjectGetPrototypeOf) "length" (HVLiteral (Num 1.)) in
   let h = add_field h (BLoc LObject) "length" (HVLiteral (Num 1.)) in
   let h = add_field h (BLoc LObject) (string_of_builtin_field FPrototype) (HVObj (BLoc Lop)) in
+  let h = fold_add_stub_function h LObject
+    ["getOwnPropertyDescriptor"; "getOwnPropertyNames"; "create"; "defineProperty"; "defineProperties"; "seal"; "freeze";
+    "preventExtensions"; "isSealed"; "isFrozen"; "isExtensible"; "keys"] in
   
   let h = add_field h (BLoc Lg) "Function" (HVObj (BLoc LFunction)) in
   let h = add_field h (BLoc LFunction) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Function_Call))) in
@@ -593,6 +613,21 @@ let initial_heap () =
   let h = add_field h (BLoc Lfp) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Function_Prototype_Call))) in
   let h = add_field h (BLoc Lfp) "length" (HVLiteral (Num 0.)) in
   let h = add_field h (BLoc Lfp) ("constructor") (HVObj (BLoc LFunction)) in
+  let h = add_stub_function h Lfp "toString" in (* FIXME: I thought we had an implementation for this?? *)
+  let h = fold_add_stub_function h Lfp ["apply"; "call"; "bind"] in
+
+  let h = add_field h (BLoc Lg) "Array" (HVObj (BLoc LArray)) in
+  let h = add_field h (BLoc LArray) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function (Not_Implemented_Stub "Array#call")))) in
+  let h = add_field h (BLoc LArray) (string_of_builtin_field FConstructId) (HVLiteral (String (string_of_builtin_function (Not_Implemented_Stub "Array#construct")))) in
+  let h = add_field h (BLoc LArray) (string_of_builtin_field FClass) (HVLiteral (String "Function")) in
+  let h = add_field h (BLoc LArray) "length" (HVLiteral (Num 1.)) in
+  let h = add_field h (BLoc LArray) (string_of_builtin_field FPrototype) (HVObj (BLoc LArrayp)) in
+  let h = add_stub_function h LArray "isArray" in
+  let h = add_field h (BLoc LArrayp) (string_of_builtin_field FClass) (HVLiteral (String "Array")) in
+  let h = add_field h (BLoc LArrayp) ("constructor") (HVObj (BLoc LArray)) in
+  let h = fold_add_stub_function h LArrayp
+    ["toString"; "toLocaleString"; "concat"; "join"; "pop"; "push"; "reverse"; "shift"; "slice"; "sort"; "splice";
+     "unshift"; "indexOf"; "lastIndexOf"; "every"; "some"; "forEach"; "map"; "filter"; "reduce"; "reduceRight"] in
   
   let h = add_field h (BLoc Lg) "Boolean" (HVObj (BLoc LBoolean)) in
   let h = add_field h (BLoc LBoolean) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Boolean_Call))) in
@@ -631,15 +666,29 @@ let initial_heap () =
   let h = add_field h (BLoc Lnp_valueOf) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Number_Prototype_valueOf))) in 
   let h = add_field h (BLoc Lnp_valueOf) "length" (HVLiteral (Num 0.)) in
   let h = add_field h (BLoc Lnp) "valueOf" (HVObj (BLoc Lnp_valueOf)) in
-  
+  let h = fold_add_stub_function h Lnp ["toLocaleString"; "toFixed"; "toExponential"; "toPrecision"] in
+
+  let h = add_field h (BLoc Lg) "Math" (HVObj (BLoc LMath)) in
+  let h = add_field h (BLoc LMath) (string_of_builtin_field FClass) (HVLiteral (String "Math")) in
+  let h = add_field h (BLoc LMath) "E"       (HVLiteral (Num BatFloat.e)) in
+  let h = add_field h (BLoc LMath) "LN10"    (HVLiteral (Num BatFloat.ln10)) in
+  let h = add_field h (BLoc LMath) "LN2"     (HVLiteral (Num BatFloat.ln2)) in
+  let h = add_field h (BLoc LMath) "LOG2E"   (HVLiteral (Num BatFloat.log2e)) in
+  let h = add_field h (BLoc LMath) "LOG10E"  (HVLiteral (Num BatFloat.log10e)) in
+  let h = add_field h (BLoc LMath) "SQRT1_2" (HVLiteral (Num (sqrt (1. /. 2.)))) in
+  let h = add_field h (BLoc LMath) "SQRT2"   (HVLiteral (Num BatFloat.sqrt2)) in
+  let h = fold_add_stub_function h LMath
+    ["abs"; "acos"; "asin"; "atan"; "atan2"; "ceil"; "cos"; "exp"; "floor"; "log"; "max";
+     "min"; "pow"; "random"; "round"; "sin"; "sqrt"; "tan"] in
+
   let h = add_field h (BLoc Lg) "String" (HVObj (BLoc LString)) in
   let h = add_field h (BLoc LString) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function String_Call))) in
   let h = add_field h (BLoc LString) "length" (HVLiteral (Num 1.)) in
   let h = add_field h (BLoc LString) (string_of_builtin_field FConstructId) (HVLiteral (String (string_of_builtin_function String_Construct))) in
   let h = add_field h (BLoc LString) (string_of_builtin_field FPrototype) (HVObj (BLoc Lsp)) in
   let h = add_field h (BLoc LString) (string_of_builtin_field FClass) (HVLiteral (String "Function")) in
+  let h = add_stub_function h LString "fromCharCode" in
 
-  
   let h = add_field h (BLoc Lsp) (string_of_builtin_field FClass) (HVLiteral (String "String")) in
   let h = add_field h (BLoc Lsp) (string_of_builtin_field FPrimitiveValue) (HVLiteral (String "")) in
   let h = add_field h (BLoc Lsp) ("constructor") (HVObj (BLoc LString)) in
@@ -649,7 +698,40 @@ let initial_heap () =
   let h = add_field h (BLoc Lsp_valueOf) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function String_Prototype_valueOf))) in 
   let h = add_field h (BLoc Lsp_valueOf) "length" (HVLiteral (Num 0.)) in
   let h = add_field h (BLoc Lsp) "valueOf" (HVObj (BLoc Lsp_valueOf)) in
-  
+  let h = fold_add_stub_function h Lsp
+    ["charAt"; "charCodeAt"; "concat"; "indexOf"; "lastIndexOf"; "localeCompare"; "match"; "replace"; "search";
+     "slice"; "split"; "substring"; "toLowerCase"; "toLocaleLowerCase"; "toUpperCase"; "toLocaleUpperCase"; "trim"] in
+
+  let h = add_field h (BLoc Lg) "Date" (HVObj (BLoc LDate)) in
+  let h = add_field h (BLoc LDate) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function (Not_Implemented_Stub "Date#call")))) in
+  let h = add_field h (BLoc LDate) (string_of_builtin_field FConstructId) (HVLiteral (String (string_of_builtin_function (Not_Implemented_Stub "Date#construct")))) in
+  let h = add_field h (BLoc LDate) (string_of_builtin_field FClass) (HVLiteral (String "Function")) in
+  let h = add_field h (BLoc LDate) "length" (HVLiteral (Num 7.)) in
+  let h = add_field h (BLoc LDate) (string_of_builtin_field FPrototype) (HVObj (BLoc Ldp)) in
+  let h = add_stub_function h LDate "parse" in
+  let h = add_stub_function h LDate "UTC" in
+  let h = add_stub_function h LDate "now" in
+  let h = add_field h (BLoc Ldp) (string_of_builtin_field FClass) (HVLiteral (String "Date")) in
+  let h = add_field h (BLoc Ldp) ("constructor") (HVObj (BLoc LDate)) in
+  let h = fold_add_stub_function h Ldp
+    ["toString"; "toDateString"; "toTimeString"; "toLocaleString";
+     "toLocaleDateString"; "toLocaleTimeString"; "valueOf"; "getTime"; "getFullYear"; "getUTCFullYear"; "getMonth";
+     "getUTCMonth"; "getDate"; "getUTCDate"; "getDay"; "getUTCDay"; "getHours"; "getUTCHours"; "getMinutes";
+     "getUTCMinutes"; "getSeconds"; "getUTCSeconds"; "getMilliseconds"; "getUTCMilliseconds"; "getTimezoneOffset";
+     "setTime"; "setMilliseconds"; "setUTCMilliseconds"; "setSeconds"; "setUTCSeconds"; "setMinutes"; "setUTCMinutes";
+     "setHours"; "setUTCHours"; "setDate"; "setUTCDate"; "setMonth"; "setUTCMonth"; "setFullYear"; "setUTCFullYear";
+     "toUTCString"; "toISOString"; "toJSON"] in
+
+  let h = add_field h (BLoc Lg) "RegExp" (HVObj (BLoc LRegExp)) in
+  let h = add_field h (BLoc LRegExp) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function (Not_Implemented_Stub "RegExp#call")))) in
+  let h = add_field h (BLoc LRegExp) (string_of_builtin_field FConstructId) (HVLiteral (String (string_of_builtin_function (Not_Implemented_Stub "RegExp#construct")))) in
+  let h = add_field h (BLoc LRegExp) (string_of_builtin_field FClass) (HVLiteral (String "Function")) in
+  let h = add_field h (BLoc LRegExp) "length" (HVLiteral (Num 2.)) in
+  let h = add_field h (BLoc LRegExp) (string_of_builtin_field FPrototype) (HVObj (BLoc LRegExpP)) in
+  let h = add_field h (BLoc LRegExpP) (string_of_builtin_field FClass) (HVLiteral (String "RegExp")) in
+  let h = add_field h (BLoc LRegExpP) ("constructor") (HVObj (BLoc LRegExp)) in
+  let h = fold_add_stub_function h LRegExpP ["exec"; "test"; "toString"] in
+
   let h = add_field h (BLoc Lg) "Error" (HVObj (BLoc LError)) in
   let h = add_field h (BLoc LError) "length" (HVLiteral (Num 1.)) in
   let h = add_field h (BLoc LError) (string_of_builtin_field FPrototype) (HVObj (BLoc Lep)) in
@@ -684,6 +766,10 @@ let initial_heap () =
 
   let h = add_field h (BLoc Lep) "name" (HVLiteral (String "Error")) in
   let h = add_field h (BLoc Lep) "message" (HVLiteral (String "")) in
+
+  let h = add_field h (BLoc Lg) "JSON" (HVObj (BLoc LJSON)) in
+  let h = add_field h (BLoc LJSON) (string_of_builtin_field FClass) (HVLiteral (String "JSON")) in
+  let h = fold_add_stub_function h LJSON ["parse"; "stringify"] in
   h
   
 let run_with_heap h (fs : function_block AllFunctions.t) (env : function_block AllFunctions.t) : function_state =

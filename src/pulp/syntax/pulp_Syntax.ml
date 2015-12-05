@@ -32,11 +32,20 @@ type builtin_loc =
   | Lnp 
   | Lnp_toString 
   | Lnp_valueOf 
+  | LMath
   | LString 
   | Lsp 
   | Lsp_toString 
-  | Lsp_valueOf 
+  | Lsp_valueOf
+  | LArray
+  | LArrayp
+  | LDate
+  | Ldp
+  | LRegExp
+  | LRegExpP
+  | LJSON
   | LNotImplemented of feature (* The tool cannot handle this case atm *)
+  | LStub of string
 
 type builtin_function = 
   | Global_isNaN
@@ -66,6 +75,7 @@ type builtin_function =
   | Function_Call
   | Function_Construct
   | Function_Prototype_Call
+  | Not_Implemented_Stub of string
 
 type builtin_field =
   | FProto
@@ -279,4 +289,4 @@ type statement =
 and
 syntactic_sugar_statement =
   | If of expression * statement list * statement list 
-  | SpecFunction of variable * specification_function * label 
+  | SpecFunction of variable * specification_function * label
