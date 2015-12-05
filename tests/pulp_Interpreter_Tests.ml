@@ -862,6 +862,34 @@ catch(ex1){
 }
 ") (VHValue (HVLiteral (Num 1.0))) 
 
+let test_S8_7_A4 () =
+  test_template_normal ("
+    var item = new String('test');
+    var itemRef = item;
+    item += 'ing';"
+    ) (VHValue (HVLiteral (String "testing"))) 
+    
+let test_12_6_1_A4_T5 () =
+  test_template_normal ("var i=0;
+woohoo:{ 
+  do{
+    i++;
+    if ( ! (i < 10) ) {
+      break woohoo;
+    }
+  } while ( true );
+}") (VHValue (HVLiteral (Num 9.0))) 
+
+let test_S13_A7_T2 () =
+  test_template_normal ("var r; try{
+    eval('function __func(){/ ABC}');
+    r = 0;
+    } catch(e){
+    if(!(e instanceof SyntaxError)){
+      r = 1;
+    }
+    }") (VHValue (HVLiteral (Undefined))) 
+
 let suite = "Testing_Interpreter" >:::
   [
 		(*"test_program_switch_aux" >:: test_program_switch_aux;*)
@@ -999,5 +1027,8 @@ let suite = "Testing_Interpreter" >:::
     "test_negative_nan" >:: test_negative_nan;
     "test_11_2_1_A1_2" >:: test_11_2_1_A1_2;
     "test_S12_14_A10_T3" >:: test_S12_14_A10_T3;
+    "test_S8_7_A4" >:: test_S8_7_A4;
+    "test_12_6_1_A4_T5" >:: test_12_6_1_A4_T5;
+    "test_S13_A7_T2" >:: test_S13_A7_T2;
     (*"test_" >:: test_*) 
     ] 

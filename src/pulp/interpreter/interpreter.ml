@@ -372,22 +372,32 @@ let rec run_assign_expr (s : local_state) (e : assign_right_expression) ctx (fun
         | VHValue (HVLiteral (String s)) -> s
         | _ -> raise (InterpreterStuck ("Eval argument must be string", s.lscounter)) in
              
-     let exp = Parser_main.exp_from_string varg in  
-    
-     (* TODO update all_functions *)
-     let eval_main = fresh_named "eval" in
-    
-     (*Printf.printf "Env vars in Eval: %s" (String.concat "\n" (List.map (Pulp_Syntax_Print.string_of_ctx_vars) ctx.env_vars));*)
-     let pexp, penv = Pulp_Translate.exp_to_pulp Pulp_Translate.IVL_goto_unfold_functions exp eval_main ctx.env_vars in
-    
-     let funcs = AllFunctions.fold (fun key value result -> AllFunctions.add key value result) pexp funcs in
-      
-     let main = AllFunctions.find eval_main pexp in  
-   
-      let fs = run_function s.lsheap main ([vthis; vscope]) funcs env true in
-      begin match fs.fs_return_type with
-        | FTException -> {s with lsheap = fs.fs_heap; lsexcep = Some (c.call_throw_label)}, fs.fs_return_value
-        | FTReturn -> {s with lsheap = fs.fs_heap}, fs.fs_return_value
+     begin try       
+	     let exp = Parser_main.exp_from_string varg in  
+	    
+	     (* TODO update all_functions *)
+	     let eval_main = fresh_named "eval" in
+	    
+	     (*Printf.printf "Env vars in Eval: %s" (String.concat "\n" (List.map (Pulp_Syntax_Print.string_of_ctx_vars) ctx.env_vars));*)
+	     let pexp, penv = Pulp_Translate.exp_to_pulp Pulp_Translate.IVL_goto_unfold_functions exp eval_main ctx.env_vars in
+	    
+	     let funcs = AllFunctions.fold (fun key value result -> AllFunctions.add key value result) pexp funcs in
+	      
+	     let main = AllFunctions.find eval_main pexp in  
+	   
+	      let fs = run_function s.lsheap main ([vthis; vscope]) funcs env true in
+	      begin match fs.fs_return_type with
+	        | FTException -> {s with lsheap = fs.fs_heap; lsexcep = Some (c.call_throw_label)}, fs.fs_return_value
+	        | FTReturn -> {s with lsheap = fs.fs_heap}, fs.fs_return_value
+	      end
+     
+      with  | Parser.ParserFailure _ -> 
+        begin
+          let l = Loc (fresh_loc ()) in
+          let newobj = Object.add (string_of_builtin_field FClass) (HVLiteral (String "Error")) Object.empty in
+          let newobj = Object.add (string_of_builtin_field FProto) (HVObj (BLoc Lsep)) newobj in
+          {s with lsheap = Heap.add l newobj s.lsheap; lsexcep = Some (c.call_throw_label)}, VHValue (HVObj l)
+        end
       end
       
 	  | Obj -> 
@@ -759,7 +769,19 @@ let initial_heap () =
   let h = add_field h (BLoc Lrep) "name" (HVLiteral (String "ReferenceError")) in
   let h = add_field h (BLoc Lrep) "message" (HVLiteral (String "")) in
   let h = add_field h (BLoc Lrep) (string_of_builtin_field FClass) (HVLiteral (String "Error")) in
+  
+  let h = add_field h (BLoc Lg) "SyntaxError" (HVObj (BLoc LSError)) in
+  let h = add_field h (BLoc LSError) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function SyntaxError_Call))) in
+  let h = add_field h (BLoc LSError) "length" (HVLiteral (Num 1.)) in
+  let h = add_field h (BLoc LSError) (string_of_builtin_field FConstructId) (HVLiteral (String (string_of_builtin_function SyntaxError_Construct))) in
+  let h = add_field h (BLoc LSError) (string_of_builtin_field FPrototype) (HVObj (BLoc Lsep)) in
+  let h = add_field h (BLoc LSError) (string_of_builtin_field FClass) (HVLiteral (String "Function")) in
 
+  let lsep = Object.add (string_of_builtin_field FProto) (HVObj (BLoc Lep)) Object.empty in
+  let h = Heap.add (BLoc Lsep) lsep h in
+  let h = add_field h (BLoc Lsep) "name" (HVLiteral (String "SyntaxError")) in
+  let h = add_field h (BLoc Lsep) "message" (HVLiteral (String "")) in
+  let h = add_field h (BLoc Lsep) (string_of_builtin_field FClass) (HVLiteral (String "Error")) in
   
   let h = add_field h (BLoc Lep) (string_of_builtin_field FClass) (HVLiteral (String "Error")) in
   let h = add_field h (BLoc Lep) ("constructor") (HVObj (BLoc LError)) in
