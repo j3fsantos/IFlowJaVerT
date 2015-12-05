@@ -330,7 +330,7 @@ let translate_inc_dec f e op ctx =
                   (or_expr 
                   (equal_string_exprs (Field (Var r1)) "arguments") 
                   (equal_string_exprs (Field (Var r1)) "eval")), 
-      translate_error_throw LSError ctx.throw_var ctx.label_throw, 
+      translate_error_throw Lsep ctx.throw_var ctx.label_throw, 
       r2_stmts @  
       to_number_stmts @
       [Basic (Assignment newvalue)] @ 
@@ -624,7 +624,7 @@ let rec translate_exp ctx exp : statement list * variable =
         let rv = fresh_r () in
         let assign_rv_true = mk_assign rv (Expression (Literal (Bool true))) in
         let r4 = mk_assign_fresh_e (Base (Var r1)) in 
-        let gotothrow = translate_error_throw LSError ctx.throw_var ctx.label_throw in
+        let gotothrow = translate_error_throw Lsep ctx.throw_var ctx.label_throw in
         let r3 = mk_assign_fresh_e (Field (Var r1)) in      
         let r2 = mk_assign_fresh (HasField (Var r4.assign_left, Var r3.assign_left)) in
         (* TODO : Changes when we add attributes *)
@@ -903,7 +903,7 @@ let rec translate_exp ctx exp : statement list * variable =
                Sugar (If (or_expr 
                              (equal_string_expr (Var field.assign_left) "arguments") 
                              (equal_string_expr (Var field.assign_left) "eval"), 
-                 translate_error_throw LSError ctx.throw_var ctx.label_throw, 
+                 translate_error_throw Lsep ctx.throw_var ctx.label_throw, 
                  []))
               ],
 		          []));] @
