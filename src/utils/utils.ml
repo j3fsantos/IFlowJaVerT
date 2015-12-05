@@ -53,7 +53,10 @@ let rec float_to_string_inner n = (* TODO *)
     let inum = int_of_float n in
     if (float_of_int inum = n) then string_of_int inum
     else if n > 1e+9 && n < 1e+21 then Printf.sprintf "%.0f" n
-    else string_of_float n in
+    else if n < 0.1 && n > 1e-7 then Printf.sprintf "%f" n
+    else
+      let re = Str.regexp "e\\([-+]\\)0" in (* e+0 -> e+ *)
+      Str.replace_first re "e\\1" (string_of_float n) in
   if Float.is_nan n then "NaN"
   else if n = 0.0 or n = -0.0 then "0"
   else if n = Float.infinity then "Infinity"
