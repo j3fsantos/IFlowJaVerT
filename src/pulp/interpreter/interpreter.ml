@@ -612,6 +612,7 @@ let initial_heap () =
   let h = add_stub_function h Lop "hasOwnProperty" in
   let h = add_stub_function h Lop "propertyIsEnumerable" in
     
+  let h = add_field h (BLoc Lg) (string_of_builtin_field FClass) (HVLiteral (String "Global Object")) in
   let h = add_field h (BLoc Lg) "eval" (HVObj (BLoc LEval)) in
   let h = add_field h (BLoc Lg) "undefined" (HVLiteral Undefined) in
   let h = add_field h (BLoc Lg) "NaN" (HVLiteral (Num nan)) in
