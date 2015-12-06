@@ -38,12 +38,6 @@ type builtin_loc =
   | Lsp 
   | Lsp_toString 
   | Lsp_valueOf
-  | LArray
-  | LArrayp
-  | LDate
-  | Ldp
-  | LRegExp
-  | LRegExpP
   | LJSON
   | LNotImplemented of feature (* The tool cannot handle this case atm *)
   | LStub of string

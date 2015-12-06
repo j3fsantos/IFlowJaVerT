@@ -89,12 +89,6 @@ let string_of_builtin_loc l =
     | Lsp -> "#lsp"
     | Lsp_toString -> "#lsp_toString"
     | Lsp_valueOf -> "#lsp_valueOf"
-    | LArray -> "#larray"
-    | LArrayp -> "#larrayp"
-    | LDate -> "#ldate"
-    | Ldp -> "#ldp"
-    | LRegExp -> "#lregexp"
-    | LRegExpP -> "#lregexpp"
     | LJSON -> "#ljson"
     | LNotImplemented f -> "#lnotimplemented_" ^ (string_of_feature f)
     | LStub s -> "#lstub##" ^ s
