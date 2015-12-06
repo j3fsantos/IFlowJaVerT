@@ -12,6 +12,7 @@ default:
 	ocamlbuild -use-ocamlfind src/pulp/SJSIL/js2jsil_main.native
 
 init:
+	.git-hooks/install.sh .
 	cp src/localconfig.default src/localconfig.ml
 	cp config/config.default config/config.xml
 	git submodule update --init src/parser
