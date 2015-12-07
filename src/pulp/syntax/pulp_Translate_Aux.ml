@@ -128,7 +128,7 @@ let translate_inner_call obj vthis args throw_var label_throw env_vars =
   let eval_call = mk_assign rv (Eval (mk_call 
     (Var fid.assign_left) 
     (Var fscope_eval.assign_left) 
-    vthis
+    (Var rthis)
     [first_argument]
     excep_label)) in
         

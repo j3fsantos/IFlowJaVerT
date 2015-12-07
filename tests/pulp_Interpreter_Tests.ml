@@ -892,6 +892,11 @@ let test_S13_A7_T2 () =
     
 let test_get_prototyte_of_empty () =
   test_template_exception ("Object.getPrototypeOf()") Ltep
+  
+let test_eval_this () =
+  test_template_normal ("if (eval('this') !== this) {
+    throw 'This had incorrect value!';
+  }") (VHValue (HVLiteral (Undefined))) 
 
 let suite = "Testing_Interpreter" >:::
   [
@@ -1033,6 +1038,7 @@ let suite = "Testing_Interpreter" >:::
     "test_S8_7_A4" >:: test_S8_7_A4;
     "test_12_6_1_A4_T5" >:: test_12_6_1_A4_T5;
     "test_S13_A7_T2" >:: test_S13_A7_T2;
-    "test_get_prototyte_of_empty" >:: test_get_prototyte_of_empty
+    "test_get_prototyte_of_empty" >:: test_get_prototyte_of_empty;
+    "test_eval_this" >:: test_eval_this;
     (*"test_" >:: test_*) 
     ] 
