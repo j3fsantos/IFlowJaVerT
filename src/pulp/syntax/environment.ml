@@ -435,6 +435,26 @@ let builtin_lsp_toString_valueOf () =
     ] in    
   make_function_block Procedure_Builtin (string_of_builtin_function String_Prototype_valueOf) body [rthis; rscope] ctx
 
+let builtin_error_construct_call errorp func () =
+  let message = fresh_r () in
+  let ctx = create_ctx [] in
+  let new_obj = mk_assign_fresh Obj in
+  let stmts, m1 = spec_func_call (ToString (Var message)) ctx in
+  let body = to_ivl_goto_unfold [
+    Basic (Assignment new_obj);
+    add_proto_value new_obj.assign_left errorp;
+    Basic (Mutation (mk_mutation (Var new_obj.assign_left) (literal_builtin_field FClass) (Literal (String "Error"))));
+    Sugar (If (equal_empty_expr (Var message),
+      [],
+      stmts @ [Basic (Mutation (mk_mutation (Var new_obj.assign_left) (Literal (String "message")) (Var m1)))]
+    ));
+    Basic (Assignment (mk_assign ctx.return_var (Expression (Var new_obj.assign_left))));
+    Goto ctx.label_return;
+    Label ctx.label_return;
+    Label ctx.label_throw
+  ] in
+  make_function_block Procedure_Builtin (string_of_builtin_function func) body [rthis; rscope; message] ctx
+
 let get_env () =
   let context = AllFunctions.empty in
   
@@ -459,5 +479,12 @@ let get_env () =
   let context = AllFunctions.add (string_of_builtin_function Function_Prototype_Call) (builtin_lfp_call()) context in
   let context = AllFunctions.add (string_of_builtin_function Global_isNaN) (builtin_global_is_nan()) context in
   let context = AllFunctions.add (string_of_builtin_function Global_isFinite) (builtin_global_is_finite()) context in
+  let context = AllFunctions.add (string_of_builtin_function Error_Call_Construct) (builtin_error_construct_call Lep Error_Call_Construct ()) context in
+  let context = AllFunctions.add (string_of_builtin_function TypeError_Call_Construct) (builtin_error_construct_call Ltep TypeError_Call_Construct ()) context in
+  let context = AllFunctions.add (string_of_builtin_function ReferenceError_Call_Construct) (builtin_error_construct_call Lrep ReferenceError_Call_Construct ()) context in
+  let context = AllFunctions.add (string_of_builtin_function SyntaxError_Call_Construct) (builtin_error_construct_call Lsep SyntaxError_Call_Construct ()) context in
+  let context = AllFunctions.add (string_of_builtin_function EvalError_Call_Construct) (builtin_error_construct_call LEvalErrorP EvalError_Call_Construct ()) context in
+  let context = AllFunctions.add (string_of_builtin_function RangeError_Call_Construct) (builtin_error_construct_call LRangeErrorP RangeError_Call_Construct ()) context in
+  let context = AllFunctions.add (string_of_builtin_function URIError_Call_Construct) (builtin_error_construct_call LURIErrorP URIError_Call_Construct ()) context in
   
   context

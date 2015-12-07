@@ -69,18 +69,13 @@ type builtin_function =
   | String_Construct 
   | String_Prototype_toString 
   | String_Prototype_valueOf 
-  | TypeError_Call
-  | TypeError_Construct
-  | ReferenceError_Call
-  | ReferenceError_Construct
-  | SyntaxError_Call
-  | SyntaxError_Construct
-  | EvalError_Call
-  | EvalError_Construct
-  | RangeError_Call
-  | RangeError_Construct
-  | URIError_Call
-  | URIError_Construct
+  | Error_Call_Construct
+  | TypeError_Call_Construct
+  | ReferenceError_Call_Construct
+  | SyntaxError_Call_Construct
+  | EvalError_Call_Construct
+  | RangeError_Call_Construct
+  | URIError_Call_Construct
   | Function_Call
   | Function_Construct
   | Function_Prototype_Call

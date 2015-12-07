@@ -752,6 +752,8 @@ let initial_heap () =
   let h = add_field h (BLoc Lg) "Error" (HVObj (BLoc LError)) in
   let h = add_field h (BLoc LError) "length" (HVLiteral (Num 1.)) in
   let h = add_field h (BLoc LError) (string_of_builtin_field FClass) (HVLiteral (String "Function")) in
+  let h = add_field h (BLoc LError) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Error_Call_Construct))) in
+  let h = add_field h (BLoc LError) (string_of_builtin_field FConstructId) (HVLiteral (String (string_of_builtin_function Error_Call_Construct))) in
   let h = add_field h (BLoc LError) (string_of_builtin_field FPrototype) (HVObj (BLoc Lep)) in
 
   (* Error Prototype *)
@@ -761,13 +763,13 @@ let initial_heap () =
   let h = add_field h (BLoc Lep) "message" (HVLiteral (String "")) in
   (* let h = add_stub_function h (BLoc Lep) "toString" in *)
 
-  let native_error h name loc locp call construct =
+  let native_error h name loc locp builtin =
     let h = built_in_obj_proto_lfp h loc in
     let h = add_field h (BLoc Lg) name (HVObj (BLoc loc)) in
     let h = add_field h (BLoc loc) (string_of_builtin_field FClass) (HVLiteral (String "Function")) in
     (* FIXME constructor/caller names *)
-    let h = add_field h (BLoc loc) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function call))) in
-    let h = add_field h (BLoc loc) (string_of_builtin_field FConstructId) (HVLiteral (String (string_of_builtin_function construct))) in
+    let h = add_field h (BLoc loc) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function builtin))) in
+    let h = add_field h (BLoc loc) (string_of_builtin_field FConstructId) (HVLiteral (String (string_of_builtin_function builtin))) in
     let h = add_field h (BLoc loc) "length" (HVLiteral (Num 1.)) in
     let h = add_field h (BLoc loc) (string_of_builtin_field FPrototype) (HVObj (BLoc locp)) in
 
@@ -780,12 +782,12 @@ let initial_heap () =
     h
   in
 
-  let h = native_error h "EvalError" LEvalError LEvalErrorP EvalError_Call EvalError_Construct in
-  let h = native_error h "RangeError" LRangeError LRangeErrorP RangeError_Call RangeError_Construct in
-  let h = native_error h "ReferenceError" LRError Lrep ReferenceError_Call ReferenceError_Construct in
-  let h = native_error h "SyntaxError" LSError Lsep SyntaxError_Call SyntaxError_Construct in
-  let h = native_error h "TypeError" LTError Ltep TypeError_Call TypeError_Construct in
-  let h = native_error h "URIError" LURIError LURIErrorP URIError_Call URIError_Construct in
+  let h = native_error h "EvalError" LEvalError LEvalErrorP EvalError_Call_Construct in
+  let h = native_error h "RangeError" LRangeError LRangeErrorP RangeError_Call_Construct in
+  let h = native_error h "ReferenceError" LRError Lrep ReferenceError_Call_Construct in
+  let h = native_error h "SyntaxError" LSError Lsep SyntaxError_Call_Construct in
+  let h = native_error h "TypeError" LTError Ltep TypeError_Call_Construct in
+  let h = native_error h "URIError" LURIError LURIErrorP URIError_Call_Construct in
 
   let h = add_field h (BLoc Lg) "JSON" (HVObj (BLoc LJSON)) in
   let h = add_field h (BLoc LJSON) (string_of_builtin_field FClass) (HVLiteral (String "JSON")) in
