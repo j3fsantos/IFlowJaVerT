@@ -889,6 +889,9 @@ let test_S13_A7_T2 () =
       r = 1;
     }
     }") (VHValue (HVLiteral (Undefined))) 
+    
+let test_get_prototyte_of_empty () =
+  test_template_exception ("Object.getPrototypeOf()") Ltep
 
 let suite = "Testing_Interpreter" >:::
   [
@@ -1030,5 +1033,6 @@ let suite = "Testing_Interpreter" >:::
     "test_S8_7_A4" >:: test_S8_7_A4;
     "test_12_6_1_A4_T5" >:: test_12_6_1_A4_T5;
     "test_S13_A7_T2" >:: test_S13_A7_T2;
+    "test_get_prototyte_of_empty" >:: test_get_prototyte_of_empty
     (*"test_" >:: test_*) 
     ] 
