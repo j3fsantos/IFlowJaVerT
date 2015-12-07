@@ -23,6 +23,12 @@ type builtin_loc =
   | Ltep
   | LSError (* Syntax Error *)
   | Lsep
+  | LEvalError
+  | LEvalErrorP
+  | LRangeError
+  | LRangeErrorP
+  | LURIError
+  | LURIErrorP
   | LObject (* Object Object *)
   | LObjectGetPrototypeOf
   | LBoolean (* Boolean Object *)
@@ -69,6 +75,12 @@ type builtin_function =
   | ReferenceError_Construct
   | SyntaxError_Call
   | SyntaxError_Construct
+  | EvalError_Call
+  | EvalError_Construct
+  | RangeError_Call
+  | RangeError_Construct
+  | URIError_Call
+  | URIError_Construct
   | Function_Call
   | Function_Construct
   | Function_Prototype_Call

@@ -590,11 +590,10 @@ let initial_heap () =
   let h = Heap.empty in
   let lop = Object.add (string_of_builtin_field FProto) (HVLiteral Null) Object.empty in
   let h = Heap.add (BLoc Lop) lop h in
-  (* Do I want Error object too? Rather then going directly to Lop for errors *)
-  let h = List.fold_left built_in_obj_proto_lop h [Lg; Lfp; LEval; LRError; LSError;
+  let h = List.fold_left built_in_obj_proto_lop h [Lg; Lfp; LEval;
     LMath; LJSON;
     LNotImplemented GetValuePrim; LNotImplemented ToNumber; LNotImplemented ToString; Lbp; Lnp; Lsp; Lep] in
-  let h = List.fold_left built_in_obj_proto_lfp h [LObject; LFunction; LBoolean; LNumber; LString; LError; LTError; Lop_toString; Lop_valueOf; Lop_isPrototypeOf; 
+  let h = List.fold_left built_in_obj_proto_lfp h [LObject; LFunction; LBoolean; LNumber; LString; LError; Lop_toString; Lop_valueOf; Lop_isPrototypeOf; 
     LObjectGetPrototypeOf; Lbp_toString; Lbp_valueOf; Lnp_toString; Lnp_valueOf; Lsp_toString; Lsp_valueOf; LEval; Lg_isNaN; Lg_isFinite] in
     
   let h = add_field h (BLoc Lop) (string_of_builtin_field FClass) (HVLiteral (String "Object")) in
@@ -749,52 +748,44 @@ let initial_heap () =
   let h = add_stub_constructor h "RegExp" 2. in
   let h = fold_add_stub_function h (LStub "RegExpP") ["exec"; "test"; "toString"] in
 
+  (* Error *)
   let h = add_field h (BLoc Lg) "Error" (HVObj (BLoc LError)) in
   let h = add_field h (BLoc LError) "length" (HVLiteral (Num 1.)) in
-  let h = add_field h (BLoc LError) (string_of_builtin_field FPrototype) (HVObj (BLoc Lep)) in
   let h = add_field h (BLoc LError) (string_of_builtin_field FClass) (HVLiteral (String "Function")) in
-  let h = add_field h (BLoc Lg) "TypeError" (HVObj (BLoc LTError)) in
-  let h = add_field h (BLoc LTError) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function TypeError_Call))) in
-  let h = add_field h (BLoc LTError) "length" (HVLiteral (Num 1.)) in
-  let h = add_field h (BLoc LTError) (string_of_builtin_field FConstructId) (HVLiteral (String (string_of_builtin_function TypeError_Construct))) in
-  let h = add_field h (BLoc LTError) (string_of_builtin_field FPrototype) (HVObj (BLoc Ltep)) in
-  let h = add_field h (BLoc LTError) (string_of_builtin_field FClass) (HVLiteral (String "Function")) in
-  let ltep = Object.add (string_of_builtin_field FProto) (HVObj (BLoc Lep)) Object.empty in
-  let h = Heap.add (BLoc Ltep) ltep h in
-  let h = add_field h (BLoc Ltep) "name" (HVLiteral (String "TypeError")) in
-  let h = add_field h (BLoc Ltep) "message" (HVLiteral (String "")) in
-  let h = add_field h (BLoc Ltep) (string_of_builtin_field FClass) (HVLiteral (String "Error")) in
-  let h = add_field h (BLoc Lg) "ReferenceError" (HVObj (BLoc LRError)) in
-  let h = add_field h (BLoc LRError) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function ReferenceError_Call))) in
-  let h = add_field h (BLoc LRError) "length" (HVLiteral (Num 1.)) in
-  let h = add_field h (BLoc LRError) (string_of_builtin_field FConstructId) (HVLiteral (String (string_of_builtin_function ReferenceError_Construct))) in
-  let h = add_field h (BLoc LRError) (string_of_builtin_field FPrototype) (HVObj (BLoc Lrep)) in
-  let h = add_field h (BLoc LRError) (string_of_builtin_field FClass) (HVLiteral (String "Function")) in
+  let h = add_field h (BLoc LError) (string_of_builtin_field FPrototype) (HVObj (BLoc Lep)) in
 
-  let lrep = Object.add (string_of_builtin_field FProto) (HVObj (BLoc Lep)) Object.empty in
-  let h = Heap.add (BLoc Lrep) lrep h in
-  let h = add_field h (BLoc Lrep) "name" (HVLiteral (String "ReferenceError")) in
-  let h = add_field h (BLoc Lrep) "message" (HVLiteral (String "")) in
-  let h = add_field h (BLoc Lrep) (string_of_builtin_field FClass) (HVLiteral (String "Error")) in
-  
-  let h = add_field h (BLoc Lg) "SyntaxError" (HVObj (BLoc LSError)) in
-  let h = add_field h (BLoc LSError) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function SyntaxError_Call))) in
-  let h = add_field h (BLoc LSError) "length" (HVLiteral (Num 1.)) in
-  let h = add_field h (BLoc LSError) (string_of_builtin_field FConstructId) (HVLiteral (String (string_of_builtin_function SyntaxError_Construct))) in
-  let h = add_field h (BLoc LSError) (string_of_builtin_field FPrototype) (HVObj (BLoc Lsep)) in
-  let h = add_field h (BLoc LSError) (string_of_builtin_field FClass) (HVLiteral (String "Function")) in
-
-  let lsep = Object.add (string_of_builtin_field FProto) (HVObj (BLoc Lep)) Object.empty in
-  let h = Heap.add (BLoc Lsep) lsep h in
-  let h = add_field h (BLoc Lsep) "name" (HVLiteral (String "SyntaxError")) in
-  let h = add_field h (BLoc Lsep) "message" (HVLiteral (String "")) in
-  let h = add_field h (BLoc Lsep) (string_of_builtin_field FClass) (HVLiteral (String "Error")) in
-  
+  (* Error Prototype *)
   let h = add_field h (BLoc Lep) (string_of_builtin_field FClass) (HVLiteral (String "Error")) in
-  let h = add_field h (BLoc Lep) ("constructor") (HVObj (BLoc LError)) in
-
+  let h = add_field h (BLoc Lep) "constructor" (HVObj (BLoc LError)) in
   let h = add_field h (BLoc Lep) "name" (HVLiteral (String "Error")) in
   let h = add_field h (BLoc Lep) "message" (HVLiteral (String "")) in
+  (* let h = add_stub_function h (BLoc Lep) "toString" in *)
+
+  let native_error h name loc locp call construct =
+    let h = built_in_obj_proto_lfp h loc in
+    let h = add_field h (BLoc Lg) name (HVObj (BLoc loc)) in
+    let h = add_field h (BLoc loc) (string_of_builtin_field FClass) (HVLiteral (String "Function")) in
+    (* FIXME constructor/caller names *)
+    let h = add_field h (BLoc loc) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function call))) in
+    let h = add_field h (BLoc loc) (string_of_builtin_field FConstructId) (HVLiteral (String (string_of_builtin_function construct))) in
+    let h = add_field h (BLoc loc) "length" (HVLiteral (Num 1.)) in
+    let h = add_field h (BLoc loc) (string_of_builtin_field FPrototype) (HVObj (BLoc locp)) in
+
+    let proto = Object.add (string_of_builtin_field FProto) (HVObj (BLoc Lep)) Object.empty in
+    let h = Heap.add (BLoc locp) proto h in
+    let h = add_field h (BLoc locp) (string_of_builtin_field FClass) (HVLiteral (String "Error")) in
+    let h = add_field h (BLoc locp) "constructor" (HVObj (BLoc loc)) in
+    let h = add_field h (BLoc locp) "name" (HVLiteral (String name)) in
+    let h = add_field h (BLoc locp) "message" (HVLiteral (String "")) in
+    h
+  in
+
+  let h = native_error h "EvalError" LEvalError LEvalErrorP EvalError_Call EvalError_Construct in
+  let h = native_error h "RangeError" LRangeError LRangeErrorP RangeError_Call RangeError_Construct in
+  let h = native_error h "ReferenceError" LRError Lrep ReferenceError_Call ReferenceError_Construct in
+  let h = native_error h "SyntaxError" LSError Lsep SyntaxError_Call SyntaxError_Construct in
+  let h = native_error h "TypeError" LTError Ltep TypeError_Call TypeError_Construct in
+  let h = native_error h "URIError" LURIError LURIErrorP URIError_Call URIError_Construct in
 
   let h = add_field h (BLoc Lg) "JSON" (HVObj (BLoc LJSON)) in
   let h = add_field h (BLoc LJSON) (string_of_builtin_field FClass) (HVLiteral (String "JSON")) in
