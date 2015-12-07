@@ -204,12 +204,15 @@ let builtin_object_get_prototype_of () =
   let v = fresh_r () in
   let ctx = create_ctx [] in
   let body = to_ivl_goto_unfold (* TODO translation level *)
-    [ Sugar (If (type_of_exp (Var v) (ObjectType None),
-        [ Basic (Assignment (mk_assign ctx.return_var (Lookup (Var v, literal_builtin_field FProto))))],
-        translate_error_throw Ltep ctx.throw_var ctx.label_throw));
-      Goto ctx.label_return; 
+    [ Sugar (If (equal_empty_expr (Var v),
+       translate_error_throw Ltep ctx.throw_var ctx.label_throw,
+        [ Sugar (If (type_of_exp (Var v) (ObjectType None),
+          [ Basic (Assignment (mk_assign ctx.return_var (Lookup (Var v, literal_builtin_field FProto))))],
+          translate_error_throw Ltep ctx.throw_var ctx.label_throw))
+        ])) ] @
+     [ Goto ctx.label_return; 
       Label ctx.label_return; 
-      Label ctx.label_throw
+      Label ctx.label_throw 
     ] in    
   make_function_block Procedure_Builtin (string_of_builtin_function Object_getPrototypeOf) body [rthis; rscope; v] ctx
   
