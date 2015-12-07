@@ -832,7 +832,7 @@ let rec translate_exp ctx exp : statement list * variable =
           let r2_stmts, r2 = f e2 in
           let r3_stmts, r3 = spec_func_call (GetValue (Var r2)) ctx in
           let r4 = mk_assign_fresh_e (Field (Var r1)) in
-          let gotothrow = translate_error_throw Lrep ctx.throw_var ctx.label_throw in
+          let gotothrow = translate_error_throw Lsep ctx.throw_var ctx.label_throw in
           let putvalue_stmts, _ = spec_func_call (PutValue (Var r1 , Var r3)) ctx in
             r1_stmts @
             r2_stmts @
