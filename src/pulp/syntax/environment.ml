@@ -307,7 +307,7 @@ let builtin_lnp_toString () = (* Todo for other redices too *)
   let ctx = create_ctx [] in
   let rv = fresh_r () in
   let assign_rv rv e = Basic (Assignment (mk_assign rv (Expression e))) in  
-  let stmt, b = lbp_common ctx in
+  let stmt, b = lnp_common ctx in
   let body = to_ivl_goto_unfold (* TODO translation level *)
     [ stmt;
       assign_rv rv (UnaryOp (ToStringOp, Var b));
