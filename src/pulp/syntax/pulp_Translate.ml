@@ -999,10 +999,12 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
       | Parser_syntax.Block es -> translate_block es f ret_def
 
       | Parser_syntax.VarDec vars ->
-        let result = List.map (fun var ->
-          match var with
-            | (v, Some exp) -> translate_exp ctx ({exp with Parser_syntax.exp_stx = (Parser_syntax.Assign ({exp with Parser_syntax.exp_stx = Parser_syntax.Var v}, exp))})
-            | (v, None) -> f ({exp with Parser_syntax.exp_stx = Parser_syntax.Skip})
+        let result = List.map (fun (v, oexp) ->
+          if v = "eval" || v = "arguments" then
+            translate_error_throw Lsep ctx.throw_var ctx.label_throw, ""
+          else match oexp with
+            | Some exp -> translate_exp ctx ({exp with Parser_syntax.exp_stx = (Parser_syntax.Assign ({exp with Parser_syntax.exp_stx = Parser_syntax.Var v}, exp))})
+            | None -> f ({exp with Parser_syntax.exp_stx = Parser_syntax.Skip})
           ) vars in
         let stmts, _ = List.split result in
         let empty = mk_assign_fresh_lit Empty in

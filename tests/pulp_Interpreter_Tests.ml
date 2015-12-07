@@ -893,6 +893,9 @@ let test_S13_A7_T2 () =
 let test_get_prototyte_of_empty () =
   test_template_exception ("Object.getPrototypeOf()") Ltep
 
+let test_12_2_1_7_s () =
+  test_template_exception "eval('var eval;');" Lsep
+
 let suite = "Testing_Interpreter" >:::
   [
 		(*"test_program_switch_aux" >:: test_program_switch_aux;*)
@@ -1033,6 +1036,7 @@ let suite = "Testing_Interpreter" >:::
     "test_S8_7_A4" >:: test_S8_7_A4;
     "test_12_6_1_A4_T5" >:: test_12_6_1_A4_T5;
     "test_S13_A7_T2" >:: test_S13_A7_T2;
-    "test_get_prototyte_of_empty" >:: test_get_prototyte_of_empty
+    "test_get_prototyte_of_empty" >:: test_get_prototyte_of_empty;
+    "test_12_2_1_7_s" >:: test_12_2_1_7_s
     (*"test_" >:: test_*) 
     ] 
