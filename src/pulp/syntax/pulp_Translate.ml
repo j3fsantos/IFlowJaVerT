@@ -8,6 +8,13 @@ open Pulp_Translate_Aux
 exception PulpNotImplemented of string
 exception PulpInvalid of string
 
+(* Our parser sucks. Sometimes we have to do it's job for it.
+ * This may be thrown by any of the translation functions, and should
+ * be caught at the top-level or at eval. *)
+exception PulpEarlySyntaxError
+let check_early_error name =
+  if name = "eval" || name = "arguments" then raise PulpEarlySyntaxError
+
 type translation_level =
   | IVL_buitin_functions
   | IVL_conditionals
@@ -498,6 +505,7 @@ let rec translate_exp ctx exp : statement list * variable =
         translate_function_expression exp params ctx None
         
       | Parser_syntax.NamedFun (_, name, params, _) -> 
+        check_early_error name;
         translate_function_expression exp params ctx (Some name)
           
       | Parser_syntax.Unary_op (op, e) ->
@@ -1000,9 +1008,8 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
 
       | Parser_syntax.VarDec vars ->
         let result = List.map (fun (v, oexp) ->
-          if v = "eval" || v = "arguments" then
-            translate_error_throw Lsep ctx.throw_var ctx.label_throw, ""
-          else match oexp with
+          check_early_error v;
+          match oexp with
             | Some exp -> translate_exp ctx ({exp with Parser_syntax.exp_stx = (Parser_syntax.Assign ({exp with Parser_syntax.exp_stx = Parser_syntax.Var v}, exp))})
             | None -> f ({exp with Parser_syntax.exp_stx = Parser_syntax.Skip})
           ) vars in
@@ -1106,6 +1113,7 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
           ], ctx.return_var
            
       | Parser_syntax.Try (e1, Some (id, e2), Some e3) ->
+        check_early_error id;
         let catch_label = "catch." ^ fresh_r () in
         let finally_label = "finally." ^ fresh_r () in
         let return_finally_label = "finally." ^ fresh_r () in
@@ -1232,6 +1240,7 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
         [  Label exit_label], ret_def
         
       | Parser_syntax.Try (e1, Some (id, e2), None) ->
+        check_early_error id;
         let catch_label = "catch." ^ fresh_r () in
         let exit_label = fresh_r () in
         let throw_var = fresh_r () in
@@ -1449,7 +1458,9 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
 let exp_to_elem ctx exp : statement list * variable = 
     let r = fresh_r() in
     match exp.Parser_syntax.exp_stx with
-      | Parser_syntax.NamedFun (s, name, args, body) -> [Basic (Assignment (mk_assign r (Expression (Literal Empty))))], r (* Things done already *)
+      | Parser_syntax.NamedFun (s, name, args, body) ->
+          check_early_error name;
+          [Basic (Assignment (mk_assign r (Expression (Literal Empty))))], r (* Things done already *)
       | _ ->  translate_stmt ctx [] exp
 
 let rec exp_to_fb ctx exp : statement list * variable =
@@ -1488,6 +1499,7 @@ let translate_function fb annots fid main args env named =
         add_proto_null current_scope_var] in
         
   let init_vars = Utils.flat_map (fun v ->
+    check_early_error v;
       [
         Basic (Mutation (mk_mutation (Var current_scope_var) (Literal (String v)) (Var v)))
       ]
@@ -1497,6 +1509,7 @@ let translate_function fb annots fid main args env named =
   let func_decls_used_vars = List.map (fun f ->
      match f.Parser_syntax.exp_stx with
       | Parser_syntax.NamedFun (_, name, params, body) -> 
+        check_early_error name;
         let stmts, lvar = translate_function_expression f params ctx None in
         stmts @
 	      [
@@ -1550,7 +1563,9 @@ let translate_function_syntax level id e named env main =
   let pulpe = 
     match e.Parser_syntax.exp_stx with
       | Parser_syntax.AnnonymousFun (_, args, fb) -> translate_function fb e.Parser_syntax.exp_annot id main args env None
-      | Parser_syntax.NamedFun (_, name, args, fb) -> translate_function fb e.Parser_syntax.exp_annot id main args env named
+      | Parser_syntax.NamedFun (_, name, args, fb) ->
+          check_early_error name;
+          translate_function fb e.Parser_syntax.exp_annot id main args env named
       | Parser_syntax.Script (_, es) -> translate_function e e.Parser_syntax.exp_annot main main [] env None
       | _ -> raise (Invalid_argument "Should be a function definition here") in
   match level with
