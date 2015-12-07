@@ -792,11 +792,6 @@ let initial_heap () =
   let h = add_field h (BLoc Lg) "JSON" (HVObj (BLoc LJSON)) in
   let h = add_field h (BLoc LJSON) (string_of_builtin_field FClass) (HVLiteral (String "JSON")) in
   let h = fold_add_stub_function h LJSON ["parse"; "stringify"] in
-  
-(* ES6 Builtins *)
-  let h = add_stub_callable h "Symbol" 1. in
-  let h = fold_add_stub_function h (LStub "Symbol") ["for"; "keyFor"] in
-  let h = fold_add_stub_function h (LStub "SymbolP") ["toString"; "valueOf"] in
   h
 
 let run_with_heap h (fs : function_block AllFunctions.t) (env : function_block AllFunctions.t) : function_state =
