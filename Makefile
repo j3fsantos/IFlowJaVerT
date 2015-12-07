@@ -2,6 +2,7 @@ default:
 	ocamlbuild -use-ocamlfind src/pulp/interpreter/interpreter_run.byte
 	ocamlbuild -use-ocamlfind src/pulp/interpreter/interpreter_run.d.byte
 	ocamlbuild -use-ocamlfind src/pulp/interpreter/interpreter_run.native
+	ocamlbuild -use-ocamlfind tests/test_interpreter.byte
 
 init:
 	cp src/localconfig.default src/localconfig.ml

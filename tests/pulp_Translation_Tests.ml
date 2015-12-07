@@ -8,7 +8,7 @@ open Reaching_Defs
 open Pulp_Translate_Aux
 
 let test_template p name =
-  Symb_execution.initialize ();
+  Config.apply_config ();
   Parser_main.verbose := true;
   let exp = Parser_main.exp_from_string p in
   let _ = Printf.printf "%s \n" (Pretty_print.string_of_exp_syntax exp.Parser_syntax.exp_stx) in
@@ -64,7 +64,7 @@ let test_block () =
   test_template ("x = y; y = z") "block"
   
 let test_fun_env () =
-  Symb_execution.initialize ();
+  Config.apply_config ();
   Parser_main.verbose := true;
   let exp = Parser_main.exp_from_string "var x = 1; var f = function (g) {var z = 1; var c = function (d) {}}; var g = function z () {var x, a, b; }" in
   let _ = Printf.printf "%s \n" (Pretty_print.string_of_exp_syntax exp.Parser_syntax.exp_stx) in
