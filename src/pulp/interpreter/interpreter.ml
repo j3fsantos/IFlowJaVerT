@@ -703,6 +703,7 @@ let initial_heap () =
   let h = add_field h (BLoc Lg) "Math" (HVObj (BLoc LMath)) in
   let h = add_field h (BLoc LMath) (string_of_builtin_field FClass) (HVLiteral (String "Math")) in
   let h = add_field h (BLoc LMath) "E"       (HVLiteral (Num BatFloat.e)) in
+  let h = add_field h (BLoc LMath) "PI"       (HVLiteral (Num BatFloat.pi)) in
   let h = add_field h (BLoc LMath) "LN10"    (HVLiteral (Num BatFloat.ln10)) in
   let h = add_field h (BLoc LMath) "LN2"     (HVLiteral (Num BatFloat.ln2)) in
   let h = add_field h (BLoc LMath) "LOG2E"   (HVLiteral (Num BatFloat.log2e)) in
