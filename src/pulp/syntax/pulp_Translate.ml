@@ -1491,9 +1491,7 @@ let translate_function fb annots fid main args env named =
   
   let current_scope_stmts = 
     if (fid = main_fun_id) then
-      [Basic (Assignment (mk_assign current_scope_var (Expression (Literal (LLoc Lg)))));
-       add_proto_value current_scope_var Lop;
-       Basic (Mutation (mk_mutation (Literal (LLoc Lg)) (Literal (String "undefined")) (Literal Undefined)))]
+      [Basic (Assignment (mk_assign current_scope_var (Expression (Literal (LLoc Lg)))))]
   else 
        [Basic (Assignment (mk_assign current_scope_var Obj));
         add_proto_null current_scope_var] in
