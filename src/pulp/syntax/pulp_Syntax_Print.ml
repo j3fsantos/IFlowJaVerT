@@ -105,6 +105,7 @@ let string_of_builtin_loc_no_hash l =
 
 let string_of_builtin_function f =
   match f with
+    | Global_eval -> "eval"
     | Global_isNaN -> "#global_is_nan"
     | Global_isFinite -> "#global_is_finite"
     | Boolean_Call -> "#boolean_call"

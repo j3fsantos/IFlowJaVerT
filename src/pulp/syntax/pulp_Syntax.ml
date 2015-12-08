@@ -49,6 +49,7 @@ type builtin_loc =
   | LStub of string
 
 type builtin_function = 
+  | Global_eval
   | Global_isNaN
   | Global_isFinite
   | Boolean_Call
