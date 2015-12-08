@@ -12,9 +12,15 @@ exception PulpInvalid of string
  * This may be thrown by any of the translation functions, and should
  * be caught at the top-level or at eval. *)
 exception PulpEarlySyntaxError
+
 let check_early_error name =
   if name = "eval" || name = "arguments" then raise PulpEarlySyntaxError
 
+let check_early_error_exp exp =
+  match exp.Parser_syntax.exp_stx with
+  | Parser_syntax.Var name -> check_early_error name
+  | _ -> ()
+ 
 type translation_level =
   | IVL_buitin_functions
   | IVL_conditionals
@@ -327,23 +333,14 @@ let translate_has_instance f v ctx =
   ], rv
   
 let translate_inc_dec f e op ctx =
+  check_early_error_exp e; (* This is specified inline as a runtime check, Ch16 requires it as EarlyError *)
   let r1_stmts, r1 = f e in
   let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
   let to_number_stmts, oldvalue = spec_func_call (ToNumber (Var r2)) ctx in
-  let newvalue = mk_assign_fresh_e (BinOp (Var oldvalue, Arith op, (Literal (Num 1.0)))) in     
-  let putvalue_stmts, _ = spec_func_call (PutValue (Var r1 , Var newvalue.assign_left)) ctx in  
-    r1_stmts @  
-    [Sugar (If (and_expr (type_of_vref (Var r1))
-                  (or_expr 
-                  (equal_string_exprs (Field (Var r1)) "arguments") 
-                  (equal_string_exprs (Field (Var r1)) "eval")), 
-      translate_error_throw Lsep ctx.throw_var ctx.label_throw, 
-      r2_stmts @  
-      to_number_stmts @
-      [Basic (Assignment newvalue)] @ 
-      putvalue_stmts))
-    ], oldvalue, newvalue.assign_left
-
+  let newvalue = mk_assign_fresh_e (BinOp (Var oldvalue, Arith op, (Literal (Num 1.0)))) in
+  let putvalue_stmts, _ = spec_func_call (PutValue (Var r1 , Var newvalue.assign_left)) ctx in
+    r1_stmts @ r2_stmts @ to_number_stmts @ [Basic (Assignment newvalue)] @ putvalue_stmts,
+    oldvalue, newvalue.assign_left
 
 let rec translate_exp ctx exp : statement list * variable =
   let f = translate_exp ctx in 
@@ -627,7 +624,7 @@ let rec translate_exp ctx exp : statement list * variable =
             [Basic (Assignment rv)], rv.assign_left
         end 
         
-      | Parser_syntax.Delete e ->
+      | Parser_syntax.Delete e ->   (* TODO: Convert delete SyntaxErrors to EarlyErrors *)
         let r1_stmts, r1 = f e in
         let rv = fresh_r () in
         let assign_rv_true = mk_assign rv (Expression (Literal (Bool true))) in
@@ -836,15 +833,17 @@ let rec translate_exp ctx exp : statement list * variable =
         
       | Parser_syntax.Assign (e1, e2) ->
         begin
+          check_early_error_exp e1;
           let r1_stmts, r1 = f e1 in
           let r2_stmts, r2 = f e2 in
           let r3_stmts, r3 = spec_func_call (GetValue (Var r2)) ctx in
-          let r4 = mk_assign_fresh_e (Field (Var r1)) in
-          let gotothrow = translate_error_throw Lsep ctx.throw_var ctx.label_throw in
+          (* let r4 = mk_assign_fresh_e (Field (Var r1)) in
+          let gotothrow = translate_error_throw Lsep ctx.throw_var ctx.label_throw in *)
           let putvalue_stmts, _ = spec_func_call (PutValue (Var r1 , Var r3)) ctx in
             r1_stmts @
             r2_stmts @
             r3_stmts @
+            (* (* ES5 specifies this as a runtime check, but Ch16 also demands that it is an EarlyError *)
             [
               Sugar (If (type_of_vref (Var r1), 
                     [
@@ -854,7 +853,7 @@ let rec translate_exp ctx exp : statement list * variable =
                              (equal_string_expr (Var r4.assign_left) "eval"), gotothrow, []));
                     ], 
                     []))
-            ] @
+            ] @ *)
             putvalue_stmts, r3
         end
       
@@ -880,6 +879,7 @@ let rec translate_exp ctx exp : statement list * variable =
             [Basic (Assignment (mk_assign rv (Expression (Var r6))))]))
           ], rv
       | Parser_syntax.AssignOp (e1, aop, e2) -> 
+          check_early_error_exp e1;
           let r1_stmts, r1 = f e1 in
 				  let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx in
 				  let r3_stmts, r3 = f e2 in
@@ -898,13 +898,14 @@ let rec translate_exp ctx exp : statement list * variable =
               | Parser_syntax.Bitor 
               | Parser_syntax.Bitxor -> translate_bitwise_bin_op aop r2 r4 ctx in
                  
-          let field = mk_assign_fresh_e (Field (Var r1)) in
+          (* let field = mk_assign_fresh_e (Field (Var r1)) in *)
           let putvalue_stmts, _ = spec_func_call (PutValue (Var r1 , Var r5)) ctx in
 				    r1_stmts @ 
 				    r2_stmts @ 
 				    r3_stmts @
             r4_stmts @ 
             r5_stmts @
+            (* (* Although specified as a runtime check, Ch16 requires SyntaxErrors to be EarlyErrors *)
 				    [
              Sugar (If (type_of_vref (Var r1),
 		          [Basic (Assignment field);
@@ -914,7 +915,7 @@ let rec translate_exp ctx exp : statement list * variable =
                  translate_error_throw Lsep ctx.throw_var ctx.label_throw, 
                  []))
               ],
-		          []));] @
+		          []));] @ *)
             putvalue_stmts,
 				    r5
 
