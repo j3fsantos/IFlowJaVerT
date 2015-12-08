@@ -551,6 +551,7 @@ let add_builtin_function h loc id len =
   let h = built_in_obj_proto_lfp h loc in
   let h = add_field h (BLoc loc) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function id))) in
   let h = add_field h (BLoc loc) (string_of_builtin_field FClass) (HVLiteral (String "Function")) in
+  let h = add_field h (BLoc loc) "length" (HVLiteral (Num len)) in
   h
 
 let native_error h name loc locp builtin =
