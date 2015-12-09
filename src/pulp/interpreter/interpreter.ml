@@ -99,15 +99,23 @@ let int32_bitwise_or = fun x y -> Int32.to_float (Int32.logor (Int32.of_float x)
 
 let int32_bitwise_xor = fun x y -> Int32.to_float (Int32.logxor (Int32.of_float x) (Int32.of_float y))
 
-let int32_left_shift = (fun x y -> Int32.to_float (Int32.shift_left (Int32.of_float x) (int_of_float y)))
+let int32_left_shift x y =
+  let l = Int32.of_float x in
+  let r = (int_of_float y) mod 32 in
+  Int32.to_float (Int32.shift_left l r)
 
-let int32_right_shift = (fun x y -> Int32.to_float (Int32.shift_right (Int32.of_float x) (int_of_float y)))
+let int32_right_shift x y =
+  let l = Int32.of_float x in
+  let r = (int_of_float y) mod 32 in
+  Int32.to_float (Int32.shift_right l r)
 
 let uint32_right_shift = (fun x y ->
   let i31 = 2. ** 31. in
   let i32 = 2. ** 32. in
-  let newx = if x >= i31 then x -. i32 else x in
-  let r = Int32.to_float (Int32.shift_right_logical (Int32.of_float newx) (int_of_float y)) in
+  let signedx = if x >= i31 then x -. i32 else x in
+  let left = Int32.of_float signedx in
+  let right = (int_of_float y) mod 32 in
+  let r = Int32.to_float (Int32.shift_right_logical left right) in
   if r < 0. then r +. i32 else r)
 
 let run_bin_op op v1 v2 counter : value =
