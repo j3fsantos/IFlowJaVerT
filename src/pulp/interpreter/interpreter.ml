@@ -156,14 +156,17 @@ let num_to_string v counter =
 
 let string_to_num v counter =
   match v with
-    | VHValue (HVLiteral (String "")) -> VHValue (HVLiteral (Num 0.)) 
-    | VHValue (HVLiteral (String s)) -> 
-      begin 
-        let num = 
-          try
-             Float.of_string s 
-          with Failure "float_of_string" -> nan in
-        VHValue (HVLiteral (Num num)) 
+    | VHValue (HVLiteral (String s)) -> begin
+      match String.trim s with
+        | "" -> VHValue (HVLiteral (Num 0.))
+        | _ ->
+        begin 
+          let num = 
+            try
+              Float.of_string s 
+            with Failure "float_of_string" -> nan in
+          VHValue (HVLiteral (Num num)) 
+        end
       end
     | _ -> raise (InterpreterStuck ("Cannot proceed with string_to_num on not string value", counter))
 
@@ -694,7 +697,7 @@ let initial_heap () =
   let h = add_field h (BLoc LNumber) (string_of_builtin_field FPrototype) (HVObj (BLoc Lnp)) in
   let h = add_field h (BLoc LNumber) (string_of_builtin_field FClass) (HVLiteral (String "Function")) in
   let h = add_field h (BLoc LNumber) ("MAX_VALUE") (HVLiteral (Num max_float)) in
-  let h = add_field h (BLoc LNumber) ("MIN_VALUE") (HVLiteral (Num min_float)) in
+  let h = add_field h (BLoc LNumber) ("MIN_VALUE") (HVLiteral (Num 5e-324)) in
   let h = add_field h (BLoc LNumber) "NaN" (HVLiteral (Num nan)) in
   let h = add_field h (BLoc LNumber) ("NEGATIVE_INFINITY") (HVLiteral (Num neg_infinity)) in
   let h = add_field h (BLoc LNumber) ("POSITIVE_INFINITY") (HVLiteral (Num infinity)) in
