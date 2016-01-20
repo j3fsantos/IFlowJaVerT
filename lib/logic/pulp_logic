@@ -73,6 +73,12 @@ without numeric_const(?x) !=none()
 if
  | |-
  
+ rule number_type_not_none :
+  | type_of(?x) = NumberType() |- ?x != none()
+without ?x != none()
+if
+ | |- 
+ 
 rule true_not_none :
   | |- true() !=none()
 without true() !=none()
@@ -129,6 +135,11 @@ rewrite lt_type_of_vref_ref :
 rewrite lt_type_of_mref_ref :
   builtin_lt(type_of(ref(?x, string_const(?f), Memberref())), ReferenceType())=true()
   
+/*
+rule eq_nan :  
+  | ?x = numeric_const(?y) * ?x = numeric_const("nan") * ?y != "nan"  |-
+if
+*/  
 rule type_of_ref_vref :  
   | |- type_of(ref(?x, string_const(?f), Variableref()))=VariableReferenceType()
 without type_of(ref(?x, string_const(?f), Variableref()))=VariableReferenceType()

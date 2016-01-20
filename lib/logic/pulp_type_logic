@@ -46,6 +46,27 @@ rule numeric_const_empty_contr :
   | ?x=numeric_const(?y) * ?x=empty_value() |-
 if
 
+rule numeric_const_number_type_contr :
+  | ?x=numeric_const(?y) * type_of(?x)!=NumberType() |-
+if
+
+rule type_of_number_undef_type_contr :
+  | type_of(?x)=NumberType() * type_of(?x)=UndefinedType() |- 
+if
+
+rule type_of_number_boolean_type_contr :
+  | type_of(?x)=NumberType() * type_of(?x)=BooleanType() |- 
+if
+
+rule type_of_number_string_type_contr :
+  | type_of(?x)=NumberType() * type_of(?x)=StringType() |- 
+if
+
+
+rule type_of_number_null_type_contr :
+  | type_of(?x)=NumberType() * type_of(?x)=NullType() |- 
+if
+
 rule concat_string_const_empty_contr :
   | ?x=concat(?y, ?z) * ?x=empty_value() |-
 if
