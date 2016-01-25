@@ -529,66 +529,82 @@ let test_paper_example_1 () =
 (* TODO : Work in progress. *)   
 let test_paper_example_2 () =
   let js_program = "
-    var w, g, f;
-    this.z = 1;
+    var w, h;
+    Object.prototype.z = 1;
     w = 1;
-    f =
+    h =
       /** 
-          @requires #obj[rscope](|'main':#GlobalObject) *
-          #obj[#GlobalObject]( | 'w' : ?W, 'z' : ?Z ) *
+          @requires #obj[rscope](|'main':#GlobalObject, #proto : #ObjectPrototype) *
+          #obj[#ObjectPrototype](|'z' : 1) *
+          #obj[#GlobalObject]( | 'w' : ?W ) *
           #typeof(x) = #Number *
-          #typeof(?W) = #Number *
-          #typeof(?Z) = #Number
+          #typeof(?W) = #Number
           
-          @ensures #obj[rscope](|'main':#GlobalObject) *
-          #obj[#GlobalObject]( | 'w' : ?W, 'z' : ?Z ) *
+          @ensures #obj[rscope](|'main':#GlobalObject,  #proto : #ObjectPrototype) *
+          #obj[#ObjectPrototype](|'z' : 1) *
+          #obj[#GlobalObject]( | 'w' : ?W) *
           #typeof(x) = #Number *
-          #typeof(?W) = #Number *
-          #typeof(?Z) = #Number 
+          #typeof(?W) = #Number
                 
       */
     
      function (x) {
-      var g, h;
-      g = 
+      var f1, f2;
+      f1 = 
          /** 
-          @requires #obj[rscope](|'main':#GlobalObject,'anonymous0':?L) *
-          #obj[#GlobalObject]( | 'w' : ?W, 'z' : ?Z ) *
-          #obj[?L]( | 'x' : ?X ) *
-          #typeof(u) = #Number
+          @requires #obj[rscope](|'main':#GlobalObject,'anonymous0':?L) * u = ?W * u != 0 * ?L != #(/) * #typeof(u) = #Number * u != #nan *
+          #obj[?L]( | 'f2': ?F2, 'x' : ?X ) * #typeof(?X) = #Number * ?L != #GlobalObject * #typeof(?F2) = #NObject *
+          #obj[?F2] ( | '#fid' : 'anonymous2', '#scope' : ?F2S) *
+          #obj[?F2S] ( | 'main':#GlobalObject,'anonymous0':?L) *
+          #obj[#GlobalObject]( | 'w' : ?W) * #typeof(?W) = #Number
           
-          @ensures #obj[rscope](|'main':#GlobalObject, 'anonymous0':?L) *
-          #obj[#GlobalObject]( | 'w' : ?W, 'z' : ?Z) *
-          #obj[?L]( | 'x' : ?X ) *
-          #r = (((u + ?X) + ?W) + ?Z)
+          @ensures #obj[rscope](|'main':#GlobalObject,'anonymous0':?L) * u = ?W * u != 0 * ?L != #(/) * #typeof(u) = #Number *
+          #obj[?L]( | 'x' : ?X ) * #typeof(?X) = #Number *
+          #obj[#GlobalObject]( | 'w' : ?W) * #typeof(?W) = #Number * #r = ?X
           
+
          */
         function (u) {
-          return u + x + w + z
+          var x = 0;
+          if (u == 0) { return x }
+          else { return f2(u - w) }
         }
       
-      h = 
+      f2 = 
       /** 
-          @requires #obj[rscope](|'main':#GlobalObject,'anonymous0':?L) *
-          #obj[#GlobalObject]( | 'w' : ?W, 'z' : ?Z) *
-          #obj[?L]( | 'x' : ?X ) *
+          @codename = 'anonymous2'
+          @requires #obj[rscope](|'main':#GlobalObject,'anonymous0':?L) * u != 0 * u != #nan *
+          ?L != #(/) * ?L != #GlobalObject * 
+          #obj[#GlobalObject]( | 'w' : ?W) * #typeof(?W) = #Number *
           #typeof(u) = #Number
           
+          @ensures #obj[rscope](|'main':#GlobalObject, 'anonymous0':?L) * u != 0 *
+          ?L != #(/) * ?L != #GlobalObject *
+          #obj[#GlobalObject]( | 'w' : ?W) *
+          #r = (u - ?W)
+          
+          @requires #obj[rscope](|'main':#GlobalObject,'anonymous0':?L) *
+          ?L != #(/) * ?L != #GlobalObject * #typeof(?X) = #Number * u != #nan *
+          #obj[?L]( | 'x' : ?X ) * u = 0
+          
           @ensures #obj[rscope](|'main':#GlobalObject, 'anonymous0':?L) *
-          #obj[#GlobalObject]( | 'w' : ?W, 'z' : ?Z) *
+          ?L != #(/) * ?L != #GlobalObject * #typeof(?X) = #Number *
           #obj[?L]( | 'x' : ?X ) *
-          #r = ((((u + 1) + ?X) + ?W) + ?Z)
+          #r = ?X
           
       */
       
       function (u) {
-        var x;
-        x = 0;
-        return x + u + g(1)
+        if (u == 0) { return x }
+        else { return u - w }
       }
-      return h(1)
+      
+      return f1(z)
     }
-    f(1);" in
+    h(1);" in
+   
+  (*let p_exp, p_env = get_pexp js_program in   
+  AllFunctions.iter (fun id f -> (Printf.printf "id is %s" id); if id = "anonymous1" then test_js_program_template "test_example_2" f p_exp) p_exp*)  
   test_template js_program "test_example_2"
   
   let test_cav_example_exception () =
@@ -666,5 +682,5 @@ let test_paper_example_2 () =
     "test_paper_example_1" >:: test_paper_example_1; 
     "test_cav_example_exception" >:: test_cav_example_exception;
     
-    (*"test_paper_example_2" >:: test_paper_example_2*) 
+    (*"test_paper_example_2" >:: test_paper_example_2*)
     (*"test_S8_12_8_A1" >:: test_S8_12_8_A1;*)]

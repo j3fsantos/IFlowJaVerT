@@ -117,6 +117,7 @@ location:
 
 logical_bin_op:
     PLUS { Arith Plus }
+  | MINUS { Arith Minus }
   | CONCAT { Concat } 
   
 logical_unary_op:
