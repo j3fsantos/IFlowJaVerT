@@ -136,6 +136,7 @@ let run_program path =
   let result = run_with_heap h expr_to_run env in
   match result.fs_return_type with
     | FTReturn -> pr_test result.fs_heap
+		(* if the return type is an exception we inspect the prototype to check the type of error *)
     | FTException -> pr_test result.fs_heap; Printf.printf "\nException was thrown.\n";
       begin match result.fs_return_value with
         | VHValue (HVObj l) -> 
