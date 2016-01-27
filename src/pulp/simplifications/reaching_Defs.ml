@@ -542,7 +542,7 @@ let type_simplifications g params proc_type =
   let defid_type = Hashtbl.create 100 in (* def_id -> type *)
   
 	let type_info depend v = 
-    if (proc_type = Procedure_User && List.mem v params) then Some (TI_NotARef) (* TODO: Should this be TI_Value? *)
+    if (proc_type = Procedure_User && List.mem v params) then Some (TI_Value)
     else begin
 			let defids = List.filter (fun (var, defid) -> var = v) depend in
 			let types = List.map (fun (var, defid) -> Hashtbl.find defid_type defid) defids in

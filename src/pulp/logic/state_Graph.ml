@@ -1,6 +1,7 @@
 open Graphs
 open Pulp_Syntax
 open Control_Flow
+open Simp_Common
 
 type state_graph_node = {
     sgn_id : CFG.node;
@@ -22,7 +23,16 @@ module StateG = AbstractGraph (struct type t = state_graph_node end) (struct typ
  
 let print_state_graph (sg : StateG.graph) cfg (fname) (filename : string) : unit =
   let d_cfgedge chan dest src =
-    Printf.fprintf chan "\t\t%i -> %i\n" (StateG.node_id src) (StateG.node_id dest) in
+    let sgn_src = StateG.get_node_data sg src in
+    let sgn_dest = StateG.get_node_data sg dest in
+    let edge_data = CFG.get_edge_data cfg sgn_src.sgn_id sgn_dest.sgn_id in
+    let edge = match edge_data with
+      | Edge_Normal -> ""
+      | Edge_Excep -> "excep"
+      | Edge_True -> "true"
+      | Edge_False -> "false"
+    in
+    Printf.fprintf chan "\t\t%i -> %i [label=\"%s\"] \n" (StateG.node_id src) (StateG.node_id dest) edge in
   let d_cfgnode chan (sg : StateG.graph) (n : StateG.node) (nd : state_graph_node) =
     Printf.fprintf chan 
       "\t\t%i [label=\"%i: %s\"]\n" 

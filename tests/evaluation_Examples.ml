@@ -678,8 +678,8 @@ let test_paper_example_2 () =
     "test_S11_2_3_A4_T1_part2" >:: test_S11_2_3_A4_T1_part2;
     "test_S11_2_2_A4_T3_part1" >:: test_S11_2_2_A4_T3_part1;
     "test_S11_2_2_A4_T3_part2" >:: test_S11_2_2_A4_T3_part2;
-    "test_S11_2_2_A4_T3_part3" >:: test_S11_2_2_A4_T3_part3; 
-    "test_paper_example_1" >:: test_paper_example_1; 
+    "test_S11_2_2_A4_T3_part3" >:: test_S11_2_2_A4_T3_part3;
+    "test_paper_example_1" >:: test_paper_example_1;
     "test_cav_example_exception" >:: test_cav_example_exception;
     
     (*"test_paper_example_2" >:: test_paper_example_2*)

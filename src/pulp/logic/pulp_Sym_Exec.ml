@@ -32,7 +32,9 @@ let execute_basic_stmt bs pre : formula =
       end
     | Some posts ->
       begin match posts with 
-        | [] -> raise (NotImplemented "Frame Not Found")
+        | [] -> 
+          Printf.printf "Contradiction Found";
+          raise (SymExecException "Contradiction Found")
         | [post] -> 
           begin 
             Printf.printf "Postcondition %s \n" (Pulp_Logic_Print.string_of_formula post);
@@ -118,14 +120,14 @@ let execute_proto_field current e1 e2 =
   let pi = proto_pred_f ls e1 e2 l v in
   let posts = CoreStar_Frontend_Pulp.apply_spec current pi (combine pi (REq v)) in
   let posts = match posts with
-    | None -> raise (SymExecException "CouldNotApplySpec")
+    | None -> raise (SymExecException "Proto Field No Postcondition Found")
     | Some posts -> posts in
   let values = List.map get_return posts in 
   let values = List.fold_left (fun result v -> match v with 
     | None -> result
     | Some v -> v :: result) [] values in
   match values with
-    | [] -> raise (SymExecException "CouldNotApplySpec")
+    | [] -> raise (SymExecException "Proto Field No Return Found")
     | _ -> values
  
 let rec execute_stmt f sg cfg fs env spec_env snode_id cmd_st_tbl = 
@@ -142,39 +144,41 @@ let rec execute_stmt f sg cfg fs env spec_env snode_id cmd_st_tbl =
     StateG.mk_edge sg snode_id new_sn ();
     execute_stmt f sg cfg fs env spec_env new_sn cmd_st_tbl in
     
-  let new_snode_cond id state edge e =
-    
+  let new_snodes_cond id1 id2 state e =
+   
     let exprs_true = get_proof_cases_eq_true e in
-    let exprs_false = get_proof_cases_eq_false e in
     
-    Printf.printf "Guarded Goto"; 
-    match edge with
-      | Simp_Common.Edge_True -> 
+    let implies_true = List.exists (fun expr_true -> CoreStar_Frontend_Pulp.implies state expr_true) exprs_true in
+    Printf.printf "Guarded Goto Implies True? %b" implies_true; 
+    if (implies_true) then new_snode id1 state   
+    else begin
+      
+      let exprs_false = get_proof_cases_eq_false e in
+      let implies_false = List.exists (fun expr_false -> CoreStar_Frontend_Pulp.implies state expr_false) exprs_false in 
+      Printf.printf "Guarded Goto Implies False? %b" implies_false; 
+      if (implies_false) then new_snode id2 state 
+      else begin
+    
         Printf.printf "Guarded Goto true"; 
         List.iter (fun expr_true ->     
           let state_true = combine expr_true state in
           Format.pp_print_flush(Format.std_formatter)();
           Printf.printf "Guarded Goto true state %s" (Pulp_Logic_Print.string_of_formula expr_true); 
           Printf.printf "Guarded Goto true state %s" (Pulp_Logic_Print.string_of_formula state_true); 
-	        if CoreStar_Frontend_Pulp.inconsistent state_true then
-            begin Printf.printf "Contradiction found ";
-	          contradiction id end
-	        else begin Printf.printf "Contradiction not found "; new_snode id state_true end        
-        ) exprs_true
-        
-      | Simp_Common.Edge_False ->  
-         List.iter (fun expr_false ->  
+          new_snode id1 state_true       
+        ) exprs_true;
+            
+         Printf.printf "Guarded Goto false"; 
+         List.iter (fun expr_false ->     
           let state_false = combine expr_false state in
           Format.pp_print_flush(Format.std_formatter)();
           Printf.printf "Guarded Goto false state %s" (Pulp_Logic_Print.string_of_formula expr_false);  
           Printf.printf "Guarded Goto true state %s" (Pulp_Logic_Print.string_of_formula state_false);    
-          if CoreStar_Frontend_Pulp.inconsistent state_false then
-          begin Printf.printf "Contradiction found ";
-              contradiction id end
-            else begin Printf.printf "Contradiction not found "; new_snode id state_false end
-        ) exprs_false        
-        
-      | _ -> raise (Invalid_argument "Expected true and false edges") in
+          new_snode id2 state_false
+        ) exprs_false;        
+ 
+     end 
+    end in
 
   let new_snode_call id edge p_normal p_excep =
     match edge with
@@ -223,8 +227,13 @@ let rec execute_stmt f sg cfg fs env spec_env snode_id cmd_st_tbl =
       let edge1 = CFG.get_edge_data cfg snode.sgn_id succ1 in
       let edge2 = CFG.get_edge_data cfg snode.sgn_id succ2 in
       
-      new_snode_cond succ1 snode.sgn_state edge1 (expr_to_logical_expr e);
-      new_snode_cond succ2 snode.sgn_state edge2 (expr_to_logical_expr e)
+      let succTrue, succFalse =
+        match edge1, edge2 with 
+          | Simp_Common.Edge_True, Simp_Common.Edge_False -> succ1, succ2
+          | Simp_Common.Edge_False, Simp_Common.Edge_True -> succ2, succ1
+          | _, _ -> raise (Invalid_argument "Expected true and false edges") in
+      
+      new_snodes_cond succTrue succFalse snode.sgn_state (expr_to_logical_expr e);
       
     | Basic (Assignment {assign_left = x; assign_right = (Expression e)}) ->
       

@@ -1,4 +1,169 @@
-rule field_null_contr :
+/* Not an empty value */
+rule undefined_not_empty :
+  | ?x=undefined() |- * ?x!=empty_value()
+if | |-
+
+rule numeric_const_not_empty_contr :
+  | ?x=numeric_const(?y) |- * ?x!=empty_value() 
+if | |-
+
+rule string_not_empty :
+  | type_of(?x)=StringType() |- ?x!=empty_value()
+if | |-
+ 
+rule string_const_not_empty :
+  | ?x=string_const(?y) |- ?x!=empty_value()
+if | |-
+
+rule field_not_empty :
+  | field(?x,?f,?y) |- ?x!=empty_value() 
+if
+  | |-
+  
+/* Object type */
+rule field_type_of_lt_obj :
+| field(?x,?y,?v) |-true()=builtin_lt(type_of(?x), ObjectType()) 
+if
+ | |-  
+  
+/* Not an object type */  
+rule undef_not_type_of_lt_obj_not_ :
+  | ?x=undefined() |- false()=builtin_lt(type_of(?x), ObjectType())
+if
+ | |-
+ 
+rule true_not_type_of_lt_obj :
+  | ?x=true() |- false()=builtin_lt(type_of(?x), ObjectType())
+if | |-
+
+rule false_not_type_of_lt_obj :
+  | ?x=false() |- false()=builtin_lt(type_of(?x), ObjectType())
+if | |-
+
+rule number_not_type_of_lt_obj :
+| ?x = numeric_const(?y) |- false()=builtin_lt(type_of(?x), ObjectType())
+if | |-
+
+rule string_not_builtin_lt_obj :
+| type_of(?x) = StringType() |- false()=builtin_lt(type_of(?x), ObjectType())
+if
+| |-
+
+/* Not Built-in Object */
+rule type_of_nobj_not_bobj :
+  | type_of(?x)=NObjectType() |- type_of(?x)!=BObjectType() 
+if
+  | |-
+
+/* Not null */
+rule undefined_not_null :
+  | ?x=undefined() |- ?x!=null()
+if 
+  | |-
+  
+rule string_const_not_null_type :
+  | ?x = string_const(?y) |- type_of(?x)!=NullType() 
+if
+  | |-
+  
+rule type_of_string_not_null_type :
+  | type_of(?x)=StringType() |- type_of(?x)!=NullType() 
+if
+  | |-
+  
+rule field_not_null_type :
+  | field(?x,?y,?z) |- type_of(?x)!=NullType() 
+if
+  | |-
+  
+/* Not undefined */ 
+rule string_const_not_undef_type :
+  | ?x = string_const(?y) |- type_of(?x)!=UndefinedType() 
+if
+  | |-
+  
+rule type_of_string_not_undef_type :
+  | type_of(?x)=StringType() |- type_of(?x)!=UndefinedType() 
+if
+  | |-
+   
+rule field_not_undef_type :
+  | field(?x,?y,?z) |- type_of(?x)!=UndefinedType() 
+if
+  | |-
+  
+rule type_of_lt_obj_not_undef :
+  | true()=builtin_lt(type_of(?x), ObjectType()) |- * ?x!=undefined()
+if
+ | |-
+ 
+/* Number Type */
+rule type_of_numeric_const :
+   | |- type_of(numeric_const(?x)) = NumberType()
+without type_of(numeric_const(?x)) = NumberType()
+if
+  | |- 
+  
+/* Not A Number Type */  
+rule string_const_not_number_type :
+  | ?x = string_const(?y) |- type_of(?x)!=NumberType() 
+if
+  | |-
+  
+rule type_of_string_not_number_type :
+  | type_of(?x)=StringType() |- type_of(?x)!=NumberType() 
+if
+  | |-
+  
+rule lg_not_number_type :
+  | |- type_of(lg())!=NumberType()
+if | |-
+
+rule builtin_lt_obj_not_number :
+| true()=builtin_lt(type_of(?x), ObjectType()) |- type_of(?x) != NumberType()
+if
+| |-
+  
+/* Not A Boolean Type */  
+rule string_const_not_boolean_type :
+  | ?x = string_const(?y) |- type_of(?x)!=BooleanType() 
+if
+  | |-
+  
+rule type_of_string_not_boolean_type :
+  | type_of(?x)=StringType() |- type_of(?x)!=BooleanType() 
+if
+  | |-
+  
+rule lg_not_boolean_type :
+  | |- type_of(lg())!=BooleanType()
+if
+  | |-
+  
+rule builtin_lt_obj_not_boolean :
+| true()=builtin_lt(type_of(?x), ObjectType()) |- type_of(?x) != BooleanType()
+if
+| |-
+  
+/* Not A String Type */  
+rule field_not_string_type :
+  | |- type_of(lg())!=StringType()
+if
+  | |-
+
+rule builtin_lt_obj_not_string :
+| true()=builtin_lt(type_of(?x), ObjectType()) |- type_of(?x) != StringType()
+if
+| |-
+  
+/* TODO: Give Numbers To Types */
+rule type_of_vref_mref_not_equal :
+  | |- VariableReferenceType() != MemberReferenceType()
+if
+  | |-
+  
+/* Contradiction Rules */  
+/*rule field_null_contr :
    | field(?x,?f,?y) * type_of(?x)=NullType() |- 
 if
 
@@ -30,7 +195,7 @@ rule undefined_empty_contr :
   | ?x=undefined() * ?x=empty_value() |-
 if
 
-rule undefined_empty_contr :
+rule undefined_null_contr :
   | ?x=undefined() * ?x=null() |-
 if
 
@@ -144,7 +309,6 @@ rule type_of_lt_obj_field_contr :
 | false()=builtin_lt(type_of(?x), ObjectType()) * field(?x,?y,?v) |-
 if
 
-
 rule type_of_obj_nobj_contr :
   | type_of(?x)=ObjectType() * type_of(?x)=NObjectType() |- 
 if
@@ -161,7 +325,6 @@ rule type_of_lt_bobj_nobj_contr :
   | true()=builtin_lt(type_of(?x), BObjectType()) * type_of(?x)=NObjectType() |- 
 if
 
-/* TODO: More abstract */
 rule type_of_lg_not_boolean :
   | type_of(lg()) = BooleanType() |-
 if
@@ -196,10 +359,4 @@ if
 
 rule type_of_vref_mref_contr :
   | type_of(?x)=VariableReferenceType() * type_of(?x)=MemberReferenceType() |- 
-if
-
-rule type_of_numeric_const :
-   | |- type_of(numeric_const(?x)) = NumberType()
-without type_of(numeric_const(?x)) = NumberType()
-if
-  | |-
+if*/
