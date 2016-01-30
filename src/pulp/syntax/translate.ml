@@ -46,7 +46,7 @@ let translate_exp path level =
     
   let p_exp = 
     try 
-      exp_to_pulp_no_builtin level exp Pulp_Syntax_Utils.main_fun_id [] (* TODO add option for built-in functions *)
+      exp_to_pulp_no_builtin level exp Pulp_Syntax_Utils.main_fun_id [] (* TODO add option for built-in functions - what is this todo? *)
     with
       | PulpNotImplemented exp -> Printf.printf "\nTranslation of Javascript syntax does not support '%s' yet.\n" exp; exit 2
       | Invalid_argument arg -> Printf.printf "\nSomething wrong with the translation '%s'.\n" arg; exit 1

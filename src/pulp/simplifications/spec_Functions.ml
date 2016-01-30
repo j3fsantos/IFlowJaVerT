@@ -420,7 +420,7 @@ let simplify_strict_equality_comparison e1 e2 annot left =
         end
       end
  
-let simplify_spec_func sf left annot throw_var label_throw =
+let simplify_spec_func_unfold sf left annot throw_var label_throw =
   match sf with
     | GetValue e -> simplify_get_value e left annot throw_var label_throw
     | PutValue (e1, e2) -> simplify_put_value e1 e2 annot throw_var label_throw
@@ -440,6 +440,35 @@ let simplify_spec_func sf left annot throw_var label_throw =
     | StrictEquality (e1, e2) -> simplify_strict_equality_comparison e1 e2 annot left
     | StrictEqualitySameType (e1, e2) -> simplify_strict_equality_comparison_types_equal e1 e2 annot left
 
+let simplify_spec_func_fold sf left annot throw_var label_throw =
+  match sf with
+    | GetValue e -> simplify_get_value e left annot throw_var label_throw
+    | PutValue (e1, e2) -> simplify_put_value e1 e2 annot throw_var label_throw
+    | Get (e1, e2) -> translate_get e1 e2 left (* No simplifications. Might change after we have getters/setters *)
+    | HasProperty (e1, e2) -> translate_has_property e1 e2 left (* No simplifications *)
+    | DefaultValue (e, pt) -> translate_default_value e pt left throw_var label_throw (* Cannot do simplifications at this time. But this exploads a lot. Possible simplifications with separation logic reasoning *)
+    | ToPrimitive (e, pt) -> simplify_to_primitive e pt annot left throw_var label_throw (* Cannot do more simplifications at this time. Depends on Default Value *)
+    | ToBoolean e -> simplify_to_boolean e annot left
+    | ToNumber e -> simplify_to_number e annot left throw_var label_throw
+    | ToNumberPrim e -> simplify_to_number_prim e annot left
+    | ToString e -> simplify_to_string e annot left throw_var label_throw
+    | ToStringPrim e -> simplify_to_string_prim e annot left 
+    | ToObject e -> simplify_to_object e annot left throw_var label_throw
+    | CheckObjectCoercible e -> simplify_to_object_coercible e annot throw_var label_throw
+    | IsCallable e -> simplify_is_callable e annot left
+    | AbstractEquality (e1, e2, b) -> translate_abstract_relation e1 e2 b left throw_var label_throw
+    | StrictEquality (e1, e2) -> simplify_strict_equality_comparison e1 e2 annot left
+    | StrictEqualitySameType (e1, e2) -> simplify_strict_equality_comparison_types_equal e1 e2 annot left
+
+type unfolding_specs_simp  =
+  | Unfold_Specs
+  | Fold_Specs
+
+let simplify_spec_func sf left annot throw_var label_throw option =
+  if option == Unfold_Specs 
+	then simplify_spec_func_unfold sf left annot throw_var label_throw
+	else simplify_spec_func_fold sf left annot throw_var label_throw
+
 let unfold_spec_func left sf annot =
   let ctx =  {
      env_vars = [];  (*unused*)
@@ -454,7 +483,7 @@ let unfold_spec_func left sf annot =
   } in
   let throw_var = ctx.throw_var in
   let label_throw = ctx.label_throw in
-  let stmts = to_ivl_goto (simplify_spec_func sf left annot throw_var label_throw) in
+  let stmts = to_ivl_goto (simplify_spec_func sf left annot throw_var label_throw Unfold_Specs) in
   let stmts = stmts @ [Goto ctx.label_return; Label ctx.label_return; Label ctx.label_throw] in
   (*Printf.printf "Simplified spec function %s : %s" (Pulp_Syntax_Print.string_of_spec_function sf) (Pulp_Syntax_Print.string_of_statement_list stmts);*)
   make_function_block Procedure_Spec "" stmts [] ctx
