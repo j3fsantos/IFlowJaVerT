@@ -28,8 +28,8 @@ let arguments () =
     usage_msg
     
 let create_output (fb : Pulp_Procedure.function_block) path = 
-  let content = Pulp_Syntax_Print.string_of_func_block fb in
-  let path = (Filename.chop_extension path) ^ "." ^ fb.Pulp_Procedure.func_name ^ ".pulp" in
+  let content = Pulp_Syntax_Print.string_of_func_block fb in	 
+  let path = (Filename.chop_extension path) ^ "/" ^ (Filename.chop_extension path) ^ "." ^ fb.Pulp_Procedure.func_name ^ ".pulp" in
   let oc = open_out path in
   output_string oc content;
   close_out oc
@@ -44,20 +44,22 @@ let translate_exp path level =
         exit 1 
   in
     
-  let p_exp = 
+  let p_exp, env = 
     try 
-      exp_to_pulp_no_builtin level exp Pulp_Syntax_Utils.main_fun_id [] (* TODO add option for built-in functions *)
+      exp_to_pulp level exp Pulp_Syntax_Utils.main_fun_id [] (* TODO add option for built-in functions - what is this todo? *)
     with
       | PulpNotImplemented exp -> Printf.printf "\nTranslation of Javascript syntax does not support '%s' yet.\n" exp; exit 2
       | Invalid_argument arg -> Printf.printf "\nSomething wrong with the translation '%s'.\n" arg; exit 1
-  in p_exp
+  in p_exp, env
 
 let translate path level = 
-  let p_exp = translate_exp path level in
+  let p_exp, env = translate_exp path level in
   let p_exp = Simp_Main.simplify p_exp in
   (* TODO: Constructs cfg twice adding entry label twice *)
   let _ = Control_Flow.mk_cfg p_exp (Filename.chop_extension path) in
-  Pulp_Procedure.AllFunctions.iter (fun fid fwc -> create_output fwc path) p_exp
+	Unix.mkdir (Filename.chop_extension path) 0o777;
+  Pulp_Procedure.AllFunctions.iter (fun fid fwc -> create_output fwc path) p_exp;
+	Pulp_Procedure.AllFunctions.iter (fun fid fwc -> create_output fwc path) env
 
 let main () =
   Config.apply_config ();

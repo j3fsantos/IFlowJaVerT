@@ -13,7 +13,7 @@ let builtin_call_boolean_call () =
     [ Sugar (If (equal_empty_expr (Var v),
        [ assign_false r1 ],
        stmts));
-      assign_expr ctx.return_var (Var r1);
+			assign_expr ctx.return_var (Var r1);
       Goto ctx.label_return; 
       Label ctx.label_return; 
       Label ctx.label_throw
@@ -458,6 +458,15 @@ let builtin_error_construct_call errorp func () =
   ] in
   make_function_block Procedure_Builtin (string_of_builtin_function func) body [rthis; rscope; message] ctx
 
+let make_crazy_procedure_and_be_happy () = 
+	let ctx = create_ctx [] in
+	let crazy_var = fresh_r () in 
+	let body = to_ivl_goto_unfold [
+			Basic (Assignment (mk_assign crazy_var  (Expression (Literal (String "assigning my crazy var iupi!!!!"))))) 
+		] in 
+		make_function_block Procedure_Spec "crazy_procedure_to_test_this_thing" body [rthis; rscope; crazy_var] ctx
+	
+
 let get_env () =
   let context = AllFunctions.empty in
   
@@ -489,5 +498,6 @@ let get_env () =
   let context = AllFunctions.add (string_of_builtin_function EvalError_Call_Construct) (builtin_error_construct_call LEvalErrorP EvalError_Call_Construct ()) context in
   let context = AllFunctions.add (string_of_builtin_function RangeError_Call_Construct) (builtin_error_construct_call LRangeErrorP RangeError_Call_Construct ()) context in
   let context = AllFunctions.add (string_of_builtin_function URIError_Call_Construct) (builtin_error_construct_call LURIErrorP URIError_Call_Construct ()) context in
-  
+	let context = AllFunctions.add "crazy_procedure_to_test_this_thing" (make_crazy_procedure_and_be_happy()) context in 
+	
   context
