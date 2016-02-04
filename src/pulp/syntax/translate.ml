@@ -28,8 +28,7 @@ let arguments () =
     usage_msg
     
 let create_output (fb : Pulp_Procedure.function_block) path = 
-  let content = Pulp_Syntax_Print.string_of_func_block fb in
-	Unix.mkdir (Filename.chop_extension path) 0o777; 
+  let content = Pulp_Syntax_Print.string_of_func_block fb in	 
   let path = (Filename.chop_extension path) ^ "/" ^ (Filename.chop_extension path) ^ "." ^ fb.Pulp_Procedure.func_name ^ ".pulp" in
   let oc = open_out path in
   output_string oc content;
@@ -58,6 +57,7 @@ let translate path level =
   let p_exp = Simp_Main.simplify p_exp in
   (* TODO: Constructs cfg twice adding entry label twice *)
   let _ = Control_Flow.mk_cfg p_exp (Filename.chop_extension path) in
+	Unix.mkdir (Filename.chop_extension path) 0o777;
   Pulp_Procedure.AllFunctions.iter (fun fid fwc -> create_output fwc path) p_exp;
 	Pulp_Procedure.AllFunctions.iter (fun fid fwc -> create_output fwc path) env
 
