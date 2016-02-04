@@ -93,12 +93,14 @@ type formula =
 let empty_f = Star []
 
 let eq_true le = Eq (le, Le_Literal (Bool true))
+let eq_false le = Eq (le, Le_Literal (Bool false))
+let neq_true le = NEq (le, Le_Literal (Bool true))
 
 let false_f = eq_true (Le_Literal (Bool false))
 
 let eq_pvars_f x1 x2 = Eq (Le_PVar x1, Le_PVar x2)
 
-let type_of_f x t = Eq (Le_TypeOf (Le_PVar x), Le_Literal (Type t))
+let type_of_f x t = Eq (Le_TypeOf x, Le_Literal (Type t))
 let not_type_of_f x t = NEq (Le_TypeOf (Le_PVar x), Le_Literal (Type t))
 
 let type_of_mref_f x = type_of_f x (ReferenceType (Some MemberReference))
@@ -108,6 +110,7 @@ let not_type_of_vref_f x = not_type_of_f x (ReferenceType (Some VariableReferenc
 
 let type_of_obj_f x = eq_true (Le_BinOp (Le_TypeOf x, Comparison LessThan, Le_Literal (Type (ObjectType None))))
 let type_of_ref_f x = eq_true (Le_BinOp (Le_TypeOf x, Comparison LessThan, Le_Literal (Type (ReferenceType None))))
+let type_of_not_a_ref_f x = eq_false (Le_BinOp (Le_TypeOf x, Comparison LessThan, Le_Literal (Type (ReferenceType None))))
 let proto_heaplet_f le1 le2 = Heaplet (le1, Le_Literal (String (string_of_builtin_field FProto)), le2)
 let class_heaplet_f le1 le2 = Heaplet (le1, Le_Literal (String (string_of_builtin_field FClass)), (Le_Literal (String le2)))
 let primitive_value_heaplet_f le1 le2 = Heaplet (le1, Le_Literal (String (string_of_builtin_field FPrimitiveValue)), le2)

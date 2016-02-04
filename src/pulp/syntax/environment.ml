@@ -38,7 +38,7 @@ let builtin_call_boolean_construct () =
       Label ctx.label_return; 
       Label ctx.label_throw
     ] in  
-  let pre = type_of_f v BooleanType in
+  let pre = type_of_f (Le_PVar v) BooleanType in
   let new_obj = Le_Var (fresh_e()) in  
   let post = [Star [
     REq new_obj;
@@ -399,7 +399,7 @@ let builtin_call_string_construct () =
       Label ctx.label_return; 
       Label ctx.label_throw
     ]) in    
-  let pre = type_of_f v StringType in
+  let pre = type_of_f (Le_PVar v) StringType in
   let new_obj = Le_Var (fresh_e()) in  
   let post = [Star [
     REq new_obj;

@@ -10,11 +10,11 @@ let dummy_exp = (Literal Undefined)
 let get_value_fn () = string_of_spec_fun_id (GetValue dummy_exp)
 
 let get_value_spec param ctx =
-  let pre_not_a_ref = Star [not_type_of_mref_f param; not_type_of_vref_f param] in
+  let pre_not_a_ref = type_of_not_a_ref_f (Le_PVar param) in
   
   let v = Le_Var (fresh_a()) in
   let pre_vref_obj = Star [
-    type_of_vref_f param; 
+    type_of_vref_f (Le_PVar param);
     NEq (Le_Base (Le_PVar param), Le_Literal (LLoc Lg));
     Heaplet (Le_Base (Le_PVar param), Le_Field (Le_PVar param), v);
     NEq (v, Le_None) 
@@ -25,7 +25,7 @@ let get_value_spec param ctx =
  let pre_vref_lg = combine
     (proto_pred_f ls (Le_Literal (LLoc Lg)) (Le_Field (Le_PVar param)) l v)
     (Star [
-    type_of_vref_f param; 
+    type_of_vref_f (Le_PVar param); 
     Eq (Le_Base (Le_PVar param), Le_Literal (LLoc Lg));
     NEq (v, Le_Literal Empty) 
   ]) in
@@ -46,7 +46,7 @@ let get_value_spec param ctx =
    let pre_mref_empty = combine
      (proto_pred_f ls (Le_Base (Le_PVar param)) (Le_Field (Le_PVar param)) l v)   
      (Star [
-      type_of_mref_f param; 
+      type_of_mref_f (Le_PVar param); 
       type_of_obj_f (Le_Base (Le_PVar param));
       Eq (v, Le_Literal Empty)])
    in
@@ -54,7 +54,7 @@ let get_value_spec param ctx =
   let pre_mref_not_empty = combine 
     (proto_pred_f ls (Le_Base (Le_PVar param)) (Le_Field (Le_PVar param)) l v)
     (Star [
-    type_of_mref_f param; 
+    type_of_mref_f (Le_PVar param); 
     type_of_obj_f (Le_Base (Le_PVar param));
     NEq (v, Le_Literal Empty) 
   ]) in

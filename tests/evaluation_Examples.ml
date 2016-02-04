@@ -349,7 +349,7 @@ let test_S13_A17_T2_part () =
 (* ch13/13.2/S13.2.2_A2.js *)
 let test_S13_2_2_A2 () =
   let js_program = "/**
-    @toprequires #obj[#GlobalObject](|'__PLANT':?P, '__ROSE': ?F, '__PROTO' : ?PR, '__FACTORY' : ?F, '__rose' : ?r)
+    @toprequires #obj[#GlobalObject](|'__PLANT':?P, '__ROSE': ?R, '__PROTO' : ?PR, '__FACTORY' : ?F, '__rose' : ?r)
     
     @topensureserr #r = _E * #obj[_E](|#proto:#TypeErrorPrototype, #class:'Error')             
     */
@@ -368,7 +368,7 @@ let test_S13_2_2_A2 () =
       $ERROR('#0: __PROTO.type=__PLANT does not lead to throwing exception')
     }
 
-    /** @requires #obj[rscope](|'main':#GlobalObject) * #protoPred(?LS, #GlobalObject,'__ROSE', ?L, ?R) * ?R != #(/) * (rthis,'name') |-> ?N
+    /** @requires #obj[rscope](|'main':#GlobalObject) * #protoPred(?LS, #GlobalObject,'__ROSE', ?L, ?R) * ?R != #empty * ?R != #(/) * false = (#typeof(?R) < #Reference) * (rthis,'name') |-> ?N
         @ensures #r = #undefined * (rthis,'name') |-> ?R */
     function __FACTORY(){this.name=__ROSE};
 

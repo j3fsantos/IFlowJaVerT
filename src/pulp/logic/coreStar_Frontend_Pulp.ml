@@ -106,8 +106,9 @@ and substitute_eq_pform_at v a pfa =
   match pfa with
       | Psyntax.P_EQ (a1, a2) -> 
         (* Leaving #r = smth *)
-        begin match v with
-          | Vars.PVar (_, "$ret_v1") -> pfa
+        begin match a1, a2 with
+          | _, Psyntax.Arg_var (Vars.PVar (_, "$ret_v1")) -> Psyntax.P_EQ (sea a1, a2)
+          | Psyntax.Arg_var (Vars.PVar (_, "$ret_v1")), _ -> Psyntax.P_EQ (a1, sea a2)
           | _ -> Psyntax.P_EQ (sea a1, sea a2)
         end
       | Psyntax.P_NEQ (a1, a2) -> Psyntax.P_NEQ (sea a1, sea a2)
@@ -205,7 +206,7 @@ let footprint_to_args varmap l obj_fields =
 
 let args_to_logical_var lvarmap v =
   match v with 
-    | Vars.PVar (_, "$ret_v1") -> raise (BadArgument "$ret_v1")
+    | Vars.PVar (_, "$ret_v1") -> raise (BadArgument "$ret_v1 in args_to_logical_var")
     | v -> try LVarMap.find v lvarmap
       (* Generally we do not want logical variables that do not exist in the lvarmap *)
       (* An exception is a first parameter for the pi predicate *)
@@ -323,7 +324,7 @@ let convert_to_pform fs =
   let fs = List.map lift_equalities fs in
   let fs = List.map simplify fs in
   let logical_vars = List.unique (get_logical_vars (Star fs)) in
-  Printf.printf "Logical variables %s" (String.concat "\n" (List.map (Pulp_Logic_Print.string_of_logical_var) logical_vars));
+  (*Printf.printf "Logical variables %s\n" (String.concat "\n" (List.map (Pulp_Logic_Print.string_of_logical_var) logical_vars));*)
   let varmap = List.fold_left (
     fun varmap v -> 
       let cv = match v with
@@ -332,12 +333,13 @@ let convert_to_pform fs =
         | EVar v -> Vars.freshe_str ("lv_" ^ v) in
       VarMap.add (LogicalVariable v) cv varmap
   ) VarMap.empty logical_vars in 
-  Printf.printf "Variable map %s" (String.concat "\n" (List.map (fun (k, v) -> (string_of_variable_types k) ^  ":" ^ (Vars.string_var v)) (VarMap.bindings varmap)));
   let program_vars = List.unique (get_program_vars (Star fs)) in
+  (*Printf.printf "Program variables %s\n" (String.concat "\n" (List.map (Pulp_Syntax_Print.string_of_var) program_vars));*)
   let varmap = List.fold_left (
     fun varmap v -> 
       VarMap.add (ProgramVariable v) (Vars.freshp_str ("pv_" ^ v)) varmap
   ) varmap program_vars in 
+  (*Printf.printf "Variable map %s\n" (String.concat "\n" (List.map (fun (k, v) -> (string_of_variable_types k) ^  ":" ^ (Vars.string_var v)) (VarMap.bindings varmap)));*)
   List.map (fun f -> 
     match f with 
         | Star fs -> flat_map (convert_to_pform_inner varmap) fs
@@ -375,13 +377,16 @@ let convert_from_pform_at varmap pfa : formula =
       | Psyntax.P_False -> raise (NotImplemented ("convert_from_pform_at"))
   
 let clean_return pf varmap = 
+  (*Printf.printf "Cleaning return";*)
   let r = Vars.concretep_str ret_v1 in
   let v = Vars.freshe_str "N" in 
   try
     let req = find_var_eq r pf in 
+    (*Format.fprintf (Format.std_formatter) "Cleaning return -- Found req: %a \n" Psyntax.string_args req; Format.pp_print_flush(Format.std_formatter)();*)   
     let pf = substitute_eq_pform r req pf in pf, varmap
   with Not_found -> 
     begin    
+        (*Printf.printf "Cleaning return -- Not Found req";*)
         let pf = substitute_eq_pform r (Psyntax.Arg_var v) pf in
         let req = Psyntax.P_EQ (Psyntax.Arg_var r, Psyntax.Arg_var v) in
         let varmap = LVarMap.add v (LogicalVariable (fresh_e())) varmap in
@@ -406,6 +411,14 @@ let rename_evars f =
   let evars = List.unique evars in 
   let vmap = List.fold_left (fun vmap x -> LogicalVarMap.add x (Le_Var (fresh_e ())) vmap) LogicalVarMap.empty evars in
   subs_vars vmap f
+  
+let elim_vars_in_formula f = 
+  let pf, varmap = convert_to_pform [f] in
+  let pf = match pf with
+      | [pf] -> pf
+      | _ -> raise CannotHappen in
+  let pf = elim_vars pf in
+  convert_from_pform (invert_varmap varmap) pf
  
 (* does frame inference : current_state |- pre * ?F *)
 (* returns : ?F * post *)
@@ -417,9 +430,13 @@ let apply_spec current_state pre post =
   let pf, pre, post = match fs with
       | [pf; pre; post] -> pf, pre, post
       | _ -> raise CannotHappen in
+  (*Format.fprintf (Format.std_formatter) "Current State %a \n" Psyntax.string_form pf; Format.pp_print_flush(Format.std_formatter)();
+  Format.fprintf (Format.std_formatter) "Pre State %a \n" Psyntax.string_form pre; Format.pp_print_flush(Format.std_formatter)();
+  Format.fprintf (Format.std_formatter) "Post State %a \n" Psyntax.string_form post; Format.pp_print_flush(Format.std_formatter)();*)
   match (Sepprover.convert pf) with
     | Some inner -> 
       begin 
+        (*Format.fprintf (Format.std_formatter) "Inner form: %a  \n" Sepprover.string_inner_form inner; Format.pp_print_flush(Format.std_formatter)();*)
         let inner = 
           try Sepprover.lift_inner_form inner
           with Psyntax.Contradiction -> raise (CoreStarContradiction "Lifting Inner Form") in
@@ -430,12 +447,13 @@ let apply_spec current_state pre post =
 			  begin match posts with
 			     | None -> (* Couldn't find any frames *) None 
 			     | Some posts ->   Some (List.map (fun post -> 
+                    (*Format.fprintf (Format.std_formatter) "Found post af %a  \n" Sepprover.string_inner_form_af post; Format.pp_print_flush(Format.std_formatter)();*)
 			        let post = Sepprover.inner_form_af_to_form post in
-			        Format.fprintf (Format.std_formatter) "%a  \n" Sepprover.string_inner_form post; Format.pp_print_flush(Format.std_formatter)();
+			        (*Format.fprintf (Format.std_formatter) "Found post %a  \n" Sepprover.string_inner_form post; Format.pp_print_flush(Format.std_formatter)();*)
 			        let pf = Sepprover.convert_back post in
 			        let cf = convert_from_pform (invert_varmap varmap) pf in
 			        Printf.printf "\nPrinting frames as formula: %s\n" (Pulp_Logic_Print.string_of_formula cf);
-              cf
+                    cf
 			        ) posts)
                
         end

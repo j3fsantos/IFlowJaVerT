@@ -13,6 +13,14 @@
   if we already know the fields have different 
   values.  
  */
+ 
+rule field_remove1_string_const:
+| field(?x,string_const(?f),?y) |-  field(?x,string_const(?f),?t) 
+without
+  ?y!=?t
+if
+  field(?x,string_const(?f),?y) | |- ?y=?t  
+ 
 rule field_remove1:
 | field(?x,?f,?y) |-  field(?x,?f,?t) 
 without

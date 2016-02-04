@@ -88,6 +88,7 @@ let combine (p:formula) (q:formula) : formula =
   
  (* Substitute #r = E to x = E *)   
 let change_return x p =
+   (*Printf.printf "\n\nChanging return\n\n";*)
   let e = get_return p in
   let e = match e with
     | None -> Le_Var (fresh_e())
