@@ -122,175 +122,98 @@ let observe_state current v pre =
 
 (* returns the list of normal post conditions and exceptional post conditions *)    
 let execute_spec_func_call_stmt sf x fs current : formula list * formula list =
-  (*let current = forget_return current in
-  let current = CoreStar_Frontend_Pulp.elim_vars_in_formula current in*)
+    let excep_post () = 
+      let lerror = Le_Var (fresh_e()) in
+       combine current (Star [
+                         Eq (Le_PVar x, lerror);
+                         proto_heaplet_f lerror (Le_Literal (LLoc Lrep));
+                         class_heaplet_f lerror "Error"]) in
+                        
+                        
+    let mem_ref_cases le1 = 
+      (* member reference not empty *)  
+      let values = try 
+        let v = Le_Var (fresh_e()) in
+        observe_state current v (Spec_Fun_Specs.get_value_mref_not_empty_pre le1 v)
+      with SymExecException _ -> [] in
+                        
+      begin match values with
+        | value :: rest ->
+          List.map (fun value ->
+            combine current (Eq (Le_PVar x, value))
+          ) values, [false_f]  
+                                          
+       | [] -> 
+         (* member reference object empty *)
+
+         if (CoreStar_Frontend_Pulp.implies current (Spec_Fun_Specs.get_value_mref_empty_pre le1)) then 
+           [combine current (Eq (Le_PVar x, Le_Literal Undefined))], [false_f] 
+         else raise (SymExecException "Not Implemented Branching in GetValue")
+      end in     
+      
+    let var_ref_cases le1 continue = 
+      let values = try 
+        let v = Le_Var (fresh_e()) in
+        observe_state current v (Spec_Fun_Specs.get_value_vref_obj_pre le1 v)
+        with SymExecException _ -> [] in
+                     
+      begin match values with
+        | value :: rest ->                       
+          (* variable reference not lg *)
+          List.map (fun value ->
+            combine current (Eq (Le_PVar x, value))
+          ) values, [false_f]   
+                              
+        | [] -> 
+          let values = try 
+            let v = Le_Var (fresh_e()) in
+            observe_state current v (Spec_Fun_Specs.get_value_vref_lg le1 v)
+           with SymExecException _ -> [] in
+                            
+           begin match values with     
+             | value :: rest ->
+               (* variable reference lg *)
+                List.map (fun value ->
+                    combine current (Eq (Le_PVar x, value))
+                ) values, [false_f] 
+                              
+             | [] -> continue le1
+                                                                                    
+           end
+                                          
+        end in              
+                        
     match sf with
       | GetValue e1 ->       
         begin
-          let le1 = expr_to_logical_expr e1 in
-           
-          (* check if le1 is not a reference *)
-          
-          let not_a_ref = match le1 with
-	            | Le_Var _
-	            | Le_PVar _ -> CoreStar_Frontend_Pulp.implies current (type_of_not_a_ref_f le1)
-	            | Le_None | Le_TypeOf _ -> raise (SymExecException "Wrong Parameter to GetValue")
-	            | Le_Literal _ | Le_UnOp _ | Le_BinOp _ |  Le_Base _ | Le_Field _ -> true
-	            | Le_Ref _ -> false in
-
-          if (not_a_ref) then [combine current (Eq (Le_PVar x, le1))], [false_f]
-          else begin
-            
-            (* check if le1 is a reference *)
-            
-            let is_a_ref = match le1 with
-                | Le_Var _
-                | Le_PVar _ -> CoreStar_Frontend_Pulp.implies current (type_of_ref_f le1)
-                | Le_None | Le_TypeOf _ -> raise (SymExecException "Wrong Parameter to GetValue")
-                | Le_Literal _ | Le_UnOp _ | Le_BinOp _ |  Le_Base _ | Le_Field _ -> false
-                | Le_Ref _ -> true in
-
-            if (is_a_ref) then begin
+          let le1 = expr_to_logical_expr e1 in  
+          match le1 with
+					  | Le_Var _
+					  | Le_PVar _ ->
+              begin
+               (* check if le1 is not a reference *)
+               if (CoreStar_Frontend_Pulp.implies current (Spec_Fun_Specs.get_value_not_a_ref_pre le1)) then [combine current (Eq (Le_PVar x, le1))], [false_f]
+               else begin (* ref *)
+							          
+                   if (CoreStar_Frontend_Pulp.implies current (Spec_Fun_Specs.get_value_unresolvable_ref_pre le1)) then [false_f], [excep_post ()]
+                   else  var_ref_cases le1 mem_ref_cases
+                   
+               end (* ref *)
               
-               (* check if base(le1) is undefined *)
+              end
               
-               
-               let is_unresolved_ref = match le1 with
-                 | Le_Ref (Le_Literal Undefined, _, _) -> true
-                 | Le_Ref (Le_PVar _, _, _) | Le_Ref (Le_Var _, _, _) | Le_Var _ | Le_PVar _ -> CoreStar_Frontend_Pulp.implies current (Eq (Le_Base le1, Le_Literal Undefined))
-                 | _ -> false in
-
-
-               if (is_unresolved_ref) then begin
-                  let lerror = Le_Var (fresh_e()) in
-								  let post_unresolvable_ref = combine current
-								    (Star [
-								      Eq (Le_PVar x, lerror);
-								      proto_heaplet_f lerror (Le_Literal (LLoc Lrep));
-								      class_heaplet_f lerror "Error"
-								    ]) in [false_f], [post_unresolvable_ref]
-                end
-                
-                else begin 
-                  let is_v_ref = match le1 with
-	                 | Le_Ref (_, _, VariableReference) -> true
-	                 | Le_Var _ | Le_PVar _ -> CoreStar_Frontend_Pulp.implies current (type_of_vref_f le1)
-	                 | _ -> false in
-                  
-	                if (is_v_ref) then begin
-                    let v = Le_Var (fresh_e()) in
-										let pre_vref_obj = Star [
-										  NEq (Le_Base le1, Le_Literal (LLoc Lg));
-										  Heaplet (Le_Base le1, Le_Field le1, v);
-										  NEq (v, Le_None) 
-										] in
-                                    
-                    let values = try 
-                      observe_state current v pre_vref_obj
-                    with SymExecException _ -> [] in
-                    
-                    begin match values with
-                      | [] ->
-                        
-                        (* check if variable reference lg *)
-                        
-											 let ls = Le_Var (fresh_e()) in
-											 let l = Le_Var (fresh_e()) in 
-                       let v = Le_Var (fresh_e()) in
-											 let pre_vref_lg = combine
-											    (proto_pred_f ls (Le_Literal (LLoc Lg)) (Le_Field le1) l v)
-											    (Star [
-											    Eq (Le_Base le1, Le_Literal (LLoc Lg));
-											    NEq (v, Le_Literal Empty) 
-											  ]) in
-                                
-		                    let values = try 
-		                      observe_state current v pre_vref_lg
-		                    with SymExecException _ -> [] in
-                        
-                        begin match values with
-                          | [] ->
-                             raise (SymExecException "Not Implemented Branching in GetValue for Variable Reference")
-                            
-                          | _ ->
-                            
-                            (* variable reference lg *)
-                            List.map (fun value ->
-                                combine current (Eq (Le_PVar x, value))
-                            ) values, [false_f]                            
-                            
-                        end
-
-                      | _ -> 
-                        begin
-                          
-                        (* variable reference not lg *)
-                        List.map (fun value ->
-                           combine current (Eq (Le_PVar x, value))
-                        ) values, [false_f]
-                          
-                        end
-                        
-                     end (* end match values with*)
-
+            | Le_Ref (l, x, t) -> 
+              begin match l with 
+                | Le_Literal Undefined -> [false_f], [excep_post ()]
+                | _ -> 
+                  begin match t with
+                    | VariableReference -> var_ref_cases le1 (fun _ -> raise (SymExecException "Not Implemented Branching in GetValue"))
+                    | MemberReference -> mem_ref_cases le1
                   end
-	                else begin 
-                     (* TODO : check if mem reference first *)
-		                 (* TODO : base le1 = String / Number / Boolean *)
-		                
-
-		                 begin
-		                     let ls = Le_Var (fresh_e()) in
-		                     let l = Le_Var (fresh_e()) in 
-		                     let v = Le_Var (fresh_e()) in
-		                     let pre_mref_not_empty = combine 
-		                        (proto_pred_f ls (Le_Base le1) (Le_Field le1) l v)
-		                        (Star [
-		                        type_of_mref_f le1; 
-		                        type_of_obj_f (Le_Base le1);
-		                        NEq (v, Le_Literal Empty) 
-		                      ]) in            
-                         let values = try 
-                              observe_state current v pre_mref_not_empty
-                            with SymExecException _ -> [] in
-                        
-                         begin match values with
-		                       | [] -> 
-                             (* check if member reference object empty *)
-                             let ls = Le_Var (fresh_e()) in
-                             let l = Le_Var (fresh_e()) in 
-                             let v = Le_Var (fresh_e()) in
-                             let pre_mref_empty = combine
-                               (proto_pred_f ls (Le_Base le1) (Le_Field le1) l v)   
-                               (Star [
-                               type_of_mref_f le1; 
-                               type_of_obj_f (Le_Base le1);
-                               Eq (v, Le_Literal Empty)]) in
-                        
-                             if (CoreStar_Frontend_Pulp.implies current pre_mref_empty) then 
-                               [combine current (Eq (Le_PVar x, Le_Literal Undefined))], [false_f] 
-                             else raise (SymExecException "Not Implemented Branching in GetValue for Reference")
-		                       
-                          | _ ->
-		                        (* member reference not empty *)
-		                        List.map (fun value ->
-		                          combine current (Eq (Le_PVar x, value))
-		                        ) values, [false_f]  
-		                     end
-		                 end (* else pre_mref_empty *)
-                  end (* else is_v_ref *)
-                  
-                 end (* else unresolved ref *)
-
-                
-              
-            end (* is_a_ref *)
-            else begin (* TODO : branch all possible ways *)
-                raise (SymExecException "Not Implemented Branching in GetValue for Any Value")
-            end 
-          end (* not_a_ref *)
-        
-        end
+              end
+	  			  | Le_Literal _ | Le_UnOp _ | Le_BinOp _ |  Le_Base _ | Le_Field _ -> [combine current (Eq (Le_PVar x, le1))], [false_f]
+					  | Le_None | Le_TypeOf _ -> raise (SymExecException "Wrong Parameter to GetValue")
+        end    
 
       | sp -> raise (NotImplemented (Pulp_Syntax_Print.string_of_spec_fun_id sp))
   
