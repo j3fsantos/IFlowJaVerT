@@ -99,7 +99,7 @@ let get_value_fb () =
 
 let get_env_spec () = 
   let env = AllFunctions.add (get_value_fn()) (get_value_fb ()) (AllFunctions.empty) in
-  let env = Simp_Main.simplify env in
+  let env = Simp_Main.simplify env Simp_Common.Simp_Unfold_Specs in
   env
 
 

@@ -43,6 +43,7 @@ let check_single_spec name f all_functions spec n path =
 let get_pexp js_program =
   apply_config ();
   let exp = Parser_main.exp_from_string js_program in
-  let p_exp, p_env = exp_to_pulp IVL_goto_unfold_functions exp "main" [] in
-  let p_exp = Simp_Main.simplify p_exp in
+  let p_exp, p_env = exp_to_pulp IVL_goto_with_get_value exp "main" [] in
+  let _ = AllFunctions.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_func_block fwc)) p_exp in
+  let p_exp = Simp_Main.simplify p_exp Simp_Common.Simp_Specs in
   p_exp, p_env

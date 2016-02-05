@@ -1,11 +1,53 @@
 open Pulp_Syntax
 open Type_Info
 
+type specs_func_simp_type  =
+  | Simp_Unfold_Specs
+  | Simp_Specs
+
 type edge_type =
   | Edge_Normal
   | Edge_Excep
   | Edge_True
   | Edge_False
+
+type annotation = {
+  annot_type_info : (variable * type_info) list
+}
+
+let string_of_annotation a =
+  match a with 
+    | None -> ""
+    | Some a -> " | " ^ (String.concat ", " (List.map (fun (v, ty) -> v ^ (string_of_type_info ty)) a.annot_type_info))
+
+type annotated_statement = {
+  as_stmt : statement; 
+  as_annot : annotation option
+}
+
+let string_of_annot_stmt s =
+  (Pulp_Syntax_Print.string_of_statement s.as_stmt) ^ (string_of_annotation s.as_annot)
+  
+let string_of_annot_stmts stmts =
+  String.concat "\n" (List.map string_of_annot_stmt stmts)
+
+let as_annot_stmt stmt = {as_stmt = stmt; as_annot = None}
+
+let as_annot_stmts stmts = List.map as_annot_stmt stmts
+
+let remove_annot annot_stmt = annot_stmt.as_stmt
+
+let remove_annots annot_stmts = List.map remove_annot annot_stmts
+
+let get_type_info annot var = 
+  match annot with 
+    | None -> None
+    | Some annot -> 
+      begin try
+        let _, ty = List.find (fun (v, ty) -> var = v) annot.annot_type_info in
+        Some ty
+      with Not_found -> None 
+  end
 
 let rec get_vars_in_expr e =
   let f = get_vars_in_expr in

@@ -34,8 +34,8 @@ let test_template p =
   
 let test_template_simp p =
   let p_exp, env = get_expr p IVL_goto in
-  let p_exp = Simp_Main.simplify p_exp in
-  let env = Simp_Main.simplify env in
+  let p_exp = Simp_Main.simplify p_exp Simp_Common.Simp_Unfold_Specs in
+  let env = Simp_Main.simplify env Simp_Common.Simp_Unfold_Specs in
   let _ = AllFunctions.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_func_block fwc)) p_exp in
   Interpreter.run_with_initial_heap p_exp env
   

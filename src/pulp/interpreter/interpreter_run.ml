@@ -102,7 +102,7 @@ let run_program path =
     let p_exp, _ = get_pulp_expression true exp in
     
     let p_exp_pre_simp, _ = get_pulp_expression false exp in
-    let p_exp_simpl = Simp_Main.simplify p_exp_pre_simp in
+    let p_exp_simpl = Simp_Main.simplify p_exp_pre_simp Simp_Common.Simp_Unfold_Specs in
     
 	  let exp_string = Pretty_print.string_of_exp false exp in
 	  let exp_string_lines = List.length (Str.split (Str.regexp "\n") exp_string) in
@@ -122,7 +122,7 @@ let run_program path =
   let expr_to_run, env = 
     if (!simp) then begin
       let p_exp_pre_simp, env = get_pulp_expression false exp in
-      let p_exp_simpl = Simp_Main.simplify p_exp_pre_simp in
+      let p_exp_simpl = Simp_Main.simplify p_exp_pre_simp Simp_Common.Simp_Unfold_Specs in
       p_exp_simpl, env
     end
     else get_pulp_expression true exp
