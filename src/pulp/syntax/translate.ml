@@ -54,7 +54,7 @@ let translate_exp path level =
 
 let translate path level = 
   let p_exp, env = translate_exp path level in
-  let p_exp = Simp_Main.simplify p_exp in
+  let p_exp = Simp_Main.simplify p_exp Simp_Common.Simp_Unfold_Specs in
   (* TODO: Constructs cfg twice adding entry label twice *)
   let _ = Control_Flow.mk_cfg p_exp (Filename.chop_extension path) in
 	Unix.mkdir (Filename.chop_extension path) 0o777;

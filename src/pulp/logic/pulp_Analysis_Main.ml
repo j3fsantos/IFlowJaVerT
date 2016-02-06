@@ -44,8 +44,8 @@ let main () =
    parse_flags ();   
    initialize ();
    
-   let expression_map = Translate.translate_exp !file Pulp_Translate.IVL_goto in  
-   let expression_map = Simp_Main.simplify expression_map in 
+   let expression_map, env = Translate.translate_exp !file Pulp_Translate.IVL_goto in  
+   let expression_map = Simp_Main.simplify expression_map Simp_Common.Simp_Unfold_Specs in 
      
    Pulp_Procedure.AllFunctions.iter (fun fid f -> ignore (analyse_function f expression_map (Spec_Fun_Specs.get_env_spec()))) expression_map
       

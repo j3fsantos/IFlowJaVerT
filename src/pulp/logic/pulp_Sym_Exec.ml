@@ -13,13 +13,16 @@ exception SymExecExcepWithGraph of string * StateG.graph
 
 let execute_basic_stmt bs pre : formula =
   Printf.printf "Execute Basic Stmt \n" ;
+  (*Printf.printf "Precondition %s \n" (Pulp_Logic_Print.string_of_formula pre);*)
   (* pre => pre_stmt' * F*)
   (* post_stmt' * F *)
   
   let cmd_pre, cmd_post = small_axiom_basic_stmt bs in
   Printf.printf "Got spec for Basic Stmt \n" ;
   
-  let posts = CoreStar_Frontend_Pulp.apply_spec pre cmd_pre cmd_post in
+  let posts =       
+    try CoreStar_Frontend_Pulp.apply_spec pre cmd_pre cmd_post
+    with CoreStar_Frontend_Pulp.ContradictionFound -> raise (SymExecException "Contradiction found in basic stmt") in
   
   Printf.printf "Got Postcondition \n" ;
 
@@ -58,7 +61,9 @@ let execute_call_stmt varmap x fid fb fs current : formula list * formula list =
       let (current, pre, post) = match CoreStar_Frontend_Pulp.universal_to_substitutable ([current; pre; post]) with
         | [a; b; c] -> (a, b, c)
         | _ -> raise Utils.CannotHappen in
-      CoreStar_Frontend_Pulp.apply_spec current pre post
+      try
+         CoreStar_Frontend_Pulp.apply_spec current pre post
+       with CoreStar_Frontend_Pulp.ContradictionFound -> raise (SymExecException "Contradiction found in function call")
     ) spec_post in
     
    let posts = List.flatten (List.fold_left (fun result post -> match post with
@@ -66,7 +71,10 @@ let execute_call_stmt varmap x fid fb fs current : formula list * formula list =
       | Some post -> post :: result) [] posts) in
 
     (* substitute #r = E to x = E *)
-    let posts = List.map (change_return x) posts in posts
+    let posts = List.map (change_return x) posts in 
+    let posts = List.map CoreStar_Frontend_Pulp.elim_vars_in_formula posts in 
+    (*List.iter (fun post -> Printf.printf "Postcondition %s \n" (Pulp_Logic_Print.string_of_formula post)) posts;*)
+    posts
       
     ) f_spec in
     match posts with
@@ -97,38 +105,125 @@ let execute_normal_call_stmt c is_builtin x fs current : formula list * formula 
     
   execute_call_stmt varmap x fid fb fs current
   
-let execute_spec_func_call_stmt sf x fs current : formula list * formula list =
-  let make_varmap fb sp =
-    match sp with
-      | GetValue e1 -> 
-        begin match fb.func_params with
-          | [param] -> ProgramVarMap.add param (expr_to_logical_expr e1) ProgramVarMap.empty
-          | _ -> raise Utils.CannotHappen 
-        end
-      | sp -> raise (NotImplemented (Pulp_Syntax_Print.string_of_spec_fun_id sp)) in
-
-  let fid = Pulp_Syntax_Print.string_of_spec_fun_id sf in
-  let fb = AllFunctions.find fid fs in
-  (* Make a varmap formal_param -> argument *)
-  let varmap = make_varmap fb sf in
-  execute_call_stmt varmap x fid fb fs current
-  
-let execute_proto_field current e1 e2 =
-  let ls = Le_Var (fresh_e ()) in
-  let l = Le_Var (fresh_e ()) in
-  let v = Le_Var (fresh_e ()) in
-  let pi = proto_pred_f ls e1 e2 l v in
-  let posts = CoreStar_Frontend_Pulp.apply_spec current pi (combine pi (REq v)) in
+let observe_state current v pre =
+  let posts = 
+    try CoreStar_Frontend_Pulp.apply_spec current pre (combine pre (REq v))
+    with CoreStar_Frontend_Pulp.ContradictionFound -> raise (SymExecException "Contradiction found in basic stmt") in
   let posts = match posts with
-    | None -> raise (SymExecException "Proto Field No Postcondition Found")
+    | None -> raise (SymExecException "Observing State No Postcondition Found")
     | Some posts -> posts in
   let values = List.map get_return posts in 
   let values = List.fold_left (fun result v -> match v with 
     | None -> result
     | Some v -> v :: result) [] values in
   match values with
-    | [] -> raise (SymExecException "Proto Field No Return Found")
+    | [] -> raise (SymExecException "Observing State No Return Found")
     | _ -> values
+
+(* returns the list of normal post conditions and exceptional post conditions *)    
+let execute_spec_func_call_stmt sf x fs current : formula list * formula list =
+    let excep_post () = 
+      let lerror = Le_Var (fresh_e()) in
+       combine current (Star [
+                         Eq (Le_PVar x, lerror);
+                         proto_heaplet_f lerror (Le_Literal (LLoc Lrep));
+                         class_heaplet_f lerror "Error"]) in
+                        
+                        
+    let mem_ref_cases le1 = 
+      (* member reference not empty *)  
+      let values = try 
+        let v = Le_Var (fresh_e()) in
+        observe_state current v (Spec_Fun_Specs.get_value_mref_not_empty_pre le1 v)
+      with SymExecException _ -> [] in
+                        
+      begin match values with
+        | value :: rest ->
+          List.map (fun value ->
+            combine current (Eq (Le_PVar x, value))
+          ) values, [false_f]  
+                                          
+       | [] -> 
+         (* member reference object empty *)
+
+         if (CoreStar_Frontend_Pulp.implies current (Spec_Fun_Specs.get_value_mref_empty_pre le1)) then 
+           [combine current (Eq (Le_PVar x, Le_Literal Undefined))], [false_f] 
+         else raise (SymExecException "Not Implemented Branching in GetValue")
+      end in     
+      
+    let var_ref_cases le1 continue = 
+      let values = try 
+        let v = Le_Var (fresh_e()) in
+        observe_state current v (Spec_Fun_Specs.get_value_vref_obj_pre le1 v)
+        with SymExecException _ -> [] in
+                     
+      begin match values with
+        | value :: rest ->                       
+          (* variable reference not lg *)
+          List.map (fun value ->
+            combine current (Eq (Le_PVar x, value))
+          ) values, [false_f]   
+                              
+        | [] -> 
+          let values = try 
+            let v = Le_Var (fresh_e()) in
+            observe_state current v (Spec_Fun_Specs.get_value_vref_lg le1 v)
+           with SymExecException _ -> [] in
+                            
+           begin match values with     
+             | value :: rest ->
+               (* variable reference lg *)
+                List.map (fun value ->
+                    combine current (Eq (Le_PVar x, value))
+                ) values, [false_f] 
+                              
+             | [] -> continue le1
+                                                                                    
+           end
+                                          
+        end in              
+                        
+    match sf with
+      | GetValue e1 ->       
+        begin
+          let le1 = expr_to_logical_expr e1 in  
+          match le1 with
+					  | Le_Var _
+					  | Le_PVar _ ->
+              begin
+               (* check if le1 is not a reference *)
+               if (CoreStar_Frontend_Pulp.implies current (Spec_Fun_Specs.get_value_not_a_ref_pre le1)) then [combine current (Eq (Le_PVar x, le1))], [false_f]
+               else begin (* ref *)
+							          
+                   if (CoreStar_Frontend_Pulp.implies current (Spec_Fun_Specs.get_value_unresolvable_ref_pre le1)) then [false_f], [excep_post ()]
+                   else  var_ref_cases le1 mem_ref_cases
+                   
+               end (* ref *)
+              
+              end
+              
+            | Le_Ref (l, x, t) -> 
+              begin match l with 
+                | Le_Literal Undefined -> [false_f], [excep_post ()]
+                | _ -> 
+                  begin match t with
+                    | VariableReference -> var_ref_cases le1 (fun _ -> raise (SymExecException "Not Implemented Branching in GetValue"))
+                    | MemberReference -> mem_ref_cases le1
+                  end
+              end
+	  			  | Le_Literal _ | Le_UnOp _ | Le_BinOp _ |  Le_Base _ | Le_Field _ -> [combine current (Eq (Le_PVar x, le1))], [false_f]
+					  | Le_None | Le_TypeOf _ -> raise (SymExecException "Wrong Parameter to GetValue")
+        end    
+
+      | sp -> raise (NotImplemented (Pulp_Syntax_Print.string_of_spec_fun_id sp))
+  
+let execute_proto_field current e1 e2 =
+  let ls = Le_Var (fresh_e ()) in
+  let l = Le_Var (fresh_e ()) in
+  let v = Le_Var (fresh_e ()) in
+  let pi = proto_pred_f ls e1 e2 l v in
+  observe_state current v pi
+  
  
 let rec execute_stmt f sg cfg fs env spec_env snode_id cmd_st_tbl = 
   let contradiction id =
@@ -209,6 +304,9 @@ let rec execute_stmt f sg cfg fs env spec_env snode_id cmd_st_tbl =
       let edge2 = CFG.get_edge_data cfg snode.sgn_id succ2 in
       
       let post_normal, post_excep = call_f x funcs snode.sgn_state in
+      (*List.iter (fun post -> Printf.printf "Normal Postcondition %s \n" (Pulp_Logic_Print.string_of_formula post)) post_normal;
+      List.iter (fun post -> Printf.printf "Excep Postcondition %s \n" (Pulp_Logic_Print.string_of_formula post)) post_excep;*)
+
       List.iter2 (new_snode_call succ1 edge1) post_normal post_excep;
       List.iter2 (new_snode_call succ2 edge2) post_normal post_excep in
   
@@ -243,6 +341,7 @@ let rec execute_stmt f sg cfg fs env spec_env snode_id cmd_st_tbl =
       
       let varmap = ProgramVarMap.add x (Le_Var old) ProgramVarMap.empty in    
       let post = combine (Eq (Le_PVar x, subs_pvar_in_exp x (Le_Var old) logic_e)) (subs_pvars varmap snode.sgn_state) in
+      let post = CoreStar_Frontend_Pulp.elim_vars_in_formula post in 
       
       new_snode id post 
               
@@ -307,7 +406,20 @@ let execute f cfg fs spec_env spec =
   (* state graph *)
   let sg = StateG.mk_graph () in
   let params_not_none = Star (List.map (fun p -> NEq (Le_PVar p, Le_None)) f.func_params) in 
+  
+  let params_not_empty = match f.func_type with
+    | Procedure_User 
+    | Procedure_Spec -> Star (List.map (fun p -> NEq (Le_PVar p, Le_Literal Empty)) f.func_params)
+    | Procedure_Builtin -> empty_f in 
+
+  let params_not_a_ref = match f.func_type with
+    | Procedure_User
+    | Procedure_Builtin -> Star (List.map (fun p -> type_of_not_a_ref_f (Le_PVar p)) f.func_params)
+    | Procedure_Spec -> empty_f in 
+  
   let pre = combine spec.spec_pre params_not_none in
+  let pre = combine pre params_not_empty in
+  let pre = combine pre params_not_a_ref in
   let first = StateG.mk_node sg (mk_sg_node start pre) in
   
   Hashtbl.add cmd_st_tbl start first;

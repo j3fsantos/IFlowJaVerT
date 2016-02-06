@@ -22,11 +22,11 @@ let check_early_error_exp exp =
   | _ -> ()
  
 type translation_level =
-  | IVL_buitin_functions
-  | IVL_conditionals
-  | IVL_goto_unfold_functions
-  | IVL_goto
-  | IVL_goto_with_get_value
+  | IVL_buitin_functions (* spec functions, conditionals *)
+  | IVL_conditionals (* no spec functions, conditionals *)
+  | IVL_goto_unfold_functions (* No spec functions, no conditionals *)
+  | IVL_goto (* unfolds confitionals *)
+  | IVL_goto_with_get_value (* Temporary while giving spec for specification functions *)
 
 type switch_record = { (* Special constants for throws and returns *)
     a_cases : (Parser_syntax.exp * Parser_syntax.exp) list; 

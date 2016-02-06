@@ -119,6 +119,7 @@ logical_bin_op:
     PLUS { Arith Plus }
   | MINUS { Arith Minus }
   | CONCAT { Concat } 
+  | LT { Comparison LessThan }
   
 logical_unary_op:
   NOT { Not }

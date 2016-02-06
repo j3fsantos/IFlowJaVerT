@@ -8,16 +8,6 @@ open Pulp_Translate
 open Type_Info
 open Pulp_Translate_Aux
 
-let get_type_info annot var = 
-  match annot with 
-    | None -> None
-    | Some annot -> 
-      begin try
-        let _, ty = List.find (fun (v, ty) -> var = v) annot.annot_type_info in
-        Some ty
-      with Not_found -> None 
-  end
-
 let simplify_get_value e left annot throw_var label_throw =
   let simplify_not_a_ref = [Basic (Assignment (mk_assign left (Expression e)))] in
   
@@ -440,36 +430,33 @@ let simplify_spec_func_unfold sf left annot throw_var label_throw =
     | StrictEquality (e1, e2) -> simplify_strict_equality_comparison e1 e2 annot left
     | StrictEqualitySameType (e1, e2) -> simplify_strict_equality_comparison_types_equal e1 e2 annot left
 
-let simplify_spec_func_fold sf left annot throw_var label_throw =
+let simplify_spec_func sf left annot throw_var label_throw =
   match sf with
-    | GetValue e -> simplify_get_value e left annot throw_var label_throw
-    | PutValue (e1, e2) -> simplify_put_value e1 e2 annot throw_var label_throw
-    | Get (e1, e2) -> translate_get e1 e2 left (* No simplifications. Might change after we have getters/setters *)
-    | HasProperty (e1, e2) -> translate_has_property e1 e2 left (* No simplifications *)
-    | DefaultValue (e, pt) -> translate_default_value e pt left throw_var label_throw (* Cannot do simplifications at this time. But this exploads a lot. Possible simplifications with separation logic reasoning *)
-    | ToPrimitive (e, pt) -> simplify_to_primitive e pt annot left throw_var label_throw (* Cannot do more simplifications at this time. Depends on Default Value *)
-    | ToBoolean e -> simplify_to_boolean e annot left
-    | ToNumber e -> simplify_to_number e annot left throw_var label_throw
-    | ToNumberPrim e -> simplify_to_number_prim e annot left
-    | ToString e -> simplify_to_string e annot left throw_var label_throw
-    | ToStringPrim e -> simplify_to_string_prim e annot left 
-    | ToObject e -> simplify_to_object e annot left throw_var label_throw
-    | CheckObjectCoercible e -> simplify_to_object_coercible e annot throw_var label_throw
-    | IsCallable e -> simplify_is_callable e annot left
-    | AbstractEquality (e1, e2, b) -> translate_abstract_relation e1 e2 b left throw_var label_throw
-    | StrictEquality (e1, e2) -> simplify_strict_equality_comparison e1 e2 annot left
-    | StrictEqualitySameType (e1, e2) -> simplify_strict_equality_comparison_types_equal e1 e2 annot left
+    | GetValue e -> Spec_Functions_Simp.simplify_get_value e left annot throw_var label_throw
+    | PutValue (e1, e2) -> Some (simplify_put_value e1 e2 annot throw_var label_throw)
+    | Get (e1, e2) -> Some (translate_get e1 e2 left) (* No simplifications. Might change after we have getters/setters *)
+    | HasProperty (e1, e2) -> Some (translate_has_property e1 e2 left) (* No simplifications *)
+    | DefaultValue (e, pt) -> Some (translate_default_value e pt left throw_var label_throw) (* Cannot do simplifications at this time. But this exploads a lot. Possible simplifications with separation logic reasoning *)
+    | ToPrimitive (e, pt) -> Some (simplify_to_primitive e pt annot left throw_var label_throw) (* Cannot do more simplifications at this time. Depends on Default Value *)
+    | ToBoolean e -> Some (simplify_to_boolean e annot left)
+    | ToNumber e -> Some (simplify_to_number e annot left throw_var label_throw)
+    | ToNumberPrim e -> Some (simplify_to_number_prim e annot left)
+    | ToString e -> Some (simplify_to_string e annot left throw_var label_throw)
+    | ToStringPrim e -> Some (simplify_to_string_prim e annot left) 
+    | ToObject e -> Some (simplify_to_object e annot left throw_var label_throw)
+    | CheckObjectCoercible e -> Some (simplify_to_object_coercible e annot throw_var label_throw)
+    | IsCallable e -> Some (simplify_is_callable e annot left)
+    | AbstractEquality (e1, e2, b) -> Some (translate_abstract_relation e1 e2 b left throw_var label_throw)
+    | StrictEquality (e1, e2) -> Some (simplify_strict_equality_comparison e1 e2 annot left)
+    | StrictEqualitySameType (e1, e2) -> Some (simplify_strict_equality_comparison_types_equal e1 e2 annot left)
 
-type unfolding_specs_simp  =
-  | Unfold_Specs
-  | Fold_Specs
 
-let simplify_spec_func sf left annot throw_var label_throw option =
-  if option == Unfold_Specs 
-	then simplify_spec_func_unfold sf left annot throw_var label_throw
-	else simplify_spec_func_fold sf left annot throw_var label_throw
+let simplify_spec_func_aux sf left annot throw_var label_throw option =
+  match option with
+    | Simp_Unfold_Specs -> Some (simplify_spec_func_unfold sf left annot throw_var label_throw)
+    | Simp_Specs -> simplify_spec_func sf left annot throw_var label_throw
 
-let unfold_spec_func left sf annot =
+let simplify_spec_func left sf annot option =
   let ctx =  {
      env_vars = [];  (*unused*)
      return_var = left;
@@ -480,39 +467,45 @@ let unfold_spec_func left sf annot =
      label_continue = [];  (*unused*)
      label_break = [];  (*unused*)
      stmt_return_var = fresh_r();  (*unused*)
-  } in
-  let throw_var = ctx.throw_var in
-  let label_throw = ctx.label_throw in
-  let stmts = to_ivl_goto (simplify_spec_func sf left annot throw_var label_throw Unfold_Specs) in
-  let stmts = stmts @ [Goto ctx.label_return; Label ctx.label_return; Label ctx.label_throw] in
-  (*Printf.printf "Simplified spec function %s : %s" (Pulp_Syntax_Print.string_of_spec_function sf) (Pulp_Syntax_Print.string_of_statement_list stmts);*)
-  make_function_block Procedure_Spec "" stmts [] ctx
+	  } in
+	  let throw_var = ctx.throw_var in
+	  let label_throw = ctx.label_throw in
+    let simplified = simplify_spec_func_aux sf left annot throw_var label_throw option in
+    match simplified with 
+      | None -> None
+      | Some body ->
+	      let stmts = to_ivl_goto body in
+	      let stmts = stmts @ [Goto ctx.label_return; Label ctx.label_return; Label ctx.label_throw] in
+	      (*Printf.printf "Simplified spec function %s : %s" (Pulp_Syntax_Print.string_of_spec_function sf) (Pulp_Syntax_Print.string_of_statement_list stmts);*)
+      Some (make_function_block Procedure_Spec "" stmts [] ctx)
   
 
-let transform_spec_funcs cfg sf_annot n_normal n_excep = 
+let transform_spec_funcs cfg sf_annot n_normal n_excep option = 
   match sf_annot.as_stmt with
     | Sugar (SpecFunction (left, sf, excep_label)) ->       
-      let fb = unfold_spec_func left sf sf_annot.as_annot in
-      
-      let fb_cfg = fb_to_cfg fb in
-      let fb_cfg_bb = transform_to_basic_blocks_from_cfg fb_cfg fb.func_ctx in
-      CFG_BB.inject_graph cfg fb_cfg_bb;
-      print_cfg_bb_single fb_cfg_bb "test";
-      
-      let all_labels = get_block_labels cfg in
-      let return_node = Hashtbl.find all_labels fb.func_ctx.label_return in
-      let throw_node = Hashtbl.find all_labels fb.func_ctx.label_throw in
-      
-      (* connect inject subgraph *)
-      connect_blocks cfg return_node n_normal;
-      connect_blocks cfg throw_node n_excep;
-      
-      Hashtbl.find all_labels fb.func_ctx.label_entry
+      simplify_spec_func left sf sf_annot.as_annot option
+
     | _ -> raise (Invalid_argument "Expected SpecFunction")
+
+let inject_spec_func cfg fb n_normal n_excep =
+  let fb_cfg = fb_to_cfg fb in
+  let fb_cfg_bb = transform_to_basic_blocks_from_cfg fb_cfg fb.func_ctx in
+  CFG_BB.inject_graph cfg fb_cfg_bb;
+  print_cfg_bb_single fb_cfg_bb "test";
+  
+  let all_labels = get_block_labels cfg in
+  let return_node = Hashtbl.find all_labels fb.func_ctx.label_return in
+  let throw_node = Hashtbl.find all_labels fb.func_ctx.label_throw in
+  
+  (* connect inject subgraph *)
+  connect_blocks cfg return_node n_normal;
+  connect_blocks cfg throw_node n_excep;
+  
+  Hashtbl.find all_labels fb.func_ctx.label_entry
 
 (* Assumptions -- spec functions last commands in the block*)
 (* and that they have two outgoing edges *)
-let simplify_spec_functions cfg =
+let simplify_spec_functions cfg option =
   let nodes = CFG_BB.nodes cfg in
   List.iter (fun n ->
     let stmts = CFG_BB.get_node_data cfg n in
@@ -534,19 +527,25 @@ let simplify_spec_functions cfg =
             | _ -> raise (Invalid_argument "Spec Functions should have two successors") in
           (* Entry node of the unfolded spec func control flow subgraph *)
           
-          let n_normal_stmts = CFG_BB.get_node_data cfg n_normal in
-          CFG_BB.set_node_data cfg n_normal ((as_annot_stmt(Label (fresh_r()))) :: n_normal_stmts);
+          let simp_fb = transform_spec_funcs cfg s1 n_normal n_excep option in 
           
-          CFG_BB.rm_edge cfg n n_normal;
-          CFG_BB.rm_edge cfg n n_excep;
-          
-          let entry_n = transform_spec_funcs cfg s1 n_normal n_excep in 
-          let entry_label = get_block_label cfg entry_n in
-          
-          let updated_stmts = List.rev ((as_annot_stmt(Goto entry_label)) :: tail) in
-          CFG_BB.set_node_data cfg n updated_stmts;
-          
-          CFG_BB.mk_edge cfg n entry_n Edge_Normal
+          match simp_fb with
+            | None -> ()
+            | Some fb ->
+
+		          let n_normal_stmts = CFG_BB.get_node_data cfg n_normal in
+		          CFG_BB.set_node_data cfg n_normal ((as_annot_stmt(Label (fresh_r()))) :: n_normal_stmts);
+		          
+		          CFG_BB.rm_edge cfg n n_normal;
+		          CFG_BB.rm_edge cfg n n_excep;
+		          
+		          let entry_n = inject_spec_func cfg fb n_normal n_excep in
+		          let entry_label = get_block_label cfg entry_n in
+		          
+		          let updated_stmts = List.rev ((as_annot_stmt(Goto entry_label)) :: tail) in
+		          CFG_BB.set_node_data cfg n updated_stmts;
+		          
+		          CFG_BB.mk_edge cfg n entry_n Edge_Normal
           
         end
       | _ -> ()
