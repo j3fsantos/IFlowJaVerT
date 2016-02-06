@@ -458,6 +458,7 @@ let builtin_error_construct_call errorp func () =
   ] in
   make_function_block Procedure_Builtin (string_of_builtin_function func) body [rthis; rscope; message] ctx
 
+(* to DELETE - just a test *)
 let make_crazy_procedure_and_be_happy () = 
 	let ctx = create_ctx [] in
 	let crazy_var = fresh_r () in 
@@ -465,7 +466,18 @@ let make_crazy_procedure_and_be_happy () =
 			Basic (Assignment (mk_assign crazy_var  (Expression (Literal (String "assigning my crazy var iupi!!!!"))))) 
 		] in 
 		make_function_block Procedure_Spec "crazy_procedure_to_test_this_thing" body [rthis; rscope; crazy_var] ctx
-	
+
+let make_get_value_function () = 
+	let ctx = create_ctx [] in 
+	let arg_var = fresh_r () in 
+	let body = translate_gamma (Var arg_var) ctx.return_var ctx.throw_var ctx.label_throw in 
+	let body = body @
+		[ Goto ctx.label_return;
+    	Label ctx.label_return;
+    	Label ctx.label_throw ] in 
+	let body = to_ivl_goto_unfold body in 
+	make_function_block Procedure_Spec "#GetValue" body [rthis; rscope; arg_var] ctx
+			
 
 let get_env () =
   let context = AllFunctions.empty in
@@ -499,5 +511,8 @@ let get_env () =
   let context = AllFunctions.add (string_of_builtin_function RangeError_Call_Construct) (builtin_error_construct_call LRangeErrorP RangeError_Call_Construct ()) context in
   let context = AllFunctions.add (string_of_builtin_function URIError_Call_Construct) (builtin_error_construct_call LURIErrorP URIError_Call_Construct ()) context in
 	let context = AllFunctions.add "crazy_procedure_to_test_this_thing" (make_crazy_procedure_and_be_happy()) context in 
+	
+	(* spec functions *) 
+	let context = AllFunctions.add "#GetValue" (make_get_value_function()) context in 
 	
   context
