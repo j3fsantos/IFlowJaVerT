@@ -1,3 +1,12 @@
+(* ./src/pulp/logic/coreStar_Frontend_Pulp.ml
+ *
+ * Copyright (C) 2016 Imperial College London
+ * All rights reserved.
+ *
+ * This software is distributed under the BSD license.
+ * See the LICENSE file for details.
+ *)
+
 open Batteries
 open Config
 open Corestar

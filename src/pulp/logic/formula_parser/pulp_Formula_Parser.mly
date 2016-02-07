@@ -1,3 +1,12 @@
+/* ./src/pulp/logic/formula_parser/pulp_Formula_Parser.mly
+ *
+ * Copyright (C) 2016 Imperial College London
+ * All rights reserved.
+ *
+ * This software is distributed under the BSD license.
+ * See the LICENSE file for details.
+ */
+
 %{
   open List
   open Pulp_Logic

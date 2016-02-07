@@ -1,3 +1,12 @@
+(* ./src/pulp/logic/pulp_Logic_Rules.ml
+ *
+ * Copyright (C) 2016 Imperial College London
+ * All rights reserved.
+ *
+ * This software is distributed under the BSD license.
+ * See the LICENSE file for details.
+ *)
+
 open Pulp_Logic
 open Pulp_Logic_Utils
 open Pulp_Syntax

@@ -1,3 +1,12 @@
+(* ./src/pulp/logic/spec_Fun_Specs.ml
+ *
+ * Copyright (C) 2016 Imperial College London
+ * All rights reserved.
+ *
+ * This software is distributed under the BSD license.
+ * See the LICENSE file for details.
+ *)
+
 open Pulp_Logic
 open Pulp_Logic_Utils
 open Pulp_Procedure

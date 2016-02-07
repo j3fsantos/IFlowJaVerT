@@ -1,3 +1,12 @@
+(* ./tests/tests_Utils.ml
+ *
+ * Copyright (C) 2016 Imperial College London
+ * All rights reserved.
+ *
+ * This software is distributed under the BSD license.
+ * See the LICENSE file for details.
+ *)
+
 open OUnit
 open Pulp_Procedure
 open Control_Flow

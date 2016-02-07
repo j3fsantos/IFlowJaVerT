@@ -1,3 +1,12 @@
+(* ./tests/spec_Functions_Tests.ml
+ *
+ * Copyright (C) 2016 Imperial College London
+ * All rights reserved.
+ *
+ * This software is distributed under the BSD license.
+ * See the LICENSE file for details.
+ *)
+
 open OUnit
 open Tests_Utils
 open Pulp_Procedure

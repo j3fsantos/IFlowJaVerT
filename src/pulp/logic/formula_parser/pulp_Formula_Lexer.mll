@@ -1,3 +1,12 @@
+(* ./src/pulp/logic/formula_parser/pulp_Formula_Lexer.mll
+ *
+ * Copyright (C) 2016 Imperial College London
+ * All rights reserved.
+ *
+ * This software is distributed under the BSD license.
+ * See the LICENSE file for details.
+ *)
+
 {
   open Batteries
   open Pulp_Formula_Parser  

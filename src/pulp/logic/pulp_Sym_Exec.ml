@@ -1,3 +1,12 @@
+(* ./src/pulp/logic/pulp_Sym_Exec.ml
+ *
+ * Copyright (C) 2016 Imperial College London
+ * All rights reserved.
+ *
+ * This software is distributed under the BSD license.
+ * See the LICENSE file for details.
+ *)
+
 open Pulp_Syntax
 open Pulp_Procedure
 open State_Graph

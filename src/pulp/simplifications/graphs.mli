@@ -1,3 +1,12 @@
+(* ./src/pulp/simplifications/graphs.mli
+ *
+ * Copyright (C) 2016 Imperial College London
+ * All rights reserved.
+ *
+ * This software is distributed under the BSD license.
+ * See the LICENSE file for details.
+ *)
+
 module AbstractGraph (NodeData : sig type t end) (EdgeData : sig type t end) :
 sig 
    type graph 

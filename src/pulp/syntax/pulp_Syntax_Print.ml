@@ -1,3 +1,12 @@
+(* ./src/pulp/syntax/pulp_Syntax_Print.ml
+ *
+ * Copyright (C) 2016 Imperial College London
+ * All rights reserved.
+ *
+ * This software is distributed under the BSD license.
+ * See the LICENSE file for details.
+ *)
+
 open Pulp_Syntax
 open Pulp_Syntax_Utils
 open Pulp_Procedure

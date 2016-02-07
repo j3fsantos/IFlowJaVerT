@@ -1,3 +1,12 @@
+(* ./src/pulp/syntax/lifting.ml
+ *
+ * Copyright (C) 2016 Imperial College London
+ * All rights reserved.
+ *
+ * This software is distributed under the BSD license.
+ * See the LICENSE file for details.
+ *)
+
 type closure_type = { 
     closure_id : codename;
     closure_params : formal_param list;
