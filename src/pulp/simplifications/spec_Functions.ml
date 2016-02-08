@@ -393,7 +393,7 @@ let simplify_strict_equality_comparison_types_equal e1 e2 annot left =
                 | NumberType -> translate_strict_equality_comparison_types_equal_number e1 e2 left               
                 | ReferenceType _ -> raise (Invalid_argument "=== same types cannot take and references as arguments") 
               end
-            | TI_Value | TI_NotARef -> translate_strict_equality_comparison_types_equal_if_equal e1 e2 left
+            | TI_Value | TI_NotARef -> translate_strict_equality_comparison_types_equal e1 e2 left
             | TI_Empty -> raise (Invalid_argument "=== same types cannot be as an argument to IsCallable")
           end
       end
@@ -442,22 +442,22 @@ let simplify_spec_func_unfold sf left annot throw_var label_throw =
 let simplify_spec_func sf left annot throw_var label_throw =
   match sf with
     | GetValue e -> Spec_Functions_Simp.simplify_get_value e left annot throw_var label_throw
-    | PutValue (e1, e2) -> Some (simplify_put_value e1 e2 annot throw_var label_throw)
+    | PutValue (e1, e2) -> Spec_Functions_Simp.simplify_put_value e1 e2 annot throw_var label_throw
     | Get (e1, e2) -> Some (translate_get e1 e2 left) (* No simplifications. Might change after we have getters/setters *)
     | HasProperty (e1, e2) -> Some (translate_has_property e1 e2 left) (* No simplifications *)
-    | DefaultValue (e, pt) -> Some (translate_default_value e pt left throw_var label_throw) (* Cannot do simplifications at this time. But this exploads a lot. Possible simplifications with separation logic reasoning *)
-    | ToPrimitive (e, pt) -> Some (simplify_to_primitive e pt annot left throw_var label_throw) (* Cannot do more simplifications at this time. Depends on Default Value *)
+    | DefaultValue (e, pt) -> None (* Cannot do simplifications at this time. But this exploads a lot. Possible simplifications with separation logic reasoning *)
+    | ToPrimitive (e, pt) -> None (* Cannot do more simplifications at this time. Depends on Default Value *)
     | ToBoolean e -> Some (simplify_to_boolean e annot left)
-    | ToNumber e -> Some (simplify_to_number e annot left throw_var label_throw)
-    | ToNumberPrim e -> Some (simplify_to_number_prim e annot left)
-    | ToString e -> Some (simplify_to_string e annot left throw_var label_throw)
-    | ToStringPrim e -> Some (simplify_to_string_prim e annot left) 
-    | ToObject e -> Some (simplify_to_object e annot left throw_var label_throw)
+    | ToNumber e -> Spec_Functions_Simp.simplify_to_number e annot left throw_var label_throw
+    | ToNumberPrim e -> Spec_Functions_Simp.simplify_to_number_prim e annot left
+    | ToString e -> Spec_Functions_Simp.simplify_to_string e annot left throw_var label_throw
+    | ToStringPrim e -> Spec_Functions_Simp.simplify_to_string_prim e annot left
+    | ToObject e -> Spec_Functions_Simp.simplify_to_object e annot left throw_var label_throw
     | CheckObjectCoercible e -> Some (simplify_to_object_coercible e annot throw_var label_throw)
     | IsCallable e -> Some (simplify_is_callable e annot left)
-    | AbstractEquality (e1, e2, b) -> Some (translate_abstract_relation e1 e2 b left throw_var label_throw)
-    | StrictEquality (e1, e2) -> Some (simplify_strict_equality_comparison e1 e2 annot left)
-    | StrictEqualitySameType (e1, e2) -> Some (simplify_strict_equality_comparison_types_equal e1 e2 annot left)
+    | AbstractEquality (e1, e2, b) -> None
+    | StrictEquality (e1, e2) -> Spec_Functions_Simp.simplify_strict_equality_comparison e1 e2 annot left
+    | StrictEqualitySameType (e1, e2) -> Spec_Functions_Simp.simplify_strict_equality_comparison_types_equal e1 e2 annot left
 
 
 let simplify_spec_func_aux sf left annot throw_var label_throw option =

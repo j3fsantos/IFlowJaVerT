@@ -406,11 +406,8 @@ let translate_gamma r left throw_var label_throw =
   [main]
 
 let translate_obj_coercible r throw_var label_throw =
-  let gotothrow = translate_error_throw Ltep throw_var label_throw in 
-  [
-    Sugar (If (equal_null_expr r, gotothrow, [])); 
-    Sugar (If (equal_undef_expr r, gotothrow, [])); 
-  ]
+  [ Sugar (If (or_expr (equal_null_expr r) (equal_undef_expr r), translate_error_throw Ltep throw_var label_throw, [])) ]
+  
   
 let translate_call_construct_start f e1 e2s ctx construct =
     let r1_stmts, r1 = f e1 in
@@ -704,8 +701,8 @@ let translate_has_property o p rv =
   let assign_pi = mk_assign_fresh (ProtoF (o, p)) in 
     [ Basic (Assignment assign_pi);
       Sugar (If (equal_empty_expr (Var assign_pi.assign_left),
-        [Basic (Assignment (mk_assign rv (Expression(Literal (Bool false)))))],
-        [Basic (Assignment (mk_assign rv (Expression(Literal (Bool true)))))])) 
+        [assign_false rv],
+        [assign_true rv])) 
     ]
     
 let unfold_spec_function sf left throw_var label_throw =
