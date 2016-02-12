@@ -37,25 +37,34 @@ let parse_flags () =
   usage_msg
   
 let initialize () =
-  let graph_elements = Sys.getcwd () ^ Filename.dir_sep ^ "all_elements.js" in
-  Graph.clear_all_elements();
-  if Sys.file_exists graph_elements then
-    Sys.remove graph_elements;
   Config.apply_config ();
-  Corestar_frontend.initialize ()
+  Parser_main.verbose := false;
+  CoreStar_Frontend_Pulp.initialize ()
   
 let analyse_function current_fun all_funcs env =
+    let path = (Filename.chop_extension !file) in
     match (!analysis_op) with
-      | SymbolicExec -> Pulp_Sym_Exec.execute_all current_fun all_funcs env
+      | SymbolicExec -> Pulp_Sym_Exec.execute_all current_fun all_funcs env path
       | BiAbduct -> Pulp_Abduct.execute current_fun all_funcs env
 
+let get_pexp () =
+  let exp = 
+    try 
+      Parser_main.exp_from_file !file 
+    with
+      | Parser.ParserFailure file ->
+        Printf.printf "\nParsing problems with the file '%s'.\n" file;
+        exit 1 
+  in
+  let p_exp, p_env = Pulp_Translate.exp_to_pulp Pulp_Translate.IVL_goto_with_get_value exp Pulp_Syntax_Utils.main_fun_id [] in
+  let p_exp = Simp_Main.simplify p_exp Simp_Common.Simp_Specs in
+  p_exp, p_env
+
 let main () = 
-   parse_flags ();   
    initialize ();
+   parse_flags ();
    
-   let expression_map, env = Translate.translate_exp !file Pulp_Translate.IVL_goto in  
-   let expression_map = Simp_Main.simplify expression_map Simp_Common.Simp_Unfold_Specs in 
-     
+   let expression_map, env = get_pexp() in       
    Pulp_Procedure.AllFunctions.iter (fun fid f -> ignore (analyse_function f expression_map (Spec_Fun_Specs.get_env_spec()))) expression_map
       
 let _ = main ()

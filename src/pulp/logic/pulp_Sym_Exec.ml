@@ -442,11 +442,26 @@ let execute f cfg fs spec_env spec =
     raise (SymExecExcepWithGraph (msg, sg))
   
   
-let execute_check_post f cfg fs spec_env spec =
-  let sg, cmd_st_tbl = execute f cfg fs spec_env spec in
+let check_post f cfg fs sg cmd_st_tbl spec_env spec =
   let posts, throw_posts = get_posts f cfg sg cmd_st_tbl in
-  List.for_all (fun post -> CoreStar_Frontend_Pulp.implies_or_list (simplify post) spec.spec_post) posts
+  let spec_post = List.map (change_return f.func_ctx.return_var) spec.spec_post in     
+  let spec_excep_post = List.map (change_return f.func_ctx.throw_var) spec.spec_excep_post in
+  ((List.for_all (fun post -> CoreStar_Frontend_Pulp.implies_or_list (simplify post) spec_post) posts)
+  && (List.for_all (fun post -> CoreStar_Frontend_Pulp.implies_or_list (simplify post) spec_excep_post) throw_posts))
   
-let execute_all (f : function_block) (fs : function_block AllFunctions.t) spec_env = 
+
+(* To separate printing from executing *)  
+let execute_all (f : function_block) (fs : function_block AllFunctions.t) spec_env path = 
   let cfg = fb_to_cfg f in
-  List.iter (fun spec -> ignore (execute f cfg fs spec_env spec)) f.func_spec
+  List.for_all (fun spec -> 
+    let sg, cmd_st_tbl = 
+    try 
+      execute f cfg fs (Spec_Fun_Specs.get_env_spec()) spec 
+    with SymExecExcepWithGraph (msg, sg) -> 
+      print_state_graph sg cfg f.func_name path;
+      raise (SymExecException msg) in
+      
+    print_state_graph sg cfg f.func_name path; 
+      
+    check_post f cfg fs sg cmd_st_tbl spec_env spec
+  ) f.func_spec
