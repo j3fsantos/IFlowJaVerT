@@ -64,11 +64,19 @@ let translate_exp path level =
 let translate path level = 
   let p_exp, env = translate_exp path level in
   let p_exp = Simp_Main.simplify p_exp Simp_Common.Simp_Unfold_Specs in
+	let functions_folder_name = "functions" in 
+	let builtins_folder_name = "builtins" in 
+	let specs_folder_name = "specs" in
+	let output_folder_name = Filename.chop_extension path in 
   (* TODO: Constructs cfg twice adding entry label twice *)
+	(* Why do we need to construct the cfg twice? *)
   let _ = Control_Flow.mk_cfg p_exp (Filename.chop_extension path) in
-	Unix.mkdir (Filename.chop_extension path) 0o777;
-  Pulp_Procedure.AllFunctions.iter (fun fid fwc -> create_output fwc path) p_exp;
-	Pulp_Procedure.AllFunctions.iter (fun fid fwc -> create_output fwc path) env
+	Unix.mkdir output_folder_name 0o777;
+	Unix.mkdir (output_folder_name ^ "/" ^ functions_folder_name) 0o777; 
+	Unix.mkdir (output_folder_name ^ "/" ^ builtins_folder_name) 0o777;
+	Unix.mkdir (output_folder_name ^ "/" ^ specs_folder_name) 0o777;
+  Pulp_Procedure.AllFunctions.iter (fun fid fwc -> create_output fwc (path  ^ "/" ^ functions_folder_name)) p_exp;
+	Pulp_Procedure.AllFunctions.iter (fun fid fwc -> create_output fwc (path ^ "/" ^ builtins_folder_name)) env
 
 let main () =
   Config.apply_config ();
