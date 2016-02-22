@@ -136,13 +136,14 @@ let run_program path =
     end
     else get_pulp_expression true exp
   in
-    
+  
+	let built_ins, specs = env in   
   let h = initial_heap () in
   let lg = Heap.find (BLoc Lg) h in
   let lg = Object.add ("__$ERROR__") (HVLiteral (String "")) lg in
   let h = Heap.add (BLoc Lg) lg h in
   
-  let result = run_with_heap h expr_to_run env in
+  let result = run_with_heap h expr_to_run built_ins in
   match result.fs_return_type with
     | FTReturn -> pr_test result.fs_heap
 		(* if the return type is an exception we inspect the prototype to check the type of error *)

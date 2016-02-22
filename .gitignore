@@ -1,12 +1,6 @@
-TAGS
 config/config.xml
-lib/corestar/corestar_src/_build/
-main.byte
 src/localconfig.ml
 tests/all_elements.js
 tests/test_suite
 tests/dot
-lib/corestar/corestar.cma
-lib/corestar/corestar.cmi
 test262
-_build
