@@ -18,7 +18,7 @@ let get_all_labels g =
   let label_map = Hashtbl.create 100 in
   let _ = List.iter (fun n -> 
     let d = CFG.get_node_data g n in
-    match d with
+    match d.stmt_stx with
       | Label l -> Hashtbl.add label_map l n
       | _ -> ()
     ) (CFG.nodes g) in
@@ -26,7 +26,7 @@ let get_all_labels g =
   
 let connect_calls_throw g label_map node = 
   let stmt = CFG.get_node_data g node in
-  match stmt with
+  match stmt.stmt_stx with
     | Basic (Assignment {assign_right = (Call {call_throw_label = throwl})}) -> 
       CFG.mk_edge g node (Hashtbl.find label_map throwl) Edge_Excep
     | Basic (Assignment {assign_right = (Eval {call_throw_label = throwl})}) -> 
@@ -40,7 +40,7 @@ let connect_calls_throw g label_map node =
   
 let rec connect_nodes g current nodes label_map = 
   let stmt = CFG.get_node_data g current in
-  begin match stmt with
+  begin match stmt.stmt_stx with
     | Goto l -> 
       let lnode = Hashtbl.find label_map l in
       CFG.mk_edge g current lnode Edge_Normal;
@@ -65,13 +65,13 @@ let rec connect_nodes g current nodes label_map =
 let fb_to_cfg fb : CFG.graph = 
   let g = CFG.mk_graph () in
   
-  let start = CFG.mk_node g (Label fb.func_ctx.label_entry) in
+  let start = CFG.mk_node g (mk_stmt empty_metadata (Label fb.func_ctx.label_entry)) in
   
   let nodes = List.map (CFG.mk_node g) (fb.func_body) in
     
   let nodes = List.filter (fun n -> 
      let nd = CFG.get_node_data g n in
-     match nd with
+     match nd.stmt_stx with
       | Label l -> not (l = fb.func_ctx.label_throw || l = fb.func_ctx.label_return)
       | _ -> true
     ) nodes in

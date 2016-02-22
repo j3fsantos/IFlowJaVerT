@@ -41,8 +41,8 @@ let test_template p name =
   let cfg_bbs = AllFunctions.mapi (fun name cfg ->
     
       let fb = AllFunctions.find name p_exp in
-      Simp_Main.constant_propagation cfg fb;
-      Simp_Main.constant_propagation cfg fb;
+      Simp_Main.constant_propagation cfg fb Simp_Common.Simp_Unfold_Specs;
+      Simp_Main.constant_propagation cfg fb Simp_Common.Simp_Unfold_Specs;
         
       dead_code_elimination cfg fb.func_ctx.throw_var fb.func_ctx.return_var;
       
@@ -160,8 +160,8 @@ var r = s(3).x") "example"
 let test_gamma () =
   let ctx = create_ctx [] in
   let r = fresh_r () in
-  let gamma_stmt = translate_gamma (Var "r") r ctx.throw_var ctx.label_throw in
-  let gamma_stmts = (to_ivl_goto_unfold gamma_stmt) @ [Label ctx.label_return; Label ctx.label_throw] in
+  let gamma_stmt = translate_gamma (Var "r") r ctx.throw_var ctx.label_throw empty_metadata in
+  let gamma_stmts = (to_ivl_goto_unfold gamma_stmt) @ mk_stmts_empty_data [Label ctx.label_return; Label ctx.label_throw] in
   let p_exp = AllFunctions.add "gamma" (make_function_block Procedure_Spec "gamma" gamma_stmts [] ctx) AllFunctions.empty in
   ignore (Control_Flow.mk_cfg p_exp ("tests/dot/gamma"));
   assert_bool "Incorrect Translation" true
@@ -172,7 +172,7 @@ let cfg_anonymous2 () =
   let ctx = create_ctx [] in
   let proto_stmt = add_proto_null "anonymous2_scope" in
   let stmts = 
-    [
+    mk_stmts_empty_data [
 	    Basic (Assignment (mk_assign ("anonymous1_scope") (Expression (Ref (Var "rscope", Literal (String "anonymous1"), MemberReference)))));
 	    Basic (Assignment (mk_assign "anonymous2_scope" Obj));
       proto_stmt;

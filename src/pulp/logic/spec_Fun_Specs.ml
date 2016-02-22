@@ -99,8 +99,9 @@ let get_value_spec param ctx =
 let get_value_fb () =
   let param = "x" in
   let ctx = create_ctx [] in
-  let bd = (translate_gamma (Var param) ctx.return_var ctx.throw_var ctx.label_throw) @
-    [ Goto ctx.label_return; 
+  let bd = (translate_gamma (Var param) ctx.return_var ctx.throw_var ctx.label_throw empty_metadata) @
+    mk_stmts_empty_data [ 
+      Goto ctx.label_return; 
       Label ctx.label_return; 
       Label ctx.label_throw ] in
   let bd = to_ivl_goto bd in

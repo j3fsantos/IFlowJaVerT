@@ -88,7 +88,7 @@ let calculate_defs (g : CFG_BB.graph) =
   List.iter (fun n ->
 	  let stmts = CFG_BB.get_node_data g n in
 	  List.iteri (fun i stmt ->
-	    match stmt.as_stmt with
+	    match stmt.as_stmt.stmt_stx with
 	      | Basic (Assignment stmt) ->
 	        add_to_hashtbl def stmt.assign_left (n, i)
 	      | _ -> ()
@@ -97,7 +97,7 @@ let calculate_defs (g : CFG_BB.graph) =
   def
   
 let gen_kill_stmt def_id stmt def =
-  match stmt.as_stmt with
+  match stmt.as_stmt.stmt_stx with
     | Basic (Assignment stmt) -> 
       let kills = List.filter (fun id -> id <> def_id) (Hashtbl.find def stmt.assign_left) in
       DefIdSet.singleton def_id, def_id_set_of_list kills
@@ -135,7 +135,7 @@ let var_defid_tbl g =
   List.iter (fun n -> 
     let stmts = CFG_BB.get_node_data g n in
     List.iteri (fun i stmt ->
-    match stmt.as_stmt with
+    match stmt.as_stmt.stmt_stx with
       | Basic (Assignment stmt) -> Hashtbl.add tbl stmt.assign_left (n, i);  Hashtbl.add tbl_inverse (n, i) stmt.assign_left
       | _ -> ()) stmts;
   ) (CFG_BB.nodes g);
@@ -175,7 +175,7 @@ let update_stmt stmt var const =
 let rec propagate_const stmts var const =
   match stmts with
     | [] -> []
-    | ({as_stmt = Basic (Assignment a)} as s1) :: tail ->
+    | ({as_stmt = {stmt_stx = Basic (Assignment a)}} as s1) :: tail ->
       if a.assign_left = var then (update_stmt s1 var const) :: tail
       else (update_stmt s1 var const) :: (propagate_const tail var const)
     | stmt :: tail -> (update_stmt stmt var const) :: (propagate_const tail var const)
@@ -201,7 +201,7 @@ let constant_propagation g =
           begin
             let stmts = CFG_BB.get_node_data g nid in
             let stmt = List.nth stmts index in
-              match stmt.as_stmt with
+              match stmt.as_stmt.stmt_stx with
                 | Basic (Assignment {assign_right = Expression e}) ->
                   begin
 			                 if is_const_expr e then begin
@@ -224,7 +224,7 @@ let const_prop_node g n =
       | [] -> []
       | stmt :: stmts ->
         let stmt = Hashtbl.fold (fun var expr stmt -> update_stmt stmt var expr) vars_expr stmt in
-        begin match stmt.as_stmt with
+        begin match stmt.as_stmt.stmt_stx with
           | Basic (Assignment a) ->
            begin match a.assign_right with
             | Expression e ->
@@ -248,7 +248,7 @@ let simplify_guarded_gotos g =
   List.iter (fun n ->
     let stmts = CFG_BB.get_node_data g n in
     match stmts with
-      | {as_stmt = Label l} :: tail -> Hashtbl.add nodemap l n
+      | {as_stmt = {stmt_stx = Label l}} :: tail -> Hashtbl.add nodemap l n
       | _ -> ()
   ) nodes;
   
@@ -256,14 +256,14 @@ let simplify_guarded_gotos g =
     let rec update_last stmts = 
       match stmts with
         | [] -> []
-        | [{as_stmt = GuardedGoto ((Literal (Bool true)), l1, l2)} as s1] -> 
+        | [{as_stmt = {stmt_stx = GuardedGoto ((Literal (Bool true)), l1, l2)} as stx1} as s1] -> 
           CFG_BB.rm_edge g n (Hashtbl.find nodemap l2);
           CFG_BB.set_edge_data g n (Hashtbl.find nodemap l1) Edge_Normal;
-          [{s1 with as_stmt = Goto l1}] 
-        | [{as_stmt = GuardedGoto ((Literal (Bool false)), l1, l2)} as s2] -> 
+          [{s1 with as_stmt = {stx1 with stmt_stx = Goto l1}}] 
+        | [{as_stmt = {stmt_stx = GuardedGoto ((Literal (Bool false)), l1, l2)} as stx2} as s2] -> 
           CFG_BB.rm_edge g n (Hashtbl.find nodemap l1);
           CFG_BB.set_edge_data g n (Hashtbl.find nodemap l2) Edge_Normal;
-          [{s2 with as_stmt = Goto l2}]
+          [{s2 with as_stmt = {stx2 with stmt_stx = Goto l2}}]
         | stmt :: tail -> stmt :: (update_last tail)
     in
     
@@ -275,9 +275,9 @@ let simplify_guarded_gotos g =
 (* Liveness *)
   
 let liveness_gen_kill_stmt stmt =
-  match stmt.as_stmt with
+  match stmt.as_stmt.stmt_stx with
     | Basic (Assignment a) -> var_set_of_list(get_vars_in_assign_expr a.assign_right), VarSet.singleton (a.assign_left) 
-    | stmt -> var_set_of_list(get_vars_in_stmt stmt), VarSet.empty
+    | _ -> var_set_of_list(get_vars_in_stmt stmt.as_stmt), VarSet.empty
   
 let liveness_gen_kill_node n stmts =
    let gen_kills = List.map (fun stmt -> liveness_gen_kill_stmt stmt) stmts in
@@ -348,7 +348,7 @@ let dead_code_elimination g throw_var return_var =
               Hashtbl.replace defid_used defid true
           ) vars;
           
-	        begin match stmt.as_stmt with
+	        begin match stmt.as_stmt.stmt_stx with
 	          | Basic (Assignment a) ->
               Hashtbl.replace var_defid a.assign_left index;
               Hashtbl.replace defid_var index a.assign_left;
@@ -394,7 +394,7 @@ let calculate_exprs g =
   List.iter (fun n ->
       let stmts = CFG_BB.get_node_data g n in
       List.iteri (fun i stmt ->
-        match stmt.as_stmt with
+        match stmt.as_stmt.stmt_stx with
           | Basic (Assignment a) ->
             begin match a.assign_right with
               | Expression e ->
@@ -410,7 +410,7 @@ let calculate_exprs g =
   exprs, all_exprs
   
 let copy_gen_kill_stmt stmt exprs =
-  match stmt.as_stmt with
+  match stmt.as_stmt.stmt_stx with
     | Basic (Assignment a) -> 
       begin match a.assign_right with
         | Expression e -> AssignSet.singleton a, assign_set_of_list (get_from_hashtbl exprs a.assign_left)  
@@ -479,11 +479,11 @@ let copy_propagation g =
     let inn = Hashtbl.find ins n in
     
     let inn, updated_stmts = List.fold_left (fun (inn, updated_stmts) stmt ->
-      let vars = match stmt.as_stmt with
+      let vars = match stmt.as_stmt.stmt_stx with
         | Basic (Assignment a) ->
           Simp_Common.get_vars_in_assign_expr a.assign_right
-        | other -> 
-          Simp_Common.get_vars_in_stmt other
+        | _ -> 
+          Simp_Common.get_vars_in_stmt stmt.as_stmt
       in
       let updated_stmt = 
           List.fold_left (fun stmt var -> 
@@ -527,7 +527,7 @@ let type_simplifications g params proc_type =
 	      Hashtbl.add var_defid var defid;
 	    ) inn;
     
-      begin match stmt.as_stmt with
+      begin match stmt.as_stmt.stmt_stx with
         | Basic (Assignment a) ->
           begin match a.assign_right with
             | Expression e -> 
@@ -568,7 +568,7 @@ let type_simplifications g params proc_type =
       List.iter (fun (var, defid) -> infer_type defid) depend;
       let (nodeid, index) = defid in
       let stmt = List.nth (CFG_BB.get_node_data g nodeid) index in
-      let def_id_t = match stmt.as_stmt with
+      let def_id_t = match stmt.as_stmt.stmt_stx with
         | Basic (Assignment a) -> get_type_info_assign_expr (type_info depend) a.assign_right
         | _ -> None in
       Hashtbl.replace defid_type defid def_id_t

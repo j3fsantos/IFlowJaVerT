@@ -280,7 +280,7 @@ let string_of_spec_function sf =
     | StrictEqualitySameType (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
  
 let rec string_of_statement t =
-  match t with
+  match t.stmt_stx with
     | Label l -> Printf.sprintf "label %s" l
     | Goto s -> Printf.sprintf "goto %s" s
     | GuardedGoto (e, s1, s2) -> Printf.sprintf "goto [%s] %s, %s" (string_of_expression e) s1 s2
