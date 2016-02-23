@@ -296,7 +296,8 @@ type specification_function =
 
 type statement_metadata = {
   src_offset : int option; 
-  stmt_annots : Parser_syntax.annotation list
+  stmt_annots : Parser_syntax.annotation list;
+  loop_head : bool
 }
 
 type statement = {
@@ -318,10 +319,12 @@ let mk_stmt data stx = {stmt_stx = stx; stmt_data = data}
 
 let mk_stmts data stxs = List.map (mk_stmt data) stxs
 
-let empty_metadata = {src_offset = None; stmt_annots = []}
+let empty_metadata = {src_offset = None; stmt_annots = []; loop_head = false}
 
 let mk_stmt_empty_data stx = mk_stmt empty_metadata stx
 
 let mk_stmts_empty_data stxs = List.map mk_stmt_empty_data stxs
 
-let tr_metadata exp = {src_offset = Some exp.Parser_syntax.exp_offset; stmt_annots = exp.Parser_syntax.exp_annot}
+let tr_metadata exp = {src_offset = Some exp.Parser_syntax.exp_offset; stmt_annots = exp.Parser_syntax.exp_annot; loop_head = false}
+
+let tr_metadata_loop_head exp = {src_offset = Some exp.Parser_syntax.exp_offset; stmt_annots = exp.Parser_syntax.exp_annot; loop_head = true}

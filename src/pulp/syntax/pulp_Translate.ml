@@ -1063,7 +1063,7 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
         } in
         let r3_stmts, r3 = translate_stmt new_ctx [] e2 in
         let to_boolean, r4 = spec_func_call (ToBoolean (Var r2)) ctx md in
-          mk_stmts_md [
+          mk_stmts (tr_metadata_loop_head exp) [ (* Loop head *)
             Label continue
           ] @ 
           r1_stmts @ 
@@ -1093,7 +1093,7 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
             Basic (Assignment (mk_assign iterating (Expression (Literal (Bool true)))));
             Label label1;
             Sugar (If (equal_bool_expr (Var iterating) true, 
-                r3_stmts @ mk_stmts_md
+                r3_stmts @ mk_stmts (tr_metadata_loop_head exp) (* Loop head *)
                 [ Label continue ] @
                 r1_stmts @ 
                 r2_stmts @ 
@@ -1358,7 +1358,11 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
           | Some e -> translate_exp ctx e in
 
         let r4_stmts, r4 = translate_stmt new_ctx [] e4 in
-          r1_stmts @ mk_stmts_md [ Label label1 ] @ r21_stmts @ r22_stmts @ r23_stmts @ mk_stmts_md [
+          r1_stmts @ mk_stmts (tr_metadata_loop_head exp) 
+          [ Label label1 ] @ (* Loop head *)
+          r21_stmts @ 
+          r22_stmts @ 
+          r23_stmts @ mk_stmts_md [
             Sugar (If (equal_bool_expr (Var r23) true,
                        r4_stmts @ mk_stmts_md [ Label continue ] @ r3_stmts @ mk_stmts_md [ Goto label1 ],
                        []
