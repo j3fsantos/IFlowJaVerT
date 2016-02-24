@@ -75,7 +75,7 @@ let test_js_program_template name f fs =
 
 let test_empty_program () =
   let ctx = create_ctx [] in
-  let p = [
+  let p = mk_stmts_empty_data [
       Basic Skip;       
       Goto ctx.label_return; 
       Label ctx.label_throw;
@@ -87,7 +87,7 @@ let test_empty_program () =
   
 let test_empty_program_non_empty_pre () =
   let ctx = create_ctx [] in
-  let p = [
+  let p = mk_stmts_empty_data [
       Basic Skip;       
       Goto ctx.label_return; 
       Label ctx.label_throw;
@@ -102,7 +102,7 @@ let test_empty_program_non_empty_pre () =
   let ctx = create_ctx [] in
   let x = mk_assign "x" Obj in
   let y = mk_assign "y" (Lookup (Var x.assign_left, (Literal (String "f")))) in
-  let p = [
+  let p = mk_stmts_empty_data [
       Basic (Assignment x);    
       Basic (Mutation ((mk_mutation (Var x.assign_left) (Literal (String "f")) (Literal (Num 1.0)))));  
       Basic (Assignment y); 
@@ -128,7 +128,7 @@ let translate_jstools_example_person () =
   let label_false3 = "label_false3" in
   let label_false4 = "label_false4" in
   let label_false5 = "label_false5" in
-  let p = [
+  let p = mk_stmts_empty_data [
       Basic (Assignment person0_scope);    
       Basic (Mutation ((mk_mutation (Var person0_scope.assign_left) (Literal (String "name")) (Var "name"))));  
       (*GuardedGoto (is_prim_value "rthis", label_true, label_false);*)
@@ -146,8 +146,8 @@ let translate_jstools_example_person () =
       Basic (Assignment (mk_assign ctx.return_var (Expression (Literal Empty))));
       Goto ctx.label_return;
       Label label_true; ] 
-   @  translate_error_throw Ltep ctx.throw_var ctx.label_throw 
-   @ [
+   @  translate_error_throw Ltep ctx.throw_var ctx.label_throw empty_metadata 
+   @ mk_stmts_empty_data [
       Label ctx.label_throw;
       Label ctx.label_return
   ] in 
@@ -181,7 +181,7 @@ let test_function_call_template name fid_stmts fid_expr =
   let ctx = create_ctx [] in
   let with_label = "label_call_throw" in
   let x = mk_assign "x" (Call (mk_call fid_expr (Var "scope") (Literal Undefined) [] with_label))  in
-  let p = fid_stmts @
+  let p = fid_stmts @ mk_stmts_empty_data
   [  
       Basic (Assignment x);
       Basic (Assignment (mk_assign ctx.return_var (Expression (Var x.assign_left))));  
@@ -207,7 +207,7 @@ let test_function_call_template name fid_stmts fid_expr =
   
 let test_function_call () =
   let name = mk_assign "name" (Expression (Literal (String "f"))) in
-  test_function_call_template "test_function_call" [Basic (Assignment name)] (Var name.assign_left)
+  test_function_call_template "test_function_call" (mk_stmts_empty_data [Basic (Assignment name)]) (Var name.assign_left)
 
 let test_function_call_fid_string () =
   apply_config ();
@@ -218,7 +218,7 @@ let test_proto_field () =
   let x = mk_assign "x" Obj  in
   let proto = mk_assign "proto" Obj in
   let p = 
-  [  
+  mk_stmts_empty_data [  
       Basic (Assignment x);
       Basic (Assignment proto);
       add_proto x.assign_left (Var proto.assign_left);
@@ -237,7 +237,7 @@ let test_proto_field_direct () =
   let ctx = create_ctx [] in
   let x = mk_assign "x" Obj  in
   let p = 
-  [  
+    mk_stmts_empty_data [  
       Basic (Assignment x);
       Basic (Mutation ((mk_mutation (Var x.assign_left) (Literal (String "a")) (Literal Undefined))));  
       Basic (Assignment (mk_assign ctx.return_var (ProtoF (Var x.assign_left, (Literal (String "a"))))));  
@@ -254,7 +254,7 @@ let test_proto_field_empty () =
   let ctx = create_ctx [] in
   let x = mk_assign "x" Obj  in
   let p = 
-  [  
+    mk_stmts_empty_data [  
       Basic (Assignment x);
       add_proto x.assign_left (Literal Null);
       Basic (Assignment (mk_assign ctx.return_var (ProtoF (Var x.assign_left, (Literal (String "a"))))));  
@@ -271,7 +271,7 @@ let test_proto_field_last () =
   let ctx = create_ctx [] in
   let x = mk_assign "x" Obj  in
   let p = 
-  [  
+    mk_stmts_empty_data [  
       Basic (Assignment x);
       add_proto x.assign_left (Literal Null);
       Basic (Mutation ((mk_mutation (Var x.assign_left) (Literal (String "a")) (Literal (Num 3.0)))));  
@@ -291,7 +291,7 @@ let test_proto_field_with_proto_in_spec () =
   let l' = Le_Var (fresh_e()) in
   let pi = proto_pred_f ls (Le_PVar "x") (Le_Literal (String "a")) l' (Le_Literal (Num 3.0)) in
   let p = 
-  [   
+    mk_stmts_empty_data [   
       Basic (Assignment (mk_assign ctx.return_var (ProtoF (Var "x", (Literal (String "a"))))));  
       Goto ctx.label_return;
       Label ctx.label_throw;
@@ -312,7 +312,7 @@ let test_proto_field_with_two_proto_in_spec () =
   let pix = Pi (mk_pi_pred ls (Le_PVar "x") (Le_Literal (String "a")) l' (Le_Literal (Num 3.0))) in
   let piy = Pi (mk_pi_pred ls (Le_PVar "x") (Le_Literal (String "b")) l' (Le_Literal (Num 2.0))) in
   let p = 
-  [   
+    mk_stmts_empty_data [   
       Basic (Assignment xa);
       Basic (Assignment xb);
       Basic (Assignment (mk_assign ctx.return_var (Expression (BinOp (Var xa.assign_left, Arith Plus, Var xb.assign_left)))));  
@@ -328,12 +328,12 @@ let test_proto_field_with_two_proto_in_spec () =
 (* TODO work in progress *)  
 let test_get_value_se_1 () =
   let ctx = create_ctx [] in
-  let getBValueStmts, y = spec_func_call (GetValue (Var "x")) ctx in 
+  let getBValueStmts, y = spec_func_call (GetValue (Var "x")) ctx empty_metadata in 
   let v = Le_Var (fresh_a()) in
   let pre = Heaplet (Le_PVar "x", Le_Literal (String "f"), v) in
   let post = combine pre (REq (Le_PVar "x")) in
   let p = 
-    getBValueStmts @
+    getBValueStmts @ mk_stmts_empty_data
   [   
       Basic (Assignment (mk_assign ctx.return_var (Expression (Var y))));    
       Goto ctx.label_return;

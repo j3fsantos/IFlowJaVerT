@@ -21,7 +21,7 @@ exception BBInvalid of string
 let get_block_label cfg n =
   let stmts = CFG_BB.get_node_data cfg n in
   match stmts with
-    | {as_stmt = Label l} :: tail -> l
+    | {as_stmt = {stmt_stx = Label l} as label_stmt} :: tail -> l, label_stmt.stmt_data
     | _ -> raise (BBInvalid ("Block does not start with a label" ^ (string_of_annot_stmts stmts)))
 
 let get_block_labels g =
@@ -29,7 +29,7 @@ let get_block_labels g =
 	  let _ = List.iter (fun n -> 
 	    let d = CFG_BB.get_node_data g n in
 	    match d with
-	      | {as_stmt = Label l} :: tail -> Hashtbl.add label_map l n
+	      | {as_stmt = {stmt_stx = Label l}} :: tail -> Hashtbl.add label_map l n
 	      | _ -> ()
 	    ) (CFG_BB.nodes g) in
 	  label_map
@@ -37,10 +37,10 @@ let get_block_labels g =
 (* Assumption: n1 is unfinished block without goto at the end *)
 (* n2 begins with label *)    
 let connect_blocks cfg n1 n2 =
-  let n2_label = get_block_label cfg n2 in
+  let n2_label, md = get_block_label cfg n2 in
   
   let stmts = CFG_BB.get_node_data cfg n1 in
-  let stmts = List.rev ((as_annot_stmt (Goto n2_label)) :: (List.rev stmts)) in
+  let stmts = List.rev ((as_annot_stmt (mk_stmt md (Goto n2_label))) :: (List.rev stmts)) in
   CFG_BB.set_node_data cfg n1 stmts;  
   
   CFG_BB.mk_edge cfg n1 n2 Edge_Normal
@@ -88,25 +88,25 @@ let rec traverse_node (g : CFG_BB.graph) ctx nodedone current =
       begin match stmts with
         | [] -> ()
         | stmt :: tail -> 
-          begin match stmt.as_stmt with
+          begin match stmt.as_stmt.stmt_stx with
             | Goto _ 
             | GuardedGoto _
             | Basic (Assignment {assign_right = Call _})
             | Basic (Assignment {assign_right = BuiltinCall _})
             | Basic (Assignment {assign_right = Eval _}) 
             | Sugar (SpecFunction _) -> ()
-            | stmt -> 
+            | _ -> 
               begin match succs with
                 | [succ] -> let succ_stmts = CFG_BB.get_node_data g succ in
                    let lbl = match succ_stmts with
-                     | {as_stmt = Label l} :: tail -> l           
+                     | {as_stmt = {stmt_stx = Label l}} :: tail -> l           
                      | stmt :: tail -> raise (BBInvalid ("Expected label, but found " ^ Pulp_Syntax_Print.string_of_statement stmt.as_stmt))
                      | [] ->  raise (BBInvalid "Expected label, but found empty list of statements")
                    in 
-                  let new_stmts = List.rev ((as_annot_stmt (Goto lbl)) :: stmts) in
+                  let new_stmts = List.rev ((as_annot_stmt_empty_data (Goto lbl)) :: stmts) in
                   CFG_BB.set_node_data g current new_stmts
                 | [] -> ()
-                | _ -> raise (BBInvalid ("Expected one successor of " ^ Pulp_Syntax_Print.string_of_statement stmt))
+                | _ -> raise (BBInvalid ("Expected one successor of " ^ Pulp_Syntax_Print.string_of_statement stmt.as_stmt))
               end
           end
       end;
@@ -118,7 +118,7 @@ let rec traverse_node (g : CFG_BB.graph) ctx nodedone current =
           | [pred] -> 
             let stmts = CFG_BB.get_node_data g succ in
             let can_merge = match stmts with
-              | [{as_stmt = Label l}] -> l <> ctx.label_return && l <> ctx.label_throw            
+              | [{as_stmt = {stmt_stx = Label l}}] -> l <> ctx.label_return && l <> ctx.label_throw            
               | _ -> true in
             if can_merge then begin merge_two_nodes current succ g; traverse_node g ctx nodedone current end 
             else continue_traverse ()
@@ -155,9 +155,9 @@ let transform_to_basic_blocks_from_cfg (input : CFG.graph) ctx : CFG_BB.graph =
   
 let rec filter_goto_label stmts throwl returnl =
   match stmts with
-    | ({ as_stmt = Goto l1 } as as1) :: tail ->
+    | ({ as_stmt = { stmt_stx = Goto l1 }} as as1) :: tail ->
       begin match tail with
-        | ({ as_stmt = Label l2 } as as2) :: tail2 -> 
+        | ({ as_stmt = {stmt_stx = Label l2 }} as as2) :: tail2 -> 
           if (l1 = l2 && throwl <> l1 && returnl <> l1) then filter_goto_label tail2 throwl returnl
           else [as1; as2] @ filter_goto_label tail2 throwl returnl
         | _ -> as1 :: filter_goto_label tail throwl returnl
@@ -174,7 +174,7 @@ let remove_unnecessary_goto_label (g : CFG_BB.graph) throwl returnl =
   
 let is_block_empty stmts =
   match stmts with
-    | [{as_stmt = Label l2}; {as_stmt = Goto l1}] -> 
+    | [{as_stmt = {stmt_stx = Label l2}}; {as_stmt = {stmt_stx = Goto l1}}] -> 
       true, l1, l2
     | _ -> false, "", ""
   
@@ -186,10 +186,10 @@ let remove_empty_blocks g =
     let rev = List.rev stmts in
     match rev with
       (* Fix for function calls *)
-      | ({as_stmt = Goto l1} as s1) :: tail -> 
-        (List.rev tail) @ [{s1 with as_stmt = Goto (change_if_equal l1 oldl newl)}]
-      | ({as_stmt = GuardedGoto (e, l1, l2)} as s2) :: tail -> 
-        (List.rev tail) @ [{s2 with as_stmt = GuardedGoto (e, (change_if_equal l1 oldl newl), (change_if_equal l2 oldl newl))}]
+      | ({as_stmt = {stmt_stx = Goto l1} as stx1} as s1) :: tail -> 
+        (List.rev tail) @ [{s1 with as_stmt = {stx1 with stmt_stx = Goto (change_if_equal l1 oldl newl)}}]
+      | ({as_stmt = {stmt_stx = GuardedGoto (e, l1, l2)} as stx2} as s2) :: tail -> 
+        (List.rev tail) @ [{s2 with as_stmt = {stx2 with stmt_stx = GuardedGoto (e, (change_if_equal l1 oldl newl), (change_if_equal l2 oldl newl))}}]
       | [] ->  raise (BBInvalid "Expected Goto in removing empty blocks. Got empty list of statements")
       | {as_stmt = stmt} :: tail -> raise (BBInvalid ("Expected Goto in removing empty blocks. Got " ^ Pulp_Syntax_Print.string_of_statement stmt)) in
   
@@ -261,7 +261,7 @@ let cfg_to_fb cfg return_label throw_label =
           ) succs in
           Hashtbl.add nodedone current (); 
           (List.filter (fun stmt ->
-          match stmt with
+          match stmt.stmt_stx with
             | Label l -> 
               if l = return_label || l = throw_label then false
               else true
@@ -275,4 +275,4 @@ let cfg_to_fb cfg return_label throw_label =
   let stmts = match CFG_BB.nodes cfg with
     | [] -> []
     | start :: tail -> traverse cfg nodedone start in
-  stmts  @ [Label return_label; Label throw_label]
+  stmts @ mk_stmts_empty_data [Label return_label; Label throw_label]

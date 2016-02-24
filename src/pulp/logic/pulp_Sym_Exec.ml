@@ -321,7 +321,7 @@ let rec execute_stmt f sg cfg fs env spec_env snode_id cmd_st_tbl =
   
   Printf.printf "********Execute Stmt %s *********\n" (Pulp_Syntax_Print.string_of_statement stmt);
   
-  match stmt with
+  match stmt.stmt_stx with
     | Label l -> 
       if l = f.func_ctx.label_return || l = f.func_ctx.label_throw 
       then () 
@@ -433,10 +433,10 @@ let execute f cfg fs spec_env spec =
   
   Hashtbl.add cmd_st_tbl start first;
   
-  let env = Environment.get_env() in
+  let env_builtin, _ = Environment.get_env() in
   
   try 
-    execute_stmt f sg cfg fs env spec_env first cmd_st_tbl;
+    execute_stmt f sg cfg fs env_builtin spec_env first cmd_st_tbl;
     sg, cmd_st_tbl 
   with SymExecException msg -> 
     raise (SymExecExcepWithGraph (msg, sg))

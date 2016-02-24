@@ -39,8 +39,10 @@ let string_of_annot_stmt s =
   
 let string_of_annot_stmts stmts =
   String.concat "\n" (List.map string_of_annot_stmt stmts)
-
+  
 let as_annot_stmt stmt = {as_stmt = stmt; as_annot = None}
+
+let as_annot_stmt_empty_data stx = {as_stmt = mk_stmt_empty_data stx; as_annot = None}
 
 let as_annot_stmts stmts = List.map as_annot_stmt stmts
 
@@ -117,7 +119,7 @@ let get_vars_in_spec_functions sf =
     | StrictEqualitySameType (e1, e2) -> (f e1) @ (f e2)
 
 let rec get_vars_in_stmt stmt = 
-  match stmt with
+  match stmt.stmt_stx with
     | Label _ 
     | Goto _ -> []
     | GuardedGoto (e, l1, l2) -> get_vars_in_expr e
@@ -196,12 +198,12 @@ let transform_expr_in_basic_stmt f stmt =
     | Mutation m -> Mutation (mk_mutation (f m.m_loc) (f m.m_field) (f m.m_right))
 
 let rec transform_expr_in_stmt f stmt = 
-  match stmt with
+  match stmt.stmt_stx with
     | Label _ 
     | Goto _ -> stmt
-    | GuardedGoto (e, l1, l2) -> GuardedGoto (f e, l1, l2)
-    | Basic bs -> Basic (transform_expr_in_basic_stmt f bs)
-    | Sugar sstmt -> Sugar (transform_expr_in_sugar_stmt f sstmt)
+    | GuardedGoto (e, l1, l2) -> {stmt with stmt_stx = GuardedGoto (f e, l1, l2)}
+    | Basic bs -> {stmt with stmt_stx = Basic (transform_expr_in_basic_stmt f bs)}
+    | Sugar sstmt -> {stmt with stmt_stx = Sugar (transform_expr_in_sugar_stmt f sstmt)}
 and
 transform_expr_in_sugar_stmt f stmt =
   match stmt with

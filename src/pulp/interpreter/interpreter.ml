@@ -266,7 +266,7 @@ type function_state = {
 } 
 
 let end_label stmt labelmap ctx =
-  match stmt with
+  match stmt.stmt_stx with
     | Label l -> l = ctx.label_return || l = ctx.label_throw
     | _ -> false
   
@@ -477,7 +477,7 @@ run_function (h : heap_type) (f : function_block) (args : value list) (fs : func
   let s = Stack.add f.func_ctx.throw_var (VHValue (HVLiteral Empty)) s in
     
   let _, label_index = List.fold_left (fun (index, li) stmt ->
-    match stmt with
+    match stmt.stmt_stx with
       | Label l -> (index + 1, LabelMap.add l index li)
       | _ -> index + 1, li
     ) (0, LabelMap.empty) f.func_body in
@@ -486,7 +486,7 @@ run_function (h : heap_type) (f : function_block) (args : value list) (fs : func
   (*Printf.printf "End of function %s \n" f.func_name;*)
   let ret_type, ret_val = 
     let stmt = List.nth f.func_body result.lscounter in
-    let l = match stmt with
+    let l = match stmt.stmt_stx with
       | Label l -> l
       | _ -> raise (Invalid_argument "Shouldn't be other stametemnt than Label statemment here") in
     if l = f.func_ctx.label_return then FTReturn, 
@@ -528,7 +528,7 @@ and run_basic_stmt (s : local_state) (stmt : basic_statement) (labelmap : int La
 
 and run_stmt (s : local_state) (stmt : statement) (labelmap : int LabelMap.t) (ctx) (fs : function_block AllFunctions.t) (env : function_block AllFunctions.t) : local_state =
   (*Printf.printf "Running stmt %s \n" (Pulp_Syntax_Print.string_of_statement stmt);*)
-  match stmt with
+  match stmt.stmt_stx with
     | Label l -> {s with lscounter = s.lscounter + 1}
     | Goto l -> {s with lscounter = LabelMap.find l labelmap}
     | GuardedGoto (e, l1, l2) -> 

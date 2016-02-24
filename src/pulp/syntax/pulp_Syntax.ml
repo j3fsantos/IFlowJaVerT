@@ -294,7 +294,17 @@ type specification_function =
   | StrictEquality of expression * expression
   | StrictEqualitySameType of expression * expression
 
-type statement =
+type statement_metadata = {
+  src_offset : int option; 
+  stmt_annots : Parser_syntax.annotation list;
+  loop_head : bool
+}
+
+type statement = {
+  stmt_stx : statement_syntax; 
+  stmt_data : statement_metadata;
+}
+and statement_syntax =
   | Label of label
   | Goto of string
   | GuardedGoto of expression * string * string
@@ -304,3 +314,17 @@ and
 syntactic_sugar_statement =
   | If of expression * statement list * statement list 
   | SpecFunction of variable * specification_function * label
+
+let mk_stmt data stx = {stmt_stx = stx; stmt_data = data}
+
+let mk_stmts data stxs = List.map (mk_stmt data) stxs
+
+let empty_metadata = {src_offset = None; stmt_annots = []; loop_head = false}
+
+let mk_stmt_empty_data stx = mk_stmt empty_metadata stx
+
+let mk_stmts_empty_data stxs = List.map mk_stmt_empty_data stxs
+
+let tr_metadata exp = {src_offset = Some exp.Parser_syntax.exp_offset; stmt_annots = exp.Parser_syntax.exp_annot; loop_head = false}
+
+let tr_metadata_loop_head exp = {src_offset = Some exp.Parser_syntax.exp_offset; stmt_annots = exp.Parser_syntax.exp_annot; loop_head = true}

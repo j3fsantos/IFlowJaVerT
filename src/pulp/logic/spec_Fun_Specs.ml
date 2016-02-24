@@ -103,8 +103,9 @@ let get_value_spec param ctx =
 let get_value_fb () =
   let param = "x" in
   let ctx = create_ctx [] in
-  let bd = (translate_gamma (Var param) ctx.return_var ctx.throw_var ctx.label_throw) @
-    [ Goto ctx.label_return; 
+  let bd = (translate_gamma (Var param) ctx.return_var ctx.throw_var ctx.label_throw empty_metadata) @
+    mk_stmts_empty_data [ 
+      Goto ctx.label_return; 
       Label ctx.label_return; 
       Label ctx.label_throw ] in
   let bd = to_ivl_goto bd in
@@ -114,9 +115,9 @@ let make_put_value_function () =
 	let ctx = create_ctx [] in 
 	let arg_var1 = fresh_r () in 
 	let arg_var2 = fresh_r () in 
-	let body = translate_put_value (Var arg_var1) (Var arg_var2) ctx.throw_var ctx.label_throw in 
+	let body = translate_put_value (Var arg_var1) (Var arg_var2) ctx.throw_var ctx.label_throw empty_metadata in 
 	let body = body @
-		[ 
+		mk_stmts_empty_data [ 
 			Basic (Assignment (mk_assign ctx.return_var (Expression (Literal Empty)))); 
 			Goto ctx.label_return;
     	Label ctx.label_return;
@@ -128,9 +129,9 @@ let make_get_function () =
 	let ctx = create_ctx [] in 
 	let arg_obj = fresh_r () in 
 	let arg_prop = fresh_r () in 
-	let body = translate_get (Var arg_obj) (Var arg_prop) ctx.return_var in 
+	let body = translate_get (Var arg_obj) (Var arg_prop) ctx.return_var empty_metadata in 
 	let body = body @
-		[ Goto ctx.label_return;
+		mk_stmts_empty_data [ Goto ctx.label_return;
     	Label ctx.label_return;
     	Label ctx.label_throw ] in 
 	let body = to_ivl_goto_unfold body in 
@@ -140,9 +141,9 @@ let make_has_property_function () =
 	let ctx = create_ctx [] in 
 	let arg_obj = fresh_r () in 
 	let arg_prop = fresh_r () in 
-	let body = translate_has_property (Var arg_obj) (Var arg_prop) ctx.return_var in 
+	let body = translate_has_property (Var arg_obj) (Var arg_prop) ctx.return_var empty_metadata in 
 	let body = body @
-		[ Goto ctx.label_return;
+		mk_stmts_empty_data [ Goto ctx.label_return;
     	Label ctx.label_return;
     	Label ctx.label_throw ] in 
 	let body = to_ivl_goto_unfold body in 
@@ -151,9 +152,9 @@ let make_has_property_function () =
 let make_to_boolean_function () = 
 	let ctx = create_ctx [] in 
 	let arg = fresh_r () in 
-	let body = translate_to_boolean (Var arg) ctx.return_var in 
+	let body = translate_to_boolean (Var arg) ctx.return_var empty_metadata in 
 	let body = body @
-		[ Goto ctx.label_return;
+		mk_stmts_empty_data [ Goto ctx.label_return;
     	Label ctx.label_return;
     	Label ctx.label_throw ] in 
 	let body = to_ivl_goto_unfold body in 
@@ -162,9 +163,9 @@ let make_to_boolean_function () =
 let make_to_string_function () = 
 	let ctx = create_ctx [] in 
 	let arg = fresh_r () in 
-	let body = translate_to_string (Var arg) ctx.return_var ctx.throw_var ctx.label_throw in 
+	let body = translate_to_string (Var arg) ctx.return_var ctx.throw_var ctx.label_throw empty_metadata in 
 	let body = body @
-		[ Goto ctx.label_return;
+		mk_stmts_empty_data [ Goto ctx.label_return;
     	Label ctx.label_return;
     	Label ctx.label_throw ] in 
 	let body = to_ivl_goto_unfold body in 
@@ -173,9 +174,9 @@ let make_to_string_function () =
 let make_to_string_prim_function () = 
 	let ctx = create_ctx [] in 
 	let arg = fresh_r () in 
-	let body = translate_to_string_prim (Var arg) ctx.return_var in 
+	let body = translate_to_string_prim (Var arg) ctx.return_var empty_metadata in 
 	let body = body @
-		[ Goto ctx.label_return;
+		 mk_stmts_empty_data [ Goto ctx.label_return;
     	Label ctx.label_return;
     	Label ctx.label_throw ] in 
 	let body = to_ivl_goto_unfold body in 
@@ -184,9 +185,9 @@ let make_to_string_prim_function () =
 let make_to_object_function () = 
 	let ctx = create_ctx [] in 
 	let arg = fresh_r () in 
-	let body = translate_to_object (Var arg) ctx.return_var ctx.throw_var ctx.label_throw  in 
+	let body = translate_to_object (Var arg) ctx.return_var ctx.throw_var ctx.label_throw empty_metadata in 
 	let body = body @
-		[ Goto ctx.label_return;
+		mk_stmts_empty_data [ Goto ctx.label_return;
     	Label ctx.label_return;
     	Label ctx.label_throw ] in 
 	let body = to_ivl_goto_unfold body in 
@@ -195,9 +196,9 @@ let make_to_object_function () =
 let make_check_object_coercible_function () = 
 	let ctx = create_ctx [] in 
 	let arg = fresh_r () in 
-	let body = translate_obj_coercible (Var arg) ctx.throw_var ctx.label_throw  in 
+	let body = translate_obj_coercible (Var arg) ctx.throw_var ctx.label_throw empty_metadata in 
 	let body = body @
-		[ Goto ctx.label_return;
+		mk_stmts_empty_data [ Goto ctx.label_return;
     	Label ctx.label_return;
     	Label ctx.label_throw ] in 
 	let body = to_ivl_goto_unfold body in 
@@ -206,9 +207,9 @@ let make_check_object_coercible_function () =
 let make_is_callable_function () = 
 	let ctx = create_ctx [] in 
 	let arg = fresh_r () in 
-	let body = is_callable (Var arg) ctx.label_return  in 
+	let body = is_callable (Var arg) ctx.label_return empty_metadata in 
 	let body = body @
-		[ Goto ctx.label_return;
+		mk_stmts_empty_data [ Goto ctx.label_return;
     	Label ctx.label_return;
     	Label ctx.label_throw ] in 
 	let body = to_ivl_goto_unfold body in 
@@ -218,9 +219,9 @@ let make_strict_equality_function () =
 	let ctx = create_ctx [] in 
 	let arg1 = fresh_r () in 
 	let arg2 = fresh_r () in 
-	let body = translate_strict_equality_comparison (Var arg1) (Var arg2) ctx.label_return  in 
+	let body = translate_strict_equality_comparison (Var arg1) (Var arg2) ctx.label_return empty_metadata in 
 	let body = body @
-		[ Goto ctx.label_return;
+		mk_stmts_empty_data [ Goto ctx.label_return;
     	Label ctx.label_return;
     	Label ctx.label_throw ] in 
 	let body = to_ivl_goto_unfold body in 
@@ -230,9 +231,9 @@ let make_strict_equality_same_type_function () =
 	let ctx = create_ctx [] in 
 	let arg1 = fresh_r () in 
 	let arg2 = fresh_r () in 
-	let body = translate_strict_equality_comparison_types_equal (Var arg1) (Var arg2) ctx.label_return  in 
+	let body = translate_strict_equality_comparison_types_equal (Var arg1) (Var arg2) ctx.label_return empty_metadata in 
 	let body = body @
-		[ Goto ctx.label_return;
+		mk_stmts_empty_data [ Goto ctx.label_return;
     	Label ctx.label_return;
     	Label ctx.label_throw ] in 
 	let body = to_ivl_goto_unfold body in 
