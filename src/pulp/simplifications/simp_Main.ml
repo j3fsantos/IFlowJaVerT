@@ -34,6 +34,7 @@ let constant_propagation cfg fb option =
   transform_to_basic_blocks cfg fb.func_ctx;
   remove_unnecessary_goto_label cfg fb.func_ctx.label_throw fb.func_ctx.label_return
   
+	
 let simplify exp option =
   let cfg = Control_Flow.program_to_cfg exp in
   

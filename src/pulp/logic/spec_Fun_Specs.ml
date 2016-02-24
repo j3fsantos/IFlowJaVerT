@@ -16,6 +16,10 @@ open Pulp_Translate_Aux
 
 let dummy_exp = (Literal Undefined)
 
+let dummy_exp1 = (Literal Undefined)  
+
+let dummy_exp2 = (Literal Undefined) 
+
 let get_value_fn () = string_of_spec_fun_id (GetValue dummy_exp)
 
 let get_value_not_a_ref_pre param = type_of_not_a_ref_f param
@@ -106,11 +110,151 @@ let get_value_fb () =
   let bd = to_ivl_goto bd in
   make_function_block_with_spec Procedure_Spec (get_value_fn()) bd [param] ctx (get_value_spec param ctx)
 
+let make_put_value_function () = 
+	let ctx = create_ctx [] in 
+	let arg_var1 = fresh_r () in 
+	let arg_var2 = fresh_r () in 
+	let body = translate_put_value (Var arg_var1) (Var arg_var2) ctx.throw_var ctx.label_throw in 
+	let body = body @
+		[ 
+			Basic (Assignment (mk_assign ctx.return_var (Expression (Literal Empty)))); 
+			Goto ctx.label_return;
+    	Label ctx.label_return;
+    	Label ctx.label_throw ] in 
+	let body = to_ivl_goto_unfold body in 
+	make_function_block Procedure_Spec (string_of_spec_fun_id (PutValue (dummy_exp1, dummy_exp2))) body [rthis; rscope; arg_var1; arg_var2] ctx
+
+let make_get_function () = 
+	let ctx = create_ctx [] in 
+	let arg_obj = fresh_r () in 
+	let arg_prop = fresh_r () in 
+	let body = translate_get (Var arg_obj) (Var arg_prop) ctx.return_var in 
+	let body = body @
+		[ Goto ctx.label_return;
+    	Label ctx.label_return;
+    	Label ctx.label_throw ] in 
+	let body = to_ivl_goto_unfold body in 
+	make_function_block Procedure_Spec (string_of_spec_fun_id (Get (dummy_exp1, dummy_exp2))) body [rthis; rscope; arg_obj; arg_prop] ctx 
+
+let make_has_property_function () = 
+	let ctx = create_ctx [] in 
+	let arg_obj = fresh_r () in 
+	let arg_prop = fresh_r () in 
+	let body = translate_has_property (Var arg_obj) (Var arg_prop) ctx.return_var in 
+	let body = body @
+		[ Goto ctx.label_return;
+    	Label ctx.label_return;
+    	Label ctx.label_throw ] in 
+	let body = to_ivl_goto_unfold body in 
+	make_function_block Procedure_Spec  (string_of_spec_fun_id (HasProperty (dummy_exp1, dummy_exp2))) body [rthis; rscope; arg_obj; arg_prop] ctx 						
+
+let make_to_boolean_function () = 
+	let ctx = create_ctx [] in 
+	let arg = fresh_r () in 
+	let body = translate_to_boolean (Var arg) ctx.return_var in 
+	let body = body @
+		[ Goto ctx.label_return;
+    	Label ctx.label_return;
+    	Label ctx.label_throw ] in 
+	let body = to_ivl_goto_unfold body in 
+	make_function_block Procedure_Spec (string_of_spec_fun_id (ToBoolean dummy_exp1)) body [rthis; rscope; arg] ctx 	
+
+let make_to_string_function () = 
+	let ctx = create_ctx [] in 
+	let arg = fresh_r () in 
+	let body = translate_to_string (Var arg) ctx.return_var ctx.throw_var ctx.label_throw in 
+	let body = body @
+		[ Goto ctx.label_return;
+    	Label ctx.label_return;
+    	Label ctx.label_throw ] in 
+	let body = to_ivl_goto_unfold body in 
+	make_function_block Procedure_Spec (string_of_spec_fun_id (ToString dummy_exp1)) body [rthis; rscope; arg] ctx 	
+
+let make_to_string_prim_function () = 
+	let ctx = create_ctx [] in 
+	let arg = fresh_r () in 
+	let body = translate_to_string_prim (Var arg) ctx.return_var in 
+	let body = body @
+		[ Goto ctx.label_return;
+    	Label ctx.label_return;
+    	Label ctx.label_throw ] in 
+	let body = to_ivl_goto_unfold body in 
+	make_function_block Procedure_Spec (string_of_spec_fun_id (ToStringPrim dummy_exp1)) body [rthis; rscope; arg] ctx 	
+
+let make_to_object_function () = 
+	let ctx = create_ctx [] in 
+	let arg = fresh_r () in 
+	let body = translate_to_object (Var arg) ctx.return_var ctx.throw_var ctx.label_throw  in 
+	let body = body @
+		[ Goto ctx.label_return;
+    	Label ctx.label_return;
+    	Label ctx.label_throw ] in 
+	let body = to_ivl_goto_unfold body in 
+	make_function_block Procedure_Spec (string_of_spec_fun_id (ToObject dummy_exp1)) body [rthis; rscope; arg] ctx 	
+
+let make_check_object_coercible_function () = 
+	let ctx = create_ctx [] in 
+	let arg = fresh_r () in 
+	let body = translate_obj_coercible (Var arg) ctx.throw_var ctx.label_throw  in 
+	let body = body @
+		[ Goto ctx.label_return;
+    	Label ctx.label_return;
+    	Label ctx.label_throw ] in 
+	let body = to_ivl_goto_unfold body in 
+	make_function_block Procedure_Spec (string_of_spec_fun_id (CheckObjectCoercible dummy_exp1)) body [rthis; rscope; arg] ctx 	
+
+let make_is_callable_function () = 
+	let ctx = create_ctx [] in 
+	let arg = fresh_r () in 
+	let body = is_callable (Var arg) ctx.label_return  in 
+	let body = body @
+		[ Goto ctx.label_return;
+    	Label ctx.label_return;
+    	Label ctx.label_throw ] in 
+	let body = to_ivl_goto_unfold body in 
+	make_function_block Procedure_Spec (string_of_spec_fun_id (IsCallable dummy_exp1)) body [rthis; rscope; arg] ctx 	
+
+let make_strict_equality_function () = 
+	let ctx = create_ctx [] in 
+	let arg1 = fresh_r () in 
+	let arg2 = fresh_r () in 
+	let body = translate_strict_equality_comparison (Var arg1) (Var arg2) ctx.label_return  in 
+	let body = body @
+		[ Goto ctx.label_return;
+    	Label ctx.label_return;
+    	Label ctx.label_throw ] in 
+	let body = to_ivl_goto_unfold body in 
+	make_function_block Procedure_Spec (string_of_spec_fun_id (StrictEquality (dummy_exp1, dummy_exp2))) body [rthis; rscope; arg1; arg2] ctx 	
+
+let make_strict_equality_same_type_function () = 
+	let ctx = create_ctx [] in 
+	let arg1 = fresh_r () in 
+	let arg2 = fresh_r () in 
+	let body = translate_strict_equality_comparison_types_equal (Var arg1) (Var arg2) ctx.label_return  in 
+	let body = body @
+		[ Goto ctx.label_return;
+    	Label ctx.label_return;
+    	Label ctx.label_throw ] in 
+	let body = to_ivl_goto_unfold body in 
+	make_function_block Procedure_Spec (string_of_spec_fun_id (StrictEqualitySameType (dummy_exp1, dummy_exp2))) body [rthis; rscope; arg1; arg2] ctx 	
+
+
 let get_env_spec () = 
   let env = AllFunctions.add (get_value_fn()) (get_value_fb ()) (AllFunctions.empty) in
-  let env = Simp_Main.simplify env Simp_Common.Simp_Unfold_Specs in
-  env
+	let env = AllFunctions.add (string_of_spec_fun_id (PutValue (dummy_exp1, dummy_exp2))) (make_put_value_function()) env in 
+	let env = AllFunctions.add (string_of_spec_fun_id (Get (dummy_exp1, dummy_exp2))) (make_get_function()) env in 
+	let env = AllFunctions.add (string_of_spec_fun_id (HasProperty (dummy_exp1, dummy_exp2))) (make_has_property_function()) env in 
+	let env = AllFunctions.add (string_of_spec_fun_id (ToBoolean dummy_exp1)) (make_to_boolean_function()) env in
+	let env = AllFunctions.add (string_of_spec_fun_id (ToString dummy_exp1)) (make_to_string_function()) env in
+	let env = AllFunctions.add (string_of_spec_fun_id (ToStringPrim dummy_exp1)) (make_to_string_prim_function()) env in
+	let env = AllFunctions.add (string_of_spec_fun_id (ToObject dummy_exp1)) (make_to_object_function()) env in
+	let env = AllFunctions.add (string_of_spec_fun_id (CheckObjectCoercible dummy_exp1)) (make_check_object_coercible_function()) env in
+	let env = AllFunctions.add (string_of_spec_fun_id (IsCallable dummy_exp1)) (make_is_callable_function()) env in
+	let env = AllFunctions.add (string_of_spec_fun_id (StrictEquality (dummy_exp1, dummy_exp2))) (make_strict_equality_function()) env in
+	let env = AllFunctions.add (string_of_spec_fun_id (StrictEqualitySameType (dummy_exp1, dummy_exp2))) (make_strict_equality_same_type_function()) env in
 
+  (* let env = Simp_Main.simplify env Simp_Common.Simp_Unfold_Specs in *) 
+  env
 
   
   

@@ -69,7 +69,8 @@ let translate path level =
 	let builtins_folder_name = "builtins" in 
 	let specs_folder_name = "specs" in
 	let output_folder_name = Filename.chop_extension path in 
-	let built_ins, specs = env in 
+	let built_ins = env in 
+	let specs = Spec_Fun_Specs.get_env_spec () in 
   (* TODO: Constructs cfg twice adding entry label twice *)
 	(* Why do we need to construct the cfg twice? *)
   let _ = Control_Flow.mk_cfg p_exp (Filename.chop_extension path) in

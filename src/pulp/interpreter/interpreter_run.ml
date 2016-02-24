@@ -137,7 +137,7 @@ let run_program path =
     else get_pulp_expression true exp
   in
   
-	let built_ins, specs = env in   
+	let built_ins = env in   
   let h = initial_heap () in
   let lg = Heap.find (BLoc Lg) h in
   let lg = Object.add ("__$ERROR__") (HVLiteral (String "")) lg in
