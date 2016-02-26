@@ -15,6 +15,7 @@ let string_of_comparison_op x =
   match x with
     | Equal -> "="
     | LessThan -> "<"
+    | LessThanEqual -> "<="
 
 let string_of_bool_op x =
   match x with
@@ -42,6 +43,7 @@ let string_of_bin_op x =
   match x with
     | Concat -> "^"
     | Comparison op -> string_of_comparison_op op
+    | Subtype -> "<:"
     | Arith op -> string_of_arith_op op
     | Boolean op -> string_of_bool_op op
     | Bitwise op -> string_of_bitwise_op op

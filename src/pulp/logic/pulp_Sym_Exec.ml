@@ -325,7 +325,45 @@ let rec execute_stmt f sg cfg fs env spec_env snode_id cmd_st_tbl =
     | Label l -> 
       if l = f.func_ctx.label_return || l = f.func_ctx.label_throw 
       then () 
-      else new_snode (get_single_succ snode.sgn_id) snode.sgn_state
+      else begin
+        (* Loop heads are on the label commands *)
+        
+        if stmt.stmt_data.loop_head then begin
+          
+          let posts_nodes = Hashtbl.find_all cmd_st_tbl snode.sgn_id in
+          let implies_any = List.exists (fun post -> 
+            if post = snode_id then false 
+            else
+            let st = StateG.get_node_data sg post in
+            CoreStar_Frontend_Pulp.implies snode.sgn_state st.sgn_state
+          ) posts_nodes in
+          
+          if (not implies_any) then begin
+          
+             let stmt = CFG.get_node_data cfg snode.sgn_id in
+             let invariants = Pulp_Formula_Parser_Utils.get_inv_from_code stmt.stmt_data.stmt_annots in
+          
+             let posts = List.map (fun inv -> 
+               Printf.printf "\n Invariant: %s\n" (Pulp_Logic_Print.string_of_formula inv); 
+               CoreStar_Frontend_Pulp.apply_spec snode.sgn_state inv inv
+             ) invariants in
+            
+             let post = try List.find (fun p -> p != None) posts with Not_found -> raise (SymExecException "Loop invariant does't hold") in
+             
+             begin match post with
+               | Some [post] -> new_snode (get_single_succ snode.sgn_id) post
+               | Some _ -> raise (NotImplemented "Multiple frames") 
+               | None -> raise Utils.CannotHappen
+             end 
+                            
+          end
+          else (* We do not need to continue this path anymore *) ()
+     
+        end 
+        else new_snode (get_single_succ snode.sgn_id) snode.sgn_state
+      end
+      
+      
       
     | Goto l -> new_snode (get_single_succ snode.sgn_id) snode.sgn_state
     

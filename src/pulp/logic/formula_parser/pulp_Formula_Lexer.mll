@@ -52,6 +52,7 @@ rule token = parse
   | ';'                 { SEMICOLON }
   | '.'                 { DOT }
   | "<="                { LE }
+  | "<:"                 { SUBTYPE }
   | '<'                 { LT }
   | "#GlobalObject"     { LG }
   | "#LObject"          { LOBJECT }

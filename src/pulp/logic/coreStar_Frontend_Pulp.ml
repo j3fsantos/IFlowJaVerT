@@ -197,6 +197,8 @@ let rec le_to_args (varmap : Vars.var VarMap.t) le : Psyntax.args =
       | Le_BinOp (le1, Arith Plus, le2) -> Psyntax.Arg_op ("builtin_plus", [f le1; f le2])
       | Le_BinOp (le1, Arith Minus, le2) -> Psyntax.Arg_op ("builtin_minus", [f le1; f le2])
       | Le_BinOp (le1, Comparison LessThan, le2) -> Psyntax.Arg_op ("builtin_lt", [f le1; f le2])
+      | Le_BinOp (le1, Comparison LessThanEqual, le2) -> Psyntax.Arg_op ("builtin_le", [f le1; f le2])
+      | Le_BinOp (le1, Subtype, le2) -> Psyntax.Arg_op ("is_subtype", [f le1; f le2])
       | Le_BinOp (le1, Concat, le2) -> Psyntax.Arg_op ("concat", [f le1; f le2]) (* TODO *)
       | Le_BinOp (le1, Comparison Equal, le2) -> Psyntax.Arg_op ("triple_eq", [f le1; f le2]) (* TODO *)
       | Le_Base le -> Psyntax.Arg_op (ref_base, [f le])
@@ -293,6 +295,8 @@ let rec args_to_le (lvarmap : variable_types LVarMap.t) arg =
         | "builtin_plus", [arg1; arg2] -> Le_BinOp (f arg1, Arith Plus, f arg2)
         | "builtin_minus", [arg1; arg2] -> Le_BinOp (f arg1, Arith Minus, f arg2)
         | "builtin_lt", [arg1; arg2] -> Le_BinOp (f arg1, Comparison LessThan, f arg2)
+        | "builtin_le", [arg1; arg2] -> Le_BinOp (f arg1, Comparison LessThanEqual, f arg2)
+        | "is_subtype", [arg1; arg2] -> Le_BinOp (f arg1, Subtype, f arg2)
         | "concat", [arg1; arg2] -> 
           let a1 = f arg1 in
           let a2 = f arg2 in
@@ -505,8 +509,9 @@ let frame_inner f1 f2 : Sepprover.inner_form list option * Vars.var VarMap.t =
       let pf1, pf2, varmap = match (convert_to_pform [f1; f2]) with
         | [pf1; pf2], varmap -> pf1, pf2, varmap
         | _ -> raise CannotHappen in
-      let pfs = match Sepprover.convert pf1 with
-        | Some inner1 -> Sepprover.frame !logic inner1 pf2
+      let pfs = try Sepprover.convert pf1 with Psyntax.Contradiction -> raise ContradictionFound in
+      let pfs = match pfs with
+        | Some inner1 -> (try Sepprover.frame !logic inner1 pf2 with Psyntax.Contradiction -> raise ContradictionFound)
         | _ -> None
       in
       (pfs, varmap)

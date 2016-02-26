@@ -68,9 +68,8 @@ let heap_value_less_than v1 v2 counter =
 let value_less_than v1 v2 counter =
   match v1, v2 with
     | VHValue hv1, VHValue hv2 -> heap_value_less_than hv1 hv2 counter
-    | VRef (l1, s1, rt1), VRef (l2, s2, rt2) -> false
-    | VType t1, VType t2 -> Type_Info.type_lt t1 t2
-    | _, _ -> false
+    (*| VRef (l1, s1, rt1), VRef (l2, s2, rt2) -> false*)
+    | _, _ -> raise (InterpreterStuck ("< on non-number values", counter))
 
 (* Taken from jscert *)
 let to_int32 = fun n ->
@@ -138,6 +137,12 @@ let run_bin_op op v1 v2 counter : value =
       begin match cop with
         | Equal -> VHValue (HVLiteral (Bool (value_eq v1 v2)))
         | LessThan -> VHValue (HVLiteral (Bool (value_less_than v1 v2 counter)))
+        | LessThanEqual -> raise (InterpreterStuck ("Not Implemented <=", counter))
+      end
+    | Subtype -> 
+      begin match v1, v2 with
+        | VType t1, VType t2 -> VHValue (HVLiteral (Bool (Type_Info.is_subtype t1 t2)))
+        | v1, v2 -> raise (InterpreterStuck ("Subtype on non type literals " ^ (Interpreter_Print.string_of_value v1) ^ " " ^ (Interpreter_Print.string_of_value v2), counter))
       end
     | Arith aop -> value_arith aop v1 v2 counter
     | Boolean bop -> value_bool bop v1 v2 counter

@@ -31,6 +31,7 @@
 %token NEQ
 %token LE
 %token LT
+%token SUBTYPE
 %token LBRACKET
 %token RBRACKET
 %token COMMA
@@ -129,6 +130,8 @@ logical_bin_op:
   | MINUS { Arith Minus }
   | CONCAT { Concat } 
   | LT { Comparison LessThan }
+  | LE { Comparison LessThanEqual }
+  | SUBTYPE { Subtype }
   
 logical_unary_op:
   NOT { Not }

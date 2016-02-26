@@ -34,48 +34,6 @@ rule type_of_NObject_empty_failed :
   | type_of(?x) = NObjectType() |- ?x=empty_value() 
 if
   | |- False
-  
-/* Object type */
-/* Makes proof to explode without rewriting rule : why? */
-
-rule field_type_of_lt_obj :
-field(?x,?y,?v) | |-true()=builtin_lt(type_of(?x), ObjectType()) 
-without true()=builtin_lt(type_of(?x), ObjectType()) 
-if
- | |-  
-  
-/* Not an object type */  
-rule null_not_type_of_lt_obj_not_ :
-  | ?x=null() |- false()=builtin_lt(type_of(?x), ObjectType())
-if
- | |-
-
-rule undef_not_type_of_lt_obj_not_ :
-  | ?x=undefined() |- false()=builtin_lt(type_of(?x), ObjectType())
-if
- | |-
- 
-rule true_not_type_of_lt_obj :
-  | ?x=true() |- false()=builtin_lt(type_of(?x), ObjectType())
-if | |-
-
-rule false_not_type_of_lt_obj :
-  | ?x=false() |- false()=builtin_lt(type_of(?x), ObjectType())
-if | |-
-
-rule number_not_type_of_lt_obj :
-| ?x = numeric_const(?y) |- false()=builtin_lt(type_of(?x), ObjectType())
-if | |-
-
-rule string_not_builtin_lt_obj :
-| |- false()=builtin_lt(type_of(string_const(?x)), ObjectType())
-if
-| |-
-
-rule string_not_builtin_lt_obj :
-| type_of(?x) = StringType() |- false()=builtin_lt(type_of(?x), ObjectType())
-if
-| |-
 
 /* Not Built-in Object */
 rule type_of_nobj_not_bobj :
@@ -99,6 +57,12 @@ rule type_of_string_not_null_type :
 if
   | |-
   
+  
+rule numeric_const_not_null_type :
+  | ?x = numeric_const(?y) |- type_of(?x)!=NullType() 
+if
+  | |-  
+  
 rule field_not_null_type :
   | field(?x,?y,?z) |- type_of(?x)!=NullType() 
 if
@@ -114,6 +78,11 @@ rule type_of_string_not_undef_type :
   | type_of(?x)=StringType() |- type_of(?x)!=UndefinedType() 
 if
   | |-
+  
+rule numeric_const_undef_type :
+  | ?x = numeric_const(?y) |- type_of(?x)!=UndefinedType() 
+if
+  | |-
    
 rule field_not_undef_type :
   | field(?x,?y,?z) |- type_of(?x)!=UndefinedType() 
@@ -121,7 +90,7 @@ if
   | |-
   
 rule type_of_lt_obj_not_undef :
-  | true()=builtin_lt(type_of(?x), ObjectType()) |- * ?x!=undefined()
+  | true()=is_subtype(type_of(?x), ObjectType()) |- * ?x!=undefined()
 if
  | |-
  
@@ -147,8 +116,8 @@ rule lg_not_number_type :
   | |- type_of(lg())!=NumberType()
 if | |-
 
-rule builtin_lt_obj_not_number :
-| true()=builtin_lt(type_of(?x), ObjectType()) |- type_of(?x) != NumberType()
+rule is_subtype_obj_not_number :
+| true()=is_subtype(type_of(?x), ObjectType()) |- type_of(?x) != NumberType()
 if
 | |-
   
@@ -163,13 +132,18 @@ rule type_of_string_not_boolean_type :
 if
   | |-
   
+rule numeric_const_not_boolean_type :
+  | ?x = numeric_const(?y) |- type_of(?x)!=BooleanType() 
+if
+  | |-
+  
 rule lg_not_boolean_type :
   | |- type_of(lg())!=BooleanType()
 if
   | |-
   
-rule builtin_lt_obj_not_boolean :
-| true()=builtin_lt(type_of(?x), ObjectType()) |- type_of(?x) != BooleanType()
+rule is_subtype_obj_not_boolean :
+| true()=is_subtype(type_of(?x), ObjectType()) |- type_of(?x) != BooleanType()
 if
 | |-
   
@@ -179,10 +153,15 @@ rule field_not_string_type :
 if
   | |-
 
-rule builtin_lt_obj_not_string :
-| true()=builtin_lt(type_of(?x), ObjectType()) |- type_of(?x) != StringType()
+rule is_subtype_obj_not_string :
+| true()=is_subtype(type_of(?x), ObjectType()) |- type_of(?x) != StringType()
 if
 | |-
+
+rule numeric_const_not_string_type :
+  | ?x = numeric_const(?y) |- type_of(?x)!=StringType() 
+if
+  | |-
   
 /* TODO: Give Numbers To Types */
 rule type_of_vref_mref_not_equal :
@@ -192,38 +171,38 @@ if
   
 /* Not a Reference */
 rule true_not_a_ref :
-   | |- false()=builtin_lt(type_of(true()), ReferenceType())
-without false()=builtin_lt(type_of(true()), ReferenceType())
+   | |- false()=is_subtype(type_of(true()), ReferenceType())
+without false()=is_subtype(type_of(true()), ReferenceType())
 if
    | |-
    
 rule undefined_not_a_ref :
-   | |- false()=builtin_lt(type_of(undefined()), ReferenceType())
-without false()=builtin_lt(type_of(undefined()), ReferenceType())
+   | |- false()=is_subtype(type_of(undefined()), ReferenceType())
+without false()=is_subtype(type_of(undefined()), ReferenceType())
 if
    | |-
 
 rule concat_string_const_not_a_ref :
-  | ?x=concat(?y, ?z) |- false()=builtin_lt(type_of(?x), ReferenceType())
-without false()=builtin_lt(type_of(?x), ReferenceType())
+  | ?x=concat(?y, ?z) |- false()=is_subtype(type_of(?x), ReferenceType())
+without false()=is_subtype(type_of(?x), ReferenceType())
 if
  | |-
 
 rule string_const_not_a_ref :
-   | |- false()=builtin_lt(type_of(string_const(?x)), ReferenceType())
-without false()=builtin_lt(type_of(string_const(?x)), ReferenceType())
+   | |- false()=is_subtype(type_of(string_const(?x)), ReferenceType())
+without false()=is_subtype(type_of(string_const(?x)), ReferenceType())
 if
    | |-
    
 rule numeric_const_not_a_ref :
-   | |- false()=builtin_lt(type_of(numeric_const(?x)), ReferenceType())
-without false()=builtin_lt(type_of(numeric_const(?x)), ReferenceType())
+   | |- false()=is_subtype(type_of(numeric_const(?x)), ReferenceType())
+without false()=is_subtype(type_of(numeric_const(?x)), ReferenceType())
 if
    | |-
    
 rule field_not_a_ref :
-   field(?x,?f,?y) | |- false()=builtin_lt(type_of(?x), ReferenceType())
-without false()=builtin_lt(type_of(?x), ReferenceType())
+   field(?x,?f,?y) | |- false()=is_subtype(type_of(?x), ReferenceType())
+without false()=is_subtype(type_of(?x), ReferenceType())
 if
    | |-
   
@@ -350,28 +329,28 @@ rule type_of_obj_undef_contr :
 if
 
 rule type_of_lt_obj_undef_contr :
-  | true()=builtin_lt(type_of(?x), ObjectType()) * ?x=undefined() |- 
+  | true()=is_subtype(type_of(?x), ObjectType()) * ?x=undefined() |- 
 if
 
 rule type_of_lt_obj_empty_contr :
-  | true()=builtin_lt(type_of(?x), ObjectType()) * ?x=empty_value() |- 
+  | true()=is_subtype(type_of(?x), ObjectType()) * ?x=empty_value() |- 
 if
 
 rule type_of_lt_obj_true_contr :
-  | true()=builtin_lt(type_of(?x), ObjectType()) * ?x=true() |- 
+  | true()=is_subtype(type_of(?x), ObjectType()) * ?x=true() |- 
 if
 
 rule type_of_lt_obj_false_contr :
-  | true()=builtin_lt(type_of(?x), ObjectType()) * ?x=false() |- 
+  | true()=is_subtype(type_of(?x), ObjectType()) * ?x=false() |- 
 if
 
 rule type_of_lt_obj_number_contr :
-| true()=builtin_lt(type_of(?x), ObjectType()) * ?x = numeric_const(?y) |-
+| true()=is_subtype(type_of(?x), ObjectType()) * ?x = numeric_const(?y) |-
 if
 
 
 rule type_of_lt_obj_field_contr :
-| false()=builtin_lt(type_of(?x), ObjectType()) * field(?x,?y,?v) |-
+| false()=is_subtype(type_of(?x), ObjectType()) * field(?x,?y,?v) |-
 if
 
 rule type_of_obj_nobj_contr :
@@ -387,7 +366,7 @@ rule type_of_nobj_bobj_contr :
 if
 
 rule type_of_lt_bobj_nobj_contr :
-  | true()=builtin_lt(type_of(?x), BObjectType()) * type_of(?x)=NObjectType() |- 
+  | true()=is_subtype(type_of(?x), BObjectType()) * type_of(?x)=NObjectType() |- 
 if
 
 rule type_of_lg_not_boolean :
@@ -415,7 +394,7 @@ rule type_of_leval_not_string :
 if
 
 rule type_of_lt_leval_obj_contr :
-  | false()=builtin_lt(type_of(leval()), ObjectType()) |- 
+  | false()=is_subtype(type_of(leval()), ObjectType()) |- 
 if
 
 rule type_of_leval_bobj_contr :

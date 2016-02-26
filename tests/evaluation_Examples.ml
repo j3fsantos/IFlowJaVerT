@@ -377,7 +377,7 @@ let test_S13_2_2_A2 () =
       $ERROR('#0: __PROTO.type=__PLANT does not lead to throwing exception')
     }
 
-    /** @requires #obj[rscope](|'main':#GlobalObject) * #protoPred(?LS, #GlobalObject,'__ROSE', ?L, ?R) * ?R != #empty * ?R != #(/) * false = (#typeof(?R) < #Reference) * (rthis,'name') |-> ?N
+    /** @requires #obj[rscope](|'main':#GlobalObject) * #protoPred(?LS, #GlobalObject,'__ROSE', ?L, ?R) * ?R != #empty * ?R != #(/) * false = (#typeof(?R) <: #Reference) * (rthis,'name') |-> ?N
         @ensures #r = #undefined * (rthis,'name') |-> ?R */
     function __FACTORY(){this.name=__ROSE};
 
@@ -476,6 +476,17 @@ let test_S11_2_2_A4_T3_part3 () =
       new x();" in
     
     test_template js_program "test_S11_2_2_A4_T3_part3"
+
+let test_do_while () =
+  let js_program = "/**
+    @toprequires #obj[#GlobalObject](|'x':?X) * #typeof(?X) = #Number
+    @topensureserr #r = 3             
+    */
+      var x = 1; /**@invariant #obj[#GlobalObject](|'x':?X) * (?X < 5) = true */ 
+        do { x++ } while (x < 4);" in
+    
+    test_template js_program "test_do_while"
+   
     
 (* ch08/8.12/8.12.8/S8.12.8_A1.js *)
 (* TODO : need higher order assertions *)
@@ -690,6 +701,8 @@ let test_paper_example_2 () =
     "test_S11_2_2_A4_T3_part3" >:: test_S11_2_2_A4_T3_part3;
     "test_paper_example_1" >:: test_paper_example_1;
     "test_cav_example_exception" >:: test_cav_example_exception;
+    
+    (*"test_do_while" >:: test_do_while;*)
     
     (*"test_paper_example_2" >:: test_paper_example_2*)
     (*"test_S8_12_8_A1" >:: test_S8_12_8_A1;*)]

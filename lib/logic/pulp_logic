@@ -3,6 +3,7 @@ import "list_logic";
 import "le_lt_logic";
 import "pulp_footprint_logic";
 import "proto_field_logic";
+import "subtype_logic";
 import "pulp_type_logic";
 import "string_logic";
 
@@ -159,12 +160,6 @@ rewrite base_ref:
   
 rewrite field_base:
   ref_field(ref(?x,string_const(?f),?t)) = string_const(?f)
-  
-rewrite lt_type_of_vref_ref :
-  builtin_lt(type_of(ref(?x, string_const(?f), Variableref())), ReferenceType())=true()
-  
-rewrite lt_type_of_mref_ref :
-  builtin_lt(type_of(ref(?x, string_const(?f), Memberref())), ReferenceType())=true()
     
 rule type_of_ref_vref :  
   | |- type_of(ref(?x, string_const(?f), Variableref()))=VariableReferenceType()
@@ -187,9 +182,7 @@ rule type_of_ref_mref :
   | |- type_of(ref(?x, ?f, Memberref()))=MemberReferenceType()
 without type_of(ref(?x, ?f, Memberref()))=MemberReferenceType()
 if
-  | |-
-  
-rewrite less_than_nobject_object : builtin_lt(NObjectType(), ObjectType())=true()  
+  | |- 
 
 /* TODO  Make more general */
 rule nobj_not_lg :
