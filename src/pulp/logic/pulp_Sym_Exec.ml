@@ -471,7 +471,7 @@ let execute f cfg fs spec_env spec =
   
   Hashtbl.add cmd_st_tbl start first;
   
-  let env_builtin, _ = Environment.get_env() in
+  let env_builtin = Environment.get_env() in
   
   try 
     execute_stmt f sg cfg fs env_builtin spec_env first cmd_st_tbl;
