@@ -15,23 +15,42 @@ open Interpreter_Print
 
 let file = ref ""
 let level = ref IVL_goto
+let smart_simp = ref Simp_Common.Simp_Specs
+
+type simp_level =
+  | Simp_On (* simplifications on *)
+  | Simp_Off (* simplifications off *)
+
+let simp = ref Simp_Off
+
+let set_simp s = 
+ simp := match s with
+	| "on" -> Simp_On 
+	| "off" -> Simp_Off 
+	| _ -> raise (Arg.Bad("Shouldn't happen"))
 
 let set_level s = 
  level := match s with
-	| "b" -> IVL_buitin_functions
-	| "c" -> IVL_conditionals
-	| "g" -> IVL_goto
+	| "bc" -> IVL_buitin_functions (* spec functions, conditionals *)
+	| "b" -> IVL_goto (* spec functions, conditionals *)
+	| "c" -> IVL_conditionals (* no spec functions, conditionals *)
+	| "g" -> IVL_goto_unfold_functions (* No spec functions, no conditionals *)
 	| _ -> raise (Arg.Bad("Shouldn't happen"))
+
+let set_smart_simp () = 
+	smart_simp := Simp_Common.Simp_Unfold_Specs
 
 let arguments () =
   let usage_msg="Usage: -file <path>" in
   Arg.parse
-    [ "-file",
-      Arg.String(fun f -> file := f),
-      "file to run";
-      "-level",
-      Arg.Symbol (["b"; "c"; "g"], set_level),
-      "level of IVL"
+    [ 
+			"-file", Arg.String(fun f -> file := f), "file to run";
+      (* *)
+			"-level", Arg.Symbol (["bc"; "b"; "c"; "g"], set_level), "level of IVL"; 
+			(* *)
+			"-simp", Arg.Symbol(["on"; "off"], set_simp), "enable simplifications"; 
+			(* *)
+			"-smartsimp", Arg.Unit(set_smart_simp), "try to simplify calls to builtin libraries"	
     ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
@@ -62,9 +81,14 @@ let translate_exp path level =
       | Invalid_argument arg -> Printf.printf "\nSomething wrong with the translation '%s'.\n" arg; exit 1
   in p_exp, env
 
+let conditional_simplification p_exp = 
+	match !simp with
+	| Simp_On -> Simp_Main.simplify p_exp !smart_simp
+	| Simp_Off -> p_exp
+
 let translate path level = 
   let p_exp, env = translate_exp path level in
-  let p_exp = Simp_Main.simplify p_exp Simp_Common.Simp_Unfold_Specs in
+  let p_exp = conditional_simplification p_exp in
 	let functions_folder_name = "functions" in 
 	let builtins_folder_name = "builtins" in 
 	let specs_folder_name = "specs" in
