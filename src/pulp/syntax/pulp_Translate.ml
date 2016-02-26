@@ -22,6 +22,15 @@ exception PulpInvalid of string
  * be caught at the top-level or at eval. *)
 exception PulpEarlySyntaxError
 
+
+type translation_level =
+  | IVL_buitin_functions (* spec functions, conditionals *)
+  | IVL_conditionals (* no spec functions, conditionals *)
+  | IVL_goto_unfold_functions (* No spec functions, no conditionals *)
+  | IVL_goto (* unfolds confitionals *)
+  | IVL_goto_with_get_value (* Temporary while giving spec for specification functions *)
+
+
 let check_early_error name =
   if name = "eval" || name = "arguments" then raise PulpEarlySyntaxError
 
@@ -30,13 +39,6 @@ let check_early_error_exp exp =
   | Parser_syntax.Var name -> check_early_error name
   | _ -> ()
  
-type translation_level =
-  | IVL_buitin_functions (* spec functions, conditionals *)
-  | IVL_conditionals (* no spec functions, conditionals *)
-  | IVL_goto_unfold_functions (* No spec functions, no conditionals *)
-  | IVL_goto (* unfolds confitionals *)
-  | IVL_goto_with_get_value (* Temporary while giving spec for specification functions *)
-
 type switch_record = { (* Special constants for throws and returns *)
     a_cases : (Parser_syntax.exp * Parser_syntax.exp) list; 
 		b_cases : (Parser_syntax.exp * Parser_syntax.exp) list; 
