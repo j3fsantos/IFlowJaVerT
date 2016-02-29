@@ -24,12 +24,12 @@ rule builtin_le_antisym :
 if
 | ?x = ?y |-
 
-/*rule builtin_lt_le_pulp :
+rule builtin_lt_le_pulp :
 | true() = builtin_lt(?x, ?y) |-
 without
   true() = builtin_le(builtin_plus(?x, numeric_const("1")),?y) |-
 if
-| true () = builtin_le(builtin_plus(?x, numeric_const("1")),?y) * true() = builtin_lt(?x, ?y) |- */
+| true () = builtin_le(builtin_plus(?x, numeric_const("1")),?y) * true() = builtin_lt(?x, ?y) |- 
         
 rule builtin_le_1_pulp :
 | true() = builtin_le(builtin_plus(?x, numeric_const("1")),?y) |-
@@ -47,5 +47,30 @@ if
 
 rule builtin_le_antisym_pulp :
 | true() = builtin_le(?x,?y) * true() = builtin_le(?y,?x) |-
+without ?x = ?y
 if
 | ?x = ?y |-
+
+rule builtin_lt_true_simplify :
+| true() = builtin_lt(?x,?y) |-
+without !LT(?x, ?y)
+if
+| !LT(?x, ?y) * true() = builtin_lt(?x,?y) |-
+
+rule builtin_lt_false_simplify :
+| false() = builtin_lt(?x,?y) |-
+without !LE(?y, ?x)
+if
+| !LE(?y, ?x) * false() = builtin_lt(?x,?y) |-
+
+rule boolean_not_false_true :
+| ?z != false() * type_of(?z) = BooleanType() |-
+without ?z = true()
+if
+| ?z = true() * type_of(?z) = BooleanType()  |-
+
+rule boolean_not_false_true :
+| ?z = builtin_lt(?x, ?y) |-
+without type_of(?z) = BooleanType()
+if
+| ?z = builtin_lt(?x, ?y) * type_of(?z) = BooleanType() |-

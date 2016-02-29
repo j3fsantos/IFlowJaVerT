@@ -53,6 +53,14 @@ rule number_not_subtype_obj :
 | ?x = numeric_const(?y) |- false()=is_subtype(type_of(?x), ObjectType())
 if | |-
 
+rule number_type_not_subtype_obj :
+| type_of(?x) = NumberType() |- false()=is_subtype(type_of(?x), ObjectType())
+if | |-
+
+rule builtin_plus_not_subtype_obj :
+| ?x = builtin_plus(?y,?z) |- false()=is_subtype(type_of(?x), ObjectType())
+if | |-
+
 rule string_not_subtype_obj :
 | |- false()=is_subtype(type_of(string_const(?x)), ObjectType())
 if

@@ -477,15 +477,39 @@ let test_S11_2_2_A4_T3_part3 () =
     
     test_template js_program "test_S11_2_2_A4_T3_part3"
 
-let test_do_while () =
+let test_while () =
   let js_program = "/**
     @toprequires #obj[#GlobalObject](|'x':?X) * #typeof(?X) = #Number
-    @topensureserr #r = 3             
+    @topensures #obj[#GlobalObject](|'x': 4)             
     */
-      var x = 1; /**@invariant #obj[#GlobalObject](|'x':?X) * (?X < 5) = true */ 
-        do { x++ } while (x < 4);" in
+      var x = 1; /**@invariant #obj[#GlobalObject](|'x':_X) * (_X <= 4) = true * #typeof(_X) = #Number * _X != #nan * _X != #inf * _X != #neg_inf * _X != 0 */ 
+        while (x < 4) { x++ } ;" in
     
     test_template js_program "test_do_while"
+    
+let testing_z3_le () = 
+  apply_config ();
+  let a = CoreStar_Frontend_Pulp.implies empty_f (Eq (Le_BinOp (Le_Literal (Num 2.0), Comparison LessThanEqual, Le_Literal (Num 4.0)), (Le_Literal (Bool true)))) in
+  assert_bool "Testing LE" a
+  
+let testing_z3_le_lt () = 
+  apply_config ();
+  let f_string = "(?X < 4) = true" in
+  let f = Pulp_Formula_Parser_Utils.parse_formulas f_string in
+  let f1_string = "((?X + 1) <= 4) = true" in
+  let f1 = Pulp_Formula_Parser_Utils.parse_formulas f1_string in
+  let a = CoreStar_Frontend_Pulp.implies f f1 in
+  assert_bool "Testing LE_LT" a
+  
+let testing_z3 () = 
+  apply_config ();
+  let f_string = "
+?R0 = #empty * #typeof(?X) = #Number * (#typeof (?RTHIS) <: #Reference) = false * (#typeof (?RTHIS) <: #Reference) = (#typeof (?RSCOPE) <: #Reference) * ?R106 = 4.0 * ?R80 = 4.0 * ?R105 = 1.0 * ?R55 = 1.0 * ?R20 = 1.0 * ?RSCOPE != #(/) * ?RTHIS != ?R0 * ?RTHIS != #(/) * ?RSCOPE != ?R0 * #obj[#GlobalObject](|'x':?R20) * (?R20 <= ?R80) = true" in
+  let f = Pulp_Formula_Parser_Utils.parse_formulas f_string in
+  let f1_string = "?R106 = 0.0 * ?R105 = 0.0" in
+  let f1 = Pulp_Formula_Parser_Utils.parse_formulas f1_string in
+  let a = CoreStar_Frontend_Pulp.implies f f1 in
+  assert_bool "Testing Z3" a
    
     
 (* ch08/8.12/8.12.8/S8.12.8_A1.js *)
@@ -702,7 +726,11 @@ let test_paper_example_2 () =
     "test_paper_example_1" >:: test_paper_example_1;
     "test_cav_example_exception" >:: test_cav_example_exception;
     
-    (*"test_do_while" >:: test_do_while;*)
+    (*"test_do_while" >:: test_while;*)
+    (*"testing_z3_le" >:: testing_z3_le;
+    "testing_z3_nan" >:: testing_z3_nan;*)
+    (*"testing_z3" >:: testing_z3*)
+    (*"testing_z3_le_lt" >:: testing_z3_le_lt*)
     
     (*"test_paper_example_2" >:: test_paper_example_2*)
     (*"test_S8_12_8_A1" >:: test_S8_12_8_A1;*)]

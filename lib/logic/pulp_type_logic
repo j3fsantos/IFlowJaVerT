@@ -1,10 +1,15 @@
 /* Not an empty value */
 rule undefined_not_empty :
-  | ?x=undefined() |- * ?x!=empty_value()
+  | ?x=undefined() |- ?x!=empty_value()
 if | |-
 
 rule numeric_const_not_empty_contr :
-  | ?x=numeric_const(?y) |- * ?x!=empty_value() 
+  | ?x=numeric_const(?y) |- ?x!=empty_value() 
+if | |-
+
+
+rule number_not_empty_contr :
+  | type_of(?x)=NumberType() |- ?x!=empty_value() 
 if | |-
 
 rule string_not_empty :
@@ -47,6 +52,12 @@ rule undefined_not_null :
 if 
   | |-
   
+rule true_not_null :
+  | |- true()!=null()
+without true() != null()
+if 
+  | |-
+  
 rule string_const_not_null_type :
   | ?x = string_const(?y) |- type_of(?x)!=NullType() 
 if
@@ -63,12 +74,23 @@ rule numeric_const_not_null_type :
 if
   | |-  
   
+rule number_not_null_type:
+  | |- NumberType()!=NullType() 
+if
+  | |-
+  
 rule field_not_null_type :
   | field(?x,?y,?z) |- type_of(?x)!=NullType() 
 if
   | |-
   
 /* Not undefined */ 
+rule true_not_undef_type :
+  | |- true()!=undefined()
+without true()!=undefined()
+if
+  | |-
+
 rule string_const_not_undef_type :
   | ?x = string_const(?y) |- type_of(?x)!=UndefinedType() 
 if
@@ -81,6 +103,11 @@ if
   
 rule numeric_const_undef_type :
   | ?x = numeric_const(?y) |- type_of(?x)!=UndefinedType() 
+if
+  | |-
+  
+rule number_not_undef_type:
+  | |- NumberType()!=UndefinedType() 
 if
   | |-
    
@@ -102,6 +129,17 @@ if
   | |- 
   
 /* Not A Number Type */  
+rule true_not_numeric_const :
+  | |- true()!=numeric_const(?x)
+if
+  | |-
+  
+rule true_not_nan :
+  | |- true()!=nan()
+without true()!=nan()
+if
+  | |-
+
 rule string_const_not_number_type :
   | ?x = string_const(?y) |- type_of(?x)!=NumberType() 
 if
@@ -137,6 +175,11 @@ rule numeric_const_not_boolean_type :
 if
   | |-
   
+rule number_not_boolean_type:
+  | |- NumberType()!=BooleanType() 
+if
+  | |-
+  
 rule lg_not_boolean_type :
   | |- type_of(lg())!=BooleanType()
 if
@@ -148,6 +191,11 @@ if
 | |-
   
 /* Not A String Type */  
+rule true_not_string_const :
+  | |- true()!=string_const(?x)
+if
+  | |-
+
 rule field_not_string_type :
   | |- type_of(lg())!=StringType()
 if
@@ -160,6 +208,11 @@ if
 
 rule numeric_const_not_string_type :
   | ?x = numeric_const(?y) |- type_of(?x)!=StringType() 
+if
+  | |-
+  
+rule number_not_string_type :
+  | |- NumberType()!=StringType() 
 if
   | |-
   

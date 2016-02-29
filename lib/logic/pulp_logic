@@ -1,5 +1,6 @@
 import "field_logic";
 import "list_logic";
+import "builtin_plus_logic";
 import "le_lt_logic";
 import "pulp_footprint_logic";
 import "proto_field_logic";
@@ -96,6 +97,36 @@ without numeric_const(?x) !=none()
 if
  | |-
  
+rule builtin_plus_not_none :
+  | |- builtin_plus(?x,?y) !=none()
+without builtin_plus(?x,?y) !=none()
+if
+ | |- 
+ 
+rule builtin_plus_NumberType :
+  | |- type_of(builtin_plus(?x,?y)) = NumberType()
+without type_of(builtin_plus(?x,?y)) = NumberType()
+if
+ | |-
+ 
+rule builtin_plus_not_nan :
+  | |- builtin_plus(?x,?y) !=nan()
+without builtin_plus(?x,?y) !=nan()
+if
+ | |-
+ 
+rule builtin_plus_not_infinity :
+  | |- builtin_plus(?x,?y) !=infinity()
+without builtin_plus(?x,?y) !=infinity()
+if
+ | |-
+ 
+rule builtin_plus_not_negative_infinity :
+  | |- builtin_plus(?x,?y) !=negative_infinity()
+without builtin_plus(?x,?y) !=negative_infinity()
+if
+ | |-
+ 
  rule number_type_not_none :
   | type_of(?x) = NumberType() |- ?x != none()
 without ?x != none()
@@ -125,6 +156,21 @@ rule type_of_true :
 without type_of(true()) = BooleanType()
 if
  | |- 
+ 
+rule numeric_not_eq_nan :  
+  | |- numeric_const(?x) != nan()
+if
+  | |-
+  
+rule numeric_not_eq_infinity :  
+  | |- numeric_const(?x) != infinity()
+if
+  | |-
+  
+rule numeric_not_eq_neg_infinity :  
+  | |- numeric_const(?x) != negative_infinity()
+if
+  | |-
 
  /* TODO: Implement negation properly */
 rewrite not_undefined_none : 

@@ -55,6 +55,7 @@ module LVarMap = Map.Make (
 let initialize () = Profiler.track Profiler.CoreStar (fun () ->
   Corestar.Config.smt_run := !smt_enabled; 
   Corestar.Config.solver_path := !smt_path;
+  (*Printf.printf "\nSMT PATH %s\n" (!smt_path);*)
   Corestar.Config.smt_debug_ref := false;
   (if (!smt_enabled) then Corestar.Smt.smt_init());
   begin match List.filter (fun (key, spec, doc) -> key = "-v") Corestar.Config.args_default with
@@ -181,7 +182,10 @@ let literal_to_args lit =
       let n_string = 
       if Utils.is_int n then string_of_int (int_of_float n)
       else string_of_float n in
-      Psyntax.Arg_op (numeric_const, [Psyntax.Arg_string n_string])         
+      if (n_string = "nan") then Psyntax.Arg_op ("nan", [])
+      else if (n_string = "inf") then Psyntax.Arg_op ("infinity", [])
+      else if (n_string = "-inf") then Psyntax.Arg_op ("negative_infinity", [])
+      else Psyntax.Arg_op (numeric_const, [Psyntax.Arg_string n_string])         
 	  | String s -> Psyntax.Arg_op (string_const, [Psyntax.Arg_string s])
 	  | Undefined -> Psyntax.Arg_op (undefined, [])
 	  | Type pt -> Psyntax.Arg_op (op_of_pulp_type pt, [])
@@ -264,6 +268,9 @@ let rec args_to_le (lvarmap : variable_types LVarMap.t) arg =
     | Psyntax.Arg_op (s, args) -> 
       begin match s, args with
         | "numeric_const", [Psyntax.Arg_string n] -> Le_Literal (Num (float_of_string n))
+        | "nan", [] -> Le_Literal (Num nan)
+        | "infinity", [] -> Le_Literal (Num infinity)
+        | "negative_infinity", [] -> Le_Literal (Num (-.infinity))
         | "string_const", [Psyntax.Arg_string s] -> Le_Literal (String s)
         | "undefined", [] -> Le_Literal Undefined
         | "null", [] -> Le_Literal Null
@@ -326,6 +333,22 @@ let rec convert_to_pform_inner (varmap : Vars.var VarMap.t) (f: formula) : Psynt
   match f with
       | Star fs -> raise StarShouldntBeThere
       | Heaplet (l, x, e) -> Psyntax.mkSPred (field, [lta l; lta x; lta e])
+      | Eq (Le_BinOp (e1, Comparison LessThanEqual, e2), Le_Literal (Bool true)) 
+      | Eq (Le_Literal (Bool true), Le_BinOp (e1, Comparison LessThanEqual, e2)) 
+      | Eq (Le_BinOp (e2, Comparison LessThan, e1), Le_Literal (Bool false))
+      | Eq (Le_Literal (Bool false), Le_BinOp (e2, Comparison LessThan, e1)) 
+      | NEq (Le_BinOp (e1, Comparison LessThanEqual, e2), Le_Literal (Bool false)) 
+      | NEq (Le_Literal (Bool false), Le_BinOp (e1, Comparison LessThanEqual, e2)) 
+      | NEq (Le_BinOp (e2, Comparison LessThan, e1), Le_Literal (Bool true))
+      | NEq (Le_Literal (Bool true), Le_BinOp (e2, Comparison LessThan, e1)) -> Psyntax.mkPPred ("LE", [lta e1; lta e2])
+      | Eq (Le_BinOp (e1, Comparison LessThan, e2), Le_Literal (Bool true)) 
+      | Eq (Le_Literal (Bool true), Le_BinOp (e1, Comparison LessThan, e2)) 
+      | Eq (Le_BinOp (e2, Comparison LessThanEqual, e1), Le_Literal (Bool false))
+      | Eq (Le_Literal (Bool false), Le_BinOp (e2, Comparison LessThanEqual, e1)) 
+      | NEq (Le_BinOp (e1, Comparison LessThan, e2), Le_Literal (Bool false)) 
+      | NEq (Le_Literal (Bool false), Le_BinOp (e1, Comparison LessThan, e2)) 
+      | NEq (Le_BinOp (e2, Comparison LessThanEqual, e1), Le_Literal (Bool true))
+      | NEq (Le_Literal (Bool true), Le_BinOp (e2, Comparison LessThanEqual, e1)) -> Psyntax.mkPPred ("LT", [lta e1; lta e2]) 
       | Eq (e1, e2) -> [Psyntax.P_EQ (lta e1, lta e2)]
       | NEq (e1, e2) -> [Psyntax.P_NEQ (lta e1, lta e2)]
       | REq e -> [Psyntax.P_EQ (Psyntax.Arg_var (Vars.concretep_str ret_v1), lta e)]
@@ -369,7 +392,12 @@ let convert_from_pform_at varmap pfa : formula =
         | _ -> Eq (f a1, f a2)
       end
       | Psyntax.P_NEQ (a1, a2) -> NEq (f a1, f a2) 
-      | Psyntax.P_PPred (s, al) -> raise (BadArgument (s ^ " in convert_from_pform_at"))
+      | Psyntax.P_PPred (s, al) -> 
+        begin match s, al with
+          | "LE", [a1; a2] -> Eq (Le_BinOp (f a1, Comparison LessThanEqual, f a2), Le_Literal (Bool true))
+          | "LT", [a1; a2] -> Eq (Le_BinOp (f a1, Comparison LessThan, f a2), Le_Literal (Bool true))
+          | _ -> raise (BadArgument (s ^ " in convert_from_pform_at"))
+        end
       | Psyntax.P_SPred (s, al) -> 
       begin match s, al with
         | "footprint", [l; arg] -> ObjFootprint (args_to_le varmap l, args_to_footprint varmap arg)
@@ -577,6 +605,16 @@ let universal_to_substitutable fs =
         | EVar v -> varmap
   ) LogicalVarMap.empty logical_vars in 
   List.map (subs_vars varmap) fs
+  
+let existential_to_universals f =
+  let logical_vars = List.unique (get_logical_vars f) in
+  let varmap = List.fold_left (
+    fun varmap v -> 
+      match v with
+        | AVar v -> varmap
+        | EVar v -> LogicalVarMap.add (EVar v) (Le_Var (fresh_a_suggest v)) varmap
+  ) LogicalVarMap.empty logical_vars in 
+  subs_vars varmap f
   
 
 let function_app_inner f pre post_disjs = Profiler.track Profiler.CoreStar (fun () ->
