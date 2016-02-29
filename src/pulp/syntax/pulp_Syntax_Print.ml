@@ -334,3 +334,46 @@ let string_of_all_functions p_exp =
 let string_of_functions p_exp fs =
   let p_exp = AllFunctions.filter (fun fid fwc -> List.mem fid fs) p_exp in
   AllFunctions.fold (fun fid fwc content -> Printf.printf "%s\n" fid; content ^ Printf.sprintf "%s \n" (string_of_func_block fwc)) p_exp ""
+
+(*Printing Offsets for further processing *)
+
+let get_line_numbers func_body =
+	let rec get_line_numbers_aux lst cur_line func_body = 
+		match func_body with
+		| [] -> lst
+		| stmt :: rest_func_body -> 
+			let offset = stmt.stmt_data.src_offset in 
+				match offset with 
+				| None -> get_line_numbers_aux lst (cur_line + 1) rest_func_body
+				| Some real_offset -> get_line_numbers_aux ((cur_line, real_offset) :: lst) (cur_line + 1) rest_func_body in 
+	get_line_numbers_aux [] 0 func_body
+	
+let rec string_of_line_numbers (line_numbers_list : (int * int) list) : string = 
+	match line_numbers_list with 
+	| [] -> ""
+	| (jsil_offset, js_offset) :: lst -> "(" ^ (string_of_int jsil_offset) ^ "," ^ (string_of_int js_offset) ^ ")\n" ^ (string_of_line_numbers lst)
+
+(* Pulp_Procedure.AllFunctions.iter (fun fid fwc -> create_output fwc (output_folder_name  ^ "/" ^ functions_folder_name)) p_exp; *)
+
+let create_output_line_numbers (fb : Pulp_Procedure.function_block) file_name ac = 
+	let line_number_list = get_line_numbers fb.func_body in 
+	let line_number_list_str = string_of_line_numbers line_number_list in 
+	let content = "Proc: " ^ fb.func_name ^ "\n" ^ line_number_list_str in 
+  	ac ^ content
+
+let get_all_line_numbers procs file_name =
+	let content = Pulp_Procedure.AllFunctions.fold 
+		(fun fid fwc ac -> create_output_line_numbers fwc file_name ac)	procs	"" in 
+	let oc = open_out file_name in 
+		output_string oc content;
+		close_out oc
+		
+
+	
+	
+
+
+
+	
+
+

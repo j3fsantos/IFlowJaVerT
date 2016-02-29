@@ -105,7 +105,8 @@ let translate path level =
 	print_string (" happy to be here: " ^ output_folder_name  ^ "/" ^ functions_folder_name ^ "\n"); 
   Pulp_Procedure.AllFunctions.iter (fun fid fwc -> create_output fwc (output_folder_name  ^ "/" ^ functions_folder_name)) p_exp;
 	Pulp_Procedure.AllFunctions.iter (fun fid fwc -> create_output fwc (output_folder_name ^ "/" ^ builtins_folder_name)) built_ins; 
-	Pulp_Procedure.AllFunctions.iter (fun fid fwc -> create_output fwc (output_folder_name ^ "/" ^ specs_folder_name)) specs
+	Pulp_Procedure.AllFunctions.iter (fun fid fwc -> create_output fwc (output_folder_name ^ "/" ^ specs_folder_name)) specs; 
+	Pulp_Syntax_Print.get_all_line_numbers p_exp "line_numbers.txt"
 
 let main () =
   Config.apply_config ();
