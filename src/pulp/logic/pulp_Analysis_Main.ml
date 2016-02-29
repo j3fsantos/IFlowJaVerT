@@ -57,7 +57,17 @@ let get_pexp () =
         exit 1 
   in
   let p_exp, p_env = Pulp_Translate.exp_to_pulp Pulp_Translate.IVL_goto_with_get_value exp Pulp_Syntax_Utils.main_fun_id [] in
+  (*let path = (Filename.chop_extension !file) in*)
   let p_exp = Simp_Main.simplify p_exp Simp_Common.Simp_Specs in
+  (* TODO : fix cfg contruction and printing *)
+  (*let cfg = Control_Flow.mk_cfg p_exp (path) in
+  let cfg_bbs = Pulp_Procedure.AllFunctions.mapi (fun name cfg ->
+    let fb = Pulp_Procedure.AllFunctions.find name p_exp in
+    let cfg_bb = Basic_Blocks.transform_to_basic_blocks_from_cfg cfg fb.Pulp_Procedure.func_ctx in
+     cfg_bb
+  ) cfg in
+  
+  Basic_Blocks.print_cfg_bb cfg_bbs (path);*)
   p_exp, p_env
 
 let main () = 

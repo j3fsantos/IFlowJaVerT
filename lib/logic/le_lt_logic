@@ -24,58 +24,53 @@ rule builtin_le_antisym :
 if
 | ?x = ?y |-
 
-rule builtin_lt_ref_false :
-  | type_of(?x) != MemberReferenceType() *  type_of(?x) != VariableReferenceType() |- false()=builtin_lt(type_of(?x), ReferenceType())
+rule builtin_lt_le_pulp :
+| true() = builtin_lt(?x, ?y) |-
+without
+  true() = builtin_le(builtin_plus(?x, numeric_const("1")),?y) |-
 if
- | |- 
-
-rule builtin_lt_vref_ref :
-   | type_of(?x) = VariableReferenceType() |- true()=builtin_lt(type_of(?x), ReferenceType())
-if 
-   | |-
-
-rule builtin_lt_mref_ref :
-   | type_of(?x) = MemberReferenceType() |- true()=builtin_lt(type_of(?x), ReferenceType())
-if 
-   | |-
-   
-/*  Contradiction rules */
-/*rule builtin_lt_string_obj_contr :
-| true()=builtin_lt(StringType(), ObjectType()) |-
+| true () = builtin_le(builtin_plus(?x, numeric_const("1")),?y) * true() = builtin_lt(?x, ?y) |- 
+        
+rule builtin_le_1_pulp :
+| true() = builtin_le(builtin_plus(?x, numeric_const("1")),?y) |-
+without
+  true() = builtin_le(?x,?y) |-
 if
+| true() = builtin_le(?x,?y) * true() = builtin_le(builtin_plus(?x, numeric_const("1")),?y) |- 
 
-rule builtin_lt_boolean_obj_contr :
-| true()=builtin_lt(BooleanType(), ObjectType()) |-
+rule builtin_le_lt_equiv_pulp :
+| false() = builtin_lt(?x,?y) |-
+without
+  true() = builtin_le(?y,?x) |-
 if
+| true() = builtin_le(?y,?x) |-
 
-rule builtin_lt_number_obj_contr :
-| true()=builtin_lt(NumberType(), ObjectType()) |-
+rule builtin_le_antisym_pulp :
+| true() = builtin_le(?x,?y) * true() = builtin_le(?y,?x) |-
+without ?x = ?y
 if
+| ?x = ?y |-
 
-rule builtin_lt_obj_obj_contr :
-| true()=builtin_lt(ObjectType(), ObjectType()) |-
+rule builtin_lt_true_simplify :
+| true() = builtin_lt(?x,?y) |-
+without !LT(?x, ?y)
 if
+| !LT(?x, ?y) * true() = builtin_lt(?x,?y) |-
 
-rule builtin_lt_nobj_obj_false_contr :
-| false()=builtin_lt(NObjectType(), ObjectType()) |-
+rule builtin_lt_false_simplify :
+| false() = builtin_lt(?x,?y) |-
+without !LE(?y, ?x)
 if
+| !LE(?y, ?x) * false() = builtin_lt(?x,?y) |-
 
-rule builtin_lt_bobj_obj_false_contr :
-| false()=builtin_lt(BObjectType(), ObjectType()) |-
-if  
-
-rule builtin_lt_oref_ref_false_contr :
-| false()=builtin_lt(MemberReferenceType(), ReferenceType()) |-
-if 
-
-rule builtin_lt_vref_ref_false_contr :
-| false()=builtin_lt(VariableReferenceType(), ReferenceType()) |-
+rule boolean_not_false_true :
+| ?z != false() * type_of(?z) = BooleanType() |-
+without ?z = true()
 if
+| ?z = true() * type_of(?z) = BooleanType()  |-
 
-rule builtin_lt_oref_vref_contr :
-| true()=builtin_lt(MemberReferenceType(), VariableReferenceType()) |-
+rule boolean_not_false_true :
+| ?z = builtin_lt(?x, ?y) |-
+without type_of(?z) = BooleanType()
 if
-
-rule builtin_lt_not_a_ref_contr :
-| type_of(?x)!=MemberReferenceType() * type_of(?x)!=VariableReferenceType() * true()=builtin_lt(type_of(?x), ReferenceType()) |-
-if*/
+| ?z = builtin_lt(?x, ?y) * type_of(?z) = BooleanType() |-

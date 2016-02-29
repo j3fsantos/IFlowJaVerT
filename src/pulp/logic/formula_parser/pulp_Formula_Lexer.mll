@@ -52,6 +52,7 @@ rule token = parse
   | ';'                 { SEMICOLON }
   | '.'                 { DOT }
   | "<="                { LE }
+  | "<:"                 { SUBTYPE }
   | '<'                 { LT }
   | "#GlobalObject"     { LG }
   | "#LObject"          { LOBJECT }
@@ -98,6 +99,8 @@ rule token = parse
   | "#string_call"  { STRING "#string_call" }
   | "#string_construct"  { STRING "#string_construct" }
   | "#nan"              {NUM nan}
+  | "#inf"              {NUM infinity}
+  | "#neg_inf"          {NUM (-.infinity)}
   | '?' id as n         { LE_VAR (Pulp_Logic.AVar (String.tail n 1)) }
   | '_' id as n         { LE_VAR (Pulp_Logic.EVar (String.tail n 1)) }
   | id as s             { ID s }

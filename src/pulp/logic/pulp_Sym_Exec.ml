@@ -30,9 +30,7 @@ let execute_basic_stmt bs pre : formula =
   Printf.printf "Got spec for Basic Stmt \n" ;
   
   let posts =       
-    try CoreStar_Frontend_Pulp.apply_spec pre cmd_pre cmd_post
-    with CoreStar_Frontend_Pulp.ContradictionFound -> raise (SymExecException "Contradiction found in basic stmt") in
-  
+    CoreStar_Frontend_Pulp.apply_spec pre cmd_pre cmd_post in  
   Printf.printf "Got Postcondition \n" ;
 
   
@@ -116,8 +114,8 @@ let execute_normal_call_stmt c is_builtin x fs current : formula list * formula 
   
 let observe_state current v pre =
   let posts = 
-    try CoreStar_Frontend_Pulp.apply_spec current pre (combine pre (REq v))
-    with CoreStar_Frontend_Pulp.ContradictionFound -> raise (SymExecException "Contradiction found in basic stmt") in
+    (*try*) CoreStar_Frontend_Pulp.apply_spec current pre (combine pre (REq v))
+    (*with CoreStar_Frontend_Pulp.ContradictionFound -> raise (SymExecException "Contradiction found in basic stmt")*) in
   let posts = match posts with
     | None -> raise (SymExecException "Observing State No Postcondition Found")
     | Some posts -> posts in
@@ -251,14 +249,23 @@ let rec execute_stmt f sg cfg fs env spec_env snode_id cmd_st_tbl =
   let new_snodes_cond id1 id2 state e =
    
     let exprs_true = get_proof_cases_eq_true e in
+    (*Printf.printf "True cases: %s" (String.concat "\n\n\n" (List.map Pulp_Logic_Print.string_of_formula exprs_true));*)
     
-    let implies_true = List.exists (fun expr_true -> CoreStar_Frontend_Pulp.implies state expr_true) exprs_true in
+    let implies_true = 
+      List.exists (fun expr_true -> 
+        try CoreStar_Frontend_Pulp.implies state expr_true 
+        with CoreStar_Frontend_Pulp.ContradictionFound -> Printf.printf "Contradiction found"; false
+      ) exprs_true in
     Printf.printf "Guarded Goto Implies True? %b" implies_true; 
     if (implies_true) then new_snode id1 state   
     else begin
       
       let exprs_false = get_proof_cases_eq_false e in
-      let implies_false = List.exists (fun expr_false -> CoreStar_Frontend_Pulp.implies state expr_false) exprs_false in 
+      Printf.printf "False cases: %s" (String.concat "\n\n\n" (List.map Pulp_Logic_Print.string_of_formula exprs_false));
+      let implies_false = List.exists (fun expr_false -> 
+        try CoreStar_Frontend_Pulp.implies state expr_false
+        with CoreStar_Frontend_Pulp.ContradictionFound -> Printf.printf "Contradiction found"; false 
+      ) exprs_false in 
       Printf.printf "Guarded Goto Implies False? %b" implies_false; 
       if (implies_false) then new_snode id2 state 
       else begin
@@ -269,7 +276,10 @@ let rec execute_stmt f sg cfg fs env spec_env snode_id cmd_st_tbl =
           Format.pp_print_flush(Format.std_formatter)();
           Printf.printf "Guarded Goto true state %s" (Pulp_Logic_Print.string_of_formula expr_true); 
           Printf.printf "Guarded Goto true state %s" (Pulp_Logic_Print.string_of_formula state_true); 
-          new_snode id1 state_true       
+          
+          try new_snode id1 state_true       
+          with CoreStar_Frontend_Pulp.ContradictionFound -> Printf.printf "Contradiction found"; contradiction id1
+            
         ) exprs_true;
             
          Printf.printf "Guarded Goto false"; 
@@ -278,7 +288,10 @@ let rec execute_stmt f sg cfg fs env spec_env snode_id cmd_st_tbl =
           Format.pp_print_flush(Format.std_formatter)();
           Printf.printf "Guarded Goto false state %s" (Pulp_Logic_Print.string_of_formula expr_false);  
           Printf.printf "Guarded Goto true state %s" (Pulp_Logic_Print.string_of_formula state_false);    
-          new_snode id2 state_false
+          
+          try new_snode id2 state_false
+          with CoreStar_Frontend_Pulp.ContradictionFound -> Printf.printf "Contradiction found"; contradiction id2
+          
         ) exprs_false;        
  
      end 
@@ -325,7 +338,49 @@ let rec execute_stmt f sg cfg fs env spec_env snode_id cmd_st_tbl =
     | Label l -> 
       if l = f.func_ctx.label_return || l = f.func_ctx.label_throw 
       then () 
-      else new_snode (get_single_succ snode.sgn_id) snode.sgn_state
+      else begin
+        (* Loop heads are on the label commands *)
+        
+        if stmt.stmt_data.loop_head then begin
+          
+          let posts_nodes = Hashtbl.find_all cmd_st_tbl snode.sgn_id in
+          let implies_node = 
+            try Some (List.find (fun post -> 
+	            if post = snode_id then false 
+	            else
+	            let st = StateG.get_node_data sg post in
+	            CoreStar_Frontend_Pulp.implies snode.sgn_state st.sgn_state
+	          ) posts_nodes) 
+            with Not_found -> None in
+          
+          match implies_node with
+            | None -> begin 
+	             let stmt = CFG.get_node_data cfg snode.sgn_id in
+	             let invariants = Pulp_Formula_Parser_Utils.get_inv_from_code stmt.stmt_data.stmt_annots in
+	          
+	             let posts = List.map (fun inv -> 
+	               Printf.printf "\n Invariant: %s\n" (Pulp_Logic_Print.string_of_formula inv); 
+                 let frames = CoreStar_Frontend_Pulp.frame snode.sgn_state inv in
+	               match frames with
+                  | Some [frame] -> Some (combine frame (CoreStar_Frontend_Pulp.existential_to_universals inv))
+                  | Some _ -> raise (NotImplemented "Multiple frames")
+                  | None -> None
+	             ) invariants in
+	            
+	             let post = try List.find (fun p -> p != None) posts with Not_found -> raise (SymExecException "Loop invariant does't hold") in
+	             
+	             begin match post with
+	               | Some post -> new_snode (get_single_succ snode.sgn_id) post
+	               | None -> raise Utils.CannotHappen
+	             end                    
+             end     
+            | Some nd -> (* We do not need to continue this path anymore *) (*StateG.mk_edge sg snode_id nd*) ();
+     
+        end 
+        else new_snode (get_single_succ snode.sgn_id) snode.sgn_state
+      end
+      
+      
       
     | Goto l -> new_snode (get_single_succ snode.sgn_id) snode.sgn_state
     
@@ -347,6 +402,22 @@ let rec execute_stmt f sg cfg fs env spec_env snode_id cmd_st_tbl =
       let id = get_single_succ snode.sgn_id in
       let old = fresh_e () in
       let logic_e = expr_to_logical_expr e in
+      
+      let logic_e = match logic_e with
+        | Le_BinOp (le1, Comparison LessThan, le2) 
+        | Le_BinOp (le1, Comparison LessThanEqual, le2) ->
+          begin
+            let implies_true = try CoreStar_Frontend_Pulp.implies snode.sgn_state (eq_true logic_e) 
+            with CoreStar_Frontend_Pulp.ContradictionFound -> Printf.printf "Contradiction found"; false in
+            if implies_true then Le_Literal (Bool true)
+            else begin
+              let implies_false = try CoreStar_Frontend_Pulp.implies snode.sgn_state (eq_false logic_e) 
+              with CoreStar_Frontend_Pulp.ContradictionFound -> Printf.printf "Contradiction found"; false in
+              if implies_false then Le_Literal (Bool false)
+              else logic_e
+            end
+          end
+        | _ -> logic_e in
       
       let varmap = ProgramVarMap.add x (Le_Var old) ProgramVarMap.empty in    
       let post = combine (Eq (Le_PVar x, subs_pvar_in_exp x (Le_Var old) logic_e)) (subs_pvars varmap snode.sgn_state) in

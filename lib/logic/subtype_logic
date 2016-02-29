@@ -1,0 +1,113 @@
+rule is_subtype_ref_false :
+  | type_of(?x) != MemberReferenceType() *  type_of(?x) != VariableReferenceType() |- false()=is_subtype(type_of(?x), ReferenceType())
+if
+ | |- 
+
+rule is_subtype_vref_ref :
+   | type_of(?x) = VariableReferenceType() |- true()=is_subtype(type_of(?x), ReferenceType())
+if 
+   | |-
+
+rule is_subtype_mref_ref :
+   | type_of(?x) = MemberReferenceType() |- true()=is_subtype(type_of(?x), ReferenceType())
+if 
+   | |-
+   
+rewrite subtype_type_of_vref_ref :
+  is_subtype(type_of(ref(?x, string_const(?f), Variableref())), ReferenceType())=true()
+  
+rewrite subtype_type_of_mref_ref :
+  is_subtype(type_of(ref(?x, string_const(?f), Memberref())), ReferenceType())=true()
+  
+rewrite subtype_nobject_object : is_subtype(NObjectType(), ObjectType())=true() 
+
+/* Object type */
+/* Makes proof to explode without rewriting rule : why? */
+
+rule field_type_of_lt_obj :
+field(?x,?y,?v) | |-true()=is_subtype(type_of(?x), ObjectType()) 
+without true()=is_subtype(type_of(?x), ObjectType()) 
+if
+ | |-  
+  
+/* Not an object type */  
+rule null_not_subtype_obj_not_ :
+  | ?x=null() |- false()=is_subtype(type_of(?x), ObjectType())
+if
+ | |-
+
+rule undef_not_subtype_obj_not_ :
+  | ?x=undefined() |- false()=is_subtype(type_of(?x), ObjectType())
+if
+ | |-
+ 
+rule true_not_subtype_obj :
+  | ?x=true() |- false()=is_subtype(type_of(?x), ObjectType())
+if | |-
+
+rule false_not_subtype_obj :
+  | ?x=false() |- false()=is_subtype(type_of(?x), ObjectType())
+if | |-
+
+rule number_not_subtype_obj :
+| ?x = numeric_const(?y) |- false()=is_subtype(type_of(?x), ObjectType())
+if | |-
+
+rule number_type_not_subtype_obj :
+| type_of(?x) = NumberType() |- false()=is_subtype(type_of(?x), ObjectType())
+if | |-
+
+rule builtin_plus_not_subtype_obj :
+| ?x = builtin_plus(?y,?z) |- false()=is_subtype(type_of(?x), ObjectType())
+if | |-
+
+rule string_not_subtype_obj :
+| |- false()=is_subtype(type_of(string_const(?x)), ObjectType())
+if
+| |-
+
+rule string_not_subtype_obj :
+| type_of(?x) = StringType() |- false()=is_subtype(type_of(?x), ObjectType())
+if
+| |-
+   
+/*  Contradiction rules */
+/*rule is_subtype_string_obj_contr :
+| true()=is_subtype(StringType(), ObjectType()) |-
+if
+
+rule is_subtype_boolean_obj_contr :
+| true()=is_subtype(BooleanType(), ObjectType()) |-
+if
+
+rule is_subtype_number_obj_contr :
+| true()=is_subtype(NumberType(), ObjectType()) |-
+if
+
+rule is_subtype_obj_obj_contr :
+| true()=is_subtype(ObjectType(), ObjectType()) |-
+if
+
+rule is_subtype_nobj_obj_false_contr :
+| false()=is_subtype(NObjectType(), ObjectType()) |-
+if
+
+rule is_subtype_bobj_obj_false_contr :
+| false()=is_subtype(BObjectType(), ObjectType()) |-
+if  
+
+rule is_subtype_oref_ref_false_contr :
+| false()=is_subtype(MemberReferenceType(), ReferenceType()) |-
+if 
+
+rule is_subtype_vref_ref_false_contr :
+| false()=is_subtype(VariableReferenceType(), ReferenceType()) |-
+if
+
+rule is_subtype_oref_vref_contr :
+| true()=is_subtype(MemberReferenceType(), VariableReferenceType()) |-
+if
+
+rule is_subtype_not_a_ref_contr :
+| type_of(?x)!=MemberReferenceType() * type_of(?x)!=VariableReferenceType() * true()=is_subtype(type_of(?x), ReferenceType()) |-
+if*/

@@ -271,8 +271,17 @@ let rec simplify_expr e =
           begin match e1, e2 with
             | Literal lit1, Literal lit2 ->
               begin match lit1, lit2 with                         
-                | Num n1, Num n2 -> Literal (Bool (n1 < n2))   
-                | Type t1, Type t2 -> Literal (Bool (type_lt t1 t2))      
+                | Num n1, Num n2 -> Literal (Bool (n1 < n2))        
+                | _, _ -> e
+              end
+            | _ -> e
+          end
+        | Comparison LessThanEqual -> e (* TODO *)
+        | Subtype ->
+          begin match e1, e2 with
+            | Literal lit1, Literal lit2 ->
+              begin match lit1, lit2 with                         
+                | Type t1, Type t2 -> Literal (Bool (is_subtype t1 t2))      
                 | _, _ -> e
               end
             | _ -> e
@@ -353,7 +362,7 @@ let rec simplify_type_of type_info e =
 	              else BinOp (f e1, binop, f e2)
               end
            end
-        | Comparison LessThan ->
+        | Subtype ->
           begin match (e1, e2) with
             | TypeOf(exp), Literal (Type t) ->
               begin

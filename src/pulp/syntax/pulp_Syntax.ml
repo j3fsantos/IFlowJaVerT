@@ -155,6 +155,7 @@ module CodenameMap = Map.Make (
 type comparison_op =
   | Equal
   | LessThan (* TODO : Have a different one for strings? *)
+  | LessThanEqual
 
 type arith_op =
   | Plus
@@ -178,6 +179,7 @@ type bitwise_op =
 type bin_op = 
   | Comparison of comparison_op
   | Arith of arith_op
+  | Subtype
   | Concat
   | Boolean of bool_op
   | Bitwise of bitwise_op

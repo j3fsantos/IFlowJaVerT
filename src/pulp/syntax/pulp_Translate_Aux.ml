@@ -23,7 +23,7 @@ let type_of_exp e t =
   let typelit = Literal (Type t) in
   match t with
     | ObjectType None
-    | ReferenceType None -> (BinOp (typeof, Comparison LessThan, typelit)) 
+    | ReferenceType None -> (BinOp (typeof, Subtype, typelit)) 
     | NullType
     | UndefinedType
     | NumberType

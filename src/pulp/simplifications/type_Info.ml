@@ -21,7 +21,7 @@ let ground_type pt =
     | ObjectType (Some Normal) | ReferenceType (Some MemberReference) | ReferenceType (Some VariableReference) -> true
     | ObjectType None | ReferenceType None -> false
 
-let type_lt t1 t2 =
+let is_subtype t1 t2 =
   match (t1, t2) with
     | ReferenceType (Some MemberReference), ReferenceType None 
     | ReferenceType (Some VariableReference), ReferenceType None 
