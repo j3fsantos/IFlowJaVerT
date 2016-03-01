@@ -75,7 +75,12 @@ let main () =
    parse_flags ();
    
    let expression_map, env = get_pexp() in       
-   let passed = Pulp_Procedure.AllFunctions.for_all (fun fid f -> analyse_function f expression_map (Spec_Fun_Specs.get_env_spec())) expression_map in
-   if (passed = false) then Printf.printf "Errors occured in the symbolic execution\n"; exit 1
+   Pulp_Procedure.AllFunctions.iter (fun fid f -> 
+    try 
+      let passed = analyse_function f expression_map (Spec_Fun_Specs.get_env_spec()) in
+      if (passed = false) then Printf.printf "\n Post-conditions do not hold \n"
+    with Pulp_Sym_Exec.SymExecException (msg, src_offset) -> Printf.printf "\n An error occurred during symbolic execution at %i: %s \n" 
+      (match src_offset with None -> -1 | Some offset -> offset) msg
+   ) expression_map
       
 let _ = main ()

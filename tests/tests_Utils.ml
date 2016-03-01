@@ -33,9 +33,9 @@ let check_single_spec name f all_functions spec n path =
   let sg, cmd_st_tbl = 
     try 
       execute f cfg all_functions (Spec_Fun_Specs.get_env_spec()) spec 
-    with SymExecExcepWithGraph (msg, sg) -> 
+    with SymExecExcepWithGraph (msg, offset, sg) -> 
       print_state_graph sg;
-      raise (SymExecException msg) in
+      raise (SymExecException (msg, offset)) in
       
    print_state_graph sg;   
        
