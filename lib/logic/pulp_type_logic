@@ -76,11 +76,19 @@ if
   
 rule number_not_null_type:
   | |- NumberType()!=NullType() 
+without NumberType()!=NullType() 
 if
   | |-
   
 rule field_not_null_type :
   | field(?x,?y,?z) |- type_of(?x)!=NullType() 
+if
+  | |-
+  
+/* Undefined */  
+rule undefined_undef_type :
+  | |-  type_of(undefined())=UndefinedType()
+without type_of(undefined())=UndefinedType()
 if
   | |-
   
@@ -108,6 +116,7 @@ if
   
 rule number_not_undef_type:
   | |- NumberType()!=UndefinedType() 
+without NumberType()!=UndefinedType()  
 if
   | |-
    
@@ -177,6 +186,7 @@ if
   
 rule number_not_boolean_type:
   | |- NumberType()!=BooleanType() 
+without NumberType()!=BooleanType() 
 if
   | |-
   
@@ -213,6 +223,7 @@ if
   
 rule number_not_string_type :
   | |- NumberType()!=StringType() 
+without NumberType()!=StringType() 
 if
   | |-
   

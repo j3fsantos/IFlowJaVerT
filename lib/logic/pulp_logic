@@ -181,6 +181,12 @@ rewrite not_string_none :
   
 rewrite not_empty_eq_empty : 
   bool_not(triple_eq(none(), none())) = false()
+  
+rule not_true_eq_false :
+ | ?x = true() |- bool_not(?x) = false()
+without bool_not(?x) = false()
+if 
+ | |-
 
 rule lg_not_undefined :
   | |- lg() != undefined()

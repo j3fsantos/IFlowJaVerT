@@ -75,6 +75,7 @@ let main () =
    parse_flags ();
    
    let expression_map, env = get_pexp() in       
-   Pulp_Procedure.AllFunctions.iter (fun fid f -> ignore (analyse_function f expression_map (Spec_Fun_Specs.get_env_spec()))) expression_map
+   let passed = Pulp_Procedure.AllFunctions.for_all (fun fid f -> analyse_function f expression_map (Spec_Fun_Specs.get_env_spec())) expression_map in
+   if (passed = false) then Printf.printf "Errors occured in the symbolic execution\n"; exit 1
       
 let _ = main ()

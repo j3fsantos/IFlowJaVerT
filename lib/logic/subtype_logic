@@ -38,6 +38,7 @@ if
 
 rule undef_not_subtype_obj_not_ :
   | ?x=undefined() |- false()=is_subtype(type_of(?x), ObjectType())
+without false()=is_subtype(type_of(?x), ObjectType())
 if
  | |-
  
@@ -55,6 +56,7 @@ if | |-
 
 rule number_type_not_subtype_obj :
 | type_of(?x) = NumberType() |- false()=is_subtype(type_of(?x), ObjectType())
+without false()=is_subtype(type_of(?x), ObjectType())
 if | |-
 
 rule builtin_plus_not_subtype_obj :
