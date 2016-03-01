@@ -85,12 +85,18 @@ let execute_call_stmt varmap x fid fb fs current : formula list * formula list =
       
     ) f_spec in
     match posts with
-      | [] -> [false_f]
+      | [] -> []
       | posts -> posts in
   
   let f_spec = fb.func_spec in
   let posts_normal = get_posts fb f_spec false in
   let posts_excep = get_posts fb f_spec true in
+  let posts_normal, posts_excep =
+    match posts_normal, posts_excep with
+      | [], [] -> raise (SymExecException ("Cannot apply any of the spec for procedure " ^ fb.func_name))
+      | [], e -> [false_f], e
+      | n, [] -> n, [false_f]
+      | n, e -> n, e in
   posts_normal, posts_excep
       
 let execute_normal_call_stmt c is_builtin x fs current : formula list * formula list =
