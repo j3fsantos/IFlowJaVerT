@@ -17,37 +17,30 @@ open Pulp_Logic_Utils
 
 exception NotImplemented of string
 
-exception SymExecException of string
-exception SymExecExcepWithGraph of string * StateG.graph
+exception SymExecException of string * int option
+exception SymExecExcepWithGraph of string * int option * StateG.graph
 
-let execute_basic_stmt bs pre : formula =
+let execute_basic_stmt bs data pre : formula =
   Printf.printf "Execute Basic Stmt \n" ;
   (*Printf.printf "Precondition %s \n" (Pulp_Logic_Print.string_of_formula pre);*)
   (* pre => pre_stmt' * F*)
   (* post_stmt' * F *)
   
   let cmd_pre, cmd_post = small_axiom_basic_stmt bs in
-  Printf.printf "Got spec for Basic Stmt \n" ;
   
-  let posts =       
-    CoreStar_Frontend_Pulp.apply_spec pre cmd_pre cmd_post in  
-  Printf.printf "Got Postcondition \n" ;
-
+  let posts = CoreStar_Frontend_Pulp.apply_spec pre cmd_pre cmd_post in  
   
   match posts with
-    | None -> 
-      begin 
-        Printf.printf "Could Not Apply Spec";
-        raise (SymExecException "CouldNotApplySpec") 
-      end
+    | None -> raise (SymExecException ("Could not apply small axiom for the basic statement" 
+      ^ (Pulp_Syntax_Print.string_of_basic_statement bs), data.src_offset)) 
     | Some posts ->
       begin match posts with 
         | [] -> 
-          Printf.printf "Contradiction Found";
-          raise (SymExecException "Contradiction Found")
+          raise (SymExecException ("Contradiction found when executing basic statement" ^
+          (Pulp_Syntax_Print.string_of_basic_statement bs), data.src_offset))
         | [post] -> 
           begin 
-            Printf.printf "Postcondition %s \n" (Pulp_Logic_Print.string_of_formula post);
+            (*Printf.printf "Postcondition %s \n" (Pulp_Logic_Print.string_of_formula post);*)
             post
           end
         | posts -> 
@@ -56,7 +49,7 @@ let execute_basic_stmt bs pre : formula =
       end
       
 
-let execute_call_stmt varmap x fid fb fs current : formula list * formula list =
+let execute_call_stmt varmap x fid fb data fs current : formula list * formula list =
   let get_posts fb f_spec excep = 
     let posts = Utils.flat_map (fun spec -> 
     let spec_post = if excep then spec.spec_excep_post else spec.spec_post in
@@ -70,7 +63,7 @@ let execute_call_stmt varmap x fid fb fs current : formula list * formula list =
         | _ -> raise Utils.CannotHappen in
       try
          CoreStar_Frontend_Pulp.apply_spec current pre post
-       with CoreStar_Frontend_Pulp.ContradictionFound -> raise (SymExecException "Contradiction found in function call")
+       with CoreStar_Frontend_Pulp.ContradictionFound -> raise (SymExecException ("Contradiction found in function call", data.src_offset))
     ) spec_post in
     
    let posts = List.flatten (List.fold_left (fun result post -> match post with
@@ -93,13 +86,13 @@ let execute_call_stmt varmap x fid fb fs current : formula list * formula list =
   let posts_excep = get_posts fb f_spec true in
   let posts_normal, posts_excep =
     match posts_normal, posts_excep with
-      | [], [] -> raise (SymExecException ("Cannot apply any of the spec for procedure " ^ fb.func_name))
+      | [], [] -> raise (SymExecException (("Cannot apply any of the spec for procedure " ^ fb.func_name), data.src_offset))
       | [], e -> [false_f], e
       | n, [] -> n, [false_f]
       | n, e -> n, e in
   posts_normal, posts_excep
       
-let execute_normal_call_stmt c is_builtin x fs current : formula list * formula list =
+let execute_normal_call_stmt c data is_builtin x fs current : formula list * formula list =
    let fid = CoreStar_Frontend_Pulp.get_function_id_from_expression current (expr_to_logical_expr c.call_name) in
    let fb = AllFunctions.find fid fs in
    let call_args = [c.call_this; c.call_scope] @ c.call_args in
@@ -116,25 +109,25 @@ let execute_normal_call_stmt c is_builtin x fs current : formula list * formula 
       ProgramVarMap.add param arg varmap
     ) ProgramVarMap.empty fb.func_params used_args in
     
-  execute_call_stmt varmap x fid fb fs current
+  execute_call_stmt varmap x fid fb data fs current
   
-let observe_state current v pre =
+let observe_state current v pre data =
   let posts = 
     (*try*) CoreStar_Frontend_Pulp.apply_spec current pre (combine pre (REq v))
     (*with CoreStar_Frontend_Pulp.ContradictionFound -> raise (SymExecException "Contradiction found in basic stmt")*) in
   let posts = match posts with
-    | None -> raise (SymExecException "Observing State No Postcondition Found")
+    | None -> raise (SymExecException ("Observing State No Postcondition Found", data.src_offset))
     | Some posts -> posts in
   let values = List.map get_return posts in 
   let values = List.fold_left (fun result v -> match v with 
     | None -> result
     | Some v -> v :: result) [] values in
   match values with
-    | [] -> raise (SymExecException "Observing State No Return Found")
+    | [] -> raise (SymExecException ("Observing State No Return Found", data.src_offset))
     | _ -> values
 
 (* returns the list of normal post conditions and exceptional post conditions *)    
-let execute_spec_func_call_stmt sf x fs current : formula list * formula list =
+let execute_spec_func_call_stmt sf data x fs current : formula list * formula list =
     let excep_post () = 
       let lerror = Le_Var (fresh_e()) in
        combine current (Star [
@@ -147,7 +140,7 @@ let execute_spec_func_call_stmt sf x fs current : formula list * formula list =
       (* member reference not empty *)  
       let values = try 
         let v = Le_Var (fresh_e()) in
-        observe_state current v (Spec_Fun_Specs.get_value_mref_not_empty_pre le1 v)
+        observe_state current v (Spec_Fun_Specs.get_value_mref_not_empty_pre le1 v) data
       with SymExecException _ -> [] in
                         
       begin match values with
@@ -161,13 +154,13 @@ let execute_spec_func_call_stmt sf x fs current : formula list * formula list =
 
          if (CoreStar_Frontend_Pulp.implies current (Spec_Fun_Specs.get_value_mref_empty_pre le1)) then 
            [combine current (Eq (Le_PVar x, Le_Literal Undefined))], [false_f] 
-         else raise (SymExecException "Not Implemented Branching in GetValue")
+         else raise (SymExecException ("Not Implemented Branching in GetValue", data.src_offset))
       end in     
       
     let var_ref_cases le1 continue = 
       let values = try 
         let v = Le_Var (fresh_e()) in
-        observe_state current v (Spec_Fun_Specs.get_value_vref_obj_pre le1 v)
+        observe_state current v (Spec_Fun_Specs.get_value_vref_obj_pre le1 v) data
         with SymExecException _ -> [] in
                      
       begin match values with
@@ -180,7 +173,7 @@ let execute_spec_func_call_stmt sf x fs current : formula list * formula list =
         | [] -> 
           let values = try 
             let v = Le_Var (fresh_e()) in
-            observe_state current v (Spec_Fun_Specs.get_value_vref_lg le1 v)
+            observe_state current v (Spec_Fun_Specs.get_value_vref_lg le1 v) data
            with SymExecException _ -> [] in
                             
            begin match values with     
@@ -220,22 +213,22 @@ let execute_spec_func_call_stmt sf x fs current : formula list * formula list =
                 | Le_Literal Undefined -> [false_f], [excep_post ()]
                 | _ -> 
                   begin match t with
-                    | VariableReference -> var_ref_cases le1 (fun _ -> raise (SymExecException "Not Implemented Branching in GetValue"))
+                    | VariableReference -> var_ref_cases le1 (fun _ -> raise (SymExecException ("Not Implemented Branching in GetValue", data.src_offset)))
                     | MemberReference -> mem_ref_cases le1
                   end
               end
 	  			  | Le_Literal _ | Le_UnOp _ | Le_BinOp _ |  Le_Base _ | Le_Field _ -> [combine current (Eq (Le_PVar x, le1))], [false_f]
-					  | Le_None | Le_TypeOf _ -> raise (SymExecException "Wrong Parameter to GetValue")
+					  | Le_None | Le_TypeOf _ -> raise (SymExecException ("Wrong Parameter to GetValue", data.src_offset))
         end    
 
       | sp -> raise (NotImplemented (Pulp_Syntax_Print.string_of_spec_fun_id sp))
   
-let execute_proto_field current e1 e2 =
+let execute_proto_field current e1 e2 data =
   let ls = Le_Var (fresh_e ()) in
   let l = Le_Var (fresh_e ()) in
   let v = Le_Var (fresh_e ()) in
   let pi = proto_pred_f ls e1 e2 l v in
-  observe_state current v pi
+  observe_state current v pi data
   
  
 let rec execute_stmt f sg cfg fs env spec_env snode_id cmd_st_tbl = 
@@ -373,7 +366,7 @@ let rec execute_stmt f sg cfg fs env spec_env snode_id cmd_st_tbl =
                   | None -> None
 	             ) invariants in
 	            
-	             let post = try List.find (fun p -> p != None) posts with Not_found -> raise (SymExecException "Loop invariant does't hold") in
+	             let post = try List.find (fun p -> p != None) posts with Not_found -> raise (SymExecException ("Loop invariant does't hold", stmt.stmt_data.src_offset)) in
 	             
 	             begin match post with
 	               | Some post -> new_snode (get_single_succ snode.sgn_id) post
@@ -432,15 +425,15 @@ let rec execute_stmt f sg cfg fs env spec_env snode_id cmd_st_tbl =
       new_snode id post 
               
     | Basic (Assignment {assign_left = x; assign_right = (Call c)}) ->  
-      symbexec_call (execute_normal_call_stmt c false) (AllFunctions.fold AllFunctions.add env fs) x
+      symbexec_call (execute_normal_call_stmt c stmt.stmt_data false) (AllFunctions.fold AllFunctions.add env fs) x
     | Basic (Assignment {assign_left = x; assign_right = (Eval c)})   
     | Basic (Assignment {assign_left = x; assign_right = (BuiltinCall c)}) -> 
-      symbexec_call (execute_normal_call_stmt c true) (AllFunctions.fold AllFunctions.add env fs) x
+      symbexec_call (execute_normal_call_stmt c stmt.stmt_data true) (AllFunctions.fold AllFunctions.add env fs) x
       
     | Basic (Assignment {assign_left = x; assign_right = (ProtoF (e1, e2))}) -> 
       Printf.printf "Execute protoField \n";
       let id = get_single_succ snode.sgn_id in
-      let values = execute_proto_field snode.sgn_state (expr_to_logical_expr e1) (expr_to_logical_expr e2) in
+      let values = execute_proto_field snode.sgn_state (expr_to_logical_expr e1) (expr_to_logical_expr e2) stmt.stmt_data in
       Printf.printf "GotValues \n";
       List.iter (fun value ->
         let post = combine snode.sgn_state (Eq (Le_PVar x, value)) in
@@ -452,7 +445,7 @@ let rec execute_stmt f sg cfg fs env spec_env snode_id cmd_st_tbl =
     | Basic bs -> 
         let id = get_single_succ snode.sgn_id in
         begin try
-          let post = execute_basic_stmt bs snode.sgn_state in
+          let post = execute_basic_stmt bs stmt.stmt_data snode.sgn_state in
           new_snode id post 
         with CoreStar_Frontend_Pulp.ContradictionFound ->
           contradiction id
@@ -460,7 +453,7 @@ let rec execute_stmt f sg cfg fs env spec_env snode_id cmd_st_tbl =
         
     | Sugar s -> 
       begin match s with
-        | SpecFunction (x, sf, l) -> symbexec_call (execute_spec_func_call_stmt sf) spec_env x      
+        | SpecFunction (x, sf, l) -> symbexec_call (execute_spec_func_call_stmt sf stmt.stmt_data) spec_env x      
         | If _ -> raise (Invalid_argument "Symbolic execution does not work on syntactic sugar")
       end
 
@@ -515,8 +508,8 @@ let execute f cfg fs spec_env spec =
   try 
     execute_stmt f sg cfg fs env_builtin spec_env first cmd_st_tbl;
     sg, cmd_st_tbl 
-  with SymExecException msg -> 
-    raise (SymExecExcepWithGraph (msg, sg))
+  with SymExecException (msg, src_offset) -> 
+    raise (SymExecExcepWithGraph (msg, src_offset, sg))
   
   
 let check_post f cfg fs sg cmd_st_tbl spec_env spec =
@@ -534,9 +527,9 @@ let execute_all (f : function_block) (fs : function_block AllFunctions.t) spec_e
     let sg, cmd_st_tbl = 
     try 
       execute f cfg fs (Spec_Fun_Specs.get_env_spec()) spec 
-    with SymExecExcepWithGraph (msg, sg) -> 
+    with SymExecExcepWithGraph (msg, src_offset, sg) -> 
       print_state_graph sg cfg f.func_name path;
-      raise (SymExecException msg) in
+      raise (SymExecException (msg, src_offset)) in
       
     print_state_graph sg cfg f.func_name path; 
       
