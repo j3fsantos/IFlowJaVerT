@@ -99,9 +99,58 @@ let get_value_spec param ctx =
    (mk_spec_with_excep pre_mref_empty [combine pre_mref_empty (REq (Le_Literal Undefined))] [false_f]);
    (mk_spec_with_excep pre_mref_not_empty [combine pre_mref_not_empty (REq v3)] [false_f])
   ] 
+
+let put_value_spec param1 param2 ctx =
+	let lerror = Le_Var (fresh_e()) in
+	
+	let pre_not_a_ref = get_value_not_a_ref_pre (Le_PVar param1) in
+	
+	let post_not_a_ref = combine pre_not_a_ref
+    (Star [
+      REq lerror;
+      proto_heaplet_f lerror (Le_Literal (LLoc Lrep));
+      class_heaplet_f lerror "Error"
+    ]) in
+	
+	let pre_unresolvable_ref = get_value_unresolvable_ref_pre (Le_PVar param1) in
+	
+  let post_unresolvable_ref = combine pre_unresolvable_ref
+    (Star [
+      REq lerror;
+      proto_heaplet_f lerror (Le_Literal (LLoc Lrep));
+      class_heaplet_f lerror "Error"
+    ]) in
+	
+	let pre_ref_with_prim_base = type_of_obj_not_prim_f  (Le_Base (Le_PVar param1)) in 
+	
+	let post_ref_with_prim_base = combine pre_ref_with_prim_base
+		(Star [
+      REq lerror;
+      proto_heaplet_f lerror (Le_Literal (LLoc Lrep));
+      class_heaplet_f lerror "Error"
+    ]) in
+	
+	let is_writable_ref = combine 
+		(type_of_ref_f (Le_PVar param1))
+		(eq_true (Le_BinOp ((Le_TypeOf (Le_Base (Le_PVar param1))), (Comparison Equal), (Le_Literal (Type (ObjectType (Some Normal))))))) in 
+	
+	let v1 = Le_Var (fresh_a()) in
+	
+	let pre_valid_ref_for_put_value = combine is_writable_ref 
+		(Heaplet ((Le_Base (Le_PVar param1)), (Le_Field (Le_PVar param1)), v1)) in 
+	
+	let post_valid_ref_for_put_value = combine is_writable_ref
+		(Heaplet ((Le_Base (Le_PVar param1)), (Le_Field (Le_PVar param1)), (Le_PVar param2))) in 
+	
+		[
+			(mk_spec_with_excep pre_not_a_ref [false_f] [post_not_a_ref]);
+			(mk_spec_with_excep pre_unresolvable_ref [false_f] [post_unresolvable_ref]); 
+			(mk_spec_with_excep pre_ref_with_prim_base [false_f] [post_ref_with_prim_base]);
+			(mk_spec_with_excep pre_valid_ref_for_put_value [post_valid_ref_for_put_value] [false_f]) 
+		] 
   
 let get_value_fb () =
-  let param = "x" in
+  let param = fresh_r() in
   let ctx = create_ctx [] in
   let bd = (translate_gamma (Var param) ctx.return_var ctx.throw_var ctx.label_throw empty_metadata) @
     mk_stmts_empty_data [ 

@@ -247,6 +247,7 @@ let rec execute_stmt f sg cfg fs env spec_env snode_id cmd_st_tbl =
     
   let new_snodes_cond id1 id2 state e =
    
+	  (* get the set of expressions that imply e *)
     let exprs_true = get_proof_cases_eq_true e in
     (*Printf.printf "True cases: %s" (String.concat "\n\n\n" (List.map Pulp_Logic_Print.string_of_formula exprs_true));*)
     
@@ -272,6 +273,7 @@ let rec execute_stmt f sg cfg fs env spec_env snode_id cmd_st_tbl =
         Printf.printf "Guarded Goto true"; 
         List.iter (fun expr_true ->     
           let state_true = combine expr_true state in
+					(* flushing stdout from corestar *)
           Format.pp_print_flush(Format.std_formatter)();
           Printf.printf "Guarded Goto true state %s" (Pulp_Logic_Print.string_of_formula expr_true); 
           Printf.printf "Guarded Goto true state %s" (Pulp_Logic_Print.string_of_formula state_true); 
@@ -324,7 +326,8 @@ let rec execute_stmt f sg cfg fs env spec_env snode_id cmd_st_tbl =
  
   let snode = StateG.get_node_data sg snode_id in
   let stmt = CFG.get_node_data cfg snode.sgn_id in
-        
+  
+	(* x := f(_) with _ *)      
   let symbexec_call call_f funcs x =
       let succ1, succ2 = get_two_succs snode.sgn_id in
       let edge1 = CFG.get_edge_data cfg snode.sgn_id succ1 in
@@ -490,18 +493,22 @@ let execute f cfg fs spec_env spec =
   
   (* state graph *)
   let sg = StateG.mk_graph () in
+	(* formal parameters are different from none *)
   let params_not_none = Star (List.map (fun p -> NEq (Le_PVar p, Le_None)) f.func_params) in 
   
+	(* the parameters of builtin procedures can be set to the empty value *) 
   let params_not_empty = match f.func_type with
     | Procedure_User 
     | Procedure_Spec -> Star (List.map (fun p -> NEq (Le_PVar p, Le_Literal Empty)) f.func_params)
     | Procedure_Builtin -> empty_f in 
 
+	(* parameters of non-spec functions cannot be of type reference *)
   let params_not_a_ref = match f.func_type with
     | Procedure_User
     | Procedure_Builtin -> Star (List.map (fun p -> type_of_not_a_ref_f (Le_PVar p)) f.func_params)
     | Procedure_Spec -> empty_f in 
   
+	
   let pre = combine spec.spec_pre params_not_none in
   let pre = combine pre params_not_empty in
   let pre = combine pre params_not_a_ref in
@@ -520,6 +527,7 @@ let execute f cfg fs spec_env spec =
   
 let check_post f cfg fs sg cmd_st_tbl spec_env spec =
   let posts, throw_posts = get_posts f cfg sg cmd_st_tbl in
+	(* replacing ret var with the appropriate return variable *)
   let spec_post = List.map (change_return f.func_ctx.return_var) spec.spec_post in     
   let spec_excep_post = List.map (change_return f.func_ctx.throw_var) spec.spec_excep_post in
   ((List.for_all (fun post -> CoreStar_Frontend_Pulp.implies_or_list (simplify post) spec_post) posts)
