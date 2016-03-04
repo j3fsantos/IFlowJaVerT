@@ -117,6 +117,15 @@ let type_of_vref_f x = type_of_f x (ReferenceType (Some VariableReference))
 let not_type_of_mref_f x = not_type_of_f x (ReferenceType (Some MemberReference))
 let not_type_of_vref_f x = not_type_of_f x (ReferenceType (Some VariableReference))
 
+let type_of_obj_not_prim_f x = eq_true
+	(Le_BinOp (
+		(Le_BinOp ((Le_TypeOf x), (Comparison Equal), (Le_Literal (Type BooleanType)))), 
+		(Boolean Or), 
+		(Le_BinOp (
+			(Le_BinOp ((Le_TypeOf x), (Comparison Equal), (Le_Literal (Type StringType)))), 
+			(Boolean Or), 
+			(Le_BinOp ((Le_TypeOf x), (Comparison Equal), (Le_Literal (Type NumberType))))))))	
+	
 let type_of_obj_f x = eq_true (Le_BinOp (Le_TypeOf x, Subtype, Le_Literal (Type (ObjectType None))))
 let type_of_ref_f x = eq_true (Le_BinOp (Le_TypeOf x, Subtype, Le_Literal (Type (ReferenceType None))))
 let type_of_not_a_ref_f x = eq_false (Le_BinOp (Le_TypeOf x, Subtype, Le_Literal (Type (ReferenceType None))))
