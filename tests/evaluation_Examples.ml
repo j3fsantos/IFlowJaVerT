@@ -482,10 +482,21 @@ let test_while () =
     @toprequires #obj[#GlobalObject](|'x':?X) * #typeof(?X) = #Number
     @topensures #obj[#GlobalObject](|'x': 4)             
     */
-      var x = 1; /**@invariant #obj[#GlobalObject](|'x':_X) * (_X <= 4) = true * #typeof(_X) = #Number * _X != #nan * _X != #inf * _X != #neg_inf * _X != 0 */ 
+      var x = 1; /**@invariant #obj[#GlobalObject](|'x':_X) * (_X <= 4) = true * #typeof(_X) = #Number * _X != #nan * (0 < _X) = true */ 
         while (x < 4) { x++ } ;" in
     
     test_template js_program "test_do_while"
+    
+let testing_le_lt2 () = 
+  apply_config ();
+  (*let f_string = "(?X <= 4) = true * (?X < 4) = true * (0 <= ?X) = true * (?X + 1) = ?Y" in*)
+  let f_string = "(0 < ?Y) = true" in
+  let f = Pulp_Formula_Parser_Utils.parse_formulas f_string in
+  (*let f1_string = "(?Y <= 4) = true * (0 < ?Y) = true" in*)
+  let f1_string = "?Y != 0" in
+  let f1 = Pulp_Formula_Parser_Utils.parse_formulas f1_string in
+  let a = CoreStar_Frontend_Pulp.implies f f1 in
+  assert_bool "Testing Z3" a
     
 let testing_z3_le () = 
   apply_config ();
@@ -726,7 +737,8 @@ let test_paper_example_2 () =
     "test_paper_example_1" >:: test_paper_example_1;
     "test_cav_example_exception" >:: test_cav_example_exception;
     
-    (*"test_do_while" >:: test_while;*)
+    (*"testing_le_lt2" >:: testing_le_lt2;*)
+    "test_do_while" >:: test_while;
     (*"testing_z3_le" >:: testing_z3_le;
     "testing_z3_nan" >:: testing_z3_nan;*)
     (*"testing_z3" >:: testing_z3*)

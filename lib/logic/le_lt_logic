@@ -74,3 +74,43 @@ rule boolean_not_false_true :
 without type_of(?z) = BooleanType()
 if
 | ?z = builtin_lt(?x, ?y) * type_of(?z) = BooleanType() |-
+
+/*
+rule lt_zero_noteq_zero :
+| !LT(numeric_const("0"), ?x) |- ?x != numeric_const("0")
+without ?x != numeric_const("0")
+if
+| !LT(numeric_const("0"), ?x) |-
+*/
+
+
+rule lt_numeric_const_not_infinity :
+| !LT(?x, numeric_const(?y)) |- ?x != infinity()
+without ?x != infinity()
+if
+| !LT(numeric_const("0"), ?x) |-
+
+rule le_numeric_const_not_infinity :
+| !LE(?x, numeric_const(?y)) |- ?x != infinity()
+without ?x != infinity()
+if
+| !LE(numeric_const("0"), ?x) |-
+
+rule gt_numeric_const_not_neg_infinity :
+| !LT(numeric_const(?y), ?x) |- ?x != negative_infinity()
+without ?x != negative_infinity()
+if
+| !LT(numeric_const(?y), ?x) |-
+
+rule ge_numeric_const_not_neg_infinity :
+| !LE(numeric_const(?y), ?x) |- ?x != negative_infinity()
+without ?x != negative_infinity()
+if
+| !LE(numeric_const(?y), ?x) |-
+
+rule le_numeric_const_not_infinity_contr :
+| !LE(?x, numeric_const(?y)) *  ?x = infinity() |-
+if
+
+
+

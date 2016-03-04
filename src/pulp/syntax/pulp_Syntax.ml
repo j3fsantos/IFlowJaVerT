@@ -292,7 +292,7 @@ type specification_function =
   | ToObject of expression
   | CheckObjectCoercible of expression
   | IsCallable of expression
-  | AbstractEquality of expression * expression * bool
+  | AbstractRelation of expression * expression * bool
   | StrictEquality of expression * expression
   | StrictEqualitySameType of expression * expression
 
