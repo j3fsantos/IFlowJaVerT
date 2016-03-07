@@ -278,8 +278,11 @@ let rec execute_stmt f sg cfg fs env spec_env snode_id cmd_st_tbl =
           Printf.printf "Guarded Goto true state %s" (Pulp_Logic_Print.string_of_formula expr_true); 
           Printf.printf "Guarded Goto true state %s" (Pulp_Logic_Print.string_of_formula state_true); 
           
-          try new_snode id1 state_true       
-          with CoreStar_Frontend_Pulp.ContradictionFound -> Printf.printf "Contradiction found"; contradiction id1
+          if CoreStar_Frontend_Pulp.inconsistent state_true then contradiction id1 
+          else begin     
+	          try new_snode id1 state_true       
+	          with CoreStar_Frontend_Pulp.ContradictionFound -> Printf.printf "Contradiction found"; contradiction id1
+          end
             
         ) exprs_true;
             
@@ -290,8 +293,11 @@ let rec execute_stmt f sg cfg fs env spec_env snode_id cmd_st_tbl =
           Printf.printf "Guarded Goto false state %s" (Pulp_Logic_Print.string_of_formula expr_false);  
           Printf.printf "Guarded Goto true state %s" (Pulp_Logic_Print.string_of_formula state_false);    
           
-          try new_snode id2 state_false
-          with CoreStar_Frontend_Pulp.ContradictionFound -> Printf.printf "Contradiction found"; contradiction id2
+          if CoreStar_Frontend_Pulp.inconsistent state_false then contradiction id2
+          else begin
+            try new_snode id2 state_false
+            with CoreStar_Frontend_Pulp.ContradictionFound -> Printf.printf "Contradiction found"; contradiction id2
+          end
           
         ) exprs_false;        
  

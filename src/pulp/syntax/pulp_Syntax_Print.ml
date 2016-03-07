@@ -255,7 +255,7 @@ let string_of_spec_fun_id sf =
     | ToObject _ -> "#ToObject"
     | CheckObjectCoercible _ -> "#CheckObjectCoercible" 
     | IsCallable _ -> "#IsCallable"
-    | AbstractEquality _ -> "#AbstractEquality"
+    | AbstractRelation _ -> "#AbstractRelation"
     | StrictEquality _ -> "#StrictEquality"
     | StrictEqualitySameType _ -> "#StrictEqualitySameType"
 
@@ -277,7 +277,7 @@ let string_of_spec_function sf =
     | ToObject e -> Printf.sprintf "%s(%s)" id (f e)
     | CheckObjectCoercible e -> Printf.sprintf "%s(%s)" id (f e)
     | IsCallable e -> Printf.sprintf "%s(%s)" id (f e)
-    | AbstractEquality (e1, e2, b) -> Printf.sprintf "%s(%s, %s, %b)" id (f e1) (f e2) b
+    | AbstractRelation (e1, e2, b) -> Printf.sprintf "%s(%s, %s, %b)" id (f e1) (f e2) b
     | StrictEquality (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
     | StrictEqualitySameType (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
  

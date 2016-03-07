@@ -711,7 +711,7 @@ let rec translate_exp ctx exp : statement list * variable =
 								  let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx md in
 								  let r3_stmts, r3 = f e2 in
 								  let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx md in
-                  let r5_stmts, r5 = spec_func_call (AbstractEquality (Var r2, Var r4, true)) ctx md in
+                  let r5_stmts, r5 = spec_func_call (AbstractRelation (Var r2, Var r4, true)) ctx md in
                   let rv = fresh_r() in
                   let assign_rv v = Basic (Assignment (mk_assign rv (Expression v))) in                  
 								    r1_stmts @ 
@@ -728,7 +728,7 @@ let rec translate_exp ctx exp : statement list * variable =
                   let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx md in
                   let r3_stmts, r3 = f e2 in
                   let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx md in
-                  let r5_stmts, r5 = spec_func_call (AbstractEquality (Var r4, Var r2, false)) ctx md in
+                  let r5_stmts, r5 = spec_func_call (AbstractRelation (Var r4, Var r2, false)) ctx md in
                   let rv = fresh_r() in
                   let assign_rv v = Basic (Assignment (mk_assign rv (Expression v))) in                  
                     r1_stmts @ 
@@ -745,7 +745,7 @@ let rec translate_exp ctx exp : statement list * variable =
                   let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx md in
                   let r3_stmts, r3 = f e2 in
                   let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx md in
-                  let r5_stmts, r5 = spec_func_call (AbstractEquality (Var r4, Var r2, false)) ctx md in
+                  let r5_stmts, r5 = spec_func_call (AbstractRelation (Var r4, Var r2, false)) ctx md in
                   let rv = fresh_r() in
                   let assign_rv v = Basic (Assignment (mk_assign rv (Expression v))) in                  
                     r1_stmts @ 
@@ -762,7 +762,7 @@ let rec translate_exp ctx exp : statement list * variable =
                   let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx md in
                   let r3_stmts, r3 = f e2 in
                   let r4_stmts, r4 = spec_func_call (GetValue (Var r3)) ctx md in
-                  let r5_stmts, r5 = spec_func_call (AbstractEquality (Var r2, Var r4, true)) ctx md in
+                  let r5_stmts, r5 = spec_func_call (AbstractRelation (Var r2, Var r4, true)) ctx md in
                   let rv = fresh_r() in
                   let assign_rv v = Basic (Assignment (mk_assign rv (Expression v))) in                  
                     r1_stmts @ 

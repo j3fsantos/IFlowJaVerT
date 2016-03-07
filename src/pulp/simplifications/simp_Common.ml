@@ -115,7 +115,7 @@ let get_vars_in_spec_functions sf =
     | Get (e1, e2)
     | HasProperty (e1, e2)
     | PutValue (e1, e2)  
-    | AbstractEquality (e1, e2, _) 
+    | AbstractRelation (e1, e2, _) 
     | StrictEquality (e1, e2)
     | StrictEqualitySameType (e1, e2) -> (f e1) @ (f e2)
 
@@ -174,7 +174,7 @@ let transform_expr_in_spec_funcs f sf =
     | CheckObjectCoercible e -> CheckObjectCoercible (f e)
     | IsCallable e -> IsCallable (f e)
     | PutValue (e1, e2) -> PutValue (f e1, f e2)
-    | AbstractEquality (e1, e2, b) -> AbstractEquality (f e1, f e2, b)
+    | AbstractRelation (e1, e2, b) -> AbstractRelation (f e1, f e2, b)
     | StrictEquality (e1, e2) -> StrictEquality (f e1, f e2)
     | StrictEqualitySameType (e1, e2) -> StrictEqualitySameType (f e1, f e2)
 

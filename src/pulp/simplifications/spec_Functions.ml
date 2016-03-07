@@ -473,7 +473,7 @@ let simplify_spec_func_unfold sf left sf_annot throw_var label_throw =
     | ToObject e -> simplify_to_object e sf_annot left throw_var label_throw
     | CheckObjectCoercible e -> simplify_to_object_coercible e sf_annot throw_var label_throw
     | IsCallable e -> simplify_is_callable e sf_annot left
-    | AbstractEquality (e1, e2, b) -> translate_abstract_relation e1 e2 b left throw_var label_throw md
+    | AbstractRelation (e1, e2, b) -> translate_abstract_relation e1 e2 b left throw_var label_throw md
     | StrictEquality (e1, e2) -> simplify_strict_equality_comparison e1 e2 sf_annot left
     | StrictEqualitySameType (e1, e2) -> simplify_strict_equality_comparison_types_equal e1 e2 sf_annot left
 
@@ -494,7 +494,7 @@ let simplify_spec_func sf left sf_annot throw_var label_throw =
     | ToObject e -> Spec_Functions_Simp.simplify_to_object e sf_annot left throw_var label_throw
     | CheckObjectCoercible e -> Some (simplify_to_object_coercible e sf_annot throw_var label_throw)
     | IsCallable e -> Some (simplify_is_callable e sf_annot left)
-    | AbstractEquality (e1, e2, b) -> None
+    | AbstractRelation (e1, e2, b) -> None
     | StrictEquality (e1, e2) -> Spec_Functions_Simp.simplify_strict_equality_comparison e1 e2 sf_annot left
     | StrictEqualitySameType (e1, e2) -> Spec_Functions_Simp.simplify_strict_equality_comparison_types_equal e1 e2 sf_annot left
 

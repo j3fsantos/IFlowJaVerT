@@ -290,9 +290,9 @@ let spec_func_is_callable arg excep_label =
   let left = fresh_r () in
   Sugar (SpecFunction (left, (IsCallable arg), excep_label)), left
   
-let spec_func_abstract_equality arg1 arg2 arg3 excep_label = 
+let spec_func_abstract_relation arg1 arg2 arg3 excep_label = 
   let left = fresh_r () in
-  Sugar (SpecFunction (left, (AbstractEquality (arg1, arg2, arg3)), excep_label)), left
+  Sugar (SpecFunction (left, (AbstractRelation (arg1, arg2, arg3)), excep_label)), left
   
 let spec_func_strict_equality arg1 arg2 excep_label = 
   let left = fresh_r () in
@@ -321,7 +321,7 @@ let spec_func_call sp ctx meta =
       | ToObject e -> spec_func_to_object e excep_label
       | CheckObjectCoercible e -> spec_func_check_obj_coer e excep_label
       | IsCallable e -> spec_func_is_callable e excep_label
-      | AbstractEquality (e1, e2, b) -> spec_func_abstract_equality e1 e2 b excep_label
+      | AbstractRelation (e1, e2, b) -> spec_func_abstract_relation e1 e2 b excep_label
       | StrictEquality (e1, e2) -> spec_func_strict_equality e1 e2 excep_label
       | StrictEqualitySameType (e1, e2) -> spec_func_strict_equality_same_type e1 e2 excep_label in
     mk_stmts meta [ 
@@ -751,7 +751,7 @@ let unfold_spec_function sf left throw_var label_throw meta =
     | ToObject e -> translate_to_object e left throw_var label_throw meta
     | CheckObjectCoercible e -> translate_obj_coercible e throw_var label_throw meta
     | IsCallable e -> is_callable e left meta
-    | AbstractEquality (e1, e2, b) -> translate_abstract_relation e1 e2 b left throw_var label_throw meta
+    | AbstractRelation (e1, e2, b) -> translate_abstract_relation e1 e2 b left throw_var label_throw meta
     | StrictEquality (e1, e2) -> translate_strict_equality_comparison e1 e2 left meta
     | StrictEqualitySameType (e1, e2) -> translate_strict_equality_comparison_types_equal e1 e2 left meta
 

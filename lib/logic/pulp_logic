@@ -171,6 +171,11 @@ rule numeric_not_eq_neg_infinity :
   | |- numeric_const(?x) != negative_infinity()
 if
   | |-
+  
+  
+rule numeric_not_eq_neg_infinity_contr :  
+  | numeric_const(?x) = negative_infinity() |- 
+if
 
  /* TODO: Implement negation properly */
 rewrite not_undefined_none : 

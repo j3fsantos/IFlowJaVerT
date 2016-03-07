@@ -98,6 +98,12 @@ rule true_not_undef_type :
 without true()!=undefined()
 if
   | |-
+  
+rule false_not_undef_type :
+  | |- false()!=undefined()
+without false()!=undefined()
+if
+  | |-
 
 rule string_const_not_undef_type :
   | ?x = string_const(?y) |- type_of(?x)!=UndefinedType() 
