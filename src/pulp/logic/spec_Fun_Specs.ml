@@ -68,6 +68,23 @@ let get_value_mref_not_empty_pre param v =
          NEq (v, Le_Literal Empty) 
        ])
 
+let get_value_mref_empty_pre2 param1 param2 = 
+   let ls = Le_Var (fresh_e()) in
+   let l = Le_Var (fresh_e()) in 
+     (combine
+     	(proto_pred_f ls param1 param2 l (Le_Literal Empty)) 
+		 	(type_of_obj_f param1))
+    
+let get_value_mref_not_empty_pre2 param1 param2 v = 
+   let ls = Le_Var (fresh_e()) in
+   let l = Le_Var (fresh_e()) in 
+     combine 
+       (proto_pred_f ls param1 param2 l v)
+       (Star [
+         type_of_obj_f param1;
+         NEq (v, Le_Literal Empty) 
+       ])
+
 let get_value_spec param ctx =
   let pre_not_a_ref = get_value_not_a_ref_pre (Le_PVar param) in
   
@@ -130,6 +147,52 @@ let put_value_spec param1 param2 ctx =
       class_heaplet_f lerror "Error"
     ]) in
 	
+	let pre_number_base = combine 
+		(type_of_ref_f (Le_PVar param1))
+		(combine
+			(NEq (Le_Base  (Le_PVar param1), Le_Literal Undefined)) 
+			(type_of_f  (Le_Base (Le_PVar param1)) NumberType)) in 
+	
+	let post_number_base = combine pre_number_base 
+		(Star [
+      REq lerror;
+      proto_heaplet_f lerror (Le_Literal (LLoc Lrep));
+      class_heaplet_f lerror "Error"
+    ]) in 
+	
+	let pre_string_base = combine 
+		(type_of_ref_f (Le_PVar param1))
+		(combine
+			(NEq (Le_Base  (Le_PVar param1), Le_Literal Undefined)) 
+			(type_of_f  (Le_Base (Le_PVar param1)) StringType)) in 
+	
+	let post_string_base = combine pre_string_base 
+		(Star [
+      REq lerror;
+      proto_heaplet_f lerror (Le_Literal (LLoc Lrep));
+      class_heaplet_f lerror "Error"
+    ]) in 
+	
+	let pre_boolean_base = combine 
+		(type_of_ref_f (Le_PVar param1))
+		(combine
+			(NEq (Le_Base  (Le_PVar param1), Le_Literal Undefined)) 
+			(type_of_f  (Le_Base (Le_PVar param1)) BooleanType)) in 
+	
+	let post_boolean_base = combine pre_boolean_base 
+		(Star [
+      REq lerror;
+      proto_heaplet_f lerror (Le_Literal (LLoc Lrep));
+      class_heaplet_f lerror "Error"
+    ]) in 
+					
+	let post_ref_with_prim_base = combine pre_ref_with_prim_base
+		(Star [
+      REq lerror;
+      proto_heaplet_f lerror (Le_Literal (LLoc Lrep));
+      class_heaplet_f lerror "Error"
+    ]) in
+	
 	let is_writable_ref = combine 
 		(type_of_ref_f (Le_PVar param1))
 		(eq_true (Le_BinOp ((Le_TypeOf (Le_Base (Le_PVar param1))), (Comparison Equal), (Le_Literal (Type (ObjectType (Some Normal))))))) in 
@@ -145,10 +208,70 @@ let put_value_spec param1 param2 ctx =
 		[
 			(mk_spec_with_excep pre_not_a_ref [false_f] [post_not_a_ref]);
 			(mk_spec_with_excep pre_unresolvable_ref [false_f] [post_unresolvable_ref]); 
-			(mk_spec_with_excep pre_ref_with_prim_base [false_f] [post_ref_with_prim_base]);
+			(mk_spec_with_excep pre_number_base [false_f] [post_number_base]); 
+			(mk_spec_with_excep pre_string_base [false_f] [post_string_base]); 
+			(mk_spec_with_excep pre_boolean_base [false_f] [post_boolean_base]); 
 			(mk_spec_with_excep pre_valid_ref_for_put_value [post_valid_ref_for_put_value] [false_f]) 
 		] 
-  
+		
+let has_property_spec param1 param2 ctx =
+	let pre_prop_not_defined = (get_value_mref_empty_pre2 (Le_PVar param1) (Le_PVar param2)) in 
+	
+	let post_prop_not_defined = combine pre_prop_not_defined (REq (Le_Literal (Bool false))) in
+	
+  let v1 = Le_Var (fresh_a()) in
+	
+	let pre_prop_defined = get_value_mref_not_empty_pre2 (Le_PVar param1) (Le_PVar param2) v1 in
+	
+	let post_prop_defined = combine pre_prop_defined (REq (Le_Literal (Bool true))) in
+	 
+	[
+			(mk_spec_with_excep pre_prop_not_defined [post_prop_not_defined] [false_f]);
+			(mk_spec_with_excep pre_prop_defined [post_prop_defined] [false_f])
+	] 
+
+(* toBoolean spec *)
+let mk_precise_pure_spec input_var input_val output_val = 
+	let pre_condition = Eq ((Le_PVar input_var), (Le_Literal input_val)) in 
+	let post_condition = combine pre_condition (REq (Le_Literal output_val)) in 
+		mk_spec_with_excep pre_condition [post_condition] [false_f]
+				
+let mk_list_of_precise_pure_specs input_var lst_input_output = 
+	let rec mk_list_of_precise_pure_specs_iter lst_input_output cur_specs = 
+		match lst_input_output with 
+		| [] -> cur_specs 
+		| (input_val, output_val) :: rest_lst_input_outpt -> 
+			let new_spec = mk_precise_pure_spec input_var input_val output_val in 
+				mk_list_of_precise_pure_specs_iter rest_lst_input_outpt (new_spec :: cur_specs) in 
+	mk_list_of_precise_pure_specs_iter lst_input_output []
+	
+let mk_precise_neg_spec val_lst input_var output_val = 
+	let rec mk_precond val_lst cur_formula = 
+		begin 
+		match val_lst with 
+		| [] -> cur_formula 
+		| hd :: rest -> let new_conjunct = NEq ((Le_PVar input_var), (Le_Literal hd)) in 
+			  begin 
+				mk_precond rest (combine cur_formula new_conjunct)
+				end
+		end in
+	let pre_cond = mk_precond val_lst empty_f in 
+	let post_cond = combine pre_cond (REq (Le_Literal output_val)) in 
+		mk_spec_with_excep pre_cond [post_cond] [false_f]
+
+let to_boolean_spec param ctx = 
+	let lst_falsy_values = 
+		[	Undefined; 
+		  Null; 
+		  (Bool false); 
+		  (String ""); 
+		  (Num (-0.)); 
+		  (Num (0.)); 
+		  (Num nan); ] in 
+	let lst_falsy_values_paired_with_false = List.map (fun arg -> (arg,  (Bool false))) lst_falsy_values in 
+		(mk_precise_neg_spec lst_falsy_values param (Bool true)) 
+			:: (mk_list_of_precise_pure_specs param lst_falsy_values_paired_with_false)
+
 let get_value_fb () =
   let param = fresh_r() in
   let ctx = create_ctx [] in
@@ -172,7 +295,8 @@ let make_put_value_function () =
     	Label ctx.label_return;
     	Label ctx.label_throw ] in 
 	let body = to_ivl_goto_unfold body in 
-	make_function_block Procedure_Spec (string_of_spec_fun_id (PutValue (dummy_exp1, dummy_exp2))) body [rthis; rscope; arg_var1; arg_var2] ctx
+	make_function_block_with_spec Procedure_Spec 
+		(string_of_spec_fun_id (PutValue (dummy_exp1, dummy_exp2))) body [arg_var1; arg_var2] ctx  (put_value_spec arg_var1 arg_var2 ctx)
 
 let make_get_function () = 
 	let ctx = create_ctx [] in 
@@ -196,7 +320,8 @@ let make_has_property_function () =
     	Label ctx.label_return;
     	Label ctx.label_throw ] in 
 	let body = to_ivl_goto_unfold body in 
-	make_function_block Procedure_Spec  (string_of_spec_fun_id (HasProperty (dummy_exp1, dummy_exp2))) body [rthis; rscope; arg_obj; arg_prop] ctx 						
+	make_function_block_with_spec Procedure_Spec  
+		(string_of_spec_fun_id (HasProperty (dummy_exp1, dummy_exp2))) body [arg_obj; arg_prop] ctx (has_property_spec arg_obj arg_prop ctx)						
 
 let make_to_boolean_function () = 
 	let ctx = create_ctx [] in 
@@ -207,7 +332,8 @@ let make_to_boolean_function () =
     	Label ctx.label_return;
     	Label ctx.label_throw ] in 
 	let body = to_ivl_goto_unfold body in 
-	make_function_block Procedure_Spec (string_of_spec_fun_id (ToBoolean dummy_exp1)) body [rthis; rscope; arg] ctx 	
+	make_function_block_with_spec Procedure_Spec 
+		(string_of_spec_fun_id (ToBoolean dummy_exp1)) body [arg] ctx (to_boolean_spec arg ctx)
 
 let make_to_string_function () = 
 	let ctx = create_ctx [] in 
