@@ -56,7 +56,7 @@ Updated Instructions
 
 
 1) Obtain the code of the compiler: 
-	i) git clone https://github.com/resource-reasoning/JS_Symbolic_Debugger.git
+	i) git clone https://github.com/resource-reasoning/JavaScriptVerification.git
 	ii) git submodule init && git submodule update
 
 2) Obtain the OCaml package manager and install OCaml (brew is required)
@@ -79,7 +79,7 @@ Updated Instructions
 
     iii) Compile Corestar
         * Go to the directory PROJECT_PATH/lib/corestar/corestar_src
-        E.g. PROJECT_PATH = /Users/josesantos/projects/JS_Symbolic_Debugger/JS_Symbolic_Debugger
+        E.g. PROJECT_PATH = /Users/josesantos/projects/JavaScriptVerification
 
         * Run the script compile_prover.sh
 
