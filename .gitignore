@@ -1,6 +1,35 @@
+# Misc Editors
+*.autosave
+.*.swp
+.*.swo
+*~
+
+
+# Eclipse
+TAGS
+.metadata
+.paths
+.project
+.projectSettings
+.settings
+
+# OCaml
+*.cma
+*.cmi
+*.cmo
+*.cmx
+*.o
+_build
+*.native
+*.byte
+
+
+# Mac Rubbish
+.DS_Store
+
 config/config.xml
 src/localconfig.ml
-tests/all_elements.js
-tests/test_suite
+src/formula_parser/formula_lexer.ml
+src/formula_parser/formula_parser.ml
+src/formula_parser/formula_parser.mli
 tests/dot
-test262
