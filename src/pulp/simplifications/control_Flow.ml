@@ -85,8 +85,6 @@ let fb_to_cfg fb : CFG.graph =
 let program_to_cfg (all_functions : function_block AllFunctions.t) : CFG.graph AllFunctions.t =
   AllFunctions.map fb_to_cfg all_functions
   
-  
-  
 (* Print one cfg at a time *)  
 let print_cfg (cfgs : CFG.graph AllFunctions.t) (filename : string) : unit =
   let d_cfgedge chan dest src =
@@ -101,6 +99,7 @@ let print_cfg (cfgs : CFG.graph AllFunctions.t) (filename : string) : unit =
   
   AllFunctions.iter 
     (fun name cfg -> 
+      Utils.create_dir_for_file filename;
       let chan = open_out (filename ^ "." ^ name ^ ".cfg.dot") in
       Printf.fprintf chan "digraph iCFG {\n\tnode [shape=box,  labeljust=l]\n";
       Printf.fprintf chan "\tsubgraph \"cluster_%s\" {\n\t\tlabel=\"%s\"\n" name (String.escaped name);

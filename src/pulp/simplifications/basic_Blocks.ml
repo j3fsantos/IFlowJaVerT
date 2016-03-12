@@ -227,6 +227,7 @@ let print_cfg_bb (cfgs : CFG_BB.graph AllFunctions.t) (filename : string) : unit
       (node_name n)
       (String.escaped (string_of_annot_stmts nd));    
       List.iter (fun dest -> d_cfgedge chan dest n) (CFG_BB.succ cfg n) in
+  Utils.create_dir_for_file filename;     
   let chan = open_out (filename ^ ".cfg.dot") in
   Printf.fprintf chan "digraph iCFG {\n\tnode [shape=box,  labeljust=l]\n";
   AllFunctions.iter 
