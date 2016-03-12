@@ -98,10 +98,10 @@ let translate path level =
   (* TODO: Constructs cfg twice adding entry label twice *)
 	(* Why do we need to construct the cfg twice? *)
   let _ = Control_Flow.mk_cfg p_exp (Filename.chop_extension path) in
-	Unix.mkdir output_folder_name 0o777;
-	Unix.mkdir (output_folder_name ^ "/" ^ functions_folder_name) 0o777; 
-	Unix.mkdir (output_folder_name ^ "/" ^ builtins_folder_name) 0o777;
-	Unix.mkdir (output_folder_name ^ "/" ^ specs_folder_name) 0o777;
+	Utils.safe_mkdir output_folder_name;
+	Utils.safe_mkdir (output_folder_name ^ "/" ^ functions_folder_name); 
+	Utils.safe_mkdir (output_folder_name ^ "/" ^ builtins_folder_name);
+	Utils.safe_mkdir (output_folder_name ^ "/" ^ specs_folder_name);
 	print_string (" happy to be here: " ^ output_folder_name  ^ "/" ^ functions_folder_name ^ "\n"); 
   Pulp_Procedure.AllFunctions.iter (fun fid fwc -> create_output fwc (output_folder_name  ^ "/" ^ functions_folder_name)) p_exp;
 	Pulp_Procedure.AllFunctions.iter (fun fid fwc -> create_output fwc (output_folder_name ^ "/" ^ builtins_folder_name)) built_ins; 

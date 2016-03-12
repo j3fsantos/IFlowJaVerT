@@ -72,10 +72,13 @@ let rec float_to_string_inner n = (* TODO *)
   else if n < 0. then "-" ^ (float_to_string_inner (-. n))
   else string_of_number n
   
+let safe_mkdir path = 
+   if (not (Sys.file_exists path)) then Unix.mkdir path 0o777
+  
 let rec create_dir path =
    let dir = Filename.dirname path in
    let _ = if (not (Sys.file_exists dir)) then create_dir dir in
-   if (not (Sys.file_exists path)) then Unix.mkdir path 0o777
+   safe_mkdir path
   
 let create_dir_for_file filename = 
    let dir = Filename.dirname filename in
