@@ -220,14 +220,20 @@ let rec sexpr_of_expression e =
   match e with
     | Literal l -> string_of_literal l
     | Var v -> "'" ^ string_of_var v
+		(* (bop e1 e2) *)
     | BinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (string_of_bin_op op) (se e1) (se e2)
+		(* (uop e1 e2) *)
     | UnaryOp (op, e) -> Printf.sprintf "(%s %s)" (string_of_unary_op op) (se e)
+		(* ('typeof e) *)
     | TypeOf e -> Printf.sprintf "('typeOf %s)" (se e) 
+		(* ('ref e1 e2 e3) *)
     | Ref (e1, e2, t) -> Printf.sprintf "('ref %s %s %s)" (se e1) (se e2)
       (match t with
         | MemberReference -> "'o"
         | VariableReference -> "'v")
+		(* ('base e) *)
     | Base e -> Printf.sprintf "('base %s)" (se e)
+		(* ('field e) *)
     | Field e -> Printf.sprintf "('field %s)" (se e)
 
 
@@ -237,6 +243,7 @@ let string_of_call c =
   Printf.sprintf "%s (%s, %s, %s) with %s" (se c.call_name) (se c.call_this) (se c.call_scope) (ses c.call_args) (c.call_throw_label)
 
 let sexpr_of_call left_var_str c i line_numbers_on =
+	(* ('call var e (e1 ... en) i) *)
 	let str_i = string_of_int i in 
   let se = sexpr_of_expression in
   let ses xs = match xs with 
@@ -300,6 +307,7 @@ let sexpr_of_assign_right left_var_str aer i line_numbers_on =
   let se = sexpr_of_expression in
 	let str_i = string_of_int i in 
   match aer with
+	  (* ('var_assign var e1 e2) *)
     | Expression e -> 
 				if (line_numbers_on)
 					then Printf.sprintf "(%s 'var_assign %s %s)" str_i left_var_str (se e)
@@ -312,26 +320,32 @@ let sexpr_of_assign_right left_var_str aer i line_numbers_on =
     | SEval c -> sexpr_of_seval left_var_str c i line_numbers_on 
     | SBuiltinCall c -> sexpr_of_scall left_var_str c i line_numbers_on 
 		(* end calls*)
+		(* ('new var) *)
     | Obj -> 
 				if (line_numbers_on)
 					then Printf.sprintf "('new %s)" left_var_str
 					else Printf.sprintf "('new %s)" left_var_str
+		(* ('hasField var e1 e2) *)
     | HasField (e1, e2) -> 
 			  if (line_numbers_on)
 					then Printf.sprintf "(%s 'hasField %s %s %s)" str_i left_var_str (se e1) (se e2)
 					else Printf.sprintf "('hasField %s %s %s)" left_var_str (se e1) (se e2)	
-    | Lookup (e1, e2) -> 
+    (* ('lookup var e1 e2) *)
+		| Lookup (e1, e2) -> 
 				if (line_numbers_on)
 					then Printf.sprintf "(%s 'lookup %s %s %s)"str_i left_var_str (se e1) (se e2)
 					else Printf.sprintf "('lookup %s %s %s)" left_var_str (se e1) (se e2)
+		(* ('delete var e1 e2) *)
     | Deallocation (e1, e2) -> 
 				if (line_numbers_on) 
 					then Printf.sprintf "(%s 'delete %s %s %s)" str_i left_var_str (se e1) (se e2)
 					else Printf.sprintf "('delete %s %s %s)" left_var_str (se e1) (se e2)
+		(* ('proto_field var e1 e2) *)
     | ProtoF (l, x) -> 
 				if (line_numbers_on) 
 					then Printf.sprintf "(%s 'proto_field %s %s %s )" str_i left_var_str (se l) (se x)
 					else Printf.sprintf "('proto_field %s %s %s )" left_var_str (se l) (se x)
+		(* ('proto_obj var e1 e2) *)
     | ProtoO (l, x) -> 
 				if (line_numbers_on) 
 					then Printf.sprintf "(%s 'proto_obj %s %s %s)" str_i left_var_str (se l) (se x)
@@ -342,6 +356,7 @@ let string_of_mutation m =
   Printf.sprintf "[%s,%s] := %s" (se m.m_loc) (se m.m_field) (se m.m_right)
 
 let sexpr_of_mutation m i line_numbers_on =
+	(* ('mutation var e e) *)
   let se = sexpr_of_expression in
 	let str_i = string_of_int i in 
 	if (line_numbers_on) 
@@ -357,6 +372,7 @@ let string_of_basic_statement bs =
 let sexpr_of_basic_statement bs i line_numbers_on =
 	let str_i = string_of_int i in 
   match bs with
+	  (* ('skip) *)
     | Skip -> 
 				if (line_numbers_on) 
 					then Printf.sprintf "(%s 'skip)" str_i
@@ -463,14 +479,16 @@ let rec sexpr_of_statement t tabs i line_numbers_on =
 				if (line_numbers_on) 
 					then (tabs_to_str tabs) ^ Printf.sprintf "(%s 'goto %s '%s '%s)" str_i (sexpr_of_expression e) s1 s2
 					else (tabs_to_str tabs) ^ Printf.sprintf "('goto %s '%s '%s)" (sexpr_of_expression e) s1 s2
-    | SGoto s ->  
+    | SGoto s -> 
+			  (* ('goto i) *) 
 				if (line_numbers_on)
-					then (tabs_to_str tabs) ^ Printf.sprintf "(%s 'goto '%s)" str_i (string_of_int s)
-					else (tabs_to_str tabs) ^ Printf.sprintf "('goto '%s)" (string_of_int s)
-    | SGuardedGoto (e, s1, s2) ->  
+					then (tabs_to_str tabs) ^ Printf.sprintf "(%s 'goto %s)" str_i (string_of_int s)
+					else (tabs_to_str tabs) ^ Printf.sprintf "('goto %s)" (string_of_int s)
+    | SGuardedGoto (e, s1, s2) -> 
+			  (* ('goto e i j) *) 
 			 	if (line_numbers_on)
-					then (tabs_to_str tabs) ^  Printf.sprintf "(%s 'goto %s '%s '%s)" str_i (sexpr_of_expression e) (string_of_int s1) (string_of_int s2)
-					else (tabs_to_str tabs) ^  Printf.sprintf "('goto %s '%s '%s)" (sexpr_of_expression e) (string_of_int s1) (string_of_int s2)
+					then (tabs_to_str tabs) ^  Printf.sprintf "(%s 'goto %s %s %s)" str_i (sexpr_of_expression e) (string_of_int s1) (string_of_int s2)
+					else (tabs_to_str tabs) ^  Printf.sprintf "('goto %s %s %s)" (sexpr_of_expression e) (string_of_int s1) (string_of_int s2)
     | Basic bs -> (tabs_to_str tabs) ^ (sexpr_of_basic_statement bs i line_numbers_on)
     | Sugar s -> (sexpr_of_sugar s tabs i line_numbers_on)
 (* *)
