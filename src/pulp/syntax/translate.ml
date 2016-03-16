@@ -114,13 +114,15 @@ let serialize_sexpr folder_name procs built_ins specs =
   (* serialize the three sets of procedures as strings*)   
 	let procs_content = serialize_procs procs in 
 	let built_ins_content = serialize_procs built_ins in 
-	let specs_content = serialize_procs specs in 
+	let specs_content = serialize_procs specs in
+	let heap_initial_content = Interpreter_Print.serialize_heap_sexpr (Interpreter.initial_heap ()) in
 	(* create a new directory*)
 	Utils.safe_mkdir folder_name;
 	(* burn to disk *)
 	burn_to_disk (folder_name ^ "/functions.scm") (Printf.sprintf "('procedures \n %s\n)" procs_content); 
 	burn_to_disk (folder_name ^ "/builtins.scm") (Printf.sprintf "('procedures \n %s\n)" built_ins_content);
-  burn_to_disk (folder_name ^ "/specs.scm") (Printf.sprintf "('procedures \n %s\n)" specs_content)
+  burn_to_disk (folder_name ^ "/specs.scm") (Printf.sprintf "('procedures \n %s\n)" specs_content); 
+	burn_to_disk (folder_name ^ "/heap.scm") heap_initial_content
 
 let serialize output_folder_name p_exp built_ins specs = 
 	let functions_folder_name = "functions" in 

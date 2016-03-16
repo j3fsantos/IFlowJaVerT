@@ -804,8 +804,8 @@ let initial_heap () =
   let h = add_field h (BLoc Lg) "JSON" (HVObj (BLoc LJSON)) in
   let h = add_field h (BLoc LJSON) (string_of_builtin_field FClass) (HVLiteral (String "JSON")) in
   let h = fold_add_stub_function h LJSON ["parse"; "stringify"] in
-  h
-
+  h	
+			
 let run_with_heap h (fs : function_block AllFunctions.t) (env : function_block AllFunctions.t) : function_state =
   let main_this = VHValue (HVObj (BLoc Lg)) in
   let main_scope_l = Loc (fresh_loc ()) in
