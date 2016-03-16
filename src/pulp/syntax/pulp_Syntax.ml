@@ -217,7 +217,24 @@ let mk_call name scope vthis args throwl = {
       call_args = args;
       call_this = vthis;
       call_throw_label = throwl
-  }
+}
+
+(* scalls - calls with numeric labels*) 
+type scall = { 
+    scall_name : expression;
+    scall_scope : expression;
+    scall_args : expression list;
+    scall_this : expression;
+    scall_throw_label : int;
+}
+  
+let mk_scall name scope vthis args int_label = {
+      scall_name = name;
+      scall_scope = scope;
+      scall_args = args;
+      scall_this = vthis;
+      scall_throw_label = int_label
+}
 
 type mutation = {
     m_loc : expression;
@@ -242,6 +259,10 @@ type assign_right_expression =
   | Deallocation of expression * expression
   | ProtoF of expression * expression (* TODO: A bit different for String Objects. *)
   | ProtoO of expression * expression
+	(* calls with numeric labels *)
+	| SCall of scall
+  | SEval of scall
+  | SBuiltinCall of scall (* Have eval here? *)
 
 type assignment = { 
     assign_left : variable; 
@@ -312,10 +333,14 @@ and statement_syntax =
   | GuardedGoto of expression * string * string
   | Basic of basic_statement 
   | Sugar of syntactic_sugar_statement
+(* numbered gotos - no more labels *)
+	| SGoto of int
+	| SGuardedGoto of expression * int * int
 and
 syntactic_sugar_statement =
   | If of expression * statement list * statement list 
   | SpecFunction of variable * specification_function * label
+	| SSpecFunction of variable * specification_function * int
 
 let mk_stmt data stx = {stmt_stx = stx; stmt_data = data}
 
