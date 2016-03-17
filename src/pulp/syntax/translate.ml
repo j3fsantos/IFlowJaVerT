@@ -119,9 +119,7 @@ let serialize_sexpr folder_name procs built_ins specs =
 	(* create a new directory*)
 	Utils.safe_mkdir folder_name;
 	(* burn to disk *)
-	burn_to_disk (folder_name ^ "/functions.scm") (Printf.sprintf "('procedures \n %s\n)" procs_content); 
-	burn_to_disk (folder_name ^ "/builtins.scm") (Printf.sprintf "('procedures \n %s\n)" built_ins_content);
-  burn_to_disk (folder_name ^ "/specs.scm") (Printf.sprintf "('procedures \n %s\n)" specs_content); 
+	burn_to_disk (folder_name ^ "/functions.scm") (Printf.sprintf "(program \n %s\n%s\n%s\n)" procs_content built_ins_content specs_content); 
 	burn_to_disk (folder_name ^ "/heap.scm") heap_initial_content
 
 let serialize output_folder_name p_exp built_ins specs = 

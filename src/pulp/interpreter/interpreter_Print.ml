@@ -42,13 +42,14 @@ let print_initial_heap_sexpr_aux h =
 						(fun prop prop_val printed_partial_obj ->
 							 let printed_prop = prop in 
 							 let printed_val = string_of_heap_value prop_val in 
-							 let printed_cell = Printf.sprintf "\n\t('cell %s \"%s\" %s)"  printed_loc printed_prop printed_val in
+							 let printed_cell = Printf.sprintf "\n\t(cell %s \"%s\" %s)"  printed_loc printed_prop printed_val in
 								 printed_partial_obj ^ printed_cell)
 						obj
 						"" in 
 			printed_heap ^ printed_obj)
 			h
 			""
+(* ('heap ('cell loc prop val) ('cell loc prop val) ... ) *)
 let serialize_heap_sexpr h = 
-	"('heap" ^ (print_initial_heap_sexpr_aux h) ^ "\n)"
+	"(heap" ^ (print_initial_heap_sexpr_aux h) ^ "\n)"
 

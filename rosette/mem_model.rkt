@@ -1,14 +1,81 @@
 #lang racket
 
+;; values
 ;; constants
-(define empty 'emtpy)
+(define jempty 'emtpy)
 (define jnull 'null)
 (define jundefined 'undefined)
-(define jtrue 'true)
-(define jfalse 'jfalse)
+(define jtrue #t)
+(define jfalse #f)
+
+(define jsil-constants
+  (let ((table (mutable-set)))
+    (set-add! table jempty)
+    (set-add! table jnull)
+    (set-add! table jundefined)
+    (set-add! table jtrue)
+    (set-add! table jfalse)
+    table))
+
+(define (literal? val)
+  (or
+   (number? val)
+   (string? val)
+   (set-member? jsil-constants val)))
+
 ;;
 ;; special properties
-(define protop 'proto)
+(define protop "proto")
+
+(define (to-interp-bool jbool)
+  (cond
+    [(eq? jbool jtrue) #t]
+    [(eq? jbool jfalse) #f]
+    [else (error "Illegal JSIL boolean")]))
+
+(define (to-jsil-bool bool)
+  (cond
+    [(eq? bool #t) jtrue]
+    [(eq? bool #f) jfalse]
+    [else (error "Illegal Rkt boolean")]))
+
+(provide jempty jnull jundefined jtrue jfalse literal? protop to-interp-bool to-jsil-bool)
+
+;; binary operators
+;; missing: shift left, shift right, btiwise or, bitwise not
+(define operators-table
+  (let* ((table-aux (make-hash))
+         (add (lambda (jsil-op interp-op) (hash-set! table-aux jsil-op interp-op))))
+    (add 'and (lambda (x y) (and x y)))
+    (add 'or (lambda (x y) (or x y)))
+    (add '+ +)
+    (add '- -)
+    (add '* *)
+    (add '/ /)
+    (add '& bitwise-and)
+    (add '^ string-append)
+    (add 'not not)
+    (add 'num_to_string number->string)
+    (add 'string_to_num string->number)
+    (add '= =)
+    (add '< <)
+    (add '> >)
+    (add '>= >=)
+    (add '<= <=)
+    table-aux))
+
+(define (to-interp-op op)
+  (cond
+    [(hash-has-key? operators-table op) (hash-ref operators-table op)]
+    [else (error "Operator not supported")]))
+
+(define (apply-binop op arg1 arg2)
+  (apply op (list arg1 arg2)))
+
+(define (apply-unop op arg)
+  (apply op (list arg)))
+
+(provide to-interp-op apply-binop apply-unop)
 
 ;; heaps
 (define (make-heap)
@@ -18,12 +85,33 @@
   (hash-set! heap (cons loc prop) val))
 
 (define (heap-get heap loc prop)
-   (hash-ref heap (cons loc prop)))
+  (hash-ref heap (cons loc prop)))
 
+(define (heap-delete-cell heap loc prop)
+  (when (heap-contains? heap loc prop)
+      (hash-remove! heap (cons loc prop))))
+      
 (define (heap-contains? heap loc prop)
   (hash-has-key? heap (cons loc prop)))
 
-;; store
+(define (heap . cells)
+  (let ((new-heap (make-heap)))
+    (let loop ((cells-to-process cells))
+      (when (not (null? cells-to-process))
+        (let ((cur-cell (first cells-to-process)))
+          (mutate-heap new-heap (first cur-cell) (second cur-cell) (third cur-cell))
+          (loop (cdr cells-to-process)))))
+    new-heap))
+
+(define (cell loc prop val)
+  (list loc prop val))
+
+(define (get-new-loc)
+  (gensym "loc")) 
+
+(provide make-heap mutate-heap heap-get heap-delete-cell heap-contains? heap cell get-new-loc)
+
+;; stores
 (define (make-store)
   (make-hash))
 
@@ -32,6 +120,23 @@
 
 (define (store-get store var)
   (hash-ref store var))
+
+(define (var? expr)
+  (and
+   (symbol? expr)
+   (eq? (string-ref (symbol->string expr) 0) #\r)))
+
+(define (store . mappings)
+  (let ((new-store (make-store)))
+    (let loop ((cur-mappings mappings))
+      (when (not (null? cur-mappings))
+        (let ((cur-var (first (first cur-mappings)))
+              (cur-val (second (first cur-mappings))))
+          (mutate-store new-store cur-var cur-val) 
+          (loop (rest cur-mappings)))))
+    new-store))
+    
+(provide make-store mutate-store store-get var? store)
 
 ;; refs
 (define (make-ref base field reftype)
@@ -43,6 +148,8 @@
 
 (define (ref-type ref) (third ref))
 
+(provide make-ref ref-base ref-field ref-type)
+
 ;; programs and procedures  
 (define (program . procs)
   (let ((procs-table (make-hash))
@@ -50,7 +157,7 @@
     (map (lambda (proc)
            (let ((proc-name (get-proc-name proc)))
              (hash-set! procs-table proc-name proc)
-             (when (eq? proc-name 'main)
+             (when (eq? proc-name "main")
                (set! found-main #t))))
          procs)
     (if found-main
@@ -59,6 +166,8 @@
 
 (define (get-proc program proc-name)
   (hash-ref program proc-name))
+
+(provide program get-proc)
 
 ;; (proc-name proc-params (ret-var ret-label err-var err-label) vector)
 (define (procedure proc-name proc-args proc-body ret-info err-info)
@@ -75,7 +184,7 @@
            (set! cur-index (+ cur-index 1)))
          cmds-list)
     (list proc-name proc-args (list ret-var ret-label err-var err-label) cmds-vec)))
-           
+
 (define (get-ret-var proc)
   (first (third proc)))
 
@@ -100,26 +209,26 @@
 (define (proc-init-store proc args)
   (define (proc-init-store-iter params args cur-store)
     (if (not (null? params))
-      (cond
-        [(null? args)
-         (mutate-store cur-store (first params) jempty)
-         (proc-init-store-iter (rest params) args cur-store)]
-        [else
-         (mutate-store cur-store (first params) (first args))
-         (proc-init-store-iter (rest params) (rest args) cur-store)])
-      cur-store))
+        (cond
+          [(null? args)
+           (mutate-store cur-store (first params) jempty)
+           (proc-init-store-iter (rest params) args cur-store)]
+          [else
+           (mutate-store cur-store (first params) (first args))
+           (proc-init-store-iter (rest params) (rest args) cur-store)])
+        cur-store))
   (proc-init-store-iter (get-params proc) args (make-store)))
-  
-(define (to-interp-bool jbool)
-  (cond
-    [(eq? jbool jtrue) #t]
-    [(eq? jbool jfalse) #f]))
 
-(define (to-interp-op op)
-  (cond
-    [(eq? op '+) +]
-    [(eq? op '-) -]))
+(define (args . lst)
+  lst)
 
-    
+(define (body . lst)
+  (cons 'body lst))
 
+(define (ret-ctx . lst)
+  (cons 'return lst))
 
+(define (err-ctx . lst)
+  (cons 'error lst))
+
+(provide procedure get-ret-var get-err-var get-ret-index get-err-index get-proc-name get-params get-cmd proc-init-store args body ret-ctx err-ctx)
