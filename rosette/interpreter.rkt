@@ -1,6 +1,7 @@
-#lang racket
+#lang s-exp rosette
 
 (require (file "mem_model.rkt"))
+(require (file "util.rkt"))
 
 (define (run-bcmd prog bcmd heap store)
   (let ((cmd-type (first bcmd)))
@@ -24,6 +25,9 @@
        (let* ((lhs-var (second bcmd))
               (rhs-expr (third bcmd))
               (rhs-val (run-expr rhs-expr store)))
+         (print rhs-expr)
+         (print "you are a banana?")
+         (print rhs-val)
          (mutate-store store lhs-var rhs-val)
          rhs-val)]
       ;;
@@ -193,9 +197,19 @@
                [else (run-cmds prog cmds heap store (+ cur-index 1))]))]))))
 
 (define (run-expr expr store)
+  (print (symbolic? expr))
   (cond
+    ;;
+    ;; literals
     [(literal? expr) expr]
+    ;;
+    ;; variables
     [(var? expr) (store-get store expr)]
+    ;;
+    ;; symbolic value
+    [(symbolic? expr) expr]
+    ;;
+    ;; 
     [(list? expr)
      (cond
        ;; 
@@ -226,6 +240,12 @@
         (let* ((ref-expr (second expr))
                (ref-val (run-expr ref-expr store)))
           (ref-type ref-val))]
+       ;;
+       ;; (make-symbol symbol-type)
+       [(eq? (first expr) 'make-symbol)
+        (if (eq? (second expr) 'number)
+            (make-number-symbol)
+            (make-string-symbol))]
        ;;
        ;; (binop e e)
        [(= (length expr) 3) 

@@ -1,4 +1,4 @@
-#lang racket
+#lang s-exp rosette
 
 ;; values
 ;; constants
@@ -111,20 +111,33 @@
 
 (provide make-heap mutate-heap heap-get heap-delete-cell heap-contains? heap cell get-new-loc)
 
-;; stores
-(define (make-store)
-  (make-hash))
+;; stores - my stuff
+;;(define (make-store)
+;;  (make-hash))
 
-(define (mutate-store store var val)
-  (hash-set! store var val))
+;;(define (store-get store var)
+;;  (hash-ref store var))
+
+;;(define (mutate-store store var val)
+;;  (hash-set! store var val))
+  
+
+;; stores - Julian Dolby
+(define (make-store)
+  (box '()))
 
 (define (store-get store var)
-  (hash-ref store var))
+  (lookup var (unbox store)))
 
-(define (var? expr)
-  (and
-   (symbol? expr)
-   (eq? (string-ref (symbol->string expr) 0) #\r)))
+(define (mutate-store store var val)
+  (define (mutate-store-aux store var val)
+    (cond ((null? store) (list (cons var val)))
+          ((equal? (car (car store)) var)
+           (cons (cons (car (car store)) val) (cdr store)))
+          (#t
+           (cons (car store) (mutate-store-aux (cdr store) var val)))))
+  (let ((new-store-pulp (mutate-store-aux (unbox store) var val)))
+    (set-box! store new-store-pulp)))
 
 (define (store . mappings)
   (let ((new-store (make-store)))
@@ -135,8 +148,25 @@
           (mutate-store new-store cur-var cur-val) 
           (loop (rest cur-mappings)))))
     new-store))
-    
+
+(define (var? expr)
+  (and
+   (symbol? expr)
+   (eq? (string-ref (symbol->string expr) 0) #\r)))
+
 (provide make-store mutate-store store-get var? store)
+
+
+;; auxiliary functions
+(define (lookup x lst-param)
+  (letrec ((iter
+            (lambda (lst)
+              (cond ((null? lst) null)
+                    ((equal? (car (car lst)) x) (cdr (car lst)))
+                    (#t (iter (cdr lst)))))))
+    (iter lst-param)))
+
+
 
 ;; refs
 (define (make-ref base field reftype)
@@ -211,7 +241,7 @@
     (if (not (null? params))
         (cond
           [(null? args)
-           (mutate-store cur-store (first params) jempty)
+           (mutate-store cur-store (first params) jundefined)
            (proc-init-store-iter (rest params) args cur-store)]
           [else
            (mutate-store cur-store (first params) (first args))

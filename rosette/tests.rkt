@@ -1,6 +1,8 @@
-#lang racket
+#lang s-exp rosette
 
 (require (file "interpreter.rkt"))
+
+(define-symbolic $banana number?)
 
 (define empty-prog
   (program
@@ -132,6 +134,10 @@
     (call r-2 "factorial" (r-1) 666)
     (skip)))
 
+(define cmds-15
+  #(
+    (v-assign r1 (make-symbol number))))
+
 (define hp (heap))
 (define st (store))
-(run-cmds prog1 cmds-14 hp st 0)
+(run-cmds prog1 cmds-15 hp st 0)
