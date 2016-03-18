@@ -125,6 +125,14 @@ REMOVE = src/*.cmo \
 	 src/strategies/store/*.cmo \
 	 src/strategies/store/*.cmi
 
+BUILD_DIR = _build
+
+REMOVE_COMPILED = interpreter_run.byte \
+	interpreter_run.d.byte \
+	interpreter_run.native \
+	test_interpreter.byte \
+	translate.byte
+
 NATIVE_REMOVE = src/*.cmx \
 	src/*.o \
 	src/formula_parser/*.cmx \
@@ -146,6 +154,8 @@ byte: tags parsing $(SOURCE1) $(SOURCE2_byte) $(SOURCE3)
 	ocamlfind ocamlc -g -package batteries,unix,xml-light,dynlink -linkpkg $(INCLUDES) $(SOURCE1) $(SOURCE2_byte) $(SOURCE3) -o translate.byte
 	rm $(REMOVE)
 clean:
+	rm $(REMOVE_COMPILED)
+	rm -rf $(BUILD_DIR)
 	rm $(REMOVE)
 
 tags:
