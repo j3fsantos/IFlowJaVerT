@@ -1,5 +1,11 @@
 #lang s-exp rosette
 
+(require rosette/solver/smt/cvc4)
+(current-solver (new cvc4%))
+(current-bitwidth 32)
+
+(define-symbolic @s string?)
+
 (require (file "interpreter.rkt"))
 
 (define-symbolic $banana number?)
@@ -136,8 +142,30 @@
 
 (define cmds-15
   #(
-    (v-assign r1 (make-symbol number))))
+    (v-assign r1 (make-symbol number))
+    (assert (= r1 3))
+    (check (> r1 0))))
+
+(define cmds-16
+  #(
+    (v-assign r1 (make-symbol number))
+    (assert (> r1 2))
+    (new r2)
+    (h-assign r2 "foo" r1)
+    (h-read r3 r2 "foo")
+    (v-assign r4 (+ r3 2))
+    (check (> r4 4))))
+
+(define cmds-17
+  #(
+    (v-assign r1 (make-symbol string))
+    (assert (equal? r1 "zigzag"))
+    (new r2)
+    (h-assign r2 "foo" r1)
+    (h-read r3 r2 "foo")
+    (check (equal? r3 "zigzag"))
+    (v-assign r4 (+ r3 2))))
 
 (define hp (heap))
 (define st (store))
-(run-cmds prog1 cmds-15 hp st 0)
+(run-cmds empty-prog cmds-16 hp st 0)

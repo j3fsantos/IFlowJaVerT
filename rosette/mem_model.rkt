@@ -78,21 +78,86 @@
 (provide to-interp-op apply-binop apply-unop)
 
 ;; heaps
+;;(define (make-heap)
+;;  (make-hash))
+
+;;(define (mutate-heap heap loc prop val)
+;;  (hash-set! heap (cons loc prop) val))
+
+;;(define (heap-get heap loc prop)
+;;  (hash-ref heap (cons loc prop)))
+
+;;(define (heap-delete-cell heap loc prop)
+;;  (when (heap-contains? heap loc prop)
+;;      (hash-remove! heap (cons loc prop))))
+      
+;;(define (heap-contains? heap loc prop)
+;;  (hash-has-key? heap (cons loc prop)))
+
+;; heaps that can be handled by rosette
+
 (define (make-heap)
-  (make-hash))
+  (box '()))
+
+(define (new-prop-val-list)
+  '())
+
+(define (mutate-prop-val-list prop-val-list prop new-val)
+  (print "in mutating")
+  (cond ((null? prop-val-list) (list (cons prop new-val)))
+        ((equal? (caar prop-val-list) prop)
+         (print "found property")
+         (cons (cons prop new-val) (cdr prop-val-list)))
+        (#t
+         (cons (car prop-val-list) (mutate-prop-val-list (cdr prop-val-list) prop new-val)))))
 
 (define (mutate-heap heap loc prop val)
-  (hash-set! heap (cons loc prop) val))
+  (define (mutate-heap-pulp h-pulp loc prop val)
+    (cond ((null? h-pulp)
+           ;(print "bananas")
+           ;(print (list (cons prop val)))
+           (list (cons loc (list (cons prop val)))))
+          ((equal? (caar h-pulp) loc)
+           (cons (cons loc (mutate-prop-val-list (cdar h-pulp) prop val))
+                 (cdr h-pulp)))
+          (#t
+           (cons (car h-pulp) (mutate-heap-pulp (cdr h-pulp) loc prop val)))))
+  (let ((new-heap-pulp (mutate-heap-pulp (unbox heap) loc prop val)))
+    (set-box! heap new-heap-pulp)))
 
 (define (heap-get heap loc prop)
-  (hash-ref heap (cons loc prop)))
+  (let loop ((heap-pulp (unbox heap)))
+    (cond ((null? heap-pulp) jempty)
+          ((equal? (caar heap-pulp) loc)
+           (find-prop-val (cdar heap-pulp) prop))
+          (#t
+           (loop (cdr heap-pulp))))))
 
-(define (heap-delete-cell heap loc prop)
-  (when (heap-contains? heap loc prop)
-      (hash-remove! heap (cons loc prop))))
-      
+(define (find-prop-val prop-val-lst prop)
+  (cond
+    ((null? prop-val-lst) jempty)
+    ((equal? (caar prop-val-lst) prop) (cdar prop-val-lst))
+    (#t (find-prop-val (cdr prop-val-lst) prop))))
+
 (define (heap-contains? heap loc prop)
-  (hash-has-key? heap (cons loc prop)))
+  (not (equal? jempty (heap-get heap loc prop))))
+     
+(define (heap-delete-cell heap loc prop)
+  (define (delete-cell-pulp h-pulp loc prop)
+    (cond ((null? h-pulp) '())
+          ((equal? (car (car h-pulp)) loc)
+           (cons (cons loc (delete-prop-val (cdar h-pulp) prop))
+                 (cdr h-pulp)))
+          (#t
+           (cons (car h-pulp) (heap-delete-cell (cdr h-pulp) loc prop)))))
+   (let ((new-heap-pulp (delete-cell-pulp (unbox heap) loc prop)))
+    (set-box! heap new-heap-pulp)))
+
+(define (delete-prop-val prop-val-list prop)
+  (cond ((null? prop-val-list) '())
+        ((equal? (caar prop-val-list) prop) (cdr prop-val-list))
+        (#t
+         (cons (cons prop-val-list) (delete-prop-val (cdr prop-val-list) prop)))))
 
 (define (heap . cells)
   (let ((new-heap (make-heap)))

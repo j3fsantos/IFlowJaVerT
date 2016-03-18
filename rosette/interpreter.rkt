@@ -3,11 +3,29 @@
 (require (file "mem_model.rkt"))
 (require (file "util.rkt"))
 
+
+
 (define (run-bcmd prog bcmd heap store)
   (let ((cmd-type (first bcmd)))
     (cond
+      ;;
       ;; ('skip)
       [(eq? cmd-type 'skip) empty]
+      ;;
+      ;; ('check e)
+      [(eq? cmd-type 'check)
+       (let* ((expr (second bcmd))
+              (expr-val (run-expr expr store)))
+         (jsil-check expr-val))]
+      ;;
+      ;; ('assert e)
+      [(eq? cmd-type 'assert)
+       (let* ((expr (second bcmd))
+              (expr-val (run-expr expr store)))
+         (jsil-assert expr-val))]
+      ;;
+      ;; ('discharge)
+      [(eq? cmd-type 'discharge) (jsil-discharge)]
       ;;
       ;; ('h-assign e1 e2 e3)
       [(eq? cmd-type 'h-assign)
@@ -25,9 +43,6 @@
        (let* ((lhs-var (second bcmd))
               (rhs-expr (third bcmd))
               (rhs-val (run-expr rhs-expr store)))
-         (print rhs-expr)
-         (print "you are a banana?")
-         (print rhs-val)
          (mutate-store store lhs-var rhs-val)
          rhs-val)]
       ;;
@@ -147,10 +162,10 @@
 
 
 (define (run-cmds prog cmds heap store cur-index)
+  (when (= cur-index 0) (jsil-discharge))
   (if (or (>= cur-index (vector-length cmds))
           (< cur-index 0))
       (begin
-        (print cur-index)
         (error "Illegal Index"))
       (let* ((cmd (vector-ref cmds cur-index))
              (cmd-type (first cmd)))
@@ -263,6 +278,7 @@
 (define (run-proc prog proc-name heap arg-vals)
   (let* ((proc (get-proc prog proc-name))
          (initial-store (proc-init-store proc arg-vals)))
+    (jsil-discharge)
     (run-cmds-iter prog proc-name heap initial-store 0)))
 
 (define (run-program prog heap)
