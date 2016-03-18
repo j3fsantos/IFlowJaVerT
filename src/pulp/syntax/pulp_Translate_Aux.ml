@@ -246,9 +246,25 @@ let spec_func_put_value arg1 arg2 excep_label =
   let left = fresh_r () in
   Sugar (SpecFunction (left, (PutValue (arg1, arg2)), excep_label)), left
   
+let spec_func_get_own_property_default arg1 arg2 excep_label = 
+  let left = fresh_r () in
+  Sugar (SpecFunction (left, (GetOwnPropertyDefault (arg1, arg2)), excep_label)), left
+  
+let spec_func_get_own_property_string arg1 arg2 excep_label = 
+  let left = fresh_r () in
+  Sugar (SpecFunction (left, (GetOwnPropertyString (arg1, arg2)), excep_label)), left
+  
 let spec_func_get arg1 arg2 excep_label = 
   let left = fresh_r () in
   Sugar (SpecFunction (left, (Get (arg1, arg2)), excep_label)), left
+  
+let spec_func_get_default arg1 arg2 excep_label = 
+  let left = fresh_r () in
+  Sugar (SpecFunction (left, (GetDefault (arg1, arg2)), excep_label)), left
+  
+let spec_func_get_function arg1 arg2 excep_label = 
+  let left = fresh_r () in
+  Sugar (SpecFunction (left, (GetFunction (arg1, arg2)), excep_label)), left
   
 let spec_func_has_property arg1 arg2 excep_label = 
   let left = fresh_r () in
@@ -301,15 +317,20 @@ let spec_func_strict_equality arg1 arg2 excep_label =
 let spec_func_strict_equality_same_type arg1 arg2 excep_label = 
   let left = fresh_r () in
   Sugar (SpecFunction (left, (StrictEqualitySameType (arg1, arg2)), excep_label)), left
-  
-let spec_func_call sp ctx meta =
+   
+let spec_func_call sp throw_var label_throw meta =
   let excep_label = "spec_call_excep." ^ (fresh_r ()) in (* TODO some of the functions definetely fo not throw exceptions *)
   let exit_label = "spec_call_normal." ^ (fresh_r ()) in
   let sp_stmt, left = 
     match sp with
       | GetValue e -> spec_func_get_value e excep_label
       | PutValue (e1, e2) -> spec_func_put_value e1 e2 excep_label
+      | GetOwnPropertyDefault (e1, e2) -> spec_func_get_own_property_default e1 e2 excep_label
+      | GetOwnPropertyString (e1, e2) -> spec_func_get_own_property_string e1 e2 excep_label
+      (* At the moment get never throws exceptions, but after implementing getters/setters, it might. *)
       | Get (e1, e2) -> spec_func_get e1 e2 excep_label
+      | GetDefault (e1, e2) -> spec_func_get_default e1 e2 excep_label
+      | GetFunction (e1, e2) -> spec_func_get_function e1 e2 excep_label
       | HasProperty (e1, e2) -> spec_func_has_property e1 e2 excep_label
       | DefaultValue (e, pt) -> spec_func_default_value e pt excep_label (* This not being used at the moment since only to_primitive is using it which is itself a primitive operation *)
       | ToPrimitive (e, pt) -> spec_func_to_primitive e pt excep_label
@@ -328,8 +349,8 @@ let spec_func_call sp ctx meta =
       sp_stmt;
       Goto exit_label;
       Label excep_label;
-      Basic (Assignment (mk_assign ctx.throw_var (Expression (Var left))));
-      Goto ctx.label_throw;
+      Basic (Assignment (mk_assign throw_var (Expression (Var left))));
+      Goto label_throw;
       Label exit_label
     ], left
     
@@ -425,11 +446,11 @@ let translate_obj_coercible r throw_var label_throw meta =
   
 let translate_call_construct_start f e1 e2s ctx construct meta =
     let r1_stmts, r1 = f e1 in
-    let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx meta in 
+    let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx.throw_var ctx.label_throw meta in 
     let arg_stmts = List.map (fun e ->
         begin
           let re1_stmts, re1 = f e in
-          let re2_stmts, re2 = spec_func_call (GetValue (Var re1)) ctx meta in 
+          let re2_stmts, re2 = spec_func_call (GetValue (Var re1)) ctx.throw_var ctx.label_throw meta in 
           (Var re2, re1_stmts @ re2_stmts)
         end
      ) e2s in  
@@ -438,7 +459,7 @@ let translate_call_construct_start f e1 e2s ctx construct meta =
     let gotothrow = translate_error_throw Ltep ctx.throw_var ctx.label_throw meta in
     let is_callable_stmts, is_callable = 
       if construct then begin let stmt, var = is_constructor r2 meta in [stmt], var end
-      else spec_func_call (IsCallable (Var r2)) ctx meta in  
+      else spec_func_call (IsCallable (Var r2)) ctx.throw_var ctx.label_throw meta in  
     (
       r1_stmts @ 
       r2_stmts @ 
@@ -447,8 +468,30 @@ let translate_call_construct_start f e1 e2s ctx construct meta =
       is_callable_stmts @ 
       mk_stmts meta [ Sugar (If (equal_bool_expr (Var is_callable) false, gotothrow, []))
       ], r1, r2, arg_values)
-      
-let translate_get o (* variable containing object *) p (* variable, string, or built-in field name *) left meta = 
+
+let translate_get_own_property_default o (* expression containing object *) p (* expression containing property name *) left meta = 
+   (* TODO : Update everywhere *)
+   let hasfield = mk_assign_fresh (HasField (o, p)) in
+   mk_stmts meta [
+    Basic (Assignment hasfield);
+    Sugar (If (equal_bool_expr (Var hasfield.assign_left) false, mk_stmts meta
+      [Basic (Assignment (mk_assign left (Expression(Literal Undefined))))], mk_stmts meta
+      [Basic (Assignment (mk_assign left (Lookup (o, p))))]))
+   ]     
+  
+let translate_get_own_property_string o (* expression containing object  *) p (* expression containing property name *) left throw_var label_throw meta = 
+   (* TODO : Update everywhere *)
+   let desc = fresh_r () in
+   let desc_stmt = translate_get_own_property_default o p desc meta in
+   desc_stmt @
+   mk_stmts meta [
+    Sugar (If (equal_undef_expr (Var desc), mk_stmts meta
+      [(* TODO Implement Steps 3 - 9 of 15.5.5.2 *)
+       Basic (Assignment (mk_assign left (Expression(Literal Undefined))))], mk_stmts meta
+      [Basic (Assignment (mk_assign left (Expression(Var desc))))]))
+   ]   
+                  
+let translate_get_default o (* variable containing object *) p (* variable, string, or built-in field name *) left meta = 
    (* TODO : Update everywhere *)
    let desc = mk_assign_fresh (ProtoF (o, p)) in
    mk_stmts meta [
@@ -457,6 +500,33 @@ let translate_get o (* variable containing object *) p (* variable, string, or b
       [Basic (Assignment (mk_assign left (Expression(Literal Undefined))))], mk_stmts meta
       [Basic (Assignment (mk_assign left (Expression(Var desc.assign_left))))]))
    ] 
+  
+let translate_get_function o (* variable containing object *) p (* variable, string, or built-in field name *) left throw_var label_throw meta = 
+   (* TODO : Update everywhere *)
+   let v = fresh_r () in
+   let v_stmts= translate_get_default o p v meta in
+   v_stmts @
+   mk_stmts meta [
+    Sugar (If (equal_string_expr (Var v) "caller",
+      translate_error_throw Ltep throw_var label_throw meta, mk_stmts meta
+      [Basic (Assignment (mk_assign left (Expression(Var v))))]))
+   ]
+  
+let translate_get o p left throw_var label_throw meta =
+  let classField = mk_assign_fresh (Lookup (o, literal_builtin_field FClass)) in
+  let targetField = mk_assign_fresh (HasField (o, literal_builtin_field FTargetFunction)) in
+  let get = fresh_r () in
+  let getFstmts = translate_get_function o p get throw_var label_throw meta in
+  let getstmts = translate_get_default o p get meta in
+  mk_stmts meta [
+    Basic (Assignment classField);
+    Basic (Assignment targetField);
+    Sugar (If (and_expr (equal_string_expr (Var classField.assign_left) "Function")
+                        (equal_bool_expr (Var targetField.assign_left) false),
+      getFstmts,
+      getstmts));
+    Basic (Assignment (mk_assign left (Expression(Var get))))
+  ]
   
 let is_callable_object arg rv meta = 
   let hasfield = mk_assign_fresh (HasField (arg, literal_builtin_field FId)) in
@@ -528,6 +598,7 @@ let translate_put_value_reference_base v1 base v2 throw_var throw_label meta =
       gotothrow, mk_stmts meta
       [
         Sugar (If (istypeof_prim_expr base, 
+          (* TODO: follow the spec by creating special [[Put]] as defined in 8.7.2 *)
           gotothrow, 
           translate_put_value_reference_object v1 v2 meta))
       ]))
@@ -545,7 +616,7 @@ let translate_put_value v1 v2 throw_var throw_label meta =
       
 let default_value_inner arg m rv exit_label next_label throw_var label_throw meta =
   let r1 = fresh_r () in
-  let r1_stmts = translate_get arg (Literal (String m)) r1 meta in
+  let r1_stmts = translate_get arg (Literal (String m)) r1 throw_var label_throw meta in
   let is_callable_var = fresh_r() in
   let is_callable_stmts = is_callable (Var r1) is_callable_var meta in
   let r2_stmts, r2 = translate_inner_call (Var r1) arg [] throw_var label_throw [] meta in
@@ -739,7 +810,11 @@ let unfold_spec_function sf left throw_var label_throw meta =
   match sf with
     | GetValue e -> translate_gamma e left throw_var label_throw meta
     | PutValue (e1, e2) -> translate_put_value e1 e2 throw_var label_throw meta
-    | Get (e1, e2) -> translate_get e1 e2 left meta
+    | GetOwnPropertyDefault (e1, e2) -> translate_get_own_property_default e1 e2 left meta
+    | GetOwnPropertyString (e1, e2) -> translate_get_own_property_string e1 e2 left throw_var label_throw meta
+    | GetDefault (e1, e2) -> translate_get_default e1 e2 left meta
+    | GetFunction (e1, e2) -> translate_get_function e1 e2 left throw_var label_throw meta
+    | Get (e1, e2) -> translate_get e1 e2 left throw_var label_throw meta
     | HasProperty (e1, e2) -> translate_has_property e1 e2 left meta
     | DefaultValue (e, pt) -> translate_default_value e pt left throw_var label_throw meta
     | ToPrimitive (e, pt) -> translate_to_primitive e pt left throw_var label_throw meta

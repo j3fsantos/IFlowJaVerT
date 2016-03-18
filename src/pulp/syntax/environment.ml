@@ -19,7 +19,7 @@ let mk_stmts_no_data stmts = mk_stmts empty_metadata stmts
 let builtin_call_boolean_call () =
   let v = fresh_r () in
   let ctx = create_ctx [] in
-  let stmts, r1 = spec_func_call (ToBoolean (Var v)) ctx empty_metadata in
+  let stmts, r1 = spec_func_call (ToBoolean (Var v)) ctx.throw_var ctx.label_throw empty_metadata in
   let body = to_ivl_goto_unfold (* TODO translation level *)
     (mk_stmts_no_data [ 
       Sugar (If (equal_empty_expr (Var v), mk_stmts_no_data
@@ -36,7 +36,7 @@ let builtin_call_boolean_construct () =
   let v = fresh_r () in
   let ctx = create_ctx [] in
   let new_obj = mk_assign_fresh Obj in
-  let stmts, r1 = spec_func_call (ToBoolean (Var v)) ctx empty_metadata in
+  let stmts, r1 = spec_func_call (ToBoolean (Var v)) ctx.throw_var ctx.label_throw empty_metadata in
   let body = to_ivl_goto_unfold (* TODO translation level *)
     (mk_stmts_no_data [ 
       Basic (Assignment new_obj);
@@ -117,7 +117,7 @@ let builtin_lop_toString () =
   let ctx = create_ctx [] in
   let rv = fresh_r () in
   let assign_rv e = Basic (Assignment (mk_assign rv (Expression e))) in  
-  let to_object, r1 = spec_func_call (ToObject (Var rthis)) ctx empty_metadata in
+  let to_object, r1 = spec_func_call (ToObject (Var rthis)) ctx.throw_var ctx.label_throw empty_metadata in
   let class_lookup = mk_assign_fresh (Lookup (Var r1, literal_builtin_field FClass)) in
   let body = to_ivl_goto_unfold (* TODO translation level *)
     (mk_stmts_no_data [ 
@@ -140,7 +140,7 @@ let builtin_lop_toString () =
   
 let builtin_lop_valueOf () =
   let ctx = create_ctx [] in
-  let to_object, r1 = spec_func_call (ToObject (Var rthis)) ctx empty_metadata in
+  let to_object, r1 = spec_func_call (ToObject (Var rthis)) ctx.throw_var ctx.label_throw empty_metadata in
   let body = to_ivl_goto_unfold (* TODO translation level *)
     to_object @
     mk_stmts_no_data [
@@ -157,7 +157,7 @@ let builtin_object_construct () =
   let ctx = create_ctx [] in
   let rv = fresh_r () in
   let assign_rv e = Basic (Assignment (mk_assign rv (Expression e))) in  
-  let stmts, r1 = spec_func_call (ToObject (Var v)) ctx empty_metadata in
+  let stmts, r1 = spec_func_call (ToObject (Var v)) ctx.throw_var ctx.label_throw empty_metadata in
   let new_obj = mk_assign_fresh Obj in
   let label_create = fresh_r () in
   let body = to_ivl_goto_unfold (* TODO translation level *)
@@ -197,7 +197,7 @@ let builtin_object_call () =
   let ctx = create_ctx [] in
   let rv = fresh_r () in
   let assign_rv e = Basic (Assignment (mk_assign rv (Expression e))) in  
-  let stmts, r1 = spec_func_call (ToObject (Var v)) ctx empty_metadata in
+  let stmts, r1 = spec_func_call (ToObject (Var v)) ctx.throw_var ctx.label_throw empty_metadata in
   let new_obj = mk_assign_fresh Obj in
   let body = to_ivl_goto_unfold (* TODO translation level *)
     (mk_stmts_no_data [ 
@@ -238,7 +238,7 @@ let builtin_object_get_prototype_of () =
 let builtin_lop_is_prototype_of () =
   let v = fresh_r () in
   let ctx = create_ctx [] in
-  let to_obj_stmts, o = spec_func_call (ToObject (Var rthis)) ctx empty_metadata in
+  let to_obj_stmts, o = spec_func_call (ToObject (Var rthis)) ctx.throw_var ctx.label_throw empty_metadata in
   let proto = mk_assign_fresh (Lookup (Var v, literal_builtin_field FProto)) in
   let proto_o = mk_assign_fresh (ProtoO (Var proto.assign_left, Var o)) in
   let body = to_ivl_goto_unfold (* TODO translation level *)
@@ -271,7 +271,7 @@ let builtin_lfp_call () =
 let builtin_call_number_call () =
   let v = fresh_r () in
   let ctx = create_ctx [] in
-  let stmts, r1 = spec_func_call (ToNumber (Var v)) ctx empty_metadata in 
+  let stmts, r1 = spec_func_call (ToNumber (Var v)) ctx.throw_var ctx.label_throw empty_metadata in 
   let body = to_ivl_goto_unfold (* TODO translation level *)
     (mk_stmts_no_data [ 
       Sugar (If (equal_empty_expr (Var v), mk_stmts_no_data
@@ -288,7 +288,7 @@ let builtin_call_number_construct () =
   let v = fresh_r () in
   let ctx = create_ctx [] in
   let new_obj = mk_assign_fresh Obj in
-  let stmts, r1 = spec_func_call (ToNumber (Var v)) ctx empty_metadata in
+  let stmts, r1 = spec_func_call (ToNumber (Var v)) ctx.throw_var ctx.label_throw empty_metadata in
   let body = to_ivl_goto_unfold (* TODO translation level *)
     (mk_stmts_no_data [ 
        Basic (Assignment new_obj);
@@ -356,7 +356,7 @@ let builtin_lnp_valueOf () =
 let builtin_global_is_nan () =
   let n = fresh_r () in
   let ctx = create_ctx [] in
-  let stmts, r1 = spec_func_call (ToNumber (Var n)) ctx empty_metadata in 
+  let stmts, r1 = spec_func_call (ToNumber (Var n)) ctx.throw_var ctx.label_throw empty_metadata in 
   let body = to_ivl_goto_unfold (* TODO translation level *)
     (stmts @ mk_stmts_no_data
     [ Sugar (If (equal_num_expr (Var r1) nan, mk_stmts_no_data
@@ -372,7 +372,7 @@ let builtin_global_is_nan () =
 let builtin_global_is_finite () =
   let n = fresh_r () in
   let ctx = create_ctx [] in
-  let stmts, r1 = spec_func_call (ToNumber (Var n)) ctx empty_metadata in 
+  let stmts, r1 = spec_func_call (ToNumber (Var n)) ctx.throw_var ctx.label_throw empty_metadata in 
   let body = to_ivl_goto_unfold (* TODO translation level *)
     (stmts @ mk_stmts_no_data
     [ Sugar (If (or_expr 
@@ -392,7 +392,7 @@ let builtin_global_is_finite () =
 let builtin_call_string_call () =
   let v = fresh_r () in
   let ctx = create_ctx [] in
-  let stmts, r1 = spec_func_call (ToString (Var v)) ctx empty_metadata in 
+  let stmts, r1 = spec_func_call (ToString (Var v)) ctx.throw_var ctx.label_throw empty_metadata in 
   let body = to_ivl_goto_unfold (* TODO translation level *)
    (mk_stmts_no_data [ 
     Sugar (If (equal_empty_expr (Var v), mk_stmts_no_data
@@ -409,7 +409,7 @@ let builtin_call_string_construct () =
   let v = fresh_r () in
   let ctx = create_ctx [] in
   let new_obj = mk_assign_fresh Obj in
-  let stmts, r1 = spec_func_call (ToString (Var v)) ctx empty_metadata in 
+  let stmts, r1 = spec_func_call (ToString (Var v)) ctx.throw_var ctx.label_throw empty_metadata in 
   let body = to_ivl_goto_unfold (* TODO translation level *)
     (mk_stmts_no_data [ 
       Basic (Assignment new_obj);
@@ -468,7 +468,7 @@ let builtin_error_construct_call errorp func () =
   let message = fresh_r () in
   let ctx = create_ctx [] in
   let new_obj = mk_assign_fresh Obj in
-  let stmts, m1 = spec_func_call (ToString (Var message)) ctx empty_metadata in
+  let stmts, m1 = spec_func_call (ToString (Var message)) ctx.throw_var ctx.label_throw empty_metadata in
   let body = to_ivl_goto_unfold 
   ( mk_stmts_no_data [
     Basic (Assignment new_obj);

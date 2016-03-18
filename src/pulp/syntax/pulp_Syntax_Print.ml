@@ -241,9 +241,13 @@ let string_of_basic_statement bs =
 
 let string_of_spec_fun_id sf =
   match sf with
+    | GetOwnPropertyDefault _ -> "#[[GetOwnPropertyDefault]]"
+    | GetOwnPropertyString _ -> "#[[GetOwnPropertyString]]"
     | GetValue _ -> "#GetValue"
     | PutValue _ -> "#PutValue"
     | Get _ -> "#[[Get]]"
+    | GetDefault _ -> "#[[GetDefault]]"
+    | GetFunction _ -> "#[[GetFunction]]"
     | HasProperty _ -> "#[[HasProperty]]"
     | DefaultValue _ -> "#[[DefaultValue]]"
     | ToPrimitive _ -> "#ToPrimitive"
@@ -263,9 +267,13 @@ let string_of_spec_function sf =
   let f = string_of_expression in
   let id = string_of_spec_fun_id sf in
   match sf with
+    | GetOwnPropertyDefault (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
+    | GetOwnPropertyString (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
     | GetValue e -> Printf.sprintf "%s(%s)" id (f e)
     | PutValue (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
     | Get (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
+    | GetDefault (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
+    | GetFunction (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
     | HasProperty (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
     | DefaultValue (e, pt) -> Printf.sprintf "%s(%s, %s)" id (f e) (match pt with None -> "" | Some pt -> string_of_pulp_type pt)
     | ToPrimitive (e, pt) -> Printf.sprintf "%s(%s, %s)" id (f e)  (match pt with None -> "" | Some pt -> string_of_pulp_type pt)
@@ -297,8 +305,8 @@ and string_of_sugar t =
       (string_of_expression condition)
       (string_of_statement_list thenbranch)
       (string_of_statement_list elsebranch)
-    | SpecFunction (v, sf, excel_label) -> Printf.sprintf "%s = %s with (%s)" 
-      v (string_of_spec_function sf) excel_label
+    | SpecFunction (v, sf, excep_label) -> Printf.sprintf "%s = %s with (%s)" 
+      v (string_of_spec_function sf) excep_label
       
   
 let string_of_ctx_vars v = 

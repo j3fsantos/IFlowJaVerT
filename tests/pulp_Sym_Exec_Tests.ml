@@ -328,7 +328,7 @@ let test_proto_field_with_two_proto_in_spec () =
 (* TODO work in progress *)  
 let test_get_value_se_1 () =
   let ctx = create_ctx [] in
-  let getBValueStmts, y = spec_func_call (GetValue (Var "x")) ctx empty_metadata in 
+  let getBValueStmts, y = spec_func_call (GetValue (Var "x")) ctx.throw_var ctx.label_throw empty_metadata in 
   let v = Le_Var (fresh_a()) in
   let pre = Heaplet (Le_PVar "x", Le_Literal (String "f"), v) in
   let post = combine pre (REq (Le_PVar "x")) in

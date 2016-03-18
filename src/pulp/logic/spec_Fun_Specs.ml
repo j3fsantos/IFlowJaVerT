@@ -302,7 +302,7 @@ let make_get_function () =
 	let ctx = create_ctx [] in 
 	let arg_obj = fresh_r () in 
 	let arg_prop = fresh_r () in 
-	let body = translate_get (Var arg_obj) (Var arg_prop) ctx.return_var empty_metadata in 
+	let body = translate_get (Var arg_obj) (Var arg_prop) ctx.return_var ctx.throw_var ctx.label_throw empty_metadata in 
 	let body = body @
 		mk_stmts_empty_data [ Goto ctx.label_return;
     	Label ctx.label_return;

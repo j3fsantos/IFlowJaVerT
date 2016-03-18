@@ -461,7 +461,11 @@ let simplify_spec_func_unfold sf left sf_annot throw_var label_throw =
   match sf with
     | GetValue e -> simplify_get_value e left sf_annot throw_var label_throw
     | PutValue (e1, e2) -> simplify_put_value e1 e2 sf_annot throw_var label_throw
-    | Get (e1, e2) -> translate_get e1 e2 left md (* No simplifications. Might change after we have getters/setters *)
+    | GetOwnPropertyDefault (e1, e2) -> translate_get_own_property_default e1 e2 left md (* TODO *)
+    | GetOwnPropertyString (e1, e2) -> translate_get_own_property_string e1 e2 left throw_var label_throw md (* TODO *)
+    | Get (e1, e2) -> translate_get e1 e2 left throw_var label_throw md (* No simplifications. Might change after we have getters/setters *)
+    | GetDefault (e1, e2) -> translate_get_default e1 e2 left md (* TODO *)
+    | GetFunction (e1, e2) -> translate_get_function e1 e2 left throw_var label_throw md (* TODO *)
     | HasProperty (e1, e2) -> translate_has_property e1 e2 left md (* No simplifications *)
     | DefaultValue (e, pt) -> translate_default_value e pt left throw_var label_throw md (* Cannot do simplifications at this time. But this exploads a lot. Possible simplifications with separation logic reasoning *)
     | ToPrimitive (e, pt) -> simplify_to_primitive e pt sf_annot left throw_var label_throw (* Cannot do more simplifications at this time. Depends on Default Value *)
@@ -482,7 +486,11 @@ let simplify_spec_func sf left sf_annot throw_var label_throw =
   match sf with
     | GetValue e -> Spec_Functions_Simp.simplify_get_value e left sf_annot throw_var label_throw
     | PutValue (e1, e2) -> Spec_Functions_Simp.simplify_put_value e1 e2 sf_annot throw_var label_throw
-    | Get (e1, e2) -> Some (translate_get e1 e2 left md) (* No simplifications. Might change after we have getters/setters *)
+    | GetOwnPropertyDefault _
+    | GetOwnPropertyString _
+    | GetDefault _
+    | GetFunction _ -> None (* TODO *)
+    | Get (e1, e2) -> Some (translate_get e1 e2 left throw_var label_throw md) (* TODO. Might change after we have getters/setters *)
     | HasProperty (e1, e2) -> Some (translate_has_property e1 e2 left md) (* No simplifications *)
     | DefaultValue (e, pt) -> None (* Cannot do simplifications at this time. But this exploads a lot. Possible simplifications with separation logic reasoning *)
     | ToPrimitive (e, pt) -> None (* Cannot do more simplifications at this time. Depends on Default Value *)
@@ -531,7 +539,7 @@ let simplify_spec_func left sf_annot sf option =
 let transform_spec_funcs cfg sf_annot option = 
   match sf_annot.as_stmt.stmt_stx with
     (* Why excep_label isn't used? *)
-    | Sugar (SpecFunction (left, sf, excep_label)) ->       
+    | Sugar (SpecFunction (left, sf, excep_label)) ->
       simplify_spec_func left sf_annot sf option
 
     | _ -> raise (Invalid_argument "Expected SpecFunction")

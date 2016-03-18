@@ -112,7 +112,11 @@ let get_vars_in_spec_functions sf =
     | ToObject e 
     | CheckObjectCoercible e 
     | IsCallable e -> f e
+    | GetOwnPropertyDefault (e1, e2)
+    | GetOwnPropertyString (e1, e2)
     | Get (e1, e2)
+    | GetDefault (e1, e2)
+    | GetFunction (e1, e2)
     | HasProperty (e1, e2)
     | PutValue (e1, e2)  
     | AbstractRelation (e1, e2, _) 
@@ -161,7 +165,11 @@ let transform_expr_in_call f c =
 let transform_expr_in_spec_funcs f sf =
   match sf with
     | GetValue e -> GetValue (f e)
+    | GetOwnPropertyDefault (e1, e2) -> GetOwnPropertyDefault (f e1, f e2)
+    | GetOwnPropertyString (e1, e2) -> GetOwnPropertyString (f e1, f e2)
     | Get (e1, e2) -> Get (f e1, f e2)
+    | GetDefault (e1, e2) -> GetDefault (f e1, f e2)
+    | GetFunction (e1, e2) -> GetDefault (f e1, f e2)
     | HasProperty (e1, e2) -> HasProperty (f e1, f e2)
     | DefaultValue (e, pt) -> DefaultValue (f e, pt)
     | ToPrimitive (e, pt) -> ToPrimitive (f e, pt)

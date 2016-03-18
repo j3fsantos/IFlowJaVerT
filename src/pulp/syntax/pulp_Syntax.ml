@@ -98,6 +98,7 @@ type builtin_field =
   | FPrototype
   | FConstructId
   | FPrimitiveValue
+  | FTargetFunction
   | FClass (* TODO : Update Everywhere *)
 
 let string_of_builtin_field f =
@@ -108,6 +109,7 @@ let string_of_builtin_field f =
     | FPrototype -> "prototype"
     | FConstructId -> "#constructid"
     | FPrimitiveValue -> "#primvalue"
+    | FTargetFunction -> "#targetfunction"
     | FClass -> "#class"
 
 type reference_type = 
@@ -276,23 +278,48 @@ type basic_statement =
   | Assignment of assignment
   | Mutation of mutation
 
+(* TODO InnerCall *)
+(* TODO refactor the code to use specification functions *)
 type specification_function =
+    (* 8.7.1 GetValue *)
   | GetValue of expression
+    (* 8.7.2 PutValue *)
   | PutValue of expression * expression
+ 
+    (* 8.12.1 [[GetOwnProperty]] *)
+  | GetOwnPropertyDefault of expression * expression
+    (* 15.5.5.2 [[GetOwnProperty]] *)
+  | GetOwnPropertyString of expression * expression
+  
   | Get of expression * expression
+    (* 8.12.3 [[Get]] *)
+  | GetDefault of expression * expression
+    (* 15.3.5.4 [[Get]]*)
+  | GetFunction of expression * expression
+  
+    (* 8.12.6 [[HasProperty]] *)
   | HasProperty of expression * expression
+    (* 8.12.8 [[DefaultValue]] *)
   | DefaultValue of expression * pulp_type option
-  (* TODO | InnerCall *)
+    (* 9.1 ToPrimitive *)
   | ToPrimitive of expression * pulp_type option
+    (* 9.2 ToBoolean *)
   | ToBoolean of expression
+    (* 9.3 ToNumber *)
   | ToNumber of expression
   | ToNumberPrim of expression
+    (* 9.8 ToString *)
   | ToString of expression 
   | ToStringPrim of expression
+    (* 9.9 ToObject *)
   | ToObject of expression
+    (* 9.10 CheckObjectCoercible *)
   | CheckObjectCoercible of expression
+    (* 9.11 IsCallable *)
   | IsCallable of expression
+    (* 11.8.5 The Abstract Relational Comparison Algorithm *)
   | AbstractRelation of expression * expression * bool
+    (* 11.9.6 The Strict Equality Comparison Algorithm *)
   | StrictEquality of expression * expression
   | StrictEqualitySameType of expression * expression
 
@@ -315,6 +342,7 @@ and statement_syntax =
 and
 syntactic_sugar_statement =
   | If of expression * statement list * statement list 
+  (* TODO: Add label option for the specification functions that never throw an exception *)
   | SpecFunction of variable * specification_function * label
 
 let mk_stmt data stx = {stmt_stx = stx; stmt_data = data}
