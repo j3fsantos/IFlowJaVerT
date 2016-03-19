@@ -62,8 +62,8 @@
               (loc-val (run-expr loc-expr store))
               (prop-val (run-expr prop-expr store))
               (contains (heap-contains? heap loc-val prop-val)))
-         (mutate-store store lhs-var (to-jsil-bool contains))
-         (to-jsil-bool contains))] 
+         (mutate-store store lhs-var contains) ;; (to-jsil-bool contains))
+         contains)] ;; (to-jsil-bool contains))] 
       ;;
       ;; ('h-read lhs-var e1 e2)
       [(eq? cmd-type 'h-read)
@@ -84,8 +84,8 @@
               (loc-val (run-expr loc-expr store))
               (prop-val (run-expr prop-expr store)))
          (heap-delete-cell heap loc-val prop-val)
-         (mutate-store store lhs-var (to-jsil-bool #t))
-         (to-jsil-bool #t))]
+         (mutate-store store lhs-var #t) ;; (to-jsil-bool #t))
+         #t)] ;; (to-jsil-bool #t))]
       ;;
       ;; ('proto-field lhs-var e1 e2)
       [(eq? cmd-type 'proto-field)
@@ -212,7 +212,6 @@
                [else (run-cmds prog cmds heap store (+ cur-index 1))]))]))))
 
 (define (run-expr expr store)
-  (print (symbolic? expr))
   (cond
     ;;
     ;; literals
@@ -284,7 +283,7 @@
 (define (run-program prog heap)
   (run-proc prog "main" heap '()))
   
-(provide run-program run-proc run-cmds program procedure heap cell store args body ret-ctx err-ctx jempty jnull jundefined jtrue jfalse protop)
+(provide run-program run-proc run-cmds program procedure heap cell store args body ret-ctx err-ctx jempty jnull jundefined protop) ;; jtrue jfalse protop)
 
 (define (proto-lookup-obj heap loc prop)
   (cond

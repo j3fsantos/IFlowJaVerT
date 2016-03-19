@@ -67,4 +67,4 @@
 
 (define jsil-discharge reset-logic-state)
 
-(provide jsil-check jsil-assert jsil-discharge) 
+(provide jsil-check jsil-assert jsil-discharge)
