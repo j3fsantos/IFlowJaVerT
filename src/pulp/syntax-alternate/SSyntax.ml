@@ -37,27 +37,28 @@ let mk_sstmt stmt data = {
 (* Parameters of spec functions *)
 let get_params sf = 
 	(match sf with
-   | GetValue                e1         -> [e1]
-   | PutValue               (e1, e2)    -> [e1; e2]
-   | Get                    (e1, e2)    -> [e1; e2]
-   | HasProperty            (e1, e2)    -> [e1; e2]
-   | DefaultValue           (e1, ot)    -> [e1] @ (match ot with
-	                                                  | Some t -> [Literal (Type t)]
-			                                              | None   -> [])
-   | ToPrimitive            (e1, ot)    -> [e1] @ (match ot with
-			                                              | Some t -> [Literal (Type t)]
-			                                              | None   -> [])
-   | ToBoolean               e1         -> [e1]
-   | ToNumber                e1         -> [e1]
-   | ToNumberPrim            e1         -> [e1]
-   | ToString                e1         -> [e1]
-   | ToStringPrim            e1         -> [e1]
-   | ToObject                e1         -> [e1]
-   | CheckObjectCoercible    e1         -> [e1]
-   | IsCallable              e1         -> [e1]
-   | AbstractRelation       (e1, e2, b) -> [e1; e2; (Literal (Bool b))]
-   | StrictEquality         (e1, e2)    -> [e1; e2]
-   | StrictEqualitySameType (e1, e2)    -> [e1; e2])
+   | ToBoolean            e1 
+   | ToNumber             e1 
+   | ToNumberPrim         e1 
+   | ToString             e1 
+   | ToStringPrim         e1 
+   | ToObject             e1 
+   | CheckObjectCoercible e1 
+   | IsCallable           e1 
+	 | GetValue             e1 -> [e1]
+	
+	 | PutValue               (e1, e2) 
+   | Get                    (e1, e2) 
+   | HasProperty            (e1, e2) 
+   | StrictEquality         (e1, e2) 
+   | StrictEqualitySameType (e1, e2) -> [e1; e2]
+	 
+	 | DefaultValue (e1, ot)    
+   | ToPrimitive  (e1, ot) -> [e1] @ (match ot with
+			                                 | Some t -> [Literal (Type t)]
+			                                 | None   -> [])
+																										
+   | AbstractRelation (e1, e2, b) -> [e1; e2; (Literal (Bool b))])
 
 
 (* Translation to remove labels *)
