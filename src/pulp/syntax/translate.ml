@@ -12,11 +12,12 @@ open Interpreter
 open Memory_Model
 open Pulp_Syntax
 open Interpreter_Print
+open SSyntax
 
 let file = ref ""
 let level = ref IVL_goto
 let smart_simp = ref Simp_Common.Simp_Specs
-let line_numbers_on = ref false
+let line_numbers_on = ref true
 
 type simp_level =
   | Simp_On (* simplifications on *)
