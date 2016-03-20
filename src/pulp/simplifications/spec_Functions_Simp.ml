@@ -93,6 +93,23 @@ let simplify_put_value e1 e2 sf_annot throw_var label_throw =
   let annot = sf_annot.as_annot in 
   let md = sf_annot.as_stmt.stmt_data in
   let gotothrow = Some (translate_error_throw Lrep throw_var label_throw md) in
+  
+  let simplify_ref_object base base_ty field value rt =
+    match rt with
+       | MemberReference ->  Some (translate_put_value_member_reference_object_base_field base field value throw_var label_throw md)
+       | VariableReference ->
+        begin match base with
+           | Literal (LLoc Lg) -> Some (translate_put_value_member_reference_object e1 e2 throw_var label_throw md)
+           | Literal (LLoc _) ->  Some (mk_stmts md ([Basic (Mutation (mk_mutation base field value))]))
+           | Literal _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ | Ref _ ->  raise (Invalid_argument "Cannot Happen in simplify_ref_object") 
+           | Var v ->
+            begin match base_ty with
+              | Some Normal -> (* Definetely not Lg *) Some (mk_stmts md ([Basic (Mutation (mk_mutation base field value))]))
+              | Some Builtin -> Some (translate_put_value_variable_reference_object e1 e2 throw_var label_throw md)
+              | None -> raise (Invalid_argument "Cannot Happen in simplify_ref_object for object type in get value")
+            end 
+        end
+    in
     
   match e1 with
     | Literal _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ -> gotothrow
@@ -114,7 +131,7 @@ let simplify_put_value e1 e2 sf_annot throw_var label_throw =
       begin match base with
         | Literal lit ->
           begin match lit with
-            | LLoc l -> Some (translate_put_value_reference_object_base_field base field e2 md)
+            | LLoc l -> simplify_ref_object base None field e2 rt
             | Null ->  None             
             | Bool _  | Num _  | String _ -> gotothrow
             | Undefined -> gotothrow
@@ -136,7 +153,7 @@ let simplify_put_value e1 e2 sf_annot throw_var label_throw =
                       | NullType -> None
                       | UndefinedType -> gotothrow
                       | BooleanType | StringType | NumberType -> gotothrow
-                      | ObjectType ot -> Some (translate_put_value_reference_object_base_field base field e2 md)
+                      | ObjectType ot -> simplify_ref_object base ot field e2 rt
                       | ReferenceType _ -> raise (Invalid_argument "Reference cannot be as an argument to Reference") 
                     end
                   | TI_Value | TI_NotARef -> None

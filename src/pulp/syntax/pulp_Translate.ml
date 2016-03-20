@@ -312,8 +312,10 @@ let translate_function_expression exp params ctx named =
     Basic (Assignment f_obj);
     Basic (Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FClass) (Literal (String "Function"))));
     add_proto_value f_obj.assign_left Lfp;
+    (* TODO: Use new object translation *)
     Basic (Assignment prototype); 
     add_proto_value prototype.assign_left Lop; 
+    Basic (Mutation (mk_mutation (Var prototype.assign_left) (literal_builtin_field FClass) (Literal (String "Object"))));
     Basic (Mutation (mk_mutation (Var prototype.assign_left) (Literal (String "constructor")) (Var f_obj.assign_left)));
     Basic (Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FPrototype) (Var prototype.assign_left)));
     Basic (Assignment scope);
@@ -490,8 +492,11 @@ let rec translate_exp ctx exp : statement list * variable =
 	            Sugar (If (type_of_obj (Var prototype.assign_left), mk_stmts_md
 	                [Basic (Assignment (mk_assign vthisproto (Expression (Var prototype.assign_left))))], mk_stmts_md
 	                [Basic (Assignment (mk_assign vthisproto (Expression (Literal (LLoc Lop)))))])); 
-	            Basic (Assignment vthis);
-	            add_proto_var vthis.assign_left vthisproto 
+	            (* TODO: use new object translation *)
+              Basic (Assignment vthis);
+	            add_proto_var vthis.assign_left vthisproto ;
+              Basic (Mutation (mk_mutation (Var vthis.assign_left) (literal_builtin_field FClass) (Literal (String "Object"))));
+              
 	          ] @
 	          if3 @ mk_stmts_md
 	          [  Sugar (If (type_of_obj (Var call_lvar), mk_stmts_md
@@ -872,7 +877,40 @@ let rec translate_exp ctx exp : statement list * variable =
             putvalue_stmts, r3
         end
       
-      | Parser_syntax.Array _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:11.1.4 Array Initialiser.")))
+      | Parser_syntax.Array els -> 
+          let array = fresh_r () in
+          let new_array_stmts = translate_new_array array md in
+          
+          (* We are doing an optimization here. Instead of defining length property everytime we create a new *)
+          (* field in an array object, we will do it only once. *)
+          (* TODO: check if this optimization is correct. *)
+          let len = List.length els in
+          
+          let stmts = List.mapi (fun index e_op ->
+            match e_op with
+              | None -> []
+              | Some e ->
+                begin
+                  let init_result_stmts, init_result = f e in
+                  let init_value_stmts, init_value = spec_func_call (GetValue (Var init_result)) ctx.throw_var ctx.label_throw md in 
+                  (* We know that index is integer. Do we still want to call specification function ToStringPrim? *)
+                  let index_to_string_stmts, index_str = spec_func_call (ToStringPrim (Literal (Num (float_of_int index)))) ctx.throw_var ctx.label_throw md in
+                  let define_own_property_stmts, _ = spec_func_call (DefineOwnPropertyArray (Var array, Var index_str, Var init_value, false)) ctx.throw_var ctx.label_throw md in
+                  init_result_stmts @ 
+                  init_value_stmts @ 
+                  index_to_string_stmts @
+                  define_own_property_stmts
+                end
+            ) els in
+            
+          let to_string_uint32_stmts, len_uint32 = spec_func_call (ToUint32 (Literal (Num (float_of_int len)))) ctx.throw_var ctx.label_throw md in
+          let put_stmts, _ = spec_func_call (Put (Var array, Literal (String "length"), Var len_uint32, false)) ctx.throw_var ctx.label_throw md in 
+            
+          new_array_stmts @  
+          (List.flatten stmts) @
+          to_string_uint32_stmts @   
+          put_stmts, array
+        
       | Parser_syntax.ConditionalOp (e1, e2, e3) ->
         let r1_stmts, r1 = f e1 in
         let r2_stmts, r2 = spec_func_call (GetValue (Var r1)) ctx.throw_var ctx.label_throw md in

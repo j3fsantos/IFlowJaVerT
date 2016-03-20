@@ -50,6 +50,8 @@ type builtin_loc =
   | Lnp_valueOf 
   | LMath
   | LString 
+  | LArray (* Array *)
+  | Lap (* Array.prototype *)
   | Lsp 
   | Lsp_toString 
   | Lsp_valueOf
@@ -79,6 +81,8 @@ type builtin_function =
   | String_Construct 
   | String_Prototype_toString 
   | String_Prototype_valueOf 
+  | Array_Call
+  | Array_Construct
   | Error_Call_Construct
   | TypeError_Call_Construct
   | ReferenceError_Call_Construct
@@ -266,6 +270,9 @@ let mk_assign var exp = {
     assign_left = var; 
     assign_right = exp
   }
+  
+let mk_assign_e var e = mk_assign var (Expression e)
+let mk_assign_lit var lit = mk_assign_e var (Literal lit)
 
 (* Assignment to a fresh variable *)
 let mk_assign_fresh exp = mk_assign (fresh_r ()) exp
@@ -291,16 +298,28 @@ type specification_function =
     (* 15.5.5.2 [[GetOwnProperty]] *)
   | GetOwnPropertyString of expression * expression
   
+    (* [[Get]]*)
   | Get of expression * expression
     (* 8.12.3 [[Get]] *)
   | GetDefault of expression * expression
     (* 15.3.5.4 [[Get]]*)
   | GetFunction of expression * expression
+
+    (* 8.12.5 [[Put]] *)
+  | Put of expression * expression * expression * bool
   
     (* 8.12.6 [[HasProperty]] *)
   | HasProperty of expression * expression
     (* 8.12.8 [[DefaultValue]] *)
   | DefaultValue of expression * pulp_type option
+
+    (* [[DefineOwnProperty]]*)
+  | DefineOwnProperty of expression * expression * expression * bool
+    (* 8.12.9 [[DefineOwnProperty]]*)
+  | DefineOwnPropertyDefault of expression * expression * expression * bool
+    (* 15.4.5.1 [[DefineOwnProperty]]*)
+  | DefineOwnPropertyArray of expression * expression * expression * bool
+
     (* 9.1 ToPrimitive *)
   | ToPrimitive of expression * pulp_type option
     (* 9.2 ToBoolean *)
@@ -308,6 +327,8 @@ type specification_function =
     (* 9.3 ToNumber *)
   | ToNumber of expression
   | ToNumberPrim of expression
+    (* 9.6 ToUint32 *)
+  | ToUint32 of expression
     (* 9.8 ToString *)
   | ToString of expression 
   | ToStringPrim of expression

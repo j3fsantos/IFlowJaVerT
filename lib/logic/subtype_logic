@@ -5,6 +5,7 @@ if
 
 rule is_subtype_vref_ref :
    | type_of(?x) = VariableReferenceType() |- true()=is_subtype(type_of(?x), ReferenceType())
+without true()=is_subtype(type_of(?x), ReferenceType())
 if 
    | |-
 

@@ -30,11 +30,11 @@ let test_8_7_2_1_s () =
   let js_program = "
     /**
      @toprequires #protoPred(?LS, ?P,'_8_7_2_1', ?L, ?V) *
-                 #obj[#GlobalObject]('_8_7_2_1'| #proto:?P) 
+                 #obj[#GlobalObject]('_8_7_2_1'| #class:'Object', #proto:?P) 
     @topensures #r = 11 * #obj[#GlobalObject](|'_8_7_2_1': 11, #proto:?P)
     @topensureserr #r = _E * #obj[_E](|#proto:#ReferenceErrorPrototype, #class:'Error')
     
-    @toprequires #obj[#GlobalObject](|'_8_7_2_1':?X, #proto:?P) * ?X != #(/) * ?X != #empty
+    @toprequires #obj[#GlobalObject](|'_8_7_2_1':?X, #proto:?P, #class:'Object') * ?X != #(/) * ?X != #empty
     @topensures #r = 11 * #obj[#GlobalObject](|'_8_7_2_1': 11, #proto:?P)
     */
     _8_7_2_1 = 11;" in
@@ -239,7 +239,7 @@ let test_S11_2_2_A3_T1_part1 () =
 (* ch11/11.2/11.2.2/S11.2.2_A3_T1.js *)  
 let test_S11_2_2_A3_T1_part2 () =
   let js_program = "/**
-    @toprequires #obj[#GlobalObject](|'x':?X)
+    @toprequires #obj[#GlobalObject](|#class:'Object','x':?X)
         
     
     @topensureserr #r = _E * #obj[_E](|#proto:#TypeErrorPrototype, #class:'Error')             
@@ -252,7 +252,7 @@ let test_S11_2_2_A3_T1_part2 () =
 (* ch11/11.2/11.2.2/S11.2.2_A3_T1.js *)  
 let test_S11_2_2_A3_T1_part3 () =
   let js_program = "/**
-    @toprequires #obj[#GlobalObject](|'x':?X)
+    @toprequires #obj[#GlobalObject](|#class:'Object','x':?X)
         
     
     @topensureserr #r = _E * #obj[_E](|#proto:#TypeErrorPrototype, #class:'Error')             
@@ -325,14 +325,14 @@ let test_S11_8_7_A3_part5 () =
  (* ch11/11.2/11.2.3/11.2.3-3_2.js *)
 let test_11_2_3_3_2 () =
   let js_program = "/**
-    @toprequires #obj[#GlobalObject](|'fooCalled':?FC, 'foo': ?F, 'o' : ?O) * 
+    @toprequires #obj[#GlobalObject](|#class:'Object','fooCalled':?FC, 'foo': ?F, 'o' : ?O) * 
                  #protoPred(?LS, #ObjectPrototype,'bar', ?L, #empty)
     
     @topensureserr #r = _E * #obj[_E](|#proto:#TypeErrorPrototype, #class:'Error')             
     */
     var fooCalled = false;
     var foo = 
-      /** @requires #obj[rscope](|'main':#GlobalObject) * #obj[#GlobalObject](|'fooCalled':?FC1) 
+      /** @requires #obj[rscope](|'main':#GlobalObject) * #obj[#GlobalObject](|#class:'Object','fooCalled':?FC1) 
           @ensures #r = #undefined *  #obj[#GlobalObject](|'fooCalled':true) */
       function (){ fooCalled = true; } 
     var o = { }; 
@@ -358,7 +358,7 @@ let test_S13_A17_T2_part () =
 (* ch13/13.2/S13.2.2_A2.js *)
 let test_S13_2_2_A2 () =
   let js_program = "/**
-    @toprequires #obj[#GlobalObject](|'__PLANT':?P, '__ROSE': ?R, '__PROTO' : ?PR, '__FACTORY' : ?F, '__rose' : ?r)
+    @toprequires #obj[#GlobalObject](|#class:'Object','__PLANT':?P, '__ROSE': ?R, '__PROTO' : ?PR, '__FACTORY' : ?F, '__rose' : ?r)
     
     @topensureserr #r = _E * #obj[_E](|#proto:#TypeErrorPrototype, #class:'Error')             
     */
@@ -377,7 +377,7 @@ let test_S13_2_2_A2 () =
       $ERROR('#0: __PROTO.type=__PLANT does not lead to throwing exception')
     }
 
-    /** @requires #obj[rscope](|'main':#GlobalObject) * #protoPred(?LS, #GlobalObject,'__ROSE', ?L, ?R) * ?R != #empty * ?R != #(/) * false = (#typeof(?R) <: #Reference) * (rthis,'name') |-> ?N
+    /** @requires #obj[rscope](|'main':#GlobalObject) * #protoPred(?LS, #GlobalObject,'__ROSE', ?L, ?R) * ?R != #empty * ?R != #(/) * false = (#typeof(?R) <: #Reference) * #obj[rthis](|#class:'Object','name': ?N)
         @ensures #r = #undefined * (rthis,'name') |-> ?R */
     function __FACTORY(){this.name=__ROSE};
 
@@ -404,7 +404,7 @@ let test_S11_2_3_A3_T2_part1 () =
 (* ch11/11.2/11.2.3/S11.2.3_A3_T2.js *)
 let test_S11_2_3_A3_T2_part2 () =
   let js_program = "/**
-    @toprequires #obj[#GlobalObject](|'x':?X)
+    @toprequires #obj[#GlobalObject](|#class:'Object','x':?X)
         
     
     @topensureserr #r = _E * #obj[_E](|#proto:#TypeErrorPrototype, #class:'Error')             
@@ -429,7 +429,7 @@ let test_S11_2_3_A4_T1_part1 () =
 (* ch11/11.2/11.2.3/S11.2.3_A4_T1.js *)
 let test_S11_2_3_A4_T1_part2 () =
   let js_program = "/**
-    @toprequires #obj[#GlobalObject](|'Boolean':#LBoolean,'x': ?X) * #obj[#LBoolean](|#constructid:#boolean_construct) * #typeof(#LBoolean) = #BObject
+    @toprequires #obj[#GlobalObject](|#class:'Object','Boolean':#LBoolean,'x': ?X) * #obj[#LBoolean](|#constructid:#boolean_construct) * #typeof(#LBoolean) = #BObject
         
     
     @topensureserr #r = _E * #obj[_E](|#proto:#TypeErrorPrototype, #class:'Error')             
@@ -454,7 +454,7 @@ let test_S11_2_2_A4_T3_part1 () =
 (* ch11/11.2/11.2.2/S11.2.2_A4_T3.js *)
 let test_S11_2_2_A4_T3_part2 () =
   let js_program = "/**
-    @toprequires #obj[#GlobalObject](|'x':?X,'String':#LString) * #obj[#LString](|#constructid:#string_construct) * #typeof(#LString) = #BObject
+    @toprequires #obj[#GlobalObject](|#class:'Object','x':?X,'String':#LString) * #obj[#LString](|#constructid:#string_construct) * #typeof(#LString) = #BObject
         
     
     @topensureserr #r = _E * #obj[_E](|#proto:#TypeErrorPrototype, #class:'Error')             
@@ -467,7 +467,7 @@ let test_S11_2_2_A4_T3_part2 () =
 (* ch11/11.2/11.2.2/S11.2.2_A4_T3.js *)
 let test_S11_2_2_A4_T3_part3 () =
   let js_program = "/**
-    @toprequires #obj[#GlobalObject](|'x':?X,'String':#LString) * #obj[#LString](|#constructid:#string_construct) * #typeof(#LString) = #BObject
+    @toprequires #obj[#GlobalObject](|#class:'Object','x':?X,'String':#LString) * #obj[#LString](|#constructid:#string_construct) * #typeof(#LString) = #BObject
         
     
     @topensureserr #r = _E * #obj[_E](|#proto:#TypeErrorPrototype, #class:'Error')             
@@ -479,7 +479,7 @@ let test_S11_2_2_A4_T3_part3 () =
 
 let test_while () =
   let js_program = "/**
-    @toprequires #obj[#GlobalObject](|'x':?X) * #typeof(?X) = #Number
+    @toprequires #obj[#GlobalObject](|#class:'Object','x':?X) * #typeof(?X) = #Number
     @topensures #obj[#GlobalObject](|'x': 4)             
     */
       var x = 1; /**@invariant #obj[#GlobalObject](|'x':_X) * (_X <= 4) = true * #typeof(_X) = #Number * _X != #nan * (0 < _X) = true */ 
@@ -548,7 +548,7 @@ let test_paper_example_1 () =
   let js_program = " 
   
     /** @toprequires 
-          #obj[#GlobalObject](|'f':?F, 'o1': ?O1, 'o2' : ?O2, 'y' : ?Y) 
+          #obj[#GlobalObject](|#class:'Object','f':?F, 'o1': ?O1, 'o2' : ?O2, 'y' : ?Y) 
           
         @topensures 
           #obj[#GlobalObject](|'f':_F1, 'o1': _O11, 'o2' : _O21, 'y' : 2) *
@@ -563,7 +563,7 @@ let test_paper_example_1 () =
     f = 
       /** 
           @requires #obj[rscope](|'main':#GlobalObject) *
-          (rthis,'p') |-> _V
+          #obj[rthis](|#class:'Object','p': _V)
           
           @ensures #obj[rscope](|'main':#GlobalObject) *
           (rthis,'p') |-> x * #r = #undefined
@@ -665,12 +665,12 @@ let test_paper_example_2 () =
   let test_cav_example_exception () =
     let js_program = "
     
-    /** @toprequires #obj[#GlobalObject](|'Person':?P, 'alice': ?A, 'f' : ?F) 
+    /** @toprequires #obj[#GlobalObject](|#class:'Object','Person':?P, 'alice': ?A, 'f' : ?F) 
         @topensureserr #r = _E * #obj[_E](|#proto:#TypeErrorPrototype, #class:'Error')  */
         
     var alice, f;    
     
-    /** @requires #obj[rscope](|'main':#GlobalObject) * (rthis,'name') |-> ?V 
+    /** @requires #obj[rscope](|'main':#GlobalObject) * #obj[rthis](|#class:'Object', 'name' : ?V) 
         @ensures (rthis,'name') |-> name * #r = #undefined
         
         @requires #obj[rscope](|'main':#GlobalObject) * rthis = #undefined
@@ -682,7 +682,7 @@ let test_paper_example_2 () =
     }
 
     Person.prototype.sayHi = 
-       /** @requires #obj[rscope](|'main':#GlobalObject) * (rthis,'name') |-> ?V * #typeof(?V) = #String 
+       /** @requires #obj[rscope](|'main':#GlobalObject) * #obj[rthis](|#class:'Object','name':?V) * #typeof(?V) = #String 
            @ensures  #obj[rscope](|'main':#GlobalObject) * (rthis,'name') |-> ?V * #typeof(?V) = #String * #r = ('Hi ' ^ ?V)
           
            @requires #obj[rscope](|'main':#GlobalObject) * rthis = #undefined 

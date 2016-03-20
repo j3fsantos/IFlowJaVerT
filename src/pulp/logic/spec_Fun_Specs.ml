@@ -193,10 +193,17 @@ let put_value_spec param1 param2 ctx =
       class_heaplet_f lerror "Error"
     ]) in
 	
-	let is_writable_ref = combine 
-		(type_of_ref_f (Le_PVar param1))
-		(eq_true (Le_BinOp ((Le_TypeOf (Le_Base (Le_PVar param1))), (Comparison Equal), (Le_Literal (Type (ObjectType (Some Normal))))))) in 
-	
+  (* TODO: Give a spec when class is Array *)
+  let c = Le_Var (fresh_a()) in
+  
+	let is_writable_ref = Star [ 
+		type_of_ref_f (Le_PVar param1);
+    type_of_obj_f (Le_Base (Le_PVar param1));
+    class_heaplet_exp (Le_Base (Le_PVar param1)) c;
+    NEq (c, Le_None);
+    NEq (c, (Le_Literal (String "Array")))
+  ] in
+    	
 	let v1 = Le_Var (fresh_a()) in
 	
 	let pre_valid_ref_for_put_value = combine is_writable_ref 

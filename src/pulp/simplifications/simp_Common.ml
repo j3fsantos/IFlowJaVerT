@@ -107,6 +107,7 @@ let get_vars_in_spec_functions sf =
     | ToBoolean e 
     | ToNumber e
     | ToNumberPrim e 
+    | ToUint32 e
     | ToString e 
     | ToStringPrim e 
     | ToObject e 
@@ -122,6 +123,10 @@ let get_vars_in_spec_functions sf =
     | AbstractRelation (e1, e2, _) 
     | StrictEquality (e1, e2)
     | StrictEqualitySameType (e1, e2) -> (f e1) @ (f e2)
+    | Put (e1, e2, e3, _)
+    | DefineOwnProperty (e1, e2, e3, _)
+    | DefineOwnPropertyDefault (e1, e2, e3, _)
+    | DefineOwnPropertyArray (e1, e2, e3, _) -> (f e1) @ (f e2) @ (f e3)
 
 let rec get_vars_in_stmt stmt = 
   match stmt.stmt_stx with
@@ -170,12 +175,17 @@ let transform_expr_in_spec_funcs f sf =
     | Get (e1, e2) -> Get (f e1, f e2)
     | GetDefault (e1, e2) -> GetDefault (f e1, f e2)
     | GetFunction (e1, e2) -> GetDefault (f e1, f e2)
+    | Put (e1, e2, e3, b) -> Put (f e1, f e2, f e3, b)
     | HasProperty (e1, e2) -> HasProperty (f e1, f e2)
     | DefaultValue (e, pt) -> DefaultValue (f e, pt)
+    | DefineOwnProperty (e1, e2, e3, b) -> DefineOwnProperty (f e1, f e2, f e3, b)
+    | DefineOwnPropertyDefault (e1, e2, e3, b) -> DefineOwnPropertyDefault (f e1, f e2, f e3, b)
+    | DefineOwnPropertyArray (e1, e2, e3, b) -> DefineOwnPropertyArray (f e1, f e2, f e3, b)
     | ToPrimitive (e, pt) -> ToPrimitive (f e, pt)
     | ToBoolean e -> ToBoolean (f e)
     | ToNumber e -> ToNumber (f e)
     | ToNumberPrim e -> ToNumberPrim (f e)
+    | ToUint32 e -> ToUint32 (f e)
     | ToString e -> ToString (f e)
     | ToStringPrim e -> ToStringPrim (f e)
     | ToObject e -> ToObject (f e)

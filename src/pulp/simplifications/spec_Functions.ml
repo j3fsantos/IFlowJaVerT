@@ -96,6 +96,23 @@ let simplify_put_value e1 e2 sf_annot throw_var label_throw =
   let annot = sf_annot.as_annot in 
   let md = sf_annot.as_stmt.stmt_data in
   let gotothrow = translate_error_throw Lrep throw_var label_throw md in
+  
+  let simplify_ref_object base base_ty field value rt =
+    match rt with
+       | MemberReference -> translate_put_value_member_reference_object_base_field base field value throw_var label_throw md
+       | VariableReference ->
+        begin match base with
+           | Literal (LLoc Lg) -> translate_put_value_member_reference_object e1 e2 throw_var label_throw md
+           | Literal (LLoc _) ->  mk_stmts md ([Basic (Mutation (mk_mutation base field value))])
+           | Literal _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ | Ref _ ->  raise (Invalid_argument "Cannot Happen in simplify_ref_object") 
+           | Var v ->
+            begin match base_ty with
+              | Some Normal -> (* Definetely not Lg *) mk_stmts md ([Basic (Mutation (mk_mutation base field value))])
+              | Some Builtin -> translate_put_value_variable_reference_object e1 e2 throw_var label_throw md
+              | None -> raise (Invalid_argument "Cannot Happen in simplify_ref_object for object type in get value")
+            end 
+        end
+    in
     
   match e1 with
     | Literal _ | BinOp _ | UnaryOp _ | Base _ | Field _ | TypeOf _ -> gotothrow
@@ -117,7 +134,7 @@ let simplify_put_value e1 e2 sf_annot throw_var label_throw =
       begin match base with
         | Literal lit ->
           begin match lit with
-            | LLoc l -> translate_put_value_reference_object_base_field base field e2 md
+            | LLoc l -> simplify_ref_object base None field e2 rt
             | Null ->  raise (Invalid_argument "Ref base cannot be null ")             
             | Bool _  | Num _  | String _ -> gotothrow
             | Undefined -> gotothrow
@@ -139,7 +156,7 @@ let simplify_put_value e1 e2 sf_annot throw_var label_throw =
                       | NullType -> raise (Invalid_argument "Ref base cannot be null ") 
                       | UndefinedType -> gotothrow
                       | BooleanType | StringType | NumberType -> gotothrow
-                      | ObjectType ot -> translate_put_value_reference_object_base_field base field e2 md
+                      | ObjectType ot -> simplify_ref_object base ot field e2 rt
                       | ReferenceType _ -> raise (Invalid_argument "Reference cannot be as an argument to Reference") 
                     end
                   | TI_Value | TI_NotARef -> translate_put_value_reference_base e1 base e2 throw_var label_throw md
@@ -466,12 +483,17 @@ let simplify_spec_func_unfold sf left sf_annot throw_var label_throw =
     | Get (e1, e2) -> translate_get e1 e2 left throw_var label_throw md (* No simplifications. Might change after we have getters/setters *)
     | GetDefault (e1, e2) -> translate_get_default e1 e2 left md (* TODO *)
     | GetFunction (e1, e2) -> translate_get_function e1 e2 left throw_var label_throw md (* TODO *)
+    | Put (e1, e2, e3, b) -> translate_put e1 e2 e3 b throw_var label_throw md (* TODO *)
     | HasProperty (e1, e2) -> translate_has_property e1 e2 left md (* No simplifications *)
+    | DefineOwnProperty (e1, e2, e3, b) -> translate_define_own_property e1 e2 e3 b left throw_var label_throw md (* TODO *)
+    | DefineOwnPropertyDefault (e1, e2, e3, b) -> translate_define_own_property_default e1 e2 e3 b left throw_var label_throw md (* TODO *)
+    | DefineOwnPropertyArray (e1, e2, e3, b) -> translate_define_own_property_array e1 e2 e3 b left throw_var label_throw md (* TODO *)
     | DefaultValue (e, pt) -> translate_default_value e pt left throw_var label_throw md (* Cannot do simplifications at this time. But this exploads a lot. Possible simplifications with separation logic reasoning *)
     | ToPrimitive (e, pt) -> simplify_to_primitive e pt sf_annot left throw_var label_throw (* Cannot do more simplifications at this time. Depends on Default Value *)
     | ToBoolean e -> simplify_to_boolean e sf_annot left
     | ToNumber e -> simplify_to_number e sf_annot left throw_var label_throw
     | ToNumberPrim e -> simplify_to_number_prim e sf_annot left
+    | ToUint32 e -> translate_to_uint32 e left throw_var label_throw md (* TODO *)
     | ToString e -> simplify_to_string e sf_annot left throw_var label_throw
     | ToStringPrim e -> simplify_to_string_prim e sf_annot left 
     | ToObject e -> simplify_to_object e sf_annot left throw_var label_throw
@@ -489,7 +511,12 @@ let simplify_spec_func sf left sf_annot throw_var label_throw =
     | GetOwnPropertyDefault _
     | GetOwnPropertyString _
     | GetDefault _
-    | GetFunction _ -> None (* TODO *)
+    | GetFunction _ 
+    | Put _ 
+    | DefineOwnProperty _
+    | DefineOwnPropertyDefault _
+    | DefineOwnPropertyArray _
+    | ToUint32 _ -> None (* TODO *)
     | Get (e1, e2) -> Some (translate_get e1 e2 left throw_var label_throw md) (* TODO. Might change after we have getters/setters *)
     | HasProperty (e1, e2) -> Some (translate_has_property e1 e2 left md) (* No simplifications *)
     | DefaultValue (e, pt) -> None (* Cannot do simplifications at this time. But this exploads a lot. Possible simplifications with separation logic reasoning *)

@@ -266,6 +266,10 @@ let spec_func_get_function arg1 arg2 excep_label =
   let left = fresh_r () in
   Sugar (SpecFunction (left, (GetFunction (arg1, arg2)), excep_label)), left
   
+let spec_func_put arg1 arg2 arg3 b excep_label = 
+  let left = fresh_r () in
+  Sugar (SpecFunction (left, (Put (arg1, arg2, arg3, b)), excep_label)), left
+  
 let spec_func_has_property arg1 arg2 excep_label = 
   let left = fresh_r () in
   Sugar (SpecFunction (left, (HasProperty (arg1, arg2)), excep_label)), left
@@ -273,6 +277,18 @@ let spec_func_has_property arg1 arg2 excep_label =
 let spec_func_default_value arg1 arg2 excep_label = 
   let left = fresh_r () in
   Sugar (SpecFunction (left, (DefaultValue (arg1, arg2)), excep_label)), left
+  
+let spec_func_define_own_property arg1 arg2 arg3 b excep_label = 
+  let left = fresh_r () in
+  Sugar (SpecFunction (left, (DefineOwnProperty (arg1, arg2, arg3, b)), excep_label)), left
+  
+let spec_func_define_own_property_default arg1 arg2 arg3 b excep_label = 
+  let left = fresh_r () in
+  Sugar (SpecFunction (left, (DefineOwnPropertyDefault (arg1, arg2, arg3, b)), excep_label)), left
+  
+let spec_func_define_own_property_array arg1 arg2 arg3 b excep_label = 
+  let left = fresh_r () in
+  Sugar (SpecFunction (left, (DefineOwnPropertyArray (arg1, arg2, arg3, b)), excep_label)), left
    
 let spec_func_to_primitive arg1 arg2 excep_label = 
   let left = fresh_r () in
@@ -289,6 +305,10 @@ let spec_func_to_number arg excep_label =
 let spec_func_to_number_prim arg excep_label = 
   let left = fresh_r () in
   Sugar (SpecFunction (left, (ToNumberPrim arg), excep_label)), left
+  
+let spec_func_to_uint32 arg excep_label = 
+  let left = fresh_r () in
+  Sugar (SpecFunction (left, (ToUint32 arg), excep_label)), left
   
 let spec_func_to_string arg excep_label = 
   let left = fresh_r () in
@@ -331,12 +351,17 @@ let spec_func_call sp throw_var label_throw meta =
       | Get (e1, e2) -> spec_func_get e1 e2 excep_label
       | GetDefault (e1, e2) -> spec_func_get_default e1 e2 excep_label
       | GetFunction (e1, e2) -> spec_func_get_function e1 e2 excep_label
+      | Put (e1, e2, e3, b) -> spec_func_put e1 e2 e3 b excep_label
       | HasProperty (e1, e2) -> spec_func_has_property e1 e2 excep_label
       | DefaultValue (e, pt) -> spec_func_default_value e pt excep_label (* This not being used at the moment since only to_primitive is using it which is itself a primitive operation *)
+      | DefineOwnProperty (e1, e2, e3, b) ->  spec_func_define_own_property e1 e2 e3 b excep_label
+      | DefineOwnPropertyDefault (e1, e2, e3, b) -> spec_func_define_own_property_default e1 e2 e3 b excep_label
+      | DefineOwnPropertyArray (e1, e2, e3, b) ->  spec_func_define_own_property_array e1 e2 e3 b excep_label
       | ToPrimitive (e, pt) -> spec_func_to_primitive e pt excep_label
       | ToBoolean e -> spec_func_to_boolean e excep_label
       | ToNumber e -> spec_func_to_number e excep_label
       | ToNumberPrim e -> spec_func_to_number_prim e excep_label
+      | ToUint32 e -> spec_func_to_uint32 e excep_label
       | ToString e -> spec_func_to_string e excep_label
       | ToStringPrim e -> spec_func_to_string_prim e excep_label
       | ToObject e -> spec_func_to_object e excep_label
@@ -584,35 +609,6 @@ let translate_strict_equality_comparison x y rv meta =
     Sugar (If (equal_exprs (TypeOf x) (TypeOf y), 
       translate_strict_equality_comparison_types_equal x y rv meta, mk_stmts meta
       [ assign_false rv ]))]
-  
-let translate_put_value_reference_object_base_field base field value meta =
-  mk_stmts meta [Basic (Mutation (mk_mutation base field value))]
-  
-let translate_put_value_reference_object ref value meta =
-  translate_put_value_reference_object_base_field (Base ref) (Field ref) value meta
-  
-let translate_put_value_reference_base v1 base v2 throw_var throw_label meta =
-  let gotothrow = translate_error_throw Lrep throw_var throw_label meta in
-  mk_stmts meta [ 
-    Sugar (If (equal_undef_expr base, 
-      gotothrow, mk_stmts meta
-      [
-        Sugar (If (istypeof_prim_expr base, 
-          (* TODO: follow the spec by creating special [[Put]] as defined in 8.7.2 *)
-          gotothrow, 
-          translate_put_value_reference_object v1 v2 meta))
-      ]))
-    ]
-    
-let translate_put_value_reference v1 v2 throw_var throw_label meta =
-  translate_put_value_reference_base v1 (Base v1) v2 throw_var throw_label meta
-  
-let translate_put_value v1 v2 throw_var throw_label meta =
-  mk_stmts meta [ 
-    Sugar (If (type_of_ref v1,
-      translate_put_value_reference v1 v2 throw_var throw_label meta,
-      translate_error_throw Lrep throw_var throw_label meta))
-  ]
       
 let default_value_inner arg m rv exit_label next_label throw_var label_throw meta =
   let r1 = fresh_r () in
@@ -795,6 +791,137 @@ let translate_to_string arg rv throw_var label_throw meta =
       [assign_expr r2 arg]))
     ] @
     to_string
+      
+(* TODO: update when implementing attributes / [[Extensible]] property of an object *)
+(* TODO: update translation *)
+let translate_define_own_property_default o p desc throw rv throw_var label_throw meta =
+  mk_stmts meta
+  [ Basic (Mutation (mk_mutation o p desc));
+    Basic (Assignment (mk_assign_lit rv (Bool true)))
+  ]
+
+let translate_reject throw rv throw_var label_throw meta =
+  mk_stmts meta [
+      Sugar (If (equal_bool_expr throw true,
+        translate_error_throw Ltep throw_var label_throw meta, mk_stmts meta
+        [Basic (Assignment (mk_assign_lit rv (Bool false)))]))
+  ]
+  
+(* TODO update translation to use uint32 *)
+let translate_to_uint32 input rv throw_var label_throw meta = 
+  let number = fresh_r () in
+  let number_stmts = translate_to_number input number throw_var label_throw meta in
+  (* TODO: More steps from the semantics? *)
+  number_stmts @
+  mk_stmts meta [Basic (Assignment (mk_assign_e rv (UnaryOp (ToUint32Op, Var number))))]
+  
+let translate_define_own_property_array o p desc throw rv throw_var label_throw meta =
+  let oldLen = fresh_r () in
+  let oldLen_stmts = translate_get_own_property_default o (Literal (String "length")) oldLen meta in
+  let newLen = fresh_r () in
+  let newLen_stmts = translate_to_uint32 desc newLen throw_var label_throw meta in
+  let newLenToNumber = fresh_r () in
+  let newLenToNumber_stmts = translate_to_number desc newLenToNumber throw_var label_throw meta in
+  let define_p_length = fresh_r () in
+  let define_p_length_stmts = translate_define_own_property_default o (Literal (String "length")) (Var newLen) throw define_p_length throw_var label_throw meta in
+  let newLen_less_than_oldLen = mk_assign_fresh_e (BinOp (Var newLen, Comparison LessThan, Var oldLen)) in
+  let index = fresh_r () in
+  let touint32_stmts = translate_to_uint32 p index throw_var label_throw meta in
+  let tostring = fresh_r () in
+  let tostring_stmts = translate_to_string_prim (Var index) tostring meta in
+  let succeeded = fresh_r () in
+  let define_index_prop_stmts = translate_define_own_property_default o p desc false succeeded throw_var label_throw meta in
+  let index_less_than_length = mk_assign_fresh_e (BinOp (Var index, Comparison LessThan, Var oldLen)) in
+  let define_len = fresh_r () in
+  let define_len_stmts = translate_define_own_property_default o (Literal (String "length")) (BinOp (Var index, Arith Plus, Literal (Num 1.0))) false define_len throw_var label_throw meta in
+  let define_prop_r = fresh_r () in
+  let define_prop_stmts = translate_define_own_property_default o p desc throw define_prop_r throw_var label_throw meta in
+  oldLen_stmts @
+  mk_stmts meta
+  [ Sugar (If (equal_string_expr p "length", 
+      newLen_stmts @
+      newLenToNumber_stmts @ mk_stmts meta
+      [ Sugar (If (equal_exprs (Var newLen) (Var newLenToNumber), mk_stmts meta
+        [ Basic (Assignment newLen_less_than_oldLen);
+          Sugar (If (equal_bool_expr (Var newLen_less_than_oldLen.assign_left) false, (* newLen >= oldLen *)
+            define_p_length_stmts @ mk_stmts meta
+            [ Basic (Assignment (mk_assign_e rv (Var define_p_length))) ], 
+            [ (* TODO implement deletion of elements *) ]))],
+        translate_error_throw LRangeErrorP throw_var label_throw meta))],
+      touint32_stmts @
+      tostring_stmts @ mk_stmts meta [  
+        Sugar (If (equal_exprs (Var tostring) p, 
+          (* Index *)
+          define_index_prop_stmts @ mk_stmts meta
+          [ Sugar (If (equal_bool_expr (Var succeeded) false, 
+            translate_reject (Literal (Bool throw)) rv throw_var label_throw meta, mk_stmts meta
+            [ Basic (Assignment index_less_than_length);
+              Sugar (If (equal_bool_expr (Var index_less_than_length.assign_left) false, 
+                define_len_stmts @ mk_stmts meta
+                [Basic (Assignment (mk_assign_e rv (Var define_len)))], mk_stmts meta
+                [Basic (Assignment (mk_assign_lit rv (Bool true)))]))
+            ]))],
+          (* Other property *)
+          define_prop_stmts @ mk_stmts meta
+          [Basic (Assignment (mk_assign_e rv (Var define_prop_r)))]))
+      ]))
+  ]
+  
+let translate_define_own_property o p desc throw rv throw_var label_throw meta =
+  let classField = mk_assign_fresh (Lookup (o, literal_builtin_field FClass)) in
+  let def = fresh_r () in
+  let def_stmts_default = translate_define_own_property_default o p desc throw def throw_var label_throw meta in
+  let def_stmts_array = translate_define_own_property_array o p desc throw def throw_var label_throw meta in
+  mk_stmts meta [
+    Basic (Assignment classField);
+    Sugar (If (equal_string_expr (Var classField.assign_left) "Array",
+      def_stmts_array,
+      def_stmts_default));
+    Basic (Assignment (mk_assign_e rv (Var def)))
+  ]
+      
+(* TODO: update when implementing setters/getters and attributes *)
+(* TODO: update translation *)   
+let translate_put o p v throw throw_var label_throw meta = 
+  translate_define_own_property o p v throw (fresh_r()) throw_var label_throw meta 
+      
+let translate_put_value_member_reference_object_base_field base field value throw_var throw_label meta =
+  translate_put base field value true throw_var throw_label meta
+  
+let translate_put_value_member_reference_object ref value throw_var throw_label meta =
+  translate_put_value_member_reference_object_base_field (Base ref) (Field ref) value throw_var throw_label meta
+  
+let translate_put_value_variable_reference_object v1 v2 throw_var throw_label meta =
+  mk_stmts meta [   
+    Sugar (If (equal_loc_expr (Base v1) Lg,
+      translate_put_value_member_reference_object v1 v2 throw_var throw_label meta, mk_stmts meta
+      [Basic (Mutation (mk_mutation (Base v1) (Field v1) v2))])) 
+  ]
+  
+let translate_put_value_reference_base v1 base v2 throw_var throw_label meta =
+  let gotothrow = translate_error_throw Lrep throw_var throw_label meta in
+  mk_stmts meta [ 
+    Sugar (If (equal_undef_expr base, 
+      gotothrow, mk_stmts meta
+      [
+        Sugar (If (istypeof_prim_expr base, 
+          (* TODO: follow the spec by creating special [[Put]] as defined in 8.7.2 *)
+          gotothrow, mk_stmts meta
+          [ Sugar (If (type_of_vref v1,
+              translate_put_value_variable_reference_object v1 v2 throw_var throw_label meta,
+              translate_put_value_member_reference_object v1 v2 throw_var throw_label meta)) ]))
+      ]))
+    ]
+    
+let translate_put_value_reference v1 v2 throw_var throw_label meta =
+  translate_put_value_reference_base v1 (Base v1) v2 throw_var throw_label meta
+  
+let translate_put_value v1 v2 throw_var throw_label meta =
+  mk_stmts meta [ 
+    Sugar (If (type_of_ref v1,
+      translate_put_value_reference v1 v2 throw_var throw_label meta,
+      translate_error_throw Lrep throw_var throw_label meta))
+  ]
     
 let translate_has_property o p rv meta =
   (* TODO use this in other places too *) 
@@ -806,6 +933,15 @@ let translate_has_property o p rv meta =
         [assign_true rv])) 
     ]
     
+let translate_new_array rv meta =
+  let new_obj = mk_assign rv Obj in
+  mk_stmts meta [ Basic (Assignment new_obj);
+    add_proto_value new_obj.assign_left Lap;
+    (* TODO refactor add_class *)
+    Basic (Mutation (mk_mutation (Var new_obj.assign_left) (literal_builtin_field FClass) (Literal (String "Array"))));
+    Basic (Mutation (mk_mutation (Var new_obj.assign_left) (Literal (String "length")) (Literal (Num 0.0))));
+  ]
+    
 let unfold_spec_function sf left throw_var label_throw meta =
   match sf with
     | GetValue e -> translate_gamma e left throw_var label_throw meta
@@ -815,12 +951,17 @@ let unfold_spec_function sf left throw_var label_throw meta =
     | GetDefault (e1, e2) -> translate_get_default e1 e2 left meta
     | GetFunction (e1, e2) -> translate_get_function e1 e2 left throw_var label_throw meta
     | Get (e1, e2) -> translate_get e1 e2 left throw_var label_throw meta
+    | Put (e1, e2, e3, b) -> translate_put e1 e2 e3 b throw_var label_throw meta
     | HasProperty (e1, e2) -> translate_has_property e1 e2 left meta
     | DefaultValue (e, pt) -> translate_default_value e pt left throw_var label_throw meta
+    | DefineOwnProperty (e1, e2, e3, b) -> translate_define_own_property e1 e2 e3 b left throw_var label_throw meta
+    | DefineOwnPropertyDefault (e1, e2, e3, b) ->  translate_define_own_property_default e1 e2 e3 b left throw_var label_throw meta
+    | DefineOwnPropertyArray (e1, e2, e3, b) ->  translate_define_own_property_array e1 e2 e3 b left throw_var label_throw meta
     | ToPrimitive (e, pt) -> translate_to_primitive e pt left throw_var label_throw meta
     | ToBoolean e -> translate_to_boolean e left meta
     | ToNumber e -> translate_to_number e left throw_var label_throw meta
     | ToNumberPrim e -> translate_to_number_prim e left meta
+    | ToUint32 e -> translate_to_uint32 e left throw_var label_throw meta
     | ToString e -> translate_to_string e left throw_var label_throw meta
     | ToStringPrim e -> translate_to_string_prim e left meta
     | ToObject e -> translate_to_object e left throw_var label_throw meta

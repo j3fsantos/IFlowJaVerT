@@ -371,6 +371,7 @@ let test_js_program_cav_example () =
         let undefined = Le_Var (fresh_e()) in
         let pre = Star [
           Heaplet (Le_Literal (LLoc Lg), Le_Literal (String "#proto"), proto);
+          Heaplet (Le_Literal (LLoc Lg), Le_Literal (String "#class"), Le_Literal (String ("Object")));
           Heaplet (Le_Literal (LLoc Lg), Le_Literal (String "undefined"), undefined);
           Heaplet (Le_Literal (LLoc Lg), Le_Literal (String "Person"), person);
           Heaplet (Le_Literal (LLoc Lg), Le_Literal (String "alice"), alice);
@@ -390,6 +391,7 @@ let test_js_program_cav_example () =
         let v = Le_Var (fresh_a()) in
         let pre = Star [
           Heaplet (Le_PVar "rscope", Le_Literal (String "main"), Le_Literal (LLoc Lg));
+          Heaplet (Le_PVar "rthis", Le_Literal (String "#class"), Le_Literal (String "Object"));
           Heaplet (Le_PVar "rthis", Le_Literal (String "name"), v)
         ] in
         let post = Star [Heaplet (Le_PVar "rthis", Le_Literal (String "name"), Le_PVar "name"); REq (Le_Literal Undefined)] in

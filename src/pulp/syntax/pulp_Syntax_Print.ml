@@ -106,6 +106,8 @@ let string_of_builtin_loc l =
     | Lsp -> "#lsp"
     | Lsp_toString -> "#lsp_toString"
     | Lsp_valueOf -> "#lsp_valueOf"
+    | LArray -> "#larray"
+    | Lap -> "#lap"
     | LJSON -> "#ljson"
     | LNotImplemented f -> "#lnotimplemented_" ^ (string_of_feature f)
     | LStub s -> "#lstub##" ^ s
@@ -147,6 +149,8 @@ let string_of_builtin_function f =
     | Function_Call -> "#function_call"
     | Function_Construct -> "#function_construct"
     | Function_Prototype_Call -> "#function_protottype_call"
+    | Array_Call -> "#array_call"
+    | Array_Construct -> "#array_construct"
     | Not_Implemented_Stub s -> "#not_implemented_stub##" ^ s
 
 let string_of_var x = x
@@ -248,12 +252,17 @@ let string_of_spec_fun_id sf =
     | Get _ -> "#[[Get]]"
     | GetDefault _ -> "#[[GetDefault]]"
     | GetFunction _ -> "#[[GetFunction]]"
+    | Put _ -> "#[[Put]]"
     | HasProperty _ -> "#[[HasProperty]]"
     | DefaultValue _ -> "#[[DefaultValue]]"
+    | DefineOwnProperty _ -> "#[[DefineOwnPropery]]"
+    | DefineOwnPropertyDefault _ ->  "#[[DefineOwnProperyDefault]]"
+    | DefineOwnPropertyArray _ ->  "#[[DefineOwnProperyArray]]"
     | ToPrimitive _ -> "#ToPrimitive"
     | ToBoolean _ -> "#ToBoolean"
     | ToNumber _ -> "#ToNumber"
     | ToNumberPrim _ -> "#ToNumberPrim"
+    | ToUint32 _ -> "#ToUint32"
     | ToString _ -> "#ToString"
     | ToStringPrim _ -> "#ToStringPrim"
     | ToObject _ -> "#ToObject"
@@ -267,26 +276,31 @@ let string_of_spec_function sf =
   let f = string_of_expression in
   let id = string_of_spec_fun_id sf in
   match sf with
-    | GetOwnPropertyDefault (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
+    | GetOwnPropertyDefault (e1, e2) 
     | GetOwnPropertyString (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
     | GetValue e -> Printf.sprintf "%s(%s)" id (f e)
-    | PutValue (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
-    | Get (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
-    | GetDefault (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
+    | PutValue (e1, e2)
+    | Get (e1, e2)
+    | GetDefault (e1, e2) 
     | GetFunction (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
+    | Put (e1, e2, e3, b) -> Printf.sprintf "%s(%s, %s, %s, %b)" id (f e1) (f e2) (f e3) b
     | HasProperty (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
     | DefaultValue (e, pt) -> Printf.sprintf "%s(%s, %s)" id (f e) (match pt with None -> "" | Some pt -> string_of_pulp_type pt)
+    | DefineOwnProperty (e1, e2, e3, b)
+    | DefineOwnPropertyDefault (e1, e2, e3, b)
+    | DefineOwnPropertyArray (e1, e2, e3, b) ->  Printf.sprintf "%s(%s, %s, %s, %b)" id (f e1) (f e2) (f e3) b
     | ToPrimitive (e, pt) -> Printf.sprintf "%s(%s, %s)" id (f e)  (match pt with None -> "" | Some pt -> string_of_pulp_type pt)
-    | ToBoolean e -> Printf.sprintf "%s(%s)" id (f e)
-    | ToNumber e -> Printf.sprintf "%s(%s)" id (f e)
-    | ToNumberPrim e -> Printf.sprintf "%s(%s)" id (f e)
-    | ToString e -> Printf.sprintf "%s(%s)" id (f e)
-    | ToStringPrim e -> Printf.sprintf "%s(%s)" id (f e)
-    | ToObject e -> Printf.sprintf "%s(%s)" id (f e)
-    | CheckObjectCoercible e -> Printf.sprintf "%s(%s)" id (f e)
+    | ToBoolean e
+    | ToNumber e 
+    | ToNumberPrim e 
+    | ToUint32 e 
+    | ToString e 
+    | ToStringPrim e 
+    | ToObject e 
+    | CheckObjectCoercible e 
     | IsCallable e -> Printf.sprintf "%s(%s)" id (f e)
     | AbstractRelation (e1, e2, b) -> Printf.sprintf "%s(%s, %s, %b)" id (f e1) (f e2) b
-    | StrictEquality (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
+    | StrictEquality (e1, e2)
     | StrictEqualitySameType (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
  
 let rec string_of_statement t =

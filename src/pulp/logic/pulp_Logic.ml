@@ -130,7 +130,8 @@ let type_of_obj_f x = eq_true (Le_BinOp (Le_TypeOf x, Subtype, Le_Literal (Type 
 let type_of_ref_f x = eq_true (Le_BinOp (Le_TypeOf x, Subtype, Le_Literal (Type (ReferenceType None))))
 let type_of_not_a_ref_f x = eq_false (Le_BinOp (Le_TypeOf x, Subtype, Le_Literal (Type (ReferenceType None))))
 let proto_heaplet_f le1 le2 = Heaplet (le1, Le_Literal (String (string_of_builtin_field FProto)), le2)
-let class_heaplet_f le1 le2 = Heaplet (le1, Le_Literal (String (string_of_builtin_field FClass)), (Le_Literal (String le2)))
+let class_heaplet_exp le1 le2 = Heaplet (le1, Le_Literal (String (string_of_builtin_field FClass)), le2)
+let class_heaplet_f le1 le2 = class_heaplet_exp le1 (Le_Literal (String le2))
 let primitive_value_heaplet_f le1 le2 = Heaplet (le1, Le_Literal (String (string_of_builtin_field FPrimitiveValue)), le2)
 let fid_heaplet_f le1 le2 = Heaplet (le1, Le_Literal (String (string_of_builtin_field FId)), le2)
 

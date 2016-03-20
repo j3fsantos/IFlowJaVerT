@@ -512,9 +512,10 @@ and run_basic_stmt (s : local_state) (stmt : basic_statement) (labelmap : int La
       let s, v = run_assign_expr s assign.assign_right ctx fs env in
       begin match s.lsexcep with
         | Some throwl ->
+          let counter = try LabelMap.find throwl labelmap with Not_found -> raise (InterpreterStuck ("Cannot find throw label " ^ throwl, s.lscounter)) in  
         {s with 
           lsstack = Stack.add assign.assign_left v s.lsstack; 
-          lscounter = LabelMap.find throwl labelmap;
+          lscounter = counter;
           lsexcep = None
         }
         | None -> {s with lsstack = Stack.add assign.assign_left v s.lsstack; lscounter = s.lscounter + 1}
@@ -535,14 +536,17 @@ and run_stmt (s : local_state) (stmt : statement) (labelmap : int LabelMap.t) (c
   (*Printf.printf "Running stmt %s \n" (Pulp_Syntax_Print.string_of_statement stmt);*)
   match stmt.stmt_stx with
     | Label l -> {s with lscounter = s.lscounter + 1}
-    | Goto l -> {s with lscounter = LabelMap.find l labelmap}
+    | Goto l -> let counter = try LabelMap.find l labelmap with Not_found -> raise (InterpreterStuck ("Cannot find label in Goto " ^ l, s.lscounter)) in
+      {s with lscounter = counter}
     | GuardedGoto (e, l1, l2) -> 
       let v = run_expr s e in
       begin match v with
         | VHValue (HVLiteral (Bool true)) ->
-          {s with lscounter = LabelMap.find l1 labelmap}
+          let counter = try LabelMap.find l1 labelmap with Not_found -> raise (InterpreterStuck ("Cannot find label in Goto " ^ l1, s.lscounter)) in
+          {s with lscounter = counter}
         | VHValue (HVLiteral (Bool false)) ->
-          {s with lscounter = LabelMap.find l2 labelmap}
+          let counter = try LabelMap.find l2 labelmap with Not_found -> raise (InterpreterStuck ("Cannot find label in Goto " ^ l2, s.lscounter)) in
+          {s with lscounter = counter}
         | _ -> raise (InterpreterStuck ("GuardedGoto expression must evaluate to boolean value", s.lscounter))
       end
     | Basic bs -> run_basic_stmt s bs labelmap ctx fs env
@@ -568,7 +572,7 @@ let built_in_obj_proto_lfp h obj =
   Heap.add (BLoc obj) l h
   
 let add_field h l f v =
-  let obj = Heap.find l h in
+  let obj = try Heap.find l h with Not_found -> raise (InterpreterStuck ("Cannot find object " ^ (Interpreter_Print.string_of_loc l), -1)) in
   let obj = Object.add f v obj in
   Heap.add l obj h
 
@@ -633,13 +637,14 @@ let add_stub_constructor h name len =
   let h = add_field h loc (string_of_builtin_field FConstructId) (HVLiteral (String (string_of_builtin_function (Not_Implemented_Stub (name ^ "#construct"))))) in
   h
 
+(* TODO refactor to use functions as in stubs *)
 let initial_heap () =
   let h = Heap.empty in
   let lop = Object.add (string_of_builtin_field FProto) (HVLiteral Null) Object.empty in
   let h = Heap.add (BLoc Lop) lop h in
   let h = List.fold_left built_in_obj_proto_lop h [Lg; Lfp; LMath; LJSON;
-    LNotImplemented GetValuePrim; LNotImplemented ToNumber; LNotImplemented ToString; Lbp; Lnp; Lsp; Lep] in
-  let h = List.fold_left built_in_obj_proto_lfp h [LObject; LFunction; LBoolean; LNumber; LString; LError] in
+    LNotImplemented GetValuePrim; LNotImplemented ToNumber; LNotImplemented ToString; Lbp; Lnp; Lsp; Lep; Lap] in
+  let h = List.fold_left built_in_obj_proto_lfp h [LObject; LFunction; LBoolean; LNumber; LString; LError; LArray] in
     
   let h = add_field h (BLoc Lop) (string_of_builtin_field FClass) (HVLiteral (String "Object")) in
   let h = add_builtin_function h Lop_toString Object_Prototype_toString 0. in
@@ -690,10 +695,20 @@ let initial_heap () =
   let h = add_field h (BLoc Lfp) "length" (HVLiteral (Num 0.)) in
   let h = add_field h (BLoc Lfp) ("constructor") (HVObj (BLoc LFunction)) in
   let h = fold_add_stub_function h Lfp ["apply"; "call"; "bind"] in
+  
+  let h = add_field h (BLoc Lg) "Array" (HVObj (BLoc LArray)) in
+  let h = add_field h (BLoc LArray) (string_of_builtin_field FId) (HVLiteral (String (string_of_builtin_function Array_Call))) in (* TODO *)
+  let h = add_field h (BLoc LArray) (string_of_builtin_field FConstructId) (HVLiteral (String (string_of_builtin_function Array_Construct))) in (* TODO *)
+  let h = add_field h (BLoc LArray) (string_of_builtin_field FClass) (HVLiteral (String "Function")) in
+  let h = add_field h (BLoc LArray) "length" (HVLiteral (Num 1.)) in
+  let h = add_field h (BLoc LArray) (string_of_builtin_field FPrototype) (HVObj (BLoc Lap)) in
+  
+  let h = add_field h (BLoc Lap) (string_of_builtin_field FClass) (HVLiteral (String "Array")) in
+  let h = add_field h (BLoc Lfp) "length" (HVLiteral (Num 0.)) in
+  let h = add_field h (BLoc Lfp) ("constructor") (HVObj (BLoc LArray)) in
 
-  let h = add_stub_constructor h "Array" 1. in
-  let h = add_stub_function h (LStub "Array") "isArray" in
-  let h = fold_add_stub_function h (LStub "ArrayP")
+  let h = add_stub_function h LArray "isArray" in
+  let h = fold_add_stub_function h Lap
     ["toString"; "toLocaleString"; "concat"; "join"; "pop"; "push"; "reverse"; "shift"; "slice"; "sort"; "splice";
      "unshift"; "indexOf"; "lastIndexOf"; "every"; "some"; "forEach"; "map"; "filter"; "reduce"; "reduceRight"] in
   

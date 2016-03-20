@@ -911,6 +911,21 @@ let test_eval_this () =
 
 let test_12_2_1_7_s () =
   test_template_exception "eval('var eval;');" Lsep
+  
+let test_array_initialiser () =
+  test_template_normal "var x = [5,,]; x.length " (VHValue (HVLiteral (Num 2.0)))
+  
+let test_array_initialiser_get_value_1 () =
+  test_template_normal "var x = [,5,]; x[0] " (VHValue (HVLiteral Undefined))
+  
+let test_array_initialiser_get_value_2 () =
+  test_template_normal "var x = [,5,]; x[1] " (VHValue (HVLiteral (Num 5.0)))
+  
+let test_array_initialiser_define_prop () =
+  test_template_normal "var x = [,5,]; x[3] = 'test'; x[3] " (VHValue (HVLiteral (String "test")))
+  
+let test_array_initialiser_define_prop_length () =
+  test_template_normal "var x = [,5,]; x[3] = 'test'; x.length " (VHValue (HVLiteral (Num 4.0)))
 
 let suite = "Testing_Interpreter" >:::
   [
@@ -1054,6 +1069,11 @@ let suite = "Testing_Interpreter" >:::
     "test_S13_A7_T2" >:: test_S13_A7_T2;
     "test_get_prototyte_of_empty" >:: test_get_prototyte_of_empty;
     "test_eval_this" >:: test_eval_this;
-    "test_12_2_1_7_s" >:: test_12_2_1_7_s
+    "test_12_2_1_7_s" >:: test_12_2_1_7_s;
+    "test_array_initialiser" >:: test_array_initialiser;
+    "test_array_initialiser_get_value_1" >:: test_array_initialiser_get_value_1;
+    "test_array_initialiser_get_value_2" >:: test_array_initialiser_get_value_2;
+    "test_array_initialiser_define_prop" >:: test_array_initialiser_define_prop;
+    "test_array_initialiser_define_prop_length" >:: test_array_initialiser_define_prop_length
     (*"test_" >:: test_*) 
     ] 

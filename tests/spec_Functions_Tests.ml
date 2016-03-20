@@ -36,7 +36,7 @@ let test_has_property () =
   let has_property_fb = AllFunctions.find (Pulp_Syntax_Print.string_of_spec_fun_id (HasProperty (dummy_exp1, dummy_exp2))) env in
   test_program_template "test_has_property" has_property_fb env
 
-let test_has_property () =
+let test_to_boolean () =
   let env = get_env_spec () in
 	let dummy_exp1 = (Literal Undefined) in
   let to_boolean_fb = AllFunctions.find (Pulp_Syntax_Print.string_of_spec_fun_id (ToBoolean (dummy_exp1))) env in
@@ -45,8 +45,8 @@ let test_has_property () =
 
 
 let suite = "Spec_Functions_Tests" >::: [
-  (* "test_get_value" >:: test_get_value; *)
-	(* "test_put_value" >:: test_put_value; *)
-	(* "test_has_property" >:: test_has_property; *)
+  "test_get_value" >:: test_get_value; 
+	"test_put_value" >:: test_put_value;
 	"test_has_property" >:: test_has_property;
+	"test_to_boolean" >:: test_to_boolean;
   ]
