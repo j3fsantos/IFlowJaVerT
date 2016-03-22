@@ -926,6 +926,14 @@ let test_array_initialiser_define_prop () =
   
 let test_array_initialiser_define_prop_length () =
   test_template_normal "var x = [,5,]; x[3] = 'test'; x.length " (VHValue (HVLiteral (Num 4.0)))
+  
+let test_array_initialiser_set_length_greater () =
+  test_template_normal "var x = [,5,4]; x.length = 7; x.length " (VHValue (HVLiteral (Num 7.0)))
+  
+let test_array_initialiser_set_length_smaller () =
+  test_template_normal "var x = [,5,]; x.length = 1; x[1]" (VHValue (HVLiteral (Undefined)))
+  
+  
 
 let suite = "Testing_Interpreter" >:::
   [
@@ -1074,6 +1082,8 @@ let suite = "Testing_Interpreter" >:::
     "test_array_initialiser_get_value_1" >:: test_array_initialiser_get_value_1;
     "test_array_initialiser_get_value_2" >:: test_array_initialiser_get_value_2;
     "test_array_initialiser_define_prop" >:: test_array_initialiser_define_prop;
-    "test_array_initialiser_define_prop_length" >:: test_array_initialiser_define_prop_length
+    "test_array_initialiser_define_prop_length" >:: test_array_initialiser_define_prop_length;
+    "test_array_initialiser_set_length_greater" >:: test_array_initialiser_set_length_greater;
+    "test_array_initialiser_set_length_smaller" >:: test_array_initialiser_set_length_smaller;
     (*"test_" >:: test_*) 
     ] 

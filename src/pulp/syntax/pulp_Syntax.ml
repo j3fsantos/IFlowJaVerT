@@ -292,7 +292,9 @@ type specification_function =
   | GetValue of expression
     (* 8.7.2 PutValue *)
   | PutValue of expression * expression
- 
+
+    (* [[GetOwnProperty]] *)
+  | GetOwnProperty of expression * expression
     (* 8.12.1 [[GetOwnProperty]] *)
   | GetOwnPropertyDefault of expression * expression
     (* 15.5.5.2 [[GetOwnProperty]] *)
@@ -310,6 +312,10 @@ type specification_function =
   
     (* 8.12.6 [[HasProperty]] *)
   | HasProperty of expression * expression
+
+    (* 8.12.7 [[Delete]] *)
+  | Delete of expression * expression * bool
+  
     (* 8.12.8 [[DefaultValue]] *)
   | DefaultValue of expression * pulp_type option
 

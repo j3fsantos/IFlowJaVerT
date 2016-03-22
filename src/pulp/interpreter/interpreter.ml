@@ -510,6 +510,7 @@ and run_basic_stmt (s : local_state) (stmt : basic_statement) (labelmap : int La
     | Skip -> {s with lscounter = s.lscounter + 1}
     | Assignment assign -> 
       let s, v = run_assign_expr s assign.assign_right ctx fs env in
+      (*Printf.printf ("Assigning %s := %s") assign.assign_left (Interpreter_Print.string_of_value v);*)
       begin match s.lsexcep with
         | Some throwl ->
           let counter = try LabelMap.find throwl labelmap with Not_found -> raise (InterpreterStuck ("Cannot find throw label " ^ throwl, s.lscounter)) in  

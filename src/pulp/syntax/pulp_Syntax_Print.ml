@@ -245,6 +245,7 @@ let string_of_basic_statement bs =
 
 let string_of_spec_fun_id sf =
   match sf with
+    | GetOwnProperty _ -> "#[[GetOwnProperty]]"
     | GetOwnPropertyDefault _ -> "#[[GetOwnPropertyDefault]]"
     | GetOwnPropertyString _ -> "#[[GetOwnPropertyString]]"
     | GetValue _ -> "#GetValue"
@@ -254,6 +255,7 @@ let string_of_spec_fun_id sf =
     | GetFunction _ -> "#[[GetFunction]]"
     | Put _ -> "#[[Put]]"
     | HasProperty _ -> "#[[HasProperty]]"
+    | Delete _ -> "#[[Delete]]"
     | DefaultValue _ -> "#[[DefaultValue]]"
     | DefineOwnProperty _ -> "#[[DefineOwnPropery]]"
     | DefineOwnPropertyDefault _ ->  "#[[DefineOwnProperyDefault]]"
@@ -276,6 +278,7 @@ let string_of_spec_function sf =
   let f = string_of_expression in
   let id = string_of_spec_fun_id sf in
   match sf with
+    | GetOwnProperty (e1, e2) 
     | GetOwnPropertyDefault (e1, e2) 
     | GetOwnPropertyString (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
     | GetValue e -> Printf.sprintf "%s(%s)" id (f e)
@@ -285,6 +288,7 @@ let string_of_spec_function sf =
     | GetFunction (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
     | Put (e1, e2, e3, b) -> Printf.sprintf "%s(%s, %s, %s, %b)" id (f e1) (f e2) (f e3) b
     | HasProperty (e1, e2) -> Printf.sprintf "%s(%s, %s)" id (f e1) (f e2)
+    | Delete (e1, e2, b) -> Printf.sprintf "%s(%s, %s, %b)" id (f e1) (f e2) b
     | DefaultValue (e, pt) -> Printf.sprintf "%s(%s, %s)" id (f e) (match pt with None -> "" | Some pt -> string_of_pulp_type pt)
     | DefineOwnProperty (e1, e2, e3, b)
     | DefineOwnPropertyDefault (e1, e2, e3, b)

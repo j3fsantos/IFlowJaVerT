@@ -246,6 +246,10 @@ let spec_func_put_value arg1 arg2 excep_label =
   let left = fresh_r () in
   Sugar (SpecFunction (left, (PutValue (arg1, arg2)), excep_label)), left
   
+let spec_func_get_own_property arg1 arg2 excep_label = 
+  let left = fresh_r () in
+  Sugar (SpecFunction (left, (GetOwnProperty (arg1, arg2)), excep_label)), left
+  
 let spec_func_get_own_property_default arg1 arg2 excep_label = 
   let left = fresh_r () in
   Sugar (SpecFunction (left, (GetOwnPropertyDefault (arg1, arg2)), excep_label)), left
@@ -273,6 +277,10 @@ let spec_func_put arg1 arg2 arg3 b excep_label =
 let spec_func_has_property arg1 arg2 excep_label = 
   let left = fresh_r () in
   Sugar (SpecFunction (left, (HasProperty (arg1, arg2)), excep_label)), left
+  
+let spec_func_delete arg1 arg2 b excep_label =
+  let left = fresh_r () in
+  Sugar (SpecFunction (left, (Delete (arg1, arg2, b)), excep_label)), left
   
 let spec_func_default_value arg1 arg2 excep_label = 
   let left = fresh_r () in
@@ -345,6 +353,7 @@ let spec_func_call sp throw_var label_throw meta =
     match sp with
       | GetValue e -> spec_func_get_value e excep_label
       | PutValue (e1, e2) -> spec_func_put_value e1 e2 excep_label
+      | GetOwnProperty (e1, e2) -> spec_func_get_own_property e1 e2 excep_label
       | GetOwnPropertyDefault (e1, e2) -> spec_func_get_own_property_default e1 e2 excep_label
       | GetOwnPropertyString (e1, e2) -> spec_func_get_own_property_string e1 e2 excep_label
       (* At the moment get never throws exceptions, but after implementing getters/setters, it might. *)
@@ -353,6 +362,7 @@ let spec_func_call sp throw_var label_throw meta =
       | GetFunction (e1, e2) -> spec_func_get_function e1 e2 excep_label
       | Put (e1, e2, e3, b) -> spec_func_put e1 e2 e3 b excep_label
       | HasProperty (e1, e2) -> spec_func_has_property e1 e2 excep_label
+      | Delete (e1, e2, b) -> spec_func_delete e1 e2 b excep_label
       | DefaultValue (e, pt) -> spec_func_default_value e pt excep_label (* This not being used at the moment since only to_primitive is using it which is itself a primitive operation *)
       | DefineOwnProperty (e1, e2, e3, b) ->  spec_func_define_own_property e1 e2 e3 b excep_label
       | DefineOwnPropertyDefault (e1, e2, e3, b) -> spec_func_define_own_property_default e1 e2 e3 b excep_label
@@ -515,6 +525,19 @@ let translate_get_own_property_string o (* expression containing object  *) p (*
        Basic (Assignment (mk_assign left (Expression(Literal Undefined))))], mk_stmts meta
       [Basic (Assignment (mk_assign left (Expression(Var desc))))]))
    ]   
+  
+let translate_get_own_property o p left throw_var label_throw meta =
+  let classField = mk_assign_fresh (Lookup (o, literal_builtin_field FClass)) in
+  let get_own_property = fresh_r () in
+  let get_own_property_string_stmts = translate_get_own_property_string o p get_own_property throw_var label_throw meta in
+  let get_own_property_default_stmts = translate_get_own_property_default o p get_own_property meta in
+  mk_stmts meta [
+    Basic (Assignment classField);
+    Sugar (If ((equal_string_expr (Var classField.assign_left) "String"),
+      get_own_property_string_stmts,
+      get_own_property_default_stmts));
+    Basic (Assignment (mk_assign left (Expression(Var get_own_property))))
+  ]
                   
 let translate_get_default o (* variable containing object *) p (* variable, string, or built-in field name *) left meta = 
    (* TODO : Update everywhere *)
@@ -791,6 +814,17 @@ let translate_to_string arg rv throw_var label_throw meta =
       [assign_expr r2 arg]))
     ] @
     to_string
+    
+let translate_delete o p throw rv throw_var label_throw meta =
+  (* TODO update translation to use [[Delete]] *)
+  let desc = fresh_r () in
+  let desc_stmts = translate_get_own_property o p desc throw_var label_throw meta in
+  desc_stmts @ mk_stmts meta
+  [ Sugar (If (equal_undef_expr (Var desc), 
+      [], mk_stmts meta
+      [ Basic (Assignment (mk_assign_fresh (Deallocation (o, p))))]));
+    Basic (Assignment (mk_assign_lit rv (Bool true)))  
+  ]
       
 (* TODO: update when implementing attributes / [[Extensible]] property of an object *)
 (* TODO: update translation *)
@@ -814,7 +848,8 @@ let translate_to_uint32 input rv throw_var label_throw meta =
   (* TODO: More steps from the semantics? *)
   number_stmts @
   mk_stmts meta [Basic (Assignment (mk_assign_e rv (UnaryOp (ToUint32Op, Var number))))]
-  
+ 
+(* TODO update when introducing attributes *)   
 let translate_define_own_property_array o p desc throw rv throw_var label_throw meta =
   let oldLen = fresh_r () in
   let oldLen_stmts = translate_get_own_property_default o (Literal (String "length")) oldLen meta in
@@ -825,6 +860,15 @@ let translate_define_own_property_array o p desc throw rv throw_var label_throw 
   let define_p_length = fresh_r () in
   let define_p_length_stmts = translate_define_own_property_default o (Literal (String "length")) (Var newLen) throw define_p_length throw_var label_throw meta in
   let newLen_less_than_oldLen = mk_assign_fresh_e (BinOp (Var newLen, Comparison LessThan, Var oldLen)) in
+  let succeeded_j = fresh_r () in
+  let define_length_j_stmts = translate_define_own_property_default o (Literal (String "length")) (Var newLen) throw succeeded_j throw_var label_throw meta in
+  let loop_head_label = "loop_head." ^ fresh_r () in
+  let loop_exit_label = "loop_exit." ^ fresh_r () in
+  let oldLen2 = fresh_r () in
+  let to_string_old_len = fresh_r () in
+  let to_string_old_len_stmts = translate_to_string_prim (Var oldLen2) to_string_old_len meta in
+  let newLen_less_than_oldLen_l = mk_assign_fresh_e (BinOp (Var newLen, Comparison LessThan, Var oldLen)) in
+  let delete_stmts = translate_delete o (Var to_string_old_len) false (fresh_r()) throw_var label_throw meta in
   let index = fresh_r () in
   let touint32_stmts = translate_to_uint32 p index throw_var label_throw meta in
   let tostring = fresh_r () in
@@ -846,7 +890,23 @@ let translate_define_own_property_array o p desc throw rv throw_var label_throw 
           Sugar (If (equal_bool_expr (Var newLen_less_than_oldLen.assign_left) false, (* newLen >= oldLen *)
             define_p_length_stmts @ mk_stmts meta
             [ Basic (Assignment (mk_assign_e rv (Var define_p_length))) ], 
-            [ (* TODO implement deletion of elements *) ]))],
+              define_length_j_stmts @ mk_stmts meta
+              [ Sugar (If (equal_bool_expr (Var succeeded_j) false,  mk_stmts meta
+                  [ Basic (Assignment (mk_assign_lit rv (Bool false))) ], mk_stmts meta
+                  (* Simplification for now since delete always returns true. Update when introducing attributes *)
+                  [ Label loop_head_label;
+                    Basic (Assignment (newLen_less_than_oldLen_l));
+                    Sugar (If (equal_bool_expr (Var newLen_less_than_oldLen_l.assign_left) true, mk_stmts meta
+                      [ Basic (Assignment (mk_assign_e oldLen2 (BinOp (Var oldLen, Arith Minus, Literal (Num 1.0))))) ] @ (* Not SSA *) 
+                        to_string_old_len_stmts @ 
+                        delete_stmts @ mk_stmts meta
+                        [Basic (Assignment (mk_assign_e oldLen (Var oldLen2)))]  @ mk_stmts meta
+                      [ Goto loop_head_label ], mk_stmts meta
+                      [ Goto loop_exit_label ]));
+                    Label loop_exit_label;
+                    Basic (Assignment (mk_assign_lit rv (Bool true)))                     
+                  ])) 
+              ]))],
         translate_error_throw LRangeErrorP throw_var label_throw meta))],
       touint32_stmts @
       tostring_stmts @ mk_stmts meta [  
@@ -946,6 +1006,7 @@ let unfold_spec_function sf left throw_var label_throw meta =
   match sf with
     | GetValue e -> translate_gamma e left throw_var label_throw meta
     | PutValue (e1, e2) -> translate_put_value e1 e2 throw_var label_throw meta
+    | GetOwnProperty (e1, e2) -> translate_get_own_property e1 e2 left throw_var label_throw meta
     | GetOwnPropertyDefault (e1, e2) -> translate_get_own_property_default e1 e2 left meta
     | GetOwnPropertyString (e1, e2) -> translate_get_own_property_string e1 e2 left throw_var label_throw meta
     | GetDefault (e1, e2) -> translate_get_default e1 e2 left meta
@@ -953,6 +1014,7 @@ let unfold_spec_function sf left throw_var label_throw meta =
     | Get (e1, e2) -> translate_get e1 e2 left throw_var label_throw meta
     | Put (e1, e2, e3, b) -> translate_put e1 e2 e3 b throw_var label_throw meta
     | HasProperty (e1, e2) -> translate_has_property e1 e2 left meta
+    | Delete (e1, e2, b) -> translate_delete e1 e2 b left throw_var label_throw meta
     | DefaultValue (e, pt) -> translate_default_value e pt left throw_var label_throw meta
     | DefineOwnProperty (e1, e2, e3, b) -> translate_define_own_property e1 e2 e3 b left throw_var label_throw meta
     | DefineOwnPropertyDefault (e1, e2, e3, b) ->  translate_define_own_property_default e1 e2 e3 b left throw_var label_throw meta

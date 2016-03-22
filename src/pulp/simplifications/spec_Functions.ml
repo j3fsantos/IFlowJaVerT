@@ -478,12 +478,14 @@ let simplify_spec_func_unfold sf left sf_annot throw_var label_throw =
   match sf with
     | GetValue e -> simplify_get_value e left sf_annot throw_var label_throw
     | PutValue (e1, e2) -> simplify_put_value e1 e2 sf_annot throw_var label_throw
+    | GetOwnProperty(e1, e2) -> translate_get_own_property e1 e2 left throw_var label_throw md (* TODO *)
     | GetOwnPropertyDefault (e1, e2) -> translate_get_own_property_default e1 e2 left md (* TODO *)
     | GetOwnPropertyString (e1, e2) -> translate_get_own_property_string e1 e2 left throw_var label_throw md (* TODO *)
     | Get (e1, e2) -> translate_get e1 e2 left throw_var label_throw md (* No simplifications. Might change after we have getters/setters *)
     | GetDefault (e1, e2) -> translate_get_default e1 e2 left md (* TODO *)
     | GetFunction (e1, e2) -> translate_get_function e1 e2 left throw_var label_throw md (* TODO *)
     | Put (e1, e2, e3, b) -> translate_put e1 e2 e3 b throw_var label_throw md (* TODO *)
+    | Delete (e1, e2, b) -> translate_delete e1 e2 b left throw_var label_throw md (* TODO *)
     | HasProperty (e1, e2) -> translate_has_property e1 e2 left md (* No simplifications *)
     | DefineOwnProperty (e1, e2, e3, b) -> translate_define_own_property e1 e2 e3 b left throw_var label_throw md (* TODO *)
     | DefineOwnPropertyDefault (e1, e2, e3, b) -> translate_define_own_property_default e1 e2 e3 b left throw_var label_throw md (* TODO *)
@@ -508,11 +510,13 @@ let simplify_spec_func sf left sf_annot throw_var label_throw =
   match sf with
     | GetValue e -> Spec_Functions_Simp.simplify_get_value e left sf_annot throw_var label_throw
     | PutValue (e1, e2) -> Spec_Functions_Simp.simplify_put_value e1 e2 sf_annot throw_var label_throw
+    | GetOwnProperty _
     | GetOwnPropertyDefault _
     | GetOwnPropertyString _
     | GetDefault _
     | GetFunction _ 
     | Put _ 
+    | Delete _
     | DefineOwnProperty _
     | DefineOwnPropertyDefault _
     | DefineOwnPropertyArray _
