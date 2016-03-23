@@ -705,8 +705,8 @@ let initial_heap () =
   let h = add_field h (BLoc LArray) (string_of_builtin_field FPrototype) (HVObj (BLoc Lap)) in
   
   let h = add_field h (BLoc Lap) (string_of_builtin_field FClass) (HVLiteral (String "Array")) in
-  let h = add_field h (BLoc Lfp) "length" (HVLiteral (Num 0.)) in
-  let h = add_field h (BLoc Lfp) ("constructor") (HVObj (BLoc LArray)) in
+  let h = add_field h (BLoc Lap) "length" (HVLiteral (Num 0.)) in
+  let h = add_field h (BLoc Lap) ("constructor") (HVObj (BLoc LArray)) in
 
   let h = add_stub_function h LArray "isArray" in
   let h = fold_add_stub_function h Lap
