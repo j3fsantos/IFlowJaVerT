@@ -419,6 +419,7 @@ let builtin_call_string_construct () =
        [ Basic (Assignment (mk_assign r1 (Expression (Literal (String "")))))],
        stmts));
       Basic (Mutation (mk_mutation (Var new_obj.assign_left) (literal_builtin_field FPrimitiveValue) (Var r1)));
+      (* TODO: Assignment of "length" field *)
       Basic (Assignment (mk_assign ctx.return_var (Expression (Var new_obj.assign_left))));
       Goto ctx.label_return; 
       Label ctx.label_return; 

@@ -416,7 +416,7 @@ let rec run_assign_expr (s : local_state) (e : assign_right_expression) ctx (fun
 	        | FTReturn -> {s with lsheap = fs.fs_heap}, fs.fs_return_value
 	      end
      
-      with | Parser.ParserFailure _ | Pulp_Translate.PulpEarlySyntaxError ->
+      with | Parser.ParserFailure _ | Pulp_Translate.PulpEarlySyntaxError _ ->
         begin
           let l = Loc (fresh_loc ()) in
           let newobj = Object.add (string_of_builtin_field FClass) (HVLiteral (String "Error")) Object.empty in
