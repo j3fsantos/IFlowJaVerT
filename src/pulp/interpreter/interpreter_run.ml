@@ -59,7 +59,7 @@ let get_pulp_expression unfold exp =
     with
       | PulpNotImplemented exp -> Printf.printf "\nTranslation of Javascript syntax does not support '%s' yet.\n" exp; exit 2
       | Invalid_argument arg -> Printf.printf "\nSomething wrong with the translation '%s'.\n" arg; exit 1
-      | PulpEarlySyntaxError -> Printf.printf "Early Syntax error: eval or arguments in invalid declaration location.\n"; exit 1
+      | PulpEarlySyntaxError msg -> Printf.printf "Early Syntax error: %s \n" msg; exit 1
 
 
 let pr_test h =

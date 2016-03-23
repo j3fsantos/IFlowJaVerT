@@ -20,8 +20,12 @@ exception PulpInvalid of string
 (* Our parser sucks. Sometimes we have to do it's job for it.
  * This may be thrown by any of the translation functions, and should
  * be caught at the top-level or at eval. *)
-exception PulpEarlySyntaxError
+exception PulpEarlySyntaxError of string
 
+(* is_strict_mode : True if code executed is in strict mode.
+ * (Currently hard-coded for future-proofing purposes to mark where
+ * different behaviour should occur in different modes) *)
+let is_strict_mode = true
 
 type translation_level =
   | IVL_buitin_functions (* spec functions, conditionals *)
@@ -32,7 +36,7 @@ type translation_level =
 
 
 let check_early_error name =
-  if name = "eval" || name = "arguments" then raise PulpEarlySyntaxError
+  if name = "eval" || name = "arguments" then raise (PulpEarlySyntaxError (name ^ " in invalid declaration location."))
 
 let check_early_error_exp exp =
   match exp.Parser_syntax.exp_stx with
@@ -1512,10 +1516,17 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
         default_stmts_if @ mk_stmts_md
 				[ Label break ], ret_def
 		  end
+
+      (* With should throw a SyntaxError if used within strict mode eval, PulpNotImplemented otherwise *)
+      | Parser_syntax.With _ ->
+          if is_strict_mode then
+            raise (PulpEarlySyntaxError "With statement not permitted in strict mode.")
+          else
+            raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.10 With Statement.")))
+
       (* I am not considering those *)  
       
       | Parser_syntax.ForIn _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.6.4 The for-in Statement.")))
-      | Parser_syntax.With _ -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.10 With Statemenet.")))
       | Parser_syntax.Debugger -> raise (PulpNotImplemented ((Pretty_print.string_of_exp true exp ^ " REF:12.15 The debugger Statement.")))
 
 let exp_to_elem ctx exp : statement list * variable = 

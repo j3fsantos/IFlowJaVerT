@@ -911,7 +911,13 @@ let test_eval_this () =
 
 let test_12_2_1_7_s () =
   test_template_exception "eval('var eval;');" Lsep
-  
+
+let test_with_exception () =
+  test_template_exception "with ({}) {}" Lsep
+
+let test_eval_with_exception () =
+  test_template_exception "eval('with ({}) {}');" Lsep
+
 let test_array_initialiser () =
   test_template_normal "var x = [5,,]; x.length " (VHValue (HVLiteral (Num 2.0)))
   
@@ -1078,6 +1084,8 @@ let suite = "Testing_Interpreter" >:::
     "test_get_prototyte_of_empty" >:: test_get_prototyte_of_empty;
     "test_eval_this" >:: test_eval_this;
     "test_12_2_1_7_s" >:: test_12_2_1_7_s;
+    "test_with_exception" >:: test_with_exception;
+    "test_eval_with_exception" >:: test_eval_with_exception;
     "test_array_initialiser" >:: test_array_initialiser;
     "test_array_initialiser_get_value_1" >:: test_array_initialiser_get_value_1;
     "test_array_initialiser_get_value_2" >:: test_array_initialiser_get_value_2;
