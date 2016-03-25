@@ -162,7 +162,10 @@
     (new r2)
     (h-assign r2 "foo" r1)
     (h-read r3 r2 "foo")
-    (check (not (equal? r3 "zigzag")))))
+    (v-assign r4 (make-symbol string))
+    (assert (equal? r4 "zag"))
+    (v-assign r5 (^ r3 r4))
+    (check (not (equal? r5 "zigzag")))))
 
 (define cmds-18
   #(
