@@ -64,12 +64,13 @@
     (add '> >)
     (add '>= >=)
     (add '<= <=)
-     table-aux))
+    (add 'equal? equal?)
+    table-aux))
 
 (define (to-interp-op op)
   (cond
     [(hash-has-key? operators-table op) (hash-ref operators-table op)]
-    [else (error "Operator not supported")]))
+    [else (error "Operator not supported" op)]))
 
 (define (apply-binop op arg1 arg2)
   (apply op (list arg1 arg2)))

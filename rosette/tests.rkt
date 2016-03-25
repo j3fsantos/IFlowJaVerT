@@ -159,13 +159,18 @@
 (define cmds-17
   #(
     (v-assign r1 (make-symbol string))
-    (assert (equal? r1 "zigzag"))
     (new r2)
     (h-assign r2 "foo" r1)
     (h-read r3 r2 "foo")
-    (check (equal? r3 "zigzag"))
-    (v-assign r4 (+ r3 2))))
+    (check (not (equal? r3 "zigzag")))))
+
+(define cmds-18
+  #(
+    (v-assign r1 (make-symbol string))
+    (new r2)
+    (h-assign r2 "foo" r1)
+    (h-read r3 r2 "foo")))
 
 (define hp (heap))
 (define st (store))
-(run-cmds empty-prog cmds-16 hp st 0)
+(run-cmds empty-prog cmds-17 hp st 0)
