@@ -117,6 +117,7 @@
 
 (define (count-goto proc-name cur-index)
   (let ((key (cons proc-name cur-index)))
+    (print (goto-stack))
     (count (lambda (x) (equal? x key)) (goto-stack))))
 
 (define (kill x)
@@ -144,10 +145,11 @@
               (expr-val (run-expr expr store)))
 	 (parameterize ([goto-stack
 			 (cons (cons proc-name cur-index) (goto-stack))])
-	   (cond
-	    [(and (symbolic? expr)
+	   (print expr-val)
+           (cond
+	    [(and (symbolic? expr-val)
 		  (> (count-goto proc-name cur-index) goto-limit))
-	     (kill expr)]
+	     (kill expr-val)]
 
 	    [(eq? expr-val #t)
 	     (run-cmds-iter prog proc-name heap store then-label)]
@@ -207,10 +209,17 @@
                   (then-index (third cmd))
                   (else-index (fourth cmd))
                   (expr-val (run-expr expr store)))
-             (cond
-               [(eq? expr-val #t) (run-cmds prog cmds heap store (+ cur-index then-index))]
-               [(eq? expr-val #f) (run-cmds prog cmds heap store (+ cur-index else-index))]
-               [else (print expr-val) (error "Illegal Conditional Goto Guard")]))]
+	     (parameterize ([goto-stack
+			     (cons (cons prog cur-index) (goto-stack))])
+	       (print expr-val)
+	       (cond
+		[(and (symbolic? expr-val)
+		      (> (count-goto prog cur-index) goto-limit))
+		 (kill expr-val)]
+
+		[(eq? expr-val #t) (run-cmds prog cmds heap store (+ cur-index then-index))]
+		[(eq? expr-val #f) (run-cmds prog cmds heap store (+ cur-index else-index))]
+		[else (print expr-val) (error "Illegal Conditional Goto Guard")])))]
           ;;
           ;; ('call lhs-var e (e1 ... en) i)
           [(eq? cmd-type 'call)
