@@ -111,6 +111,21 @@
       ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))
 
+(define goto-limit 10)
+
+(define goto-stack (make-parameter '()))
+
+(define (count-goto proc-name cur-index)
+  (let ((key (cons proc-name cur-index)))
+    (count (lambda (x) (equal? x key)) (goto-stack))))
+
+(define (kill x)
+  (letrec ((iter (lambda (l)
+		   (assert (not (car l)))
+		   (cond ((not (null? (cdr l)))
+			  (iter (cdr l)))))))
+    (iter (union-guards x))))
+
 (define (run-cmds-iter prog proc-name heap store cur-index)
   (let* ((proc (get-proc prog proc-name))
          (cmd (get-cmd proc cur-index))
@@ -127,10 +142,21 @@
               (then-label (third cmd))
               (else-label (fourth cmd))
               (expr-val (run-expr expr store)))
-         (cond
-           [(eq? expr-val #t) (run-cmds-iter prog proc-name heap store then-label)]
-           [(eq? expr-val #f) (run-cmds-iter prog proc-name heap store else-label)]
-           [else (error "Illegal Conditional Goto Guard")]))]
+	 (parameterize ([goto-stack
+			 (cons (cons proc-name cur-index) (goto-stack))])
+	   (cond
+	    [(and (symbolic? expr)
+		  (> (count-goto proc-name cur-index) goto-limit))
+	     (kill expr)]
+
+	    [(eq? expr-val #t)
+	     (run-cmds-iter prog proc-name heap store then-label)]
+
+	    [(eq? expr-val #f)
+	     (run-cmds-iter prog proc-name heap store else-label)]
+
+	    [else
+	     (error "Illegal Conditional Goto Guard")])))]
       ;;
       ;; ('call lhs-var e (e1 ... en) i)
       [(eq? cmd-type 'call)

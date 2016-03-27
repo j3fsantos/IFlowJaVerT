@@ -170,10 +170,31 @@
 (define cmds-18
   #(
     (v-assign r1 (make-symbol string))
+    (v-assign r6 (make-symbol number))
+    (goto (> r6 10) 7 1)
     (new r2)
     (h-assign r2 "foo" r1)
-    (h-read r3 r2 "foo")))
+    (h-read r3 r2 "foo")
+    (v-assign r4 (make-symbol string))
+    (assert (equal? r4 "zag"))
+    (v-assign r5 (^ r3 r4))
+    (assert (< r6 10))
+    (check (not (equal? r5 "zigzag")))))
+
+(define cmds-19
+  #(
+    (v-assign r1 (make-symbol string))
+    (v-assign r6 (make-symbol number))
+    (goto (> r6 10) 7 1)
+    (new r2)
+    (h-assign r2 "foo" r1)
+    (h-read r3 r2 "foo")
+    (v-assign r4 (make-symbol string))
+    (assert (equal? r4 "zag"))
+    (v-assign r5 (^ r3 r4))
+    (assert (> r6 10))
+    (check (not (equal? r1 "zigzag")))))
 
 (define hp (heap))
 (define st (store))
-(run-cmds empty-prog cmds-17 hp st 0)
+(run-cmds empty-prog cmds-19 hp st 0)
