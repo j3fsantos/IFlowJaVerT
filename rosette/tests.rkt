@@ -185,7 +185,7 @@
   #(
     (v-assign r1 (make-symbol string))
     (v-assign r6 (make-symbol number))
-    (v-assign r7 (make-symbol string)
+    (v-assign r7 (make-symbol string))
     (assert (> r6 1))
     (new r2)
     (h-assign r2 r7 r1)
@@ -196,7 +196,7 @@
     (v-assign r6 (- r6 1))
     (goto (> r6 0) -4 1)
     
-    (h-read r5 r2 r7)
+    (h-read r5 r2 "foo")
     (check (not (equal? r5 "badbadbadbad")))))
 
 (define hp (heap))
