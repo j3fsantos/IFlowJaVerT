@@ -185,18 +185,19 @@
   #(
     (v-assign r1 (make-symbol string))
     (v-assign r6 (make-symbol number))
+    (v-assign r7 (make-symbol string)
     (assert (> r6 1))
     (new r2)
-    (h-assign r2 "foo" r1)
+    (h-assign r2 r7 r1)
 
-    (h-read r3 r2 "foo")
+    (h-read r3 r2 r7)
     (v-assign r4 (^ r3 r3))
-    (h-assign r2 "foo" r4)
+    (h-assign r2 r7 r4)
     (v-assign r6 (- r6 1))
     (goto (> r6 0) -4 1)
     
-    (h-read r5 r2 "foo")
-    (check (not (equal? r5 "zigzigzigzig")))))
+    (h-read r5 r2 r7)
+    (check (not (equal? r5 "badbadbadbad")))))
 
 (define hp (heap))
 (define st (store))

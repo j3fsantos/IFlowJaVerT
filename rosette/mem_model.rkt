@@ -109,7 +109,7 @@
   (cond
     [(null? prop-val-list)
      (list (cons prop new-val))]
-    [(equal? (caar prop-val-list) prop)
+    [(equal? (car (car prop-val-list)) prop)
      (cons (cons prop new-val) (cdr prop-val-list))]
     [ else
      (cons (car prop-val-list) (mutate-prop-val-list (cdr prop-val-list) prop new-val))]))
@@ -122,8 +122,8 @@
     (cond
       [(null? h-pulp)
        (list (cons loc (list (cons prop val))))]
-      [(equal? (caar h-pulp) loc)
-       (cons (cons loc (mutate-prop-val-list (cdar h-pulp) prop val)) (cdr h-pulp))]
+      [(equal? (car (car h-pulp)) loc)
+       (cons (cons loc (mutate-prop-val-list (cdr (car h-pulp)) prop val)) (cdr h-pulp))]
       [ else
        (cons (car h-pulp) (mutate-heap-pulp (cdr h-pulp) loc prop val))]))
   (let ((new-heap-pulp (mutate-heap-pulp (unbox heap) loc prop val)))
@@ -133,14 +133,14 @@
   (let loop ((heap-pulp (unbox heap)))
     (cond
       [(null? heap-pulp) jempty]
-      [(equal? (caar heap-pulp) loc)
-       (find-prop-val (cdar heap-pulp) prop)]
+      [(equal? (car (car heap-pulp)) loc)
+       (find-prop-val (cdr (car heap-pulp)) prop)]
       [ else (loop (cdr heap-pulp))])))
 
 (define (find-prop-val prop-val-lst prop)
   (cond
     [(null? prop-val-lst) jempty]
-    [(equal? (caar prop-val-lst) prop) (cdar prop-val-lst)]
+    [(equal? (car (car prop-val-lst)) prop) (cdr (car prop-val-lst))]
     [ else (find-prop-val (cdr prop-val-lst) prop)]))
 
 (define (heap-contains? heap loc prop)
@@ -151,7 +151,7 @@
     (cond
       [(null? h-pulp) '()]
       [(equal? (car (car h-pulp)) loc)
-       (cons (cons loc (delete-prop-val (cdar h-pulp) prop)) (cdr h-pulp))]
+       (cons (cons loc (delete-prop-val (cdr (car h-pulp)) prop)) (cdr h-pulp))]
       [ else
         (cons (car h-pulp) (heap-delete-cell (cdr h-pulp) loc prop))]))
    (let ((new-heap-pulp (delete-cell-pulp (unbox heap) loc prop)))
@@ -159,7 +159,7 @@
 
 (define (delete-prop-val prop-val-list prop)
   (cond [(null? prop-val-list) '()]
-        [(equal? (caar prop-val-list) prop) (cdr prop-val-list)]
+        [(equal? (car (car prop-val-list)) prop) (cdr prop-val-list)]
         [ else (cons (cons prop-val-list) (delete-prop-val (cdr prop-val-list) prop))]))
 
 ;;
