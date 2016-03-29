@@ -134,6 +134,8 @@ let class_heaplet_exp le1 le2 = Heaplet (le1, Le_Literal (String (string_of_buil
 let class_heaplet_f le1 le2 = class_heaplet_exp le1 (Le_Literal (String le2))
 let primitive_value_heaplet_f le1 le2 = Heaplet (le1, Le_Literal (String (string_of_builtin_field FPrimitiveValue)), le2)
 let fid_heaplet_f le1 le2 = Heaplet (le1, Le_Literal (String (string_of_builtin_field FId)), le2)
+let target_fun_heaplet_f le1 le2 = Heaplet (le1, Le_Literal (String (string_of_builtin_field FTargetFunction)), le2)
+
 
 let proto_pred_f ls start field found value = Star [ProtoChain (start, ls, found); Pi (mk_pi_pred ls start field found value)]
 

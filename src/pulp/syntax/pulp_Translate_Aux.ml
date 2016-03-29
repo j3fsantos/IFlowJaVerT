@@ -412,7 +412,51 @@ let translate_to_object arg left throw_var label_throw meta =
         translate_to_object_prim arg left throw_var label_throw meta))
     ]))]
     
+let translate_get_default o (* variable containing object *) p (* variable, string, or built-in field name *) left meta = 
+   (* TODO : Update everywhere *)
+   let desc = mk_assign_fresh (ProtoF (o, p)) in
+   mk_stmts meta [
+    Basic (Assignment desc);
+    Sugar (If (equal_empty_expr (Var desc.assign_left), mk_stmts meta
+      [Basic (Assignment (mk_assign left (Expression(Literal Undefined))))], mk_stmts meta
+      [Basic (Assignment (mk_assign left (Expression(Var desc.assign_left))))]))
+   ] 
+  
+let translate_get_function o (* variable containing object *) p (* variable, string, or built-in field name *) left throw_var label_throw meta = 
+   (* TODO : Update everywhere *)
+   let v = fresh_r () in
+   let v_stmts= translate_get_default o p v meta in
+   v_stmts @
+   mk_stmts meta [
+    Sugar (If (equal_string_expr p "caller",
+      translate_error_throw Ltep throw_var label_throw meta, mk_stmts meta
+      [Basic (Assignment (mk_assign left (Expression(Var v))))]))
+   ]
+  
+let translate_get o p left throw_var label_throw meta =
+  let classField = mk_assign_fresh (Lookup (o, literal_builtin_field FClass)) in
+  let targetField = mk_assign_fresh (HasField (o, literal_builtin_field FTargetFunction)) in
+  let get = fresh_r () in
+  let getFstmts = translate_get_function o p get throw_var label_throw meta in
+  let getstmts = translate_get_default o p get meta in
+  let label_default = fresh_r() in
+  mk_stmts meta [
+    Basic (Assignment classField);
+    Sugar (If (equal_string_expr (Var classField.assign_left) "Function", mk_stmts meta
+      [ Basic (Assignment targetField);
+        Sugar (If (equal_bool_expr (Var targetField.assign_left) false,
+         getFstmts, mk_stmts meta
+         [Goto label_default]))], mk_stmts meta
+      [Label label_default] @
+      getstmts));
+    Basic (Assignment (mk_assign left (Expression(Var get))))
+  ]
+    
 let translate_gamma_variable_reference_object_lg base field left meta =
+  (* This part should follow 10.2.1.2.4 GetBindingValue(N,S). *)
+  (* However, when we construct references we make sure we throw required exception then. *)
+  (* Hence, simplification here. *)
+  (* TODO: double check *)
   let assign_pi_1 = mk_assign left (ProtoF (base, field)) in  
   mk_stmts meta [ Basic (Assignment assign_pi_1) ]
   
@@ -427,15 +471,11 @@ let translate_gamma_variable_reference_object base field left meta =
       translate_gamma_variable_reference_object_not_lg base field left meta)) 
   ]
 
-let translate_gamma_member_reference_object base field left meta =
-  let assign_pi_2 = mk_assign_fresh (ProtoF (base, field)) in
-  mk_stmts meta [ Basic (Assignment assign_pi_2);
-    Sugar (If (equal_empty_expr (Var assign_pi_2.assign_left), mk_stmts meta
-      [Basic (Assignment (mk_assign left (Expression(Literal Undefined))))], mk_stmts meta
-      [Basic (Assignment (mk_assign left (Expression(Var assign_pi_2.assign_left))))])) 
-  ]
+let translate_gamma_member_reference_object base field left throw_var label_throw meta =
+  translate_get base field left throw_var label_throw meta
     
 let translate_gamma_reference_prim_base base field left throw_var label_throw meta =
+   (* TODO: refactor to it's own function GetForPrim as described in 8.7.1. *)
    let r1 = fresh_r () in 
    let to_object_stmt = translate_to_object base r1 throw_var label_throw in
    let assign_pi = mk_assign_fresh (ProtoF (Var r1, field)) in 
@@ -456,7 +496,7 @@ let translate_gamma_reference_base_field r base field left throw_var label_throw
             [             
               Sugar (If (type_of_vref r,
                 translate_gamma_variable_reference_object base field left meta,
-                translate_gamma_member_reference_object base field left meta))
+                translate_gamma_member_reference_object base field left throw_var label_throw meta))
             ]))
         ]))
      ]  
@@ -537,43 +577,6 @@ let translate_get_own_property o p left throw_var label_throw meta =
       get_own_property_string_stmts,
       get_own_property_default_stmts));
     Basic (Assignment (mk_assign left (Expression(Var get_own_property))))
-  ]
-                  
-let translate_get_default o (* variable containing object *) p (* variable, string, or built-in field name *) left meta = 
-   (* TODO : Update everywhere *)
-   let desc = mk_assign_fresh (ProtoF (o, p)) in
-   mk_stmts meta [
-    Basic (Assignment desc);
-    Sugar (If (equal_empty_expr (Var desc.assign_left), mk_stmts meta
-      [Basic (Assignment (mk_assign left (Expression(Literal Undefined))))], mk_stmts meta
-      [Basic (Assignment (mk_assign left (Expression(Var desc.assign_left))))]))
-   ] 
-  
-let translate_get_function o (* variable containing object *) p (* variable, string, or built-in field name *) left throw_var label_throw meta = 
-   (* TODO : Update everywhere *)
-   let v = fresh_r () in
-   let v_stmts= translate_get_default o p v meta in
-   v_stmts @
-   mk_stmts meta [
-    Sugar (If (equal_string_expr (Var v) "caller",
-      translate_error_throw Ltep throw_var label_throw meta, mk_stmts meta
-      [Basic (Assignment (mk_assign left (Expression(Var v))))]))
-   ]
-  
-let translate_get o p left throw_var label_throw meta =
-  let classField = mk_assign_fresh (Lookup (o, literal_builtin_field FClass)) in
-  let targetField = mk_assign_fresh (HasField (o, literal_builtin_field FTargetFunction)) in
-  let get = fresh_r () in
-  let getFstmts = translate_get_function o p get throw_var label_throw meta in
-  let getstmts = translate_get_default o p get meta in
-  mk_stmts meta [
-    Basic (Assignment classField);
-    Basic (Assignment targetField);
-    Sugar (If (and_expr (equal_string_expr (Var classField.assign_left) "Function")
-                        (equal_bool_expr (Var targetField.assign_left) false),
-      getFstmts,
-      getstmts));
-    Basic (Assignment (mk_assign left (Expression(Var get))))
   ]
   
 let is_callable_object arg rv meta = 

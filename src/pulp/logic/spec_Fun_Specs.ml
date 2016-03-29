@@ -47,26 +47,29 @@ let get_value_vref_lg param v =
         NEq (v, Le_Literal Empty) 
       ])
       
-let get_value_mref_empty_pre param = 
+let of_not_class obj className = 
+  let c = Le_Var (fresh_e()) in
+  Star [
+     class_heaplet_exp obj c;
+     NEq (c, Le_None);
+     NEq (c, (Le_Literal (String className)));
+   ]
+  
+let get_value_mref_pre param v =
    let ls = Le_Var (fresh_e()) in
    let l = Le_Var (fresh_e()) in 
      combine
-     (proto_pred_f ls (Le_Base param) (Le_Field param) l (Le_Literal Empty))   
+     (proto_pred_f ls (Le_Base param) (Le_Field param) l v) 
      (Star [
        type_of_mref_f param; 
        type_of_obj_f (Le_Base param)
-     ])
+     ])   
+      
+let get_value_mref_empty_pre param = get_value_mref_pre param (Le_Literal Empty)
     
 let get_value_mref_not_empty_pre param v = 
-   let ls = Le_Var (fresh_e()) in
-   let l = Le_Var (fresh_e()) in 
-     combine 
-       (proto_pred_f ls (Le_Base param) (Le_Field param) l v)
-       (Star [
-         type_of_mref_f param; 
-         type_of_obj_f (Le_Base param);
-         NEq (v, Le_Literal Empty) 
-       ])
+   let f1 = get_value_mref_pre param v in 
+   combine f1 (NEq (v, Le_Literal Empty))
 
 let get_value_mref_empty_pre2 param1 param2 = 
    let ls = Le_Var (fresh_e()) in
@@ -85,18 +88,20 @@ let get_value_mref_not_empty_pre2 param1 param2 v =
          NEq (v, Le_Literal Empty) 
        ])
 
+let throws_error error = 
+  let lerror = Le_Var (fresh_e()) in
+    (Star [
+      REq lerror;
+      proto_heaplet_f lerror (Le_Literal (LLoc error));
+      class_heaplet_f lerror "Error"
+    ])
+  
+
 let get_value_spec param ctx =
   let pre_not_a_ref = get_value_not_a_ref_pre (Le_PVar param) in
   
   let pre_unresolvable_ref = get_value_unresolvable_ref_pre (Le_PVar param) in
-  
-  let lerror = Le_Var (fresh_e()) in
-  let post_unresolvable_ref = combine pre_unresolvable_ref
-    (Star [
-      REq lerror;
-      proto_heaplet_f lerror (Le_Literal (LLoc Lrep));
-      class_heaplet_f lerror "Error"
-    ]) in
+  let post_unresolvable_ref = combine pre_unresolvable_ref (throws_error Lrep) in
  
   let v1 = Le_Var (fresh_a()) in
   let pre_vref_obj = get_value_vref_obj_pre (Le_PVar param) v1 in 
@@ -104,17 +109,64 @@ let get_value_spec param ctx =
   let v2 = Le_Var (fresh_a()) in
   let pre_vref_lg = get_value_vref_lg (Le_PVar param) v2  in
   
-  let pre_mref_empty = get_value_mref_empty_pre (Le_PVar param) in
+  let pre_mref_empty_not_func = 
+    let f1 = get_value_mref_empty_pre (Le_PVar param) in
+    let f2 = of_not_class (Le_Base (Le_PVar param)) "Function" in
+    combine f1 f2 in
+  
+  let t = Le_Var (fresh_a()) in
+  let pre_mref_empty_bind_func = 
+    let f1 = get_value_mref_empty_pre (Le_PVar param) in
+    let f2 = class_heaplet_f (Le_Base (Le_PVar param)) "Function" in
+    let f3 = Star [target_fun_heaplet_f (Le_Base (Le_PVar param)) t; NEq (t, Le_None)] in 
+    combine (combine f1 f2) f3 in
+    
+  let pre_mref_norm_func_caller = 
+    let f1 = get_value_mref_pre (Le_PVar param) (Le_Var (fresh_e())) in
+    let f2 = class_heaplet_f (Le_Base (Le_PVar param)) "Function" in
+    let f3 = target_fun_heaplet_f (Le_Base (Le_PVar param)) Le_None in 
+    let f4 = Eq (Le_Field (Le_PVar param), Le_Literal (String "caller")) in 
+    combine f1 (Star [f2; f3; f4]) in
+    
+  let pre_mref_norm_func_not_caller = 
+    let f1 = get_value_mref_empty_pre (Le_PVar param) in
+    let f2 = class_heaplet_f (Le_Base (Le_PVar param)) "Function" in
+    let f3 = target_fun_heaplet_f (Le_Base (Le_PVar param)) Le_None in 
+    let f4 = NEq (Le_Field (Le_PVar param), Le_Literal (String "caller")) in 
+    combine f1 (Star [f2; f3; f4]) in
   
   let v3 = Le_Var (fresh_a()) in
-  let pre_mref_not_empty = get_value_mref_not_empty_pre (Le_PVar param) v3 in
+  let pre_mref_not_empty_not_func = 
+    let f1 = get_value_mref_not_empty_pre (Le_PVar param) v3 in
+    let f2 = of_not_class (Le_Base (Le_PVar param)) "Function" in
+    combine f1 f2 in
+    
+  let v4 = Le_Var (fresh_a()) in
+  let pre_mref_not_empty_bind_func = 
+    let f1 = get_value_mref_not_empty_pre (Le_PVar param) v4 in
+    let f2 = of_not_class (Le_Base (Le_PVar param)) "Function" in
+    let f3 = Star [target_fun_heaplet_f (Le_Base (Le_PVar param)) t; NEq (t, Le_None)] in 
+    combine (combine f1 f2) f3 in
+    
+  let v5 = Le_Var (fresh_a()) in
+  let pre_mref_not_empty_normal_func_not_caller = 
+    let f1 = get_value_mref_not_empty_pre (Le_PVar param) v5 in
+    let f2 = class_heaplet_f (Le_Base (Le_PVar param)) "Function" in
+    let f3 = target_fun_heaplet_f (Le_Base (Le_PVar param)) Le_None in 
+    let f4 = NEq (Le_Field (Le_PVar param), Le_Literal (String "caller")) in 
+    combine f1 (Star [f2; f3; f4]) in
   
   [(mk_spec_with_excep pre_not_a_ref [combine pre_not_a_ref (REq (Le_PVar param))] [false_f]);
    (mk_spec_with_excep pre_unresolvable_ref [false_f] [post_unresolvable_ref]);
    (mk_spec_with_excep pre_vref_obj [combine pre_vref_obj (REq v1)] [false_f]);
    (mk_spec_with_excep pre_vref_lg [combine pre_vref_lg (REq v2)] [false_f]);
-   (mk_spec_with_excep pre_mref_empty [combine pre_mref_empty (REq (Le_Literal Undefined))] [false_f]);
-   (mk_spec_with_excep pre_mref_not_empty [combine pre_mref_not_empty (REq v3)] [false_f])
+   (mk_spec_with_excep pre_mref_empty_not_func [combine pre_mref_empty_not_func (REq (Le_Literal Undefined))] [false_f]);
+   (mk_spec_with_excep pre_mref_empty_bind_func [combine pre_mref_empty_bind_func (REq (Le_Literal Undefined))] [false_f]);
+   (mk_spec_with_excep pre_mref_norm_func_caller [false_f] [combine pre_mref_norm_func_caller (throws_error Ltep)]);
+   (mk_spec_with_excep pre_mref_norm_func_not_caller [combine pre_mref_norm_func_not_caller (REq (Le_Literal Undefined))] [false_f]);
+   (mk_spec_with_excep pre_mref_not_empty_not_func [combine pre_mref_not_empty_not_func (REq v3)] [false_f]);
+   (mk_spec_with_excep pre_mref_not_empty_bind_func [combine pre_mref_not_empty_bind_func (REq v4)] [false_f]); 
+   (mk_spec_with_excep pre_mref_not_empty_normal_func_not_caller [combine pre_mref_not_empty_normal_func_not_caller (REq v5)] [false_f]) 
   ] 
 
 let put_value_spec param1 param2 ctx =

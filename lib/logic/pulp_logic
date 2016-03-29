@@ -192,6 +192,12 @@ rule not_true_eq_false :
 without bool_not(?x) = false()
 if 
  | |-
+ 
+rule bool_not_not_none :
+ | bool_not(triple_eq(?x, none())) = ?y * ?x != none() |- 
+without ?y = true()
+if 
+ | ?y = true() * ?x != none() |-
 
 rule lg_not_undefined :
   | |- lg() != undefined()

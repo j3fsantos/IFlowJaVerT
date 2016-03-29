@@ -25,7 +25,7 @@ let simplify_get_value e left sf_annot throw_var label_throw =
   
   let simplify_ref_object e1 e1_ty e2 rt =
     match rt with
-       | MemberReference ->  translate_gamma_member_reference_object e1 e2 left md
+       | MemberReference ->  translate_gamma_member_reference_object e1 e2 left throw_var label_throw md
        | VariableReference ->
         begin match e1 with
            | Literal (LLoc Lg) -> translate_gamma_variable_reference_object_lg e1 e2 left md
