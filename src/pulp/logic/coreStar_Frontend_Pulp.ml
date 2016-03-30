@@ -176,6 +176,8 @@ let op_of_pulp_type pt =
 let literal_to_args lit =
   match lit with
     | LLoc bl -> Psyntax.Arg_op (string_of_builtin_loc_no_hash bl, [])
+    (* TODO: separate from user field *)
+    | BField bf -> Psyntax.Arg_op (string_const, [Psyntax.Arg_string (string_of_builtin_field bf)])
 	  | Null -> Psyntax.Arg_op (null, [])                  
 	  | Bool b -> Psyntax.Arg_op (string_of_bool b, [])  
 	  | Num n -> 

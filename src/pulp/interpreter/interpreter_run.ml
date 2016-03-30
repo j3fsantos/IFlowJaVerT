@@ -65,7 +65,7 @@ let get_pulp_expression unfold exp =
 let pr_test h =
   let lg_obj = Heap.find (BLoc Lg) h in
   try
-     let error = Object.find "__$ERROR__" lg_obj in
+     let error = Object.find (UserField "__$ERROR__") lg_obj in
      match error with
       | (HVLiteral (String "")) ->  Printf.printf "No variable [__$ERROR__] is defined at global scope.\n" 
       | _ -> 
@@ -140,7 +140,7 @@ let run_program path =
 	let built_ins = env in   
   let h = initial_heap () in
   let lg = Heap.find (BLoc Lg) h in
-  let lg = Object.add ("__$ERROR__") (HVLiteral (String "")) lg in
+  let lg = Object.add (UserField "__$ERROR__") (HVLiteral (String "")) lg in
   let h = Heap.add (BLoc Lg) lg h in
   
   let result = run_with_heap h expr_to_run built_ins in
@@ -152,7 +152,7 @@ let run_program path =
         | VHValue (HVObj l) -> 
           begin
             let actual_excep_obj = Heap.find l result.fs_heap in
-            let actual_excep_proto = Object.find (Pulp_Syntax.string_of_builtin_field FProto) actual_excep_obj in
+            let actual_excep_proto = Object.find (BuiltinField FProto) actual_excep_obj in
               begin match actual_excep_proto with
                 | HVObj (BLoc l) -> Printf.printf "\n %s \n" (Pulp_Syntax_Print.string_of_builtin_loc l)
                 | _ -> ()

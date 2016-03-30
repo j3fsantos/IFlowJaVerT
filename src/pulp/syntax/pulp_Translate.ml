@@ -321,7 +321,7 @@ let translate_function_expression exp params ctx named =
     add_proto_value prototype.assign_left Lop; 
     Basic (Mutation (mk_mutation (Var prototype.assign_left) (literal_builtin_field FClass) (Literal (String "Object"))));
     Basic (Mutation (mk_mutation (Var prototype.assign_left) (Literal (String "constructor")) (Var f_obj.assign_left)));
-    Basic (Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FPrototype) (Var prototype.assign_left)));
+    Basic (Mutation (mk_mutation (Var f_obj.assign_left) (Literal (String "prototype")) (Var prototype.assign_left)));
     Basic (Assignment scope);
     add_proto_null scope.assign_left
   ] @ 
@@ -340,7 +340,7 @@ let translate_has_instance f v throw_var label_throw md =
   let rv = fresh_r () in
   let o = fresh_r () in
   (* TODO: changed to a call to a GetFunction *)
-  let get_stmts = translate_get_function f (literal_builtin_field FPrototype) o throw_var label_throw md in
+  let get_stmts = translate_get_function f (Literal (String "prototype")) o throw_var label_throw md in
   let proto = mk_assign_fresh (Lookup (v, literal_builtin_field FProto)) in
   let proto_o = mk_assign_fresh (ProtoO (Var proto.assign_left, Var o)) in
   mk_stmts md [ 
@@ -463,7 +463,7 @@ let rec translate_exp ctx exp : statement list * variable =
             
       | Parser_syntax.New (e1, e2s) ->
         let stmts, r1, r2, arg_values = translate_call_construct_start f e1 e2s ctx true md in
-        let prototype = mk_assign_fresh (Lookup (Var r2, literal_builtin_field FPrototype)) in        
+        let prototype = mk_assign_fresh (Lookup (Var r2, Literal (String "prototype"))) in        
         let vthisproto = fresh_r () in
         let vthis = mk_assign_fresh Obj in
         let if3, call_lvar = translate_inner_call (Var r2) (Var vthis.assign_left) arg_values ctx.throw_var ctx.label_throw [] md (* Cannot be new eval *) in (* TODO Construct vs. Call *)    
@@ -675,7 +675,7 @@ let rec translate_exp ctx exp : statement list * variable =
                     [
                       Basic (Assignment r5); 
                       Sugar (If (and_expr 
-                                (equal_exprs (Var r3.assign_left) (literal_builtin_field FPrototype)) 
+                                (equal_exprs (Var r3.assign_left) (Literal (String "prototype"))) 
                                 (equal_bool_expr (Var r5.assign_left) true), 
                         translate_error_throw Ltep ctx.throw_var ctx.label_throw md, mk_stmts_md 
                         [ Basic (Assignment (mk_assign_fresh (Deallocation (Var r4.assign_left, Var r3.assign_left))));

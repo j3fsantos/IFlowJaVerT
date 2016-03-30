@@ -99,7 +99,6 @@ type builtin_field =
   | FProto
   | FId
   | FScope
-  | FPrototype
   | FConstructId
   | FPrimitiveValue
   | FTargetFunction
@@ -110,7 +109,6 @@ let string_of_builtin_field f =
     | FProto -> "#proto"
     | FId -> "#fid"
     | FScope -> "#scope"
-    | FPrototype -> "prototype"
     | FConstructId -> "#constructid"
     | FPrimitiveValue -> "#primvalue"
     | FTargetFunction -> "#targetfunction"
@@ -135,6 +133,7 @@ type pulp_type =
 
 type literal =
   | LLoc of builtin_loc
+  | BField of builtin_field
   | Null                  
   | Bool of bool          
   | Num of float          

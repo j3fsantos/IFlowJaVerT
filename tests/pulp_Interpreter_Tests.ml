@@ -69,7 +69,7 @@ let get_actual_excep result =
     | VHValue (HVObj l) -> l
     | _ -> assert_failure ("An exception must be an object. Actual: " ^ (string_of_value result.fs_return_value)) in
   let actual_excep_obj = Heap.find actual_excep_l result.fs_heap in
-  let actual_excep_proto = Object.find (string_of_builtin_field FProto) actual_excep_obj in
+  let actual_excep_proto = Object.find (BuiltinField FProto) actual_excep_obj in
   match actual_excep_proto with
     | HVObj (BLoc l) -> l
     | _ -> assert_failure "An exception must be a builtin object"
@@ -938,7 +938,9 @@ let test_array_initialiser_set_length_greater () =
   
 let test_array_initialiser_set_length_smaller () =
   test_template_normal "var x = [,5,]; x.length = 1; x[1]" (VHValue (HVLiteral (Undefined)))
-  
+ 
+let test_internal_field_not_accessible () =
+  test_template_normal "var f = function() {}; f['#class']" (VHValue (HVLiteral (Undefined)))
   
 
 let suite = "Testing_Interpreter" >:::
@@ -1093,5 +1095,6 @@ let suite = "Testing_Interpreter" >:::
     "test_array_initialiser_define_prop_length" >:: test_array_initialiser_define_prop_length;
     "test_array_initialiser_set_length_greater" >:: test_array_initialiser_set_length_greater;
     "test_array_initialiser_set_length_smaller" >:: test_array_initialiser_set_length_smaller;
+    "test_internal_field_not_accessible" >:: test_internal_field_not_accessible
     (*"test_" >:: test_*) 
     ] 

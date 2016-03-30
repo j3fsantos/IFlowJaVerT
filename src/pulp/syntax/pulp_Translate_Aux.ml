@@ -78,7 +78,7 @@ let assign_to_string var n = assign_uop var ToStringOp (Literal (Num n))
 let assign_true var = assign_boolean var true
 let assign_false var = assign_boolean var false
 
-let literal_builtin_field f = Literal (String (string_of_builtin_field f))
+let literal_builtin_field f = Literal (BField f)
 let rthis : variable = "rthis"
 let rscope : variable = "rscope"
 

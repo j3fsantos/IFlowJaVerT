@@ -186,6 +186,7 @@ let string_of_pulp_type t =
 let string_of_literal lit =
   match lit with
     | LLoc l -> string_of_builtin_loc l
+    | BField f -> string_of_builtin_field f
     | Num n -> string_of_float n
     | String x -> Printf.sprintf "\"%s\"" x
     | Null -> "null"

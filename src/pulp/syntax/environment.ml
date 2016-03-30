@@ -55,7 +55,7 @@ let builtin_call_boolean_construct () =
   let new_obj = Le_Var (fresh_e()) in  
   let post = [Star [
     REq new_obj;
-    ObjFootprint (new_obj, [Le_Literal (String (string_of_builtin_field FProto)); Le_Literal (String (string_of_builtin_field FClass)); Le_Literal (String (string_of_builtin_field FPrimitiveValue))]);
+    ObjFootprint (new_obj, [Le_Literal (BField FProto); Le_Literal (BField FClass); Le_Literal (BField FPrimitiveValue)]);
     proto_heaplet_f new_obj (Le_Literal (LLoc Lbp));
     class_heaplet_f new_obj "Boolean";
     primitive_value_heaplet_f new_obj (Le_PVar v);
@@ -185,7 +185,7 @@ let builtin_object_construct () =
   let new_obj = Le_Var (fresh_e()) in
   let post = [Star [
     REq new_obj;
-    ObjFootprint (new_obj, [Le_Literal (String (string_of_builtin_field FProto)); Le_Literal (String (string_of_builtin_field FClass))]);
+    ObjFootprint (new_obj, [Le_Literal (BField FProto); Le_Literal (BField FClass)]);
     proto_heaplet_f new_obj (Le_Literal (LLoc Lop));
     class_heaplet_f new_obj "Object";
   ]] in
@@ -429,7 +429,7 @@ let builtin_call_string_construct () =
   let new_obj = Le_Var (fresh_e()) in  
   let post = [Star [
     REq new_obj;
-    ObjFootprint (new_obj, [Le_Literal (String (string_of_builtin_field FProto)); Le_Literal (String (string_of_builtin_field FClass)); Le_Literal (String (string_of_builtin_field FPrimitiveValue))]);
+    ObjFootprint (new_obj, [Le_Literal (BField FProto); Le_Literal (BField FClass); Le_Literal (BField FPrimitiveValue)]);
     proto_heaplet_f new_obj (Le_Literal (LLoc Lsp));
     class_heaplet_f new_obj "String";
     primitive_value_heaplet_f new_obj (Le_PVar v);

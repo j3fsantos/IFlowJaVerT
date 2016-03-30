@@ -16,6 +16,11 @@ let string_of_loc l =
     | BLoc bl -> string_of_builtin_loc bl
     | Loc l -> "l"^ (string_of_int l)
 
+let string_of_field f =
+  match f with
+    | BuiltinField f -> string_of_builtin_field f
+    | UserField x -> x
+
 let string_of_heap_value hv =
   match hv with
     | HVLiteral lit -> string_of_literal lit
@@ -31,4 +36,4 @@ let string_of_value v =
       (match rt with
         | MemberReference -> "_o"
         | VariableReference -> "_v")
-      x
+      (string_of_field x)

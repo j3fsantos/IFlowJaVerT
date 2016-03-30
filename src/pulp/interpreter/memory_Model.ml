@@ -44,9 +44,13 @@ let fresh_loc () : int =
   
 (* Object *)
 
+type field = 
+  | BuiltinField of builtin_field
+  | UserField of string
+
 module Object = Map.Make ( 
   struct 
-    type t = string
+    type t = field
     let compare = compare
   end
 )
@@ -60,7 +64,7 @@ type heap_value =
 type value =
   | VHValue of heap_value
   | VType of pulp_type
-  | VRef of heap_value * string * reference_type
+  | VRef of heap_value * field * reference_type
 
 (* Do I still need this if I always evaluate literal builtin location to hbobj builtin location? Doesn't feel clean to have same things at different places *)
 let heap_value_eq v1 v2 =
