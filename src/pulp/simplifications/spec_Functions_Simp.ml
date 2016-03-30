@@ -61,7 +61,8 @@ let simplify_get_value e left sf_annot throw_var label_throw =
             | Null ->  None            
             | Bool _  | Num _  | String _ ->  None
             | Undefined -> Some (translate_error_throw Lrep throw_var label_throw md)
-            | Type pt -> raise (Invalid_argument "Type cannot be as an argument to Reference")
+            | BField _ -> raise (Invalid_argument "Builtin field cannot be as an argument to Reference")
+            | Type _ -> raise (Invalid_argument "Type cannot be as an argument to Reference")
             | Empty -> raise (Invalid_argument "Empty cannot be as an argument to Reference")   
            end
         | BinOp _ 
@@ -135,7 +136,8 @@ let simplify_put_value e1 e2 sf_annot throw_var label_throw =
             | Null ->  None             
             | Bool _  | Num _  | String _ -> gotothrow
             | Undefined -> gotothrow
-            | Type pt -> raise (Invalid_argument "Type cannot be as an argument to Reference")
+            | BField _ -> raise (Invalid_argument "Builtin field cannot be as an argument to Reference")
+            | Type _ -> raise (Invalid_argument "Type cannot be as an argument to Reference")
             | Empty -> raise (Invalid_argument "Empty cannot be as an argument to Reference")   
            end
         | BinOp _ 
@@ -173,7 +175,7 @@ let simplify_to_number_prim e sf_annot left =
     | Literal (Bool true) -> Some (mk_stmts_md [assign_num left 1.0])
     | Literal (String s) -> Some (mk_stmts_md [assign_to_number left s]) 
     | Literal (Num n) -> Some (mk_stmts_md [assign_num left n])
-    | Literal Empty | Literal (LLoc _) | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To number prim cannot take empty / object / type / typeof / ref as an argument") 
+    | Literal Empty | Literal (LLoc _) | Literal BField _ | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To number prim cannot take empty / object / type / typeof / ref as an argument") 
     | Field _ -> Some (mk_stmts_md [assign_uop left ToNumberOp e]) (* Field return string *)
     | BinOp _ | UnaryOp _ | Base _ -> None  (* TODO: Different types for different operators *)
     | Var var -> 
@@ -201,7 +203,7 @@ let simplify_to_number e sf_annot left throw_var label_throw =
   match e with
     | Literal (LLoc _) -> None
     | Literal Undefined | Literal Null | Literal (Bool _) | Literal (String _) | Literal (Num _) | Field _ | BinOp _ | UnaryOp _ -> simplify_to_number_prim e sf_annot left
-    | Literal Empty | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To number cannot take empty / type / ref as an argument") 
+    | Literal Empty | Literal (BField _) | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To number cannot take empty / type / ref / builtin field as an argument") 
     | Base _ -> None
     | Var var -> 
       begin match get_type_info annot var with
@@ -230,8 +232,8 @@ let simplify_to_string_prim e sf_annot left =
     | Literal (Bool true) -> Some (mk_stmts_md [assign_string left "true"])
     | Literal (String s) -> Some (mk_stmts_md [assign_string left s]) 
     | Literal (Num n) -> Some (mk_stmts_md [assign_to_string left n])
-    | Literal Empty | Literal (LLoc _) | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To_string_prim cannot take empty / object / type / ref / base as an argument") 
-    | Field _ -> Some (mk_stmts_md [assign_expr left e]) (* Field return string *)
+    | Literal Empty | Literal (LLoc _) | Literal (BField _) | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To_string_prim cannot take empty / object / type / ref / base as an argument") 
+    | Field _ -> Some (mk_stmts_md [assign_expr left e]) (* Field return string *) (* TODO: Now field can be builtin field not neccessary a string *)
     | BinOp _ | UnaryOp _  | Base _ -> None (* TODO: Different types for different operators *)
     | Var var -> 
       begin match get_type_info annot var with
@@ -258,7 +260,7 @@ let simplify_to_string e sf_annot left throw_var label_throw =
   match e with
     | Literal (LLoc _) -> None
     | Literal Undefined | Literal Null | Literal (Bool _) | Literal (String _) | Literal (Num _) | Field _ | BinOp _ | UnaryOp _ -> simplify_to_string_prim e sf_annot left
-    | Literal Empty | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To string cannot take empty / type / typeof / ref as an argument") 
+    | Literal Empty | Literal (BField _) | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To string cannot take empty / type / typeof / ref as an argument") 
     | Base _ -> None
      | Var var -> 
       begin match get_type_info annot var with
@@ -287,7 +289,7 @@ let simplify_to_object e sf_annot left throw_var label_throw =
     | Literal (String _) | Field _ -> Some (make_builtin_call (String_Construct) left None [e] throw_var label_throw md)
     | Literal (Num _) -> Some (make_builtin_call (Number_Construct) left None [e] throw_var label_throw md)
     | BinOp _ | UnaryOp _ -> None (* TODO simplify more for the specific op *)
-    | Literal Empty | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To object cannot take empty / type / ref as an argument") 
+    | Literal Empty | Literal (BField _) | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To object cannot take empty / type / ref as an argument") 
     | Base _ -> None
     | Var var -> 
       begin match get_type_info annot var with
@@ -315,7 +317,7 @@ let simplify_to_primitive e preftype sf_annot left throw_var label_throw =
   match e with
     | Literal (LLoc _) -> None
     | Literal Undefined | Literal Null | Literal (Bool _) | Literal (String _) | Field _ | Literal (Num _) | BinOp _ | UnaryOp _ -> Some (mk_stmts_md [assign_expr left e])
-    | Literal Empty | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To object cannot take empty / type / typeof / ref as an argument") 
+    | Literal Empty | Literal (BField _) | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "To object cannot take empty / type / typeof / ref as an argument") 
     | Base _ -> None
     | Var var -> 
       begin match get_type_info annot var with
@@ -350,7 +352,7 @@ let simplify_strict_equality_comparison_types_equal e1 e2 sf_annot left =
           | _ -> None
       end
     | BinOp _ | UnaryOp _ | Base _ -> None
-    | Literal Empty | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "=== same types cannot take empty / type / typeof / ref as an argument") 
+    | Literal Empty | Literal (BField _) | Literal Type _ | TypeOf _ | Ref _ -> raise (Invalid_argument "=== same types cannot take empty / type / typeof / ref as an argument") 
     | Var var -> 
       begin match get_type_info annot var with
         | None -> None

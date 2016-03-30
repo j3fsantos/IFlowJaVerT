@@ -278,6 +278,7 @@ let rec simplify_expr e =
             | Literal lit1, Literal lit2 ->
               begin match lit1, lit2 with
                 | LLoc l1, LLoc l2 -> Literal (Bool (l1 = l2))
+                | BField f1, BField f2 -> Literal (Bool (f1 = f2))
 							  | Null, Null -> Literal (Bool true)                  
 							  | Bool b1, Bool b2 -> Literal (Bool (b1 = b2))         
 							  | Num n1, Num n2 -> Literal (Bool (n1 = n2))         

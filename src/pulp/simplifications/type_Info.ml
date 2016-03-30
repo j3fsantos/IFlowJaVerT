@@ -66,6 +66,7 @@ let empty_type_info x = None
 let get_type_info_literal lit =
   match lit with
     | LLoc _ -> TI_Type (ObjectType (Some Builtin))
+    | BField _ -> TI_Type StringType
     | Null -> TI_Type NullType               
     | Bool _ -> TI_Type BooleanType         
     | Num _ -> TI_Type NumberType          
@@ -85,6 +86,7 @@ let get_type_info_expr type_info e =
         | Arith aop ->  Some (TI_Type NumberType)
         | Boolean bop -> Some (TI_Type BooleanType) 
         | Bitwise _ -> Some (TI_Type NumberType) 
+        | Subtype -> Some (TI_Type BooleanType) 
       end
     | UnaryOp (Not, e) -> Some (TI_Type BooleanType)
     | UnaryOp (Negative, e) -> Some (TI_Type NumberType)
