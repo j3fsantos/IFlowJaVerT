@@ -42,11 +42,18 @@ let test_has_property () =
   let to_boolean_fb = AllFunctions.find (Pulp_Syntax_Print.string_of_spec_fun_id (ToBoolean (dummy_exp1))) env in
   test_program_template "test_to_boolean" to_boolean_fb env
 
+let test_bool_construct () =
+  let env = get_env () in
+  let boolean_constructor = AllFunctions.find ((string_of_builtin_function Boolean_Construct)) env in
+  test_program_template "test_boolean_constructor" boolean_constructor env
+
+
 
 
 let suite = "Spec_Functions_Tests" >::: [
   (* "test_get_value" >:: test_get_value; *)
 	(* "test_put_value" >:: test_put_value; *)
 	(* "test_has_property" >:: test_has_property; *)
-	"test_has_property" >:: test_has_property;
+	(* "test_has_property" >:: test_has_property; *)
+	"test_bool_construct" >:: test_bool_construct
   ]

@@ -17,7 +17,7 @@ open SSyntax
 let file = ref ""
 let level = ref IVL_goto
 let smart_simp = ref Simp_Common.Simp_Specs
-let line_numbers_on = ref true
+let line_numbers_on = ref false
 
 type simp_level =
   | Simp_On (* simplifications on *)
