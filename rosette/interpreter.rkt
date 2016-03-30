@@ -290,11 +290,11 @@
                (ref-val (run-expr ref-expr store)))
           (ref-type ref-val))]
        ;;
-       ;; (make-symbol symbol-type)
+       ;; (make-symbol symbol-type var)
        [(eq? (first expr) 'make-symbol)
         (if (eq? (second expr) 'number)
-            (make-number-symbol)
-            (make-string-symbol))]
+            (make-number-symbol (third expr))
+            (make-string-symbol (third expr)))]
        ;;
        ;; (binop e e)
        [(= (length expr) 3) 

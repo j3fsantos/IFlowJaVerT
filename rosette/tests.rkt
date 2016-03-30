@@ -183,9 +183,9 @@
 
 (define cmds-19
   #(
-    (v-assign r1 (make-symbol string))
-    (v-assign r6 (make-symbol number))
-    (v-assign r7 (make-symbol string))
+    (v-assign r1 (make-symbol string r1))
+    (v-assign r6 (make-symbol number r6))
+    (v-assign r7 (make-symbol string r7))
     (assert (> r6 1))
     (new r2)
     (h-assign r2 r7 r1)
@@ -195,8 +195,15 @@
     (h-assign r2 r7 r4)
     (v-assign r6 (- r6 1))
     (goto (> r6 0) -4 1)
+
+    (new r8)
+    (v-assign r9 (make-symbol string f1))
+    (has-field r10 r2 r9)
+    (assert r10)
+    (h-read r11 r2 r9)
+    (h-assign r8 r9 r11)
     
-    (h-read r5 r2 "foo")
+    (h-read r5 r8 "foo")
     (check (not (equal? r5 "badbadbadbad")))))
 
 (define hp (heap))
