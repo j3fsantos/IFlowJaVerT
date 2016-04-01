@@ -592,7 +592,7 @@ let is_callable arg rv meta =
   mk_stmts meta [ 
     Sugar (If (type_of_exp arg (ObjectType None),
       is_callable_object arg rv meta, mk_stmts meta
-      [assign_true rv]))]
+      [assign_false rv]))]
   
 let translate_strict_equality_comparison_types_equal_if_equal x y rv meta =
   mk_stmts meta [ Sugar (If (equal_exprs x y, mk_stmts meta [assign_true rv], mk_stmts meta [assign_false rv])) ]

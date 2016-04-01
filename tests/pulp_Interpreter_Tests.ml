@@ -942,6 +942,9 @@ let test_array_initialiser_set_length_smaller () =
 let test_internal_field_not_accessible () =
   test_template_normal "var f = function() {}; f['#class']" (VHValue (HVLiteral (Undefined)))
   
+let test_is_callable_for_non_object () =
+  test_template_normal "var x = {}; x.valueOf = ''; x + x" (VHValue (HVLiteral (String "[object Object][object Object]")))
+  
 
 let suite = "Testing_Interpreter" >:::
   [
@@ -1095,6 +1098,7 @@ let suite = "Testing_Interpreter" >:::
     "test_array_initialiser_define_prop_length" >:: test_array_initialiser_define_prop_length;
     "test_array_initialiser_set_length_greater" >:: test_array_initialiser_set_length_greater;
     "test_array_initialiser_set_length_smaller" >:: test_array_initialiser_set_length_smaller;
-    "test_internal_field_not_accessible" >:: test_internal_field_not_accessible
+    "test_internal_field_not_accessible" >:: test_internal_field_not_accessible;
+    "test_is_callable_for_non_object" >:: test_is_callable_for_non_object;
     (*"test_" >:: test_*) 
     ] 
