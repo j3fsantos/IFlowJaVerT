@@ -259,10 +259,6 @@ type assign_right_expression =
   | Deallocation of expression * expression
   | ProtoF of expression * expression (* TODO: A bit different for String Objects. *)
   | ProtoO of expression * expression
-	(* calls with numeric labels *)
-	| SCall of scall
-  | SEval of scall
-  | SBuiltinCall of scall (* Have eval here? *)
 
 type assignment = { 
     assign_left : variable; 
@@ -334,13 +330,10 @@ and statement_syntax =
   | Basic of basic_statement 
   | Sugar of syntactic_sugar_statement
 (* numbered gotos - no more labels *)
-	| SGoto of int
-	| SGuardedGoto of expression * int * int
 and
 syntactic_sugar_statement =
   | If of expression * statement list * statement list 
   | SpecFunction of variable * specification_function * label
-	| SSpecFunction of variable * specification_function * int
 
 let mk_stmt data stx = {stmt_stx = stx; stmt_data = data}
 

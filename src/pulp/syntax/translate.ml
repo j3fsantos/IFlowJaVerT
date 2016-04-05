@@ -103,9 +103,10 @@ let conditional_simplification p_exp =
 let serialize_sexpr folder_name procs built_ins specs = 
 	let serialize_procs proc_map = 
 		Pulp_Procedure.AllFunctions.fold
-			(fun key  fb acc_str -> 
-					acc_str ^ "\n" ^ 
-					(Pulp_Syntax_Print.sexpr_of_func_block fb (!line_numbers_on)))
+			(fun key fb acc_str ->
+					let sfb = jsil_to_sjsil_proc fb in  
+						acc_str ^ "\n" ^ 
+						(sexpr_of_procedure sfb (!line_numbers_on)))
 			proc_map
 			"" in 
   let burn_to_disk path data = 

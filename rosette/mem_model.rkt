@@ -184,7 +184,7 @@
 ;; Fresh location generator
 ;;
 (define (get-new-loc)
-  (gensym "loc")) 
+  (gensym "#loc")) 
 
 (provide make-heap mutate-heap heap-get heap-delete-cell heap-contains? heap cell get-new-loc)
 

@@ -7,6 +7,7 @@
 (define-symbolic @s string?)
 
 (require (file "interpreter.rkt"))
+(require (file "util.rkt"))
 
 (define-symbolic $banana number?)
 

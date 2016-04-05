@@ -50,10 +50,11 @@ let test_bool_construct () =
 
 
 
+
 let suite = "Spec_Functions_Tests" >::: [
-  (* "test_get_value" >:: test_get_value; *)
+  "test_get_value" >:: test_get_value; 
 	(* "test_put_value" >:: test_put_value; *)
 	(* "test_has_property" >:: test_has_property; *)
 	(* "test_has_property" >:: test_has_property; *)
-	"test_bool_construct" >:: test_bool_construct
+	(*"test_bool_construct" >:: test_bool_construct *)
   ]
