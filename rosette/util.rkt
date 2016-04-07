@@ -1,6 +1,5 @@
 #lang s-exp rosette
 
-
 (define (make-number-symbol var)
   (make-symbolic var number?))
 

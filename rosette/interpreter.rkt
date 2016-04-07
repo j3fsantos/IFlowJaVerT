@@ -3,8 +3,6 @@
 (require (file "mem_model.rkt"))
 (require (file "util.rkt"))
 
-
-
 (define (run-bcmd prog bcmd heap store)
   (let ((cmd-type (first bcmd)))
     (cond

@@ -9,6 +9,8 @@
 (require (file "interpreter.rkt"))
 (require (file "util.rkt"))
 
+(require (file "simplifications.rkt"))
+
 (define-symbolic $banana number?)
 
 (define empty-prog
@@ -127,12 +129,12 @@
    (procedure "main" (args 'rthis 'rscope) (body 'body) (ret-ctx 'r1 0) (err-ctx 'r1 0))
    (procedure "factorial" (args 'r-x)
               (body
-                '(v-assign r-y 1)
-                '(goto (> r-x 0) 2 5)
-                '(v-assign r-y (* r-x r-y))
-                '(v-assign r-x (- r-x 1))
-                '(goto 1)
-                '(skip)
+               '(v-assign r-y 1)
+               '(goto (> r-x 0) 2 5)
+               '(v-assign r-y (* r-x r-y))
+               '(v-assign r-x (- r-x 1))
+               '(goto 1)
+               '(skip)
                ) (ret-ctx 'r-y 5) (err-ctx 'r-err 666))))      
 
 (define cmds-14
@@ -190,13 +192,13 @@
     (assert (> r6 1))
     (new r2)
     (h-assign r2 r7 r1)
-
+    
     (h-read r3 r2 r7)
     (v-assign r4 (^ r3 r3))
     (h-assign r2 r7 r4)
     (v-assign r6 (- r6 1))
     (goto (> r6 0) -4 1)
-
+    
     (new r8)
     (v-assign r9 (make-symbol string f1))
     (has-field r10 r2 r9)
@@ -207,6 +209,19 @@
     (h-read r5 r8 "foo")
     (check (not (equal? r5 "badbadbadbad")))))
 
+(define cmds-20
+  #(
+    '(h-assign r1879 "#proto" "#lrep")
+    '(h-assign r1879 "#class" "Error")
+    '(v-assign r1867 r1879)
+    '(goto (> r 0) 5 6)
+    '(goto 6)
+    '(goto 7)
+    '(skip)
+    )
+  )
+
 (define hp (heap))
 (define st (store))
+
 (run-cmds empty-prog cmds-19 hp st 0)
