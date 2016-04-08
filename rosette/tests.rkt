@@ -137,9 +137,10 @@
 
 (define cmds-14
   #(
-    (v-assign r-1 6)
+    (v-assign r-1 (make-symbol number fv))
     (call r-2 "factorial" (r-1) 666)
-    (skip)))
+    (skip)
+    (check (not (= r-2 5040)))))
 
 (define cmds-15
   #(
@@ -207,6 +208,5 @@
     (h-read r5 r8 "foo")
     (check (not (equal? r5 "badbadbadbad")))))
 
-(define hp (heap))
-(define st (store))
-(run-cmds empty-prog cmds-19 hp st 0)
+(run-cmds empty-prog cmds-19 (heap) (store) 0)
+(run-cmds prog1 cmds-14 (heap) (store) 0)

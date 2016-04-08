@@ -25,6 +25,7 @@
   (set! logic-state (and logic-state expr)))
 
 (define (jsil-check expr)
+(print expr)
   (verify (assert (or (not logic-state) expr))))
 
 (define (jsil-assert expr)
