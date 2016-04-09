@@ -139,8 +139,8 @@
   #(
     (v-assign r-1 (make-symbol number fv))
     (call r-2 "factorial" (r-1) 666)
-    (skip)
-    (check (not (= r-2 5040)))))
+    (call r-3 "factorial" (r-2) 666)
+    (check (not (= r-3 720)))))
 
 (define cmds-15
   #(
@@ -208,5 +208,5 @@
     (h-read r5 r8 "foo")
     (check (not (equal? r5 "badbadbadbad")))))
 
-(run-cmds empty-prog cmds-19 (heap) (store) 0)
+;(run-cmds empty-prog cmds-19 (heap) (store) 0)
 (run-cmds prog1 cmds-14 (heap) (store) 0)
