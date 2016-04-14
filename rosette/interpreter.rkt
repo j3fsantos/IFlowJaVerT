@@ -3,8 +3,6 @@
 (require (file "mem_model.rkt"))
 (require (file "util.rkt"))
 
-
-
 (define (run-bcmd prog bcmd heap store)
   (let ((cmd-type (first bcmd)))
     (cond
@@ -12,17 +10,17 @@
       ;; ('skip)
       [(eq? cmd-type 'skip) empty]
       ;;
-      ;; ('check e)
-      [(eq? cmd-type 'check)
-       (let* ((expr (second bcmd))
-              (expr-val (run-expr expr store)))
-         (jsil-check expr-val))]
-      ;;
       ;; ('assert e)
       [(eq? cmd-type 'assert)
        (let* ((expr (second bcmd))
               (expr-val (run-expr expr store)))
          (jsil-assert expr-val))]
+      ;;
+      ;; ('assume e)
+      [(eq? cmd-type 'assume)
+       (let* ((expr (second bcmd))
+              (expr-val (run-expr expr store)))
+         (jsil-assume expr-val))]
       ;;
       ;; ('discharge)
       [(eq? cmd-type 'discharge) (jsil-discharge)]
@@ -131,6 +129,7 @@
   (let* ((proc (get-proc prog proc-name))
          (cmd (get-cmd proc cur-index))
          (cmd-type (first cmd)))
+    (println (format "Running the command ~a" cmd))
     (cond
       ;;
       ;; ('goto i)
@@ -143,22 +142,22 @@
               (then-label (third cmd))
               (else-label (fourth cmd))
               (expr-val (run-expr expr store)))
-	 (parameterize ([goto-stack
-			 (cons (cons proc-name cur-index) (goto-stack))])
-	   (print expr-val)
+         (parameterize ([goto-stack
+                         (cons (cons proc-name cur-index) (goto-stack))])
+           (print expr-val)
            (cond
-	    [(and (symbolic? expr-val)
-		  (> (count-goto proc-name cur-index) goto-limit))
-	     (kill expr-val)]
-
-	    [(eq? expr-val #t)
-	     (run-cmds-iter prog proc-name heap store then-label)]
-
-	    [(eq? expr-val #f)
-	     (run-cmds-iter prog proc-name heap store else-label)]
-
-	    [else
-	     (error "Illegal Conditional Goto Guard")])))]
+             [(and (symbolic? expr-val)
+                   (> (count-goto proc-name cur-index) goto-limit))
+              (kill expr-val)]
+             
+             [(eq? expr-val #t)
+              (run-cmds-iter prog proc-name heap store then-label)]
+             
+             [(eq? expr-val #f)
+              (run-cmds-iter prog proc-name heap store else-label)]
+             
+             [else
+              (error "Illegal Conditional Goto Guard")])))]
       ;;
       ;; ('call lhs-var e (e1 ... en) i)
       [(eq? cmd-type 'call)
@@ -166,9 +165,9 @@
               (proc-name-expr (third cmd))
               (arg-exprs (fourth cmd))
               (err-label (fifth cmd))
-              (proc-name (run-expr proc-name-expr store))
+              (call-proc-name (run-expr proc-name-expr store))
               (arg-vals (map (lambda (expr) (run-expr expr store)) arg-exprs)))
-         (let ((outcome (run-proc prog proc-name heap arg-vals)))
+         (let ((outcome (run-proc prog call-proc-name heap arg-vals)))
            (cond
              [(eq? (first outcome) 'error)
               (mutate-store store lhs-var (second outcome))
@@ -184,7 +183,9 @@
               (ret-var (get-ret-var proc))
               (err-var (get-err-var proc)))
          (cond
-           [(eq? cur-index (get-ret-index proc)) (list 'normal (store-get store ret-var))]
+           [(eq? cur-index (get-ret-index proc))
+            (println "I am going to return normally")
+            (list 'normal (store-get store ret-var))]
            [(eq? cur-index (get-err-index proc)) (list 'err (store-get store err-var))]
            [else (run-cmds-iter prog proc-name heap store (+ cur-index 1))]))])))
 
@@ -209,17 +210,17 @@
                   (then-index (third cmd))
                   (else-index (fourth cmd))
                   (expr-val (run-expr expr store)))
-	     (parameterize ([goto-stack
-			     (cons (cons prog cur-index) (goto-stack))])
-	       (print expr-val)
-	       (cond
-		[(and (symbolic? expr-val)
-		      (> (count-goto prog cur-index) goto-limit))
-		 (kill expr-val)]
-
-		[(eq? expr-val #t) (run-cmds prog cmds heap store (+ cur-index then-index))]
-		[(eq? expr-val #f) (run-cmds prog cmds heap store (+ cur-index else-index))]
-		[else (print expr-val) (error "Illegal Conditional Goto Guard")])))]
+             (parameterize ([goto-stack
+                             (cons (cons prog cur-index) (goto-stack))])
+               (print expr-val)
+               (cond
+                 [(and (symbolic? expr-val)
+                       (> (count-goto prog cur-index) goto-limit))
+                  (kill expr-val)]
+                 
+                 [(eq? expr-val #t) (run-cmds prog cmds heap store (+ cur-index then-index))]
+                 [(eq? expr-val #f) (run-cmds prog cmds heap store (+ cur-index else-index))]
+                 [else (print expr-val) (error "Illegal Conditional Goto Guard")])))]
           ;;
           ;; ('call lhs-var e (e1 ... en) i)
           [(eq? cmd-type 'call)
@@ -235,6 +236,7 @@
                   (mutate-store store lhs-var (second outcome))
                   (run-cmds prog cmds heap store (+ cur-index err-index))]
                  [(eq? (first outcome) 'normal)
+                  (println (format "I got the result: ~a" (second outcome)))
                   (mutate-store store lhs-var (second outcome))
                   (run-cmds prog cmds heap store (+ cur-index 1))]
                  [else (error "Illegal Procedure Outcome")])))]
@@ -262,15 +264,21 @@
     [(list? expr)
      (cond
        ;; 
-       ;;('ref e1 e2 e3)
-       [(eq? (first expr) 'ref)
+       ;;('ref-v e1 e2)
+       [(eq? (first expr) 'ref-v)
         (let* ((base-expr (second expr))
                (field-expr (third expr))
-               (type-expr (fourth expr))
                (base-val (run-expr base-expr store))
-               (field-val (run-expr field-expr store))
-               (type-val (run-expr type-expr store)))
-          (make-ref base-val field-val type-val))]
+               (field-val (run-expr field-expr store)))
+          (make-ref base-val field-val ref-v-type))]
+       ;; 
+       ;;('ref-o e1 e2)
+       [(eq? (first expr) 'ref-o)
+        (let* ((base-expr (second expr))
+               (field-expr (third expr))
+               (base-val (run-expr base-expr store))
+               (field-val (run-expr field-expr store)))
+          (make-ref base-val field-val ref-o-type))]
        ;;
        ;; ('base e)
        [(eq? (first expr) 'base) 
@@ -286,15 +294,17 @@
        ;;
        ;; ('typeof e)
        [(eq? (first expr) 'typeof) 
-        (let* ((ref-expr (second expr))
-               (ref-val (run-expr ref-expr store)))
-          (ref-type ref-val))]
+        (let* ((arg (second expr))
+               (val (run-expr arg store)))
+          (jsil-type-of val))]
        ;;
+       ;; is the third argument a var? or is it the name of the symbol? 
        ;; (make-symbol symbol-type var)
        [(eq? (first expr) 'make-symbol)
-        (if (eq? (second expr) 'number)
-            (make-number-symbol (third expr))
-            (make-string-symbol (third expr)))]
+        (cond
+          ((eq? (second expr) 'number) (make-number-symbol (third expr)))
+          ((eq? (second expr) 'string) (make-string-symbol (third expr)))
+          (#t (error "Invalid type provided to make-symbol")))]
        ;;
        ;; (binop e e)
        [(= (length expr) 3) 
@@ -312,6 +322,7 @@
 (define (run-proc prog proc-name heap arg-vals)
   (let* ((proc (get-proc prog proc-name))
          (initial-store (proc-init-store proc arg-vals)))
+    (println (format "going to run ~a now with args: ~a. store: ~a" proc-name arg-vals initial-store))
     (jsil-discharge)
     (run-cmds-iter prog proc-name heap initial-store 0)))
 

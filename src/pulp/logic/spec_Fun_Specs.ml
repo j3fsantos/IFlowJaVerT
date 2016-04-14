@@ -323,6 +323,19 @@ let make_has_property_function () =
 	make_function_block_with_spec Procedure_Spec  
 		(string_of_spec_fun_id (HasProperty (dummy_exp1, dummy_exp2))) body [arg_obj; arg_prop] ctx (has_property_spec arg_obj arg_prop ctx)						
 
+let make_to_primitive_function () = 
+	let ctx = create_ctx [] in 
+	let arg = fresh_r () in 
+	let body = translate_to_primitive (Var arg) None ctx.return_var ctx.throw_var ctx.label_throw empty_metadata in 
+	let body = body @
+		mk_stmts_empty_data [ 
+			Goto ctx.label_return;
+    	Label ctx.label_return;
+    	Label ctx.label_throw ] in 
+	let body = to_ivl_goto_unfold body in 
+	make_function_block Procedure_Spec 
+		(string_of_spec_fun_id (ToPrimitive (dummy_exp1, None))) body [arg] ctx 
+
 let make_to_boolean_function () = 
 	let ctx = create_ctx [] in 
 	let arg = fresh_r () in 
@@ -335,6 +348,29 @@ let make_to_boolean_function () =
 	make_function_block_with_spec Procedure_Spec 
 		(string_of_spec_fun_id (ToBoolean dummy_exp1)) body [arg] ctx (to_boolean_spec arg ctx)
 
+let make_to_number_function () = 
+	let ctx = create_ctx [] in 
+	let arg = fresh_r () in 
+	let body = translate_to_number (Var arg) ctx.return_var ctx.throw_var ctx.label_throw empty_metadata in 
+	let body = body @
+		mk_stmts_empty_data [ Goto ctx.label_return;
+    	Label ctx.label_return;
+    	Label ctx.label_throw ] in 
+	let body = to_ivl_goto_unfold body in 
+	make_function_block Procedure_Spec (string_of_spec_fun_id (ToNumber dummy_exp1)) body [arg] ctx 	
+
+let make_to_number_prim_function () = 
+	let ctx = create_ctx [] in 
+	let arg = fresh_r () in 
+	let body = translate_to_number_prim (Var arg) ctx.return_var empty_metadata in 
+	let body = body @
+		mk_stmts_empty_data [ Goto ctx.label_return;
+    	Label ctx.label_return;
+    	Label ctx.label_throw ] in 
+	let body = to_ivl_goto_unfold body in 
+	make_function_block Procedure_Spec (string_of_spec_fun_id (ToNumberPrim dummy_exp1)) body [arg] ctx 	
+
+
 let make_to_string_function () = 
 	let ctx = create_ctx [] in 
 	let arg = fresh_r () in 
@@ -344,7 +380,7 @@ let make_to_string_function () =
     	Label ctx.label_return;
     	Label ctx.label_throw ] in 
 	let body = to_ivl_goto_unfold body in 
-	make_function_block Procedure_Spec (string_of_spec_fun_id (ToString dummy_exp1)) body [rthis; rscope; arg] ctx 	
+	make_function_block Procedure_Spec (string_of_spec_fun_id (ToString dummy_exp1)) body [arg] ctx 	
 
 let make_to_string_prim_function () = 
 	let ctx = create_ctx [] in 
@@ -355,7 +391,7 @@ let make_to_string_prim_function () =
     	Label ctx.label_return;
     	Label ctx.label_throw ] in 
 	let body = to_ivl_goto_unfold body in 
-	make_function_block Procedure_Spec (string_of_spec_fun_id (ToStringPrim dummy_exp1)) body [rthis; rscope; arg] ctx 	
+	make_function_block Procedure_Spec (string_of_spec_fun_id (ToStringPrim dummy_exp1)) body [arg] ctx 	
 
 let make_to_object_function () = 
 	let ctx = create_ctx [] in 
@@ -366,7 +402,7 @@ let make_to_object_function () =
     	Label ctx.label_return;
     	Label ctx.label_throw ] in 
 	let body = to_ivl_goto_unfold body in 
-	make_function_block Procedure_Spec (string_of_spec_fun_id (ToObject dummy_exp1)) body [rthis; rscope; arg] ctx 	
+	make_function_block Procedure_Spec (string_of_spec_fun_id (ToObject dummy_exp1)) body [arg] ctx 	
 
 let make_check_object_coercible_function () = 
 	let ctx = create_ctx [] in 
@@ -377,7 +413,7 @@ let make_check_object_coercible_function () =
     	Label ctx.label_return;
     	Label ctx.label_throw ] in 
 	let body = to_ivl_goto_unfold body in 
-	make_function_block Procedure_Spec (string_of_spec_fun_id (CheckObjectCoercible dummy_exp1)) body [rthis; rscope; arg] ctx 	
+	make_function_block Procedure_Spec (string_of_spec_fun_id (CheckObjectCoercible dummy_exp1)) body [arg] ctx 	
 
 let make_is_callable_function () = 
 	let ctx = create_ctx [] in 
@@ -388,7 +424,7 @@ let make_is_callable_function () =
     	Label ctx.label_return;
     	Label ctx.label_throw ] in 
 	let body = to_ivl_goto_unfold body in 
-	make_function_block Procedure_Spec (string_of_spec_fun_id (IsCallable dummy_exp1)) body [rthis; rscope; arg] ctx 	
+	make_function_block Procedure_Spec (string_of_spec_fun_id (IsCallable dummy_exp1)) body [arg] ctx 	
 
 let make_strict_equality_function () = 
 	let ctx = create_ctx [] in 
@@ -400,7 +436,7 @@ let make_strict_equality_function () =
     	Label ctx.label_return;
     	Label ctx.label_throw ] in 
 	let body = to_ivl_goto_unfold body in 
-	make_function_block Procedure_Spec (string_of_spec_fun_id (StrictEquality (dummy_exp1, dummy_exp2))) body [rthis; rscope; arg1; arg2] ctx 	
+	make_function_block Procedure_Spec (string_of_spec_fun_id (StrictEquality (dummy_exp1, dummy_exp2))) body [arg1; arg2] ctx 	
 
 let make_strict_equality_same_type_function () = 
 	let ctx = create_ctx [] in 
@@ -412,7 +448,7 @@ let make_strict_equality_same_type_function () =
     	Label ctx.label_return;
     	Label ctx.label_throw ] in 
 	let body = to_ivl_goto_unfold body in 
-	make_function_block Procedure_Spec (string_of_spec_fun_id (StrictEqualitySameType (dummy_exp1, dummy_exp2))) body [rthis; rscope; arg1; arg2] ctx 	
+	make_function_block Procedure_Spec (string_of_spec_fun_id (StrictEqualitySameType (dummy_exp1, dummy_exp2))) body [arg1; arg2] ctx 	
 
 
 let get_env_spec () = 
@@ -420,7 +456,10 @@ let get_env_spec () =
 	let env = AllFunctions.add (string_of_spec_fun_id (PutValue (dummy_exp1, dummy_exp2))) (make_put_value_function()) env in 
 	let env = AllFunctions.add (string_of_spec_fun_id (Get (dummy_exp1, dummy_exp2))) (make_get_function()) env in 
 	let env = AllFunctions.add (string_of_spec_fun_id (HasProperty (dummy_exp1, dummy_exp2))) (make_has_property_function()) env in 
+	let env = AllFunctions.add (string_of_spec_fun_id (ToPrimitive (dummy_exp1, None))) (make_to_primitive_function()) env in
 	let env = AllFunctions.add (string_of_spec_fun_id (ToBoolean dummy_exp1)) (make_to_boolean_function()) env in
+	let env = AllFunctions.add (string_of_spec_fun_id (ToNumber dummy_exp1)) (make_to_number_function()) env in
+	let env = AllFunctions.add (string_of_spec_fun_id (ToNumberPrim dummy_exp1)) (make_to_number_prim_function()) env in
 	let env = AllFunctions.add (string_of_spec_fun_id (ToString dummy_exp1)) (make_to_string_function()) env in
 	let env = AllFunctions.add (string_of_spec_fun_id (ToStringPrim dummy_exp1)) (make_to_string_prim_function()) env in
 	let env = AllFunctions.add (string_of_spec_fun_id (ToObject dummy_exp1)) (make_to_object_function()) env in

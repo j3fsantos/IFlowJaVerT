@@ -1,46 +1,76 @@
 #lang s-exp rosette
 
 ;; 
-;; constants
+;; literals - constants
 ;;
-(define jempty 'empty)
-(define jnull 'null)
-(define jundefined 'undefined)
+(define jempty '$$empty)
+(define jnull '$$null)
+(define jundefined '$$undefined)
+;; types
+(define boolean-type '$$boolean_type)
+(define number-type '$$string_type)
+(define string-type '$$number_type)
+(define obj-type '$$object_type)
+(define ref-a-type '$$reference_type)
+(define ref-v-type '$$v_reference_type)
+(define ref-o-type '$$o_reference_type)
 
 (define jsil-constants
   (let ((table (mutable-set)))
     (set-add! table jempty)
     (set-add! table jnull)
     (set-add! table jundefined)
+    (set-add! table boolean-type)
+    (set-add! table number-type)
+    (set-add! table string-type)
+    (set-add! table obj-type)
+    (set-add! table ref-a-type)
+    (set-add! table ref-v-type)
+    (set-add! table ref-o-type)
     table))
 
-;; 
-;; JSIL literals
-;;
 (define (literal? val)
   (or
    (number? val)
    (boolean? val)
    (string? val)
-   (set-member? jsil-constants val)))
+   (set-member? jsil-constants val)
+   (is-loc? val)))
 
-;;
+;; Type operations
+(define (jsil-type-of val)
+  (cond
+    ((number? val) boolean-type)
+    ((string? val) string-type)
+    ((boolean? val) boolean-type)
+    ((is-loc? val) obj-type)
+    ((is-ref? val) (ref-type val))
+    ((eq? val jnull) jnull)
+    ((eq? val jundefined) jundefined)
+    ((eq? val empty) jempty)
+    (#t (error (format "Wrong argument to typeof: ~a" val)))))
+
+(define (jsil-subtype type1 type2)
+  (println (format "computing a subtype with types ~a and ~a" type1 type2))
+  (and
+   (eq? ref-a-type type2)
+   (or (eq? ref-v-type type1)
+       (eq? ref-o-type type1))))
+
 ;; special properties
-;;
 (define protop "proto")
 
-(provide jempty jnull jundefined literal? protop)
-
-;;
-;; Shift left and right
-;;
-(define (shl n m) (arithmetic-shift n    m))
-(define (shr n m) (arithmetic-shift n (- m)))
+(provide jempty jnull jundefined literal? protop jsil-type-of ref-v-type ref-o-type)
 
 ;;
 ;; binary operators 
 ;; missing: shift left, shift right, unsigned shift right
 ;;
+
+;; Shift left and right
+(define (shl n m) (arithmetic-shift n    m))
+(define (shr n m) (arithmetic-shift n (- m)))
+
 (define operators-table
   (let* ((table-aux (make-hash))
     (add (lambda (jsil-op interp-op) (hash-set! table-aux jsil-op interp-op))))
@@ -59,12 +89,13 @@
     (add 'not not)
     (add 'num_to_string number->string)
     (add 'string_to_num string->number)
-    (add '= =)
+    (add '= eq?)
     (add '< <)
     (add '> >)
     (add '>= >=)
     (add '<= <=)
     (add 'equal? equal?)
+    (add '<: jsil-subtype)
     table-aux))
 
 (define (to-interp-op op)
@@ -184,7 +215,12 @@
 ;; Fresh location generator
 ;;
 (define (get-new-loc)
-  (gensym "#loc")) 
+  (gensym "$loc")) 
+
+(define (is-loc? loc)
+  (and
+   (symbol? loc)
+   (eq? (substring (symbol->string loc) 0 2) "$l")))
 
 (provide make-heap mutate-heap heap-get heap-delete-cell heap-contains? heap cell get-new-loc)
 
@@ -227,9 +263,14 @@
     new-store))
 
 (define (var? expr)
-  (and
-   (symbol? expr)
-   (eq? (string-ref (symbol->string expr) 0) #\r)))
+  (if (not (symbol? expr))
+      #f
+      (let* ((expr-str (symbol->string expr))
+             (expr-str-len (string-length expr-str)))
+        (or
+         (eq? (string-ref expr-str 0) #\r)
+         (and (> expr-str-len 2) (eq? (substring expr-str 0 2) "x_"))
+         (and (> expr-str-len 4) (eq? (substring expr-str 0 4) "arg_"))))))
 
 (provide make-store mutate-store store-get var? store)
 
@@ -247,34 +288,59 @@
 
 ;; refs
 (define (make-ref base field reftype)
-  (list base field reftype))
+  (list 'ref base field reftype))
 
-(define (ref-base ref) (first ref))
+(define (ref-base ref) (second ref))
 
-(define (ref-field ref) (second ref))
+(define (ref-field ref) (third ref))
 
-(define (ref-type ref) (third ref))
+(define (ref-type ref) (fourth ref))
+
+(define (is-ref? arg)
+  (and
+   (list? arg)
+   (not (null? arg))
+   (equal? (first arg) 'ref)))
 
 (provide make-ref ref-base ref-field ref-type)
 
 ;; programs and procedures  
 (define (program . procs)
-  (let ((procs-table (make-hash))
-        (found-main #f))
+  (let ((procs-table (make-hash)))
     (map (lambda (proc)
            (let ((proc-name (get-proc-name proc)))
-             (hash-set! procs-table proc-name proc)
-             (when (eq? proc-name "main")
-               (set! found-main #t))))
+             (hash-set! procs-table proc-name proc)))
          procs)
-    (if found-main
-        procs-table
-        (error "Missing main"))))
+    procs-table))
 
 (define (get-proc program proc-name)
-  (hash-ref program proc-name))
+  (if (hash-has-key? program proc-name)
+      (hash-ref program proc-name)
+      (error (format "Error: procedure ~a is missing" proc-name))))
 
-(provide program get-proc)
+(define (has-proc? program proc-name)
+  (hash-has-key? program proc-name))
+
+(define (get-proc-names prog)
+  (hash-values prog))
+
+(define (add-proc program proc)
+  (let ((proc-name (get-proc-name proc)))
+    (if (hash-has-key? program (get-proc-name proc))
+        (error (format "Error: procedure ~a is already defined" proc-name))
+        (hash-set! program proc-name proc))))
+
+(define (program-append prog1 prog2)
+  (let ((procs2 (get-proc-names prog2)))
+    (let loop ((procs procs2))
+      (if (null? procs)
+          prog1
+          (let ((proc (car procs)))
+            (when (not (has-proc? prog1 (get-proc-name proc)))
+              (add-proc prog1 proc))
+            (loop (cdr procs)))))))
+
+(provide program get-proc program-append)
 
 ;; (proc-name proc-params (ret-var ret-label err-var err-label) vector)
 (define (procedure proc-name proc-args proc-body ret-info err-info)

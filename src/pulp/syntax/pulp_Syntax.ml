@@ -219,23 +219,6 @@ let mk_call name scope vthis args throwl = {
       call_throw_label = throwl
 }
 
-(* scalls - calls with numeric labels*) 
-type scall = { 
-    scall_name : expression;
-    scall_scope : expression;
-    scall_args : expression list;
-    scall_this : expression;
-    scall_throw_label : int;
-}
-  
-let mk_scall name scope vthis args int_label = {
-      scall_name = name;
-      scall_scope = scope;
-      scall_args = args;
-      scall_this = vthis;
-      scall_throw_label = int_label
-}
-
 type mutation = {
     m_loc : expression;
     m_field : expression;

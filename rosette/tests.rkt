@@ -4,12 +4,8 @@
 (current-solver (new cvc4%))
 (current-bitwidth 32)
 
-(define-symbolic @s string?)
-
 (require (file "interpreter.rkt"))
 (require (file "util.rkt"))
-
-(define-symbolic $banana number?)
 
 (define empty-prog
   (program
@@ -149,38 +145,35 @@
 
 (define cmds-16
   #(
-    (v-assign r1 (make-symbol number))
-    (assert (> r1 2))
+    (v-assign r1 (make-symbol number r1))
+    (assume (and (> r1 2) (< r1 1000)))
     (new r2)
     (h-assign r2 "foo" r1)
     (h-read r3 r2 "foo")
     (v-assign r4 (+ r3 2))
-    (check (> r4 4))))
+    (assert (< r4 6))))
 
 (define cmds-17
   #(
-    (v-assign r1 (make-symbol string))
+    (v-assign r1 (make-symbol string r1))
     (new r2)
     (h-assign r2 "foo" r1)
     (h-read r3 r2 "foo")
-    (v-assign r4 (make-symbol string))
-    (assert (equal? r4 "zag"))
+    (v-assign r4 (make-symbol string r4))
+    (assume (equal? r4 "zag"))
     (v-assign r5 (^ r3 r4))
-    (check (not (equal? r5 "zigzag")))))
+    (assert (equal? r5 "zigzag"))))
 
 (define cmds-18
   #(
-    (v-assign r1 (make-symbol string))
-    (v-assign r6 (make-symbol number))
-    (goto (> r6 10) 7 1)
-    (new r2)
-    (h-assign r2 "foo" r1)
-    (h-read r3 r2 "foo")
-    (v-assign r4 (make-symbol string))
-    (assert (equal? r4 "zag"))
-    (v-assign r5 (^ r3 r4))
-    (assert (< r6 10))
-    (check (not (equal? r5 "zigzag")))))
+    (v-assign r1 (make-symbol string r1))
+    (v-assign r2 (make-symbol number r2))
+    (v-assign r3 (make-symbol string r3))
+    (goto (= r2 10) 1 3)
+    (assume (equal? r3 (^ r1 r1)))
+    (goto 2)
+    (assume (equal? r3 "hihihi"))
+    (assert (equal? r3 "frifri"))))
 
 (define cmds-19
   #(
@@ -209,4 +202,4 @@
 
 (define hp (heap))
 (define st (store))
-(run-cmds empty-prog cmds-19 hp st 0)
+(run-cmds empty-prog cmds-17 hp st 0)

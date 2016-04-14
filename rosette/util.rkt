@@ -25,12 +25,12 @@
 (define (update-logic-state expr)
   (set! logic-state (and logic-state expr)))
 
-(define (jsil-check expr)
-  (verify (assert (or (not logic-state) expr))))
-
 (define (jsil-assert expr)
+  (solve (assert (and logic-state expr))))
+
+(define (jsil-assume expr)
   (update-logic-state expr))
 
 (define jsil-discharge reset-logic-state)
 
-(provide jsil-check jsil-assert jsil-discharge)
+(provide jsil-assume jsil-assert jsil-discharge)

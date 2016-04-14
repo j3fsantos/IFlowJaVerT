@@ -101,28 +101,30 @@ let conditional_simplification p_exp =
 	| Simp_Off -> p_exp
 
 let serialize_sexpr folder_name procs built_ins specs = 
-	let serialize_procs proc_map = 
-		Pulp_Procedure.AllFunctions.fold
-			(fun key fb acc_str ->
-					let sfb = jsil_to_sjsil_proc fb in  
-						acc_str ^ "\n" ^ 
-						(sexpr_of_procedure sfb (!line_numbers_on)))
-			proc_map
-			"" in 
+
   let burn_to_disk path data = 
 		let oc = open_out path in 
 			output_string oc data; 
 			close_out oc in
-  (* serialize the three sets of procedures as strings*)   
-	let procs_content = serialize_procs procs in 
-	let built_ins_content = serialize_procs built_ins in 
-	let specs_content = serialize_procs specs in
-	let heap_initial_content = Interpreter_Print.serialize_heap_sexpr (Interpreter.initial_heap ()) in
+	
+	(* translate procs builtins specs and heap to sjsil format *)
+	let sprocs = SSyntax_Translate.jsil_to_sjsil_prog procs in 
+	let sbuilt_ins = SSyntax_Translate.jsil_to_sjsil_prog built_ins in 
+	let specs = SSyntax_Translate.jsil_to_sjsil_prog specs in 
+	let sheap = SSyntax_Translate.jsil_to_sjsil_heap (Interpreter.initial_heap ()) in 
+
+	(* serialize the three sets of procedures as strings*)   
+	let procs_content = SSyntax_Print.serialize_prog_racket sprocs (!line_numbers_on) in
+	let built_ins_content = SSyntax_Print.serialize_internals_racket specs sbuilt_ins (!line_numbers_on) in
+	let heap_content = SSyntax_Print.serialize_heap_racket sheap in 
+	
 	(* create a new directory*)
 	Utils.safe_mkdir folder_name;
-	(* burn to disk *)
-	burn_to_disk (folder_name ^ "/functions.scm") (Printf.sprintf "(program \n %s\n%s\n%s\n)" procs_content built_ins_content specs_content); 
-	burn_to_disk (folder_name ^ "/heap.scm") heap_initial_content
+	
+	(* burn files to disk *)
+	burn_to_disk (folder_name ^ "/prog.rkt") procs_content; 
+  burn_to_disk (folder_name ^ "/internal_procs.rkt") built_ins_content; 
+	burn_to_disk (folder_name ^ "/hp.rkt") heap_content 
 
 let serialize output_folder_name p_exp built_ins specs = 
 	let functions_folder_name = "functions" in 
