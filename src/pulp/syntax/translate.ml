@@ -13,6 +13,7 @@ open Memory_Model
 open Pulp_Syntax
 open Interpreter_Print
 open SSyntax
+open SJSIL_Parser_main
 
 let file = ref ""
 let level = ref IVL_goto
