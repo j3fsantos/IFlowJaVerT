@@ -1,3 +1,4 @@
+open SSyntax
 open JSIL_Logic_Syntax
 
 (***
@@ -20,7 +21,8 @@ the following does not work because nan is interpreted as a variable
 	| _ -> string_of_float x
 *)
 
-let string_of_binop bop = match bop with 
+let string_of_binop bop =
+	match bop with
   | Equal -> "="
   | LessThan -> "<"
   | LessThanEqual -> "<=" 
@@ -103,15 +105,18 @@ let rec string_of_logic_expression e escape_string =
 		(* base(e) *)
     | LBase e -> Printf.sprintf "base(%s)" (sle e)
 		(* field(e) *)
-    | Field e -> Printf.sprintf "field(%s)" (sle e)
+    | LField e -> Printf.sprintf "field(%s)" (sle e)
 		(* typeof(e) *)
     | LTypeOf e -> Printf.sprintf "typeof(%s)" (sle e)
 		(* e1 :: e2*)
 		| LCons (e1, e2) -> Printf.sprintf "%s :: %s" (sle e1) (sle e2)
 
-let string_of_list list = 
-	List.fold_left 
-		(fun prev_elems elem -> prev_elems ^ ", " ^ elem) "" list	
+let string_of_list list =
+	match list with
+	| [] -> ""
+	| elem :: rest ->
+  	List.fold_left 
+  		(fun prev_elems elem -> prev_elems ^ ", " ^ elem) elem rest	
 
 let rec string_of_logic_assertion a escape_string =
 	let sla = fun a -> string_of_logic_assertion a escape_string in
@@ -153,9 +158,9 @@ let string_of_jsil_single_spec spec =
 		(string_of_logic_assertion spec.post false)
 		(string_of_return_flag spec.ret_flag)
 
-let string_of_jsil_spec_list list =
+let rec string_of_jsil_spec_list list =
 	match list with
-		| [] -> ()
+		| [] -> ""
 		| spec :: rest -> (string_of_jsil_single_spec spec) ^ (string_of_jsil_spec_list rest)
 
 (*
@@ -170,7 +175,7 @@ let string_of_jsil_spec_list list =
 	}
 *)
 let string_of_spec spec =			
-	Printf.sprintf "spec %s (%s) {\n%s}" 
+	Printf.sprintf "spec %s (%s)\n%s" 
   	spec.spec_name 
    	(string_of_list spec.spec_params) 
 		(string_of_jsil_spec_list spec.proc_specs)

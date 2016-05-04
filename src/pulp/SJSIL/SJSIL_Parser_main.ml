@@ -73,14 +73,18 @@ let parse_with_error_logic lexbuf =
     exit (-1)
 
 let parse_and_print_logic lexbuf = 
-	Printf.printf "parse and print\n"; 
-  match parse_with_error_logic lexbuf with
-  | spec :: lst ->
-		Printf.printf "\nI am going to compute the dominators!!!\n\n";
-	| [] -> 
-		Printf.printf "Empty Spec List..."; 
-		()
-		
+	Printf.printf "parse and print\n";
+	let rec print_logic spec_list =
+    match spec_list with
+    | spec :: rest ->
+  		Printf.printf "%s\n\n\n" (JSIL_Logic_Print.string_of_spec spec);
+			print_logic rest
+  	| [] -> 
+  		Printf.printf "Spec List Completed..."; 
+  		()
+	in
+	print_logic (parse_with_error_logic lexbuf)
+
 let process_file filename =
 	Printf.printf "loop...\n"; 
 	(* let inx = In_channel.create filename in *)
