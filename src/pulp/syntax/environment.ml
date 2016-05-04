@@ -57,7 +57,7 @@ let builtin_call_boolean_construct () =
       Label ctx.label_return; 
       Label ctx.label_throw
     ]) in  
-  (** let pre = type_of_f (Le_PVar v) BooleanType in
+  let pre = type_of_f (Le_PVar v) BooleanType in
   let new_obj = Le_Var (fresh_e()) in  
   let post = [Star [
     REq new_obj;
@@ -65,8 +65,9 @@ let builtin_call_boolean_construct () =
     proto_heaplet_f new_obj (Le_Literal (LLoc Lbp));
     class_heaplet_f new_obj "Boolean";
     primitive_value_heaplet_f new_obj (Le_PVar v);
-  ]] in *)
-  let spec = Built_in_specs.bool_construct_spec v in  
+  ]] in 
+	let spec = [mk_spec_with_excep pre post []] in  
+  (* let spec = Built_in_specs.bool_construct_spec v in  *)
   make_function_block_with_spec Procedure_Builtin (string_of_builtin_function Boolean_Construct) body [rthis; rscope; v] ctx spec
   
 	

@@ -231,7 +231,8 @@
                   (proc-name (run-expr proc-name-expr store))
                   (arg-vals (map (lambda (expr) (run-expr expr store)) arg-exprs)))
              (let ((outcome (run-proc prog proc-name heap arg-vals)))
-               (cond
+	       (print outcome)
+	       (cond
                  [(eq? (first outcome) 'error)
                   (mutate-store store lhs-var (second outcome))
                   (run-cmds prog cmds heap store (+ cur-index err-index))]

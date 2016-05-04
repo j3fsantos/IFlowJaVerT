@@ -1,6 +1,5 @@
 #lang s-exp rosette
 
-
 (define (make-number-symbol var)
   (make-symbolic var number?))
 
@@ -25,12 +24,13 @@
 (define (update-logic-state expr)
   (set! logic-state (and logic-state expr)))
 
-(define (jsil-assert expr)
-  (solve (assert (and logic-state expr))))
+(define (jsil-check expr)
+(print expr)
+  (verify (assert (or (not logic-state) expr))))
 
-(define (jsil-assume expr)
+(define (jsil-assert expr)
   (update-logic-state expr))
 
 (define jsil-discharge reset-logic-state)
 
-(provide jsil-assume jsil-assert jsil-discharge)
+(provide jsil-check jsil-assert jsil-discharge)

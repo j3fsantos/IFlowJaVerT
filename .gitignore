@@ -33,3 +33,5 @@ src/formula_parser/formula_lexer.ml
 src/formula_parser/formula_parser.ml
 src/formula_parser/formula_parser.mli
 tests/dot
+
+rosette/compiled
