@@ -111,15 +111,15 @@ let rec string_of_expression e escape_string =
 		(* (uop e1 e2) *)
     | UnaryOp (op, e) -> Printf.sprintf "(%s %s)" (string_of_unop op) (se e)
 		(* (typeof e) *)
-    | TypeOf e -> Printf.sprintf "(typeof %s)" (se e) 
+    | TypeOf e -> Printf.sprintf "typeof(%s)" (se e)
 		(* ('ref-v e1 e2) *)
-    | VRef (e1, e2) -> Printf.sprintf "(ref-v %s %s)" (se e1) (se e2)
+    | VRef (e1, e2) -> Printf.sprintf "ref-v(%s, %s)" (se e1) (se e2)
   	(* ('ref-o e1 e2) *)
-    | ORef (e1, e2) -> Printf.sprintf "(ref-o %s %s)" (se e1) (se e2)
+    | ORef (e1, e2) -> Printf.sprintf "ref-o(%s, %s)" (se e1) (se e2)
 		(* ('base e) *)
-    | Base e -> Printf.sprintf "(base %s)" (se e)
+    | Base e -> Printf.sprintf "base(%s)" (se e)
 		(* ('field e) *)
-    | Field e -> Printf.sprintf "(field %s)" (se e)
+    | Field e -> Printf.sprintf "field(%s)" (se e)
 
 let rec sexpr_of_bcmd bcmd i line_numbers_on = 
 	let se = sexpr_of_expression in

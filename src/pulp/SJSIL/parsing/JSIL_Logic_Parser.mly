@@ -132,10 +132,10 @@ param_list_target:
 	param_list = separated_list(COMMA, PVAR) { param_list };
 
 assertion_target:
-(* P & Q *)
+(* P /\ Q *)
 	| left_ass=assertion_target; LAND; right_ass=assertion_target 
 		{ LAnd (left_ass, right_ass) }
-(* P | Q *)
+(* P \/ Q *)
 	| left_ass=assertion_target; LOR; right_ass=assertion_target 
 		{ LOr (left_ass, right_ass) }
 (* ~ Q *)
@@ -147,10 +147,10 @@ assertion_target:
 (* false *)
   | LFALSE
 		{ LFalse }
-(* E = E *)
+(* E == E *)
 	| left_expr=lexpr_target; LEQUAL; right_expr=lexpr_target
 		{ LEq (left_expr, right_expr) }
-(* E <= E *)
+(* E <== E *)
 	| left_expr=lexpr_target; LLESSTHANEQUAL; right_expr=lexpr_target
 		{ LLessEq (left_expr, right_expr) }
 (* P * Q *)

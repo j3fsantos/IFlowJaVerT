@@ -7,10 +7,6 @@ type jsil_logic_val =
 	| LNone
 	| LListEmpty
 
-type jsil_return_flag =
-	| Normal
-	| Error
-
 type jsil_logic_expr =
 	| LVal				of jsil_logic_val
 	| LVar				of jsil_logic_var
@@ -37,6 +33,10 @@ type jsil_logic_assertion =
 	| LEmp
 	| LExists			of (jsil_logic_var list) * jsil_logic_assertion
 	| LForAll			of (jsil_logic_var list) * jsil_logic_assertion
+
+type jsil_return_flag =
+	| Normal
+	| Error
 
 type jsil_single_spec = {
 	  pre : jsil_logic_assertion; 
