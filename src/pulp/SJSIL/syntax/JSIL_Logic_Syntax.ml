@@ -52,12 +52,20 @@ type jsil_spec = {
 		proc_specs : jsil_single_spec list
 }
 
-module AbstractHeap = Hashtbl.Make(
- struct
- 	type t = int  
- 	let equal = (=)
- 	let hash = Hashtbl.hash
- end)
+(** 
+ * We use integers to represent both abstract and concrete locations
+*)
+module AbstractHeapM = Hashtbl.Make(
+	struct
+ 		type t = int  
+ 		let equal = (=)
+ 		let hash = Hashtbl.hash
+ 	end)
+
+type abstract_heap = {
+	aheap: AbstractHeapM.t; 
+	mutable count: int 
+}
 
 module AbstractStore = Hashtbl.Make(
 struct
@@ -65,3 +73,6 @@ struct
 	let equal = (=)
 	let hash = Hashtbl.hash
 end)
+
+
+
