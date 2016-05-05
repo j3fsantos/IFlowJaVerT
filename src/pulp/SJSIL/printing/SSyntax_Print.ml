@@ -223,7 +223,7 @@ let sexpr_of_params fparams =
 	| [] -> ""
 	| param :: rest ->
   	List.fold_left 
-  		(fun prev_params param -> prev_params ^ " '" ^ param) param rest
+  		(fun prev_params param -> prev_params ^ " '" ^ param)  (" '" ^ param) rest
 
 let string_of_params fparams =
 	match fparams with

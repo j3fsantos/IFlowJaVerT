@@ -303,7 +303,7 @@ let lt_dom_algorithm succ_table pred_table (parent : int option array) (dfs_num 
 	
 	(* Step 1 *)
 	for k = 0 to (number_of_nodes - 1) do 
-		semi_dom.(k) <- k
+		semi_dom.(k) <- k;
 	done; 
 	
 	(* Step 2 *)
