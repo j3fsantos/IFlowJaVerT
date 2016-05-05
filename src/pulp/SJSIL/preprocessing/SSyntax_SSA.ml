@@ -1,6 +1,6 @@
 open SSyntax 
 
-let get_assignments_per_var cmds = 
+let get_assignments_per_var cmds  = 
 	
 	let assignments_per_var = Hashtbl.create 1021 in 
 	let num_vars = ref 0 in 
@@ -23,11 +23,15 @@ let get_assignments_per_var cmds =
 	get_assignments_per_var_iter cmds 0; 
 	assignments_per_var, !num_vars
 	
-	
-let get_phi_functions_per_var var var_asses dom_frontiers phi_nodes_table number_of_nodes = 
+(** 
+ Algorithm that finds where to insert the phi-nodes
+ *)		
+let get_phi_functions_per_var var (var_asses : int list) dom_frontiers phi_nodes_table number_of_nodes = 
 	
 	let work_list_flags : bool array = Array.make number_of_nodes false in
 	let work_list = Stack.create () in 
+	
+	let phi_function_per_node = Array.make number_of_nodes [] in 
 	
 	List.iter 
 		(fun u ->  
@@ -41,7 +45,8 @@ let get_phi_functions_per_var var var_asses dom_frontiers phi_nodes_table number
 				(fun v -> 
 					if (not (Hashtbl.mem phi_nodes_table (var, v)))
 					then  
-						(Hashtbl.add phi_nodes_table (var, v) true; 
+						(Hashtbl.add phi_nodes_table (var, v) true;
+						phi_nodes_per_array.(v) <-  
 						(if (not work_list_flags.(v)) 
 							then 
 								(work_list_flags.(v) <- true;
@@ -49,18 +54,37 @@ let get_phi_functions_per_var var var_asses dom_frontiers phi_nodes_table number
 							else ()))
 					else ())
 			dom_frontiers.(u)
-	done
+	done; 
 	
+	phi_nodes_per_array
 
-let insert_phi_functions assignments_per_var dom_frontiers number_of_nodes = 
+let insert_phi_functions cmds dom_frontiers number_of_nodes = 
 	
-	let phi_nodes_per_var = Hashtbl.create 1021 in 
+	let phi_nodes_table = Hashtbl.create 1021 in 
+	let assignments_per_var, _ = get_assignments_per_var cmds in 
 	
 	Hashtbl.iter
-		(fun var var_ass_nodes -> 
-			let var_phi_nodes = get_phi_functions_per_var var var_ass_nodes dom_frontiers number_of_nodes in 
-				Hashtbl.add phi_nodes_per_var var var_phi_nodes)
-		assignments_per_var					
-			
+		(fun var (var_ass_nodes : int list) -> get_phi_functions_per_var var var_ass_nodes dom_frontiers phi_nodes_table number_of_nodes)
+		assignments_per_var; 
+	phi_nodes_table
+		
+(** 
+ Main algorithm for computing phi-nodes
+ *)		
+let insert_phi_args succ idom_table idom_graph phi_nodes_table = 
+	
+	let vars_counter = Hashtbl.create 1021 in 
+	let vars_stack = Hashtbl.create 1021 in 
+	
+	let number_of_nodes = Array.length succ in 
+	let dom_rev_order = SSyntax_Utils_Graphs.simple_dfs idom_graph in 
+	
+	0
+	
+	
+	
+	
+	
+	
 									 
 			
