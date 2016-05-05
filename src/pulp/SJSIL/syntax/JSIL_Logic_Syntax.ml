@@ -63,7 +63,7 @@ module AbstractHeapM = Hashtbl.Make(
  	end)
 
 type abstract_heap = {
-	aheap: AbstractHeapM.t; 
+	aheap: ((jsil_logic_expr * jsil_logic_expr) list) AbstractHeapM.t; 
 	mutable count: int 
 }
 

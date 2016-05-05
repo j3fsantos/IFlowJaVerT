@@ -27,11 +27,27 @@ let fresh_logical_variable variable =
 
 let normalize_expr expr = expr
 
-let rec normalize_assertion ass (abs_heap : abstract_heap) abs_store pure_formulae = 
+let rec build_locations ass loc_table counter =
+	match ass with
+	| LStar (ass_left, ass_right) ->
+		let new_counter = build_locations ass_left loc_table counter in
+		build_locations ass_right loc_table new_counter
+	| LPointTo (PVar var, _, _) 
+	| LPointTo (LVar (NormalVar var), _, _) ->
+		(try Hashtbl.find loc_table var; counter
+			with _ -> 
+				Hashtbl.add loc_table var counter;
+				counter + 1)
+	| LPointTo (LVar (LocVar _), _, _) ->
+		raise (Failure "Unsupported assertion during normalization")
+	| _ -> counter
+ 
+
+let rec normalize_assertion ass (abs_heap : abstract_heap) abs_store pure_formulae loc_table = 
 	match ass with 
 	| LStar (ass_left, ass_right) -> 
-		normalize_assertion ass_left abs_heap abs_store pure_formulae; 
-		normalize_assertion ass_right abs_heap abs_store pure_formulae
+		normalize_assertion ass_left abs_heap abs_store pure_formulae loc_table; 
+		normalize_assertion ass_right abs_heap abs_store pure_formulae loc_table
 	| LPointTo (PVar pvar, lexp2, lexp3) ->
 		let absloc = (try AbstractStore.find abs_store pvar 
 			with _ -> 
@@ -52,19 +68,3 @@ let rec normalize_assertion ass (abs_heap : abstract_heap) abs_store pure_formul
 					new_abs_loc
 			)
 	| _ -> raise (Failure "Unsupported assertion during normalization")
-
-				
-		
-
-
-			
-				 
-	
-
-	
-	
-	
-
-
-
- 
