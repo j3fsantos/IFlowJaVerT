@@ -46,7 +46,6 @@ let get_phi_functions_per_var var (var_asses : int list) dom_frontiers phi_nodes
 					if (not (Hashtbl.mem phi_nodes_table (var, v)))
 					then  
 						(Hashtbl.add phi_nodes_table (var, v) true;
-						phi_nodes_per_array.(v) <-  
 						(if (not work_list_flags.(v)) 
 							then 
 								(work_list_flags.(v) <- true;
@@ -55,9 +54,8 @@ let get_phi_functions_per_var var (var_asses : int list) dom_frontiers phi_nodes
 					else ())
 			dom_frontiers.(u)
 	done; 
-	
-	phi_nodes_per_array
 
+(*
 let insert_phi_functions cmds dom_frontiers number_of_nodes = 
 	
 	let phi_nodes_table = Hashtbl.create 1021 in 
@@ -68,9 +66,7 @@ let insert_phi_functions cmds dom_frontiers number_of_nodes =
 		assignments_per_var; 
 	phi_nodes_table
 		
-(** 
- Main algorithm for computing phi-nodes
- *)		
+
 let insert_phi_args succ idom_table idom_graph phi_nodes_table = 
 	
 	let vars_counter = Hashtbl.create 1021 in 
@@ -80,7 +76,7 @@ let insert_phi_args succ idom_table idom_graph phi_nodes_table =
 	let dom_rev_order = SSyntax_Utils_Graphs.simple_dfs idom_graph in 
 	
 	0
-	
+	*)
 	
 	
 	

@@ -183,13 +183,13 @@ assertion_target:
 ;
 
 var_list_target:
-	var_list = separated_list(COMMA, LVAR) { var_list };
+	var_list = separated_list(COMMA, LVAR) { List.map (fun var -> (NormalVar var)) var_list };
 
 lexpr_target:
 (* lval *)
 	| value=lval_target { LVal value }
 (* lvar *)
-	| v=LVAR { LVar v }
+	| v=LVAR { LVar (NormalVar v) }
 (* pvar *)
 	| v=PVAR { PVar v }
 (* binop *)	

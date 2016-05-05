@@ -88,12 +88,17 @@ let string_of_logic_val lval escape_string =
 	| LNone -> "none"
 	| LListEmpty -> "[]"
 
+let string_of_lvar lvar =
+	match lvar with
+	| LocVar loc -> string_of_int loc
+	| NormalVar varname -> varname
+
 let rec string_of_logic_expression e escape_string =
   let sle = fun e -> string_of_logic_expression e escape_string in
   match e with
     | LVal lval -> string_of_logic_val lval escape_string
-    | LVar lvar -> Pulp_Syntax_Print.string_of_var lvar
-		| PVar pvar -> Pulp_Syntax_Print.string_of_var pvar
+    | LVar lvar -> string_of_lvar lvar
+		| PVar pvar -> pvar
 		(* (e1 bop e2) *)
     | LBinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (sle e1) (string_of_binop op) (sle e2)
 		(* (uop e1 e2) *)
@@ -117,6 +122,13 @@ let string_of_list list =
 	| elem :: rest ->
   	List.fold_left 
   		(fun prev_elems elem -> prev_elems ^ ", " ^ elem) elem rest	
+
+let string_of_lvar_list list =
+	match list with
+	| [] -> ""
+	| elem :: rest ->
+  	List.fold_left 
+  		(fun prev_elems elem -> prev_elems ^ ", " ^ (string_of_lvar elem)) (string_of_lvar elem) rest	
 
 let rec string_of_logic_assertion a escape_string =
 	let sla = fun a -> string_of_logic_assertion a escape_string in
@@ -143,9 +155,9 @@ let rec string_of_logic_assertion a escape_string =
 		(* emp *)
 		| LEmp -> Printf.sprintf "emp"
 		(* exists vars . a *)
-		| LExists (lvars, a) -> Printf.sprintf "exists %s . %s" (string_of_list lvars) (sla a)
+		| LExists (lvars, a) -> Printf.sprintf "exists %s . %s" (string_of_lvar_list lvars) (sla a)
 		(* forall vars . a *)
-		| LForAll (lvars, a) -> Printf.sprintf "forall %s . %s" (string_of_list lvars) (sla a)
+		| LForAll (lvars, a) -> Printf.sprintf "forall %s . %s" (string_of_lvar_list lvars) (sla a)
 
 let string_of_return_flag flag =
 	match flag with

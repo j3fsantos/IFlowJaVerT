@@ -1,6 +1,8 @@
 open SSyntax
 
-type jsil_logic_var = string
+type jsil_logic_var = 
+	| LocVar			of int
+	| NormalVar		of string
 
 type jsil_logic_val =
 	| LLit				of jsil_lit
@@ -49,3 +51,17 @@ type jsil_spec = {
     spec_params : jsil_var list; 
 		proc_specs : jsil_single_spec list
 }
+
+module AbstractHeap = Hashtbl.Make(
+ struct
+ 	type t = int  
+ 	let equal = (=)
+ 	let hash = Hashtbl.hash
+ end)
+
+module AbstractStore = Hashtbl.Make(
+struct
+	type t = string  
+	let equal = (=)
+	let hash = Hashtbl.hash
+end)

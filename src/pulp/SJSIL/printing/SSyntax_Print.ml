@@ -218,13 +218,19 @@ let rec string_of_cmd sjsil_cmd tabs i line_numbers_on escape_string =
 		| _ -> String.concat ", " (List.map se arg_expr_list) in 
 			str_tabs ^  Printf.sprintf "%s%s := %s(%s) with %s" str_i var proc_name_expr_str arg_expr_list_str error_lab
 
-let sexpr_of_params fparams = 
-	List.fold_left 
-		(fun prev_params param -> prev_params ^ " '" ^ param) "" fparams			
+let sexpr_of_params fparams =
+	match fparams with
+	| [] -> ""
+	| param :: rest ->
+  	List.fold_left 
+  		(fun prev_params param -> prev_params ^ " '" ^ param) param rest
 
-let string_of_params fparams = 
-	List.fold_left 
-		(fun prev_params param -> prev_params ^ ", " ^ param) "" fparams	
+let string_of_params fparams =
+	match fparams with
+	| [] -> ""
+	| param :: rest ->
+  	List.fold_left 
+  		(fun prev_params param -> prev_params ^ ", " ^ param) param rest
 
 let sexpr_of_cmd_list cmd_list tabs line_numbers =
 	let rec sexpr_of_cmd_list_iter cmd_list i str_ac = match cmd_list with
