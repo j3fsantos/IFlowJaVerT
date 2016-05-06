@@ -30,9 +30,7 @@ let get_phi_functions_per_var var (var_asses : int list) dom_frontiers phi_nodes
 	
 	let work_list_flags : bool array = Array.make number_of_nodes false in
 	let work_list = Stack.create () in 
-	
-	let phi_function_per_node = Array.make number_of_nodes [] in 
-	
+
 	List.iter 
 		(fun u ->  
 			work_list_flags.(u) <- true; 
@@ -45,7 +43,7 @@ let get_phi_functions_per_var var (var_asses : int list) dom_frontiers phi_nodes
 				(fun v -> 
 					if (not (Hashtbl.mem phi_nodes_table (var, v)))
 					then  
-						(Hashtbl.add phi_nodes_table (var, v) true;
+						(Hashtbl.add phi_nodes_table (var, v) true;  
 						(if (not work_list_flags.(v)) 
 							then 
 								(work_list_flags.(v) <- true;
@@ -53,30 +51,50 @@ let get_phi_functions_per_var var (var_asses : int list) dom_frontiers phi_nodes
 							else ()))
 					else ())
 			dom_frontiers.(u)
-	done; 
+	done
 
-(*
 let insert_phi_functions cmds dom_frontiers number_of_nodes = 
 	
 	let phi_nodes_table = Hashtbl.create 1021 in 
 	let assignments_per_var, _ = get_assignments_per_var cmds in 
+	let phi_functions_per_node = Array.make number_of_nodes [] in 
 	
 	Hashtbl.iter
-		(fun var (var_ass_nodes : int list) -> get_phi_functions_per_var var var_ass_nodes dom_frontiers phi_nodes_table number_of_nodes)
+		(fun var (var_ass_nodes : int list) -> 
+			get_phi_functions_per_var var var_ass_nodes dom_frontiers phi_nodes_table number_of_nodes)
 		assignments_per_var; 
-	phi_nodes_table
+	
+	Hashtbl.iter 
+		(fun (var, u) b -> 
+			phi_functions_per_node.(u) <- var :: phi_functions_per_node.(u))
+		phi_nodes_table; 
 		
-
-let insert_phi_args succ idom_table idom_graph phi_nodes_table = 
+	phi_functions_per_node
+	
+		
+		
+(** 
+ *
+ * SSA main algorithm: phi-nodes insertion algorithm 
+ *)
+let insert_phi_args succ idom_table idom_graph phi_functions_per_node = 
 	
 	let vars_counter = Hashtbl.create 1021 in 
 	let vars_stack = Hashtbl.create 1021 in 
 	
 	let number_of_nodes = Array.length succ in 
 	let dom_rev_order = SSyntax_Utils_Graphs.simple_dfs idom_graph in 
+	let dom_order = List.rev dom_rev_order in 
 	
+	let rec ipa_iter nodes_to_visit = 
+		(match nodes_to_visit with 
+		| [] -> () 
+		| u :: rest_nodes_to_visit ->
+			let u_successors = succ.(u) in
+			
+
 	0
-	*)
+
 	
 	
 	

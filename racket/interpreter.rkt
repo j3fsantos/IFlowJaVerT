@@ -329,6 +329,7 @@
          (store (proc-init-store proc arg-vals)))
     (jsil-discharge)
     (let ((res (run-cmds-iter prog proc-name heap store 0)))
+      (println (format "About to return from procedure ~a with return value ~a" proc-name res))
       (cons res store))))
 
 (define (run-program prog heap)
