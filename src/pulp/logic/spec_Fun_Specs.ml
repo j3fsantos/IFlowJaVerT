@@ -418,7 +418,7 @@ let make_check_object_coercible_function () =
 let make_is_callable_function () = 
 	let ctx = create_ctx [] in 
 	let arg = fresh_r () in 
-	let body = is_callable (Var arg) ctx.label_return empty_metadata in 
+	let body = is_callable (Var arg) ctx.return_var empty_metadata in 
 	let body = body @
 		mk_stmts_empty_data [ Goto ctx.label_return;
     	Label ctx.label_return;
