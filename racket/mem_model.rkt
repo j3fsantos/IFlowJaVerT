@@ -59,9 +59,8 @@
 ;;(define ref-o-type '$$o_reference_type)
 
 (define (jsil-subtype type1 type2)
-  (println (format "computing a subtype with types ~a and ~a" type1 type2))
-  (or
-   (eq? type1 type2)
+  (or 
+   (eq? type1 type2) 
    (and
     (eq? ref-a-type type2)
     (or (eq? ref-v-type type1)

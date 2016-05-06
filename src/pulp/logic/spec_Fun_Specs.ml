@@ -430,7 +430,7 @@ let make_strict_equality_function () =
 	let ctx = create_ctx [] in 
 	let arg1 = fresh_r () in 
 	let arg2 = fresh_r () in 
-	let body = translate_strict_equality_comparison (Var arg1) (Var arg2) ctx.label_return empty_metadata in 
+	let body = translate_strict_equality_comparison (Var arg1) (Var arg2) ctx.return_var empty_metadata in 
 	let body = body @
 		mk_stmts_empty_data [ Goto ctx.label_return;
     	Label ctx.label_return;
@@ -442,7 +442,7 @@ let make_strict_equality_same_type_function () =
 	let ctx = create_ctx [] in 
 	let arg1 = fresh_r () in 
 	let arg2 = fresh_r () in 
-	let body = translate_strict_equality_comparison_types_equal (Var arg1) (Var arg2) ctx.label_return empty_metadata in 
+	let body = translate_strict_equality_comparison_types_equal (Var arg1) (Var arg2) ctx.return_var empty_metadata in 
 	let body = body @
 		mk_stmts_empty_data [ Goto ctx.label_return;
     	Label ctx.label_return;
