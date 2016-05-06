@@ -91,8 +91,7 @@ let insert_phi_args succ idom_table idom_graph phi_functions_per_node =
 		| [] -> () 
 		| u :: rest_nodes_to_visit ->
 			let u_successors = succ.(u) in
-			
-
+			()) in
 	0
 
 	
