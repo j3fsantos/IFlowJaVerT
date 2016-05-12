@@ -1,6 +1,27 @@
 open SSyntax
 open Set
 
+let get_proc_variables proc = 
+	
+	let params = proc.proc_params in 
+	let var_table = Hashtbl.create 1021 in 
+	
+	let rec loop cmd_list vars = 
+		match cmd_list with 
+		| [] -> vars 
+		| cmd :: rest_cmds -> 
+			(match cmd with 
+			| SBasic (SAssignment (var, expr)) ->
+				if (not (Hashtbl.mem var_table var)) 
+					then
+						(Hashtbl.add var_table var true;  
+						loop cmd_list (var :: vars))
+					else loop rest_cmds vars 
+			| _ -> loop rest_cmds vars) in 
+	
+	loop proc.proc_body [] 			
+
+
 let derelativize_gotos_proc proc =
 	let rec derelative_gotos_cmds cmd_list cmd_number new_cmds =  
 		match cmd_list with

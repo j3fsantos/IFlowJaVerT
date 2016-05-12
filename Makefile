@@ -157,6 +157,7 @@ byte: tags parsing $(SOURCE1) $(SOURCE2_byte) $(SOURCE3)
 	ocamlfind ocamlc -g -package batteries,unix,xml-light,dynlink -linkpkg $(INCLUDES) $(SOURCE1) $(SOURCE2_byte) $(SOURCE3) -o translate.byte
 	rm $(REMOVE)
 clean:
+	ocamlbuild -clean
 	rm $(REMOVE_COMPILED)
 	rm -rf $(BUILD_DIR)
 	rm $(REMOVE)

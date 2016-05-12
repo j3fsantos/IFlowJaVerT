@@ -45,17 +45,31 @@ let rec parse_and_print lexbuf =
 		let succ_table, pred_table = get_succ_pred proc.proc_body in 
 		let nodes = SSyntax_Utils.get_proc_nodes proc.proc_body in 
 		let cur_string_of_cmd cmd =  SSyntax_Print.string_of_cmd cmd 0 0 false true in 
-		let tree_table, parent_table, _, _, dfs_num_table = SSyntax_Utils_Graphs.dfs succ_table in 
+		let tree_table, parent_table, _, _, dfs_num_table_f, dfs_num_table_r = SSyntax_Utils_Graphs.dfs succ_table in 
 		Printf.printf "\nI am going to compute the dominators!!!\n\n";
-		(* let str_dfs_nums = Graph_Print.print_node_table dfs_num_table string_of_int in 
-		Printf.printf "DFS nums:\n %s" str_dfs_nums;  *)
-		let dom_table, rev_dom_table = SSyntax_Utils_Graphs.lt_dom_algorithm succ_table pred_table parent_table dfs_num_table in
+		let str_dfs_nums = Graph_Print.print_node_table dfs_num_table_f string_of_int in 
+		Printf.printf "DFS nums:\n %s" str_dfs_nums; 
+		let dom_table, rev_dom_table = SSyntax_Utils_Graphs.lt_dom_algorithm succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r in
 		let dominance_frontiers = SSyntax_Utils_Graphs.find_dominance_frontiers succ_table dom_table rev_dom_table in 
 		let str_domfrontiers = Graph_Print.print_node_table dominance_frontiers Graph_Print.print_int_list in
 		Printf.printf "Dominance frontiers:\n %s" str_domfrontiers;
-		let proc_graph_str = Graph_Print.dot_of_graph succ_table nodes cur_string_of_cmd proc.proc_name in 
 		(* *)
-		burn_to_disk "graph.dot" proc_graph_str;
+		let vars = SSyntax_Utils.get_proc_variables proc in 
+		let number_of_nodes = Array.length succ_table in
+		let phi_functions_per_node = SSyntax_SSA.insert_phi_functions proc.proc_body dominance_frontiers number_of_nodes in 
+		let phi_functions_per_node_str : string = SSyntax_SSA.print_phi_functions_per_node phi_functions_per_node in 
+		Printf.printf "\n\n!!!!Phi Functions Per node!!!!!\n\n %s" phi_functions_per_node_str; 
+		let phi_functions_per_node = SSyntax_SSA.insert_phi_args 
+			succ_table pred_table dom_table rev_dom_table phi_functions_per_node proc.proc_params vars nodes in
+		let new_proc_body = SSyntax_SSA.insert_phi_nodes phi_functions_per_node nodes in 
+		let new_succ_table, new_pred_table = get_succ_pred new_proc_body in  
+		let new_nodes = SSyntax_Utils.get_proc_nodes new_proc_body in   
+		let proc_graph_str = Graph_Print.dot_of_graph new_succ_table new_nodes cur_string_of_cmd proc.proc_name in
+		let dom_graph_str = Graph_Print.dot_of_graph rev_dom_table nodes cur_string_of_cmd proc.proc_name in
+		(* Printf.printf "\n\n!!!!we are here!!!!!\n\n %s" phi_functions_per_node_str; *)
+		(* let tree_graph_str = Graph_Print.dot_of_graph tree_table nodes cur_string_of_cmd proc.proc_name in *)
+		burn_to_disk "ssa_graph.dot" proc_graph_str;
+		burn_to_disk "dom_graph.dot" dom_graph_str;
     parse_and_print lexbuf
 		
   | [] -> 
@@ -91,7 +105,7 @@ let process_file filename =
 	let inx = open_in filename in
   let lexbuf = Lexing.from_channel inx in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = filename };
-  parse_and_print_logic lexbuf;
+  parse_and_print lexbuf;
   close_in inx
 
 let main () = 

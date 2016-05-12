@@ -93,6 +93,7 @@ proc_target:
 (* proc xpto (x, y) { cmd_list } with { ret: x, i; err: x, j }; *) 
 	PROC; proc_name=VAR; LBRACE; param_list=param_list_target; RBRACE; CLBRACKET; cmd_list=cmd_list_target; CRBRACKET; WITH; CLBRACKET; ctx=ctx_target; CRBRACKET
 	{
+		Printf.printf "Parsing Procedure.\n";
 		let ret_var, ret_index, err_var, err_index = ctx in 
 		{ 
     	SSyntax.proc_name = proc_name;
@@ -108,7 +109,10 @@ proc_target:
 ctx_target: 
 (* ret: x, i; err: x, j *)
 	RET; COLON; ret_v=VAR; COMMA; i=INT; SCOLON; ERR; COLON; err_v=VAR; COMMA; j=INT
-	{ ret_v, i, err_v, j }
+	{ 
+		Printf.printf "Parsing proc context.\n";	
+		ret_v, i, err_v, j 
+	}
 
 param_list_target: 
 	param_list = separated_list(COMMA, VAR) { param_list };

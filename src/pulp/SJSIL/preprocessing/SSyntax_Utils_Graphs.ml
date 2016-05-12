@@ -76,13 +76,15 @@ let dfs succ_table =
 	let tree_table : int list array = Array.make number_of_nodes [] in
 	let pre_table : int array = Array.make number_of_nodes (-1) in
 	let post_table : int array = Array.make number_of_nodes (-1) in
-	let dfs_num_table : int array = Array.make number_of_nodes (-1) in
-			
+	let dfs_num_table_r : int array = Array.make number_of_nodes (-1) in
+	let dfs_num_table_f : int array = Array.make number_of_nodes (-1) in
+							
 	let pre_visit i = 
 		let clock_val = !clock in
 		let dfs_num = !cur_dfs_num in 
 		pre_table.(i) <- clock_val;  
-		dfs_num_table.(dfs_num) <- i;  
+		dfs_num_table_r.(dfs_num) <- i;
+		dfs_num_table_f.(i) <- dfs_num;  
 		clock := clock_val + 1; 
 		cur_dfs_num := dfs_num + 1 in
 	
@@ -107,7 +109,7 @@ let dfs succ_table =
 		post_visit i in 	 
 		
 	search 0; 
-	tree_table, parents_table, pre_table, post_table, dfs_num_table
+	tree_table, parents_table, pre_table, post_table, dfs_num_table_f, dfs_num_table_r 
 
 
 let compute_dominators pred succ = 
@@ -242,7 +244,7 @@ let init_link_eval number_of_nodes =
 					else ());
 				(match ancestor.(u) with 
 					| Some w -> 
-						ancestor.(v) <- ancestor.(w)
+						ancestor.(v) <- Some w
 					| _ -> ())
 			| _ -> ())
 		| _ -> () in 
@@ -290,7 +292,7 @@ let init_link_eval number_of_nodes =
             computation vertex by vertex in increasing dfs order. 
  **)
 
-let lt_dom_algorithm succ_table pred_table (parent : int option array) (dfs_num : int array) =
+let lt_dom_algorithm succ_table pred_table (parent : int option array) (dfs_num_f : int array) (dfs_num_r : int array) =
 	
 	let number_of_nodes = Array.length succ_table in 	
 	
@@ -308,15 +310,27 @@ let lt_dom_algorithm succ_table pred_table (parent : int option array) (dfs_num 
 	
 	(* Step 2 *)
 	for k = 1 to number_of_nodes do 
-		let cur_node = dfs_num.(number_of_nodes - k) in 
+		let cur_node = dfs_num_r.(number_of_nodes - k) in 
 		Printf.printf "Starting to process node number %s!!!\n" (string_of_int cur_node);
-		let p_cur_node = parent.(cur_node) in 
+		let p_cur_node =  parent.(cur_node) in 
+		let p_cur_node_str = match  parent.(cur_node) with 
+		| None -> "none"
+		| Some p_cur_node -> (string_of_int p_cur_node) in 
+		Printf.printf "\tParent: %s!!!\n" p_cur_node_str;
 	  let cur_node_predecessors = pred_table.(cur_node) in 
 		List.iter 
 			(fun pred -> 
 				let u = eval pred semi_dom in 
-				(if (dfs_num.(semi_dom.(u)) < dfs_num.(semi_dom.(cur_node))) 
-					then semi_dom.(cur_node) <- semi_dom.(u) 
+				Printf.printf "\tPred: %s,  eval: %s!!!\n" (string_of_int pred) (string_of_int u);
+				Printf.printf "\t %s %s %s %s \n" 
+					(string_of_int (semi_dom.(u))) 
+					(string_of_int (semi_dom.(cur_node))) 
+					(string_of_int (dfs_num_f.(semi_dom.(u)))) 
+					(string_of_int (dfs_num_f.(semi_dom.(cur_node))));
+				(if (dfs_num_f.(semi_dom.(u)) < dfs_num_f.(semi_dom.(cur_node))) 
+					then 
+						(semi_dom.(cur_node) <- semi_dom.(u); 
+						Printf.printf "\tUpdated Semi! Semi(%s) = %s\n" (string_of_int cur_node) (string_of_int semi_dom.(cur_node)))
 					else ()))
 			cur_node_predecessors; 
 			
@@ -330,7 +344,7 @@ let lt_dom_algorithm succ_table pred_table (parent : int option array) (dfs_num 
 			List.iter 
 				(fun v -> 
 					let u = (eval v semi_dom) in 
-					dom.(v) <- (if ((dfs_num.(semi_dom.(u))) < (dfs_num.(semi_dom.(v)))) then u else p_cur_node))
+					dom.(v) <- (if ((dfs_num_f.(semi_dom.(u))) < (dfs_num_f.(semi_dom.(v)))) then u else p_cur_node))
 				bucket.(p_cur_node); 
 			bucket.(p_cur_node) <- []
 		| None -> ());
@@ -342,7 +356,7 @@ let lt_dom_algorithm succ_table pred_table (parent : int option array) (dfs_num 
 	
 	(* Step 3 *)
 	for k = 1 to (number_of_nodes-1) do 
-		let cur_node = dfs_num.(k) in
+		let cur_node = dfs_num_r.(k) in
 		let d_cur_node = dom.(cur_node) in 
 		if (d_cur_node != semi_dom.(cur_node))
 			then 
@@ -353,7 +367,7 @@ let lt_dom_algorithm succ_table pred_table (parent : int option array) (dfs_num 
 					rev_dom.(d_cur_node) <- cur_node :: rev_dom.(d_cur_node)
 	done;
 	
-	dom.(dfs_num.(0)) <- dfs_num.(0); 
+	dom.(0) <- 0; 
 	dom, rev_dom
 
 

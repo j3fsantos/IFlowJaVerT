@@ -79,14 +79,15 @@ type jsil_expr =
 (* SJSIL Basic statements *)
 type basic_jsil_cmd =
   | SSkip	      
-  | SAssignment of jsil_var   * jsil_expr
-	| SNew        of jsil_var
-	| SLookup     of jsil_var   * jsil_expr * jsil_expr
-  | SMutation   of jsil_expr  * jsil_expr * jsil_expr
-	| SDelete     of jsil_expr  * jsil_expr
-	| SHasField   of jsil_var   * jsil_expr * jsil_expr
-	| SProtoField of jsil_var   * jsil_expr * jsil_expr
-	| SProtoObj   of jsil_var   * jsil_expr * jsil_expr 
+  | SAssignment    of jsil_var   * jsil_expr
+	| SPhiAssignment of jsil_var   * (jsil_var list)
+	| SNew           of jsil_var
+	| SLookup        of jsil_var   * jsil_expr * jsil_expr
+  | SMutation      of jsil_expr  * jsil_expr * jsil_expr
+	| SDelete        of jsil_expr  * jsil_expr
+	| SHasField      of jsil_var   * jsil_expr * jsil_expr
+	| SProtoField    of jsil_var   * jsil_expr * jsil_expr
+	| SProtoObj      of jsil_var   * jsil_expr * jsil_expr 
 
 (* SJSIL All Statements *)
 type jsil_cmd =

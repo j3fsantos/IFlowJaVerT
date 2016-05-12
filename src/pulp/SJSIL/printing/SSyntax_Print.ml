@@ -129,6 +129,14 @@ let rec sexpr_of_bcmd bcmd i line_numbers_on =
   | SSkip -> Printf.sprintf "'(%sskip)" str_i
 	(* ('var_assign var e) *)
 	| SAssignment (var, e) -> Printf.sprintf "'(%sv-assign %s %s)" str_i var (se e)
+	(* ('var-phi-assign var var_1 var_2 ... var_n) *)
+	| SPhiAssignment (var, var_lst) -> 
+		let var_lst_str = 
+			List.fold_left 
+				(fun ac v -> ac ^ " " ^ v)
+				""
+				var_lst in 
+		Printf.sprintf "'(%sv-phi-assign %s %s)" str_i var var_lst_str	
 	(* ('new var) *)
 	| SNew var -> Printf.sprintf "'(%snew %s)" str_i var
  	(* ('h-read var e1 e2)	*)
@@ -152,6 +160,18 @@ let rec string_of_bcmd bcmd i line_numbers_on escape_string =
   | SSkip -> Printf.sprintf "%sskip" str_i
 	(* var := e *)
 	| SAssignment (var, e) -> Printf.sprintf "%s%s := %s" str_i var (se e)
+	(* var := PHI(var_1, var_2, ..., var_n) *)
+	| SPhiAssignment (var, var_lst) -> 
+		let var_lst_str = 
+			(match var_lst with 
+			| [] -> ""
+			| [ v1 ] -> v1
+			| v1 :: rest_vars -> 
+					List.fold_left 
+						(fun ac v -> ac ^ ", " ^ v)
+						v1
+					 	rest_vars) in 
+		Printf.sprintf "%s%s := PHI(%s)" str_i var var_lst_str						
 	(* x := new() *)
 	| SNew var -> Printf.sprintf "%s%s := new()" str_i var
  	(* x := [e1, e2]	*)
