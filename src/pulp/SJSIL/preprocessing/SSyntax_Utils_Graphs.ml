@@ -238,7 +238,7 @@ let init_link_eval number_of_nodes =
 		| Some u ->
 			(match ancestor.(u) with 
 			| Some _ -> 
-				compress u; 
+				compress u semi_table; 
 				(if (semi_table.(label.(u)) < semi_table.(label.(v)) )
 					then label.(v) <- label.(u)
 					else ());
@@ -442,20 +442,5 @@ let find_dominance_frontiers succ idom_table idom_graph =
 	
 	fdf_iter dom_rev_order; 
 	dominance_frontiers		 
-
-
-
-
-
-
-			
-				 
-	
-
-	
-	
-	
-
-
 
  

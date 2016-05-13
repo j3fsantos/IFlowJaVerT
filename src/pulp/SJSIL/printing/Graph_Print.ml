@@ -8,7 +8,7 @@ let dot_of_graph succ_table nodes string_of_node graphname =
 	let rec dot_of_graph_nodes_iter cur_node cur_str = 
 		(if (cur_node < number_of_nodes)
 			then 
-				let node_str = (string_of_node nodes.(cur_node)) in 
+				let node_str = (string_of_node nodes.(cur_node) cur_node) in 
 				let cur_str = cur_str ^ "\t" ^ (string_of_int cur_node) ^ "[shape=box, label=\"" ^ node_str ^ "\"];\n" in 
 					dot_of_graph_nodes_iter (cur_node+1) cur_str
 			else 

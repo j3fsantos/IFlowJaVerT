@@ -1,16 +1,34 @@
 open Lexing
 (* open Core.Std *)
+open SSyntax
 open SSyntax_Utils_Graphs
-open SSyntax_SSA
 
 let file = ref ""
+let show_init_graph = ref false
+let show_dfs = ref false 
+let show_dom = ref false 
+let show_dom_frontiers = ref false 
+let show_phi_placement = ref false
+let show_ssa = ref false 
 
 let arguments () =
   let usage_msg="Usage: -file <path>" in
   Arg.parse
     [ 
+			(* file to compile *)
 			"-file", Arg.String(fun f -> file := f), "file to run";
-      (* *)
+			(* print ssa *)
+			"-ssa", Arg.Unit(fun () -> show_ssa := true), "print ssa graph";
+			(* print dfs *)
+			"-dfs", Arg.Unit(fun () -> show_dfs := true), "print dfs graph";
+      (* print dominators *)
+			"-dom", Arg.Unit(fun () -> show_dom := true), "print dominator graph";
+			(* print dominance frontiers *)
+			"-frontiers", Arg.Unit(fun () -> show_dom_frontiers := true), "print dominance frontiers";
+			(* print phi placement *)
+			"-phis", Arg.Unit(fun () -> show_phi_placement := true), "print phi nodes placement";
+			(* print init graph *)
+			"-init", Arg.Unit(fun () -> show_init_graph := true), "print initial graph";			
     ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
@@ -34,48 +52,57 @@ let parse_with_error lexbuf =
     Printf.fprintf stderr "%a: syntax error\n" print_position lexbuf;
     exit (-1)
 
-let rec parse_and_print lexbuf =
-	Printf.printf "parse and print\n"; 
-  match parse_with_error lexbuf with
-  | proc :: lst ->
-		let str_proc = SSyntax_Print.sexpr_of_procedure proc false in 
-		Printf.printf "Parsing Successful! %s" str_proc;
-		(* *)
-		let proc = SSyntax_Utils.derelativize_gotos_proc proc in
-		let succ_table, pred_table = get_succ_pred proc.proc_body in 
-		let nodes = SSyntax_Utils.get_proc_nodes proc.proc_body in 
-		let cur_string_of_cmd cmd =  SSyntax_Print.string_of_cmd cmd 0 0 false true in 
-		let tree_table, parent_table, _, _, dfs_num_table_f, dfs_num_table_r = SSyntax_Utils_Graphs.dfs succ_table in 
-		Printf.printf "\nI am going to compute the dominators!!!\n\n";
-		let str_dfs_nums = Graph_Print.print_node_table dfs_num_table_f string_of_int in 
-		Printf.printf "DFS nums:\n %s" str_dfs_nums; 
-		let dom_table, rev_dom_table = SSyntax_Utils_Graphs.lt_dom_algorithm succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r in
-		let dominance_frontiers = SSyntax_Utils_Graphs.find_dominance_frontiers succ_table dom_table rev_dom_table in 
-		let str_domfrontiers = Graph_Print.print_node_table dominance_frontiers Graph_Print.print_int_list in
-		Printf.printf "Dominance frontiers:\n %s" str_domfrontiers;
-		(* *)
-		let vars = SSyntax_Utils.get_proc_variables proc in 
-		let number_of_nodes = Array.length succ_table in
-		let phi_functions_per_node = SSyntax_SSA.insert_phi_functions proc.proc_body dominance_frontiers number_of_nodes in 
-		let phi_functions_per_node_str : string = SSyntax_SSA.print_phi_functions_per_node phi_functions_per_node in 
-		Printf.printf "\n\n!!!!Phi Functions Per node!!!!!\n\n %s" phi_functions_per_node_str; 
-		let phi_functions_per_node = SSyntax_SSA.insert_phi_args 
-			succ_table pred_table dom_table rev_dom_table phi_functions_per_node proc.proc_params vars nodes in
-		let new_proc_body = SSyntax_SSA.insert_phi_nodes phi_functions_per_node nodes in 
-		let new_succ_table, new_pred_table = get_succ_pred new_proc_body in  
-		let new_nodes = SSyntax_Utils.get_proc_nodes new_proc_body in   
-		let proc_graph_str = Graph_Print.dot_of_graph new_succ_table new_nodes cur_string_of_cmd proc.proc_name in
-		let dom_graph_str = Graph_Print.dot_of_graph rev_dom_table nodes cur_string_of_cmd proc.proc_name in
-		(* Printf.printf "\n\n!!!!we are here!!!!!\n\n %s" phi_functions_per_node_str; *)
-		(* let tree_graph_str = Graph_Print.dot_of_graph tree_table nodes cur_string_of_cmd proc.proc_name in *)
-		burn_to_disk "ssa_graph.dot" proc_graph_str;
-		burn_to_disk "dom_graph.dot" dom_graph_str;
-    parse_and_print lexbuf
-		
-  | [] -> 
-		Printf.printf "Empty Procedure List..."; 
-		()
+let cond_print_graph test graph nodes string_of_node graph_name proc_folder = 
+	if (test) 
+		then 
+			(let graph_str = Graph_Print.dot_of_graph graph nodes string_of_node graph_name in
+			burn_to_disk (proc_folder ^ "/" ^ graph_name ^ ".dot") graph_str)
+		else () 	
 
+let pre_process_proc output_folder_name proc = 
+	
+	(* computing everything *)
+	let proc = SSyntax_Utils.derelativize_gotos_proc proc in
+	let nodes, vars, succ_table, pred_table, tree_table, parent_table, dfs_num_table_f, dfs_num_table_r = 
+		SSyntax_Utils.get_proc_info proc in 
+	let rev_dom_table, dominance_frontiers, phi_functions_per_node, new_proc = 
+		SSyntax_SSA.ssa_compile proc vars nodes succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r in 
+	let final_succ_table, final_pred_table = SSyntax_Utils_Graphs.get_succ_pred new_proc.proc_body in 
+	let new_nodes = SSyntax_Utils.get_proc_nodes new_proc.proc_body in   
+	
+	(* Printing everything *) 
+	let proc_folder = (output_folder_name ^ "/" ^ proc.proc_name) in 
+	Utils.safe_mkdir proc_folder; 
+	let string_of_cmd cmd i =
+		let str_i = string_of_int dfs_num_table_f.(i) in  
+		str_i ^ ": " ^ SSyntax_Print.string_of_cmd cmd 0 0 false true in
+	let string_of_cmd_ssa cmd i =  
+		SSyntax_Print.string_of_cmd cmd 0 0 false true in
+
+	cond_print_graph (!show_init_graph) succ_table nodes string_of_cmd "succ" proc_folder;	
+	cond_print_graph (!show_dfs) tree_table nodes string_of_cmd "dfs" proc_folder;	
+	cond_print_graph (!show_dom) rev_dom_table nodes string_of_cmd "dom" proc_folder;
+	cond_print_graph (!show_ssa) final_succ_table new_nodes string_of_cmd_ssa "ssa" proc_folder;
+	
+	(if (!show_dom_frontiers) 
+		then 
+			let str_domfrontiers = Graph_Print.print_node_table dominance_frontiers Graph_Print.print_int_list in
+			burn_to_disk (proc_folder ^ "/dom_frontiers.txt") str_domfrontiers
+		else ()); 
+	
+	(if (!show_phi_placement) 
+		then 
+			let phi_functions_per_node_str : string = SSyntax_SSA.print_phi_functions_per_node phi_functions_per_node in 
+			burn_to_disk (proc_folder ^ "/phi_placement.txt") phi_functions_per_node_str
+		else ()); 
+	new_proc
+		
+let rec parse_and_print lexbuf =
+	let output_folder_name = Filename.chop_extension !file in 
+  let proc_list = parse_with_error lexbuf in 
+	Utils.safe_mkdir output_folder_name;
+	let ssa_proc_list = List.map  (fun proc -> (pre_process_proc output_folder_name proc)) proc_list in 
+	ssa_proc_list 
 
 let parse_with_error_logic lexbuf =
   try JSIL_Logic_Parser.main_target JSIL_Logic_Lexer.read lexbuf with
@@ -87,7 +114,6 @@ let parse_with_error_logic lexbuf =
     exit (-1)
 
 let parse_and_print_logic lexbuf = 
-	Printf.printf "parse and print\n";
 	let rec print_logic spec_list =
     match spec_list with
     | spec :: rest ->
@@ -100,7 +126,6 @@ let parse_and_print_logic lexbuf =
 	print_logic (parse_with_error_logic lexbuf)
 
 let process_file filename =
-	Printf.printf "loop...\n"; 
 	(* let inx = In_channel.create filename in *)
 	let inx = open_in filename in
   let lexbuf = Lexing.from_channel inx in
@@ -110,8 +135,7 @@ let process_file filename =
 
 let main () = 
 	arguments ();
-	Printf.printf "Start parsing! %s\n" !file;
+	(* Printf.printf "Start parsing! %s\n" !file; *)
 	process_file !file 
-
 
 let _ = main()

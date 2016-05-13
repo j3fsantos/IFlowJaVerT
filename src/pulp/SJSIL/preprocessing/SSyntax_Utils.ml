@@ -3,7 +3,6 @@ open Set
 
 let get_proc_variables proc = 
 	
-	let params = proc.proc_params in 
 	let var_table = Hashtbl.create 1021 in 
 	
 	let rec loop cmd_list vars = 
@@ -55,8 +54,6 @@ let derelativize_gotos prog =
 		SSyntax.SProgram.add prog proc_name new_proc)
 	prog		
 
-
-
 let get_proc_nodes cmd_list = 	
 	let number_of_cmds = List.length cmd_list in 
 	let cmd_arr = Array.make number_of_cmds (SSyntax.SBasic SSyntax.SSkip) in 
@@ -71,4 +68,15 @@ let get_proc_nodes cmd_list =
 	get_nodes_iter cmd_list 0; 
 	cmd_arr
 
- 
+let get_proc_info proc = 
+	(*  computing successors and predecessors *)
+	let succ_table, pred_table = SSyntax_Utils_Graphs.get_succ_pred proc.proc_body in 
+	(*  get an array of nodes instead of a list *)
+	let nodes = get_proc_nodes proc.proc_body in 
+	(* perform a dfs on the graph *) 
+	let tree_table, parent_table, _, _, dfs_num_table_f, dfs_num_table_r = SSyntax_Utils_Graphs.dfs succ_table in 
+	(* get the variables defined in proc *)
+	let vars = get_proc_variables proc in 
+	nodes, vars, succ_table, pred_table, tree_table, parent_table, dfs_num_table_f, dfs_num_table_r
+		
+	 
