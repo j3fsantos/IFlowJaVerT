@@ -11,4 +11,34 @@ with
 {
 	ret: xret, 5;
 	err: xret, 6
+};
+
+proc getProperty (l, prop)
+{
+	x := protoField(l, prop);
+	goto [x = $$empty] 1 3;
+	xret := $$undefined;
+	goto 2;
+	xret := [l, prop];
+	skip;
+	skip
 }
+with
+{
+	ret: xret, 5;
+	err: xret, 6
+};
+
+proc get (l, prop)
+{
+	x := "getProperty" (l, prop) with 3;
+	xret := x;
+	skip;
+	skip
+}
+with
+{
+	ret: xret, 2;
+	err: xret, 3
+}
+
