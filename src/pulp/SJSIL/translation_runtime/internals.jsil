@@ -10,7 +10,7 @@ proc getOwnProperty (l, prop) {
 with
 {
 	ret: xret, 5;
-	err: xret, 6
+	err: xret, 6;
 };
 
 proc getProperty (l, prop)
@@ -26,7 +26,7 @@ proc getProperty (l, prop)
 with
 {
 	ret: xret, 5;
-	err: xret, 6
+	err: xret, 6;
 };
 
 proc get (l, prop)
@@ -39,6 +39,29 @@ proc get (l, prop)
 with
 {
 	ret: xret, 2;
-	err: xret, 3
-}
+	err: xret, 3;
+};
 
+proc can_put (l, prop)
+{
+	x := "getOwnProperty" (l, prop) with 10;
+	goto [not (x = $$undefined)] 1 3;
+		(* Own property exists *);
+		xret := true;
+		goto 9;
+		(* Own property doesn't exist *);
+		x := "getProperty" (l, prop) with 10;
+		goto [not (x = $$undefined)] 1 3;
+			(* Property exists *);
+			xret := [l, "#extensible"];
+			goto 9;
+			(* Property doesn't exist *);
+			xret := [l, "#extensible"];
+	skip;
+	skip
+}
+with
+{
+	ret: xret, 9;
+	err: xret, 10;
+}

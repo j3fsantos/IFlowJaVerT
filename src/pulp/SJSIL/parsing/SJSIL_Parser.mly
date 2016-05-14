@@ -93,7 +93,10 @@ proc_list_target:
 
 proc_target: 
 (* proc xpto (x, y) { cmd_list } with { ret: x, i; err: x, j }; *) 
-	PROC; proc_name=VAR; LBRACE; param_list=param_list_target; RBRACE; CLBRACKET; cmd_list=cmd_list_target; CRBRACKET; WITH; CLBRACKET; ctx=ctx_target; CRBRACKET
+	PROC; proc_name=VAR; LBRACE; param_list=param_list_target; RBRACE; 
+		CLBRACKET; cmd_list=cmd_list_target; option(SCOLON); CRBRACKET; 
+	WITH; 
+		CLBRACKET; ctx=ctx_target; option(SCOLON); CRBRACKET
 	{
 		Printf.printf "Parsing Procedure.\n";
 		let ret_var, ret_index, err_var, err_index = ctx in 
@@ -240,6 +243,9 @@ expr_target:
 (* typeof *)
 	| TYPEOF; LBRACE; e=expr_target; RBRACE
 		{ SSyntax.TypeOf (e) }
+(* (e) *)
+  | LBRACE; e=expr_target; RBRACE
+		{ e }
 ;
 
 lit_target: 
@@ -291,7 +297,3 @@ unop_target:
 	| TOUINT32 { SSyntax.ToUint32Op }
 	| BITWISENOT { SSyntax.BitwiseNot }
 ;
-
-
-
-
