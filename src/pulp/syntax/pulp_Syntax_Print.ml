@@ -228,7 +228,6 @@ let string_of_assign_right aer =
     | Deallocation (e1, e2) -> Printf.sprintf "delete (%s,%s)" (se e1) (se e2)
     | ProtoF (l, x) -> Printf.sprintf "proto_field ( %s, %s )" (se l) (se x)
     | ProtoO (l, x) -> Printf.sprintf "proto_obj ( %s, %s )" (se l) (se x)
-		| _ -> "illegal_construct()"
 
 let string_of_mutation m =
   let se = string_of_expression in
@@ -289,7 +288,7 @@ let rec string_of_statement t =
     | GuardedGoto (e, s1, s2) -> Printf.sprintf "goto [%s] %s, %s" (string_of_expression e) s1 s2
     | Basic bs -> string_of_basic_statement bs
     | Sugar s -> string_of_sugar s
-		| _ -> "illegal_construct()"
+		
 and string_of_statement_list ts = String.concat "\n" 
  (List.mapi (fun i t -> (string_of_int i) ^ ". " ^ (string_of_statement t)) ts)
 and string_of_sugar t =
@@ -301,7 +300,6 @@ and string_of_sugar t =
       (string_of_statement_list elsebranch)
     | SpecFunction (v, sf, excel_label) -> Printf.sprintf "%s = %s with (%s)" 
       v (string_of_spec_function sf) excel_label
-		| _ -> "illegal_construct()"
       
 let string_of_ctx_vars v = 
   Printf.sprintf "%s : [%s]" v.func_id (string_of_vars v.fun_bindings)

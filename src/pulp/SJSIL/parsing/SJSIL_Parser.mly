@@ -2,6 +2,8 @@
 open SSyntax 
 %}
 
+(* comment *)
+%token COMMENT
 (* procedures *) 
 %token PROC
 %token RET
@@ -119,80 +121,94 @@ param_list_target:
 	param_list = separated_list(COMMA, VAR) { param_list };
 
 cmd_list_target: 
-	cmd_list = separated_list(SCOLON, cmd_target) { cmd_list };
+	cmd_list = separated_list(SCOLON, cmd_target) {
+		List.rev 
+			(List.fold_left
+				(fun ac c ->
+					match c with
+			 		| None -> ac
+			 		| Some v -> v :: ac)
+				[]
+				cmd_list)
+	};
 
 cmd_target: 
 (* skip *)
 	| SKIP 
 		{ 
 			Printf.printf "Parsing Skip.\n";
-			SSyntax.SBasic(SSyntax.SSkip) 
+			Some (SSyntax.SBasic(SSyntax.SSkip))
 		} 
 (* x := new() *) 
 	| v=VAR; DEFEQ; NEW; LBRACE; RBRACE
 		{ 
 			Printf.printf "Parsing New.\n";
-			SSyntax.SBasic (SSyntax.SNew v) 
+			Some (SSyntax.SBasic (SSyntax.SNew v))
 		}
 (* x := e *)
 	| v=VAR; DEFEQ; e=expr_target 
 	{ 
 		Printf.printf "Parsing Assignemnt.\n";
-		SSyntax.SBasic (SSyntax.SAssignment (v, e)) 
+		Some (SSyntax.SBasic (SSyntax.SAssignment (v, e)))
 	}
 (* x := [e1, e2] *)
 	| v=VAR; DEFEQ; LBRACKET; e1=expr_target; COMMA; e2=expr_target; RBRACKET 
 		{ 
 			Printf.printf "Parsing Field Look-up.\n";
-			SSyntax.SBasic (SSyntax.SLookup (v, e1, e2)) 
+			Some (SSyntax.SBasic (SSyntax.SLookup (v, e1, e2)))
 		}
 (* [e1, e2] := e3 *)
 	| LBRACKET; e1=expr_target; COMMA; e2=expr_target; RBRACKET; DEFEQ; e3=expr_target    
 		{ 
 			Printf.printf "Parsing Field Assignemnt.\n";
-			SSyntax.SBasic (SSyntax.SMutation (e1, e2, e3)) 
+			Some (SSyntax.SBasic (SSyntax.SMutation (e1, e2, e3))) 
 		}
 (* delete(e1, e2) *)
 	| DELETE; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
 		{ 
 			Printf.printf "Parsing Deletion.\n";
-			SSyntax.SBasic (SSyntax.SDelete (e1, e2)) 
+			Some (SSyntax.SBasic (SSyntax.SDelete (e1, e2)))
 		}
 (* x := hasField(e1, e2) *)
 	| v=VAR; DEFEQ; HASFIELD; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
 		{ 
 			Printf.printf "Parsing HasField.\n";
-			SSyntax.SBasic (SSyntax.SHasField (v, e1, e2)) 
+			Some (SSyntax.SBasic (SSyntax.SHasField (v, e1, e2)))
 		}
 (* x := protoField(e1, e2) *)
 	| v=VAR; DEFEQ; PROTOFIELD; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
 		{ 
 			Printf.printf "Parsing ProtoField.\n";
-			SSyntax.SBasic (SSyntax.SProtoField (v, e1, e2)) 
+			Some (SSyntax.SBasic (SSyntax.SProtoField (v, e1, e2)))
 		}
 (* x := protoObj(e1, e2) *)
 	| v=VAR; DEFEQ; PROTOOBJ; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
 		{ 
 			Printf.printf "Parsing ProtoObj.\n";
-			SSyntax.SBasic (SSyntax.SProtoObj (v, e1, e2)) 
+			Some (SSyntax.SBasic (SSyntax.SProtoObj (v, e1, e2)))
 		}
 (* goto i *)
 	| GOTO; i=INT 
 		{
 			Printf.printf "Parsing Goto.\n";
-			SSyntax.SGoto i
+			Some (SSyntax.SGoto i)
 		}
 (* goto [e] i j *)
 	| GOTO LBRACKET; e=expr_target; RBRACKET; i=INT; j=INT 
 		{
 			Printf.printf "Parsing Conditional Goto.\n";
-			SSyntax.SGuardedGoto (e, i, j) 
+			Some (SSyntax.SGuardedGoto (e, i, j))
 		}
 (* x := e(e1, ..., en) with j *)
 	| v=VAR; DEFEQ; e=expr_target; LBRACE; es=expr_list_target; RBRACE; WITH; i=INT
 		{
 			Printf.printf "Parsing Procedure Call.\n";
-			SSyntax.SCall (v, e, es, i) 
+			Some (SSyntax.SCall (v, e, es, i))
+		}
+	| COMMENT
+		{
+			Printf.printf "Parsing Comment. Hihihi.\n";
+			None
 		}
 ;
 

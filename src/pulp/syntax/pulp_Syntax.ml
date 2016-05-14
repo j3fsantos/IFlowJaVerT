@@ -98,6 +98,7 @@ type builtin_field =
   | FPrototype
   | FConstructId
   | FPrimitiveValue
+	| FExtensible
   | FClass (* TODO : Update Everywhere *)
 
 let string_of_builtin_field f =
@@ -108,6 +109,7 @@ let string_of_builtin_field f =
     | FPrototype -> "prototype"
     | FConstructId -> "#constructid"
     | FPrimitiveValue -> "#primvalue"
+		| FExtensible -> "#extensible"
     | FClass -> "#class"
 
 type reference_type = 
