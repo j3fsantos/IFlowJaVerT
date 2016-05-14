@@ -422,6 +422,7 @@ let rec translate_exp ctx exp : statement list * variable =
               Basic (Assignment r1);
               add_proto_value r1.assign_left Lop; 
               Basic (Mutation (mk_mutation (Var r1.assign_left) (literal_builtin_field FClass) (Literal (String "Object"))));
+							Basic (Mutation (mk_mutation (Var r1.assign_left) (literal_builtin_field OogaBooga) (Literal (Bool true))));
             ] @ 
             (List.flatten stmts), r1.assign_left
         end

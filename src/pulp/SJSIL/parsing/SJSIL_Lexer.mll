@@ -81,6 +81,7 @@ rule read = parse
 	| "num_to_uint32"      { SJSIL_Parser.TOUINT32 }
 	| "!"                  { SJSIL_Parser.BITWISENOT }
 (* separators *)
+  | "(*"                 { read_comment lexbuf }
 	| ':'                  { SJSIL_Parser.COLON }
 	| ','                  { SJSIL_Parser.COMMA }
 	| ';'                  { SJSIL_Parser.SCOLON }
@@ -121,3 +122,10 @@ read_string buf =
     			               }
   | _ { raise (SyntaxError ("Illegal string character: " ^ Lexing.lexeme lexbuf)) }
   | eof { raise (SyntaxError ("String is not terminated")) }
+and 
+read_comment =
+  parse
+	| "*)"                 { SJSIL_Parser.COMMENT }
+	| eof { raise (SyntaxError ("Comment is not terminated")) }
+	| _                    { read_comment lexbuf }
+	

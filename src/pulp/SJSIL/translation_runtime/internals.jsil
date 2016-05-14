@@ -1,0 +1,14 @@
+proc getOwnProperty (l, prop) {
+	x := hasField(l, prop);
+	goto [not x] 1 3;
+	xret := $$undefined;	
+	goto 2;
+	xret := [l, prop];
+	skip;
+	skip
+}
+with
+{
+	ret: xret, 5;
+	err: xret, 6
+}
