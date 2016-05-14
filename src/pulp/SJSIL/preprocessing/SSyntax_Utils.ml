@@ -63,7 +63,7 @@ let get_proc_nodes cmd_list =
 
 let get_proc_info proc = 
 	(*  computing successors and predecessors *)
-	let succ_table, pred_table = SSyntax_Utils_Graphs.get_succ_pred proc.proc_body in 
+	let succ_table, pred_table = SSyntax_Utils_Graphs.get_succ_pred proc.proc_body proc.ret_label proc.error_label in 
 	(*  get an array of nodes instead of a list *)
 	let nodes = proc.proc_body in 
 	(* perform a dfs on the graph *) 

@@ -8,7 +8,7 @@ open SSyntax
 		type t = int
 	end)
 
-let get_succ_pred cmds = 
+let get_succ_pred cmds ret_label err_label = 
 
 	let number_of_cmds = Array.length cmds in 
 	let succ_table = Array.make number_of_cmds [] in 
@@ -27,26 +27,29 @@ let get_succ_pred cmds =
 			else ()) in
 	
 	for u=0 to number_of_cmds-1 do 
-		match cmds.(u) with	
-		| SBasic _ -> 
-			update_succ_table (u + 1) u; 
-			update_pred_table u (u + 1)
+		if (not ((u == ret_label) || (u == err_label)))
+		then 
+			(match cmds.(u) with	
+			| SBasic _ -> 
+				update_succ_table (u + 1) u; 
+				update_pred_table u (u + 1)
 		
-		| SGoto i ->
-			update_succ_table i u; 
-			update_pred_table u i; 
+			| SGoto i ->
+				update_succ_table i u; 
+				update_pred_table u i 
 		
-		| SGuardedGoto (e, i, j) -> 
-			update_succ_table i u;
-			update_pred_table u i; 
-			update_succ_table j u; 
-			update_pred_table u j; 
+			| SGuardedGoto (e, i, j) -> 
+				update_succ_table i u;
+				update_pred_table u i; 
+				update_succ_table j u; 
+				update_pred_table u j
 		
-		| SCall (var, e, es, i) ->
-			update_succ_table u i;
-			update_pred_table u i;
-			update_succ_table (u+1) u; 
-			update_pred_table u (u+1); 
+			| SCall (var, e, es, i) ->
+				update_succ_table i u;
+				update_pred_table u i;
+				update_succ_table (u+1) u; 
+				update_pred_table u (u+1))
+		else ()
 	done; 
 	
 	for k = 0 to (number_of_cmds - 1) do
@@ -56,11 +59,11 @@ let get_succ_pred cmds =
 	succ_table, pred_table
 
 
-let dfs succ_table = 
+let dfs (succ_table : ((int list) array)) = 
 	
 	let clock = ref 0 in
 	let cur_dfs_num = ref 0 in 
-	let number_of_nodes = Array.length succ_table in 
+	let number_of_nodes : int = Array.length succ_table in 
 
 	let visited_table : bool array = Array.make number_of_nodes false in
 	let parents_table : int option array = Array.make number_of_nodes None in

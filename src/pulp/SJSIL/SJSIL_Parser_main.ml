@@ -68,7 +68,7 @@ let pre_process_proc output_folder_name proc =
 		SSyntax_Utils.get_proc_info proc in 
 	let rev_dom_table, dominance_frontiers, phi_functions_per_node, new_proc = 
 		SSyntax_SSA.ssa_compile proc vars nodes succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r in 
-	let final_succ_table, final_pred_table = SSyntax_Utils_Graphs.get_succ_pred new_proc.proc_body in    
+	let final_succ_table, final_pred_table = SSyntax_Utils_Graphs.get_succ_pred new_proc.proc_body new_proc.ret_label new_proc.error_label in    
 	
 	(* Printing everything *) 
 	let proc_folder = (output_folder_name ^ "/" ^ proc.proc_name) in 
