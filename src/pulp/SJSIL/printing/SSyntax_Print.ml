@@ -130,13 +130,13 @@ let rec sexpr_of_bcmd bcmd i line_numbers_on =
 	(* ('var_assign var e) *)
 	| SAssignment (var, e) -> Printf.sprintf "'(%sv-assign %s %s)" str_i var (se e)
 	(* ('var-phi-assign var var_1 var_2 ... var_n) *)
-	| SPhiAssignment (var, var_lst) -> 
-		let var_lst_str = 
-			List.fold_left 
+	| SPhiAssignment (var, var_arr) -> 
+		let var_arr_str = 
+			Array.fold_left 
 				(fun ac v -> ac ^ " " ^ v)
 				""
-				var_lst in 
-		Printf.sprintf "'(%sv-phi-assign %s %s)" str_i var var_lst_str	
+				var_arr in 
+		Printf.sprintf "'(%sv-phi-assign %s %s)" str_i var var_arr_str	
 	(* ('new var) *)
 	| SNew var -> Printf.sprintf "'(%snew %s)" str_i var
  	(* ('h-read var e1 e2)	*)
@@ -161,17 +161,17 @@ let rec string_of_bcmd bcmd i line_numbers_on escape_string =
 	(* var := e *)
 	| SAssignment (var, e) -> Printf.sprintf "%s%s := %s" str_i var (se e)
 	(* var := PHI(var_1, var_2, ..., var_n) *)
-	| SPhiAssignment (var, var_lst) -> 
-		let var_lst_str = 
-			(match var_lst with 
-			| [] -> ""
-			| [ v1 ] -> v1
-			| v1 :: rest_vars -> 
-					List.fold_left 
-						(fun ac v -> ac ^ ", " ^ v)
-						v1
-					 	rest_vars) in 
-		Printf.sprintf "%s%s := PHI(%s)" str_i var var_lst_str						
+	| SPhiAssignment (var, var_arr) -> 
+		let len = Array.length var_arr in  
+		let rec loop i str_ac =
+			if (i >= len) 
+				then str_ac 
+				else 
+					(if (i == 0)
+						then loop 1 var_arr.(i)
+						else  loop (i + 1) (str_ac ^ ", " ^ var_arr.(i))) in 
+		let var_arr_str = loop 0 "" in 
+		Printf.sprintf "%s%s := PHI(%s)" str_i var var_arr_str						
 	(* x := new() *)
 	| SNew var -> Printf.sprintf "%s%s := new()" str_i var
  	(* x := [e1, e2]	*)
@@ -252,21 +252,24 @@ let string_of_params fparams =
   	List.fold_left 
   		(fun prev_params param -> prev_params ^ ", " ^ param) param rest
 
-let sexpr_of_cmd_list cmd_list tabs line_numbers =
-	let rec sexpr_of_cmd_list_iter cmd_list i str_ac = match cmd_list with
-	| [] -> str_ac
-	| cmd :: rest -> 
-		let str_cmd = sexpr_of_cmd cmd tabs i line_numbers in 
-		sexpr_of_cmd_list_iter rest (i + 1) (str_ac ^ str_cmd ^ "\n") in 
-	sexpr_of_cmd_list_iter cmd_list 0 ""
+let serialize_cmd_arr cmds tabs line_numbers serialize_cmd =
+	let number_of_cmds = Array.length cmds in 
+	let rec serialize_cmd_arr_iter i str_ac = 
+		if (i >= number_of_cmds) 
+			then str_ac
+			else 
+				((let cmd = cmds.(i) in 
+				let str_cmd = serialize_cmd cmd tabs i line_numbers in 
+				serialize_cmd_arr_iter (i + 1) (str_ac ^ str_cmd ^ "\n"))) in 
+	serialize_cmd_arr_iter 0 ""
 
-let string_of_cmd_list cmd_list tabs line_numbers =
-	let rec string_of_cmd_list_iter cmd_list i str_ac = match cmd_list with
-	| [] -> str_ac
-	| cmd :: rest -> 
-		let str_cmd = string_of_cmd cmd tabs i line_numbers false in 
-		string_of_cmd_list_iter rest (i + 1) (str_ac ^ str_cmd ^ "\n") in 
-	string_of_cmd_list_iter cmd_list 0 ""
+let sexpr_of_cmd_arr cmds tabs line_numbers =
+	serialize_cmd_arr cmds tabs line_numbers sexpr_of_cmd
+
+let string_of_cmd_arr cmds tabs line_numbers =
+	let string_of_cmd_aux cmd tabs i line_numbers = 
+		string_of_cmd cmd tabs i line_numbers false in 
+	serialize_cmd_arr cmds tabs line_numbers string_of_cmd_aux
 
 (*
   (procedure xpto (arg1 arg2 ...) 
@@ -278,7 +281,7 @@ let sexpr_of_procedure proc line_numbers =
 	Printf.sprintf "(procedure \"%s\" \n\t(args%s) \n\t(body \n %s \n\t) \n\t(ret-ctx '%s %s) \n\t(err-ctx '%s %s) \n )" 
   	proc.proc_name 
    	(sexpr_of_params proc.proc_params) 
-		(sexpr_of_cmd_list proc.proc_body 2 line_numbers)
+		(sexpr_of_cmd_arr proc.proc_body 2 line_numbers)
 		proc.ret_var
 		(string_of_int proc.ret_label)
 		proc.error_var
@@ -297,7 +300,7 @@ let string_of_procedure proc line_numbers =
 	Printf.sprintf "proc %s (%s) { \n\t %s \n } with { \n\t ret: %s, %s; \n\t err: %s, %s \n }" 
   	proc.proc_name 
    	(string_of_params proc.proc_params) 
-		(string_of_cmd_list proc.proc_body 2 line_numbers)
+		(string_of_cmd_arr proc.proc_body 2 line_numbers)
 		proc.ret_var
 		(string_of_int proc.ret_label)
 		proc.error_var

@@ -9,8 +9,8 @@ open SSyntax
 	end)
 
 let get_succ_pred cmds = 
-	let number_of_cmds = List.length cmds in 
-	
+
+	let number_of_cmds = Array.length cmds in 
 	let succ_table = Array.make number_of_cmds [] in 
 	let pred_table = Array.make number_of_cmds [] in 
 	
@@ -26,38 +26,29 @@ let get_succ_pred cmds =
 			then succ_table.(j) <- i :: succ_table.(j)
 			else ()) in
 	
-	let rec get_succ_pred_iter cmds pc = 
-		(match cmds with 
-		| [] -> () 
-		| cmd :: rest_cmds -> 
-			(match cmd with
-		 
-			| SBasic _ -> 
-				update_succ_table (pc + 1) pc; 
-				update_pred_table pc (pc + 1); 
-				get_succ_pred_iter rest_cmds (pc + 1)
-				
-			| SGoto i ->
-				update_succ_table i pc; 
-				update_pred_table pc i; 
-				get_succ_pred_iter rest_cmds (pc + 1)
+	for u=0 to number_of_cmds-1 do 
+		match cmds.(u) with	
+		| SBasic _ -> 
+			update_succ_table (u + 1) u; 
+			update_pred_table u (u + 1)
 		
-			| SGuardedGoto (e, i, j) -> 
-				update_succ_table i pc;
-				update_pred_table pc i; 
-				update_succ_table j pc; 
-				update_pred_table pc j; 
-				get_succ_pred_iter rest_cmds (pc + 1) 
-			
-			| SCall (var, e, es, i) ->
-				update_succ_table pc i;
-				update_pred_table pc i;
-				update_succ_table (pc+1) pc; 
-				update_pred_table pc (pc+1); 
-				get_succ_pred_iter rest_cmds (pc + 1))) in 
+		| SGoto i ->
+			update_succ_table i u; 
+			update_pred_table u i; 
+		
+		| SGuardedGoto (e, i, j) -> 
+			update_succ_table i u;
+			update_pred_table u i; 
+			update_succ_table j u; 
+			update_pred_table u j; 
+		
+		| SCall (var, e, es, i) ->
+			update_succ_table u i;
+			update_pred_table u i;
+			update_succ_table (u+1) u; 
+			update_pred_table u (u+1); 
+	done; 
 	
-	
-	get_succ_pred_iter cmds 0; 
 	for k = 0 to (number_of_cmds - 1) do
 		succ_table.(k) <- List.rev succ_table.(k);
 		pred_table.(k) <- List.rev pred_table.(k)

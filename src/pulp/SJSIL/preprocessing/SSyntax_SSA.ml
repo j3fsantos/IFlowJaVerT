@@ -379,11 +379,11 @@ let insert_phi_args args vars cmds succ pred idom_table idom_graph phi_functions
  	
 	
 let create_phi_assignment var v_args old_var = 
-	let new_v_args = Array.fold_left 
-		(fun acc v -> ((rename_var old_var v) :: acc))
-		[]
-		v_args in
-	let new_v_args = List.rev new_v_args in 
+	let len = Array.length v_args in 
+	let new_v_args = Array.make len "" in 
+	for i=0 to len-1 do 
+		new_v_args.(i) <- (rename_var old_var v_args.(i))
+	done; 
 	SBasic (SPhiAssignment (var, new_v_args))
 
 let adjust_goto cmd displacements = 
@@ -422,10 +422,11 @@ let insert_phi_nodes proc phi_functions_per_node nodes var_counters =
 				let new_processed_cmds : jsil_cmd list = processed_cmd :: new_processed_cmds  in 
 				loop (u + 1) new_processed_cmds) in 
 	
-	let new_cmds = loop 0 [] in 
+	let new_cmds = loop 0 [] in
+	let new_cmds = SSyntax_Utils.get_proc_nodes new_cmds in  
 	let new_params = List.map
 		(fun param -> rename_var param 0)
-		proc.proc_params in  
+		proc.proc_params in 
 	
 	let ret_label = proc.ret_label in 
 	let new_ret_label = proc.ret_label + jump_displacements.(ret_label) in 

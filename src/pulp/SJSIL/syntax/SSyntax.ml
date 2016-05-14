@@ -43,6 +43,7 @@ type unary_op =
 type jsil_type =
   | NullType
   | UndefinedType
+	| EmptyType
   | BooleanType
   | StringType
   | NumberType
@@ -50,6 +51,7 @@ type jsil_type =
 	| ReferenceType
 	| ObjectReferenceType
 	| VariableReferenceType
+	| TypeType
 
 (* jsil literals *)
 type jsil_lit =
@@ -61,6 +63,8 @@ type jsil_lit =
 	| String of string
   | Loc of string
   | Type of jsil_type
+	| LVRef of string * string 
+	| LORef of string * string 
 
 (* jsil expressions *)
 type jsil_var = string
@@ -80,7 +84,7 @@ type jsil_expr =
 type basic_jsil_cmd =
   | SSkip	      
   | SAssignment    of jsil_var   * jsil_expr
-	| SPhiAssignment of jsil_var   * (jsil_var list)
+	| SPhiAssignment of jsil_var   * (jsil_var array)
 	| SNew           of jsil_var
 	| SLookup        of jsil_var   * jsil_expr * jsil_expr
   | SMutation      of jsil_expr  * jsil_expr * jsil_expr
@@ -99,7 +103,7 @@ type jsil_cmd =
 (* SJSIL procedures *)
 type procedure = { 
     proc_name : string;
-    proc_body : jsil_cmd list;
+    proc_body : jsil_cmd array;
     proc_params : jsil_var list; 
 		ret_label: int; 
 		ret_var: jsil_var;

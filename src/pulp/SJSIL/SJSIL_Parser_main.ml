@@ -2,6 +2,7 @@ open Lexing
 (* open Core.Std *)
 open SSyntax
 open SSyntax_Utils_Graphs
+open SJSIL_Interpreter
 
 let file = ref ""
 let show_init_graph = ref false
@@ -62,13 +63,12 @@ let cond_print_graph test graph nodes string_of_node graph_name proc_folder =
 let pre_process_proc output_folder_name proc = 
 	
 	(* computing everything *)
-	let proc = SSyntax_Utils.derelativize_gotos_proc proc in
+	SSyntax_Utils.derelativize_gotos_proc proc;
 	let nodes, vars, succ_table, pred_table, tree_table, parent_table, dfs_num_table_f, dfs_num_table_r = 
 		SSyntax_Utils.get_proc_info proc in 
 	let rev_dom_table, dominance_frontiers, phi_functions_per_node, new_proc = 
 		SSyntax_SSA.ssa_compile proc vars nodes succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r in 
-	let final_succ_table, final_pred_table = SSyntax_Utils_Graphs.get_succ_pred new_proc.proc_body in 
-	let new_nodes = SSyntax_Utils.get_proc_nodes new_proc.proc_body in   
+	let final_succ_table, final_pred_table = SSyntax_Utils_Graphs.get_succ_pred new_proc.proc_body in    
 	
 	(* Printing everything *) 
 	let proc_folder = (output_folder_name ^ "/" ^ proc.proc_name) in 
@@ -82,7 +82,7 @@ let pre_process_proc output_folder_name proc =
 	cond_print_graph (!show_init_graph) succ_table nodes string_of_cmd "succ" proc_folder;	
 	cond_print_graph (!show_dfs) tree_table nodes string_of_cmd "dfs" proc_folder;	
 	cond_print_graph (!show_dom) rev_dom_table nodes string_of_cmd "dom" proc_folder;
-	cond_print_graph (!show_ssa) final_succ_table new_nodes string_of_cmd_ssa "ssa" proc_folder;
+	cond_print_graph (!show_ssa) final_succ_table new_proc.proc_body string_of_cmd_ssa "ssa" proc_folder;
 	
 	(if (!show_dom_frontiers) 
 		then 

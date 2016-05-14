@@ -95,9 +95,10 @@ proc_target:
 	{
 		Printf.printf "Parsing Procedure.\n";
 		let ret_var, ret_index, err_var, err_index = ctx in 
+		let cmd_arr = SSyntax_Utils.get_proc_nodes cmd_list in 
 		{ 
     	SSyntax.proc_name = proc_name;
-    	SSyntax.proc_body = cmd_list;
+    	SSyntax.proc_body = cmd_arr;
     	SSyntax.proc_params = param_list; 
 			SSyntax.ret_label = ret_index;
 			SSyntax.ret_var = ret_var;
