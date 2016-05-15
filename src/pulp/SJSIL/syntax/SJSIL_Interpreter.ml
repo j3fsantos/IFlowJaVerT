@@ -348,4 +348,5 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 		| _, _ -> raise (Failure "Illegal Proto Obj Inspection"))
 
 let rec evaluate_cmd (bcmd : basic_jsil_cmd) heap store which_pred = 0
+	
 
