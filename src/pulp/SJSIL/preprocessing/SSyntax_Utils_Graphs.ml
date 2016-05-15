@@ -8,7 +8,12 @@ open SSyntax
 		type t = int
 	end)
 
-let get_succ_pred cmds ret_label err_label = 
+let get_succ_pred cmds ret_label opt_error_label = 
+
+	let err_label = 
+		(match opt_error_label with
+		| None -> -1021
+		| Some l -> l) in
 
 	let number_of_cmds = Array.length cmds in 
 	let succ_table = Array.make number_of_cmds [] in 
@@ -163,10 +168,17 @@ let remove_unreachable_code proc throw =
 	if (not visited.(lret))
 		then (raise (Failure "Return label unreachable."));
 	
-	if (not visited.(lerr))
-		then (Printf.printf "\t WARNING: Error label unreachable!\n");
+	(match lerr with
+	| None -> (Printf.printf "\t WARNING: Error label does not exist!\n") 
+	| Some lerr -> if (not visited.(lerr))
+									then (Printf.printf "\t WARNING: Error label is unreachable and will be removed!\n"));
 	
 	Printf.printf "\t Adjusting line numbers. \n";
+	
+	let lerr = 
+		(match lerr with
+		  | None -> None 
+			| Some lerr -> if (not visited.(lerr)) then None else (Some lerr)) in
 	
 	(* Adjust line numbers *)						
 	for u = 0 to (length - 1) do 
@@ -201,8 +213,12 @@ let remove_unreachable_code proc throw =
    	SSyntax.proc_params = proc.proc_params; 
 		SSyntax.ret_label   = lnum_shift.(proc.ret_label);
 		SSyntax.ret_var     = proc.ret_var;
-		SSyntax.error_label = lnum_shift.(proc.error_label);
-		SSyntax.error_var   = proc.error_var
+		SSyntax.error_label = (match lerr with
+		                        | None -> None 
+														| Some lerr -> Some lnum_shift.(lerr));
+		SSyntax.error_var   = (match lerr with
+		                        | None -> None 
+														| Some lerr -> proc.error_var);
 	}
 
 

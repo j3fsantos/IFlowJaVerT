@@ -66,7 +66,7 @@ let pre_process_proc output_folder_name proc =
 	Printf.printf "Derelativising gotos.\n";
 	SSyntax_Utils.derelativize_gotos_proc proc;
 	
-	(* Printing preparation *) 
+	(* Initial graph printing 
 	let nodes, vars, succ_table, pred_table, tree_table, parent_table, dfs_num_table_f, dfs_num_table_r = 
 		SSyntax_Utils.get_proc_info proc in 
 	let succ_table, pred_table = get_succ_pred proc.proc_body proc.ret_label proc.error_label in
@@ -75,11 +75,14 @@ let pre_process_proc output_folder_name proc =
 	let string_of_cmd cmd i =
 		let str_i = string_of_int i in
 		let str_dfs_i = string_of_int dfs_num_table_f.(i) in
-		str_i ^ "/" ^ str_dfs_i ^ ": " ^ (if (i = proc.ret_label) then ("RET: ") else (if (i = proc.error_label) then ("ERR: ") else (""))) ^ SSyntax_Print.string_of_cmd cmd 0 0 false true in
+		str_i ^ "/" ^ str_dfs_i ^ ": " ^ (if (i = proc.ret_label) then ("RET: ") else 
+			(match proc.error_label with
+			| None -> ""
+			| Some lab -> if (i = lab) then ("ERR: ") else (""))) ^ SSyntax_Print.string_of_cmd cmd 0 0 false true in
 	let string_of_cmd_ssa cmd i =  
 		SSyntax_Print.string_of_cmd cmd 0 0 false true in true;
 	
-	cond_print_graph (!show_init_graph) succ_table proc.proc_body string_of_cmd "succ_init" proc_folder;
+	cond_print_graph (!show_init_graph) succ_table proc.proc_body string_of_cmd "succ_init" proc_folder; *)
 	
 	(* Removing dead code and recalculating everything *)
 	let proc = remove_unreachable_code proc false in
@@ -95,16 +98,18 @@ let pre_process_proc output_folder_name proc =
 	let string_of_cmd cmd i =
 		let str_i = string_of_int i in
 		let str_dfs_i = string_of_int dfs_num_table_f.(i) in
-		str_i ^ "/" ^ str_dfs_i ^ ": " ^ (if (i = proc.ret_label) then ("RET: ") else (if (i = proc.error_label) then ("ERR: ") else (""))) ^ SSyntax_Print.string_of_cmd cmd 0 0 false true in
+		str_i ^ "/" ^ str_dfs_i ^ ": " ^ (if (i = proc.ret_label) then ("RET: ") else 
+			(match proc.error_label with
+			| None -> ""
+			| Some lab -> if (i = lab) then ("ERR: ") else (""))) ^ SSyntax_Print.string_of_cmd cmd 0 0 false true in
 	let string_of_cmd_ssa cmd i =  
-		SSyntax_Print.string_of_cmd cmd 0 0 false true in 
+  		SSyntax_Print.string_of_cmd cmd 0 0 false true in 
 
-	(* let rev_dom_table, dominance_frontiers, phi_functions_per_node, new_proc = 
+	let rev_dom_table, dominance_frontiers, phi_functions_per_node, new_proc = 
 		SSyntax_SSA.ssa_compile proc vars nodes succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r in 
-	let final_succ_table, final_pred_table = SSyntax_Utils_Graphs.get_succ_pred new_proc.proc_body new_proc.ret_label new_proc.error_label in    
-	*)
+	let final_succ_table, final_pred_table = SSyntax_Utils_Graphs.get_succ_pred new_proc.proc_body new_proc.ret_label new_proc.error_label in   
+	 
 	cond_print_graph (!show_init_graph) succ_table nodes string_of_cmd "succ" proc_folder;	
-	(*
 	cond_print_graph (!show_dfs) tree_table nodes string_of_cmd "dfs" proc_folder;	
 	cond_print_graph (!show_dom) rev_dom_table nodes string_of_cmd "dom" proc_folder;
 	cond_print_graph (!show_ssa) final_succ_table new_proc.proc_body string_of_cmd_ssa "ssa" proc_folder;
@@ -120,7 +125,6 @@ let pre_process_proc output_folder_name proc =
 			let phi_functions_per_node_str : string = SSyntax_SSA.print_phi_functions_per_node phi_functions_per_node in 
 			burn_to_disk (proc_folder ^ "/phi_placement.txt") phi_functions_per_node_str
 		else ()); 
-	new_proc *)
 	proc
 		
 let rec parse_and_print lexbuf =

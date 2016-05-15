@@ -107,8 +107,8 @@ type procedure = {
     proc_params : jsil_var list; 
 		ret_label: int; 
 		ret_var: jsil_var;
-		error_label: int; 
-		error_var: jsil_var
+		error_label: (int option); 
+		error_var: (jsil_var option);
 }
 
 (* SJSIL Program *)
