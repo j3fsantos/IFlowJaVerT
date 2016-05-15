@@ -501,7 +501,7 @@ let jsil_to_sjsil_proc jsil_proc =
 	let new_ex_label = new_ex_label + cmd_shifts.(new_ex_label)  in 
 	
 		{ 
-    	SSyntax.proc_name = jsil_proc.func_name;
+    	SSyntax.pproc_name = jsil_proc.func_name;
     	SSyntax.proc_body = sjsil_body;
     	SSyntax.proc_params = new_params; 
 			SSyntax.ret_label = new_ret_label;

@@ -13,6 +13,8 @@ with
 	err: xret, 6;
 };
 
+
+
 proc getProperty (l, prop)
 {
 	x := protoField(l, prop);
@@ -29,6 +31,8 @@ with
 	err: xret, 6;
 };
 
+
+
 proc get (l, prop)
 {
 	x := "getProperty" (l, prop) with 3;
@@ -42,26 +46,38 @@ with
 	err: xret, 3;
 };
 
-proc can_put (l, prop)
+
+
+proc canPut (l, prop)
 {
-	x := "getOwnProperty" (l, prop) with 10;
+	x := "getOwnProperty" (l, prop) with 6;
 	goto [not (x = $$undefined)] 1 3;
-		(* Own property exists *);
 		xret := true;
-		goto 9;
-		(* Own property doesn't exist *);
-		x := "getProperty" (l, prop) with 10;
-		goto [not (x = $$undefined)] 1 3;
-			(* Property exists *);
-			xret := [l, "#extensible"];
-			goto 9;
-			(* Property doesn't exist *);
-			xret := [l, "#extensible"];
+		goto 5;
+		xret := [l, "#extensible"];
 	skip;
-	skip
+	skip;
 }
 with
 {
-	ret: xret, 9;
-	err: xret, 10;
+	ret: xret, 5;
+	err: xret, 6;
+}
+
+
+
+proc put (l, prop, v, t)
+ {
+	xret := $$empty;
+	x := "canPut" (l, prop) with 6;
+	goto [x = false] 1 2;
+		goto [t = true] 5 6;
+		[l, prop] := v;
+	skip;
+	skip;
+} 
+with 
+{
+	ret: xret, 5;
+	err: xret, 6;
 }
