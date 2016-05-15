@@ -408,10 +408,10 @@ let insert_phi_nodes proc phi_functions_per_node nodes var_counters =
 	
 	let ac_jump_displacement = ref 0 in 
 	for u=0 to (number_of_nodes-1) do  
+		jump_displacements.(u) <- (!ac_jump_displacement);
+		Printf.printf ("Displacement of node %s: %s\n") (string_of_int u) (string_of_int (!ac_jump_displacement));
 		let u_displacement = create_phi_assignments u phi_functions_per_node.(u) 0 in 
 		ac_jump_displacement := u_displacement + (!ac_jump_displacement);
-		jump_displacements.(u) <- (!ac_jump_displacement);
-				Printf.printf ("Displacement of node %s: %s\n") (string_of_int u) (string_of_int (!ac_jump_displacement));
 	done;
 	
 	let rec loop u processed_cmds = 
@@ -430,7 +430,7 @@ let insert_phi_nodes proc phi_functions_per_node nodes var_counters =
 		proc.proc_params in 
 	
 	let ret_label = proc.ret_label in 
-	let new_ret_label = proc.ret_label + jump_displacements.(ret_label) in 
+	let new_ret_label = proc.ret_label + jump_displacements.(ret_label) + (if (List.length (phi_assignments_per_node.(ret_label)) > 0) then 1 else 0) in 
 	let ret_var = proc.ret_var in 
 	let ret_var_index = 
 		(match SSyntax_Aux.try_find var_counters ret_var with 
@@ -442,7 +442,7 @@ let insert_phi_nodes proc phi_functions_per_node nodes var_counters =
 	let new_error_label, new_error_var = 
 		(match error_label, error_var with
 		 | None, None -> None, None
-		 | Some lab, Some var -> Some (lab + jump_displacements.(lab)), Some var
+		 | Some lab, Some var -> Some (lab + jump_displacements.(lab) + (if (List.length (phi_assignments_per_node.(lab)) > 0) then 1 else 0)), Some var
 		 | _, _ -> raise (Failure "Error variable and error label not both present or both absent!")) in
 	let new_error_var = 
 		(match new_error_var with
