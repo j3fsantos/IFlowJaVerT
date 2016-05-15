@@ -408,9 +408,10 @@ let insert_phi_nodes proc phi_functions_per_node nodes var_counters =
 	
 	let ac_jump_displacement = ref 0 in 
 	for u=0 to (number_of_nodes-1) do  
-		jump_displacements.(u) <- (!ac_jump_displacement);
 		let u_displacement = create_phi_assignments u phi_functions_per_node.(u) 0 in 
-		ac_jump_displacement := u_displacement + (!ac_jump_displacement)
+		ac_jump_displacement := u_displacement + (!ac_jump_displacement);
+		jump_displacements.(u) <- (!ac_jump_displacement);
+				Printf.printf ("Displacement of node %s: %s\n") (string_of_int u) (string_of_int (!ac_jump_displacement));
 	done;
 	
 	let rec loop u processed_cmds = 
@@ -453,11 +454,6 @@ let insert_phi_nodes proc phi_functions_per_node nodes var_counters =
 							| Some i -> i - 1) in 
 					let new_error_var = rename_var var error_var_index in
 						Some new_error_var) in
-						
-					
-		
-	Printf.printf ("%s %s\n") (match error_label with | None -> "None" | Some v -> (string_of_int v)) 
-	                          (match error_var   with | None -> "None" | Some v -> v);
 	{ 
 		proc_name = proc.proc_name; 
 		proc_body = new_cmds; 

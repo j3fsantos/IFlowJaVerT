@@ -108,12 +108,21 @@ let pre_process_proc output_folder_name proc =
 	let rev_dom_table, dominance_frontiers, phi_functions_per_node, new_proc = 
 		SSyntax_SSA.ssa_compile proc vars nodes succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r in 
 	let final_succ_table, final_pred_table = SSyntax_Utils_Graphs.get_succ_pred new_proc.proc_body new_proc.ret_label new_proc.error_label in   
-	 
+		
 	cond_print_graph (!show_init_graph) succ_table nodes string_of_cmd "succ" proc_folder;	
 	cond_print_graph (!show_dfs) tree_table nodes string_of_cmd "dfs" proc_folder;	
 	cond_print_graph (!show_dom) rev_dom_table nodes string_of_cmd "dom" proc_folder;
 	cond_print_graph (!show_ssa) final_succ_table new_proc.proc_body string_of_cmd_ssa "ssa" proc_folder;
 	
+	let new_cmds = new_proc.proc_body in
+	let length = Array.length new_cmds in
+	for i = 0 to (length - 1) do
+		Printf.printf "%d : %s\n" i (SSyntax_Print.string_of_cmd (new_cmds.(i)) 0 0 false true);
+	done;
+	Printf.printf ("ret : %s, %s\n") (string_of_int new_proc.ret_label) (new_proc.ret_var);
+	Printf.printf ("err : %s, %s\n") (match new_proc.error_label with | None -> "None" | Some v -> (string_of_int v)) 
+	                          (match new_proc.error_var   with | None -> "None" | Some v -> v);
+			
 	(if (!show_dom_frontiers) 
 		then 
 			let str_domfrontiers = Graph_Print.print_node_table dominance_frontiers Graph_Print.print_int_list in
