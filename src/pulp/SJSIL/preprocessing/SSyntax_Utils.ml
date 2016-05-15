@@ -49,7 +49,7 @@ let derelativize_gotos prog =
 
 let get_proc_nodes cmd_list = 	
 	let number_of_cmds = List.length cmd_list in 
-	let cmd_arr = Array.make number_of_cmds (SSyntax.SBasic SSyntax.SSkip) in 
+	let cmd_arr = Array.make number_of_cmds (SBasic SSkip) in 
 	
 	let rec get_nodes_iter cmd_lst cur_node = 
 		match cmd_lst with 

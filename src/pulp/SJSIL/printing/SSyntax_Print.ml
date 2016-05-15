@@ -66,6 +66,8 @@ let string_of_type t =
   | ReferenceType -> "$$reference_type"
 	| ObjectReferenceType -> "$$o_reference_type"
 	| VariableReferenceType -> "$$v_reference_type"	
+	| EmptyType -> "$$empty_type"
+	| TypeType -> "$$type_type"
 		
 let string_of_literal lit escape_string =
   match lit with
@@ -80,6 +82,8 @@ let string_of_literal lit escape_string =
 					else Printf.sprintf "\"%s\"" x
     | Bool b -> string_of_bool b
     | Type t -> string_of_type t 
+		| LVRef (l, x) -> Printf.sprintf "vref(%s, %s)" l x  
+	  | LORef (l, x) -> Printf.sprintf "oref(%s, %s)" l x   
 
 let rec sexpr_of_expression e =
   let se = sexpr_of_expression in
@@ -278,14 +282,16 @@ let string_of_cmd_arr cmds tabs line_numbers =
 		('error err_var err_label))
 *)
 let sexpr_of_procedure proc line_numbers =			
-	Printf.sprintf "(procedure \"%s\" \n\t(args%s) \n\t(body \n %s \n\t) \n\t(ret-ctx '%s %s) \n\t(err-ctx '%s %s) \n )" 
+	Printf.sprintf "(procedure \"%s\" \n\t(args%s) \n\t(body \n %s \n\t) \n\t(ret-ctx '%s %s) \n %s )" 
   	proc.proc_name 
    	(sexpr_of_params proc.proc_params) 
 		(sexpr_of_cmd_arr proc.proc_body 2 line_numbers)
 		proc.ret_var
 		(string_of_int proc.ret_label)
-		proc.error_var
-		(string_of_int proc.error_label)
+		(match proc.error_var, proc.error_label with
+		| None, None -> "" 
+		| Some var, Some label -> (Printf.sprintf "\t(err-ctx '%s %s) \n" var (string_of_int label))
+		| _, _ -> raise (Failure "Error variable and error label not both present or both absent!"))
 
 
 (*
@@ -297,14 +303,16 @@ let sexpr_of_procedure proc line_numbers =
 	}
 *)
 let string_of_procedure proc line_numbers =			
-	Printf.sprintf "proc %s (%s) { \n\t %s \n } with { \n\t ret: %s, %s; \n\t err: %s, %s \n }" 
+	Printf.sprintf "proc %s (%s) { \n\t %s \n } with { \n\t ret: %s, %s; \n %s }" 
   	proc.proc_name 
    	(string_of_params proc.proc_params) 
 		(string_of_cmd_arr proc.proc_body 2 line_numbers)
 		proc.ret_var
 		(string_of_int proc.ret_label)
-		proc.error_var
-		(string_of_int proc.error_label)
+		(match proc.error_var, proc.error_label with
+		| None, None -> "" 
+		| Some var, Some label -> (Printf.sprintf "\t err: %s, %s \n" var (string_of_int label))
+		| _, _ -> raise (Failure "Error variable and error label not both present or both absent!"))
 
 let sexpr_of_program program line_numbers = 
 	SSyntax.SProgram.fold 

@@ -92,16 +92,21 @@ proc_list_target:
 	proc_list = separated_list(SCOLON, proc_target) { proc_list };
 
 proc_target: 
-(* proc xpto (x, y) { cmd_list } with { ret: x, i; err: x, j }; *) 
+(* proc xpto (x, y) { cmd_list[;] } with { ret: x, i; [err: x, j] }; *) 
 	PROC; proc_name=VAR; LBRACE; param_list=param_list_target; RBRACE; 
 		CLBRACKET; cmd_list=cmd_list_target; option(SCOLON); CRBRACKET; 
 	WITH; 
-		CLBRACKET; ctx=ctx_target; option(SCOLON); CRBRACKET
+		CLBRACKET; ctx_ret=ctx_target_ret; ctx_err=option(ctx_target_err); CRBRACKET
 	{
 		Printf.printf "Parsing Procedure.\n";
-		let ret_var, ret_index, err_var, err_index = ctx in 
+		let ret_var, ret_index = ctx_ret in 
+		let err_var, err_index = 
+			(match ctx_err with 
+			| None -> None, None
+			| Some (ev, ei) -> Some ev, Some ei)						
+			in
 		let cmd_arr = SSyntax_Utils.get_proc_nodes cmd_list in 
-		{ 
+		{
     	SSyntax.proc_name = proc_name;
     	SSyntax.proc_body = cmd_arr;
     	SSyntax.proc_params = param_list; 
@@ -112,12 +117,20 @@ proc_target:
 		}
 	};
 
-ctx_target: 
-(* ret: x, i; err: x, j *)
-	RET; COLON; ret_v=VAR; COMMA; i=INT; SCOLON; ERR; COLON; err_v=VAR; COMMA; j=INT
+ctx_target_ret: 
+(* ret: x, i; *)
+	RET; COLON; ret_v=VAR; COMMA; i=INT; SCOLON;
 	{ 
-		Printf.printf "Parsing proc context.\n";	
-		ret_v, i, err_v, j 
+		Printf.printf "Parsing return context.\n";	
+		ret_v, i
+	}
+	
+ctx_target_err: 
+(* err: x, j *)
+	ERR; COLON; err_v=VAR; COMMA; j=INT; SCOLON;
+	{ 
+		Printf.printf "Parsing error context.\n";	
+		err_v, j
 	}
 
 param_list_target: 

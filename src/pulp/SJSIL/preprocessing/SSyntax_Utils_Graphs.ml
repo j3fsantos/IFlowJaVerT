@@ -8,7 +8,12 @@ open SSyntax
 		type t = int
 	end)
 
-let get_succ_pred cmds ret_label err_label = 
+let get_succ_pred cmds ret_label opt_error_label = 
+
+	let err_label = 
+		(match opt_error_label with
+		| None -> -1021
+		| Some l -> l) in
 
 	let number_of_cmds = Array.length cmds in 
 	let succ_table = Array.make number_of_cmds [] in 
@@ -101,9 +106,121 @@ let dfs (succ_table : ((int list) array)) =
 				else ())
 			i_successors; 
 		post_visit i in 	 
-		
+	
 	search 0; 
 	tree_table, parents_table, pre_table, post_table, dfs_num_table_f, dfs_num_table_r 
+
+(* 
+	1. Do a simple dfs 
+	2. Check which nodes haven't been visited
+	3. Remove these nodes
+	4. Recompute labels and successors
+*)
+
+let very_simple_dfs (succ_table : ((int list) array)) = 
+	
+	let number_of_nodes : int = Array.length succ_table in 
+	let visited_table : bool array = Array.make number_of_nodes false in
+								
+	let rec search i = 
+		visited_table.(i) <- true;
+		let i_successors = succ_table.(i) in 
+		List.iter 
+			(fun j -> 
+				if (not (visited_table.(j)))
+				then 
+					search j
+				else ())
+			i_successors; in 	 
+	
+	search 0; 
+	
+	Printf.printf "\t Visited nodes: ";
+	for i = 0 to (number_of_nodes -1) do
+		Printf.printf "%b " (visited_table.(i));
+	done;
+	Printf.printf "\n";
+	
+	visited_table
+
+
+
+(* Removing unreachable code *)
+let remove_unreachable_code proc throw = 
+	Printf.printf "Removing unreachable code.\n";
+	
+	let cmds = proc.proc_body in
+		let lret = proc.ret_label in
+			let lerr = proc.error_label in
+				let succ_table, pred_table = get_succ_pred cmds lret lerr in  
+					let visited = very_simple_dfs succ_table in 
+						let length : int = Array.length visited in 
+							let lnum_shift = Array.make length 0 in
+								let shift = ref 0 in
+									for i = 0 to (length - 1) do
+										if (not visited.(i))
+											then (if (not throw) then (shift := !shift + 1) else (raise (Failure "Unreachable code detected.")))
+											else ();		
+										lnum_shift.(i) <- i - !shift;				 
+										Printf.printf "\t i = %d; lsh = %d; shift = %d : %s\n" i lnum_shift.(i) !shift (SSyntax_Print.string_of_cmd cmds.(i) 0 0 false true);
+									done;
+	
+	if (not visited.(lret))
+		then (raise (Failure "Return label unreachable."));
+	
+	(match lerr with
+	| None -> (Printf.printf "\t WARNING: Error label does not exist!\n") 
+	| Some lerr -> if (not visited.(lerr))
+									then (Printf.printf "\t WARNING: Error label is unreachable and will be removed!\n"));
+	
+	Printf.printf "\t Adjusting line numbers. \n";
+	
+	let lerr = 
+		(match lerr with
+		  | None -> None 
+			| Some lerr -> if (not visited.(lerr)) then None else (Some lerr)) in
+	
+	(* Adjust line numbers *)						
+	for u = 0 to (length - 1) do 
+		match cmds.(u) with 
+		| SGoto i -> 
+				cmds.(u) <- SGoto (lnum_shift.(i))
+		| SGuardedGoto (e, i, j) ->
+				cmds.(u) <- SGuardedGoto (e, (lnum_shift.(i)), (lnum_shift.(j)))
+		| SCall (v, e, le, i) ->
+				cmds.(u) <- SCall (v, e, le, (lnum_shift.(i)))
+		| _ -> ()
+	done;
+
+	Printf.printf "\t Removing unvisited commands. \n";
+
+	(* Remove unvisited commands *)
+	let new_length = length - !shift in
+		let new_cmds = Array.make new_length (SBasic SSkip) in
+			let shift = ref 0 in
+				for i = 0 to (length - 1) do
+					if (visited.(i))
+							then (new_cmds.(i - !shift) <- cmds.(i))
+							else (shift := !shift + 1)	
+				done;
+	
+	Printf.printf "\t Returning adjusted procedure. \n";
+	
+	(* Return adjusted procedure *)
+	{ 
+    SSyntax.proc_name   = proc.proc_name;
+    SSyntax.proc_body   = new_cmds;
+   	SSyntax.proc_params = proc.proc_params; 
+		SSyntax.ret_label   = lnum_shift.(proc.ret_label);
+		SSyntax.ret_var     = proc.ret_var;
+		SSyntax.error_label = (match lerr with
+		                        | None -> None 
+														| Some lerr -> Some lnum_shift.(lerr));
+		SSyntax.error_var   = (match lerr with
+		                        | None -> None 
+														| Some lerr -> proc.error_var);
+	}
+
 
 
 let compute_dominators pred succ = 

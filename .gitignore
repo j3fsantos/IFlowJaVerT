@@ -4,6 +4,11 @@
 .*.swo
 *~
 
+# Images
+*.png
+
+# examples
+example*
 
 # Eclipse
 TAGS

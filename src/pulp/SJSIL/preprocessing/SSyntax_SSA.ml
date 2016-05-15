@@ -86,7 +86,7 @@ let rec rewrite_expr_ssa (expr : jsil_expr) var_stacks rename_var  =
 		let var_stack = SSyntax_Aux.try_find var_stacks var in 
 		(match var_stack with 
 		| Some (i :: lst) -> Var (rename_var var i)
-		| _ -> raise (Failure "Variable not found in stack table during ssa transformation"))
+		| _ -> raise (Failure ("Variable " ^ (Printf.sprintf("%s") var) ^ " not found in stack table during ssa transformation")))
  	| BinOp (e1, binop, e2) ->
 		let new_e1 = rewrite_expr_ssa e1 var_stacks rename_var in 
 		let new_e2 = rewrite_expr_ssa e2 var_stacks rename_var in 
@@ -433,19 +433,31 @@ let insert_phi_nodes proc phi_functions_per_node nodes var_counters =
 	let ret_var = proc.ret_var in 
 	let ret_var_index = 
 		(match SSyntax_Aux.try_find var_counters ret_var with 
-		| None -> raise (Failure "ret var index not found in ssa")
+		| None -> raise (Failure "Return variable index not found in SSA")
 		| Some i -> i - 1) in  
 	let new_ret_var = rename_var ret_var ret_var_index in 
 	
-	let error_label = proc.error_label in 
-	let new_error_label = error_label + jump_displacements.(error_label) in 
-	let error_var = proc.error_var in 
-	let error_var_index = 
-		(match SSyntax_Aux.try_find var_counters error_var with 
-		| None -> raise (Failure "error var index not found in ssa")
-		| Some i -> i - 1) in 
-	let new_error_var = rename_var error_var error_var_index in
-	
+	let error_label, error_var = proc.error_label, proc.error_var in
+	let new_error_label, new_error_var = 
+		(match error_label, error_var with
+		 | None, None -> None, None
+		 | Some lab, Some var -> Some (lab + jump_displacements.(lab)), Some var
+		 | _, _ -> raise (Failure "Error variable and error label not both present or both absent!")) in
+	let new_error_var = 
+		(match new_error_var with
+		  | None -> None
+			| Some var -> 
+					let error_var_index = 
+						(match SSyntax_Aux.try_find var_counters var with 
+						  | None -> raise (Failure "Error variable index not found in ssa")
+							| Some i -> i - 1) in 
+					let new_error_var = rename_var var error_var_index in
+						Some new_error_var) in
+						
+					
+		
+	Printf.printf ("%s %s\n") (match error_label with | None -> "None" | Some v -> (string_of_int v)) 
+	                          (match error_var   with | None -> "None" | Some v -> v);
 	{ 
 		proc_name = proc.proc_name; 
 		proc_body = new_cmds; 
