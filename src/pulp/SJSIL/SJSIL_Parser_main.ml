@@ -75,7 +75,7 @@ let pre_process_proc output_folder_name proc =
 	let string_of_cmd cmd i =
 		let str_i = string_of_int i in
 		let str_dfs_i = string_of_int dfs_num_table_f.(i) in
-		str_i ^ "/" ^ str_dfs_i ^ ": " ^ SSyntax_Print.string_of_cmd cmd 0 0 false true in
+		str_i ^ "/" ^ str_dfs_i ^ ": " ^ (if (i = proc.ret_label) then ("RET: ") else (if (i = proc.error_label) then ("ERR: ") else (""))) ^ SSyntax_Print.string_of_cmd cmd 0 0 false true in
 	let string_of_cmd_ssa cmd i =  
 		SSyntax_Print.string_of_cmd cmd 0 0 false true in true;
 	
@@ -95,7 +95,7 @@ let pre_process_proc output_folder_name proc =
 	let string_of_cmd cmd i =
 		let str_i = string_of_int i in
 		let str_dfs_i = string_of_int dfs_num_table_f.(i) in
-		str_i ^ "/" ^ str_dfs_i ^ ": " ^ SSyntax_Print.string_of_cmd cmd 0 0 false true in
+		str_i ^ "/" ^ str_dfs_i ^ ": " ^ (if (i = proc.ret_label) then ("RET: ") else (if (i = proc.error_label) then ("ERR: ") else (""))) ^ SSyntax_Print.string_of_cmd cmd 0 0 false true in
 	let string_of_cmd_ssa cmd i =  
 		SSyntax_Print.string_of_cmd cmd 0 0 false true in 
 
