@@ -4,6 +4,10 @@
 open SSyntax
 open Batteries
 
+type return_mode = 
+	| Normal
+	| Error
+
 let proto_f = "@proto" 
 
 let fresh_int =
@@ -275,22 +279,25 @@ let rec proto_obj heap l1 l2 =
 
 let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred = 
 	match bcmd with 
-	| SSkip -> ()
+	| SSkip -> Empty
 	
 	| SAssignment (x, e) ->
 		let v_e = evaluate_expr e store in 
-		Hashtbl.add store x v_e 
+		Hashtbl.add store x v_e; 
+		v_e
 	
 	| SPhiAssignment (x, x_arr) -> 
 		let x_live = x_arr.(which_pred) in 
 		let v = (match SSyntax_Aux.try_find store x_live with 
 		| None -> raise (Failure "Variable not found in store")
 		| Some v -> v) in 
-		Hashtbl.add store x v 
+		Hashtbl.add store x v; 
+		v 
 	
 	| SNew x -> 
 		let new_loc = fresh_loc () in 
-		SHeap.add heap (new_loc, proto_f) Null
+		SHeap.add heap (new_loc, proto_f) Null; 
+		Loc new_loc
 		
 	| SLookup (x, e1, e2) -> 
 		let v_e1 = evaluate_expr e1 store in
@@ -299,7 +306,8 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 		| Loc l, String f -> 
 			let v = (try SHeap.find heap (l, f) with 
 				| _ -> raise (Failure "Looking up inexistent cell")) in
-			Hashtbl.replace store x v
+			Hashtbl.replace store x v; 
+			v
 		| _, _ -> raise (Failure "Illegal field inspection"))
 	
 	| SMutation (e1, e2, e3) ->
@@ -307,7 +315,9 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 		let v_e2 = evaluate_expr e2 store in 	
 		let v_e3 = evaluate_expr e3 store in
 		(match v_e1, v_e2 with 
-		| Loc l, String f -> SHeap.replace heap (l, f) v_e3
+		| Loc l, String f -> 
+			SHeap.replace heap (l, f) v_e3; 
+			v_e3
 		| _, _ ->  raise (Failure "Illegal field inspection"))
 	
 	| SDelete (e1, e2) -> 
@@ -316,7 +326,9 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 		(match v_e1, v_e2 with 
 		| Loc l, String f -> 
 			if (SHeap.mem heap (l, f)) 
-			then SHeap.remove heap (l, f)
+			then 
+				(SHeap.remove heap (l, f); 
+				Bool true)
 			else raise (Failure "Deleting inexisting field")
 		| _, _ -> raise (Failure "Illegal field deletion"))
 	
@@ -326,7 +338,8 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 		(match v_e1, v_e2 with 
 		| Loc l, String f -> 
 			let v = Bool (SHeap.mem heap (l, f)) in 
-			Hashtbl.replace store x v
+			Hashtbl.replace store x v; 
+			v
 		| _, _ -> raise (Failure "Illegal Field Check"))
 	
 	| SProtoField (x, e1, e2) -> 
@@ -335,7 +348,8 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 		(match v_e1, v_e2 with 
 		| Loc l, String f -> 
 			let v = proto_field heap l f in 
-			Hashtbl.replace store x v
+			Hashtbl.replace store x v; 
+			v
 		| _, _ -> raise (Failure "Illegal Proto Field Inspection"))
 	
 	| SProtoObj (x, e1, e2) -> 
@@ -344,9 +358,74 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 		(match v_e1, v_e2 with 
 		| Loc l, String f -> 
 			let v = proto_obj heap l f in 
-			Hashtbl.replace store x v
+			Hashtbl.replace store x v; 
+			v
 		| _, _ -> raise (Failure "Illegal Proto Obj Inspection"))
 
-let rec evaluate_cmd (bcmd : basic_jsil_cmd) heap store which_pred = 0
+let init_store params args = 
+	let number_of_params = List.length params in 
+	let new_store = Hashtbl.create (number_of_params + 1) in
 	
-
+	let rec loop params args = 
+		match params with 
+		| [] -> () 
+		| param :: rest_params -> 
+			(match args with 
+			| arg :: rest_args -> 
+				Hashtbl.add new_store param arg;
+				loop rest_params rest_args
+			| [] -> 
+				Hashtbl.add new_store param Undefined;
+				loop rest_params []) in 
+	loop params args; 
+	new_store 
+	
+let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd = 	
+	let proc = try SProgram.find prog cur_proc_name with
+		| _ -> raise (Failure "Trying to execute a procedure that does not exist") in  
+	let cmd = proc.proc_body.(cur_cmd) in 
+	let cur_which_pred = 
+		if (cur_cmd > 0) 
+			then (try Hashtbl.find which_pred (cur_proc_name, prev_cmd, cur_cmd) 
+				with _ ->  raise (Failure "which_pred undefined"))
+			else 0 in 
+	
+	match cmd with 
+	| SBasic bcmd -> 
+		let v = evaluate_bcmd bcmd heap store cur_which_pred in 
+		if (cur_cmd == proc.ret_label)
+			then Normal, v 
+			else if (cur_cmd == proc.error_label) 
+				then Error, v 
+				else evaluate_cmd prog cur_proc_name which_pred heap store (cur_cmd + 1) cur_cmd
+		 
+	| SGoto i -> 
+		evaluate_cmd prog cur_proc_name which_pred heap store i cur_cmd
+	
+	| SGuardedGoto (e, i, j) -> 
+		let v_e = evaluate_expr e store in
+		(match v_e with 
+		| Bool true -> evaluate_cmd prog cur_proc_name which_pred heap store i cur_cmd
+		| Bool false -> evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd
+		| _ -> raise (Failure "Non boolean goto guard"))
+	
+	| SCall (x, e, e_args, j) -> 
+		let call_proc_name_val = evaluate_expr e store in 
+		let call_proc_name = (match call_proc_name_val with 
+		| String call_proc_name -> call_proc_name 
+		| _ -> raise (Failure "Invalid function name")) in 
+		let arg_vals = List.map 
+			(fun e_arg -> evaluate_expr e_arg store) 
+			e_args in 
+		let new_store = init_store proc.proc_params arg_vals in 
+		match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 with 
+		| Normal, v -> 
+			Hashtbl.replace store x v; 
+			evaluate_cmd prog cur_proc_name which_pred heap store (cur_cmd + 1) cur_cmd
+		| Error, v -> 
+			Hashtbl.replace store x v;
+			evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd
+		 		
+let evaluate_prog prog which_pred heap = 
+	let store = init_store [] [] in 
+	evaluate_cmd prog "main" which_pred heap store 0 0
