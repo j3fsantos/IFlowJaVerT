@@ -395,7 +395,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 		let v = evaluate_bcmd bcmd heap store cur_which_pred in 
 		if (cur_cmd == proc.ret_label)
 			then Normal, v 
-			else if (cur_cmd == proc.error_label) 
+			else if ((Some cur_cmd) = proc.error_label) 
 				then Error, v 
 				else evaluate_cmd prog cur_proc_name which_pred heap store (cur_cmd + 1) cur_cmd
 		 
