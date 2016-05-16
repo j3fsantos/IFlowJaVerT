@@ -64,12 +64,14 @@ let get_proc_nodes cmd_list =
 let get_proc_info proc = 
 	(*  computing successors and predecessors *)
 	let succ_table, pred_table = SSyntax_Utils_Graphs.get_succ_pred proc.proc_body proc.ret_label proc.error_label in 
+	(* compute which_pred table *)
+	let which_pred = SSyntax_Utils_Graphs.compute_which_preds pred_table in  
 	(*  get an array of nodes instead of a list *)
 	let nodes = proc.proc_body in 
 	(* perform a dfs on the graph *) 
 	let tree_table, parent_table, _, _, dfs_num_table_f, dfs_num_table_r = SSyntax_Utils_Graphs.dfs succ_table in 
 	(* get the variables defined in proc *)
 	let vars = get_proc_variables proc in 
-	nodes, vars, succ_table, pred_table, tree_table, parent_table, dfs_num_table_f, dfs_num_table_r
+	nodes, vars, succ_table, pred_table, tree_table, parent_table, dfs_num_table_f, dfs_num_table_r, which_pred
 		
 	 

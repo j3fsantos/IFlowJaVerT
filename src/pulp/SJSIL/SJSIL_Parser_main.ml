@@ -60,61 +60,20 @@ let cond_print_graph test graph nodes string_of_node graph_name proc_folder =
 			burn_to_disk (proc_folder ^ "/" ^ graph_name ^ ".dot") graph_str)
 		else () 	
 
-let pre_process_proc output_folder_name proc = 
-	
-	(* computing everything *)
-	Printf.printf "Derelativising gotos.\n";
-	SSyntax_Utils.derelativize_gotos_proc proc;
-	
-	(* Initial graph printing 
-	let nodes, vars, succ_table, pred_table, tree_table, parent_table, dfs_num_table_f, dfs_num_table_r = 
-		SSyntax_Utils.get_proc_info proc in 
-	let succ_table, pred_table = get_succ_pred proc.proc_body proc.ret_label proc.error_label in
-	let proc_folder = (output_folder_name ^ "/" ^ proc.proc_name) in 
-	Utils.safe_mkdir proc_folder; 
-	let string_of_cmd cmd i =
-		let str_i = string_of_int i in
-		let str_dfs_i = string_of_int dfs_num_table_f.(i) in
-		str_i ^ "/" ^ str_dfs_i ^ ": " ^ (if (i = proc.ret_label) then ("RET: ") else 
-			(match proc.error_label with
-			| None -> ""
-			| Some lab -> if (i = lab) then ("ERR: ") else (""))) ^ SSyntax_Print.string_of_cmd cmd 0 0 false true in
-	let string_of_cmd_ssa cmd i =  
-		SSyntax_Print.string_of_cmd cmd 0 0 false true in true;
-	
-	cond_print_graph (!show_init_graph) succ_table proc.proc_body string_of_cmd "succ_init" proc_folder; *)
-	
-	(* Removing dead code and recalculating everything *)
-	let proc = remove_unreachable_code proc false in
-	let proc = remove_unreachable_code proc true in
+let string_of_cmd cmd i proc dfs_num_table_f =
+	let str_i = string_of_int i in
+	let str_dfs_i = string_of_int dfs_num_table_f.(i) in
+		str_i ^ "/" ^ str_dfs_i ^ ": " ^ 
+		(if (i = proc.ret_label) 
+			then ("RET: ") 
+			else 
+				(match proc.error_label with
+				| None -> ""
+				| Some lab -> if (i = lab) then ("ERR: ") else (""))) ^ 
+		SSyntax_Print.string_of_cmd cmd 0 0 false true 
 
-	(* Proper pre-processing *) 
-	Printf.printf "Starting proper pre-processing.\n";
-	let nodes, vars, succ_table, pred_table, tree_table, parent_table, dfs_num_table_f, dfs_num_table_r = 
-		SSyntax_Utils.get_proc_info proc in 
-	let succ_table, pred_table = get_succ_pred proc.proc_body proc.ret_label proc.error_label in
-	let proc_folder = (output_folder_name ^ "/" ^ proc.proc_name) in 
-	Utils.safe_mkdir proc_folder; 
-	let string_of_cmd cmd i =
-		let str_i = string_of_int i in
-		let str_dfs_i = string_of_int dfs_num_table_f.(i) in
-		str_i ^ "/" ^ str_dfs_i ^ ": " ^ (if (i = proc.ret_label) then ("RET: ") else 
-			(match proc.error_label with
-			| None -> ""
-			| Some lab -> if (i = lab) then ("ERR: ") else (""))) ^ SSyntax_Print.string_of_cmd cmd 0 0 false true in
-	let string_of_cmd_ssa cmd i =  
-  		SSyntax_Print.string_of_cmd cmd 0 0 false true in 
-
-	let rev_dom_table, dominance_frontiers, phi_functions_per_node, new_proc = 
-		SSyntax_SSA.ssa_compile proc vars nodes succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r in 
-	let final_succ_table, final_pred_table = SSyntax_Utils_Graphs.get_succ_pred new_proc.proc_body new_proc.ret_label new_proc.error_label in   
-		
-	cond_print_graph (!show_init_graph) succ_table nodes string_of_cmd "succ" proc_folder;	
-	cond_print_graph (!show_dfs) tree_table nodes string_of_cmd "dfs" proc_folder;	
-	cond_print_graph (!show_dom) rev_dom_table nodes string_of_cmd "dom" proc_folder;
-	cond_print_graph (!show_ssa) final_succ_table new_proc.proc_body string_of_cmd_ssa "ssa" proc_folder;
-	
-	let new_cmds = new_proc.proc_body in
+(**
+let new_cmds = new_proc.proc_body in
 	let length = Array.length new_cmds in
 	for i = 0 to (length - 1) do
 		Printf.printf "%d : %s\n" i (SSyntax_Print.string_of_cmd (new_cmds.(i)) 0 0 false true);
@@ -122,6 +81,37 @@ let pre_process_proc output_folder_name proc =
 	Printf.printf ("ret : %s, %s\n") (string_of_int new_proc.ret_label) (new_proc.ret_var);
 	Printf.printf ("err : %s, %s\n") (match new_proc.error_label with | None -> "None" | Some v -> (string_of_int v)) 
 	                          (match new_proc.error_var   with | None -> "None" | Some v -> v);
+*)
+
+let pre_process_proc output_folder_name proc = 
+	
+	(* computing everything *)
+	Printf.printf "Derelativising gotos.\n";
+	SSyntax_Utils.derelativize_gotos_proc proc;
+	
+	(* Removing dead code and recalculating everything *)
+	let proc = remove_unreachable_code proc false in
+	let proc = remove_unreachable_code proc true in
+
+	(* Proper pre-processing *) 
+	Printf.printf "Starting proper pre-processing.\n";
+	let nodes, vars, succ_table, pred_table, tree_table, parent_table, dfs_num_table_f, dfs_num_table_r, which_pred = 
+		SSyntax_Utils.get_proc_info proc in 
+	let succ_table, pred_table = get_succ_pred proc.proc_body proc.ret_label proc.error_label in
+	let rev_dom_table, dominance_frontiers, phi_functions_per_node, new_proc = 
+		SSyntax_SSA.ssa_compile proc vars nodes succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r which_pred in 
+	let final_succ_table, final_pred_table = SSyntax_Utils_Graphs.get_succ_pred new_proc.proc_body new_proc.ret_label new_proc.error_label in   
+			
+	let string_of_cmd_ssa cmd i = SSyntax_Print.string_of_cmd cmd 0 0 false true in 	
+	let string_of_cmd_main cmd i = string_of_cmd cmd i proc dfs_num_table_f in 
+	
+	let proc_folder = (output_folder_name ^ "/" ^ proc.proc_name) in 
+	Utils.safe_mkdir proc_folder; 
+	
+	cond_print_graph (!show_init_graph) succ_table nodes string_of_cmd_main "succ" proc_folder;	
+	cond_print_graph (!show_dfs) tree_table nodes string_of_cmd_main "dfs" proc_folder;	
+	cond_print_graph (!show_dom) rev_dom_table nodes string_of_cmd_main "dom" proc_folder;
+	cond_print_graph (!show_ssa) final_succ_table new_proc.proc_body string_of_cmd_ssa "ssa" proc_folder;
 			
 	(if (!show_dom_frontiers) 
 		then 
@@ -133,15 +123,33 @@ let pre_process_proc output_folder_name proc =
 		then 
 			let phi_functions_per_node_str : string = SSyntax_SSA.print_phi_functions_per_node phi_functions_per_node in 
 			burn_to_disk (proc_folder ^ "/phi_placement.txt") phi_functions_per_node_str
-		else ()); 
-	proc
+		else ());
+	
+	let proc_str = SSyntax_Print.string_of_procedure proc false in 
+	Printf.printf "%s" proc_str; 
+
+  (* returning proc and which_pred *)
+	proc, which_pred
 		
-let rec parse_and_print lexbuf =
+let rec parse_and_preprocess_jsil_prog lexbuf =
 	let output_folder_name = Filename.chop_extension !file in 
-  let proc_list = parse_with_error lexbuf in 
+  let proc_list = parse_with_error lexbuf in
+	let number_of_procs = List.length proc_list in 
+	let prog = SProgram.create 1021 in 
+	let global_which_pred = Hashtbl.create 1021 in 
 	Utils.safe_mkdir output_folder_name;
-	let ssa_proc_list = List.map  (fun proc -> (pre_process_proc output_folder_name proc)) proc_list in 
-	ssa_proc_list 
+	List.iter 
+		(fun proc -> 
+			let proc_name = proc.proc_name in 
+			let processed_proc, which_pred = pre_process_proc output_folder_name proc in 
+			SProgram.replace prog proc_name processed_proc; 
+			Hashtbl.iter 
+				(fun (prev_cmd, cur_cmd) i ->
+					Hashtbl.replace global_which_pred (proc_name, prev_cmd, cur_cmd) i)
+				which_pred;
+		) 
+		proc_list; 
+	prog, global_which_pred
 
 let parse_with_error_logic lexbuf =
   try JSIL_Logic_Parser.main_target JSIL_Logic_Lexer.read lexbuf with
@@ -169,7 +177,7 @@ let process_file filename =
 	let inx = open_in filename in
   let lexbuf = Lexing.from_channel inx in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = filename };
-  parse_and_print lexbuf;
+  let prog, which_pred = parse_and_preprocess_jsil_prog lexbuf in
   close_in inx
 
 let main () = 

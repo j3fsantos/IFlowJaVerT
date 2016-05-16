@@ -110,6 +110,27 @@ let dfs (succ_table : ((int list) array)) =
 	search 0; 
 	tree_table, parents_table, pre_table, post_table, dfs_num_table_f, dfs_num_table_r 
 
+let compute_which_preds pred = 
+	let which_pred = Hashtbl.create 1021 in
+	let number_of_nodes = Array.length pred in
+	
+	for u=0 to number_of_nodes-1 do 
+		let cur_preds = pred.(u) in 
+		List.iteri
+			(fun i v -> 
+				Hashtbl.add which_pred (v, u) i)
+			cur_preds
+	done; 
+	
+	which_pred
+	
+let print_which_pred which_pred = 	
+	Hashtbl.fold
+		(fun (u, v) i str ->
+			"pred(" ^ (string_of_int u) ^ ", " ^ (string_of_int v) ^ ") = " ^ (string_of_int i) ^ "; " ^ str)
+		which_pred
+		""
+
 (* 
 	1. Do a simple dfs 
 	2. Check which nodes haven't been visited

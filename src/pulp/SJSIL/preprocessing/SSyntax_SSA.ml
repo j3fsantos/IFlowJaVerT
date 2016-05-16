@@ -133,27 +133,6 @@ let rewrite_non_assignment_ssa cmd var_stacks rename_var =
 		let cmd_str = (SSyntax_Print.string_of_cmd cmd 0 0 false false) in  
 		raise (Failure ("Cannot Rewrite the command " ^ cmd_str ^ " using in the non-assignment case of SSA Rewriting"))
 
-let compute_which_preds pred = 
-	let which_pred = Hashtbl.create 1021 in
-	let number_of_nodes = Array.length pred in
-	
-	for u=0 to number_of_nodes-1 do 
-		let cur_preds = pred.(u) in 
-		List.iteri
-			(fun i v -> 
-				Hashtbl.add which_pred (v, u) i)
-			cur_preds
-	done; 
-	
-	which_pred
-	
-let print_which_pred which_pred = 	
-	Hashtbl.fold
-		(fun (u, v) i str ->
-			"pred(" ^ (string_of_int u) ^ ", " ^ (string_of_int v) ^ ") = " ^ (string_of_int i) ^ "; " ^ str)
-		which_pred
-		""
-
 let rename_var = fun (var : string) (i : int) -> var ^ "_" ^ (string_of_int i) 
 
 let rename_params params = 
@@ -185,11 +164,10 @@ let print_phi_functions_per_node phi_functions_per_node =
 	
 	loop 0 str
 
-let insert_phi_args args vars cmds succ pred idom_table idom_graph phi_functions_per_node  = 
+let insert_phi_args args vars cmds succ pred idom_table idom_graph phi_functions_per_node which_pred = 
 	
 	let var_counters : (string, int) Hashtbl.t  = Hashtbl.create 1021 in 
 	let var_stacks :  (string, int list) Hashtbl.t = Hashtbl.create 1021 in 
-	let which_pred = compute_which_preds pred in 
 	
 	let number_of_nodes = Array.length succ in
 	let new_cmds = Array.make number_of_nodes (SBasic SSkip) in 
@@ -465,7 +443,7 @@ let insert_phi_nodes proc phi_functions_per_node nodes var_counters =
 	}
  
 
-let ssa_compile proc (vars : string list) nodes succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r = 
+let ssa_compile proc (vars : string list) nodes succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r which_pred = 
 	let args : string list = proc.proc_params in 
 	let number_of_nodes = Array.length succ_table in
   (* compute dominators using the Lengauer Tarjan Algorithm *)
@@ -476,7 +454,7 @@ let ssa_compile proc (vars : string list) nodes succ_table pred_table parent_tab
 	let phi_functions_per_node_init = insert_phi_functions nodes dominance_frontiers number_of_nodes in 
 	(* compute the arguments of the phi nodes and rewrite all the nodes *)
 	let phi_functions_per_node, var_counters, new_cmds = insert_phi_args 
-			args vars nodes succ_table pred_table dom_table rev_dom_table phi_functions_per_node_init in
+			args vars nodes succ_table pred_table dom_table rev_dom_table phi_functions_per_node_init which_pred in
 	(* insert the phi nodes in the program *)
 	let new_proc = insert_phi_nodes proc phi_functions_per_node new_cmds var_counters in
 	rev_dom_table, dominance_frontiers, phi_functions_per_node_init, new_proc
