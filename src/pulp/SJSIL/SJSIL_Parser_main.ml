@@ -5,6 +5,7 @@ open SSyntax_Utils_Graphs
 open SJSIL_Interpreter
 
 let file = ref ""
+let jsil_run = ref false
 let show_init_graph = ref false
 let show_dfs = ref false 
 let show_dom = ref false 
@@ -18,6 +19,8 @@ let arguments () =
     [ 
 			(* file to compile *)
 			"-file", Arg.String(fun f -> file := f), "file to run";
+			(* run *)
+			"-run", Arg.Unit(fun () -> jsil_run := true), "run the program given as input";
 			(* print ssa *)
 			"-ssa", Arg.Unit(fun () -> show_ssa := true), "print ssa graph";
 			(* print dfs *)
@@ -172,13 +175,22 @@ let parse_and_print_logic lexbuf =
 	in
 	print_logic (parse_with_error_logic lexbuf)
 
+let run_jsil_prog prog which_pred = 
+	let heap = SHeap.create 1021 in 
+	evaluate_prog prog which_pred heap; 
+	let final_heap_str = SSyntax_Print.sexpr_of_heap heap in 
+	Printf.printf "Final heap: \n%s" final_heap_str
+
 let process_file filename =
 	(* let inx = In_channel.create filename in *)
 	let inx = open_in filename in
   let lexbuf = Lexing.from_channel inx in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = filename };
   let prog, which_pred = parse_and_preprocess_jsil_prog lexbuf in
-  close_in inx
+	close_in inx;
+	(if (!jsil_run)
+	   then run_jsil_prog prog which_pred
+		 else ())
 
 let main () = 
 	arguments ();

@@ -429,3 +429,5 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 let evaluate_prog prog which_pred heap = 
 	let store = init_store [] [] in 
 	evaluate_cmd prog "main" which_pred heap store 0 0
+
+	
