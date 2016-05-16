@@ -71,11 +71,14 @@ open SSyntax
 %token BITWISENOT
 (* separators *)
 %token EOF
+%token DOT
 %token COMMA
 %token COLON
 %token SCOLON
 %token LBRACE
 %token RBRACE
+%token VREFLIT
+%token OREFLIT
 %token LBRACKET
 %token RBRACKET
 %token CLBRACKET
@@ -278,6 +281,8 @@ lit_target:
 	| x=FLOAT { SSyntax.Num x }
 	| s=STRING { SSyntax.String s }
 	| loc=LOC { SSyntax.Loc loc }
+	| loc=LOC; VREFLIT; s=STRING { SSyntax.LVRef (loc, s) }
+	| loc=LOC; OREFLIT; s=STRING { SSyntax.LORef (loc, s) }
 ;
 
 binop_target: 

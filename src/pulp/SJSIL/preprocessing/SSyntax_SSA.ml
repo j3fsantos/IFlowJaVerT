@@ -368,6 +368,7 @@ let adjust_goto cmd displacements =
 	match cmd with 
 	| SGoto j -> SGoto (j + displacements.(j)) 
 	| SGuardedGoto (e, i, j) -> SGuardedGoto (e, (i + displacements.(i)), (j + displacements.(j)))
+	| SCall (var, e, le, j) -> SCall (var, e, le, (j + displacements.(j)))
 	| x -> x 
 
 let insert_phi_nodes proc phi_functions_per_node nodes var_counters = 

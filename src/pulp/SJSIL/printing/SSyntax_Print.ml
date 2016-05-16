@@ -82,8 +82,8 @@ let string_of_literal lit escape_string =
 					else Printf.sprintf "\"%s\"" x
     | Bool b -> string_of_bool b
     | Type t -> string_of_type t 
-		| LVRef (l, x) -> Printf.sprintf "vref(%s, %s)" l x  
-	  | LORef (l, x) -> Printf.sprintf "oref(%s, %s)" l x   
+		| LVRef (l, x) -> Printf.sprintf "%s.v.%s" l x  
+	  | LORef (l, x) -> Printf.sprintf "%s.o.%s" l x   
 
 let rec sexpr_of_expression e =
   let se = sexpr_of_expression in
@@ -311,7 +311,7 @@ let string_of_procedure proc line_numbers =
 		(string_of_int proc.ret_label)
 		(match proc.error_var, proc.error_label with
 		| None, None -> "" 
-		| Some var, Some label -> (Printf.sprintf "\t err: %s, %s \n" var (string_of_int label))
+		| Some var, Some label -> (Printf.sprintf "\t err: %s, %s; \n" var (string_of_int label))
 		| _, _ -> raise (Failure "Error variable and error label not both present or both absent!"))
 
 let sexpr_of_program program line_numbers = 
