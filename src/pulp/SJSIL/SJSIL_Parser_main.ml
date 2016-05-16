@@ -128,11 +128,11 @@ let pre_process_proc output_folder_name proc =
 			burn_to_disk (proc_folder ^ "/phi_placement.txt") phi_functions_per_node_str
 		else ());
 	
-	let proc_str = SSyntax_Print.string_of_procedure proc false in 
-	Printf.printf "%s" proc_str; 
+	let new_proc_str = SSyntax_Print.string_of_procedure new_proc false in 
+	Printf.printf "%s" new_proc_str; 
 
   (* returning proc and which_pred *)
-	proc, which_pred
+	new_proc, which_pred
 		
 let rec parse_and_preprocess_jsil_prog lexbuf =
 	let output_folder_name = Filename.chop_extension !file in 
@@ -146,6 +146,7 @@ let rec parse_and_preprocess_jsil_prog lexbuf =
 			let proc_name = proc.proc_name in 
 			let processed_proc, which_pred = pre_process_proc output_folder_name proc in 
 			SProgram.replace prog proc_name processed_proc; 
+			(* Printf.printf "Just added the procedure %s to the program. It has %d params" proc_name (List.length processed_proc.proc_params);*)
 			Hashtbl.iter 
 				(fun (prev_cmd, cur_cmd) i ->
 					Hashtbl.replace global_which_pred (proc_name, prev_cmd, cur_cmd) i)

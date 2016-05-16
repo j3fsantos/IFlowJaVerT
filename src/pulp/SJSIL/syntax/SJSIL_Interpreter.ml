@@ -218,7 +218,11 @@ let rec evaluate_expr (e : jsil_expr) store =
 	| Literal l -> l 
 	| Var x -> 
 		(match SSyntax_Aux.try_find store x with 
-		| None -> raise (Failure "Variable not found in the store")
+		| None -> 
+			let err_msg = Printf.sprintf "Variable %s not found in the store" x in 
+			let store_str = SSyntax_Print.string_of_store store in 
+			Printf.printf "The current store is: \n %s" store_str;
+			raise (Failure err_msg)
 		| Some v -> v)
 	| BinOp (e1, bop, e2) -> 
 		let v1 = evaluate_expr e1 store in 
@@ -366,6 +370,8 @@ let init_store params args =
 	let number_of_params = List.length params in 
 	let new_store = Hashtbl.create (number_of_params + 1) in
 	
+	Printf.printf "I am initializing a store! Number of args: %d, Number of params: %d" (List.length args) (List.length params);
+	
 	let rec loop params args = 
 		match params with 
 		| [] -> () 
@@ -378,6 +384,9 @@ let init_store params args =
 				Hashtbl.add new_store param Undefined;
 				loop rest_params []) in 
 	loop params args; 
+	
+	let str_store = SSyntax_Print.string_of_store new_store in 
+	Printf.printf "I have just initialized the following store\n %s \n" str_store; 
 	new_store 
 	
 let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd = 	
@@ -417,7 +426,9 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 		let arg_vals = List.map 
 			(fun e_arg -> evaluate_expr e_arg store) 
 			e_args in 
-		let new_store = init_store proc.proc_params arg_vals in 
+		let call_proc = try SProgram.find prog call_proc_name with
+		| _ -> raise (Failure "Trying to call a procedure that does not exist") in
+		let new_store = init_store call_proc.proc_params arg_vals in 
 		match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 with 
 		| Normal, v -> 
 			Hashtbl.replace store x v; 

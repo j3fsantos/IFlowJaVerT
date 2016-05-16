@@ -350,3 +350,12 @@ let serialize_heap_racket h =
 	let serialized_h = sexpr_of_heap h in 
 	Printf.sprintf SSyntax_Templates.template_hp_racket serialized_h
 
+let string_of_store store = 
+	Hashtbl.fold 
+		(fun (var : string) (v_val : jsil_lit) (ac : string) ->
+			let v_val_str = string_of_literal v_val true in 
+			let var_val_str = var ^ ": " ^ v_val_str  in 
+			if (ac != "") then var_val_str else ac ^ "; " ^ var_val_str)
+		store
+		"Store: "	
+
