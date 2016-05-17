@@ -149,11 +149,11 @@ let rec parse_and_preprocess_jsil_prog lexbuf =
 	prog, global_which_pred
 
 let parse_with_error_logic lexbuf =
-  try JSIL_Logic_Parser.main_target JSIL_Logic_Lexer.read lexbuf with
-  | JSIL_Logic_Lexer.SyntaxError msg ->
+  try SJSIL_Parser.specs_target SJSIL_Lexer.read lexbuf with
+  | SJSIL_Lexer.SyntaxError msg ->
     Printf.fprintf stderr "Lexer Error at position %a: %s\n" print_position lexbuf msg;
 		[]
-  | JSIL_Logic_Parser.Error ->
+  | SJSIL_Parser.Error ->
     Printf.fprintf stderr "Syntax Error at position %a\n" print_position lexbuf;
     exit (-1)
 

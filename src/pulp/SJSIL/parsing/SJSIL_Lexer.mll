@@ -19,7 +19,6 @@ let int = '-'? digit+
 let float = digit+ ('.' digit*)?
 let letter = ['a'-'z''A'-'Z']
 let var = letter(letter|digit|'_')*
-let pvar = letter(letter|digit|'_')*
 let lvar = '_' letter(letter|digit|'_')*
 let loc = "$l"(letter|digit|'_')*
 let white = [' ' '\t']+
@@ -123,8 +122,9 @@ rule read = parse
   | "None"							 { SJSIL_Parser.LNONE }
 	| ".v."                { SJSIL_Parser.VREFLIT }
   | ".o."                { SJSIL_Parser.OREFLIT }
+	| "[["                 { SJSIL_Parser.OSPEC }
+  | "]]"                 { SJSIL_Parser.CSPEC }
 	| var                  { SJSIL_Parser.VAR (Lexing.lexeme lexbuf) }
-	| pvar                 { SJSIL_Parser.PVAR (Lexing.lexeme lexbuf) }
 	| lvar                 { SJSIL_Parser.LVAR (Lexing.lexeme lexbuf) }
 	| loc                  { SJSIL_Parser.LOC (Lexing.lexeme lexbuf) }
   | int                  { SJSIL_Parser.INT (int_of_string (Lexing.lexeme lexbuf)) }

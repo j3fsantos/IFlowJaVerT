@@ -1,5 +1,6 @@
 %{
 open SSyntax 
+open JSIL_Logic_Syntax
 %}
 
 (* procedures *) 
@@ -13,7 +14,6 @@ open SSyntax
 %token FLAG
 (*literals*)
 %token <string> LVAR
-%token <string> PVAR
 %token <string> VAR
 %token <int> INT
 %token <float> FLOAT
@@ -103,6 +103,8 @@ open SSyntax
 %token RBRACKET
 %token CLBRACKET
 %token CRBRACKET
+%token OSPEC
+%token CSPEC
 
 %type <(SSyntax.lprocedure list)>          prog_target
 %type <(JSIL_Logic_Syntax.jsil_spec list)> specs_target
@@ -298,7 +300,7 @@ expr_target:
 (********* LOGIC *********)
 
 specs_target:
-	spec_list_target EOF	{ $1 }
+	spec_list_target EOF	{ Printf.printf("Entering specs_target"); $1 }
 ;
 
 spec_list_target: 
@@ -306,23 +308,24 @@ spec_list_target:
 
 spec_target: 
 (* spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *) 
-	SPEC; proc_name=PVAR; LBRACE; param_list=param_plist_target; RBRACE; pre_post_list=pre_post_list_target
+	SPEC; proc_name=VAR; LBRACE; param_list=param_list_target; RBRACE; pre_post_list=pre_post_list_target;
 	{ 
 		{ 
-    	JSIL_Logic_Syntax.spec_name = proc_name;
+      spec_name = proc_name;
     	spec_params = param_list;
 			proc_specs = pre_post_list 
 		}
 	};
 	
 pre_post_list_target:
-	pre_post_list = separated_list(COMMA, pre_post_target) { pre_post_list };
+	pre_post_list = separated_list(SCOLON, pre_post_target) { pre_post_list };
 
+(* [[ .... ]] [[ .... ]] flag *)
 pre_post_target:
-	PRE; COLON; pre_assertion=assertion_target; COMMA; POST; COLON; post_assertion=assertion_target; COMMA; FLAG; COLON; ret_flag=ret_flag_target
+	OSPEC; pre_assertion=assertion_target; CSPEC; OSPEC; post_assertion=assertion_target; CSPEC; ret_flag=ret_flag_target
 	{
 		{
-			JSIL_Logic_Syntax.pre = pre_assertion;
+			pre = pre_assertion;
 			post = post_assertion;
 			ret_flag = ret_flag
 		}
@@ -330,11 +333,8 @@ pre_post_target:
 
 ret_flag_target: 
 	| NORMAL { Normal }
-	| ERR { JSIL_Logic_Syntax.Error }
+	| ERR { Error }
 ; 
-
-param_plist_target: 
-	param_list = separated_list(COMMA, PVAR) { param_list };
 
 assertion_target:
 (* P /\ Q *)
@@ -399,7 +399,7 @@ lexpr_target:
 (* lvar *)
 	| v=LVAR { LVar v }
 (* pvar *)
-	| v=PVAR { PVar v }
+	| v=VAR { PVar v }
 (* binop *)	
 	| e1=lexpr_target; bop=binop_target; e2=lexpr_target { LBinOp (e1, bop, e2) }
 (* unop *)
@@ -421,7 +421,7 @@ lexpr_target:
 		{ LTypeOf (e) }
 (* cons *)
 	| e1=lexpr_target; LCONS; e2=lexpr_target
-		{ JSIL_Logic_Syntax.LCons (e1, e2) }
+		{ LCons (e1, e2) }
 (* (e) *)
   | LBRACE; e=lexpr_target; RBRACE
 	  { e }
