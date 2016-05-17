@@ -210,7 +210,7 @@ let rec sexpr_of_cmd sjsil_cmd tabs i line_numbers_on =
 	(* ('call left_var proc_name '(arg1 ... argn) err_lab) *)
 	| SCall (var, proc_name_expr, arg_expr_list, error_lab) -> 
 		let proc_name_expr_str = sexpr_of_expression proc_name_expr in 
-		let error_lab = string_of_int error_lab in 
+		let error_lab = (match error_lab with | None -> "" | Some error_lab -> (string_of_int error_lab)) in 
 		let arg_expr_list_str = match arg_expr_list with
 		|	[] -> ""
 		| _ -> String.concat " " (List.map sexpr_of_expression arg_expr_list) in 
@@ -235,7 +235,7 @@ let rec string_of_cmd sjsil_cmd tabs i line_numbers_on escape_string =
 	(* x := f(y1, ..., yn) with j *)
 	| SCall (var, proc_name_expr, arg_expr_list, error_lab) -> 
 		let proc_name_expr_str = string_of_expression proc_name_expr escape_string in 
-		let error_lab = string_of_int error_lab in 
+		let error_lab = (match error_lab with | None -> "" | Some error_lab -> (string_of_int error_lab)) in 
 		let se = fun e -> string_of_expression e escape_string in 
 		let arg_expr_list_str = match arg_expr_list with
 		|	[] -> ""

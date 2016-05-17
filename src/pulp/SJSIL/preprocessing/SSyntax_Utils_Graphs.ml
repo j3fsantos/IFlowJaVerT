@@ -50,8 +50,9 @@ let get_succ_pred cmds ret_label opt_error_label =
 				update_pred_table u j
 		
 			| SCall (var, e, es, i) ->
-				update_succ_table i u;
-				update_pred_table u i;
+				(match i with
+				| None -> ()
+				| Some i -> (update_succ_table i u; update_pred_table u i));
 				update_succ_table (u+1) u; 
 				update_pred_table u (u+1))
 		else ()
@@ -209,7 +210,7 @@ let remove_unreachable_code proc throw =
 		| SGuardedGoto (e, i, j) ->
 				cmds.(u) <- SGuardedGoto (e, (lnum_shift.(i)), (lnum_shift.(j)))
 		| SCall (v, e, le, i) ->
-				cmds.(u) <- SCall (v, e, le, (lnum_shift.(i)))
+				cmds.(u) <- SCall (v, e, le, match i with | None -> None | Some i -> Some (lnum_shift.(i)))
 		| _ -> ()
 	done;
 

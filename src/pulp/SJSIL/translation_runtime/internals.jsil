@@ -1,6 +1,5 @@
 [[ (l, prop) -> None   ]], [[ (l, prop) -> None   * xret .= $$empty ]]
 [[ (l, prop) -> Some v ]], [[ (l, prop) -> Some v * xret .= v ]]
-, [[ not (hasField(l, prop)) * xret = $$empty ]]
 proc getOwnProperty (l, prop) {
 	x := hasField(l, prop);
 	goto [not x] 1 3;
