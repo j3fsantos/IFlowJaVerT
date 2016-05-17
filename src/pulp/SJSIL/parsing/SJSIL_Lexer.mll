@@ -18,7 +18,9 @@ let digit = ['0'-'9']
 let int = '-'? digit+
 let float = digit+ ('.' digit*)?
 let letter = ['a'-'z''A'-'Z']
-let var = letter+(letter|digit|'_')*
+let var = letter(letter|digit|'_')*
+let pvar = letter(letter|digit|'_')*
+let lvar = '_' letter(letter|digit|'_')*
 let loc = "$l"(letter|digit|'_')*
 let white = [' ' '\t']+
 let newline = '\r' | '\n' | "\r\n"
@@ -38,6 +40,12 @@ rule read = parse
 	| "proc"     					 { SJSIL_Parser.PROC }
 	| "ret"                { SJSIL_Parser.RET }
 	| "err"                { SJSIL_Parser.ERR }
+	| "spec"     					 { SJSIL_Parser.SPEC }
+	| "normal"             { SJSIL_Parser.NORMAL }
+	| "error"              { SJSIL_Parser.ERR }
+	| "pre"								 { SJSIL_Parser.PRE }
+	| "post"							 { SJSIL_Parser.POST }
+	| "flag"							 { SJSIL_Parser.FLAG }
 (* command keywords *)
 	| "goto"               { SJSIL_Parser.GOTO }
   | "skip"               { SJSIL_Parser.SKIP }
@@ -48,12 +56,25 @@ rule read = parse
 	| "protoField"         { SJSIL_Parser.PROTOFIELD }
 	| "protoObj"           { SJSIL_Parser.PROTOOBJ }
 	| "with"               { SJSIL_Parser.WITH }
+(* assertion keywords *)
+	| "/\\"								 { SJSIL_Parser.LAND }
+	| "\\/"								 { SJSIL_Parser.LOR }
+	| "~"									 { SJSIL_Parser.LNOT }
+	| "true"							 { SJSIL_Parser.LTRUE }
+	| "false"							 { SJSIL_Parser.LFALSE }
+	| "=="								 { SJSIL_Parser.LEQUAL }
+	| "<=="								 { SJSIL_Parser.LLESSTHANEQUAL }
+	| "->"								 { SJSIL_Parser.LARROW }
+	| "emp"								 { SJSIL_Parser.LEMP }
+	| "exists"						 { SJSIL_Parser.LEXISTS }
+	| "forall"						 { SJSIL_Parser.LFORALL }
 (* expression keywords *)
 	| "v-ref"              { SJSIL_Parser.VREF }
 	| "o-ref"              { SJSIL_Parser.OREF }
 	| "base"               { SJSIL_Parser.BASE }
 	| "field"              { SJSIL_Parser.FIELD }
 	| "typeOf"             { SJSIL_Parser.TYPEOF }
+	| "::"								 { SJSIL_Parser.LCONS }
 (* binary operators *)
 	| "="                  { SJSIL_Parser.EQUAL }
 	| "<"                  { SJSIL_Parser.LESSTHAN }
@@ -85,6 +106,7 @@ rule read = parse
 	| ':'                  { SJSIL_Parser.COLON }
 	| ','                  { SJSIL_Parser.COMMA }
 	| ';'                  { SJSIL_Parser.SCOLON }
+	| '.'									 { SJSIL_Parser.DOT }
 	| '('                  { SJSIL_Parser.LBRACE }
 	| ')'                  { SJSIL_Parser.RBRACE }
 	| '['                  { SJSIL_Parser.LBRACKET }
@@ -98,9 +120,12 @@ rule read = parse
 	| "$$null"             { SJSIL_Parser.NULL }
 	| "$$undefined"        { SJSIL_Parser.UNDEFINED }
 	| "$$empty"            { SJSIL_Parser.EMPTY } 
+  | "None"							 { SJSIL_Parser.LNONE }
 	| ".v."                { SJSIL_Parser.VREFLIT }
   | ".o."                { SJSIL_Parser.OREFLIT }
 	| var                  { SJSIL_Parser.VAR (Lexing.lexeme lexbuf) }
+	| pvar                 { SJSIL_Parser.PVAR (Lexing.lexeme lexbuf) }
+	| lvar                 { SJSIL_Parser.LVAR (Lexing.lexeme lexbuf) }
 	| loc                  { SJSIL_Parser.LOC (Lexing.lexeme lexbuf) }
   | int                  { SJSIL_Parser.INT (int_of_string (Lexing.lexeme lexbuf)) }
   | float                { SJSIL_Parser.FLOAT (float_of_string (Lexing.lexeme lexbuf)) }

@@ -6,7 +6,14 @@ open SSyntax
 %token PROC
 %token RET
 %token ERR
+%token SPEC
+%token NORMAL
+%token PRE
+%token POST
+%token FLAG
 (*literals*)
+%token <string> LVAR
+%token <string> PVAR
 %token <string> VAR
 %token <int> INT
 %token <float> FLOAT
@@ -17,6 +24,7 @@ open SSyntax
 %token NULL 
 %token UNDEFINED
 %token EMPTY
+%token LNONE
 (* Type literals *)
 %token BOOLTYPELIT
 %token NUMTYPELIT
@@ -35,12 +43,26 @@ open SSyntax
 %token PROTOFIELD
 %token PROTOOBJ
 %token WITH
+(* assertion keywords *)
+%token LAND
+%token LOR
+%token LNOT
+%token LTRUE
+%token LFALSE
+%token LEQUAL
+%token LLESSTHANEQUAL	
+(*%token LSTAR*)
+%token LARROW
+%token LEMP 
+%token LEXISTS 
+%token LFORALL
 (* expression keywords *)
 %token VREF
 %token OREF
 %token BASE
 %token FIELD
 %token TYPEOF
+%token LCONS
 (* binary operators *)
 %token EQUAL
 %token LESSTHAN
@@ -72,6 +94,7 @@ open SSyntax
 %token COMMA
 %token COLON
 %token SCOLON
+%token DOT
 %token LBRACE
 %token RBRACE
 %token VREFLIT
@@ -80,11 +103,17 @@ open SSyntax
 %token RBRACKET
 %token CLBRACKET
 %token CRBRACKET
-(* main target *) 
-%start <(SSyntax.lprocedure list)> prog_target
+
+%type <(SSyntax.lprocedure list)>          prog_target
+%type <(JSIL_Logic_Syntax.jsil_spec list)> specs_target
+
+(* main target <(SSyntax.lprocedure list)> *) 
+%start prog_target specs_target
 %%
 
-prog_target:
+(********* JSIL *********)
+
+prog_target: 
 	proc_list_target EOF	{ $1 }
 ;
 
@@ -265,6 +294,139 @@ expr_target:
   | LBRACE; e=expr_target; RBRACE
 		{ e }
 ;
+
+(********* LOGIC *********)
+
+specs_target:
+	spec_list_target EOF	{ $1 }
+;
+
+spec_list_target: 
+	spec_list = separated_list(SCOLON, spec_target) { spec_list };
+
+spec_target: 
+(* spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *) 
+	SPEC; proc_name=PVAR; LBRACE; param_list=param_plist_target; RBRACE; pre_post_list=pre_post_list_target
+	{ 
+		{ 
+    	JSIL_Logic_Syntax.spec_name = proc_name;
+    	spec_params = param_list;
+			proc_specs = pre_post_list 
+		}
+	};
+	
+pre_post_list_target:
+	pre_post_list = separated_list(COMMA, pre_post_target) { pre_post_list };
+
+pre_post_target:
+	PRE; COLON; pre_assertion=assertion_target; COMMA; POST; COLON; post_assertion=assertion_target; COMMA; FLAG; COLON; ret_flag=ret_flag_target
+	{
+		{
+			JSIL_Logic_Syntax.pre = pre_assertion;
+			post = post_assertion;
+			ret_flag = ret_flag
+		}
+	};
+
+ret_flag_target: 
+	| NORMAL { Normal }
+	| ERR { JSIL_Logic_Syntax.Error }
+; 
+
+param_plist_target: 
+	param_list = separated_list(COMMA, PVAR) { param_list };
+
+assertion_target:
+(* P /\ Q *)
+	| left_ass=assertion_target; LAND; right_ass=assertion_target 
+		{ LAnd (left_ass, right_ass) }
+(* P \/ Q *)
+	| left_ass=assertion_target; LOR; right_ass=assertion_target 
+		{ LOr (left_ass, right_ass) }
+(* ~ Q *)
+	| LNOT; ass=assertion_target 
+		{ LNot (ass) }
+(* true *)
+  | LTRUE
+		{ LTrue }
+(* false *)
+  | LFALSE
+		{ LFalse }
+(* E == E *)
+	| left_expr=lexpr_target; LEQUAL; right_expr=lexpr_target
+		{ LEq (left_expr, right_expr) }
+(* E <== E *)
+	| left_expr=lexpr_target; LLESSTHANEQUAL; right_expr=lexpr_target
+		{ LLessEq (left_expr, right_expr) }
+(* P * Q *)
+	| left_ass=assertion_target; TIMES; right_ass=assertion_target 
+		{ 
+			LStar (left_ass, right_ass) 
+		}
+(* (E, E) -> E *)
+	| LBRACE; obj_expr=lexpr_target; COMMA; prop_expr=lexpr_target; RBRACE; LARROW; val_expr=lexpr_target
+		{ 
+			LPointsTo (obj_expr, prop_expr, val_expr) 
+		}
+(* emp *)
+	| LEMP;
+		{ 
+			LEmp 
+		}
+(* exists X, Y, Z . P *)
+	| LEXISTS; vars=var_list_target; DOT; ass=assertion_target
+		{ LExists (vars, ass) }
+(* forall X, Y, Z . P *)
+	| LFORALL; vars=var_list_target; DOT; ass=assertion_target
+		{ LForAll (vars, ass) }
+(* (P) *)
+  | LBRACE; ass=assertion_target; RBRACE
+	  { ass }
+;
+
+var_list_target:
+	var_list = separated_list(COMMA, LVAR) { var_list };
+
+lexpr_target:
+(* literal *)
+	| lit=lit_target { LLit lit }
+(* none *)
+	| LNONE
+		{ LNone }
+(* [] *)
+	| LBRACKET; RBRACKET
+		{ LListEmpty }
+(* lvar *)
+	| v=LVAR { LVar v }
+(* pvar *)
+	| v=PVAR { PVar v }
+(* binop *)	
+	| e1=lexpr_target; bop=binop_target; e2=lexpr_target { LBinOp (e1, bop, e2) }
+(* unop *)
+  | uop=unop_target; e=lexpr_target { LUnOp (uop, e) }
+(* vref *)
+	| VREF; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE
+		{ LEVRef (e1, e2) }
+(* oref *)
+	| OREF; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE
+		{ LEORef (e1, e2) }
+(* base *)
+	| BASE; LBRACE; e=lexpr_target; RBRACE
+		{ LBase (e) }
+(* field *)
+	| FIELD; LBRACE; e=lexpr_target; RBRACE
+		{ LBase (e) }		
+(* typeof *)
+	| TYPEOF; LBRACE; e=lexpr_target; RBRACE
+		{ LTypeOf (e) }
+(* cons *)
+	| e1=lexpr_target; LCONS; e2=lexpr_target
+		{ JSIL_Logic_Syntax.LCons (e1, e2) }
+(* (e) *)
+  | LBRACE; e=lexpr_target; RBRACE
+	  { e }
+		
+(********* COMMON *********)
 
 lit_target: 
 	| UNDEFINED { SSyntax.Undefined }

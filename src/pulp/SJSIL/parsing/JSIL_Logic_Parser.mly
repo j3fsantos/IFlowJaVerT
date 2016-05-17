@@ -85,6 +85,8 @@ open JSIL_Logic_Syntax
 %token DOT
 %token LBRACE
 %token RBRACE
+%token VREFLIT
+%token OREFLIT
 %token LBRACKET
 %token RBRACKET
 (* main target *) 
@@ -238,6 +240,8 @@ lit_target:
 	| x=FLOAT { SSyntax.Num x }
 	| s=STRING { SSyntax.String s }
 	| loc=LOC { SSyntax.Loc loc }
+	| loc=LOC; VREFLIT; s=STRING { SSyntax.LVRef (loc, s) }
+	| loc=LOC; OREFLIT; s=STRING { SSyntax.LORef (loc, s) }
 ;
 
 binop_target: 

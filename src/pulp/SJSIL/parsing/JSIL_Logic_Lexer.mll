@@ -103,7 +103,9 @@ rule read = parse
 	| "$$null"             { JSIL_Logic_Parser.NULL }
 	| "$$undefined"        { JSIL_Logic_Parser.UNDEFINED }
 	| "$$empty"            { JSIL_Logic_Parser.EMPTY }
-	| "none"							 { JSIL_Logic_Parser.LNONE }
+	| "None"							 { JSIL_Logic_Parser.LNONE }
+	| ".v."                { JSIL_Logic_Parser.VREFLIT }
+  | ".o."                { JSIL_Logic_Parser.OREFLIT }
 	| loc                  { JSIL_Logic_Parser.LOC (Lexing.lexeme lexbuf) }
 	| pvar                 { JSIL_Logic_Parser.PVAR (Lexing.lexeme lexbuf) }
 	| lvar                 { JSIL_Logic_Parser.LVAR (Lexing.lexeme lexbuf) }
