@@ -109,4 +109,11 @@ let print_int_list (i_list : int list) : string =
 	"[" ^ (print_int_list_iter i_list) ^ "]"
 
 
+let string_of_which_pred which_pred = 	
+	Hashtbl.fold
+		(fun (u, v) i str ->
+			"pred(" ^ (string_of_int u) ^ ", " ^ (string_of_int v) ^ ") = " ^ (string_of_int i) ^ "; " ^ str)
+		which_pred
+		""
+
 	

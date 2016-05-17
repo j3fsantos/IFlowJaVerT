@@ -1,5 +1,7 @@
 open SSyntax 
 
+let verbose_ssa = ref false 
+
 let get_assignments_per_var cmds  = 
 	
 	let assignments_per_var = Hashtbl.create 1021 in 
@@ -173,7 +175,11 @@ let insert_phi_args args vars cmds succ pred idom_table idom_graph phi_functions
 	let new_cmds = Array.make number_of_nodes (SBasic SSkip) in 
 	let new_phi_functions_per_node = Array.make number_of_nodes [] in 
 	
-	(* Printf.printf "Computed which pred %s\n " which_pred_str;	*)
+	(if (!verbose_ssa) 
+		then
+			let which_pred_str = Graph_Print.string_of_which_pred which_pred in  
+			Printf.printf "Computed which pred %s\n " which_pred_str 
+		else ()); 
 	
 	List.iter 
 		(fun var -> 
@@ -213,17 +219,19 @@ let insert_phi_args args vars cmds succ pred idom_table idom_graph phi_functions
  					Hashtbl.replace var_stacks old_var (index :: v_stack);
 					let new_var = rename_var old_var index in 
 					loop rest_phi_nodes ((new_var, v_args, old_var) :: processed_phi_nodes)
- 				| _ -> Printf.printf "Variable %s not found in stack table during ssa transformation - 1st phase - phi assignment.\n" old_var) in 
+ 				| _ -> 
+					let err_msg = Printf.sprintf "Variable %s not found in stack table during ssa transformation - 1st phase - phi assignment.\n" old_var in 
+					raise (Failure err_msg)) in 
 		
 		let phi_nodes_for_u = new_phi_functions_per_node.(u) in 
 		loop phi_nodes_for_u []; 
  		
-		(* Printf.printf "Finished processing the lhs for the phi-nodes in %d!\n" u; *)
+		(if (!verbose_ssa) then Printf.printf "Finished processing the lhs for the phi-nodes in %d!\n" u else ()); 
 		
 		let v_stack_and_counter_update var = 
 			let var_index : int option = SSyntax_Aux.try_find var_counters var in
  			let var_stack : int list option = SSyntax_Aux.try_find var_stacks var in 
-			Printf.printf "Processing an assignemnt to variable %s\n " var;
+			(if (!verbose_ssa) then Printf.printf "Processing an assignemnt to variable %s\n " var else ()); 
  			(match var_index, var_stack with 
  			| (Some index), (Some v_stack) ->
 				let str_stack = 
@@ -235,13 +243,13 @@ let insert_phi_args args vars cmds succ pred idom_table idom_graph phi_functions
 							(fun ac v -> ac ^ ", " ^ (string_of_int v)) 
 							("[" ^ (string_of_int v))
 							rest_stack) ^ "]") in 
-				Printf.printf "\t Index: %d, Stack: %s\n " index str_stack;
+				(if (!verbose_ssa) then Printf.printf "\t Index: %d, Stack: %s\n " index str_stack else ());
  				Hashtbl.replace var_counters var (index + 1);  
  				Hashtbl.replace var_stacks var (index :: v_stack); 
 				index
 			| _ ->
-				Printf.printf "Variable %s not found in stack table during ssa transformation - 1st phase - ordinary assignment.\n" var;  
-				raise (Failure "Variable not found in stack table during ssa transformation")) in
+				let err_msg = Printf.sprintf "Variable %s not found in stack table during ssa transformation - 1st phase - ordinary assignment.\n" var in 
+				raise (Failure err_msg)) in
 		
  		let new_ass = (match cmd with 
  		| SBasic (SAssignment (var, expr)) -> 
@@ -288,7 +296,7 @@ let insert_phi_args args vars cmds succ pred idom_table idom_graph phi_functions
 		| cmd -> rewrite_non_assignment_ssa cmd var_stacks rename_var) in 
 		new_cmds.(u) <- new_ass;
 			
-		(* Printf.printf "Finished processing the lhs for the node %d!\n" u; *)
+		(if (!verbose_ssa) then Printf.printf "Finished processing the lhs for the node %d!\n" u else ());
 		
  		let u_successors = succ.(u) in
  		List.iter 
@@ -296,7 +304,7 @@ let insert_phi_args args vars cmds succ pred idom_table idom_graph phi_functions
  				let j = SSyntax_Aux.try_find which_pred (u, k) in
 				match j with 
 				| Some j -> 
-					Printf.printf "%d is the %d^th predecessor of %d!\n" u k (j+1);
+					(if (!verbose_ssa) then Printf.printf "%d is the %d^th predecessor of %d!\n" u k (j+1) else ()); 
  					List.iter 
  				  	(fun (v, args, old_v) -> 
  							let v_stack = SSyntax_Aux.try_find var_stacks old_v in 
@@ -304,16 +312,16 @@ let insert_phi_args args vars cmds succ pred idom_table idom_graph phi_functions
  							| Some (i :: rest) -> 
  								args.(j) <- i  
  							| _ -> 
-								Printf.printf "Variable %s not found in stack table during ssa transformation - 2nd phase.\n" old_v;  
-								raise (Failure "Variable not found in stack table during ssa transformation"))
+								let err_msg = Printf.sprintf "Variable %s not found in stack table during ssa transformation - 2nd phase.\n" old_v in 
+								raise (Failure err_msg))
  						)
  						new_phi_functions_per_node.(k)
 				| None -> 
-					Printf.printf "%d is a predecessor of %d but I do not know which one.\n" u k;
-					raise (Failure "Variable not found in stack table during ssa transformation"))
+					let err_msg = Printf.sprintf  "%d is a predecessor of %d but I do not know which one.\n" u k in 
+					raise (Failure err_msg))
  			u_successors; 
  		
-		(* Printf.printf "Finished processing the successors!\n"; *)
+		(if (!verbose_ssa) then Printf.printf "Finished processing the successors!\n" else ()); 
 		
 		List.iter 
 			(fun v -> ipa_rec v)
@@ -332,8 +340,8 @@ let insert_phi_args args vars cmds succ pred idom_table idom_graph phi_functions
  			| Some (hd :: rest_stack)  ->
  				Hashtbl.replace var_stacks var rest_stack; 
 			| _ ->
-				Printf.printf "Variable %s not found in stack table during ssa transformation.\n" var;   
-				raise (Failure "Variable not found in stack table during ssa transformation"))
+				let err_msg = Printf.sprintf "Variable %s not found in stack table during ssa transformation.\n" var in 
+				raise (Failure err_msg))
 		| _ -> ()); 
 		
 		let rec loop phi_nodes = 
@@ -345,8 +353,8 @@ let insert_phi_args args vars cmds succ pred idom_table idom_graph phi_functions
  				| Some (hd :: rest_stack)  ->
  					Hashtbl.replace var_stacks old_var rest_stack; 
 				| _ ->
-					Printf.printf "Variable %s has an empty stack...\n" old_var; 
-					raise (Failure "Variable not found in stack table during ssa transformation"));
+					let err_msg = Printf.sprintf "Variable %s has an empty stack...\n" old_var in   
+					raise (Failure err_msg));
 				loop rest_phi_nodes in
 		
 		let phi_nodes_for_u = new_phi_functions_per_node.(u) in 
@@ -387,7 +395,7 @@ let insert_phi_nodes proc phi_functions_per_node nodes var_counters =
 	let ac_jump_displacement = ref 0 in 
 	for u=0 to (number_of_nodes-1) do  
 		jump_displacements.(u) <- (!ac_jump_displacement);
-		Printf.printf ("Displacement of node %s: %s\n") (string_of_int u) (string_of_int (!ac_jump_displacement));
+		(if (!verbose_ssa) then Printf.printf ("Displacement of node %s: %s\n") (string_of_int u) (string_of_int (!ac_jump_displacement)) else ()); 
 		let u_displacement = create_phi_assignments u phi_functions_per_node.(u) 0 in 
 		ac_jump_displacement := u_displacement + (!ac_jump_displacement);
 	done;

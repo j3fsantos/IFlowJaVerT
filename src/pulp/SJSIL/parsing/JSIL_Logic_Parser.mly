@@ -115,7 +115,6 @@ pre_post_list_target:
 pre_post_target:
 	PRE; COLON; pre_assertion=assertion_target; COMMA; POST; COLON; post_assertion=assertion_target; COMMA; FLAG; COLON; ret_flag=ret_flag_target
 	{
-		Printf.printf "I am processing a pre_post_target\n"; 
 		{
 			pre = pre_assertion;
 			post = post_assertion;
@@ -156,19 +155,16 @@ assertion_target:
 (* P * Q *)
 	| left_ass=assertion_target; TIMES; right_ass=assertion_target 
 		{ 
-			Printf.printf "I got a star assertion \n";
 			LStar (left_ass, right_ass) 
 		}
 (* (E, E) -> E *)
 	| LBRACE; obj_expr=lexpr_target; COMMA; prop_expr=lexpr_target; RBRACE; LARROW; val_expr=lexpr_target
 		{ 
-			Printf.printf "I got a cell assertion \n"; 
-			LPointTo (obj_expr, prop_expr, val_expr) 
+			LPointsTo (obj_expr, prop_expr, val_expr) 
 		}
 (* emp *)
 	| LEMP;
 		{ 
-			Printf.printf "I got the assertion: emp\n"; 
 			LEmp 
 		}
 (* exists X, Y, Z . P *)
@@ -183,13 +179,19 @@ assertion_target:
 ;
 
 var_list_target:
-	var_list = separated_list(COMMA, LVAR) { List.map (fun var -> (NormalVar var)) var_list };
+	var_list = separated_list(COMMA, LVAR) { var_list };
 
 lexpr_target:
-(* lval *)
-	| value=lval_target { LVal value }
+(* literal *)
+	| lit=lit_target { LLit lit }
+(* none *)
+	| LNONE
+		{ LNone }
+(* [] *)
+	| LBRACKET; RBRACKET
+		{ LListEmpty }
 (* lvar *)
-	| v=LVAR { LVar (NormalVar v) }
+	| v=LVAR { LVar v }
 (* pvar *)
 	| v=PVAR { PVar v }
 (* binop *)	
@@ -198,10 +200,10 @@ lexpr_target:
   | uop=unop_target; e=lexpr_target { LUnOp (uop, e) }
 (* vref *)
 	| VREF; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE
-		{ LVRef (e1, e2) }
+		{ LEVRef (e1, e2) }
 (* oref *)
 	| OREF; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE
-		{ LORef (e1, e2) }
+		{ LEORef (e1, e2) }
 (* base *)
 	| BASE; LBRACE; e=lexpr_target; RBRACE
 		{ LBase (e) }
@@ -218,17 +220,6 @@ lexpr_target:
   | LBRACE; e=lexpr_target; RBRACE
 	  { e }
 ;
-
-lval_target:
-(* literal *)
-	| lit=lit_target
-		{ LLit lit }
-(* none *)
-	| LNONE
-		{ LNone }
-(* [] *)
-	| LBRACKET; RBRACKET
-		{ LListEmpty }
 
 lit_target: 
 	| UNDEFINED { SSyntax.Undefined }

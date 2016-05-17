@@ -8,6 +8,8 @@ open SSyntax
 		type t = int
 	end)
 
+let graph_verbose = ref false
+
 let get_succ_pred cmds ret_label opt_error_label = 
 
 	let err_label = 
@@ -123,13 +125,6 @@ let compute_which_preds pred =
 	done; 
 	
 	which_pred
-	
-let print_which_pred which_pred = 	
-	Hashtbl.fold
-		(fun (u, v) i str ->
-			"pred(" ^ (string_of_int u) ^ ", " ^ (string_of_int v) ^ ") = " ^ (string_of_int i) ^ "; " ^ str)
-		which_pred
-		""
 
 (* 
 	1. Do a simple dfs 
@@ -156,11 +151,14 @@ let very_simple_dfs (succ_table : ((int list) array)) =
 	
 	search 0; 
 	
-	Printf.printf "\t Visited nodes: ";
-	for i = 0 to (number_of_nodes -1) do
-		Printf.printf "%b " (visited_table.(i));
-	done;
-	Printf.printf "\n";
+	(if (!graph_verbose) 
+		then 
+			(Printf.printf "\t Visited nodes: ";
+			for i = 0 to (number_of_nodes -1) do
+				Printf.printf "%b " (visited_table.(i));
+			done;
+			Printf.printf "\n")
+		else ()); 
 	
 	visited_table
 
@@ -168,7 +166,8 @@ let very_simple_dfs (succ_table : ((int list) array)) =
 
 (* Removing unreachable code *)
 let remove_unreachable_code proc throw = 
-	Printf.printf "Removing unreachable code.\n";
+	
+	(if (!graph_verbose) then Printf.printf "Removing unreachable code.\n" else ()); 
 	
 	let cmds = proc.proc_body in
 		let lret = proc.ret_label in
@@ -183,7 +182,9 @@ let remove_unreachable_code proc throw =
 											then (if (not throw) then (shift := !shift + 1) else (raise (Failure "Unreachable code detected.")))
 											else ();		
 										lnum_shift.(i) <- i - !shift;				 
-										Printf.printf "\t i = %d; lsh = %d; shift = %d : %s\n" i lnum_shift.(i) !shift (SSyntax_Print.string_of_cmd cmds.(i) 0 0 false true);
+										(if (!graph_verbose) 
+											then Printf.printf "\t i = %d; lsh = %d; shift = %d : %s\n" i lnum_shift.(i) !shift (SSyntax_Print.string_of_cmd cmds.(i) 0 0 false true)
+											else ())
 									done;
 	
 	if (not visited.(lret))
@@ -194,7 +195,7 @@ let remove_unreachable_code proc throw =
 	| Some lerr -> if (not visited.(lerr))
 									then (Printf.printf "\t WARNING: Error label is unreachable and will be removed!\n"));
 	
-	Printf.printf "\t Adjusting line numbers. \n";
+	(if (!graph_verbose) then Printf.printf "\t Adjusting line numbers. \n" else ());
 	
 	let lerr = 
 		(match lerr with
@@ -213,7 +214,7 @@ let remove_unreachable_code proc throw =
 		| _ -> ()
 	done;
 
-	Printf.printf "\t Removing unvisited commands. \n";
+	(if (!graph_verbose) then Printf.printf "\t Removing unvisited commands. \n" else ());
 
 	(* Remove unvisited commands *)
 	let new_length = length - !shift in
@@ -225,7 +226,7 @@ let remove_unreachable_code proc throw =
 							else (shift := !shift + 1)	
 				done;
 	
-	Printf.printf "\t Returning adjusted procedure. \n";
+	(if (!graph_verbose) then Printf.printf "\t Returning adjusted procedure. \n" else ());
 	
 	(* Return adjusted procedure *)
 	{ 
@@ -443,26 +444,33 @@ let lt_dom_algorithm succ_table pred_table (parent : int option array) (dfs_num_
 	(* Step 2 *)
 	for k = 1 to number_of_nodes do 
 		let cur_node = dfs_num_r.(number_of_nodes - k) in 
-		Printf.printf "Starting to process node number %s!!!\n" (string_of_int cur_node);
+		(if (!graph_verbose) then Printf.printf "Starting to process node number %s!!!\n" (string_of_int cur_node) else ()); 
 		let p_cur_node =  parent.(cur_node) in 
 		let p_cur_node_str = match  parent.(cur_node) with 
 		| None -> "none"
 		| Some p_cur_node -> (string_of_int p_cur_node) in 
-		Printf.printf "\tParent: %s!!!\n" p_cur_node_str;
+		(if (!graph_verbose) then Printf.printf "\tParent: %s!!!\n" p_cur_node_str else ()); 
 	  let cur_node_predecessors = pred_table.(cur_node) in 
 		List.iter 
 			(fun pred -> 
 				let u = eval pred semi_dom in 
-				Printf.printf "\tPred: %s,  eval: %s!!!\n" (string_of_int pred) (string_of_int u);
-				Printf.printf "\t %s %s %s %s \n" 
-					(string_of_int (semi_dom.(u))) 
-					(string_of_int (semi_dom.(cur_node))) 
-					(string_of_int (dfs_num_f.(semi_dom.(u)))) 
-					(string_of_int (dfs_num_f.(semi_dom.(cur_node))));
+				(if (!graph_verbose) then Printf.printf "\tPred: %s,  eval: %s!!!\n" (string_of_int pred) (string_of_int u) else ()); 
+				(if (!graph_verbose) 
+					then  
+						Printf.printf "\t %s %s %s %s \n" 
+							(string_of_int (semi_dom.(u))) 
+							(string_of_int (semi_dom.(cur_node))) 
+							(string_of_int (dfs_num_f.(semi_dom.(u)))) 
+							(string_of_int (dfs_num_f.(semi_dom.(cur_node))))
+					else ());
 				(if (dfs_num_f.(semi_dom.(u)) < dfs_num_f.(semi_dom.(cur_node))) 
 					then 
 						(semi_dom.(cur_node) <- semi_dom.(u); 
-						Printf.printf "\tUpdated Semi! Semi(%s) = %s\n" (string_of_int cur_node) (string_of_int semi_dom.(cur_node)))
+						(if (!graph_verbose) then 
+							Printf.printf "\tUpdated Semi! Semi(%s) = %s\n" 
+								(string_of_int cur_node) 
+								(string_of_int semi_dom.(cur_node))
+							else ()))
 					else ()))
 			cur_node_predecessors; 
 			
@@ -483,8 +491,7 @@ let lt_dom_algorithm succ_table pred_table (parent : int option array) (dfs_num_
 	done;
 	
 	let semis_str = Graph_Print.print_node_table semi_dom string_of_int in
-	Printf.printf "Urray, I computed the semis:\n %s" semis_str;  
-	
+	(if (!graph_verbose) then Printf.printf "Urray, I computed the semis:\n %s" semis_str else ());
 	
 	(* Step 3 *)
 	for k = 1 to (number_of_nodes-1) do 
@@ -543,7 +550,7 @@ let find_dominance_frontiers succ idom_table idom_graph =
 	let dominance_frontiers = Array.make number_of_nodes [] in
 	
 	let dom_rev_order_str = Graph_Print.print_int_list dom_rev_order in 
-	Printf.printf "DOM Rev Order:\n%s\n\n" dom_rev_order_str;
+	(if (!graph_verbose) then Printf.printf "DOM Rev Order:\n%s\n\n" dom_rev_order_str else ());
 	
 	let rec fdf_iter nodes_to_visit = 
 		(match nodes_to_visit with 
@@ -552,11 +559,17 @@ let find_dominance_frontiers succ idom_table idom_graph =
 			let u_successors = succ.(u) in
 			List.iter 
 				(fun v -> 
-					Printf.printf "iteration of the dominance frontier algorithm. u: %s, v: %s, idom(v): %s\n" (string_of_int u) (string_of_int v) (string_of_int idom_table.(v)); 
+					(if (!graph_verbose) 
+						then 
+							Printf.printf "iteration of the dominance frontier algorithm. u: %s, v: %s, idom(v): %s\n" 
+								(string_of_int u) 
+								(string_of_int v) 
+								(string_of_int idom_table.(v))
+						else ()); 
 					if (idom_table.(v) != u)
-					then 
-						dominance_frontiers.(u) <- (v :: dominance_frontiers.(u))
-					else ())
+						then 
+							dominance_frontiers.(u) <- (v :: dominance_frontiers.(u))
+						else ())
 				u_successors; 
 			let u_children = idom_graph.(u) in 
 			List.iter 

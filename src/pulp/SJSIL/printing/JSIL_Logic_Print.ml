@@ -68,6 +68,7 @@ let string_of_type t =
 	| ObjectReferenceType -> "$$o_reference_type"
 	| VariableReferenceType -> "$$v_reference_type"	
 
+
 let string_of_literal lit escape_string =
   match lit with
 	  | Undefined -> "$$undefined"
@@ -81,32 +82,27 @@ let string_of_literal lit escape_string =
 					else Printf.sprintf "\"%s\"" x
     | Bool b -> string_of_bool b
     | Type t -> string_of_type t
+		| LVRef (field, value) -> Printf.sprintf "vref(%s, %s)" field value
+		| LORef (field, value) -> Printf.sprintf "oref(%s, %s)" field value
 
-let string_of_logic_val lval escape_string =
-	match lval with
-	| LLit lit -> string_of_literal lit escape_string
-	| LNone -> "none"
-	| LListEmpty -> "[]"
-
-let string_of_lvar lvar =
-	match lvar with
-	| LocVar loc -> string_of_int loc
-	| NormalVar varname -> varname
 
 let rec string_of_logic_expression e escape_string =
   let sle = fun e -> string_of_logic_expression e escape_string in
   match e with
-    | LVal lval -> string_of_logic_val lval escape_string
-    | LVar lvar -> string_of_lvar lvar
+    | LLit llit -> string_of_literal llit escape_string
+		| LNone -> "none"
+		| LListEmpty -> "[]"
+    | LVar lvar -> lvar
+		| LLVar llvar -> llvar
 		| PVar pvar -> pvar
 		(* (e1 bop e2) *)
     | LBinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (sle e1) (string_of_binop op) (sle e2)
 		(* (uop e1 e2) *)
     | LUnOp (op, e) -> Printf.sprintf "(%s %s)" (string_of_unop op) (sle e)
 		(* v-ref(e1, e2) *)
-    | LVRef (e1, e2) -> Printf.sprintf "v-ref(%s, %s)" (sle e1) (sle e2)
+    | LEVRef (e1, e2) -> Printf.sprintf "v-ref(%s, %s)" (sle e1) (sle e2)
   	(* o-ref(e1, e2) *)
-    | LORef (e1, e2) -> Printf.sprintf "o-ref(%s, %s)" (sle e1) (sle e2)
+    | LEORef (e1, e2) -> Printf.sprintf "o-ref(%s, %s)" (sle e1) (sle e2)
 		(* base(e) *)
     | LBase e -> Printf.sprintf "base(%s)" (sle e)
 		(* field(e) *)
@@ -128,7 +124,7 @@ let string_of_lvar_list list =
 	| [] -> ""
 	| elem :: rest ->
   	List.fold_left 
-  		(fun prev_elems elem -> prev_elems ^ ", " ^ (string_of_lvar elem)) (string_of_lvar elem) rest	
+  		(fun prev_elems elem -> prev_elems ^ ", " ^ elem) elem rest	
 
 let rec string_of_logic_assertion a escape_string =
 	let sla = fun a -> string_of_logic_assertion a escape_string in
@@ -151,7 +147,7 @@ let rec string_of_logic_assertion a escape_string =
 		(* a1 * a2 *)
 		| LStar (a1, a2) -> Printf.sprintf "%s * %s" (sla a1) (sla a2)
 		(* (e1, e2) -> e3 *)
-		| LPointTo (e1, e2, e3) -> Printf.sprintf "(%s, %s) -> %s" (sle e1) (sle e2) (sle e3)
+		| LPointsTo (e1, e2, e3) -> Printf.sprintf "(%s, %s) -> %s" (sle e1) (sle e2) (sle e3)
 		(* emp *)
 		| LEmp -> Printf.sprintf "emp"
 		(* exists vars . a *)
@@ -191,3 +187,95 @@ let string_of_spec spec =
   	spec.spec_name 
    	(string_of_list spec.spec_params) 
 		(string_of_jsil_spec_list spec.proc_specs)
+
+
+let string_of_shallow_symb_heap heap = 
+	Hashtbl.fold
+		(fun loc fv_pairs ac -> 
+			let str_fv_pairs = 
+				List.fold_left
+					(fun ac (field, value) ->
+						let field_str = string_of_logic_expression field false in 
+						let value_str = string_of_logic_expression value false in 
+						let field_value_str = "(" ^ field_str ^ ": " ^ value_str ^ ")"  in 
+						if (ac = "") 
+							then field_value_str 
+							else ac ^ ", " ^ field_value_str)
+					""
+					fv_pairs in 
+			let symb_obj_str = loc ^ " |-> [" ^  str_fv_pairs ^ "]" in 
+			if (ac = "") then symb_obj_str else ac ^ ", " ^ symb_obj_str)
+		heap
+		""
+		
+		
+let string_of_shallow_symb_store store = 
+	Hashtbl.fold 
+		(fun var v_val ac ->
+			 let v_val_str = string_of_logic_expression v_val false in 
+			 let var_val_str = "(" ^ var ^ ": " ^ v_val_str ^ ")" in 
+			if (ac = "") then var_val_str else ac ^ ", " ^ var_val_str )
+		store
+		""
+
+
+let string_of_shallow_p_formulae p_formulae = 
+	DynArray.fold_left
+		(fun ac cur_ass -> 
+			let cur_ass_str = string_of_logic_assertion cur_ass false in 
+			if (ac = "") then cur_ass_str else ac ^ ", " ^ cur_ass_str)
+		""
+		p_formulae
+
+
+let string_of_shallow_symb_state heap store p_formulae = 
+	let str = "Symbolic State: \n" in 
+	let str_heap = "\t Heap: " ^ (string_of_shallow_symb_heap heap) ^ "\n" in 
+	let str_store = "\t Store: " ^ (string_of_shallow_symb_store store) ^ "\n" in 
+	let str_p_formulae = "\t Pure Formulae: " ^ (string_of_shallow_p_formulae p_formulae) ^ "\n" in 
+	str ^ str_heap ^ str_store ^ str_p_formulae 
+
+(* spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *) 
+let string_of_n_spec spec = 
+	let spec_name = spec.n_spec_name in 
+	let spec_params = spec.n_spec_params in 
+	let pre_post_list = spec.n_proc_specs in
+	let params_str = 
+		List.fold_left
+			(fun ac param -> if (ac = "") then param else ac ^ ", " ^ param)
+			""
+			spec_params in
+	let str = "Specs for " ^ spec_name ^ " (" ^ params_str ^ "): \n" in 
+	let pre_post_list_str =
+		List.fold_left
+			(fun ac single_spec -> 
+				let pre_heap, pre_store, pre_p_formulae = single_spec.n_pre in 
+				let post_heap, post_store, post_p_formulae = single_spec.n_post in 
+				let ret_flag = single_spec.n_ret_flag in 
+				let pre_str = string_of_shallow_symb_state pre_heap pre_store pre_p_formulae in 
+				let post_str = string_of_shallow_symb_state post_heap post_store post_p_formulae in 
+				let ret_flag_str = 
+					(match ret_flag with 
+					| Normal -> "normal"
+					| Error -> "error") in 
+				let single_spec_str = "Single Spec - " ^ ret_flag_str ^ "\n Pre " ^ pre_str ^ "Post " ^ post_str in 
+				if (ac = "") then single_spec_str else ac ^ single_spec_str)
+			""
+			pre_post_list in
+		str ^ pre_post_list_str 
+
+
+let string_of_n_spec_table spec_table = 
+	Hashtbl.fold 
+		(fun spec_name spec ac -> 
+			let spec_str = string_of_n_spec spec in 
+			if ac = "" then spec_str else ac ^ "----------\n" ^ spec_str)
+		spec_table
+		""
+	
+			
+	
+	
+	
+	
+	

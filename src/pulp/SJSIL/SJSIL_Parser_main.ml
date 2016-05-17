@@ -3,8 +3,11 @@ open Lexing
 open SSyntax
 open SSyntax_Utils_Graphs
 open SJSIL_Interpreter
+open JSIL_Logic_Syntax
+open JSIL_Logic_Normalise
 
 let file = ref ""
+let specs = ref None 
 let jsil_run = ref false
 let show_init_graph = ref false
 let show_dfs = ref false 
@@ -19,6 +22,8 @@ let arguments () =
     [ 
 			(* file to compile *)
 			"-file", Arg.String(fun f -> file := f), "file to run";
+			(* specs *)
+			"-specs", Arg.String(fun f -> specs := (Some f)), "specs to check";
 			(* run *)
 			"-run", Arg.Unit(fun () -> jsil_run := true), "run the program given as input";
 			(* print ssa *)
@@ -74,17 +79,6 @@ let string_of_cmd cmd i proc dfs_num_table_f =
 				| None -> ""
 				| Some lab -> if (i = lab) then ("ERR: ") else (""))) ^ 
 		SSyntax_Print.string_of_cmd cmd 0 0 false true 
-
-(**
-let new_cmds = new_proc.proc_body in
-	let length = Array.length new_cmds in
-	for i = 0 to (length - 1) do
-		Printf.printf "%d : %s\n" i (SSyntax_Print.string_of_cmd (new_cmds.(i)) 0 0 false true);
-	done;
-	Printf.printf ("ret : %s, %s\n") (string_of_int new_proc.ret_label) (new_proc.ret_var);
-	Printf.printf ("err : %s, %s\n") (match new_proc.error_label with | None -> "None" | Some v -> (string_of_int v)) 
-	                          (match new_proc.error_var   with | None -> "None" | Some v -> v);
-*)
 
 let pre_process_proc output_folder_name proc = 
 	
@@ -165,16 +159,40 @@ let parse_with_error_logic lexbuf =
     exit (-1)
 
 let parse_and_print_logic lexbuf = 
-	let rec print_logic spec_list =
-    match spec_list with
-    | spec :: rest ->
-  		Printf.printf "%s\n\n\n" (JSIL_Logic_Print.string_of_spec spec);
-			print_logic rest
-  	| [] -> 
-  		Printf.printf "Spec List Completed..."; 
-  		()
-	in
-	print_logic (parse_with_error_logic lexbuf)
+	let spec_list = parse_with_error_logic lexbuf in
+	let spec_table = Hashtbl.create 1021 in 
+	List.iter
+		(fun spec ->
+			let spec_name = spec.spec_name in 
+			let spec_params = spec.spec_params in 
+			let pre_post_list = spec.proc_specs in 
+			let normalized_pre_post_list = 
+				List.map 
+					(fun single_spec -> 
+						let pre = single_spec.pre in 
+						let post = single_spec.post in 
+						let ret_flag = single_spec.ret_flag in 
+						let pre_heap, pre_store, pre_p_formulae = JSIL_Logic_Normalise.normalize_assertion_top_level pre in 
+						let post_heap, post_store, post_p_formulae = JSIL_Logic_Normalise.normalize_assertion_top_level post in 
+						{	
+							n_pre = pre_heap, pre_store, pre_p_formulae; 
+							n_post = post_heap, post_store, post_p_formulae; 
+							n_ret_flag = ret_flag
+						}
+					)
+					pre_post_list in 
+			let new_spec = 
+				{
+					n_spec_name = spec_name; 
+					n_spec_params = spec_params; 
+					n_proc_specs = normalized_pre_post_list
+				} in 
+			Hashtbl.replace spec_table spec_name new_spec 
+		) 
+		spec_list;  
+	let spec_table_str : string = JSIL_Logic_Print.string_of_n_spec_table spec_table in 
+	Printf.printf "Spec Table: \n %s" spec_table_str; 
+  spec_table
 
 let run_jsil_prog prog which_pred = 
 	let heap = SHeap.create 1021 in 
@@ -193,9 +211,20 @@ let process_file filename =
 	   then run_jsil_prog prog which_pred
 		 else ())
 
+let process_specs filename = 
+	match filename with 
+	| None -> () 
+	| Some filename -> 
+		let inx = open_in filename in
+		let lexbuf = Lexing.from_channel inx in
+		lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = filename };
+		let specs = parse_and_print_logic lexbuf in 
+		close_in inx
+
 let main () = 
 	arguments ();
 	(* Printf.printf "Start parsing! %s\n" !file; *)
-	process_file !file 
+	process_file !file; 
+	process_specs !specs 
 
 let _ = main()
