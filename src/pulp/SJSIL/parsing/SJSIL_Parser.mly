@@ -71,11 +71,14 @@ open SSyntax
 %token BITWISENOT
 (* separators *)
 %token EOF
+%token DOT
 %token COMMA
 %token COLON
 %token SCOLON
 %token LBRACE
 %token RBRACE
+%token VREFLIT
+%token OREFLIT
 %token LBRACKET
 %token RBRACKET
 %token CLBRACKET
@@ -216,10 +219,10 @@ cmd_target:
 			Some (SSyntax.SGuardedGoto (e, i, j))
 		}
 (* x := e(e1, ..., en) with j *)
-	| v=VAR; DEFEQ; e=expr_target; LBRACE; es=expr_list_target; RBRACE; WITH; i=INT
+	| v=VAR; DEFEQ; e=expr_target; LBRACE; es=expr_list_target; RBRACE; oi = option(call_with_target)
 		{
 			Printf.printf "Parsing Procedure Call.\n";
-			Some (SSyntax.SCall (v, e, es, i))
+			Some (SSyntax.SCall (v, e, es, oi))
 		}
 	| COMMENT
 		{
@@ -278,6 +281,8 @@ lit_target:
 	| x=FLOAT { SSyntax.Num x }
 	| s=STRING { SSyntax.String s }
 	| loc=LOC { SSyntax.Loc loc }
+	| loc=LOC; VREFLIT; s=STRING { SSyntax.LVRef (loc, s) }
+	| loc=LOC; OREFLIT; s=STRING { SSyntax.LORef (loc, s) }
 ;
 
 binop_target: 
@@ -310,3 +315,6 @@ unop_target:
 	| TOUINT32 { SSyntax.ToUint32Op }
 	| BITWISENOT { SSyntax.BitwiseNot }
 ;
+
+call_with_target: 
+	WITH; i=INT { i }

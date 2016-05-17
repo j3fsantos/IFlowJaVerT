@@ -98,7 +98,7 @@ type jsil_cmd =
   | SBasic       of basic_jsil_cmd 
 	| SGoto        of int
 	| SGuardedGoto of jsil_expr * int        * int
-	| SCall        of jsil_var  * jsil_expr  * jsil_expr list * int
+	| SCall        of jsil_var  * jsil_expr  * jsil_expr list * int option
 
 (* SJSIL procedures *)
 type procedure = { 
@@ -127,5 +127,21 @@ type procedure = {
 		let hash = Hashtbl.hash
 	end)
 
-	
+(***** Alternative Syntax with Labels *****)
 
+type jsil_lab_cmd =
+  | SLBasic       of basic_jsil_cmd 
+	| SLGoto        of string
+	| SLGuardedGoto of jsil_expr * string     * string
+	| SLCall        of jsil_var  * jsil_expr  * jsil_expr list * string option
+
+(* SJSIL procedures with string labels *)
+type lprocedure = { 
+    lproc_name : string;
+    lproc_body : ((string option * jsil_lab_cmd) array);
+    lproc_params : jsil_var list; 
+		lret_label: string; 
+		lret_var: jsil_var;
+		lerror_label: (string option); 
+		lerror_var: (jsil_var option);
+}

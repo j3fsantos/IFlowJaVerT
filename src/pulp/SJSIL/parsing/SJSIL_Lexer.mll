@@ -82,6 +82,7 @@ rule read = parse
 	| "!"                  { SJSIL_Parser.BITWISENOT }
 (* separators *)
   | "(*"                 { read_comment lexbuf }
+	| '.'                  { SJSIL_Parser.DOT }
 	| ':'                  { SJSIL_Parser.COLON }
 	| ','                  { SJSIL_Parser.COMMA }
 	| ';'                  { SJSIL_Parser.SCOLON }
@@ -98,6 +99,8 @@ rule read = parse
 	| "$$null"             { SJSIL_Parser.NULL }
 	| "$$undefined"        { SJSIL_Parser.UNDEFINED }
 	| "$$empty"            { SJSIL_Parser.EMPTY } 
+	| ".v."                { SJSIL_Parser.VREFLIT }
+  | ".o."                { SJSIL_Parser.OREFLIT }
 	| var                  { SJSIL_Parser.VAR (Lexing.lexeme lexbuf) }
 	| loc                  { SJSIL_Parser.LOC (Lexing.lexeme lexbuf) }
   | int                  { SJSIL_Parser.INT (int_of_string (Lexing.lexeme lexbuf)) }

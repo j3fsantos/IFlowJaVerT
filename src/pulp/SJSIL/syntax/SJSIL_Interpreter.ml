@@ -391,7 +391,7 @@ let init_store params args =
 	
 let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd = 	
 	let proc = try SProgram.find prog cur_proc_name with
-		| _ -> raise (Failure "Trying to execute a procedure that does not exist") in  
+		| _ -> raise (Failure "The procedure you're trying to call doesn't exist. Ew.") in  
 	let cmd = proc.proc_body.(cur_cmd) in 
 	let cur_which_pred = 
 		if (cur_cmd > 0) 
@@ -416,26 +416,28 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 		(match v_e with 
 		| Bool true -> evaluate_cmd prog cur_proc_name which_pred heap store i cur_cmd
 		| Bool false -> evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd
-		| _ -> raise (Failure "Non boolean goto guard"))
+		| _ -> raise (Failure "So you're really trying to do a goto based on something that's not a boolean? <falsetto>Ok</falsetto>... NOT"))
 	
 	| SCall (x, e, e_args, j) -> 
 		let call_proc_name_val = evaluate_expr e store in 
 		let call_proc_name = (match call_proc_name_val with 
 		| String call_proc_name -> call_proc_name 
-		| _ -> raise (Failure "Invalid function name")) in 
+		| _ -> raise (Failure "Erm, no. Procedures can't be called that.")) in 
 		let arg_vals = List.map 
 			(fun e_arg -> evaluate_expr e_arg store) 
 			e_args in 
 		let call_proc = try SProgram.find prog call_proc_name with
-		| _ -> raise (Failure "Trying to call a procedure that does not exist") in
+		| _ -> raise (Failure "The procedure you're trying to call doesn't exist. Spell check for your life?") in
 		let new_store = init_store call_proc.proc_params arg_vals in 
 		match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 with 
 		| Normal, v -> 
 			Hashtbl.replace store x v; 
 			evaluate_cmd prog cur_proc_name which_pred heap store (cur_cmd + 1) cur_cmd
 		| Error, v -> 
-			Hashtbl.replace store x v;
-			evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd
+			(match j with
+			| None -> raise (Failure ("Procedure "^ call_proc_name ^"just returned an error, but no error label was provided. Bad programmer."))
+			| Some j -> Hashtbl.replace store x v;
+			            evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd)
 		 		
 let evaluate_prog prog which_pred heap = 
 	let store = init_store [] [] in 

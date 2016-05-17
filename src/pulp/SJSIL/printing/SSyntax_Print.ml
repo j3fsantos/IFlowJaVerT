@@ -82,8 +82,8 @@ let string_of_literal lit escape_string =
 					else Printf.sprintf "\"%s\"" x
     | Bool b -> string_of_bool b
     | Type t -> string_of_type t 
-		| LVRef (l, x) -> Printf.sprintf "vref(%s, %s)" l x  
-	  | LORef (l, x) -> Printf.sprintf "oref(%s, %s)" l x   
+		| LVRef (l, x) -> Printf.sprintf "%s.v.%s" l x  
+	  | LORef (l, x) -> Printf.sprintf "%s.o.%s" l x   
 
 let rec sexpr_of_expression e =
   let se = sexpr_of_expression in
@@ -210,7 +210,7 @@ let rec sexpr_of_cmd sjsil_cmd tabs i line_numbers_on =
 	(* ('call left_var proc_name '(arg1 ... argn) err_lab) *)
 	| SCall (var, proc_name_expr, arg_expr_list, error_lab) -> 
 		let proc_name_expr_str = sexpr_of_expression proc_name_expr in 
-		let error_lab = string_of_int error_lab in 
+		let error_lab = (match error_lab with | None -> "" | Some error_lab -> (string_of_int error_lab)) in 
 		let arg_expr_list_str = match arg_expr_list with
 		|	[] -> ""
 		| _ -> String.concat " " (List.map sexpr_of_expression arg_expr_list) in 
@@ -235,7 +235,7 @@ let rec string_of_cmd sjsil_cmd tabs i line_numbers_on escape_string =
 	(* x := f(y1, ..., yn) with j *)
 	| SCall (var, proc_name_expr, arg_expr_list, error_lab) -> 
 		let proc_name_expr_str = string_of_expression proc_name_expr escape_string in 
-		let error_lab = string_of_int error_lab in 
+		let error_lab = (match error_lab with | None -> "" | Some error_lab -> (string_of_int error_lab)) in 
 		let se = fun e -> string_of_expression e escape_string in 
 		let arg_expr_list_str = match arg_expr_list with
 		|	[] -> ""
@@ -311,7 +311,7 @@ let string_of_procedure proc line_numbers =
 		(string_of_int proc.ret_label)
 		(match proc.error_var, proc.error_label with
 		| None, None -> "" 
-		| Some var, Some label -> (Printf.sprintf "\t err: %s, %s \n" var (string_of_int label))
+		| Some var, Some label -> (Printf.sprintf "\t err: %s, %s; \n" var (string_of_int label))
 		| _, _ -> raise (Failure "Error variable and error label not both present or both absent!"))
 
 let sexpr_of_program program line_numbers = 
