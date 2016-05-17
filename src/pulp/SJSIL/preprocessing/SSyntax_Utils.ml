@@ -25,7 +25,7 @@ let get_proc_variables proc =
 	
 	loop 0 [] 			
 
-
+(*
 let derelativize_gotos_proc proc =
 	
 	let cmds = proc.proc_body in 
@@ -39,27 +39,15 @@ let derelativize_gotos_proc proc =
 		| SGuardedGoto (e, i, j) ->
 			cmds.(u) <- SGuardedGoto (e, (i + u), (j + u)) 
 		| _ -> ()
-	done
+	done 
 	
 
 let derelativize_gotos prog = 
 	SSyntax.SProgram.iter 
 	(fun proc_name proc -> derelativize_gotos_proc proc)
-	prog		
+	prog		*)
 
-let get_proc_nodes cmd_list = 	
-	let number_of_cmds = List.length cmd_list in 
-	let cmd_arr = Array.make number_of_cmds (SBasic SSkip) in 
-	
-	let rec get_nodes_iter cmd_lst cur_node = 
-		match cmd_lst with 
-		| [] -> () 
-		| cmd :: rest -> 
-			cmd_arr.(cur_node) <- cmd; 
-			get_nodes_iter rest (cur_node + 1) in 
-	
-	get_nodes_iter cmd_list 0; 
-	cmd_arr
+let get_proc_nodes cmd_list = Array.of_list cmd_list
 
 let get_proc_info proc = 
 	(*  computing successors and predecessors *)
@@ -77,12 +65,13 @@ let get_proc_info proc =
 	(***** Desugar me silly *****)
 
 let desugar_labs (lproc : lprocedure) = 
+	
 	let ln, lb, lp, lrl, lrv, lel, lev = lproc.lproc_name, lproc.lproc_body, lproc.lproc_params, lproc.lret_label, lproc.lret_var, lproc.lerror_label, lproc.lerror_var in
 	let nc = Array.length lb in
 	
 	let map_labels_to_numbers =
 		let mapping = Hashtbl.create nc in
-		for i = 0 to nc do
+		for i = 0 to (nc - 1) do
 			(match lb.(i) with
 			  | (Some str, _) -> Hashtbl.add mapping str i
 				| _ -> ()); 
@@ -98,10 +87,12 @@ let desugar_labs (lproc : lprocedure) =
 			| SLGuardedGoto (e, lt, lf) -> SGuardedGoto (e, Hashtbl.find mapping lt, Hashtbl.find mapping lf)
 			| SLCall (x, e, le, ol) -> SCall (x, e, le, match ol with | None -> None | Some lab -> Some (Hashtbl.find mapping lab))
 			) cmds_nolab in
+			
 		cmds, (Hashtbl.find mapping lrl), (match lel with | None -> None | Some lab -> Some (Hashtbl.find mapping lab)) in
 	
 	let mapping = map_labels_to_numbers in
 	let b, rl, el = convert_to_sjsil mapping in
+	let proc = 
 		{
 			proc_name = ln;
     	proc_body = b;
@@ -110,5 +101,11 @@ let desugar_labs (lproc : lprocedure) =
 			ret_var = lrv;
 			error_label = el; 
 			error_var = lev
-		}
+		} in
+	Printf.printf "%s" (SSyntax_Print.string_of_procedure proc false);
+	proc
 	 
+let rec desugar_labs_list lproc_list =
+	match lproc_list with
+	| [] -> []
+	| lproc :: rest -> (desugar_labs lproc) :: desugar_labs_list rest

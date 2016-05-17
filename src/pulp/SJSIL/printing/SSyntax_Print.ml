@@ -235,12 +235,12 @@ let rec string_of_cmd sjsil_cmd tabs i line_numbers_on escape_string =
 	(* x := f(y1, ..., yn) with j *)
 	| SCall (var, proc_name_expr, arg_expr_list, error_lab) -> 
 		let proc_name_expr_str = string_of_expression proc_name_expr escape_string in 
-		let error_lab = (match error_lab with | None -> "" | Some error_lab -> (string_of_int error_lab)) in 
+		let error_lab = (match error_lab with | None -> "" | Some error_lab -> ("with " ^ (string_of_int error_lab))) in 
 		let se = fun e -> string_of_expression e escape_string in 
 		let arg_expr_list_str = match arg_expr_list with
 		|	[] -> ""
 		| _ -> String.concat ", " (List.map se arg_expr_list) in 
-			str_tabs ^  Printf.sprintf "%s%s := %s(%s) with %s" str_i var proc_name_expr_str arg_expr_list_str error_lab
+			str_tabs ^  Printf.sprintf "%s%s := %s(%s) %s" str_i var proc_name_expr_str arg_expr_list_str error_lab
 
 let sexpr_of_params fparams =
 	match fparams with
@@ -303,7 +303,7 @@ let sexpr_of_procedure proc line_numbers =
 	}
 *)
 let string_of_procedure proc line_numbers =			
-	Printf.sprintf "proc %s (%s) { \n\t %s \n } with { \n\t ret: %s, %s; \n %s }" 
+	Printf.sprintf "proc %s (%s) { \n %s \n} with { \n\t ret: %s, %s; \n%s}\n" 
   	proc.proc_name 
    	(string_of_params proc.proc_params) 
 		(string_of_cmd_arr proc.proc_body 2 line_numbers)

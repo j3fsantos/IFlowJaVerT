@@ -82,7 +82,6 @@ rule read = parse
 	| "!"                  { SJSIL_Parser.BITWISENOT }
 (* separators *)
   | "(*"                 { read_comment lexbuf }
-	| '.'                  { SJSIL_Parser.DOT }
 	| ':'                  { SJSIL_Parser.COLON }
 	| ','                  { SJSIL_Parser.COMMA }
 	| ';'                  { SJSIL_Parser.SCOLON }
@@ -128,7 +127,7 @@ read_string buf =
 and 
 read_comment =
   parse
-	| "*)"                 { SJSIL_Parser.COMMENT }
+	| "*)"                 { read lexbuf }
 	| eof { raise (SyntaxError ("Comment is not terminated")) }
 	| _                    { read_comment lexbuf }
 	
