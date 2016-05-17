@@ -168,22 +168,22 @@ param_list_target:
 	param_list = separated_list(COMMA, VAR) { param_list };
 
 cmd_list_target: 
-	cmd_list = separated_list(SCOLON, cmd_with_label) {
+	cmd_list = separated_list(SCOLON, cmd_with_label_and_spec) {
 		List.rev 
 			(List.fold_left
 				(fun ac c ->
 					match c with
 			 		| (None, None) -> ac
-			 		| (Some lab, None) -> raise (Failure "Yeah, that's not going to work - a label with no command.")
 					| (olab, Some v) -> (olab, v) :: ac
+          | _, _ -> raise (Failure "Yeah, that's not going to work - a label with no command.")
 				)
 				[] 
 				cmd_list)
 	};
 
-cmd_with_label:
-	lab = option(label); cmd = cmd_target;
-		{ Printf.printf "l : %s\n" (match lab with | None -> "None" | Some lab -> lab); (lab, cmd)}
+cmd_with_label_and_spec:
+	spec = option(spec_line); lab = option(label); cmd = cmd_target;
+		{ (lab, cmd) }
 
 label: 
 	lab=VAR; COLON; 
@@ -322,7 +322,7 @@ pre_post_list_target:
 
 (* [[ .... ]] [[ .... ]] flag *)
 pre_post_target:
-	OSPEC; pre_assertion=assertion_target; CSPEC; OSPEC; post_assertion=assertion_target; CSPEC; ret_flag=ret_flag_target
+	pre_assertion = spec_line; post_assertion = spec_line; ret_flag=ret_flag_target
 	{
 		{
 			pre = pre_assertion;
@@ -330,6 +330,10 @@ pre_post_target:
 			ret_flag = ret_flag
 		}
 	};
+
+spec_line:
+  OSPEC; assertion=assertion_target; CSPEC
+	{ assertion }
 
 ret_flag_target: 
 	| NORMAL { Normal }
