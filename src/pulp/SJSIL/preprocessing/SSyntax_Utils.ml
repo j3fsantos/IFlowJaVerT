@@ -73,5 +73,42 @@ let get_proc_info proc =
 	(* get the variables defined in proc *)
 	let vars = get_proc_variables proc in 
 	nodes, vars, succ_table, pred_table, tree_table, parent_table, dfs_num_table_f, dfs_num_table_r, which_pred
-		
+	
+	(***** Desugar me silly *****)
+
+let desugar_labs (lproc : lprocedure) = 
+	let ln, lb, lp, lrl, lrv, lel, lev = lproc.lproc_name, lproc.lproc_body, lproc.lproc_params, lproc.lret_label, lproc.lret_var, lproc.lerror_label, lproc.lerror_var in
+	let nc = Array.length lb in
+	
+	let map_labels_to_numbers =
+		let mapping = Hashtbl.create nc in
+		for i = 0 to nc do
+			(match lb.(i) with
+			  | (Some str, _) -> Hashtbl.add mapping str i
+				| _ -> ()); 
+		done;
+		mapping in
+	
+	let convert_to_sjsil mapping = 
+		let cmds_nolab = Array.map (fun x -> (match x with | (_, cmd) -> cmd)) lb in
+		let cmds = Array.map (fun x -> 
+			match x with
+			| SLBasic cmd -> SBasic cmd
+			| SLGoto lab -> SGoto (Hashtbl.find mapping lab)
+			| SLGuardedGoto (e, lt, lf) -> SGuardedGoto (e, Hashtbl.find mapping lt, Hashtbl.find mapping lf)
+			| SLCall (x, e, le, ol) -> SCall (x, e, le, match ol with | None -> None | Some lab -> Some (Hashtbl.find mapping lab))
+			) cmds_nolab in
+		cmds, (Hashtbl.find mapping lrl), (match lel with | None -> None | Some lab -> Some (Hashtbl.find mapping lab)) in
+	
+	let mapping = map_labels_to_numbers in
+	let b, rl, el = convert_to_sjsil mapping in
+		{
+			proc_name = ln;
+    	proc_body = b;
+    	proc_params = lp; 
+			ret_label = rl; 
+			ret_var = lrv;
+			error_label = el; 
+			error_var = lev
+		}
 	 
