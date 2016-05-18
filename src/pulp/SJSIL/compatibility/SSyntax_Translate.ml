@@ -511,6 +511,7 @@ let jsil_to_sjsil_proc jsil_proc =
 			SSyntax.error_var = Some new_ex_var
 		}
 
+(* translating jsil to sjsil *)
 let jsil_to_sjsil_prog jsil_prog = 
 	let sjsil_prog = SSyntax.SProgram.create 80021 in
 	Pulp_Procedure.AllFunctions.iter
