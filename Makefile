@@ -3,7 +3,7 @@ default:
 	#ocamlbuild -use-ocamlfind src/pulp/interpreter/interpreter_run.d.byte
 	#ocamlbuild -use-ocamlfind src/pulp/interpreter/interpreter_run.native
 	#ocamlbuild -use-ocamlfind tests/test_interpreter.byte
-	#ocamlbuild -use-ocamlfind src/pulp/syntax/translate.byte
+	ocamlbuild -use-ocamlfind src/pulp/syntax/translate.byte
 	#ocamlbuild -use-ocamlfind tests/spec_Functions_Tests.byte
 	ocamlbuild -use-ocamlfind -verbose 1 src/pulp/SJSIL/SJSIL_Parser_main.byte
 
