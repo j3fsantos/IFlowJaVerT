@@ -1,6 +1,8 @@
 proc noUnreachableWithErrorToErrToRet (x) {
 			goto [x] here there;
-	here:	xret := 1;
+			[[ xret == 0 ]]
+	here:	xret := 1
+	        [[ xret == 1 ]];
 			goto rlab;
 	there:	xret := 2;
 	rlab:	skip

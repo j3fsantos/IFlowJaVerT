@@ -164,22 +164,22 @@ param_list_target:
 	param_list = separated_list(COMMA, VAR) { param_list };
 
 cmd_list_target: 
-	cmd_list = separated_list(SCOLON, cmd_with_label_and_spec) {
+	cmd_list = separated_list(SCOLON, cmd_with_label_and_specs) {
 		List.rev 
 			(List.fold_left
 				(fun ac c ->
 					match c with
-			 		| (None, None) -> ac
-					| (olab, Some v) -> (olab, v) :: ac
-          | _, _ -> raise (Failure "Yeah, that's not really going to work without a command.")
+			 		| (None, None, None, None) -> ac
+					| (pre, olab, Some v, post) -> (pre, olab, v, post) :: ac
+          | _, _, _, _ -> raise (Failure "Yeah, that's not really going to work without a command.")
 				)
 				[] 
 				cmd_list)
 	};
 
-cmd_with_label_and_spec:
-	spec = option(spec_line); lab = option(label); cmd = cmd_target;
-		{ (lab, cmd) }
+cmd_with_label_and_specs:
+	pre = option(spec_line); lab = option(label); cmd = cmd_target; post = option(spec_line)
+		{ (pre, lab, cmd, post) }
 
 label: 
 	lab=VAR; COLON; 

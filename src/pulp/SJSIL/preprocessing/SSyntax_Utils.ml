@@ -73,13 +73,13 @@ let desugar_labs (lproc : lprocedure) =
 		let mapping = Hashtbl.create nc in
 		for i = 0 to (nc - 1) do
 			(match lb.(i) with
-			  | (Some str, _) -> Hashtbl.add mapping str i
+			  | (_, Some str, _, _) -> Hashtbl.add mapping str i
 				| _ -> ()); 
 		done;
 		mapping in
 	
 	let convert_to_sjsil mapping = 
-		let cmds_nolab = Array.map (fun x -> (match x with | (_, cmd) -> cmd)) lb in
+		let cmds_nolab = Array.map (fun x -> (match x with | (_, _, cmd, _) -> cmd)) lb in
 		let cmds = Array.map (fun x -> 
 			match x with
 			| SLBasic cmd -> SBasic cmd
