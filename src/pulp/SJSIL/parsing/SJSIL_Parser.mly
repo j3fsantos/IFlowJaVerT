@@ -102,6 +102,9 @@ open SSyntax
 %token OSPEC
 %token CSPEC
 
+%nonassoc NOLABEL
+%nonassoc LABEL
+
 %type <(SSyntax.lprocedure list)> prog_target
 %type <(SSyntax.jsil_spec list)>  specs_target
 
@@ -169,21 +172,20 @@ cmd_list_target:
 			(List.fold_left
 				(fun ac c ->
 					match c with
-			 		| (None, None, None, None) -> ac
-					| (pre, olab, Some v, post) -> (pre, olab, v, post) :: ac
-          | _, _, _, _ -> raise (Failure "Yeah, that's not really going to work without a command.")
+			 		| (None, None, None) -> ac
+					| (pre, lab, Some v) -> (pre, lab, v) :: ac
+          | _, _, _ -> raise (Failure "Yeah, that's not really going to work without a command.")
 				)
 				[] 
 				cmd_list)
 	};
 
 cmd_with_label_and_specs:
-	pre = option(spec_line); lab = option(label); cmd = cmd_target; post = option(spec_line)
-		{ (pre, lab, cmd, post) }
-
-label: 
-	lab=VAR; COLON; 
-		{ Printf.printf "%s\n" lab; lab }
+  | pre = option(spec_line); cmd = cmd_target
+		{ (pre, None, cmd) }
+		
+	| pre = option(spec_line); lab = label; cmd = cmd_target; 
+		{ (pre, Some lab, cmd) }
 
 cmd_target: 
 (* skip *)
@@ -259,6 +261,10 @@ cmd_target:
 			Some (SSyntax.SLCall (v, e, es, oi))
 		}
 ;
+
+label: 
+	lab=VAR; COLON; 
+		{ Printf.printf "%s\n" lab; lab }
 
 expr_list_target: 
 	expr_list=separated_list(COMMA, expr_target) { expr_list }

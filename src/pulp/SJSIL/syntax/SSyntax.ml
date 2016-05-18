@@ -209,7 +209,7 @@ type jsil_lab_cmd =
 (* SJSIL procedures with string labels *)
 type lprocedure = { 
     lproc_name : string;
-    lproc_body : ((jsil_logic_assertion option * string option * jsil_lab_cmd * jsil_logic_assertion option) array);
+    lproc_body : ((jsil_logic_assertion option * string option * jsil_lab_cmd) array);
     lproc_params : jsil_var list; 
 		lret_label: string; 
 		lret_var: jsil_var;
