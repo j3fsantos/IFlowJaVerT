@@ -1,4 +1,4 @@
-open JSIL_Logic_Syntax 
+open SSyntax 
 open DynArray
 
 let fresh_variable =

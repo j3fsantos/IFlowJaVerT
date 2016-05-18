@@ -42,9 +42,11 @@ rule read = parse
 	| "spec"     					 { SJSIL_Parser.SPEC }
 	| "normal"             { SJSIL_Parser.NORMAL }
 	| "error"              { SJSIL_Parser.ERR }
+(*
 	| "pre"								 { SJSIL_Parser.PRE }
 	| "post"							 { SJSIL_Parser.POST }
 	| "flag"							 { SJSIL_Parser.FLAG }
+*)
 (* command keywords *)
 	| "goto"               { SJSIL_Parser.GOTO }
   | "skip"               { SJSIL_Parser.SKIP }

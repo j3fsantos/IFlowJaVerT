@@ -1,6 +1,5 @@
 %{
 open SSyntax 
-open JSIL_Logic_Syntax
 %}
 
 (* procedures *) 
@@ -9,9 +8,6 @@ open JSIL_Logic_Syntax
 %token ERR
 %token SPEC
 %token NORMAL
-%token PRE
-%token POST
-%token FLAG
 (*literals*)
 %token <string> LVAR
 %token <string> VAR
@@ -106,8 +102,8 @@ open JSIL_Logic_Syntax
 %token OSPEC
 %token CSPEC
 
-%type <(SSyntax.lprocedure list)>          prog_target
-%type <(JSIL_Logic_Syntax.jsil_spec list)> specs_target
+%type <(SSyntax.lprocedure list)> prog_target
+%type <(SSyntax.jsil_spec list)>  specs_target
 
 (* main target <(SSyntax.lprocedure list)> *) 
 %start prog_target specs_target
@@ -175,7 +171,7 @@ cmd_list_target:
 					match c with
 			 		| (None, None) -> ac
 					| (olab, Some v) -> (olab, v) :: ac
-          | _, _ -> raise (Failure "Yeah, that's not going to work - a label with no command.")
+          | _, _ -> raise (Failure "Yeah, that's not really going to work without a command.")
 				)
 				[] 
 				cmd_list)
