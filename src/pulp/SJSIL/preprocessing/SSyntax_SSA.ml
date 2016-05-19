@@ -89,7 +89,7 @@ let rec rewrite_expr_ssa (expr : jsil_expr) var_stacks rename_var  =
 		let var_stack = SSyntax_Aux.try_find var_stacks var in 
 		(match var_stack with 
 		| Some (i :: lst) -> Var (rename_var var i)
-		| _ -> raise (Failure ("Variable " ^ (Printf.sprintf("%s") var) ^ " not found in stack table during ssa transformation")))
+		| _ -> raise (Failure ("RE: Variable " ^ (Printf.sprintf("%s") var) ^ " not found in stack table during ssa transformation")))
  	| BinOp (e1, binop, e2) ->
 		let new_e1 = rewrite_expr_ssa e1 var_stacks rename_var in 
 		let new_e2 = rewrite_expr_ssa e2 var_stacks rename_var in 
@@ -121,7 +121,7 @@ let rec rewrite_logic_expression (lexpr : jsil_logic_expr) var_stacks rename_var
 		let var_stack = SSyntax_Aux.try_find var_stacks var in 
 		(match var_stack with 
 		| Some (i :: lst) -> PVar (rename_var var i)
-		| _ -> raise (Failure ("Variable " ^ (Printf.sprintf("%s") var) ^ " not found in stack table during ssa spec transformation")))
+		| _ -> raise (Failure ("RLE: Variable " ^ (Printf.sprintf("%s") var) ^ " not found in stack table during ssa transformation")))
 	| LBinOp (lexpr1, binop, lexpr2) -> LBinOp	((rewrite_logic_expression lexpr1 var_stacks rename_var), binop, (rewrite_logic_expression lexpr2 var_stacks rename_var))
 	| LUnOp	(unop, lexpr1) ->	LUnOp (unop, rewrite_logic_expression lexpr1 var_stacks rename_var)
 	| LEVRef (lexpr1, lexpr2) -> LEVRef	((rewrite_logic_expression lexpr1 var_stacks rename_var), (rewrite_logic_expression lexpr2 var_stacks rename_var))
@@ -132,11 +132,7 @@ let rec rewrite_logic_expression (lexpr : jsil_logic_expr) var_stacks rename_var
 	| LCons (lexpr1, lexpr2) -> LCons	((rewrite_logic_expression lexpr1 var_stacks rename_var), (rewrite_logic_expression lexpr2 var_stacks rename_var))
 	| x -> x)
 		
-let rewrite_option_logic_assertion (olass : jsil_logic_assertion option) var_stacks rename_var = 
-	match olass with
-	| None -> None
-	| Some lass -> 
-		let rec rewrite_logic_assertion lass var_stacks rename_var= 
+let rec rewrite_logic_assertion lass var_stacks rename_var = 
 	  (match lass with
 	   | LAnd	(lass1, lass2) -> LAnd ((rewrite_logic_assertion lass1 var_stacks rename_var), (rewrite_logic_assertion lass2 var_stacks rename_var))
 	   | LOr (lass1, lass2) ->	LOr ((rewrite_logic_assertion lass1 var_stacks rename_var), (rewrite_logic_assertion lass2 var_stacks rename_var))
@@ -150,7 +146,12 @@ let rewrite_option_logic_assertion (olass : jsil_logic_assertion option) var_sta
 	   | LTrue -> LTrue
 	   | LFalse -> LFalse
 	   | LEmp -> LEmp
-		) in Some (rewrite_logic_assertion lass var_stacks rename_var)
+		)	
+
+let rewrite_option_logic_assertion (olass : jsil_logic_assertion option) var_stacks rename_var = 
+	match olass with
+	| None -> None
+	| Some lass -> Some (rewrite_logic_assertion lass var_stacks rename_var)
 
 let rewrite_non_assignment_ssa cmd var_stacks rename_var = 
 	match cmd with 
@@ -203,7 +204,8 @@ let print_phi_functions_per_node phi_functions_per_node =
 	
 	loop 0 str
 
-let insert_phi_args args vars cmds succ pred idom_table idom_graph phi_functions_per_node which_pred = 
+let insert_phi_args args vars cmds (spec : jsil_spec option) (rvar : string) (evar : string option) 
+                    (ret_lab : int) (err_lab : int option) succ pred idom_table idom_graph phi_functions_per_node which_pred = 
 	
 	let var_counters : (string, int) Hashtbl.t  = Hashtbl.create 1021 in 
 	let var_stacks :  (string, int list) Hashtbl.t = Hashtbl.create 1021 in 
@@ -211,6 +213,18 @@ let insert_phi_args args vars cmds succ pred idom_table idom_graph phi_functions
 	let number_of_nodes = Array.length succ in
 	let new_cmds = Array.make number_of_nodes (None, SBasic SSkip) in 
 	let new_phi_functions_per_node = Array.make number_of_nodes [] in 
+	
+	let new_ret_var = ref rvar in
+	let new_err_var = ref (match evar with | None -> "" | Some evar -> evar) in
+	
+	let spec_len = 
+		(match spec with
+		| None -> 0
+		| Some spec -> List.length spec.proc_specs) in
+	
+	let new_pres  = Array.make spec_len (LTrue) in
+	let new_posts = Array.make spec_len (LTrue) in
+	let flags     = Array.make spec_len Normal in
 	
 	(if (!verbose_ssa) 
 		then
@@ -230,6 +244,7 @@ let insert_phi_args args vars cmds succ pred idom_table idom_graph phi_functions
 			Hashtbl.add var_stacks var [ 0 ])
 		args;
 	
+	
 	for u = 0 to number_of_nodes - 1 do
 		let u_number_of_pred = (List.length pred.(u)) in 
 		let u_phi_functions = phi_functions_per_node.(u) in 
@@ -238,9 +253,33 @@ let insert_phi_args args vars cmds succ pred idom_table idom_graph phi_functions
 				(fun v -> v, (Array.make u_number_of_pred (-1)), v)
 		 		u_phi_functions) in 
 		new_phi_functions_per_node.(u) <- new_u_phi_functions
-	done; 
+	done;
+
+	(* split specs into pre, post, normal *)
+	
+  if (!verbose_ssa) then
+		Printf.printf "Rewriting pre-conditions.\n";
+	
+	(match spec with
+	| None -> ()
+	| Some spec ->
+		let specs_array = Array.of_list spec.proc_specs in
+		for u = 0 to (spec_len - 1) do
+			new_pres.(u) <- (rewrite_logic_assertion specs_array.(u).pre var_stacks rename_var);
+			new_posts.(u) <- specs_array.(u).post;
+			flags.(u) <- specs_array.(u).ret_flag;
+		done);
+	
+	 if (!verbose_ssa) then
+		Printf.printf "Finished rewriting pre-conditions.\n";
+	
+	let new_params = 
+		match spec with
+		| None -> []
+		| Some spec -> rename_params spec.spec_params in
 
 	let rec ipa_rec u = 
+		
  		let cmd = cmds.(u) in 
 		
 		let rec loop phi_nodes processed_phi_nodes = 
@@ -334,7 +373,35 @@ let insert_phi_args args vars cmds succ pred idom_table idom_graph phi_functions
 		
 		| cmd -> rewrite_non_assignment_ssa cmd var_stacks rename_var) in 
 		new_cmds.(u) <- (new_spec, new_ass);
+		
+		if (u = ret_lab) then
+			begin
+  			new_ret_var := (let var_stack = SSyntax_Aux.try_find var_stacks !new_ret_var in
+  		    (match var_stack with 
+  		      | Some (i :: lst) -> (rename_var !new_ret_var i)
+  		      | _ -> raise (Failure ("Return label: Variable " ^ (Printf.sprintf("%s") !new_ret_var) ^ " not found in stack table during ssa transformation"))));
+  			for k = 0 to (spec_len - 1) do
+  				if (flags.(k) = Normal) then
+  					new_posts.(k) <- (rewrite_logic_assertion new_posts.(k) var_stacks rename_var);
+  			done;
+			end;
+
+		(match err_lab with
+		| None -> ()
+		| Some err_lab -> 
+	  	if (u = err_lab) then
+			begin
+  			new_err_var := (let var_stack = SSyntax_Aux.try_find var_stacks !new_err_var in
+  		    (match var_stack with 
+  		      | Some (i :: lst) -> (rename_var !new_err_var i)
+  		      | _ -> raise (Failure ("Error label: Variable " ^ (Printf.sprintf("%s") !new_ret_var) ^ " not found in stack table during ssa transformation"))));
+  			for k = 0 to (spec_len - 1) do
+  				if (flags.(k) = Error) then
+  					new_posts.(k) <- (rewrite_logic_assertion new_posts.(k) var_stacks rename_var);
+  			done;
+			end);
 			
+
 		(if (!verbose_ssa) then Printf.printf "Finished processing the lhs for the node %d!\n" u else ());
 		
  		let u_successors = succ.(u) in
@@ -380,7 +447,7 @@ let insert_phi_args args vars cmds succ pred idom_table idom_graph phi_functions
  			| Some (hd :: rest_stack)  ->
  				Hashtbl.replace var_stacks var rest_stack; 
 			| _ ->
-				let err_msg = Printf.sprintf "Variable %s not found in stack table during ssa transformation.\n" var in 
+				let err_msg = Printf.sprintf "Not sure where: Variable %s not found in stack table during ssa transformation.\n" var in 
 				raise (Failure err_msg))
 		| _ -> ()); 
 		
@@ -401,7 +468,32 @@ let insert_phi_args args vars cmds succ pred idom_table idom_graph phi_functions
 		loop phi_nodes_for_u in 
 			
 	ipa_rec 0; 
-	new_phi_functions_per_node, var_counters, new_cmds
+
+	let new_spec : jsil_spec option =
+	(match spec with
+	| None -> None
+	| Some spec -> Some
+		{
+			spec_name = spec.spec_name;
+			spec_params = new_params;
+			proc_specs =
+				let new_specs = Array.make spec_len 
+					{ 
+						pre = LTrue;
+						post = LTrue;
+						ret_flag = Normal;
+					} in 
+				for u = 0 to (spec_len - 1) do
+					new_specs.(u) <- 
+						{
+							pre = new_pres.(u);
+							post = new_posts.(u);
+							ret_flag = flags.(u);
+						}
+				done;
+				(Array.to_list new_specs)
+		}) in
+	new_phi_functions_per_node, var_counters, new_cmds, new_spec, !new_ret_var, !new_err_var
  	
 	
 let create_phi_assignment var v_args old_var = 
@@ -422,7 +514,7 @@ let adjust_goto cmd displacements =
 	| x -> x) in
 	(spec, new_command)
 
-let insert_phi_nodes proc phi_functions_per_node (nodes : (jsil_logic_assertion option * jsil_cmd) array) var_counters = 
+let insert_phi_nodes proc phi_functions_per_node (nodes : (jsil_logic_assertion option * jsil_cmd) array) new_spec new_ret_var new_err_var var_counters = 
 	
 	let number_of_nodes : int = Array.length nodes in 
 	let phi_assignments_per_node : ((jsil_logic_assertion option * jsil_cmd) list) array = Array.make	number_of_nodes [] in 
@@ -461,29 +553,16 @@ let insert_phi_nodes proc phi_functions_per_node (nodes : (jsil_logic_assertion 
 	
 	let ret_label = proc.ret_label in 
 	let new_ret_label = proc.ret_label + jump_displacements.(ret_label) + (List.length (phi_assignments_per_node.(ret_label))) in 
-	let ret_var = proc.ret_var in 
-	let ret_var_index = 
-		(match SSyntax_Aux.try_find var_counters ret_var with 
-		| None -> raise (Failure "Return variable index not found in SSA")
-		| Some i -> i - 1) in  
-	let new_ret_var = rename_var ret_var ret_var_index in 
 	
 	let error_label, error_var = proc.error_label, proc.error_var in
-	let new_error_label, new_error_var = 
-		(match error_label, error_var with
-		 | None, None -> None, None
-		 | Some lab, Some var -> Some (lab + jump_displacements.(lab) + (List.length (phi_assignments_per_node.(lab)))), Some var
-		 | _, _ -> raise (Failure "Error variable and error label not both present or both absent!")) in
+	let new_error_label = 
+		(match error_label with
+		 | None -> None
+		 | Some lab -> Some (lab + jump_displacements.(lab) + (List.length (phi_assignments_per_node.(lab))))) in
 	let new_error_var = 
-		(match new_error_var with
-		  | None -> None
-			| Some var -> 
-					let error_var_index = 
-						(match SSyntax_Aux.try_find var_counters var with 
-						  | None -> raise (Failure "Error variable index not found in ssa")
-							| Some i -> i - 1) in 
-					let new_error_var = rename_var var error_var_index in
-						Some new_error_var) in
+		(match new_err_var with
+		  | "" -> None
+			| x -> Some x) in
 	{ 
 		proc_name = proc.proc_name; 
 		proc_body = new_cmds; 
@@ -492,7 +571,7 @@ let insert_phi_nodes proc phi_functions_per_node (nodes : (jsil_logic_assertion 
 		ret_var = new_ret_var; 
 		error_label = new_error_label; 
 		error_var = new_error_var;
-		spec = proc.spec;
+		spec = new_spec;
 	}
  
 
@@ -506,10 +585,10 @@ let ssa_compile proc (vars : string list) (nodes : (jsil_logic_assertion option 
 	(* compute which nodes need phi variables *)
 	let phi_functions_per_node_init = insert_phi_functions nodes dominance_frontiers number_of_nodes in 
 	(* compute the arguments of the phi nodes and rewrite all the nodes *)
-	let phi_functions_per_node, var_counters, new_cmds = insert_phi_args 
-			args vars nodes succ_table pred_table dom_table rev_dom_table phi_functions_per_node_init which_pred in
+	let phi_functions_per_node, var_counters, new_cmds, new_spec, new_ret_var, new_err_var = insert_phi_args 
+			args vars nodes proc.spec proc.ret_var proc.error_var proc.ret_label proc.error_label succ_table pred_table dom_table rev_dom_table phi_functions_per_node_init which_pred in
 	(* insert the phi nodes in the program *)
-	let new_proc = insert_phi_nodes proc phi_functions_per_node new_cmds var_counters in
+	let new_proc = insert_phi_nodes proc phi_functions_per_node new_cmds new_spec new_ret_var new_err_var var_counters in
 	rev_dom_table, dominance_frontiers, phi_functions_per_node_init, new_proc
 
 				

@@ -1,25 +1,30 @@
 spec test_proc (x)
-  [[ ((x, "foo") -> "bar") * ((x, "baz") -> y + 1) * (y == _w + 3) ]]
-  [[ ((x, "foo") -> none)  * ((x, "baz") -> _w) ]]
+  [[ ~ x <== 2 ]]
+  [[ (~ x <== 4)  * ( xret <== 5 ) ]]
   normal;
   
-  [[ ((x, "foo") -> "googoo") * ((x, "baz")  -> y + 1) * (y == _w + 3) ]]
-  [[ ((x, "foo") -> none)     * ((x, "gaga") -> _w) ]]
-  normal
+  [[ ~ x <== 1 ]]
+  [[ (~ x <== 7)  * ( xret <== 4 ) ]]
+  error
   
 proc test_proc (x) {
 			xret := 0;
-			goto [x] here there;
+			goto [x <= 5] here there;
 			[[ xret == 0 ]]
 	here:	xret := 1;
-			goto rlab;
+			x := 5;
 			[[ xret == 0 ]]
+	rlab:	skip;
 	there:	xret := 2;
-			[[ xret == 2 ]]
+			x := 3;
+			[[ (xret == 2) * (x == 3)]]
 			xret := xret + 5;
-	rlab:	skip
+			[[ ~ xret <== 2 ]] 
+			goto [x] rlab elab;
+	elab: 	skip
 }
 with
 {
 	ret: xret, rlab;
+	err: x, elab;
 }
