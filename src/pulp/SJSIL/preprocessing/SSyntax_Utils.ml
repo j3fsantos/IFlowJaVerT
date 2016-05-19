@@ -45,7 +45,9 @@ let get_proc_info proc =
 
 let desugar_labs (lproc : lprocedure) = 
 	
-	let ln, lb, lp, lrl, lrv, lel, lev, lspec = lproc.lproc_name, lproc.lproc_body, lproc.lproc_params, lproc.lret_label, lproc.lret_var, lproc.lerror_label, lproc.lerror_var, lproc.lspec in
+	let ln,               lb,               lp,                 lrl,              lrv,            lel,                lev,              lspec = 
+		  lproc.lproc_name, lproc.lproc_body, lproc.lproc_params, lproc.lret_label, lproc.lret_var, lproc.lerror_label, lproc.lerror_var, lproc.lspec in
+			
 	let nc = Array.length lb in
 	
 	let map_labels_to_numbers =
@@ -82,7 +84,7 @@ let desugar_labs (lproc : lprocedure) =
 			ret_var = lrv;
 			error_label = el; 
 			error_var = lev;
-			spec = lspec
+			spec = lspec;
 		} in
 	Printf.printf "%s" (SSyntax_Print.string_of_procedure proc false);
 	proc

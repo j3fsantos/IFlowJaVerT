@@ -20,7 +20,7 @@ proc test_proc (x) {
 			[[ (xret == 2) * (x == 3)]]
 			xret := xret + 5;
 			[[ ~ xret <== 2 ]] 
-			goto [x] rlab elab;
+			goto rlab;
 	elab: 	skip
 }
 with

@@ -196,7 +196,7 @@ let remove_unreachable_code proc throw =
 	(match lerr with
 	| None -> (Printf.printf "\t WARNING: Error label does not exist!\n") 
 	| Some lerr -> if (not visited.(lerr))
-									then (Printf.printf "\t WARNING: Error label is unreachable and will be removed!\n"));
+									then (Printf.printf "\t WARNING: Error label is unreachable and will be removed, along with the corresponding specs!\n"));
 	
 	(if (!graph_verbose) then Printf.printf "\t Adjusting line numbers. \n" else ());
 	
@@ -232,6 +232,28 @@ let remove_unreachable_code proc throw =
 	
 	(if (!graph_verbose) then Printf.printf "\t Returning adjusted procedure. \n" else ());
 	
+	let new_spec = 
+	let lspec = proc.spec in
+		(match lspec with
+		| None -> None
+		| Some lspec -> Some
+    {
+  		spec_name = lspec.spec_name;
+      spec_params = lspec.spec_params; 
+  		proc_specs =
+  			let specs = lspec.proc_specs in
+  			(match lerr with 
+  				| Some _ -> specs
+  				| None -> let rec loop lspec = 
+  									(match lspec with
+  									| [] -> []
+  									| spec :: lspec -> 
+  											if (spec.ret_flag = Error) 
+  												then (loop lspec)
+  												else (spec :: loop lspec)) in
+  									loop specs)
+		}) in
+	
 	(* Return adjusted procedure *)
 	{ 
     SSyntax.proc_name   = proc.proc_name;
@@ -245,7 +267,7 @@ let remove_unreachable_code proc throw =
 		SSyntax.error_var   = (match lerr with
 		                        | None -> None 
 														| Some lerr -> proc.error_var);
-		SSyntax.spec = proc.spec;
+		SSyntax.spec = new_spec;
 	}
 
 
