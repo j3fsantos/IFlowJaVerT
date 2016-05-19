@@ -3,7 +3,6 @@ open Lexing
 open SSyntax
 open SSyntax_Utils_Graphs
 open SJSIL_Interpreter
-open JSIL_Logic_Syntax
 open JSIL_Logic_Normalise
 
 let file = ref ""

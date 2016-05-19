@@ -114,8 +114,14 @@ let rec rewrite_expr_ssa (expr : jsil_expr) var_stacks rename_var  =
 	| TypeOf e1 -> 
 		let new_e1 = rewrite_expr_ssa e1 var_stacks rename_var in
 		TypeOf (new_e1)
-		
-let rewrite_assertion (spec : jsil_logic_assertion option) var_stacks rename_var = spec 
+	
+let rewrite_assertion (oass : jsil_logic_assertion option) var_stacks rename_var = 
+	match oass with
+	| None -> None
+	| Some ass -> Some 
+	  (match ass with
+		| _ -> ass
+		)
 
 let rewrite_non_assignment_ssa cmd var_stacks rename_var = 
 	match cmd with 
