@@ -217,14 +217,59 @@ let rec sexpr_of_cmd sjsil_cmd tabs i line_numbers_on =
 		| _ -> String.concat " " (List.map sexpr_of_expression arg_expr_list) in 
 			str_tabs ^  Printf.sprintf "'(%scall %s %s (%s) %s)" str_i var proc_name_expr_str arg_expr_list_str error_lab
 
-let string_of_spec spec = ""
+let sexpr_of_params fparams =
+	match fparams with
+	| [] -> ""
+	| param :: rest ->
+  	List.fold_left 
+  		(fun prev_params param -> prev_params ^ " '" ^ param)  (" '" ^ param) rest
+
+let string_of_params fparams =
+	match fparams with
+	| [] -> ""
+	| param :: rest ->
+  	List.fold_left 
+  		(fun prev_params param -> prev_params ^ ", " ^ param) param rest
+
+let rec string_of_lexpression lexpr escape_string = 
+	(match lexpr with
+	| LLit l -> string_of_literal l escape_string
+	| LNone -> "none"
+	| LListEmpty -> "[]"
+	| LVar var -> var	
+	| LLVar var -> var
+	| PVar var -> var
+	| LBinOp (lexpr1, binop, lexpr2) -> (string_of_lexpression lexpr1 escape_string) ^ " " ^ (string_of_binop binop) ^ " " ^ (string_of_lexpression lexpr2 escape_string)
+	| LUnOp (unop, lexpr1) -> (string_of_unop unop) ^ " " ^ (string_of_lexpression lexpr1 escape_string)
+	| LEVRef (lexpr1, lexpr2) -> "v-ref(" ^ (string_of_lexpression lexpr1 escape_string) ^ ", " ^ (string_of_lexpression lexpr2 escape_string) ^ ")"
+	| LEORef (lexpr1, lexpr2) -> "o-ref(" ^ (string_of_lexpression lexpr1 escape_string) ^ ", " ^ (string_of_lexpression lexpr2 escape_string) ^ ")"
+	| LBase lexpr1 -> "base(" ^ (string_of_lexpression lexpr1 escape_string) ^ ")"
+	| LField lexpr1 -> "field(" ^ (string_of_lexpression lexpr1 escape_string) ^ ")"
+	| LTypeOf lexpr1 -> "typeOf(" ^ (string_of_lexpression lexpr1 escape_string) ^ ")"
+	| LCons (lexpr1, lexpr2) -> (string_of_lexpression lexpr1 escape_string) ^ " :: " ^ (string_of_lexpression lexpr1 escape_string)
+	)
+	
+let rec string_of_assertion lass escape_string = 
+	  (match lass with
+	   | LAnd	(lass1, lass2) -> (string_of_assertion lass1 escape_string) ^ " /\\ " ^ (string_of_assertion lass2 escape_string)
+	   | LOr (lass1, lass2) ->	(string_of_assertion lass1 escape_string) ^ " \\/ " ^ (string_of_assertion lass2 escape_string)
+	   | LNot	lass1 -> "~ " ^ (string_of_assertion lass1 escape_string)
+	   | LStar (lass1, lass2) -> "(" ^ (string_of_assertion lass1 escape_string) ^ ") * (" ^ (string_of_assertion lass2 escape_string) ^ ")"
+	   | LExists (lvl, lass1) -> "exists " ^ (string_of_params lvl) ^ (string_of_assertion lass1 escape_string)
+	   | LForAll (lvl, lass1) -> "forall " ^ (string_of_params lvl) ^ (string_of_assertion lass1 escape_string)
+	   | LEq (lexpr1, lexpr2) -> (string_of_lexpression lexpr1 escape_string) ^ " == " ^ (string_of_lexpression lexpr2 escape_string)
+	   | LLessEq (lexpr1, lexpr2) -> (string_of_lexpression lexpr1 escape_string) ^ " <== " ^ (string_of_lexpression lexpr2 escape_string)
+	   | LPointsTo (lexpr1, lexpr2, lexpr3) -> "(" ^ (string_of_lexpression lexpr1 escape_string) ^ ", " ^ (string_of_lexpression lexpr2 escape_string) ^ ") -> " ^ (string_of_lexpression lexpr3 escape_string)
+	   | LTrue -> "true"
+	   | LFalse -> "false"
+	   | LEmp -> "emp")
 
 let rec string_of_cmd sjsil_cmd tabs i line_numbers_on escape_string =
-	let spec, sjsil_cmd = sjsil_cmd in 
+	let ass, sjsil_cmd = sjsil_cmd in 
 	let str_i = if line_numbers_on then (string_of_int i) ^ " " else "" in
 	let str_tabs = tabs_to_str tabs in  
-	let str_spec = string_of_spec spec in
-	str_spec ^ 
+	let str_ass = (match ass with | None -> "" | Some ass -> "\t\t[[" ^ string_of_assertion ass escape_string ^ "]]\n") in
+	str_ass ^ 
   (match sjsil_cmd with
 	(* goto j *) 
   | SGoto j -> 
@@ -247,20 +292,6 @@ let rec string_of_cmd sjsil_cmd tabs i line_numbers_on escape_string =
 		|	[] -> ""
 		| _ -> String.concat ", " (List.map se arg_expr_list) in 
 			str_tabs ^  Printf.sprintf "%s%s := %s(%s) %s" str_i var proc_name_expr_str arg_expr_list_str error_lab)
-
-let sexpr_of_params fparams =
-	match fparams with
-	| [] -> ""
-	| param :: rest ->
-  	List.fold_left 
-  		(fun prev_params param -> prev_params ^ " '" ^ param)  (" '" ^ param) rest
-
-let string_of_params fparams =
-	match fparams with
-	| [] -> ""
-	| param :: rest ->
-  	List.fold_left 
-  		(fun prev_params param -> prev_params ^ ", " ^ param) param rest
 
 let serialize_cmd_arr cmds tabs line_numbers serialize_cmd =
 	let number_of_cmds = Array.length cmds in 
@@ -300,8 +331,28 @@ let sexpr_of_procedure proc line_numbers =
 		| _, _ -> raise (Failure "Error variable and error label not both present or both absent!"))
 
 
+let rec string_of_specs (specs : jsil_single_spec list) = 
+	match specs with
+	| [] -> ""
+	| spec :: specs -> 
+		"\t[[" ^ string_of_assertion spec.pre false ^ "]]\n" ^ 
+		"\t[[" ^ string_of_assertion spec.post false ^ "]]\n" ^ 
+		"\t" ^ (match spec.ret_flag with
+		| Normal -> "normal"
+		| Error -> "error") ^
+		(match specs with
+		| [] -> ""
+		| _ -> "; ") ^ "\n" ^
+		string_of_specs specs
+
+
 (*
-  proc xpto (arg1, arg2, ...) { 
+  spec xpto (arg1, arg2, ...)
+	  [[ ... ]]
+		[[ ... ]]
+		normal|error;
+		...
+	proc xpto (arg1, arg2, ...) { 
 		cmds
 	} with {
 		ret: x_ret, i_ret;
@@ -309,7 +360,13 @@ let sexpr_of_procedure proc line_numbers =
 	}
 *)
 let string_of_procedure proc line_numbers =			
-	Printf.sprintf "proc %s (%s) { \n %s \n} with { \n\t ret: %s, %s; \n%s}\n" 
+	(match proc.spec with
+	| None -> ""
+	| Some spec ->
+		Printf.sprintf "spec %s (%s) \n %s \n" spec.spec_name (string_of_params spec.spec_params) (string_of_specs spec.proc_specs)
+	)
+	^
+	(Printf.sprintf "proc %s (%s) { \n %s \n} with { \n\t ret: %s, %s; \n%s}\n" 
   	proc.proc_name 
    	(string_of_params proc.proc_params) 
 		(string_of_cmd_arr proc.proc_body 2 line_numbers)
@@ -318,7 +375,7 @@ let string_of_procedure proc line_numbers =
 		(match proc.error_var, proc.error_label with
 		| None, None -> "" 
 		| Some var, Some label -> (Printf.sprintf "\t err: %s, %s; \n" var (string_of_int label))
-		| _, _ -> raise (Failure "Error variable and error label not both present or both absent!"))
+		| _, _ -> raise (Failure "Error variable and error label not both present or both absent!")))
 
 let sexpr_of_program program line_numbers = 
 	SSyntax.SProgram.fold 

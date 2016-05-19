@@ -13,8 +13,10 @@ proc test_proc (x) {
 			[[ xret == 0 ]]
 	here:	xret := 1;
 			goto rlab;
+			[[ xret == 0 ]]
 	there:	xret := 2;
-			xret := 5;
+			[[ xret == 2 ]]
+			xret := xret + 5;
 	rlab:	skip
 }
 with

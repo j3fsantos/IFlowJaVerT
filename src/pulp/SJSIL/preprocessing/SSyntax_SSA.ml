@@ -114,14 +114,43 @@ let rec rewrite_expr_ssa (expr : jsil_expr) var_stacks rename_var  =
 	| TypeOf e1 -> 
 		let new_e1 = rewrite_expr_ssa e1 var_stacks rename_var in
 		TypeOf (new_e1)
-	
-let rewrite_assertion (oass : jsil_logic_assertion option) var_stacks rename_var = 
-	match oass with
+
+let rec rewrite_logic_expression (lexpr : jsil_logic_expr) var_stacks rename_var = 
+	(match lexpr with
+	| PVar var ->
+		let var_stack = SSyntax_Aux.try_find var_stacks var in 
+		(match var_stack with 
+		| Some (i :: lst) -> PVar (rename_var var i)
+		| _ -> raise (Failure ("Variable " ^ (Printf.sprintf("%s") var) ^ " not found in stack table during ssa spec transformation")))
+	| LBinOp (lexpr1, binop, lexpr2) -> LBinOp	((rewrite_logic_expression lexpr1 var_stacks rename_var), binop, (rewrite_logic_expression lexpr2 var_stacks rename_var))
+	| LUnOp	(unop, lexpr1) ->	LUnOp (unop, rewrite_logic_expression lexpr1 var_stacks rename_var)
+	| LEVRef (lexpr1, lexpr2) -> LEVRef	((rewrite_logic_expression lexpr1 var_stacks rename_var), (rewrite_logic_expression lexpr2 var_stacks rename_var))
+	| LEORef (lexpr1, lexpr2) -> LEORef	((rewrite_logic_expression lexpr1 var_stacks rename_var), (rewrite_logic_expression lexpr2 var_stacks rename_var))
+	| LBase	lexpr -> LBase (rewrite_logic_expression lexpr var_stacks rename_var)
+	| LField lexpr -> LField (rewrite_logic_expression lexpr var_stacks rename_var)
+	| LTypeOf lexpr	-> LTypeOf (rewrite_logic_expression lexpr var_stacks rename_var)
+	| LCons (lexpr1, lexpr2) -> LCons	((rewrite_logic_expression lexpr1 var_stacks rename_var), (rewrite_logic_expression lexpr2 var_stacks rename_var))
+	| x -> x)
+		
+let rewrite_option_logic_assertion (olass : jsil_logic_assertion option) var_stacks rename_var = 
+	match olass with
 	| None -> None
-	| Some ass -> Some 
-	  (match ass with
-		| _ -> ass
-		)
+	| Some lass -> 
+		let rec rewrite_logic_assertion lass var_stacks rename_var= 
+	  (match lass with
+	   | LAnd	(lass1, lass2) -> LAnd ((rewrite_logic_assertion lass1 var_stacks rename_var), (rewrite_logic_assertion lass2 var_stacks rename_var))
+	   | LOr (lass1, lass2) ->	LOr ((rewrite_logic_assertion lass1 var_stacks rename_var), (rewrite_logic_assertion lass2 var_stacks rename_var))
+	   | LNot	lass1 -> LNot (rewrite_logic_assertion lass1 var_stacks rename_var)
+	   | LStar (lass1, lass2) ->	LStar ((rewrite_logic_assertion lass1 var_stacks rename_var), (rewrite_logic_assertion lass2 var_stacks rename_var))
+	   | LExists (lvl, lass1) -> LExists (lvl, (rewrite_logic_assertion lass1 var_stacks rename_var))
+	   | LForAll (lvl, lass1) ->	LForAll (lvl, (rewrite_logic_assertion lass1 var_stacks rename_var))
+	   | LEq (lexpr1, lexpr2) -> LEq ((rewrite_logic_expression lexpr1 var_stacks rename_var), (rewrite_logic_expression lexpr2 var_stacks rename_var))	
+	   | LLessEq (lexpr1, lexpr2) -> LLessEq ((rewrite_logic_expression lexpr1 var_stacks rename_var), (rewrite_logic_expression lexpr2 var_stacks rename_var))
+	   | LPointsTo (lexpr1, lexpr2, lexpr3) -> LPointsTo ((rewrite_logic_expression lexpr1 var_stacks rename_var), (rewrite_logic_expression lexpr2 var_stacks rename_var), (rewrite_logic_expression lexpr3 var_stacks rename_var))
+	   | LTrue -> LTrue
+	   | LFalse -> LFalse
+	   | LEmp -> LEmp
+		) in Some (rewrite_logic_assertion lass var_stacks rename_var)
 
 let rewrite_non_assignment_ssa cmd var_stacks rename_var = 
 	match cmd with 
@@ -260,7 +289,7 @@ let insert_phi_args args vars cmds succ pred idom_table idom_graph phi_functions
 				raise (Failure err_msg)) in
 		
 		let spec, command = cmd in
-		let new_spec = rewrite_assertion spec var_stacks rename_var in
+		let new_spec = rewrite_option_logic_assertion spec var_stacks rename_var in
  		let new_ass = (match command with 
  		| SBasic (SAssignment (var, expr)) -> 
  			let new_expr : jsil_expr = rewrite_expr_ssa expr var_stacks rename_var in
