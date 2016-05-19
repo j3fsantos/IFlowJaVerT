@@ -1,10 +1,20 @@
-proc noUnreachableWithErrorToErrToRet (x) {
+spec test_proc (x)
+  [[ ((x, "foo") -> "bar") * ((x, "baz") -> y + 1) * (y == _w + 3) ]]
+  [[ ((x, "foo") -> none)  * ((x, "baz") -> _w) ]]
+  normal;
+  
+  [[ ((x, "foo") -> "googoo") * ((x, "baz")  -> y + 1) * (y == _w + 3) ]]
+  [[ ((x, "foo") -> none)     * ((x, "gaga") -> _w) ]]
+  normal
+  
+proc test_proc (x) {
 			xret := 0;
 			goto [x] here there;
 			[[ xret == 0 ]]
 	here:	xret := 1;
 			goto rlab;
 	there:	xret := 2;
+			xret := 5;
 	rlab:	skip
 }
 with

@@ -503,12 +503,13 @@ let jsil_to_sjsil_proc jsil_proc =
 	
 		{ 
     	SSyntax.proc_name = jsil_proc.func_name;
-    	SSyntax.proc_body = Array.of_list sjsil_body;
+    	SSyntax.proc_body = Array.of_list (List.map (fun x -> (None, x)) sjsil_body);
     	SSyntax.proc_params = new_params; 
 			SSyntax.ret_label = new_ret_label;
 			SSyntax.ret_var = new_ret_var;
 			SSyntax.error_label = Some new_ex_label;
-			SSyntax.error_var = Some new_ex_var
+			SSyntax.error_var = Some new_ex_var;
+			SSyntax.spec = None;
 		}
 
 let jsil_to_sjsil_prog jsil_prog = 

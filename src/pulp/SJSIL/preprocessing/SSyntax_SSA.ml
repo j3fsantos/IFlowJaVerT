@@ -58,9 +58,10 @@ let get_phi_functions_per_var var (var_asses : int list) dom_frontiers phi_nodes
 			dom_frontiers.(u)
 	done
 
-let insert_phi_functions nodes dom_frontiers number_of_nodes = 
+let insert_phi_functions (nodes : (jsil_logic_assertion option * jsil_cmd) array) dom_frontiers number_of_nodes = 
 	
 	let phi_nodes_table = Hashtbl.create 1021 in 
+	let nodes = Array.map (fun x -> match x with (_, cmd) -> cmd) nodes in
 	let assignments_per_var, _ = get_assignments_per_var nodes in 
 	let phi_functions_per_node = Array.make number_of_nodes [] in 
 	
@@ -113,7 +114,8 @@ let rec rewrite_expr_ssa (expr : jsil_expr) var_stacks rename_var  =
 	| TypeOf e1 -> 
 		let new_e1 = rewrite_expr_ssa e1 var_stacks rename_var in
 		TypeOf (new_e1)
-
+		
+let rewrite_assertion (spec : jsil_logic_assertion option) var_stacks rename_var = spec 
 
 let rewrite_non_assignment_ssa cmd var_stacks rename_var = 
 	match cmd with 
@@ -132,8 +134,8 @@ let rewrite_non_assignment_ssa cmd var_stacks rename_var =
 		let new_e = rewrite_expr_ssa e var_stacks rename_var in 
 		SGuardedGoto (new_e, i, j) 
 	| _ ->
-		let cmd_str = (SSyntax_Print.string_of_cmd cmd 0 0 false false) in  
-		raise (Failure ("Cannot Rewrite the command " ^ cmd_str ^ " using in the non-assignment case of SSA Rewriting"))
+		let cmd_str = (SSyntax_Print.string_of_cmd (None, cmd) 0 0 false false) in  
+		raise (Failure ("Cannot Rewrite the command " ^ cmd_str ^ " using in the non-assignment case of SSA Rewriting")) 
 
 let rename_var = fun (var : string) (i : int) -> var ^ "_" ^ (string_of_int i) 
 
@@ -172,7 +174,7 @@ let insert_phi_args args vars cmds succ pred idom_table idom_graph phi_functions
 	let var_stacks :  (string, int list) Hashtbl.t = Hashtbl.create 1021 in 
 	
 	let number_of_nodes = Array.length succ in
-	let new_cmds = Array.make number_of_nodes (SBasic SSkip) in 
+	let new_cmds = Array.make number_of_nodes (None, SBasic SSkip) in 
 	let new_phi_functions_per_node = Array.make number_of_nodes [] in 
 	
 	(if (!verbose_ssa) 
@@ -231,7 +233,7 @@ let insert_phi_args args vars cmds succ pred idom_table idom_graph phi_functions
 		let v_stack_and_counter_update var = 
 			let var_index : int option = SSyntax_Aux.try_find var_counters var in
  			let var_stack : int list option = SSyntax_Aux.try_find var_stacks var in 
-			(if (!verbose_ssa) then Printf.printf "Processing an assignemnt to variable %s\n " var else ()); 
+			(if (!verbose_ssa) then Printf.printf "Processing an assignment to variable %s\n " var else ()); 
  			(match var_index, var_stack with 
  			| (Some index), (Some v_stack) ->
 				let str_stack = 
@@ -251,7 +253,9 @@ let insert_phi_args args vars cmds succ pred idom_table idom_graph phi_functions
 				let err_msg = Printf.sprintf "Variable %s not found in stack table during ssa transformation - 1st phase - ordinary assignment.\n" var in 
 				raise (Failure err_msg)) in
 		
- 		let new_ass = (match cmd with 
+		let spec, command = cmd in
+		let new_spec = rewrite_assertion spec var_stacks rename_var in
+ 		let new_ass = (match command with 
  		| SBasic (SAssignment (var, expr)) -> 
  			let new_expr : jsil_expr = rewrite_expr_ssa expr var_stacks rename_var in
 			let index = v_stack_and_counter_update var in
@@ -294,7 +298,7 @@ let insert_phi_args args vars cmds succ pred idom_table idom_graph phi_functions
 			SCall((rename_var var index), new_e, new_le, j)  
 		
 		| cmd -> rewrite_non_assignment_ssa cmd var_stacks rename_var) in 
-		new_cmds.(u) <- new_ass;
+		new_cmds.(u) <- (new_spec, new_ass);
 			
 		(if (!verbose_ssa) then Printf.printf "Finished processing the lhs for the node %d!\n" u else ());
 		
@@ -327,7 +331,8 @@ let insert_phi_args args vars cmds succ pred idom_table idom_graph phi_functions
 			(fun v -> ipa_rec v)
 			idom_graph.(u); 
 		
-		(match cmd with 
+		(let spec, command = cmd in
+		match command with 
  		| SBasic (SAssignment (var, _)) 
 		| SBasic (SLookup (var, _, _))
 		| SBasic (SNew var) 
@@ -370,19 +375,22 @@ let create_phi_assignment var v_args old_var =
 	for i=0 to len-1 do 
 		new_v_args.(i) <- (rename_var old_var v_args.(i))
 	done; 
-	SBasic (SPhiAssignment (var, new_v_args))
+	(None, SBasic (SPhiAssignment (var, new_v_args)))
 
 let adjust_goto cmd displacements = 
-	match cmd with 
+	let spec, command = cmd in
+	let new_command = 
+	(match command with 
 	| SGoto j -> SGoto (j + displacements.(j)) 
 	| SGuardedGoto (e, i, j) -> SGuardedGoto (e, (i + displacements.(i)), (j + displacements.(j)))
 	| SCall (var, e, le, j) -> SCall (var, e, le, match j with | None -> None | Some j -> Some (j + displacements.(j)))
-	| x -> x 
+	| x -> x) in
+	(spec, new_command)
 
-let insert_phi_nodes proc phi_functions_per_node nodes var_counters = 
+let insert_phi_nodes proc phi_functions_per_node (nodes : (jsil_logic_assertion option * jsil_cmd) array) var_counters = 
 	
 	let number_of_nodes : int = Array.length nodes in 
-	let phi_assignments_per_node = Array.make	number_of_nodes [] in 
+	let phi_assignments_per_node : ((jsil_logic_assertion option * jsil_cmd) list) array = Array.make	number_of_nodes [] in 
 	let jump_displacements = Array.make number_of_nodes 0 in 
 	
 	let rec create_phi_assignments u phi_nodes_u n = 
@@ -406,12 +414,12 @@ let insert_phi_nodes proc phi_functions_per_node nodes var_counters =
 			then List.rev processed_cmds
 			else 
 				(let processed_cmd = adjust_goto nodes.(u) jump_displacements in 
-				let new_processed_cmds : jsil_cmd list = List.append (phi_assignments_per_node.(u)) processed_cmds in 
-				let new_processed_cmds : jsil_cmd list = processed_cmd :: new_processed_cmds  in 
+				let new_processed_cmds : (jsil_logic_assertion option * jsil_cmd) list = List.append (phi_assignments_per_node.(u)) processed_cmds in 
+				let new_processed_cmds : (jsil_logic_assertion option * jsil_cmd) list = processed_cmd :: new_processed_cmds  in 
 				loop (u + 1) new_processed_cmds) in 
 	
-	let new_cmds = loop 0 [] in
-	let new_cmds = SSyntax_Utils.get_proc_nodes new_cmds in  
+	let new_cmds =  loop 0 [] in
+	let new_cmds = Array.of_list new_cmds in
 	let new_params = List.map
 		(fun param -> rename_var param 0)
 		proc.proc_params in 
@@ -448,11 +456,12 @@ let insert_phi_nodes proc phi_functions_per_node nodes var_counters =
 		ret_label = new_ret_label;
 		ret_var = new_ret_var; 
 		error_label = new_error_label; 
-		error_var = new_error_var
+		error_var = new_error_var;
+		spec = proc.spec;
 	}
  
 
-let ssa_compile proc (vars : string list) nodes succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r which_pred = 
+let ssa_compile proc (vars : string list) (nodes : (jsil_logic_assertion option * jsil_cmd) array) succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r which_pred = 
 	let args : string list = proc.proc_params in 
 	let number_of_nodes = Array.length succ_table in
   (* compute dominators using the Lengauer Tarjan Algorithm *)

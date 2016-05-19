@@ -192,6 +192,7 @@ let rec string_of_bcmd bcmd i line_numbers_on escape_string =
 	| SProtoObj (var, e1, e2) -> Printf.sprintf "%s%s := protoObj(%s, %s)" str_i var (se e1) (se e2)		
 
 let rec sexpr_of_cmd sjsil_cmd tabs i line_numbers_on =
+	let sjsil_cmd = match sjsil_cmd with | (_, cmd) -> cmd in
 	let str_i = if line_numbers_on then (string_of_int i) ^ " " else "" in
 	let str_tabs = tabs_to_str tabs in  
   match sjsil_cmd with
@@ -216,10 +217,15 @@ let rec sexpr_of_cmd sjsil_cmd tabs i line_numbers_on =
 		| _ -> String.concat " " (List.map sexpr_of_expression arg_expr_list) in 
 			str_tabs ^  Printf.sprintf "'(%scall %s %s (%s) %s)" str_i var proc_name_expr_str arg_expr_list_str error_lab
 
+let string_of_spec spec = ""
+
 let rec string_of_cmd sjsil_cmd tabs i line_numbers_on escape_string =
+	let spec, sjsil_cmd = sjsil_cmd in 
 	let str_i = if line_numbers_on then (string_of_int i) ^ " " else "" in
 	let str_tabs = tabs_to_str tabs in  
-  match sjsil_cmd with
+	let str_spec = string_of_spec spec in
+	str_spec ^ 
+  (match sjsil_cmd with
 	(* goto j *) 
   | SGoto j -> 
 		let str_j = string_of_int j in 
@@ -240,7 +246,7 @@ let rec string_of_cmd sjsil_cmd tabs i line_numbers_on escape_string =
 		let arg_expr_list_str = match arg_expr_list with
 		|	[] -> ""
 		| _ -> String.concat ", " (List.map se arg_expr_list) in 
-			str_tabs ^  Printf.sprintf "%s%s := %s(%s) %s" str_i var proc_name_expr_str arg_expr_list_str error_lab
+			str_tabs ^  Printf.sprintf "%s%s := %s(%s) %s" str_i var proc_name_expr_str arg_expr_list_str error_lab)
 
 let sexpr_of_params fparams =
 	match fparams with

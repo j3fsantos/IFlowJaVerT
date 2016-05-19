@@ -1,5 +1,4 @@
 open SSyntax
-open JSIL_Logic_Syntax
 
 (***
  S-Expression Serialization

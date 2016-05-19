@@ -399,6 +399,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 				with _ ->  raise (Failure "which_pred undefined"))
 			else 0 in 
 	
+	let spec, cmd = cmd in
 	match cmd with 
 	| SBasic bcmd -> 
 		let v = evaluate_bcmd bcmd heap store cur_which_pred in 
