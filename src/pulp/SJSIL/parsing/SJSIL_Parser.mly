@@ -268,7 +268,7 @@ cmd_target:
 
 label: 
 	lab=VAR; COLON; 
-		{ Printf.printf "%s\n" lab; lab }
+		{ lab }
 
 expr_list_target: 
 	expr_list=separated_list(COMMA, expr_target) { expr_list }
