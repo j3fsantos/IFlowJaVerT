@@ -18,7 +18,7 @@ proc test_proc (x) {
 	there:	xret := 2;
 			x := 3;
 			[[ (xret == 2) * (x == 3)]]
-			xret := xret + 5;
+			xret := xret + 6;
 			[[ ~ xret <== 2 ]] 
 			goto rlab;
 	elab: 	skip

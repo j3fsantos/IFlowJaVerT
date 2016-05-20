@@ -67,7 +67,7 @@ let cond_print_graph test graph nodes string_of_node graph_name proc_folder =
 			burn_to_disk (proc_folder ^ "/" ^ graph_name ^ ".dot") graph_str)
 		else () 	
 
-let string_of_cmd cmd i proc dfs_num_table_f =
+let string_of_cmd cmd i proc specs dfs_num_table_f =
 	let str_i = string_of_int i in
 	let str_dfs_i = string_of_int dfs_num_table_f.(i) in
 		str_i ^ "/" ^ str_dfs_i ^ ": " ^ 
@@ -77,7 +77,7 @@ let string_of_cmd cmd i proc dfs_num_table_f =
 				(match proc.error_label with
 				| None -> ""
 				| Some lab -> if (i = lab) then ("ERR: ") else (""))) ^ 
-		SSyntax_Print.string_of_cmd cmd 0 0 false true 
+		SSyntax_Print.string_of_cmd cmd 0 0 false specs true 
 
 let pre_process_proc output_folder_name proc = 
 	
@@ -96,8 +96,8 @@ let pre_process_proc output_folder_name proc =
 		SSyntax_SSA.ssa_compile proc vars nodes succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r which_pred in 
 	let final_succ_table, final_pred_table = SSyntax_Utils_Graphs.get_succ_pred new_proc.proc_body new_proc.ret_label new_proc.error_label in   
 			
-	let string_of_cmd_ssa cmd i = SSyntax_Print.string_of_cmd cmd 0 0 false true in 	
-	let string_of_cmd_main cmd i = string_of_cmd cmd i proc dfs_num_table_f in 
+	let string_of_cmd_ssa cmd i = SSyntax_Print.string_of_cmd cmd 0 0 false false true in 	
+	let string_of_cmd_main cmd i = string_of_cmd cmd i proc true dfs_num_table_f in 
 	
 	let proc_folder = (output_folder_name ^ "/" ^ proc.proc_name) in 
 	Utils.safe_mkdir proc_folder; 

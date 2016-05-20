@@ -264,11 +264,11 @@ let rec string_of_assertion lass escape_string =
 	   | LFalse -> "false"
 	   | LEmp -> "emp")
 
-let rec string_of_cmd sjsil_cmd tabs i line_numbers_on escape_string =
+let rec string_of_cmd sjsil_cmd tabs i line_numbers_on specs_on escape_string =
 	let ass, sjsil_cmd = sjsil_cmd in 
 	let str_i = if line_numbers_on then (string_of_int i) ^ " " else "" in
 	let str_tabs = tabs_to_str tabs in  
-	let str_ass = (match ass with | None -> "" | Some ass -> "\t\t[[" ^ string_of_assertion ass escape_string ^ "]]\n") in
+	let str_ass = if (specs_on) then (match ass with | None -> "" | Some ass -> str_tabs ^ "[[" ^ string_of_assertion ass escape_string ^ "]]\n") else "" in
 	str_ass ^ 
   (match sjsil_cmd with
 	(* goto j *) 
@@ -309,7 +309,7 @@ let sexpr_of_cmd_arr cmds tabs line_numbers =
 
 let string_of_cmd_arr cmds tabs line_numbers =
 	let string_of_cmd_aux cmd tabs i line_numbers = 
-		string_of_cmd cmd tabs i line_numbers false in 
+		string_of_cmd cmd tabs i line_numbers true false in 
 	serialize_cmd_arr cmds tabs line_numbers string_of_cmd_aux
 
 (*

@@ -170,7 +170,7 @@ let rewrite_non_assignment_ssa cmd var_stacks rename_var =
 		let new_e = rewrite_expr_ssa e var_stacks rename_var in 
 		SGuardedGoto (new_e, i, j) 
 	| _ ->
-		let cmd_str = (SSyntax_Print.string_of_cmd (None, cmd) 0 0 false false) in  
+		let cmd_str = (SSyntax_Print.string_of_cmd (None, cmd) 0 0 false false false) in  
 		raise (Failure ("Cannot Rewrite the command " ^ cmd_str ^ " using in the non-assignment case of SSA Rewriting")) 
 
 let rename_var = fun (var : string) (i : int) -> var ^ "_" ^ (string_of_int i) 

@@ -186,7 +186,7 @@ let remove_unreachable_code proc throw =
 											else ();		
 										lnum_shift.(i) <- i - !shift;				 
 										(if (!graph_verbose) 
-											then Printf.printf "\t i = %d; lsh = %d; shift = %d : %s\n" i lnum_shift.(i) !shift (SSyntax_Print.string_of_cmd cmds.(i) 0 0 false true)
+											then Printf.printf "\t i = %d; lsh = %d; shift = %d : %s\n" i lnum_shift.(i) !shift (SSyntax_Print.string_of_cmd cmds.(i) 0 0 false true true)
 											else ())
 									done;
 	
