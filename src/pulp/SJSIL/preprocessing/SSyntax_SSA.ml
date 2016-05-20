@@ -1,6 +1,6 @@
 open SSyntax 
 
-let verbose_ssa = ref false 
+let verbose_ssa = ref true 
 
 let get_assignments_per_var cmds  = 
 	

@@ -89,22 +89,28 @@ let pre_process_proc output_folder_name proc =
 
 	(* Proper pre-processing *) 
 	Printf.printf "Starting proper pre-processing.\n";
-	let nodes, vars, succ_table, pred_table, tree_table, parent_table, dfs_num_table_f, dfs_num_table_r, which_pred = 
-		SSyntax_Utils.get_proc_info proc in 
-	let succ_table, pred_table = get_succ_pred proc.proc_body proc.ret_label proc.error_label in
-	let rev_dom_table, dominance_frontiers, phi_functions_per_node, new_proc = 
-		SSyntax_SSA.ssa_compile proc vars nodes succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r which_pred in 
-	let final_succ_table, final_pred_table = SSyntax_Utils_Graphs.get_succ_pred new_proc.proc_body new_proc.ret_label new_proc.error_label in   
-			
-	let string_of_cmd_ssa cmd i = SSyntax_Print.string_of_cmd cmd 0 0 false false true in 	
-	let string_of_cmd_main cmd i = string_of_cmd cmd i proc true dfs_num_table_f in 
 	
 	let proc_folder = (output_folder_name ^ "/" ^ proc.proc_name) in 
 	Utils.safe_mkdir proc_folder; 
 	
+	let nodes, vars, succ_table, pred_table, tree_table, parent_table, dfs_num_table_f, dfs_num_table_r, which_pred = 
+		SSyntax_Utils.get_proc_info proc in 
+	let succ_table, pred_table = get_succ_pred proc.proc_body proc.ret_label proc.error_label in
+	
+	let string_of_cmd_ssa cmd i = SSyntax_Print.string_of_cmd cmd 0 0 false false true in 	
+	let string_of_cmd_main cmd i = string_of_cmd cmd i proc true dfs_num_table_f in 
+	
 	cond_print_graph (!show_init_graph) succ_table nodes string_of_cmd_main "succ" proc_folder;	
-	cond_print_graph (!show_dfs) tree_table nodes string_of_cmd_main "dfs" proc_folder;	
+	cond_print_graph (!show_dfs) tree_table nodes string_of_cmd_main "dfs" proc_folder;
+	
+	let dom_table, rev_dom_table = SSyntax_Utils_Graphs.lt_dom_algorithm succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r in
 	cond_print_graph (!show_dom) rev_dom_table nodes string_of_cmd_main "dom" proc_folder;
+	
+	let rev_dom_table, dominance_frontiers, phi_functions_per_node, new_proc = 
+		SSyntax_SSA.ssa_compile proc vars nodes succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r which_pred in 
+	let final_succ_table, final_pred_table = SSyntax_Utils_Graphs.get_succ_pred new_proc.proc_body new_proc.ret_label new_proc.error_label in   
+	
+	
 	cond_print_graph (!show_ssa) final_succ_table new_proc.proc_body string_of_cmd_ssa "ssa" proc_folder;
 			
 	(if (!show_dom_frontiers) 
