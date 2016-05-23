@@ -68,8 +68,9 @@ let string_of_type t =
 	| VariableReferenceType -> "$$v_reference_type"	
 	| EmptyType -> "$$empty_type"
 	| TypeType -> "$$type_type"
+	| ListType -> "$$list_type"
 		
-let string_of_literal lit escape_string =
+let rec string_of_literal lit escape_string =
   match lit with
 	  | Undefined -> "$$undefined"
 	  | Null -> "$$null"
@@ -84,6 +85,19 @@ let string_of_literal lit escape_string =
     | Type t -> string_of_type t 
 		| LVRef (l, x) -> Printf.sprintf "%s.v.%s" l x  
 	  | LORef (l, x) -> Printf.sprintf "%s.o.%s" l x   
+		| LList ll -> 
+			let rec loop ll = 
+				(match ll with
+				| [] -> ""
+				| lit :: ll -> 
+					let scar = string_of_literal lit escape_string in
+					let ssep = 
+						(match ll with
+						| [] -> ""
+						| _ -> ", ") in
+					let scdr = loop ll in
+					Printf.sprintf ("%s%s%s") scar ssep scdr)
+			in Printf.sprintf "{{ %s }}" (loop ll)
 
 let rec sexpr_of_expression e =
   let se = sexpr_of_expression in

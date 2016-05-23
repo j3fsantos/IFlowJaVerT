@@ -35,6 +35,7 @@ rule read = parse
 	| "$$reference_type"   { SJSIL_Parser.REFTYPELIT }
 	| "$$v-reference_type" { SJSIL_Parser.VREFTYPELIT }
 	| "$$o-reference_type" { SJSIL_Parser.OREFTYPELIT }
+	| "$$list_type"        { SJSIL_Parser.LISTTYPELIT }
 (* procedure keywords *)
 	| "proc"     					 { SJSIL_Parser.PROC }
 	| "ret"                { SJSIL_Parser.RET }
@@ -102,6 +103,8 @@ rule read = parse
 	| "num_to_int32"       { SJSIL_Parser.TOINT32 }
 	| "num_to_uint32"      { SJSIL_Parser.TOUINT32 }
 	| "!"                  { SJSIL_Parser.BITWISENOT }
+	| "car"                { SJSIL_Parser.CAR }
+	| "cdr"                { SJSIL_Parser.CDR }
 (* separators *)
   | "(*"                 { read_comment lexbuf }
 	| ':'                  { SJSIL_Parser.COLON }
@@ -114,6 +117,8 @@ rule read = parse
 	| ']'                  { SJSIL_Parser.RBRACKET }
 	| '{'                  { SJSIL_Parser.CLBRACKET }
 	| '}'                  { SJSIL_Parser.CRBRACKET }
+	| "{{"                 { SJSIL_Parser.LISTOPEN }
+  | "}}"                 { SJSIL_Parser.LISTCLOSE }
 	| '"'                  { read_string (Buffer.create 17) lexbuf }
 (*literals*)
  	| "$$t"                { SJSIL_Parser.TRUE }

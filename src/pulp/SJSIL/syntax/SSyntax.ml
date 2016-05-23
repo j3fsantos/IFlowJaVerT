@@ -37,6 +37,9 @@ type unary_op =
   | ToInt32Op
   | ToUint32Op
   | BitwiseNot
+	(* UNARY OPERATORS FOR LISTS *)
+	| Car
+	| Cdr
 
 
 (* jsil types *)
@@ -52,6 +55,8 @@ type jsil_type =
 	| ObjectReferenceType
 	| VariableReferenceType
 	| TypeType
+	(* LIST TYPE *)
+	| ListType
 
 (* jsil literals *)
 type jsil_lit =
@@ -65,6 +70,8 @@ type jsil_lit =
   | Type of jsil_type
 	| LVRef of string * string 
 	| LORef of string * string 
+	(* LISTS (FOR DESCRIPTORS) *)
+	| LList of jsil_lit list
 
 (* jsil expressions *)
 type jsil_var = string

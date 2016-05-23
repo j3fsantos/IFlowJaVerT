@@ -110,6 +110,20 @@ let evaluate_unop op lit =
 		(match lit with
 		| Num n -> Num (int32_bitwise_not n)
 		| _ -> raise (Failure "Non-number argument to BitwiseNot"))
+	| Car ->
+		(match lit with
+		| LList ll -> 
+			(match ll with 
+			| [] -> Empty
+			| lit :: _ -> lit)
+		| _ -> raise (Failure "Non-list argument to Car"))
+	| Cdr ->
+		(match lit with
+		| LList ll -> 
+			(match ll with 
+			| [] -> Empty
+			| _ :: ll -> LList ll)
+		| _ -> raise (Failure "Non-list argument to Cdr"))
 	
 let evaluate_binop op lit1 lit2 = 
 	match op with 
@@ -212,6 +226,7 @@ let evaluate_type_of lit =
 	| Type _ -> TypeType
 	| LVRef (_, _) -> VariableReferenceType
 	| LORef (_, _) -> ObjectReferenceType
+	| LList _ -> ListType
 							
 let rec evaluate_expr (e : jsil_expr) store = 
 	match e with 

@@ -1,8 +1,6 @@
 proc test(x) {
-			goto [x] next end;
-	next:	y := 2;
-			goto end;
-	end:	xret := 4;
+			y := {{ 1, "ab", $$t }};
+			xret := 4;
 	rlab:	skip
 }
 with

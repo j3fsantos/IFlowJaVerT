@@ -29,6 +29,7 @@ open SSyntax
 %token REFTYPELIT
 %token VREFTYPELIT
 %token OREFTYPELIT
+%token LISTTYPELIT
 (* command keywords  *)
 %token GOTO
 %token SKIP
@@ -85,6 +86,8 @@ open SSyntax
 %token TOINT32
 %token TOUINT32
 %token BITWISENOT
+%token CAR
+%token CDR
 (* separators *)
 %token EOF
 %token COMMA
@@ -101,6 +104,8 @@ open SSyntax
 %token CRBRACKET
 %token OSPEC
 %token CSPEC
+%token LISTOPEN
+%token LISTCLOSE
 
 %type <(SSyntax.lprocedure list)> prog_target
 %type <(SSyntax.jsil_spec list)>  specs_target
@@ -449,6 +454,7 @@ lit_target:
 	| REFTYPELIT { SSyntax.Type SSyntax.ReferenceType }
 	| VREFTYPELIT { SSyntax.Type SSyntax.VariableReferenceType }
 	| OREFTYPELIT { SSyntax.Type SSyntax.ObjectReferenceType }	
+	| LISTTYPELIT { SSyntax.Type SSyntax.ListType }
 	| TRUE { SSyntax.Bool true }
 	| FALSE { SSyntax.Bool false }
 	| i=INT { SSyntax.Num (float_of_int i) }
@@ -457,6 +463,9 @@ lit_target:
 	| loc=LOC { SSyntax.Loc loc }
 	| loc=LOC; VREFLIT; s=STRING { SSyntax.LVRef (loc, s) }
 	| loc=LOC; OREFLIT; s=STRING { SSyntax.LORef (loc, s) }
+	(* EMPTY AND NON-EMPTY LISTS *)
+	| LISTOPEN; LISTCLOSE { SSyntax.LList [] }
+	| LISTOPEN; litlist = separated_list(COMMA, lit_target); LISTCLOSE { SSyntax.LList litlist }
 ;
 
 binop_target: 
@@ -488,6 +497,8 @@ unop_target:
 	| TOINT32 { SSyntax.ToInt32Op }
 	| TOUINT32 { SSyntax.ToUint32Op }
 	| BITWISENOT { SSyntax.BitwiseNot }
+	| CAR { SSyntax.Car }
+	| CDR { SSyntax.Cdr }
 ;
 
 call_with_target: 
