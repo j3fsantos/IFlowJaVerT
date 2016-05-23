@@ -6,6 +6,7 @@
 
 # Images
 *.png
+*.dot
 
 # examples
 
