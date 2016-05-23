@@ -1,13 +1,30 @@
-proc noUnreachableWithErrorToErrToRet (x) {
+spec test_proc (x)
+  [[ ~ x <== 2 ]]
+  [[ (~ x <== 4)  * ( xret <== 5 ) ]]
+  normal;
+  
+  [[ ~ x <== 1 ]]
+  [[ (~ x <== 7)  * ( xret <== 4 ) ]]
+  error
+  
+proc test_proc (x) {
 			xret := 0;
-			goto [x] here there;
+			goto [x <= 5] here there;
 			[[ xret == 0 ]]
 	here:	xret := 1;
-			goto rlab;
+			x := 5;
+			[[ xret == 0 ]]
+	rlab:	skip;
 	there:	xret := 2;
-	rlab:	skip
+			x := 3;
+			[[ (xret == 2) * (x == 3)]]
+			xret := xret + 6;
+			[[ ~ xret <== 2 ]] 
+			goto rlab;
+	elab: 	skip
 }
 with
 {
 	ret: xret, rlab;
+	err: x, elab;
 }

@@ -1,77 +1,297 @@
-[[ (l, prop) -> None   ]], [[ (l, prop) -> None   * xret .= $$empty ]]
-[[ (l, prop) -> Some v ]], [[ (l, prop) -> Some v * xret .= v ]]
+(* ************** *) 
+(* GETOWNPROPERTY *)
+(* ************** *) 
+
+spec getOwnProperty (l, prop)
+	[[ (l, prop) -> None ]]
+	[[ ((l, prop) -> None) * xret == $$empty ]]
+	normal;
+	
+	[[ exists _v. ((l, prop) -> _v) * (~ _v == None) ]]
+	[[ exists _v. ((l, prop) -> _v) * (~ _v == None) * (xret == _v) ]]
+	normal
+	
 proc getOwnProperty (l, prop) {
-	x := hasField(l, prop);
-	goto [not x] 1 3;
-	xret := $$empty;	
-	goto 2;
-	xret := [l, prop];
-	skip;
+            x := hasField(l, prop);
+            goto [x] hp nhp; 
+    hp:     xret := [l, prop];
+            goto rlab;
+    nhp:    xret := $$empty;
+    rlab:   skip
 }
 with
 {
-	ret: xret, 5;
+    ret: xret, rlab;
 };
 
+(* *********** *) 
+(* GETPROPERTY *)
+(* *********** *) 
 
-proc getProperty (l, prop)
-{
-	xret := protoField(l, prop);
-	goto [not (xret = $$empty)] 1 2;
-	xret := [l, prop];
-	skip;
+proc getProperty (l, prop) {
+            xret := protoField(l, prop);
+            goto [xret = $$undefined] ndef rlab;
+    ndef:   xret := $$undefined;
+    rlab:   skip
 }
-with
-{
-	ret: xret, 3;
-};
-
-
-
-proc get (l, prop)
-{
-	x := "getProperty" (l, prop) with 3;
-	xret := x;
-	skip;
-	skip
-}
-with
-{
-	ret: xret, 2;
-};
-
-
-
-proc canPut (l, prop)
-{
-	x := "getOwnProperty" (l, prop) with 6;
-	goto [not (x = $$undefined)] 1 3;
-		xret := true;
-		goto 5;
-		xret := [l, "#extensible"];
-	skip;
-	skip;
-}
-with
-{
-	ret: xret, 5;
-	err: xret, 6;
-}
-
-
-
-proc put (l, prop, v, t)
- {
-	xret := $$empty;
-	x := "canPut" (l, prop) with 6;
-	goto [x = false] 1 2;
-		goto [t = true] 5 6;
-		[l, prop] := v;
-	skip;
-	skip;
-} 
 with 
 {
-	ret: xret, 5;
-	err: xret, 6;
+    ret: xret, rlab;
+};
+
+(* *** *) 
+(* GET *)
+(* *** *) 
+
+proc get(l, prop) {
+    rlab:   xret := "getProperty" (l, prop)
 }
+with
+{
+    ret: xret, rlab;
+};
+
+(* ****** *) 
+(* CANPUT *)
+(* ****** *) 
+
+spec canPut (l, prop) 
+	[[ ((l, prop) -> None) * ((l, "#extensible") -> $$t) ]]
+	[[ ((l, prop) -> None) * ((l, "#extensible") -> $$t) * (xret == $$t) ]]
+	normal;
+	
+	[[ ((l, prop) -> None) * ((l, "#extensible") -> $$f) ]]
+	[[ ((l, prop) -> None) * ((l, "#extensible") -> $$f) * (xret == $$f) ]]
+	normal;
+	
+	[[ exists _v. ((l, prop) -> _v) * (~ _v == None) ]]
+	[[ exists _v. ((l, prop) -> _v) * (~ _v == None) * (xret == $$t) ]]
+	normal
+
+proc canPut (l, prop) {
+            xret := hasField(l, prop);
+            goto [xret] rlab nhf;
+    nhf:    xret := [l, "#extensible"];
+    rlab:   skip
+}
+with
+{
+    ret: xret, rlab;
+};
+
+(* *** *) 
+(* PUT *)
+(* *** *) 
+
+proc put(l, prop, value, throw) {
+            x := "canPut" (l, prop);
+            goto [x] t f;
+    t:      [l, prop] := value;
+    tf:     xret := $$empty;
+    rlab:   skip;
+    f:      goto [throw] tt tf;
+    tt:     xerr := "TypeError" ();
+    elab:   skip
+}
+with
+{
+    ret: xret, rlab;
+    err: xerr, elab;
+};
+
+(* *********** *) 
+(* HASPROPERTY *)
+(* *********** *) 
+
+proc hasProperty(l, prop) {
+            x := "getProperty" (l, prop);
+            goto [x = $$undefined] ndef def;
+    def:    xret := $$t;
+            goto rlab;
+    ndef:   xret := $$f;
+    rlab:   skip
+}
+with
+{
+    ret: xret, rlab;
+};
+
+(* ****** *) 
+(* DELETE *)
+(* ****** *) 
+
+spec deleteProperty (l, prop, throw)
+	[[ exists _v. (l, prop) -> _v ]]
+	[[ ((l, prop) -> None) * (xret == $$t) ]]
+	normal
+
+proc deleteProperty (l, prop, throw) {
+            x := "getOwnProperty" (l, prop);
+            goto [x = $$undefined] ndef def;   
+    def:    delete (l, prop);
+    ndef:	xret := $$t;
+    rlab:   skip
+}
+with
+{
+    ret: xret, rlab;
+};
+
+proc isPrimitive(v) {
+            goto [(typeOf(v) = $$boolean_type) or
+                  (typeOf(v) = $$number_type) or
+                  (typeOf(v) = $$string_type) or
+                  (v = $$undefined) or
+                  (v = $$null)] np p;
+    p:      xret := $$t;
+            goto rlab;
+    np:     xret := $$f;
+    rlab:   skip
+}
+with
+{
+    ret: xret, rlab;
+};
+
+proc defaultValue(l, hint) {
+            goto [hint = "String"] s n;
+    s:      to_s := "get" (l, "toString");
+            x_s := "isCallable" (to_s);
+            goto [x_s] str n;
+    str:    st := to_s (l);
+            ipst := "isPrimitive" (st);
+            goto [hint = "String"] str1 str2;
+    str1:   goto [ipst] prim_s n;
+    str2:   goto [ipst] prim_s throw;
+    prim_s: xret := st;
+            goto rlab;
+    throw:  xerr := "TypeError" ();
+            goto elab;
+    n:      v_of := "get" (l, "valueOf");
+            x_v := "isCallable" (v_of);
+            goto [x_v] val s;
+    val:    vl := v_of (l);
+            ipvl := "isPrimitive" (vl);
+            goto [hint = "Number"] val1 val2;   
+    val1:   goto [ipvl] prim_n s;
+    val2:   goto [ipvl] prim_n throw;
+    prim_n: xret := vl;
+    rlab:   skip;
+    elab:   skip
+}
+with
+{
+    ret: xret, rlab;
+    err: xerr, elab;
+}
+
+(*
+
+proc defineOwnProperty(l, prop, value, throw) {
+            c := "getOwnProperty" (l, prop);
+            goto [c = "undefined"] next t;
+    next:   e := [l, "#extensible"];
+    		goto [e] f t;
+    f:      goto [throw] tt tf;
+    tt:     xerr := "TypeError" ();
+            goto elab;
+    tf:     xret := $$f;
+            goto rlab;
+    t:      [l, prop] := value;
+            xret := $$t;
+    rlab:   skip;
+}
+with{
+    ret: xret, rlab;
+    err: xerr, elab;
+}
+
+(* 
+proc isReference(v) {
+            goto [typeof(v) = Refo] r next1;
+    next1:  goto [typeof(v) = Refv] r nr;
+    r:      xret := $$t;
+            goto rlab;
+    nr:     xret := $$f;
+    rlab:   skip;
+}
+with{
+    ret: xret, rlab;
+}
+
+proc specialGet(l, prop) {
+            o := "toObject" (l);
+    rlab:   xret := "getProperty" (o, prop);
+}
+with
+{
+    ret: xret, rlab;
+}
+
+proc getValue(l, v) {
+            goto ["isReference"(v)] ref nref;
+    ref:    b := base(v);
+            f := field(v);
+            goto [b = "$$undefined"] e ne;
+    e:      xerr := "ReferenceError" ();
+            goto elab;
+    ne:     goto [typeof(v) = Refo] pr er;
+    pr:     p := "isPrimitive" (b);
+            goto [p] spe_g norm_g;
+    norm_g: xret := "get" (b, f);
+            goto rlab;
+    spe_g:  xret := "specialGet" (b, f);
+            goto rlab;
+    er:     xret := [b, f];
+            goto rlab;
+    nref:   xret := v;
+    rlab:   skip;
+    elab:   skip;
+}
+with{
+    ret: xret, rlab;
+    err: xerr, elab;
+}
+
+proc specialPut(l, prop, value, throw) {
+            o := "toObject" (l);
+            x := "canPut" (o, prop);
+            goto [x] t f;
+    t:      xret := $$empty;
+    rlab:   skip;
+    f:      goto [throw] th t;
+    th:     xerr := "TypeError" ();
+    elab:   skip;
+}
+with{
+    ret: xret, rlab;
+    err: xerr, elab;
+}
+
+proc putValue(l, v, w) {
+            goto ["isReference"(v)] ref nref;
+    ref:    b := base(v);
+            f := field(v);
+            goto [b = "$$undefined"] nref pref;
+    pref:   goto [typeof(v) = Refo] pr er;
+    pr:     p := "isPrimitive" (b);
+            goto [p] spe_p norm_p;
+    spe_p:  c := "specialPut" (b, f, w, true);
+            xret := $$empty;
+            goto rlab;
+    norm_p: c := "put" (b, f, w, true);
+            xret := $$empty;
+            goto rlab;
+    er:     [b, f] := w;
+            xret := $$empty;
+            goto rlab;
+    nref:   xerr := "ReferenceError" ();
+            goto elab;
+    rlab:   skip;
+    elab:   skip;
+}
+with
+{
+    ret: xret, rlab;
+    err: xerr, elab;
+} *)

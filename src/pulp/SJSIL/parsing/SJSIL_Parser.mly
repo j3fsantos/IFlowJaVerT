@@ -102,9 +102,6 @@ open SSyntax
 %token OSPEC
 %token CSPEC
 
-%nonassoc NOLABEL
-%nonassoc LABEL
-
 %type <(SSyntax.lprocedure list)> prog_target
 %type <(SSyntax.jsil_spec list)>  specs_target
 
@@ -122,13 +119,19 @@ proc_list_target:
 	proc_list = separated_list(SCOLON, proc_target) { proc_list };
 
 proc_target: 
-(* proc xpto (x, y) { cmd_list[;] } with { ret: x, i; [err: x, j] }; *) 
+(* [spec]; proc xpto (x, y) { cmd_list[;] } with { ret: x, i; [err: x, j] }; *) 
+  spec = option(spec_target);
 	PROC; proc_name=VAR; LBRACE; param_list=param_list_target; RBRACE; 
 		CLBRACKET; cmd_list=cmd_list_target; option(SCOLON); CRBRACKET; 
 	WITH; 
 		CLBRACKET; ctx_ret=ctx_target_ret; ctx_err=option(ctx_target_err); CRBRACKET
 	{
 		Printf.printf "Parsing Procedure.\n";
+		(match (spec : SSyntax.jsil_spec option) with
+		| None -> ()
+		| Some specif ->  if (not (specif.spec_name = proc_name))    then (raise (Failure "Specification name does not match procedure name."))           else 
+			               (if (not (specif.spec_params = param_list)) then (raise (Failure "Specification parameters do not match procedure parameters.")) else ())
+		);
 		let ret_var, ret_index = ctx_ret in 
 		let err_var, err_index = 
 			(match ctx_err with 
@@ -143,7 +146,8 @@ proc_target:
 			SSyntax.lret_label = ret_index;
 			SSyntax.lret_var = ret_var;
 			SSyntax.lerror_label = err_index;
-			SSyntax.lerror_var = err_var
+			SSyntax.lerror_var = err_var;
+			SSyntax.lspec = spec;
 		}
 	};
 
@@ -264,7 +268,7 @@ cmd_target:
 
 label: 
 	lab=VAR; COLON; 
-		{ Printf.printf "%s\n" lab; lab }
+		{ lab }
 
 expr_list_target: 
 	expr_list=separated_list(COMMA, expr_target) { expr_list }

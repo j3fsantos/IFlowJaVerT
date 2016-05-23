@@ -164,12 +164,13 @@ type jsil_cmd =
 (* SJSIL procedures *)
 type procedure = { 
     proc_name : string;
-    proc_body : jsil_cmd array;
+    proc_body : (jsil_logic_assertion option * jsil_cmd) array;
     proc_params : jsil_var list; 
 		ret_label: int; 
 		ret_var: jsil_var;
 		error_label: (int option); 
 		error_var: (jsil_var option);
+		spec: jsil_spec option;
 }
 
 (* SJSIL Program *)
@@ -215,4 +216,5 @@ type lprocedure = {
 		lret_var: jsil_var;
 		lerror_label: (string option); 
 		lerror_var: (jsil_var option);
+		lspec: jsil_spec option;
 }

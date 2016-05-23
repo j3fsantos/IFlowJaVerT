@@ -11,6 +11,8 @@ open SSyntax
 let graph_verbose = ref false
 
 let get_succ_pred cmds ret_label opt_error_label = 
+	
+	let cmds = Array.map (fun x -> match x with (_, cmd) -> cmd) cmds in
 
 	let err_label = 
 		(match opt_error_label with
@@ -184,7 +186,7 @@ let remove_unreachable_code proc throw =
 											else ();		
 										lnum_shift.(i) <- i - !shift;				 
 										(if (!graph_verbose) 
-											then Printf.printf "\t i = %d; lsh = %d; shift = %d : %s\n" i lnum_shift.(i) !shift (SSyntax_Print.string_of_cmd cmds.(i) 0 0 false true)
+											then Printf.printf "\t i = %d; lsh = %d; shift = %d : %s\n" i lnum_shift.(i) !shift (SSyntax_Print.string_of_cmd cmds.(i) 0 0 false true true)
 											else ())
 									done;
 	
@@ -194,7 +196,7 @@ let remove_unreachable_code proc throw =
 	(match lerr with
 	| None -> (Printf.printf "\t WARNING: Error label does not exist!\n") 
 	| Some lerr -> if (not visited.(lerr))
-									then (Printf.printf "\t WARNING: Error label is unreachable and will be removed!\n"));
+									then (Printf.printf "\t WARNING: Error label is unreachable and will be removed, along with the corresponding specs!\n"));
 	
 	(if (!graph_verbose) then Printf.printf "\t Adjusting line numbers. \n" else ());
 	
@@ -205,13 +207,14 @@ let remove_unreachable_code proc throw =
 	
 	(* Adjust line numbers *)						
 	for u = 0 to (length - 1) do 
-		match cmds.(u) with 
+		let spec, cmd = cmds.(u) in
+		match cmd with 
 		| SGoto i -> 
-				cmds.(u) <- SGoto (lnum_shift.(i))
+				cmds.(u) <- (spec, SGoto (lnum_shift.(i)))
 		| SGuardedGoto (e, i, j) ->
-				cmds.(u) <- SGuardedGoto (e, (lnum_shift.(i)), (lnum_shift.(j)))
+				cmds.(u) <- (spec, SGuardedGoto (e, (lnum_shift.(i)), (lnum_shift.(j))))
 		| SCall (v, e, le, i) ->
-				cmds.(u) <- SCall (v, e, le, match i with | None -> None | Some i -> Some (lnum_shift.(i)))
+				cmds.(u) <- (spec, SCall (v, e, le, match i with | None -> None | Some i -> Some (lnum_shift.(i))))
 		| _ -> ()
 	done;
 
@@ -219,7 +222,7 @@ let remove_unreachable_code proc throw =
 
 	(* Remove unvisited commands *)
 	let new_length = length - !shift in
-		let new_cmds = Array.make new_length (SBasic SSkip) in
+		let new_cmds = Array.make new_length (None, SBasic SSkip) in
 			let shift = ref 0 in
 				for i = 0 to (length - 1) do
 					if (visited.(i))
@@ -228,6 +231,28 @@ let remove_unreachable_code proc throw =
 				done;
 	
 	(if (!graph_verbose) then Printf.printf "\t Returning adjusted procedure. \n" else ());
+	
+	let new_spec = 
+	let lspec = proc.spec in
+		(match lspec with
+		| None -> None
+		| Some lspec -> Some
+    {
+  		spec_name = lspec.spec_name;
+      spec_params = lspec.spec_params; 
+  		proc_specs =
+  			let specs = lspec.proc_specs in
+  			(match lerr with 
+  				| Some _ -> specs
+  				| None -> let rec loop lspec = 
+  									(match lspec with
+  									| [] -> []
+  									| spec :: lspec -> 
+  											if (spec.ret_flag = Error) 
+  												then (loop lspec)
+  												else (spec :: loop lspec)) in
+  									loop specs)
+		}) in
 	
 	(* Return adjusted procedure *)
 	{ 
@@ -242,6 +267,7 @@ let remove_unreachable_code proc throw =
 		SSyntax.error_var   = (match lerr with
 		                        | None -> None 
 														| Some lerr -> proc.error_var);
+		SSyntax.spec = new_spec;
 	}
 
 
