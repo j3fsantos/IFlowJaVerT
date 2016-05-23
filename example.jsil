@@ -1,3 +1,16 @@
+proc test(x) {
+			goto [x] next end;
+	next:	y := 2;
+			goto end;
+	end:	xret := 4;
+	rlab:	skip
+}
+with
+{
+    ret: xret, rlab;
+}
+
+(*
 proc defaultValue(l, hint) {
 			pass := 0;
             goto [hint = "String"] sinit ninit;
@@ -29,3 +42,4 @@ with
     ret: xret, rlab;
     err: xerr, elab;
 }
+*)

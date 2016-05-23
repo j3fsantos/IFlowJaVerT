@@ -407,6 +407,7 @@ let insert_phi_args args vars cmds (spec : jsil_spec option) (rvar : string) (ev
  		let u_successors = succ.(u) in
  		List.iter 
  			(fun k -> 
+				Printf.printf "Processing statement: %s\n" (SSyntax_Print.string_of_cmd cmds.(k) 0 0 false false false);
  				let j = SSyntax_Aux.try_find which_pred (u, k) in
 				match j with 
 				| Some j -> 
