@@ -82,12 +82,12 @@ let rec normalize_lexpr le store symb_loc_tbl =
 		| LBase _ -> LLit (Type ObjectType)
 		| LField _ -> LLit (Type StringType)
 		| LTypeOf _ -> LLit (Type TypeType) 
-		| LCons (_, _) -> raise (Failure "This should never happen: program variable in normalized expression"))
+		| LLCons (_, _) -> raise (Failure "This should never happen: program variable in normalized expression"))
 	
-	| LCons (le1, le2) -> 
+	| LLCons (le1, le2) -> 
 		let nle1 = normalize_lexpr le1 store symb_loc_tbl in 
 		let nle2 = normalize_lexpr le2 store symb_loc_tbl in 
-		LCons (nle1, nle2)
+		LLCons (nle1, nle2)
 	
 let rec get_expr_vars e var_tbl = 
 	match e with 
@@ -104,7 +104,7 @@ let rec get_expr_vars e var_tbl =
 	| LBase e1 
 	| LField e1
 	| LTypeOf e1 -> get_expr_vars e1 var_tbl
-	| LCons (e1, e2) -> get_expr_vars e1 var_tbl; get_expr_vars e2 var_tbl		
+	| LLCons (e1, e2) -> get_expr_vars e1 var_tbl; get_expr_vars e2 var_tbl		
 
 
 let get_ass_vars ass = 

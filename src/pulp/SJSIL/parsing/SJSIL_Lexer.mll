@@ -76,7 +76,7 @@ rule read = parse
 	| "base"               { SJSIL_Parser.BASE }
 	| "field"              { SJSIL_Parser.FIELD }
 	| "typeOf"             { SJSIL_Parser.TYPEOF }
-	| "::"								 { SJSIL_Parser.LCONS }
+	| "nth"                { SJSIL_Parser.LNTH }
 (* binary operators *)
 	| "="                  { SJSIL_Parser.EQUAL }
 	| "<"                  { SJSIL_Parser.LESSTHAN }
@@ -96,6 +96,7 @@ rule read = parse
 	| "<<"                 { SJSIL_Parser.LEFTSHIFT }
 	| ">>"                 { SJSIL_Parser.SIGNEDRIGHTSHIFT }
 	| ">>>"                { SJSIL_Parser.UNSIGNEDRIGHTSHIFT }
+	| "::"								 { SJSIL_Parser.LCONS }
 (* unary operators *)
 	| "not"                { SJSIL_Parser.NOT }
 	| "num_to_string"      { SJSIL_Parser.TOSTRING }
@@ -127,6 +128,7 @@ rule read = parse
 	| "$$undefined"        { SJSIL_Parser.UNDEFINED }
 	| "$$empty"            { SJSIL_Parser.EMPTY } 
   | "None"							 { SJSIL_Parser.LNONE }
+	| "$$nil"              { SJSIL_Parser.LNIL } 
 	| ".v."                { SJSIL_Parser.VREFLIT }
   | ".o."                { SJSIL_Parser.OREFLIT }
 	| "[["                 { SJSIL_Parser.OSPEC }

@@ -109,7 +109,7 @@ let rec string_of_logic_expression e escape_string =
 		(* typeof(e) *)
     | LTypeOf e -> Printf.sprintf "typeof(%s)" (sle e)
 		(* e1 :: e2*)
-		| LCons (e1, e2) -> Printf.sprintf "%s :: %s" (sle e1) (sle e2)
+		| LLCons (e1, e2) -> Printf.sprintf "%s :: %s" (sle e1) (sle e2)
 
 let string_of_list list =
 	match list with

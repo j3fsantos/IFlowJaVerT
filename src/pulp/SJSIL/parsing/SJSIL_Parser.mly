@@ -21,6 +21,7 @@ open SSyntax
 %token UNDEFINED
 %token EMPTY
 %token LNONE
+%token LNIL
 (* Type literals *)
 %token BOOLTYPELIT
 %token NUMTYPELIT
@@ -59,7 +60,6 @@ open SSyntax
 %token BASE
 %token FIELD
 %token TYPEOF
-%token LCONS
 (* binary operators *)
 %token EQUAL
 %token LESSTHAN
@@ -79,6 +79,8 @@ open SSyntax
 %token LEFTSHIFT
 %token SIGNEDRIGHTSHIFT
 %token UNSIGNEDRIGHTSHIFT
+%token LCONS
+%token LNTH
 (* unary operators *)
 %token NOT
 %token TOSTRING
@@ -303,6 +305,8 @@ expr_target:
 (* typeof *)
 	| TYPEOF; LBRACE; e=expr_target; RBRACE
 		{ SSyntax.TypeOf (e) }
+(* nth *)
+	| LNTH; LBRACE; e=expr_target; COMMA; n=INT; RBRACE { SSyntax.LLNth (e, n) }
 (* (e) *)
   | LBRACE; e=expr_target; RBRACE
 		{ e }
@@ -436,7 +440,7 @@ lexpr_target:
 		{ LTypeOf (e) }
 (* cons *)
 	| e1=lexpr_target; LCONS; e2=lexpr_target
-		{ LCons (e1, e2) }
+		{ LLCons (e1, e2) }
 (* (e) *)
   | LBRACE; e=lexpr_target; RBRACE
 	  { e }
@@ -464,6 +468,7 @@ lit_target:
 	| loc=LOC; VREFLIT; s=STRING { SSyntax.LVRef (loc, s) }
 	| loc=LOC; OREFLIT; s=STRING { SSyntax.LORef (loc, s) }
 	(* EMPTY AND NON-EMPTY LISTS *)
+	| LNIL { SSyntax.LList [] }
 	| LISTOPEN; LISTCLOSE { SSyntax.LList [] }
 	| LISTOPEN; litlist = separated_list(COMMA, lit_target); LISTCLOSE { SSyntax.LList litlist }
 ;
@@ -487,6 +492,7 @@ binop_target:
 	| LEFTSHIFT { SSyntax.LeftShift }
 	| SIGNEDRIGHTSHIFT { SSyntax.SignedRightShift }
 	| UNSIGNEDRIGHTSHIFT { SSyntax.UnsignedRightShift }
+	| LCONS { SSyntax.LCons }
 ;
 
 unop_target: 

@@ -1,6 +1,7 @@
-proc test(x) {
-			y := {{ 1, "ab", $$t }};
-			xret := 4;
+proc main () {
+			l := new ();
+			[l, "test"] := 5;
+			xret := 42;
 	rlab:	skip
 }
 with

@@ -114,6 +114,9 @@ let rec rewrite_expr_ssa (expr : jsil_expr) var_stacks rename_var  =
 	| TypeOf e1 -> 
 		let new_e1 = rewrite_expr_ssa e1 var_stacks rename_var in
 		TypeOf (new_e1)
+	| LLNth (e1, n) ->
+		let new_e1 = rewrite_expr_ssa e1 var_stacks rename_var in
+		LLNth (new_e1, n)
 
 let rec rewrite_logic_expression (lexpr : jsil_logic_expr) var_stacks rename_var = 
 	(match lexpr with
@@ -129,7 +132,7 @@ let rec rewrite_logic_expression (lexpr : jsil_logic_expr) var_stacks rename_var
 	| LBase	lexpr -> LBase (rewrite_logic_expression lexpr var_stacks rename_var)
 	| LField lexpr -> LField (rewrite_logic_expression lexpr var_stacks rename_var)
 	| LTypeOf lexpr	-> LTypeOf (rewrite_logic_expression lexpr var_stacks rename_var)
-	| LCons (lexpr1, lexpr2) -> LCons	((rewrite_logic_expression lexpr1 var_stacks rename_var), (rewrite_logic_expression lexpr2 var_stacks rename_var))
+	| LLCons (lexpr1, lexpr2) -> LLCons	((rewrite_logic_expression lexpr1 var_stacks rename_var), (rewrite_logic_expression lexpr2 var_stacks rename_var))
 	| x -> x)
 		
 let rec rewrite_logic_assertion lass var_stacks rename_var = 

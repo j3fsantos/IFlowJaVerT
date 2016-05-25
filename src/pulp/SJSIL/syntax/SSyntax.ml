@@ -28,6 +28,8 @@ type bin_op =
   | LeftShift
   | SignedRightShift
   | UnsignedRightShift
+	(* Lists *)
+	| LCons				
 
 type unary_op = 
   | Not
@@ -86,6 +88,7 @@ type jsil_expr =
   | Base of jsil_expr
   | Field of jsil_expr
   | TypeOf of jsil_expr
+	| LLNth of jsil_expr * int
 
 (* jsil logical expressions *)
 type jsil_logic_var = string
@@ -104,7 +107,7 @@ type jsil_logic_expr =
 	| LBase				of jsil_logic_expr
 	| LField			of jsil_logic_expr
 	| LTypeOf			of jsil_logic_expr
-	| LCons				of jsil_logic_expr * jsil_logic_expr
+	| LLCons      of jsil_logic_expr * jsil_logic_expr
 
 type jsil_logic_assertion =
 	| LAnd				of jsil_logic_assertion * jsil_logic_assertion
@@ -191,7 +194,7 @@ type procedure = {
 (* SJSIL Heaps *)
  module SHeap = Hashtbl.Make(
 	struct
-		type t = string * string 
+		type t = string (* * string *)
 		let equal = (=)
 		let hash = Hashtbl.hash
 	end)

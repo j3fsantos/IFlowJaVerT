@@ -213,6 +213,10 @@ let evaluate_binop op lit1 lit2 =
 		(match lit1, lit2 with 
 		| Num n1, Num n2 -> (Num (uint32_right_shift n1 n2)) 
 		| _, _ -> raise (Failure "Non-string argument to SignedRightShift"))
+	| LCons -> 
+		(match lit2 with
+		| LList list -> LList (lit1 :: list)
+		| _ -> raise (Failure "Non-list second argument to LCons"))	
 
 let evaluate_type_of lit = 
 	match lit with 
@@ -273,6 +277,12 @@ let rec evaluate_expr (e : jsil_expr) store =
 	| TypeOf e ->
 		let v = evaluate_expr e store in
 		Type (evaluate_type_of v) 
+	| LLNth (e, n) ->
+		let v = evaluate_expr e store in 
+		(match v with 
+		| LList list -> 
+				(List.nth list n)
+		| _ -> raise (Failure "Incorrect arguments to LLNth"))		
 
 let rec proto_field heap loc field =
 	if (SHeap.mem heap (loc, field)) 
@@ -406,7 +416,7 @@ let init_store params args =
 	
 let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd = 	
 	let proc = try SProgram.find prog cur_proc_name with
-		| _ -> raise (Failure "The procedure you're trying to call doesn't exist. Ew.") in  
+		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist. Ew." cur_proc_name)) in  
 	let cmd = proc.proc_body.(cur_cmd) in 
 	let cur_which_pred = 
 		if (cur_cmd > 0) 
@@ -443,7 +453,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 			(fun e_arg -> evaluate_expr e_arg store) 
 			e_args in 
 		let call_proc = try SProgram.find prog call_proc_name with
-		| _ -> raise (Failure "The procedure you're trying to call doesn't exist. Spell check for your life?") in
+		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist. Spell check for your life?" call_proc_name)) in
 		let new_store = init_store call_proc.proc_params arg_vals in 
 		match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 with 
 		| Normal, v -> 

@@ -40,6 +40,7 @@ let string_of_binop bop = match bop with
   | LeftShift -> "<<"
   | SignedRightShift -> ">>"
   | UnsignedRightShift -> ">>>"
+	| LCons -> "::"
 
 let string_of_unop uop = match uop with 
   | Not -> "not"
@@ -49,6 +50,8 @@ let string_of_unop uop = match uop with
   | ToInt32Op -> "num_to_int32"
   | ToUint32Op -> "num_to_unit32"
   | BitwiseNot -> "!"
+	| Car -> "car"
+	| Cdr -> "cdr"
 	
 let string_of_bool x =
   match x with
@@ -86,6 +89,9 @@ let rec string_of_literal lit escape_string =
 		| LVRef (l, x) -> Printf.sprintf "%s.v.%s" l x  
 	  | LORef (l, x) -> Printf.sprintf "%s.o.%s" l x   
 		| LList ll -> 
+			match ll with
+			| [] -> "$$nil"
+			| ll ->
 			let rec loop ll = 
 				(match ll with
 				| [] -> ""
@@ -118,6 +124,8 @@ let rec sexpr_of_expression e =
     | Base e -> Printf.sprintf "(base %s)" (se e)
 		(* (field e) *)
     | Field e -> Printf.sprintf "(field %s)" (se e)
+		(* ('nth e n) *)
+		| LLNth (e, n) -> Printf.sprintf "(nth %s %d)" (se e) n
 
 let rec string_of_expression e escape_string =
   let se = fun e -> string_of_expression e escape_string in
@@ -138,6 +146,8 @@ let rec string_of_expression e escape_string =
     | Base e -> Printf.sprintf "base(%s)" (se e)
 		(* ('field e) *)
     | Field e -> Printf.sprintf "field(%s)" (se e)
+		(* ('nth e n) *)
+		| LLNth (e, n) -> Printf.sprintf "nth(%s, %d)" (se e) n
 
 let rec sexpr_of_bcmd bcmd i line_numbers_on = 
 	let se = sexpr_of_expression in
@@ -260,7 +270,6 @@ let rec string_of_lexpression lexpr escape_string =
 	| LBase lexpr1 -> "base(" ^ (string_of_lexpression lexpr1 escape_string) ^ ")"
 	| LField lexpr1 -> "field(" ^ (string_of_lexpression lexpr1 escape_string) ^ ")"
 	| LTypeOf lexpr1 -> "typeOf(" ^ (string_of_lexpression lexpr1 escape_string) ^ ")"
-	| LCons (lexpr1, lexpr2) -> (string_of_lexpression lexpr1 escape_string) ^ " :: " ^ (string_of_lexpression lexpr1 escape_string)
 	)
 	
 let rec string_of_assertion lass escape_string = 
@@ -412,13 +421,29 @@ let serialize_internals_racket specs builtins line_numbers =
 	let serialized_builtins = sexpr_of_program builtins line_numbers in 
 	let serialized_internals = serialized_specs ^ "\n" ^ serialized_builtins in 
 	Printf.sprintf SSyntax_Templates.template_internal_procs_racket serialized_internals
-																																																																																																																																																																																																																																																			
+
+(*
 let sexpr_of_heap h = 
 	SSyntax.SHeap.fold 
-		(fun (loc,prop) hval printed_heap -> 
-			let printed_hval = string_of_literal hval false in 
-			let printed_cell = Printf.sprintf "\n\t(cell '%s \"%s\" '%s)" loc prop printed_hval in
-			printed_heap ^ printed_cell)			
+		(fun (loc, prop) hval printed_heap -> 
+				let printed_hval = string_of_literal hval false in 
+				let printed_cell = Printf.sprintf "\n\t(cell '%s \"%s\" '%s)" loc prop printed_hval in
+			printed_heap ^ printed_cell)		
+		h
+		""
+*)
+
+let sexpr_of_heap (h : SSyntax.jsil_lit SSyntax.SHeap.t SSyntax.SHeap.t) = 
+	SSyntax.SHeap.fold 
+		(fun loc obj printed_heap -> 
+			  let printed_object =
+					(SSyntax.SHeap.fold
+						(fun prop hval print_obj ->
+							let printed_hval = string_of_literal hval false in 
+							let printed_cell = Printf.sprintf "\n\t(cell '%s \"%s\" '%s)" loc prop printed_hval in
+							print_obj ^ printed_cell)
+						obj "") in
+			printed_heap ^ (printed_object))		
 		h
 		""
 							
@@ -435,4 +460,3 @@ let string_of_store store =
 			if (ac != "") then var_val_str else ac ^ "; " ^ var_val_str)
 		store
 		"Store: "	
-
