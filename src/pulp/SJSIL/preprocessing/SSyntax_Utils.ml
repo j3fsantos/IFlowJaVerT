@@ -11,7 +11,8 @@ let get_proc_variables proc =
 		if (u >= number_of_cmds) 
 			then vars 
 			else 
-				(match cmds.(u) with
+				let spec, cmd = cmds.(u) in
+				(match cmd with
 				| SBasic (SAssignment (var, _)) 
 				| SBasic (SLookup (var, _, _))
 				| SBasic (SNew var) 
@@ -24,28 +25,6 @@ let get_proc_variables proc =
 				| _ -> loop (u+1) vars) in 
 	
 	loop 0 [] 			
-
-(*
-let derelativize_gotos_proc proc =
-	
-	let cmds = proc.proc_body in 
-	let number_of_cmds = Array.length cmds in 
-	
-	for u=0 to (number_of_cmds-1) do 
-		let cmd = cmds.(u) in 
-		match cmd with 
-		| SGoto i -> 
-			cmds.(u) <- SGoto (i + u)
-		| SGuardedGoto (e, i, j) ->
-			cmds.(u) <- SGuardedGoto (e, (i + u), (j + u)) 
-		| _ -> ()
-	done 
-	
-
-let derelativize_gotos prog = 
-	SSyntax.SProgram.iter 
-	(fun proc_name proc -> derelativize_gotos_proc proc)
-	prog		*)
 
 let get_proc_nodes cmd_list = Array.of_list cmd_list
 
@@ -66,26 +45,30 @@ let get_proc_info proc =
 
 let desugar_labs (lproc : lprocedure) = 
 	
-	let ln, lb, lp, lrl, lrv, lel, lev = lproc.lproc_name, lproc.lproc_body, lproc.lproc_params, lproc.lret_label, lproc.lret_var, lproc.lerror_label, lproc.lerror_var in
+	let ln,               lb,               lp,                 lrl,              lrv,            lel,                lev,              lspec = 
+		  lproc.lproc_name, lproc.lproc_body, lproc.lproc_params, lproc.lret_label, lproc.lret_var, lproc.lerror_label, lproc.lerror_var, lproc.lspec in
+			
 	let nc = Array.length lb in
 	
 	let map_labels_to_numbers =
 		let mapping = Hashtbl.create nc in
 		for i = 0 to (nc - 1) do
 			(match lb.(i) with
-			  | (Some str, _) -> Hashtbl.add mapping str i
+			  | (_, Some str, _) -> Hashtbl.add mapping str i
 				| _ -> ()); 
 		done;
 		mapping in
 	
 	let convert_to_sjsil mapping = 
-		let cmds_nolab = Array.map (fun x -> (match x with | (_, cmd) -> cmd)) lb in
+		let cmds_nolab = Array.map (fun x -> (match x with | (spec, _, cmd) -> (spec, cmd))) lb in
 		let cmds = Array.map (fun x -> 
-			match x with
-			| SLBasic cmd -> SBasic cmd
-			| SLGoto lab -> SGoto (Hashtbl.find mapping lab)
-			| SLGuardedGoto (e, lt, lf) -> SGuardedGoto (e, Hashtbl.find mapping lt, Hashtbl.find mapping lf)
-			| SLCall (x, e, le, ol) -> SCall (x, e, le, match ol with | None -> None | Some lab -> Some (Hashtbl.find mapping lab))
+			match x with | spec, x ->
+				let x = match x with
+				          | SLBasic cmd -> SBasic cmd
+			            | SLGoto lab -> SGoto (Hashtbl.find mapping lab)
+			            | SLGuardedGoto (e, lt, lf) -> SGuardedGoto (e, Hashtbl.find mapping lt, Hashtbl.find mapping lf)
+			            | SLCall (x, e, le, ol) -> SCall (x, e, le, match ol with | None -> None | Some lab -> Some (Hashtbl.find mapping lab)) in
+				(spec, x)
 			) cmds_nolab in
 			
 		cmds, (Hashtbl.find mapping lrl), (match lel with | None -> None | Some lab -> Some (Hashtbl.find mapping lab)) in
@@ -100,7 +83,8 @@ let desugar_labs (lproc : lprocedure) =
 			ret_label = rl; 
 			ret_var = lrv;
 			error_label = el; 
-			error_var = lev
+			error_var = lev;
+			spec = lspec;
 		} in
 	Printf.printf "%s" (SSyntax_Print.string_of_procedure proc false);
 	proc

@@ -186,7 +186,7 @@ let rec jsil_to_sjsil_expr e var_gen var_table =
 		(SSyntax.TypeOf jsil_e), cmds
 
 				
-let jsil_to_sjsil jsil_cmds var_table var_gen label_to_number ret_label ex_label =  
+let jsil_to_sjsil jsil_cmds var_table var_gen (label_to_number : string -> int) ret_label ex_label =  
 	
 	(* translate calls *) 
 	let translate_call var call = 
@@ -197,14 +197,14 @@ let jsil_to_sjsil jsil_cmds var_table var_gen label_to_number ret_label ex_label
 		let arg_exps = List.map (fun (exp,cmds) -> exp) arg_exps_cmds in 
 		let arg_cmds = List.fold_left (fun ac_cmds (exp, cmds) -> ac_cmds @ cmds) [] arg_exps_cmds in 
 		cmds_e @ cmds_this @ cmds_scope @ arg_cmds @
-		[ SSyntax.SCall (var, call_name_e, [this_e; scope_e] @ arg_exps, label_to_number call.call_throw_label) ] in 
+		[ SSyntax.SCall (var, call_name_e, [this_e; scope_e] @ arg_exps, Some (label_to_number call.call_throw_label)) ] in 
 
 	let translate_eval_call var call = 
 		let arg_exps_cmds = List.map (fun expr -> jsil_to_sjsil_expr expr var_gen var_table) call.call_args in 
 		let arg_exps = List.map (fun (exp,cmds) -> exp) arg_exps_cmds in 
 		let arg_cmds = List.fold_left (fun ac_cmds (exp, cmds) -> ac_cmds @ cmds) [] arg_exps_cmds in
 		arg_cmds @
-		[ SSyntax.SCall (var, SSyntax.Literal (SSyntax.String "eval"), arg_exps, label_to_number call.call_throw_label) ] in 
+		[ SSyntax.SCall (var, SSyntax.Literal (SSyntax.String "eval"), arg_exps, Some (label_to_number call.call_throw_label)) ] in 
 		
 	(**
 	 * jsil_cmds -> jsil cmds to compile
@@ -247,7 +247,7 @@ let jsil_to_sjsil jsil_cmds var_table var_gen label_to_number ret_label ex_label
 					let arg_exps_cmds = List.map (fun expr -> jsil_to_sjsil_expr expr var_gen var_table) args in 
 					let arg_exps = List.map (fun (exp,cmds) -> exp) arg_exps_cmds in 
 					let arg_cmds = List.fold_left (fun ac_cmds (exp, cmds) -> ac_cmds @ cmds) [] arg_exps_cmds in
-					let sjsil_cmd = (SSyntax.SCall (jsil_var, (SSyntax.Literal (SSyntax.String (Pulp_Syntax_Print.string_of_spec_fun_id sf))), arg_exps, (label_to_number l))) in 
+					let sjsil_cmd = (SSyntax.SCall (jsil_var, (SSyntax.Literal (SSyntax.String (Pulp_Syntax_Print.string_of_spec_fun_id sf))), arg_exps, Some (label_to_number l))) in 
 					let number_of_new_cmds = number_of_new_cmds + (List.length arg_cmds) in 
 						cmd_shifts.(cur_number) <- number_of_new_cmds;
 						jsil_to_sjsil_iter rest_jsil_cmds (sjil_cmds_so_far @ arg_cmds @ [ sjsil_cmd ]) number_of_new_cmds new_number cmd_shifts
@@ -269,7 +269,8 @@ let jsil_to_sjsil jsil_cmds var_table var_gen label_to_number ret_label ex_label
 			| Goto l ->
 				let new_number = cur_number + 1 in 
 				cmd_shifts.(cur_number) <- number_of_new_cmds; 
-				jsil_to_sjsil_iter rest_jsil_cmds (sjil_cmds_so_far @ [ (SSyntax.SGoto (label_to_number l)) ]) number_of_new_cmds new_number cmd_shifts
+				let new_label : int = label_to_number l in 
+				jsil_to_sjsil_iter rest_jsil_cmds (sjil_cmds_so_far @ [ (SSyntax.SGoto new_label) ]) number_of_new_cmds new_number cmd_shifts
 			
 			(* Guarded Goto *)
 			| GuardedGoto (expr, l1, l2) -> 
@@ -469,7 +470,7 @@ let jsil_to_sjsil_proc jsil_proc =
 	let ex_label = jsil_proc.func_ctx.label_throw in 
 				
 	(* labels to numbers *)
-	let label_to_number = SSyntax_Aux.register_labels jsil_proc.func_body ret_label ex_label in
+	let label_to_number : string -> int = SSyntax_Aux.register_labels jsil_proc.func_body ret_label ex_label in
 	
 	(* translate the body of the procedure *)
 	let sjsil_body, cmd_shifts = jsil_to_sjsil jsil_proc.func_body var_table var_gen label_to_number ret_label ex_label in
@@ -501,13 +502,14 @@ let jsil_to_sjsil_proc jsil_proc =
 	let new_ex_label = new_ex_label + cmd_shifts.(new_ex_label)  in 
 	
 		{ 
-    	SSyntax.pproc_name = jsil_proc.func_name;
-    	SSyntax.proc_body = sjsil_body;
+    	SSyntax.proc_name = jsil_proc.func_name;
+    	SSyntax.proc_body = Array.of_list (List.map (fun x -> (None, x)) sjsil_body);
     	SSyntax.proc_params = new_params; 
 			SSyntax.ret_label = new_ret_label;
 			SSyntax.ret_var = new_ret_var;
-			SSyntax.error_label = new_ex_label;
-			SSyntax.error_var = new_ex_var
+			SSyntax.error_label = Some new_ex_label;
+			SSyntax.error_var = Some new_ex_var;
+			SSyntax.spec = None;
 		}
 
 let jsil_to_sjsil_prog jsil_prog = 

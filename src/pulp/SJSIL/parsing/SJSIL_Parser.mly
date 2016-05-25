@@ -8,12 +8,8 @@ open SSyntax
 %token ERR
 %token SPEC
 %token NORMAL
-%token PRE
-%token POST
-%token FLAG
 (*literals*)
 %token <string> LVAR
-%token <string> PVAR
 %token <string> VAR
 %token <int> INT
 %token <float> FLOAT
@@ -103,9 +99,11 @@ open SSyntax
 %token RBRACKET
 %token CLBRACKET
 %token CRBRACKET
+%token OSPEC
+%token CSPEC
 
-%type <(SSyntax.lprocedure list)>          prog_target
-%type <(JSIL_Logic_Syntax.jsil_spec list)> specs_target
+%type <(SSyntax.lprocedure list)> prog_target
+%type <(SSyntax.jsil_spec list)>  specs_target
 
 (* main target <(SSyntax.lprocedure list)> *) 
 %start prog_target specs_target
@@ -121,13 +119,19 @@ proc_list_target:
 	proc_list = separated_list(SCOLON, proc_target) { proc_list };
 
 proc_target: 
-(* proc xpto (x, y) { cmd_list[;] } with { ret: x, i; [err: x, j] }; *) 
+(* [spec]; proc xpto (x, y) { cmd_list[;] } with { ret: x, i; [err: x, j] }; *) 
+  spec = option(spec_target);
 	PROC; proc_name=VAR; LBRACE; param_list=param_list_target; RBRACE; 
 		CLBRACKET; cmd_list=cmd_list_target; option(SCOLON); CRBRACKET; 
 	WITH; 
 		CLBRACKET; ctx_ret=ctx_target_ret; ctx_err=option(ctx_target_err); CRBRACKET
 	{
 		Printf.printf "Parsing Procedure.\n";
+		(match (spec : SSyntax.jsil_spec option) with
+		| None -> ()
+		| Some specif ->  if (not (specif.spec_name = proc_name))    then (raise (Failure "Specification name does not match procedure name."))           else 
+			               (if (not (specif.spec_params = param_list)) then (raise (Failure "Specification parameters do not match procedure parameters.")) else ())
+		);
 		let ret_var, ret_index = ctx_ret in 
 		let err_var, err_index = 
 			(match ctx_err with 
@@ -142,7 +146,8 @@ proc_target:
 			SSyntax.lret_label = ret_index;
 			SSyntax.lret_var = ret_var;
 			SSyntax.lerror_label = err_index;
-			SSyntax.lerror_var = err_var
+			SSyntax.lerror_var = err_var;
+			SSyntax.lspec = spec;
 		}
 	};
 
@@ -166,26 +171,25 @@ param_list_target:
 	param_list = separated_list(COMMA, VAR) { param_list };
 
 cmd_list_target: 
-	cmd_list = separated_list(SCOLON, cmd_with_label) {
+	cmd_list = separated_list(SCOLON, cmd_with_label_and_specs) {
 		List.rev 
 			(List.fold_left
 				(fun ac c ->
 					match c with
-			 		| (None, None) -> ac
-			 		| (Some lab, None) -> raise (Failure "Yeah, that's not going to work - a label with no command.")
-					| (olab, Some v) -> (olab, v) :: ac
+			 		| (None, None, None) -> ac
+					| (pre, lab, Some v) -> (pre, lab, v) :: ac
+          | _, _, _ -> raise (Failure "Yeah, that's not really going to work without a command.")
 				)
 				[] 
 				cmd_list)
 	};
 
-cmd_with_label:
-	lab = option(label); cmd = cmd_target;
-		{ Printf.printf "l : %s\n" (match lab with | None -> "None" | Some lab -> lab); (lab, cmd)}
-
-label: 
-	lab=VAR; COLON; 
-		{ Printf.printf "%s\n" lab; lab }
+cmd_with_label_and_specs:
+  | pre = option(spec_line); cmd = cmd_target
+		{ (pre, None, cmd) }
+		
+	| pre = option(spec_line); lab = label; cmd = cmd_target; 
+		{ (pre, Some lab, cmd) }
 
 cmd_target: 
 (* skip *)
@@ -262,6 +266,10 @@ cmd_target:
 		}
 ;
 
+label: 
+	lab=VAR; COLON; 
+		{ lab }
+
 expr_list_target: 
 	expr_list=separated_list(COMMA, expr_target) { expr_list }
 ;
@@ -298,7 +306,7 @@ expr_target:
 (********* LOGIC *********)
 
 specs_target:
-	spec_list_target EOF	{ $1 }
+	spec_list_target EOF	{ Printf.printf("Entering specs_target"); $1 }
 ;
 
 spec_list_target: 
@@ -306,35 +314,37 @@ spec_list_target:
 
 spec_target: 
 (* spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *) 
-	SPEC; proc_name=PVAR; LBRACE; param_list=param_plist_target; RBRACE; pre_post_list=pre_post_list_target
+	SPEC; proc_name=VAR; LBRACE; param_list=param_list_target; RBRACE; pre_post_list=pre_post_list_target;
 	{ 
 		{ 
-    	JSIL_Logic_Syntax.spec_name = proc_name;
+      spec_name = proc_name;
     	spec_params = param_list;
 			proc_specs = pre_post_list 
 		}
 	};
 	
 pre_post_list_target:
-	pre_post_list = separated_list(COMMA, pre_post_target) { pre_post_list };
+	pre_post_list = separated_list(SCOLON, pre_post_target) { pre_post_list };
 
+(* [[ .... ]] [[ .... ]] flag *)
 pre_post_target:
-	PRE; COLON; pre_assertion=assertion_target; COMMA; POST; COLON; post_assertion=assertion_target; COMMA; FLAG; COLON; ret_flag=ret_flag_target
+	pre_assertion = spec_line; post_assertion = spec_line; ret_flag=ret_flag_target
 	{
 		{
-			JSIL_Logic_Syntax.pre = pre_assertion;
+			pre = pre_assertion;
 			post = post_assertion;
 			ret_flag = ret_flag
 		}
 	};
 
+spec_line:
+  OSPEC; assertion=assertion_target; CSPEC
+	{ assertion }
+
 ret_flag_target: 
 	| NORMAL { Normal }
-	| ERR { JSIL_Logic_Syntax.Error }
+	| ERR { Error }
 ; 
-
-param_plist_target: 
-	param_list = separated_list(COMMA, PVAR) { param_list };
 
 assertion_target:
 (* P /\ Q *)
@@ -399,7 +409,7 @@ lexpr_target:
 (* lvar *)
 	| v=LVAR { LVar v }
 (* pvar *)
-	| v=PVAR { PVar v }
+	| v=VAR { PVar v }
 (* binop *)	
 	| e1=lexpr_target; bop=binop_target; e2=lexpr_target { LBinOp (e1, bop, e2) }
 (* unop *)
@@ -421,7 +431,7 @@ lexpr_target:
 		{ LTypeOf (e) }
 (* cons *)
 	| e1=lexpr_target; LCONS; e2=lexpr_target
-		{ JSIL_Logic_Syntax.LCons (e1, e2) }
+		{ LCons (e1, e2) }
 (* (e) *)
   | LBRACE; e=lexpr_target; RBRACE
 	  { e }
