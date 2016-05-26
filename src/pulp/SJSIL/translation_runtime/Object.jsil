@@ -1,0 +1,66 @@
+(* ****************** *) 
+(* THE OBJECT LIBRARY *)
+(* ****************** *) 
+
+(* *** CALL *** *)
+
+proc Object_call (l) {
+			goto [(l = $$undefined) or (l = $$null) or (l = $$empty)] cons to_obj;
+	
+	cons:	xret := "Object_construct" (l);
+			goto rlab;
+	
+	to_obj:	xret := "i__toObject" (l);
+
+	rlab:	skip
+}
+with
+{
+	ret: xret, rlab;
+};
+
+(* *** CONSTRUCT *** *)
+
+proc Object_construct (l) {
+			goto [typeOf(l) = $$object_type] obj l1b;
+	obj:	xret := l;
+			goto rlab;
+			
+	l1b:	goto [(typeOf(l) = $$boolean_type) or (typeOf(l) = $$number_type) or (typeOf(l) = $$string_type)] to_obj norm;
+	to_obj:	xret := "i__toObject" (l);
+			goto rlab;
+
+	norm:	xret := new ();
+			[xret, "@proto"] := $lop;
+			[xret, "@class"] := "Object";
+			[xret, "@extensible"] := $$t;
+			
+			[xret, "@getOwnProperty"]    := "o__getOwnProperty";
+			[xret, "@getProp"]           := "o__getProperty";
+			[xret, "@get"]               := "o__get";
+			[xret, "@canPut"]            := "o__canPut";
+			[xret, "@put"]               := "o__put";
+			[xret, "@hasProperty"]       := "o__hasProperty";
+			[xret, "@deleteProperty"]    := "o__deleteProperty";
+			[xret, "@defaultValue"]      := "o__defaultValue";
+			[xret, "@defineOwnProperty"] := "o__defineOwnProperty";
+			
+			[xret, "@primitiveValue"]   := $$empty;
+			[xret, "@construct"]        := $$empty;
+			[xret, "@call"]             := $$empty;
+			[xret, "@hasInstance"]      := $$empty;
+			[xret, "@scope"]            := $$empty;
+			[xret, "@formalParameters"] := $$empty;
+			[xret, "@body"]             := $$empty;
+			[xret, "@targetFunction"]   := $$empty;
+			[xret, "@boundThis"]        := $$empty;
+			[xret, "@boundArguments"]   := $$empty;
+			[xret, "@match"]            := $$empty;
+			[xret, "@parameterMap"]     := $$empty;
+			
+	rlab:	skip
+}
+with
+{
+	ret: xret, rlab;
+}

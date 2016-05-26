@@ -282,6 +282,8 @@ let rec evaluate_expr (e : jsil_expr) store =
 		(match v with 
 		| LList list -> 
 				(List.nth list n)
+		| String s -> 
+				String (String.make 1 (String.get s n))
 		| _ -> raise (Failure "Incorrect arguments to LLNth"))		
 
 let rec proto_field heap loc field =

@@ -40,6 +40,7 @@ type unary_op =
   | ToInt32Op
   | ToUint32Op
   | BitwiseNot
+  | Length
 	(* UNARY OPERATORS FOR LISTS *)
 	| Car
 	| Cdr
@@ -84,7 +85,7 @@ type jsil_expr =
   | Var of jsil_var
   | BinOp of jsil_expr * bin_op * jsil_expr
   | UnaryOp of unary_op * jsil_expr
-	| VRef of jsil_expr * jsil_expr
+  | VRef of jsil_expr * jsil_expr
   | ORef of jsil_expr * jsil_expr
   | Base of jsil_expr
   | Field of jsil_expr
