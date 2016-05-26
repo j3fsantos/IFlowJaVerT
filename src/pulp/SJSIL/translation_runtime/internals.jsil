@@ -599,7 +599,7 @@ proc String_construct (s) {
 			[xret, "@match"]            := $$empty;
 			[xret, "@parameterMap"]     := $$empty;
 			
-			x := o__defineOwnProperty (xret, "length", {{ "d", (length pv), $$f, $$f, $$f }}, $$t); 
+			x := "o__defineOwnProperty" (xret, "length", {{ "d", (length pv), $$f, $$f, $$f }}, $$t); 
 			
 	rlab:	skip
 }
@@ -623,9 +623,14 @@ proc main () {
 			[l0, "@proto"] := l1;
 			[l1, "@proto"] := l2;
 			
+			str := "String_construct" ("oogaBooga");
+			
+		(*
 			xret := "o__getOwnProperty" (l1, "@proto");
-			xret := "o__defineOwnProperty" (l2, "foo", {{ "g", $$t, $$f, 42, $$f, $$empty, $$empty }}, $$t); (* current *)
-			xret := "o__defineOwnProperty" (l2, "foo", {{ "g", $$t, $$f, 42, $$t, $$empty, $$empty }}, $$t); (* desc *)
+			xret := "o__defineOwnProperty" (l2, "foo", {{ "g", $$t, $$f, 42, $$f, $$empty, $$empty }}, $$t); 
+			xret := "o__defineOwnProperty" (l2, "foo", {{ "g", $$t, $$f, 42, $$t, $$empty, $$empty }}, $$t);
+		*)
+		
 	rlab:	skip
 }
 with
