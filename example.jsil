@@ -1,7 +1,7 @@
 proc main () {
 			l := new ();
 			[l, "test"] := 5;
-			xret := 42;
+			xret := {{ "a", l, $$t }};
 	rlab:	skip
 }
 with

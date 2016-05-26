@@ -90,6 +90,7 @@ open SSyntax
 %token BITWISENOT
 %token CAR
 %token CDR
+%token ISPRIMITIVE
 (* separators *)
 %token EOF
 %token COMMA
@@ -307,6 +308,10 @@ expr_target:
 		{ SSyntax.TypeOf (e) }
 (* nth *)
 	| LNTH; LBRACE; e=expr_target; COMMA; n=INT; RBRACE { SSyntax.LLNth (e, n) }
+(* {{ }} *)
+ 	| LISTOPEN; LISTCLOSE { SSyntax.LEList [] }
+(* {{ e, ..., e }} *)
+	| LISTOPEN; exprlist = separated_list(COMMA, expr_target); LISTCLOSE { SSyntax.LEList exprlist }
 (* (e) *)
   | LBRACE; e=expr_target; RBRACE
 		{ e }
@@ -470,7 +475,6 @@ lit_target:
 	(* EMPTY AND NON-EMPTY LISTS *)
 	| LNIL { SSyntax.LList [] }
 	| LISTOPEN; LISTCLOSE { SSyntax.LList [] }
-	| LISTOPEN; litlist = separated_list(COMMA, lit_target); LISTCLOSE { SSyntax.LList litlist }
 ;
 
 binop_target: 
@@ -505,6 +509,7 @@ unop_target:
 	| BITWISENOT { SSyntax.BitwiseNot }
 	| CAR { SSyntax.Car }
 	| CDR { SSyntax.Cdr }
+	| ISPRIMITIVE { SSyntax.IsPrimitive }
 ;
 
 call_with_target: 

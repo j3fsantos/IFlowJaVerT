@@ -103,6 +103,7 @@ rule read = parse
 	| "string_to_num"      { SJSIL_Parser.TONUMBER }
 	| "num_to_int32"       { SJSIL_Parser.TOINT32 }
 	| "num_to_uint32"      { SJSIL_Parser.TOUINT32 }
+	| "is_primitive"       { SJSIL_Parser.ISPRIMITIVE }
 	| "!"                  { SJSIL_Parser.BITWISENOT }
 	| "car"                { SJSIL_Parser.CAR }
 	| "cdr"                { SJSIL_Parser.CDR }

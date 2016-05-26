@@ -1,22 +1,13 @@
 (* ************** *) 
 (* GETOWNPROPERTY *)
 (* ************** *) 
-
-spec getOwnProperty (l, prop)
-	[[ (l, prop) -> None ]]
-	[[ ((l, prop) -> None) * xret == $$empty ]]
-	normal;
 	
-	[[ exists _v. ((l, prop) -> _v) * (~ _v == None) ]]
-	[[ exists _v. ((l, prop) -> _v) * (~ _v == None) * (xret == _v) ]]
-	normal
-	
-proc getOwnProperty (l, prop) {
-            x := hasField(l, prop);
-            goto [x] hp nhp; 
-    hp:     xret := [l, prop];
-            goto rlab;
-    nhp:    xret := $$empty;
+proc o__getOwnProperty (l, prop) {
+            x := hasField(l, prop);		
+            goto [x] hp nhp; 			(* Does the field exist? *)
+    nhp:    xret := $$undefined;		(* Field doesn't exist; return undefined *)
+            goto rlab;					
+    hp:     xret := [l, prop];			(* Field exists; return the descriptor *)
     rlab:   skip
 }
 with
@@ -28,10 +19,12 @@ with
 (* GETPROPERTY *)
 (* *********** *) 
 
-proc getProperty (l, prop) {
-            xret := protoField(l, prop);
-            goto [xret = $$undefined] ndef rlab;
-    ndef:   xret := $$undefined;
+proc o__getProperty (l, prop) {
+            x := protoField(l, prop);			
+            goto [x = $$undefined] ndef def;	(* Does the field exist in the prototype chain? *)
+    ndef:   xret := $$undefined;				(* Field doesn't exist; return undefined *)
+    		goto rlab;
+	def:	xret := [x, prop];					(* Field exists; return the descriptor *)
     rlab:   skip
 }
 with 
@@ -43,35 +36,48 @@ with
 (* GET *)
 (* *** *) 
 
-proc get(l, prop) {
-    rlab:   xret := "getProperty" (l, prop)
+proc o__get(l, prop) {
+			xret := "o__getProperty" (l, prop);	
+			goto [xret = $$undefined] rlab def;		(* Does the field exist? *)
+	def:	d := nth (xret, 0);						(* Get the descriptor type *)
+			xret := nth (xret, 1);					(* Get the value/getter *)
+			goto [d = "d"] rlab acc;				(* Is it a data descriptor? *)
+	acc:	goto [xret = $$undefined] rlab get;		(* Is the getter defined? *)
+	get:	scp := [xret, "@scope"];				(* Get the scope of the getter *)
+			fun := [xret, "@body"];					(* Get the name of the getter *)
+			xret := fun (l) with elab;				(* Call the getter, errors could happen *)
+	rlab:	skip;
+	elab:	skip
 }
 with
 {
     ret: xret, rlab;
+    err: xret, elab;	(* Error variable same as return *)
 };
 
 (* ****** *) 
 (* CANPUT *)
 (* ****** *) 
 
-spec canPut (l, prop) 
-	[[ ((l, prop) -> None) * ((l, "#extensible") -> $$t) ]]
-	[[ ((l, prop) -> None) * ((l, "#extensible") -> $$t) * (xret == $$t) ]]
-	normal;
-	
-	[[ ((l, prop) -> None) * ((l, "#extensible") -> $$f) ]]
-	[[ ((l, prop) -> None) * ((l, "#extensible") -> $$f) * (xret == $$f) ]]
-	normal;
-	
-	[[ exists _v. ((l, prop) -> _v) * (~ _v == None) ]]
-	[[ exists _v. ((l, prop) -> _v) * (~ _v == None) * (xret == $$t) ]]
-	normal
-
-proc canPut (l, prop) {
-            xret := hasField(l, prop);
-            goto [xret] rlab nhf;
-    nhf:    xret := [l, "#extensible"];
+proc o__canPut (l, prop) {
+            x := "o__getOwnProperty" (l, prop);		
+	op:		goto [x = $$undefined] nop odesc; 	(* Does the own property exist? *)
+	odesc:	d := nth (x, 0);					(* It does; get the descriptor type *)
+			goto [d = "d"] odd nop;				(* Is the descriptor a data descriptor? *)
+	odd:	xret := nth (x, 2);					(* It is; return the Writable attribute *)
+			goto rlab;
+	nop:	e := [l, "@extensible"];			(* Get the extensible property *)
+			x := "o__getProperty" (l, prop);	(* Does the property exist? *)
+			goto [x = $$undefined] ext desc;	(* It doesn't; return extensible *)
+	desc:	d := nth (x, 0);					(* Get the descriptor type *)
+			v := nth (x, 2);					(* Get the writable/setter *)
+			goto [d = "d"] dd ad;				(* Is it a data descriptor? *)
+	dd:		goto [e] wr ext;					(* Yes; is the object extensible? *)
+	wr:		xret := v;							(* Yes; return writable *)
+			goto rlab;
+	ad:		xret := not (v = $$undefined); 		(* Accessor descriptor *)
+			goto rlab;
+	ext:	xret := e;							(* Return extensible *)
     rlab:   skip
 }
 with
@@ -83,13 +89,33 @@ with
 (* PUT *)
 (* *** *) 
 
-proc put(l, prop, value, throw) {
-            x := "canPut" (l, prop);
-            goto [x] t f;
-    t:      [l, prop] := value;
-    tf:     xret := $$empty;
+proc o__put(l, prop, value, throw) {
+            x := "o__canPut" (l, prop);
+            goto [x] cp reject;
+            
+    cp:     x := "o__getOwnProperty" (l, prop);
+    		dd := "i__isDataDescriptor" (x);
+    		goto [dd] dd gp;
+    dd:		desc := {{ "g", $$empty, $$empty, value, $$empty, $$empty, $$empty }};
+    		xerr := "o__defineOwnProperty" (l, prop, desc, throw) with elab;
+    		goto remp;
+    		
+    gp:		x := "o__getProperty" (l, prop);
+    		ad := "i__isAccessorDescriptor" (x);
+    		goto [ad] ad def;
+    ad:		s := nth (x, 2);
+    		scp := [s, "@scope"];
+    		fun := [s, "@body"];
+    		xerr := fun (l, value) with elab;
+    		goto remp;
+    		
+    def:	desc := {{ "d", value, $$t, $$t, $$t }};
+    		xerr := "o__defineOwnProperty" (l, prop, desc, throw) with elab;
+
+    remp:   xret := $$empty;
     rlab:   skip;
-    f:      goto [throw] tt tf;
+    
+    reject: goto [throw] tt remp;
     tt:     xerr := "TypeError" ();
     elab:   skip
 }
@@ -103,195 +129,367 @@ with
 (* HASPROPERTY *)
 (* *********** *) 
 
-proc hasProperty(l, prop) {
-            x := "getProperty" (l, prop);
-            goto [x = $$undefined] ndef def;
-    def:    xret := $$t;
-            goto rlab;
-    ndef:   xret := $$f;
-    rlab:   skip
+proc o__hasProperty (l, prop) {
+			x := "o__getProperty" (l, prop);
+	rlab:	xret := not (x = $$undefined)
 }
 with
 {
-    ret: xret, rlab;
+	ret: xret, rlab;
 };
 
-(* ****** *) 
-(* DELETE *)
-(* ****** *) 
+(* ************** *) 
+(* DELETEPROPERTY *)
+(* ************** *) 
 
-spec deleteProperty (l, prop, throw)
-	[[ exists _v. (l, prop) -> _v ]]
-	[[ ((l, prop) -> None) * (xret == $$t) ]]
-	normal
-
-proc deleteProperty (l, prop, throw) {
-            x := "getOwnProperty" (l, prop);
-            goto [x = $$undefined] ndef def;   
-    def:    delete (l, prop);
-    ndef:	xret := $$t;
-    rlab:   skip
+proc o__deleteProperty (l, prop, throw) {
+			x := "o__getOwnProperty" (l, prop);
+			goto [x = $$undefined] dt cont;
+	cont:	c := nth (x, 4);
+			goto [c] del reject;
+	del:	delete (l, prop);
+	dt:		xret := $$t;
+			goto rlab;
+	df:		xret := $$f;
+	rlab:	skip;
+    reject: goto [throw] tt df;
+    tt:     xerr := "TypeError" ();
+    elab:   skip
 }
 with
 {
-    ret: xret, rlab;
+	ret: xret, rlab;
+	err: xret, elab;
 };
 
-proc isPrimitive(v) {
-            goto [(typeOf(v) = $$boolean_type) or
-                  (typeOf(v) = $$number_type) or
-                  (typeOf(v) = $$string_type) or
-                  (v = $$undefined) or
-                  (v = $$null)] np p;
-    p:      xret := $$t;
-            goto rlab;
-    np:     xret := $$f;
-    rlab:   skip
-}
-with
-{
-    ret: xret, rlab;
-};
+(* ************ *) 
+(* DEFAULTVALUE *)
+(* ************ *) 
 
-proc defaultValue(l, hint) {
+proc o__defaultValue(l, hint) {
+			pass := 0;
             goto [hint = "String"] s n;
-    s:      to_s := "get" (l, "toString");
-            x_s := "isCallable" (to_s);
-            goto [x_s] str n;
-    str:    st := to_s (l);
-            ipst := "isPrimitive" (st);
-            goto [hint = "String"] str1 str2;
-    str1:   goto [ipst] prim_s n;
-    str2:   goto [ipst] prim_s throw;
-    prim_s: xret := st;
-            goto rlab;
-    throw:  xerr := "TypeError" ();
-            goto elab;
-    n:      v_of := "get" (l, "valueOf");
-            x_v := "isCallable" (v_of);
-            goto [x_v] val s;
-    val:    vl := v_of (l);
-            ipvl := "isPrimitive" (vl);
-            goto [hint = "Number"] val1 val2;   
-    val1:   goto [ipvl] prim_n s;
-    val2:   goto [ipvl] prim_n throw;
-    prim_n: xret := vl;
+
+	main:	goto [pass = 2] throw cc;
+    cc:		pass := pass + 1;
+    		p := "o__get" (l, proc_name);
+            c := "o__isCallable" (p);
+            goto [c] call next;
+            scp := [p, "@scope"];
+            fun := [p, "@body"];
+    call:   xret := fun (scp, l);            
+			goto [is_primitive xret] rlab next;
+    next:   goto [proc_name = "toString"] n s;
     rlab:   skip;
+
+    s:		proc_name := "toString";
+    		goto main;
+    n:		proc_name := "valueOf";
+    		goto main;
+
+    throw:  xerr := "TypeError" ();
     elab:   skip
 }
 with
 {
     ret: xret, rlab;
     err: xerr, elab;
-}
+};
 
-(*
+(* ***************** *) 
+(* DEFINEOWNPROPERTY *)
+(* ***************** *) 
 
-proc defineOwnProperty(l, prop, value, throw) {
-            c := "getOwnProperty" (l, prop);
-            goto [c = "undefined"] next t;
-    next:   e := [l, "#extensible"];
-    		goto [e] f t;
-    f:      goto [throw] tt tf;
+proc o__defineOwnProperty (l, prop, desc, throw) {
+	
+			xret := $$t;
+	
+			current := "o__getOwnProperty" (l, prop);
+			extensible := [l, "@extensible"];
+			
+			goto [(current = $$undefined) and (extensible = $$f)] reject l4;
+	l4:		goto [(current = $$undefined) and (extensible = $$t)] l4a getall;
+	
+	l4a:	gd := "i__isGenericDescriptor" (desc);
+			dd := "i__isDataDescriptor" (desc);
+			
+			goto [gd or dd] l4a1 l4b;
+			
+	l4a1:	ndesc := "i__toDataDescriptor" (desc);
+			[l, prop] := ndesc;
+			goto acc_t;
+	
+	l4b:	ndesc := "i__toAccessorDescriptor" (desc);
+			[l, prop] := ndesc;
+			goto acc_t;
+	
+	getall:	goto [nth (desc, 0) = "d"] ddd odd;
+	
+			(* Data *)
+	ddd:	de := nth (desc, 3);
+			dc := nth (desc, 4);
+			dv := nth (desc, 1);
+			dw := nth (desc, 2);
+			dg := $$empty;
+			ds := $$empty;
+			goto l5;
+			
+	odd:	goto [nth (desc, 0) = "a"] add gdd;
+
+			(* Accessor *)
+	add:	de := nth (desc, 3);
+			dc := nth (desc, 4);
+			dv := $$empty;
+			dw := $$empty;
+			dg := nth (desc, 1);
+			ds := nth (desc, 2);
+			goto l5;
+			
+			(* Generic *)
+	gdd:	de := nth (desc, 1);
+			dc := nth (desc, 2);
+			dv := nth (desc, 3);
+			dw := nth (desc, 4);
+			dg := nth (desc, 5);
+			ds := nth (desc, 6);
+			
+	l5:		goto [(de = $$empty) and (dc = $$empty) and (dv = $$empty) and 
+			      (dw = $$empty) and (dg = $$empty) and (ds = $$empty)] acc_t l6;
+	
+	l6:		goto [nth (current, 0) = "d"] chd cha;
+	
+	chd:	goto [(dv = nth(current, 1)) and (dw = nth(current, 2)) and
+			      (de = nth(current, 3)) and (dc = nth(current, 4)) and
+			      (dg = $$empty) and (ds = $$empty)] acc_t l7;  
+			
+	cha:	goto [(dg = nth(current, 1)) and (ds = nth(current, 2)) and
+			      (de = nth(current, 3)) and (dc = nth(current, 4)) and
+			      (dv = $$empty) and (dw = $$empty)] acc_t l7;  
+	
+	l7:		ce := nth (current, 3);
+			cc := nth (current, 4);
+			
+			goto [(cc = $$f) and ((dc = $$t) or ((not (de = $$empty)) and (not (ce = de))))] reject l8;
+	
+	l8:		gd := "i__isGenericDescriptor" (desc);
+			goto [gd] acc_t l9;
+			
+	l9:		cdd := "i__isDataDescriptor" (current);
+			ddd := "i__isDataDescriptor" (desc);
+			
+			goto [not (cdd = ddd)] l9a l10;
+			
+	l9a:	goto [cc = $$f] reject change;
+	change:	goto [cdd = $$t] toa tod;
+	toa:	[l, prop] := {{ "a", $$undefined, $$undefined, ce, cc }};
+			goto acc_t;
+	tod:	[l, prop] := {{ "d", $$undefined, $$f, ce, cc }};
+			goto acc_t;
+	
+	l10:	goto [cdd = $$t] l10a l11;
+	
+	l10a:	goto [cc = $$f] l10ai l12;
+	l10ai:	goto [(nth (current, 2) = $$f) and (dw = $$t)] reject l10aii;
+	l10aii:	goto [(not (dv = $$empty)) and (not (nth (current, 1) = dv))] reject l12;
+	
+	l11: 	goto [(cc = $$f) and 
+	             (((not (dg = $$empty)) and (not (dg = nth (current, 1)))) or 
+	              ((not (ds = $$empty)) and (not (ds = nth (current, 2)))))] reject l12;
+	
+	l12:	re := de;
+			rc := dc;
+			goto [de = $$empty] rec red;
+	rec:	re := nth (current, 3);
+	red:	goto [dc = $$empty] rcd rd;
+	rcd:	rc := nth (current, 4);
+	
+	rd: 	goto [nth (current, 0) = "d"] l12d l12a;
+	
+	l12d:	rv := dv;
+			rw := dw;
+			goto [dv = $$empty] rvc rvd;
+	rvc:	rv := nth (current, 1);
+	rvd:	goto [dw = $$empty] rwd setd;
+	rwd:	rc := nth (current, 2);
+	setd:	[l, prop] := {{ "d", rv, rw, re, rc }};	
+			goto acc_t;
+	
+	l12a:	rg := dg;
+			rs := ds;
+			goto [dg = $$empty] rgc rgd;
+	rgc:	rg := nth (current, 1);
+	rgd:	goto [ds = $$empty] rsd seta;
+	rsd:	rs := nth (current, 2);
+	seta:	[l, prop] := {{ "a", rg, rs, re, rc }};	
+			goto acc_t;
+			
+	acc_t:	xret := $$t;
+			goto rlab;
+	acc_f:	xret := $$f;
+	rlab:	skip;
+	
+    reject: goto [throw] tt acc_f;
     tt:     xerr := "TypeError" ();
-            goto elab;
-    tf:     xret := $$f;
-            goto rlab;
-    t:      [l, prop] := value;
-            xret := $$t;
-    rlab:   skip;
-}
-with{
-    ret: xret, rlab;
-    err: xerr, elab;
-}
-
-(* 
-proc isReference(v) {
-            goto [typeof(v) = Refo] r next1;
-    next1:  goto [typeof(v) = Refv] r nr;
-    r:      xret := $$t;
-            goto rlab;
-    nr:     xret := $$f;
-    rlab:   skip;
-}
-with{
-    ret: xret, rlab;
-}
-
-proc specialGet(l, prop) {
-            o := "toObject" (l);
-    rlab:   xret := "getProperty" (o, prop);
+    elab:   skip
 }
 with
 {
-    ret: xret, rlab;
-}
+	ret: xret, rlab;
+	err: xerr, elab;
+};
 
-proc getValue(l, v) {
-            goto ["isReference"(v)] ref nref;
-    ref:    b := base(v);
-            f := field(v);
-            goto [b = "$$undefined"] e ne;
-    e:      xerr := "ReferenceError" ();
-            goto elab;
-    ne:     goto [typeof(v) = Refo] pr er;
-    pr:     p := "isPrimitive" (b);
-            goto [p] spe_g norm_g;
-    norm_g: xret := "get" (b, f);
-            goto rlab;
-    spe_g:  xret := "specialGet" (b, f);
-            goto rlab;
-    er:     xret := [b, f];
-            goto rlab;
-    nref:   xret := v;
-    rlab:   skip;
-    elab:   skip;
-}
-with{
-    ret: xret, rlab;
-    err: xerr, elab;
-}
+(* ********** *) 
+(* ISCALLABLE *)
+(* ********** *) 
 
-proc specialPut(l, prop, value, throw) {
-            o := "toObject" (l);
-            x := "canPut" (o, prop);
-            goto [x] t f;
-    t:      xret := $$empty;
-    rlab:   skip;
-    f:      goto [throw] th t;
-    th:     xerr := "TypeError" ();
-    elab:   skip;
-}
-with{
-    ret: xret, rlab;
-    err: xerr, elab;
-}
-
-proc putValue(l, v, w) {
-            goto ["isReference"(v)] ref nref;
-    ref:    b := base(v);
-            f := field(v);
-            goto [b = "$$undefined"] nref pref;
-    pref:   goto [typeof(v) = Refo] pr er;
-    pr:     p := "isPrimitive" (b);
-            goto [p] spe_p norm_p;
-    spe_p:  c := "specialPut" (b, f, w, true);
-            xret := $$empty;
-            goto rlab;
-    norm_p: c := "put" (b, f, w, true);
-            xret := $$empty;
-            goto rlab;
-    er:     [b, f] := w;
-            xret := $$empty;
-            goto rlab;
-    nref:   xerr := "ReferenceError" ();
-            goto elab;
-    rlab:   skip;
-    elab:   skip;
+proc i__isCallable (l) {
+			goto [typeOf (l) = $$object_type] obj endf; 
+	obj:	xret := hasField (l, "@body");
+			goto rlab;
+	endf:	xret := $$f;
+	rlab:	skip
 }
 with
 {
-    ret: xret, rlab;
-    err: xerr, elab;
-} *)
+	ret : xret, rlab;
+};
+
+(* ************** *) 
+(* ON DESCRIPTORS *)
+(* ************** *) 
+
+proc i__isDataDescriptor (desc) {
+			goto [desc = $$undefined] rf cont;
+	cont:	d := nth (desc, 0);
+			goto [d = "d"] rt gen;
+	gen:	goto [d = "g"] test rf;
+	test:	v := nth (desc, 3);
+			w := nth (desc, 4);
+			goto [(v = $$empty) and (w = $$empty)] rf rt;
+	rt:		xret := $$t;
+			goto rlab;
+	rf:		xret := $$f;
+	rlab:	skip
+}
+with
+{
+	ret : xret, rlab;
+};
+
+proc i__isAccessorDescriptor (desc) {
+			goto [desc = $$undefined] rf cont;
+	cont:	d := nth (desc, 0);
+			goto [d = "a"] rt gen;
+	gen:	goto [d = "g"] test rf;
+	test:	g := nth (desc, 5);
+			s := nth (desc, 6);
+			goto [(g = $$empty) and (s = $$empty)] rf rt;
+	rt:		xret := $$t;
+			goto rlab;
+	rf:		xret := $$f;
+	rlab:	skip
+}
+with
+{
+	ret : xret, rlab;
+};
+
+proc i__isGenericDescriptor (desc) {
+			dd := "i__isDataDescriptor" (desc);
+			ad := "i__isAccessorDescriptor" (desc);
+			xret := not (dd or ad);
+	rlab:	skip
+}
+with
+{
+	ret: xret, rlab;
+};
+
+proc i__toDataDescriptor (desc) {
+			d := nth (desc, 0);
+			goto [d = "d"] rd cstr;
+	
+	cstr:	goto [d = "a"] ac gen;
+	
+	ac:		xret := {{ "d", $$undefined, $$f, nth (d, 3), nth (d, 4) }};
+			goto rlab;
+	
+	gen:	e := nth (desc, 1);
+			c := nth (desc, 2);
+			v := nth (desc, 3);
+			w := nth (desc, 4);
+			
+			goto [e = $$empty] fixe c;
+	fixe:	e := $$f;
+	c:		goto [c = $$empty] fixc v;
+	fixc:	c := $$f;
+	v:		goto [v = $$empty] fixv w;
+	fixv:	v := $$undefined;
+	w:		goto [w = $$empty] fixw fixed;
+	fixw:	w := $$f;	
+			
+	fixed:	xret := {{ "d", v, w, c, e }};
+			goto rlab;
+	
+	rd:		xret := desc;
+	rlab:	skip
+}
+with
+{
+	ret: xret, rlab;
+};
+
+proc i__toAccessorDescriptor (desc) {
+			d := nth (desc, 0);
+			goto [d = "a"] rd cstr;
+	
+	cstr:	goto [d = "d"] ac gen;
+	
+	ac:		xret := {{ "a", $$undefined, $$undefined, nth (d, 3), nth (d, 4) }};
+			goto rlab;
+	
+	gen:	e := nth (desc, 1);
+			c := nth (desc, 2);
+			g := nth (desc, 5);
+			s := nth (desc, 6);
+			
+			goto [e = $$empty] fixe c;
+	fixe:	e := $$f;
+	c:		goto [c = $$empty] fixc v;
+	fixc:	c := $$f;
+	v:		goto [g = $$empty] fixg w;
+	fixg:	g := $$undefined;
+	w:		goto [s = $$empty] fixs fixed;
+	fixs:	s := $$undefined;	
+			
+	fixed:	xret := {{ "a", g, s, c, e }};
+			goto rlab;
+	
+	rd:		xret := desc;
+	rlab:	skip
+}
+with
+{
+	ret: xret, rlab;
+};
+
+(* **** *) 
+(* MAIN *)
+(* **** *) 
+
+proc main () {
+			l0 := new();
+			l1 := new();
+			l2 := new();
+			[l0, "@extensible"] := $$t;
+			[l1, "@extensible"] := $$f;
+			[l2, "@extensible"] := $$t;
+			[l0, "@proto"] := l1;
+			[l1, "@proto"] := l2;
+			xret := "o__put" (l2, "foo", 43, $$f);
+	rlab:	skip
+}
+with
+{
+	ret: xret, rlab;
+}

@@ -34,6 +34,7 @@ type bin_op =
 type unary_op = 
   | Not
   | Negative
+	| IsPrimitive
   | ToStringOp
   | ToNumberOp
   | ToInt32Op
@@ -88,6 +89,8 @@ type jsil_expr =
   | Base of jsil_expr
   | Field of jsil_expr
   | TypeOf of jsil_expr
+	(* LISTS (FOR DESCRIPTORS) *)
+	| LEList of jsil_expr list
 	| LLNth of jsil_expr * int
 
 (* jsil logical expressions *)
@@ -194,7 +197,7 @@ type procedure = {
 (* SJSIL Heaps *)
  module SHeap = Hashtbl.Make(
 	struct
-		type t = string (* * string *)
+		type t = string	
 		let equal = (=)
 		let hash = Hashtbl.hash
 	end)

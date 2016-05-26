@@ -117,6 +117,15 @@ let rec rewrite_expr_ssa (expr : jsil_expr) var_stacks rename_var  =
 	| LLNth (e1, n) ->
 		let new_e1 = rewrite_expr_ssa e1 var_stacks rename_var in
 		LLNth (new_e1, n)
+  | LEList ll -> 
+			match ll with
+			| [] -> LEList []
+			| e1 :: ll ->
+				let new_e1 = rewrite_expr_ssa e1 var_stacks rename_var in
+				let new_ll = rewrite_expr_ssa (LEList ll) var_stacks rename_var in
+						(match new_ll with
+						| LEList new_ll -> LEList (new_e1 :: new_ll)
+						| _ -> raise (Failure "Non-list construct"))
 
 let rec rewrite_logic_expression (lexpr : jsil_logic_expr) var_stacks rename_var = 
 	(match lexpr with

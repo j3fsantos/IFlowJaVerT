@@ -52,6 +52,7 @@ let string_of_unop uop = match uop with
   | BitwiseNot -> "!"
 	| Car -> "car"
 	| Cdr -> "cdr"
+	| IsPrimitive -> "is_primitive"
 	
 let string_of_bool x =
   match x with
@@ -148,6 +149,24 @@ let rec string_of_expression e escape_string =
     | Field e -> Printf.sprintf "field(%s)" (se e)
 		(* ('nth e n) *)
 		| LLNth (e, n) -> Printf.sprintf "nth(%s, %d)" (se e) n
+		(* *)
+		| LEList ll -> 
+			match ll with
+			| [] -> "$$nil"
+			| ll ->
+			let rec loop ll = 
+				(match ll with
+				| [] -> ""
+				| e :: ll -> 
+					let scar = string_of_expression e escape_string in
+					let ssep = 
+						(match ll with
+						| [] -> ""
+						| _ -> ", ") in
+					let scdr = loop ll in
+					Printf.sprintf ("%s%s%s") scar ssep scdr)
+			in Printf.sprintf "{{ %s }}" (loop ll)
+		
 
 let rec sexpr_of_bcmd bcmd i line_numbers_on = 
 	let se = sexpr_of_expression in
