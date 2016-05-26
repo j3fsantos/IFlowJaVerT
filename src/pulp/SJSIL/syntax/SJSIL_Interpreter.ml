@@ -132,13 +132,13 @@ let evaluate_binop op lit1 lit2 =
 		| Undefined, Undefined -> (Bool true)
 		| Null, Null -> (Bool true)
 		| Empty, Empty -> (Bool true)
-		| Bool b1, Bool b2 -> (Bool (b1 == b2))
-		| Num n1, Num n2 -> (Bool (n1 == n2))
-		| String s1, String s2 -> (Bool (s1 == s2))
-		| Loc l1, Loc l2 -> (Bool (l1 == l2))
-		| Type t1, Type t2 -> (Bool (t1 == t2))
+		| Bool b1, Bool b2 -> (Bool (b1 = b2))
+		| Num n1, Num n2 -> (Bool (n1 = n2))
+		| String s1, String s2 -> (Bool (s1 = s2))
+		| Loc l1, Loc l2 -> (Bool (l1 = l2))
+		| Type t1, Type t2 -> (Bool (t1 = t2))
 		| LVRef (l11, l12), LVRef  (l21, l22)
-		| LORef (l11, l12), LORef  (l21, l22) -> (Bool ((l11 == l21) && (l12 == l22)))
+		| LORef (l11, l12), LORef  (l21, l22) -> (Bool ((l11 = l21) && (l12 = l22)))
 		| _, _ -> Bool false)
 	| LessThan -> 
 		(match lit1, lit2 with 
@@ -287,21 +287,26 @@ let rec evaluate_expr (e : jsil_expr) store =
 		| _ -> raise (Failure "Incorrect arguments to LLNth"))		
 
 let rec proto_field heap loc field =
-	if (SHeap.mem heap (loc, field)) 
-	then Loc loc  
-	else 
-		let proto_loc = (try SHeap.find heap (loc, proto_f) with 
+	let obj = (try SHeap.find heap loc with
+	| _ -> raise (Failure "Looking up an inexistent object!")) in
+	if (SHeap.mem obj field)
+	then 
+		(Loc loc)
+	else
+		let proto_loc = (try SHeap.find obj proto_f with 
 		| _ -> raise (Failure "Object does not have proto field: this should not happen")) in  
 		match proto_loc with 
 		| Loc pl -> proto_field heap pl field
-		| Null -> Empty 
+		| Null -> Undefined 
 		| _ -> raise (Failure "Illegal value for proto: this should not happen")
 
 let rec proto_obj heap l1 l2 =
-	if (l1 == l2) 
-	then Bool (true) 
-	else 
-		let proto_loc = (try SHeap.find heap (l1, proto_f) with 
+	let obj = (try SHeap.find heap l1 with
+	| _ -> raise (Failure "Looking up an inexistent object!")) in
+	if (l1 = l2)
+		then (Bool true)
+	else
+		let proto_loc = (try SHeap.find obj proto_f with 
 		| _ -> raise (Failure "Object does not have proto field: this should not happen")) in 
 		match proto_loc with 
 		| Loc pl -> proto_obj heap pl l2
@@ -327,7 +332,9 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 	
 	| SNew x -> 
 		let new_loc = fresh_loc () in 
-		SHeap.add heap (new_loc, proto_f) Null; 
+		let obj = SHeap.create 1021 in
+		SHeap.add obj proto_f Null;
+		SHeap.add heap new_loc obj;
 		Loc new_loc
 		
 	| SLookup (x, e1, e2) -> 
@@ -335,7 +342,9 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 		let v_e2 = evaluate_expr e2 store in 	
 		(match v_e1, v_e2 with 
 		| Loc l, String f -> 
-			let v = (try SHeap.find heap (l, f) with 
+			let obj = (try SHeap.find heap l with
+			| _ -> raise (Failure "Looking up inexistent object")) in
+			let v = (try SHeap.find obj f with
 				| _ -> raise (Failure "Looking up inexistent cell")) in
 			Hashtbl.replace store x v; 
 			v
@@ -347,7 +356,9 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 		let v_e3 = evaluate_expr e3 store in
 		(match v_e1, v_e2 with 
 		| Loc l, String f -> 
-			SHeap.replace heap (l, f) v_e3; 
+			let obj = (try SHeap.find heap l with
+			| _ -> raise (Failure "Looking up inexistent object")) in
+			(SHeap.replace obj f v_e3); 
 			v_e3
 		| _, _ ->  raise (Failure "Illegal field inspection"))
 	
@@ -356,9 +367,11 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 		let v_e2 = evaluate_expr e2 store in 				
 		(match v_e1, v_e2 with 
 		| Loc l, String f -> 
-			if (SHeap.mem heap (l, f)) 
+			let obj = (try SHeap.find heap l with
+			| _ -> raise (Failure "Looking up inexistent object")) in
+			if (SHeap.mem obj f) 
 			then 
-				(SHeap.remove heap (l, f); 
+				(SHeap.remove heap f; 
 				Bool true)
 			else raise (Failure "Deleting inexisting field")
 		| _, _ -> raise (Failure "Illegal field deletion"))
@@ -368,7 +381,9 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 		let v_e2 = evaluate_expr e2 store in 	
 		(match v_e1, v_e2 with 
 		| Loc l, String f -> 
-			let v = Bool (SHeap.mem heap (l, f)) in 
+			let obj = (try SHeap.find heap l with
+			| _ -> raise (Failure "Looking up inexistent object")) in
+			let v = Bool (SHeap.mem obj f) in 
 			Hashtbl.replace store x v; 
 			v
 		| _, _ -> raise (Failure "Illegal Field Check"))
