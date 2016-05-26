@@ -91,6 +91,7 @@ open SSyntax
 %token CAR
 %token CDR
 %token ISPRIMITIVE
+%token LENGTH
 (* separators *)
 %token EOF
 %token COMMA
@@ -510,6 +511,7 @@ unop_target:
 	| CAR { SSyntax.Car }
 	| CDR { SSyntax.Cdr }
 	| ISPRIMITIVE { SSyntax.IsPrimitive }
+	| LENGTH { SSyntax.Length }
 ;
 
 call_with_target: 

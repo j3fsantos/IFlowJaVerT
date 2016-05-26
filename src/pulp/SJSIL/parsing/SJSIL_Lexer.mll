@@ -104,6 +104,7 @@ rule read = parse
 	| "num_to_int32"       { SJSIL_Parser.TOINT32 }
 	| "num_to_uint32"      { SJSIL_Parser.TOUINT32 }
 	| "is_primitive"       { SJSIL_Parser.ISPRIMITIVE }
+	| "length"             { SJSIL_Parser.LENGTH }
 	| "!"                  { SJSIL_Parser.BITWISENOT }
 	| "car"                { SJSIL_Parser.CAR }
 	| "cdr"                { SJSIL_Parser.CDR }

@@ -284,7 +284,16 @@ let rec evaluate_expr (e : jsil_expr) store =
 				(List.nth list n)
 		| String s -> 
 				String (String.make 1 (String.get s n))
-		| _ -> raise (Failure "Incorrect arguments to LLNth"))		
+		| _ -> raise (Failure (Printf.sprintf "Incorrect argument to LLNth: %s, %d" (SSyntax_Print.string_of_literal v false) n)))
+	| LEList ll ->
+		(match ll with 
+		| [] -> LList []
+		| e :: ll ->
+			let ve = evaluate_expr e store in
+			let vll = evaluate_expr (LEList ll) store in
+			match vll with
+			| LList vll -> LList (ve :: vll)
+			| _ -> raise (Failure "List evaluation error"))
 
 let rec proto_field heap loc field =
 	let obj = (try SHeap.find heap loc with
@@ -319,6 +328,7 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 	
 	| SAssignment (x, e) ->
 		let v_e = evaluate_expr e store in 
+		Printf.printf "Assignment: %s := %s\n" x (SSyntax_Print.string_of_literal v_e false);
 		Hashtbl.add store x v_e; 
 		v_e
 	
@@ -335,6 +345,7 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 		let obj = SHeap.create 1021 in
 		SHeap.add obj proto_f Null;
 		SHeap.add heap new_loc obj;
+		Hashtbl.add store x (Loc new_loc);
 		Loc new_loc
 		
 	| SLookup (x, e1, e2) -> 
@@ -412,7 +423,7 @@ let init_store params args =
 	let number_of_params = List.length params in 
 	let new_store = Hashtbl.create (number_of_params + 1) in
 	
-	Printf.printf "I am initializing a store! Number of args: %d, Number of params: %d" (List.length args) (List.length params);
+	Printf.printf "I am initializing a store! Number of args: %d, Number of params: %d\n" (List.length args) (List.length params);
 	
 	let rec loop params args = 
 		match params with 
@@ -440,15 +451,15 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 			then (try Hashtbl.find which_pred (cur_proc_name, prev_cmd, cur_cmd) 
 				with _ ->  raise (Failure "which_pred undefined"))
 			else 0 in 
-	
+
 	let spec, cmd = cmd in
 	match cmd with 
 	| SBasic bcmd -> 
 		let v = evaluate_bcmd bcmd heap store cur_which_pred in 
 		if (cur_cmd == proc.ret_label)
-			then Normal, v 
+			then Normal, (Hashtbl.find store proc.ret_var) 
 			else if ((Some cur_cmd) = proc.error_label) 
-				then Error, v 
+				then Error, (Hashtbl.find store (match proc.error_var with | None -> raise (Failure "No no!") | Some err_var -> err_var))  
 				else evaluate_cmd prog cur_proc_name which_pred heap store (cur_cmd + 1) cur_cmd
 		 
 	| SGoto i -> 
@@ -464,7 +475,9 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 	| SCall (x, e, e_args, j) -> 
 		let call_proc_name_val = evaluate_expr e store in 
 		let call_proc_name = (match call_proc_name_val with 
-		| String call_proc_name -> call_proc_name 
+		| String call_proc_name -> 
+				Printf.printf "\nExecuting procedure %s\n" call_proc_name; 
+				call_proc_name 
 		| _ -> raise (Failure "Erm, no. Procedures can't be called that.")) in 
 		let arg_vals = List.map 
 			(fun e_arg -> evaluate_expr e_arg store) 
@@ -474,6 +487,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 		let new_store = init_store call_proc.proc_params arg_vals in 
 		match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 with 
 		| Normal, v -> 
+			Printf.printf "Procedure return: %s := %s\n" x (SSyntax_Print.string_of_literal v false);
 			Hashtbl.replace store x v; 
 			evaluate_cmd prog cur_proc_name which_pred heap store (cur_cmd + 1) cur_cmd
 		| Error, v -> 

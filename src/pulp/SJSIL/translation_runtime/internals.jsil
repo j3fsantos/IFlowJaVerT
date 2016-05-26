@@ -490,8 +490,9 @@ proc main () {
 			[l2, "@extensible"] := $$t;
 			[l0, "@proto"] := l1;
 			[l1, "@proto"] := l2;
+			xret := "o__getOwnProperty" (l1, "@proto");
 			xret := "o__defineOwnProperty" (l2, "foo", {{ "g", $$t, $$f, 42, $$f, $$empty, $$empty }}, $$t); (* current *)
-			xret := "o__defineOwnProperty" (l2, "foo", {{ "g", $$t, $$f, 42, $$f, $$empty, $$empty }}, $$t); (* desc *)
+			xret := "o__defineOwnProperty" (l2, "foo", {{ "g", $$t, $$f, 42, $$t, $$empty, $$empty }}, $$t); (* desc *)
 	rlab:	skip
 }
 with
