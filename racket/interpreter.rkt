@@ -174,12 +174,12 @@
               (err-label (fifth cmd))
               (call-proc-name (run-expr proc-name-expr store))
               (arg-vals (map (lambda (expr) (run-expr expr store)) arg-exprs)))
-         (display
-            (format "Going to call procedure ~a with arguments ~a\n" call-proc-name arg-vals)) 
+         ;;(display
+         ;;   (format "Going to call procedure ~a with arguments ~a\n" call-proc-name arg-vals)) 
          (let ((outcome (car (run-proc prog call-proc-name heap arg-vals))))
-           (display
-            (format "Finished running procedure ~a with arguments ~a and obtained the outcome ~a\n"
-                    call-proc-name arg-vals outcome)) 
+           ;;(display
+           ;; (format "Finished running procedure ~a with arguments ~a and obtained the outcome ~a\n"
+           ;;         call-proc-name arg-vals outcome)) 
            (cond
              [(eq? (first outcome) 'err)
               (mutate-store store lhs-var (second outcome))
