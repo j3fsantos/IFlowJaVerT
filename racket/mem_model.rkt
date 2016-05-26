@@ -47,7 +47,7 @@
     ((is-ref? val) (ref-type val))
     ((eq? val jnull) jnull)
     ((eq? val jundefined) jundefined)
-    ((eq? val empty) jempty)
+    ((eq? val jempty) jempty)
     (#t (error (format "Wrong argument to typeof: ~a" val)))))
 
 ;;(define boolean-type '$$boolean_type)

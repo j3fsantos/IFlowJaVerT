@@ -311,6 +311,7 @@ let translate_function_expression exp params ctx named =
   [
     Basic (Assignment f_obj);
     Basic (Mutation (mk_mutation (Var f_obj.assign_left) (literal_builtin_field FClass) (Literal (String "Function"))));
+		Basic (Mutation (mk_mutation (Var f_obj.assign_left) (Literal (String "#user_defined_function")) (Literal (Bool true))));
     add_proto_value f_obj.assign_left Lfp;
     Basic (Assignment prototype); 
     add_proto_value prototype.assign_left Lop; 

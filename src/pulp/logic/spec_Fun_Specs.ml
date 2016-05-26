@@ -450,6 +450,18 @@ let make_strict_equality_same_type_function () =
 	let body = to_ivl_goto_unfold body in 
 	make_function_block Procedure_Spec (string_of_spec_fun_id (StrictEqualitySameType (dummy_exp1, dummy_exp2))) body [arg1; arg2] ctx 	
 
+let make_abstract_relation_function (b) = 
+	let ctx = create_ctx [] in 
+	let arg1 = fresh_r () in 
+	let arg2 = fresh_r () in 
+	let body = translate_abstract_relation (Var arg1) (Var arg2) b ctx.return_var ctx.throw_var ctx.label_throw empty_metadata in 
+	let body = body @
+		mk_stmts_empty_data [ Goto ctx.label_return;
+    	Label ctx.label_return;
+    	Label ctx.label_throw ] in 
+	let body = to_ivl_goto_unfold body in 
+	make_function_block Procedure_Spec (string_of_spec_fun_id (AbstractRelation (dummy_exp1, dummy_exp2, b)))  body [arg1; arg2] ctx 	
+
 
 let get_env_spec () = 
   let env = AllFunctions.add (get_value_fn()) (get_value_fb ()) (AllFunctions.empty) in
@@ -467,7 +479,9 @@ let get_env_spec () =
 	let env = AllFunctions.add (string_of_spec_fun_id (IsCallable dummy_exp1)) (make_is_callable_function()) env in
 	let env = AllFunctions.add (string_of_spec_fun_id (StrictEquality (dummy_exp1, dummy_exp2))) (make_strict_equality_function()) env in
 	let env = AllFunctions.add (string_of_spec_fun_id (StrictEqualitySameType (dummy_exp1, dummy_exp2))) (make_strict_equality_same_type_function()) env in
-
+  let env = AllFunctions.add (string_of_spec_fun_id (AbstractRelation (dummy_exp1, dummy_exp2, false))) (make_abstract_relation_function(false)) env in
+	let env = AllFunctions.add (string_of_spec_fun_id (AbstractRelation (dummy_exp1, dummy_exp2, true))) (make_abstract_relation_function(true)) env in
+	
   (* let env = Simp_Main.simplify env Simp_Common.Simp_Unfold_Specs in *) 
   env
 

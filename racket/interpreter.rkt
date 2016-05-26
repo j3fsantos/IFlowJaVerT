@@ -174,15 +174,22 @@
               (err-label (fifth cmd))
               (call-proc-name (run-expr proc-name-expr store))
               (arg-vals (map (lambda (expr) (run-expr expr store)) arg-exprs)))
+         (display
+            (format "Going to call procedure ~a with arguments ~a\n" call-proc-name arg-vals)) 
          (let ((outcome (car (run-proc prog call-proc-name heap arg-vals))))
+           (display
+            (format "Finished running procedure ~a with arguments ~a and obtained the outcome ~a\n"
+                    call-proc-name arg-vals outcome)) 
            (cond
-             [(eq? (first outcome) 'error)
+             [(eq? (first outcome) 'err)
               (mutate-store store lhs-var (second outcome))
               (run-cmds-iter prog proc-name heap store err-label)]
              [(eq? (first outcome) 'normal)
               (mutate-store store lhs-var (second outcome))
               (run-cmds-iter prog proc-name heap store (+ cur-index 1))]
-             [else (error "Illegal Procedure Outcome")])))]
+             [else
+              (display outcome)
+              (error "Illegal Procedure Outcome")])))]
       ;;
       ;; basic command
       [else
@@ -238,7 +245,7 @@
                   (arg-vals (map (lambda (expr) (run-expr expr store)) arg-exprs)))
              (let ((outcome (car (run-proc prog proc-name heap arg-vals))))
                (cond
-                 [(eq? (first outcome) 'error)
+                 [(eq? (first outcome) 'err)
                   (mutate-store store lhs-var (second outcome))
                   (run-cmds prog cmds heap store (+ cur-index err-index))]
                  [(eq? (first outcome) 'normal)
