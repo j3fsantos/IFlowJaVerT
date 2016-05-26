@@ -53,6 +53,7 @@ let string_of_unop uop = match uop with
 	| Car -> "car"
 	| Cdr -> "cdr"
 	| IsPrimitive -> "is_primitive"
+	| Length -> "length"
 	
 let string_of_bool x =
   match x with

@@ -124,6 +124,10 @@ let evaluate_unop op lit =
 			| [] -> Empty
 			| _ :: ll -> LList ll)
 		| _ -> raise (Failure "Non-list argument to Cdr"))
+	| Length ->
+		(match lit with
+		| String s -> Num (float_of_int (String.length s))
+		| _ -> raise (Failure "Non-string argument to Length"))
 	
 let evaluate_binop op lit1 lit2 = 
 	match op with 
