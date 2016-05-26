@@ -45,7 +45,7 @@ proc o__get(l, prop) {
 	acc:	goto [xret = $$undefined] rlab get;		(* Is the getter defined? *)
 	get:	scp := [xret, "@scope"];				(* Get the scope of the getter *)
 			fun := [xret, "@body"];					(* Get the name of the getter *)
-			xret := fun (l) with elab;				(* Call the getter, errors could happen *)
+			xret := fun (scp, l) with elab;				(* Call the getter, errors could happen *)
 	rlab:	skip;
 	elab:	skip
 }
@@ -106,10 +106,10 @@ proc o__put(l, prop, value, throw) {
     ad:		s := nth (x, 2);
     		scp := [s, "@scope"];
     		fun := [s, "@body"];
-    		xerr := fun (l, value) with elab;
+    		xerr := fun (scp, l, value) with elab;
     		goto remp;
     		
-    def:	desc := {{ "d", value, $$t, $$t, $$t }};
+    def:	desc := {{ "g", $$t, $$t, value, $$t, $$empty, $$empty }};
     		xerr := "o__defineOwnProperty" (l, prop, desc, throw) with elab;
 
     remp:   xret := $$empty;
@@ -266,7 +266,9 @@ proc o__defineOwnProperty (l, prop, desc, throw) {
 			      (de = nth(current, 3)) and (dc = nth(current, 4)) and
 			      (dv = $$empty) and (dw = $$empty)] acc_t l7;  
 	
-	l7:		ce := nth (current, 3);
+	l7:		cvg := nth (current, 1);
+			cws := nth (current, 2);
+			ce := nth (current, 3);
 			cc := nth (current, 4);
 			
 			goto [(cc = $$f) and ((dc = $$t) or ((not (de = $$empty)) and (not (ce = de))))] reject l8;
@@ -289,8 +291,8 @@ proc o__defineOwnProperty (l, prop, desc, throw) {
 	l10:	goto [cdd = $$t] l10a l11;
 	
 	l10a:	goto [cc = $$f] l10ai l12;
-	l10ai:	goto [(nth (current, 2) = $$f) and (dw = $$t)] reject l10aii;
-	l10aii:	goto [(not (dv = $$empty)) and (not (nth (current, 1) = dv))] reject l12;
+	l10ai:	goto [not (cws = dw)] reject l10aii;
+	l10aii:	goto [(not (dv = $$empty)) and (not (cvg = dv))] reject l12;
 	
 	l11: 	goto [(cc = $$f) and 
 	             (((not (dg = $$empty)) and (not (dg = nth (current, 1)))) or 
@@ -409,9 +411,9 @@ proc i__toDataDescriptor (desc) {
 			d := nth (desc, 0);
 			goto [d = "d"] rd cstr;
 	
-	cstr:	goto [d = "a"] ac gen;
+	cstr:	goto [d = "a"] ra gen;
 	
-	ac:		xret := {{ "d", $$undefined, $$f, nth (d, 3), nth (d, 4) }};
+	ra:		xret := {{ "d", $$undefined, $$f, nth (d, 3), nth (d, 4) }};
 			goto rlab;
 	
 	gen:	e := nth (desc, 1);
@@ -428,7 +430,7 @@ proc i__toDataDescriptor (desc) {
 	w:		goto [w = $$empty] fixw fixed;
 	fixw:	w := $$f;	
 			
-	fixed:	xret := {{ "d", v, w, c, e }};
+	fixed:	xret := {{ "d", v, w, e, c }};
 			goto rlab;
 	
 	rd:		xret := desc;
@@ -462,7 +464,7 @@ proc i__toAccessorDescriptor (desc) {
 	w:		goto [s = $$empty] fixs fixed;
 	fixs:	s := $$undefined;	
 			
-	fixed:	xret := {{ "a", g, s, c, e }};
+	fixed:	xret := {{ "a", g, s, e, c }};
 			goto rlab;
 	
 	rd:		xret := desc;
@@ -486,7 +488,8 @@ proc main () {
 			[l2, "@extensible"] := $$t;
 			[l0, "@proto"] := l1;
 			[l1, "@proto"] := l2;
-			xret := "o__put" (l2, "foo", 43, $$f);
+			xret := "o__defineOwnProperty" (l2, "foo", {{ "g", $$t, $$f, 42, $$f, $$empty, $$empty }}, $$t); (* current *)
+			xret := "o__defineOwnProperty" (l2, "foo", {{ "g", $$t, $$f, 42, $$f, $$empty, $$empty }}, $$t); (* desc *)
 	rlab:	skip
 }
 with
