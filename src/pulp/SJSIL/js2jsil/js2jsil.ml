@@ -40,7 +40,7 @@ let make_translation_ctx fid =
 
 let parse str =
   let lexbuf = Lexing.from_string str in
-  try SJSIL_Parser.cmd_list_target SJSIL_Lexer.read lexbuf with
+  try SJSIL_Parser.cmd_list_top_target SJSIL_Lexer.read lexbuf with
   | SJSIL_Lexer.SyntaxError msg ->
     Printf.fprintf stderr "%a: %s\n" print_position lexbuf msg;
 		[]
