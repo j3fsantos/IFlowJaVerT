@@ -1,0 +1,34 @@
+ERRORS
+------
+
+o__getOwnProperty			
+o__getProperty				
+o__get						YES
+o__canPut	
+o__put						YES
+o__hasProperty
+o__deleteProperty			YES
+o__defaultValue				YES
+o__defineOwnProperty		YES
+
+i__toPrimitive				YES
+i__toBoolean				
+i__toNumber					YES
+i__toString					YES
+i__toObject					YES
+
+
+
+
+NOTES
+-----
+
+* Currently, in s__getOwnProperty, we're using toUInt32 instead of toInteger. 
+* Negative zero does not exist
+
+
+
+TODO
+----
+
+* Test toPrimitive, toNumber, toString for objects!
