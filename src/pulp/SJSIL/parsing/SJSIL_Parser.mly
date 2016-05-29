@@ -22,6 +22,8 @@ open SSyntax
 %token EMPTY
 %token LNONE
 %token LNIL
+%token NAN
+%token INFINITY
 (* Type literals *)
 %token BOOLTYPELIT
 %token NUMTYPELIT
@@ -308,7 +310,7 @@ expr_target:
 	| TYPEOF; LBRACE; e=expr_target; RBRACE
 		{ SSyntax.TypeOf (e) }
 (* nth *)
-	| LNTH; LBRACE; e=expr_target; COMMA; n=INT; RBRACE { SSyntax.LLNth (e, n) }
+	| LNTH; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE { SSyntax.LLNth (e1, e2) }
 (* {{ }} *)
  	| LISTOPEN; LISTCLOSE { SSyntax.LEList [] }
 (* {{ e, ..., e }} *)
@@ -468,6 +470,8 @@ lit_target:
 	| TRUE { SSyntax.Bool true }
 	| FALSE { SSyntax.Bool false }
 	| i=INT { SSyntax.Num (float_of_int i) }
+	| NAN { SSyntax.Num nan }
+	| INFINITY { SSyntax.Num infinity }
 	| x=FLOAT { SSyntax.Num x }
 	| s=STRING { SSyntax.String s }
 	| loc=LOC { SSyntax.Loc loc }

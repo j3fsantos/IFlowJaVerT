@@ -194,9 +194,9 @@ let remove_unreachable_code proc throw =
 		then (raise (Failure "Return label unreachable."));
 	
 	(match lerr with
-	| None -> (Printf.printf "\t WARNING: Error label does not exist!\n") 
+	| None -> () (* (Printf.printf "\t WARNING: Error label does not exist!\n") *)
 	| Some lerr -> if (not visited.(lerr))
-									then (Printf.printf "\t WARNING: Error label is unreachable and will be removed, along with the corresponding specs!\n"));
+									then ()); (* (Printf.printf "\t WARNING: Error label is unreachable and will be removed, along with the corresponding specs!\n")); *)
 	
 	(if (!graph_verbose) then Printf.printf "\t Adjusting line numbers. \n" else ());
 	

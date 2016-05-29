@@ -92,7 +92,7 @@ type jsil_expr =
   | TypeOf of jsil_expr
 	(* LISTS (FOR DESCRIPTORS) *)
 	| LEList of jsil_expr list
-	| LLNth of jsil_expr * int
+	| LLNth of jsil_expr * jsil_expr
 
 (* jsil logical expressions *)
 type jsil_logic_var = string

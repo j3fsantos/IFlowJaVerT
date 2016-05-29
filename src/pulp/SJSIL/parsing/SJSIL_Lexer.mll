@@ -36,6 +36,9 @@ rule read = parse
 	| "$$v-reference_type" { SJSIL_Parser.VREFTYPELIT }
 	| "$$o-reference_type" { SJSIL_Parser.OREFTYPELIT }
 	| "$$list_type"        { SJSIL_Parser.LISTTYPELIT }
+(* Numbers *)
+  | "nan"                { SJSIL_Parser.NAN }
+	| "inf"                { SJSIL_Parser.INFINITY }
 (* procedure keywords *)
 	| "proc"     					 { SJSIL_Parser.PROC }
 	| "ret"                { SJSIL_Parser.RET }

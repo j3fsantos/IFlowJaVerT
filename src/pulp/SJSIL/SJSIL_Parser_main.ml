@@ -15,6 +15,8 @@ let show_dom_frontiers = ref false
 let show_phi_placement = ref false
 let show_ssa = ref false 
 
+let do_ssa = ref false
+
 let arguments () =
   let usage_msg="Usage: -file <path>" in
   Arg.parse
@@ -82,7 +84,7 @@ let string_of_cmd cmd i proc specs dfs_num_table_f =
 let pre_process_proc output_folder_name proc = 
 	
 	(* computing everything *)
-	
+
 	(* Removing dead code and recalculating everything *)
 	let proc = remove_unreachable_code proc false in
 	let proc = remove_unreachable_code proc true in
@@ -106,34 +108,40 @@ let pre_process_proc output_folder_name proc =
 	let dom_table, rev_dom_table = SSyntax_Utils_Graphs.lt_dom_algorithm succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r in
 	cond_print_graph (!show_dom) rev_dom_table nodes string_of_cmd_main "dom" proc_folder;
 	
-	let rev_dom_table, dominance_frontiers, phi_functions_per_node, new_proc = 
-		SSyntax_SSA.ssa_compile proc vars nodes succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r which_pred in 
-	let final_succ_table, final_pred_table = SSyntax_Utils_Graphs.get_succ_pred new_proc.proc_body new_proc.ret_label new_proc.error_label in   
-	
-	
-	cond_print_graph (!show_ssa) final_succ_table new_proc.proc_body string_of_cmd_ssa "ssa" proc_folder;
-			
-	(if (!show_dom_frontiers) 
-		then 
-			let str_domfrontiers = Graph_Print.print_node_table dominance_frontiers Graph_Print.print_int_list in
-			burn_to_disk (proc_folder ^ "/dom_frontiers.txt") str_domfrontiers
-		else ()); 
-	
-	(if (!show_phi_placement) 
-		then 
-			let phi_functions_per_node_str : string = SSyntax_SSA.print_phi_functions_per_node phi_functions_per_node in 
-			burn_to_disk (proc_folder ^ "/phi_placement.txt") phi_functions_per_node_str
-		else ());
-	
-	let new_proc_str = SSyntax_Print.string_of_procedure new_proc false in 
-	Printf.printf "%s" new_proc_str; 
-
-  (* returning proc and which_pred *)
-	new_proc, which_pred
+	if (!do_ssa) then
+	begin
+  	let rev_dom_table, dominance_frontiers, phi_functions_per_node, new_proc = 
+  		SSyntax_SSA.ssa_compile proc vars nodes succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r which_pred in 
+  	let final_succ_table, final_pred_table = SSyntax_Utils_Graphs.get_succ_pred new_proc.proc_body new_proc.ret_label new_proc.error_label in   
+  	
+  	cond_print_graph (!show_ssa) final_succ_table new_proc.proc_body string_of_cmd_ssa "ssa" proc_folder;
+  			
+  	(if (!show_dom_frontiers) 
+  		then 
+  			let str_domfrontiers = Graph_Print.print_node_table dominance_frontiers Graph_Print.print_int_list in
+  			burn_to_disk (proc_folder ^ "/dom_frontiers.txt") str_domfrontiers
+  		else ()); 
+  	
+  	(if (!show_phi_placement) 
+  		then 
+  			let phi_functions_per_node_str : string = SSyntax_SSA.print_phi_functions_per_node phi_functions_per_node in 
+  			burn_to_disk (proc_folder ^ "/phi_placement.txt") phi_functions_per_node_str
+  		else ());
+  	
+  	let new_proc_str = SSyntax_Print.string_of_procedure new_proc false in 
+  	Printf.printf "\n%s\n" new_proc_str; 
+  
+    (* returning proc and which_pred *)
+  	new_proc, which_pred
+	end
+	else
+	begin
+		proc, which_pred
+	end
 		
 let rec parse_and_preprocess_jsil_prog lexbuf =
 	let output_folder_name = Filename.chop_extension !file in 
-  let lproc_list = parse_with_error lexbuf in
+  let lproc_list = parse_with_error lexbuf in	
 	let proc_list = SSyntax_Utils.desugar_labs_list lproc_list in
 	let number_of_procs = List.length proc_list in 
 	let prog = SProgram.create 1021 in 
@@ -202,7 +210,7 @@ let run_jsil_prog prog which_pred =
 	let heap = SHeap.create 1021 in 
 	evaluate_prog prog which_pred heap; 
 	let final_heap_str = SSyntax_Print.sexpr_of_heap heap in 
-	Printf.printf "Final heap: \n%s" final_heap_str
+	Printf.printf "Final heap: \n%s\n" final_heap_str
 
 let process_file filename =
 	(* let inx = In_channel.create filename in *)

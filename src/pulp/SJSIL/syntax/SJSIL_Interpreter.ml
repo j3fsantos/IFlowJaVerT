@@ -89,7 +89,7 @@ let evaluate_unop op lit =
 	| ToStringOp -> 
 		(match lit with
 		| Num n -> String (Utils.float_to_string_inner n)
-		| _ -> raise (Failure "Non-number argument to ToStringOp"))
+		| _ -> raise (Failure (Printf.sprintf "Non-number argument to ToStringOp: %s" (SSyntax_Print.string_of_literal lit false))))
 	| ToNumberOp -> 
 		(match lit with
 		| String s -> 
@@ -151,7 +151,7 @@ let evaluate_binop op lit1 lit2 =
 	| LessThanEqual -> 
 		(match lit1, lit2 with 
 		| Num n1, Num n2 -> (Bool (n1 <= n2)) 
-		| _, _ -> raise (Failure "Non-number argument to LessThanEqual"))
+		| _, _ -> raise (Failure (Printf.sprintf "Non-number argument to LessThanEqual: %s <= %s" (SSyntax_Print.string_of_literal lit1 false) (SSyntax_Print.string_of_literal lit2 false))))
 	| Plus -> 
 		(match lit1, lit2 with 
 		| Num n1, Num n2 -> (Num (n1 +. n2)) 
@@ -281,14 +281,15 @@ let rec evaluate_expr (e : jsil_expr) store =
 	| TypeOf e ->
 		let v = evaluate_expr e store in
 		Type (evaluate_type_of v) 
-	| LLNth (e, n) ->
-		let v = evaluate_expr e store in 
-		(match v with 
-		| LList list -> 
-				(List.nth list n)
-		| String s -> 
-				String (String.make 1 (String.get s n))
-		| _ -> raise (Failure (Printf.sprintf "Incorrect argument to LLNth: %s, %d" (SSyntax_Print.string_of_literal v false) n)))
+	| LLNth (e1, e2) ->
+		let v = evaluate_expr e1 store in 
+		let n = evaluate_expr e2 store in
+		(match v, n with 
+		| LList list, Num n -> 
+				(List.nth list (int_of_float n))
+		| String s, Num n -> 
+				String (String.make 1 (String.get s (int_of_float n)))
+		| _, _ -> raise (Failure (Printf.sprintf "Incorrect argument to LLNth: %s, %s" (SSyntax_Print.string_of_literal v false) (SSyntax_Print.string_of_literal n false))))
 	| LEList ll ->
 		(match ll with 
 		| [] -> LList []
@@ -301,7 +302,7 @@ let rec evaluate_expr (e : jsil_expr) store =
 
 let rec proto_field heap loc field =
 	let obj = (try SHeap.find heap loc with
-	| _ -> raise (Failure "Looking up an inexistent object!")) in
+	| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" loc))) in
 	if (SHeap.mem obj field)
 	then 
 		(Loc loc)
@@ -358,12 +359,13 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 		(match v_e1, v_e2 with 
 		| Loc l, String f -> 
 			let obj = (try SHeap.find heap l with
-			| _ -> raise (Failure "Looking up inexistent object")) in
+			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (SSyntax_Print.string_of_literal v_e1 false)))) in
 			let v = (try SHeap.find obj f with
-				| _ -> raise (Failure "Looking up inexistent cell")) in
+				| _ -> raise (Failure (Printf.sprintf "Looking up inexistent field: [%s, %s]" (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false)))) in
+	
 			Hashtbl.replace store x v; 
 			v
-		| _, _ -> raise (Failure "Illegal field inspection"))
+		| _, _ -> raise (Failure (Printf.sprintf "Illegal field inspection: [%s, %s]" (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false))))
 	
 	| SMutation (e1, e2, e3) ->
 		let v_e1 = evaluate_expr e1 store in
@@ -371,10 +373,17 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 		let v_e3 = evaluate_expr e3 store in
 		(match v_e1, v_e2 with 
 		| Loc l, String f -> 
-			let obj = (try SHeap.find heap l with
-			| _ -> raise (Failure "Looking up inexistent object")) in
-			(SHeap.replace obj f v_e3); 
-			v_e3
+			if (SHeap.mem heap l) 
+			then
+				let obj = SHeap.find heap l in ();
+				SHeap.replace obj f v_e3;
+				v_e3
+			else 
+				let obj = SHeap.create 1021 in
+				SHeap.add obj proto_f Null;
+				SHeap.add heap l obj;
+				SHeap.replace obj f v_e3;
+				v_e3
 		| _, _ ->  raise (Failure "Illegal field inspection"))
 	
 	| SDelete (e1, e2) -> 
@@ -383,7 +392,7 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 		(match v_e1, v_e2 with 
 		| Loc l, String f -> 
 			let obj = (try SHeap.find heap l with
-			| _ -> raise (Failure "Looking up inexistent object")) in
+			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (SSyntax_Print.string_of_literal v_e1 false)))) in
 			if (SHeap.mem obj f) 
 			then 
 				(SHeap.remove heap f; 
@@ -397,7 +406,7 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 		(match v_e1, v_e2 with 
 		| Loc l, String f -> 
 			let obj = (try SHeap.find heap l with
-			| _ -> raise (Failure "Looking up inexistent object")) in
+			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (SSyntax_Print.string_of_literal v_e1 false)))) in
 			let v = Bool (SHeap.mem obj f) in 
 			Hashtbl.replace store x v; 
 			v
@@ -438,7 +447,7 @@ let init_store params args =
 				Hashtbl.add new_store param arg;
 				loop rest_params rest_args
 			| [] -> 
-				Hashtbl.add new_store param Undefined;
+				Hashtbl.add new_store param Empty;
 				loop rest_params []) in 
 	loop params args; 
 	
@@ -461,9 +470,15 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 	| SBasic bcmd -> 
 		let v = evaluate_bcmd bcmd heap store cur_which_pred in 
 		if (cur_cmd == proc.ret_label)
-			then Normal, (Hashtbl.find store proc.ret_var) 
+			then Normal, (try (Hashtbl.find store proc.ret_var) with
+			| _ -> raise (Failure (Printf.sprintf "Cannot find return variable.")))
 			else if ((Some cur_cmd) = proc.error_label) 
-				then Error, (Hashtbl.find store (match proc.error_var with | None -> raise (Failure "No no!") | Some err_var -> err_var))  
+				then 
+					Error, let err_var = (match proc.error_var with 
+					                      | None -> raise (Failure "No no!") 
+																| Some err_var -> err_var) in
+				         (try (Hashtbl.find store err_var) with
+				| _ -> raise (Failure (Printf.sprintf "Cannot find error variable." )))
 				else evaluate_cmd prog cur_proc_name which_pred heap store (cur_cmd + 1) cur_cmd
 		 
 	| SGoto i -> 

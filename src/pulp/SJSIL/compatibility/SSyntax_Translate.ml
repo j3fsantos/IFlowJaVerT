@@ -533,14 +533,15 @@ let jsil_to_sjsil_heap_value hv =
 	| Memory_Model.HVObj l -> SSyntax.Loc (jsil_to_sjsil_loc l)
 
 let jsil_to_sjsil_heap jsil_heap = 
-	let sjsil_heap = SSyntax.SHeap.create 80021 in
+	let sjsil_heap = SSyntax.SHeap.create 8021 in
 	Memory_Model.Heap.iter 
 		(fun loc obj -> 
 			let sjsil_loc = jsil_to_sjsil_loc loc in
+			let new_obj = SSyntax.SHeap.create 1021 in
 			Memory_Model.Object.iter
 			(fun prop pval ->
 				let sjsil_pval = jsil_to_sjsil_heap_value pval in 
-				SSyntax.SHeap.add sjsil_heap (sjsil_loc, prop) sjsil_pval)
-			obj)
+				SSyntax.SHeap.add new_obj prop sjsil_pval) obj;
+			SSyntax.SHeap.add sjsil_heap sjsil_loc new_obj)
 		jsil_heap;
 	sjsil_heap

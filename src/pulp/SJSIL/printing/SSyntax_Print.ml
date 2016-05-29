@@ -127,7 +127,7 @@ let rec sexpr_of_expression e =
 		(* (field e) *)
     | Field e -> Printf.sprintf "(field %s)" (se e)
 		(* ('nth e n) *)
-		| LLNth (e, n) -> Printf.sprintf "(nth %s %d)" (se e) n
+		| LLNth (e1, e2) -> Printf.sprintf "(nth %s %s)" (se e1) (se e2)
 
 let rec string_of_expression e escape_string =
   let se = fun e -> string_of_expression e escape_string in
@@ -149,7 +149,7 @@ let rec string_of_expression e escape_string =
 		(* ('field e) *)
     | Field e -> Printf.sprintf "field(%s)" (se e)
 		(* ('nth e n) *)
-		| LLNth (e, n) -> Printf.sprintf "nth(%s, %d)" (se e) n
+		| LLNth (e1, e2) -> Printf.sprintf "nth(%s, %s)" (se e1) (se e2)
 		(* *)
 		| LEList ll -> 
 			match ll with
