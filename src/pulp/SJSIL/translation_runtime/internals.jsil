@@ -785,9 +785,9 @@ with
 	err:	xret, elab;
 };
 
-(* ********** *) 
-(* ISCALLABLE *)
-(* ********** *) 
+(* ******************** *) 
+(* CHECKOBJECTCOERCIBLE *)
+(* ******************** *) 
 
 proc i__checkObjectCoercible (l) {
 
@@ -900,7 +900,7 @@ proc s__getOwnProperty (l, prop) {
 			xret := "o__getOwnProperty" (l, prop);
 			goto [xret = $$undefined] str rlab;
 			
-	str:	idx := num_to_uint32 (string_to_num prop);
+	str:	idx := num_to_int (string_to_num prop);
 			sidx := num_to_string (idx);
 	
 			goto [sidx = prop] index rlab;
@@ -1191,10 +1191,12 @@ proc main () {
 
 			xret := "setupInitialHeap" ();
 			
-			[$lg, "value"] := ({{ "d", 42, $$f, $$f, $$f }});
-			[$lg, "writable"] := ({{ "d", $$f, $$f, $$f, $$f }});
-
-			xret := "i__toPropertyDescriptor" ($lg);
+			goto [(-0 = 0)] lt lf;
+			
+	lt:		xret := $$t;
+			goto rlab;
+			
+	lf:		xret := $$f;
 			
 	rlab:	skip;
 	elab:	skip

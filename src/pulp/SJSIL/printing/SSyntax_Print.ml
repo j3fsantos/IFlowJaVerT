@@ -47,6 +47,8 @@ let string_of_unop uop = match uop with
   | Negative -> "-"
 	| ToStringOp -> "num_to_string"
   | ToNumberOp -> "string_to_num"
+  | ToIntOp -> "num_to_int"
+  | ToUint16Op -> "num_to_unit16"
   | ToInt32Op -> "num_to_int32"
   | ToUint32Op -> "num_to_unit32"
   | BitwiseNot -> "!"

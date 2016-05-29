@@ -15,8 +15,8 @@ exception SyntaxError of string
 }
 
 let digit = ['0'-'9']
-let int = '-'? digit+
-let float = digit+ ('.' digit*)?
+(* let int = '-'? digit+ *)
+let float = '-'? digit+ ('.' digit*)?
 let letter = ['a'-'z''A'-'Z']
 let var = letter(letter|digit|'_')*
 let lvar = '_' letter(letter|digit|'_')*
@@ -104,6 +104,8 @@ rule read = parse
 	| "not"                { SJSIL_Parser.NOT }
 	| "num_to_string"      { SJSIL_Parser.TOSTRING }
 	| "string_to_num"      { SJSIL_Parser.TONUMBER }
+	| "num_to_int"         { SJSIL_Parser.TOINT }
+	| "num_to_uint16"      { SJSIL_Parser.TOUINT16 }
 	| "num_to_int32"       { SJSIL_Parser.TOINT32 }
 	| "num_to_uint32"      { SJSIL_Parser.TOUINT32 }
 	| "is_primitive"       { SJSIL_Parser.ISPRIMITIVE }
@@ -141,7 +143,7 @@ rule read = parse
 	| var                  { SJSIL_Parser.VAR (Lexing.lexeme lexbuf) }
 	| lvar                 { SJSIL_Parser.LVAR (Lexing.lexeme lexbuf) }
 	| loc                  { SJSIL_Parser.LOC (Lexing.lexeme lexbuf) }
-  | int                  { SJSIL_Parser.INT (int_of_string (Lexing.lexeme lexbuf)) }
+(*  | int                  { SJSIL_Parser.INT (int_of_string (Lexing.lexeme lexbuf)) } *)
   | float                { SJSIL_Parser.FLOAT (float_of_string (Lexing.lexeme lexbuf)) }
 	| eof                  { SJSIL_Parser.EOF }
 	| _   { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }

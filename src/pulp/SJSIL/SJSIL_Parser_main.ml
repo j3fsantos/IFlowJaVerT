@@ -143,7 +143,6 @@ let rec parse_and_preprocess_jsil_prog lexbuf =
 	let output_folder_name = Filename.chop_extension !file in 
   let lproc_list = parse_with_error lexbuf in	
 	let proc_list = SSyntax_Utils.desugar_labs_list lproc_list in
-	let number_of_procs = List.length proc_list in 
 	let prog = SProgram.create 1021 in 
 	let global_which_pred = Hashtbl.create 1021 in 
 	Utils.safe_mkdir output_folder_name;

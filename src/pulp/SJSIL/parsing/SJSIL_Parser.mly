@@ -11,7 +11,7 @@ open SSyntax
 (*literals*)
 %token <string> LVAR
 %token <string> VAR
-%token <int> INT
+(* %token <int> INT *)
 %token <float> FLOAT
 %token <string> STRING
 %token <string> LOC
@@ -87,6 +87,8 @@ open SSyntax
 %token NOT
 %token TOSTRING
 %token TONUMBER
+%token TOINT
+%token TOUINT16
 %token TOINT32
 %token TOUINT32
 %token BITWISENOT
@@ -486,7 +488,7 @@ lit_target:
 	| LISTTYPELIT { SSyntax.Type SSyntax.ListType }
 	| TRUE { SSyntax.Bool true }
 	| FALSE { SSyntax.Bool false }
-	| i=INT { SSyntax.Num (float_of_int i) }
+(*	| i=INT { SSyntax.Num (float_of_int i) } *)
 	| NAN { SSyntax.Num nan }
 	| INFINITY { SSyntax.Num infinity }
 	| x=FLOAT { SSyntax.Num x }
@@ -526,6 +528,8 @@ unop_target:
 	| MINUS { SSyntax.Negative }
 	| TOSTRING { SSyntax.ToStringOp }
 	| TONUMBER { SSyntax.ToNumberOp }
+	| TOINT { SSyntax.ToIntOp }
+	| TOUINT16 { SSyntax.ToUint16Op }
 	| TOINT32 { SSyntax.ToInt32Op }
 	| TOUINT32 { SSyntax.ToUint32Op }
 	| BITWISENOT { SSyntax.BitwiseNot }

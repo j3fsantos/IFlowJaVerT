@@ -23,8 +23,7 @@ i__toObject					YES
 NOTES
 -----
 
-* Currently, in s__getOwnProperty, we're using toUInt32 instead of toInteger. 
-* Negative zero does not exist
+* DefineOwnProperty doesn't use SameValue yet!
 
 
 

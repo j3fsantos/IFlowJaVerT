@@ -22,6 +22,16 @@ let fresh_loc () : string =
   "$l" ^ (fresh_int ())
 
 (* Taken from jscert *)
+let to_int = fun n ->   
+match classify_float n with
+  | FP_nan -> 0.
+	| FP_infinite -> n
+	| FP_zero -> n
+  | FP_normal 
+	| FP_subnormal -> 
+    let i32 = 2. ** 32. in
+			(if n < 0. then (-1.) else 1.) *. (floor (abs_float n))
+
 let to_int32 = fun n ->
   match classify_float n with
   | FP_normal | FP_subnormal ->
@@ -45,6 +55,18 @@ let to_uint32 = fun n ->
       if smod < 0. then smod +. i32 else smod
     in
     int32bit
+  | _ -> 0.
+
+let to_uint16 = fun n ->
+  match classify_float n with
+  | FP_normal | FP_subnormal ->
+    let i16 = 2. ** 16. in
+    let posint = (if n < 0. then (-1.) else 1.) *. (floor (abs_float n)) in
+    let int16bit =
+      let smod = mod_float posint i16 in
+      if smod < 0. then smod +. i16 else smod
+    in
+    int16bit
   | _ -> 0.
 
 let modulo_32 = (fun x -> let r = mod_float x 32. in if x < 0. then r +. 32. else r)
@@ -98,7 +120,15 @@ let evaluate_unop op lit =
 				with Failure "float_of_string" -> nan in
 				(Num num)
 		| _ -> raise (Failure "Non-string argument to ToNumberOp"))
-	| ToInt32Op ->
+	| ToIntOp ->
+		(match lit with
+		| Num n -> Num (to_int n)
+		| _ -> raise (Failure "Non-number argument to ToIntOp"))
+	| ToUint16Op ->
+		(match lit with
+		| Num n -> Num (to_uint16 n)
+		| _ -> raise (Failure "Non-number argument to ToUint16Op"))	
+		| ToInt32Op ->
 		(match lit with
 		| Num n -> Num (to_int32 n)
 		| _ -> raise (Failure "Non-number argument to ToInt32Op"))
@@ -128,6 +158,17 @@ let evaluate_unop op lit =
 		(match lit with
 		| String s -> Num (float_of_int (String.length s))
 		| _ -> raise (Failure "Non-string argument to Length"))
+	
+let same_value_num n1 n2 = 
+	let cfn1 = classify_float n1 in
+	let cfn2 = classify_float n2 in
+	match cfn1, cfn2 with
+	| FP_nan, FP_nan -> true
+	| FP_zero, FP_zero -> 
+		let sign1 = copysign 1.0 n1 in
+		let sign2 = copysign 1.0 n2 in
+			sign1 = sign2
+	| _, _ -> (n1 = n2)
 	
 let evaluate_binop op lit1 lit2 = 
 	match op with 

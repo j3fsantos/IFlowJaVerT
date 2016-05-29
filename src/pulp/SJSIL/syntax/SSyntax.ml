@@ -37,6 +37,8 @@ type unary_op =
 	| IsPrimitive
   | ToStringOp
   | ToNumberOp
+	| ToIntOp
+	| ToUint16Op
   | ToInt32Op
   | ToUint32Op
   | BitwiseNot
