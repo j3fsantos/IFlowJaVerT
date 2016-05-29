@@ -324,7 +324,7 @@ expr_target:
 		{ SSyntax.Base (e) }
 (* field *)
 	| FIELD; LBRACE; e=expr_target; RBRACE
-		{ SSyntax.Base (e) }		
+		{ SSyntax.Field (e) }		
 (* typeof *)
 	| TYPEOF; LBRACE; e=expr_target; RBRACE
 		{ SSyntax.TypeOf (e) }
@@ -494,8 +494,8 @@ lit_target:
 	| x=FLOAT { SSyntax.Num x }
 	| s=STRING { SSyntax.String s }
 	| loc=LOC { SSyntax.Loc loc }
-	| loc=LOC; VREFLIT; s=STRING { SSyntax.LVRef (loc, s) }
-	| loc=LOC; OREFLIT; s=STRING { SSyntax.LORef (loc, s) }
+	| loc=lit_target; VREFLIT; s=STRING { SSyntax.LVRef (loc, s) }
+	| loc=lit_target; OREFLIT; s=STRING { SSyntax.LORef (loc, s) }
 	(* EMPTY AND NON-EMPTY LISTS *)
 	| LNIL { SSyntax.LList [] }
 	| LISTOPEN; LISTCLOSE { SSyntax.LList [] }

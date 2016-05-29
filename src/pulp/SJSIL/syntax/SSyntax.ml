@@ -74,8 +74,8 @@ type jsil_lit =
 	| String of string
   | Loc of string
   | Type of jsil_type
-	| LVRef of string * string 
-	| LORef of string * string 
+	| LVRef of jsil_lit * string 
+	| LORef of jsil_lit * string 
 	(* LISTS (FOR DESCRIPTORS) *)
 	| LList of jsil_lit list
 

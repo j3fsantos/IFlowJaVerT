@@ -594,6 +594,57 @@ with
 
 
 
+(* ******** *) 
+(* GETVALUE *)
+(* ******** *) 
+
+proc i__getValue (v) {
+
+			goto [(typeOf(v) = $$v-reference_type) or (typeOf(v) = $$o-reference_type)] init dflt;
+	
+	init:	rbase := base (v);
+			rfield := field (v);
+			goto [rbase = $$undefined] throw prim;
+	
+	prim:	goto [(is_primitive rbase) and (not (rbase = $$undefined)) and (not (rbase = $$null))] is_pr ref;
+	
+	is_pr:	xret := "i__toObject" (rbase) with elab;
+			gp := [xret, "@get"];
+			xret := gp (xret, rfield);
+			goto rlab;
+	
+	ref:	goto [typeOf(v) = $$o-reference_type] oref vref;
+	
+	oref:	gp := [rbase, "@get"];
+			xret := gp (rbase, rfield);
+			goto rlab;
+			
+	vref:	goto [rbase = $lg] lg er;
+	
+	lg:		gp := [$lg, "@get"];
+			xret := gp (rbase, rfield);
+			goto rlab;
+			
+	er:		xret := [rbase, rfield];
+			goto rlab;
+	
+	dflt:	xret := v;
+	rlab:	skip;
+	
+	throw:  xret := "ReferenceError" ();
+    elab:   skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+
+
+
+
+
 
 
 (* ********************** *) 
@@ -1180,6 +1231,10 @@ proc setupInitialHeap () {
 			
 			xret := "create_default_object" ($lobj_proto, $$null, "Object", $$t);
 			
+			(* String.prototype *)
+			
+			xret := "create_default_object" ($lstr_proto, $lobj_proto, "String", $$t);
+			
 	rlab:	xret := $$empty
 }
 with
@@ -1190,13 +1245,15 @@ with
 proc main () {
 
 			xret := "setupInitialHeap" ();
+						
+			xret := "o__put" ($lobj_proto, "test", "oogaBooga");
 			
-			goto [(-0 = 0)] lt lf;
+			l := new ();
+			l := "Object_construct" ();
 			
-	lt:		xret := $$t;
-			goto rlab;
+			[$lg, "@proto"] := $lobj_proto;
 			
-	lf:		xret := $$f;
+			xret := "i__getValue" (v-ref($lg, "test"));
 			
 	rlab:	skip;
 	elab:	skip

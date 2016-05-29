@@ -49,21 +49,21 @@ let rec normalize_lexpr le store symb_loc_tbl =
 		let nle1 = normalize_lexpr le1 store symb_loc_tbl in 
 		let nle2 = normalize_lexpr le2 store symb_loc_tbl in 
 		(match nle1, nle2 with 
-		| LLit (Loc loc), LLit (String field) -> LLit (LVRef (loc, field))
+		| LLit l, LLit (String field) -> LLit (LVRef (l, field))
 		| _, _ -> LEVRef (nle1, nle2))
 	
 	| LEORef (le1, le2) ->
 		let nle1 = normalize_lexpr le1 store symb_loc_tbl in 
 		let nle2 = normalize_lexpr le2 store symb_loc_tbl in 
 		(match nle1, nle2 with 
-		| LLit (Loc loc), LLit (String field) -> LLit (LORef (loc, field))
+		| LLit l, LLit (String field) -> LLit (LORef (l, field))
 		| _, _ -> LEORef (nle1, nle2))
 	
 	| LBase	(le1) -> 
 		let nle1 = normalize_lexpr le1 store symb_loc_tbl in 
 		(match nle1 with 
-		| LLit (LVRef (loc, _)) 
-		| LLit (LORef (loc, _)) -> LLit (Loc loc)
+		| LLit (LVRef (l, _)) 
+		| LLit (LORef (l, _)) -> LLit l
 		| LEVRef (leb, _) 
 		| LEORef (leb, _) -> leb
 		| _ -> LBase (nle1))

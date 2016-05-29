@@ -90,8 +90,8 @@ let rec string_of_literal lit escape_string =
 					else Printf.sprintf "\"%s\"" x
     | Bool b -> string_of_bool b
     | Type t -> string_of_type t 
-		| LVRef (l, x) -> Printf.sprintf "%s.v.%s" l x  
-	  | LORef (l, x) -> Printf.sprintf "%s.o.%s" l x   
+		| LVRef (l, x) -> Printf.sprintf "%s.v.%s" (string_of_literal l escape_string) x  
+	  | LORef (l, x) -> Printf.sprintf "%s.o.%s" (string_of_literal l escape_string) x   
 		| LList ll -> 
 			match ll with
 			| [] -> "$$nil"

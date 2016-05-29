@@ -158,6 +158,14 @@ let evaluate_unop op lit =
 		(match lit with
 		| String s -> Num (float_of_int (String.length s))
 		| _ -> raise (Failure "Non-string argument to Length"))
+	| IsPrimitive ->
+		(match lit with
+		| Null
+		| Undefined
+		| Bool _
+		| Num _
+		| String _ -> (Bool true)
+		| _ -> Bool false)
 	
 let same_value_num n1 n2 = 
 	let cfn1 = classify_float n1 in
@@ -299,19 +307,27 @@ let rec evaluate_expr (e : jsil_expr) store =
 		let v1 = evaluate_expr e1 store in 
 		let v2 = evaluate_expr e2 store in 
 		(match v1, v2 with 
-		| String loc, String field -> LVRef (loc, field)
+		| l, String field -> 
+			(match l with
+			| Null | Undefined | Bool _ 
+			| Num _ | String _ | Loc _ -> LVRef (l, field)
+			| _ -> raise (Failure "Illegal V-Reference constructor parameter"))
 		| _, _ -> raise (Failure "Illegal V-Reference constructor parameter"))
 	| ORef (e1, e2) -> 
 		let v1 = evaluate_expr e1 store in 
 		let v2 = evaluate_expr e2 store in 
-		(match v1, v2 with 
-		| String loc, String field -> LORef (loc, field)
-		| _, _ -> raise (Failure "Illegal O-Reference constructor parameter"))  
+    (match v1, v2 with 
+		| l, String field -> 
+			(match l with
+			| Null | Undefined | Bool _ 
+			| Num _ | String _ | Loc _ -> LORef (l, field)
+			| _ -> raise (Failure "Illegal O-Reference constructor parameter"))
+		| _, _ -> raise (Failure "Illegal O-Reference constructor parameter"))
 	| Base e -> 
 		let v = evaluate_expr e store in
 		(match v with 
 		| LORef (loc, _) 
-		| LVRef (loc, _) -> Loc loc  
+		| LVRef (loc, _) -> loc  
 		| _ -> raise (Failure "Illegal Base parameter"))
 	| Field e -> 
 		let v = evaluate_expr e store in

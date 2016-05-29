@@ -68,7 +68,7 @@ let string_of_type t =
 	| VariableReferenceType -> "$$v_reference_type"	
 
 
-let string_of_literal lit escape_string =
+let rec string_of_literal lit escape_string =
   match lit with
 	  | Undefined -> "$$undefined"
 	  | Null -> "$$null"
@@ -81,8 +81,8 @@ let string_of_literal lit escape_string =
 					else Printf.sprintf "\"%s\"" x
     | Bool b -> string_of_bool b
     | Type t -> string_of_type t
-		| LVRef (field, value) -> Printf.sprintf "vref(%s, %s)" field value
-		| LORef (field, value) -> Printf.sprintf "oref(%s, %s)" field value
+		| LVRef (field, value) -> Printf.sprintf "vref(%s, %s)" (string_of_literal field escape_string) value
+		| LORef (field, value) -> Printf.sprintf "oref(%s, %s)" (string_of_literal field escape_string) value
 
 
 let rec string_of_logic_expression e escape_string =
