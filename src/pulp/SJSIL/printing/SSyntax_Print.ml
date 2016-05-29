@@ -181,7 +181,11 @@ let rec sexpr_of_bcmd bcmd i line_numbers_on =
 	| SPhiAssignment (var, var_arr) -> 
 		let var_arr_str = 
 			Array.fold_left 
-				(fun ac v -> ac ^ " " ^ v)
+				(fun ac v -> 
+					match v with 
+					| Some v -> ac ^ " " ^ v
+					| None -> ac ^ " $$empty "
+				)
 				""
 				var_arr in 
 		Printf.sprintf "'(%sv-phi-assign %s %s)" str_i var var_arr_str	
@@ -215,9 +219,13 @@ let rec string_of_bcmd bcmd i line_numbers_on escape_string =
 			if (i >= len) 
 				then str_ac 
 				else 
+					let var_arr_i_str = 
+						(match var_arr.(i) with 
+						| None -> "$$empty"
+						| Some v_i -> v_i) in 
 					(if (i == 0)
-						then loop 1 var_arr.(i)
-						else  loop (i + 1) (str_ac ^ ", " ^ var_arr.(i))) in 
+						then loop 1 var_arr_i_str
+						else  loop (i + 1) (str_ac ^ ", " ^ var_arr_i_str)) in 
 		let var_arr_str = loop 0 "" in 
 		Printf.sprintf "%s%s := PHI(%s)" str_i var var_arr_str						
 	(* x := new() *)

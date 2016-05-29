@@ -60,6 +60,6 @@ let spec_function_get_args sf = match sf with
   | ToObject expr -> [expr]
   | CheckObjectCoercible expr -> [expr]
   | IsCallable expr -> [expr]
-  | AbstractRelation _ ->  raise (Failure "Generated JSIL code should not contain calls to Abstract Relation") 
+  | AbstractRelation (expr1, expr2, _) ->  [expr1; expr2] 
   | StrictEquality (expr1, expr2) -> [expr1; expr2]
   | StrictEqualitySameType (expr1, expr2) -> [expr1; expr2]

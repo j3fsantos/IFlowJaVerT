@@ -115,9 +115,12 @@ open SSyntax
 
 %type <(SSyntax.lprocedure list)> prog_target
 %type <(SSyntax.jsil_spec list)>  specs_target
+%type <((SSyntax.jsil_logic_assertion option * string option * SSyntax.jsil_lab_cmd) list)> cmd_list_top_target
+
+
 
 (* main target <(SSyntax.lprocedure list)> *) 
-%start prog_target specs_target
+%start prog_target specs_target cmd_list_top_target
 %%
 
 (********* JSIL *********)
@@ -183,6 +186,20 @@ param_list_target:
 
 cmd_list_target: 
 	cmd_list = separated_list(SCOLON, cmd_with_label_and_specs) {
+		List.rev 
+			(List.fold_left
+				(fun ac c ->
+					match c with
+			 		| (None, None, None) -> ac
+					| (pre, lab, Some v) -> (pre, lab, v) :: ac
+          | _, _, _ -> raise (Failure "Yeah, that's not really going to work without a command.")
+				)
+				[] 
+				cmd_list)
+	};
+
+cmd_list_top_target: 
+	cmd_list = separated_list(SCOLON, cmd_with_label_and_specs); EOF {
 		List.rev 
 			(List.fold_left
 				(fun ac c ->

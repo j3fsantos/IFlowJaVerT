@@ -339,9 +339,12 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 	
 	| SPhiAssignment (x, x_arr) -> 
 		let x_live = x_arr.(which_pred) in 
-		let v = (match SSyntax_Aux.try_find store x_live with 
-		| None -> raise (Failure "Variable not found in store")
-		| Some v -> v) in 
+		let v = (match x_live with 
+		| None -> Undefined 
+		| Some x_live -> 
+			(match SSyntax_Aux.try_find store x_live with 
+			| None -> raise (Failure "Variable not found in store")
+			| Some v -> v)) in 
 		Hashtbl.add store x v; 
 		v 
 	

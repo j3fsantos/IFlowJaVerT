@@ -255,7 +255,7 @@ let string_of_spec_fun_id sf =
     | ToObject _ -> "#ToObject"
     | CheckObjectCoercible _ -> "#CheckObjectCoercible" 
     | IsCallable _ -> "#IsCallable"
-    | AbstractRelation _ -> "#AbstractRelation"
+    | AbstractRelation (_, _, b) -> "#AbstractRelation_" ^ (string_of_bool b) 
     | StrictEquality _ -> "#StrictEquality"
     | StrictEqualitySameType _ -> "#StrictEqualitySameType"
 

@@ -159,7 +159,7 @@ type jsil_n_spec = {
 type basic_jsil_cmd =
   | SSkip	      
   | SAssignment    of jsil_var   * jsil_expr
-	| SPhiAssignment of jsil_var   * (jsil_var array)
+	| SPhiAssignment of jsil_var   * (jsil_var option array)
 	| SNew           of jsil_var
 	| SLookup        of jsil_var   * jsil_expr * jsil_expr
   | SMutation      of jsil_expr  * jsil_expr * jsil_expr

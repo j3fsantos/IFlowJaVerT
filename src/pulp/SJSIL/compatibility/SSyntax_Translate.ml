@@ -148,8 +148,8 @@ let rec jsil_to_sjsil_expr e var_gen var_table =
 			let new_var = var_gen () in 
 			let new_cmd = (SSyntax.SBasic 
 				(SSyntax.SHasField (new_var, jsil_aux, 
-					SSyntax.Literal(SSyntax.String (string_of_builtin_field FClass))))) in 
-			SSyntax.BinOp (SSyntax.Var new_var, SSyntax.Equal, SSyntax.Literal (SSyntax.Bool true)), cmds_aux @ [ new_cmd ]
+					SSyntax.Literal(SSyntax.String "#user_defined_function")))) in 
+			SSyntax.BinOp (SSyntax.Var new_var, SSyntax.Equal, SSyntax.Literal (SSyntax.Bool false)), cmds_aux @ [ new_cmd ]
 		| _ -> raise (Failure "Illegal Expression containing the type Builtin Object"))
 			  		
 	| BinOp (e1, bop, e2) -> 

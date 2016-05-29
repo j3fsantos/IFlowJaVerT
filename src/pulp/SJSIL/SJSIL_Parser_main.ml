@@ -184,7 +184,9 @@ let parse_and_print_logic lexbuf =
 						let pre = single_spec.pre in 
 						let post = single_spec.post in 
 						let ret_flag = single_spec.ret_flag in 
+						Printf.printf "About to normalize the beautiful assertion: %s \n" (JSIL_Logic_Print.string_of_logic_assertion pre false);
 						let pre_heap, pre_store, pre_p_formulae = JSIL_Logic_Normalise.normalize_assertion_top_level pre in 
+						Printf.printf "I managed to normalize this assertion\n";
 						let post_heap, post_store, post_p_formulae = JSIL_Logic_Normalise.normalize_assertion_top_level post in 
 						{	
 							n_pre = pre_heap, pre_store, pre_p_formulae; 
@@ -235,8 +237,8 @@ let process_specs filename =
 
 let main () = 
 	arguments ();
-	(* Printf.printf "Start parsing! %s\n" !file; *)
 	process_file !file; 
+	(* Printf.printf "Finished parsing! %s\n" !file; *)
 	process_specs !specs 
 
 let _ = main()

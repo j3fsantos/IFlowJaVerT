@@ -431,8 +431,7 @@ let insert_phi_args args vars cmds (spec : jsil_spec option) (rvar : string) (ev
  							| Some (i :: rest) -> 
  								args.(j) <- i  
  							| _ -> 
-								let err_msg = Printf.sprintf "Variable %s not found in stack table during ssa transformation - 2nd phase.\n" old_v in 
-								raise (Failure err_msg))
+								args.(j) <- -1)
  						)
  						new_phi_functions_per_node.(k)
 				| None -> 
@@ -511,9 +510,11 @@ let insert_phi_args args vars cmds (spec : jsil_spec option) (rvar : string) (ev
 	
 let create_phi_assignment var v_args old_var = 
 	let len = Array.length v_args in 
-	let new_v_args = Array.make len "" in 
+	let new_v_args = Array.make len None in 
 	for i=0 to len-1 do 
-		new_v_args.(i) <- (rename_var old_var v_args.(i))
+		if (not (v_args.(i) = -1))
+			then new_v_args.(i) <- Some (rename_var old_var v_args.(i))
+			else ()
 	done; 
 	(None, SBasic (SPhiAssignment (var, new_v_args)))
 
