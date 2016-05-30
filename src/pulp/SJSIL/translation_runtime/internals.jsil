@@ -648,19 +648,19 @@ proc i__getValue (v) {
 	
 	is_pr:	xret := "i__toObject" (rbase) with elab;
 			gp := [xret, "@get"];
-			xret := gp (xret, rfield);
+			xret := gp (xret, rfield) with elab;
 			goto rlab;
 	
 	ref:	goto [typeOf(v) = $$o-reference_type] oref vref;
 	
 	oref:	gp := [rbase, "@get"];
-			xret := gp (rbase, rfield);
+			xret := gp (rbase, rfield) with elab;
 			goto rlab;
 			
 	vref:	goto [rbase = $lg] lg er;
 	
 	lg:		gp := [$lg, "@get"];
-			xret := gp (rbase, rfield);
+			xret := gp (rbase, rfield) with elab;
 			goto rlab;
 			
 	er:		xret := [rbase, rfield];
@@ -678,7 +678,84 @@ with
 	err:	xret, elab;
 };
 
+(* ******** *) 
+(* PUTVALUE *)
+(* ******** *) 
 
+proc i__putValue (v, w) {
+
+			goto [(typeOf(v) = $$v-reference_type) or (typeOf(v) = $$o-reference_type)] init throw;
+	
+	init:	rbase := base (v);
+			rfield := field (v);
+			goto [rbase = $$undefined] throw prim;
+	
+	prim:	goto [(is_primitive rbase) and (not (rbase = $$undefined)) and (not (rbase = $$null))] is_pr ref;
+	
+	ref:	goto [typeOf(v) = $$o-reference_type] oref vref;
+	
+	oref:	p := [rbase, "@put"];
+			xret := p (rbase, rfield, w, $$t) with elab;
+			goto dflt;
+			
+	vref:	goto [rbase = $lg] lg er;
+	
+	lg:		p := [$lg, "@put"];
+			xret := p (rbase, rfield, w, $$t) with elab;
+			goto dflt;
+			
+	er:		[rbase, rfield] := w;
+			goto rlab;
+	
+	dflt:	xret := $$empty;
+	rlab:	skip;
+	
+	throw:  xret := "ReferenceError" ();
+    elab:   skip
+    
+    		(* WHY GOD, WHY THIS? *)
+    		
+	is_pr:	xret := "i__toObject" (rbase) with elab;
+			l := xret;
+    		cp := [l, "@canPut"];
+            xret := cp (l, prop) with elab;
+            goto [xret] cp reject;
+            
+    cp:     gop := [l, "@getOwnProperty"];
+    		xret := gop (l, prop) with elab;
+    		dd := "i__isDataDescriptor" (xret);
+    		goto [dd] dd gp;
+    		
+    dd:		desc := {{ "g", $$empty, $$empty, value, $$empty, $$empty, $$empty }};
+    		dop := [l, "@defineOwnProperty"];
+    		xret := dop (l, prop, desc, throw) with elab;
+    		goto remp;
+    		
+    gp:		gp := [l, "@getProperty"];
+    		xret := gp (l, prop) with elab;
+    		ad := "i__isAccessorDescriptor" (xret);
+    		goto [ad] ad def;
+    		
+    ad:		s := nth (xret, 2);
+    		scp := [s, "@scope"];
+    		fun := [s, "@body"];
+    		xret := fun (scp, l, value) with elab;
+    		goto remp;
+    		
+    def:	desc := {{ "g", $$t, $$t, value, $$t, $$empty, $$empty }};
+    		xret := "o__defineOwnProperty" (l, prop, desc, throw) with elab;
+
+    remp:   xret := $$empty;
+    rlab:   skip;
+    
+    reject: xerr := "TypeError" ();
+    elab:   skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
 
 
 

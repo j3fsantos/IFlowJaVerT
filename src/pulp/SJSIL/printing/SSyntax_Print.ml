@@ -430,6 +430,69 @@ let string_of_procedure proc line_numbers =
 		| Some var, Some label -> (Printf.sprintf "\t err: %s, %s; \n" var (string_of_int label))
 		| _, _ -> raise (Failure "Error variable and error label not both present or both absent!")))
 
+(**
+		Printing out lprocedures
+
+		lproc_body : ((jsil_logic_assertion option * string option * jsil_lab_cmd) array);
+*)
+
+let string_of_lcmd lcmd = 
+  (match lcmd with
+	(* goto j *) 
+  | SLGoto j -> 
+			Printf.sprintf "goto %s\n" j 
+  (* goto [e] j k *)
+	| SLGuardedGoto (e, j, k) -> 
+		let str_e = (string_of_expression e false) in 
+			Printf.sprintf "goto [%s] %s %s\n" str_e j k
+	(* basic command *)
+	| SLBasic bcmd -> (string_of_bcmd bcmd 0 false false) ^"\n"
+	(* x := f(y1, ..., yn) with j *)
+	| SLCall (var, proc_name_expr, arg_expr_list, error_lab) -> 
+		let proc_name_expr_str = string_of_expression proc_name_expr false in 
+		let error_lab = (match error_lab with | None -> "" | Some error_lab -> ("with " ^ error_lab)) in 
+		let se = fun e -> string_of_expression e false in 
+		let arg_expr_list_str = match arg_expr_list with
+		|	[] -> ""
+		| _ -> String.concat ", " (List.map se arg_expr_list) in 
+			Printf.sprintf "%s := %s(%s) %s\n" var proc_name_expr_str arg_expr_list_str error_lab)
+
+let string_of_lbody lbody = 
+	let len = Array.length lbody in
+	let str = ref "" in
+	for i = 0 to (len - 1) do
+		let spec, lab, lcmd = lbody.(i) in
+		let str_of_spec = 
+			(match spec with 
+			| None -> "" 
+			| Some ass -> "\t\t[[" ^ string_of_assertion ass false ^ "]]\n") in
+		let str_of_lab  = 
+			(match lab with
+			| None -> "\t\t"
+			| Some lab -> "\t" ^ lab ^ ":\t") in
+		let str_of_lcmd  = string_of_lcmd lcmd in
+		str := !str ^ str_of_spec ^ str_of_lab ^ str_of_lcmd
+	done;
+	!str
+
+let string_of_lprocedure (lproc : lprocedure) =			
+	(match lproc.lspec with
+	| None -> ""
+	| Some spec ->
+		Printf.sprintf "spec %s (%s) \n %s \n" spec.spec_name (string_of_params spec.spec_params) (string_of_specs spec.proc_specs)
+	)
+	^
+	(Printf.sprintf "proc %s (%s) { \n %s \n} with { \n\t ret: %s, %s; \n%s}\n" 
+  	lproc.lproc_name 
+   	(string_of_params lproc.lproc_params) 
+		(string_of_lbody lproc.lproc_body)
+		lproc.lret_var
+		lproc.lret_label
+		(match lproc.lerror_var, lproc.lerror_label with
+		| None, None -> "" 
+		| Some var, Some label -> (Printf.sprintf "\t err: %s, %s; \n" var label)
+		| _, _ -> raise (Failure "Error variable and error label not both present or both absent!")))
+
 let sexpr_of_program program line_numbers = 
 	SSyntax.SProgram.fold 
 	(fun _ proc acc_str ->

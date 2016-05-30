@@ -142,6 +142,11 @@ let pre_process_proc output_folder_name proc =
 let rec parse_and_preprocess_jsil_prog lexbuf =
 	let output_folder_name = Filename.chop_extension !file in 
   let lproc_list = parse_with_error lexbuf in	
+	List.iter
+		(fun lproc -> 
+	 		Printf.printf "*** *** *** *** *** *** *** *** *** ***\n";
+	 		let proc_str = SSyntax_Print.string_of_lprocedure lproc in 
+  			Printf.printf "\n%s\n" proc_str ) lproc_list;
 	let proc_list = SSyntax_Utils.desugar_labs_list lproc_list in
 	let prog = SProgram.create 1021 in 
 	let global_which_pred = Hashtbl.create 1021 in 
