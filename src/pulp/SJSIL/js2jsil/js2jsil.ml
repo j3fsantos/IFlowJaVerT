@@ -189,9 +189,9 @@ let rec translate fid cc_table loop_list ctx e =
 		let cmds_e1, x_e1 = f e1 in 
 		let cmds_e2, x_e2 = f e2 in 
 		
-		(* x2' := getValue ( x_2) with err_lab *)
+		(* x2' := getValue ( x2) with err_lab *)
 		let cmd_get_value_e2 = SLCall (new_var_x_e2, Literal (String getValueName), [ x_e2 ], Some ctx.tr_error_lab) in 
-		(* x_is_reserved := is_reserved (x_1) *)
+		(* x_is_reserved := is_reserved (x1) *)
 		let cmd_is_reserved_e1 = SLCall (new_var_is_reserved, Literal (String isReservedName), [x_e1], None) in 
 		(* (((TypeOf(x1) = $$VarReferenceType) && x_is_reserved) || (base(x1) = $$undefined)) *)
 		let is_invalid_assignment_exp = BinOp ((TypeOf x_e1), Equal, (Literal (Type VariableReferenceType))) in 
@@ -210,6 +210,33 @@ let rec translate fid cc_table loop_list ctx e =
 		] in 
 		let cmds = List.concat [ cmds_e1; cmds_e2; new_cmds ] in 
 		cmds, (Var new_var_x_e2)
+	
+	| Parser_syntax.CAccess (e1, e2) -> 
+		let new_var_x_e1 = fresh_var () in
+		let new_var_x_e2 = fresh_var () in
+		let new_var = fresh_var () in
+		
+		let cmds_e1, x_e1 = f e1 in 
+		let cmds_e2, x_e2 = f e2 in 
+		
+		(* x1' := getValue ( x1) with err_lab *)
+		let cmd_get_value_x1 = SLCall (new_var_x_e1, Literal (String getValueName), [ x_e1 ], Some ctx.tr_error_lab) in 
+		(* x2' := getValue ( x2) with err_lab *)
+		let cmd_get_value_x2 = SLCall (new_var_x_e2, Literal (String getValueName), [ x_e2 ], Some ctx.tr_error_lab) in
+		(* x_r := ref-o(x1', x2') *) 
+		let cmd = SLBasic (SAssignment (new_var, (ORef ((Var new_var_x_e1), (Var new_var_x_e2))))) in
+		
+		let new_cmds = [
+			(None, None, cmd_get_value_x1); 
+			(None, None, cmd_get_value_x2); 
+			(None, None, cmd)
+		] in  
+		let cmds = List.concat [ cmds_e1; cmds_e2; new_cmds ] in 
+		cmds, (Var new_var)
+	
+	
+		
+				
 	
 	| _ -> raise (Failure "not implemented yet")		
 
