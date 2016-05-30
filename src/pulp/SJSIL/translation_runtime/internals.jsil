@@ -711,7 +711,7 @@ proc i__putValue (v, w) {
 	rlab:	skip;
 	
 	throw:  xret := "ReferenceError" ();
-    elab:   skip
+    elab:   skip;
     
     		(* WHY GOD, WHY THIS? *)
     		
@@ -721,35 +721,22 @@ proc i__putValue (v, w) {
             xret := cp (l, prop) with elab;
             goto [xret] cp reject;
             
-    cp:     gop := [l, "@getOwnProperty"];
-    		xret := gop (l, prop) with elab;
-    		dd := "i__isDataDescriptor" (xret);
-    		goto [dd] dd gp;
-    		
-    dd:		desc := {{ "g", $$empty, $$empty, value, $$empty, $$empty, $$empty }};
-    		dop := [l, "@defineOwnProperty"];
-    		xret := dop (l, prop, desc, throw) with elab;
-    		goto remp;
-    		
-    gp:		gp := [l, "@getProperty"];
+    cp:     gp := [l, "@getProperty"];
     		xret := gp (l, prop) with elab;
-    		ad := "i__isAccessorDescriptor" (xret);
-    		goto [ad] ad def;
+    		dd := "i__isDataDescriptor" (xret);
+    		goto [dd] reject is_ad;
+    		    		
+   	is_ad: 	ad := "i__isAccessorDescriptor" (xret);
+    		goto [ad] ad reject;
     		
     ad:		s := nth (xret, 2);
     		scp := [s, "@scope"];
     		fun := [s, "@body"];
-    		xret := fun (scp, l, value) with elab;
-    		goto remp;
-    		
-    def:	desc := {{ "g", $$t, $$t, value, $$t, $$empty, $$empty }};
-    		xret := "o__defineOwnProperty" (l, prop, desc, throw) with elab;
-
-    remp:   xret := $$empty;
-    rlab:   skip;
+    		xret := fun (scp, rbase, value) with elab;
+    		goto dflt;
     
-    reject: xerr := "TypeError" ();
-    elab:   skip
+    reject: xret := "TypeError" ();
+    		goto elab
 }
 with
 {
