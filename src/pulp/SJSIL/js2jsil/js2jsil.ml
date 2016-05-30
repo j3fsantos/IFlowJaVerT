@@ -4,6 +4,11 @@ open Lexing
 open Batteries
 open SSyntax
 
+
+let getValueName = "i__getValue"
+let isReservedName = "i__isReserved"
+let putValueName = "i__putValue"
+
 let print_position outx lexbuf =
   let pos = lexbuf.lex_curr_p in
   Printf.fprintf outx "%s:%d:%d" pos.pos_fname
@@ -177,6 +182,36 @@ let rec translate fid cc_table loop_list ctx e =
 		let cmds, e_x = loop decs [] None in 
 		List.rev (List.flatten cmds), e_x 
 		
+	| Parser_syntax.Assign (e1, e2) ->
+		let new_var_is_reserved = fresh_var () in 
+		let new_var_x_e2 = fresh_var () in 
+		let new_var_pv = fresh_var () in  
+		let new_lab = fresh_label () in 
+		
+		let cmds_e1, x_e1 = f e1 in 
+		let cmds_e2, x_e2 = f e2 in 
+		
+		(* x2' := getValue ( x_2) with err_lab *)
+		let cmd_get_value_e2 = SLCall (new_var_x_e2, Literal (String getValueName), [ x_e2 ], Some ctx.tr_error_lab) in 
+		(* x_is_reserved := is_reserved (x_1) *)
+		let cmd_is_reserved_e1 = SLCall (new_var_is_reserved, Literal (String isReservedName), [x_e1], None) in 
+		(* (((TypeOf(x1) = $$VarReferenceType) && x_is_reserved) || (base(x1) = $$undefined)) *)
+		let is_invalid_assignment_exp = BinOp ((TypeOf x_e1), Equal, (Literal (Type VariableReferenceType))) in 
+		let is_invalid_assignment_exp = BinOp ((Var new_var_is_reserved), And, is_invalid_assignment_exp) in 
+		let is_invalid_assignment_exp = BinOp (is_invalid_assignment_exp, Or, (BinOp ((Base x_e1), Equal, (Literal Undefined)))) in
+		(* goto [is_invalid_assignment] err_lab next *) 
+		let cmd_guarded_goto = SLGuardedGoto (is_invalid_assignment_exp, ctx.tr_error_lab, new_lab) in 
+		(* lab: ret = putValue (x1, x2) with lab_err *)
+		let cmd_put_value = SLCall (new_var_pv, Literal (String putValueName), [x_e1; (Var new_var_x_e2)], Some ctx.tr_error_lab) in 
+		
+		let new_cmds = [
+			(None, None, cmd_get_value_e2); 
+			(None, None, cmd_is_reserved_e1); 
+			(None, None, cmd_guarded_goto); 
+			(None, Some new_lab, cmd_put_value)
+		] in 
+		let cmds = List.concat [ cmds_e1; cmds_e2; new_cmds ] in 
+		cmds, (Var new_var_x_e2)
 	
 	| _ -> raise (Failure "not implemented yet")		
 
