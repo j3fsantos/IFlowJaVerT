@@ -14,19 +14,17 @@ let print_position outx lexbuf =
   Printf.fprintf outx "%s:%d:%d" pos.pos_fname
     pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)  
 	
-let fresh_sth name =
+let fresh_sth (name : string) : (unit -> string) =
   let counter = ref 0 in
-  let rec f =
+  let rec f () =
     let v = name ^ (string_of_int !counter) in
     counter := !counter + 1;
     v
   in f
   
-let fresh_var () : string =
-  fresh_sth "x_"
+let fresh_var : (unit -> string) = fresh_sth "x_"
  
-let fresh_label () : string =
-  fresh_sth "lab_"
+let fresh_label : (unit -> string) = fresh_sth "lab_"
 
 type tr_ctx = { 
 	tr_ret_lab: string; 
@@ -62,7 +60,7 @@ This::
 		lab: 	x := __this	
  *)
 let translate_this error_label new_var = 
-	let new_label = fresh_label () in 
+	let new_label : string = fresh_label () in 
 	let tmpl : ('a -> 'b -> 'c -> 'd -> 'e -> 'f -> 'g, unit, string) format = 
 " 		goto [not (%s = $$undefined)] %s %s; 
 	%s:	%s := %s"
@@ -158,11 +156,11 @@ let rec translate fid cc_table loop_list ctx e =
 				(match es with 
 				| [] -> raise (Failure "block list cannot be empty HERE" )
 				| [ e ] -> 
-					let cmds_e, x_e = f e in 
-					List.rev (List.flatten (cmds_e :: cmd_lst)), x_e
+					let cmds_e, x_e = f e in
+					cmd_lst @ cmds_e, x_e  
 				| e :: rest_es -> 
 					let cmds_e, _ = f e in 
-					loop rest_es (cmds_e :: cmd_lst)) in
+					loop rest_es (cmd_lst @ cmds_e)) in
 			loop es []) 
 	
 	| Parser_syntax.VarDec decs -> 
@@ -173,14 +171,14 @@ let rec translate fid cc_table loop_list ctx e =
 				| None ->
 					let new_var = fresh_var () in 
 					let empty_ass = (None, None, SLBasic (SAssignment (new_var, (Literal Empty)))) in
-					[ empty_ass ] :: cmds, Var new_var
+					cmds @ [ empty_ass ], Var new_var
 				| Some e_x -> cmds, e_x)
 			| (v, eo) :: rest_decs -> 
 				(match eo with 
 				| None -> loop rest_decs cmds last_e_x 
 				| Some e -> raise (Failure "not implemented yet!"))) in 
 		let cmds, e_x = loop decs [] None in 
-		List.rev (List.flatten cmds), e_x 
+		cmds, e_x 
 		
 	| Parser_syntax.Assign (e1, e2) ->
 		let new_var_is_reserved = fresh_var () in 
