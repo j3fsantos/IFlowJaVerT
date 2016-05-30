@@ -424,6 +424,7 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 				| _ -> raise (Failure (Printf.sprintf "Looking up inexistent field: [%s, %s]" (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false)))) in
 	
 			Hashtbl.replace store x v; 
+			Printf.printf "Lookup: %s := [%s, %s] = %s \n" x (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false) (SSyntax_Print.string_of_literal v false);
 			v
 		| _, _ -> raise (Failure (Printf.sprintf "Illegal field inspection: [%s, %s]" (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false))))
 	
@@ -469,6 +470,7 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (SSyntax_Print.string_of_literal v_e1 false)))) in
 			let v = Bool (SHeap.mem obj f) in 
 			Hashtbl.replace store x v; 
+			Printf.printf "hasField: %s := hf (%s, %s) = %s \n" x (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false) (SSyntax_Print.string_of_literal v false);
 			v
 		| _, _ -> raise (Failure "Illegal Field Check"))
 	

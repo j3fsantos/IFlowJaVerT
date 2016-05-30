@@ -15,7 +15,7 @@ proc o__getOwnProperty (l, prop) {
 }
 with
 {
-    ret: xret, rlab;
+    ret: 	xret, rlab;
 };
 
 (* *********** *) 
@@ -23,19 +23,24 @@ with
 (* *********** *) 
 
 proc o__getProperty (l, prop) {
-            x := protoField(l, prop);			
-            goto [x = $$undefined] ndef def;	(* Does the field exist in the prototype chain? *)
-            
-    ndef:   xret := $$undefined;				(* Field doesn't exist; return undefined *)
-    		goto rlab;
-    		
-	def:	xret := [x, prop];					(* Field exists; return the descriptor *)
+			
+			gop := [l, "@getOwnProperty"];
+			xret := gop (l, prop) with elab;
+			goto [xret = $$undefined] next rlab;
+			
+	next:	proto := [l, "@proto"];
+			goto [proto = $$null] rlab call;
+			
+	call:	gop := [proto, "@getOwnProperty"];
+			xret := gop (proto, prop) with elab;
 	
-    rlab:   skip
+    rlab:   skip;
+    elab:	skip
 }
 with 
 {
-    ret: xret, rlab;
+    ret: 	xret, rlab;
+    err:	xret, elab;
 };
 
 (* *** *) 
@@ -43,7 +48,8 @@ with
 (* *** *) 
 
 proc o__get (l, prop) {
-			xret := "o__getProperty" (l, prop);	
+			gp := [l, "@getProperty"];
+			xret := gp (l, prop) with elab;	
 			goto [xret = $$undefined] rlab def;		(* Does the field exist? *)
 			
 	def:	d := nth (xret, 0);						(* Get the descriptor type *)
@@ -69,29 +75,41 @@ with
 (* ****** *) 
 
 proc o__canPut (l, prop) {
-            x := "o__getOwnProperty" (l, prop);		
-	op:		goto [x = $$undefined] nop odesc; 	(* Does the own property exist? *)
-	odesc:	d := nth (x, 0);					(* It does; get the descriptor type *)
-			goto [d = "d"] odd nop;				(* Is the descriptor a data descriptor? *)
-	odd:	xret := nth (x, 2);					(* It is; return the Writable attribute *)
+			gop := [l, "@getOwnProperty"];
+            xret := gop (l, prop) with elab;		
+	op:		goto [xret = $$undefined] nop odesc; 	(* Does the own property exist? *)
+	
+	odesc:	d := nth (xret, 0);						(* It does; get the descriptor type *)
+			goto [d = "d"] odd nop;					(* Is the descriptor a data descriptor? *)
+			
+	odd:	xret := nth (xret, 2);					(* It is; return the Writable attribute *)
 			goto rlab;
-	nop:	e := [l, "@extensible"];			(* Get the extensible property *)
-			x := "o__getProperty" (l, prop);	(* Does the property exist? *)
-			goto [x = $$undefined] ext desc;	(* It doesn't; return extensible *)
-	desc:	d := nth (x, 0);					(* Get the descriptor type *)
-			v := nth (x, 2);					(* Get the writable/setter *)
-			goto [d = "d"] dd ad;				(* Is it a data descriptor? *)
-	dd:		goto [e] wr ext;					(* Yes; is the object extensible? *)
-	wr:		xret := v;							(* Yes; return writable *)
+			
+	nop:	e := [l, "@extensible"];				(* Get the extensible property *)
+			gp := [l, "@getProperty"];
+			xret := gp (l, prop) with elab;			(* Does the property exist? *)
+			goto [xret = $$undefined] ext desc;		(* It doesn't; return extensible *)
+			
+	desc:	d := nth (xret, 0);						(* Get the descriptor type *)
+			v := nth (xret, 2);						(* Get the writable/setter *)
+			goto [d = "d"] dd ad;					(* Is it a data descriptor? *)
+			
+	dd:		goto [e] wr ext;						(* Yes; is the object extensible? *)
+	wr:		xret := v;								(* Yes; return writable *)
 			goto rlab;
-	ad:		xret := not (v = $$undefined); 		(* Accessor descriptor *)
+			
+	ad:		xret := not (v = $$undefined); 			(* Accessor descriptor *)
 			goto rlab;
-	ext:	xret := e;							(* Return extensible *)
-    rlab:   skip
+			
+	ext:	xret := e;								(* Return extensible *)
+	
+    rlab:   skip;
+    elab:	skip
 }
 with
 {
-    ret: xret, rlab;
+    ret: 	xret, rlab;
+    err:	xret, elab;
 };
 
 (* *** *) 
@@ -99,27 +117,33 @@ with
 (* *** *) 
 
 proc o__put (l, prop, value, throw) {
-            x := "o__canPut" (l, prop);
-            goto [x] cp reject;
+			cp := [l, "@canPut"];
+            xret := cp (l, prop) with elab;
+            goto [xret] cp reject;
             
-    cp:     x := "o__getOwnProperty" (l, prop);
-    		dd := "i__isDataDescriptor" (x);
+    cp:     gop := [l, "@getOwnProperty"];
+    		xret := gop (l, prop) with elab;
+    		dd := "i__isDataDescriptor" (xret);
     		goto [dd] dd gp;
+    		
     dd:		desc := {{ "g", $$empty, $$empty, value, $$empty, $$empty, $$empty }};
-    		xerr := "o__defineOwnProperty" (l, prop, desc, throw) with elab;
+    		dop := [l, "@defineOwnProperty"];
+    		xret := dop (l, prop, desc, throw) with elab;
     		goto remp;
     		
-    gp:		x := "o__getProperty" (l, prop);
-    		ad := "i__isAccessorDescriptor" (x);
+    gp:		gp := [l, "@getProperty"];
+    		xret := gp (l, prop) with elab;
+    		ad := "i__isAccessorDescriptor" (xret);
     		goto [ad] ad def;
-    ad:		s := nth (x, 2);
+    		
+    ad:		s := nth (xret, 2);
     		scp := [s, "@scope"];
     		fun := [s, "@body"];
-    		xerr := fun (scp, l, value) with elab;
+    		xret := fun (scp, l, value) with elab;
     		goto remp;
     		
     def:	desc := {{ "g", $$t, $$t, value, $$t, $$empty, $$empty }};
-    		xerr := "o__defineOwnProperty" (l, prop, desc, throw) with elab;
+    		xret := "o__defineOwnProperty" (l, prop, desc, throw) with elab;
 
     remp:   xret := $$empty;
     rlab:   skip;
@@ -131,7 +155,7 @@ proc o__put (l, prop, value, throw) {
 with
 {
     ret: xret, rlab;
-    err: xerr, elab;
+    err: xret, elab;
 };
 
 (* *********** *) 
@@ -139,12 +163,16 @@ with
 (* *********** *) 
 
 proc o__hasProperty (l, prop) {
-			x := "o__getProperty" (l, prop);
-	rlab:	xret := not (x = $$undefined)
+			gp := [l, "@getProperty"];
+			xret := gp (l, prop) with elab;
+			
+	rlab:	xret := not (xret = $$undefined);
+	elab:	skip
 }
 with
 {
-	ret: xret, rlab;
+	ret: 	xret, rlab;
+	err:	xret, elab;
 };
 
 (* ************** *) 
@@ -152,8 +180,9 @@ with
 (* ************** *) 
 
 proc o__deleteProperty (l, prop, throw) {
-			x := "o__getOwnProperty" (l, prop);
-			goto [x = $$undefined] dt cont;
+			gop := [l, "@getOwnProperty"];
+			xret := gop (l, prop) with elab;
+			goto [xret = $$undefined] dt cont;
 			
 	cont:	c := nth (x, 4);
 			goto [c] del reject;
@@ -181,8 +210,8 @@ with
 (* ************ *) 
 
 proc o__defaultValue (l, hint) {
-
 			goto [hint = $$empty] hint init;
+			
 	hint:	hint := "Number";
 			class := [l, "@class"];
 			goto [class = "Date"] hs init;
@@ -192,15 +221,20 @@ proc o__defaultValue (l, hint) {
             goto [hint = "String"] s n;
 
 	main:	goto [pass = 2] throw cc;
+	
     cc:		pass := pass + 1;
-    		xret := "o__get" (l, proc_name) with elab;
+    		g := [l, "@get"];
+    		xret := g (l, proc_name) with elab;
     		goto [xret = $$undefined] next is_c;
+    		
     is_c:	c := "i__isCallable" (xret);
             goto [c] call next;
             scp := [xret, "@scope"];
             fun := [xret, "@body"];
+            
     call:   xret := fun (scp, l) with elab;            
 			goto [is_primitive xret] rlab next;
+			
     next:   goto [proc_name = "toString"] n s;
     rlab:   skip;
 
@@ -226,7 +260,8 @@ proc o__defineOwnProperty (l, prop, desc, throw) {
 	
 			xret := $$t;
 	
-			current := "o__getOwnProperty" (l, prop);
+			gop := [l, "@getOwnProperty"];
+			current := gop (l, prop) with celab;
 			extensible := [l, "@extensible"];
 			
 			goto [(current = $$undefined) and (extensible = $$f)] reject l4;
@@ -282,11 +317,11 @@ proc o__defineOwnProperty (l, prop, desc, throw) {
 	
 	chd:	goto [(dv = nth(current, 1)) and (dw = nth(current, 2)) and
 			      (de = nth(current, 3)) and (dc = nth(current, 4)) and
-			      (dg = $$empty) and (ds = $$empty)] acc_t l7;  
+			      (dg = $$empty) and (ds = $$empty)] acc_t l7;
 			
 	cha:	goto [(dg = nth(current, 1)) and (ds = nth(current, 2)) and
 			      (de = nth(current, 3)) and (dc = nth(current, 4)) and
-			      (dv = $$empty) and (dw = $$empty)] acc_t l7;  
+			      (dv = $$empty) and (dw = $$empty)] acc_t l7;
 	
 	l7:		cvg := nth (current, 1);
 			cws := nth (current, 2);
@@ -346,11 +381,14 @@ proc o__defineOwnProperty (l, prop, desc, throw) {
 	rsd:	rs := nth (current, 2);
 	seta:	[l, prop] := {{ "a", rg, rs, re, rc }};	
 			goto acc_t;
-			
+	
 	acc_t:	xret := $$t;
 			goto rlab;
 	acc_f:	xret := $$f;
 	rlab:	skip;
+	
+	celab:	xerr := current;
+			goto elab;
 	
     reject: goto [throw] tt acc_f;
     tt:     xerr := "TypeError" ();
@@ -1123,7 +1161,7 @@ proc create_default_object (l, pr, cl, ext) {
 			[l, "@extensible"] := ext;
 			
 			[l, "@getOwnProperty"]    := "o__getOwnProperty";
-			[l, "@getProp"]           := "o__getProperty";
+			[l, "@getProperty"]       := "o__getProperty";
 			[l, "@get"]               := "o__get";
 			[l, "@canPut"]            := "o__canPut";
 			[l, "@put"]               := "o__put";
@@ -1247,10 +1285,7 @@ proc main () {
 			xret := "setupInitialHeap" ();
 						
 			xret := "o__put" ($lobj_proto, "test", "oogaBooga");
-			
-			l := new ();
-			l := "Object_construct" ();
-			
+						
 			[$lg, "@proto"] := $lobj_proto;
 			
 			xret := "i__getValue" (v-ref($lg, "test"));
