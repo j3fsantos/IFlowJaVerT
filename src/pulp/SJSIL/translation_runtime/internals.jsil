@@ -31,8 +31,8 @@ proc o__getProperty (l, prop) {
 	next:	proto := [l, "@proto"];
 			goto [proto = $$null] rlab call;
 			
-	call:	gop := [proto, "@getOwnProperty"];
-			xret := gop (proto, prop) with elab;
+	call:	gp := [proto, "@getProperty"];
+			xret := gp (proto, prop) with elab;
 	
     rlab:   skip;
     elab:	skip
@@ -718,11 +718,11 @@ proc i__putValue (v, w) {
 	is_pr:	xret := "i__toObject" (rbase) with elab;
 			l := xret;
     		cp := [l, "@canPut"];
-            xret := cp (l, prop) with elab;
+            xret := cp (l, rfield) with elab;
             goto [xret] cp reject;
             
     cp:     gp := [l, "@getProperty"];
-    		xret := gp (l, prop) with elab;
+    		xret := gp (l, rfield) with elab;
     		dd := "i__isDataDescriptor" (xret);
     		goto [dd] reject is_ad;
     		    		
@@ -732,7 +732,7 @@ proc i__putValue (v, w) {
     ad:		s := nth (xret, 2);
     		scp := [s, "@scope"];
     		fun := [s, "@body"];
-    		xret := fun (scp, rbase, value) with elab;
+    		xret := fun (scp, rbase, w) with elab;
     		goto dflt;
     
     reject: xret := "TypeError" ();
@@ -1332,12 +1332,30 @@ proc setupInitialHeap () {
 			(* Object.prototype *)
 			
 			xret := "create_default_object" ($lobj_proto, $$null, "Object", $$t);
+
+			(* Boolean.prototype *)
+			
+			xret := "create_default_object" ($lbool_proto, $lobj_proto, "Boolean", $$t);
+
+			(* Number.prototype *)
+			
+			xret := "create_default_object" ($lnum_proto, $lobj_proto, "Number", $$t);
 			
 			(* String.prototype *)
 			
 			xret := "create_default_object" ($lstr_proto, $lobj_proto, "String", $$t);
 			
 	rlab:	xret := $$empty
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+proc test_set (scp, l, v)
+{
+			[$lg, "oopsie"] := v;
+	rlab:	xret := $$t
 }
 with
 {
@@ -1352,7 +1370,15 @@ proc main () {
 						
 			[$lg, "@proto"] := $lobj_proto;
 			
+			lfun := new ();
+			[lfun, "@scope"] := $$null;
+			[lfun, "@body"] := "test_set";
+			
+			xret := "o__defineOwnProperty" ($lobj_proto, "test_put", {{ "a", $$undefined, lfun, $$t, $$t, $$t }}, $$f);
+			
 			xret := "i__getValue" (v-ref($lg, "test"));
+			
+			xret := "i__putValue" (v-ref($$t, "test_put"), 2);
 			
 	rlab:	skip;
 	elab:	skip
