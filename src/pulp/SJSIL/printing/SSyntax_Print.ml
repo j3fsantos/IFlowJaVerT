@@ -243,7 +243,9 @@ let rec string_of_bcmd bcmd i line_numbers_on escape_string =
 	(* x := protoField(e1, e2) *)
 	| SProtoField (var, e1, e2) -> Printf.sprintf "%s%s := protoField(%s, %s)" str_i var (se e1) (se e2)
 	(* x := protoObj(e1, e2) *)
-	| SProtoObj (var, e1, e2) -> Printf.sprintf "%s%s := protoObj(%s, %s)" str_i var (se e1) (se e2)		
+	| SProtoObj (var, e1, e2) -> Printf.sprintf "%s%s := protoObj(%s, %s)" str_i var (se e1) (se e2)	
+	(* x := getFields (e1, e2) *)
+	| SGetFields (var, e) -> Printf.sprintf "%s%s := getFields(%s)" str_i var (se e) 	
 
 let rec sexpr_of_cmd sjsil_cmd tabs i line_numbers_on =
 	let sjsil_cmd = match sjsil_cmd with | (_, cmd) -> cmd in
