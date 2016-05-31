@@ -1184,7 +1184,7 @@ proc i__getEnumerableFieldsWithValuesIter (l, prop_list, g) {
 			
 			fh := xret;
 			
-	rcall:	xret := "i__getEnumerableFieldsIter" (l, xt, gop) with elab;
+	rcall:	xret := "i__getEnumerableFieldsWithValuesIter" (l, xt, g) with elab;
 			
 			xret := {{ prop_list , (fh :: nth (xret, 1)) }};
 			
@@ -1370,9 +1370,10 @@ proc Object_defineProperties (xsc, vthis, o, props) {
 			
 			n := 0;
 			len := length (props);
+			dop := [o, "@defineOwnProperty"];
 			
 	loop:	goto [n < len] head end;
-	head:	xret := dop (l, nth (props, n), nth (descs, n), $$t) with elab;
+	head:	xret := dop (o, nth (props, n), nth (descs, n), $$t) with elab;
 			n := n + 1;
 			goto loop;
 
@@ -1407,6 +1408,78 @@ with
 	err:	xerr, elab;
 };
 
+(* *** ISSEALED *** *)
+
+proc Object_isSealed (xsc, vthis, o) {
+			goto [typeOf(o) = $$object_type] start throw;
+			
+	start:	props := "i__getOwnFields" (o);
+			
+			n := 0;
+			len := length (props);
+			gop := [o, "@getOwnProperty"];
+			
+	loop:	goto [n < len] head ext;
+	head:	xret := gop (o, nth (props, n)) with elab;
+			goto [nth (xret, 4) = $$t] r_f next;
+	next:	n := n + 1;
+			goto loop;
+		
+	ext:	xret := [o, "@extensible"];
+			goto [xret] r_f r_t;
+	
+	r_t:	xret := $$t;
+			goto rlab;
+	
+	r_f:	xret := $$f;
+			
+	rlab:	skip;
+			
+	throw:	xret := "TypeError" ();
+	elab: 	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** ISFROZEN *** *)
+
+proc Object_isFrozen (xsc, vthis, o) {
+			goto [typeOf(o) = $$object_type] start throw;
+			
+	start:	props := "i__getOwnFields" (o);
+			
+			n := 0;
+			len := length (props);
+			gop := [o, "@getOwnProperty"];
+			
+	loop:	goto [n < len] head ext;
+	head:	xret := gop (o, nth (props, n)) with elab;
+			goto [nth (xret, 2) = $$t] r_f cf;
+	cf:		goto [nth (xret, 4) = $$t] r_f next;
+	next:	n := n + 1;
+			goto loop;
+		
+	ext:	xret := [o, "@extensible"];
+			goto [xret] r_f r_t;
+	
+	r_t:	xret := $$t;
+			goto rlab;
+	
+	r_f:	xret := $$f;
+			
+	rlab:	skip;
+			
+	throw:	xret := "TypeError" ();
+	elab: 	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
 
 (* *** ISEXTENSIBLE *** *)
 
@@ -1984,9 +2057,21 @@ proc main () {
 			
 			l := "String_construct" ("abc");
 			
-			[l, "value"] := {{ "d", 256, $$t, $$t, $$t }};
-			[l, "writable"] := {{ "d", $$f, $$t, $$f, $$t }};
-			[l, "configurable"] := {{ "d", $$t, $$t, $$f, $$t }};
+			lp := new ();
+			lp := "create_default_object" (lp, $$null, "Object", $$t);
+			
+			lp1 := new ();
+			lp1 := "create_default_object" (lp1, $$null, "Object", $$t);
+			[lp1, "value"] := {{ "d", 21, $$t, $$t, $$t }};
+			[lp1, "writable"] := {{ "d", $$f, $$t, $$t, $$t }};
+			
+			lp2 := new ();
+			lp2 := "create_default_object" (lp2, $$null, "Object", $$t);
+			[lp2, "value"] := {{ "d", 32, $$t, $$t, $$t }};
+			[lp2, "writable"] := {{ "d", $$t, $$t, $$t, $$t }};
+			
+			[lp, "p1"] := {{ "d", lp1, $$t, $$t, $$t }};
+			[lp, "p2"] := {{ "d", lp2, $$t, $$t, $$t }};
 
 			(*
 			
@@ -2010,6 +2095,14 @@ proc main () {
 			
 			xret := "Object_preventExtensions" ($$empty, $$empty, $lg);
 			*)
+			
+			xret := "Object_isSealed" ($$empty, $$empty, l);
+			
+			[l, "test"] := {{ "d", 42, $$f, $$t, $$f }};
+			
+			xret := "Object_preventExtensions" ($$empty, $$empty, l);
+			xret := "Object_isSealed" ($$empty, $$empty, l);
+			xret := "Object_isFrozen" ($$empty, $$empty, l);
 			
 	rlab:	skip;
 	elab:	skip
