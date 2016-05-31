@@ -192,6 +192,7 @@ let evaluate_binop op lit1 lit2 =
 		| Type t1, Type t2 -> (Bool (t1 = t2))
 		| LVRef (l11, l12), LVRef  (l21, l22)
 		| LORef (l11, l12), LORef  (l21, l22) -> (Bool ((l11 = l21) && (l12 = l22)))
+		| LList l1, LList l2 -> (Bool (l1 = l2))
 		| _, _ -> Bool false)
 	| LessThan -> 
 		(match lit1, lit2 with 
@@ -268,8 +269,12 @@ let evaluate_binop op lit1 lit2 =
 		| _, _ -> raise (Failure "Non-string argument to SignedRightShift"))
 	| LCons -> 
 		(match lit2 with
-		| LList list -> LList (lit1 :: list)
-		| _ -> raise (Failure "Non-list second argument to LCons"))	
+		| LList list -> LList 
+			(
+				match lit1 with
+				| LList [] -> list
+				| _ -> lit1 :: list))
+		| _ -> raise (Failure "Non-list second argument to LCons")
 
 let evaluate_type_of lit = 
 	match lit with 
@@ -494,6 +499,23 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 			v
 		| _, _ -> raise (Failure "Illegal Proto Obj Inspection"))
 
+	| SGetFields (x, e) ->
+		let v_e = evaluate_expr e store in
+		(match v_e with
+		| Loc l -> 
+			let obj = (try SHeap.find heap l with
+			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (SSyntax_Print.string_of_literal v_e false)))) in
+			let fields =  
+				SHeap.fold
+				(fun field value acc ->
+					(String field) :: acc
+					) obj [] in
+			let v = LList fields in
+			Hashtbl.replace store x v;
+			Printf.printf "hasField: %s := gf (%s) = %s \n" x (SSyntax_Print.string_of_literal v_e false) (SSyntax_Print.string_of_literal v false);
+			v
+		| _ -> raise (Failure "Passing non-object value to getFields"))
+
 let init_store params args = 
 	let number_of_params = List.length params in 
 	let new_store = Hashtbl.create (number_of_params + 1) in
@@ -568,8 +590,8 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 		let new_store = init_store call_proc.proc_params arg_vals in 
 		match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 with 
 		| Normal, v -> 
-			Printf.printf "Procedure return: %s := %s\n" x (SSyntax_Print.string_of_literal v false);
-			Hashtbl.replace store x v; 
+			Printf.printf "Procedure %s return: %s := %s\n" call_proc_name x (SSyntax_Print.string_of_literal v false);
+			Hashtbl.replace store x v;
 			evaluate_cmd prog cur_proc_name which_pred heap store (cur_cmd + 1) cur_cmd
 		| Error, v -> 
 			(match j with

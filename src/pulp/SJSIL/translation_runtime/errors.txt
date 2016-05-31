@@ -25,7 +25,9 @@ NOTES
 
 * DefineOwnProperty doesn't use SameValue yet!
 
+* GO THROUGH INITIAL HEAP TO UNDERSTAND WHERE TO USE SCOPE AND LTHIS
 
+* Correct error in SCall in the interpreter!
 
 TODO
 ----

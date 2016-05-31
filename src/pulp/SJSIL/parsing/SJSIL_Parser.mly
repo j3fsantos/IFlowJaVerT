@@ -96,6 +96,7 @@ open SSyntax
 %token CDR
 %token ISPRIMITIVE
 %token LENGTH
+%token GETFIELDS
 (* separators *)
 %token EOF
 %token COMMA
@@ -276,6 +277,8 @@ cmd_target:
 			Printf.printf "Parsing ProtoObj.\n";
 			Some (SSyntax.SLBasic (SSyntax.SProtoObj (v, e1, e2)))
 		}
+	| v = VAR; DEFEQ; GETFIELDS; LBRACE; e=expr_target; RBRACE
+		{ Some (SSyntax.SLBasic (SGetFields (v, e))) }
 (* goto i *)
 	| GOTO; i=VAR 
 		{
