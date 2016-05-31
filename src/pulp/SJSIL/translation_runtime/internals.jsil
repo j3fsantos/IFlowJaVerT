@@ -1116,8 +1116,41 @@ with
 };
 
 
+(* *** PREVENTEXTENSIONS *** *)
+
+proc Object_preventExtensions(xsc, vthis, o) {
+			goto [typeOf(o) = $$object_type] start throw;
+	
+	start:	[o, "@extensible"] := $$f;
+			xret := o;
+			
+	rlab: 	skip;
+	 
+	throw:	xerr := "TypeError" ();
+	elab: 	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err:	xerr, elab;
+};
 
 
+(* *** ISEXTENSIBLE *** *)
+proc Object_isExtensible(sxc, vthis, o) {
+			goto [typeOf(o) = $$object_type] start throw;
+			
+	start: 	xret := [o, "@extensible"];
+	rlab:	skip;		
+
+	throw:	xerr := "TypeError" ();
+	elab: 	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err:	xerr, elab;
+};
 
 
 
@@ -1582,10 +1615,17 @@ proc main () {
 			
 			xret := "Object_getOwnPropertyDescriptor" ($$empty, $$empty, $lobj_proto, "toString"); 
 			
-			*)
 			
 			xret := getFields ($lg);
 			xret := "filter_own_props" (xret);
+			
+			xret := "Object_preventExtensions" ($$empty, $$empty, $lg);
+			*)
+			
+			xret := "Object_isExtensible" ($$empty, $$empty, $lg);
+			xret := "Object_preventExtensions" ($$empty, $$empty, $lg);
+			xret := "Object_isExtensible" ($$empty, $$empty, $lg);
+			xret := "Object_isExtensible" ($$empty, $$empty, 2);
 			
 	rlab:	skip;
 	elab:	skip
