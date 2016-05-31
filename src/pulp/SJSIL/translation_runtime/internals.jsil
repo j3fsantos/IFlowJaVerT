@@ -1151,6 +1151,54 @@ with
 	ret:	xret, rlab;
 };
 
+(* *** GETENUMERABLEFIELDSWITHVALUES *** *)
+
+proc i__getEnumerableFieldsWithValues (l) {
+			prop_list := "i__getEnumerableFields" (l);
+			
+			g := [l, "@get"];			
+			xret := "i__getEnumerableFieldsWithValuesIter" (l, prop_list, g) with elab;
+	
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** GETENUMERABLEFIELDSWITHVALUESITER *** *)
+
+proc i__getEnumerableFieldsWithValuesIter (l, prop_list, g) {
+			goto [prop_list = $$nil] nil init;
+			
+	nil:	xret := {{ $$nil, $$nil }};
+			goto rlab;
+	
+	init:	xh := car prop_list;
+			xt := cdr prop_list;
+			
+			xret := g (l, xh) with elab;
+			xret := "i__toPropertyDescriptor" (xret) with elab;
+			
+			fh := xret;
+			
+	rcall:	xret := "i__getEnumerableFieldsIter" (l, xt, gop) with elab;
+			
+			xret := {{ prop_list , (fh :: nth (xret, 1)) }};
+			
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+
+
 (* *** CALL *** *)
 
 proc Object_call (v) {
@@ -1228,10 +1276,121 @@ with
 	err:	xret, rlab;
 };
 
+(* *** GETOWNPROPERTYNAMES *** *)
+
+proc Object_getOwnPropertyNames (xsc, vthis, o) {
+			goto [not (typeOf(o) = $$object_type)] throw start;
+
+	start:	xret := "Array_construct" () with elab;
+			
+			n := 0;
+			l := xret;
+			props := "i__getOwnFields" (o);
+			len := length (props);
+			
+			dop := [xret, "@defineOwnProperty"];
+			
+	loop:	goto [n < len] head end;
+	head:	xret := dop (l, num_to_string n, {{ "d", nth (props, n), $$t, $$t, $$t }}, $$f) with elab;
+			n := n + 1;
+			goto loop;
+
+	end:	xret := l;
+	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** CREATE *** *)
+
+proc Object_create (xsc, vthis, o, props) {
+			goto [(typeOf(o) = $$object_type) or (o = $$null)] main throw;
+			
+	main:	xret := "Object_construct" () with elab;
+			[xret, "@prototype"] := o;
+			
+			goto [props = $$empty] rlab props;
+			
+	props:	xret := "Object_defineProperties" (xret, props) with elab;
+			
+	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** DEFINEPROPERTY *** *)
+
+proc Object_defineProperty (xsc, vthis, o, prop, attr) {
+			goto [typeOf(o) = $$object_type] main throw;
+			
+	main:	xret := "i__toString" (prop) with elab;
+			prop := xret;
+			
+			xret := "i__toPropertyDescriptor" (attr) with elab;
+			
+			dop := [o, "@defineOwnProperty"];
+			xret := dop (o, prop, xret, $$t) with elab;
+	
+	end:	xret := o;
+	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** DEFINEPROPERTIES *** *)
+
+proc Object_defineProperties (xsc, vthis, o, props) {
+			goto [not (typeOf(o) = $$object_type)] throw start;
+
+	start:	xret := "i__toObject" (props) with elab;
+			props := xret;
+			
+			xret := "i__getEnumerableFieldsWithValues" (props) with elab;
+			
+			props := nth (xret, 0);
+			descs := nth (xret, 1);
+			
+			n := 0;
+			len := length (props);
+			
+	loop:	goto [n < len] head end;
+	head:	xret := dop (l, nth (props, n), nth (descs, n), $$t) with elab;
+			n := n + 1;
+			goto loop;
+
+	end:	xret := o;
+	rlab:	skip;
+
+	throw:	xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
 
 (* *** PREVENTEXTENSIONS *** *)
 
-proc Object_preventExtensions(xsc, vthis, o) {
+proc Object_preventExtensions (xsc, vthis, o) {
 			goto [typeOf(o) = $$object_type] start throw;
 	
 	start:	[o, "@extensible"] := $$f;
@@ -1250,7 +1409,8 @@ with
 
 
 (* *** ISEXTENSIBLE *** *)
-proc Object_isExtensible(sxc, vthis, o) {
+
+proc Object_isExtensible (xsc, vthis, o) {
 			goto [typeOf(o) = $$object_type] start throw;
 			
 	start: 	xret := [o, "@extensible"];
@@ -1264,6 +1424,79 @@ with
 	ret: 	xret, rlab;
 	err:	xerr, elab;
 };
+
+(* *** KEYS *** *)
+
+proc Object_keys (xsc, vthis, o) {
+			goto [not (typeOf(o) = $$object_type)] throw start;
+
+	start:	xret := "Array_construct" () with elab;
+			
+			n := 0;
+			l := xret;
+			props := "i__getEnumerableFields" (o);
+			len := length (props);
+			
+			dop := [xret, "@defineOwnProperty"];
+			
+	loop:	goto [n < len] head end;
+	head:	xret := dop (l, num_to_string n, {{ "d", nth (props, n), $$t, $$t, $$t }}, $$f) with elab;
+			n := n + 1;
+			goto loop;
+
+	end:	xret := l;
+	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+
+
+
+(* ***************** *) 
+(* THE ARRAY LIBRARY *)
+(* ***************** *) 
+
+(* *** CALL *** *)
+
+proc Array_call () {
+			xret := "Array_construct" () with elab;
+			
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** CONSTRUCT *** *)
+
+proc Array_construct () {
+
+			xret := new ();
+			xret := "create_default_object" (xret, $larr_proto, "Array", $$t);
+			
+			x := "o__defineOwnProperty" (xret, "length", {{ "d", 0, $$f, $$f, $$f }}, $$t); 
+			
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err:	xret, elab;
+};
+
+
+
 
 
 
@@ -1387,9 +1620,9 @@ with
 
 
 
-(* ******************* *) 
+(* ****************** *) 
 (* THE NUMBER LIBRARY *)
-(* ******************* *) 
+(* ****************** *) 
 
 (* *** CALL *** *)
 
@@ -1585,6 +1818,71 @@ proc setupInitialHeap () {
   			xret := "create_object_with_body" ($lop_hasOwnProperty, "OP_hasOwnProperty", 1);
  			xret := "create_object_with_body" ($lop_isPrototypeOf, "OP_isPrototypeOf", 1);
   			xret := "create_object_with_body" ($lop_propertyIsEnumerable, "OP_propertyIsEnumerable", 1);
+  			
+  			
+  			
+  			(* Array object *)
+    			
+  			xret := "create_object_with_body" ($larr, $$empty, 1);
+  			
+  			[$larr, "prototype"] := {{ "d", $larr_proto, $$f, $$f, $$f }};
+  			[$larr, "isArray"]   := {{ "d", $larr_isArray, $$t, $$f, $$t }};
+			
+			xret := "create_object_with_body" ($larr_isArray, "Array_isArray", 1);
+			
+			(* Array.prototype *)
+			
+			xret := "create_default_object" ($larr_proto, $lobj_proto, "Array", $$t);
+			
+			[$larr_proto, "constructor"]    := {{ "d", $lap_constructor, $$t, $$f, $$t }};
+			[$larr_proto, "toString"]       := {{ "d", $lap_toString, $$t, $$f, $$t }};
+			[$larr_proto, "toLocaleString"] := {{ "d", $lap_toLocaleString, $$t, $$f, $$t }};
+			[$larr_proto, "concat"]         := {{ "d", $lap_concat, $$t, $$f, $$t }};
+			[$larr_proto, "join"]           := {{ "d", $lap_join, $$t, $$f, $$t }};
+			[$larr_proto, "pop"]            := {{ "d", $lap_pop, $$t, $$f, $$t }};
+			[$larr_proto, "push"]           := {{ "d", $lap_push, $$t, $$f, $$t }};
+			[$larr_proto, "reverse"]        := {{ "d", $lap_reverse, $$t, $$f, $$t }};
+			[$larr_proto, "shift"]          := {{ "d", $lap_shift, $$t, $$f, $$t }};
+			[$larr_proto, "slice"]          := {{ "d", $lap_slice, $$t, $$f, $$t }};
+			[$larr_proto, "sort"]           := {{ "d", $lap_sort, $$t, $$f, $$t }};
+			[$larr_proto, "splice"]         := {{ "d", $lap_splice, $$t, $$f, $$t }};
+			[$larr_proto, "unshift"]        := {{ "d", $lap_unshift, $$t, $$f, $$t }};
+			[$larr_proto, "indexOf"]        := {{ "d", $lap_indexOf, $$t, $$f, $$t }};
+			[$larr_proto, "lastIndexOf"]    := {{ "d", $lap_lastIndexOf, $$t, $$f, $$t }};
+			[$larr_proto, "every"]          := {{ "d", $lap_every, $$t, $$f, $$t }};
+			[$larr_proto, "some"]           := {{ "d", $lap_some, $$t, $$f, $$t }};
+			[$larr_proto, "forEach"]        := {{ "d", $lap_forEach, $$t, $$f, $$t }};
+			[$larr_proto, "map"]            := {{ "d", $lap_map, $$t, $$f, $$t }};
+			[$larr_proto, "filter"]         := {{ "d", $lap_filter, $$t, $$f, $$t }};
+			[$larr_proto, "reduce"]         := {{ "d", $lap_reduce, $$t, $$f, $$t }};
+			[$larr_proto, "reduceRight"]    := {{ "d", $lap_reduceRight, $$t, $$f, $$t }};
+			
+			xret := "create_object_with_body" ($lop_constructor, "Array_construct", 1);
+			
+			xret := "create_object_with_body" ($lap_constructor, "Array_construct", 1);
+			xret := "create_object_with_body" ($lap_toString, "AP_toString", 1);
+			xret := "create_object_with_body" ($lap_toLocaleString, "AP_toLocaleString", 1);
+			xret := "create_object_with_body" ($lap_concat, "AP_concat", 1);
+			xret := "create_object_with_body" ($lap_join, "AP_join", 1);
+			xret := "create_object_with_body" ($lap_pop, "AP_pop", 1);
+			xret := "create_object_with_body" ($lap_push, "AP_push", 1);
+			xret := "create_object_with_body" ($lap_reverse, "AP_reverse", 1);
+			xret := "create_object_with_body" ($lap_shift, "AP_shift", 1);
+			xret := "create_object_with_body" ($lap_slice, "AP_slice", 1);
+			xret := "create_object_with_body" ($lap_sort, "AP_sort", 1);
+			xret := "create_object_with_body" ($lap_splice, "AP_splice", 1);
+			xret := "create_object_with_body" ($lap_unshift, "AP_unshift", 1);
+			xret := "create_object_with_body" ($lap_indexOf, "AP_indexOf", 1);
+			xret := "create_object_with_body" ($lap_lastIndexOf, "AP_lastIndexOf", 1);
+			xret := "create_object_with_body" ($lap_every, "AP_every", 1);
+			xret := "create_object_with_body" ($lap_some, "AP_some", 1);
+			xret := "create_object_with_body" ($lap_forEach, "AP_forEach", 1);
+			xret := "create_object_with_body" ($lap_map, "AP_map", 1);
+			xret := "create_object_with_body" ($lap_filter, "AP_filter", 1);
+			xret := "create_object_with_body" ($lap_reduce, "AP_reduce", 1);
+			xret := "create_object_with_body" ($lap_reduceRight, "AP_reduceRight", 1);
+
+
 
 			(* Boolean object *)
 			
@@ -1599,6 +1897,8 @@ proc setupInitialHeap () {
 			[$lbool_proto, "constructor"] := {{ "d", $lbp_constructor, $$t, $$f, $$t }};
 			[$lbool_proto, "toString"]    := {{ "d", $lbp_toString, $$t, $$f, $$t }};
 			[$lbool_proto, "valueOf"]     := {{ "d", $lbp_valueOf, $$t, $$f, $$t }};
+			
+			
 			
 			(* Number object *)
 			
@@ -1622,6 +1922,8 @@ proc setupInitialHeap () {
 			[$lnum_proto, "toFixed"]              := {{ "d", $lnp_toFixed, $$t, $$f, $$t }};
 			[$lnum_proto, "toExponential"]        := {{ "d", $lnp_toExponential, $$t, $$f, $$t }};
 			[$lnum_proto, "toPrecision"]          := {{ "d", $lnp_toPrecision, $$t, $$f, $$t }};
+			
+			
 			
 			(* String object *)
 			
@@ -1680,7 +1982,11 @@ proc main () {
 
 			xret := "setupInitialHeap" ();
 			
-			l := "String_construct" ("oogaBooga");
+			l := "String_construct" ("abc");
+			
+			[l, "value"] := {{ "d", 256, $$t, $$t, $$t }};
+			[l, "writable"] := {{ "d", $$f, $$t, $$f, $$t }};
+			[l, "configurable"] := {{ "d", $$t, $$t, $$f, $$t }};
 
 			(*
 			
@@ -1700,16 +2006,10 @@ proc main () {
 			
 			xret := "Object_getOwnPropertyDescriptor" ($$empty, $$empty, $lobj_proto, "toString"); 
 			
-			
 			xret := "i__getEnumerableFields" (l);
 			
 			xret := "Object_preventExtensions" ($$empty, $$empty, $lg);
 			*)
-			
-			xret := "Object_isExtensible" ($$empty, $$empty, $lg);
-			xret := "Object_preventExtensions" ($$empty, $$empty, $lg);
-			xret := "Object_isExtensible" ($$empty, $$empty, $lg);
-			xret := "Object_isExtensible" ($$empty, $$empty, 2);
 			
 	rlab:	skip;
 	elab:	skip

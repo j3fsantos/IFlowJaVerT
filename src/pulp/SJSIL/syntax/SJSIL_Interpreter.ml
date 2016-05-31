@@ -156,8 +156,9 @@ let evaluate_unop op lit =
 		| _ -> raise (Failure "Non-list argument to Cdr"))
 	| Length ->
 		(match lit with
+		| LList l -> Num (float_of_int (List.length l))
 		| String s -> Num (float_of_int (String.length s))
-		| _ -> raise (Failure "Non-string argument to Length"))
+		| _ -> raise (Failure "Non-string and non-list argument to Length"))
 	| IsPrimitive ->
 		(match lit with
 		| Null

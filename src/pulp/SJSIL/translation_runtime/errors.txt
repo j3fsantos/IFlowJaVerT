@@ -29,6 +29,10 @@ NOTES
 
 * Correct error in SCall in the interpreter!
 
+* Match lengths in all!
+
+* DO ARRAY DEFINEOWNPROP
+
 TODO
 ----
 
