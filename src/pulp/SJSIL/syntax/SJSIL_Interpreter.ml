@@ -590,8 +590,8 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 		let new_store = init_store call_proc.proc_params arg_vals in 
 		match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 with 
 		| Normal, v -> 
-			Printf.printf "Procedure return: %s := %s\n" x (SSyntax_Print.string_of_literal v false);
-			Hashtbl.replace store x v; 
+			Printf.printf "Procedure %s return: %s := %s\n" call_proc_name x (SSyntax_Print.string_of_literal v false);
+			Hashtbl.replace store x v;
 			evaluate_cmd prog cur_proc_name which_pred heap store (cur_cmd + 1) cur_cmd
 		| Error, v -> 
 			(match j with

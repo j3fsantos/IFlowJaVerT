@@ -57,9 +57,9 @@ proc o__get (l, prop) {
 			goto [d = "d"] rlab acc;				(* Is it a data descriptor? *)
 			
 	acc:	goto [xret = $$undefined] rlab get;		(* Is the getter defined? *)
-	get:	scp := [xret, "@scope"];				(* Get the scope of the getter *)
+	get:	xsc := [xret, "@scope"];				(* Get the scope of the getter *)
 			fun := [xret, "@body"];					(* Get the name of the getter *)
-			xret := fun (scp, l) with elab;			(* Call the getter, errors could happen *)
+			xret := fun (xsc, l) with elab;			(* Call the getter, errors could happen *)
 			
 	rlab:	skip;
 	elab:	skip
@@ -137,9 +137,9 @@ proc o__put (l, prop, value, throw) {
     		goto [ad] ad def;
     		
     ad:		s := nth (xret, 2);
-    		scp := [s, "@scope"];
+    		xsc := [s, "@scope"];
     		fun := [s, "@body"];
-    		xret := fun (scp, l, value) with elab;
+    		xret := fun (xsc, l, value) with elab;
     		goto remp;
     		
     def:	desc := {{ "g", $$t, $$t, value, $$t, $$empty, $$empty }};
@@ -229,10 +229,10 @@ proc o__defaultValue (l, hint) {
     		
     is_c:	c := "i__isCallable" (xret);
             goto [c] call next;
-            scp := [xret, "@scope"];
+            xsc := [xret, "@scope"];
             fun := [xret, "@body"];
             
-    call:   xret := fun (scp, l) with elab;            
+    call:   xret := fun (xsc, l) with elab;            
 			goto [is_primitive xret] rlab next;
 			
     next:   goto [proc_name = "toString"] n s;
@@ -730,9 +730,9 @@ proc i__putValue (v, w) {
     		goto [ad] ad reject;
     		
     ad:		s := nth (xret, 2);
-    		scp := [s, "@scope"];
+    		xsc := [s, "@scope"];
     		fun := [s, "@body"];
-    		xret := fun (scp, rbase, w) with elab;
+    		xret := fun (xsc, rbase, w) with elab;
     		goto dflt;
     
     reject: xret := "TypeError" ();
@@ -987,6 +987,7 @@ with
 
 
 
+
 (* ***************** *) 
 (* THE GLOBAL OBJECT *)
 (* ***************** *) 
@@ -1008,7 +1009,7 @@ proc Object_isNan (xsc, vthis, v) {
 with 
 {
 	ret:	xret, rlab;
-	err:	xerr, rlab;
+	err:	xret, rlab;
 };
 
 
@@ -1029,7 +1030,7 @@ proc Object_isFinite (xsc, vthis, v) {
 with 
 {
 	ret:	xret, rlab;
-	err:	xerr, rlab;
+	err:	xret, rlab;
 };
 
 
@@ -1037,6 +1038,118 @@ with
 (* ****************** *) 
 (* THE OBJECT LIBRARY *)
 (* ****************** *) 
+
+(* *** GETFIELDS *** *)
+
+proc i__getFields (l) {
+			xret := getFields (l);
+			
+			class := [l, "@class"];
+			goto [class = "String"] add rlab;
+
+	add:	str := [l, "@primitiveValue"];
+			len := length (str);
+			
+			n := len - 1;
+			
+			gop := [l, "@getOwnProperty"];
+						
+	loop:	goto [n < 0] rlab head;
+	head:	sn := num_to_string n;
+			xret := sn :: xret;
+			n := n - 1;
+			goto loop;
+			
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+(* *** GETOWNFIELDS *** *)
+
+proc i__getOwnFields (l) {
+			prop_list := "i__getFields" (l);
+			xret := "i__getOwnFieldsIter" (prop_list);
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+(* *** GETOWNFIELDSITER *** *)
+
+proc i__getOwnFieldsIter (prop_list) {
+			goto [prop_list = $$nil] nil init;
+			
+	nil:	xret := $$nil;
+			goto rlab;	
+	
+	init:	xh := car prop_list;
+			xt := cdr prop_list;
+			
+			goto [nth (xh, 0) = "@"] no yes;
+	
+	no:		fh := $$nil;
+			goto rcall;	
+			
+	yes:	fh := xh;
+			
+	rcall:	ft := "i__getOwnFieldsIter" (xt);
+			
+			xret := fh :: ft;
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+(* *** GETENUMERABLEFIELDS *** *)
+
+proc i__getEnumerableFields (l) {
+			prop_list := "i__getOwnFields" (l);
+			
+			gop := [l, "@getOwnProperty"];			
+			xret := "i__getEnumerableFieldsIter" (l, prop_list, gop);
+	
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+(* *** GETENUMERABLEFIELDSITER *** *)
+
+proc i__getEnumerableFieldsIter (l, prop_list, gop) {
+			goto [prop_list = $$nil] nil init;
+			
+	nil:	xret := $$nil;
+			goto rlab;	
+	
+	init:	xh := car prop_list;
+			xt := cdr prop_list;
+			
+			prop := gop (l, xh);
+			goto [nth (prop, 3) = $$t] yes no;
+	
+	no:		fh := $$nil;
+			goto rcall;	
+			
+	yes:	fh := xh;
+			
+	rcall:	ft := "i__getEnumerableFieldsIter" (l, xt, gop);
+			
+			xret := fh :: ft;
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};
 
 (* *** CALL *** *)
 
@@ -1365,17 +1478,14 @@ with
 	ret:	xret, rlab;
 };
 
-proc create_object_with_construct_call (l, proc_construct, proc_call, len) {
+proc create_object_with_body (l, proc_body, len) {
 			
 			xret := "create_default_object" (l, $lfun_proto, "Function", $$t);
 			
 			[xret, "length"] := {{ "d", len, $$f, $$f, $$f }};
-			
-			goto [proc_construct = $$empty] icall constr;
-	constr: [xret, "@construct"] := proc_construct;
-	
-	icall:	goto [proc_call = $$empty] rlab call;
-	call:	[xret, "@call"] := proc_call;
+
+	ibody:	goto [proc_body = $$empty] rlab body;
+	body:	[xret, "@body"] := proc_body;
 
 	rlab:	xret := l
 }
@@ -1421,12 +1531,12 @@ proc setupInitialHeap () {
   			[$lg, "URIError"]           := {{ "d", $lerr_u, $$t, $$f, $$t }};
   			[$lg, "JSON"]               := {{ "d", $ljson, $$t, $$f, $$t }};
   			
-  			xret := "create_object_with_construct_call" ($lg_isNan, $$empty, "Object_isNan", 1);
-  			xret := "create_object_with_construct_call" ($lg_isFinite, $$empty, "Object_isFinite", 1);
+  			xret := "create_object_with_body" ($lg_isNan, "Object_isNan", 1);
+  			xret := "create_object_with_body" ($lg_isFinite, "Object_isFinite", 1);
   			
   			(* Object object *)
     			
-  			xret := "create_object_with_construct_call" ($lobj, "Object_construct", "Object_call", 1);
+  			xret := "create_object_with_body" ($lobj, $$empty, 1);
   			
   			[$lobj, "prototype"]                := {{ "d", $lobj_proto, $$f, $$f, $$f }};
 			[$lobj, "getPrototypeOf"]           := {{ "d", $lobj_getPrototypeOf, $$t, $$f, $$t }};
@@ -1443,18 +1553,18 @@ proc setupInitialHeap () {
 			[$lobj, "isExtensible"]             := {{ "d", $lobj_isExtensible, $$t, $$f, $$t }};
 			[$lobj, "keys"]                     := {{ "d", $lobj_keys, $$t, $$f, $$t }};
 			
-			xret := "create_object_with_construct_call" ($lobj_getPrototypeOf, $$empty, "Object_getPrototypeOf", 1);
-  			xret := "create_object_with_construct_call" ($lobj_getOwnPropertyNames, $$empty, "Object_getOwnPropertyNames", 1);
-			xret := "create_object_with_construct_call" ($lobj_create, $$empty, "Object_create", 1);
-  			xret := "create_object_with_construct_call" ($lobj_defineProperty, $$empty, "Object_defineProperty", 1);
- 			xret := "create_object_with_construct_call" ($lobj_defineProperties, $$empty, "Object_defineProperty", 1);
-  			xret := "create_object_with_construct_call" ($lobj_seal, $$empty, "Object_seal", 1);
- 			xret := "create_object_with_construct_call" ($lobj_freeze, $$empty, "Object_freeze", 1);
-  			xret := "create_object_with_construct_call" ($lobj_preventExtensions, $$empty, "Object_preventExtensions", 1);
-  			xret := "create_object_with_construct_call" ($lobj_isSealed, $$empty, "Object_isSealed", 1);
- 			xret := "create_object_with_construct_call" ($lobj_isFrozen, $$empty, "Object_isFrozen", 1);
-  			xret := "create_object_with_construct_call" ($lobj_isExtensible, $$empty, "Object_isExtensible", 1);
-  			xret := "create_object_with_construct_call" ($lobj_keys, $$empty, "Object_keys", 1);
+			xret := "create_object_with_body" ($lobj_getPrototypeOf, "Object_getPrototypeOf", 1);
+  			xret := "create_object_with_body" ($lobj_getOwnPropertyNames, "Object_getOwnPropertyNames", 1);
+			xret := "create_object_with_body" ($lobj_create, "Object_create", 1);
+  			xret := "create_object_with_body" ($lobj_defineProperty, "Object_defineProperty", 1);
+ 			xret := "create_object_with_body" ($lobj_defineProperties, "Object_defineProperty", 1);
+  			xret := "create_object_with_body" ($lobj_seal, "Object_seal", 1);
+ 			xret := "create_object_with_body" ($lobj_freeze, "Object_freeze", 1);
+  			xret := "create_object_with_body" ($lobj_preventExtensions, "Object_preventExtensions", 1);
+  			xret := "create_object_with_body" ($lobj_isSealed, "Object_isSealed", 1);
+ 			xret := "create_object_with_body" ($lobj_isFrozen, "Object_isFrozen", 1);
+  			xret := "create_object_with_body" ($lobj_isExtensible, "Object_isExtensible", 1);
+  			xret := "create_object_with_body" ($lobj_keys, "Object_keys", 1);
 			
 			(* Object.prototype *)
 			
@@ -1468,16 +1578,17 @@ proc setupInitialHeap () {
 			[$lobj_proto, "isPrototypeOf"]        := {{ "d", $lop_isPrototypeOf, $$t, $$f, $$t }};
 			[$lobj_proto, "propertyIsEnumerable"] := {{ "d", $lop_propertyIsEnumerable, $$t, $$f, $$t }};
 
-			xret := "create_object_with_construct_call" ($lop_toString, $$empty, "OP_toString", 1);
-  			xret := "create_object_with_construct_call" ($lop_toLocaleString, $$empty, "OP_toLocaleString", 1);
-			xret := "create_object_with_construct_call" ($lop_valueOf, $$empty, "OP_valueOf", 1);
-  			xret := "create_object_with_construct_call" ($lop_hasOwnProperty, $$empty, "OP_hasOwnProperty", 1);
- 			xret := "create_object_with_construct_call" ($lop_isPrototypeOf, $$empty, "OP_isPrototypeOf", 1);
-  			xret := "create_object_with_construct_call" ($lop_propertyIsEnumerable, $$empty, "OP_propertyIsEnumerable", 1);
+			xret := "create_object_with_body" ($lop_constructor, "Object_construct", 1);
+			xret := "create_object_with_body" ($lop_toString, "OP_toString", 0);
+  			xret := "create_object_with_body" ($lop_toLocaleString, "OP_toLocaleString", 0);
+			xret := "create_object_with_body" ($lop_valueOf, "OP_valueOf", 0);
+  			xret := "create_object_with_body" ($lop_hasOwnProperty, "OP_hasOwnProperty", 1);
+ 			xret := "create_object_with_body" ($lop_isPrototypeOf, "OP_isPrototypeOf", 1);
+  			xret := "create_object_with_body" ($lop_propertyIsEnumerable, "OP_propertyIsEnumerable", 1);
 
 			(* Boolean object *)
 			
-			xret := "create_object_with_construct_call" ($lbool, "Boolean_construct", "Boolean_call", 1);
+			xret := "create_object_with_body" ($lbool, $$empty, 1);
 			
 			[$lbool, "prototype"] := {{ "d", $lbool_proto, $$f, $$f, $$f }};
 
@@ -1491,7 +1602,7 @@ proc setupInitialHeap () {
 			
 			(* Number object *)
 			
-			xret := "create_object_with_construct_call" ($lnum, "Number_construct", "Number_call", 1);
+			xret := "create_object_with_body" ($lnum, $$empty, 1);
 
 			[$lnum, "prototype"]         := {{ "d", $lnum_proto, $$f, $$f, $$f }};
 			[$lnum, "MAX_VALUE"]         := {{ "d", 0, $$f, $$f, $$f }};
@@ -1514,7 +1625,7 @@ proc setupInitialHeap () {
 			
 			(* String object *)
 			
-			xret := "create_object_with_construct_call" ($lstr, "String_construct", "String_call", 1);
+			xret := "create_object_with_body" ($lstr, $$empty, 1);
 			
 			[$lstr, "prototype"]    := {{ "d", $lstr_proto, $$f, $$f, $$f }};
 			[$lstr, "fromCharCode"] := {{ "d", $lstr_fromCharCode, $$t, $$f, $$t }};
@@ -1551,31 +1662,7 @@ with
 	ret:	xret, rlab;
 };
 
-proc filter_own_props (prop_list) {
-			goto [prop_list = $$nil] nil init;
-			
-	nil:	xret := $$nil;
-			goto rlab;	
-	
-	init:	xh := car prop_list;
-			xt := cdr prop_list;
-			
-			goto [nth (xh, 0) = "@"] no yes;
-	
-	no:		fh := $$nil;
-			goto rcall;	
-			
-	yes:	fh := xh;
-			
-	rcall:	ft := "filter_own_props" (xt);
-			
-			xret := fh :: ft;
-	rlab:	skip
-}
-with
-{
-	ret:	xret, rlab;
-};
+
 
 
 
@@ -1593,15 +1680,13 @@ proc main () {
 
 			xret := "setupInitialHeap" ();
 			
+			l := "String_construct" ("oogaBooga");
+
 			(*
 			
 			xret := "o__put" ($lobj_proto, "test", "oogaBooga");
 						
 			[$lg, "@proto"] := $lobj_proto;
-			
-			lfun := new ();
-			[lfun, "@scope"] := $$null;
-			[lfun, "@body"] := "test_set";
 			
 			xret := "o__defineOwnProperty" ($lobj_proto, "test_put", {{ "a", $$undefined, lfun, $$t, $$t, $$t }}, $$f);
 			
@@ -1616,8 +1701,7 @@ proc main () {
 			xret := "Object_getOwnPropertyDescriptor" ($$empty, $$empty, $lobj_proto, "toString"); 
 			
 			
-			xret := getFields ($lg);
-			xret := "filter_own_props" (xret);
+			xret := "i__getEnumerableFields" (l);
 			
 			xret := "Object_preventExtensions" ($$empty, $$empty, $lg);
 			*)
