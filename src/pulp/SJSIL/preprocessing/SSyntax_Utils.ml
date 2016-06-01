@@ -167,6 +167,7 @@ let prog_of_lprog lprog =
 		(fun proc_name lproc -> 
 			let proc = desugar_labs lproc in 
 			(* Removing dead code and recalculating everything *)
+			let proc = SSyntax_Utils_Graphs.remove_unreachable_code proc false in
 			let proc = SSyntax_Utils_Graphs.remove_unreachable_code proc true in
 			
 			let succ_table, pred_table = SSyntax_Utils_Graphs.get_succ_pred proc.proc_body proc.ret_label proc.error_label in 
