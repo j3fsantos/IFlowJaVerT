@@ -1408,6 +1408,39 @@ with
 	err:	xerr, elab;
 };
 
+(* *** SEAL *** *)
+
+proc Object_seal (xsc, vthis, o) {
+			goto [typeOf(o) = $$object_type] start throw;
+			
+	start:	props := "i__getOwnFields" (o);
+			
+			n := 0;
+			len := length (props);
+			gop := [o, "@getOwnProperty"];
+			dop := [o, "@defineOwnProperty"];
+			
+	loop:	goto [n < len] head ext;
+	head:	xret := gop (o, nth (props, n)) with elab;
+			goto [nth (xret, 4) = $$t] dop next;
+	dop:	xret := dop (o, nth (props, n), {{ nth (xret, 0), nth (xret, 1), nth (xret, 2), nth (xret, 3), $$f }}, $$t) with elab;
+	next:	n := n + 1;
+			goto loop;
+		
+	ext:	[o, "@extensible"] := $$f;
+			xret := o;
+
+	rlab:	skip;
+			
+	throw:	xret := "TypeError" ();
+	elab: 	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
 (* *** ISSEALED *** *)
 
 proc Object_isSealed (xsc, vthis, o) {
@@ -1432,6 +1465,42 @@ proc Object_isSealed (xsc, vthis, o) {
 			goto rlab;
 	
 	r_f:	xret := $$f;
+			
+	rlab:	skip;
+			
+	throw:	xret := "TypeError" ();
+	elab: 	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** FREEZE *** *)
+
+proc Object_freeze (xsc, vthis, o) {
+			goto [typeOf(o) = $$object_type] start throw;
+			
+	start:	props := "i__getOwnFields" (o);
+			
+			n := 0;
+			len := length (props);
+			gop := [o, "@getOwnProperty"];
+			dop := [o, "@defineOwnProperty"];
+			
+	loop:	goto [n < len] head ext;
+	head:	xret := gop (o, nth (props, n)) with elab;
+			ws := nth (xret, 2);
+			goto [ws = $$t] set_w cf;
+	set_w:	ws := $$f;
+	cf:		goto [nth (xret, 4) = $$t] dop next;
+	dop:	xret := dop (o, nth (props, n), {{ nth (xret, 0), nth (xret, 1), ws, nth (xret, 3), $$f }}, $$t) with elab;
+	next:	n := n + 1;
+			goto loop;
+		
+	ext:	[o, "@extensible"] := $$f;
+			xret := o;
 			
 	rlab:	skip;
 			
@@ -1665,7 +1734,7 @@ proc Boolean_call (v) {
 }
 with
 {
-	ret: xret, rlab;
+	ret: 	xret, rlab;
 };
 
 (* *** CONSTRUCT *** *)
@@ -1682,14 +1751,56 @@ proc Boolean_construct (v) {
 }
 with
 {
-	ret: xret, rlab;
+	ret: 	xret, rlab;
 };
 
+(* *** TOSTRING *** *)
 
+proc BP_toString (xsc, vthis) {
+			goto [typeOf(vthis) = $$boolean_type] isb notb;
+	
+	isb:	xret := vthis;
+			goto rlab;
+			
+	notb:	goto [typeOf(vthis) = $$object_type] class throw;
+	class:	c := [vthis, "@class"];
+			goto [c = "Boolean"] b throw;
+	b:		xret := [vthis, "@primitiveValue"];
 
+	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
+	elab: 	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
 
+(* *** VALUEOF *** *)
 
+proc BP_valueOf (xsc, vthis) {
+			goto [typeOf(vthis) = $$boolean_type] isb notb;
+	
+	isb:	xret := vthis;
+			goto rlab;
+			
+	notb:	goto [typeOf(vthis) = $$object_type] class throw;
+	class:	c := [vthis, "@class"];
+			goto [c = "Boolean"] b throw;
+	b:		xret := [vthis, "@primitiveValue"];
 
+	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
+	elab: 	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
 
 
 
@@ -1735,12 +1846,275 @@ with
 };
 
 
+(* **************** *) 
+(* THE MATH LIBRARY *)
+(* **************** *) 
 
+(* *** ABS *** *)
 
+proc M_abs (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+			
+			xret := m_abs (xret);
 
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
 
+(* *** ACOS *** *)
 
+proc M_acos (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+			
+			xret := m_acos (xret);
 
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** ASIN *** *)
+
+proc M_asin (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+			
+			xret := m_asin (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** ATAN *** *)
+
+proc M_atan (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+			
+			xret := m_atan (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** CEIL *** *)
+
+proc M_ceil (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+			
+			xret := m_ceil (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** COS *** *)
+
+proc M_cos (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+			
+			xret := m_cos (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** EXP *** *)
+
+proc M_exp (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+			
+			xret := m_exp (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** FLOOR *** *)
+
+proc M_floor (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+			
+			xret := m_floor (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** LOG *** *)
+
+proc M_log (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+			
+			xret := m_log (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** ROUND *** *)
+
+proc M_round (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+			
+			xret := m_round (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** SIN *** *)
+
+proc M_sin (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+			
+			xret := m_sin (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** SQRT *** *)
+
+proc M_sqrt (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+			
+			xret := m_sqrt (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** TAN *** *)
+
+proc M_tan (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+			
+			xret := m_tan (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** ATAN2 *** *)
+
+proc M_atan2 (xsc, vthis, x, y) {
+			xret := "i__toNumber" (x) with elab;
+			x := xret;
+			
+			xret := "i__toNumber" (y) with elab;
+			y := xret;
+			
+			xret := x m_atan2 y;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** POW *** *)
+
+proc M_pow (xsc, vthis, x, y) {
+			xret := "i__toNumber" (x) with elab;
+			x := xret;
+			
+			xret := "i__toNumber" (y) with elab;
+			y := xret;
+			
+			xret := x ** y;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** RANDOM *** *)
+
+proc M_random (xsc, vthis) {
+			
+			xret := m_random (x, y);
+
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+(* TODO TODO TODO TODO 
+			xret := "create_object_with_body" ($lmath_max, "M_max", 2);	
+			xret := "create_object_with_body" ($lmath_min, "M_min", 2);
+*)
 
 
 
@@ -1782,6 +2156,40 @@ proc create_default_object (l, pr, cl, ext) {
 with
 {
 	ret:	xret, rlab;
+};
+
+proc copy_object (l, fields) {
+			xret := new ();
+			
+			n := 0;
+			len := length (fields);	
+			
+	loop:	goto [n < len] head rlab;
+	head:	val := [l, nth (fields, n)];
+			[xret, nth (fields, n)] := val;
+			n := n + 1;
+			goto loop;
+	
+	rlab:	skip	
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+proc create_function_object (xsc, body, params) {
+			len := length (params);
+			xret := new ();
+			xret := "create_object_with_body" (xret, body, len);
+			
+			[xret, "@scope"] := xsc;
+			[xret, "@formalParameters"] := params;
+			
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab; 
 };
 
 proc create_object_with_body (l, proc_body, len) {
@@ -1837,8 +2245,15 @@ proc setupInitialHeap () {
   			[$lg, "URIError"]           := {{ "d", $lerr_u, $$t, $$f, $$t }};
   			[$lg, "JSON"]               := {{ "d", $ljson, $$t, $$f, $$t }};
   			
+  			xret := "create_object_with_body" ($lg_eval, "Object_eval", 1);
+  			xret := "create_object_with_body" ($lg_parseInt, "Object_parseInt", 2);
+  			xret := "create_object_with_body" ($lg_parseFloat, "Object_parseFloat", 1);
   			xret := "create_object_with_body" ($lg_isNan, "Object_isNan", 1);
   			xret := "create_object_with_body" ($lg_isFinite, "Object_isFinite", 1);
+  			xret := "create_object_with_body" ($lg_decodeURI, "Object_decodeURI", 1);
+  			xret := "create_object_with_body" ($lg_decodeURIComponent, "Object_decodeURIComponent", 1);
+  			xret := "create_object_with_body" ($lg_encodeURI, "Object_encodeURI", 1);
+  			xret := "create_object_with_body" ($lg_encodeURIComponent, "Object_encodeURIComponent", 1);
   			
   			(* Object object *)
     			
@@ -1860,10 +2275,10 @@ proc setupInitialHeap () {
 			[$lobj, "keys"]                     := {{ "d", $lobj_keys, $$t, $$f, $$t }};
 			
 			xret := "create_object_with_body" ($lobj_getPrototypeOf, "Object_getPrototypeOf", 1);
-  			xret := "create_object_with_body" ($lobj_getOwnPropertyNames, "Object_getOwnPropertyNames", 1);
+  			xret := "create_object_with_body" ($lobj_getOwnPropertyNames, "Object_getOwnPropertyNames", 2);
 			xret := "create_object_with_body" ($lobj_create, "Object_create", 1);
-  			xret := "create_object_with_body" ($lobj_defineProperty, "Object_defineProperty", 1);
- 			xret := "create_object_with_body" ($lobj_defineProperties, "Object_defineProperty", 1);
+  			xret := "create_object_with_body" ($lobj_defineProperty, "Object_defineProperty", 3);
+ 			xret := "create_object_with_body" ($lobj_defineProperties, "Object_defineProperty", 2);
   			xret := "create_object_with_body" ($lobj_seal, "Object_seal", 1);
  			xret := "create_object_with_body" ($lobj_freeze, "Object_freeze", 1);
   			xret := "create_object_with_body" ($lobj_preventExtensions, "Object_preventExtensions", 1);
@@ -1930,20 +2345,18 @@ proc setupInitialHeap () {
 			[$larr_proto, "reduce"]         := {{ "d", $lap_reduce, $$t, $$f, $$t }};
 			[$larr_proto, "reduceRight"]    := {{ "d", $lap_reduceRight, $$t, $$f, $$t }};
 			
-			xret := "create_object_with_body" ($lop_constructor, "Array_construct", 1);
-			
 			xret := "create_object_with_body" ($lap_constructor, "Array_construct", 1);
-			xret := "create_object_with_body" ($lap_toString, "AP_toString", 1);
-			xret := "create_object_with_body" ($lap_toLocaleString, "AP_toLocaleString", 1);
+			xret := "create_object_with_body" ($lap_toString, "AP_toString", 0);
+			xret := "create_object_with_body" ($lap_toLocaleString, "AP_toLocaleString", 0);
 			xret := "create_object_with_body" ($lap_concat, "AP_concat", 1);
 			xret := "create_object_with_body" ($lap_join, "AP_join", 1);
-			xret := "create_object_with_body" ($lap_pop, "AP_pop", 1);
+			xret := "create_object_with_body" ($lap_pop, "AP_pop", 0);
 			xret := "create_object_with_body" ($lap_push, "AP_push", 1);
-			xret := "create_object_with_body" ($lap_reverse, "AP_reverse", 1);
-			xret := "create_object_with_body" ($lap_shift, "AP_shift", 1);
-			xret := "create_object_with_body" ($lap_slice, "AP_slice", 1);
+			xret := "create_object_with_body" ($lap_reverse, "AP_reverse", 0);
+			xret := "create_object_with_body" ($lap_shift, "AP_shift", 0);
+			xret := "create_object_with_body" ($lap_slice, "AP_slice", 2);
 			xret := "create_object_with_body" ($lap_sort, "AP_sort", 1);
-			xret := "create_object_with_body" ($lap_splice, "AP_splice", 1);
+			xret := "create_object_with_body" ($lap_splice, "AP_splice", 2);
 			xret := "create_object_with_body" ($lap_unshift, "AP_unshift", 1);
 			xret := "create_object_with_body" ($lap_indexOf, "AP_indexOf", 1);
 			xret := "create_object_with_body" ($lap_lastIndexOf, "AP_lastIndexOf", 1);
@@ -1956,54 +2369,14 @@ proc setupInitialHeap () {
 			xret := "create_object_with_body" ($lap_reduceRight, "AP_reduceRight", 1);
 
 
-
-			(* Boolean object *)
-			
-			xret := "create_object_with_body" ($lbool, $$empty, 1);
-			
-			[$lbool, "prototype"] := {{ "d", $lbool_proto, $$f, $$f, $$f }};
-
-			(* Boolean.prototype *)
-			
-			xret := "create_default_object" ($lbool_proto, $lobj_proto, "Boolean", $$t);
-			
-			[$lbool_proto, "constructor"] := {{ "d", $lbp_constructor, $$t, $$f, $$t }};
-			[$lbool_proto, "toString"]    := {{ "d", $lbp_toString, $$t, $$f, $$t }};
-			[$lbool_proto, "valueOf"]     := {{ "d", $lbp_valueOf, $$t, $$f, $$t }};
-			
-			
-			
-			(* Number object *)
-			
-			xret := "create_object_with_body" ($lnum, $$empty, 1);
-
-			[$lnum, "prototype"]         := {{ "d", $lnum_proto, $$f, $$f, $$f }};
-			[$lnum, "MAX_VALUE"]         := {{ "d", 0, $$f, $$f, $$f }};
-			[$lnum, "MIN_VALUE"]         := {{ "d", 0, $$f, $$f, $$f }};
-			[$lnum, "NaN"]               := {{ "d", nan, $$f, $$f, $$f }};
-			[$lnum, "POSITIVE_INFINITY"] := {{ "d", inf, $$f, $$f, $$f }};
-			[$lnum, "NEGATIVE_INFINITY"] := {{ "d", -inf, $$f, $$f, $$f }};
-			
-			(* Number.prototype *)
-			
-			xret := "create_default_object" ($lnum_proto, $lobj_proto, "Number", $$t);
-			
-			[$lnum_proto, "constructor"]          := {{ "d", $lnp_constructor, $$t, $$f, $$t }};
-			[$lnum_proto, "toString"]             := {{ "d", $lnp_toString, $$t, $$f, $$t }};
-			[$lnum_proto, "toLocaleString"]       := {{ "d", $lnp_toLocaleString, $$t, $$f, $$t }};
-			[$lnum_proto, "valueOf"]              := {{ "d", $lnp_valueOf, $$t, $$f, $$t }};
-			[$lnum_proto, "toFixed"]              := {{ "d", $lnp_toFixed, $$t, $$f, $$t }};
-			[$lnum_proto, "toExponential"]        := {{ "d", $lnp_toExponential, $$t, $$f, $$t }};
-			[$lnum_proto, "toPrecision"]          := {{ "d", $lnp_toPrecision, $$t, $$f, $$t }};
-			
-			
-			
 			(* String object *)
 			
 			xret := "create_object_with_body" ($lstr, $$empty, 1);
 			
 			[$lstr, "prototype"]    := {{ "d", $lstr_proto, $$f, $$f, $$f }};
 			[$lstr, "fromCharCode"] := {{ "d", $lstr_fromCharCode, $$t, $$f, $$t }};
+			
+			xret := "create_object_with_body" ($lstr_fromCharCode, "String_fromCharCode", 1);
 			
 			(* String.prototype *)
 			
@@ -2030,16 +2403,127 @@ proc setupInitialHeap () {
 			[$lstr_proto, "toLocaleUpperCase"] := {{ "d", $lsp_toLocaleUpperCase, $$t, $$f, $$t }};
 			[$lstr_proto, "trim"]              := {{ "d", $lsp_trim, $$t, $$f, $$t }};
 			
+			xret := "create_object_with_body" ($lsp_toString, "SP_toString", 0);
+			xret := "create_object_with_body" ($lsp_valueOf, "SP_valueOf", 0);
+			xret := "create_object_with_body" ($lsp_charAt, "SP_charAt", 1);
+			xret := "create_object_with_body" ($lsp_charCodeAt, "SP_charCodeAt", 1);
+			xret := "create_object_with_body" ($lsp_concat, "SP_concat", 1);
+			xret := "create_object_with_body" ($lsp_indexOf, "SP_indexOf", 1);
+			xret := "create_object_with_body" ($lsp_lastIndexOf, "SP_lastIndexOf", 1);
+			xret := "create_object_with_body" ($lsp_localeCompare, "SP_localeCompare", 1);
+			xret := "create_object_with_body" ($lsp_match, "SP_match", 1);
+			xret := "create_object_with_body" ($lsp_replace, "SP_replace", 2);
+			xret := "create_object_with_body" ($lsp_search, "SP_search", 1);
+			xret := "create_object_with_body" ($lsp_slice, "SP_slice", 2);
+			xret := "create_object_with_body" ($lsp_split, "SP_split", 2);
+			xret := "create_object_with_body" ($lsp_substring, "SP_substring", 2);
+			xret := "create_object_with_body" ($lsp_toLowerCase, "SP_toLowerCase", 0);
+			xret := "create_object_with_body" ($lso_toLocaleLowerCase, "lso_toLocaleLowerCase", 0);
+			xret := "create_object_with_body" ($lsp_toUpperCase, "SP_toUpperCase", 0);
+			xret := "create_object_with_body" ($lsp_toLocaleUpperCase, "SP_toLocaleUpperCase", 0);
+			xret := "create_object_with_body" ($lsp_trim, "SP_trim", 0);		
+			
+			
+			
+			(* Boolean object *)
+			
+			xret := "create_object_with_body" ($lbool, $$empty, 1);
+			
+			[$lbool, "prototype"] := {{ "d", $lbool_proto, $$f, $$f, $$f }};
+
+			(* Boolean.prototype *)
+			
+			xret := "create_default_object" ($lbool_proto, $lobj_proto, "Boolean", $$t);
+			
+			[$lbool_proto, "constructor"] := {{ "d", $lbp_constructor, $$t, $$f, $$t }};
+			[$lbool_proto, "toString"]    := {{ "d", $lbp_toString, $$t, $$f, $$t }};
+			[$lbool_proto, "valueOf"]     := {{ "d", $lbp_valueOf, $$t, $$f, $$t }};
+			
+			xret := "create_object_with_body" ($lbp_constructor, "Boolean_construct", 1);
+			xret := "create_object_with_body" ($lbp_toString, "BP_toString", 0);
+			xret := "create_object_with_body" ($lbp_valueOf, "BP_valueOf", 0);		
+			
+			(* Number object *)
+			
+			xret := "create_object_with_body" ($lnum, $$empty, 1);
+
+			[$lnum, "prototype"]         := {{ "d", $lnum_proto, $$f, $$f, $$f }};
+			[$lnum, "MAX_VALUE"]         := {{ "d", $$max_float, $$f, $$f, $$f }};
+			[$lnum, "MIN_VALUE"]         := {{ "d", $$min_float, $$f, $$f, $$f }};
+			[$lnum, "NaN"]               := {{ "d", nan, $$f, $$f, $$f }};
+			[$lnum, "POSITIVE_INFINITY"] := {{ "d", inf, $$f, $$f, $$f }};
+			[$lnum, "NEGATIVE_INFINITY"] := {{ "d", -inf, $$f, $$f, $$f }};
+			
+			(* Number.prototype *)
+			
+			xret := "create_default_object" ($lnum_proto, $lobj_proto, "Number", $$t);
+			
+			[$lnum_proto, "constructor"]          := {{ "d", $lnp_constructor, $$t, $$f, $$t }};
+			[$lnum_proto, "toString"]             := {{ "d", $lnp_toString, $$t, $$f, $$t }};
+			[$lnum_proto, "toLocaleString"]       := {{ "d", $lnp_toLocaleString, $$t, $$f, $$t }};
+			[$lnum_proto, "valueOf"]              := {{ "d", $lnp_valueOf, $$t, $$f, $$t }};
+			[$lnum_proto, "toFixed"]              := {{ "d", $lnp_toFixed, $$t, $$f, $$t }};
+			[$lnum_proto, "toExponential"]        := {{ "d", $lnp_toExponential, $$t, $$f, $$t }};
+			[$lnum_proto, "toPrecision"]          := {{ "d", $lnp_toPrecision, $$t, $$f, $$t }};
+			
+			xret := "create_object_with_body" ($lnp_constructor, "Number_construct", 1);
+			xret := "create_object_with_body" ($lnp_toString, "Number_toString", 0);
+			xret := "create_object_with_body" ($lnp_toLocaleString, "Number_toLocaleString", 0);	
+			xret := "create_object_with_body" ($lnp_valueOf, "Number_valueOf", 0);
+			xret := "create_object_with_body" ($lnp_toFixed, "Number_toFixed", 1);
+			xret := "create_object_with_body" ($lnp_toExponential, "Number_toExponential", 1);
+			xret := "create_object_with_body" ($lnp_toPrecision, "Number_toPrecision", 1);
+			
+			
+			
+			(* Math object *)
+			
+			xret := "create_default_object" ($lmath, $lobj_proto, "Math", $$t);
+			
+			[$lmath, "abs"]    := {{ "d", $lmath_abs, $$f, $$f, $$f }};
+			[$lmath, "acos"]   := {{ "d", $lmath_acos, $$f, $$f, $$f }};
+			[$lmath, "asin"]   := {{ "d", $lmath_asin, $$f, $$f, $$f }};
+			[$lmath, "atan"]   := {{ "d", $lmath_atan, $$f, $$f, $$f }};
+			[$lmath, "atan2"]  := {{ "d", $lmath_atan2, $$f, $$f, $$f }};
+			[$lmath, "ceil"]   := {{ "d", $lmath_ceil, $$f, $$f, $$f }};
+			[$lmath, "cos"]    := {{ "d", $lmath_cos, $$f, $$f, $$f }};
+			[$lmath, "exp"]    := {{ "d", $lmath_exp, $$f, $$f, $$f }};
+			[$lmath, "floor"]  := {{ "d", $lmath_floor, $$f, $$f, $$f }};
+			[$lmath, "log"]    := {{ "d", $lmath_log, $$f, $$f, $$f }};
+			[$lmath, "max"]    := {{ "d", $lmath_max, $$f, $$f, $$f }};
+			[$lmath, "min"]    := {{ "d", $lmath_min, $$f, $$f, $$f }};
+			[$lmath, "pow"]    := {{ "d", $lmath_pow, $$f, $$f, $$f }};
+			[$lmath, "random"] := {{ "d", $lmath_random, $$f, $$f, $$f }};
+			[$lmath, "round"]  := {{ "d", $lmath_round, $$f, $$f, $$f }};
+			[$lmath, "sin"]    := {{ "d", $lmath_sin, $$f, $$f, $$f }};
+			[$lmath, "sqrt"]   := {{ "d", $lmath_sqrt, $$f, $$f, $$f }};
+			[$lmath, "tan"]    := {{ "d", $lmath_tan, $$f, $$f, $$f }};
+			
+			xret := "create_object_with_body" ($lmath_abs, "M_abs", 1);
+			xret := "create_object_with_body" ($lmath_acos, "M_acos", 1);
+			xret := "create_object_with_body" ($lmath_asin, "M_asin", 1);	
+			xret := "create_object_with_body" ($lmath_atan, "M_atan", 1);
+			xret := "create_object_with_body" ($lmath_atan2, "M_atan2", 2);
+			xret := "create_object_with_body" ($lmath_ceil, "M_ceil", 1);
+			xret := "create_object_with_body" ($lmath_cos, "M_cos", 1);
+			xret := "create_object_with_body" ($lmath_exp, "M_exp", 1);
+			xret := "create_object_with_body" ($lmath_floor, "M_floor", 1);
+			xret := "create_object_with_body" ($lmath_log, "M_log", 1);
+			xret := "create_object_with_body" ($lmath_max, "M_max", 2);	
+			xret := "create_object_with_body" ($lmath_min, "M_min", 2);
+			xret := "create_object_with_body" ($lmath_pow, "M_pow", 2);
+			xret := "create_object_with_body" ($lmath_random, "M_random", 0);
+			xret := "create_object_with_body" ($lmath_round, "M_round", 1);
+			xret := "create_object_with_body" ($lmath_sin, "M_sin", 1);
+			xret := "create_object_with_body" ($lmath_sqrt, "M_sqrt", 1);	
+			xret := "create_object_with_body" ($lmath_tan, "M_tan", 1);
+
 	rlab:	xret := $$empty
 }
 with
 {
 	ret:	xret, rlab;
 };
-
-
-
-
 
 proc test_set (scp, l, v)
 {
@@ -2054,55 +2538,9 @@ with
 proc main () {
 
 			xret := "setupInitialHeap" ();
-			
-			l := "String_construct" ("abc");
-			
-			lp := new ();
-			lp := "create_default_object" (lp, $$null, "Object", $$t);
-			
-			lp1 := new ();
-			lp1 := "create_default_object" (lp1, $$null, "Object", $$t);
-			[lp1, "value"] := {{ "d", 21, $$t, $$t, $$t }};
-			[lp1, "writable"] := {{ "d", $$f, $$t, $$t, $$t }};
-			
-			lp2 := new ();
-			lp2 := "create_default_object" (lp2, $$null, "Object", $$t);
-			[lp2, "value"] := {{ "d", 32, $$t, $$t, $$t }};
-			[lp2, "writable"] := {{ "d", $$t, $$t, $$t, $$t }};
-			
-			[lp, "p1"] := {{ "d", lp1, $$t, $$t, $$t }};
-			[lp, "p2"] := {{ "d", lp2, $$t, $$t, $$t }};
 
-			(*
-			
-			xret := "o__put" ($lobj_proto, "test", "oogaBooga");
-						
-			[$lg, "@proto"] := $lobj_proto;
-			
-			xret := "o__defineOwnProperty" ($lobj_proto, "test_put", {{ "a", $$undefined, lfun, $$t, $$t, $$t }}, $$f);
-			
-			xret := "i__getValue" (v-ref($lg, "test"));
-			
-			xret := "i__putValue" (v-ref($$t, "test_put"), 2);
-			
-			xret := "i__getValue" (o-ref($lnum, "POSITIVE_INFINITY"));
-			
-			xret := "Object_isFinite" (3 - inf);
-			
-			xret := "Object_getOwnPropertyDescriptor" ($$empty, $$empty, $lobj_proto, "toString"); 
-			
-			xret := "i__getEnumerableFields" (l);
-			
-			xret := "Object_preventExtensions" ($$empty, $$empty, $lg);
-			*)
-			
-			xret := "Object_isSealed" ($$empty, $$empty, l);
-			
-			[l, "test"] := {{ "d", 42, $$f, $$t, $$f }};
-			
-			xret := "Object_preventExtensions" ($$empty, $$empty, l);
-			xret := "Object_isSealed" ($$empty, $$empty, l);
-			xret := "Object_isFrozen" ($$empty, $$empty, l);
+			xret := "M_atan2" ($$empty, $$empty, -1.2345, -2.3456);	
+			xret := "M_pow"   ($$empty, $$empty, -1.2345, -2.3456);
 			
 	rlab:	skip;
 	elab:	skip

@@ -84,6 +84,8 @@ open SSyntax
 %token UNSIGNEDRIGHTSHIFT
 %token LCONS
 %token LNTH
+%token M_ATAN2
+%token M_POW
 (* unary operators *)
 %token NOT
 %token TOSTRING
@@ -98,6 +100,23 @@ open SSyntax
 %token ISPRIMITIVE
 %token LENGTH
 %token GETFIELDS
+%token M_ABS 
+%token M_ACOS 
+%token M_ASIN 
+%token M_ATAN 
+%token M_CEIL
+%token M_COS 
+%token M_EXP 
+%token M_FLOOR 
+%token M_LOG 
+%token M_ROUND 
+%token M_SIN 
+%token M_SQRT 
+%token M_TAN 
+(* constants *)
+%token MIN_FLOAT
+%token MAX_FLOAT
+%token RANDOM
 (* separators *)
 %token EOF
 %token COMMA
@@ -506,6 +525,9 @@ lit_target:
 	(* EMPTY AND NON-EMPTY LISTS *)
 	| LNIL { SSyntax.LList [] }
 	| LISTOPEN; LISTCLOSE { SSyntax.LList [] }
+	| MIN_FLOAT { SSyntax.Constant Min_float }
+	| MAX_FLOAT { SSyntax.Constant Max_float }
+	| RANDOM { SSyntax.Constant Random }
 ;
 
 binop_target: 
@@ -528,6 +550,8 @@ binop_target:
 	| SIGNEDRIGHTSHIFT { SSyntax.SignedRightShift }
 	| UNSIGNEDRIGHTSHIFT { SSyntax.UnsignedRightShift }
 	| LCONS { SSyntax.LCons }
+	| M_ATAN2 { SSyntax.M_atan2 }
+	| M_POW {SSyntax.M_pow }
 ;
 
 unop_target: 
@@ -544,6 +568,19 @@ unop_target:
 	| CDR { SSyntax.Cdr }
 	| ISPRIMITIVE { SSyntax.IsPrimitive }
 	| LENGTH { SSyntax.Length }
+	| M_ABS   { SSyntax.M_abs }
+	| M_ACOS  { SSyntax.M_acos }
+	| M_ASIN  { SSyntax.M_asin }
+	| M_ATAN  { SSyntax.M_atan }
+	| M_CEIL  { SSyntax.M_ceil }
+	| M_COS   { SSyntax.M_cos }
+	| M_EXP   { SSyntax.M_exp }
+	| M_FLOOR { SSyntax.M_floor }
+	| M_LOG   { SSyntax.M_log }
+	| M_ROUND { SSyntax.M_round }
+	| M_SIN   { SSyntax.M_sin }
+	| M_SQRT  { SSyntax.M_sqrt }
+	| M_TAN   { SSyntax.M_tan }
 ;
 
 call_with_target: 
