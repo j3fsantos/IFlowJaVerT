@@ -1,0 +1,40 @@
+(* ****************** *) 
+(* THE NUMBER LIBRARY *)
+(* ****************** *) 
+
+(* *** CALL *** *)
+
+proc Number_call (v) {
+			goto [v = $$empty] zero rlab;
+	zero:	v := 0;
+			
+	rlab:	xret := "i__toNumber" (v) with elab;
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
+};
+
+(* *** CONSTRUCT *** *)
+
+proc Number_construct (v) {
+			goto [v = $$empty] zero init;
+	zero:	v := 0;
+			
+	init:	pv := "i__toNumber" (v) with elab;
+			
+			xret := new ();
+			xret := "create_default_object" (xret, $lnum_proto, "Number", $$t);
+			
+			[xret, "@primitiveValue"] := pv;
+						
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: pv, elab;
+}

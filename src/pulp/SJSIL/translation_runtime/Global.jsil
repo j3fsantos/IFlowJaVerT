@@ -1,0 +1,44 @@
+(* ***************** *) 
+(* THE GLOBAL OBJECT *)
+(* ***************** *) 
+
+(* *** ISNAN *** *)
+
+proc Object_isNan (xsc, vthis, v) {
+			xret := "i__toNumber" (v) with elab;
+			goto [not (xret = xret)] r_t r_f;
+			
+	r_t:	xret := $$t;
+			goto rlab;
+			
+	r_f:	xret := $$f;
+			
+	rlab:	skip;
+	elab:	skip
+} 
+with 
+{
+	ret:	xret, rlab;
+	err:	xret, rlab;
+};
+
+
+(* *** ISFINITE *** *)
+
+proc Object_isFinite (xsc, vthis, v) {
+			xret := "i__toNumber" (v) with elab;
+			goto [(not (xret = xret)) or (xret = inf) or (xret = -inf)] r_f r_t;
+			
+	r_t:	xret := $$t;
+			goto rlab;
+			
+	r_f:	xret := $$f;
+			
+	rlab:	skip;
+	elab:	skip
+} 
+with 
+{
+	ret:	xret, rlab;
+	err:	xret, rlab;
+}

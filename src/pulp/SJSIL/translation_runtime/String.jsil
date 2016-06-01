@@ -1,0 +1,70 @@
+(* ****************** *) 
+(* THE STRING LIBRARY *)
+(* ****************** *) 
+
+(* *** GETOWNPROPERTY *** *)
+
+proc s__getOwnProperty (l, prop) {
+			xret := "o__getOwnProperty" (l, prop);
+			goto [xret = $$undefined] str rlab;
+			
+	str:	idx := num_to_int (string_to_num prop);
+			sidx := num_to_string (idx);
+	
+			goto [sidx = prop] index rlab;
+	
+	index:	str := [l, "@primitiveValue"];
+			len := "o__get" (l, "length");
+			goto [len <= idx] rlab return;
+			
+	return: rstr := nth (str, idx);
+			xret := {{ "d", rstr, $$f, $$t, $$f }};
+	
+	rlab: 	skip
+}
+with
+{
+	ret: xret, rlab;
+};
+
+(* *** CALL *** *)
+
+proc String_call (s) {
+			goto [s = $$empty] empty to_str;
+	
+	empty:	xret := "";
+			goto rlab;
+	
+	to_str:	xret := "i__toString" (s);
+			
+	rlab:	skip
+}
+with
+{
+	ret: xret, rlab;
+};
+
+(* *** CONSTRUCT *** *)
+
+proc String_construct (s) {
+			goto [s = $$empty] empty to_str;
+	empty:	pv := ""; 
+			goto norm;
+	to_str:	pv := "i__toString" (s) with elab;
+
+	norm:	xret := new ();
+			xret := "create_default_object" (xret, $lstr_proto, "String", $$t);
+			
+			[xret, "@getOwnProperty"] := "s__getOwnProperty";
+			[xret, "@primitiveValue"] := pv;
+			
+			x := "o__defineOwnProperty" (xret, "length", {{ "d", (length pv), $$f, $$f, $$f }}, $$t); 
+			
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
+}
