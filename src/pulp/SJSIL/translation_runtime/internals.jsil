@@ -1408,6 +1408,39 @@ with
 	err:	xerr, elab;
 };
 
+(* *** SEAL *** *)
+
+proc Object_seal (xsc, vthis, o) {
+			goto [typeOf(o) = $$object_type] start throw;
+			
+	start:	props := "i__getOwnFields" (o);
+			
+			n := 0;
+			len := length (props);
+			gop := [o, "@getOwnProperty"];
+			dop := [o, "@defineOwnProperty"];
+			
+	loop:	goto [n < len] head ext;
+	head:	xret := gop (o, nth (props, n)) with elab;
+			goto [nth (xret, 4) = $$t] dop next;
+	dop:	xret := dop (o, nth (props, n), {{ nth (xret, 0), nth (xret, 1), nth (xret, 2), nth (xret, 3), $$f }}, $$t) with elab;
+	next:	n := n + 1;
+			goto loop;
+		
+	ext:	[o, "@extensible"] := $$f;
+			xret := o;
+
+	rlab:	skip;
+			
+	throw:	xret := "TypeError" ();
+	elab: 	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
 (* *** ISSEALED *** *)
 
 proc Object_isSealed (xsc, vthis, o) {
@@ -1432,6 +1465,42 @@ proc Object_isSealed (xsc, vthis, o) {
 			goto rlab;
 	
 	r_f:	xret := $$f;
+			
+	rlab:	skip;
+			
+	throw:	xret := "TypeError" ();
+	elab: 	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** FREEZE *** *)
+
+proc Object_freeze (xsc, vthis, o) {
+			goto [typeOf(o) = $$object_type] start throw;
+			
+	start:	props := "i__getOwnFields" (o);
+			
+			n := 0;
+			len := length (props);
+			gop := [o, "@getOwnProperty"];
+			dop := [o, "@defineOwnProperty"];
+			
+	loop:	goto [n < len] head ext;
+	head:	xret := gop (o, nth (props, n)) with elab;
+			ws := nth (xret, 2);
+			goto [ws = $$t] set_w cf;
+	set_w:	ws := $$f;
+	cf:		goto [nth (xret, 4) = $$t] dop next;
+	dop:	xret := dop (o, nth (props, n), {{ nth (xret, 0), nth (xret, 1), ws, nth (xret, 3), $$f }}, $$t) with elab;
+	next:	n := n + 1;
+			goto loop;
+		
+	ext:	[o, "@extensible"] := $$f;
+			xret := o;
 			
 	rlab:	skip;
 			
@@ -2098,11 +2167,10 @@ proc main () {
 			
 			xret := "Object_isSealed" ($$empty, $$empty, l);
 			
-			[l, "test"] := {{ "d", 42, $$f, $$t, $$f }};
+			[l, "test"] := {{ "d", 42, $$f, $$t, $$t }};
 			
-			xret := "Object_preventExtensions" ($$empty, $$empty, l);
-			xret := "Object_isSealed" ($$empty, $$empty, l);
-			xret := "Object_isFrozen" ($$empty, $$empty, l);
+			xret := "Object_freeze" ($$empty, $$empty, l);
+
 			
 	rlab:	skip;
 	elab:	skip
