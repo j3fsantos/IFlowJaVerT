@@ -3,6 +3,7 @@ open SSyntax
 %}
 
 (* procedures *) 
+%token IMPORT
 %token PROC
 %token RET
 %token ERR
@@ -143,7 +144,7 @@ open SSyntax
 %token LISTOPEN
 %token LISTCLOSE
 
-%type <(SSyntax.lprocedure list)> prog_target
+%type <(string list option * SSyntax.lprocedure list)> prog_target
 %type <(SSyntax.jsil_spec list)>  specs_target
 %type <((SSyntax.jsil_logic_assertion option * string option * SSyntax.jsil_lab_cmd) list)> cmd_list_top_target
 
@@ -156,8 +157,11 @@ open SSyntax
 (********* JSIL *********)
 
 prog_target: 
-	proc_list_target EOF	{ $1 }
+	imports=option(import_target); proc_list=proc_list_target EOF	{ imports, proc_list }
 ;
+
+import_target: 
+  IMPORT; imports=separated_list(COMMA, VAR); SCOLON { imports } 
 
 proc_list_target: 
 	proc_list = separated_list(SCOLON, proc_target) { proc_list };

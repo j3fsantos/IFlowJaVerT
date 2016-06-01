@@ -40,6 +40,7 @@ rule read = parse
   | "nan"                { SJSIL_Parser.NAN }
 	| "inf"                { SJSIL_Parser.INFINITY }
 (* procedure keywords *)
+	| "import"     				 { SJSIL_Parser.IMPORT }
 	| "proc"     					 { SJSIL_Parser.PROC }
 	| "ret"                { SJSIL_Parser.RET }
 	| "err"                { SJSIL_Parser.ERR }

@@ -229,6 +229,7 @@ type procedure = {
 		let hash = Hashtbl.hash
 	end)
 
+
 (* SJSIL Heaps *)
  module SHeap = Hashtbl.Make(
 	struct
@@ -256,6 +257,14 @@ type jsil_lab_cmd =
 	| SLCall        of jsil_var  * jsil_expr  * jsil_expr list * string option
 
 (* SJSIL procedures with string labels *)
+ module SLProgram = Hashtbl.Make(
+	struct
+		type t = string  
+		let equal = (=)
+		let hash = Hashtbl.hash
+	end)
+
+
 type lprocedure = { 
     lproc_name : string;
     lproc_body : ((jsil_logic_assertion option * string option * jsil_lab_cmd) array);
@@ -266,3 +275,5 @@ type lprocedure = {
 		lerror_var: (jsil_var option);
 		lspec: jsil_spec option;
 }
+
+type jsil_lprog = (string list option) * (lprocedure SProgram.t) 
