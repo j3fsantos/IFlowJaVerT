@@ -1734,7 +1734,7 @@ proc Boolean_call (v) {
 }
 with
 {
-	ret: xret, rlab;
+	ret: 	xret, rlab;
 };
 
 (* *** CONSTRUCT *** *)
@@ -1751,14 +1751,56 @@ proc Boolean_construct (v) {
 }
 with
 {
-	ret: xret, rlab;
+	ret: 	xret, rlab;
 };
 
+(* *** TOSTRING *** *)
 
+proc BP_toString (xsc, vthis) {
+			goto [typeOf(vthis) = $$boolean_type] isb notb;
+	
+	isb:	xret := vthis;
+			goto rlab;
+			
+	notb:	goto [typeOf(vthis) = $$object_type] class throw;
+	class:	c := [vthis, "@class"];
+			goto [c = "Boolean"] b throw;
+	b:		xret := [vthis, "@primitiveValue"];
 
+	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
+	elab: 	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
 
+(* *** VALUEOF *** *)
 
+proc BP_valueOf (xsc, vthis) {
+			goto [typeOf(vthis) = $$boolean_type] isb notb;
+	
+	isb:	xret := vthis;
+			goto rlab;
+			
+	notb:	goto [typeOf(vthis) = $$object_type] class throw;
+	class:	c := [vthis, "@class"];
+			goto [c = "Boolean"] b throw;
+	b:		xret := [vthis, "@primitiveValue"];
 
+	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
+	elab: 	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
 
 
 
@@ -2040,7 +2082,9 @@ proc setupInitialHeap () {
 			[$lbool_proto, "toString"]    := {{ "d", $lbp_toString, $$t, $$f, $$t }};
 			[$lbool_proto, "valueOf"]     := {{ "d", $lbp_valueOf, $$t, $$f, $$t }};
 			
-			
+			xret := "create_object_with_body" ($lbp_constructor, "Boolean_construct", 1);
+			xret := "create_object_with_body" ($lbp_toString, "BP_toString", 1);
+			xret := "create_object_with_body" ($lbp_valueOf, "BP_valueOf", 1);		
 			
 			(* Number object *)
 			
