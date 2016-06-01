@@ -167,6 +167,82 @@ let evaluate_unop op lit =
 		| Num _
 		| String _ -> (Bool true)
 		| _ -> Bool false)
+
+	| M_abs ->
+		(match lit with
+		| Num n -> Num (abs_float n)
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+
+	| M_acos ->
+		(match lit with
+		| Num n -> Num (acos n)
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+
+	| M_asin ->
+		(match lit with
+		| Num n -> Num (asin n)
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+
+	| M_atan ->
+		(match lit with
+		| Num n -> Num (atan n)
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+
+	| M_ceil ->
+		(match lit with
+		| Num n -> Num (ceil n)
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+
+	| M_cos ->
+		(match lit with
+		| Num n -> Num (cos n)
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+		
+	| M_exp ->
+		(match lit with
+		| Num n -> Num (exp n)
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+		
+	| M_floor ->
+		(match lit with
+		| Num n -> Num (floor n)
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+		
+	| M_log ->
+		(match lit with
+		| Num n -> Num (log n)
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+	
+	| M_round ->
+		(match lit with
+		| Num n -> Num (let sign = copysign 1.0 n in
+										if ((sign < 0.0) && (n >= -0.5))
+										then (-0.0)
+										else (floor (n +. 0.5))
+									 )
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+
+	| M_sin ->
+		(match lit with
+		| Num n -> Num (sin n)
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+
+	| M_sqrt ->
+		(match lit with
+		| Num n -> Num (sqrt n)
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+ 
+	| M_tan ->
+		(match lit with
+		| Num n -> Num (tan n)
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+	
+(*
+			xret := "create_object_with_body" ($lmath_atan2, "M_atan2", 2);
+			xret := "create_object_with_body" ($lmath_max, "M_max", 2);	
+			xret := "create_object_with_body" ($lmath_min, "M_min", 2);
+			xret := "create_object_with_body" ($lmath_pow, "M_pow", 2);
+*)
 	
 let same_value_num n1 n2 = 
 	let cfn1 = classify_float n1 in
@@ -274,8 +350,17 @@ let evaluate_binop op lit1 lit2 =
 			(
 				match lit1 with
 				| LList [] -> list
-				| _ -> lit1 :: list))
-		| _ -> raise (Failure "Non-list second argument to LCons")
+				| _ -> lit1 :: list)
+		| _ -> raise (Failure "Non-list second argument to LCons"))
+	| M_atan2 ->
+		(match lit1, lit2 with
+		| Num x, Num y -> Num (atan2 x y)
+		| _, _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s %s instead of numbers." (SSyntax_Print.string_of_literal lit1 false) (SSyntax_Print.string_of_literal lit2 false))))
+	| M_pow ->
+		(match lit1, lit2 with
+		| Num x, Num y -> Num (x ** y)
+		| _, _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s %s instead of numbers." (SSyntax_Print.string_of_literal lit1 false) (SSyntax_Print.string_of_literal lit2 false))))
+	
 
 let evaluate_type_of lit = 
 	match lit with 
@@ -293,7 +378,14 @@ let evaluate_type_of lit =
 							
 let rec evaluate_expr (e : jsil_expr) store = 
 	match e with 
-	| Literal l -> l 
+	| Literal l -> 
+		(match l with
+		| Constant c ->
+			(match c with
+			| Min_float -> Num (min_float)
+			| Max_float -> Num (max_float)
+			| Random -> Num (Random.float (1.0 -. epsilon_float)))
+		| x -> x) 
 	| Var x -> 
 		(match SSyntax_Aux.try_find store x with 
 		| None -> 
@@ -601,6 +693,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 			            evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd)
 		 		
 let evaluate_prog prog which_pred heap = 
+	Random.self_init();
 	let store = init_store [] [] in 
 	evaluate_cmd prog "main" which_pred heap store 0 0
 

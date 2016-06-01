@@ -41,6 +41,8 @@ let string_of_binop bop = match bop with
   | SignedRightShift -> ">>"
   | UnsignedRightShift -> ">>>"
 	| LCons -> "::"
+	| M_atan2 -> "m_atan2"
+	| M_pow -> "**"
 
 let string_of_unop uop = match uop with 
   | Not -> "not"
@@ -56,6 +58,19 @@ let string_of_unop uop = match uop with
 	| Cdr -> "cdr"
 	| IsPrimitive -> "is_primitive"
 	| Length -> "length"
+	| M_abs -> "m_abs"              
+	| M_acos -> "m_acos"         
+	| M_asin -> "m_asin"       
+	| M_atan -> "m_atan"     
+	| M_ceil -> "m_ceil"             
+	| M_cos -> "m_cos"       
+	| M_exp -> "m_exp"          
+	| M_floor -> "m_floor"          
+	| M_log -> "m_log"         
+	| M_round -> "m_round"            
+	| M_sin -> "m_sin"             
+	| M_sqrt -> "m_sqrt"          
+	| M_tan -> "m_tan"             
 	
 let string_of_bool x =
   match x with
@@ -77,6 +92,12 @@ let string_of_type t =
 	| TypeType -> "$$type_type"
 	| ListType -> "$$list_type"
 		
+let string_of_constant c =
+	match c with
+	| Min_float -> "$$min_value"
+	| Max_float -> "$$max_value"
+	| Random -> "$$random"
+		
 let rec string_of_literal lit escape_string =
   match lit with
 	  | Undefined -> "$$undefined"
@@ -93,7 +114,7 @@ let rec string_of_literal lit escape_string =
 		| LVRef (l, x) -> Printf.sprintf "%s.v.%s" (string_of_literal l escape_string) x  
 	  | LORef (l, x) -> Printf.sprintf "%s.o.%s" (string_of_literal l escape_string) x   
 		| LList ll -> 
-			match ll with
+			(match ll with
 			| [] -> "$$nil"
 			| ll ->
 			let rec loop ll = 
@@ -107,7 +128,8 @@ let rec string_of_literal lit escape_string =
 						| _ -> ", ") in
 					let scdr = loop ll in
 					Printf.sprintf ("%s%s%s") scar ssep scdr)
-			in Printf.sprintf "{{ %s }}" (loop ll)
+			in Printf.sprintf "{{ %s }}" (loop ll))
+		| Constant c -> string_of_constant c 
 
 let rec sexpr_of_expression e =
   let se = sexpr_of_expression in

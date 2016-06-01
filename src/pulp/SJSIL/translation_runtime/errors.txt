@@ -33,7 +33,27 @@ NOTES
 
 * DO ARRAY DEFINEOWNPROP
 
+ CALL
+------
+
+1)  8.7.1.  GetValue, iGet, 7
+2)  8.7.2.  PutValue, iPut, 6b
+3)  8.12.3. Get, 6
+4)  8.12.5. Put, 5b
+5)  8.12.8. DefaultValue, all over the place
+6)  9.11.   IsCallable
+7)  11.2.3. Function calls, 8
+8)  11.4.3. typeof
+9)  13.2.   Creating Function Objects, 6
+10) 13.2.1. THE CALL ITSELF
+11) 13.2.2. Construct, 8
+12) 13.2.3. ThrowTypeError, 5
+
+
+
 TODO
 ----
 
 * Test toPrimitive, toNumber, toString for objects!
+
+* Math min and max!

@@ -30,6 +30,9 @@ type bin_op =
   | UnsignedRightShift
 	(* Lists *)
 	| LCons				
+	(* Mathematics *)
+	| M_atan2
+	| M_pow
 
 type unary_op = 
   | Not
@@ -46,7 +49,26 @@ type unary_op =
 	(* UNARY OPERATORS FOR LISTS *)
 	| Car
 	| Cdr
+	(* Mathematics *)
+	| M_abs
+	| M_acos
+	| M_asin
+	| M_atan
+	| M_ceil
+	| M_cos
+	| M_exp
+	| M_floor
+	| M_log
+	| M_round
+	| M_sin
+	| M_sqrt
+	| M_tan
 
+(* constants *)
+type constant = 
+	| Min_float
+	| Max_float
+	| Random
 
 (* jsil types *)
 type jsil_type =
@@ -69,6 +91,7 @@ type jsil_lit =
 	| Undefined
 	| Null
 	| Empty
+	| Constant of constant
 	| Bool of bool
 	| Num of float
 	| String of string
