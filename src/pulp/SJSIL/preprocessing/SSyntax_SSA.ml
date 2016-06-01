@@ -589,7 +589,7 @@ let insert_phi_nodes proc phi_functions_per_node (nodes : (jsil_logic_assertion 
 	}
  
 
-let ssa_compile proc (vars : string list) (nodes : (jsil_logic_assertion option * jsil_cmd) array) succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r which_pred = 
+let ssa_compile_proc proc (vars : string list) (nodes : (jsil_logic_assertion option * jsil_cmd) array) succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r which_pred = 
 	let args : string list = proc.proc_params in 
 	let number_of_nodes = Array.length succ_table in
   (* compute dominators using the Lengauer Tarjan Algorithm *)
@@ -605,4 +605,29 @@ let ssa_compile proc (vars : string list) (nodes : (jsil_logic_assertion option 
 	let new_proc = insert_phi_nodes proc phi_functions_per_node new_cmds new_spec new_ret_var new_err_var var_counters in
 	rev_dom_table, dominance_frontiers, phi_functions_per_node_init, new_proc
 
-				
+
+let ssa_compile_prog (prog : procedure SProgram.t) = 
+	let ssa_prog = SProgram.create 1021 in 
+	let global_which_pred = Hashtbl.create 1021 in 
+	
+	SProgram.iter 
+		(fun proc_name proc -> 
+			let nodes, vars, succ_table, pred_table, tree_table, parent_table, dfs_num_table_f, dfs_num_table_r, which_pred = 
+				SSyntax_Utils.get_proc_info proc in 
+			let rev_dom_table, dominance_frontiers, phi_functions_per_node, new_proc = 
+  			ssa_compile_proc proc vars nodes succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r which_pred in 
+			
+			let new_succ_table, new_pred_table = SSyntax_Utils_Graphs.get_succ_pred new_proc.proc_body new_proc.ret_label new_proc.error_label in 
+			let new_which_pred = SSyntax_Utils_Graphs.compute_which_preds new_pred_table in  
+			Hashtbl.iter 
+				(fun (prev_cmd, cur_cmd) i ->
+					Hashtbl.replace global_which_pred (proc_name, prev_cmd, cur_cmd) i)
+				new_which_pred;
+			
+			SProgram.replace ssa_prog proc_name proc)
+		prog; 
+	ssa_prog, global_which_pred
+
+
+
+		

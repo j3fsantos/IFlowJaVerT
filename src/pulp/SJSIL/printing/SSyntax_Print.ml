@@ -508,12 +508,27 @@ let string_of_program program line_numbers =
 	program	
 	""
 
-let string_of_lprogram lprogram = 
-	SSyntax.SProgram.fold 
-	(fun _ proc acc_str ->
-		acc_str ^ "\n" ^ (string_of_lprocedure proc))
-	lprogram	
-	""				
+let string_of_lprogram (lprogram : jsil_lprog) : string = 
+	let imports_str, procs = 
+		(match lprogram with 
+		| None, procs -> "", procs
+		| Some str_lst, procs -> 
+			let imports_str = 
+				List.fold_left
+					(fun ac import_file -> 
+						if (ac = "") 
+							then import_file
+							else ac ^ ", " ^ import_file)
+				""
+				str_lst in 
+			let imports_str = if (imports_str = "") then "" else ("import " ^ imports_str ^ ";\n") in 
+			imports_str, procs) in 
+	let procs_str	= 
+		SSyntax.SProgram.fold 
+			(fun _ proc acc_str -> acc_str ^ "\n" ^ (string_of_lprocedure proc))
+			procs	
+			"" in 
+	imports_str ^ procs_str 				
 				
 let serialize_prog_racket prog line_numbers = 
 	let serialized_prog	= sexpr_of_program prog line_numbers in 
