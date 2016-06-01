@@ -133,6 +133,14 @@ rule read = parse
   | "$$min_float"        { SJSIL_Parser.MIN_FLOAT }
 	| "$$max_float"        { SJSIL_Parser.MAX_FLOAT }
 	| "$$random"           { SJSIL_Parser.RANDOM } 
+	| "$$e"                { SJSIL_Parser.E }
+	| "$$ln10"             { SJSIL_Parser.LN10 }
+	| "$$ln2"              { SJSIL_Parser.LN2 }
+	| "$$log2e"            { SJSIL_Parser.LOG2E }
+	| "$$log10e"           { SJSIL_Parser.LOG10E }
+	| "$$pi"               { SJSIL_Parser.PI }
+	| "$$sqrt1_2"          { SJSIL_Parser.SQRT1_2 }
+	| "$$sqrt2"            { SJSIL_Parser.SQRT2 }
 (* separators *)
   | "(*"                 { read_comment lexbuf }
 	| ':'                  { SJSIL_Parser.COLON }

@@ -216,7 +216,7 @@ let run_jsil_prog prog which_pred =
 	let heap = SHeap.create 1021 in 
 	evaluate_prog prog which_pred heap; 
 	let final_heap_str = SSyntax_Print.sexpr_of_heap heap in 
-	Printf.printf "Final heap: \n%s\n" final_heap_str
+	Printf.printf "" (* Final heap: \n%s\n final_heap_str *)
 
 let process_file filename =
 	(* let inx = In_channel.create filename in *)

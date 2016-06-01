@@ -116,6 +116,14 @@ open SSyntax
 %token MIN_FLOAT
 %token MAX_FLOAT
 %token RANDOM
+%token E
+%token LN10
+%token LN2
+%token LOG2E
+%token LOG10E
+%token PI
+%token SQRT1_2
+%token SQRT2
 (* separators *)
 %token EOF
 %token COMMA
@@ -524,6 +532,14 @@ lit_target:
 	| MIN_FLOAT { SSyntax.Constant Min_float }
 	| MAX_FLOAT { SSyntax.Constant Max_float }
 	| RANDOM { SSyntax.Constant Random }
+	| E { SSyntax.Constant E }
+	| LN10 { SSyntax.Constant Ln10 }
+	| LN2 { SSyntax.Constant Ln2 }
+	| LOG2E { SSyntax.Constant Log2e }
+	| LOG10E { SSyntax.Constant Log10e }
+	| PI { SSyntax.Constant Pi }
+	| SQRT1_2 { SSyntax.Constant Sqrt1_2 }
+	| SQRT2 { SSyntax.Constant Sqrt2 }
 ;
 
 binop_target: 

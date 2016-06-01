@@ -238,10 +238,8 @@ let evaluate_unop op lit =
 		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
 	
 (*
-			xret := "create_object_with_body" ($lmath_atan2, "M_atan2", 2);
 			xret := "create_object_with_body" ($lmath_max, "M_max", 2);	
 			xret := "create_object_with_body" ($lmath_min, "M_min", 2);
-			xret := "create_object_with_body" ($lmath_pow, "M_pow", 2);
 *)
 	
 let same_value_num n1 n2 = 
@@ -375,16 +373,26 @@ let evaluate_type_of lit =
 	| LVRef (_, _) -> VariableReferenceType
 	| LORef (_, _) -> ObjectReferenceType
 	| LList _ -> ListType
+
+let evaluate_constant c = 
+	match c with
+  | Min_float -> Num (min_float)
+	| Max_float -> Num (max_float)
+	| Random -> Num (Random.float (1.0 -. epsilon_float))
+	| E -> Num (exp 1.0)
+	| Ln10 -> Num (log 10.0)
+	| Ln2 -> Num (log 2.)
+	| Log2e -> Num (log (exp 1.0) /. log (2.0))
+	| Log10e -> Num (log10 (exp 1.0))
+	| Pi -> Num (4.0 *. atan 1.0)
+	| Sqrt1_2 -> Num (sqrt 0.5)
+	| Sqrt2 -> Num (sqrt 2.0)
 							
 let rec evaluate_expr (e : jsil_expr) store = 
 	match e with 
 	| Literal l -> 
 		(match l with
-		| Constant c ->
-			(match c with
-			| Min_float -> Num (min_float)
-			| Max_float -> Num (max_float)
-			| Random -> Num (Random.float (1.0 -. epsilon_float)))
+		| Constant c -> evaluate_constant c
 		| x -> x) 
 	| Var x -> 
 		(match SSyntax_Aux.try_find store x with 

@@ -97,6 +97,14 @@ let string_of_constant c =
 	| Min_float -> "$$min_value"
 	| Max_float -> "$$max_value"
 	| Random -> "$$random"
+	| E -> "$$e"
+	| Ln10 -> "$$ln10"
+	| Ln2 -> "$$ln2"
+	| Log2e -> "$$log2e"
+	| Log10e -> "$$log10e"
+	| Pi -> "$$pi"
+	| Sqrt1_2 -> "$$sqrt1_2"
+	| Sqrt2 -> "$$sqrt2"
 		
 let rec string_of_literal lit escape_string =
   match lit with

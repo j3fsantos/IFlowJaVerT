@@ -2480,6 +2480,15 @@ proc setupInitialHeap () {
 			
 			xret := "create_default_object" ($lmath, $lobj_proto, "Math", $$t);
 			
+			[$lmath, "E"]       := {{ "d", $$e,       $$f, $$f, $$f }};
+			[$lmath, "LN10"]    := {{ "d", $$ln10,    $$f, $$f, $$f }};
+			[$lmath, "LN2"]     := {{ "d", $$ln2,     $$f, $$f, $$f }};
+			[$lmath, "LOG2E"]   := {{ "d", $$log2e,   $$f, $$f, $$f }};
+			[$lmath, "LOG10E"]  := {{ "d", $$log10e,  $$f, $$f, $$f }};
+			[$lmath, "PI"]      := {{ "d", $$pi,      $$f, $$f, $$f }};
+			[$lmath, "SQRT1_2"] := {{ "d", $$sqrt1_2, $$f, $$f, $$f }};
+			[$lmath, "SQRT2"]   := {{ "d", $$sqrt2,   $$f, $$f, $$f }};
+			
 			[$lmath, "abs"]    := {{ "d", $lmath_abs, $$f, $$f, $$f }};
 			[$lmath, "acos"]   := {{ "d", $lmath_acos, $$f, $$f, $$f }};
 			[$lmath, "asin"]   := {{ "d", $lmath_asin, $$f, $$f, $$f }};
@@ -2538,9 +2547,6 @@ with
 proc main () {
 
 			xret := "setupInitialHeap" ();
-
-			xret := "M_atan2" ($$empty, $$empty, -1.2345, -2.3456);	
-			xret := "M_pow"   ($$empty, $$empty, -1.2345, -2.3456);
 			
 	rlab:	skip;
 	elab:	skip
