@@ -1,4 +1,3 @@
-open Parser_syntax
 open Utils
 open Lexing
 open Batteries
@@ -34,6 +33,8 @@ let fresh_sth (name : string) : (unit -> string) =
 let fresh_var : (unit -> string) = fresh_sth "x_"
  
 let fresh_label : (unit -> string) = fresh_sth "lab_"
+
+let fresh_err_label : (unit -> string) = fresh_sth "err_"
 
 type tr_ctx = { 
 	tr_ret_lab: string; 
@@ -193,9 +194,9 @@ let rec translate fid cc_table loop_list ctx e =
 		let x_e2_val = fresh_var () in 
 		let x_pv = fresh_var () in  
 		let lab_next1 = fresh_label () in 
-		let lab_err1 = fresh_label () in 
-		let lab_err2 = fresh_label () in 
-		let lab_err3 = fresh_label () in 
+		let lab_err1 = fresh_err_label () in 
+		let lab_err2 = fresh_err_label () in 
+		let lab_err3 = fresh_err_label () in 
 		
 		let cmds_e1, x_e1, err_cmds1 = f e1 in 
 		let cmds_e2, x_e2, err_cmds2 = f e2 in 
@@ -240,8 +241,8 @@ let rec translate fid cc_table loop_list ctx e =
 			err2: x_err := x2_v 
 		 *)
 		
-		let lab_err1 = fresh_label () in 
-		let lab_err2 = fresh_label () in 
+		let lab_err1 = fresh_err_label () in 
+		let lab_err2 = fresh_err_label () in 
 		let x1_v = fresh_var () in
 		let x2_v = fresh_var () in
 		let x_r = fresh_var () in
@@ -281,7 +282,7 @@ let rec translate fid cc_table loop_list ctx e =
 			| Parser_syntax.PropbodyVal -> 
 				begin 
 					let x_p_val = fresh_var () in
-					let lab_p_err = fresh_label () in
+					let lab_p_err = fresh_err_label () in
 					let cmds_p_val, x_p, cmds_p_err = f e in 
 					let cmd_gv = SLCall (x_p_val, Literal (String getValueName), [ x_p ], Some lab_p_err) in 
 					let p_name_expr = 
@@ -324,9 +325,9 @@ let rec translate fid cc_table loop_list ctx e =
     *)
 		
 		let next_lab = fresh_label () in 
-		let lab_err1 = fresh_label () in 
-		let lab_err2 = fresh_label () in 
-		let lab_err3 = fresh_label () in 
+		let lab_err1 = fresh_err_label () in 
+		let lab_err2 = fresh_err_label () in 
+		let lab_err3 = fresh_err_label () in 
 		let x_obj = fresh_var () in
 		let x_dp = fresh_var () in
 		
@@ -419,7 +420,7 @@ let rec translate fid cc_table loop_list ctx e =
 		(* x_f_val := getValue (x_f) with err1;  *)
 		(* err1: x_err := x_f_val *) 
 		let x_f_val = fresh_var () in 
-		let lab_err1 = fresh_label () in  				
+		let lab_err1 = fresh_err_label () in  				
 		let cmd_gv_f = (None, None, SLCall (x_f_val, Literal (String getValueName), [ x_ef ], Some lab_err1)) in 
 		let cmd_xf_gv_err_propg = SLBasic (SAssignment (ctx.tr_error_var, (Var x_f_val))) in 
 		
@@ -427,7 +428,7 @@ let rec translate fid cc_table loop_list ctx e =
 		let cmds_args_gv, x_args_gv, errs_args_gv = 
 			List.fold_left (fun (cmds_args, x_args, errs_args) x_arg ->
 				let x_arg_v = fresh_var () in 
-				let lab_err_arg_gv = fresh_label () in 
+				let lab_err_arg_gv = fresh_err_label () in 
 				let cmd_gv_arg = SLCall (x_arg_v, Literal (String getValueName), [ x_arg ], Some lab_err_arg_gv) in 
 				let cmd_err_propg = SLBasic (SAssignment (ctx.tr_error_var, Var x_arg_v)) in 
 				(cmds_args @ [ (None, None, cmd_gv_arg) ], x_args @ [ Var x_arg_v ], 
@@ -436,7 +437,7 @@ let rec translate fid cc_table loop_list ctx e =
 			x_args in 
 		
 		(* goto [ typeOf(x_f_val) != Object] err2 next1; *) 
-		let lab_err2 = fresh_label () in
+		let lab_err2 = fresh_err_label () in
 		let lab_next1 = fresh_label () in   
 		let goto_guard_expr = UnaryOp (Not, (BinOp (TypeOf (Var x_f_val), Equal, Literal (Type ObjectType)))) in 
 		let cmd_goto_is_obj = SLGuardedGoto (goto_guard_expr, lab_err2, lab_next1) in 
@@ -448,7 +449,7 @@ let rec translate fid cc_table loop_list ctx e =
 		
 		(* goto [ x_ic ] next2 err3; *)
 		(* err3: x_err := SyntaxError() *) 
-		let lab_err3 = fresh_label () in
+		let lab_err3 = fresh_err_label () in
 		let lab_next2 = fresh_label () in 
 		let cmd_goto_is_callable = SLGuardedGoto (Var x_ic, lab_next2, lab_err3) in 
 		let cmd_ic_err_propg =  SLCall (ctx.tr_error_var, Literal (String typeErrorName), [ ], None) in 
@@ -481,7 +482,7 @@ let rec translate fid cc_table loop_list ctx e =
 		(* x_r := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err_call  *) 
 		(* err_call: x_err := x_r *) 
 		let x_r = fresh_var () in 
-		let lab_proc_err = fresh_label () in 
+		let lab_proc_err = fresh_err_label () in 
 		let proc_args = (Var x_fscope) :: (Var x_new_this) :: x_args_gv in 
 		let cmd_proc_call = SLCall (x_r, (Var x_body), proc_args, Some lab_proc_err) in 
 		let cmd_pc_err_propg =  SLCall (ctx.tr_error_var, (Var x_r), [ ], None) in 
@@ -509,6 +510,8 @@ let rec translate fid cc_table loop_list ctx e =
 		let errs = new_errs @ errs_ef @ errs_args @ errs_args_gv in 
 		
 		cmds, Var x_r, errs
+	
+	
 	
 	| _ -> raise (Failure "not implemented yet")		
 
@@ -565,7 +568,90 @@ let generate_main e main cc_table =
 		lerror_var = Some ctx.tr_error_var;
 		lspec = None 
 	}
+	
+let generate_proc e fid params cc_table =
+	let cc_tbl_fid = 
+		try Hashtbl.find cc_table fid 
+			with _ -> raise (Failure "main not defined in cc_table - assim fica dificil")  in 
+	
+	let fid_decls = Js_pre_processing.func_decls_in_exp e in
+  let fid_fnames = List.map (fun f ->
+    match f.Parser_syntax.exp_stx with
+      | Parser_syntax.NamedFun (s, name, args, body) -> name
+      | _ -> raise (Failure ("Must be function declaration " ^ (Pretty_print.string_of_exp true f)))
+  ) fid_decls in
+	let fid_vars = List.concat [ (Js_pre_processing.var_decls e); fid_fnames ] in 
+	
+	(* x_er := new () *)
+	let x_er = fresh_var () in  
+	let cmd_er_creation = (None, None, SLBasic (SNew x_er)) in 
+	
+	(* [x_er, "arg_i"] := x_{i+2} *) 
+	let cmds_params = 
+		List.map (fun param -> 
+			let cmd = SLBasic (SMutation (Var x_er, Literal (String param), Var param)) in  
+			(None, None, cmd))
+		params in 
+	
+	(* [x_er, decl_var_i] := undefined *) 
+	let cmds_decls = 
+		List.map (fun decl_var -> 
+			let cmd = SLBasic (SMutation (Var x_er, Literal (String decl_var), Literal Undefined)) in
+			(None, None, cmd))
+		fid_vars in 
+	
+	(* [__scope, "fid"] := x_er *) 
+	let cmd_ass_er_to_sc = (None, None, SLBasic (SMutation (Var var_scope, Literal (String fid), Var x_er))) in 
+	
+	let ctx = make_translation_ctx fid in 
+	let cmds_e, x_e, errs = translate fid cc_table [] ctx e in 
+	
+	(* x_ret := $$empty *)
+	let ret_ass = (None, None, SLBasic (SAssignment (ctx.tr_ret_var, Literal Empty))) in
+	
+	(* lab_ret: skip *) 
+	let lab_ret_skip = (None, (Some ctx.tr_ret_lab), (SLBasic SSkip)) in 
 
+	(* lab_err: skip *) 
+	let lab_err_skip = (None, (Some ctx.tr_error_lab), (SLBasic SSkip)) in 	
+			
+	(* error processing cmds *) 
+	let err_cmds = (process_error_cmds errs ctx) @ [ lab_err_skip ] in 
+	let fid_cmds = 
+		[ cmd_er_creation ] @ cmds_params @ cmds_decls @ [ cmd_ass_er_to_sc ] @ cmds_e @ [ ret_ass; lab_ret_skip ] @ err_cmds  in 
+	{ 
+		lproc_name = fid;
+    lproc_body = (Array.of_list fid_cmds);
+    lproc_params = var_scope :: var_this :: params; 
+		lret_label = ctx.tr_ret_lab; 
+		lret_var = ctx.tr_ret_var;
+		lerror_label = Some ctx.tr_error_lab; 
+		lerror_var = Some ctx.tr_error_var;
+		lspec = None 
+	}
+
+let js2jsil e = 
+	let main = "main" in 
+	let e = Js_pre_processing.add_codenames main e in 
+	let cc_tbl, fun_tbl = Js_pre_processing.closure_clarification_top_level main e in 
+	
+	let jsil_prog = SProgram.create 1021 in 
+	Hashtbl.iter
+		(fun f_id (_, f_params, f_body) -> 
+			let proc = 
+				(if (f_id = main) 
+					then generate_main e main cc_tbl 
+					else generate_proc f_body f_id f_params cc_tbl) in 
+			SProgram.add jsil_prog f_id proc)
+		fun_tbl; 
+	
+	(* Prints to delete *) 
+	let str = Js_pre_processing.print_cc_tbl cc_tbl in 
+	Printf.printf "closure clarification table: %s\n" str; 
+	(* let main_str = SSyntax_Print.string_of_lprocedure jsil_proc_main in 
+	Printf.printf "main code:\n %s\n" main_str; *)
+	
+	jsil_prog
 
 	
 	

@@ -506,7 +506,15 @@ let string_of_program program line_numbers =
 	(fun _ proc acc_str ->
 		acc_str ^ "\n" ^ (string_of_procedure proc line_numbers))
 	program	
+	""
+
+let string_of_lprogram lprogram = 
+	SSyntax.SProgram.fold 
+	(fun _ proc acc_str ->
+		acc_str ^ "\n" ^ (string_of_lprocedure proc))
+	lprogram	
 	""				
+				
 let serialize_prog_racket prog line_numbers = 
 	let serialized_prog	= sexpr_of_program prog line_numbers in 
 	Printf.sprintf SSyntax_Templates.template_procs_racket serialized_prog																						
