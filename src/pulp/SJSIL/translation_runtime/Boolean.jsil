@@ -1,3 +1,5 @@
+import Internals;
+
 (* ******************* *) 
 (* THE BOOLEAN LIBRARY *)
 (* ******************* *) 
