@@ -40,6 +40,7 @@ rule read = parse
   | "nan"                { SJSIL_Parser.NAN }
 	| "inf"                { SJSIL_Parser.INFINITY }
 (* procedure keywords *)
+	| "import"     				 { SJSIL_Parser.IMPORT }
 	| "proc"     					 { SJSIL_Parser.PROC }
 	| "ret"                { SJSIL_Parser.RET }
 	| "err"                { SJSIL_Parser.ERR }
@@ -101,6 +102,8 @@ rule read = parse
 	| ">>"                 { SJSIL_Parser.SIGNEDRIGHTSHIFT }
 	| ">>>"                { SJSIL_Parser.UNSIGNEDRIGHTSHIFT }
 	| "::"								 { SJSIL_Parser.LCONS }
+	| "m_atan2"            { SJSIL_Parser.M_ATAN2 }
+	| "**"                 { SJSIL_Parser.M_POW }
 (* unary operators *)
 	| "not"                { SJSIL_Parser.NOT }
 	| "num_to_string"      { SJSIL_Parser.TOSTRING }
@@ -114,6 +117,31 @@ rule read = parse
 	| "!"                  { SJSIL_Parser.BITWISENOT }
 	| "car"                { SJSIL_Parser.CAR }
 	| "cdr"                { SJSIL_Parser.CDR }
+	| "m_abs"              { SJSIL_Parser.M_ABS }
+	| "m_acos"             { SJSIL_Parser.M_ACOS }
+	| "m_asin"             { SJSIL_Parser.M_ASIN }
+	| "m_atan"             { SJSIL_Parser.M_ATAN }
+	| "m_ceil"             { SJSIL_Parser.M_CEIL }
+	| "m_cos"              { SJSIL_Parser.M_COS }
+	| "m_exp"              { SJSIL_Parser.M_EXP }
+	| "m_floor"            { SJSIL_Parser.M_FLOOR }
+	| "m_log"              { SJSIL_Parser.M_LOG }
+	| "m_round"            { SJSIL_Parser.M_ROUND }
+	| "m_sin"              { SJSIL_Parser.M_SIN }
+	| "m_sqrt"             { SJSIL_Parser.M_SQRT }
+	| "m_tan"              { SJSIL_Parser.M_TAN }
+(* constants *)
+  | "$$min_float"        { SJSIL_Parser.MIN_FLOAT }
+	| "$$max_float"        { SJSIL_Parser.MAX_FLOAT }
+	| "$$random"           { SJSIL_Parser.RANDOM } 
+	| "$$e"                { SJSIL_Parser.E }
+	| "$$ln10"             { SJSIL_Parser.LN10 }
+	| "$$ln2"              { SJSIL_Parser.LN2 }
+	| "$$log2e"            { SJSIL_Parser.LOG2E }
+	| "$$log10e"           { SJSIL_Parser.LOG10E }
+	| "$$pi"               { SJSIL_Parser.PI }
+	| "$$sqrt1_2"          { SJSIL_Parser.SQRT1_2 }
+	| "$$sqrt2"            { SJSIL_Parser.SQRT2 }
 (* separators *)
   | "(*"                 { read_comment lexbuf }
 	| ':'                  { SJSIL_Parser.COLON }

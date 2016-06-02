@@ -1,0 +1,415 @@
+(* **** *) 
+(* MAIN *)
+(* **** *) 
+
+proc create_default_object (l, pr, cl, ext) {
+			
+			[l, "@proto"] := pr;
+			[l, "@class"] := cl;
+			[l, "@extensible"] := ext;
+			
+			[l, "@getOwnProperty"]    := "o__getOwnProperty";
+			[l, "@getProperty"]       := "o__getProperty";
+			[l, "@get"]               := "o__get";
+			[l, "@canPut"]            := "o__canPut";
+			[l, "@put"]               := "o__put";
+			[l, "@hasProperty"]       := "o__hasProperty";
+			[l, "@deleteProperty"]    := "o__deleteProperty";
+			[l, "@defaultValue"]      := "o__defaultValue";
+			[l, "@defineOwnProperty"] := "o__defineOwnProperty";
+			
+			[l, "@primitiveValue"]   := $$empty;
+			[l, "@construct"]        := $$empty;
+			[l, "@call"]             := $$empty;
+			[l, "@hasInstance"]      := $$empty;
+			[l, "@scope"]            := $$empty;
+			[l, "@formalParameters"] := $$empty;
+			[l, "@body"]             := $$empty;
+			[l, "@targetFunction"]   := $$empty;
+			[l, "@boundThis"]        := $$empty;
+			[l, "@boundArguments"]   := $$empty;
+			[l, "@match"]            := $$empty;
+			[l, "@parameterMap"]     := $$empty;
+
+	rlab:	xret := l
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+proc copy_object (l, fields) {
+			xret := new ();
+			
+			n := 0;
+			len := length (fields);	
+			
+	loop:	goto [n < len] head rlab;
+	head:	val := [l, nth (fields, n)];
+			[xret, nth (fields, n)] := val;
+			n := n + 1;
+			goto loop;
+	
+	rlab:	skip	
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+proc create_function_object (xsc, body, params) {
+			len := length (params);
+			xret := new ();
+			xret := "create_object_with_body" (xret, body, len);
+			
+			[xret, "@scope"] := xsc;
+			[xret, "@formalParameters"] := params;
+			
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab; 
+};
+
+proc create_object_with_body (l, proc_body, len) {
+			
+			xret := "create_default_object" (l, $lfun_proto, "Function", $$t);
+			
+			[xret, "length"] := {{ "d", len, $$f, $$f, $$f }};
+
+	ibody:	goto [proc_body = $$empty] rlab body;
+	body:	[xret, "@body"] := proc_body;
+
+	rlab:	xret := l
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+proc setupInitialHeap () {
+
+			(* Global object *)
+			
+			xret := "create_default_object" ($lg, $$null, "Object", $$t);
+			
+  			[$lg, "NaN"]                := {{ "d", nan, $$f, $$f, $$f }};
+  			[$lg, "Infinity"]           := {{ "d", inf, $$f, $$f, $$f }};
+  			[$lg, "undefined"]          := {{ "d", $$undefined, $$f, $$f, $$f }};
+  			
+  			[$lg, "eval"]               := {{ "d", $lg_eval, $$t, $$f, $$t }};
+  			[$lg, "parseInt"]           := {{ "d", $lg_parseInt, $$t, $$f, $$t }};
+  			[$lg, "parseFloat"]         := {{ "d", $lg_parseFloat, $$t, $$f, $$t }};
+  			[$lg, "isNaN"]              := {{ "d", $lg_isNan, $$t, $$f, $$t }};
+  			[$lg, "isFinite"]           := {{ "d", $lg_isFinite, $$t, $$f, $$t }};
+  			[$lg, "decodeURI"]          := {{ "d", $lg_decodeURI, $$t, $$f, $$t }};
+  			[$lg, "decodeURIComponent"] := {{ "d", $lg_decodeURIComponent, $$t, $$f, $$t }};
+  			[$lg, "encodeURI"]          := {{ "d", $lg_encodeURI, $$t, $$f, $$t }};
+  			[$lg, "encodeURIComponent"] := {{ "d", $lg_encodeURIComponent, $$t, $$f, $$t }};
+  			[$lg, "Object"]             := {{ "d", $lobj, $$t, $$f, $$t }};
+  			[$lg, "Function"]           := {{ "d", $lfun, $$t, $$f, $$t }};
+ 			[$lg, "Array"]              := {{ "d", $larr, $$t, $$f, $$t }};
+  			[$lg, "String"]             := {{ "d", $lstr, $$t, $$f, $$t }};
+  			[$lg, "Boolean"]            := {{ "d", $lbool, $$t, $$f, $$t }};
+  			[$lg, "Number"]             := {{ "d", $lnum, $$t, $$f, $$t }};
+  			[$lg, "Math"]               := {{ "d", $lmath, $$t, $$f, $$t }};
+  			[$lg, "Date"]               := {{ "d", $ldate, $$t, $$f, $$t }}; 
+ 			[$lg, "RegExp"]             := {{ "d", $lregexp, $$t, $$f, $$t }}; 
+  			[$lg, "Error"]              := {{ "d", $lerr, $$t, $$f, $$t }};
+			[$lg, "EvalError"]          := {{ "d", $lerr_e, $$t, $$f, $$t }};
+  			[$lg, "RangeError"]         := {{ "d", $lerr_rg, $$t, $$f, $$t }};
+  			[$lg, "ReferenceError"]     := {{ "d", $lerr_rf, $$t, $$f, $$t }};
+  			[$lg, "SyntaxError"]        := {{ "d", $lerr_s, $$t, $$f, $$t }};
+  			[$lg, "TypeError"]          := {{ "d", $lerr_t, $$t, $$f, $$t }};
+  			[$lg, "URIError"]           := {{ "d", $lerr_u, $$t, $$f, $$t }};
+  			[$lg, "JSON"]               := {{ "d", $ljson, $$t, $$f, $$t }};
+  			
+  			xret := "create_object_with_body" ($lg_eval, "Object_eval", 1);
+  			xret := "create_object_with_body" ($lg_parseInt, "Object_parseInt", 2);
+  			xret := "create_object_with_body" ($lg_parseFloat, "Object_parseFloat", 1);
+  			xret := "create_object_with_body" ($lg_isNan, "Object_isNan", 1);
+  			xret := "create_object_with_body" ($lg_isFinite, "Object_isFinite", 1);
+  			xret := "create_object_with_body" ($lg_decodeURI, "Object_decodeURI", 1);
+  			xret := "create_object_with_body" ($lg_decodeURIComponent, "Object_decodeURIComponent", 1);
+  			xret := "create_object_with_body" ($lg_encodeURI, "Object_encodeURI", 1);
+  			xret := "create_object_with_body" ($lg_encodeURIComponent, "Object_encodeURIComponent", 1);
+  			
+  			(* Object object *)
+    			
+  			xret := "create_object_with_body" ($lobj, $$empty, 1);
+  			
+  			[$lobj, "prototype"]                := {{ "d", $lobj_proto, $$f, $$f, $$f }};
+			[$lobj, "getPrototypeOf"]           := {{ "d", $lobj_getPrototypeOf, $$t, $$f, $$t }};
+			[$lobj, "getOwnPropertyDescriptor"] := {{ "d", $lobj_getOwnPropertyDescriptor, $$t, $$f, $$t }};
+			[$lobj, "getOwnPropertyNames"]      := {{ "d", $lobj_getOwnPropertyNames, $$t, $$f, $$t }};
+			[$lobj, "create"]                   := {{ "d", $lobj_create, $$t, $$f, $$t }};
+			[$lobj, "defineProperty"]           := {{ "d", $lobj_defineProperty, $$t, $$f, $$t }};
+			[$lobj, "defineProperties"]         := {{ "d", $lobj_defineProperties, $$t, $$f, $$t }};
+			[$lobj, "seal"]                     := {{ "d", $lobj_seal, $$t, $$f, $$t }};
+			[$lobj, "freeze"]                   := {{ "d", $lobj_freeze, $$t, $$f, $$t }};
+			[$lobj, "preventExtensions"]        := {{ "d", $lobj_preventExtensions, $$t, $$f, $$t }};
+			[$lobj, "isSealed"]                 := {{ "d", $lobj_isSealed, $$t, $$f, $$t }};
+			[$lobj, "isFrozen"]                 := {{ "d", $lobj_isFrozen, $$t, $$f, $$t }};
+			[$lobj, "isExtensible"]             := {{ "d", $lobj_isExtensible, $$t, $$f, $$t }};
+			[$lobj, "keys"]                     := {{ "d", $lobj_keys, $$t, $$f, $$t }};
+			
+			xret := "create_object_with_body" ($lobj_getPrototypeOf, "Object_getPrototypeOf", 1);
+  			xret := "create_object_with_body" ($lobj_getOwnPropertyNames, "Object_getOwnPropertyNames", 2);
+			xret := "create_object_with_body" ($lobj_create, "Object_create", 1);
+  			xret := "create_object_with_body" ($lobj_defineProperty, "Object_defineProperty", 3);
+ 			xret := "create_object_with_body" ($lobj_defineProperties, "Object_defineProperty", 2);
+  			xret := "create_object_with_body" ($lobj_seal, "Object_seal", 1);
+ 			xret := "create_object_with_body" ($lobj_freeze, "Object_freeze", 1);
+  			xret := "create_object_with_body" ($lobj_preventExtensions, "Object_preventExtensions", 1);
+  			xret := "create_object_with_body" ($lobj_isSealed, "Object_isSealed", 1);
+ 			xret := "create_object_with_body" ($lobj_isFrozen, "Object_isFrozen", 1);
+  			xret := "create_object_with_body" ($lobj_isExtensible, "Object_isExtensible", 1);
+  			xret := "create_object_with_body" ($lobj_keys, "Object_keys", 1);
+			
+			(* Object.prototype *)
+			
+			xret := "create_default_object" ($lobj_proto, $$null, "Object", $$t);
+			
+			[$lobj_proto, "constructor"]          := {{ "d", $lop_constructor, $$t, $$f, $$t }};
+			[$lobj_proto, "toString"]             := {{ "d", $lop_toString, $$t, $$f, $$t }};
+			[$lobj_proto, "toLocaleString"]       := {{ "d", $lop_toLocaleString, $$t, $$f, $$t }};
+			[$lobj_proto, "valueOf"]              := {{ "d", $lop_valueOf, $$t, $$f, $$t }};
+			[$lobj_proto, "hasOwnProperty"]       := {{ "d", $lop_hasOwnProperty, $$t, $$f, $$t }};
+			[$lobj_proto, "isPrototypeOf"]        := {{ "d", $lop_isPrototypeOf, $$t, $$f, $$t }};
+			[$lobj_proto, "propertyIsEnumerable"] := {{ "d", $lop_propertyIsEnumerable, $$t, $$f, $$t }};
+
+			xret := "create_object_with_body" ($lop_constructor, "Object_construct", 1);
+			xret := "create_object_with_body" ($lop_toString, "OP_toString", 0);
+  			xret := "create_object_with_body" ($lop_toLocaleString, "OP_toLocaleString", 0);
+			xret := "create_object_with_body" ($lop_valueOf, "OP_valueOf", 0);
+  			xret := "create_object_with_body" ($lop_hasOwnProperty, "OP_hasOwnProperty", 1);
+ 			xret := "create_object_with_body" ($lop_isPrototypeOf, "OP_isPrototypeOf", 1);
+  			xret := "create_object_with_body" ($lop_propertyIsEnumerable, "OP_propertyIsEnumerable", 1);
+  			
+  			
+  			
+  			(* Array object *)
+    			
+  			xret := "create_object_with_body" ($larr, $$empty, 1);
+  			
+  			[$larr, "prototype"] := {{ "d", $larr_proto, $$f, $$f, $$f }};
+  			[$larr, "isArray"]   := {{ "d", $larr_isArray, $$t, $$f, $$t }};
+			
+			xret := "create_object_with_body" ($larr_isArray, "Array_isArray", 1);
+			
+			(* Array.prototype *)
+			
+			xret := "create_default_object" ($larr_proto, $lobj_proto, "Array", $$t);
+			
+			[$larr_proto, "constructor"]    := {{ "d", $lap_constructor, $$t, $$f, $$t }};
+			[$larr_proto, "toString"]       := {{ "d", $lap_toString, $$t, $$f, $$t }};
+			[$larr_proto, "toLocaleString"] := {{ "d", $lap_toLocaleString, $$t, $$f, $$t }};
+			[$larr_proto, "concat"]         := {{ "d", $lap_concat, $$t, $$f, $$t }};
+			[$larr_proto, "join"]           := {{ "d", $lap_join, $$t, $$f, $$t }};
+			[$larr_proto, "pop"]            := {{ "d", $lap_pop, $$t, $$f, $$t }};
+			[$larr_proto, "push"]           := {{ "d", $lap_push, $$t, $$f, $$t }};
+			[$larr_proto, "reverse"]        := {{ "d", $lap_reverse, $$t, $$f, $$t }};
+			[$larr_proto, "shift"]          := {{ "d", $lap_shift, $$t, $$f, $$t }};
+			[$larr_proto, "slice"]          := {{ "d", $lap_slice, $$t, $$f, $$t }};
+			[$larr_proto, "sort"]           := {{ "d", $lap_sort, $$t, $$f, $$t }};
+			[$larr_proto, "splice"]         := {{ "d", $lap_splice, $$t, $$f, $$t }};
+			[$larr_proto, "unshift"]        := {{ "d", $lap_unshift, $$t, $$f, $$t }};
+			[$larr_proto, "indexOf"]        := {{ "d", $lap_indexOf, $$t, $$f, $$t }};
+			[$larr_proto, "lastIndexOf"]    := {{ "d", $lap_lastIndexOf, $$t, $$f, $$t }};
+			[$larr_proto, "every"]          := {{ "d", $lap_every, $$t, $$f, $$t }};
+			[$larr_proto, "some"]           := {{ "d", $lap_some, $$t, $$f, $$t }};
+			[$larr_proto, "forEach"]        := {{ "d", $lap_forEach, $$t, $$f, $$t }};
+			[$larr_proto, "map"]            := {{ "d", $lap_map, $$t, $$f, $$t }};
+			[$larr_proto, "filter"]         := {{ "d", $lap_filter, $$t, $$f, $$t }};
+			[$larr_proto, "reduce"]         := {{ "d", $lap_reduce, $$t, $$f, $$t }};
+			[$larr_proto, "reduceRight"]    := {{ "d", $lap_reduceRight, $$t, $$f, $$t }};
+			
+			xret := "create_object_with_body" ($lap_constructor, "Array_construct", 1);
+			xret := "create_object_with_body" ($lap_toString, "AP_toString", 0);
+			xret := "create_object_with_body" ($lap_toLocaleString, "AP_toLocaleString", 0);
+			xret := "create_object_with_body" ($lap_concat, "AP_concat", 1);
+			xret := "create_object_with_body" ($lap_join, "AP_join", 1);
+			xret := "create_object_with_body" ($lap_pop, "AP_pop", 0);
+			xret := "create_object_with_body" ($lap_push, "AP_push", 1);
+			xret := "create_object_with_body" ($lap_reverse, "AP_reverse", 0);
+			xret := "create_object_with_body" ($lap_shift, "AP_shift", 0);
+			xret := "create_object_with_body" ($lap_slice, "AP_slice", 2);
+			xret := "create_object_with_body" ($lap_sort, "AP_sort", 1);
+			xret := "create_object_with_body" ($lap_splice, "AP_splice", 2);
+			xret := "create_object_with_body" ($lap_unshift, "AP_unshift", 1);
+			xret := "create_object_with_body" ($lap_indexOf, "AP_indexOf", 1);
+			xret := "create_object_with_body" ($lap_lastIndexOf, "AP_lastIndexOf", 1);
+			xret := "create_object_with_body" ($lap_every, "AP_every", 1);
+			xret := "create_object_with_body" ($lap_some, "AP_some", 1);
+			xret := "create_object_with_body" ($lap_forEach, "AP_forEach", 1);
+			xret := "create_object_with_body" ($lap_map, "AP_map", 1);
+			xret := "create_object_with_body" ($lap_filter, "AP_filter", 1);
+			xret := "create_object_with_body" ($lap_reduce, "AP_reduce", 1);
+			xret := "create_object_with_body" ($lap_reduceRight, "AP_reduceRight", 1);
+
+
+			(* String object *)
+			
+			xret := "create_object_with_body" ($lstr, $$empty, 1);
+			
+			[$lstr, "prototype"]    := {{ "d", $lstr_proto, $$f, $$f, $$f }};
+			[$lstr, "fromCharCode"] := {{ "d", $lstr_fromCharCode, $$t, $$f, $$t }};
+			
+			xret := "create_object_with_body" ($lstr_fromCharCode, "String_fromCharCode", 1);
+			
+			(* String.prototype *)
+			
+			xret := "create_default_object" ($lstr_proto, $lobj_proto, "String", $$t);
+			
+			[$lstr_proto, "constructor"]       := {{ "d", $lsp_constructor, $$t, $$f, $$t }};
+			[$lstr_proto, "toString"]          := {{ "d", $lsp_toString, $$t, $$f, $$t }};
+			[$lstr_proto, "valueOf"]           := {{ "d", $lsp_valueOf, $$t, $$f, $$t }};
+			[$lstr_proto, "charAt"]            := {{ "d", $lsp_charAt, $$t, $$f, $$t }};
+			[$lstr_proto, "charCodeAt"]        := {{ "d", $lsp_charCodeAt, $$t, $$f, $$t }};
+			[$lstr_proto, "concat"]            := {{ "d", $lsp_concat, $$t, $$f, $$t }};
+			[$lstr_proto, "indexOf"]           := {{ "d", $lsp_indexOf, $$t, $$f, $$t }};
+			[$lstr_proto, "lastIndexOf"]       := {{ "d", $lsp_lastIndexOf, $$t, $$f, $$t }};
+			[$lstr_proto, "localeCompare"]     := {{ "d", $lsp_localeCompare, $$t, $$f, $$t }};
+			[$lstr_proto, "match"]             := {{ "d", $lsp_match, $$t, $$f, $$t }};
+			[$lstr_proto, "replace"]           := {{ "d", $lsp_replace, $$t, $$f, $$t }};
+			[$lstr_proto, "search"]            := {{ "d", $lsp_search, $$t, $$f, $$t }};
+			[$lstr_proto, "slice"]             := {{ "d", $lsp_slice, $$t, $$f, $$t }};
+			[$lstr_proto, "split"]             := {{ "d", $lsp_split, $$t, $$f, $$t }};
+			[$lstr_proto, "substring"]         := {{ "d", $lsp_substring, $$t, $$f, $$t }};
+			[$lstr_proto, "toLowerCase"]       := {{ "d", $lsp_toLowerCase, $$t, $$f, $$t }};
+			[$lstr_proto, "toLocaleLowerCase"] := {{ "d", $lso_toLocaleLowerCase, $$t, $$f, $$t }};
+			[$lstr_proto, "toUpperCase"]       := {{ "d", $lsp_toUpperCase, $$t, $$f, $$t }};
+			[$lstr_proto, "toLocaleUpperCase"] := {{ "d", $lsp_toLocaleUpperCase, $$t, $$f, $$t }};
+			[$lstr_proto, "trim"]              := {{ "d", $lsp_trim, $$t, $$f, $$t }};
+			
+			xret := "create_object_with_body" ($lsp_toString, "SP_toString", 0);
+			xret := "create_object_with_body" ($lsp_valueOf, "SP_valueOf", 0);
+			xret := "create_object_with_body" ($lsp_charAt, "SP_charAt", 1);
+			xret := "create_object_with_body" ($lsp_charCodeAt, "SP_charCodeAt", 1);
+			xret := "create_object_with_body" ($lsp_concat, "SP_concat", 1);
+			xret := "create_object_with_body" ($lsp_indexOf, "SP_indexOf", 1);
+			xret := "create_object_with_body" ($lsp_lastIndexOf, "SP_lastIndexOf", 1);
+			xret := "create_object_with_body" ($lsp_localeCompare, "SP_localeCompare", 1);
+			xret := "create_object_with_body" ($lsp_match, "SP_match", 1);
+			xret := "create_object_with_body" ($lsp_replace, "SP_replace", 2);
+			xret := "create_object_with_body" ($lsp_search, "SP_search", 1);
+			xret := "create_object_with_body" ($lsp_slice, "SP_slice", 2);
+			xret := "create_object_with_body" ($lsp_split, "SP_split", 2);
+			xret := "create_object_with_body" ($lsp_substring, "SP_substring", 2);
+			xret := "create_object_with_body" ($lsp_toLowerCase, "SP_toLowerCase", 0);
+			xret := "create_object_with_body" ($lso_toLocaleLowerCase, "lso_toLocaleLowerCase", 0);
+			xret := "create_object_with_body" ($lsp_toUpperCase, "SP_toUpperCase", 0);
+			xret := "create_object_with_body" ($lsp_toLocaleUpperCase, "SP_toLocaleUpperCase", 0);
+			xret := "create_object_with_body" ($lsp_trim, "SP_trim", 0);		
+			
+			
+			
+			(* Boolean object *)
+			
+			xret := "create_object_with_body" ($lbool, $$empty, 1);
+			
+			[$lbool, "prototype"] := {{ "d", $lbool_proto, $$f, $$f, $$f }};
+
+			(* Boolean.prototype *)
+			
+			xret := "create_default_object" ($lbool_proto, $lobj_proto, "Boolean", $$t);
+			
+			[$lbool_proto, "constructor"] := {{ "d", $lbp_constructor, $$t, $$f, $$t }};
+			[$lbool_proto, "toString"]    := {{ "d", $lbp_toString, $$t, $$f, $$t }};
+			[$lbool_proto, "valueOf"]     := {{ "d", $lbp_valueOf, $$t, $$f, $$t }};
+			
+			xret := "create_object_with_body" ($lbp_constructor, "Boolean_construct", 1);
+			xret := "create_object_with_body" ($lbp_toString, "BP_toString", 0);
+			xret := "create_object_with_body" ($lbp_valueOf, "BP_valueOf", 0);		
+			
+			(* Number object *)
+			
+			xret := "create_object_with_body" ($lnum, $$empty, 1);
+
+			[$lnum, "prototype"]         := {{ "d", $lnum_proto, $$f, $$f, $$f }};
+			[$lnum, "MAX_VALUE"]         := {{ "d", $$max_float, $$f, $$f, $$f }};
+			[$lnum, "MIN_VALUE"]         := {{ "d", $$min_float, $$f, $$f, $$f }};
+			[$lnum, "NaN"]               := {{ "d", nan, $$f, $$f, $$f }};
+			[$lnum, "POSITIVE_INFINITY"] := {{ "d", inf, $$f, $$f, $$f }};
+			[$lnum, "NEGATIVE_INFINITY"] := {{ "d", -inf, $$f, $$f, $$f }};
+			
+			(* Number.prototype *)
+			
+			xret := "create_default_object" ($lnum_proto, $lobj_proto, "Number", $$t);
+			
+			[$lnum_proto, "constructor"]          := {{ "d", $lnp_constructor, $$t, $$f, $$t }};
+			[$lnum_proto, "toString"]             := {{ "d", $lnp_toString, $$t, $$f, $$t }};
+			[$lnum_proto, "toLocaleString"]       := {{ "d", $lnp_toLocaleString, $$t, $$f, $$t }};
+			[$lnum_proto, "valueOf"]              := {{ "d", $lnp_valueOf, $$t, $$f, $$t }};
+			[$lnum_proto, "toFixed"]              := {{ "d", $lnp_toFixed, $$t, $$f, $$t }};
+			[$lnum_proto, "toExponential"]        := {{ "d", $lnp_toExponential, $$t, $$f, $$t }};
+			[$lnum_proto, "toPrecision"]          := {{ "d", $lnp_toPrecision, $$t, $$f, $$t }};
+			
+			xret := "create_object_with_body" ($lnp_constructor, "Number_construct", 1);
+			xret := "create_object_with_body" ($lnp_toString, "Number_toString", 0);
+			xret := "create_object_with_body" ($lnp_toLocaleString, "Number_toLocaleString", 0);	
+			xret := "create_object_with_body" ($lnp_valueOf, "Number_valueOf", 0);
+			xret := "create_object_with_body" ($lnp_toFixed, "Number_toFixed", 1);
+			xret := "create_object_with_body" ($lnp_toExponential, "Number_toExponential", 1);
+			xret := "create_object_with_body" ($lnp_toPrecision, "Number_toPrecision", 1);
+			
+			
+			
+			(* Math object *)
+			
+			xret := "create_default_object" ($lmath, $lobj_proto, "Math", $$t);
+			
+			[$lmath, "E"]       := {{ "d", $$e,       $$f, $$f, $$f }};
+			[$lmath, "LN10"]    := {{ "d", $$ln10,    $$f, $$f, $$f }};
+			[$lmath, "LN2"]     := {{ "d", $$ln2,     $$f, $$f, $$f }};
+			[$lmath, "LOG2E"]   := {{ "d", $$log2e,   $$f, $$f, $$f }};
+			[$lmath, "LOG10E"]  := {{ "d", $$log10e,  $$f, $$f, $$f }};
+			[$lmath, "PI"]      := {{ "d", $$pi,      $$f, $$f, $$f }};
+			[$lmath, "SQRT1_2"] := {{ "d", $$sqrt1_2, $$f, $$f, $$f }};
+			[$lmath, "SQRT2"]   := {{ "d", $$sqrt2,   $$f, $$f, $$f }};
+			
+			[$lmath, "abs"]    := {{ "d", $lmath_abs, $$f, $$f, $$f }};
+			[$lmath, "acos"]   := {{ "d", $lmath_acos, $$f, $$f, $$f }};
+			[$lmath, "asin"]   := {{ "d", $lmath_asin, $$f, $$f, $$f }};
+			[$lmath, "atan"]   := {{ "d", $lmath_atan, $$f, $$f, $$f }};
+			[$lmath, "atan2"]  := {{ "d", $lmath_atan2, $$f, $$f, $$f }};
+			[$lmath, "ceil"]   := {{ "d", $lmath_ceil, $$f, $$f, $$f }};
+			[$lmath, "cos"]    := {{ "d", $lmath_cos, $$f, $$f, $$f }};
+			[$lmath, "exp"]    := {{ "d", $lmath_exp, $$f, $$f, $$f }};
+			[$lmath, "floor"]  := {{ "d", $lmath_floor, $$f, $$f, $$f }};
+			[$lmath, "log"]    := {{ "d", $lmath_log, $$f, $$f, $$f }};
+			[$lmath, "max"]    := {{ "d", $lmath_max, $$f, $$f, $$f }};
+			[$lmath, "min"]    := {{ "d", $lmath_min, $$f, $$f, $$f }};
+			[$lmath, "pow"]    := {{ "d", $lmath_pow, $$f, $$f, $$f }};
+			[$lmath, "random"] := {{ "d", $lmath_random, $$f, $$f, $$f }};
+			[$lmath, "round"]  := {{ "d", $lmath_round, $$f, $$f, $$f }};
+			[$lmath, "sin"]    := {{ "d", $lmath_sin, $$f, $$f, $$f }};
+			[$lmath, "sqrt"]   := {{ "d", $lmath_sqrt, $$f, $$f, $$f }};
+			[$lmath, "tan"]    := {{ "d", $lmath_tan, $$f, $$f, $$f }};
+			
+			xret := "create_object_with_body" ($lmath_abs, "M_abs", 1);
+			xret := "create_object_with_body" ($lmath_acos, "M_acos", 1);
+			xret := "create_object_with_body" ($lmath_asin, "M_asin", 1);	
+			xret := "create_object_with_body" ($lmath_atan, "M_atan", 1);
+			xret := "create_object_with_body" ($lmath_atan2, "M_atan2", 2);
+			xret := "create_object_with_body" ($lmath_ceil, "M_ceil", 1);
+			xret := "create_object_with_body" ($lmath_cos, "M_cos", 1);
+			xret := "create_object_with_body" ($lmath_exp, "M_exp", 1);
+			xret := "create_object_with_body" ($lmath_floor, "M_floor", 1);
+			xret := "create_object_with_body" ($lmath_log, "M_log", 1);
+			xret := "create_object_with_body" ($lmath_max, "M_max", 2);	
+			xret := "create_object_with_body" ($lmath_min, "M_min", 2);
+			xret := "create_object_with_body" ($lmath_pow, "M_pow", 2);
+			xret := "create_object_with_body" ($lmath_random, "M_random", 0);
+			xret := "create_object_with_body" ($lmath_round, "M_round", 1);
+			xret := "create_object_with_body" ($lmath_sin, "M_sin", 1);
+			xret := "create_object_with_body" ($lmath_sqrt, "M_sqrt", 1);	
+			xret := "create_object_with_body" ($lmath_tan, "M_tan", 1);
+
+	rlab:	xret := $$empty
+}
+with
+{
+	ret:	xret, rlab;
+}

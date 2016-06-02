@@ -3,6 +3,7 @@ open SSyntax
 %}
 
 (* procedures *) 
+%token IMPORT
 %token PROC
 %token RET
 %token ERR
@@ -83,6 +84,8 @@ open SSyntax
 %token UNSIGNEDRIGHTSHIFT
 %token LCONS
 %token LNTH
+%token M_ATAN2
+%token M_POW
 (* unary operators *)
 %token NOT
 %token TOSTRING
@@ -97,6 +100,31 @@ open SSyntax
 %token ISPRIMITIVE
 %token LENGTH
 %token GETFIELDS
+%token M_ABS 
+%token M_ACOS 
+%token M_ASIN 
+%token M_ATAN 
+%token M_CEIL
+%token M_COS 
+%token M_EXP 
+%token M_FLOOR 
+%token M_LOG 
+%token M_ROUND 
+%token M_SIN 
+%token M_SQRT 
+%token M_TAN 
+(* constants *)
+%token MIN_FLOAT
+%token MAX_FLOAT
+%token RANDOM
+%token E
+%token LN10
+%token LN2
+%token LOG2E
+%token LOG10E
+%token PI
+%token SQRT1_2
+%token SQRT2
 (* separators *)
 %token EOF
 %token COMMA
@@ -116,7 +144,7 @@ open SSyntax
 %token LISTOPEN
 %token LISTCLOSE
 
-%type <(SSyntax.lprocedure list)> prog_target
+%type <(string list option * SSyntax.lprocedure list)> prog_target
 %type <(SSyntax.jsil_spec list)>  specs_target
 %type <((SSyntax.jsil_logic_assertion option * string option * SSyntax.jsil_lab_cmd) list)> cmd_list_top_target
 
@@ -129,8 +157,11 @@ open SSyntax
 (********* JSIL *********)
 
 prog_target: 
-	proc_list_target EOF	{ $1 }
+	imports=option(import_target); proc_list=proc_list_target EOF	{ imports, proc_list }
 ;
+
+import_target: 
+  IMPORT; imports=separated_list(COMMA, VAR); SCOLON { imports } 
 
 proc_list_target: 
 	proc_list = separated_list(SCOLON, proc_target) { proc_list };
@@ -502,6 +533,17 @@ lit_target:
 	(* EMPTY AND NON-EMPTY LISTS *)
 	| LNIL { SSyntax.LList [] }
 	| LISTOPEN; LISTCLOSE { SSyntax.LList [] }
+	| MIN_FLOAT { SSyntax.Constant Min_float }
+	| MAX_FLOAT { SSyntax.Constant Max_float }
+	| RANDOM { SSyntax.Constant Random }
+	| E { SSyntax.Constant E }
+	| LN10 { SSyntax.Constant Ln10 }
+	| LN2 { SSyntax.Constant Ln2 }
+	| LOG2E { SSyntax.Constant Log2e }
+	| LOG10E { SSyntax.Constant Log10e }
+	| PI { SSyntax.Constant Pi }
+	| SQRT1_2 { SSyntax.Constant Sqrt1_2 }
+	| SQRT2 { SSyntax.Constant Sqrt2 }
 ;
 
 binop_target: 
@@ -524,6 +566,8 @@ binop_target:
 	| SIGNEDRIGHTSHIFT { SSyntax.SignedRightShift }
 	| UNSIGNEDRIGHTSHIFT { SSyntax.UnsignedRightShift }
 	| LCONS { SSyntax.LCons }
+	| M_ATAN2 { SSyntax.M_atan2 }
+	| M_POW {SSyntax.M_pow }
 ;
 
 unop_target: 
@@ -540,6 +584,19 @@ unop_target:
 	| CDR { SSyntax.Cdr }
 	| ISPRIMITIVE { SSyntax.IsPrimitive }
 	| LENGTH { SSyntax.Length }
+	| M_ABS   { SSyntax.M_abs }
+	| M_ACOS  { SSyntax.M_acos }
+	| M_ASIN  { SSyntax.M_asin }
+	| M_ATAN  { SSyntax.M_atan }
+	| M_CEIL  { SSyntax.M_ceil }
+	| M_COS   { SSyntax.M_cos }
+	| M_EXP   { SSyntax.M_exp }
+	| M_FLOOR { SSyntax.M_floor }
+	| M_LOG   { SSyntax.M_log }
+	| M_ROUND { SSyntax.M_round }
+	| M_SIN   { SSyntax.M_sin }
+	| M_SQRT  { SSyntax.M_sqrt }
+	| M_TAN   { SSyntax.M_tan }
 ;
 
 call_with_target: 

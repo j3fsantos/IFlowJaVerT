@@ -41,6 +41,8 @@ let string_of_binop bop = match bop with
   | SignedRightShift -> ">>"
   | UnsignedRightShift -> ">>>"
 	| LCons -> "::"
+	| M_atan2 -> "m_atan2"
+	| M_pow -> "**"
 
 let string_of_unop uop = match uop with 
   | Not -> "not"
@@ -56,6 +58,19 @@ let string_of_unop uop = match uop with
 	| Cdr -> "cdr"
 	| IsPrimitive -> "is_primitive"
 	| Length -> "length"
+	| M_abs -> "m_abs"              
+	| M_acos -> "m_acos"         
+	| M_asin -> "m_asin"       
+	| M_atan -> "m_atan"     
+	| M_ceil -> "m_ceil"             
+	| M_cos -> "m_cos"       
+	| M_exp -> "m_exp"          
+	| M_floor -> "m_floor"          
+	| M_log -> "m_log"         
+	| M_round -> "m_round"            
+	| M_sin -> "m_sin"             
+	| M_sqrt -> "m_sqrt"          
+	| M_tan -> "m_tan"             
 	
 let string_of_bool x =
   match x with
@@ -71,11 +86,25 @@ let string_of_type t =
   | NumberType -> "$$number_type"
   | ObjectType -> "$$object_type"
   | ReferenceType -> "$$reference_type"
-	| ObjectReferenceType -> "$$o_reference_type"
-	| VariableReferenceType -> "$$v_reference_type"	
+	| ObjectReferenceType -> "$$o-reference_type"
+	| VariableReferenceType -> "$$v-reference_type"	
 	| EmptyType -> "$$empty_type"
 	| TypeType -> "$$type_type"
 	| ListType -> "$$list_type"
+		
+let string_of_constant c =
+	match c with
+	| Min_float -> "$$min_value"
+	| Max_float -> "$$max_value"
+	| Random -> "$$random"
+	| E -> "$$e"
+	| Ln10 -> "$$ln10"
+	| Ln2 -> "$$ln2"
+	| Log2e -> "$$log2e"
+	| Log10e -> "$$log10e"
+	| Pi -> "$$pi"
+	| Sqrt1_2 -> "$$sqrt1_2"
+	| Sqrt2 -> "$$sqrt2"
 		
 let rec string_of_literal lit escape_string =
   match lit with
@@ -93,7 +122,7 @@ let rec string_of_literal lit escape_string =
 		| LVRef (l, x) -> Printf.sprintf "%s.v.%s" (string_of_literal l escape_string) x  
 	  | LORef (l, x) -> Printf.sprintf "%s.o.%s" (string_of_literal l escape_string) x   
 		| LList ll -> 
-			match ll with
+			(match ll with
 			| [] -> "$$nil"
 			| ll ->
 			let rec loop ll = 
@@ -107,7 +136,8 @@ let rec string_of_literal lit escape_string =
 						| _ -> ", ") in
 					let scdr = loop ll in
 					Printf.sprintf ("%s%s%s") scar ssep scdr)
-			in Printf.sprintf "{{ %s }}" (loop ll)
+			in Printf.sprintf "{{ %s }}" (loop ll))
+		| Constant c -> string_of_constant c 
 
 let rec sexpr_of_expression e =
   let se = sexpr_of_expression in
@@ -141,11 +171,11 @@ let rec string_of_expression e escape_string =
 		(* (uop e1 e2) *)
     | UnaryOp (op, e) -> Printf.sprintf "(%s %s)" (string_of_unop op) (se e)
 		(* (typeof e) *)
-    | TypeOf e -> Printf.sprintf "typeof(%s)" (se e)
+    | TypeOf e -> Printf.sprintf "typeOf(%s)" (se e)
 		(* ('ref-v e1 e2) *)
-    | VRef (e1, e2) -> Printf.sprintf "ref-v(%s, %s)" (se e1) (se e2)
+    | VRef (e1, e2) -> Printf.sprintf "v-ref(%s, %s)" (se e1) (se e2)
   	(* ('ref-o e1 e2) *)
-    | ORef (e1, e2) -> Printf.sprintf "ref-o(%s, %s)" (se e1) (se e2)
+    | ORef (e1, e2) -> Printf.sprintf "o-ref(%s, %s)" (se e1) (se e2)
 		(* ('base e) *)
     | Base e -> Printf.sprintf "base(%s)" (se e)
 		(* ('field e) *)
@@ -442,22 +472,22 @@ let string_of_lcmd lcmd =
   (match lcmd with
 	(* goto j *) 
   | SLGoto j -> 
-			Printf.sprintf "goto %s\n" j 
+			Printf.sprintf "goto %s" j 
   (* goto [e] j k *)
 	| SLGuardedGoto (e, j, k) -> 
 		let str_e = (string_of_expression e false) in 
-			Printf.sprintf "goto [%s] %s %s\n" str_e j k
+			Printf.sprintf "goto [%s] %s %s" str_e j k
 	(* basic command *)
-	| SLBasic bcmd -> (string_of_bcmd bcmd 0 false false) ^"\n"
+	| SLBasic bcmd -> (string_of_bcmd bcmd 0 false false)
 	(* x := f(y1, ..., yn) with j *)
 	| SLCall (var, proc_name_expr, arg_expr_list, error_lab) -> 
 		let proc_name_expr_str = string_of_expression proc_name_expr false in 
-		let error_lab = (match error_lab with | None -> "" | Some error_lab -> ("with " ^ error_lab)) in 
+		let error_lab = (match error_lab with | None -> "" | Some error_lab -> (" with " ^ error_lab)) in 
 		let se = fun e -> string_of_expression e false in 
 		let arg_expr_list_str = match arg_expr_list with
 		|	[] -> ""
 		| _ -> String.concat ", " (List.map se arg_expr_list) in 
-			Printf.sprintf "%s := %s(%s) %s\n" var proc_name_expr_str arg_expr_list_str error_lab)
+			Printf.sprintf "%s := %s(%s)%s" var proc_name_expr_str arg_expr_list_str error_lab)
 
 let string_of_lbody lbody = 
 	let len = Array.length lbody in
@@ -467,13 +497,14 @@ let string_of_lbody lbody =
 		let str_of_spec = 
 			(match spec with 
 			| None -> "" 
-			| Some ass -> "\t\t[[" ^ string_of_assertion ass false ^ "]]\n") in
+			| Some ass -> "\t\t\t[[" ^ string_of_assertion ass false ^ "]]\n") in
 		let str_of_lab  = 
 			(match lab with
-			| None -> "\t\t"
-			| Some lab -> "\t" ^ lab ^ ":\t") in
+			| None -> "\t\t\t"
+			| Some lab -> "\t" ^ lab ^ ":\t\t") in
 		let str_of_lcmd  = string_of_lcmd lcmd in
-		str := !str ^ str_of_spec ^ str_of_lab ^ str_of_lcmd
+		str := !str ^ str_of_spec ^ str_of_lab ^ str_of_lcmd ^
+		(if (i = len - 1) then "" else ";") ^ "\n"
 	done;
 	!str
 
@@ -484,7 +515,7 @@ let string_of_lprocedure (lproc : lprocedure) =
 		Printf.sprintf "spec %s (%s) \n %s \n" spec.spec_name (string_of_params spec.spec_params) (string_of_specs spec.proc_specs)
 	)
 	^
-	(Printf.sprintf "proc %s (%s) { \n %s \n} with { \n\t ret: %s, %s; \n%s}\n" 
+	(Printf.sprintf "proc %s (%s) { \n %s \n} with { \n\t ret: %s, %s; \n%s}" 
   	lproc.lproc_name 
    	(string_of_params lproc.lproc_params) 
 		(string_of_lbody lproc.lproc_body)
@@ -508,12 +539,27 @@ let string_of_program program line_numbers =
 	program	
 	""
 
-let string_of_lprogram lprogram = 
-	SSyntax.SProgram.fold 
-	(fun _ proc acc_str ->
-		acc_str ^ "\n" ^ (string_of_lprocedure proc))
-	lprogram	
-	""				
+let string_of_lprogram (lprogram : jsil_lprog) : string = 
+	let imports_str, procs = 
+		(match lprogram with 
+		| None, procs -> "", procs
+		| Some str_lst, procs -> 
+			let imports_str = 
+				List.fold_left
+					(fun ac import_file -> 
+						if (ac = "") 
+							then import_file
+							else ac ^ ", " ^ import_file)
+				""
+				str_lst in 
+			let imports_str = if (imports_str = "") then "" else ("import " ^ imports_str ^ ";\n") in 
+			imports_str, procs) in 
+	let procs_str	= 
+		SSyntax.SProgram.fold 
+			(fun _ proc acc_str -> acc_str ^ "\n" ^ (string_of_lprocedure proc) ^ ";\n")
+			procs	
+			"" in 
+	imports_str ^ (String.sub procs_str 0 (String.length procs_str - 2))				
 				
 let serialize_prog_racket prog line_numbers = 
 	let serialized_prog	= sexpr_of_program prog line_numbers in 

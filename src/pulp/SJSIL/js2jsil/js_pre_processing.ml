@@ -284,6 +284,12 @@ let closure_clarification_top_level main e =
 	Hashtbl.add cc_tbl main main_tbl; 
 	Hashtbl.add fun_tbl main (main, [], e); 
 	closure_clarification cc_tbl fun_tbl [] main e; 
+	(Hashtbl.iter
+		(fun f_id f_tbl ->
+			(Hashtbl.iter 
+				(fun v fun_v ->
+					Hashtbl.replace f_tbl v (Printf.sprintf "\"%s\"" fun_v))
+				f_tbl)) cc_tbl);
 	cc_tbl, fun_tbl
 
 let rec print_cc_tbl cc_tbl = 

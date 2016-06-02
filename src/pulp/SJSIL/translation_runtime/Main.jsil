@@ -1,0 +1,16 @@
+import Init, Math;
+
+proc main () {
+
+			xret := "setupInitialHeap" ();
+			
+			xret := "M_abs" ($$empty, $$empty, -2.34);
+			
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
+}

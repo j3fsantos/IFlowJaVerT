@@ -1,0 +1,37 @@
+import Internals;
+
+(* ***************** *) 
+(* THE ARRAY LIBRARY *)
+(* ***************** *) 
+
+(* *** CALL *** *)
+
+proc Array_call () {
+			xret := "Array_construct" () with elab;
+			
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** CONSTRUCT *** *)
+
+proc Array_construct () {
+
+			xret := new ();
+			xret := "create_default_object" (xret, $larr_proto, "Array", $$t);
+			
+			x := "o__defineOwnProperty" (xret, "length", {{ "d", 0, $$f, $$f, $$f }}, $$t); 
+			
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err:	xret, elab;
+}

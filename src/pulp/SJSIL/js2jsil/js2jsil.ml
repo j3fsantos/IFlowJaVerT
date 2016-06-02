@@ -3,6 +3,19 @@ open Lexing
 open Batteries
 open SSyntax
 
+let js2jsil_imports = [
+	"Array"; 
+	"Boolean";
+	"Function"; 
+	"Global";
+	"Init";
+	"Internals";
+	"Math"; 
+	"Number"; 
+	"Object"; 
+	"String"
+]
+
 let bodyPropName = "@body"
 let scopePropName = "@scope"
 
@@ -45,10 +58,10 @@ type tr_ctx = {
 
 let make_translation_ctx fid = 
 { 
-	tr_ret_lab = "lab_ret_" ^ fid; 
-	tr_ret_var = "var_ret_" ^ fid;
-	tr_error_lab = "err_lab_" ^ fid; 
-	tr_error_var = "err_var_" ^ fid
+	tr_ret_lab = "rlab"; (* ^ fid; *)
+	tr_ret_var = "xret"; (* ^ fid; *)
+	tr_error_lab = "elab"; (* ^ fid; *)
+	tr_error_var = "xerr"; (* ^ fid *)
 }
 
 let parse str =
@@ -69,20 +82,20 @@ let var_scope = "x__scope"
 Variable x::
 	Found in the closure clarification table: Phi(fid_1, x) = fid_2
 					x_1 := [__scope_chain, fid_2]; 
-					x_2 := ref_v(x_1, "x")
+					x_2 := v-ref(x_1, "x")
 	
 	Not found in the closure clarification table: Phi(fid_1, x) = bot
 					x_1 := proto_field($lg, "x"); 
 					goto [x_1 = $$undefined] lab1 lab2
-		lab1: x_2 := ref_v($$undefined, "x"); 
+		lab1: x_2 := v-ref($$undefined, "x"); 
 		      goto lab3; 
-		lab2: x_2 := ref_v($lg, "x"); 
+		lab2: x_2 := v-ref($lg, "x"); 
 		lab3: skip  	 
  *)
 let translate_var_found fid js_var new_var = 
 	let tmpl :  ('a -> 'b -> 'c -> 'd -> 'e -> 'f -> 'g, unit, string) format = 
 " 			%s := [%s, %s]; 
-				%s := ref_v(%s, \"%s\")"
+				%s := v-ref(%s, \"%s\")"
 	in
 	let x_1 = fresh_var () in 
 	let target_code_str = Printf.sprintf tmpl x_1 var_scope fid new_var x_1 js_var in 
@@ -97,9 +110,9 @@ let translate_var_not_found fid js_var new_var =
 	let tmpl :  ('a -> 'b -> 'c -> 'd -> 'e -> 'f -> 'g -> 'h -> 'i -> 'j -> 'k -> 'l -> 'm -> 'n, unit, string) format = 
 "				%s := proto_field($lg, \"%s\"); 
 				goto [%s = $$undefined] %s %s; 
-	%s: 	%s := ref_v($$undefined, \"%s\"); 
+	%s: 	%s := v-ref($$undefined, \"%s\"); 
 		    goto %s; 
-	%s:		%s := ref_v($lg, \"%s\"); 
+	%s:		%s := v-ref($lg, \"%s\"); 
 	%s: 	skip"
 	in 
 	let target_code_str = Printf.sprintf tmpl x_1 js_var x_1 lab1 lab2 lab1 x_2 js_var lab3 lab2 new_var js_var lab3 in 
@@ -570,10 +583,6 @@ let generate_main e main cc_table =
 	}
 	
 let generate_proc e fid params cc_table =
-	let cc_tbl_fid = 
-		try Hashtbl.find cc_table fid 
-			with _ -> raise (Failure "main not defined in cc_table - assim fica dificil")  in 
-	
 	let fid_decls = Js_pre_processing.func_decls_in_exp e in
   let fid_fnames = List.map (fun f ->
     match f.Parser_syntax.exp_stx with
@@ -651,7 +660,7 @@ let js2jsil e =
 	(* let main_str = SSyntax_Print.string_of_lprocedure jsil_proc_main in 
 	Printf.printf "main code:\n %s\n" main_str; *)
 	
-	jsil_prog
+	Some js2jsil_imports, jsil_prog
 
 	
 	

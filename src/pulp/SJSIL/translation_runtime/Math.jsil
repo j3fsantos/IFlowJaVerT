@@ -1,0 +1,271 @@
+import Internals;
+
+(* **************** *) 
+(* THE MATH LIBRARY *)
+(* **************** *) 
+
+(* *** ABS *** *)
+
+proc M_abs (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+			
+			xret := m_abs (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** ACOS *** *)
+
+proc M_acos (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+			
+			xret := m_acos (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** ASIN *** *)
+
+proc M_asin (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+			
+			xret := m_asin (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** ATAN *** *)
+
+proc M_atan (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+			
+			xret := m_atan (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** CEIL *** *)
+
+proc M_ceil (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+			
+			xret := m_ceil (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** COS *** *)
+
+proc M_cos (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+			
+			xret := m_cos (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** EXP *** *)
+
+proc M_exp (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+			
+			xret := m_exp (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** FLOOR *** *)
+
+proc M_floor (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+			
+			xret := m_floor (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** LOG *** *)
+
+proc M_log (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+			
+			xret := m_log (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** ROUND *** *)
+
+proc M_round (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+			
+			xret := m_round (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** SIN *** *)
+
+proc M_sin (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+			
+			xret := m_sin (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** SQRT *** *)
+
+proc M_sqrt (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+			
+			xret := m_sqrt (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** TAN *** *)
+
+proc M_tan (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+			
+			xret := m_tan (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** ATAN2 *** *)
+
+proc M_atan2 (xsc, vthis, x, y) {
+			xret := "i__toNumber" (x) with elab;
+			x := xret;
+			
+			xret := "i__toNumber" (y) with elab;
+			y := xret;
+			
+			xret := x m_atan2 y;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** POW *** *)
+
+proc M_pow (xsc, vthis, x, y) {
+			xret := "i__toNumber" (x) with elab;
+			x := xret;
+			
+			xret := "i__toNumber" (y) with elab;
+			y := xret;
+			
+			xret := x ** y;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** RANDOM *** *)
+
+proc M_random (xsc, vthis) {
+			
+			xret := m_random (x, y);
+
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+}
+
+(* TODO TODO TODO TODO 
+			xret := "create_object_with_body" ($lmath_max, "M_max", 2);	
+			xret := "create_object_with_body" ($lmath_min, "M_min", 2);
+*)
