@@ -1599,7 +1599,144 @@ with
 };
 
 
+(* ***PROTOTYPECONSTRUCTOR*** *)
+(* same as object constructor *)
 
+(* ***PROTOTYPETOSTRING*** *)
+(*
+proc Object_proto_toString(xsc, vthis) {
+			goto [vthis = $$undefined] undef def;
+	undef: 	xret := "[object Undefined]";
+			goto rlab;
+	def:	goto [vthis = $$null] null nnull;
+	null:	xret := "[object Null]";
+			goto rlab;
+	nnull:	o := "i__toObject" (vthis) with elab;
+			c := [o, "@class"];
+			xret := "object " :: c :: "]";
+	
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err: 	xret, elab;
+};
+*)
+
+(* ***PROTOTYPETOLOCALESTRING*** *)
+(*
+proc Object_proto_toLocaleString(xsc, vthis) {
+			o := "i__toObject" (vthis);
+			g := [o, "@get"];
+			ts := g (o, "toString") with elab;
+			c := "i__isCallable" (ts);
+            goto [c] call throw;
+	call:	ca := [ts, "@call"];
+			xret := ca (o);
+	rlab:	skip;
+	
+	throw: 	xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err: 	xret, elab;
+};
+*)
+
+(* ***PROTOTYPEVALUEOF*** *)
+(*
+proc Object_proto_valueOf(xsc, vthis) {
+			o := "i__toObject" (vthis) with elab;
+			goto [o = "Object_construct" (vthis)] cons else;
+			
+	cons:	xret := o or vthis;
+			goto rlab;
+	
+	else: 	xret := o;
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+*)
+
+
+(* ***PROTOTYPEHASOWNPROPERTY*** *)
+(*
+proc Object_proto_hasOwnProperty(xsc, vthis, v) {
+			p := "i__toString" (v);
+			o := "i__toObject" (vthis) with elab;
+			gop := [o, "@getOwnProperty"];
+			d := gop (o, p) with elab;
+			goto [d = $$undefined] undef def;
+	undef:  xret := $$f;
+			goto rlab;
+	def:	xreg := $$t;
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+*)
+
+
+(* ***PROTOTYPEISPROTOTYPEOF*** *)
+(*
+proc Object_proto_isPrototypeOf(xsc, vthis, v) {
+			goto [typeOf(o) = $$object_type] obj nobj;
+	obj:	o := "i__toObject" (vthis) with elab;
+	rep:	v := [v, "@prototype"];
+			goto [v == $$null] null nnull;
+	
+	null:	xret := $$f;
+			goto rlab;
+	
+	nnull:  goto [v = o] eq rep;
+	
+	eq: 	xret := $$t;
+			goto rlab;
+	
+	nobj: 	xret := $$f;
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+*)
+
+(* ***PROTOTYPEPROPERTYISENUMERABLE*** *)
+(*
+proc Object_proto_propertyIsEnumerable(xsc, vthis, v) {
+			p := "i__toString" (v);
+			o := "i__toObject" (vthis) with elab;
+			gop := [o, "@getOwnProperty"];
+			d := gop (o, p) with elab;
+			goto [d = $$undefined] undef def;
+	undef:  xret := $$f;
+			goto rlab;
+			
+	def:	xret := [desc, "@enumerable"];
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+*)
 
 (* ***************** *) 
 (* THE ARRAY LIBRARY *)
@@ -2207,13 +2344,21 @@ proc main () {
 			xret := "i__getEnumerableFields" (l);
 			
 			xret := "Object_preventExtensions" ($$empty, $$empty, $lg);
-			*)
 			
 			xret := "Object_isSealed" ($$empty, $$empty, l);
 			
 			[l, "test"] := {{ "d", 42, $$f, $$t, $$t }};
 			
 			xret := "Object_freeze" ($$empty, $$empty, l);
+			*)
+			
+			(*
+			xret := "Object_proto_toString" ($$empty, $$empty);
+			
+			xret := "Object_proto_toLocaleString" ($$empty, $$empty);
+			
+			xret := "Object_proto_valueOf" ($$empty, $$empty, );
+			*)
 
 			
 	rlab:	skip;
