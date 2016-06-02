@@ -690,9 +690,9 @@ proc i__putValue (v, w) {
 			rfield := field (v);
 			goto [rbase = $$undefined] throw prim;
 	
-	prim:	goto [(is_primitive rbase) and (not (rbase = $$undefined)) and (not (rbase = $$null))] is_pr ref;
+	prim:	goto [(is_primitive rbase) and (not (rbase = $$undefined)) and (not (rbase = $$null))] is_pr refr;
 	
-	ref:	goto [typeOf(v) = $$o-reference_type] oref vref;
+	refr:	goto [typeOf(v) = $$o-reference_type] oref vref;
 	
 	oref:	p := [rbase, "@put"];
 			xret := p (rbase, rfield, w, $$t) with elab;
@@ -705,7 +705,6 @@ proc i__putValue (v, w) {
 			goto dflt;
 			
 	er:		[rbase, rfield] := w;
-			goto rlab;
 	
 	dflt:	xret := $$empty;
 	rlab:	skip;
@@ -975,6 +974,19 @@ proc i__isCallable (l) {
 	obj:	xret := hasField (l, "@body");
 			goto rlab;
 	endf:	xret := $$f;
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+(* ********** *) 
+(* ISRESERVED *)
+(* ********** *) 
+
+proc i__isReserved (l) {
+			xret := $$f;
 	rlab:	skip
 }
 with

@@ -57,3 +57,10 @@ TODO
 * Test toPrimitive, toNumber, toString for objects!
 
 * Math min and max!
+
+INTEGRATION
+-----------
+
+setupInitialHeap
+
+is__Reserved!
