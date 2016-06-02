@@ -345,11 +345,14 @@ let evaluate_binop op lit1 lit2 =
 	| LCons -> 
 		(match lit2 with
 		| LList list -> LList 
-			(
-				match lit1 with
+			(match lit1 with
 				| LList [] -> list
 				| _ -> lit1 :: list)
-		| _ -> raise (Failure "Non-list second argument to LCons"))
+		| String s2 -> 
+			(match lit1 with
+			| String s1 -> String (s1 ^ s2)
+			| _ -> raise (Failure "Non-string concatenation with a string"))
+		| _ -> raise (Failure "Non-list second argument or non-string arguments to LCons"))
 	| M_atan2 ->
 		(match lit1, lit2 with
 		| Num x, Num y -> Num (atan2 x y)

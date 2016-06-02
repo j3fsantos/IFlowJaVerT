@@ -561,23 +561,28 @@ with
 {
 	ret:	xret, rlab;
 	err:	xret, elab;
-}
+};
 
-(* ***PROTOTYPECONSTRUCTOR*** *)
-(* same as object constructor *)
+(* **************** *) 
+(* OBJECT.PROTOTYPE *)
+(* **************** *) 
 
-(* ***PROTOTYPETOSTRING*** *)
-(*
-proc Object_proto_toString(xsc, vthis) {
+(* *** TOSTRING*** *)
+
+proc OP_toString(xsc, vthis) {
 			goto [vthis = $$undefined] undef def;
+			
 	undef: 	xret := "[object Undefined]";
 			goto rlab;
+			
 	def:	goto [vthis = $$null] null nnull;
+	
 	null:	xret := "[object Null]";
 			goto rlab;
-	nnull:	o := "i__toObject" (vthis) with elab;
-			c := [o, "@class"];
-			xret := "object " :: c :: "]";
+			
+	nnull:	xret := "i__toObject" (vthis) with elab;
+			c := [xret, "@class"];
+			xret := "[object " :: c :: "]";
 	
 	rlab:	skip;
 	elab:	skip
@@ -587,18 +592,22 @@ with
 	ret:	xret, rlab;
 	err: 	xret, elab;
 };
-*)
 
-(* ***PROTOTYPETOLOCALESTRING*** *)
-(*
-proc Object_proto_toLocaleString(xsc, vthis) {
-			o := "i__toObject" (vthis);
+(* *** TOLOCALESTRING *** *)
+
+proc OP_toLocaleString(xsc, vthis) {
+			xret := "i__toObject" (vthis) with elab;
+			o := xret;
+			
 			g := [o, "@get"];
-			ts := g (o, "toString") with elab;
-			c := "i__isCallable" (ts);
+			xret := g (o, "toString") with elab;
+			c := "i__isCallable" (xret);
             goto [c] call throw;
-	call:	ca := [ts, "@call"];
-			xret := ca (o);
+            
+	call:	scp := [xret, "@scope"];
+			fun := [xret, "@body"];	
+			xret := fun (scp, o) with elab;
+			
 	rlab:	skip;
 	
 	throw: 	xret := "TypeError" ();
@@ -609,89 +618,39 @@ with
 	ret:	xret, rlab;
 	err: 	xret, elab;
 };
-*)
 
-(* ***PROTOTYPEVALUEOF*** *)
-(*
-proc Object_proto_valueOf(xsc, vthis) {
-			o := "i__toObject" (vthis) with elab;
-			goto [o = "Object_construct" (vthis)] cons else;
+(* *** VALUEOF *** *)
+
+proc OP_valueOf(xsc, vthis) {
+			xret := "i__toObject" (vthis) with elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+
+(* *** HASOWNPROPERTY*** *)
+
+proc OP_hasOwnProperty(xsc, vthis, v) {
+			xret := "i__toString" (v) with elab;
+			p := xret;
 			
-	cons:	xret := o or vthis;
-			goto rlab;
-	
-	else: 	xret := o;
-	rlab:	skip
-}
-with
-{
-	ret:	xret, rlab;
-	err:	xret, elab;
-};
-*)
-
-
-(* ***PROTOTYPEHASOWNPROPERTY*** *)
-(*
-proc Object_proto_hasOwnProperty(xsc, vthis, v) {
-			p := "i__toString" (v);
-			o := "i__toObject" (vthis) with elab;
-			gop := [o, "@getOwnProperty"];
-			d := gop (o, p) with elab;
-			goto [d = $$undefined] undef def;
-	undef:  xret := $$f;
-			goto rlab;
-	def:	xreg := $$t;
-	rlab:	skip;
-	elab:	skip
-}
-with
-{
-	ret:	xret, rlab;
-	err:	xret, elab;
-};
-*)
-
-
-(* ***PROTOTYPEISPROTOTYPEOF*** *)
-(*
-proc Object_proto_isPrototypeOf(xsc, vthis, v) {
-			goto [typeOf(o) = $$object_type] obj nobj;
-	obj:	o := "i__toObject" (vthis) with elab;
-	rep:	v := [v, "@prototype"];
-			goto [v == $$null] null nnull;
-	
-	null:	xret := $$f;
-			goto rlab;
-	
-	nnull:  goto [v = o] eq rep;
-	
-	eq: 	xret := $$t;
-			goto rlab;
-	
-	nobj: 	xret := $$f;
-	rlab:	skip;
-	elab:	skip
-}
-with
-{
-	ret:	xret, rlab;
-	err:	xret, elab;
-};
-*)
-
-(* ***PROTOTYPEPROPERTYISENUMERABLE*** *)
-(*
-proc Object_proto_propertyIsEnumerable(xsc, vthis, v) {
-			p := "i__toString" (v);
-			o := "i__toObject" (vthis) with elab;
-			gop := [o, "@getOwnProperty"];
-			d := gop (o, p) with elab;
-			goto [d = $$undefined] undef def;
+			xret := "i__toObject" (vthis) with elab;
+			gop := [xret, "@getOwnProperty"];
+			xret := gop (xret, p) with elab;
+			
+			goto [xret = $$undefined] undef def;
+			
 	undef:  xret := $$f;
 			goto rlab;
 			
-	def:	xret := [desc, "@enumerable"];
+	def:	xret := $$t;
+	
 	rlab:	skip;
 	elab:	skip
 }
@@ -700,4 +659,56 @@ with
 	ret:	xret, rlab;
 	err:	xret, elab;
 };
-*)
+
+
+(* *** ISPROTOTYPEOF *** *)
+
+proc OP_isPrototypeOf(xsc, vthis, v) {
+			goto [typeOf(v) = $$object_type] obj fret;
+			
+	obj:	xret := "i__toObject" (vthis) with elab;
+	
+	rep:	v := [v, "@proto"];
+			goto [v = $$null] fret nnull;
+		
+	nnull:  goto [v = xret] tret rep;
+	
+	tret: 	xret := $$t;
+			goto rlab;
+	
+	fret: 	xret := $$f;
+	
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** PROPERTYISENUMERABLE *** *)
+
+proc OP_propertyIsEnumerable(xsc, vthis, v) {
+			xret := "i__toString" (v) with elab;
+			p := xret;
+			
+			xret := "i__toObject" (vthis) with elab;
+			gop := [xret, "@getOwnProperty"];
+			xret := gop (xret, p) with elab;
+			
+			goto [xret = $$undefined] undef def;
+			
+	undef:  xret := $$f;
+			goto rlab;
+			
+	def:	xret := nth (xret, 3);
+	
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+}

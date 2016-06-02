@@ -117,12 +117,12 @@ proc setupInitialHeap () {
   			[$lg, "Date"]               := {{ "d", $ldate, $$t, $$f, $$t }}; 
  			[$lg, "RegExp"]             := {{ "d", $lregexp, $$t, $$f, $$t }}; 
   			[$lg, "Error"]              := {{ "d", $lerr, $$t, $$f, $$t }};
-			[$lg, "EvalError"]          := {{ "d", $lerr_e, $$t, $$f, $$t }};
-  			[$lg, "RangeError"]         := {{ "d", $lerr_rg, $$t, $$f, $$t }};
-  			[$lg, "ReferenceError"]     := {{ "d", $lerr_rf, $$t, $$f, $$t }};
-  			[$lg, "SyntaxError"]        := {{ "d", $lerr_s, $$t, $$f, $$t }};
-  			[$lg, "TypeError"]          := {{ "d", $lerr_t, $$t, $$f, $$t }};
-  			[$lg, "URIError"]           := {{ "d", $lerr_u, $$t, $$f, $$t }};
+  			[$lg, "EvalError"]          := {{ "d", $leerr, $$t, $$f, $$t }};
+  			[$lg, "RangeError"]         := {{ "d", $lrgerr, $$t, $$f, $$t }};
+  			[$lg, "ReferenceError"]     := {{ "d", $lrferr, $$t, $$f, $$t }};
+  			[$lg, "SyntaxError"]        := {{ "d", $lserr, $$t, $$f, $$t }};
+  			[$lg, "TypeError"]          := {{ "d", $lterr, $$t, $$f, $$t }};
+  			[$lg, "URIError"]           := {{ "d", $luerr, $$t, $$f, $$t }};
   			[$lg, "JSON"]               := {{ "d", $ljson, $$t, $$f, $$t }};
   			
   			xret := "create_object_with_body" ($lg_eval, "Object_eval", 1);
@@ -137,7 +137,7 @@ proc setupInitialHeap () {
   			
   			(* Object object *)
     			
-  			xret := "create_object_with_body" ($lobj, $$empty, 1);
+  			xret := "create_object_with_body" ($lobj, "Object_construct", 1);
   			
   			[$lobj, "prototype"]                := {{ "d", $lobj_proto, $$f, $$f, $$f }};
 			[$lobj, "getPrototypeOf"]           := {{ "d", $lobj_getPrototypeOf, $$t, $$f, $$t }};
@@ -171,7 +171,7 @@ proc setupInitialHeap () {
 			
 			xret := "create_default_object" ($lobj_proto, $$null, "Object", $$t);
 			
-			[$lobj_proto, "constructor"]          := {{ "d", $lop_constructor, $$t, $$f, $$t }};
+			[$lobj_proto, "constructor"]          := {{ "d", $lobj, $$t, $$f, $$t }};
 			[$lobj_proto, "toString"]             := {{ "d", $lop_toString, $$t, $$f, $$t }};
 			[$lobj_proto, "toLocaleString"]       := {{ "d", $lop_toLocaleString, $$t, $$f, $$t }};
 			[$lobj_proto, "valueOf"]              := {{ "d", $lop_valueOf, $$t, $$f, $$t }};
@@ -179,7 +179,6 @@ proc setupInitialHeap () {
 			[$lobj_proto, "isPrototypeOf"]        := {{ "d", $lop_isPrototypeOf, $$t, $$f, $$t }};
 			[$lobj_proto, "propertyIsEnumerable"] := {{ "d", $lop_propertyIsEnumerable, $$t, $$f, $$t }};
 
-			xret := "create_object_with_body" ($lop_constructor, "Object_construct", 1);
 			xret := "create_object_with_body" ($lop_toString, "OP_toString", 0);
   			xret := "create_object_with_body" ($lop_toLocaleString, "OP_toLocaleString", 0);
 			xret := "create_object_with_body" ($lop_valueOf, "OP_valueOf", 0);
@@ -191,7 +190,7 @@ proc setupInitialHeap () {
   			
   			(* Array object *)
     			
-  			xret := "create_object_with_body" ($larr, $$empty, 1);
+  			xret := "create_object_with_body" ($larr, "Array_construct", 1);
   			
   			[$larr, "prototype"] := {{ "d", $larr_proto, $$f, $$f, $$f }};
   			[$larr, "isArray"]   := {{ "d", $larr_isArray, $$t, $$f, $$t }};
@@ -202,7 +201,7 @@ proc setupInitialHeap () {
 			
 			xret := "create_default_object" ($larr_proto, $lobj_proto, "Array", $$t);
 			
-			[$larr_proto, "constructor"]    := {{ "d", $lap_constructor, $$t, $$f, $$t }};
+			[$larr_proto, "constructor"]    := {{ "d", $larr, $$t, $$f, $$t }};
 			[$larr_proto, "toString"]       := {{ "d", $lap_toString, $$t, $$f, $$t }};
 			[$larr_proto, "toLocaleString"] := {{ "d", $lap_toLocaleString, $$t, $$f, $$t }};
 			[$larr_proto, "concat"]         := {{ "d", $lap_concat, $$t, $$f, $$t }};
@@ -225,7 +224,6 @@ proc setupInitialHeap () {
 			[$larr_proto, "reduce"]         := {{ "d", $lap_reduce, $$t, $$f, $$t }};
 			[$larr_proto, "reduceRight"]    := {{ "d", $lap_reduceRight, $$t, $$f, $$t }};
 			
-			xret := "create_object_with_body" ($lap_constructor, "Array_construct", 1);
 			xret := "create_object_with_body" ($lap_toString, "AP_toString", 0);
 			xret := "create_object_with_body" ($lap_toLocaleString, "AP_toLocaleString", 0);
 			xret := "create_object_with_body" ($lap_concat, "AP_concat", 1);
@@ -251,7 +249,7 @@ proc setupInitialHeap () {
 
 			(* String object *)
 			
-			xret := "create_object_with_body" ($lstr, $$empty, 1);
+			xret := "create_object_with_body" ($lstr, "String_construct", 1);
 			
 			[$lstr, "prototype"]    := {{ "d", $lstr_proto, $$f, $$f, $$f }};
 			[$lstr, "fromCharCode"] := {{ "d", $lstr_fromCharCode, $$t, $$f, $$t }};
@@ -262,7 +260,7 @@ proc setupInitialHeap () {
 			
 			xret := "create_default_object" ($lstr_proto, $lobj_proto, "String", $$t);
 			
-			[$lstr_proto, "constructor"]       := {{ "d", $lsp_constructor, $$t, $$f, $$t }};
+			[$lstr_proto, "constructor"]       := {{ "d", $lstr, $$t, $$f, $$t }};
 			[$lstr_proto, "toString"]          := {{ "d", $lsp_toString, $$t, $$f, $$t }};
 			[$lstr_proto, "valueOf"]           := {{ "d", $lsp_valueOf, $$t, $$f, $$t }};
 			[$lstr_proto, "charAt"]            := {{ "d", $lsp_charAt, $$t, $$f, $$t }};
@@ -307,7 +305,7 @@ proc setupInitialHeap () {
 			
 			(* Boolean object *)
 			
-			xret := "create_object_with_body" ($lbool, $$empty, 1);
+			xret := "create_object_with_body" ($lbool, "Boolean_construct", 1);
 			
 			[$lbool, "prototype"] := {{ "d", $lbool_proto, $$f, $$f, $$f }};
 
@@ -315,17 +313,16 @@ proc setupInitialHeap () {
 			
 			xret := "create_default_object" ($lbool_proto, $lobj_proto, "Boolean", $$t);
 			
-			[$lbool_proto, "constructor"] := {{ "d", $lbp_constructor, $$t, $$f, $$t }};
+			[$lbool_proto, "constructor"] := {{ "d", $lbool, $$t, $$f, $$t }};
 			[$lbool_proto, "toString"]    := {{ "d", $lbp_toString, $$t, $$f, $$t }};
 			[$lbool_proto, "valueOf"]     := {{ "d", $lbp_valueOf, $$t, $$f, $$t }};
 			
-			xret := "create_object_with_body" ($lbp_constructor, "Boolean_construct", 1);
 			xret := "create_object_with_body" ($lbp_toString, "BP_toString", 0);
 			xret := "create_object_with_body" ($lbp_valueOf, "BP_valueOf", 0);		
 			
 			(* Number object *)
 			
-			xret := "create_object_with_body" ($lnum, $$empty, 1);
+			xret := "create_object_with_body" ($lnum, "Number_construct", 1);
 
 			[$lnum, "prototype"]         := {{ "d", $lnum_proto, $$f, $$f, $$f }};
 			[$lnum, "MAX_VALUE"]         := {{ "d", $$max_float, $$f, $$f, $$f }};
@@ -338,7 +335,7 @@ proc setupInitialHeap () {
 			
 			xret := "create_default_object" ($lnum_proto, $lobj_proto, "Number", $$t);
 			
-			[$lnum_proto, "constructor"]          := {{ "d", $lnp_constructor, $$t, $$f, $$t }};
+			[$lnum_proto, "constructor"]          := {{ "d", $lnum, $$t, $$f, $$t }};
 			[$lnum_proto, "toString"]             := {{ "d", $lnp_toString, $$t, $$f, $$t }};
 			[$lnum_proto, "toLocaleString"]       := {{ "d", $lnp_toLocaleString, $$t, $$f, $$t }};
 			[$lnum_proto, "valueOf"]              := {{ "d", $lnp_valueOf, $$t, $$f, $$t }};
@@ -346,7 +343,6 @@ proc setupInitialHeap () {
 			[$lnum_proto, "toExponential"]        := {{ "d", $lnp_toExponential, $$t, $$f, $$t }};
 			[$lnum_proto, "toPrecision"]          := {{ "d", $lnp_toPrecision, $$t, $$f, $$t }};
 			
-			xret := "create_object_with_body" ($lnp_constructor, "Number_construct", 1);
 			xret := "create_object_with_body" ($lnp_toString, "Number_toString", 0);
 			xret := "create_object_with_body" ($lnp_toLocaleString, "Number_toLocaleString", 0);	
 			xret := "create_object_with_body" ($lnp_valueOf, "Number_valueOf", 0);
@@ -406,6 +402,71 @@ proc setupInitialHeap () {
 			xret := "create_object_with_body" ($lmath_sin, "M_sin", 1);
 			xret := "create_object_with_body" ($lmath_sqrt, "M_sqrt", 1);	
 			xret := "create_object_with_body" ($lmath_tan, "M_tan", 1);
+			
+			
+			(* Error object *)
+			
+			xret := "create_default_object" ($lerr, $lerr_proto, "Error", $$t);
+			
+			[$lerr, "prototype"]         := {{ "d", $lerr_proto, $$f, $$f, $$f }};
+			
+			(* Error.prototype *)
+			
+			xret := "create_default_object" ($lerr_proto, $lobj_proto, "Error", $$t);
+			
+			[$lerr_proto, "constructor"] := {{ "d", $lerr, $$t, $$f, $$t }};
+			[$lerr_proto, "name"]        := {{ "d", "Error", $$t, $$f, $$t }};
+			[$lerr_proto, "message"]     := {{ "d", "", $$t, $$f, $$t }};
+			[$lerr_proto, "toString"]    := {{ "d", $lep_toString, $$t, $$f, $$t }};
+			
+			xret := "create_object_with_body" ($lep_toString, "Error_toString", 0);
+				
+			(* Native errors *)
+
+			xret := "create_object_with_body" ($leerr,  "EvalError", 1);
+			xret := "create_object_with_body" ($lrgerr, "RangeError", 1);
+			xret := "create_object_with_body" ($lrferr, "ReferenceError", 1);
+			xret := "create_object_with_body" ($lserr,  "SyntaxError", 1);
+			xret := "create_object_with_body" ($lterr,  "TypeError", 1);
+			xret := "create_object_with_body" ($luerr,  "URIError", 1);
+			
+			[$leerr,  "prototype"]    := {{ "d", $leerr_proto, $$t, $$f, $$t }};
+			[$lrgerr, "prototype"]    := {{ "d", $lrgerr_proto, $$t, $$f, $$t }};
+			[$lrferr, "prototype"]    := {{ "d", $lrferr_proto, $$t, $$f, $$t }};
+			[$lserr,  "prototype"]    := {{ "d", $lserr_proto, $$t, $$f, $$t }};
+			[$lterr,  "prototype"]    := {{ "d", $lterr_proto, $$t, $$f, $$t }};
+			[$luerr,  "prototype"]    := {{ "d", $luerr_proto, $$t, $$f, $$t }};
+			
+			
+			(* Native error prototypes *)
+			
+			xret := "create_default_object" ($leerr_proto,  $lerr_proto, "Error", $$t);
+			xret := "create_default_object" ($lrgerr_proto, $lerr_proto, "Error", $$t);
+			xret := "create_default_object" ($lrferr_proto, $lerr_proto, "Error", $$t);
+			xret := "create_default_object" ($lserr_proto,  $lerr_proto, "Error", $$t);
+			xret := "create_default_object" ($lterr_proto,  $lerr_proto, "Error", $$t);
+			xret := "create_default_object" ($luerr_proto,  $lerr_proto, "Error", $$t);
+			
+			[$leerr_proto,  "constructor"]    := {{ "d", $leerr, $$t, $$f, $$t }};
+			[$lrgerr_proto, "constructor"]    := {{ "d", $lrgerr, $$t, $$f, $$t }};
+			[$lrferr_proto, "constructor"]    := {{ "d", $lrferr, $$t, $$f, $$t }};
+			[$lserr_proto,  "constructor"]    := {{ "d", $lserr, $$t, $$f, $$t }};
+			[$lterr_proto,  "constructor"]    := {{ "d", $lterr, $$t, $$f, $$t }};
+			[$luerr_proto,  "constructor"]    := {{ "d", $luerr, $$t, $$f, $$t }};
+
+			[$leerr_proto,  "name"]    := {{ "d", "EvalError", $$t, $$f, $$t }};
+			[$lrgerr_proto, "name"]    := {{ "d", "RangeError", $$t, $$f, $$t }};
+			[$lrferr_proto, "name"]    := {{ "d", "ReferenceError", $$t, $$f, $$t }};
+			[$lserr_proto,  "name"]    := {{ "d", "SyntaxError", $$t, $$f, $$t }};
+			[$lterr_proto,  "name"]    := {{ "d", "TypeError", $$t, $$f, $$t }};
+			[$luerr_proto,  "name"]    := {{ "d", "URIError", $$t, $$f, $$t }};
+
+			[$leerr_proto,  "message"]    := {{ "d", "", $$t, $$f, $$t }};
+			[$lrgerr_proto, "message"]    := {{ "d", "", $$t, $$f, $$t }};
+			[$lrferr_proto, "message"]    := {{ "d", "", $$t, $$f, $$t }};
+			[$lserr_proto,  "message"]    := {{ "d", "", $$t, $$f, $$t }};
+			[$lterr_proto,  "message"]    := {{ "d", "", $$t, $$f, $$t }};
+			[$luerr_proto,  "message"]    := {{ "d", "", $$t, $$f, $$t }};
 
 	rlab:	xret := $$empty
 }
