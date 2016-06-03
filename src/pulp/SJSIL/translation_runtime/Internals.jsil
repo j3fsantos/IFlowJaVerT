@@ -58,7 +58,7 @@ proc o__get (l, prop) {
 			
 	acc:	goto [xret = $$undefined] rlab get;		(* Is the getter defined? *)
 	get:	xsc := [xret, "@scope"];				(* Get the scope of the getter *)
-			fun := [xret, "@body"];					(* Get the name of the getter *)
+			fun := [xret, "@call"];					(* Get the name of the getter *)
 			xret := fun (xsc, l) with elab;			(* Call the getter, errors could happen *)
 			
 	rlab:	skip;
@@ -138,7 +138,7 @@ proc o__put (l, prop, value, throw) {
     		
     ad:		s := nth (xret, 2);
     		xsc := [s, "@scope"];
-    		fun := [s, "@body"];
+    		fun := [s, "@call"];
     		xret := fun (xsc, l, value) with elab;
     		goto remp;
     		
@@ -230,7 +230,7 @@ proc o__defaultValue (l, hint) {
     is_c:	c := "i__isCallable" (xret);
             goto [c] call next;
             xsc := [xret, "@scope"];
-            fun := [xret, "@body"];
+            fun := [xret, "@call"];
             
     call:   xret := fun (xsc, l) with elab;            
 			goto [is_primitive xret] rlab next;
@@ -730,7 +730,7 @@ proc i__putValue (v, w) {
     		
     ad:		s := nth (xret, 2);
     		xsc := [s, "@scope"];
-    		fun := [s, "@body"];
+    		fun := [s, "@call"];
     		xret := fun (xsc, rbase, w) with elab;
     		goto dflt;
     
@@ -942,7 +942,7 @@ with
 (* CHECKOBJECTCOERCIBLE *)
 (* ******************** *) 
 
-proc i__checkObjectCoercible (l) {
+proc i__checkObjectCoercible (v) {
 
 			xret := $$empty;
 
@@ -972,7 +972,7 @@ with
 
 proc i__isCallable (l) {
 			goto [typeOf (l) = $$object_type] obj endf; 
-	obj:	xret := hasField (l, "@body");
+	obj:	xret := hasField (l, "@call");
 			goto rlab;
 	endf:	xret := $$f;
 	rlab:	skip

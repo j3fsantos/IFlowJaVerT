@@ -37,9 +37,10 @@ proc String_call (s) {
 	empty:	xret := "";
 			goto rlab;
 	
-	to_str:	xret := "i__toString" (s);
+	to_str:	xret := "i__toString" (s) with elab;
 			
-	rlab:	skip
+	rlab:	skip;
+	elab:	skip
 }
 with
 {

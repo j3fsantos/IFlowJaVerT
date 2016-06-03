@@ -4,20 +4,6 @@ import Internals, Init;
 (* THE ERROR LIBRARY *)
 (* ***************** *) 
 
-(* *** CALL *** *)
-
-proc Error_call (v) {
-			xret := "Error_construct" (v) with elab;
-			
-	rlab:	skip;
-	elab:	skip
-}
-with
-{
-	ret: xret, rlab;
-	err: xret, elab;
-};
-
 (* *** CONSTRUCT *** *)
 
 proc Error_construct (v) {

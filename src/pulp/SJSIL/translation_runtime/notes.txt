@@ -66,3 +66,7 @@ INTEGRATION
 setupInitialHeap
 
 is__Reserved!
+
+protoField instead of proto_field
+
+missing toString for member access

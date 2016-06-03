@@ -16,7 +16,8 @@ let js2jsil_imports = [
 	"String"
 ]
 
-let bodyPropName = "@body"
+let callPropName = "@call"
+let constructPropName = "@construct"
 let scopePropName = "@scope"
 
 let getValueName = "i__getValue"
@@ -24,11 +25,13 @@ let isReservedName = "i__isReserved"
 let putValueName = "i__putValue"
 let objectConstructName = "Object_construct"
 let toObjectName = "i__toObject"
+let toStringName = "i__toString"
 let deletePropertyName = "o__deleteProperty"
 let syntaxErrorName = "SyntaxError"
 let typeErrorName = "TypeError"
 let createFunctionObjectName = "create_function_object"
 let isCallableName = "i__isCallable"
+let checkObjectCoercibleName = "i__checkObjectCoercible"
 
 let print_position outx lexbuf =
   let pos = lexbuf.lex_curr_p in
@@ -85,7 +88,7 @@ Variable x::
 					x_2 := v-ref(x_1, "x")
 	
 	Not found in the closure clarification table: Phi(fid_1, x) = bot
-					x_1 := proto_field($lg, "x"); 
+					x_1 := protoField($lg, "x"); 
 					goto [x_1 = $$undefined] lab1 lab2
 		lab1: x_2 := v-ref($$undefined, "x"); 
 		      goto lab3; 
@@ -108,7 +111,7 @@ let translate_var_not_found fid js_var new_var =
 	let x_1 = fresh_var () in 
 	let x_2 = fresh_var () in 
 	let tmpl :  ('a -> 'b -> 'c -> 'd -> 'e -> 'f -> 'g -> 'h -> 'i -> 'j -> 'k -> 'l -> 'm -> 'n, unit, string) format = 
-"				%s := proto_field($lg, \"%s\"); 
+"				%s := protoField($lg, \"%s\"); 
 				goto [%s = $$undefined] %s %s; 
 	%s: 	%s := v-ref($$undefined, \"%s\"); 
 		    goto %s; 
@@ -248,38 +251,43 @@ let rec translate fid cc_table loop_list ctx e =
 		(**
       x1_v := getValue (x1) with err1;
 			x2_v := getValue (x2) with err2;
-			x_r := ref-o(x1_v, x2_v)
+			x3_v := "checkObjectCoercible" (x1) with err3;
+			x4_v := "i__toString" (x2_v) with err4;
+			x_r  := ref-o(x1_v, x4_v)
 			
 			err1: x_err := x1_v 
 			err2: x_err := x2_v 
+			err3: x_err := x3_v
+			err4: x_err := x4_v
 		 *)
 		
 		let lab_err1 = fresh_err_label () in 
 		let lab_err2 = fresh_err_label () in 
+		let lab_err3 = fresh_err_label () in 
+		let lab_err4 = fresh_err_label () in 
 		let x1_v = fresh_var () in
 		let x2_v = fresh_var () in
+		let x3_v = fresh_var () in
+		let x4_v = fresh_var () in
 		let x_r = fresh_var () in
 		
 		let cmds_e1, x_e1, err_cmds1 = f e1 in 
 		let cmds_e2, x_e2, err_cmds2 = f e2 in 
 		
-		(* x1_v := getValue ( x1) with err1 *)
-		let cmd_gv1 = SLCall (x1_v, Literal (String getValueName), [ x_e1 ], Some lab_err1) in 
-		(* x2_v := getValue ( x2) with err2 *)
-		let cmd_gv2 = SLCall (x2_v, Literal (String getValueName), [ x_e2 ], Some lab_err2) in
-		(* x_r := ref-o(x1_v, x2_v) *) 
-		let cmd = SLBasic (SAssignment (x_r, (ORef ((Var x1_v), (Var x2_v))))) in
-		
 		let new_cmds = [
-			(None, None, cmd_gv1); 
-			(None, None, cmd_gv2); 
-			(None, None, cmd)
+			(None, None, SLCall (x1_v, Literal (String getValueName),             [ x_e1 ], Some lab_err1)); 
+			(None, None, SLCall (x2_v, Literal (String getValueName),             [ x_e2 ], Some lab_err2)); 
+			(None, None, SLCall (x3_v, Literal (String checkObjectCoercibleName), [ x_e1 ], Some lab_err3)); 
+			(None, None, SLCall (x4_v, Literal (String toStringName),             [ x_e2 ], Some lab_err4)); 
+			(None, None, SLBasic (SAssignment (x_r, (ORef ((Var x1_v), (Var x4_v))))))
 		] in  
 		let cmds = List.concat [ cmds_e1; cmds_e2; new_cmds ] in 
 		
 		let new_err_cmds = [
 			(lab_err1, SLBasic (SAssignment (ctx.tr_error_var, (Var x1_v)))); 
-			(lab_err2, SLBasic (SAssignment (ctx.tr_error_var, (Var x2_v))))
+			(lab_err2, SLBasic (SAssignment (ctx.tr_error_var, (Var x2_v))));
+			(lab_err3, SLBasic (SAssignment (ctx.tr_error_var, (Var x3_v))));
+			(lab_err4, SLBasic (SAssignment (ctx.tr_error_var, (Var x4_v))))
 		] in 
 		let err_cmds = List.concat [ err_cmds1; err_cmds2; new_err_cmds ] in 
 		
@@ -395,7 +403,7 @@ let rec translate fid cc_table loop_list ctx e =
 				params in 
 		let processed_params = List.rev processed_params in 
 		let cmd = SLCall (x_f, Literal (String createFunctionObjectName), 
-			[ (Var var_scope); (Literal (String f_id)); (Literal (LList processed_params)) ], None) in 
+			[ (Var var_scope); (Literal (String f_id)); (Literal (String f_id)); (Literal (LList processed_params)) ], None) in 
 		[ (None, None, cmd) ], (Var x_f), []	
 	
 	
@@ -415,7 +423,7 @@ let rec translate fid cc_table loop_list ctx e =
 		next3: x_this := base(x_f);
 					 goto next5; 
 		next4: x_this := undefined; 
-		next5: x_body := [x_f_val, "@body"]; 
+		next5: x_body := [x_f_val, "@call"]; 
 		       x_scope := [x_f_val, "@scope"]; 
 					 x_r := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err_call 
 		
@@ -484,9 +492,9 @@ let rec translate fid cc_table loop_list ctx e =
 		(* next4: x_this := undefined; *) 
 		let cmd_this_undefined = SLBasic (SAssignment (x_new_this, Literal Undefined)) in 
 		
-		(* next5: x_body := [x_f_val, "@body"]; *)
+		(* next5: x_body := [x_f_val, "@@call"]; *)
 		let x_body = fresh_var () in 
-		let cmd_body = SLBasic (SLookup (x_body, Var x_f_val, Literal (String bodyPropName))) in 
+		let cmd_body = SLBasic (SLookup (x_body, Var x_f_val, Literal (String callPropName))) in 
 		
 		(* x_scope := [x_f_val, "@scope"]; *)
 		let x_fscope = fresh_var () in 

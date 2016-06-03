@@ -172,13 +172,15 @@ proc Object_call (v) {
 	cons:	xret := "Object_construct" (v);
 			goto rlab;
 	
-	to_obj:	xret := "i__toObject" (v);
+	to_obj:	xret := "i__toObject" (v) with elab;
 
-	rlab:	skip
+	rlab:	skip;
+	elab:	skip
 }
 with
 {
 	ret: xret, rlab;
+	err: xret, elab;
 };
 
 (* *** CONSTRUCT *** *)
@@ -605,7 +607,7 @@ proc OP_toLocaleString(xsc, vthis) {
             goto [c] call throw;
             
 	call:	scp := [xret, "@scope"];
-			fun := [xret, "@body"];	
+			fun := [xret, "@call"];	
 			xret := fun (scp, o) with elab;
 			
 	rlab:	skip;
