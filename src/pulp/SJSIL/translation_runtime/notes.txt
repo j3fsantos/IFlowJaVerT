@@ -27,8 +27,6 @@ NOTES
 
 * GO THROUGH INITIAL HEAP TO UNDERSTAND WHERE TO USE SCOPE AND LTHIS
 
-* Correct error in SCall in the interpreter!
-
 * Match lengths in all!
 
 * DO ARRAY DEFINEOWNPROP

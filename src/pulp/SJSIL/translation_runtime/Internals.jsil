@@ -928,7 +928,8 @@ proc i__toObject (v) {
 	
 	rlab:	skip;
 	
-	throw:	xret := "TypeError" ();
+	throw:	xret := "Here!";
+			xret := "TypeError" ();
 	elab:	skip
 }
 with

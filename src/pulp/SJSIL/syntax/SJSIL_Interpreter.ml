@@ -650,24 +650,25 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 	let cur_which_pred = 
 		if (cur_cmd > 0) 
 			then (try Hashtbl.find which_pred (cur_proc_name, prev_cmd, cur_cmd) 
-				with _ ->  raise (Failure "which_pred undefined"))
+				with _ ->  raise (Failure (Printf.sprintf "which_pred undefined for command: %s %d %d" cur_proc_name prev_cmd cur_cmd)))
 			else 0 in 
 
 	let spec, cmd = cmd in
 	match cmd with 
 	| SBasic bcmd -> 
-		let v = evaluate_bcmd bcmd heap store cur_which_pred in 
-		if (cur_cmd == proc.ret_label)
-			then Normal, (try (Hashtbl.find store proc.ret_var) with
-			| _ -> raise (Failure (Printf.sprintf "Cannot find return variable.")))
-			else if ((Some cur_cmd) = proc.error_label) 
+		let _ = evaluate_bcmd bcmd heap store cur_which_pred in 
+		if (cur_cmd = proc.ret_label)
+			then (Normal, (try (Hashtbl.find store proc.ret_var) with
+			| _ -> raise (Failure (Printf.sprintf "Cannot find return variable."))))
+			else 
+				(if ((Some cur_cmd) = proc.error_label) 
 				then 
-					Error, let err_var = (match proc.error_var with 
+					(Error, let err_var = (match proc.error_var with 
 					                      | None -> raise (Failure "No no!") 
 																| Some err_var -> err_var) in
 				         (try (Hashtbl.find store err_var) with
-				| _ -> raise (Failure (Printf.sprintf "Cannot find error variable." )))
-				else evaluate_cmd prog cur_proc_name which_pred heap store (cur_cmd + 1) cur_cmd
+				| _ -> raise (Failure (Printf.sprintf "Cannot find error variable." ))))
+				else (evaluate_cmd prog cur_proc_name which_pred heap store (cur_cmd + 1) cur_cmd))
 		 
 	| SGoto i -> 
 		evaluate_cmd prog cur_proc_name which_pred heap store i cur_cmd
@@ -694,14 +695,16 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 		let new_store = init_store call_proc.proc_params arg_vals in 
 		match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 with 
 		| Normal, v -> 
-			Printf.printf "Procedure %s return: %s := %s\n" call_proc_name x (SSyntax_Print.string_of_literal v false);
 			Hashtbl.replace store x v;
-			evaluate_cmd prog cur_proc_name which_pred heap store (cur_cmd + 1) cur_cmd
+			if (cur_cmd = proc.ret_label)
+			then Normal, (try (Hashtbl.find store proc.ret_var) with
+			| _ -> raise (Failure (Printf.sprintf "Cannot find return variable.")))
+			else (evaluate_cmd prog cur_proc_name which_pred heap store (cur_cmd + 1) cur_cmd)
 		| Error, v -> 
 			(match j with
-			| None -> raise (Failure ("Procedure "^ call_proc_name ^"just returned an error, but no error label was provided. Bad programmer."))
+			| None -> raise (Failure ("Procedure "^ call_proc_name ^" just returned an error, but no error label was provided. Bad programmer."))
 			| Some j -> Hashtbl.replace store x v;
-			            evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd)
+				evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd)
 		 		
 let evaluate_prog prog which_pred heap = 
 	Random.self_init();

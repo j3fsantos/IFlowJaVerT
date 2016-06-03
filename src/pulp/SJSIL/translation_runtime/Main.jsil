@@ -1,12 +1,10 @@
-import Array, Boolean, Errors, Function, Global, Init, Internals, Math, Number, Object, String;
+(* import Array, Boolean, Errors, Function, Global, Init, Internals, Math, Number, Object, String; *)
+
+import Errors;
 
 proc main () {
-
-			xret := "setupInitialHeap" ();
-			
-			xret := "i__toObject" ($$null) with elab;
-			
-	rlab:	skip;
+	
+	rlab:	xret := "i__toObject" ($$null) with elab;
 	elab:	skip
 }
 with

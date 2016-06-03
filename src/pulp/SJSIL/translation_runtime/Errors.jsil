@@ -1,4 +1,4 @@
-import Internals;
+import Internals, Init;
 
 (* ***************** *) 
 (* THE ERROR LIBRARY *)
@@ -102,7 +102,7 @@ with
 
 (* *** CONSTRUCT *** *)
 
-proc EvalError (type, v) {
+proc EvalError (v) {
 			xret := new ();
 			xret := "create_default_object" (xret, $leerr_proto, "Error", "t");
 
@@ -136,7 +136,7 @@ with
 
 (* *** CONSTRUCT *** *)
 
-proc RangeError (type, v) {
+proc RangeError (v) {
 			xret := new ();
 			xret := "create_default_object" (xret, $lrgerr_proto, "Error", "t");
 
@@ -170,7 +170,7 @@ with
 
 (* *** CONSTRUCT *** *)
 
-proc ReferenceError (type, v) {
+proc ReferenceError (v) {
 			xret := new ();
 			xret := "create_default_object" (xret, $lrferr_proto, "Error", "t");
 
@@ -204,7 +204,7 @@ with
 
 (* *** CONSTRUCT *** *)
 
-proc SyntaxError (type, v) {
+proc SyntaxError (v) {
 			xret := new ();
 			xret := "create_default_object" (xret, $lserr_proto, "Error", "t");
 
@@ -238,7 +238,7 @@ with
 
 (* *** CONSTRUCT *** *)
 
-proc TypeError (type, v) {
+proc TypeError (v) {
 			xret := new ();
 			xret := "create_default_object" (xret, $lterr_proto, "Error", "t");
 
@@ -272,7 +272,7 @@ with
 
 (* *** CONSTRUCT *** *)
 
-proc URIError (type, v) {
+proc URIError (v) {
 			xret := new ();
 			xret := "create_default_object" (xret, $luerr_proto, "Error", "t");
 
