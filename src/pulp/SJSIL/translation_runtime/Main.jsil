@@ -3,8 +3,12 @@
 import Errors;
 
 proc main () {
+			xret := 5;
+			goto [xret = 5] terr rlab;
+			
+	rlab:	skip;
 	
-	rlab:	xret := "i__toObject" ($$null) with elab;
+	terr:	xret := "TypeError" ();
 	elab:	skip
 }
 with

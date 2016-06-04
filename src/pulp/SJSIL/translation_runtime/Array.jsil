@@ -54,7 +54,7 @@ proc a__defineOwnProperty (l, prop, desc, throw) {
 			oldLenDesc := gop (l, "length");
 			oldLen := nth (oldLenDesc, 1);
 			
-			goto [prop = "length"] slen is_idx;
+			goto [prop = "length"] getall is_idx;
 			
 	is_idx:	idxp := "a__isIdx" (prop);
 			goto [idxp] idx norm;
@@ -69,12 +69,92 @@ proc a__defineOwnProperty (l, prop, desc, throw) {
 	ilen:	xret := "o__defineOwnProperty" (l, "length", {{ "d", (index + 1), nth (oldLenDesc, 2), nth (oldLenDesc, 3), nth (oldLenDesc, 4) }}, $$f);
 			goto rlab;
 			
-	norm:	xret := "o__defineOwnProperty" (l, prop, desc, throw);
+	norm:	xret := "o__defineOwnProperty" (l, prop, desc, throw) with elab;
 			goto rlab;
 	
-	slen:	xret := -4;
+	getall:	goto [nth (desc, 0) = "d"] ddd odd;
 	
+			(* Data *)
+	ddd:	de := nth (desc, 3);
+			dc := nth (desc, 4);
+			dv := nth (desc, 1);
+			dw := nth (desc, 2);
+			dg := $$empty;
+			ds := $$empty;
+			goto sla;
+			
+	odd:	goto [nth (desc, 0) = "a"] add gdd;
+
+			(* Accessor *)
+	add:	de := nth (desc, 3);
+			dc := nth (desc, 4);
+			dv := $$empty;
+			dw := $$empty;
+			dg := nth (desc, 1);
+			ds := nth (desc, 2);
+			goto sla;
+			
+			(* Generic *)
+	gdd:	de := nth (desc, 1);
+			dc := nth (desc, 2);
+			dv := nth (desc, 3);
+			dw := nth (desc, 4);
+			dg := nth (desc, 5);
+			ds := nth (desc, 6);
+	
+	sla:	goto [dv = $$empty] slai slb;
+	
+	slai:	xret := "o__defineOwnProperty" (l, "length", desc, throw) with elab;
+			goto rlab;
+			
+	slb:	xret := "i__toUint32" (dv) with elab;
+			newLen := xret;
+			xret := "i__toNumber" (dv) with elab;
+			goto [not (newLen = xret)] rgerr sle;
+			
+	sle:	dv := newLen;
+			goto [not (newLen < oldLen)] slfi slg;
+			
+	slfi:	xret := "o__defineOwnProperty" (l, "length", {{ "g", de, dc, dv, dw, dg, ds }}, throw) with elab;
+			goto rlab;
+			
+	slg:	goto [nth (oldLenDesc, 2) = $$f] reject slh;
+	
+	slh:	goto [dw = $$f] sli slh1;
+	
+	slh1:	newWritable := $$t;
+			goto slj;
+	
+	sli:	newWritable := $$f;
+			dw := $$t;
+	
+	slj:	xret := "o__defineOwnProperty" (l, "length", {{ "g", de, dc, dv, dw, dg, ds }}, throw) with elab;
+			goto [xret = $$f] tf sll;
+	
+	sll:	dp := [l, "@deleteProperty"];
+	loop:	goto [newLen < oldLen] head slm;
+	head:	oldLen := oldLen - 1;
+			xret := "i__toString" (oldLen) with elab;
+			xret := dp (l, xret, $$f) with elab;
+			goto [xret = $$f] fix next;
+			
+	fix:	dv := oldLen + 1;
+			goto [newWritable = $$f] setwr defl;
+	setwr:	dw := $$f;
+	defl:	xret := "o__defineOwnProperty" (l, "length", {{ "g", de, dc, dv, dw, dg, ds }}, throw) with elab;
+			goto reject;
+			
+	next:	goto sll;
+	
+	slm:	goto [newWritable = $$f] slmi sln;
+	
+	slmi:	xret := "o__defineOwnProperty" (l, "length", {{ "g", $$empty, $$empty, $$empty, $$f, $$empty, $$empty }}, $$f) with elab;
+	
+	sln:	xret := $$t;
 	rlab:	skip;
+	
+	rgerr:	xret := "RangeError" ();
+			goto elab;
 	
 	reject:	goto [throw] tt tf;
 	

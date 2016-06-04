@@ -103,7 +103,7 @@ let evaluate_unop op lit =
 	| Not -> 
 		(match lit with 
 		| Bool b -> (Bool (not b))
-		| _ -> raise (Failure "Non-bool argument to Not"))
+		| _ -> raise (Failure (Printf.sprintf "Non-bool argument to Not: %s" (SSyntax_Print.string_of_literal lit false))))
 	| Negative -> 
 		(match lit with
 		| Num n -> Num (-.n)
@@ -565,7 +565,8 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (SSyntax_Print.string_of_literal v_e1 false)))) in
 			if (SHeap.mem obj f) 
 			then 
-				(SHeap.remove heap f; 
+				(Printf.printf "Removing field (%s, %s)!\n" (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false);
+				SHeap.remove obj f; 
 				Bool true)
 			else raise (Failure "Deleting inexisting field")
 		| _, _ -> raise (Failure "Illegal field deletion"))
@@ -658,16 +659,22 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 	| SBasic bcmd -> 
 		let _ = evaluate_bcmd bcmd heap store cur_which_pred in 
 		if (cur_cmd = proc.ret_label)
-			then (Normal, (try (Hashtbl.find store proc.ret_var) with
-			| _ -> raise (Failure (Printf.sprintf "Cannot find return variable."))))
+			then 
+			(let ret_value = (try (Hashtbl.find store proc.ret_var) with
+			| _ -> raise (Failure (Printf.sprintf "Cannot find return variable."))) in
+			Printf.printf ("Procedure %s returned: Normal, %s\n") cur_proc_name (SSyntax_Print.string_of_literal ret_value false);
+			Normal, ret_value)
 			else 
 				(if ((Some cur_cmd) = proc.error_label) 
 				then 
-					(Error, let err_var = (match proc.error_var with 
+				(let err_value = 
+					(let err_var = (match proc.error_var with 
 					                      | None -> raise (Failure "No no!") 
 																| Some err_var -> err_var) in
 				         (try (Hashtbl.find store err_var) with
-				| _ -> raise (Failure (Printf.sprintf "Cannot find error variable." ))))
+				| _ -> raise (Failure (Printf.sprintf "Cannot find error variable." )))) in
+			Printf.printf ("Procedure %s returned: Error, %s\n") cur_proc_name (SSyntax_Print.string_of_literal err_value false);
+			Error, err_value)
 				else (evaluate_cmd prog cur_proc_name which_pred heap store (cur_cmd + 1) cur_cmd))
 		 
 	| SGoto i -> 
@@ -697,8 +704,11 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 		| Normal, v -> 
 			Hashtbl.replace store x v;
 			if (cur_cmd = proc.ret_label)
-			then Normal, (try (Hashtbl.find store proc.ret_var) with
-			| _ -> raise (Failure (Printf.sprintf "Cannot find return variable.")))
+			then 
+			(let ret_value = (try (Hashtbl.find store proc.ret_var) with
+			| _ -> raise (Failure (Printf.sprintf "Cannot find return variable."))) in
+			Printf.printf ("Procedure %s returned: Normal, %s\n") cur_proc_name (SSyntax_Print.string_of_literal ret_value false);
+			Normal, ret_value)
 			else (evaluate_cmd prog cur_proc_name which_pred heap store (cur_cmd + 1) cur_cmd)
 		| Error, v -> 
 			(match j with

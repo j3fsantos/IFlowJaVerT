@@ -507,7 +507,7 @@ let rec translate fid cc_table loop_list ctx e =
 		let lab_proc_err = fresh_err_label () in 
 		let proc_args = (Var x_fscope) :: (Var x_new_this) :: x_args_gv in 
 		let cmd_proc_call = SLCall (x_r, (Var x_body), proc_args, Some lab_proc_err) in 
-		let cmd_pc_err_propg =  SLCall (ctx.tr_error_var, (Var x_r), [ ], None) in 
+		let cmd_pc_err_propg =  SLBasic (SAssignment (ctx.tr_error_var, (Var x_r))) in 
 		
 		let new_cmds = [
 			(None, None, cmd_goto_is_obj); 

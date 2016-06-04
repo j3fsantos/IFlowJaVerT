@@ -185,7 +185,7 @@ proc o__deleteProperty (l, prop, throw) {
 			xret := gop (l, prop) with elab;
 			goto [xret = $$undefined] dt cont;
 			
-	cont:	c := nth (x, 4);
+	cont:	c := nth (xret, 4);
 			goto [c] del reject;
 	del:	delete (l, prop);
 	
@@ -349,7 +349,7 @@ proc o__defineOwnProperty (l, prop, desc, throw) {
 	l10:	goto [cdd = $$t] l10a l11;
 	
 	l10a:	goto [cc = $$f] l10ai l12;
-	l10ai:	goto [not (cws = dw)] reject l10aii;
+	l10ai:	goto [(not (dw = $$empty)) and (not (cws = dw))] reject l10aii;
 	l10aii:	goto [(cws = $$f) and (not (dv = $$empty)) and (not (cvg = dv))] reject l12;
 	
 	l11: 	goto [(cc = $$f) and 
@@ -370,7 +370,7 @@ proc o__defineOwnProperty (l, prop, desc, throw) {
 			goto [dv = $$empty] rvc rvd;
 	rvc:	rv := nth (current, 1);
 	rvd:	goto [dw = $$empty] rwd setd;
-	rwd:	rc := nth (current, 2);
+	rwd:	rw := nth (current, 2);
 	setd:	[l, prop] := {{ "d", rv, rw, re, rc }};	
 			goto acc_t;
 	
