@@ -686,7 +686,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 		| String call_proc_name -> 
 				Printf.printf "\nExecuting procedure %s\n" call_proc_name; 
 				call_proc_name 
-		| _ -> raise (Failure "Erm, no. Procedures can't be called that.")) in 
+		| _ -> raise (Failure (Printf.sprintf "Erm, no. Procedures can't be called %s." (SSyntax_Print.string_of_literal call_proc_name_val false)))) in 
 		let arg_vals = List.map 
 			(fun e_arg -> evaluate_expr e_arg store) 
 			e_args in 

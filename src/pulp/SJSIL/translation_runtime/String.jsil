@@ -10,7 +10,10 @@ proc s__getOwnProperty (l, prop) {
 			xret := "o__getOwnProperty" (l, prop);
 			goto [xret = $$undefined] str rlab;
 			
-	str:	idx := num_to_int (string_to_num prop);
+	str:	idx := string_to_num prop;
+			goto [idx < 0] rlab next;
+			
+	next:	idx := num_to_int idx;
 			sidx := num_to_string (idx);
 	
 			goto [sidx = prop] index rlab;

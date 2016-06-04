@@ -142,8 +142,9 @@ proc o__put (l, prop, value, throw) {
     		xret := fun (xsc, l, value) with elab;
     		goto remp;
     		
-    def:	desc := {{ "g", $$t, $$t, value, $$t, $$empty, $$empty }};
-    		xret := "o__defineOwnProperty" (l, prop, desc, throw) with elab;
+    def:	dop := [l, "@defineOwnProperty"];
+    		desc := {{ "g", $$t, $$t, value, $$t, $$empty, $$empty }};
+    		xret := dop (l, prop, desc, throw) with elab;
 
     remp:   xret := $$empty;
     rlab:   skip;
@@ -349,7 +350,7 @@ proc o__defineOwnProperty (l, prop, desc, throw) {
 	
 	l10a:	goto [cc = $$f] l10ai l12;
 	l10ai:	goto [not (cws = dw)] reject l10aii;
-	l10aii:	goto [(not (dv = $$empty)) and (not (cvg = dv))] reject l12;
+	l10aii:	goto [(cws = $$f) and (not (dv = $$empty)) and (not (cvg = dv))] reject l12;
 	
 	l11: 	goto [(cc = $$f) and 
 	             (((not (dg = $$empty)) and (not (dg = nth (current, 1)))) or 
@@ -384,6 +385,7 @@ proc o__defineOwnProperty (l, prop, desc, throw) {
 	
 	acc_t:	xret := $$t;
 			goto rlab;
+			
 	acc_f:	xret := $$f;
 	rlab:	skip;
 	
@@ -850,6 +852,66 @@ proc i__toNumber (v) {
 	
 	oops:	xret := "ToNumber: This should not happen.";
 	
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** TOINTEGER *** *)
+
+proc i__toInteger (v) {
+			xret := "i__toNumber" (v) with elab;
+			xret := num_to_int (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** TOINT32 *** *)
+
+proc i__toInt32 (v) {
+			xret := "i__toNumber" (v) with elab;
+			xret := num_to_int32 (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** TOUINT32 *** *)
+
+proc i__toUint32 (v) {
+			xret := "i__toNumber" (v) with elab;
+			xret := num_to_uint32 (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** TOUINT16 *** *)
+
+proc i__toUint16 (v) {
+			xret := "i__toNumber" (v) with elab;
+			xret := num_to_uint16 (xret);
+
 	rlab:	skip;
 	elab:	skip
 }

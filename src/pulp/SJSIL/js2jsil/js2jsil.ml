@@ -13,7 +13,8 @@ let js2jsil_imports = [
 	"Math"; 
 	"Number"; 
 	"Object"; 
-	"String"
+	"String";
+	"Errors"
 ]
 
 let callPropName = "@call"

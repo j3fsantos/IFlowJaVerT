@@ -11,7 +11,9 @@ proc Array_construct () {
 			xret := new ();
 			xret := "create_default_object" (xret, $larr_proto, "Array", $$t);
 			
-			x := "o__defineOwnProperty" (xret, "length", {{ "d", 0, $$f, $$f, $$f }}, $$t); 
+			[xret, "@defineOwnProperty"] := "a__defineOwnProperty";
+			
+			x := "o__defineOwnProperty" (xret, "length", {{ "d", 0, $$t, $$f, $$f }}, $$t); 
 			
 	rlab:	skip;
 	elab:	skip
@@ -19,5 +21,71 @@ proc Array_construct () {
 with
 {
 	ret: 	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** ISIDX *** *)
+
+proc a__isIdx (s) {
+			xret := "i__toUint32" (s) with elab;
+			xret := "i__toString" (xret) with elab;
+			
+			goto [xret = s] ret_t ret_f;
+			
+	ret_t:	xret := $$t;
+			goto rlab;
+			
+	ret_f:	xret := $$f;
+	
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** DEFINEOWNPROPERTY *** *)
+
+proc a__defineOwnProperty (l, prop, desc, throw) {
+
+			gop := [l, "@getOwnProperty"];
+			oldLenDesc := gop (l, "length");
+			oldLen := nth (oldLenDesc, 1);
+			
+			goto [prop = "length"] slen is_idx;
+			
+	is_idx:	idxp := "a__isIdx" (prop);
+			goto [idxp] idx norm;
+			
+	idx:	index := "i__toUint32" (prop);
+			index := index;
+			oldLen := oldLen;
+			xret := nth (oldLenDesc, 2);
+			goto [(not (index < oldLen)) and (not (nth (oldLenDesc, 2)))] reject idop;
+	idop:	xret := "o__defineOwnProperty" (l, prop, desc, $$f) with elab;
+			goto [xret = $$f] reject ilen;
+	ilen:	xret := "o__defineOwnProperty" (l, "length", {{ "d", (index + 1), nth (oldLenDesc, 2), nth (oldLenDesc, 3), nth (oldLenDesc, 4) }}, $$f);
+			goto rlab;
+			
+	norm:	xret := "o__defineOwnProperty" (l, prop, desc, throw);
+			goto rlab;
+	
+	slen:	xret := -4;
+	
+	rlab:	skip;
+	
+	reject:	goto [throw] tt tf;
+	
+	tt:		xret := "TypeError" ();
+	elab:	skip;
+	
+	tf:		xret := $$f;
+			goto rlab
+}
+with
+{
+	ret:	xret, rlab;
 	err:	xret, elab;
 }

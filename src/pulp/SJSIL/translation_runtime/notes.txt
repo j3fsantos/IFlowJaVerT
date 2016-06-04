@@ -33,6 +33,8 @@ NOTES
 
 * Object.prototype.isPrototypeOf vs. protoObj?
 
+* Beware of num_... instead of i__to...
+
  CALL
 ------
 
