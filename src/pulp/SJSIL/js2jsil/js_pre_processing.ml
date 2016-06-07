@@ -204,8 +204,8 @@ let update_cc_tbl cc_tbl f_parent_id f_id f_args f_body =
 	Hashtbl.add cc_tbl f_id new_f_tbl 	
 
 
-let rec closure_clarification cc_tbl fun_tbl args f_id e = 
-	let f = closure_clarification cc_tbl fun_tbl args f_id in 
+let rec closure_clarification cc_tbl fun_tbl vis_tbl args f_id visited_funs e = 
+	let f = closure_clarification cc_tbl fun_tbl vis_tbl args f_id visited_funs in 
 	let fo e = begin match e with 
 	| None -> () 
 	| Some e -> f e end in 
@@ -228,7 +228,8 @@ let rec closure_clarification cc_tbl fun_tbl args f_id e =
 		let new_f_id = get_codename e in 
 		update_cc_tbl cc_tbl f_id new_f_id args fb;
 		update_fun_tbl fun_tbl new_f_id args fb; 
-		closure_clarification cc_tbl fun_tbl args new_f_id fb
+		Hashtbl.replace vis_tbl new_f_id visited_funs; 
+		closure_clarification cc_tbl fun_tbl vis_tbl args new_f_id (new_f_id :: visited_funs) fb
 	| Unary_op (_, e) -> f e        
   | Delete e -> f e
   | BinOp (e1, _, e2) -> 
@@ -274,7 +275,8 @@ let rec closure_clarification cc_tbl fun_tbl args f_id e =
 	
 let closure_clarification_top_level main e =
 	let cc_tbl = Hashtbl.create 101 in 
-	let fun_tbl = Hashtbl.create 101 in 
+	let fun_tbl = Hashtbl.create 101 in
+	let vis_tbl = Hashtbl.create 101 in  
 	
 	let main_tbl = Hashtbl.create 101 in 
 	let main_vars = get_all_vars_f e [] in
@@ -283,8 +285,9 @@ let closure_clarification_top_level main e =
 		main_vars; 
 	Hashtbl.add cc_tbl main main_tbl; 
 	Hashtbl.add fun_tbl main (main, [], e); 
-	closure_clarification cc_tbl fun_tbl [] main e; 
-	cc_tbl, fun_tbl
+	Hashtbl.add vis_tbl main [];
+	closure_clarification cc_tbl fun_tbl vis_tbl [] main [ main ] e; 
+	cc_tbl, fun_tbl, vis_tbl
 
 let rec print_cc_tbl cc_tbl = 
 	let print_fun_tbl fun_tbl = 
