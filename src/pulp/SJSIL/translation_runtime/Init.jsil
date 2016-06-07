@@ -191,6 +191,18 @@ proc setupInitialHeap () {
   			
   			
   			
+  			(* Function object *)
+    			
+  			xret := "create_object_with_call_construct" ($lfun, $$empty, $$empty, 1);
+  			
+  			[$lobj, "prototype"]                := {{ "d", $lfun_proto, $$f, $$f, $$f }};
+  			
+  			(* Function.prototype *)
+  			
+  			[$lobj_proto, "constructor"]          := {{ "d", $lfun, $$t, $$f, $$t }};
+
+  			
+  			
   			(* Array object *)
     			
   			xret := "create_object_with_call_construct" ($larr, "Array_construct", "Array_construct", 1);
