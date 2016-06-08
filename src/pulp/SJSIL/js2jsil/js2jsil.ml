@@ -185,7 +185,7 @@ let rec translate fid cc_table loop_list ctx vis_fid e =
 	| Parser_syntax.String s -> [], Literal (String s), [], []
 	| Parser_syntax.Num n ->  [], Literal (Num n), [], []
 	
-	(* expressions *)
+	(* expressions *)	
 	
 	| Parser_syntax.This ->
 		(* x := __this	*)
@@ -690,16 +690,15 @@ let rec translate fid cc_table loop_list ctx vis_fid e =
 		let cmd_end_if = SLBasic (SPhiAssignment (x_if, [| Some x_e2_var; Some x_e3_var |])) in 
 		
 		let cmds = 
-			cmds_e1 @ 
-			[
-				(None, None,           cmd_gv_x1); 
-				(None, None,           cmd_tb_x1); 
-				(None, None,           cmd_goto_if)
-			] 
-			@ cmds_e2 @ 
-			[ (None, None,           cmd_goto_endif) ]
-		  @ cmds_e3 @
-			[ (None, Some lab_endif, cmd_end_if) ] in 
+			    cmds_e1 @ [                           (*       cmds1                               *)
+				(None, None,           cmd_gv_x1);      (*       x1_v := getValue (x1) with err1     *)
+				(None, None,           cmd_tb_x1);      (*       x1_b := toBoolean (x1_v) with err2  *)
+				(None, None,           cmd_goto_if)     (*       goto [x1_b] then else               *) 
+			] @ cmds_e2 @ [                           (* then: cmds2                               *)
+				(None, None,           cmd_goto_endif)  (*       goto end                            *)
+			] @ cmds_e3 @ [                           (* else: cmds3                               *)
+				(None, Some lab_endif, cmd_end_if)      (* end:  x_if := PHI(x2, x3)                 *)
+			] in 
 	
 		let new_errs = [
 			(err1, cmd_gv_x1_err); 
