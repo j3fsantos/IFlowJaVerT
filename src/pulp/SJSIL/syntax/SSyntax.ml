@@ -69,6 +69,14 @@ type constant =
 	| Min_float
 	| Max_float
 	| Random
+	| E
+	| Ln10
+	| Ln2
+	| Log2e
+	| Log10e
+	| Pi
+	| Sqrt1_2
+	| Sqrt2
 
 (* jsil types *)
 type jsil_type =

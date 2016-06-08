@@ -35,31 +35,44 @@ let get_succ_pred cmds ret_label opt_error_label =
 			then succ_table.(j) <- i :: succ_table.(j)
 			else ()) in
 	
-	for u=0 to number_of_cmds-1 do 
-		if (not ((u == ret_label) || (u == err_label)))
-		then 
+	for u=0 to number_of_cmds-1 do  
 			(match cmds.(u) with	
 			| SBasic _ -> 
-				update_succ_table (u + 1) u; 
-				update_pred_table u (u + 1)
+				if (not ((u == ret_label) || (u == err_label)))
+					then
+					begin
+						update_succ_table (u + 1) u; 
+						update_pred_table u (u + 1)
+					end
 		
 			| SGoto i ->
-				update_succ_table i u; 
-				update_pred_table u i 
+				if (not ((u == ret_label) || (u == err_label)))
+					then
+					begin
+						update_succ_table i u; 
+						update_pred_table u i 
+					end
 		
 			| SGuardedGoto (e, i, j) -> 
-				update_succ_table i u;
-				update_pred_table u i; 
-				update_succ_table j u; 
-				update_pred_table u j
+				if (not ((u == ret_label) || (u == err_label)))
+					then
+					begin
+						update_succ_table i u;
+						update_pred_table u i; 
+						update_succ_table j u; 
+						update_pred_table u j
+					end
 		
 			| SCall (var, e, es, i) ->
 				(match i with
 				| None -> ()
 				| Some i -> (update_succ_table i u; update_pred_table u i));
-				update_succ_table (u+1) u; 
-				update_pred_table u (u+1))
-		else ()
+				if (not ((u == ret_label) || (u == err_label)))
+					then
+					begin
+						update_succ_table (u+1) u; 
+						update_pred_table u (u+1)
+					end)
 	done; 
 	
 	for k = 0 to (number_of_cmds - 1) do

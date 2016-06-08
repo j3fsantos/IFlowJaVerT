@@ -103,7 +103,7 @@ let evaluate_unop op lit =
 	| Not -> 
 		(match lit with 
 		| Bool b -> (Bool (not b))
-		| _ -> raise (Failure "Non-bool argument to Not"))
+		| _ -> raise (Failure (Printf.sprintf "Non-bool argument to Not: %s" (SSyntax_Print.string_of_literal lit false))))
 	| Negative -> 
 		(match lit with
 		| Num n -> Num (-.n)
@@ -238,10 +238,8 @@ let evaluate_unop op lit =
 		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
 	
 (*
-			xret := "create_object_with_body" ($lmath_atan2, "M_atan2", 2);
 			xret := "create_object_with_body" ($lmath_max, "M_max", 2);	
 			xret := "create_object_with_body" ($lmath_min, "M_min", 2);
-			xret := "create_object_with_body" ($lmath_pow, "M_pow", 2);
 *)
 	
 let same_value_num n1 n2 = 
@@ -347,11 +345,14 @@ let evaluate_binop op lit1 lit2 =
 	| LCons -> 
 		(match lit2 with
 		| LList list -> LList 
-			(
-				match lit1 with
+			(match lit1 with
 				| LList [] -> list
 				| _ -> lit1 :: list)
-		| _ -> raise (Failure "Non-list second argument to LCons"))
+		| String s2 -> 
+			(match lit1 with
+			| String s1 -> String (s1 ^ s2)
+			| _ -> raise (Failure "Non-string concatenation with a string"))
+		| _ -> raise (Failure "Non-list second argument or non-string arguments to LCons"))
 	| M_atan2 ->
 		(match lit1, lit2 with
 		| Num x, Num y -> Num (atan2 x y)
@@ -375,16 +376,26 @@ let evaluate_type_of lit =
 	| LVRef (_, _) -> VariableReferenceType
 	| LORef (_, _) -> ObjectReferenceType
 	| LList _ -> ListType
+
+let evaluate_constant c = 
+	match c with
+  | Min_float -> Num (min_float)
+	| Max_float -> Num (max_float)
+	| Random -> Num (Random.float (1.0 -. epsilon_float))
+	| E -> Num (exp 1.0)
+	| Ln10 -> Num (log 10.0)
+	| Ln2 -> Num (log 2.)
+	| Log2e -> Num (log (exp 1.0) /. log (2.0))
+	| Log10e -> Num (log10 (exp 1.0))
+	| Pi -> Num (4.0 *. atan 1.0)
+	| Sqrt1_2 -> Num (sqrt 0.5)
+	| Sqrt2 -> Num (sqrt 2.0)
 							
 let rec evaluate_expr (e : jsil_expr) store = 
 	match e with 
 	| Literal l -> 
 		(match l with
-		| Constant c ->
-			(match c with
-			| Min_float -> Num (min_float)
-			| Max_float -> Num (max_float)
-			| Random -> Num (Random.float (1.0 -. epsilon_float)))
+		| Constant c -> evaluate_constant c
 		| x -> x) 
 	| Var x -> 
 		(match SSyntax_Aux.try_find store x with 
@@ -409,8 +420,8 @@ let rec evaluate_expr (e : jsil_expr) store =
 			(match l with
 			| Null | Undefined | Bool _ 
 			| Num _ | String _ | Loc _ -> LVRef (l, field)
-			| _ -> raise (Failure "Illegal V-Reference constructor parameter"))
-		| _, _ -> raise (Failure "Illegal V-Reference constructor parameter"))
+			| _ -> raise (Failure (Printf.sprintf "Illegal V-Reference constructor parameter : %s, %s" (SSyntax_Print.string_of_literal v1 false) (SSyntax_Print.string_of_literal v2 false))))
+		| _, _ -> raise (Failure (Printf.sprintf "Illegal V-Reference constructor parameter : %s, %s" (SSyntax_Print.string_of_literal v1 false) (SSyntax_Print.string_of_literal v2 false))))
 	| ORef (e1, e2) -> 
 		let v1 = evaluate_expr e1 store in 
 		let v2 = evaluate_expr e2 store in 
@@ -419,8 +430,8 @@ let rec evaluate_expr (e : jsil_expr) store =
 			(match l with
 			| Null | Undefined | Bool _ 
 			| Num _ | String _ | Loc _ -> LORef (l, field)
-			| _ -> raise (Failure "Illegal O-Reference constructor parameter"))
-		| _, _ -> raise (Failure "Illegal O-Reference constructor parameter"))
+			| _ -> raise (Failure (Printf.sprintf "Illegal O-Reference constructor parameter : %s, %s" (SSyntax_Print.string_of_literal v1 false) (SSyntax_Print.string_of_literal v2 false))))
+		| _, _ -> raise (Failure (Printf.sprintf "Illegal O-Reference constructor parameter : %s, %s" (SSyntax_Print.string_of_literal v1 false) (SSyntax_Print.string_of_literal v2 false))))
 	| Base e -> 
 		let v = evaluate_expr e store in
 		(match v with 
@@ -554,7 +565,8 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (SSyntax_Print.string_of_literal v_e1 false)))) in
 			if (SHeap.mem obj f) 
 			then 
-				(SHeap.remove heap f; 
+				(Printf.printf "Removing field (%s, %s)!\n" (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false);
+				SHeap.remove obj f; 
 				Bool true)
 			else raise (Failure "Deleting inexisting field")
 		| _, _ -> raise (Failure "Illegal field deletion"))
@@ -639,24 +651,31 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 	let cur_which_pred = 
 		if (cur_cmd > 0) 
 			then (try Hashtbl.find which_pred (cur_proc_name, prev_cmd, cur_cmd) 
-				with _ ->  raise (Failure "which_pred undefined"))
+				with _ ->  raise (Failure (Printf.sprintf "which_pred undefined for command: %s %d %d" cur_proc_name prev_cmd cur_cmd)))
 			else 0 in 
 
 	let spec, cmd = cmd in
 	match cmd with 
 	| SBasic bcmd -> 
-		let v = evaluate_bcmd bcmd heap store cur_which_pred in 
-		if (cur_cmd == proc.ret_label)
-			then Normal, (try (Hashtbl.find store proc.ret_var) with
-			| _ -> raise (Failure (Printf.sprintf "Cannot find return variable.")))
-			else if ((Some cur_cmd) = proc.error_label) 
+		let _ = evaluate_bcmd bcmd heap store cur_which_pred in 
+		if (cur_cmd = proc.ret_label)
+			then 
+			(let ret_value = (try (Hashtbl.find store proc.ret_var) with
+			| _ -> raise (Failure (Printf.sprintf "Cannot find return variable."))) in
+			Printf.printf ("Procedure %s returned: Normal, %s\n") cur_proc_name (SSyntax_Print.string_of_literal ret_value false);
+			Normal, ret_value)
+			else 
+				(if ((Some cur_cmd) = proc.error_label) 
 				then 
-					Error, let err_var = (match proc.error_var with 
+				(let err_value = 
+					(let err_var = (match proc.error_var with 
 					                      | None -> raise (Failure "No no!") 
 																| Some err_var -> err_var) in
 				         (try (Hashtbl.find store err_var) with
-				| _ -> raise (Failure (Printf.sprintf "Cannot find error variable." )))
-				else evaluate_cmd prog cur_proc_name which_pred heap store (cur_cmd + 1) cur_cmd
+				| _ -> raise (Failure (Printf.sprintf "Cannot find error variable." )))) in
+			Printf.printf ("Procedure %s returned: Error, %s\n") cur_proc_name (SSyntax_Print.string_of_literal err_value false);
+			Error, err_value)
+				else (evaluate_cmd prog cur_proc_name which_pred heap store (cur_cmd + 1) cur_cmd))
 		 
 	| SGoto i -> 
 		evaluate_cmd prog cur_proc_name which_pred heap store i cur_cmd
@@ -674,7 +693,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 		| String call_proc_name -> 
 				Printf.printf "\nExecuting procedure %s\n" call_proc_name; 
 				call_proc_name 
-		| _ -> raise (Failure "Erm, no. Procedures can't be called that.")) in 
+		| _ -> raise (Failure (Printf.sprintf "Erm, no. Procedures can't be called %s." (SSyntax_Print.string_of_literal call_proc_name_val false)))) in 
 		let arg_vals = List.map 
 			(fun e_arg -> evaluate_expr e_arg store) 
 			e_args in 
@@ -683,14 +702,19 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 		let new_store = init_store call_proc.proc_params arg_vals in 
 		match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 with 
 		| Normal, v -> 
-			Printf.printf "Procedure %s return: %s := %s\n" call_proc_name x (SSyntax_Print.string_of_literal v false);
 			Hashtbl.replace store x v;
-			evaluate_cmd prog cur_proc_name which_pred heap store (cur_cmd + 1) cur_cmd
+			if (cur_cmd = proc.ret_label)
+			then 
+			(let ret_value = (try (Hashtbl.find store proc.ret_var) with
+			| _ -> raise (Failure (Printf.sprintf "Cannot find return variable."))) in
+			Printf.printf ("Procedure %s returned: Normal, %s\n") cur_proc_name (SSyntax_Print.string_of_literal ret_value false);
+			Normal, ret_value)
+			else (evaluate_cmd prog cur_proc_name which_pred heap store (cur_cmd + 1) cur_cmd)
 		| Error, v -> 
 			(match j with
-			| None -> raise (Failure ("Procedure "^ call_proc_name ^"just returned an error, but no error label was provided. Bad programmer."))
+			| None -> raise (Failure ("Procedure "^ call_proc_name ^" just returned an error, but no error label was provided. Bad programmer."))
 			| Some j -> Hashtbl.replace store x v;
-			            evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd)
+				evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd)
 		 		
 let evaluate_prog prog which_pred heap = 
 	Random.self_init();

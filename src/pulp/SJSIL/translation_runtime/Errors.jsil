@@ -1,0 +1,277 @@
+import Internals, Init;
+
+(* ***************** *) 
+(* THE ERROR LIBRARY *)
+(* ***************** *) 
+
+(* *** CONSTRUCT *** *)
+
+proc Error_construct (v) {
+			xret := new ();
+			xret := "create_default_object" (xret, $lerr_proto, "Error", "t");
+
+			goto [v = $$empty] rlab mess;
+			
+	mess:	xerr := "i__toString" (v) with elab;
+			[xret, "message"] := xerr;
+			
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xerr, elab;
+};
+
+(* *** TOSTRING *** *)
+
+proc EP_toString(xsc, vthis) {
+			goto [typeOf(vthis) = $$object_type] init throw;
+			
+	init:	g := [vthis, "@get"];
+			
+			name := "";
+			xret := g (vthis, "name") with elab;
+			goto [xret = $$undefined] msg ndef;
+		
+	ndef:	xret := "i__toString" (xret) with elab;
+			name := xret;
+			
+	msg:	msg := "";
+			xret := g (vthis, "message") with elab;
+			goto [xret = $$undefined] ccat mdef;
+
+	mdef:	xret := "i__toString" (xret) with elab;
+			msg := xret;
+			
+	ccat:	goto [name = ""] nemp cmsg;
+			
+	nemp:	xret := msg;
+			goto rlab;
+	
+	cmsg:	goto [msg = ""] memp cc;
+	
+	memp:	xret := name;
+			goto rlab;
+			
+	cc:		xret := name :: ": " :: msg;
+
+	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* ***************** *) 
+(* THE NATIVE ERRORS *)
+(* ***************** *) 
+
+(* *** CALL *** *)
+
+proc EvalError_call (v) {
+			xret := "EvalError" (v) with elab;
+			
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
+};
+
+(* *** CONSTRUCT *** *)
+
+proc EvalError (v) {
+			xret := new ();
+			xret := "create_default_object" (xret, $leerr_proto, "Error", "t");
+
+			goto [v = $$empty] rlab mess;
+			
+	mess:	xerr := "i__toString" (v) with elab;
+			[xret, "message"] := xerr;
+			
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xerr, elab;
+};
+
+(* *** CALL *** *)
+
+proc RangeError_call (v) {
+			xret := "RangeError" (v) with elab;
+			
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
+};
+
+(* *** CONSTRUCT *** *)
+
+proc RangeError (v) {
+			xret := new ();
+			xret := "create_default_object" (xret, $lrgerr_proto, "Error", "t");
+
+			goto [v = $$empty] rlab mess;
+			
+	mess:	xerr := "i__toString" (v) with elab;
+			[xret, "message"] := xerr;
+			
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xerr, elab;
+};
+
+(* *** CALL *** *)
+
+proc ReferenceError_call (v) {
+			xret := "ReferenceError" (v) with elab;
+			
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
+};
+
+(* *** CONSTRUCT *** *)
+
+proc ReferenceError (v) {
+			xret := new ();
+			xret := "create_default_object" (xret, $lrferr_proto, "Error", "t");
+
+			goto [v = $$empty] rlab mess;
+			
+	mess:	xerr := "i__toString" (v) with elab;
+			[xret, "message"] := xerr;
+			
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xerr, elab;
+};
+
+(* *** CALL *** *)
+
+proc SyntaxError_call (v) {
+			xret := "SyntaxError" (v) with elab;
+			
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
+};
+
+(* *** CONSTRUCT *** *)
+
+proc SyntaxError (v) {
+			xret := new ();
+			xret := "create_default_object" (xret, $lserr_proto, "Error", "t");
+
+			goto [v = $$empty] rlab mess;
+			
+	mess:	xerr := "i__toString" (v) with elab;
+			[xret, "message"] := xerr;
+			
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xerr, elab;
+};
+
+(* *** CALL *** *)
+
+proc TypeError_call (v) {
+			xret := "TypeError" (v) with elab;
+			
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
+};
+
+(* *** CONSTRUCT *** *)
+
+proc TypeError (v) {
+			xret := new ();
+			xret := "create_default_object" (xret, $lterr_proto, "Error", "t");
+
+			goto [v = $$empty] rlab mess;
+			
+	mess:	xerr := "i__toString" (v) with elab;
+			[xret, "message"] := xerr;
+			
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xerr, elab;
+};
+
+(* *** CALL *** *)
+
+proc URIError_call (v) {
+			xret := "URIError" (v) with elab;
+			
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
+};
+
+(* *** CONSTRUCT *** *)
+
+proc URIError (v) {
+			xret := new ();
+			xret := "create_default_object" (xret, $luerr_proto, "Error", "t");
+
+			goto [v = $$empty] rlab mess;
+			
+	mess:	xerr := "i__toString" (v) with elab;
+			[xret, "message"] := xerr;
+			
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xerr, elab;
+}

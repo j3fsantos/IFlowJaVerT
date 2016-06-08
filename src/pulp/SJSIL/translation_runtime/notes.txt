@@ -27,11 +27,13 @@ NOTES
 
 * GO THROUGH INITIAL HEAP TO UNDERSTAND WHERE TO USE SCOPE AND LTHIS
 
-* Correct error in SCall in the interpreter!
-
 * Match lengths in all!
 
 * DO ARRAY DEFINEOWNPROP
+
+* Object.prototype.isPrototypeOf vs. protoObj?
+
+* Beware of num_... instead of i__to...
 
  CALL
 ------
@@ -57,3 +59,16 @@ TODO
 * Test toPrimitive, toNumber, toString for objects!
 
 * Math min and max!
+
+* ERRORS!
+
+INTEGRATION
+-----------
+
+setupInitialHeap
+
+is__Reserved!
+
+protoField instead of proto_field
+
+missing toString for member access
