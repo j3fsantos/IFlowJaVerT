@@ -42,6 +42,7 @@ let toNumberName = "i__toNumber" (* 9.3 - Table 12 *)
 let toPrimitiveName = "i__toPrimitive"
 let toInt32Name = "i__toInt32"
 let toUInt32Name = "i__toInt32"
+let abstractComparisonName = "i__abstractComparison" (* 11.8.5 *) 
 
 
 let print_position outx lexbuf =
@@ -871,7 +872,7 @@ let rec translate fid cc_table loop_list ctx vis_fid js_lab e  =
 	  (**
         11.7.3
         C(e1) = cmds1, x1; C(e2) = cmds2, x2 
-			  C(e1 >>> e2) =  cmds1 
+			  C(e1 >>> e2) = cmds1 
 				               cmds2 
 											 x1_v := getValue (x1) with err1
 											 x2_v := getValue (x2) with err2
@@ -883,7 +884,65 @@ let rec translate fid cc_table loop_list ctx vis_fid js_lab e  =
 		let cmds2, x2, errs2, rets2 = f e2 in
 		let new_cmds, new_errs, x_r = translate_bitwise_shift x1 x2 toUInt32Name toUInt32Name SignedRightShift in  
 		(cmds1 @ cmds2 @ new_cmds), Var x_r, (errs1 @ errs2 @ new_errs), (rets1 @ rets2)
-				
+	
+			
+	| Parser_syntax.BinOp (e1, (Parser_syntax.Comparison Parser_syntax.Lt), e2) ->
+	  (**
+        11.8.1
+        C(e1) = cmds1, x1; C(e2) = cmds2, x2 
+			  C(e1 >>> e2) =         cmds1 
+				                       cmds2 
+											         x1_v := getValue (x1) with err1
+											         x2_v := getValue (x2) with err2
+											         x_ac := i__abstractComparison (x1_v, x2_v) with err3 
+											         goto [ x_ac = undefined ] then end 
+											  then:  x_undef := false 
+											  end:   x_r := PHI(x_ac, x_undef)  
+     *)
+		let cmds1, x1, errs1, rets1 = f e1 in
+		let cmds2, x2, errs2, rets2 = f e2 in
+		
+		(* x1_v := getValue (x1) with err1 *)
+		let err1 = fresh_err_label () in 
+		let x1_v = fresh_var () in
+		let cmd_gv_x1 = SLCall (x1_v, (Literal (String getValueName)), [ x1 ], Some err1) in
+		
+		(* x2_v := getValue (x2) with err2 *)
+		let err2 = fresh_err_label () in 
+		let x2_v = fresh_var () in
+		let cmd_gv_x2 = SLCall (x2_v, (Literal (String getValueName)), [ x2 ], Some err2) in
+		
+		(* x_ac := i__abstractComparison (x1_v, x2_v) with err3  *) 
+		let err3 = fresh_err_label () in 
+		let x_ac = fresh_var () in
+		let cmd_ac = SLCall (x_ac, (Literal (String abstractComparisonName)), [ Var x1_v; Var x2_v; Literal (Bool false) ], Some err3) in
+		
+		(*  goto [ x_ac = undefined ] then end *) 
+		let then_lab = fresh_label () in  
+		let end_lab = fresh_label () in 
+		let cmd_goto = SLGuardedGoto (BinOp (Var x_ac, Equal, Literal Undefined), then_lab, end_lab) in 
+		
+		(* x_r := PHI(x_ac, x_undef) *)
+		let x_undef = fresh_var () in 
+		let x_r = fresh_var () in 
+		let cmd_ass_xr = SLBasic (SPhiAssignment (x_r, [| Some x_ac; Some x_undef |])) in 
+		 
+		let cmds = cmds1 @ cmds2 @ [                                                     (*        cmds1 cmds2                                           *) 
+			(None, None, cmd_gv_x1);                                                       (*        x1_v := getValue (x1) with err1                       *)
+			(None, None, cmd_gv_x2);                                                       (*        x2_v := getValue (x2) with err2                       *)
+			(None, None, cmd_ac);  	                                                       (*        x_ac := i__abstractComparison (x1_v, x2_v) with err3  *) 
+			(None, None, cmd_goto);                                                        (*        goto [ x_ac = undefined ] then end                    *) 
+			(None, Some then_lab, SLBasic (SAssignment (x_undef, Literal (Bool false))));  (* then:  x_undef := false                                      *) 
+			(None, Some end_lab, cmd_ass_xr)                                               (* end:   x_r := PHI(x_ac, x_undef)                             *)
+		] in 
+
+		let errs = errs1 @ errs2 @ [
+			(err1, SLBasic (SAssignment (ctx.tr_error_var, (Var x1_v))));
+			(err2, SLBasic (SAssignment (ctx.tr_error_var, (Var x2_v))));
+			(err3, SLBasic (SAssignment (ctx.tr_error_var, (Var x_ac))))
+		] in 
+
+		cmds, Var x_r, errs, (rets1 @ rets2)		
 		
 	| Parser_syntax.This ->
 		(* x := __this	*)
