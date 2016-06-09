@@ -206,9 +206,9 @@ let update_cc_tbl cc_tbl f_parent_id f_id f_args f_body =
 
 let rec closure_clarification cc_tbl fun_tbl vis_tbl args f_id visited_funs e = 
 	let f = closure_clarification cc_tbl fun_tbl vis_tbl args f_id visited_funs in 
-	let fo e = begin match e with 
+	let fo e = (match e with 
 	| None -> () 
-	| Some e -> f e end in 
+	| Some e -> f e) in 
 	match e.exp_stx with
   (* Literals *)
 	| Null 
@@ -228,7 +228,7 @@ let rec closure_clarification cc_tbl fun_tbl vis_tbl args f_id visited_funs e =
 		let new_f_id = get_codename e in 
 		update_cc_tbl cc_tbl f_id new_f_id args fb;
 		update_fun_tbl fun_tbl new_f_id args fb; 
-		Hashtbl.replace vis_tbl new_f_id visited_funs; 
+		Hashtbl.replace vis_tbl new_f_id (new_f_id :: visited_funs); 
 		closure_clarification cc_tbl fun_tbl vis_tbl args new_f_id (new_f_id :: visited_funs) fb
 	| Unary_op (_, e) -> f e        
   | Delete e -> f e

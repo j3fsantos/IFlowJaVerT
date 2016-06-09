@@ -158,7 +158,8 @@ let evaluate_unop op lit =
 		(match lit with
 		| LList l -> Num (float_of_int (List.length l))
 		| String s -> Num (float_of_int (String.length s))
-		| _ -> raise (Failure "Non-string and non-list argument to Length"))
+		| _ -> raise (Failure (Printf.sprintf "Non-string and non-list argument to Length: %s" (SSyntax_Print.string_of_literal lit false))))
+
 	| IsPrimitive ->
 		(match lit with
 		| Null
@@ -530,7 +531,10 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 			let obj = (try SHeap.find heap l with
 			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (SSyntax_Print.string_of_literal v_e1 false)))) in
 			let v = (try SHeap.find obj f with
-				| _ -> raise (Failure (Printf.sprintf "Looking up inexistent field: [%s, %s]" (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false)))) in
+				| _ -> 
+					let final_heap_str = SSyntax_Print.sexpr_of_heap heap in 
+					Printf.printf "Final heap: \n%s\n" final_heap_str;
+					raise (Failure (Printf.sprintf "Looking up inexistent field: [%s, %s]" (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false)))) in
 	
 			Hashtbl.replace store x v; 
 			Printf.printf "Lookup: %s := [%s, %s] = %s \n" x (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false) (SSyntax_Print.string_of_literal v false);

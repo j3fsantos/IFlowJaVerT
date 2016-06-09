@@ -53,6 +53,7 @@ rule read = parse
 	| "flag"							 { SJSIL_Parser.FLAG }
 *)
 (* command keywords *)
+  | "PHI"                { SJSIL_Parser.PHI }
 	| "goto"               { SJSIL_Parser.GOTO }
   | "skip"               { SJSIL_Parser.SKIP }
 	| ":="                 { SJSIL_Parser.DEFEQ }
