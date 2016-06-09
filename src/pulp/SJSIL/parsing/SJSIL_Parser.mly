@@ -35,6 +35,7 @@ open SSyntax
 %token OREFTYPELIT
 %token LISTTYPELIT
 (* command keywords  *)
+%token PHI
 %token GOTO
 %token SKIP
 %token DEFEQ
@@ -272,6 +273,18 @@ cmd_target:
 		Printf.printf "Parsing Assignment.\n";
 		Some (SSyntax.SLBasic (SSyntax.SAssignment (v, e)))
 	}
+
+(* x := PHI(e1, e2, ... en); *)
+  | v=VAR; DEFEQ; PHI; LBRACE; es = param_list_target; RBRACE
+	  {
+			Printf.printf "Parsing PHI-node.\n";
+			let rec oes l =
+				(match l with
+				| [] -> []
+				| x :: l -> Some x :: oes l) in
+			Some (SSyntax.SLBasic (SPhiAssignment (v, Array.of_list (oes es))))
+		}
+	
 (* x := [e1, e2] *)
 	| v=VAR; DEFEQ; LBRACKET; e1=expr_target; COMMA; e2=expr_target; RBRACKET 
 		{ 

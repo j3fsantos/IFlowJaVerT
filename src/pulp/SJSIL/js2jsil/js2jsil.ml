@@ -17,6 +17,8 @@ let js2jsil_imports = [
 	"Errors"
 ]
 
+let setupHeapName = "setupInitialHeap"
+
 let callPropName = "@call"
 let constructPropName = "@construct"
 let scopePropName = "@scope"
@@ -33,7 +35,7 @@ let syntaxErrorName = "SyntaxError"
 let typeErrorName = "TypeError"
 let createFunctionObjectName = "create_function_object"
 let isCallableName = "i__isCallable"
-let createScopeChainCopyName = "i__create_sc_copy"
+let copyObjectName = "copy_object"
 let checkObjectCoercibleName = "i__checkObjectCoercible"
 let jsTypeOfName = "i__jsTypeOf" (* 11.4.3 - Table 20 *) 
 let toNumberName = "i__toNumber" (* 9.3 *) 
@@ -122,7 +124,8 @@ let translate_var_found fid js_var new_var =
 				%s := v-ref(%s, \"%s\")"
 	in
 	let x_1 = fresh_var () in 
-	let target_code_str = Printf.sprintf tmpl x_1 var_scope fid new_var x_1 js_var in 
+  let sfid = "\"" ^ fid ^ "\"" in
+	let target_code_str = Printf.sprintf tmpl x_1 var_scope sfid new_var x_1 js_var in 
 	parse target_code_str
 
 let translate_var_not_found fid js_var new_var = 
@@ -729,10 +732,10 @@ let rec translate fid cc_table loop_list ctx vis_fid js_lab e  =
 		   x_f := create_function_object(x_scope, f_id, params)
    	*)
 		
-		(* x_sc := copy_scope_chain_obj (x_sc, {{main, fid1, ..., fidn }});  *)
+		(* x_sc := copy_object (x_sc, {{main, fid1, ..., fidn }});  *)
 		let x_sc = fresh_var () in 
 		let vis_fid_strs = List.map (fun fid -> String fid) vis_fid in   
-		let cmd_sc_copy = SLCall (x_sc, Literal (String createScopeChainCopyName), 
+		let cmd_sc_copy = SLCall (x1, Literal (String copyObjectName), 
 			[ (Var var_scope); Literal (LList vis_fid_strs) ], None) in 
 		
 		(* x_f := create_function_object(x_sc, f_id, params) *)
@@ -746,11 +749,11 @@ let rec translate fid cc_table loop_list ctx vis_fid js_lab e  =
 				params in 
 		let processed_params = List.rev processed_params in 
 		let cmd = SLCall (x_f, Literal (String createFunctionObjectName), 
-			[ (Var x_sc); (Literal (String f_id)); (Literal (LList processed_params)) ], None) in 	
+			[ (Var x_sc); (Literal (String f_id)); (Literal (String f_id)); (Literal (LList processed_params)) ], None) in 	
 		
 		[ 
-		  (None, None, cmd_sc_copy);            (* x1 := copy_scope_chain_obj (x_scope, {{main, fid1, ..., fidn }});  *)
-			(None, None, cmd)                     (* x_f := create_function_object(x_scope, f_id, params) *)
+		  (None, None, cmd_sc_copy);            (* x_sc := copy_object (x_scope, {{main, fid1, ..., fidn }});  *)
+			(None, None, cmd)                     (* x_f := create_function_object (x_sc, f_id, f_id, params)    *)
 		], (Var x_f), [], []
 	
 	| Parser_syntax.Call (e_f, xes) -> 
@@ -1373,6 +1376,8 @@ let generate_main e main cc_table =
 			with _ -> raise (Failure "main not defined in cc_table - assim fica dificil")  in 
 	let global_vars = 
 		Hashtbl.fold (fun key key_val ac -> key :: ac) cc_tbl_main [] in
+	let new_var = fresh_var () in
+	let setup_heap_ass = (None, None, SLCall (new_var, Literal (String setupHeapName), [ ], None)) in
 	(* __scope := new () *) 
 	let init_scope_chain_ass = (None, None, SLBasic (SNew (var_scope))) in
 	(* [__scope, "main"] := $lg *)
@@ -1398,7 +1403,7 @@ let generate_main e main cc_table =
 	(* error processing cmds *) 
 	let err_cmds = (process_error_cmds errs ctx) @ [ lab_err_skip ] in 
 	let main_cmds = 
-		[ init_scope_chain_ass; lg_ass; this_ass] @ global_var_asses @ cmds_e @ [ret_ass; lab_ret_skip ] @ err_cmds in 
+		[ setup_heap_ass; init_scope_chain_ass; lg_ass; this_ass] @ global_var_asses @ cmds_e @ [ret_ass; lab_ret_skip ] @ err_cmds in 
 	{ 
 		lproc_name = main;
     lproc_body = (Array.of_list main_cmds);
