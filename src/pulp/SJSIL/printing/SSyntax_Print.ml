@@ -168,7 +168,7 @@ let rec string_of_expression e escape_string =
     | Var v -> Pulp_Syntax_Print.string_of_var v
 		(* (e1 bop e2) *)
     | BinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (se e1) (string_of_binop op) (se e2)
-		(* (uop e1 e2) *)
+		(* (uop e) *)
     | UnaryOp (op, e) -> Printf.sprintf "(%s %s)" (string_of_unop op) (se e)
 		(* (typeof e) *)
     | TypeOf e -> Printf.sprintf "typeOf(%s)" (se e)
