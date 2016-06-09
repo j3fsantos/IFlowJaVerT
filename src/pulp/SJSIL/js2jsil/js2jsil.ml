@@ -190,6 +190,61 @@ let rec translate fid cc_table loop_list ctx vis_fid js_lab e  =
 		let right_e = BinOp ((BinOp ((Field x), Equal, Literal (String "eval"))), Or, (BinOp ((Field x), Equal, Literal (String "arguments")))) in 
 		BinOp (left_e, And, right_e) in
 	
+	
+	let translate_inc_dec x is_plus = 	
+		(** 
+			        goto [ (typeof (x) = $$v-reference_type) and ((field(x) = "eval") or (field(x) = "arguments")) ] err1 next
+			 next:  x_v := getValue (x) with err2 
+						  x_n := i__toNumber (x_v) with err3 
+							x_r := x_n +/- 1
+						  x_pv := putValue (x, x_r) with err4; 
+    *)
+		
+		(* goto [ (typeof (x) = $$v-reference_type) and ((field(x) = "eval") or (field(x) = "arguments")) ] err1 next *)
+		let err1 = fresh_err_label () in 
+		let next = fresh_label () in 
+		let cmd_goto_legalass = SLGuardedGoto ((non_writable_ref_test x), err1, next) in 
+		 
+		(* next:  x_v := getValue (x) with err2 *) 
+		let err2 = fresh_err_label () in 
+		let x_v = fresh_var () in
+		let cmd_gv_x = SLCall (x_v, (Literal (String getValueName)), [ x ], Some err2) in
+		
+		(* x_n := i__toNumber (x_v) with err3 *) 
+		let err3 = fresh_err_label () in 
+		let x_n = fresh_var () in
+		let cmd_tn_x = SLCall (x_v, (Literal (String toNumberName)), [ Var x_v ], Some err3) in
+		
+		(* x_r := x_n +/- 1 *) 
+		let x_r = fresh_var () in 
+		let cmd_ass_xr = 
+			(match is_plus with 
+			| true -> SLBasic (SAssignment (x_r, (BinOp (Var x_n, Plus, Literal (Num 1.))))) 
+			| false -> SLBasic (SAssignment (x_r, (BinOp (Var x_n, Minus, Literal (Num 1.)))))) in 
+		
+		(* x_pv = putValue (x, x_r) with err4 *) 
+		let err4 = fresh_err_label () in 
+		let x_pv = fresh_var () in 
+		let cmd_pv_x = SLCall (x_pv, Literal (String putValueName), [x; (Var x_pv)], Some err4) in  
+		
+		let new_cmds = [      
+			(None, None,      cmd_goto_legalass);                (*        goto [ (typeof (x) = $$v-reference_type) and ((field(x) = "eval") or (field(x) = "arguments")) ] err1 next   *)
+			(None, Some next, cmd_gv_x);                         (* next:  x_v := getValue (x) with err2                                                                                *)    
+			(None, None,      cmd_tn_x);                  	     (*        x_n := i__toNumber (x_v) with err3                                                                           *) 
+		  (None, None,      cmd_ass_xr);                       (*        x_r := x_n + 1                                                                                               *) 
+			(None, None,      cmd_pv_x)                          (*        x_pv = putValue (x, x_r) with err4                                                                           *)
+		] in 
+		
+		let new_errs = [
+			(err1, SLCall (ctx.tr_error_var, Literal (String syntaxErrorName), [ ], None)); 
+			(err2, SLBasic (SAssignment (ctx.tr_error_var, (Var x_v)))); 
+			(err3, SLBasic (SAssignment (ctx.tr_error_var, (Var x_n))));
+			(err4, SLBasic (SAssignment (ctx.tr_error_var, (Var x_pv))));
+		] in 
+		
+		new_cmds, new_errs, x_v, x_r in
+	
+	
 	match e.Parser_syntax.exp_stx with 
 	
 	(* Literals *)
@@ -476,7 +531,41 @@ let rec translate fid cc_table loop_list ctx vis_fid js_lab e  =
       Section: 11.4.5
       C(e) = cmds, x
 			
+			C(--e) =          cmds 
+			                  goto [ (typeof (x) = $$v-reference_type) and ((field(x) = "eval") or (field(x) = "arguments")) ] err1 next
+			           next:  x_v := getValue (x) with err2 
+								        x_n := i__toNumber (x_v) with err3 
+							          x_r := x_n - 1
+												x_pv := putValue (x, x_r) with err4; 
+     *)
+		let cmds, x, errs, rets = f e in
+	 	let new_cmds, new_errs, x_v, x_r = translate_inc_dec x false in	
+		(cmds @ new_cmds), Var x_r, (errs @ new_errs), rets 
+	
+	
+	| Parser_syntax.Unary_op (Parser_syntax.Post_Decr, e) ->
+		(**
+      Section: 11.3.2
+      C(e) = cmds, x
+			
 			C(e--) =          cmds 
+			                  goto [ (typeof (x) = $$v-reference_type) and ((field(x) = "eval") or (field(x) = "arguments")) ] err1 next
+			           next:  x_v := getValue (x) with err2 
+								        x_n := i__toNumber (x_v) with err3 
+							          x_r := x_n - 1
+												x_pv := putValue (x, x_r) with err4; 
+     *)
+		let cmds, x, errs, rets = f e in
+	 	let new_cmds, new_errs, x_v, x_r = translate_inc_dec x false in	
+		(cmds @ new_cmds), Var x_v, (errs @ new_errs), rets 
+		
+	
+	| Parser_syntax.Unary_op (Parser_syntax.Pre_Incr, e) ->
+		(**
+      Section: 11.4.4
+      C(e) = cmds, x
+			
+			C(++e) =          cmds 
 			                  goto [ (typeof (x) = $$v-reference_type) and ((field(x) = "eval") or (field(x) = "arguments")) ] err1 next
 			           next:  x_v := getValue (x) with err2 
 								        x_n := i__toNumber (x_v) with err3 
@@ -484,47 +573,25 @@ let rec translate fid cc_table loop_list ctx vis_fid js_lab e  =
 												x_pv := putValue (x, x_r) with err4; 
      *)
 		let cmds, x, errs, rets = f e in
-		
-		(* goto [ (typeof (x) = $$v-reference_type) and ((field(x) = "eval") or (field(x) = "arguments")) ] err1 next *)
-		let err1 = fresh_err_label () in 
-		let next = fresh_label () in 
-		let cmd_goto_legalass = SLGuardedGoto ((non_writable_ref_test x), err1, next) in 
-		 
-		(* next:  x_v := getValue (x) with err2 *) 
-		let err2 = fresh_err_label () in 
-		let x_v = fresh_var () in
-		let cmd_gv_x = SLCall (x_v, (Literal (String getValueName)), [ x ], Some err2) in
-		
-		(* x_n := i__toNumber (x_v) with err3 *) 
-		let err3 = fresh_err_label () in 
-		let x_n = fresh_var () in
-		let cmd_tn_x = SLCall (x_v, (Literal (String toNumberName)), [ Var x_v ], Some err3) in
-		
-		(* x_r := x_n + 1 *) 
-		let x_r = fresh_var () in 
-		let cmd_ass_xr = SLBasic (SAssignment (x_r, (BinOp (Var x_n, Plus, Literal (Num 1.))))) in 
-		
-		(* x_pv = putValue (x, x_r) with err4 *) 
-		let err4 = fresh_err_label () in 
-		let x_pv = fresh_var () in 
-		let cmd_pv_x = SLCall (x_pv, Literal (String putValueName), [x; (Var x_pv)], Some err4) in  
-		
-		let cmds = cmds @ [                                    (*        cmds                                                                                                         *)
-			(None, None,      cmd_goto_legalass);                (*        goto [ (typeof (x) = $$v-reference_type) and ((field(x) = "eval") or (field(x) = "arguments")) ] err1 next   *)
-			(None, Some next, cmd_gv_x);                         (* next:  x_v := getValue (x) with err2                                                                                *)    
-			(None, None,      cmd_tn_x);                  	     (*        x_n := i__toNumber (x_v) with err3                                                                           *) 
-		  (None, None,      cmd_ass_xr);                       (*        x_r := x_n + 1                                                                                               *) 
-			(None, None,      cmd_pv_x)                          (*        x_pv = putValue (x, x_r) with err4                                                                           *)
-		] in 
-		
-		let errs = errs @ [
-			(err1, SLCall (ctx.tr_error_var, Literal (String syntaxErrorName), [ ], None)); 
-			(err2, SLBasic (SAssignment (ctx.tr_error_var, (Var x_v)))); 
-			(err3, SLBasic (SAssignment (ctx.tr_error_var, (Var x_n))));
-			(err4, SLBasic (SAssignment (ctx.tr_error_var, (Var x_pv))));
-		] in 
-		
-		cmds, Var x_r, errs, rets 
+	 	let new_cmds, new_errs, x_v, x_r = translate_inc_dec x true in	
+		(cmds @ new_cmds), Var x_r, (errs @ new_errs), rets 
+	
+	
+	| Parser_syntax.Unary_op (Parser_syntax.Post_Incr, e) ->
+		(**
+      Section: 11.3.1
+      C(e) = cmds, x
+			
+			C(e++) =          cmds 
+			                  goto [ (typeof (x) = $$v-reference_type) and ((field(x) = "eval") or (field(x) = "arguments")) ] err1 next
+			           next:  x_v := getValue (x) with err2 
+								        x_n := i__toNumber (x_v) with err3 
+							          x_r := x_n + 1
+												x_pv := putValue (x, x_r) with err4; 
+     *)
+		let cmds, x, errs, rets = f e in
+	 	let new_cmds, new_errs, x_v, x_r = translate_inc_dec x true in	
+		(cmds @ new_cmds), Var x_v, (errs @ new_errs), rets 
 		
 	
 	| Parser_syntax.This ->
