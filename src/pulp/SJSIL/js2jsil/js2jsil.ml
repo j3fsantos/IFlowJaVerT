@@ -37,8 +37,8 @@ let createFunctionObjectName = "create_function_object"
 let isCallableName = "i__isCallable"
 let copyObjectName = "copy_object"
 let checkObjectCoercibleName = "i__checkObjectCoercible"
-let jsTypeOfName = "i__jsTypeOf" (* 11.4.3 - Table 20 *) 
-let toNumberName = "i__toNumber" (* 9.3 *) 
+let jsTypeOfName = "i__typeOf"   (* 11.4.3 - Table 20 *) 
+let toNumberName = "i__toNumber" (* 9.3 - Table 12 *) 
 
 let print_position outx lexbuf =
   let pos = lexbuf.lex_curr_p in
@@ -393,6 +393,11 @@ let rec translate fid cc_table loop_list ctx vis_fid js_lab e  =
 			(None, Some end_lab,  cmd_ass_xr)             (* end:       x_r := PHI(x_then, x_else)          *)
 		] in 
 		
+		let errs = errs @ [
+			(err1, SLBasic (SAssignment (ctx.tr_error_var, (Var x_v)))); 
+			(err2, SLBasic (SAssignment (ctx.tr_error_var, (Var x_n))))
+		] in 
+		
 		cmds, Var x_r, errs, rets
 		
 		
@@ -429,6 +434,11 @@ let rec translate fid cc_table loop_list ctx vis_fid js_lab e  =
 			(None, None, SLBasic (SAssignment (x_r, UnaryOp (BitwiseNot, Var x_i32))))     (*  x_r := (! x_i32)                    *)    
 		] in 
 		
+		let errs = errs @ [
+			(err1, SLBasic (SAssignment (ctx.tr_error_var, (Var x_v)))); 
+			(err2, SLBasic (SAssignment (ctx.tr_error_var, (Var x_n))))
+		] in 
+		
 		cmds, Var x_r, errs, rets
 	
 	
@@ -455,6 +465,10 @@ let rec translate fid cc_table loop_list ctx vis_fid js_lab e  =
 			(None, None, SLBasic (SAssignment (x_r, Literal Undefined)));    (*  x_r := $$undefined                  *)    
 		] in 
 		
+		let errs = errs @ [
+			(err, SLBasic (SAssignment (ctx.tr_error_var, (Var x_v))))
+		] in 
+		
 		cmds, Var x_r, errs, rets
 		
 	| Parser_syntax.Unary_op (Parser_syntax.Pre_Decr, e) ->
@@ -469,8 +483,48 @@ let rec translate fid cc_table loop_list ctx vis_fid js_lab e  =
 							          x_r := x_n + 1
 												x_pv := putValue (x, x_r) with err4; 
      *)
-		let cmds, x, errs, rets = f e in 
-		cmds, x, errs, rets 
+		let cmds, x, errs, rets = f e in
+		
+		(* goto [ (typeof (x) = $$v-reference_type) and ((field(x) = "eval") or (field(x) = "arguments")) ] err1 next *)
+		let err1 = fresh_err_label () in 
+		let next = fresh_label () in 
+		let cmd_goto_legalass = SLGuardedGoto ((non_writable_ref_test x), err1, next) in 
+		 
+		(* next:  x_v := getValue (x) with err2 *) 
+		let err2 = fresh_err_label () in 
+		let x_v = fresh_var () in
+		let cmd_gv_x = SLCall (x_v, (Literal (String getValueName)), [ x ], Some err2) in
+		
+		(* x_n := i__toNumber (x_v) with err3 *) 
+		let err3 = fresh_err_label () in 
+		let x_n = fresh_var () in
+		let cmd_tn_x = SLCall (x_v, (Literal (String toNumberName)), [ Var x_v ], Some err3) in
+		
+		(* x_r := x_n + 1 *) 
+		let x_r = fresh_var () in 
+		let cmd_ass_xr = SLBasic (SAssignment (x_r, (BinOp (Var x_n, Plus, Literal (Num 1.))))) in 
+		
+		(* x_pv = putValue (x, x_r) with err4 *) 
+		let err4 = fresh_err_label () in 
+		let x_pv = fresh_var () in 
+		let cmd_pv_x = SLCall (x_pv, Literal (String putValueName), [x; (Var x_pv)], Some err4) in  
+		
+		let cmds = cmds @ [                                    (*        cmds                                                                                                         *)
+			(None, None,      cmd_goto_legalass);                (*        goto [ (typeof (x) = $$v-reference_type) and ((field(x) = "eval") or (field(x) = "arguments")) ] err1 next   *)
+			(None, Some next, cmd_gv_x);                         (* next:  x_v := getValue (x) with err2                                                                                *)    
+			(None, None,      cmd_tn_x);                  	     (*        x_n := i__toNumber (x_v) with err3                                                                           *) 
+		  (None, None,      cmd_ass_xr);                       (*        x_r := x_n + 1                                                                                               *) 
+			(None, None,      cmd_pv_x)                          (*        x_pv = putValue (x, x_r) with err4                                                                           *)
+		] in 
+		
+		let errs = errs @ [
+			(err1, SLCall (ctx.tr_error_var, Literal (String syntaxErrorName), [ ], None)); 
+			(err2, SLBasic (SAssignment (ctx.tr_error_var, (Var x_v)))); 
+			(err3, SLBasic (SAssignment (ctx.tr_error_var, (Var x_n))));
+			(err4, SLBasic (SAssignment (ctx.tr_error_var, (Var x_pv))));
+		] in 
+		
+		cmds, Var x_r, errs, rets 
 		
 	
 	| Parser_syntax.This ->
@@ -735,7 +789,7 @@ let rec translate fid cc_table loop_list ctx vis_fid js_lab e  =
 		(* x_sc := copy_object (x_sc, {{main, fid1, ..., fidn }});  *)
 		let x_sc = fresh_var () in 
 		let vis_fid_strs = List.map (fun fid -> String fid) vis_fid in   
-		let cmd_sc_copy = SLCall (x1, Literal (String copyObjectName), 
+		let cmd_sc_copy = SLCall (x_sc, Literal (String copyObjectName), 
 			[ (Var var_scope); Literal (LList vis_fid_strs) ], None) in 
 		
 		(* x_f := create_function_object(x_sc, f_id, params) *)
