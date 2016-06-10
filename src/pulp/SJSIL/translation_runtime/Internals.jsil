@@ -1055,4 +1055,107 @@ proc i__isReserved (l) {
 with
 {
 	ret:	xret, rlab;
+};
+
+(* ******************* *) 
+(* ABSTRACT COMPARISON *)
+(* ******************* *) 
+
+proc i__abstractComparison (v1, v2, leftFirst) {
+			goto [(leftFirst = $$empty) or (leftFirst = $$t)] eleft eright;
+			
+	eleft:	xret := "i__toPrimitive" (v1, "Number") with elab;
+			px := xret;
+			xret := "i__toPrimitive" (v2, "Number") with elab;
+			py := xret;
+			goto is_str;
+	
+	eright:	xret := "i__toPrimitive" (v2, "Number") with elab;
+			py := xret;
+			xret := "i__toPrimitive" (v1, "Number") with elab;
+			px := xret;
+
+	is_str:	goto [(typeOf(px) = $$string_type) and (typeOf(py) = $$string_type)] str num;
+	
+	str:	xret := (px <s py);
+			goto rlab;
+			
+	num:	xret := "i__toNumber" (px) with elab;
+			nx := xret;
+			xret := "i__toNumber" (py) with elab;
+			ny := xret;
+				
+			goto [(not (nx = nx)) or (not (ny = ny))] ru eq;
+	
+	eq:	goto [nx = ny] rf sh;
+		
+	sh:		goto [nx = inf] rf si;
+	si:		goto [ny = inf] rt sj;
+	sj:		goto [ny = -inf] rf sk;
+	sk:		goto [nx = -inf] rt sl;	
+	sl:		xret := (nx < ny);
+			goto rlab;
+			
+	ru:		xret := $$undefined;
+			goto rlab;
+			
+	rt:		xret := $$t;
+			goto rlab;
+			
+	rf:		xret := $$f;
+
+	rlab:	skip;
+	elab:	skip
 }
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* ****** *) 
+(* TYPEOF *)
+(* ****** *) 
+
+proc i__typeOf (v) {
+	iu:		goto [v = $$undefined] undef in;
+	undef:	xret := "undefined";
+			goto rlab;
+	
+	in:		goto [v = $$null] null ib;
+	null:	xret := "null";
+			goto rlab;
+			
+	ib:		goto [typeOf(v) = $$boolean_type] bool inum;
+	bool:	xret := "boolean";
+			goto rlab;
+			
+	inum:	goto [typeOf(v) = $$number_type] num is;
+	num:	xret := "number";
+			goto rlab;
+			
+	is:		goto [typeOf(v) = $$string_type] str io;
+	str:	xret := "string";
+			goto rlab;
+			
+	io:		goto [typeOf(v) = $$object_type] obj oops;
+	obj:	xret := [v, "@call"];
+			goto [xret = $$empty] isobj isfun;
+			
+	isobj:	xret := "object";
+			goto rlab;
+	
+	isfun:	xret := "function";
+			goto rlab;
+	
+	oops:	xret := "typeOf: This should not happen.";
+			goto elab;
+	
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+}	

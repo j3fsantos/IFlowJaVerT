@@ -28,6 +28,8 @@ rule read = parse
   | white       	       { read lexbuf }
 	|	newline	             { next_line lexbuf; read lexbuf }
 (* type literals *)	
+	| "$$undefined_type"   { SJSIL_Parser.UNDEFTYPELIT }
+	| "$$null_type"        { SJSIL_Parser.NULLTYPELIT }
 	| "$$boolean_type"     { SJSIL_Parser.BOOLTYPELIT }
 	| "$$number_type"      { SJSIL_Parser.NUMTYPELIT }
 	| "$$string_type"      { SJSIL_Parser.STRTYPELIT }
@@ -86,6 +88,7 @@ rule read = parse
 (* binary operators *)
 	| "="                  { SJSIL_Parser.EQUAL }
 	| "<"                  { SJSIL_Parser.LESSTHAN }
+	| "<s"                 { SJSIL_Parser.LESSTHANSTRING }
 	| "<="                 { SJSIL_Parser.LESSTHANEQUAL }
 	| "+"                  { SJSIL_Parser.PLUS }
 	| "-"                  { SJSIL_Parser.MINUS }

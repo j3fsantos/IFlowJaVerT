@@ -1,18 +1,36 @@
-(* import Array, Boolean, Errors, Function, Global, Init, Internals, Math, Number, Object, String; *)
-
-import Errors;
+import Init, Internals;
 
 proc main () {
-			xret := 5;
-			goto [xret = 5] terr rlab;
 			
-	rlab:	skip;
-	
-	terr:	xret := "TypeError" ();
-	elab:	skip
+			xret := "setupInitialHeap" ();
+
+			sa := inf;
+			sb := inf;
+
+			xret := "i__abstractComparison" (sa, sb, $$t);
+
+			xret := "i__toPrimitive" ($$t);
+
+			xret := "i__toBoolean" ($$undefined);
+			xret := "i__toBoolean" ($$null);						
+			xret := "i__toBoolean" ($$t);
+			xret := "i__toBoolean" (24);		
+			xret := "i__toBoolean" ("oogaBooga");		
+			xret := "i__toBoolean" ($lg);
+			xret := "i__toBoolean" ($lobj);
+
+			
+			xret := "i__typeOf" ($$undefined);
+			xret := "i__typeOf" ($$null);						
+			xret := "i__typeOf" ($$t);
+			xret := "i__typeOf" (24);		
+			xret := "i__typeOf" ("oogaBooga");		
+			xret := "i__typeOf" ($lg);
+			xret := "i__typeOf" ($lobj);
+		
+	rlab:	skip
 }
 with
 {
 	ret: 	xret, rlab;
-	err:	xret, elab;
 }

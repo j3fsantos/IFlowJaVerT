@@ -273,7 +273,11 @@ let evaluate_binop op lit1 lit2 =
 	| LessThan -> 
 		(match lit1, lit2 with 
 		| Num n1, Num n2 -> (Bool (n1 < n2)) 
-		| _, _ -> raise (Failure "Non-number argument to LessThan"))
+		| _, _ -> raise (Failure "Non-number arguments to LessThan"))
+	| LessThanString -> 
+		(match lit1, lit2 with 
+		| String s1, String s2 -> (Bool (s1 < s2)) 
+		| _, _ -> raise (Failure "Non-string arguments to LessThanString"))
 	| LessThanEqual -> 
 		(match lit1, lit2 with 
 		| Num n1, Num n2 -> (Bool (n1 <= n2)) 
