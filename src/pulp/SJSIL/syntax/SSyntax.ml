@@ -7,6 +7,7 @@ type bin_op =
 	(* comparison *)
   | Equal
   | LessThan
+	| LessThanString
   | LessThanEqual
 	(* arithmetic operators *)
   | Plus

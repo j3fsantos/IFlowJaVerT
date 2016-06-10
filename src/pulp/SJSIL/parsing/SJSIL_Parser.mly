@@ -26,6 +26,8 @@ open SSyntax
 %token NAN
 %token INFINITY
 (* Type literals *)
+%token UNDEFTYPELIT
+%token NULLTYPELIT
 %token BOOLTYPELIT
 %token NUMTYPELIT
 %token STRTYPELIT
@@ -67,6 +69,7 @@ open SSyntax
 (* binary operators *)
 %token EQUAL
 %token LESSTHAN
+%token LESSTHANSTRING
 %token LESSTHANEQUAL
 %token PLUS
 %token MINUS
@@ -525,6 +528,8 @@ lit_target:
 	| UNDEFINED { SSyntax.Undefined }
 	| NULL { SSyntax.Null }
 	| EMPTY { SSyntax.Empty }
+	| UNDEFTYPELIT { SSyntax.Type SSyntax.UndefinedType }
+	| NULLTYPELIT { SSyntax.Type SSyntax.NullType }
 	| BOOLTYPELIT { SSyntax.Type SSyntax.BooleanType }
 	| NUMTYPELIT { SSyntax.Type SSyntax.NumberType }
 	| STRTYPELIT { SSyntax.Type SSyntax.StringType }
@@ -562,6 +567,7 @@ lit_target:
 binop_target: 
 	| EQUAL { SSyntax.Equal }
 	| LESSTHAN { SSyntax.LessThan }
+	| LESSTHANSTRING { SSyntax.LessThanString }
 	| LESSTHANEQUAL { SSyntax.LessThanEqual }
 	| PLUS { SSyntax.Plus }
 	| MINUS { SSyntax.Minus }

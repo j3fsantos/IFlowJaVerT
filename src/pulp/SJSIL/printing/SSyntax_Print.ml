@@ -24,6 +24,7 @@ the following does not work because nan is interpreted as a variable
 let string_of_binop bop = match bop with 
   | Equal -> "="
   | LessThan -> "<"
+	| LessThanString -> "<s"
   | LessThanEqual -> "<=" 
  	| Plus -> "+"
   | Minus -> "-"
@@ -79,8 +80,8 @@ let string_of_bool x =
 
 let string_of_type t =
   match t with
-  | NullType -> "$$null"
-  | UndefinedType -> "$$undefined"
+  | NullType -> "$$null_type"
+  | UndefinedType -> "$$undefined_type"
   | BooleanType -> "$$boolean_type"
   | StringType -> "$$string_type"
   | NumberType -> "$$number_type"
