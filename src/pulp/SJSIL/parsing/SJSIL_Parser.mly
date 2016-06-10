@@ -115,6 +115,7 @@ open SSyntax
 %token M_LOG 
 %token M_ROUND 
 %token M_SIN 
+%token M_SGN
 %token M_SQRT 
 %token M_TAN 
 (* constants *)
@@ -613,6 +614,7 @@ unop_target:
 	| M_FLOOR { SSyntax.M_floor }
 	| M_LOG   { SSyntax.M_log }
 	| M_ROUND { SSyntax.M_round }
+	| M_SGN   { SSyntax.M_sgn }
 	| M_SIN   { SSyntax.M_sin }
 	| M_SQRT  { SSyntax.M_sqrt }
 	| M_TAN   { SSyntax.M_tan }

@@ -230,10 +230,10 @@ proc o__defaultValue (l, hint) {
     		
     is_c:	c := "i__isCallable" (xret);
             goto [c] call next;
-            xsc := [xret, "@scope"];
-            fun := [xret, "@call"];
             
-    call:   xret := fun (xsc, l) with elab;            
+    call:	xsc := [xret, "@scope"];
+            fun := [xret, "@call"];
+            xret := fun (xsc, l) with elab;            
 			goto [is_primitive xret] rlab next;
 			
     next:   goto [proc_name = "toString"] n s;
@@ -316,12 +316,20 @@ proc o__defineOwnProperty (l, prop, desc, throw) {
 	
 	l6:		goto [nth (current, 0) = "d"] chd cha;
 	
-	chd:	goto [(dv = nth(current, 1)) and (dw = nth(current, 2)) and
-			      (de = nth(current, 3)) and (dc = nth(current, 4)) and
+	chd:	t1 := "i__sameValue" (dv, nth (current, 1));
+			t2 := "i__sameValue" (dw, nth (current, 2));
+			t3 := "i__sameValue" (de, nth (current, 3));
+			t4 := "i__sameValue" (dc, nth (current, 4));
+	
+			goto [t1 and t2 and t3 and t4 and
 			      (dg = $$empty) and (ds = $$empty)] acc_t l7;
 			
-	cha:	goto [(dg = nth(current, 1)) and (ds = nth(current, 2)) and
-			      (de = nth(current, 3)) and (dc = nth(current, 4)) and
+	cha:	t1 := "i__sameValue" (dg, nth (current, 1));
+			t2 := "i__sameValue" (ds, nth (current, 2));
+			t3 := "i__sameValue" (de, nth (current, 3));
+			t4 := "i__sameValue" (dc, nth (current, 4));
+			
+			goto [t1 and t2 and t3 and t4 and
 			      (dv = $$empty) and (dw = $$empty)] acc_t l7;
 	
 	l7:		cvg := nth (current, 1);
@@ -350,11 +358,14 @@ proc o__defineOwnProperty (l, prop, desc, throw) {
 	
 	l10a:	goto [cc = $$f] l10ai l12;
 	l10ai:	goto [(not (dw = $$empty)) and (not (cws = dw))] reject l10aii;
-	l10aii:	goto [(cws = $$f) and (not (dv = $$empty)) and (not (cvg = dv))] reject l12;
+	l10aii:	t1 := "i__sameValue" (cvg, dv);
+			goto [(cws = $$f) and (not (dv = $$empty)) and (not t1)] reject l12;
 	
-	l11: 	goto [(cc = $$f) and 
-	             (((not (dg = $$empty)) and (not (dg = nth (current, 1)))) or 
-	              ((not (ds = $$empty)) and (not (ds = nth (current, 2)))))] reject l12;
+	l11: 	t1 := "i__sameValue" (dg, nth (current, 1));
+			t2 := "i__sameValue" (ds, nth (current, 2));
+			goto [(cc = $$f) and 
+	             (((not (dg = $$empty)) and (not t1)) or 
+	              ((not (ds = $$empty)) and (not t2)))] reject l12;
 	
 	l12:	re := de;
 			rc := dc;
@@ -1048,7 +1059,7 @@ with
 (* ISRESERVED *)
 (* ********** *) 
 
-proc i__isReserved (l) {
+proc i__isReserved (v) {
 			xret := $$f;
 	rlab:	skip
 }
@@ -1123,7 +1134,7 @@ proc i__typeOf (v) {
 			goto rlab;
 	
 	in:		goto [v = $$null] null ib;
-	null:	xret := "null";
+	null:	xret := "object";
 			goto rlab;
 			
 	ib:		goto [typeOf(v) = $$boolean_type] bool inum;
@@ -1158,4 +1169,91 @@ with
 {
 	ret:	xret, rlab;
 	err:	xret, elab;
-}	
+};
+
+(* **************** *) 
+(* ABSTRACTEQUALITY *)
+(* **************** *) 
+
+proc i__AbstractEquality (v1, v2) {
+			tv1 := typeOf(v1);
+			tv2 := typeOf(v2);
+
+			goto [tv1 = tv2] same diff;
+				
+	same:	goto [(tv1 = $$undefined_type) or (tv1 = $$null_type) or
+	              (tv1 = $$boolean_type)   or (tv1 = $$number_type) or
+	              (tv1 = $$string_type)    or (tv1 = $$object_type)] ieq oops;
+	ieq:	xret := (v1 = v2); 
+			goto rlab;
+			
+	diff:	goto [((tv1 = $$undefined_type) and (tv2 = $$null_type)) or
+			      ((tv1 = $$null_type) and (tv2 = $$undefined_type))] rt dns;
+			      
+	dns:	goto [(tv1 = $$number_type) and (tv2 = $$string_type)] tn2 dsn;
+	tn2:	xret := "i__toNumber" (v2) with elab;
+			xret := "i__AbstractEquality" (v1, xret) with elab;
+			goto rlab;
+			
+	dsn:	goto [(tv1 = $$string_type) and (tv2 = $$number_type)] tn1 s1b;
+	tn1:	xret := "i__toNumber" (v1) with elab;
+			xret := "i__AbstractEquality" (xret, v2) with elab;
+			goto rlab;
+
+	s1b:	goto [tv1 = $$boolean_type] tn1 s2b;
+	s2b:	goto [tv2 = $$boolean_type] tn2 s2o;
+	
+	s2o:	goto [((tv1 = $$number_type) or (tv1 = $$string_type)) and (tv2 = $$object_type)] tp2 s1o;
+	tp2:	xret := "i__toPrimitive" (v2) with elab;
+			xret := "i__AbstractEquality" (v1, xret) with elab;
+			goto rlab;
+	
+	s1o:	goto [(tv1 = $$object_type) and ((tv1 = $$number_type) or (tv1 = $$string_type))] tp1 rf;
+	tp1:	xret := "i__toPrimitive" (v1) with elab;
+			xret := "i__AbstractEquality" (xret, v2) with elab;
+			goto rlab;
+
+	rt:		xret := $$t;
+			goto rlab;
+
+	rf:		xret := $$f;
+			goto rlab;
+			
+	oops:	xret := "AbstractEquality: This should not happen.";
+			goto elab;
+	
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* ********* *) 
+(* SAMEVALUE *)
+(* ********* *) 
+
+proc i__sameValue (v1, v2) {
+			xret := (v1 = v2);
+			
+			goto [(typeOf(v1) = $$number_type) and (typeOf(v2) = $$number_type)] inan rlab;
+			
+	inan:	goto [(not (v1 = v1)) and (not (v2 = v2))] rt zero;
+	zero:	goto [(v1 = 0) and (v2 = 0)] fix rlab;
+	
+	fix:	sv1 := m_sgn (v1);
+			sv2 := m_sgn (v2);
+			
+			xret := (sv1 = sv2);
+			goto rlab;
+	
+	rt:		xret := $$t;
+	
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+}

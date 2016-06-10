@@ -131,6 +131,7 @@ rule read = parse
 	| "m_floor"            { SJSIL_Parser.M_FLOOR }
 	| "m_log"              { SJSIL_Parser.M_LOG }
 	| "m_round"            { SJSIL_Parser.M_ROUND }
+  | "m_sgn"              { SJSIL_Parser.M_SGN }
 	| "m_sin"              { SJSIL_Parser.M_SIN }
 	| "m_sqrt"             { SJSIL_Parser.M_SQRT }
 	| "m_tan"              { SJSIL_Parser.M_TAN }

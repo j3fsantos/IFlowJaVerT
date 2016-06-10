@@ -76,7 +76,7 @@ let rec var_decls_inner exp =
     (fo e1) @ (fo e2) @ (fo e3) @ (f e4)
   | Call (e1, e2s) 
   | New (e1, e2s) -> (f e1) @ (flat_map (fun e2 -> f e2) e2s)
-  | AnnonymousFun (_,vs, e)
+  | AnonymousFun (_,vs, e)
   | NamedFun (_,_, vs, e) -> []
   | Obj xs -> flat_map (fun (_,_,e) -> f e) xs 
   | Array es -> flat_map (fun e -> match e with None -> [] | Some e -> f e) es
@@ -155,7 +155,7 @@ let rec add_codenames main exp : exp =
       | With (e1, e2) -> m exp (With (f e1, f e2))
       | Call (e1, e2s) -> m exp (Call (f e1, List.map f e2s))
       | New (e1, e2s) -> m exp (New (f e1, List.map f e2s))
-      | AnnonymousFun (str, args, fb) -> {exp with exp_stx = AnnonymousFun (str, args, f fb); exp_annot = add_codename exp (fresh_anonymous ())}
+      | AnonymousFun (str, args, fb) -> {exp with exp_stx = AnonymousFun (str, args, f fb); exp_annot = add_codename exp (fresh_anonymous ())}
       | NamedFun (str, name, args, fb) -> {exp with exp_stx = NamedFun (str, name, args, f fb); exp_annot = add_codename exp (fresh_named name)}
       | Obj xs -> m exp (Obj (List.map (fun (pn, pt, e) -> (pn, pt, f e)) xs))
       | Array es -> m exp (Array (List.map fo es))
@@ -223,7 +223,7 @@ let rec closure_clarification cc_tbl fun_tbl vis_tbl args f_id visited_funs e =
 	| CAccess (e1, e2) -> (f e1); (f e2)           
 	| New (e1, e2s)
 	| Call (e1, e2s) -> f e1; (List.iter f e2s)          
-  | AnnonymousFun (_, args, fb) 
+  | AnonymousFun (_, args, fb) 
 	| NamedFun (_, _, args, fb) -> 
 		let new_f_id = get_codename e in 
 		update_cc_tbl cc_tbl f_id new_f_id args fb;
