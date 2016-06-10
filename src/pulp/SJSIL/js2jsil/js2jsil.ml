@@ -43,6 +43,11 @@ let toPrimitiveName = "i__toPrimitive"
 let toInt32Name = "i__toInt32"
 let toUInt32Name = "i__toInt32"
 let abstractComparisonName = "i__abstractComparison" (* 11.8.5 *) 
+let hasInstanceName = "i__hasInstance" (* 15.3.5.3 *)
+let hasPropertyName = "o__hasProperty"
+let abstractEqualityComparisonName = "i__abstractEqualityComparison" (* 11.9.3 *) 
+let strictEqualityComparisonName = "i__strictEqualityComparison" (* 11.9.6 *) 
+
 
 
 let print_position outx lexbuf =
@@ -479,6 +484,47 @@ let rec translate fid cc_table loop_list ctx vis_fid js_lab e  =
 		cmds, errs, x_r in 
 		
 		
+	let translate_binop_equality x1 x2 non_strict non_negated =
+		(* x1_v := getValue (x1) with err1 *) 
+		let err1 = fresh_err_label () in 
+		let x1_v = fresh_var () in
+		let cmd_gv_x1 = SLCall (x1_v, (Literal (String getValueName)), [ x1 ], Some err1) in
+		
+		(* x2_v := getValue (x2) with err2 *) 
+		let err2 = fresh_err_label () in 
+		let x2_v = fresh_var () in
+		let cmd_gv_x2 = SLCall (x2_v, (Literal (String getValueName)), [ x2 ], Some err2) in
+		
+		(* x_r1 := i__strictEqualityComparison/i__abstractEqualityComparison (x1_v, x2_v) with err3 *)
+		let x_r1 = fresh_var () in 
+		let err3 = fresh_err_label () in 
+		let f_name = 
+			(match non_strict with 
+			| true -> abstractEqualityComparisonName 
+			| false -> strictEqualityComparisonName) in
+		let cmd_ass_xr1 = SLCall (x_r1, (Literal (String f_name)), [ Var x1_v; Var x2_v ], Some err3) in
+		
+		let cmd_ass_xr2, ret = 
+			(match non_negated with 
+			| true -> [], x_r1
+			| false -> 
+				(let x_r2 = fresh_var () in 
+				(* x_r2 := (not x_r1) *) 
+				[ (None, None, SLBasic (SAssignment (x_r2, UnaryOp (Not, Var x_r1)))) ], x_r2)) in 
+		
+	  let new_cmds = [ 
+			(None, None, cmd_gv_x1); 
+			(None, None, cmd_gv_x2); 
+			(None, None, cmd_ass_xr1) 
+		] @ cmd_ass_xr2 in 
+		let new_errs = [
+			(err1, SLBasic (SAssignment (ctx.tr_error_var, (Var x1_v))));
+			(err2, SLBasic (SAssignment (ctx.tr_error_var, (Var x2_v))));
+			(err3, SLBasic (SAssignment (ctx.tr_error_var, (Var x_r1))));
+		] in 
+		new_cmds, new_errs, ret in
+	
+	
 	match e.Parser_syntax.exp_stx with 
 	
 	(* Literals *)
@@ -939,7 +985,7 @@ let rec translate fid cc_table loop_list ctx vis_fid js_lab e  =
 	  (**
         11.8.1
         C(e1) = cmds1, x1; C(e2) = cmds2, x2 
-			  C(e1 >>> e2) =         cmds1 
+			  C(e1 < e2) =           cmds1 
 				                       cmds2 
 											         x1_v := getValue (x1) with err1
 											         x2_v := getValue (x2) with err2
@@ -958,7 +1004,7 @@ let rec translate fid cc_table loop_list ctx vis_fid js_lab e  =
 	  (**
         11.8.2
         C(e1) = cmds1, x1; C(e2) = cmds2, x2 
-			  C(e1 >>> e2) =         cmds1 
+			  C(e1 > e2) =           cmds1 
 				                       cmds2 
 											         x1_v := getValue (x1) with err1
 											         x2_v := getValue (x2) with err2
@@ -975,9 +1021,9 @@ let rec translate fid cc_table loop_list ctx vis_fid js_lab e  =
 	
 	| Parser_syntax.BinOp (e1, (Parser_syntax.Comparison Parser_syntax.Le), e2) ->
 	  (**
-        11.8.1
+        11.8.3
         C(e1) = cmds1, x1; C(e2) = cmds2, x2 
-			  C(e1 >>> e2) =         cmds1 
+			  C(e1 <= e2) =          cmds1 
 				                       cmds2 
 											         x1_v := getValue (x1) with err1
 											         x2_v := getValue (x2) with err2
@@ -997,9 +1043,9 @@ let rec translate fid cc_table loop_list ctx vis_fid js_lab e  =
 	
 	| Parser_syntax.BinOp (e1, (Parser_syntax.Comparison Parser_syntax.Ge), e2) ->
 	  (**
-        11.8.1
+        11.8.4
         C(e1) = cmds1, x1; C(e2) = cmds2, x2 
-			  C(e1 >>> e2) =         cmds1 
+			  C(e1 >= e2) =          cmds1 
 				                       cmds2 
 											         x1_v := getValue (x1) with err1
 											         x2_v := getValue (x2) with err2
@@ -1015,6 +1061,203 @@ let rec translate fid cc_table loop_list ctx vis_fid js_lab e  =
 		let x_r2 = fresh_var () in 
 		let new_cmd = (None, None, SLBasic (SAssignment (x_r2, UnaryOp (Not, (Var x_r1))))) in 
 		(cmds1 @ cmds2 @ new_cmds @ [ new_cmd ]), Var x_r2, errs1 @ errs2 @ new_errs, (rets1 @ rets2)	
+	
+	
+	| Parser_syntax.BinOp (e1, (Parser_syntax.Comparison Parser_syntax.InstanceOf), e2) ->
+	  (**
+        11.8.6
+        C(e1) = cmds1, x1; C(e2) = cmds2, x2 
+			  C(e1 instanceof e2) =          cmds1 
+				                               cmds2 
+													 		         x1_v := getValue (x1) with err1
+											                 x2_v := getValue (x2) with err2
+											                 goto [ (typeOf x2_v) = $$object_type ] next1 err3 
+											         next1:  x_cond := hasField (x2_v, "i__hasInstance") 
+															         goto [ x_cond ] next2 err4 
+											         next2:  x_hi := [x2_v, "i__hasInstance"]  
+												               x_r := x_hi (x2_v, x1_v) with err5
+     *)
+		let cmds1, x1, errs1, rets1 = f e1 in
+		let cmds2, x2, errs2, rets2 = f e2 in
+		
+		(* x1_v := getValue (x1) with err1 *)
+		let err1 = fresh_err_label () in 
+		let x1_v = fresh_var () in
+		let cmd_gv_x1 = SLCall (x1_v, (Literal (String getValueName)), [ x1 ], Some err1) in	
+	
+		(* x2_v := getValue (x2) with err2 *)
+		let err2 = fresh_err_label () in 
+		let x2_v = fresh_var () in
+		let cmd_gv_x2 = SLCall (x2_v, (Literal (String getValueName)), [ x2 ], Some err2) in	
+		
+		(* goto [ (typeOf x2_v) = $$object_type ] next1 err3 *)
+		let next1 = fresh_label () in 
+		let err3 = fresh_err_label () in 
+		let cmd_goto_ot = SLGuardedGoto (BinOp (TypeOf (Var x2_v), Equal, Literal (Type ObjectType)), next1, err3) in 
+		
+		(* next1: x_cond := hasField (x2_v, "i__hasInstance")  *)
+		let x_cond = fresh_var () in 
+		let cmd_hasfield = SLBasic (SHasField (x_cond, Var x2_v, Literal (String hasInstanceName))) in 
+		
+		(* goto [ x_cond ] next2 err4  *)
+		let next2 = fresh_label () in 
+		let err4 = fresh_err_label () in 
+		let cmd_goto_xcond = SLGuardedGoto (Var x_cond, next2, err4) in 
+		
+		(* next2:  x_hi := [x2_v, "i__hasInstance"]   *) 
+		let x_hi = fresh_var () in 
+		let cmd_ass_xhi = SLBasic (SLookup (x_hi, Var x2_v, Literal (String hasInstanceName))) in 
+		
+		(* x_r := x_hi (x2_v, x1_v) with err5 *) 
+		let err5 = fresh_err_label () in 
+		let x_r = fresh_var () in 
+		let cmd_ass_xr = SLCall (x_r, Var x_hi, [Var x2_v; Var x1_v], Some err5) in 
+		
+		let cmds = cmds1 @ cmds2 @ [                (*         cmds1 cmds2                                        *)
+			(None, None,         cmd_gv_x1);          (*         x1_v := getValue (x1) with err1                    *)
+			(None, None,         cmd_gv_x2);          (*         x2_v := getValue (x2) with err2                    *)    
+			(None, None,         cmd_goto_ot);        (*         goto [ (typeOf x2_v) = $$object_type ] next1 err3  *)
+			(None, Some next1,   cmd_hasfield);       (* next1:  x_cond := hasField (x2_v, "i__hasInstance")        *)
+			(None, None,         cmd_goto_xcond);     (*         goto [ x_cond ] next2 err4                         *)
+			(None, Some next2,   cmd_ass_xhi);        (* next2:  x_hi := [x2_v, "i__hasInstance"]                   *)
+			(None, None,         cmd_ass_xr)          (*         x_r := x_hi (x2_v, x1_v) with err5                 *)
+		] in 
+		
+		let errs = errs1 @ errs2 @ [
+			(err1, SLBasic (SAssignment (ctx.tr_error_var, (Var x1_v)))); 
+			(err2, SLBasic (SAssignment (ctx.tr_error_var, (Var x2_v))));
+			(err3, SLCall (ctx.tr_error_var, Literal (String syntaxErrorName), [ ], None));
+			(err4, SLCall (ctx.tr_error_var, Literal (String syntaxErrorName), [ ], None));
+			(err5, SLBasic (SAssignment (ctx.tr_error_var, (Var x_r)))) 
+		] in 
+		
+		cmds, Var x_r, errs, (rets1 @ rets2)	
+											  
+																			              
+	| Parser_syntax.BinOp (e1, (Parser_syntax.Comparison Parser_syntax.In), e2) ->
+	  (**
+        11.8.7
+        C(e1) = cmds1, x1; C(e2) = cmds2, x2 
+			  C(e1 in e2) =                  cmds1 
+				                               cmds2 
+													 		         x1_v := getValue (x1) with err1
+											                 x2_v := getValue (x2) with err2
+											                 goto [ (typeOf x2_v) = $$object_type ] next1 err3 
+											         next1:  x1_s := i__toString (x1_v) with err4 
+															         x_r := o__hasProperty (x2_v, x1_s) with err5 
+     *)
+		let cmds1, x1, errs1, rets1 = f e1 in
+		let cmds2, x2, errs2, rets2 = f e2 in
+		
+		(* x1_v := getValue (x1) with err1 *)
+		let err1 = fresh_err_label () in 
+		let x1_v = fresh_var () in
+		let cmd_gv_x1 = SLCall (x1_v, (Literal (String getValueName)), [ x1 ], Some err1) in	
+	
+		(* x2_v := getValue (x2) with err2 *)
+		let err2 = fresh_err_label () in 
+		let x2_v = fresh_var () in
+		let cmd_gv_x2 = SLCall (x2_v, (Literal (String getValueName)), [ x2 ], Some err2) in	
+		
+		(* goto [ (typeOf x2_v) = $$object_type ] next1 err3 *)
+		let next1 = fresh_label () in 
+		let err3 = fresh_err_label () in 
+		let cmd_goto_ot = SLGuardedGoto (BinOp (TypeOf (Var x2_v), Equal, Literal (Type ObjectType)), next1, err3) in 
+		
+		(* next1: x1_s := i__toString (x1_v) with err4   *)
+		let x1_s = fresh_var () in 
+		let err4 = fresh_err_label () in
+		let cmd_ts_x1 = SLCall (x1_s, (Literal (String toStringName)), [ Var x1_v ], Some err4) in
+		
+		(*  x_r := o__hasProperty (x2_v, x1_s) with err5   *)
+		let x_r = fresh_var () in 
+		let err5 = fresh_err_label () in 
+		let cmd_ass_xr = SLCall (x1_s, (Literal (String hasPropertyName)), [ Var x2_v; Var x1_s ], Some err5) in 
+		
+		let cmds = cmds1 @ cmds2 @ [                (*         cmds1 cmds2                                        *)
+			(None, None,         cmd_gv_x1);          (*         x1_v := getValue (x1) with err1                    *)
+			(None, None,         cmd_gv_x2);          (*         x2_v := getValue (x2) with err2                    *)    
+			(None, None,         cmd_goto_ot);        (*         goto [ (typeOf x2_v) = $$object_type ] next1 err3  *)
+			(None, Some next1,   cmd_ts_x1);          (* next1:  x1_s := i__toString (x1_v) with err4               *)
+			(None, None,         cmd_ass_xr);         (*         x_r := o__hasProperty (x2_v, x1_s) with err5       *)
+		] in 
+		
+		let errs = errs1 @ errs2 @ [
+			(err1, SLBasic (SAssignment (ctx.tr_error_var, (Var x1_v)))); 
+			(err2, SLBasic (SAssignment (ctx.tr_error_var, (Var x2_v))));
+			(err3, SLCall (ctx.tr_error_var, Literal (String syntaxErrorName), [ ], None));
+			(err4, SLBasic (SAssignment (ctx.tr_error_var, (Var x1_s))));
+			(err5, SLBasic (SAssignment (ctx.tr_error_var, (Var x_r)))) 
+		] in 
+		
+		cmds, Var x_r, errs, (rets1 @ rets2)			               
+											        
+															         
+	| Parser_syntax.BinOp (e1, (Parser_syntax.Comparison Parser_syntax.Equal), e2) ->
+	  (**
+        11.9.1
+        C(e1) = cmds1, x1; C(e2) = cmds2, x2 
+			  C(e1 == e2) =                  cmds1 
+				                               cmds2 
+													 		         x1_v := getValue (x1) with err1
+											                 x2_v := getValue (x2) with err2
+											                 x_r := i__abstractEqualityComparison (x1_v, x2_v) with err3  
+     *)
+		let cmds1, x1, errs1, rets1 = f e1 in
+		let cmds2, x2, errs2, rets2 = f e2 in
+		let new_cmds, new_errs, x_r = translate_binop_equality x1 x2 true true in 
+		(cmds1 @ cmds2 @ new_cmds), Var x_r, errs1 @ errs2 @ new_errs, (rets1 @ rets2)	
+													      
+	
+	| Parser_syntax.BinOp (e1, (Parser_syntax.Comparison Parser_syntax.NotEqual), e2) ->
+	  (**
+        11.9.1
+        C(e1) = cmds1, x1; C(e2) = cmds2, x2 
+			  C(e1 == e2) =                  cmds1 
+				                               cmds2 
+													 		         x1_v := getValue (x1) with err1
+											                 x2_v := getValue (x2) with err2
+											                 x_r1 := i__abstractEqualityComparison (x1_v, x2_v) with err3  
+																			 x_r2 := (not x_r1)
+     *)
+		let cmds1, x1, errs1, rets1 = f e1 in
+		let cmds2, x2, errs2, rets2 = f e2 in
+		let new_cmds, new_errs, x_r = translate_binop_equality x1 x2 true false in 
+		(cmds1 @ cmds2 @ new_cmds), Var x_r, errs1 @ errs2 @ new_errs, (rets1 @ rets2)																				
+					
+																																																																																																	            		
+	| Parser_syntax.BinOp (e1, (Parser_syntax.Comparison Parser_syntax.TripleEqual), e2) ->
+	  (**
+        11.9.1
+        C(e1) = cmds1, x1; C(e2) = cmds2, x2 
+			  C(e1 == e2) =                  cmds1 
+				                               cmds2 
+													 		         x1_v := getValue (x1) with err1
+											                 x2_v := getValue (x2) with err2
+											                 x_r := i__strictEqualityComparison (x1_v, x2_v) with err3  
+     *)
+		let cmds1, x1, errs1, rets1 = f e1 in
+		let cmds2, x2, errs2, rets2 = f e2 in
+		let new_cmds, new_errs, x_r = translate_binop_equality x1 x2 false true in 
+		(cmds1 @ cmds2 @ new_cmds), Var x_r, errs1 @ errs2 @ new_errs, (rets1 @ rets2)	
+	
+	
+	| Parser_syntax.BinOp (e1, (Parser_syntax.Comparison Parser_syntax.NotTripleEqual), e2) ->
+	  (**
+        11.9.1
+        C(e1) = cmds1, x1; C(e2) = cmds2, x2 
+			  C(e1 == e2) =                  cmds1 
+				                               cmds2 
+													 		         x1_v := getValue (x1) with err1
+											                 x2_v := getValue (x2) with err2
+											                 x_r1 := i__strictEqualityComparison (x1_v, x2_v) with err3 
+																			 x_r2 := (not x_r1)
+     *)
+		let cmds1, x1, errs1, rets1 = f e1 in
+		let cmds2, x2, errs2, rets2 = f e2 in
+		let new_cmds, new_errs, x_r = translate_binop_equality x1 x2 false false in 
+		(cmds1 @ cmds2 @ new_cmds), Var x_r, errs1 @ errs2 @ new_errs, (rets1 @ rets2)	
+	
 	
 	| Parser_syntax.This ->
 		(* x := __this	*)
