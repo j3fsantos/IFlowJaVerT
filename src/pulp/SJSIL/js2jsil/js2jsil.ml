@@ -53,6 +53,7 @@ let hasPropertyName                   = "o__hasProperty"
 let abstractEqualityComparisonName    = "i__abstractEqualityComparison"  (* 11.9.3            *) 
 let strictEqualityComparisonName      = "i__strictEqualityComparison"    (* 11.9.6            *) 
 let defineOwnPropertyName             = "o__defineOwnProperty"           (* 8.12.9            *) 
+let checkAssignmentErrorsName         = "i__checkAssignmentErrors"        
 
 
 let print_position outx lexbuf =
@@ -283,6 +284,10 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 	let make_dop_call x_obj prop x_desc b err = 
 		let x_dop = fresh_var () in
 		(x_dop, SLCall (x_dop, Literal (String defineOwnPropertyName), [Var x_obj; prop; Var x_desc; Literal (Bool b)], Some err)) in 
+	
+	let make_cae_call x err = 
+		let x_cae = fresh_var () in 
+		x_cae,  SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ x ], Some err) in
 	
 	let make_empty_ass () = 
 		let x = fresh_var () in 
@@ -613,14 +618,14 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 		(* goto [x_new = $$empty] next1 next2 *)
 		let next1 = fresh_next_label () in 
 		let next2 = fresh_next_label () in  
-		let cmd_goto = (None, None, SLGuardedGoto (BinOp (Var x_new, Equal, Literal Empty), next1, next2)) in 
+		let cmd_goto = (None, None, SLGuardedGoto (BinOp (Var x_new, Equal, Literal Empty), next2, next1)) in 
 		
 		(* next1: skip  *) 
-		let cmd_skip = (None, None, SLBasic SSkip) in 
+		let cmd_skip = (None, Some next1, SLBasic SSkip) in 
 		
 		(* next2: x := PHI(x_previous, x_new) *) 
 		let x = fresh_var () in 
-		let cmd_phi = (None, None, SLBasic (SPhiAssignment (x, [| Some x_prev; Some x_new |]))) in 
+		let cmd_phi = (None, Some next2, SLBasic (SPhiAssignment (x, [| Some x_prev; Some x_new |]))) in 
 		
 		cmd_ass_xprev @ cmd_ass_new @ [ cmd_goto; cmd_skip; cmd_phi], x in 
 		
@@ -2038,9 +2043,8 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 			C(e1 = e2) =      cmds1 
 			                  cmds2 
 			                  x2_v := i__getValue (x2) with err
-					              x_ir := is_reserved(x1)
-			 		              goto [(((TypeOf(x1) = $$VarReferenceType) && x_ir) || (base(x1) = $$undefined))] err next
-	              next:   x_pv = i__putValue (x1, x2_v) with err
+			 		              x_cae := i__checkAssErrors (x1) with err
+								        x_pv = i__putValue (x1, x2_v) with err
      *)
 		
 		let cmds1, x1, errs1, _, _, _ = f e1 in 
@@ -2049,30 +2053,20 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 		(* x2_v := i__getValue (x2) with err *)
 		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in 
 		
-		(* x_ir := is_reserved (x1) *)
-		let x_ir = fresh_var () in 
-		let cmd_ir_x1 = SLCall (x_ir, Literal (String isReservedName), [x1], None) in 
+		(*  x_cae := i__checkAssertionErrors (x1) with err *)
+		let x_cae, cmd_cae_x1 = make_cae_call x1 err in 
 		
-		(* (((TypeOf(x1) = $$VarReferenceType) && x_ir) || (base(x1) = $$undefined)) *)
-		let is_invalid_ass_exp = BinOp ((TypeOf x1), Equal, (Literal (Type VariableReferenceType))) in 
-		let is_invalid_ass_exp = BinOp ((Var x_ir), And, is_invalid_ass_exp) in 
-		let is_invalid_ass_exp = BinOp (is_invalid_ass_exp, Or, (BinOp ((Base x1), Equal, (Literal Undefined)))) in
-		(* goto [is_invalid_assignment] err next *) 
-		let next = fresh_next_label () in 
-		let cmd_guarded_goto = SLGuardedGoto (is_invalid_ass_exp, err, next) in 
-		
-		(* next: x_pv = i__putValue (x1, x2_v) with err3 *)
+		(* x_pv = i__putValue (x1, x2_v) with err *)
 		let x_pv, cmd_put_value = make_put_value_call x1 x2_v err in 
 
 		let cmds = 
-			cmds1 @                                   (*       cmds1                                                                                      *)
-			cmds2 @	[                                 (*       cmds2                                                                                      *) 
-			(None, None, cmd_gv_x2);                  (*       x2_v := i__getValue (x2) with err                                                          *)
-			(None, None, cmd_ir_x1);                  (*       x_ir := is_reserved (x1)                                                                   *)
-			(None, None, cmd_guarded_goto);           (*       goto [(((TypeOf(x1) = $$VarReferenceType) && x_ir) || (base(x1) = $$undefined))] err next  *)
-			(None, Some next, cmd_put_value)          (* next: x_pv = putValue (x1, x2_v) with err                                                        *)  
+			cmds1 @                                   (*   cmds1                                           *)
+			cmds2 @	[                                 (*   cmds2                                           *)
+			(None, None, cmd_gv_x2);                  (*   x2_v := i__getValue (x2) with err               *)
+			(None, None, cmd_cae_x1);                 (*   x_cae := i__checkAssertionErrors (x1) with err  *) 
+			(None, None, cmd_put_value)               (*   x_pv := i__putValue (x1, x2_v) with err         *)  
 		] in 
-		let errs = errs1 @ errs2 @ [ x2_v; var_se; x_pv ] in 
+		let errs = errs1 @ errs2 @ [ x2_v; x_cae; x_pv ] in 
 		cmds, (Var x2_v), errs, [], [], []
 	
 	
@@ -2086,8 +2080,7 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 			                  cmds2
 			                  x2_v := i__getValue (x2) with err
 												cmds
-					              x_ir := is_reserved(x1)
-			 		              goto [(((TypeOf(x1) = $$VarReferenceType) && x_ir) || (base(x1) = $$undefined))] err next; 
+					              x_cae := i__checkAssignmentErrors (x1) with err 
 	              next:   x_pv = putValue (x1, x) with err
      *)
 		let cmds1, x1, errs1, _, _, _ = f e1 in 
@@ -2112,25 +2105,15 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
       | Parser_syntax.Bitor 
       | Parser_syntax.Bitxor -> translate_bitwise_bin_op x1 x2 x1_v x2_v op err) in  
 		
-		(* x_ir := is_reserved (x1) *)
-		let x_ir = fresh_var () in 
-		let cmd_ir_x1 = SLCall (x_ir, Literal (String isReservedName), [x1], None) in 
+		(* x_cae := i__checkAssertionErrors (x1) with err *)
+		let x_cae, cmd_cae_x1 = make_cae_call x1 err in  
 		
-		(* (((TypeOf(x1) = $$VarReferenceType) && x_ir) || (base(x1) = $$undefined)) *)
-		let is_invalid_ass_exp = BinOp ((TypeOf x1), Equal, (Literal (Type VariableReferenceType))) in 
-		let is_invalid_ass_exp = BinOp ((Var x_ir), And, is_invalid_ass_exp) in 
-		let is_invalid_ass_exp = BinOp (is_invalid_ass_exp, Or, (BinOp ((Base x1), Equal, (Literal Undefined)))) in
-		(* goto [is_invalid_assignment] err next *) 
-		let next = fresh_next_label () in 
-		let cmd_guarded_goto = SLGuardedGoto (is_invalid_ass_exp, err, next) in 
-		
-		(* next: x_pv = i__putValue (x1, x_r) with err *)
+		(* x_pv = i__putValue (x1, x_r) with err *)
 		let x_pv, cmd_pv = make_put_value_call x1 x_r err in 
 
 		let cmds = cmds1 @ [ b_annot_cmd cmd_gv_x1 ] @ cmds2 @ [ b_annot_cmd cmd_gv_x2 ] @ new_cmds @ [                          
-			(None, None,      cmd_ir_x1);             (*       x_ir := is_reserved (x1)                                                                   *)
-			(None, None,      cmd_guarded_goto);      (*       goto [(((TypeOf(x1) = $$VarReferenceType) && x_ir) || (base(x1) = $$undefined))] err next  *)
-			(None, Some next, cmd_pv)                 (* next: x_pv = putValue (x1, x2_v) with err                                                        *)  
+			(None, None, cmd_cae_x1);         (*    x_cae := i__checkAssertionErrors (x1) with err  *)
+			(None, None, cmd_pv)              (*    x_pv = putValue (x1, x2_v) with err             *)  
 		] in 
 		let errs = errs1 @  [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs @ [ var_se; x_pv ] in 
 		cmds, (Var x_r), errs, [], [], []
@@ -2446,7 +2429,7 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 						    goto [x1_b] body endwhile 
 			body:     cmds2
 						    x2_v := i__getValue (x2) with err
-						    goto [not (x_2' = $$empty)] next1 next2
+						    goto [not (x2_v = $$empty)] next1 next2
 			next1:    skip; 
 			next2:    x_ret_2 := PHI(x_ret_1, x2_v) 
 			          goto guard 
