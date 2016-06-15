@@ -518,7 +518,7 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 		| None -> Undefined 
 		| Some x_live -> 
 			(match SSyntax_Aux.try_find store x_live with 
-			| None -> raise (Failure "Variable not found in store")
+			| None -> raise (Failure (Printf.sprintf "Variable %s not found in the store" x_live))
 			| Some v -> v)) in 
 		Hashtbl.add store x v; 
 		v 

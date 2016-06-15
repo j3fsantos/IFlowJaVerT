@@ -92,7 +92,7 @@ let fresh_then_label : (unit -> string) = fresh_sth "then_"
 
 let fresh_else_label : (unit -> string) = fresh_sth "else_"
 
-let fresh_endif_label : (unit -> string) = fresh_sth "end_if_"
+let fresh_endif_label : (unit -> string) = fresh_sth "fi_"
 
 let fresh_end_label : (unit -> string) = fresh_sth "end_"
 

@@ -76,8 +76,8 @@ let string_of_unop uop = match uop with
 	
 let string_of_bool x =
   match x with
-    | true -> "#t"
-    | false -> "#f"
+    | true -> "$$t"
+    | false -> "$$f"
 
 let string_of_type t =
   match t with
@@ -503,7 +503,7 @@ let string_of_lbody lbody =
 		let str_of_lab  = 
 			(match lab with
 			| None -> "\t\t\t"
-			| Some lab -> "\t" ^ lab ^ ":\t\t") in
+			| Some lab -> "\t" ^ lab ^ ":\t" ^ (if (String.length lab < 7) then "\t" else "")) in
 		let str_of_lcmd  = string_of_lcmd lcmd in
 		str := !str ^ str_of_spec ^ str_of_lab ^ str_of_lcmd ^
 		(if (i = len - 1) then "" else ";") ^ "\n"

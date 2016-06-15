@@ -4,7 +4,12 @@
 
 proc create_default_object (l, pr, cl, ext) {
 			
-			[l, "@proto"] := pr;
+			goto [cl = $$empty] scl text;
+	scl:	cl := "Object";
+	text:	goto [ext = $$empty] sext setall;
+	sext:	ext := $$t;
+			
+	setall:	[l, "@proto"] := pr;
 			[l, "@class"] := cl;
 			[l, "@extensible"] := ext;
 			
@@ -195,12 +200,14 @@ proc setupInitialHeap () {
     			
   			xret := "create_object_with_call_construct" ($lfun, $$empty, $$empty, 1);
   			
-  			[$lobj, "prototype"]                := {{ "d", $lfun_proto, $$f, $$f, $$f }};
+  			[$lfun, "prototype"]                := {{ "d", $lfun_proto, $$f, $$f, $$f }};
   			
   			(* Function.prototype *)
+ 
+   			xret := "create_default_object" ($lfun_proto, $lobj_proto, "Function", 0);
   			
-  			[$lobj_proto, "constructor"]          := {{ "d", $lfun, $$t, $$f, $$t }};
-
+  			[$lfun_proto, "constructor"]          := {{ "d", $lfun, $$t, $$f, $$t }};
+  			
   			
   			
   			(* Array object *)
@@ -444,12 +451,12 @@ proc setupInitialHeap () {
 				
 			(* Native errors *)
 
-			xret := "create_object_with_call_construct" ($leerr,  "EvalError", "EvalError", 1);
-			xret := "create_object_with_call_construct" ($lrgerr, "RangeError", "RangeError", 1);
-			xret := "create_object_with_call_construct" ($lrferr, "ReferenceError", "ReferenceError", 1);
-			xret := "create_object_with_call_construct" ($lserr,  "SyntaxError", "SyntaxError", 1);
-			xret := "create_object_with_call_construct" ($lterr,  "TypeError", "TypeError", 1);
-			xret := "create_object_with_call_construct" ($luerr,  "URIError", "URIError", 1);
+			xret := "create_object_with_call_construct" ($leerr,  "EvalError_call",      "Error_construct", 1);
+			xret := "create_object_with_call_construct" ($lrgerr, "RangeError_call",     "Error_construct", 1);
+			xret := "create_object_with_call_construct" ($lrferr, "ReferenceError_call", "Error_construct", 1);
+			xret := "create_object_with_call_construct" ($lserr,  "SyntaxError_call",    "Error_construct", 1);
+			xret := "create_object_with_call_construct" ($lterr,  "TypeError_call",      "Error_construct", 1);
+			xret := "create_object_with_call_construct" ($luerr,  "URIError_call",       "Error_construct", 1);
 			
 			[$leerr,  "prototype"]    := {{ "d", $leerr_proto, $$t, $$f, $$t }};
 			[$lrgerr, "prototype"]    := {{ "d", $lrgerr_proto, $$t, $$f, $$t }};
