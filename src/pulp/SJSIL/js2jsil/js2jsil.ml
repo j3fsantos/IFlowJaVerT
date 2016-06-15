@@ -48,58 +48,6 @@ let hasPropertyName = "o__hasProperty"
 let abstractEqualityComparisonName = "i__abstractEqualityComparison" (* 11.9.3 *) 
 let strictEqualityComparisonName = "i__strictEqualityComparison" (* 11.9.6 *) 
 
-
-let can_return_empty (e : Parser_syntax.exp_syntax) = 
-	(match e with
-	| Block _ -> true
-	| VarDec _ -> true
-  | If (_, _, _) -> true
-  | DoWhile (_, _) -> true
-	| While (_, _) -> true
-  | For (_, _, _, _) -> true
-  | ForIn (_, _, _) -> true   (* HOW IS FOR-VAR-IN DONE? *)
-	| Continue _ -> true
-  | Break _ -> true 
-  | With (_, _) -> true
-  | Switch (_, _) -> true
-  | Label (_, _) -> true
-  | Try (_, _, _) -> true 
-  | Debugger -> true
-  | Return _ -> false
-  | Throw _ -> false
-  | Script (_, _) -> true
- 
-  | This -> false
-  | Var _ -> false
-  | Null -> false
-  | Num _ -> false
-  | Bool _ -> false
-  | String _ -> false
-  | RegExp (_, _) -> false
-  | Obj _ -> false
-  | Array _ -> false
-  | Access (_, _) -> false
-  | CAccess (_, _) -> false
-  | New (_, _) -> false
-  | Call (_, _) -> false
-  | Delete _ -> false
-  | Unary_op (_, _) -> false
-  | BinOp (_, _, _) -> false
-  | ConditionalOp (_, _, _)
-  | Assign (_, _) -> false
-  | AssignOp (_, _, _) -> false
-  | Comma (_, _) -> false
-	
-	(* CONFUSED - THESE ARE NOT EXPRESSIONS? THEY SEEM TO BE AND NOT TO BE?! CHAPTER 13 *)
-  | AnonymousFun (_, _, _) -> false
-  | NamedFun (_, _, _, _) -> false
-	(* NOT SURE WHAT THESE RETURN - CF. CHAPTER 14) *)
-	)
-
-(* WHAT ARE THESE????? 
-  | Skip
-*)
-
 let print_position outx lexbuf =
   let pos = lexbuf.lex_curr_p in
   Printf.fprintf outx "%s:%d:%d" pos.pos_fname

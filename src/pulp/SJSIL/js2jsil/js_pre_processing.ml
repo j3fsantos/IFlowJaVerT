@@ -316,4 +316,75 @@ let rec print_cc_tbl cc_tbl =
 			ac ^ f_str)
 		cc_tbl
 		""
-		
+
+let rec returns_empty_exp (e : Parser_syntax.exp) = 
+let get_some e =
+	(match e with
+	| None -> false
+	| Some e -> returns_empty_exp e) in
+let rec returns_empty_exp_list (el : Parser_syntax.exp list) =
+	(match el with
+	| [] -> true
+	| e :: el ->
+		let reeel = returns_empty_exp_list el in
+		if (returns_empty_exp e) then true else reeel) in
+match e.exp_stx with
+  | Null
+  | Num _
+  | String _
+  | Bool _ 
+  | Var _
+  | Delete _
+  | Unary_op (_, _)
+  | BinOp (_, _, _) 
+  | Access (_, _)
+  | New (_, _)
+  | CAccess (_, _)
+  | Assign (_, _) 
+  | AssignOp (_, _, _) 
+  | Comma (_, _)
+  | ConditionalOp (_, _, _) 
+  | Obj _
+  | Array _
+  | RegExp (_, _)
+  | AnonymousFun (_, _, _) 
+  | NamedFun (_, _, _, _) 
+  | Call (_, _)
+	| This
+  | Throw _
+  | Return _
+  | Skip 
+  | Debugger -> false
+
+  | Label (_, e) 
+	| DoWhile (e, _) -> returns_empty_exp e 
+
+  | If (e, et, ee) -> 
+			let reeet = returns_empty_exp et in
+			let reeee = get_some ee in
+			if reeet then true else reeee
+	
+  | Try (et, ec, ef) ->
+			let reeet = returns_empty_exp et in
+			let reeec = 
+				match ec with
+				| None -> false
+				| Some (_, ec) -> returns_empty_exp ec in
+			let reeef = get_some ef in
+			if reeet then true else
+				if reeec then true else
+					reeef
+
+  | Block el 
+  | Script (_, el) -> returns_empty_exp_list el
+
+  | Switch (_, ese) -> 
+		let (_, el) = List.split ese in
+			returns_empty_exp_list el
+
+  | For (_, _, _, _) 
+  | ForIn (_, _, _)	
+	| While (_, _)
+	| VarDec _ 
+  | Break _ 
+  | Continue _ -> true
