@@ -754,7 +754,7 @@ let rec translate fid cc_table loop_list ctx vis_fid err js_lab e  =
 				with _ -> raise (Failure "annonymous function literals should be annotated with their respective code names - Getter function") in 
 			let params = 
 				(match accessor.Parser_syntax.exp_stx with 
-				| Parser_syntax.AnnonymousFun (_, params, _) -> params 
+				| Parser_syntax.AnonymousFun (_, params, _) -> params 
 				| _ -> raise (Failure "getters should be annonymous functions")) in 
 			let cmds, x_f = translate_function_literal f_id params in 
 			
@@ -2444,7 +2444,7 @@ let rec translate fid cc_table loop_list ctx vis_fid err js_lab e  =
 		cmds, Var x_ret_1, errs, rets4 
 	
 	
-	| Parser_syntax.AnnonymousFun (_, params, e_body) -> 
+	| Parser_syntax.AnonymousFun (_, params, e_body) -> 
 		(**
        x_sc := copy_scope_chain_obj (x_scope, {{main, fid1, ..., fidn }}); 
 		   x_f := create_function_object(x_sc, f_id, params)

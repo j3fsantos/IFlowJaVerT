@@ -222,7 +222,11 @@ let evaluate_unop op lit =
 										else (floor (n +. 0.5))
 									 )
 		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
-
+  | M_sgn ->
+		(match lit with
+		| Num n -> Num (copysign 1.0 n)
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+ 
 	| M_sin ->
 		(match lit with
 		| Num n -> Num (sin n)

@@ -1,36 +1,16 @@
-import Init, Internals;
+import Init, Internals, String, Errors;
 
 proc main () {
 			
 			xret := "setupInitialHeap" ();
 
-			sa := inf;
-			sb := inf;
+			xret := "i__sameValue" (-0, -0);
 
-			xret := "i__abstractComparison" (sa, sb, $$t);
-
-			xret := "i__toPrimitive" ($$t);
-
-			xret := "i__toBoolean" ($$undefined);
-			xret := "i__toBoolean" ($$null);						
-			xret := "i__toBoolean" ($$t);
-			xret := "i__toBoolean" (24);		
-			xret := "i__toBoolean" ("oogaBooga");		
-			xret := "i__toBoolean" ($lg);
-			xret := "i__toBoolean" ($lobj);
-
-			
-			xret := "i__typeOf" ($$undefined);
-			xret := "i__typeOf" ($$null);						
-			xret := "i__typeOf" ($$t);
-			xret := "i__typeOf" (24);		
-			xret := "i__typeOf" ("oogaBooga");		
-			xret := "i__typeOf" ($lg);
-			xret := "i__typeOf" ($lobj);
-		
-	rlab:	skip
+	rlab:	skip;
+	elab:	skip
 }
 with
 {
 	ret: 	xret, rlab;
+	err:	xret, elab;
 }

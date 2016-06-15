@@ -76,7 +76,7 @@ let rec var_decls_inner exp =
     (fo e1) @ (fo e2) @ (fo e3) @ (f e4)
   | Call (e1, e2s) 
   | New (e1, e2s) -> (f e1) @ (flat_map (fun e2 -> f e2) e2s)
-  | AnnonymousFun (_,vs, e)
+  | AnonymousFun (_,vs, e)
   | NamedFun (_,_, vs, e) -> []
   | Obj xs -> flat_map (fun (_,_,e) -> f e) xs 
   | Array es -> flat_map (fun e -> match e with None -> [] | Some e -> f e) es
@@ -155,7 +155,7 @@ let rec add_codenames main exp : exp =
       | With (e1, e2) -> m exp (With (f e1, f e2))
       | Call (e1, e2s) -> m exp (Call (f e1, List.map f e2s))
       | New (e1, e2s) -> m exp (New (f e1, List.map f e2s))
-      | AnnonymousFun (str, args, fb) -> {exp with exp_stx = AnnonymousFun (str, args, f fb); exp_annot = add_codename exp (fresh_anonymous ())}
+      | AnonymousFun (str, args, fb) -> {exp with exp_stx = AnonymousFun (str, args, f fb); exp_annot = add_codename exp (fresh_anonymous ())}
       | NamedFun (str, name, args, fb) -> {exp with exp_stx = NamedFun (str, name, args, f fb); exp_annot = add_codename exp (fresh_named name)}
       | Obj xs -> m exp (Obj (List.map (fun (pn, pt, e) -> (pn, pt, f e)) xs))
       | Array es -> m exp (Array (List.map fo es))
@@ -223,7 +223,7 @@ let rec closure_clarification cc_tbl fun_tbl vis_tbl args f_id visited_funs e =
 	| CAccess (e1, e2) -> (f e1); (f e2)           
 	| New (e1, e2s)
 	| Call (e1, e2s) -> f e1; (List.iter f e2s)          
-  | AnnonymousFun (_, args, fb) 
+  | AnonymousFun (_, args, fb) 
 	| NamedFun (_, _, args, fb) -> 
 		let new_f_id = get_codename e in 
 		update_cc_tbl cc_tbl f_id new_f_id args fb;
@@ -316,4 +316,75 @@ let rec print_cc_tbl cc_tbl =
 			ac ^ f_str)
 		cc_tbl
 		""
-		
+
+let rec returns_empty_exp (e : Parser_syntax.exp) = 
+let get_some e =
+	(match e with
+	| None -> false
+	| Some e -> returns_empty_exp e) in
+let rec returns_empty_exp_list (el : Parser_syntax.exp list) =
+	(match el with
+	| [] -> true
+	| e :: el ->
+		let reeel = returns_empty_exp_list el in
+		if (returns_empty_exp e) then true else reeel) in
+match e.exp_stx with
+  | Null
+  | Num _
+  | String _
+  | Bool _ 
+  | Var _
+  | Delete _
+  | Unary_op (_, _)
+  | BinOp (_, _, _) 
+  | Access (_, _)
+  | New (_, _)
+  | CAccess (_, _)
+  | Assign (_, _) 
+  | AssignOp (_, _, _) 
+  | Comma (_, _)
+  | ConditionalOp (_, _, _) 
+  | Obj _
+  | Array _
+  | RegExp (_, _)
+  | AnonymousFun (_, _, _) 
+  | NamedFun (_, _, _, _) 
+  | Call (_, _)
+	| This
+  | Throw _
+  | Return _
+  | Skip 
+  | Debugger -> false
+
+  | Label (_, e) 
+	| DoWhile (e, _) -> returns_empty_exp e 
+
+  | If (e, et, ee) -> 
+			let reeet = returns_empty_exp et in
+			let reeee = get_some ee in
+			if reeet then true else reeee
+	
+  | Try (et, ec, ef) ->
+			let reeet = returns_empty_exp et in
+			let reeec = 
+				match ec with
+				| None -> false
+				| Some (_, ec) -> returns_empty_exp ec in
+			let reeef = get_some ef in
+			if reeet then true else
+				if reeec then true else
+					reeef
+
+  | Block el 
+  | Script (_, el) -> returns_empty_exp_list el
+
+  | Switch (_, ese) -> 
+		let (_, el) = List.split ese in
+			returns_empty_exp_list el
+
+  | For (_, _, _, _) 
+  | ForIn (_, _, _)	
+	| While (_, _)
+	| VarDec _ 
+  | Break _ 
+  | Continue _ -> true

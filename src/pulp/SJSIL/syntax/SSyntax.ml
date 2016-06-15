@@ -51,6 +51,7 @@ type unary_op =
 	| Car
 	| Cdr
 	(* Mathematics *)
+	| M_sgn
 	| M_abs
 	| M_acos
 	| M_asin

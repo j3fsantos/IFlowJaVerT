@@ -516,7 +516,7 @@ let rec translate_exp ctx exp : statement list * variable =
           ] @
           if5, call
           
-      | Parser_syntax.AnnonymousFun (_, params, _) ->
+      | Parser_syntax.AnonymousFun (_, params, _) ->
         translate_function_expression exp params ctx None
         
       | Parser_syntax.NamedFun (_, name, params, _) -> 
@@ -1013,7 +1013,7 @@ let rec translate_stmt ctx labelset exp : statement list * variable =
             ]))] in 
         stmts @ gamma_stmts @ ret_val_stmts, ret_def
 
-      | Parser_syntax.AnnonymousFun _
+      | Parser_syntax.AnonymousFun _
       | Parser_syntax.NamedFun _ -> raise (PulpInvalid ("Expected statement not Function Declaration. Actual " ^ (Pretty_print.string_of_exp true exp)))
          (* If a function appears in the middle of a statement, it shall not be interpreted as an expression function, but as a function declaration *)
          (* NOTE in spec p.86 *)
@@ -1590,7 +1590,7 @@ let translate_function exp fb fid main args env named =
 let translate_function_syntax level id e named env main =
   let pulpe = 
     match e.Parser_syntax.exp_stx with
-      | Parser_syntax.AnnonymousFun (_, args, fb) -> translate_function e fb id main args env None
+      | Parser_syntax.AnonymousFun (_, args, fb) -> translate_function e fb id main args env None
       | Parser_syntax.NamedFun (_, name, args, fb) ->
           check_early_error name;
           translate_function e fb id main args env named
