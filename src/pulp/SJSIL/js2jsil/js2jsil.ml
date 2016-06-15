@@ -19,17 +19,20 @@ let js2jsil_imports = [
 
 let setupHeapName = "setupInitialHeap"
 
-let callPropName = "@call"
-let constructPropName = "@construct"
-let scopePropName = "@scope"
+let callPropName       = "@call"
+let constructPropName  = "@construct"
+let scopePropName      = "@scope"
+let classPropName      = "@class"
+let extensiblePropName = "@extensible"
 
-let locGlobName                       = "$lg"
+let locGlobName        = "$lg"
+let locObjPrototype    = "$lobj_proto"
 
 let toBooleanName                     = "i__toBoolean"                   (* 9.2               *)
 let getValueName                      = "i__getValue"                    (* 8.7.1             *)
 let isReservedName                    = "i__isReserved"
 let putValueName                      = "i__putValue"                    (* 8.7.2             *) 
-let objectConstructName               = "Object_construct"
+let createDefaultObjectName           = "create_default_object"          (* 15.2.2.1          *)
 let toObjectName                      = "i__toObject"                    (* 9.9               *)
 let toStringName                      = "i__toString"                    (* 9.8               *)
 let deletePropertyName                = "o__deleteProperty"              (* 8.12.7            *)
@@ -686,10 +689,12 @@ let rec translate fid cc_table loop_list ctx vis_fid err js_lab e  =
 	| Parser_syntax.Obj xs -> 
 		(**
 	 	 Section 11.1.5 - Object Initializer 
-	 	 C({ pd_1, ..., pd_n } ) =  x_obj := Object_construct () 
-	                            C_pd(pd_1, x_obj)
-															... 
-															C_pd(pd_n, x_obj) 
+	 	 C({ pd_1, ..., pd_n } ) =
+				x_obj := new () 
+				x_cdo := create_default_object (x_obj, $lobj_proto) 
+	      C_pd(pd_1, x_obj)
+				... 
+				C_pd(pd_n, x_obj) 
 			
 			pd := pn:e | get pn () { s } | set pn (x1, ..., xn) { s }
 			
@@ -720,8 +725,11 @@ let rec translate fid cc_table loop_list ctx vis_fid err js_lab e  =
 		*)
 		
 		let x_obj = fresh_obj_var () in 
-		(* x_obj = "Object_construct" () *) 
-		let cmd_new_obj = (None, None, (SLCall (x_obj, Literal (String objectConstructName), [ ], None))) in 
+		(* x_obj := new () *) 
+		let cmd_new_obj = (None, None, (SLBasic (SNew x_obj))) in 
+		(* x_cdo := create_default_object (x_obj, $lobj_proto) *) 
+		let x_cdo = fresh_var () in 
+		let cmd_cdo_call = (None, None, (SLCall (x_cdo, Literal (String createDefaultObjectName), [ Var x_obj; Literal (Loc locObjPrototype) ], None))) in 
 		
 		let translate_property_name pname = 
 			(match pname with
@@ -786,7 +794,7 @@ let rec translate fid cc_table loop_list ctx vis_fid err js_lab e  =
 				cmds @ new_cmds, errs @ new_errs)
 				([], []) 
 				xs in 
-		cmd_new_obj :: cmds, (Var x_obj), errs, [], [], []
+		(cmd_new_obj :: (cmd_cdo_call :: cmds)), (Var x_obj), errs, [], [], []
 
 	
 	| Parser_syntax.CAccess (e1, e2) -> 
@@ -867,6 +875,115 @@ let rec translate fid cc_table loop_list ctx vis_fid err js_lab e  =
 		let errs = errs @ [ x_v; x_oc ] in 
 		cmds, (Var x_r), errs, [], [], []	
 
+	
+	| Parser_syntax.New (e_f, xes) -> 
+		(**
+			Section 11.2.2 - The new Operator 
+			C(e_f) = cmds_ef, x_f
+			C(e_i) = cmds_ei, x_argi (for i = 1, ..., n) 
+			C(new e_f (e_1, ..., e_n) = 
+				          cmds_ef
+           				x_f_val := i__getValue (x_f) with err; 
+									cmds_e1
+		 	     				x_arg1_val := i__getValue (x_arg1) with err; 
+		       				...
+									cmds_en
+		       				x_argn_val := i__getValue (x_argn) with err; 
+			     				goto [ typeOf(x_f_val) != Object] err next1; 
+					next1:  x_hp := hasField(x_f_val, "@construct"); 
+					        goto [ x_hp ] next2 err; 
+					next2:	x_this := new (); 
+					        x_ref_prototype := ref-o(x_f_val, "prototype"); 
+									x_f_prototype := i__getValue(x_ref_prototype) with err;
+									x_cdo := i__createDefaultObject (x_this, x_f_prototype); 
+								 	x_body := [x_f_val, "@construct"]; 
+		       				x_scope := [x_f_val, "@scope"]; 
+					 				x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err; 
+					 				goto [ x_r1 = $$emtpy ] next3 next4;
+        	next3:  skip
+					next4:  x_r3 := PHI(x_r1, x_this)
+		*)	
+		let cmds_ef, x_ef, errs_ef, _, _, _ = f e_f in 
+
+		(* x_f_val := i__getValue (x_f) with err1;  *)
+		let x_f_val, cmd_gv_f = make_get_value_call x_ef err in 	
+		
+		let cmds_args, x_args_gv, errs_args = translate_arg_list xes err in 	
+		
+		(* goto [ typeOf(x_f_val) != Object] err next1; err -> typeerror *) 
+		let next1 = fresh_next_label () in   
+		let goto_guard_expr = UnaryOp (Not, (BinOp (TypeOf (Var x_f_val), Equal, Literal (Type ObjectType)))) in 
+		let cmd_goto_is_obj = SLGuardedGoto (goto_guard_expr, err, next1) in
+		
+		(* x_hp := hasField[x_f_val, "@construct"]; *)
+		let x_hp = fresh_var () in 
+		let cmd_hf_construct = SLBasic (SHasField (x_hp, Var x_f_val, Literal (String constructPropName))) in 
+		
+		(* goto [ x_hp ] next2 err; *) 
+		let next2 = fresh_next_label () in 
+		let cmd_goto_xhp = SLGuardedGoto (Var x_hp, next2, err) in 
+		
+		(* x_this := new (); *)
+		let x_this = fresh_this_var () in 
+		let cmd_create_xobj = SLBasic (SNew x_this) in 
+		
+		(* x_ref_fprototype := ref-o(x_f_val, "prototype");  *) 
+		let x_ref_fprototype = fresh_var () in 
+		let cmd_ass_xreffprototype = SLBasic (SAssignment (x_ref_fprototype, ORef (Var x_f_val, Literal (String "prototype")))) in  
+		
+		(* x_f_prototype := i__getValue(x_ref_prototype) with err; *) 
+		let x_f_prototype, cmd_gv_xreffprototype = make_get_value_call (Var x_ref_fprototype) err in 
+		
+		(* x_cdo := i__createDefaultObject (x_this, x_f_prototype); *) 
+		let x_cdo = fresh_var () in 
+		let cmd_cdo_call = SLCall (x_cdo, Literal (String createDefaultObjectName), [ Var x_this; Var x_f_prototype ], None) in 
+		
+		(* x_body := [x_f_val, "@construct"];  *) 
+		let x_body = fresh_body_var () in 
+		let cmd_body = SLBasic (SLookup (x_body, Var x_f_val, Literal (String constructPropName))) in 
+		
+		(* x_fscope := [x_f_val, "@scope"]; *)
+		let x_fscope = fresh_fscope_var () in 
+		let cmd_scope = SLBasic (SLookup (x_fscope, Var x_f_val, Literal (String scopePropName))) in 
+		
+		(* x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err  *) 
+		let x_r1 = fresh_var () in 
+		let proc_args = (Var x_fscope) :: (Var x_this) :: x_args_gv in 
+		let cmd_proc_call = SLCall (x_r1, (Var x_body), proc_args, Some err) in 
+		
+		(* goto [ x_r1 = $$emtpy ] next3 next4; *)
+		let next3 = fresh_next_label () in 
+		let next4 = fresh_next_label () in 
+		let goto_guard_expr = BinOp (Var x_r1, Equal, Literal Empty) in
+		let cmd_goto_test_empty = SLGuardedGoto (goto_guard_expr, next3, next4) in 
+		
+		(* next3: skip; *)
+		let cmd_ret_this = SLBasic SSkip in
+		
+		(* next4: x_r2 := PHI(x_r1, x_this) *) 
+		let x_r2 = fresh_var () in 
+		let cmd_phi_final = SLBasic (SPhiAssignment (x_r2, [| Some x_r1; Some x_this |])) in 
+		
+		let cmds = cmds_ef @ [                          (*        cmds_ef                                                                  *)
+			(None, None,         cmd_gv_f);               (*        x_f_val := i__getValue (x_f) with err                                    *) 
+		] @ cmds_args @ [                               (*        cmds_arg_i; x_arg_i_val := i__getValue (x_arg_i) with err                *)
+			(None, None,         cmd_goto_is_obj);        (*        goto [ typeOf(x_f_val) != Object] err next1                              *) 
+			(None, Some next1,   cmd_hf_construct);       (* next1: x_hp := hasField[x_f_val, "@construct"]                                  *)
+			(None, None,         cmd_goto_xhp);           (*        goto [ x_hp ] next2 err                                                  *)
+			(None, Some next2,   cmd_create_xobj);        (* next2: x_this := new ()                                                         *)
+			(None, None,         cmd_ass_xreffprototype); (*        x_ref_fprototype := ref-o(x_f_val, "prototype")                          *)
+			(None, None,         cmd_gv_xreffprototype);  (*        x_f_prototype := i__getValue(x_ref_prototype) with err                   *)
+		  (None, None,         cmd_cdo_call);           (*        x_cdo := create_default_object (x_this, x_f_prototype)                   *)
+			(None, None,         cmd_body);               (*        x_body := [x_f_val, "@construct"]                                        *)
+			(None, None,         cmd_scope);              (*        x_fscope := [x_f_val, "@scope"]                                          *)
+			(None, None,         cmd_proc_call);          (*        x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err   *)
+			(None, None,         cmd_goto_test_empty);    (*        goto [ x_r1 = $$emtpy ] next3 next4                                      *)
+			(None, None,         cmd_ret_this);           (* next3: skip                                                                     *)
+			(None, None,         cmd_phi_final)           (* next4: x_r2 := PHI(x_r1, x_this)                                                *)
+		] in 
+		let errs = errs_ef @ [ x_f_val ] @ errs_args @ [ var_te; var_te; x_f_prototype; x_r1 ] in 
+		cmds, Var x_r2, errs, [], [], []				
+		 
 		
 	| Parser_syntax.Call (e_f, xes) -> 
 		(**
@@ -913,7 +1030,7 @@ let rec translate fid cc_table loop_list ctx vis_fid err js_lab e  =
 		let cmd_ic = SLCall (x_ic, Literal (String isCallableName), [ Var x_f_val ], None) in
 		
 		(* goto [ x_ic ] next2 err; -> typeerror *)
-		let next2 = fresh_label () in 
+		let next2 = fresh_next_label () in 
 		let cmd_goto_is_callable = SLGuardedGoto (Var x_ic, next2, err) in 
 		
 		(* next2: goto [ typeOf(x_f) = ObjReference ] then else;  *) 
