@@ -354,7 +354,8 @@ match e.exp_stx with
   | Throw _
   | Return _
   | Skip 
-  | Debugger -> false
+  | Debugger -> 
+			false
 
   | Label (_, e) 
 	| DoWhile (e, _) -> returns_empty_exp e 
@@ -376,8 +377,9 @@ match e.exp_stx with
 					reeef
 
   | Block el 
-  | Script (_, el) -> returns_empty_exp_list el
-
+  | Script (_, el) -> 
+			returns_empty_exp_list el
+  
   | Switch (_, ese) -> 
 		let (_, el) = List.split ese in
 			returns_empty_exp_list el
@@ -387,4 +389,5 @@ match e.exp_stx with
 	| While (_, _)
 	| VarDec _ 
   | Break _ 
-  | Continue _ -> true
+  | Continue _ ->
+			true

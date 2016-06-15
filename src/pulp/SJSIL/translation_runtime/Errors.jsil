@@ -4,12 +4,27 @@ import Internals, Init;
 (* THE ERROR LIBRARY *)
 (* ***************** *) 
 
-(* *** CONSTRUCT *** *)
-
-proc Error_construct (v) {
+proc Error_call (xsc, vthis, v) {
 			xret := new ();
-			xret := "create_default_object" (xret, $lerr_proto, "Error", "t");
+			xret := "create_default_object" (xret, $lerr_proto, "Error", $$t);
+			
+			xret := "Error_construct" ($$empty, xret, v) with elab;
+			
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
+};
 
+proc Error_construct (xsc, vthis, v) {			
+			xret := vthis;
+			
+			[vthis, "@class"] := "Error";
+			[vthis, "@extensible] := $$t;
+			
 			goto [v = $$empty] rlab mess;
 			
 	mess:	xerr := "i__toString" (v) with elab;
@@ -22,7 +37,20 @@ with
 {
 	ret: 	xret, rlab;
 	err: 	xerr, elab;
+}
+
+proc Error (v) {
+			xret := "Error_call" ($$empty, $$undefined, v) with elab;
+			
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
 };
+
 
 (* *** TOSTRING *** *)
 
@@ -72,10 +100,13 @@ with
 (* THE NATIVE ERRORS *)
 (* ***************** *) 
 
-(* *** CALL *** *)
+(* *** EVALERROR *** *)
 
-proc EvalError_call (v) {
-			xret := "EvalError" (v) with elab;
+proc EvalError_call (xsc, vthis, v) {
+			xret := new ();
+			xret := "create_default_object" (xret, $leerr_proto, "Error", $$t);
+			
+			xret := "Error_construct" ($$empty, xret, v) with elab;
 			
 	rlab:	skip;
 	elab:	skip
@@ -85,17 +116,9 @@ with
 	ret: xret, rlab;
 	err: xret, elab;
 };
-
-(* *** CONSTRUCT *** *)
 
 proc EvalError (v) {
-			xret := new ();
-			xret := "create_default_object" (xret, $leerr_proto, "Error", "t");
-
-			goto [v = $$empty] rlab mess;
-			
-	mess:	xerr := "i__toString" (v) with elab;
-			[xret, "message"] := xerr;
+			xret := "EvalError_call" ($$empty, $$undefined, v) with elab;
 			
 	rlab:	skip;
 	elab:	skip
@@ -103,13 +126,16 @@ proc EvalError (v) {
 with
 {
 	ret: 	xret, rlab;
-	err: 	xerr, elab;
+	err: 	xret, elab;
 };
 
-(* *** CALL *** *)
+(* *** RANGEERROR *** *)
 
-proc RangeError_call (v) {
-			xret := "RangeError" (v) with elab;
+proc RangeError_call (xsc, vthis, v) {
+			xret := new ();
+			xret := "create_default_object" (xret, $lrgerr_proto, "Error", $$t);
+			
+			xret := "Error_construct" ($$empty, xret, v) with elab;
 			
 	rlab:	skip;
 	elab:	skip
@@ -119,17 +145,9 @@ with
 	ret: xret, rlab;
 	err: xret, elab;
 };
-
-(* *** CONSTRUCT *** *)
 
 proc RangeError (v) {
-			xret := new ();
-			xret := "create_default_object" (xret, $lrgerr_proto, "Error", "t");
-
-			goto [v = $$empty] rlab mess;
-			
-	mess:	xerr := "i__toString" (v) with elab;
-			[xret, "message"] := xerr;
+			xret := "RangeError_call" ($$empty, $$undefined, v) with elab;
 			
 	rlab:	skip;
 	elab:	skip
@@ -137,13 +155,16 @@ proc RangeError (v) {
 with
 {
 	ret: 	xret, rlab;
-	err: 	xerr, elab;
+	err: 	xret, elab;
 };
 
-(* *** CALL *** *)
+(* *** REFERENCEERROR *** *)
 
-proc ReferenceError_call (v) {
-			xret := "ReferenceError" (v) with elab;
+proc ReferenceError_call (xsc, vthis, v) {
+			xret := new ();
+			xret := "create_default_object" (xret, $lrferr_proto, "Error", $$t);
+			
+			xret := "Error_construct" ($$empty, xret, v) with elab;
 			
 	rlab:	skip;
 	elab:	skip
@@ -153,17 +174,9 @@ with
 	ret: xret, rlab;
 	err: xret, elab;
 };
-
-(* *** CONSTRUCT *** *)
 
 proc ReferenceError (v) {
-			xret := new ();
-			xret := "create_default_object" (xret, $lrferr_proto, "Error", "t");
-
-			goto [v = $$empty] rlab mess;
-			
-	mess:	xerr := "i__toString" (v) with elab;
-			[xret, "message"] := xerr;
+			xret := "ReferenceError_call" ($$empty, $$undefined, v) with elab;
 			
 	rlab:	skip;
 	elab:	skip
@@ -171,13 +184,16 @@ proc ReferenceError (v) {
 with
 {
 	ret: 	xret, rlab;
-	err: 	xerr, elab;
+	err: 	xret, elab;
 };
 
-(* *** CALL *** *)
+(* *** SYNTAXERROR *** *)
 
-proc SyntaxError_call (v) {
-			xret := "SyntaxError" (v) with elab;
+proc SyntaxError_call (xsc, vthis, v) {
+			xret := new ();
+			xret := "create_default_object" (xret, $lserr_proto, "Error", $$t);
+			
+			xret := "Error_construct" ($$empty, xret, v) with elab;
 			
 	rlab:	skip;
 	elab:	skip
@@ -187,17 +203,9 @@ with
 	ret: xret, rlab;
 	err: xret, elab;
 };
-
-(* *** CONSTRUCT *** *)
 
 proc SyntaxError (v) {
-			xret := new ();
-			xret := "create_default_object" (xret, $lserr_proto, "Error", "t");
-
-			goto [v = $$empty] rlab mess;
-			
-	mess:	xerr := "i__toString" (v) with elab;
-			[xret, "message"] := xerr;
+			xret := "SyntaxError_call" ($$empty, $$undefined, v) with elab;
 			
 	rlab:	skip;
 	elab:	skip
@@ -205,13 +213,16 @@ proc SyntaxError (v) {
 with
 {
 	ret: 	xret, rlab;
-	err: 	xerr, elab;
+	err: 	xret, elab;
 };
 
-(* *** CALL *** *)
+(* *** TYPEERROR *** *)
 
-proc TypeError_call (v) {
-			xret := "TypeError" (v) with elab;
+proc TypeError_call (xsc, vthis, v) {
+			xret := new ();
+			xret := "create_default_object" (xret, $lterr_proto, "Error", $$t);
+			
+			xret := "Error_construct" ($$empty, xret, v) with elab;
 			
 	rlab:	skip;
 	elab:	skip
@@ -221,17 +232,9 @@ with
 	ret: xret, rlab;
 	err: xret, elab;
 };
-
-(* *** CONSTRUCT *** *)
 
 proc TypeError (v) {
-			xret := new ();
-			xret := "create_default_object" (xret, $lterr_proto, "Error", "t");
-
-			goto [v = $$empty] rlab mess;
-			
-	mess:	xerr := "i__toString" (v) with elab;
-			[xret, "message"] := xerr;
+			xret := "TypeError_call" ($$empty, $$undefined, v) with elab;
 			
 	rlab:	skip;
 	elab:	skip
@@ -239,13 +242,18 @@ proc TypeError (v) {
 with
 {
 	ret: 	xret, rlab;
-	err: 	xerr, elab;
+	err: 	xret, elab;
 };
 
-(* *** CALL *** *)
 
-proc URIError_call (v) {
-			xret := "URIError" (v) with elab;
+
+(* *** URIERROR *** *)
+
+proc URIError_call (xsc, vthis, v) {
+			xret := new ();
+			xret := "create_default_object" (xret, $luerr_proto, "Error", $$t);
+			
+			xret := "Error_construct" ($$empty, xret, v) with elab;
 			
 	rlab:	skip;
 	elab:	skip
@@ -256,16 +264,8 @@ with
 	err: xret, elab;
 };
 
-(* *** CONSTRUCT *** *)
-
 proc URIError (v) {
-			xret := new ();
-			xret := "create_default_object" (xret, $luerr_proto, "Error", "t");
-
-			goto [v = $$empty] rlab mess;
-			
-	mess:	xerr := "i__toString" (v) with elab;
-			[xret, "message"] := xerr;
+			xret := "URIError_call" ($$empty, $$undefined, v) with elab;
 			
 	rlab:	skip;
 	elab:	skip
@@ -273,5 +273,5 @@ proc URIError (v) {
 with
 {
 	ret: 	xret, rlab;
-	err: 	xerr, elab;
-}
+	err: 	xret, elab;
+};
