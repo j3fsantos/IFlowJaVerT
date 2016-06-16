@@ -353,7 +353,6 @@ match e.exp_stx with
 	| This
   | Throw _
   | Return _
-  | Skip 
   | Debugger -> 
 			false
 
@@ -389,5 +388,6 @@ match e.exp_stx with
 	| While (_, _)
 	| VarDec _ 
   | Break _ 
-  | Continue _ ->
+  | Continue _ 
+  | Skip ->
 			true
