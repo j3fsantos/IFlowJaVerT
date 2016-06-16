@@ -1175,7 +1175,7 @@ with
 (* ABSTRACTEQUALITY *)
 (* **************** *) 
 
-proc i__AbstractEquality (v1, v2) {
+proc i__abstractEquality (v1, v2) {
 			tv1 := typeOf(v1);
 			tv2 := typeOf(v2);
 
