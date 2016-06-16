@@ -2879,7 +2879,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		(** Section 13
 			x_sc := copy_scope_chain_obj (x_scope, {{main, fid1, ..., fidn }})
 		  x_f := create_function_object(x_sc, f_id, params)
-			x_er := [x_scope, fid]
+			x_er := [x_scope, "fid"]
 			x_ref_n := ref-v(x_er, "f_name")
 		  x_pv := i__putValue(x_ref_n, x_f) with err
 		*)
@@ -2887,9 +2887,9 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			with _ -> raise (Failure "named function literals should be annotated with their respective code names") in
 		let cmds, x_f = translate_function_literal f_id params in 
 		
-		(* x_er_fid := [x_scope, fid] *)
+		(* x_er_fid := [x_scope, "fid"] *)
 		let x_er = fresh_er_var () in 
-		let cmd_ass_xer = (None, None, SLBasic (SLookup (x_er, Var var_scope, Literal (String f_id)))) in 
+		let cmd_ass_xer = (None, None, SLBasic (SLookup (x_er, Var var_scope, Literal (String fid)))) in 
 		
 		(* x_ref_n := ref-v(x_er, "f_name") *)
 		let x_ref_n = fresh_var () in 
