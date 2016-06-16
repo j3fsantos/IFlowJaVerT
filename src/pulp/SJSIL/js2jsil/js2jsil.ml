@@ -2584,7 +2584,7 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 				(None, None,           SLGoto head);           (*           goto head                                  *)
 			] @ cmds_end_loop in 
 		let errs = errs1 @ [ x1_v; x1_b ] @ errs2 @ [ x2_v ] in 
-		cmds, Var x_ret_1, errs, rets2, outer_breaks, outer_conts
+		cmds, Var x_ret_5, errs, rets2, outer_breaks, outer_conts
 	
 	
 	| Parser_syntax.For (e1, e2, e3, e4) ->
@@ -2700,7 +2700,7 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 				  (None, None,             SLGoto head);           (*              goto head                                    *)
 				] @ cmds_end_loop in 
 		let errs = errs1 @ errs2 @ [ x2_v; x2_b ] @ errs4 @ [ x4_v ] @ errs3 in  
-		cmds, Var x_ret_1, errs, rets4, outer_breaks, outer_conts 
+		cmds, Var x_ret_5, errs, rets4, outer_breaks, outer_conts 
 	
 	
 	| Parser_syntax.AnonymousFun (_, params, e_body) -> 
