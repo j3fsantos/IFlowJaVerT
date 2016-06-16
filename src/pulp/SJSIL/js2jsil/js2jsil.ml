@@ -645,7 +645,7 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 		(* goto [x_new = $$empty] next1 next2 *)
 		let next1 = fresh_next_label () in 
 		let next2 = fresh_next_label () in  
-		let cmd_goto = (None, None, SLGuardedGoto (BinOp (Var x_new, Equal, Literal Empty), next2, next1)) in 
+		let cmd_goto = (None, None, SLGuardedGoto (BinOp (Var x_new, Equal, Literal Empty), next1, next2)) in 
 		
 		(* next1: skip  *) 
 		let cmd_skip = (None, Some next1, SLBasic SSkip) in 
