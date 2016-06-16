@@ -659,7 +659,7 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 			 
 	let make_loop_end cur_val_var prev_val_var break_vars end_lab = 
 		(** 
-    	end_loop: x_ret_4 := PHI(cur_val_var, break_vars) 
+    	end_loop: x_ret_4 := PHI(break_vars, cur_val_var) 
 			          goto [ x_ret_4 = $$empty ] next3 next4
 			next3:    skip 
 			next4:    x_ret_5 := PHI(x_ret_4, prev_val_var)
@@ -670,7 +670,7 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 		let next4 = fresh_next_label () in 
 		
 		(* x_ret_4 := PHI(cur_val_var, break_vars) *)
-		let phi_args = List.map (fun x -> Some x) (cur_val_var :: break_vars) in 
+		let phi_args = List.map (fun x -> Some x) (break_vars @ [ cur_val_var ]) in 
 		let phi_args = Array.of_list phi_args in 
 		let cmd_ass_ret4 = SLBasic (SPhiAssignment (x_ret_4, phi_args)) in 
 		
@@ -2415,7 +2415,7 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 								x2_v := i__getValue (x2) with err
 								x2_b := i__toBoolean (x2_v) with err 
 								goto [x2_b] head end_loop 
-		  end_loop: x_ret_4 := PHI(x_ret_3, break_vars) 
+		  end_loop: x_ret_4 := PHI(break_vars, x_ret_3) 
 			          goto [ x_ret_4 = $$empty ] next3 next4
 			next3:    skip 
 			next4:    x_ret_5 := PHI(x_ret_4, x_ret_1) 
@@ -2508,7 +2508,7 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 			next1:    skip; 
 			next2:    x_ret_3 := PHI(x_ret_1, x_ret_2) 
 			          goto head 
-			end_loop: x_ret_4 := PHI(x_ret_1, break_vars) 
+			end_loop: x_ret_4 := PHI(break_vars, x_ret_1) 
 			          goto [ x_ret_4 = $$empty ] next3 next4
 			next3:    skip 
 			next4:    x_ret_5 := PHI(x_ret_4, x_ret_1) 
@@ -2604,7 +2604,7 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 			next2:    x_ret_3 := PHI(x_ret_1, x_ret_2)
 			          cmds3
 								goto head
-		  end_loop:	x_ret_4 := PHI(x_ret_1, break_vars) 
+		  end_loop:	x_ret_4 := PHI(break_vars, x_ret_1) 
 			          goto [ x_ret_4 = $$empty ] next3 next4
 			next3:    skip 
 			next4:    x_ret_5 := PHI(x_ret_4, x_ret_1) 
