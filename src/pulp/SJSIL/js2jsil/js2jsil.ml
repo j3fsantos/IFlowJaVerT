@@ -77,6 +77,8 @@ let fresh_fun_var : (unit -> string) = fresh_sth "x_f_"
 
 let fresh_obj_var : (unit -> string) = fresh_sth "x_o_"
 
+let fresh_er_var : (unit -> string) = fresh_sth "x_er_"
+
 let fresh_this_var : (unit -> string) = fresh_sth "x_this_"
 
 let fresh_desc_var : (unit -> string) = fresh_sth "x_desc_"
@@ -2860,6 +2862,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		(** Section 12.12 *) 
 		translate fid cc_table ctx vis_fid err loop_list previous (Some js_lab) e 
 
+
 	| Parser_syntax.AnonymousFun (_, params, e_body) -> 
 		(**
        Section 13
@@ -2872,13 +2875,33 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		cmds, Var x_f, [], [], [], []
 	
 
-(*	| Parser_syntax.NamedFun (_, n, xs, e) -> *)
-		(** Section 13 
-			x_sc := copy_scope_chain_obj (x_scope, {{main, fid1, ..., fidn }}); 
+	| Parser_syntax.NamedFun (_, n, params, e_body) -> 
+		(** Section 13
+			x_sc := copy_scope_chain_obj (x_scope, {{main, fid1, ..., fidn }})
 		  x_f := create_function_object(x_sc, f_id, params)
-		
+			x_er := [x_scope, fid]
+			x_ref_n := ref-v(x_er, "f_name")
+		  x_pv := i__putValue(x_ref_n, x_f) with err
 		*)
+		let f_id = try Js_pre_processing.get_codename e 
+			with _ -> raise (Failure "named function literals should be annotated with their respective code names") in
+		let cmds, x_f = translate_function_literal f_id params in 
 		
+		(* x_er_fid := [x_scope, fid] *)
+		let x_er = fresh_er_var () in 
+		let cmd_ass_xer = (None, None, SLBasic (SLookup (x_er, Var var_scope, Literal (String f_id)))) in 
+		
+		(* x_ref_n := ref-v(x_er, "f_name") *)
+		let x_ref_n = fresh_var () in 
+		let cmd_ass_xrefn = (None, None, SLBasic (SAssignment (x_ref_n, VRef (Var x_er, Literal (String n))))) in 
+		
+		(* x_pv := i__putValue(x_ref_n, x_f) with err *) 
+		let x_pv = fresh_var () in 
+		let cmd_pv_f = (None, None, SLCall (x_pv, Literal (String putValueName), [ Var x_ref_n; Var x_f ], Some err)) in 
+		
+		let cmds = cmds @ [ cmd_ass_xer; cmd_ass_xrefn; cmd_pv_f ] in 
+		cmds, Var x_f, [ x_pv ], [], [], []
+	
 	
 	| _ -> raise (Failure "not implemented yet")
 
