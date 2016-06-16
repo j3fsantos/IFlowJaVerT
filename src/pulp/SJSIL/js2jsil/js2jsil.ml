@@ -97,6 +97,8 @@ let fresh_endif_label : (unit -> string) = fresh_sth "fi_"
 
 let fresh_end_label : (unit -> string) = fresh_sth "end_"
 
+let fresh_break_label : (unit -> string) = fresh_sth "break_"
+
 let fresh_loop_head_label : (unit -> string) = fresh_sth "loop_h_"
 
 let fresh_loop_cont_label : (unit -> string) = fresh_sth "loop_c_"
@@ -218,18 +220,29 @@ let rec get_continue_lab loop_list lab =
 		raise (Failure msg)
 	| (lab_c, lab_b, js_lab) :: rest ->
 		match lab with 
-		| None -> lab_c 
+		| None -> 
+			(match lab_c with 
+			| Some lab_c -> lab_c
+			| None -> get_continue_lab rest lab)
 		| Some lab_str -> 
 			(match js_lab with 
 			| None -> get_continue_lab rest lab
-			|Some js_lab_str -> if (lab_str = js_lab_str) then lab_c else get_continue_lab rest lab)
+			| Some js_lab_str -> 
+				if (lab_str = js_lab_str) 
+				then 
+					(match lab_c with 
+					| None -> get_continue_lab rest lab
+					| Some lab_c -> lab_c)
+				else get_continue_lab rest lab)
 
-let filter_cur_jumps (jumps : (string option * string) list) loop_lab = 
+let filter_cur_jumps (jumps : (string option * string) list) loop_lab include_no_lab = 
 	let rec filter_cur_jumps_iter jumps inner_jumps outer_jumps = 
 		match jumps with 
 		| [] -> (List.rev inner_jumps), (List.rev outer_jumps) 
-		| (None, x) :: rest_jumps ->  
-				filter_cur_jumps_iter rest_jumps (x :: inner_jumps) outer_jumps 
+		| (None, x) :: rest_jumps ->
+			  (match include_no_lab with 
+				| true -> filter_cur_jumps_iter rest_jumps (x :: inner_jumps) outer_jumps 
+				| false -> filter_cur_jumps_iter rest_jumps inner_jumps ((None, x) :: outer_jumps))  
 		| (Some lab, x) :: rest_jumps ->
 				(match loop_lab with
 				| None ->  filter_cur_jumps_iter rest_jumps inner_jumps ((Some lab, x) :: outer_jumps) 
@@ -256,11 +269,11 @@ let make_var_ass_se () = SLCall (var_se, Literal (String syntaxErrorName), [ ], 
 	
 let make_var_ass_te () = SLCall (var_te, Literal (String typeErrorName), [ ], None)  	
 
-let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  = 
+let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  = 
 	
-	let f = translate fid cc_table loop_list ctx vis_fid err previous js_lab in
+	let f = translate fid cc_table ctx vis_fid err loop_list previous js_lab in
 	
-	let f_previous = translate fid cc_table loop_list ctx vis_fid err in 
+	let f_previous = translate fid cc_table ctx vis_fid err in 
 		
 	let cur_var_tbl = 
 		(try Hashtbl.find cc_table fid 
@@ -2217,34 +2230,47 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 		(**
      Section 12.1 - Block
 		
-		 C({}) = [], $$empty
+		 C_iter({}) = [], $$empty
 		
 		 C(stmts) = cmds, x
 		 C(stmt) = cmds', x'
 		 CanBeEmpty(stmt) 
 		 ------------------------- 
-		 C(stmts; stmt) =        cmds 
-											       cmds'
-											       goto [x' = $$empty] next end 
-									    next:  skip 
-											end:   x'' := PHI(x', x)   
+		 C_iter(stmts; stmt) =        cmds 
+						      					      cmds'
+											            goto [x' = $$empty] next end 
+									         next:  skip 
+											     end:   x'' := PHI(x', x)   
 		
 		
 		
-		 C(stmts) = cmds, x
-		 C(stmt) = cmds', x'
+		 C_iter(stmts) = cmds, x
+		 C_iter(stmt) = cmds', x'
 		 !CanBeEmpty(stmt) 
 		 ------------------------- 
-		 C(stmts; stmt) =        cmds 
-											       cmds'   
+		 C_iter(stmts; stmt) =   cmds 
+											       cmds' 
+														
+														
+		 C_iter (stmts) = cmds, x 											
+		 -------------------------------
+		 C(Block stmts) = cmds 
+		                  x_ret := PHI (break_vars, x)  
      *)
+		
+		let break_label, new_loop_list = 
+			(match js_lab with 
+			| None -> None, loop_list 
+			| Some lab -> 
+				let break_label = fresh_break_label () in 
+				Some break_label, ((None, break_label, js_lab) :: loop_list)) in 
 		
 		let rec loop es bprevious cmds_ac errs_ac rets_ac breaks_ac conts_ac = 
 			(match es with 
 			| [] -> [], Literal Empty, [], [], [], []
 			
 			| [ e ] -> 
-				let cmds_e, x_e, errs_e, rets_e, breaks_e, conts_e = f_previous bprevious js_lab e in
+				let cmds_e, x_e, errs_e, rets_e, breaks_e, conts_e = f_previous new_loop_list bprevious None e in
 				(match (Js_pre_processing.returns_empty_exp e), bprevious with 
 				| true, Some x_previous -> 
 					(let new_cmds, x_r = make_check_empty_test x_previous x_e in 
@@ -2253,14 +2279,33 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 					cmds_ac @ cmds_e, x_e, errs_ac @ errs_e, rets_ac @ errs_e, breaks_ac @ breaks_e, conts_ac @ conts_e)
 			
 			| e :: rest_es -> 
-				let cmds_e, x_e, errs_e, rets_e, breaks_e, conts_e = f_previous bprevious js_lab e in
+				let cmds_e, x_e, errs_e, rets_e, breaks_e, conts_e = f_previous new_loop_list bprevious None e in
 				(match (Js_pre_processing.returns_empty_exp e), bprevious with 
 				| true, Some x_previous -> 
 					(let new_cmds, x_r = make_check_empty_test x_previous x_e in 
 					loop rest_es (Some (Var x_r)) (cmds_ac @ cmds_e @ new_cmds) (errs_ac @ errs_e) (rets_ac @ errs_e) (breaks_ac @ breaks_e) (conts_ac @ conts_e))
 				| _, _ -> 
 					loop rest_es (Some x_e) (cmds_ac @ cmds_e) (errs_ac @ errs_e) (rets_ac @ errs_e) (breaks_ac @ breaks_e) (conts_ac @ conts_e))) in 
-		loop es previous [] [] [] [] []
+		
+		let cmds, x, errs, rets, breaks, conts = loop es previous [] [] [] [] [] in 
+		let cur_breaks, outer_breaks = filter_cur_jumps breaks js_lab false in
+		(match cur_breaks with 
+		| [] -> cmds, x, errs, rets, breaks, conts
+		| _ -> 
+			let x_name, cmds_new_x =
+				(match x with 
+				| Var x_name -> x_name, []
+				| Literal lit -> 
+					let x_name = fresh_var () in  
+					let cmd_new_x = [ (None, None, SLBasic (SAssignment (x_name, Literal lit))) ] in 
+					x_name, cmd_new_x 
+				| _ -> raise (Failure "translate. Block: the result of the compilation must be a variable or a literal")) in 
+			let x_ret = fresh_var () in 
+			let phi_args = cur_breaks @ [ x_name ] in 
+			let phi_args = List.map (fun x -> Some x)  phi_args in 
+			let phi_args = Array.of_list phi_args in 
+			let cmd_ass_phi = [ (None, break_label, SLBasic (SPhiAssignment (x_ret, phi_args))) ] in 
+			(cmds @ cmds_new_x @ cmd_ass_phi), Var x_ret, errs, rets, outer_breaks, conts) 
 	
 	 
 	| Parser_syntax.VarDec decs -> 
@@ -2427,13 +2472,13 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 		
 		let head, guard, body, cont, end_loop = fresh_loop_vars () in 
 		
-		let new_loop_list = (cont, end_loop, js_lab) :: loop_list in 
-		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate fid cc_table new_loop_list ctx vis_fid err None None e1 in
+		let new_loop_list = (Some cont, end_loop, js_lab) :: loop_list in 
+		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate fid cc_table ctx vis_fid err new_loop_list None None e1 in
 		let cmds2, x2, errs2, _, _, _ = f e2 in
 		let cmds2 = add_initial_label cmds2 guard in
 		
-		let cur_breaks, outer_breaks = filter_cur_jumps breaks1 js_lab in 
-		let cur_conts, outer_conts = filter_cur_jumps conts1 js_lab in 
+		let cur_breaks, outer_breaks = filter_cur_jumps breaks1 js_lab true in 
+		let cur_conts, outer_conts = filter_cur_jumps conts1 js_lab true in 
 		
 		(* x_ret_0 := $$empty *) 
 		let x_ret_0, cmd_ass_ret_0 = make_empty_ass () in 
@@ -2521,11 +2566,11 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 		let head, guard, body, cont, end_loop = fresh_loop_vars () in 
 		
 		let cmds1, x1, errs1, _, _, _ = f e1 in
-		let new_loop_list = (cont, end_loop, js_lab) :: loop_list in 
-		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate fid cc_table new_loop_list ctx vis_fid err None None e2 in
+		let new_loop_list = (Some cont, end_loop, js_lab) :: loop_list in 
+		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate fid cc_table ctx vis_fid err new_loop_list None None e2 in
 		
-		let cur_breaks, outer_breaks = filter_cur_jumps breaks2 js_lab in 
-		let cur_conts, outer_conts = filter_cur_jumps conts2 js_lab in 
+		let cur_breaks, outer_breaks = filter_cur_jumps breaks2 js_lab true in 
+		let cur_conts, outer_conts = filter_cur_jumps conts2 js_lab true in 
 		
 		(* x_ret_0 := $$empty *) 
 		let x_ret_0, cmd_ass_ret_0 = make_empty_ass () in 
@@ -2634,11 +2679,11 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 		
 		let head, guard, body, cont, end_loop = fresh_loop_vars () in 
 		
-		let new_loop_list = (cont, end_loop, js_lab) :: loop_list in 
-		let cmds4, x4, errs4, rets4, breaks4, conts4 = translate fid cc_table new_loop_list ctx vis_fid err previous None e4 in 
+		let new_loop_list = (Some cont, end_loop, js_lab) :: loop_list in 
+		let cmds4, x4, errs4, rets4, breaks4, conts4 = translate fid cc_table ctx vis_fid err new_loop_list None None e4 in 
 		
-		let cur_breaks, outer_breaks = filter_cur_jumps breaks4 js_lab in 
-		let cur_conts, outer_conts = filter_cur_jumps conts4 js_lab in 
+		let cur_breaks, outer_breaks = filter_cur_jumps breaks4 js_lab true in 
+		let cur_conts, outer_conts = filter_cur_jumps conts4 js_lab true in 
 		
 		(* x_ret_0 := $$empty  *) 
 		let x_ret_0, cmd_ass_ret_0 = make_empty_ass () in 
@@ -2808,7 +2853,7 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 		
 			
 	| Parser_syntax.Label (js_lab, e) -> 
-		translate fid cc_table loop_list ctx vis_fid err previous (Some js_lab) e 
+		translate fid cc_table ctx vis_fid err loop_list previous (Some js_lab) e 
 
 												
 	| _ -> raise (Failure "not implemented yet")
@@ -2858,7 +2903,7 @@ let generate_main e main cc_table =
 	let cmd_ass_se = b_annot_cmd cmd_ass_se in
 					
 	let ctx = make_translation_ctx main in 
-	let cmds_e, x_e, errs, _, _, _ = translate main cc_table [] ctx [ main ] ctx.tr_error_lab None None e in 
+	let cmds_e, x_e, errs, _, _, _ = translate main cc_table ctx [ main ] ctx.tr_error_lab [] None None e in 
 	(* x_ret := x_e *)
 	let ret_ass = (None, None, SLBasic (SAssignment (ctx.tr_ret_var, x_e))) in
 	(* lab_ret: skip *) 
@@ -2917,7 +2962,7 @@ let generate_proc e fid params cc_table vis_fid =
 	let cmd_ass_se = b_annot_cmd cmd_ass_se in
 	
 	let ctx = make_translation_ctx fid in 
-	let cmds_e, x_e, errs, rets, _, _ = translate fid cc_table [] ctx vis_fid ctx.tr_error_lab None None e in 
+	let cmds_e, x_e, errs, rets, _, _ = translate fid cc_table ctx vis_fid ctx.tr_error_lab [] None None e in 
 	
 	(* x_dr := $$empty *)
 	let x_dr = fresh_var () in
