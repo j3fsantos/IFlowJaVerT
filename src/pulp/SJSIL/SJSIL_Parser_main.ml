@@ -38,7 +38,6 @@ let run_jsil_prog prog which_pred =
         Printf.printf "Final heap: \n%s\n" final_heap_str;
         return_to_exit return
 
-
 let main () = 
 	arguments ();
 	let lprog = SSyntax_Utils.lprog_of_path !file in 
