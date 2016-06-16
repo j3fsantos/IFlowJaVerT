@@ -2347,7 +2347,7 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 			then:  cmds1
 			       goto endif
 			else:  cmds2 
-			endif: x_if := PHI(x2, x3)   
+			endif: x_if := PHI(x3, x2)   
 		 *)
 		let cmds1, x1, errs1, _, _, _ = f e1 in
 		let cmds2, x2, errs2, rets2, breaks2, conts2 = f e2 in
@@ -2379,13 +2379,13 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 		(* goto end *)  
 		let cmd_goto_endif = SLGoto end_lab in 
 		
-		(* end: x_if := PHI(x2, x3) *) 
+		(* end: x_if := PHI(x3, x2) *) 
 		let x2_name, x3_name = 
 			(match x2, x3 with 
 			| Var x2_name, Var x3_name -> x2_name, x3_name 
 			| _, _ -> raise (Failure "the compilation of the then and else parts of the ifs must generate a variable each")) in 
 		let x_if = fresh_var () in 
-		let cmd_end_if = SLBasic (SPhiAssignment (x_if, [| Some x2_name; Some x3_name |])) in 
+		let cmd_end_if = SLBasic (SPhiAssignment (x_if, [| Some x3_name; Some x2_name |])) in 
 		
 		let cmds = 
 			    cmds1 @ [                             (*       cmds1                               *)
@@ -2395,7 +2395,7 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 			] @ cmds2 @ [                             (* then: cmds2                               *)
 				(None, None,           cmd_goto_endif)  (*       goto end                            *)
 			] @ cmds3 @ [                             (* else: cmds3                               *)
-				(None, Some end_lab, cmd_end_if)        (* end:  x_if := PHI(x2, x3)                 *)
+				(None, Some end_lab, cmd_end_if)        (* end:  x_if := PHI(x3, x2)                 *)
 			] in 
 		let errs = errs1 @ [ x1_v; x1_b ] @ errs2 @ errs3 in 
 		cmds, Var x_if, errs, rets2 @ rets3, breaks2 @ breaks3, conts2 @ conts3 
