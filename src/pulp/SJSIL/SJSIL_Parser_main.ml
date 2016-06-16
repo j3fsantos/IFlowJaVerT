@@ -26,12 +26,17 @@ let burn_to_disk path data =
 		output_string oc data; 
 		close_out oc 
 
+let return_to_exit (rettype, value) =
+  match rettype with
+  | Error -> exit 1
+  | _     -> ()
+
 let run_jsil_prog prog which_pred = 
 	let heap = SHeap.create 1021 in 
-	evaluate_prog prog which_pred heap; 
+        let return = evaluate_prog prog which_pred heap in
 	let final_heap_str = SSyntax_Print.sexpr_of_heap heap in 
-	Printf.printf "Final heap: \n%s\n" final_heap_str
-
+        Printf.printf "Final heap: \n%s\n" final_heap_str;
+        return_to_exit return
 
 let main () = 
 	arguments ();
