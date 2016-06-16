@@ -4,7 +4,10 @@ proc main () {
 			
 			xret := "setupInitialHeap" ();
 
-			xret := "i__sameValue" (-0, -0);
+			[$lg, "Object"] := {{ "a", $lobj, $$undefined, $$t, $$t }};
+			[$lg, "@extensible"] := $$f;
+
+			xret := "i__checkAssignmentErrors" (o-ref($lg, "oogaBooga")) with elab;
 
 	rlab:	skip;
 	elab:	skip

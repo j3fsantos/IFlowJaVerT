@@ -2102,7 +2102,7 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 			C(e1 = e2) =      cmds1 
 			                  cmds2 
 			                  x2_v := i__getValue (x2) with err
-			 		              x_cae := i__checkAssErrors (x1) with err
+			 		              x_cae := i__checkAssignmentErrors (x1) with err
 								        x_pv = i__putValue (x1, x2_v) with err
      *)
 		
@@ -2112,7 +2112,7 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 		(* x2_v := i__getValue (x2) with err *)
 		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in 
 		
-		(*  x_cae := i__checkAssertionErrors (x1) with err *)
+		(*  x_cae := i__checkAssignmentErrors (x1) with err *)
 		let x_cae, cmd_cae_x1 = make_cae_call x1 err in 
 		
 		(* x_pv = i__putValue (x1, x2_v) with err *)

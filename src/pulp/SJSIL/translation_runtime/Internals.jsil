@@ -1256,4 +1256,48 @@ proc i__sameValue (v1, v2) {
 with
 {
 	ret:	xret, rlab;
+};
+
+(* ********************* *) 
+(* CHECKASSIGNMENTERRORS *)
+(* ********************* *)
+
+proc i__checkAssignmentErrors (v) {
+			tv := typeOf (v);
+			goto [(tv = $$v-reference_type) or (tv = $$o-reference_type)] prep rlab;
+			
+	prep:	bv := base (v);
+			fv := field (v);
+			
+	csyn:	goto [(tv = $$v-reference_type) and ((fv = "eval") or (fv = "arguments"))] se cref;
+	
+			(* Can anything else happen here? *)
+	cref:	goto [(bv = $$undefined)] re ctyp;
+	
+	ctyp:	goto [tv = $$o-reference_type] c1 rlab;
+	
+	c1:		xret := hasField (bv, fv);
+			goto [xret] c2 c1a;
+	c1a:	xret := [bv, "@extensible"];
+			goto [xret] rlab te;
+			
+	c2:		xret := [bv, fv];
+			goto [(nth (xret, 2) = $$f) or (nth (xret, 2) = $$undefined)] te rlab;
+	
+	rlab:	xret := $$t;
+	
+	se:		xret := "SyntaxError" ();
+			goto elab;
+			
+	re:		xret := "ReferenceError" ();
+			goto elab;
+			
+	te:		xret := "TypeError" ();
+	
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
 }
