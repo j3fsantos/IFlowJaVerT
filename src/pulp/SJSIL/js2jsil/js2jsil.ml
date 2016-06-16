@@ -705,7 +705,28 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		]	in 
 		cmds, x_ret_5 in 
 			
-			
+	
+	let create_final_phi_cmd cmds x errs rets breaks conts break_label js_lab = 
+		let cur_breaks, outer_breaks = filter_cur_jumps breaks js_lab false in
+		(match cur_breaks with 
+		| [] -> cmds, x, errs, rets, breaks, conts
+		| _ -> 
+			let x_name, cmds_new_x =
+				(match x with 
+				| Var x_name -> x_name, []
+				| Literal lit -> 
+					let x_name = fresh_var () in  
+					let cmd_new_x = [ (None, None, SLBasic (SAssignment (x_name, Literal lit))) ] in 
+					x_name, cmd_new_x 
+				| _ -> raise (Failure "translate. Block: the result of the compilation must be a variable or a literal")) in 
+			let x_ret = fresh_var () in 
+			let phi_args = cur_breaks @ [ x_name ] in 
+			let phi_args = List.map (fun x -> Some x)  phi_args in 
+			let phi_args = Array.of_list phi_args in 
+			let cmd_ass_phi = [ (None, break_label, SLBasic (SPhiAssignment (x_ret, phi_args))) ] in 
+			(cmds @ cmds_new_x @ cmd_ass_phi), Var x_ret, errs, rets, outer_breaks, conts) in 
+		
+
 	match e.Parser_syntax.exp_stx with 
 
 	| Parser_syntax.This ->
@@ -2288,24 +2309,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 					loop rest_es (Some x_e) (cmds_ac @ cmds_e) (errs_ac @ errs_e) (rets_ac @ errs_e) (breaks_ac @ breaks_e) (conts_ac @ conts_e))) in 
 		
 		let cmds, x, errs, rets, breaks, conts = loop es previous [] [] [] [] [] in 
-		let cur_breaks, outer_breaks = filter_cur_jumps breaks js_lab false in
-		(match cur_breaks with 
-		| [] -> cmds, x, errs, rets, breaks, conts
-		| _ -> 
-			let x_name, cmds_new_x =
-				(match x with 
-				| Var x_name -> x_name, []
-				| Literal lit -> 
-					let x_name = fresh_var () in  
-					let cmd_new_x = [ (None, None, SLBasic (SAssignment (x_name, Literal lit))) ] in 
-					x_name, cmd_new_x 
-				| _ -> raise (Failure "translate. Block: the result of the compilation must be a variable or a literal")) in 
-			let x_ret = fresh_var () in 
-			let phi_args = cur_breaks @ [ x_name ] in 
-			let phi_args = List.map (fun x -> Some x)  phi_args in 
-			let phi_args = Array.of_list phi_args in 
-			let cmd_ass_phi = [ (None, break_label, SLBasic (SPhiAssignment (x_ret, phi_args))) ] in 
-			(cmds @ cmds_new_x @ cmd_ass_phi), Var x_ret, errs, rets, outer_breaks, conts) 
+		create_final_phi_cmd cmds x errs rets breaks conts break_label js_lab
 	
 	 
 	| Parser_syntax.VarDec decs -> 
@@ -2394,14 +2398,22 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			else:  cmds2 
 			endif: x_if := PHI(x3, x2)   
 		 *)
+		
+		let break_label, new_loop_list = 
+			(match js_lab with 
+			| None -> None, loop_list 
+			| Some lab -> 
+				let break_label = fresh_break_label () in 
+				Some break_label, ((None, break_label, js_lab) :: loop_list)) in
+		
 		let cmds1, x1, errs1, _, _, _ = f e1 in
-		let cmds2, x2, errs2, rets2, breaks2, conts2 = f e2 in
+		let cmds2, x2, errs2, rets2, breaks2, conts2 = f_previous new_loop_list None None e2 in
 		let cmds3, x3, errs3, rets3, breaks3, conts3 = 
 			(match e3 with 
 			| None -> 
 				let x3, cmd3 = make_empty_ass () in   
 				[ (b_annot_cmd cmd3) ], Var x3, [], [], [], []
-			| Some e3 -> f e3) in 
+			| Some e3 -> f_previous new_loop_list None None e3) in 
 		
 		(* x1_v := getValue (x1) with err *) 
 		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in 
@@ -2443,7 +2455,9 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 				(None, Some end_lab, cmd_end_if)        (* end:  x_if := PHI(x3, x2)                 *)
 			] in 
 		let errs = errs1 @ [ x1_v; x1_b ] @ errs2 @ errs3 in 
-		cmds, Var x_if, errs, rets2 @ rets3, breaks2 @ breaks3, conts2 @ conts3 
+		
+		let cmds, x, errs, rets, breaks, conts = cmds, Var x_if, errs, rets2 @ rets3, breaks2 @ breaks3, conts2 @ conts3 in 
+		create_final_phi_cmd cmds x errs rets breaks conts break_label js_lab
 	
 	
 	| Parser_syntax.DoWhile (e1, e2) -> 
