@@ -1120,8 +1120,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			(None, None,         cmd_scope);              (*        x_fscope := [x_f_val, "@scope"]                                          *)
 			(None, None,         cmd_proc_call);          (*        x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err   *)
 			(None, None,         cmd_goto_test_empty);    (*        goto [ x_r1 = $$emtpy ] next3 next4                                      *)
-			(None, None,         cmd_ret_this);           (* next3: skip                                                                     *)
-			(None, None,         cmd_phi_final)           (* next4: x_r2 := PHI(x_r1, x_this)                                                *)
+			(None, Some next3,   cmd_ret_this);           (* next3: skip                                                                     *)
+			(None, Some next4,   cmd_phi_final)           (* next4: x_r2 := PHI(x_r1, x_this)                                                *)
 		] in 
 		let errs = errs_ef @ [ x_f_val ] @ errs_args @ [ var_te; var_te; x_f_prototype; x_r1 ] in 
 		cmds, Var x_r2, errs, [], [], []				
@@ -2760,18 +2760,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 				] @ cmds_end_loop in 
 		let errs = errs1 @ errs2 @ [ x2_v; x2_b ] @ errs4 @ [ x4_v ] @ errs3 in  
 		cmds, Var x_ret_5, errs, rets4, outer_breaks, outer_conts 
-	
-	
-	| Parser_syntax.AnonymousFun (_, params, e_body) -> 
-		(**
-       x_sc := copy_scope_chain_obj (x_scope, {{main, fid1, ..., fidn }}); 
-		   x_f := create_function_object(x_sc, f_id, params)
-   	*)
-		let f_id = try Js_pre_processing.get_codename e 
-			with _ -> raise (Failure "annonymous function literals should be annotated with their respective code names") in 
-		let cmds, x_f = translate_function_literal f_id params in 
-		cmds, Var x_f, [], [], [], []
-	
+		
 	
 	| Parser_syntax.Return e -> 
 		(** 
@@ -2804,6 +2793,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			(* goto ret_lab *) 
 			let cmd_goto_ret = (None, None, SLGoto ctx.tr_ret_lab) in 
 			cmds @ [ b_annot_cmd cmd_gv_x; cmd_goto_ret], Var x_r, errs @ [ x_r ], [ x_r ], [], [])		     
+	
 	
 	| Parser_syntax.Continue lab -> 
 		(** 
@@ -2867,9 +2857,29 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		
 			
 	| Parser_syntax.Label (js_lab, e) -> 
+		(** Section 12.12 *) 
 		translate fid cc_table ctx vis_fid err loop_list previous (Some js_lab) e 
 
-												
+	| Parser_syntax.AnonymousFun (_, params, e_body) -> 
+		(**
+       Section 13
+       x_sc := copy_scope_chain_obj (x_scope, {{main, fid1, ..., fidn }}); 
+		   x_f := create_function_object(x_sc, f_id, params)
+   	*)
+		let f_id = try Js_pre_processing.get_codename e 
+			with _ -> raise (Failure "annonymous function literals should be annotated with their respective code names") in 
+		let cmds, x_f = translate_function_literal f_id params in 
+		cmds, Var x_f, [], [], [], []
+	
+
+(*	| Parser_syntax.NamedFun (_, n, xs, e) -> *)
+		(** Section 13 
+			x_sc := copy_scope_chain_obj (x_scope, {{main, fid1, ..., fidn }}); 
+		  x_f := create_function_object(x_sc, f_id, params)
+		
+		*)
+		
+	
 	| _ -> raise (Failure "not implemented yet")
 
 
