@@ -1,9 +1,13 @@
-function marica (coq) {
-	return (++coq);
+function f () {
+	return 42;
 };
 
-var mariquiqui = function (ass) {
-	return (++ass);
-}
+var x;
 
-marica(5);
+var y;
+
+45;
+
+function g () {
+	return (f() + 21);
+};
