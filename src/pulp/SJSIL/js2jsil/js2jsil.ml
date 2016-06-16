@@ -2297,18 +2297,18 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 				(match (Js_pre_processing.returns_empty_exp e), bprevious with 
 				| true, Some x_previous -> 
 					(let new_cmds, x_r = make_check_empty_test x_previous x_e in 
-					cmds_ac @ cmds_e @ new_cmds, Var x_r, errs_ac @ errs_e, rets_ac @ errs_e, breaks_ac @ breaks_e, conts_ac @ conts_e)
+					cmds_ac @ cmds_e @ new_cmds, Var x_r, errs_ac @ errs_e, rets_ac @ rets_e, breaks_ac @ breaks_e, conts_ac @ conts_e)
 				| _, _ -> 
-					cmds_ac @ cmds_e, x_e, errs_ac @ errs_e, rets_ac @ errs_e, breaks_ac @ breaks_e, conts_ac @ conts_e)
+					cmds_ac @ cmds_e, x_e, errs_ac @ errs_e, rets_ac @ rets_e, breaks_ac @ breaks_e, conts_ac @ conts_e)
 			
 			| e :: rest_es -> 
 				let cmds_e, x_e, errs_e, rets_e, breaks_e, conts_e = f_previous new_loop_list bprevious None e in
 				(match (Js_pre_processing.returns_empty_exp e), bprevious with 
 				| true, Some x_previous -> 
 					(let new_cmds, x_r = make_check_empty_test x_previous x_e in 
-					loop rest_es (Some (Var x_r)) (cmds_ac @ cmds_e @ new_cmds) (errs_ac @ errs_e) (rets_ac @ errs_e) (breaks_ac @ breaks_e) (conts_ac @ conts_e))
+					loop rest_es (Some (Var x_r)) (cmds_ac @ cmds_e @ new_cmds) (errs_ac @ errs_e) (rets_ac @ rets_e) (breaks_ac @ breaks_e) (conts_ac @ conts_e))
 				| _, _ -> 
-					loop rest_es (Some x_e) (cmds_ac @ cmds_e) (errs_ac @ errs_e) (rets_ac @ errs_e) (breaks_ac @ breaks_e) (conts_ac @ conts_e))) in 
+					loop rest_es (Some x_e) (cmds_ac @ cmds_e) (errs_ac @ errs_e) (rets_ac @ rets_e) (breaks_ac @ breaks_e) (conts_ac @ conts_e))) in 
 		
 		let cmds, x, errs, rets, breaks, conts = loop es previous [] [] [] [] [] in 
 		create_final_phi_cmd cmds x errs rets breaks conts break_label js_lab
