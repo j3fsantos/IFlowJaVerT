@@ -816,9 +816,9 @@ proc i__toBoolean (v) {
 	obj:	xret := $$t;
 			goto rlab;
 	
-	is_t:	xret := "true";
+	is_t:	xret := $$t;
 			goto rlab;
-	is_f:	xret := "false";
+	is_f:	xret := $$f;
 			goto rlab;
 			
 	oops:	xret := "ToBoolean: This should not happen.";

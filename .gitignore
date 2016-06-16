@@ -40,3 +40,8 @@ src/formula_parser/formula_parser.mli
 tests/dot
 
 rosette/compiled
+
+# Compilation specific
+*.xml
+example.jsil
+src/pulp/SJSIL/translation_runtime/output.txt

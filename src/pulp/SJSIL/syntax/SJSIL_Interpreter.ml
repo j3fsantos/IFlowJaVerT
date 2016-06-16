@@ -698,7 +698,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 		(match v_e with 
 		| Bool true -> evaluate_cmd prog cur_proc_name which_pred heap store i cur_cmd
 		| Bool false -> evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd
-		| _ -> raise (Failure "So you're really trying to do a goto based on something that's not a boolean? <falsetto>Ok</falsetto>... NOT"))
+		| _ -> raise (Failure (Printf.sprintf "So you're really trying to do a goto based on %s? Ok..." (SSyntax_Print.string_of_literal v_e false))))
 	
 	| SCall (x, e, e_args, j) -> 
 		let call_proc_name_val = evaluate_expr e store in 

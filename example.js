@@ -1,4 +1,6 @@
 var x;
-
-x = Object.prototype.toString();
-
+x = 15;
+do
+{
+  x = x - 1;
+} while (x);
