@@ -622,7 +622,7 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 	let make_check_empty_test x_prev x_new = 
 	(**        goto [x_new = $$empty] next1 next2 
 			next1: skip 
-			next2: x := PHI(x_previous, x_new) 
+			next2: x := PHI(x_new, x_previous) 
 	*)
 		let x_prev, cmd_ass_xprev = 
 			(match x_prev with 
@@ -650,9 +650,9 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 		(* next1: skip  *) 
 		let cmd_skip = (None, Some next1, SLBasic SSkip) in 
 		
-		(* next2: x := PHI(x_previous, x_new) *) 
+		(* next2: x := PHI(x_new, x_previous) *) 
 		let x = fresh_var () in 
-		let cmd_phi = (None, Some next2, SLBasic (SPhiAssignment (x, [| Some x_prev; Some x_new |]))) in 
+		let cmd_phi = (None, Some next2, SLBasic (SPhiAssignment (x, [| Some x_new; Some x_prev |]))) in 
 		
 		cmd_ass_xprev @ cmd_ass_new @ [ cmd_goto; cmd_skip; cmd_phi], x in 
 	
