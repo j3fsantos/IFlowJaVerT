@@ -99,9 +99,21 @@ let fresh_end_label : (unit -> string) = fresh_sth "end_"
 
 let fresh_loop_head_label : (unit -> string) = fresh_sth "loop_h_"
 
+let fresh_loop_cont_label : (unit -> string) = fresh_sth "loop_c_"
+
+let fresh_loop_guard_label : (unit -> string) = fresh_sth "loop_g_"
+
 let fresh_loop_body_label : (unit -> string) = fresh_sth "loop_b_"
 
 let fresh_loop_end_label : (unit -> string) = fresh_sth "loop_e_"
+
+let fresh_loop_vars () = 
+	let head = fresh_loop_head_label () in 
+	let end_loop = fresh_loop_end_label () in 
+	let cont = fresh_loop_cont_label () in 
+	let guard = fresh_loop_guard_label () in 
+	let body = fresh_loop_body_label () in 
+	head, guard, body, cont, end_loop
 
 let val_var_of_var x = 
 	(match x with 
@@ -211,6 +223,21 @@ let rec get_continue_lab loop_list lab =
 			(match js_lab with 
 			| None -> get_continue_lab rest lab
 			|Some js_lab_str -> if (lab_str = js_lab_str) then lab_c else get_continue_lab rest lab)
+
+let filter_cur_jumps (jumps : (string option * string) list) loop_lab = 
+	let rec filter_cur_jumps_iter jumps inner_jumps outer_jumps = 
+		match jumps with 
+		| [] -> (List.rev inner_jumps), (List.rev outer_jumps) 
+		| (None, x) :: rest_jumps ->  
+				filter_cur_jumps_iter rest_jumps (x :: inner_jumps) outer_jumps 
+		| (Some lab, x) :: rest_jumps ->
+				(match loop_lab with
+				| None ->  filter_cur_jumps_iter rest_jumps inner_jumps ((Some lab, x) :: outer_jumps) 
+				| Some loop_lab -> 
+						if (loop_lab = lab) 
+							then filter_cur_jumps_iter rest_jumps (x :: inner_jumps) outer_jumps 
+							else filter_cur_jumps_iter rest_jumps inner_jumps ((Some lab, x) :: outer_jumps)) in 
+	filter_cur_jumps_iter jumps [] []
 
 let b_annot_cmd cmd = (None, None, cmd) 		
 	
@@ -628,8 +655,40 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 		let cmd_phi = (None, Some next2, SLBasic (SPhiAssignment (x, [| Some x_prev; Some x_new |]))) in 
 		
 		cmd_ass_xprev @ cmd_ass_new @ [ cmd_goto; cmd_skip; cmd_phi], x in 
-		
 	
+			 
+	let make_loop_end cur_val_var prev_val_var break_vars end_lab = 
+		(** 
+    	end_loop: x_ret_4 := PHI(cur_val_var, break_vars) 
+			          goto [ x_ret_4 = $$empty ] next3 next4
+			next3:    skip 
+			next4:    x_ret_5 := PHI(x_ret_4, prev_val_var)
+		*)
+	 	let x_ret_4 = fresh_var () in 
+		let x_ret_5 = fresh_var () in 
+		let next3 = fresh_next_label () in 
+		let next4 = fresh_next_label () in 
+		
+		(* x_ret_4 := PHI(cur_val_var, break_vars) *)
+		let phi_args = List.map (fun x -> Some x) (cur_val_var :: break_vars) in 
+		let phi_args = Array.of_list phi_args in 
+		let cmd_ass_ret4 = SLBasic (SPhiAssignment (x_ret_4, phi_args)) in 
+		
+		(* goto [ x_ret_4 = $$empty ] next3 next4 *) 
+		let cmd_goto = SLGuardedGoto ((BinOp (Var x_ret_4, Equal, Literal Empty), next3, next4)) in 
+		
+		(* next4:    x_ret_5 := PHI(x_ret_4, prev_val_var) *)
+		let cmd_ass_ret5 = SLBasic (SPhiAssignment (x_ret_5, [| Some x_ret_4; Some prev_val_var |])) in 
+		
+		let cmds = [
+			(None, Some end_lab, cmd_ass_ret4);    (* end_loop:   x_ret_4 := PHI(cur_val_var, break_vars) *)
+			(None, None,         cmd_goto);        (*             goto [ x_ret_4 = $$empty ] next3 next4  *)
+			(None, Some next3,   SLBasic SSkip);   (* next3:      skip                                    *)
+			(None, Some next4,   cmd_ass_ret5)     (* next4:      x_ret_5 := PHI(x_ret_4, prev_val_var)   *)
+		]	in 
+		cmds, x_ret_5 in 
+			
+			
 	match e.Parser_syntax.exp_stx with 
 
 	| Parser_syntax.This ->
@@ -2345,46 +2404,60 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 		 *  
 		 *  C(do { e1 } while (e2) ) =
 			          x_ret_0 := $$empty 
-			head:     x_ret_1 := PHI(x_ret_0, x_ret_2) 
+			head:     x_ret_1 := PHI(x_ret_0, x_ret_3) 
 								cmds1 
 			          x1_v := i__getValue (x1) with err
-					      goto [ not (x1_v = $$empty) ] next1 next2 
+			cont:	    x_ret_2 := PHI(cont_vars, x1_v) 					
+					      goto [ not (x_ret_2 = $$empty) ] next1 next2 
 		  next1:    skip 
-			next2:    x_ret_2 := PHI(x_ret_1, x1_v)
+			next2:    x_ret_3 := PHI(x_ret_1, x_ret_2)
 			guard:    cmds2
 								x2_v := i__getValue (x2) with err
 								x2_b := i__toBoolean (x2_v) with err 
-								goto [x2_b] head end 
-		  end:      skip
-		 *)			    
-		let guard = fresh_loop_head_label () in 
-		let dowhile_end = fresh_loop_end_label () in 
+								goto [x2_b] head end_loop 
+		  end_loop: x_ret_4 := PHI(x_ret_3, break_vars) 
+			          goto [ x_ret_4 = $$empty ] next3 next4
+			next3:    skip 
+			next4:    x_ret_5 := PHI(x_ret_4, x_ret_1) 
+		 *)		
 		
-		let new_loop_list = (guard, dowhile_end, js_lab) :: loop_list in 
-		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate fid cc_table new_loop_list ctx vis_fid err previous None e1 in
+		let head, guard, body, cont, end_loop = fresh_loop_vars () in 
+		
+		let new_loop_list = (cont, end_loop, js_lab) :: loop_list in 
+		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate fid cc_table new_loop_list ctx vis_fid err None None e1 in
 		let cmds2, x2, errs2, _, _, _ = f e2 in
 		let cmds2 = add_initial_label cmds2 guard in
+		
+		let cur_breaks, outer_breaks = filter_cur_jumps breaks1 js_lab in 
+		let cur_conts, outer_conts = filter_cur_jumps conts1 js_lab in 
 		
 		(* x_ret_0 := $$empty *) 
 		let x_ret_0, cmd_ass_ret_0 = make_empty_ass () in 
 		
-		(* x_ret_1 := PHI(x_ret_0, x_ret_2)  *) 
+		(* x_ret_1 := PHI(x_ret_0, x_ret_3)  *) 
 		let x_ret_1 = fresh_var () in 
 		let x_ret_2 = fresh_var () in 
-		let cmd_ass_ret_1 = SLBasic (SPhiAssignment (x_ret_1, [| Some x_ret_0; Some x_ret_2 |])) in 
+		let x_ret_3 = fresh_var () in 
+		let cmd_ass_ret_1 = SLBasic (SPhiAssignment (x_ret_1, [| Some x_ret_0; Some x_ret_3 |])) in 
 		
 		(* x1_v := i__getValue (x1) with err *)
 		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in 
 		
-		(*  goto [ not (x1_v = $$empty) ] next1 next2 *)
+		(* x_ret_2 := PHI(cont_vars, x1_v) *) 
+		let cur_conts = cur_conts @ [ x1_v ] in 
+		let cur_conts = List.map (fun x -> Some x) cur_conts in 
+		let cont_vars = Array.of_list cur_conts in 
+		let cmd_ass_ret_2 = SLBasic (SPhiAssignment (x_ret_2, cont_vars)) in
+		
+		(*  goto [ not (x_ret_2 = $$empty) ] next1 next2 *)
 		let next1 = fresh_next_label () in 
 		let next2 = fresh_next_label () in 
-		let expr_goto_guard = BinOp (Var x1_v, Equal, Literal Empty) in 
+		let expr_goto_guard = BinOp (Var x_ret_2, Equal, Literal Empty) in 
 		let expr_goto_guard = UnaryOp (Not, expr_goto_guard) in 
 		let cmd_goto_empty_test = SLGuardedGoto (expr_goto_guard, next1, next2) in
 		
-		(* x_ret_2 := PHI(x_ret_1, x1_v)  *) 
-		let cmd_ass_ret_2 = SLBasic (SPhiAssignment (x_ret_2, [| Some x_ret_1; Some x1_v |])) in 
+		(* x_ret_3 := PHI(x_ret_1, x_ret_2)  *) 
+		let cmd_ass_ret_3 = SLBasic (SPhiAssignment (x_ret_3, [| Some x_ret_1; Some x_ret_2 |])) in 
 		
 		(* x2_v := i__getValue (x2) with err *)
 		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in 
@@ -2392,27 +2465,28 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 		(* x2_b := i__toBoolean (x2_v) with err *)
 		let x2_b, cmd_tb_x2 = make_to_boolean_call x2 x2_v err in 
 		
-		(* goto [x2_b] head end *)
-		let head = fresh_label () in 
-		let cmd_dowhile_goto =  SLGuardedGoto (Var x2_b, head, dowhile_end) in 
+		(* goto [x2_b] head end_loop *)
+		let cmd_dowhile_goto =  SLGuardedGoto (Var x2_b, head, end_loop) in 
+		
+		let cmds_end_loop, x_ret_5 = make_loop_end x_ret_3 x_ret_1 cur_breaks end_loop in 
 		
 		let cmds = 
 				[
 					(None, None,             cmd_ass_ret_0);         (*              x_ret_0 := $$empty                           *)
-					(None, Some head,        cmd_ass_ret_1);         (* head:        x_ret_1 := PHI(x_ret_0, x_ret_2)             *) 
+					(None, Some head,        cmd_ass_ret_1);         (* head:        x_ret_1 := PHI(x_ret_0, x_ret_3)             *) 
 				] @ cmds1 @ [                                      (*              cmds1                                        *)
 				  (None, None,             cmd_gv_x1);             (*              x1_v := i__getValue (x1) with err            *)
-					(None, None,             cmd_goto_empty_test);   (*              goto [ not (x1_v = $$empty) ] next1 next2    *)
+					(None, Some cont,        cmd_ass_ret_2);         (* cont:	       x_ret_2 := PHI(cont_vars, x1_v) 	            *) 
+					(None, None,             cmd_goto_empty_test);   (*              goto [ not (x_ret_2 = $$empty) ] next1 next2 *)
 					(None, Some next1,       SLBasic SSkip);         (* next1:       skip                                         *)
-					(None, Some next2,       cmd_ass_ret_2);         (* next2:       x_ret_2 := PHI(x_ret_1, x1_v)                *)  
-				] @ cmds2 @ [                                      (*              cmds2                                        *)
+					(None, Some next2,       cmd_ass_ret_3);         (* next2:       x_ret_3 := PHI(x_ret_1, x_ret_2)             *)  
+				] @ cmds2 @ [                                      (* guard:       cmds2                                        *)
 				  (None, None,             cmd_gv_x2);             (*              x2_v := i__getValue (x2) with err            *)
 					(None, None,             cmd_tb_x2);             (*              x2_b := i__toBoolean (x2_v) with err         *)
 					(None, None,             cmd_dowhile_goto);      (*              goto [x2_b] head end                         *)
-					(None, Some dowhile_end, SLBasic SSkip);         (* dowhile_end: skip                                         *) 
-				] in 
+				] @ cmds_end_loop in 
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v; x2_b ] in 
-		cmds, Var x_ret_2, errs, rets1, [], [] 	 
+		cmds, Var x_ret_5, errs, rets1, outer_breaks, outer_conts 	 
 	
 	
 	| Parser_syntax.While (e1, e2) -> 
@@ -2422,33 +2496,41 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 		 *  
 		 *  C(while (e1) { e2 } ) =
 			          x_ret_0 := $$empty 
-			guard:    x_ret_1 := PHI(x_ret_0, x_ret_2) 
+			head:     x_ret_1 := PHI(x_ret_0, x_ret_3) 
 					      cmds1
 						    x1_v := i__getValue (x1) with err
 						    x1_b := i__toBoolean (x1_b) with err  
-						    goto [x1_b] body endwhile 
+						    goto [x1_b] body end_loop 
 			body:     cmds2
 						    x2_v := i__getValue (x2) with err
-						    goto [not (x2_v = $$empty)] next1 next2
+			cont:	    x_ret_2 := PHI(cont_vars, x2_v) 
+								goto [not (x_ret_2 = $$empty)] next1 next2
 			next1:    skip; 
-			next2:    x_ret_2 := PHI(x_ret_1, x2_v) 
-			          goto guard 
-			endwhile: skip 
+			next2:    x_ret_3 := PHI(x_ret_1, x_ret_2) 
+			          goto head 
+			end_loop: x_ret_4 := PHI(x_ret_1, break_vars) 
+			          goto [ x_ret_4 = $$empty ] next3 next4
+			next3:    skip 
+			next4:    x_ret_5 := PHI(x_ret_4, x_ret_1) 
 		 *)
 		
-		let lab_guard = fresh_loop_head_label () in 
-		let endwhile = fresh_loop_end_label () in 
+		let head, guard, body, cont, end_loop = fresh_loop_vars () in 
+		
 		let cmds1, x1, errs1, _, _, _ = f e1 in
-		let new_loop_list = (lab_guard, endwhile, js_lab) :: loop_list in 
-		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate fid cc_table new_loop_list ctx vis_fid err previous None e2 in
+		let new_loop_list = (cont, end_loop, js_lab) :: loop_list in 
+		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate fid cc_table new_loop_list ctx vis_fid err None None e2 in
+		
+		let cur_breaks, outer_breaks = filter_cur_jumps breaks2 js_lab in 
+		let cur_conts, outer_conts = filter_cur_jumps conts2 js_lab in 
 		
 		(* x_ret_0 := $$empty *) 
 		let x_ret_0, cmd_ass_ret_0 = make_empty_ass () in 
 		let x_ret_1 = fresh_var () in 
 		
-		(* x_ret_1 := PHI(x_ret_0, x_ret_2) *)
+		(* x_ret_1 := PHI(x_ret_0, x_ret_3) *)
 		let x_ret_2 = fresh_var () in 
-		let cmd_ass_ret_1 = SLBasic (SPhiAssignment (x_ret_1, [| Some x_ret_0; Some x_ret_2 |])) in 
+		let x_ret_3 = fresh_var () in 
+		let cmd_ass_ret_1 = SLBasic (SPhiAssignment (x_ret_1, [| Some x_ret_0; Some x_ret_3 |])) in 
 		
 		(* x1_v := i__getValue (x1) with err *)
 		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
@@ -2457,41 +2539,48 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 		let x1_b, cmd_tb_x1 = make_to_boolean_call x1 x1_v err in
 		
 		(* goto [x1_b] body endwhile  *) 
-		let lab_body = fresh_loop_body_label () in 
-		let cmd_goto_while = SLGuardedGoto (Var x1_b, lab_body, endwhile) in 
+		let cmd_goto_while = SLGuardedGoto (Var x1_b, body, end_loop) in 
 		
 		(* x2_v := i__getValue (x2) with err *) 
 		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in 
 		
-		(* goto [not (x2_v = $$empty)] next1 next2 *) 
+		(* x_ret_2 := PHI(cont_vars, x2_v) *)
+		let cur_conts = cur_conts @ [ x2_v ] in 
+		let cur_conts = List.map (fun x -> Some x) cur_conts in 
+		let cont_vars = Array.of_list cur_conts in 
+		let cmd_ass_ret_2 = SLBasic (SPhiAssignment (x_ret_2, cont_vars)) in
+		
+		(* goto [not (x_ret_2 = $$empty)] next1 next2 *) 
 		let next1 = fresh_next_label () in 
 		let next2 = fresh_next_label () in 
-		let expr_goto_guard = BinOp (Var x2_v, Equal, Literal Empty) in 
+		let expr_goto_guard = BinOp (Var x_ret_2, Equal, Literal Empty) in 
 		let expr_goto_guard = UnaryOp (Not, expr_goto_guard) in 
 		let cmd_goto_empty_test = SLGuardedGoto (expr_goto_guard, next1, next2) in 
 		
-		(* x_ret_2 := PHI(x_ret_1, x2_v) *) 
-		let cmd_ass_ret_2 = SLBasic (SPhiAssignment (x_ret_2, [| Some x_ret_1; Some x2_v |])) in 
+		(* x_ret_3 := PHI(x_ret_1, x_ret_2) *) 
+		let cmd_ass_ret_3 = SLBasic (SPhiAssignment (x_ret_3, [| Some x_ret_1; Some x_ret_2 |])) in 
 		
-		let cmds2 = add_initial_label cmds2 lab_body in 
+		let cmds_end_loop, x_ret_5 = make_loop_end x_ret_1 x_ret_1 cur_breaks end_loop in
+		
+		let cmds2 = add_initial_label cmds2 body in 
 		let cmds = 
 			[
-				(None, None,           cmd_ass_ret_0);         (*           x_ret_0 := $$empty                      *)
-				(None, Some lab_guard, cmd_ass_ret_1);         (* guard:    x_ret_1 := PHI(x_ret_0, x_ret_2)        *) 
-			] @ cmds1 @ [                                    (*           cmds1                                   *)
-			  (None, None,           cmd_gv_x1);             (*           x1_v := i__getValue (x1) with err       *)
-				(None, None,           cmd_tb_x1);             (*           x1_b := i__toBoolean (x1_b) with err    *)
-				(None, None,           cmd_goto_while)         (*           goto [x1_b] body endwhile               *)
-			] @ cmds2 @ [                                    (* body:     cmds2                                   *)
-			  (None, None,           cmd_gv_x2);             (*           x2_v := i__getValue (x2) with err       *)
-				(None, None,           cmd_goto_empty_test);   (*           goto [not (x2_v = $$empty)] next1 next2 *)
-			  (None, Some next1,     SLBasic SSkip);         (* next1:    skip                                    *) 
-				(None, Some next2,     cmd_ass_ret_2);         (* next2:    x_ret_2 := PHI(x_ret_1, x2_v)           *) 
-				(None, None,           SLGoto lab_guard);      (*           goto guard                              *)
-				(None, Some endwhile,  SLBasic SSkip)          (* endwhile: skip                                    *)
-			] in 
+				(None, None,           cmd_ass_ret_0);         (*           x_ret_0 := $$empty                         *)
+				(None, Some head, cmd_ass_ret_1);              (* head:     x_ret_1 := PHI(x_ret_0, x_ret_3)           *) 
+			] @ cmds1 @ [                                    (*           cmds1                                      *)
+			  (None, None,           cmd_gv_x1);             (*           x1_v := i__getValue (x1) with err          *)
+				(None, None,           cmd_tb_x1);             (*           x1_b := i__toBoolean (x1_b) with err       *)
+				(None, None,           cmd_goto_while)         (*           goto [x1_b] body endwhile                  *)
+			] @ cmds2 @ [                                    (* body:     cmds2                                      *)
+			  (None, None,           cmd_gv_x2);             (*           x2_v := i__getValue (x2) with err          *)
+				(None, Some cont,      cmd_ass_ret_2);         (* cont:     x_ret_2 := PHI(cont_vars, x2_v)            *)
+				(None, None,           cmd_goto_empty_test);   (*           goto [not (x_ret_2 = $$empty)] next1 next2 *)
+			  (None, Some next1,     SLBasic SSkip);         (* next1:    skip                                       *) 
+				(None, Some next2,     cmd_ass_ret_3);         (* next2:    x_ret_3 := PHI(x_ret_1, x_ret_2)           *) 
+				(None, None,           SLGoto head);           (*           goto head                                  *)
+			] @ cmds_end_loop in 
 		let errs = errs1 @ [ x1_v; x1_b ] @ errs2 @ [ x2_v ] in 
-		cmds, Var x_ret_1, errs, rets2, [], [] 
+		cmds, Var x_ret_1, errs, rets2, outer_breaks, outer_conts
 	
 	
 	| Parser_syntax.For (e1, e2, e3, e4) ->
@@ -2502,19 +2591,23 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 		 *  C( for(e1; e2; e3) { e4 } ) =
 			          cmds1 
 								x_ret_0 := $$empty 
-			head:     x_ret_1 := PHI(x_ret_0, x_ret_2) 
+			head:     x_ret_1 := PHI(x_ret_0, x_ret_3) 
 								cmds2
 			          x2_v := i__getValue (x2) with err
 								x2_b := i__toBoolean (x2_v) with err
-								goto [x2_b] body end 
+								goto [x2_b] body end_loop 
 			body: 		cmds4 
 								x4_v := i__getValue (x4) with err
-								goto [ not (x4_v = $$empty) ] next1 next2 
+			cont:     x_ret_2 := PHI(cont_vars, x4_v) 
+								goto [ not (x_ret_2 = $$empty) ] next1 next2 
 		  next1:    skip 
-			next2:    x_ret_2 := PHI(x_ret_1, x4_v)
+			next2:    x_ret_3 := PHI(x_ret_1, x_ret_2)
 			          cmds3
 								goto head
-		  end:      skip
+		  end_loop:	x_ret_4 := PHI(x_ret_1, break_vars) 
+			          goto [ x_ret_4 = $$empty ] next3 next4
+			next3:    skip 
+			next4:    x_ret_5 := PHI(x_ret_4, x_ret_1) 
 		 *)	
 		
 		let cmds1, _, errs1, _, _, _ = 
@@ -2535,18 +2628,22 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 			| Some e3 -> f e3 
 			| None -> [], Var "xpto", [], [], [], []) in
 		
-		let head = fresh_loop_head_label () in 
-		let for_end = fresh_loop_end_label () in 
-		let new_loop_list = (head, for_end, js_lab) :: loop_list in 
+		let head, guard, body, cont, end_loop = fresh_loop_vars () in 
+		
+		let new_loop_list = (cont, end_loop, js_lab) :: loop_list in 
 		let cmds4, x4, errs4, rets4, breaks4, conts4 = translate fid cc_table new_loop_list ctx vis_fid err previous None e4 in 
+		
+		let cur_breaks, outer_breaks = filter_cur_jumps breaks4 js_lab in 
+		let cur_conts, outer_conts = filter_cur_jumps conts4 js_lab in 
 		
 		(* x_ret_0 := $$empty  *) 
 		let x_ret_0, cmd_ass_ret_0 = make_empty_ass () in 
 		
-		(* head:     x_ret_1 := PHI(x_ret_0, x_ret_2)  *)
+		(* head:     x_ret_1 := PHI(x_ret_0, x_ret_3)  *)
 		let x_ret_1 = fresh_var () in 
 		let x_ret_2 = fresh_var () in 
-		let cmd_ass_ret_1 = SLBasic (SPhiAssignment (x_ret_1, [| Some x_ret_0; Some x_ret_2 |])) in
+		let x_ret_3 = fresh_var () in 
+		let cmd_ass_ret_1 = SLBasic (SPhiAssignment (x_ret_1, [| Some x_ret_0; Some x_ret_3 |])) in
 		
 		(* x2_v := i__getValue (x2) with err *) 
 		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in 	
@@ -2554,44 +2651,52 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
 	  (* x2_b := i__toBoolean (x2_v) with err2 *) 
 		let x2_b, cmd_tb_x2 = make_to_boolean_call x2 x2_v err in 
 		
-		(* goto [x2_b] body for_end *) 
+		(* goto [x2_b] body end_loop *) 
 		let body = fresh_loop_body_label () in 
-		let cmd_for_goto =  SLGuardedGoto (Var x2_b, body, for_end) in 
+		let cmd_for_goto =  SLGuardedGoto (Var x2_b, body, end_loop) in 
 		
 		(* x4_v := i__getValue (x4) with err *) 
 		let x4_v, cmd_gv_x4 = make_get_value_call x4 err in 
 		
-		(* 	goto [ not (x4_v = $$empty) ] next1 next2  *) 
+		(* cont:     x_ret_2 := PHI(cont_vars, x4_v)  *)
+		let cur_conts = cur_conts @ [ x4_v ] in 
+		let cur_conts = List.map (fun x -> Some x) cur_conts in 
+		let cont_vars = Array.of_list cur_conts in 
+		let cmd_ass_ret_2 = SLBasic (SPhiAssignment (x_ret_2, cont_vars)) in
+		
+		(* 	goto [ not (x_ret_2 = $$empty) ] next1 next2  *) 
 		let next1 = fresh_next_label () in 
 		let next2 = fresh_next_label () in 
-		let expr_goto_guard = BinOp (Var x4_v, Equal, Literal Empty) in 
+		let expr_goto_guard = BinOp (Var x_ret_2, Equal, Literal Empty) in 
 		let expr_goto_guard = UnaryOp (Not, expr_goto_guard) in 
 		let cmd_goto_empty_test = SLGuardedGoto (expr_goto_guard, next1, next2) in
 		
-		(* next2:    x_ret_2 := PHI(x_ret_1, x4_v) *) 
-		let cmd_ass_ret_2 = SLBasic (SPhiAssignment (x_ret_2, [| Some x_ret_1; Some x4_v |])) in
+		(* next2:    x_ret_3 := PHI(x_ret_1, x_ret_2) *) 
+		let cmd_ass_ret_3 = SLBasic (SPhiAssignment (x_ret_3, [| Some x_ret_1; Some x_ret_2 |])) in
+		
+		let cmds_end_loop, x_ret_5 = make_loop_end x_ret_1 x_ret_1 cur_breaks end_loop in
 		
 		let cmds4 = add_initial_label cmds4 body in 
 		
 		let cmds = 
 				    cmds1 @ [                                      (*              cmds1                                        *)
 					(None, None,             cmd_ass_ret_0);         (*              x_ret_0 := $$empty                           *)
-					(None, Some head,        cmd_ass_ret_1);         (* head:        x_ret_1 := PHI(x_ret_0, x_ret_2)             *) 
+					(None, Some head,        cmd_ass_ret_1);         (* head:        x_ret_1 := PHI(x_ret_0, x_ret_3)             *) 
 				] @ cmds2 @ [                                      (*              cmds2                                        *)
 					(None, None,             cmd_gv_x2);             (*              x2_v := i__getValue (x2) with err            *)
 					(None, None,             cmd_tb_x2);             (*              x2_b := i__toBoolean (x2_v) with err         *) 
 					(None, None,             cmd_for_goto);          (*              goto [x2_b] body end                         *) 
 				] @ cmds4 @ [                                      (* body:        cmds4                                        *)	   
 					(None, None,             cmd_gv_x4);             (*              x4_v := i__getValue (x4) with err            *)
-					(None, None,             cmd_goto_empty_test);   (*              goto [ not (x4_v = $$empty) ] next1 next2    *)
+					(None, Some cont,        cmd_ass_ret_2);         (* cont:        x_ret_2 := PHI(cont_vars, x4_v)              *)
+					(None, None,             cmd_goto_empty_test);   (*              goto [ not (x_ret_2 = $$empty) ] next1 next2 *)
 					(None, Some next1,       SLBasic SSkip);         (* next1:       skip                                         *)
-					(None, Some next2,       cmd_ass_ret_2);         (* next2:       x_ret_2 := PHI(x_ret_1, x4_v)                *)  
+					(None, Some next2,       cmd_ass_ret_3);         (* next2:       x_ret_3 := PHI(x_ret_1, x_ret_2)             *)  
 				] @ cmds3 @ [                                      (*              cmds3                                        *)
 				  (None, None,             SLGoto head);           (*              goto head                                    *)
-					(None, Some for_end,     SLBasic SSkip)          (* end:         skip                                         *)
-				] in 
+				] @ cmds_end_loop in 
 		let errs = errs1 @ errs2 @ [ x2_v; x2_b ] @ errs4 @ [ x4_v ] @ errs3 in  
-		cmds, Var x_ret_1, errs, rets4, [], [] 
+		cmds, Var x_ret_1, errs, rets4, outer_breaks, outer_conts 
 	
 	
 	| Parser_syntax.AnonymousFun (_, params, e_body) -> 
@@ -2653,16 +2758,24 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
       	x_r := $$empty;
       	goto jsil_lab 
 		*) 
-		(* x_r := $$empty  *) 
-		let x_r, cmd_ass_xr = make_empty_ass () in
-			
-			(* goto lab_c *) 
+		
+		let x_r, cmd_ret = 
+			(match previous with 
+			| None -> 
+				let x_r, cmd = make_empty_ass () in 
+				x_r, [ (None, None, cmd) ] 
+			| Some (Literal lit) -> 
+				let x_r = fresh_var () in 
+				let cmd = SLBasic (SAssignment (x_r, Literal lit)) in 
+				x_r, [ (None, None, cmd) ]
+			| Some (Var x) -> x, []
+			| Some _ -> raise (Failure ("Continue: The return of the compilation must be either a variable or a literal"))) in  
+				
+		(* goto lab_c *) 
 		let lab_c = get_continue_lab loop_list lab in
-		let cmds = [
-			(None, None,             cmd_ass_xr);    (*  x_r := $$empty  *)
-			(None, None,             SLGoto lab_c)   (*  goto lab_c      *)
-		] in 
-		cmds, Var x_r, [], [], [], [ (lab, x_r) ]
+		let cmd_goto = [ (None, None, SLGoto lab_c) ] in
+		 
+		(cmd_ret @ cmd_goto), Var x_r, [], [], [], [ (lab, x_r) ]
 	
 
 	| Parser_syntax.Break lab ->
@@ -2671,17 +2784,23 @@ let rec translate fid cc_table loop_list ctx vis_fid err previous js_lab e  =
       x_r := $$empty;
       goto lab_r 
 		*) 
-		(* x_r := $$empty  *) 
-		let x_r = fresh_var () in 
-		let cmd_ass_xr = SLBasic (SAssignment (x_r, (Literal Empty))) in 
+		
+		let x_r, cmd_ret = 
+			(match previous with 
+			| None -> 
+				let x_r, cmd = make_empty_ass () in 
+				x_r, [ (None, None, cmd) ] 
+			| Some (Literal lit) -> 
+				let x_r = fresh_var () in 
+				let cmd = SLBasic (SAssignment (x_r, Literal lit)) in 
+				x_r, [ (None, None, cmd) ]
+			| Some (Var x) -> x, []
+			| Some _ -> raise (Failure ("Continue: The return of the compilation must be either a variable or a literal"))) in  
 		
 		(* goto lab_r *) 
 		let lab_r = get_break_lab loop_list lab in
-		let cmds = [
-			(None, None,             cmd_ass_xr);                (*              x_r := $$empty                           *)
-			(None, None,             SLGoto lab_r)               (*              goto lab_r                               *)
-		] in 
-		cmds, Var x_r, [], [], [ (lab, x_r) ], [] 
+		let cmd_goto = [ (None, None, SLGoto lab_r) ] in 
+		(cmd_ret @ cmd_goto), Var x_r, [], [], [ (lab, x_r) ], [] 
 		
 			
 	| Parser_syntax.Label (js_lab, e) -> 
