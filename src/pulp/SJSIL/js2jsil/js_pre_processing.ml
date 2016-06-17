@@ -8,6 +8,7 @@ exception No_Codename
 let update_annotation annots atype new_value =
   let old_removed = List.filter (fun annot -> annot.annot_type <> atype) annots in
   let annot = {annot_type = atype; annot_formula = new_value} in
+	(* Printf.printf "I am adding the code name: %s"  new_value; *)
   annot :: old_removed
 
 let get_codename exp =
@@ -26,7 +27,10 @@ let fresh_name =
   
 let fresh_anonymous () : string =
   fresh_name "anonymous"
-  
+
+let fresh_catch_anonymous () : string =
+  fresh_name "catch_anonymous"	
+		  
 let fresh_named n : string =
   fresh_name n 
 
@@ -163,10 +167,15 @@ let rec add_codenames main exp : exp =
       | ForIn (e1, e2, e3) -> m exp (ForIn (f e1, f e2, f e3))
       | Return e -> m exp (Return (fo e)) 
       | VarDec vars -> m exp (VarDec (List.map (fun (n, e) -> (n, fo e)) vars))
-      | Try (e1, catch, finally) -> m exp (Try (f e1,  
-        (match catch with 
-          | None -> None
-          | Some (n, e) -> Some (n, f e)), (fo finally)))
+      | Try (e1, catch, finally) ->
+				Printf.printf "Processing the try in the add_code_names";
+				let catch_id = fresh_catch_anonymous () in 
+				let annot = [{annot_type = Codename; annot_formula = catch_id}] in 
+				let annotated_catch =  
+					(match catch with 
+          	| None -> None
+          |	 Some (n, e) -> Some (n, f e)) in 
+				{ exp with exp_stx = (Try (f e1, annotated_catch, fo finally)); exp_annot = annot (*add_codename exp catch_id*) }
       | If (e1, e2, e3) -> m exp (If (f e1, f e2, fo e3))
       | For (e1, e2, e3, e4) -> m exp (For (fo e1, fo e2, fo e3, f e4))
       | Switch (e1, sces) -> m exp (Switch (f e1, List.map (fun (sc, e2) -> 
@@ -203,6 +212,18 @@ let update_cc_tbl cc_tbl f_parent_id f_id f_args f_body =
 		f_vars; 
 	Hashtbl.add cc_tbl f_id new_f_tbl 	
 
+let update_cc_tbl_catch cc_tbl f_parent_id f_id  x = 
+	let f_parent_var_table = 
+		try Hashtbl.find cc_tbl f_parent_id 
+		with _ ->
+			let msg = Printf.sprintf "the parent function of %s -- %s -- was not found in the cc table" f_id f_parent_id in  
+			raise (Failure msg) in
+	let new_f_tbl = Hashtbl.create 101 in
+	Hashtbl.iter
+		(fun x x_f_id -> Hashtbl.add new_f_tbl x x_f_id) 
+		f_parent_var_table;
+	Hashtbl.replace new_f_tbl x f_id;
+	Hashtbl.add cc_tbl f_id new_f_tbl
 
 let rec closure_clarification cc_tbl fun_tbl vis_tbl args f_id visited_funs e = 
 	let f = closure_clarification cc_tbl fun_tbl vis_tbl args f_id visited_funs in 
@@ -253,7 +274,10 @@ let rec closure_clarification cc_tbl fun_tbl vis_tbl args f_id visited_funs e =
   | While (e1, e2) -> f e1; f e2        
   | DoWhile (e1, e2) -> f e1; f e2       
   | Return e -> fo e 
-  | Try (e1, Some (id, e2), e3) -> f e1; f e2;  fo e3      
+  | Try (e1, Some (x, e2), e3) ->
+		f e1; f e2;  fo e3; 
+		let new_f_id = get_codename e in 
+		update_cc_tbl_catch cc_tbl f_id new_f_id x      
   | Try (e1, None, e3) -> f e1; fo e3          
   | Throw e -> f e
   | Continue _ 
@@ -391,3 +415,4 @@ match e.exp_stx with
   | Continue _ 
   | Skip ->
 			true
+	| _ -> raise (Failure "unsupported construct by Petar M.")
