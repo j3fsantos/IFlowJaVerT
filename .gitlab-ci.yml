@@ -1,4 +1,70 @@
 ---
+# Configuration
+cache:
+  key: all
+  paths:
+  - .git/modules
+  - lib/runtests/env
+
+stages:
+- build
+- test
+- integration
+
+variables:
+  OPAMYES: "true"
+
+# Jobs
+build:
+  stage: build
+  before_script:
+  - opam init -a
+  - opam update -u
+  - eval `opam config env`
+  - make init
+  script:
+  - make
+  - ./setup_environment.sh
+  except:
+  - triggers
+  artifacts:
+    paths:
+    - environment/
+
+# test_main.byte isn't yet configured to run automatically
+#test:
+#  stage: test
+#  script:
+#  - cd environment
+#  - ./test_main.byte
+#  except:
+#  - triggers
+
+condor:
+  before_script:
+  - export CI_BUILD_REF_SUBJ="$(git show --pretty=format:%s -s)"
+  - git submodule update --init lib/runtests tests/test262
+  - source lib/runtests/scripts/set-voldir.sh JavaScriptVerification
+  - source lib/runtests/scripts/init-env.sh
+  - cp -R lib/runtests tests/test262 environment run.sh $VOLDIR
+  - cd $VOLDIR
+  script:
+  - './runtests/runtests.py --interp generic --interp_path ./run.sh --executor condor --batch_size 1 --condor_log --db postgres --db_pg_schema jsil --interp_version $CI_BUILD_REF --title "$CI_BUILD_REF_NAME autobuild: $CI_BUILD_REF_SUBJ" --timeout 300 test262/test'
+  - condor_wait job_*_condor_*.log
+  - mkdir $CI_PROJECT_DIR/results
+  - 'find test262/test \( -name "*.jsil" -or -name "*.verbose" \) -exec cp -t $CI_PROJECT_DIR/results --parents {} +'
+  after_script:
+  - lib/runtests/scripts/clean-voldir.sh JavaScriptVerification
+  stage: integration
+  tags:
+  - condor
+  except:
+  - triggers
+  artifacts:
+    paths:
+    - results
+
+
 git-sync:
   script:
   - eval `ssh-agent`
@@ -7,3 +73,4 @@ git-sync:
   - ssh-agent -k
   only:
   - triggers
+
