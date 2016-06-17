@@ -2944,6 +2944,30 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		(** Section 12.12 *) 
 		translate fid cc_table ctx vis_fid err loop_list previous (Some js_lab) e 
 
+
+	| Parser_syntax.Throw e -> 
+		(** 
+     Section 12.13 - The throw statement
+		
+		 C(e) = cmds, x 
+		 ----------------------------
+		 C(throw e) =  
+			     cmds 
+		       x_v := i__getValue (x) with err 
+					 goto err 
+		*) 
+		let cmds, x, errs, _, _, _ = f e in
+		let x_v, cmd_gv_x = make_get_value_call x err in 
+		
+		let cmds = cmds @ [          (*  cmds                            *)
+		   (None, None, cmd_gv_x);   (*  x_v := i__getValue (x) with err *)
+			 (None, None, SLGoto err)  (*  goto err                        *)
+		] in 
+		
+		cmds, Literal Empty, errs @ [ x_v; x_v ], [], [], []
+		
+	
+	
 	
 	| Parser_syntax.Try (e1, Some (x, e2), Some e3) ->
 		(**
