@@ -6,6 +6,7 @@ default:
 	ocamlbuild -use-ocamlfind src/pulp/syntax/translate.byte
 	#ocamlbuild -use-ocamlfind tests/spec_Functions_Tests.byte
 	ocamlbuild -use-ocamlfind -verbose 1 src/pulp/SJSIL/SJSIL_Parser_main.byte
+	ocamlbuild -use-ocamlfind -verbose 1 src/pulp/SJSIL/tests/test_main.byte
 	ocamlbuild -use-ocamlfind src/pulp/SJSIL/js2jsil_main.byte
 
 init:

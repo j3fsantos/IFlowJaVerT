@@ -4,9 +4,7 @@
 open SSyntax
 open Batteries
 
-type return_mode = 
-	| Normal
-	| Error
+let verbose = ref false
 
 let proto_f = "@proto" 
 
@@ -411,7 +409,7 @@ let rec evaluate_expr (e : jsil_expr) store =
 		| None -> 
 			let err_msg = Printf.sprintf "Variable %s not found in the store" x in 
 			let store_str = SSyntax_Print.string_of_store store in 
-			Printf.printf "The current store is: \n %s" store_str;
+			if (!verbose) then Printf.printf "The current store is: \n %s" store_str;
 			raise (Failure err_msg)
 		| Some v -> v)
 	| BinOp (e1, bop, e2) -> 
@@ -508,7 +506,7 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 	
 	| SAssignment (x, e) ->
 		let v_e = evaluate_expr e store in 
-		Printf.printf "Assignment: %s := %s\n" x (SSyntax_Print.string_of_literal v_e false);
+		if (!verbose) then Printf.printf "Assignment: %s := %s\n" x (SSyntax_Print.string_of_literal v_e false);
 		Hashtbl.add store x v_e; 
 		v_e
 	
@@ -520,7 +518,7 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 			(match SSyntax_Aux.try_find store x_live with 
 			| None -> raise (Failure (Printf.sprintf "Variable %s not found in the store" x_live))
 			| Some v -> v)) in 
-		Printf.printf "PHI-Assignment: %s := %s\n" x (SSyntax_Print.string_of_literal v false);
+		if (!verbose) then Printf.printf "PHI-Assignment: %s := %s\n" x (SSyntax_Print.string_of_literal v false);
 		Hashtbl.add store x v; 
 		v 
 	
@@ -546,7 +544,7 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 					raise (Failure (Printf.sprintf "Looking up inexistent field: [%s, %s]" (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false)))) in
 	
 			Hashtbl.replace store x v; 
-			Printf.printf "Lookup: %s := [%s, %s] = %s \n" x (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false) (SSyntax_Print.string_of_literal v false);
+			if (!verbose) then Printf.printf "Lookup: %s := [%s, %s] = %s \n" x (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false) (SSyntax_Print.string_of_literal v false);
 			v
 		| _, _ -> raise (Failure (Printf.sprintf "Illegal field inspection: [%s, %s]" (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false))))
 	
@@ -578,7 +576,7 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (SSyntax_Print.string_of_literal v_e1 false)))) in
 			if (SHeap.mem obj f) 
 			then 
-				(Printf.printf "Removing field (%s, %s)!\n" (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false);
+				(if (!verbose) then Printf.printf "Removing field (%s, %s)!\n" (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false);
 				SHeap.remove obj f; 
 				Bool true)
 			else raise (Failure "Deleting inexisting field")
@@ -593,7 +591,7 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (SSyntax_Print.string_of_literal v_e1 false)))) in
 			let v = Bool (SHeap.mem obj f) in 
 			Hashtbl.replace store x v; 
-			Printf.printf "hasField: %s := hf (%s, %s) = %s \n" x (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false) (SSyntax_Print.string_of_literal v false);
+			if (!verbose) then Printf.printf "hasField: %s := hf (%s, %s) = %s \n" x (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false) (SSyntax_Print.string_of_literal v false);
 			v
 		| _, _ -> raise (Failure "Illegal Field Check"))
 	
@@ -630,7 +628,7 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 					) obj [] in
 			let v = LList fields in
 			Hashtbl.replace store x v;
-			Printf.printf "hasField: %s := gf (%s) = %s \n" x (SSyntax_Print.string_of_literal v_e false) (SSyntax_Print.string_of_literal v false);
+			if (!verbose) then Printf.printf "hasField: %s := gf (%s) = %s \n" x (SSyntax_Print.string_of_literal v_e false) (SSyntax_Print.string_of_literal v false);
 			v
 		| _ -> raise (Failure "Passing non-object value to getFields"))
 
@@ -638,7 +636,7 @@ let init_store params args =
 	let number_of_params = List.length params in 
 	let new_store = Hashtbl.create (number_of_params + 1) in
 	
-	Printf.printf "I am initializing a store! Number of args: %d, Number of params: %d\n" (List.length args) (List.length params);
+	if (!verbose) then Printf.printf "I am initializing a store! Number of args: %d, Number of params: %d\n" (List.length args) (List.length params);
 	
 	let rec loop params args = 
 		match params with 
@@ -654,7 +652,7 @@ let init_store params args =
 	loop params args; 
 	
 	let str_store = SSyntax_Print.string_of_store new_store in 
-	Printf.printf "I have just initialized the following store\n %s \n" str_store; 
+	if (!verbose) then Printf.printf "I have just initialized the following store\n %s \n" str_store; 
 	new_store 
 	
 let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd = 	
@@ -675,7 +673,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 			then 
 			(let ret_value = (try (Hashtbl.find store proc.ret_var) with
 			| _ -> raise (Failure (Printf.sprintf "Cannot find return variable."))) in
-			Printf.printf ("Procedure %s returned: Normal, %s\n") cur_proc_name (SSyntax_Print.string_of_literal ret_value false);
+			if (!verbose) then Printf.printf ("Procedure %s returned: Normal, %s\n") cur_proc_name (SSyntax_Print.string_of_literal ret_value false);
 			Normal, ret_value)
 			else 
 				(if ((Some cur_cmd) = proc.error_label) 
@@ -686,7 +684,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 																| Some err_var -> err_var) in
 				         (try (Hashtbl.find store err_var) with
 				| _ -> raise (Failure (Printf.sprintf "Cannot find error variable." )))) in
-			Printf.printf ("Procedure %s returned: Error, %s\n") cur_proc_name (SSyntax_Print.string_of_literal err_value false);
+			if (!verbose) then Printf.printf ("Procedure %s returned: Error, %s\n") cur_proc_name (SSyntax_Print.string_of_literal err_value false);
 			Error, err_value)
 				else (evaluate_cmd prog cur_proc_name which_pred heap store (cur_cmd + 1) cur_cmd))
 		 
@@ -704,7 +702,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 		let call_proc_name_val = evaluate_expr e store in 
 		let call_proc_name = (match call_proc_name_val with 
 		| String call_proc_name -> 
-				Printf.printf "\nExecuting procedure %s\n" call_proc_name; 
+				if (!verbose) then Printf.printf "\nExecuting procedure %s\n" call_proc_name; 
 				call_proc_name 
 		| _ -> raise (Failure (Printf.sprintf "Erm, no. Procedures can't be called %s." (SSyntax_Print.string_of_literal call_proc_name_val false)))) in 
 		let arg_vals = List.map 
@@ -720,7 +718,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 			then 
 			(let ret_value = (try (Hashtbl.find store proc.ret_var) with
 			| _ -> raise (Failure (Printf.sprintf "Cannot find return variable."))) in
-			Printf.printf ("Procedure %s returned: Normal, %s\n") cur_proc_name (SSyntax_Print.string_of_literal ret_value false);
+			if (!verbose) then Printf.printf ("Procedure %s returned: Normal, %s\n") cur_proc_name (SSyntax_Print.string_of_literal ret_value false);
 			Normal, ret_value)
 			else (evaluate_cmd prog cur_proc_name which_pred heap store (cur_cmd + 1) cur_cmd)
 		| Error, v -> 

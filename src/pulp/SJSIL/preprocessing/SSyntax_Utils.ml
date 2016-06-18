@@ -1,6 +1,13 @@
 open SSyntax
 open Lexing
 
+let verbose = ref false
+
+let if_some p f d =
+	(match p with
+	| None -> d
+	| Some p -> f p)
+
 let get_proc_variables proc = 
 	
 	let var_table = Hashtbl.create 1021 in 
@@ -86,7 +93,7 @@ let desugar_labs (lproc : lprocedure) =
 			error_var = lev;
 			spec = lspec;
 		} in
-	Printf.printf "%s" (SSyntax_Print.string_of_procedure proc false);
+	if (!verbose) then Printf.printf "%s" (SSyntax_Print.string_of_procedure proc false);
 	proc
 	 
 let rec desugar_labs_list lproc_list =
@@ -130,6 +137,24 @@ let lprog_of_path path =
 	| None -> [], lprocs
 	| Some imports -> imports, lprocs
 
+let lprog_of_string str = 
+  let lexbuf = Lexing.from_string str in
+  lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
+  let (imports, lproc_list) : (string list option * lprocedure list) = parse_with_error lexbuf in	
+	();
+	
+	let lprocs : lprocedure SLProgram.t = SLProgram.create 1021 in 
+	List.iter 
+		(fun (lproc : lprocedure) -> 
+			let proc_name = lproc.lproc_name in 
+			SLProgram.replace lprocs proc_name lproc
+		) 
+		lproc_list;
+		 
+	match imports with 
+	| None -> [], lprocs
+	| Some imports -> imports, lprocs
+
 
 let extend_lprocs lprocs_to lprocs_from =
 	SLProgram.iter
@@ -154,7 +179,6 @@ let add_imports lprocs imports =
 					extend_lprocs lprocs new_lprocs; 
 					add_imports_iter (rest_imports @ new_imports))) in
 	add_imports_iter imports
-
 
 let prog_of_lprog lprog =
 	let imports, lproc_list = (match lprog with imports, lproc_list -> imports, lproc_list) in 

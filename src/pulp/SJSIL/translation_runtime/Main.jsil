@@ -3,12 +3,12 @@ import Init, Internals, String, Errors;
 proc main () {
 			
 			xret := "setupInitialHeap" ();
-
+			
 			[$lg, "Object"] := {{ "a", $lobj, $$undefined, $$t, $$t }};
 			[$lg, "@extensible"] := $$f;
-
+			
 			xret := "i__checkAssignmentErrors" (o-ref($lg, "oogaBooga")) with elab;
-
+			
 	rlab:	skip;
 	elab:	skip
 }

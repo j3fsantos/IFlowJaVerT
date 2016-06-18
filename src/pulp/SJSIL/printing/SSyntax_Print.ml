@@ -417,6 +417,10 @@ let sexpr_of_procedure proc line_numbers =
 		| Some var, Some label -> (Printf.sprintf "\t(err-ctx '%s %s) \n" var (string_of_int label))
 		| _, _ -> raise (Failure "Error variable and error label not both present or both absent!"))
 
+let rec string_of_outcome o = 
+	match o with
+	| Normal -> "Normal"
+	| Error -> "Error"
 
 let rec string_of_specs (specs : jsil_single_spec list) = 
 	match specs with
@@ -557,7 +561,7 @@ let string_of_lprogram (lprogram : jsil_lprog) : string =
 			let imports_str = if (imports_str = "") then "" else ("import " ^ imports_str ^ ";\n") in 
 			imports_str, procs) in 
 	let procs_str	= 
-		SSyntax.SProgram.fold 
+		SSyntax.SLProgram.fold 
 			(fun _ proc acc_str -> acc_str ^ "\n" ^ (string_of_lprocedure proc) ^ ";\n")
 			procs	
 			"" in 

@@ -278,4 +278,4 @@ type lprocedure = {
 		lspec: jsil_spec option;
 }
 
-type jsil_lprog = (string list option) * (lprocedure SProgram.t) 
+type jsil_lprog = (string list option) * (lprocedure SLProgram.t) 

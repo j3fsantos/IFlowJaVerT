@@ -6,6 +6,8 @@ let file = ref ""
 let jsil_run = ref false
 let do_ssa = ref false
 
+let verbose = ref false
+
 let arguments () =
   let usage_msg="Usage: -file <path>" in
   Arg.parse
