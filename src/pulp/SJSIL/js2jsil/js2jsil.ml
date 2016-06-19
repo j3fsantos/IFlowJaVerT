@@ -2965,8 +2965,6 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		] in 
 		
 		cmds, Literal Empty, errs @ [ x_v; x_v ], [], [], []
-		
-	
 	
 	
 	| Parser_syntax.Try (e1, Some (x, e2), Some e3) ->
@@ -3264,9 +3262,4 @@ let js2jsil e =
 	(* let main_str = SSyntax_Print.string_of_lprocedure jsil_proc_main in 
 	Printf.printf "main code:\n %s\n" main_str; *)
 	
-	Some js2jsil_imports, jsil_prog
-
-	
-	
-	
-	
+	Some js2jsil_imports, jsil_prog	
