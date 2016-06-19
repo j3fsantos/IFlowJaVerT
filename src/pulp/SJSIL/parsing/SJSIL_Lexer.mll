@@ -19,8 +19,8 @@ let digit = ['0'-'9']
 let float = '-'? digit+ ('.' digit*)?
 let letter = ['a'-'z''A'-'Z']
 let var = (letter|'_')(letter|digit|'_')*
-let lvar = '#' letter(letter|digit|'_')*
-let loc = "$l"(letter|digit|'_')*
+let lvar = '#' (letter|digit|'_'|'$')*
+let loc = "$l" (letter|digit|'_')*
 let white = [' ' '\t']+
 let newline = '\r' | '\n' | "\r\n"
 

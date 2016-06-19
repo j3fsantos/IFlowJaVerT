@@ -51,7 +51,7 @@ let abstractComparisonName            = "i__abstractComparison"          (* 11.8
 let hasInstanceName                   = "i__hasInstance"                 (* 15.3.5.3          *)
 let hasPropertyName                   = "o__hasProperty"
 let abstractEqualityComparisonName    = "i__abstractEquality"            (* 11.9.3            *) 
-let strictEqualityComparisonName      = "i__strictEqualityComparison"    (* 11.9.6            *) 
+let strictEqualityComparisonName      = "i__strictEquality"              (* 11.9.6            *) 
 let defineOwnPropertyName             = "o__defineOwnProperty"           (* 8.12.9            *) 
 let checkAssignmentErrorsName         = "i__checkAssignmentErrors"        
 

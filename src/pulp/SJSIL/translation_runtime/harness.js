@@ -10,13 +10,13 @@ Test262Error.prototype.toString = function () {
     return "Test262Error: " + this.message;
 };
 
-var _ERROR;
-_ERROR = function _ERROR(message) {
+var $ERROR;
+$ERROR = function $ERROR(message) {
     throw new Test262Error(message);
 };
 
 function testFailed(message) {
-    _ERROR(message);
+    $ERROR(message);
 }
 
 function assert(mustBeTrue, message) {
@@ -27,7 +27,7 @@ function assert(mustBeTrue, message) {
     if (message === undefined) {
         message = 'Expected true but got ' + String(mustBeTrue);
     }
-    _ERROR(message);
+    $ERROR(message);
 }
 
 assert._isSameValue = function (a, b) {
@@ -53,7 +53,7 @@ assert.sameValue = function (actual, expected, message) {
 
     message += 'Expected SameValue(«' + String(actual) + '», «' + String(expected) + '») to be true';
 
-    _ERROR(message);
+    $ERROR(message);
 };
 
 assert.notSameValue = function (actual, unexpected, message) {
@@ -69,12 +69,12 @@ assert.notSameValue = function (actual, unexpected, message) {
 
     message += 'Expected SameValue(«' + String(actual) + '», «' + String(unexpected) + '») to be false';
 
-    _ERROR(message);
+    $ERROR(message);
 };
 
 assert.throws = function (expectedErrorConstructor, func, message) {
     if (typeof func !== "function") {
-        _ERROR('assert.throws requires two arguments: the error constructor ' +
+        $ERROR('assert.throws requires two arguments: the error constructor ' +
             'and a function to run');
         return;
     }
@@ -89,16 +89,16 @@ assert.throws = function (expectedErrorConstructor, func, message) {
     } catch (thrown) {
         if (typeof thrown !== 'object' || thrown === null) {
             message += 'Thrown value was not an object!';
-            _ERROR(message);
+            $ERROR(message);
         } else if (thrown.constructor !== expectedErrorConstructor) {
             message += 'Expected a ' + expectedErrorConstructor.name + ' but got a ' + thrown.constructor.name;
-            _ERROR(message);
+            $ERROR(message);
         }
         return;
     }
 
     message += 'Expected a ' + expectedErrorConstructor.name + ' to be thrown but no exception was thrown at all';
-    _ERROR(message);
+    $ERROR(message);
 };
 
 function isConfigurable(obj, name) {
@@ -106,7 +106,7 @@ function isConfigurable(obj, name) {
         delete obj[name];
     } catch (e) {
         if (!(e instanceof TypeError)) {
-            _ERROR("Expected TypeError, got " + e);
+            $ERROR("Expected TypeError, got " + e);
         }
     }
     return !Object.prototype.hasOwnProperty.call(obj, name);
@@ -133,7 +133,7 @@ function isWritable(obj, name, verifyProp, value) {
         obj[name] = newValue;
     } catch (e) {
         if (!(e instanceof TypeError)) {
-            _ERROR("Expected TypeError, got " + e);
+            $ERROR("Expected TypeError, got " + e);
         }
     }
 
@@ -155,7 +155,7 @@ function isWritable(obj, name, verifyProp, value) {
 
 function verifyEqualTo(obj, name, value) {
     if (!isEqualTo(obj, name, value)) {
-        _ERROR("Expected obj[" + String(name) + "] to equal " + value +
+        $ERROR("Expected obj[" + String(name) + "] to equal " + value +
                    ", actually " + obj[name]);
     }
 }
@@ -166,7 +166,7 @@ function verifyWritable(obj, name, verifyProp, value) {
                "Expected obj[" + String(name) + "] to have writable:true.");
     }
     if (!isWritable(obj, name, verifyProp, value)) {
-        _ERROR("Expected obj[" + String(name) + "] to be writable, but was not.");
+        $ERROR("Expected obj[" + String(name) + "] to be writable, but was not.");
     }
 }
 
@@ -176,7 +176,7 @@ function verifyNotWritable(obj, name, verifyProp, value) {
                "Expected obj[" + String(name) + "] to have writable:false.");
     }
     if (isWritable(obj, name, verifyProp)) {
-        _ERROR("Expected obj[" + String(name) + "] NOT to be writable, but was.");
+        $ERROR("Expected obj[" + String(name) + "] NOT to be writable, but was.");
     }
 }
 
@@ -184,7 +184,7 @@ function verifyEnumerable(obj, name) {
     assert(Object.getOwnPropertyDescriptor(obj, name).enumerable,
            "Expected obj[" + String(name) + "] to have enumerable:true.");
     if (!isEnumerable(obj, name)) {
-        _ERROR("Expected obj[" + String(name) + "] to be enumerable, but was not.");
+        $ERROR("Expected obj[" + String(name) + "] to be enumerable, but was not.");
     }
 }
 
@@ -192,7 +192,7 @@ function verifyNotEnumerable(obj, name) {
     assert(!Object.getOwnPropertyDescriptor(obj, name).enumerable,
            "Expected obj[" + String(name) + "] to have enumerable:false.");
     if (isEnumerable(obj, name)) {
-        _ERROR("Expected obj[" + String(name) + "] NOT to be enumerable, but was.");
+        $ERROR("Expected obj[" + String(name) + "] NOT to be enumerable, but was.");
     }
 }
 
@@ -200,7 +200,7 @@ function verifyConfigurable(obj, name) {
     assert(Object.getOwnPropertyDescriptor(obj, name).configurable,
            "Expected obj[" + String(name) + "] to have configurable:true.");
     if (!isConfigurable(obj, name)) {
-        _ERROR("Expected obj[" + String(name) + "] to be configurable, but was not.");
+        $ERROR("Expected obj[" + String(name) + "] to be configurable, but was not.");
     }
 }
 
@@ -208,6 +208,6 @@ function verifyNotConfigurable(obj, name) {
     assert(!Object.getOwnPropertyDescriptor(obj, name).configurable,
            "Expected obj[" + String(name) + "] to have configurable:false.");
     if (isConfigurable(obj, name)) {
-        _ERROR("Expected obj[" + String(name) + "] NOT to be configurable, but was.");
+        $ERROR("Expected obj[" + String(name) + "] NOT to be configurable, but was.");
     }
 }
