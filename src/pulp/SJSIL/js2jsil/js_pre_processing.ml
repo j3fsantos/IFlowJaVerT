@@ -5,6 +5,11 @@ open Batteries
 exception CannotHappen
 exception No_Codename
 
+let sanitise name = 
+	let s = Str.global_replace (Str.regexp "\$") "_" name in
+	let _ = (Printf.printf "%s %s\n" name s) in
+	s
+
 let update_annotation annots atype new_value =
   let old_removed = List.filter (fun annot -> annot.annot_type <> atype) annots in
   let annot = {annot_type = atype; annot_formula = new_value} in
@@ -160,7 +165,7 @@ let rec add_codenames main exp : exp =
       | Call (e1, e2s) -> m exp (Call (f e1, List.map f e2s))
       | New (e1, e2s) -> m exp (New (f e1, List.map f e2s))
       | AnonymousFun (str, args, fb) -> {exp with exp_stx = AnonymousFun (str, args, f fb); exp_annot = add_codename exp (fresh_anonymous ())}
-      | NamedFun (str, name, args, fb) -> {exp with exp_stx = NamedFun (str, name, args, f fb); exp_annot = add_codename exp (fresh_named name)}
+      | NamedFun (str, name, args, fb) -> {exp with exp_stx = NamedFun (str, name, args, f fb); exp_annot = add_codename exp (fresh_named (sanitise name))}
       | Obj xs -> m exp (Obj (List.map (fun (pn, pt, e) -> (pn, pt, f e)) xs))
       | Array es -> m exp (Array (List.map fo es))
       | ConditionalOp (e1, e2, e3)  -> m exp (ConditionalOp (f e1, f e2, f e3))
@@ -168,7 +173,7 @@ let rec add_codenames main exp : exp =
       | Return e -> m exp (Return (fo e)) 
       | VarDec vars -> m exp (VarDec (List.map (fun (n, e) -> (n, fo e)) vars))
       | Try (e1, catch, finally) ->
-				Printf.printf "Processing the try in the add_code_names";
+				(* Printf.printf "Processing the try in the add_code_names"; *)
 				let catch_id = fresh_catch_anonymous () in 
 				let annot = [{annot_type = Codename; annot_formula = catch_id}] in 
 				let annotated_catch =  

@@ -1,6 +1,13 @@
 open SSyntax
 open Lexing
 
+let verbose = ref false
+
+let if_some p f d =
+	(match p with
+	| None -> d
+	| Some p -> f p)
+
 let get_proc_variables proc = 
 	
 	let var_table = Hashtbl.create 1021 in 
@@ -71,7 +78,7 @@ let desugar_labs (lproc : lprocedure) =
 				(spec, x)
 			) cmds_nolab in
 			
-		cmds, (Hashtbl.find mapping lrl), (match lel with | None -> None | Some lab -> Some (Hashtbl.find mapping lab)) in
+		cmds, (match lrl with | None -> None | Some lab -> Some (Hashtbl.find mapping lab)), (match lel with | None -> None | Some lab -> Some (Hashtbl.find mapping lab)) in
 	
 	let mapping = map_labels_to_numbers in
 	let b, rl, el = convert_to_sjsil mapping in
@@ -86,7 +93,7 @@ let desugar_labs (lproc : lprocedure) =
 			error_var = lev;
 			spec = lspec;
 		} in
-	Printf.printf "%s" (SSyntax_Print.string_of_procedure proc false);
+	if (!verbose) then Printf.printf "%s" (SSyntax_Print.string_of_procedure proc false);
 	proc
 	 
 let rec desugar_labs_list lproc_list =
@@ -130,6 +137,24 @@ let lprog_of_path path =
 	| None -> [], lprocs
 	| Some imports -> imports, lprocs
 
+let lprog_of_string str = 
+  let lexbuf = Lexing.from_string str in
+  lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
+  let (imports, lproc_list) : (string list option * lprocedure list) = parse_with_error lexbuf in	
+	();
+	
+	let lprocs : lprocedure SLProgram.t = SLProgram.create 1021 in 
+	List.iter 
+		(fun (lproc : lprocedure) -> 
+			let proc_name = lproc.lproc_name in 
+			SLProgram.replace lprocs proc_name lproc
+		) 
+		lproc_list;
+		 
+	match imports with 
+	| None -> [], lprocs
+	| Some imports -> imports, lprocs
+
 
 let extend_lprocs lprocs_to lprocs_from =
 	SLProgram.iter
@@ -155,7 +180,6 @@ let add_imports lprocs imports =
 					add_imports_iter (rest_imports @ new_imports))) in
 	add_imports_iter imports
 
-
 let prog_of_lprog lprog =
 	let imports, lproc_list = (match lprog with imports, lproc_list -> imports, lproc_list) in 
 	add_imports lproc_list imports; 
@@ -166,9 +190,9 @@ let prog_of_lprog lprog =
 	SLProgram.iter 
 		(fun proc_name lproc -> 
 			let proc = desugar_labs lproc in 
-			(* Removing dead code and recalculating everything *)
+			(* Removing dead code and recalculating everything 
 			let proc = SSyntax_Utils_Graphs.remove_unreachable_code proc false in
-			let proc = SSyntax_Utils_Graphs.remove_unreachable_code proc true in
+			let proc = SSyntax_Utils_Graphs.remove_unreachable_code proc true in *)
 			
 			let succ_table, pred_table = SSyntax_Utils_Graphs.get_succ_pred proc.proc_body proc.ret_label proc.error_label in 
 			let which_pred = SSyntax_Utils_Graphs.compute_which_preds pred_table in  

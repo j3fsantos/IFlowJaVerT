@@ -34,7 +34,7 @@ with
 
 (* *** CALL *** *)
 
-proc String_call (s) {
+proc String_call (xsc, vthis, s) {
 			goto [s = $$empty] empty to_str;
 	
 	empty:	xret := "";
@@ -52,7 +52,7 @@ with
 
 (* *** CONSTRUCT *** *)
 
-proc String_construct (s) {
+proc String_construct (xsc, vthis, s) {
 			goto [s = $$empty] empty to_str;
 	empty:	pv := ""; 
 			goto norm;

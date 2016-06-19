@@ -258,7 +258,7 @@ with
 (* ***************** *) 
 
 proc o__defineOwnProperty (l, prop, desc, throw) {
-	
+		
 			xret := $$t;
 	
 			gop := [l, "@getOwnProperty"];
@@ -1192,12 +1192,12 @@ proc i__abstractEquality (v1, v2) {
 			      
 	dns:	goto [(tv1 = $$number_type) and (tv2 = $$string_type)] tn2 dsn;
 	tn2:	xret := "i__toNumber" (v2) with elab;
-			xret := "i__AbstractEquality" (v1, xret) with elab;
+			xret := "i__abstractEquality" (v1, xret) with elab;
 			goto rlab;
 			
 	dsn:	goto [(tv1 = $$string_type) and (tv2 = $$number_type)] tn1 s1b;
 	tn1:	xret := "i__toNumber" (v1) with elab;
-			xret := "i__AbstractEquality" (xret, v2) with elab;
+			xret := "i__abstractEquality" (xret, v2) with elab;
 			goto rlab;
 
 	s1b:	goto [tv1 = $$boolean_type] tn1 s2b;
@@ -1205,12 +1205,12 @@ proc i__abstractEquality (v1, v2) {
 	
 	s2o:	goto [((tv1 = $$number_type) or (tv1 = $$string_type)) and (tv2 = $$object_type)] tp2 s1o;
 	tp2:	xret := "i__toPrimitive" (v2) with elab;
-			xret := "i__AbstractEquality" (v1, xret) with elab;
+			xret := "i__abstractEquality" (v1, xret) with elab;
 			goto rlab;
 	
 	s1o:	goto [(tv1 = $$object_type) and ((tv1 = $$number_type) or (tv1 = $$string_type))] tp1 rf;
 	tp1:	xret := "i__toPrimitive" (v1) with elab;
-			xret := "i__AbstractEquality" (xret, v2) with elab;
+			xret := "i__abstractEquality" (xret, v2) with elab;
 			goto rlab;
 
 	rt:		xret := $$t;
@@ -1229,6 +1229,16 @@ with
 {
 	ret:	xret, rlab;
 	err:	xret, elab;
+};
+
+proc i__strictEquality (v1, v2) {
+			xret := (v1 = v2);
+	
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
 };
 
 (* ********* *) 

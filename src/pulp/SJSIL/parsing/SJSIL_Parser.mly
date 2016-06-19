@@ -177,15 +177,18 @@ proc_target:
 	PROC; proc_name=VAR; LBRACE; param_list=param_list_target; RBRACE; 
 		CLBRACKET; cmd_list=cmd_list_target; option(SCOLON); CRBRACKET; 
 	WITH; 
-		CLBRACKET; ctx_ret=ctx_target_ret; ctx_err=option(ctx_target_err); CRBRACKET
+		CLBRACKET; ctx_ret=option(ctx_target_ret); ctx_err=option(ctx_target_err); CRBRACKET
 	{
-		Printf.printf "Parsing Procedure.\n";
+		(* Printf.printf "Parsing Procedure.\n"; *)
 		(match (spec : SSyntax.jsil_spec option) with
 		| None -> ()
 		| Some specif ->  if (not (specif.spec_name = proc_name))    then (raise (Failure "Specification name does not match procedure name."))           else 
 			               (if (not (specif.spec_params = param_list)) then (raise (Failure "Specification parameters do not match procedure parameters.")) else ())
 		);
-		let ret_var, ret_index = ctx_ret in 
+		let ret_var, ret_index = 
+		(match ctx_ret with 
+			| None -> None, None
+			| Some (rv, ri) -> Some rv, Some ri)	 in 
 		let err_var, err_index = 
 			(match ctx_err with 
 			| None -> None, None
@@ -208,7 +211,7 @@ ctx_target_ret:
 (* ret: x, i; *)
 	RET; COLON; ret_v=VAR; COMMA; i=VAR; SCOLON;
 	{ 
-		Printf.printf "Parsing return context.\n";
+		(* Printf.printf "Parsing return context.\n"; *)
 		ret_v, i
 	}
 	
@@ -216,7 +219,7 @@ ctx_target_err:
 (* err: x, j *)
 	ERR; COLON; err_v=VAR; COMMA; j=VAR; SCOLON;
 	{ 
-		Printf.printf "Parsing error context.\n";	
+		(* Printf.printf "Parsing error context.\n"; *)	
 		err_v, j
 	}
 
@@ -262,26 +265,26 @@ cmd_target:
 (* skip *)
 	| SKIP 
 		{ 
-			Printf.printf "Parsing Skip.\n";
+			(* Printf.printf "Parsing Skip.\n"; *)
 			Some (SSyntax.SLBasic(SSyntax.SSkip))
 		} 
 (* x := new() *) 
 	| v=VAR; DEFEQ; NEW; LBRACE; RBRACE
 		{ 
-			Printf.printf "Parsing New.\n";
+			(* Printf.printf "Parsing New.\n"; *)
 			Some (SSyntax.SLBasic (SSyntax.SNew v))
 		}
 (* x := e *)
 	| v=VAR; DEFEQ; e=expr_target 
 	{ 
-		Printf.printf "Parsing Assignment.\n";
+		(* Printf.printf "Parsing Assignment.\n"; *)
 		Some (SSyntax.SLBasic (SSyntax.SAssignment (v, e)))
 	}
 
 (* x := PHI(e1, e2, ... en); *)
   | v=VAR; DEFEQ; PHI; LBRACE; es = param_list_target; RBRACE
 	  {
-			Printf.printf "Parsing PHI-node.\n";
+			(* Printf.printf "Parsing PHI-node.\n"; *)
 			let rec oes l =
 				(match l with
 				| [] -> []
@@ -292,37 +295,37 @@ cmd_target:
 (* x := [e1, e2] *)
 	| v=VAR; DEFEQ; LBRACKET; e1=expr_target; COMMA; e2=expr_target; RBRACKET 
 		{ 
-			Printf.printf "Parsing Field Look-up.\n";
+			(* Printf.printf "Parsing Field Look-up.\n"; *)
 			Some (SSyntax.SLBasic (SSyntax.SLookup (v, e1, e2)))
 		}
 (* [e1, e2] := e3 *)
 	| LBRACKET; e1=expr_target; COMMA; e2=expr_target; RBRACKET; DEFEQ; e3=expr_target    
 		{ 
-			Printf.printf "Parsing Field Assignemnt.\n";
+			(* Printf.printf "Parsing Field Assignment.\n"; *)
 			Some (SSyntax.SLBasic (SSyntax.SMutation (e1, e2, e3))) 
 		}
 (* delete(e1, e2) *)
 	| DELETE; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
 		{ 
-			Printf.printf "Parsing Deletion.\n";
+			(* Printf.printf "Parsing Deletion.\n"; *)
 			Some (SSyntax.SLBasic (SSyntax.SDelete (e1, e2)))
 		}
 (* x := hasField(e1, e2) *)
 	| v=VAR; DEFEQ; HASFIELD; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
 		{ 
-			Printf.printf "Parsing HasField.\n";
+			(* Printf.printf "Parsing HasField.\n"; *)
 			Some (SSyntax.SLBasic (SSyntax.SHasField (v, e1, e2)))
 		}
 (* x := protoField(e1, e2) *)
 	| v=VAR; DEFEQ; PROTOFIELD; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
 		{ 
-			Printf.printf "Parsing ProtoField.\n";
+			(* Printf.printf "Parsing ProtoField.\n"; *)
 			Some (SSyntax.SLBasic (SSyntax.SProtoField (v, e1, e2)))
 		}
 (* x := protoObj(e1, e2) *)
 	| v=VAR; DEFEQ; PROTOOBJ; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
 		{ 
-			Printf.printf "Parsing ProtoObj.\n";
+			(* Printf.printf "Parsing ProtoObj.\n"; *)
 			Some (SSyntax.SLBasic (SSyntax.SProtoObj (v, e1, e2)))
 		}
 	| v = VAR; DEFEQ; GETFIELDS; LBRACE; e=expr_target; RBRACE
@@ -330,19 +333,19 @@ cmd_target:
 (* goto i *)
 	| GOTO; i=VAR 
 		{
-			Printf.printf "Parsing Goto.\n";
+			(* Printf.printf "Parsing Goto.\n"; *)
 			Some (SSyntax.SLGoto i)
 		}
 (* goto [e] i j *)
 	| GOTO LBRACKET; e=expr_target; RBRACKET; i=VAR; j=VAR 
 		{
-			Printf.printf "Parsing Conditional Goto.\n";
+			(* Printf.printf "Parsing Conditional Goto.\n"; *)
 			Some (SSyntax.SLGuardedGoto (e, i, j))
 		}
 (* x := e(e1, ..., en) with j *)
 	| v=VAR; DEFEQ; e=expr_target; LBRACE; es=expr_list_target; RBRACE; oi = option(call_with_target)
 		{
-			Printf.printf "Parsing Procedure Call.\n";
+			(* Printf.printf "Parsing Procedure Call.\n"; *)
 			Some (SSyntax.SLCall (v, e, es, oi))
 		}
 ;
@@ -393,7 +396,7 @@ expr_target:
 (********* LOGIC *********)
 
 specs_target:
-	spec_list_target EOF	{ Printf.printf("Entering specs_target"); $1 }
+	spec_list_target EOF	{ $1 }
 ;
 
 spec_list_target: 

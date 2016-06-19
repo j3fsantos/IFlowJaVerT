@@ -10,9 +10,14 @@ open SSyntax
 
 let graph_verbose = ref false
 
-let get_succ_pred cmds ret_label opt_error_label = 
+let get_succ_pred cmds opt_ret_label opt_error_label = 
 	
 	let cmds = Array.map (fun x -> match x with (_, cmd) -> cmd) cmds in
+
+	let ret_label = 
+		(match opt_ret_label with
+		| None -> -1021
+		| Some l -> l) in
 
 	let err_label = 
 		(match opt_error_label with
@@ -77,7 +82,7 @@ let get_succ_pred cmds ret_label opt_error_label =
 	
 	for k = 0 to (number_of_cmds - 1) do
 		succ_table.(k) <- List.rev succ_table.(k);
-		pred_table.(k) <- List.rev pred_table.(k)
+		pred_table.(k) <- List.rev pred_table.(k);
 	done; 
 	succ_table, pred_table
 
@@ -203,8 +208,11 @@ let remove_unreachable_code proc throw =
 											else ())
 									done;
 	
-	if (not visited.(lret))
-		then (raise (Failure "Return label unreachable."));
+  (match lret with
+	| None -> () (* (Printf.printf "\t WARNING: Return label does not exist!\n") *)
+	| Some lret -> if (not visited.(lret))
+									then ()); (* (Printf.printf "\t WARNING: Return label is unreachable and will be removed, along with the corresponding specs!\n")); *)
+	
 	
 	(match lerr with
 	| None -> () (* (Printf.printf "\t WARNING: Error label does not exist!\n") *)
@@ -212,7 +220,12 @@ let remove_unreachable_code proc throw =
 									then ()); (* (Printf.printf "\t WARNING: Error label is unreachable and will be removed, along with the corresponding specs!\n")); *)
 	
 	(if (!graph_verbose) then Printf.printf "\t Adjusting line numbers. \n" else ());
-	
+
+	let lret = 
+		(match lret with
+		  | None -> None 
+			| Some lret -> if (not visited.(lret)) then None else (Some lret)) in
+			
 	let lerr = 
 		(match lerr with
 		  | None -> None 
@@ -272,14 +285,18 @@ let remove_unreachable_code proc throw =
     SSyntax.proc_name   = proc.proc_name;
     SSyntax.proc_body   = new_cmds;
    	SSyntax.proc_params = proc.proc_params; 
-		SSyntax.ret_label   = lnum_shift.(proc.ret_label);
-		SSyntax.ret_var     = proc.ret_var;
+		SSyntax.ret_label = (match lret with
+		                     | None -> None 
+												 | Some lret -> Some lnum_shift.(lret));
+		SSyntax.ret_var = (match lret with
+		                    | None -> None 
+												| _ -> proc.ret_var);
 		SSyntax.error_label = (match lerr with
 		                        | None -> None 
 														| Some lerr -> Some lnum_shift.(lerr));
 		SSyntax.error_var   = (match lerr with
 		                        | None -> None 
-														| Some lerr -> proc.error_var);
+														| _ -> proc.error_var);
 		SSyntax.spec = new_spec;
 	}
 

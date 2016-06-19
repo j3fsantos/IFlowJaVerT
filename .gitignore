@@ -41,7 +41,8 @@ tests/dot
 
 rosette/compiled
 
-# Compilation specific
+# Compilation and run-specific
 *.xml
 example.jsil
+environment
 src/pulp/SJSIL/translation_runtime/output.txt

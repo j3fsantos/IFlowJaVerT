@@ -216,8 +216,8 @@ let print_phi_functions_per_node phi_functions_per_node =
 	
 	loop 0 str
 
-let insert_phi_args args vars cmds (spec : jsil_spec option) (rvar : string) (evar : string option) 
-                    (ret_lab : int) (err_lab : int option) succ pred idom_table idom_graph phi_functions_per_node which_pred = 
+let insert_phi_args args vars cmds (spec : jsil_spec option) (rvar : string option) (evar : string option) 
+                    (ret_lab : int option) (err_lab : int option) succ pred idom_table idom_graph phi_functions_per_node which_pred = 
 	
 	let var_counters : (string, int) Hashtbl.t  = Hashtbl.create 1021 in 
 	let var_stacks :  (string, int list) Hashtbl.t = Hashtbl.create 1021 in 
@@ -226,7 +226,7 @@ let insert_phi_args args vars cmds (spec : jsil_spec option) (rvar : string) (ev
 	let new_cmds = Array.make number_of_nodes (None, SBasic SSkip) in 
 	let new_phi_functions_per_node = Array.make number_of_nodes [] in 
 	
-	let new_ret_var = ref rvar in
+	let new_ret_var = ref (match rvar with | None -> "" | Some rvar -> rvar) in
 	let new_err_var = ref (match evar with | None -> "" | Some evar -> evar) in
 	
 	let spec_len = 
@@ -386,7 +386,10 @@ let insert_phi_args args vars cmds (spec : jsil_spec option) (rvar : string) (ev
 		| cmd -> rewrite_non_assignment_ssa cmd var_stacks rename_var) in 
 		new_cmds.(u) <- (new_spec, new_ass);
 		
-		if (u = ret_lab) then
+		(match ret_lab with
+		| None -> ()
+		| Some ret_lab ->
+			if (u = ret_lab) then
 			begin
   			new_ret_var := (let var_stack = SSyntax_Aux.try_find var_stacks !new_ret_var in
   		    (match var_stack with 
@@ -396,7 +399,7 @@ let insert_phi_args args vars cmds (spec : jsil_spec option) (rvar : string) (ev
   				if (flags.(k) = Normal) then
   					new_posts.(k) <- (rewrite_logic_assertion new_posts.(k) var_stacks rename_var);
   			done;
-			end;
+			end);
 
 		(match err_lab with
 		| None -> ()
@@ -565,10 +568,17 @@ let insert_phi_nodes proc phi_functions_per_node (nodes : (jsil_logic_assertion 
 		(fun param -> rename_var param 0)
 		proc.proc_params in 
 	
-	let ret_label = proc.ret_label in 
-	let new_ret_label = proc.ret_label + jump_displacements.(ret_label) + (List.length (phi_assignments_per_node.(ret_label))) in 
+	let ret_label = proc.ret_label in
+	let new_ret_label = 
+		(match ret_label with
+		 | None -> None
+		 | Some lab -> Some (lab + jump_displacements.(lab) + (List.length (phi_assignments_per_node.(lab))))) in
+	let new_ret_var = 
+		(match new_ret_var with
+		  | "" -> None
+			| x -> Some x) in
 	
-	let error_label, error_var = proc.error_label, proc.error_var in
+	let error_label = proc.error_label in
 	let new_error_label = 
 		(match error_label with
 		 | None -> None
@@ -627,7 +637,3 @@ let ssa_compile_prog (prog : procedure SProgram.t) =
 			SProgram.replace ssa_prog proc_name proc)
 		prog; 
 	ssa_prog, global_which_pred
-
-
-
-		

@@ -406,17 +406,23 @@ let string_of_cmd_arr cmds tabs line_numbers =
 		('error err_var err_label))
 *)
 let sexpr_of_procedure proc line_numbers =			
-	Printf.sprintf "(procedure \"%s\" \n\t(args%s) \n\t(body \n %s \n\t) \n\t(ret-ctx '%s %s) \n %s )" 
+	Printf.sprintf "(procedure \"%s\" \n\t(args%s) \n\t(body \n %s \n\t) \n%s \n %s )" 
   	proc.proc_name 
    	(sexpr_of_params proc.proc_params) 
 		(sexpr_of_cmd_arr proc.proc_body 2 line_numbers)
-		proc.ret_var
-		(string_of_int proc.ret_label)
+		(match proc.ret_var, proc.ret_label with
+		| None, None -> "" 
+		| Some var, Some label -> (Printf.sprintf "\t(ret-ctx '%s %s) \n" var (string_of_int label))
+		| _, _ -> raise (Failure "Return variable and return label not both present or both absent!"))
 		(match proc.error_var, proc.error_label with
 		| None, None -> "" 
 		| Some var, Some label -> (Printf.sprintf "\t(err-ctx '%s %s) \n" var (string_of_int label))
 		| _, _ -> raise (Failure "Error variable and error label not both present or both absent!"))
 
+let rec string_of_outcome o = 
+	match o with
+	| Normal -> "Normal"
+	| Error -> "Error"
 
 let rec string_of_specs (specs : jsil_single_spec list) = 
 	match specs with
@@ -453,12 +459,14 @@ let string_of_procedure proc line_numbers =
 		Printf.sprintf "spec %s (%s) \n %s \n" spec.spec_name (string_of_params spec.spec_params) (string_of_specs spec.proc_specs)
 	)
 	^
-	(Printf.sprintf "proc %s (%s) { \n %s \n} with { \n\t ret: %s, %s; \n%s}\n" 
+	(Printf.sprintf "proc %s (%s) { \n %s \n} with {\n%s%s}\n" 
   	proc.proc_name 
    	(string_of_params proc.proc_params) 
 		(string_of_cmd_arr proc.proc_body 2 line_numbers)
-		proc.ret_var
-		(string_of_int proc.ret_label)
+		(match proc.ret_var, proc.ret_label with
+		| None, None -> "" 
+		| Some var, Some label -> (Printf.sprintf "\t ret: %s, %s; \n" var (string_of_int label))
+		| _, _ -> raise (Failure "Error variable and error label not both present or both absent!"))
 		(match proc.error_var, proc.error_label with
 		| None, None -> "" 
 		| Some var, Some label -> (Printf.sprintf "\t err: %s, %s; \n" var (string_of_int label))
@@ -517,12 +525,14 @@ let string_of_lprocedure (lproc : lprocedure) =
 		Printf.sprintf "spec %s (%s) \n %s \n" spec.spec_name (string_of_params spec.spec_params) (string_of_specs spec.proc_specs)
 	)
 	^
-	(Printf.sprintf "proc %s (%s) { \n %s \n} with { \n\t ret: %s, %s; \n%s}" 
+	(Printf.sprintf "proc %s (%s) { \n %s \n} with {\n%s%s}" 
   	lproc.lproc_name 
    	(string_of_params lproc.lproc_params) 
 		(string_of_lbody lproc.lproc_body)
-		lproc.lret_var
-		lproc.lret_label
+		(match lproc.lret_var, lproc.lret_label with
+		| None, None -> "" 
+		| Some var, Some label -> (Printf.sprintf "\t ret: %s, %s; \n" var label)
+		| _, _ -> raise (Failure "Error variable and error label not both present or both absent!"))
 		(match lproc.lerror_var, lproc.lerror_label with
 		| None, None -> "" 
 		| Some var, Some label -> (Printf.sprintf "\t err: %s, %s; \n" var label)
@@ -557,7 +567,7 @@ let string_of_lprogram (lprogram : jsil_lprog) : string =
 			let imports_str = if (imports_str = "") then "" else ("import " ^ imports_str ^ ";\n") in 
 			imports_str, procs) in 
 	let procs_str	= 
-		SSyntax.SProgram.fold 
+		SSyntax.SLProgram.fold 
 			(fun _ proc acc_str -> acc_str ^ "\n" ^ (string_of_lprocedure proc) ^ ";\n")
 			procs	
 			"" in 

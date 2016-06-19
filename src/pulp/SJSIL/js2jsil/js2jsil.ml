@@ -51,7 +51,7 @@ let abstractComparisonName            = "i__abstractComparison"          (* 11.8
 let hasInstanceName                   = "i__hasInstance"                 (* 15.3.5.3          *)
 let hasPropertyName                   = "o__hasProperty"
 let abstractEqualityComparisonName    = "i__abstractEquality"            (* 11.9.3            *) 
-let strictEqualityComparisonName      = "i__strictEqualityComparison"    (* 11.9.6            *) 
+let strictEqualityComparisonName      = "i__strictEquality"              (* 11.9.6            *) 
 let defineOwnPropertyName             = "o__defineOwnProperty"           (* 8.12.9            *) 
 let checkAssignmentErrorsName         = "i__checkAssignmentErrors"        
 
@@ -2477,10 +2477,10 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 						 x1_v := i__getValue (x1) with err
 						 x1_b := i__toBoolean (x1_b) with err  
 						 goto [x1_b] then else 
-			then:  cmds1
+			then:  cmds2
 			       goto endif
-			else:  cmds2 
-			endif: x_if := PHI(x3, x2)   
+			else:  cmds3 
+			endif: x_if := PHI(x2, x3)   
 		 *)
 		
 		let break_label, new_loop_list = 
@@ -2520,13 +2520,13 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		(* goto end *)  
 		let cmd_goto_endif = SLGoto end_lab in 
 		
-		(* end: x_if := PHI(x3, x2) *) 
+		(* end: x_if := PHI(x2, x3) *) 
 		let x2_name, x3_name = 
 			(match x2, x3 with 
 			| Var x2_name, Var x3_name -> x2_name, x3_name 
 			| _, _ -> raise (Failure "the compilation of the then and else parts of the ifs must generate a variable each")) in 
 		let x_if = fresh_var () in 
-		let cmd_end_if = SLBasic (SPhiAssignment (x_if, [| Some x3_name; Some x2_name |])) in 
+		let cmd_end_if = SLBasic (SPhiAssignment (x_if, [| Some x2_name; Some x3_name |])) in 
 		
 		let cmds = 
 			    cmds1 @ [                             (*       cmds1                               *)
@@ -3163,8 +3163,8 @@ let generate_main e main cc_table =
 		lproc_name = main;
     lproc_body = (Array.of_list main_cmds);
     lproc_params = []; 
-		lret_label = ctx.tr_ret_lab; 
-		lret_var = ctx.tr_ret_var;
+		lret_label = Some ctx.tr_ret_lab; 
+		lret_var = Some ctx.tr_ret_var;
 		lerror_label = Some ctx.tr_error_lab; 
 		lerror_var = Some ctx.tr_error_var;
 		lspec = None 
@@ -3229,8 +3229,8 @@ let generate_proc e fid params cc_table vis_fid =
 		lproc_name = fid;
     lproc_body = (Array.of_list fid_cmds);
     lproc_params = var_scope :: var_this :: params; 
-		lret_label = ctx.tr_ret_lab; 
-		lret_var = ctx.tr_ret_var;
+		lret_label = Some ctx.tr_ret_lab; 
+		lret_var = Some ctx.tr_ret_var;
 		lerror_label = Some ctx.tr_error_lab; 
 		lerror_var = Some ctx.tr_error_var;
 		lspec = None 
@@ -3241,7 +3241,7 @@ let js2jsil e =
 	let e = Js_pre_processing.add_codenames main e in 
 	let cc_tbl, fun_tbl, vis_tbl = Js_pre_processing.closure_clarification_top_level main e in 
 	
-	let jsil_prog = SProgram.create 1021 in 
+	let jsil_prog = SLProgram.create 1021 in 
 	Hashtbl.iter
 		(fun f_id (_, f_params, f_body) -> 
 			let proc = 
@@ -3253,12 +3253,12 @@ let js2jsil e =
 								(let msg = Printf.sprintf "Function %s not found in visibility table" f_id in 
 								raise (Failure msg)) in 	
 						generate_proc f_body f_id f_params cc_tbl vis_fid)) in 
-			SProgram.add jsil_prog f_id proc)
+			SLProgram.add jsil_prog f_id proc)
 		fun_tbl; 
 	
 	(* Prints to delete *) 
-	let str = Js_pre_processing.print_cc_tbl cc_tbl in 
-	Printf.printf "closure clarification table: %s\n" str; 
+	(* let str = Js_pre_processing.print_cc_tbl cc_tbl in 
+	   Printf.printf "closure clarification table: %s\n" str; *)
 	(* let main_str = SSyntax_Print.string_of_lprocedure jsil_proc_main in 
 	Printf.printf "main code:\n %s\n" main_str; *)
 	
