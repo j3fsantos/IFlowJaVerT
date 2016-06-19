@@ -2477,10 +2477,10 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 						 x1_v := i__getValue (x1) with err
 						 x1_b := i__toBoolean (x1_b) with err  
 						 goto [x1_b] then else 
-			then:  cmds1
+			then:  cmds2
 			       goto endif
-			else:  cmds2 
-			endif: x_if := PHI(x3, x2)   
+			else:  cmds3 
+			endif: x_if := PHI(x2, x3)   
 		 *)
 		
 		let break_label, new_loop_list = 
@@ -2520,13 +2520,13 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		(* goto end *)  
 		let cmd_goto_endif = SLGoto end_lab in 
 		
-		(* end: x_if := PHI(x3, x2) *) 
+		(* end: x_if := PHI(x2, x3) *) 
 		let x2_name, x3_name = 
 			(match x2, x3 with 
 			| Var x2_name, Var x3_name -> x2_name, x3_name 
 			| _, _ -> raise (Failure "the compilation of the then and else parts of the ifs must generate a variable each")) in 
 		let x_if = fresh_var () in 
-		let cmd_end_if = SLBasic (SPhiAssignment (x_if, [| Some x3_name; Some x2_name |])) in 
+		let cmd_end_if = SLBasic (SPhiAssignment (x_if, [| Some x2_name; Some x3_name |])) in 
 		
 		let cmds = 
 			    cmds1 @ [                             (*       cmds1                               *)
