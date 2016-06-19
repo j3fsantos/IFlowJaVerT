@@ -2,6 +2,8 @@
 (* MAIN *)
 (* **** *) 
 
+import Object;
+
 proc create_default_object (l, pr, cl, ext) {
 			
 			goto [cl = $$empty] scl text;
@@ -65,11 +67,17 @@ with
 
 proc create_function_object (xsc, call, construct, params) {
 			len := length (params);
-			xret := new ();
-			xret := "create_object_with_call_construct" (xret, call, construct, len);
+			l := new ();
+			l := "create_object_with_call_construct" (l, call, construct, len);
+						
+			[l, "@scope"] := xsc;
+			[l, "@formalParameters"] := params;
 			
-			[xret, "@scope"] := xsc;
-			[xret, "@formalParameters"] := params;
+			prototype := "Object_construct" ();
+			[prototype, "constructor"] := {{ "d", l, $$t, $$f, $$t }};
+			[l, "prototype"] := {{ "d", prototype, $$t, $$f, $$f }};
+			
+			xret := l;
 			
 	rlab:	skip
 }

@@ -78,7 +78,7 @@ let desugar_labs (lproc : lprocedure) =
 				(spec, x)
 			) cmds_nolab in
 			
-		cmds, (Hashtbl.find mapping lrl), (match lel with | None -> None | Some lab -> Some (Hashtbl.find mapping lab)) in
+		cmds, (match lrl with | None -> None | Some lab -> Some (Hashtbl.find mapping lab)), (match lel with | None -> None | Some lab -> Some (Hashtbl.find mapping lab)) in
 	
 	let mapping = map_labels_to_numbers in
 	let b, rl, el = convert_to_sjsil mapping in

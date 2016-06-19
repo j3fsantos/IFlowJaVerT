@@ -669,15 +669,19 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 	match cmd with 
 	| SBasic bcmd -> 
 		let _ = evaluate_bcmd bcmd heap store cur_which_pred in 
-		if (cur_cmd = proc.ret_label)
-			then 
-			(let ret_value = (try (Hashtbl.find store proc.ret_var) with
-			| _ -> raise (Failure (Printf.sprintf "Cannot find return variable."))) in
+		if (Some cur_cmd = proc.ret_label)
+		then 
+			(let ret_value = 
+				(let ret_var = (match proc.ret_var with
+			    					    | None -> raise (Failure "No no!") 
+												| Some ret_var -> ret_var) in
+				  (try (Hashtbl.find store ret_var) with
+			| _ -> raise (Failure (Printf.sprintf "Cannot find return variable.")))) in
 			if (!verbose) then Printf.printf ("Procedure %s returned: Normal, %s\n") cur_proc_name (SSyntax_Print.string_of_literal ret_value false);
 			Normal, ret_value)
-			else 
-				(if ((Some cur_cmd) = proc.error_label) 
-				then 
+		else 
+			(if (Some cur_cmd = proc.error_label) 
+			then 
 				(let err_value = 
 					(let err_var = (match proc.error_var with 
 					                      | None -> raise (Failure "No no!") 
@@ -686,7 +690,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 				| _ -> raise (Failure (Printf.sprintf "Cannot find error variable." )))) in
 			if (!verbose) then Printf.printf ("Procedure %s returned: Error, %s\n") cur_proc_name (SSyntax_Print.string_of_literal err_value false);
 			Error, err_value)
-				else (evaluate_cmd prog cur_proc_name which_pred heap store (cur_cmd + 1) cur_cmd))
+		else (evaluate_cmd prog cur_proc_name which_pred heap store (cur_cmd + 1) cur_cmd))
 		 
 	| SGoto i -> 
 		evaluate_cmd prog cur_proc_name which_pred heap store i cur_cmd
@@ -714,12 +718,16 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 		match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 with 
 		| Normal, v -> 
 			Hashtbl.replace store x v;
-			if (cur_cmd = proc.ret_label)
+	 		if (Some cur_cmd = proc.ret_label)
 			then 
-			(let ret_value = (try (Hashtbl.find store proc.ret_var) with
-			| _ -> raise (Failure (Printf.sprintf "Cannot find return variable."))) in
-			if (!verbose) then Printf.printf ("Procedure %s returned: Normal, %s\n") cur_proc_name (SSyntax_Print.string_of_literal ret_value false);
-			Normal, ret_value)
+				(let ret_value = 
+					(let ret_var = (match proc.ret_var with
+			    						    | None -> raise (Failure "No no!") 
+													| Some ret_var -> ret_var) in
+				  	(try (Hashtbl.find store ret_var) with
+				| _ -> raise (Failure (Printf.sprintf "Cannot find return variable.")))) in
+				if (!verbose) then Printf.printf ("Procedure %s returned: Normal, %s\n") cur_proc_name (SSyntax_Print.string_of_literal ret_value false);
+				Normal, ret_value)
 			else (evaluate_cmd prog cur_proc_name which_pred heap store (cur_cmd + 1) cur_cmd)
 		| Error, v -> 
 			(match j with

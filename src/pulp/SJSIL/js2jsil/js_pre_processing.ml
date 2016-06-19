@@ -168,7 +168,7 @@ let rec add_codenames main exp : exp =
       | Return e -> m exp (Return (fo e)) 
       | VarDec vars -> m exp (VarDec (List.map (fun (n, e) -> (n, fo e)) vars))
       | Try (e1, catch, finally) ->
-				Printf.printf "Processing the try in the add_code_names";
+				(* Printf.printf "Processing the try in the add_code_names"; *)
 				let catch_id = fresh_catch_anonymous () in 
 				let annot = [{annot_type = Codename; annot_formula = catch_id}] in 
 				let annotated_catch =  

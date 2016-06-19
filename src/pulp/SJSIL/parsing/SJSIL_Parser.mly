@@ -177,7 +177,7 @@ proc_target:
 	PROC; proc_name=VAR; LBRACE; param_list=param_list_target; RBRACE; 
 		CLBRACKET; cmd_list=cmd_list_target; option(SCOLON); CRBRACKET; 
 	WITH; 
-		CLBRACKET; ctx_ret=ctx_target_ret; ctx_err=option(ctx_target_err); CRBRACKET
+		CLBRACKET; ctx_ret=option(ctx_target_ret); ctx_err=option(ctx_target_err); CRBRACKET
 	{
 		(* Printf.printf "Parsing Procedure.\n"; *)
 		(match (spec : SSyntax.jsil_spec option) with
@@ -185,7 +185,10 @@ proc_target:
 		| Some specif ->  if (not (specif.spec_name = proc_name))    then (raise (Failure "Specification name does not match procedure name."))           else 
 			               (if (not (specif.spec_params = param_list)) then (raise (Failure "Specification parameters do not match procedure parameters.")) else ())
 		);
-		let ret_var, ret_index = ctx_ret in 
+		let ret_var, ret_index = 
+		(match ctx_ret with 
+			| None -> None, None
+			| Some (rv, ri) -> Some rv, Some ri)	 in 
 		let err_var, err_index = 
 			(match ctx_err with 
 			| None -> None, None

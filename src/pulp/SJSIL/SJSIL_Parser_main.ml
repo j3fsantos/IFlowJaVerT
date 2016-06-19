@@ -18,6 +18,8 @@ let arguments () =
 			"-run", Arg.Unit(fun () -> jsil_run := true), "run the program given as input";
 			(* ssa normalise *)
 			"-ssa", Arg.Unit(fun () -> do_ssa := true), "ssa normalise";
+			(* verbositiness *)
+			"-verbose", Arg.Unit(fun () -> verbose := true; SJSIL_Interpreter.verbose := true), "verbose output";
     ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg

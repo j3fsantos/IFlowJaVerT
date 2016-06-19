@@ -258,7 +258,7 @@ with
 (* ***************** *) 
 
 proc o__defineOwnProperty (l, prop, desc, throw) {
-	
+		
 			xret := $$t;
 	
 			gop := [l, "@getOwnProperty"];

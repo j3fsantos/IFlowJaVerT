@@ -216,10 +216,10 @@ type procedure = {
     proc_name : string;
     proc_body : (jsil_logic_assertion option * jsil_cmd) array;
     proc_params : jsil_var list; 
-		ret_label: int; 
-		ret_var: jsil_var;
-		error_label: (int option); 
-		error_var: (jsil_var option);
+		ret_label: int option; 
+		ret_var: jsil_var option;
+		error_label: int option; 
+		error_var: jsil_var option;
 		spec: jsil_spec option;
 }
 
@@ -271,10 +271,10 @@ type lprocedure = {
     lproc_name : string;
     lproc_body : ((jsil_logic_assertion option * string option * jsil_lab_cmd) array);
     lproc_params : jsil_var list; 
-		lret_label: string; 
-		lret_var: jsil_var;
-		lerror_label: (string option); 
-		lerror_var: (jsil_var option);
+		lret_label: string option; 
+		lret_var: jsil_var option;
+		lerror_label: string option; 
+		lerror_var: jsil_var option;
 		lspec: jsil_spec option;
 }
 
