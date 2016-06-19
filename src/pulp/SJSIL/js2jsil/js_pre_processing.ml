@@ -7,7 +7,6 @@ exception No_Codename
 
 let sanitise name = 
 	let s = Str.global_replace (Str.regexp "\$") "_" name in
-	let _ = (Printf.printf "%s %s\n" name s) in
 	s
 
 let update_annotation annots atype new_value =

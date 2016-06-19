@@ -6,7 +6,7 @@ import Internals;
 
 (* *** CALL *** *)
 
-proc Boolean_call (v) {
+proc Boolean_call (xsc, vthis, v) {
 	rlab:	xret := "i__toBoolean" (v)
 }
 with
@@ -16,7 +16,7 @@ with
 
 (* *** CONSTRUCT *** *)
 
-proc Boolean_construct (v) {
+proc Boolean_construct (xsc, vthis, v) {
 			pv := "i__toBoolean" (v);
 			
 			xret := new ();

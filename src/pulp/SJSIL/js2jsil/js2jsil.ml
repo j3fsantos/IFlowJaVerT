@@ -508,7 +508,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			(None, None,          cmd_ass_xrelse);  (* 	     x_relse := x1_n + x2_n                                                                 *) 
 			(None, Some end_lab,  cmd_ass_xr)       (* end:  x_r := PHI (x_rthen, x_relse)                                                          *) 
 		] in 
-		let errs = [ x1_v; x2_v; x1_p; x2_p; x1_s; x2_s; x1_n; x2_n ] in 
+		let errs = [ x1_p; x2_p; x1_s; x2_s; x1_n; x2_n ] in 
 		new_cmds, errs, x_r in 
 	
 	
@@ -901,7 +901,9 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 	*)
 	| Parser_syntax.Null ->  [], Literal Null, [], [], [], []
 	| Parser_syntax.Bool b -> [], Literal (Bool b), [], [], [], []
-	| Parser_syntax.String s -> [], Literal (String s), [], [], [], []
+	| Parser_syntax.String s -> 
+		let escaped_s = Str.global_replace (Str.regexp "\"") "\\\"" s in
+		[], Literal (String escaped_s), [], [], [], []
 	| Parser_syntax.Num n ->  [], Literal (Num n), [], [], [], []
 	
 	

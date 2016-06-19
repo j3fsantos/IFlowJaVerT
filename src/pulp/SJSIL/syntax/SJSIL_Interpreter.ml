@@ -521,7 +521,7 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 		if (!verbose) then Printf.printf "PHI-Assignment: %s : %d/%d : %s := %s\n" 
 		   (match x_live with
 			  | None -> "NONE!" 
-				| Some x_live -> x_live) which_pred (Array.length x_arr) x (SSyntax_Print.string_of_literal v false);
+				| Some x_live -> x_live) which_pred (Array.length x_arr - 1) x (SSyntax_Print.string_of_literal v false);
 		Hashtbl.add store x v; 
 		v 
 	

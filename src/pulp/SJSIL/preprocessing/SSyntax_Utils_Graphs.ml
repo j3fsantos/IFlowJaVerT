@@ -82,7 +82,7 @@ let get_succ_pred cmds opt_ret_label opt_error_label =
 	
 	for k = 0 to (number_of_cmds - 1) do
 		succ_table.(k) <- List.rev succ_table.(k);
-		pred_table.(k) <- List.rev pred_table.(k);
+		pred_table.(k) <- List.rev pred_table.(k);		
 	done; 
 	succ_table, pred_table
 
