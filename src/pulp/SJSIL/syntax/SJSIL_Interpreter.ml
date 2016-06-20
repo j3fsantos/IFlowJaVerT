@@ -650,7 +650,7 @@ let init_store params args =
 				Hashtbl.add new_store param arg;
 				loop rest_params rest_args
 			| [] -> 
-				Hashtbl.add new_store param Empty;
+				Hashtbl.add new_store param Undefined;
 				loop rest_params []) in 
 	loop params args; 
 	

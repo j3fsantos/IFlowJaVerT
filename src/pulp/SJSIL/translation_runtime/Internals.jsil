@@ -780,6 +780,7 @@ proc i__toPrimitive (v, hint) {
 			goto rlab;
 	
 	oops:	xret := "ToPrimitive: This should not happen.";
+			goto elab;
 	
 	rlab:	skip;
 	elab:	skip

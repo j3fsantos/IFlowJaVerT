@@ -796,7 +796,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let phi_args2 = cur_breaks1 @ [ x1_v ] @ cur_breaks2 @ [ x2_v ] in 
 		let phi_args2 = List.map (fun x -> Some x) phi_args2 in   
 		let phi_args2 = Array.of_list phi_args2 in 
-		let cmd_ass_xret = SLBasic (SPhiAssignment (x_err, phi_args2)) in 
+		let cmd_ass_xret = SLBasic (SPhiAssignment (x_ret, phi_args2)) in 
 		
 		let cmds = cmds1 @ [
 			(None, None,          SLGoto finally); 
