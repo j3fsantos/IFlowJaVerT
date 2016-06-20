@@ -386,7 +386,7 @@ let evaluate_type_of lit =
 
 let evaluate_constant c = 
 	match c with
-  | Min_float -> Num (min_float)
+  | Min_float -> Num (5e-324)
 	| Max_float -> Num (max_float)
 	| Random -> Num (Random.float (1.0 -. epsilon_float))
 	| E -> Num (exp 1.0)

@@ -48,7 +48,7 @@ let toPrimitiveName                   = "i__toPrimitive"                 (* 9.1 
 let toInt32Name                       = "i__toInt32"                     (* 9.5               *)
 let toUInt32Name                      = "i__toUint32"                    (* 9.6               *)
 let abstractComparisonName            = "i__abstractComparison"          (* 11.8.5            *) 
-let hasInstanceName                   = "i__hasInstance"                 (* 15.3.5.3          *)
+let hasInstanceName                   = "@hasInstance"                   (* 15.3.5.3          *)
 let hasPropertyName                   = "o__hasProperty"
 let abstractEqualityComparisonName    = "i__abstractEquality"            (* 11.9.3            *) 
 let strictEqualityComparisonName      = "i__strictEquality"              (* 11.9.6            *) 
@@ -537,7 +537,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			(None, Some then_lab, SLBasic (SAssignment (x_undef, Literal (Bool bool_undef))));  (* then:  x_undef := bool_undef                                                                           *) 
 			(None, Some end_lab, cmd_ass_xr)                                                    (* end:   x_r := PHI(x_ac, x_undef)                                                                       *)
 		] in 
-		let errs = [ x1_v; x2_v; x_ac ] in 
+		let errs = [ x_ac ] in 
 		new_cmds, errs, x_r	in 
 	
 	
@@ -1934,9 +1934,9 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 				                               cmds2
 											                 x2_v := i__getValue (x2) with err
 											                 goto [ (typeOf x2_v) = $$object_type ] next1 err
-											         next1:  x_cond := hasField (x2_v, "i__hasInstance") 
-															         goto [ x_cond ] next2 err
-											         next2:  x_hi := [x2_v, "i__hasInstance"]  
+											         next1:  x_cond := [x2_v, "@hasInstance"]; 
+															         goto [ x_cond = $$empty ] err next2
+											         next2:  x_hi := [x2_v, "@hasInstance"]  
 												               x_r := x_hi (x2_v, x1_v) with err
      *)
 		let cmds1, x1, errs1, _, _, _ = f e1 in
@@ -1952,13 +1952,13 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let next1 = fresh_label () in 
 		let cmd_goto_ot = SLGuardedGoto (BinOp (TypeOf (Var x2_v), Equal, Literal (Type ObjectType)), next1, err) in 
 		
-		(* next1: x_cond := hasField (x2_v, "i__hasInstance")  *)
+		(* next1: x_cond := hasField (x2_v, "@hasInstance")  *)
 		let x_cond = fresh_var () in 
-		let cmd_hasfield = SLBasic (SHasField (x_cond, Var x2_v, Literal (String hasInstanceName))) in 
+		let cmd_hasfield = SLBasic (SLookup (x_cond, Var x2_v, Literal (String hasInstanceName))) in 
 		
-		(* goto [ x_cond ] next2 err  *)
+		(* goto [ x_cond = $$empty ] err next2 *)
 		let next2 = fresh_label () in 
-		let cmd_goto_xcond = SLGuardedGoto (Var x_cond, next2, err) in 
+		let cmd_goto_xcond = SLGuardedGoto (BinOp (Var x_cond, Equal, Literal Empty), err, next2) in 
 		
 		(* next2:  x_hi := [x2_v, "i__hasInstance"]   *) 
 		let x_hi = fresh_var () in 
@@ -1973,9 +1973,9 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		] @ cmds2 @ [                               (*         cmds2                                              *)
 			(None, None,         cmd_gv_x2);          (*         x2_v := i__getValue (x2) with err                  *)    
 			(None, None,         cmd_goto_ot);        (*         goto [ (typeOf x2_v) = $$object_type ] next1 err   *)
-			(None, Some next1,   cmd_hasfield);       (* next1:  x_cond := hasField (x2_v, "i__hasInstance")        *)
-			(None, None,         cmd_goto_xcond);     (*         goto [ x_cond ] next2 err                          *)
-			(None, Some next2,   cmd_ass_xhi);        (* next2:  x_hi := [x2_v, "i__hasInstance"]                   *)
+			(None, Some next1,   cmd_hasfield);       (* next1:  x_cond := hasField (x2_v, "@hasInstance")          *)
+			(None, None,         cmd_goto_xcond);     (*         goto [ x_cond = $$empty ] err next2                *)
+			(None, Some next2,   cmd_ass_xhi);        (* next2:  x_hi := [x2_v, "@hasInstance"]                     *)
 			(None, None,         cmd_ass_xr)          (*         x_r := x_hi (x2_v, x1_v) with err                  *)
 		] in 
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v; var_se; var_se; x_r ] in 
@@ -3061,7 +3061,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			  finally:  x_ret_1 := PHI(breaks1, x_1, breaks2, x_2)
 		 *)
 		let catch_id = try Js_pre_processing.get_codename e 
-				with _ -> raise (Failure "catch statemetns must be annotated with their respective code names - try - catch - finally") in 
+				with _ -> raise (Failure "catch statements must be annotated with their respective code names - try - catch - finally") in 
 		let cmds12, x_ret_1, errs12, rets12, breaks12, conts12, _ = make_try_catch_cmds e1 (x, e2) catch_id in 
 		cmds12, Var x_ret_1, errs12, rets12, breaks12, conts12
 	

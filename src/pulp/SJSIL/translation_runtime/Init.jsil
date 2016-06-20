@@ -94,6 +94,7 @@ proc create_object_with_call_construct (l, call, construct, len) {
 
 			[xret, "@call"] := call;
 			[xret, "@construct"] := construct;
+			[xret, "@hasInstance"] := "f__hasInstance";
 
 	rlab:	xret := l
 }
@@ -355,7 +356,7 @@ proc setupInitialHeap () {
 			
 			(* Number object *)
 			
-			xret := "create_object_with_call_construct" ($lnum, "Number_construct", 1);
+			xret := "create_object_with_call_construct" ($lnum, "Number_call", "Number_construct", 1);
 
 			[$lnum, "prototype"]         := {{ "d", $lnum_proto, $$f, $$f, $$f }};
 			[$lnum, "MAX_VALUE"]         := {{ "d", $$max_float, $$f, $$f, $$f }};
@@ -376,12 +377,12 @@ proc setupInitialHeap () {
 			[$lnum_proto, "toExponential"]        := {{ "d", $lnp_toExponential, $$t, $$f, $$t }};
 			[$lnum_proto, "toPrecision"]          := {{ "d", $lnp_toPrecision, $$t, $$f, $$t }};
 			
-			xret := "create_object_with_call_construct" ($lnp_toString, "Number_toString", $$empty, 0);
-			xret := "create_object_with_call_construct" ($lnp_toLocaleString, "Number_toLocaleString", $$empty, 0);	
-			xret := "create_object_with_call_construct" ($lnp_valueOf, "Number_valueOf", $$empty, 0);
-			xret := "create_object_with_call_construct" ($lnp_toFixed, "Number_toFixed", $$empty, 1);
-			xret := "create_object_with_call_construct" ($lnp_toExponential, "Number_toExponential", $$empty, 1);
-			xret := "create_object_with_call_construct" ($lnp_toPrecision, "Number_toPrecision", $$empty, 1);
+			xret := "create_object_with_call_construct" ($lnp_toString, "NP_toString", $$empty, 0);
+			xret := "create_object_with_call_construct" ($lnp_toLocaleString, "NP_toLocaleString", $$empty, 0);	
+			xret := "create_object_with_call_construct" ($lnp_valueOf, "NP_valueOf", $$empty, 0);
+			xret := "create_object_with_call_construct" ($lnp_toFixed, "NP_toFixed", $$empty, 1);
+			xret := "create_object_with_call_construct" ($lnp_toExponential, "NP_toExponential", $$empty, 1);
+			xret := "create_object_with_call_construct" ($lnp_toPrecision, "NP_toPrecision", $$empty, 1);
 			
 			
 			

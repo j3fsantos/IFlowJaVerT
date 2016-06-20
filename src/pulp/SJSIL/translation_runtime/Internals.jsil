@@ -858,7 +858,7 @@ proc i__toNumber (v) {
 			goto rlab;
 			
 	io:		goto [typeOf(v) = $$object_type] obj oops;
-	obj:	xret := "i__toPrimitive" (v, "String") with elab;
+	obj:	xret := "i__toPrimitive" (v, "Number") with elab;
 			xret := "i__toNumber" (xret);
 			goto rlab;
 	
@@ -1305,6 +1305,36 @@ proc i__checkAssignmentErrors (v) {
 			
 	te:		xret := "TypeError" ();
 	
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *********** *) 
+(* HASINSTANCE *)
+(* *********** *)
+
+proc f__hasInstance(v1, v2) {
+			goto [not (typeOf (v2) = $$object_type)] throw s2;
+	
+	s2:		g := [v1, "@get"];
+			xret := g (v1, "prototype") with elab;
+			goto [not (typeOf (xret) = $$object_type)] throw s4;
+			
+	s4:		v2 := [v2, "@proto"];
+			goto [v2 = $$null] rf s4c;
+	s4c:	goto [xret = v2] rt s4;
+	
+	rt:		xret := $$t;
+			goto rlab;
+			
+	rf:		xret := $$f;
+	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
 	elab:	skip
 }
 with
