@@ -96,4 +96,27 @@ with
 {
 	ret: xret, rlab;
 	err: xret, elab;
+};
+
+(* *** TOSTRING *** *)
+
+proc SP_toString (xsc, vthis) {
+			goto [typeOf (vthis) = $$string_type] str iostr;
+	str:	xret := vthis;
+			goto rlab;
+			
+	iostr:	goto [typeOf (vthis) = $$object_type] ostr throw;
+	ostr:	xret := [vthis, "@class"];
+			goto [xret = "String"] retstr throw;
+	retstr:	xret := [vthis, "@primitiveValue"];
+			
+	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
 }

@@ -23,21 +23,17 @@ i__toObject					YES
 NOTES
 -----
 
-* DefineOwnProperty doesn't use SameValue yet!
-
 * GO THROUGH INITIAL HEAP TO UNDERSTAND WHERE TO USE SCOPE AND LTHIS
 
 * Match lengths in all!
-
-* DO ARRAY DEFINEOWNPROP
 
 * Object.prototype.isPrototypeOf vs. protoObj?
 
 * Beware of num_... instead of i__to...
 
-* IMPLEMENT + as unary!
-
 * THROWER!
+
+*
 
 
  CALL
@@ -65,15 +61,22 @@ TODO
 
 * Math min and max!
 
-* ERRORS!
 
 INTEGRATION
 -----------
-
-setupInitialHeap
 
 is__Reserved!
 
 protoField instead of proto_field
 
 missing toString for member access
+
+LATEST
+------
+
+* Unicode support in parser - move to latest Google Closure?
+* 
+
+ERRORS
+------
+Native errors have the field name directly, not just in .prototype.
