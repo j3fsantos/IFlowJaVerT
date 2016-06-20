@@ -49,7 +49,7 @@ let toInt32Name                       = "i__toInt32"                     (* 9.5 
 let toUInt32Name                      = "i__toUint32"                    (* 9.6               *)
 let abstractComparisonName            = "i__abstractComparison"          (* 11.8.5            *) 
 let hasInstanceName                   = "@hasInstance"                   (* 15.3.5.3          *)
-let hasPropertyName                   = "o__hasProperty"
+let hasPropertyName                   = "o__hasProperty"                 (* 8.12.6            *)
 let abstractEqualityComparisonName    = "i__abstractEquality"            (* 11.9.3            *) 
 let strictEqualityComparisonName      = "i__strictEquality"              (* 11.9.6            *) 
 let defineOwnPropertyName             = "o__defineOwnProperty"           (* 8.12.9            *) 
@@ -354,7 +354,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 	let make_cae_call x err = 
 		let x_cae = fresh_var () in 
 		x_cae,  SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ x ], Some err) in
-	
+			
 	let make_empty_ass () = 
 		let x = fresh_var () in 
 		let empty_ass = SLBasic (SAssignment (x, (Literal Empty))) in
@@ -834,43 +834,43 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 					x_r := v-ref(x_1, "x")
 	
 		Not found in the closure clarification table: Phi(fid_1, x) = bot
-						x_1 := protoField($lg, "x"); 
-						goto [x_1 = $$undefined] then else
-			then: x_then := v-ref($$undefined, "x"); 
+						x_1 := o__hasProperty($lg, "x") with err; 
+						goto [x_1] then else
+			then: x_then := v-ref($lg, "x"); 
 		      	goto end; 
-			else: x_else := v-ref($lg, "x"); 
+			else: x_else := v-ref($$undefined, "x"); 
 			end:  x_r = PHI(x_then, x_else)    	 
  		*)
 		
 		let translate_var_not_found v = 
-			(* 	x_1 := protoField($lg, "x"); *) 
-			let x_1 = fresh_var () in 
-			let cmd_ass_x1 = SLBasic (SProtoField (x_1, Literal (Loc locGlobName), Literal (String v))) in 
+			(* 	x_1 := o__hasProperty($lg, "x") with err *) 
+			let x_1 = fresh_var () in  
+		  let cmd_ass_x1 = SLCall (x_1, Literal (String hasPropertyName), [ Literal (Loc locGlobName); Literal (String v) ], Some err) in	
 			
-			(* goto [x_1 = $$undefined] then else *)
+			(* goto [x_1] then else *)
 			let then_lab = fresh_then_label () in 
 			let else_lab = fresh_else_label () in 
 			let end_lab = fresh_end_label () in 
-			let cmd_goto_unres_ref = SLGuardedGoto (BinOp (Var x_1, Equal, Literal Undefined), then_lab, else_lab) in 
+			let cmd_goto_unres_ref = SLGuardedGoto (Var x_1, then_lab, else_lab) in 
+			
+			(* x_then := v-ref($lg, "x");   *) 
+			let x_then = fresh_var () in 
+			let cmd_ass_xthen = SLBasic (SAssignment (x_then, VRef (Literal (Loc locGlobName), Literal (String v))))  in 
 			
 			(* x_then := v-ref($$undefined, "x");  *) 
-			let x_then = fresh_var () in 
-			let cmd_ass_xthen = SLBasic (SAssignment (x_then, VRef (Literal Undefined, Literal (String v)))) in 
-			
-			(* x_else := v-ref($lg, "x");   *) 
 			let x_else = fresh_var () in 
-			let cmd_ass_xelse = SLBasic (SAssignment (x_else, VRef (Literal (Loc locGlobName), Literal (String v)))) in
+			let cmd_ass_xelse = SLBasic (SAssignment (x_else, VRef (Literal Undefined, Literal (String v)))) in
 			
 			(* x_r = PHI(x_then, x_else)  *)
 			let x_r = fresh_var () in  
 		 	let cmd_ass_xr = SLBasic (SPhiAssignment (x_r, [| Some x_then; Some x_else |])) in 
 			
 			let cmds = [
-				(None, None,          cmd_ass_x1);          (*       x_1 := protoField($lg, "x")                 *) 
-				(None, None,          cmd_goto_unres_ref);  (*       goto [x_1 = $$undefined] then else          *)
-				(None, Some then_lab, cmd_ass_xthen);       (* then: x_then := v-ref($$undefined, "x")           *) 
+				(None, None,          cmd_ass_x1);          (*       x_1 := o__hasProperty($lg, "x") with err    *) 
+				(None, None,          cmd_goto_unres_ref);  (*       goto [x_1] then else                        *)
+				(None, Some then_lab, cmd_ass_xthen);       (* then: x_then := v-ref($lg, "x")                   *) 
 				(None, None,          SLGoto end_lab);      (*       goto end                                    *)       
-				(None, Some else_lab, cmd_ass_xelse);       (* else: x_else := v-ref($lg, "x")                   *)
+				(None, Some else_lab, cmd_ass_xelse);       (* else: x_else := v-ref($$undefined, "x")           *)
 				(None, Some end_lab,  cmd_ass_xr)           (*       x_r = PHI(x_then, x_else)                   *)                                       
 			] in 
 			cmds, Var x_r, [], [], [], [] in
@@ -2967,8 +2967,6 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		] in 
 		
 		cmds, Literal Empty, errs @ [ x_v; x_v ], [], [], []
-		
-	
 	
 	
 	| Parser_syntax.Try (e1, Some (x, e2), Some e3) ->
@@ -3077,7 +3075,66 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let cmds, x_f = translate_function_literal f_id params in 
 		cmds, Var x_f, [], [], [], []
 	
+	
+	| Parser_syntax.Switch (e, xs) ->
+		(**
+      Section 
+			
+			a_case = e_c, e_s
+			C(e_c) = cmds1, x1
+			C(e_s) = cmds2, x2 
+			--------------------------------------------------------
+			C_case ( a_case, x_prev_found, x_switch_guard ) = 
+				           x_found_1 := false
+				           goto [ not x_prev_found_a ] then1 next1 
+				then1:     cmds1
+				           x1_v := getValue (x1) with err
+								   goto [ x1_v = x_switch_guard ] next1 end_case
+				next1:     x_found_2 := true
+				           cmds2
+				end_case:  x_found_3 := PHI(x_found_a_1, x_found_a_2) 
+									   
+			
+			
+			C_case ( a_case ) = cmds1, x_prev_1
+			C_a_cases ( a_cases ) = cmds2, x_prev_2  
+			--------------------------------------------------------
+			C_cases ( a_case :: a_cases, x_prev, x_switch_guard ) = 
+				           cmds1 
+									 cmds2 
+			
+									
+			C(s) = cmds_def, x_def
+			C(b_stmt_i) = cmds_i, x_i, for all b_stmt_i \in b_stmts
+			---------------------------------------------------------
+			C_default ( s, b_stmts, x_found_b, breaks) = 
+					            cmds_def
+									    goto [ not (x_found_b) ] next end_switch
+				  next:       cmds_1
+					            ... 
+									    cmds_n
+				  end_switch: x_r := PHI(breaks, x_def, x_found_b) 
 
+										
+				 
+			C(e) = cmds_guard, x_guard
+			C_cases (a_cases, x_found, x_guard_v) = cmds_a, x_found_a, x_a 
+			C_cases (b_cases, x_found_a, x_guard_v) = cmds_b, x_found_b, x_b 
+			C_defautl (default_case, b_stmts(b_cases), x_found_b) = cmds_default
+			------------------------------------------------------
+		  C(switch(e) { a_cases, default_case, b_cases} =
+				            cmds_guard 
+										x_guard_v := i__getValue (x_guard) with err  
+				            x_found := false 
+										cmds_a 
+										cmds_b 
+										cmds_default 	
+		 
+     *)
+		[], Literal Empty, [], [], [], [] 
+	
+	
+	
 	| Parser_syntax.NamedFun (_, n, params, e_body) -> 
 		(** Section 13
 			x_sc := copy_scope_chain_obj (x_scope, {{main, fid1, ..., fidn }})
@@ -3266,9 +3323,4 @@ let js2jsil e =
 	(* let main_str = SSyntax_Print.string_of_lprocedure jsil_proc_main in 
 	Printf.printf "main code:\n %s\n" main_str; *)
 	
-	Some js2jsil_imports, jsil_prog
-
-	
-	
-	
-	
+	Some js2jsil_imports, jsil_prog	
