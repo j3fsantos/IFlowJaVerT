@@ -561,12 +561,14 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 			then
 				let obj = SHeap.find heap l in ();
 				SHeap.replace obj f v_e3;
+				if (!verbose) then Printf.printf "Mutation: [%s, %s] = %s \n" (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false) (SSyntax_Print.string_of_literal v_e3 false);	
 				v_e3
 			else 
 				let obj = SHeap.create 1021 in
 				SHeap.add obj proto_f Null;
 				SHeap.add heap l obj;
 				SHeap.replace obj f v_e3;
+				if (!verbose) then Printf.printf "Mutation: [%s, %s] = %s \n" (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false) (SSyntax_Print.string_of_literal v_e3 false);
 				v_e3
 		| _, _ ->  raise (Failure "Illegal field inspection"))
 	

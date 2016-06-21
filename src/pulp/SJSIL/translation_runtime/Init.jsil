@@ -152,6 +152,13 @@ proc setupInitialHeap () {
   			
   			
   			
+  			
+  			
+  			
+  			
+  			
+  			
+  			
   			(* Object object *)
     			
   			xret := "create_object_with_call_construct" ($lobj, "Object_call", "Object_construct", 1);
@@ -172,6 +179,7 @@ proc setupInitialHeap () {
 			[$lobj, "keys"]                     := {{ "d", $lobj_keys, $$t, $$f, $$t }};
 			
 			xret := "create_object_with_call_construct" ($lobj_getPrototypeOf, "Object_getPrototypeOf", $$empty, 1);
+  			xret := "create_object_with_call_construct" ($lobj_getOwnPropertyDescriptor, "Object_getOwnPropertyDescriptor", $$empty, 2);
   			xret := "create_object_with_call_construct" ($lobj_getOwnPropertyNames, "Object_getOwnPropertyNames", $$empty, 2);
 			xret := "create_object_with_call_construct" ($lobj_create, "Object_create", $$empty, 1);
   			xret := "create_object_with_call_construct" ($lobj_defineProperty, "Object_defineProperty", $$empty, 3);
@@ -205,6 +213,13 @@ proc setupInitialHeap () {
   			
   			
   			
+  			
+  			
+  			
+  			
+  			
+  			
+  			
   			(* Function object *)
     			
   			xret := "create_object_with_call_construct" ($lfun, $$empty, $$empty, 1);
@@ -216,6 +231,13 @@ proc setupInitialHeap () {
    			xret := "create_default_object" ($lfun_proto, $lobj_proto, "Function", 0);
   			
   			[$lfun_proto, "constructor"]          := {{ "d", $lfun, $$t, $$f, $$t }};
+  			
+  			
+  			
+  			
+  			
+  			
+  			
   			
   			
   			
@@ -279,6 +301,13 @@ proc setupInitialHeap () {
 
 
 
+
+
+
+
+
+
+
 			(* String object *)
 			
 			xret := "create_object_with_call_construct" ($lstr, "String_call", "String_construct", 1);
@@ -292,6 +321,7 @@ proc setupInitialHeap () {
 			
 			xret := "create_default_object" ($lstr_proto, $lobj_proto, "String", $$t);
 			
+			[$lstr_proto, "@primitiveValue"]   := "";
 			[$lstr_proto, "constructor"]       := {{ "d", $lstr, $$t, $$f, $$t }};
 			[$lstr_proto, "toString"]          := {{ "d", $lsp_toString, $$t, $$f, $$t }};
 			[$lstr_proto, "valueOf"]           := {{ "d", $lsp_valueOf, $$t, $$f, $$t }};
@@ -335,6 +365,13 @@ proc setupInitialHeap () {
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
 			(* Boolean object *)
 			
 			xret := "create_object_with_call_construct" ($lbool, "Boolean_call", "Boolean_construct", 1);
@@ -351,6 +388,13 @@ proc setupInitialHeap () {
 			
 			xret := "create_object_with_call_construct" ($lbp_toString, "BP_toString", $$empty, 0);
 			xret := "create_object_with_call_construct" ($lbp_valueOf, "BP_valueOf", $$empty, 0);		
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -383,6 +427,13 @@ proc setupInitialHeap () {
 			xret := "create_object_with_call_construct" ($lnp_toFixed, "NP_toFixed", $$empty, 1);
 			xret := "create_object_with_call_construct" ($lnp_toExponential, "NP_toExponential", $$empty, 1);
 			xret := "create_object_with_call_construct" ($lnp_toPrecision, "NP_toPrecision", $$empty, 1);
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			
@@ -436,6 +487,210 @@ proc setupInitialHeap () {
 			xret := "create_object_with_call_construct" ($lmath_sin, "M_sin", $$empty, 1);
 			xret := "create_object_with_call_construct" ($lmath_sqrt, "M_sqrt", $$empty, 1);	
 			xret := "create_object_with_call_construct" ($lmath_tan, "M_tan", $$empty, 1);
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			(* Date object *)
+			
+			xret := "create_object_with_call_construct" ($ldate, "Date_call", "Date_construct", 7);
+
+			[$lnum, "prototype"] := {{ "d", $ldt_proto, $$f, $$f, $$f }};
+			[$lnum, "parse"]     := {{ "d", $ldt_parse, $$t, $$f, $$t }};
+			[$lnum, "UTC"]       := {{ "d", $ldt_UTC, $$t, $$f, $$t }};
+			[$lnum, "now"]       := {{ "d", $ldt_, $$t, $$f, $$t }};
+
+			xret := "create_object_with_call_construct" ($ldt_parse, "Date_parse", $$empty, 1);
+			xret := "create_object_with_call_construct" ($ldt_UTC, "Date_UTC", $$empty, 7);	
+			xret := "create_object_with_call_construct" ($ldt_, "Date_now", $$empty, 0);
+					
+			(* Date.prototype *)
+			
+			xret := "create_default_object" ($ldt_proto, $lobj_proto, "Date", $$t);
+			
+			[$ldt_proto, "constructor"]          := {{ "d", $ldate, $$t, $$f, $$t }};
+			[$ldt_proto, "toString"]             := {{ "d", $ldp_toString, $$t, $$f, $$t }};
+			[$ldt_proto, "toDateString"]         := {{ "d", $ldp_toDateString, $$t, $$f, $$t }};
+			[$ldt_proto, "toTimeString"]         := {{ "d", $ldp_toTimeString, $$t, $$f, $$t }};
+			[$ldt_proto, "toLocaleString"]       := {{ "d", $ldp_toLocaleString, $$t, $$f, $$t }};
+			[$ldt_proto, "toLocaleDateString"]   := {{ "d", $ldp_toLocaleDateString, $$t, $$f, $$t }};
+			[$ldt_proto, "toLocaleTimeString"]   := {{ "d", $ldp_toLocaleTimeString, $$t, $$f, $$t }};
+			[$ldt_proto, "valueOf"]              := {{ "d", $ldp_valueOf, $$t, $$f, $$t }};
+			[$ldt_proto, "getTime"]              := {{ "d", $ldp_getTime, $$t, $$f, $$t }};
+			[$ldt_proto, "getFullYear"]          := {{ "d", $ldp_getFullYear, $$t, $$f, $$t }};			
+			[$ldt_proto, "getUTCFullYear"]       := {{ "d", $ldp_getUTCFullYear, $$t, $$f, $$t }};			
+			[$ldt_proto, "getMonth"]             := {{ "d", $ldp_getMonth, $$t, $$f, $$t }};			
+			[$ldt_proto, "getUTCMonth"]          := {{ "d", $ldp_getUTCMonth, $$t, $$f, $$t }};			
+			[$ldt_proto, "getDate"]              := {{ "d", $ldp_getDate, $$t, $$f, $$t }};			
+			[$ldt_proto, "getUTCDate"]           := {{ "d", $ldp_getUTCDate, $$t, $$f, $$t }};			
+			[$ldt_proto, "getDay"]               := {{ "d", $ldp_getDay, $$t, $$f, $$t }};			
+			[$ldt_proto, "getUTCDay"]            := {{ "d", $ldp_getUTCDay, $$t, $$f, $$t }};			
+			[$ldt_proto, "getHours"]             := {{ "d", $ldp_getHours, $$t, $$f, $$t }};			
+			[$ldt_proto, "getUTCHours"]          := {{ "d", $ldp_getUTCHours, $$t, $$f, $$t }};			
+			[$ldt_proto, "getMinutes"]           := {{ "d", $ldp_getMinutes, $$t, $$f, $$t }};			
+			[$ldt_proto, "getUTCMinutes"]        := {{ "d", $ldp_getUTCMinutes, $$t, $$f, $$t }};			
+			[$ldt_proto, "getSeconds"]           := {{ "d", $ldp_getSeconds, $$t, $$f, $$t }};			
+			[$ldt_proto, "getUTCSeconds"]        := {{ "d", $ldp_getUTCSeconds, $$t, $$f, $$t }};			
+			[$ldt_proto, "getMilliseconds"]      := {{ "d", $ldp_getMilliseconds, $$t, $$f, $$t }};			
+			[$ldt_proto, "getUTCMilliseconds"]   := {{ "d", $ldp_getUTCMilliseconds, $$t, $$f, $$t }};			
+			[$ldt_proto, "getTimezoneOffset"]    := {{ "d", $ldp_getTimezoneOffset, $$t, $$f, $$t }};			
+			[$ldt_proto, "setTime"]              := {{ "d", $ldp_setTime, $$t, $$f, $$t }};
+			[$ldt_proto, "setFullYear"]          := {{ "d", $ldp_setFullYear, $$t, $$f, $$t }};			
+			[$ldt_proto, "setUTCFullYear"]       := {{ "d", $ldp_setUTCFullYear, $$t, $$f, $$t }};			
+			[$ldt_proto, "setMonth"]             := {{ "d", $ldp_setMonth, $$t, $$f, $$t }};			
+			[$ldt_proto, "setUTCMonth"]          := {{ "d", $ldp_setUTCMonth, $$t, $$f, $$t }};			
+			[$ldt_proto, "setDate"]              := {{ "d", $ldp_setDate, $$t, $$f, $$t }};			
+			[$ldt_proto, "setUTCDate"]           := {{ "d", $ldp_setUTCDate, $$t, $$f, $$t }};			
+			[$ldt_proto, "setDay"]               := {{ "d", $ldp_setDay, $$t, $$f, $$t }};			
+			[$ldt_proto, "setUTCDay"]            := {{ "d", $ldp_setUTCDay, $$t, $$f, $$t }};			
+			[$ldt_proto, "setHours"]             := {{ "d", $ldp_setHours, $$t, $$f, $$t }};			
+			[$ldt_proto, "setUTCHours"]          := {{ "d", $ldp_setUTCHours, $$t, $$f, $$t }};			
+			[$ldt_proto, "setMinutes"]           := {{ "d", $ldp_setMinutes, $$t, $$f, $$t }};			
+			[$ldt_proto, "setUTCMinutes"]        := {{ "d", $ldp_setUTCMinutes, $$t, $$f, $$t }};			
+			[$ldt_proto, "setSeconds"]           := {{ "d", $ldp_setSeconds, $$t, $$f, $$t }};			
+			[$ldt_proto, "setUTCSeconds"]        := {{ "d", $ldp_setUTCSeconds, $$t, $$f, $$t }};			
+			[$ldt_proto, "setMilliseconds"]      := {{ "d", $ldp_setMilliseconds, $$t, $$f, $$t }};			
+			[$ldt_proto, "setUTCMilliseconds"]   := {{ "d", $ldp_setUTCMilliseconds, $$t, $$f, $$t }};			
+			[$ldt_proto, "toUTCString"]          := {{ "d", $ldp_toUTCString, $$t, $$f, $$t }};			
+			[$ldt_proto, "toISOString"]          := {{ "d", $ldp_toISOString, $$t, $$f, $$t }};			
+			[$ldt_proto, "toJSON"]               := {{ "d", $ldp_toJSON, $$t, $$f, $$t }};					
+			
+			xret := "create_object_with_call_construct" ($ldp_toString, "DP_toString", $$empty, 0);
+			xret := "create_object_with_call_construct" ($ldp_toDateString, "DP_toDateString", $$empty, 0);
+			xret := "create_object_with_call_construct" ($ldp_toTimeString, "DP_toTimeString", $$empty, 0);
+			xret := "create_object_with_call_construct" ($ldp_toLocaleString, "DP_toLocaleString", $$empty, 0);
+			xret := "create_object_with_call_construct" ($ldp_toLocaleDateString, "DP_toLocaleDateString", $$empty, 0);
+			xret := "create_object_with_call_construct" ($ldp_toLocaleTimeString, "DP_toLocaleTimeString", $$empty, 0);
+			xret := "create_object_with_call_construct" ($ldp_valueOf, "DP_valueOf", $$empty, 0);
+			xret := "create_object_with_call_construct" ($ldp_getTime, "DP_getTime", $$empty, 0);
+			xret := "create_object_with_call_construct" ($ldp_getFullYear, "DP_getFullYear", $$empty, 0);
+			xret := "create_object_with_call_construct" ($ldp_getUTCFullYear, "DP_getUTCFullYear", $$empty, 0);
+			xret := "create_object_with_call_construct" ($ldp_getMonth, "DP_getMonth", $$empty, 0);
+			xret := "create_object_with_call_construct" ($ldp_getUTCMonth, "DP_getUTCMonth", $$empty, 0);
+			xret := "create_object_with_call_construct" ($ldp_getDate, "DP_getDate", $$empty, 0);
+			xret := "create_object_with_call_construct" ($ldp_getUTCDate, "DP_getUTCDate", $$empty, 0);
+			xret := "create_object_with_call_construct" ($ldp_getDay, "DP_getDay", $$empty, 0);
+			xret := "create_object_with_call_construct" ($ldp_getUTCDay, "DP_getUTCDay", $$empty, 0);
+			xret := "create_object_with_call_construct" ($ldp_getHours, "DP_getHours", $$empty, 0);
+			xret := "create_object_with_call_construct" ($ldp_getUTCHours, "DP_getUTCHours", $$empty, 0);			
+			xret := "create_object_with_call_construct" ($ldp_getMinutes, "DP_getMinutes", $$empty, 0);
+			xret := "create_object_with_call_construct" ($ldp_getUTCMinutes, "DP_getUTCMinutes", $$empty, 0);
+			xret := "create_object_with_call_construct" ($ldp_getSeconds, "DP_getSeconds", $$empty, 0);
+			xret := "create_object_with_call_construct" ($ldp_getUTCSeconds, "DP_getUTCSeconds", $$empty, 0);
+			xret := "create_object_with_call_construct" ($ldp_getMilliseconds, "DP_getMilliseconds", $$empty, 0);
+			xret := "create_object_with_call_construct" ($ldp_getUTCMilliseconds, "DP_getUTCMilliseconds", $$empty, 0);
+			xret := "create_object_with_call_construct" ($ldp_getTimezoneOffset, "DP_getTimezoneOffset", $$empty, 0);
+			xret := "create_object_with_call_construct" ($ldp_setTime, "DP_setTime", $$empty, 1);
+			xret := "create_object_with_call_construct" ($ldp_setFullYear, "DP_setFullYear", $$empty, 3);
+			xret := "create_object_with_call_construct" ($ldp_setUTCFullYear, "DP_setUTCFullYear", $$empty, 3);
+			xret := "create_object_with_call_construct" ($ldp_setMonth, "DP_setMonth", $$empty, 2);
+			xret := "create_object_with_call_construct" ($ldp_setUTCMonth, "DP_setUTCMonth", $$empty, 2);
+			xret := "create_object_with_call_construct" ($ldp_setDate, "DP_setDate", $$empty, 1);
+			xret := "create_object_with_call_construct" ($ldp_setUTCDate, "DP_setUTCDate", $$empty, 1);
+			xret := "create_object_with_call_construct" ($ldp_setDay, "DP_setDay", $$empty, 5);
+			xret := "create_object_with_call_construct" ($ldp_setUTCDay, "DP_setUTCDay", $$empty, 5);
+			xret := "create_object_with_call_construct" ($ldp_setHours, "DP_setHours", $$empty, 4);
+			xret := "create_object_with_call_construct" ($ldp_setUTCHours, "DP_setUTCHours", $$empty, 4);
+			xret := "create_object_with_call_construct" ($ldp_setMinutes, "DP_setMinutes", $$empty, 3);
+			xret := "create_object_with_call_construct" ($ldp_setUTCMinutes, "DP_setUTCMinutes", $$empty, 3);
+			xret := "create_object_with_call_construct" ($ldp_setSeconds, "DP_setSeconds", $$empty, 2);			
+			xret := "create_object_with_call_construct" ($ldp_setUTCSeconds, "DP_setUTCSeconds", $$empty, 2);
+			xret := "create_object_with_call_construct" ($ldp_setMilliseconds, "DP_setMilliseconds", $$empty, 1);
+			xret := "create_object_with_call_construct" ($ldp_setUTCMilliseconds, "DP_setUTCMilliseconds", $$empty, 1);
+			xret := "create_object_with_call_construct" ($ldp_toUTCString, "DP_toUTCString", $$empty, 0);
+			xret := "create_object_with_call_construct" ($ldp_toISOString, "DP_toISOString", $$empty, 0);
+			xret := "create_object_with_call_construct" ($ldp_toJSON, "DP_toJSON", $$empty, 1);
+
+
+
+
+			
+			
+			
+			
+			
+			
+			(* RegExp object *)
+			
+			xret := "create_object_with_call_construct" ($lnum, "Number_call", "Number_construct", 1);
+
+			[$lnum, "prototype"]         := {{ "d", $lnum_proto, $$f, $$f, $$f }};
+			[$lnum, "MAX_VALUE"]         := {{ "d", $$max_float, $$f, $$f, $$f }};
+			[$lnum, "MIN_VALUE"]         := {{ "d", $$min_float, $$f, $$f, $$f }};
+			[$lnum, "NaN"]               := {{ "d", nan, $$f, $$f, $$f }};
+			[$lnum, "POSITIVE_INFINITY"] := {{ "d", inf, $$f, $$f, $$f }};
+			[$lnum, "NEGATIVE_INFINITY"] := {{ "d", -inf, $$f, $$f, $$f }};
+			
+			(* Number.prototype *)
+			
+			xret := "create_default_object" ($lnum_proto, $lobj_proto, "Number", $$t);
+			
+			[$lnum_proto, "constructor"]          := {{ "d", $lnum, $$t, $$f, $$t }};
+			[$lnum_proto, "toString"]             := {{ "d", $lnp_toString, $$t, $$f, $$t }};
+			[$lnum_proto, "toLocaleString"]       := {{ "d", $lnp_toLocaleString, $$t, $$f, $$t }};
+			[$lnum_proto, "valueOf"]              := {{ "d", $lnp_valueOf, $$t, $$f, $$t }};
+			[$lnum_proto, "toFixed"]              := {{ "d", $lnp_toFixed, $$t, $$f, $$t }};
+			[$lnum_proto, "toExponential"]        := {{ "d", $lnp_toExponential, $$t, $$f, $$t }};
+			[$lnum_proto, "toPrecision"]          := {{ "d", $lnp_toPrecision, $$t, $$f, $$t }};
+			
+			xret := "create_object_with_call_construct" ($lnp_toString, "NP_toString", $$empty, 0);
+			xret := "create_object_with_call_construct" ($lnp_toLocaleString, "NP_toLocaleString", $$empty, 0);	
+			xret := "create_object_with_call_construct" ($lnp_valueOf, "NP_valueOf", $$empty, 0);
+			xret := "create_object_with_call_construct" ($lnp_toFixed, "NP_toFixed", $$empty, 1);
+			xret := "create_object_with_call_construct" ($lnp_toExponential, "NP_toExponential", $$empty, 1);
+			xret := "create_object_with_call_construct" ($lnp_toPrecision, "NP_toPrecision", $$empty, 1);
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			(* JSON object *)
+			
+			xret := "create_object_with_call_construct" ($lnum, "Number_call", "Number_construct", 1);
+
+			[$lnum, "prototype"]         := {{ "d", $lnum_proto, $$f, $$f, $$f }};
+			[$lnum, "MAX_VALUE"]         := {{ "d", $$max_float, $$f, $$f, $$f }};
+			[$lnum, "MIN_VALUE"]         := {{ "d", $$min_float, $$f, $$f, $$f }};
+			[$lnum, "NaN"]               := {{ "d", nan, $$f, $$f, $$f }};
+			[$lnum, "POSITIVE_INFINITY"] := {{ "d", inf, $$f, $$f, $$f }};
+			[$lnum, "NEGATIVE_INFINITY"] := {{ "d", -inf, $$f, $$f, $$f }};
+			
+			(* Number.prototype *)
+			
+			xret := "create_default_object" ($lnum_proto, $lobj_proto, "Number", $$t);
+			
+			[$lnum_proto, "constructor"]          := {{ "d", $lnum, $$t, $$f, $$t }};
+			[$lnum_proto, "toString"]             := {{ "d", $lnp_toString, $$t, $$f, $$t }};
+			[$lnum_proto, "toLocaleString"]       := {{ "d", $lnp_toLocaleString, $$t, $$f, $$t }};
+			[$lnum_proto, "valueOf"]              := {{ "d", $lnp_valueOf, $$t, $$f, $$t }};
+			[$lnum_proto, "toFixed"]              := {{ "d", $lnp_toFixed, $$t, $$f, $$t }};
+			[$lnum_proto, "toExponential"]        := {{ "d", $lnp_toExponential, $$t, $$f, $$t }};
+			[$lnum_proto, "toPrecision"]          := {{ "d", $lnp_toPrecision, $$t, $$f, $$t }};
+			
+			xret := "create_object_with_call_construct" ($lnp_toString, "NP_toString", $$empty, 0);
+			xret := "create_object_with_call_construct" ($lnp_toLocaleString, "NP_toLocaleString", $$empty, 0);	
+			xret := "create_object_with_call_construct" ($lnp_valueOf, "NP_valueOf", $$empty, 0);
+			xret := "create_object_with_call_construct" ($lnp_toFixed, "NP_toFixed", $$empty, 1);
+			xret := "create_object_with_call_construct" ($lnp_toExponential, "NP_toExponential", $$empty, 1);
+			xret := "create_object_with_call_construct" ($lnp_toPrecision, "NP_toPrecision", $$empty, 1);
+			
+			
+			
+			
+			
+			
+			
 			
 			
 			

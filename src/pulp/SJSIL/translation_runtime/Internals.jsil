@@ -150,7 +150,7 @@ proc o__put (l, prop, value, throw) {
     rlab:   skip;
     
     reject: goto [throw] tt remp;
-    tt:     xerr := "TypeError" ();
+    tt:     xret := "TypeError" ();
     elab:   skip
 }
 with
@@ -197,7 +197,7 @@ proc o__deleteProperty (l, prop, throw) {
 	
     reject: goto [throw] tt df;
     
-    tt:     xerr := "TypeError" ();
+    tt:     xret := "TypeError" ();
     elab:   skip
 }
 with
@@ -357,7 +357,7 @@ proc o__defineOwnProperty (l, prop, desc, throw) {
 	l10:	goto [cdd = $$t] l10a l11;
 	
 	l10a:	goto [cc = $$f] l10ai l12;
-	l10ai:	goto [(not (dw = $$empty)) and (not (cws = dw))] reject l10aii;
+	l10ai:	goto [(not (dw = $$empty)) and ((cws = $$f) and (dw = $$t))] reject l10aii;
 	l10aii:	t1 := "i__sameValue" (cvg, dv);
 			goto [(cws = $$f) and (not (dv = $$empty)) and (not t1)] reject l12;
 	

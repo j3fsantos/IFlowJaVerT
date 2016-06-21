@@ -873,7 +873,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 				(None, Some else_lab, cmd_ass_xelse);       (* else: x_else := v-ref($$undefined, "x")           *)
 				(None, Some end_lab,  cmd_ass_xr)           (*       x_r = PHI(x_then, x_else)                   *)                                       
 			] in 
-			cmds, Var x_r, [], [], [], [] in
+			cmds, Var x_r, [ x_1 ], [], [], [] in
 			
 		let translate_var_found v f_id = 
 			(* x_1 := [__scope_chain, fid]; *)
