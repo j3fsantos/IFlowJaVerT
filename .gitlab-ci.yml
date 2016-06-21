@@ -49,10 +49,8 @@ condor:
   - cp -R lib/runtests tests/test262 environment run.sh $VOLDIR
   - cd $VOLDIR
   script:
-  - './runtests/runtests.py --interp generic --interp_path ./run.sh --executor condor --batch_size 1 --condor_log --db postgres --db_pg_schema jsil --interp_version $CI_BUILD_REF --title "$CI_BUILD_REF_NAME autobuild: $CI_BUILD_REF_SUBJ" --timeout 300 test262/test'
-  - condor_wait job_*_condor_*.log
-  - mkdir $CI_PROJECT_DIR/results
-  - 'find test262/test \( -name "*.jsil" -or -name "*.verbose" \) -exec cp -t $CI_PROJECT_DIR/results --parents {} +'
+  - 'runtests/runtests.py --interp generic --interp_path ./run.sh --executor condor --batch_size 1 --condor_log --db postgres --db_pg_schema jsil --interp_version $CI_BUILD_REF --title "$CI_BUILD_REF_NAME autobuild: $CI_BUILD_REF_SUBJ" --timeout 300 test262/test'
+  - runtests/scripts/condor-wait.sh
   after_script:
   - lib/runtests/scripts/clean-voldir.sh JavaScriptVerification
   stage: integration
@@ -60,9 +58,6 @@ condor:
   - condor
   except:
   - triggers
-  artifacts:
-    paths:
-    - results
 
 
 git-sync:
