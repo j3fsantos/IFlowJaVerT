@@ -89,3 +89,9 @@ expressions/multiplication - 1 missing due to eval, 1 non-strict
 expressions/greater_than - 1 missing due to eval, 1 non-strict
 expressions/assignment - lots of eval, lots of unimplemented stuff
 expressions/instanceof - 
+
+THROW
+-----
+return inside try goes to finally
+delayed shit
+var evaluation needs getvalue
