@@ -542,8 +542,8 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (SSyntax_Print.string_of_literal v_e1 false)))) in
 			let v = (try SHeap.find obj f with
 				| _ -> 
-					let final_heap_str = SSyntax_Print.sexpr_of_heap heap in 
-					Printf.printf "Final heap: \n%s\n" final_heap_str;
+					(* let final_heap_str = SSyntax_Print.sexpr_of_heap heap in 
+					Printf.printf "Final heap: \n%s\n" final_heap_str; *)
 					raise (Failure (Printf.sprintf "Looking up inexistent field: [%s, %s]" (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false)))) in
 	
 			Hashtbl.replace store x v; 
