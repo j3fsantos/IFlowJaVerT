@@ -237,3 +237,5 @@ function isEqual(num1, num2)
         return(Math.abs(num1 - num2) <= prec);
         //return(num1 === num2);
 }
+
+var $MAX_ITERATIONS = 100000;

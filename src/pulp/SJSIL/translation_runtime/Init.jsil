@@ -618,34 +618,23 @@ proc setupInitialHeap () {
 			
 			(* RegExp object *)
 			
-			xret := "create_object_with_call_construct" ($lnum, "Number_call", "Number_construct", 1);
+			xret := "create_object_with_call_construct" ($lregexp, "RegExp_call", "RegExp_construct", 2);
 
-			[$lnum, "prototype"]         := {{ "d", $lnum_proto, $$f, $$f, $$f }};
-			[$lnum, "MAX_VALUE"]         := {{ "d", $$max_float, $$f, $$f, $$f }};
-			[$lnum, "MIN_VALUE"]         := {{ "d", $$min_float, $$f, $$f, $$f }};
-			[$lnum, "NaN"]               := {{ "d", nan, $$f, $$f, $$f }};
-			[$lnum, "POSITIVE_INFINITY"] := {{ "d", inf, $$f, $$f, $$f }};
-			[$lnum, "NEGATIVE_INFINITY"] := {{ "d", -inf, $$f, $$f, $$f }};
+			[$lregexp, "prototype"]      := {{ "d", $lre_proto, $$f, $$f, $$f }};
 			
-			(* Number.prototype *)
+			(* RegExp.prototype *)
 			
-			xret := "create_default_object" ($lnum_proto, $lobj_proto, "Number", $$t);
+			xret := "create_default_object" ($lre_proto, $lobj_proto, "RegExp", $$t);
 			
-			[$lnum_proto, "constructor"]          := {{ "d", $lnum, $$t, $$f, $$t }};
-			[$lnum_proto, "toString"]             := {{ "d", $lnp_toString, $$t, $$f, $$t }};
-			[$lnum_proto, "toLocaleString"]       := {{ "d", $lnp_toLocaleString, $$t, $$f, $$t }};
-			[$lnum_proto, "valueOf"]              := {{ "d", $lnp_valueOf, $$t, $$f, $$t }};
-			[$lnum_proto, "toFixed"]              := {{ "d", $lnp_toFixed, $$t, $$f, $$t }};
-			[$lnum_proto, "toExponential"]        := {{ "d", $lnp_toExponential, $$t, $$f, $$t }};
-			[$lnum_proto, "toPrecision"]          := {{ "d", $lnp_toPrecision, $$t, $$f, $$t }};
+			[$lre_proto, "constructor"] := {{ "d", $lregexp, $$t, $$f, $$t }};
+			[$lre_proto, "exec"]        := {{ "d", $lrp_exec, $$t, $$f, $$t }};
+			[$lre_proto, "test"]        := {{ "d", $lrp_test, $$t, $$f, $$t }};
+			[$lre_proto, "toString"]    := {{ "d", $lrp_toString, $$t, $$f, $$t }};
 			
-			xret := "create_object_with_call_construct" ($lnp_toString, "NP_toString", $$empty, 0);
-			xret := "create_object_with_call_construct" ($lnp_toLocaleString, "NP_toLocaleString", $$empty, 0);	
-			xret := "create_object_with_call_construct" ($lnp_valueOf, "NP_valueOf", $$empty, 0);
-			xret := "create_object_with_call_construct" ($lnp_toFixed, "NP_toFixed", $$empty, 1);
-			xret := "create_object_with_call_construct" ($lnp_toExponential, "NP_toExponential", $$empty, 1);
-			xret := "create_object_with_call_construct" ($lnp_toPrecision, "NP_toPrecision", $$empty, 1);
-			
+			xret := "create_object_with_call_construct" ($lrp_exec, "RP_exec", $$empty, 1);	
+			xret := "create_object_with_call_construct" ($lrp_test, "RP_test", $$empty, 1);
+			xret := "create_object_with_call_construct" ($lrp_toString, "RP_toString", $$empty, 0);
+
 			
 			
 			
@@ -657,33 +646,13 @@ proc setupInitialHeap () {
 			
 			(* JSON object *)
 			
-			xret := "create_object_with_call_construct" ($lnum, "Number_call", "Number_construct", 1);
-
-			[$lnum, "prototype"]         := {{ "d", $lnum_proto, $$f, $$f, $$f }};
-			[$lnum, "MAX_VALUE"]         := {{ "d", $$max_float, $$f, $$f, $$f }};
-			[$lnum, "MIN_VALUE"]         := {{ "d", $$min_float, $$f, $$f, $$f }};
-			[$lnum, "NaN"]               := {{ "d", nan, $$f, $$f, $$f }};
-			[$lnum, "POSITIVE_INFINITY"] := {{ "d", inf, $$f, $$f, $$f }};
-			[$lnum, "NEGATIVE_INFINITY"] := {{ "d", -inf, $$f, $$f, $$f }};
+			xret := "create_default_object" ($ljson, $lobj_proto, "JSON", $$t);
+						
+			[$ljson, "parse"]     := {{ "d", $ljson_parse,     $$t, $$f, $$t }};
+			[$ljson, "stringify"] := {{ "d", $ljson_stringify, $$t, $$f, $$t }};
 			
-			(* Number.prototype *)
-			
-			xret := "create_default_object" ($lnum_proto, $lobj_proto, "Number", $$t);
-			
-			[$lnum_proto, "constructor"]          := {{ "d", $lnum, $$t, $$f, $$t }};
-			[$lnum_proto, "toString"]             := {{ "d", $lnp_toString, $$t, $$f, $$t }};
-			[$lnum_proto, "toLocaleString"]       := {{ "d", $lnp_toLocaleString, $$t, $$f, $$t }};
-			[$lnum_proto, "valueOf"]              := {{ "d", $lnp_valueOf, $$t, $$f, $$t }};
-			[$lnum_proto, "toFixed"]              := {{ "d", $lnp_toFixed, $$t, $$f, $$t }};
-			[$lnum_proto, "toExponential"]        := {{ "d", $lnp_toExponential, $$t, $$f, $$t }};
-			[$lnum_proto, "toPrecision"]          := {{ "d", $lnp_toPrecision, $$t, $$f, $$t }};
-			
-			xret := "create_object_with_call_construct" ($lnp_toString, "NP_toString", $$empty, 0);
-			xret := "create_object_with_call_construct" ($lnp_toLocaleString, "NP_toLocaleString", $$empty, 0);	
-			xret := "create_object_with_call_construct" ($lnp_valueOf, "NP_valueOf", $$empty, 0);
-			xret := "create_object_with_call_construct" ($lnp_toFixed, "NP_toFixed", $$empty, 1);
-			xret := "create_object_with_call_construct" ($lnp_toExponential, "NP_toExponential", $$empty, 1);
-			xret := "create_object_with_call_construct" ($lnp_toPrecision, "NP_toPrecision", $$empty, 1);
+			xret := "create_object_with_call_construct" ($ljson_parse, "JSON_parse", $$empty, 2);
+			xret := "create_object_with_call_construct" ($ljson_stringify, "JSON_stringify", $$empty, 3);
 			
 			
 			

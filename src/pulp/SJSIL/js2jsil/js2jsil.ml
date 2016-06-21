@@ -117,7 +117,9 @@ let fresh_tcf_finally_label : (unit -> string) = fresh_sth "finally_"
 
 let fresh_tcf_end_label : (unit -> string) = fresh_sth "end_tcf_"
 
-let fresh_tcf_err_label : (unit -> string) = fresh_sth "err_tcf_"
+let fresh_tcf_err_try_label : (unit -> string) = fresh_sth "err_tcf_t_"
+
+let fresh_tcf_err_catch_label : (unit -> string) = fresh_sth "err_tcf_c_"
 
 let fresh_loop_vars () = 
 	let head = fresh_loop_head_label () in 
@@ -128,10 +130,11 @@ let fresh_loop_vars () =
 	head, guard, body, cont, end_loop
 
 let fresh_tcf_vars () = 
-	let err = fresh_tcf_err_label () in 
+	let err1 = fresh_tcf_err_try_label () in 
+	let err2 = fresh_tcf_err_catch_label () in 
 	let end_l = fresh_tcf_end_label () in 
 	let finally = fresh_tcf_finally_label () in 
-	err, finally, end_l 
+	err1, err2, finally, end_l 
 
 
 let val_var_of_var x = 
@@ -757,23 +760,25 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 	  (**
 									cmds1
 		            	goto finally  
-		    err:    	x_err := PHI(errs1)
+		    err1:    	x_err := PHI(errs1)
 				        	x_er := new () 
 									[x_er, "x"] := x_err 
 									[x_scope, "cid"] := x_er 
 									cmds2
-			  finally:  x_ret_1 := PHI(breaks1, x_1, breaks2, x_2)
+									goto finally
+				err2:     x_ret_1 := PHI(errs2)					
+				finally:  x_ret_2 := PHI(breaks1, x_1, breaks2, x_2, x_ret_1)
 	  *) 
-		let new_err, finally, end_label = fresh_tcf_vars () in
+		let new_err1, new_err2, finally, end_label = fresh_tcf_vars () in
 		let new_loop_list = (None, finally, js_lab) :: loop_list in 
-		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate fid cc_table ctx vis_fid new_err new_loop_list None None e1 in
+		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate fid cc_table ctx vis_fid new_err1 new_loop_list None None e1 in
 		let cmds1, x1_v = add_final_var cmds1 x1 in 
 	
-		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate catch_id cc_table ctx vis_fid err new_loop_list None None e2 in
+		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate catch_id cc_table ctx vis_fid new_err2 new_loop_list None None e2 in
 		let cmds2, x2_v = add_final_var cmds2 x2 in 
 	
-		let cur_breaks1, outer_breaks1 = filter_cur_jumps breaks1 js_lab false in 
-		let cur_breaks2, outer_breaks2 = filter_cur_jumps breaks2 js_lab false in
+		let cur_breaks1, outer_breaks1 = filter_cur_jumps breaks1 js_lab true in 
+		let cur_breaks2, outer_breaks2 = filter_cur_jumps breaks2 js_lab true in
 
 		(* x_err := PHI(errs1) *) 
 		let x_err = fresh_err_var () in 
@@ -791,24 +796,32 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		(* [x_scope, "cid"] := x_er *) 
 		let cmd_sc_updt = SLBasic (SMutation (Var var_scope, Literal (String catch_id), Var x_er)) in 
 	
-		(* x_ret := PHI(cur_breaks1, x_1, cur_breaks2, x_2) *)
-		let x_ret = fresh_var () in 
-		let phi_args2 = cur_breaks1 @ [ x1_v ] @ cur_breaks2 @ [ x2_v ] in 
-		let phi_args2 = List.map (fun x -> Some x) phi_args2 in   
+	  (* err2:     x_ret_1 := PHI(errs2) *)
+		let x_ret_1 = fresh_var () in 
+		let phi_args2 = List.map (fun x -> Some x) errs2 in 
 		let phi_args2 = Array.of_list phi_args2 in 
-		let cmd_ass_xret = SLBasic (SPhiAssignment (x_ret, phi_args2)) in 
+		let cmd_ass_xret1 = SLBasic (SPhiAssignment (x_ret_1, phi_args2)) in
+	
+		(* x_ret_2 := PHI(cur_breaks1, x_1, cur_breaks2, x_2) *)
+		let x_ret_2 = fresh_var () in 
+		let phi_args3 = cur_breaks1 @ [ x1_v ] @ cur_breaks2 @ [ x2_v; x_ret_1 ] in 
+		let phi_args3 = List.map (fun x -> Some x) phi_args3 in   
+		let phi_args3 = Array.of_list phi_args3 in 
+		let cmd_ass_xret2 = SLBasic (SPhiAssignment (x_ret_2, phi_args3)) in 
 		
 		let cmds = cmds1 @ [
-			(None, None,          SLGoto finally); 
-			(None, Some new_err,  cmd_ass_xerr);
-			(None, None,          cmd_ass_xer); 
-			(None, None,          cmd_mutate_x); 
-			(None, None,          cmd_sc_updt)
+			(None, None,           SLGoto finally); 
+			(None, Some new_err1,  cmd_ass_xerr);
+			(None, None,           cmd_ass_xer); 
+			(None, None,           cmd_mutate_x); 
+			(None, None,           cmd_sc_updt)
 		] @ cmds2 @ [
-			(None, Some finally,  cmd_ass_xret)
+			(None, None,          SLGoto finally); 
+			(None, Some new_err2, cmd_ass_xret1); 
+			(None, Some finally,  cmd_ass_xret2)
 		] in 
 		
-		cmds, x_ret, errs2, rets1 @ rets2, outer_breaks1 @ outer_breaks2, conts1 @ conts2, end_label in
+		cmds, x_ret_2, [], rets1 @ rets2, outer_breaks1 @ outer_breaks2, conts1 @ conts2, end_label in
 
 	
 	match e.Parser_syntax.exp_stx with 
@@ -2439,12 +2452,17 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 				(match eo with 
 				| None -> loop rest_decs cmds errs 
 				| Some e ->
+					let v_fid = find_var_fid v in
+					let v_fid = 
+						match v_fid with 
+						| None -> raise (Failure "Error: if a variable is declared it must be in the scope clarification table!")
+						| Some v_fid -> v_fid in 
 					let cmds_e, x, errs_e, _, _, _ = f e in
 					(* x_v := i__getValue (x) with err *)
 					let x_v, cmd_gv_x = make_get_value_call x err in
-					(* x_sf := [x__scope, fid]  *) 
+					(* x_sf := [x__scope, v_fid]  *) 
 					let x_sf = fresh_var () in 
-					let cmd_xsf_ass = SLBasic (SLookup (x_sf, Var var_scope, Literal (String fid))) in 
+					let cmd_xsf_ass = SLBasic (SLookup (x_sf, Var var_scope, Literal (String v_fid))) in 
 					(* x_ref := ref_v(x_sf, "x")  *) 
 					let x_ref = fresh_var () in 
 					let cmd_xref_ass = SLBasic (SAssignment (x_ref, VRef (Var x_sf, Literal (String v)))) in 
@@ -2977,14 +2995,16 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		  C(try { e1 } catch^{cid}(x) { e2 } finally { e3 } = 
 									cmds1
 		            	goto finally  
-		    err:    	x_err := PHI(errs1)
+		    err1:    	x_err := PHI(errs1)
 				        	x_er := new () 
 									[x_er, "x"] := x_err 
 									[x_scope, "cid"] := x_er 
 									cmds2
-				finally:  x_ret_1 := PHI(breaks1, x_1, breaks2, x_2)
+									goto finally
+				err2:     x_ret_1 := PHI(errs2)					
+				finally:  x_ret_2 := PHI(breaks1, x_1, breaks2, x_2, x_ret_1)
 				          cmds3
-		 	  end:      x_ret_2 := PHI(breaks3, x_ret_1)   
+		 	  end:      x_ret_3 := PHI(breaks3, x_ret_2)   
 		 *)
 		
 		let catch_id = try Js_pre_processing.get_codename e 
@@ -3012,35 +3032,46 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		 -----------------------------------------------------------
 		  C(try { e1 } finally { e3 } = 
 									cmds1
-				finally:  x_ret_1 := PHI(cur_breaks1, x_1)
+									goto finally
+				err:      x_ret_1 := PHI(errs1)
+				finally:  x_ret_2 := PHI(cur_breaks1, x_1, x_ret_1)
 					        cmds3
-			  end:      x_ret_2 := PHI(cur_breaks3, x_ret_1)				
+			  end:      x_ret_3 := PHI(cur_breaks3, x_ret_2)				
 		 *)
 		
-		let new_err, finally, end_lab = fresh_tcf_vars () in 
+		let new_err, _, finally, end_lab = fresh_tcf_vars () in 
 		let loop_list1 = (None, finally, js_lab) :: loop_list in 
 		let loop_list3 = (None, end_lab, js_lab) :: loop_list in 
-		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate fid cc_table ctx vis_fid finally loop_list1 None None e3 in
-		let cur_breaks1, outer_breaks1 = filter_cur_jumps breaks1 js_lab false in 
+		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate fid cc_table ctx vis_fid new_err loop_list1 None None e1 in
+		let cur_breaks1, outer_breaks1 = filter_cur_jumps breaks1 js_lab true in 
 		let cmds1, x1_v = add_final_var cmds1 x1 in 
 		
-		(* finally:  x_ret_1 := PHI(cur_breaks1, x_1)  *) 
+		(* goto finally *)
+		let cmd_goto_finally = (None, None, SLGoto finally) in 
+		
+		(* err:      x_ret_1 := PHI(errs1)  *)
 		let x_ret_1 = fresh_var () in 
-		let phi_args = cur_breaks1 @ [ x1_v ] in 
+		let phi_args = List.map (fun x -> Some x) errs1 in 
+		let phi_args = Array.of_list phi_args in 
+		let cmd_phi1 = (None, Some new_err,  SLBasic (SPhiAssignment (x_ret_1, phi_args))) in 		
+		
+		(* finally:  x_ret_2 := PHI(cur_breaks1, x_1, x_ret_1)  *) 
+		let x_ret_2 = fresh_var () in 
+		let phi_args = cur_breaks1 @ [ x1_v; x_ret_1 ] in 
 		let phi_args = List.map (fun x -> Some x) phi_args in 
 		let phi_args = Array.of_list phi_args in 
-		let cmd_phi1 = (None, Some finally, SLBasic (SPhiAssignment (x_ret_1, phi_args))) in 
+		let cmd_phi2 = (None, Some finally, SLBasic (SPhiAssignment (x_ret_2, phi_args))) in 
 		
-		(* end:      x_ret_2 := PHI(cur_breaks3, x_ret_1)	 *) 
+		(* end:      x_ret_3 := PHI(cur_breaks3, x_ret_2)	 *) 
 		let cmds3, _, errs3, rets3, breaks3, conts3 = translate fid cc_table ctx vis_fid err loop_list3 None None e3 in 
 		let cur_breaks3, outer_breaks3 = filter_cur_jumps breaks3 js_lab false in 
-		let x_ret_2 = fresh_var () in 
-		let phi_args = cur_breaks3 @ [ x_ret_1 ] in 
+		let x_ret_3 = fresh_var () in 
+		let phi_args = cur_breaks3 @ [ x_ret_2 ] in 
 		let phi_args = List.map (fun x -> Some x) phi_args in 
 		let phi_args = Array.of_list phi_args in 
-		let cmd_phi2  = (None, Some end_lab, SLBasic (SPhiAssignment (x_ret_2, phi_args))) in 
+		let cmd_phi3  = (None, Some end_lab, SLBasic (SPhiAssignment (x_ret_3, phi_args))) in 
 		
-		cmds1 @ [ cmd_phi1 ] @ cmds3 @ [ cmd_phi2 ], Var x_ret_2, errs1 @ errs3, rets1 @ rets3, outer_breaks1 @ outer_breaks3, conts1 @ conts3
+		cmds1 @ [ cmd_goto_finally; cmd_phi1; cmd_phi2 ] @ cmds3 @ [ cmd_phi3 ], Var x_ret_3, errs3, rets1 @ rets3, outer_breaks1 @ outer_breaks3, conts1 @ conts3
 		
 
 	| Parser_syntax.Try (e1, Some (x, e2), None) ->
