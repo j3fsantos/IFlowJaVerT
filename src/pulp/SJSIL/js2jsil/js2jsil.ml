@@ -6,6 +6,7 @@ open SSyntax
 let js2jsil_imports = [
 	"Array"; 
 	"Boolean";
+	"Date";
 	"Function"; 
 	"Global";
 	"Init";
@@ -13,6 +14,7 @@ let js2jsil_imports = [
 	"Math"; 
 	"Number"; 
 	"Object"; 
+	"RegExp";
 	"String";
 	"Errors"
 ]
@@ -1131,8 +1133,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 									cmds_en
 		       				x_argn_val := i__getValue (x_argn) with err; 
 			     				goto [ typeOf(x_f_val) != Object] err next1; 
-					next1:  x_hp := hasField(x_f_val, "@construct"); 
-					        goto [ x_hp ] next2 err; 
+					next1:  x_hp := [x_f_val, "@construct"]; 
+					        goto [ x_hp = $$empty ] err next2; 
 					next2:	x_this := new (); 
 					        x_ref_prototype := ref-o(x_f_val, "prototype"); 
 									x_f_prototype := i__getValue(x_ref_prototype) with err;
@@ -1156,13 +1158,13 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let goto_guard_expr = UnaryOp (Not, (BinOp (TypeOf (Var x_f_val), Equal, Literal (Type ObjectType)))) in 
 		let cmd_goto_is_obj = SLGuardedGoto (goto_guard_expr, err, next1) in
 		
-		(* x_hp := hasField[x_f_val, "@construct"]; *)
+		(* x_hp := [x_f_val, "@construct"]; *)
 		let x_hp = fresh_var () in 
-		let cmd_hf_construct = SLBasic (SHasField (x_hp, Var x_f_val, Literal (String constructPropName))) in 
+		let cmd_hf_construct = SLBasic (SLookup (x_hp, Var x_f_val, Literal (String constructPropName))) in 
 		
-		(* goto [ x_hp ] next2 err; *) 
+		(* goto [ x_hp = $$empty ] err next2; *) 
 		let next2 = fresh_next_label () in 
-		let cmd_goto_xhp = SLGuardedGoto (Var x_hp, next2, err) in 
+		let cmd_goto_xhp = SLGuardedGoto (BinOp (Var x_hp, Equal, Literal Empty), err, next2) in 
 		
 		(* x_this := new (); *)
 		let x_this = fresh_this_var () in 
@@ -1209,8 +1211,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			(None, None,         cmd_gv_f);               (*        x_f_val := i__getValue (x_f) with err                                    *) 
 		] @ cmds_args @ [                               (*        cmds_arg_i; x_arg_i_val := i__getValue (x_arg_i) with err                *)
 			(None, None,         cmd_goto_is_obj);        (*        goto [ typeOf(x_f_val) != Object] err next1                              *) 
-			(None, Some next1,   cmd_hf_construct);       (* next1: x_hp := hasField[x_f_val, "@construct"]                                  *)
-			(None, None,         cmd_goto_xhp);           (*        goto [ x_hp ] next2 err                                                  *)
+			(None, Some next1,   cmd_hf_construct);       (* next1: x_hp := [x_f_val, "@construct"];                                         *)
+			(None, None,         cmd_goto_xhp);           (*        goto [ x_hp = $$empty ] err next2                                        *)
 			(None, Some next2,   cmd_create_xobj);        (* next2: x_this := new ()                                                         *)
 			(None, None,         cmd_ass_xreffprototype); (*        x_ref_fprototype := ref-o(x_f_val, "prototype")                          *)
 			(None, None,         cmd_gv_xreffprototype);  (*        x_f_prototype := i__getValue(x_ref_prototype) with err                   *)
@@ -2025,7 +2027,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		
 		(*  x_r := o__hasProperty (x2_v, x1_s) with err   *)
 		let x_r = fresh_var () in 
-		let cmd_ass_xr = SLCall (x1_s, (Literal (String hasPropertyName)), [ Var x2_v; Var x1_s ], Some err) in 
+		let cmd_ass_xr = SLCall (x_r, (Literal (String hasPropertyName)), [ Var x2_v; Var x1_s ], Some err) in 
 		
 		let cmds = cmds1 @ [                        (*         cmds1                                             *)
 			(None, None,         cmd_gv_x1)           (*         x1_v := getValue (x1) with err                    *)

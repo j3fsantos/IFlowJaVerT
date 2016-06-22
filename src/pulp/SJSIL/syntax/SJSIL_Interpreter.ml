@@ -629,7 +629,11 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 			let fields =  
 				SHeap.fold
 				(fun field value acc ->
-					(String field) :: acc
+					let t = evaluate_type_of value in
+					if (t = ListType) then 
+						(String field) :: acc
+					else
+						acc
 					) obj [] in
 			let v = LList fields in
 			Hashtbl.replace store x v;
@@ -718,7 +722,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 			(fun e_arg -> evaluate_expr e_arg store) 
 			e_args in 
 		let call_proc = try SProgram.find prog call_proc_name with
-		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist. Spell check for your life?" call_proc_name)) in
+		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist." call_proc_name)) in
 		let new_store = init_store call_proc.proc_params arg_vals in 
 		match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 with 
 		| Normal, v -> 

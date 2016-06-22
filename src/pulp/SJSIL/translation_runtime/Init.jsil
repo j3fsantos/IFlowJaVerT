@@ -181,9 +181,9 @@ proc setupInitialHeap () {
 			xret := "create_object_with_call_construct" ($lobj_getPrototypeOf, "Object_getPrototypeOf", $$empty, 1);
   			xret := "create_object_with_call_construct" ($lobj_getOwnPropertyDescriptor, "Object_getOwnPropertyDescriptor", $$empty, 2);
   			xret := "create_object_with_call_construct" ($lobj_getOwnPropertyNames, "Object_getOwnPropertyNames", $$empty, 2);
-			xret := "create_object_with_call_construct" ($lobj_create, "Object_create", $$empty, 1);
+			xret := "create_object_with_call_construct" ($lobj_create, "Object_create", $$empty, 2);
   			xret := "create_object_with_call_construct" ($lobj_defineProperty, "Object_defineProperty", $$empty, 3);
- 			xret := "create_object_with_call_construct" ($lobj_defineProperties, "Object_defineProperty", $$empty, 2);
+ 			xret := "create_object_with_call_construct" ($lobj_defineProperties, "Object_defineProperties", $$empty, 2);
   			xret := "create_object_with_call_construct" ($lobj_seal, "Object_seal", $$empty, 1);
  			xret := "create_object_with_call_construct" ($lobj_freeze, "Object_freeze", $$empty, 1);
   			xret := "create_object_with_call_construct" ($lobj_preventExtensions, "Object_preventExtensions", $$empty, 1);
@@ -230,8 +230,16 @@ proc setupInitialHeap () {
  
    			xret := "create_default_object" ($lfun_proto, $lobj_proto, "Function", 0);
   			
-  			[$lfun_proto, "constructor"]          := {{ "d", $lfun, $$t, $$f, $$t }};
+  			[$lfun_proto, "constructor"] := {{ "d", $lfun, $$t, $$f, $$t }};
+  			[$lfun_proto, "toString"]    := {{ "d", $lfp_toString, $$t, $$f, $$t }};
+  			[$lfun_proto, "call"]        := {{ "d", $lfp_call, $$t, $$f, $$t }};
+  			[$lfun_proto, "apply"]       := {{ "d", $lfp_apply, $$t, $$f, $$t }};
+  			[$lfun_proto, "bind"]        := {{ "d", $lfp_bind, $$t, $$f, $$t }};
   			
+			xret := "create_object_with_call_construct" ($lfp_toString, "FP_toString", $$empty, 0);
+  			xret := "create_object_with_call_construct" ($lfp_call, "FP_call", $$empty, 1);
+ 			xret := "create_object_with_call_construct" ($lfp_apply, "FP_apply", $$empty, 2);
+  			xret := "create_object_with_call_construct" ($lfp_bind, "FP_bind", $$empty, 1);  			
   			
   			
   			
@@ -450,24 +458,24 @@ proc setupInitialHeap () {
 			[$lmath, "SQRT1_2"] := {{ "d", $$sqrt1_2, $$f, $$f, $$f }};
 			[$lmath, "SQRT2"]   := {{ "d", $$sqrt2,   $$f, $$f, $$f }};
 			
-			[$lmath, "abs"]    := {{ "d", $lmath_abs, $$f, $$f, $$f }};
-			[$lmath, "acos"]   := {{ "d", $lmath_acos, $$f, $$f, $$f }};
-			[$lmath, "asin"]   := {{ "d", $lmath_asin, $$f, $$f, $$f }};
-			[$lmath, "atan"]   := {{ "d", $lmath_atan, $$f, $$f, $$f }};
-			[$lmath, "atan2"]  := {{ "d", $lmath_atan2, $$f, $$f, $$f }};
-			[$lmath, "ceil"]   := {{ "d", $lmath_ceil, $$f, $$f, $$f }};
-			[$lmath, "cos"]    := {{ "d", $lmath_cos, $$f, $$f, $$f }};
-			[$lmath, "exp"]    := {{ "d", $lmath_exp, $$f, $$f, $$f }};
-			[$lmath, "floor"]  := {{ "d", $lmath_floor, $$f, $$f, $$f }};
-			[$lmath, "log"]    := {{ "d", $lmath_log, $$f, $$f, $$f }};
-			[$lmath, "max"]    := {{ "d", $lmath_max, $$f, $$f, $$f }};
-			[$lmath, "min"]    := {{ "d", $lmath_min, $$f, $$f, $$f }};
-			[$lmath, "pow"]    := {{ "d", $lmath_pow, $$f, $$f, $$f }};
-			[$lmath, "random"] := {{ "d", $lmath_random, $$f, $$f, $$f }};
-			[$lmath, "round"]  := {{ "d", $lmath_round, $$f, $$f, $$f }};
-			[$lmath, "sin"]    := {{ "d", $lmath_sin, $$f, $$f, $$f }};
-			[$lmath, "sqrt"]   := {{ "d", $lmath_sqrt, $$f, $$f, $$f }};
-			[$lmath, "tan"]    := {{ "d", $lmath_tan, $$f, $$f, $$f }};
+			[$lmath, "abs"]    := {{ "d", $lmath_abs, $$t, $$f, $$t }};
+			[$lmath, "acos"]   := {{ "d", $lmath_acos, $$t, $$f, $$t }};
+			[$lmath, "asin"]   := {{ "d", $lmath_asin, $$t, $$f, $$t }};
+			[$lmath, "atan"]   := {{ "d", $lmath_atan, $$t, $$f, $$t }};
+			[$lmath, "atan2"]  := {{ "d", $lmath_atan2, $$t, $$f, $$t }};
+			[$lmath, "ceil"]   := {{ "d", $lmath_ceil, $$t, $$f, $$t }};
+			[$lmath, "cos"]    := {{ "d", $lmath_cos, $$t, $$f, $$t }};
+			[$lmath, "exp"]    := {{ "d", $lmath_exp, $$t, $$f, $$t }};
+			[$lmath, "floor"]  := {{ "d", $lmath_floor, $$t, $$f, $$t }};
+			[$lmath, "log"]    := {{ "d", $lmath_log, $$t, $$f, $$t }};
+			[$lmath, "max"]    := {{ "d", $lmath_max, $$t, $$f, $$t }};
+			[$lmath, "min"]    := {{ "d", $lmath_min, $$t, $$f, $$t }};
+			[$lmath, "pow"]    := {{ "d", $lmath_pow, $$t, $$f, $$t }};
+			[$lmath, "random"] := {{ "d", $lmath_random, $$t, $$f, $$t }};
+			[$lmath, "round"]  := {{ "d", $lmath_round, $$t, $$f, $$t }};
+			[$lmath, "sin"]    := {{ "d", $lmath_sin, $$t, $$f, $$t }};
+			[$lmath, "sqrt"]   := {{ "d", $lmath_sqrt, $$t, $$f, $$t }};
+			[$lmath, "tan"]    := {{ "d", $lmath_tan, $$t, $$f, $$t }};
 			
 			xret := "create_object_with_call_construct" ($lmath_abs, "M_abs", $$empty, 1);
 			xret := "create_object_with_call_construct" ($lmath_acos, "M_acos", $$empty, 1);
@@ -501,10 +509,10 @@ proc setupInitialHeap () {
 			
 			xret := "create_object_with_call_construct" ($ldate, "Date_call", "Date_construct", 7);
 
-			[$lnum, "prototype"] := {{ "d", $ldt_proto, $$f, $$f, $$f }};
-			[$lnum, "parse"]     := {{ "d", $ldt_parse, $$t, $$f, $$t }};
-			[$lnum, "UTC"]       := {{ "d", $ldt_UTC, $$t, $$f, $$t }};
-			[$lnum, "now"]       := {{ "d", $ldt_, $$t, $$f, $$t }};
+			[$ldate, "prototype"] := {{ "d", $ldt_proto, $$f, $$f, $$f }};
+			[$ldate, "parse"]     := {{ "d", $ldt_parse, $$t, $$f, $$t }};
+			[$ldate, "UTC"]       := {{ "d", $ldt_UTC, $$t, $$f, $$t }};
+			[$ldate, "now"]       := {{ "d", $ldt_, $$t, $$f, $$t }};
 
 			xret := "create_object_with_call_construct" ($ldt_parse, "Date_parse", $$empty, 1);
 			xret := "create_object_with_call_construct" ($ldt_UTC, "Date_UTC", $$empty, 7);	
@@ -691,12 +699,12 @@ proc setupInitialHeap () {
 			xret := "create_object_with_call_construct" ($lterr,  "TypeError_call",      "Error_construct", 1);
 			xret := "create_object_with_call_construct" ($luerr,  "URIError_call",       "Error_construct", 1);
 			
-			[$leerr,  "prototype"] := {{ "d", $leerr_proto, $$t, $$f, $$t }};
-			[$lrgerr, "prototype"] := {{ "d", $lrgerr_proto, $$t, $$f, $$t }};
-			[$lrferr, "prototype"] := {{ "d", $lrferr_proto, $$t, $$f, $$t }};
-			[$lserr,  "prototype"] := {{ "d", $lserr_proto, $$t, $$f, $$t }};
-			[$lterr,  "prototype"] := {{ "d", $lterr_proto, $$t, $$f, $$t }};
-			[$luerr,  "prototype"] := {{ "d", $luerr_proto, $$t, $$f, $$t }};
+			[$leerr,  "prototype"] := {{ "d", $leerr_proto, $$f, $$f, $$f }};
+			[$lrgerr, "prototype"] := {{ "d", $lrgerr_proto, $$f, $$f, $$f }};
+			[$lrferr, "prototype"] := {{ "d", $lrferr_proto, $$f, $$f, $$f }};
+			[$lserr,  "prototype"] := {{ "d", $lserr_proto, $$f, $$f, $$f }};
+			[$lterr,  "prototype"] := {{ "d", $lterr_proto, $$f, $$f, $$f }};
+			[$luerr,  "prototype"] := {{ "d", $luerr_proto, $$f, $$f, $$f }};
 			
 			[$leerr,  "name"] := {{ "d", "EvalError", $$t, $$f, $$t }};
 			[$lrgerr, "name"] := {{ "d", "RangeError", $$t, $$f, $$t }};

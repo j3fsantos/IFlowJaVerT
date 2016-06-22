@@ -38,8 +38,8 @@ let return_to_exit rettype =
 let run_jsil_prog prog which_pred = 
 	let heap = SHeap.create 1021 in 
         let (rettype, retval) = evaluate_prog prog which_pred heap in
-	(* let final_heap_str = SSyntax_Print.sexpr_of_heap heap in 
-        Printf.printf "Final heap: \n%s\n" final_heap_str; *)
+	let final_heap_str = SSyntax_Print.sexpr_of_heap heap in 
+    if (!verbose) then Printf.printf "Final heap: \n%s\n" final_heap_str;
 				Printf.printf "%s, %s\n" 
 				  (match rettype with
 					| Normal -> "Normal"

@@ -28,7 +28,7 @@ proc Error_construct (xsc, vthis, v) {
 			goto [v = $$undefined] rlab mess;
 			
 	mess:	xerr := "i__toString" (v) with elab;
-			[xret, "message"] := xerr;
+			[xret, "message"] := {{ "d", xerr, $$t, $$f, $$t }};
 			
 	rlab:	skip;
 	elab:	skip
