@@ -1,12 +1,25 @@
 open Lexing
 open SSyntax
 open SJSIL_Interpreter
+open Js2jsil
 
 let file = ref ""
 let jsil_run = ref false
 let do_ssa = ref false
 
 let verbose = ref false
+
+let compile_and_run = ref false
+
+let load_file f =
+  let ic = open_in f in
+  let n = in_channel_length ic in
+  let s = String.create n in
+  really_input ic s 0 n;
+  close_in ic;
+  (s)
+
+let harness = load_file "harness.js"
 
 let arguments () =
   let usage_msg="Usage: -file <path>" in
@@ -20,6 +33,8 @@ let arguments () =
 			"-ssa", Arg.Unit(fun () -> do_ssa := true), "ssa normalise";
 			(* verbositiness *)
 			"-verbose", Arg.Unit(fun () -> verbose := true; SJSIL_Interpreter.verbose := true), "verbose output";
+			(* compile js file and run *)
+			"-from_javascript", Arg.String(fun f -> file := f; compile_and_run := true), "run from javascript";
     ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
@@ -49,11 +64,27 @@ let run_jsil_prog prog which_pred =
 
 let main () = 
 	arguments ();
-	let lprog = SSyntax_Utils.lprog_of_path !file in 
-	let prog, which_pred = SSyntax_Utils.prog_of_lprog lprog in 
-	let prog, which_pred = if (!do_ssa) then SSyntax_SSA.ssa_compile_prog prog else prog, which_pred in 
-	if (!jsil_run) then run_jsil_prog prog which_pred else () 
-	
+	if (!compile_and_run) then 
+	begin
+		Parser_main.js_to_xml_parser := "js_parser.jar";
+  	Parser_main.verbose := false;
+		let harness = load_file "harness.js" in
+		let main = load_file (!file) in
+		let all = harness ^ "\n" ^ main in
+		let e = (try Parser_main.exp_from_string all with
+      	       | Parser.ParserFailure file -> Printf.printf "\nParsing problems with the file '%s'.\n" file; exit 1) in
+	  let (oimp, code) = js2jsil e in 
+	  let imp = SSyntax_Utils.if_some oimp (fun x -> x) [] in
+	  let prog, which_pred = SSyntax_Utils.prog_of_lprog (imp, code) in 
+	  	run_jsil_prog prog which_pred
+	end
+	else
+	begin
+		let lprog = SSyntax_Utils.lprog_of_path !file in 
+		let prog, which_pred = SSyntax_Utils.prog_of_lprog lprog in 
+		let prog, which_pred = if (!do_ssa) then SSyntax_SSA.ssa_compile_prog prog else prog, which_pred in 
+		if (!jsil_run) then run_jsil_prog prog which_pred else () 
+	end
 			
 let _ = main()
 
