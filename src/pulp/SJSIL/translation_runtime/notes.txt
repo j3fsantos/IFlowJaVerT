@@ -96,6 +96,14 @@ var evaluation needs getvalue
 TESTS FOR OBJECT
 ================
 
+***************************************
+* ALL TESTS WITH PROPER NAMES ARE ES6 *
+***************************************
+
+Object.prototype
+-----------------
+
+
 Object.prototype.isPrototypeOf
 ------------------------------
 
@@ -104,6 +112,58 @@ ES6 behaviour	(Delete):	S15.2.4.6_A9.js
 Function call:			S15.2.4.6_A12.js
 				S15.2.4.6_A13.js
 				
+Object.prototype.hasOwnProperty
+-------------------------------
+
+ES6 behaviour 	(Delete):	S15.2.4.5_A9.js
+
+Function call:			S15.2.4.5_A12.js
+				S15.2.4.5_A13.js
+
+Object.prototype.propertyIsEnumerable
+-------------------------------------	
+
+ES6 behaviour 	(Delete):	S15.2.4.7_A9.js
+
+Function call:			S15.2.4.7_A12.js
+				S15.2.4.7_A13.js
+				
+Object.prototype.toString
+-------------------------
+
+ES6 behaviour 	(Delete):	S15.2.4.2_A9.js
+				
+Function call:			15.2.4.2-1-1.js
+				S15.2.4.2_A12.js
+				S15.2.4.2_A13.js
+				S15.2.4.2_A14.js
+				S15.2.4.2_A15.js
+				S15.2.4.2_A16.js
+
+Object.prototype.toLocaleString
+-------------------------
+
+ES6 behaviour 	(Delete):	S15.2.4.3_A9.js
+				
+Function call:			15.2.4.2-1-1.js
+				S15.2.4.3_A12.js
+				S15.2.4.3_A13.js
+
+WTF:				primitive_this_value_getter.js
+				primitive_this_value.js
+				
+Object.prototype.valueOf
+------------------------
+
+ES6 behaviour	(Delete):	S15.2.4.4_A9.js
+
+Function call:			15.2.4.4-1.js
+				15.2.4.4-2.js
+				15.2.4.4_A12.js
+				15.2.4.4_A13.js
+
+
+
 
 Object.getPrototypeOf
 ---------------------
@@ -147,3 +207,5 @@ Function const:	15.2.3.3-4-188.js
 ERROR: Num -> Str: 15.2.3.3-2-27.js
 
 
+Object.defineProperty
+---------------------

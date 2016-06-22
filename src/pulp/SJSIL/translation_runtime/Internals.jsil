@@ -336,7 +336,8 @@ proc o__defineOwnProperty (l, prop, desc, throw) {
 			goto [t1 and t2 and t3 and t4 and
 			      (dv = $$empty) and (dw = $$empty)] acc_t l7;
 	
-	l7:		cvg := nth (current, 1);
+	l7:		ct := nth (current, 0);
+			cvg := nth (current, 1);
 			cws := nth (current, 2);
 			ce := nth (current, 3);
 			cc := nth (current, 4);
@@ -353,9 +354,18 @@ proc o__defineOwnProperty (l, prop, desc, throw) {
 			
 	l9a:	goto [cc = $$f] reject change;
 	change:	goto [cdd = $$t] toa tod;
-	toa:	[l, prop] := {{ "a", $$undefined, $$undefined, ce, cc }};
+	toa:	goto [dg = $$empty] sg gs;
+	sg:		dg := $$undefined;
+	gs:		goto [ds = $$empty] ss spa;
+	ss:		ds := $$undefined;
+	spa:	[l, prop] := {{ "a", dg, ds, ce, cc }};
 			goto acc_t;
-	tod:	[l, prop] := {{ "d", $$undefined, $$f, ce, cc }};
+				
+	tod:	goto [dv = $$empty] sv gw;
+	sv:		dv := $$undefined;
+	gw:		goto [dw = $$empty] sw spd;
+	sw:		dw := $$f;
+	spd:	[l, prop] := {{ "d", dv, dw, ce, cc }};
 			goto acc_t;
 	
 	l10:	goto [cdd = $$t] l10a l11;
@@ -378,7 +388,7 @@ proc o__defineOwnProperty (l, prop, desc, throw) {
 	red:	goto [dc = $$empty] rcd rd;
 	rcd:	rc := nth (current, 4);
 	
-	rd: 	goto [nth (current, 0) = "d"] l12d l12a;
+	rd: 	goto [ct = "d"] l12d l12a;
 	
 	l12d:	rv := dv;
 			rw := dw;
@@ -994,15 +1004,15 @@ proc i__toObject (v) {
 	in:		goto [v = $$null] throw ib;
 			
 	ib:		goto [typeOf(v) = $$boolean_type] bool inum;
-	bool:	xret := "Boolean_construct" (v);
+	bool:	xret := "Boolean_construct" ($$undefined, $$undefined, v);
 			goto rlab;
 			
 	inum:	goto [typeOf(v) = $$number_type] num is;
-	num:	xret := "Number_construct" (v);
+	num:	xret := "Number_construct" ($$undefined, $$undefined, v);
 			goto rlab;
 			
 	is:		goto [typeOf(v) = $$string_type] str io;
-	str:	xret := "String_construct" (v);
+	str:	xret := "String_construct" ($$undefined, $$undefined, v);
 			goto rlab;
 			
 	io:		goto [typeOf(v) = $$object_type] obj oops;
