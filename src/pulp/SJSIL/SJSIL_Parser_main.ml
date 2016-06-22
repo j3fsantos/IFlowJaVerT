@@ -59,7 +59,27 @@ let run_jsil_prog prog which_pred =
 				  (match rettype with
 					| Normal -> "Normal"
 					| Error -> "Error")
-					(SSyntax_Print.string_of_literal retval false);
+					(match retval with
+					| Loc loc ->
+						let obj = (try SHeap.find heap loc with
+			                  | _ -> (raise (Failure "Error object without a prototype."))) in
+			      let lproto = (try SHeap.find obj "@proto" with
+						              | _ -> (raise (Failure "Error object without a prototype."))) in
+						match lproto with
+						| Loc loc ->
+							let objproto = (try SHeap.find heap loc with
+							                 | _ -> (raise (Failure "Error object without a prototype."))) in
+							let eType = (try SHeap.find objproto "name" with
+						                | _ -> String "") in
+						  let message = (try SHeap.find obj "message" with
+						                | _ -> String "") in
+							let eType = 
+					      (match eType with
+								| LList list -> List.nth list 1
+								| _ -> eType) in
+						  (SSyntax_Print.string_of_literal eType false) ^ " : " ^ (SSyntax_Print.string_of_literal message false)  
+						| _ -> (raise (Failure "Prototype object not an object."))
+					| _ -> SSyntax_Print.string_of_literal retval false);
         return_to_exit rettype
 
 let main () = 
