@@ -113,9 +113,9 @@ let evaluate_unop op lit =
 	| ToNumberOp -> 
 		(match lit with
 		| String s -> 
-			let num = try
-				Float.of_string s 
-				with Failure "float_of_string" -> nan in
+			let num = try Float.of_string s 
+				with Failure "float_of_string" -> 
+					if s = "" then 0. else nan in
 				(Num num)
 		| _ -> raise (Failure "Non-string argument to ToNumberOp"))
 	| ToIntOp ->

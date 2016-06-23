@@ -1232,7 +1232,7 @@ proc i__abstractEquality (v1, v2) {
 			xret := "i__abstractEquality" (v1, xret) with elab;
 			goto rlab;
 	
-	s1o:	goto [(tv1 = $$object_type) and ((tv1 = $$number_type) or (tv1 = $$string_type))] tp1 rf;
+	s1o:	goto [(tv1 = $$object_type) and ((tv2 = $$number_type) or (tv2 = $$string_type))] tp1 rf;
 	tp1:	xret := "i__toPrimitive" (v1) with elab;
 			xret := "i__abstractEquality" (xret, v2) with elab;
 			goto rlab;
@@ -1342,7 +1342,7 @@ with
 (* HASINSTANCE *)
 (* *********** *)
 
-proc f__hasInstance(v1, v2) {
+proc f__hasInstance(v1, v2) {			
 			goto [not (typeOf (v2) = $$object_type)] throw s2;
 	
 	s2:		g := [v1, "@get"];
