@@ -73,6 +73,8 @@ let fresh_var : (unit -> string) = fresh_sth "x_"
 
 let fresh_scope_chain_var : (unit -> string) = fresh_sth "x_sc_"
 
+let fresh_found_var : (unit -> string) = fresh_sth "x_found_"
+
 let fresh_fun_var : (unit -> string) = fresh_sth "x_f_"
 
 let fresh_obj_var : (unit -> string) = fresh_sth "x_o_"
@@ -83,11 +85,15 @@ let fresh_err_var : (unit -> string) = fresh_sth "x_error_"
 
 let fresh_this_var : (unit -> string) = fresh_sth "x_this_"
 
+let fresh_case_var : (unit -> string) = fresh_sth "x_case_"
+
 let fresh_desc_var : (unit -> string) = fresh_sth "x_desc_"
 
 let fresh_body_var : (unit -> string) = fresh_sth "x_body_"
 
 let fresh_fscope_var : (unit -> string) = fresh_sth "x_fscope_"
+
+let fresh_xfoundb_var : (unit -> string) = fresh_sth "x_found_b_"
  
 let fresh_label : (unit -> string) = fresh_sth "lab_"
 
@@ -100,6 +106,24 @@ let fresh_else_label : (unit -> string) = fresh_sth "else_"
 let fresh_endif_label : (unit -> string) = fresh_sth "fi_"
 
 let fresh_end_label : (unit -> string) = fresh_sth "end_"
+
+
+let fresh_end_switch_label : (unit -> string) = fresh_sth "end_switch_"
+
+let fresh_end_case_label : (unit -> string) = fresh_sth "end_case_"
+
+let fresh_default_label : (unit -> string) = fresh_sth "default_"
+
+let fresh_b_cases_label : (unit -> string) = fresh_sth "b_cases_"
+
+let number_of_switches = ref 0 
+let fresh_switch_labels () = 
+	let b_cases_lab = fresh_b_cases_label () in 
+	let default_lab = fresh_default_label () in 
+	let end_switch = fresh_end_switch_label () in  
+	let fresh_end_case_label = fresh_sth ("end_case_" ^ (string_of_int !number_of_switches) ^ "_") in 
+	number_of_switches := (!number_of_switches) + 1;
+	b_cases_lab, default_lab, end_switch, fresh_end_case_label
 
 let fresh_break_label : (unit -> string) = fresh_sth "break_"
 
@@ -205,6 +229,9 @@ let add_initial_label cmds lab =
 	| (_, Some lab_s, _) :: rest -> (None, Some lab, SLBasic SSkip) :: cmds 
 	| (spec, None, cmd) :: rest -> (spec, Some lab, cmd) :: rest)
 
+
+let var_true = "x__true"  
+let var_false = "x__false"  
 let var_this = "x__this"  
 let var_scope = "x__scope"  
 let var_se = "x__se"
@@ -3085,14 +3112,13 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			C(e_s) = cmds2, x2 
 			--------------------------------------------------------
 			C_case ( a_case, x_prev_found, x_switch_guard ) = 
-				           x_found_1 := false
-				           goto [ not x_prev_found_a ] then1 next1 
-				then1:     cmds1
+				           goto [ not x_prev_found ] next1 next2 
+				next1:     cmds1
 				           x1_v := getValue (x1) with err
-								   goto [ x1_v = x_switch_guard ] next1 end_case
-				next1:     x_found_2 := true
+								   goto [ x1_v = x_switch_guard ] next2 end_case
 				           cmds2
-				end_case:  x_found_3 := PHI(x_found_a_1, x_found_a_2) 
+				end_case:  x_found := PHI(x_false, x_true) 
+				           x_case := PHI(x_prev_case, x_2)
 									   
 			
 			
@@ -3107,13 +3133,13 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			C(s) = cmds_def, x_def
 			C(b_stmt_i) = cmds_i, x_i, for all b_stmt_i \in b_stmts
 			---------------------------------------------------------
-			C_default ( s, b_stmts, x_found_b, breaks) = 
+			C_default ( s, b_stmts, x_found_b, breaks_a) = 
 					            cmds_def
 									    goto [ not (x_found_b) ] next end_switch
 				  next:       cmds_1
 					            ... 
 									    cmds_n
-				  end_switch: x_r := PHI(breaks, x_def, x_found_b) 
+				  end_switch: x_r := PHI(breaks_ab, breaks_def, x_def, breaks_b, x_n) 
 
 										
 				 
@@ -3125,14 +3151,184 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		  C(switch(e) { a_cases, default_case, b_cases} =
 				            cmds_guard 
 										x_guard_v := i__getValue (x_guard) with err  
-				            x_found := false 
 										cmds_a 
-										cmds_b 
-										cmds_default 	
+										goto [ x_found_a ] default b_cases
+				b_cases:	  cmds_b 
+				default:		x_found_b := PHI(x_false, x_true)
+				            cmds_default 	
 		 
      *)
-		[], Literal Empty, [], [], [], [] 
+		let compile_case e s x_prev_found x_prev_case x_switch_guard end_switch js_lab fresh_end_case_label = 
+			let x_found = fresh_found_var () in 
+			let next1 = fresh_next_label () in 
+			let next2 = fresh_next_label () in 
+			
+			let new_loop_list = (None, end_switch, js_lab) :: loop_list in 
+			let cmds1, x1, errs1, _, _, _ = f e in 
+			let cmds1 = add_initial_label cmds1 next1 in 
+			let cmds2, x2, errs2, rets2, breaks2, conts2 = translate fid cc_table ctx vis_fid err new_loop_list None None s in 
+			let cmds2, x2 = add_final_var cmds2 x2 in 
+			let cmds2 = add_initial_label cmds2 next2 in 
+			
+			(* goto [ not x_prev_found ] next1 next2 *) 
+			let cmd_goto_1 = SLGuardedGoto ( UnaryOp(Not, Var x_prev_found), next1, next2) in 
+			
+			(* x1_v := getValue (x1) with err *)
+			let x1_v, cmd_gv_x1 = make_get_value_call x1 err in 
+			
+			(* goto [ x1_v = x_switch_guard ] next2 end_case *)
+			let next1 = fresh_next_label () in 
+			let end_case = fresh_end_case_label () in 
+			let cmd_goto_2 = SLGuardedGoto ( BinOp(Var x1_v, Equal, Var x_switch_guard), next2, end_case) in 
+			
+			(* x_found_2 := PHI(x_false, x_true)  *) 
+			let cmd_ass_xfound = SLBasic (SPhiAssignment (x_found, [| Some var_false; Some var_true |])) in 
+			
+			(* x_case := PHI(x_prev_case, x_2) *) 
+			let x_case = fresh_case_var () in 
+			let cmd_ass_case = SLBasic (SPhiAssignment (x_case, [| Some x_prev_case; Some x2 |])) in 
+			
+			let cmds = [
+				(None, None,          cmd_goto_1)                                                   (*           goto [ not x_prev_found ] next1 next2          *)
+			] @ cmds1 @ [                                                                         (* next1:    cmds1                                          *)
+	      (None, None,          cmd_gv_x1);                                                   (*           x1_v := getValue (x1) with err                 *)
+				(None, None,          cmd_goto_2);                                                  (*           goto [ x1_v = x_switch_guard ] next2 end_case  *)
+					] @ cmds2 @ [                                                                     (* next2:    cmds2                                          *)
+				(None, Some end_case, cmd_ass_xfound);                                              (* end_case: x_found := PHI(x_false, x_true)                *)
+				(None, None,          cmd_ass_case)                                                 (*           x_case := PHI(x_prev_case, x_2)                *)
+			] in 
+			let errs = errs1 @ [ x1_v ] @ errs2 in 
+			cmds, x_case, errs, rets2, breaks2, conts2, x_found  in
+			
+		
+		let compile_default s b_stmts x_found_b end_switch js_lab cur_breaks_ab =
+			let new_loop_list = (None, end_switch, js_lab) :: loop_list in 
+			let f_default = translate fid cc_table ctx vis_fid err new_loop_list None None in 
+			
+			let cmds_def, x_def, errs_def, rets_def, breaks_def, conts_def = f_default s in
+			let cmds_def, x_def = add_final_var cmds_def x_def in 
+			let cmds_b, x_b, errs_b, rets_b, breaks_b, conts_b = 
+				List.fold_left (fun (cmds_ac, x_ac, errs_ac, rets_ac, breaks_ac, conts_ac) b_stmt -> 
+					let cur_b_cmds, x_b, cur_b_errs, cur_b_rets, cur_b_breaks, cur_b_conts = f_default b_stmt in 
+					let cur_b_cmds, x_b = add_final_var cur_b_cmds x_b in 
+					cmds_ac @ cur_b_cmds, x_b, errs_ac @ cur_b_errs, rets_ac @ cur_b_rets, breaks_ac @ cur_b_breaks, conts_ac @ cur_b_conts)
+					([], x_def, [], [], [], [])
+					b_stmts in  
+			
+			let cur_breaks_b, outer_breaks_b = filter_cur_jumps breaks_b js_lab true in 
+			let cur_breaks_def, outer_breaks_def = filter_cur_jumps breaks_def js_lab true in 
+			
+			(* goto [ not (x_found_b) ] next end_switch *) 
+			let next = fresh_next_label () in 
+			let cmd_goto = SLGuardedGoto( UnaryOp( Not, Var x_found_b), next, end_switch) in 
+			
+			(* x_r := PHI(breaks_ab, breaks_def, x_def, breaks_b, x_n) *) 
+			let x_r = fresh_var () in 
+			let phi_args : string list = cur_breaks_ab @ cur_breaks_def @ [ x_def ] @ cur_breaks_b @ [ x_b ] in 
+			let phi_args = List.map (fun x -> Some x) phi_args in 
+			let phi_args = Array.of_list phi_args in 	
+			let cmd_ass_xr = SLBasic (SPhiAssignment (x_r, phi_args)) in 
+			
+			let cmds_b = 
+				(match cmds_b with 
+				| [] -> raise (Failure "Compile default should only be called when there are b-cases")
+				| _ -> add_initial_label cmds_b next) in 
+			
+			let cmds = cmds_def @ [                   (*             cmds_def                                                *)
+				(None, None, cmd_goto)                  (*             goto [ not (x_found_b) ] next end_switch                *)      
+			] @ cmds_b @ [                            (* next:       b_cmds                                                  *)
+				(None, Some end_switch, cmd_ass_xr)     (* end_switch: x_r := PHI(breaks_ab, breaks_def, x_def, breaks_b, x_n) *)    
+			] in 
+			cmds, x_r, errs_def @ errs_b, rets_def @ rets_b, outer_breaks_def @ outer_breaks_b, conts_def @ conts_b in 
+			
+		let filter_cases cases = 
+			List.fold_left (fun (a_cases, def, b_cases) case ->
+				(match case, def with 
+				| (Parser_syntax.Case e, s), None -> (((e, s) :: a_cases), def, b_cases)
+				| (Parser_syntax.DefaultCase, s), None -> (a_cases, Some s, b_cases)
+				| (Parser_syntax.Case e, s), Some _ -> (a_cases, def, ((e, s) :: b_cases)) 
+				| (Parser_syntax.DefaultCase, _), Some _ -> raise (Failure "No two defaults for the same try")))
+			([], None, [])
+			cases in 
+		
+		let a_cases, def, b_cases = filter_cases xs in 
+		let b_cases_lab, default_lab, end_switch, fresh_end_case_label = fresh_switch_labels () in 
+		let x_found_init = fresh_found_var () in
+		
+		let cmds_guard, x_guard, errs_guard, _, _, _ = f e in 
+		(* x_guard_v := i__getValue (x_guard) with err  *) 
+		let x_guard_v, cmd_gv_xguardv = make_get_value_call x_guard err in
+		let cmd_gv_xguardv = (None, None, cmd_gv_xguardv) in 
+		(* x_found := false *) 
+		let cmd_x_found_init = (None, None, SLBasic (SAssignment (x_found_init, Literal (Bool false)))) in  
+		(* x_init_val := $$empty *) 
+		let x_init = fresh_var () in 
+		let cmd_val_init = (None, None, SLBasic (SAssignment (x_init, Literal Empty))) in  
+		
+		let cmds_as, x_as, errs_as, rets_as, breaks_as, conts_as, x_found_as = 
+			List.fold_left 
+				(fun (cmds_ac, x_ac, errs_ac, rets_ac, breaks_ac, conts_ac, x_found_ac) (e, s) -> 
+					let cmds_a, x_a, errs_a, rets_a, breaks_a, conts_a, x_found_a = compile_case e s x_found_ac x_ac x_guard_v end_switch js_lab fresh_end_case_label in 
+					cmds_ac @ cmds_a, x_a, errs_ac @ errs_a, rets_ac @ rets_a, breaks_ac @ breaks_a, conts_ac @ conts_a, x_found_a)
+				([], x_init, [], [], [], [], x_found_init)
+				a_cases in 
+		let cmds_as = cmds_guard @ [ cmd_gv_xguardv; cmd_x_found_init; cmd_val_init ] @ cmds_as in 
 	
+		let cmds_bs, x_bs, errs_bs, rets_bs, breaks_bs, conts_bs, x_found_bs = 
+			List.fold_left 
+				(fun (cmds_bc, x_bc, errs_bc, rets_bc, breaks_bc, conts_bc, x_found_bc) (e, s) -> 
+					let cmds_b, x_b, errs_b, rets_b, breaks_b, conts_b, x_found_b = compile_case e s x_found_bc x_bc x_guard_v end_switch js_lab fresh_end_case_label in 
+					cmds_bc @ cmds_b, x_b, errs_bc @ errs_b, rets_bc @ rets_b, breaks_bc @ breaks_b, conts_bc @ conts_b, x_found_b)
+				([], x_as, [], [], [], [], x_found_as) 
+				b_cases in 
+		
+		(match b_cases, def with 
+		| [], None -> 
+			(*  end_switch: x_r := PHI(breaks_a, x_a) *)
+			let x_r = fresh_var () in 
+			let cur_breaks_as, outer_breaks_as = filter_cur_jumps breaks_as js_lab true in
+			let phi_args = cur_breaks_as @ [ x_as ] in 
+			let phi_args = List.map (fun x -> Some x) phi_args in 
+			let phi_args = Array.of_list phi_args in 
+			let cmd_end_switch = (None, Some end_switch, SLBasic (SPhiAssignment (x_r, phi_args))) in  
+			cmds_as @ [ cmd_end_switch ], Var x_as, errs_as, rets_as, outer_breaks_as, conts_as   			
+		
+		| [], Some def -> 
+			let new_loop_list = (None, end_switch, js_lab) :: loop_list in 
+			let f_default = translate fid cc_table ctx vis_fid err new_loop_list None None in 
+			let cmds_def, x_def, errs_def, rets_def, breaks_def, conts_def = f_default def in
+			let cmds_def, x_def = add_final_var cmds_def x_def in
+			
+			(*  end_switch: x_r := PHI(breaks_a, breaks_def, x_def) *)
+			let x_r = fresh_var () in 
+			let cur_breaks_as, outer_breaks_as = filter_cur_jumps breaks_as js_lab true in
+			let cur_breaks_def, outer_breaks_def = filter_cur_jumps breaks_def js_lab true in
+			let phi_args = cur_breaks_as @ cur_breaks_def @ [ x_def ] in 
+			let phi_args = List.map (fun x -> Some x) phi_args in 
+			let phi_args = Array.of_list phi_args in 
+			let cmd_end_switch = (None, Some end_switch, SLBasic (SPhiAssignment (x_r, phi_args))) in  
+			cmds_as @ cmds_def @ [ cmd_end_switch ], Var x_def, errs_as @ errs_def, rets_as @ errs_def, outer_breaks_as @ outer_breaks_def, conts_as @ conts_def
+			
+	 	| _, Some def -> 
+			let b_stmts = List.map (fun (a, b) -> b) b_cases in 
+			let cmds_bs = add_initial_label cmds_bs b_cases_lab in 
+			
+			(* goto [ x_found_a ] default b_cases *)
+			let cmd_goto_xfounda = (None, None, SLGuardedGoto (Var x_found_as, default_lab, b_cases_lab)) in 
+			
+			(* default:		x_found_b := PHI(x_false, x_true) *) 
+			let x_found_b = fresh_xfoundb_var () in 
+			let cmd_ass_xfoundb = (None, Some default_lab, SLBasic (SPhiAssignment (x_found_b, [| Some var_false; Some var_true |]))) in 
+			
+			let cur_breaks_as, outer_breaks_as = filter_cur_jumps breaks_as js_lab true in
+			let cur_breaks_bs, outer_breaks_bs = filter_cur_jumps breaks_bs js_lab true in
+			let cur_breaks_ab = cur_breaks_as @ cur_breaks_bs in 
+			
+			let cmds_def, x_def, errs_def, rets_def, outer_breaks_def, conts_def = compile_default def b_stmts x_found_b end_switch js_lab cur_breaks_ab in 
+			cmds_as @ [ cmd_goto_xfounda ] @ cmds_bs @ [ cmd_ass_xfoundb ] @ cmds_def, Var x_def, errs_as @ errs_bs @ errs_def, rets_as @ rets_bs @ rets_def, outer_breaks_as @ outer_breaks_bs @ outer_breaks_def, conts_as @ conts_bs @ conts_def 
+			
+			
+		| _, _ -> raise (Failure "no b cases with no default"))  
 	
 	
 	| Parser_syntax.NamedFun (_, n, params, e_body) -> 

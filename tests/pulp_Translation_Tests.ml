@@ -20,16 +20,16 @@ let test_template p name =
   Config.apply_config ();
   Parser_main.verbose := true;
   let exp = Parser_main.exp_from_string p in
-  let _ = Printf.printf "%s \n" (Pretty_print.string_of_exp_syntax exp.Parser_syntax.exp_stx) in
+  (* let _ = Printf.printf "%s \n" (Pretty_print.string_of_exp_syntax exp.Parser_syntax.exp_stx) in *)
   let p_exp = exp_to_pulp_no_builtin IVL_goto_unfold_functions exp main_fun_id [] in
-  let _ = AllFunctions.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_func_block fwc)) p_exp in
-  let cfg = Control_Flow.mk_cfg p_exp ("tests/dot/"^name) in
+  (* let _ = AllFunctions.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_func_block fwc)) p_exp in *)
+  let cfg = Control_Flow.mk_cfg p_exp ("tests/dot/"^name) in 
   
   let cfg_bbs = AllFunctions.mapi (fun name cfg ->
     let fb = AllFunctions.find name p_exp in
     let cfg_bb = Simp_Main.basic_block_simplifications cfg fb.func_ctx in
     let stmts = Basic_Blocks.cfg_to_fb cfg_bb fb.func_ctx.label_throw fb.func_ctx.label_return in
-    Printf.printf "Procedure %s \n %s \n" name (Pulp_Syntax_Print.string_of_statement_list stmts);
+    (* Printf.printf "Procedure %s \n %s \n" name (Pulp_Syntax_Print.string_of_statement_list stmts); *)
     cfg_bb
     ) cfg in
   
@@ -47,7 +47,7 @@ let test_template p name =
       dead_code_elimination cfg fb.func_ctx.throw_var fb.func_ctx.return_var;
       
       let stmts = Basic_Blocks.cfg_to_fb cfg fb.func_ctx.label_throw fb.func_ctx.label_return in
-      Printf.printf "Procedure %s \n %s \n" name (Pulp_Syntax_Print.string_of_statement_list stmts);
+      (* Printf.printf "Procedure %s \n %s \n" name (Pulp_Syntax_Print.string_of_statement_list stmts); *)
       
       cfg
   ) cfg_bbs in
@@ -295,8 +295,9 @@ finally{
 }") "nested try catch in flow graph"
 
 let suite = "Testing_Translation" >:::
-  ["translating simple" >:: test_simple;
-   "translating access" >:: test_access;
+  [
+		"translating simple" >:: test_simple
+  (** "translating access" >:: test_access;
    "translating assignment" >:: test_assign;
    "translating obj literal" >:: test_obj;
    "translating block" >:: test_block;
@@ -330,6 +331,6 @@ let suite = "Testing_Translation" >:::
    "test_eval_1">::test_eval_1;
    "test_cav_example_5">::test_cav_example_5;
    "test_instance_of_true" >:: test_instance_of_true;
-   "test_instance_of_false" >:: test_instance_of_false
+   "test_instance_of_false" >:: test_instance_of_false *)
    (*"test_" >:: test_*)
    ] 

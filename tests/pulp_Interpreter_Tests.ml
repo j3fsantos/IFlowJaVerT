@@ -21,9 +21,9 @@ let get_expr p level =
   Config.apply_config ();
   Parser_main.verbose := true;
   let exp = Parser_main.exp_from_string p in
-  let _ = Printf.printf "%s \n" (Pretty_print.string_of_exp_syntax exp.Parser_syntax.exp_stx) in
+  (* let _ = Printf.printf "%s \n" (Pretty_print.string_of_exp_syntax exp.Parser_syntax.exp_stx) in *)
   let p_exp, env = exp_to_pulp level exp main_fun_id [] in
-  let _ = AllFunctions.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_func_block fwc)) p_exp in
+  (* let _ = AllFunctions.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_func_block fwc)) p_exp in *)
   p_exp, env
   
 let test_template p =
@@ -47,7 +47,7 @@ let test_template_simp p =
   let p_exp = Simp_Main.simplify p_exp Simp_Common.Simp_Unfold_Specs in
 	let builtins = env in 
   let env = Simp_Main.simplify builtins Simp_Common.Simp_Unfold_Specs in
-  let _ = AllFunctions.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_func_block fwc)) p_exp in
+  (* let _ = AllFunctions.iter (fun fid fwc -> Printf.printf "%s \n\n" (Pulp_Syntax_Print.string_of_func_block fwc)) p_exp in *)
   Interpreter.run_with_initial_heap p_exp env
   
 let test_template_no_simplifications p expected_value = 
@@ -619,6 +619,25 @@ let test_program_switch_aux () =
   test_template_normal ("
 		switch(0) { }")  (VHValue (HVLiteral Empty))
 
+let break_test_666 () = 
+	test_template_normal ("
+var z = 2;
+var w = 0;
+banana: while (z > 0) {
+	var x = 2;
+	z--;
+	while (x > 0) {
+		w += 1;
+		try {
+			if (x==1) { continue; }
+			if (x==2) { continue banana; }
+		} finally {
+			x--;
+		}
+	}
+}
+w") (VHValue (HVLiteral (Num 33.0)))
+
 
 let test_program_switch1 () =
   test_template_normal ("var x1;
@@ -915,8 +934,9 @@ let test_12_2_1_7_s () =
 let suite = "Testing_Interpreter" >:::
   [
 		(*"test_program_switch_aux" >:: test_program_switch_aux;*)
-	  "test_program_switch1" >:: test_program_switch1;
-		"test_program_switch2" >:: test_program_switch2;
+	   "test_program_switch1" >:: test_program_switch1; 
+		 "break_test_666" >:: break_test_666
+		(* "test_program_switch2" >:: test_program_switch2;
 		"test_program_switch3" >:: test_program_switch3;
 		"test_program_switch5" >:: test_program_switch5;
 		"test_program_switch6" >:: test_program_switch6;
@@ -1054,6 +1074,6 @@ let suite = "Testing_Interpreter" >:::
     "test_S13_A7_T2" >:: test_S13_A7_T2;
     "test_get_prototyte_of_empty" >:: test_get_prototyte_of_empty;
     "test_eval_this" >:: test_eval_this;
-    "test_12_2_1_7_s" >:: test_12_2_1_7_s
+    "test_12_2_1_7_s" >:: test_12_2_1_7_s *)
     (*"test_" >:: test_*) 
     ] 
