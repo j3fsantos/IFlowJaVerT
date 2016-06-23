@@ -1,1 +1,20 @@
 import Internals;
+
+(* *** TOSTRING *** *)
+
+proc FP_toString (xsc, vthis) {			
+			goto [typeOf (vthis) = $$object_type] ofun throw;
+	ofun:	xret := [vthis, "@class"];
+			goto [xret = "Function"] retfun throw;
+	retfun:	xret := "function () {}";
+			
+	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
+}
