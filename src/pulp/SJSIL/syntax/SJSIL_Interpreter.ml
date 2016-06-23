@@ -113,9 +113,9 @@ let evaluate_unop op lit =
 	| ToNumberOp -> 
 		(match lit with
 		| String s -> 
-			let num = try
-				Float.of_string s 
-				with Failure "float_of_string" -> nan in
+			let num = try Float.of_string s 
+				with Failure "float_of_string" -> 
+					if s = "" then 0. else nan in
 				(Num num)
 		| _ -> raise (Failure "Non-string argument to ToNumberOp"))
 	| ToIntOp ->
@@ -386,7 +386,7 @@ let evaluate_type_of lit =
 
 let evaluate_constant c = 
 	match c with
-  | Min_float -> Num (min_float)
+  | Min_float -> Num (5e-324)
 	| Max_float -> Num (max_float)
 	| Random -> Num (Random.float (1.0 -. epsilon_float))
 	| E -> Num (exp 1.0)
@@ -542,8 +542,8 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (SSyntax_Print.string_of_literal v_e1 false)))) in
 			let v = (try SHeap.find obj f with
 				| _ -> 
-					let final_heap_str = SSyntax_Print.sexpr_of_heap heap in 
-					Printf.printf "Final heap: \n%s\n" final_heap_str;
+					(* let final_heap_str = SSyntax_Print.sexpr_of_heap heap in 
+					Printf.printf "Final heap: \n%s\n" final_heap_str; *)
 					raise (Failure (Printf.sprintf "Looking up inexistent field: [%s, %s]" (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false)))) in
 	
 			Hashtbl.replace store x v; 
@@ -561,12 +561,14 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 			then
 				let obj = SHeap.find heap l in ();
 				SHeap.replace obj f v_e3;
+				if (!verbose) then Printf.printf "Mutation: [%s, %s] = %s \n" (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false) (SSyntax_Print.string_of_literal v_e3 false);	
 				v_e3
 			else 
 				let obj = SHeap.create 1021 in
 				SHeap.add obj proto_f Null;
 				SHeap.add heap l obj;
 				SHeap.replace obj f v_e3;
+				if (!verbose) then Printf.printf "Mutation: [%s, %s] = %s \n" (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false) (SSyntax_Print.string_of_literal v_e3 false);
 				v_e3
 		| _, _ ->  raise (Failure "Illegal field inspection"))
 	
@@ -627,7 +629,11 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 			let fields =  
 				SHeap.fold
 				(fun field value acc ->
-					(String field) :: acc
+					let t = evaluate_type_of value in
+					if (t = ListType) then 
+						(String field) :: acc
+					else
+						acc
 					) obj [] in
 			let v = LList fields in
 			Hashtbl.replace store x v;
@@ -716,7 +722,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 			(fun e_arg -> evaluate_expr e_arg store) 
 			e_args in 
 		let call_proc = try SProgram.find prog call_proc_name with
-		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist. Spell check for your life?" call_proc_name)) in
+		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist." call_proc_name)) in
 		let new_store = init_store call_proc.proc_params arg_vals in 
 		match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 with 
 		| Normal, v -> 

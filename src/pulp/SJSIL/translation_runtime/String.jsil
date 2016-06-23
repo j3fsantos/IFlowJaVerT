@@ -35,7 +35,7 @@ with
 (* *** CALL *** *)
 
 proc String_call (xsc, vthis, s) {
-			goto [s = $$empty] empty to_str;
+			goto [s = $$undefined] empty to_str;
 	
 	empty:	xret := "";
 			goto rlab;
@@ -53,7 +53,7 @@ with
 (* *** CONSTRUCT *** *)
 
 proc String_construct (xsc, vthis, s) {
-			goto [s = $$empty] empty to_str;
+			goto [s = $$undefined] empty to_str;
 	empty:	pv := ""; 
 			goto norm;
 	to_str:	pv := "i__toString" (s) with elab;

@@ -166,10 +166,10 @@ with
 
 (* *** CALL *** *)
 
-proc Object_call (v) {
+proc Object_call (xsc, vthis, v) {
 			goto [(v = $$undefined) or (v = $$null) or (v = $$empty)] cons to_obj;
 	
-	cons:	xret := "Object_construct" (v);
+	cons:	xret := "Object_construct" (xsc, vthis, v);
 			goto rlab;
 	
 	to_obj:	xret := "i__toObject" (v) with elab;
@@ -185,7 +185,7 @@ with
 
 (* *** CONSTRUCT *** *)
 
-proc Object_construct (l) {
+proc Object_construct (xsc, vthis, l) {
 			goto [typeOf(l) = $$object_type] obj l1b;
 	obj:	xret := l;
 			goto rlab;
@@ -218,7 +218,7 @@ proc Object_getPrototypeOf (xsc, vthis, o) {
 with 
 {
 	ret:	xret, rlab;
-	err:	xerr, rlab;
+	err:	xerr, elab;
 };
 
 (* *** GETOWNPROPERTYDESCRIPTOR *** *)
@@ -240,7 +240,7 @@ proc Object_getOwnPropertyDescriptor (xsc, vthis, o, prop) {
 with 
 {
 	ret:	xret, rlab;
-	err:	xret, rlab;
+	err:	xret, elab;
 };
 
 (* *** GETOWNPROPERTYNAMES *** *)
@@ -248,7 +248,7 @@ with
 proc Object_getOwnPropertyNames (xsc, vthis, o) {
 			goto [not (typeOf(o) = $$object_type)] throw start;
 
-	start:	xret := "Array_construct" () with elab;
+	start:	xret := "Array_construct" (xsc, vthis) with elab;
 			
 			n := 0;
 			l := xret;
@@ -280,11 +280,11 @@ proc Object_create (xsc, vthis, o, props) {
 			goto [(typeOf(o) = $$object_type) or (o = $$null)] main throw;
 			
 	main:	xret := "Object_construct" () with elab;
-			[xret, "@prototype"] := o;
+			[xret, "@proto"] := o;
 			
-			goto [props = $$empty] rlab props;
+			goto [props = $$undefined] rlab props;
 			
-	props:	xret := "Object_defineProperties" (xret, props) with elab;
+	props:	xret := "Object_defineProperties" (xsc, vthis, xret, props) with elab;
 			
 	rlab:	skip;
 	
@@ -389,8 +389,7 @@ proc Object_seal (xsc, vthis, o) {
 			
 	loop:	goto [n < len] head ext;
 	head:	xret := gop (o, nth (props, n)) with elab;
-			goto [nth (xret, 4) = $$t] dop next;
-	dop:	xret := dop (o, nth (props, n), {{ nth (xret, 0), nth (xret, 1), nth (xret, 2), nth (xret, 3), $$f }}, $$t) with elab;
+			xret := dop (o, nth (props, n), {{ nth (xret, 0), nth (xret, 1), nth (xret, 2), nth (xret, 3), $$f }}, $$t) with elab;
 	next:	n := n + 1;
 			goto loop;
 		
@@ -461,8 +460,7 @@ proc Object_freeze (xsc, vthis, o) {
 			ws := nth (xret, 2);
 			goto [ws = $$t] set_w cf;
 	set_w:	ws := $$f;
-	cf:		goto [nth (xret, 4) = $$t] dop next;
-	dop:	xret := dop (o, nth (props, n), {{ nth (xret, 0), nth (xret, 1), ws, nth (xret, 3), $$f }}, $$t) with elab;
+	cf:		xret := dop (o, nth (props, n), {{ nth (xret, 0), nth (xret, 1), ws, nth (xret, 3), $$f }}, $$t) with elab;
 	next:	n := n + 1;
 			goto loop;
 		

@@ -6,11 +6,11 @@ open SSyntax_Aux
 *)
 let string_of_float x = 
 	if (x == nan) 
-		then "+nan.0"
+		then "nan"
 		else if (x == neg_infinity) 
-						then "-inf.0"
+						then "inf"
 						else if (x == infinity) 
-									then "+inf.0"
+									then "-inf"
 									else string_of_float x 
 (**	
 the following does not work because nan is interpreted as a variable

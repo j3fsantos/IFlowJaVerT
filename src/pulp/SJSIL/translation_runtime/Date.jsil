@@ -1,0 +1,9 @@
+proc Date_construct (xsc, vthis) {
+			xret := new ();
+			xret := "create_default_object" (xret, $ldt_proto, "Date", $$t);		
+	rlab:	skip
+}
+with
+{
+	ret: xret, rlab;
+}

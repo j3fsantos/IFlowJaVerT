@@ -3,15 +3,20 @@ default:
 	#ocamlbuild -use-ocamlfind src/pulp/interpreter/interpreter_run.d.byte
 	#ocamlbuild -use-ocamlfind src/pulp/interpreter/interpreter_run.native
 	#ocamlbuild -use-ocamlfind tests/test_interpreter.byte
-	ocamlbuild -use-ocamlfind src/pulp/syntax/translate.byte
+	#ocamlbuild -use-ocamlfind src/pulp/syntax/translate.byte
 	#ocamlbuild -use-ocamlfind tests/spec_Functions_Tests.byte
 	ocamlbuild -use-ocamlfind -verbose 1 src/pulp/SJSIL/SJSIL_Parser_main.byte
+	ocamlbuild -use-ocamlfind -verbose 1 src/pulp/SJSIL/SJSIL_Parser_main.native
 	ocamlbuild -use-ocamlfind -verbose 1 src/pulp/SJSIL/tests/test_main.byte
 	ocamlbuild -use-ocamlfind src/pulp/SJSIL/js2jsil_main.byte
+	ocamlbuild -use-ocamlfind src/pulp/SJSIL/js2jsil_main.native
 
 init:
+	.git-hooks/install.sh .
 	cp src/localconfig.default src/localconfig.ml
 	cp config/config.default config/config.xml
+	git submodule update --init src/parser
+	opam install batteries xml-light extlib menhir ounit
 
 
 

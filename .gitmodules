@@ -1,3 +1,9 @@
 [submodule "src/parser"]
 	path = src/parser
 	url = https://github.com/resource-reasoning/JS_Parser.git
+[submodule "lib/runtests"]
+	path = lib/runtests
+	url = https://github.com/edgemaster/runtests.git
+[submodule "tests/test262"]
+	path = tests/test262
+	url = https://github.com/tc39/test262.git

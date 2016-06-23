@@ -109,12 +109,12 @@ function isConfigurable(obj, name) {
             $ERROR("Expected TypeError, got " + e);
         }
     }
-    return !Object.prototype.hasOwnProperty.call(obj, name);
+    return !obj.hasOwnProperty(name);
 }
 
 function isEnumerable(obj, name) {
-    return Object.prototype.hasOwnProperty.call(obj, name) &&
-        Object.prototype.propertyIsEnumerable.call(obj, name);
+    return obj.hasOwnProperty(name) &&
+    obj.propertyIsEnumerable(name);
 }
 
 function isEqualTo(obj, name, expectedValue) {
@@ -125,7 +125,7 @@ function isEqualTo(obj, name, expectedValue) {
 
 function isWritable(obj, name, verifyProp, value) {
     var newValue = value || "unlikelyValue";
-    var hadValue = Object.prototype.hasOwnProperty.call(obj, name);
+    var hadValue = obj.hasOwnProperty(name);
     var oldValue = obj[name];
     var writeSucceeded;
 
@@ -211,3 +211,31 @@ function verifyNotConfigurable(obj, name) {
         $ERROR("Expected obj[" + String(name) + "] NOT to be configurable, but was.");
     }
 }
+
+function getPrecision(num) {
+	//TODO: Create a table of prec's,
+	//      because using Math for testing Math isn't that correct.
+
+	var log2num = Math.log(Math.abs(num)) / Math.LN2;
+	var pernum = Math.ceil(log2num);
+	return 2 * Math.pow(2, -52 + pernum);
+}
+
+var prec;
+
+function isEqual(num1, num2)
+{
+        if ((num1 === Infinity)&&(num2 === Infinity))
+        {
+                return(true);
+        }
+        if ((num1 === -Infinity)&&(num2 === -Infinity))
+        {
+                return(true);
+        }
+        prec = getPrecision(Math.min(Math.abs(num1), Math.abs(num2)));  
+        return(Math.abs(num1 - num2) <= prec);
+        //return(num1 === num2);
+}
+
+var $MAX_ITERATIONS = 100000;

@@ -60,6 +60,8 @@ proc o__get (l, prop) {
 	get:	xsc := [xret, "@scope"];				(* Get the scope of the getter *)
 			fun := [xret, "@call"];					(* Get the name of the getter *)
 			xret := fun (xsc, l) with elab;			(* Call the getter, errors could happen *)
+			goto [xret = $$empty] undef rlab;
+	undef:	xret := $$undefined;
 			
 	rlab:	skip;
 	elab:	skip
@@ -150,7 +152,7 @@ proc o__put (l, prop, value, throw) {
     rlab:   skip;
     
     reject: goto [throw] tt remp;
-    tt:     xerr := "TypeError" ();
+    tt:     xret := "TypeError" ();
     elab:   skip
 }
 with
@@ -197,7 +199,7 @@ proc o__deleteProperty (l, prop, throw) {
 	
     reject: goto [throw] tt df;
     
-    tt:     xerr := "TypeError" ();
+    tt:     xret := "TypeError" ();
     elab:   skip
 }
 with
@@ -233,8 +235,10 @@ proc o__defaultValue (l, hint) {
             
     call:	xsc := [xret, "@scope"];
             fun := [xret, "@call"];
-            xret := fun (xsc, l) with elab;            
-			goto [is_primitive xret] rlab next;
+            xret := fun (xsc, l) with elab;
+			goto [xret = $$empty] undef ispr;
+	undef:	xret := $$undefined;                    
+	ispr:	goto [is_primitive xret] rlab next;
 			
     next:   goto [proc_name = "toString"] n s;
     rlab:   skip;
@@ -332,7 +336,8 @@ proc o__defineOwnProperty (l, prop, desc, throw) {
 			goto [t1 and t2 and t3 and t4 and
 			      (dv = $$empty) and (dw = $$empty)] acc_t l7;
 	
-	l7:		cvg := nth (current, 1);
+	l7:		ct := nth (current, 0);
+			cvg := nth (current, 1);
 			cws := nth (current, 2);
 			ce := nth (current, 3);
 			cc := nth (current, 4);
@@ -349,15 +354,24 @@ proc o__defineOwnProperty (l, prop, desc, throw) {
 			
 	l9a:	goto [cc = $$f] reject change;
 	change:	goto [cdd = $$t] toa tod;
-	toa:	[l, prop] := {{ "a", $$undefined, $$undefined, ce, cc }};
+	toa:	goto [dg = $$empty] sg gs;
+	sg:		dg := $$undefined;
+	gs:		goto [ds = $$empty] ss spa;
+	ss:		ds := $$undefined;
+	spa:	[l, prop] := {{ "a", dg, ds, ce, cc }};
 			goto acc_t;
-	tod:	[l, prop] := {{ "d", $$undefined, $$f, ce, cc }};
+				
+	tod:	goto [dv = $$empty] sv gw;
+	sv:		dv := $$undefined;
+	gw:		goto [dw = $$empty] sw spd;
+	sw:		dw := $$f;
+	spd:	[l, prop] := {{ "d", dv, dw, ce, cc }};
 			goto acc_t;
 	
 	l10:	goto [cdd = $$t] l10a l11;
 	
 	l10a:	goto [cc = $$f] l10ai l12;
-	l10ai:	goto [(not (dw = $$empty)) and (not (cws = dw))] reject l10aii;
+	l10ai:	goto [(not (dw = $$empty)) and ((cws = $$f) and (dw = $$t))] reject l10aii;
 	l10aii:	t1 := "i__sameValue" (cvg, dv);
 			goto [(cws = $$f) and (not (dv = $$empty)) and (not t1)] reject l12;
 	
@@ -374,7 +388,7 @@ proc o__defineOwnProperty (l, prop, desc, throw) {
 	red:	goto [dc = $$empty] rcd rd;
 	rcd:	rc := nth (current, 4);
 	
-	rd: 	goto [nth (current, 0) = "d"] l12d l12a;
+	rd: 	goto [ct = "d"] l12d l12a;
 	
 	l12d:	rv := dv;
 			rw := dw;
@@ -597,11 +611,13 @@ proc i__toPropertyDescriptor (v) {
 	has_de:	res := hp (v, "enumerable");
 			goto [res] de has_dc;
 	de:		xret := gt (v, "enumerable") with elab;
+			xret := "i__toBoolean" (xret);
 			de := xret;
 			
 	has_dc:	res := hp (v, "configurable");
 			goto [res] dc has_dv;
 	dc:		xret := gt (v, "configurable") with elab;
+			xret := "i__toBoolean" (xret);
 			dc := xret;
 			
 	has_dv:	res := hp (v, "value");
@@ -612,17 +628,22 @@ proc i__toPropertyDescriptor (v) {
 	has_dw:	res := hp (v, "writable");
 			goto [res] dw has_dg;
 	dw:		xret := gt (v, "writable") with elab;
+			xret := "i__toBoolean" (xret);
 			dw := xret;
 
 	has_dg:	res := hp (v, "get");
 			goto [res] dg has_ds;
 	dg:		xret := gt (v, "get") with elab;
-			dg := xret;
+			call := "i__isCallable" (xret);
+			goto [call or (xret = $$undefined)] get throw; 
+	get:	dg := xret;
 			
 	has_ds:	res := hp (v, "set");
 			goto [res] ds check;
 	ds:		xret := gt (v, "set") with elab;
-			ds := xret;
+			call := "i__isCallable" (xret);
+			goto [call or (xret = $$undefined)] set throw; 
+	set:	ds := xret;
 			
 	check:	goto [(not (dg = $$empty)) or (not (ds = $$empty))] vw return;
 	vw:		goto [(not (dv = $$empty)) or (not (dw = $$empty))] throw return;
@@ -807,7 +828,7 @@ proc i__toBoolean (v) {
 			goto rlab;
 			
 	inum:	goto [typeOf(v) = $$number_type] num is;
-	num:	goto [(v = 0) or (v = nan)] is_f is_t;
+	num:	goto [(v = 0) or (not (v = v))] is_f is_t;
 			
 	is:		goto [typeOf(v) = $$string_type] str io;
 	str:	goto [v = ""] is_f is_t;
@@ -858,7 +879,7 @@ proc i__toNumber (v) {
 			goto rlab;
 			
 	io:		goto [typeOf(v) = $$object_type] obj oops;
-	obj:	xret := "i__toPrimitive" (v, "String") with elab;
+	obj:	xret := "i__toPrimitive" (v, "Number") with elab;
 			xret := "i__toNumber" (xret);
 			goto rlab;
 	
@@ -983,15 +1004,15 @@ proc i__toObject (v) {
 	in:		goto [v = $$null] throw ib;
 			
 	ib:		goto [typeOf(v) = $$boolean_type] bool inum;
-	bool:	xret := "Boolean_construct" (v);
+	bool:	xret := "Boolean_construct" ($$undefined, $$undefined, v);
 			goto rlab;
 			
 	inum:	goto [typeOf(v) = $$number_type] num is;
-	num:	xret := "Number_construct" (v);
+	num:	xret := "Number_construct" ($$undefined, $$undefined, v);
 			goto rlab;
 			
 	is:		goto [typeOf(v) = $$string_type] str io;
-	str:	xret := "String_construct" (v);
+	str:	xret := "String_construct" ($$undefined, $$undefined, v);
 			goto rlab;
 			
 	io:		goto [typeOf(v) = $$object_type] obj oops;
@@ -1046,7 +1067,9 @@ with
 
 proc i__isCallable (l) {
 			goto [typeOf (l) = $$object_type] obj endf; 
-	obj:	xret := hasField (l, "@call");
+	obj:	xret := [l, "@call"];
+			goto [xret = $$empty] endf endt;
+	endt:	xret := $$t;
 			goto rlab;
 	endf:	xret := $$f;
 	rlab:	skip
@@ -1209,7 +1232,7 @@ proc i__abstractEquality (v1, v2) {
 			xret := "i__abstractEquality" (v1, xret) with elab;
 			goto rlab;
 	
-	s1o:	goto [(tv1 = $$object_type) and ((tv1 = $$number_type) or (tv1 = $$string_type))] tp1 rf;
+	s1o:	goto [(tv1 = $$object_type) and ((tv2 = $$number_type) or (tv2 = $$string_type))] tp1 rf;
 	tp1:	xret := "i__toPrimitive" (v1) with elab;
 			xret := "i__abstractEquality" (xret, v2) with elab;
 			goto rlab;
@@ -1247,6 +1270,8 @@ with
 (* ********* *) 
 
 proc i__sameValue (v1, v2) {
+			v1 := v1;
+			v2 := v2;
 			xret := (v1 = v2);
 			
 			goto [(typeOf(v1) = $$number_type) and (typeOf(v2) = $$number_type)] inan rlab;
@@ -1305,6 +1330,36 @@ proc i__checkAssignmentErrors (v) {
 			
 	te:		xret := "TypeError" ();
 	
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *********** *) 
+(* HASINSTANCE *)
+(* *********** *)
+
+proc f__hasInstance(v1, v2) {			
+			goto [not (typeOf (v2) = $$object_type)] throw s2;
+	
+	s2:		g := [v1, "@get"];
+			xret := g (v1, "prototype") with elab;
+			goto [not (typeOf (xret) = $$object_type)] throw s4;
+			
+	s4:		v2 := [v2, "@proto"];
+			goto [v2 = $$null] rf s4c;
+	s4c:	goto [xret = v2] rt s4;
+	
+	rt:		xret := $$t;
+			goto rlab;
+			
+	rf:		xret := $$f;
+	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
 	elab:	skip
 }
 with
