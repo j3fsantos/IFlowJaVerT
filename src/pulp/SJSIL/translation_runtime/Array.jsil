@@ -6,16 +6,29 @@ import Internals;
 
 (* *** CONSTRUCT *** *)
 
-proc Array_construct () {
+proc Array_construct (xsc, vthis, len) {
 
 			xret := new ();
 			xret := "create_default_object" (xret, $larr_proto, "Array", $$t);
 			
 			[xret, "@defineOwnProperty"] := "a__defineOwnProperty";
+			[xret, "length"] := {{ "d", 0, $$t, $$t, $$t }};
+			array := xret;
+				
+			(* ONE PARAMETER ONLY AVAILABLE FOR NOW *)
+			goto [typeOf(len) = $$number_type] len0 setl;
+	len0:	xret := "i__toUint32" (len) with elab;
+			goto [len = xret] dop re;
+	dop:	prop := "length";
+			goto set;
 			
-			x := "o__defineOwnProperty" (xret, "length", {{ "d", 0, $$t, $$f, $$f }}, $$t); 
+	setl:	prop := "0";
+	set:	xret := "a__defineOwnProperty" (array, prop, {{ "d", len, $$t, $$t, $$t }}, $$t) with elab; 
 			
+	rtrn:	xret := array;
 	rlab:	skip;
+	
+	re:		xret := "RangeError" ();
 	elab:	skip
 }
 with
@@ -163,6 +176,26 @@ proc a__defineOwnProperty (l, prop, desc, throw) {
 	
 	tf:		xret := $$f;
 			goto rlab
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** ISARRAY *** *)
+
+proc Array_isArray (xsc, vthis, array) {
+			xret := $$f;
+			
+			goto [typeOf (array) = $$object_type] cls rlab;
+	cls:	class := [array, "@class"];
+			goto [class = "Array"] rt rlab; 
+	
+	rt:		xret := $$t;
+	
+	rlab:	skip;
+	elab:	skip
 }
 with
 {

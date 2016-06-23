@@ -251,12 +251,12 @@ proc setupInitialHeap () {
   			
   			(* Array object *)
     			
-  			xret := "create_object_with_call_construct" ($larr, "Array_construct", "Array_construct", 1);
+  			xret := "create_object_with_call_construct" ($larr, "Array_call", "Array_construct", 1);
   			
   			[$larr, "prototype"] := {{ "d", $larr_proto, $$f, $$f, $$f }};
   			[$larr, "isArray"]   := {{ "d", $larr_isArray, $$t, $$f, $$t }};
 			
-			xret := "create_object_with_call_construct" ($larr_isArray, "Array_isArray", 1);
+			xret := "create_object_with_call_construct" ($larr_isArray, "Array_isArray", $$empty, 1);
 			
 			(* Array.prototype *)
 			
