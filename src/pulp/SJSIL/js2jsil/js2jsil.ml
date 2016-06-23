@@ -3348,9 +3348,9 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			(* goto [ x_found_a ] default b_cases *)
 			let cmd_goto_xfounda = (None, None, SLGuardedGoto (Var x_found_as, default_lab, b_cases_lab)) in 
 			
-			(* default:		x_found_b := PHI(x_true, x_false) *) 
+			(* default:		x_found_b := PHI(x_false, x_true) *) 
 			let x_found_b = fresh_xfoundb_var () in 
-			let cmd_ass_xfoundb = (None, Some default_lab, SLPhiAssignment (x_found_b, [| Some var_true; Some var_false |])) in 
+			let cmd_ass_xfoundb = (None, Some default_lab, SLPhiAssignment (x_found_b, [| Some var_false; Some var_true |])) in 
 			
 			let cur_breaks_as, outer_breaks_as = filter_cur_jumps breaks_as js_lab true in
 			let cur_breaks_bs, outer_breaks_bs = filter_cur_jumps breaks_bs js_lab true in
