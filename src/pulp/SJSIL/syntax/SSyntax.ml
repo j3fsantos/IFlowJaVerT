@@ -193,23 +193,24 @@ type jsil_n_spec = {
 (* SJSIL Basic statements *)
 type basic_jsil_cmd =
   | SSkip	      
-  | SAssignment    of jsil_var  * jsil_expr
-	| SPhiAssignment of jsil_var  * (jsil_var option array)
-	| SNew           of jsil_var
-	| SLookup        of jsil_var  * jsil_expr * jsil_expr
-  | SMutation      of jsil_expr * jsil_expr * jsil_expr
-	| SDelete        of jsil_expr * jsil_expr
-	| SHasField      of jsil_var  * jsil_expr * jsil_expr
-	| SProtoField    of jsil_var  * jsil_expr * jsil_expr
-	| SProtoObj      of jsil_var  * jsil_expr * jsil_expr 
-	| SGetFields     of jsil_var  * jsil_expr
+  | SAssignment     of jsil_var  * jsil_expr
+	| SNew            of jsil_var
+	| SLookup         of jsil_var  * jsil_expr * jsil_expr
+  | SMutation       of jsil_expr * jsil_expr * jsil_expr
+	| SDelete         of jsil_expr * jsil_expr
+	| SHasField       of jsil_var  * jsil_expr * jsil_expr
+	| SProtoField     of jsil_var  * jsil_expr * jsil_expr
+	| SProtoObj       of jsil_var  * jsil_expr * jsil_expr 
+	| SGetFields      of jsil_var  * jsil_expr
 
 (* SJSIL All Statements *)
 type jsil_cmd =
-  | SBasic       of basic_jsil_cmd 
-	| SGoto        of int
-	| SGuardedGoto of jsil_expr * int        * int
-	| SCall        of jsil_var  * jsil_expr  * jsil_expr list * int option
+  | SBasic          of basic_jsil_cmd 
+	| SGoto           of int
+	| SGuardedGoto    of jsil_expr * int        * int
+	| SCall           of jsil_var  * jsil_expr  * jsil_expr list * int option
+	| SPhiAssignment  of jsil_var  * (jsil_var option array)
+	| SPsiAssignment  of jsil_var  * (jsil_var option array)
 
 (* SJSIL procedures *)
 type procedure = { 
@@ -253,10 +254,12 @@ type abstract_heap = {
 (***** Alternative Procedure Syntax with Labels *****)
 
 type jsil_lab_cmd =
-  | SLBasic       of basic_jsil_cmd 
-	| SLGoto        of string
-	| SLGuardedGoto of jsil_expr * string     * string
-	| SLCall        of jsil_var  * jsil_expr  * jsil_expr list * string option
+  | SLBasic          of basic_jsil_cmd 
+	| SLGoto           of string
+	| SLGuardedGoto    of jsil_expr * string     * string
+	| SLCall           of jsil_var  * jsil_expr  * jsil_expr list * string option
+	| SLPhiAssignment  of jsil_var  * (jsil_var option array)
+	| SLPsiAssignment  of jsil_var  * (jsil_var option array)
 
 (* SJSIL procedures with string labels *)
  module SLProgram = Hashtbl.Make(

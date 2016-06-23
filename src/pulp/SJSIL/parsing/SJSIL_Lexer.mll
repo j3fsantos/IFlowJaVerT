@@ -56,6 +56,7 @@ rule read = parse
 *)
 (* command keywords *)
   | "PHI"                { SJSIL_Parser.PHI }
+  | "PSI"                { SJSIL_Parser.PSI }
 	| "goto"               { SJSIL_Parser.GOTO }
   | "skip"               { SJSIL_Parser.SKIP }
 	| ":="                 { SJSIL_Parser.DEFEQ }

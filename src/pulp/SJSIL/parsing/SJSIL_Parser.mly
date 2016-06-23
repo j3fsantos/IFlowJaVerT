@@ -38,6 +38,7 @@ open SSyntax
 %token LISTTYPELIT
 (* command keywords  *)
 %token PHI
+%token PSI
 %token GOTO
 %token SKIP
 %token DEFEQ
@@ -289,9 +290,20 @@ cmd_target:
 				(match l with
 				| [] -> []
 				| x :: l -> Some x :: oes l) in
-			Some (SSyntax.SLBasic (SPhiAssignment (v, Array.of_list (oes es))))
+			Some (SLPhiAssignment (v, Array.of_list (oes es)))
 		}
-	
+
+(* x := PSI(e1, e2, ... en); *)
+  | v=VAR; DEFEQ; PSI; LBRACE; es = param_list_target; RBRACE
+	  {
+			(* Printf.printf "Parsing PSI-node.\n"; *)
+			let rec oes l =
+				(match l with
+				| [] -> []
+				| x :: l -> Some x :: oes l) in
+			Some (SLPsiAssignment (v, Array.of_list (oes es)))
+		}	
+			
 (* x := [e1, e2] *)
 	| v=VAR; DEFEQ; LBRACKET; e1=expr_target; COMMA; e2=expr_target; RBRACKET 
 		{ 

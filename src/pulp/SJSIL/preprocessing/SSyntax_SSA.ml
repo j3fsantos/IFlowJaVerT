@@ -519,7 +519,7 @@ let create_phi_assignment var v_args old_var =
 			then new_v_args.(i) <- Some (rename_var old_var v_args.(i))
 			else ()
 	done; 
-	(None, SBasic (SPhiAssignment (var, new_v_args)))
+	(None, SPhiAssignment (var, new_v_args))
 
 let adjust_goto cmd displacements = 
 	let spec, command = cmd in

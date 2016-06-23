@@ -42,7 +42,9 @@ let get_succ_pred cmds opt_ret_label opt_error_label =
 	
 	for u=0 to number_of_cmds-1 do  
 			(match cmds.(u) with	
-			| SBasic _ -> 
+			| SBasic _ 
+			| SPhiAssignment (_, _) 
+			| SPsiAssignment (_, _) -> 
 				if (not ((u == ret_label) || (u == err_label)))
 					then
 					begin

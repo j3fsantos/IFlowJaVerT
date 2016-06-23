@@ -500,7 +500,7 @@ let rec proto_obj heap l1 l2 =
 		| Null -> Bool (false) 
 		| _ -> raise (Failure "Illegal value for proto: this should not happen")
 
-let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred = 
+let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store = 
 	match bcmd with 
 	| SSkip -> Empty
 	
@@ -509,22 +509,7 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store which_pred =
 		if (!verbose) then Printf.printf "Assignment: %s := %s\n" x (SSyntax_Print.string_of_literal v_e false);
 		Hashtbl.add store x v_e; 
 		v_e
-	
-	| SPhiAssignment (x, x_arr) -> 
-		let x_live = x_arr.(which_pred) in 
-		let v = (match x_live with 
-		| None -> Undefined 
-		| Some x_live -> 
-			(match SSyntax_Aux.try_find store x_live with 
-			| None -> raise (Failure (Printf.sprintf "Variable %s not found in the store" x_live))
-			| Some v -> v)) in 
-		if (!verbose) then Printf.printf "PHI-Assignment: %s : %d/%d : %s := %s\n" 
-		   (match x_live with
-			  | None -> "NONE!" 
-				| Some x_live -> x_live) which_pred (Array.length x_arr - 1) x (SSyntax_Print.string_of_literal v false);
-		Hashtbl.add store x v; 
-		v 
-	
+		
 	| SNew x -> 
 		let new_loc = fresh_loc () in 
 		let obj = SHeap.create 1021 in
@@ -668,17 +653,63 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 	let proc = try SProgram.find prog cur_proc_name with
 		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist. Ew." cur_proc_name)) in  
 	let cmd = proc.proc_body.(cur_cmd) in 
-	let cur_which_pred = 
-		if (cur_cmd > 0) 
-			then (try Hashtbl.find which_pred (cur_proc_name, prev_cmd, cur_cmd) 
-				with _ ->  raise (Failure (Printf.sprintf "which_pred undefined for command: %s %d %d" cur_proc_name prev_cmd cur_cmd)))
-			else 0 in 
 
 	let spec, cmd = cmd in
 	match cmd with 
 	| SBasic bcmd -> 
-		let _ = evaluate_bcmd bcmd heap store cur_which_pred in 
-		if (Some cur_cmd = proc.ret_label)
+		let _ = evaluate_bcmd bcmd heap store in 
+	  evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd
+		 
+	| SGoto i -> 
+		evaluate_cmd prog cur_proc_name which_pred heap store i cur_cmd
+	
+	| SGuardedGoto (e, i, j) -> 
+		let v_e = evaluate_expr e store in
+		(match v_e with 
+		| Bool true -> evaluate_cmd prog cur_proc_name which_pred heap store i cur_cmd
+		| Bool false -> evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd
+		| _ -> raise (Failure (Printf.sprintf "So you're really trying to do a goto based on %s? Ok..." (SSyntax_Print.string_of_literal v_e false))))
+	
+	| SPhiAssignment (x, x_arr) -> 
+		evaluate_phi_psi_cmd prog proc which_pred heap store cur_cmd prev_cmd cur_cmd x x_arr 
+
+	| SPsiAssignment (x, x_arr) ->
+		let rec find_prev_non_psi_cmd index = 
+			(if (index < 0) 
+				then raise (Failure "Psi node does not have non-psi antecedent") 
+				else 
+					match proc.proc_body.(index) with 
+					| _, SPsiAssignment (_, _) -> find_prev_non_psi_cmd (index - 1) 
+					| _ -> index) in 
+		let ac_cur_cmd = find_prev_non_psi_cmd cur_cmd in 
+		evaluate_phi_psi_cmd prog proc which_pred heap store cur_cmd prev_cmd ac_cur_cmd x x_arr
+		
+	| SCall (x, e, e_args, j) -> 
+		let call_proc_name_val = evaluate_expr e store in 
+		let call_proc_name = (match call_proc_name_val with 
+		| String call_proc_name -> 
+				if (!verbose) then Printf.printf "\nExecuting procedure %s\n" call_proc_name; 
+				call_proc_name 
+		| _ -> raise (Failure (Printf.sprintf "Erm, no. Procedures can't be called %s." (SSyntax_Print.string_of_literal call_proc_name_val false)))) in 
+		let arg_vals = List.map 
+			(fun e_arg -> evaluate_expr e_arg store) 
+			e_args in 
+		let call_proc = try SProgram.find prog call_proc_name with
+		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist." call_proc_name)) in
+		let new_store = init_store call_proc.proc_params arg_vals in 
+		match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 with 
+		| Normal, v -> 
+			Hashtbl.replace store x v;
+	 		evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd
+		| Error, v -> 
+			(match j with
+			| None -> raise (Failure ("Procedure "^ call_proc_name ^" just returned an error, but no error label was provided. Bad programmer."))
+			| Some j -> Hashtbl.replace store x v;
+				evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd)
+and 
+evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd = 	
+	let cur_proc_name = proc.proc_name in 
+	if (Some cur_cmd = proc.ret_label)
 		then 
 			(let ret_value = 
 				(let ret_var = (match proc.ret_var with
@@ -699,51 +730,37 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 				| _ -> raise (Failure (Printf.sprintf "Cannot find error variable." )))) in
 			if (!verbose) then Printf.printf ("Procedure %s returned: Error, %s\n") cur_proc_name (SSyntax_Print.string_of_literal err_value false);
 			Error, err_value)
-		else (evaluate_cmd prog cur_proc_name which_pred heap store (cur_cmd + 1) cur_cmd))
-		 
-	| SGoto i -> 
-		evaluate_cmd prog cur_proc_name which_pred heap store i cur_cmd
-	
-	| SGuardedGoto (e, i, j) -> 
-		let v_e = evaluate_expr e store in
-		(match v_e with 
-		| Bool true -> evaluate_cmd prog cur_proc_name which_pred heap store i cur_cmd
-		| Bool false -> evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd
-		| _ -> raise (Failure (Printf.sprintf "So you're really trying to do a goto based on %s? Ok..." (SSyntax_Print.string_of_literal v_e false))))
-	
-	| SCall (x, e, e_args, j) -> 
-		let call_proc_name_val = evaluate_expr e store in 
-		let call_proc_name = (match call_proc_name_val with 
-		| String call_proc_name -> 
-				if (!verbose) then Printf.printf "\nExecuting procedure %s\n" call_proc_name; 
-				call_proc_name 
-		| _ -> raise (Failure (Printf.sprintf "Erm, no. Procedures can't be called %s." (SSyntax_Print.string_of_literal call_proc_name_val false)))) in 
-		let arg_vals = List.map 
-			(fun e_arg -> evaluate_expr e_arg store) 
-			e_args in 
-		let call_proc = try SProgram.find prog call_proc_name with
-		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist." call_proc_name)) in
-		let new_store = init_store call_proc.proc_params arg_vals in 
-		match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 with 
-		| Normal, v -> 
-			Hashtbl.replace store x v;
-	 		if (Some cur_cmd = proc.ret_label)
-			then 
-				(let ret_value = 
-					(let ret_var = (match proc.ret_var with
-			    						    | None -> raise (Failure "No no!") 
-													| Some ret_var -> ret_var) in
-				  	(try (Hashtbl.find store ret_var) with
-				| _ -> raise (Failure (Printf.sprintf "Cannot find return variable.")))) in
-				if (!verbose) then Printf.printf ("Procedure %s returned: Normal, %s\n") cur_proc_name (SSyntax_Print.string_of_literal ret_value false);
-				Normal, ret_value)
-			else (evaluate_cmd prog cur_proc_name which_pred heap store (cur_cmd + 1) cur_cmd)
-		| Error, v -> 
-			(match j with
-			| None -> raise (Failure ("Procedure "^ call_proc_name ^" just returned an error, but no error label was provided. Bad programmer."))
-			| Some j -> Hashtbl.replace store x v;
-				evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd)
-		 		
+		else (
+			let next_cmd = 
+				(if ((cur_cmd + 1) < (Array.length proc.proc_body)) 
+					then Some proc.proc_body.(cur_cmd+1)
+					else None) in 
+			let next_prev = 
+				match next_cmd with 
+				| Some (_, SPsiAssignment (_, _)) -> prev_cmd 
+				| _ -> cur_cmd in 
+			evaluate_cmd prog proc.proc_name which_pred heap store (cur_cmd + 1) next_prev))
+and 
+evaluate_phi_psi_cmd prog proc which_pred heap store cur_cmd prev_cmd ac_cur_cmd x x_arr = 
+	  let cur_proc_name = proc.proc_name in 
+		let cur_which_pred =  
+			try Hashtbl.find which_pred (cur_proc_name, prev_cmd, ac_cur_cmd) 
+			with _ ->  raise (Failure (Printf.sprintf "which_pred undefined for command: %s %d %d %d" cur_proc_name prev_cmd cur_cmd ac_cur_cmd)) in 
+		let x_live = x_arr.(cur_which_pred) in 
+		let v = (match x_live with 
+		| None -> Undefined 
+		| Some x_live -> 
+			(match SSyntax_Aux.try_find store x_live with 
+			| None -> raise (Failure (Printf.sprintf "Variable %s not found in the store" x_live))
+			| Some v -> v)) in 
+		if (!verbose) then Printf.printf "PHI-Assignment: %s : %d/%d : %s := %s\n" 
+		   (match x_live with
+			  | None -> "NONE!" 
+				| Some x_live -> x_live) cur_which_pred (Array.length x_arr - 1) x (SSyntax_Print.string_of_literal v false);
+		Hashtbl.add store x v; 
+		evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd
+								
+																						 		
 let evaluate_prog prog which_pred heap = 
 	Random.self_init();
 	let store = init_store [] [] in 

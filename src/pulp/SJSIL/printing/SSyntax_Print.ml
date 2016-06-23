@@ -211,18 +211,6 @@ let rec sexpr_of_bcmd bcmd i line_numbers_on =
   | SSkip -> Printf.sprintf "'(%sskip)" str_i
 	(* ('var_assign var e) *)
 	| SAssignment (var, e) -> Printf.sprintf "'(%sv-assign %s %s)" str_i var (se e)
-	(* ('var-phi-assign var var_1 var_2 ... var_n) *)
-	| SPhiAssignment (var, var_arr) -> 
-		let var_arr_str = 
-			Array.fold_left 
-				(fun ac v -> 
-					match v with 
-					| Some v -> ac ^ " " ^ v
-					| None -> ac ^ " $$empty "
-				)
-				""
-				var_arr in 
-		Printf.sprintf "'(%sv-phi-assign %s %s)" str_i var var_arr_str	
 	(* ('new var) *)
 	| SNew var -> Printf.sprintf "'(%snew %s)" str_i var
  	(* ('h-read var e1 e2)	*)
@@ -245,23 +233,7 @@ let rec string_of_bcmd bcmd i line_numbers_on escape_string =
 	(* skip *)
   | SSkip -> Printf.sprintf "%sskip" str_i
 	(* var := e *)
-	| SAssignment (var, e) -> Printf.sprintf "%s%s := %s" str_i var (se e)
-	(* var := PHI(var_1, var_2, ..., var_n) *)
-	| SPhiAssignment (var, var_arr) -> 
-		let len = Array.length var_arr in  
-		let rec loop i str_ac =
-			if (i >= len) 
-				then str_ac 
-				else 
-					let var_arr_i_str = 
-						(match var_arr.(i) with 
-						| None -> "$$empty"
-						| Some v_i -> v_i) in 
-					(if (i == 0)
-						then loop 1 var_arr_i_str
-						else  loop (i + 1) (str_ac ^ ", " ^ var_arr_i_str)) in 
-		let var_arr_str = loop 0 "" in 
-		Printf.sprintf "%s%s := PHI(%s)" str_i var var_arr_str						
+	| SAssignment (var, e) -> Printf.sprintf "%s%s := %s" str_i var (se e)					
 	(* x := new() *)
 	| SNew var -> Printf.sprintf "%s%s := new()" str_i var
  	(* x := [e1, e2]	*)
@@ -304,6 +276,30 @@ let rec sexpr_of_cmd sjsil_cmd tabs i line_numbers_on =
 		|	[] -> ""
 		| _ -> String.concat " " (List.map sexpr_of_expression arg_expr_list) in 
 			str_tabs ^  Printf.sprintf "'(%scall %s %s (%s) %s)" str_i var proc_name_expr_str arg_expr_list_str error_lab
+	(* ('var-phi-assign var var_1 var_2 ... var_n) *)
+	| SPhiAssignment (var, var_arr) -> 
+		let var_arr_str = 
+			Array.fold_left 
+				(fun ac v -> 
+					match v with 
+					| Some v -> ac ^ " " ^ v
+					| None -> ac ^ " $$empty "
+				)
+				""
+				var_arr in 
+		Printf.sprintf "'(%sv-phi-assign %s %s)" str_i var var_arr_str	
+	(* ('var-psi-assign var var_1 var_2 ... var_n) *)
+	| SPsiAssignment(var, var_arr) -> 
+		let var_arr_str = 
+			Array.fold_left 
+				(fun ac v -> 
+					match v with 
+					| Some v -> ac ^ " " ^ v
+					| None -> ac ^ " $$empty "
+				)
+				""
+				var_arr in 
+		Printf.sprintf "'(%sv-psi-assign %s %s)" str_i var var_arr_str	
 
 let sexpr_of_params fparams =
 	match fparams with
@@ -378,7 +374,39 @@ let rec string_of_cmd sjsil_cmd tabs i line_numbers_on specs_on escape_string =
 		let arg_expr_list_str = match arg_expr_list with
 		|	[] -> ""
 		| _ -> String.concat ", " (List.map se arg_expr_list) in 
-			str_tabs ^  Printf.sprintf "%s%s := %s(%s) %s" str_i var proc_name_expr_str arg_expr_list_str error_lab)
+			str_tabs ^  Printf.sprintf "%s%s := %s(%s) %s" str_i var proc_name_expr_str arg_expr_list_str error_lab
+	(* var := PHI(var_1, var_2, ..., var_n) *)
+	| SPhiAssignment (var, var_arr) -> 
+		let len = Array.length var_arr in  
+		let rec loop i str_ac =
+			if (i >= len) 
+				then str_ac 
+				else 
+					let var_arr_i_str = 
+						(match var_arr.(i) with 
+						| None -> "$$empty"
+						| Some v_i -> v_i) in 
+					(if (i == 0)
+						then loop 1 var_arr_i_str
+						else  loop (i + 1) (str_ac ^ ", " ^ var_arr_i_str)) in 
+		let var_arr_str = loop 0 "" in 
+		Printf.sprintf "%s%s := PHI(%s)" str_i var var_arr_str
+	(* var := PSI(var_1, var_2, ..., var_n) *)
+	| SPsiAssignment (var, var_arr) -> 
+		let len = Array.length var_arr in  
+		let rec loop i str_ac =
+			if (i >= len) 
+				then str_ac 
+				else 
+					let var_arr_i_str = 
+						(match var_arr.(i) with 
+						| None -> "$$empty"
+						| Some v_i -> v_i) in 
+					(if (i == 0)
+						then loop 1 var_arr_i_str
+						else  loop (i + 1) (str_ac ^ ", " ^ var_arr_i_str)) in 
+		let var_arr_str = loop 0 "" in 
+		Printf.sprintf "%s%s := PSI(%s)" str_i var var_arr_str	)
 
 let serialize_cmd_arr cmds tabs line_numbers serialize_cmd =
 	let number_of_cmds = Array.length cmds in 
@@ -497,7 +525,39 @@ let string_of_lcmd lcmd =
 		let arg_expr_list_str = match arg_expr_list with
 		|	[] -> ""
 		| _ -> String.concat ", " (List.map se arg_expr_list) in 
-			Printf.sprintf "%s := %s(%s)%s" var proc_name_expr_str arg_expr_list_str error_lab)
+			Printf.sprintf "%s := %s(%s)%s" var proc_name_expr_str arg_expr_list_str error_lab
+	(* var := PHI(var_1, var_2, ..., var_n) *)
+	| SLPhiAssignment (var, var_arr) -> 
+		let len = Array.length var_arr in  
+		let rec loop i str_ac =
+			if (i >= len) 
+				then str_ac 
+				else 
+					let var_arr_i_str = 
+						(match var_arr.(i) with 
+						| None -> "$$empty"
+						| Some v_i -> v_i) in 
+					(if (i == 0)
+						then loop 1 var_arr_i_str
+						else  loop (i + 1) (str_ac ^ ", " ^ var_arr_i_str)) in 
+		let var_arr_str = loop 0 "" in 
+		Printf.sprintf "%s := PHI(%s)" var var_arr_str
+	(* var := PSI(var_1, var_2, ..., var_n) *)
+	| SLPsiAssignment (var, var_arr) -> 
+		let len = Array.length var_arr in  
+		let rec loop i str_ac =
+			if (i >= len) 
+				then str_ac 
+				else 
+					let var_arr_i_str = 
+						(match var_arr.(i) with 
+						| None -> "$$empty"
+						| Some v_i -> v_i) in 
+					(if (i == 0)
+						then loop 1 var_arr_i_str
+						else  loop (i + 1) (str_ac ^ ", " ^ var_arr_i_str)) in 
+		let var_arr_str = loop 0 "" in 
+		Printf.sprintf "%s := PSI(%s)" var var_arr_str	)
 
 let string_of_lbody lbody = 
 	let len = Array.length lbody in
