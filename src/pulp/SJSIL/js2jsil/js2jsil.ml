@@ -3339,7 +3339,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			let phi_args = List.map (fun x -> Some x) phi_args in 
 			let phi_args = Array.of_list phi_args in 
 			let cmd_end_switch = (None, Some end_switch, SLPhiAssignment (x_r, phi_args)) in  
-			cmds_as @ cmds_def @ [ cmd_end_switch ], Var x_r, errs_as @ errs_def, rets_as @ errs_def, outer_breaks_as @ outer_breaks_def, conts_as @ conts_def
+			cmds_as @ cmds_def @ [ cmd_end_switch ], Var x_r, errs_as @ errs_def, rets_as @ rets_def, outer_breaks_as @ outer_breaks_def, conts_as @ conts_def
 			
 	 	| _, Some def -> 
 			let b_stmts = List.map (fun (a, b) -> b) b_cases in 
