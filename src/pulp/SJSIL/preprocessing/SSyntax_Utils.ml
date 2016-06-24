@@ -76,7 +76,8 @@ let desugar_labs (lproc : lprocedure) =
 			            | SLGuardedGoto (e, lt, lf) -> SGuardedGoto (e, Hashtbl.find mapping lt, Hashtbl.find mapping lf)
 			            | SLCall (x, e, le, ol) -> SCall (x, e, le, match ol with | None -> None | Some lab -> Some (Hashtbl.find mapping lab)) 
 									| SLPhiAssignment (x, args) -> SPhiAssignment (x, args) 
-									| SLPsiAssignment (x, args) -> SPsiAssignment (x, args) in
+									| SLPsiAssignment (x, args) -> SPsiAssignment (x, args) 
+									| SLParse (x, e, lab) -> SParse (x, e, (Hashtbl.find mapping lab)) in
 				(spec, x)
 			) cmds_nolab in
 			
@@ -119,6 +120,14 @@ let parse_with_error lexbuf =
     Printf.fprintf stderr "%a: syntax error\n" print_position lexbuf;
     exit (-1)
 
+let parse_proc_with_error lexbuf = 
+	try SJSIL_Parser.proc_target SJSIL_Lexer.read lexbuf with
+	| SJSIL_Lexer.SyntaxError msg ->
+    Printf.fprintf stderr "%a: %s\n" print_position lexbuf msg;
+		exit (-1)
+  | SJSIL_Parser.Error ->
+    Printf.fprintf stderr "%a: syntax error\n" print_position lexbuf;
+    exit (-1)
 
 let lprog_of_path path = 
 	let inx = open_in path in
@@ -157,6 +166,12 @@ let lprog_of_string str =
 	| None -> [], lprocs
 	| Some imports -> imports, lprocs
 
+
+let proc_of_string str = 
+  let lexbuf = Lexing.from_string str in
+  lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
+  let lproc : lprocedure = parse_proc_with_error lexbuf in	
+	desugar_labs lproc		
 
 let extend_lprocs lprocs_to lprocs_from =
 	SLProgram.iter

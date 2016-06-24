@@ -697,7 +697,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 		let call_proc = try SProgram.find prog call_proc_name with
 		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist." call_proc_name)) in
 		let new_store = init_store call_proc.proc_params arg_vals in 
-		match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 with 
+		(match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 with 
 		| Normal, v -> 
 			Hashtbl.replace store x v;
 	 		evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd
@@ -705,7 +705,25 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 			(match j with
 			| None -> raise (Failure ("Procedure "^ call_proc_name ^" just returned an error, but no error label was provided. Bad programmer."))
 			| Some j -> Hashtbl.replace store x v;
-				evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd)
+				evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd))
+				
+	| SParse (x, e, j) ->
+		let v_e = evaluate_expr e store in
+		Printf.printf "parse parsimonious\n";
+		let proc_e = 
+			(match v_e with 
+			| String str_e -> 
+				try Some (SSyntax_Utils.proc_of_string str_e) with _ -> None 
+			| _ -> None) in 
+		match proc_e with 
+		| Some proc_e -> 
+			let proc_e_name = proc_e.proc_name in 
+			SProgram.add prog proc_e_name proc_e;
+			Hashtbl.add store x (String proc_e_name);  
+			evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd
+		| None -> 
+			Hashtbl.add store x (String "ERROR: PARSE ERROR"); 
+			evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd
 and 
 evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd = 	
 	let cur_proc_name = proc.proc_name in 

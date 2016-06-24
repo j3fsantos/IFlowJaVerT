@@ -406,7 +406,11 @@ let rec string_of_cmd sjsil_cmd tabs i line_numbers_on specs_on escape_string =
 						then loop 1 var_arr_i_str
 						else  loop (i + 1) (str_ac ^ ", " ^ var_arr_i_str)) in 
 		let var_arr_str = loop 0 "" in 
-		Printf.sprintf "%s%s := PSI(%s)" str_i var var_arr_str	)
+		Printf.sprintf "%s%s := PSI(%s)" str_i var var_arr_str	
+	(* var := parse (e) with i *)
+	| SParse (x, e, i) ->
+		let str_e = (string_of_expression e false) in 
+		Printf.sprintf "%s := parse(%s) with %s" x str_e (string_of_int i))
 
 let serialize_cmd_arr cmds tabs line_numbers serialize_cmd =
 	let number_of_cmds = Array.length cmds in 
@@ -557,8 +561,13 @@ let string_of_lcmd lcmd =
 						then loop 1 var_arr_i_str
 						else  loop (i + 1) (str_ac ^ ", " ^ var_arr_i_str)) in 
 		let var_arr_str = loop 0 "" in 
-		Printf.sprintf "%s := PSI(%s)" var var_arr_str	)
-
+		Printf.sprintf "%s := PSI(%s)" var var_arr_str	
+	(* var := parse (e) with lab *)
+	| SLParse (x, e, lab) ->
+		let str_e = (string_of_expression e false) in 
+		Printf.sprintf "%s := parse(%s) with %s" x str_e lab)
+		
+	
 let string_of_lbody lbody = 
 	let len = Array.length lbody in
 	let str = ref "" in

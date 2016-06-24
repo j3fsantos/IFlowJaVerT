@@ -19,8 +19,6 @@ let load_file f =
   close_in ic;
   (s)
 
-let harness = load_file "harness.js"
-
 let arguments () =
   let usage_msg="Usage: -file <path>" in
   Arg.parse

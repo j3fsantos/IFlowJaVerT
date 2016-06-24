@@ -37,6 +37,7 @@ open SSyntax
 %token OREFTYPELIT
 %token LISTTYPELIT
 (* command keywords  *)
+%token PARSE
 %token PHI
 %token PSI
 %token GOTO
@@ -153,11 +154,12 @@ open SSyntax
 %type <(string list option * SSyntax.lprocedure list)> prog_target
 %type <(SSyntax.jsil_spec list)>  specs_target
 %type <((SSyntax.jsil_logic_assertion option * string option * SSyntax.jsil_lab_cmd) list)> cmd_list_top_target
+%type <SSyntax.lprocedure> proc_target
 
 
 
 (* main target <(SSyntax.lprocedure list)> *) 
-%start prog_target specs_target cmd_list_top_target
+%start prog_target specs_target cmd_list_top_target proc_target
 %%
 
 (********* JSIL *********)
@@ -360,6 +362,11 @@ cmd_target:
 			(* Printf.printf "Parsing Procedure Call.\n"; *)
 			Some (SSyntax.SLCall (v, e, es, oi))
 		}
+(* x := eval(e) with j *)
+  | v=VAR; DEFEQ; PARSE; LBRACE; e = expr_target; RBRACE; WITH; j=VAR
+	  {
+			Some (SLParse (v, e, j))
+		}	
 ;
 
 label: 

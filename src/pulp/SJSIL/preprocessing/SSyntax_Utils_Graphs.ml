@@ -70,7 +70,17 @@ let get_succ_pred cmds opt_ret_label opt_error_label =
 						update_pred_table u j
 					end
 		
-			| SCall (var, e, es, i) ->
+			| SParse (_, _, i) -> 
+				update_succ_table i u; 
+				update_pred_table u i;
+				if (not ((u == ret_label) || (u == err_label)))
+					then
+					begin
+						update_succ_table (u+1) u; 
+						update_pred_table u (u+1)
+					end
+				
+			| SCall (_, _, _, i) ->
 				(match i with
 				| None -> ()
 				| Some i -> (update_succ_table i u; update_pred_table u i));
