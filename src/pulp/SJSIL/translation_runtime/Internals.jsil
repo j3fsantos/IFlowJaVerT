@@ -345,7 +345,7 @@ proc o__defineOwnProperty (l, prop, desc, throw) {
 			goto [(cc = $$f) and ((dc = $$t) or ((not (de = $$empty)) and (not (ce = de))))] reject l8;
 	
 	l8:		gd := "i__isGenericDescriptor" (desc);
-			goto [gd] acc_t l9;
+			goto [gd] l12 l9;
 			
 	l9:		cdd := "i__isDataDescriptor" (current);
 			ddd := "i__isDataDescriptor" (desc);
@@ -1342,7 +1342,9 @@ with
 (* HASINSTANCE *)
 (* *********** *)
 
-proc f__hasInstance(v1, v2) {			
+proc f__hasInstance(v1, v2) {		
+			v1 := v1;
+			v2 := v2;	
 			goto [not (typeOf (v2) = $$object_type)] throw s2;
 	
 	s2:		g := [v1, "@get"];

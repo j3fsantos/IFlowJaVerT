@@ -66,6 +66,8 @@ proc a__defineOwnProperty (l, prop, desc, throw) {
 			gop := [l, "@getOwnProperty"];
 			oldLenDesc := gop (l, "length");
 			oldLen := nth (oldLenDesc, 1);
+			xret := "i__toUint32" (oldLen) with elab;
+			oldLenNum := xret;
 			
 			goto [prop = "length"] getall is_idx;
 			
@@ -76,7 +78,7 @@ proc a__defineOwnProperty (l, prop, desc, throw) {
 			index := index;
 			oldLen := oldLen;
 			xret := nth (oldLenDesc, 2);
-			goto [(not (index < oldLen)) and (not (nth (oldLenDesc, 2)))] reject idop;
+			goto [(not (index < oldLenNum)) and (not (nth (oldLenDesc, 2)))] reject idop;
 	idop:	xret := "o__defineOwnProperty" (l, prop, desc, $$f) with elab;
 			goto [xret = $$f] reject ilen;
 	ilen:	xret := "o__defineOwnProperty" (l, "length", {{ "d", (index + 1), nth (oldLenDesc, 2), nth (oldLenDesc, 3), nth (oldLenDesc, 4) }}, $$f);
@@ -126,7 +128,7 @@ proc a__defineOwnProperty (l, prop, desc, throw) {
 			goto [not (newLen = xret)] rgerr sle;
 			
 	sle:	dv := newLen;
-			goto [not (newLen < oldLen)] slfi slg;
+			goto [not (newLen < oldLenNum)] slfi slg;
 			
 	slfi:	xret := "o__defineOwnProperty" (l, "length", {{ "g", de, dc, dv, dw, dg, ds }}, throw) with elab;
 			goto rlab;

@@ -29,6 +29,7 @@ let extensiblePropName = "@extensible"
 
 let locGlobName        = "$lg"
 let locObjPrototype    = "$lobj_proto"
+let locArrPrototype    = "$larr_proto"
 
 let toBooleanName                     = "i__toBoolean"                   (* 9.2               *)
 let getValueName                      = "i__getValue"                    (* 8.7.1             *)
@@ -55,6 +56,7 @@ let hasPropertyName                   = "o__hasProperty"                 (* 8.12
 let abstractEqualityComparisonName    = "i__abstractEquality"            (* 11.9.3            *) 
 let strictEqualityComparisonName      = "i__strictEquality"              (* 11.9.6            *) 
 let defineOwnPropertyName             = "o__defineOwnProperty"           (* 8.12.9            *) 
+let defineOwnPropertyArrayName        = "a__defineOwnProperty"           (* 15.sth.sth        *) 
 let checkAssignmentErrorsName         = "i__checkAssignmentErrors"        
 
 
@@ -382,6 +384,10 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 	let make_dop_call x_obj prop x_desc b err = 
 		let x_dop = fresh_var () in
 		(x_dop, SLCall (x_dop, Literal (String defineOwnPropertyName), [Var x_obj; prop; Var x_desc; Literal (Bool b)], Some err)) in 
+	
+	let make_adop_call x_obj prop x_desc b err = 
+		let x_dop = fresh_var () in
+		(x_dop, SLCall (x_dop, Literal (String defineOwnPropertyArrayName), [Var x_obj; prop; Var x_desc; Literal (Bool b)], Some err)) in 
 	
 	let make_cae_call x err = 
 		let x_cae = fresh_var () in 
@@ -950,10 +956,56 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 	
 	
 	(**
-	 Section 11.1.4 - Array Initializer  
+	 Section 11.1.4 - Array Initialiser  
 	*)
-	| Parser_syntax.Array eos -> raise (Failure "not implemented yet - array literal") 
+	| Parser_syntax.Array eos -> (* raise (Failure "not implemented yet - array literal") *)
 
+		let x_arr = fresh_obj_var () in 
+		(* x_arr := new () *) 
+		let cmd_new_obj = (None, None, (SLBasic (SNew x_arr))) in 
+		(* x_cdo := create_default_object (x_obj, $larr_proto, "Array") *) 
+		let x_cdo = fresh_var () in 
+		let cmd_cdo_call = (None, None, (SLCall (x_cdo, Literal (String createDefaultObjectName), [ Var x_arr; Literal (Loc locArrPrototype); Literal (String "Array") ], None))) in 
+		
+		(* [x_arr, "length"] := {{ "d", num, $$t, $$f, $$f }} *)
+		let cmd_set_len num = (None, None, SLBasic (SMutation (Var x_arr,  Literal (String "length"), LEList [ Literal (String "d"); Literal (Num (float_of_int num)); Literal (Bool true); Literal (Bool false); Literal (Bool false) ] ))) in 
+		
+		let set_dop = (None, None, SLBasic (SMutation (Var x_arr, Literal (String "@defineOwnProperty"), (Literal (String defineOwnPropertyArrayName))))) in
+		
+		let translate_array_property_definition x_obj e err num = 
+			let cmds, x, errs, _, _, _ = f e in	
+			(* x_v := i__getValue (x) with err *) 
+			let x_v, cmd_gv_x = make_get_value_call x err in
+		
+			(* x_desc := {{ "d", x_v, $$t, $$t, $$t}}  *) 
+			let x_desc = fresh_desc_var () in 
+			let cmd_ass_xdesc = SLBasic (SAssignment (x_desc, LEList [ Literal (String "d"); Var x_v; Literal (Bool true); Literal (Bool true); Literal (Bool true) ] )) in 
+			
+			let prop = Literal (String (string_of_int num)) in 
+			
+			(* x_adop := a__defineOwnProperty(x_obj, toString(num), x_desc, true) with err *)
+			let x_adop, cmd_adop_x = make_adop_call x_obj prop x_desc false err in
+			
+			let cmds = cmds @ [
+				(None, None, cmd_gv_x);           (* x_v := i__getValue (x) with err                                            *)  
+				(None, None, cmd_ass_xdesc);      (* x_desc := {{ "d", x_v, $$t, $$t, $$t}}                                     *)                          
+				(None, None, cmd_adop_x)          (* x_dop := a__defineOwnProperty(x_obj, toString(num), x_desc, true) with err *)
+			] in 
+			let errs = errs @ [ x_v; x_adop ] in
+			cmds, errs in 
+		
+		let cmds, errs, num = 
+			List.fold_left (fun (cmds, errs, num) oe ->
+				let new_cmds, new_errs = 
+				(match oe with
+			  	| None -> 
+							[cmd_set_len (num + 1)], []
+				  | Some e -> 
+					  	translate_array_property_definition x_arr e err num) in
+				(cmds @ new_cmds, errs @ new_errs, num + 1))
+				([], [], 0) 
+				eos in 
+		(cmd_new_obj :: (cmd_cdo_call :: (cmd_set_len 0) :: set_dop :: cmds)), (Var x_arr), errs, [], [], []
 
 	
 	| Parser_syntax.Obj xs -> 
@@ -1029,7 +1081,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		
 		let translate_accessor_descriptor x_obj prop accessor is_getter err =
 			let f_id = try Js_pre_processing.get_codename accessor 
-				with _ -> raise (Failure "annonymous function literals should be annotated with their respective code names - Getter function") in 
+				with _ -> raise (Failure "anonymous function literals should be annotated with their respective code names - Getter function") in 
 			let params = 
 				(match accessor.Parser_syntax.exp_stx with 
 				| Parser_syntax.AnonymousFun (_, params, _) -> params 
