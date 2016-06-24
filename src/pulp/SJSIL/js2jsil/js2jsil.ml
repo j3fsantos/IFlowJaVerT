@@ -2830,14 +2830,59 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let errs = errs1 @ [ x1_v; x1_b ] @ errs2 @ [ x2_v ] in 
 		cmds, Var x_ret_5, errs, rets2, outer_breaks, outer_conts
 	
+		| Parser_syntax.ForIn (e_lhs, e_obj, e_stmt) -> raise (Failure "Not implemented: for-in, for-var-in")
+		(**
+		 Section 12.6.4
+     *  C(e_lhs) = cmds1, x1; C(e_obj) = cmds2, x2; C(e_stmt) = cmds3, x3
+		 *  
+		 *  C( for (e1 in e2) { e3 } ) =
+			          cmds2 																								1.	Understand what the object is
+								x2_v := i__getValue (x2) with err											2.	and get its value
+								x_ret_0 := $$empty 																		5.	Set V to $$empty
+								goto [(x2_v = $$null) or 			
+								      (x2_v = $$undefined)] next4 next0;							3.	If the object is $$null or $$undefined, we're done
+			next0:		x4 := "i__toObject" (x2_v) with err										4.	Otherwise, convert whatever we have to an object
+			
+								xlf := "i__getAllEnumerableFields" (x4)  with err					Put all of its enumerable properties (protochain included) in xlf
+								xf  := getFields (xlf) 																		Get all of those properties
+								
+								len := length (xf)																				Get the number of properties
+								x_c := 0;																									Initialise counter
+								
+			head:     x_ret_1 := PHI(x_ret_0, x_ret_3)													Setup return value
+								x_c_1 := PSI(x_c, x_c_2);																	Setup counter
+								goto [x_c_1 < len] body end_loop 											6.	Are we done?
+			body: 		xp := nth (xf, x_c_1)																	6a.	Get the nth property
+								xl := [xlf, xf];																			6a.	Get the location of where it should be
+								xhf := hasField (xl, xp) with err        							6a.	Understand if it's still there!
+								goto [xhf] lhs nextx																	6a.	And jump accordingly 
+			lhs:			cmds1																									6b.	Evaluate lhs
+								x5 := "i__putValue" (x1, xp) with err									6c.	Put it in, put it in
+								cmds3																									6d. Evaluate the statement
+								x3_v = "i__getValue" (x3) with err
+			cont:     x_ret_2 := PHI(cont_vars, x3_v) 												
+								goto [ not (x_ret_2 = $$empty) ] next1 next2 
+		  next1:    skip 
+			next2:    x_ret_3 := PHI(x_ret_1, x_ret_2)
+			nextx:		x_c_2 := x_c_1 + 1
+								goto head
+		  end_loop:	x_ret_4 := PHI(x_ret_1, break_vars) 
+			          goto [ x_ret_4 = $$empty ] next3 next4
+			next3:    skip 
+			next4:    x_ret_5 := PHI(x_ret_0, x_ret_1) 
+			
+			errs:	x2_v, x4, xlf, xhf, x5, x3_v
+		 *)	
+		
 	
   	| Parser_syntax.For (e1, e2, e3, e4) ->
 		(**
 		 Section 12.6.3
-     *  C(e1) = cmds1, _; C(e2) = cmds2, x2; C(e3) = cmds3, _; C(e4) = cmds4, x4
+     *  C(e1) = cmds1, x1; C(e2) = cmds2, x2; C(e3) = cmds3, _; C(e4) = cmds4, x4
 		 *  
 		 *  C( for(e1; e2; e3) { e4 } ) =
 			          cmds1 
+								x1_v := i__getValue (x1) with err 
 								x_ret_0 := $$empty 
 			head:     x_ret_1 := PHI(x_ret_0, x_ret_3) 
 								cmds2
@@ -2858,10 +2903,13 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			next4:    x_ret_5 := PHI(x_ret_4, x_ret_1) 
 		 *)	
 		
-		let cmds1, _, errs1, _, _, _ = 
+		let cmds1, x1, errs1, _, _, _ = 
 			(match e1 with 
 			| Some e1 -> f e1 
 			| None -> [], Var "xpto", [], [], [], []) in
+		(* x1_v := i__getValue (x1) with err *)
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in 
+		let cmds1, errs1 = cmds1 @ [ (None, None, cmd_gv_x1) ], errs1 @ [ x1_v ] in 
 		
 		let cmds2, x2, errs2, _, _, _ = 	
 			(match e2 with 
@@ -3441,11 +3489,10 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		
 		let cmds = cmds @ [ cmd_ass_xer; cmd_ass_xrefn; cmd_pv_f ] in 
 		cmds, Var x_f, [ x_pv ], [], [], []
-	
-  | With (_, _) -> raise (Failure "Not implemented: with (this should not happen)")
-	| RegExp (_, _) -> raise (Failure "Not implemented: RegExp literal")
-	| ForIn (_, _, _) -> raise (Failure "Not implemented: for-in, for-var-in")
-	| Debugger -> raise (Failure "Not implemented: debugger (this should not happen)")
+		
+  | Parser_syntax.With (_, _) -> raise (Failure "Not implemented: with (this should not happen)")
+	| Parser_syntax.RegExp (_, _) -> raise (Failure "Not implemented: RegExp literal")
+	| Parser_syntax.Debugger -> raise (Failure "Not implemented: debugger (this should not happen)")
 	
 
 let make_final_cmd vars final_lab final_var =
