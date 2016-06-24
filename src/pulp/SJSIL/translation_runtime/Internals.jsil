@@ -356,16 +356,24 @@ proc o__defineOwnProperty (l, prop, desc, throw) {
 	change:	goto [cdd = $$t] toa tod;
 	toa:	goto [dg = $$empty] sg gs;
 	sg:		dg := $$undefined;
-	gs:		goto [ds = $$empty] ss spa;
+	gs:		goto [ds = $$empty] ss ge1;
 	ss:		ds := $$undefined;
-	spa:	[l, prop] := {{ "a", dg, ds, ce, cc }};
+	ge1:	goto [de = $$empty] se1 gc1;
+	se1:	de := ce;
+	gc1:	goto [dc = $$empty] sc1 spa;
+	sc1:	dc := cc;
+	spa:	[l, prop] := {{ "a", dg, ds, de, dc }};
 			goto acc_t;
 				
 	tod:	goto [dv = $$empty] sv gw;
 	sv:		dv := $$undefined;
-	gw:		goto [dw = $$empty] sw spd;
+	gw:		goto [dw = $$empty] sw ge2;
 	sw:		dw := $$f;
-	spd:	[l, prop] := {{ "d", dv, dw, ce, cc }};
+	ge2:	goto [de = $$empty] se2 gc2;
+	se2:	de := ce;
+	gc2:	goto [dc = $$empty] sc2 spd;
+	sc2:	dc := cc;
+	spd:	[l, prop] := {{ "d", dv, dw, de, dc }};
 			goto acc_t;
 	
 	l10:	goto [cdd = $$t] l10a l11;
