@@ -2831,7 +2831,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		cmds, Var x_ret_5, errs, rets2, outer_breaks, outer_conts
 	
 	
-	| Parser_syntax.For (e1, e2, e3, e4) ->
+  	| Parser_syntax.For (e1, e2, e3, e4) ->
 		(**
 		 Section 12.6.3
      *  C(e1) = cmds1, _; C(e2) = cmds2, x2; C(e3) = cmds3, _; C(e4) = cmds4, x4
@@ -3442,9 +3442,11 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let cmds = cmds @ [ cmd_ass_xer; cmd_ass_xrefn; cmd_pv_f ] in 
 		cmds, Var x_f, [ x_pv ], [], [], []
 	
+  | With (_, _) -> raise (Failure "Not implemented: with (this should not happen)")
+	| RegExp (_, _) -> raise (Failure "Not implemented: RegExp literal")
+	| ForIn (_, _, _) -> raise (Failure "Not implemented: for-in, for-var-in")
+	| Debugger -> raise (Failure "Not implemented: debugger (this should not happen)")
 	
-	| _ -> raise (Failure "not implemented yet")
-
 
 let make_final_cmd vars final_lab final_var =
 	let cmd_final = 
