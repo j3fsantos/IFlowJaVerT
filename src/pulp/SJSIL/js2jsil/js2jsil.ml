@@ -329,11 +329,414 @@ let add_final_var cmds x =
 	 	cmds @ [ cmd_ass_new ], x_new 
 	| _ -> raise (Failure "add_final_var: x needs to be a variable or a literal") 
 
-let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  = 
+(** 
+Auxiliary Compilers 
+*)
+let non_writable_ref_test x = 
+	(* (typeof (x) = $$v-reference_type) and ((field(x) = "eval") or (field(x) = "arguments"))  *) 
+	let left_e = BinOp ((TypeOf x), Equal, Literal (Type VariableReferenceType)) in 
+	let right_e = BinOp ((BinOp ((Field x), Equal, Literal (String "eval"))), Or, (BinOp ((Field x), Equal, Literal (String "arguments")))) in 
+	BinOp (left_e, And, right_e) 
 	
-	let f = translate fid cc_table ctx vis_fid err loop_list previous js_lab in
+let make_unresolvable_ref_test x = 
+	BinOp (BinOp ((Base x), Equal, (Literal Null)), Or, BinOp ((Base x), Equal, (Literal Undefined))) 
 	
-	let f_previous = translate fid cc_table ctx vis_fid err in 
+let make_get_value_call x err = 
+	(* x_v := getValue (x) with err *)
+	let x_v = val_var_of_var x in 
+	(x_v, SLCall (x_v, (Literal (String getValueName)), [ x ], Some err)) 
+	
+let make_to_number_call x x_v err = 
+	let x_n = number_var_of_var x in 
+	(x_n, SLCall (x_n, (Literal (String toNumberName)), [ Var x_v ], Some err)) 
+	
+let make_to_boolean_call x x_v err = 
+	let x_b = boolean_var_of_var x in 
+	(x_b, SLCall (x_b, (Literal (String toBooleanName)), [ Var x_v ], Some err)) 
+	
+let make_to_primitive_call x x_v err = 
+	let x_p = primitive_var_of_var x in 
+	(x_p, SLCall (x_p, (Literal (String toPrimitiveName)), [ Var x_v ], Some err)) 
+	
+let make_to_string_call x x_v err = 
+	let x_s = string_var_of_var x in 
+	(x_s, SLCall (x_s, (Literal (String toStringName)), [ Var x_v ], Some err)) 
+	
+let make_to_i32_call x x_v err = 
+	let x_i32 = i32_var_of_var x in 
+	(x_i32,  SLCall (x_i32, (Literal (String toInt32Name)), [ Var x_v ], Some err)) 
+	
+let make_put_value_call x x_r err = 
+	let x_pv = fresh_var () in 
+	(x_pv, SLCall (x_pv, Literal (String putValueName), [x; Var x_r], Some err)) 
+	
+let make_dop_call x_obj prop x_desc b err = 
+	let x_dop = fresh_var () in
+	(x_dop, SLCall (x_dop, Literal (String defineOwnPropertyName), [Var x_obj; prop; Var x_desc; Literal (Bool b)], Some err))  
+	
+let make_adop_call x_obj prop x_desc b err = 
+	let x_dop = fresh_var () in
+	(x_dop, SLCall (x_dop, Literal (String defineOwnPropertyArrayName), [Var x_obj; prop; Var x_desc; Literal (Bool b)], Some err)) 
+	
+let make_cae_call x err = 
+	let x_cae = fresh_var () in 
+	x_cae,  SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ x ], Some err) 
+			
+let make_empty_ass () = 
+	let x = fresh_var () in 
+	let empty_ass = SLBasic (SAssignment (x, (Literal Empty))) in
+	x, empty_ass 
+		
+		
+let translate_function_literal fun_id params vis_fid = 
+	(**
+     x_sc := copy_scope_chain_obj (x_scope, {{main, fid1, ..., fidn }}); 
+		 x_f := create_function_object(x_sc, fun_id, params)
+  *)
+		
+	(* x_sc := copy_object (x_sc, {{main, fid1, ..., fidn }});  *)
+	let x_sc = fresh_scope_chain_var () in 
+	let vis_fid_strs = List.map (fun fid -> String fid) vis_fid in   
+	let cmd_sc_copy = SLCall (x_sc, Literal (String copyObjectName), 
+		[ (Var var_scope); Literal (LList vis_fid_strs) ], None) in 
+		
+	(* x_f := create_function_object(x_sc, f_id, params) *)
+	let x_f = fresh_fun_var () in 
+	let processed_params = 
+		List.fold_left
+			(fun ac param -> (String param) :: ac) 
+			[]
+			params in 
+	let processed_params = List.rev processed_params in 
+	let cmd = SLCall (x_f, Literal (String createFunctionObjectName), 
+		[ (Var x_sc); (Literal (String fun_id)); (Literal (String fun_id)); (Literal (LList processed_params)) ], None) in 	
+		
+	[ 
+		(None, None, cmd_sc_copy);            (* x_sc := copy_object (x_scope, {{main, fid1, ..., fidn }});  *)
+		(None, None, cmd)                     (* x_f := create_function_object (x_sc, f_id, f_id, params)    *)
+	], x_f 
+
+
+let translate_named_function_literal cur_fid f_id f_name params vis_fid err =
+		let cmds, x_f = translate_function_literal f_id params vis_fid in 
+
+		(* x_er_fid := [x_scope, "fid"] *)
+		let x_er = fresh_er_var () in 
+		let cmd_ass_xer = (None, None, SLBasic (SLookup (x_er, Var var_scope, Literal (String cur_fid)))) in 
+		
+		(* x_ref_n := ref-v(x_er, "f_name") *)
+		let x_ref_n = fresh_var () in 
+		let cmd_ass_xrefn = (None, None, SLBasic (SAssignment (x_ref_n, VRef (Var x_er, Literal (String f_name))))) in 
+		
+		(* x_pv := i__putValue(x_ref_n, x_f) with err *) 
+		let x_pv = fresh_var () in 
+		let cmd_pv_f = (None, None, SLCall (x_pv, Literal (String putValueName), [ Var x_ref_n; Var x_f ], Some err)) in 
+		
+		let cmds = cmds @ [ cmd_ass_xer; cmd_ass_xrefn; cmd_pv_f ] in 
+		cmds, Var x_f, [ x_pv ]
+
+				
+let translate_inc_dec x is_plus err = 	
+(** 
+			        goto [ (typeof (x) = $$v-reference_type) and ((field(x) = "eval") or (field(x) = "arguments")) ] err next
+			 next:  x_v := getValue (x) with err 
+						  x_n := i__toNumber (x_v) with err 
+							x_r := x_n +/- 1
+						  x_pv := putValue (x, x_r) with err 
+ *)
+	(* goto [ (typeof (x) = $$v-reference_type) and ((field(x) = "eval") or (field(x) = "arguments")) ] err next *)
+	let next = fresh_label () in 
+	let cmd_goto_legalass = SLGuardedGoto ((non_writable_ref_test x), err, next) in 
+		
+	(* next:  x_v := getValue (x) with err *) 
+	let x_v, cmd_gv_x = make_get_value_call x err in
+		
+	(* x_n := i__toNumber (x_v) with err *) 
+	let x_n, cmd_tn_x = make_to_number_call x x_v err in 
+		
+	(* x_r := x_n +/- 1 *) 
+	let x_r = fresh_var () in 
+	let cmd_ass_xr = 
+		(match is_plus with 
+			| true -> SLBasic (SAssignment (x_r, (BinOp (Var x_n, Plus, Literal (Num 1.))))) 
+			| false -> SLBasic (SAssignment (x_r, (BinOp (Var x_n, Minus, Literal (Num 1.)))))) in 
+		
+	(* x_pv = putValue (x, x_r) with err4 *) 
+	let x_pv, cmd_pv_x = make_put_value_call x x_r err in 
+		
+	let new_cmds = [      
+		(None, None,      cmd_goto_legalass);                (*        goto [ (typeof (x) = $$v-reference_type) and ((field(x) = "eval") or (field(x) = "arguments")) ] err next   *)
+		(None, Some next, cmd_gv_x);                         (* next:  x_v := i__getValue (x) with err                                                                             *)    
+		(None, None,      cmd_tn_x);                  	     (*        x_n := i__toNumber (x_v) with err                                                                           *) 
+		(None, None,      cmd_ass_xr);                       (*        x_r := x_n + 1                                                                                              *) 
+		(None, None,      cmd_pv_x)                          (*        x_pv = i__putValue (x, x_r) with err                                                                        *)
+	] in 
+	let new_errs = [ var_se; x_v; x_n; x_pv ] in 
+	new_cmds, new_errs, x_v, x_r 
+	
+
+let translate_multiplicative_binop x1 x2 x1_v x2_v aop err = 
+	let jsil_aop = 
+		(match aop with 
+		| Parser_syntax.Times -> Times 
+		| Parser_syntax.Div -> Div 
+		| Parser_syntax.Mod -> Mod 
+		| Parser_syntax.Minus -> Minus
+		| _ -> raise (Failure "Illegal binary operator - Impossible case")) in 
+		
+	(* x1_n := i__toNumber (x1_v) with err *) 
+	let x1_n, cmd_tn_x1 = make_to_number_call x1 x1_v err in
+	(* x2_n := i__toNumber (x2_v) with err *) 
+	let x2_n, cmd_tn_x2 = make_to_number_call x2 x2_v err in
+	(* x_r := x1_n * x2_n *) 
+	let x_r = fresh_var () in 
+	let cmd_ass_xr = SLBasic (SAssignment (x_r, BinOp (Var x1_n, jsil_aop, Var x2_n))) in 
+		
+	let new_cmds = [
+		(None, None, cmd_tn_x1);       (*  x1_n := i__toNumber (x1_v) with err  *)
+		(None, None, cmd_tn_x2);       (*  x2_n := i__toNumber (x2_v) with err  *)  
+		(None, None, cmd_ass_xr)       (*  x_r := x1_n * x2_n                   *)
+	] in 
+	let new_errs = [ x1_n; x2_n ] in 
+	new_cmds, new_errs, x_r 
+
+
+let translate_binop_plus x1 x2 x1_v x2_v err = 
+	(* x1_p := i__toPrimitive (x1_v) with err *) 
+	let x1_p, cmd_tp_x1 = make_to_primitive_call x1 x1_v err in
+		
+	(* x2_p := i__toPrimitive (x2_v) with err *) 
+	let x2_p, cmd_tp_x2 = make_to_primitive_call x2 x2_v err in
+		
+	(*  goto [((typeOf x1_p) = $$string_type) or ((typeOf x2_p) = $$string_type)] then else *) 
+	let then_lab = fresh_then_label () in 
+	let else_lab = fresh_else_label () in 
+	let end_lab = fresh_endif_label () in 
+	let goto_guard_left = BinOp ((TypeOf (Var x1_p)), Equal, (Literal (Type StringType))) in 
+	let goto_guard_right = BinOp ((TypeOf (Var x2_p)), Equal, (Literal (Type StringType))) in 
+	let goto_guard = BinOp (goto_guard_left, Or, goto_guard_right) in 
+	let cmd_goto = SLGuardedGoto (goto_guard, then_lab, else_lab) in 
+		
+	(* then: x1_s := i__toString (x1_p) with err *) 
+	let x1_s, cmd_ts_x1 = make_to_string_call x1 x1_p err in
+		
+	(* x2_s := i__toString (x2_p) with err *) 
+	let x2_s, cmd_ts_x2 = make_to_string_call x2 x2_p err in
+		
+	(* x_rthen := x1_s :: x2_s  *) 
+	let x_rthen = fresh_var () in 
+	let cmd_ass_xrthen = SLBasic (SAssignment (x_rthen, BinOp((Var x1_s), Concat, (Var x2_s)))) in 
+		
+	(* else: x1_n := i__toNumber (x1_p) with err *) 
+	let x1_n, cmd_tn_x1 = make_to_number_call x1 x1_p err in
+		
+	(* x2_n := i__toNumber (x2_p) with err *) 
+	let x2_n, cmd_tn_x2 = make_to_number_call x2 x2_p err in
+		
+	(* x_relse := x1_n + x2_n  *) 
+	let x_relse = fresh_var () in 
+	let cmd_ass_xrelse = SLBasic (SAssignment (x_relse, BinOp((Var x1_n), Plus, (Var x2_n)))) in 
+		
+	(* end:  x_r := PHI (x_rthen, x_relse) *) 
+	let x_r = fresh_var () in 
+	let cmd_ass_xr = SLPhiAssignment (x_r, [| Some x_rthen; Some x_relse |]) in 
+		
+	let new_cmds = [             
+		(None, None,          cmd_tp_x1);       (*       x1_p := i__toPrimitive (x1_v) with err                                                 *)
+		(None, None,          cmd_tp_x2);       (*       x2_p := i__toPrimitive (x2_v) with err                                                 *)  
+		(None, None,          cmd_goto);        (*       goto [((typeOf x1_p) = $$string_type) or ((typeOf x2_p) = $$string_type)] then else    *)
+		(None, Some then_lab, cmd_ts_x1);       (* then: x1_s := i__toString (x1_p) with err                                                    *) 
+		(None, None,          cmd_ts_x2);       (*       x2_s := i__toString (x2_p) with err                                                    *) 
+		(None, None,          cmd_ass_xrthen);  (*       x_rthen := x1_s :: x2_s                                                                *) 
+		(None, None,          SLGoto end_lab);  (*       goto end                                                                               *) 
+		(None, Some else_lab, cmd_tn_x1);       (* else: x1_n := i__toNumber (x1_p) with err                                                    *) 
+		(None, None,          cmd_tn_x2);       (*       x2_n := i__toNumber (x2_p) with err                                                    *) 
+		(None, None,          cmd_ass_xrelse);  (* 	     x_relse := x1_n + x2_n                                                                 *) 
+		(None, Some end_lab,  cmd_ass_xr)       (* end:  x_r := PHI (x_rthen, x_relse)                                                          *) 
+	] in 
+	let errs = [ x1_p; x2_p; x1_s; x2_s; x1_n; x2_n ] in 
+	new_cmds, errs, x_r 
+
+
+let translate_binop_comparison x1 x2 x1_v x2_v is_first_first flag_arg bool_undef err = 
+	(* x_ac := i__abstractComparison (x1_v, x2_v, flag_arg) with err  *) 
+	let x_ac = fresh_var () in
+	let args = 
+		(match is_first_first with 
+		| true -> [ Var x1_v; Var x2_v ]
+		| false -> [ Var x2_v; Var x1_v ]) in  
+	let cmd_ac = SLCall (x_ac, (Literal (String abstractComparisonName)), args @ [ Literal (Bool flag_arg) ], Some err) in
+		
+	(*  goto [ x_ac = undefined ] then end *) 
+	let then_lab = fresh_label () in  
+	let end_lab = fresh_label () in 
+	let cmd_goto = SLGuardedGoto (BinOp (Var x_ac, Equal, Literal Undefined), then_lab, end_lab) in 
+		
+	(* x_r := PHI(x_ac, x_undef) *)
+	let x_undef = fresh_var () in 
+	let x_r = fresh_var () in 
+	let cmd_ass_xr = SLPhiAssignment (x_r, [| Some x_ac; Some x_undef |]) in 
+		 
+	let new_cmds = [
+		(None, None, cmd_ac);  	                                                            (*        x_ac := i__abstractComparison (xi_v, xk_v, flag_arg) with err; where: i != k and i,k \in {1,2}  *) 
+		(None, None, cmd_goto);                                                             (*        goto [ x_ac = undefined ] then end                                                              *) 
+		(None, Some then_lab, SLBasic (SAssignment (x_undef, Literal (Bool bool_undef))));  (* then:  x_undef := bool_undef                                                                           *) 
+		(None, Some end_lab, cmd_ass_xr)                                                    (* end:   x_r := PHI(x_ac, x_undef)                                                                       *)
+	] in 
+	let errs = [ x_ac ] in 
+	new_cmds, errs, x_r	
+	
+	
+let translate_bitwise_shift x1 x2 x1_v x2_v left_fun_name right_fun_name op err = 
+	(* x1_f := left_fun_name (x1_v) with err *) 
+	let x1_f = fresh_var () in
+	let cmd_fc_x1 = SLCall (x1_f, (Literal (String left_fun_name)), [ Var x1_v ], Some err) in
+		
+	(* x2_f := right_fun_name (x2_v) with err *) 
+	let x2_f = fresh_var () in
+	let cmd_fc_x2 = SLCall (x2_f, (Literal (String right_fun_name)), [ Var x2_v ], Some err) in
+		
+	(* x_r := x1_f op x2_f *) 
+	let x_r = fresh_var () in
+	let cmd_ass_xr = SLBasic (SAssignment (x_r, (BinOp (Var x1_f, op, Var x2_f)))) in 
+		
+	let new_cmds = [
+		(None, None,  cmd_fc_x1);       (*  x1_f := left_fun_name (x1_v) with err     *) 
+		(None, None,  cmd_fc_x2);       (*  x2_f := right_fun_name (x2_v) with err    *)
+		(None, None,  cmd_ass_xr)       (*  x_r := x1_f op x2_f                       *)
+	] in 
+	let errs = [ x1_f; x2_f ] in 
+	new_cmds, errs, x_r 
+
+
+let translate_binop_equality x1 x2 x1_v x2_v non_strict non_negated err =
+	(* x_r1 := i__strictEqualityComparison/i__abstractEqualityComparison (x1_v, x2_v) with err *)
+	let x_r1 = fresh_var () in 
+	let f_name = 
+		(match non_strict with 
+		| true -> abstractEqualityComparisonName 
+		| false -> strictEqualityComparisonName) in
+	let cmd_ass_xr1 = SLCall (x_r1, (Literal (String f_name)), [ Var x1_v; Var x2_v ], Some err) in
+		
+	let cmd_ass_xr2, ret = 
+		(match non_negated with 
+		| true -> [], x_r1
+		| false -> 
+			(let x_r2 = fresh_var () in 
+			(* x_r2 := (not x_r1) *) 
+			[ (None, None, SLBasic (SAssignment (x_r2, UnaryOp (Not, Var x_r1)))) ], x_r2)) in 
+	
+	let new_cmds =	[
+		(None, None, cmd_ass_xr1) 
+	] @ cmd_ass_xr2 in 
+	new_cmds, [ x_r1 ], ret 
+	
+
+let translate_bitwise_bin_op x1 x2 x1_v x2_v bbop err = 
+	let bbop = 
+		(match bbop with 
+		| Parser_syntax.Bitand -> BitwiseAnd
+		| Parser_syntax.Bitor -> BitwiseOr 
+		| Parser_syntax.Bitxor -> BitwiseXor
+		| _ -> raise (Failure "Illegal bitwise operator")) in
+	
+	(* x1_i32 := i__toInt32 (x1_v) with err3 *)
+	let x1_i32, cmd_ti32_x1 = make_to_i32_call x1 x1_v err in 
+		
+	(* x2_i32 := i__toInt32 (x2_v) with err4 *)
+	let x2_i32, cmd_ti32_x2 = make_to_i32_call x2 x2_v err in 
+	
+	(*  x_r := (x1_i32 bbop x2_i32) *) 
+	let x_r = fresh_var () in 
+	let cmd_ass_xr = SLBasic (SAssignment (x_r, BinOp (Var x1_i32, bbop, Var x2_i32))) in 
+		
+	let new_cmds =	[
+		(None, None, cmd_ti32_x1); 
+		(None, None, cmd_ti32_x2); 
+		(None, None, cmd_ass_xr) 
+	] in 
+	let new_errs = [ x1_v; x2_v; x1_i32; x2_i32 ] in 
+	new_cmds, new_errs, x_r 
+
+
+let make_check_empty_test x_prev x_new = 
+(**        goto [x_new = $$empty] next1 next2 
+			next1: skip 
+			next2: x := PHI(x_new, x_previous) 
+*)
+	let x_prev, cmd_ass_xprev = 
+		(match x_prev with 
+		| Var x_prev -> x_prev, [] 
+		| Literal lit -> 
+			let x_prev_var = fresh_var () in 
+			let cmd_ass_prev = (None, None, SLBasic (SAssignment (x_prev_var, Literal lit))) in 
+			x_prev_var, [ cmd_ass_prev ] 
+		| _ -> raise (Failure "make_check_empty_test: x_prev needs to be either a literal or a var")) in 
+	
+	let x_new, cmd_ass_new = 
+		(match x_new with 
+		| Var x_new -> x_new, [] 
+		| Literal lit -> 
+			let x_new_var = fresh_var () in 
+			let cmd_ass_new = (None, None, SLBasic (SAssignment (x_new_var, Literal lit))) in 
+			x_new_var, [ cmd_ass_new ] 
+		| _ -> raise (Failure "make_check_empty_test: x_new needs to be either a literal or a var")) in 
+	
+	(* goto [x_new = $$empty] next1 next2 *)
+	let next1 = fresh_next_label () in 
+	let next2 = fresh_next_label () in  
+	let cmd_goto = (None, None, SLGuardedGoto (BinOp (Var x_new, Equal, Literal Empty), next1, next2)) in 
+		
+	(* next1: skip  *) 
+	let cmd_skip = (None, Some next1, SLBasic SSkip) in 
+		
+	(* next2: x := PHI(x_new, x_previous) *) 
+	let x = fresh_var () in 
+	let cmd_phi = (None, Some next2, SLPhiAssignment (x, [| Some x_new; Some x_prev |])) in 
+		
+	cmd_ass_xprev @ cmd_ass_new @ [ cmd_goto; cmd_skip; cmd_phi], x  
+
+
+let make_loop_end cur_val_var prev_val_var break_vars end_lab cur_first = 
+(** 
+    	end_loop: x_ret_4 := PHI(break_vars, cur_val_var) 
+			          goto [ x_ret_4 = $$empty ] next3 next4
+			next3:    skip 
+			next4:    x_ret_5 := PHI(x_ret_4, prev_val_var)
+*)
+	let x_ret_4 = fresh_var () in 
+	let x_ret_5 = fresh_var () in 
+	let next3 = fresh_next_label () in 
+	let next4 = fresh_next_label () in 
+		
+	(* x_ret_4 := PHI(cur_val_var, break_vars) *)
+	let break_vars = 
+		match cur_first with 
+		| true -> cur_val_var :: break_vars 
+		| false -> break_vars @ [ cur_val_var ] in 
+	let phi_args = List.map (fun x -> Some x) break_vars in 
+	let phi_args = Array.of_list phi_args in 
+	let cmd_ass_ret4 = SLPhiAssignment (x_ret_4, phi_args) in 
+		
+	(* goto [ x_ret_4 = $$empty ] next3 next4 *) 
+	let cmd_goto = SLGuardedGoto ((BinOp (Var x_ret_4, Equal, Literal Empty), next3, next4)) in 
+		
+	(* next4:    x_ret_5 := PHI(x_ret_4, prev_val_var) *)
+	let cmd_ass_ret5 = SLPhiAssignment (x_ret_5, [| Some x_ret_4; Some prev_val_var |]) in 
+		
+	let cmds = [
+		(None, Some end_lab, cmd_ass_ret4);    (* end_loop:   x_ret_4 := PHI(cur_val_var, break_vars) *)
+		(None, None,         cmd_goto);        (*             goto [ x_ret_4 = $$empty ] next3 next4  *)
+		(None, Some next3,   SLBasic SSkip);   (* next3:      skip                                    *)
+		(None, Some next4,   cmd_ass_ret5)     (* next4:      x_ret_5 := PHI(x_ret_4, prev_val_var)   *)
+	]	in 
+	cmds, x_ret_5 
+			
+
+
+let rec translate_expr fid cc_table vis_fid err e  = 
+	
+	let f = translate_expr fid cc_table vis_fid err in
 		
 	let cur_var_tbl = 
 		(try Hashtbl.find cc_table fid 
@@ -343,317 +746,54 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 	
 	let find_var_fid v = (try Some (Hashtbl.find cur_var_tbl v) with _ -> None) in 
 	
-	let non_writable_ref_test x = 
-		(* (typeof (x) = $$v-reference_type) and ((field(x) = "eval") or (field(x) = "arguments"))  *) 
-		let left_e = BinOp ((TypeOf x), Equal, Literal (Type VariableReferenceType)) in 
-		let right_e = BinOp ((BinOp ((Field x), Equal, Literal (String "eval"))), Or, (BinOp ((Field x), Equal, Literal (String "arguments")))) in 
-		BinOp (left_e, And, right_e) in
+	let compile_var_dec x e = 
+		let v_fid = find_var_fid x in
+		let v_fid = 
+			match v_fid with 
+			| None -> raise (Failure "Error: if a variable is declared it must be in the scope clarification table!")
+			| Some v_fid -> v_fid in 
+		let cmds_e, x_e, errs_e = translate_expr fid cc_table vis_fid err e in
+		(* x_v := i__getValue (x) with err *)
+		let x_v, cmd_gv_x = make_get_value_call x_e err in
+		(* x_sf := [x__scope, v_fid]  *) 
+		let x_sf = fresh_var () in 
+		let cmd_xsf_ass = SLBasic (SLookup (x_sf, Var var_scope, Literal (String v_fid))) in 
+		(* x_ref := ref_v(x_sf, "x")  *) 
+		let x_ref = fresh_var () in 
+		let cmd_xref_ass = SLBasic (SAssignment (x_ref, VRef (Var x_sf, Literal (String x)))) in 
+		(* x_pv := i__putValue(x_ref, x_v) with err2 *) 
+		let x_pv, cmd_pv = make_put_value_call (Var x_ref) x_v err in 
+		let cmds = cmds_e @ (b_annot_cmds [
+			cmd_gv_x;      (* x_v := i__getValue (x) with err          *)
+			cmd_xsf_ass;   (* x_sf := [x__scope, fid]                  *)
+			cmd_xref_ass;  (* x_ref := ref_v(x_sf, "x")                *) 
+			cmd_pv         (* x_pv := i__putValue(x_ref, x_v) with err *) 
+		]) in 
+		let errs = errs_e @ [ x_v; x_pv ] in 
+		cmds, x_ref, errs in 
 	
-	let make_unresolvable_ref_test x = 
-		BinOp (BinOp ((Base x), Equal, (Literal Null)), Or, BinOp ((Base x), Equal, (Literal Undefined))) in 
-	
-	let make_get_value_call x err = 
-		(* x_v := getValue (x) with err *)
-		let x_v = val_var_of_var x in 
-		(x_v, SLCall (x_v, (Literal (String getValueName)), [ x ], Some err)) in
-	
-	let make_to_number_call x x_v err = 
-		let x_n = number_var_of_var x in 
-		(x_n, SLCall (x_n, (Literal (String toNumberName)), [ Var x_v ], Some err)) in
-	
-	let make_to_boolean_call x x_v err = 
-		let x_b = boolean_var_of_var x in 
-		(x_b, SLCall (x_b, (Literal (String toBooleanName)), [ Var x_v ], Some err)) in
-	
-	let make_to_primitive_call x x_v err = 
-		let x_p = primitive_var_of_var x in 
-		(x_p, SLCall (x_p, (Literal (String toPrimitiveName)), [ Var x_v ], Some err)) in
-	
-	let make_to_string_call x x_v err = 
-		let x_s = string_var_of_var x in 
-		(x_s, SLCall (x_s, (Literal (String toStringName)), [ Var x_v ], Some err)) in
-	
-	let make_to_i32_call x x_v err = 
-		let x_i32 = i32_var_of_var x in 
-		(x_i32,  SLCall (x_i32, (Literal (String toInt32Name)), [ Var x_v ], Some err)) in
-	
-	let make_put_value_call x x_r err = 
-		let x_pv = fresh_var () in 
-		(x_pv, SLCall (x_pv, Literal (String putValueName), [x; Var x_r], Some err)) in  
-	
-	let make_dop_call x_obj prop x_desc b err = 
-		let x_dop = fresh_var () in
-		(x_dop, SLCall (x_dop, Literal (String defineOwnPropertyName), [Var x_obj; prop; Var x_desc; Literal (Bool b)], Some err)) in 
-	
-	let make_adop_call x_obj prop x_desc b err = 
-		let x_dop = fresh_var () in
-		(x_dop, SLCall (x_dop, Literal (String defineOwnPropertyArrayName), [Var x_obj; prop; Var x_desc; Literal (Bool b)], Some err)) in 
-	
-	let make_cae_call x err = 
-		let x_cae = fresh_var () in 
-		x_cae,  SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ x ], Some err) in
-			
-	let make_empty_ass () = 
-		let x = fresh_var () in 
-		let empty_ass = SLBasic (SAssignment (x, (Literal Empty))) in
-		x, empty_ass in 
+	let compile_var_dec_without_exp x = 
+		let v_fid = find_var_fid x in
+		let v_fid = 
+			match v_fid with 
+			| None -> raise (Failure "Error: if a variable is declared it must be in the scope clarification table!")
+			| Some v_fid -> v_fid in 
+		(* x_sf := [x__scope, v_fid]  *) 
+		let x_sf = fresh_var () in 
+		let cmd_xsf_ass = SLBasic (SLookup (x_sf, Var var_scope, Literal (String v_fid))) in 
+		(* x_ref := ref_v(x_sf, "x")  *) 
+		let x_ref = fresh_var () in 
+		let cmd_xref_ass = SLBasic (SAssignment (x_ref, VRef (Var x_sf, Literal (String x)))) in 
 		
-	let translate_function_literal fun_id params = 
-		(**
-       x_sc := copy_scope_chain_obj (x_scope, {{main, fid1, ..., fidn }}); 
-		   x_f := create_function_object(x_sc, fun_id, params)
-   	*)
+		let cmds = (b_annot_cmds [
+			cmd_xsf_ass;   (* x_sf := [x__scope, v_fid]                *)
+			cmd_xref_ass;  (* x_ref := ref_v(x_sf, "x")                *) 
+		]) in  
+		x_ref, cmds in 
 		
-		(* x_sc := copy_object (x_sc, {{main, fid1, ..., fidn }});  *)
-		let x_sc = fresh_scope_chain_var () in 
-		let vis_fid_strs = List.map (fun fid -> String fid) vis_fid in   
-		let cmd_sc_copy = SLCall (x_sc, Literal (String copyObjectName), 
-			[ (Var var_scope); Literal (LList vis_fid_strs) ], None) in 
-		
-		(* x_f := create_function_object(x_sc, f_id, params) *)
-		let x_f = fresh_fun_var () in 
-		let processed_params = 
-			List.fold_left
-				(fun ac param -> (String param) :: ac) 
-				[]
-				params in 
-		let processed_params = List.rev processed_params in 
-		let cmd = SLCall (x_f, Literal (String createFunctionObjectName), 
-			[ (Var x_sc); (Literal (String fun_id)); (Literal (String fun_id)); (Literal (LList processed_params)) ], None) in 	
-		
-		[ 
-		  (None, None, cmd_sc_copy);            (* x_sc := copy_object (x_scope, {{main, fid1, ..., fidn }});  *)
-			(None, None, cmd)                     (* x_f := create_function_object (x_sc, f_id, f_id, params)    *)
-		], x_f in 
-		
-				
-	let translate_inc_dec x is_plus err = 	
-		(** 
-			        goto [ (typeof (x) = $$v-reference_type) and ((field(x) = "eval") or (field(x) = "arguments")) ] err next
-			 next:  x_v := getValue (x) with err 
-						  x_n := i__toNumber (x_v) with err 
-							x_r := x_n +/- 1
-						  x_pv := putValue (x, x_r) with err 
-    *)
-		
-		(* goto [ (typeof (x) = $$v-reference_type) and ((field(x) = "eval") or (field(x) = "arguments")) ] err next *)
-		let next = fresh_label () in 
-		let cmd_goto_legalass = SLGuardedGoto ((non_writable_ref_test x), err, next) in 
-		
-		(* next:  x_v := getValue (x) with err *) 
-		let x_v, cmd_gv_x = make_get_value_call x err in
-		
-		(* x_n := i__toNumber (x_v) with err *) 
-		let x_n, cmd_tn_x = make_to_number_call x x_v err in 
-		
-		(* x_r := x_n +/- 1 *) 
-		let x_r = fresh_var () in 
-		let cmd_ass_xr = 
-			(match is_plus with 
-			| true -> SLBasic (SAssignment (x_r, (BinOp (Var x_n, Plus, Literal (Num 1.))))) 
-			| false -> SLBasic (SAssignment (x_r, (BinOp (Var x_n, Minus, Literal (Num 1.)))))) in 
-		
-		(* x_pv = putValue (x, x_r) with err4 *) 
-		let x_pv, cmd_pv_x = make_put_value_call x x_r err in 
-		
-		let new_cmds = [      
-			(None, None,      cmd_goto_legalass);                (*        goto [ (typeof (x) = $$v-reference_type) and ((field(x) = "eval") or (field(x) = "arguments")) ] err next   *)
-			(None, Some next, cmd_gv_x);                         (* next:  x_v := i__getValue (x) with err                                                                             *)    
-			(None, None,      cmd_tn_x);                  	     (*        x_n := i__toNumber (x_v) with err                                                                           *) 
-		  (None, None,      cmd_ass_xr);                       (*        x_r := x_n + 1                                                                                              *) 
-			(None, None,      cmd_pv_x)                          (*        x_pv = i__putValue (x, x_r) with err                                                                        *)
-		] in 
-		let new_errs = [ var_se; x_v; x_n; x_pv ] in 
-		new_cmds, new_errs, x_v, x_r in
-	
-	
-	let translate_multiplicative_binop x1 x2 x1_v x2_v aop err = 
-		let jsil_aop = 
-			(match aop with 
-			| Parser_syntax.Times -> Times 
-			| Parser_syntax.Div -> Div 
-			| Parser_syntax.Mod -> Mod 
-			| Parser_syntax.Minus -> Minus
-			| _ -> raise (Failure "Illegal binary operator - Impossible case")) in 
-		
-		(* x1_n := i__toNumber (x1_v) with err *) 
-		let x1_n, cmd_tn_x1 = make_to_number_call x1 x1_v err in
-		(* x2_n := i__toNumber (x2_v) with err *) 
-		let x2_n, cmd_tn_x2 = make_to_number_call x2 x2_v err in
-		(* x_r := x1_n * x2_n *) 
-		let x_r = fresh_var () in 
-		let cmd_ass_xr = SLBasic (SAssignment (x_r, BinOp (Var x1_n, jsil_aop, Var x2_n))) in 
-		
-		let new_cmds = [
-			(None, None, cmd_tn_x1);       (*  x1_n := i__toNumber (x1_v) with err  *)
-			(None, None, cmd_tn_x2);       (*  x2_n := i__toNumber (x2_v) with err  *)  
-			(None, None, cmd_ass_xr)       (*  x_r := x1_n * x2_n                   *)
-		] in 
-		let new_errs = [ x1_n; x2_n ] in 
-		new_cmds, new_errs, x_r in 
-	
-	
-	let translate_binop_plus x1 x2 x1_v x2_v err = 
-		(* x1_p := i__toPrimitive (x1_v) with err *) 
-		let x1_p, cmd_tp_x1 = make_to_primitive_call x1 x1_v err in
-		
-		(* x2_p := i__toPrimitive (x2_v) with err *) 
-		let x2_p, cmd_tp_x2 = make_to_primitive_call x2 x2_v err in
-		
-		(*  goto [((typeOf x1_p) = $$string_type) or ((typeOf x2_p) = $$string_type)] then else *) 
-		let then_lab = fresh_then_label () in 
-		let else_lab = fresh_else_label () in 
-		let end_lab = fresh_endif_label () in 
-		let goto_guard_left = BinOp ((TypeOf (Var x1_p)), Equal, (Literal (Type StringType))) in 
-		let goto_guard_right = BinOp ((TypeOf (Var x2_p)), Equal, (Literal (Type StringType))) in 
-		let goto_guard = BinOp (goto_guard_left, Or, goto_guard_right) in 
-		let cmd_goto = SLGuardedGoto (goto_guard, then_lab, else_lab) in 
-		
-		(* then: x1_s := i__toString (x1_p) with err *) 
-		let x1_s, cmd_ts_x1 = make_to_string_call x1 x1_p err in
-		
-		(* x2_s := i__toString (x2_p) with err *) 
-		let x2_s, cmd_ts_x2 = make_to_string_call x2 x2_p err in
-		
-		(* x_rthen := x1_s :: x2_s  *) 
-		let x_rthen = fresh_var () in 
-		let cmd_ass_xrthen = SLBasic (SAssignment (x_rthen, BinOp((Var x1_s), Concat, (Var x2_s)))) in 
-		
-		(* else: x1_n := i__toNumber (x1_p) with err *) 
-		let x1_n, cmd_tn_x1 = make_to_number_call x1 x1_p err in
-		
-		(* x2_n := i__toNumber (x2_p) with err *) 
-		let x2_n, cmd_tn_x2 = make_to_number_call x2 x2_p err in
-		
-		(* x_relse := x1_n + x2_n  *) 
-		let x_relse = fresh_var () in 
-		let cmd_ass_xrelse = SLBasic (SAssignment (x_relse, BinOp((Var x1_n), Plus, (Var x2_n)))) in 
-		
-		(* end:  x_r := PHI (x_rthen, x_relse) *) 
-		let x_r = fresh_var () in 
-		let cmd_ass_xr = SLPhiAssignment (x_r, [| Some x_rthen; Some x_relse |]) in 
-		
-		let new_cmds = [             
-			(None, None,          cmd_tp_x1);       (*       x1_p := i__toPrimitive (x1_v) with err                                                 *)
-			(None, None,          cmd_tp_x2);       (*       x2_p := i__toPrimitive (x2_v) with err                                                 *)  
-			(None, None,          cmd_goto);        (*       goto [((typeOf x1_p) = $$string_type) or ((typeOf x2_p) = $$string_type)] then else    *)
-			(None, Some then_lab, cmd_ts_x1);       (* then: x1_s := i__toString (x1_p) with err                                                    *) 
-			(None, None,          cmd_ts_x2);       (*       x2_s := i__toString (x2_p) with err                                                    *) 
-			(None, None,          cmd_ass_xrthen);  (*       x_rthen := x1_s :: x2_s                                                                *) 
-			(None, None,          SLGoto end_lab);  (*       goto end                                                                               *) 
-			(None, Some else_lab, cmd_tn_x1);       (* else: x1_n := i__toNumber (x1_p) with err                                                    *) 
-			(None, None,          cmd_tn_x2);       (*       x2_n := i__toNumber (x2_p) with err                                                    *) 
-			(None, None,          cmd_ass_xrelse);  (* 	     x_relse := x1_n + x2_n                                                                 *) 
-			(None, Some end_lab,  cmd_ass_xr)       (* end:  x_r := PHI (x_rthen, x_relse)                                                          *) 
-		] in 
-		let errs = [ x1_p; x2_p; x1_s; x2_s; x1_n; x2_n ] in 
-		new_cmds, errs, x_r in 
-	
-	
-	let translate_binop_comparison x1 x2 x1_v x2_v is_first_first flag_arg bool_undef err = 
-		(* x_ac := i__abstractComparison (x1_v, x2_v, flag_arg) with err  *) 
-		let x_ac = fresh_var () in
-		let args = 
-			(match is_first_first with 
-			| true -> [ Var x1_v; Var x2_v ]
-			| false -> [ Var x2_v; Var x1_v ]) in  
-		let cmd_ac = SLCall (x_ac, (Literal (String abstractComparisonName)), args @ [ Literal (Bool flag_arg) ], Some err) in
-		
-		(*  goto [ x_ac = undefined ] then end *) 
-		let then_lab = fresh_label () in  
-		let end_lab = fresh_label () in 
-		let cmd_goto = SLGuardedGoto (BinOp (Var x_ac, Equal, Literal Undefined), then_lab, end_lab) in 
-		
-		(* x_r := PHI(x_ac, x_undef) *)
-		let x_undef = fresh_var () in 
-		let x_r = fresh_var () in 
-		let cmd_ass_xr = SLPhiAssignment (x_r, [| Some x_ac; Some x_undef |]) in 
-		 
-		let new_cmds = [
-			(None, None, cmd_ac);  	                                                            (*        x_ac := i__abstractComparison (xi_v, xk_v, flag_arg) with err; where: i != k and i,k \in {1,2}  *) 
-			(None, None, cmd_goto);                                                             (*        goto [ x_ac = undefined ] then end                                                              *) 
-			(None, Some then_lab, SLBasic (SAssignment (x_undef, Literal (Bool bool_undef))));  (* then:  x_undef := bool_undef                                                                           *) 
-			(None, Some end_lab, cmd_ass_xr)                                                    (* end:   x_r := PHI(x_ac, x_undef)                                                                       *)
-		] in 
-		let errs = [ x_ac ] in 
-		new_cmds, errs, x_r	in 
-	
-	
-	let translate_bitwise_shift x1 x2 x1_v x2_v left_fun_name right_fun_name op err = 
-		(* x1_f := left_fun_name (x1_v) with err *) 
-		let x1_f = fresh_var () in
-		let cmd_fc_x1 = SLCall (x1_f, (Literal (String left_fun_name)), [ Var x1_v ], Some err) in
-		
-		(* x2_f := right_fun_name (x2_v) with err *) 
-		let x2_f = fresh_var () in
-		let cmd_fc_x2 = SLCall (x2_f, (Literal (String right_fun_name)), [ Var x2_v ], Some err) in
-		
-		(* x_r := x1_f op x2_f *) 
-		let x_r = fresh_var () in
-		let cmd_ass_xr = SLBasic (SAssignment (x_r, (BinOp (Var x1_f, op, Var x2_f)))) in 
-		
-		let new_cmds = [
-			(None, None,  cmd_fc_x1);       (*  x1_f := left_fun_name (x1_v) with err     *) 
-			(None, None,  cmd_fc_x2);       (*  x2_f := right_fun_name (x2_v) with err    *)
-		  (None, None,  cmd_ass_xr)       (*  x_r := x1_f op x2_f                       *)
-		] in 
-		let errs = [ x1_f; x2_f ] in 
-		new_cmds, errs, x_r in 
-		
-		
-	let translate_binop_equality x1 x2 x1_v x2_v non_strict non_negated err =
-		(* x_r1 := i__strictEqualityComparison/i__abstractEqualityComparison (x1_v, x2_v) with err *)
-		let x_r1 = fresh_var () in 
-		let f_name = 
-			(match non_strict with 
-			| true -> abstractEqualityComparisonName 
-			| false -> strictEqualityComparisonName) in
-		let cmd_ass_xr1 = SLCall (x_r1, (Literal (String f_name)), [ Var x1_v; Var x2_v ], Some err) in
-		
-		let cmd_ass_xr2, ret = 
-			(match non_negated with 
-			| true -> [], x_r1
-			| false -> 
-				(let x_r2 = fresh_var () in 
-				(* x_r2 := (not x_r1) *) 
-				[ (None, None, SLBasic (SAssignment (x_r2, UnaryOp (Not, Var x_r1)))) ], x_r2)) in 
-	
-		let new_cmds =	[
-			(None, None, cmd_ass_xr1) 
-		] @ cmd_ass_xr2 in 
-		new_cmds, [ x_r1 ], ret in
-	
-	
-	let translate_bitwise_bin_op x1 x2 x1_v x2_v bbop err = 
-		let bbop = 
-			(match bbop with 
-			| Parser_syntax.Bitand -> BitwiseAnd
-			| Parser_syntax.Bitor -> BitwiseOr 
-			| Parser_syntax.Bitxor -> BitwiseXor
-			| _ -> raise (Failure "Illegal bitwise operator")) in
-	
-		(* x1_i32 := i__toInt32 (x1_v) with err3 *)
-		let x1_i32, cmd_ti32_x1 = make_to_i32_call x1 x1_v err in 
-		
-		(* x2_i32 := i__toInt32 (x2_v) with err4 *)
-		let x2_i32, cmd_ti32_x2 = make_to_i32_call x2 x2_v err in 
-	
-		(*  x_r := (x1_i32 bbop x2_i32) *) 
-		let x_r = fresh_var () in 
-		let cmd_ass_xr = SLBasic (SAssignment (x_r, BinOp (Var x1_i32, bbop, Var x2_i32))) in 
-		
-		let new_cmds =	[
-			(None, None, cmd_ti32_x1); 
-			(None, None, cmd_ti32_x2); 
-			(None, None, cmd_ass_xr) 
-		] in 
-		let new_errs = [ x1_v; x2_v; x1_i32; x2_i32 ] in 
-		new_cmds, new_errs, x_r in
-	
-	
 	let translate_bin_logical_operator e1 e2 lbop err =
-		let cmds1, x1, errs1, _, _, _ = f e1 in
-		let cmds2, x2, errs2, _, _, _ = f e2 in
+		let cmds1, x1, errs1 = f e1 in
+		let cmds2, x2, errs2 = f e2 in
 				
 		(* x1_v := i__getValue (x1) with err *)
 		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
@@ -682,181 +822,18 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			(None, Some end_lab, cmd_ass_xr)          (* end:    x_r := PHI(x1_v, x2_v)                             *)
 		] in 
 		let errs = errs1 @ [ x1_v; x1_b ] @ errs2 @ [ x2_v ] in 
-		cmds, Var x_r, errs, [], [], []	in
+		cmds, Var x_r, errs	in
 	
 	
 	let translate_arg_list xes err = 
 		let cmds_args, x_args_gv, errs_args = 
 			List.fold_left (fun (cmds_args, x_args_gv, errs_args) e_arg -> 
-				let cmds_arg, x_arg, errs_arg, _, _, _ = f e_arg in
+				let cmds_arg, x_arg, errs_arg = f e_arg in
 				let x_arg_v, cmd_gv_arg = make_get_value_call x_arg err in  
 				(cmds_args @ cmds_arg @ [ (None, None, cmd_gv_arg) ], x_args_gv @ [ Var x_arg_v ], (errs_args @ errs_arg @ [ x_arg_v ])))
 			([], [], [])
 			xes in 
 		cmds_args, x_args_gv, errs_args in
-	
-	
-	let make_check_empty_test x_prev x_new = 
-	(**        goto [x_new = $$empty] next1 next2 
-			next1: skip 
-			next2: x := PHI(x_new, x_previous) 
-	*)
-		let x_prev, cmd_ass_xprev = 
-			(match x_prev with 
-			| Var x_prev -> x_prev, [] 
-			| Literal lit -> 
-				let x_prev_var = fresh_var () in 
-				let cmd_ass_prev = (None, None, SLBasic (SAssignment (x_prev_var, Literal lit))) in 
-				x_prev_var, [ cmd_ass_prev ] 
-			| _ -> raise (Failure "make_check_empty_test: x_prev needs to be either a literal or a var")) in 
-	
-		let x_new, cmd_ass_new = 
-			(match x_new with 
-			| Var x_new -> x_new, [] 
-			| Literal lit -> 
-				let x_new_var = fresh_var () in 
-				let cmd_ass_new = (None, None, SLBasic (SAssignment (x_new_var, Literal lit))) in 
-				x_new_var, [ cmd_ass_new ] 
-			| _ -> raise (Failure "make_check_empty_test: x_new needs to be either a literal or a var")) in 
-	
-		(* goto [x_new = $$empty] next1 next2 *)
-		let next1 = fresh_next_label () in 
-		let next2 = fresh_next_label () in  
-		let cmd_goto = (None, None, SLGuardedGoto (BinOp (Var x_new, Equal, Literal Empty), next1, next2)) in 
-		
-		(* next1: skip  *) 
-		let cmd_skip = (None, Some next1, SLBasic SSkip) in 
-		
-		(* next2: x := PHI(x_new, x_previous) *) 
-		let x = fresh_var () in 
-		let cmd_phi = (None, Some next2, SLPhiAssignment (x, [| Some x_new; Some x_prev |])) in 
-		
-		cmd_ass_xprev @ cmd_ass_new @ [ cmd_goto; cmd_skip; cmd_phi], x in 
-	
-			 
-	let make_loop_end cur_val_var prev_val_var break_vars end_lab cur_first = 
-		(** 
-    	end_loop: x_ret_4 := PHI(break_vars, cur_val_var) 
-			          goto [ x_ret_4 = $$empty ] next3 next4
-			next3:    skip 
-			next4:    x_ret_5 := PHI(x_ret_4, prev_val_var)
-		*)
-	 	let x_ret_4 = fresh_var () in 
-		let x_ret_5 = fresh_var () in 
-		let next3 = fresh_next_label () in 
-		let next4 = fresh_next_label () in 
-		
-		(* x_ret_4 := PHI(cur_val_var, break_vars) *)
-		let break_vars = 
-			match cur_first with 
-			| true -> cur_val_var :: break_vars 
-			| false -> break_vars @ [ cur_val_var ] in 
-		let phi_args = List.map (fun x -> Some x) break_vars in 
-		let phi_args = Array.of_list phi_args in 
-		let cmd_ass_ret4 = SLPhiAssignment (x_ret_4, phi_args) in 
-		
-		(* goto [ x_ret_4 = $$empty ] next3 next4 *) 
-		let cmd_goto = SLGuardedGoto ((BinOp (Var x_ret_4, Equal, Literal Empty), next3, next4)) in 
-		
-		(* next4:    x_ret_5 := PHI(x_ret_4, prev_val_var) *)
-		let cmd_ass_ret5 = SLPhiAssignment (x_ret_5, [| Some x_ret_4; Some prev_val_var |]) in 
-		
-		let cmds = [
-			(None, Some end_lab, cmd_ass_ret4);    (* end_loop:   x_ret_4 := PHI(cur_val_var, break_vars) *)
-			(None, None,         cmd_goto);        (*             goto [ x_ret_4 = $$empty ] next3 next4  *)
-			(None, Some next3,   SLBasic SSkip);   (* next3:      skip                                    *)
-			(None, Some next4,   cmd_ass_ret5)     (* next4:      x_ret_5 := PHI(x_ret_4, prev_val_var)   *)
-		]	in 
-		cmds, x_ret_5 in 
-			
-	
-	let create_final_phi_cmd cmds x errs rets breaks conts break_label js_lab = 
-		let cur_breaks, outer_breaks = filter_cur_jumps breaks js_lab false in
-		(match cur_breaks with 
-		| [] -> cmds, x, errs, rets, breaks, conts
-		| _ -> 
-			let x_name, cmds_new_x =
-				(match x with 
-				| Var x_name -> x_name, []
-				| Literal lit -> 
-					let x_name = fresh_var () in  
-					let cmd_new_x = [ (None, None, SLBasic (SAssignment (x_name, Literal lit))) ] in 
-					x_name, cmd_new_x 
-				| _ -> raise (Failure "translate. Block: the result of the compilation must be a variable or a literal")) in 
-			let x_ret = fresh_var () in 
-			let phi_args = cur_breaks @ [ x_name ] in 
-			let phi_args = List.map (fun x -> Some x)  phi_args in 
-			let phi_args = Array.of_list phi_args in 
-			let cmd_ass_phi = [ (None, break_label, SLPhiAssignment (x_ret, phi_args)) ] in 
-			(cmds @ cmds_new_x @ cmd_ass_phi), Var x_ret, errs, rets, outer_breaks, conts) in 
-	
-	
-	let make_try_catch_cmds e1 (x, e2) catch_id = 						
-	  (**
-									cmds1
-		            	goto finally  
-		    err1:    	x_err := PHI(errs1)
-				        	x_er := new () 
-									[x_er, "x"] := x_err 
-									[x_scope, "cid"] := x_er 
-									cmds2
-									goto finally
-				err2:     x_ret_1 := PHI(errs2)					
-				finally:  x_ret_2 := PHI(breaks1, x_1, breaks2, x_2, x_ret_1)
-	  *) 
-		let new_err1, new_err2, finally, end_label = fresh_tcf_vars () in
-		let new_loop_list = (None, finally, js_lab) :: loop_list in 
-		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate fid cc_table ctx vis_fid new_err1 new_loop_list None None e1 in
-		let cmds1, x1_v = add_final_var cmds1 x1 in 
-	
-		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate catch_id cc_table ctx vis_fid new_err2 new_loop_list None None e2 in
-		let cmds2, x2_v = add_final_var cmds2 x2 in 
-	
-		let cur_breaks1, outer_breaks1 = filter_cur_jumps breaks1 js_lab true in 
-		let cur_breaks2, outer_breaks2 = filter_cur_jumps breaks2 js_lab true in
-
-		(* x_err := PHI(errs1) *) 
-		let x_err = fresh_err_var () in 
-		let phi_args1 = List.map (fun x -> Some x) errs1 in 
-		let phi_args1 = Array.of_list phi_args1 in 
-		let cmd_ass_xerr = SLPhiAssignment (x_err, phi_args1) in 
-	
-		(* x_er := new () *)
-		let x_er = fresh_er_var () in 
-		let cmd_ass_xer = SLBasic (SNew x_er) in 
-	
-		(* [x_er, "x"] := x_err *) 
-		let cmd_mutate_x = SLBasic (SMutation (Var x_er, Literal (String x), Var x_err)) in  					  				
-	
-		(* [x_scope, "cid"] := x_er *) 
-		let cmd_sc_updt = SLBasic (SMutation (Var var_scope, Literal (String catch_id), Var x_er)) in 
-	
-	  (* err2:     x_ret_1 := PHI(errs2) *)
-		let x_ret_1 = fresh_var () in 
-		let phi_args2 = List.map (fun x -> Some x) errs2 in 
-		let phi_args2 = Array.of_list phi_args2 in 
-		let cmd_ass_xret1 = SLPhiAssignment (x_ret_1, phi_args2) in
-	
-		(* x_ret_2 := PHI(cur_breaks1, x_1, cur_breaks2, x_2) *)
-		let x_ret_2 = fresh_var () in 
-		let phi_args3 = cur_breaks1 @ [ x1_v ] @ cur_breaks2 @ [ x2_v; x_ret_1 ] in 
-		let phi_args3 = List.map (fun x -> Some x) phi_args3 in   
-		let phi_args3 = Array.of_list phi_args3 in 
-		let cmd_ass_xret2 = SLPhiAssignment (x_ret_2, phi_args3) in 
-		
-		let cmds = cmds1 @ [
-			(None, None,           SLGoto finally); 
-			(None, Some new_err1,  cmd_ass_xerr);
-			(None, None,           cmd_ass_xer); 
-			(None, None,           cmd_mutate_x); 
-			(None, None,           cmd_sc_updt)
-		] @ cmds2 @ [
-			(None, None,          SLGoto finally); 
-			(None, Some new_err2, cmd_ass_xret1); 
-			(None, Some finally,  cmd_ass_xret2)
-		] in 
-		
-		cmds, x_ret_2, [], rets1 @ rets2, outer_breaks1 @ outer_breaks2, conts1 @ conts2, end_label in
 
 	
 	match e.Parser_syntax.exp_stx with 
@@ -871,8 +848,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let cmds = [
 			None, None, cmd
 		] in  
-		cmds, Var new_var, [], [], [], []
-		
+		cmds, Var new_var, []
+				
 		
 	| Parser_syntax.Var v -> 
 		(** 
@@ -921,7 +898,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 				(None, Some else_lab, cmd_ass_xelse);       (* else: x_else := v-ref($$undefined, "x")           *)
 				(None, Some end_lab,  cmd_ass_xr)           (*       x_r = PHI(x_then, x_else)                   *)                                       
 			] in 
-			cmds, Var x_r, [ x_1 ], [], [], [] in
+			cmds, Var x_r, [ x_1 ] in
 			
 		let translate_var_found v f_id = 
 			(* x_1 := [__scope_chain, fid]; *)
@@ -936,7 +913,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 				(None, None, cmd_ass_x1);     (*   x_1 := [__scope_chain, fid]  *) 
 				(None, None, cmd_ass_xret);   (*   x_r := v-ref(x_1, "x")       *)
 			] in 
-			cmds, Var x_r, [], [], [], [] in 
+			cmds, Var x_r, [] in 
 			
 		let v_fid = find_var_fid v in
 		(match v_fid with 
@@ -947,12 +924,12 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 	(**
 	 Section 11.1.3 - Literals 
 	*)
-	| Parser_syntax.Null ->  [], Literal Null, [], [], [], []
-	| Parser_syntax.Bool b -> [], Literal (Bool b), [], [], [], []
+	| Parser_syntax.Null ->  [], Literal Null, [] 
+	| Parser_syntax.Bool b -> [], Literal (Bool b), [] 
 	| Parser_syntax.String s -> 
 		let escaped_s = Str.global_replace (Str.regexp "\"") "\\\"" s in
-		[], Literal (String escaped_s), [], [], [], []
-	| Parser_syntax.Num n ->  [], Literal (Num n), [], [], [], []
+		[], Literal (String escaped_s), []
+	| Parser_syntax.Num n ->  [], Literal (Num n), [] 
 	
 	
 	(**
@@ -973,7 +950,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let set_dop = (None, None, SLBasic (SMutation (Var x_arr, Literal (String "@defineOwnProperty"), (Literal (String defineOwnPropertyArrayName))))) in
 		
 		let translate_array_property_definition x_obj e err num = 
-			let cmds, x, errs, _, _, _ = f e in	
+			let cmds, x, errs = f e in	
 			(* x_v := i__getValue (x) with err *) 
 			let x_v, cmd_gv_x = make_get_value_call x err in
 		
@@ -1005,7 +982,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 				(cmds @ new_cmds, errs @ new_errs, num + 1))
 				([], [], 0) 
 				eos in 
-		(cmd_new_obj :: (cmd_cdo_call :: (cmd_set_len 0) :: set_dop :: cmds)), (Var x_arr), errs, [], [], []
+		(cmd_new_obj :: (cmd_cdo_call :: (cmd_set_len 0) :: set_dop :: cmds)), (Var x_arr), errs
 
 	
 	| Parser_syntax.Obj xs -> 
@@ -1060,7 +1037,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
       | Parser_syntax.PropnameNum n -> UnaryOp (ToStringOp, (Literal (Num n)))) in 
 		
 		let translate_data_property_definition x_obj prop e err = 
-			let cmds, x, errs, _, _, _ = f e in	
+			let cmds, x, errs = f e in	
 			(* x_v := i__getValue (x) with err *) 
 			let x_v, cmd_gv_x = make_get_value_call x err in
 		
@@ -1086,7 +1063,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 				(match accessor.Parser_syntax.exp_stx with 
 				| Parser_syntax.AnonymousFun (_, params, _) -> params 
 				| _ -> raise (Failure "getters should be annonymous functions")) in 
-			let cmds, x_f = translate_function_literal f_id params in 
+			let cmds, x_f = translate_function_literal f_id params vis_fid in 
 			
 			(* x_desc := {{ "a", x_f, $$empty, $$t, $$t }} *) 
 			let x_desc = fresh_desc_var () in 
@@ -1116,7 +1093,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 				cmds @ new_cmds, errs @ new_errs)
 				([], []) 
 				xs in 
-		(cmd_new_obj :: (cmd_cdo_call :: cmds)), (Var x_obj), errs, [], [], []
+		(cmd_new_obj :: (cmd_cdo_call :: cmds)), (Var x_obj), errs
 
 	
 	| Parser_syntax.CAccess (e1, e2) -> 
@@ -1133,8 +1110,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 				x_r  := ref-o(x1_v, x4_v)
 		 *)
 		
-		let cmds1, x1, errs1, _, _, _ = f e1 in 
-		let cmds2, x2, errs2, _, _, _ = f e2 in 
+		let cmds1, x1, errs1 = f e1 in 
+		let cmds2, x2, errs2 = f e2 in 
 		
 		(* x1_v := i__getValue (x1) with err *) 
 		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
@@ -1162,7 +1139,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			(None, None, cmd_ass_xr)          (* x_r := ref-o(x1_v, xs_s)                         *) 
 		] in 
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v; x_oc; x2_s ] in
-		cmds, (Var x_r), errs, [], [], []
+		cmds, (Var x_r), errs
 
 		
 	| Parser_syntax.Access (e, p) -> 
@@ -1176,7 +1153,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 				x_r  := ref-o(x1_v, "p")
 		 *)
 		
-		let cmds, x, errs, _, _, _ = f e in 
+		let cmds, x, errs = f e in 
 		
 		(* x_v := i__getValue (x) with err *) 
 		let x_v, cmd_gv_x = make_get_value_call x err in
@@ -1195,7 +1172,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			(None, None, cmd_ass_xr)          (* x_r := ref-o(x_v, "p")                           *) 
 		] in 
 		let errs = errs @ [ x_v; x_oc ] in 
-		cmds, (Var x_r), errs, [], [], []	
+		cmds, (Var x_r), errs	
 
 	
 	| Parser_syntax.New (e_f, xes) -> 
@@ -1225,7 +1202,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
         	next3:  skip
 					next4:  x_r3 := PHI(x_r1, x_this)
 		*)	
-		let cmds_ef, x_ef, errs_ef, _, _, _ = f e_f in 
+		let cmds_ef, x_ef, errs_ef = f e_f in 
 
 		(* x_f_val := i__getValue (x_f) with err1;  *)
 		let x_f_val, cmd_gv_f = make_get_value_call x_ef err in 	
@@ -1304,7 +1281,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			(None, Some next4,   cmd_phi_final)           (* next4: x_r2 := PHI(x_r1, x_this)                                                *)
 		] in 
 		let errs = errs_ef @ [ x_f_val ] @ errs_args @ [ var_te; var_te; x_f_prototype; x_r1 ] in 
-		cmds, Var x_r2, errs, [], [], []				
+		cmds, Var x_r2, errs				
 		 
 		
 	| Parser_syntax.Call (e_f, xes) -> 
@@ -1335,7 +1312,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 					next4:  x_r3 := PHI(x_r1, x_r2)
 		*)
 		
-		let cmds_ef, x_ef, errs_ef, _, _, _ = f e_f in 
+		let cmds_ef, x_ef, errs_ef = f e_f in 
 	
 		(* x_f_val := i__getValue (x_f) with err1;  *)
 		let x_f_val, cmd_gv_f = make_get_value_call x_ef err in 
@@ -1423,7 +1400,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			(None, Some next4,     cmd_phi_final)         (* next4: x_r3 := PHI(x_r1, x_r2)                                                  *) 
 		] in
 		let errs = errs_ef @ [ x_f_val ] @ errs_args @ [ var_te; var_te; x_r1 ] in 
-		cmds, Var x_r3, errs, [], [], []				
+		cmds, Var x_r3, errs				
 		
 		
 		
@@ -1439,9 +1416,9 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 							          x_r := x_n + 1
 												x_pv := putValue (x, x_r) with err; 
      *)
-		let cmds, x, errs, _, _, _ = f e in
+		let cmds, x, errs = f e in
 	 	let new_cmds, new_errs, x_v, x_r = translate_inc_dec x true err in	
-		(cmds @ new_cmds), Var x_v, (errs @ new_errs), [], [], [] 
+		(cmds @ new_cmds), Var x_v, (errs @ new_errs) 
 	
 	
 	| Parser_syntax.Unary_op (Parser_syntax.Post_Decr, e) ->
@@ -1456,9 +1433,9 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 							          x_r := x_n - 1
 												x_pv := putValue (x, x_r) with err 
      *)
-		let cmds, x, errs, _, _, _ = f e in
+		let cmds, x, errs = f e in
 	 	let new_cmds, new_errs, x_v, x_r = translate_inc_dec x false err in	
-		(cmds @ new_cmds), Var x_v, (errs @ new_errs), [], [], [] 
+		(cmds @ new_cmds), Var x_v, (errs @ new_errs)
 		
 		
 	| Parser_syntax.Delete e -> 
@@ -1477,7 +1454,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			next5: x_r := PHI(x_r1; x_r2) 	
     *)
 		
-		let cmds, x, errs, _, _, _ = f e in 
+		let cmds, x, errs = f e in 
 		
 		(* goto [ (typeOf x) <: $$reference_type ] next1 next4 *) 
 		let next1 = fresh_next_label () in 
@@ -1518,7 +1495,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			(None, Some next5, SLPhiAssignment (x_r, [| Some x_r1; Some x_r2 |]))             (* next5: x_r := PHI(x_r1, x_r2)                                                   *)                   
 		] in 
 		let errs = errs @ [ var_se; var_se; x_obj; x_r1 ] in 
-		cmds, Var x_r, errs, [], [], []
+		cmds, Var x_r, errs
 	
 	
 	| Parser_syntax.Unary_op (Parser_syntax.Void, e) ->
@@ -1529,7 +1506,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			               x_v := getValue (x) with err 
 							       x_r := $$undefined
      *)
-		let cmds, x, errs, _, _, _ = f e in 
+		let cmds, x, errs = f e in 
 		(* x_v := getValue (x) with err *)
 		let x_v, cmd_gv_x = make_get_value_call x err in 
 		let x_r = fresh_var () in 
@@ -1538,7 +1515,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			(None, None, SLBasic (SAssignment (x_r, Literal Undefined)));    (*  x_r := $$undefined                  *)    
 		] in 
 		let errs = errs @ [ x_v ] in 
-		cmds, Var x_r, errs, [], [], []
+		cmds, Var x_r, errs
 	
 			
 	| Parser_syntax.Unary_op (Parser_syntax.TypeOf, e) ->
@@ -1555,7 +1532,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 									          x_r := i__typeOf (x3) with err
      *)
 		
-		let cmds, x, errs, _, _, _ = f e in  
+		let cmds, x, errs = f e in  
 		
 		(* goto [ typeof (x) <: $$reference-type ] next1 next4 *) 
 		let next1 = fresh_next_label () in 
@@ -1593,7 +1570,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			(None, None,       cmd_ass_xr)                                                            (*             x_r := i__typeOf (x3) with err                        *)
 		] in 
 		let errs = errs @ [ x2; x_r ] in 
-		cmds, Var x_r, errs, [], [], []
+		cmds, Var x_r, errs
 	
 	
 	| Parser_syntax.Unary_op (Parser_syntax.Pre_Incr, e) ->
@@ -1607,9 +1584,9 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 							          x_r := x_n + 1
 												x_pv := i__putValue (x, x_r) with err
      *)
-		let cmds, x, errs, _, _, _ = f e in
+		let cmds, x, errs = f e in
 	 	let new_cmds, new_errs, x_v, x_r = translate_inc_dec x true err in	
-		(cmds @ new_cmds), Var x_r, (errs @ new_errs), [], [], [] 
+		(cmds @ new_cmds), Var x_r, (errs @ new_errs) 
 	
 	
 	| Parser_syntax.Unary_op (Parser_syntax.Pre_Decr, e) ->
@@ -1623,9 +1600,9 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 							          x_r := x_n - 1
 												x_pv := i__putValue (x, x_r) with err 
      *)
-		let cmds, x, errs, _, _, _ = f e in
+		let cmds, x, errs = f e in
 	 	let new_cmds, new_errs, x_v, x_r = translate_inc_dec x false err in	
-		(cmds @ new_cmds), Var x_r, (errs @ new_errs), [], [], []
+		(cmds @ new_cmds), Var x_r, (errs @ new_errs)
 
 
 	| Parser_syntax.Unary_op (Parser_syntax.Positive, e) ->
@@ -1636,7 +1613,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			         x_v := i__getValue (x) with err 
 							 x_n := i__toNumber (x_v) with err
      *)
-		let cmds, x, errs, _, _, _ = f e in  
+		let cmds, x, errs = f e in  
 		
 		(* x_v := i__getValue (x) with err *)
 		let x_v, cmd_gv_x = make_get_value_call x err in 	
@@ -1649,7 +1626,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			(None, None, cmd_tn_x);              (*  x_n := i__toNumber (x_v) with err   *)
 		] in 
 		let errs = errs @ [ x_v; x_n ] in 
-		cmds, Var x_n, errs, [], [], []
+		cmds, Var x_n, errs
 								
 
 	| Parser_syntax.Unary_op (Parser_syntax.Negative, e) ->
@@ -1665,7 +1642,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 							 else: x_else := (negative x_n)
 							 end:  x_r := PHI(x_then, x_else)  
      *)
-		let cmds, x, errs, _, _, _ = f e in  
+		let cmds, x, errs = f e in  
 		
 		(* x_v := getValue (x) with err *)
 		let x_v, cmd_gv_x = make_get_value_call x err in
@@ -1701,7 +1678,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			(None, Some end_lab,  cmd_ass_xr)             (* end:       x_r := PHI(x_then, x_else)          *)
 		] in 
 		let errs = errs @ [ x_v; x_n ] in 
-		cmds, Var x_r, errs, [], [], []
+		cmds, Var x_r, errs
 
 
 	| Parser_syntax.Unary_op (Parser_syntax.Bitnot, e) ->
@@ -1715,7 +1692,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 										 x_r := (! x_i32) 
      *)
 		
-		let cmds, x, errs, _, _, _ = f e in  
+		let cmds, x, errs = f e in  
 		
 		(* x_v := i__getValue (x) with err *)
 		let x_v, cmd_gv_x = make_get_value_call x err in
@@ -1732,7 +1709,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			(None, None, SLBasic (SAssignment (x_r, UnaryOp (BitwiseNot, Var x_i32))))     (*  x_r := (! x_i32)                    *)    
 		] in 
 		let errs = errs @ [ x_v; x_n ] in 
-		cmds, Var x_r, errs, [], [], []
+		cmds, Var x_r, errs
 
 									
 	| Parser_syntax.Unary_op (Parser_syntax.Not, e) ->
@@ -1745,7 +1722,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 						   x_r := not x_b  
      *)
 		
-		let cmds, x, errs, _, _, _ = f e in 
+		let cmds, x, errs = f e in 
 		
 		(* x_v := i__getValue (x) with err1 *) 
 		let x_v, cmd_gv_x = make_get_value_call x err in 
@@ -1763,7 +1740,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			(None, None, cmd_xr_ass);                (* x_r := (not x_b)                   *) 
 		] in 
 		let errs = errs @ [ x_v; x_b ] in
-		cmds, Var x_r, errs, [], [], []
+		cmds, Var x_r, errs
 				
 	
 	| Parser_syntax.BinOp (e1, (Parser_syntax.Arith aop), e2) 
@@ -1778,8 +1755,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 											x2_n := i__toNumber (x2_v) with err  
 											x_r := x1_n * x2_n
 		*) 
-		let cmds1, x1, errs1, _, _, _ = f e1 in
-		let cmds2, x2, errs2, _, _, _ = f e2 in
+		let cmds1, x1, errs1 = f e1 in
+		let cmds2, x2, errs2 = f e2 in
 		
 		(* x1_v := i__getValue (x1) with err *)
 		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
@@ -1789,7 +1766,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let new_cmds, new_errs, x_r = translate_multiplicative_binop x1 x2 x1_v x2_v aop err in 
 		let cmds = cmds1 @ [ b_annot_cmd cmd_gv_x1 ] @ cmds2 @ [ b_annot_cmd cmd_gv_x2] @ new_cmds in 
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in 
-		cmds, Var x_r, errs, [], [], []
+		cmds, Var x_r, errs
 	
 	
 	| Parser_syntax.BinOp (e1, (Parser_syntax.Arith Parser_syntax.Plus), e2) ->
@@ -1813,8 +1790,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 											end:  x_r := PHI (x_rthen, x_relse)
 		*)  
 		
-		let cmds1, x1, errs1, _, _, _ = f e1 in
-		let cmds2, x2, errs2, _, _, _ = f e2 in
+		let cmds1, x1, errs1 = f e1 in
+		let cmds2, x2, errs2 = f e2 in
 		
 		(* x1_v := i__getValue (x1) with err *)
 		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
@@ -1824,7 +1801,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let new_cmds, new_errs, x_r = translate_binop_plus x1 x2 x1_v x2_v err in 
 		let cmds = cmds1 @ [ b_annot_cmd cmd_gv_x1 ] @ cmds2 @ [ b_annot_cmd cmd_gv_x2 ] @ new_cmds in 
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in 
-		cmds, Var x_r, errs, [], [], []
+		cmds, Var x_r, errs
 		
 		
 	| Parser_syntax.BinOp (e1, (Parser_syntax.Arith Parser_syntax.Lsh), e2) ->
@@ -1839,8 +1816,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 											 x2_ui32 := i__toUInt32 (x2_v) with err
 											 x_r := x1_i32 << x2_ui32
      *)
-		let cmds1, x1, errs1, _, _, _ = f e1 in
-		let cmds2, x2, errs2, _, _, _ = f e2 in
+		let cmds1, x1, errs1 = f e1 in
+		let cmds2, x2, errs2 = f e2 in
 		
 		(* x1_v := i__getValue (x1) with err *)
 		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
@@ -1850,7 +1827,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let new_cmds, new_errs, x_r = translate_bitwise_shift x1 x2 x1_v x2_v toInt32Name toUInt32Name LeftShift err in  
 		let cmds = cmds1 @ [ b_annot_cmd cmd_gv_x1 ] @ cmds2 @ [ b_annot_cmd cmd_gv_x2 ] @ new_cmds in 
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in 
-		cmds, Var x_r, errs, [], [], []
+		cmds, Var x_r, errs
 	
 	
 	| Parser_syntax.BinOp (e1, (Parser_syntax.Arith Parser_syntax.Rsh), e2) ->
@@ -1865,8 +1842,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 											 x2_ui32 := i__toUInt32 (x2_v) with err
 											 x_r := x1_i32 >> x2_ui32
      *)
-		let cmds1, x1, errs1, _, _, _ = f e1 in
-		let cmds2, x2, errs2, _, _, _ = f e2 in
+		let cmds1, x1, errs1 = f e1 in
+		let cmds2, x2, errs2 = f e2 in
 		
 		(* x1_v := i__getValue (x1) with err *)
 		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
@@ -1876,7 +1853,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let new_cmds, new_errs, x_r = translate_bitwise_shift x1 x2 x1_v x2_v toUInt32Name toUInt32Name SignedRightShift err in  
 		let cmds = cmds1 @ [ b_annot_cmd cmd_gv_x1 ] @ cmds2 @ [ b_annot_cmd cmd_gv_x2 ] @ new_cmds in
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in 
-		cmds, Var x_r, errs, [], [], []
+		cmds, Var x_r, errs
 	
 	
 	| Parser_syntax.BinOp (e1, (Parser_syntax.Arith Parser_syntax.Ursh), e2) ->
@@ -1891,8 +1868,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 											 x2_ui32 := i__toUInt32 (x2_v) with err
 											 x_r := x1_ui32 >>> x2_ui32
      *)
-		let cmds1, x1, errs1, _, _, _ = f e1 in
-		let cmds2, x2, errs2, _, _, _ = f e2 in
+		let cmds1, x1, errs1 = f e1 in
+		let cmds2, x2, errs2 = f e2 in
 		
 		(* x1_v := i__getValue (x1) with err *)
 		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
@@ -1902,7 +1879,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let new_cmds, new_errs, x_r = translate_bitwise_shift x1 x2 x1_v x2_v toUInt32Name toUInt32Name UnsignedRightShift err in  
 		let cmds = cmds1 @ [ b_annot_cmd cmd_gv_x1 ] @ cmds2 @ [ b_annot_cmd cmd_gv_x2 ] @ new_cmds in
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in 
-		cmds, Var x_r, errs, [], [], []
+		cmds, Var x_r, errs
 	
 			
 	| Parser_syntax.BinOp (e1, (Parser_syntax.Comparison Parser_syntax.Lt), e2) ->
@@ -1918,8 +1895,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 											  then:  x_undef := false 
 											  end:   x_r := PHI(x_ac, x_undef)  
      *)
-		let cmds1, x1, errs1, _, _, _ = f e1 in
-		let cmds2, x2, errs2, _, _, _ = f e2 in
+		let cmds1, x1, errs1 = f e1 in
+		let cmds2, x2, errs2 = f e2 in
 		
 		(* x1_v := i__getValue (x1) with err *)
 		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
@@ -1929,7 +1906,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let new_cmds, new_errs, x_r = translate_binop_comparison x1 x2 x1_v x2_v true true false err in 
 		let cmds = cmds1 @ [ b_annot_cmd cmd_gv_x1 ] @ cmds2 @ [ b_annot_cmd cmd_gv_x2 ] @ new_cmds in
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in 
-		cmds, Var x_r, errs, [], [], []
+		cmds, Var x_r, errs
 	
 	
 	| Parser_syntax.BinOp (e1, (Parser_syntax.Comparison Parser_syntax.Gt), e2) ->
@@ -1945,8 +1922,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 											  then:  x_undef := false 
 											  end:   x_r := PHI(x_ac, x_undef)  
      *)
-		let cmds1, x1, errs1, _, _, _ = f e1 in
-		let cmds2, x2, errs2, _, _, _ = f e2 in
+		let cmds1, x1, errs1 = f e1 in
+		let cmds2, x2, errs2 = f e2 in
 		
 		(* x1_v := i__getValue (x1) with err *)
 		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
@@ -1956,7 +1933,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let new_cmds, new_errs, x_r = translate_binop_comparison x1 x2 x1_v x2_v false false false err in 
 		let cmds = cmds1 @ [ b_annot_cmd cmd_gv_x1 ] @ cmds2 @ [ b_annot_cmd cmd_gv_x2 ] @ new_cmds in
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in 
-		cmds, Var x_r, errs, [], [], []		
+		cmds, Var x_r, errs	
 	
 	
 	| Parser_syntax.BinOp (e1, (Parser_syntax.Comparison Parser_syntax.Le), e2) ->
@@ -1973,8 +1950,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 											  end:   x_r1 := PHI(x_ac, x_undef)  
 												       x_r2 := (not x_r1) 
      *)
-		let cmds1, x1, errs1, _, _, _ = f e1 in
-		let cmds2, x2, errs2, _, _, _ = f e2 in
+		let cmds1, x1, errs1 = f e1 in
+		let cmds2, x2, errs2 = f e2 in
 		
 		(* x1_v := i__getValue (x1) with err *)
 		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
@@ -1986,7 +1963,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let new_cmd = SLBasic (SAssignment (x_r2, UnaryOp (Not, (Var x_r1)))) in 
 		let cmds = cmds1 @ [ b_annot_cmd cmd_gv_x1 ] @ cmds2 @ [ b_annot_cmd cmd_gv_x2 ] @ new_cmds @ [ b_annot_cmd new_cmd ] in 
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in 
-		cmds, Var x_r2, errs, [], [], []		
+		cmds, Var x_r2, errs	
 	
 	
 	| Parser_syntax.BinOp (e1, (Parser_syntax.Comparison Parser_syntax.Ge), e2) ->
@@ -2003,8 +1980,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 											  end:   x_r1 := PHI(x_ac, x_undef)  
 												       x_r2 := (not x_r1) 
      *)
-		let cmds1, x1, errs1, _, _, _ = f e1 in
-		let cmds2, x2, errs2, _, _, _ = f e2 in
+		let cmds1, x1, errs1 = f e1 in
+		let cmds2, x2, errs2 = f e2 in
 		
 		(* x1_v := i__getValue (x1) with err *)
 		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
@@ -2016,7 +1993,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let new_cmd = SLBasic (SAssignment (x_r2, UnaryOp (Not, (Var x_r1)))) in 
 		let cmds = cmds1 @ [ b_annot_cmd cmd_gv_x1 ] @ cmds2 @ [ b_annot_cmd cmd_gv_x2 ] @ new_cmds @ [ b_annot_cmd new_cmd ] in 
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in 
-		cmds, Var x_r2, errs, [], [], []		
+		cmds, Var x_r2, errs		
 		
 		
 	| Parser_syntax.BinOp (e1, (Parser_syntax.Comparison Parser_syntax.InstanceOf), e2) ->
@@ -2033,8 +2010,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 											         next2:  x_hi := [x2_v, "@hasInstance"]  
 												               x_r := x_hi (x2_v, x1_v) with err
      *)
-		let cmds1, x1, errs1, _, _, _ = f e1 in
-		let cmds2, x2, errs2, _, _, _ = f e2 in
+		let cmds1, x1, errs1 = f e1 in
+		let cmds2, x2, errs2 = f e2 in
 		
 		(* x1_v := i__getValue (x1) with err *)
 		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in	
@@ -2073,7 +2050,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			(None, None,         cmd_ass_xr)          (*         x_r := x_hi (x2_v, x1_v) with err                  *)
 		] in 
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v; var_se; var_se; x_r ] in 
-		cmds, Var x_r, errs, [], [], []
+		cmds, Var x_r, errs
 											  
 																			              
 	| Parser_syntax.BinOp (e1, (Parser_syntax.Comparison Parser_syntax.In), e2) ->
@@ -2088,8 +2065,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 											         next1:  x1_s := i__toString (x1_v) with err
 															         x_r := o__hasProperty (x2_v, x1_s) with err 
      *)
-		let cmds1, x1, errs1, _, _, _ = f e1 in
-		let cmds2, x2, errs2, _, _, _ = f e2 in
+		let cmds1, x1, errs1 = f e1 in
+		let cmds2, x2, errs2 = f e2 in
 		
 		(* x1_v := getValue (x1) with err *)
 		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
@@ -2117,7 +2094,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			(None, None,         cmd_ass_xr);         (*         x_r := o__hasProperty (x2_v, x1_s) with err       *)
 		] in 
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v; var_se; x1_s; x_r ] in 
-		cmds, Var x_r, errs, [], [], []			               
+		cmds, Var x_r, errs		               
 											        
 															         
 	| Parser_syntax.BinOp (e1, (Parser_syntax.Comparison Parser_syntax.Equal), e2) ->
@@ -2130,8 +2107,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 											                 x2_v := i__getValue (x2) with err
 											                 x_r := i__abstractEqualityComparison (x1_v, x2_v) with err 
      *)
-		let cmds1, x1, errs1, _, _, _ = f e1 in
-		let cmds2, x2, errs2, _, _, _ = f e2 in
+		let cmds1, x1, errs1 = f e1 in
+		let cmds2, x2, errs2 = f e2 in
 		
 		(* x1_v := i__getValue (x1) with err *)
 		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
@@ -2141,7 +2118,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let new_cmds, new_errs, x_r = translate_binop_equality x1 x2 x1_v x2_v true true err in 
 		let cmds = cmds1 @ [ b_annot_cmd cmd_gv_x1 ] @ cmds2 @ [ b_annot_cmd cmd_gv_x2 ] @ new_cmds in 
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in 
-		cmds, Var x_r, errs, [], [], []	
+		cmds, Var x_r, errs	
 													      
 	
 	| Parser_syntax.BinOp (e1, (Parser_syntax.Comparison Parser_syntax.NotEqual), e2) ->
@@ -2155,8 +2132,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 											                 x_r1 := i__abstractEqualityComparison (x1_v, x2_v) with err 
 																			 x_r2 := (not x_r1)
      *)
-		let cmds1, x1, errs1, _, _, _ = f e1 in
-		let cmds2, x2, errs2, _, _, _ = f e2 in
+		let cmds1, x1, errs1 = f e1 in
+		let cmds2, x2, errs2 = f e2 in
 		
 		(* x1_v := i__getValue (x1) with err *)
 		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
@@ -2166,7 +2143,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let new_cmds, new_errs, x_r = translate_binop_equality x1 x2 x1_v x2_v true false err in 
 		let cmds = cmds1 @ [ b_annot_cmd cmd_gv_x1 ] @ cmds2 @ [ b_annot_cmd cmd_gv_x2 ] @ new_cmds in 
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in 
-		cmds, Var x_r, errs, [], [], []																			
+		cmds, Var x_r, errs																			
 					
 																																																																																																	            		
 	| Parser_syntax.BinOp (e1, (Parser_syntax.Comparison Parser_syntax.TripleEqual), e2) ->
@@ -2179,8 +2156,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 											                 x2_v := i__getValue (x2) with err
 											                 x_r := i__strictEqualityComparison (x1_v, x2_v) with err 
      *)
-		let cmds1, x1, errs1, _, _, _ = f e1 in
-		let cmds2, x2, errs2, _, _, _ = f e2 in
+		let cmds1, x1, errs1 = f e1 in
+		let cmds2, x2, errs2 = f e2 in
 		
 		(* x1_v := i__getValue (x1) with err *)
 		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
@@ -2190,7 +2167,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let new_cmds, new_errs, x_r = translate_binop_equality x1 x2 x1_v x2_v false true err in 
 		let cmds = cmds1 @ [ b_annot_cmd cmd_gv_x1 ] @ cmds2 @ [ b_annot_cmd cmd_gv_x2 ] @ new_cmds in 
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in 
-		cmds, Var x_r, errs, [], [], []	
+		cmds, Var x_r, errs
 	
 	
 	| Parser_syntax.BinOp (e1, (Parser_syntax.Comparison Parser_syntax.NotTripleEqual), e2) ->
@@ -2204,8 +2181,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 											                 x_r1 := i__strictEqualityComparison (x1_v, x2_v) with err
 																			 x_r2 := (not x_r1)
      *)
-		let cmds1, x1, errs1, _, _, _ = f e1 in
-		let cmds2, x2, errs2, _, _, _ = f e2 in
+		let cmds1, x1, errs1 = f e1 in
+		let cmds2, x2, errs2 = f e2 in
 		
 		(* x1_v := i__getValue (x1) with err *)
 		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
@@ -2215,7 +2192,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let new_cmds, new_errs, x_r = translate_binop_equality x1 x2 x1_v x2_v false false err in 
 		let cmds = cmds1 @ [ b_annot_cmd cmd_gv_x1 ] @ cmds2 @ [ b_annot_cmd cmd_gv_x2 ] @ new_cmds in 
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in 
-		cmds, Var x_r, errs, [], [], []	
+		cmds, Var x_r, errs	
 	
 	
 	| Parser_syntax.BinOp (e1, (Parser_syntax.Arith bbop), e2) 
@@ -2231,8 +2208,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 																			 x2_i32 := i__toInt32 (x2_v) with err 
 																			 x_r := (x1_i32 bbop x2_i32)
      *)
-		let cmds1, x1, errs1, _, _, _ = f e1 in
-		let cmds2, x2, errs2, _, _, _ = f e2 in 
+		let cmds1, x1, errs1 = f e1 in
+		let cmds2, x2, errs2 = f e2 in 
 		
 		(* x1_v := i__getValue (x1) with err *)
 		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
@@ -2242,7 +2219,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let new_cmds, new_errs, x_r = translate_bitwise_bin_op x1 x2 x1_v x2_v bbop err in 
 		let cmds = cmds1 @ [ b_annot_cmd cmd_gv_x1 ] @ cmds2 @ [ b_annot_cmd cmd_gv_x2 ] @ new_cmds in 
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in 
-		cmds, Var x_r, errs, [], [], []	
+		cmds, Var x_r, errs	
 		
 		
 	| Parser_syntax.BinOp (e1, (Parser_syntax.Boolean lbop), e2) ->
@@ -2274,9 +2251,9 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 																       x3_v := i__getValue (x3) with err
 															end_if:  x_r := PHI(x2_v, x3_v) 
      *)
-		let cmds1, x1, errs1, _, _, _ = f e1 in
-		let cmds2, x2, errs2, _, _, _ = f e2 in
-		let cmds3, x3, errs3, _, _, _ = f e3 in
+		let cmds1, x1, errs1 = f e1 in
+		let cmds2, x2, errs2 = f e2 in
+		let cmds3, x3, errs3 = f e3 in
 		
 		(* x1_v := i__getValue (x1) with err *)
 		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
@@ -2310,7 +2287,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		] in 
 		
 		let errs = errs1 @ [ x1_v; x1_b ] @ errs2 @ [ x2_v ] @ errs3 @ [ x3_v ] in 
-		cmds, Var x_r, errs, [], [], [] 
+		cmds, Var x_r, errs 
 		
 		
 	| Parser_syntax.Assign (e1, e2) ->
@@ -2324,8 +2301,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 								        x_pv = i__putValue (x1, x2_v) with err
      *)
 		
-		let cmds1, x1, errs1, _, _, _ = f e1 in 
-		let cmds2, x2, errs2, _, _, _ = f e2 in 
+		let cmds1, x1, errs1 = f e1 in 
+		let cmds2, x2, errs2 = f e2 in 
 		
 		(* x2_v := i__getValue (x2) with err *)
 		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in 
@@ -2344,7 +2321,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			(None, None, cmd_put_value)               (*   x_pv := i__putValue (x1, x2_v) with err         *)  
 		] in 
 		let errs = errs1 @ errs2 @ [ x2_v; x_cae; x_pv ] in 
-		cmds, (Var x2_v), errs, [], [], []
+		cmds, (Var x2_v), errs
 	
 	
 	| Parser_syntax.AssignOp (e1, op, e2) ->
@@ -2360,8 +2337,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 					              x_cae := i__checkAssignmentErrors (x1) with err 
 	              next:   x_pv = putValue (x1, x) with err
      *)
-		let cmds1, x1, errs1, _, _, _ = f e1 in 
-		let cmds2, x2, errs2, _, _, _ = f e2 in 
+		let cmds1, x1, errs1 = f e1 in 
+		let cmds2, x2, errs2 = f e2 in 
 		
 		(* x1_v := i__getValue (x1) with err *)
 		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
@@ -2393,7 +2370,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			(None, None, cmd_pv)              (*    x_pv = putValue (x1, x2_v) with err             *)  
 		] in 
 		let errs = errs1 @  [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs @ [ var_se; x_pv ] in 
-		cmds, (Var x_r), errs, [], [], []
+		cmds, (Var x_r), errs
 	
 	
 	| Parser_syntax.Comma (e1, e2) ->
@@ -2405,8 +2382,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			               cmds2
 			               x2_v := i__getValue (x2) with err
      *)
-		let cmds1, x1, errs1, _, _, _ = f e1 in 
-		let cmds2, x2, errs2, _, _, _ = f e2 in 
+		let cmds1, x1, errs1 = f e1 in 
+		let cmds2, x2, errs2 = f e2 in 
 		
 		(* x1_v := getValue (x1) with err *)
 		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in 
@@ -2421,11 +2398,192 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 				(None, None, cmd_gv_x2)                 (*       x2_v := i__getValue (x2) with err    *)
 			] in 
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] in 
-		cmds, (Var x2_v), errs, [], [], []
+		cmds, (Var x2_v), errs
+		
+		
+	| Parser_syntax.AnonymousFun (_, params, e_body) -> 
+		(**
+       Section 13
+       x_sc := copy_scope_chain_obj (x_scope, {{main, fid1, ..., fidn }}); 
+		   x_f := create_function_object(x_sc, f_id, params)
+   	*)
+		let f_id = try Js_pre_processing.get_codename e 
+			with _ -> raise (Failure "annonymous function literals should be annotated with their respective code names") in 
+		let cmds, x_f = translate_function_literal f_id params vis_fid in 
+		cmds, Var x_f, []
 	
+	
+	| Parser_syntax.NamedFun (_, n, params, e_body) -> 
+		(** Section 13
+			x_sc := copy_scope_chain_obj (x_scope, {{main, fid1, ..., fidn }})
+		  x_f := create_function_object(x_sc, f_id, params)
+			x_er := [x_scope, "fid"]
+			x_ref_n := ref-v(x_er, "f_name")
+		  x_pv := i__putValue(x_ref_n, x_f) with err
+		*)
+		let f_id = try Js_pre_processing.get_codename e 
+			with _ -> raise (Failure "named function literals should be annotated with their respective code names") in
+		let cmds, x, errs = translate_named_function_literal fid f_id n params vis_fid err in 
+		cmds, x, errs
+	
+
+	| Parser_syntax.VarDec decs -> 
+		let rec loop decs cmds errs = 
+			(match decs with
+			| [] -> raise (Failure "no empty variable declaration lists in expression contexts") 
+			 
+			| [ (v, eo) ] -> 
+				(match eo with 
+				| None -> 
+					let x, new_cmds = compile_var_dec_without_exp v in 
+					x, (cmds @ new_cmds), errs
+				| Some e -> 
+					let new_cmds, x, new_errs	 = compile_var_dec v e in  
+					x, (cmds @ new_cmds), (errs @ new_errs))
+					 
+			| (v, eo) :: rest_decs -> 
+				(match eo with 
+				| None -> loop rest_decs cmds errs 
+				| Some e ->
+					let new_cmds, _, new_errs	 = compile_var_dec v e in  
+					loop rest_decs (cmds @ new_cmds) (errs @ new_errs))) in 
+		let x, cmds, errs = loop decs [] [] in 
+		cmds, Var x, errs
+	
+
+
+and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e  = 
+	let fe = translate_expr fid cc_table vis_fid err in
+	
+	let f = translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab in
+	
+	let f_previous = translate_statement fid cc_table ctx vis_fid err in 
+		
+	let cur_var_tbl = 
+		(try Hashtbl.find cc_table fid 
+			with _ -> 
+				let msg = Printf.sprintf "var tbl of function %s is not in cc-table" fid in 
+				raise (Failure msg)) in 
+	
+	let find_var_fid v = (try Some (Hashtbl.find cur_var_tbl v) with _ -> None) in 	
+	
+	let compile_var_dec x e = 
+		let v_fid = find_var_fid x in
+		let v_fid = 
+			match v_fid with 
+			| None -> raise (Failure "Error: if a variable is declared it must be in the scope clarification table!")
+			| Some v_fid -> v_fid in 
+		let cmds_e, x_e, errs_e = translate_expr fid cc_table vis_fid err e in
+		(* x_v := i__getValue (x) with err *)
+		let x_v, cmd_gv_x = make_get_value_call x_e err in
+		(* x_sf := [x__scope, v_fid]  *) 
+		let x_sf = fresh_var () in 
+		let cmd_xsf_ass = SLBasic (SLookup (x_sf, Var var_scope, Literal (String v_fid))) in 
+		(* x_ref := ref_v(x_sf, "x")  *) 
+		let x_ref = fresh_var () in 
+		let cmd_xref_ass = SLBasic (SAssignment (x_ref, VRef (Var x_sf, Literal (String x)))) in 
+		(* x_pv := i__putValue(x_ref, x_v) with err2 *) 
+		let x_pv, cmd_pv = make_put_value_call (Var x_ref) x_v err in 
+		let cmds = cmds_e @ (b_annot_cmds [
+			cmd_gv_x;      (* x_v := i__getValue (x) with err          *)
+			cmd_xsf_ass;   (* x_sf := [x__scope, fid]                  *)
+			cmd_xref_ass;  (* x_ref := ref_v(x_sf, "x")                *) 
+			cmd_pv         (* x_pv := i__putValue(x_ref, x_v) with err *) 
+		]) in 
+		let errs = errs_e @ [ x_v; x_pv ] in 
+		cmds, x_ref, errs	in				
+	
+	let create_final_phi_cmd cmds x errs rets breaks conts break_label js_lab = 
+		let cur_breaks, outer_breaks = filter_cur_jumps breaks js_lab false in
+		(match cur_breaks with 
+		| [] -> cmds, x, errs, rets, breaks, conts
+		| _ -> 
+			let x_name, cmds_new_x =
+				(match x with 
+				| Var x_name -> x_name, []
+				| Literal lit -> 
+					let x_name = fresh_var () in  
+					let cmd_new_x = [ (None, None, SLBasic (SAssignment (x_name, Literal lit))) ] in 
+					x_name, cmd_new_x 
+				| _ -> raise (Failure "translate. Block: the result of the compilation must be a variable or a literal")) in 
+			let x_ret = fresh_var () in 
+			let phi_args = cur_breaks @ [ x_name ] in 
+			let phi_args = List.map (fun x -> Some x)  phi_args in 
+			let phi_args = Array.of_list phi_args in 
+			let cmd_ass_phi = [ (None, break_label, SLPhiAssignment (x_ret, phi_args)) ] in 
+			(cmds @ cmds_new_x @ cmd_ass_phi), Var x_ret, errs, rets, outer_breaks, conts) in 
+	
+	
+	let make_try_catch_cmds e1 (x, e2) catch_id = 						
+	  (**
+									cmds1
+		            	goto finally  
+		    err1:    	x_err := PHI(errs1)
+				        	x_er := new () 
+									[x_er, "x"] := x_err 
+									[x_scope, "cid"] := x_er 
+									cmds2
+									goto finally
+				err2:     x_ret_1 := PHI(errs2)					
+				finally:  x_ret_2 := PHI(breaks1, x_1, breaks2, x_2, x_ret_1)
+	  *) 
+		let new_err1, new_err2, finally, end_label = fresh_tcf_vars () in
+		let new_loop_list = (None, finally, js_lab) :: loop_list in 
+		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement fid cc_table ctx vis_fid new_err1 new_loop_list None None e1 in
+		let cmds1, x1_v = add_final_var cmds1 x1 in 
+	
+		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement catch_id cc_table ctx vis_fid new_err2 new_loop_list None None e2 in
+		let cmds2, x2_v = add_final_var cmds2 x2 in 
+	
+		let cur_breaks1, outer_breaks1 = filter_cur_jumps breaks1 js_lab true in 
+		let cur_breaks2, outer_breaks2 = filter_cur_jumps breaks2 js_lab true in
+
+		(* x_err := PHI(errs1) *) 
+		let x_err = fresh_err_var () in 
+		let phi_args1 = List.map (fun x -> Some x) errs1 in 
+		let phi_args1 = Array.of_list phi_args1 in 
+		let cmd_ass_xerr = SLPhiAssignment (x_err, phi_args1) in 
+	
+		(* x_er := new () *)
+		let x_er = fresh_er_var () in 
+		let cmd_ass_xer = SLBasic (SNew x_er) in 
+	
+		(* [x_er, "x"] := x_err *) 
+		let cmd_mutate_x = SLBasic (SMutation (Var x_er, Literal (String x), Var x_err)) in  					  				
+	
+		(* [x_scope, "cid"] := x_er *) 
+		let cmd_sc_updt = SLBasic (SMutation (Var var_scope, Literal (String catch_id), Var x_er)) in 
+	
+	  (* err2:     x_ret_1 := PHI(errs2) *)
+		let x_ret_1 = fresh_var () in 
+		let phi_args2 = List.map (fun x -> Some x) errs2 in 
+		let phi_args2 = Array.of_list phi_args2 in 
+		let cmd_ass_xret1 = SLPhiAssignment (x_ret_1, phi_args2) in
+	
+		(* x_ret_2 := PHI(cur_breaks1, x_1, cur_breaks2, x_2) *)
+		let x_ret_2 = fresh_var () in 
+		let phi_args3 = cur_breaks1 @ [ x1_v ] @ cur_breaks2 @ [ x2_v; x_ret_1 ] in 
+		let phi_args3 = List.map (fun x -> Some x) phi_args3 in   
+		let phi_args3 = Array.of_list phi_args3 in 
+		let cmd_ass_xret2 = SLPhiAssignment (x_ret_2, phi_args3) in 
+		
+		let cmds = cmds1 @ [
+			(None, None,           SLGoto finally); 
+			(None, Some new_err1,  cmd_ass_xerr);
+			(None, None,           cmd_ass_xer); 
+			(None, None,           cmd_mutate_x); 
+			(None, None,           cmd_sc_updt)
+		] @ cmds2 @ [
+			(None, None,          SLGoto finally); 
+			(None, Some new_err2, cmd_ass_xret1); 
+			(None, Some finally,  cmd_ass_xret2)
+		] in 
+		
+		cmds, x_ret_2, [], rets1 @ rets2, outer_breaks1 @ outer_breaks2, conts1 @ conts2, end_label in
+
 	
 	(** Statements **) 
-
+	match e.Parser_syntax.exp_stx with 
 	| Parser_syntax.Script (_, es)  
 	| Parser_syntax.Block es -> 
 		(**
@@ -2533,30 +2691,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 				(match eo with 
 				| None -> loop rest_decs cmds errs 
 				| Some e ->
-					let v_fid = find_var_fid v in
-					let v_fid = 
-						match v_fid with 
-						| None -> raise (Failure "Error: if a variable is declared it must be in the scope clarification table!")
-						| Some v_fid -> v_fid in 
-					let cmds_e, x, errs_e, _, _, _ = f e in
-					(* x_v := i__getValue (x) with err *)
-					let x_v, cmd_gv_x = make_get_value_call x err in
-					(* x_sf := [x__scope, v_fid]  *) 
-					let x_sf = fresh_var () in 
-					let cmd_xsf_ass = SLBasic (SLookup (x_sf, Var var_scope, Literal (String v_fid))) in 
-					(* x_ref := ref_v(x_sf, "x")  *) 
-					let x_ref = fresh_var () in 
-					let cmd_xref_ass = SLBasic (SAssignment (x_ref, VRef (Var x_sf, Literal (String v)))) in 
-					(* x_pv := i__putValue(x_ref, x_v) with err2 *) 
-					let x_pv, cmd_pv = make_put_value_call (Var x_ref) x_v err in 
-					let cmds = cmds @ cmds_e @ (b_annot_cmds [
-						 cmd_gv_x;      (* x_v := i__getValue (x) with err          *)
-						 cmd_xsf_ass;   (* x_sf := [x__scope, fid]                  *)
-						 cmd_xref_ass;  (* x_ref := ref_v(x_sf, "x")                *) 
-						 cmd_pv        	(* x_pv := i__putValue(x_ref, x_v) with err *) 
-					]) in 
-					let errs = errs @ errs_e @ [ x_v; x_pv ] in 
-					loop rest_decs cmds errs)) in 
+					let new_cmds, _, new_errs	 = compile_var_dec v e in  
+					loop rest_decs (cmds @ new_cmds) (errs @ new_errs))) in 
 		let x, cmds, errs = loop decs [] [] in 
 		cmds, Var x, errs, [], [], []
 	
@@ -2567,6 +2703,34 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		 *) 
 		 [], Literal Empty, [], [], [], [] 
 	
+	
+	| Parser_syntax.Num _ 
+	| Parser_syntax.String _ 
+	| Parser_syntax.Null
+	| Parser_syntax.Bool _ 
+	| Parser_syntax.Var _ 
+	| Parser_syntax.This
+	| Parser_syntax.Delete _ 
+	| Parser_syntax.Comma _ 
+	| Parser_syntax.Unary_op _ 
+	| Parser_syntax.BinOp _ 
+	| Parser_syntax.Access _ 
+	| Parser_syntax.Call _ 
+	| Parser_syntax.Assign _ 
+	| Parser_syntax.AssignOp _ 
+	| Parser_syntax.AnonymousFun _ 
+	| Parser_syntax.New _ 
+	| Parser_syntax.Obj _ 
+	| Parser_syntax.Array _ 
+	| Parser_syntax.CAccess _ 
+	| Parser_syntax.ConditionalOp _  ->
+		(** 
+     Section 12.4 - Expression Statement 
+		 *)
+		let cmds_e, x_e, errs_e = fe e in 
+		let x_e_v, cmd_gv_xe = make_get_value_call x_e err in 
+		cmds_e @ [ (None, None, cmd_gv_xe) ], Var x_e_v, errs_e @ [ x_e_v ], [], [], []
+		
 		
 	| Parser_syntax.If (e1, e2, e3) -> 
 		(**
@@ -2591,7 +2755,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 				let break_label = fresh_break_label () in 
 				Some break_label, ((None, break_label, js_lab) :: loop_list)) in
 		
-		let cmds1, x1, errs1, _, _, _ = f e1 in
+		let cmds1, x1, errs1 = fe e1 in
 		let cmds2, x2, errs2, rets2, breaks2, conts2 = f_previous new_loop_list None None e2 in
 		let cmds3, x3, errs3, rets3, breaks3, conts3 = 
 			(match e3 with 
@@ -2672,8 +2836,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let head, guard, body, cont, end_loop = fresh_loop_vars () in 
 		
 		let new_loop_list = (Some cont, end_loop, js_lab) :: loop_list in 
-		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate fid cc_table ctx vis_fid err new_loop_list None None e1 in
-		let cmds2, x2, errs2, _, _, _ = f e2 in
+		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e1 in
+		let cmds2, x2, errs2 = fe e2 in
 		let cmds2 = add_initial_label cmds2 guard in
 		
 		let cur_breaks, outer_breaks = filter_cur_jumps breaks1 js_lab true in 
@@ -2764,9 +2928,9 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		
 		let head, guard, body, cont, end_loop = fresh_loop_vars () in 
 		
-		let cmds1, x1, errs1, _, _, _ = f e1 in
+		let cmds1, x1, errs1 = fe e1 in
 		let new_loop_list = (Some cont, end_loop, js_lab) :: loop_list in 
-		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate fid cc_table ctx vis_fid err new_loop_list None None e2 in
+		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e2 in
 		
 		let cur_breaks, outer_breaks = filter_cur_jumps breaks2 js_lab true in 
 		let cur_conts, outer_conts = filter_cur_jumps conts2 js_lab true in 
@@ -2874,11 +3038,11 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			
 			errs:	errs2, x2_v, x4, xlf, errs1, x5, errs3, x3_v
 		 *)	
-			let cmds1, x1, errs1, _, _, _ = f e1 in
-			let cmds2, x2, errs2, _, _, _ = f e2 in
+			let cmds1, x1, errs1 = fe e1 in
+			let cmds2, x2, errs2 = fe e2 in
 			let head, guard, body, cont, end_loop = fresh_loop_vars () in 
 			let new_loop_list = (Some cont, end_loop, js_lab) :: loop_list in 
-			let cmds3, x3, errs3, rets3, breaks3, conts3 = translate fid cc_table ctx vis_fid err new_loop_list None None e2 in		
+			let cmds3, x3, errs3, rets3, breaks3, conts3 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e2 in		
 			
 			let cur_breaks, outer_breaks = filter_cur_jumps breaks3 js_lab true in 
 			let cur_conts, outer_conts = filter_cur_jumps conts3 js_lab true in 
@@ -3060,31 +3224,31 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			next4:    x_ret_5 := PHI(x_ret_4, x_ret_1) 
 		 *)	
 		
-		let cmds1, x1, errs1, _, _, _ = 
+		let cmds1, x1, errs1 = 
 			(match e1 with 
-			| Some e1 -> f e1 
-			| None -> [], Var "xpto", [], [], [], []) in
+			| Some e1 -> fe e1 
+			| None -> [], Var "xpto", []) in
 		(* x1_v := i__getValue (x1) with err *)
 		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in 
 		let cmds1, errs1 = cmds1 @ [ (None, None, cmd_gv_x1) ], errs1 @ [ x1_v ] in 
 		
-		let cmds2, x2, errs2, _, _, _ = 	
+		let cmds2, x2, errs2 = 	
 			(match e2 with 
-			| Some e2 -> f e2 
+			| Some e2 -> fe e2 
 			| None -> 
 				let x2 = fresh_var () in 
 				let cmd_ass_x2 = (None, None, SLBasic (SAssignment (x2, Literal (Bool true)))) in 
-				[ cmd_ass_x2 ], Var x2, [], [], [], []) in
+				[ cmd_ass_x2 ], Var x2, []) in
 		
-		let cmds3, _, errs3, _, _, _ = 
+		let cmds3, _, errs3 = 
 			(match e3 with 
-			| Some e3 -> f e3 
-			| None -> [], Var "xpto", [], [], [], []) in
+			| Some e3 -> fe e3 
+			| None -> [], Var "xpto", []) in
 		
 		let head, guard, body, cont, end_loop = fresh_loop_vars () in 
 		
 		let new_loop_list = (Some cont, end_loop, js_lab) :: loop_list in 
-		let cmds4, x4, errs4, rets4, breaks4, conts4 = translate fid cc_table ctx vis_fid err new_loop_list None None e4 in 
+		let cmds4, x4, errs4, rets4, breaks4, conts4 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e4 in 
 		
 		let cur_breaks, outer_breaks = filter_cur_jumps breaks4 js_lab true in 
 		let cur_conts, outer_conts = filter_cur_jumps conts4 js_lab true in 
@@ -3177,7 +3341,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			[ cmd_xr_ass; cmd_goto_ret], Var x_r, [], [ x_r ], [], [] 
 			
 		| Some e ->
-			let cmds, x, errs, _, _, _ = f e in
+			let cmds, x, errs = fe e in
 			(* x_r := i__getValue(x) with err *) 
 			let x_r, cmd_gv_x = make_get_value_call x err in 
 			(* goto ret_lab *) 
@@ -3248,7 +3412,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			
 	| Parser_syntax.Label (js_lab, e) -> 
 		(** Section 12.12 *) 
-		translate fid cc_table ctx vis_fid err loop_list previous (Some js_lab) e 
+		translate_statement fid cc_table ctx vis_fid err loop_list previous (Some js_lab) e 
 
 
 	| Parser_syntax.Throw e -> 
@@ -3262,7 +3426,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		       x_v := i__getValue (x) with err 
 					 goto err 
 		*) 
-		let cmds, x, errs, _, _, _ = f e in
+		let cmds, x, errs = fe e in
 		let x_v, cmd_gv_x = make_get_value_call x err in 
 		
 		let cmds = cmds @ [          (*  cmds                            *)
@@ -3298,7 +3462,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		
 		let cmds12, x_ret_1, errs12, rets12, breaks12, conts12, end_lab = make_try_catch_cmds e1 (x, e2) catch_id in 
 		let new_loop_list = (None, end_lab, js_lab) :: loop_list in 
-		let cmds3, _, errs3, rets3, breaks3, conts3 = translate fid cc_table ctx vis_fid err new_loop_list None None e3 in 
+		let cmds3, _, errs3, rets3, breaks3, conts3 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e3 in 
 		let cur_breaks, outer_breaks = filter_cur_jumps breaks3 js_lab false in 
 		
 		(* x_ret_2 := PHI(breaks3, x_ret_1)  *) 
@@ -3328,7 +3492,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let new_err, _, finally, end_lab = fresh_tcf_vars () in 
 		let loop_list1 = (None, finally, js_lab) :: loop_list in 
 		let loop_list3 = (None, end_lab, js_lab) :: loop_list in 
-		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate fid cc_table ctx vis_fid new_err loop_list1 None None e1 in
+		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement fid cc_table ctx vis_fid new_err loop_list1 None None e1 in
 		let cur_breaks1, outer_breaks1 = filter_cur_jumps breaks1 js_lab true in 
 		let cmds1, x1_v = add_final_var cmds1 x1 in 
 		
@@ -3349,7 +3513,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let cmd_phi2 = (None, Some finally, SLPhiAssignment (x_ret_2, phi_args)) in 
 		
 		(* end:      x_ret_3 := PHI(cur_breaks3, x_ret_2)	 *) 
-		let cmds3, _, errs3, rets3, breaks3, conts3 = translate fid cc_table ctx vis_fid err loop_list3 None None e3 in 
+		let cmds3, _, errs3, rets3, breaks3, conts3 = translate_statement fid cc_table ctx vis_fid err loop_list3 None None e3 in 
 		let cur_breaks3, outer_breaks3 = filter_cur_jumps breaks3 js_lab false in 
 		let x_ret_3 = fresh_var () in 
 		let phi_args = cur_breaks3 @ [ x_ret_2 ] in 
@@ -3379,18 +3543,6 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 				with _ -> raise (Failure "catch statements must be annotated with their respective code names - try - catch - finally") in 
 		let cmds12, x_ret_1, errs12, rets12, breaks12, conts12, _ = make_try_catch_cmds e1 (x, e2) catch_id in 
 		cmds12, Var x_ret_1, errs12, rets12, breaks12, conts12
-	
-	
-	| Parser_syntax.AnonymousFun (_, params, e_body) -> 
-		(**
-       Section 13
-       x_sc := copy_scope_chain_obj (x_scope, {{main, fid1, ..., fidn }}); 
-		   x_f := create_function_object(x_sc, f_id, params)
-   	*)
-		let f_id = try Js_pre_processing.get_codename e 
-			with _ -> raise (Failure "annonymous function literals should be annotated with their respective code names") in 
-		let cmds, x_f = translate_function_literal f_id params in 
-		cmds, Var x_f, [], [], [], []
 	
 	
 	| Parser_syntax.Switch (e, xs) ->
@@ -3456,7 +3608,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			let new_loop_list = (None, end_switch, js_lab) :: loop_list in 
 			let cmds1, x1, errs1, _, _, _ = f e in 
 			let cmds1 = add_initial_label cmds1 next1 in 
-			let cmds2, x2, errs2, rets2, breaks2, conts2 = translate fid cc_table ctx vis_fid err new_loop_list None None s in 
+			let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None s in 
 			let cmds2, x2 = add_final_var cmds2 x2 in 
 			let cmds2 = add_initial_label cmds2 next2 in 
 			
@@ -3493,7 +3645,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		
 		let compile_default s b_stmts x_old_b x_found_b end_switch js_lab cur_breaks_ab =
 			let new_loop_list = (None, end_switch, js_lab) :: loop_list in 
-			let f_default = translate fid cc_table ctx vis_fid err new_loop_list None None in 
+			let f_default = translate_statement fid cc_table ctx vis_fid err new_loop_list None None in 
 			
 			let cmds_def, x_def, errs_def, rets_def, breaks_def, conts_def = f_default s in
 			let cmds_def, x_def = add_final_var cmds_def x_def in 
@@ -3543,7 +3695,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let b_cases_lab, default_lab, end_switch, fresh_end_case_label = fresh_switch_labels () in 
 		let x_found_init = fresh_found_var () in
 		
-		let cmds_guard, x_guard, errs_guard, _, _, _ = f e in 
+		let cmds_guard, x_guard, errs_guard = fe e in 
 		(* x_guard_v := i__getValue (x_guard) with err  *) 
 		let x_guard_v, cmd_gv_xguardv = make_get_value_call x_guard err in
 		let cmd_gv_xguardv = (None, None, cmd_gv_xguardv) in 
@@ -3584,7 +3736,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		
 		| [], Some def -> 
 			let new_loop_list = (None, end_switch, js_lab) :: loop_list in 
-			let f_default = translate fid cc_table ctx vis_fid err new_loop_list None None in 
+			let f_default = translate_statement fid cc_table ctx vis_fid err new_loop_list None None in 
 			let cmds_def, x_def, errs_def, rets_def, breaks_def, conts_def = f_default def in
 			let cmds_def, x_def = add_final_var cmds_def x_def in
 			
@@ -3614,8 +3766,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			let cur_breaks_ab = cur_breaks_as @ cur_breaks_bs in 
 			
 			let cmds_def, x_def, errs_def, rets_def, outer_breaks_def, conts_def = compile_default def b_stmts x_bs x_found_b end_switch js_lab cur_breaks_ab in 
-			cmds_as @ [ cmd_goto_xfounda ] @ cmds_bs @ [ cmd_ass_xfoundb ] @ cmds_def, Var x_def, errs_as @ errs_bs @ errs_def, rets_as @ rets_bs @ rets_def, outer_breaks_as @ outer_breaks_bs @ outer_breaks_def, conts_as @ conts_bs @ conts_def 
-			
+			cmds_as @ [ cmd_goto_xfounda ] @ cmds_bs @ [ cmd_ass_xfoundb ] @ cmds_def, Var x_def, errs_as @ errs_bs @ errs_def, rets_as @ rets_bs @ rets_def, outer_breaks_as @ outer_breaks_bs @ outer_breaks_def, conts_as @ conts_bs @ conts_def 	
 			
 		| _, _ -> raise (Failure "no b cases with no default"))  
 	
@@ -3630,27 +3781,14 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		*)
 		let f_id = try Js_pre_processing.get_codename e 
 			with _ -> raise (Failure "named function literals should be annotated with their respective code names") in
-		let cmds, x_f = translate_function_literal f_id params in 
+		let cmds, _, errs = translate_named_function_literal fid f_id n params vis_fid err in 
+		cmds, Literal Empty, errs, [], [], []
 		
-		(* x_er_fid := [x_scope, "fid"] *)
-		let x_er = fresh_er_var () in 
-		let cmd_ass_xer = (None, None, SLBasic (SLookup (x_er, Var var_scope, Literal (String fid)))) in 
-		
-		(* x_ref_n := ref-v(x_er, "f_name") *)
-		let x_ref_n = fresh_var () in 
-		let cmd_ass_xrefn = (None, None, SLBasic (SAssignment (x_ref_n, VRef (Var x_er, Literal (String n))))) in 
-		
-		(* x_pv := i__putValue(x_ref_n, x_f) with err *) 
-		let x_pv = fresh_var () in 
-		let cmd_pv_f = (None, None, SLCall (x_pv, Literal (String putValueName), [ Var x_ref_n; Var x_f ], Some err)) in 
-		
-		let cmds = cmds @ [ cmd_ass_xer; cmd_ass_xrefn; cmd_pv_f ] in 
-		cmds, Var x_f, [ x_pv ], [], [], []
 		
   | Parser_syntax.With (_, _) -> raise (Failure "Not implemented: with (this should not happen)")
 	| Parser_syntax.RegExp (_, _) -> raise (Failure "Not implemented: RegExp literal")
 	| Parser_syntax.Debugger -> raise (Failure "Not implemented: debugger (this should not happen)")
-	
+
 
 let make_final_cmd vars final_lab final_var =
 	let cmd_final = 
@@ -3699,7 +3837,7 @@ let generate_main e main cc_table =
 	let cmd_ass_xfalse = b_annot_cmd (SLBasic (SAssignment (var_false, Literal (Bool false)))) in
 					
 	let ctx = make_translation_ctx main in 
-	let cmds_e, x_e, errs, _, _, _ = translate main cc_table ctx [ main ] ctx.tr_error_lab [] None None e in 
+	let cmds_e, x_e, errs, _, _, _ = translate_statement main cc_table ctx [ main ] ctx.tr_error_lab [] None None e in 
 	(* x_ret := x_e *)
 	let ret_ass = (None, None, SLBasic (SAssignment (ctx.tr_ret_var, x_e))) in
 	(* lab_ret: skip *) 
@@ -3762,7 +3900,7 @@ let generate_proc e fid params cc_table vis_fid =
 	let cmd_ass_xfalse = b_annot_cmd (SLBasic (SAssignment (var_false, Literal (Bool false)))) in
 	
 	let ctx = make_translation_ctx fid in 
-	let cmds_e, x_e, errs, rets, _, _ = translate fid cc_table ctx vis_fid ctx.tr_error_lab [] None None e in 
+	let cmds_e, x_e, errs, rets, _, _ = translate_statement fid cc_table ctx vis_fid ctx.tr_error_lab [] None None e in 
 	
 	(* x_dr := $$empty *)
 	let x_dr = fresh_var () in
