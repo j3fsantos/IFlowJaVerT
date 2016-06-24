@@ -162,7 +162,46 @@ with
 	err:	xret, elab;
 };
 
+(* *** GETALLENUMERABLEFIELDS *** *)
 
+proc i__getAllEnumerableFields (l) {
+			props := new ();
+			xret := "i__getAllEnumerableFieldsIter" (l, props);
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+(* *** GETALLENUMERABLEFIELDSITER *** *)
+
+proc i__getAllEnumerableFieldsIter (l, props) {
+			enums := "i__getEnumerableFields" (l);
+			
+			len := length (enums);
+			n := 0;
+	loop:	goto [n < len] head next;
+	
+	head:	hf := hasField (props, nth (enums, n));
+			goto [hf] inc add;
+	add:	[props, nth (enums, n)] := l;
+	inc:	n := n + 1;
+			goto loop;
+			
+	next:	l := [l, "@proto"];
+			goto [l = $$null] end deeper;
+			
+	deeper:	xret := "i__getAllEnumerableFieldsIter" (l, props);
+
+	end:	xret := props;
+			
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};
 
 (* *** CALL *** *)
 

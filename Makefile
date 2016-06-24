@@ -15,7 +15,7 @@ init:
 	.git-hooks/install.sh .
 	cp src/localconfig.default src/localconfig.ml
 	cp config/config.default config/config.xml
-	git submodule update --init src/parser
+	git submodule update --init --force src/parser
 	opam install batteries xml-light extlib menhir ounit
 
 

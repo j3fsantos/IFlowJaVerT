@@ -43,7 +43,7 @@ build:
 condor:
   before_script:
   - export CI_BUILD_REF_SUBJ="$(git show --pretty=format:%s -s)"
-  - git submodule update --init lib/runtests tests/test262
+  - git submodule update --init --force lib/runtests tests/test262
   - source lib/runtests/scripts/set-voldir.sh JavaScriptVerification
   - source lib/runtests/scripts/init-env.sh
   - cp -R lib/runtests tests/test262 environment run.sh $VOLDIR

@@ -29,6 +29,7 @@ let extensiblePropName = "@extensible"
 
 let locGlobName        = "$lg"
 let locObjPrototype    = "$lobj_proto"
+let locArrPrototype    = "$larr_proto"
 
 let toBooleanName                     = "i__toBoolean"                   (* 9.2               *)
 let getValueName                      = "i__getValue"                    (* 8.7.1             *)
@@ -55,6 +56,7 @@ let hasPropertyName                   = "o__hasProperty"                 (* 8.12
 let abstractEqualityComparisonName    = "i__abstractEquality"            (* 11.9.3            *) 
 let strictEqualityComparisonName      = "i__strictEquality"              (* 11.9.6            *) 
 let defineOwnPropertyName             = "o__defineOwnProperty"           (* 8.12.9            *) 
+let defineOwnPropertyArrayName        = "a__defineOwnProperty"           (* 15.sth.sth        *) 
 let checkAssignmentErrorsName         = "i__checkAssignmentErrors"        
 
 
@@ -382,6 +384,10 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 	let make_dop_call x_obj prop x_desc b err = 
 		let x_dop = fresh_var () in
 		(x_dop, SLCall (x_dop, Literal (String defineOwnPropertyName), [Var x_obj; prop; Var x_desc; Literal (Bool b)], Some err)) in 
+	
+	let make_adop_call x_obj prop x_desc b err = 
+		let x_dop = fresh_var () in
+		(x_dop, SLCall (x_dop, Literal (String defineOwnPropertyArrayName), [Var x_obj; prop; Var x_desc; Literal (Bool b)], Some err)) in 
 	
 	let make_cae_call x err = 
 		let x_cae = fresh_var () in 
@@ -950,10 +956,56 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 	
 	
 	(**
-	 Section 11.1.4 - Array Initializer  
+	 Section 11.1.4 - Array Initialiser  
 	*)
-	| Parser_syntax.Array eos -> raise (Failure "not implemented yet - array literal") 
+	| Parser_syntax.Array eos -> (* raise (Failure "not implemented yet - array literal") *)
 
+		let x_arr = fresh_obj_var () in 
+		(* x_arr := new () *) 
+		let cmd_new_obj = (None, None, (SLBasic (SNew x_arr))) in 
+		(* x_cdo := create_default_object (x_obj, $larr_proto, "Array") *) 
+		let x_cdo = fresh_var () in 
+		let cmd_cdo_call = (None, None, (SLCall (x_cdo, Literal (String createDefaultObjectName), [ Var x_arr; Literal (Loc locArrPrototype); Literal (String "Array") ], None))) in 
+		
+		(* [x_arr, "length"] := {{ "d", num, $$t, $$f, $$f }} *)
+		let cmd_set_len num = (None, None, SLBasic (SMutation (Var x_arr,  Literal (String "length"), LEList [ Literal (String "d"); Literal (Num (float_of_int num)); Literal (Bool true); Literal (Bool false); Literal (Bool false) ] ))) in 
+		
+		let set_dop = (None, None, SLBasic (SMutation (Var x_arr, Literal (String "@defineOwnProperty"), (Literal (String defineOwnPropertyArrayName))))) in
+		
+		let translate_array_property_definition x_obj e err num = 
+			let cmds, x, errs, _, _, _ = f e in	
+			(* x_v := i__getValue (x) with err *) 
+			let x_v, cmd_gv_x = make_get_value_call x err in
+		
+			(* x_desc := {{ "d", x_v, $$t, $$t, $$t}}  *) 
+			let x_desc = fresh_desc_var () in 
+			let cmd_ass_xdesc = SLBasic (SAssignment (x_desc, LEList [ Literal (String "d"); Var x_v; Literal (Bool true); Literal (Bool true); Literal (Bool true) ] )) in 
+			
+			let prop = Literal (String (string_of_int num)) in 
+			
+			(* x_adop := a__defineOwnProperty(x_obj, toString(num), x_desc, true) with err *)
+			let x_adop, cmd_adop_x = make_adop_call x_obj prop x_desc false err in
+			
+			let cmds = cmds @ [
+				(None, None, cmd_gv_x);           (* x_v := i__getValue (x) with err                                            *)  
+				(None, None, cmd_ass_xdesc);      (* x_desc := {{ "d", x_v, $$t, $$t, $$t}}                                     *)                          
+				(None, None, cmd_adop_x)          (* x_dop := a__defineOwnProperty(x_obj, toString(num), x_desc, true) with err *)
+			] in 
+			let errs = errs @ [ x_v; x_adop ] in
+			cmds, errs in 
+		
+		let cmds, errs, num = 
+			List.fold_left (fun (cmds, errs, num) oe ->
+				let new_cmds, new_errs = 
+				(match oe with
+			  	| None -> 
+							[cmd_set_len (num + 1)], []
+				  | Some e -> 
+					  	translate_array_property_definition x_arr e err num) in
+				(cmds @ new_cmds, errs @ new_errs, num + 1))
+				([], [], 0) 
+				eos in 
+		(cmd_new_obj :: (cmd_cdo_call :: (cmd_set_len 0) :: set_dop :: cmds)), (Var x_arr), errs, [], [], []
 
 	
 	| Parser_syntax.Obj xs -> 
@@ -1029,7 +1081,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		
 		let translate_accessor_descriptor x_obj prop accessor is_getter err =
 			let f_id = try Js_pre_processing.get_codename accessor 
-				with _ -> raise (Failure "annonymous function literals should be annotated with their respective code names - Getter function") in 
+				with _ -> raise (Failure "anonymous function literals should be annotated with their respective code names - Getter function") in 
 			let params = 
 				(match accessor.Parser_syntax.exp_stx with 
 				| Parser_syntax.AnonymousFun (_, params, _) -> params 
@@ -2778,14 +2830,59 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let errs = errs1 @ [ x1_v; x1_b ] @ errs2 @ [ x2_v ] in 
 		cmds, Var x_ret_5, errs, rets2, outer_breaks, outer_conts
 	
+		| Parser_syntax.ForIn (e_lhs, e_obj, e_stmt) -> raise (Failure "Not implemented: for-in, for-var-in")
+		(**
+		 Section 12.6.4
+     *  C(e_lhs) = cmds1, x1; C(e_obj) = cmds2, x2; C(e_stmt) = cmds3, x3
+		 *  
+		 *  C( for (e1 in e2) { e3 } ) =
+			          cmds2 																								1.	Understand what the object is
+								x2_v := i__getValue (x2) with err											2.	and get its value
+								x_ret_0 := $$empty 																		5.	Set V to $$empty
+								goto [(x2_v = $$null) or 			
+								      (x2_v = $$undefined)] next4 next0;							3.	If the object is $$null or $$undefined, we're done
+			next0:		x4 := "i__toObject" (x2_v) with err										4.	Otherwise, convert whatever we have to an object
+			
+								xlf := "i__getAllEnumerableFields" (x4)  with err					Put all of its enumerable properties (protochain included) in xlf
+								xf  := getFields (xlf) 																		Get all of those properties
+								
+								len := length (xf)																				Get the number of properties
+								x_c := 0;																									Initialise counter
+								
+			head:     x_ret_1 := PHI(x_ret_0, x_ret_3)													Setup return value
+								x_c_1 := PSI(x_c, x_c_2);																	Setup counter
+								goto [x_c_1 < len] body end_loop 											6.	Are we done?
+			body: 		xp := nth (xf, x_c_1)																	6a.	Get the nth property
+								xl := [xlf, xf];																			6a.	Get the location of where it should be
+								xhf := hasField (xl, xp) with err        							6a.	Understand if it's still there!
+								goto [xhf] lhs nextx																	6a.	And jump accordingly 
+			lhs:			cmds1																									6b.	Evaluate lhs
+								x5 := "i__putValue" (x1, xp) with err									6c.	Put it in, put it in
+								cmds3																									6d. Evaluate the statement
+								x3_v = "i__getValue" (x3) with err
+			cont:     x_ret_2 := PHI(cont_vars, x3_v) 												
+								goto [ not (x_ret_2 = $$empty) ] next1 next2 
+		  next1:    skip 
+			next2:    x_ret_3 := PHI(x_ret_1, x_ret_2)
+			nextx:		x_c_2 := x_c_1 + 1
+								goto head
+		  end_loop:	x_ret_4 := PHI(x_ret_1, break_vars) 
+			          goto [ x_ret_4 = $$empty ] next3 next4
+			next3:    skip 
+			next4:    x_ret_5 := PHI(x_ret_0, x_ret_1) 
+			
+			errs:	x2_v, x4, xlf, xhf, x5, x3_v
+		 *)	
+		
 	
-	| Parser_syntax.For (e1, e2, e3, e4) ->
+  	| Parser_syntax.For (e1, e2, e3, e4) ->
 		(**
 		 Section 12.6.3
-     *  C(e1) = cmds1, _; C(e2) = cmds2, x2; C(e3) = cmds3, _; C(e4) = cmds4, x4
+     *  C(e1) = cmds1, x1; C(e2) = cmds2, x2; C(e3) = cmds3, _; C(e4) = cmds4, x4
 		 *  
 		 *  C( for(e1; e2; e3) { e4 } ) =
 			          cmds1 
+								x1_v := i__getValue (x1) with err 
 								x_ret_0 := $$empty 
 			head:     x_ret_1 := PHI(x_ret_0, x_ret_3) 
 								cmds2
@@ -2806,10 +2903,13 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			next4:    x_ret_5 := PHI(x_ret_4, x_ret_1) 
 		 *)	
 		
-		let cmds1, _, errs1, _, _, _ = 
+		let cmds1, x1, errs1, _, _, _ = 
 			(match e1 with 
 			| Some e1 -> f e1 
 			| None -> [], Var "xpto", [], [], [], []) in
+		(* x1_v := i__getValue (x1) with err *)
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in 
+		let cmds1, errs1 = cmds1 @ [ (None, None, cmd_gv_x1) ], errs1 @ [ x1_v ] in 
 		
 		let cmds2, x2, errs2, _, _, _ = 	
 			(match e2 with 
@@ -3389,10 +3489,11 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		
 		let cmds = cmds @ [ cmd_ass_xer; cmd_ass_xrefn; cmd_pv_f ] in 
 		cmds, Var x_f, [ x_pv ], [], [], []
+		
+  | Parser_syntax.With (_, _) -> raise (Failure "Not implemented: with (this should not happen)")
+	| Parser_syntax.RegExp (_, _) -> raise (Failure "Not implemented: RegExp literal")
+	| Parser_syntax.Debugger -> raise (Failure "Not implemented: debugger (this should not happen)")
 	
-	
-	| _ -> raise (Failure "not implemented yet")
-
 
 let make_final_cmd vars final_lab final_var =
 	let cmd_final = 
