@@ -709,7 +709,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 				
 	| SParse (x, e, j) ->
 		let v_e = evaluate_expr e store in
-		Printf.printf "parse parsimonious\n";
+		(* Printf.printf "parse parsimonious\n"; *)
 		let proc_e = 
 			(match v_e with 
 			| String str_e -> 

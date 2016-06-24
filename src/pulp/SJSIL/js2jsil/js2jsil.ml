@@ -58,7 +58,7 @@ let strictEqualityComparisonName      = "i__strictEquality"              (* 11.9
 let defineOwnPropertyName             = "o__defineOwnProperty"           (* 8.12.9            *) 
 let defineOwnPropertyArrayName        = "a__defineOwnProperty"           (* 15.sth.sth        *) 
 let checkAssignmentErrorsName         = "i__checkAssignmentErrors"        
-
+let getEnumFieldsName                 = "i__getAllEnumerableFields"        
 
 let print_position outx lexbuf =
   let pos = lexbuf.lex_curr_p in
@@ -2830,7 +2830,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 		let errs = errs1 @ [ x1_v; x1_b ] @ errs2 @ [ x2_v ] in 
 		cmds, Var x_ret_5, errs, rets2, outer_breaks, outer_conts
 	
-		| Parser_syntax.ForIn (e_lhs, e_obj, e_stmt) -> raise (Failure "Not implemented: for-in, for-var-in")
+	
+		| Parser_syntax.ForIn (e1, e2, e3) ->
 		(**
 		 Section 12.6.4
      *  C(e_lhs) = cmds1, x1; C(e_obj) = cmds2, x2; C(e_stmt) = cmds3, x3
@@ -2840,7 +2841,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 								x2_v := i__getValue (x2) with err											2.	and get its value
 								x_ret_0 := $$empty 																		5.	Set V to $$empty
 								goto [(x2_v = $$null) or 			
-								      (x2_v = $$undefined)] next4 next0;							3.	If the object is $$null or $$undefined, we're done
+								      (x2_v = $$undefined)] next6 next0;							3.	If the object is $$null or $$undefined, we're done
 			next0:		x4 := "i__toObject" (x2_v) with err										4.	Otherwise, convert whatever we have to an object
 			
 								xlf := "i__getAllEnumerableFields" (x4)  with err					Put all of its enumerable properties (protochain included) in xlf
@@ -2854,27 +2855,178 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 								goto [x_c_1 < len] body end_loop 											6.	Are we done?
 			body: 		xp := nth (xf, x_c_1)																	6a.	Get the nth property
 								xl := [xlf, xf];																			6a.	Get the location of where it should be
-								xhf := hasField (xl, xp) with err        							6a.	Understand if it's still there!
-								goto [xhf] lhs nextx																	6a.	And jump accordingly 
-			lhs:			cmds1																									6b.	Evaluate lhs
+								xhf := hasField (xl, xp)              							6a.	Understand if it's still there!
+								goto [xhf] next1 next4																6a.	And jump accordingly 
+			next1:		cmds1																									6b.	Evaluate lhs
 								x5 := "i__putValue" (x1, xp) with err									6c.	Put it in, put it in
 								cmds3																									6d. Evaluate the statement
 								x3_v = "i__getValue" (x3) with err
 			cont:     x_ret_2 := PHI(cont_vars, x3_v) 												
-								goto [ not (x_ret_2 = $$empty) ] next1 next2 
-		  next1:    skip 
-			next2:    x_ret_3 := PHI(x_ret_1, x_ret_2)
-			nextx:		x_c_2 := x_c_1 + 1
+								goto [ not (x_ret_2 = $$empty) ] next2 next3 
+		  next2:    skip 
+			next3:    x_ret_3 := PHI(x_ret_1, x_ret_2)
+			next4:		x_c_2 := x_c_1 + 1
 								goto head
 		  end_loop:	x_ret_4 := PHI(x_ret_1, break_vars) 
-			          goto [ x_ret_4 = $$empty ] next3 next4
-			next3:    skip 
-			next4:    x_ret_5 := PHI(x_ret_0, x_ret_1) 
+			          goto [ x_ret_4 = $$empty ] next5 next6
+			next5:    skip 
+			next6:    x_ret_5 := PHI(x_ret_0, x_ret_1) 
 			
-			errs:	x2_v, x4, xlf, xhf, x5, x3_v
+			errs:	errs2, x2_v, x4, xlf, errs1, x5, errs3, x3_v
 		 *)	
-		
-	
+			let cmds1, x1, errs1, _, _, _ = f e1 in
+			let cmds2, x2, errs2, _, _, _ = f e2 in
+			let head, guard, body, cont, end_loop = fresh_loop_vars () in 
+			let new_loop_list = (Some cont, end_loop, js_lab) :: loop_list in 
+			let cmds3, x3, errs3, rets3, breaks3, conts3 = translate fid cc_table ctx vis_fid err new_loop_list None None e2 in		
+			
+			let cur_breaks, outer_breaks = filter_cur_jumps breaks3 js_lab true in 
+			let cur_conts, outer_conts = filter_cur_jumps conts3 js_lab true in 
+			
+			(* x2_v := i__getValue (x2) with err *)
+			let x2_v, cmd_gv_x2 = make_get_value_call x2 err in 
+			
+			(* 	x_ret_0 := $$empty *)
+			let x_ret_0 = fresh_var () in 
+			let x_ret_1 = fresh_var () in 
+			let x_ret_2 = fresh_var () in 
+			let x_ret_3 = fresh_var () in 
+			let x_ret_4 = fresh_var () in 
+			let x_ret_5 = fresh_var () in 
+			let cmd_ass_xret0 = SLBasic (SAssignment (x_ret_0, Literal Empty)) in 
+			
+			(* goto [(x2_v = $$null) or (x2_v = $$undefined)] next6 next0;	*)
+			let next0 = fresh_next_label () in 
+			let next1 = fresh_next_label () in 
+			let next2 = fresh_next_label () in 
+			let next3 = fresh_next_label () in
+			let next4 = fresh_next_label () in 
+			let next5 = fresh_next_label () in
+			let next6 = fresh_next_label () in  
+			let expr_goto_guard = BinOp (
+				BinOp (Var x2_v, Equal, Literal Null), 
+				Or, 
+				BinOp (Var x2_v, Equal, Literal Undefined)) in 
+			let cmd_goto_null_undef = SLGuardedGoto (expr_goto_guard, next6, next0) in 
+			
+			(* x4 := "i__toObject" (x2_v) with err	 *)
+			let x4 = fresh_var () in 
+			let cmd_to_obj_call = SLCall (x4, Literal (String toObjectName), [ Var x2_v ], Some err) in 
+			
+			(* xlf := "i__getAllEnumerableFields" (x4)  with err	*)
+			let xlf = fresh_var () in 
+			let cmd_get_enum_fields = SLCall (xlf, Literal (String getEnumFieldsName), [ Var x4 ], Some err) in  
+			
+			(* xf  := getFields (xlf)  *) 
+			let xf = fresh_var () in 
+			let cmd_xf_ass = SLBasic (SGetFields (xf, Var xlf)) in 
+			
+			(* len := length (xf)	 *) 
+			let len = fresh_var () in 
+			let cmd_ass_len = SLBasic (SAssignment (len, UnaryOp (Length, Var xf))) in 
+			
+			(* x_c := 0 *) 
+			let x_c = fresh_var () in 
+			let cmd_ass_xc = SLBasic (SAssignment (x_c, Literal (Num 0.))) in 
+			
+			(*   x_ret_1 := PHI(x_ret_0, x_ret_3)	 *)
+			let cmd_ass_xret1 = SLPhiAssignment (x_ret_1, [| Some x_ret_0; Some x_ret_1 |]) in 
+			
+			(* x_c_1 := PSI(x_c, x_c_2);	 *) 
+			let x_c_1 = fresh_var () in 
+			let x_c_2 = fresh_var () in 
+			let cmd_ass_xc1 = SLPsiAssignment (x_c_1, [| Some x_c; Some x_c_2 |]) in 	
+			
+			(* goto [x_c_1 < len] body end_loop  *) 
+			let cmd_goto_len = SLGuardedGoto (BinOp (Var x_c_1, LessThan, Var len), body, end_loop) in 
+			
+			(* xp := nth (xf, x_c_1)	*) 
+			let xp = fresh_var () in 
+			let cmd_ass_xp = SLBasic (SAssignment (xp, LLNth (Var xf, Var x_c_1))) in 
+			
+			(* xl := [xlf, xf];	*) 
+			let xl = fresh_var () in 
+			let cmd_ass_xl = SLBasic (SLookup (xl, Var xlf, Var xf)) in 
+			
+			(* 	xhf := hasField (xl, xp) *) 
+			let xhf = fresh_var () in 
+			let cmd_ass_hf = SLBasic (SHasField (xhf, Var xl, Var xp)) in 
+			
+			(* goto [xhf] next1 next4	 *) 
+			let cmd_goto_xhf = SLGuardedGoto (Var xhf, next1, next4) in 
+			
+			(* x5 := "i__putValue" (x1, xp) with err	 *) 
+			let x5, cmd_pv_x1 = make_put_value_call x1 xp err in 
+			
+			(* x3_v = "i__getValue" (x3) with err *) 
+			let x3_v, cmd_gv_x3 = make_get_value_call x3 err in 
+			
+			(* x_ret_2 := PHI(cont_vars, x3_v) *) 
+			let phi_args = cur_conts @ [ x3_v ] in 
+			let phi_args = List.map (fun x -> Some x) phi_args in 
+			let phi_args = Array.of_list phi_args in 
+			let cmd_phi_cont = SLPhiAssignment (x_ret_2, phi_args) in 
+			
+			(* goto [ not (x_ret_2 = $$empty) ] next2 next3 *) 
+			let expr_goto_guard = BinOp (Var x_ret_2, Equal, Literal Empty) in 
+			let expr_goto_guard = UnaryOp (Not, expr_goto_guard) in 
+			let cmd_goto_xret2 = SLGuardedGoto (expr_goto_guard, next2, next3) in 
+			
+			(* x_ret_3 := PHI(x_ret_1, x_ret_2) *)
+			let cmd_phi_xret3 = SLPhiAssignment (x_ret_3, [| Some x_ret_1; Some x_ret_2 |]) in 
+			
+			(* x_c_2 := x_c_1 + 1 *) 
+			let cmd_ass_incr = SLBasic (SAssignment (x_c_2, BinOp (Var x_c_1, Plus, Literal (Num 1.)))) in 
+			
+			(* 	x_ret_4 := PHI(x_ret_1, break_vars)  *) 
+			let phi_args = x_ret_1 :: cur_breaks in 
+			let phi_args = List.map (fun x -> Some x) phi_args in 
+			let phi_args = Array.of_list phi_args in 
+			let cmd_phi_xret4 = SLPhiAssignment (x_ret_4, phi_args) in 
+			
+			(* goto [ x_ret_4 = $$empty ] next5 next6 *) 
+			let cmd_goto_xret4_empty = SLGuardedGoto (
+				BinOp (Var x_ret_4, Equal, Literal Empty), next5, next6) in 
+				
+			(* x_ret_5 := PHI(x_ret_0, x_ret_1) *)
+			let cmd_phi_xret5 = SLPhiAssignment (x_ret_5, [| Some x_ret_0; Some x_ret_1 |]) in 
+			
+			let cmds1 = add_initial_label cmds1 next1 in 
+			let cmds = cmds2 @ [                              (*           cmds2                                                        *)
+				(None, None,          cmd_gv_x2);               (*           x2_v := i__getValue (x2) with err                            *) 
+				(None, None,          cmd_ass_xret0);           (*           x_ret_0 := $$empty 		                                      *) 
+				(None, None,          cmd_goto_null_undef);     (*           goto [(x2_v = $$null) or (x2_v = $$undefined)] next6 next0   *)
+				(None, Some next0,    cmd_to_obj_call);         (* next0:		x4 := "i__toObject" (x2_v) with err			                      *)
+				(None, None,          cmd_get_enum_fields);     (*           xlf := "i__getAllEnumerableFields" (x4)  with err            *)
+				(None, None,          cmd_xf_ass);              (*           xf  := getFields (xlf)                                       *)
+				(None, None,          cmd_ass_len);             (*           len := length (xf)                                           *)
+				(None, None,          cmd_ass_xc);              (*           x_c := 0                                                     *)
+				(None, Some head,     cmd_ass_xret1);           (* head:     x_ret_1 := PHI(x_ret_0, x_ret_3)                             *)
+				(None, None,          cmd_ass_xc1);             (*           x_c_1 := PSI(x_c, x_c_2) 		                                *)
+				(None, None,          cmd_goto_len);            (*           goto [x_c_1 < len] body end_loop 	                          *)  
+				(None, Some body,     cmd_ass_xp);              (* body: 		xp := nth (xf, x_c_1)		                                      *)
+				(None, None,          cmd_ass_xl);              (*           xl := [xlf, xf] 	                                            *)
+				(None, None,          cmd_ass_hf);              (*           xhf := hasField (xl, xp)                                     *)
+				(None, None,          cmd_goto_xhf)             (*           goto [xhf] next1 next4	                                      *)
+			] @ cmds1 @ [                                     (* next1:    cmds1                                                        *)                                
+			  (None, None,          cmd_pv_x1)                (*           x5 := "i__putValue" (x1, xp) with err	                      *)
+			] @ cmds3 @ [                                     (*           cmds3                                                        *)       
+			  (None, None,          cmd_gv_x3);               (*           x3_v = "i__getValue" (x3) with err                           *)
+				(None, Some cont,     cmd_phi_cont);            (* cont:     x_ret_2 := PHI(cont_vars, x3_v)                              *)
+			  (None, None,          cmd_goto_xret2);          (*           goto [ not (x_ret_2 = $$empty) ] next2 next3                 *) 
+				(None, Some next2,    SLBasic SSkip);           (* next2:    skip                                                         *) 
+			  (None, Some next3,    cmd_phi_xret3);           (* next3:    x_ret_3 := PHI(x_ret_1, x_ret_2)                             *)
+				(None, Some next4,    cmd_ass_incr);            (* next4:		 x_c_2 := x_c_1 + 1                                           *)
+				(None, None,          SLGoto head);             (*           goto head                                                    *)
+				(None, Some end_loop, cmd_phi_xret4);           (* end_loop: x_ret_4 := PHI(x_ret_1, break_vars)                          *)
+			  (None, None,          cmd_goto_xret4_empty);    (*           goto [ x_ret_4 = $$empty ] next5 next6                       *) 
+			  (None, Some next5,    SLBasic SSkip);           (* next5:    skip                                                         *)
+				(None, None,          cmd_phi_xret5)            (* next6:    x_ret_5 := PHI(x_ret_0, x_ret_1)                             *) 
+			] in 
+			let errs = errs2 @ [x2_v; x4; xlf] @ errs1 @ [ x5 ] @ errs3 @ [ x3_v ] in 
+			cmds, Var x_ret_5, errs, rets3, outer_breaks, outer_conts
+			
+			
   	| Parser_syntax.For (e1, e2, e3, e4) ->
 		(**
 		 Section 12.6.3
