@@ -2854,8 +2854,8 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 								x_c_1 := PSI(x_c, x_c_2);																	Setup counter
 								goto [x_c_1 < len] body end_loop 											6.	Are we done?
 			body: 		xp := nth (xf, x_c_1)																	6a.	Get the nth property
-								xl := [xlf, xf];																			6a.	Get the location of where it should be
-								xhf := hasField (xl, xp)              							6a.	Understand if it's still there!
+								xl := [xlf, xp];																			6a.	Get the location of where it should be
+								xhf := hasField (xl, xp)              			  				6a.	Understand if it's still there!
 								goto [xhf] next1 next4																6a.	And jump accordingly 
 			next1:		cmds1																									6b.	Evaluate lhs
 								x5 := "i__putValue" (x1, xp) with err									6c.	Put it in, put it in
@@ -2944,13 +2944,17 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 			let xp = fresh_var () in 
 			let cmd_ass_xp = SLBasic (SAssignment (xp, LLNth (Var xf, Var x_c_1))) in 
 			
-			(* xl := [xlf, xf];	*) 
+			(* xl := [xlf, xp];	*) 
 			let xl = fresh_var () in 
-			let cmd_ass_xl = SLBasic (SLookup (xl, Var xlf, Var xf)) in 
+			let cmd_ass_xl = SLBasic (SLookup (xl, Var xlf, Var xp)) in 
 			
-			(* 	xhf := hasField (xl, xp) *) 
+			(*  xxl := nth (xl, 1)   *)
+			let xxl = fresh_var () in
+			let cmd_ass_xxl = SLBasic (SAssignment (xxl, LLNth (Var xl, Literal (Num 1.)))) in 
+			
+			(* 	xhf := hasField (xxl, xp) *) 
 			let xhf = fresh_var () in 
-			let cmd_ass_hf = SLBasic (SHasField (xhf, Var xl, Var xp)) in 
+			let cmd_ass_hf = SLBasic (SHasField (xhf, Var xxl, Var xp)) in 
 			
 			(* goto [xhf] next1 next4	 *) 
 			let cmd_goto_xhf = SLGuardedGoto (Var xhf, next1, next4) in 
@@ -3004,9 +3008,10 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 				(None, Some head,     cmd_ass_xret1);           (* head:     x_ret_1 := PHI(x_ret_0, x_ret_3)                             *)
 				(None, None,          cmd_ass_xc1);             (*           x_c_1 := PSI(x_c, x_c_2) 		                                *)
 				(None, None,          cmd_goto_len);            (*           goto [x_c_1 < len] body end_loop 	                          *)  
-				(None, Some body,     cmd_ass_xp);              (* body: 		xp := nth (xf, x_c_1)		                                      *)
-				(None, None,          cmd_ass_xl);              (*           xl := [xlf, xf] 	                                            *)
-				(None, None,          cmd_ass_hf);              (*           xhf := hasField (xl, xp)                                     *)
+				(None, Some body,     cmd_ass_xp);              (* body: 		 xp := nth (xf, x_c_1)		                                    *)
+				(None, None,          cmd_ass_xl);              (*           xl := [xlf, xp] 	                                            *)
+				(None, None,          cmd_ass_xxl);             (*           xxl := nth (xl, 1)                                           *)
+				(None, None,          cmd_ass_hf);              (*           xhf := hasField (xxl, xp)                                    *)
 				(None, None,          cmd_goto_xhf)             (*           goto [xhf] next1 next4	                                      *)
 			] @ cmds1 @ [                                     (* next1:    cmds1                                                        *)                                
 			  (None, None,          cmd_pv_x1)                (*           x5 := "i__putValue" (x1, xp) with err	                      *)
@@ -3021,7 +3026,7 @@ let rec translate fid cc_table ctx vis_fid err loop_list previous js_lab e  =
 				(None, Some end_loop, cmd_phi_xret4);           (* end_loop: x_ret_4 := PHI(x_ret_1, break_vars)                          *)
 			  (None, None,          cmd_goto_xret4_empty);    (*           goto [ x_ret_4 = $$empty ] next5 next6                       *) 
 			  (None, Some next5,    SLBasic SSkip);           (* next5:    skip                                                         *)
-				(None, None,          cmd_phi_xret5)            (* next6:    x_ret_5 := PHI(x_ret_0, x_ret_1)                             *) 
+				(None, Some next6,    cmd_phi_xret5)            (* next6:    x_ret_5 := PHI(x_ret_0, x_ret_1)                             *) 
 			] in 
 			let errs = errs2 @ [x2_v; x4; xlf] @ errs1 @ [ x5 ] @ errs3 @ [ x3_v ] in 
 			cmds, Var x_ret_5, errs, rets3, outer_breaks, outer_conts

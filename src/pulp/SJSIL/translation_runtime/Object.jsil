@@ -185,7 +185,7 @@ proc i__getAllEnumerableFieldsIter (l, props) {
 	
 	head:	hf := hasField (props, nth (enums, n));
 			goto [hf] inc add;
-	add:	[props, nth (enums, n)] := l;
+	add:	[props, nth (enums, n)] := {{ "d", l, $$f, $$f, $$f }};
 	inc:	n := n + 1;
 			goto loop;
 			
