@@ -3227,7 +3227,9 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 		let cmds1, x1, errs1 = 
 			(match e1 with 
 			| Some e1 -> fe e1 
-			| None -> [], Var "xpto", []) in
+			| None ->
+				let x1_v, cmd_ass_x1v = make_empty_ass () in 
+				[ (None, None, cmd_ass_x1v) ], Var x1_v, []) in
 		(* x1_v := i__getValue (x1) with err *)
 		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in 
 		let cmds1, errs1 = cmds1 @ [ (None, None, cmd_gv_x1) ], errs1 @ [ x1_v ] in 
@@ -3243,7 +3245,9 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 		let cmds3, _, errs3 = 
 			(match e3 with 
 			| Some e3 -> fe e3 
-			| None -> [], Var "xpto", []) in
+			| None -> 
+				let x3_v, cmd_ass_x3v = make_empty_ass () in 
+				[ (None, None, cmd_ass_x3v) ], Var x3_v, []) in
 		
 		let head, guard, body, cont, end_loop = fresh_loop_vars () in 
 		
