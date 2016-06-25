@@ -78,11 +78,12 @@ LATEST
 * .call needs to be implemented in the style of 15.3.x.x.
 * .freeze (and all other Object.___) don't throw anymore in ES6, but throw in ES5 - rewrite tests?
 
-* We can't just put 'undefined' in the global object, these have to be descriptors?!
-  There's an inconsistency here.
+* functions are not setup immediately, but rather when they appear!!!
 
 * Filtration for fields should not be at JSIL level
 
+
+U
 ERRORS
 ------
 Native errors have the field name directly, not just in .prototype.

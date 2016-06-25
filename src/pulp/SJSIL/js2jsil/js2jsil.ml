@@ -3034,7 +3034,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 		  end_loop:	x_ret_4 := PHI(x_ret_1, break_vars) 
 			          goto [ x_ret_4 = $$empty ] next5 next6
 			next5:    skip 
-			next6:    x_ret_5 := PHI(x_ret_0, x_ret_1) 
+			next6:    x_ret_5 := PHI(x_ret_0, x_ret_1, x_ret_4) 
 			
 			errs:	errs2, x2_v, x4, xlf, errs1, x5, errs3, x3_v
 		 *)	
@@ -3042,7 +3042,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 			let cmds2, x2, errs2 = fe e2 in
 			let head, guard, body, cont, end_loop = fresh_loop_vars () in 
 			let new_loop_list = (Some cont, end_loop, js_lab) :: loop_list in 
-			let cmds3, x3, errs3, rets3, breaks3, conts3 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e2 in		
+			let cmds3, x3, errs3, rets3, breaks3, conts3 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e3 in		
 			
 			let cur_breaks, outer_breaks = filter_cur_jumps breaks3 js_lab true in 
 			let cur_conts, outer_conts = filter_cur_jumps conts3 js_lab true in 
@@ -3094,7 +3094,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 			let cmd_ass_xc = SLBasic (SAssignment (x_c, Literal (Num 0.))) in 
 			
 			(*   x_ret_1 := PHI(x_ret_0, x_ret_3)	 *)
-			let cmd_ass_xret1 = SLPhiAssignment (x_ret_1, [| Some x_ret_0; Some x_ret_1 |]) in 
+			let cmd_ass_xret1 = SLPhiAssignment (x_ret_1, [| Some x_ret_0; Some x_ret_3 |]) in 
 			
 			(* x_c_1 := PSI(x_c, x_c_2);	 *) 
 			let x_c_1 = fresh_var () in 
@@ -3156,8 +3156,8 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 			let cmd_goto_xret4_empty = SLGuardedGoto (
 				BinOp (Var x_ret_4, Equal, Literal Empty), next5, next6) in 
 				
-			(* x_ret_5 := PHI(x_ret_0, x_ret_1) *)
-			let cmd_phi_xret5 = SLPhiAssignment (x_ret_5, [| Some x_ret_0; Some x_ret_1 |]) in 
+			(* x_ret_5 := PHI(x_ret_0, x_ret_1, x_ret_4) *)
+			let cmd_phi_xret5 = SLPhiAssignment (x_ret_5, [| Some x_ret_0; Some x_ret_1; Some x_ret_4 |]) in 
 			
 			let cmds1 = add_initial_label cmds1 next1 in 
 			let cmds = cmds2 @ [                              (*           cmds2                                                        *)
@@ -3190,7 +3190,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 				(None, Some end_loop, cmd_phi_xret4);           (* end_loop: x_ret_4 := PHI(x_ret_1, break_vars)                          *)
 			  (None, None,          cmd_goto_xret4_empty);    (*           goto [ x_ret_4 = $$empty ] next5 next6                       *) 
 			  (None, Some next5,    SLBasic SSkip);           (* next5:    skip                                                         *)
-				(None, Some next6,    cmd_phi_xret5)            (* next6:    x_ret_5 := PHI(x_ret_0, x_ret_1)                             *) 
+				(None, Some next6,    cmd_phi_xret5)            (* next6:    x_ret_5 := PHI(x_ret_0, x_ret_1, x_ret_4)                    *) 
 			] in 
 			let errs = errs2 @ [x2_v; x4; xlf] @ errs1 @ [ x5 ] @ errs3 @ [ x3_v ] in 
 			cmds, Var x_ret_5, errs, rets3, outer_breaks, outer_conts

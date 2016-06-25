@@ -166,7 +166,7 @@ with
 
 proc i__getAllEnumerableFields (l) {
 			props := new ();
-			xret := "i__getAllEnumerableFieldsIter" (l, props);
+			xret := "i__getAllEnumerableFieldsIter" (l, props, l);
 	rlab:	skip
 }
 with
@@ -176,7 +176,9 @@ with
 
 (* *** GETALLENUMERABLEFIELDSITER *** *)
 
-proc i__getAllEnumerableFieldsIter (l, props) {
+proc i__getAllEnumerableFieldsIter (l, props, b) {
+			l := l;
+			b := b;
 			enums := "i__getEnumerableFields" (l);
 			
 			len := length (enums);
@@ -184,6 +186,9 @@ proc i__getAllEnumerableFieldsIter (l, props) {
 	loop:	goto [n < len] head next;
 	
 	head:	hf := hasField (props, nth (enums, n));
+			goto [hf] inc test;
+	test:	goto [l = b] add bf;
+	bf:		hf := hasField (b, nth (enums, n));
 			goto [hf] inc add;
 	add:	[props, nth (enums, n)] := {{ "d", l, $$f, $$f, $$f }};
 	inc:	n := n + 1;
@@ -192,7 +197,7 @@ proc i__getAllEnumerableFieldsIter (l, props) {
 	next:	l := [l, "@proto"];
 			goto [l = $$null] end deeper;
 			
-	deeper:	xret := "i__getAllEnumerableFieldsIter" (l, props);
+	deeper:	xret := "i__getAllEnumerableFieldsIter" (l, props, b);
 
 	end:	xret := props;
 			

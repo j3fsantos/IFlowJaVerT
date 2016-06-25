@@ -763,7 +763,7 @@ evaluate_phi_psi_cmd prog proc which_pred heap store cur_cmd prev_cmd ac_cur_cmd
 	  let cur_proc_name = proc.proc_name in 
 		let cur_which_pred =  
 			try Hashtbl.find which_pred (cur_proc_name, prev_cmd, ac_cur_cmd) 
-			with _ ->  raise (Failure (Printf.sprintf "which_pred undefined for command: %s %d %d %d" cur_proc_name prev_cmd cur_cmd ac_cur_cmd)) in 
+			with _ ->  raise (Failure (Printf.sprintf "which_pred undefined for command: %s %d %d %d" cur_proc_name prev_cmd cur_cmd ac_cur_cmd)) in 		
 		let x_live = x_arr.(cur_which_pred) in 
 		let v = (match x_live with 
 		| None -> Undefined 
