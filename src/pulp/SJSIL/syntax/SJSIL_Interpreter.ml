@@ -709,9 +709,12 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 		let call_proc = try SProgram.find prog call_proc_name with
 		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist." call_proc_name)) in
 		let new_store = init_store call_proc.proc_params arg_vals in 
-		let args_obj = SHeap.create 1 in 
-			SHeap.replace args_obj largvals (LList arg_vals);
-			SHeap.replace heap larguments args_obj;
+		if (List.length arg_vals = 0) || (List.nth arg_vals 0 <> String "args") then
+		begin
+			let args_obj = SHeap.create 1 in 
+				SHeap.replace args_obj largvals (LList arg_vals);
+				SHeap.replace heap larguments args_obj;
+		end;
 		(match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 with 
 		| Normal, v -> 
 			Hashtbl.replace store x v;
