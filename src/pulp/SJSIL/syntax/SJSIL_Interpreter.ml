@@ -4,6 +4,9 @@
 open SSyntax
 open Batteries
 
+let larguments = "$largs"
+let largvals = "args"
+
 let verbose = ref false
 
 let proto_f = "@proto" 
@@ -605,6 +608,15 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store =
 			v
 		| _, _ -> raise (Failure "Illegal Proto Obj Inspection"))
 
+  | SArguments x ->
+		let arg_obj = (try SHeap.find heap larguments with
+		| _ -> raise (Failure "The arguments object doesn't exist.")) in
+		let v = (try SHeap.find arg_obj "args" with
+		| _ -> raise (Failure "The arguments are not available.")) in
+			Hashtbl.replace store x v;
+			if (!verbose) then Printf.printf "args: %s \n" (SSyntax_Print.string_of_literal v false);
+			v
+
 	| SGetFields (x, e) ->
 		let v_e = evaluate_expr e store in
 		(match v_e with
@@ -697,6 +709,9 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 		let call_proc = try SProgram.find prog call_proc_name with
 		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist." call_proc_name)) in
 		let new_store = init_store call_proc.proc_params arg_vals in 
+		let args_obj = SHeap.create 1 in 
+			SHeap.replace args_obj largvals (LList arg_vals);
+			SHeap.replace heap larguments args_obj;
 		(match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 with 
 		| Normal, v -> 
 			Hashtbl.replace store x v;

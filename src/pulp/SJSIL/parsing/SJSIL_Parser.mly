@@ -106,6 +106,7 @@ open SSyntax
 %token ISPRIMITIVE
 %token LENGTH
 %token GETFIELDS
+%token ARGUMENTS
 %token M_ABS 
 %token M_ACOS 
 %token M_ASIN 
@@ -344,6 +345,11 @@ cmd_target:
 		}
 	| v = VAR; DEFEQ; GETFIELDS; LBRACE; e=expr_target; RBRACE
 		{ Some (SSyntax.SLBasic (SGetFields (v, e))) }
+(* x := args *)
+	| v = VAR; DEFEQ; ARGUMENTS
+	  {
+			Some (SSyntax.SLBasic (SArguments v))
+		}
 (* goto i *)
 	| GOTO; i=VAR 
 		{

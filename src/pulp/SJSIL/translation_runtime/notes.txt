@@ -20,6 +20,34 @@ i__toObject					YES
 
 
 
+UNDERSTAND TESTS
+----------------
+
+Language: 
+	- NO ES6 features
+	- NO Arguments object
+
+Object,	Boolean, Math: 	Everything
+Date, 	RegExp,	 JSON:	Nothing
+
+Global object:
+	?????
+
+Function:
+	?????
+	
+Array:
+	?????
+
+String:
+	?????
+
+Number: 
+	?????
+	
+
+	
+
 NOTES
 -----
 

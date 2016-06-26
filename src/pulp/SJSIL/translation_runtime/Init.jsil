@@ -228,7 +228,7 @@ proc setupInitialHeap () {
   			
   			(* Function.prototype *)
  
-   			xret := "create_default_object" ($lfun_proto, $lobj_proto, "Function", 0);
+   			xret := "create_default_object" ($lfun_proto, $lobj_proto, "Function", $$t);
   			
   			[$lfun_proto, "constructor"] := {{ "d", $lfun, $$t, $$f, $$t }};
   			[$lfun_proto, "toString"]    := {{ "d", $lfp_toString, $$t, $$f, $$t }};
@@ -389,6 +389,7 @@ proc setupInitialHeap () {
 			(* Boolean.prototype *)
 			
 			xret := "create_default_object" ($lbool_proto, $lobj_proto, "Boolean", $$t);
+			[$lbool_proto, "@primitiveValue"] := $$f;
 			
 			[$lbool_proto, "constructor"] := {{ "d", $lbool, $$t, $$f, $$t }};
 			[$lbool_proto, "toString"]    := {{ "d", $lbp_toString, $$t, $$f, $$t }};
@@ -429,7 +430,7 @@ proc setupInitialHeap () {
 			[$lnum_proto, "toExponential"]        := {{ "d", $lnp_toExponential, $$t, $$f, $$t }};
 			[$lnum_proto, "toPrecision"]          := {{ "d", $lnp_toPrecision, $$t, $$f, $$t }};
 			
-			xret := "create_object_with_call_construct" ($lnp_toString, "NP_toString", $$empty, 0);
+			xret := "create_object_with_call_construct" ($lnp_toString, "NP_toString", $$empty, 1);
 			xret := "create_object_with_call_construct" ($lnp_toLocaleString, "NP_toLocaleString", $$empty, 0);	
 			xret := "create_object_with_call_construct" ($lnp_valueOf, "NP_valueOf", $$empty, 0);
 			xret := "create_object_with_call_construct" ($lnp_toFixed, "NP_toFixed", $$empty, 1);

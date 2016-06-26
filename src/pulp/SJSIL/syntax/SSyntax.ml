@@ -202,6 +202,7 @@ type basic_jsil_cmd =
 	| SProtoField     of jsil_var  * jsil_expr * jsil_expr
 	| SProtoObj       of jsil_var  * jsil_expr * jsil_expr 
 	| SGetFields      of jsil_var  * jsil_expr
+	| SArguments      of jsil_var
 
 (* SJSIL All Statements *)
 type jsil_cmd =
