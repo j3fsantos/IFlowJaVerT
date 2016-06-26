@@ -1353,7 +1353,7 @@ with
 proc f__hasInstance(v1, v2) {		
 			v1 := v1;
 			v2 := v2;	
-			goto [not (typeOf (v2) = $$object_type)] throw s2;
+			goto [not (typeOf (v2) = $$object_type)] rf s2;
 	
 	s2:		g := [v1, "@get"];
 			xret := g (v1, "prototype") with elab;
@@ -1367,6 +1367,25 @@ proc f__hasInstance(v1, v2) {
 			goto rlab;
 			
 	rf:		xret := $$f;
+	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* ************ *) 
+(* FUNCTION GET *)
+(* ************ *)
+
+proc f__get(o, prop) {		
+			xret := "o__get" (o, prop) with elab;
+			goto [prop = "caller"] elab rlab;
+			
 	rlab:	skip;
 	
 	throw:	xret := "TypeError" ();

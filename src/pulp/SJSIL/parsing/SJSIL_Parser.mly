@@ -107,6 +107,7 @@ open SSyntax
 %token LENGTH
 %token GETFIELDS
 %token ARGUMENTS
+%token APPLY
 %token M_ABS 
 %token M_ACOS 
 %token M_ASIN 
@@ -368,6 +369,12 @@ cmd_target:
 			(* Printf.printf "Parsing Procedure Call.\n"; *)
 			Some (SSyntax.SLCall (v, e, es, oi))
 		}
+(* x := apply (e1, ..., en) with j *)
+	| v=VAR; DEFEQ; APPLY; LBRACE; es=expr_list_target; RBRACE; oi = option(call_with_target)
+		{
+			(* Printf.printf "Parsing Procedure Call.\n"; *)
+			Some (SSyntax.SLApply (v, es, oi))
+		}
 (* x := eval(e) with j *)
   | v=VAR; DEFEQ; PARSE; LBRACE; e = expr_target; RBRACE; WITH; j=VAR
 	  {
@@ -412,7 +419,8 @@ expr_target:
 (* {{ }} *)
  	| LISTOPEN; LISTCLOSE { SSyntax.LEList [] }
 (* {{ e, ..., e }} *)
-	| LISTOPEN; exprlist = separated_list(COMMA, expr_target); LISTCLOSE { SSyntax.LEList exprlist }
+	| LISTOPEN; exprlist = separated_list(COMMA, expr_target); LISTCLOSE 
+		{ SSyntax.LEList exprlist }
 (* (e) *)
   | LBRACE; e=expr_target; RBRACE
 		{ e }

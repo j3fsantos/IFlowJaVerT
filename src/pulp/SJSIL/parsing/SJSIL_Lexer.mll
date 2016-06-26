@@ -69,6 +69,7 @@ rule read = parse
 	| "with"               { SJSIL_Parser.WITH }
 	| "getFields"          { SJSIL_Parser.GETFIELDS }
 	| "args"               { SJSIL_Parser.ARGUMENTS }
+	| "apply"              { SJSIL_Parser.APPLY }
 (* assertion keywords *)
 	| "/\\"								 { SJSIL_Parser.LAND }
 	| "\\/"								 { SJSIL_Parser.LOR }

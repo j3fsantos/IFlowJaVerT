@@ -1307,7 +1307,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 					end1: 	x_body := [x_f_val, "@call"]; 
 		       				x_scope := [x_f_val, "@scope"]; 
 					 				x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err; 
-					 				goto [ x_r1 = $$emtpy ] next3 next4;
+					 				goto [ x_r1 = $$empty ] next3 next4;
         	next3:  x_r2 := $$undefined; 
 					next4:  x_r3 := PHI(x_r1, x_r2)
 		*)

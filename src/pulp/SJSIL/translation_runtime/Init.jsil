@@ -91,9 +91,11 @@ proc create_object_with_call_construct (l, call, construct, len) {
 			xret := "create_default_object" (l, $lfun_proto, "Function", $$t);
 			
 			[xret, "length"] := {{ "d", len, $$f, $$f, $$f }};
-
+			
 			[xret, "@call"] := call;
 			[xret, "@construct"] := construct;
+
+			[xret, "@get"] := "f__get";
 			[xret, "@hasInstance"] := "f__hasInstance";
 
 	rlab:	xret := l
@@ -222,13 +224,14 @@ proc setupInitialHeap () {
   			
   			(* Function object *)
     			
-  			xret := "create_object_with_call_construct" ($lfun, $$empty, $$empty, 1);
+  			xret := "create_object_with_call_construct" ($lfun, "Function_call", "Function_construct", 1);
   			
-  			[$lfun, "prototype"]                := {{ "d", $lfun_proto, $$f, $$f, $$f }};
+  			[$lfun, "prototype"] := {{ "d", $lfun_proto, $$f, $$f, $$f }};
   			
   			(* Function.prototype *)
  
-   			xret := "create_default_object" ($lfun_proto, $lobj_proto, "Function", $$t);
+   			xret := "create_object_with_call_construct" ($lfun_proto, "FP_default", $$empty, 0);
+   			[$lfun_proto, "@proto"] := $lobj_proto;
   			
   			[$lfun_proto, "constructor"] := {{ "d", $lfun, $$t, $$f, $$t }};
   			[$lfun_proto, "toString"]    := {{ "d", $lfp_toString, $$t, $$f, $$t }};

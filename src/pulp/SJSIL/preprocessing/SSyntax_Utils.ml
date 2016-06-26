@@ -75,6 +75,7 @@ let desugar_labs (lproc : lprocedure) =
 			            | SLGoto lab -> SGoto (Hashtbl.find mapping lab)
 			            | SLGuardedGoto (e, lt, lf) -> SGuardedGoto (e, Hashtbl.find mapping lt, Hashtbl.find mapping lf)
 			            | SLCall (x, e, le, ol) -> SCall (x, e, le, match ol with | None -> None | Some lab -> Some (Hashtbl.find mapping lab)) 
+									| SLApply (x, le, ol) -> SApply (x, le, match ol with | None -> None | Some lab -> Some (Hashtbl.find mapping lab))
 									| SLPhiAssignment (x, args) -> SPhiAssignment (x, args) 
 									| SLPsiAssignment (x, args) -> SPsiAssignment (x, args) 
 									| SLParse (x, e, lab) -> SParse (x, e, (Hashtbl.find mapping lab)) in
