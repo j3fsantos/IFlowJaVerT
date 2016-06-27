@@ -1,4 +1,128 @@
-import Internals;
+import Internals, Object;
+
+(* *** DEFAULT *** *)
+
+proc FP_default () {
+			xret := $$undefined;
+			
+	rlab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+};
+
+(* *** CONSTRUCT *** *)
+
+proc Function_call () {
+			xret := "Function_construct" ("args") with elab;
+			
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** CALL *** *)
+
+proc FP_call () {
+					
+			arguments := args;
+			len := length (arguments);
+			vthis  := nth (arguments, 1); 
+			
+			xret := "i__isCallable" (vthis);
+			goto [xret] this te;
+	
+	this:	xthis := $$undefined;
+			goto [len < 3] body sthis;
+	sthis:	xthis := nth (arguments, 2);
+	
+	params:	pars := {{ }};
+			goto [3 < len] spar body;
+	spar:	pars := cdr (cdr (cdr arguments));	
+		
+	body:	body   := [vthis, "@call"]; 
+			xscope := [vthis, "@scope"]; 
+	
+			new_args := xscope :: xthis :: pars;
+			
+			xret := apply (body, new_args) with elab;
+			
+			goto [xret = $$empty] undef rlab;
+	
+	undef:	xret := $$undefined;
+			goto rlab;
+	
+	te:		xret := "TypeError" ();
+			goto elab;	
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** APPLY *** *)
+
+proc FP_apply (xsc, vthis, this_arg, arg_array) {
+
+			xsc := xsc;
+			vthis := vthis;
+			this_arg := this_arg;
+			arg_array := arg_array;
+			
+			params := {{ }};
+			
+			xret := "i__isCallable" (vthis);
+			goto [xret] array te;
+	
+	array:	goto [(arg_array = $$null) or (arg_array = $$undefined)] call obj;
+			
+	isobj:	goto [typeOf (arg_array) = $$object_type] obj te;
+	
+	obj:	g := [arg_array, "@get"];
+			xret := g (arg_array, "length") with elab;
+			xret := "i__toUint32" (xret) with elab;
+			len := xret;
+			index := 0;
+	
+	loop:	goto [index < len] head call;
+	
+	head:	xret := "i__toString" (index) with elab;
+			xret := g (arg_array, xret) with elab;
+			params :=  params ++ {{ xret }};
+			index := index + 1;
+			goto loop;
+			
+	call:	xthis := this_arg;
+			body   := [vthis, "@call"]; 
+			xscope := [vthis, "@scope"];
+			
+			new_args := xscope :: xthis :: params;
+			
+			xret := apply (body, new_args) with elab;
+			goto rlab;
+	
+	te:		xret := "TypeError" ();
+			goto elab;	
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err:	xret, elab;
+};
+
+
 
 (* *** TOSTRING *** *)
 

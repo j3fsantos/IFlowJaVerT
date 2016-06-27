@@ -70,6 +70,7 @@ rule read = parse
 	| "with"               { SJSIL_Parser.WITH }
 	| "getFields"          { SJSIL_Parser.GETFIELDS }
 	| "args"               { SJSIL_Parser.ARGUMENTS }
+	| "apply"              { SJSIL_Parser.APPLY }
 (* assertion keywords *)
 	| "/\\"								 { SJSIL_Parser.LAND }
 	| "\\/"								 { SJSIL_Parser.LOR }
@@ -101,6 +102,7 @@ rule read = parse
 	| "%"                  { SJSIL_Parser.MOD }
 	| "<:"                 { SJSIL_Parser.SUBTYPE }
 	| "concat"             { SJSIL_Parser.CONCAT }
+	| "++"                 { SJSIL_Parser.APPEND }
 	| "and"                { SJSIL_Parser.AND }
 	| "or"                 { SJSIL_Parser.OR }
 	| "&"                  { SJSIL_Parser.BITWISEAND }
@@ -135,6 +137,7 @@ rule read = parse
 	| "m_floor"            { SJSIL_Parser.M_FLOOR }
 	| "m_log"              { SJSIL_Parser.M_LOG }
 	| "m_round"            { SJSIL_Parser.M_ROUND }
+	| "random"             { SJSIL_Parser.M_RANDOM }
   | "m_sgn"              { SJSIL_Parser.M_SGN }
 	| "m_sin"              { SJSIL_Parser.M_SIN }
 	| "m_sqrt"             { SJSIL_Parser.M_SQRT }

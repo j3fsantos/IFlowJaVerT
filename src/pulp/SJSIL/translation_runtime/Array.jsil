@@ -6,6 +6,18 @@ import Internals;
 
 (* *** CONSTRUCT *** *)
 
+proc Array_call () {
+			xret := "Array_construct" ("args") with elab;
+			
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err:	xret, elab;
+};
+
 proc Array_construct () {
 
 			la := args;
@@ -96,7 +108,8 @@ proc a__defineOwnProperty (l, prop, desc, throw) {
 			goto [(not (index < oldLenNum)) and (not (nth (oldLenDesc, 2)))] reject idop;
 	idop:	xret := "o__defineOwnProperty" (l, prop, desc, $$f) with elab;
 			goto [xret = $$f] reject ilen;
-	ilen:	xret := "o__defineOwnProperty" (l, "length", {{ "d", (index + 1), nth (oldLenDesc, 2), nth (oldLenDesc, 3), nth (oldLenDesc, 4) }}, $$f);
+	ilen:	goto [not (index < oldLenNum)] setl rlab;
+	setl:	xret := "o__defineOwnProperty" (l, "length", {{ "d", (index + 1), nth (oldLenDesc, 2), nth (oldLenDesc, 3), nth (oldLenDesc, 4) }}, $$f);
 			goto rlab;
 			
 	norm:	xret := "o__defineOwnProperty" (l, prop, desc, throw) with elab;
