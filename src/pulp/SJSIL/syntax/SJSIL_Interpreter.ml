@@ -661,7 +661,7 @@ let init_store params args =
 	if (!verbose) then Printf.printf "I have just initialized the following store\n %s \n" str_store; 
 	new_store 
 	
-let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd = 	
+let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl = 	
 	let proc = try SProgram.find prog cur_proc_name with
 		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist. Ew." cur_proc_name)) in  
 	let cmd = proc.proc_body.(cur_cmd) in 
@@ -670,20 +670,20 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 	match cmd with 
 	| SBasic bcmd -> 
 		let _ = evaluate_bcmd bcmd heap store in 
-	  evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd
+	  evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
 		 
 	| SGoto i -> 
-		evaluate_cmd prog cur_proc_name which_pred heap store i cur_cmd
+		evaluate_cmd prog cur_proc_name which_pred heap store i cur_cmd cc_tbl vis_tbl
 	
 	| SGuardedGoto (e, i, j) -> 
 		let v_e = evaluate_expr e store in
 		(match v_e with 
-		| Bool true -> evaluate_cmd prog cur_proc_name which_pred heap store i cur_cmd
-		| Bool false -> evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd
+		| Bool true -> evaluate_cmd prog cur_proc_name which_pred heap store i cur_cmd cc_tbl vis_tbl
+		| Bool false -> evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl
 		| _ -> raise (Failure (Printf.sprintf "So you're really trying to do a goto based on %s? Ok..." (SSyntax_Print.string_of_literal v_e false))))
 	
 	| SPhiAssignment (x, x_arr) -> 
-		evaluate_phi_psi_cmd prog proc which_pred heap store cur_cmd prev_cmd cur_cmd x x_arr 
+		evaluate_phi_psi_cmd prog proc which_pred heap store cur_cmd prev_cmd cur_cmd x x_arr cc_tbl vis_tbl
 
 	| SPsiAssignment (x, x_arr) ->
 		let rec find_prev_non_psi_cmd index = 
@@ -694,9 +694,51 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 					| _, SPsiAssignment (_, _) -> find_prev_non_psi_cmd (index - 1) 
 					| _ -> index) in 
 		let ac_cur_cmd = find_prev_non_psi_cmd cur_cmd in 
-		evaluate_phi_psi_cmd prog proc which_pred heap store cur_cmd prev_cmd ac_cur_cmd x x_arr
-		
+		evaluate_phi_psi_cmd prog proc which_pred heap store cur_cmd prev_cmd ac_cur_cmd x x_arr cc_tbl vis_tbl
+	
+	| SCall (x, e, e_args, j) 
+		when  evaluate_expr e store = String "Object_eval" ->
+		Printf.printf "I intercepted something!!!\n";  
+		let code = 
+			(match e_args with 
+			| _ :: _ :: str_e :: _ -> 
+				let str_e = evaluate_expr str_e store in 
+				match str_e with 
+				| String str_e -> str_e 
+				| _ -> raise (Failure "no argument given to eval")) in  
+		let x_scope = 
+			(match SSyntax_Aux.try_find store (Js2jsil.var_scope)  with 
+			| None -> raise (Failure "No var_scope to give to eval")
+			| Some v -> v) in 
+		let vis_fid, cc_tbl = 
+			(match vis_tbl, cc_tbl with 
+			| Some vis_tbl, Some cc_tbl -> 
+				(try Hashtbl.find vis_tbl cur_proc_name with _ ->
+					raise (Failure (Printf.sprintf "Function %s not found in visibility table" cur_proc_name))), cc_tbl
+			| _, _ -> raise (Failure "Wrong call to eval")) in 
+		let e_js = (try Parser_main.exp_from_string code with
+    	| Parser.ParserFailure file -> Printf.printf "\nParsing problems with the file '%s'.\n" file; exit 1) in
+		let proc_eval = Js2jsil.generate_proc_eval cur_proc_name e_js cc_tbl vis_fid in 
+		let proc_eval_str = SSyntax_Print.string_of_lprocedure proc_eval in 
+		Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str;  
+		let proc_eval = SSyntax_Utils.desugar_labs proc_eval in 
+		SSyntax_Utils.extend_which_pred which_pred proc_eval; 
+		SProgram.add prog proc_eval.proc_name proc_eval;
+		let new_store = init_store [ Js2jsil.var_scope ] [ x_scope ] in
+		(match evaluate_cmd prog proc_eval.proc_name which_pred heap new_store 0 0 (Some cc_tbl) vis_tbl with 
+		| Normal, v -> 
+			Hashtbl.replace store x v;
+			SProgram.remove prog proc_eval.proc_name;
+	 		evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd (Some cc_tbl) vis_tbl
+		| Error, v -> 
+			match proc.error_label with 
+			| None -> raise (Failure "procedure throws an error without a ret label") 
+			| Some err_label ->
+				Hashtbl.replace store x v;
+				evaluate_cmd prog cur_proc_name which_pred heap store err_label cur_cmd (Some cc_tbl) vis_tbl)
+	
 	| SCall (x, e, e_args, j) -> 
+		Printf.printf "Nothing was intercepted!!!\n"; 
 		let call_proc_name_val = evaluate_expr e store in 
 		let call_proc_name = (match call_proc_name_val with 
 		| String call_proc_name -> 
@@ -712,35 +754,18 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd =
 		let args_obj = SHeap.create 1 in 
 			SHeap.replace args_obj largvals (LList arg_vals);
 			SHeap.replace heap larguments args_obj;
-		(match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 with 
+		(match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 cc_tbl vis_tbl with 
 		| Normal, v -> 
 			Hashtbl.replace store x v;
-	 		evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd
+	 		evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
 		| Error, v -> 
 			(match j with
 			| None -> raise (Failure ("Procedure "^ call_proc_name ^" just returned an error, but no error label was provided. Bad programmer."))
 			| Some j -> Hashtbl.replace store x v;
-				evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd))
+				evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl))
 				
-	| SParse (x, e, j) ->
-		let v_e = evaluate_expr e store in
-		(* Printf.printf "parse parsimonious\n"; *)
-		let proc_e = 
-			(match v_e with 
-			| String str_e -> 
-				try Some (SSyntax_Utils.proc_of_string str_e) with _ -> None 
-			| _ -> None) in 
-		match proc_e with 
-		| Some proc_e -> 
-			let proc_e_name = proc_e.proc_name in 
-			SProgram.add prog proc_e_name proc_e;
-			Hashtbl.add store x (String proc_e_name);  
-			evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd
-		| None -> 
-			Hashtbl.add store x (String "ERROR: PARSE ERROR"); 
-			evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd
 and 
-evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd = 	
+evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl = 	
 	let cur_proc_name = proc.proc_name in 
 	if (Some cur_cmd = proc.ret_label)
 		then 
@@ -772,9 +797,9 @@ evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd =
 				match next_cmd with 
 				| Some (_, SPsiAssignment (_, _)) -> prev_cmd 
 				| _ -> cur_cmd in 
-			evaluate_cmd prog proc.proc_name which_pred heap store (cur_cmd + 1) next_prev))
+			evaluate_cmd prog proc.proc_name which_pred heap store (cur_cmd + 1) next_prev cc_tbl vis_tbl))
 and 
-evaluate_phi_psi_cmd prog proc which_pred heap store cur_cmd prev_cmd ac_cur_cmd x x_arr = 
+evaluate_phi_psi_cmd prog proc which_pred heap store cur_cmd prev_cmd ac_cur_cmd x x_arr cc_tbl vis_tbl = 
 	  let cur_proc_name = proc.proc_name in 
 		let cur_which_pred =  
 			try Hashtbl.find which_pred (cur_proc_name, prev_cmd, ac_cur_cmd) 
@@ -791,12 +816,12 @@ evaluate_phi_psi_cmd prog proc which_pred heap store cur_cmd prev_cmd ac_cur_cmd
 			  | None -> "NONE!" 
 				| Some x_live -> x_live) cur_which_pred (Array.length x_arr - 1) x (SSyntax_Print.string_of_literal v false);
 		Hashtbl.add store x v; 
-		evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd
+		evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
 								
 																						 		
-let evaluate_prog prog which_pred heap = 
+let evaluate_prog prog which_pred heap cc_tbl vis_tbl = 
 	Random.self_init();
 	let store = init_store [] [] in 
-	evaluate_cmd prog "main" which_pred heap store 0 0
+	evaluate_cmd prog "main" which_pred heap store 0 0 cc_tbl vis_tbl
 
 	

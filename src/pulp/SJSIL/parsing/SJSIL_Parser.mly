@@ -37,6 +37,7 @@ open SSyntax
 %token OREFTYPELIT
 %token LISTTYPELIT
 (* command keywords  *)
+%token JS2JSIL
 %token PARSE
 %token PHI
 %token PSI
@@ -367,13 +368,7 @@ cmd_target:
 		{
 			(* Printf.printf "Parsing Procedure Call.\n"; *)
 			Some (SSyntax.SLCall (v, e, es, oi))
-		}
-(* x := eval(e) with j *)
-  | v=VAR; DEFEQ; PARSE; LBRACE; e = expr_target; RBRACE; WITH; j=VAR
-	  {
-			Some (SLParse (v, e, j))
-		}	
-;
+		};
 
 label: 
 	lab=VAR; COLON; 

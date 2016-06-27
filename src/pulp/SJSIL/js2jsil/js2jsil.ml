@@ -3862,6 +3862,70 @@ let generate_main e main cc_table =
 		lspec = None 
 	}
 	
+let generate_proc_eval fid e cc_table vis_fid =
+	let new_fid = Js_pre_processing.fresh_eval_name () in 
+	Js_pre_processing.update_cc_tbl cc_table fid new_fid [] e; 
+	let new_fid_vars = Js_pre_processing.var_decls e in 	
+
+	(* x_er := new () *)
+	let x_er = fresh_var () in  
+	let cmd_er_creation = (None, None, SLBasic (SNew x_er)) in 
+	
+	(* [x_er, decl_var_i] := undefined *) 
+	let cmds_decls = 
+		List.map (fun decl_var -> 
+			let cmd = SLBasic (SMutation (Var x_er, Literal (String decl_var), Literal Undefined)) in
+			(None, None, cmd))
+		new_fid_vars in 
+	
+	(* [__scope, "fid"] := x_er *) 
+	let cmd_ass_er_to_sc = (None, None, SLBasic (SMutation (Var var_scope, Literal (String new_fid), Var x_er))) in 
+	
+	(* x__te := TypeError () *)
+	let cmd_ass_te = make_var_ass_te () in 
+	let cmd_ass_te = b_annot_cmd cmd_ass_te in 
+	(* x__te := SyntaxError () *)
+	let cmd_ass_se = make_var_ass_se () in 
+	let cmd_ass_se = b_annot_cmd cmd_ass_se in
+	(* x__true := $$t *) 
+	let cmd_ass_xtrue = b_annot_cmd (SLBasic (SAssignment (var_true, Literal (Bool true)))) in
+	(* x__false := $$f *) 
+	let cmd_ass_xfalse = b_annot_cmd (SLBasic (SAssignment (var_false, Literal (Bool false)))) in
+	
+	let ctx = make_translation_ctx fid in 
+	let fake_ret_label = fresh_label () in 
+	let fake_ret_var = fresh_var () in 
+	let ret_label = ctx.tr_ret_lab in 
+	let ret_var = ctx.tr_ret_var in 
+	let new_ctx = { ctx with tr_ret_lab = fake_ret_label;  tr_ret_var = fake_ret_var } in 
+	let cmds_e, x_e, errs, rets, _, _ = translate_statement new_fid cc_table new_ctx vis_fid ctx.tr_error_lab [] None None e in 
+	
+	let xe_v, cmd_gv_xe = make_get_value_call x_e ctx.tr_error_lab in 
+	let cmd_gv_xe = (None, None, cmd_gv_xe) in 
+	
+	(* ret_lab: x_ret := xe_v *)
+	let cmd_dr_ass = (None, Some ctx.tr_ret_lab, SLBasic (SAssignment (ctx.tr_ret_var, Var xe_v))) in
+	
+	(* fake_ret_lab: x_fake_ret := PHI(rets) *)
+	let cmd_fake_ret = make_final_cmd rets new_ctx.tr_ret_lab new_ctx.tr_ret_var in
+	(* lab_err: x_error := PHI(errs, x_fake_ret) *) 
+	let cmd_error_phi = make_final_cmd (errs @ [ fake_ret_var ]) ctx.tr_error_lab ctx.tr_error_var in 	
+	
+	let fid_cmds = 
+		[ cmd_er_creation ] @ cmds_decls @ [ cmd_ass_er_to_sc; cmd_ass_te; cmd_ass_se;  cmd_ass_xtrue; cmd_ass_xfalse ] @ cmds_e 
+		@ [ cmd_gv_xe; cmd_dr_ass; cmd_fake_ret; cmd_error_phi] in 
+	{ 
+		lproc_name = new_fid;
+    lproc_body = (Array.of_list fid_cmds);
+    lproc_params = [ var_scope ]; 
+		lret_label = Some ctx.tr_ret_lab; 
+		lret_var = Some ctx.tr_ret_var;
+		lerror_label = Some ctx.tr_error_lab; 
+		lerror_var = Some ctx.tr_error_var;
+		lspec = None 
+	}
+
+	
 let generate_proc e fid params cc_table vis_fid =
 	let fid_decls = Js_pre_processing.func_decls_in_exp e in
   let fid_fnames = List.map (fun f ->
@@ -3958,4 +4022,4 @@ let js2jsil e =
 	(* let main_str = SSyntax_Print.string_of_lprocedure jsil_proc_main in 
 	Printf.printf "main code:\n %s\n" main_str; *)
 	
-	Some js2jsil_imports, jsil_prog	
+	Some js2jsil_imports, jsil_prog, cc_tbl, vis_tbl

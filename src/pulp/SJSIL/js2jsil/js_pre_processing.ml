@@ -9,6 +9,8 @@ let sanitise name =
 	let s = Str.global_replace (Str.regexp "\$") "_" name in
 	s
 
+let eval_prefix = "___$eval___" 
+
 let update_annotation annots atype new_value =
   let old_removed = List.filter (fun annot -> annot.annot_type <> atype) annots in
   let annot = {annot_type = atype; annot_formula = new_value} in
@@ -38,6 +40,8 @@ let fresh_catch_anonymous () : string =
 let fresh_named n : string =
   fresh_name n 
 
+let fresh_eval_name () : string = 
+	fresh_name eval_prefix
 
 let flat_map f l = List.flatten (List.map f l)
 

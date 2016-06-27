@@ -92,8 +92,8 @@ let test_javascript_template test =
       | Parser.ParserFailure file ->
         Printf.printf "\nParsing problems with the file '%s'.\n" file;
         exit 1) in
-	let (oimp, code) = js2jsil e in 
+	let (oimp, code, cc_tbl, vis_tbl) = js2jsil e in 
 	let imp = if_some oimp (fun x -> x) [] in
 	let prog, which_pred = SSyntax_Utils.prog_of_lprog (imp, code) in 
 	let heap = SHeap.create 1021 in 
-  evaluate_prog prog which_pred heap
+  evaluate_prog prog which_pred heap (Some cc_tbl) (Some vis_tbl)

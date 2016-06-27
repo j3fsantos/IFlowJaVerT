@@ -76,8 +76,7 @@ let desugar_labs (lproc : lprocedure) =
 			            | SLGuardedGoto (e, lt, lf) -> SGuardedGoto (e, Hashtbl.find mapping lt, Hashtbl.find mapping lf)
 			            | SLCall (x, e, le, ol) -> SCall (x, e, le, match ol with | None -> None | Some lab -> Some (Hashtbl.find mapping lab)) 
 									| SLPhiAssignment (x, args) -> SPhiAssignment (x, args) 
-									| SLPsiAssignment (x, args) -> SPsiAssignment (x, args) 
-									| SLParse (x, e, lab) -> SParse (x, e, (Hashtbl.find mapping lab)) in
+									| SLPsiAssignment (x, args) -> SPsiAssignment (x, args) in
 				(spec, x)
 			) cmds_nolab in
 			
@@ -222,6 +221,16 @@ let prog_of_lprog lprog =
 	lproc_list; 
 	
 	prog, global_which_pred
+
+
+let extend_which_pred global_which_pred proc = 
+	let succ_table, pred_table = SSyntax_Utils_Graphs.get_succ_pred proc.proc_body proc.ret_label proc.error_label in 
+	let which_pred = SSyntax_Utils_Graphs.compute_which_preds pred_table in  
+	let proc_name = proc.proc_name in 
+	Hashtbl.iter 
+		(fun (prev_cmd, cur_cmd) i ->
+			Hashtbl.replace global_which_pred (proc_name, prev_cmd, cur_cmd) i)
+		which_pred	
 
 
 		

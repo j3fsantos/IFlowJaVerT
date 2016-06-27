@@ -210,7 +210,6 @@ type jsil_cmd =
 	| SGoto           of int
 	| SGuardedGoto    of jsil_expr * int        * int
 	| SCall           of jsil_var  * jsil_expr  * jsil_expr list * int option
-	| SParse          of jsil_var  * jsil_expr  * int
 	| SPhiAssignment  of jsil_var  * (jsil_var option array)
 	| SPsiAssignment  of jsil_var  * (jsil_var option array)
 
@@ -260,6 +259,7 @@ type jsil_lab_cmd =
 	| SLGoto           of string
 	| SLGuardedGoto    of jsil_expr * string                    * string
 	| SLCall           of jsil_var  * jsil_expr                 * jsil_expr list * string option
+	| SLJs2jsil        of jsil_var  * jsil_expr                 * string
 	| SLParse          of jsil_var  * jsil_expr                 * string
 	| SLPhiAssignment  of jsil_var  * (jsil_var option array)
 	| SLPsiAssignment  of jsil_var  * (jsil_var option array) 

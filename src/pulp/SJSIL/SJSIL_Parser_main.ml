@@ -48,9 +48,9 @@ let return_to_exit rettype =
   | Error -> exit 1
   | _     -> ()
 
-let run_jsil_prog prog which_pred = 
+let run_jsil_prog prog which_pred cc_tbl vis_tbl = 
 	let heap = SHeap.create 1021 in 
-        let (rettype, retval) = evaluate_prog prog which_pred heap in
+        let (rettype, retval) = evaluate_prog prog which_pred heap cc_tbl vis_tbl  in
 	let final_heap_str = SSyntax_Print.sexpr_of_heap heap in 
     if (!verbose) then Printf.printf "Final heap: \n%s\n" final_heap_str;
 				Printf.printf "%s, %s\n" 
@@ -93,17 +93,17 @@ let main () =
 		let all = harness ^ "\n" ^ main in
 		let e = (try Parser_main.exp_from_string all with
       	       | Parser.ParserFailure file -> Printf.printf "\nParsing problems with the file '%s'.\n" file; exit 1) in
-	  let (oimp, code) = js2jsil e in 
+	  let (oimp, code, cc_tbl, vis_tbl) = js2jsil e in 
 	  let imp = SSyntax_Utils.if_some oimp (fun x -> x) [] in
 	  let prog, which_pred = SSyntax_Utils.prog_of_lprog (imp, code) in 
-	  	run_jsil_prog prog which_pred
+	  	run_jsil_prog prog which_pred (Some cc_tbl) (Some vis_tbl)
 	end
 	else
 	begin
 		let lprog = SSyntax_Utils.lprog_of_path !file in 
 		let prog, which_pred = SSyntax_Utils.prog_of_lprog lprog in 
 		let prog, which_pred = if (!do_ssa) then SSyntax_SSA.ssa_compile_prog prog else prog, which_pred in 
-		if (!jsil_run) then run_jsil_prog prog which_pred else () 
+		if (!jsil_run) then run_jsil_prog prog which_pred None None else () 
 	end
 			
 let _ = main()

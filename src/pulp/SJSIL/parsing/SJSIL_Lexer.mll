@@ -55,6 +55,7 @@ rule read = parse
 	| "flag"							 { SJSIL_Parser.FLAG }
 *)
 (* command keywords *)
+	| "js2jsil"						 { SJSIL_Parser.JS2JSIL }
   | "parse"              { SJSIL_Parser.PARSE }
   | "PHI"                { SJSIL_Parser.PHI }
   | "PSI"                { SJSIL_Parser.PSI }

@@ -46,8 +46,8 @@ let process_file path =
       | Parser.ParserFailure file ->
         Printf.printf "\nParsing problems with the file '%s'.\n" file;
         exit 1) in
-	let jsil_prog_e = js2jsil e in 
-	let jsil_prog_str = SSyntax_Print.string_of_lprogram jsil_prog_e in 
+	let imports, jsil_prog_e, _, _ = js2jsil e in 
+	let jsil_prog_str = SSyntax_Print.string_of_lprogram (imports, jsil_prog_e) in 
 	let file_name = Filename.chop_extension path in 
 	burn_to_disk (file_name ^ ".jsil") jsil_prog_str
 	
