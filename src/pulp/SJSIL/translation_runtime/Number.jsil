@@ -7,7 +7,11 @@ import Internals;
 (* *** CALL *** *)
 
 proc Number_call (xsc, vthis, v) {
-			goto [v = $$undefined] zero rlab;
+			la := args;
+			len := length (la);
+			
+			goto [len < 3] zero rlab;
+
 	zero:	v := 0;
 			
 	rlab:	xret := "i__toNumber" (v) with elab;
@@ -22,7 +26,11 @@ with
 (* *** CONSTRUCT *** *)
 
 proc Number_construct (xsc, vthis, v) {
-			goto [v = $$undefined] zero init;
+			la := args;
+			len := length (la);
+			
+			goto [len < 3] zero init;
+			
 	zero:	v := 0;
 			
 	init:	pv := "i__toNumber" (v) with elab;

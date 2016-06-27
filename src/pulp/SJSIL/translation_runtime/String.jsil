@@ -35,7 +35,10 @@ with
 (* *** CALL *** *)
 
 proc String_call (xsc, vthis, s) {
-			goto [s = $$undefined] empty to_str;
+			la := args;
+			len := length (la);
+			
+			goto [len < 3] empty to_str;
 	
 	empty:	xret := "";
 			goto rlab;
@@ -53,18 +56,26 @@ with
 (* *** CONSTRUCT *** *)
 
 proc String_construct (xsc, vthis, s) {
-			goto [s = $$undefined] empty to_str;
+			la := args;
+			len := length (la);
+			
+			goto [len < 3] empty to_str;
 	empty:	pv := ""; 
 			goto norm;
 	to_str:	pv := "i__toString" (s) with elab;
 
 	norm:	xret := new ();
 			xret := "create_default_object" (xret, $lstr_proto, "String", $$t);
+			s := xret;
 			
-			[xret, "@getOwnProperty"] := "s__getOwnProperty";
-			[xret, "@primitiveValue"] := pv;
+			[s, "@getOwnProperty"] := "s__getOwnProperty";
+			[s, "@primitiveValue"] := pv;
 			
-			x := "o__defineOwnProperty" (xret, "length", {{ "d", (length pv), $$f, $$f, $$f }}, $$t); 
+			len := length (pv);
+			
+			dop := [s, "@defineOwnProperty"];
+			xret := dop (s, "length", {{ "d", len, $$f, $$f, $$f }}, $$t) with elab; 
+			xret := s;
 			
 	rlab:	skip;
 	elab:	skip

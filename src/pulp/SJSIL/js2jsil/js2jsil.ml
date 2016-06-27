@@ -3020,7 +3020,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 			body: 		xp := nth (xf, x_c_1)																	6a.	Get the nth property
 								xl := [xlf, xp];																			6a.	Get the location of where it should be
 								xhf := hasField (xl, xp)              			  				6a.	Understand if it's still there!
-								goto [xhf] next1 next4																6a.	And jump accordingly 
+								goto [xhf] next1 next3																6a.	And jump accordingly 
 			next1:		cmds1																									6b.	Evaluate lhs
 								x5 := "i__putValue" (x1, xp) with err									6c.	Put it in, put it in
 								cmds3																									6d. Evaluate the statement
@@ -3031,7 +3031,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 			next3:    x_ret_3 := PHI(x_ret_1, x_ret_2)
 			next4:		x_c_2 := x_c_1 + 1
 								goto head
-		  end_loop:	x_ret_4 := PHI(x_ret_1, break_vars) 
+		  end_loop:	x_ret_4 := PHI(x_ret_1, x_ret_1, break_vars) 
 			          goto [ x_ret_4 = $$empty ] next5 next6
 			next5:    skip 
 			next6:    x_ret_5 := PHI(x_ret_0, x_ret_1, x_ret_4) 
@@ -3120,8 +3120,8 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 			let xhf = fresh_var () in 
 			let cmd_ass_hf = SLBasic (SHasField (xhf, Var xxl, Var xp)) in 
 			
-			(* goto [xhf] next1 next4	 *) 
-			let cmd_goto_xhf = SLGuardedGoto (Var xhf, next1, next4) in 
+			(* goto [xhf] next1 next3	 *) 
+			let cmd_goto_xhf = SLGuardedGoto (Var xhf, next1, next3) in 
 			
 			(* x5 := "i__putValue" (x1, xp) with err	 *) 
 			let x5, cmd_pv_x1 = make_put_value_call x1 xp err in 
@@ -3141,7 +3141,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 			let cmd_goto_xret2 = SLGuardedGoto (expr_goto_guard, next2, next3) in 
 			
 			(* x_ret_3 := PHI(x_ret_1, x_ret_2) *)
-			let cmd_phi_xret3 = SLPhiAssignment (x_ret_3, [| Some x_ret_1; Some x_ret_2 |]) in 
+			let cmd_phi_xret3 = SLPhiAssignment (x_ret_3, [| Some x_ret_1; Some x_ret_1; Some x_ret_2 |]) in 
 			
 			(* x_c_2 := x_c_1 + 1 *) 
 			let cmd_ass_incr = SLBasic (SAssignment (x_c_2, BinOp (Var x_c_1, Plus, Literal (Num 1.)))) in 
@@ -3184,7 +3184,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 				(None, Some cont,     cmd_phi_cont);            (* cont:     x_ret_2 := PHI(cont_vars, x3_v)                              *)
 			  (None, None,          cmd_goto_xret2);          (*           goto [ not (x_ret_2 = $$empty) ] next2 next3                 *) 
 				(None, Some next2,    SLBasic SSkip);           (* next2:    skip                                                         *) 
-			  (None, Some next3,    cmd_phi_xret3);           (* next3:    x_ret_3 := PHI(x_ret_1, x_ret_2)                             *)
+			  (None, Some next3,    cmd_phi_xret3);           (* next3:    x_ret_3 := PHI(x_ret_1, x_ret_1, x_ret_2)                    *)
 				(None, Some next4,    cmd_ass_incr);            (* next4:		 x_c_2 := x_c_1 + 1                                           *)
 				(None, None,          SLGoto head);             (*           goto head                                                    *)
 				(None, Some end_loop, cmd_phi_xret4);           (* end_loop: x_ret_4 := PHI(x_ret_1, break_vars)                          *)
