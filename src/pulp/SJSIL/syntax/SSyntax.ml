@@ -19,6 +19,8 @@ type bin_op =
   | Subtype
 	(* string concatenation *)
   | Concat
+	(* list concatenation *)
+	| Append
   (* Boolean Operators *)
 	| And 
   | Or

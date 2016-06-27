@@ -241,7 +241,12 @@ proc M_pow (xsc, vthis, x, y) {
 			xret := "i__toNumber" (y) with elab;
 			y := xret;
 			
-			xret := x ** y;
+			goto [((x = 1) or (x = -1)) and ((y = inf) or (y = -inf))] oops set;
+	
+	set:	xret := x ** y;
+			goto rlab;
+			
+	oops:	xret := nan;
 
 	rlab:	skip;
 	elab:	skip
@@ -256,7 +261,7 @@ with
 
 proc M_random (xsc, vthis) {
 			
-			xret := m_random (x, y);
+			xret := random;
 
 	rlab:	skip
 }

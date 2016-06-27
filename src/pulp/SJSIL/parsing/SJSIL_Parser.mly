@@ -80,6 +80,7 @@ open SSyntax
 %token MOD
 %token SUBTYPE
 %token CONCAT
+%token APPEND
 %token AND
 %token OR
 %token BITWISEAND
@@ -122,6 +123,7 @@ open SSyntax
 %token M_SGN
 %token M_SQRT 
 %token M_TAN 
+%token M_RANDOM
 (* constants *)
 %token MIN_FLOAT
 %token MAX_FLOAT
@@ -599,6 +601,7 @@ lit_target:
 	| PI { SSyntax.Constant Pi }
 	| SQRT1_2 { SSyntax.Constant Sqrt1_2 }
 	| SQRT2 { SSyntax.Constant Sqrt2 }
+	| M_RANDOM { SSyntax.Constant Random }
 ;
 
 binop_target: 
@@ -613,6 +616,7 @@ binop_target:
 	| MOD { SSyntax.Mod }
 	| SUBTYPE { SSyntax.Subtype }
 	| CONCAT { SSyntax.Concat }
+	| APPEND { SSyntax.Append }
 	| AND { SSyntax.And }
 	| OR { SSyntax.Or }
 	| BITWISEAND { SSyntax.BitwiseAnd }

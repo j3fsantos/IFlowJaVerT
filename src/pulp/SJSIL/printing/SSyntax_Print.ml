@@ -33,6 +33,7 @@ let string_of_binop bop = match bop with
   | Mod -> "%"
 	| Subtype -> "<:"
 	| Concat -> "concat"
+	| Append -> "++"
 	| And -> "and"
   | Or -> "or"
 	| BitwiseAnd -> "&"

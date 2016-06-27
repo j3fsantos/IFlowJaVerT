@@ -319,8 +319,11 @@ let evaluate_binop op lit1 lit2 =
 	| Concat -> 
 		(match lit1, lit2 with 
 		| String s1, String s2 -> (String (s1 ^ s2)) 
+		| _, _ -> raise (Failure "Non-string argument to Concat"))
+	| Append -> 
+		(match lit1, lit2 with 
 		| LList l1, LList l2 -> (LList (List.append l1 l2))
-		| _, _ -> raise (Failure "Improper argument to Concat"))
+		| _, _ -> raise (Failure "Non-list argument to Append"))
 	| And -> 
 		(match lit1, lit2 with 
 		| Bool b1, Bool b2 -> (Bool (b1 && b2)) 

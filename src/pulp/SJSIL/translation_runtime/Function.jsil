@@ -97,7 +97,7 @@ proc FP_apply (xsc, vthis, this_arg, arg_array) {
 	
 	head:	xret := "i__toString" (index) with elab;
 			xret := g (arg_array, xret) with elab;
-			params :=  params concat {{ xret }};
+			params :=  params ++ {{ xret }};
 			index := index + 1;
 			goto loop;
 			
