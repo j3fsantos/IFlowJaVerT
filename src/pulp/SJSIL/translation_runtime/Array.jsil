@@ -231,4 +231,93 @@ with
 {
 	ret:	xret, rlab;
 	err:	xret, elab;
+};
+
+(* *** TOSTRING *** *)
+
+proc AP_toString (xsc, vthis) {
+			xret := "i__toObject" (vthis) with elab;
+			vthis := xret;
+			
+			g := [vthis, "@get"];
+			xret := g (vthis, "join") with elab;
+			func := xret;
+			
+			xret := "i__isCallable" (func);
+			goto [xret] norm setfun;
+			
+	setfun:	func := $lop_toString;
+	
+	norm:	xsc := [func, "@scope"];				
+			fun := [func, "@call"];					
+			xret := fun (xsc, vthis) with elab;	
+			goto [xret = $$empty] undef rlab;
+	undef:	xret := $$undefined;
+			
+	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
+};
+
+(* *** JOIN *** *)
+
+proc AP_join (xsc, vthis, sep) {
+			xret := "i__toObject" (vthis) with elab;
+			vthis := xret;
+			
+			g := [vthis, "@get"];
+			xret := g (vthis, "length") with elab;
+			xret := "i__toUint32" (xret) with elab;
+			len := xret;
+			
+			goto [sep = $$undefined] ssep len0;
+	ssep:	sep := ",";
+			
+	len0:	goto [len = 0] xemp non0;
+	
+	non0:	xret := g (vthis, "0") with elab;
+			goto [(xret = $$null) or (xret = $$undefined)] r0 rs;
+	
+	r0:		R := "";
+			goto prep;
+	
+	rs:		xret := "i__toString" (xret) with elab;
+			R := xret; 
+			
+	prep:	k := 1;
+	
+	loop:	goto [k < len] head end;
+	head:	R := R concat sep;
+			
+			next := "";
+			xret := "i__toString" (k) with elab;
+			xret := g (vthis, xret) with elab;
+			
+			goto [(xret = $$undefined) or (xret = $$null)] cc def;		
+	def:	xret := "i__toString" (xret) with elab;
+			next := xret;
+			
+	cc:		R := R concat next;
+			k := k + 1;
+			goto loop;
+	
+	
+	end:	xret := R;
+			goto rlab;
+	
+	xemp:	xret := "";
+			
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
 }
