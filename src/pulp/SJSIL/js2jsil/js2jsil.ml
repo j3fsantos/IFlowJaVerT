@@ -1198,7 +1198,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 								 	x_body := [x_f_val, "@construct"]; 
 		       				x_scope := [x_f_val, "@scope"]; 
 					 				x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err; 
-					 				goto [ x_r1 = $$emtpy ] next3 next4;
+					 				goto [typeOf(x_r1) = $$object_type ] next4 next3;
         	next3:  skip
 					next4:  x_r3 := PHI(x_r1, x_this)
 		*)	
@@ -1253,8 +1253,8 @@ let rec translate_expr fid cc_table vis_fid err e  =
 		(* goto [ x_r1 = $$emtpy ] next3 next4; *)
 		let next3 = fresh_next_label () in 
 		let next4 = fresh_next_label () in 
-		let goto_guard_expr = BinOp (Var x_r1, Equal, Literal Empty) in
-		let cmd_goto_test_empty = SLGuardedGoto (goto_guard_expr, next3, next4) in 
+		let goto_guard_expr = BinOp (TypeOf (Var x_r1), Equal, Literal (Type ObjectType)) in
+		let cmd_goto_test_type = SLGuardedGoto (goto_guard_expr, next4, next3) in 
 		
 		(* next3: skip; *)
 		let cmd_ret_this = SLBasic SSkip in
@@ -1276,7 +1276,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 			(None, None,         cmd_body);               (*        x_body := [x_f_val, "@construct"]                                        *)
 			(None, None,         cmd_scope);              (*        x_fscope := [x_f_val, "@scope"]                                          *)
 			(None, None,         cmd_proc_call);          (*        x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err   *)
-			(None, None,         cmd_goto_test_empty);    (*        goto [ x_r1 = $$emtpy ] next3 next4                                      *)
+			(None, None,         cmd_goto_test_type);     (*        goto [typeOf(x_r1) = $$object_type ] next4 next3;                        *)
 			(None, Some next3,   cmd_ret_this);           (* next3: skip                                                                     *)
 			(None, Some next4,   cmd_phi_final)           (* next4: x_r2 := PHI(x_r1, x_this)                                                *)
 		] in 
