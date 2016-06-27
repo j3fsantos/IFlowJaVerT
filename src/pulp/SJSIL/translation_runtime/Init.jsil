@@ -677,7 +677,7 @@ proc setupInitialHeap () {
 			
 			(* Error object *)
 			
-			xret := "create_object_with_call_construct" ($lerr, "Error_call", "Error_construct", $$t);
+			xret := "create_object_with_call_construct" ($lerr, "Error_call", "Error_construct", 1);
 						
 			[$lerr, "prototype"]         := {{ "d", $lerr_proto, $$f, $$f, $$f }};
 			
@@ -690,7 +690,7 @@ proc setupInitialHeap () {
 			[$lerr_proto, "message"]     := {{ "d", "", $$t, $$f, $$t }};
 			[$lerr_proto, "toString"]    := {{ "d", $lep_toString, $$t, $$f, $$t }};
 			
-			xret := "create_object_with_call_construct" ($lep_toString, "Error_toString", $$empty, 0);
+			xret := "create_object_with_call_construct" ($lep_toString, "EP_toString", $$empty, 0);
 				
 				
 				
