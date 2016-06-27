@@ -702,7 +702,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 	
 	| SCall (x, e, e_args, j) 
 		when  evaluate_expr e store = String "Object_eval" ->
-		Printf.printf "I intercepted something!!!\n";  
+		(* Printf.printf "I intercepted something!!!\n";  *)
 		let code = 
 			(match e_args with 
 			| _ :: _ :: str_e :: _ -> 
@@ -724,7 +724,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
     	| Parser.ParserFailure file -> Printf.printf "\nParsing problems with the file '%s'.\n" file; exit 1) in
 		let proc_eval = Js2jsil.generate_proc_eval cur_proc_name e_js cc_tbl vis_fid in 
 		let proc_eval_str = SSyntax_Print.string_of_lprocedure proc_eval in 
-		Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str;  
+		(* Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
 		let proc_eval = SSyntax_Utils.desugar_labs proc_eval in 
 		SSyntax_Utils.extend_which_pred which_pred proc_eval; 
 		SProgram.add prog proc_eval.proc_name proc_eval;
@@ -742,7 +742,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 				evaluate_cmd prog cur_proc_name which_pred heap store err_label cur_cmd (Some cc_tbl) vis_tbl)
 	
 	| SCall (x, e, e_args, j) -> 
-		Printf.printf "Nothing was intercepted!!!\n"; 
+		(* Printf.printf "Nothing was intercepted!!!\n"; *)
 		let call_proc_name_val = evaluate_expr e store in 
 		let call_proc_name = (match call_proc_name_val with 
 		| String call_proc_name -> 
