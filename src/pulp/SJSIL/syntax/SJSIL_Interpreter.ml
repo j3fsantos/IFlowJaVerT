@@ -738,8 +738,6 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 						evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd (Some cc_tbl) vis_tbl))
 		| Some e_js -> (
 				
-    	(*| Parser.ParserFailure file -> Printf.printf "\nEVAL: Parsing problems with the file '%s'.\n" file; exit 1
-			| _ -> Printf.printf "\nEVAL: Other parsing problems.\n"; exit 1) *) 
 		let proc_eval = Js2jsil.generate_proc_eval cur_proc_name e_js cc_tbl vis_fid in 
 		let proc_eval_str = SSyntax_Print.string_of_lprocedure proc_eval in 
 		(* Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
@@ -757,11 +755,11 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 			| None -> raise (Failure "procedure throws an error without a ret label") 
 			| Some err_label ->
 				Hashtbl.replace store x v;
-				evaluate_cmd prog cur_proc_name which_pred heap store err_label cur_cmd (Some cc_tbl) vis_tbl))
+				evaluate_cmd prog cur_proc_name which_pred heap store err_label cur_cmd (Some cc_tbl) vis_tbl)))
 		
 		| _ -> Hashtbl.replace store x str_e;
-					 evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd (Some cc_tbl) vis_tbl
-		))
+					 evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
+		)
 	
 	| SCall (x, e, e_args, j) -> 
 		(* Printf.printf "Nothing was intercepted!!!\n"; *)

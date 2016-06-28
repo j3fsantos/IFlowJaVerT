@@ -1533,6 +1533,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
      *)
 		
 		let cmds, x, errs = f e in  
+		let cmds, x_name = add_final_var cmds x in 
 		
 		(* goto [ typeof (x) <: $$reference-type ] next1 next4 *) 
 		let next1 = fresh_next_label () in 
@@ -1554,11 +1555,6 @@ let rec translate_expr fid cc_table vis_fid err e  =
 		let x3 = fresh_var () in 
 		let x_r = fresh_var () in 
 		let cmd_ass_xr = SLCall (x_r, (Literal (String jsTypeOfName)), [ Var x3 ], Some err) in
-		
-		let x_name = 
-			match x with 
-			| Var x_name -> x_name 
-			| _ -> raise (Failure ("Expected a variable")) in  
 		
 		let cmds = cmds @ [                                                                         (*             cmds                                                  *)
 			(None, None, cmd_goto_ref);                                                               (*             goto [ typeof (x) <: $$reference-type ] next1 next4   *) 
@@ -2369,7 +2365,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 			(None, None, cmd_cae_x1);         (*    x_cae := i__checkAssertionErrors (x1) with err  *)
 			(None, None, cmd_pv)              (*    x_pv = putValue (x1, x2_v) with err             *)  
 		] in 
-		let errs = errs1 @  [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs @ [ var_se; x_pv ] in 
+		let errs = errs1 @  [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs @ [ x_cae; x_pv ] in 
 		cmds, (Var x_r), errs
 	
 	
