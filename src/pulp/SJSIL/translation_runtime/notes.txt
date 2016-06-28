@@ -318,3 +318,56 @@ arguments:			15.2.3.5-4-38.js
 				15.2.3.5-4-147.js
 				15.2.3.5-4-122.js
 				
+--------------------------------------------------
+
+OBJECT:
+	IN PROGRESS
+
+GLOBAL:	
+	- Negative completed
+	- 6 tests to debug
+	- 8 parsing errors
+
+STRING:
+	- Negative completed
+	- 6 tests to debug
+
+NUMBER:
+	- Negative completed
+	- 5 tests to debug 
+
+ARRAY:
+	- Negative completed
+	- 4 tests to debug
+
+ERROR:
+	- Negative completed
+	- 1 test to debug
+
+BOOLEAN:
+	- Negative completed
+	- 1 test with missing functionalities
+		1 : Function constructor 
+
+MATH:
+	- Negative completed
+	- Passing all tests
+
+NATIVE ERRORS:	
+	- Negative completed
+	- Passing all tests
+
+FUNCTION:
+	- NOT IMPLEMENTED
+
+REGEXP:
+	- NOT IMPLEMENTED
+
+DATE:
+	- NOT IMPLEMENTED
+
+JSON:
+	- NOT IMPLEMENTED
+
+
+

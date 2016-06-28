@@ -265,6 +265,7 @@ proc setupInitialHeap () {
 			
 			xret := "create_default_object" ($larr_proto, $lobj_proto, "Array", $$t);
 			
+			[$larr_proto, "length"]         := {{ "d", 0, $$f, $$f, $$f }};
 			[$larr_proto, "constructor"]    := {{ "d", $larr, $$t, $$f, $$t }};
 			[$larr_proto, "toString"]       := {{ "d", $lap_toString, $$t, $$f, $$t }};
 			[$larr_proto, "toLocaleString"] := {{ "d", $lap_toLocaleString, $$t, $$f, $$t }};
@@ -425,6 +426,7 @@ proc setupInitialHeap () {
 			
 			xret := "create_default_object" ($lnum_proto, $lobj_proto, "Number", $$t);
 			
+			[$lstr_proto, "@primitiveValue"]      := 0;
 			[$lnum_proto, "constructor"]          := {{ "d", $lnum, $$t, $$f, $$t }};
 			[$lnum_proto, "toString"]             := {{ "d", $lnp_toString, $$t, $$f, $$t }};
 			[$lnum_proto, "toLocaleString"]       := {{ "d", $lnp_toLocaleString, $$t, $$f, $$t }};
