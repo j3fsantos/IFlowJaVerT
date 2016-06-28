@@ -231,6 +231,8 @@ with
 (* *** CONSTRUCT *** *)
 
 proc Object_construct (xsc, vthis, l) {
+			l := l;
+
 			goto [typeOf(l) = $$object_type] obj l1b;
 	obj:	xret := l;
 			goto rlab;
@@ -651,7 +653,7 @@ proc OP_toLocaleString(xsc, vthis) {
             
 	call:	scp := [xret, "@scope"];
 			fun := [xret, "@call"];	
-			xret := fun (scp, o) with elab;
+			xret := fun (scp, vthis) with elab;
 			
 	rlab:	skip;
 	

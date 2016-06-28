@@ -3820,11 +3820,11 @@ let generate_main e main cc_table =
 	let lg_ass = (None, None, SLBasic (SMutation(Var var_scope,  Literal (String main), Literal (Loc "$lg")))) in
 	(* __this := $lg *)
 	let this_ass = (None, None, SLBasic (SAssignment (var_this, Literal (Loc "$lg")))) in
-	(* global vars init asses: [$lg, y] := undefined *)
+	(* global vars init asses: [$lg, y] := {{ "d", $$undefined, $$t, $$t, $$t }} *)
 	let global_var_asses = 
 		List.fold_left 
 			(fun ac global_v -> 
-				let new_global_ass = (None, None, SLBasic (SMutation(Literal (Loc "$lg"),  Literal (String global_v), Literal Undefined))) in 
+				let new_global_ass = (None, None, SLBasic (SMutation(Literal (Loc "$lg"),  Literal (String global_v), Literal (LList [(String "d"); Undefined; (Bool true); (Bool true); (Bool true)])))) in 
 				new_global_ass :: ac)
 			[]
 			global_vars in 

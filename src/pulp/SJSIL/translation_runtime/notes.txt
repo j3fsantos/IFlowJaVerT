@@ -321,7 +321,10 @@ arguments:			15.2.3.5-4-38.js
 --------------------------------------------------
 
 OBJECT:
-	IN PROGRESS
+	- Negative probably completed
+	- 100 non-passing tests
+		26 : missing functionalities
+		
 
 GLOBAL:	
 	- Negative completed
@@ -371,6 +374,12 @@ JSON:
 
 --------------------------------------------------------------------
 
+Issues with functions:
+
+test262/test/built-ins/Object/S15.2.1.1_A2_T11.js
+test262/test/built-ins/Object/S15.2.1.1_A2_T9.js
+test262/test/built-ins/Object/S15.2.2.1_A2_T6.js
+test262/test/built-ins/Object/S15.2.2.1_A2_T7.js
 
 
 
