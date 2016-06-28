@@ -709,6 +709,8 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 		let str_e = (evaluate_expr str_e store) in
 		(match str_e with
 		| String code ->
+				let code = Str.global_replace (Str.regexp (Str.quote "\\\"")) "\"" code in
+				Printf.printf "%s" code;
 		(let x_scope = 
 			(match SSyntax_Aux.try_find store (Js2jsil.var_scope)  with 
 			| None -> raise (Failure "No var_scope to give to eval")
@@ -718,7 +720,8 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 			| Some vis_tbl, Some cc_tbl -> 
 				(try Hashtbl.find vis_tbl cur_proc_name with _ ->
 					raise (Failure (Printf.sprintf "Function %s not found in visibility table" cur_proc_name))), cc_tbl
-			| _, _ -> raise (Failure "Wrong call to eval")) in 
+			| _, _ -> raise (Failure "Wrong call to eval. Whatever.")
+			) in 
 		let e_js = (try Parser_main.exp_from_string code with
     	| Parser.ParserFailure file -> Printf.printf "\nEVAL: Parsing problems with the file '%s'.\n" file; exit 1
 			| _ -> Printf.printf "\nEVAL: Other parsing problems.\n"; exit 1) in
