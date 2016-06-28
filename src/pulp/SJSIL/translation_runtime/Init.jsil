@@ -109,7 +109,7 @@ proc setupInitialHeap () {
 
 			(* Global object *)
 			
-			xret := "create_default_object" ($lg, $$null, "Object", $$t);
+			xret := "create_default_object" ($lg, $lobj_proto, "Object", $$t);
 			
   			[$lg, "NaN"]                := {{ "d", nan, $$f, $$f, $$f }};
   			[$lg, "Infinity"]           := {{ "d", inf, $$f, $$f, $$f }};
