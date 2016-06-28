@@ -182,7 +182,7 @@ proc setupInitialHeap () {
 			
 			xret := "create_object_with_call_construct" ($lobj_getPrototypeOf, "Object_getPrototypeOf", $$empty, 1);
   			xret := "create_object_with_call_construct" ($lobj_getOwnPropertyDescriptor, "Object_getOwnPropertyDescriptor", $$empty, 2);
-  			xret := "create_object_with_call_construct" ($lobj_getOwnPropertyNames, "Object_getOwnPropertyNames", $$empty, 2);
+  			xret := "create_object_with_call_construct" ($lobj_getOwnPropertyNames, "Object_getOwnPropertyNames", $$empty, 1);
 			xret := "create_object_with_call_construct" ($lobj_create, "Object_create", $$empty, 2);
   			xret := "create_object_with_call_construct" ($lobj_defineProperty, "Object_defineProperty", $$empty, 3);
  			xret := "create_object_with_call_construct" ($lobj_defineProperties, "Object_defineProperties", $$empty, 2);
