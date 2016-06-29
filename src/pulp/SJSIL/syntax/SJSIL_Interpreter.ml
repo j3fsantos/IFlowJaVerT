@@ -710,7 +710,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 		(match str_e with
 		| String code ->
 				let code = Str.global_replace (Str.regexp (Str.quote "\\\"")) "\"" code in
-				(* Printf.printf "%s" code; *)
+				Printf.printf "\n%s\n" code;
 		(let x_scope = 
 			(match SSyntax_Aux.try_find store (Js2jsil.var_scope)  with 
 			| None -> raise (Failure "No var_scope to give to eval")

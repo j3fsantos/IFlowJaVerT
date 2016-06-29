@@ -318,7 +318,15 @@ arguments:			15.2.3.5-4-38.js
 				15.2.3.5-4-147.js
 				15.2.3.5-4-122.js
 				
---------------------------------------------------
+--------------------------------------------------------
+
+* MAJOR, MAJOR ISSUE WITH PARSING SWITCH
+* Not understanding completions AT ALL, or wrong tests?
+
+* GROUPS OF GROUPS
+* MOVING TO ESPRIMA?
+
+---------------------------------------------------------
 
 OBJECT:
 	- Negative probably completed

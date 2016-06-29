@@ -689,9 +689,19 @@ proc i__getValue (v) {
 	prim:	goto [(is_primitive rbase) and (not (rbase = $$undefined)) and (not (rbase = $$null))] is_pr ref;
 	
 	is_pr:	xret := "i__toObject" (rbase) with elab;
-			gp := [xret, "@get"];
+			gp := [xret, "@getProperty"];
 			xret := gp (xret, rfield) with elab;
-			goto rlab;
+			goto [xret = $$undefined] rlab def;
+	def:	d := nth (xret, 0);						(* Get the descriptor type *)
+			xret := nth (xret, 1);					(* Get the value/getter *)
+			goto [d = "d"] rlab acc;				(* Is it a data descriptor? *)
+			
+	acc:	goto [xret = $$undefined] rlab get;		(* Is the getter defined? *)
+	get:	xsc := [xret, "@scope"];				(* Get the scope of the getter *)
+			fun := [xret, "@call"];					(* Get the name of the getter *)
+			xret := fun (xsc, rbase) with elab;		(* Call the getter, errors could happen *)
+			goto [xret = $$empty] undef rlab;
+	undef:	xret := $$undefined;
 	
 	ref:	goto [typeOf(v) = $$o-reference_type] oref vref;
 	
@@ -1093,6 +1103,51 @@ with
 
 proc i__isReserved (v) {
 			xret := $$f;
+
+	next00:	goto [v = "break"] is next01;
+	next01:	goto [v = "case"] is next02;
+	next02:	goto [v = "catch"] is next03;
+	next03:	goto [v = "continue"] is next04;
+	next04:	goto [v = "debugger"] is next05;
+	next05:	goto [v = "default"] is next06;
+	next06:	goto [v = "delete"] is next07;
+	next07:	goto [v = "do"] is next08;
+	next08:	goto [v = "else"] is next09;
+	next09:	goto [v = "finally"] is next10;
+	next10:	goto [v = "for"] is next11;
+	next11:	goto [v = "function"] is next12;
+	next12:	goto [v = "if"] is next13;
+	next13:	goto [v = "in"] is next14;
+	next14:	goto [v = "instanceof"] is next15;
+	next15:	goto [v = "new"] is next16;
+	next16:	goto [v = "return"] is next17;
+	next17:	goto [v = "switch"] is next18;
+	next18:	goto [v = "this"] is next19;
+	next19:	goto [v = "throw"] is next20;
+	next20:	goto [v = "try"] is next21;
+	next21:	goto [v = "typeof"] is next22;
+	next22:	goto [v = "var"] is next23;
+	next23:	goto [v = "void"] is next24;
+	next24:	goto [v = "while"] is next25;
+	next25:	goto [v = "with"] is next26;
+	next26:	goto [v = "class"] is next27;
+	next27:	goto [v = "const"] is next28;
+	next28:	goto [v = "enum"] is next29;
+	next29:	goto [v = "export"] is next30;
+	next30:	goto [v = "extends"] is next31;
+	next31:	goto [v = "import"] is next32;
+	next32:	goto [v = "super"] is next33;
+	next33:	goto [v = "implements"] is next34;
+	next34:	goto [v = "interface"] is next35;
+	next35:	goto [v = "let"] is next36;
+	next36:	goto [v = "package"] is next37;
+	next37:	goto [v = "private"] is next38;
+	next38:	goto [v = "protected"] is next39;
+	next39:	goto [v = "public"] is next40;
+	next40:	goto [v = "static"] is next41;
+	next41:	goto [v = "yield"] is rlab;
+
+	is:		xret := $$t;
 	rlab:	skip
 }
 with
