@@ -1368,7 +1368,7 @@ proc i__checkAssignmentErrors (v) {
 	prep:	bv := base (v);
 			fv := field (v);
 			
-	csyn:	goto [(fv = "eval") or (fv = "arguments")] se cref;
+	csyn:	goto [((tv = $$v-reference_type) or (v = $lg)) and ((fv = "eval") or (fv = "arguments"))] se cref;
 	
 			(* Can anything else happen here? *)
 	cref:	goto [(bv = $$undefined)] re ctyp;
