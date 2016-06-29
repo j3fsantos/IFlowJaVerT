@@ -655,7 +655,7 @@ let translate_bitwise_bin_op x1 x2 x1_v x2_v bbop err =
 		(None, None, cmd_ti32_x2); 
 		(None, None, cmd_ass_xr) 
 	] in 
-	let new_errs = [ x1_v; x2_v; x1_i32; x2_i32 ] in 
+	let new_errs = [ x1_i32; x2_i32 ] in 
 	new_cmds, new_errs, x_r 
 
 
