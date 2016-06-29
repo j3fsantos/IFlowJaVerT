@@ -27,7 +27,7 @@ proc Array_construct () {
 			xret := "create_default_object" (xret, $larr_proto, "Array", $$t);
 			
 			[xret, "@defineOwnProperty"] := "a__defineOwnProperty";
-			[xret, "length"] := {{ "d", 0, $$t, $$t, $$t }};
+			[xret, "length"] := {{ "d", 0, $$t, $$f, $$t }};
 			array := xret;
 			
 			goto [len < 3] rtrn ltest;
@@ -39,10 +39,12 @@ proc Array_construct () {
 	len0:	xret := "i__toUint32" (len) with elab;
 			goto [len = xret] dop re;
 	dop:	prop := "length";
+			conf := $$f;
 			goto set;
 			
 	setl:	prop := "0";
-	set:	xret := "a__defineOwnProperty" (array, prop, {{ "d", len, $$t, $$t, $$t }}, $$t) with elab; 
+			conf := $$t;
+	set:	xret := "a__defineOwnProperty" (array, prop, {{ "d", len, $$t, conf, $$t }}, $$t) with elab; 
 			goto rtrn;
 	
 	other:	n := 2;
