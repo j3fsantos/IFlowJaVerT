@@ -2629,7 +2629,7 @@ and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option
 		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement fid cc_table ctx vis_fid new_err1 new_loop_list None None e1 in
 		let cmds1, x1_v = add_final_var cmds1 x1 in 
 	
-		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement catch_id cc_table ctx vis_fid new_err2 new_loop_list None None e2 in
+		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement catch_id cc_table ctx (catch_id :: vis_fid) new_err2 new_loop_list None None e2 in
 		let cmds2, x2_v = add_final_var cmds2 x2 in 
 	
 		let cur_breaks1, outer_breaks1 = filter_cur_jumps breaks1 js_lab false in 
@@ -2709,7 +2709,7 @@ and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option
 		let new_loop_list = (None, finally, js_lab, false) :: new_loop_list in 
 		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement fid cc_table new_ctx vis_fid new_err1 new_loop_list None None e1 in
 		let cmds1, x1_v = add_final_var cmds1 x1 in 
-		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement catch_id cc_table new_ctx vis_fid new_err2 new_loop_list None None e2 in
+		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement catch_id cc_table new_ctx (catch_id :: vis_fid) new_err2 new_loop_list None None e2 in
 		let cmds2, x2_v = add_final_var cmds2 x2 in 
 		let new_loop_list = (None, end_label, js_lab, false) :: loop_list in 
 		let cmds3_1, _, errs3_1, rets3_1, breaks3_1, conts3_1 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e3 in

@@ -233,8 +233,8 @@ let update_cc_tbl_catch cc_tbl f_parent_id f_id  x =
 	Hashtbl.replace new_f_tbl x f_id;
 	Hashtbl.add cc_tbl f_id new_f_tbl
 
-let rec closure_clarification cc_tbl fun_tbl vis_tbl args f_id visited_funs e = 
-	let f = closure_clarification cc_tbl fun_tbl vis_tbl args f_id visited_funs in 
+let rec closure_clarification cc_tbl fun_tbl vis_tbl f_id visited_funs e = 
+	let f = closure_clarification cc_tbl fun_tbl vis_tbl f_id visited_funs in 
 	let fo e = (match e with 
 	| None -> () 
 	| Some e -> f e) in 
@@ -258,7 +258,7 @@ let rec closure_clarification cc_tbl fun_tbl vis_tbl args f_id visited_funs e =
 		update_cc_tbl cc_tbl f_id new_f_id args fb;
 		update_fun_tbl fun_tbl new_f_id args fb; 
 		Hashtbl.replace vis_tbl new_f_id (new_f_id :: visited_funs); 
-		closure_clarification cc_tbl fun_tbl vis_tbl args new_f_id (new_f_id :: visited_funs) fb
+		closure_clarification cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: visited_funs) fb
 	| Unary_op (_, e) -> f e        
   | Delete e -> f e
   | BinOp (e1, _, e2) -> 
@@ -283,9 +283,10 @@ let rec closure_clarification cc_tbl fun_tbl vis_tbl args f_id visited_funs e =
   | DoWhile (e1, e2) -> f e1; f e2       
   | Return e -> fo e 
   | Try (e1, Some (x, e2), e3) ->
-		f e1; f e2;  fo e3; 
+		f e1; fo e3; 
 		let new_f_id = get_codename e in 
-		update_cc_tbl_catch cc_tbl f_id new_f_id x      
+		update_cc_tbl_catch cc_tbl f_id new_f_id x;
+		closure_clarification cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: visited_funs) e2      
   | Try (e1, None, e3) -> f e1; fo e3          
   | Throw e -> f e
   | Continue _ 
@@ -318,7 +319,7 @@ let closure_clarification_top_level main e =
 	Hashtbl.add cc_tbl main main_tbl; 
 	Hashtbl.add fun_tbl main (main, [], e); 
 	Hashtbl.add vis_tbl main [];
-	closure_clarification cc_tbl fun_tbl vis_tbl [] main [ main ] e; 
+	closure_clarification cc_tbl fun_tbl vis_tbl main [ main ] e; 
 	cc_tbl, fun_tbl, vis_tbl
 
 (**
