@@ -703,14 +703,15 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 	| SCall (x, e, e_args, j) 
 		when  evaluate_expr e store = String "Object_eval" ->
 		(* Printf.printf "I intercepted something!!!\n";  *)
-		let code = 
-			(match e_args with 
-			| _ :: _ :: str_e :: _ -> 
-				let str_e = evaluate_expr str_e store in 
-				match str_e with 
-				| String str_e -> str_e 
-				| _ -> raise (Failure "no argument given to eval")) in  
-		let x_scope = 
+		let e_args = 
+			(if (List.length e_args < 3) then (List.append e_args [Literal Undefined]) else e_args) in
+		let str_e = List.nth e_args 2 in
+		let str_e = (evaluate_expr str_e store) in
+		(match str_e with
+		| String code ->
+				let code = Str.global_replace (Str.regexp (Str.quote "\\\"")) "\"" code in
+				Printf.printf "\n%s\n" code;
+		(let x_scope = 
 			(match SSyntax_Aux.try_find store (Js2jsil.var_scope)  with 
 			| None -> raise (Failure "No var_scope to give to eval")
 			| Some v -> v) in 
@@ -719,9 +720,24 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 			| Some vis_tbl, Some cc_tbl -> 
 				(try Hashtbl.find vis_tbl cur_proc_name with _ ->
 					raise (Failure (Printf.sprintf "Function %s not found in visibility table" cur_proc_name))), cc_tbl
-			| _, _ -> raise (Failure "Wrong call to eval")) in 
-		let e_js = (try Parser_main.exp_from_string code with
-    	| Parser.ParserFailure file -> Printf.printf "\nParsing problems with the file '%s'.\n" file; exit 1) in
+			| _, _ -> raise (Failure "Wrong call to eval. Whatever.")
+			) in 
+		let e_js = (try Some (Parser_main.exp_from_string code) with
+		  | _ -> None) in 
+		
+		match e_js with 
+		| None -> (
+				let v = 
+				(match SSyntax_Aux.try_find store (Js2jsil.var_se) with 
+			    | None -> raise (Failure "No Syntax Error for you, no noooo!")
+			    | Some v -> v) in 				
+				(match j with
+			    | None -> raise (Failure ("Procedure "^ cur_proc_name ^" just returned an error, but no error label was provided. Bad programmer."))
+			    | Some j -> 
+						Hashtbl.replace store x v;
+						evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd (Some cc_tbl) vis_tbl))
+		| Some e_js -> (
+				
 		let proc_eval = Js2jsil.generate_proc_eval cur_proc_name e_js cc_tbl vis_fid in 
 		let proc_eval_str = SSyntax_Print.string_of_lprocedure proc_eval in 
 		(* Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
@@ -739,7 +755,11 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 			| None -> raise (Failure "procedure throws an error without a ret label") 
 			| Some err_label ->
 				Hashtbl.replace store x v;
-				evaluate_cmd prog cur_proc_name which_pred heap store err_label cur_cmd (Some cc_tbl) vis_tbl)
+				evaluate_cmd prog cur_proc_name which_pred heap store err_label cur_cmd (Some cc_tbl) vis_tbl)))
+		
+		| _ -> Hashtbl.replace store x str_e;
+					 evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
+		)
 	
 	| SCall (x, e, e_args, j) -> 
 		(* Printf.printf "Nothing was intercepted!!!\n"; *)

@@ -239,3 +239,33 @@ function isEqual(num1, num2)
 }
 
 var $MAX_ITERATIONS = 100000;
+
+function arrayContains(arr, expected) {
+    var found;
+    for (var i = 0; i < expected.length; i++) {
+        found = false;
+        for (var j = 0; j < arr.length; j++) {
+            if (expected[i] === arr[j]) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function compareArray(a, b) {
+	  if (b.length !== a.length) {
+	    return false;
+	  }
+
+	  for (var i = 0; i < a.length; i++) {
+	    if (b[i] !== a[i]) {
+	      return false;
+	    }
+	  }
+	  return true;
+	}

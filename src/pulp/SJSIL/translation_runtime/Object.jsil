@@ -55,7 +55,8 @@ proc i__getOwnFieldsIter (prop_list) {
 	init:	xh := car prop_list;
 			xt := cdr prop_list;
 			
-			goto [nth (xh, 0) = "@"] no yes;
+			goto [0 < length (xh)] maybe yes;
+	maybe:	goto [nth (xh, 0) = "@"] no yes;
 	
 	no:		fh := $$nil;
 			goto rcall;	
@@ -230,6 +231,8 @@ with
 (* *** CONSTRUCT *** *)
 
 proc Object_construct (xsc, vthis, l) {
+			l := l;
+
 			goto [typeOf(l) = $$object_type] obj l1b;
 	obj:	xret := l;
 			goto rlab;
@@ -650,7 +653,7 @@ proc OP_toLocaleString(xsc, vthis) {
             
 	call:	scp := [xret, "@scope"];
 			fun := [xret, "@call"];	
-			xret := fun (scp, o) with elab;
+			xret := fun (scp, vthis) with elab;
 			
 	rlab:	skip;
 	

@@ -109,7 +109,7 @@ proc setupInitialHeap () {
 
 			(* Global object *)
 			
-			xret := "create_default_object" ($lg, $$null, "Object", $$t);
+			xret := "create_default_object" ($lg, $lobj_proto, "Object", $$t);
 			
   			[$lg, "NaN"]                := {{ "d", nan, $$f, $$f, $$f }};
   			[$lg, "Infinity"]           := {{ "d", inf, $$f, $$f, $$f }};
@@ -182,7 +182,7 @@ proc setupInitialHeap () {
 			
 			xret := "create_object_with_call_construct" ($lobj_getPrototypeOf, "Object_getPrototypeOf", $$empty, 1);
   			xret := "create_object_with_call_construct" ($lobj_getOwnPropertyDescriptor, "Object_getOwnPropertyDescriptor", $$empty, 2);
-  			xret := "create_object_with_call_construct" ($lobj_getOwnPropertyNames, "Object_getOwnPropertyNames", $$empty, 2);
+  			xret := "create_object_with_call_construct" ($lobj_getOwnPropertyNames, "Object_getOwnPropertyNames", $$empty, 1);
 			xret := "create_object_with_call_construct" ($lobj_create, "Object_create", $$empty, 2);
   			xret := "create_object_with_call_construct" ($lobj_defineProperty, "Object_defineProperty", $$empty, 3);
  			xret := "create_object_with_call_construct" ($lobj_defineProperties, "Object_defineProperties", $$empty, 2);
@@ -265,6 +265,7 @@ proc setupInitialHeap () {
 			
 			xret := "create_default_object" ($larr_proto, $lobj_proto, "Array", $$t);
 			
+			[$larr_proto, "length"]         := {{ "d", 0, $$f, $$f, $$f }};
 			[$larr_proto, "constructor"]    := {{ "d", $larr, $$t, $$f, $$t }};
 			[$larr_proto, "toString"]       := {{ "d", $lap_toString, $$t, $$f, $$t }};
 			[$larr_proto, "toLocaleString"] := {{ "d", $lap_toLocaleString, $$t, $$f, $$t }};
@@ -425,6 +426,7 @@ proc setupInitialHeap () {
 			
 			xret := "create_default_object" ($lnum_proto, $lobj_proto, "Number", $$t);
 			
+			[$lnum_proto, "@primitiveValue"]      := 0;
 			[$lnum_proto, "constructor"]          := {{ "d", $lnum, $$t, $$f, $$t }};
 			[$lnum_proto, "toString"]             := {{ "d", $lnp_toString, $$t, $$f, $$t }};
 			[$lnum_proto, "toLocaleString"]       := {{ "d", $lnp_toLocaleString, $$t, $$f, $$t }};

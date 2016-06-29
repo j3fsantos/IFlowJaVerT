@@ -50,7 +50,8 @@ proc String_call (xsc, vthis, s) {
 }
 with
 {
-	ret: xret, rlab;
+	ret: 	xret, rlab;
+	err: 	xret, elab;
 };
 
 (* *** CONSTRUCT *** *)
@@ -62,7 +63,8 @@ proc String_construct (xsc, vthis, s) {
 			goto [len < 3] empty to_str;
 	empty:	pv := ""; 
 			goto norm;
-	to_str:	pv := "i__toString" (s) with elab;
+	to_str:	xret := "i__toString" (s) with elab;
+			pv := xret;
 
 	norm:	xret := new ();
 			xret := "create_default_object" (xret, $lstr_proto, "String", $$t);

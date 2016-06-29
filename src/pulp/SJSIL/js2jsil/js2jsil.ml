@@ -677,7 +677,7 @@ let translate_bitwise_bin_op x1 x2 x1_v x2_v bbop err =
 		(None, None, cmd_ti32_x2); 
 		(None, None, cmd_ass_xr) 
 	] in 
-	let new_errs = [ x1_v; x2_v; x1_i32; x2_i32 ] in 
+	let new_errs = [ x1_i32; x2_i32 ] in 
 	new_cmds, new_errs, x_r 
 
 
@@ -1217,11 +1217,13 @@ let rec translate_expr fid cc_table vis_fid err e  =
 					next2:	x_this := new (); 
 					        x_ref_prototype := ref-o(x_f_val, "prototype"); 
 									x_f_prototype := i__getValue(x_ref_prototype) with err;
-									x_cdo := i__createDefaultObject (x_this, x_f_prototype); 
+									goto [typeof (x_f_prototype) = $$object_type] then0 else0;
+					then0:	x_f_prototype := $lobj_proto;
+					else0:	x_cdo := i__createDefaultObject (x_this, x_f_prototype); 
 								 	x_body := [x_f_val, "@construct"]; 
 		       				x_scope := [x_f_val, "@scope"]; 
 					 				x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err; 
-					 				goto [ x_r1 = $$emtpy ] next3 next4;
+					 				goto [typeOf(x_r1) = $$object_type ] next4 next3;
         	next3:  skip
 					next4:  x_r3 := PHI(x_r1, x_this)
 		*)	
@@ -1256,9 +1258,20 @@ let rec translate_expr fid cc_table vis_fid err e  =
 		(* x_f_prototype := i__getValue(x_ref_prototype) with err; *) 
 		let x_f_prototype, cmd_gv_xreffprototype = make_get_value_call (Var x_ref_fprototype) err in 
 		
+		let then1 = fresh_then_label () in 
+		let else1 = fresh_else_label () in 
+    let goto_guard_expr = BinOp (TypeOf (Var x_f_prototype), Equal, Literal (Type ObjectType)) in 
+		let cmd_is_object = SLGuardedGoto (goto_guard_expr, else1, then1) in  
+		
+		let x_whyGodwhy = fresh_var () in 
+		let cmd_set_proto = SLBasic (SAssignment (x_whyGodwhy, Literal (Loc locObjPrototype))) in
+		
+		let x_prototype = fresh_var () in				
+		let cmd_proto_phi = SLPhiAssignment (x_prototype, [| Some x_f_prototype; Some x_whyGodwhy |]) in 
+		
 		(* x_cdo := i__createDefaultObject (x_this, x_f_prototype); *) 
 		let x_cdo = fresh_var () in 
-		let cmd_cdo_call = SLCall (x_cdo, Literal (String createDefaultObjectName), [ Var x_this; Var x_f_prototype ], None) in 
+		let cmd_cdo_call = SLCall (x_cdo, Literal (String createDefaultObjectName), [ Var x_this; Var x_prototype ], None) in 
 		
 		(* x_body := [x_f_val, "@construct"];  *) 
 		let x_body = fresh_body_var () in 
@@ -1273,11 +1286,11 @@ let rec translate_expr fid cc_table vis_fid err e  =
 		let proc_args = (Var x_fscope) :: (Var x_this) :: x_args_gv in 
 		let cmd_proc_call = SLCall (x_r1, (Var x_body), proc_args, Some err) in 
 		
-		(* goto [ x_r1 = $$emtpy ] next3 next4; *)
+		(* goto [ x_r1 = $$empty ] next3 next4; *)
 		let next3 = fresh_next_label () in 
 		let next4 = fresh_next_label () in 
-		let goto_guard_expr = BinOp (Var x_r1, Equal, Literal Empty) in
-		let cmd_goto_test_empty = SLGuardedGoto (goto_guard_expr, next3, next4) in 
+		let goto_guard_expr = BinOp (TypeOf (Var x_r1), Equal, Literal (Type ObjectType)) in
+		let cmd_goto_test_type = SLGuardedGoto (goto_guard_expr, next4, next3) in 
 		
 		(* next3: skip; *)
 		let cmd_ret_this = SLBasic SSkip in
@@ -1295,11 +1308,14 @@ let rec translate_expr fid cc_table vis_fid err e  =
 			(None, Some next2,   cmd_create_xobj);        (* next2: x_this := new ()                                                         *)
 			(None, None,         cmd_ass_xreffprototype); (*        x_ref_fprototype := ref-o(x_f_val, "prototype")                          *)
 			(None, None,         cmd_gv_xreffprototype);  (*        x_f_prototype := i__getValue(x_ref_prototype) with err                   *)
-		  (None, None,         cmd_cdo_call);           (*        x_cdo := create_default_object (x_this, x_f_prototype)                   *)
+			(None, None,         cmd_is_object);          (*        goto [typeof (x_f_prototype) = $$object_type] else1 then1;               *)
+			(None, Some then1,   cmd_set_proto);          (* then1:	x_whyGodwhy := $lobj_proto                                               *) 
+			(None, Some else1,   cmd_proto_phi);         	(* else1: x_prototype := PHI (x_f_prototype, x_whyGodwhy)		                       *)
+		  (None, None,         cmd_cdo_call);           (*        x_cdo := create_default_object (x_this, x_prototype)                     *)
 			(None, None,         cmd_body);               (*        x_body := [x_f_val, "@construct"]                                        *)
 			(None, None,         cmd_scope);              (*        x_fscope := [x_f_val, "@scope"]                                          *)
 			(None, None,         cmd_proc_call);          (*        x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err   *)
-			(None, None,         cmd_goto_test_empty);    (*        goto [ x_r1 = $$emtpy ] next3 next4                                      *)
+			(None, None,         cmd_goto_test_type);     (*        goto [typeOf(x_r1) = $$object_type ] next4 next3;                        *)
 			(None, Some next3,   cmd_ret_this);           (* next3: skip                                                                     *)
 			(None, Some next4,   cmd_phi_final)           (* next4: x_r2 := PHI(x_r1, x_this)                                                *)
 		] in 
@@ -1556,6 +1572,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
      *)
 		
 		let cmds, x, errs = f e in  
+		let cmds, x_name = add_final_var cmds x in 
 		
 		(* goto [ typeof (x) <: $$reference-type ] next1 next4 *) 
 		let next1 = fresh_next_label () in 
@@ -1577,11 +1594,6 @@ let rec translate_expr fid cc_table vis_fid err e  =
 		let x3 = fresh_var () in 
 		let x_r = fresh_var () in 
 		let cmd_ass_xr = SLCall (x_r, (Literal (String jsTypeOfName)), [ Var x3 ], Some err) in
-		
-		let x_name = 
-			match x with 
-			| Var x_name -> x_name 
-			| _ -> raise (Failure ("Expected a variable")) in  
 		
 		let cmds = cmds @ [                                                                         (*             cmds                                                  *)
 			(None, None, cmd_goto_ref);                                                               (*             goto [ typeof (x) <: $$reference-type ] next1 next4   *) 
@@ -2392,7 +2404,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 			(None, None, cmd_cae_x1);         (*    x_cae := i__checkAssertionErrors (x1) with err  *)
 			(None, None, cmd_pv)              (*    x_pv = putValue (x1, x2_v) with err             *)  
 		] in 
-		let errs = errs1 @  [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs @ [ var_se; x_pv ] in 
+		let errs = errs1 @  [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs @ [ x_cae; x_pv ] in 
 		cmds, (Var x_r), errs
 	
 	
@@ -3981,7 +3993,7 @@ and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option
 			let phi_args = List.map (fun x -> Some x) phi_args in 
 			let phi_args = Array.of_list phi_args in 
 			let cmd_end_switch = (None, Some end_switch, SLPhiAssignment (x_r, phi_args)) in  
-			cmds_as @ [ cmd_end_switch ], Var x_as, errs_as, rets_as, outer_breaks_as, conts_as   			
+			cmds_as @ [ cmd_end_switch ], Var x_r, errs_as, rets_as, outer_breaks_as, conts_as   			
 		
 		| [], Some def -> 
 			let new_loop_list = (None, end_switch, js_lab, true) :: loop_list in 
@@ -4065,11 +4077,11 @@ let generate_main e main cc_table =
 	let lg_ass = (None, None, SLBasic (SMutation(Var var_scope,  Literal (String main), Literal (Loc "$lg")))) in
 	(* __this := $lg *)
 	let this_ass = (None, None, SLBasic (SAssignment (var_this, Literal (Loc "$lg")))) in
-	(* global vars init asses: [$lg, y] := undefined *)
+	(* global vars init asses: [$lg, y] := {{ "d", $$undefined, $$t, $$t, $$t }} *)
 	let global_var_asses = 
 		List.fold_left 
 			(fun ac global_v -> 
-				let new_global_ass = (None, None, SLBasic (SMutation(Literal (Loc "$lg"),  Literal (String global_v), Literal Undefined))) in 
+				let new_global_ass = (None, None, SLBasic (SMutation(Literal (Loc "$lg"),  Literal (String global_v), Literal (LList [(String "d"); Undefined; (Bool true); (Bool true); (Bool true)])))) in 
 				new_global_ass :: ac)
 			[]
 			global_vars in 
