@@ -120,6 +120,16 @@ let fresh_default_label : (unit -> string) = fresh_sth "default_"
 
 let fresh_b_cases_label : (unit -> string) = fresh_sth "b_cases_"
 
+let power_list list n = 
+	let rec loop cur_list cur_n = 
+		(if (cur_n = 1)
+		then cur_list 
+		else 
+			(if (cur_n > 1) 
+			then loop (cur_list @ list) (cur_n - 1)
+			else raise (Failure "power list only for n > 1"))) in 
+	loop list n 
+
 let number_of_switches = ref 0 
 let fresh_switch_labels () = 
 	let b_cases_lab = fresh_b_cases_label () in 
@@ -149,6 +159,8 @@ let fresh_tcf_err_try_label : (unit -> string) = fresh_sth "err_tcf_t_"
 
 let fresh_tcf_err_catch_label : (unit -> string) = fresh_sth "err_tcf_c_"
 
+let fresh_tcf_ret : (unit -> string) = fresh_sth "ret_tcf_"
+
 let fresh_loop_vars () = 
 	let head = fresh_loop_head_label () in 
 	let end_loop = fresh_loop_end_label () in 
@@ -157,12 +169,16 @@ let fresh_loop_vars () =
 	let body = fresh_loop_body_label () in 
 	head, guard, body, cont, end_loop
 
+let number_of_tcfs = ref 0 
 let fresh_tcf_vars () = 
 	let err1 = fresh_tcf_err_try_label () in 
 	let err2 = fresh_tcf_err_catch_label () in 
 	let end_l = fresh_tcf_end_label () in 
 	let finally = fresh_tcf_finally_label () in 
-	err1, err2, finally, end_l 
+	let fresh_abnormal_finally = fresh_sth ("abnormal_finally_" ^ (string_of_int !number_of_tcfs) ^ "_") in 
+	number_of_tcfs := (!number_of_tcfs) + 1;
+	let ret = fresh_tcf_ret () in 
+	err1, err2, finally, end_l, fresh_abnormal_finally, ret
 
 
 let val_var_of_var x = 
@@ -253,9 +269,12 @@ let rec get_break_lab loop_list lab =
 			| None -> "breaking outside a loop"
 			| Some lab -> Printf.sprintf "either breaking outside a loop or lab %s not found" lab) in 
 		raise (Failure msg)
-	| (lab_c, lab_b, js_lab) :: rest ->
+	| (lab_c, lab_b, js_lab, valid_unlabelled) :: rest ->
 		match lab with 
-		| None -> lab_b 
+		| None -> 
+			(match valid_unlabelled with 
+			| true -> lab_b
+			| false ->  get_break_lab rest lab)
 		| Some lab_str -> 
 			(match js_lab with 
 			| None ->  get_break_lab rest lab
@@ -269,11 +288,14 @@ let rec get_continue_lab loop_list lab =
 			| None -> "continuing outside a loop"
 			| Some lab -> Printf.sprintf "either continuing outside a loop or lab %s not found" lab) in 
 		raise (Failure msg)
-	| (lab_c, lab_b, js_lab) :: rest ->
+	| (lab_c, lab_b, js_lab, valid_unlabelled) :: rest ->
 		match lab with 
 		| None -> 
 			(match lab_c with 
-			| Some lab_c -> lab_c
+			| Some lab_c -> 
+				(match valid_unlabelled with 
+				| true -> lab_c 
+				| false -> get_continue_lab rest lab)
 			| None -> get_continue_lab rest lab)
 		| Some lab_str -> 
 			(match js_lab with 
@@ -286,21 +308,21 @@ let rec get_continue_lab loop_list lab =
 					| Some lab_c -> lab_c)
 				else get_continue_lab rest lab)
 
-let filter_cur_jumps (jumps : (string option * string) list) loop_lab include_no_lab = 
+let filter_cur_jumps (jumps : (string option * string * string) list) loop_lab include_no_lab = 
 	let rec filter_cur_jumps_iter jumps inner_jumps outer_jumps = 
 		match jumps with 
 		| [] -> (List.rev inner_jumps), (List.rev outer_jumps) 
-		| (None, x) :: rest_jumps ->
+		| (None, x, jump_lab) :: rest_jumps ->
 			  (match include_no_lab with 
 				| true -> filter_cur_jumps_iter rest_jumps (x :: inner_jumps) outer_jumps 
-				| false -> filter_cur_jumps_iter rest_jumps inner_jumps ((None, x) :: outer_jumps))  
-		| (Some lab, x) :: rest_jumps ->
+				| false -> filter_cur_jumps_iter rest_jumps inner_jumps ((None, x, jump_lab) :: outer_jumps))  
+		| (Some lab, x, jump_lab) :: rest_jumps ->
 				(match loop_lab with
-				| None ->  filter_cur_jumps_iter rest_jumps inner_jumps ((Some lab, x) :: outer_jumps) 
+				| None ->  filter_cur_jumps_iter rest_jumps inner_jumps ((Some lab, x, jump_lab) :: outer_jumps) 
 				| Some loop_lab -> 
 						if (loop_lab = lab) 
 							then filter_cur_jumps_iter rest_jumps (x :: inner_jumps) outer_jumps 
-							else filter_cur_jumps_iter rest_jumps inner_jumps ((Some lab, x) :: outer_jumps)) in 
+							else filter_cur_jumps_iter rest_jumps inner_jumps ((Some lab, x, jump_lab) :: outer_jumps)) in 
 	filter_cur_jumps_iter jumps [] []
 
 let b_annot_cmd cmd = (None, None, cmd) 		
@@ -835,6 +857,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 			xes in 
 		cmds_args, x_args_gv, errs_args in
 
+	
 	
 	match e.Parser_syntax.exp_stx with 
 
@@ -2452,7 +2475,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 	
 
 
-and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e  = 
+and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option * string * string option * bool) list) previous js_lab e  = 
 	let fe = translate_expr fid cc_table vis_fid err in
 	
 	let f = translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab in
@@ -2514,6 +2537,68 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 			(cmds @ cmds_new_x @ cmd_ass_phi), Var x_ret, errs, rets, outer_breaks, conts) in 
 	
 	
+	let rename_cont_break_list cont_break_list finally_lab_gen = 
+		let jumps_mapping = Hashtbl.create 101 in 
+		Printf.printf "I am creating a jumps mapping for a fucking try catch finally\n";
+		let rec rename_cont_break_list_iter cont_break_list (new_cont_break_list : (string option * string * string option * bool) list) = 
+			(match cont_break_list with 
+				| [] -> List.rev new_cont_break_list 
+				| (None, break_lab, js_lab, is_valid_unlabelled) :: rest -> 
+					let new_finally_lab = finally_lab_gen () in
+					Printf.printf "Creating a mapping from %s to %s\n" break_lab new_finally_lab; 
+					Hashtbl.add jumps_mapping new_finally_lab break_lab; 
+					rename_cont_break_list_iter rest ((None, new_finally_lab, js_lab, is_valid_unlabelled) :: new_cont_break_list)  
+				| (Some cont_lab, break_lab, js_lab, is_valid_unlabelled) :: rest -> 
+					let new_finally_lab1 = finally_lab_gen () in 
+					let new_finally_lab2 = finally_lab_gen () in 
+					Hashtbl.add jumps_mapping new_finally_lab1 cont_lab; 
+					Hashtbl.add jumps_mapping new_finally_lab2 break_lab; 
+					Printf.printf "Creating a mapping from %s to %s and %s to %s\n" break_lab new_finally_lab1 cont_lab new_finally_lab2; 
+          rename_cont_break_list_iter rest ((Some new_finally_lab1, new_finally_lab2, js_lab, is_valid_unlabelled) :: new_cont_break_list)) in 
+		let new_cont_break_list = rename_cont_break_list_iter cont_break_list [] in 
+		new_cont_break_list, jumps_mapping in 
+	
+	
+	let make_finally_break_blocks jump_list jumps_mapping e tcf_lab end_label = 		
+		let rec make_finally_blocks_iter jump_list finally_blocks cur_break_vars errs rets outer_breaks inner_breaks conts = 
+			(match jump_list with
+			| [] -> finally_blocks, cur_break_vars, errs, rets, outer_breaks, inner_breaks, conts 
+			| (js_lab, var, jump) :: rest -> 
+				try 
+					(let original_jump = Hashtbl.find jumps_mapping jump in 
+					let new_loop_list = (None, end_label, tcf_lab, false) :: loop_list in 
+					let cmds_cur, _, errs_cur, rets_cur, breaks_cur, conts_cur = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e in
+					let cmds_cur = add_initial_label cmds_cur jump in 
+					let new_finally_block = cmds_cur @ [ (None, None, SLGoto original_jump) ] in
+					let cur_inner_breaks, cur_outer_breaks = filter_cur_jumps breaks_cur tcf_lab false in
+          make_finally_blocks_iter rest (finally_blocks @ new_finally_block) cur_break_vars (errs @ errs_cur) (rets @ rets_cur) (outer_breaks @ cur_outer_breaks @ [ (js_lab, var, original_jump) ]) (inner_breaks @ cur_inner_breaks) (conts @ conts_cur) ) 
+					with _ ->
+						(if ((not (tcf_lab = None)) && (tcf_lab = js_lab))
+							then make_finally_blocks_iter rest finally_blocks (cur_break_vars @ [ var ]) errs rets outer_breaks inner_breaks conts 
+							else raise (Failure (Printf.sprintf "make_finally_break_blocks: unknown jump %s\n" jump)))) in 
+		make_finally_blocks_iter jump_list [] [] [] [] [] [] [] in 		 
+	
+	
+		let make_finally_cont_blocks jump_list jumps_mapping e tcf_lab end_label  = 		
+		let rec make_finally_blocks_iter jump_list finally_blocks errs rets outer_breaks inner_breaks conts = 
+			(match jump_list with
+			| [] -> finally_blocks, errs, rets, outer_breaks, inner_breaks, conts 
+			| (js_lab, var, jump) :: rest -> 
+				try 
+					(
+					Printf.printf ("I am processing a continue!!! \n"); 
+					let original_jump = Hashtbl.find jumps_mapping jump in 
+					let new_loop_list = (None, end_label, tcf_lab, false) :: loop_list in 
+					let cmds_cur, _, errs_cur, rets_cur, breaks_cur, conts_cur = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e in
+					let cmds_cur = add_initial_label cmds_cur jump in 
+					let new_finally_block = cmds_cur @ [ (None, None, SLGoto original_jump) ] in
+					let cur_inner_breaks, cur_outer_breaks = filter_cur_jumps breaks_cur tcf_lab false in
+          make_finally_blocks_iter rest (finally_blocks @ new_finally_block) (errs @ errs_cur) (rets @ rets_cur) (outer_breaks @ cur_outer_breaks) (inner_breaks @ cur_inner_breaks) (conts @ conts_cur @ [ (js_lab, var, original_jump) ]) ) 
+					with _ -> raise (Failure (Printf.sprintf "make_finally_cont_blocks: unknown jump %s\n" jump))) in 
+		make_finally_blocks_iter jump_list [] [] [] [] [] [] in 		 
+	
+		
+	
 	let make_try_catch_cmds e1 (x, e2) catch_id = 						
 	  (**
 									cmds1
@@ -2527,16 +2612,16 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 				err2:     x_ret_1 := PHI(errs2)					
 				finally:  x_ret_2 := PHI(breaks1, x_1, breaks2, x_2, x_ret_1)
 	  *) 
-		let new_err1, new_err2, finally, end_label = fresh_tcf_vars () in
-		let new_loop_list = (None, finally, js_lab) :: loop_list in 
+		let new_err1, new_err2, finally, end_label, _, _ = fresh_tcf_vars () in
+		let new_loop_list = (None, finally, js_lab, false) :: loop_list in 
 		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement fid cc_table ctx vis_fid new_err1 new_loop_list None None e1 in
 		let cmds1, x1_v = add_final_var cmds1 x1 in 
 	
 		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement catch_id cc_table ctx vis_fid new_err2 new_loop_list None None e2 in
 		let cmds2, x2_v = add_final_var cmds2 x2 in 
 	
-		let cur_breaks1, outer_breaks1 = filter_cur_jumps breaks1 js_lab true in 
-		let cur_breaks2, outer_breaks2 = filter_cur_jumps breaks2 js_lab true in
+		let cur_breaks1, outer_breaks1 = filter_cur_jumps breaks1 js_lab false in 
+		let cur_breaks2, outer_breaks2 = filter_cur_jumps breaks2 js_lab false in
 
 		(* x_err := PHI(errs1) *) 
 		let x_err = fresh_err_var () in 
@@ -2580,7 +2665,213 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 		] in 
 		
 		cmds, x_ret_2, [], rets1 @ rets2, outer_breaks1 @ outer_breaks2, conts1 @ conts2, end_label in
+	
+	
+	let make_try_catch_cmds_with_finally e1 (x, e2) catch_id e3 = 						
+	  (**
+									cmds1
+		            	goto finally  
+		    err1:    	x_err := PHI(errs1)
+				        	x_er := new () 
+									[x_er, "x"] := x_err 
+									[x_scope, "cid"] := x_er 
+									cmds2
+									goto finally
+				err2:    	x_ret_1 := PHI(errs2)
+				          cmds_finally
+									goto err
+				finally:  x_ret_2 := PHI(breaks_1, x_1, breaks_2, x_2)
+				          cmds_finally
+                  goto end
+				ret_tcf:  x_ret_3 := PHI(rets1, rets2) 
+				          cmds_finally 
+									goto ret_label
+									break_cont_ret_finally_blocks_1 
+									break_cont_ret_finally_blocks_2
+			  end:      x_ret_4 := PHI(breaks_finally, x_ret_2) 
+	  *) 
+		let new_err1, new_err2, finally, end_label, abnormal_finally, tcf_ret = fresh_tcf_vars () in
+		let new_loop_list, jumps_mapping = rename_cont_break_list loop_list abnormal_finally in 
+		
+		let new_ctx = { ctx with tr_ret_lab = tcf_ret } in 
+		let new_loop_list = (None, finally, js_lab, false) :: new_loop_list in 
+		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement fid cc_table new_ctx vis_fid new_err1 new_loop_list None None e1 in
+		let cmds1, x1_v = add_final_var cmds1 x1 in 
+		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement catch_id cc_table new_ctx vis_fid new_err2 new_loop_list None None e2 in
+		let cmds2, x2_v = add_final_var cmds2 x2 in 
+		let new_loop_list = (None, end_label, js_lab, false) :: loop_list in 
+		let cmds3_1, _, errs3_1, rets3_1, breaks3_1, conts3_1 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e3 in
+		let cmds3_2, _, errs3_2, rets3_2, breaks3_2, conts3_2 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e3 in
+		let cmds3_3, _, errs3_3, rets3_3, breaks3_3, conts3_3 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e3 in
+	
+		let inner_breaks3_1, outer_breaks3_1 = filter_cur_jumps breaks3_1 js_lab false in 
+		let inner_breaks3_2, outer_breaks3_2 = filter_cur_jumps breaks3_2 js_lab false in 	
+		let inner_breaks3_3, outer_breaks3_3 = filter_cur_jumps breaks3_3 js_lab false in 
+						
+		let finally_cmds_breaks1, cur_break_vars_1, errs_b1, rets_b1, outer_breaks_b1, inner_breaks_b1, conts_b1 = make_finally_break_blocks breaks1 jumps_mapping e3 js_lab end_label in 
+		let finally_cmds_conts1, errs_c1, rets_c1, outer_breaks_c1, inner_breaks_c1, conts_c1 = make_finally_cont_blocks conts1 jumps_mapping e3 js_lab end_label in 
+	
+		let finally_cmds_breaks2, cur_break_vars_2, errs_b2, rets_b2, outer_breaks_b2, inner_breaks_b2, conts_b2 = make_finally_break_blocks breaks2 jumps_mapping e3 js_lab end_label in 
+		let finally_cmds_conts2, errs_c2, rets_c2, outer_breaks_c2, inner_breaks_c2, conts_c2 = make_finally_cont_blocks conts2 jumps_mapping e3 js_lab end_label in 
 
+		(* x_err := PHI(errs1) *) 
+		let x_err = fresh_err_var () in 
+		let phi_args1 = List.map (fun x -> Some x) errs1 in 
+		let phi_args1 = Array.of_list phi_args1 in 
+		let cmd_ass_xerr = SLPhiAssignment (x_err, phi_args1) in 
+	
+		(* x_er := new () *)
+		let x_er = fresh_er_var () in 
+		let cmd_ass_xer = SLBasic (SNew x_er) in 
+	
+		(* [x_er, "x"] := x_err *) 
+		let cmd_mutate_x = SLBasic (SMutation (Var x_er, Literal (String x), Var x_err)) in  					  				
+	
+		(* [x_scope, "cid"] := x_er *) 
+		let cmd_sc_updt = SLBasic (SMutation (Var var_scope, Literal (String catch_id), Var x_er)) in 
+	
+	  (* err2:     x_ret_1 := PHI(errs2) *)
+		let x_ret_1 = fresh_var () in 
+		let phi_args2 = List.map (fun x -> Some x) errs2 in 
+		let phi_args2 = Array.of_list phi_args2 in 
+		let cmd_ass_xret1 = SLPhiAssignment (x_ret_1, phi_args2) in
+	
+		(* x_ret_2 := PHI(cur_breaks1, x_1, cur_breaks2, x_2, x_ret_1) *)
+		let x_ret_2 = fresh_var () in 
+		let phi_args3 = cur_break_vars_1 @ [ x1_v ] @ cur_break_vars_2 @ [ x2_v ] in 
+		let phi_args3 = List.map (fun x -> Some x) phi_args3 in   
+		let phi_args3 = Array.of_list phi_args3 in 
+		let cmd_ass_xret2 = SLPhiAssignment (x_ret_2, phi_args3) in 
+		
+		(* x_ret_3 := PHI(rets1, rets2)  *)
+		let x_ret_3 = fresh_var () in 
+		let phi_args4 = rets1 @ rets2 in 
+		let phi_args4 = List.map (fun x -> Some x) phi_args4 in 
+		let phi_args4 = Array.of_list phi_args4 in 
+		let cmd_ass_xret3 = SLPhiAssignment (x_ret_3, phi_args4) in 
+	
+		(* x_ret_4 := PHI(inner_breaks_finally, x_ret_2) *)	
+		let x_ret_4 = fresh_var () in 
+		let phi_args5 = inner_breaks3_1 @ inner_breaks3_2 @ [ x_ret_2 ] @ inner_breaks3_3 @ inner_breaks_b1 @ inner_breaks_c1 @ inner_breaks_b2 @ inner_breaks_c2 in 
+		let phi_args5 = List.map (fun x -> Some x) phi_args5 in 
+		let phi_args5 = Array.of_list phi_args5 in 
+		let cmd_ass_xret4 = SLPhiAssignment (x_ret_4, phi_args5) in 
+		
+		let ret_label = ctx.tr_ret_lab in 
+		let errs = errs3_1 @ [ x_ret_1 ] @ errs3_2 @ errs3_3 @ errs_b1 @ errs_c1 @ errs_b2 @ errs_c2 in 
+		let rets = rets3_1 @ rets3_2 @ rets3_3 @ [ x_ret_3 ] @ rets_b1 @ rets_c1 @ errs_b2 @ errs_c2 in 
+		let breaks = outer_breaks3_1 @ outer_breaks3_2 @ outer_breaks3_3 @ outer_breaks_b1 @ outer_breaks_c1 @ outer_breaks_b2 @ outer_breaks_c2 in 
+		let conts = conts3_1 @ conts3_2 @ conts3_3 @ conts_b1 @ conts_c1 @ conts_b2 @ conts_c2 in
+		
+		let cmds = cmds1 @ [                                 (*            cmds1                                                       *)
+			(None, None,            SLGoto finally);           (*            goto finally                                                *)
+			(None, Some new_err1,   cmd_ass_xerr);             (*  err1:     x_err := PHI(errs1)                                         *)      
+			(None, None,            cmd_ass_xer);              (*            x_er := new ()                                              *)
+			(None, None,            cmd_mutate_x);             (*            [x_er, "x"] := x_err                                        *)
+			(None, None,            cmd_sc_updt)               (*            [x_scope, "cid"] := x_er                                    *)
+		] @ cmds2 @ [                                        (*            cmds2                                                       *)
+			(None, None,           SLGoto finally);            (*            goto finally                                                *) 
+			(None, Some new_err2,  cmd_ass_xret1);             (*  err2:     x_ret_1 := PHI(errs2)                                       *)
+		] @ cmds3_1 @ [                                      (*            cmds3_1                                                     *)
+		  (None, None,           SLGoto err);                (*            goto err                                                    *)
+			(None, Some finally,   cmd_ass_xret2)              (*  finally:  x_ret_2 := PHI(cur_breaks1, x_1, cur_breaks2, x_2)          *)       
+		] @ cmds3_2 @ [                                      (*            cmds3_2                                                     *)
+		  (None, None,           SLGoto end_label);          (*            goto end                                                    *)
+			(None, Some tcf_ret,   cmd_ass_xret3)              (*  tcf_ret:  x_ret_3 := PHI(rets1, rets2)                                *)
+		] @ cmds3_3 @ [                                      (*            cmds3_3                                                     *)
+		  (None, None,           SLGoto ret_label)           (*            goto ret_label                                              *)
+		] @ finally_cmds_breaks1 @ finally_cmds_conts1       (*            break_cont_finally_blocks_1                                 *)
+		  @ finally_cmds_breaks2 @ finally_cmds_conts2 @ [   (*            break_cont_finally_blocks_2                                 *)
+	    (None, Some end_label, cmd_ass_xret4)              (*  end:      x_ret_4 := PHI(x_ret_2, inner_breaks_finally)               *)
+		] in 
+		cmds, Var x_ret_4, errs, rets, breaks, conts  in
+	
+	
+	let make_try_finally_cmds e1 e3 = 						
+	  (**
+									cmds1
+		            	goto finally  
+		    err1:    	x_err := PHI(errs1)
+									cmds_finally
+									goto err
+				finally:  x_ret_1 := PHI(breaks_1, x_1)
+				          cmds_finally
+                  goto end
+				ret_tcf:  x_ret_2 := PHI(rets1) 
+				          cmds_finally 
+									goto ret_label
+									break_cont_ret_finally_blocks_1 
+			  end:      x_ret_3 := PHI(x_ret_1, breaks_finally) 
+	  *) 
+		let new_err1, new_err2, finally, end_label, abnormal_finally, tcf_ret = fresh_tcf_vars () in
+		let new_loop_list, jumps_mapping = rename_cont_break_list loop_list abnormal_finally in 
+		
+		let new_ctx = { ctx with tr_ret_lab = tcf_ret } in 
+		let new_loop_list = (None, finally, js_lab, false) :: new_loop_list in 
+		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement fid cc_table new_ctx vis_fid new_err1 new_loop_list None None e1 in
+		let cmds1, x1_v = add_final_var cmds1 x1 in 
+		let new_loop_list = (None, end_label, js_lab, false) :: loop_list in 
+		let cmds3_1, _, errs3_1, rets3_1, breaks3_1, conts3_1 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e3 in
+		let cmds3_2, _, errs3_2, rets3_2, breaks3_2, conts3_2 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e3 in
+		let cmds3_3, _, errs3_3, rets3_3, breaks3_3, conts3_3 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e3 in
+		let inner_breaks3_1, outer_breaks3_1 = filter_cur_jumps breaks3_1 js_lab false in 
+		let inner_breaks3_2, outer_breaks3_2 = filter_cur_jumps breaks3_2 js_lab false in 
+		let inner_breaks3_3, outer_breaks3_3 = filter_cur_jumps breaks3_3 js_lab false in 
+						
+		let finally_cmds_breaks1, cur_break_vars_1, errs_b1, rets_b1, outer_breaks_b1, inner_breaks_b1, conts_b1 = make_finally_break_blocks breaks1 jumps_mapping e3 js_lab end_label in 
+		let finally_cmds_conts1, errs_c1, rets_c1, outer_breaks_c1, inner_breaks_c1, conts_c1 = make_finally_cont_blocks conts1 jumps_mapping e3 js_lab end_label in 
+	
+		(* x_err := PHI(errs1) *) 
+		let x_err = fresh_err_var () in 
+		let phi_args1 = List.map (fun x -> Some x) errs1 in 
+		let phi_args1 = Array.of_list phi_args1 in 
+		let cmd_ass_xerr = SLPhiAssignment (x_err, phi_args1) in 
+	
+		(* x_ret_1 := PHI(cur_breaks1, x_1) *)
+		let x_ret_1 = fresh_var () in 
+		let phi_args = cur_break_vars_1 @ [ x1_v ] in 
+		let phi_args = List.map (fun x -> Some x) phi_args in   
+		let phi_args = Array.of_list phi_args in 
+		let cmd_ass_xret1 = SLPhiAssignment (x_ret_1, phi_args) in 
+		
+		(* x_ret_2 := PHI(rets1)  *)
+		let x_ret_2 = fresh_var () in 
+		let phi_args = rets1 in 
+		let phi_args = List.map (fun x -> Some x) phi_args in 
+		let phi_args = Array.of_list phi_args in 
+		let cmd_ass_xret2 = SLPhiAssignment (x_ret_2, phi_args) in 
+	
+		(* x_ret_3 := PHI(inner_breaks_finally, x_ret_1) *)	
+		let x_ret_3 = fresh_var () in 
+		let phi_args = inner_breaks3_1 @ inner_breaks3_2 @  [ x_ret_1 ] @ inner_breaks3_3 @ inner_breaks_b1 @ inner_breaks_c1 in 
+		let phi_args = List.map (fun x -> Some x) phi_args in 
+		let phi_args = Array.of_list phi_args in 
+		let cmd_ass_xret3 = SLPhiAssignment (x_ret_3, phi_args) in 
+		
+		let ret_label = ctx.tr_ret_lab in 
+		let errs = errs3_1 @ [ x_err ] @ errs3_2 @ errs3_3 @ errs_b1 @ errs_c1 in 
+		let rets = rets3_1 @ rets3_2 @ rets3_3 @ [ x_ret_2 ] @ rets_b1 @ rets_c1 in 
+		let breaks = outer_breaks3_1 @ outer_breaks3_2 @ outer_breaks3_3 @ outer_breaks_b1 @ outer_breaks_c1 in 
+		let conts = conts3_1 @ conts3_2 @ conts3_3 @ conts_b1 @ conts_c1 in
+		
+		let cmds = cmds1 @ [                                 (*            cmds1                                                       *)
+			(None, None,            SLGoto finally);           (*            goto finally                                                *)
+			(None, Some new_err1,   cmd_ass_xerr);             (*  err1:     x_err := PHI(errs1)                                         *)      
+		] @ cmds3_1 @ [                                      (*            cmds3_1                                                     *)
+		  (None, None,           SLGoto err);                (*            goto err                                                    *)
+			(None, Some finally,   cmd_ass_xret1)              (*  finally:  x_ret_1 := PHI(breaks_1, x_1)                               *)       
+		] @ cmds3_2 @ [                                      (*            cmds3_2                                                     *)
+		  (None, None,           SLGoto end_label);          (*            goto end                                                    *)
+			(None, Some tcf_ret,   cmd_ass_xret2)              (*  tcf_ret:  x_ret_2 := PHI(rets1)                                       *)
+		] @ cmds3_3 @ [                                      (*            cmds3_3                                                     *)
+		  (None, None,           SLGoto ret_label)           (*            goto ret_label                                              *)
+		] @ finally_cmds_breaks1 @ finally_cmds_conts1 @ [   (*            break_cont_finally_blocks_1                                 *)
+	    (None, Some end_label, cmd_ass_xret3)              (*  end:      x_ret_3 := PHI(inner_breaks_finally, x_ret_2)               *)
+		] in 
+		cmds, Var x_ret_3, errs, rets, breaks, conts  in
+	
+	
+	
 	
 	(** Statements **) 
 	match e.Parser_syntax.exp_stx with 
@@ -2622,7 +2913,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 			| None -> None, loop_list 
 			| Some lab -> 
 				let break_label = fresh_break_label () in 
-				Some break_label, ((None, break_label, js_lab) :: loop_list)) in 
+				Some break_label, ((None, break_label, js_lab, false) :: loop_list)) in 
 		
 		let rec loop es bprevious cmds_ac errs_ac rets_ac breaks_ac conts_ac = 
 			(match es with 
@@ -2753,7 +3044,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 			| None -> None, loop_list 
 			| Some lab -> 
 				let break_label = fresh_break_label () in 
-				Some break_label, ((None, break_label, js_lab) :: loop_list)) in
+				Some break_label, ((None, break_label, js_lab, false) :: loop_list)) in
 		
 		let cmds1, x1, errs1 = fe e1 in
 		let cmds2, x2, errs2, rets2, breaks2, conts2 = f_previous new_loop_list None None e2 in
@@ -2835,7 +3126,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 		
 		let head, guard, body, cont, end_loop = fresh_loop_vars () in 
 		
-		let new_loop_list = (Some cont, end_loop, js_lab) :: loop_list in 
+		let new_loop_list = (Some cont, end_loop, js_lab, true) :: loop_list in 
 		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e1 in
 		let cmds2, x2, errs2 = fe e2 in
 		let cmds2 = add_initial_label cmds2 guard in
@@ -2929,7 +3220,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 		let head, guard, body, cont, end_loop = fresh_loop_vars () in 
 		
 		let cmds1, x1, errs1 = fe e1 in
-		let new_loop_list = (Some cont, end_loop, js_lab) :: loop_list in 
+		let new_loop_list = (Some cont, end_loop, js_lab, true) :: loop_list in 
 		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e2 in
 		
 		let cur_breaks, outer_breaks = filter_cur_jumps breaks2 js_lab true in 
@@ -3041,7 +3332,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 			let cmds1, x1, errs1 = fe e1 in
 			let cmds2, x2, errs2 = fe e2 in
 			let head, guard, body, cont, end_loop = fresh_loop_vars () in 
-			let new_loop_list = (Some cont, end_loop, js_lab) :: loop_list in 
+			let new_loop_list = (Some cont, end_loop, js_lab, true) :: loop_list in 
 			let cmds3, x3, errs3, rets3, breaks3, conts3 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e3 in		
 			
 			let cur_breaks, outer_breaks = filter_cur_jumps breaks3 js_lab true in 
@@ -3251,7 +3542,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 		
 		let head, guard, body, cont, end_loop = fresh_loop_vars () in 
 		
-		let new_loop_list = (Some cont, end_loop, js_lab) :: loop_list in 
+		let new_loop_list = (Some cont, end_loop, js_lab, true) :: loop_list in 
 		let cmds4, x4, errs4, rets4, breaks4, conts4 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e4 in 
 		
 		let cur_breaks, outer_breaks = filter_cur_jumps breaks4 js_lab true in 
@@ -3386,7 +3677,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 		let lab_c = get_continue_lab loop_list lab in
 		let cmd_goto = [ (None, None, SLGoto lab_c) ] in
 		 
-		(cmd_ret @ cmd_goto), Var x_r, [], [], [], [ (lab, x_r) ]
+		(cmd_ret @ cmd_goto), Var x_r, [], [], [], [ (lab, x_r, lab_c) ]
 	
 
 	| Parser_syntax.Break lab ->
@@ -3411,7 +3702,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 		(* goto lab_r *) 
 		let lab_r = get_break_lab loop_list lab in
 		let cmd_goto = [ (None, None, SLGoto lab_r) ] in 
-		(cmd_ret @ cmd_goto), Var x_r, [], [], [ (lab, x_r) ], [] 
+		(cmd_ret @ cmd_goto), Var x_r, [], [], [ (lab, x_r, lab_r) ], [] 
 		
 			
 	| Parser_syntax.Label (js_lab, e) -> 
@@ -3463,20 +3754,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 		
 		let catch_id = try Js_pre_processing.get_codename e 
 				with _ -> raise (Failure "catch statemetns must be annotated with their respective code names - try - catch - finally") in 
-		
-		let cmds12, x_ret_1, errs12, rets12, breaks12, conts12, end_lab = make_try_catch_cmds e1 (x, e2) catch_id in 
-		let new_loop_list = (None, end_lab, js_lab) :: loop_list in 
-		let cmds3, _, errs3, rets3, breaks3, conts3 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e3 in 
-		let cur_breaks, outer_breaks = filter_cur_jumps breaks3 js_lab false in 
-		
-		(* x_ret_2 := PHI(breaks3, x_ret_1)  *) 
-		let x_ret_2 = fresh_var () in 
-		let phi_args = cur_breaks @ [ x_ret_1 ] in 
-		let phi_args = List.map (fun x -> Some x) phi_args in 
-		let phi_args = Array.of_list phi_args in 
-		let final_cmd = (None, Some end_lab, SLPhiAssignment (x_ret_2, phi_args)) in 
-		
-		cmds12 @ cmds3 @ [ final_cmd ], Var x_ret_2, errs12 @ errs3, rets12 @ rets3, breaks12 @ outer_breaks, conts12 @ conts3
+		make_try_catch_cmds_with_finally e1 (x, e2) catch_id e3
 		
 	
 	| Parser_syntax.Try (e1, None, Some e3) ->
@@ -3492,41 +3770,8 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 					        cmds3
 			  end:      x_ret_3 := PHI(cur_breaks3, x_ret_2)				
 		 *)
-		
-		let new_err, _, finally, end_lab = fresh_tcf_vars () in 
-		let loop_list1 = (None, finally, js_lab) :: loop_list in 
-		let loop_list3 = (None, end_lab, js_lab) :: loop_list in 
-		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement fid cc_table ctx vis_fid new_err loop_list1 None None e1 in
-		let cur_breaks1, outer_breaks1 = filter_cur_jumps breaks1 js_lab true in 
-		let cmds1, x1_v = add_final_var cmds1 x1 in 
-		
-		(* goto finally *)
-		let cmd_goto_finally = (None, None, SLGoto finally) in 
-		
-		(* err:      x_ret_1 := PHI(errs1)  *)
-		let x_ret_1 = fresh_var () in 
-		let phi_args = List.map (fun x -> Some x) errs1 in 
-		let phi_args = Array.of_list phi_args in 
-		let cmd_phi1 = (None, Some new_err,  SLPhiAssignment (x_ret_1, phi_args)) in 		
-		
-		(* finally:  x_ret_2 := PHI(cur_breaks1, x_1, x_ret_1)  *) 
-		let x_ret_2 = fresh_var () in 
-		let phi_args = cur_breaks1 @ [ x1_v; x_ret_1 ] in 
-		let phi_args = List.map (fun x -> Some x) phi_args in 
-		let phi_args = Array.of_list phi_args in 
-		let cmd_phi2 = (None, Some finally, SLPhiAssignment (x_ret_2, phi_args)) in 
-		
-		(* end:      x_ret_3 := PHI(cur_breaks3, x_ret_2)	 *) 
-		let cmds3, _, errs3, rets3, breaks3, conts3 = translate_statement fid cc_table ctx vis_fid err loop_list3 None None e3 in 
-		let cur_breaks3, outer_breaks3 = filter_cur_jumps breaks3 js_lab false in 
-		let x_ret_3 = fresh_var () in 
-		let phi_args = cur_breaks3 @ [ x_ret_2 ] in 
-		let phi_args = List.map (fun x -> Some x) phi_args in 
-		let phi_args = Array.of_list phi_args in 
-		let cmd_phi3  = (None, Some end_lab, SLPhiAssignment (x_ret_3, phi_args)) in 
-		
-		cmds1 @ [ cmd_goto_finally; cmd_phi1; cmd_phi2 ] @ cmds3 @ [ cmd_phi3 ], Var x_ret_3, errs3, rets1 @ rets3, outer_breaks1 @ outer_breaks3, conts1 @ conts3
-		
+		make_try_finally_cmds e1 e3 
+
 
 	| Parser_syntax.Try (e1, Some (x, e2), None) ->
 		(**
@@ -3609,7 +3854,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 			let next1 = fresh_next_label () in 
 			let next2 = fresh_next_label () in 
 			
-			let new_loop_list = (None, end_switch, js_lab) :: loop_list in 
+			let new_loop_list = (None, end_switch, js_lab, true) :: loop_list in 
 			let cmds1, x1, errs1, _, _, _ = f e in 
 			let cmds1 = add_initial_label cmds1 next1 in 
 			let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None s in 
@@ -3648,7 +3893,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 			
 		
 		let compile_default s b_stmts x_old_b x_found_b end_switch js_lab cur_breaks_ab =
-			let new_loop_list = (None, end_switch, js_lab) :: loop_list in 
+			let new_loop_list = (None, end_switch, js_lab, true) :: loop_list in 
 			let f_default = translate_statement fid cc_table ctx vis_fid err new_loop_list None None in 
 			
 			let cmds_def, x_def, errs_def, rets_def, breaks_def, conts_def = f_default s in
@@ -3739,7 +3984,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 			cmds_as @ [ cmd_end_switch ], Var x_as, errs_as, rets_as, outer_breaks_as, conts_as   			
 		
 		| [], Some def -> 
-			let new_loop_list = (None, end_switch, js_lab) :: loop_list in 
+			let new_loop_list = (None, end_switch, js_lab, true) :: loop_list in 
 			let f_default = translate_statement fid cc_table ctx vis_fid err new_loop_list None None in 
 			let cmds_def, x_def, errs_def, rets_def, breaks_def, conts_def = f_default def in
 			let cmds_def, x_def = add_final_var cmds_def x_def in
