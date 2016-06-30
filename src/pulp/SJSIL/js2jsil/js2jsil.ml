@@ -2443,7 +2443,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 		   x_f := create_function_object(x_sc, f_id, params)
    	*)
 		let f_id = try Js_pre_processing.get_codename e 
-			with _ -> raise (Failure "annonymous function literals should be annotated with their respective code names") in 
+			with _ -> raise (Failure "anonymous function literals should be annotated with their respective code names") in 
 		let cmds, x_f = translate_function_literal f_id params vis_fid in 
 		cmds, Var x_f, []
 	
@@ -2506,7 +2506,7 @@ and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option
 		let v_fid = find_var_fid x in
 		let v_fid = 
 			match v_fid with 
-			| None -> raise (Failure "Error: if a variable is declared it must be in the scope clarification table!")
+			| None -> raise (Failure (Printf.sprintf "Error: The variable %s that is declared is not in the scope clarification table!" x))
 			| Some v_fid -> v_fid in 
 		let cmds_e, x_e, errs_e = translate_expr fid cc_table vis_fid err e in
 		(* x_v := i__getValue (x) with err *)
