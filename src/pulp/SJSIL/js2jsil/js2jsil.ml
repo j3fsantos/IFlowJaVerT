@@ -754,7 +754,7 @@ let make_loop_end cur_val_var prev_val_var break_vars end_lab cur_first =
 	]	in 
 	cmds, x_ret_5 
 			
-
+	
 
 let rec translate_expr fid cc_table vis_fid err e  = 
 	
@@ -783,6 +783,8 @@ let rec translate_expr fid cc_table vis_fid err e  =
 		(* x_ref := ref_v(x_sf, "x")  *) 
 		let x_ref = fresh_var () in 
 		let cmd_xref_ass = SLBasic (SAssignment (x_ref, VRef (Var x_sf, Literal (String x)))) in 
+		(* x_cae := i__checkAssignmentErrors (x_ref) with err *)
+		let x_cae, cmd_cae = make_cae_call (Var x_ref)  err in 
 		(* x_pv := i__putValue(x_ref, x_v) with err2 *) 
 		let x_pv, cmd_pv = make_put_value_call (Var x_ref) x_v err in 
 		let cmds = cmds_e @ (b_annot_cmds [
@@ -791,7 +793,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 			cmd_xref_ass;  (* x_ref := ref_v(x_sf, "x")                *) 
 			cmd_pv         (* x_pv := i__putValue(x_ref, x_v) with err *) 
 		]) in 
-		let errs = errs_e @ [ x_v; x_pv ] in 
+		let errs = errs_e @ [ x_v; x_cae; x_pv ] in 
 		cmds, x_ref, errs in 
 	
 	let compile_var_dec_without_exp x = 
@@ -2493,7 +2495,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 			(match decs with
 			| [] -> raise (Failure "no empty variable declaration lists in expression contexts") 
 			 
-			| [ (v, eo) ] -> 
+			| [ (v, eo) ] ->
 				(match eo with 
 				| None -> 
 					let x, new_cmds = compile_var_dec_without_exp v in 
@@ -2542,6 +2544,7 @@ and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option
 		let cmd_xsf_ass = SLBasic (SLookup (x_sf, Var var_scope, Literal (String v_fid))) in 
 		(* x_ref := ref_v(x_sf, "x")  *) 
 		let x_ref = fresh_var () in 
+	  (* *) 
 		let cmd_xref_ass = SLBasic (SAssignment (x_ref, VRef (Var x_sf, Literal (String x)))) in 
 		(* x_pv := i__putValue(x_ref, x_v) with err2 *) 
 		let x_pv, cmd_pv = make_put_value_call (Var x_ref) x_v err in 
@@ -2711,11 +2714,12 @@ and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option
 		            	goto finally  
 		    err1:    	x_err := PHI(errs1)
 				        	x_er := new () 
+									x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err 
 									[x_er, "x"] := x_err 
 									[x_scope, "cid"] := x_er 
 									cmds2
 									goto finally
-				err2:    	x_ret_1 := PHI(errs2)
+				err2:    	x_ret_1 := PHI(x_cae; errs2)
 				          cmds_finally
 									goto err
 				finally:  x_ret_2 := PHI(breaks_1, x_1, breaks_2, x_2)
@@ -2761,6 +2765,10 @@ and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option
 		(* x_er := new () *)
 		let x_er = fresh_er_var () in 
 		let cmd_ass_xer = SLBasic (SNew x_er) in 
+		
+		(* x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err *)
+		(**let x_cae = fresh_var () in 
+		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ VRef (Variable x_er, Literal (String x)) ], Some err) *)
 	
 		(* [x_er, "x"] := x_err *) 
 		let cmd_mutate_x = SLBasic (SMutation (Var x_er, Literal (String x), Var x_err)) in  					  				
