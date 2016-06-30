@@ -4119,16 +4119,13 @@ let generate_main e main cc_table =
 		lspec = None 
 	}
 	
-let generate_proc_eval fid e cc_table vis_fid =
-	let new_fid = Js_pre_processing.fresh_eval_name () in 
-	Js_pre_processing.update_cc_tbl cc_table fid new_fid [] e; 
-	let new_fid_vars = Js_pre_processing.var_decls e in 	
-
+let generate_proc_eval new_fid e cc_table vis_fid =
 	(* x_er := new () *)
 	let x_er = fresh_var () in  
 	let cmd_er_creation = (None, None, SLBasic (SNew x_er)) in 
 	
 	(* [x_er, decl_var_i] := undefined *) 
+	let new_fid_vars = Js_pre_processing.var_decls e in 	
 	let cmds_decls = 
 		List.map (fun decl_var -> 
 			let cmd = SLBasic (SMutation (Var x_er, Literal (String decl_var), Literal Undefined)) in
@@ -4149,7 +4146,7 @@ let generate_proc_eval fid e cc_table vis_fid =
 	(* x__false := $$f *) 
 	let cmd_ass_xfalse = b_annot_cmd (SLBasic (SAssignment (var_false, Literal (Bool false)))) in
 	
-	let ctx = make_translation_ctx fid in 
+	let ctx = make_translation_ctx new_fid in 
 	let fake_ret_label = fresh_label () in 
 	let fake_ret_var = fresh_var () in 
 	let ret_label = ctx.tr_ret_lab in 
@@ -4253,10 +4250,43 @@ let generate_proc e fid params cc_table vis_fid =
 		lspec = None 
 	}
 
+let fresh_name =
+  let counter = ref 0 in
+  let rec f name =
+    let v = name ^ (string_of_int !counter) in
+    counter := !counter + 1;
+    v
+  in f
+
+let fresh_anonymous () : string =
+  fresh_name "anonymous"
+
+let fresh_catch_anonymous () : string =
+  fresh_name "catch_anonymous"	
+		  
+let fresh_named n : string =
+  fresh_name n 
+
+let fresh_anonymous_eval () : string = 
+	fresh_name "___$eval___" 
+
+let fresh_catch_anonymous_eval () : string =
+  fresh_name "___$eval___catch_anonymous_"	
+		  
+
+let fresh_named_eval n : string =
+  fresh_name ("___$eval___" ^ n ^ "_")
+
+
+
 let js2jsil e = 
+	let cc_tbl = Hashtbl.create 101 in 
+	let fun_tbl = Hashtbl.create 101 in
+	let vis_tbl = Hashtbl.create 101 in  
+	
 	let main = "main" in 
-	let e = Js_pre_processing.add_codenames main e in 
-	let cc_tbl, fun_tbl, vis_tbl = Js_pre_processing.closure_clarification_top_level main e in 
+	let e = Js_pre_processing.add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous e in 
+	Js_pre_processing.closure_clarification_top_level cc_tbl fun_tbl vis_tbl main e [ main ] []; 
 	
 	let jsil_prog = SLProgram.create 1021 in 
 	Hashtbl.iter
@@ -4273,10 +4303,44 @@ let js2jsil e =
 			SLProgram.add jsil_prog f_id proc)
 		fun_tbl; 
 	
-	(* Prints to delete *) 
-	(* let str = Js_pre_processing.print_cc_tbl cc_tbl in 
-	   Printf.printf "closure clarification table: %s\n" str; *)
-	(* let main_str = SSyntax_Print.string_of_lprocedure jsil_proc_main in 
-	Printf.printf "main code:\n %s\n" main_str; *)
-	
 	Some js2jsil_imports, jsil_prog, cc_tbl, vis_tbl
+	
+
+
+let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e = 
+	let vis_tbl, cc_tbl, vis_fid = 
+		(match vis_tbl, cc_tbl with 
+		| Some vis_tbl, Some cc_tbl -> 
+			vis_tbl, cc_tbl, (try (Hashtbl.find vis_tbl f_parent_id) with _ ->
+				raise (Failure (Printf.sprintf "Function %s not found in visibility table" f_parent_id)))
+		| _, _ -> raise (Failure "Wrong call to eval. Whatever.")) in 
+	let new_fun_tbl = Hashtbl.create 101 in
+	
+	let new_fid = fresh_anonymous_eval () in 
+	let e = Js_pre_processing.add_codenames new_fid fresh_anonymous_eval fresh_named_eval fresh_catch_anonymous_eval e in 
+	Js_pre_processing.update_cc_tbl cc_tbl f_parent_id new_fid [var_scope; var_this] e;
+	Hashtbl.add new_fun_tbl new_fid (new_fid, [var_scope; var_this], e); 
+	Hashtbl.add vis_tbl new_fid (new_fid :: vis_fid);
+	Js_pre_processing.closure_clarification cc_tbl new_fun_tbl vis_tbl new_fid (new_fid :: vis_fid) e;
+	
+	
+	Hashtbl.iter
+		(fun f_id (_, f_params, f_body) -> 
+			let proc = 
+				(if (f_id = new_fid) 
+					then generate_proc_eval new_fid e cc_tbl vis_fid
+					else 
+						(let vis_fid = try Hashtbl.find vis_tbl f_id 
+							with _ -> 
+								(let msg = Printf.sprintf "Function %s not found in visibility table" f_id in 
+								raise (Failure msg)) in 	
+						generate_proc f_body f_id f_params cc_tbl vis_fid)) in
+			let proc_eval_str = SSyntax_Print.string_of_lprocedure proc in 
+			Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; 
+			let proc = SSyntax_Utils.desugar_labs proc in 
+			SProgram.add prog f_id proc; 
+			SSyntax_Utils.extend_which_pred which_pred proc)
+		new_fun_tbl; 
+	
+	let proc_eval = try SProgram.find prog new_fid with _ -> raise (Failure "no eval proc was created") in 
+	proc_eval 

@@ -9,8 +9,6 @@ let sanitise name =
 	let s = Str.global_replace (Str.regexp "\$") "_" name in
 	s
 
-let eval_prefix = "___$eval___" 
-
 let update_annotation annots atype new_value =
   let old_removed = List.filter (fun annot -> annot.annot_type <> atype) annots in
   let annot = {annot_type = atype; annot_formula = new_value} in
@@ -22,27 +20,7 @@ let get_codename exp =
   match codenames with
     | [codename] -> codename.annot_formula
     | _ -> raise No_Codename 
-
-let fresh_name =
-  let counter = ref 0 in
-  let rec f name =
-    let v = name ^ (string_of_int !counter) in
-    counter := !counter + 1;
-    v
-  in f
   
-let fresh_anonymous () : string =
-  fresh_name "anonymous"
-
-let fresh_catch_anonymous () : string =
-  fresh_name "catch_anonymous"	
-		  
-let fresh_named n : string =
-  fresh_name n 
-
-let fresh_eval_name () : string = 
-	fresh_name eval_prefix
-
 let flat_map f l = List.flatten (List.map f l)
 
 let rec var_decls_inner exp = 
@@ -128,8 +106,8 @@ let get_all_vars_f f_body f_args =
 	vars
   
  
-let rec add_codenames main exp : exp =
-  let f = add_codenames main in
+let rec add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous exp =
+  let f = add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous in
   let fo e =
     begin match e with
       | None -> None
@@ -306,21 +284,16 @@ let rec closure_clarification cc_tbl fun_tbl vis_tbl f_id visited_funs e =
 	| With (e1, e2) -> f e1; f e2 
 	| Debugger -> ()  
 	
-let closure_clarification_top_level main e =
-	let cc_tbl = Hashtbl.create 101 in 
-	let fun_tbl = Hashtbl.create 101 in
-	let vis_tbl = Hashtbl.create 101 in  
-	
-	let main_tbl = Hashtbl.create 101 in 
-	let main_vars = get_all_vars_f e [] in
+let closure_clarification_top_level cc_tbl fun_tbl vis_tbl proc_id e vis_fid args =
+	let proc_tbl = Hashtbl.create 101 in 
+	let proc_vars = get_all_vars_f e [] in
 	List.iter
-		(fun v -> Hashtbl.replace main_tbl v main)
-		main_vars; 
-	Hashtbl.add cc_tbl main main_tbl; 
-	Hashtbl.add fun_tbl main (main, [], e); 
-	Hashtbl.add vis_tbl main [];
-	closure_clarification cc_tbl fun_tbl vis_tbl main [ main ] e; 
-	cc_tbl, fun_tbl, vis_tbl
+		(fun v -> Hashtbl.replace proc_tbl v proc_id)
+		proc_vars; 
+	Hashtbl.add cc_tbl proc_id proc_tbl; 
+	Hashtbl.add fun_tbl proc_id (proc_id, args, e); 
+	Hashtbl.add vis_tbl proc_id vis_fid;
+	closure_clarification cc_tbl fun_tbl vis_tbl proc_id vis_fid e
 
 (**
 	(Hashtbl.iter
