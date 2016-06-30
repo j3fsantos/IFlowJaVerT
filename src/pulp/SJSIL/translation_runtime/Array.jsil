@@ -320,4 +320,98 @@ with
 {
 	ret: xret, rlab;
 	err: xret, elab;
+};
+
+(* *** POP *** *)
+proc AP_pop (xsc, vthis) {
+			xret := "i__toObject" (vthis) with elab;
+			vthis := xret;
+			
+			g := [vthis, "@get"];
+			xret := g (vthis, "length") with elab;
+			xret := "i__toUint32" (xret) with elab;
+			len := xret;
+			
+			p := [vthis, "@put"];
+			goto [len = 0] zero nz;
+	
+	zero:	xret := p (vthis, "length", 0, $$t) with elab;
+			xret := $$undefined;
+			goto rlab;
+	
+	nz:		indx := "i__toString" (len - 1);
+			elem := g (vthis, indx) with elab;
+			d := [vthis, "@deleteProperty"];
+			xret := d (vthis, indx, $$t) with elab;
+			xret := p (vthis, "length", indx, $$t) with elab;
+			xret := elem;
+	
+	rlab:	skip;
+	elab:	skip
 }
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
+
+(* *** PUSH *** *)
+proc AP_push() {
+			arguments := args;
+			vthis  := nth (arguments, 1);
+			
+			xret := "i__toObject" (vthis) with elab;
+			vthis := xret;
+			
+			g := [vthis, "@get"];
+			xret := g (vthis, "length") with elab;
+			xret := "i__toUint32" (xret) with elab;
+			len := xret;
+			
+			n := 2;
+			num := length (arguments);
+			p := [vthis, "@put"];
+
+	loop:	goto [n < num] add stop;
+	
+	add:	elem := nth (arguments, n);
+			strn := "i__toString" (len);
+			xret := p (vthis, strn, elem, $$t) with elab;
+			n := n + 1;
+			len := len + 1;
+			goto loop;
+				
+	stop:	xret := p (vthis, "length", len, $$t) with elab;
+			xret := len;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+}
+
+
+(* *** TOLOCALESTRING *** *)
+(*
+proc AP_toLocaleString(xsc, vthis) {
+			xret := "i__toObject" (vthis) with elab;
+			vthis := xret;
+			
+			g := [vthis, "@get"];
+			xret := g (vthis, "length") with elab;
+			xret := "i__toUint32" (xret) with elab;
+			len := xret;
+
+			
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+}
+*)
+
+
