@@ -772,7 +772,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 		let v_fid = find_var_fid x in
 		let v_fid = 
 			match v_fid with 
-			| None -> raise (Failure "Error: if a variable is declared it must be in the scope clarification table!")
+			| None -> raise (Failure (Printf.sprintf "Error: The variable %s that is declared is not in the scope clarification table!" x))
 			| Some v_fid -> v_fid in 
 		let cmds_e, x_e, errs_e = translate_expr fid cc_table vis_fid err e in
 		(* x_v := i__getValue (x) with err *)
@@ -798,7 +798,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 		let v_fid = find_var_fid x in
 		let v_fid = 
 			match v_fid with 
-			| None -> raise (Failure "Error: if a variable is declared it must be in the scope clarification table!")
+			| None -> raise (Failure (Printf.sprintf "Error: The variable %s that is declared is not in the scope clarification table!" x))
 			| Some v_fid -> v_fid in 
 		(* x_sf := [x__scope, v_fid]  *) 
 		let x_sf = fresh_var () in 
