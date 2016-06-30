@@ -4318,7 +4318,6 @@ let generate_proc e fid params cc_table vis_fid =
 	(* x_dr := $$empty *)
 	let x_dr = fresh_var () in
 	let cmd_dr_ass = (None, None, SLBasic (SAssignment (x_dr, Literal Empty))) in
-	let cmd_dr_goto = (None, None, SLGoto ctx.tr_ret_lab) in 
 	let rets = rets @ [ x_dr ] in 
 	
 	(* pre_lab_ret: x_return := PHI(...) *) 
@@ -4332,7 +4331,7 @@ let generate_proc e fid params cc_table vis_fid =
 	
 	let fid_cmds = 
 		cmds_save_old_er @ [ cmd_er_creation ] @ cmds_params @ cmds_decls @ [ cmd_ass_er_to_sc ] @ [ cmd_ass_te; cmd_ass_se;  cmd_ass_xtrue; cmd_ass_xfalse ] @ cmds_hoist_fdecls @ cmds_e 
-		@ [ cmd_dr_ass; cmd_dr_goto; cmd_return_phi ] @ cmds_restore_er_ret @ [ cmd_error_phi ] @ cmds_restore_er_error in 
+		@ [ cmd_dr_ass; cmd_return_phi ] @ cmds_restore_er_ret @ [ cmd_error_phi ] @ cmds_restore_er_error in 
 	{ 
 		lproc_name = fid;
     lproc_body = (Array.of_list fid_cmds);
@@ -4431,7 +4430,7 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 								raise (Failure msg)) in 	
 						generate_proc f_body f_id f_params cc_tbl vis_fid)) in
 			let proc_eval_str = SSyntax_Print.string_of_lprocedure proc in 
-			(* Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
+		  (* Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
 			let proc = SSyntax_Utils.desugar_labs proc in 
 			SProgram.add prog f_id proc; 
 			SSyntax_Utils.extend_which_pred which_pred proc)

@@ -738,7 +738,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 			SProgram.remove prog proc_eval.proc_name;
 	 		evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
 		| Error, v -> 
-			match proc.error_label with 
+			match j with 
 			| None -> raise (Failure "procedure throws an error without a ret label") 
 			| Some err_label ->
 				Hashtbl.replace store x v;
@@ -834,7 +834,7 @@ evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vi
 					                      | None -> raise (Failure "No no!") 
 																| Some err_var -> err_var) in
 				         (try (Hashtbl.find store err_var) with
-				| _ -> raise (Failure (Printf.sprintf "Cannot find error variable." )))) in
+				| _ -> raise (Failure (Printf.sprintf "Cannot find error variable in proc %s, err_lab = %d, err_var = %s, cmd = %s" proc.proc_name cur_cmd err_var (SSyntax_Print.string_of_cmd proc.proc_body.(prev_cmd)  0 0 false false false))))) in
 			if (!verbose) then Printf.printf ("Procedure %s returned: Error, %s\n") cur_proc_name (SSyntax_Print.string_of_literal err_value false);
 			Error, err_value)
 		else (
