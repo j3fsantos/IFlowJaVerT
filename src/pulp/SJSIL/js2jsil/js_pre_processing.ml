@@ -470,7 +470,7 @@ closure_clarification_stmt cc_tbl fun_tbl vis_tbl f_id visited_funs e =
   | RegExp _ -> fe e
 	(*Statements*)
 	| NamedFun (_, f_name, args, fb) -> 
-		Printf.printf("named function expression hihihi\n");  
+		(* Printf.printf("named function expression hihihi\n");  *)
 		let new_f_id = get_codename e in 
 		update_cc_tbl cc_tbl f_id new_f_id args fb;
 		update_fun_tbl fun_tbl new_f_id args fb; 
