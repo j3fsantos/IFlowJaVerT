@@ -4308,6 +4308,7 @@ let js2jsil e =
 
 
 let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e = 
+	Printf.printf "js2jsilEval Stage 1\n";
 	let vis_tbl, cc_tbl, vis_fid = 
 		(match vis_tbl, cc_tbl with 
 		| Some vis_tbl, Some cc_tbl -> 
@@ -4316,6 +4317,7 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 		| _, _ -> raise (Failure "Wrong call to eval. Whatever.")) in 
 	let new_fun_tbl = Hashtbl.create 101 in
 	
+	Printf.printf "js2jsilEval Stage 2\n";
 	let new_fid = fresh_anonymous_eval () in 
 	let e = Js_pre_processing.add_codenames new_fid fresh_anonymous_eval fresh_named_eval fresh_catch_anonymous_eval e in 
 	Js_pre_processing.update_cc_tbl cc_tbl f_parent_id new_fid [var_scope; var_this] e;
@@ -4323,7 +4325,7 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 	Hashtbl.add vis_tbl new_fid (new_fid :: vis_fid);
 	Js_pre_processing.closure_clarification cc_tbl new_fun_tbl vis_tbl new_fid (new_fid :: vis_fid) e;
 	
-	
+	Printf.printf "js2jsilEval Stage 3\n";
 	Hashtbl.iter
 		(fun f_id (_, f_params, f_body) -> 
 			let proc = 
