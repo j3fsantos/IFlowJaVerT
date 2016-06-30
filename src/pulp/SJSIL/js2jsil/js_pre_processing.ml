@@ -83,6 +83,167 @@ let rec var_decls_inner exp =
 let var_decls exp = List.unique (var_decls_inner exp)
 
 
+let rec get_fun_decls exp : exp list = 
+	let f = get_fun_decls in 
+  let fo e = match e with None -> [] | Some e -> f e in
+	let fcatch e = 
+		(match e with 
+		| None -> []
+		| Some (_, e) -> f e 
+		| _ -> raise (Failure "illegal catch statement")) in 
+  match exp.exp_stx with
+  | Num _
+  | String _
+  | Null 
+  | Bool _ 
+  | Var _
+  | RegExp _ 
+  | This
+  | Skip 
+  | Return None
+  | Break _
+  | Continue _ 
+	| VarDec _  
+  | Debugger 
+ 	| Throw _
+  | Delete _
+  | Return _  
+  | Access (_, _) 
+  | Unary_op (_, _) 
+	| BinOp (_, _, _)
+  | Assign (_, _)  
+  | AssignOp (_, _, _) 
+  | CAccess (_, _) 
+  | Comma (_, _) 
+	| AnonymousFun (_,_,_) 
+	| ConditionalOp (_, _, _)
+	| Call (_, _) 
+	| New (_, _) -> []
+  | Label (_, e) 
+  | While (_, e) 
+  | DoWhile (e, _)
+	| For (_, _, _, e)
+  | ForIn (_, _, e) 
+	| With (_, e) -> f e 
+  | Try (e1, e2, e3) -> (f e1) @ (fcatch e2) @ (fo e3) 
+  | If (e1, e2, e3)-> (f e2) @ (fo e3)
+ 	| Switch (_, es) -> flat_map (fun (_, e) -> f e) es
+  | Block es
+  | Script (_, es) -> flat_map f es
+  | NamedFun (_,_, _, _) -> [ exp ]
+
+ 
+let rec get_fun_exprs_expr exp = 
+  let f = get_fun_exprs_expr in 
+  let fo e = match e with None -> [] | Some e -> f e in
+  match exp.exp_stx with
+  | Num _
+  | String _
+  | Null 
+  | Bool _ 
+  | Var _
+  | RegExp _ 
+  | This
+  | Skip 
+  | Return None
+  | Break _
+  | Continue _ 
+  | Debugger -> [] 
+  | VarDec vars -> 
+		flat_map (fun ve -> match ve with (_, None) -> [ ] | (_, Some e)  -> f e) vars 
+  | Throw e
+  | Delete e
+	| Unary_op (_, e) 
+	| Access (e, _) -> f e 
+  | Return e -> fo e 
+	| BinOp (e1, _, e2)
+  | Assign (e1, e2) 
+	| AssignOp (e1, _, e2)
+	| CAccess (e1, e2) 
+	| Comma (e1, e2) -> (f e1) @ (f e2) 
+	| Call (e1, e2s) 
+  | New (e1, e2s) -> (f e1) @ (flat_map (fun e2 -> f e2) e2s)
+  | Obj xs -> flat_map (fun (_,_,e) -> f e) xs 
+  | Array es -> flat_map (fun e -> match e with None -> [] | Some e -> f e) es
+	| ConditionalOp (e1, e2, e3) -> (f e1) @ (f e2) @ (f e3)
+	| AnonymousFun (_,_,_)
+  | NamedFun (_,_,_,_) -> [ exp ] 
+	| Label (_,_) 
+  | While (_,_) 
+  | DoWhile (_,_)
+  | With (_,_) 
+  | Try (_,_,_)
+  | If (_,_,_)
+  | ForIn (_, _,_) 
+  | For (_,_,_,_) 
+  | Switch (_, _) 
+  | Block _
+  | Script (_,_) -> raise (Failure "statement in expression context... why you do this to me!?!")
+	
+and get_fun_exprs_stmt stmt = 
+	let f = get_fun_exprs_stmt in
+	let fe = get_fun_exprs_expr in   
+  let fo s = match s with None -> [] | Some s -> f s in
+	let feo s = match s with None -> [] | Some s -> fe s in
+	let fcatch e = 
+		(match e with 
+		| None -> []
+		| Some (_, e) -> f e 
+		| _ -> raise (Failure "illegal catch statement")) in 
+  match stmt.exp_stx with
+	(* Literals *)
+	| Null 
+	| Bool _
+	| String _  
+	| Num _      
+	(* Expressions *)
+	| This        
+	| Var _      
+	| Obj _        
+	| Access (_, _)     
+	| CAccess (_, _)        
+	| New (_, _)
+	| Call (_, _)    
+	| AnonymousFun (_, _, _) 
+	| Unary_op (_, _)         
+  | Delete _ 
+  | BinOp (_, _, _)      
+  | Assign (_, _) 
+  | Array _ 
+  | ConditionalOp (_, _, _) 
+  | AssignOp (_, _, _) 
+  | Comma (_, _)           
+  | RegExp _ -> fe stmt
+	| NamedFun (_, f_name, args, fb) -> []
+	(* statements *)
+	| Script (_, es) 
+  | Block es -> flat_map (fun e -> f e) es
+  | VarDec vars -> flat_map (fun (_, e) -> feo e) vars
+  | If (e1, e2, e3) -> (fe e1) @ (f e2) @ (fo e3)          
+  | While (e1, e2) -> (fe e1) @ (f e2)        
+  | DoWhile (e1, e2) -> (f e1) @ (fe e2)       
+  | Return e -> feo e 
+  | Try (e1, e2, e3) -> (f e1) @ (fcatch e2) @ (fo e3) 
+  | Throw e -> fe e
+  | Continue _ 
+  | Break _ 
+	| Skip 
+	| Debugger -> []  
+  | Label (_, e) -> fe e       
+  | For (e1, e2, e3, e4) -> (feo e1) @ (feo e2) @ (feo e3) @ (f e4)
+  | Switch (e1, sces) -> 
+		(fe e1) @ 
+		(flat_map  
+			(fun (sc, ec2) ->
+				let funs_sc = (match sc with 
+				| DefaultCase -> [] 
+				| Case ec1 -> fe ec1) in  
+				funs_sc @ (f ec2))
+			sces)
+	| ForIn (e1, e2, e3) -> (fe e1) @ (fe e2) @ (f e3) 
+	| With (e1, e2) -> (f e1) @ (f e2) 
+	
+
 let func_decls_in_elem exp : exp list = 
     match exp.Parser_syntax.exp_stx with
       | Parser_syntax.NamedFun (s, name, args, body) -> [exp]
@@ -104,7 +265,7 @@ let get_all_vars_f f_body f_args =
   ) f_decls in
   let vars = List.concat [f_args; (var_decls f_body); fnames] in
 	vars
-  
+
  
 let rec add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous exp =
   let f = add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous in
@@ -198,7 +359,7 @@ let update_cc_tbl cc_tbl f_parent_id f_id f_args f_body =
 		f_vars; 
 	Hashtbl.add cc_tbl f_id new_f_tbl 	
 
-let update_cc_tbl_catch cc_tbl f_parent_id f_id  x = 
+let update_cc_tbl_single_var_er cc_tbl f_parent_id f_id  x = 
 	let f_parent_var_table = 
 		try Hashtbl.find cc_tbl f_parent_id 
 		with _ ->
@@ -211,8 +372,8 @@ let update_cc_tbl_catch cc_tbl f_parent_id f_id  x =
 	Hashtbl.replace new_f_tbl x f_id;
 	Hashtbl.add cc_tbl f_id new_f_tbl
 
-let rec closure_clarification cc_tbl fun_tbl vis_tbl f_id visited_funs e = 
-	let f = closure_clarification cc_tbl fun_tbl vis_tbl f_id visited_funs in 
+let rec closure_clarification_expr cc_tbl fun_tbl vis_tbl f_id visited_funs e = 
+	let f = closure_clarification_expr cc_tbl fun_tbl vis_tbl f_id visited_funs in 
 	let fo e = (match e with 
 	| None -> () 
 	| Some e -> f e) in 
@@ -230,60 +391,123 @@ let rec closure_clarification cc_tbl fun_tbl vis_tbl f_id visited_funs e =
 	| CAccess (e1, e2) -> (f e1); (f e2)           
 	| New (e1, e2s)
 	| Call (e1, e2s) -> f e1; (List.iter f e2s)          
-  | AnonymousFun (_, args, fb) 
-	| NamedFun (_, _, args, fb) -> 
+  | AnonymousFun (_, args, fb) -> 
 		let new_f_id = get_codename e in 
 		update_cc_tbl cc_tbl f_id new_f_id args fb;
 		update_fun_tbl fun_tbl new_f_id args fb; 
 		Hashtbl.replace vis_tbl new_f_id (new_f_id :: visited_funs); 
-		closure_clarification cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: visited_funs) fb
+		closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: visited_funs) fb
+	| NamedFun (_, f_name, args, fb) ->
+		Printf.printf("named function oleee\n");  
+		let new_f_id = get_codename e in
+		let new_f_id_outer = new_f_id ^ "_outer" in
+		update_cc_tbl_single_var_er cc_tbl f_id new_f_id_outer f_name;  
+		update_cc_tbl cc_tbl new_f_id_outer new_f_id args fb;
+		update_fun_tbl fun_tbl new_f_id args fb; 
+		Hashtbl.replace vis_tbl new_f_id (new_f_id :: visited_funs); 
+		closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: new_f_id_outer :: visited_funs) fb
 	| Unary_op (_, e) -> f e        
   | Delete e -> f e
-  | BinOp (e1, _, e2) -> 
-		f e1; f e2         
-  | Assign (e1, e2) ->  
-		f e1; f e2  
+  | BinOp (e1, _, e2) -> f e1; f e2         
+  | Assign (e1, e2) -> f e1; f e2  
   | Array es -> List.iter fo es
-  | ConditionalOp (e1, e2, e3) -> 
-		f e1; f e2; f e3
-  | AssignOp (e1, _, e2) -> 
-		f e1; f e2 
-  | Comma (e1, e2) ->
-		f e1; f e2           
-  | RegExp _ -> ()
+  | ConditionalOp (e1, e2, e3) -> f e1; f e2; f e3
+  | AssignOp (e1, _, e2) -> f e1; f e2 
+  | Comma (e1, e2) -> f e1; f e2   
+	| VarDec vars -> List.iter (fun (_, e) -> fo e) vars        
+  | RegExp _	-> ()
 	(*Statements*)
+  | Script (_, _)  
+  | Block _ 
+  | Skip _     
+  | If (_, _, _)       
+  | While (_,_)        
+  | DoWhile (_, _)    
+  | Return _  
+  | Try (_, _, _) 
+  | Throw _ 
+  | Continue _
+  | Break _ 
+  | Label (_, _)    
+  | For (_, _, _, _) 
+  | Switch (_, _) 
+	| ForIn (_, _, _)  
+	| With (_, _) 
+	| Debugger -> raise (Failure "statement in expression context - closure clarification") 
+and 
+closure_clarification_stmt cc_tbl fun_tbl vis_tbl f_id visited_funs e = 
+	let f = closure_clarification_stmt cc_tbl fun_tbl vis_tbl f_id visited_funs in 
+	let fe = closure_clarification_expr cc_tbl fun_tbl vis_tbl f_id visited_funs in 
+	let fo e = (match e with 
+	| None -> () 
+	| Some e -> f e) in 
+	let feo e = (match e with 
+	| None -> () 
+	| Some e -> fe e) in 
+	match e.exp_stx with
+  (* Literals *)
+	| Null 
+	| Bool _
+	| String _  
+	| Num _      
+	(* Expressions *)
+	| This        
+	| Var _      
+	| Obj _        
+	| Access (_, _)     
+	| CAccess (_, _)        
+	| New (_, _)
+	| Call (_, _)    
+	| AnonymousFun (_, _, _) 
+	| Unary_op (_, _)         
+  | Delete _ 
+  | BinOp (_, _, _)      
+  | Assign (_, _) 
+  | Array _ 
+  | ConditionalOp (_, _, _) 
+  | AssignOp (_, _, _) 
+  | Comma (_, _)           
+  | RegExp _ -> fe e
+	(*Statements*)
+	| NamedFun (_, f_name, args, fb) -> 
+		Printf.printf("named function expression hihihi\n");  
+		let new_f_id = get_codename e in 
+		update_cc_tbl cc_tbl f_id new_f_id args fb;
+		update_fun_tbl fun_tbl new_f_id args fb; 
+		Hashtbl.replace vis_tbl new_f_id (new_f_id :: visited_funs); 
+		closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: visited_funs) fb
   | Script (_, es) -> List.iter f es 
   | Block es -> List.iter f es
-  | VarDec vars -> List.iter (fun (_, e) -> fo e) vars
+  | VarDec vars -> List.iter (fun (_, e) -> feo e) vars
   | Skip -> ()       
-  | If (e1, e2, e3) -> f e1; f e2; fo e3          
-  | While (e1, e2) -> f e1; f e2        
-  | DoWhile (e1, e2) -> f e1; f e2       
-  | Return e -> fo e 
+  | If (e1, e2, e3) -> fe e1; f e2; fo e3          
+  | While (e1, e2) -> fe e1; f e2        
+  | DoWhile (e1, e2) -> f e1; fe e2       
+  | Return e -> feo e 
   | Try (e1, Some (x, e2), e3) ->
 		f e1; fo e3; 
 		let new_f_id = get_codename e in 
-		update_cc_tbl_catch cc_tbl f_id new_f_id x;
-		closure_clarification cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: visited_funs) e2      
+		update_cc_tbl_single_var_er cc_tbl f_id new_f_id x;
+		closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: visited_funs) e2      
   | Try (e1, None, e3) -> f e1; fo e3          
-  | Throw e -> f e
+  | Throw e -> fe e
   | Continue _ 
   | Break _ -> ()
-  | Label (_, e) -> f e       
-  | For (e1, e2, e3, e4) -> fo e1; fo e2; fo e3; f e4
+  | Label (_, e) -> fe e       
+  | For (e1, e2, e3, e4) -> feo e1; feo e2; feo e3; f e4
   | Switch (e1, sces) -> 
-		f e1; 
+		fe e1; 
 		List.iter 
 			(fun (sc, ec2) ->
 				(match sc with 
 				| DefaultCase -> () 
-				| Case ec1 -> f ec1); 
+				| Case ec1 -> fe ec1); 
 				f ec2)
 			sces
-	| ForIn (e1, e2, e3) -> f e1; f e2; f e3 
+	| ForIn (e1, e2, e3) -> fe e1; fe e2; f e3 
 	| With (e1, e2) -> f e1; f e2 
 	| Debugger -> ()  
-	
+
 let closure_clarification_top_level cc_tbl fun_tbl vis_tbl proc_id e vis_fid args =
 	let proc_tbl = Hashtbl.create 101 in 
 	let proc_vars = get_all_vars_f e [] in
@@ -293,7 +517,7 @@ let closure_clarification_top_level cc_tbl fun_tbl vis_tbl proc_id e vis_fid arg
 	Hashtbl.add cc_tbl proc_id proc_tbl; 
 	Hashtbl.add fun_tbl proc_id (proc_id, args, e); 
 	Hashtbl.add vis_tbl proc_id vis_fid;
-	closure_clarification cc_tbl fun_tbl vis_tbl proc_id vis_fid e
+	closure_clarification_stmt cc_tbl fun_tbl vis_tbl proc_id vis_fid e
 
 (**
 	(Hashtbl.iter

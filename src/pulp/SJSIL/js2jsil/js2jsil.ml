@@ -416,7 +416,7 @@ let translate_function_literal fun_id params vis_fid =
 		 x_f := create_function_object(x_sc, fun_id, params)
   *)
 		
-	(* x_sc := copy_object (x_sc, {{main, fid1, ..., fidn }});  *)
+	(* x_sc := copy_object (x_sc, {{ main, fid1, ..., fidn }});  *)
 	let x_sc = fresh_scope_chain_var () in 
 	let vis_fid_strs = List.map (fun fid -> String fid) vis_fid in   
 	let cmd_sc_copy = SLCall (x_sc, Literal (String copyObjectName), 
@@ -2448,19 +2448,45 @@ let rec translate_expr fid cc_table vis_fid err e  =
 		cmds, Var x_f, []
 	
 	
-	| Parser_syntax.NamedFun (_, n, params, e_body) -> 
-		(** Section 13
-			x_sc := copy_scope_chain_obj (x_scope, {{main, fid1, ..., fidn }})
-		  x_f := create_function_object(x_sc, f_id, params)
-			x_er := [x_scope, "fid"]
-			x_ref_n := ref-v(x_er, "f_name")
-		  x_pv := i__putValue(x_ref_n, x_f) with err
-		*)
+	| Parser_syntax.NamedFun (_, f_name, params, _) -> 
 		let f_id = try Js_pre_processing.get_codename e 
 			with _ -> raise (Failure "named function literals should be annotated with their respective code names") in
-		let cmds, x, errs = translate_named_function_literal fid f_id n params vis_fid err in 
-		cmds, x, errs
+		
+		(* x_sc := copy_object (x_sc, {{main, fid1, ..., fidn }});  *)
+		let x_sc = fresh_scope_chain_var () in 
+		let vis_fid_strs = List.map (fun fid -> String fid) vis_fid in  
+		let cmd_sc_copy = SLCall (x_sc, Literal (String copyObjectName), [ (Var var_scope); Literal (LList vis_fid_strs) ], None) in 
 	
+		(* x_f := create_function_object(x_sc, f_id, params) *)
+		let x_f = fresh_fun_var () in 
+		let processed_params = 
+			List.fold_left
+				(fun ac param -> (String param) :: ac) 
+				[]
+				params in 
+		let processed_params = List.rev processed_params in 
+		let cmd_fun_constr = SLCall (x_f, Literal (String createFunctionObjectName), 
+			[ (Var x_sc); (Literal (String f_id)); (Literal (String f_id)); (Literal (LList processed_params)) ], None) in 	
+		
+		(* x_f_outer_er := new ();  *)
+		let x_f_outer_er = fresh_var () in 
+		let cmd_ass_xfouter = SLBasic (SNew (x_f_outer_er)) in 
+		
+		(* [x_f_outer_er, f] := x_f *)
+		let cmd_fname_updt = SLBasic (SMutation (Var x_f_outer_er, Literal (String f_name), Var x_f)) in 
+		
+		(* [x_sc, f_id_outer] := x_f_outer_er;  *)
+		let cmd_fidouter_updt = SLBasic (SMutation (Var x_sc, Literal (String (f_id ^ "_outer")), Var x_f_outer_er)) in 
+		
+		let cmds = [
+			(None, None, cmd_sc_copy);          (*  x_sc := copy_object (x_sc, {{main, fid1, ..., fidn }});  *)
+			(None, None, cmd_fun_constr);       (*  x_f := create_function_object(x_sc, f_id, params)        *)
+			(None, None, cmd_ass_xfouter);      (*  x_f_outer_er := new ();                                  *)
+			(None, None, cmd_fname_updt);       (*  [x_f_outer_er, f] := x_f;                                *)
+			(None, None, cmd_fidouter_updt)     (*  [x_sc, f_id_outer] := x_f_outer_er                       *)
+		] in 
+		cmds, Var x_f, []
+		
 
 	| Parser_syntax.VarDec decs -> 
 		let rec loop decs cmds errs = 
@@ -4032,19 +4058,7 @@ and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option
 		| _, _ -> raise (Failure "no b cases with no default"))  
 	
 	
-	| Parser_syntax.NamedFun (_, n, params, e_body) -> 
-		(** Section 13
-			x_sc := copy_scope_chain_obj (x_scope, {{main, fid1, ..., fidn }})
-		  x_f := create_function_object(x_sc, f_id, params)
-			x_er := [x_scope, "fid"]
-			x_ref_n := ref-v(x_er, "f_name")
-		  x_pv := i__putValue(x_ref_n, x_f) with err
-		*)
-		let f_id = try Js_pre_processing.get_codename e 
-			with _ -> raise (Failure "named function literals should be annotated with their respective code names") in
-		let cmds, _, errs = translate_named_function_literal fid f_id n params vis_fid err in 
-		cmds, Literal Empty, errs, [], [], []
-		
+	| Parser_syntax.NamedFun (_, n, params, e_body) -> [], Literal Empty, [], [], [], []
 		
   | Parser_syntax.With (_, _) -> raise (Failure "Not implemented: with (this should not happen)")
 	| Parser_syntax.RegExp (_, _) -> raise (Failure "Not implemented: RegExp literal")
@@ -4061,14 +4075,30 @@ let make_final_cmd vars final_lab final_var =
 			let vars = Array.of_list vars in 
 			SLPhiAssignment (final_var, vars)) in 
 	(None, Some final_lab, cmd_final)  
+		
+		
 
+let translate_fun_decls e enclosing_fid vis_fid err =  	
+	let fid_decls = Js_pre_processing.get_fun_decls e in 
+	let cmds_hoist_fdecls, errs_hoist_decls = 
+		List.fold_left (fun (ac_cmds, ac_errs) f_decl -> 
+			let f_name, f_params = 
+				(match f_decl.Parser_syntax.exp_stx with 
+				| Parser_syntax.NamedFun (s, f_name, f_params, body) -> f_name, f_params
+				| _ -> raise (Failure "expected function declaration")) in 
+			let f_id = Js_pre_processing.get_codename f_decl in  		
+			let f_cmds, _, f_errs = translate_named_function_literal enclosing_fid f_id f_name f_params vis_fid err in 
+			ac_cmds @ f_cmds, ac_errs @ f_errs)
+			([], [])
+			fid_decls in 
+		cmds_hoist_fdecls, errs_hoist_decls		
+				
+				
 
 let generate_main e main cc_table =
 	let cc_tbl_main = 
 		try Hashtbl.find cc_table main 
 			with _ -> raise (Failure "main not defined in cc_table - assim fica dificil")  in 
-	let global_vars = 
-		Hashtbl.fold (fun key key_val ac -> key :: ac) cc_tbl_main [] in
 	let new_var = fresh_var () in
 	let setup_heap_ass = (None, None, SLCall (new_var, Literal (String setupHeapName), [ ], None)) in
 	(* __scope := new () *) 
@@ -4084,7 +4114,7 @@ let generate_main e main cc_table =
 				let new_global_ass = (None, None, SLBasic (SMutation(Literal (Loc "$lg"),  Literal (String global_v), Literal (LList [(String "d"); Undefined; (Bool true); (Bool true); (Bool true)])))) in 
 				new_global_ass :: ac)
 			[]
-			global_vars in 
+			(Js_pre_processing.var_decls e) in 
 			
 	(* x__te := TypeError () *)
 	let cmd_ass_te = make_var_ass_te () in 
@@ -4098,16 +4128,18 @@ let generate_main e main cc_table =
 	let cmd_ass_xfalse = b_annot_cmd (SLBasic (SAssignment (var_false, Literal (Bool false)))) in
 					
 	let ctx = make_translation_ctx main in 
+	let cmds_hoist_fdecls, errs_hoist_decls = translate_fun_decls e main [ main ] ctx.tr_ret_lab in 
 	let cmds_e, x_e, errs, _, _, _ = translate_statement main cc_table ctx [ main ] ctx.tr_error_lab [] None None e in 
 	(* x_ret := x_e *)
 	let ret_ass = (None, None, SLBasic (SAssignment (ctx.tr_ret_var, x_e))) in
 	(* lab_ret: skip *) 
 	let lab_ret_skip = (None, (Some ctx.tr_ret_lab), (SLBasic SSkip)) in
 	
+	let errs = errs_hoist_decls @ errs in 
 	let cmd_err_phi_node = make_final_cmd errs ctx.tr_error_lab ctx.tr_error_var in 
 	
 	let main_cmds = 
-		[ setup_heap_ass; init_scope_chain_ass; lg_ass; this_ass] @ global_var_asses @ [ cmd_ass_te; cmd_ass_se; cmd_ass_xtrue; cmd_ass_xfalse ] @ cmds_e @ [ret_ass; lab_ret_skip; cmd_err_phi_node ] in 
+		[ setup_heap_ass; init_scope_chain_ass; lg_ass; this_ass] @ global_var_asses @ [ cmd_ass_te; cmd_ass_se; cmd_ass_xtrue; cmd_ass_xfalse ] @ cmds_hoist_fdecls @ cmds_e @ [ret_ass; lab_ret_skip; cmd_err_phi_node ] in 
 	{ 
 		lproc_name = main;
     lproc_body = (Array.of_list main_cmds);
@@ -4152,6 +4184,7 @@ let generate_proc_eval new_fid e cc_table vis_fid =
 	let ret_label = ctx.tr_ret_lab in 
 	let ret_var = ctx.tr_ret_var in 
 	let new_ctx = { ctx with tr_ret_lab = fake_ret_label;  tr_ret_var = fake_ret_var } in 
+	let cmds_hoist_fdecls, errs_hoist_decls = translate_fun_decls e new_fid vis_fid new_ctx.tr_ret_lab in 
 	let cmds_e, x_e, errs, rets, _, _ = translate_statement new_fid cc_table new_ctx vis_fid ctx.tr_error_lab [] None None e in 
 	
 	let xe_v, cmd_gv_xe = make_get_value_call x_e ctx.tr_error_lab in 
@@ -4163,15 +4196,16 @@ let generate_proc_eval new_fid e cc_table vis_fid =
 	(* fake_ret_lab: x_fake_ret := PHI(rets) *)
 	let cmd_fake_ret = make_final_cmd rets new_ctx.tr_ret_lab new_ctx.tr_ret_var in
 	(* lab_err: x_error := PHI(errs, x_fake_ret) *) 
+	let errs = errs_hoist_decls @ errs in
 	let cmd_error_phi = make_final_cmd (errs @ [ fake_ret_var ]) ctx.tr_error_lab ctx.tr_error_var in 	
 	
 	let fid_cmds = 
-		[ cmd_er_creation ] @ cmds_decls @ [ cmd_ass_er_to_sc; cmd_ass_te; cmd_ass_se;  cmd_ass_xtrue; cmd_ass_xfalse ] @ cmds_e 
+		[ cmd_er_creation ] @ cmds_decls @ [ cmd_ass_er_to_sc; cmd_ass_te; cmd_ass_se;  cmd_ass_xtrue; cmd_ass_xfalse ] @ cmds_hoist_fdecls @ cmds_e 
 		@ [ cmd_gv_xe; cmd_dr_ass; cmd_fake_ret; cmd_error_phi] in 
 	{ 
 		lproc_name = new_fid;
     lproc_body = (Array.of_list fid_cmds);
-    lproc_params = [ var_scope ]; 
+    lproc_params = [ var_scope; var_this ]; 
 		lret_label = Some ctx.tr_ret_lab; 
 		lret_var = Some ctx.tr_ret_var;
 		lerror_label = Some ctx.tr_error_lab; 
@@ -4179,15 +4213,65 @@ let generate_proc_eval new_fid e cc_table vis_fid =
 		lspec = None 
 	}
 
+
+let generate_proc_er_saving_code fid = 
+	(* x_sc_hf_fid := hasField(x_sc, fid) *) 
+	let x_sc_hf_fid = fresh_var () in 
+	let cmd_ass_xschffid = (None, None, SLBasic ( SHasField (x_sc_hf_fid, Var var_scope, Literal (String fid)))) in 
 	
+	(* goto [x_sc_hf_fid ] then1 else1 *) 
+	let then1 = fresh_then_label () in 
+	let else1 = fresh_else_label () in 
+	let end_if = fresh_endif_label () in 
+	let cmd_goto_xschffid = (None, None, SLGuardedGoto (Var x_sc_hf_fid, then1, else1)) in 
+	
+	(* then1: x_er_old1 := [ x_sc, fid ] *) 
+	let x_er_old1 = fresh_var () in 
+	let cmd_ass_xerold1 = (None, Some then1, SLBasic (SLookup (x_er_old1, Var var_scope, Literal (String fid)))) in 
+	
+	(* goto end_if1 *) 
+	let cmd_goto_endif1 = (None, None, SLGoto end_if) in 
+	
+	(* else1: x_er_old1 := $$empty *) 
+	let x_er_old2 = fresh_var () in 
+	let cmd_ass_xerold2 = (None, Some else1, SLBasic (SAssignment (x_er_old2, Literal Empty))) in 
+	
+	(* end_if1:  x_er_old3 := PHI(x_er_old1, x_er_old_2) *)
+	let x_er_old3 = fresh_var () in 
+	let cmd_ass_xerold3 = (None, Some end_if, SLPhiAssignment (x_er_old3, [| Some x_er_old1; Some x_er_old2 |])) in  
+	
+	[ 
+		cmd_ass_xschffid;    (*           x_sc_hf_fid := hasField(x_sc, fid)      *) 
+		cmd_goto_xschffid;   (*           goto [x_sc_hf_fid ] then1 else1         *) 
+		cmd_ass_xerold1;     (* then1:    x_er_old1 := [ x_sc, fid ]              *) 
+		cmd_goto_endif1;     (*           goto end_if1                            *) 
+		cmd_ass_xerold2;     (* else1:    x_er_old1 := $$empty                    *) 
+		cmd_ass_xerold3      (* end_if1:  x_er_old3 := PHI(x_er_old1, x_er_old_2) *)
+	], x_er_old3
+
+
+let generate_proc_er_restoring_code fid x_er_old end_lab =
+	(* goto [not (x_er_old = $$empty) next end_lab *)  
+	let next = fresh_next_label () in 
+	let cmd_goto_xerold_empty = (None, None, SLGuardedGoto (UnaryOp (Not, BinOp (Var x_er_old, Equal, Literal Empty)), next, end_lab)) in 
+	
+	(* next: [x_sc, fid] := x_er_old *) 
+	let cmd_restore_sc = (None, Some next, SLBasic (SMutation (Var var_scope, Literal (String fid), Var x_er_old))) in 
+	
+	(* end_lab: skip *) 
+	let cmd_end = (None, Some end_lab, SLBasic SSkip) in 
+	[
+		cmd_goto_xerold_empty; 	(*            goto [not (x_er_old = $$empty) next end_lab    *)  
+		cmd_restore_sc;         (* next:      [x_sc, fid] := x_er_old                        *) 
+		cmd_end                 (* end_lab:   skip                                           *) 
+	]
+	
+				
 let generate_proc e fid params cc_table vis_fid =
-	let fid_decls = Js_pre_processing.func_decls_in_exp e in
-  let fid_fnames = List.map (fun f ->
-    match f.Parser_syntax.exp_stx with
-      | Parser_syntax.NamedFun (s, name, args, body) -> name
-      | _ -> raise (Failure ("Must be function declaration " ^ (Pretty_print.string_of_exp true f)))
-  ) fid_decls in
-	let fid_vars = List.concat [ (Js_pre_processing.var_decls e); fid_fnames ] in 
+	let cmds_save_old_er, x_er_old = generate_proc_er_saving_code fid in 
+	let ctx = make_translation_ctx fid in 
+	let new_ctx = { ctx with tr_ret_lab = ("pre_" ^ ctx.tr_ret_lab); tr_error_lab = ("pre_" ^ ctx.tr_error_lab) } in
+	let cmds_hoist_fdecls, errs_hoist_decls = translate_fun_decls e fid vis_fid new_ctx.tr_ret_lab in 
 	
 	(* x_er := new () *)
 	let x_er = fresh_var () in  
@@ -4205,7 +4289,7 @@ let generate_proc e fid params cc_table vis_fid =
 		List.map (fun decl_var -> 
 			let cmd = SLBasic (SMutation (Var x_er, Literal (String decl_var), Literal Undefined)) in
 			(None, None, cmd))
-		fid_vars in 
+		(Js_pre_processing.var_decls e) in 
 	
 	(* [__scope, "fid"] := x_er *) 
 	let cmd_ass_er_to_sc = (None, None, SLBasic (SMutation (Var var_scope, Literal (String fid), Var x_er))) in 
@@ -4221,8 +4305,7 @@ let generate_proc e fid params cc_table vis_fid =
 	(* x__false := $$f *) 
 	let cmd_ass_xfalse = b_annot_cmd (SLBasic (SAssignment (var_false, Literal (Bool false)))) in
 	
-	let ctx = make_translation_ctx fid in 
-	let cmds_e, x_e, errs, rets, _, _ = translate_statement fid cc_table ctx vis_fid ctx.tr_error_lab [] None None e in 
+	let cmds_e, x_e, errs, rets, _, _ = translate_statement fid cc_table new_ctx vis_fid new_ctx.tr_error_lab [] None None e in 
 	
 	(* x_dr := $$empty *)
 	let x_dr = fresh_var () in
@@ -4230,15 +4313,18 @@ let generate_proc e fid params cc_table vis_fid =
 	let cmd_dr_goto = (None, None, SLGoto ctx.tr_ret_lab) in 
 	let rets = rets @ [ x_dr ] in 
 	
-	(* lab_ret: x_return := PHI(...) *)
-	let cmd_return_phi = make_final_cmd rets ctx.tr_ret_lab ctx.tr_ret_var in
-	 
-	(* lab_err: x_error := PHI(...) *) 
-	let cmd_error_phi = make_final_cmd errs ctx.tr_error_lab ctx.tr_error_var in 	
+	(* pre_lab_ret: x_return := PHI(...) *) 
+	let cmd_return_phi = make_final_cmd rets new_ctx.tr_ret_lab new_ctx.tr_ret_var in
+	let cmds_restore_er_ret = generate_proc_er_restoring_code fid x_er_old ctx.tr_ret_lab in  
+	
+	(* pre_lab_err: x_error := PHI(...) *) 
+	let errs = errs_hoist_decls @ errs in 
+	let cmd_error_phi = make_final_cmd errs new_ctx.tr_error_lab new_ctx.tr_error_var in 	
+	let cmds_restore_er_error = generate_proc_er_restoring_code fid x_er_old ctx.tr_error_lab in  
 	
 	let fid_cmds = 
-		[ cmd_er_creation ] @ cmds_params @ cmds_decls @ [ cmd_ass_er_to_sc ] @ [ cmd_ass_te; cmd_ass_se;  cmd_ass_xtrue; cmd_ass_xfalse ] @ cmds_e 
-		@ [ cmd_dr_ass; cmd_dr_goto; cmd_return_phi; cmd_error_phi] in 
+		cmds_save_old_er @ [ cmd_er_creation ] @ cmds_params @ cmds_decls @ [ cmd_ass_er_to_sc ] @ [ cmd_ass_te; cmd_ass_se;  cmd_ass_xtrue; cmd_ass_xfalse ] @ cmds_hoist_fdecls @ cmds_e 
+		@ [ cmd_dr_ass; cmd_dr_goto; cmd_return_phi ] @ cmds_restore_er_ret @ [ cmd_error_phi ] @ cmds_restore_er_error in 
 	{ 
 		lproc_name = fid;
     lproc_body = (Array.of_list fid_cmds);
@@ -4303,6 +4389,8 @@ let js2jsil e =
 			SLProgram.add jsil_prog f_id proc)
 		fun_tbl; 
 	
+	(* let cc_tbl_str = Js_pre_processing.print_cc_tbl cc_tbl in *)
+	(* Printf.printf "marica, the cc_tbl is the following (enjoy): \n %s\n" cc_tbl_str; *)
 	Some js2jsil_imports, jsil_prog, cc_tbl, vis_tbl
 	
 
@@ -4321,8 +4409,7 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 	Js_pre_processing.update_cc_tbl cc_tbl f_parent_id new_fid [var_scope; var_this] e;
 	Hashtbl.add new_fun_tbl new_fid (new_fid, [var_scope; var_this], e); 
 	Hashtbl.add vis_tbl new_fid (new_fid :: vis_fid);
-	Js_pre_processing.closure_clarification cc_tbl new_fun_tbl vis_tbl new_fid (new_fid :: vis_fid) e;
-	
+	Js_pre_processing.closure_clarification_stmt cc_tbl new_fun_tbl vis_tbl new_fid (new_fid :: vis_fid) e;
 	
 	Hashtbl.iter
 		(fun f_id (_, f_params, f_body) -> 
@@ -4336,7 +4423,7 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 								raise (Failure msg)) in 	
 						generate_proc f_body f_id f_params cc_tbl vis_fid)) in
 			let proc_eval_str = SSyntax_Print.string_of_lprocedure proc in 
-			Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; 
+			(* Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
 			let proc = SSyntax_Utils.desugar_labs proc in 
 			SProgram.add prog f_id proc; 
 			SSyntax_Utils.extend_which_pred which_pred proc)
