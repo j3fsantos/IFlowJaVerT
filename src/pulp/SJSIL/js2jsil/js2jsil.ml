@@ -4422,7 +4422,7 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 								raise (Failure msg)) in 	
 						generate_proc f_body f_id f_params cc_tbl vis_fid)) in
 			let proc_eval_str = SSyntax_Print.string_of_lprocedure proc in 
-			(* Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
+		  (* Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
 			let proc = SSyntax_Utils.desugar_labs proc in 
 			SProgram.add prog f_id proc; 
 			SSyntax_Utils.extend_which_pred which_pred proc)
