@@ -417,23 +417,23 @@ let rec closure_clarification_expr cc_tbl fun_tbl vis_tbl f_id visited_funs e =
 	| VarDec vars -> List.iter (fun (_, e) -> fo e) vars        
   | RegExp _	-> ()
 	(*Statements*)
-  | Script (_, _)  
-  | Block _ 
-  | Skip _     
-  | If (_, _, _)       
-  | While (_,_)        
-  | DoWhile (_, _)    
-  | Return _  
-  | Try (_, _, _) 
-  | Throw _ 
-  | Continue _
-  | Break _ 
-  | Label (_, _)    
-  | For (_, _, _, _) 
-  | Switch (_, _) 
-	| ForIn (_, _, _)  
-	| With (_, _) 
-	| Debugger -> raise (Failure "statement in expression context - closure clarification") 
+  | Script (_, _) -> raise (Failure "statement in expression context - closure clarification: script") 
+  | Block _ -> raise (Failure "statement in expression context - closure clarification: block") 
+  | Skip _ -> raise (Failure "statement in expression context - closure clarification: skip") 
+  | If (_, _, _) -> raise (Failure "statement in expression context - closure clarification: if")  
+  | While (_,_) -> raise (Failure "statement in expression context - closure clarification: while") 
+  | DoWhile (_, _) -> raise (Failure "statement in expression context - closure clarification: do-while") 
+  | Return _ -> raise (Failure "statement in expression context - closure clarification: return") 
+  | Try (_, _, _) -> raise (Failure "statement in expression context - closure clarification: try") 
+  | Throw _ -> raise (Failure "statement in expression context - closure clarification: throw") 
+  | Continue _ -> raise (Failure "statement in expression context - closure clarification: continue") 
+  | Break _ -> raise (Failure "statement in expression context - closure clarification: break") 
+  | Label (_, _) -> raise (Failure "statement in expression context - closure clarification: label") 
+  | For (_, _, _, _) -> raise (Failure "statement in expression context - closure clarification: for") 
+  | Switch (_, _) -> raise (Failure "statement in expression context - closure clarification: switch") 
+	| ForIn (_, _, _)  -> raise (Failure "statement in expression context - closure clarification: for-in") 
+	| With (_, _) -> raise (Failure "statement in expression context - closure clarification: with") 
+	| Debugger -> raise (Failure "statement in expression context - closure clarification: debugger") 
 and 
 closure_clarification_stmt cc_tbl fun_tbl vis_tbl f_id visited_funs e = 
 	let f = closure_clarification_stmt cc_tbl fun_tbl vis_tbl f_id visited_funs in 
@@ -493,7 +493,7 @@ closure_clarification_stmt cc_tbl fun_tbl vis_tbl f_id visited_funs e =
   | Throw e -> fe e
   | Continue _ 
   | Break _ -> ()
-  | Label (_, e) -> fe e       
+  | Label (_, e) -> f e       
   | For (e1, e2, e3, e4) -> feo e1; feo e2; feo e3; f e4
   | Switch (e1, sces) -> 
 		fe e1; 
