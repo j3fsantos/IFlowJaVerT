@@ -4410,7 +4410,7 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 	Hashtbl.add new_fun_tbl new_fid (new_fid, [var_scope; var_this], e); 
 	Hashtbl.add vis_tbl new_fid (new_fid :: vis_fid);
 	Js_pre_processing.closure_clarification_stmt cc_tbl new_fun_tbl vis_tbl new_fid (new_fid :: vis_fid) e;
-	
+
 	Hashtbl.iter
 		(fun f_id (_, f_params, f_body) -> 
 			let proc = 
