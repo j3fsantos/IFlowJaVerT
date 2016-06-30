@@ -715,13 +715,6 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 			(match SSyntax_Aux.try_find store (Js2jsil.var_scope)  with 
 			| None -> raise (Failure "No var_scope to give to eval")
 			| Some v -> v) in 
-		let vis_fid, cc_tbl = 
-			(match vis_tbl, cc_tbl with 
-			| Some vis_tbl, Some cc_tbl -> 
-				(try Hashtbl.find vis_tbl cur_proc_name with _ ->
-					raise (Failure (Printf.sprintf "Function %s not found in visibility table" cur_proc_name))), cc_tbl
-			| _, _ -> raise (Failure "Wrong call to eval. Whatever.")
-			) in 
 		let e_js = (try Some (Parser_main.exp_from_string code) with
 		  | _ -> None) in 
 		
@@ -735,27 +728,22 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 			    | None -> raise (Failure ("Procedure "^ cur_proc_name ^" just returned an error, but no error label was provided. Bad programmer."))
 			    | Some j -> 
 						Hashtbl.replace store x v;
-						evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd (Some cc_tbl) vis_tbl))
+						evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl))
 		| Some e_js -> (
 				
-		let proc_eval = Js2jsil.generate_proc_eval cur_proc_name e_js cc_tbl vis_fid in 
-		let proc_eval_str = SSyntax_Print.string_of_lprocedure proc_eval in 
-		(* Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
-		let proc_eval = SSyntax_Utils.desugar_labs proc_eval in 
-		SSyntax_Utils.extend_which_pred which_pred proc_eval; 
-		SProgram.add prog proc_eval.proc_name proc_eval;
+		let proc_eval = Js2jsil.js2jsil_eval prog which_pred cc_tbl vis_tbl cur_proc_name e_js in 
 		let new_store = init_store [ Js2jsil.var_scope ] [ x_scope ] in
-		(match evaluate_cmd prog proc_eval.proc_name which_pred heap new_store 0 0 (Some cc_tbl) vis_tbl with 
+		(match evaluate_cmd prog proc_eval.proc_name which_pred heap new_store 0 0 cc_tbl vis_tbl with 
 		| Normal, v -> 
 			Hashtbl.replace store x v;
 			SProgram.remove prog proc_eval.proc_name;
-	 		evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd (Some cc_tbl) vis_tbl
+	 		evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
 		| Error, v -> 
 			match proc.error_label with 
 			| None -> raise (Failure "procedure throws an error without a ret label") 
 			| Some err_label ->
 				Hashtbl.replace store x v;
-				evaluate_cmd prog cur_proc_name which_pred heap store err_label cur_cmd (Some cc_tbl) vis_tbl)))
+				evaluate_cmd prog cur_proc_name which_pred heap store err_label cur_cmd cc_tbl vis_tbl)))
 		
 		| _ -> Hashtbl.replace store x str_e;
 					 evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
