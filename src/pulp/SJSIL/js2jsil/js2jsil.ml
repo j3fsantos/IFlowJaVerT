@@ -800,7 +800,8 @@ let rec translate_expr fid cc_table vis_fid err e  =
 		let cmds = cmds_e @ (b_annot_cmds [
 			cmd_gv_x;      (* x_v := i__getValue (x) with err          *)
 			cmd_xsf_ass;   (* x_sf := [x__scope, fid]                  *)
-			cmd_xref_ass;  (* x_ref := ref_v(x_sf, "x")                *) 
+			cmd_xref_ass;  (* x_ref := ref_v(x_sf, "x")                *)
+			cmd_cae; 
 			cmd_pv         (* x_pv := i__putValue(x_ref, x_v) with err *) 
 		]) in 
 		let errs = errs_e @ [ x_v; x_cae; x_pv ] in 
