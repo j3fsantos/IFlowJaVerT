@@ -118,6 +118,8 @@ let rec get_fun_decls exp : exp list =
 	| AnonymousFun (_,_,_) 
 	| ConditionalOp (_, _, _)
 	| Call (_, _) 
+	| Obj _
+	| Array _ 
 	| New (_, _) -> []
   | Label (_, e) 
   | While (_, e) 

@@ -494,7 +494,7 @@ let translate_inc_dec x is_plus err =
 		(None, None,      cmd_pv_x)                          (*        x_pv = i__putValue (x, x_r) with err                                                                        *)
 	] in 
 	let new_errs = [ var_se; x_v; x_n; x_pv ] in 
-	new_cmds, new_errs, x_v, x_r 
+	new_cmds, new_errs, x_n, x_r 
 	
 
 let translate_multiplicative_binop x1 x2 x1_v x2_v aop err = 
@@ -4136,7 +4136,7 @@ let generate_main e main cc_table =
 	let cmd_ass_xfalse = b_annot_cmd (SLBasic (SAssignment (var_false, Literal (Bool false)))) in
 					
 	let ctx = make_translation_ctx main in 
-	let cmds_hoist_fdecls, errs_hoist_decls = translate_fun_decls e main [ main ] ctx.tr_ret_lab in 
+	let cmds_hoist_fdecls, errs_hoist_decls = translate_fun_decls e main [ main ] ctx.tr_error_lab in 
 	let cmds_e, x_e, errs, _, _, _ = translate_statement main cc_table ctx [ main ] ctx.tr_error_lab [] None None e in 
 	(* x_ret := x_e *)
 	let ret_ass = (None, None, SLBasic (SAssignment (ctx.tr_ret_var, x_e))) in
@@ -4192,7 +4192,7 @@ let generate_proc_eval new_fid e cc_table vis_fid =
 	let ret_label = ctx.tr_ret_lab in 
 	let ret_var = ctx.tr_ret_var in 
 	let new_ctx = { ctx with tr_ret_lab = fake_ret_label;  tr_ret_var = fake_ret_var } in 
-	let cmds_hoist_fdecls, errs_hoist_decls = translate_fun_decls e new_fid vis_fid new_ctx.tr_ret_lab in 
+	let cmds_hoist_fdecls, errs_hoist_decls = translate_fun_decls e new_fid vis_fid new_ctx.tr_error_lab in 
 	let cmds_e, x_e, errs, rets, _, _ = translate_statement new_fid cc_table new_ctx vis_fid ctx.tr_error_lab [] None None e in 
 	
 	let xe_v, cmd_gv_xe = make_get_value_call x_e ctx.tr_error_lab in 
@@ -4279,7 +4279,7 @@ let generate_proc e fid params cc_table vis_fid =
 	let cmds_save_old_er, x_er_old = generate_proc_er_saving_code fid in 
 	let ctx = make_translation_ctx fid in 
 	let new_ctx = { ctx with tr_ret_lab = ("pre_" ^ ctx.tr_ret_lab); tr_error_lab = ("pre_" ^ ctx.tr_error_lab) } in
-	let cmds_hoist_fdecls, errs_hoist_decls = translate_fun_decls e fid vis_fid new_ctx.tr_ret_lab in 
+	let cmds_hoist_fdecls, errs_hoist_decls = translate_fun_decls e fid vis_fid new_ctx.tr_error_lab in 
 	
 	(* x_er := new () *)
 	let x_er = fresh_var () in  
