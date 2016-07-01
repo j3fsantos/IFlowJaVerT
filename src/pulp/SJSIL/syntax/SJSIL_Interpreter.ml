@@ -750,9 +750,9 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 		| Error, v -> 
 			match j with 
 			| None -> raise (Failure "procedure throws an error without a ret label") 
-			| Some err_label ->
+			| Some j ->
 				Hashtbl.replace store x v;
-				evaluate_cmd prog cur_proc_name which_pred heap store err_label cur_cmd cc_tbl vis_tbl)))
+				evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl)))
 		
 		| _ -> Hashtbl.replace store x str_e;
 					 evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
