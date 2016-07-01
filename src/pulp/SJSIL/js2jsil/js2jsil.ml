@@ -826,7 +826,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 			cmd_xref_ass;  (* x_ref := ref_v(x_sf, "x")                          *) 
 			cmd_cae;       (* x_cae := i__checkAssignmentErrors (x_ref) with err *)
 		]) in  
-		x_ref, cmds, [ err ] in 
+		x_ref, cmds, [ x_cae ] in 
 		
 	let translate_bin_logical_operator e1 e2 lbop err =
 		let cmds1, x1, errs1 = f e1 in
@@ -2503,7 +2503,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 		let cmd_fidouter_updt = SLBasic (SMutation (Var x_sc, Literal (String (f_id ^ "_outer")), Var x_f_outer_er)) in 
 		
 		let cmds = [
-			(None, None, cmd_errCheck);         (*  x_t := checkParametersName (f_name, processed_params);               *)
+			(None, None, cmd_errCheck);         (*  x_t := checkParametersName (f_name, processed_params) with err;      *)
 			(None, None, cmd_sc_copy);          (*  x_sc := copy_object (x_sc, {{main, fid1, ..., fidn }});              *)
 			(None, None, cmd_fun_constr);       (*  x_f := create_function_object(x_sc, f_id, params)                    *)
 			(None, None, cmd_ass_xfouter);      (*  x_f_outer_er := new ();                                              *)
@@ -2511,7 +2511,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 			(None, None, cmd_fname_updt);       (*  [x_f_outer_er, f] := x_f;                                            *)
 			(None, None, cmd_fidouter_updt)     (*  [x_sc, f_id_outer] := x_f_outer_er                                   *)
 		] in 
-		cmds, Var x_f, [ x_t ]
+		cmds, Var x_f, [ x_t; x_cae ]
 		
 
 	| Parser_syntax.VarDec decs -> 
@@ -2709,7 +2709,7 @@ and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option
 		(* [x_scope, "cid"] := x_er *) 
 		let cmd_sc_updt = SLBasic (SMutation (Var var_scope, Literal (String catch_id), Var x_er)) in 
 	
-	  (* err2:     x_ret_1 := PHI(errs2) *)
+	  (* err2:     x_ret_1 := PHI(x_cae, errs2) *)
 		let x_ret_1 = fresh_var () in 
 		let phi_args2 = List.map (fun x -> Some x) (x_cae :: errs2) in 
 		let phi_args2 = Array.of_list phi_args2 in 
@@ -2806,7 +2806,7 @@ and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option
 		(* [x_scope, "cid"] := x_er *) 
 		let cmd_sc_updt = SLBasic (SMutation (Var var_scope, Literal (String catch_id), Var x_er)) in 
 	
-	  (* err2:     x_ret_1 := PHI(errs2) *)
+	  (* err2:     x_ret_1 := PHI(x_cae, errs2) *)
 		let x_ret_1 = fresh_var () in 
 		let phi_args2 = List.map (fun x -> Some x) (x_cae :: errs2) in 
 		let phi_args2 = Array.of_list phi_args2 in 
