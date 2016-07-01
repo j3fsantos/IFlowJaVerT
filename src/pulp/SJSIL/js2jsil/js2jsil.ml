@@ -458,13 +458,13 @@ let translate_named_function_literal cur_fid f_id f_name params vis_fid err =
 		
 		(* x_cae := i__checkAssignmentErrors (x_ref_n) with err *)
 		let x_cae = fresh_var () in 
-		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ (Var x_ref_n) ], Some err) in 	
+		let cmd_cae = (None, None, SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ (Var x_ref_n) ], Some err)) in 	
 		
 		(* x_pv := i__putValue(x_ref_n, x_f) with err *) 
 		let x_pv = fresh_var () in 
 		let cmd_pv_f = (None, None, SLCall (x_pv, Literal (String putValueName), [ Var x_ref_n; Var x_f ], Some err)) in 
 		
-		let cmds = cmds @ [ cmd_ass_xer; cmd_ass_xrefn; cmd_pv_f ] in 
+		let cmds = cmds @ [ cmd_ass_xer; cmd_ass_xrefn; cmd_cae; cmd_pv_f ] in 
 		cmds, Var x_f, errs @ [ x_cae; x_pv ]
 
 				
