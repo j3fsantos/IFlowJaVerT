@@ -58,6 +58,7 @@ let strictEqualityComparisonName      = "i__strictEquality"              (* 11.9
 let defineOwnPropertyName             = "o__defineOwnProperty"           (* 8.12.9            *) 
 let defineOwnPropertyArrayName        = "a__defineOwnProperty"           (* 15.sth.sth        *) 
 let checkAssignmentErrorsName         = "i__checkAssignmentErrors"        
+let checkParametersName               = "i__checkParameters"    
 let getEnumFieldsName                 = "i__getAllEnumerableFields"        
 
 let print_position outx lexbuf =
@@ -410,7 +411,7 @@ let make_empty_ass () =
 	x, empty_ass 
 		
 		
-let translate_function_literal fun_id params vis_fid = 
+let translate_function_literal fun_id params vis_fid err = 
 	(**
      x_sc := copy_scope_chain_obj (x_scope, {{main, fid1, ..., fidn }}); 
 		 x_f := create_function_object(x_sc, fun_id, params)
@@ -433,14 +434,19 @@ let translate_function_literal fun_id params vis_fid =
 	let cmd = SLCall (x_f, Literal (String createFunctionObjectName), 
 		[ (Var x_sc); (Literal (String fun_id)); (Literal (String fun_id)); (Literal (LList processed_params)) ], None) in 	
 		
+  let x_t = fresh_var () in
+		let cmd_errCheck = SLCall (x_t, Literal (String checkParametersName), 
+			[ (Literal (String fun_id)); (Literal (LList processed_params)) ], Some err) in
+		
 	[ 
+		(None, None, cmd_errCheck);           (*  x_t := checkParametersName (f_name, processed_params);   *)
 		(None, None, cmd_sc_copy);            (* x_sc := copy_object (x_scope, {{main, fid1, ..., fidn }});  *)
 		(None, None, cmd)                     (* x_f := create_function_object (x_sc, f_id, f_id, params)    *)
-	], x_f 
+	], x_f, [ x_t ]
 
 
 let translate_named_function_literal cur_fid f_id f_name params vis_fid err =
-		let cmds, x_f = translate_function_literal f_id params vis_fid in 
+		let cmds, x_f, errs = translate_function_literal f_id params vis_fid err in 
 
 		(* x_er_fid := [x_scope, "fid"] *)
 		let x_er = fresh_er_var () in 
@@ -455,7 +461,7 @@ let translate_named_function_literal cur_fid f_id f_name params vis_fid err =
 		let cmd_pv_f = (None, None, SLCall (x_pv, Literal (String putValueName), [ Var x_ref_n; Var x_f ], Some err)) in 
 		
 		let cmds = cmds @ [ cmd_ass_xer; cmd_ass_xrefn; cmd_pv_f ] in 
-		cmds, Var x_f, [ x_pv ]
+		cmds, Var x_f, errs @ [ x_pv ]
 
 				
 let translate_inc_dec x is_plus err = 	
@@ -1037,14 +1043,14 @@ let rec translate_expr fid cc_table vis_fid err e  =
 			C_pd ( get pn () { s }^getter_id ) =  
 				          		x1 := copy_object (x_scope, {{main, fid1, ..., fidn }}) 
 											x_f := create_function_object(x1, getter_id, {{}})
-											x_desc := {{ "a", x_f, $$empty, $$t, $$t }}
+											x_desc := {{ "a", x_f, $$undefined, $$t, $$t }}
 											x_dop := o__defineOwnProperty(x_obj, C_pn(pn), x_desc, true) with err				
 			
 			-----------------------
 		 	C_pd ( set pn (x1, ..., xn) { s }^setter_id ) = 
 											x1 := copy_object (x_scope, {{main, fid1, ..., fidn }})
 											x_f := create_function_object(x1, setter_id, {{x1, ..., xn}})
-											x_desc := {{ "a", $$empty, x_f, $$t, $$t }}
+											x_desc := {{ "a", $$undefined, x_f, $$t, $$t }}
 											x_dop := o__defineOwnProperty(x_obj, C_pn(pn), x_desc, true) with err
 		*)
 		
@@ -1088,14 +1094,14 @@ let rec translate_expr fid cc_table vis_fid err e  =
 				(match accessor.Parser_syntax.exp_stx with 
 				| Parser_syntax.AnonymousFun (_, params, _) -> params 
 				| _ -> raise (Failure "getters should be annonymous functions")) in 
-			let cmds, x_f = translate_function_literal f_id params vis_fid in 
+			let cmds, x_f, errs = translate_function_literal f_id params vis_fid err in 
 			
-			(* x_desc := {{ "a", x_f, $$empty, $$t, $$t }} *) 
+			(* x_desc := {{ "a", x_f, $$undefined, $$t, $$t }} *) 
 			let x_desc = fresh_desc_var () in 
 			let desc_params = 
 				match is_getter with 
-				| true -> [ Literal (String "a"); Var x_f; Literal Empty; Literal (Bool true); Literal (Bool true) ] 
-				| false -> [ Literal (String "a"); Literal Empty; Var x_f; Literal (Bool true); Literal (Bool true) ] in 
+				| true -> [ Literal (String "a"); Var x_f; Literal Undefined; Literal (Bool true); Literal (Bool true) ] 
+				| false -> [ Literal (String "a"); Literal Undefined; Var x_f; Literal (Bool true); Literal (Bool true) ] in 
 			let cmd_ass_xdesc = SLBasic (SAssignment (x_desc, LEList desc_params)) in
 			
 			(* x_dop := o__defineOwnProperty(x_obj, C_pn(pn), x_desc, true) with err *)
@@ -1105,7 +1111,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 				(None, None, cmd_ass_xdesc);     (* x_desc := {{ "d", x_v, $$t, $$t, $$t}}                                   *) 
 				(None, None, cmd_dop_x)          (* x_dop := o__defineOwnProperty(x_obj, C_pn(pn), x_desc, true) with err    *)
 			] in 
-			cmds, [ x_dop ] in 
+			cmds, errs @ [ x_dop ] in 
 		
 		let cmds, errs = 
 			List.fold_left (fun (cmds, errs) (pname, ptype, e) ->
@@ -2446,13 +2452,24 @@ let rec translate_expr fid cc_table vis_fid err e  =
    	*)
 		let f_id = try Js_pre_processing.get_codename e 
 			with _ -> raise (Failure "anonymous function literals should be annotated with their respective code names") in 
-		let cmds, x_f = translate_function_literal f_id params vis_fid in 
-		cmds, Var x_f, []
+		let cmds, x_f, errs = translate_function_literal f_id params vis_fid err in 
+		cmds, Var x_f, errs
 	
 	
 	| Parser_syntax.NamedFun (_, f_name, params, _) -> 
 		let f_id = try Js_pre_processing.get_codename e 
 			with _ -> raise (Failure "named function literals should be annotated with their respective code names") in
+			
+		let processed_params = 
+			List.fold_left
+				(fun ac param -> (String param) :: ac) 
+				[]
+				params in 
+		let processed_params = List.rev processed_params in 
+		
+		let x_t = fresh_var () in
+		let cmd_errCheck = SLCall (x_t, Literal (String checkParametersName), 
+			[ (Literal (String f_name)); (Literal (LList processed_params)) ], Some err) in
 		
 		(* x_sc := copy_object (x_sc, {{main, fid1, ..., fidn }});  *)
 		let x_sc = fresh_scope_chain_var () in 
@@ -2461,12 +2478,6 @@ let rec translate_expr fid cc_table vis_fid err e  =
 	
 		(* x_f := create_function_object(x_sc, f_id, params) *)
 		let x_f = fresh_fun_var () in 
-		let processed_params = 
-			List.fold_left
-				(fun ac param -> (String param) :: ac) 
-				[]
-				params in 
-		let processed_params = List.rev processed_params in 
 		let cmd_fun_constr = SLCall (x_f, Literal (String createFunctionObjectName), 
 			[ (Var x_sc); (Literal (String f_id)); (Literal (String f_id)); (Literal (LList processed_params)) ], None) in 	
 		
@@ -2481,13 +2492,14 @@ let rec translate_expr fid cc_table vis_fid err e  =
 		let cmd_fidouter_updt = SLBasic (SMutation (Var x_sc, Literal (String (f_id ^ "_outer")), Var x_f_outer_er)) in 
 		
 		let cmds = [
+			(None, None, cmd_errCheck);         (*  x_t := checkParametersName (f_name, processed_params);   *)
 			(None, None, cmd_sc_copy);          (*  x_sc := copy_object (x_sc, {{main, fid1, ..., fidn }});  *)
 			(None, None, cmd_fun_constr);       (*  x_f := create_function_object(x_sc, f_id, params)        *)
 			(None, None, cmd_ass_xfouter);      (*  x_f_outer_er := new ();                                  *)
 			(None, None, cmd_fname_updt);       (*  [x_f_outer_er, f] := x_f;                                *)
 			(None, None, cmd_fidouter_updt)     (*  [x_sc, f_id_outer] := x_f_outer_er                       *)
 		] in 
-		cmds, Var x_f, []
+		cmds, Var x_f, [ x_t ]
 		
 
 	| Parser_syntax.VarDec decs -> 

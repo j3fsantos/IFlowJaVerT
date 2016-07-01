@@ -1401,6 +1401,34 @@ with
 	err:	xret, elab;
 };
 
+(* *************** *) 
+(* CHECKPARAMETERS *)
+(* *************** *)
+
+proc i__checkParameters (fid, params) {
+
+			goto [(fid = "eval") or (fid = "arguments")] se pars;
+			
+	pars:	n := 0;
+			l := length (params);
+			
+	loop:	goto [n < l] head rlab;
+	head:	par := nth (params, n);
+			goto [(par = "eval") or (par = "arguments")] se next;
+	next:	n := n + 1;
+			goto loop;
+			
+	rlab:	xret := $$t;
+	
+	se:		xret := "SyntaxError" ();
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
 (* *********** *) 
 (* HASINSTANCE *)
 (* *********** *)
