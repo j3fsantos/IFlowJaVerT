@@ -2567,9 +2567,11 @@ and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option
 		let x_sf = fresh_var () in 
 		let cmd_xsf_ass = SLBasic (SLookup (x_sf, Var var_scope, Literal (String v_fid))) in 
 		(* x_ref := ref_v(x_sf, "x")  *) 
-		let x_ref = fresh_var () in 
-	  (* *) 
+		let x_ref = fresh_var () in  
 		let cmd_xref_ass = SLBasic (SAssignment (x_ref, VRef (Var x_sf, Literal (String x)))) in 
+		(* x_cae := i__checkAssignmentErrors (x_ref) with err *)
+		let x_cae = fresh_var () in 
+		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ (Var x_ref) ], Some err) in 
 		(* x_pv := i__putValue(x_ref, x_v) with err2 *) 
 		let x_pv, cmd_pv = make_put_value_call (Var x_ref) x_v err in 
 		let cmds = cmds_e @ (b_annot_cmds [
@@ -2578,7 +2580,7 @@ and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option
 			cmd_xref_ass;  (* x_ref := ref_v(x_sf, "x")                *) 
 			cmd_pv         (* x_pv := i__putValue(x_ref, x_v) with err *) 
 		]) in 
-		let errs = errs_e @ [ x_v; x_pv ] in 
+		let errs = errs_e @ [ x_v; x_cae; x_pv ] in 
 		cmds, x_ref, errs	in				
 	
 	let create_final_phi_cmd cmds x errs rets breaks conts break_label js_lab = 
@@ -2676,7 +2678,8 @@ and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option
 									cmds2
 									goto finally
 				err2:     x_ret_1 := PHI(x_cae, errs2)					
-				finally:  x_ret_2 := PHI(breaks1, x_1, breaks2, x_2, x_ret_1)
+				          goto err 
+				finally:  x_ret_2 := PHI(breaks1, x_1, breaks2, x_2)
 	  *) 
 		let new_err1, new_err2, finally, end_label, _, _ = fresh_tcf_vars () in
 		let new_loop_list = (None, finally, js_lab, false) :: loop_list in 
@@ -2717,7 +2720,7 @@ and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option
 	
 		(* x_ret_2 := PHI(cur_breaks1, x_1, cur_breaks2, x_2) *)
 		let x_ret_2 = fresh_var () in 
-		let phi_args3 = cur_breaks1 @ [ x1_v ] @ cur_breaks2 @ [ x2_v; x_ret_1 ] in 
+		let phi_args3 = cur_breaks1 @ [ x1_v ] @ cur_breaks2 @ [ x2_v ] in 
 		let phi_args3 = List.map (fun x -> Some x) phi_args3 in   
 		let phi_args3 = Array.of_list phi_args3 in 
 		let cmd_ass_xret2 = SLPhiAssignment (x_ret_2, phi_args3) in 
@@ -2731,11 +2734,12 @@ and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option
 			(None, None,           cmd_sc_updt)
 		] @ cmds2 @ [
 			(None, None,          SLGoto finally); 
-			(None, Some new_err2, cmd_ass_xret1); 
+			(None, Some new_err2, cmd_ass_xret1);
+			(None, None,          SLGoto err);  
 			(None, Some finally,  cmd_ass_xret2)
 		] in 
 		
-		cmds, x_ret_2, [], rets1 @ rets2, outer_breaks1 @ outer_breaks2, conts1 @ conts2, end_label in
+		cmds, x_ret_2, [ x_ret_1 ], rets1 @ rets2, outer_breaks1 @ outer_breaks2, conts1 @ conts2, end_label in
 	
 	
 	let make_try_catch_cmds_with_finally e1 (x, e2) catch_id e3 = 						
