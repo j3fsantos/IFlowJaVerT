@@ -2575,10 +2575,11 @@ and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option
 		(* x_pv := i__putValue(x_ref, x_v) with err2 *) 
 		let x_pv, cmd_pv = make_put_value_call (Var x_ref) x_v err in 
 		let cmds = cmds_e @ (b_annot_cmds [
-			cmd_gv_x;      (* x_v := i__getValue (x) with err          *)
-			cmd_xsf_ass;   (* x_sf := [x__scope, fid]                  *)
-			cmd_xref_ass;  (* x_ref := ref_v(x_sf, "x")                *) 
-			cmd_pv         (* x_pv := i__putValue(x_ref, x_v) with err *) 
+			cmd_gv_x;      (* x_v := i__getValue (x) with err                    *)
+			cmd_xsf_ass;   (* x_sf := [x__scope, fid]                            *)
+			cmd_xref_ass;  (* x_ref := ref_v(x_sf, "x")                          *) 
+			cmd_cae;       (* x_cae := i__checkAssignmentErrors (x_ref) with err *)
+			cmd_pv         (* x_pv := i__putValue(x_ref, x_v) with err           *) 
 		]) in 
 		let errs = errs_e @ [ x_v; x_cae; x_pv ] in 
 		cmds, x_ref, errs	in				
