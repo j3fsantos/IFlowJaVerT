@@ -729,8 +729,18 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 						Hashtbl.replace store x v;
 						evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl))
 		| Some e_js -> (
-				
-		let proc_eval = Js2jsil.js2jsil_eval prog which_pred cc_tbl vis_tbl cur_proc_name e_js in 
+		
+		let is_legal_expr = Js_pre_processing.is_expr_free_of_eval_arguments_vars e_js in 
+		match is_legal_expr with 
+		| false -> 
+			(match j with 
+			| None -> raise (Failure "procedure throws an error without a ret label") 
+			| Some err_label ->
+				let v = try Hashtbl.find store Js2jsil.var_se with _ -> raise (Failure "eval no syntax error") in 
+				Hashtbl.replace store x v;
+				evaluate_cmd prog cur_proc_name which_pred heap store err_label cur_cmd cc_tbl vis_tbl)
+		| true -> 
+		(let proc_eval = Js2jsil.js2jsil_eval prog which_pred cc_tbl vis_tbl cur_proc_name e_js in 
 		let new_store = init_store [ Js2jsil.var_scope; Js2jsil.var_this ] [ x_scope; x_this ] in
 		(match evaluate_cmd prog proc_eval.proc_name which_pred heap new_store 0 0 cc_tbl vis_tbl with 
 		| Normal, v -> 
@@ -746,7 +756,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 		
 		| _ -> Hashtbl.replace store x str_e;
 					 evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
-		)
+		))
 	
 	| SCall (x, e, e_args, j) -> 
 		(* Printf.printf "Nothing was intercepted!!!\n"; *)
