@@ -494,7 +494,7 @@ let translate_inc_dec x is_plus err =
 		(None, None,      cmd_pv_x)                          (*        x_pv = i__putValue (x, x_r) with err                                                                        *)
 	] in 
 	let new_errs = [ var_se; x_v; x_n; x_pv ] in 
-	new_cmds, new_errs, x_v, x_r 
+	new_cmds, new_errs, x_n, x_r 
 	
 
 let translate_multiplicative_binop x1 x2 x1_v x2_v aop err = 
