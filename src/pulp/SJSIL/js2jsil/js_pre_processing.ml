@@ -406,7 +406,7 @@ let rec closure_clarification_expr cc_tbl fun_tbl vis_tbl f_id visited_funs e =
 		update_cc_tbl_single_var_er cc_tbl f_id new_f_id_outer f_name;  
 		update_cc_tbl cc_tbl new_f_id_outer new_f_id args fb;
 		update_fun_tbl fun_tbl new_f_id args fb; 
-		Hashtbl.replace vis_tbl new_f_id (new_f_id :: visited_funs); 
+		Hashtbl.replace vis_tbl new_f_id (new_f_id :: new_f_id_outer :: visited_funs); 
 		closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: new_f_id_outer :: visited_funs) fb
 	| Unary_op (_, e) -> f e        
   | Delete e -> f e

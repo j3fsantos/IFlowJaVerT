@@ -4396,8 +4396,8 @@ let js2jsil e =
 			SLProgram.add jsil_prog f_id proc)
 		fun_tbl; 
 	
-	(* let cc_tbl_str = Js_pre_processing.print_cc_tbl cc_tbl in *)
-	(* Printf.printf "marica, the cc_tbl is the following (enjoy): \n %s\n" cc_tbl_str; *)
+ 	(** let cc_tbl_str = Js_pre_processing.print_cc_tbl cc_tbl in 
+	Printf.printf "marica, the cc_tbl is the following (enjoy): \n %s\n" cc_tbl_str; *)
 	Some js2jsil_imports, jsil_prog, cc_tbl, vis_tbl
 	
 

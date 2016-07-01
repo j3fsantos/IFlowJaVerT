@@ -858,7 +858,10 @@ evaluate_phi_psi_cmd prog proc which_pred heap store cur_cmd prev_cmd ac_cur_cmd
 		| None -> Undefined 
 		| Some x_live -> 
 			(match SSyntax_Aux.try_find store x_live with 
-			| None -> raise (Failure (Printf.sprintf "Variable %s not found in the store" x_live))
+			| None -> 
+				let cur_cmd_str = SSyntax_Print.string_of_cmd proc.proc_body.(cur_cmd) 0 0 false false false in 
+				let prev_cmd_str = SSyntax_Print.string_of_cmd proc.proc_body.(prev_cmd) 0 0 false false false in 
+				raise (Failure (Printf.sprintf "Variable %s not found in the store. Cur_which_pred: %d. cur_cmd: %s. prev_cmd: %s" x_live cur_which_pred cur_cmd_str prev_cmd_str))
 			| Some v -> v)) in 
 		if (!verbose) then Printf.printf "PHI-Assignment: %s : %d/%d : %s := %s\n" 
 		   (match x_live with
