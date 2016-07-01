@@ -1887,7 +1887,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 		(* x2_v := i__getValue (x2) with err *)
 		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
 		
-		let new_cmds, new_errs, x_r = translate_bitwise_shift x1 x2 x1_v x2_v toUInt32Name toUInt32Name SignedRightShift err in  
+		let new_cmds, new_errs, x_r = translate_bitwise_shift x1 x2 x1_v x2_v toInt32Name toUInt32Name SignedRightShift err in  
 		let cmds = cmds1 @ [ b_annot_cmd cmd_gv_x1 ] @ cmds2 @ [ b_annot_cmd cmd_gv_x2 ] @ new_cmds in
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in 
 		cmds, Var x_r, errs
