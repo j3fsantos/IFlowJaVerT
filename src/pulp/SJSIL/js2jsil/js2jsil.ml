@@ -456,12 +456,16 @@ let translate_named_function_literal cur_fid f_id f_name params vis_fid err =
 		let x_ref_n = fresh_var () in 
 		let cmd_ass_xrefn = (None, None, SLBasic (SAssignment (x_ref_n, VRef (Var x_er, Literal (String f_name))))) in 
 		
+		(* x_cae := i__checkAssignmentErrors (x_ref_n) with err *)
+		let x_cae = fresh_var () in 
+		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ (Var x_ref_n) ], Some err) in 	
+		
 		(* x_pv := i__putValue(x_ref_n, x_f) with err *) 
 		let x_pv = fresh_var () in 
 		let cmd_pv_f = (None, None, SLCall (x_pv, Literal (String putValueName), [ Var x_ref_n; Var x_f ], Some err)) in 
 		
 		let cmds = cmds @ [ cmd_ass_xer; cmd_ass_xrefn; cmd_pv_f ] in 
-		cmds, Var x_f, errs @ [ x_pv ]
+		cmds, Var x_f, errs @ [ x_cae; x_pv ]
 
 				
 let translate_inc_dec x is_plus err = 	
@@ -814,12 +818,14 @@ let rec translate_expr fid cc_table vis_fid err e  =
 		(* x_ref := ref_v(x_sf, "x")  *) 
 		let x_ref = fresh_var () in 
 		let cmd_xref_ass = SLBasic (SAssignment (x_ref, VRef (Var x_sf, Literal (String x)))) in 
-		
+		(* x_cae := i__checkAssignmentErrors (x_ref) with err *)
+		let x_cae, cmd_cae = make_cae_call (Var x_ref)  err in 
 		let cmds = (b_annot_cmds [
-			cmd_xsf_ass;   (* x_sf := [x__scope, v_fid]                *)
-			cmd_xref_ass;  (* x_ref := ref_v(x_sf, "x")                *) 
+			cmd_xsf_ass;   (* x_sf := [x__scope, v_fid]                          *)
+			cmd_xref_ass;  (* x_ref := ref_v(x_sf, "x")                          *) 
+			cmd_cae;       (* x_cae := i__checkAssignmentErrors (x_ref) with err *)
 		]) in  
-		x_ref, cmds in 
+		x_ref, cmds, [ err ] in 
 		
 	let translate_bin_logical_operator e1 e2 lbop err =
 		let cmds1, x1, errs1 = f e1 in
@@ -2485,6 +2491,10 @@ let rec translate_expr fid cc_table vis_fid err e  =
 		let x_f_outer_er = fresh_var () in 
 		let cmd_ass_xfouter = SLBasic (SNew (x_f_outer_er)) in 
 		
+		(* x_cae := i__checkAssignmentErrors (ref-v(x_f_outer_er, "f")) with err *)
+		let x_cae = fresh_var () in 
+		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ VRef (Var x_f_outer_er, Literal (String f_name)) ], Some err) in 
+
 		(* [x_f_outer_er, f] := x_f *)
 		let cmd_fname_updt = SLBasic (SMutation (Var x_f_outer_er, Literal (String f_name), Var x_f)) in 
 		
@@ -2492,12 +2502,13 @@ let rec translate_expr fid cc_table vis_fid err e  =
 		let cmd_fidouter_updt = SLBasic (SMutation (Var x_sc, Literal (String (f_id ^ "_outer")), Var x_f_outer_er)) in 
 		
 		let cmds = [
-			(None, None, cmd_errCheck);         (*  x_t := checkParametersName (f_name, processed_params);   *)
-			(None, None, cmd_sc_copy);          (*  x_sc := copy_object (x_sc, {{main, fid1, ..., fidn }});  *)
-			(None, None, cmd_fun_constr);       (*  x_f := create_function_object(x_sc, f_id, params)        *)
-			(None, None, cmd_ass_xfouter);      (*  x_f_outer_er := new ();                                  *)
-			(None, None, cmd_fname_updt);       (*  [x_f_outer_er, f] := x_f;                                *)
-			(None, None, cmd_fidouter_updt)     (*  [x_sc, f_id_outer] := x_f_outer_er                       *)
+			(None, None, cmd_errCheck);         (*  x_t := checkParametersName (f_name, processed_params);               *)
+			(None, None, cmd_sc_copy);          (*  x_sc := copy_object (x_sc, {{main, fid1, ..., fidn }});              *)
+			(None, None, cmd_fun_constr);       (*  x_f := create_function_object(x_sc, f_id, params)                    *)
+			(None, None, cmd_ass_xfouter);      (*  x_f_outer_er := new ();                                              *)
+			(None, None, cmd_cae);              (* x_cae := i__checkAssignmentErrors (ref-v(x_f_outer_er, "f")) with err *) 
+			(None, None, cmd_fname_updt);       (*  [x_f_outer_er, f] := x_f;                                            *)
+			(None, None, cmd_fidouter_updt)     (*  [x_sc, f_id_outer] := x_f_outer_er                                   *)
 		] in 
 		cmds, Var x_f, [ x_t ]
 		
@@ -2510,8 +2521,8 @@ let rec translate_expr fid cc_table vis_fid err e  =
 			| [ (v, eo) ] ->
 				(match eo with 
 				| None -> 
-					let x, new_cmds = compile_var_dec_without_exp v in 
-					x, (cmds @ new_cmds), errs
+					let x, new_cmds, new_errs = compile_var_dec_without_exp v in 
+					x, (cmds @ new_cmds), (errs @ new_errs)
 				| Some e -> 
 					let new_cmds, x, new_errs	 = compile_var_dec v e in  
 					x, (cmds @ new_cmds), (errs @ new_errs))
@@ -2658,11 +2669,12 @@ and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option
 		            	goto finally  
 		    err1:    	x_err := PHI(errs1)
 				        	x_er := new () 
+									x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err2
 									[x_er, "x"] := x_err 
 									[x_scope, "cid"] := x_er 
 									cmds2
 									goto finally
-				err2:     x_ret_1 := PHI(errs2)					
+				err2:     x_ret_1 := PHI(x_cae, errs2)					
 				finally:  x_ret_2 := PHI(breaks1, x_1, breaks2, x_2, x_ret_1)
 	  *) 
 		let new_err1, new_err2, finally, end_label, _, _ = fresh_tcf_vars () in
@@ -2686,6 +2698,10 @@ and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option
 		let x_er = fresh_er_var () in 
 		let cmd_ass_xer = SLBasic (SNew x_er) in 
 	
+		(* x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err2 *)
+		let x_cae = fresh_var () in 
+		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ VRef (Var x_er, Literal (String x)) ], Some new_err2) in 
+	
 		(* [x_er, "x"] := x_err *) 
 		let cmd_mutate_x = SLBasic (SMutation (Var x_er, Literal (String x), Var x_err)) in  					  				
 	
@@ -2694,7 +2710,7 @@ and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option
 	
 	  (* err2:     x_ret_1 := PHI(errs2) *)
 		let x_ret_1 = fresh_var () in 
-		let phi_args2 = List.map (fun x -> Some x) errs2 in 
+		let phi_args2 = List.map (fun x -> Some x) (x_cae :: errs2) in 
 		let phi_args2 = Array.of_list phi_args2 in 
 		let cmd_ass_xret1 = SLPhiAssignment (x_ret_1, phi_args2) in
 	
@@ -2709,6 +2725,7 @@ and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option
 			(None, None,           SLGoto finally); 
 			(None, Some new_err1,  cmd_ass_xerr);
 			(None, None,           cmd_ass_xer); 
+			(None, None,           cmd_cae);
 			(None, None,           cmd_mutate_x); 
 			(None, None,           cmd_sc_updt)
 		] @ cmds2 @ [
@@ -2778,9 +2795,9 @@ and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option
 		let x_er = fresh_er_var () in 
 		let cmd_ass_xer = SLBasic (SNew x_er) in 
 		
-		(* x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err *)
-		(**let x_cae = fresh_var () in 
-		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ VRef (Variable x_er, Literal (String x)) ], Some err) *)
+		(* x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err2 *)
+		let x_cae = fresh_var () in 
+		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ VRef (Var x_er, Literal (String x)) ], Some new_err2) in 
 	
 		(* [x_er, "x"] := x_err *) 
 		let cmd_mutate_x = SLBasic (SMutation (Var x_er, Literal (String x), Var x_err)) in  					  				
@@ -2790,7 +2807,7 @@ and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option
 	
 	  (* err2:     x_ret_1 := PHI(errs2) *)
 		let x_ret_1 = fresh_var () in 
-		let phi_args2 = List.map (fun x -> Some x) errs2 in 
+		let phi_args2 = List.map (fun x -> Some x) (x_cae :: errs2) in 
 		let phi_args2 = Array.of_list phi_args2 in 
 		let cmd_ass_xret1 = SLPhiAssignment (x_ret_1, phi_args2) in
 	
@@ -2821,26 +2838,27 @@ and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option
 		let breaks = outer_breaks3_1 @ outer_breaks3_2 @ outer_breaks3_3 @ outer_breaks_b1 @ outer_breaks_c1 @ outer_breaks_b2 @ outer_breaks_c2 in 
 		let conts = conts3_1 @ conts3_2 @ conts3_3 @ conts_b1 @ conts_c1 @ conts_b2 @ conts_c2 in
 		
-		let cmds = cmds1 @ [                                 (*            cmds1                                                       *)
-			(None, None,            SLGoto finally);           (*            goto finally                                                *)
-			(None, Some new_err1,   cmd_ass_xerr);             (*  err1:     x_err := PHI(errs1)                                         *)      
-			(None, None,            cmd_ass_xer);              (*            x_er := new ()                                              *)
-			(None, None,            cmd_mutate_x);             (*            [x_er, "x"] := x_err                                        *)
-			(None, None,            cmd_sc_updt)               (*            [x_scope, "cid"] := x_er                                    *)
-		] @ cmds2 @ [                                        (*            cmds2                                                       *)
-			(None, None,           SLGoto finally);            (*            goto finally                                                *) 
-			(None, Some new_err2,  cmd_ass_xret1);             (*  err2:     x_ret_1 := PHI(errs2)                                       *)
-		] @ cmds3_1 @ [                                      (*            cmds3_1                                                     *)
-		  (None, None,           SLGoto err);                (*            goto err                                                    *)
-			(None, Some finally,   cmd_ass_xret2)              (*  finally:  x_ret_2 := PHI(cur_breaks1, x_1, cur_breaks2, x_2)          *)       
-		] @ cmds3_2 @ [                                      (*            cmds3_2                                                     *)
-		  (None, None,           SLGoto end_label);          (*            goto end                                                    *)
-			(None, Some tcf_ret,   cmd_ass_xret3)              (*  tcf_ret:  x_ret_3 := PHI(rets1, rets2)                                *)
-		] @ cmds3_3 @ [                                      (*            cmds3_3                                                     *)
-		  (None, None,           SLGoto ret_label)           (*            goto ret_label                                              *)
-		] @ finally_cmds_breaks1 @ finally_cmds_conts1       (*            break_cont_finally_blocks_1                                 *)
-		  @ finally_cmds_breaks2 @ finally_cmds_conts2 @ [   (*            break_cont_finally_blocks_2                                 *)
-	    (None, Some end_label, cmd_ass_xret4)              (*  end:      x_ret_4 := PHI(x_ret_2, inner_breaks_finally)               *)
+		let cmds = cmds1 @ [                                 (*            cmds1                                                            *)
+			(None, None,            SLGoto finally);           (*            goto finally                                                     *)
+			(None, Some new_err1,   cmd_ass_xerr);             (*  err1:     x_err := PHI(errs1)                                              *)       
+			(None, None,            cmd_ass_xer);              (*            x_er := new ()                                                   *)
+			(None, None,            cmd_cae);                  (*            x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err2   *)
+			(None, None,            cmd_mutate_x);             (*            [x_er, "x"] := x_err                                             *)
+			(None, None,            cmd_sc_updt)               (*            [x_scope, "cid"] := x_er                                         *)
+		] @ cmds2 @ [                                        (*            cmds2                                                            *)
+			(None, None,           SLGoto finally);            (*            goto finally                                                     *) 
+			(None, Some new_err2,  cmd_ass_xret1);             (*  err2:     x_ret_1 := PHI(x_cae, errs2)                                     *)
+		] @ cmds3_1 @ [                                      (*            cmds3_1                                                          *)
+		  (None, None,           SLGoto err);                (*            goto err                                                         *)
+			(None, Some finally,   cmd_ass_xret2)              (*  finally:  x_ret_2 := PHI(cur_breaks1, x_1, cur_breaks2, x_2)               *)       
+		] @ cmds3_2 @ [                                      (*            cmds3_2                                                          *)
+		  (None, None,           SLGoto end_label);          (*            goto end                                                         *)
+			(None, Some tcf_ret,   cmd_ass_xret3)              (*  tcf_ret:  x_ret_3 := PHI(rets1, rets2)                                     *)
+		] @ cmds3_3 @ [                                      (*            cmds3_3                                                          *)
+		  (None, None,           SLGoto ret_label)           (*            goto ret_label                                                   *)
+		] @ finally_cmds_breaks1 @ finally_cmds_conts1       (*            break_cont_finally_blocks_1                                      *)
+		  @ finally_cmds_breaks2 @ finally_cmds_conts2 @ [   (*            break_cont_finally_blocks_2                                      *)
+	    (None, Some end_label, cmd_ass_xret4)              (*  end:      x_ret_4 := PHI(x_ret_2, inner_breaks_finally)                    *)
 		] in 
 		cmds, Var x_ret_4, errs, rets, breaks, conts  in
 	
