@@ -2099,7 +2099,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 			(None, Some next2,   cmd_ass_xhi);        (* next2:  x_hi := [x2_v, "@hasInstance"]                     *)
 			(None, None,         cmd_ass_xr)          (*         x_r := x_hi (x2_v, x1_v) with err                  *)
 		] in 
-		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v; var_se; var_se; x_r ] in 
+		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v; var_te; var_te; x_r ] in 
 		cmds, Var x_r, errs
 											  
 																			              
