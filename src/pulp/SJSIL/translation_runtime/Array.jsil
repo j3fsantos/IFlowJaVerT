@@ -391,11 +391,10 @@ with
 {
 	ret: 	xret, rlab;
 	err: 	xret, elab;
-}
+};
 
 
 (* *** TOLOCALESTRING *** *)
-(*
 proc AP_toLocaleString(xsc, vthis) {
 			xret := "i__toObject" (vthis) with elab;
 			vthis := xret;
@@ -405,7 +404,198 @@ proc AP_toLocaleString(xsc, vthis) {
 			xret := "i__toUint32" (xret) with elab;
 			len := xret;
 
+			sep := ",";
+			k := 0;
+			goto [len = 0] empty fill;
+	
+	empty:	xret := "";
+			goto rlab;
+	
+	fill:	xret := "i__toString" (k) with elab;
+			xret := g (vthis, xret) with elab;
+			goto [ (xret = $$undefined) or (xret = $$null) ] un def;
 			
+	un:		R := "";
+			goto next;
+			
+	def:	xret := "i__toObject" (xret) with elab;
+			eothis := xret;
+			xret := g (eothis, "toLocaleString") with elab;
+			func := xret;
+			
+			xret := "i__isCallable" (func);
+			goto [xret] call throw;
+			
+	call:	xsc := [func, "@scope"];				
+			fun := [func, "@call"];					
+			R := fun (xsc, eothis) with elab;
+	
+	next:	goto [k = 0] fe ne;
+	ne:		R := S concat R;
+	fe:		k := k + 1;
+			goto loop;
+			
+	loop:	goto [k < len] lp end;
+	
+	lp:		S := R concat sep;
+			goto fill;
+	
+	end:	xret := R;
+	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
+
+(* *** CONCAT *** *)
+proc AP_concat() {
+			arguments := args;
+			vthis  := nth (arguments, 1);
+			
+			xret := "i__toObject" (vthis) with elab;
+			vthis := xret;
+			
+			xret := "Array_construct" () with elab;
+			A := xret;
+			
+			n := 0;
+			idx := 2;
+			num := length (arguments);
+			
+			elem := vthis;
+			f := 0;
+			goto cont;
+			
+	loop:	goto [idx < num] add end;
+	
+	add:	elem := nth (arguments, idx);
+			f := 1;
+			xret := "i__toObject" (elem) with elab;
+			elem := xret;
+			
+	cont:	c := [elem, "@class"];
+			goto [c = "Array"] arr narr;
+			
+	arr:	k := 0;
+			g := [elem, "@get"];
+			xret := g (elem, "length") with elab;
+			len := xret;
+			
+	lp:		goto [k < len] loop2 loop;
+			
+	loop2:	xret := "i__toString" (k) with elab;
+			p := xret;
+			
+			hp := [elem, "@hasProperty"];
+			xret := hp (elem, p) with elab;
+			goto [xret] tt next;
+	
+	tt:		xret := g (elem, p) with elab;
+			se := xret;
+			xret := "i__toString" (n) with elab;
+			strn := xret;
+			xret := "a__defineOwnProperty" (A, strn, {{ "d", se, $$t, $$t, $$t }}, $$f) with elab;
+			
+	next:	n := n + 1;
+			k := k + 1;
+			goto [f = 0] lp inc;		
+	inc:	idx := idx + 1;
+			goto lp;
+	
+	narr:	xret := "i__toString" (n) with elab;
+			xret := "a__defineOwnProperty" (A, xret, {{ "d", elem, $$t, $$t, $$t }}, $$f) with elab;
+			n := n + 1;
+			goto [f = 0] loop iinc;
+	iinc:	idx := idx + 1;
+			goto loop;
+
+	end:	xret := A;
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
+
+(* *** REVERSE *** *)
+proc AP_reverse(xsc, vthis) {
+			xret := "i__toObject" (vthis) with elab;
+			vthis := xret;
+			
+			g := [vthis, "@get"];
+			xret := g (vthis, "length") with elab;
+			xret := "i__toUint32" (xret) with elab;
+			len := xret;
+			
+			mid := m_floor len / 2;
+			lower := 0;
+			
+	loop:	goto [not (mid = lower)] rev end;
+	
+	rev:	upper := len - lower;
+			upper := upper - 1;
+			xret := "i__toString" (upper) with elab;
+			upperP := xret;
+			xret := "i__toString" (lower) with elab;
+			lowerP := xret;
+			xret := g (vthis, upperP) with elab;
+			upperV := xret;
+			xret := g (vthis, lowerP) with elab;
+			lowerV := xret;
+			
+			hp := [vthis, "@hasProperty"];
+			xret := hp (vthis, upperP) with elab;
+			upperE := xret;
+			xret := hp (vthis, lowerP) with elab;
+			lowerE := xret;
+			
+			p := [vthis, "@put"];
+			goto [lowerE and upperE] tt el1;
+			
+	tt:		xret := p (vthis, lowerP, upperV, $$t) with elab;
+			xret := p (vthis, upperP, lowerV, $$t) with elab;
+			goto inc;
+	
+	el1:	d := [vthis, "@deleteProperty"];
+			goto [upperE] ft el2;
+	
+	ft:		xret := p (vthis, lowerP, upperV, $$t) with elab;
+			xret := d (vthis, upperP, $$t) with elab;
+			goto inc;
+	
+	el2:	goto [lowerE] tf inc;
+	
+	tf:		xret := d (vthis, lowerP, $$t) with elab;
+			xret := p (vthis, upperP, lowerV, $$t) with elab;
+
+	inc:	lower := lower + 1;
+			goto loop;
+			
+	end:	xret := vthis;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
+
+(* *** SHIFT *** *)
+(*
+proc AP_shift(xsc, vthis) {
+
+
+	rlab:	skip;
+	elab:	skip
 }
 with
 {
@@ -415,3 +605,42 @@ with
 *)
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(* *** INDEXOF *** *)
+(*
+proc AP_indexOf() {
+			arguments := args;
+			vthis  := nth (arguments, 1);
+			
+			xret := "i__toObject" (vthis) with elab;
+			vthis := xret;
+			
+			g := [vthis, "@get"];
+			xret := g (vthis, "length") with elab;
+			xret := "i__toUint32" (xret) with elab;
+			len := xret;
+
+
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+}
+*)
