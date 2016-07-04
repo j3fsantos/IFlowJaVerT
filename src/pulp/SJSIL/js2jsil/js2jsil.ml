@@ -2143,7 +2143,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 			(None, Some next1,   cmd_ts_x1);          (* next1:  x1_s := i__toString (x1_v) with err               *)
 			(None, None,         cmd_ass_xr);         (*         x_r := o__hasProperty (x2_v, x1_s) with err       *)
 		] in 
-		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v; var_se; x1_s; x_r ] in 
+		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v; var_te; x1_s; x_r ] in
 		cmds, Var x_r, errs		               
 											        
 															         
