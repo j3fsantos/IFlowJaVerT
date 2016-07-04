@@ -1050,14 +1050,14 @@ let rec translate_expr fid cc_table vis_fid err e  =
 			C_pd ( get pn () { s }^getter_id ) =  
 				          		x1 := copy_object (x_scope, {{main, fid1, ..., fidn }}) 
 											x_f := create_function_object(x1, getter_id, {{}})
-											x_desc := {{ "a", x_f, $$undefined, $$t, $$t }}
+											x_desc := {{ "g", $$t, $$t, $$empty, $$empty, x_f, $$empty }}
 											x_dop := o__defineOwnProperty(x_obj, C_pn(pn), x_desc, true) with err				
 			
 			-----------------------
 		 	C_pd ( set pn (x1, ..., xn) { s }^setter_id ) = 
 											x1 := copy_object (x_scope, {{main, fid1, ..., fidn }})
 											x_f := create_function_object(x1, setter_id, {{x1, ..., xn}})
-											x_desc := {{ "a", $$undefined, x_f, $$t, $$t }}
+											x_desc := {{ "g", $$t, $$t, $$empty, $$empty, $$empty, x_f }}
 											x_dop := o__defineOwnProperty(x_obj, C_pn(pn), x_desc, true) with err
 		*)
 		
@@ -1103,12 +1103,13 @@ let rec translate_expr fid cc_table vis_fid err e  =
 				| _ -> raise (Failure "getters should be annonymous functions")) in 
 			let cmds, x_f, errs = translate_function_literal f_id params vis_fid err in 
 			
-			(* x_desc := {{ "a", x_f, $$undefined, $$t, $$t }} *) 
+			(* x_desc := {{ "g", $$t, $$t, $$empty, $$empty, x_f, $$empty }} *)
+			(* x_desc := {{ "g", $$t, $$t, $$empty, $$empty, $$empty, x_f }} *) 
 			let x_desc = fresh_desc_var () in 
 			let desc_params = 
 				match is_getter with 
-				| true -> [ Literal (String "a"); Var x_f; Literal Undefined; Literal (Bool true); Literal (Bool true) ] 
-				| false -> [ Literal (String "a"); Literal Undefined; Var x_f; Literal (Bool true); Literal (Bool true) ] in 
+				| true ->  [ Literal (String "g"); Literal (Bool true); Literal (Bool true); Literal Empty; Literal Empty; Var x_f; Literal Empty ] 
+				| false -> [ Literal (String "g"); Literal (Bool true); Literal (Bool true); Literal Empty; Literal Empty; Literal Empty; Var x_f ] in 
 			let cmd_ass_xdesc = SLBasic (SAssignment (x_desc, LEList desc_params)) in
 			
 			(* x_dop := o__defineOwnProperty(x_obj, C_pn(pn), x_desc, true) with err *)
