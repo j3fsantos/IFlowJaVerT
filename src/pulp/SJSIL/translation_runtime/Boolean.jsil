@@ -37,13 +37,13 @@ proc BP_toString (xsc, vthis) {
 			goto [typeOf(vthis) = $$boolean_type] isb notb;
 	
 	isb:	xret := vthis;
-			goto rlab;
+			goto test;
 			
 	notb:	goto [typeOf(vthis) = $$object_type] class throw;
 	class:	c := [vthis, "@class"];
 			goto [c = "Boolean"] b throw;
 	b:		xret := [vthis, "@primitiveValue"];
-			goto [xret = $$t] rt rf;
+	test:		goto [xret = $$t] rt rf;
 	
 	rt:		xret := "true";
 			goto rlab;
