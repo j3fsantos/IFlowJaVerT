@@ -3071,11 +3071,9 @@ and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option
 		cmds, Var x, errs, [], [], []
 	
 	
-	| Parser_syntax.Skip ->
-		(** 
-     Section 12.3 - Empty Statement 
-		 *) 
-		 [], Literal Empty, [], [], [], [] 
+      | Parser_syntax.Skip (** Section 12.3 - Empty Statement *)
+	| Parser_syntax.Debugger -> (** Section 12.15 - Debugger Statement **)
+		 [], Literal Empty, [], [], [], []
 	
 	
 	| Parser_syntax.Num _ 
@@ -4107,7 +4105,6 @@ and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option
 		
   | Parser_syntax.With (_, _) -> raise (Failure "Not implemented: with (this should not happen)")
 	| Parser_syntax.RegExp (_, _) -> raise (Failure "Not implemented: RegExp literal")
-	| Parser_syntax.Debugger -> raise (Failure "Not implemented: debugger (this should not happen)")
 
 
 let make_final_cmd vars final_lab final_var =
