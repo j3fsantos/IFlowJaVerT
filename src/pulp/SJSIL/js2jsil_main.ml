@@ -39,17 +39,15 @@ let string_of_file path =
 	sh ^ sf         
 
 let process_file path = 
-	let e = 
-    (try 
-      Parser_main.exp_from_string (string_of_file path) 
-    with
-      | Parser.ParserFailure file ->
-        Printf.printf "\nParsing problems with the file '%s'.\n" file;
-        exit 1) in
-	let imports, jsil_prog_e, _, _ = js2jsil e in 
-	let jsil_prog_str = SSyntax_Print.string_of_lprogram (imports, jsil_prog_e) in 
-	let file_name = Filename.chop_extension path in 
-	burn_to_disk (file_name ^ ".jsil") jsil_prog_str
+  try
+    let e = Parser_main.exp_from_string (string_of_file path) in
+    let imports, jsil_prog_e, _, _ = js2jsil e in
+    let jsil_prog_str = SSyntax_Print.string_of_lprogram (imports, jsil_prog_e) in
+    let file_name = Filename.chop_extension path in
+    burn_to_disk (file_name ^ ".jsil") jsil_prog_str
+  with
+  | Parser.ParserFailure file -> Printf.printf "\nParsing problems with the file '%s'.\n" file; exit 1
+  | EarlyError -> Printf.printf "\nParser post-processing threw an EarlyError.\n"; exit 1
 	
 	
 let main () = 

@@ -3,6 +3,8 @@ open Lexing
 open Batteries
 open SSyntax
 
+exception EarlyError
+
 let js2jsil_imports = [
 	"Array"; 
 	"Boolean";
@@ -4401,7 +4403,7 @@ let js2jsil e =
 	let vis_tbl = Hashtbl.create 101 in  
 	
 	let main = "main" in 
-        Js_pre_processing.test_func_decl_in_block e;
+        if Js_pre_processing.test_early_errors e then raise EarlyError;
 	let e = Js_pre_processing.add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous e in 
 	Js_pre_processing.closure_clarification_top_level cc_tbl fun_tbl vis_tbl main e [ main ] []; 
 	

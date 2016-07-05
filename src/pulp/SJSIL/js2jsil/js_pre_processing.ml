@@ -25,9 +25,9 @@ let flat_map f l = List.flatten (List.map f l)
 
 let test_func_decl_in_block exp =
   let rec f in_block exp =
-    let fo f e = match e with None -> () | Some e -> f e in
+    let fo f e = match e with None -> false | Some e -> f e in
     match exp.exp_stx with
-    | Script (_, es) -> List.map (f false) es; ()
+    | Script (_, es) -> List.exists (f false) es
     (* Expressions *)
     | This
     | Var _
@@ -56,22 +56,22 @@ let test_func_decl_in_block exp =
     | Break _
     | Return _
     | Throw _
-    | Debugger -> ()
+    | Debugger -> false
 
     (* Statements with sub-Statements *)
-    | Block es -> List.map (f true) es; ()
-    | If (_, s, so) -> f true s; fo (f true) so
+    | Block es -> List.exists (f true) es
+    | If (_, s, so) -> f true s || fo (f true) so
     | While (_, s)
     | DoWhile (s, _)
     | For (_, _, _, s)
     | ForIn (_, _, s)
     | With (_, s)
     | Label (_, s) -> f true s
-    | Switch (_, cs) -> List.map (fun (_, s) -> f true s) cs; ()
-    | Try (s, sc, so) -> f true s; fo (fun (_, s) -> f true s) sc; fo (f true) so
+    | Switch (_, cs) -> List.exists (fun (_, s) -> f true s) cs
+    | Try (s, sc, so) -> f true s || fo (fun (_, s) -> f true s) sc || fo (f true) so
 
     | AnonymousFun _
-    | NamedFun _ -> if in_block then raise (Failure "Function declaration not permitted in statement context"); ()
+    | NamedFun _ -> in_block
   in f true exp
 
 let rec get_all_identifiers exp = 
@@ -743,3 +743,7 @@ match e.exp_stx with
   | Skip ->
 			true
 	| _ -> raise (Failure "unsupported construct by Petar M.")
+
+let test_early_errors e =
+  test_func_decl_in_block e ||
+  is_expr_free_of_eval_arguments_vars e
