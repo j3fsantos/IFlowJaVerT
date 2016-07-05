@@ -23,6 +23,57 @@ let get_codename exp =
   
 let flat_map f l = List.flatten (List.map f l)
 
+let test_func_decl_in_block exp =
+  let rec f in_block exp =
+    let fo f e = match e with None -> () | Some e -> f e in
+    match exp.exp_stx with
+    | Script (_, es) -> List.map (f false) es; ()
+    (* Expressions *)
+    | This
+    | Var _
+    | Num _
+    | String _
+    | Null
+    | Bool _
+    | RegExp _
+    | Obj _
+    | Array _
+    | Unary_op _
+    | BinOp _
+    | Delete _
+    | Assign _
+    | AssignOp _
+    | Comma _
+    | Access _
+    | CAccess _
+    | ConditionalOp _
+    | Call _
+    | New _
+    (* Statements *)
+    | VarDec _
+    | Skip
+    | Continue _
+    | Break _
+    | Return _
+    | Throw _
+    | Debugger -> ()
+
+    (* Statements with sub-Statements *)
+    | Block es -> List.map (f true) es; ()
+    | If (_, s, so) -> f true s; fo (f true) so
+    | While (_, s)
+    | DoWhile (s, _)
+    | For (_, _, _, s)
+    | ForIn (_, _, s)
+    | With (_, s)
+    | Label (_, s) -> f true s
+    | Switch (_, cs) -> List.map (fun (_, s) -> f true s) cs; ()
+    | Try (s, sc, so) -> f true s; fo (fun (_, s) -> f true s) sc; fo (f true) so
+
+    | AnonymousFun _
+    | NamedFun _ -> if in_block then raise (Failure "Function declaration not permitted in statement context"); ()
+  in f true exp
+
 let rec get_all_identifiers exp = 
   let f = get_all_identifiers in 
   let fo e = match e with None -> [] | Some e -> f e in 
