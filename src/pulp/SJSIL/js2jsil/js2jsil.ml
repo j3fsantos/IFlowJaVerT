@@ -4307,21 +4307,21 @@ let generate_proc e fid params cc_table vis_fid =
 	(* x_er := new () *)
 	let x_er = fresh_var () in  
 	let cmd_er_creation = (None, None, SLBasic (SNew x_er)) in 
-	
+
+	(* [x_er, decl_var_i] := undefined *)
+	let cmds_decls =
+		List.map (fun decl_var ->
+			let cmd = SLBasic (SMutation (Var x_er, Literal (String decl_var), Literal Undefined)) in
+			(None, None, cmd))
+		(Js_pre_processing.var_decls e) in
+
 	(* [x_er, "arg_i"] := x_{i+2} *) 
 	let cmds_params = 
 		List.map (fun param -> 
 			let cmd = SLBasic (SMutation (Var x_er, Literal (String param), Var param)) in  
 			(None, None, cmd))
 		params in 
-	
-	(* [x_er, decl_var_i] := undefined *) 
-	let cmds_decls = 
-		List.map (fun decl_var -> 
-			let cmd = SLBasic (SMutation (Var x_er, Literal (String decl_var), Literal Undefined)) in
-			(None, None, cmd))
-		(Js_pre_processing.var_decls e) in 
-	
+
 	(* [__scope, "fid"] := x_er *) 
 	let cmd_ass_er_to_sc = (None, None, SLBasic (SMutation (Var var_scope, Literal (String fid), Var x_er))) in 
 	
@@ -4353,7 +4353,7 @@ let generate_proc e fid params cc_table vis_fid =
 	let cmds_restore_er_error = generate_proc_er_restoring_code fid x_er_old ctx.tr_error_lab in  
 	
 	let fid_cmds = 
-		cmds_save_old_er @ [ cmd_er_creation ] @ cmds_params @ cmds_decls @ [ cmd_ass_er_to_sc ] @ [ cmd_ass_te; cmd_ass_se;  cmd_ass_xtrue; cmd_ass_xfalse ] @ cmds_hoist_fdecls @ cmds_e 
+		cmds_save_old_er @ [ cmd_er_creation ] @ cmds_decls @ cmds_params @ [ cmd_ass_er_to_sc ] @ [ cmd_ass_te; cmd_ass_se;  cmd_ass_xtrue; cmd_ass_xfalse ] @ cmds_hoist_fdecls @ cmds_e
 		@ [ cmd_dr_ass; cmd_return_phi ] @ cmds_restore_er_ret @ [ cmd_error_phi ] @ cmds_restore_er_error in 
 	{ 
 		lproc_name = fid;
