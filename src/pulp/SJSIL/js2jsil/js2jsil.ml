@@ -58,6 +58,7 @@ let strictEqualityComparisonName      = "i__strictEquality"              (* 11.9
 let defineOwnPropertyName             = "o__defineOwnProperty"           (* 8.12.9            *) 
 let defineOwnPropertyArrayName        = "a__defineOwnProperty"           (* 15.sth.sth        *) 
 let checkAssignmentErrorsName         = "i__checkAssignmentErrors"        
+let checkParametersName               = "i__checkParameters"    
 let getEnumFieldsName                 = "i__getAllEnumerableFields"        
 
 let print_position outx lexbuf =
@@ -120,6 +121,16 @@ let fresh_default_label : (unit -> string) = fresh_sth "default_"
 
 let fresh_b_cases_label : (unit -> string) = fresh_sth "b_cases_"
 
+let power_list list n = 
+	let rec loop cur_list cur_n = 
+		(if (cur_n = 1)
+		then cur_list 
+		else 
+			(if (cur_n > 1) 
+			then loop (cur_list @ list) (cur_n - 1)
+			else raise (Failure "power list only for n > 1"))) in 
+	loop list n 
+
 let number_of_switches = ref 0 
 let fresh_switch_labels () = 
 	let b_cases_lab = fresh_b_cases_label () in 
@@ -149,6 +160,8 @@ let fresh_tcf_err_try_label : (unit -> string) = fresh_sth "err_tcf_t_"
 
 let fresh_tcf_err_catch_label : (unit -> string) = fresh_sth "err_tcf_c_"
 
+let fresh_tcf_ret : (unit -> string) = fresh_sth "ret_tcf_"
+
 let fresh_loop_vars () = 
 	let head = fresh_loop_head_label () in 
 	let end_loop = fresh_loop_end_label () in 
@@ -157,12 +170,16 @@ let fresh_loop_vars () =
 	let body = fresh_loop_body_label () in 
 	head, guard, body, cont, end_loop
 
+let number_of_tcfs = ref 0 
 let fresh_tcf_vars () = 
 	let err1 = fresh_tcf_err_try_label () in 
 	let err2 = fresh_tcf_err_catch_label () in 
 	let end_l = fresh_tcf_end_label () in 
 	let finally = fresh_tcf_finally_label () in 
-	err1, err2, finally, end_l 
+	let fresh_abnormal_finally = fresh_sth ("abnormal_finally_" ^ (string_of_int !number_of_tcfs) ^ "_") in 
+	number_of_tcfs := (!number_of_tcfs) + 1;
+	let ret = fresh_tcf_ret () in 
+	err1, err2, finally, end_l, fresh_abnormal_finally, ret
 
 
 let val_var_of_var x = 
@@ -253,9 +270,12 @@ let rec get_break_lab loop_list lab =
 			| None -> "breaking outside a loop"
 			| Some lab -> Printf.sprintf "either breaking outside a loop or lab %s not found" lab) in 
 		raise (Failure msg)
-	| (lab_c, lab_b, js_lab) :: rest ->
+	| (lab_c, lab_b, js_lab, valid_unlabelled) :: rest ->
 		match lab with 
-		| None -> lab_b 
+		| None -> 
+			(match valid_unlabelled with 
+			| true -> lab_b
+			| false ->  get_break_lab rest lab)
 		| Some lab_str -> 
 			(match js_lab with 
 			| None ->  get_break_lab rest lab
@@ -269,11 +289,14 @@ let rec get_continue_lab loop_list lab =
 			| None -> "continuing outside a loop"
 			| Some lab -> Printf.sprintf "either continuing outside a loop or lab %s not found" lab) in 
 		raise (Failure msg)
-	| (lab_c, lab_b, js_lab) :: rest ->
+	| (lab_c, lab_b, js_lab, valid_unlabelled) :: rest ->
 		match lab with 
 		| None -> 
 			(match lab_c with 
-			| Some lab_c -> lab_c
+			| Some lab_c -> 
+				(match valid_unlabelled with 
+				| true -> lab_c 
+				| false -> get_continue_lab rest lab)
 			| None -> get_continue_lab rest lab)
 		| Some lab_str -> 
 			(match js_lab with 
@@ -286,21 +309,21 @@ let rec get_continue_lab loop_list lab =
 					| Some lab_c -> lab_c)
 				else get_continue_lab rest lab)
 
-let filter_cur_jumps (jumps : (string option * string) list) loop_lab include_no_lab = 
+let filter_cur_jumps (jumps : (string option * string * string) list) loop_lab include_no_lab = 
 	let rec filter_cur_jumps_iter jumps inner_jumps outer_jumps = 
 		match jumps with 
 		| [] -> (List.rev inner_jumps), (List.rev outer_jumps) 
-		| (None, x) :: rest_jumps ->
+		| (None, x, jump_lab) :: rest_jumps ->
 			  (match include_no_lab with 
 				| true -> filter_cur_jumps_iter rest_jumps (x :: inner_jumps) outer_jumps 
-				| false -> filter_cur_jumps_iter rest_jumps inner_jumps ((None, x) :: outer_jumps))  
-		| (Some lab, x) :: rest_jumps ->
+				| false -> filter_cur_jumps_iter rest_jumps inner_jumps ((None, x, jump_lab) :: outer_jumps))  
+		| (Some lab, x, jump_lab) :: rest_jumps ->
 				(match loop_lab with
-				| None ->  filter_cur_jumps_iter rest_jumps inner_jumps ((Some lab, x) :: outer_jumps) 
+				| None ->  filter_cur_jumps_iter rest_jumps inner_jumps ((Some lab, x, jump_lab) :: outer_jumps) 
 				| Some loop_lab -> 
 						if (loop_lab = lab) 
 							then filter_cur_jumps_iter rest_jumps (x :: inner_jumps) outer_jumps 
-							else filter_cur_jumps_iter rest_jumps inner_jumps ((Some lab, x) :: outer_jumps)) in 
+							else filter_cur_jumps_iter rest_jumps inner_jumps ((Some lab, x, jump_lab) :: outer_jumps)) in 
 	filter_cur_jumps_iter jumps [] []
 
 let b_annot_cmd cmd = (None, None, cmd) 		
@@ -388,13 +411,13 @@ let make_empty_ass () =
 	x, empty_ass 
 		
 		
-let translate_function_literal fun_id params vis_fid = 
+let translate_function_literal fun_id params vis_fid err = 
 	(**
      x_sc := copy_scope_chain_obj (x_scope, {{main, fid1, ..., fidn }}); 
 		 x_f := create_function_object(x_sc, fun_id, params)
   *)
 		
-	(* x_sc := copy_object (x_sc, {{main, fid1, ..., fidn }});  *)
+	(* x_sc := copy_object (x_sc, {{ main, fid1, ..., fidn }});  *)
 	let x_sc = fresh_scope_chain_var () in 
 	let vis_fid_strs = List.map (fun fid -> String fid) vis_fid in   
 	let cmd_sc_copy = SLCall (x_sc, Literal (String copyObjectName), 
@@ -402,23 +425,23 @@ let translate_function_literal fun_id params vis_fid =
 		
 	(* x_f := create_function_object(x_sc, f_id, params) *)
 	let x_f = fresh_fun_var () in 
-	let processed_params = 
-		List.fold_left
-			(fun ac param -> (String param) :: ac) 
-			[]
-			params in 
-	let processed_params = List.rev processed_params in 
+	let processed_params = List.map (fun p -> String p) params in
 	let cmd = SLCall (x_f, Literal (String createFunctionObjectName), 
 		[ (Var x_sc); (Literal (String fun_id)); (Literal (String fun_id)); (Literal (LList processed_params)) ], None) in 	
 		
+  let x_t = fresh_var () in
+		let cmd_errCheck = SLCall (x_t, Literal (String checkParametersName), 
+			[ (Literal (String fun_id)); (Literal (LList processed_params)) ], Some err) in
+		
 	[ 
+		(None, None, cmd_errCheck);           (*  x_t := checkParametersName (f_name, processed_params);   *)
 		(None, None, cmd_sc_copy);            (* x_sc := copy_object (x_scope, {{main, fid1, ..., fidn }});  *)
 		(None, None, cmd)                     (* x_f := create_function_object (x_sc, f_id, f_id, params)    *)
-	], x_f 
+	], x_f, [ x_t ]
 
 
 let translate_named_function_literal cur_fid f_id f_name params vis_fid err =
-		let cmds, x_f = translate_function_literal f_id params vis_fid in 
+		let cmds, x_f, errs = translate_function_literal f_id params vis_fid err in 
 
 		(* x_er_fid := [x_scope, "fid"] *)
 		let x_er = fresh_er_var () in 
@@ -428,12 +451,16 @@ let translate_named_function_literal cur_fid f_id f_name params vis_fid err =
 		let x_ref_n = fresh_var () in 
 		let cmd_ass_xrefn = (None, None, SLBasic (SAssignment (x_ref_n, VRef (Var x_er, Literal (String f_name))))) in 
 		
+		(* x_cae := i__checkAssignmentErrors (x_ref_n) with err *)
+		let x_cae = fresh_var () in 
+		let cmd_cae = (None, None, SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ (Var x_ref_n) ], Some err)) in 	
+		
 		(* x_pv := i__putValue(x_ref_n, x_f) with err *) 
 		let x_pv = fresh_var () in 
 		let cmd_pv_f = (None, None, SLCall (x_pv, Literal (String putValueName), [ Var x_ref_n; Var x_f ], Some err)) in 
 		
-		let cmds = cmds @ [ cmd_ass_xer; cmd_ass_xrefn; cmd_pv_f ] in 
-		cmds, Var x_f, [ x_pv ]
+		let cmds = cmds @ [ cmd_ass_xer; cmd_ass_xrefn; cmd_cae; cmd_pv_f ] in 
+		cmds, Var x_f, errs @ [ x_cae; x_pv ]
 
 				
 let translate_inc_dec x is_plus err = 	
@@ -472,7 +499,7 @@ let translate_inc_dec x is_plus err =
 		(None, None,      cmd_pv_x)                          (*        x_pv = i__putValue (x, x_r) with err                                                                        *)
 	] in 
 	let new_errs = [ var_se; x_v; x_n; x_pv ] in 
-	new_cmds, new_errs, x_v, x_r 
+	new_cmds, new_errs, x_n, x_r 
 	
 
 let translate_multiplicative_binop x1 x2 x1_v x2_v aop err = 
@@ -732,7 +759,7 @@ let make_loop_end cur_val_var prev_val_var break_vars end_lab cur_first =
 	]	in 
 	cmds, x_ret_5 
 			
-
+	
 
 let rec translate_expr fid cc_table vis_fid err e  = 
 	
@@ -750,7 +777,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 		let v_fid = find_var_fid x in
 		let v_fid = 
 			match v_fid with 
-			| None -> raise (Failure "Error: if a variable is declared it must be in the scope clarification table!")
+			| None -> raise (Failure (Printf.sprintf "Error: The variable %s that is declared is not in the scope clarification table!" x))
 			| Some v_fid -> v_fid in 
 		let cmds_e, x_e, errs_e = translate_expr fid cc_table vis_fid err e in
 		(* x_v := i__getValue (x) with err *)
@@ -761,22 +788,25 @@ let rec translate_expr fid cc_table vis_fid err e  =
 		(* x_ref := ref_v(x_sf, "x")  *) 
 		let x_ref = fresh_var () in 
 		let cmd_xref_ass = SLBasic (SAssignment (x_ref, VRef (Var x_sf, Literal (String x)))) in 
+		(* x_cae := i__checkAssignmentErrors (x_ref) with err *)
+		let x_cae, cmd_cae = make_cae_call (Var x_ref)  err in 
 		(* x_pv := i__putValue(x_ref, x_v) with err2 *) 
 		let x_pv, cmd_pv = make_put_value_call (Var x_ref) x_v err in 
 		let cmds = cmds_e @ (b_annot_cmds [
 			cmd_gv_x;      (* x_v := i__getValue (x) with err          *)
 			cmd_xsf_ass;   (* x_sf := [x__scope, fid]                  *)
-			cmd_xref_ass;  (* x_ref := ref_v(x_sf, "x")                *) 
+			cmd_xref_ass;  (* x_ref := ref_v(x_sf, "x")                *)
+			cmd_cae; 
 			cmd_pv         (* x_pv := i__putValue(x_ref, x_v) with err *) 
 		]) in 
-		let errs = errs_e @ [ x_v; x_pv ] in 
+		let errs = errs_e @ [ x_v; x_cae; x_pv ] in 
 		cmds, x_ref, errs in 
 	
 	let compile_var_dec_without_exp x = 
 		let v_fid = find_var_fid x in
 		let v_fid = 
 			match v_fid with 
-			| None -> raise (Failure "Error: if a variable is declared it must be in the scope clarification table!")
+			| None -> raise (Failure (Printf.sprintf "Error: The variable %s that is declared is not in the scope clarification table!" x))
 			| Some v_fid -> v_fid in 
 		(* x_sf := [x__scope, v_fid]  *) 
 		let x_sf = fresh_var () in 
@@ -784,12 +814,14 @@ let rec translate_expr fid cc_table vis_fid err e  =
 		(* x_ref := ref_v(x_sf, "x")  *) 
 		let x_ref = fresh_var () in 
 		let cmd_xref_ass = SLBasic (SAssignment (x_ref, VRef (Var x_sf, Literal (String x)))) in 
-		
+		(* x_cae := i__checkAssignmentErrors (x_ref) with err *)
+		let x_cae, cmd_cae = make_cae_call (Var x_ref)  err in 
 		let cmds = (b_annot_cmds [
-			cmd_xsf_ass;   (* x_sf := [x__scope, v_fid]                *)
-			cmd_xref_ass;  (* x_ref := ref_v(x_sf, "x")                *) 
+			cmd_xsf_ass;   (* x_sf := [x__scope, v_fid]                          *)
+			cmd_xref_ass;  (* x_ref := ref_v(x_sf, "x")                          *) 
+			cmd_cae;       (* x_cae := i__checkAssignmentErrors (x_ref) with err *)
 		]) in  
-		x_ref, cmds in 
+		x_ref, cmds, [ x_cae ] in 
 		
 	let translate_bin_logical_operator e1 e2 lbop err =
 		let cmds1, x1, errs1 = f e1 in
@@ -835,6 +867,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 			xes in 
 		cmds_args, x_args_gv, errs_args in
 
+	
 	
 	match e.Parser_syntax.exp_stx with 
 
@@ -1012,14 +1045,14 @@ let rec translate_expr fid cc_table vis_fid err e  =
 			C_pd ( get pn () { s }^getter_id ) =  
 				          		x1 := copy_object (x_scope, {{main, fid1, ..., fidn }}) 
 											x_f := create_function_object(x1, getter_id, {{}})
-											x_desc := {{ "a", x_f, $$empty, $$t, $$t }}
+											x_desc := {{ "g", $$t, $$t, $$empty, $$empty, x_f, $$empty }}
 											x_dop := o__defineOwnProperty(x_obj, C_pn(pn), x_desc, true) with err				
 			
 			-----------------------
 		 	C_pd ( set pn (x1, ..., xn) { s }^setter_id ) = 
 											x1 := copy_object (x_scope, {{main, fid1, ..., fidn }})
 											x_f := create_function_object(x1, setter_id, {{x1, ..., xn}})
-											x_desc := {{ "a", $$empty, x_f, $$t, $$t }}
+											x_desc := {{ "g", $$t, $$t, $$empty, $$empty, $$empty, x_f }}
 											x_dop := o__defineOwnProperty(x_obj, C_pn(pn), x_desc, true) with err
 		*)
 		
@@ -1063,14 +1096,15 @@ let rec translate_expr fid cc_table vis_fid err e  =
 				(match accessor.Parser_syntax.exp_stx with 
 				| Parser_syntax.AnonymousFun (_, params, _) -> params 
 				| _ -> raise (Failure "getters should be annonymous functions")) in 
-			let cmds, x_f = translate_function_literal f_id params vis_fid in 
+			let cmds, x_f, errs = translate_function_literal f_id params vis_fid err in 
 			
-			(* x_desc := {{ "a", x_f, $$empty, $$t, $$t }} *) 
+			(* x_desc := {{ "g", $$t, $$t, $$empty, $$empty, x_f, $$empty }} *)
+			(* x_desc := {{ "g", $$t, $$t, $$empty, $$empty, $$empty, x_f }} *) 
 			let x_desc = fresh_desc_var () in 
 			let desc_params = 
 				match is_getter with 
-				| true -> [ Literal (String "a"); Var x_f; Literal Empty; Literal (Bool true); Literal (Bool true) ] 
-				| false -> [ Literal (String "a"); Literal Empty; Var x_f; Literal (Bool true); Literal (Bool true) ] in 
+				| true ->  [ Literal (String "g"); Literal (Bool true); Literal (Bool true); Literal Empty; Literal Empty; Var x_f; Literal Empty ] 
+				| false -> [ Literal (String "g"); Literal (Bool true); Literal (Bool true); Literal Empty; Literal Empty; Literal Empty; Var x_f ] in 
 			let cmd_ass_xdesc = SLBasic (SAssignment (x_desc, LEList desc_params)) in
 			
 			(* x_dop := o__defineOwnProperty(x_obj, C_pn(pn), x_desc, true) with err *)
@@ -1080,7 +1114,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 				(None, None, cmd_ass_xdesc);     (* x_desc := {{ "d", x_v, $$t, $$t, $$t}}                                   *) 
 				(None, None, cmd_dop_x)          (* x_dop := o__defineOwnProperty(x_obj, C_pn(pn), x_desc, true) with err    *)
 			] in 
-			cmds, [ x_dop ] in 
+			cmds, errs @ [ x_dop ] in 
 		
 		let cmds, errs = 
 			List.fold_left (fun (cmds, errs) (pname, ptype, e) ->
@@ -1194,7 +1228,9 @@ let rec translate_expr fid cc_table vis_fid err e  =
 					next2:	x_this := new (); 
 					        x_ref_prototype := ref-o(x_f_val, "prototype"); 
 									x_f_prototype := i__getValue(x_ref_prototype) with err;
-									x_cdo := i__createDefaultObject (x_this, x_f_prototype); 
+									goto [typeof (x_f_prototype) = $$object_type] then0 else0;
+					then0:	x_f_prototype := $lobj_proto;
+					else0:	x_cdo := i__createDefaultObject (x_this, x_f_prototype); 
 								 	x_body := [x_f_val, "@construct"]; 
 		       				x_scope := [x_f_val, "@scope"]; 
 					 				x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err; 
@@ -1233,9 +1269,20 @@ let rec translate_expr fid cc_table vis_fid err e  =
 		(* x_f_prototype := i__getValue(x_ref_prototype) with err; *) 
 		let x_f_prototype, cmd_gv_xreffprototype = make_get_value_call (Var x_ref_fprototype) err in 
 		
+		let then1 = fresh_then_label () in 
+		let else1 = fresh_else_label () in 
+    let goto_guard_expr = BinOp (TypeOf (Var x_f_prototype), Equal, Literal (Type ObjectType)) in 
+		let cmd_is_object = SLGuardedGoto (goto_guard_expr, else1, then1) in  
+		
+		let x_whyGodwhy = fresh_var () in 
+		let cmd_set_proto = SLBasic (SAssignment (x_whyGodwhy, Literal (Loc locObjPrototype))) in
+		
+		let x_prototype = fresh_var () in				
+		let cmd_proto_phi = SLPhiAssignment (x_prototype, [| Some x_f_prototype; Some x_whyGodwhy |]) in 
+		
 		(* x_cdo := i__createDefaultObject (x_this, x_f_prototype); *) 
 		let x_cdo = fresh_var () in 
-		let cmd_cdo_call = SLCall (x_cdo, Literal (String createDefaultObjectName), [ Var x_this; Var x_f_prototype ], None) in 
+		let cmd_cdo_call = SLCall (x_cdo, Literal (String createDefaultObjectName), [ Var x_this; Var x_prototype ], None) in 
 		
 		(* x_body := [x_f_val, "@construct"];  *) 
 		let x_body = fresh_body_var () in 
@@ -1250,7 +1297,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 		let proc_args = (Var x_fscope) :: (Var x_this) :: x_args_gv in 
 		let cmd_proc_call = SLCall (x_r1, (Var x_body), proc_args, Some err) in 
 		
-		(* goto [ x_r1 = $$emtpy ] next3 next4; *)
+		(* goto [ x_r1 = $$empty ] next3 next4; *)
 		let next3 = fresh_next_label () in 
 		let next4 = fresh_next_label () in 
 		let goto_guard_expr = BinOp (TypeOf (Var x_r1), Equal, Literal (Type ObjectType)) in
@@ -1272,7 +1319,10 @@ let rec translate_expr fid cc_table vis_fid err e  =
 			(None, Some next2,   cmd_create_xobj);        (* next2: x_this := new ()                                                         *)
 			(None, None,         cmd_ass_xreffprototype); (*        x_ref_fprototype := ref-o(x_f_val, "prototype")                          *)
 			(None, None,         cmd_gv_xreffprototype);  (*        x_f_prototype := i__getValue(x_ref_prototype) with err                   *)
-		  (None, None,         cmd_cdo_call);           (*        x_cdo := create_default_object (x_this, x_f_prototype)                   *)
+			(None, None,         cmd_is_object);          (*        goto [typeof (x_f_prototype) = $$object_type] else1 then1;               *)
+			(None, Some then1,   cmd_set_proto);          (* then1:	x_whyGodwhy := $lobj_proto                                               *) 
+			(None, Some else1,   cmd_proto_phi);         	(* else1: x_prototype := PHI (x_f_prototype, x_whyGodwhy)		                       *)
+		  (None, None,         cmd_cdo_call);           (*        x_cdo := create_default_object (x_this, x_prototype)                     *)
 			(None, None,         cmd_body);               (*        x_body := [x_f_val, "@construct"]                                        *)
 			(None, None,         cmd_scope);              (*        x_fscope := [x_f_val, "@scope"]                                          *)
 			(None, None,         cmd_proc_call);          (*        x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err   *)
@@ -1846,7 +1896,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 		(* x2_v := i__getValue (x2) with err *)
 		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
 		
-		let new_cmds, new_errs, x_r = translate_bitwise_shift x1 x2 x1_v x2_v toUInt32Name toUInt32Name SignedRightShift err in  
+		let new_cmds, new_errs, x_r = translate_bitwise_shift x1 x2 x1_v x2_v toInt32Name toUInt32Name SignedRightShift err in  
 		let cmds = cmds1 @ [ b_annot_cmd cmd_gv_x1 ] @ cmds2 @ [ b_annot_cmd cmd_gv_x2 ] @ new_cmds in
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in 
 		cmds, Var x_r, errs
@@ -2045,7 +2095,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 			(None, Some next2,   cmd_ass_xhi);        (* next2:  x_hi := [x2_v, "@hasInstance"]                     *)
 			(None, None,         cmd_ass_xr)          (*         x_r := x_hi (x2_v, x1_v) with err                  *)
 		] in 
-		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v; var_se; var_se; x_r ] in 
+		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v; var_te; var_te; x_r ] in 
 		cmds, Var x_r, errs
 											  
 																			              
@@ -2089,7 +2139,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 			(None, Some next1,   cmd_ts_x1);          (* next1:  x1_s := i__toString (x1_v) with err               *)
 			(None, None,         cmd_ass_xr);         (*         x_r := o__hasProperty (x2_v, x1_s) with err       *)
 		] in 
-		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v; var_se; x1_s; x_r ] in 
+		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v; var_te; x1_s; x_r ] in
 		cmds, Var x_r, errs		               
 											        
 															         
@@ -2404,35 +2454,66 @@ let rec translate_expr fid cc_table vis_fid err e  =
 		   x_f := create_function_object(x_sc, f_id, params)
    	*)
 		let f_id = try Js_pre_processing.get_codename e 
-			with _ -> raise (Failure "annonymous function literals should be annotated with their respective code names") in 
-		let cmds, x_f = translate_function_literal f_id params vis_fid in 
-		cmds, Var x_f, []
+			with _ -> raise (Failure "anonymous function literals should be annotated with their respective code names") in 
+		let cmds, x_f, errs = translate_function_literal f_id params vis_fid err in 
+		cmds, Var x_f, errs
 	
 	
-	| Parser_syntax.NamedFun (_, n, params, e_body) -> 
-		(** Section 13
-			x_sc := copy_scope_chain_obj (x_scope, {{main, fid1, ..., fidn }})
-		  x_f := create_function_object(x_sc, f_id, params)
-			x_er := [x_scope, "fid"]
-			x_ref_n := ref-v(x_er, "f_name")
-		  x_pv := i__putValue(x_ref_n, x_f) with err
-		*)
+	| Parser_syntax.NamedFun (_, f_name, params, _) -> 
 		let f_id = try Js_pre_processing.get_codename e 
 			with _ -> raise (Failure "named function literals should be annotated with their respective code names") in
-		let cmds, x, errs = translate_named_function_literal fid f_id n params vis_fid err in 
-		cmds, x, errs
+			
+		let processed_params = List.map (fun p -> String p) params in
+		let x_t = fresh_var () in
+		let cmd_errCheck = SLCall (x_t, Literal (String checkParametersName), 
+			[ (Literal (String f_name)); (Literal (LList processed_params)) ], Some err) in
+		
+		(* x_sc := copy_object (x_sc, {{main, fid1, ..., fidn }});  *)
+		let x_sc = fresh_scope_chain_var () in 
+		let vis_fid_strs = List.map (fun fid -> String fid) vis_fid in  
+		let cmd_sc_copy = SLCall (x_sc, Literal (String copyObjectName), [ (Var var_scope); Literal (LList vis_fid_strs) ], None) in 
 	
+		(* x_f := create_function_object(x_sc, f_id, params) *)
+		let x_f = fresh_fun_var () in 
+		let cmd_fun_constr = SLCall (x_f, Literal (String createFunctionObjectName), 
+			[ (Var x_sc); (Literal (String f_id)); (Literal (String f_id)); (Literal (LList processed_params)) ], None) in 	
+		
+		(* x_f_outer_er := new ();  *)
+		let x_f_outer_er = fresh_var () in 
+		let cmd_ass_xfouter = SLBasic (SNew (x_f_outer_er)) in 
+		
+		(* x_cae := i__checkAssignmentErrors (ref-v(x_f_outer_er, "f")) with err *)
+		let x_cae = fresh_var () in 
+		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ VRef (Var x_f_outer_er, Literal (String f_name)) ], Some err) in 
+
+		(* [x_f_outer_er, f] := x_f *)
+		let cmd_fname_updt = SLBasic (SMutation (Var x_f_outer_er, Literal (String f_name), Var x_f)) in 
+		
+		(* [x_sc, f_id_outer] := x_f_outer_er;  *)
+		let cmd_fidouter_updt = SLBasic (SMutation (Var x_sc, Literal (String (f_id ^ "_outer")), Var x_f_outer_er)) in 
+		
+		let cmds = [
+			(None, None, cmd_errCheck);         (*  x_t := checkParametersName (f_name, processed_params) with err;      *)
+			(None, None, cmd_sc_copy);          (*  x_sc := copy_object (x_sc, {{main, fid1, ..., fidn }});              *)
+			(None, None, cmd_fun_constr);       (*  x_f := create_function_object(x_sc, f_id, params)                    *)
+			(None, None, cmd_ass_xfouter);      (*  x_f_outer_er := new ();                                              *)
+			(None, None, cmd_cae);              (* x_cae := i__checkAssignmentErrors (ref-v(x_f_outer_er, "f")) with err *) 
+			(None, None, cmd_fname_updt);       (*  [x_f_outer_er, f] := x_f;                                            *)
+			(None, None, cmd_fidouter_updt)     (*  [x_sc, f_id_outer] := x_f_outer_er                                   *)
+		] in 
+		cmds, Var x_f, [ x_t; x_cae ]
+		
 
 	| Parser_syntax.VarDec decs -> 
 		let rec loop decs cmds errs = 
 			(match decs with
 			| [] -> raise (Failure "no empty variable declaration lists in expression contexts") 
 			 
-			| [ (v, eo) ] -> 
+			| [ (v, eo) ] ->
 				(match eo with 
 				| None -> 
-					let x, new_cmds = compile_var_dec_without_exp v in 
-					x, (cmds @ new_cmds), errs
+					let x, new_cmds, new_errs = compile_var_dec_without_exp v in 
+					x, (cmds @ new_cmds), (errs @ new_errs)
 				| Some e -> 
 					let new_cmds, x, new_errs	 = compile_var_dec v e in  
 					x, (cmds @ new_cmds), (errs @ new_errs))
@@ -2448,7 +2529,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 	
 
 
-and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e  = 
+and translate_statement fid cc_table ctx vis_fid err (loop_list : (string option * string * string option * bool) list) previous js_lab e  = 
 	let fe = translate_expr fid cc_table vis_fid err in
 	
 	let f = translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab in
@@ -2467,7 +2548,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 		let v_fid = find_var_fid x in
 		let v_fid = 
 			match v_fid with 
-			| None -> raise (Failure "Error: if a variable is declared it must be in the scope clarification table!")
+			| None -> raise (Failure (Printf.sprintf "Error: The variable %s that is declared is not in the scope clarification table!" x))
 			| Some v_fid -> v_fid in 
 		let cmds_e, x_e, errs_e = translate_expr fid cc_table vis_fid err e in
 		(* x_v := i__getValue (x) with err *)
@@ -2476,17 +2557,21 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 		let x_sf = fresh_var () in 
 		let cmd_xsf_ass = SLBasic (SLookup (x_sf, Var var_scope, Literal (String v_fid))) in 
 		(* x_ref := ref_v(x_sf, "x")  *) 
-		let x_ref = fresh_var () in 
+		let x_ref = fresh_var () in  
 		let cmd_xref_ass = SLBasic (SAssignment (x_ref, VRef (Var x_sf, Literal (String x)))) in 
+		(* x_cae := i__checkAssignmentErrors (x_ref) with err *)
+		let x_cae = fresh_var () in 
+		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ (Var x_ref) ], Some err) in 
 		(* x_pv := i__putValue(x_ref, x_v) with err2 *) 
 		let x_pv, cmd_pv = make_put_value_call (Var x_ref) x_v err in 
 		let cmds = cmds_e @ (b_annot_cmds [
-			cmd_gv_x;      (* x_v := i__getValue (x) with err          *)
-			cmd_xsf_ass;   (* x_sf := [x__scope, fid]                  *)
-			cmd_xref_ass;  (* x_ref := ref_v(x_sf, "x")                *) 
-			cmd_pv         (* x_pv := i__putValue(x_ref, x_v) with err *) 
+			cmd_gv_x;      (* x_v := i__getValue (x) with err                    *)
+			cmd_xsf_ass;   (* x_sf := [x__scope, fid]                            *)
+			cmd_xref_ass;  (* x_ref := ref_v(x_sf, "x")                          *) 
+			cmd_cae;       (* x_cae := i__checkAssignmentErrors (x_ref) with err *)
+			cmd_pv         (* x_pv := i__putValue(x_ref, x_v) with err           *) 
 		]) in 
-		let errs = errs_e @ [ x_v; x_pv ] in 
+		let errs = errs_e @ [ x_v; x_cae; x_pv ] in 
 		cmds, x_ref, errs	in				
 	
 	let create_final_phi_cmd cmds x errs rets breaks conts break_label js_lab = 
@@ -2510,29 +2595,93 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 			(cmds @ cmds_new_x @ cmd_ass_phi), Var x_ret, errs, rets, outer_breaks, conts) in 
 	
 	
+	let rename_cont_break_list cont_break_list finally_lab_gen = 
+		let jumps_mapping = Hashtbl.create 101 in 
+		Printf.printf "I am creating a jumps mapping for a fucking try catch finally\n";
+		let rec rename_cont_break_list_iter cont_break_list (new_cont_break_list : (string option * string * string option * bool) list) = 
+			(match cont_break_list with 
+				| [] -> List.rev new_cont_break_list 
+				| (None, break_lab, js_lab, is_valid_unlabelled) :: rest -> 
+					let new_finally_lab = finally_lab_gen () in
+					Printf.printf "Creating a mapping from %s to %s\n" break_lab new_finally_lab; 
+					Hashtbl.add jumps_mapping new_finally_lab break_lab; 
+					rename_cont_break_list_iter rest ((None, new_finally_lab, js_lab, is_valid_unlabelled) :: new_cont_break_list)  
+				| (Some cont_lab, break_lab, js_lab, is_valid_unlabelled) :: rest -> 
+					let new_finally_lab1 = finally_lab_gen () in 
+					let new_finally_lab2 = finally_lab_gen () in 
+					Hashtbl.add jumps_mapping new_finally_lab1 cont_lab; 
+					Hashtbl.add jumps_mapping new_finally_lab2 break_lab; 
+					Printf.printf "Creating a mapping from %s to %s and %s to %s\n" break_lab new_finally_lab1 cont_lab new_finally_lab2; 
+          rename_cont_break_list_iter rest ((Some new_finally_lab1, new_finally_lab2, js_lab, is_valid_unlabelled) :: new_cont_break_list)) in 
+		let new_cont_break_list = rename_cont_break_list_iter cont_break_list [] in 
+		new_cont_break_list, jumps_mapping in 
+	
+	
+	let make_finally_break_blocks jump_list jumps_mapping e tcf_lab end_label = 		
+		let rec make_finally_blocks_iter jump_list finally_blocks cur_break_vars errs rets outer_breaks inner_breaks conts = 
+			(match jump_list with
+			| [] -> finally_blocks, cur_break_vars, errs, rets, outer_breaks, inner_breaks, conts 
+			| (js_lab, var, jump) :: rest -> 
+				try 
+					(let original_jump = Hashtbl.find jumps_mapping jump in 
+					let new_loop_list = (None, end_label, tcf_lab, false) :: loop_list in 
+					let cmds_cur, _, errs_cur, rets_cur, breaks_cur, conts_cur = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e in
+					let cmds_cur = add_initial_label cmds_cur jump in 
+					let new_finally_block = cmds_cur @ [ (None, None, SLGoto original_jump) ] in
+					let cur_inner_breaks, cur_outer_breaks = filter_cur_jumps breaks_cur tcf_lab false in
+          make_finally_blocks_iter rest (finally_blocks @ new_finally_block) cur_break_vars (errs @ errs_cur) (rets @ rets_cur) (outer_breaks @ cur_outer_breaks @ [ (js_lab, var, original_jump) ]) (inner_breaks @ cur_inner_breaks) (conts @ conts_cur) ) 
+					with _ ->
+						(if ((not (tcf_lab = None)) && (tcf_lab = js_lab))
+							then make_finally_blocks_iter rest finally_blocks (cur_break_vars @ [ var ]) errs rets outer_breaks inner_breaks conts 
+							else raise (Failure (Printf.sprintf "make_finally_break_blocks: unknown jump %s\n" jump)))) in 
+		make_finally_blocks_iter jump_list [] [] [] [] [] [] [] in 		 
+	
+	
+		let make_finally_cont_blocks jump_list jumps_mapping e tcf_lab end_label  = 		
+		let rec make_finally_blocks_iter jump_list finally_blocks errs rets outer_breaks inner_breaks conts = 
+			(match jump_list with
+			| [] -> finally_blocks, errs, rets, outer_breaks, inner_breaks, conts 
+			| (js_lab, var, jump) :: rest -> 
+				try 
+					(
+					Printf.printf ("I am processing a continue!!! \n"); 
+					let original_jump = Hashtbl.find jumps_mapping jump in 
+					let new_loop_list = (None, end_label, tcf_lab, false) :: loop_list in 
+					let cmds_cur, _, errs_cur, rets_cur, breaks_cur, conts_cur = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e in
+					let cmds_cur = add_initial_label cmds_cur jump in 
+					let new_finally_block = cmds_cur @ [ (None, None, SLGoto original_jump) ] in
+					let cur_inner_breaks, cur_outer_breaks = filter_cur_jumps breaks_cur tcf_lab false in
+          make_finally_blocks_iter rest (finally_blocks @ new_finally_block) (errs @ errs_cur) (rets @ rets_cur) (outer_breaks @ cur_outer_breaks) (inner_breaks @ cur_inner_breaks) (conts @ conts_cur @ [ (js_lab, var, original_jump) ]) ) 
+					with _ -> raise (Failure (Printf.sprintf "make_finally_cont_blocks: unknown jump %s\n" jump))) in 
+		make_finally_blocks_iter jump_list [] [] [] [] [] [] in 		 
+	
+		
+	
 	let make_try_catch_cmds e1 (x, e2) catch_id = 						
 	  (**
 									cmds1
 		            	goto finally  
 		    err1:    	x_err := PHI(errs1)
 				        	x_er := new () 
+									x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err2
 									[x_er, "x"] := x_err 
 									[x_scope, "cid"] := x_er 
 									cmds2
 									goto finally
-				err2:     x_ret_1 := PHI(errs2)					
-				finally:  x_ret_2 := PHI(breaks1, x_1, breaks2, x_2, x_ret_1)
+				err2:     x_ret_1 := PHI(x_cae, errs2)					
+				          goto err 
+				finally:  x_ret_2 := PHI(breaks1, x_1, breaks2, x_2)
 	  *) 
-		let new_err1, new_err2, finally, end_label = fresh_tcf_vars () in
-		let new_loop_list = (None, finally, js_lab) :: loop_list in 
+		let new_err1, new_err2, finally, end_label, _, _ = fresh_tcf_vars () in
+		let new_loop_list = (None, finally, js_lab, false) :: loop_list in 
 		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement fid cc_table ctx vis_fid new_err1 new_loop_list None None e1 in
 		let cmds1, x1_v = add_final_var cmds1 x1 in 
 	
-		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement catch_id cc_table ctx vis_fid new_err2 new_loop_list None None e2 in
+		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement catch_id cc_table ctx (catch_id :: vis_fid) new_err2 new_loop_list None None e2 in
 		let cmds2, x2_v = add_final_var cmds2 x2 in 
 	
-		let cur_breaks1, outer_breaks1 = filter_cur_jumps breaks1 js_lab true in 
-		let cur_breaks2, outer_breaks2 = filter_cur_jumps breaks2 js_lab true in
+		let cur_breaks1, outer_breaks1 = filter_cur_jumps breaks1 js_lab false in 
+		let cur_breaks2, outer_breaks2 = filter_cur_jumps breaks2 js_lab false in
 
 		(* x_err := PHI(errs1) *) 
 		let x_err = fresh_err_var () in 
@@ -2544,21 +2693,25 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 		let x_er = fresh_er_var () in 
 		let cmd_ass_xer = SLBasic (SNew x_er) in 
 	
+		(* x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err2 *)
+		let x_cae = fresh_var () in 
+		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ VRef (Var x_er, Literal (String x)) ], Some new_err2) in 
+	
 		(* [x_er, "x"] := x_err *) 
 		let cmd_mutate_x = SLBasic (SMutation (Var x_er, Literal (String x), Var x_err)) in  					  				
 	
 		(* [x_scope, "cid"] := x_er *) 
 		let cmd_sc_updt = SLBasic (SMutation (Var var_scope, Literal (String catch_id), Var x_er)) in 
 	
-	  (* err2:     x_ret_1 := PHI(errs2) *)
+	  (* err2:     x_ret_1 := PHI(x_cae, errs2) *)
 		let x_ret_1 = fresh_var () in 
-		let phi_args2 = List.map (fun x -> Some x) errs2 in 
+		let phi_args2 = List.map (fun x -> Some x) (x_cae :: errs2) in 
 		let phi_args2 = Array.of_list phi_args2 in 
 		let cmd_ass_xret1 = SLPhiAssignment (x_ret_1, phi_args2) in
 	
 		(* x_ret_2 := PHI(cur_breaks1, x_1, cur_breaks2, x_2) *)
 		let x_ret_2 = fresh_var () in 
-		let phi_args3 = cur_breaks1 @ [ x1_v ] @ cur_breaks2 @ [ x2_v; x_ret_1 ] in 
+		let phi_args3 = cur_breaks1 @ [ x1_v ] @ cur_breaks2 @ [ x2_v ] in 
 		let phi_args3 = List.map (fun x -> Some x) phi_args3 in   
 		let phi_args3 = Array.of_list phi_args3 in 
 		let cmd_ass_xret2 = SLPhiAssignment (x_ret_2, phi_args3) in 
@@ -2567,16 +2720,230 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 			(None, None,           SLGoto finally); 
 			(None, Some new_err1,  cmd_ass_xerr);
 			(None, None,           cmd_ass_xer); 
+			(None, None,           cmd_cae);
 			(None, None,           cmd_mutate_x); 
 			(None, None,           cmd_sc_updt)
 		] @ cmds2 @ [
 			(None, None,          SLGoto finally); 
-			(None, Some new_err2, cmd_ass_xret1); 
+			(None, Some new_err2, cmd_ass_xret1);
+			(None, None,          SLGoto err);  
 			(None, Some finally,  cmd_ass_xret2)
 		] in 
 		
-		cmds, x_ret_2, [], rets1 @ rets2, outer_breaks1 @ outer_breaks2, conts1 @ conts2, end_label in
+		cmds, x_ret_2, [ x_ret_1 ], rets1 @ rets2, outer_breaks1 @ outer_breaks2, conts1 @ conts2, end_label in
+	
+	
+	let make_try_catch_cmds_with_finally e1 (x, e2) catch_id e3 = 						
+	  (**
+									cmds1
+		            	goto finally  
+		    err1:    	x_err := PHI(errs1)
+				        	x_er := new () 
+									x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err 
+									[x_er, "x"] := x_err 
+									[x_scope, "cid"] := x_er 
+									cmds2
+									goto finally
+				err2:    	x_ret_1 := PHI(x_cae; errs2)
+				          cmds_finally
+									goto err
+				finally:  x_ret_2 := PHI(breaks_1, x_1, breaks_2, x_2)
+				          cmds_finally
+                  goto end
+				ret_tcf:  x_ret_3 := PHI(rets1, rets2) 
+				          cmds_finally 
+									goto ret_label
+									break_cont_ret_finally_blocks_1 
+									break_cont_ret_finally_blocks_2
+			  end:      x_ret_4 := PHI(breaks_finally, x_ret_2) 
+	  *) 
+		let new_err1, new_err2, finally, end_label, abnormal_finally, tcf_ret = fresh_tcf_vars () in
+		let new_loop_list, jumps_mapping = rename_cont_break_list loop_list abnormal_finally in 
+		
+		let new_ctx = { ctx with tr_ret_lab = tcf_ret } in 
+		let new_loop_list = (None, finally, js_lab, false) :: new_loop_list in 
+		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement fid cc_table new_ctx vis_fid new_err1 new_loop_list None None e1 in
+		let cmds1, x1_v = add_final_var cmds1 x1 in 
+		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement catch_id cc_table new_ctx (catch_id :: vis_fid) new_err2 new_loop_list None None e2 in
+		let cmds2, x2_v = add_final_var cmds2 x2 in 
+		let new_loop_list = (None, end_label, js_lab, false) :: loop_list in 
+		let cmds3_1, _, errs3_1, rets3_1, breaks3_1, conts3_1 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e3 in
+		let cmds3_2, _, errs3_2, rets3_2, breaks3_2, conts3_2 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e3 in
+		let cmds3_3, _, errs3_3, rets3_3, breaks3_3, conts3_3 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e3 in
+	
+		let inner_breaks3_1, outer_breaks3_1 = filter_cur_jumps breaks3_1 js_lab false in 
+		let inner_breaks3_2, outer_breaks3_2 = filter_cur_jumps breaks3_2 js_lab false in 	
+		let inner_breaks3_3, outer_breaks3_3 = filter_cur_jumps breaks3_3 js_lab false in 
+						
+		let finally_cmds_breaks1, cur_break_vars_1, errs_b1, rets_b1, outer_breaks_b1, inner_breaks_b1, conts_b1 = make_finally_break_blocks breaks1 jumps_mapping e3 js_lab end_label in 
+		let finally_cmds_conts1, errs_c1, rets_c1, outer_breaks_c1, inner_breaks_c1, conts_c1 = make_finally_cont_blocks conts1 jumps_mapping e3 js_lab end_label in 
+	
+		let finally_cmds_breaks2, cur_break_vars_2, errs_b2, rets_b2, outer_breaks_b2, inner_breaks_b2, conts_b2 = make_finally_break_blocks breaks2 jumps_mapping e3 js_lab end_label in 
+		let finally_cmds_conts2, errs_c2, rets_c2, outer_breaks_c2, inner_breaks_c2, conts_c2 = make_finally_cont_blocks conts2 jumps_mapping e3 js_lab end_label in 
 
+		(* x_err := PHI(errs1) *) 
+		let x_err = fresh_err_var () in 
+		let phi_args1 = List.map (fun x -> Some x) errs1 in 
+		let phi_args1 = Array.of_list phi_args1 in 
+		let cmd_ass_xerr = SLPhiAssignment (x_err, phi_args1) in 
+	
+		(* x_er := new () *)
+		let x_er = fresh_er_var () in 
+		let cmd_ass_xer = SLBasic (SNew x_er) in 
+		
+		(* x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err2 *)
+		let x_cae = fresh_var () in 
+		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ VRef (Var x_er, Literal (String x)) ], Some new_err2) in 
+	
+		(* [x_er, "x"] := x_err *) 
+		let cmd_mutate_x = SLBasic (SMutation (Var x_er, Literal (String x), Var x_err)) in  					  				
+	
+		(* [x_scope, "cid"] := x_er *) 
+		let cmd_sc_updt = SLBasic (SMutation (Var var_scope, Literal (String catch_id), Var x_er)) in 
+	
+	  (* err2:     x_ret_1 := PHI(x_cae, errs2) *)
+		let x_ret_1 = fresh_var () in 
+		let phi_args2 = List.map (fun x -> Some x) (x_cae :: errs2) in 
+		let phi_args2 = Array.of_list phi_args2 in 
+		let cmd_ass_xret1 = SLPhiAssignment (x_ret_1, phi_args2) in
+	
+		(* x_ret_2 := PHI(cur_breaks1, x_1, cur_breaks2, x_2, x_ret_1) *)
+		let x_ret_2 = fresh_var () in 
+		let phi_args3 = cur_break_vars_1 @ [ x1_v ] @ cur_break_vars_2 @ [ x2_v ] in 
+		let phi_args3 = List.map (fun x -> Some x) phi_args3 in   
+		let phi_args3 = Array.of_list phi_args3 in 
+		let cmd_ass_xret2 = SLPhiAssignment (x_ret_2, phi_args3) in 
+		
+		(* x_ret_3 := PHI(rets1, rets2)  *)
+		let x_ret_3 = fresh_var () in 
+		let phi_args4 = rets1 @ rets2 in 
+		let phi_args4 = List.map (fun x -> Some x) phi_args4 in 
+		let phi_args4 = Array.of_list phi_args4 in 
+		let cmd_ass_xret3 = SLPhiAssignment (x_ret_3, phi_args4) in 
+	
+		(* x_ret_4 := PHI(inner_breaks_finally, x_ret_2) *)	
+		let x_ret_4 = fresh_var () in 
+		let phi_args5 = inner_breaks3_1 @ inner_breaks3_2 @ [ x_ret_2 ] @ inner_breaks3_3 @ inner_breaks_b1 @ inner_breaks_c1 @ inner_breaks_b2 @ inner_breaks_c2 in 
+		let phi_args5 = List.map (fun x -> Some x) phi_args5 in 
+		let phi_args5 = Array.of_list phi_args5 in 
+		let cmd_ass_xret4 = SLPhiAssignment (x_ret_4, phi_args5) in 
+		
+		let ret_label = ctx.tr_ret_lab in 
+		let errs = errs3_1 @ [ x_ret_1 ] @ errs3_2 @ errs3_3 @ errs_b1 @ errs_c1 @ errs_b2 @ errs_c2 in 
+		let rets = rets3_1 @ rets3_2 @ rets3_3 @ [ x_ret_3 ] @ rets_b1 @ rets_c1 @ errs_b2 @ errs_c2 in 
+		let breaks = outer_breaks3_1 @ outer_breaks3_2 @ outer_breaks3_3 @ outer_breaks_b1 @ outer_breaks_c1 @ outer_breaks_b2 @ outer_breaks_c2 in 
+		let conts = conts3_1 @ conts3_2 @ conts3_3 @ conts_b1 @ conts_c1 @ conts_b2 @ conts_c2 in
+		
+		let cmds = cmds1 @ [                                 (*            cmds1                                                            *)
+			(None, None,            SLGoto finally);           (*            goto finally                                                     *)
+			(None, Some new_err1,   cmd_ass_xerr);             (*  err1:     x_err := PHI(errs1)                                              *)       
+			(None, None,            cmd_ass_xer);              (*            x_er := new ()                                                   *)
+			(None, None,            cmd_cae);                  (*            x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err2   *)
+			(None, None,            cmd_mutate_x);             (*            [x_er, "x"] := x_err                                             *)
+			(None, None,            cmd_sc_updt)               (*            [x_scope, "cid"] := x_er                                         *)
+		] @ cmds2 @ [                                        (*            cmds2                                                            *)
+			(None, None,           SLGoto finally);            (*            goto finally                                                     *) 
+			(None, Some new_err2,  cmd_ass_xret1);             (*  err2:     x_ret_1 := PHI(x_cae, errs2)                                     *)
+		] @ cmds3_1 @ [                                      (*            cmds3_1                                                          *)
+		  (None, None,           SLGoto err);                (*            goto err                                                         *)
+			(None, Some finally,   cmd_ass_xret2)              (*  finally:  x_ret_2 := PHI(cur_breaks1, x_1, cur_breaks2, x_2)               *)       
+		] @ cmds3_2 @ [                                      (*            cmds3_2                                                          *)
+		  (None, None,           SLGoto end_label);          (*            goto end                                                         *)
+			(None, Some tcf_ret,   cmd_ass_xret3)              (*  tcf_ret:  x_ret_3 := PHI(rets1, rets2)                                     *)
+		] @ cmds3_3 @ [                                      (*            cmds3_3                                                          *)
+		  (None, None,           SLGoto ret_label)           (*            goto ret_label                                                   *)
+		] @ finally_cmds_breaks1 @ finally_cmds_conts1       (*            break_cont_finally_blocks_1                                      *)
+		  @ finally_cmds_breaks2 @ finally_cmds_conts2 @ [   (*            break_cont_finally_blocks_2                                      *)
+	    (None, Some end_label, cmd_ass_xret4)              (*  end:      x_ret_4 := PHI(x_ret_2, inner_breaks_finally)                    *)
+		] in 
+		cmds, Var x_ret_4, errs, rets, breaks, conts  in
+	
+	
+	let make_try_finally_cmds e1 e3 = 						
+	  (**
+									cmds1
+		            	goto finally  
+		    err1:    	x_err := PHI(errs1)
+									cmds_finally
+									goto err
+				finally:  x_ret_1 := PHI(breaks_1, x_1)
+				          cmds_finally
+                  goto end
+				ret_tcf:  x_ret_2 := PHI(rets1) 
+				          cmds_finally 
+									goto ret_label
+									break_cont_ret_finally_blocks_1 
+			  end:      x_ret_3 := PHI(x_ret_1, breaks_finally) 
+	  *) 
+		let new_err1, new_err2, finally, end_label, abnormal_finally, tcf_ret = fresh_tcf_vars () in
+		let new_loop_list, jumps_mapping = rename_cont_break_list loop_list abnormal_finally in 
+		
+		let new_ctx = { ctx with tr_ret_lab = tcf_ret } in 
+		let new_loop_list = (None, finally, js_lab, false) :: new_loop_list in 
+		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement fid cc_table new_ctx vis_fid new_err1 new_loop_list None None e1 in
+		let cmds1, x1_v = add_final_var cmds1 x1 in 
+		let new_loop_list = (None, end_label, js_lab, false) :: loop_list in 
+		let cmds3_1, _, errs3_1, rets3_1, breaks3_1, conts3_1 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e3 in
+		let cmds3_2, _, errs3_2, rets3_2, breaks3_2, conts3_2 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e3 in
+		let cmds3_3, _, errs3_3, rets3_3, breaks3_3, conts3_3 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e3 in
+		let inner_breaks3_1, outer_breaks3_1 = filter_cur_jumps breaks3_1 js_lab false in 
+		let inner_breaks3_2, outer_breaks3_2 = filter_cur_jumps breaks3_2 js_lab false in 
+		let inner_breaks3_3, outer_breaks3_3 = filter_cur_jumps breaks3_3 js_lab false in 
+						
+		let finally_cmds_breaks1, cur_break_vars_1, errs_b1, rets_b1, outer_breaks_b1, inner_breaks_b1, conts_b1 = make_finally_break_blocks breaks1 jumps_mapping e3 js_lab end_label in 
+		let finally_cmds_conts1, errs_c1, rets_c1, outer_breaks_c1, inner_breaks_c1, conts_c1 = make_finally_cont_blocks conts1 jumps_mapping e3 js_lab end_label in 
+	
+		(* x_err := PHI(errs1) *) 
+		let x_err = fresh_err_var () in 
+		let phi_args1 = List.map (fun x -> Some x) errs1 in 
+		let phi_args1 = Array.of_list phi_args1 in 
+		let cmd_ass_xerr = SLPhiAssignment (x_err, phi_args1) in 
+	
+		(* x_ret_1 := PHI(cur_breaks1, x_1) *)
+		let x_ret_1 = fresh_var () in 
+		let phi_args = cur_break_vars_1 @ [ x1_v ] in 
+		let phi_args = List.map (fun x -> Some x) phi_args in   
+		let phi_args = Array.of_list phi_args in 
+		let cmd_ass_xret1 = SLPhiAssignment (x_ret_1, phi_args) in 
+		
+		(* x_ret_2 := PHI(rets1)  *)
+		let x_ret_2 = fresh_var () in 
+		let phi_args = rets1 in 
+		let phi_args = List.map (fun x -> Some x) phi_args in 
+		let phi_args = Array.of_list phi_args in 
+		let cmd_ass_xret2 = SLPhiAssignment (x_ret_2, phi_args) in 
+	
+		(* x_ret_3 := PHI(inner_breaks_finally, x_ret_1) *)	
+		let x_ret_3 = fresh_var () in 
+		let phi_args = inner_breaks3_1 @ inner_breaks3_2 @  [ x_ret_1 ] @ inner_breaks3_3 @ inner_breaks_b1 @ inner_breaks_c1 in 
+		let phi_args = List.map (fun x -> Some x) phi_args in 
+		let phi_args = Array.of_list phi_args in 
+		let cmd_ass_xret3 = SLPhiAssignment (x_ret_3, phi_args) in 
+		
+		let ret_label = ctx.tr_ret_lab in 
+		let errs = errs3_1 @ [ x_err ] @ errs3_2 @ errs3_3 @ errs_b1 @ errs_c1 in 
+		let rets = rets3_1 @ rets3_2 @ rets3_3 @ [ x_ret_2 ] @ rets_b1 @ rets_c1 in 
+		let breaks = outer_breaks3_1 @ outer_breaks3_2 @ outer_breaks3_3 @ outer_breaks_b1 @ outer_breaks_c1 in 
+		let conts = conts3_1 @ conts3_2 @ conts3_3 @ conts_b1 @ conts_c1 in
+		
+		let cmds = cmds1 @ [                                 (*            cmds1                                                       *)
+			(None, None,            SLGoto finally);           (*            goto finally                                                *)
+			(None, Some new_err1,   cmd_ass_xerr);             (*  err1:     x_err := PHI(errs1)                                         *)      
+		] @ cmds3_1 @ [                                      (*            cmds3_1                                                     *)
+		  (None, None,           SLGoto err);                (*            goto err                                                    *)
+			(None, Some finally,   cmd_ass_xret1)              (*  finally:  x_ret_1 := PHI(breaks_1, x_1)                               *)       
+		] @ cmds3_2 @ [                                      (*            cmds3_2                                                     *)
+		  (None, None,           SLGoto end_label);          (*            goto end                                                    *)
+			(None, Some tcf_ret,   cmd_ass_xret2)              (*  tcf_ret:  x_ret_2 := PHI(rets1)                                       *)
+		] @ cmds3_3 @ [                                      (*            cmds3_3                                                     *)
+		  (None, None,           SLGoto ret_label)           (*            goto ret_label                                              *)
+		] @ finally_cmds_breaks1 @ finally_cmds_conts1 @ [   (*            break_cont_finally_blocks_1                                 *)
+	    (None, Some end_label, cmd_ass_xret3)              (*  end:      x_ret_3 := PHI(inner_breaks_finally, x_ret_2)               *)
+		] in 
+		cmds, Var x_ret_3, errs, rets, breaks, conts  in
+	
+	
+	
 	
 	(** Statements **) 
 	match e.Parser_syntax.exp_stx with 
@@ -2618,7 +2985,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 			| None -> None, loop_list 
 			| Some lab -> 
 				let break_label = fresh_break_label () in 
-				Some break_label, ((None, break_label, js_lab) :: loop_list)) in 
+				Some break_label, ((None, break_label, js_lab, false) :: loop_list)) in 
 		
 		let rec loop es bprevious cmds_ac errs_ac rets_ac breaks_ac conts_ac = 
 			(match es with 
@@ -2693,11 +3060,9 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 		cmds, Var x, errs, [], [], []
 	
 	
-	| Parser_syntax.Skip ->
-		(** 
-     Section 12.3 - Empty Statement 
-		 *) 
-		 [], Literal Empty, [], [], [], [] 
+      | Parser_syntax.Skip (** Section 12.3 - Empty Statement *)
+	| Parser_syntax.Debugger -> (** Section 12.15 - Debugger Statement **)
+		 [], Literal Empty, [], [], [], []
 	
 	
 	| Parser_syntax.Num _ 
@@ -2749,7 +3114,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 			| None -> None, loop_list 
 			| Some lab -> 
 				let break_label = fresh_break_label () in 
-				Some break_label, ((None, break_label, js_lab) :: loop_list)) in
+				Some break_label, ((None, break_label, js_lab, false) :: loop_list)) in
 		
 		let cmds1, x1, errs1 = fe e1 in
 		let cmds2, x2, errs2, rets2, breaks2, conts2 = f_previous new_loop_list None None e2 in
@@ -2831,7 +3196,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 		
 		let head, guard, body, cont, end_loop = fresh_loop_vars () in 
 		
-		let new_loop_list = (Some cont, end_loop, js_lab) :: loop_list in 
+		let new_loop_list = (Some cont, end_loop, js_lab, true) :: loop_list in 
 		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e1 in
 		let cmds2, x2, errs2 = fe e2 in
 		let cmds2 = add_initial_label cmds2 guard in
@@ -2925,7 +3290,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 		let head, guard, body, cont, end_loop = fresh_loop_vars () in 
 		
 		let cmds1, x1, errs1 = fe e1 in
-		let new_loop_list = (Some cont, end_loop, js_lab) :: loop_list in 
+		let new_loop_list = (Some cont, end_loop, js_lab, true) :: loop_list in 
 		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e2 in
 		
 		let cur_breaks, outer_breaks = filter_cur_jumps breaks2 js_lab true in 
@@ -3037,7 +3402,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 			let cmds1, x1, errs1 = fe e1 in
 			let cmds2, x2, errs2 = fe e2 in
 			let head, guard, body, cont, end_loop = fresh_loop_vars () in 
-			let new_loop_list = (Some cont, end_loop, js_lab) :: loop_list in 
+			let new_loop_list = (Some cont, end_loop, js_lab, true) :: loop_list in 
 			let cmds3, x3, errs3, rets3, breaks3, conts3 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e3 in		
 			
 			let cur_breaks, outer_breaks = filter_cur_jumps breaks3 js_lab true in 
@@ -3247,7 +3612,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 		
 		let head, guard, body, cont, end_loop = fresh_loop_vars () in 
 		
-		let new_loop_list = (Some cont, end_loop, js_lab) :: loop_list in 
+		let new_loop_list = (Some cont, end_loop, js_lab, true) :: loop_list in 
 		let cmds4, x4, errs4, rets4, breaks4, conts4 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e4 in 
 		
 		let cur_breaks, outer_breaks = filter_cur_jumps breaks4 js_lab true in 
@@ -3382,7 +3747,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 		let lab_c = get_continue_lab loop_list lab in
 		let cmd_goto = [ (None, None, SLGoto lab_c) ] in
 		 
-		(cmd_ret @ cmd_goto), Var x_r, [], [], [], [ (lab, x_r) ]
+		(cmd_ret @ cmd_goto), Var x_r, [], [], [], [ (lab, x_r, lab_c) ]
 	
 
 	| Parser_syntax.Break lab ->
@@ -3407,7 +3772,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 		(* goto lab_r *) 
 		let lab_r = get_break_lab loop_list lab in
 		let cmd_goto = [ (None, None, SLGoto lab_r) ] in 
-		(cmd_ret @ cmd_goto), Var x_r, [], [], [ (lab, x_r) ], [] 
+		(cmd_ret @ cmd_goto), Var x_r, [], [], [ (lab, x_r, lab_r) ], [] 
 		
 			
 	| Parser_syntax.Label (js_lab, e) -> 
@@ -3459,20 +3824,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 		
 		let catch_id = try Js_pre_processing.get_codename e 
 				with _ -> raise (Failure "catch statemetns must be annotated with their respective code names - try - catch - finally") in 
-		
-		let cmds12, x_ret_1, errs12, rets12, breaks12, conts12, end_lab = make_try_catch_cmds e1 (x, e2) catch_id in 
-		let new_loop_list = (None, end_lab, js_lab) :: loop_list in 
-		let cmds3, _, errs3, rets3, breaks3, conts3 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None e3 in 
-		let cur_breaks, outer_breaks = filter_cur_jumps breaks3 js_lab false in 
-		
-		(* x_ret_2 := PHI(breaks3, x_ret_1)  *) 
-		let x_ret_2 = fresh_var () in 
-		let phi_args = cur_breaks @ [ x_ret_1 ] in 
-		let phi_args = List.map (fun x -> Some x) phi_args in 
-		let phi_args = Array.of_list phi_args in 
-		let final_cmd = (None, Some end_lab, SLPhiAssignment (x_ret_2, phi_args)) in 
-		
-		cmds12 @ cmds3 @ [ final_cmd ], Var x_ret_2, errs12 @ errs3, rets12 @ rets3, breaks12 @ outer_breaks, conts12 @ conts3
+		make_try_catch_cmds_with_finally e1 (x, e2) catch_id e3
 		
 	
 	| Parser_syntax.Try (e1, None, Some e3) ->
@@ -3488,41 +3840,8 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 					        cmds3
 			  end:      x_ret_3 := PHI(cur_breaks3, x_ret_2)				
 		 *)
-		
-		let new_err, _, finally, end_lab = fresh_tcf_vars () in 
-		let loop_list1 = (None, finally, js_lab) :: loop_list in 
-		let loop_list3 = (None, end_lab, js_lab) :: loop_list in 
-		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement fid cc_table ctx vis_fid new_err loop_list1 None None e1 in
-		let cur_breaks1, outer_breaks1 = filter_cur_jumps breaks1 js_lab true in 
-		let cmds1, x1_v = add_final_var cmds1 x1 in 
-		
-		(* goto finally *)
-		let cmd_goto_finally = (None, None, SLGoto finally) in 
-		
-		(* err:      x_ret_1 := PHI(errs1)  *)
-		let x_ret_1 = fresh_var () in 
-		let phi_args = List.map (fun x -> Some x) errs1 in 
-		let phi_args = Array.of_list phi_args in 
-		let cmd_phi1 = (None, Some new_err,  SLPhiAssignment (x_ret_1, phi_args)) in 		
-		
-		(* finally:  x_ret_2 := PHI(cur_breaks1, x_1, x_ret_1)  *) 
-		let x_ret_2 = fresh_var () in 
-		let phi_args = cur_breaks1 @ [ x1_v; x_ret_1 ] in 
-		let phi_args = List.map (fun x -> Some x) phi_args in 
-		let phi_args = Array.of_list phi_args in 
-		let cmd_phi2 = (None, Some finally, SLPhiAssignment (x_ret_2, phi_args)) in 
-		
-		(* end:      x_ret_3 := PHI(cur_breaks3, x_ret_2)	 *) 
-		let cmds3, _, errs3, rets3, breaks3, conts3 = translate_statement fid cc_table ctx vis_fid err loop_list3 None None e3 in 
-		let cur_breaks3, outer_breaks3 = filter_cur_jumps breaks3 js_lab false in 
-		let x_ret_3 = fresh_var () in 
-		let phi_args = cur_breaks3 @ [ x_ret_2 ] in 
-		let phi_args = List.map (fun x -> Some x) phi_args in 
-		let phi_args = Array.of_list phi_args in 
-		let cmd_phi3  = (None, Some end_lab, SLPhiAssignment (x_ret_3, phi_args)) in 
-		
-		cmds1 @ [ cmd_goto_finally; cmd_phi1; cmd_phi2 ] @ cmds3 @ [ cmd_phi3 ], Var x_ret_3, errs3, rets1 @ rets3, outer_breaks1 @ outer_breaks3, conts1 @ conts3
-		
+		make_try_finally_cmds e1 e3 
+
 
 	| Parser_syntax.Try (e1, Some (x, e2), None) ->
 		(**
@@ -3605,7 +3924,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 			let next1 = fresh_next_label () in 
 			let next2 = fresh_next_label () in 
 			
-			let new_loop_list = (None, end_switch, js_lab) :: loop_list in 
+			let new_loop_list = (None, end_switch, js_lab, true) :: loop_list in 
 			let cmds1, x1, errs1, _, _, _ = f e in 
 			let cmds1 = add_initial_label cmds1 next1 in 
 			let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement fid cc_table ctx vis_fid err new_loop_list None None s in 
@@ -3644,7 +3963,7 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 			
 		
 		let compile_default s b_stmts x_old_b x_found_b end_switch js_lab cur_breaks_ab =
-			let new_loop_list = (None, end_switch, js_lab) :: loop_list in 
+			let new_loop_list = (None, end_switch, js_lab, true) :: loop_list in 
 			let f_default = translate_statement fid cc_table ctx vis_fid err new_loop_list None None in 
 			
 			let cmds_def, x_def, errs_def, rets_def, breaks_def, conts_def = f_default s in
@@ -3732,10 +4051,10 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 			let phi_args = List.map (fun x -> Some x) phi_args in 
 			let phi_args = Array.of_list phi_args in 
 			let cmd_end_switch = (None, Some end_switch, SLPhiAssignment (x_r, phi_args)) in  
-			cmds_as @ [ cmd_end_switch ], Var x_as, errs_as, rets_as, outer_breaks_as, conts_as   			
+			cmds_as @ [ cmd_end_switch ], Var x_r, errs_as, rets_as, outer_breaks_as, conts_as   			
 		
 		| [], Some def -> 
-			let new_loop_list = (None, end_switch, js_lab) :: loop_list in 
+			let new_loop_list = (None, end_switch, js_lab, true) :: loop_list in 
 			let f_default = translate_statement fid cc_table ctx vis_fid err new_loop_list None None in 
 			let cmds_def, x_def, errs_def, rets_def, breaks_def, conts_def = f_default def in
 			let cmds_def, x_def = add_final_var cmds_def x_def in
@@ -3771,23 +4090,10 @@ and translate_statement fid cc_table ctx vis_fid err loop_list previous js_lab e
 		| _, _ -> raise (Failure "no b cases with no default"))  
 	
 	
-	| Parser_syntax.NamedFun (_, n, params, e_body) -> 
-		(** Section 13
-			x_sc := copy_scope_chain_obj (x_scope, {{main, fid1, ..., fidn }})
-		  x_f := create_function_object(x_sc, f_id, params)
-			x_er := [x_scope, "fid"]
-			x_ref_n := ref-v(x_er, "f_name")
-		  x_pv := i__putValue(x_ref_n, x_f) with err
-		*)
-		let f_id = try Js_pre_processing.get_codename e 
-			with _ -> raise (Failure "named function literals should be annotated with their respective code names") in
-		let cmds, _, errs = translate_named_function_literal fid f_id n params vis_fid err in 
-		cmds, Literal Empty, errs, [], [], []
-		
+	| Parser_syntax.NamedFun (_, n, params, e_body) -> [], Literal Empty, [], [], [], []
 		
   | Parser_syntax.With (_, _) -> raise (Failure "Not implemented: with (this should not happen)")
 	| Parser_syntax.RegExp (_, _) -> raise (Failure "Not implemented: RegExp literal")
-	| Parser_syntax.Debugger -> raise (Failure "Not implemented: debugger (this should not happen)")
 
 
 let make_final_cmd vars final_lab final_var =
@@ -3800,14 +4106,30 @@ let make_final_cmd vars final_lab final_var =
 			let vars = Array.of_list vars in 
 			SLPhiAssignment (final_var, vars)) in 
 	(None, Some final_lab, cmd_final)  
+		
+		
 
+let translate_fun_decls e enclosing_fid vis_fid err =  	
+	let fid_decls = Js_pre_processing.get_fun_decls e in 
+	let cmds_hoist_fdecls, errs_hoist_decls = 
+		List.fold_left (fun (ac_cmds, ac_errs) f_decl -> 
+			let f_name, f_params = 
+				(match f_decl.Parser_syntax.exp_stx with 
+				| Parser_syntax.NamedFun (s, f_name, f_params, body) -> f_name, f_params
+				| _ -> raise (Failure "expected function declaration")) in 
+			let f_id = Js_pre_processing.get_codename f_decl in  		
+			let f_cmds, _, f_errs = translate_named_function_literal enclosing_fid f_id f_name f_params vis_fid err in 
+			ac_cmds @ f_cmds, ac_errs @ f_errs)
+			([], [])
+			fid_decls in 
+		cmds_hoist_fdecls, errs_hoist_decls		
+				
+				
 
 let generate_main e main cc_table =
 	let cc_tbl_main = 
 		try Hashtbl.find cc_table main 
 			with _ -> raise (Failure "main not defined in cc_table - assim fica dificil")  in 
-	let global_vars = 
-		Hashtbl.fold (fun key key_val ac -> key :: ac) cc_tbl_main [] in
 	let new_var = fresh_var () in
 	let setup_heap_ass = (None, None, SLCall (new_var, Literal (String setupHeapName), [ ], None)) in
 	(* __scope := new () *) 
@@ -3823,7 +4145,7 @@ let generate_main e main cc_table =
 				let new_global_ass = (None, None, SLBasic (SMutation(Literal (Loc "$lg"),  Literal (String global_v), Literal (LList [(String "d"); Undefined; (Bool true); (Bool true); (Bool true)])))) in 
 				new_global_ass :: ac)
 			[]
-			global_vars in 
+			(Js_pre_processing.var_decls e) in 
 			
 	(* x__te := TypeError () *)
 	let cmd_ass_te = make_var_ass_te () in 
@@ -3837,16 +4159,18 @@ let generate_main e main cc_table =
 	let cmd_ass_xfalse = b_annot_cmd (SLBasic (SAssignment (var_false, Literal (Bool false)))) in
 					
 	let ctx = make_translation_ctx main in 
+	let cmds_hoist_fdecls, errs_hoist_decls = translate_fun_decls e main [ main ] ctx.tr_error_lab in 
 	let cmds_e, x_e, errs, _, _, _ = translate_statement main cc_table ctx [ main ] ctx.tr_error_lab [] None None e in 
 	(* x_ret := x_e *)
 	let ret_ass = (None, None, SLBasic (SAssignment (ctx.tr_ret_var, x_e))) in
 	(* lab_ret: skip *) 
 	let lab_ret_skip = (None, (Some ctx.tr_ret_lab), (SLBasic SSkip)) in
 	
+	let errs = errs_hoist_decls @ errs in 
 	let cmd_err_phi_node = make_final_cmd errs ctx.tr_error_lab ctx.tr_error_var in 
 	
 	let main_cmds = 
-		[ setup_heap_ass; init_scope_chain_ass; lg_ass; this_ass] @ global_var_asses @ [ cmd_ass_te; cmd_ass_se; cmd_ass_xtrue; cmd_ass_xfalse ] @ cmds_e @ [ret_ass; lab_ret_skip; cmd_err_phi_node ] in 
+		[ setup_heap_ass; init_scope_chain_ass; lg_ass; this_ass] @ global_var_asses @ [ cmd_ass_te; cmd_ass_se; cmd_ass_xtrue; cmd_ass_xfalse ] @ cmds_hoist_fdecls @ cmds_e @ [ret_ass; lab_ret_skip; cmd_err_phi_node ] in 
 	{ 
 		lproc_name = main;
     lproc_body = (Array.of_list main_cmds);
@@ -3858,16 +4182,13 @@ let generate_main e main cc_table =
 		lspec = None 
 	}
 	
-let generate_proc_eval fid e cc_table vis_fid =
-	let new_fid = Js_pre_processing.fresh_eval_name () in 
-	Js_pre_processing.update_cc_tbl cc_table fid new_fid [] e; 
-	let new_fid_vars = Js_pre_processing.var_decls e in 	
-
+let generate_proc_eval new_fid e cc_table vis_fid =
 	(* x_er := new () *)
 	let x_er = fresh_var () in  
 	let cmd_er_creation = (None, None, SLBasic (SNew x_er)) in 
 	
 	(* [x_er, decl_var_i] := undefined *) 
+	let new_fid_vars = Js_pre_processing.var_decls e in 	
 	let cmds_decls = 
 		List.map (fun decl_var -> 
 			let cmd = SLBasic (SMutation (Var x_er, Literal (String decl_var), Literal Undefined)) in
@@ -3888,12 +4209,13 @@ let generate_proc_eval fid e cc_table vis_fid =
 	(* x__false := $$f *) 
 	let cmd_ass_xfalse = b_annot_cmd (SLBasic (SAssignment (var_false, Literal (Bool false)))) in
 	
-	let ctx = make_translation_ctx fid in 
+	let ctx = make_translation_ctx new_fid in 
 	let fake_ret_label = fresh_label () in 
 	let fake_ret_var = fresh_var () in 
 	let ret_label = ctx.tr_ret_lab in 
 	let ret_var = ctx.tr_ret_var in 
 	let new_ctx = { ctx with tr_ret_lab = fake_ret_label;  tr_ret_var = fake_ret_var } in 
+	let cmds_hoist_fdecls, errs_hoist_decls = translate_fun_decls e new_fid vis_fid new_ctx.tr_error_lab in 
 	let cmds_e, x_e, errs, rets, _, _ = translate_statement new_fid cc_table new_ctx vis_fid ctx.tr_error_lab [] None None e in 
 	
 	let xe_v, cmd_gv_xe = make_get_value_call x_e ctx.tr_error_lab in 
@@ -3905,15 +4227,16 @@ let generate_proc_eval fid e cc_table vis_fid =
 	(* fake_ret_lab: x_fake_ret := PHI(rets) *)
 	let cmd_fake_ret = make_final_cmd rets new_ctx.tr_ret_lab new_ctx.tr_ret_var in
 	(* lab_err: x_error := PHI(errs, x_fake_ret) *) 
+	let errs = errs_hoist_decls @ errs in
 	let cmd_error_phi = make_final_cmd (errs @ [ fake_ret_var ]) ctx.tr_error_lab ctx.tr_error_var in 	
 	
 	let fid_cmds = 
-		[ cmd_er_creation ] @ cmds_decls @ [ cmd_ass_er_to_sc; cmd_ass_te; cmd_ass_se;  cmd_ass_xtrue; cmd_ass_xfalse ] @ cmds_e 
+		[ cmd_er_creation ] @ cmds_decls @ [ cmd_ass_er_to_sc; cmd_ass_te; cmd_ass_se;  cmd_ass_xtrue; cmd_ass_xfalse ] @ cmds_hoist_fdecls @ cmds_e 
 		@ [ cmd_gv_xe; cmd_dr_ass; cmd_fake_ret; cmd_error_phi] in 
 	{ 
 		lproc_name = new_fid;
     lproc_body = (Array.of_list fid_cmds);
-    lproc_params = [ var_scope ]; 
+    lproc_params = [ var_scope; var_this ]; 
 		lret_label = Some ctx.tr_ret_lab; 
 		lret_var = Some ctx.tr_ret_var;
 		lerror_label = Some ctx.tr_error_lab; 
@@ -3921,34 +4244,84 @@ let generate_proc_eval fid e cc_table vis_fid =
 		lspec = None 
 	}
 
+
+let generate_proc_er_saving_code fid = 
+	(* x_sc_hf_fid := hasField(x_sc, fid) *) 
+	let x_sc_hf_fid = fresh_var () in 
+	let cmd_ass_xschffid = (None, None, SLBasic ( SHasField (x_sc_hf_fid, Var var_scope, Literal (String fid)))) in 
 	
+	(* goto [x_sc_hf_fid ] then1 else1 *) 
+	let then1 = fresh_then_label () in 
+	let else1 = fresh_else_label () in 
+	let end_if = fresh_endif_label () in 
+	let cmd_goto_xschffid = (None, None, SLGuardedGoto (Var x_sc_hf_fid, then1, else1)) in 
+	
+	(* then1: x_er_old1 := [ x_sc, fid ] *) 
+	let x_er_old1 = fresh_var () in 
+	let cmd_ass_xerold1 = (None, Some then1, SLBasic (SLookup (x_er_old1, Var var_scope, Literal (String fid)))) in 
+	
+	(* goto end_if1 *) 
+	let cmd_goto_endif1 = (None, None, SLGoto end_if) in 
+	
+	(* else1: x_er_old1 := $$empty *) 
+	let x_er_old2 = fresh_var () in 
+	let cmd_ass_xerold2 = (None, Some else1, SLBasic (SAssignment (x_er_old2, Literal Empty))) in 
+	
+	(* end_if1:  x_er_old3 := PHI(x_er_old1, x_er_old_2) *)
+	let x_er_old3 = fresh_var () in 
+	let cmd_ass_xerold3 = (None, Some end_if, SLPhiAssignment (x_er_old3, [| Some x_er_old1; Some x_er_old2 |])) in  
+	
+	[ 
+		cmd_ass_xschffid;    (*           x_sc_hf_fid := hasField(x_sc, fid)      *) 
+		cmd_goto_xschffid;   (*           goto [x_sc_hf_fid ] then1 else1         *) 
+		cmd_ass_xerold1;     (* then1:    x_er_old1 := [ x_sc, fid ]              *) 
+		cmd_goto_endif1;     (*           goto end_if1                            *) 
+		cmd_ass_xerold2;     (* else1:    x_er_old1 := $$empty                    *) 
+		cmd_ass_xerold3      (* end_if1:  x_er_old3 := PHI(x_er_old1, x_er_old_2) *)
+	], x_er_old3
+
+
+let generate_proc_er_restoring_code fid x_er_old end_lab =
+	(* goto [not (x_er_old = $$empty) next end_lab *)  
+	let next = fresh_next_label () in 
+	let cmd_goto_xerold_empty = (None, None, SLGuardedGoto (UnaryOp (Not, BinOp (Var x_er_old, Equal, Literal Empty)), next, end_lab)) in 
+	
+	(* next: [x_sc, fid] := x_er_old *) 
+	let cmd_restore_sc = (None, Some next, SLBasic (SMutation (Var var_scope, Literal (String fid), Var x_er_old))) in 
+	
+	(* end_lab: skip *) 
+	let cmd_end = (None, Some end_lab, SLBasic SSkip) in 
+	[
+		cmd_goto_xerold_empty; 	(*            goto [not (x_er_old = $$empty) next end_lab    *)  
+		cmd_restore_sc;         (* next:      [x_sc, fid] := x_er_old                        *) 
+		cmd_end                 (* end_lab:   skip                                           *) 
+	]
+	
+				
 let generate_proc e fid params cc_table vis_fid =
-	let fid_decls = Js_pre_processing.func_decls_in_exp e in
-  let fid_fnames = List.map (fun f ->
-    match f.Parser_syntax.exp_stx with
-      | Parser_syntax.NamedFun (s, name, args, body) -> name
-      | _ -> raise (Failure ("Must be function declaration " ^ (Pretty_print.string_of_exp true f)))
-  ) fid_decls in
-	let fid_vars = List.concat [ (Js_pre_processing.var_decls e); fid_fnames ] in 
+	let cmds_save_old_er, x_er_old = generate_proc_er_saving_code fid in 
+	let ctx = make_translation_ctx fid in 
+	let new_ctx = { ctx with tr_ret_lab = ("pre_" ^ ctx.tr_ret_lab); tr_error_lab = ("pre_" ^ ctx.tr_error_lab) } in
+	let cmds_hoist_fdecls, errs_hoist_decls = translate_fun_decls e fid vis_fid new_ctx.tr_error_lab in 
 	
 	(* x_er := new () *)
 	let x_er = fresh_var () in  
 	let cmd_er_creation = (None, None, SLBasic (SNew x_er)) in 
-	
+
+	(* [x_er, decl_var_i] := undefined *)
+	let cmds_decls =
+		List.map (fun decl_var ->
+			let cmd = SLBasic (SMutation (Var x_er, Literal (String decl_var), Literal Undefined)) in
+			(None, None, cmd))
+		(Js_pre_processing.var_decls e) in
+
 	(* [x_er, "arg_i"] := x_{i+2} *) 
 	let cmds_params = 
 		List.map (fun param -> 
 			let cmd = SLBasic (SMutation (Var x_er, Literal (String param), Var param)) in  
 			(None, None, cmd))
 		params in 
-	
-	(* [x_er, decl_var_i] := undefined *) 
-	let cmds_decls = 
-		List.map (fun decl_var -> 
-			let cmd = SLBasic (SMutation (Var x_er, Literal (String decl_var), Literal Undefined)) in
-			(None, None, cmd))
-		fid_vars in 
-	
+
 	(* [__scope, "fid"] := x_er *) 
 	let cmd_ass_er_to_sc = (None, None, SLBasic (SMutation (Var var_scope, Literal (String fid), Var x_er))) in 
 	
@@ -3963,24 +4336,25 @@ let generate_proc e fid params cc_table vis_fid =
 	(* x__false := $$f *) 
 	let cmd_ass_xfalse = b_annot_cmd (SLBasic (SAssignment (var_false, Literal (Bool false)))) in
 	
-	let ctx = make_translation_ctx fid in 
-	let cmds_e, x_e, errs, rets, _, _ = translate_statement fid cc_table ctx vis_fid ctx.tr_error_lab [] None None e in 
+	let cmds_e, x_e, errs, rets, _, _ = translate_statement fid cc_table new_ctx vis_fid new_ctx.tr_error_lab [] None None e in 
 	
 	(* x_dr := $$empty *)
 	let x_dr = fresh_var () in
 	let cmd_dr_ass = (None, None, SLBasic (SAssignment (x_dr, Literal Empty))) in
-	let cmd_dr_goto = (None, None, SLGoto ctx.tr_ret_lab) in 
 	let rets = rets @ [ x_dr ] in 
 	
-	(* lab_ret: x_return := PHI(...) *)
-	let cmd_return_phi = make_final_cmd rets ctx.tr_ret_lab ctx.tr_ret_var in
-	 
-	(* lab_err: x_error := PHI(...) *) 
-	let cmd_error_phi = make_final_cmd errs ctx.tr_error_lab ctx.tr_error_var in 	
+	(* pre_lab_ret: x_return := PHI(...) *) 
+	let cmd_return_phi = make_final_cmd rets new_ctx.tr_ret_lab new_ctx.tr_ret_var in
+	let cmds_restore_er_ret = generate_proc_er_restoring_code fid x_er_old ctx.tr_ret_lab in  
+	
+	(* pre_lab_err: x_error := PHI(...) *) 
+	let errs = errs_hoist_decls @ errs in 
+	let cmd_error_phi = make_final_cmd errs new_ctx.tr_error_lab new_ctx.tr_error_var in 	
+	let cmds_restore_er_error = generate_proc_er_restoring_code fid x_er_old ctx.tr_error_lab in  
 	
 	let fid_cmds = 
-		[ cmd_er_creation ] @ cmds_params @ cmds_decls @ [ cmd_ass_er_to_sc ] @ [ cmd_ass_te; cmd_ass_se;  cmd_ass_xtrue; cmd_ass_xfalse ] @ cmds_e 
-		@ [ cmd_dr_ass; cmd_dr_goto; cmd_return_phi; cmd_error_phi] in 
+		cmds_save_old_er @ [ cmd_er_creation ] @ cmds_decls @ cmds_params @ [ cmd_ass_er_to_sc ] @ [ cmd_ass_te; cmd_ass_se;  cmd_ass_xtrue; cmd_ass_xfalse ] @ cmds_hoist_fdecls @ cmds_e
+		@ [ cmd_dr_ass; cmd_return_phi ] @ cmds_restore_er_ret @ [ cmd_error_phi ] @ cmds_restore_er_error in 
 	{ 
 		lproc_name = fid;
     lproc_body = (Array.of_list fid_cmds);
@@ -3992,10 +4366,43 @@ let generate_proc e fid params cc_table vis_fid =
 		lspec = None 
 	}
 
+let fresh_name =
+  let counter = ref 0 in
+  let rec f name =
+    let v = name ^ (string_of_int !counter) in
+    counter := !counter + 1;
+    v
+  in f
+
+let fresh_anonymous () : string =
+  fresh_name "anonymous"
+
+let fresh_catch_anonymous () : string =
+  fresh_name "catch_anonymous"	
+		  
+let fresh_named n : string =
+  fresh_name n 
+
+let fresh_anonymous_eval () : string = 
+	fresh_name "___$eval___" 
+
+let fresh_catch_anonymous_eval () : string =
+  fresh_name "___$eval___catch_anonymous_"	
+		  
+
+let fresh_named_eval n : string =
+  fresh_name ("___$eval___" ^ n ^ "_")
+
+
+
 let js2jsil e = 
+	let cc_tbl = Hashtbl.create 101 in 
+	let fun_tbl = Hashtbl.create 101 in
+	let vis_tbl = Hashtbl.create 101 in  
+	
 	let main = "main" in 
-	let e = Js_pre_processing.add_codenames main e in 
-	let cc_tbl, fun_tbl, vis_tbl = Js_pre_processing.closure_clarification_top_level main e in 
+	let e = Js_pre_processing.add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous e in 
+	Js_pre_processing.closure_clarification_top_level cc_tbl fun_tbl vis_tbl main e [ main ] []; 
 	
 	let jsil_prog = SLProgram.create 1021 in 
 	Hashtbl.iter
@@ -4012,10 +4419,45 @@ let js2jsil e =
 			SLProgram.add jsil_prog f_id proc)
 		fun_tbl; 
 	
-	(* Prints to delete *) 
-	(* let str = Js_pre_processing.print_cc_tbl cc_tbl in 
-	   Printf.printf "closure clarification table: %s\n" str; *)
-	(* let main_str = SSyntax_Print.string_of_lprocedure jsil_proc_main in 
-	Printf.printf "main code:\n %s\n" main_str; *)
-	
+ 	(** let cc_tbl_str = Js_pre_processing.print_cc_tbl cc_tbl in 
+	Printf.printf "marica, the cc_tbl is the following (enjoy): \n %s\n" cc_tbl_str; *)
 	Some js2jsil_imports, jsil_prog, cc_tbl, vis_tbl
+	
+
+
+let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e = 
+	let vis_tbl, cc_tbl, vis_fid = 
+		(match vis_tbl, cc_tbl with 
+		| Some vis_tbl, Some cc_tbl -> 
+			vis_tbl, cc_tbl, (try (Hashtbl.find vis_tbl f_parent_id) with _ ->
+				raise (Failure (Printf.sprintf "Function %s not found in visibility table" f_parent_id)))
+		| _, _ -> raise (Failure "Wrong call to eval. Whatever.")) in 
+	let new_fun_tbl = Hashtbl.create 101 in
+	
+	let new_fid = fresh_anonymous_eval () in 
+	let e = Js_pre_processing.add_codenames new_fid fresh_anonymous_eval fresh_named_eval fresh_catch_anonymous_eval e in 
+	Js_pre_processing.update_cc_tbl cc_tbl f_parent_id new_fid [var_scope; var_this] e;
+	Hashtbl.add new_fun_tbl new_fid (new_fid, [var_scope; var_this], e); 
+	Hashtbl.add vis_tbl new_fid (new_fid :: vis_fid);
+	Js_pre_processing.closure_clarification_stmt cc_tbl new_fun_tbl vis_tbl new_fid (new_fid :: vis_fid) e;
+
+	Hashtbl.iter
+		(fun f_id (_, f_params, f_body) -> 
+			let proc = 
+				(if (f_id = new_fid) 
+					then generate_proc_eval new_fid e cc_tbl vis_fid
+					else 
+						(let vis_fid = try Hashtbl.find vis_tbl f_id 
+							with _ -> 
+								(let msg = Printf.sprintf "Function %s not found in visibility table" f_id in 
+								raise (Failure msg)) in 	
+						generate_proc f_body f_id f_params cc_tbl vis_fid)) in
+			let proc_eval_str = SSyntax_Print.string_of_lprocedure proc in 
+		  (* Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
+			let proc = SSyntax_Utils.desugar_labs proc in 
+			SProgram.add prog f_id proc; 
+			SSyntax_Utils.extend_which_pred which_pred proc)
+		new_fun_tbl; 
+	
+	let proc_eval = try SProgram.find prog new_fid with _ -> raise (Failure "no eval proc was created") in 
+	proc_eval 

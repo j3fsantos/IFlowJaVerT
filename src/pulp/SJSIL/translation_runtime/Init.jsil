@@ -334,6 +334,7 @@ proc setupInitialHeap () {
 			xret := "create_default_object" ($lstr_proto, $lobj_proto, "String", $$t);
 			
 			[$lstr_proto, "@primitiveValue"]   := "";
+			[$lstr_proto, "length"]            := {{ "d", 0, $$f, $$f, $$f }};
 			[$lstr_proto, "constructor"]       := {{ "d", $lstr, $$t, $$f, $$t }};
 			[$lstr_proto, "toString"]          := {{ "d", $lsp_toString, $$t, $$f, $$t }};
 			[$lstr_proto, "valueOf"]           := {{ "d", $lsp_valueOf, $$t, $$f, $$t }};

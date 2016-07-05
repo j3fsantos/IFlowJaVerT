@@ -77,13 +77,13 @@ with
 proc NP_toString (xsc, vthis, radix) {
 			goto [typeOf (vthis) = $$number_type] num ionum;
 	num:	xret := vthis;
-			goto rlab;
+			goto retstr;
 			
 	ionum:	goto [typeOf (vthis) = $$object_type] onum throw;
 	onum:	xret := [vthis, "@class"];
 			goto [xret = "Number"] retnum throw;
 	retnum:	xret := [vthis, "@primitiveValue"];
-			xret := num_to_string (xret);
+	retstr:	xret := num_to_string (xret);
 			
 	rlab:	skip;
 	

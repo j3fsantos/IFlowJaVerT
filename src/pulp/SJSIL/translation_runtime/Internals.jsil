@@ -1368,7 +1368,7 @@ proc i__checkAssignmentErrors (v) {
 	prep:	bv := base (v);
 			fv := field (v);
 			
-	csyn:	goto [(tv = $$v-reference_type) and ((fv = "eval") or (fv = "arguments"))] se cref;
+	csyn:	goto [((tv = $$v-reference_type) or (v = $lg)) and ((fv = "eval") or (fv = "arguments"))] se cref;
 	
 			(* Can anything else happen here? *)
 	cref:	goto [(bv = $$undefined)] re ctyp;
@@ -1393,6 +1393,34 @@ proc i__checkAssignmentErrors (v) {
 			
 	te:		xret := "TypeError" ();
 	
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *************** *) 
+(* CHECKPARAMETERS *)
+(* *************** *)
+
+proc i__checkParameters (fid, params) {
+
+			goto [(fid = "eval") or (fid = "arguments")] se pars;
+			
+	pars:	n := 0;
+			l := length (params);
+			
+	loop:	goto [n < l] head rlab;
+	head:	par := nth (params, n);
+			goto [(par = "eval") or (par = "arguments")] se next;
+	next:	n := n + 1;
+			goto loop;
+			
+	rlab:	xret := $$t;
+	
+	se:		xret := "SyntaxError" ();
 	elab:	skip
 }
 with

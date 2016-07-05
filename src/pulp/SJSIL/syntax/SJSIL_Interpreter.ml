@@ -709,57 +709,48 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 		let str_e = (evaluate_expr str_e store) in
 		(match str_e with
 		| String code ->
-				let code = Str.global_replace (Str.regexp (Str.quote "\\\"")) "\"" code in
-				Printf.printf "\n%s\n" code;
-		(let x_scope = 
-			(match SSyntax_Aux.try_find store (Js2jsil.var_scope)  with 
-			| None -> raise (Failure "No var_scope to give to eval")
-			| Some v -> v) in 
-		let vis_fid, cc_tbl = 
-			(match vis_tbl, cc_tbl with 
-			| Some vis_tbl, Some cc_tbl -> 
-				(try Hashtbl.find vis_tbl cur_proc_name with _ ->
-					raise (Failure (Printf.sprintf "Function %s not found in visibility table" cur_proc_name))), cc_tbl
-			| _, _ -> raise (Failure "Wrong call to eval. Whatever.")
-			) in 
-		let e_js = (try Some (Parser_main.exp_from_string code) with
-		  | _ -> None) in 
-		
-		match e_js with 
-		| None -> (
-				let v = 
-				(match SSyntax_Aux.try_find store (Js2jsil.var_se) with 
-			    | None -> raise (Failure "No Syntax Error for you, no noooo!")
-			    | Some v -> v) in 				
-				(match j with
-			    | None -> raise (Failure ("Procedure "^ cur_proc_name ^" just returned an error, but no error label was provided. Bad programmer."))
-			    | Some j -> 
-						Hashtbl.replace store x v;
-						evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd (Some cc_tbl) vis_tbl))
-		| Some e_js -> (
-				
-		let proc_eval = Js2jsil.generate_proc_eval cur_proc_name e_js cc_tbl vis_fid in 
-		let proc_eval_str = SSyntax_Print.string_of_lprocedure proc_eval in 
-		(* Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
-		let proc_eval = SSyntax_Utils.desugar_labs proc_eval in 
-		SSyntax_Utils.extend_which_pred which_pred proc_eval; 
-		SProgram.add prog proc_eval.proc_name proc_eval;
-		let new_store = init_store [ Js2jsil.var_scope ] [ x_scope ] in
-		(match evaluate_cmd prog proc_eval.proc_name which_pred heap new_store 0 0 (Some cc_tbl) vis_tbl with 
-		| Normal, v -> 
-			Hashtbl.replace store x v;
-			SProgram.remove prog proc_eval.proc_name;
-	 		evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd (Some cc_tbl) vis_tbl
-		| Error, v -> 
-			match proc.error_label with 
-			| None -> raise (Failure "procedure throws an error without a ret label") 
-			| Some err_label ->
-				Hashtbl.replace store x v;
-				evaluate_cmd prog cur_proc_name which_pred heap store err_label cur_cmd (Some cc_tbl) vis_tbl)))
+				(let code = Str.global_replace (Str.regexp (Str.quote "\\\"")) "\"" code in
+				(* Printf.printf "\n%s\n" code; *)
+				let x_scope, x_this = 
+					(match SSyntax_Aux.try_find store (Js2jsil.var_scope), SSyntax_Aux.try_find store (Js2jsil.var_this)  with 
+					| Some x_scope, Some x_this -> x_scope, x_this
+					| _, _ -> raise (Failure "No var_scope or var_this to give to eval")) in 
+				let e_js = (try Some (Parser_main.exp_from_string code) with _ -> None) in 
+					match e_js with 
+					| None -> 
+						(match SSyntax_Aux.try_find store (Js2jsil.var_se), j with
+						| Some v, Some j -> 
+							Hashtbl.replace store x v;
+							evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl
+						| _, None -> raise (Failure ("Procedure "^ cur_proc_name ^" just returned an error, but no error label was provided. Bad programmer."))
+						| _, _ -> raise (Failure "No Syntax Error for you, no noooo!"))		 
+					| Some e_js -> 
+						(let is_legal_expr = Js_pre_processing.is_expr_free_of_eval_arguments_vars e_js in 
+						match is_legal_expr with 
+							| false -> 
+								(match j with 
+								| None -> raise (Failure "procedure throws an error without a ret label") 
+								| Some j ->
+									let v = try Hashtbl.find store Js2jsil.var_se with _ -> raise (Failure "eval no syntax error") in 
+									Hashtbl.replace store x v;
+									evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl)
+							| true -> 
+								(let proc_eval = Js2jsil.js2jsil_eval prog which_pred cc_tbl vis_tbl cur_proc_name e_js in 
+								let new_store = init_store [ Js2jsil.var_scope; Js2jsil.var_this ] [ x_scope; x_this ] in
+								match evaluate_cmd prog proc_eval.proc_name which_pred heap new_store 0 0 cc_tbl vis_tbl with 
+								| Normal, v -> 
+									Hashtbl.replace store x v;
+									SProgram.remove prog proc_eval.proc_name;
+	 								evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
+								| Error, v -> 
+									match j with 
+									| None -> raise (Failure "procedure throws an error without a ret label") 
+									| Some j ->
+										Hashtbl.replace store x v;
+										evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl)))
 		
 		| _ -> Hashtbl.replace store x str_e;
-					 evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
-		)
+					 evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl)
 	
 	| SCall (x, e, e_args, j) -> 
 		(* Printf.printf "Nothing was intercepted!!!\n"; *)
@@ -847,7 +838,7 @@ evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vi
 					                      | None -> raise (Failure "No no!") 
 																| Some err_var -> err_var) in
 				         (try (Hashtbl.find store err_var) with
-				| _ -> raise (Failure (Printf.sprintf "Cannot find error variable." )))) in
+				| _ -> raise (Failure (Printf.sprintf "Cannot find error variable in proc %s, err_lab = %d, err_var = %s, cmd = %s" proc.proc_name cur_cmd err_var (SSyntax_Print.string_of_cmd proc.proc_body.(prev_cmd)  0 0 false false false))))) in
 			if (!verbose) then Printf.printf ("Procedure %s returned: Error, %s\n") cur_proc_name (SSyntax_Print.string_of_literal err_value false);
 			Error, err_value)
 		else (
@@ -871,7 +862,10 @@ evaluate_phi_psi_cmd prog proc which_pred heap store cur_cmd prev_cmd ac_cur_cmd
 		| None -> Undefined 
 		| Some x_live -> 
 			(match SSyntax_Aux.try_find store x_live with 
-			| None -> raise (Failure (Printf.sprintf "Variable %s not found in the store" x_live))
+			| None -> 
+				let cur_cmd_str = SSyntax_Print.string_of_cmd proc.proc_body.(cur_cmd) 0 0 false false false in 
+				let prev_cmd_str = SSyntax_Print.string_of_cmd proc.proc_body.(prev_cmd) 0 0 false false false in 
+				raise (Failure (Printf.sprintf "Variable %s not found in the store. Cur_which_pred: %d. cur_cmd: %s. prev_cmd: %s" x_live cur_which_pred cur_cmd_str prev_cmd_str))
 			| Some v -> v)) in 
 		if (!verbose) then Printf.printf "PHI-Assignment: %s : %d/%d : %s := %s\n" 
 		   (match x_live with

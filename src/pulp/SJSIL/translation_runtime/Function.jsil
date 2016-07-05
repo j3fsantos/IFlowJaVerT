@@ -38,7 +38,7 @@ proc FP_call () {
 			goto [xret] this te;
 	
 	this:	xthis := $$undefined;
-			goto [len < 3] body sthis;
+			goto [len < 3] params sthis;
 	sthis:	xthis := nth (arguments, 2);
 	
 	params:	pars := {{ }};
