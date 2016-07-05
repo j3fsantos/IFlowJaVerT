@@ -358,7 +358,7 @@ with
 (* *** PUSH *** *)
 proc AP_push() {
 			arguments := args;
-			vthis  := nth (arguments, 1);
+			vthis := nth (arguments, 1);
 			
 			xret := "i__toObject" (vthis) with elab;
 			vthis := xret;
@@ -455,7 +455,7 @@ with
 (* *** CONCAT *** *)
 proc AP_concat() {
 			arguments := args;
-			vthis  := nth (arguments, 1);
+			vthis := nth (arguments, 1);
 			
 			xret := "i__toObject" (vthis) with elab;
 			vthis := xret;
@@ -590,9 +590,50 @@ with
 };
 
 (* *** SHIFT *** *)
-(*
 proc AP_shift(xsc, vthis) {
-
+			xret := "i__toObject" (vthis) with elab;
+			vthis := xret;
+			
+			g := [vthis, "@get"];
+			xret := g (vthis, "length") with elab;
+			xret := "i__toUint32" (xret) with elab;
+			len := xret;
+			
+			p := [vthis, "@put"];
+			goto [len = 0] zero nz;
+			
+	zero:	xret := p (vthis, "length", 0, $$t) with elab;
+			xret := $$undefined;
+			goto rlab;
+	
+	nz:		xret := g (vthis, "0") with elab;
+			first := xret;
+			
+			k := 1;
+			d := [vthis, "@deleteProperty"];
+	loop:	goto [k < len] less end;
+	less:	xret := "i__toString" (k) with elab;
+			from := xret;
+			kk := k - 1;
+			xret := "i__toString" (kk) with elab;
+			to := xret;
+			hp := [vthis, "@hasProperty"];
+			xret := hp (vthis, from) with elab;
+			goto [xret] t f;
+			
+	t:		xret := g (vthis, from) with elab;
+			xret := p (vthis, to, xret, $$t) with elab;
+			goto inc;
+	
+	f:		xret := d (vthis, to, $$t) with elab;
+	inc:	k := k + 1;
+			goto loop;
+	
+	end:	len := len - 1;
+			xret := "i__toString" (len) with elab;
+			xret := d (vthis, xret, $$t) with elab;
+			xret := p (vthis, "length", len, $$t) with elab;
+			xret := first;
 
 	rlab:	skip;
 	elab:	skip
@@ -601,26 +642,312 @@ with
 {
 	ret: 	xret, rlab;
 	err: 	xret, elab;
+};
+
+(* *** SLICE *** *)
+proc AP_slice(xsc, vthis, start, end) {
+			xret := "i__toObject" (vthis) with elab;
+			vthis := xret;
+			
+			xret := "Array_construct" () with elab;
+			A := xret;			
+			
+			g := [vthis, "@get"];
+			xret := g (vthis, "length") with elab;
+			xret := "i__toUint32" (xret) with elab;
+			len := xret;
+			
+			xret := "i__toInteger" (start) with elab;
+			rs := xret;
+			
+	if1:	goto [rs < 0] if1t if1f;
+	if1t:	lrs := len + rs;
+			goto [not (lrs < 0)] gr ls;		
+	gr:		k := lrs;
+			goto if2;
+	ls:		k := 0;
+			goto if2;
+			
+	if1f:	goto [rs <= len] ls1 gr1;
+	gr1:	k := len;
+			goto if2;
+	ls1:	k := rs;
+
+	if2:	goto [end = $$undefined] if2t if2f;
+	if2t:	re := len;
+			goto if3;
+	if2f:	xret := "i__toInteger" (end) with elab;
+			re := xret;
+	
+	if3:	goto [re < 0] if3t if3f;
+	
+	if3t:	lre := len + re;
+			goto [not (lre < 0)] gr2 ls2;
+	gr2:	final := lre;
+			goto setn;
+	ls2:	final := 0;
+			goto setn;
+	
+	if3f:	goto [re <= len] ls3 gr3;
+	ls3:	final := re;
+			goto setn;
+	gr3:	final := len;
+	
+	setn:	n := 0;
+	loop:	goto [k < final] next end;
+	
+	next:	xret := "i__toString" (k) with elab;
+			pk := xret;
+			
+			hp := [vthis, "@hasProperty"];
+			xret := hp (vthis, pk) with elab;
+			kpres := xret;
+			goto [kpres] tt ff;
+			
+	tt:		xret := g (vthis, pk) with elab;
+			kval := xret;
+			xret := "i__toString" (n) with elab;
+			strn := xret;
+			xret := "a__defineOwnProperty" (A, strn, {{ "d", kval, $$t, $$t, $$t }}, $$f) with elab;
+			
+	ff:		k := k + 1;
+			n := n + 1;
+			goto loop;
+		
+	end:	xret := A;
+	
+	rlab:	skip;
+	elab:	skip
 }
-*)
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
 
+(* *** UNSHIFT *** *)
+proc AP_unshift() {
+			arguments := args;
+			vthis := nth (arguments, 1);
+			
+			xret := "i__toObject" (vthis) with elab;
+			vthis := xret;
+			
+			g := [vthis, "@get"];
+			xret := g (vthis, "length") with elab;
+			xret := "i__toUint32" (xret) with elab;
+			len := xret;
+			k := len;
+			
+			num := length (arguments);
+			argc := num - 2;
+			p := [vthis, "@put"];
+			
+	loop1:	goto [not (k <= 0)] next1 end1;
+	next1:	xret := k - 1;
+			xret := "i__toString" (xret) with elab;
+			from := xret;
+			
+			xret := k + argc;
+			xret := xret - 1;
+			xret := "i__toString" (xret) with elab;
+			to := xret;
+			
+			hp := [vthis, "@hasProperty"];
+			xret := hp (vthis, from) with elab;
+			fromp := xret;
+			
+			goto [fromp] fpt fpf;
+			
+	fpt:	xret := g (vthis, from) with elab;
+			fromv := xret;
+			xret := p (vthis, to, fromv, $$t) with elab;
+			goto dec;
+	
+	fpf:	d := [vthis, "@deleteProperty"];
+			xret := d (vthis, to, $$t) with elab;
+	
+	dec:	k := k - 1;
+			goto loop1;
+			
+	end1:	j := 0;
+			nm := 2;
+			
+	loop:	goto [nm < num] next end;
+	next:	elem := nth(arguments, nm);
+			xret := "i__toString" (j) with elab;
+			strj := xret;
+			xret := p (vthis, strj, elem, $$t) with elab;
+			j := j + 1;
+			nm := nm + 1;
+			goto loop;
+	
+	end:	lac := len + argc;
+			xret := p (vthis, "length", lac, $$t) with elab;
+			xret := lac;
 
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
 
+(* *** SPLICE *** *)
+proc AP_splice() {
+			arguments := args;
+			vthis := nth (arguments, 1);
+			start := nth (arguments, 2);
+			deleteCount := nth (arguments, 3);
+			
+			xret := "i__toObject" (vthis) with elab;
+			vthis := xret;
+			
+			xret := "Array_construct" () with elab;
+			A := xret;
 
+			g := [vthis, "@get"];
+			xret := g (vthis, "length") with elab;
+			xret := "i__toUint32" (xret) with elab;
+			len := xret;
+			hp := [vthis, "@hasProperty"];
+			p := [vthis, "@put"];
+			d := [vthis, "@deleteProperty"];
+			
+			xret := "i__toInteger" (start) with elab;
+			rs := xret;
+			
+			goto [rs < 0] ift iff;
+	ift:	lrs := len + rs;
+			goto [not (lrs < 0)] gr ls;		
+	gr:		acs := lrs;
+			goto delc;
+	ls:		acs := 0;
+			goto delc;
+			
+	iff:	goto [rs <= len] ls1 gr1;
+	gr1:	acs := len;
+			goto delc;
+	ls1:	acs := rs;
 
+	delc:	xret := "i__toInteger" (deleteCount) with elab;
+			dc := xret;
+			goto [not (dc < 0)] gr2 ls2;		
+	gr2:	max := dc;
+			goto min;
+	ls2:	max := 0;
+	min:	las := len - acs;
+			goto [max <= las] ls3 gr3;
+	ls3:	adc := max;
+			goto cont;
+	gr3:	adc := las;
+	cont:	k := 0;
+	loop1:	goto [k < adc] next1 end1;
+	next1:	ask := acs + k;
+			xret := "i__toString" (ask) with elab;
+			from := xret;
+			xret := hp (vthis, from) with elab;
+			fromp := xret;
+			goto [fromp] fpt fpf;
+			
+	fpt:	xret := g (vthis, from) with elab;
+			fromv := xret;
+			xret := "i__toString" (k) with elab;
+			strk := xret;
+			xret := "a__defineOwnProperty" (A, strk, {{ "d", fromv, $$t, $$t, $$t }}, $$f) with elab;
+	
+	fpf:	k := k + 1;
+			goto loop1;
+	
+	end1:	num := length (arguments);
+			itemc := num - 4;
+			ladcic := len - adc;
+			ladcic := ladcic + itemc;
+			goto [itemc < adc] less nless;
+			
+	less:	k := acs;
+			ladc := len - adc;
+	loop2:	goto [k < ladc] next2 end2;
+	next2:	kadc := k + adc;
+			xret := "i__toString" (kadc) with elab;
+			from := xret;
+			kic := k + itemc;
+			xret := "i__toString" (kic) with elab;
+			to := xret;
+			xret := hp (vthis, from) with elab;
+			fromp := xret;
+			goto [fromp] fptt fpff;
+			
+	fptt:	xret := g (vthis, from) with elab;
+			fromv := xret;
+			xret := p (vthis, to, fromv, $$t) with elab;
+			goto cont1;
+	fpff:	xret := d (vthis, to, $$t) with elab;
+	cont1:	k := k + 1;
+			goto loop2;
+	
+	end2:	k := len;
+			
+	loop3:	goto [not (k <= ladcic)] next3 end3;
+	next3:	k1 := k - 1;
+			xret := "i__toString" (k1) with elab;
+			k1 := xret;
+			xret := d (vthis, k1, $$t) with elab;
+			k := k - 1;
+			goto loop3;
+	
+	nless:	goto [not (itemc <= adc)] more end3;
+	
+	more:	k := len - adc;
+	loop4:	goto [not (k <= acs)] next4 end3;
+	next4:	kadc1 := k + adc;
+			kadc1 := kadc1 - 1;
+			xret := "i__toString" (kadc1) with elab;
+			from := xret;
+			kic1 := k + itemc;
+			kic1 := kic1 - 1;
+			xret := "i__toString" (kic1) with elab;
+			to := xret;
+			xret := hp (vthis, from) with elab;
+			fromp := xret;
+			goto [fromp] fpttt fpfff;
+	fpttt:	xret := g (vthis, from) with elab;
+			fromv := xret;
+			xret := p (vthis, to, fromv, $$t) with elab;
+			goto dec;
+	
+	fpfff:	xret := d (vthis, to, $$t) with elab;
+			
+	dec:	k := k - 1;
+			goto loop4;
 
+	end3:	k := acs;
+			nm := 4;
+	loop5:	goto [nm < num] next5 end5;
+	
+	next5:	elem := nth (arguments, nm);
+			xret := "i__toString" (k) with elab;
+			strk := xret;
+			xret := p (vthis, strk, elem, $$t) with elab;
+			k := k + 1;
+			nm := nm + 1;
+			goto loop5;
+	
+	end5:	xret := p (vthis, "length", ladcic, $$t) with elab;
+			xret := A;
 
-
-
-
-
-
-
-
-
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
 
 (* *** INDEXOF *** *)
-(*
 proc AP_indexOf() {
 			arguments := args;
 			vthis  := nth (arguments, 1);
@@ -643,4 +970,5 @@ with
 	ret: 	xret, rlab;
 	err: 	xret, elab;
 }
-*)
+
+
