@@ -425,12 +425,7 @@ let translate_function_literal fun_id params vis_fid err =
 		
 	(* x_f := create_function_object(x_sc, f_id, params) *)
 	let x_f = fresh_fun_var () in 
-	let processed_params = 
-		List.fold_left
-			(fun ac param -> (String param) :: ac) 
-			[]
-			params in 
-	let processed_params = List.rev processed_params in 
+	let processed_params = List.map (fun p -> String p) params in
 	let cmd = SLCall (x_f, Literal (String createFunctionObjectName), 
 		[ (Var x_sc); (Literal (String fun_id)); (Literal (String fun_id)); (Literal (LList processed_params)) ], None) in 	
 		
@@ -2468,13 +2463,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 		let f_id = try Js_pre_processing.get_codename e 
 			with _ -> raise (Failure "named function literals should be annotated with their respective code names") in
 			
-		let processed_params = 
-			List.fold_left
-				(fun ac param -> (String param) :: ac) 
-				[]
-				params in 
-		let processed_params = List.rev processed_params in 
-		
+		let processed_params = List.map (fun p -> String p) params in
 		let x_t = fresh_var () in
 		let cmd_errCheck = SLCall (x_t, Literal (String checkParametersName), 
 			[ (Literal (String f_name)); (Literal (LList processed_params)) ], Some err) in
