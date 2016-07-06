@@ -76,6 +76,10 @@ proc create_function_object (xsc, call, construct, params) {
 			prototype := "Object_construct" ();
 			[prototype, "constructor"] := {{ "d", l, $$t, $$f, $$t }};
 			[l, "prototype"] := {{ "d", prototype, $$t, $$f, $$f }};
+
+			(* Strict mode only *)
+			[l, "caller"] := {{ "a", $lthrow_type_error, $lthrow_type_error, $$f, $$f }};
+			[l, "arguments"] := {{ "a", $lthrow_type_error, $lthrow_type_error, $$f, $$f }};
 			
 			xret := l;
 			
@@ -750,6 +754,15 @@ proc setupInitialHeap () {
 			[$lserr_proto,  "message"]    := {{ "d", "", $$t, $$f, $$t }};
 			[$lterr_proto,  "message"]    := {{ "d", "", $$t, $$f, $$t }};
 			[$luerr_proto,  "message"]    := {{ "d", "", $$t, $$f, $$t }};
+
+			(* 13.2.3 The [[ThrowTypeError]] Function Object *)
+			(* Note, this object does not follow the standard Function object construction *)
+			xret := "create_default_object" ($lthrow_type_error, $lfun_proto, "Function", $$f);
+			[xret, "@scope"] := $$empty;
+			[xret, "@formalParameters"] := {{ }};
+			[xret, "@call"] := "ThrowTypeError";
+			[xret, "length"] := {{ "d", 0, $$f, $$f, $$f }};
+
 
 	rlab:	xret := $$empty
 }

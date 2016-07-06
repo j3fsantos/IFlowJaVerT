@@ -274,4 +274,16 @@ with
 {
 	ret: 	xret, rlab;
 	err: 	xret, elab;
+};
+
+(* 13.2.3.8 [[ThrowTypeError]] *)
+proc ThrowTypeError (xsc, vthis) {
+		xerr := "TypeError_call" ($$undefined, $$undefined, "Attempt to access function `caller` or `arguments`");
+	elab:	skip;
+	eret:	skip
+}
+with
+{
+	ret: xerr, eret;
+	err: xerr, elab;
 }
