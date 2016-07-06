@@ -4,6 +4,8 @@ open Batteries
 
 exception CannotHappen
 exception No_Codename
+exception EarlyError of string
+
 
 let sanitise name = 
 	let s = Str.global_replace (Str.regexp "\$") "_" name in
@@ -745,5 +747,5 @@ match e.exp_stx with
 	| _ -> raise (Failure "unsupported construct by Petar M.")
 
 let test_early_errors e =
-  test_func_decl_in_block e ||
-  is_expr_free_of_eval_arguments_vars e
+  if test_func_decl_in_block e then raise (EarlyError "Function declaration in statement position.");
+  if not (is_expr_free_of_eval_arguments_vars e) then raise (EarlyError "Expression assigns to `eval` or `arguments`.")
