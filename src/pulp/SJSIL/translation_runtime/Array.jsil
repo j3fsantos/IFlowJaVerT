@@ -953,6 +953,9 @@ with
 proc AP_indexOf() {
 			arguments := args;
 			vthis  := nth (arguments, 1);
+			selem := nth (arguments, 2);
+			
+			num := length (arguments);
 			
 			xret := "i__toObject" (vthis) with elab;
 			vthis := xret;
@@ -962,8 +965,119 @@ proc AP_indexOf() {
 			xret := "i__toUint32" (xret) with elab;
 			len := xret;
 
+			goto [len = 0] neg1 next;
+			
+	next:	goto [not (num <= 3)] em nem;
+	
+	em:		n := 0;
+			goto nlen;
+	
+	nem:	fi := nth (arguments, 3);
+			xret := "i__toInteger" (fi) with elab; 
+			n := xret;
+	
+	nlen:	goto [not (n < len)] neg1 next2;
+	
+	next2:	goto [n < 0] else if;
+	
+	if:		k := n;
+			goto loop;
+	
+	else:	k := m_abs n;
+			k := len - k;
+			goto [k < 0] zero loop;
+	
+	zero:	k := 0;
+			hp := [vthis, "@hasProperty"];
+			g := [vthis, "@get"];
+	
+	loop:	goto [k < len] lp neg1;
+	
+	lp:		xret := "i__toString" (k) with elab;
+			strk := xret;
+			xret := hp (vthis, strk) with elab;
+			kpres := xret;
+			
+			goto [kpres] next3 end;
+	
+	next3:	xret := g (vthis, strk) with elab;
+			elemk := xret;
+			
+			xret := "i__strictEquality" (selem, elemk) with elab;
+			goto [xret] r end;
+			
+	r:		xret := k;
+			goto rlab;
+	
+	end:	k := k + 1;
+			goto loop;
+	
+	neg1:	xret := -1;
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
 
+(* *** LASTINDEXOF *** *)
+proc AP_lastIndexOf() {
+			arguments := args;
+			vthis  := nth (arguments, 1);
+			selem := nth (arguments, 2);
+			
+			num := length (arguments);
+			
+			xret := "i__toObject" (vthis) with elab;
+			vthis := xret;
+			
+			g := [vthis, "@get"];
+			xret := g (vthis, "length") with elab;
+			xret := "i__toUint32" (xret) with elab;
+			len := xret;
 
+			goto [len = 0] neg1 next;
+	next:	goto [not (num <= 3)] em nem;
+	
+	em:		n := len - 1;
+			goto nlen;
+	
+	nem:	fi := nth (arguments, 3);
+			xret := "i__toInteger" (fi) with elab; 
+			n := xret;
+	nlen:	goto [n < 0] else if;
+	if:		len1 := len - 1;
+			goto [n <= len1] ls gr;
+	ls:		k := n;
+			goto loop;
+	gr:		k := len1;
+			goto loop;
+	else:	k := m_abs n;
+			k := len - k;
+			
+	loop:	goto [not (k < 0)] lp neg1;
+	lp:		hp := [vthis, "@hasProperty"];
+			xret := "i__toString" (k) with elab;
+			strk := xret;
+			xret := hp (vthis, strk) with elab;
+			kpres := xret;
+			goto [kpres] tt ff;
+			
+	tt:		g := [vthis, "@get"];
+			xret := g (vthis, strk) with elab;
+			elemk := xret;
+			xret := "i__strictEquality" (selem, elemk) with elab;
+			goto [xret] r ff;
+	r:		xret := k;
+			goto rlab;
+	
+	ff:		k := k - 1;
+			goto loop;
+			
+	neg1:	xret := -1;	
+			
 	rlab:	skip;
 	elab:	skip
 }
@@ -972,5 +1086,3 @@ with
 	ret: 	xret, rlab;
 	err: 	xret, elab;
 }
-
-
