@@ -76,73 +76,64 @@ let test_func_decl_in_block exp =
     | NamedFun _ -> in_block
   in f true exp
 
-let rec get_all_identifiers exp = 
-  let f = get_all_identifiers in 
-  let fo e = match e with None -> [] | Some e -> f e in 
-  match exp.exp_stx with
-  | Num _
-  | String _
-  | Null 
-  | Bool _ 
-  | Var _
-  | RegExp _ 
-  | This
-  | Skip 
-  | Return None
-  | Break _
-  | Continue _ 
-  | Debugger -> [] 
-  | VarDec vars -> 
-		flat_map (fun ve -> match ve with (v, None) -> [v] | (v, Some e)  -> v :: (f e)) vars 
-  | Throw e
-  | Delete e
-  | Return (Some e) 
-  | Access (e, _) 
-  | Unary_op (_, e) 
-  | Label (_, e) -> f e
-  | While (e1, e2) 
-  | DoWhile (e1, e2)
-  | BinOp (e1, _, e2)
-  | Assign (e1, e2)  
-  | AssignOp (e1, _, e2) 
-  | CAccess (e1, e2) 
-  | Comma (e1, e2) 
-  | With (e1, e2) 
-  | Try (e1, None, Some e2)
-  | If (e1, e2, None) -> (f e1) @ (f e2)
-  | If (e1, e2, Some e3) 
-  | ForIn (e1, e2, e3) 
-  | Try (e1, Some (_, e2), Some e3) 
-  | ConditionalOp (e1, e2, e3) -> (f e1) @ (f e2) @ (f e3)
-	| Try (e1, Some (n, e2), None) -> n :: ((f e1) @ (f e2))
-  | For (e1, e2, e3, e4) -> 
-    (fo e1) @ (fo e2) @ (fo e3) @ (f e4)
-  | Call (e1, e2s) 
-  | New (e1, e2s) -> (f e1) @ (flat_map (fun e2 -> f e2) e2s)
-  | AnonymousFun (_,vs, e) -> vs @ (f e) 
-  | NamedFun (_,n, vs, e) -> n :: (vs @ (f e)) 
-  | Obj xs -> flat_map (fun (_,_,e) -> f e) xs 
-  | Array es -> flat_map (fun e -> match e with None -> [] | Some e -> f e) es
-  | Try (_, None, None) -> raise CannotHappen
-  | Switch (e1, e2s) -> 
-		(f e1) @ (flat_map (fun (e2, e3) ->
-      (match e2 with
-        | Case e2 -> f e2
-        | DefaultCase -> []) @ (f e3)
-     ) e2s)
-  | Block es
-  | Script (_, es) -> flat_map f es
+let get_all_assigned_declared_identifiers exp =
+  let rec fo is_lhs e = match e with None -> [] | Some e -> f is_lhs e
+  and f is_lhs exp =
+    match exp.exp_stx with
+    (* Special Cases *)
+    | Var v -> if is_lhs then [v] else []
+    | VarDec vars -> flat_map (fun ve -> match ve with (v, None) -> [v] | (v, Some e)  -> v :: (f false e)) vars
+    | Unary_op (op, e) -> (match op with Pre_Decr | Post_Decr | Pre_Incr | Post_Incr -> f true e | _ -> [])
+    | Delete e -> (f true e)
+    | Assign (e1, e2)
+    | AssignOp (e1, _, e2) -> (f true e1) @ (f false e2)
+    | Try (e1, eo2, eo3) -> (f false e1) @
+                            BatOption.map_default (fun (id, e) -> id :: (f false e)) [] eo2 @
+                            (fo false eo3)
+    | ForIn (e1, e2, e3) -> (f true e1) @ (f false e2) @ (f false e3)
+    | AnonymousFun (_, vs, e) -> vs @ (f false e)
+    | NamedFun (_, n, vs, e) -> n :: (vs @ (f false e))
 
-let is_expr_free_of_eval_arguments_vars exp = 
-	let identifiers = get_all_identifiers exp in 
-	let rec loop identifiers = 
-		(match identifiers with 
-		| [] -> true
-		| var :: rest -> 
-			(if ((var = "eval") or (var = "arguments")) 
-			then false 
-			else loop rest)) in 
-	loop identifiers 
+    (* Boring Cases *)
+    | Num _
+    | String _
+    | Null
+    | Bool _
+    | RegExp _
+    | This
+    | Skip
+    | Break _
+    | Continue _
+    | Debugger -> []
+    | Throw e
+    | Access (e, _)
+    | Label (_, e) -> f false e
+    | Return eo -> fo false eo
+    | While (e1, e2)
+    | DoWhile (e1, e2)
+    | BinOp (e1, _, e2)
+    | CAccess (e1, e2)
+    | Comma (e1, e2)
+    | With (e1, e2)              -> (f false e1) @ (f false e2)
+    | ConditionalOp (e1, e2, e3) -> (f false e1) @ (f false e2) @ (f false e3)
+    | If (e1, e2, eo3)           -> (f false e1) @ (f false e2) @ (fo false eo3)
+    | For (eo1, eo2, eo3, e4)    -> (fo false eo1) @ (fo false eo2) @ (fo false eo3) @ (f false e4)
+    | Call (e1, e2s)
+    | New (e1, e2s)              -> (f false e1) @ (flat_map (fun e2 -> f false e2) e2s)
+    | Obj xs                     -> flat_map (fun (_,_,e) -> f false e) xs
+    | Array es                   -> flat_map (fo false) es
+
+    | Switch (e1, e2s) -> (f false e1) @ (flat_map
+        (fun (e2, e3) -> (match e2 with | Case e2 -> f false e2 | DefaultCase -> []) @ (f false e3))
+      e2s)
+
+    | Block es
+    | Script (_, es) -> flat_map (f is_lhs) es
+
+  in f false exp
+
+let test_expr_eval_arguments_assignment exp =
+  List.exists (fun it -> it = "eval" || it = "arguments") (get_all_assigned_declared_identifiers exp)
 
 let rec var_decls_inner exp = 
   let f = var_decls_inner in 
@@ -748,4 +739,4 @@ match e.exp_stx with
 
 let test_early_errors e =
   if test_func_decl_in_block e then raise (EarlyError "Function declaration in statement position.");
-  if not (is_expr_free_of_eval_arguments_vars e) then raise (EarlyError "Expression assigns to `eval` or `arguments`.")
+  if test_expr_eval_arguments_assignment e then raise (EarlyError "Expression assigns to `eval` or `arguments`.")

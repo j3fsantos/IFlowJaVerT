@@ -4427,6 +4427,8 @@ let js2jsil e =
 
 
 let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e = 
+	Js_pre_processing.test_early_errors e;
+
 	let vis_tbl, cc_tbl, vis_fid = 
 		(match vis_tbl, cc_tbl with 
 		| Some vis_tbl, Some cc_tbl -> 
