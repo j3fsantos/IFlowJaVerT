@@ -965,9 +965,10 @@ proc AP_indexOf() {
 			xret := "i__toUint32" (xret) with elab;
 			len := xret;
 
+			hp := [vthis, "@hasProperty"];
 			goto [len = 0] neg1 next;
 			
-	next:	goto [not (num <= 3)] em nem;
+	next:	goto [num <= 3] em nem;
 	
 	em:		n := 0;
 			goto nlen;
@@ -988,7 +989,6 @@ proc AP_indexOf() {
 			goto [k < 0] zero loop;
 	
 	zero:	k := 0;
-			hp := [vthis, "@hasProperty"];
 			g := [vthis, "@get"];
 	
 	loop:	goto [k < len] lp neg1;
@@ -1037,9 +1037,10 @@ proc AP_lastIndexOf() {
 			xret := g (vthis, "length") with elab;
 			xret := "i__toUint32" (xret) with elab;
 			len := xret;
-
+			
 			goto [len = 0] neg1 next;
-	next:	goto [not (num <= 3)] em nem;
+			
+	next:	goto [num <= 3] em nem;
 	
 	em:		n := len - 1;
 			goto nlen;
@@ -1047,6 +1048,7 @@ proc AP_lastIndexOf() {
 	nem:	fi := nth (arguments, 3);
 			xret := "i__toInteger" (fi) with elab; 
 			n := xret;
+			
 	nlen:	goto [n < 0] else if;
 	if:		len1 := len - 1;
 			goto [n <= len1] ls gr;
@@ -1054,6 +1056,7 @@ proc AP_lastIndexOf() {
 			goto loop;
 	gr:		k := len1;
 			goto loop;
+			
 	else:	k := m_abs n;
 			k := len - k;
 			
@@ -1085,4 +1088,251 @@ with
 {
 	ret: 	xret, rlab;
 	err: 	xret, elab;
+};
+
+(* *** EVERY *** *)
+proc AP_every() {
+			arguments := args;
+			vthis  := nth (arguments, 1);
+			cbf := nth (arguments, 2);
+			
+			num := length (arguments);
+			
+			xret := "i__toObject" (vthis) with elab;
+			vthis := xret;
+			
+			g := [vthis, "@get"];
+			xret := g (vthis, "length") with elab;
+			xret := "i__toUint32" (xret) with elab;
+			len := xret;
+			
+			xret := "i__isCallable" (cbf);
+			goto [xret] cont throw;
+			
+	cont:	goto [num <= 3] undef def;
+	
+	def:	t := nth (arguments, 3);
+			goto setk;
+	undef:	t := $$undefined;
+	
+	setk:	k := 0;
+			hp := [vthis, "@hasProperty"];
+	loop:	goto [k < len] next end;
+	
+	next:	xret := "i__toString" (k) with elab;
+			pk := xret;
+			xret := hp (vthis, pk) with elab;
+			kpres := xret;
+			goto [kpres] tt ff;
+			
+	tt:		xret := g (vthis, pk) with elab;
+			kval := xret;
+			scp := [cbf, "@scope"];
+			fun := [cbf, "@call"];
+			xret := fun (scp, t, kval, k, vthis) with elab;
+			tr := xret;
+			xret := "i__toBoolean" (tr) with elab;
+			goto [xret] ff retf;
+			
+	retf:	xret := $$f;
+			goto rlab;
+	
+	ff:		k := k + 1;
+			goto loop;
+	
+	end:	xret := $$t;
+
+	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
+	elab:	skip
 }
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
+
+(* *** SOME *** *)
+proc AP_some() {
+			arguments := args;
+			vthis  := nth (arguments, 1);
+			cbf := nth (arguments, 2);
+			
+			num := length (arguments);
+			
+			xret := "i__toObject" (vthis) with elab;
+			vthis := xret;
+			
+			g := [vthis, "@get"];
+			xret := g (vthis, "length") with elab;
+			xret := "i__toUint32" (xret) with elab;
+			len := xret;
+			
+			xret := "i__isCallable" (cbf);
+			goto [xret] cont throw;
+			
+	cont:	goto [num <= 3] undef def;
+	
+	def:	t := nth (arguments, 3);
+			goto setk;
+	undef:	t := $$undefined;
+	
+	setk:	k := 0;
+			hp := [vthis, "@hasProperty"];
+	loop:	goto [k < len] next end;
+	
+	next:	xret := "i__toString" (k) with elab;
+			pk := xret;
+			xret := hp (vthis, pk) with elab;
+			kpres := xret;
+			goto [kpres] tt ff;
+			
+	tt:		xret := g (vthis, pk) with elab;
+			kval := xret;
+			scp := [cbf, "@scope"];
+			fun := [cbf, "@call"];
+			xret := fun (scp, t, kval, k, vthis) with elab;
+			tr := xret;
+			xret := "i__toBoolean" (tr) with elab;
+			goto [xret] rett ff;
+			
+	rett:	xret := $$t;
+			goto rlab;
+	
+	ff:		k := k + 1;
+			goto loop;
+	
+	end:	xret := $$f;
+
+	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
+
+(* *** FOREACH *** *)
+proc AP_forEach() {
+			arguments := args;
+			vthis  := nth (arguments, 1);
+			cbf := nth (arguments, 2);
+			
+			num := length (arguments);
+			
+			xret := "i__toObject" (vthis) with elab;
+			vthis := xret;
+			
+			g := [vthis, "@get"];
+			xret := g (vthis, "length") with elab;
+			xret := "i__toUint32" (xret) with elab;
+			len := xret;
+			
+			xret := "i__isCallable" (cbf);
+			goto [xret] cont throw;
+			
+	cont:	goto [num <= 3] undef def;
+	
+	def:	t := nth (arguments, 3);
+			goto setk;
+	undef:	t := $$undefined;
+	
+	setk:	k := 0;
+			hp := [vthis, "@hasProperty"];
+	loop:	goto [k < len] next end;
+	
+	next:	xret := "i__toString" (k) with elab;
+			pk := xret;
+			xret := hp (vthis, pk) with elab;
+			kpres := xret;
+			goto [kpres] tt ff;
+			
+	tt:		xret := g (vthis, pk) with elab;
+			kval := xret;
+			scp := [cbf, "@scope"];
+			fun := [cbf, "@call"];
+			xret := fun (scp, t, kval, k, vthis) with elab;
+	
+	ff:		k := k + 1;
+			goto loop;
+	
+	end:	xret := $$undefined;
+
+	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
+
+(* *** MAP *** *)
+proc AP_map() {
+			arguments := args;
+			vthis  := nth (arguments, 1);
+			cbf := nth (arguments, 2);
+			
+			num := length (arguments);
+			
+			xret := "i__toObject" (vthis) with elab;
+			vthis := xret;
+			
+			g := [vthis, "@get"];
+			xret := g (vthis, "length") with elab;
+			xret := "i__toUint32" (xret) with elab;
+			len := xret;
+			
+			xret := "i__isCallable" (cbf);
+			goto [xret] cont throw;
+			
+	cont:	goto [num <= 3] undef def;
+	
+	def:	t := nth (arguments, 3);
+			goto seta;
+	undef:	t := $$undefined;
+	
+	seta:	xret := "Array_construct" (len) with elab;
+			A := xret;
+			hp := [vthis, "@hasProperty"];
+			k := 0;
+	loop:	goto [k < len] next end;
+			
+	next:	xret := "i__toString" (k) with elab;
+			pk := xret;
+			xret := hp (vthis, pk) with elab;
+			kpres := xret;
+			goto [kpres] tt ff;
+			
+	tt:		xret := g (vthis, pk) with elab;
+			kval := xret;
+			scp := [cbf, "@scope"];
+			fun := [cbf, "@call"];
+			xret := fun (scp, t, kval, k, vthis) with elab;
+			mapv := xret;
+			xret := "a__defineOwnProperty" (A, pk, {{ "d", mapv, $$t, $$t, $$t }}, $$f) with elab;
+	
+	ff:		k := k + 1;
+			goto loop;
+	
+	end:	xret := A;
+	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
+
+
+
+
