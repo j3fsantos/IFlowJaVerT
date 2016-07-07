@@ -3,8 +3,6 @@ open Lexing
 open Batteries
 open SSyntax
 
-exception EarlyError
-
 let js2jsil_imports = [
 	"Array"; 
 	"Boolean";
@@ -871,7 +869,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 
 	
 	
-	match e.Parser_syntax.exp_stx with 
+	(match e.Parser_syntax.exp_stx with
 
 	| Parser_syntax.This ->
 		(**
@@ -2528,6 +2526,10 @@ let rec translate_expr fid cc_table vis_fid err e  =
 					loop rest_decs (cmds @ new_cmds) (errs @ new_errs))) in 
 		let x, cmds, errs = loop decs [] [] in 
 		cmds, Var x, errs
+
+	| Parser_syntax.RegExp (_, _) -> raise (Failure "Not implemented: RegExp literal")
+	| x -> raise (Failure (Printf.sprintf "Unhandled expression %s at %s" (Pretty_print.string_of_exp_syntax x) __LOC__))
+	)
 	
 
 
@@ -4403,7 +4405,7 @@ let js2jsil e =
 	let vis_tbl = Hashtbl.create 101 in  
 	
 	let main = "main" in 
-        if Js_pre_processing.test_early_errors e then raise EarlyError;
+        Js_pre_processing.test_early_errors e;
 	let e = Js_pre_processing.add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous e in 
 	Js_pre_processing.closure_clarification_top_level cc_tbl fun_tbl vis_tbl main e [ main ] []; 
 	
@@ -4429,6 +4431,8 @@ let js2jsil e =
 
 
 let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e = 
+	Js_pre_processing.test_early_errors e;
+
 	let vis_tbl, cc_tbl, vis_fid = 
 		(match vis_tbl, cc_tbl with 
 		| Some vis_tbl, Some cc_tbl -> 

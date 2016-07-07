@@ -100,7 +100,7 @@ let main () =
           | Parser.ParserFailure file -> Printf.printf "\nParsing problems with the file '%s'.\n" file; exit 1
           | Parser.JS_To_XML_parser_failure
           | Parser.XmlParserException -> Printf.printf "\nXML parsing issues.\n"; exit 1
-          | Js2jsil.EarlyError -> Printf.printf "\nParser post-processing threw an EarlyError.\n"; exit 1
+          | Js_pre_processing.EarlyError e -> Printf.printf "\nParser post-processing threw an EarlyError: %s\n" e; exit 1
           end
 	else
 	begin

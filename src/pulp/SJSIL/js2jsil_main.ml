@@ -47,7 +47,7 @@ let process_file path =
     burn_to_disk (file_name ^ ".jsil") jsil_prog_str
   with
   | Parser.ParserFailure file -> Printf.printf "\nParsing problems with the file '%s'.\n" file; exit 1
-  | EarlyError -> Printf.printf "\nParser post-processing threw an EarlyError.\n"; exit 1
+  | Js_pre_processing.EarlyError e -> Printf.printf "\nParser post-processing threw an EarlyError: %s\n" e; exit 1
 	
 	
 let main () = 
