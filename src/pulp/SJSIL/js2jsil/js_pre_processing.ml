@@ -60,6 +60,9 @@ let test_func_decl_in_block exp =
     | Throw _
     | Debugger -> false
 
+    (* with is a syntax error in strict mode *)
+    | With _ -> true
+
     (* Statements with sub-Statements *)
     | Block es -> List.exists (f true) es
     | If (_, s, so) -> f true s || fo (f true) so
@@ -67,7 +70,6 @@ let test_func_decl_in_block exp =
     | DoWhile (s, _)
     | For (_, _, _, s)
     | ForIn (_, _, s)
-    | With (_, s)
     | Label (_, s) -> f true s
     | Switch (_, cs) -> List.exists (fun (_, s) -> f true s) cs
     | Try (s, sc, so) -> f true s || fo (fun (_, s) -> f true s) sc || fo (f true) so
