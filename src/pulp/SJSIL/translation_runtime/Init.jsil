@@ -305,7 +305,7 @@ proc setupInitialHeap () {
 			xret := "create_object_with_call_construct" ($lap_sort, "AP_sort", $$empty, 1);
 			xret := "create_object_with_call_construct" ($lap_splice, "AP_splice", $$empty, 2);
 			xret := "create_object_with_call_construct" ($lap_unshift, "AP_unshift", $$empty, 1);
-			xret := "create_object_with_call_construct" ($lap_indexOf, "AP_indexOf, $$empty", 1);
+			xret := "create_object_with_call_construct" ($lap_indexOf, "AP_indexOf", $$empty, 1);
 			xret := "create_object_with_call_construct" ($lap_lastIndexOf, "AP_lastIndexOf", $$empty, 1);
 			xret := "create_object_with_call_construct" ($lap_every, "AP_every", $$empty, 1);
 			xret := "create_object_with_call_construct" ($lap_some, "AP_some", $$empty, 1);
