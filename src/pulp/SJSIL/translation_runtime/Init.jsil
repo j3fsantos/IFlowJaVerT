@@ -331,7 +331,7 @@ proc setupInitialHeap () {
 			[$lstr, "prototype"]    := {{ "d", $lstr_proto, $$f, $$f, $$f }};
 			[$lstr, "fromCharCode"] := {{ "d", $lstr_fromCharCode, $$t, $$f, $$t }};
 			
-			xret := "create_object_with_call_construct" ($lstr_fromCharCode, "String_fromCharCode", 1);
+			xret := "create_object_with_call_construct" ($lstr_fromCharCode, "String_fromCharCode", $$empty, 1);
 			
 			(* String.prototype *)
 			
