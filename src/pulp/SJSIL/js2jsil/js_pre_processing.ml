@@ -61,6 +61,7 @@ let test_func_decl_in_block exp =
     | Debugger -> false
 
     (* with is a syntax error in strict mode *)
+    (* TODO: Move to a more appropriate pre-processing mapper function so we can get better errors *)
     | With _ -> true
 
     (* Statements with sub-Statements *)
@@ -740,5 +741,5 @@ match e.exp_stx with
 	| _ -> raise (Failure "unsupported construct by Petar M.")
 
 let test_early_errors e =
-  if test_func_decl_in_block e then raise (EarlyError "Function declaration in statement position.");
+  if test_func_decl_in_block e then raise (EarlyError "Function declaration in statement position or use of `with`");
   if test_expr_eval_arguments_assignment e then raise (EarlyError "Expression assigns to `eval` or `arguments`.")
