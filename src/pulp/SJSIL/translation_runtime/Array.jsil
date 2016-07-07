@@ -1333,6 +1333,218 @@ with
 	err: 	xret, elab;
 };
 
+(* *** FILTER *** *)
+proc AP_filter() {
+			arguments := args;
+			vthis  := nth (arguments, 1);
+			cbf := nth (arguments, 2);
+			
+			num := length (arguments);
+			
+			xret := "i__toObject" (vthis) with elab;
+			vthis := xret;
+			
+			g := [vthis, "@get"];
+			xret := g (vthis, "length") with elab;
+			xret := "i__toUint32" (xret) with elab;
+			len := xret;
+			
+			xret := "i__isCallable" (cbf);
+			goto [xret] cont throw;
+			
+	cont:	goto [num <= 3] undef def;
+	
+	def:	t := nth (arguments, 3);
+			goto seta;
+	undef:	t := $$undefined;
+	
+	seta:	xret := "Array_construct" () with elab;
+			A := xret;
+			hp := [vthis, "@hasProperty"];
+			k := 0;
+			to := 0;
+	loop:	goto [k < len] next end;
+			
+	next:	xret := "i__toString" (k) with elab;
+			pk := xret;
+			xret := hp (vthis, pk) with elab;
+			kpres := xret;
+			goto [kpres] tt ff;
+			
+	tt:		xret := g (vthis, pk) with elab;
+			kval := xret;
+			scp := [cbf, "@scope"];
+			fun := [cbf, "@call"];
+			xret := fun (scp, t, kval, k, vthis) with elab;
+			sel := xret;
+			xret := "i__toBoolean" (sel) with elab;
+			goto [xret] rett ff;
+			
+	rett:	xret := "i__toString" (to) with elab;
+			strt := xret;
+			xret := "a__defineOwnProperty" (A, strt, {{ "d", kval, $$t, $$t, $$t }}, $$f) with elab;
+			to := to + 1;
+	
+	ff:		k := k + 1;
+			goto loop;
+		
+	end:	xret := A;
+	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
 
+(* *** REDUCE *** *)
+proc AP_reduce() {
+			arguments := args;
+			vthis  := nth (arguments, 1);
+			cbf := nth (arguments, 2);
+			
+			num := length (arguments);
+			
+			xret := "i__toObject" (vthis) with elab;
+			vthis := xret;
+			
+			g := [vthis, "@get"];
+			xret := g (vthis, "length") with elab;
+			xret := "i__toUint32" (xret) with elab;
+			len := xret;
+			
+			xret := "i__isCallable" (cbf);
+			goto [xret] setk throw;
+			
+	setk:	k := 0;
+			goto [num <= 3] else if;
+				
+	if:		acc := nth (arguments, 3);
+			goto loop2;
+			
+	else:	goto [len = 0] throw cont;
+	cont:	kpres := $$f;
+	loop:	goto [kpres] end1 kf;
+	kf:		goto [k < len] next1 end1;
+			
+	next1:	xret := "i__toString" (k) with elab;
+			pk := xret;
+			hp := [vthis, "@hasProperty"];
+			xret := hp (vthis, pk) with elab;
+			kpres := xret;
+			goto [kpres] tt ff;
+	
+	tt:		xret := g (vthis, pk) with elab;
+			acc := xret;
+	
+	ff:		k := k + 1;
+			goto loop;
+	
+	end1:	goto [kpres] loop2 throw;
+	loop2:	goto [k < len] next2 end;
+	
+	next2:	xret := "i__toString" (k) with elab;
+			pk := xret;
+			hp := [vthis, "@hasProperty"];
+			xret := hp (vthis, pk) with elab;
+			kpres := xret;
+			goto [kpres] t f;
+			
+	t:		xret := g (vthis, pk) with elab;
+			kval := xret;
+			scp := [cbf, "@scope"];
+			fun := [cbf, "@call"];
+			xret := fun (scp, $$undefined, acc, kval, k, vthis) with elab;
+			acc := xret;
+			
+	f:		k := k + 1;
+			goto loop2;
 
+	end:	xret := acc;
+	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
 
+(* *** REDUCERIGHT *** *)
+proc AP_reduceRight() {
+			arguments := args;
+			vthis  := nth (arguments, 1);
+			cbf := nth (arguments, 2);
+			
+			num := length (arguments);
+			
+			xret := "i__toObject" (vthis) with elab;
+			vthis := xret;
+			
+			g := [vthis, "@get"];
+			xret := g (vthis, "length") with elab;
+			xret := "i__toUint32" (xret) with elab;
+			len := xret;
+			
+			xret := "i__isCallable" (cbf);
+			goto [xret] setk throw;
+			
+	setk:	k := len - 1;
+			goto [num <= 3] else if;
+				
+	if:		acc := nth (arguments, 3);
+			goto loop2;
+			
+	else:	goto [len = 0] throw cont;
+	cont:	kpres := $$f;
+	loop:	goto [kpres] end1 kf;
+	kf:		goto [not (k < 0)] next1 end1;
+			
+	next1:	xret := "i__toString" (k) with elab;
+			pk := xret;
+			hp := [vthis, "@hasProperty"];
+			xret := hp (vthis, pk) with elab;
+			kpres := xret;
+			goto [kpres] tt ff;
+	
+	tt:		xret := g (vthis, pk) with elab;
+			acc := xret;
+	
+	ff:		k := k - 1;
+			goto loop;
+	
+	end1:	goto [kpres] loop2 throw;
+	loop2:	goto [not (k < 0)] next2 end;
+	
+	next2:	xret := "i__toString" (k) with elab;
+			pk := xret;
+			hp := [vthis, "@hasProperty"];
+			xret := hp (vthis, pk) with elab;
+			kpres := xret;
+			goto [kpres] t f;
+			
+	t:		xret := g (vthis, pk) with elab;
+			kval := xret;
+			scp := [cbf, "@scope"];
+			fun := [cbf, "@call"];
+			xret := fun (scp, $$undefined, acc, kval, k, vthis) with elab;
+			acc := xret;
+			
+	f:		k := k - 1;
+			goto loop2;
+	end:	xret := acc;
+	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+}
