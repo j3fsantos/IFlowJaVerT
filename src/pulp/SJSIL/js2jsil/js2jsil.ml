@@ -869,7 +869,7 @@ let rec translate_expr fid cc_table vis_fid err e  =
 
 	
 	
-	match e.Parser_syntax.exp_stx with 
+	(match e.Parser_syntax.exp_stx with
 
 	| Parser_syntax.This ->
 		(**
@@ -2526,6 +2526,10 @@ let rec translate_expr fid cc_table vis_fid err e  =
 					loop rest_decs (cmds @ new_cmds) (errs @ new_errs))) in 
 		let x, cmds, errs = loop decs [] [] in 
 		cmds, Var x, errs
+
+	| Parser_syntax.RegExp (_, _) -> raise (Failure "Not implemented: RegExp literal")
+	| x -> raise (Failure (Printf.sprintf "Unhandled expression %s at %s" (Pretty_print.string_of_exp_syntax x) __LOC__))
+	)
 	
 
 
