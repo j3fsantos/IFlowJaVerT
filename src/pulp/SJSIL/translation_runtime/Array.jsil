@@ -462,14 +462,25 @@ proc AP_concat() {
 			xret := "i__toObject" (vthis) with elab;
 			vthis := xret;
 			
+			(* The resulting array *)
 			xret := "Array_construct" () with elab;
 			A := xret;
 			
+			(* We are starting from property "0" *)
 			n := 0;
+			
+			(* Once the loop repeats, we will be
+			   concatenating from the third argument.
+			   First two are the scope and the this. *)
 			idx := 2;
+			
+			(* Get the number of arguments *)
 			num := length (arguments);
 			
+			(* We are starting with the this object *)
 			elem := vthis;
+			
+			(* Indicator that we are in the first loop *)
 			f := 0;
 			goto cont;
 			
@@ -488,7 +499,7 @@ proc AP_concat() {
 			xret := g (elem, "length") with elab;
 			len := xret;
 			
-	lp:		goto [k < len] loop2 loop;
+	lp:		goto [k < len] loop2 nnext;
 			
 	loop2:	xret := "i__toString" (k) with elab;
 			p := xret;
@@ -500,14 +511,15 @@ proc AP_concat() {
 	tt:		xret := g (elem, p) with elab;
 			se := xret;
 			xret := "i__toString" (n) with elab;
-			strn := xret;
-			xret := "a__defineOwnProperty" (A, strn, {{ "d", se, $$t, $$t, $$t }}, $$f) with elab;
+			xret := "a__defineOwnProperty" (A, xret, {{ "d", se, $$t, $$t, $$t }}, $$f) with elab;
 			
 	next:	n := n + 1;
 			k := k + 1;
-			goto [f = 0] lp inc;		
-	inc:	idx := idx + 1;
 			goto lp;
+			
+	nnext:	goto [f = 0] loop inc;		
+	inc:	idx := idx + 1;
+			goto loop;
 	
 	narr:	xret := "i__toString" (n) with elab;
 			xret := "a__defineOwnProperty" (A, xret, {{ "d", elem, $$t, $$t, $$t }}, $$f) with elab;
@@ -517,6 +529,7 @@ proc AP_concat() {
 			goto loop;
 
 	end:	xret := A;
+	
 	rlab:	skip;
 	elab:	skip
 }
