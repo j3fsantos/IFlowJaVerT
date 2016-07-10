@@ -953,6 +953,7 @@ with
 proc AP_indexOf() {
 			arguments := args;
 			vthis  := nth (arguments, 1);
+			num = length (arguments);
 			
 			selem := $$undefined;
 	        goto [num <= 2] tobj selem;
@@ -1027,6 +1028,7 @@ with
 proc AP_lastIndexOf() {
 			arguments := args;
 			vthis  := nth (arguments, 1);
+			num = length (arguments);
 			
 			selem := $$undefined;
 	        goto [num <= 2] tobj selem;
@@ -1096,6 +1098,7 @@ with
 proc AP_every() {
 			arguments := args;
 			vthis  := nth (arguments, 1);
+			num = length (arguments);
 
 			cbf := $$undefined;
 	        goto [num <= 2] tobj cbf;
@@ -1160,6 +1163,7 @@ with
 proc AP_some() {
 			arguments := args;
 			vthis  := nth (arguments, 1);
+			num = length (arguments);
 
 			cbf := $$undefined;
 	        goto [num <= 2] tobj cbf;
@@ -1225,6 +1229,7 @@ with
 proc AP_forEach() {
 			arguments := args;
 			vthis  := nth (arguments, 1);
+			num = length (arguments);
 			
 			cbf := $$undefined;
 	        goto [num <= 2] tobj cbf;
@@ -1345,6 +1350,7 @@ with
 proc AP_filter() {
 			arguments := args;
 			vthis  := nth (arguments, 1);
+			num = length (arguments);
 
 			cbf := $$undefined;
 	        goto [num <= 2] tobj cbf;
@@ -1413,6 +1419,7 @@ with
 proc AP_reduce() {
 			arguments := args;
 			vthis  := nth (arguments, 1);
+			num = length (arguments);
 
 			cbf := $$undefined;
 	        goto [num <= 2] tobj cbf;
@@ -1490,6 +1497,7 @@ with
 proc AP_reduceRight() {
 			arguments := args;
 			vthis  := nth (arguments, 1);
+			num = length (arguments);
 
 			cbf := $$undefined;
 	        goto [num <= 2] tobj cbf;
