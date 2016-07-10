@@ -953,11 +953,12 @@ with
 proc AP_indexOf() {
 			arguments := args;
 			vthis  := nth (arguments, 1);
-			selem := nth (arguments, 2);
 			
-			num := length (arguments);
+			selem := $$undefined;
+	        goto [num <= 2] tobj selem;
+	selem:	selem := nth (arguments, 2);
 			
-			xret := "i__toObject" (vthis) with elab;
+	tobj:	xret := "i__toObject" (vthis) with elab;
 			vthis := xret;
 			
 			g := [vthis, "@get"];
@@ -1026,11 +1027,12 @@ with
 proc AP_lastIndexOf() {
 			arguments := args;
 			vthis  := nth (arguments, 1);
-			selem := nth (arguments, 2);
 			
-			num := length (arguments);
+			selem := $$undefined;
+	        goto [num <= 2] tobj selem;
+	selem:	selem := nth (arguments, 2);
 			
-			xret := "i__toObject" (vthis) with elab;
+	tobj:	xret := "i__toObject" (vthis) with elab;
 			vthis := xret;
 			
 			g := [vthis, "@get"];
@@ -1094,11 +1096,12 @@ with
 proc AP_every() {
 			arguments := args;
 			vthis  := nth (arguments, 1);
-			cbf := nth (arguments, 2);
+
+			cbf := $$undefined;
+	        goto [num <= 2] tobj cbf;
+	cbf:	cbf := nth (arguments, 2);
 			
-			num := length (arguments);
-			
-			xret := "i__toObject" (vthis) with elab;
+	tobj:	xret := "i__toObject" (vthis) with elab;
 			vthis := xret;
 			
 			g := [vthis, "@get"];
@@ -1157,11 +1160,13 @@ with
 proc AP_some() {
 			arguments := args;
 			vthis  := nth (arguments, 1);
-			cbf := nth (arguments, 2);
+
+			cbf := $$undefined;
+	        goto [num <= 2] tobj cbf;
+	cbf:	cbf := nth (arguments, 2);
 			
-			num := length (arguments);
-			
-			xret := "i__toObject" (vthis) with elab;
+	tobj:	xret := "i__toObject" (vthis) with elab;
+	
 			vthis := xret;
 			
 			g := [vthis, "@get"];
@@ -1220,11 +1225,12 @@ with
 proc AP_forEach() {
 			arguments := args;
 			vthis  := nth (arguments, 1);
-			cbf := nth (arguments, 2);
 			
-			num := length (arguments);
+			cbf := $$undefined;
+	        goto [num <= 2] tobj cbf;
+	cbf:	cbf := nth (arguments, 2);
 			
-			xret := "i__toObject" (vthis) with elab;
+	tobj:	xret := "i__toObject" (vthis) with elab;
 			vthis := xret;
 			
 			g := [vthis, "@get"];
@@ -1277,11 +1283,13 @@ with
 proc AP_map() {
 			arguments := args;
 			vthis  := nth (arguments, 1);
-			cbf := nth (arguments, 2);
-			
 			num := length (arguments);
 			
-			xret := "i__toObject" (vthis) with elab;
+			cbf := $$undefined;
+	        goto [num <= 2] tobj cbf;
+	cbf:	cbf := nth (arguments, 2);
+			
+	tobj:	xret := "i__toObject" (vthis) with elab;
 			vthis := xret;
 			
 			g := [vthis, "@get"];
@@ -1337,11 +1345,12 @@ with
 proc AP_filter() {
 			arguments := args;
 			vthis  := nth (arguments, 1);
-			cbf := nth (arguments, 2);
+
+			cbf := $$undefined;
+	        goto [num <= 2] tobj cbf;
+	cbf:	cbf := nth (arguments, 2);
 			
-			num := length (arguments);
-			
-			xret := "i__toObject" (vthis) with elab;
+	tobj:	xret := "i__toObject" (vthis) with elab;
 			vthis := xret;
 			
 			g := [vthis, "@get"];
@@ -1404,11 +1413,13 @@ with
 proc AP_reduce() {
 			arguments := args;
 			vthis  := nth (arguments, 1);
-			cbf := nth (arguments, 2);
+
+			cbf := $$undefined;
+	        goto [num <= 2] tobj cbf;
+	cbf:	cbf := nth (arguments, 2);
 			
-			num := length (arguments);
-			
-			xret := "i__toObject" (vthis) with elab;
+	tobj:	xret := "i__toObject" (vthis) with elab;
+	
 			vthis := xret;
 			
 			g := [vthis, "@get"];
@@ -1479,11 +1490,12 @@ with
 proc AP_reduceRight() {
 			arguments := args;
 			vthis  := nth (arguments, 1);
-			cbf := nth (arguments, 2);
+
+			cbf := $$undefined;
+	        goto [num <= 2] tobj cbf;
+	cbf:	cbf := nth (arguments, 2);
 			
-			num := length (arguments);
-			
-			xret := "i__toObject" (vthis) with elab;
+	tobj:	xret := "i__toObject" (vthis) with elab;
 			vthis := xret;
 			
 			g := [vthis, "@get"];
