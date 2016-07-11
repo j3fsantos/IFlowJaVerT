@@ -1409,7 +1409,10 @@ proc AP_filter() {
 			scp := [cbf, "@scope"];
 			fun := [cbf, "@call"];
 			xret := fun (scp, t, kval, k, vthis) with elab;
-			sel := xret;
+			goto [xret = $$empty] udef sel;
+	udef:	xret := $$undefined;
+	
+	sel:	sel := xret;
 			xret := "i__toBoolean" (sel) with elab;
 			goto [xret] rett ff;
 			
