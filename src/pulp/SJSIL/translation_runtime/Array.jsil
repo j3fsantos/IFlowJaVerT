@@ -430,7 +430,14 @@ proc AP_toLocaleString(xsc, vthis) {
 			
 	call:	xsc := [func, "@scope"];				
 			fun := [func, "@call"];					
-			R := fun (xsc, eothis) with elab;
+			xret := fun (xsc, eothis) with elab;
+			goto [xret = $$empty] undef setR;
+	undef:	xret := $$undefined;
+	setR:	goto [ (xret = $$undefined) or (xret = $$null) ] un deff;
+	
+			(* This is not specified, but how do you concatenate non-strings? *)
+	deff:	xret := "i__toString" (xret) with elab;
+			R := xret;
 	
 	next:	goto [k = 0] fe ne;
 	ne:		R := S concat R;
