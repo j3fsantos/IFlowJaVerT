@@ -499,10 +499,9 @@ proc AP_concat() {
 	
 	add:	elem := nth (arguments, idx);
 			f := 1;
-			xret := "i__toObject" (elem) with elab;
-			elem := xret;
 			
-	cont:	c := [elem, "@class"];
+	cont:	goto [typeOf (elem) = $$object_type] cls narr;
+	cls:	c := [elem, "@class"];
 			goto [c = "Array"] arr narr;
 			
 	arr:	k := 0;
@@ -1005,7 +1004,7 @@ proc AP_indexOf() {
 	
 	next2:	goto [n < 0] else if;
 	
-	if:		k := n;
+	if:		k := m_abs n;
 			goto loop;
 	
 	else:	k := m_abs n;
@@ -1078,7 +1077,7 @@ proc AP_lastIndexOf() {
 	nlen:	goto [n < 0] else if;
 	if:		len1 := len - 1;
 			goto [n <= len1] ls gr;
-	ls:		k := n;
+	ls:		k := m_abs n;
 			goto loop;
 	gr:		k := len1;
 			goto loop;
