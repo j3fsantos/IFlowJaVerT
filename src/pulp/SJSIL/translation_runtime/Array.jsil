@@ -349,7 +349,7 @@ proc AP_pop (xsc, vthis) {
 			elem := g (vthis, indx) with elab;
 			d := [vthis, "@deleteProperty"];
 			xret := d (vthis, indx, $$t) with elab;
-			xret := p (vthis, "length", indx, $$t) with elab;
+			xret := p (vthis, "length", (len - 1), $$t) with elab;
 			xret := elem;
 	
 	rlab:	skip;
