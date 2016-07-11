@@ -821,10 +821,19 @@ with
 proc AP_splice() {
 			arguments := args;
 			vthis := nth (arguments, 1);
-			start := nth (arguments, 2);
-			deleteCount := nth (arguments, 3);
+			num := length (arguments);
 			
-			xret := "i__toObject" (vthis) with elab;
+			goto [num < 3] nstrt ystrt;
+	nstrt:	start := $$undefined;
+			goto dc;
+	ystrt:	start := nth (arguments, 2);
+	
+	dc:		goto [num < 4] ndc ydc;
+	ndc:	deleteCount := $$undefined;
+			goto tobj;
+	ydc:	deleteCount := nth (arguments, 3);
+			
+	tobj:	xret := "i__toObject" (vthis) with elab;
 			vthis := xret;
 			
 			xret := "Array_construct" () with elab;
@@ -842,30 +851,17 @@ proc AP_splice() {
 			rs := xret;
 			
 			goto [rs < 0] ift iff;
-	ift:	lrs := len + rs;
-			goto [not (lrs < 0)] gr ls;		
-	gr:		acs := lrs;
-			goto delc;
-	ls:		acs := 0;
-			goto delc;
+	ift:	xret := "M_max" ($$empty, $$empty, len + rs, 0) with elab;
+			goto sync;	
+    iff:	xret := "M_min" ($$empty, $$empty, rs, len) with elab;
+	sync:	acs := xret;
 			
-	iff:	goto [rs <= len] ls1 gr1;
-	gr1:	acs := len;
-			goto delc;
-	ls1:	acs := rs;
-
-	delc:	xret := "i__toInteger" (deleteCount) with elab;
-			dc := xret;
-			goto [not (dc < 0)] gr2 ls2;		
-	gr2:	max := dc;
-			goto min;
-	ls2:	max := 0;
-	min:	las := len - acs;
-			goto [max <= las] ls3 gr3;
-	ls3:	adc := max;
-			goto cont;
-	gr3:	adc := las;
-	cont:	k := 0;
+			xret := "i__toInteger" (deleteCount) with elab;
+			xret := "M_max" ($$empty, $$empty, xret, 0) with elab;
+			xret := "M_min" ($$empty, $$empty, xret, len - acs) with elab;
+			adc := xret;
+			
+			k := 0;
 	loop1:	goto [k < adc] next1 end1;
 	next1:	ask := acs + k;
 			xret := "i__toString" (ask) with elab;
@@ -884,9 +880,11 @@ proc AP_splice() {
 			goto loop1;
 	
 	end1:	num := length (arguments);
-			itemc := num - 4;
+			xret := "M_max" ($$empty, $$empty, num - 4, 0) with elab;
+			itemc := xret;
 			ladcic := len - adc;
 			ladcic := ladcic + itemc;
+			
 			goto [itemc < adc] less nless;
 			
 	less:	k := acs;
