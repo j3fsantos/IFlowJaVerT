@@ -269,7 +269,7 @@ proc setupInitialHeap () {
 			
 			xret := "create_default_object" ($larr_proto, $lobj_proto, "Array", $$t);
 			
-			[$larr_proto, "length"]         := {{ "d", 0, $$f, $$f, $$f }};
+			[$larr_proto, "length"]         := {{ "d", 0, $$t, $$f, $$f }};
 			[$larr_proto, "constructor"]    := {{ "d", $larr, $$t, $$f, $$t }};
 			[$larr_proto, "toString"]       := {{ "d", $lap_toString, $$t, $$f, $$t }};
 			[$larr_proto, "toLocaleString"] := {{ "d", $lap_toLocaleString, $$t, $$f, $$t }};
