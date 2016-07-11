@@ -278,8 +278,12 @@ proc AP_join (xsc, vthis, sep) {
 			xret := "i__toUint32" (xret) with elab;
 			len := xret;
 			
-			goto [sep = $$undefined] ssep len0;
+			goto [sep = $$undefined] ssep sssep;
 	ssep:	sep := ",";
+			goto len0;
+			
+	sssep:	xret := "i__toString" (sep) with elab;
+			sep := xret;
 			
 	len0:	goto [len = 0] xemp non0;
 	

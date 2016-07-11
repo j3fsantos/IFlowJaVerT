@@ -319,7 +319,7 @@ let evaluate_binop op lit1 lit2 =
 	| Concat -> 
 		(match lit1, lit2 with 
 		| String s1, String s2 -> (String (s1 ^ s2)) 
-		| _, _ -> raise (Failure "Non-string argument to Concat"))
+		| _, _ -> raise (Failure (Printf.sprintf "Non-string argument to Concat: %s, %s" (SSyntax_Print.string_of_literal lit1 false) (SSyntax_Print.string_of_literal lit2 false))))
 	| Append -> 
 		(match lit1, lit2 with 
 		| LList l1, LList l2 -> (LList (List.append l1 l2))
