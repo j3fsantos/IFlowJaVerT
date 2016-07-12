@@ -1590,4 +1590,185 @@ with
 {
 	ret: 	xret, rlab;
 	err: 	xret, elab;
+};
+
+(* *** SORT *** *)
+proc AP_sort(xsc, vthis, compfn) {
+			xret := "i__toObject" (vthis) with elab;
+			vthis := xret;
+			
+			g := [vthis, "@get"];
+			xret := g (vthis, "length") with elab;
+			xret := "i__toUint32" (xret) with elab;
+			len := xret;
+			p := [vthis, "@put"];
+			hp := [vthis, "@hasProperty"];
+			
+	(* 4 special conditions for implementation defined sort could be checked, maybe TODO *)
+	
+	(* check if vthis is sparse *)
+	cs:		i := 0;
+			gop := [vthis, "@getOwnProperty"];
+	cslp:	goto [i < len] check done;
+			
+	check:	xret := "i__toString" (i) with elab;
+			stri := xret;
+			xret := gop (vthis, stri) with elab;
+			elem := xret;
+			goto [elem = $$undefined] spt spf;
+	spt:	spar := $$t;
+			d := [vthis, "@deleteProperty"];
+			goto otw;
+			
+	spf:	i := i + 1;
+			goto cslp;
+	
+	done:	spar := $$f;
+	(* end of sparse check *)
+	
+	otw:	goto [len < 2] fin cont;
+	
+	cont:	xret := "Array_construct" () with elab;
+			stack := xret;
+			
+			xret := "AP_push" ($$empty, stack, 0);
+			len1 := len - 1;
+			xret := "AP_push" ($$empty, stack, len1);
+			
+			size := 1;
+			
+	while1:	goto [not (size <= 0)] ltz fin;
+	
+	ltz:	xret := "AP_pop" ($$empty, stack);
+			end := xret;
+			xret := "AP_pop" ($$empty, stack);
+			start := xret;
+			
+			size := size - 1;
+			xret := "i__toString" (end) with elab;
+			strend := xret;
+			xret := g (vthis, strend) with elab;
+			el := xret;
+			
+			l := start;
+			curr := start;
+			
+	while2:	goto [curr < end] next1 end1;
+	
+	next1:	xret := "i__toString" (curr) with elab;
+			strcurr := xret;
+			xret := g (vthis, strcurr) with elab;
+			tmp := xret;
+			xret := "a__sortCompare" (curr, end, compfn, vthis);
+			goto [xret < 0] less nless;
+			
+	less:	xret := "i__toString" (l) with elab;
+			strl := xret;
+			xret := g (vthis, strl) with elab;
+			xret := p (vthis, strcurr, xret, $$t) with elab;
+			
+			xret := p (vthis, strl, tmp, $$t) with elab;
+			l := l + 1;
+	
+	nless:	curr := curr + 1;	
+			goto while2;
+	
+	end1:	xret := "i__toString" (l) with elab;
+			strl := xret;
+			xret := g (vthis, strl) with elab;
+			xret := p (vthis, strend, xret, $$t) with elab;
+			
+			xret := p (vthis, strl, el, $$t) with elab;
+			
+			ll := l + 1;
+			goto [not (end <= ll)] more nmore;
+			
+	more:	xret := "AP_push" ($$empty, stack, ll);
+			xret := "AP_push" ($$empty, stack, end);			
+			size := size + 1;
+	
+	nmore:	l := l - 1;
+			goto [not (l <= start)] ifs while1;
+			
+	ifs:	xret := "AP_push" ($$empty, stack, start);
+			xret := "AP_push" ($$empty, stack, l);
+			size := size + 1;
+			goto while1;
+
+	fin:	xret := vthis;
+	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
+	elab:	skip
 }
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
+
+(* *** SORTCOMPARE *** *)
+proc a__sortCompare(j, k, compfn, vthis) {
+			hp := [vthis, "@hasProperty"];
+			g := [vthis, "@get"];
+
+			xret := "i__toString" (j) with elab;
+			strj := xret;
+			xret := "i__toString" (k) with elab;
+			strk := xret;
+			xret := hp (vthis, strj) with elab;
+			hasj := xret;
+			xret := hp (vthis, strk) with elab;
+			hask := xret;
+			
+			goto [hasj] yesj noj;
+			
+	yesj:	goto [hask] cmp nok;	
+	
+	nok:	xret := -1;
+			goto rlab;
+	
+	noj:	goto [hask]	yesk nojk;
+	
+	yesk:	xret := 1;
+			goto rlab;
+	
+	nojk:	xret := 0;
+			goto rlab;
+	
+	cmp:	xret := g (vthis, strj) with elab;
+			x := xret;
+			xret := g (vthis, strk) with elab;
+			y := xret;
+			goto [(x = $$undefined) and (y = $$undefined)] nojk xx;
+	xx:		goto [x = $$undefined] yesk yy;
+	yy:		goto [y = $$undefined] nok cont;
+	cont:	goto [compfn = $$undefined] cont1 if;
+	
+	if:		xret := "i__isCallable" (compfn);
+			goto [xret] call throw;
+	call:	scp := [compfn, "@scope"];
+			fun := [compfn, "@call"];
+			xret := fun (scp, $$undefined, x, y) with elab;
+			goto rlab;
+	
+	cont1:	xret := "i__toString" (x) with elab;
+			strx := xret;
+			xret := "i__toString" (y) with elab;
+			stry := xret;
+			goto [strx <s stry] nok xy;
+	xy:		goto [not (strx = stry)] yesk nojk;
+	
+	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+}
+
+
+
