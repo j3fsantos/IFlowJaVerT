@@ -1641,46 +1641,64 @@ proc AP_sort(xsc, vthis, compfn) {
 	
 	ltz:	xret := "AP_pop" ($$empty, stack);
 			end := xret;
+			xret := "i__toString" (end) with elab;
+			strend := xret;
 			xret := "AP_pop" ($$empty, stack);
 			start := xret;
 			
 			size := size - 1;
-			xret := "i__toString" (end) with elab;
-			strend := xret;
-			xret := g (vthis, strend) with elab;
-			el := xret;
-			
 			l := start;
 			curr := start;
 			
 	while2:	goto [curr < end] next1 end1;
 	
-	next1:	xret := "i__toString" (curr) with elab;
-			strcurr := xret;
-			xret := g (vthis, strcurr) with elab;
-			tmp := xret;
-			xret := "a__sortCompare" (curr, end, compfn, vthis);
+	next1:	xret := "a__sortCompare" (curr, end, compfn, vthis);
 			goto [xret < 0] less nless;
 			
 	less:	xret := "i__toString" (l) with elab;
 			strl := xret;
+			xret := "i__toString" (curr) with elab;
+			strcurr := xret;
+			xret := g (vthis, strcurr) with elab;
+			tmp := xret;
+			xret := hp (vthis, strl) with elab;
+			goto [xret] iina niina;
+			
+	iina:	(* swap l and current *)
 			xret := g (vthis, strl) with elab;
 			xret := p (vthis, strcurr, xret, $$t) with elab;
-			
 			xret := p (vthis, strl, tmp, $$t) with elab;
-			l := l + 1;
+			goto incl;
+			
+	niina:	xret := p (vthis, strl, tmp, $$t) with elab;
+			xret := d (vthis, strcurr, $$t) with elab;
+			
+	incl:	l := l + 1;
 	
 	nless:	curr := curr + 1;	
 			goto while2;
 	
-	end1:	xret := "i__toString" (l) with elab;
+	end1:	goto [l < end] sw nsw;
+	
+	sw:		xret := "i__toString" (l) with elab;
 			strl := xret;
-			xret := g (vthis, strl) with elab;
+			xret := g (vthis, strend) with elab;
+			el := xret;
+			xret := hp (vthis, strl) with elab;
+			goto [xret] ina nina;
+			
+	ina:	xret := g (vthis, strl) with elab;
 			xret := p (vthis, strend, xret, $$t) with elab;
-			
 			xret := p (vthis, strl, el, $$t) with elab;
+			goto nsw;
+	
+	nina:	xret := hp (vthis, strend) with elab;
+			goto [xret] del nsw;
 			
-			ll := l + 1;
+	del:	xret := p (vthis, strl, el, $$t) with elab;
+			xret := d (vthis, strend, $$t) with elab;
+			
+	nsw:	ll := l + 1;
 			goto [not (end <= ll)] more nmore;
 			
 	more:	xret := "AP_push" ($$empty, stack, ll);
