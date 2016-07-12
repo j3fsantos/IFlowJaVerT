@@ -787,7 +787,7 @@ proc create_arguments_object (argList) {
 
 			(* Define length *)
 			dop := [obj, "@defineOwnProperty"];
-			xret := dop (obj, "length", {{ "d", len, $$t, $$t, $$t }}, $$f) with elab;		
+			xret := dop (obj, "length", {{ "d", len, $$t, $$f, $$t }}, $$f) with elab;		
 			
 			(* Loop through values *)
 			indx := len - 1;
