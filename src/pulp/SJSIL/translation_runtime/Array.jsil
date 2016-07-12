@@ -559,21 +559,20 @@ proc AP_reverse(xsc, vthis) {
 			xret := "i__toUint32" (xret) with elab;
 			len := xret;
 			
-			mid := m_floor len / 2;
+			mid := m_floor (len / 2);
 			lower := 0;
 			
 	loop:	goto [not (mid = lower)] rev end;
 	
-	rev:	upper := len - lower;
-			upper := upper - 1;
+	rev:	upper := (len - lower) - 1;
 			xret := "i__toString" (upper) with elab;
 			upperP := xret;
 			xret := "i__toString" (lower) with elab;
 			lowerP := xret;
-			xret := g (vthis, upperP) with elab;
-			upperV := xret;
 			xret := g (vthis, lowerP) with elab;
 			lowerV := xret;
+			xret := g (vthis, upperP) with elab;
+			upperV := xret;
 			
 			hp := [vthis, "@hasProperty"];
 			xret := hp (vthis, upperP) with elab;
@@ -1332,7 +1331,7 @@ proc AP_map() {
 			goto seta;
 	undef:	t := $$undefined;
 	
-	seta:	xret := "Array_construct" (len) with elab;
+	seta:	xret := "Array_construct" ($$empty, $$empty, len) with elab;
 			A := xret;
 			hp := [vthis, "@hasProperty"];
 			k := 0;
