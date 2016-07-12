@@ -59,7 +59,8 @@ let defineOwnPropertyName             = "o__defineOwnProperty"           (* 8.12
 let defineOwnPropertyArrayName        = "a__defineOwnProperty"           (* 15.sth.sth        *) 
 let checkAssignmentErrorsName         = "i__checkAssignmentErrors"        
 let checkParametersName               = "i__checkParameters"    
-let getEnumFieldsName                 = "i__getAllEnumerableFields"        
+let getEnumFieldsName                 = "i__getAllEnumerableFields"       
+let createArgsName                    = "create_arguments_object" 
 
 let print_position outx lexbuf =
   let pos = lexbuf.lex_curr_p in
@@ -4325,6 +4326,26 @@ let generate_proc e fid params cc_table vis_fid =
 			let cmd = SLBasic (SMutation (Var x_er, Literal (String param), Var param)) in  
 			(None, None, cmd))
 		params in 
+		
+	(* CREATING THE ARGUMENTS OBJECT *)
+	
+	(**
+			x_argList_pre := args;
+			x_argList_act := cdr (cdr (x_argList_pre));
+			x_args := "create_arguments_object" (x_argList_act) with err;
+			[x_er, "arguments"] := x_args;
+  *)
+	
+	let x_argList_pre = fresh_var () in
+	let x_argList_act = fresh_var () in
+	let x_args = fresh_var () in
+	let cmds_arg_obj =
+		[
+			(None, None, SLBasic (SArguments (x_argList_pre)));
+			(None, None, SLBasic (SAssignment (x_argList_act, UnaryOp (Cdr, (UnaryOp (Cdr, Var x_argList_pre))))));
+			(None, None, SLCall  (x_args, Literal (String createArgsName), [ Var x_argList_act ], Some new_ctx.tr_error_lab));
+			(None, None, SLBasic (SMutation (Var x_er, Literal (String "arguments"), Var x_args)))
+		] in
 
 	(* [__scope, "fid"] := x_er *) 
 	let cmd_ass_er_to_sc = (None, None, SLBasic (SMutation (Var var_scope, Literal (String fid), Var x_er))) in 
@@ -4352,12 +4373,12 @@ let generate_proc e fid params cc_table vis_fid =
 	let cmds_restore_er_ret = generate_proc_er_restoring_code fid x_er_old ctx.tr_ret_lab in  
 	
 	(* pre_lab_err: x_error := PHI(...) *) 
-	let errs = errs_hoist_decls @ errs in 
+	let errs = errs_hoist_decls @ [ x_args ] @ errs in 
 	let cmd_error_phi = make_final_cmd errs new_ctx.tr_error_lab new_ctx.tr_error_var in 	
 	let cmds_restore_er_error = generate_proc_er_restoring_code fid x_er_old ctx.tr_error_lab in  
 	
 	let fid_cmds = 
-		cmds_save_old_er @ [ cmd_er_creation ] @ cmds_decls @ cmds_params @ [ cmd_ass_er_to_sc ] @ [ cmd_ass_te; cmd_ass_se;  cmd_ass_xtrue; cmd_ass_xfalse ] @ cmds_hoist_fdecls @ cmds_e
+		cmds_save_old_er @ [ cmd_er_creation ] @ cmds_decls @ cmds_params @ cmds_arg_obj @ [ cmd_ass_er_to_sc ] @ [ cmd_ass_te; cmd_ass_se;  cmd_ass_xtrue; cmd_ass_xfalse ] @ cmds_hoist_fdecls @ cmds_e
 		@ [ cmd_dr_ass; cmd_return_phi ] @ cmds_restore_er_ret @ [ cmd_error_phi ] @ cmds_restore_er_error in 
 	{ 
 		lproc_name = fid;

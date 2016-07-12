@@ -769,4 +769,44 @@ proc setupInitialHeap () {
 with
 {
 	ret:	xret, rlab;
+};
+
+
+(* **************** *) 
+(* ARGUMENTS OBJECT *)
+(* **************** *)
+
+proc create_arguments_object (argList) { 
+
+			len := length (argList);
+			
+			(* Create the arguments object *)
+			xret := new ();
+			xret := "create_default_object" (xret, $lobj_proto, "Arguments", $$t);
+			obj  := xret;
+
+			(* Define length *)
+			dop := [obj, "@defineOwnProperty"];
+			xret := dop (obj, "length", {{ "d", len, $$t, $$t, $$t }}, $$f) with elab;		
+			
+			(* Loop through values *)
+			indx := len - 1;
+			
+	loop:	goto [0 <= indx] head call;
+	head:	xret := "i__toString" (indx) with elab;
+			xret := dop (obj, xret, {{ "d", nth (argList, indx), $$t, $$t, $$t }}, $$f) with elab;
+			indx := indx - 1;
+			goto loop;
+			
+			(* Set caller and callee *)
+	call:	[obj, "caller"] := {{ "a", $lthrow_type_error, $lthrow_type_error, $$f, $$f }};
+			[obj, "callee"] := {{ "a", $lthrow_type_error, $lthrow_type_error, $$f, $$f }};
+
+	rlab:	xret := obj;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
 }

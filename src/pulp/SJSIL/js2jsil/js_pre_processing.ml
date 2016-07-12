@@ -195,7 +195,7 @@ let rec var_decls_inner exp =
   | Block es
   | Script (_, es) -> flat_map f es
 
-let var_decls exp = List.unique (var_decls_inner exp)
+let var_decls exp = List.append (List.unique (var_decls_inner exp)) [ "arguments" ]
 
 
 let rec get_fun_decls exp : exp list = 
