@@ -349,9 +349,10 @@ let rec string_of_assertion lass escape_string =
 	   | LEmp -> "emp")
 
 let rec string_of_cmd sjsil_cmd tabs i line_numbers_on specs_on escape_string =
-	let ass, sjsil_cmd = sjsil_cmd in 
+	let metadata, sjsil_cmd = sjsil_cmd in 
 	let str_i = if line_numbers_on then (string_of_int i) ^ " " else "" in
 	let str_tabs = tabs_to_str tabs in  
+	let ass = metadata.pre_cond in 
 	let str_ass = if (specs_on) then (match ass with | None -> "" | Some ass -> str_tabs ^ "[[" ^ string_of_assertion ass escape_string ^ "]]\n") else "" in
 	str_ass ^ 
   (match sjsil_cmd with
@@ -565,7 +566,8 @@ let string_of_lbody lbody =
 	let len = Array.length lbody in
 	let str = ref "" in
 	for i = 0 to (len - 1) do
-		let spec, lab, lcmd = lbody.(i) in
+		let metadata, lab, lcmd = lbody.(i) in
+		let spec = metadata.pre_cond in 
 		let str_of_spec = 
 			(match spec with 
 			| None -> "" 
@@ -683,3 +685,38 @@ let string_of_store store =
 			if (ac != "") then var_val_str else ac ^ "; " ^ var_val_str)
 		store
 		"Store: "	
+		
+		
+let string_of_proc_metadata proc = 
+	let line_info_lst = 
+		List.map 
+			(fun (metadata, cmd) ->
+				match metadata.line_offset with 
+				| None -> "-1"
+				| Some n -> string_of_int n) 
+			(Array.to_list proc.proc_body) in 
+	
+	let line_info_str = 
+		List.fold_left 
+			(fun ac elem -> if (ac = "") then elem else ac ^ " " ^ elem)
+			""
+			line_info_lst in 
+	"(" ^ proc.proc_name ^ " " ^ line_info_str ^ ")" 
+	
+
+let string_of_lproc_metadata lproc = 
+	let line_info_lst = 
+		List.map 
+			(fun (metadata, label, cmd) ->
+				match metadata.line_offset with 
+				| None -> "-1"
+				| Some n -> string_of_int n) 
+			(Array.to_list lproc.lproc_body) in 
+	
+	let line_info_str = 
+		List.fold_left 
+			(fun ac elem -> if (ac = "") then elem else ac ^ " " ^ elem)
+			""
+			line_info_lst in 
+	"(" ^ lproc.lproc_name ^ " " ^ line_info_str ^ ")"		
+			

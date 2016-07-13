@@ -261,7 +261,7 @@ let remove_unreachable_code proc throw =
 
 	(* Remove unvisited commands *)
 	let new_length = length - !shift in
-		let new_cmds = Array.make new_length (None, SBasic SSkip) in
+		let new_cmds = Array.make new_length ((make_jsil_metadata None None), SBasic SSkip) in
 			let shift = ref 0 in
 				for i = 0 to (length - 1) do
 					if (visited.(i))

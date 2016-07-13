@@ -90,12 +90,13 @@ let main () =
   	Parser_main.verbose := false;
 		let harness = load_file "harness.js" in
 		let main = load_file (!file) in
+		let offset_converter = Js_pre_processing.memoized_offsetchar_to_offsetline main in 
 		let all = harness ^ "\n" ^ main in
 		let e = (try Parser_main.exp_from_string all with
       	       | Parser.ParserFailure file -> Printf.printf "\nParsing problems with the file '%s'.\n" file; exit 1
 							 | Parser.JS_To_XML_parser_failure
 							 | Parser.XmlParserException -> Printf.printf "\nXML parsing issues.\n"; exit 1) in
-	  let (oimp, code, cc_tbl, vis_tbl) = js2jsil e in 
+	  let (oimp, code, cc_tbl, vis_tbl) = js2jsil e offset_converter in 
 	  let imp = SSyntax_Utils.if_some oimp (fun x -> x) [] in
 	  let prog, which_pred = SSyntax_Utils.prog_of_lprog (imp, code) in 
 	  	run_jsil_prog prog which_pred (Some cc_tbl) (Some vis_tbl)

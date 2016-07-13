@@ -692,3 +692,42 @@ match e.exp_stx with
   | Skip ->
 			true
 	| _ -> raise (Failure "unsupported construct by Petar M.")
+
+
+let generate_offset_lst str =
+	let rec traverse_str ac_offset cur_str offset_lst =
+		let new_line_index = 
+			(try String.index cur_str '\n' with 
+				| _ -> -1) in 
+			if new_line_index == -1 then
+				offset_lst 
+			else
+				let len = String.length cur_str in 
+				let new_str = (try String.sub cur_str (new_line_index + 1) ((len - new_line_index) - 1) with | _ -> "") in
+				traverse_str (ac_offset + new_line_index + 1) new_str (offset_lst @ [ (ac_offset + new_line_index + 1) ]) in 
+		traverse_str 0 str [] 
+
+let jsoffsetchar_to_jsoffsetline c_offset offset_list =
+	let rec offsetchar_to_offsetline_aux offset_list cur_line =
+		match offset_list with 
+		| [] -> raise (Failure "jsoffsetchar_to_jsoffsetline: char offset not found")
+		| hd :: rest -> 
+			if c_offset < hd 
+				then 
+					cur_line 
+				else
+					offsetchar_to_offsetline_aux rest (cur_line + 1) in 
+		offsetchar_to_offsetline_aux offset_list 1
+		
+let memoized_offsetchar_to_offsetline str = 
+	let offset_list = generate_offset_lst str in 
+	let ht = Hashtbl.create (String.length str) in 
+	  fun c_offset -> 
+			try Hashtbl.find ht c_offset 
+			with Not_found ->
+				begin  
+				let l_offset =  jsoffsetchar_to_jsoffsetline c_offset offset_list in 
+					Hashtbl.add ht c_offset l_offset; 
+					l_offset
+				end
+

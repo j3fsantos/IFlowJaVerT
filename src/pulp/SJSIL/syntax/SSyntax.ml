@@ -192,6 +192,11 @@ type jsil_n_spec = {
 		n_proc_specs : jsil_n_single_spec list
 }
 
+type jsil_metadata = {
+	line_offset : int option; 
+	pre_cond : jsil_logic_assertion option 
+}
+
 (* SJSIL Basic statements *)
 type basic_jsil_cmd =
   | SSkip	      
@@ -219,7 +224,7 @@ type jsil_cmd =
 (* SJSIL procedures *)
 type procedure = { 
     proc_name : string;
-    proc_body : (jsil_logic_assertion option * jsil_cmd) array;
+    proc_body : (jsil_metadata * jsil_cmd) array;
     proc_params : jsil_var list; 
 		ret_label: int option; 
 		ret_var: jsil_var option;
@@ -277,7 +282,7 @@ type jsil_lab_cmd =
 
 type lprocedure = { 
     lproc_name : string;
-    lproc_body : ((jsil_logic_assertion option * string option * jsil_lab_cmd) array);
+    lproc_body : ((jsil_metadata * string option * jsil_lab_cmd) array);
     lproc_params : jsil_var list; 
 		lret_label: string option; 
 		lret_var: jsil_var option;
@@ -287,3 +292,12 @@ type lprocedure = {
 }
 
 type jsil_lprog = (string list option) * (lprocedure SLProgram.t) 
+
+let make_jsil_metadata offset pre = 
+	{
+		line_offset = offset; 
+		pre_cond = pre 
+	}
+	
+let make_empty_metadata () = { line_offset = None; pre_cond = None }
+		

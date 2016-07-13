@@ -158,7 +158,7 @@ open SSyntax
 
 %type <(string list option * SSyntax.lprocedure list)> prog_target
 %type <(SSyntax.jsil_spec list)>  specs_target
-%type <((SSyntax.jsil_logic_assertion option * string option * SSyntax.jsil_lab_cmd) list)> cmd_list_top_target
+%type <((SSyntax.jsil_metadata * string option * SSyntax.jsil_lab_cmd) list)> cmd_list_top_target
 %type <SSyntax.lprocedure> proc_target
 
 
@@ -241,7 +241,9 @@ cmd_list_target:
 				(fun ac c ->
 					match c with
 			 		| (None, None, None) -> ac
-					| (pre, lab, Some v) -> (pre, lab, v) :: ac
+					| (pre, lab, Some v) -> 
+						let metadata = make_jsil_metadata None pre in 
+						(metadata, lab, v) :: ac
           | _, _, _ -> raise (Failure "Yeah, that's not really going to work without a command.")
 				)
 				[] 
@@ -255,7 +257,9 @@ cmd_list_top_target:
 				(fun ac c ->
 					match c with
 			 		| (None, None, None) -> ac
-					| (pre, lab, Some v) -> (pre, lab, v) :: ac
+					| (pre, lab, Some v) -> 
+						let metadata = make_jsil_metadata None pre in 
+						(metadata, lab, v) :: ac
           | _, _, _ -> raise (Failure "Yeah, that's not really going to work without a command.")
 				)
 				[] 

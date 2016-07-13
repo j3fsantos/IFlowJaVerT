@@ -85,6 +85,7 @@ let test_javascript_template test =
 	Parser_main.js_to_xml_parser := "js_parser.jar";
   Parser_main.verbose := false;
 	let str = test.main in 
+	let offset_converter = Js_pre_processing.memoized_offsetchar_to_offsetline str in 
 	let e = 
     (try 
       Parser_main.exp_from_string str
@@ -92,7 +93,7 @@ let test_javascript_template test =
       | Parser.ParserFailure file ->
         Printf.printf "\nParsing problems with the file '%s'.\n" file;
         exit 1) in
-	let (oimp, code, cc_tbl, vis_tbl) = js2jsil e in 
+	let (oimp, code, cc_tbl, vis_tbl) = js2jsil e offset_converter in 
 	let imp = if_some oimp (fun x -> x) [] in
 	let prog, which_pred = SSyntax_Utils.prog_of_lprog (imp, code) in 
 	let heap = SHeap.create 1021 in 
