@@ -208,7 +208,7 @@
 (define (delete-prop-val prop-val-list prop)
   (cond [(null? prop-val-list) '()]
         [(equal? (car (car prop-val-list)) prop) (cdr prop-val-list)]
-        [ else (cons (cons prop-val-list) (delete-prop-val (cdr prop-val-list) prop))]))
+        [ else (cons (car prop-val-list) (delete-prop-val (cdr prop-val-list) prop))]))
 
 ;;
 ;; Heap cell
