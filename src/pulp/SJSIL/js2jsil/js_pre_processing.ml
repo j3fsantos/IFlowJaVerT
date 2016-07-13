@@ -756,7 +756,7 @@ let generate_offset_lst str =
 let jsoffsetchar_to_jsoffsetline c_offset offset_list =
 	let rec offsetchar_to_offsetline_aux offset_list cur_line =
 		match offset_list with 
-		| [] -> raise (Failure "jsoffsetchar_to_jsoffsetline: char offset not found")
+		| [] -> cur_line
 		| hd :: rest -> 
 			if c_offset < hd 
 				then 
