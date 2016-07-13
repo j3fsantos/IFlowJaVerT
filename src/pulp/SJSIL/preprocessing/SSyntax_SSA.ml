@@ -15,8 +15,8 @@ let get_assignments_per_var cmds  =
 			| SBasic (SLookup (var, _, _))
 			| SBasic (SNew var) 
 			| SBasic (SHasField (var, _, _))
-			| SBasic (SProtoField (var, _, _))
-			| SBasic (SProtoObj (var, _, _))
+		  | SBasic (SGetFields (var, _))
+			| SBasic (SArguments var)
 			| SCall (var, _, _, _) ->	
 				let var_assignments = SSyntax_Aux.try_find assignments_per_var var in 
 					(match var_assignments with 
@@ -366,19 +366,16 @@ let insert_phi_args args vars cmds (spec : jsil_spec option) (rvar : string opti
 			let new_e2 = rewrite_expr_ssa e2 var_stacks rename_var in
 			let index = v_stack_and_counter_update var in
 			SBasic (SHasField ((rename_var var index), new_e1, new_e2))	
+
+		| SBasic (SGetFields (var, e1)) ->
+			let new_e1 = rewrite_expr_ssa e1 var_stacks rename_var in 
+			let index = v_stack_and_counter_update var in
+			SBasic (SGetFields ((rename_var var index), new_e1))	
 			
-		| SBasic (SProtoField (var, e1, e2)) ->
-			let new_e1 = rewrite_expr_ssa e1 var_stacks rename_var in 
-			let new_e2 = rewrite_expr_ssa e2 var_stacks rename_var in
+		| SBasic (SArguments var) ->
 			let index = v_stack_and_counter_update var in
-			SBasic (SProtoField ((rename_var var index), new_e1, new_e2)) 
-		
-		| SBasic (SProtoObj (var, e1, e2)) ->
-			let new_e1 = rewrite_expr_ssa e1 var_stacks rename_var in 
-			let new_e2 = rewrite_expr_ssa e2 var_stacks rename_var in
-			let index = v_stack_and_counter_update var in
-			SBasic (SProtoObj ((rename_var var index), new_e1, new_e2)) 	
-		
+			SBasic (SArguments (rename_var var index))
+			
 		| SCall (var, e, le, j) ->
 			let new_e = rewrite_expr_ssa e var_stacks rename_var in 
 			let new_le = List.map 
@@ -458,8 +455,8 @@ let insert_phi_args args vars cmds (spec : jsil_spec option) (rvar : string opti
 		| SBasic (SLookup (var, _, _))
 		| SBasic (SNew var) 
 		| SBasic (SHasField (var, _, _))
-		| SBasic (SProtoField (var, _, _))
-		| SBasic (SProtoObj (var, _, _))
+		| SBasic (SGetFields (var, _))
+	  | SBasic (SArguments var)
 		| SCall (var, _, _, _) ->
 			let var_stack = SSyntax_Aux.try_find var_stacks var in 
  			(match var_stack with 

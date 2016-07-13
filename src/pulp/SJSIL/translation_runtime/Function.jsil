@@ -47,10 +47,8 @@ proc FP_call () {
 		
 	body:	body   := [vthis, "@call"]; 
 			xscope := [vthis, "@scope"]; 
-	
-			new_args := xscope :: xthis :: pars;
 			
-			xret := apply (body, new_args) with elab;
+			xret := apply (body, xscope, xthis, pars) with elab;
 			
 			goto [xret = $$empty] undef rlab;
 	
@@ -188,15 +186,17 @@ proc FP_bind (xsc, vthis, thisArg) {
 			[F, "@get"] := "f__get";
 			[F, "@targetFunction"] := Target;
 			[F, "@boundThis"] := thisArg;
-			[F, "@boundArgs"] := A;
+			[F, "@boundArguments"] := A;
 			
 			(* Adapting for our call *)
 			field_call := [Target, "@call"];
 			[F, "@call"] := field_call;
 			
-			(* Adapting for our construct *)
+			(* Adapting for our construct 
 			field_constr := [Target, "@construct"];
-			[F, "@construct"] := field_constr;
+			[F, "@construct"] := field_constr; *)
+			
+			[F, "@construct"] := "FP_construct_after_bind";
 			
 			[F, "@hasInstance"] := "FP_hasInstance_after_bind";
 			

@@ -1393,11 +1393,46 @@ let rec translate_expr offset_converter fid cc_table vis_fid err e : ((SSyntax.j
 		let x_ic = fresh_var () in
 		let cmd_ic = SLCall (x_ic, Literal (String isCallableName), [ Var x_f_val ], None) in
 		
-		(* goto [ x_ic ] next2 err; -> typeerror *)
-		let next2 = fresh_next_label () in 
-		let cmd_goto_is_callable = SLGuardedGoto (Var x_ic, next2, err) in 
+		(* goto [ x_ic ] getbt err; -> typeerror *)
 		
-		(* next2: goto [ typeOf(x_f) = ObjReference ] then else;  *) 
+		let getbt = fresh_label () in
+		let cmd_goto_is_callable = SLGuardedGoto (Var x_ic, getbt, err) in 
+		
+		let x_bt = fresh_var () in
+		let cmd_get_bt = SLBasic (SLookup (x_bt, Var x_f_val, Literal (String "@boundThis"))) in
+		
+		let call = fresh_then_label () in
+		let bind = fresh_else_label () in
+		let goto_guard_expr = BinOp (Var x_bt, Equal, Literal Empty) in 
+		let cmd_bind_test = SLGuardedGoto (goto_guard_expr, call, bind) in 
+				
+		(* BIND *)
+		
+		let x_ba = fresh_var () in
+		let cmd_get_ba = SLBasic (SLookup (x_ba, Var x_f_val, Literal (String "@boundArguments"))) in
+		
+		let x_tf = fresh_var () in
+		let cmd_get_tf = SLBasic (SLookup (x_tf, Var x_f_val, Literal (String "@targetFunction"))) in
+		
+		let x_bbody = fresh_body_var () in 
+		let cmd_bbody = SLBasic (SLookup (x_bbody, Var x_tf, Literal (String callPropName))) in 
+		
+		let x_bfscope = fresh_fscope_var () in 
+		let cmd_bscope = SLBasic (SLookup (x_bfscope, Var x_tf, Literal (String scopePropName))) in 
+
+		let x_params = fresh_var () in
+		let jsil_list_params = LEList ([Var x_bbody; Var x_bfscope; Var x_bt] @ x_args_gv) in
+		let cmd_append = SLBasic (SAssignment (x_params, (BinOp (jsil_list_params, Append, Var x_ba)))) in
+		
+		let x_rbind = fresh_var () in
+		let cmd_bind = SLApply (x_rbind, [ Var x_params ], Some err) in
+		
+		(* SYNC *)
+		
+		let join = fresh_label () in
+		let cmd_sync = SLGoto join in 
+		
+		(* join: goto [ typeOf(x_f) = ObjReference ] then else;  *) 
 		let then_lab = fresh_then_label () in 
 		let else_lab = fresh_else_label () in 
 		let end_lab = fresh_endif_label () in 
@@ -1428,10 +1463,13 @@ let rec translate_expr offset_converter fid cc_table vis_fid err e : ((SSyntax.j
 		let cmd_scope = SLBasic (SLookup (x_fscope, Var x_f_val, Literal (String scopePropName))) in 
 		
 		(* x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err  *) 
-		let x_r1 = fresh_var () in 
+		let x_rcall = fresh_var () in 
 		let proc_args = (Var x_fscope) :: (Var x_this) :: x_args_gv in 
-		let cmd_proc_call = SLCall (x_r1, (Var x_body), proc_args, Some err) in 
+		let cmd_proc_call = SLCall (x_rcall, (Var x_body), proc_args, Some err) in 
 		
+		let x_r1 = fresh_var () in 
+		let cmd_phi_join = SLPhiAssignment (x_r1, [| Some x_rbind; Some x_rcall |]) in 
+	
 		(* goto [ x_r1 = $$emtpy ] next3 next4; *)
 		let next3 = fresh_next_label () in 
 		let next4 = fresh_next_label () in 
@@ -1446,25 +1484,48 @@ let rec translate_expr offset_converter fid cc_table vis_fid err e : ((SSyntax.j
 		let x_r3 = fresh_var () in 
 		let cmd_phi_final = SLPhiAssignment (x_r3, [| Some x_r1; Some x_r2 |]) in 
 
-		let cmds = cmds_ef @ [                    (*        cmds_ef                                                                  *)
-			(annotate_cmd cmd_gv_f None)            (*        x_f_val := i__getValue (x_f) with err                                    *) 
-		] @ cmds_args @ (annotate_cmds [          (*        cmds_arg_i; x_arg_i_val := i__getValue (x_arg_i) with err                *)
-			(None,           cmd_goto_is_obj);      (*        goto [ typeOf(x_f_val) != Object] err next1                              *) 
-			(Some next1,     cmd_ic);               (* next1: x_ic := isCallable(x_f_val)                                              *)
-			(None,           cmd_goto_is_callable); (*        goto [ x_ic ] next2 err; -> typeerror                                    *)
-			(Some next2,     cmd_goto_obj_ref);     (* next2: goto [ typeOf(x_f) = ObjReference ] then else                            *) 
-			(Some then_lab,  cmd_this_base);        (* then:  x_then_this := base(x_f)                                                 *)
-			(None,           cmd_goto_end);         (*        goto end                                                                 *)  
-			(Some else_lab,  cmd_this_undefined);   (* else:  x_else_this := undefined                                                 *) 
-			(Some end_lab,   cmd_ass_xthis);        (* end:   x_this := PHI(x_then_this, x_else_this)                                  *)
-			(None,           cmd_body);             (*        x_body := [x_f_val, "@call"]                                             *)
-			(None,           cmd_scope);            (*        x_fscope := [x_f_val, "@scope"]                                          *)
-			(None,           cmd_proc_call);        (*        x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err   *) 
-			(None,           cmd_goto_test_empty);  (*        goto [ x_r1 = $$emtpy ] next3 next4                                      *)
-			(Some next3,     cmd_ret_undefined);    (* next3: x_r2 := $$undefined                                                      *)
-			(Some next4,     cmd_phi_final)         (* next4: x_r3 := PHI(x_r1, x_r2)                                                  *) 
+		let cmds = cmds_ef @ [                    (*        cmds_ef                                                                   *)
+			(annotate_cmd cmd_gv_f None)            (*        x_f_val := i__getValue (x_f) with err                                     *) 
+		] @ cmds_args @ (annotate_cmds [          (*        cmds_arg_i; x_arg_i_val := i__getValue (x_arg_i) with err                 *)
+			(None,           cmd_goto_is_obj);      (*        goto [ typeOf(x_f_val) != Object] err next1                               *) 
+			(Some next1,     cmd_ic);               (* next1: x_ic := isCallable(x_f_val)                                               *)
+			(None,           cmd_goto_is_callable); (*        goto [ x_ic ] getbt err; -> typeerror                                     *)
+			
+			(* PREP *)
+			
+			(Some getbt,     cmd_get_bt);           (*        x_bt := [x_f_val, "@boundTarget"];                                        *)
+			(None,           cmd_bind_test);        (*        goto [x_bt = $$empty] call bind                                           *)
+			
+			(* BIND *)
+			
+			(Some bind,      cmd_get_ba);           (*        x_ba := [x_f_val, "@boundArgs"];                                          *)
+			(None,           cmd_get_tf);           (*        x_tf := [x_f_val, "@targetFunction"];                                     *)
+			(None,           cmd_bbody);            (*        x_bbody := [x_tf, "@call"];                                               *)
+			(None,           cmd_bscope);           (*        x_fscope := [x_tf, "@scope"]                                              *)
+			
+			(None,           cmd_append);           (*        SOMETHING ABOUT PARAMETERS                                                *)
+			(None,           cmd_bind);             (*        MAGICAL FLATTENING CALL                                                   *)
+			(None,           cmd_sync);             (*        goto join                                                                 *)
+			
+			(* CALL *)
+			   
+			(Some call,      cmd_goto_obj_ref);     (* next2: goto [ typeOf(x_f) = ObjReference ] then else                             *) 
+			(Some then_lab,  cmd_this_base);        (* then:  x_then_this := base(x_f)                                                  *)
+			(None,           cmd_goto_end);         (*        goto end                                                                  *)  
+			(Some else_lab,  cmd_this_undefined);   (* else:  x_else_this := undefined                                                  *) 
+			(Some end_lab,   cmd_ass_xthis);        (* end:   x_this := PHI(x_then_this, x_else_this)                                   *)
+			(None,           cmd_body);             (*        x_body := [x_f_val, "@call"]                                              *)
+			(None,           cmd_scope);            (*        x_fscope := [x_f_val, "@scope"]                                           *)
+			(None,           cmd_proc_call);        (*        x_rcall := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err *) 
+			
+			(* JOIN *)
+			
+			(Some join,      cmd_phi_join);         (*        x_r1 := PHI (x_rbind, x_rcall);                                           *)
+			(None,           cmd_goto_test_empty);  (*        goto [ x_r1 = $$empty ] next3 next4                                       *)
+			(Some next3,     cmd_ret_undefined);    (* next3: x_r2 := $$undefined                                                       *)
+			(Some next4,     cmd_phi_final)         (* next4: x_r3 := PHI(x_r1, x_r2)                                                   *) 
 		]) in
-		let errs = errs_ef @ [ x_f_val ] @ errs_args @ [ var_te; var_te; x_r1 ] in 
+		let errs = errs_ef @ [ x_f_val ] @ errs_args @ [ var_te; var_te; x_rbind; x_rcall ] in 
 		cmds, Var x_r3, errs				
 		
 		

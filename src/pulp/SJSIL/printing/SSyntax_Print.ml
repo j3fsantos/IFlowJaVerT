@@ -1,3 +1,4 @@
+open SJSIL_Lexer
 open SSyntax
 open SSyntax_Aux
 
@@ -8,9 +9,9 @@ let string_of_float x =
 	if (x == nan) 
 		then "nan"
 		else if (x == neg_infinity) 
-						then "inf"
+						then "-inf"
 						else if (x == infinity) 
-									then "-inf"
+									then "inf"
 									else string_of_float x 
 (**	
 the following does not work because nan is interpreted as a variable
@@ -22,58 +23,58 @@ the following does not work because nan is interpreted as a variable
 *)
 
 let string_of_binop bop = match bop with 
-  | Equal -> "="
-  | LessThan -> "<"
-	| LessThanString -> "<s"
-  | LessThanEqual -> "<=" 
- 	| Plus -> "+"
-  | Minus -> "-"
-  | Times -> "*"
-  | Div -> "/"
-  | Mod -> "%"
-	| Subtype -> "<:"
-	| Concat -> "concat"
-	| Append -> "++"
-	| And -> "and"
-  | Or -> "or"
-	| BitwiseAnd -> "&"
-  | BitwiseOr -> "^"
-  | BitwiseXor -> "|"
-  | LeftShift -> "<<"
-  | SignedRightShift -> ">>"
-  | UnsignedRightShift -> ">>>"
-	| LCons -> "::"
-	| M_atan2 -> "m_atan2"
-	| M_pow -> "**"
+  | Equal -> binop_eq
+  | LessThan -> binop_lt
+	| LessThanString -> binop_lts
+  | LessThanEqual -> binop_leq
+ 	| Plus -> binop_plus
+  | Minus -> binop_minus
+  | Times -> binop_times
+  | Div -> binop_div
+  | Mod -> binop_mod
+	| Subtype -> binop_subtype
+	| Concat -> binop_concat
+	| Append -> binop_append
+	| And -> binop_and
+  | Or -> binop_or
+	| BitwiseAnd -> binop_band
+  | BitwiseOr -> binop_bor
+  | BitwiseXor -> binop_bxor
+  | LeftShift -> binop_lsh
+  | SignedRightShift -> binop_srsh
+  | UnsignedRightShift -> binop_ursh
+	| LCons -> binop_lcons
+	| M_atan2 -> binop_atan2
+	| M_pow -> binop_pow
 
 let string_of_unop uop = match uop with 
-  | Not -> "not"
-  | Negative -> "-"
-	| ToStringOp -> "num_to_string"
-  | ToNumberOp -> "string_to_num"
-  | ToIntOp -> "num_to_int"
-  | ToUint16Op -> "num_to_unit16"
-  | ToInt32Op -> "num_to_int32"
-  | ToUint32Op -> "num_to_unit32"
-  | BitwiseNot -> "!"
-	| Car -> "car"
-	| Cdr -> "cdr"
-	| IsPrimitive -> "is_primitive"
-	| Length -> "length"
-	| M_abs -> "m_abs"              
-	| M_acos -> "m_acos"         
-	| M_asin -> "m_asin"       
-	| M_atan -> "m_atan"     
-	| M_ceil -> "m_ceil"             
-	| M_cos -> "m_cos"       
-	| M_exp -> "m_exp"          
-	| M_floor -> "m_floor"          
-	| M_log -> "m_log"         
-	| M_round -> "m_round"  
-	| M_sgn -> "m_sgn"          
-	| M_sin -> "m_sin"             
-	| M_sqrt -> "m_sqrt"          
-	| M_tan -> "m_tan"             
+  | Not -> unop_not
+  | Negative -> unop_neg
+	| ToStringOp -> unop_tostr
+  | ToNumberOp -> unop_tonum
+  | ToIntOp -> unop_toint
+	| ToInt32Op -> unop_toint32
+  | ToUint16Op -> unop_touint16
+  | ToUint32Op -> unop_touint32
+  | BitwiseNot -> unop_bnot
+	| Car -> unop_car
+	| Cdr -> unop_cdr
+	| IsPrimitive -> unop_isprim
+	| Length -> unop_len
+	| M_abs -> unop_abs            
+	| M_acos -> unop_acos         
+	| M_asin -> unop_asin      
+	| M_atan -> unop_atan    
+	| M_ceil -> unop_ceil            
+	| M_cos -> unop_cos    
+	| M_exp -> unop_exp         
+	| M_floor -> unop_floor          
+	| M_log -> unop_log    
+	| M_round -> unop_round  
+	| M_sgn -> unop_sgn     
+	| M_sin -> unop_sin            
+	| M_sqrt -> unop_sqrt          
+	| M_tan -> unop_tan          
 	
 let string_of_bool x =
   match x with
@@ -163,6 +164,23 @@ let rec sexpr_of_expression e =
     | Field e -> Printf.sprintf "(field %s)" (se e)
 		(* ('nth e n) *)
 		| LLNth (e1, e2) -> Printf.sprintf "(nth %s %s)" (se e1) (se e2)
+		| LEList ll -> 
+			match ll with
+			| [] -> ""
+			| ll ->
+			let rec loop ll = 
+				(match ll with
+				| [] -> ""
+				| e :: ll -> 
+					let scar = sexpr_of_expression e in
+					let ssep = 
+						(match ll with
+						| [] -> ""
+						| _ -> " ") in
+					let scdr = loop ll in
+					Printf.sprintf ("%s%s%s") scar ssep scdr)
+			in Printf.sprintf "('jsil-list %s)" (loop ll)
+
 
 let rec string_of_expression e escape_string =
   let se = fun e -> string_of_expression e escape_string in
@@ -202,7 +220,6 @@ let rec string_of_expression e escape_string =
 					let scdr = loop ll in
 					Printf.sprintf ("%s%s%s") scar ssep scdr)
 			in Printf.sprintf "{{ %s }}" (loop ll)
-		
 
 let rec sexpr_of_bcmd bcmd i line_numbers_on = 
 	let se = sexpr_of_expression in
@@ -222,10 +239,6 @@ let rec sexpr_of_bcmd bcmd i line_numbers_on =
 	| SDelete (e1, e2) ->  Printf.sprintf "'(%sh-delete %s %s)" str_i (se e1) (se e2)	
 	(* ('has-field var e1 e2) *)
   | SHasField (var, e1, e2) -> Printf.sprintf "'(%shas-field %s %s %s)" str_i var (se e1) (se e2)
-	(* ('proto-field var e1 e2) *)
-	| SProtoField (var, e1, e2) -> Printf.sprintf "'(%sproto-field %s %s %s)" str_i var (se e1) (se e2)
-	(* ('proto-obj var e1 e2) *)
-	| SProtoObj (var, e1, e2) -> Printf.sprintf "'(%sproto-obj %s %s %s)" str_i var (se e1) (se e2)		
 
 let rec string_of_bcmd bcmd i line_numbers_on escape_string = 
 	let se = fun e -> string_of_expression e escape_string in
@@ -245,10 +258,6 @@ let rec string_of_bcmd bcmd i line_numbers_on escape_string =
 	| SDelete (e1, e2) ->  Printf.sprintf "%sdelete(%s,%s)" str_i (se e1) (se e2)	
 	(* x := hasField(e1, e2) *)
   | SHasField (var, e1, e2) -> Printf.sprintf "%s%s := hasField(%s,%s)" str_i var (se e1) (se e2)
-	(* x := protoField(e1, e2) *)
-	| SProtoField (var, e1, e2) -> Printf.sprintf "%s%s := protoField(%s, %s)" str_i var (se e1) (se e2)
-	(* x := protoObj(e1, e2) *)
-	| SProtoObj (var, e1, e2) -> Printf.sprintf "%s%s := protoObj(%s, %s)" str_i var (se e1) (se e2)	
 	(* x := getFields (e1, e2) *)
 	| SGetFields (var, e) -> Printf.sprintf "%s%s := getFields (%s)" str_i var (se e) 	
 	(* x := args *)
@@ -561,7 +570,17 @@ let string_of_lcmd lcmd =
 						then loop 1 var_arr_i_str
 						else  loop (i + 1) (str_ac ^ ", " ^ var_arr_i_str)) in 
 		let var_arr_str = loop 0 "" in 
-		Printf.sprintf "%s := PSI(%s)" var var_arr_str)
+		Printf.sprintf "%s := PSI(%s)" var var_arr_str
+	| SLApply (var, arg_expr_list, error_lab) -> 
+		let error_lab = (match error_lab with | None -> "" | Some error_lab -> (" with " ^ error_lab)) in 
+		let se = fun e -> string_of_expression e false in 
+		let arg_expr_list_str = 
+			(match arg_expr_list with
+		  |	[] -> ""
+		  | _ -> String.concat ", " (List.map se arg_expr_list)) in 
+			Printf.sprintf "%s := apply (%s)%s" var arg_expr_list_str error_lab
+)
+		
 		
 	
 let string_of_lbody lbody = 

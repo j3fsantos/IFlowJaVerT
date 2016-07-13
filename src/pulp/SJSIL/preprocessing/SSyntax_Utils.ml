@@ -24,12 +24,11 @@ let get_proc_variables proc =
 				| SBasic (SLookup (var, _, _))
 				| SBasic (SNew var) 
 				| SBasic (SHasField (var, _, _))
-				| SBasic (SProtoField (var, _, _))
-				| SBasic (SProtoObj (var, _, _))
+				| SBasic (SGetFields (var, _))
+				| SBasic (SArguments var)
 				| SCall (var, _, _, _) when (not (Hashtbl.mem var_table var)) ->	
 						Hashtbl.add var_table var true;  
-						loop (u+1) (var :: vars)
-				| _ -> loop (u+1) vars) in 
+						loop (u+1) (var :: vars)) in 
 	
 	loop 0 [] 			
 

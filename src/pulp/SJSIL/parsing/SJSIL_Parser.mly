@@ -47,8 +47,6 @@ open SSyntax
 %token NEW
 %token DELETE
 %token HASFIELD
-%token PROTOFIELD
-%token PROTOOBJ
 %token WITH
 (* assertion keywords *)
 %token LAND
@@ -339,18 +337,7 @@ cmd_target:
 			(* Printf.printf "Parsing HasField.\n"; *)
 			Some (SSyntax.SLBasic (SSyntax.SHasField (v, e1, e2)))
 		}
-(* x := protoField(e1, e2) *)
-	| v=VAR; DEFEQ; PROTOFIELD; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
-		{ 
-			(* Printf.printf "Parsing ProtoField.\n"; *)
-			Some (SSyntax.SLBasic (SSyntax.SProtoField (v, e1, e2)))
-		}
-(* x := protoObj(e1, e2) *)
-	| v=VAR; DEFEQ; PROTOOBJ; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
-		{ 
-			(* Printf.printf "Parsing ProtoObj.\n"; *)
-			Some (SSyntax.SLBasic (SSyntax.SProtoObj (v, e1, e2)))
-		}
+(* x := getFields (e1) *)
 	| v = VAR; DEFEQ; GETFIELDS; LBRACE; e=expr_target; RBRACE
 		{ Some (SSyntax.SLBasic (SGetFields (v, e))) }
 (* x := args *)
