@@ -94,8 +94,8 @@ let rec var_decls_inner exp =
     (fo e1) @ (fo e2) @ (fo e3) @ (f e4)
   | Call (e1, e2s) 
   | New (e1, e2s) -> (f e1) @ (flat_map (fun e2 -> f e2) e2s)
-  | AnonymousFun (_,vs, e)
-  | NamedFun (_,_, vs, e) -> []
+  | FunctionExp (_, _, vs, e)
+  | Function (_, _, vs, e) -> []
   | Obj xs -> flat_map (fun (_,_,e) -> f e) xs 
   | Array es -> flat_map (fun e -> match e with None -> [] | Some e -> f e) es
   | Try (_, None, None) -> raise CannotHappen
@@ -107,7 +107,7 @@ let var_decls exp = List.unique (var_decls_inner exp)
 
 let func_decls_in_elem exp : exp list = 
     match exp.Parser_syntax.exp_stx with
-      | Parser_syntax.NamedFun (s, name, args, body) -> [exp]
+      | Parser_syntax.Function (s, name, args, body) -> [exp]
       | _ ->  []
 
 let rec func_decls_in_exp exp : exp list =
@@ -120,7 +120,7 @@ let make_env env e args fid =
   let f_decls = func_decls_in_exp e in
   let fnames = List.map (fun f ->
     match f.Parser_syntax.exp_stx with
-      | Parser_syntax.NamedFun (s, name, args, body) -> name
+      | Parser_syntax.Function (s, Some name, args, body) -> name
       | _ -> raise (PulpInvalid ("Must be function declaration " ^ (Pretty_print.string_of_exp true f)))
   ) f_decls in
   let vars = args @ (var_decls e) @ fnames in
@@ -166,8 +166,8 @@ let rec add_codenames main exp  : exp =
       | With (e1, e2) -> m exp (With (f e1, f e2))
       | Call (e1, e2s) -> m exp (Call (f e1, List.map f e2s))
       | New (e1, e2s) -> m exp (New (f e1, List.map f e2s))
-      | AnonymousFun (str, args, fb) -> {exp with exp_stx = AnonymousFun (str, args, f fb); exp_annot = add_codename exp (fresh_anonymous ())}
-      | NamedFun (str, name, args, fb) -> {exp with exp_stx = NamedFun (str, name, args, f fb); exp_annot = add_codename exp (fresh_named name)}
+      | FunctionExp (str, name, args, fb) -> {exp with exp_stx = FunctionExp (str, name, args, f fb); exp_annot = add_codename exp (fresh_anonymous ())}
+      | Function (str, Some name, args, fb) -> {exp with exp_stx = Function (str, Some name, args, f fb); exp_annot = add_codename exp (fresh_named name)}
       | Obj xs -> m exp (Obj (List.map (fun (pn, pt, e) -> (pn, pt, f e)) xs))
       | Array es -> m exp (Array (List.map fo es))
       | ConditionalOp (e1, e2, e3)  -> m exp (ConditionalOp (f e1, f e2, f e3))
@@ -221,8 +221,9 @@ get_all_functions_with_env_in_exp env e =
     | CAccess (e1, e2) -> (f e1) @ (f e2)           
     | New (e1, e2s)
     | Call (e1, e2s) -> f e1 @ (flat_map f e2s)          
-    | AnonymousFun (_, args, fb) -> make_result e fb args env None get_all_functions_with_env_in_fb  
-    | NamedFun (_, name, args, fb) -> make_result e fb args env (Some name) get_all_functions_with_env_in_fb       
+    (* TODO: Ensure named FunctionExp has correct behaviour here *)
+    | FunctionExp (_, name, args, fb) -> make_result e fb args env name get_all_functions_with_env_in_fb
+    | Function (_, name, args, fb) -> make_result e fb args env name get_all_functions_with_env_in_fb
     | Unary_op (_, e) -> f e        
     | Delete e -> f e
     | BinOp (e1, _, e2) -> (f e1) @ (f e2)         
@@ -294,8 +295,8 @@ get_all_functions_with_env_in_stmt env e =
       | Comma _ 
       | RegExp _  -> fe e
 
-      | AnonymousFun _
-      | NamedFun _ -> raise (PulpInvalid ("Expected statement not Function Declaration. Actual " ^ (Pretty_print.string_of_exp true e)))
+      | FunctionExp _
+      | Function _ -> raise (PulpInvalid ("Expected statement not Function Declaration. Actual " ^ (Pretty_print.string_of_exp true e)))
          (* If a function appears in the middle of a statement, it shall not be interpreted as an expression function, but as a function declaration *)
          (* NOTE in spec p.86 *)
          (* ... It is recommended that ECMAScript implementations either disallow this usage of FunctionDeclaration or issue a warning *)
@@ -332,7 +333,7 @@ and
 get_all_functions_with_env_in_elem env e = 
 	(*Printf.printf "get_all_functions_with_env_in_elem %s\n" (Pretty_print.string_of_exp true e);*)
 	match e.Parser_syntax.exp_stx with
-	  | Parser_syntax.NamedFun (s, name, args, fb) -> 
+	  | Parser_syntax.Function (s, name, args, fb) ->
 	    make_result e fb args env None get_all_functions_with_env_in_fb
 	  | _ ->  get_all_functions_with_env_in_stmt env e
 and

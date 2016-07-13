@@ -22,7 +22,8 @@ let arguments () =
 			(* show line numbers *) 
 			"-line_numbers", Arg.Unit(fun () -> line_numbers := true), "show line numbers";
 			(* one procedure per file *) 
-			"-sep_procs", Arg.Unit(fun () -> sep_procs := true), "one procedure per file"
+			"-sep_procs", Arg.Unit(fun () -> sep_procs := true), "one procedure per file";
+                        "-esprima", Arg.Set(Parser_main.use_json), "use esprima parser";
     ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
@@ -59,7 +60,7 @@ let process_file path =
   try
 		let e_str = string_of_file path in 
 		let offset_converter = Js_pre_processing.memoized_offsetchar_to_offsetline e_str in
-    let e = Parser_main.exp_from_string e_str in
+    let e = Parser_main.exp_from_string ~force_strict:true e_str in
     let ext_prog, _, _ = js2jsil e offset_converter in
 		let file_name = Filename.chop_extension path in
 		(if (not (!sep_procs)) 
@@ -83,7 +84,7 @@ let process_file path =
 	
 let main () = 
 	arguments ();
-	Parser_main.js_to_xml_parser := "js_parser.jar"; 
+        Parser_main.init ();
 	Parser_main.verbose := false;
 	process_file !file
 

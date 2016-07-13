@@ -975,7 +975,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 					| Some x_scope, Some x_this -> x_scope, x_this
 					| _, _ -> raise (Failure "No var_scope or var_this to give to eval")) in
 				(match (try
-					let e_js = Parser_main.exp_from_string code in
+					let e_js = Parser_main.exp_from_string ~force_strict:true code in
 					Some (Js2jsil.js2jsil_eval prog which_pred cc_tbl vis_tbl cur_proc_name e_js)
 					with _ -> None) with
 				| Some proc_eval ->

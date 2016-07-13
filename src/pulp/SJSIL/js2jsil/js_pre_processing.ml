@@ -75,8 +75,9 @@ let test_func_decl_in_block exp =
     | Switch (_, cs) -> List.exists (fun (_, s) -> f true s) cs
     | Try (s, sc, so) -> f true s || fo (fun (_, s) -> f true s) sc || fo (f true) so
 
-    | AnonymousFun _
-    | NamedFun _ -> in_block
+    (* TODO: Ideally now the parser identifies these correctly, this test can be amended *)
+    | FunctionExp _
+    | Function _ -> in_block
   in f true exp
 
 let get_all_assigned_declared_identifiers exp =
@@ -94,8 +95,8 @@ let get_all_assigned_declared_identifiers exp =
                             BatOption.map_default (fun (id, e) -> id :: (f false e)) [] eo2 @
                             (fo false eo3)
     | ForIn (e1, e2, e3) -> (f true e1) @ (f false e2) @ (f false e3)
-    | AnonymousFun (_, vs, e) -> vs @ (f false e)
-    | NamedFun (_, n, vs, e) -> n :: (vs @ (f false e))
+    | FunctionExp (_, n, vs, e) -> (Option.map_default (List.singleton) [] n) @ vs @ (f false e)
+    | Function (_, n, vs, e) -> (Option.map_default (List.singleton) [] n) @ vs @ (f false e)
 
     (* Boring Cases *)
     | Num _
@@ -181,8 +182,8 @@ let rec var_decls_inner exp =
     (fo e1) @ (fo e2) @ (fo e3) @ (f e4)
   | Call (e1, e2s) 
   | New (e1, e2s) -> (f e1) @ (flat_map (fun e2 -> f e2) e2s)
-  | AnonymousFun (_,vs, e)
-  | NamedFun (_,_, vs, e) -> []
+  | FunctionExp _
+  | Function _ -> []
   | Obj xs -> flat_map (fun (_,_,e) -> f e) xs 
   | Array es -> flat_map (fun e -> match e with None -> [] | Some e -> f e) es
   | Try (_, None, None) -> raise CannotHappen
@@ -230,7 +231,7 @@ let rec get_fun_decls exp : exp list =
   | AssignOp (_, _, _) 
   | CAccess (_, _) 
   | Comma (_, _) 
-	| AnonymousFun (_,_,_) 
+  | FunctionExp _
 	| ConditionalOp (_, _, _)
 	| Call (_, _) 
 	| Obj _
@@ -247,7 +248,7 @@ let rec get_fun_decls exp : exp list =
  	| Switch (_, es) -> flat_map (fun (_, e) -> f e) es
   | Block es
   | Script (_, es) -> flat_map f es
-  | NamedFun (_,_, _, _) -> [ exp ]
+  | Function (_, _, _, _) -> [ exp ]
 
  
 let rec get_fun_exprs_expr exp = 
@@ -283,8 +284,8 @@ let rec get_fun_exprs_expr exp =
   | Obj xs -> flat_map (fun (_,_,e) -> f e) xs 
   | Array es -> flat_map (fun e -> match e with None -> [] | Some e -> f e) es
 	| ConditionalOp (e1, e2, e3) -> (f e1) @ (f e2) @ (f e3)
-	| AnonymousFun (_,_,_)
-  | NamedFun (_,_,_,_) -> [ exp ] 
+  | FunctionExp _
+  | Function    _ -> [ exp ]
 	| Label (_,_) 
   | While (_,_) 
   | DoWhile (_,_)
@@ -321,7 +322,7 @@ and get_fun_exprs_stmt stmt =
 	| CAccess (_, _)        
 	| New (_, _)
 	| Call (_, _)    
-	| AnonymousFun (_, _, _) 
+	| FunctionExp _
 	| Unary_op (_, _)         
   | Delete _ 
   | BinOp (_, _, _)      
@@ -331,7 +332,7 @@ and get_fun_exprs_stmt stmt =
   | AssignOp (_, _, _) 
   | Comma (_, _)           
   | RegExp _ -> fe stmt
-	| NamedFun (_, f_name, args, fb) -> []
+  | Function _ -> []
 	(* statements *)
 	| Script (_, es) 
   | Block es -> flat_map (fun e -> f e) es
@@ -362,22 +363,22 @@ and get_fun_exprs_stmt stmt =
 	
 
 let func_decls_in_elem exp : exp list = 
-    match exp.Parser_syntax.exp_stx with
-      | Parser_syntax.NamedFun (s, name, args, body) -> [exp]
+    match exp.exp_stx with
+      | Function (s, name, args, body) -> [exp]
       | _ ->  []
 
 let rec func_decls_in_exp exp : exp list =
-  match exp.Parser_syntax.exp_stx with
-    | Parser_syntax.Script (_, es) 
-    | Parser_syntax.Block (es) -> List.flatten (List.map (func_decls_in_elem) es)
+  match exp.exp_stx with
+    | Script (_, es) 
+    | Block (es) -> List.flatten (List.map (func_decls_in_elem) es)
     | _ -> func_decls_in_elem exp  
 
 
 let get_all_vars_f f_body f_args =
   let f_decls = func_decls_in_exp f_body in
   let fnames = List.map (fun f ->
-    match f.Parser_syntax.exp_stx with
-      | Parser_syntax.NamedFun (s, name, args, body) -> name
+    match f.exp_stx with
+      | Function (s, Some name, args, body) -> name
       | _ -> raise (Failure ("Must be function declaration " ^ (Pretty_print.string_of_exp true f)))
   ) f_decls in
   let vars = List.concat [f_args; (var_decls f_body); fnames] in
@@ -423,8 +424,8 @@ let rec add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous exp
       | With (e1, e2) -> m exp (With (f e1, f e2))
       | Call (e1, e2s) -> m exp (Call (f e1, List.map f e2s))
       | New (e1, e2s) -> m exp (New (f e1, List.map f e2s))
-      | AnonymousFun (str, args, fb) -> {exp with exp_stx = AnonymousFun (str, args, f fb); exp_annot = add_codename exp (fresh_anonymous ())}
-      | NamedFun (str, name, args, fb) -> {exp with exp_stx = NamedFun (str, name, args, f fb); exp_annot = add_codename exp (fresh_named (sanitise name))}
+      | FunctionExp (str, name, args, fb) -> {exp with exp_stx = FunctionExp (str, name, args, f fb); exp_annot = add_codename exp (fresh_anonymous ())}
+      | Function (str, Some name, args, fb) -> {exp with exp_stx = Function (str, Some name, args, f fb); exp_annot = add_codename exp (fresh_named (sanitise name))}
       | Obj xs -> m exp (Obj (List.map (fun (pn, pt, e) -> (pn, pt, f e)) xs))
       | Array es -> m exp (Array (List.map fo es))
       | ConditionalOp (e1, e2, e3)  -> m exp (ConditionalOp (f e1, f e2, f e3))
@@ -508,22 +509,26 @@ let rec closure_clarification_expr cc_tbl fun_tbl vis_tbl f_id visited_funs e =
 	| CAccess (e1, e2) -> (f e1); (f e2)           
 	| New (e1, e2s)
 	| Call (e1, e2s) -> f e1; (List.iter f e2s)          
-  | AnonymousFun (_, args, fb) -> 
-		let new_f_id = get_codename e in 
-		update_cc_tbl cc_tbl f_id new_f_id args fb;
-		update_fun_tbl fun_tbl new_f_id args fb;
-		Hashtbl.replace vis_tbl new_f_id (new_f_id :: visited_funs); 
-		closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: visited_funs) fb
-	| NamedFun (_, f_name, args, fb) ->
-		(* Printf.printf("named function oleee\n"); *)  
-		let new_f_id = get_codename e in
-		let new_f_id_outer = new_f_id ^ "_outer" in
-		update_cc_tbl_single_var_er cc_tbl f_id new_f_id_outer f_name;  
-		update_cc_tbl cc_tbl new_f_id_outer new_f_id args fb;
-		update_fun_tbl fun_tbl new_f_id args fb; 
-		Hashtbl.replace vis_tbl new_f_id (new_f_id :: new_f_id_outer :: visited_funs); 
-		closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: new_f_id_outer :: visited_funs) fb
-	| Unary_op (_, e) -> f e        
+  | FunctionExp (_, f_name, args, fb)
+  | Function (_, f_name, args, fb) ->
+    begin match f_name with
+    | None ->
+      let new_f_id = get_codename e in 
+      update_cc_tbl cc_tbl f_id new_f_id args fb;
+      update_fun_tbl fun_tbl new_f_id args fb; 
+      Hashtbl.replace vis_tbl new_f_id (new_f_id :: visited_funs); 
+      closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: visited_funs) fb
+    | Some f_name ->
+      (* Printf.printf("named function oleee\n"); *)  
+      let new_f_id = get_codename e in
+      let new_f_id_outer = new_f_id ^ "_outer" in
+      update_cc_tbl_single_var_er cc_tbl f_id new_f_id_outer f_name;  
+      update_cc_tbl cc_tbl new_f_id_outer new_f_id args fb;
+      update_fun_tbl fun_tbl new_f_id args fb; 
+      Hashtbl.replace vis_tbl new_f_id (new_f_id :: new_f_id_outer :: visited_funs); 
+      closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: new_f_id_outer :: visited_funs) fb
+    end
+  | Unary_op (_, e) -> f e        
   | Delete e -> f e
   | BinOp (e1, _, e2) -> f e1; f e2         
   | Assign (e1, e2) -> f e1; f e2  
@@ -575,7 +580,7 @@ closure_clarification_stmt cc_tbl fun_tbl vis_tbl f_id visited_funs e =
 	| CAccess (_, _)        
 	| New (_, _)
 	| Call (_, _)    
-	| AnonymousFun (_, _, _) 
+	| FunctionExp _
 	| Unary_op (_, _)         
   | Delete _ 
   | BinOp (_, _, _)      
@@ -586,7 +591,7 @@ closure_clarification_stmt cc_tbl fun_tbl vis_tbl f_id visited_funs e =
   | Comma (_, _)           
   | RegExp _ -> fe e
 	(*Statements*)
-	| NamedFun (_, f_name, args, fb) -> 
+	| Function (_, f_name, args, fb) ->
 		(* Printf.printf("named function expression hihihi\n");  *)
 		let new_f_id = get_codename e in 
 		update_cc_tbl cc_tbl f_id new_f_id args fb;
@@ -694,8 +699,8 @@ match e.exp_stx with
   | Obj _
   | Array _
   | RegExp (_, _)
-  | AnonymousFun (_, _, _) 
-  | NamedFun (_, _, _, _) 
+  | FunctionExp _
+  | Function _
   | Call (_, _)
 	| This
   | Throw _
