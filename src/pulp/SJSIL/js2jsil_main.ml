@@ -23,7 +23,7 @@ let arguments () =
 			"-line_numbers", Arg.Unit(fun () -> line_numbers := true), "show line numbers";
 			(* one procedure per file *) 
 			"-sep_procs", Arg.Unit(fun () -> sep_procs := true), "one procedure per file";
-                        "-closure", Arg.Clear(Parser_main.use_json), "use closure parser";
+      "-closure", Arg.Clear(Parser_main.use_json), "use closure parser";
     ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg

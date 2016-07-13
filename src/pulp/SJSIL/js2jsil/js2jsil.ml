@@ -2710,7 +2710,6 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds = annotate_cmds cmds in 
 		cmds, Var x_f, errs
 	
-	
 	| Parser_syntax.FunctionExp (_, Some f_name, params, _)
 	| Parser_syntax.Function (_, Some f_name, params, _) ->
 		let f_id = try Js_pre_processing.get_codename e 

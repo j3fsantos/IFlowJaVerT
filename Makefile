@@ -2,13 +2,6 @@ OCAMLBUILDFLAGS=-use-ocamlfind -verbose 1
 
 # Please add new default build targets into sjsil.itarget, to improve build speed
 default:
-	#ocamlbuild -use-ocamlfind src/pulp/interpreter/interpreter_run.byte
-	#ocamlbuild -use-ocamlfind src/pulp/interpreter/interpreter_run.d.byte
-	#ocamlbuild -use-ocamlfind src/pulp/interpreter/interpreter_run.native
-	#ocamlbuild -use-ocamlfind tests/test_interpreter.byte
-	#ocamlbuild -use-ocamlfind src/pulp/syntax/translate.byte
-	#ocamlbuild -use-ocamlfind tests/spec_Functions_Tests.byte
-	#ocamlbuild -use-ocamlfind src/pulp/SJSIL/symb_execution_main.byte
 	ocamlbuild ${OCAMLBUILDFLAGS} sjsil.otarget
 
 init: init_ci
@@ -23,3 +16,4 @@ init_parser:
 
 clean:
 	ocamlbuild ${OCAMLBUILDFLAGS} -clean
+

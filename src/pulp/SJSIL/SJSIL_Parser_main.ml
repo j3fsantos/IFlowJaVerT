@@ -39,7 +39,7 @@ let arguments () =
 			"-sexpr",      Arg.Unit(fun () -> do_sexpr      := true), "generate output in s-expression format";
 			(* empty heap *)
 			"-empty_heap",      Arg.Unit(fun () -> empty_heap    := true), "empty heap";
-                        "-closure", Arg.Clear(Parser_main.use_json), "use closure parser";
+      "-closure", Arg.Clear(Parser_main.use_json), "use closure parser";
     ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
