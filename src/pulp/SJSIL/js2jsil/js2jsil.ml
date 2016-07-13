@@ -1136,7 +1136,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 				with _ -> raise (Failure "anonymous function literals should be annotated with their respective code names - Getter function") in 
 			let params = 
 				(match accessor.Parser_syntax.exp_stx with 
-				| Parser_syntax.AnonymousFun (_, params, _) -> params 
+				| Parser_syntax.FunctionExp (_, _, params, _) -> params
 				| _ -> raise (Failure "getters should be annonymous functions")) in 
 			let cmds, x_f, errs = translate_function_literal f_id params vis_fid err in 
 			let cmds = annotate_cmds cmds in 
@@ -2706,7 +2706,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		cmds, (Var x2_v), errs
 		
 		
-	| Parser_syntax.AnonymousFun (_, params, e_body) -> 
+	| Parser_syntax.FunctionExp (_, f_name, params, e_body) ->
 		(**
        Section 13
        x_sc := copy_scope_chain_obj (x_scope, {{main, fid1, ..., fidn }}); 
@@ -2719,7 +2719,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		cmds, Var x_f, errs
 	
 	
-	| Parser_syntax.NamedFun (_, f_name, params, _) -> 
+	| Parser_syntax.Function (_, Some f_name, params, _) ->
 		let f_id = try Js_pre_processing.get_codename e 
 			with _ -> raise (Failure "named function literals should be annotated with their respective code names") in
 			
@@ -3358,7 +3358,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 	| Parser_syntax.Call _ 
 	| Parser_syntax.Assign _ 
 	| Parser_syntax.AssignOp _ 
-	| Parser_syntax.AnonymousFun _ 
+	| Parser_syntax.FunctionExp _
 	| Parser_syntax.New _ 
 	| Parser_syntax.Obj _ 
 	| Parser_syntax.Array _ 
@@ -4367,7 +4367,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		| _, _ -> raise (Failure "no b cases with no default"))  
 	
 	
-	| Parser_syntax.NamedFun (_, n, params, e_body) -> [], Literal Empty, [], [], [], []
+	| Parser_syntax.Function (_, n, params, e_body) -> [], Literal Empty, [], [], [], []
 		
   | Parser_syntax.With (_, _) -> raise (Failure "Not implemented: with (this should not happen)")
 	| Parser_syntax.RegExp (_, _) -> raise (Failure "Not implemented: RegExp literal")
@@ -4393,7 +4393,7 @@ let translate_fun_decls e enclosing_fid vis_fid err =
 		List.fold_left (fun (ac_cmds, ac_errs) f_decl -> 
 			let f_name, f_params = 
 				(match f_decl.Parser_syntax.exp_stx with 
-				| Parser_syntax.NamedFun (s, f_name, f_params, body) -> f_name, f_params
+				| Parser_syntax.Function (s, Some f_name, f_params, body) -> f_name, f_params
 				| _ -> raise (Failure "expected function declaration")) in 
 			let f_id = Js_pre_processing.get_codename f_decl in  		
 			let f_cmds, _, f_errs = translate_named_function_literal enclosing_fid f_id f_name f_params vis_fid err in 

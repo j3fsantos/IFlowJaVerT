@@ -82,7 +82,6 @@ let test_jsil_template test =
     ****************** **)
 
 let test_javascript_template test =
-	Parser_main.js_to_xml_parser := "js_parser.jar";
   Parser_main.verbose := false;
 	let str = test.main in 
 	let offset_converter = Js_pre_processing.memoized_offsetchar_to_offsetline str in 

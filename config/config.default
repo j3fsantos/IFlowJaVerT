@@ -1,7 +1,0 @@
-<CONFIG>
-  <JS_TO_XML_PARSER  location = "src/parser/lib/js_parser.jar"/>
-  <LOGIC>
-    <LOGIC_DIR>lib/logic/</LOGIC_DIR>
-  </LOGIC>
-  <SMT enabled="false" path="z3 -in -smt2"/>
-</CONFIG>

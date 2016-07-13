@@ -1,2 +1,0 @@
-let dotexe = "/usr/bin/dot"
-let xmlconfig = "config/config.xml"

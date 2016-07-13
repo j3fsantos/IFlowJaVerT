@@ -1,6 +1,3 @@
-[submodule "src/parser"]
-	path = src/parser
-	url = https://github.com/resource-reasoning/JS_Parser.git
 [submodule "lib/runtests"]
 	path = lib/runtests
 	url = https://github.com/edgemaster/runtests.git
