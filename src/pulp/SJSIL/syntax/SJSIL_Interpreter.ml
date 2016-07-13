@@ -636,7 +636,7 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store =
 					else
 						acc
 					) obj [] in
-			let v = LList fields in
+			let v = LList (List.sort compare fields) in
 			Hashtbl.replace store x v;
 			if (!verbose) then Printf.printf "hasField: %s := gf (%s) = %s \n" x (SSyntax_Print.string_of_literal v_e false) (SSyntax_Print.string_of_literal v false);
 			v
