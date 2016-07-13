@@ -1,0 +1,5 @@
+src/pulp/SJSIL/SJSIL_Parser_main.byte
+src/pulp/SJSIL/SJSIL_Parser_main.native
+src/pulp/SJSIL/js2jsil_main.byte
+src/pulp/SJSIL/js2jsil_main.native
+src/pulp/SJSIL/tests/test_main.byte

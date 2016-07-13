@@ -60,7 +60,8 @@ let defineOwnPropertyName             = "o__defineOwnProperty"           (* 8.12
 let defineOwnPropertyArrayName        = "a__defineOwnProperty"           (* 15.sth.sth        *) 
 let checkAssignmentErrorsName         = "i__checkAssignmentErrors"        
 let checkParametersName               = "i__checkParameters"    
-let getEnumFieldsName                 = "i__getAllEnumerableFields"        
+let getEnumFieldsName                 = "i__getAllEnumerableFields"       
+let createArgsName                    = "create_arguments_object" 
 
 let print_position outx lexbuf =
   let pos = lexbuf.lex_curr_p in
@@ -424,12 +425,7 @@ let translate_function_literal fun_id params vis_fid err =
 		
 	(* x_f := create_function_object(x_sc, f_id, params) *)
 	let x_f = fresh_fun_var () in 
-	let processed_params = 
-		List.fold_left
-			(fun ac param -> (String param) :: ac) 
-			[]
-			params in 
-	let processed_params = List.rev processed_params in 
+	let processed_params = List.map (fun p -> String p) params in
 	let cmd = SLCall (x_f, Literal (String createFunctionObjectName), 
 		[ (Var x_sc); (Literal (String fun_id)); (Literal (String fun_id)); (Literal (LList processed_params)) ], None) in 	
 		
@@ -881,6 +877,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err e : ((SSyntax.j
 			([], [], [])
 			xes in 
 		cmds_args, x_args_gv, errs_args in
+
 
 	match e.Parser_syntax.exp_stx with 
 
@@ -2492,14 +2489,8 @@ let rec translate_expr offset_converter fid cc_table vis_fid err e : ((SSyntax.j
 		let f_id = try Js_pre_processing.get_codename e 
 			with _ -> raise (Failure "named function literals should be annotated with their respective code names") in
 			
-		let processed_params = 
-			List.fold_left
-				(fun ac param -> (String param) :: ac) 
-				[]
-				params in 
-		let processed_params = List.rev processed_params in 
-		
 		(*  x_t := checkParametersName (f_name, processed_params) with err;      *)
+		let processed_params = List.map (fun p -> String p) params in
 		let x_t = fresh_var () in
 		let cmd_errCheck = SLCall (x_t, Literal (String checkParametersName), 
 			[ (Literal (String f_name)); (Literal (LList processed_params)) ], Some err) in
@@ -2565,7 +2556,9 @@ let rec translate_expr offset_converter fid cc_table vis_fid err e : ((SSyntax.j
 		let x, cmds, errs = loop decs [] [] in 
 		cmds, Var x, errs
 
-
+	| Parser_syntax.RegExp (_, _) -> raise (Failure "Not implemented: RegExp literal")
+	| x -> raise (Failure (Printf.sprintf "Unhandled expression %s at %s" (Pretty_print.string_of_exp_syntax x) __LOC__))
+	
 
 and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list : (string option * string * string option * bool) list) previous js_lab e  = 
 	let fe = translate_expr offset_converter fid cc_table vis_fid err in
@@ -3112,11 +3105,9 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		cmds, Var x, errs, [], [], []
 	
 	
-	| Parser_syntax.Skip ->
-		(** 
-     Section 12.3 - Empty Statement 
-		 *) 
-		 [], Literal Empty, [], [], [], [] 
+      | Parser_syntax.Skip (** Section 12.3 - Empty Statement *)
+	| Parser_syntax.Debugger -> (** Section 12.15 - Debugger Statement **)
+		 [], Literal Empty, [], [], [], []
 	
 	
 	| Parser_syntax.Num _ 
@@ -4146,7 +4137,6 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		
   | Parser_syntax.With (_, _) -> raise (Failure "Not implemented: with (this should not happen)")
 	| Parser_syntax.RegExp (_, _) -> raise (Failure "Not implemented: RegExp literal")
-	| Parser_syntax.Debugger -> raise (Failure "Not implemented: debugger (this should not happen)")
 
 
 let make_final_cmd vars final_lab final_var =
@@ -4410,6 +4400,24 @@ let generate_proc offset_converter e fid params cc_table vis_fid =
 			(annotate_cmd cmd None))
 		(Js_pre_processing.var_decls e) in 
 	
+	(**
+      CREATING THE ARGUMENTS OBJECT:
+			x_argList_pre := args;
+			x_argList_act := cdr (cdr (x_argList_pre));
+			x_args := "create_arguments_object" (x_argList_act) with err;
+			[x_er, "arguments"] := x_args;
+  *)
+	let x_argList_pre = fresh_var () in
+	let x_argList_act = fresh_var () in
+	let x_args = fresh_var () in
+	let cmds_arg_obj =
+		[
+			(metadata, None, SLBasic (SArguments (x_argList_pre)));
+			(metadata, None, SLBasic (SAssignment (x_argList_act, UnaryOp (Cdr, (UnaryOp (Cdr, Var x_argList_pre))))));
+			(metadata, None, SLCall  (x_args, Literal (String createArgsName), [ Var x_argList_act ], Some new_ctx.tr_error_lab));
+			(metadata, None, SLBasic (SMutation (Var x_er, Literal (String "arguments"), Var x_args)))
+		] in
+
 	(* [__scope, "fid"] := x_er *) 
 	let cmd_ass_er_to_sc = annotate_cmd  (SLBasic (SMutation (Var var_scope, Literal (String fid), Var x_er))) None in 
 	
@@ -4437,7 +4445,7 @@ let generate_proc offset_converter e fid params cc_table vis_fid =
 	let cmds_restore_er_ret = annotate_cmds cmds_restore_er_ret in  
 	
 	(* pre_lab_err: x_error := PHI(...) *) 
-	let errs = errs_hoist_decls @ errs in 
+	let errs = errs_hoist_decls @ [ x_args ] @ errs in 
 	let cmd_error_phi = make_final_cmd errs new_ctx.tr_error_lab new_ctx.tr_error_var in 	
 	let cmds_restore_er_error = generate_proc_er_restoring_code fid x_er_old ctx.tr_error_lab in  
 	let cmds_restore_er_error = annotate_cmds cmds_restore_er_error in 
@@ -4445,8 +4453,9 @@ let generate_proc offset_converter e fid params cc_table vis_fid =
 	let fid_cmds = 
 		cmds_save_old_er @ 
 		[ cmd_er_creation ] @ 
-		cmds_params @ 
 		cmds_decls @ 
+		cmds_params @ 
+		cmds_arg_obj @
 		[ cmd_ass_er_to_sc ] @ 
 		[ cmd_ass_te; cmd_ass_se;  cmd_ass_xtrue; cmd_ass_xfalse ] @ 
 		cmds_hoist_fdecls @ 
@@ -4501,6 +4510,7 @@ let js2jsil e offset_converter =
 	let vis_tbl = Hashtbl.create 101 in  
 	
 	let main = "main" in 
+        Js_pre_processing.test_early_errors e;
 	let e = Js_pre_processing.add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous e in 
 	Js_pre_processing.closure_clarification_top_level cc_tbl fun_tbl vis_tbl main e [ main ] []; 
 	
@@ -4527,7 +4537,7 @@ let js2jsil e offset_converter =
 
 let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e = 
 	let offset_converter x = 0 in 
-	
+	Js_pre_processing.test_early_errors e;
 	let vis_tbl, cc_tbl, vis_fid = 
 		(match vis_tbl, cc_tbl with 
 		| Some vis_tbl, Some cc_tbl -> 

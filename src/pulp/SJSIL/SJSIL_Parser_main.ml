@@ -85,22 +85,24 @@ let run_jsil_prog prog which_pred cc_tbl vis_tbl =
 let main () = 
 	arguments ();
 	if (!compile_and_run) then 
-	begin
-		Parser_main.js_to_xml_parser := "js_parser.jar";
-  	Parser_main.verbose := false;
-		let harness = load_file "harness.js" in
-		let main = load_file (!file) in
+  begin try
+  	Parser_main.js_to_xml_parser := "js_parser.jar";
+    Parser_main.verbose := false;
+    let harness = load_file "harness.js" in
+    let main = load_file (!file) in
 		let offset_converter = Js_pre_processing.memoized_offsetchar_to_offsetline main in 
-		let all = harness ^ "\n" ^ main in
-		let e = (try Parser_main.exp_from_string all with
-      	       | Parser.ParserFailure file -> Printf.printf "\nParsing problems with the file '%s'.\n" file; exit 1
-							 | Parser.JS_To_XML_parser_failure
-							 | Parser.XmlParserException -> Printf.printf "\nXML parsing issues.\n"; exit 1) in
-	  let (oimp, code, cc_tbl, vis_tbl) = js2jsil e offset_converter in 
-	  let imp = SSyntax_Utils.if_some oimp (fun x -> x) [] in
-	  let prog, which_pred = SSyntax_Utils.prog_of_lprog (imp, code) in 
-	  	run_jsil_prog prog which_pred (Some cc_tbl) (Some vis_tbl)
-	end
+    let all = harness ^ "\n" ^ main in
+    let e = Parser_main.exp_from_string all in
+    let (oimp, code, cc_tbl, vis_tbl) = js2jsil e offset_converter in
+    let imp = SSyntax_Utils.if_some oimp (fun x -> x) [] in
+    let prog, which_pred = SSyntax_Utils.prog_of_lprog (imp, code) in 
+    run_jsil_prog prog which_pred (Some cc_tbl) (Some vis_tbl)
+  with
+    | Parser.ParserFailure file -> Printf.printf "\nParsing problems with the file '%s'.\n" file; exit 1
+    | Parser.JS_To_XML_parser_failure
+    | Parser.XmlParserException -> Printf.printf "\nXML parsing issues.\n"; exit 1
+    | Js_pre_processing.EarlyError e -> Printf.printf "\nParser post-processing threw an EarlyError: %s\n" e; exit 1
+  end
 	else
 	begin
 		let lprog = SSyntax_Utils.lprog_of_path !file in 

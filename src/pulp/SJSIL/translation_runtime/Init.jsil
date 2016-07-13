@@ -76,6 +76,10 @@ proc create_function_object (xsc, call, construct, params) {
 			prototype := "Object_construct" ();
 			[prototype, "constructor"] := {{ "d", l, $$t, $$f, $$t }};
 			[l, "prototype"] := {{ "d", prototype, $$t, $$f, $$f }};
+
+			(* Strict mode only *)
+			[l, "caller"] := {{ "a", $lthrow_type_error, $lthrow_type_error, $$f, $$f }};
+			[l, "arguments"] := {{ "a", $lthrow_type_error, $lthrow_type_error, $$f, $$f }};
 			
 			xret := l;
 			
@@ -265,7 +269,7 @@ proc setupInitialHeap () {
 			
 			xret := "create_default_object" ($larr_proto, $lobj_proto, "Array", $$t);
 			
-			[$larr_proto, "length"]         := {{ "d", 0, $$f, $$f, $$f }};
+			[$larr_proto, "length"]         := {{ "d", 0, $$t, $$f, $$f }};
 			[$larr_proto, "constructor"]    := {{ "d", $larr, $$t, $$f, $$t }};
 			[$larr_proto, "toString"]       := {{ "d", $lap_toString, $$t, $$f, $$t }};
 			[$larr_proto, "toLocaleString"] := {{ "d", $lap_toLocaleString, $$t, $$f, $$t }};
@@ -301,7 +305,7 @@ proc setupInitialHeap () {
 			xret := "create_object_with_call_construct" ($lap_sort, "AP_sort", $$empty, 1);
 			xret := "create_object_with_call_construct" ($lap_splice, "AP_splice", $$empty, 2);
 			xret := "create_object_with_call_construct" ($lap_unshift, "AP_unshift", $$empty, 1);
-			xret := "create_object_with_call_construct" ($lap_indexOf, "AP_indexOf, $$empty", 1);
+			xret := "create_object_with_call_construct" ($lap_indexOf, "AP_indexOf", $$empty, 1);
 			xret := "create_object_with_call_construct" ($lap_lastIndexOf, "AP_lastIndexOf", $$empty, 1);
 			xret := "create_object_with_call_construct" ($lap_every, "AP_every", $$empty, 1);
 			xret := "create_object_with_call_construct" ($lap_some, "AP_some", $$empty, 1);
@@ -327,7 +331,7 @@ proc setupInitialHeap () {
 			[$lstr, "prototype"]    := {{ "d", $lstr_proto, $$f, $$f, $$f }};
 			[$lstr, "fromCharCode"] := {{ "d", $lstr_fromCharCode, $$t, $$f, $$t }};
 			
-			xret := "create_object_with_call_construct" ($lstr_fromCharCode, "String_fromCharCode", 1);
+			xret := "create_object_with_call_construct" ($lstr_fromCharCode, "String_fromCharCode", $$empty, 1);
 			
 			(* String.prototype *)
 			
@@ -751,9 +755,58 @@ proc setupInitialHeap () {
 			[$lterr_proto,  "message"]    := {{ "d", "", $$t, $$f, $$t }};
 			[$luerr_proto,  "message"]    := {{ "d", "", $$t, $$f, $$t }};
 
+			(* 13.2.3 The [[ThrowTypeError]] Function Object *)
+			(* Note, this object does not follow the standard Function object construction *)
+			xret := "create_default_object" ($lthrow_type_error, $lfun_proto, "Function", $$f);
+			[xret, "@scope"] := $$empty;
+			[xret, "@formalParameters"] := {{ }};
+			[xret, "@call"] := "ThrowTypeError";
+			[xret, "length"] := {{ "d", 0, $$f, $$f, $$f }};
+
+
 	rlab:	xret := $$empty
 }
 with
 {
 	ret:	xret, rlab;
+};
+
+
+(* **************** *) 
+(* ARGUMENTS OBJECT *)
+(* **************** *)
+
+proc create_arguments_object (argList) { 
+
+			len := length (argList);
+			
+			(* Create the arguments object *)
+			xret := new ();
+			xret := "create_default_object" (xret, $lobj_proto, "Arguments", $$t);
+			obj  := xret;
+
+			(* Define length *)
+			dop := [obj, "@defineOwnProperty"];
+			xret := dop (obj, "length", {{ "d", len, $$t, $$f, $$t }}, $$f) with elab;		
+			
+			(* Loop through values *)
+			indx := len - 1;
+			
+	loop:	goto [0 <= indx] head call;
+	head:	xret := "i__toString" (indx) with elab;
+			xret := dop (obj, xret, {{ "d", nth (argList, indx), $$t, $$t, $$t }}, $$f) with elab;
+			indx := indx - 1;
+			goto loop;
+			
+			(* Set caller and callee *)
+	call:	[obj, "caller"] := {{ "a", $lthrow_type_error, $lthrow_type_error, $$f, $$f }};
+			[obj, "callee"] := {{ "a", $lthrow_type_error, $lthrow_type_error, $$f, $$f }};
+
+	rlab:	xret := obj;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
 }

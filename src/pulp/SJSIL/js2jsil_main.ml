@@ -43,19 +43,17 @@ let string_of_file path =
 	sh ^ sf         
 
 let process_file path = 
-	let e_str = string_of_file path in 
-	let offset_converter = Js_pre_processing.memoized_offsetchar_to_offsetline e_str in 
-	let e = 
-    (try 
-      Parser_main.exp_from_string e_str
-    with
-      | Parser.ParserFailure file ->
-        Printf.printf "\nParsing problems with the file '%s'.\n" file;
-        exit 1) in
-	let imports, jsil_prog_e, _, _ = js2jsil e offset_converter in 
-	let jsil_prog_str = SSyntax_Print.string_of_lprogram (imports, jsil_prog_e) in 
-	let file_name = Filename.chop_extension path in 
-	burn_to_disk (file_name ^ ".jsil") jsil_prog_str
+  try
+		let e_str = string_of_file path in 
+		let offset_converter = Js_pre_processing.memoized_offsetchar_to_offsetline e_str in
+    let e = Parser_main.exp_from_string e_str in
+    let imports, jsil_prog_e, _, _ = js2jsil e offset_converter in
+    let jsil_prog_str = SSyntax_Print.string_of_lprogram (imports, jsil_prog_e) in
+    let file_name = Filename.chop_extension path in
+    burn_to_disk (file_name ^ ".jsil") jsil_prog_str
+  with
+  | Parser.ParserFailure file -> Printf.printf "\nParsing problems with the file '%s'.\n" file; exit 1
+  | Js_pre_processing.EarlyError e -> Printf.printf "\nParser post-processing threw an EarlyError: %s\n" e; exit 1
 	
 	
 let main () = 

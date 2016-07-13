@@ -319,7 +319,7 @@ let evaluate_binop op lit1 lit2 =
 	| Concat -> 
 		(match lit1, lit2 with 
 		| String s1, String s2 -> (String (s1 ^ s2)) 
-		| _, _ -> raise (Failure "Non-string argument to Concat"))
+		| _, _ -> raise (Failure (Printf.sprintf "Non-string argument to Concat: %s, %s" (SSyntax_Print.string_of_literal lit1 false) (SSyntax_Print.string_of_literal lit2 false))))
 	| Append -> 
 		(match lit1, lit2 with 
 		| LList l1, LList l2 -> (LList (List.append l1 l2))
@@ -636,7 +636,7 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store =
 					else
 						acc
 					) obj [] in
-			let v = LList fields in
+			let v = LList (List.sort compare fields) in
 			Hashtbl.replace store x v;
 			if (!verbose) then Printf.printf "hasField: %s := gf (%s) = %s \n" x (SSyntax_Print.string_of_literal v_e false) (SSyntax_Print.string_of_literal v false);
 			v
@@ -709,46 +709,37 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 		let str_e = (evaluate_expr str_e store) in
 		(match str_e with
 		| String code ->
-				(let code = Str.global_replace (Str.regexp (Str.quote "\\\"")) "\"" code in
+				let code = Str.global_replace (Str.regexp (Str.quote "\\\"")) "\"" code in
 				(* Printf.printf "\n%s\n" code; *)
 				let x_scope, x_this = 
 					(match SSyntax_Aux.try_find store (Js2jsil.var_scope), SSyntax_Aux.try_find store (Js2jsil.var_this)  with 
 					| Some x_scope, Some x_this -> x_scope, x_this
-					| _, _ -> raise (Failure "No var_scope or var_this to give to eval")) in 
-				let e_js = (try Some (Parser_main.exp_from_string code) with _ -> None) in 
-					match e_js with 
-					| None -> 
-						(match SSyntax_Aux.try_find store (Js2jsil.var_se), j with
-						| Some v, Some j -> 
+					| _, _ -> raise (Failure "No var_scope or var_this to give to eval")) in
+				(match (try
+					let e_js = Parser_main.exp_from_string code in
+					Some (Js2jsil.js2jsil_eval prog which_pred cc_tbl vis_tbl cur_proc_name e_js)
+					with _ -> None) with
+				| Some proc_eval ->
+					(let new_store = init_store [ Js2jsil.var_scope; Js2jsil.var_this ] [ x_scope; x_this ] in
+					match evaluate_cmd prog proc_eval.proc_name which_pred heap new_store 0 0 cc_tbl vis_tbl with
+					| Normal, v ->
+						Hashtbl.replace store x v;
+						SProgram.remove prog proc_eval.proc_name;
+						evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
+					| Error, v ->
+						match j with
+						| None -> raise (Failure "procedure throws an error without a ret label")
+						| Some j ->
 							Hashtbl.replace store x v;
-							evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl
-						| _, None -> raise (Failure ("Procedure "^ cur_proc_name ^" just returned an error, but no error label was provided. Bad programmer."))
-						| _, _ -> raise (Failure "No Syntax Error for you, no noooo!"))		 
-					| Some e_js -> 
-						(let is_legal_expr = Js_pre_processing.is_expr_free_of_eval_arguments_vars e_js in 
-						match is_legal_expr with 
-							| false -> 
-								(match j with 
-								| None -> raise (Failure "procedure throws an error without a ret label") 
-								| Some j ->
-									let v = try Hashtbl.find store Js2jsil.var_se with _ -> raise (Failure "eval no syntax error") in 
-									Hashtbl.replace store x v;
-									evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl)
-							| true -> 
-								(let proc_eval = Js2jsil.js2jsil_eval prog which_pred cc_tbl vis_tbl cur_proc_name e_js in 
-								let new_store = init_store [ Js2jsil.var_scope; Js2jsil.var_this ] [ x_scope; x_this ] in
-								match evaluate_cmd prog proc_eval.proc_name which_pred heap new_store 0 0 cc_tbl vis_tbl with 
-								| Normal, v -> 
-									Hashtbl.replace store x v;
-									SProgram.remove prog proc_eval.proc_name;
-	 								evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
-								| Error, v -> 
-									match j with 
-									| None -> raise (Failure "procedure throws an error without a ret label") 
-									| Some j ->
-										Hashtbl.replace store x v;
-										evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl)))
-		
+							evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl)
+				| None -> (* Any sort of error from Parsing and JS2JSIL compilation *)
+					(match SSyntax_Aux.try_find store (Js2jsil.var_se), j with
+					| Some v, Some j ->
+						Hashtbl.replace store x v;
+						evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl
+					| _, None -> raise (Failure ("Procedure "^ cur_proc_name ^" just returned an error, but no error label was provided. Bad programmer."))
+					| _, _ -> raise (Failure "No Syntax Error for you, no noooo!")))
+
 		| _ -> Hashtbl.replace store x str_e;
 					 evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl)
 	
