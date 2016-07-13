@@ -1652,7 +1652,7 @@ proc AP_sort(xsc, vthis, compfn) {
 			
 	while2:	goto [curr < end] next1 end1;
 	
-	next1:	xret := "a__sortCompare" (curr, end, compfn, vthis);
+	next1:	xret := "a__sortCompare" (curr, end, compfn, vthis) with elab;
 			goto [xret < 0] less nless;
 			
 	less:	xret := "i__toString" (l) with elab;
