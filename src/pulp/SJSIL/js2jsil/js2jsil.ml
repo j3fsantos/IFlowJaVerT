@@ -1322,7 +1322,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err e : ((SSyntax.j
 		let cmd_bscope = SLBasic (SLookup (x_bfscope, Var x_tf, Literal (String scopePropName))) in 
 
 		let x_params = fresh_var () in	
-		let jsil_list_params = LEList ([Var x_bbody; Var x_bfscope; Var x_tf]) in
+		let jsil_list_params = LEList ([Var x_bbody; Var x_bfscope; Var x_bthis]) in
 		let cmd_append = SLBasic (SAssignment (x_params, (BinOp (BinOp (jsil_list_params, Append, Var x_ba), Append, (LEList x_args_gv))))) in
 		
 		let x_bconstruct = fresh_var () in

@@ -239,6 +239,9 @@ let rec sexpr_of_bcmd bcmd i line_numbers_on =
 	| SDelete (e1, e2) ->  Printf.sprintf "'(%sh-delete %s %s)" str_i (se e1) (se e2)	
 	(* ('has-field var e1 e2) *)
   | SHasField (var, e1, e2) -> Printf.sprintf "'(%shas-field %s %s %s)" str_i var (se e1) (se e2)
+  (* ('get-fields var e) *)
+	| SGetFields (var, e) -> Printf.sprintf "'(%sget-fields %s %s)" str_i var (se e)
+	| SArguments (var) -> Printf.sprintf "'(%sarguments %s)" str_i var
 
 let rec string_of_bcmd bcmd i line_numbers_on escape_string = 
 	let se = fun e -> string_of_expression e escape_string in
@@ -312,6 +315,14 @@ let rec sexpr_of_cmd sjsil_cmd tabs i line_numbers_on =
 				""
 				var_arr in 
 		Printf.sprintf "'(%sv-psi-assign %s %s)" str_i var var_arr_str	
+	(* ('apply left_var expr_list err_lab) *)
+	| SApply (var, arg_expr_list, error_lab) ->
+		let error_lab = (match error_lab with | None -> "" | Some error_lab -> (string_of_int error_lab)) in 
+		let arg_expr_list_str = match arg_expr_list with
+		|	[] -> ""
+		| _ -> String.concat " " (List.map sexpr_of_expression arg_expr_list) in 
+			str_tabs ^  Printf.sprintf "'(%sapply %s (%s) %s)" str_i var arg_expr_list_str error_lab
+
 
 let sexpr_of_params fparams =
 	match fparams with
