@@ -2057,7 +2057,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err e : ((SSyntax.j
 		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
 		
 		let new_cmds, new_errs, x_r = translate_binop_comparison x1 x2 x1_v x2_v false false false err in 
-		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] in (*  @ (annotate_cmds new_cmds) in *)
+		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) in
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in 
 		cmds, Var x_r, errs	
 	
