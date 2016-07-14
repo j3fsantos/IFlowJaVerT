@@ -192,11 +192,9 @@ proc FP_bind (xsc, vthis, thisArg) {
 			field_call := [Target, "@call"];
 			[F, "@call"] := field_call;
 			
-			(* Adapting for our construct 
+			(* Adapting for our construct *)
 			field_constr := [Target, "@construct"];
-			[F, "@construct"] := field_constr; *)
-			
-			[F, "@construct"] := "FP_construct_after_bind";
+			[F, "@construct"] := field_constr;
 			
 			[F, "@hasInstance"] := "FP_hasInstance_after_bind";
 			

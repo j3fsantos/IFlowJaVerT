@@ -1270,9 +1270,57 @@ let rec translate_expr offset_converter fid cc_table vis_fid err e : ((SSyntax.j
 		let cmd_hf_construct = SLBasic (SLookup (x_hp, Var x_f_val, Literal (String constructPropName))) in 
 		
 		(* goto [ x_hp = $$empty ] err next2; *) 
-		let next2 = fresh_next_label () in 
-		let cmd_goto_xhp = SLGuardedGoto (BinOp (Var x_hp, Equal, Literal Empty), err, next2) in 
+		let getbt = fresh_next_label () in 
+		let cmd_goto_xhp = SLGuardedGoto (BinOp (Var x_hp, Equal, Literal Empty), err, getbt) in 
+
+		let x_bt = fresh_var () in
+		let cmd_get_bt = SLBasic (SLookup (x_bt, Var x_f_val, Literal (String "@boundThis"))) in
 		
+		let call = fresh_then_label () in
+		let bind = fresh_else_label () in
+		let goto_guard_expr = BinOp (Var x_bt, Equal, Literal Empty) in 
+		let cmd_bind_test = SLGuardedGoto (goto_guard_expr, call, bind) in 
+
+		(* BIND *)
+		
+		let x_ba = fresh_var () in
+		let cmd_get_ba = SLBasic (SLookup (x_ba, Var x_f_val, Literal (String "@boundArguments"))) in
+		
+		let x_tf = fresh_var () in
+		let cmd_get_tf = SLBasic (SLookup (x_tf, Var x_f_val, Literal (String "@targetFunction"))) in
+		
+		let x_bbody = fresh_body_var () in 
+		let cmd_bbody = SLBasic (SLookup (x_bbody, Var x_tf, Literal (String constructPropName))) in 
+		
+		let x_bfscope = fresh_fscope_var () in 
+		let cmd_bscope = SLBasic (SLookup (x_bfscope, Var x_tf, Literal (String scopePropName))) in 
+
+		let x_params = fresh_var () in
+		let jsil_list_params = LEList ([Var x_bbody; Var x_bfscope; Var x_bt]) in
+		let cmd_append = SLBasic (SAssignment (x_params, (BinOp (BinOp (jsil_list_params, Append, Var x_ba), Append, (LEList x_args_gv))))) in
+		
+		
+		let x_bconstruct = fresh_var () in
+		let cmd_bind = SLApply (x_bconstruct, [ Var x_params ], Some err) in
+		
+		(* goto [ x_bconstruct = $$empty ] next3 next4; *)
+		let bnext3 = fresh_next_label () in 
+		let bnext4 = fresh_next_label () in 
+		let goto_guard_expr = BinOp (TypeOf (Var x_bconstruct), Equal, Literal (Type ObjectType)) in
+		let cmd_bgoto_test_type = SLGuardedGoto (goto_guard_expr, bnext4, bnext3) in 
+		
+		(* next3: skip; *)
+		let cmd_bret_this = SLBasic SSkip in
+		
+		(* next4: x_rbind := PHI(x_bconstruct, x_bt) *) 
+		let x_rbind = fresh_var () in 
+		let cmd_bphi_final = SLPhiAssignment (x_rbind, [| Some x_bconstruct; Some x_bt |]) in 
+		
+		(* SYNC *)
+		
+		let join = fresh_label () in
+		let cmd_sync = SLGoto join in 
+
 		(* x_this := new (); *)
 		let x_this = fresh_this_var () in 
 		let cmd_create_xobj = SLBasic (SNew x_this) in 
@@ -1322,8 +1370,11 @@ let rec translate_expr offset_converter fid cc_table vis_fid err e : ((SSyntax.j
 		let cmd_ret_this = SLBasic SSkip in
 		
 		(* next4: x_r2 := PHI(x_r1, x_this) *) 
-		let x_r2 = fresh_var () in 
-		let cmd_phi_final = SLPhiAssignment (x_r2, [| Some x_r1; Some x_this |]) in 
+		let x_rcall = fresh_var () in 
+		let cmd_phi_final = SLPhiAssignment (x_rcall, [| Some x_r1; Some x_this |]) in 
+		
+		let x_final = fresh_var () in 
+		let cmd_phi_join = SLPhiAssignment (x_final, [| Some x_rbind; Some x_rcall |]) in 
 		
 		let cmds = cmds_ef @ [                    (*        cmds_ef                                                                  *)
 			(annotate_cmd cmd_gv_f None)            (*        x_f_val := i__getValue (x_f) with err                                    *) 
@@ -1331,7 +1382,27 @@ let rec translate_expr offset_converter fid cc_table vis_fid err e : ((SSyntax.j
 			(None,         cmd_goto_is_obj);        (*        goto [ typeOf(x_f_val) != Object] err next1                              *) 
 			(Some next1,   cmd_hf_construct);       (* next1: x_hp := [x_f_val, "@construct"];                                         *)
 			(None,         cmd_goto_xhp);           (*        goto [ x_hp = $$empty ] err next2                                        *)
-			(Some next2,   cmd_create_xobj);        (* next2: x_this := new ()                                                         *)
+
+			(* PREP *)
+			
+			(Some getbt,     cmd_get_bt);           (*        x_bt := [x_f_val, "@boundTarget"];                                       *)
+			(None,           cmd_bind_test);        (*        goto [x_bt = $$empty] call bind                                          *)
+									
+			(* BIND *)
+			
+			(Some bind,    cmd_get_ba);             (*        x_ba := [x_f_val, "@boundArgs"];                                         *)
+			(None,         cmd_get_tf);             (*        x_tf := [x_f_val, "@targetFunction"];                                    *)
+			(None,         cmd_bbody);              (*        x_bbody := [x_tf, "@construct"];                                         *)
+			(None,         cmd_bscope);             (*        x_fscope := [x_tf, "@scope"]                                             *)
+			
+			(None,         cmd_append);             (*        SOMETHING ABOUT PARAMETERS                                               *)
+			(None,         cmd_bind);               (*        MAGICAL FLATTENING CALL                                                  *)
+			(None,         cmd_bgoto_test_type);    (*        goto [typeOf(x_r1) = $$object_type ] next4 next3;                        *)
+			(Some bnext3,  cmd_bret_this);          (* next3: skip                                                                     *)
+			(Some bnext4,  cmd_bphi_final);         (* next4: x_rcall := PHI(x_r1, x_this)                                             *)
+			(None,         cmd_sync);               (*        goto join                                                                *)
+			
+			(Some call,    cmd_create_xobj);        (* next2: x_this := new ()                                                         *)
 			(None,         cmd_ass_xreffprototype); (*        x_ref_fprototype := ref-o(x_f_val, "prototype")                          *)
 			(None,         cmd_gv_xreffprototype);  (*        x_f_prototype := i__getValue(x_ref_prototype) with err                   *)
 			(None,         cmd_is_object);          (*        goto [typeof (x_f_prototype) = $$object_type] else1 then1;               *)
@@ -1343,10 +1414,11 @@ let rec translate_expr offset_converter fid cc_table vis_fid err e : ((SSyntax.j
 			(None,         cmd_proc_call);          (*        x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err   *)
 			(None,         cmd_goto_test_type);     (*        goto [typeOf(x_r1) = $$object_type ] next4 next3;                        *)
 			(Some next3,   cmd_ret_this);           (* next3: skip                                                                     *)
-			(Some next4,   cmd_phi_final)           (* next4: x_r2 := PHI(x_r1, x_this)                                                *)
+			(Some next4,   cmd_phi_final);          (* next4: x_rcall := PHI(x_r1, x_this)                                             *)
+			(Some join,    cmd_phi_join);           (*        x_final := PHI (x_rbind, x_rcall);                                       *)
 		]) in 
 		let errs = errs_ef @ [ x_f_val ] @ errs_args @ [ var_te; var_te; x_f_prototype; x_r1 ] in 
-		cmds, Var x_r2, errs				
+		cmds, Var x_final, errs				
 		 
 		
 	| Parser_syntax.Call (e_f, xes) -> 
