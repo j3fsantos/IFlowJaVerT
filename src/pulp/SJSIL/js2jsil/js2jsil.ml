@@ -1289,16 +1289,41 @@ let rec translate_expr offset_converter fid cc_table vis_fid err e : ((SSyntax.j
 		let x_tf = fresh_var () in
 		let cmd_get_tf = SLBasic (SLookup (x_tf, Var x_f_val, Literal (String "@targetFunction"))) in
 		
+		(* x_bthis := new (); *)
+		let x_bthis = fresh_this_var () in 
+		let cmd_bcreate_xobj = SLBasic (SNew x_bthis) in 
+		
+		(* x_bref_fprototype := ref-o(x_tf, "prototype");  *) 
+		let x_bref_fprototype = fresh_var () in 
+		let cmd_bass_xreffprototype = SLBasic (SAssignment (x_bref_fprototype, ORef (Var x_tf, Literal (String "prototype")))) in  
+		
+		(* x_bf_prototype := i__getValue(x_bref_prototype) with err; *) 
+		let x_bf_prototype, cmd_bgv_xreffprototype = make_get_value_call (Var x_bref_fprototype) err in 
+		
+		let bthen1 = fresh_then_label () in 
+		let belse1 = fresh_else_label () in 
+    let goto_guard_expr = BinOp (TypeOf (Var x_bf_prototype), Equal, Literal (Type ObjectType)) in 
+		let cmd_bis_object = SLGuardedGoto (goto_guard_expr, belse1, bthen1) in  
+		
+		let x_bwhyGodwhy = fresh_var () in 
+		let cmd_bset_proto = SLBasic (SAssignment (x_bwhyGodwhy, Literal (Loc locObjPrototype))) in
+		
+		let x_bprototype = fresh_var () in				
+		let cmd_bproto_phi = SLPhiAssignment (x_bprototype, [| Some x_bf_prototype; Some x_bwhyGodwhy |]) in 
+		
+		(* x_cdo := i__createDefaultObject (x_this, x_f_prototype); *) 
+		let x_bcdo = fresh_var () in 
+		let cmd_bcdo_call = SLCall (x_bcdo, Literal (String createDefaultObjectName), [ Var x_bthis; Var x_bprototype ], None) in 
+		
 		let x_bbody = fresh_body_var () in 
 		let cmd_bbody = SLBasic (SLookup (x_bbody, Var x_tf, Literal (String constructPropName))) in 
 		
 		let x_bfscope = fresh_fscope_var () in 
 		let cmd_bscope = SLBasic (SLookup (x_bfscope, Var x_tf, Literal (String scopePropName))) in 
 
-		let x_params = fresh_var () in
-		let jsil_list_params = LEList ([Var x_bbody; Var x_bfscope; Var x_bt]) in
+		let x_params = fresh_var () in	
+		let jsil_list_params = LEList ([Var x_bbody; Var x_bfscope; Var x_tf]) in
 		let cmd_append = SLBasic (SAssignment (x_params, (BinOp (BinOp (jsil_list_params, Append, Var x_ba), Append, (LEList x_args_gv))))) in
-		
 		
 		let x_bconstruct = fresh_var () in
 		let cmd_bind = SLApply (x_bconstruct, [ Var x_params ], Some err) in
@@ -1314,7 +1339,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err e : ((SSyntax.j
 		
 		(* next4: x_rbind := PHI(x_bconstruct, x_bt) *) 
 		let x_rbind = fresh_var () in 
-		let cmd_bphi_final = SLPhiAssignment (x_rbind, [| Some x_bconstruct; Some x_bt |]) in 
+		let cmd_bphi_final = SLPhiAssignment (x_rbind, [| Some x_bconstruct; Some x_bthis |]) in 
 		
 		(* SYNC *)
 		
@@ -1390,10 +1415,17 @@ let rec translate_expr offset_converter fid cc_table vis_fid err e : ((SSyntax.j
 									
 			(* BIND *)
 			
-			(Some bind,    cmd_get_ba);             (*        x_ba := [x_f_val, "@boundArgs"];                                         *)
-			(None,         cmd_get_tf);             (*        x_tf := [x_f_val, "@targetFunction"];                                    *)
-			(None,         cmd_bbody);              (*        x_bbody := [x_tf, "@construct"];                                         *)
-			(None,         cmd_bscope);             (*        x_fscope := [x_tf, "@scope"]                                             *)
+			(Some bind,    cmd_get_ba);              (*         x_ba := [x_f_val, "@boundArgs"];                                       *)
+			(None,         cmd_get_tf);              (*         x_tf := [x_f_val, "@targetFunction"];                                  *)
+			(None,         cmd_bcreate_xobj);        (*         x_bthis := new ()                                                      *)
+			(None,         cmd_bass_xreffprototype); (*         x_bref_fprototype := ref-o(x_tf, "prototype")                          *)
+			(None,         cmd_bgv_xreffprototype);  (*         x_bf_prototype := i__getValue(x_bref_prototype) with err               *)
+			(None,         cmd_bis_object);          (*         goto [typeof (x_bf_prototype) = $$object_type] else1 then1;            *)
+			(Some bthen1,  cmd_bset_proto);          (* bthen1:	x_bwhyGodwhy := $lobj_proto                                            *) 
+			(Some belse1,  cmd_bproto_phi);          (* belse1: x_bprototype := PHI (x_bf_prototype, x_bwhyGodwhy)		                 *)
+		  (None,         cmd_bcdo_call);           (*         x_bcdo := create_default_object (x_bthis, x_bprototype)                *)
+			(None,         cmd_bbody);               (*         x_bbody := [x_tf, "@construct"];                                       *)
+			(None,         cmd_bscope);              (*         x_fscope := [x_tf, "@scope"]                                           *)
 			
 			(None,         cmd_append);             (*        SOMETHING ABOUT PARAMETERS                                               *)
 			(None,         cmd_bind);               (*        MAGICAL FLATTENING CALL                                                  *)
@@ -1417,7 +1449,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err e : ((SSyntax.j
 			(Some next4,   cmd_phi_final);          (* next4: x_rcall := PHI(x_r1, x_this)                                             *)
 			(Some join,    cmd_phi_join);           (*        x_final := PHI (x_rbind, x_rcall);                                       *)
 		]) in 
-		let errs = errs_ef @ [ x_f_val ] @ errs_args @ [ var_te; var_te; x_f_prototype; x_r1 ] in 
+		let errs = errs_ef @ [ x_f_val ] @ errs_args @ [ var_te; var_te; x_bf_prototype; x_bconstruct; x_f_prototype; x_r1 ] in 
 		cmds, Var x_final, errs				
 		 
 		
