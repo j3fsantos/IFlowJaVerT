@@ -10,8 +10,6 @@ let next_line lexbuf =
                pos_lnum = pos.pos_lnum + 1
     }
 
-exception SyntaxError of string
-
 let unop_not = "not"
 let unop_bnot = "!"
 let unop_neg = "-"
