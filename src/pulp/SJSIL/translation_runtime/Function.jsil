@@ -207,7 +207,7 @@ proc FP_bind (xsc, vthis, thisArg) {
 	fun:	g := [Target, "@get"];
 			xret := g (Target, "length") with elab;
 			L := xret - (length A);
-			xret := "M_min" ($$empty, $$empty, L, 0);
+			xret := "M_max" ($$empty, $$empty, L, 0);
 			[F, "length"] := {{ "d", xret, $$f, $$f, $$f }};
 			goto tterr;
 
