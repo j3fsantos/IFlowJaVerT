@@ -135,6 +135,7 @@ rule read = parse
 	|	newline	             { next_line lexbuf; read lexbuf }
 (* type literals *)	
 	| "$$undefined_type"   { SJSIL_Parser.UNDEFTYPELIT }
+	| "$$empty_type"       { SJSIL_Parser.EMPTYTYPELIT }
 	| "$$null_type"        { SJSIL_Parser.NULLTYPELIT }
 	| "$$boolean_type"     { SJSIL_Parser.BOOLTYPELIT }
 	| "$$number_type"      { SJSIL_Parser.NUMTYPELIT }

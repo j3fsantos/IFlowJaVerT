@@ -193,8 +193,8 @@ let rec sexpr_of_literal lit =
     | String x -> Printf.sprintf "\"%s\"" x
     | Bool b -> sexpr_of_bool b
     | Type t -> string_of_type t 
-		| LVRef (l, x) -> Printf.sprintf "%s.v.%s" (sexpr_of_literal l) x  
-	  | LORef (l, x) -> Printf.sprintf "%s.o.%s" (sexpr_of_literal l) x   
+		| LVRef (l, x) -> Printf.sprintf "(ref %s \"%s\" $$v-reference_type)" (sexpr_of_literal l) x  
+	  | LORef (l, x) -> Printf.sprintf "(ref %s \"%s\" $$o-reference_type)" (sexpr_of_literal l) x   
 		| LList ll -> 
 			(match ll with
 			| [] -> "(jsil-list )"

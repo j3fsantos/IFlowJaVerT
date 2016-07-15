@@ -28,6 +28,7 @@ open SSyntax
 (* Type literals *)
 %token UNDEFTYPELIT
 %token NULLTYPELIT
+%token EMPTYTYPELIT
 %token BOOLTYPELIT
 %token NUMTYPELIT
 %token STRTYPELIT
@@ -556,6 +557,7 @@ lit_target:
 	| EMPTY { SSyntax.Empty }
 	| UNDEFTYPELIT { SSyntax.Type SSyntax.UndefinedType }
 	| NULLTYPELIT { SSyntax.Type SSyntax.NullType }
+  | EMPTYTYPELIT { SSyntax.Type SSyntax.EmptyType }
 	| BOOLTYPELIT { SSyntax.Type SSyntax.BooleanType }
 	| NUMTYPELIT { SSyntax.Type SSyntax.NumberType }
 	| STRTYPELIT { SSyntax.Type SSyntax.StringType }

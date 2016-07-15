@@ -3,23 +3,31 @@
 ;; 
 ;; literals - constants
 ;;
-(define jempty '$$empty)
-(define jnull '$$null)
+(define jempty     '$$empty)
+(define jnull      '$$null)
 (define jundefined '$$undefined)
+
 ;; types
-(define boolean-type '$$boolean_type)
-(define number-type '$$number_type)
-(define string-type '$$string_type)
-(define obj-type '$$object_type)
-(define ref-a-type '$$reference_type)
-(define ref-v-type '$$v_reference_type)
-(define ref-o-type '$$o_reference_type)
+(define undefined-type '$$undefined_type)
+(define null-type      '$$null_type)
+(define empty-type     '$$empty_type)
+(define boolean-type   '$$boolean_type)
+(define number-type    '$$number_type)
+(define string-type    '$$string_type)
+(define obj-type       '$$object_type)
+(define ref-a-type     '$$reference_type)
+(define ref-v-type     '$$v-reference_type)
+(define ref-o-type     '$$o-reference_type)
+(define list-type      '$$list_type)
 
 (define jsil-constants
   (let ((table (mutable-set)))
     (set-add! table jempty)
     (set-add! table jnull)
     (set-add! table jundefined)
+    (set-add! table undefined-type)
+    (set-add! table null-type)
+    (set-add! table empty-type)
     (set-add! table boolean-type)
     (set-add! table number-type)
     (set-add! table string-type)
@@ -27,16 +35,67 @@
     (set-add! table ref-a-type)
     (set-add! table ref-v-type)
     (set-add! table ref-o-type)
+    (set-add! table list-type)
     table))
 
+;; math constants
+(define mc-minval '$$min_value)
+(define mc-maxval '$$max_value)
+(define mc-random '$$random)
+(define mc-pi     '$$pi)
+(define mc-e      '$$e)
+(define mc-ln10   '$$ln10)
+(define mc-ln2    '$$ln2)
+(define mc-log2e  '$$log2e)
+(define mc-log10e '$$log10e)
+(define mc-sqrt12 '$$sqrt1_2)
+(define mc-sqrt2  '$$sqrt2)
+
+(define jsil-math-constants
+  (let ((table (mutable-set)))
+    (set-add! table mc-minval)
+    (set-add! table mc-maxval)
+    (set-add! table mc-random)
+    (set-add! table mc-pi)
+    (set-add! table mc-e)
+    (set-add! table mc-ln10)
+    (set-add! table mc-ln2)
+    (set-add! table mc-log2e)
+    (set-add! table mc-log10e)
+    (set-add! table mc-sqrt12)
+    (set-add! table mc-sqrt2)
+    table))
+
+;; evaluation
 (define (literal? val)
   (or
    (number? val)
    (boolean? val)
    (string? val)
    (set-member? jsil-constants val)
+   (set-member? jsil-math-constants val)
    (is-loc? val)
    (is-llist? val)
+   (is-ref? val)
+  )
+)
+
+(define (eval_literal lit)
+  (if (set-member? jsil-math-constants lit)
+      (cond
+        ((eq? lit mc-minval) 5e-324)
+        ((eq? lit mc-maxval) 1.7976931348623158e+308)
+        ((eq? lit mc-random) (random))
+        ((eq? lit mc-pi)       pi)
+        ((eq? lit mc-e)      (exp 1.))
+        ((eq? lit mc-ln10)   (log 10.))
+        ((eq? lit mc-ln2)    (log 2.))
+        ((eq? lit mc-log2e)  (/ 1 (log 2.)))
+        ((eq? lit mc-log10e) (/ 1 (log 10.)))
+        ((eq? lit mc-sqrt12) (sqrt 0.5))
+        ((eq? lit mc-sqrt2)  (sqrt 2.))
+      )
+      lit
   )
 )
 
@@ -48,9 +107,10 @@
     ((boolean? val) boolean-type)
     ((is-loc? val) obj-type)
     ((is-ref? val) (ref-type val))
-    ((eq? val jnull) jnull)
-    ((eq? val jundefined) jundefined)
-    ((eq? val jempty) jempty)
+    ((eq? val jnull) null-type)
+    ((eq? val jundefined) undefined-type)
+    ((eq? val jempty) empty-type)
+    ((is-llist? val) list-type)
     (#t (error (format "Wrong argument to typeof: ~a" val)))))
 
 (define (jsil-subtype type1 type2)
@@ -62,9 +122,11 @@
         (eq? ref-o-type type1)))))
 
 ;; special properties
-(define protop "proto")
+(define protop "@proto")
+(define larguments '$larguments)
+(define parguments "args")
 
-(provide jempty jnull jundefined literal? protop jsil-type-of ref-v-type ref-o-type)
+(provide jempty jnull jundefined literal? protop larguments parguments jsil-type-of ref-v-type ref-o-type)
 
 ;;
 ;; binary operators 
@@ -280,6 +342,14 @@
       [(null? heap-pulp) jempty]
       [(equal? (car (car heap-pulp)) loc)
        (find-prop-val (cdr (car heap-pulp)) prop)]
+      [ else (loop (cdr heap-pulp))])))
+
+(define (heap-get-obj heap loc)
+  (let loop ((heap-pulp (unbox heap)))
+    (cond
+      [(null? heap-pulp) jempty]
+      [(equal? (car (car heap-pulp)) loc)
+       (cdr (car heap-pulp))]
       [ else (loop (cdr heap-pulp))])))
 
 (define (find-prop-val prop-val-lst prop)
@@ -530,4 +600,4 @@
 (define (err-ctx . lst)
   (cons 'error lst))
 
-(provide procedure get-ret-var get-err-var get-ret-index get-err-index get-proc-name get-params get-cmd proc-init-store args body ret-ctx err-ctx)
+(provide procedure eval_literal heap-get-obj get-ret-var get-err-var get-ret-index get-err-index get-proc-name get-params get-cmd proc-init-store args body ret-ctx err-ctx)

@@ -3,6 +3,23 @@
 (require (file "mem_model.rkt"))
 (require (file "util.rkt"))
 
+;;
+;; SSkip      ()                  'skip       DONE
+;; Assignment (var, expr)         'v-assign   DONE
+;; SNew       (var)               'new        DONE
+;; SLookup    (var, loc, field)   'h-read     DONE
+;; SMutation  (loc, field, value) 'h-assign   DONE
+;; SDelete    (loc, field)        'h-delete   DONE
+;; SHasField  (var, loc, field)   'has-field  DONE
+;; SGetFields (var, loc)          'get-fields 
+;; SArguments (var)               'arguments
+;;
+;; +
+;;
+;; 'assume
+;; 'assert
+;; 'discharge
+;;
 (define (run-bcmd prog bcmd heap store)
   (let ((cmd-type (first bcmd)))
     (cond
@@ -62,7 +79,21 @@
               (prop-val (run-expr prop-expr store))
               (contains (heap-contains? heap loc-val prop-val)))
          (mutate-store store lhs-var contains) ;; (to-jsil-bool contains))
-         contains)] ;; (to-jsil-bool contains))] 
+         contains)] ;; (to-jsil-bool contains))]
+      ;;
+      ;; ('get-fields lhs-var e1 e2)
+      [(eq? cmd-type 'get-fields)
+       (let* ((lhs-var (second bcmd))
+              (loc-expr (third bcmd))
+              (loc-val (run-expr loc-expr store))
+              (obj (heap-get-obj heap loc-val))
+              (props (foldl (lambda (x ac)
+                       (append ac (list (car x))))
+                       (list ) obj))
+              (sprops (sort props string<?))
+             )
+         (mutate-store store lhs-var (cons 'jsil-list sprops)) ;; (to-jsil-bool contains))
+         (cons 'jsil-list sprops))] ;; (to-jsil-bool contains))]
       ;;
       ;; ('h-read lhs-var e1 e2)
       [(eq? cmd-type 'h-read)
@@ -73,40 +104,24 @@
               (prop-val (run-expr prop-expr store))
               (result (heap-get heap loc-val prop-val)))
          (mutate-store store lhs-var result)
+         result)]
+      ;;
+      ;; ('arguments lhs-var)
+      [(eq? cmd-type 'arguments)
+       (let* ((lhs-var (second bcmd))
+              (result (heap-get heap larguments parguments)))
+         (mutate-store store lhs-var result)
          result)] 
       ;;
       ;; ('h-delete lhs-var e1 e2)
       [(eq? cmd-type 'h-delete)
-       (let* ((lhs-var (second bcmd))
-              (loc-expr (third bcmd))
-              (prop-expr (fourth bcmd))
+       (let* (
+              (loc-expr (second bcmd))
+              (prop-expr (third bcmd))
               (loc-val (run-expr loc-expr store))
               (prop-val (run-expr prop-expr store)))
          (heap-delete-cell heap loc-val prop-val)
-         (mutate-store store lhs-var #t) ;; (to-jsil-bool #t))
          #t)] ;; (to-jsil-bool #t))]
-      ;;
-      ;; ('proto-field lhs-var e1 e2)
-      [(eq? cmd-type 'proto-field)
-       (let* ((lhs-var (second bcmd))
-              (loc-expr (third bcmd))
-              (prop-expr (fourth bcmd))
-              (loc-val (run-expr loc-expr store))
-              (prop-val (run-expr prop-expr store))
-              (result (proto-lookup-val heap loc-val prop-val)))
-         (mutate-store store lhs-var result)
-         result)]
-      ;;
-      ;; ('proto-obj lhs-var e1 e2)
-      [(eq? cmd-type 'proto-obj)
-       (let* ((lhs-var (second bcmd))
-              (loc-expr (third bcmd))
-              (prop-expr (fourth bcmd))
-              (loc-val (run-expr loc-expr store))
-              (prop-val (run-expr prop-expr store))
-              (result (proto-lookup-obj heap loc-val prop-val)))
-         (mutate-store store lhs-var result)
-         result)]
       ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))
 
@@ -265,7 +280,7 @@
   (cond
     ;;
     ;; literals
-    [(literal? expr) expr]
+    [(literal? expr) (eval_literal expr)]
     ;;
     ;; variables
     [(var? expr) (store-get store expr)]
@@ -310,6 +325,25 @@
         (let* ((arg (second expr))
                (val (run-expr arg store)))
           (jsil-type-of val))]
+       ;;
+       ;; ('jsil-list l)
+       [(eq? (first expr) 'jsil-list)
+        (let* (
+               (elist (cdr expr))
+               (lexpr (foldl (lambda (x ac)
+                        (append ac (list (run-expr x store))))
+                        (list ) elist))
+               )
+          (cons 'jsil-list lexpr)
+        )]
+       ;;
+       ;; ('nth l e)
+       [(eq? (first expr) 'nth)
+        (let* ((elist (second expr))
+               (vlist (run-expr elist store))
+               (eidx  (third expr))
+               (vidx  (run-expr eidx store)))
+          (list-ref vlist (inexact->exact (+ vidx 1))))]
        ;;
        ;; is the third argument a var? or is it the name of the symbol? 
        ;; (make-symbol symbol-type var)
