@@ -389,6 +389,13 @@ test262/test/built-ins/Object/S15.2.1.1_A2_T9.js
 test262/test/built-ins/Object/S15.2.2.1_A2_T6.js
 test262/test/built-ins/Object/S15.2.2.1_A2_T7.js
 
+---------------
+
+ROSETTE:
+
+Binary Operators:
+
+m_atan2
 
 
 

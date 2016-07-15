@@ -40,7 +40,8 @@
       [(eq? cmd-type 'v-assign)
        (let* ((lhs-var (second bcmd))
               (rhs-expr (third bcmd))
-              (rhs-val (run-expr rhs-expr store)))
+              (rhs-val  (run-expr rhs-expr store)))
+         
          (mutate-store store lhs-var rhs-val)
          rhs-val)]
       ;;
@@ -171,7 +172,7 @@
        (let* ((lhs-var (second cmd))
               (proc-name-expr (third cmd))
               (arg-exprs (fourth cmd))
-              (err-label (fifth cmd))
+              (err-label (if (>= (length cmd) 5) (fifth cmd) -1))
               (call-proc-name (run-expr proc-name-expr store))
               (arg-vals (map (lambda (expr) (run-expr expr store)) arg-exprs)))
          ;;(display
@@ -240,7 +241,7 @@
            (let* ((lhs-var (second cmd))
                   (proc-name-expr (third cmd))
                   (arg-exprs (fourth cmd))
-                  (err-index (fifth cmd))
+                  (err-index (if (>= (length cmd) 5) (fifth cmd) -1))
                   (proc-name (run-expr proc-name-expr store))
                   (arg-vals (map (lambda (expr) (run-expr expr store)) arg-exprs)))
              (let ((outcome (car (run-proc prog proc-name heap arg-vals))))

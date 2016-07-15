@@ -35,7 +35,10 @@
    (boolean? val)
    (string? val)
    (set-member? jsil-constants val)
-   (is-loc? val)))
+   (is-loc? val)
+   (is-llist? val)
+  )
+)
 
 ;; Type operations
 (define (jsil-type-of val)
@@ -49,14 +52,6 @@
     ((eq? val jundefined) jundefined)
     ((eq? val jempty) jempty)
     (#t (error (format "Wrong argument to typeof: ~a" val)))))
-
-;;(define boolean-type '$$boolean_type)
-;;(define number-type '$$number_type)
-;;(define string-type '$$string_type)
-;;(define obj-type '$$object_type)
-;;(define ref-a-type '$$reference_type)
-;;(define ref-v-type '$$v_reference_type)
-;;(define ref-o-type '$$o_reference_type)
 
 (define (jsil-subtype type1 type2)
   (or 
@@ -86,33 +81,135 @@
         +nan.0
         str_num)))
 
+(define (jsil_num_to_int num)
+  (if (nan? num) 0
+      (if (infinite? num) num
+          (if (eq? num 0) num
+              (* (sgn num) (floor (abs num)))
+          )
+      )
+  )
+)
+
+(define (jsil_num_to_int_32 num)
+  (if (nan? num) 0
+      (if (infinite? num) 0
+          (if (eq? num 0) 0
+              (let* (
+                     (two-32 (expt 2 32))
+                     (two-31 (expt 2 31))
+                     (pos-int (* (sgn num) (floor (abs num))))
+                     (smod (modulo pos-int two-32))
+                    )
+                (if (>= smod two-31)
+                   (- smod two-32)
+                   smod
+                )
+              )
+          )
+      )
+  )
+)
+
+(define (jsil_num_to_uint_16 num)
+  (if (nan? num) 0
+      (if (infinite? num) 0
+          (if (eq? num 0) 0
+              (let* (
+                     (two-16 (expt 2 16))
+                     (pos-int (* (sgn num) (floor (abs num))))
+                     (smod (modulo pos-int two-16))
+                    )
+                (if (< smod 0)
+                   (+ smod two-16)
+                   smod
+                )
+              )
+          )
+      )
+  )
+)
+
+(define (jsil_num_to_uint_32 num)
+  (if (nan? num) 0
+      (if (infinite? num) 0
+          (if (eq? num 0) 0
+              (let* (
+                     (two-32 (expt 2 32))
+                     (pos-int (* (sgn num) (floor (abs num))))
+                     (smod (modulo pos-int two-32))
+                    )
+                (if (< smod 0)
+                   (+ smod two-32)
+                   smod
+                )
+              )
+          )
+      )
+  )
+)
+
+(define (unsigned_right_shift lhs rhs)
+  (let* (
+          (lhs-32 (jsil_num_to_uint_32 lhs))
+          (rhs-32 (jsil_num_to_uint_32 rhs))
+        )
+    (shr (inexact->exact (truncate lhs-32)) (inexact->exact (truncate rhs-32)))
+  )
+)
+
 (define operators-table
   (let* ((table-aux (make-hash))
          (add (lambda (jsil-op interp-op) (hash-set! table-aux jsil-op interp-op))))
     (add '= eq?)
     (add '< <)
     (add '<= <=)
+    (add '<s string<?)
     (add '+ +)
     (add '- -)
     (add '* *)
     (add '/ /)
-    (add '% (lambda (x y) (modulo x y)))
+    (add '% modulo)
     (add '<: jsil-subtype)
     (add 'concat string-append)
+    (add '++ (lambda (x y) (append x (cdr y))))
     (add 'and (lambda (x y) (and x y)))
     (add 'or  (lambda (x y) (or  x y)))
-    (add '& bitwise-and)
-    ;(add ' bitwise-ior)
-    (add '^ bitwise-xor)
-    (add '<< shl)
-    (add '>> shr)
-    ;(add '>>> unsigned_right_shift )
+    (add '& (lambda (x y) (bitwise-and (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
+    (add '^ (lambda (x y) (bitwise-xor (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
+    (add '<< (lambda (x y) (shl (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
+    (add '>> (lambda (x y) (shr (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
+    (add ':: (lambda (x y) (append (list 'jsil-list x) (cdr y))))
+    (add '** expt)
+    (add 'm_atan2 (lambda (x y) (atan y x)))
+    (add 'bor (lambda (x y) (bitwise-ior (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
+    (add '>>> unsigned_right_shift)
     (add 'not not)
     (add 'num_to_string number->string)
     (add 'string_to_num jsil_string_to_number)
-    ;(add 'num_to_int32 ??? )
-    ;(add 'num_to_uint32 ??? )
-    ;(add '! bitwise-not)
+    (add '! (lambda (x) (bitwise-not (inexact->exact x))))
+    (add 'is_primitive (lambda (x) (or (number? x) (string? x) (boolean? x) (eq? x jnull) (eq? x jundefined))))
+    (add 'length (lambda (x) (if (is-llist? x) (- (length x) 1) (string-length x))))
+    (add 'car (lambda (x) (car (cdr x))))
+    (add 'cdr (lambda (x) (cons 'jsil-list (cdr (cdr x)))))
+    (add 'm_abs abs)
+    (add 'm_acos acos)
+    (add 'm_asin asin)
+    (add 'm_atan atan)
+    (add 'm_cos cos)
+    (add 'm_sin sin)
+    (add 'm_tan tan)
+    (add 'm_sgn sgn)
+    (add 'm_sqrt sqrt)
+    (add 'm_exp exp)
+    (add 'm_log log)
+    (add 'm_ceil ceiling)
+    (add 'm_floor floor)
+    (add 'm_round round)
+    (add 'num_to_int jsil_num_to_int)
+    (add 'num_to_int32 jsil_num_to_int_32)
+    (add 'num_to_uint16 jsil_num_to_uint_16)
+    (add 'num_to_uint32 jsil_num_to_uint_32)
     table-aux))
 
 (define (to-interp-op op)
@@ -235,9 +332,24 @@
   (gensym "$loc")) 
 
 (define (is-loc? loc)
+  (if (not (symbol? loc))
+      #f
+      (let* ((expr-str (symbol->string loc))
+             (expr-str-len (string-length expr-str)))
+        (and
+         (> expr-str-len 1)
+         (eq? (substring (symbol->string loc) 0 2) "$l")))))
+
+(define (is-llist? l)
   (and
-   (symbol? loc)
-   (eq? (substring (symbol->string loc) 0 2) "$l")))
+   (list? l)
+   (eq? (first l) 'jsil-list)
+   (foldl (lambda (x ac)
+             (and ac (literal? x)))
+           #t
+           (cdr l))
+  )
+)
 
 (provide make-heap mutate-heap heap-get heap-delete-cell heap-contains? heap cell get-new-loc)
 
@@ -284,10 +396,7 @@
       #f
       (let* ((expr-str (symbol->string expr))
              (expr-str-len (string-length expr-str)))
-        (or
-         (eq? (string-ref expr-str 0) #\r)
-         (and (> expr-str-len 2) (eq? (substring expr-str 0 2) "x_"))
-         (and (> expr-str-len 4) (eq? (substring expr-str 0 4) "arg_"))))))
+         (and (> expr-str-len 0) (not (eq? (substring expr-str 0 1) "$"))))))
 
 (provide make-store mutate-store store-get var? store)
 
@@ -360,7 +469,7 @@
 (provide program get-proc program-append)
 
 ;; (proc-name proc-params (ret-var ret-label err-var err-label) vector)
-(define (procedure proc-name proc-args proc-body ret-info err-info)
+(define (procedure proc-name proc-args proc-body [ret-info (list -1 -1 -1)] [err-info (list -1 -1 -1)])
   (let* ((cmds-list (rest proc-body))
          (number-of-cmds (length cmds-list))
          (cmds-vec (make-vector number-of-cmds))

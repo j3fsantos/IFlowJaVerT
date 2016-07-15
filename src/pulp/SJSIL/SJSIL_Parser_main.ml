@@ -6,6 +6,8 @@ open Js2jsil
 let file = ref ""
 let jsil_run = ref false
 let do_ssa = ref false
+let do_sexpr = ref false
+let empty_heap = ref false
 
 let verbose = ref false
 
@@ -33,6 +35,10 @@ let arguments () =
 			"-verbose", Arg.Unit(fun () -> verbose := true; SJSIL_Interpreter.verbose := true), "verbose output";
 			(* compile js file and run *)
 			"-from_javascript", Arg.String(fun f -> file := f; compile_and_run := true), "run from javascript";
+			(* sexpr sexpr sexpr *)
+			"-sexpr",      Arg.Unit(fun () -> do_sexpr      := true), "generate output in s-expression format";
+			(* empty heap *)
+			"-empty_heap",      Arg.Unit(fun () -> empty_heap    := true), "empty heap";
     ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
@@ -108,155 +114,40 @@ let main () =
 		let lprog = SSyntax_Utils.lprog_of_path !file in 
 		let prog, which_pred = SSyntax_Utils.prog_of_lprog lprog in 
 		let prog, which_pred = if (!do_ssa) then SSyntax_SSA.ssa_compile_prog prog else prog, which_pred in 
+		if (!do_sexpr) then
+			begin
+				let int_lprog = SSyntax_Utils.lprog_of_path "internals_builtins_procs.jsil" in 
+				let int_prog, _ = SSyntax_Utils.prog_of_lprog int_lprog in 
+				let sint_prog = SSyntax_Print.sexpr_of_program int_prog false in
+				let str_int_prog = Printf.sprintf SSyntax_Templates.template_internal_procs_racket sint_prog in
+				burn_to_disk ("internals_builtins_procs.rkt") str_int_prog;
+				
+				let ih_heap = SHeap.create 1021 in
+				if (!empty_heap) then
+					begin
+						let str_ih_heap = SSyntax_Print.sexpr_of_heap ih_heap in 
+						let str_ih_heap = Printf.sprintf SSyntax_Templates.template_hp_racket str_ih_heap in
+						burn_to_disk ("hp.rkt") str_ih_heap;
+					end
+				else
+					begin
+						let ih_lprog = SSyntax_Utils.lprog_of_path "initial_heap.jsil" in 
+						let ih_prog, ih_which_pred = SSyntax_Utils.prog_of_lprog ih_lprog in 
+        		let _ = evaluate_prog ih_prog ih_which_pred ih_heap None None in
+						let str_ih_heap = SSyntax_Print.sexpr_of_heap ih_heap in 
+						let str_ih_heap = Printf.sprintf SSyntax_Templates.template_hp_racket str_ih_heap in
+						burn_to_disk ("hp.rkt") str_ih_heap;
+					end;
+				
+				let _ = SProgram.iter (fun k _ -> if (SProgram.mem int_prog k) then (SProgram.remove prog k)) prog in
+				let sprog = SSyntax_Print.sexpr_of_program prog false in
+				let sprog_in_template = Printf.sprintf SSyntax_Templates.template_procs_racket sprog in
+				let file_name = Filename.chop_extension !file in
+    		burn_to_disk (file_name ^ ".rkt") sprog_in_template
+			end;		
 		if (!jsil_run) then run_jsil_prog prog which_pred None None else () 
 	end
 			
 let _ = main()
 
 
-(** 
-
-let string_of_cmd cmd i proc specs dfs_num_table_f =
-	let str_i = string_of_int i in
-	let str_dfs_i = string_of_int dfs_num_table_f.(i) in
-		str_i ^ "/" ^ str_dfs_i ^ ": " ^ 
-		(if (i = proc.ret_label) 
-			then ("RET: ") 
-			else 
-				(match proc.error_label with
-				| None -> ""
-				| Some lab -> if (i = lab) then ("ERR: ") else (""))) ^ 
-		SSyntax_Print.string_of_cmd cmd 0 0 false specs true 
-
-
-let show_init_graph = ref false
-let show_dfs = ref false 
-let show_dom = ref false 
-let show_dom_frontiers = ref false 
-let show_phi_placement = ref false
-let show_ssa = ref false 
-
-
-
- print dfs
-"-specs", Arg.String(fun f -> specs := (Some f)), "specs to check";
-"-dfs", Arg.Unit(fun () -> show_dfs := true), "print dfs graph";
-"-dom", Arg.Unit(fun () -> show_dom := true), "print dominator graph";
-"-frontiers", Arg.Unit(fun () -> show_dom_frontiers := true), "print dominance frontiers";
-"-phis", Arg.Unit(fun () -> show_phi_placement := true), "print phi nodes placement";
-"-init", Arg.Unit(fun () -> show_init_graph := true), "print initial graph";		
-		
-
-let parse_with_error_logic lexbuf =
-  try SJSIL_Parser.specs_target SJSIL_Lexer.read lexbuf with
-  | SJSIL_Lexer.SyntaxError msg ->
-    Printf.fprintf stderr "Lexer Error at position %a: %s\n" print_position lexbuf msg;
-		[]
-  | SJSIL_Parser.Error ->
-    Printf.fprintf stderr "Syntax Error at position %a\n" print_position lexbuf;
-    exit (-1)
-
-
-let process_specs filename = 
-	match filename with 
-	| None -> () 
-	| Some filename -> 
-		let inx = open_in filename in
-		let lexbuf = Lexing.from_channel inx in
-		lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = filename };
-		let specs = parse_and_print_logic lexbuf in 
-		close_in inx
-
-let parse_and_print_logic lexbuf = 
-	let spec_list = parse_with_error_logic lexbuf in
-	let spec_table = Hashtbl.create 1021 in 
-	List.iter
-		(fun spec ->
-			let spec_name = spec.spec_name in 
-			let spec_params = spec.spec_params in 
-			let pre_post_list = spec.proc_specs in 
-			let normalized_pre_post_list = 
-				List.map 
-					(fun single_spec -> 
-						let pre = single_spec.pre in 
-						let post = single_spec.post in 
-						let ret_flag = single_spec.ret_flag in 
-						Printf.printf "About to normalize the beautiful assertion: %s \n" (JSIL_Logic_Print.string_of_logic_assertion pre false);
-						let pre_heap, pre_store, pre_p_formulae = JSIL_Logic_Normalise.normalize_assertion_top_level pre in 
-						Printf.printf "I managed to normalize this assertion\n";
-						let post_heap, post_store, post_p_formulae = JSIL_Logic_Normalise.normalize_assertion_top_level post in 
-						{	
-							n_pre = pre_heap, pre_store, pre_p_formulae; 
-							n_post = post_heap, post_store, post_p_formulae; 
-							n_ret_flag = ret_flag
-						}
-					)
-					pre_post_list in 
-			let new_spec = 
-				{
-					n_spec_name = spec_name; 
-					n_spec_params = spec_params; 
-					n_proc_specs = normalized_pre_post_list
-				} in 
-			Hashtbl.replace spec_table spec_name new_spec 
-		) 
-		spec_list;  
-	let spec_table_str : string = JSIL_Logic_Print.string_of_n_spec_table spec_table in 
-	Printf.printf "Spec Table: \n %s" spec_table_str; 
-  spec_table
-
-
-
-let cond_print_graph test graph nodes string_of_node graph_name proc_folder = 
-	if (test) 
-		then 
-			(let graph_str = Graph_Print.dot_of_graph graph nodes string_of_node graph_name in
-			burn_to_disk (proc_folder ^ "/" ^ graph_name ^ ".dot") graph_str)
-		else () 	
-
-
-let ssa_normalise_proc proc output_folder_name = 
-	let proc = remove_unreachable_code proc true in
-
-	Printf.printf "Starting ssa pre-processing.\n";
-	
-	let proc_folder = (output_folder_name ^ "/" ^ proc.proc_name) in 
-	Utils.safe_mkdir proc_folder; 
-	
-	let nodes, vars, succ_table, pred_table, tree_table, parent_table, dfs_num_table_f, dfs_num_table_r, which_pred = 
-		SSyntax_Utils.get_proc_info proc in 
-	let succ_table, pred_table = get_succ_pred proc.proc_body proc.ret_label proc.error_label in
-	
-	let string_of_cmd_ssa cmd i = SSyntax_Print.string_of_cmd cmd 0 0 false false true in 	
-	let string_of_cmd_main cmd i = string_of_cmd cmd i proc true dfs_num_table_f in 
-	
-	cond_print_graph (!show_init_graph) succ_table nodes string_of_cmd_main "succ" proc_folder;	
-	cond_print_graph (!show_dfs) tree_table nodes string_of_cmd_main "dfs" proc_folder;
-	
-	let dom_table, rev_dom_table = SSyntax_Utils_Graphs.lt_dom_algorithm succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r in
-	cond_print_graph (!show_dom) rev_dom_table nodes string_of_cmd_main "dom" proc_folder;
-	
-	let rev_dom_table, dominance_frontiers, phi_functions_per_node, new_proc = 
-  	SSyntax_SSA.ssa_compile proc vars nodes succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r which_pred in 
-  let final_succ_table, final_pred_table = SSyntax_Utils_Graphs.get_succ_pred new_proc.proc_body new_proc.ret_label new_proc.error_label in   
-  	
-  cond_print_graph (!show_ssa) final_succ_table new_proc.proc_body string_of_cmd_ssa "ssa" proc_folder;
-  			
-  (if (!show_dom_frontiers) 
-  	then 
-  		let str_domfrontiers = Graph_Print.print_node_table dominance_frontiers Graph_Print.print_int_list in
-  		burn_to_disk (proc_folder ^ "/dom_frontiers.txt") str_domfrontiers
-  	else ()); 
-  	
-  (if (!show_phi_placement) 
-  	then 
-  		let phi_functions_per_node_str : string = SSyntax_SSA.print_phi_functions_per_node phi_functions_per_node in 
-  		burn_to_disk (proc_folder ^ "/phi_placement.txt") phi_functions_per_node_str
-  	else ());
-  	
-  let new_proc_str = SSyntax_Print.string_of_procedure new_proc false in 
-  Printf.printf "\n%s\n" new_proc_str; 
-  
-  new_proc, which_pred
-
-*)

@@ -13,6 +13,16 @@ let string_of_float x =
 						else if (x == infinity) 
 									then "inf"
 									else string_of_float x 
+									
+let sexpr_of_float x = 
+	if (x == nan) 
+		then "+nan.0"
+		else if (x == neg_infinity) 
+						then "-inf.0"
+						else if (x == infinity) 
+									then "+inf.0"
+									else string_of_float x 
+									
 (**	
 the following does not work because nan is interpreted as a variable
  match x with 
@@ -39,6 +49,31 @@ let string_of_binop bop = match bop with
   | Or -> binop_or
 	| BitwiseAnd -> binop_band
   | BitwiseOr -> binop_bor
+  | BitwiseXor -> binop_bxor
+  | LeftShift -> binop_lsh
+  | SignedRightShift -> binop_srsh
+  | UnsignedRightShift -> binop_ursh
+	| LCons -> binop_lcons
+	| M_atan2 -> binop_atan2
+	| M_pow -> binop_pow
+
+let sexpr_of_binop bop = match bop with 
+  | Equal -> binop_eq
+  | LessThan -> binop_lt
+	| LessThanString -> binop_lts
+  | LessThanEqual -> binop_leq
+ 	| Plus -> binop_plus
+  | Minus -> binop_minus
+  | Times -> binop_times
+  | Div -> binop_div
+  | Mod -> binop_mod
+	| Subtype -> binop_subtype
+	| Concat -> binop_concat
+	| Append -> binop_append
+	| And -> binop_and
+  | Or -> binop_or
+	| BitwiseAnd -> binop_band
+  | BitwiseOr -> "bor"
   | BitwiseXor -> binop_bxor
   | LeftShift -> binop_lsh
   | SignedRightShift -> binop_srsh
@@ -80,6 +115,11 @@ let string_of_bool x =
   match x with
     | true -> "$$t"
     | false -> "$$f"
+
+let sexpr_of_bool x =
+  match x with
+    | true -> "#t"
+    | false -> "#f"
 
 let string_of_type t =
   match t with
@@ -143,13 +183,43 @@ let rec string_of_literal lit escape_string =
 			in Printf.sprintf "{{ %s }}" (loop ll))
 		| Constant c -> string_of_constant c 
 
+let rec sexpr_of_literal lit =
+  match lit with
+	  | Undefined -> "$$undefined"
+	  | Null -> "$$null"
+	  | Empty -> "$$empty" 
+		| Loc loc -> loc
+    | Num n -> sexpr_of_float n
+    | String x -> Printf.sprintf "\"%s\"" x
+    | Bool b -> sexpr_of_bool b
+    | Type t -> string_of_type t 
+		| LVRef (l, x) -> Printf.sprintf "%s.v.%s" (sexpr_of_literal l) x  
+	  | LORef (l, x) -> Printf.sprintf "%s.o.%s" (sexpr_of_literal l) x   
+		| LList ll -> 
+			(match ll with
+			| [] -> "(jsil-list )"
+			| ll ->
+			let rec loop ll = 
+				(match ll with
+				| [] -> ""
+				| lit :: ll -> 
+					let scar = sexpr_of_literal lit in
+					let ssep = 
+						(match ll with
+						| [] -> ""
+						| _ -> " ") in
+					let scdr = loop ll in
+					Printf.sprintf ("%s%s%s") scar ssep scdr)
+			in Printf.sprintf "(jsil-list %s )" (loop ll))
+		| Constant c -> string_of_constant c 
+
 let rec sexpr_of_expression e =
   let se = sexpr_of_expression in
   match e with
-    | Literal l -> string_of_literal l false
+    | Literal l -> sexpr_of_literal l
     | Var v -> Pulp_Syntax_Print.string_of_var v
 		(* (bop e1 e2) *)
-    | BinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (string_of_binop op) (se e1) (se e2)
+    | BinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (sexpr_of_binop op) (se e1) (se e2)
 		(* (uop e1 e2) *)
     | UnaryOp (op, e) -> Printf.sprintf "(%s %s)" (string_of_unop op) (se e)
 		(* (typeof e) *)
@@ -179,7 +249,7 @@ let rec sexpr_of_expression e =
 						| _ -> " ") in
 					let scdr = loop ll in
 					Printf.sprintf ("%s%s%s") scar ssep scdr)
-			in Printf.sprintf "('jsil-list %s)" (loop ll)
+			in Printf.sprintf "(jsil-list %s)" (loop ll)
 
 
 let rec string_of_expression e escape_string =

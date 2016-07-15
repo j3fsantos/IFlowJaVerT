@@ -1,7 +1,7 @@
 let (template_hp_racket:  ('a -> 'b, unit, string) format) = "
 #lang s-exp rosette
 
-(require (file \"../mem_model.rkt\"))
+(require (file \"mem_model.rkt\"))
 
 (define hp 
 	(heap 
@@ -15,7 +15,7 @@ let (template_hp_racket:  ('a -> 'b, unit, string) format) = "
 let (template_internal_procs_racket:  ('a -> 'b, unit, string) format) = "
 #lang s-exp rosette
 
-(require (file \"../mem_model.rkt\"))
+(require (file \"mem_model.rkt\"))
 
 (define internal-procs 
 	(program 
@@ -34,11 +34,11 @@ let (template_procs_racket: ('a -> 'b, unit, string) format) = "
 (current-bitwidth 32)
 
 
-(require (file \"../mem_model.rkt\"))
-(require (file \"../interpreter.rkt\"))
+(require (file \"mem_model.rkt\"))
+(require (file \"interpreter.rkt\"))
 
 (require (file \"hp.rkt\"))
-(require (file \"internal_procs.rkt\"))
+(require (file \"internals_builtins_procs.rkt\"))
 
 (define prog 
 	(program 
