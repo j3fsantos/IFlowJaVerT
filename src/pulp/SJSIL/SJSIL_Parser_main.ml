@@ -114,6 +114,10 @@ let main () =
 		let lprog = SSyntax_Utils.lprog_of_path !file in 
 		let prog, which_pred = SSyntax_Utils.prog_of_lprog lprog in 
 		let prog, which_pred = if (!do_ssa) then SSyntax_SSA.ssa_compile_prog prog else prog, which_pred in 
+		
+		let wp_array = SSyntax_Utils.to_array which_pred in
+			SSyntax_Utils.print_wp_array wp_array;
+		
 		if (!do_sexpr) then
 			begin
 				let int_lprog = SSyntax_Utils.lprog_of_path "internals_builtins_procs.jsil" in 
