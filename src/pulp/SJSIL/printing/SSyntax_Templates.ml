@@ -18,7 +18,7 @@ let (template_internal_procs_racket:  ('a -> 'b, unit, string) format) = "
 (require (file \"mem_model.rkt\"))
 
 (define internal-procs 
-	(program 
+  	(program 
 		%s
 	)
 )
@@ -48,4 +48,18 @@ let (template_procs_racket: ('a -> 'b, unit, string) format) = "
 
 (program-append prog internal-procs)
 (run-program prog hp)
+"
+
+let (template_wp_racket:  ('a -> 'b, unit, string) format) = "
+#lang s-exp rosette
+
+(require (file \"mem_model.rkt\"))
+
+(define wp
+	(which-pred '(
+%s
+	))
+)
+
+(provide wp)
 "

@@ -1,6 +1,7 @@
 #lang s-exp rosette
 
 (require (file "mem_model.rkt"))
+(require (file "wp.rkt"))
 (require (file "util.rkt"))
 
 ;;
@@ -141,7 +142,7 @@
 			  (iter (cdr l)))))))
     (iter (union-guards x))))
 
-(define (run-cmds-iter prog proc-name heap store cur-index)
+(define (run-cmds-iter prog proc-name heap store cur-index prev-index)
   (let* ((proc (get-proc prog proc-name))
          (cmd (get-cmd proc cur-index))
          (cmd-type (first cmd)))
@@ -153,11 +154,11 @@
        (let* ((expr (second cmd))
               (expr-val (run-expr expr store)))
          (println (format "Proram Print:: ~a" expr-val))
-         (run-cmds-iter prog proc-name heap store (+ cur-index 1)))]
+         (run-cmds-iter prog proc-name heap store (+ cur-index 1) cur-index))]
       ;;
       ;; ('goto i)
       [(and (eq? cmd-type 'goto) (= (length cmd) 2))
-       (run-cmds-iter prog proc-name heap store (second cmd))]
+       (run-cmds-iter prog proc-name heap store (second cmd) cur-index)]
       ;;
       ;; ('goto e i j)
       [(and (eq? cmd-type 'goto) (= (length cmd) 4))
@@ -174,13 +175,25 @@
               (kill expr-val)]
              
              [(eq? expr-val #t)
-              (run-cmds-iter prog proc-name heap store then-label)]
+              (run-cmds-iter prog proc-name heap store then-label cur-index)]
              
              [(eq? expr-val #f)
-              (run-cmds-iter prog proc-name heap store else-label)]
+              (run-cmds-iter prog proc-name heap store else-label cur-index)]
              
              [else
               (error "Illegal Conditional Goto Guard")])))]
+      ;;
+      ;; ('v-phi-assign x v1 v2 ... vn)
+         [(eq? cmd-type 'v-phi-assign)
+         (let* ((lhs-var (second cmd))
+                (var-list (cddr cmd))
+                (var-index (hash-ref wp (list proc-name prev-index cur-index)))
+                (target-var (list-ref var-list var-index))
+                (val (run-expr target-var store))
+               )
+          (mutate-store store lhs-var val)
+          (run-cmds-iter prog proc-name heap store (+ cur-index 1) cur-index)
+         )]
       ;;
       ;; ('call lhs-var e (e1 ... en) i)
       [(eq? cmd-type 'call)
@@ -216,65 +229,7 @@
            [(eq? cur-index (get-ret-index proc))
             (list 'normal (store-get store ret-var))]
            [(eq? cur-index (get-err-index proc)) (list 'err (store-get store err-var))]
-           [else (run-cmds-iter prog proc-name heap store (+ cur-index 1))]))])))
-
-
-(define (run-cmds prog cmds heap store cur-index)
-  (when (= cur-index 0) (jsil-discharge))
-  (if (or (>= cur-index (vector-length cmds))
-          (< cur-index 0))
-      (begin
-        (error "Illegal Index"))
-      (let* ((cmd (vector-ref cmds cur-index))
-             (cmd-type (first cmd)))
-        (cond
-          ;;
-          ;; ('goto i)
-          [(and (eq? cmd-type 'goto) (= (length cmd) 2))
-           (run-cmds prog cmds heap store (+ cur-index (second cmd)))]
-          ;;
-          ;; ('goto e i j)
-          [(and (eq? cmd-type 'goto) (= (length cmd) 4))
-           (let* ((expr (second cmd))
-                  (then-index (third cmd))
-                  (else-index (fourth cmd))
-                  (expr-val (run-expr expr store)))
-             (parameterize ([goto-stack
-                             (cons (cons prog cur-index) (goto-stack))])
-               (print expr-val)
-               (cond
-                 [(and (symbolic? expr-val)
-                       (> (count-goto prog cur-index) goto-limit))
-                  (kill expr-val)]
-                 
-                 [(eq? expr-val #t) (run-cmds prog cmds heap store (+ cur-index then-index))]
-                 [(eq? expr-val #f) (run-cmds prog cmds heap store (+ cur-index else-index))]
-                 [else (print expr-val) (error "Illegal Conditional Goto Guard")])))]
-          ;;
-          ;; ('call lhs-var e (e1 ... en) i)
-          [(eq? cmd-type 'call)
-           (let* ((lhs-var (second cmd))
-                  (proc-name-expr (third cmd))
-                  (arg-exprs (fourth cmd))
-                  (err-index (if (>= (length cmd) 5) (fifth cmd) -1))
-                  (proc-name (run-expr proc-name-expr store))
-                  (arg-vals (map (lambda (expr) (run-expr expr store)) arg-exprs)))
-             (let ((outcome (car (run-proc prog proc-name heap arg-vals))))
-               (cond
-                 [(eq? (first outcome) 'err)
-                  (mutate-store store lhs-var (second outcome))
-                  (run-cmds prog cmds heap store (+ cur-index err-index))]
-                 [(eq? (first outcome) 'normal)
-                  (mutate-store store lhs-var (second outcome))
-                  (run-cmds prog cmds heap store (+ cur-index 1))]
-                 [else (error "Illegal Procedure Outcome")])))]
-          ;;
-          ;; basic command
-          [else
-           (let* ((cur-outcome (run-bcmd prog cmd heap store)))
-             (cond
-               [(= cur-index (- (vector-length cmds) 1)) cur-outcome]
-               [else (run-cmds prog cmds heap store (+ cur-index 1))]))]))))
+           [else (run-cmds-iter prog proc-name heap store (+ cur-index 1) cur-index)]))])))
 
 (define (run-expr expr store)
   (cond
@@ -371,14 +326,14 @@
          (store (proc-init-store proc arg-vals)))
     (jsil-discharge)
     ;;(println (format "About to run procedure ~a with arguments ~a" proc-name arg-vals))
-    (let ((res (run-cmds-iter prog proc-name heap store 0)))
+    (let ((res (run-cmds-iter prog proc-name heap store 0 0)))
       ;;(println (format "About to return from procedure ~a with return value ~a" proc-name res))
       (cons res store))))
 
 (define (run-program prog heap)
   (run-proc prog "main" heap '()))
   
-(provide run-program run-proc run-cmds program procedure heap cell store args body ret-ctx err-ctx jempty jnull jundefined protop) ;; jtrue jfalse protop)
+(provide run-program run-proc program procedure heap cell store args body ret-ctx err-ctx jempty jnull jundefined protop) ;; jtrue jfalse protop)
 
 (define (proto-lookup-obj heap loc prop)
   (cond

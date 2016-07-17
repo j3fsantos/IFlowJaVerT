@@ -239,7 +239,6 @@ type procedure = {
 		let hash = Hashtbl.hash
 	end)
 
-
 (* SJSIL Heaps *)
  module SHeap = Hashtbl.Make(
 	struct

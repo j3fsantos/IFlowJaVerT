@@ -115,8 +115,6 @@ let main () =
 		let prog, which_pred = SSyntax_Utils.prog_of_lprog lprog in 
 		let prog, which_pred = if (!do_ssa) then SSyntax_SSA.ssa_compile_prog prog else prog, which_pred in 
 		
-		let wp_array = SSyntax_Utils.to_array which_pred in
-			SSyntax_Utils.print_wp_array wp_array;
 		
 		if (!do_sexpr) then
 			begin
@@ -142,6 +140,14 @@ let main () =
 						let str_ih_heap = Printf.sprintf SSyntax_Templates.template_hp_racket str_ih_heap in
 						burn_to_disk ("hp.rkt") str_ih_heap;
 					end;
+				
+				let str_ih_heap = SSyntax_Print.sexpr_of_heap ih_heap in 
+						let str_ih_heap = Printf.sprintf SSyntax_Templates.template_hp_racket str_ih_heap in
+						burn_to_disk ("hp.rkt") str_ih_heap;
+				
+				let wp_array_str = SSyntax_Utils.print_which_pred which_pred in
+				let str_wp = Printf.sprintf SSyntax_Templates.template_wp_racket wp_array_str in
+				burn_to_disk ("wp.rkt") str_wp;
 				
 				let _ = SProgram.iter (fun k _ -> if (SProgram.mem int_prog k) then (SProgram.remove prog k)) prog in
 				let sprog = SSyntax_Print.sexpr_of_program prog false in

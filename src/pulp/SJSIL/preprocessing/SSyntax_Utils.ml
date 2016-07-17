@@ -233,78 +233,13 @@ let extend_which_pred global_which_pred proc =
 			Hashtbl.replace global_which_pred (proc_name, prev_cmd, cur_cmd) i)
 		which_pred	
 
-
-(**
-		WHICH_PRED TRANSFORMATION
-
-		1st: get the number of commands for each procedure
-		     get the number of predecessors for each command
-				
-		2nd: construct the
-*)
-
-let to_array which_pred = 
-	let wp_data : (string, (int, int) Hashtbl.t) Hashtbl.t = Hashtbl.create 1021 in
-		Hashtbl.iter 
-			(fun k v -> 
-				match k with
-				| (pn : string), (pc : int), (cc : int) -> 
-					if (not (Hashtbl.mem wp_data pn)) then
-						(let new_proc : (int, int) Hashtbl.t = Hashtbl.create 1021 in 
-					    Hashtbl.add wp_data pn new_proc);
-					let pwp : (int, int) Hashtbl.t = Hashtbl.find wp_data pn in
-					let nmax = (try (Hashtbl.find pwp (-1)) with
-					            | _ -> -1) in
-						if (nmax < cc + 1) then (Hashtbl.replace pwp (-1) (cc + 1));
-					let cmax = (try (Hashtbl.find pwp cc) with
-					            | _ -> -1) in
- 						if (cmax < v + 1) then (Hashtbl.replace pwp cc (v + 1))
-				| _ -> raise (Failure "Incorrect which_pred structure."))
-			which_pred;
-	Hashtbl.iter 
-	  (fun k v -> 
-			let cnum = Hashtbl.find v (-1) in
-			for n = 0 to (cnum - 1) do
-				if (not (Hashtbl.mem v n)) then
-					Hashtbl.add v n 0;
-			done;) wp_data;
-	let arr_wp : ((string, (int array) array) Hashtbl.t) = Hashtbl.create 1021 in
-		Hashtbl.iter 
-			(fun k v -> 
-				match k with
-				| (pn : string), (pc : int), (cc : int) -> 
-					if (not (Hashtbl.mem arr_wp pn)) then
-						(let pn_data = Hashtbl.find wp_data pn in
-						 let cnum = Hashtbl.find pn_data (-1) in
-						 let emp_arr : int array = Array.make 0 0 in
-						 let pn_arr : (int array) array = Array.make cnum emp_arr in
-						 for n = 0 to (cnum - 1) do
-						   let pnum = Hashtbl.find pn_data n in
-							 let arr : int array = Array.make pnum (-1) in
-							 pn_arr.(n) <- arr;
-						 done;
-						 Hashtbl.add arr_wp pn pn_arr;
-						);
-					let pwp : (int array) array = Hashtbl.find arr_wp pn in
-					  (pwp.(cc)).(v) <- pc; 
-						Hashtbl.replace arr_wp pn pwp;
-				| _ -> raise (Failure "Incorrect which_pred structure."))
-			which_pred;
-	arr_wp
 	
-let print_wp_array wp_array = 
-	Hashtbl.iter 
-	  (fun k v -> 
-			Printf.printf "Procedure name: %s\n" k;
-			let cnum = Array.length v in
-			Printf.printf "Number of commands: %d\n" cnum;
-			for n = 0 to (cnum - 1) do
-				let npred = Array.length (v.(n)) in
-				Printf.printf "CMD %d : Number of preds: %d : Preds : " n npred;
-				for e = 0 to (npred - 1) do
-					Printf.printf "%d " (v.(n)).(e);
-				done;
-				Printf.printf "\n";
-			done;)
-	  wp_array
-		
+let print_which_pred wp = 
+	Hashtbl.fold
+	  (fun k v ac -> 
+		 let str = 
+		 (match k with
+			| (pn : string), (pc : int), (cc : int) ->
+				Printf.sprintf "    (\"%s\" %d %d %d)\n" pn pc cc v;
+			| _ -> raise (Failure "Oopsie. Incorrect which pred structure.")) in
+	   ac ^ str) wp ""

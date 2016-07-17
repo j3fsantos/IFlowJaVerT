@@ -554,6 +554,16 @@
          cmds-list)
     (list proc-name proc-args (list ret-var ret-label err-var err-label) cmds-vec)))
 
+(define (which-pred list-pred)
+  (let ((wp-table (make-hash)))
+    (let loop ((wp-list list-pred))
+      (if (null? wp-list)
+          wp-table
+          (begin
+            (hash-set! wp-table (list (caar wp-list) (cadar wp-list) (caddar wp-list)) (car (cdddar wp-list)))
+            (loop (cdr wp-list)))))
+  ))    
+
 (define (get-ret-var proc)
   (first (third proc)))
 
@@ -600,4 +610,4 @@
 (define (err-ctx . lst)
   (cons 'error lst))
 
-(provide procedure eval_literal heap-get-obj get-ret-var get-err-var get-ret-index get-err-index get-proc-name get-params get-cmd proc-init-store args body ret-ctx err-ctx)
+(provide procedure which-pred eval_literal heap-get-obj get-ret-var get-err-var get-ret-index get-err-index get-proc-name get-params get-cmd proc-init-store args body ret-ctx err-ctx)
