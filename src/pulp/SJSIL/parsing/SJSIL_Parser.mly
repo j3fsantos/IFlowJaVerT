@@ -180,7 +180,7 @@ proc_list_target:
 	proc_list = separated_list(SCOLON, proc_target) { proc_list };
 
 proc_target: 
-(* [spec]; proc xpto (x, y) { cmd_list[;] } with { ret: x, i; [err: x, j] }; *) 
+(* [spec;] proc xpto (x, y) { cmd_list[;] } with { ret: x, i; [err: x, j] }; *) 
   spec = option(spec_target);
 	PROC; proc_name=VAR; LBRACE; param_list=param_list_target; RBRACE; 
 		CLBRACKET; cmd_list=cmd_list_target; option(SCOLON); CRBRACKET; 
@@ -528,9 +528,6 @@ lexpr_target:
 (* none *)
 	| LNONE
 		{ LNone }
-(* [] *)
-	| LBRACKET; RBRACKET
-		{ LListEmpty }
 (* lvar *)
 	| v=LVAR { LVar v }
 (* pvar *)
@@ -554,9 +551,6 @@ lexpr_target:
 (* typeof *)
 	| TYPEOF; LBRACE; e=lexpr_target; RBRACE
 		{ LTypeOf (e) }
-(* cons *)
-	| e1=lexpr_target; LCONS; e2=lexpr_target
-		{ LLCons (e1, e2) }
 (* (e) *)
   | LBRACE; e=lexpr_target; RBRACE
 	  { e }

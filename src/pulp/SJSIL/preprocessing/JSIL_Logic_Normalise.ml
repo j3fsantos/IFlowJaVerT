@@ -10,14 +10,26 @@ module StringSet = Set.Make(
   end )
 
 
+let fresh_sth (name : string) : (unit -> string) =
+  let counter = ref 0 in
+  let rec f () =
+    let v = name ^ (string_of_int !counter) in
+    counter := !counter + 1;
+    v
+  in f
+  
+
 let llvar_prefix = "_$l_"
 let lvar_prefix = "_lvar_"
+
+let fresh_llvar = fresh_sth llvar_prefix 
+
+
 
 let rec normalize_lexpr le store symb_loc_tbl = 
 	match le with 
 	| LLit lit -> LLit lit
 	| LNone -> LNone
-	| LListEmpty -> LListEmpty
 	| LVar lvar -> (try LLVar (Hashtbl.find symb_loc_tbl lvar) with _ -> LVar lvar)
 	| LLVar llvar -> raise (Failure "Unsupported expression during normalization: LLVar")
 	| PVar pvar -> 
@@ -67,13 +79,21 @@ let rec normalize_lexpr le store symb_loc_tbl =
 		| LEVRef (leb, _) 
 		| LEORef (leb, _) -> leb
 		| _ -> LBase (nle1))
-		
+	
+	| LField	(le1) -> 
+		let nle1 = normalize_lexpr le1 store symb_loc_tbl in 
+		(match nle1 with 
+		| LLit (LVRef (_, f)) 
+		| LLit (LORef (_, f)) -> LLit (String f)
+		| LEVRef (_, fe) 
+		| LEORef (_, fe) -> fe
+		| _ -> LField (nle1))	
+				
 	| LTypeOf (le1) -> 
 		let nle1 = normalize_lexpr le1 store symb_loc_tbl in 
 		(match nle1 with 
 		| LLit llit -> LLit (Type (SJSIL_Interpreter.evaluate_type_of llit)) 
 		| LNone -> raise (Failure "Illegal Logic Expression: TypeOf of None")
-		| LListEmpty -> raise (Failure "Illegal Logic Expression: TypeOf of Logic List") 
 		| LVar _ -> LTypeOf (nle1)
 		| LLVar _ -> LTypeOf (nle1)
 		| PVar _ -> raise (Failure "This should never happen: program variable in normalized expression") 
@@ -83,13 +103,8 @@ let rec normalize_lexpr le store symb_loc_tbl =
 		| LEORef (_, _) -> LLit (Type ObjectReferenceType)
 		| LBase _ -> LLit (Type ObjectType)
 		| LField _ -> LLit (Type StringType)
-		| LTypeOf _ -> LLit (Type TypeType) 
-		| LLCons (_, _) -> raise (Failure "This should never happen: program variable in normalized expression"))
-	
-	| LLCons (le1, le2) -> 
-		let nle1 = normalize_lexpr le1 store symb_loc_tbl in 
-		let nle2 = normalize_lexpr le2 store symb_loc_tbl in 
-		LLCons (nle1, nle2)
+		| LTypeOf _ -> LLit (Type TypeType))
+		
 
 let normalize_pure_assertion assertion store symb_tbl = 
 	match assertion with 
@@ -120,7 +135,6 @@ let rec get_expr_vars e var_tbl =
 	match e with 
 	| LLit _
 	| LNone 
-	| LListEmpty 
 	| LVar _ 
 	| LLVar _ -> ()
 	| PVar var -> (try Hashtbl.find var_tbl var; () with _ -> Hashtbl.add var_tbl var true)
@@ -131,8 +145,7 @@ let rec get_expr_vars e var_tbl =
 	| LBase e1 
 	| LField e1
 	| LTypeOf e1 -> get_expr_vars e1 var_tbl
-	| LLCons (e1, e2) -> get_expr_vars e1 var_tbl; get_expr_vars e2 var_tbl		
-
+	
 let get_expr_vars_lst le =
 	let vars_tbl = Hashtbl.create 101 in
 	get_expr_vars le vars_tbl; 
@@ -387,7 +400,7 @@ let init_pure_assignments a store symb_tbl =
 	normalize_pure_assertions ()
 	
 	
-let rec compute_symb_heap a heap store symb_tbl = 
+let rec compute_symb_heap a (heap : symbolic_heap) (store : symbolic_store) symb_tbl = 
 	match a with 
 	| LStar (a1, a2) -> 
 		compute_symb_heap a1 heap store symb_tbl; 
@@ -399,14 +412,14 @@ let rec compute_symb_heap a heap store symb_tbl =
 			with _ -> raise (Failure "This should not happen, ever!")) in  
 		let nle2 = normalize_lexpr le2 store symb_tbl in 
 		let nle3 = normalize_lexpr le3 store symb_tbl in
-		let field_val_pairs = (try Hashtbl.find heap llvar with _ -> []) in  
-		Hashtbl.replace heap llvar ((nle2, nle3) :: field_val_pairs)
+		let field_val_pairs, default_val = (try LHeap.find heap llvar with _ -> ([], Some LNone)) in  
+		LHeap.replace heap llvar (((nle2, nle3) :: field_val_pairs), default_val)
 		
 	| LPointsTo (LLit (Loc loc), le2, le3) -> 
 		let nle2 = normalize_lexpr le2 store symb_tbl in 
 		let nle3 = normalize_lexpr le3 store symb_tbl in
-		let field_val_pairs = (try Hashtbl.find heap loc with _ -> []) in
-		Hashtbl.replace heap loc ((nle2, nle3) :: field_val_pairs)
+		let field_val_pairs, default_val = (try LHeap.find heap loc with _ -> ([], Some LNone)) in
+		LHeap.replace heap loc (((nle2, nle3) :: field_val_pairs), default_val)
 	
 	| LEq (_, _)
 	| LLessEq (_, _) 
@@ -417,7 +430,7 @@ let rec compute_symb_heap a heap store symb_tbl =
 
 let normalize_assertion_top_level a = 
 	
-	let heap = Hashtbl.create 1021 in 
+	let heap = LHeap.create 1021 in 
 	let store = Hashtbl.create 1021 in 
 	let symb_tbl = Hashtbl.create 1021 in 
 	

@@ -670,7 +670,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist. Ew." cur_proc_name)) in  
 	let cmd = proc.proc_body.(cur_cmd) in 
 
-	let spec, cmd = cmd in
+	let metadata, cmd = cmd in
 	match cmd with 
 	| SBasic bcmd -> 
 		let _ = evaluate_bcmd bcmd heap store in 

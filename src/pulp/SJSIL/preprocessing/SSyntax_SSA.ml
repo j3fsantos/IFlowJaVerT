@@ -141,7 +141,6 @@ let rec rewrite_logic_expression (lexpr : jsil_logic_expr) var_stacks rename_var
 	| LBase	lexpr -> LBase (rewrite_logic_expression lexpr var_stacks rename_var)
 	| LField lexpr -> LField (rewrite_logic_expression lexpr var_stacks rename_var)
 	| LTypeOf lexpr	-> LTypeOf (rewrite_logic_expression lexpr var_stacks rename_var)
-	| LLCons (lexpr1, lexpr2) -> LLCons	((rewrite_logic_expression lexpr1 var_stacks rename_var), (rewrite_logic_expression lexpr2 var_stacks rename_var))
 	| x -> x)
 		
 let rec rewrite_logic_assertion lass var_stacks rename_var = 

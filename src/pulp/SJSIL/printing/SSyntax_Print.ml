@@ -322,7 +322,6 @@ let rec string_of_lexpression lexpr escape_string =
 	(match lexpr with
 	| LLit l -> string_of_literal l escape_string
 	| LNone -> "none"
-	| LListEmpty -> "[]"
 	| LVar var -> var	
 	| LLVar var -> var
 	| PVar var -> var
@@ -691,34 +690,56 @@ let string_of_store store =
 		
 let string_of_proc_metadata proc = 
 	let line_info_lst = 
-		List.map 
-			(fun (metadata, cmd) ->
+		List.mapi 
+			(fun i (metadata, _) ->
+				let str_i = string_of_int (i + 1) in 
 				match metadata.line_offset with 
-				| None -> "-1"
-				| Some n -> string_of_int n) 
+				| None -> Printf.sprintf "(%d, %d)" i 0
+				| Some n ->  Printf.sprintf "(%d, %d)" i n)
 			(Array.to_list proc.proc_body) in 
 	
 	let line_info_str = 
 		List.fold_left 
-			(fun ac elem -> if (ac = "") then elem else ac ^ " " ^ elem)
+			(fun ac elem -> if (ac = "") then elem else ac ^ "\n" ^ elem)
 			""
 			line_info_lst in 
-	"(" ^ proc.proc_name ^ " " ^ line_info_str ^ ")" 
+	"Proc: " ^ proc.proc_name ^ "\n" ^ line_info_str  
 	
 
 let string_of_lproc_metadata lproc = 
 	let line_info_lst = 
-		List.map 
-			(fun (metadata, label, cmd) ->
+		List.mapi 
+			(fun i (metadata, label, cmd) ->
+				let str_i = string_of_int (i + 1) in 
 				match metadata.line_offset with 
-				| None -> "-1"
-				| Some n -> string_of_int n) 
+				| None -> Printf.sprintf "(%d, %d)" i 0
+				| Some n ->  Printf.sprintf "(%d, %d)" i n) 
 			(Array.to_list lproc.lproc_body) in 
 	
 	let line_info_str = 
 		List.fold_left 
-			(fun ac elem -> if (ac = "") then elem else ac ^ " " ^ elem)
+			(fun ac elem -> if (ac = "") then elem else ac ^ "\n" ^ elem)
 			""
 			line_info_lst in 
-	"(" ^ lproc.lproc_name ^ " " ^ line_info_str ^ ")"		
-			
+	"Proc: " ^ lproc.lproc_name ^ "\n" ^ line_info_str
+
+
+let string_of_lprog_metadata lprog = 
+	SSyntax.SLProgram.fold 
+		(fun _ lproc acc_str -> 
+			if (acc_str = "") 
+				then (string_of_lproc_metadata lproc)
+				else acc_str ^ "\n" ^ (string_of_lproc_metadata lproc)) 
+		lprog	
+		""  
+
+let string_of_prog_metadata prog = 
+	SSyntax.SProgram.fold 
+		(fun _ proc acc_str -> 
+			if (acc_str = "") 
+				then (string_of_proc_metadata proc)
+				else acc_str ^ "\n" ^ (string_of_proc_metadata proc)) 
+		prog	
+		""  		
+	
+	

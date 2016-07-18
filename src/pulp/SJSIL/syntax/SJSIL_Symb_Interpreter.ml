@@ -1,56 +1,371 @@
 open SSyntax
-open JSIL_Logic_Syntax
 
-let symb_evaluate_bcmd (bcmd : basic_jsil_cmd) heap store pure_formulae which_pred = 
+
+let proto_f = "@proto"
+
+let rec symb_evaluate_expr (expr : jsil_expr) store = 
+	match expr with 
+	| Literal lit -> LLit lit
+	
+	| Var var -> 
+		(try Hashtbl.find store var 
+		with _ -> 
+			let msg = Printf.sprintf "Variable %s not found in logical store." var in 
+			raise (Failure msg))
+	
+	| BinOp (e1, op, e2) ->
+		let ne1 = symb_evaluate_expr e1 store in 
+		let ne2 = symb_evaluate_expr e2 store in 
+		(match ne1, ne2 with
+		| LLit l1, LLit l2 -> 
+			let l = SJSIL_Interpreter.evaluate_binop op l1 l2 in 
+			LLit l
+		| _, _ -> LBinOp (ne1, op, ne2))
+	
+	| UnaryOp (op, e) -> 
+		let ne = symb_evaluate_expr e store in
+		(match ne with 
+		| LLit lit -> LLit (SJSIL_Interpreter.evaluate_unop op lit)
+		| _ -> LUnOp (op, ne))
+	
+	| VRef (e1, e2) ->
+		let ne1 = symb_evaluate_expr e1 store in 
+		let ne2 = symb_evaluate_expr e2 store in 
+		(match ne1, ne2 with 
+		| LLit l, LLit (String field) -> LLit (LVRef (l, field))
+		| _, _ -> LEVRef (ne1, ne2))
+	
+	| ORef (e1, e2) ->
+		let ne1 = symb_evaluate_expr e1 store in 
+		let ne2 = symb_evaluate_expr e2 store in 
+		(match ne1, ne2 with 
+		| LLit l, LLit (String field) -> LLit (LORef (l, field))
+		| _, _ -> LEORef (ne1, ne2))
+	
+	| Base	(e) -> 
+		let ne = symb_evaluate_expr e store in 
+		(match ne with 
+		| LLit (LVRef (l, _)) 
+		| LLit (LORef (l, _)) -> LLit l
+		| LEVRef (eb, _) 
+		| LEORef (eb, _) -> eb
+		| _ -> LBase (ne))
+	
+	| Field	(e) -> 
+		let ne = symb_evaluate_expr e store in 
+		(match ne with 
+		| LLit (LVRef (_, f)) 
+		| LLit (LORef (_, f)) -> LLit (String f)
+		| LEVRef (_, fe) 
+		| LEORef (_, fe) -> fe
+		| _ -> LField (ne))	
+	
+	| TypeOf (e) -> 
+		let ne = symb_evaluate_expr e store in 
+		(match ne with 
+		| LLit llit -> LLit (Type (SJSIL_Interpreter.evaluate_type_of llit)) 
+		| LNone -> raise (Failure "Illegal Logic Expression: TypeOf of None")
+		| LVar _ 
+		| LLVar _ -> LTypeOf (ne)
+		| PVar _ -> raise (Failure "This should never happen: program variable in normalized expression") 
+		| LBinOp (_, _, _)   
+		| LUnOp (_, _) -> LTypeOf (ne)
+		| LEVRef (_, _) -> LLit (Type VariableReferenceType)
+		| LEORef (_, _) -> LLit (Type ObjectReferenceType)
+		| LBase _ -> LLit (Type ObjectType)
+		| LField _ -> LLit (Type StringType)
+		| LTypeOf _ -> LLit (Type TypeType))
+	
+	(*| LEList es ->
+		let les = 
+			List.map (fun e -> symb_evaluate_expr e store) es in 
+		let rec loop les = 
+			(match les with 
+			| [] -> true 
+			| le :: rest -> 
+				(match le with 
+				| LLit l -> loop rest 
+				| _ -> false)) in 
+		let all_literals = loop les in 
+		if all_literals 
+			then LLit (LList (lit :: lst))
+			else LEList les *)
+	
+	| _ -> raise (Failure "not supported yet")
+
+
+let update_abs_store store x ne = Hashtbl.replace store x ne
+
+let isEqual e1 e2 pure_formulae = (e1 = e2) 
+
+let isDifferent e1 e2 pure_formulae = 
+	match e1, e2 with 
+	| LLit l1, LLit l2 -> (not (l1 = l2)) 
+	| LLVar v1, LLVar v2 -> (not (v1 = v2))
+	| _, _ -> false 
+
+let filter_field field_val_list e1 pure_formulae = 
+	let rec filter_field_rec fv_lst processed_fv_pairs = 
+		match fv_lst with 
+		| [] -> field_val_list, None 
+		| (e_field, e_value) :: rest ->
+			(if (isEqual e1 e_field pure_formulae)
+				then processed_fv_pairs @ rest, Some (e_field, e_value)
+				else 
+					(if (isDifferent e1 e_field pure_formulae)
+						then filter_field_rec rest ((e_field, e_value) :: processed_fv_pairs)
+						else 
+							let e1_str = JSIL_Logic_Print.string_of_logic_expression e1 false  in  
+							let msg = Printf.sprintf "I cannot decide whether the field denoted by %s already exists in the symbolic heap" e1_str in   
+							raise (Failure msg))) in 
+	filter_field_rec field_val_list []
+
+
+let update_abs_heap_default (heap : symbolic_heap) loc e =
+	let field_val_list, default_val = try LHeap.find heap loc with _ -> [], None in 
+	match default_val with 
+	| Some _ -> raise (Failure "the default value for the fields of a given object cannot be changed") 
+	| None -> LHeap.replace heap loc (field_val_list, Some e)    
+
+
+let update_abs_heap (heap : symbolic_heap) loc e1 e2 pure_formulae =
+	(* Printf.printf "Update Abstract Heap\n"; *)
+	let field_val_list, default_val = try LHeap.find heap loc with _ -> [], None in 
+	let unchanged_field_val_list, _ = filter_field field_val_list e1 pure_formulae in 
+	LHeap.replace heap loc ((e1, e2) :: unchanged_field_val_list, default_val)    
+
+
+let abs_heap_find heap l ne pure_formulae = 
+	let field_val_list, default_val = try LHeap.find heap l with _ -> [], None in 
+	let _, field_val_pair = filter_field field_val_list ne pure_formulae in
+	match field_val_pair with 
+	| Some (_, f_val) -> f_val
+	| None  -> 
+		(match default_val with 
+		| Some d_val -> d_val 
+		| None -> raise (Failure "You are looking up the value of a field that does exist"))
+
+let abs_heap_delete heap l ne pure_formulae = 
+	let field_val_list, default_val = try LHeap.find heap l with _ -> [], None in 
+	let rest_fv_pairs, del_fv_pair = filter_field field_val_list ne pure_formulae in
+	match del_fv_pair with 
+	| Some (_, _) -> LHeap.replace heap l (rest_fv_pairs, default_val) 
+	| None -> raise (Failure "Trying to delete an inexistent field") 
+		
+let build_renaming_table (post_store : symbolic_store) (final_store : symbolic_store) :  (string, string) Hashtbl.t = 
+	let rn_tbl = Hashtbl.create 1021 in 
+	Hashtbl.iter 
+		(fun var lexpr ->
+			match lexpr with 
+			| LLVar post_llvar -> 
+				let final_llvar = try 
+					let final_expr = Hashtbl.find final_store var in 
+					match final_expr with 
+					| LLVar final_llvar -> final_llvar 
+					| _ -> raise (Failure "the stores are not unifiable")
+					with _ -> raise (Failure "the stores are not unifiable") in 
+			 	Hashtbl.add rn_tbl post_llvar final_llvar 
+			| _ -> ())
+		post_store; 
+	rn_tbl
+
+
+let unify_lexprs le_post (le_final : SSyntax.jsil_logic_expr) pure_formulae (rn_tbl : (string, string) Hashtbl.t) (lvar_constraints_tbl : (string, SSyntax.jsil_logic_expr) Hashtbl.t) : unit = 
+	match le_post with 
+	| LVar x -> 
+		let prev_le_final = 
+			(try 
+				Some (Hashtbl.find lvar_constraints_tbl x)
+			with _ ->  	
+				Printf.printf "I am putting variable %s the logical vars table\n" x; 
+				Hashtbl.add lvar_constraints_tbl x le_final; 
+				None) in 
+		(match prev_le_final with 
+		| Some prev_le_final -> 
+			if (le_final = prev_le_final) 
+				then () 
+				else raise (Failure "failed to unify with postcondition - problem with logical variable")
+		| None -> ())
+			
+	| LLVar post_llvar ->
+		let final_llvar = try Hashtbl.find rn_tbl post_llvar with _ -> post_llvar in 	
+		if (LLVar final_llvar = le_final) 
+			then () 
+			else raise (Failure "could not unify with postcondition")
+	
+	| _ -> 
+		if (le_post = le_final) 
+			then () 
+			else raise (Failure "could not unify with postcondition")
+	
+
+let unify_symb_fv_lists post_fv_lst final_fv_lst pure_formulae rn_tbl lvar_constraints_tbl = 
+	if ((List.length post_fv_lst) = (List.length final_fv_lst)) 
+	then 
+		(List.iter 
+			(fun (post_field, post_val) -> 
+				let final_field = post_field in (* this is unsound?? *)
+				let _, final_field_val_pair = filter_field final_fv_lst final_field pure_formulae in 
+				(match final_field_val_pair with 
+				| None -> 
+					let post_field_str = JSIL_Logic_Print.string_of_logic_expression post_field false in 
+					let msg : string = Printf.sprintf "Field %s in post has not been matched" post_field_str in 
+					raise (Failure msg)
+				| Some (final_field, final_val) -> 
+					unify_lexprs post_val final_val pure_formulae rn_tbl lvar_constraints_tbl))
+			post_fv_lst)
+	else raise (Failure "could not unify with postcondition - length mismatch") 			 
+		
+		
+let unify_symb_heaps (post_heap : symbolic_heap) (final_heap : symbolic_heap) pure_formulae rn_tbl = 
+	let lvar_constraints_tbl = Hashtbl.create 1021 in 
+	LHeap.iter 
+		(fun post_loc (post_fv_list, post_def) -> 
+			let final_loc = try Hashtbl.find rn_tbl post_loc with _ -> post_loc in 
+			let (final_fv_list, final_def) = 
+				(try LHeap.find final_heap final_loc with _ -> 
+					let msg = Printf.sprintf "Location %s in post has not been matched" final_loc in 
+					raise (Failure msg) ) in 
+			(match post_def, final_def with 
+			| None, None -> () 
+			| Some post_def, Some final_def -> 
+				unify_lexprs post_def final_def pure_formulae rn_tbl lvar_constraints_tbl
+			| _, _ -> raise (Failure ("Default values are not unifiable"))); 
+			unify_symb_fv_lists post_fv_list final_fv_list pure_formulae rn_tbl lvar_constraints_tbl)
+		post_heap
+		
+let unify_symb_heaps_top_level post_heap post_store post_pf final_heap final_store final_pf = 
+	let rn_tbl = build_renaming_table post_store final_store in 
+	unify_symb_heaps post_heap final_heap final_pf rn_tbl
+
+let symb_evaluate_bcmd (bcmd : basic_jsil_cmd) heap store pure_formulae = 
 	match bcmd with 
-	| SSkip -> Empty
+	| SSkip -> LLit Empty
 
 	| SAssignment (x, e) -> 
 		let nle = symb_evaluate_expr e store in 
 		update_abs_store store x nle; 
 		nle
 	
-	| SPhiAssignment (x, x_arr) -> 
-		let x_live = x_arr.(which_pred) in 
-		let nle = abs_store_find store x_live in 
-		update_abs_store store x nle
-	
 	| SNew x -> 
-		let new_loc = fresh_loc () in 
-		update_abs_heap heap new_loc (LLit (String proto_f)) (LLit Null); 
+		let new_loc = JSIL_Logic_Normalise.fresh_llvar () in 
+		update_abs_heap_default heap new_loc LNone;
+		update_abs_heap heap new_loc (LLit (String proto_f)) (LLit Null) pure_formulae; 
+		update_abs_store store x (LLVar new_loc); 
 		LLVar new_loc 
 	
-	| SLookup (x, e1, e2) -> 
-		let nle1 = symb_evaluate_expr e1 store in
-		let nle2 = symb_evaluate_expr e2 store in 	
-		let nle_lu = abs_heap_find heap nle1 nle2 in 
-		update_abs_store store x nle_lu; 
-		nle_lu
-	
 	| SMutation (e1, e2, e3) ->
-		let nle1 = symb_evaluate_expr e1 store in
-		let nle2 = symb_evaluate_expr e2 store in 	
-		let nle3 = symb_evaluate_expr e3 store in
-		update_abs_heap heap nle1 nle2 nle3;
-		nle3
+		Printf.printf "smutation\n";
+		let ne1 = symb_evaluate_expr e1 store in
+		let ne2 = symb_evaluate_expr e2 store in 	
+		let ne3 = symb_evaluate_expr e3 store in
+		(match ne1 with 
+		| LLit (Loc l) 
+		| LLVar l -> 
+			(* Printf.printf "I am going to call: Update Abstract Heap\n"; *)
+			update_abs_heap heap l ne2 ne3 pure_formulae
+		| _ -> 
+			let ne1_str = JSIL_Logic_Print.string_of_logic_expression ne1 false  in 
+			let msg = Printf.sprintf "I do not know which location %s denotes in the symbolic heap" ne1_str in 
+			raise (Failure msg)); 
+		ne3
+	
+	| SLookup (x, e1, e2) -> 
+		let ne1 = symb_evaluate_expr e1 store in
+		let ne2 = symb_evaluate_expr e2 store in 	
+		let l = 
+			(match ne1 with 
+			| LLit (Loc l) 
+			| LLVar l -> l
+			| _ -> 
+			let ne1_str = JSIL_Logic_Print.string_of_logic_expression ne1 false  in 
+			let msg = Printf.sprintf "I do not know which location %s denotes in the symbolic heap" ne1_str in 
+			raise (Failure msg)) in 
+		let ne = abs_heap_find heap l ne2 pure_formulae in 
+		update_abs_store store x ne; 
+		ne
 	
 	| SDelete (e1, e2) -> 
-		let nle1 = symb_evaluate_expr e1 store in
-		let nle2 = symb_evaluate_expr e2 store in 
-		remove_cell_abs_heap heap nle1 nle2
-										
-		| SHasField (x, e1, e2) -> 
-		let v_e1 = evaluate_expr e1 store in
-		let v_e2 = evaluate_expr e2 store in 	
-		(match v_e1, v_e2 with 
-		| Loc l, String f -> 
-			let v = Bool (SHeap.mem heap (l, f)) in 
-			Hashtbl.replace store x v; 
-			v
-		| _, _ -> raise (Failure "Illegal Field Check"))
+		let ne1 = symb_evaluate_expr e1 store in
+		let ne2 = symb_evaluate_expr e2 store in
+		let l = 
+			(match ne1 with 
+			| LLit (Loc l) 
+			| LLVar l -> l 
+			| _ -> 
+				let ne1_str = JSIL_Logic_Print.string_of_logic_expression ne1 false  in 
+				let msg = Printf.sprintf "I do not know which location %s denotes in the symbolic heap" ne1_str in 
+				raise (Failure msg)) in 
+		abs_heap_delete heap l ne2 pure_formulae; 
+		LLit (Bool true)  
+				
+	| _ -> 
+		raise (Failure "not implemented yet!")
+
+
+let rec symb_evaluate_cmd post ret_flag prog cur_proc_name which_pred heap store pure_formulae cur_cmd prev_cmd = 	
+	let f = symb_evaluate_cmd post ret_flag prog cur_proc_name which_pred heap store pure_formulae in 
 	
-		
+	let proc = try SProgram.find prog cur_proc_name with
+		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist. Ew." cur_proc_name)) in  
+	let cmd = proc.proc_body.(cur_cmd) in 
+	let cmd_str = SSyntax_Print.string_of_cmd cmd 0 0 false false false in 
+	Printf.printf ("cmd: %s \n") cmd_str;
 	
-	| _, _ -> raise (Failure "Illegal field inspection"))	
+	let metadata, cmd = cmd in
+	match cmd with 
+	| SBasic bcmd -> 
+		let _ = symb_evaluate_bcmd bcmd heap store pure_formulae in 
+	  symb_evaluate_next_command post ret_flag prog proc which_pred heap store pure_formulae cur_cmd prev_cmd
+		 
+	| SGoto i -> f i cur_cmd 
 	
+	| SGuardedGoto (e, i, j) -> 
+		let v_e = symb_evaluate_expr e store in
+		(match v_e with 
+		| LLit (Bool true) -> f i cur_cmd 
+		| LLit (Bool false) -> f j cur_cmd 
+		| _ -> 
+			let copy_heap = LHeap.copy heap in 
+			symb_evaluate_cmd post ret_flag prog cur_proc_name which_pred heap store pure_formulae i cur_cmd; 
+			symb_evaluate_cmd post ret_flag prog cur_proc_name which_pred copy_heap store pure_formulae j cur_cmd)
+			
+	| _ -> raise (Failure "not implemented yet")
+and 
+symb_evaluate_next_command post ret_flag prog proc which_pred heap store pure_formulae cur_cmd prev_cmd =
+	let cur_proc_name = proc.proc_name in 
+	if (Some cur_cmd = proc.ret_label)
+	then 
+			(let ret_expr = 
+				(let ret_var = (match proc.ret_var with
+			    					    | None -> raise (Failure "No no!") 
+												| Some ret_var -> ret_var) in
+				  (try (Hashtbl.find store ret_var) with
+						| _ -> raise (Failure (Printf.sprintf "Cannot find return variable.")))) in
+			check_final_symb_state post ret_flag heap store Normal ret_expr pure_formulae)
+	else (if (Some cur_cmd = proc.error_label) 
+			then 
+				(let err_expr = 
+					(let err_var = (match proc.error_var with 
+					                      | None -> raise (Failure "No no!") 
+																| Some err_var -> err_var) in
+				         (try (Hashtbl.find store err_var) with
+				| _ -> raise (Failure (Printf.sprintf "Cannot find error variable in proc %s, err_lab = %d, err_var = %s, cmd = %s" proc.proc_name cur_cmd err_var (SSyntax_Print.string_of_cmd proc.proc_body.(prev_cmd)  0 0 false false false))))) in
+			check_final_symb_state post ret_flag heap store Error err_expr pure_formulae)
+	else (
+			let next_cmd = 
+				(if ((cur_cmd + 1) < (Array.length proc.proc_body)) 
+					then Some proc.proc_body.(cur_cmd+1)
+					else None) in 
+			let next_prev = 
+				match next_cmd with 
+				| Some (_, SPsiAssignment (_, _)) -> prev_cmd 
+				| _ -> cur_cmd in 
+			symb_evaluate_cmd post ret_flag prog cur_proc_name which_pred heap store pure_formulae (cur_cmd + 1) next_prev))
+and 
+check_final_symb_state post ret_flag heap store flag lexpr pure_formulae = 
+	let post_heap, post_store, post_p_formulae = post in 
+	let str = JSIL_Logic_Print.string_of_shallow_symb_state heap store pure_formulae in 
+	Printf.printf "Final symbolic state: \n %s" str; 
+	unify_symb_heaps_top_level post_heap post_store post_p_formulae heap store pure_formulae 
 	

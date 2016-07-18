@@ -137,7 +137,6 @@ type jsil_logic_var = string
 type jsil_logic_expr =
 	| LLit				of jsil_lit
 	| LNone
-	| LListEmpty
 	| LVar				of jsil_logic_var
 	| LLVar				of jsil_logic_var
 	| PVar				of jsil_var
@@ -148,7 +147,8 @@ type jsil_logic_expr =
 	| LBase				of jsil_logic_expr
 	| LField			of jsil_logic_expr
 	| LTypeOf			of jsil_logic_expr
-	| LLCons      of jsil_logic_expr * jsil_logic_expr
+	| LLEList     of jsil_logic_expr list 
+	| LLLLNth     of jsil_logic_expr * jsil_logic_expr
 
 type jsil_logic_assertion =
 	| LAnd				of jsil_logic_assertion * jsil_logic_assertion
@@ -168,6 +168,17 @@ type jsil_return_flag =
 	| Normal
 	| Error
 
+(* Abstract Heaps and stores *)
+module LHeap = Hashtbl.Make(
+	struct
+		type t = string	
+		let equal = (=)
+		let hash = Hashtbl.hash
+	end)
+
+type symbolic_heap = (((jsil_logic_expr * jsil_logic_expr) list) * (jsil_logic_expr option))  LHeap.t 
+type symbolic_store = (string, jsil_logic_expr) Hashtbl.t
+
 type jsil_single_spec = {
 	  pre : jsil_logic_assertion; 
 		post : jsil_logic_assertion; 
@@ -181,8 +192,8 @@ type jsil_spec = {
 }
 
 type jsil_n_single_spec = {
-	  n_pre :  ((string, ((jsil_logic_expr * jsil_logic_expr) list)) Hashtbl.t) * ((string, jsil_logic_expr) Hashtbl.t) * (jsil_logic_assertion DynArray.t); 
-		n_post : ((string, ((jsil_logic_expr * jsil_logic_expr) list)) Hashtbl.t) * ((string, jsil_logic_expr) Hashtbl.t) * (jsil_logic_assertion DynArray.t); 
+	  n_pre :  symbolic_heap * symbolic_store * (jsil_logic_assertion DynArray.t); 
+		n_post : symbolic_heap * symbolic_store * (jsil_logic_assertion DynArray.t); 
 		n_ret_flag : jsil_return_flag 
 }
 
@@ -249,16 +260,7 @@ type procedure = {
 		let equal = (=)
 		let hash = Hashtbl.hash
 	end)
-	
-(** 
- * We use integers to represent both abstract and concrete locations
-*)
 
-type abstract_heap = {
-	aheap: (string, ((jsil_logic_expr * jsil_logic_expr) list)) Hashtbl.t; 
-	mutable count: int; 
-	parent: abstract_heap option  
-}
 
 (***** Alternative Procedure Syntax with Labels *****)
 

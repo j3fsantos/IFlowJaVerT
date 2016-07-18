@@ -90,7 +90,6 @@ let rec string_of_logic_expression e escape_string =
   match e with
     | LLit llit -> string_of_literal llit escape_string
 		| LNone -> "none"
-		| LListEmpty -> "[]"
     | LVar lvar -> lvar
 		| LLVar llvar -> llvar
 		| PVar pvar -> pvar
@@ -108,8 +107,6 @@ let rec string_of_logic_expression e escape_string =
     | LField e -> Printf.sprintf "field(%s)" (sle e)
 		(* typeof(e) *)
     | LTypeOf e -> Printf.sprintf "typeof(%s)" (sle e)
-		(* e1 :: e2*)
-		| LLCons (e1, e2) -> Printf.sprintf "%s :: %s" (sle e1) (sle e2)
 
 let string_of_list list =
 	match list with
@@ -189,8 +186,8 @@ let string_of_spec spec =
 
 
 let string_of_shallow_symb_heap heap = 
-	Hashtbl.fold
-		(fun loc fv_pairs ac -> 
+	LHeap.fold
+		(fun loc (fv_pairs, default_value) ac -> 
 			let str_fv_pairs = 
 				List.fold_left
 					(fun ac (field, value) ->
@@ -202,7 +199,16 @@ let string_of_shallow_symb_heap heap =
 							else ac ^ ", " ^ field_value_str)
 					""
 					fv_pairs in 
-			let symb_obj_str = loc ^ " |-> [" ^  str_fv_pairs ^ "]" in 
+			let default_value_str = 
+				(match default_value with 
+				| None -> ""
+				| Some lexpr ->
+					let lexpr_str = string_of_logic_expression lexpr false in 
+					"(default: " ^ lexpr_str ^ ")") in 
+			let symb_obj_str = 
+				(if (str_fv_pairs = "") 
+					then loc ^ " |-> [" ^  default_value_str ^ "]" 
+					else loc ^ " |-> [" ^  str_fv_pairs ^ ", " ^ default_value_str ^ "]") in 
 			if (ac = "") then symb_obj_str else ac ^ ", " ^ symb_obj_str)
 		heap
 		""
