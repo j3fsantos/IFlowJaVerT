@@ -591,26 +591,6 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store =
 			if (!verbose) then Printf.printf "hasField: %s := hf (%s, %s) = %s \n" x (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false) (SSyntax_Print.string_of_literal v false);
 			v
 		| _, _ -> raise (Failure "Illegal Field Check"))
-	
-	| SProtoField (x, e1, e2) -> 
-		let v_e1 = evaluate_expr e1 store in
-		let v_e2 = evaluate_expr e2 store in 	
-		(match v_e1, v_e2 with 
-		| Loc l, String f -> 
-			let v = proto_field heap l f in 
-			Hashtbl.replace store x v; 
-			v
-		| _, _ -> raise (Failure "Illegal Proto Field Inspection"))
-	
-	| SProtoObj (x, e1, e2) -> 
-		let v_e1 = evaluate_expr e1 store in
-		let v_e2 = evaluate_expr e2 store in 	
-		(match v_e1, v_e2 with 
-		| Loc l, String f -> 
-			let v = proto_obj heap l f in 
-			Hashtbl.replace store x v; 
-			v
-		| _, _ -> raise (Failure "Illegal Proto Obj Inspection"))
 
   | SArguments x ->
 		let arg_obj = (try SHeap.find heap larguments with
@@ -775,39 +755,44 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 				evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl))
 
 	| SApply (x, e_args, j) ->
-		(match e_args with
-		| [] -> raise (Failure "No no no. Not at all")
-		| e :: e_args -> 
-		let call_proc_name_val = evaluate_expr e store in 
-		let call_proc_name = (match call_proc_name_val with 
-		| String call_proc_name -> 
-				if (!verbose) then Printf.printf "\nExecuting procedure %s\n" call_proc_name; 
-				call_proc_name 
-		| _ -> raise (Failure (Printf.sprintf "Erm, no. Procedures can't be called %s." (SSyntax_Print.string_of_literal call_proc_name_val false)))) in 
-		let arg_vals = List.map 
-			(fun e_arg -> evaluate_expr e_arg store) 
-			e_args in 
-		(match arg_vals with
-		| [ LList arg_vals ] ->
-		let call_proc = try SProgram.find prog call_proc_name with
-		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist." call_proc_name)) in
-		let new_store = init_store call_proc.proc_params arg_vals in 
-		if (List.length arg_vals = 0) || (List.nth arg_vals 0 <> String "args") then
-		begin
-			let args_obj = SHeap.create 1 in 
-				SHeap.replace args_obj largvals (LList arg_vals);
-				SHeap.replace heap larguments args_obj;
-		end;
-		(match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 cc_tbl vis_tbl with 
-		| Normal, v -> 
-			Hashtbl.replace store x v;
-	 		evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
-		| Error, v -> 
-			(match j with
-			| None -> raise (Failure ("Procedure "^ call_proc_name ^" just returned an error, but no error label was provided. Bad programmer."))
-			| Some j -> Hashtbl.replace store x v;
-				evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl))
-		| _ -> raise (Failure "No no no. No apply like that.")))
+		let arguments = evaluate_expr (LEList e_args)	store in 
+		(match arguments with
+		| LList args ->
+		let rec flatten le = 
+			(match le with
+			| [] -> []
+			| e :: le -> 
+				List.append (match e with 
+			                | LList e -> e
+											| x -> [ x ]) (flatten le)) in 
+		let args = flatten args in
+		(match args with
+  		| [] -> raise (Failure "No no no. Not at all")
+  		| call_proc_name_val :: arg_vals -> 
+  		let call_proc_name = (match call_proc_name_val with 
+  		| String call_proc_name -> 
+  				if (!verbose) then Printf.printf "\nExecuting procedure %s\n" call_proc_name; 
+  				call_proc_name 
+  		| _ -> raise (Failure (Printf.sprintf "No. You can't call a procedure %s." (SSyntax_Print.string_of_literal call_proc_name_val false)))) in 
+  		let call_proc = try SProgram.find prog call_proc_name with
+  		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist." call_proc_name)) in
+  		let new_store = init_store call_proc.proc_params arg_vals in 
+  		if (List.length arg_vals = 0) || (List.nth arg_vals 0 <> String "args") then
+  		begin
+  			let args_obj = SHeap.create 1 in 
+  				SHeap.replace args_obj largvals (LList arg_vals);
+  				SHeap.replace heap larguments args_obj;
+  		end;
+  		(match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 cc_tbl vis_tbl with 
+  		| Normal, v -> 
+  			Hashtbl.replace store x v;
+  	 		evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
+  		| Error, v -> 
+  			(match j with
+  			| None -> raise (Failure ("Procedure "^ call_proc_name ^" just returned an error, but no error label was provided. Bad programmer."))
+  			| Some j -> Hashtbl.replace store x v;
+  				evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl)))
+	 | _ -> raise (Failure "Nope!"))
 and 
 evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl = 	
 	let cur_proc_name = proc.proc_name in 

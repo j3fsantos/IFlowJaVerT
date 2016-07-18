@@ -24,12 +24,11 @@ let get_proc_variables proc =
 				| SBasic (SLookup (var, _, _))
 				| SBasic (SNew var) 
 				| SBasic (SHasField (var, _, _))
-				| SBasic (SProtoField (var, _, _))
-				| SBasic (SProtoObj (var, _, _))
+				| SBasic (SGetFields (var, _))
+				| SBasic (SArguments var)
 				| SCall (var, _, _, _) when (not (Hashtbl.mem var_table var)) ->	
 						Hashtbl.add var_table var true;  
-						loop (u+1) (var :: vars)
-				| _ -> loop (u+1) vars) in 
+						loop (u+1) (var :: vars)) in 
 	
 	loop 0 [] 			
 
@@ -224,6 +223,7 @@ let prog_of_lprog lprog =
 	prog, global_which_pred
 
 
+
 let extend_which_pred global_which_pred proc = 
 	let succ_table, pred_table = SSyntax_Utils_Graphs.get_succ_pred proc.proc_body proc.ret_label proc.error_label in 
 	let which_pred = SSyntax_Utils_Graphs.compute_which_preds pred_table in  
@@ -233,6 +233,13 @@ let extend_which_pred global_which_pred proc =
 			Hashtbl.replace global_which_pred (proc_name, prev_cmd, cur_cmd) i)
 		which_pred	
 
-
-		
-	 
+	
+let print_which_pred wp = 
+	Hashtbl.fold
+	  (fun k v ac -> 
+		 let str = 
+		 (match k with
+			| (pn : string), (pc : int), (cc : int) ->
+				Printf.sprintf "    (\"%s\" %d %d %d)\n" pn pc cc v;
+			| _ -> raise (Failure "Oopsie. Incorrect which pred structure.")) in
+	   ac ^ str) wp ""

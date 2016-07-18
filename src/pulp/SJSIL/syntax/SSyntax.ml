@@ -217,8 +217,6 @@ type basic_jsil_cmd =
   | SMutation       of jsil_expr * jsil_expr * jsil_expr
 	| SDelete         of jsil_expr * jsil_expr
 	| SHasField       of jsil_var  * jsil_expr * jsil_expr
-	| SProtoField     of jsil_var  * jsil_expr * jsil_expr
-	| SProtoObj       of jsil_var  * jsil_expr * jsil_expr 
 	| SGetFields      of jsil_var  * jsil_expr
 	| SArguments      of jsil_var
 
@@ -251,7 +249,6 @@ type procedure = {
 		let equal = (=)
 		let hash = Hashtbl.hash
 	end)
-
 
 (* SJSIL Heaps *)
  module SHeap = Hashtbl.Make(

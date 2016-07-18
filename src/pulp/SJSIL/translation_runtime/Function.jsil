@@ -47,10 +47,8 @@ proc FP_call () {
 		
 	body:	body   := [vthis, "@call"]; 
 			xscope := [vthis, "@scope"]; 
-	
-			new_args := xscope :: xthis :: pars;
 			
-			xret := apply (body, new_args) with elab;
+			xret := apply (body, xscope, xthis, pars) with elab;
 			
 			goto [xret = $$empty] undef rlab;
 	
@@ -133,6 +131,90 @@ proc FP_toString (xsc, vthis) {
 	retfun:	xret := "function () {}";
 			
 	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
+};
+
+(* *** HASINSTANCE AFTER BIND *** *)
+
+proc FP_hasInstanceAfterBind (v1, v2) {
+
+			target := [v1, "@targetFunction"];
+			
+			hi := [target, "@hasInstance"];
+			goto [hi = $$empty] throw cont;
+			
+	cont:	xret := "i__hasInstance" (target, v2);
+
+	rlab:	skip;
+	
+	throw:	xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
+};
+
+(* *** BIND *** *)
+
+proc FP_bind (xsc, vthis, thisArg) {
+
+			arguments := args;
+
+			(* Is the this callable? *)
+			Target := vthis;
+			xret := "i__isCallable" (Target);
+			goto [xret] cont1 throw;
+			
+	cont1:	A := {{ }};
+			goto [(length arguments) < 4] cont2 setarg;
+	setarg:	A := cdr (cdr (cdr arguments));
+	
+	cont2:	xret := new ();
+			xret := "create_default_object" (xret, $lfun_proto, "Function", $$t);
+			F := xret;
+			
+			(* Set up properties *)
+			[F, "@get"] := "f__get";
+			[F, "@targetFunction"] := Target;
+			[F, "@boundThis"] := thisArg;
+			[F, "@boundArguments"] := A;
+			
+			(* Adapting for our call *)
+			field_call := [Target, "@call"];
+			[F, "@call"] := field_call;
+			
+			(* Adapting for our construct *)
+			field_constr := [Target, "@construct"];
+			[F, "@construct"] := field_constr;
+			
+			[F, "@hasInstance"] := "FP_hasInstance_after_bind";
+			
+			(* Step 15 onward *)
+			targetClass := [Target, "@class"];
+			goto [targetClass = "Function"] fun nofun;
+	
+	fun:	g := [Target, "@get"];
+			xret := g (Target, "length") with elab;
+			L := xret - (length A);
+			xret := "M_max" ($$empty, $$empty, L, 0);
+			[F, "length"] := {{ "d", xret, $$f, $$f, $$f }};
+			goto tterr;
+
+	nofun:	[F, "length"] := {{ "d", 0, $$f, $$f, $$f }};
+	
+	tterr:	[F, "caller"]    := {{ "a", $lthrow_type_error, $lthrow_type_error, $$f, $$f }};
+			[F, "arguments"] := {{ "a", $lthrow_type_error, $lthrow_type_error, $$f, $$f }};
+	
+	rlab:	xret := F;
 	
 	throw:	xret := "TypeError" ();
 	elab:	skip
