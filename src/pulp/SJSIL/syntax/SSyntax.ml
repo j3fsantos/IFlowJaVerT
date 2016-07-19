@@ -127,6 +127,10 @@ type jsil_expr =
   | Base of jsil_expr
   | Field of jsil_expr
   | TypeOf of jsil_expr
+	| RAssume of jsil_expr 
+	| RAssert of jsil_expr 
+	| RNumSymb 
+	| RStrSymb 
 	(* LISTS (FOR DESCRIPTORS) *)
 	| LEList of jsil_expr list
 	| LLNth of jsil_expr * jsil_expr
@@ -222,7 +226,7 @@ type basic_jsil_cmd =
 
 (* SJSIL All Statements *)
 type jsil_cmd =
-  | SBasic          of basic_jsil_cmd 
+  | SBasic          of basic_jsil_cmd  
 	| SGoto           of int
 	| SGuardedGoto    of jsil_expr * int        * int
 	| SCall           of jsil_var  * jsil_expr  * jsil_expr list * int option

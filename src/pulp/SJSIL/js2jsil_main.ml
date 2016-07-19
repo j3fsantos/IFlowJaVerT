@@ -8,6 +8,7 @@ let file = ref ""
 let harnessing = ref false
 let line_numbers = ref false 
 let sep_procs = ref false 
+let sexpr = ref false
 
 let arguments () =
   let usage_msg="Usage: -file <path>" in
@@ -20,7 +21,7 @@ let arguments () =
 			(* show line numbers *) 
 			"-line_numbers", Arg.Unit(fun () -> line_numbers := true), "show line numbers";
 			(* one procedure per file *) 
-			"-sep_procs", Arg.Unit(fun () -> sep_procs := true), "one procedure per file";
+			"-sep_procs", Arg.Unit(fun () -> sep_procs := true), "one procedure per file"
     ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg

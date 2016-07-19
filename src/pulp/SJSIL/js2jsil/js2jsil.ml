@@ -1451,8 +1451,46 @@ let rec translate_expr offset_converter fid cc_table vis_fid err e : ((SSyntax.j
 		]) in 
 		let errs = errs_ef @ [ x_f_val ] @ errs_args @ [ var_te; var_te; x_bf_prototype; x_bconstruct; x_f_prototype; x_r1 ] in 
 		cmds, Var x_final, errs				
-		 
-		
+	
+	| Parser_syntax.Call (e_f, xes) 
+		when (e_f.Parser_syntax.exp_stx = (Parser_syntax.Var "jsil_assert")) ->
+			(match xes with 
+			| [ e_arg ] -> 
+				let cmds_arg, x_arg, errs_arg = f e_arg in
+				let x_ret = fresh_var () in 
+				let cmd = (None, (SLBasic (SAssignment (x_ret, RAssert x_arg)))) in
+        (cmds_arg @ (annotate_cmds [ cmd ])), Var x_ret, errs_arg
+			| _ -> raise (Failure "jsil_assert should have a single argument"))
+	
+	| Parser_syntax.Call (e_f, xes) 
+		when (e_f.Parser_syntax.exp_stx = (Parser_syntax.Var "jsil_assume")) ->
+			(match xes with 
+			| [ e_arg ] -> 
+				let cmds_arg, x_arg, errs_arg = f e_arg in
+				let x_ret = fresh_var () in 
+				let cmd = (None, (SLBasic (SAssignment (x_ret, RAssume x_arg)))) in 
+				(cmds_arg @ (annotate_cmds [ cmd ])), Var x_ret, errs_arg
+			| _ -> raise (Failure "jsil_assume should have a single argument"))
+	
+	| Parser_syntax.Call (e_f, xes) 
+		when (e_f.Parser_syntax.exp_stx = (Parser_syntax.Var "jsil_make_symbolic_number")) ->
+			(match xes with 
+			| [ ] -> 
+				let x_ret = fresh_var () in 
+				let cmd = (None, (SLBasic (SAssignment (x_ret, RNumSymb)))) in
+				(annotate_cmds [ cmd ]), Var x_ret, [ ] 
+			| _ -> raise (Failure "jsil_make_symbolic_number expects no arguments"))
+	
+	| Parser_syntax.Call (e_f, xes) 
+		when (e_f.Parser_syntax.exp_stx = (Parser_syntax.Var "jsil_make_symbolic_string")) ->
+			(match xes with 
+			| [ ] -> 
+				let x_ret = fresh_var () in 
+				let cmd = (None, (SLBasic (SAssignment (x_ret, RStrSymb)))) in 
+				(annotate_cmds [ cmd ]), Var x_ret, [ ]
+			| _ -> raise (Failure "jsil_make_symbolic_string expects no arguments"))
+				
+	
 	| Parser_syntax.Call (e_f, xes) -> 
 		(**
 			Section 11.2.3 - Function call 

@@ -213,6 +213,16 @@ let rec sexpr_of_literal lit =
 			in Printf.sprintf "(jsil-list %s )" (loop ll))
 		| Constant c -> string_of_constant c 
 
+let fresh_sth (name : string) : (unit -> string) =
+  let counter = ref 0 in
+  let rec f () =
+    let v = name ^ (string_of_int !counter) in
+    counter := !counter + 1;
+    v
+  in f
+  
+let fresh_symbol : (unit -> string) = fresh_sth "symb_"
+
 let rec sexpr_of_expression e =
   let se = sexpr_of_expression in
   match e with
@@ -232,11 +242,11 @@ let rec sexpr_of_expression e =
     | Base e -> Printf.sprintf "(base %s)" (se e)
 		(* (field e) *)
     | Field e -> Printf.sprintf "(field %s)" (se e)
-		(* ('nth e n) *)
+		(* (nth e n) *)
 		| LLNth (e1, e2) -> Printf.sprintf "(nth %s %s)" (se e1) (se e2)
 		| LEList ll -> 
-			match ll with
-			| [] -> ""
+			(match ll with
+			| [] -> "(jsil-list )"
 			| ll ->
 			let rec loop ll = 
 				(match ll with
@@ -249,7 +259,19 @@ let rec sexpr_of_expression e =
 						| _ -> " ") in
 					let scdr = loop ll in
 					Printf.sprintf ("%s%s%s") scar ssep scdr)
-			in Printf.sprintf "(jsil-list %s)" (loop ll)
+			in Printf.sprintf "(jsil-list %s)" (loop ll))
+		(* (assume e) *) 
+		| RAssume e -> Printf.sprintf "(assume %s)" (se e)
+		(* (assert e) *)
+		| RAssert e -> Printf.sprintf "(assert %s)" (se e)
+		(* (make-symbol-number) *) 
+		| RNumSymb -> 
+			let x = fresh_symbol () in 
+			Printf.sprintf "(make-symbol-number %s)" x 
+		(* (make-symbol-string) *) 
+		| RStrSymb -> 
+			let x = fresh_symbol () in 
+			Printf.sprintf "(make-symbol-string %s)" x
 
 
 let rec string_of_expression e escape_string =
@@ -275,7 +297,7 @@ let rec string_of_expression e escape_string =
 		| LLNth (e1, e2) -> Printf.sprintf "nth(%s, %s)" (se e1) (se e2)
 		(* *)
 		| LEList ll -> 
-			match ll with
+			(match ll with
 			| [] -> "$$nil"
 			| ll ->
 			let rec loop ll = 
@@ -289,7 +311,15 @@ let rec string_of_expression e escape_string =
 						| _ -> ", ") in
 					let scdr = loop ll in
 					Printf.sprintf ("%s%s%s") scar ssep scdr)
-			in Printf.sprintf "{{ %s }}" (loop ll)
+			in Printf.sprintf "{{ %s }}" (loop ll))
+		(* (assume e) *) 
+		| RAssume e -> Printf.sprintf "assume(%s)" (se e)
+		(* (assert e) *)
+		| RAssert e -> Printf.sprintf "assert(%s)" (se e)
+		(* (make-symbol-number) *) 
+		| RNumSymb -> "make-symbol-number()" 
+		(* (make-symbol-string) *) 
+		| RStrSymb -> "make-symbol-string()"
 
 let rec sexpr_of_bcmd bcmd i line_numbers_on = 
 	let se = sexpr_of_expression in
@@ -361,7 +391,7 @@ let rec sexpr_of_cmd sjsil_cmd tabs i line_numbers_on =
 		|	[] -> ""
 		| _ -> String.concat " " (List.map sexpr_of_expression arg_expr_list) in 
 			str_tabs ^  Printf.sprintf "'(%scall %s %s (%s) %s)" str_i var proc_name_expr_str arg_expr_list_str error_lab
-	(* ('var-phi-assign var var_1 var_2 ... var_n) *)
+	(* ('v-phi-assign var var_1 var_2 ... var_n) *)
 	| SPhiAssignment (var, var_arr) -> 
 		let var_arr_str = 
 			Array.fold_left 
@@ -373,7 +403,7 @@ let rec sexpr_of_cmd sjsil_cmd tabs i line_numbers_on =
 				""
 				var_arr in 
 		Printf.sprintf "'(%sv-phi-assign %s %s)" str_i var var_arr_str	
-	(* ('var-psi-assign var var_1 var_2 ... var_n) *)
+	(* ('v-psi-assign var var_1 var_2 ... var_n) *)
 	| SPsiAssignment(var, var_arr) -> 
 		let var_arr_str = 
 			Array.fold_left 

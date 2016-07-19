@@ -28,18 +28,6 @@
       ;; ('skip)
       [(eq? cmd-type 'skip) empty]
       ;;
-      ;; ('assert e)
-      [(eq? cmd-type 'assert)
-       (let* ((expr (second bcmd))
-              (expr-val (run-expr expr store)))
-         (jsil-assert expr-val))]
-      ;;
-      ;; ('assume e)
-      [(eq? cmd-type 'assume)
-       (let* ((expr (second bcmd))
-              (expr-val (run-expr expr store)))
-         (jsil-assume expr-val))]
-      ;;
       ;; ('discharge)
       [(eq? cmd-type 'discharge) (jsil-discharge)]
       ;;
@@ -111,6 +99,8 @@
       [(eq? cmd-type 'arguments)
        (let* ((lhs-var (second bcmd))
               (result (heap-get heap larguments parguments)))
+         ;;(displayln "you called arguments")
+         ;;(displayln result) 
          (mutate-store store lhs-var result)
          result)] 
       ;;
@@ -142,10 +132,25 @@
 			  (iter (cdr l)))))))
     (iter (union-guards x))))
 
+
+(define (find-prev-phi-cmd proc cur-index)
+  (cond
+    ((< cur-index 0) (error "Misplaced PSI node - every PSI node must have a PHI predecessor"))
+    ((eq? (first (get-cmd proc cur-index)) 'v-phi-assign) cur-index)
+    ((eq? (first (get-cmd proc cur-index)) 'v-psi-assign)
+     (find-prev-phi-cmd proc (- cur-index 1)))
+    (#t (error "A Psi node must have always have a PHI node between itself and the other commands"))))
+
+(define (compute-next-prev proc cur-index prev-index)
+  (cond
+    ((eq? (first (get-cmd proc (+ cur-index 1))) 'v-psi-assign) prev-index)
+    (#t cur-index)))
+
 (define (run-cmds-iter prog proc-name heap store cur-index prev-index)
   (let* ((proc (get-proc prog proc-name))
          (cmd (get-cmd proc cur-index))
          (cmd-type (first cmd)))
+    ;;(displayln cmd)
     ;;(println (format "Running the command ~a" cmd))
     (cond
       ;;
@@ -190,11 +195,22 @@
                 (var-index (hash-ref wp (list proc-name prev-index cur-index)))
                 (target-var (list-ref var-list var-index))
                 (val (run-expr target-var store))
-               )
+                (next-prev (compute-next-prev proc cur-index prev-index)))
           (mutate-store store lhs-var val)
-          (run-cmds-iter prog proc-name heap store (+ cur-index 1) cur-index)
-         )]
+          (run-cmds-iter prog proc-name heap store (+ cur-index 1) next-prev))]
       ;;
+      ;;  ('v-psi-assign var var_1 var_2 ... var_n)
+         [(eq? cmd-type 'v-psi-assign)
+          (let* ((lhs-var (second cmd))
+                 (var-list (cddr cmd))
+                 (ac-cur-index (find-prev-phi-cmd proc (- cur-index 1)))
+                 (var-index (hash-ref wp (list proc-name prev-index ac-cur-index)))
+                 (target-var (list-ref var-list var-index))
+                 (val (run-expr target-var store))
+                 (next-prev (compute-next-prev proc cur-index prev-index)))
+            (mutate-store store lhs-var val)
+            (run-cmds-iter prog proc-name heap store (+ cur-index 1) next-prev))]
+                              
       ;; ('call lhs-var e (e1 ... en) i)
       [(eq? cmd-type 'call)
        (let* ((lhs-var (second cmd))
@@ -207,15 +223,19 @@
          ;;   (format "Going to call procedure ~a with arguments ~a\n" call-proc-name arg-vals)) 
          (let ((outcome (car (run-proc prog call-proc-name heap arg-vals))))
            ;;(display
-           ;; (format "Finished running procedure ~a with arguments ~a and obtained the outcome ~a\n"
-           ;;         call-proc-name arg-vals outcome)) 
+            ;;(format "Finished running procedure ~a with arguments ~a and obtained the outcome ~a\n"
+                  ;;  call-proc-name arg-vals outcome)) 
            (cond
-             [(eq? (first outcome) 'err)
+             [(and (eq? (first outcome) 'err) (not (eq? err-label -1)))
               (mutate-store store lhs-var (second outcome))
-              (run-cmds-iter prog proc-name heap store err-label)]
+              (run-cmds-iter prog proc-name heap store err-label cur-index)]
+
+             [ (eq? (first outcome) 'err) (error "Procedures that throw errors must be called with error labels")]
+             
              [(eq? (first outcome) 'normal)
               (mutate-store store lhs-var (second outcome))
-              (run-cmds-iter prog proc-name heap store (+ cur-index 1))]
+              (run-cmds-iter prog proc-name heap store (+ cur-index 1) cur-index)]
+             
              [else
               (display outcome)
               (error "Illegal Procedure Outcome")])))]
@@ -300,13 +320,25 @@
                (vidx  (run-expr eidx store)))
           (list-ref vlist (inexact->exact (+ vidx 1))))]
        ;;
-       ;; is the third argument a var? or is it the name of the symbol? 
-       ;; (make-symbol symbol-type var)
-       [(eq? (first expr) 'make-symbol)
-        (cond
-          ((eq? (second expr) 'number) (make-number-symbol (third expr)))
-          ((eq? (second expr) 'string) (make-string-symbol (third expr)))
-          (#t (error "Invalid type provided to make-symbol")))]
+       ;; (make-symbol-number symb-name)
+       [(eq? (first expr) 'make-symbol-number)
+        (make-number-symbol (second expr))]
+       ;;
+       ;; (make-symbol-string symb-name)
+       [(eq? (first expr) 'make-symbol-string)
+        (make-string-symbol (second expr))]
+      ;;
+      ;; ('assert e)
+      [(eq? (first expr) 'assert)
+       (let* ((expr-arg (second expr))
+              (expr-val (run-expr expr-arg store)))
+         (jsil-assert expr-val))]
+      ;;
+      ;; ('assume e)
+      [(eq? (first expr) 'assume)
+       (let* ((expr-arg (second expr))
+              (expr-val (run-expr expr-arg store)))
+         (jsil-assume expr-val))]
        ;;
        ;; (binop e e)
        [(= (length expr) 3) 
@@ -319,12 +351,16 @@
        [(= (length expr) 2) 
         (let* ((unop (to-interp-op (first expr)))
                (arg (run-expr (second expr) store)))
-          (apply-unop unop arg))])]))
+          (apply-unop unop arg))]
+     
+
+       )]))
 
 (define (run-proc prog proc-name heap arg-vals)
   (let* ((proc (get-proc prog proc-name))
          (store (proc-init-store proc arg-vals)))
     (jsil-discharge)
+    (mutate-heap heap larguments parguments (make-jsil-list arg-vals))
     ;;(println (format "About to run procedure ~a with arguments ~a" proc-name arg-vals))
     (let ((res (run-cmds-iter prog proc-name heap store 0 0)))
       ;;(println (format "About to return from procedure ~a with return value ~a" proc-name res))

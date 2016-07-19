@@ -220,6 +220,11 @@
   )
 )
 
+(define (jsil-number-to-string n)
+  (cond
+    ((integer? n) (int-to-str n))
+    (#t (number->string n))))
+
 (define operators-table
   (let* ((table-aux (make-hash))
          (add (lambda (jsil-op interp-op) (hash-set! table-aux jsil-op interp-op))))
@@ -247,7 +252,7 @@
     (add 'bor (lambda (x y) (bitwise-ior (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
     (add '>>> unsigned_right_shift)
     (add 'not not)
-    (add 'num_to_string number->string)
+    (add 'num_to_string jsil-number-to-string)
     (add 'string_to_num jsil_string_to_number)
     (add '! (lambda (x) (bitwise-not (inexact->exact x))))
     (add 'is_primitive (lambda (x) (or (number? x) (string? x) (boolean? x) (eq? x jnull) (eq? x jundefined))))
@@ -421,7 +426,10 @@
   )
 )
 
-(provide make-heap mutate-heap heap-get heap-delete-cell heap-contains? heap cell get-new-loc)
+(define (make-jsil-list l)
+  (cons 'jsil-list l))
+
+(provide make-heap mutate-heap heap-get heap-delete-cell heap-contains? heap cell get-new-loc make-jsil-list)
 
 ;; stores - my stuff
 ;;(define (make-store)

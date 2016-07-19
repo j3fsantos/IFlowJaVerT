@@ -195,6 +195,10 @@ rule read = parse
 	| "field"              { SJSIL_Parser.FIELD }
 	| "typeOf"             { SJSIL_Parser.TYPEOF }
 	| "nth"                { SJSIL_Parser.LNTH }
+  |	"assume"             { SJSIL_Parser.ASSUME }
+	| "assert"             { SJSIL_Parser.ASSERT }
+	| "make-symbol-number" { SJSIL_Parser.RNUMSYM }
+	| "make-symbol-string" { SJSIL_Parser.RSTRSYM }
 (* binary operators *)
 	| "="                  { SJSIL_Parser.EQUAL }
 	| "<"                  { SJSIL_Parser.LESSTHAN }

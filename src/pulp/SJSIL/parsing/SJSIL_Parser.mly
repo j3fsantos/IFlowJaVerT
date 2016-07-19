@@ -68,6 +68,10 @@ open SSyntax
 %token BASE
 %token FIELD
 %token TYPEOF
+%token ASSUME
+%token ASSERT
+%token RNUMSYM
+%token RSTRSYM
 (* binary operators *)
 %token EQUAL
 %token LESSTHAN
@@ -414,6 +418,18 @@ expr_target:
 (* (e) *)
   | LBRACE; e=expr_target; RBRACE
 		{ e }
+(* asssume (e) *)
+  | ASSUME; LBRACE; e=expr_target; RBRACE
+	  { SSyntax.RAssume (e) }	
+(* assert (e) *)
+  | ASSERT; LBRACE;  e=expr_target; RBRACE
+	  { SSyntax.RAssert (e) }
+(* make_symbol_number() *)
+  | RNUMSYM; LBRACE;  RBRACE
+	  { SSyntax.RNumSymb }		
+(* make_symbol_string() *)
+  | RSTRSYM; LBRACE; RBRACE
+	  { SSyntax.RStrSymb }		
 ;
 
 (********* LOGIC *********)
@@ -541,7 +557,8 @@ lexpr_target:
 		{ LTypeOf (e) }
 (* (e) *)
   | LBRACE; e=lexpr_target; RBRACE
-	  { e }
+	  { e }	
+;		
 		
 (********* COMMON *********)
 

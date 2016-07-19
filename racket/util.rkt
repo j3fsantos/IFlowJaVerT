@@ -26,7 +26,8 @@
   (set! logic-state (and logic-state expr)))
 
 (define (jsil-assert expr)
-  (solve (assert (and logic-state expr))))
+  (solve (assert (and logic-state expr)))
+  #t)
 
 (define (jsil-assume expr)
   (update-logic-state expr))
