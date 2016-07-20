@@ -736,7 +736,8 @@ with
 
 proc i__putValue (v, w) {
 
-			goto [(typeOf(v) = $$v-reference_type) or (typeOf(v) = $$o-reference_type)] init throw;
+			xret := typeOf(v);
+			goto [(xret = $$v-reference_type) or (xret = $$o-reference_type)] init throw;
 	
 	init:	rbase := base (v);
 			rfield := field (v);

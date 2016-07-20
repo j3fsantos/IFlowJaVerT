@@ -228,6 +228,7 @@
 (define operators-table
   (let* ((table-aux (make-hash))
          (add (lambda (jsil-op interp-op) (hash-set! table-aux jsil-op interp-op))))
+    ;; What does this mean for symbolic values?
     (add '= eq?)
     (add '< <)
     (add '<= <=)
@@ -246,7 +247,10 @@
     (add '^ (lambda (x y) (bitwise-xor (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
     (add '<< (lambda (x y) (shl (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
     (add '>> (lambda (x y) (shr (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
-    (add ':: (lambda (x y) (append (list 'jsil-list x) (cdr y))))
+    (add ':: (lambda (x y)
+               (if (eq? x '(jsil-list))
+                y
+                (append (list 'jsil-list x) (cdr y)))))
     (add '** expt)
     (add 'm_atan2 (lambda (x y) (atan y x)))
     (add 'bor (lambda (x y) (bitwise-ior (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
@@ -426,10 +430,17 @@
   )
 )
 
+(define (is-a-list? l)
+  (and
+   (list? l)
+   (eq? (first l) 'jsil-list)
+  )
+)
+
 (define (make-jsil-list l)
   (cons 'jsil-list l))
 
-(provide make-heap mutate-heap heap-get heap-delete-cell heap-contains? heap cell get-new-loc make-jsil-list)
+(provide is-a-list? make-heap mutate-heap heap-get heap-delete-cell heap-contains? heap cell get-new-loc make-jsil-list)
 
 ;; stores - my stuff
 ;;(define (make-store)

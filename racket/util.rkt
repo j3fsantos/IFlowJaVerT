@@ -28,7 +28,7 @@
 (define (jsil-assert expr)
   (displayln "")
   (displayln "")
-  (displayln "Asserting this shit:")
+  (displayln "Asserting this:")
   (displayln expr)
   (displayln "Printing logic state!")
   (displayln logic-state)
