@@ -151,7 +151,7 @@
          (cmd (get-cmd proc cur-index))
          (cmd-type (first cmd)))
     ;; (displayln cmd)
-    ;; (println (format "Running the command ~a" cmd))
+    (println (format "Running the command ~a" cmd))
     (cond
       ;;
       ;; ('print e) 
