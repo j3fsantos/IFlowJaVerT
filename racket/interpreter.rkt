@@ -150,8 +150,8 @@
   (let* ((proc (get-proc prog proc-name))
          (cmd (get-cmd proc cur-index))
          (cmd-type (first cmd)))
-    ;;(displayln cmd)
-    ;;(println (format "Running the command ~a" cmd))
+    ;; (displayln cmd)
+    ;; (println (format "Running the command ~a" cmd))
     (cond
       ;;
       ;; ('print e) 
@@ -359,7 +359,6 @@
 (define (run-proc prog proc-name heap arg-vals)
   (let* ((proc (get-proc prog proc-name))
          (store (proc-init-store proc arg-vals)))
-    (jsil-discharge)
     (mutate-heap heap larguments parguments (make-jsil-list arg-vals))
     ;;(println (format "About to run procedure ~a with arguments ~a" proc-name arg-vals))
     (let ((res (run-cmds-iter prog proc-name heap store 0 0)))
@@ -367,6 +366,7 @@
       (cons res store))))
 
 (define (run-program prog heap)
+  (jsil-discharge)
   (run-proc prog "main" heap '()))
   
 (provide run-program run-proc program procedure heap cell store args body ret-ctx err-ctx jempty jnull jundefined protop) ;; jtrue jfalse protop)

@@ -75,7 +75,7 @@ let fresh_sth (name : string) : (unit -> string) =
     counter := !counter + 1;
     v
   in f
-  
+
 let fresh_var : (unit -> string) = fresh_sth "x_"
 
 let fresh_scope_chain_var : (unit -> string) = fresh_sth "x_sc_"
