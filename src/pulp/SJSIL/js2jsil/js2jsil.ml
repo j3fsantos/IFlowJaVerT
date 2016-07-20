@@ -760,9 +760,10 @@ let make_loop_end cur_val_var prev_val_var break_vars end_lab cur_first =
 	cmds, x_ret_5 
 			
 	
-let rec translate_expr offset_converter fid cc_table vis_fid err e : ((SSyntax.jsil_metadata * (string option) * SSyntax.jsil_lab_cmd) list) * SSyntax.jsil_expr * (string list) =
+let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : ((SSyntax.jsil_metadata * (string option) * SSyntax.jsil_lab_cmd) list) * SSyntax.jsil_expr * (string list) =
 	
-	let f = translate_expr offset_converter fid cc_table vis_fid err in 
+	let f = translate_expr offset_converter fid cc_table vis_fid err false in
+	let f_rosette = translate_expr offset_converter fid cc_table vis_fid err true in
 		
 	let cur_var_tbl = 
 		(try Hashtbl.find cc_table fid 
@@ -834,7 +835,35 @@ let rec translate_expr offset_converter fid cc_table vis_fid err e : ((SSyntax.j
 		]) in  
 		x_ref, cmds, [ x_cae ] in 
 		
+	let translate_bin_logical_operator_rosette e1 e2 lbop err =
+		let cmds1, x1, errs1 = f_rosette e1 in
+		let cmds2, x2, errs2 = f_rosette e2 in
+				
+		(* x1_v := i__getValue (x1) with err *)
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in 
 		
+		(* x2_v := i__getValue (x2) with err *) 
+		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+		
+		(* x_r := x1_b binop x2_b *)
+		let x_r = fresh_var () in  
+		let jsil_bop = 
+			(match lbop with 
+			| Parser_syntax.And -> SSyntax.And 
+			| Parser_syntax.Or -> SSyntax.Or) in 
+		let cmd_ass_xr = SLBasic (SAssignment (x_r, SSyntax.BinOp (Var x1_v, jsil_bop, Var x2_v))) in 
+		
+		let cmds = cmds1 @ (annotate_cmds [   (*         cmds1                                              *)
+			(None,         cmd_gv_x1);          (*         x1_v := i__getValue (x1) with err                  *)
+		]) @ cmds2 @ (annotate_cmds [         (*         cmds2                                              *)
+			(None,         cmd_gv_x2);          (*         x2_v := i__getValue (x2) with err                  *)   
+			(None,         cmd_ass_xr)          (*         x_r := x1_b binop x2_b                             *)
+		]) in
+		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] in 
+		cmds, Var x_r, errs	in
+	
+	
+	
 	let translate_bin_logical_operator e1 e2 lbop err =
 		let cmds1, x1, errs1 = f e1 in
 		let cmds2, x2, errs2 = f e2 in
@@ -1466,7 +1495,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err e : ((SSyntax.j
 		when (e_f.Parser_syntax.exp_stx = (Parser_syntax.Var "jsil_assume")) ->
 			(match xes with 
 			| [ e_arg ] -> 
-				let cmds_arg, x_arg, errs_arg = f e_arg in
+				let cmds_arg, x_arg, errs_arg = f_rosette e_arg in
 				let x_ret = fresh_var () in 
 				let cmd = (None, (SLBasic (SAssignment (x_ret, RAssume x_arg)))) in 
 				(cmds_arg @ (annotate_cmds [ cmd ])), Var x_ret, errs_arg
@@ -2502,7 +2531,9 @@ let rec translate_expr offset_converter fid cc_table vis_fid err e : ((SSyntax.j
 																       x2_v := i__getValue (x2) with err3
 																 end:  x_r := PHI(x1_v, x2_v)
      *)
- 		translate_bin_logical_operator e1 e2 lbop err
+		if (is_rosette) 
+			then translate_bin_logical_operator_rosette e1 e2 lbop err
+ 			else translate_bin_logical_operator e1 e2 lbop err
 		
 	| Parser_syntax.ConditionalOp (e1, e2, e3) ->
 		(**
@@ -2764,7 +2795,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err e : ((SSyntax.j
 	
 
 and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list : (string option * string * string option * bool) list) previous js_lab e  = 
-	let fe = translate_expr offset_converter fid cc_table vis_fid err in
+	let fe = translate_expr offset_converter fid cc_table vis_fid err false in
 	
 	let f = translate_statement offset_converter fid cc_table ctx vis_fid err loop_list previous js_lab in
 	
@@ -2795,7 +2826,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			match v_fid with 
 			| None -> raise (Failure (Printf.sprintf "Error: The variable %s that is declared is not in the scope clarification table!" x))
 			| Some v_fid -> v_fid in 
-		let cmds_e, x_e, errs_e = translate_expr offset_converter fid cc_table vis_fid err e in
+		let cmds_e, x_e, errs_e = translate_expr offset_converter fid cc_table vis_fid err false e in
 		(* x_v := i__getValue (x) with err *)
 		let x_v, cmd_gv_x = make_get_value_call x_e err in
 		(* x_sf := [x__scope, v_fid]  *) 
