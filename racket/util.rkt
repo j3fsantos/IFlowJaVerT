@@ -26,12 +26,25 @@
   (set! logic-state (and logic-state expr)))
 
 (define (jsil-assert expr)
-  (solve (assert (and logic-state expr)))
-  #t)
+  (displayln "")
+  (displayln "")
+  (displayln "Asserting this shit:")
+  (displayln expr)
+  (displayln "Printing logic state!")
+  (displayln logic-state)
+  (displayln "End of logic state!")
+  (let (
+        (mdl (solve (assert (and logic-state expr))))
+       )
+       (displayln "Model:")
+       (displayln mdl)
+       (displayln "")
+  #t))
 
 (define (jsil-assume expr)
-  (update-logic-state expr))
+  (update-logic-state expr)
+  #t)
 
-(define jsil-discharge reset-logic-state)
+(define jsil-discharge (lambda () #t))
 
 (provide jsil-assume jsil-assert jsil-discharge)
