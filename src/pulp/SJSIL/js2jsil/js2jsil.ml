@@ -857,7 +857,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 			(None,         cmd_gv_x1);          (*         x1_v := i__getValue (x1) with err                  *)
 		]) @ cmds2 @ (annotate_cmds [         (*         cmds2                                              *)
 			(None,         cmd_gv_x2);          (*         x2_v := i__getValue (x2) with err                  *)   
-			(None,         cmd_ass_xr)          (*         x_r := x1_b binop x2_b                             *)
+			(None,         cmd_ass_xr)          (*         x_r := x1_v binop x2_v                             *)
 		]) in
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] in 
 		cmds, Var x_r, errs	in

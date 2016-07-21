@@ -562,11 +562,11 @@ let sexpr_of_procedure proc line_numbers =
    	(sexpr_of_params proc.proc_params) 
 		(sexpr_of_cmd_arr proc.proc_body 2 line_numbers)
 		(match proc.ret_var, proc.ret_label with
-		| None, None -> "" 
+		| None, None -> "\t'() \n" 
 		| Some var, Some label -> (Printf.sprintf "\t(ret-ctx '%s %s) \n" var (string_of_int label))
 		| _, _ -> raise (Failure "Return variable and return label not both present or both absent!"))
 		(match proc.error_var, proc.error_label with
-		| None, None -> "" 
+		| None, None -> "\t'() \n" 
 		| Some var, Some label -> (Printf.sprintf "\t(err-ctx '%s %s) \n" var (string_of_int label))
 		| _, _ -> raise (Failure "Error variable and error label not both present or both absent!"))
 

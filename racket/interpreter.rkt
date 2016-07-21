@@ -224,7 +224,7 @@
        (let* ((lhs-var (second cmd))
               (proc-name-expr (third cmd))
               (arg-exprs (fourth cmd))
-              (err-label (if (>= (length cmd) 5) (fifth cmd) -1))
+              (err-label (if (>= (length cmd) 5) (fifth cmd) null))
               (call-proc-name (run-expr proc-name-expr store))
               (arg-vals (map (lambda (expr) (run-expr expr store)) arg-exprs)))
          (println (format "Procedure call: ~a (~a)" call-proc-name arg-vals))
@@ -234,7 +234,7 @@
                   ;;  call-proc-name arg-vals outcome)) 
            (println (format "Procedure call: ~a = ~a (~a) returned ~a" lhs-var call-proc-name arg-vals outcome)) 
            (cond
-             [(and (eq? (first outcome) 'err) (not (eq? err-label -1)))
+             [(and (eq? (first outcome) 'err) (not (null? err-label)))
               (mutate-store store lhs-var (second outcome))
               (run-cmds-iter prog proc-name heap store err-label cur-index)]
 
