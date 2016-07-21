@@ -402,7 +402,7 @@ let rec sexpr_of_cmd sjsil_cmd tabs i line_numbers_on =
 				)
 				""
 				var_arr in 
-		Printf.sprintf "'(%sv-phi-assign %s %s)" str_i var var_arr_str	
+		str_tabs ^ (Printf.sprintf "'(%sv-phi-assign %s %s)" str_i var var_arr_str)
 	(* ('v-psi-assign var var_1 var_2 ... var_n) *)
 	| SPsiAssignment(var, var_arr) -> 
 		let var_arr_str = 
@@ -414,7 +414,7 @@ let rec sexpr_of_cmd sjsil_cmd tabs i line_numbers_on =
 				)
 				""
 				var_arr in 
-		Printf.sprintf "'(%sv-psi-assign %s %s)" str_i var var_arr_str	
+		str_tabs ^ (Printf.sprintf "'(%sv-psi-assign %s %s)" str_i var var_arr_str)	
 	(* ('apply left_var expr_list err_lab) *)
 	| SApply (var, arg_expr_list, error_lab) ->
 		let error_lab = (match error_lab with | None -> "" | Some error_lab -> (string_of_int error_lab)) in 
