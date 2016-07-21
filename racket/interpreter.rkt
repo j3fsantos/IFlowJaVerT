@@ -151,6 +151,7 @@
 
 (define (compute-next-prev proc cur-index prev-index)
   (cond
+    ((>= (+ cur-index 1) (get-number-of-cmds proc)) '())
     ((eq? (first (get-cmd proc (+ cur-index 1))) 'v-psi-assign) prev-index)
     (#t cur-index)))
 
@@ -158,7 +159,7 @@
   (let* ((proc (get-proc prog proc-name))
          (cmd (get-cmd proc cur-index))
          (cmd-type (first cmd)))
-    ;; (displayln cmd)
+     (displayln cmd)
     ;; (println (format "Run-cmds-iter: Running the command ~a" cmd))
     (cond
       ;;
@@ -205,7 +206,7 @@
                 (val (run-expr target-var store))
                 (next-prev (compute-next-prev proc cur-index prev-index)))
           (mutate-store store lhs-var val)
-          (run-cmds-iter prog proc-name heap store (+ cur-index 1) next-prev))]
+          (run-cmds-iter-next prog proc-name heap store cur-index next-prev))]
       ;;
       ;;  ('v-psi-assign var var_1 var_2 ... var_n)
          [(eq? cmd-type 'v-psi-assign)
@@ -217,7 +218,7 @@
                  (val (run-expr target-var store))
                  (next-prev (compute-next-prev proc cur-index prev-index)))
             (mutate-store store lhs-var val)
-            (run-cmds-iter prog proc-name heap store (+ cur-index 1) next-prev))]
+            (run-cmds-iter-next prog proc-name heap store cur-index next-prev))]
                               
       ;; ('call lhs-var e (e1 ... en) i)
       [(eq? cmd-type 'call)
@@ -250,15 +251,23 @@
       ;;
       ;; basic command
       [else
-       (let* ((cur-outcome (run-bcmd prog cmd heap store))
-              (ret-var (get-ret-var proc))
-              (err-var (get-err-var proc)))
-         (cond
-           [(eq? cur-index (get-ret-index proc))
-            (list 'normal (store-get store ret-var))]
-           [(eq? cur-index (get-err-index proc)) (list 'err (store-get store err-var))]
-           [else (run-cmds-iter prog proc-name heap store (+ cur-index 1) cur-index)]))])))
+       (let* ((cur-outcome (run-bcmd prog cmd heap store)))
+         (run-cmds-iter-next prog proc-name heap store cur-index cur-index))])))
 
+
+(define (run-cmds-iter-next prog proc-name heap store cur-index next-prev-index)
+  (let* ((proc (get-proc prog proc-name))
+         (ret-var (get-ret-var proc))
+         (err-var (get-err-var proc)))
+    (displayln "I am in a marvelous phi")
+    (displayln (format "cur_index: ~a, err_index: ~a" cur-index (get-err-index proc)))
+    (cond
+      [(eq? cur-index (get-ret-index proc))
+       (list 'normal (store-get store ret-var))]
+      [(eq? cur-index (get-err-index proc))
+       (list 'err (store-get store err-var))]
+      [else (run-cmds-iter prog proc-name heap store (+ cur-index 1) next-prev-index)])))
+  
 (define (run-expr expr store)
   (cond
     ;;

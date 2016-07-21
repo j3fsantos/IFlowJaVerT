@@ -620,6 +620,9 @@
 (define (get-cmd proc index)
   (vector-ref (fourth proc) index))
 
+(define (get-number-of-cmds proc)
+  (vector-length (fourth proc)))
+
 (define (proc-init-store proc args)
   (define (proc-init-store-iter params args cur-store)
     (if (not (null? params))
@@ -645,4 +648,4 @@
 (define (err-ctx . lst)
   (cons 'error lst))
 
-(provide procedure which-pred eval_literal get-fields heap-get-obj get-ret-var get-err-var get-ret-index get-err-index get-proc-name get-params get-cmd proc-init-store args body ret-ctx err-ctx)
+(provide procedure which-pred eval_literal get-fields heap-get-obj get-ret-var get-err-var get-ret-index get-err-index get-proc-name get-params get-cmd get-number-of-cmds proc-init-store args body ret-ctx err-ctx)
