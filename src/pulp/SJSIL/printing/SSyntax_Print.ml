@@ -13,7 +13,10 @@ let string_of_float x =
 						else if (x == infinity) 
 									then "inf"
 									else string_of_float x 
-									
+
+let is_int v =
+  v = (snd (modf v))
+																								
 let sexpr_of_float x = 
 	if (x == nan) 
 		then "+nan.0"
@@ -21,7 +24,10 @@ let sexpr_of_float x =
 						then "-inf.0"
 						else if (x == infinity) 
 									then "+inf.0"
-									else string_of_float x 
+									else
+										if (is_int x) 
+											then string_of_int (int_of_float x) 
+											else string_of_float x 
 									
 (**	
 the following does not work because nan is interpreted as a variable

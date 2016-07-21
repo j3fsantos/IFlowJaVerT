@@ -159,7 +159,7 @@
   (let* ((proc (get-proc prog proc-name))
          (cmd (get-cmd proc cur-index))
          (cmd-type (first cmd)))
-     (displayln cmd)
+    ;;(displayln cmd)
     ;; (println (format "Run-cmds-iter: Running the command ~a" cmd))
     (cond
       ;;
@@ -228,7 +228,7 @@
               (err-label (if (>= (length cmd) 5) (fifth cmd) null))
               (call-proc-name (run-expr proc-name-expr store))
               (arg-vals (map (lambda (expr) (run-expr expr store)) arg-exprs)))
-         (println (format "Procedure call: ~a (~a)" call-proc-name arg-vals))
+         ;;(println (format "Procedure call: ~a (~a)" call-proc-name arg-vals))
          (let ((outcome (car (run-proc prog call-proc-name heap arg-vals))))
            ;;(display
             ;;(format "Finished running procedure ~a with arguments ~a and obtained the outcome ~a\n"
@@ -259,8 +259,8 @@
   (let* ((proc (get-proc prog proc-name))
          (ret-var (get-ret-var proc))
          (err-var (get-err-var proc)))
-    (displayln "I am in a marvelous phi")
-    (displayln (format "cur_index: ~a, err_index: ~a" cur-index (get-err-index proc)))
+    ;;(displayln "I am in a marvelous phi")
+    ;;(displayln (format "cur_index: ~a, err_index: ~a" cur-index (get-err-index proc)))
     (cond
       [(eq? cur-index (get-ret-index proc))
        (list 'normal (store-get store ret-var))]
