@@ -228,6 +228,7 @@
 (define operators-table
   (let* ((table-aux (make-hash))
          (add (lambda (jsil-op interp-op) (hash-set! table-aux jsil-op interp-op))))
+    ;; What does this mean for symbolic values?
     (add '= eq?)
     (add '< <)
     (add '<= <=)
@@ -246,7 +247,10 @@
     (add '^ (lambda (x y) (bitwise-xor (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
     (add '<< (lambda (x y) (shl (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
     (add '>> (lambda (x y) (shr (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
-    (add ':: (lambda (x y) (append (list 'jsil-list x) (cdr y))))
+    (add ':: (lambda (x y)
+               (if (eq? x '(jsil-list))
+                y
+                (append (list 'jsil-list x) (cdr y)))))
     (add '** expt)
     (add 'm_atan2 (lambda (x y) (atan y x)))
     (add 'bor (lambda (x y) (bitwise-ior (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
@@ -365,6 +369,22 @@
 
 (define (heap-contains? heap loc prop)
   (not (equal? jempty (heap-get heap loc prop))))
+
+(define (get-fields heap loc)
+  (let loop ((heap-pulp (unbox heap)))
+    (cond
+      [(null? heap-pulp) jempty]
+      [(equal? (car (car heap-pulp)) loc)
+       (let* ((obj (cdr (car heap-pulp)))
+              (props (foldl (lambda (x ac)
+                       (if (is-a-list? (cdr x))
+                       (append ac (list (car x)))
+                       ac)
+                       )
+                       (list ) obj))
+              (sprops (sort props string<?)))
+         sprops)]
+      [ else (loop (cdr heap-pulp))])))
      
 (define (heap-delete-cell heap loc prop)
   (define (delete-cell-pulp h-pulp loc prop)
@@ -426,10 +446,17 @@
   )
 )
 
+(define (is-a-list? l)
+  (and
+   (list? l)
+   (eq? (first l) 'jsil-list)
+  )
+)
+
 (define (make-jsil-list l)
   (cons 'jsil-list l))
 
-(provide make-heap mutate-heap heap-get heap-delete-cell heap-contains? heap cell get-new-loc make-jsil-list)
+(provide is-a-list? make-heap mutate-heap heap-get heap-delete-cell heap-contains? heap cell get-new-loc make-jsil-list)
 
 ;; stores - my stuff
 ;;(define (make-store)
@@ -618,4 +645,4 @@
 (define (err-ctx . lst)
   (cons 'error lst))
 
-(provide procedure which-pred eval_literal heap-get-obj get-ret-var get-err-var get-ret-index get-err-index get-proc-name get-params get-cmd proc-init-store args body ret-ctx err-ctx)
+(provide procedure which-pred eval_literal get-fields heap-get-obj get-ret-var get-err-var get-ret-index get-err-index get-proc-name get-params get-cmd proc-init-store args body ret-ctx err-ctx)

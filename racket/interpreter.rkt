@@ -39,6 +39,7 @@
               (loc-val (run-expr loc-expr store))
               (prop-val (run-expr prop-expr store))
               (rhs-val (run-expr rhs-expr store)))
+         (println (format "Mutation: [~a, ~a] = ~a" loc-val prop-val rhs-val))
          (mutate-heap heap loc-val prop-val rhs-val)
          rhs-val)]
       ;;
@@ -47,7 +48,7 @@
        (let* ((lhs-var (second bcmd))
               (rhs-expr (third bcmd))
               (rhs-val  (run-expr rhs-expr store)))
-         
+         (println (format "Assignment: ~a = ~a" lhs-var rhs-val))
          (mutate-store store lhs-var rhs-val)
          rhs-val)]
       ;;
@@ -66,9 +67,12 @@
               (prop-expr (fourth bcmd))
               (loc-val (run-expr loc-expr store))
               (prop-val (run-expr prop-expr store))
-              (contains (heap-contains? heap loc-val prop-val)))
-         (mutate-store store lhs-var contains) ;; (to-jsil-bool contains))
-         contains)] ;; (to-jsil-bool contains))]
+              (prop-list (get-fields heap loc-val))
+              (is-js-field (member prop-val prop-list))
+              (result (! (eq? is-js-field #f))))
+         (println (format "Has-field: ~a = hf [~a, ~a] : ~a" lhs-var loc-val prop-val result))
+         (mutate-store store lhs-var result) ;; (to-jsil-bool contains))
+         result)] ;; (to-jsil-bool contains))]
       ;;
       ;; ('get-fields lhs-var e1 e2)
       [(eq? cmd-type 'get-fields)
@@ -77,7 +81,10 @@
               (loc-val (run-expr loc-expr store))
               (obj (heap-get-obj heap loc-val))
               (props (foldl (lambda (x ac)
-                       (append ac (list (car x))))
+                       (if (is-a-list? (cdr x))
+                       (append ac (list (car x)))
+                       ac)
+                       )
                        (list ) obj))
               (sprops (sort props string<?))
              )
@@ -92,6 +99,7 @@
               (loc-val (run-expr loc-expr store))
               (prop-val (run-expr prop-expr store))
               (result (heap-get heap loc-val prop-val)))
+         (println (format "Lookup: ~a = [~a, ~a] : ~a" lhs-var loc-val prop-val result))
          (mutate-store store lhs-var result)
          result)]
       ;;
@@ -116,13 +124,13 @@
       ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))
 
-(define goto-limit 10)
+(define goto-limit 10000)
 
 (define goto-stack (make-parameter '()))
 
 (define (count-goto proc-name cur-index)
   (let ((key (cons proc-name cur-index)))
-    (print (goto-stack))
+    ;; (print (goto-stack))
     (count (lambda (x) (equal? x key)) (goto-stack))))
 
 (define (kill x)
@@ -151,14 +159,14 @@
          (cmd (get-cmd proc cur-index))
          (cmd-type (first cmd)))
     ;; (displayln cmd)
-    (println (format "Running the command ~a" cmd))
+    ;; (println (format "Run-cmds-iter: Running the command ~a" cmd))
     (cond
       ;;
       ;; ('print e) 
       [(eq? cmd-type 'print)
        (let* ((expr (second cmd))
               (expr-val (run-expr expr store)))
-         (println (format "Proram Print:: ~a" expr-val))
+         (println (format "Program Print:: ~a" expr-val))
          (run-cmds-iter prog proc-name heap store (+ cur-index 1) cur-index))]
       ;;
       ;; ('goto i)
@@ -173,7 +181,7 @@
               (expr-val (run-expr expr store)))
          (parameterize ([goto-stack
                          (cons (cons proc-name cur-index) (goto-stack))])
-           (print expr-val)
+           ;; (print expr-val)
            (cond
              [(and (symbolic? expr-val)
                    (> (count-goto proc-name cur-index) goto-limit))
@@ -219,12 +227,12 @@
               (err-label (if (>= (length cmd) 5) (fifth cmd) -1))
               (call-proc-name (run-expr proc-name-expr store))
               (arg-vals (map (lambda (expr) (run-expr expr store)) arg-exprs)))
-         ;;(display
-         ;;   (format "Going to call procedure ~a with arguments ~a\n" call-proc-name arg-vals)) 
+         (println (format "Procedure call: ~a (~a)" call-proc-name arg-vals))
          (let ((outcome (car (run-proc prog call-proc-name heap arg-vals))))
            ;;(display
             ;;(format "Finished running procedure ~a with arguments ~a and obtained the outcome ~a\n"
                   ;;  call-proc-name arg-vals outcome)) 
+           (println (format "Procedure call: ~a = ~a (~a) returned ~a" lhs-var call-proc-name arg-vals outcome)) 
            (cond
              [(and (eq? (first outcome) 'err) (not (eq? err-label -1)))
               (mutate-store store lhs-var (second outcome))
@@ -318,7 +326,11 @@
                (vlist (run-expr elist store))
                (eidx  (third expr))
                (vidx  (run-expr eidx store)))
-          (list-ref vlist (inexact->exact (+ vidx 1))))]
+          ;; branch-string!
+          (if (list? vlist)
+              (list-ref vlist (inexact->exact (+ vidx 1)))
+              (make-string 1 (string-ref vlist (inexact->exact vidx))))
+         )]
        ;;
        ;; (make-symbol-number symb-name)
        [(eq? (first expr) 'make-symbol-number)

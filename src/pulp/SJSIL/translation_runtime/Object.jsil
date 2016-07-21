@@ -56,7 +56,8 @@ proc i__getOwnFieldsIter (prop_list) {
 			xt := cdr prop_list;
 			
 			goto [0 < length (xh)] maybe yes;
-	maybe:	goto [nth (xh, 0) = "@"] no yes;
+	maybe:	test := nth (xh, 0);
+			goto [test = "@"] no yes;
 	
 	no:		fh := $$nil;
 			goto rcall;	
