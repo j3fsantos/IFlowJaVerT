@@ -67,9 +67,12 @@
               (prop-expr (fourth bcmd))
               (loc-val (run-expr loc-expr store))
               (prop-val (run-expr prop-expr store))
-              (contains (heap-contains? heap loc-val prop-val)))
-         (mutate-store store lhs-var contains) ;; (to-jsil-bool contains))
-         contains)] ;; (to-jsil-bool contains))]
+              (prop-list (get-fields heap loc-val))
+              (is-js-field (member prop-val prop-list))
+              (result (! (eq? is-js-field #f))))
+         (println (format "Has-field: ~a = hf [~a, ~a] : ~a" lhs-var loc-val prop-val result))
+         (mutate-store store lhs-var result) ;; (to-jsil-bool contains))
+         result)] ;; (to-jsil-bool contains))]
       ;;
       ;; ('get-fields lhs-var e1 e2)
       [(eq? cmd-type 'get-fields)
@@ -78,7 +81,6 @@
               (loc-val (run-expr loc-expr store))
               (obj (heap-get-obj heap loc-val))
               (props (foldl (lambda (x ac)
-                       (displayln (cdr x))
                        (if (is-a-list? (cdr x))
                        (append ac (list (car x)))
                        ac)
@@ -97,6 +99,7 @@
               (loc-val (run-expr loc-expr store))
               (prop-val (run-expr prop-expr store))
               (result (heap-get heap loc-val prop-val)))
+         (println (format "Lookup: ~a = [~a, ~a] : ~a" lhs-var loc-val prop-val result))
          (mutate-store store lhs-var result)
          result)]
       ;;
@@ -121,7 +124,7 @@
       ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))
 
-(define goto-limit 10)
+(define goto-limit 10000)
 
 (define goto-stack (make-parameter '()))
 
@@ -156,7 +159,7 @@
          (cmd (get-cmd proc cur-index))
          (cmd-type (first cmd)))
     ;; (displayln cmd)
-    ;; (println (format "Running the command ~a" cmd))
+    ;; (println (format "Run-cmds-iter: Running the command ~a" cmd))
     (cond
       ;;
       ;; ('print e) 

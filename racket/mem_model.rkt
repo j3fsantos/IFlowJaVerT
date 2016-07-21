@@ -369,6 +369,22 @@
 
 (define (heap-contains? heap loc prop)
   (not (equal? jempty (heap-get heap loc prop))))
+
+(define (get-fields heap loc)
+  (let loop ((heap-pulp (unbox heap)))
+    (cond
+      [(null? heap-pulp) jempty]
+      [(equal? (car (car heap-pulp)) loc)
+       (let* ((obj (cdr (car heap-pulp)))
+              (props (foldl (lambda (x ac)
+                       (if (is-a-list? (cdr x))
+                       (append ac (list (car x)))
+                       ac)
+                       )
+                       (list ) obj))
+              (sprops (sort props string<?)))
+         sprops)]
+      [ else (loop (cdr heap-pulp))])))
      
 (define (heap-delete-cell heap loc prop)
   (define (delete-cell-pulp h-pulp loc prop)
@@ -629,4 +645,4 @@
 (define (err-ctx . lst)
   (cons 'error lst))
 
-(provide procedure which-pred eval_literal heap-get-obj get-ret-var get-err-var get-ret-index get-err-index get-proc-name get-params get-cmd proc-init-store args body ret-ctx err-ctx)
+(provide procedure which-pred eval_literal get-fields heap-get-obj get-ret-var get-err-var get-ret-index get-err-index get-proc-name get-params get-cmd proc-init-store args body ret-ctx err-ctx)
