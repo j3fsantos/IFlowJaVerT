@@ -39,7 +39,7 @@
               (loc-val (run-expr loc-expr store))
               (prop-val (run-expr prop-expr store))
               (rhs-val (run-expr rhs-expr store)))
-         (println (format "Mutation: [~a, ~a] = ~a" loc-val prop-val rhs-val))
+         ; (println (format "Mutation: [~a, ~a] = ~a" loc-val prop-val rhs-val))
          (mutate-heap heap loc-val prop-val rhs-val)
          rhs-val)]
       ;;
@@ -48,7 +48,7 @@
        (let* ((lhs-var (second bcmd))
               (rhs-expr (third bcmd))
               (rhs-val  (run-expr rhs-expr store)))
-         (println (format "Assignment: ~a = ~a" lhs-var rhs-val))
+         ; (println (format "Assignment: ~a = ~a" lhs-var rhs-val))
          (mutate-store store lhs-var rhs-val)
          rhs-val)]
       ;;
@@ -124,7 +124,7 @@
       ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))
 
-(define goto-limit 10000)
+(define goto-limit 5)
 
 (define goto-stack (make-parameter '()))
 
@@ -227,12 +227,12 @@
               (err-label (if (>= (length cmd) 5) (fifth cmd) -1))
               (call-proc-name (run-expr proc-name-expr store))
               (arg-vals (map (lambda (expr) (run-expr expr store)) arg-exprs)))
-         (println (format "Procedure call: ~a (~a)" call-proc-name arg-vals))
+         ; (println (format "Procedure call: ~a (~a)" call-proc-name arg-vals))
          (let ((outcome (car (run-proc prog call-proc-name heap arg-vals))))
            ;;(display
             ;;(format "Finished running procedure ~a with arguments ~a and obtained the outcome ~a\n"
                   ;;  call-proc-name arg-vals outcome)) 
-           (println (format "Procedure call: ~a = ~a (~a) returned ~a" lhs-var call-proc-name arg-vals outcome)) 
+           ; (println (format "Procedure call: ~a = ~a (~a) returned ~a" lhs-var call-proc-name arg-vals outcome)) 
            (cond
              [(and (eq? (first outcome) 'err) (not (eq? err-label -1)))
               (mutate-store store lhs-var (second outcome))
