@@ -23,7 +23,7 @@ let llvar_prefix = "_$l_"
 let lvar_prefix = "_lvar_"
 
 let fresh_llvar = fresh_sth llvar_prefix 
-
+let fresh_lvar = fresh_sth lvar_prefix 
 
 
 let rec normalize_lexpr le store symb_loc_tbl = 

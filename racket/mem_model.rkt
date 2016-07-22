@@ -574,15 +574,15 @@
 (provide program get-proc program-append)
 
 ;; (proc-name proc-params (ret-var ret-label err-var err-label) vector)
-(define (procedure proc-name proc-args proc-body [ret-info (list -1 -1 -1)] [err-info (list -1 -1 -1)])
+(define (procedure proc-name proc-args proc-body ret-info err-info)
   (let* ((cmds-list (rest proc-body))
          (number-of-cmds (length cmds-list))
          (cmds-vec (make-vector number-of-cmds))
          (cur-index 0)
-         (ret-var (second ret-info))
-         (ret-label (third ret-info))
-         (err-var (second err-info))
-         (err-label (third err-info)))
+         (ret-var (if (null? ret-info) null (second ret-info)))
+         (ret-label (if (null? ret-info) null (third ret-info)))
+         (err-var (if (null? err-info) null (second err-info)))
+         (err-label (if (null? err-info) null (third err-info))))
     (map (lambda (cmd)
            (vector-set! cmds-vec cur-index cmd)
            (set! cur-index (+ cur-index 1)))
@@ -620,6 +620,9 @@
 (define (get-cmd proc index)
   (vector-ref (fourth proc) index))
 
+(define (get-number-of-cmds proc)
+  (vector-length (fourth proc)))
+
 (define (proc-init-store proc args)
   (define (proc-init-store-iter params args cur-store)
     (if (not (null? params))
@@ -645,4 +648,4 @@
 (define (err-ctx . lst)
   (cons 'error lst))
 
-(provide procedure which-pred eval_literal get-fields heap-get-obj get-ret-var get-err-var get-ret-index get-err-index get-proc-name get-params get-cmd proc-init-store args body ret-ctx err-ctx)
+(provide procedure which-pred eval_literal get-fields heap-get-obj get-ret-var get-err-var get-ret-index get-err-index get-proc-name get-params get-cmd get-number-of-cmds proc-init-store args body ret-ctx err-ctx)

@@ -417,7 +417,7 @@ let rec evaluate_expr (e : jsil_expr) store =
 			let err_msg = Printf.sprintf "Variable %s not found in the store" x in 
 			let store_str = SSyntax_Print.string_of_store store in 
 			if (!verbose) then Printf.printf "The current store is: \n %s" store_str;
-			raise (Failure err_msg)
+			raise (Failure err_msg) 
 		| Some v -> v)
 	| BinOp (e1, bop, e2) -> 
 		let v1 = evaluate_expr e1 store in 

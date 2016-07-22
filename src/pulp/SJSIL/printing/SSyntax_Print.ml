@@ -13,7 +13,10 @@ let string_of_float x =
 						else if (x == infinity) 
 									then "inf"
 									else string_of_float x 
-									
+
+let is_int v =
+  v = (snd (modf v))
+																								
 let sexpr_of_float x = 
 	if (x == nan) 
 		then "+nan.0"
@@ -21,7 +24,10 @@ let sexpr_of_float x =
 						then "-inf.0"
 						else if (x == infinity) 
 									then "+inf.0"
-									else string_of_float x 
+									else
+										if (is_int x) 
+											then string_of_int (int_of_float x) 
+											else string_of_float x 
 									
 (**	
 the following does not work because nan is interpreted as a variable
@@ -402,7 +408,7 @@ let rec sexpr_of_cmd sjsil_cmd tabs i line_numbers_on =
 				)
 				""
 				var_arr in 
-		Printf.sprintf "'(%sv-phi-assign %s %s)" str_i var var_arr_str	
+		str_tabs ^ (Printf.sprintf "'(%sv-phi-assign %s %s)" str_i var var_arr_str)
 	(* ('v-psi-assign var var_1 var_2 ... var_n) *)
 	| SPsiAssignment(var, var_arr) -> 
 		let var_arr_str = 
@@ -414,7 +420,7 @@ let rec sexpr_of_cmd sjsil_cmd tabs i line_numbers_on =
 				)
 				""
 				var_arr in 
-		Printf.sprintf "'(%sv-psi-assign %s %s)" str_i var var_arr_str	
+		str_tabs ^ (Printf.sprintf "'(%sv-psi-assign %s %s)" str_i var var_arr_str)	
 	(* ('apply left_var expr_list err_lab) *)
 	| SApply (var, arg_expr_list, error_lab) ->
 		let error_lab = (match error_lab with | None -> "" | Some error_lab -> (string_of_int error_lab)) in 
@@ -562,11 +568,11 @@ let sexpr_of_procedure proc line_numbers =
    	(sexpr_of_params proc.proc_params) 
 		(sexpr_of_cmd_arr proc.proc_body 2 line_numbers)
 		(match proc.ret_var, proc.ret_label with
-		| None, None -> "" 
+		| None, None -> "\t'() \n" 
 		| Some var, Some label -> (Printf.sprintf "\t(ret-ctx '%s %s) \n" var (string_of_int label))
 		| _, _ -> raise (Failure "Return variable and return label not both present or both absent!"))
 		(match proc.error_var, proc.error_label with
-		| None, None -> "" 
+		| None, None -> "\t'() \n" 
 		| Some var, Some label -> (Printf.sprintf "\t(err-ctx '%s %s) \n" var (string_of_int label))
 		| _, _ -> raise (Failure "Error variable and error label not both present or both absent!"))
 
