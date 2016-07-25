@@ -39,7 +39,7 @@ let arguments () =
 			"-sexpr",      Arg.Unit(fun () -> do_sexpr      := true), "generate output in s-expression format";
 			(* empty heap *)
 			"-empty_heap",      Arg.Unit(fun () -> empty_heap    := true), "empty heap";
-                        "-esprima", Arg.Set(Parser_main.use_json), "use esprima parser";
+                        "-closure", Arg.Clear(Parser_main.use_json), "use closure parser";
     ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
@@ -90,6 +90,7 @@ let run_jsil_prog prog which_pred cc_tbl vis_tbl =
         return_to_exit rettype
 
 let main () = 
+        Parser_main.use_json := true;
 	arguments ();
         Parser_main.init ();
 	if (!compile_and_run) then 
