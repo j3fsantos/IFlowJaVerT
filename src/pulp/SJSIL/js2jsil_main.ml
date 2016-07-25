@@ -22,7 +22,7 @@ let arguments () =
 			"-line_numbers", Arg.Unit(fun () -> line_numbers := true), "show line numbers";
 			(* one procedure per file *) 
 			"-sep_procs", Arg.Unit(fun () -> sep_procs := true), "one procedure per file";
-                        "-esprima", Arg.Set(Parser_main.use_json), "use esprima parser";
+                        "-closure", Arg.Clear(Parser_main.use_json), "use closure parser";
     ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
@@ -85,7 +85,8 @@ let process_file path =
 
 
 	
-let main () = 
+let main () =
+        Parser_main.use_json := true;
 	arguments ();
         Parser_main.init ();
 	Parser_main.verbose := false;
