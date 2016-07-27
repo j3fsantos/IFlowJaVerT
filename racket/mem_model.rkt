@@ -296,23 +296,6 @@
 
 (provide to-interp-op apply-binop apply-unop)
 
-;; heaps
-;;(define (make-heap)
-;;  (make-hash))
-
-;;(define (mutate-heap heap loc prop val)
-;;  (hash-set! heap (cons loc prop) val))
-
-;;(define (heap-get heap loc prop)
-;;  (hash-ref heap (cons loc prop)))
-
-;;(define (heap-delete-cell heap loc prop)
-;;  (when (heap-contains? heap loc prop)
-;;      (hash-remove! heap (cons loc prop))))
-      
-;;(define (heap-contains? heap loc prop)
-;;  (hash-has-key? heap (cons loc prop)))
-
 ;; heaps that can be handled by rosette
 
 (define (make-heap)
@@ -367,8 +350,6 @@
     [(equal? (car (car prop-val-lst)) prop) (cdr (car prop-val-lst))]
     [ else (find-prop-val (cdr prop-val-lst) prop)]))
 
-(define (heap-contains? heap loc prop)
-  (not (equal? jempty (heap-get heap loc prop))))
 
 (define (get-fields heap loc)
   (let loop ((heap-pulp (unbox heap)))
@@ -383,6 +364,7 @@
                        )
                        (list ) obj))
               (sprops (sort props string<?)))
+         ;; (println (format "Internal get-fields: igf (~a) = ~a" loc sprops))
          sprops)]
       [ else (loop (cdr heap-pulp))])))
      
@@ -456,7 +438,7 @@
 (define (make-jsil-list l)
   (cons 'jsil-list l))
 
-(provide is-a-list? make-heap mutate-heap heap-get heap-delete-cell heap-contains? heap cell get-new-loc make-jsil-list)
+(provide is-a-list? make-heap mutate-heap heap-get heap-delete-cell heap cell get-new-loc make-jsil-list) ;; heap-contains?
 
 ;; stores - my stuff
 ;;(define (make-store)
@@ -649,3 +631,24 @@
   (cons 'error lst))
 
 (provide procedure which-pred eval_literal get-fields heap-get-obj get-ret-var get-err-var get-ret-index get-err-index get-proc-name get-params get-cmd get-number-of-cmds proc-init-store args body ret-ctx err-ctx)
+
+;;(define (heap-contains? heap loc prop)
+;;  (not (equal? jempty (heap-get heap loc prop))))
+
+
+;; heaps
+;;(define (make-heap)
+;;  (make-hash))
+
+;;(define (mutate-heap heap loc prop val)
+;;  (hash-set! heap (cons loc prop) val))
+
+;;(define (heap-get heap loc prop)
+;;  (hash-ref heap (cons loc prop)))
+
+;;(define (heap-delete-cell heap loc prop)
+;;  (when (heap-contains? heap loc prop)
+;;      (hash-remove! heap (cons loc prop))))
+      
+;;(define (heap-contains? heap loc prop)
+;;  (hash-has-key? heap (cons loc prop)))
