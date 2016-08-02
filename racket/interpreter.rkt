@@ -224,13 +224,13 @@
               (err-label (if (>= (length cmd) 5) (fifth cmd) null))
               (call-proc-name (run-expr proc-name-expr store))
               (arg-vals (map (lambda (expr) (run-expr expr store)) arg-exprs)))
-         ;; (println (format "Procedure call: ~v (~v)" call-proc-name arg-vals))
+         ;;(println (format "Procedure call: ~v (~v)" call-proc-name arg-vals))
          (let ((outcome (car (run-proc prog call-proc-name heap arg-vals))))
            ;;(display
-            ;;(format "Finished running procedure ~v with arguments ~v and obtained the outcome ~v\n"
-                  ;;  call-proc-name arg-vals outcome)) 
+           ;;(format "Finished running procedure ~v with arguments ~v and obtained the outcome ~v\n"
+           ;;         call-proc-name arg-vals outcome)) 
            ;; (println (format "Procedure call: ~v = ~v (~v) returned ~v" lhs-var call-proc-name arg-vals outcome)) 
-s           (cond
+           (cond
              [(and (eq? (first outcome) 'err) (not (null? err-label)))
               (mutate-store store lhs-var (second outcome))
               (run-cmds-iter prog proc-name heap store err-label cur-index)]

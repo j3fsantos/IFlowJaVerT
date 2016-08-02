@@ -1,13 +1,53 @@
 #lang s-exp rosette
 
+;;
+;; Support for list "hash-tables"
+;;
+
+;; Sane list membership
+(define (list-mem? lst mem)
+  (if (eq? (member mem lst) #f) #f #t))
+
+;; Creating an empty lht
+(define (box-lht lht)
+  (box lht))
+
+(define (new-lht)
+  '())
+
+;; Does the key exist in an lht?
+(define (lht-has-key? lht key)
+  (letrec ((iter
+            (lambda (lst)
+              (cond [(null? lst) #f]
+                    [(equal? (car (car lst)) key) #t]
+                    [#t (iter (cdr lst))]))))
+    (iter lht)))
+
+;; The value associated with a key in an lht
+(define (lht-ref lht key)
+  (letrec ((iter
+            (lambda (lst)
+              (cond [(null? lst) empty]
+                    [(equal? (car (car lst)) key) (cdr (car lst))]
+                    [#t (iter (cdr lst))]))))
+    (iter lht)))
+
+;; Keys of an lht
+(define (lht-keys lht)
+  (map (lambda (x) (car x)) lht))
+
+;; Values of an lht
+(define (lht-values lht)
+  (map (lambda (x) (cdr x)) lht))
+
 ;; 
-;; literals - constants
+;; Literals - constants and types
 ;;
 (define jempty     '$$empty)
 (define jnull      '$$null)
 (define jundefined '$$undefined)
 
-;; types
 (define undefined-type '$$undefined_type)
 (define null-type      '$$null_type)
 (define empty-type     '$$empty_type)
@@ -20,25 +60,7 @@
 (define ref-o-type     '$$o-reference_type)
 (define list-type      '$$list_type)
 
-(define jsil-constants
-  (let ((table (mutable-set)))
-    (set-add! table jempty)
-    (set-add! table jnull)
-    (set-add! table jundefined)
-    (set-add! table undefined-type)
-    (set-add! table null-type)
-    (set-add! table empty-type)
-    (set-add! table boolean-type)
-    (set-add! table number-type)
-    (set-add! table string-type)
-    (set-add! table obj-type)
-    (set-add! table ref-a-type)
-    (set-add! table ref-v-type)
-    (set-add! table ref-o-type)
-    (set-add! table list-type)
-    table))
-
-;; math constants
+;; Math constants
 (define mc-minval '$$min_value)
 (define mc-maxval '$$max_value)
 (define mc-random '$$random)
@@ -51,49 +73,52 @@
 (define mc-sqrt12 '$$sqrt1_2)
 (define mc-sqrt2  '$$sqrt2)
 
-(define jsil-math-constants
-  (let ((table (mutable-set)))
-    (set-add! table mc-minval)
-    (set-add! table mc-maxval)
-    (set-add! table mc-random)
-    (set-add! table mc-pi)
-    (set-add! table mc-e)
-    (set-add! table mc-ln10)
-    (set-add! table mc-ln2)
-    (set-add! table mc-log2e)
-    (set-add! table mc-log10e)
-    (set-add! table mc-sqrt12)
-    (set-add! table mc-sqrt2)
-    table))
+;; List of non-math constants
+(define jsil-constants
+   (list
+      jempty          jnull        jundefined
+      undefined-type  null-type    empty-type
+      boolean-type    number-type  string-type
+      obj-type        ref-a-type   ref-v-type
+      ref-o-type      list-type))
 
-;; evaluation
+;; List of math constants
+(define jsil-math-constants
+   (list
+      mc-minval mc-maxval mc-random
+      mc-pi     mc-e      mc-ln10
+      mc-ln2    mc-log2e  mc-log10e
+      mc-sqrt12 mc-sqrt2))
+
+;; Is something a literal?
 (define (literal? val)
   (or
    (number? val)
    (boolean? val)
    (string? val)
-   (set-member? jsil-constants val)
-   (set-member? jsil-math-constants val)
    (is-loc? val)
    (is-llist? val)
    (is-ref? val)
+   (list-mem? jsil-constants val)
+   (list-mem? jsil-math-constants val)
   )
 )
 
+;; Evaluating a literal
 (define (eval_literal lit)
-  (if (set-member? jsil-math-constants lit)
+  (if (list-mem? jsil-math-constants lit)
       (cond
-        ((eq? lit mc-minval) 5e-324)
-        ((eq? lit mc-maxval) 1.7976931348623158e+308)
-        ((eq? lit mc-random) (random))
-        ((eq? lit mc-pi)       pi)
-        ((eq? lit mc-e)      (exp 1.))
-        ((eq? lit mc-ln10)   (log 10.))
-        ((eq? lit mc-ln2)    (log 2.))
-        ((eq? lit mc-log2e)  (/ 1 (log 2.)))
-        ((eq? lit mc-log10e) (/ 1 (log 10.)))
-        ((eq? lit mc-sqrt12) (sqrt 0.5))
-        ((eq? lit mc-sqrt2)  (sqrt 2.))
+        [(eq? lit mc-minval) 5e-324]
+        [(eq? lit mc-maxval) 1.7976931348623158e+308]
+        [(eq? lit mc-random) (random)]
+        [(eq? lit mc-pi)     pi]
+        [(eq? lit mc-e)      (exp 1.)]
+        [(eq? lit mc-ln10)   (log 10.)]
+        [(eq? lit mc-ln2)    (log 2.)]
+        [(eq? lit mc-log2e)  (/ 1 (log 2.))]
+        [(eq? lit mc-log10e) (/ 1 (log 10.))]
+        [(eq? lit mc-sqrt12) (sqrt 0.5)]
+        [(eq? lit mc-sqrt2)  (sqrt 2.)]
       )
       lit
   )
@@ -113,6 +138,7 @@
     ((is-llist? val) list-type)
     (#t (error (format "Wrong argument to typeof: ~a" val)))))
 
+;; Subtyping
 (define (jsil-subtype type1 type2)
   (or 
    (eq? type1 type2) 
@@ -121,7 +147,7 @@
     (or (eq? ref-v-type type1)
         (eq? ref-o-type type1)))))
 
-;; special properties
+;; Special properties
 (define protop "@proto")
 (define larguments '$larguments)
 (define parguments "args")
@@ -130,7 +156,6 @@
 
 ;;
 ;; binary operators 
-;; missing: shift left, shift right, unsigned shift right
 ;;
 
 ;; Shift left and right
@@ -157,12 +182,10 @@
   (if (nan? num) 0
       (if (infinite? num) 0
           (if (eq? num 0) 0
-              (let* (
-                     (two-32 (expt 2 32))
+              (let* ((two-32 (expt 2 32))
                      (two-31 (expt 2 31))
                      (pos-int (* (sgn num) (floor (abs num))))
-                     (smod (modulo pos-int two-32))
-                    )
+                     (smod (modulo pos-int two-32)))
                 (if (>= smod two-31)
                    (- smod two-32)
                    smod
@@ -177,11 +200,9 @@
   (if (nan? num) 0
       (if (infinite? num) 0
           (if (eq? num 0) 0
-              (let* (
-                     (two-16 (expt 2 16))
+              (let* ((two-16 (expt 2 16))
                      (pos-int (* (sgn num) (floor (abs num))))
-                     (smod (modulo pos-int two-16))
-                    )
+                     (smod (modulo pos-int two-16)))
                 (if (< smod 0)
                    (+ smod two-16)
                    smod
@@ -196,11 +217,9 @@
   (if (nan? num) 0
       (if (infinite? num) 0
           (if (eq? num 0) 0
-              (let* (
-                     (two-32 (expt 2 32))
+              (let* ((two-32 (expt 2 32))
                      (pos-int (* (sgn num) (floor (abs num))))
-                     (smod (modulo pos-int two-32))
-                    )
+                     (smod (modulo pos-int two-32)))
                 (if (< smod 0)
                    (+ smod two-32)
                    smod
@@ -212,10 +231,8 @@
 )
 
 (define (unsigned_right_shift lhs rhs)
-  (let* (
-          (lhs-32 (jsil_num_to_uint_32 lhs))
-          (rhs-32 (jsil_num_to_uint_32 rhs))
-        )
+  (let* ((lhs-32 (jsil_num_to_uint_32 lhs))
+         (rhs-32 (jsil_num_to_uint_32 rhs)))
     (shr (inexact->exact (truncate lhs-32)) (inexact->exact (truncate rhs-32)))
   )
 )
@@ -225,78 +242,78 @@
     ((integer? n) (int-to-str n))
     (#t (number->string n))))
 
-(define operators-table
-  (let* ((table-aux (make-hash))
-         (add (lambda (jsil-op interp-op) (hash-set! table-aux jsil-op interp-op))))
-    ;; What does this mean for symbolic values?
-    (add '= eq?)
-    (add '< <)
-    (add '<= <=)
-    (add '<s string<?)
-    (add '+ +)
-    (add '- -)
-    (add '* *)
-    (add '/ /)
-    (add '% modulo)
-    (add '<: jsil-subtype)
-    (add 'concat string-append)
-    (add '++ (lambda (x y) (append x (cdr y))))
-    (add 'and (lambda (x y) (and x y)))
-    (add 'or  (lambda (x y) (or  x y)))
-    (add '& (lambda (x y) (bitwise-and (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
-    (add '^ (lambda (x y) (bitwise-xor (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
-    (add '<< (lambda (x y) (shl (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
-    (add '>> (lambda (x y) (shr (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
-    (add ':: (lambda (x y)
+(define operators-list
+  (list
+    (cons '= eq?)
+    (cons '< <)
+    (cons '<= <=)
+    (cons '<s string<?)
+    (cons '+ +)
+    (cons '- -)
+    (cons '* *)
+    (cons '/ /)
+    (cons '% modulo)
+    (cons '<: jsil-subtype)
+    (cons 'concat string-append)
+    (cons '++ (lambda (x y) (append x (cdr y))))
+    (cons 'and (lambda (x y) (and x y)))
+    (cons 'or  (lambda (x y) (or  x y)))
+    (cons '& (lambda (x y) (bitwise-and (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
+    (cons '^ (lambda (x y) (bitwise-xor (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
+    (cons '<< (lambda (x y) (shl (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
+    (cons '>> (lambda (x y) (shr (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
+    (cons ':: (lambda (x y)
                (if (eq? x '(jsil-list))
                 y
                 (append (list 'jsil-list x) (cdr y)))))
-    (add '** expt)
-    (add 'm_atan2 (lambda (x y) (atan y x)))
-    (add 'bor (lambda (x y) (bitwise-ior (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
-    (add '>>> unsigned_right_shift)
-    (add 'not not)
-    (add 'num_to_string jsil-number-to-string)
-    (add 'string_to_num jsil_string_to_number)
-    (add '! (lambda (x) (bitwise-not (inexact->exact x))))
-    (add 'is_primitive (lambda (x) (or (number? x) (string? x) (boolean? x) (eq? x jnull) (eq? x jundefined))))
-    (add 'length (lambda (x) (if (is-llist? x) (- (length x) 1) (string-length x))))
-    (add 'car (lambda (x) (car (cdr x))))
-    (add 'cdr (lambda (x) (cons 'jsil-list (cdr (cdr x)))))
-    (add 'm_abs abs)
-    (add 'm_acos acos)
-    (add 'm_asin asin)
-    (add 'm_atan atan)
-    (add 'm_cos cos)
-    (add 'm_sin sin)
-    (add 'm_tan tan)
-    (add 'm_sgn sgn)
-    (add 'm_sqrt sqrt)
-    (add 'm_exp exp)
-    (add 'm_log log)
-    (add 'm_ceil ceiling)
-    (add 'm_floor floor)
-    (add 'm_round round)
-    (add 'num_to_int jsil_num_to_int)
-    (add 'num_to_int32 jsil_num_to_int_32)
-    (add 'num_to_uint16 jsil_num_to_uint_16)
-    (add 'num_to_uint32 jsil_num_to_uint_32)
-    table-aux))
+    (cons '** expt)
+    (cons 'm_atan2 (lambda (x y) (atan y x)))
+    (cons 'bor (lambda (x y) (bitwise-ior (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
+    (cons '>>> unsigned_right_shift)
+    (cons 'not not)
+    (cons 'num_to_string jsil-number-to-string)
+    (cons 'string_to_num jsil_string_to_number)
+    (cons '! (lambda (x) (bitwise-not (inexact->exact x))))
+    (cons 'is_primitive (lambda (x) (or (number? x) (string? x) (boolean? x) (eq? x jnull) (eq? x jundefined))))
+    (cons 'length (lambda (x) (if (is-llist? x) (- (length x) 1) (string-length x))))
+    (cons 'car (lambda (x) (car (cdr x))))
+    (cons 'cdr (lambda (x) (cons 'jsil-list (cdr (cdr x)))))
+    (cons 'm_abs abs)
+    (cons 'm_acos acos)
+    (cons 'm_asin asin)
+    (cons 'm_atan atan)
+    (cons 'm_cos cos)
+    (cons 'm_sin sin)
+    (cons 'm_tan tan)
+    (cons 'm_sgn sgn)
+    (cons 'm_sqrt sqrt)
+    (cons 'm_exp exp)
+    (cons 'm_log log)
+    (cons 'm_ceil ceiling)
+    (cons 'm_floor floor)
+    (cons 'm_round round)
+    (cons 'num_to_int jsil_num_to_int)
+    (cons 'num_to_int32 jsil_num_to_int_32)
+    (cons 'num_to_uint16 jsil_num_to_uint_16)
+    (cons 'num_to_uint32 jsil_num_to_uint_32)))
 
+;; Obtaining the operator
 (define (to-interp-op op)
   (cond
-    [(hash-has-key? operators-table op) (hash-ref operators-table op)]
+    [(lht-has-key? operators-list op) (lht-ref operators-list op)]
     [else (error "Operator not supported" op)]))
 
+;; Applying binary operators
 (define (apply-binop op arg1 arg2)
   (apply op (list arg1 arg2)))
 
+;; Applying unary operators
 (define (apply-unop op arg)
   (apply op (list arg)))
 
 (provide to-interp-op apply-binop apply-unop)
 
-;; heaps that can be handled by rosette
+;; heaps that can be handled by rosette - God help us all
 
 (define (make-heap)
   (box '()))
@@ -328,29 +345,21 @@
   (let ((new-heap-pulp (mutate-heap-pulp (unbox heap) loc prop val)))
     (set-box! heap new-heap-pulp)))
 
-(define (heap-get heap loc prop)
-  (let loop ((heap-pulp (unbox heap)))
-    (cond
-      [(null? heap-pulp) jempty]
-      [(equal? (car (car heap-pulp)) loc)
-       (find-prop-val (cdr (car heap-pulp)) prop)]
-      [ else (loop (cdr heap-pulp))])))
-
+;; Get object from heap
 (define (heap-get-obj heap loc)
-  (let loop ((heap-pulp (unbox heap)))
-    (cond
-      [(null? heap-pulp) jempty]
-      [(equal? (car (car heap-pulp)) loc)
-       (cdr (car heap-pulp))]
-      [ else (loop (cdr heap-pulp))])))
+  (let*
+      ((heap-pulp (unbox heap))
+       (obj (lht-ref heap-pulp loc)))
+    (if (eq? obj empty) (error (format "Error: ~v is not in the heap." loc)) obj)))
 
-(define (find-prop-val prop-val-lst prop)
-  (cond
-    [(null? prop-val-lst) jempty]
-    [(equal? (car (car prop-val-lst)) prop) (cdr (car prop-val-lst))]
-    [ else (find-prop-val (cdr prop-val-lst) prop)]))
+;; Get property value from heap
+(define (heap-get heap loc prop)
+  (let*
+      ((obj (heap-get-obj heap loc))
+       (val (lht-ref obj prop)))
+    (if (eq? val empty) (error (format "Error: (~v, ~v) is not in the heap." loc prop)) val)))
 
-
+;; Get all fields of an object in the heap
 (define (get-fields heap loc)
   (let loop ((heap-pulp (unbox heap)))
     (cond
@@ -367,7 +376,8 @@
          ;; (println (format "Internal get-fields: igf (~a) = ~a" loc sprops))
          sprops)]
       [ else (loop (cdr heap-pulp))])))
-     
+
+;; Delete cell from the heap
 (define (heap-delete-cell heap loc prop)
   (define (delete-cell-pulp h-pulp loc prop)
     (cond
@@ -456,7 +466,7 @@
   (box '()))
 
 (define (store-get store var)
-  (lookup var (unbox store)))
+  (lht-ref (unbox store) var))
 
 (define (mutate-store store var val)
   (define (mutate-store-aux store var val)
@@ -487,18 +497,6 @@
 
 (provide make-store mutate-store store-get var? store)
 
-
-;; auxiliary functions
-(define (lookup x lst-param)
-  (letrec ((iter
-            (lambda (lst)
-              (cond ((null? lst) null)
-                    ((equal? (car (car lst)) x) (cdr (car lst)))
-                    (#t (iter (cdr lst)))))))
-    (iter lst-param)))
-
-
-
 ;; refs
 (define (make-ref base field reftype)
   (list 'ref base field reftype))
@@ -517,34 +515,42 @@
 
 (provide make-ref ref-base ref-field ref-type)
 
-;; programs and procedures  
+;;
+;; Programs supported by Rosette
+;;
+
 (define (program . procs)
-  (let ((procs-table (make-hash)))
-    (map (lambda (proc)
-           (let ((proc-name (get-proc-name proc)))
-             (hash-set! procs-table proc-name proc)))
-         procs)
-    procs-table))
+  (box
+   (map
+    (lambda (x)
+     (let*
+         ((proc-name (get-proc-name x))
+          (new-proc (cons proc-name x)))
+       new-proc))
+      procs)))
 
 (define (get-proc program proc-name)
-  (if (hash-has-key? program proc-name)
-      (hash-ref program proc-name)
-      (error (format "Error: procedure ~a is missing" proc-name))))
+  (let*
+      ((program-pulp (unbox program))
+       (proc (lht-ref program-pulp proc-name)))
+    (if (eq? proc empty) (error (format "Error: procedure ~v is not in the program." proc-name)) proc)))
 
 (define (has-proc? program proc-name)
-  (hash-has-key? program proc-name))
+  (lht-has-key? (unbox program) proc-name))
 
-(define (get-proc-names prog)
-  (hash-values prog))
+(define (get-procs prog)
+  (lht-values (unbox prog)))
 
 (define (add-proc program proc)
-  (let ((proc-name (get-proc-name proc)))
-    (if (hash-has-key? program (get-proc-name proc))
+  (let* ((prog-pulp (unbox program))
+         (proc-name (get-proc-name proc)))
+    (if (lht-has-key? prog-pulp proc-name)
         (error (format "Error: procedure ~a is already defined" proc-name))
-        (hash-set! program proc-name proc))))
+        (let ((new-program-pulp (append prog-pulp (list (cons proc-name proc)))))
+          (set-box! program new-program-pulp)))))
 
 (define (program-append prog1 prog2)
-  (let ((procs2 (get-proc-names prog2)))
+  (let ((procs2 (get-procs prog2)))
     (let loop ((procs procs2))
       (if (null? procs)
           prog1

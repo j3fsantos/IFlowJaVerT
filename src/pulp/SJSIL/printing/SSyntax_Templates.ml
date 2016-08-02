@@ -46,8 +46,13 @@ let (template_procs_racket: ('a -> 'b, unit, string) format) = "
 	)
 )
 
-(program-append prog internal-procs)
-(run-program prog hp)
+(let*
+    (
+     (prog-full (program-append prog internal-procs))
+     (result    (run-program prog-full hp))
+    )
+  (car result)
+)
 "
 
 let (template_wp_racket:  ('a -> 'b, unit, string) format) = "
