@@ -132,4 +132,30 @@ with
 {
 	ret: xret, rlab;
 	err: xret, elab;
+};
+
+(* *** CHARAT *** *)
+proc SP_charAt (xsc, vthis, position) {
+			xret := "i__checkObjectCoercible" (vthis) with elab;
+			xret := "i__toString" (vthis) with elab;
+			S := xret;
+			xret := "i__toInteger" (position) with elab;
+			pos := xret;
+			size := length (S);
+			goto [pos < 0] empt next;
+			
+	next:	goto [size <= pos] empt fll;
+			
+	empt:	xret := "";
+			goto rlab;
+	
+	fll:	xret := nth (S, pos);
+	rlab:	skip;
+	
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
 }
