@@ -34,7 +34,7 @@ proc Array_construct () {
 			
 	ltest:	goto [len = 3] len3 other;
 	
-	len3:	len := nth (la, 2);
+	len3:	len := l-nth (la, 2);
 			goto [typeOf(len) = $$number_type] len0 setl;
 	len0:	xret := "i__toUint32" (len) with elab;
 			goto [len = xret] dop re;
@@ -50,7 +50,7 @@ proc Array_construct () {
 	other:	n := 2;
 	loop:	goto [n < len] head rtrn;
 	head:	prop := "i__toString" (n - 2) with elab;
-			xret := "a__defineOwnProperty" (array, prop, {{ "d", nth (la, n), $$t, $$t, $$t }}, $$t) with elab; 
+			xret := "a__defineOwnProperty" (array, prop, {{ "d", l-nth (la, n), $$t, $$t, $$t }}, $$t) with elab; 
 			n := n + 1;
 			goto loop;
 			
@@ -94,7 +94,7 @@ proc a__defineOwnProperty (l, prop, desc, throw) {
 
 			gop := [l, "@getOwnProperty"];
 			oldLenDesc := gop (l, "length");
-			oldLen := nth (oldLenDesc, 1);
+			oldLen := l-nth (oldLenDesc, 1);
 			xret := "i__toUint32" (oldLen) with elab;
 			oldLenNum := xret;
 			
@@ -106,46 +106,46 @@ proc a__defineOwnProperty (l, prop, desc, throw) {
 	idx:	index := "i__toUint32" (prop);
 			index := index;
 			oldLen := oldLen;
-			xret := nth (oldLenDesc, 2);
-			goto [(not (index < oldLenNum)) and (not (nth (oldLenDesc, 2)))] reject idop;
+			xret := l-nth (oldLenDesc, 2);
+			goto [(not (index < oldLenNum)) and (not (l-nth (oldLenDesc, 2)))] reject idop;
 	idop:	xret := "o__defineOwnProperty" (l, prop, desc, $$f) with elab;
 			goto [xret = $$f] reject ilen;
 	ilen:	goto [not (index < oldLenNum)] setl rlab;
-	setl:	xret := "o__defineOwnProperty" (l, "length", {{ "d", (index + 1), nth (oldLenDesc, 2), nth (oldLenDesc, 3), nth (oldLenDesc, 4) }}, $$f);
+	setl:	xret := "o__defineOwnProperty" (l, "length", {{ "d", (index + 1), l-nth (oldLenDesc, 2), l-nth (oldLenDesc, 3), l-nth (oldLenDesc, 4) }}, $$f);
 			goto rlab;
 			
 	norm:	xret := "o__defineOwnProperty" (l, prop, desc, throw) with elab;
 			goto rlab;
 	
-	getall:	goto [nth (desc, 0) = "d"] ddd odd;
+	getall:	goto [l-nth (desc, 0) = "d"] ddd odd;
 	
 			(* Data *)
-	ddd:	de := nth (desc, 3);
-			dc := nth (desc, 4);
-			dv := nth (desc, 1);
-			dw := nth (desc, 2);
+	ddd:	de := l-nth (desc, 3);
+			dc := l-nth (desc, 4);
+			dv := l-nth (desc, 1);
+			dw := l-nth (desc, 2);
 			dg := $$empty;
 			ds := $$empty;
 			goto sla;
 			
-	odd:	goto [nth (desc, 0) = "a"] add gdd;
+	odd:	goto [l-nth (desc, 0) = "a"] add gdd;
 
 			(* Accessor *)
-	add:	de := nth (desc, 3);
-			dc := nth (desc, 4);
+	add:	de := l-nth (desc, 3);
+			dc := l-nth (desc, 4);
 			dv := $$empty;
 			dw := $$empty;
-			dg := nth (desc, 1);
-			ds := nth (desc, 2);
+			dg := l-nth (desc, 1);
+			ds := l-nth (desc, 2);
 			goto sla;
 			
 			(* Generic *)
-	gdd:	de := nth (desc, 1);
-			dc := nth (desc, 2);
-			dv := nth (desc, 3);
-			dw := nth (desc, 4);
-			dg := nth (desc, 5);
-			ds := nth (desc, 6);
+	gdd:	de := l-nth (desc, 1);
+			dc := l-nth (desc, 2);
+			dv := l-nth (desc, 3);
+			dw := l-nth (desc, 4);
+			dg := l-nth (desc, 5);
+			ds := l-nth (desc, 6);
 	
 	sla:	goto [dv = $$empty] slai slb;
 	
@@ -163,7 +163,7 @@ proc a__defineOwnProperty (l, prop, desc, throw) {
 	slfi:	xret := "o__defineOwnProperty" (l, "length", {{ "g", de, dc, dv, dw, dg, ds }}, throw) with elab;
 			goto rlab;
 			
-	slg:	goto [nth (oldLenDesc, 2) = $$f] reject slh;
+	slg:	goto [l-nth (oldLenDesc, 2) = $$f] reject slh;
 	
 	slh:	goto [dw = $$f] sli slh1;
 	
@@ -364,7 +364,7 @@ with
 (* *** PUSH *** *)
 proc AP_push() {
 			arguments := args;
-			vthis := nth (arguments, 1);
+			vthis := l-nth (arguments, 1);
 			
 			xret := "i__toObject" (vthis) with elab;
 			vthis := xret;
@@ -380,7 +380,7 @@ proc AP_push() {
 
 	loop:	goto [n < num] add stop;
 	
-	add:	elem := nth (arguments, n);
+	add:	elem := l-nth (arguments, n);
 			strn := "i__toString" (len);
 			xret := p (vthis, strn, elem, $$t) with elab;
 			n := n + 1;
@@ -468,7 +468,7 @@ with
 (* *** CONCAT *** *)
 proc AP_concat() {
 			arguments := args;
-			vthis := nth (arguments, 1);
+			vthis := l-nth (arguments, 1);
 			
 			xret := "i__toObject" (vthis) with elab;
 			vthis := xret;
@@ -497,7 +497,7 @@ proc AP_concat() {
 			
 	loop:	goto [idx < num] add end;
 	
-	add:	elem := nth (arguments, idx);
+	add:	elem := l-nth (arguments, idx);
 			f := 1;
 			
 	cont:	goto [typeOf (elem) = $$object_type] cls narr;
@@ -752,7 +752,7 @@ with
 (* *** UNSHIFT *** *)
 proc AP_unshift() {
 			arguments := args;
-			vthis := nth (arguments, 1);
+			vthis := l-nth (arguments, 1);
 			
 			xret := "i__toObject" (vthis) with elab;
 			vthis := xret;
@@ -798,7 +798,7 @@ proc AP_unshift() {
 			nm := 2;
 			
 	loop:	goto [nm < num] next end;
-	next:	elem := nth(arguments, nm);
+	next:	elem := l-nth(arguments, nm);
 			xret := "i__toString" (j) with elab;
 			strj := xret;
 			xret := p (vthis, strj, elem, $$t) with elab;
@@ -822,18 +822,18 @@ with
 (* *** SPLICE *** *)
 proc AP_splice() {
 			arguments := args;
-			vthis := nth (arguments, 1);
+			vthis := l-nth (arguments, 1);
 			num := length (arguments);
 			
 			goto [num < 3] nstrt ystrt;
 	nstrt:	start := $$undefined;
 			goto dc;
-	ystrt:	start := nth (arguments, 2);
+	ystrt:	start := l-nth (arguments, 2);
 	
 	dc:		goto [num < 4] ndc ydc;
 	ndc:	deleteCount := $$undefined;
 			goto tobj;
-	ydc:	deleteCount := nth (arguments, 3);
+	ydc:	deleteCount := l-nth (arguments, 3);
 			
 	tobj:	xret := "i__toObject" (vthis) with elab;
 			vthis := xret;
@@ -949,7 +949,7 @@ proc AP_splice() {
 			nm := 4;
 	loop5:	goto [nm < num] next5 end5;
 	
-	next5:	elem := nth (arguments, nm);
+	next5:	elem := l-nth (arguments, nm);
 			xret := "i__toString" (k) with elab;
 			strk := xret;
 			xret := p (vthis, strk, elem, $$t) with elab;
@@ -972,12 +972,12 @@ with
 (* *** INDEXOF *** *)
 proc AP_indexOf() {
 			arguments := args;
-			vthis  := nth (arguments, 1);
+			vthis  := l-nth (arguments, 1);
 			num := length (arguments);
 			
 			selem := $$undefined;
 	        goto [num <= 2] tobj selem;
-	selem:	selem := nth (arguments, 2);
+	selem:	selem := l-nth (arguments, 2);
 			
 	tobj:	xret := "i__toObject" (vthis) with elab;
 			vthis := xret;
@@ -995,7 +995,7 @@ proc AP_indexOf() {
 	em:		n := 0;
 			goto nlen;
 	
-	nem:	fi := nth (arguments, 3);
+	nem:	fi := l-nth (arguments, 3);
 			xret := "i__toInteger" (fi) with elab; 
 			n := xret;
 	
@@ -1047,12 +1047,12 @@ with
 (* *** LASTINDEXOF *** *)
 proc AP_lastIndexOf() {
 			arguments := args;
-			vthis  := nth (arguments, 1);
+			vthis  := l-nth (arguments, 1);
 			num := length (arguments);
 			
 			selem := $$undefined;
 	        goto [num <= 2] tobj selem;
-	selem:	selem := nth (arguments, 2);
+	selem:	selem := l-nth (arguments, 2);
 			
 	tobj:	xret := "i__toObject" (vthis) with elab;
 			vthis := xret;
@@ -1069,7 +1069,7 @@ proc AP_lastIndexOf() {
 	em:		n := len - 1;
 			goto nlen;
 	
-	nem:	fi := nth (arguments, 3);
+	nem:	fi := l-nth (arguments, 3);
 			xret := "i__toInteger" (fi) with elab; 
 			n := xret;
 			
@@ -1117,12 +1117,12 @@ with
 (* *** EVERY *** *)
 proc AP_every() {
 			arguments := args;
-			vthis  := nth (arguments, 1);
+			vthis  := l-nth (arguments, 1);
 			num := length (arguments);
 
 			cbf := $$undefined;
 	        goto [num <= 2] tobj cbf;
-	cbf:	cbf := nth (arguments, 2);
+	cbf:	cbf := l-nth (arguments, 2);
 			
 	tobj:	xret := "i__toObject" (vthis) with elab;
 			vthis := xret;
@@ -1137,7 +1137,7 @@ proc AP_every() {
 			
 	cont:	goto [num <= 3] undef def;
 	
-	def:	t := nth (arguments, 3);
+	def:	t := l-nth (arguments, 3);
 			goto setk;
 	undef:	t := $$undefined;
 	
@@ -1182,12 +1182,12 @@ with
 (* *** SOME *** *)
 proc AP_some() {
 			arguments := args;
-			vthis  := nth (arguments, 1);
+			vthis  := l-nth (arguments, 1);
 			num := length (arguments);
 
 			cbf := $$undefined;
 	        goto [num <= 2] tobj cbf;
-	cbf:	cbf := nth (arguments, 2);
+	cbf:	cbf := l-nth (arguments, 2);
 			
 	tobj:	xret := "i__toObject" (vthis) with elab;
 	
@@ -1203,7 +1203,7 @@ proc AP_some() {
 			
 	cont:	goto [num <= 3] undef def;
 	
-	def:	t := nth (arguments, 3);
+	def:	t := l-nth (arguments, 3);
 			goto setk;
 	undef:	t := $$undefined;
 	
@@ -1248,12 +1248,12 @@ with
 (* *** FOREACH *** *)
 proc AP_forEach() {
 			arguments := args;
-			vthis  := nth (arguments, 1);
+			vthis  := l-nth (arguments, 1);
 			num := length (arguments);
 			
 			cbf := $$undefined;
 	        goto [num <= 2] tobj cbf;
-	cbf:	cbf := nth (arguments, 2);
+	cbf:	cbf := l-nth (arguments, 2);
 			
 	tobj:	xret := "i__toObject" (vthis) with elab;
 			vthis := xret;
@@ -1268,7 +1268,7 @@ proc AP_forEach() {
 			
 	cont:	goto [num <= 3] undef def;
 	
-	def:	t := nth (arguments, 3);
+	def:	t := l-nth (arguments, 3);
 			goto setk;
 	undef:	t := $$undefined;
 	
@@ -1307,12 +1307,12 @@ with
 (* *** MAP *** *)
 proc AP_map() {
 			arguments := args;
-			vthis  := nth (arguments, 1);
+			vthis  := l-nth (arguments, 1);
 			num := length (arguments);
 			
 			cbf := $$undefined;
 	        goto [num <= 2] tobj cbf;
-	cbf:	cbf := nth (arguments, 2);
+	cbf:	cbf := l-nth (arguments, 2);
 			
 	tobj:	xret := "i__toObject" (vthis) with elab;
 			vthis := xret;
@@ -1327,7 +1327,7 @@ proc AP_map() {
 			
 	cont:	goto [num <= 3] undef def;
 	
-	def:	t := nth (arguments, 3);
+	def:	t := l-nth (arguments, 3);
 			goto seta;
 	undef:	t := $$undefined;
 	
@@ -1369,12 +1369,12 @@ with
 (* *** FILTER *** *)
 proc AP_filter() {
 			arguments := args;
-			vthis  := nth (arguments, 1);
+			vthis  := l-nth (arguments, 1);
 			num := length (arguments);
 
 			cbf := $$undefined;
 	        goto [num <= 2] tobj cbf;
-	cbf:	cbf := nth (arguments, 2);
+	cbf:	cbf := l-nth (arguments, 2);
 			
 	tobj:	xret := "i__toObject" (vthis) with elab;
 			vthis := xret;
@@ -1389,7 +1389,7 @@ proc AP_filter() {
 			
 	cont:	goto [num <= 3] undef def;
 	
-	def:	t := nth (arguments, 3);
+	def:	t := l-nth (arguments, 3);
 			goto seta;
 	undef:	t := $$undefined;
 	
@@ -1441,12 +1441,12 @@ with
 (* *** REDUCE *** *)
 proc AP_reduce() {
 			arguments := args;
-			vthis  := nth (arguments, 1);
+			vthis  := l-nth (arguments, 1);
 			num := length (arguments);
 
 			cbf := $$undefined;
 	        goto [num <= 2] tobj cbf;
-	cbf:	cbf := nth (arguments, 2);
+	cbf:	cbf := l-nth (arguments, 2);
 			
 	tobj:	xret := "i__toObject" (vthis) with elab;
 	
@@ -1463,7 +1463,7 @@ proc AP_reduce() {
 	setk:	k := 0;
 			goto [num <= 3] else if;
 				
-	if:		acc := nth (arguments, 3);
+	if:		acc := l-nth (arguments, 3);
 			goto loop2;
 			
 	else:	goto [len = 0] throw cont;
@@ -1519,12 +1519,12 @@ with
 (* *** REDUCERIGHT *** *)
 proc AP_reduceRight() {
 			arguments := args;
-			vthis  := nth (arguments, 1);
+			vthis  := l-nth (arguments, 1);
 			num := length (arguments);
 
 			cbf := $$undefined;
 	        goto [num <= 2] tobj cbf;
-	cbf:	cbf := nth (arguments, 2);
+	cbf:	cbf := l-nth (arguments, 2);
 			
 	tobj:	xret := "i__toObject" (vthis) with elab;
 			vthis := xret;
@@ -1540,7 +1540,7 @@ proc AP_reduceRight() {
 	setk:	k := len - 1;
 			goto [num <= 3] else if;
 				
-	if:		acc := nth (arguments, 3);
+	if:		acc := l-nth (arguments, 3);
 			goto loop2;
 			
 	else:	goto [len = 0] throw cont;

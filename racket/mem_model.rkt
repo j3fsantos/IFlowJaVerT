@@ -152,7 +152,7 @@
 (define larguments '$larguments)
 (define parguments "args")
 
-(provide jempty jnull jundefined literal? protop larguments parguments jsil-type-of ref-v-type ref-o-type)
+(provide jempty jnull jundefined literal? protop larguments parguments jsil-type-of ref-v-type ref-o-type lht-values)
 
 ;;
 ;; binary operators 

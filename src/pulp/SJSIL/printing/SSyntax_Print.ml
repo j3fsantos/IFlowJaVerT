@@ -248,8 +248,10 @@ let rec sexpr_of_expression e =
     | Base e -> Printf.sprintf "(base %s)" (se e)
 		(* (field e) *)
     | Field e -> Printf.sprintf "(field %s)" (se e)
-		(* (nth e n) *)
-		| Nth (e1, e2) -> Printf.sprintf "(nth %s %s)" (se e1) (se e2)
+		(* (s-nth e n) *)
+		| SNth (e1, e2) -> Printf.sprintf "(s-nth %s %s)" (se e1) (se e2)
+		(* (l-nth e n) *)
+		| LNth (e1, e2) -> Printf.sprintf "(l-nth %s %s)" (se e1) (se e2)
 		(* (jsil-list sexpr-e1 ... sexpr-en) *) 
 		| EList ll -> 
 			(match ll with
@@ -303,8 +305,10 @@ let rec string_of_expression e escape_string =
     | Base e -> Printf.sprintf "base(%s)" (se e)
 		(* ('field e) *)
     | Field e -> Printf.sprintf "field(%s)" (se e)
-		(* ('nth e n) *)
-		| Nth (e1, e2) -> Printf.sprintf "nth(%s, %s)" (se e1) (se e2)
+		(* ('s-nth e n) *)
+		| SNth (e1, e2) -> Printf.sprintf "s-nth(%s, %s)" (se e1) (se e2)
+		(* ('l-nth e n) *)
+		| LNth (e1, e2) -> Printf.sprintf "l-nth(%s, %s)" (se e1) (se e2)
 		(* *)
 		| EList ll -> 
 			(match ll with

@@ -134,7 +134,8 @@ type jsil_expr =
 	(* LISTS (FOR DESCRIPTORS) *)
 	| Cons of jsil_expr * jsil_expr 
 	| EList of jsil_expr list
-	| Nth of jsil_expr * jsil_expr
+	| SNth of jsil_expr * jsil_expr
+  | LNth of jsil_expr * jsil_expr
 
 (* jsil logical expressions *)
 type jsil_logic_var = string
@@ -156,7 +157,8 @@ type jsil_logic_expr =
 (* list stuff *) 
 	| LCons       of jsil_logic_expr * jsil_logic_expr
 	| LEList      of jsil_logic_expr list 
-	| LNth        of jsil_logic_expr * jsil_logic_expr
+	| LSNth       of jsil_logic_expr * jsil_logic_expr
+	| LLNth       of jsil_logic_expr * jsil_logic_expr
 
 type jsil_logic_assertion =
 	| LAnd				of jsil_logic_assertion * jsil_logic_assertion

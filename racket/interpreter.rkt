@@ -4,6 +4,8 @@
 (require (file "wp.rkt"))
 (require (file "util.rkt"))
 
+(define depth 0)
+
 ;;
 ;; SSkip      ()                  'skip       DONE
 ;; Assignment (var, expr)         'v-assign   DONE
@@ -120,7 +122,7 @@
       ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))
 
-(define goto-limit 100)
+(define goto-limit 10)
 
 (define goto-stack (make-parameter '()))
 
@@ -151,11 +153,27 @@
     ((eq? (first (get-cmd proc (+ cur-index 1))) 'v-psi-assign) prev-index)
     (#t cur-index)))
 
+(define (print-cmd cmd)
+  (if (union? cmd)
+      (let*
+          (
+           (uc (union-contents cmd))
+           (values (lht-values uc))
+          )
+        (println "Union command, yippie woo hoo hoo")
+        (letrec ((iter (lambda (l)
+		   (println (format "  ~v" l))
+		   (cond ((not (null? (cdr l)))
+			  (iter (cdr l)))))))
+          (iter values)))
+      (println cmd))
+)
+
 (define (run-cmds-iter prog proc-name heap store cur-index prev-index)
   (let* ((proc (get-proc prog proc-name))
          (cmd (get-cmd proc cur-index))
          (cmd-type (first cmd)))
-    ;;(println cmd)
+    (print-cmd cmd)
     ;;(println (format "Run-cmds-iter: procedure: ~v, index ~v, command ~v" proc-name cur-index cmd))
     (cond
       ;;
@@ -224,12 +242,13 @@
               (err-label (if (>= (length cmd) 5) (fifth cmd) null))
               (call-proc-name (run-expr proc-name-expr store))
               (arg-vals (map (lambda (expr) (run-expr expr store)) arg-exprs)))
-         ;;(println (format "Procedure call: ~v (~v)" call-proc-name arg-vals))
+         (newline (current-output-port))
+         (println (format "~v : Procedure call: ~v (~v)" depth call-proc-name arg-vals))
+         (set! depth (+ depth 1))
          (let ((outcome (car (run-proc prog call-proc-name heap arg-vals))))
-           ;;(display
-           ;;(format "Finished running procedure ~v with arguments ~v and obtained the outcome ~v\n"
-           ;;         call-proc-name arg-vals outcome)) 
-           ;; (println (format "Procedure call: ~v = ~v (~v) returned ~v" lhs-var call-proc-name arg-vals outcome)) 
+           (set! depth (- depth 1))
+           (println (format "~v : Procedure return: ~v = ~v (~v) -> ~v" depth lhs-var call-proc-name arg-vals outcome)) 
+           (newline (current-output-port))
            (cond
              [(and (eq? (first outcome) 'err) (not (null? err-label)))
               (mutate-store store lhs-var (second outcome))

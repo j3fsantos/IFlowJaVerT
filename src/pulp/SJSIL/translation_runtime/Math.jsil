@@ -283,7 +283,7 @@ proc M_min (xsc, vthis) {
 			
 	loop:	goto [n < len] head rlab;
 			
-	head:	cur := nth (la, n);
+	head:	cur := l-nth (la, n);
 			xerr := "i__toNumber" (cur) with elab;
 			cur := xerr;
 			goto [not (cur = cur)] rn comp;
@@ -324,7 +324,7 @@ proc M_max (xsc, vthis) {
 			
 	loop:	goto [n < len] head rlab;
 			
-	head:	cur := nth (la, n);
+	head:	cur := l-nth (la, n);
 			xerr := "i__toNumber" (cur) with elab;
 			cur := xerr;
 			goto [not (cur = cur)] rn comp;

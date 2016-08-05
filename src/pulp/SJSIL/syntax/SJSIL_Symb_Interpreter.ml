@@ -78,17 +78,28 @@ let rec symb_evaluate_expr (expr : jsil_expr) store =
 		| LField _ -> LLit (Type StringType)
 		| LTypeOf _ -> LLit (Type TypeType))
 	
-	| Nth (e1, e2) ->
+	| LNth (e1, e2) ->
 		let list = symb_evaluate_expr e1 store in
 		let index = symb_evaluate_expr e2 store in
 		(match list, index with 
 		| LLit (LList list), LLit (Num n) -> 
-			LLit (List.nth list (int_of_float n))
+			(try (LLit (List.nth list (int_of_float n))) with _ -> 
+					raise (Failure "List index out of bounds"))
 		
 		| LEList list, LLit (Num n) ->
-			List.nth list (int_of_float n)
+			(try (List.nth list (int_of_float n)) with _ -> 
+					raise (Failure "List index out of bounds"))
 				
-		| _, _ -> LNth (list, index))
+		| _, _ -> LLNth (list, index))
+
+	| SNth (e1, e2) ->
+		let str = symb_evaluate_expr e1 store in
+		let index = symb_evaluate_expr e2 store in
+		(match str, index with 
+		| LLit (String s), LLit (Num n) -> 
+			LLit (String (String.make 1 (String.get s (int_of_float n))))
+				
+		| _, _ -> LSNth (str, index))
 	
 	| EList es ->
 		let les = 

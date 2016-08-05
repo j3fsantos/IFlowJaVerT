@@ -22,7 +22,7 @@ proc s__getOwnProperty (l, prop) {
 			len := length (str);
 			goto [len <= idx] rlab return;
 			
-	return: rstr := nth (str, idx);
+	return: rstr := s-nth (str, idx);
 			xret := {{ "d", rstr, $$f, $$t, $$f }};
 	
 	rlab: 	skip
@@ -149,7 +149,7 @@ proc SP_charAt (xsc, vthis, position) {
 	empt:	xret := "";
 			goto rlab;
 	
-	fll:	xret := nth (S, pos);
+	fll:	xret := s-nth (S, pos);
 	rlab:	skip;
 	
 	elab:	skip

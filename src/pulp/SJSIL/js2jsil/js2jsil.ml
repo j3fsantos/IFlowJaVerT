@@ -3744,7 +3744,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			
 			(* xp := nth (xf, x_c_1)	*) 
 			let xp = fresh_var () in 
-			let cmd_ass_xp = SLBasic (SAssignment (xp, Nth (Var xf, Var x_c_1))) in 
+			let cmd_ass_xp = SLBasic (SAssignment (xp, LNth (Var xf, Var x_c_1))) in 
 			
 			(* xl := [xlf, xp];	*) 
 			let xl = fresh_var () in 
@@ -3752,7 +3752,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			
 			(*  xxl := nth (xl, 1)   *)
 			let xxl = fresh_var () in
-			let cmd_ass_xxl = SLBasic (SAssignment (xxl, Nth (Var xl, Literal (Num 1.)))) in 
+			let cmd_ass_xxl = SLBasic (SAssignment (xxl, LNth (Var xl, Literal (Num 1.)))) in 
 			
 			(* 	xhf := hasField (xxl, xp) *) 
 			let xhf = fresh_var () in 
