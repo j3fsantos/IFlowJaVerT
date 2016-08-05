@@ -543,6 +543,19 @@ let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_form
 	| LNot (LLessEq (_, _))
  	| LEmp -> () 
 	
+let rec init_gamma gamma a = 
+	let f = init_gamma gamma in
+	match a with
+	  | LTypeEnv type_list -> 
+			List.iter 
+				(fun (v, t) -> 
+					match v with
+					| LVar v 
+					| PVar v -> Hashtbl.replace gamma v t
+					| _ -> raise (Failure ("Only vars or lvars in the typing environment, for the love of God.")))
+				type_list
+		| LStar	(al, ar) -> f al; f ar
+		| _ -> ()
 
 let normalize_assertion_top_level a = 
 	
@@ -551,6 +564,7 @@ let normalize_assertion_top_level a =
 	let gamma = Hashtbl.create 1021 in 
 	let subst = Hashtbl.create 1021 in 
 	
+	init_gamma gamma a;
 	init_symb_store_alocs store gamma subst a;
 	let p_formulae = init_pure_assignments a store gamma subst in 
 	Printf.printf "after init pure assignments \n"; 
