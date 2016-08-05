@@ -7,5 +7,6 @@ function top(x) {
     }
 }
 
-top(___n_number);
+var x = jsil_make_symbolic_number();
+top(x);
 

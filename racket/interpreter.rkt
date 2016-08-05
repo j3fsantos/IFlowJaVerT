@@ -39,7 +39,7 @@
               (loc-val (run-expr loc-expr store))
               (prop-val (run-expr prop-expr store))
               (rhs-val (run-expr rhs-expr store)))
-         (println (format "Mutation: [~a, ~a] = ~a" loc-val prop-val rhs-val))
+         ;; (println (format "Mutation: [~v, ~v] = ~v" loc-val prop-val rhs-val))
          (mutate-heap heap loc-val prop-val rhs-val)
          rhs-val)]
       ;;
@@ -48,7 +48,7 @@
        (let* ((lhs-var (second bcmd))
               (rhs-expr (third bcmd))
               (rhs-val  (run-expr rhs-expr store)))
-         (println (format "Assignment: ~a = ~a" lhs-var rhs-val))
+         ;; (println (format "Assignment: ~v = ~v" lhs-var rhs-val))
          (mutate-store store lhs-var rhs-val)
          rhs-val)]
       ;;
@@ -70,7 +70,7 @@
               (prop-list (get-fields heap loc-val))
               (is-js-field (member prop-val prop-list))
               (result (! (eq? is-js-field #f))))
-         (println (format "Has-field: ~a = hf [~a, ~a] : ~a" lhs-var loc-val prop-val result))
+         ;; (println (format "Has-field: ~v = hf [~v, ~v] : ~v" lhs-var loc-val prop-val result))
          (mutate-store store lhs-var result) ;; (to-jsil-bool contains))
          result)] ;; (to-jsil-bool contains))]
       ;;
@@ -80,16 +80,12 @@
               (loc-expr (third bcmd))
               (loc-val (run-expr loc-expr store))
               (obj (heap-get-obj heap loc-val))
-              (props (foldl (lambda (x ac)
-                       (if (is-a-list? (cdr x))
-                       (append ac (list (car x)))
-                       ac)
-                       )
-                       (list ) obj))
-              (sprops (sort props string<?))
+              (prop-list (get-fields heap loc-val))
+              (result (cons 'jsil-list prop-list))
              )
-         (mutate-store store lhs-var (cons 'jsil-list sprops)) ;; (to-jsil-bool contains))
-         (cons 'jsil-list sprops))] ;; (to-jsil-bool contains))]
+         ;; (println (format "Get-fields: ~v = gf (~v) : ~v" lhs-var loc-val result))
+         (mutate-store store lhs-var result) ;; (to-jsil-bool contains))
+         result)] ;; (to-jsil-bool contains))]
       ;;
       ;; ('h-read lhs-var e1 e2)
       [(eq? cmd-type 'h-read)
@@ -99,7 +95,7 @@
               (loc-val (run-expr loc-expr store))
               (prop-val (run-expr prop-expr store))
               (result (heap-get heap loc-val prop-val)))
-         (println (format "Lookup: ~a = [~a, ~a] : ~a" lhs-var loc-val prop-val result))
+         ;; (println (format "Lookup: ~v = [~v, ~v] : ~v" lhs-var loc-val prop-val result))
          (mutate-store store lhs-var result)
          result)]
       ;;
@@ -124,7 +120,7 @@
       ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))
 
-(define goto-limit 10000)
+(define goto-limit 100)
 
 (define goto-stack (make-parameter '()))
 
@@ -159,15 +155,15 @@
   (let* ((proc (get-proc prog proc-name))
          (cmd (get-cmd proc cur-index))
          (cmd-type (first cmd)))
-    ;;(displayln cmd)
-    ;; (println (format "Run-cmds-iter: Running the command ~a" cmd))
+    ;;(println cmd)
+    ;;(println (format "Run-cmds-iter: procedure: ~v, index ~v, command ~v" proc-name cur-index cmd))
     (cond
       ;;
       ;; ('print e) 
       [(eq? cmd-type 'print)
        (let* ((expr (second cmd))
               (expr-val (run-expr expr store)))
-         (println (format "Program Print:: ~a" expr-val))
+         (println (format "Program Print:: ~v" expr-val))
          (run-cmds-iter prog proc-name heap store (+ cur-index 1) cur-index))]
       ;;
       ;; ('goto i)
@@ -228,12 +224,12 @@
               (err-label (if (>= (length cmd) 5) (fifth cmd) null))
               (call-proc-name (run-expr proc-name-expr store))
               (arg-vals (map (lambda (expr) (run-expr expr store)) arg-exprs)))
-         ;;(println (format "Procedure call: ~a (~a)" call-proc-name arg-vals))
+         ;;(println (format "Procedure call: ~v (~v)" call-proc-name arg-vals))
          (let ((outcome (car (run-proc prog call-proc-name heap arg-vals))))
            ;;(display
-            ;;(format "Finished running procedure ~a with arguments ~a and obtained the outcome ~a\n"
-                  ;;  call-proc-name arg-vals outcome)) 
-           (println (format "Procedure call: ~a = ~a (~a) returned ~a" lhs-var call-proc-name arg-vals outcome)) 
+           ;;(format "Finished running procedure ~v with arguments ~v and obtained the outcome ~v\n"
+           ;;         call-proc-name arg-vals outcome)) 
+           ;; (println (format "Procedure call: ~v = ~v (~v) returned ~v" lhs-var call-proc-name arg-vals outcome)) 
            (cond
              [(and (eq? (first outcome) 'err) (not (null? err-label)))
               (mutate-store store lhs-var (second outcome))
@@ -259,8 +255,9 @@
   (let* ((proc (get-proc prog proc-name))
          (ret-var (get-ret-var proc))
          (err-var (get-err-var proc)))
-    ;;(displayln "I am in a marvelous phi")
-    ;;(displayln (format "cur_index: ~a, err_index: ~a" cur-index (get-err-index proc)))
+    ;;(displayln "I am in a marvellous phi")
+    ;;(displayln (format "cur_index: ~v, err_index: ~v" cur-index (get-err-index proc)))
+    ;; (println (format "So, proc: ~v, cur: ~v, ret: ~v, err: ~v" proc-name cur-index (get-ret-index proc) (get-err-index proc)))
     (cond
       [(eq? cur-index (get-ret-index proc))
        (list 'normal (store-get store ret-var))]
@@ -315,8 +312,10 @@
        ;; ('typeof e)
        [(eq? (first expr) 'typeof) 
         (let* ((arg (second expr))
-               (val (run-expr arg store)))
-          (jsil-type-of val))]
+               (val (run-expr arg store))
+               (type-of (jsil-type-of val)))
+          ;; (println (format "typeOf: typeof ~v -> ~v = ~v" arg val type-of))
+          type-of)]
        ;;
        ;; ('jsil-list l)
        [(eq? (first expr) 'jsil-list)
@@ -381,9 +380,9 @@
   (let* ((proc (get-proc prog proc-name))
          (store (proc-init-store proc arg-vals)))
     (mutate-heap heap larguments parguments (make-jsil-list arg-vals))
-    ;;(println (format "About to run procedure ~a with arguments ~a" proc-name arg-vals))
+    ;;(println (format "About to run procedure ~v with arguments ~v" proc-name arg-vals))
     (let ((res (run-cmds-iter prog proc-name heap store 0 0)))
-      ;;(println (format "About to return from procedure ~a with return value ~a" proc-name res))
+      ;;(println (format "About to return from procedure ~v with return value ~v" proc-name res))
       (cons res store))))
 
 (define (run-program prog heap)
@@ -392,19 +391,6 @@
   
 (provide run-program run-proc program procedure heap cell store args body ret-ctx err-ctx jempty jnull jundefined protop) ;; jtrue jfalse protop)
 
-(define (proto-lookup-obj heap loc prop)
-  (cond
-    [(eq? loc jnull) jempty]
-    [(heap-contains? heap loc prop) loc]
-    [else
-     (let ((loc-proto (heap-get heap loc protop)))
-       (proto-lookup-obj heap loc-proto prop))]))
-
-(define (proto-lookup-val heap loc prop)
-  (let ((proto-prop-loc (proto-lookup-obj heap loc prop)))
-    (if (eq? proto-prop-loc jempty)
-        jundefined
-        (heap-get heap proto-prop-loc prop))))
 
 
   

@@ -395,7 +395,23 @@ ROSETTE:
 
 Binary Operators:
 
+|
+>>>
 m_atan2
+
+-----
+
+(define top-level-run-prog
+  (lambda () 
+    (let* ((res (cadar (run-program prog hp)))
+           (jesus (union-contents res))
+           (res-str (format "~v" jesus)))
+      (let loop ((symbs-to-print jesus))
+        (when (not (null? symbs-to-print))
+          (let* ((element (caar symbs-to-print))
+                 (lterm (term->list element)))
+            (pretty-display lterm)
+            (loop (cdr symbs-to-print))))))))
 
 
 
