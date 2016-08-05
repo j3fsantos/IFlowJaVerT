@@ -199,12 +199,7 @@ let string_of_shallow_symb_heap heap =
 							else ac ^ ", " ^ field_value_str)
 					""
 					fv_pairs in 
-			let default_value_str = 
-				(match default_value with 
-				| None -> ""
-				| Some lexpr ->
-					let lexpr_str = string_of_logic_expression lexpr false in 
-					"(default: " ^ lexpr_str ^ ")") in 
+			let default_value_str = "(default: " ^ (string_of_logic_expression default_value false) ^ ")" in
 			let symb_obj_str = 
 				(if (str_fv_pairs = "") 
 					then loc ^ " |-> [" ^  default_value_str ^ "]" 

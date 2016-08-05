@@ -38,7 +38,7 @@ let rec normalise_lexpr store gamma subst le =
 	match le with 
 	| LLit lit -> LLit lit
 	| LNone -> LNone
-	| LVar lvar -> (try ALoc (Hashtbl.find subst lvar) with _ -> LVar lvar)
+	| LVar lvar -> (try Hashtbl.find subst lvar with _ -> LVar lvar)
 	| ALoc aloc -> raise (Failure "Unsupported expression during normalization: ALoc")
 	| PVar pvar -> 
 		(try Hashtbl.find store pvar with
@@ -268,7 +268,7 @@ let rec init_symb_store_alocs store gamma subst ass : unit =
 		with _ ->
 			(let aloc = new_abs_loc_name var in 
 			Hashtbl.add store var (ALoc aloc);
-			Hashtbl.add subst var aloc; 
+			Hashtbl.add subst var (ALoc aloc); 
 			Hashtbl.replace gamma var ObjectType; 
 			()))
 		 
@@ -276,7 +276,7 @@ let rec init_symb_store_alocs store gamma subst ass : unit =
 		(try (Hashtbl.find subst var); ()
 			with _ ->
 				(let aloc = new_abs_loc_name var in  
-				Hashtbl.add subst var aloc; 
+				Hashtbl.add subst var (ALoc aloc); 
 				Hashtbl.replace gamma var ObjectType; 
 				()))
 				
@@ -346,7 +346,7 @@ let init_pure_assignments a store gamma subst =
 			try Hashtbl.find store var; () with _ ->  
 				let new_l_var = new_lvar_name var in 
 				Hashtbl.add store var (LVar new_l_var); 
-				Hashtbl.add subst var new_l_var;
+				Hashtbl.add subst var (LVar new_l_var);
 				(try 
 					let var_type = Hashtbl.find gamma var in 
 					Hashtbl.add gamma new_l_var var_type
@@ -406,16 +406,14 @@ let init_pure_assignments a store gamma subst =
 		(** a pure assignment that cannot be lifted to the abstract store 
         has to remain in the pure formulae *)
 		let remove_assignment var = 
-			let new_l_var = try Some (Hashtbl.find subst var) with _ -> None in  
-			let le = try Some (Hashtbl.find pure_assignments var) with _ -> None in 
-			(match new_l_var, le with 
-			| None, _ 	
-			| _, None -> 
+			(try 
+				let new_l_var = Hashtbl.find subst var in
+				let le = Hashtbl.find pure_assignments var in
+				Stack.push (LEq (new_l_var, le)) non_store_pure_assertions;
+				Hashtbl.remove pure_assignments var
+			with _ -> 
 				let msg = Printf.sprintf "Should not be here: remove_assignment. Var: %s." var in 
-				raise (Failure msg)
-			| Some new_l_var, Some le ->  
-				Stack.push (LEq ((LVar new_l_var), le)) non_store_pure_assertions;
-				Hashtbl.remove pure_assignments var) in  
+				raise (Failure msg)) in  
 		
 		(** lifting an assignment to the abstract store *)
 		let rewrite_assignment var = 
@@ -478,22 +476,37 @@ let init_pure_assignments a store gamma subst =
 let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_formulae gamma subst a = 
 	let f = compute_symb_heap heap store p_formulae gamma subst in  
 	let fe = normalise_lexpr store gamma subst in 
+	
+	let simplify_element_of_cell_assertion ele = 
+		(match ele with 
+		| LLit _ 
+		| LVar _ 
+		| ALoc _ -> ele 
+		| _ -> 
+			let lvar = fresh_lvar () in 
+			(* I need to add the type of the new logical variable to the gamma *) 
+			DynArray.add p_formulae (LEq ((LVar lvar), ele)); 
+			LVar lvar) in 
+	
 	match a with 
 	| LStar (a1, a2) -> f a1; f a2
 	
 	| LPointsTo (LVar var, le2, le3) 
 	| LPointsTo (PVar var, le2, le3) ->
-		let llvar = (try Hashtbl.find subst var 
+		let aloc = (try
+			(match Hashtbl.find subst var with 
+			| ALoc aloc -> aloc 
+			| _ -> raise (Failure "This should not happen, ever!"))
 			with _ -> raise (Failure "This should not happen, ever!")) in  
-		let nle2 = fe le2 in 
-		let nle3 = fe le3 in
-		let field_val_pairs, default_val = (try LHeap.find heap llvar with _ -> ([], Some LNone)) in  
-		LHeap.replace heap llvar (((nle2, nle3) :: field_val_pairs), default_val)
+		let nle2 = simplify_element_of_cell_assertion (fe le2) in 
+		let nle3 = simplify_element_of_cell_assertion (fe le3) in
+		let field_val_pairs, default_val = (try LHeap.find heap aloc with _ -> ([], LUnknown)) in  
+		LHeap.replace heap aloc (((nle2, nle3) :: field_val_pairs), default_val)
 		
 	| LPointsTo (LLit (Loc loc), le2, le3) -> 
-		let nle2 = fe le2 in 
-		let nle3 = fe le3 in
-		let field_val_pairs, default_val = (try LHeap.find heap loc with _ -> ([], Some LNone)) in
+		let nle2 = simplify_element_of_cell_assertion (fe le2) in 
+		let nle3 = simplify_element_of_cell_assertion (fe le3) in
+		let field_val_pairs, default_val = (try LHeap.find heap loc with _ -> ([], LUnknown)) in
 		LHeap.replace heap loc (((nle2, nle3) :: field_val_pairs), default_val)
 	
 	| LEq (_, _)

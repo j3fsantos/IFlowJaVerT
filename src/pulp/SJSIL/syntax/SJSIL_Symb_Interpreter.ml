@@ -156,31 +156,28 @@ let filter_field field_val_list e1 pure_formulae =
 
 
 let update_abs_heap_default (heap : symbolic_heap) loc e =
-	let field_val_list, default_val = try LHeap.find heap loc with _ -> [], None in 
+	let field_val_list, default_val = try LHeap.find heap loc with _ -> [], LUnknown in 
 	match default_val with 
-	| Some _ -> raise (Failure "the default value for the fields of a given object cannot be changed") 
-	| None -> LHeap.replace heap loc (field_val_list, Some e)    
+	| LUnknown -> LHeap.replace heap loc (field_val_list, e)    
+ 	| _ -> raise (Failure "the default value for the fields of a given object cannot be changed") 
 
 
 let update_abs_heap (heap : symbolic_heap) loc e1 e2 pure_formulae =
 	(* Printf.printf "Update Abstract Heap\n"; *)
-	let field_val_list, default_val = try LHeap.find heap loc with _ -> [], None in 
+	let field_val_list, default_val = try LHeap.find heap loc with _ -> [], LUnknown in 
 	let unchanged_field_val_list, _ = filter_field field_val_list e1 pure_formulae in 
 	LHeap.replace heap loc ((e1, e2) :: unchanged_field_val_list, default_val)    
 
 
 let abs_heap_find heap l ne pure_formulae = 
-	let field_val_list, default_val = try LHeap.find heap l with _ -> [], None in 
+	let field_val_list, default_val = try LHeap.find heap l with _ -> [], LUnknown in 
 	let _, field_val_pair = filter_field field_val_list ne pure_formulae in
 	match field_val_pair with 
 	| Some (_, f_val) -> f_val
-	| None  -> 
-		(match default_val with 
-		| Some d_val -> d_val 
-		| None -> raise (Failure "You are looking up the value of a field that does exist"))
+	| None -> default_val
 
 let abs_heap_delete heap l ne pure_formulae = 
-	let field_val_list, default_val = try LHeap.find heap l with _ -> [], None in 
+	let field_val_list, default_val = try LHeap.find heap l with _ -> [], LUnknown in 
 	let rest_fv_pairs, del_fv_pair = filter_field field_val_list ne pure_formulae in
 	match del_fv_pair with 
 	| Some (_, _) -> LHeap.replace heap l (rest_fv_pairs, default_val) 
@@ -260,11 +257,7 @@ let unify_symb_heaps (post_heap : symbolic_heap) (final_heap : symbolic_heap) pu
 				(try LHeap.find final_heap final_loc with _ -> 
 					let msg = Printf.sprintf "Location %s in post has not been matched" final_loc in 
 					raise (Failure msg) ) in 
-			(match post_def, final_def with 
-			| None, None -> () 
-			| Some post_def, Some final_def -> 
-				unify_lexprs post_def final_def pure_formulae rn_tbl lvar_constraints_tbl
-			| _, _ -> raise (Failure ("Default values are not unifiable"))); 
+			unify_lexprs post_def final_def pure_formulae rn_tbl lvar_constraints_tbl; 
 			unify_symb_fv_lists post_fv_list final_fv_list pure_formulae rn_tbl lvar_constraints_tbl)
 		post_heap
 		

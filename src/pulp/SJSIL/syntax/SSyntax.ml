@@ -157,6 +157,8 @@ type jsil_logic_expr =
 	| LCons       of jsil_logic_expr * jsil_logic_expr
 	| LEList      of jsil_logic_expr list 
 	| LNth        of jsil_logic_expr * jsil_logic_expr
+(* Unknown *)
+	| LUnknown    
 
 type jsil_logic_assertion =
 	| LAnd				of jsil_logic_assertion * jsil_logic_assertion
@@ -186,7 +188,7 @@ module LHeap = Hashtbl.Make(
 		let hash = Hashtbl.hash
 	end)
 
-type symbolic_heap = (((jsil_logic_expr * jsil_logic_expr) list) * (jsil_logic_expr option))  LHeap.t 
+type symbolic_heap = (((jsil_logic_expr * jsil_logic_expr) list) * jsil_logic_expr)  LHeap.t 
 type symbolic_store = (string, jsil_logic_expr) Hashtbl.t
 
 type jsil_single_spec = {
