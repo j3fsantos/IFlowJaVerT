@@ -530,7 +530,7 @@ assertion_target:
 		{ LForAll (vars, ass) }
 		
 (* domain (obj, props) *)
-  | LDOMAIN; LBRACE; obj_expr=lexpr_target; COMMA; props=domain_element_list_target; RBRACE
+  | LDOMAIN; LBRACE; obj_expr=lexpr_target; COMMA; CLBRACKET; props=domain_element_list_target; CRBRACKET; RBRACE
 	  { LDomain (obj_expr, props) }
 
 (* type_env (type_pairs) *)
