@@ -53,8 +53,8 @@ proc copy_object (l, fields) {
 			len := length (fields);	
 			
 	loop:	goto [n < len] head rlab;
-	head:	val := [l, nth (fields, n)];
-			[xret, nth (fields, n)] := val;
+	head:	val := [l, l-nth (fields, n)];
+			[xret, l-nth (fields, n)] := val;
 			n := n + 1;
 			goto loop;
 	
@@ -794,7 +794,7 @@ proc create_arguments_object (argList) {
 			
 	loop:	goto [0 <= indx] head call;
 	head:	xret := "i__toString" (indx) with elab;
-			xret := dop (obj, xret, {{ "d", nth (argList, indx), $$t, $$t, $$t }}, $$f) with elab;
+			xret := dop (obj, xret, {{ "d", l-nth (argList, indx), $$t, $$t, $$t }}, $$f) with elab;
 			indx := indx - 1;
 			goto loop;
 			

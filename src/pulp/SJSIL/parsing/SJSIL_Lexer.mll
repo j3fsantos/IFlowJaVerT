@@ -145,6 +145,7 @@ rule read = parse
 	| "$$v-reference_type" { SJSIL_Parser.VREFTYPELIT }
 	| "$$o-reference_type" { SJSIL_Parser.OREFTYPELIT }
 	| "$$list_type"        { SJSIL_Parser.LISTTYPELIT }
+	| "$$type_type"        { SJSIL_Parser.TYPETYPELIT }
 (* Numbers *)
   | "nan"                { SJSIL_Parser.NAN }
 	| "inf"                { SJSIL_Parser.INFINITY }
@@ -192,7 +193,8 @@ rule read = parse
 	| "base"               { SJSIL_Parser.BASE }
 	| "field"              { SJSIL_Parser.FIELD }
 	| "typeOf"             { SJSIL_Parser.TYPEOF }
-	| "nth"                { SJSIL_Parser.LNTH }
+	| "s-nth"              { SJSIL_Parser.SNTH }
+	| "l-nth"              { SJSIL_Parser.LNTH }
 	| "cons"               { SJSIL_Parser.CONS }
   |	"assume"             { SJSIL_Parser.ASSUME }
 	| "assert"             { SJSIL_Parser.ASSERT }
@@ -277,6 +279,9 @@ rule read = parse
 	| "{{"                 { SJSIL_Parser.LISTOPEN }
   | "}}"                 { SJSIL_Parser.LISTCLOSE }
 	| '"'                  { read_string (Buffer.create 17) lexbuf }
+(* symbolics *)
+  | "type_env"           { SJSIL_Parser.LTYPEENV }
+	| "domain"             { SJSIL_Parser.LDOMAIN }
 (*literals*)
  	| "$$t"                { SJSIL_Parser.TRUE }
   | "$$f"                { SJSIL_Parser.FALSE }

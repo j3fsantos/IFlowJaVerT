@@ -116,7 +116,7 @@ let rec normalise_lexpr store gamma subst le =
 		| LTypeOf _ -> LLit (Type TypeType)
 		| LCons (_, _) 
 		| LEList _ -> LLit (Type ListType)
-	  | LNth (list, index) ->
+	  | LLNth (list, index) ->
 			(match list, index with 
 			| LLit (LList list), LLit (Num n) ->
 				let lit_n = (try List.nth list (int_of_float n) with _ -> 
@@ -126,8 +126,15 @@ let rec normalise_lexpr store gamma subst le =
 				let le_n = (try List.nth list (int_of_float n) with _ ->
 					 raise (Failure "List index out of bounds")) in
 				f (LTypeOf le_n)
+			| _, _ -> LTypeOf (nle1))
+	  | LSNth (str, index) ->
+			(match str, index with 
+			| LLit (String s), LLit (Num n) ->
+				let _ = (try (String.get s (int_of_float n)) with _ ->
+					raise (Failure "String index out of bounds")) in
+				LLit (Type StringType)
 			| _, _ -> LTypeOf (nle1)))
-	
+		
 	| LCons (le1, le2) -> 
 		let nle1 = f le1 in 
 		let nle2 = f le2 in 
@@ -153,16 +160,23 @@ let rec normalise_lexpr store gamma subst le =
 			then LLit (LList lit_list) 
 			else LEList n_le_list 
 	
-	| LNth (le1, le2) -> 
+	| LLNth (le1, le2) -> 
 		let nle1 = f le1 in 
 		let nle2 = f le2 in 
-		match nle1, nle2 with 
+		(match nle1, nle2 with 
 		| LLit (LList list), LLit (Num n) -> (try LLit (List.nth list (int_of_float n)) with _ ->
 			 raise (Failure "List index out of bounds"))
 		| LEList list, LLit (Num n) -> (try (List.nth list (int_of_float n)) with _ -> 
 			 raise (Failure "List index out of bounds"))
-		| _, _ -> LNth (nle1, nle2)
+		| _, _ -> LLNth (nle1, nle2))
 
+	| LSNth (le1, le2) -> 
+		let nle1 = f le1 in 
+		let nle2 = f le2 in 
+		match nle1, nle2 with 
+		| LLit (String s), LLit (Num n) -> (try LLit (String (String.make 1 (String.get s (int_of_float n)))) with _ ->
+			 raise (Failure "String index out of bounds"))
+		| _, _ -> LSNth (nle1, nle2)
 
 let normalise_pure_assertion store gamma subst assertion =
 	let fe = normalise_lexpr store gamma subst in 
@@ -209,7 +223,8 @@ let rec get_expr_vars var_set e =
 	| LField e1
 	| LTypeOf e1 -> f e1 
 	| LCons (e1, e2)    
-	| LNth (e1, e2) -> f e1; f e2
+	| LLNth (e1, e2) 
+	| LSNth (e1, e2) -> f e1; f e2
 	| LEList le_list -> List.iter (fun le -> f le) le_list 
 	
 

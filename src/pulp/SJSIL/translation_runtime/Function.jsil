@@ -32,14 +32,14 @@ proc FP_call () {
 					
 			arguments := args;
 			len := length (arguments);
-			vthis  := nth (arguments, 1); 
+			vthis  := l-nth (arguments, 1); 
 			
 			xret := "i__isCallable" (vthis);
 			goto [xret] this te;
 	
 	this:	xthis := $$undefined;
 			goto [len < 3] params sthis;
-	sthis:	xthis := nth (arguments, 2);
+	sthis:	xthis := l-nth (arguments, 2);
 	
 	params:	pars := {{ }};
 			goto [3 < len] spar body;

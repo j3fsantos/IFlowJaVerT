@@ -37,6 +37,7 @@ open SSyntax
 %token VREFTYPELIT
 %token OREFTYPELIT
 %token LISTTYPELIT
+%token TYPETYPELIT
 (* command keywords  *)
 %token PHI
 %token PSI
@@ -93,6 +94,7 @@ open SSyntax
 %token SIGNEDRIGHTSHIFT
 %token UNSIGNEDRIGHTSHIFT
 %token LCONS
+%token SNTH
 %token LNTH
 %token M_ATAN2
 %token M_POW
@@ -157,6 +159,9 @@ open SSyntax
 %token CSPEC
 %token LISTOPEN
 %token LISTCLOSE
+
+%token LTYPEENV
+%token LDOMAIN
 
 %type <(string list option * SSyntax.lprocedure list)> prog_target
 %type <(SSyntax.jsil_spec list)>  specs_target
@@ -407,9 +412,12 @@ expr_target:
 (* typeof *)
 	| TYPEOF; LBRACE; e=expr_target; RBRACE
 		{ SSyntax.TypeOf (e) }
-(* nth *)
+(* s-nth (string, n) *)
+	| SNTH; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE 
+		{ SSyntax.SNth (e1, e2) }
+(* l-nth (list, n) *)
 	| LNTH; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE 
-		{ SSyntax.Nth (e1, e2) }
+		{ SSyntax.LNth (e1, e2) }
 (* {{ }}	| LISTOPEN; LISTCLOSE { SSyntax.LEList [] } *)
 (* {{ e, ..., e }} *)
 	| LISTOPEN; exprlist = separated_list(COMMA, expr_target); LISTCLOSE 
@@ -520,10 +528,51 @@ assertion_target:
 (* forall X, Y, Z . P *)
 	| LFORALL; vars=var_list_target; DOT; ass=assertion_target
 		{ LForAll (vars, ass) }
+		
+(* domain (obj, props) *)
+  | LDOMAIN; LBRACE; obj_expr=lexpr_target; COMMA; CLBRACKET; props=domain_element_list_target; CRBRACKET; RBRACE
+	  { LDomain (obj_expr, props) }
+
+(* type_env (type_pairs) *)
+  | LTYPEENV; LBRACE; type_pairs = type_env_pair_list_target; RBRACE
+    { LTypeEnv type_pairs }
+
 (* (P) *)
   | LBRACE; ass=assertion_target; RBRACE
 	  { ass }
 ;
+
+domain_element_list_target:
+  domain_element_list = separated_list(COMMA, domain_element_target) { domain_element_list; }
+	
+var_target:
+  | pv = VAR  { PVar pv }
+	| lv = LVAR { LVar lv }
+	
+domain_element_target:
+  | v = var_target  { v }
+  | s = STRING { LLit (SSyntax.String s) }
+
+type_env_pair_list_target:
+  type_env_pair_list = separated_list(COMMA, type_env_pair_target) { type_env_pair_list; }
+
+type_env_pair_target:
+  | v = var_target; COLON; the_type=jsil_type_target
+	  { (v, the_type) }
+
+jsil_type_target:
+	| UNDEFTYPELIT { SSyntax.UndefinedType }
+	| NULLTYPELIT { SSyntax.NullType }
+  | EMPTYTYPELIT { SSyntax.EmptyType }
+	| BOOLTYPELIT { SSyntax.BooleanType }
+	| NUMTYPELIT { SSyntax.NumberType }
+	| STRTYPELIT { SSyntax.StringType }
+	| OBJTYPELIT { SSyntax.ObjectType }
+	| REFTYPELIT { SSyntax.ReferenceType }
+	| VREFTYPELIT { SSyntax.VariableReferenceType }
+	| OREFTYPELIT { SSyntax.ObjectReferenceType }	
+	| LISTTYPELIT { SSyntax.ListType }
+  | TYPETYPELIT { SSyntax.TypeType }
 
 var_list_target:
 	var_list = separated_list(COMMA, LVAR) { var_list };
@@ -557,8 +606,10 @@ lexpr_target:
 (* typeof *)
 	| TYPEOF; LBRACE; e=lexpr_target; RBRACE
 		{ LTypeOf (e) }
-(* nth(e1, e2) *)
-	| LNTH; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE { SSyntax.LNth (e1, e2) }
+(* l-nth(e1, e2) *)
+	| LNTH; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE { SSyntax.LLNth (e1, e2) }
+(* s-nth(e1, e2) *)
+	| SNTH; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE { SSyntax.LSNth (e1, e2) }
 (* {{ e, ..., e }} *)
 	| LISTOPEN; exprlist = separated_list(COMMA, lexpr_target); LISTCLOSE 
 		{ SSyntax.LEList exprlist }
@@ -587,6 +638,7 @@ lit_target:
 	| VREFTYPELIT { SSyntax.Type SSyntax.VariableReferenceType }
 	| OREFTYPELIT { SSyntax.Type SSyntax.ObjectReferenceType }	
 	| LISTTYPELIT { SSyntax.Type SSyntax.ListType }
+	| TYPETYPELIT { SSyntax.Type SSyntax.TypeType }
 	| TRUE { SSyntax.Bool true }
 	| FALSE { SSyntax.Bool false }
 (*	| i=INT { SSyntax.Num (float_of_int i) } *)

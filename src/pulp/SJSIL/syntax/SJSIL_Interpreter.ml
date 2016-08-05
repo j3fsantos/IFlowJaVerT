@@ -470,15 +470,21 @@ let rec evaluate_expr (e : jsil_expr) store =
 		let v = evaluate_expr e store in
 		Type (evaluate_type_of v) 
 	
-	| Nth (e1, e2) ->
+	| SNth (e1, e2) ->
+		let v = evaluate_expr e1 store in 
+		let n = evaluate_expr e2 store in
+		(match v, n with 
+		| String s, Num n -> 
+				String (String.make 1 (String.get s (int_of_float n)))
+		| _, _ -> raise (Failure (Printf.sprintf "Incorrect argument to SNth: %s, %s" (SSyntax_Print.string_of_literal v false) (SSyntax_Print.string_of_literal n false))))
+	
+	| LNth (e1, e2) ->
 		let v = evaluate_expr e1 store in 
 		let n = evaluate_expr e2 store in
 		(match v, n with 
 		| LList list, Num n -> 
 				(List.nth list (int_of_float n))
-		| String s, Num n -> 
-				String (String.make 1 (String.get s (int_of_float n)))
-		| _, _ -> raise (Failure (Printf.sprintf "Incorrect argument to LLNth: %s, %s" (SSyntax_Print.string_of_literal v false) (SSyntax_Print.string_of_literal n false))))
+		| _, _ -> raise (Failure (Printf.sprintf "Incorrect argument to LNth: %s, %s" (SSyntax_Print.string_of_literal v false) (SSyntax_Print.string_of_literal n false))))
 	
 	| EList ll ->
 		(match ll with 
