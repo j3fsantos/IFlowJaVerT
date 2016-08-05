@@ -530,7 +530,7 @@ assertion_target:
 		{ LForAll (vars, ass) }
 		
 (* domain (obj, props) *)
-  | LDOMAIN; LBRACE; obj_expr=lexpr_target; COMMA; CLBRACKET; props=domain_element_list_target; CRBRACKET; RBRACE
+  | LDOMAIN; LBRACE; obj_expr=lexpr_target; COMMA; CLBRACKET; props=separated_list(COMMA, STRING); CRBRACKET; RBRACE
 	  { LDomain (obj_expr, props) }
 
 (* type_env (type_pairs) *)
@@ -542,23 +542,19 @@ assertion_target:
 	  { ass }
 ;
 
-domain_element_list_target:
-  domain_element_list = separated_list(COMMA, domain_element_target) { domain_element_list; }
-	
 var_target:
   | pv = VAR  { PVar pv }
 	| lv = LVAR { LVar lv }
-	
-domain_element_target:
-  | v = var_target  { v }
-  | s = STRING { LLit (SSyntax.String s) }
+;
 
 type_env_pair_list_target:
   type_env_pair_list = separated_list(COMMA, type_env_pair_target) { type_env_pair_list; }
+;
 
 type_env_pair_target:
   | v = var_target; COLON; the_type=jsil_type_target
 	  { (v, the_type) }
+;
 
 jsil_type_target:
 	| UNDEFTYPELIT { SSyntax.UndefinedType }
@@ -573,9 +569,11 @@ jsil_type_target:
 	| OREFTYPELIT { SSyntax.ObjectReferenceType }	
 	| LISTTYPELIT { SSyntax.ListType }
   | TYPETYPELIT { SSyntax.TypeType }
+;
 
 var_list_target:
-	var_list = separated_list(COMMA, LVAR) { var_list };
+	var_list = separated_list(COMMA, LVAR) { var_list }
+;
 
 lexpr_target:
 (* literal *)

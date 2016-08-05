@@ -503,6 +503,8 @@ let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_form
 			DynArray.add p_formulae (LEq ((LVar lvar), ele)); 
 			LVar lvar) in 
 	
+	let update_with_unknowns field_val_pairs field_lst = field_val_pairs in 
+	
 	match a with 
 	| LStar (a1, a2) -> f a1; f a2
 	
@@ -523,6 +525,17 @@ let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_form
 		let nle3 = simplify_element_of_cell_assertion (fe le3) in
 		let field_val_pairs, default_val = (try LHeap.find heap loc with _ -> ([], LUnknown)) in
 		LHeap.replace heap loc (((nle2, nle3) :: field_val_pairs), default_val)
+	
+	| LDomain (LVar var, field_lst) 
+	| LDomain (PVar var, field_lst) ->
+		let aloc = (try
+			(match Hashtbl.find subst var with 
+			| ALoc aloc -> aloc 
+			| _ -> raise (Failure "This should not happen, ever!"))
+			with _ -> raise (Failure "This should not happen, ever!")) in
+		let field_val_pairs, default_val = (try LHeap.find heap aloc with _ -> ([], LUnknown)) in
+		let field_val_pairs = update_with_unknowns field_val_pairs field_lst in 
+		LHeap.replace heap aloc (field_val_pairs, default_val)
 	
 	| LEq (_, _)
 	| LLessEq (_, _) 
