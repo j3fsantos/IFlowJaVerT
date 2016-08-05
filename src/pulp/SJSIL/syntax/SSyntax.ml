@@ -169,9 +169,10 @@ type jsil_logic_assertion =
 	| LStar				of jsil_logic_assertion * jsil_logic_assertion
 	| LPointsTo		of jsil_logic_expr * jsil_logic_expr * jsil_logic_expr
 	| LEmp
+	| LDomain     of jsil_logic_expr * (jsil_logic_expr list)
 	| LExists			of (jsil_logic_var list) * jsil_logic_assertion
 	| LForAll			of (jsil_logic_var list) * jsil_logic_assertion
-	| TypeEnv     of (jsil_logic_expr * jsil_type) list
+	| LTypeEnv    of (jsil_logic_expr * jsil_type) list
 
 type jsil_return_flag =
 	| Normal

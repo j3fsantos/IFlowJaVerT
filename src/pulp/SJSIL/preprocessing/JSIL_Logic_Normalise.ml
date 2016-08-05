@@ -475,8 +475,8 @@ let init_pure_assignments a store gamma subst =
 	normalize_pure_assertions ()
 	
 	
-let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) gamma subst a = 
-	let f = compute_symb_heap heap store gamma subst in  
+let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_formulae gamma subst a = 
+	let f = compute_symb_heap heap store p_formulae gamma subst in  
 	let fe = normalise_lexpr store gamma subst in 
 	match a with 
 	| LStar (a1, a2) -> f a1; f a2
@@ -513,5 +513,5 @@ let normalize_assertion_top_level a =
 	init_symb_store_alocs store gamma subst a;
 	let p_formulae = init_pure_assignments a store gamma subst in 
 	Printf.printf "after init pure assignments \n"; 
-	compute_symb_heap heap store gamma subst a; 
+	compute_symb_heap heap store p_formulae gamma subst a; 
 	heap, store, p_formulae, gamma
