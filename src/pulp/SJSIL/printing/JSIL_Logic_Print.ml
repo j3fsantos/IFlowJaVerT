@@ -91,7 +91,7 @@ let rec string_of_logic_expression e escape_string =
     | LLit llit -> string_of_literal llit escape_string
 		| LNone -> "none"
     | LVar lvar -> lvar
-		| LLVar llvar -> llvar
+		| ALoc aloc -> aloc
 		| PVar pvar -> pvar
 		(* (e1 bop e2) *)
     | LBinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (sle e1) (string_of_binop op) (sle e2)

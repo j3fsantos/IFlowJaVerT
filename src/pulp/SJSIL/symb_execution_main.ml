@@ -42,9 +42,9 @@ let build_spec_tbl prog =
 						let post = single_spec.post in 
 						let ret_flag = single_spec.ret_flag in 
 						Printf.printf "About to normalize the beautiful assertion: %s \n" (string_of_logic_assertion pre false);
-						let pre_heap, pre_store, pre_p_formulae = JSIL_Logic_Normalise.normalize_assertion_top_level pre in 
+						let pre_heap, pre_store, pre_p_formulae, gamma = JSIL_Logic_Normalise.normalize_assertion_top_level pre in 
 						Printf.printf "I managed to normalize this assertion: %s \n"  (string_of_logic_assertion post false);
-						let post_heap, post_store, post_p_formulae = JSIL_Logic_Normalise.normalize_assertion_top_level post in
+						let post_heap, post_store, post_p_formulae, gamma = JSIL_Logic_Normalise.normalize_assertion_top_level post in
 						{	
 							n_pre = pre_heap, pre_store, pre_p_formulae; 
 							n_post = post_heap, post_store, post_p_formulae; 
@@ -72,7 +72,7 @@ let sym_run_procs spec_table prog which_pred =
 					let pre_heap, pre_store, pre_p_formulae = pre_post.n_pre in 
 					let ret_flag = pre_post.n_ret_flag in 
 					(try
-						symb_evaluate_cmd pre_post.n_post ret_flag prog proc_name which_pred pre_heap pre_store pre_p_formulae 0 0
+						symb_evaluate_cmd spec_table pre_post.n_post ret_flag prog proc_name which_pred pre_heap pre_store pre_p_formulae 0 0
 					 with Failure msg -> 
 						let data = (Printf.sprintf "Failure: %s\n" msg) in 
 						burn_to_disk "sym_execution_info.txt" data; 

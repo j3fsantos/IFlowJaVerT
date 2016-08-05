@@ -411,6 +411,7 @@ let rec evaluate_expr (e : jsil_expr) store =
 		(match l with
 		| Constant c -> evaluate_constant c
 		| x -> x) 
+	
 	| Var x -> 
 		(match SSyntax_Aux.try_find store x with 
 		| None -> 
@@ -419,13 +420,16 @@ let rec evaluate_expr (e : jsil_expr) store =
 			if (!verbose) then Printf.printf "The current store is: \n %s" store_str;
 			raise (Failure err_msg) 
 		| Some v -> v)
+	
 	| BinOp (e1, bop, e2) -> 
 		let v1 = evaluate_expr e1 store in 
 		let v2 = evaluate_expr e2 store in 
 		evaluate_binop bop v1 v2  
+	
 	| UnaryOp (unop, e) -> 
 		let v = evaluate_expr e store in 
 		evaluate_unop unop v
+	
 	| VRef (e1, e2) -> 
 		let v1 = evaluate_expr e1 store in 
 		let v2 = evaluate_expr e2 store in 
@@ -436,6 +440,7 @@ let rec evaluate_expr (e : jsil_expr) store =
 			| Num _ | String _ | Loc _ -> LVRef (l, field)
 			| _ -> raise (Failure (Printf.sprintf "Illegal V-Reference constructor parameter : %s, %s" (SSyntax_Print.string_of_literal v1 false) (SSyntax_Print.string_of_literal v2 false))))
 		| _, _ -> raise (Failure (Printf.sprintf "Illegal V-Reference constructor parameter : %s, %s" (SSyntax_Print.string_of_literal v1 false) (SSyntax_Print.string_of_literal v2 false))))
+	
 	| ORef (e1, e2) -> 
 		let v1 = evaluate_expr e1 store in 
 		let v2 = evaluate_expr e2 store in 
@@ -446,22 +451,26 @@ let rec evaluate_expr (e : jsil_expr) store =
 			| Num _ | String _ | Loc _ -> LORef (l, field)
 			| _ -> raise (Failure (Printf.sprintf "Illegal O-Reference constructor parameter : %s, %s" (SSyntax_Print.string_of_literal v1 false) (SSyntax_Print.string_of_literal v2 false))))
 		| _, _ -> raise (Failure (Printf.sprintf "Illegal O-Reference constructor parameter : %s, %s" (SSyntax_Print.string_of_literal v1 false) (SSyntax_Print.string_of_literal v2 false))))
+	
 	| Base e -> 
 		let v = evaluate_expr e store in
 		(match v with 
 		| LORef (loc, _) 
 		| LVRef (loc, _) -> loc  
 		| _ -> raise (Failure "Illegal Base parameter"))
+	
 	| Field e -> 
 		let v = evaluate_expr e store in
 		(match v with 
 		| LORef (_, field) 
 		| LVRef (_, field) -> String field  
 		| _ -> raise (Failure "Illegal Field parameter"))
+	
 	| TypeOf e ->
 		let v = evaluate_expr e store in
 		Type (evaluate_type_of v) 
-	| LLNth (e1, e2) ->
+	
+	| Nth (e1, e2) ->
 		let v = evaluate_expr e1 store in 
 		let n = evaluate_expr e2 store in
 		(match v, n with 
@@ -470,16 +479,24 @@ let rec evaluate_expr (e : jsil_expr) store =
 		| String s, Num n -> 
 				String (String.make 1 (String.get s (int_of_float n)))
 		| _, _ -> raise (Failure (Printf.sprintf "Incorrect argument to LLNth: %s, %s" (SSyntax_Print.string_of_literal v false) (SSyntax_Print.string_of_literal n false))))
-	| LEList ll ->
+	
+	| EList ll ->
 		(match ll with 
 		| [] -> LList []
 		| e :: ll ->
 			let ve = evaluate_expr e store in
-			let vll = evaluate_expr (LEList ll) store in
+			let vll = evaluate_expr (EList ll) store in
 			match vll with
 			| LList vll -> LList (ve :: vll)
 			| _ -> raise (Failure "List evaluation error"))
-
+	
+	| Cons (e1, e2) ->
+		let v = evaluate_expr e1 store in 
+		let l = evaluate_expr e2 store in
+		(match l with 
+		| LList list -> LList (v :: list)
+		| _ -> raise (Failure "Cons evaluation error"))
+				
 let rec proto_field heap loc field =
 	let obj = (try SHeap.find heap loc with
 	| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" loc))) in
@@ -755,7 +772,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 				evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl))
 
 	| SApply (x, e_args, j) ->
-		let arguments = evaluate_expr (LEList e_args)	store in 
+		let arguments = evaluate_expr (EList e_args)	store in 
 		(match arguments with
 		| LList args ->
 		let rec flatten le = 

@@ -249,8 +249,9 @@ let rec sexpr_of_expression e =
 		(* (field e) *)
     | Field e -> Printf.sprintf "(field %s)" (se e)
 		(* (nth e n) *)
-		| LLNth (e1, e2) -> Printf.sprintf "(nth %s %s)" (se e1) (se e2)
-		| LEList ll -> 
+		| Nth (e1, e2) -> Printf.sprintf "(nth %s %s)" (se e1) (se e2)
+		(* (jsil-list sexpr-e1 ... sexpr-en) *) 
+		| EList ll -> 
 			(match ll with
 			| [] -> "(jsil-list )"
 			| ll ->
@@ -266,6 +267,9 @@ let rec sexpr_of_expression e =
 					let scdr = loop ll in
 					Printf.sprintf ("%s%s%s") scar ssep scdr)
 			in Printf.sprintf "(jsil-list %s)" (loop ll))
+		(* (jsil-cons e, e) *)
+		| Cons (e1, e2) -> 
+			Printf.sprintf "(jsil-cons %s %s)" (se e1) (se e2) 
 		(* (assume e) *) 
 		| RAssume e -> Printf.sprintf "(assume %s)" (se e)
 		(* (assert e) *)
@@ -300,9 +304,9 @@ let rec string_of_expression e escape_string =
 		(* ('field e) *)
     | Field e -> Printf.sprintf "field(%s)" (se e)
 		(* ('nth e n) *)
-		| LLNth (e1, e2) -> Printf.sprintf "nth(%s, %s)" (se e1) (se e2)
+		| Nth (e1, e2) -> Printf.sprintf "nth(%s, %s)" (se e1) (se e2)
 		(* *)
-		| LEList ll -> 
+		| EList ll -> 
 			(match ll with
 			| [] -> "$$nil"
 			| ll ->
@@ -318,6 +322,9 @@ let rec string_of_expression e escape_string =
 					let scdr = loop ll in
 					Printf.sprintf ("%s%s%s") scar ssep scdr)
 			in Printf.sprintf "{{ %s }}" (loop ll))
+		(* cons(e, e) *)
+		| Cons (e1, e2) -> 
+			Printf.sprintf "cons(%s, %s)" (se e1) (se e2) 
 		(* (assume e) *) 
 		| RAssume e -> Printf.sprintf "assume(%s)" (se e)
 		(* (assert e) *)
@@ -449,7 +456,7 @@ let rec string_of_lexpression lexpr escape_string =
 	| LLit l -> string_of_literal l escape_string
 	| LNone -> "none"
 	| LVar var -> var	
-	| LLVar var -> var
+	| ALoc var -> var
 	| PVar var -> var
 	| LBinOp (lexpr1, binop, lexpr2) -> (string_of_lexpression lexpr1 escape_string) ^ " " ^ (string_of_binop binop) ^ " " ^ (string_of_lexpression lexpr2 escape_string)
 	| LUnOp (unop, lexpr1) -> (string_of_unop unop) ^ " " ^ (string_of_lexpression lexpr1 escape_string)

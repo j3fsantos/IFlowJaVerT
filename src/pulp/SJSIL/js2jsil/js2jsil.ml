@@ -1017,7 +1017,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmd_cdo_call = annotate_cmd (SLCall (x_cdo, Literal (String createDefaultObjectName), [ Var x_arr; Literal (Loc locArrPrototype); Literal (String "Array") ], None)) None in 
 		
 		(* [x_arr, "length"] := {{ "d", num, $$t, $$f, $$f }} *)
-		let cmd_set_len num = annotate_cmd (SLBasic (SMutation (Var x_arr,  Literal (String "length"), LEList [ Literal (String "d"); Literal (Num (float_of_int num)); Literal (Bool true); Literal (Bool false); Literal (Bool false) ]))) None in 
+		let cmd_set_len num = annotate_cmd (SLBasic (SMutation (Var x_arr,  Literal (String "length"), EList [ Literal (String "d"); Literal (Num (float_of_int num)); Literal (Bool true); Literal (Bool false); Literal (Bool false) ]))) None in 
 		
     (* [x_arr, "@defineOwnProperty"] := "a__defineOwnProperty" *)
 		let set_dop = annotate_cmd (SLBasic (SMutation (Var x_arr, Literal (String defineOwnPropertyPropName), (Literal (String defineOwnPropertyArrayName))))) None in
@@ -1029,7 +1029,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		
 			(* x_desc := {{ "d", x_v, $$t, $$t, $$t}}  *) 
 			let x_desc = fresh_desc_var () in 
-			let cmd_ass_xdesc = SLBasic (SAssignment (x_desc, LEList [ Literal (String "d"); Var x_v; Literal (Bool true); Literal (Bool true); Literal (Bool true) ] )) in 
+			let cmd_ass_xdesc = SLBasic (SAssignment (x_desc, EList [ Literal (String "d"); Var x_v; Literal (Bool true); Literal (Bool true); Literal (Bool true) ] )) in 
 			
 			let prop = Literal (String (string_of_int num)) in 
 			
@@ -1118,7 +1118,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		
 			(* x_desc := {{ "d", x_v, $$t, $$t, $$t}}  *) 
 			let x_desc = fresh_desc_var () in 
-			let cmd_ass_xdesc = SLBasic (SAssignment (x_desc, LEList [ Literal (String "d"); Var x_v; Literal (Bool true); Literal (Bool true); Literal (Bool true) ] )) in 
+			let cmd_ass_xdesc = SLBasic (SAssignment (x_desc, EList [ Literal (String "d"); Var x_v; Literal (Bool true); Literal (Bool true); Literal (Bool true) ] )) in 
 			
 			(* x_dop := o__defineOwnProperty(x_obj, C_pn(pn), x_desc, true) with err *)
 			let x_dop, cmd_dop_x = make_dop_call x_obj prop x_desc true err in
@@ -1148,7 +1148,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 				match is_getter with 
 				| true ->  [ Literal (String "g"); Literal (Bool true); Literal (Bool true); Literal Empty; Literal Empty; Var x_f; Literal Empty ] 
 				| false -> [ Literal (String "g"); Literal (Bool true); Literal (Bool true); Literal Empty; Literal Empty; Literal Empty; Var x_f ] in 
-			let cmd_ass_xdesc = SLBasic (SAssignment (x_desc, LEList desc_params)) in
+			let cmd_ass_xdesc = SLBasic (SAssignment (x_desc, EList desc_params)) in
 			
 			(* x_dop := o__defineOwnProperty(x_obj, C_pn(pn), x_desc, true) with err *)
 			let x_dop, cmd_dop_x = make_dop_call x_obj prop x_desc true err in
@@ -1351,8 +1351,8 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmd_bscope = SLBasic (SLookup (x_bfscope, Var x_tf, Literal (String scopePropName))) in 
 
 		let x_params = fresh_var () in	
-		let jsil_list_params = LEList ([Var x_bbody; Var x_bfscope; Var x_bthis]) in
-		let cmd_append = SLBasic (SAssignment (x_params, (BinOp (BinOp (jsil_list_params, Append, Var x_ba), Append, (LEList x_args_gv))))) in
+		let jsil_list_params = EList ([Var x_bbody; Var x_bfscope; Var x_bthis]) in
+		let cmd_append = SLBasic (SAssignment (x_params, (BinOp (BinOp (jsil_list_params, Append, Var x_ba), Append, (EList x_args_gv))))) in
 		
 		let x_bconstruct = fresh_var () in
 		let cmd_bind = SLApply (x_bconstruct, [ Var x_params ], Some err) in
@@ -1592,8 +1592,8 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmd_bscope = SLBasic (SLookup (x_bfscope, Var x_tf, Literal (String scopePropName))) in 
 
 		let x_params = fresh_var () in
-		let jsil_list_params = LEList ([Var x_bbody; Var x_bfscope; Var x_bt]) in
-		let cmd_append = SLBasic (SAssignment (x_params, (BinOp (BinOp (jsil_list_params, Append, Var x_ba), Append, (LEList x_args_gv))))) in
+		let jsil_list_params = EList ([Var x_bbody; Var x_bfscope; Var x_bt]) in
+		let cmd_append = SLBasic (SAssignment (x_params, (BinOp (BinOp (jsil_list_params, Append, Var x_ba), Append, (EList x_args_gv))))) in
 		
 		let x_rbind = fresh_var () in
 		let cmd_bind = SLApply (x_rbind, [ Var x_params ], Some err) in
@@ -3744,7 +3744,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			
 			(* xp := nth (xf, x_c_1)	*) 
 			let xp = fresh_var () in 
-			let cmd_ass_xp = SLBasic (SAssignment (xp, LLNth (Var xf, Var x_c_1))) in 
+			let cmd_ass_xp = SLBasic (SAssignment (xp, Nth (Var xf, Var x_c_1))) in 
 			
 			(* xl := [xlf, xp];	*) 
 			let xl = fresh_var () in 
@@ -3752,7 +3752,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			
 			(*  xxl := nth (xl, 1)   *)
 			let xxl = fresh_var () in
-			let cmd_ass_xxl = SLBasic (SAssignment (xxl, LLNth (Var xl, Literal (Num 1.)))) in 
+			let cmd_ass_xxl = SLBasic (SAssignment (xxl, Nth (Var xl, Literal (Num 1.)))) in 
 			
 			(* 	xhf := hasField (xxl, xp) *) 
 			let xhf = fresh_var () in 

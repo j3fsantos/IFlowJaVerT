@@ -162,8 +162,6 @@ rule read = parse
 	| "flag"							 { SJSIL_Parser.FLAG }
 *)
 (* command keywords *)
-	| "js2jsil"						 { SJSIL_Parser.JS2JSIL }
-  | "parse"              { SJSIL_Parser.PARSE }
   | "PHI"                { SJSIL_Parser.PHI }
   | "PSI"                { SJSIL_Parser.PSI }
 	| "goto"               { SJSIL_Parser.GOTO }
@@ -195,6 +193,7 @@ rule read = parse
 	| "field"              { SJSIL_Parser.FIELD }
 	| "typeOf"             { SJSIL_Parser.TYPEOF }
 	| "nth"                { SJSIL_Parser.LNTH }
+	| "cons"               { SJSIL_Parser.CONS }
   |	"assume"             { SJSIL_Parser.ASSUME }
 	| "assert"             { SJSIL_Parser.ASSERT }
 	| "make-symbol-number" { SJSIL_Parser.RNUMSYM }

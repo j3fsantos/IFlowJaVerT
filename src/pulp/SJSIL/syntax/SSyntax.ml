@@ -132,17 +132,19 @@ type jsil_expr =
 	| RNumSymb 
 	| RStrSymb 
 	(* LISTS (FOR DESCRIPTORS) *)
-	| LEList of jsil_expr list
-	| LLNth of jsil_expr * jsil_expr
+	| Cons of jsil_expr * jsil_expr 
+	| EList of jsil_expr list
+	| Nth of jsil_expr * jsil_expr
 
 (* jsil logical expressions *)
 type jsil_logic_var = string
+type abs_location = string
 
 type jsil_logic_expr =
 	| LLit				of jsil_lit
 	| LNone
 	| LVar				of jsil_logic_var
-	| LLVar				of jsil_logic_var
+	| ALoc				of abs_location 
 	| PVar				of jsil_var
 	| LBinOp			of jsil_logic_expr * bin_op * jsil_logic_expr
 	| LUnOp				of unary_op * jsil_logic_expr
@@ -151,8 +153,10 @@ type jsil_logic_expr =
 	| LBase				of jsil_logic_expr
 	| LField			of jsil_logic_expr
 	| LTypeOf			of jsil_logic_expr
-	| LLEList     of jsil_logic_expr list 
-	| LLLLNth     of jsil_logic_expr * jsil_logic_expr
+(* list stuff *) 
+	| LCons       of jsil_logic_expr * jsil_logic_expr
+	| LEList      of jsil_logic_expr list 
+	| LNth        of jsil_logic_expr * jsil_logic_expr
 
 type jsil_logic_assertion =
 	| LAnd				of jsil_logic_assertion * jsil_logic_assertion
@@ -167,6 +171,7 @@ type jsil_logic_assertion =
 	| LEmp
 	| LExists			of (jsil_logic_var list) * jsil_logic_assertion
 	| LForAll			of (jsil_logic_var list) * jsil_logic_assertion
+	| TypeEnv     of (jsil_logic_expr * jsil_type) list
 
 type jsil_return_flag =
 	| Normal
@@ -288,7 +293,7 @@ type lprocedure = {
     lproc_body : ((jsil_metadata * string option * jsil_lab_cmd) array);
     lproc_params : jsil_var list; 
 		lret_label: string option; 
-		lret_var: jsil_var option;
+		lret_var: jsil_var option; 
 		lerror_label: string option; 
 		lerror_var: jsil_var option;
 		lspec: jsil_spec option;

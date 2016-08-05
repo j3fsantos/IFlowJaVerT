@@ -38,8 +38,6 @@ open SSyntax
 %token OREFTYPELIT
 %token LISTTYPELIT
 (* command keywords  *)
-%token JS2JSIL
-%token PARSE
 %token PHI
 %token PSI
 %token GOTO
@@ -68,6 +66,7 @@ open SSyntax
 %token BASE
 %token FIELD
 %token TYPEOF
+%token CONS
 %token ASSUME
 %token ASSERT
 %token RNUMSYM
@@ -409,12 +408,15 @@ expr_target:
 	| TYPEOF; LBRACE; e=expr_target; RBRACE
 		{ SSyntax.TypeOf (e) }
 (* nth *)
-	| LNTH; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE { SSyntax.LLNth (e1, e2) }
-(* {{ }} *)
- 	| LISTOPEN; LISTCLOSE { SSyntax.LEList [] }
+	| LNTH; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE 
+		{ SSyntax.Nth (e1, e2) }
+(* {{ }}	| LISTOPEN; LISTCLOSE { SSyntax.LEList [] } *)
 (* {{ e, ..., e }} *)
 	| LISTOPEN; exprlist = separated_list(COMMA, expr_target); LISTCLOSE 
-		{ SSyntax.LEList exprlist }
+		{ SSyntax.EList exprlist }
+(* cons(e, e) *)
+	| LISTOPEN; CONS; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE 
+		{ SSyntax.Cons (e1, e2) }
 (* (e) *)
   | LBRACE; e=expr_target; RBRACE
 		{ e }
@@ -555,6 +557,14 @@ lexpr_target:
 (* typeof *)
 	| TYPEOF; LBRACE; e=lexpr_target; RBRACE
 		{ LTypeOf (e) }
+(* nth(e1, e2) *)
+	| LNTH; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE { SSyntax.LNth (e1, e2) }
+(* {{ e, ..., e }} *)
+	| LISTOPEN; exprlist = separated_list(COMMA, lexpr_target); LISTCLOSE 
+		{ SSyntax.LEList exprlist }
+(* cons(e, e) *)
+	| LISTOPEN; CONS; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE 
+		{ SSyntax.LCons (e1, e2) }
 (* (e) *)
   | LBRACE; e=lexpr_target; RBRACE
 	  { e }	
