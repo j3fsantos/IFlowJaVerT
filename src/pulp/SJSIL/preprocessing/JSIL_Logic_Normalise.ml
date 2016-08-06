@@ -557,6 +557,110 @@ let rec init_gamma gamma a =
 		| LStar	(al, ar) -> f al; f ar
 		| _ -> ()
 
+let rec normalised_is_typable gamma nlexpr =
+	let f = normalised_is_typable gamma in
+	match nlexpr with
+	(* Literals are always typable *)
+  | LLit lit -> (Some (SJSIL_Interpreter.evaluate_type_of lit), true)
+	
+	(* Variables are typable if in gamma, otherwise no no *)
+	| LVar var 
+	| PVar var -> (try ((Some (Hashtbl.find gamma var), true)) with _ -> (None, false))
+  
+	(* Abstract locations are always typable, by construction *)
+  | ALoc _ -> (Some ObjectType, true)
+
+  (* If what we're trying to type is typable, we should get a type back.
+	   What happens when the type is none, but we know it's typable? *)
+	| LTypeOf le -> 
+		let tle, itle = f le in
+		if (itle) then (Some TypeType, true) else (None, false)
+	
+	(* If we have 'base' in a normalised expression, this means that
+	   the expression we're trying to base is not a reference. It could
+		 either be a variable or something non-normalisable further. 
+		 If it is a variable that has a reference type, we signal that 
+		 it is typable, but we can't recover the type of the base *)
+	| LBase le -> 
+		match le with
+		| LVar var
+		| PVar var ->
+			let tvar, itvar = (try ((Some (Hashtbl.find gamma var), true)) with _ -> (None, false)) in
+			if (itvar) then
+					(match tvar with
+					| Some VariableReferenceType
+					| Some ObjectReferenceType
+					| Some ReferenceType -> (None, true)
+					| _ -> (None, false))
+				else
+					(None, false)
+
+	(* If we have 'field' in a normalised expression, this means that
+	   the expression we're trying to field is not a reference. It could
+		 either be a variable or something non-normalisable further. If it 
+		 is a variable that has a string type, we signal that it is typable *)
+	| LField le -> 
+		match le with
+		| LVar var
+		| PVar var ->
+			let tvar, itvar = (try ((Some (Hashtbl.find gamma var), true)) with _ -> (None, false)) in
+			if (itvar) then
+					(match tvar with
+					| Some StringType -> (Some StringType, true)
+					| _ -> (None, false))
+				else
+					(None, false)
+
+  (* I don't quite understand what happens here when (None, true).
+	   LEVRef (E, LBase(y)), where x is a reference whose base
+		 has type String but whose type is lost? *)
+  | LEVRef (be, fe) ->
+		let (bt, ibt) = f be in
+		let (ft, ift) = f fe in
+		if (ibt && ift) then
+			(match ft with
+			| Some StringType ->
+				(match bt with
+				| Some ObjectType
+				| Some NumberType
+				| Some StringType
+				| Some BooleanType
+				| Some UndefinedType -> (Some VariableReferenceType, true)
+				| _ -> (None, false))
+			| _ -> (None, false))
+			else
+				(None, false) 
+		
+	(* Same as LEVRef *)
+  | LEORef (be, fe) ->
+		let (bt, ibt) = f be in
+		let (ft, ift) = f fe in
+		if (ibt && ift) then
+			(match ft with
+			| Some StringType ->
+				(match bt with
+				| Some ObjectType
+				| Some NumberType
+				| Some StringType
+				| Some BooleanType
+				| Some UndefinedType -> (Some ObjectReferenceType, true)
+				| _ -> (None, false))
+			| _ -> (None, false))
+			else
+				(None, false) 
+
+	| LNone
+  | LUnknown -> (None, false)
+	
+(*
+	| LCons       of jsil_logic_expr * jsil_logic_expr
+	| LEList      of jsil_logic_expr list 
+	| LSNth       of jsil_logic_expr * jsil_logic_expr
+	| LLNth       of jsil_logic_expr * jsil_logic_expr
+	
+	| LBinOp			of jsil_logic_expr * bin_op * jsil_logic_expr
+	| LUnOp				of unary_op * jsil_logic_expr *)
+
 let normalize_assertion_top_level a = 
 	
 	let heap = LHeap.create 1021 in 

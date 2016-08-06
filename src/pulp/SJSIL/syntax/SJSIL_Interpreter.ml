@@ -436,7 +436,7 @@ let rec evaluate_expr (e : jsil_expr) store =
 		(match v1, v2 with 
 		| l, String field -> 
 			(match l with
-			| Null | Undefined | Bool _ 
+			| Undefined | Bool _ 
 			| Num _ | String _ | Loc _ -> LVRef (l, field)
 			| _ -> raise (Failure (Printf.sprintf "Illegal V-Reference constructor parameter : %s, %s" (SSyntax_Print.string_of_literal v1 false) (SSyntax_Print.string_of_literal v2 false))))
 		| _, _ -> raise (Failure (Printf.sprintf "Illegal V-Reference constructor parameter : %s, %s" (SSyntax_Print.string_of_literal v1 false) (SSyntax_Print.string_of_literal v2 false))))
@@ -447,7 +447,7 @@ let rec evaluate_expr (e : jsil_expr) store =
     (match v1, v2 with 
 		| l, String field -> 
 			(match l with
-			| Null | Undefined | Bool _ 
+			| Undefined | Bool _ 
 			| Num _ | String _ | Loc _ -> LORef (l, field)
 			| _ -> raise (Failure (Printf.sprintf "Illegal O-Reference constructor parameter : %s, %s" (SSyntax_Print.string_of_literal v1 false) (SSyntax_Print.string_of_literal v2 false))))
 		| _, _ -> raise (Failure (Printf.sprintf "Illegal O-Reference constructor parameter : %s, %s" (SSyntax_Print.string_of_literal v1 false) (SSyntax_Print.string_of_literal v2 false))))
