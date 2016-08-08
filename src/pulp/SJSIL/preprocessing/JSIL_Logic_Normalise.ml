@@ -315,15 +315,14 @@ let init_pure_assignments a store gamma subst =
 		let stack_size = Stack.length non_store_pure_assertions in 
 		let non_store_pure_assertions_array = DynArray.make (stack_size*5) in 
 		let cur_index = ref 0 in 
-		
-		Printf.printf "Stack size: %d\n" stack_size; 
+		(* Printf.printf "Stack size: %d\n" stack_size; *)
 		
 		while (not (Stack.is_empty non_store_pure_assertions)) do
 			let pure_assertion = Stack.pop non_store_pure_assertions in 
 			let normalized_pure_assertion = normalise_pure_assertion store gamma subst pure_assertion in 
-			Printf.printf "about to put the pure assertion in the dynamic array at position %d\n" (!cur_index); 
+			(* Printf.printf "about to put the pure assertion in the dynamic array at position %d\n" (!cur_index); *)
 			DynArray.add non_store_pure_assertions_array normalized_pure_assertion; 
-			Printf.printf "successfully put"; 
+			(* Printf.printf "successfully put"; *)
 			cur_index := (!cur_index) + 1
 		done;
 		
@@ -375,10 +374,8 @@ let init_pure_assignments a store gamma subst =
 		let len = Array.length p_vars in 
 		let succs = Array.make len [] in 
 		
-		Printf.printf("computing the succs\n");
-		
+		(* Printf.printf("computing the succs\n"); *)
 		for u=0 to (len-1) do 
-			
 			let cur_var = p_vars.(u) in 
 			let cur_le = Hashtbl.find pure_assignments cur_var in 
 			let cur_var_deps = get_expr_vars_lst cur_le in 
@@ -432,7 +429,7 @@ let init_pure_assignments a store gamma subst =
 		
 		(** lifting an assignment to the abstract store *)
 		let rewrite_assignment var = 
-			Printf.printf "Rewriting the assignment to variable %s\n" var; 
+			(* Printf.printf "Rewriting the assignment to variable %s\n" var; *)
 			let le = try Some (Hashtbl.find pure_assignments var) with _ -> None in 
 			(match le with 
 			| None ->
@@ -446,7 +443,7 @@ let init_pure_assignments a store gamma subst =
 								
 		let rec search (u : int) =
 			let u_var = p_vars.(u) in
-			Printf.printf "Visiting variable %s \n" u_var; 
+			(* Printf.printf "Visiting variable %s \n" u_var; *)
 			visited_tbl.(u) <- true;
 			match (is_searchable u) with 
 			| false -> remove_assignment u_var
@@ -484,7 +481,7 @@ let init_pure_assignments a store gamma subst =
 	fill_store (get_assertion_vars a);
 	let succs = vars_succ p_vars p_vars_tbl in
 	normalize_pure_assignments succs p_vars p_vars_tbl;   
-	Printf.printf "after fill store \n"; 
+	(* Printf.printf "after fill store \n"; *)
 	normalize_pure_assertions ()
 	
 	
@@ -502,8 +499,6 @@ let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_form
 			(* I need to add the type of the new logical variable to the gamma *) 
 			DynArray.add p_formulae (LEq ((LVar lvar), ele)); 
 			LVar lvar) in 
-	
-	let update_with_unknowns field_val_pairs field_lst = field_val_pairs in 
 	
 	match a with 
 	| LStar (a1, a2) -> f a1; f a2
@@ -525,17 +520,6 @@ let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_form
 		let nle3 = simplify_element_of_cell_assertion (fe le3) in
 		let field_val_pairs, default_val = (try LHeap.find heap loc with _ -> ([], LUnknown)) in
 		LHeap.replace heap loc (((nle2, nle3) :: field_val_pairs), default_val)
-	
-	| LDomain (LVar var, field_lst) 
-	| LDomain (PVar var, field_lst) ->
-		let aloc = (try
-			(match Hashtbl.find subst var with 
-			| ALoc aloc -> aloc 
-			| _ -> raise (Failure "This should not happen, ever!"))
-			with _ -> raise (Failure "This should not happen, ever!")) in
-		let field_val_pairs, default_val = (try LHeap.find heap aloc with _ -> ([], LUnknown)) in
-		let field_val_pairs = update_with_unknowns field_val_pairs field_lst in 
-		LHeap.replace heap aloc (field_val_pairs, default_val)
 	
 	| LEq (_, _)
 	| LLessEq (_, _) 
@@ -567,6 +551,5 @@ let normalize_assertion_top_level a =
 	init_gamma gamma a;
 	init_symb_store_alocs store gamma subst a;
 	let p_formulae = init_pure_assignments a store gamma subst in 
-	Printf.printf "after init pure assignments \n"; 
 	compute_symb_heap heap store p_formulae gamma subst a; 
 	heap, store, p_formulae, gamma

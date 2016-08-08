@@ -107,6 +107,32 @@ let rec string_of_logic_expression e escape_string =
     | LField e -> Printf.sprintf "field(%s)" (sle e)
 		(* typeof(e) *)
     | LTypeOf e -> Printf.sprintf "typeof(%s)" (sle e)
+		(* (cons(e) *)
+		| LCons (e1, e2) -> Printf.sprintf "cons(%s, %s)" (sle e1) (sle e2) 
+		(* {{  }}*) 
+    | LEList list -> 
+			(match list with
+			| [] -> "$$nil"
+			| ll ->
+			let rec loop ll = 
+				(match ll with
+				| [] -> ""
+				| e :: ll -> 
+					let scar = sle e in
+					let ssep = 
+						(match ll with
+						| [] -> ""
+						| _ -> ", ") in
+					let scdr = loop ll in
+					Printf.sprintf ("%s%s%s") scar ssep scdr)
+			in Printf.sprintf "{{ %s }}" (loop ll))
+		(* s-nth(e, n) *)
+		| LSNth (e1, e2) -> Printf.sprintf "s-nth(%s, %s)" (sle e1) (sle e2)
+		(* (l-nth(e, n) *)
+		| LLNth (e1, e2) -> Printf.sprintf "l-nth(%s, %s)" (sle e1) (sle e2)
+		(* $$unknown *) 
+		| LUnknown -> "$$unknown"
+
 
 let string_of_list list =
 	match list with

@@ -529,10 +529,6 @@ assertion_target:
 	| LFORALL; vars=var_list_target; DOT; ass=assertion_target
 		{ LForAll (vars, ass) }
 		
-(* domain (obj, props) *)
-  | LDOMAIN; LBRACE; obj_expr=lexpr_target; COMMA; CLBRACKET; props=separated_list(COMMA, STRING); CRBRACKET; RBRACE
-	  { LDomain (obj_expr, props) }
-
 (* type_env (type_pairs) *)
   | LTYPEENV; LBRACE; type_pairs = type_env_pair_list_target; RBRACE
     { LTypeEnv type_pairs }
