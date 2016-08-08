@@ -4,7 +4,19 @@ let verbose = ref false
 
 let proto_f = "@proto"
 
-let rec symb_evaluate_expr (expr : jsil_expr) store = 
+let rec safe_symb_evaluate_expr (expr : jsil_expr) store gamma = 
+	let nle = symb_evaluate_expr expr store gamma in 
+	let _, is_typable = JSIL_Logic_Normalise.normalised_is_typable gamma nle in 
+	if (is_typable) 
+		then nle 
+		else 
+			begin 
+				let gamma_str = JSIL_Logic_Print.string_of_gamma gamma in 
+				let msg = Printf.sprintf "The logical expression %s is not typable in the typing enviroment: %s" (JSIL_Logic_Print.string_of_logic_expression nle false) gamma_str in
+				raise (Failure msg)  
+			end
+and 
+symb_evaluate_expr (expr : jsil_expr) store gamma = 
 	match expr with 
 	| Literal lit -> LLit lit
 	
@@ -15,62 +27,66 @@ let rec symb_evaluate_expr (expr : jsil_expr) store =
 			raise (Failure msg))
 	
 	| BinOp (e1, op, e2) ->
-		let ne1 = symb_evaluate_expr e1 store in 
-		let ne2 = symb_evaluate_expr e2 store in 
-		(match ne1, ne2 with
+		let nle1 = safe_symb_evaluate_expr e1 store gamma in 
+		let nle2 = safe_symb_evaluate_expr e2 store gamma in 
+		(match nle1, nle2 with
 		| LLit l1, LLit l2 -> 
 			let l = SJSIL_Interpreter.evaluate_binop op l1 l2 in 
 			LLit l
-		| _, _ -> LBinOp (ne1, op, ne2))
+		| _, _ -> LBinOp (nle1, op, nle2))
 	
 	| UnaryOp (op, e) -> 
-		let ne = symb_evaluate_expr e store in
-		(match ne with 
+		let nle = safe_symb_evaluate_expr e store gamma in
+		(match nle with 
 		| LLit lit -> LLit (SJSIL_Interpreter.evaluate_unop op lit)
-		| _ -> LUnOp (op, ne))
+		| _ -> LUnOp (op, nle))
 	
 	| VRef (e1, e2) ->
-		let ne1 = symb_evaluate_expr e1 store in 
-		let ne2 = symb_evaluate_expr e2 store in 
-		(match ne1, ne2 with 
+		let nle1 = safe_symb_evaluate_expr e1 store gamma in 
+		let nle2 = safe_symb_evaluate_expr e2 store gamma in 
+		(match nle1, nle2 with 
 		| LLit l, LLit (String field) -> LLit (LVRef (l, field))
-		| _, _ -> LEVRef (ne1, ne2))
+		| _, _ -> LEVRef (nle1, nle2))
 	
 	| ORef (e1, e2) ->
-		let ne1 = symb_evaluate_expr e1 store in 
-		let ne2 = symb_evaluate_expr e2 store in 
-		(match ne1, ne2 with 
+		let nle1 = safe_symb_evaluate_expr e1 store gamma in 
+		let nle2 = safe_symb_evaluate_expr e2 store gamma in 
+		(match nle1, nle2 with 
 		| LLit l, LLit (String field) -> LLit (LORef (l, field))
-		| _, _ -> LEORef (ne1, ne2))
+		| _, _ -> LEORef (nle1, nle2))
 	
 	| Base	(e) -> 
-		let ne = symb_evaluate_expr e store in 
-		(match ne with 
+		let nle = safe_symb_evaluate_expr e store gamma in 
+		(match nle with 
 		| LLit (LVRef (l, _)) 
 		| LLit (LORef (l, _)) -> LLit l
 		| LEVRef (eb, _) 
 		| LEORef (eb, _) -> eb
-		| _ -> LBase (ne))
+		| _ -> LBase (nle))
 	
 	| Field	(e) -> 
-		let ne = symb_evaluate_expr e store in 
-		(match ne with 
+		let nle = safe_symb_evaluate_expr e store gamma in 
+		(match nle with 
 		| LLit (LVRef (_, f)) 
 		| LLit (LORef (_, f)) -> LLit (String f)
 		| LEVRef (_, fe) 
 		| LEORef (_, fe) -> fe
-		| _ -> LField (ne))	
+		| _ -> LField (nle))	
 	
 	| TypeOf (e) -> 
-		let ne = symb_evaluate_expr e store in 
-		(match ne with 
+		let nle = safe_symb_evaluate_expr e store gamma in 
+		(match nle with 
 		| LLit llit -> LLit (Type (SJSIL_Interpreter.evaluate_type_of llit)) 
 		| LNone -> raise (Failure "Illegal Logic Expression: TypeOf of None")
 		| PVar _ -> raise (Failure "This should never happen: program variable in normalized expression") 
-		| LVar _ 
-		| ALoc _ 
+		| LVar var 
+		| ALoc var -> 
+			(try 
+				let var_type = Hashtbl.find gamma var in 
+				LLit (Type var_type)
+			with _ -> LTypeOf (nle))
 		| LBinOp (_, _, _)   
-		| LUnOp (_, _) -> LTypeOf (ne)
+		| LUnOp (_, _) -> LTypeOf (nle)
 		| LEVRef (_, _) -> LLit (Type VariableReferenceType)
 		| LEORef (_, _) -> LLit (Type ObjectReferenceType)
 		(* this is not correct *)
@@ -79,8 +95,8 @@ let rec symb_evaluate_expr (expr : jsil_expr) store =
 		| LTypeOf _ -> LLit (Type TypeType))
 	
 	| LNth (e1, e2) ->
-		let list = symb_evaluate_expr e1 store in
-		let index = symb_evaluate_expr e2 store in
+		let list = safe_symb_evaluate_expr e1 store gamma in
+		let index = safe_symb_evaluate_expr e2 store gamma in
 		(match list, index with 
 		| LLit (LList list), LLit (Num n) -> 
 			(try (LLit (List.nth list (int_of_float n))) with _ -> 
@@ -93,8 +109,8 @@ let rec symb_evaluate_expr (expr : jsil_expr) store =
 		| _, _ -> LLNth (list, index))
 
 	| SNth (e1, e2) ->
-		let str = symb_evaluate_expr e1 store in
-		let index = symb_evaluate_expr e2 store in
+		let str = safe_symb_evaluate_expr e1 store gamma in
+		let index = safe_symb_evaluate_expr e2 store gamma  in
 		(match str, index with 
 		| LLit (String s), LLit (Num n) -> 
 			LLit (String (String.make 1 (String.get s (int_of_float n))))
@@ -103,7 +119,7 @@ let rec symb_evaluate_expr (expr : jsil_expr) store =
 	
 	| EList es ->
 		let les = 
-			List.map (fun e -> symb_evaluate_expr e store) es in 
+			List.map (fun e -> safe_symb_evaluate_expr e store gamma) es in 
 		let rec loop les lits = 
 			(match les with 
 			| [] -> true, lits 
@@ -117,8 +133,8 @@ let rec symb_evaluate_expr (expr : jsil_expr) store =
 			else LEList les 
 	
 	| Cons (e1, e2) -> 
-		let value = symb_evaluate_expr e1 store in
-		let list = symb_evaluate_expr e2 store in
+		let value = safe_symb_evaluate_expr e1 store gamma in
+		let list = safe_symb_evaluate_expr e2 store gamma in
 		(match list with 
 		| LLit (LList list) ->
 			(match value with 
@@ -130,7 +146,6 @@ let rec symb_evaluate_expr (expr : jsil_expr) store =
 		| _ -> LCons (value, list))	 
 	
 	| _ -> raise (Failure "not supported yet")
-
 
 let update_abs_store store x ne = Hashtbl.replace store x ne
 
@@ -276,12 +291,12 @@ let unify_symb_heaps_top_level post_heap post_store post_pf final_heap final_sto
 	let rn_tbl = unify_stores post_store final_store in 
 	unify_symb_heaps post_heap final_heap final_pf rn_tbl
 
-let symb_evaluate_bcmd (bcmd : basic_jsil_cmd) heap store pure_formulae = 
+let symb_evaluate_bcmd (bcmd : basic_jsil_cmd) heap store pure_formulae gamma = 
 	match bcmd with 
 	| SSkip -> LLit Empty
 
 	| SAssignment (x, e) -> 
-		let nle = symb_evaluate_expr e store in 
+		let nle = symb_evaluate_expr e store gamma in 
 		update_abs_store store x nle; 
 		nle
 	
@@ -294,9 +309,9 @@ let symb_evaluate_bcmd (bcmd : basic_jsil_cmd) heap store pure_formulae =
 	
 	| SMutation (e1, e2, e3) ->
 		Printf.printf "smutation\n";
-		let ne1 = symb_evaluate_expr e1 store in
-		let ne2 = symb_evaluate_expr e2 store in 	
-		let ne3 = symb_evaluate_expr e3 store in
+		let ne1 = symb_evaluate_expr e1 store gamma in
+		let ne2 = symb_evaluate_expr e2 store gamma in 	
+		let ne3 = symb_evaluate_expr e3 store gamma in
 		(match ne1 with 
 		| LLit (Loc l) 
 		| ALoc l -> 
@@ -309,8 +324,8 @@ let symb_evaluate_bcmd (bcmd : basic_jsil_cmd) heap store pure_formulae =
 		ne3
 	
 	| SLookup (x, e1, e2) -> 
-		let ne1 = symb_evaluate_expr e1 store in
-		let ne2 = symb_evaluate_expr e2 store in 	
+		let ne1 = symb_evaluate_expr e1 store gamma in
+		let ne2 = symb_evaluate_expr e2 store gamma in 	
 		let l = 
 			(match ne1 with 
 			| LLit (Loc l) 
@@ -324,8 +339,8 @@ let symb_evaluate_bcmd (bcmd : basic_jsil_cmd) heap store pure_formulae =
 		ne
 	
 	| SDelete (e1, e2) -> 
-		let ne1 = symb_evaluate_expr e1 store in
-		let ne2 = symb_evaluate_expr e2 store in
+		let ne1 = symb_evaluate_expr e1 store gamma in
+		let ne2 = symb_evaluate_expr e2 store gamma in
 		let l = 
 			(match ne1 with 
 			| LLit (Loc l) 
@@ -345,8 +360,8 @@ let find_and_apply_spec proc_specs heap store pure_formulae =
 	heap, store, pure_formulae, Normal, LLit (String "bananas")
 
 
-let rec symb_evaluate_cmd (spec_table : (string, SSyntax.jsil_n_spec) Hashtbl.t) post ret_flag prog cur_proc_name which_pred heap store pure_formulae cur_cmd prev_cmd = 	
-	let f = symb_evaluate_cmd spec_table post ret_flag prog cur_proc_name which_pred heap store pure_formulae in 
+let rec symb_evaluate_cmd (spec_table : (string, SSyntax.jsil_n_spec) Hashtbl.t) post ret_flag prog cur_proc_name which_pred heap store pure_formulae gamma cur_cmd prev_cmd = 	
+	let f = symb_evaluate_cmd spec_table post ret_flag prog cur_proc_name which_pred heap store pure_formulae gamma in 
 	
 	let proc = try SProgram.find prog cur_proc_name with
 		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist. Ew." cur_proc_name)) in  
@@ -358,22 +373,22 @@ let rec symb_evaluate_cmd (spec_table : (string, SSyntax.jsil_n_spec) Hashtbl.t)
 	match cmd with 
 	| SBasic bcmd -> 
 		let _ = symb_evaluate_bcmd bcmd heap store pure_formulae in 
-	  symb_evaluate_next_command spec_table post ret_flag prog proc which_pred heap store pure_formulae cur_cmd prev_cmd
+	  symb_evaluate_next_command spec_table post ret_flag prog proc which_pred heap store pure_formulae gamma cur_cmd prev_cmd
 		 
 	| SGoto i -> f i cur_cmd 
 	
 	| SGuardedGoto (e, i, j) -> 
-		let v_e = symb_evaluate_expr e store in
+		let v_e = symb_evaluate_expr e store gamma in
 		(match v_e with 
 		| LLit (Bool true) -> f i cur_cmd 
 		| LLit (Bool false) -> f j cur_cmd 
 		| _ -> 
 			let copy_heap = LHeap.copy heap in 
-			symb_evaluate_cmd spec_table post ret_flag prog cur_proc_name which_pred heap store pure_formulae i cur_cmd; 
-			symb_evaluate_cmd spec_table post ret_flag prog cur_proc_name which_pred copy_heap store pure_formulae j cur_cmd)
+			symb_evaluate_cmd spec_table post ret_flag prog cur_proc_name which_pred heap store pure_formulae gamma i cur_cmd; 
+			symb_evaluate_cmd spec_table post ret_flag prog cur_proc_name which_pred copy_heap store pure_formulae gamma j cur_cmd)
 	
 	| SCall (x, e, e_args, j) ->
-		let proc_name = symb_evaluate_expr e store in
+		let proc_name = symb_evaluate_expr e store gamma in
 		let proc_name = 
 			match proc_name with 
 			| LLit (String proc_name) -> 
@@ -382,7 +397,7 @@ let rec symb_evaluate_cmd (spec_table : (string, SSyntax.jsil_n_spec) Hashtbl.t)
 			| _ ->
 				let msg = Printf.sprintf "Symb Execution Error - Cannot analyse a procedure call without the name of the procedure. Got: %s." (JSIL_Logic_Print.string_of_logic_expression proc_name false) in 
 				raise (Failure msg) in 
-		let v_args = List.map (fun e -> symb_evaluate_expr e store) e_args in 
+		let v_args = List.map (fun e -> symb_evaluate_expr e store gamma) e_args in 
 		let proc_specs = try 
 			Hashtbl.find spec_table proc_name 
 		with _ ->
@@ -391,18 +406,18 @@ let rec symb_evaluate_cmd (spec_table : (string, SSyntax.jsil_n_spec) Hashtbl.t)
 		let heap, store, pure_formulae, ret_flag, ret_val = find_and_apply_spec proc_specs heap store pure_formulae in 
 		match ret_flag with 
 		| Normal -> 
-			symb_evaluate_next_command spec_table post ret_flag prog proc which_pred heap store pure_formulae cur_cmd prev_cmd
+			symb_evaluate_next_command spec_table post ret_flag prog proc which_pred heap store pure_formulae gamma cur_cmd prev_cmd
 		| Error ->
 			(match j with 
 			| None -> 
 				let msg = Printf.sprintf "Procedure %s returned an error, but no error label was provided." proc_name in 
 				raise (Failure msg)
 			| Some j -> 
-				symb_evaluate_cmd spec_table post ret_flag prog cur_proc_name which_pred heap store pure_formulae j cur_cmd)
+				symb_evaluate_cmd spec_table post ret_flag prog cur_proc_name which_pred heap store pure_formulae gamma j cur_cmd)
 
 	| _ -> raise (Failure "not implemented yet")
 and 
-symb_evaluate_next_command spec_table post ret_flag prog proc which_pred heap store pure_formulae cur_cmd prev_cmd =
+symb_evaluate_next_command spec_table post ret_flag prog proc which_pred heap store pure_formulae gamma cur_cmd prev_cmd =
 	let cur_proc_name = proc.proc_name in 
 	if (Some cur_cmd = proc.ret_label)
 	then 
@@ -412,7 +427,7 @@ symb_evaluate_next_command spec_table post ret_flag prog proc which_pred heap st
 												| Some ret_var -> ret_var) in
 				  (try (Hashtbl.find store ret_var) with
 						| _ -> raise (Failure (Printf.sprintf "Cannot find return variable.")))) in
-			check_final_symb_state post ret_flag heap store Normal ret_expr pure_formulae)
+			check_final_symb_state post ret_flag heap store gamma Normal ret_expr pure_formulae)
 	else (if (Some cur_cmd = proc.error_label) 
 			then 
 				(let err_expr = 
@@ -421,7 +436,7 @@ symb_evaluate_next_command spec_table post ret_flag prog proc which_pred heap st
 																| Some err_var -> err_var) in
 				         (try (Hashtbl.find store err_var) with
 				| _ -> raise (Failure (Printf.sprintf "Cannot find error variable in proc %s, err_lab = %d, err_var = %s, cmd = %s" proc.proc_name cur_cmd err_var (SSyntax_Print.string_of_cmd proc.proc_body.(prev_cmd)  0 0 false false false))))) in
-			check_final_symb_state post ret_flag heap store Error err_expr pure_formulae)
+			check_final_symb_state post ret_flag heap store gamma Error err_expr pure_formulae)
 	else (
 			let next_cmd = 
 				(if ((cur_cmd + 1) < (Array.length proc.proc_body)) 
@@ -431,11 +446,11 @@ symb_evaluate_next_command spec_table post ret_flag prog proc which_pred heap st
 				match next_cmd with 
 				| Some (_, SPsiAssignment (_, _)) -> prev_cmd 
 				| _ -> cur_cmd in 
-			symb_evaluate_cmd spec_table post ret_flag prog cur_proc_name which_pred heap store pure_formulae (cur_cmd + 1) next_prev))
+			symb_evaluate_cmd spec_table post ret_flag prog cur_proc_name which_pred heap store pure_formulae gamma (cur_cmd + 1) next_prev))
 and 
-check_final_symb_state post ret_flag heap store flag lexpr pure_formulae = 
-	let post_heap, post_store, post_p_formulae = post in 
-	let str = JSIL_Logic_Print.string_of_shallow_symb_state heap store pure_formulae in 
+check_final_symb_state post ret_flag heap store gamma flag lexpr pure_formulae = 
+	let post_heap, post_store, post_p_formulae, post_gamma = post in 
+	let str = JSIL_Logic_Print.string_of_shallow_symb_state heap store pure_formulae gamma in 
 	Printf.printf "Final symbolic state: \n %s" str; 
 	unify_symb_heaps_top_level post_heap post_store post_p_formulae heap store pure_formulae 
 	

@@ -205,9 +205,11 @@ type jsil_spec = {
 		proc_specs : jsil_single_spec list
 }
 
+type symbolic_state = symbolic_heap * symbolic_store * (jsil_logic_assertion DynArray.t) * ((string, jsil_type) Hashtbl.t) 
+
 type jsil_n_single_spec = {
-	  n_pre :  symbolic_heap * symbolic_store * (jsil_logic_assertion DynArray.t); 
-		n_post : symbolic_heap * symbolic_store * (jsil_logic_assertion DynArray.t); 
+	  n_pre : symbolic_state; 
+		n_post : symbolic_state; 
 		n_ret_flag : jsil_return_flag 
 }
 

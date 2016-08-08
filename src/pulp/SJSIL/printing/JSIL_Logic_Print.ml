@@ -253,12 +253,25 @@ let string_of_shallow_p_formulae p_formulae =
 		""
 		p_formulae
 
+let string_of_gamma (gamma : (string, SSyntax.jsil_type) Hashtbl.t) : string = 
+	let gamma_str = 
+		Hashtbl.fold 
+			(fun var var_type ac ->
+				let var_type_pair_str = Printf.sprintf "(%s: %s)" var (SSyntax_Print.string_of_type var_type) in 
+				if (ac = "") 
+					then var_type_pair_str
+					else ac ^ ", " ^ var_type_pair_str)
+			gamma 
+			"" in
+	gamma_str 
 
-let string_of_shallow_symb_state heap store p_formulae = 
+
+let string_of_shallow_symb_state heap store p_formulae gamma = 
 	let str = "Symbolic State: \n" in 
 	let str_heap = "\t Heap: " ^ (string_of_shallow_symb_heap heap) ^ "\n" in 
 	let str_store = "\t Store: " ^ (string_of_shallow_symb_store store) ^ "\n" in 
 	let str_p_formulae = "\t Pure Formulae: " ^ (string_of_shallow_p_formulae p_formulae) ^ "\n" in 
+	let str_gamma = "\t Gamma: " ^ (string_of_gamma gamma) ^ "\n" in 
 	str ^ str_heap ^ str_store ^ str_p_formulae 
 
 (* spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *) 
@@ -275,11 +288,11 @@ let string_of_n_spec spec =
 	let pre_post_list_str =
 		List.fold_left
 			(fun ac single_spec -> 
-				let pre_heap, pre_store, pre_p_formulae = single_spec.n_pre in 
-				let post_heap, post_store, post_p_formulae = single_spec.n_post in 
+				let pre_heap, pre_store, pre_p_formulae, pre_gamma = single_spec.n_pre in 
+				let post_heap, post_store, post_p_formulae, post_gamma = single_spec.n_post in 
 				let ret_flag = single_spec.n_ret_flag in 
-				let pre_str = string_of_shallow_symb_state pre_heap pre_store pre_p_formulae in 
-				let post_str = string_of_shallow_symb_state post_heap post_store post_p_formulae in 
+				let pre_str = string_of_shallow_symb_state pre_heap pre_store pre_p_formulae pre_gamma in 
+				let post_str = string_of_shallow_symb_state post_heap post_store post_p_formulae post_gamma in 
 				let ret_flag_str = 
 					(match ret_flag with 
 					| Normal -> "normal"
@@ -298,10 +311,3 @@ let string_of_n_spec_table spec_table =
 			if ac = "" then spec_str else ac ^ "----------\n" ^ spec_str)
 		spec_table
 		""
-	
-			
-	
-	
-	
-	
-	

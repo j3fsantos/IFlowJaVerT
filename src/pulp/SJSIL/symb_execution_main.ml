@@ -41,13 +41,13 @@ let build_spec_tbl prog =
 						let pre = single_spec.pre in 
 						let post = single_spec.post in 
 						let ret_flag = single_spec.ret_flag in 
-						let pre_heap, pre_store, pre_p_formulae, gamma = JSIL_Logic_Normalise.normalize_assertion_top_level pre in 
+						let pre_heap, pre_store, pre_p_formulae, pre_gamma = JSIL_Logic_Normalise.normalize_assertion_top_level pre in 
 						Printf.printf "I managed to normalize the assertion: %s \n"  (string_of_logic_assertion pre false);
-						let post_heap, post_store, post_p_formulae, gamma = JSIL_Logic_Normalise.normalize_assertion_top_level post in
+						let post_heap, post_store, post_p_formulae, post_gamma = JSIL_Logic_Normalise.normalize_assertion_top_level post in
 						Printf.printf "I managed to normalize the assertion: %s \n"  (string_of_logic_assertion post false);
 						{	
-							n_pre = pre_heap, pre_store, pre_p_formulae; 
-							n_post = post_heap, post_store, post_p_formulae; 
+							n_pre = pre_heap, pre_store, pre_p_formulae, pre_gamma; 
+							n_post = post_heap, post_store, post_p_formulae, post_gamma; 
 							n_ret_flag = ret_flag
 						})
 					pre_post_list in 
@@ -70,10 +70,10 @@ let sym_run_procs spec_table prog which_pred =
 			let pre_post_list = spec.n_proc_specs in 
 			List.iter 
 				(fun pre_post ->
-					let pre_heap, pre_store, pre_p_formulae = pre_post.n_pre in 
+					let pre_heap, pre_store, pre_p_formulae, pre_gamma = pre_post.n_pre in 
 					let ret_flag = pre_post.n_ret_flag in 
 					(try
-						symb_evaluate_cmd spec_table pre_post.n_post ret_flag prog proc_name which_pred pre_heap pre_store pre_p_formulae 0 0
+						symb_evaluate_cmd spec_table pre_post.n_post ret_flag prog proc_name which_pred pre_heap pre_store pre_p_formulae pre_gamma 0 0
 					 with Failure msg -> 
 						let data = (Printf.sprintf "Failure: %s\n" msg) in 
 						burn_to_disk "sym_execution_info.txt" data; 
