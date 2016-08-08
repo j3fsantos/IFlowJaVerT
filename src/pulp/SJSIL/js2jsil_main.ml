@@ -63,12 +63,10 @@ let process_file path =
 		let file_name = Filename.chop_extension path in
 		(if (not (!sep_procs)) 
 			then 
-    		(Printf.printf "\nPrinting UNseparated procs.\n";
-				let jsil_prog_str = SSyntax_Print.string_of_lprogram (imports, jsil_prog_e) in
+    	  (let jsil_prog_str = SSyntax_Print.string_of_lprogram (imports, jsil_prog_e) in
     		burn_to_disk (file_name ^ ".jsil") jsil_prog_str)
 			else 
-				( Printf.printf "\nPrinting separated procs.\n";
-				let folder_name = file_name in 
+				(let folder_name = file_name in 
 				Utils.safe_mkdir folder_name; 
 				SSyntax.SLProgram.iter (fun p_name p_body -> create_output p_body folder_name) jsil_prog_e)); 
 		if (!line_numbers) 

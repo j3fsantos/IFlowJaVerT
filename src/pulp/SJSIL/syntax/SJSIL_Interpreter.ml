@@ -436,7 +436,7 @@ let rec evaluate_expr (e : jsil_expr) store =
 		(match v1, v2 with 
 		| l, String field -> 
 			(match l with
-			| Null | Undefined | Bool _ 
+			| Undefined | Bool _ 
 			| Num _ | String _ | Loc _ -> LVRef (l, field)
 			| _ -> raise (Failure (Printf.sprintf "Illegal V-Reference constructor parameter : %s, %s" (SSyntax_Print.string_of_literal v1 false) (SSyntax_Print.string_of_literal v2 false))))
 		| _, _ -> raise (Failure (Printf.sprintf "Illegal V-Reference constructor parameter : %s, %s" (SSyntax_Print.string_of_literal v1 false) (SSyntax_Print.string_of_literal v2 false))))
@@ -447,7 +447,7 @@ let rec evaluate_expr (e : jsil_expr) store =
     (match v1, v2 with 
 		| l, String field -> 
 			(match l with
-			| Null | Undefined | Bool _ 
+			| Undefined | Bool _ 
 			| Num _ | String _ | Loc _ -> LORef (l, field)
 			| _ -> raise (Failure (Printf.sprintf "Illegal O-Reference constructor parameter : %s, %s" (SSyntax_Print.string_of_literal v1 false) (SSyntax_Print.string_of_literal v2 false))))
 		| _, _ -> raise (Failure (Printf.sprintf "Illegal O-Reference constructor parameter : %s, %s" (SSyntax_Print.string_of_literal v1 false) (SSyntax_Print.string_of_literal v2 false))))
@@ -502,6 +502,8 @@ let rec evaluate_expr (e : jsil_expr) store =
 		(match l with 
 		| LList list -> LList (v :: list)
 		| _ -> raise (Failure "Cons evaluation error"))
+	
+	| _ -> raise (Failure (Printf.sprintf "Unknown expression: %s" (SSyntax_Print.string_of_expression e false)))
 				
 let rec proto_field heap loc field =
 	let obj = (try SHeap.find heap loc with

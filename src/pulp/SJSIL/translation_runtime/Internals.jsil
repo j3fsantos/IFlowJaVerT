@@ -285,7 +285,7 @@ proc o__defineOwnProperty (l, prop, desc, throw) {
 			[l, prop] := ndesc;
 			goto acc_t;
 	
-	getall:	goto [nth (desc, 0) = "d"] ddd odd;
+	getall:	goto [l-nth (desc, 0) = "d"] ddd odd;
 	
 			(* Data *)
 	ddd:	de := l-nth (desc, 3);
@@ -296,7 +296,7 @@ proc o__defineOwnProperty (l, prop, desc, throw) {
 			ds := $$empty;
 			goto l5;
 			
-	odd:	goto [nth (desc, 0) = "a"] add gdd;
+	odd:	goto [l-nth (desc, 0) = "a"] add gdd;
 
 			(* Accessor *)
 	add:	de := l-nth (desc, 3);
@@ -318,7 +318,7 @@ proc o__defineOwnProperty (l, prop, desc, throw) {
 	l5:		goto [(de = $$empty) and (dc = $$empty) and (dv = $$empty) and 
 			      (dw = $$empty) and (dg = $$empty) and (ds = $$empty)] acc_t l6;
 	
-	l6:		goto [nth (current, 0) = "d"] chd cha;
+	l6:		goto [l-nth (current, 0) = "d"] chd cha;
 	
 	chd:	t1 := "i__sameValue" (dv, l-nth (current, 1));
 			t2 := "i__sameValue" (dw, l-nth (current, 2));
@@ -482,9 +482,14 @@ with
 (* *** ISGENERICDESCRIPTOR *** *)
 
 proc i__isGenericDescriptor (desc) {
-			dd := "i__isDataDescriptor" (desc);
+			goto [desc = $$undefined] rf cont;
+			
+	cont:	dd := "i__isDataDescriptor" (desc);
 			ad := "i__isAccessorDescriptor" (desc);
 			xret := not (dd or ad);
+			goto rlab;
+			
+	rf:		xret := $$f;
 	rlab:	skip
 }
 with
@@ -1382,7 +1387,7 @@ proc i__checkAssignmentErrors (v) {
 			goto [xret] rlab te;
 			
 	c2:		xret := [bv, fv];
-			goto [(nth (xret, 2) = $$f) or (nth (xret, 2) = $$undefined)] te rlab;
+			goto [(l-nth (xret, 2) = $$f) or (l-nth (xret, 2) = $$undefined)] te rlab;
 	
 	rlab:	xret := $$t;
 	

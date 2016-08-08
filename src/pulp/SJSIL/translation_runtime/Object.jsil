@@ -101,7 +101,7 @@ proc i__getEnumerableFieldsIter (l, prop_list, gop) {
 			xt := cdr prop_list;
 			
 			prop := gop (l, xh);
-			goto [nth (prop, 3) = $$t] yes no;
+			goto [l-nth (prop, 3) = $$t] yes no;
 	
 	no:		fh := $$nil;
 			goto rcall;	
@@ -213,9 +213,9 @@ with
 (* *** CALL *** *)
 
 proc Object_call (xsc, vthis, v) {
-			goto [(v = $$undefined) or (v = $$null) or (v = $$empty)] cons to_obj;
+			goto [(v = $$undefined) or (v = $$null) or (v = $$empty)] cns to_obj;
 	
-	cons:	xret := "Object_construct" (xsc, vthis, v);
+	cns:	xret := "Object_construct" (xsc, vthis, v);
 			goto rlab;
 	
 	to_obj:	xret := "i__toObject" (v) with elab;
@@ -468,7 +468,7 @@ proc Object_isSealed (xsc, vthis, o) {
 			
 	loop:	goto [n < len] head ext;
 	head:	xret := gop (o, l-nth (props, n)) with elab;
-			goto [nth (xret, 4) = $$t] r_f next;
+			goto [l-nth (xret, 4) = $$t] r_f next;
 	next:	n := n + 1;
 			goto loop;
 		
@@ -539,8 +539,8 @@ proc Object_isFrozen (xsc, vthis, o) {
 			
 	loop:	goto [n < len] head ext;
 	head:	xret := gop (o, l-nth (props, n)) with elab;
-			goto [nth (xret, 2) = $$t] r_f cf;
-	cf:		goto [nth (xret, 4) = $$t] r_f next;
+			goto [l-nth (xret, 2) = $$t] r_f cf;
+	cf:		goto [l-nth (xret, 4) = $$t] r_f next;
 	next:	n := n + 1;
 			goto loop;
 		
