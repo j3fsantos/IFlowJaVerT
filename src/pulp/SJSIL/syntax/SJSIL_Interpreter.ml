@@ -502,6 +502,8 @@ let rec evaluate_expr (e : jsil_expr) store =
 		(match l with 
 		| LList list -> LList (v :: list)
 		| _ -> raise (Failure "Cons evaluation error"))
+	
+	| _ -> raise (Failure (Printf.sprintf "Unknown expression: %s" (SSyntax_Print.string_of_expression e false)))
 				
 let rec proto_field heap loc field =
 	let obj = (try SHeap.find heap loc with

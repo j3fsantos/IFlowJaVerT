@@ -482,9 +482,14 @@ with
 (* *** ISGENERICDESCRIPTOR *** *)
 
 proc i__isGenericDescriptor (desc) {
-			dd := "i__isDataDescriptor" (desc);
+			goto [desc = $$undefined] rf cont;
+			
+	cont:	dd := "i__isDataDescriptor" (desc);
 			ad := "i__isAccessorDescriptor" (desc);
 			xret := not (dd or ad);
+			goto rlab;
+			
+	rf:		xret := $$f;
 	rlab:	skip
 }
 with
@@ -1382,7 +1387,7 @@ proc i__checkAssignmentErrors (v) {
 			goto [xret] rlab te;
 			
 	c2:		xret := [bv, fv];
-			goto [(nth (xret, 2) = $$f) or (nth (xret, 2) = $$undefined)] te rlab;
+			goto [(l-nth (xret, 2) = $$f) or (l-nth (xret, 2) = $$undefined)] te rlab;
 	
 	rlab:	xret := $$t;
 	

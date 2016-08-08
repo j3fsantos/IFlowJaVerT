@@ -10,11 +10,10 @@ proc s__getOwnProperty (l, prop) {
 			xret := "o__getOwnProperty" (l, prop);
 			goto [xret = $$undefined] str rlab;
 			
-	str:	idx := string_to_num prop;
+	str:	idx := "i__toInteger" (prop) with elab;
 			goto [idx < 0] rlab next;
 			
-	next:	idx := num_to_int idx;
-			sidx := num_to_string (idx);
+	next:	sidx := "i__toString" (idx);
 	
 			goto [sidx = prop] index rlab;
 	
@@ -25,11 +24,13 @@ proc s__getOwnProperty (l, prop) {
 	return: rstr := s-nth (str, idx);
 			xret := {{ "d", rstr, $$f, $$t, $$f }};
 	
-	rlab: 	skip
+	rlab: 	skip;
+	elab:	skip
 }
 with
 {
-	ret: xret, rlab;
+	ret: 	xret, rlab;
+	err: 	xret, elab;
 };
 
 (* *** CALL *** *)
