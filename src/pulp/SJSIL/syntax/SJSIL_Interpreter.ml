@@ -129,7 +129,7 @@ let evaluate_unop op lit =
 		(match lit with
 		| Num n -> Num (to_uint16 n)
 		| _ -> raise (Failure "Non-number argument to ToUint16Op"))	
-		| ToInt32Op ->
+	| ToInt32Op ->
 		(match lit with
 		| Num n -> Num (to_int32 n)
 		| _ -> raise (Failure "Non-number argument to ToInt32Op"))

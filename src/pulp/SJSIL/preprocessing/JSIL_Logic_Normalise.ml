@@ -541,6 +541,8 @@ let rec init_gamma gamma a =
 		| LStar	(al, ar) -> f al; f ar
 		| _ -> ()
 
+
+
 let rec normalised_is_typable gamma nlexpr =
 	let f = normalised_is_typable gamma in
 	match nlexpr with
@@ -565,7 +567,7 @@ let rec normalised_is_typable gamma nlexpr =
 		 either be a variable or something non-normalisable further. 
 		 If it is a variable that has a reference type, we signal that 
 		 it is typable, but we can't recover the type of the base *)
-	| LBase le -> 
+	| LBase le ->
 		match le with
 		| LVar var
 		| PVar var ->
@@ -633,17 +635,81 @@ let rec normalised_is_typable gamma nlexpr =
 			else
 				(None, false) 
 
+  (* LCons *)
+	| LCons (e, le) ->
+		let (te,  ite)  = f e in
+		let (tle, itle) = f le in
+		if (ite && itle) then
+			if (tle = Some ListType) then (Some ListType, true)
+				else 
+					(None, false)
+			else
+				(None, false)
+
+  (* LEList *)
+	| LEList le ->
+		let all_typable = 
+			(List.fold_left
+				(fun ac elem ->
+					let (_, ite) = f elem in
+						ac && ite)
+				true
+				le) in
+			if (all_typable) then 
+				(Some ListType, true)
+			else
+				(None, false)
+
+  | LUnOp (unop, e) ->
+		let (te, ite) = f e in
+		let tt t1 t2 = (if (te = Some t1) then (Some t2, true) else (None, false)) in
+		if (ite) then
+		(match unop with
+     (* Number *)
+      | ToStringOp -> tt NumberType StringType
+			| Negative
+			| BitwiseNot
+    	| ToIntOp
+    	| ToUint16Op
+      | ToInt32Op
+      | ToUint32Op
+    	| M_sgn
+    	| M_abs
+    	| M_acos
+    	| M_asin
+    	| M_atan
+    	| M_ceil
+    	| M_cos
+    	| M_exp
+    	| M_floor
+    	| M_log
+    	| M_round
+    	| M_sin
+    	| M_sqrt
+    	| M_tan -> tt NumberType NumberType
+		 (* Boolean *)
+      | Not -> tt BooleanType BooleanType
+		 (* String *)
+			| ToNumberOp -> tt StringType NumberType
+		 (* Any *)
+    	| IsPrimitive -> (Some BooleanType, true)
+		 (* Lists *)
+    	| Cdr
+    	| Car -> (None, false)
+		)
+		else
+			(None, false)
+		
+	| LLNth (list, index) 
+	| LSNth (str,  index) -> (None, false)
+
 	| LNone
   | LUnknown -> (None, false)
 	
+
 (*
-	| LCons       of jsil_logic_expr * jsil_logic_expr
-	| LEList      of jsil_logic_expr list 
-	| LSNth       of jsil_logic_expr * jsil_logic_expr
-	| LLNth       of jsil_logic_expr * jsil_logic_expr
-	
 	| LBinOp			of jsil_logic_expr * bin_op * jsil_logic_expr
-	| LUnOp				of unary_op * jsil_logic_expr *)
+*)
 
 let normalize_assertion_top_level a = 
 	
