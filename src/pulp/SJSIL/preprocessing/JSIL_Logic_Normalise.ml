@@ -700,8 +700,8 @@ let rec normalised_is_typable gamma nlexpr =
 		else
 			(None, false)
 		
-	| LLNth (list, index) 
-	| LSNth (str,  index) -> (None, false)
+	| LLNth (_, _) 
+	| LSNth (_, _) -> (None, false)
 
 	| LNone
   | LUnknown -> (None, false)
