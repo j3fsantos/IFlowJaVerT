@@ -42,9 +42,9 @@ let build_spec_tbl prog =
 						let post = single_spec.post in 
 						let ret_flag = single_spec.ret_flag in 
 						let pre_heap, pre_store, pre_p_formulae, pre_gamma = JSIL_Logic_Normalise.normalize_assertion_top_level pre in 
-						Printf.printf "I managed to normalize the assertion: %s \n"  (string_of_logic_assertion pre false);
+						(* Printf.printf "I managed to normalize the assertion: %s \n"  (string_of_logic_assertion pre false); *)
 						let post_heap, post_store, post_p_formulae, post_gamma = JSIL_Logic_Normalise.normalize_assertion_top_level post in
-						Printf.printf "I managed to normalize the assertion: %s \n"  (string_of_logic_assertion post false);
+						(* Printf.printf "I managed to normalize the assertion: %s \n"  (string_of_logic_assertion post false); *)
 						{	
 							n_pre = pre_heap, pre_store, pre_p_formulae, pre_gamma; 
 							n_post = post_heap, post_store, post_p_formulae, post_gamma; 
@@ -58,9 +58,9 @@ let build_spec_tbl prog =
 			} in 
 			Hashtbl.replace spec_table spec_name new_spec)
 		spec_list; 
-	Printf.printf "before printing the spec table\n"; 
+	(* Printf.printf "before printing the spec table\n"; *)
 	let spec_table_str : string = JSIL_Logic_Print.string_of_n_spec_table spec_table in 
-	Printf.printf "Spec Table: \n %s" spec_table_str; 
+	Printf.printf "Spec Table: \n%s" spec_table_str; 
   spec_table
 
 
@@ -86,7 +86,6 @@ let sym_run_procs spec_table prog which_pred =
 let process_file path = 
 	let lprog = SSyntax_Utils.lprog_of_path !file in 
 	let prog, which_pred = SSyntax_Utils.prog_of_lprog lprog in 
-	Printf.printf "I parsed a program with specs\n"; 
 	let spec_tbl = build_spec_tbl prog in 
 	sym_run_procs spec_tbl prog which_pred;
 	burn_to_disk "sym_execution_info.txt" "Success"; 

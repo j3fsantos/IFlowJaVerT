@@ -22,7 +22,7 @@ let fresh_sth (name : string) : (unit -> string) =
 let abs_loc_prefix = "_$l_"
 let lvar_prefix = "_lvar_"
 
-let fresh_llvar = fresh_sth abs_loc_prefix 
+let fresh_aloc = fresh_sth abs_loc_prefix 
 let fresh_lvar = fresh_sth lvar_prefix 
 
 
