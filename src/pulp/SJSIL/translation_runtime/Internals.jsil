@@ -1339,8 +1339,6 @@ with
 (* ********* *) 
 
 proc i__sameValue (v1, v2) {
-			v1 := v1;
-			v2 := v2;
 			xret := (v1 = v2);
 			
 			goto [(typeOf(v1) = $$number_type) and (typeOf(v2) = $$number_type)] inan rlab;
