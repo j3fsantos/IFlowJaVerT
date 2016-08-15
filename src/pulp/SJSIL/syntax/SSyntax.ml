@@ -145,7 +145,7 @@ type jsil_logic_expr =
 	| LLit				of jsil_lit
 	| LNone
 	| LVar				of jsil_logic_var
-	| ALoc				of abs_location 
+	| ALoc				of abs_location
 	| PVar				of jsil_var
 	| LBinOp			of jsil_logic_expr * bin_op * jsil_logic_expr
 	| LUnOp				of unary_op * jsil_logic_expr
@@ -162,7 +162,6 @@ type jsil_logic_expr =
 (* Unknown *)
 	| LUnknown    
 
-
 type jsil_logic_assertion =
 	| LAnd				of jsil_logic_assertion * jsil_logic_assertion
 	| LOr					of jsil_logic_assertion * jsil_logic_assertion
@@ -176,6 +175,7 @@ type jsil_logic_assertion =
 	| LEmp
 	| LExists			of (jsil_logic_var list) * jsil_logic_assertion
 	| LForAll			of (jsil_logic_var list) * jsil_logic_assertion
+	| LPred				of string * (jsil_logic_var list)
 	| LTypeEnv    of (jsil_logic_expr * jsil_type) list
 
 type jsil_return_flag =
@@ -247,7 +247,7 @@ type jsil_cmd =
 	| SPsiAssignment  of jsil_var  * (jsil_var option array)
 
 (* SJSIL procedures *)
-type procedure = { 
+type jsil_procedure = {
     proc_name : string;
     proc_body : (jsil_metadata * jsil_cmd) array;
     proc_params : jsil_var list; 
@@ -259,7 +259,7 @@ type procedure = {
 }
 
 (* SJSIL Program *)
- module SProgram = Hashtbl.Make(
+module SProgram = Hashtbl.Make(
 	struct
 		type t = string  
 		let equal = (=)
@@ -274,6 +274,13 @@ type procedure = {
 		let hash = Hashtbl.hash
 	end)
 
+(* JSIL logic predicates *)
+type jsil_logic_predicate = {
+	name        : string;
+	num_params  : int;
+	params      : jsil_logic_var list;
+	definitions : jsil_logic_assertion list;
+}
 
 (***** Alternative Procedure Syntax with Labels *****)
 
@@ -286,16 +293,8 @@ type jsil_lab_cmd =
 	| SLPhiAssignment  of jsil_var  * (jsil_var option array)
 	| SLPsiAssignment  of jsil_var  * (jsil_var option array) 
 
-(* SJSIL procedures with string labels *)
- module SLProgram = Hashtbl.Make(
-	struct
-		type t = string  
-		let equal = (=)
-		let hash = Hashtbl.hash
-	end)
-
-
-type lprocedure = { 
+(* SJSIL procedures extended with string labels *)
+type jsil_ext_procedure = {
     lproc_name : string;
     lproc_body : ((jsil_metadata * string option * jsil_lab_cmd) array);
     lproc_params : jsil_var list; 
@@ -306,7 +305,15 @@ type lprocedure = {
 		lspec: jsil_spec option;
 }
 
-type jsil_lprog = (string list option) * (lprocedure SLProgram.t) 
+(* Extended JSIL program type *)
+type jsil_ext_program = {
+	(* Import statements = [Filename : String] *)
+  imports    : string list;
+	(* Predicates = Name : String --> Definition *)
+	predicates : (string, jsil_logic_predicate) Hashtbl.t;
+	(* SJSIL extended procedures = Name : String --> Procedure *)
+	procedures : (string, jsil_ext_procedure) Hashtbl.t;
+}
 
 let make_jsil_metadata offset pre = 
 	{

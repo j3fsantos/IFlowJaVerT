@@ -627,8 +627,8 @@ let ssa_compile_proc proc (vars : string list) (nodes : (jsil_metadata * jsil_cm
 	let new_proc = insert_phi_nodes proc phi_functions_per_node new_cmds new_spec new_ret_var new_err_var var_counters in
 	rev_dom_table, dominance_frontiers, phi_functions_per_node_init, new_proc
 
-
-let ssa_compile_prog (prog : procedure SProgram.t) = 
+(** Given a JSIL program 'prog' (Hashtbl: String --> Procedure), compiles its procedures into SSA form. *)
+let ssa_compile_prog prog = 
 	let ssa_prog = SProgram.create 1021 in 
 	let global_which_pred = Hashtbl.create 1021 in 
 	

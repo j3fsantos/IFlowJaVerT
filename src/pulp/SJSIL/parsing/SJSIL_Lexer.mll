@@ -157,6 +157,7 @@ rule read = parse
 	| "spec"     					 { SJSIL_Parser.SPEC }
 	| "normal"             { SJSIL_Parser.NORMAL }
 	| "error"              { SJSIL_Parser.ERR }
+	| "pred"							 { SJSIL_Parser.PRED }
 (*
 	| "pre"								 { SJSIL_Parser.PRE }
 	| "post"							 { SJSIL_Parser.POST }

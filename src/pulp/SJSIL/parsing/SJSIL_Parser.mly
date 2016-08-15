@@ -9,6 +9,7 @@ open SSyntax
 %token ERR
 %token SPEC
 %token NORMAL
+%token PRED
 (*literals*)
 %token <string> LVAR
 %token <string> VAR
@@ -163,28 +164,42 @@ open SSyntax
 %token LTYPEENV
 %token LDOMAIN
 
-%type <(string list option * SSyntax.lprocedure list)> prog_target
-%type <(SSyntax.jsil_spec list)>  specs_target
 %type <((SSyntax.jsil_metadata * string option * SSyntax.jsil_lab_cmd) list)> cmd_list_top_target
-%type <SSyntax.lprocedure> proc_target
+%type <SSyntax.jsil_ext_procedure> proc_target
+%type <SSyntax.jsil_ext_program> main_target
 
-
-
-(* main target <(SSyntax.lprocedure list)> *) 
-%start prog_target specs_target cmd_list_top_target proc_target
+%start main_target proc_target cmd_list_top_target
 %%
 
 (********* JSIL *********)
 
-prog_target: 
-	imports=option(import_target); proc_list=proc_list_target EOF	{ imports, proc_list }
-;
+main_target:
+    import_target declaration_target
+		{ (* Add the imports to the program *)
+	  	{$2 with imports = $1}
+		}
+	| declaration_target { $1 }
+	;
+
+declaration_target:
+	  pred_target declaration_target
+		{ (* Add the predicate to the hash table of predicates *)
+			Hashtbl.add $2.predicates $1.name $1;
+			$2
+		}
+	| proc_target declaration_target
+		{ (* Add the procedure to the hash table of procedures *)
+			Hashtbl.replace $2.procedures $1.lproc_name $1; (* Warn if conflicting names? *)
+			$2
+		}
+	| EOF
+		{ (* Return an empty program *)
+			{ imports = []; predicates = Hashtbl.create 64; procedures = Hashtbl.create 64; }
+		}
+	;
 
 import_target: 
   IMPORT; imports=separated_list(COMMA, VAR); SCOLON { imports } 
-
-proc_list_target: 
-	proc_list = separated_list(SCOLON, proc_target) { proc_list };
 
 proc_target: 
 (* [spec;] proc xpto (x, y) { cmd_list[;] } with { ret: x, i; [err: x, j] }; *) 
@@ -192,7 +207,7 @@ proc_target:
 	PROC; proc_name=VAR; LBRACE; param_list=param_list_target; RBRACE; 
 		CLBRACKET; cmd_list=cmd_list_target; option(SCOLON); CRBRACKET; 
 	WITH; 
-		CLBRACKET; ctx_ret=option(ctx_target_ret); ctx_err=option(ctx_target_err); CRBRACKET
+		CLBRACKET; ctx_ret=option(ctx_target_ret); ctx_err=option(ctx_target_err); CRBRACKET; opt_scolon
 	{
 		(* Printf.printf "Parsing Procedure.\n"; *)
 		(match (spec : SSyntax.jsil_spec option) with
@@ -203,12 +218,11 @@ proc_target:
 		let ret_var, ret_index = 
 		(match ctx_ret with 
 			| None -> None, None
-			| Some (rv, ri) -> Some rv, Some ri)	 in 
+			| Some (rv, ri) -> Some rv, Some ri) in 
 		let err_var, err_index = 
 			(match ctx_err with 
 			| None -> None, None
-			| Some (ev, ei) -> Some ev, Some ei)						
-			in
+			| Some (ev, ei) -> Some ev, Some ei) in
 		let cmd_arr = Array.of_list cmd_list in 
 		{
     	SSyntax.lproc_name = proc_name;
@@ -221,6 +235,11 @@ proc_target:
 			SSyntax.lspec = spec;
 		}
 	};
+
+opt_scolon:
+		/* empty */ { }
+	| SCOLON { }
+  ;
 
 ctx_target_ret: 
 (* ret: x, i; *)
@@ -444,6 +463,18 @@ expr_target:
 
 (********* LOGIC *********)
 
+pred_target:
+	PRED name=VAR LBRACE params=param_list_target RBRACE COLON
+		definitions=separated_list(COMMA, assertion_target) SCOLON
+  {
+		{
+			name        = name;
+			num_params  = List.length params;
+			params      = params;
+			definitions = definitions;
+		}
+	};
+
 specs_target:
 	spec_list_target EOF	{ $1 }
 ;
@@ -614,7 +645,7 @@ lexpr_target:
   | LBRACE; e=lexpr_target; RBRACE
 	  { e }	
 ;		
-		
+
 (********* COMMON *********)
 
 lit_target: 

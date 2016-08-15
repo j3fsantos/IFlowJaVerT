@@ -1,6 +1,7 @@
 (* open Core.Std *)
 open Js_pre_processing
 open Js2jsil
+open SSyntax
 
 let harness_path = "harness.js"
 
@@ -46,9 +47,9 @@ let string_of_file path =
 	let sf = load_file path in
 	sh ^ sf         
 
-let create_output (lproc : SSyntax.lprocedure) path = 
-  let content = SSyntax_Print.string_of_lprocedure lproc in	 
-  let path = path ^ "/" ^ lproc.lproc_name ^ ".jsil" in
+let create_output ext_proc path =
+  let content = SSyntax_Print.string_of_ext_procedure ext_proc in
+  let path = path ^ "/" ^ ext_proc.lproc_name ^ ".jsil" in
   let oc = open_out path in
   output_string oc content;
   close_out oc
@@ -59,27 +60,25 @@ let process_file path =
 		let e_str = string_of_file path in 
 		let offset_converter = Js_pre_processing.memoized_offsetchar_to_offsetline e_str in
     let e = Parser_main.exp_from_string e_str in
-    let imports, jsil_prog_e, _, _ = js2jsil e offset_converter in
+    let ext_prog, _, _ = js2jsil e offset_converter in
 		let file_name = Filename.chop_extension path in
 		(if (not (!sep_procs)) 
 			then 
-    	  (let jsil_prog_str = SSyntax_Print.string_of_lprogram (imports, jsil_prog_e) in
+    	  (let jsil_prog_str = SSyntax_Print.string_of_ext_program ext_prog in
     		burn_to_disk (file_name ^ ".jsil") jsil_prog_str)
 			else 
 				(let folder_name = file_name in 
 				Utils.safe_mkdir folder_name; 
-				SSyntax.SLProgram.iter (fun p_name p_body -> create_output p_body folder_name) jsil_prog_e)); 
+				Hashtbl.iter (fun p_name p_body -> create_output p_body folder_name) ext_prog.procedures));
 		if (!line_numbers) 
 			then 
-				(let e_line_numbers_str = SSyntax_Print.string_of_lprog_metadata jsil_prog_e in 
+				(let e_line_numbers_str = SSyntax_Print.string_of_ext_prog_metadata ext_prog.procedures in
 				let file_numbers_name = file_name ^ "_line_numbers.txt" in 
 				burn_to_disk file_numbers_name e_line_numbers_str)
 			else ()
   with
   | Parser.ParserFailure file -> Printf.printf "\nParsing problems with the file '%s'.\n" file; exit 1
   | Js_pre_processing.EarlyError e -> Printf.printf "\nParser post-processing threw an EarlyError: %s\n" e; exit 1
-
-
 
 	
 let main () = 

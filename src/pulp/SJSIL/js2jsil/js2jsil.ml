@@ -4748,7 +4748,10 @@ let js2jsil e offset_converter =
 	let e = Js_pre_processing.add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous e in 
 	Js_pre_processing.closure_clarification_top_level cc_tbl fun_tbl vis_tbl main e [ main ] []; 
 	
-	let jsil_prog = SLProgram.create 1021 in 
+	(* TODO: 'predicates' is empty *)
+	let predicates = Hashtbl.create 101 in
+	
+	let procedures = Hashtbl.create 101 in
 	Hashtbl.iter
 		(fun f_id (_, f_params, f_body) -> 
 			let proc = 
@@ -4760,12 +4763,12 @@ let js2jsil e offset_converter =
 								(let msg = Printf.sprintf "Function %s not found in visibility table" f_id in 
 								raise (Failure msg)) in 	
 						generate_proc offset_converter f_body f_id f_params cc_tbl vis_fid)) in 
-			SLProgram.add jsil_prog f_id proc)
+			Hashtbl.add procedures f_id proc)
 		fun_tbl; 
 	
  	(** let cc_tbl_str = Js_pre_processing.print_cc_tbl cc_tbl in 
 	Printf.printf "marica, the cc_tbl is the following (enjoy): \n %s\n" cc_tbl_str; *)
-	Some js2jsil_imports, jsil_prog, cc_tbl, vis_tbl
+	{ imports = js2jsil_imports; predicates; procedures}, cc_tbl, vis_tbl
 	
 
 
@@ -4798,8 +4801,8 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 								(let msg = Printf.sprintf "Function %s not found in visibility table" f_id in 
 								raise (Failure msg)) in 	
 						generate_proc offset_converter f_body f_id f_params cc_tbl vis_fid)) in
-			let proc_eval_str = SSyntax_Print.string_of_lprocedure proc in 
-		  (* Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
+		(* let proc_eval_str = SSyntax_Print.string_of_ext_procedure proc in 
+		   Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
 			let proc = SSyntax_Utils.desugar_labs proc in 
 			SProgram.add prog f_id proc; 
 			SSyntax_Utils.extend_which_pred which_pred proc)

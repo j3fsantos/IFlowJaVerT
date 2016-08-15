@@ -16,7 +16,7 @@ let string_of_float x =
 
 let is_int v =
   v = (snd (modf v))
-																								
+
 let sexpr_of_float x = 
 	if (x == nan) 
 		then "+nan.0"
@@ -640,6 +640,17 @@ let string_of_procedure proc line_numbers =
 		| Some var, Some label -> (Printf.sprintf "\t err: %s, %s; \n" var (string_of_int label))
 		| _, _ -> raise (Failure "Error variable and error label not both present or both absent!")))
 
+
+(** Returns a string from a JSIL Logic predicate definition. *)
+let string_of_predicate predicate =
+	List.fold_left 
+		(fun acc_str assertion -> 
+			acc_str ^ (Printf.sprintf "pred %s (%s) : %s ;\n"
+				predicate.name (string_of_params predicate.params) (string_of_assertion assertion false)))
+		""
+		predicate.definitions
+
+
 (**
 		Printing out lprocedures
 
@@ -730,7 +741,8 @@ let string_of_lbody lbody =
 	done;
 	!str
 
-let string_of_lprocedure (lproc : lprocedure) =			
+(** Returns a string from an extended JSIL procedure. *)
+let string_of_ext_procedure lproc =
 	(match lproc.lspec with
 	| None -> ""
 	| Some spec ->
@@ -755,8 +767,8 @@ let sexpr_of_program program line_numbers =
 	(fun _ proc acc_str ->
 		acc_str ^ "\n" ^ (sexpr_of_procedure proc line_numbers))
 	program	
-	""			
-		
+	""
+
 let string_of_program program line_numbers = 
 	SSyntax.SProgram.fold 
 	(fun _ proc acc_str ->
@@ -764,28 +776,26 @@ let string_of_program program line_numbers =
 	program	
 	""
 
-let string_of_lprogram (lprogram : jsil_lprog) : string = 
-	let imports_str, procs = 
-		(match lprogram with 
-		| None, procs -> "", procs
-		| Some str_lst, procs -> 
-			let imports_str = 
-				List.fold_left
-					(fun ac import_file -> 
-						if (ac = "") 
-							then import_file
-							else ac ^ ", " ^ import_file)
-				""
-				str_lst in 
-			let imports_str = if (imports_str = "") then "" else ("import " ^ imports_str ^ ";\n") in 
-			imports_str, procs) in 
+(** Returns a string from an extended JSIL program. *)
+let string_of_ext_program program = 
+	let imports_str = 
+		(match program.imports with 
+		| [] -> ""
+		| hd :: tl ->
+				"import " ^ (List.fold_left (fun ac import_file -> ac ^ ", " ^ import_file) hd tl) ^ ";\n") in 
+	let preds_str =
+		Hashtbl.fold
+			(fun _ pred acc_str -> acc_str ^ "\n" ^ (string_of_predicate pred)) 
+			program.predicates
+			"" in
 	let procs_str	= 
-		SSyntax.SLProgram.fold 
-			(fun _ proc acc_str -> acc_str ^ "\n" ^ (string_of_lprocedure proc) ^ ";\n")
-			procs	
+		Hashtbl.fold 
+			(fun _ proc acc_str -> acc_str ^ "\n" ^ (string_of_ext_procedure proc) ^ ";\n") 
+			program.procedures
 			"" in 
-	imports_str ^ (String.sub procs_str 0 (String.length procs_str - 2))				
-				
+	imports_str ^ preds_str ^ (String.sub procs_str 0 (String.length procs_str - 2))
+
+
 let serialize_prog_racket prog line_numbers = 
 	let serialized_prog	= sexpr_of_program prog line_numbers in 
 	Printf.sprintf SSyntax_Templates.template_procs_racket serialized_prog																						
@@ -840,7 +850,6 @@ let string_of_proc_metadata proc =
 	let line_info_lst = 
 		List.mapi 
 			(fun i (metadata, _) ->
-				let str_i = string_of_int (i + 1) in 
 				match metadata.line_offset with 
 				| None -> Printf.sprintf "(%d, %d)" i 0
 				| Some n ->  Printf.sprintf "(%d, %d)" i n)
@@ -854,32 +863,31 @@ let string_of_proc_metadata proc =
 	"Proc: " ^ proc.proc_name ^ "\n" ^ line_info_str  
 	
 
-let string_of_lproc_metadata lproc = 
+let string_of_ext_proc_metadata ext_proc = 
 	let line_info_lst = 
 		List.mapi 
 			(fun i (metadata, label, cmd) ->
-				let str_i = string_of_int (i + 1) in 
 				match metadata.line_offset with 
 				| None -> Printf.sprintf "(%d, %d)" i 0
 				| Some n ->  Printf.sprintf "(%d, %d)" i n) 
-			(Array.to_list lproc.lproc_body) in 
+			(Array.to_list ext_proc.lproc_body) in 
 	
 	let line_info_str = 
 		List.fold_left 
 			(fun ac elem -> if (ac = "") then elem else ac ^ "\n" ^ elem)
 			""
 			line_info_lst in 
-	"Proc: " ^ lproc.lproc_name ^ "\n" ^ line_info_str
+	"Proc: " ^ ext_proc.lproc_name ^ "\n" ^ line_info_str
 
 
-let string_of_lprog_metadata lprog = 
-	SSyntax.SLProgram.fold 
-		(fun _ lproc acc_str -> 
-			if (acc_str = "") 
-				then (string_of_lproc_metadata lproc)
-				else acc_str ^ "\n" ^ (string_of_lproc_metadata lproc)) 
-		lprog	
-		""  
+let string_of_ext_prog_metadata ext_prog =
+	Hashtbl.fold
+		(fun _ ext_proc acc_str ->
+			if (acc_str = "")
+				then (string_of_ext_proc_metadata ext_proc)
+				else acc_str ^ "\n" ^ (string_of_ext_proc_metadata ext_proc))
+		ext_prog
+		""
 
 let string_of_prog_metadata prog = 
 	SSyntax.SProgram.fold 

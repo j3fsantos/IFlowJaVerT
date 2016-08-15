@@ -84,8 +84,8 @@ let sym_run_procs spec_table prog which_pred =
 				
 				
 let process_file path = 
-	let lprog = SSyntax_Utils.lprog_of_path !file in 
-	let prog, which_pred = SSyntax_Utils.prog_of_lprog lprog in 
+	let ext_prog = SSyntax_Utils.ext_program_of_path path in 
+	let prog, which_pred = SSyntax_Utils.prog_of_ext_prog path ext_prog in 
 	Printf.printf "I parsed a program with specs\n"; 
 	let spec_tbl = build_spec_tbl prog in 
 	sym_run_procs spec_tbl prog which_pred;
