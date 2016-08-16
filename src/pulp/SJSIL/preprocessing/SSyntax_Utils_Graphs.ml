@@ -1,5 +1,5 @@
 open Set
-open SSyntax 
+open SJSIL_Syntax
 
 (* node set *)
  module NS = Set.Make(
@@ -217,7 +217,7 @@ let remove_unreachable_code proc throw =
 											else ();		
 										lnum_shift.(i) <- i - !shift;				 
 										(if (!graph_verbose) 
-											then Printf.printf "\t i = %d; lsh = %d; shift = %d : %s\n" i lnum_shift.(i) !shift (SSyntax_Print.string_of_cmd cmds.(i) 0 0 false true true)
+											then Printf.printf "\t i = %d; lsh = %d; shift = %d : %s\n" i lnum_shift.(i) !shift (JSIL_Print.string_of_cmd cmds.(i) 0 0 false true true)
 											else ())
 									done;
 	
@@ -295,22 +295,22 @@ let remove_unreachable_code proc throw =
 	
 	(* Return adjusted procedure *)
 	{ 
-    SSyntax.proc_name   = proc.proc_name;
-    SSyntax.proc_body   = new_cmds;
-   	SSyntax.proc_params = proc.proc_params; 
-		SSyntax.ret_label = (match lret with
-		                     | None -> None 
-												 | Some lret -> Some lnum_shift.(lret));
-		SSyntax.ret_var = (match lret with
-		                    | None -> None 
-												| _ -> proc.ret_var);
-		SSyntax.error_label = (match lerr with
-		                        | None -> None 
-														| Some lerr -> Some lnum_shift.(lerr));
-		SSyntax.error_var   = (match lerr with
-		                        | None -> None 
-														| _ -> proc.error_var);
-		SSyntax.spec = new_spec;
+    proc_name   = proc.proc_name;
+    proc_body   = new_cmds;
+   	proc_params = proc.proc_params; 
+		ret_label   = (match lret with
+		                | None -> None 
+										| Some lret -> Some lnum_shift.(lret));
+		ret_var     = (match lret with
+		                | None -> None 
+										| _ -> proc.ret_var);
+		error_label = (match lerr with
+		                | None -> None 
+										| Some lerr -> Some lnum_shift.(lerr));
+		error_var   = (match lerr with
+		                | None -> None 
+										| _ -> proc.error_var);
+		spec        = new_spec;
 	}
 
 

@@ -1,8 +1,8 @@
 (***
  SJSIL - Interpreter 
 *)
-open SSyntax
 open Batteries
+open SJSIL_Syntax
 
 let larguments = "$largs"
 let largvals = "args"
@@ -30,7 +30,6 @@ match classify_float n with
 	| FP_zero -> n
   | FP_normal 
 	| FP_subnormal -> 
-    let i32 = 2. ** 32. in
 			(if n < 0. then (-1.) else 1.) *. (floor (abs_float n))
 
 let to_int32 = fun n ->
@@ -104,7 +103,7 @@ let evaluate_unop op lit =
 	| Not -> 
 		(match lit with 
 		| Bool b -> (Bool (not b))
-		| _ -> raise (Failure (Printf.sprintf "Non-bool argument to Not: %s" (SSyntax_Print.string_of_literal lit false))))
+		| _ -> raise (Failure (Printf.sprintf "Non-bool argument to Not: %s" (JSIL_Print.string_of_literal lit false))))
 	| Negative -> 
 		(match lit with
 		| Num n -> Num (-.n)
@@ -112,7 +111,7 @@ let evaluate_unop op lit =
 	| ToStringOp -> 
 		(match lit with
 		| Num n -> String (Utils.float_to_string_inner n)
-		| _ -> raise (Failure (Printf.sprintf "Non-number argument to ToStringOp: %s" (SSyntax_Print.string_of_literal lit false))))
+		| _ -> raise (Failure (Printf.sprintf "Non-number argument to ToStringOp: %s" (JSIL_Print.string_of_literal lit false))))
 	| ToNumberOp -> 
 		(match lit with
 		| String s -> 
@@ -159,7 +158,7 @@ let evaluate_unop op lit =
 		(match lit with
 		| LList l -> Num (float_of_int (List.length l))
 		| String s -> Num (float_of_int (String.length s))
-		| _ -> raise (Failure (Printf.sprintf "Non-string and non-list argument to Length: %s" (SSyntax_Print.string_of_literal lit false))))
+		| _ -> raise (Failure (Printf.sprintf "Non-string and non-list argument to Length: %s" (JSIL_Print.string_of_literal lit false))))
 
 	| IsPrimitive ->
 		(match lit with
@@ -173,47 +172,47 @@ let evaluate_unop op lit =
 	| M_abs ->
 		(match lit with
 		| Num n -> Num (abs_float n)
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
 
 	| M_acos ->
 		(match lit with
 		| Num n -> Num (acos n)
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
 
 	| M_asin ->
 		(match lit with
 		| Num n -> Num (asin n)
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
 
 	| M_atan ->
 		(match lit with
 		| Num n -> Num (atan n)
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
 
 	| M_ceil ->
 		(match lit with
 		| Num n -> Num (ceil n)
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
 
 	| M_cos ->
 		(match lit with
 		| Num n -> Num (cos n)
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
 		
 	| M_exp ->
 		(match lit with
 		| Num n -> Num (exp n)
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
 		
 	| M_floor ->
 		(match lit with
 		| Num n -> Num (floor n)
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
 		
 	| M_log ->
 		(match lit with
 		| Num n -> Num (log n)
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
 	
 	| M_round ->
 		(match lit with
@@ -222,26 +221,26 @@ let evaluate_unop op lit =
 										then (-0.0)
 										else (floor (n +. 0.5))
 									 )
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
   | M_sgn ->
 		(match lit with
 		| Num n -> Num (copysign 1.0 n)
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
  
 	| M_sin ->
 		(match lit with
 		| Num n -> Num (sin n)
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
 
 	| M_sqrt ->
 		(match lit with
 		| Num n -> Num (sqrt n)
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
  
 	| M_tan ->
 		(match lit with
 		| Num n -> Num (tan n)
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (SSyntax_Print.string_of_literal lit false))))
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
 	
 (*
 			xret := "create_object_with_body" ($lmath_max, "M_max", 2);	
@@ -286,7 +285,7 @@ let evaluate_binop op lit1 lit2 =
 	| LessThanEqual -> 
 		(match lit1, lit2 with 
 		| Num n1, Num n2 -> (Bool (n1 <= n2)) 
-		| _, _ -> raise (Failure (Printf.sprintf "Non-number argument to LessThanEqual: %s <= %s" (SSyntax_Print.string_of_literal lit1 false) (SSyntax_Print.string_of_literal lit2 false))))
+		| _, _ -> raise (Failure (Printf.sprintf "Non-number argument to LessThanEqual: %s <= %s" (JSIL_Print.string_of_literal lit1 false) (JSIL_Print.string_of_literal lit2 false))))
 	| Plus -> 
 		(match lit1, lit2 with 
 		| Num n1, Num n2 -> (Num (n1 +. n2)) 
@@ -319,7 +318,7 @@ let evaluate_binop op lit1 lit2 =
 	| Concat -> 
 		(match lit1, lit2 with 
 		| String s1, String s2 -> (String (s1 ^ s2)) 
-		| _, _ -> raise (Failure (Printf.sprintf "Non-string argument to Concat: %s, %s" (SSyntax_Print.string_of_literal lit1 false) (SSyntax_Print.string_of_literal lit2 false))))
+		| _, _ -> raise (Failure (Printf.sprintf "Non-string argument to Concat: %s, %s" (JSIL_Print.string_of_literal lit1 false) (JSIL_Print.string_of_literal lit2 false))))
 	| Append -> 
 		(match lit1, lit2 with 
 		| LList l1, LList l2 -> (LList (List.append l1 l2))
@@ -370,11 +369,11 @@ let evaluate_binop op lit1 lit2 =
 	| M_atan2 ->
 		(match lit1, lit2 with
 		| Num x, Num y -> Num (atan2 x y)
-		| _, _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s %s instead of numbers." (SSyntax_Print.string_of_literal lit1 false) (SSyntax_Print.string_of_literal lit2 false))))
+		| _, _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s %s instead of numbers." (JSIL_Print.string_of_literal lit1 false) (JSIL_Print.string_of_literal lit2 false))))
 	| M_pow ->
 		(match lit1, lit2 with
 		| Num x, Num y -> Num (x ** y)
-		| _, _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s %s instead of numbers." (SSyntax_Print.string_of_literal lit1 false) (SSyntax_Print.string_of_literal lit2 false))))
+		| _, _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s %s instead of numbers." (JSIL_Print.string_of_literal lit1 false) (JSIL_Print.string_of_literal lit2 false))))
 	
 
 let evaluate_type_of lit = 
@@ -416,7 +415,7 @@ let rec evaluate_expr (e : jsil_expr) store =
 		(match SSyntax_Aux.try_find store x with 
 		| None -> 
 			let err_msg = Printf.sprintf "Variable %s not found in the store" x in 
-			let store_str = SSyntax_Print.string_of_store store in 
+			let store_str = JSIL_Print.string_of_store store in 
 			if (!verbose) then Printf.printf "The current store is: \n %s" store_str;
 			raise (Failure err_msg) 
 		| Some v -> v)
@@ -438,8 +437,8 @@ let rec evaluate_expr (e : jsil_expr) store =
 			(match l with
 			| Undefined | Bool _ 
 			| Num _ | String _ | Loc _ -> LVRef (l, field)
-			| _ -> raise (Failure (Printf.sprintf "Illegal V-Reference constructor parameter : %s, %s" (SSyntax_Print.string_of_literal v1 false) (SSyntax_Print.string_of_literal v2 false))))
-		| _, _ -> raise (Failure (Printf.sprintf "Illegal V-Reference constructor parameter : %s, %s" (SSyntax_Print.string_of_literal v1 false) (SSyntax_Print.string_of_literal v2 false))))
+			| _ -> raise (Failure (Printf.sprintf "Illegal V-Reference constructor parameter : %s, %s" (JSIL_Print.string_of_literal v1 false) (JSIL_Print.string_of_literal v2 false))))
+		| _, _ -> raise (Failure (Printf.sprintf "Illegal V-Reference constructor parameter : %s, %s" (JSIL_Print.string_of_literal v1 false) (JSIL_Print.string_of_literal v2 false))))
 	
 	| ORef (e1, e2) -> 
 		let v1 = evaluate_expr e1 store in 
@@ -449,8 +448,8 @@ let rec evaluate_expr (e : jsil_expr) store =
 			(match l with
 			| Undefined | Bool _ 
 			| Num _ | String _ | Loc _ -> LORef (l, field)
-			| _ -> raise (Failure (Printf.sprintf "Illegal O-Reference constructor parameter : %s, %s" (SSyntax_Print.string_of_literal v1 false) (SSyntax_Print.string_of_literal v2 false))))
-		| _, _ -> raise (Failure (Printf.sprintf "Illegal O-Reference constructor parameter : %s, %s" (SSyntax_Print.string_of_literal v1 false) (SSyntax_Print.string_of_literal v2 false))))
+			| _ -> raise (Failure (Printf.sprintf "Illegal O-Reference constructor parameter : %s, %s" (JSIL_Print.string_of_literal v1 false) (JSIL_Print.string_of_literal v2 false))))
+		| _, _ -> raise (Failure (Printf.sprintf "Illegal O-Reference constructor parameter : %s, %s" (JSIL_Print.string_of_literal v1 false) (JSIL_Print.string_of_literal v2 false))))
 	
 	| Base e -> 
 		let v = evaluate_expr e store in
@@ -476,7 +475,7 @@ let rec evaluate_expr (e : jsil_expr) store =
 		(match v, n with 
 		| String s, Num n -> 
 				String (String.make 1 (String.get s (int_of_float n)))
-		| _, _ -> raise (Failure (Printf.sprintf "Incorrect argument to SNth: %s, %s" (SSyntax_Print.string_of_literal v false) (SSyntax_Print.string_of_literal n false))))
+		| _, _ -> raise (Failure (Printf.sprintf "Incorrect argument to SNth: %s, %s" (JSIL_Print.string_of_literal v false) (JSIL_Print.string_of_literal n false))))
 	
 	| LNth (e1, e2) ->
 		let v = evaluate_expr e1 store in 
@@ -484,7 +483,7 @@ let rec evaluate_expr (e : jsil_expr) store =
 		(match v, n with 
 		| LList list, Num n -> 
 				(List.nth list (int_of_float n))
-		| _, _ -> raise (Failure (Printf.sprintf "Incorrect argument to LNth: %s, %s" (SSyntax_Print.string_of_literal v false) (SSyntax_Print.string_of_literal n false))))
+		| _, _ -> raise (Failure (Printf.sprintf "Incorrect argument to LNth: %s, %s" (JSIL_Print.string_of_literal v false) (JSIL_Print.string_of_literal n false))))
 	
 	| EList ll ->
 		(match ll with 
@@ -503,7 +502,7 @@ let rec evaluate_expr (e : jsil_expr) store =
 		| LList list -> LList (v :: list)
 		| _ -> raise (Failure "Cons evaluation error"))
 	
-	| _ -> raise (Failure (Printf.sprintf "Unknown expression: %s" (SSyntax_Print.string_of_expression e false)))
+	| _ -> raise (Failure (Printf.sprintf "Unknown expression: %s" (JSIL_Print.string_of_expression e false)))
 				
 let rec proto_field heap loc field =
 	let obj = (try SHeap.find heap loc with
@@ -538,7 +537,7 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store =
 	
 	| SAssignment (x, e) ->
 		let v_e = evaluate_expr e store in 
-		if (!verbose) then Printf.printf "Assignment: %s := %s\n" x (SSyntax_Print.string_of_literal v_e false);
+		if (!verbose) then Printf.printf "Assignment: %s := %s\n" x (JSIL_Print.string_of_literal v_e false);
 		Hashtbl.add store x v_e; 
 		v_e
 		
@@ -556,17 +555,17 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store =
 		(match v_e1, v_e2 with 
 		| Loc l, String f -> 
 			let obj = (try SHeap.find heap l with
-			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (SSyntax_Print.string_of_literal v_e1 false)))) in
+			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (JSIL_Print.string_of_literal v_e1 false)))) in
 			let v = (try SHeap.find obj f with
 				| _ -> 
-					(* let final_heap_str = SSyntax_Print.sexpr_of_heap heap in 
+					(* let final_heap_str = JSIL_Print.sexpr_of_heap heap in 
 					Printf.printf "Final heap: \n%s\n" final_heap_str; *)
-					raise (Failure (Printf.sprintf "Looking up inexistent field: [%s, %s]" (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false)))) in
+					raise (Failure (Printf.sprintf "Looking up inexistent field: [%s, %s]" (JSIL_Print.string_of_literal v_e1 false) (JSIL_Print.string_of_literal v_e2 false)))) in
 	
 			Hashtbl.replace store x v; 
-			if (!verbose) then Printf.printf "Lookup: %s := [%s, %s] = %s \n" x (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false) (SSyntax_Print.string_of_literal v false);
+			if (!verbose) then Printf.printf "Lookup: %s := [%s, %s] = %s \n" x (JSIL_Print.string_of_literal v_e1 false) (JSIL_Print.string_of_literal v_e2 false) (JSIL_Print.string_of_literal v false);
 			v
-		| _, _ -> raise (Failure (Printf.sprintf "Illegal field inspection: [%s, %s]" (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false))))
+		| _, _ -> raise (Failure (Printf.sprintf "Illegal field inspection: [%s, %s]" (JSIL_Print.string_of_literal v_e1 false) (JSIL_Print.string_of_literal v_e2 false))))
 	
 	| SMutation (e1, e2, e3) ->
 		let v_e1 = evaluate_expr e1 store in
@@ -578,14 +577,14 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store =
 			then
 				let obj = SHeap.find heap l in ();
 				SHeap.replace obj f v_e3;
-				if (!verbose) then Printf.printf "Mutation: [%s, %s] = %s \n" (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false) (SSyntax_Print.string_of_literal v_e3 false);	
+				if (!verbose) then Printf.printf "Mutation: [%s, %s] = %s \n" (JSIL_Print.string_of_literal v_e1 false) (JSIL_Print.string_of_literal v_e2 false) (JSIL_Print.string_of_literal v_e3 false);	
 				v_e3
 			else 
 				let obj = SHeap.create 1021 in
 				SHeap.add obj proto_f Null;
 				SHeap.add heap l obj;
 				SHeap.replace obj f v_e3;
-				if (!verbose) then Printf.printf "Mutation: [%s, %s] = %s \n" (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false) (SSyntax_Print.string_of_literal v_e3 false);
+				if (!verbose) then Printf.printf "Mutation: [%s, %s] = %s \n" (JSIL_Print.string_of_literal v_e1 false) (JSIL_Print.string_of_literal v_e2 false) (JSIL_Print.string_of_literal v_e3 false);
 				v_e3
 		| _, _ ->  raise (Failure "Illegal field inspection"))
 	
@@ -595,10 +594,10 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store =
 		(match v_e1, v_e2 with 
 		| Loc l, String f -> 
 			let obj = (try SHeap.find heap l with
-			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (SSyntax_Print.string_of_literal v_e1 false)))) in
+			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (JSIL_Print.string_of_literal v_e1 false)))) in
 			if (SHeap.mem obj f) 
 			then 
-				(if (!verbose) then Printf.printf "Removing field (%s, %s)!\n" (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false);
+				(if (!verbose) then Printf.printf "Removing field (%s, %s)!\n" (JSIL_Print.string_of_literal v_e1 false) (JSIL_Print.string_of_literal v_e2 false);
 				SHeap.remove obj f; 
 				Bool true)
 			else raise (Failure "Deleting inexisting field")
@@ -610,10 +609,10 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store =
 		(match v_e1, v_e2 with 
 		| Loc l, String f -> 
 			let obj = (try SHeap.find heap l with
-			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (SSyntax_Print.string_of_literal v_e1 false)))) in
+			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (JSIL_Print.string_of_literal v_e1 false)))) in
 			let v = Bool (SHeap.mem obj f) in 
 			Hashtbl.replace store x v; 
-			if (!verbose) then Printf.printf "hasField: %s := hf (%s, %s) = %s \n" x (SSyntax_Print.string_of_literal v_e1 false) (SSyntax_Print.string_of_literal v_e2 false) (SSyntax_Print.string_of_literal v false);
+			if (!verbose) then Printf.printf "hasField: %s := hf (%s, %s) = %s \n" x (JSIL_Print.string_of_literal v_e1 false) (JSIL_Print.string_of_literal v_e2 false) (JSIL_Print.string_of_literal v false);
 			v
 		| _, _ -> raise (Failure "Illegal Field Check"))
 
@@ -623,7 +622,7 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store =
 		let v = (try SHeap.find arg_obj "args" with
 		| _ -> raise (Failure "The arguments are not available.")) in
 			Hashtbl.replace store x v;
-			if (!verbose) then Printf.printf "args: %s \n" (SSyntax_Print.string_of_literal v false);
+			if (!verbose) then Printf.printf "args: %s \n" (JSIL_Print.string_of_literal v false);
 			v
 
 	| SGetFields (x, e) ->
@@ -631,7 +630,7 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store =
 		(match v_e with
 		| Loc l -> 
 			let obj = (try SHeap.find heap l with
-			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (SSyntax_Print.string_of_literal v_e false)))) in
+			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (JSIL_Print.string_of_literal v_e false)))) in
 			let fields =  
 				SHeap.fold
 				(fun field value acc ->
@@ -643,7 +642,7 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store =
 					) obj [] in
 			let v = LList (List.sort compare fields) in
 			Hashtbl.replace store x v;
-			if (!verbose) then Printf.printf "hasField: %s := gf (%s) = %s \n" x (SSyntax_Print.string_of_literal v_e false) (SSyntax_Print.string_of_literal v false);
+			if (!verbose) then Printf.printf "hasField: %s := gf (%s) = %s \n" x (JSIL_Print.string_of_literal v_e false) (JSIL_Print.string_of_literal v false);
 			v
 		| _ -> raise (Failure "Passing non-object value to getFields"))
 
@@ -666,12 +665,12 @@ let init_store params args =
 				loop rest_params []) in 
 	loop params args; 
 	
-	let str_store = SSyntax_Print.string_of_store new_store in 
+	let str_store = JSIL_Print.string_of_store new_store in 
 	if (!verbose) then Printf.printf "I have just initialized the following store\n %s \n" str_store; 
 	new_store 
 	
 let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl = 	
-	let proc = try SProgram.find prog cur_proc_name with
+	let proc = try Hashtbl.find prog cur_proc_name with
 		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist. Ew." cur_proc_name)) in  
 	let cmd = proc.proc_body.(cur_cmd) in 
 
@@ -689,7 +688,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 		(match v_e with 
 		| Bool true -> evaluate_cmd prog cur_proc_name which_pred heap store i cur_cmd cc_tbl vis_tbl
 		| Bool false -> evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl
-		| _ -> raise (Failure (Printf.sprintf "So you're really trying to do a goto based on %s? Ok..." (SSyntax_Print.string_of_literal v_e false))))
+		| _ -> raise (Failure (Printf.sprintf "So you're really trying to do a goto based on %s? Ok..." (JSIL_Print.string_of_literal v_e false))))
 	
 	| SPhiAssignment (x, x_arr) -> 
 		evaluate_phi_psi_cmd prog proc which_pred heap store cur_cmd prev_cmd cur_cmd x x_arr cc_tbl vis_tbl
@@ -729,7 +728,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 					match evaluate_cmd prog proc_eval.proc_name which_pred heap new_store 0 0 cc_tbl vis_tbl with
 					| Normal, v ->
 						Hashtbl.replace store x v;
-						SProgram.remove prog proc_eval.proc_name;
+						Hashtbl.remove prog proc_eval.proc_name;
 						evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
 					| Error, v ->
 						match j with
@@ -755,11 +754,11 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 		| String call_proc_name -> 
 				if (!verbose) then Printf.printf "\nExecuting procedure %s\n" call_proc_name; 
 				call_proc_name 
-		| _ -> raise (Failure (Printf.sprintf "Erm, no. Procedures can't be called %s." (SSyntax_Print.string_of_literal call_proc_name_val false)))) in 
+		| _ -> raise (Failure (Printf.sprintf "Erm, no. Procedures can't be called %s." (JSIL_Print.string_of_literal call_proc_name_val false)))) in 
 		let arg_vals = List.map 
 			(fun e_arg -> evaluate_expr e_arg store) 
 			e_args in 
-		let call_proc = try SProgram.find prog call_proc_name with
+		let call_proc = try Hashtbl.find prog call_proc_name with
 		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist." call_proc_name)) in
 		let new_store = init_store call_proc.proc_params arg_vals in 
 
@@ -798,8 +797,8 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
   		| String call_proc_name -> 
   				if (!verbose) then Printf.printf "\nExecuting procedure %s\n" call_proc_name; 
   				call_proc_name 
-  		| _ -> raise (Failure (Printf.sprintf "No. You can't call a procedure %s." (SSyntax_Print.string_of_literal call_proc_name_val false)))) in 
-  		let call_proc = try SProgram.find prog call_proc_name with
+  		| _ -> raise (Failure (Printf.sprintf "No. You can't call a procedure %s." (JSIL_Print.string_of_literal call_proc_name_val false)))) in 
+  		let call_proc = try Hashtbl.find prog call_proc_name with
   		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist." call_proc_name)) in
   		let new_store = init_store call_proc.proc_params arg_vals in 
   		if (List.length arg_vals = 0) || (List.nth arg_vals 0 <> String "args") then
@@ -829,7 +828,7 @@ evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vi
 												| Some ret_var -> ret_var) in
 				  (try (Hashtbl.find store ret_var) with
 			| _ -> raise (Failure (Printf.sprintf "Cannot find return variable.")))) in
-			if (!verbose) then Printf.printf ("Procedure %s returned: Normal, %s\n") cur_proc_name (SSyntax_Print.string_of_literal ret_value false);
+			if (!verbose) then Printf.printf ("Procedure %s returned: Normal, %s\n") cur_proc_name (JSIL_Print.string_of_literal ret_value false);
 			Normal, ret_value)
 		else 
 			(if (Some cur_cmd = proc.error_label) 
@@ -839,8 +838,8 @@ evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vi
 					                      | None -> raise (Failure "No no!") 
 																| Some err_var -> err_var) in
 				         (try (Hashtbl.find store err_var) with
-				| _ -> raise (Failure (Printf.sprintf "Cannot find error variable in proc %s, err_lab = %d, err_var = %s, cmd = %s" proc.proc_name cur_cmd err_var (SSyntax_Print.string_of_cmd proc.proc_body.(prev_cmd)  0 0 false false false))))) in
-			if (!verbose) then Printf.printf ("Procedure %s returned: Error, %s\n") cur_proc_name (SSyntax_Print.string_of_literal err_value false);
+				| _ -> raise (Failure (Printf.sprintf "Cannot find error variable in proc %s, err_lab = %d, err_var = %s, cmd = %s" proc.proc_name cur_cmd err_var (JSIL_Print.string_of_cmd proc.proc_body.(prev_cmd)  0 0 false false false))))) in
+			if (!verbose) then Printf.printf ("Procedure %s returned: Error, %s\n") cur_proc_name (JSIL_Print.string_of_literal err_value false);
 			Error, err_value)
 		else (
 			let next_cmd = 
@@ -864,14 +863,14 @@ evaluate_phi_psi_cmd prog proc which_pred heap store cur_cmd prev_cmd ac_cur_cmd
 		| Some x_live -> 
 			(match SSyntax_Aux.try_find store x_live with 
 			| None -> 
-				let cur_cmd_str = SSyntax_Print.string_of_cmd proc.proc_body.(cur_cmd) 0 0 false false false in 
-				let prev_cmd_str = SSyntax_Print.string_of_cmd proc.proc_body.(prev_cmd) 0 0 false false false in 
+				let cur_cmd_str = JSIL_Print.string_of_cmd proc.proc_body.(cur_cmd) 0 0 false false false in 
+				let prev_cmd_str = JSIL_Print.string_of_cmd proc.proc_body.(prev_cmd) 0 0 false false false in 
 				raise (Failure (Printf.sprintf "Variable %s not found in the store. Cur_which_pred: %d. cur_cmd: %s. prev_cmd: %s" x_live cur_which_pred cur_cmd_str prev_cmd_str))
 			| Some v -> v)) in 
 		if (!verbose) then Printf.printf "PHI-Assignment: %s : %d/%d : %s := %s\n" 
 		   (match x_live with
 			  | None -> "NONE!" 
-				| Some x_live -> x_live) cur_which_pred (Array.length x_arr - 1) x (SSyntax_Print.string_of_literal v false);
+				| Some x_live -> x_live) cur_which_pred (Array.length x_arr - 1) x (JSIL_Print.string_of_literal v false);
 		Hashtbl.add store x v; 
 		evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
 								

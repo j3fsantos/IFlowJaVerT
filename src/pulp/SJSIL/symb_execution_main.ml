@@ -1,5 +1,5 @@
-open SSyntax
-open JSIL_Logic_Print
+open SJSIL_Syntax
+open SJSIL_Exec_Types
 open JSIL_Logic_Normalise
 open SJSIL_Symb_Interpreter
 
@@ -23,7 +23,7 @@ let burn_to_disk path data =
 let build_spec_tbl prog = 
 	let spec_table = Hashtbl.create 1021 in 
 	let spec_list = 
-		SProgram.fold
+		Hashtbl.fold
 			(fun proc_name proc ac_spec_list ->
 				match proc.spec with 
 				| None -> ac_spec_list 
@@ -59,7 +59,7 @@ let build_spec_tbl prog =
 			Hashtbl.replace spec_table spec_name new_spec)
 		spec_list; 
 	(* Printf.printf "before printing the spec table\n"; *)
-	let spec_table_str : string = JSIL_Logic_Print.string_of_n_spec_table spec_table in 
+	let spec_table_str : string = JSIL_Exec_Print.string_of_n_spec_table spec_table in 
 	Printf.printf "Spec Table: \n%s" spec_table_str; 
   spec_table
 

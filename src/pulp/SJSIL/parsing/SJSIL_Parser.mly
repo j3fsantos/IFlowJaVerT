@@ -1,5 +1,5 @@
 %{
-open SSyntax 
+open SJSIL_Syntax
 %}
 
 (* procedures *) 
@@ -9,7 +9,6 @@ open SSyntax
 %token ERR
 %token SPEC
 %token NORMAL
-%token PRED
 (*literals*)
 %token <string> LVAR
 %token <string> VAR
@@ -56,8 +55,7 @@ open SSyntax
 %token LTRUE
 %token LFALSE
 %token LEQUAL
-%token LLESSTHANEQUAL	
-(*%token LSTAR*)
+%token LLESSTHANEQUAL
 %token LARROW
 %token LEMP 
 %token LEXISTS 
@@ -160,13 +158,13 @@ open SSyntax
 %token CSPEC
 %token LISTOPEN
 %token LISTCLOSE
-
+(* symbolics *)
+%token PRED
 %token LTYPEENV
-%token LDOMAIN
 
-%type <((SSyntax.jsil_metadata * string option * SSyntax.jsil_lab_cmd) list)> cmd_list_top_target
-%type <SSyntax.jsil_ext_procedure> proc_target
-%type <SSyntax.jsil_ext_program> main_target
+%type <((SJSIL_Syntax.jsil_metadata * string option * SJSIL_Syntax.jsil_lab_cmd) list)> cmd_list_top_target
+%type <SJSIL_Syntax.jsil_ext_procedure> proc_target
+%type <SJSIL_Syntax.jsil_ext_program> main_target
 
 %start main_target proc_target cmd_list_top_target
 %%
@@ -207,10 +205,10 @@ proc_target:
 	PROC; proc_name=VAR; LBRACE; param_list=param_list_target; RBRACE; 
 		CLBRACKET; cmd_list=cmd_list_target; option(SCOLON); CRBRACKET; 
 	WITH; 
-		CLBRACKET; ctx_ret=option(ctx_target_ret); ctx_err=option(ctx_target_err); CRBRACKET; opt_scolon
+		CLBRACKET; ctx_ret=option(ctx_target_ret); ctx_err=option(ctx_target_err); CRBRACKET; option(SCOLON)
 	{
 		(* Printf.printf "Parsing Procedure.\n"; *)
-		(match (spec : SSyntax.jsil_spec option) with
+		(match (spec : SJSIL_Syntax.jsil_spec option) with
 		| None -> ()
 		| Some specif ->  if (not (specif.spec_name = proc_name))    then (raise (Failure "Specification name does not match procedure name."))           else 
 			               (if (not (specif.spec_params = param_list)) then (raise (Failure "Specification parameters do not match procedure parameters.")) else ())
@@ -225,21 +223,16 @@ proc_target:
 			| Some (ev, ei) -> Some ev, Some ei) in
 		let cmd_arr = Array.of_list cmd_list in 
 		{
-    	SSyntax.lproc_name = proc_name;
-    	SSyntax.lproc_body = cmd_arr;
-    	SSyntax.lproc_params = param_list; 
-			SSyntax.lret_label = ret_index;
-			SSyntax.lret_var = ret_var;
-			SSyntax.lerror_label = err_index;
-			SSyntax.lerror_var = err_var;
-			SSyntax.lspec = spec;
+    	SJSIL_Syntax.lproc_name = proc_name;
+    	SJSIL_Syntax.lproc_body = cmd_arr;
+    	SJSIL_Syntax.lproc_params = param_list; 
+			SJSIL_Syntax.lret_label = ret_index;
+			SJSIL_Syntax.lret_var = ret_var;
+			SJSIL_Syntax.lerror_label = err_index;
+			SJSIL_Syntax.lerror_var = err_var;
+			SJSIL_Syntax.lspec = spec;
 		}
 	};
-
-opt_scolon:
-		/* empty */ { }
-	| SCOLON { }
-  ;
 
 ctx_target_ret: 
 (* ret: x, i; *)
@@ -304,19 +297,19 @@ cmd_target:
 	| SKIP 
 		{ 
 			(* Printf.printf "Parsing Skip.\n"; *)
-			Some (SSyntax.SLBasic(SSyntax.SSkip))
+			Some (SJSIL_Syntax.SLBasic(SJSIL_Syntax.SSkip))
 		} 
 (* x := new() *) 
 	| v=VAR; DEFEQ; NEW; LBRACE; RBRACE
 		{ 
 			(* Printf.printf "Parsing New.\n"; *)
-			Some (SSyntax.SLBasic (SSyntax.SNew v))
+			Some (SJSIL_Syntax.SLBasic (SJSIL_Syntax.SNew v))
 		}
 (* x := e *)
 	| v=VAR; DEFEQ; e=expr_target 
 	{ 
 		(* Printf.printf "Parsing Assignment.\n"; *)
-		Some (SSyntax.SLBasic (SSyntax.SAssignment (v, e)))
+		Some (SJSIL_Syntax.SLBasic (SJSIL_Syntax.SAssignment (v, e)))
 	}
 
 (* x := PHI(e1, e2, ... en); *)
@@ -345,57 +338,57 @@ cmd_target:
 	| v=VAR; DEFEQ; LBRACKET; e1=expr_target; COMMA; e2=expr_target; RBRACKET 
 		{ 
 			(* Printf.printf "Parsing Field Look-up.\n"; *)
-			Some (SSyntax.SLBasic (SSyntax.SLookup (v, e1, e2)))
+			Some (SJSIL_Syntax.SLBasic (SJSIL_Syntax.SLookup (v, e1, e2)))
 		}
 (* [e1, e2] := e3 *)
 	| LBRACKET; e1=expr_target; COMMA; e2=expr_target; RBRACKET; DEFEQ; e3=expr_target    
 		{ 
 			(* Printf.printf "Parsing Field Assignment.\n"; *)
-			Some (SSyntax.SLBasic (SSyntax.SMutation (e1, e2, e3))) 
+			Some (SJSIL_Syntax.SLBasic (SJSIL_Syntax.SMutation (e1, e2, e3))) 
 		}
 (* delete(e1, e2) *)
 	| DELETE; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
 		{ 
 			(* Printf.printf "Parsing Deletion.\n"; *)
-			Some (SSyntax.SLBasic (SSyntax.SDelete (e1, e2)))
+			Some (SJSIL_Syntax.SLBasic (SJSIL_Syntax.SDelete (e1, e2)))
 		}
 (* x := hasField(e1, e2) *)
 	| v=VAR; DEFEQ; HASFIELD; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
 		{ 
 			(* Printf.printf "Parsing HasField.\n"; *)
-			Some (SSyntax.SLBasic (SSyntax.SHasField (v, e1, e2)))
+			Some (SJSIL_Syntax.SLBasic (SJSIL_Syntax.SHasField (v, e1, e2)))
 		}
 (* x := getFields (e1) *)
 	| v = VAR; DEFEQ; GETFIELDS; LBRACE; e=expr_target; RBRACE
-		{ Some (SSyntax.SLBasic (SGetFields (v, e))) }
+		{ Some (SJSIL_Syntax.SLBasic (SGetFields (v, e))) }
 (* x := args *)
 	| v = VAR; DEFEQ; ARGUMENTS
 	  {
-			Some (SSyntax.SLBasic (SArguments v))
+			Some (SJSIL_Syntax.SLBasic (SArguments v))
 		}
 (* goto i *)
 	| GOTO; i=VAR 
 		{
 			(* Printf.printf "Parsing Goto.\n"; *)
-			Some (SSyntax.SLGoto i)
+			Some (SJSIL_Syntax.SLGoto i)
 		}
 (* goto [e] i j *)
 	| GOTO LBRACKET; e=expr_target; RBRACKET; i=VAR; j=VAR 
 		{
 			(* Printf.printf "Parsing Conditional Goto.\n"; *)
-			Some (SSyntax.SLGuardedGoto (e, i, j))
+			Some (SJSIL_Syntax.SLGuardedGoto (e, i, j))
 		}
 (* x := e(e1, ..., en) with j *)
 	| v=VAR; DEFEQ; e=expr_target; LBRACE; es=expr_list_target; RBRACE; oi = option(call_with_target)
 		{
 			(* Printf.printf "Parsing Procedure Call.\n"; *)
-			Some (SSyntax.SLCall (v, e, es, oi))
+			Some (SJSIL_Syntax.SLCall (v, e, es, oi))
 		};
 (* x := apply (e1, ..., en) with j *)
 	| v=VAR; DEFEQ; APPLY; LBRACE; es=expr_list_target; RBRACE; oi = option(call_with_target)
 		{
 			(* Printf.printf "Parsing Procedure Call.\n"; *)
-			Some (SSyntax.SLApply (v, es, oi))
+			Some (SJSIL_Syntax.SLApply (v, es, oi))
 		}
 ;
 
@@ -409,56 +402,56 @@ expr_list_target:
 
 expr_target: 
 (* literal *)
-	| lit=lit_target { SSyntax.Literal lit }
+	| lit=lit_target { SJSIL_Syntax.Literal lit }
 (* var *)
-	| v=VAR { SSyntax.Var v }
+	| v=VAR { SJSIL_Syntax.Var v }
 (* binop *)	
-	| e1=expr_target; bop=binop_target; e2=expr_target { SSyntax.BinOp (e1, bop, e2) }
+	| e1=expr_target; bop=binop_target; e2=expr_target { SJSIL_Syntax.BinOp (e1, bop, e2) }
 (* unop *)
-  | uop=unop_target; e=expr_target { SSyntax.UnaryOp (uop, e) }
+  | uop=unop_target; e=expr_target { SJSIL_Syntax.UnaryOp (uop, e) }
 (* vref *)
 	| VREF; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
-		{ SSyntax.VRef (e1, e2) }
+		{ SJSIL_Syntax.VRef (e1, e2) }
 (* oref *)
 	| OREF; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
-		{ SSyntax.ORef (e1, e2) }
+		{ SJSIL_Syntax.ORef (e1, e2) }
 (* base *)
 	| BASE; LBRACE; e=expr_target; RBRACE
-		{ SSyntax.Base (e) }
+		{ SJSIL_Syntax.Base (e) }
 (* field *)
 	| FIELD; LBRACE; e=expr_target; RBRACE
-		{ SSyntax.Field (e) }		
+		{ SJSIL_Syntax.Field (e) }		
 (* typeof *)
 	| TYPEOF; LBRACE; e=expr_target; RBRACE
-		{ SSyntax.TypeOf (e) }
+		{ SJSIL_Syntax.TypeOf (e) }
 (* s-nth (string, n) *)
 	| SNTH; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE 
-		{ SSyntax.SNth (e1, e2) }
+		{ SJSIL_Syntax.SNth (e1, e2) }
 (* l-nth (list, n) *)
 	| LNTH; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE 
-		{ SSyntax.LNth (e1, e2) }
-(* {{ }}	| LISTOPEN; LISTCLOSE { SSyntax.LEList [] } *)
+		{ SJSIL_Syntax.LNth (e1, e2) }
+(* {{ }}	| LISTOPEN; LISTCLOSE { SJSIL_Syntax.LEList [] } *)
 (* {{ e, ..., e }} *)
 	| LISTOPEN; exprlist = separated_list(COMMA, expr_target); LISTCLOSE 
-		{ SSyntax.EList exprlist }
+		{ SJSIL_Syntax.EList exprlist }
 (* cons(e, e) *)
 	| LISTOPEN; CONS; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE 
-		{ SSyntax.Cons (e1, e2) }
+		{ SJSIL_Syntax.Cons (e1, e2) }
 (* (e) *)
   | LBRACE; e=expr_target; RBRACE
 		{ e }
 (* asssume (e) *)
   | ASSUME; LBRACE; e=expr_target; RBRACE
-	  { SSyntax.RAssume (e) }	
+	  { SJSIL_Syntax.RAssume (e) }	
 (* assert (e) *)
   | ASSERT; LBRACE;  e=expr_target; RBRACE
-	  { SSyntax.RAssert (e) }
+	  { SJSIL_Syntax.RAssert (e) }
 (* make_symbol_number() *)
   | RNUMSYM; LBRACE;  RBRACE
-	  { SSyntax.RNumSymb }		
+	  { SJSIL_Syntax.RNumSymb }		
 (* make_symbol_string() *)
   | RSTRSYM; LBRACE; RBRACE
-	  { SSyntax.RStrSymb }		
+	  { SJSIL_Syntax.RStrSymb }		
 ;
 
 (********* LOGIC *********)
@@ -474,13 +467,6 @@ pred_target:
 			definitions = definitions;
 		}
 	};
-
-specs_target:
-	spec_list_target EOF	{ $1 }
-;
-
-spec_list_target: 
-	spec_list = separated_list(SCOLON, spec_target) { spec_list };
 
 spec_target: 
 (* spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *) 
@@ -584,18 +570,18 @@ type_env_pair_target:
 ;
 
 jsil_type_target:
-	| UNDEFTYPELIT { SSyntax.UndefinedType }
-	| NULLTYPELIT { SSyntax.NullType }
-  | EMPTYTYPELIT { SSyntax.EmptyType }
-	| BOOLTYPELIT { SSyntax.BooleanType }
-	| NUMTYPELIT { SSyntax.NumberType }
-	| STRTYPELIT { SSyntax.StringType }
-	| OBJTYPELIT { SSyntax.ObjectType }
-	| REFTYPELIT { SSyntax.ReferenceType }
-	| VREFTYPELIT { SSyntax.VariableReferenceType }
-	| OREFTYPELIT { SSyntax.ObjectReferenceType }	
-	| LISTTYPELIT { SSyntax.ListType }
-  | TYPETYPELIT { SSyntax.TypeType }
+	| UNDEFTYPELIT { SJSIL_Syntax.UndefinedType }
+	| NULLTYPELIT { SJSIL_Syntax.NullType }
+  | EMPTYTYPELIT { SJSIL_Syntax.EmptyType }
+	| BOOLTYPELIT { SJSIL_Syntax.BooleanType }
+	| NUMTYPELIT { SJSIL_Syntax.NumberType }
+	| STRTYPELIT { SJSIL_Syntax.StringType }
+	| OBJTYPELIT { SJSIL_Syntax.ObjectType }
+	| REFTYPELIT { SJSIL_Syntax.ReferenceType }
+	| VREFTYPELIT { SJSIL_Syntax.VariableReferenceType }
+	| OREFTYPELIT { SJSIL_Syntax.ObjectReferenceType }	
+	| LISTTYPELIT { SJSIL_Syntax.ListType }
+  | TYPETYPELIT { SJSIL_Syntax.TypeType }
 ;
 
 var_list_target:
@@ -632,15 +618,15 @@ lexpr_target:
 	| TYPEOF; LBRACE; e=lexpr_target; RBRACE
 		{ LTypeOf (e) }
 (* l-nth(e1, e2) *)
-	| LNTH; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE { SSyntax.LLNth (e1, e2) }
+	| LNTH; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE { SJSIL_Syntax.LLNth (e1, e2) }
 (* s-nth(e1, e2) *)
-	| SNTH; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE { SSyntax.LSNth (e1, e2) }
+	| SNTH; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE { SJSIL_Syntax.LSNth (e1, e2) }
 (* {{ e, ..., e }} *)
 	| LISTOPEN; exprlist = separated_list(COMMA, lexpr_target); LISTCLOSE 
-		{ SSyntax.LEList exprlist }
+		{ SJSIL_Syntax.LEList exprlist }
 (* cons(e, e) *)
 	| LISTOPEN; CONS; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE 
-		{ SSyntax.LCons (e1, e2) }
+		{ SJSIL_Syntax.LCons (e1, e2) }
 (* (e) *)
   | LBRACE; e=lexpr_target; RBRACE
 	  { e }	
@@ -649,102 +635,102 @@ lexpr_target:
 (********* COMMON *********)
 
 lit_target: 
-	| UNDEFINED { SSyntax.Undefined }
-	| NULL { SSyntax.Null }
-	| EMPTY { SSyntax.Empty }
-	| UNDEFTYPELIT { SSyntax.Type SSyntax.UndefinedType }
-	| NULLTYPELIT { SSyntax.Type SSyntax.NullType }
-  | EMPTYTYPELIT { SSyntax.Type SSyntax.EmptyType }
-	| BOOLTYPELIT { SSyntax.Type SSyntax.BooleanType }
-	| NUMTYPELIT { SSyntax.Type SSyntax.NumberType }
-	| STRTYPELIT { SSyntax.Type SSyntax.StringType }
-	| OBJTYPELIT { SSyntax.Type SSyntax.ObjectType }
-	| REFTYPELIT { SSyntax.Type SSyntax.ReferenceType }
-	| VREFTYPELIT { SSyntax.Type SSyntax.VariableReferenceType }
-	| OREFTYPELIT { SSyntax.Type SSyntax.ObjectReferenceType }	
-	| LISTTYPELIT { SSyntax.Type SSyntax.ListType }
-	| TYPETYPELIT { SSyntax.Type SSyntax.TypeType }
-	| TRUE { SSyntax.Bool true }
-	| FALSE { SSyntax.Bool false }
-(*	| i=INT { SSyntax.Num (float_of_int i) } *)
-	| NAN { SSyntax.Num nan }
-	| INFINITY { SSyntax.Num infinity }
-	| x=FLOAT { SSyntax.Num x }
-	| s=STRING { SSyntax.String s }
-	| loc=LOC { SSyntax.Loc loc }
-	| loc=lit_target; VREFLIT; s=STRING { SSyntax.LVRef (loc, s) }
-	| loc=lit_target; OREFLIT; s=STRING { SSyntax.LORef (loc, s) }
+	| UNDEFINED { SJSIL_Syntax.Undefined }
+	| NULL { SJSIL_Syntax.Null }
+	| EMPTY { SJSIL_Syntax.Empty }
+	| UNDEFTYPELIT { SJSIL_Syntax.Type SJSIL_Syntax.UndefinedType }
+	| NULLTYPELIT { SJSIL_Syntax.Type SJSIL_Syntax.NullType }
+  | EMPTYTYPELIT { SJSIL_Syntax.Type SJSIL_Syntax.EmptyType }
+	| BOOLTYPELIT { SJSIL_Syntax.Type SJSIL_Syntax.BooleanType }
+	| NUMTYPELIT { SJSIL_Syntax.Type SJSIL_Syntax.NumberType }
+	| STRTYPELIT { SJSIL_Syntax.Type SJSIL_Syntax.StringType }
+	| OBJTYPELIT { SJSIL_Syntax.Type SJSIL_Syntax.ObjectType }
+	| REFTYPELIT { SJSIL_Syntax.Type SJSIL_Syntax.ReferenceType }
+	| VREFTYPELIT { SJSIL_Syntax.Type SJSIL_Syntax.VariableReferenceType }
+	| OREFTYPELIT { SJSIL_Syntax.Type SJSIL_Syntax.ObjectReferenceType }	
+	| LISTTYPELIT { SJSIL_Syntax.Type SJSIL_Syntax.ListType }
+	| TYPETYPELIT { SJSIL_Syntax.Type SJSIL_Syntax.TypeType }
+	| TRUE { SJSIL_Syntax.Bool true }
+	| FALSE { SJSIL_Syntax.Bool false }
+(*	| i=INT { SJSIL_Syntax.Num (float_of_int i) } *)
+	| NAN { SJSIL_Syntax.Num nan }
+	| INFINITY { SJSIL_Syntax.Num infinity }
+	| x=FLOAT { SJSIL_Syntax.Num x }
+	| s=STRING { SJSIL_Syntax.String s }
+	| loc=LOC { SJSIL_Syntax.Loc loc }
+	| loc=lit_target; VREFLIT; s=STRING { SJSIL_Syntax.LVRef (loc, s) }
+	| loc=lit_target; OREFLIT; s=STRING { SJSIL_Syntax.LORef (loc, s) }
 	(* EMPTY AND NON-EMPTY LISTS *)
-	| LNIL { SSyntax.LList [] }
-	| LISTOPEN; LISTCLOSE { SSyntax.LList [] }
-	| MIN_FLOAT { SSyntax.Constant Min_float }
-	| MAX_FLOAT { SSyntax.Constant Max_float }
-	| RANDOM { SSyntax.Constant Random }
-	| E { SSyntax.Constant E }
-	| LN10 { SSyntax.Constant Ln10 }
-	| LN2 { SSyntax.Constant Ln2 }
-	| LOG2E { SSyntax.Constant Log2e }
-	| LOG10E { SSyntax.Constant Log10e }
-	| PI { SSyntax.Constant Pi }
-	| SQRT1_2 { SSyntax.Constant Sqrt1_2 }
-	| SQRT2 { SSyntax.Constant Sqrt2 }
-	| M_RANDOM { SSyntax.Constant Random }
+	| LNIL { SJSIL_Syntax.LList [] }
+	| LISTOPEN; LISTCLOSE { SJSIL_Syntax.LList [] }
+	| MIN_FLOAT { SJSIL_Syntax.Constant Min_float }
+	| MAX_FLOAT { SJSIL_Syntax.Constant Max_float }
+	| RANDOM { SJSIL_Syntax.Constant Random }
+	| E { SJSIL_Syntax.Constant E }
+	| LN10 { SJSIL_Syntax.Constant Ln10 }
+	| LN2 { SJSIL_Syntax.Constant Ln2 }
+	| LOG2E { SJSIL_Syntax.Constant Log2e }
+	| LOG10E { SJSIL_Syntax.Constant Log10e }
+	| PI { SJSIL_Syntax.Constant Pi }
+	| SQRT1_2 { SJSIL_Syntax.Constant Sqrt1_2 }
+	| SQRT2 { SJSIL_Syntax.Constant Sqrt2 }
+	| M_RANDOM { SJSIL_Syntax.Constant Random }
 ;
 
 binop_target: 
-	| EQUAL { SSyntax.Equal }
-	| LESSTHAN { SSyntax.LessThan }
-	| LESSTHANSTRING { SSyntax.LessThanString }
-	| LESSTHANEQUAL { SSyntax.LessThanEqual }
-	| PLUS { SSyntax.Plus }
-	| MINUS { SSyntax.Minus }
-	| TIMES { SSyntax.Times }
-	| DIV { SSyntax.Div }
-	| MOD { SSyntax.Mod }
-	| SUBTYPE { SSyntax.Subtype }
-	| CONCAT { SSyntax.Concat }
-	| APPEND { SSyntax.Append }
-	| AND { SSyntax.And }
-	| OR { SSyntax.Or }
-	| BITWISEAND { SSyntax.BitwiseAnd }
-	| BITWISEOR { SSyntax.BitwiseOr}
-	| BITWISEXOR { SSyntax.BitwiseXor }
-	| LEFTSHIFT { SSyntax.LeftShift }
-	| SIGNEDRIGHTSHIFT { SSyntax.SignedRightShift }
-	| UNSIGNEDRIGHTSHIFT { SSyntax.UnsignedRightShift }
-	| LCONS { SSyntax.LCons }
-	| M_ATAN2 { SSyntax.M_atan2 }
-	| M_POW {SSyntax.M_pow }
+	| EQUAL { SJSIL_Syntax.Equal }
+	| LESSTHAN { SJSIL_Syntax.LessThan }
+	| LESSTHANSTRING { SJSIL_Syntax.LessThanString }
+	| LESSTHANEQUAL { SJSIL_Syntax.LessThanEqual }
+	| PLUS { SJSIL_Syntax.Plus }
+	| MINUS { SJSIL_Syntax.Minus }
+	| TIMES { SJSIL_Syntax.Times }
+	| DIV { SJSIL_Syntax.Div }
+	| MOD { SJSIL_Syntax.Mod }
+	| SUBTYPE { SJSIL_Syntax.Subtype }
+	| CONCAT { SJSIL_Syntax.Concat }
+	| APPEND { SJSIL_Syntax.Append }
+	| AND { SJSIL_Syntax.And }
+	| OR { SJSIL_Syntax.Or }
+	| BITWISEAND { SJSIL_Syntax.BitwiseAnd }
+	| BITWISEOR { SJSIL_Syntax.BitwiseOr}
+	| BITWISEXOR { SJSIL_Syntax.BitwiseXor }
+	| LEFTSHIFT { SJSIL_Syntax.LeftShift }
+	| SIGNEDRIGHTSHIFT { SJSIL_Syntax.SignedRightShift }
+	| UNSIGNEDRIGHTSHIFT { SJSIL_Syntax.UnsignedRightShift }
+	| LCONS { SJSIL_Syntax.LCons }
+	| M_ATAN2 { SJSIL_Syntax.M_atan2 }
+	| M_POW {SJSIL_Syntax.M_pow }
 ;
 
 unop_target: 
-	| NOT { SSyntax.Not }
-	| MINUS { SSyntax.Negative }
-	| TOSTRING { SSyntax.ToStringOp }
-	| TONUMBER { SSyntax.ToNumberOp }
-	| TOINT { SSyntax.ToIntOp }
-	| TOUINT16 { SSyntax.ToUint16Op }
-	| TOINT32 { SSyntax.ToInt32Op }
-	| TOUINT32 { SSyntax.ToUint32Op }
-	| BITWISENOT { SSyntax.BitwiseNot }
-	| CAR { SSyntax.Car }
-	| CDR { SSyntax.Cdr }
-	| ISPRIMITIVE { SSyntax.IsPrimitive }
-	| LENGTH { SSyntax.Length }
-	| M_ABS   { SSyntax.M_abs }
-	| M_ACOS  { SSyntax.M_acos }
-	| M_ASIN  { SSyntax.M_asin }
-	| M_ATAN  { SSyntax.M_atan }
-	| M_CEIL  { SSyntax.M_ceil }
-	| M_COS   { SSyntax.M_cos }
-	| M_EXP   { SSyntax.M_exp }
-	| M_FLOOR { SSyntax.M_floor }
-	| M_LOG   { SSyntax.M_log }
-	| M_ROUND { SSyntax.M_round }
-	| M_SGN   { SSyntax.M_sgn }
-	| M_SIN   { SSyntax.M_sin }
-	| M_SQRT  { SSyntax.M_sqrt }
-	| M_TAN   { SSyntax.M_tan }
+	| NOT { SJSIL_Syntax.Not }
+	| MINUS { SJSIL_Syntax.Negative }
+	| TOSTRING { SJSIL_Syntax.ToStringOp }
+	| TONUMBER { SJSIL_Syntax.ToNumberOp }
+	| TOINT { SJSIL_Syntax.ToIntOp }
+	| TOUINT16 { SJSIL_Syntax.ToUint16Op }
+	| TOINT32 { SJSIL_Syntax.ToInt32Op }
+	| TOUINT32 { SJSIL_Syntax.ToUint32Op }
+	| BITWISENOT { SJSIL_Syntax.BitwiseNot }
+	| CAR { SJSIL_Syntax.Car }
+	| CDR { SJSIL_Syntax.Cdr }
+	| ISPRIMITIVE { SJSIL_Syntax.IsPrimitive }
+	| LENGTH { SJSIL_Syntax.Length }
+	| M_ABS   { SJSIL_Syntax.M_abs }
+	| M_ACOS  { SJSIL_Syntax.M_acos }
+	| M_ASIN  { SJSIL_Syntax.M_asin }
+	| M_ATAN  { SJSIL_Syntax.M_atan }
+	| M_CEIL  { SJSIL_Syntax.M_ceil }
+	| M_COS   { SJSIL_Syntax.M_cos }
+	| M_EXP   { SJSIL_Syntax.M_exp }
+	| M_FLOOR { SJSIL_Syntax.M_floor }
+	| M_LOG   { SJSIL_Syntax.M_log }
+	| M_ROUND { SJSIL_Syntax.M_round }
+	| M_SGN   { SJSIL_Syntax.M_sgn }
+	| M_SIN   { SJSIL_Syntax.M_sin }
+	| M_SQRT  { SJSIL_Syntax.M_sqrt }
+	| M_TAN   { SJSIL_Syntax.M_tan }
 ;
 
 call_with_target: 

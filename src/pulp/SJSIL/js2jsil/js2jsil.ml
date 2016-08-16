@@ -1,7 +1,7 @@
 open Utils
 open Lexing
 open Batteries
-open SSyntax
+open SJSIL_Syntax
 
 let js2jsil_imports = [
 	"Array"; 
@@ -760,7 +760,7 @@ let make_loop_end cur_val_var prev_val_var break_vars end_lab cur_first =
 	cmds, x_ret_5 
 			
 	
-let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : ((SSyntax.jsil_metadata * (string option) * SSyntax.jsil_lab_cmd) list) * SSyntax.jsil_expr * (string list) =
+let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : ((jsil_metadata * (string option) * jsil_lab_cmd) list) * jsil_expr * (string list) =
 	
 	let f = translate_expr offset_converter fid cc_table vis_fid err false in
 	let f_rosette = translate_expr offset_converter fid cc_table vis_fid err true in
@@ -849,9 +849,9 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let x_r = fresh_var () in  
 		let jsil_bop = 
 			(match lbop with 
-			| Parser_syntax.And -> SSyntax.And 
-			| Parser_syntax.Or -> SSyntax.Or) in 
-		let cmd_ass_xr = SLBasic (SAssignment (x_r, SSyntax.BinOp (Var x1_v, jsil_bop, Var x2_v))) in 
+			| Parser_syntax.And -> SJSIL_Syntax.And 
+			| Parser_syntax.Or -> SJSIL_Syntax.Or) in 
+		let cmd_ass_xr = SLBasic (SAssignment (x_r, SJSIL_Syntax.BinOp (Var x1_v, jsil_bop, Var x2_v))) in 
 		
 		let cmds = cmds1 @ (annotate_cmds [   (*         cmds1                                              *)
 			(None,         cmd_gv_x1);          (*         x1_v := i__getValue (x1) with err                  *)
@@ -4804,9 +4804,9 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 		(* let proc_eval_str = SSyntax_Print.string_of_ext_procedure proc in 
 		   Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
 			let proc = SSyntax_Utils.desugar_labs proc in 
-			SProgram.add prog f_id proc; 
+			Hashtbl.add prog f_id proc;
 			SSyntax_Utils.extend_which_pred which_pred proc)
 		new_fun_tbl; 
 	
-	let proc_eval = try SProgram.find prog new_fid with _ -> raise (Failure "no eval proc was created") in 
+	let proc_eval = try Hashtbl.find prog new_fid with _ -> raise (Failure "no eval proc was created") in 
 	proc_eval 

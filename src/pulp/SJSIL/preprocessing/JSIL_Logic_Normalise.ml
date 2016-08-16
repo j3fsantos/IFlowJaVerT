@@ -1,7 +1,8 @@
-open SSyntax 
 open DynArray
 open Set
 open Stack
+open SJSIL_Syntax
+open SJSIL_Exec_Types
 
 module StringSet = Set.Make( 
   struct
@@ -279,21 +280,19 @@ let rec init_symb_store_alocs store gamma subst ass : unit =
 		f a_left; f a_right 
 		
 	| LPointsTo (PVar var, _, _) ->
-		(try Hashtbl.find store var; ()
-		with _ ->
+		if (not (Hashtbl.mem store var))
+		then
 			(let aloc = new_abs_loc_name var in 
 			Hashtbl.add store var (ALoc aloc);
 			Hashtbl.add subst var (ALoc aloc); 
-			Hashtbl.replace gamma var ObjectType; 
-			()))
+			Hashtbl.replace gamma var ObjectType)
 		 
 	| LPointsTo (LVar var, _, _) ->
-		(try (Hashtbl.find subst var); ()
-			with _ ->
-				(let aloc = new_abs_loc_name var in  
-				Hashtbl.add subst var (ALoc aloc); 
-				Hashtbl.replace gamma var ObjectType; 
-				()))
+		if (not (Hashtbl.mem subst var))
+		then
+			(let aloc = new_abs_loc_name var in  
+			Hashtbl.add subst var (ALoc aloc); 
+			Hashtbl.replace gamma var ObjectType)
 				
 	| LPointsTo (ALoc _, _, _) ->
 		raise (Failure "Unsupported assertion during normalization")	
@@ -357,7 +356,8 @@ let init_pure_assignments a store gamma subst =
 	let fill_store p_vars =
 	Hashtbl.iter 
 		(fun var _ -> 
-			try Hashtbl.find store var; () with _ ->  
+			if (not (Hashtbl.mem store var))
+			then
 				let new_l_var = new_lvar_name var in 
 				Hashtbl.add store var (LVar new_l_var); 
 				Hashtbl.add subst var (LVar new_l_var);
@@ -483,8 +483,8 @@ let init_pure_assignments a store gamma subst =
 	normalize_pure_assignments succs p_vars p_vars_tbl;   
 	(* Printf.printf "after fill store \n"; *)
 	normalize_pure_assertions ()
-	
-	
+
+
 let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_formulae gamma subst a = 
 	let f = compute_symb_heap heap store p_formulae gamma subst in  
 	let fe = normalise_lexpr store gamma subst in 

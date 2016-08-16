@@ -1,9 +1,18 @@
 open OUnit
-open SSyntax
-open SSyntax_Print
-open SSyntax_Utils
+open SJSIL_Syntax
+open JSIL_Print
 open SJSIL_Interpreter
 open Js2jsil
+
+let if_some p f d =
+	(match p with
+	| None -> d
+	| Some p -> f p)
+
+let string_of_outcome o =
+	match o with
+	| Normal -> "Normal"
+	| Error -> "Error"
 
 (**
 	General test

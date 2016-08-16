@@ -1,4 +1,5 @@
-open SSyntax
+open SJSIL_Syntax
+open SJSIL_Exec_Types
 
 let verbose = ref false
 
@@ -50,8 +51,8 @@ let rec safe_symb_evaluate_expr (expr : jsil_expr) store gamma =
 		then nle 
 		else 
 			begin 
-				let gamma_str = JSIL_Logic_Print.string_of_gamma gamma in 
-				let msg = Printf.sprintf "The logical expression %s is not typable in the typing enviroment: %s" (JSIL_Logic_Print.string_of_logic_expression nle false) gamma_str in
+				let gamma_str = JSIL_Exec_Print.string_of_gamma gamma in 
+				let msg = Printf.sprintf "The logical expression %s is not typable in the typing enviroment: %s" (JSIL_Print.string_of_logic_expression nle false) gamma_str in
 				raise (Failure msg)  
 			end
 and 
@@ -188,7 +189,7 @@ symb_evaluate_expr (expr : jsil_expr) store gamma =
 
 let update_abs_store store x ne = 
 	(* Printf.printf "I am in the update store\n"; 
-	let str_store = "\t Store: " ^ (JSIL_Logic_Print.string_of_shallow_symb_store store) ^ "\n" in 
+	let str_store = "\t Store: " ^ (JSIL_Exec_Print.string_of_shallow_symb_store store) ^ "\n" in 
 	Printf.printf "%s" str_store;  *)
 	Hashtbl.replace store x ne
 
@@ -219,7 +220,7 @@ let find_field fv_list e p_formulae =
 					(if (isDifferent e e_field p_formulae)
 						then find_field_rec rest ((e_field, e_value) :: traversed_fv_list)
 						else 
-							let e_str = JSIL_Logic_Print.string_of_logic_expression e false  in  
+							let e_str = JSIL_Print.string_of_logic_expression e false  in  
 							let msg = Printf.sprintf "I cannot decide whether or not the field denoted by %s already exists in the symbolic heap" e_str in   
 							raise (Failure msg))) in 
 	find_field_rec fv_list []
@@ -277,7 +278,7 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) :  (strin
 	with _ -> None
 
 
-let unify_lexprs le_pat (le : SSyntax.jsil_logic_expr) p_formulae (subst : (string, SSyntax.jsil_logic_expr) Hashtbl.t) : (bool * ((string * jsil_logic_expr) option)) = 
+let unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (subst : (string, jsil_logic_expr) Hashtbl.t) : (bool * ((string * jsil_logic_expr) option)) = 
 	match le_pat with 
 	| LVar var 
 	| ALoc var ->  
@@ -344,8 +345,8 @@ let unify_fv_pair (pat_field, pat_value) (fv_list : (jsil_logic_expr * jsil_logi
 let unify_symb_fv_lists pat_fv_list fv_list def_val p_formulae subst : (jsil_logic_expr * jsil_logic_expr) list option = 
 	(** 
 		let error_msg pat_field pat_val = 
-		let pat_field_str = JSIL_Logic_Print.string_of_logic_expression pat_field false in 
-		let pat_val_str = JSIL_Logic_Print.string_of_logic_expression pat_val false in 
+		let pat_field_str = JSIL_Print.string_of_logic_expression pat_field false in 
+		let pat_val_str = JSIL_Print.string_of_logic_expression pat_val false in 
 			Printf.sprintf "Field-val pair (%s, %s) in pattern has not been matched" pat_field_str pat_val_str in
 	*)
 	let rec loop (fv_list : (jsil_logic_expr * jsil_logic_expr) list) (pat_list : (jsil_logic_expr * jsil_logic_expr) list) = 
@@ -439,10 +440,10 @@ let heap_substitution (heap : symbolic_heap) (subst : (string, jsil_logic_expr) 
 			
 			
 let merge_heaps heap new_heap p_formulae = 
-	(** 	let str_heap = JSIL_Logic_Print.string_of_shallow_symb_heap heap in 
+	(** 	let str_heap = JSIL_Exec_Print.string_of_shallow_symb_heap heap in 
 	Printf.printf "heap 1: %s\n" str_heap; 			
 				
-	let str_new_heap = JSIL_Logic_Print.string_of_shallow_symb_heap new_heap in 
+	let str_new_heap = JSIL_Exec_Print.string_of_shallow_symb_heap new_heap in 
 	Printf.printf "new_heap 1: %s\n" str_new_heap; *)
 	
 	LHeap.iter 
@@ -456,7 +457,7 @@ let merge_heaps heap new_heap p_formulae =
 						(match n_fv_list with 
 						| [] -> q_fv_list 
 						| (le_field, le_val) :: rest_n_fv_list -> 
-							(* Printf.printf "le_field: %s, le_val: %s\n" (JSIL_Logic_Print.string_of_logic_expression le_field false) (JSIL_Logic_Print.string_of_logic_expression le_val false); *)
+							(* Printf.printf "le_field: %s, le_val: %s\n" (JSIL_Print.string_of_logic_expression le_field false) (JSIL_Print.string_of_logic_expression le_val false); *)
 							let _, fv_pair = find_field fv_list le_field p_formulae in 
 							(match fv_pair with 
 							| None -> loop ((le_field, le_val) :: q_fv_list) rest_n_fv_list 
@@ -495,7 +496,7 @@ let symb_evaluate_bcmd (bcmd : basic_jsil_cmd) heap store pure_formulae gamma =
 			(* Printf.printf "I am going to call: Update Abstract Heap\n"; *)
 			update_abs_heap heap l ne2 ne3 pure_formulae
 		| _ -> 
-			let ne1_str = JSIL_Logic_Print.string_of_logic_expression ne1 false  in 
+			let ne1_str = JSIL_Print.string_of_logic_expression ne1 false  in 
 			let msg = Printf.sprintf "I do not know which location %s denotes in the symbolic heap" ne1_str in 
 			raise (Failure msg)); 
 		ne3
@@ -508,7 +509,7 @@ let symb_evaluate_bcmd (bcmd : basic_jsil_cmd) heap store pure_formulae gamma =
 			| LLit (Loc l) 
 			| ALoc l -> l
 			| _ -> 
-			let ne1_str = JSIL_Logic_Print.string_of_logic_expression ne1 false  in 
+			let ne1_str = JSIL_Print.string_of_logic_expression ne1 false  in 
 			let msg = Printf.sprintf "I do not know which location %s denotes in the symbolic heap" ne1_str in 
 			raise (Failure msg)) in 
 		let ne = abs_heap_find heap l ne2 pure_formulae in 
@@ -523,7 +524,7 @@ let symb_evaluate_bcmd (bcmd : basic_jsil_cmd) heap store pure_formulae gamma =
 			| LLit (Loc l) 
 			| ALoc l -> l 
 			| _ -> 
-				let ne1_str = JSIL_Logic_Print.string_of_logic_expression ne1 false  in 
+				let ne1_str = JSIL_Print.string_of_logic_expression ne1 false  in 
 				let msg = Printf.sprintf "I do not know which location %s denotes in the symbolic heap" ne1_str in 
 				raise (Failure msg)) in 
 		abs_heap_delete heap l ne2 pure_formulae; 
@@ -575,15 +576,15 @@ let find_and_apply_spec proc proc_specs heap store p_formulae gamma =
 	find_correct_spec (proc_specs.n_proc_specs)
 
 
-let rec symb_evaluate_cmd (spec_table : (string, SSyntax.jsil_n_spec) Hashtbl.t) post ret_flag prog cur_proc_name which_pred heap store pure_formulae gamma cur_cmd prev_cmd = 	
+let rec symb_evaluate_cmd (spec_table : (string, jsil_n_spec) Hashtbl.t) post ret_flag prog cur_proc_name which_pred heap store pure_formulae gamma cur_cmd prev_cmd = 	
 	let f = symb_evaluate_cmd spec_table post ret_flag prog cur_proc_name which_pred heap store pure_formulae gamma in 
 	
-	let proc = try SProgram.find prog cur_proc_name with
+	let proc = try Hashtbl.find prog cur_proc_name with
 		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist. Ew." cur_proc_name)) in  
 	let cmd = proc.proc_body.(cur_cmd) in 
-	let cmd_str = SSyntax_Print.string_of_cmd cmd 0 0 false false false in 
-	(* Printf.printf ("cmd: %s \n") cmd_str;
-	let str_store = "\t Store: " ^ (JSIL_Logic_Print.string_of_shallow_symb_store store) ^ "\n" in 
+	(* let cmd_str = JSIL_Print.string_of_cmd cmd 0 0 false false false in 
+	Printf.printf ("cmd: %s \n") cmd_str;
+	let str_store = "\t Store: " ^ (JSIL_Exec_Print.string_of_shallow_symb_store store) ^ "\n" in 
 	Printf.printf "%s" str_store; *) 
 	let metadata, cmd = cmd in
 	match cmd with 
@@ -612,9 +613,9 @@ let rec symb_evaluate_cmd (spec_table : (string, SSyntax.jsil_n_spec) Hashtbl.t)
 				if (!verbose) then Printf.printf "\nExecuting procedure %s\n" proc_name; 
 				proc_name 
 			| _ ->
-				let msg = Printf.sprintf "Symb Execution Error - Cannot analyse a procedure call without the name of the procedure. Got: %s." (JSIL_Logic_Print.string_of_logic_expression proc_name false) in 
+				let msg = Printf.sprintf "Symb Execution Error - Cannot analyse a procedure call without the name of the procedure. Got: %s." (JSIL_Print.string_of_logic_expression proc_name false) in 
 				raise (Failure msg) in 
-		let v_args = List.map (fun e -> symb_evaluate_expr e store gamma) e_args in 
+		(* let v_args = List.map (fun e -> symb_evaluate_expr e store gamma) e_args in *)
 		let proc_specs = try 
 			Hashtbl.find spec_table proc_name 
 		with _ ->
@@ -624,7 +625,7 @@ let rec symb_evaluate_cmd (spec_table : (string, SSyntax.jsil_n_spec) Hashtbl.t)
 		| Some (heap, store, pure_formulae, gamma, ret_flag, ret_val) -> 
 			(match ret_flag with 
 			| Normal -> 
-				(** let str_heap = JSIL_Logic_Print.string_of_shallow_symb_heap heap in 
+				(** let str_heap = JSIL_Exec_Print.string_of_shallow_symb_heap heap in 
 				Printf.printf "Heap after calling the procedure:\n%s\n" str_heap; *)
 				symb_evaluate_next_command spec_table post ret_flag prog proc which_pred heap store pure_formulae gamma cur_cmd prev_cmd
 			| Error ->
@@ -650,7 +651,7 @@ symb_evaluate_next_command spec_table post ret_flag prog proc which_pred heap st
 			| Some ret_var -> ret_var) in 
 		let ret_expr = (try (Hashtbl.find store ret_var) with
 			| _ -> 
-				let str_store = "\t Store: " ^ (JSIL_Logic_Print.string_of_shallow_symb_store store) ^ "\n" in 
+				let str_store = "\t Store: " ^ (JSIL_Exec_Print.string_of_shallow_symb_store store) ^ "\n" in 
 				Printf.printf "%s" str_store; 
 				raise (Failure (Printf.sprintf "Cannot find return variable."))) in 
 		check_final_symb_state cur_proc_name post ret_flag heap store gamma Normal ret_expr pure_formulae)
@@ -661,7 +662,7 @@ symb_evaluate_next_command spec_table post ret_flag prog proc which_pred heap st
 					                      | None -> raise (Failure "No no!") 
 																| Some err_var -> err_var) in
 				         (try (Hashtbl.find store err_var) with
-				| _ -> raise (Failure (Printf.sprintf "Cannot find error variable in proc %s, err_lab = %d, err_var = %s, cmd = %s" proc.proc_name cur_cmd err_var (SSyntax_Print.string_of_cmd proc.proc_body.(prev_cmd)  0 0 false false false))))) in
+				| _ -> raise (Failure (Printf.sprintf "Cannot find error variable in proc %s, err_lab = %d, err_var = %s, cmd = %s" proc.proc_name cur_cmd err_var (JSIL_Print.string_of_cmd proc.proc_body.(prev_cmd)  0 0 false false false))))) in
 			check_final_symb_state cur_proc_name post ret_flag heap store gamma Error err_expr pure_formulae)
 	else (
 			let next_cmd = 
@@ -676,15 +677,15 @@ symb_evaluate_next_command spec_table post ret_flag prog proc which_pred heap st
 and 
 check_final_symb_state proc_name post ret_flag heap store gamma flag lexpr pure_formulae = 
 	let post_heap, post_store, post_p_formulae, post_gamma = post in 
-	(** let str = JSIL_Logic_Print.string_of_shallow_symb_state heap store pure_formulae gamma in 
+	(** let str = JSIL_Exec_Print.string_of_shallow_symb_state heap store pure_formulae gamma in 
 	Printf.printf "Final symbolic state: \n %s" str; **)
 	
 	let print_error_to_console msg = 
 		(if (msg = "") 
 			then Printf.printf "Failed to verify a spec of proc %s\n" proc_name
 			else Printf.printf "Failed to verify a spec of proc %s -- %s\n" proc_name msg); 
-		let final_symb_state_str = JSIL_Logic_Print.string_of_shallow_symb_state heap store pure_formulae gamma in 
-		let post_symb_state_str = JSIL_Logic_Print.string_of_shallow_symb_state post_heap post_store post_p_formulae post_gamma in
+		let final_symb_state_str = JSIL_Exec_Print.string_of_shallow_symb_state heap store pure_formulae gamma in 
+		let post_symb_state_str = JSIL_Exec_Print.string_of_shallow_symb_state post_heap post_store post_p_formulae post_gamma in
 		Printf.printf "Final symbolic state: %s\n" final_symb_state_str;
 		Printf.printf "Post condition: %s\n" post_symb_state_str in 
 	
