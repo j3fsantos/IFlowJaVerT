@@ -229,8 +229,8 @@ proc SP_indexOf (xsc, vthis, searchString, position) {
 			goto [kslen <= len] iloop end;
 			
 	iloop:	kj := k + j;
-			skj := nth (S, kj);
-			ssj := nth (sStr, j);
+			skj := s-nth (S, kj);
+			ssj := s-nth (sStr, j);
 			goto [skj = ssj] checkj next;
 	
 	checkj:	j := j + 1;
@@ -292,8 +292,8 @@ proc SP_lastIndexOf (xsc, vthis, searchString, position) {
 			goto [k < 0] end iloop;
 			
 	iloop:	kj := k + j;
-			skj := nth (S, kj);
-			ssj := nth (sStr, j);
+			skj := s-nth (S, kj);
+			ssj := s-nth (sStr, j);
 			goto [skj = ssj] checkj next;
 	
 	checkj:	j := j + 1;
@@ -360,7 +360,7 @@ proc SP_slice (xsc, vthis, start, end) {
 			cnt := 0;
 	loop:	goto [cnt < span] add stop;
 			
-	add:	next := nth (S, start);
+	add:	next := s-nth (S, start);
 			xret := "i__toString" (next) with elab;
 			nStr := xret;
 			R := R concat nStr;
@@ -415,7 +415,7 @@ proc SP_substring (xsc, vthis, start, end) {
 			cnt := 0;
 	loop:	goto [cnt < span] add stop;
 			
-	add:	next := nth (S, from);
+	add:	next := s-nth (S, from);
 			xret := "i__toString" (next) with elab;
 			nStr := xret;
 			R := R concat nStr;
