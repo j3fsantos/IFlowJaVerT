@@ -190,11 +190,10 @@ with
 {
 	ret: 	xret, rlab;
 	err: 	xret, elab;
-}
+};
 
 
 (* *** INDEXOF *** *)
-(*
 proc SP_indexOf (xsc, vthis, searchString, position) {
 			xret := "i__checkObjectCoercible" (vthis) with elab;
 			xret := "i__toString" (vthis) with elab;
@@ -251,11 +250,9 @@ with
 {
 	ret: 	xret, rlab;
 	err: 	xret, elab;
-}
-*)
+};
 
 (* *** LASTINDEXOF *** *)
-(*
 proc SP_lastIndexOf (xsc, vthis, searchString, position) {
 			xret := "i__checkObjectCoercible" (vthis) with elab;
 			xret := "i__toString" (vthis) with elab;
@@ -314,7 +311,6 @@ with
 	ret: 	xret, rlab;
 	err: 	xret, elab;
 }
-*)
 
 
 (* *** SLICE *** *)
