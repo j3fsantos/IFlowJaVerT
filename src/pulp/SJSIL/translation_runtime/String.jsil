@@ -164,7 +164,7 @@ with
 (* *** CONCAT *** *)
 proc SP_concat () {
 			arguments := args;
-			vthis := nth (arguments, 1);
+			vthis := l-nth (arguments, 1);
 			num := length (arguments);
 			
 			xret := "i__checkObjectCoercible" (vthis) with elab;
@@ -172,9 +172,10 @@ proc SP_concat () {
 			R := xret;
 			idx := 2;
 			
+			
 	loop:	goto [idx < num] add end;
 	
-	add:	next := nth (arguments, idx);
+	add:	next := l-nth (arguments, idx);
 			xret := "i__toString" (next) with elab;
 			nStr := xret;
 			R := R concat nStr;
