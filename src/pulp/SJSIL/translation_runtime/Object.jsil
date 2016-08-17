@@ -56,7 +56,7 @@ proc i__getOwnFieldsIter (prop_list) {
 			xt := cdr prop_list;
 			
 			goto [0 < length (xh)] maybe yes;
-	maybe:	test := nth (xh, 0);
+	maybe:	test := s-nth (xh, 0);
 			goto [test = "@"] no yes;
 	
 	no:		fh := $$nil;
@@ -101,7 +101,7 @@ proc i__getEnumerableFieldsIter (l, prop_list, gop) {
 			xt := cdr prop_list;
 			
 			prop := gop (l, xh);
-			goto [nth (prop, 3) = $$t] yes no;
+			goto [l-nth (prop, 3) = $$t] yes no;
 	
 	no:		fh := $$nil;
 			goto rcall;	
@@ -153,7 +153,7 @@ proc i__getEnumerableFieldsWithValuesIter (l, prop_list, g) {
 			
 	rcall:	xret := "i__getEnumerableFieldsWithValuesIter" (l, xt, g) with elab;
 			
-			xret := {{ prop_list , (fh :: nth (xret, 1)) }};
+			xret := {{ prop_list , (fh :: l-nth (xret, 1)) }};
 			
 	rlab:	skip;
 	elab:	skip
@@ -187,12 +187,12 @@ proc i__getAllEnumerableFieldsIter (l, props, b) {
 			n := 0;
 	loop:	goto [n < len] head next;
 	
-	head:	hf := hasField (props, nth (enums, n));
+	head:	hf := hasField (props, l-nth (enums, n));
 			goto [hf] inc test;
 	test:	goto [l = b] add bf;
-	bf:		hf := hasField (b, nth (enums, n));
+	bf:		hf := hasField (b, l-nth (enums, n));
 			goto [hf] inc add;
-	add:	[props, nth (enums, n)] := {{ "d", l, $$f, $$f, $$f }};
+	add:	[props, l-nth (enums, n)] := {{ "d", l, $$f, $$f, $$f }};
 	inc:	n := n + 1;
 			goto loop;
 			
@@ -213,9 +213,9 @@ with
 (* *** CALL *** *)
 
 proc Object_call (xsc, vthis, v) {
-			goto [(v = $$undefined) or (v = $$null) or (v = $$empty)] cons to_obj;
+			goto [(v = $$undefined) or (v = $$null) or (v = $$empty)] cns to_obj;
 	
-	cons:	xret := "Object_construct" (xsc, vthis, v);
+	cns:	xret := "Object_construct" (xsc, vthis, v);
 			goto rlab;
 	
 	to_obj:	xret := "i__toObject" (v) with elab;
@@ -306,7 +306,7 @@ proc Object_getOwnPropertyNames (xsc, vthis, o) {
 			dop := [xret, "@defineOwnProperty"];
 			
 	loop:	goto [n < len] head end;
-	head:	xret := dop (l, num_to_string n, {{ "d", nth (props, n), $$t, $$t, $$t }}, $$f) with elab;
+	head:	xret := dop (l, num_to_string n, {{ "d", l-nth (props, n), $$t, $$t, $$t }}, $$f) with elab;
 			n := n + 1;
 			goto loop;
 
@@ -380,15 +380,15 @@ proc Object_defineProperties (xsc, vthis, o, props) {
 			
 			xret := "i__getEnumerableFieldsWithValues" (props) with elab;
 			
-			props := nth (xret, 0);
-			descs := nth (xret, 1);
+			props := l-nth (xret, 0);
+			descs := l-nth (xret, 1);
 			
 			n := 0;
 			len := length (props);
 			dop := [o, "@defineOwnProperty"];
 			
 	loop:	goto [n < len] head end;
-	head:	xret := dop (o, nth (props, n), nth (descs, n), $$t) with elab;
+	head:	xret := dop (o, l-nth (props, n), l-nth (descs, n), $$t) with elab;
 			n := n + 1;
 			goto loop;
 
@@ -436,8 +436,8 @@ proc Object_seal (xsc, vthis, o) {
 			dop := [o, "@defineOwnProperty"];
 			
 	loop:	goto [n < len] head ext;
-	head:	xret := gop (o, nth (props, n)) with elab;
-			xret := dop (o, nth (props, n), {{ nth (xret, 0), nth (xret, 1), nth (xret, 2), nth (xret, 3), $$f }}, $$t) with elab;
+	head:	xret := gop (o, l-nth (props, n)) with elab;
+			xret := dop (o, l-nth (props, n), {{ l-nth (xret, 0), l-nth (xret, 1), l-nth (xret, 2), l-nth (xret, 3), $$f }}, $$t) with elab;
 	next:	n := n + 1;
 			goto loop;
 		
@@ -467,8 +467,8 @@ proc Object_isSealed (xsc, vthis, o) {
 			gop := [o, "@getOwnProperty"];
 			
 	loop:	goto [n < len] head ext;
-	head:	xret := gop (o, nth (props, n)) with elab;
-			goto [nth (xret, 4) = $$t] r_f next;
+	head:	xret := gop (o, l-nth (props, n)) with elab;
+			goto [l-nth (xret, 4) = $$t] r_f next;
 	next:	n := n + 1;
 			goto loop;
 		
@@ -504,11 +504,11 @@ proc Object_freeze (xsc, vthis, o) {
 			dop := [o, "@defineOwnProperty"];
 			
 	loop:	goto [n < len] head ext;
-	head:	xret := gop (o, nth (props, n)) with elab;
-			ws := nth (xret, 2);
+	head:	xret := gop (o, l-nth (props, n)) with elab;
+			ws := l-nth (xret, 2);
 			goto [ws = $$t] set_w cf;
 	set_w:	ws := $$f;
-	cf:		xret := dop (o, nth (props, n), {{ nth (xret, 0), nth (xret, 1), ws, nth (xret, 3), $$f }}, $$t) with elab;
+	cf:		xret := dop (o, l-nth (props, n), {{ l-nth (xret, 0), l-nth (xret, 1), ws, l-nth (xret, 3), $$f }}, $$t) with elab;
 	next:	n := n + 1;
 			goto loop;
 		
@@ -538,9 +538,9 @@ proc Object_isFrozen (xsc, vthis, o) {
 			gop := [o, "@getOwnProperty"];
 			
 	loop:	goto [n < len] head ext;
-	head:	xret := gop (o, nth (props, n)) with elab;
-			goto [nth (xret, 2) = $$t] r_f cf;
-	cf:		goto [nth (xret, 4) = $$t] r_f next;
+	head:	xret := gop (o, l-nth (props, n)) with elab;
+			goto [l-nth (xret, 2) = $$t] r_f cf;
+	cf:		goto [l-nth (xret, 4) = $$t] r_f next;
 	next:	n := n + 1;
 			goto loop;
 		
@@ -595,7 +595,7 @@ proc Object_keys (xsc, vthis, o) {
 			dop := [xret, "@defineOwnProperty"];
 			
 	loop:	goto [n < len] head end;
-	head:	xret := dop (l, num_to_string n, {{ "d", nth (props, n), $$t, $$t, $$t }}, $$f) with elab;
+	head:	xret := dop (l, num_to_string n, {{ "d", l-nth (props, n), $$t, $$t, $$t }}, $$f) with elab;
 			n := n + 1;
 			goto loop;
 
@@ -750,7 +750,7 @@ proc OP_propertyIsEnumerable(xsc, vthis, v) {
 	undef:  xret := $$f;
 			goto rlab;
 			
-	def:	xret := nth (xret, 3);
+	def:	xret := l-nth (xret, 3);
 	
 	rlab:	skip;
 	elab:	skip

@@ -1,12 +1,7 @@
-open SSyntax
 open Lexing
+open SJSIL_Syntax
 
 let verbose = ref false
-
-let if_some p f d =
-	(match p with
-	| None -> d
-	| Some p -> f p)
 
 let get_proc_variables proc = 
 	
@@ -49,7 +44,7 @@ let get_proc_info proc =
 	
 	(***** Desugar me silly *****)
 
-let desugar_labs (lproc : lprocedure) = 
+let desugar_labs lproc = 
 	
 	let ln,               lb,               lp,                 lrl,              lrv,            lel,                lev,              lspec = 
 		  lproc.lproc_name, lproc.lproc_body, lproc.lproc_params, lproc.lret_label, lproc.lret_var, lproc.lerror_label, lproc.lerror_var, lproc.lspec in
@@ -95,7 +90,7 @@ let desugar_labs (lproc : lprocedure) =
 			error_var = lev;
 			spec = lspec;
 		} in
-	if (!verbose) then Printf.printf "%s" (SSyntax_Print.string_of_procedure proc false);
+	if (!verbose) then Printf.printf "%s" (JSIL_Print.string_of_procedure proc false);
 	proc
 	 
 let rec desugar_labs_list lproc_list =
@@ -109,9 +104,9 @@ let print_position outx lexbuf =
   Printf.fprintf outx "%s:%d:%d" pos.pos_fname
     pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
 
-
-let parse_with_error lexbuf =
-  try SJSIL_Parser.prog_target SJSIL_Lexer.read lexbuf with
+(** Parse contents in 'lexbuf' from the starting symbol 'start'. Terminates if an error occurs. *)
+let parse_with_error start lexbuf =
+  try start SJSIL_Lexer.read lexbuf with
   | SJSIL_Lexer.SyntaxError msg ->
     Printf.fprintf stderr "%a: %s\n" print_position lexbuf msg;
 		exit (-1)
@@ -119,93 +114,71 @@ let parse_with_error lexbuf =
     Printf.fprintf stderr "%a: syntax error\n" print_position lexbuf;
     exit (-1)
 
-let parse_proc_with_error lexbuf = 
-	try SJSIL_Parser.proc_target SJSIL_Lexer.read lexbuf with
-	| SJSIL_Lexer.SyntaxError msg ->
-    Printf.fprintf stderr "%a: %s\n" print_position lexbuf msg;
-		exit (-1)
-  | SJSIL_Parser.Error ->
-    Printf.fprintf stderr "%a: syntax error\n" print_position lexbuf;
-    exit (-1)
-
-let lprog_of_path path = 
+(** Open the file given by 'path' and run the parser on its contents. *)
+let ext_program_of_path path = 
 	let inx = open_in path in
   let lexbuf = Lexing.from_channel inx in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = path };
-  let (imports, lproc_list) : (string list option * lprocedure list) = parse_with_error lexbuf in	
+  let prog = parse_with_error SJSIL_Parser.main_target lexbuf in
 	close_in inx;
-	
-	let lprocs : lprocedure SLProgram.t = SLProgram.create 1021 in 
-	List.iter 
-		(fun (lproc : lprocedure) -> 
-			let proc_name = lproc.lproc_name in 
-			SLProgram.replace lprocs proc_name lproc
-		) 
-		lproc_list;
-		 
-	match imports with 
-	| None -> [], lprocs
-	| Some imports -> imports, lprocs
+	prog
 
-let lprog_of_string str = 
+(** Run the parser on the given string. *)
+let ext_program_of_string str = 
   let lexbuf = Lexing.from_string str in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
-  let (imports, lproc_list) : (string list option * lprocedure list) = parse_with_error lexbuf in	
-	();
-	
-	let lprocs : lprocedure SLProgram.t = SLProgram.create 1021 in 
-	List.iter 
-		(fun (lproc : lprocedure) -> 
-			let proc_name = lproc.lproc_name in 
-			SLProgram.replace lprocs proc_name lproc
-		) 
-		lproc_list;
-		 
-	match imports with 
-	| None -> [], lprocs
-	| Some imports -> imports, lprocs
+	parse_with_error SJSIL_Parser.main_target lexbuf
 
-
+(** Run the parser on the given string, parsing just a procedure and desugaring it. *)
 let proc_of_string str = 
   let lexbuf = Lexing.from_string str in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
-  let lproc : lprocedure = parse_proc_with_error lexbuf in	
-	desugar_labs lproc		
+	desugar_labs (parse_with_error SJSIL_Parser.proc_target lexbuf)
 
-let extend_lprocs lprocs_to lprocs_from =
-	SLProgram.iter
+
+(** Add the declarations in 'program_from' to 'program_to'. *)
+let extend_declarations program_to program_from =
+	(* Extend the predicates *)
+	Hashtbl.iter
+	  (fun pred_name pred -> Hashtbl.add program_to.predicates pred_name pred)
+		program_from.predicates;
+	(* Extend the procedures, except where a procedure with the same name already exists *)
+	Hashtbl.iter
 		(fun proc_name proc -> 
-			if (not (SLProgram.mem lprocs_to proc_name))
-				then SLProgram.add lprocs_to proc_name proc
-				else ())
-		lprocs_from	
+			if (not (Hashtbl.mem program_to.procedures proc_name))
+				then Hashtbl.add program_to.procedures proc_name proc)
+		program_from.procedures
 
-
-let add_imports lprocs imports = 
-	let added_imports = Hashtbl.create 101 in 
-	let rec add_imports_iter imports = 
+(** Load the programs imported in 'program' and add its declarations to 'program' itself. *)
+let resolve_imports filename program =
+	(* 'added_imports' keeps track of the loaded files *)
+	let added_imports = Hashtbl.create 32 in 
+	Hashtbl.add added_imports filename true;
+	let rec resolve_imports_iter imports = 
 		(match imports with 
 		| [] -> () 
 		| file :: rest_imports -> 
-			if (Hashtbl.mem added_imports file) 
-				then () 
-				else 
+			if (not (Hashtbl.mem added_imports file))
+				then 
 					(Hashtbl.add added_imports file true;
-					let (new_imports, new_lprocs) : (string list * lprocedure SLProgram.t) = lprog_of_path (file ^ ".jsil") in 
-					extend_lprocs lprocs new_lprocs; 
-					add_imports_iter (rest_imports @ new_imports))) in
-	add_imports_iter imports
+					let imported_program = ext_program_of_path (file ^ ".jsil") in
+					extend_declarations program imported_program; 
+					resolve_imports_iter (rest_imports @ imported_program.imports))) in
+	resolve_imports_iter program.imports
 
-let prog_of_lprog lprog =
-	let imports, lproc_list = (match lprog with imports, lproc_list -> imports, lproc_list) in 
-	add_imports lproc_list imports; 
-	 
-	let prog = SProgram.create 1021 in 
-	let global_which_pred = Hashtbl.create 1021 in 
-	
-	SLProgram.iter 
-		(fun proc_name lproc -> 
-			let proc = desugar_labs lproc in 
+(** Converts an extended JSIL program into a set of basic procedures.
+		@param filename Name of the file the program was loaded from.
+    @param ext_program Program to be processed.
+*)
+let prog_of_ext_prog filename ext_program =
+	(* Add the declarations from the imported files *)
+	resolve_imports filename ext_program;
+	(* Desugar the labels in the procedures, etc. *)
+	let prog = Hashtbl.create 101 in 
+	let global_which_pred = Hashtbl.create 101 in 
+	Hashtbl.iter 
+		(fun proc_name ext_proc -> 
+			let proc = desugar_labs ext_proc in 
 			(* Removing dead code and recalculating everything 
 			let proc = SSyntax_Utils_Graphs.remove_unreachable_code proc false in
 			let proc = SSyntax_Utils_Graphs.remove_unreachable_code proc true in *)
@@ -217,11 +190,9 @@ let prog_of_lprog lprog =
 					Hashtbl.replace global_which_pred (proc_name, prev_cmd, cur_cmd) i)
 				which_pred;
 			
-			SProgram.replace prog proc_name proc)
-	lproc_list; 
-	
+			Hashtbl.replace prog proc_name proc)
+	ext_program.procedures;
 	prog, global_which_pred
-
 
 
 let extend_which_pred global_which_pred proc = 

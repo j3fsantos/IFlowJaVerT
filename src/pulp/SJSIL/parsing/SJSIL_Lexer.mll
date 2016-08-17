@@ -10,60 +10,6 @@ let next_line lexbuf =
                pos_lnum = pos.pos_lnum + 1
     }
 
-let unop_not = "not"
-let unop_bnot = "!"
-let unop_neg = "-"
-let unop_tostr = "num_to_string"
-let unop_tonum = "string_to_num"
-let unop_toint = "num_to_int"
-let unop_toint32 = "num_to_int32"
-let unop_touint16 = "num_to_uint16"
-let unop_touint32 = "num_to_uint32"
-let unop_car = "car"
-let unop_cdr = "cdr"
-let unop_isprim = "is_primitive"
-let unop_len = "length"
-let unop_abs = "m_abs"              
-let unop_acos = "m_acos"         
-let unop_asin = "m_asin"       
-let unop_atan = "m_atan"     
-let unop_ceil = "m_ceil"             
-let unop_cos = "m_cos"       
-let unop_exp = "m_exp"          
-let unop_floor = "m_floor"          
-let unop_log = "m_log"         
-let unop_round = "m_round"  
-let unop_sgn = "m_sgn"          
-let unop_sin = "m_sin"             
-let unop_sqrt = "m_sqrt"          
-let unop_tan = "m_tan" 
-
-(* Binary Operators *)
-
-let binop_eq = "="
-let binop_lt = "<"
-let binop_lts = "<s"
-let binop_leq = "<="
-let binop_plus = "+"
-let binop_minus = "-"
-let binop_times = "*"
-let binop_div = "/"
-let binop_mod = "%"
-let binop_subtype = "<:"
-let binop_concat = "concat"
-let binop_append = "++"
-let binop_and = "and"
-let binop_or = "or"
-let binop_band = "&"
-let binop_bor = "|"
-let binop_bxor = "^"
-let binop_lsh = "<<"
-let binop_srsh = ">>"
-let binop_ursh = ">>>"
-let binop_lcons = "::"
-let binop_atan2 = "m_atan2"
-let binop_pow = "**"
-
 }
 
 let digit = ['0'-'9']
@@ -75,60 +21,6 @@ let lvar = '#' (letter|digit|'_'|'$')*
 let loc = "$l" (letter|digit|'_')*
 let white = [' ' '\t']+
 let newline = '\r' | '\n' | "\r\n"
-
-let unop_not = "not"
-let unop_bnot = "!"
-let unop_neg = "-"
-let unop_tostr = "num_to_string"
-let unop_tonum = "string_to_num"
-let unop_toint = "num_to_int"
-let unop_toint32 = "num_to_int32"
-let unop_touint16 = "num_to_uint16"
-let unop_touint32 = "num_to_uint32"
-let unop_car = "car"
-let unop_cdr = "cdr"
-let unop_isprim = "is_primitive"
-let unop_len = "length"
-let unop_abs = "m_abs"              
-let unop_acos = "m_acos"         
-let unop_asin = "m_asin"       
-let unop_atan = "m_atan"     
-let unop_ceil = "m_ceil"             
-let unop_cos = "m_cos"       
-let unop_exp = "m_exp"          
-let unop_floor = "m_floor"          
-let unop_log = "m_log"         
-let unop_round = "m_round"  
-let unop_sgn = "m_sgn"          
-let unop_sin = "m_sin"             
-let unop_sqrt = "m_sqrt"          
-let unop_tan = "m_tan" 
-
-(* Binary Operators *)
-
-let binop_eq = "="
-let binop_lt = "<"
-let binop_lts = "<s"
-let binop_leq = "<="
-let binop_plus = "+"
-let binop_minus = "-"
-let binop_times = "*"
-let binop_div = "/"
-let binop_mod = "%"
-let binop_subtype = "<:"
-let binop_concat = "concat"
-let binop_append = "++"
-let binop_and = "and"
-let binop_or = "or"
-let binop_band = "&"
-let binop_bor = "|"
-let binop_bxor = "^"
-let binop_lsh = "<<"
-let binop_srsh = ">>"
-let binop_ursh = ">>>"
-let binop_lcons = "::"
-let binop_atan2 = "m_atan2"
-let binop_pow = "**"
 
 rule read = parse
   | white       	       { read lexbuf }
@@ -145,6 +37,7 @@ rule read = parse
 	| "$$v-reference_type" { SJSIL_Parser.VREFTYPELIT }
 	| "$$o-reference_type" { SJSIL_Parser.OREFTYPELIT }
 	| "$$list_type"        { SJSIL_Parser.LISTTYPELIT }
+	| "$$type_type"        { SJSIL_Parser.TYPETYPELIT }
 (* Numbers *)
   | "nan"                { SJSIL_Parser.NAN }
 	| "inf"                { SJSIL_Parser.INFINITY }
@@ -162,8 +55,6 @@ rule read = parse
 	| "flag"							 { SJSIL_Parser.FLAG }
 *)
 (* command keywords *)
-	| "js2jsil"						 { SJSIL_Parser.JS2JSIL }
-  | "parse"              { SJSIL_Parser.PARSE }
   | "PHI"                { SJSIL_Parser.PHI }
   | "PSI"                { SJSIL_Parser.PSI }
 	| "goto"               { SJSIL_Parser.GOTO }
@@ -194,7 +85,9 @@ rule read = parse
 	| "base"               { SJSIL_Parser.BASE }
 	| "field"              { SJSIL_Parser.FIELD }
 	| "typeOf"             { SJSIL_Parser.TYPEOF }
-	| "nth"                { SJSIL_Parser.LNTH }
+	| "s-nth"              { SJSIL_Parser.SNTH }
+	| "l-nth"              { SJSIL_Parser.LNTH }
+	| "cons"               { SJSIL_Parser.CONS }
   |	"assume"             { SJSIL_Parser.ASSUME }
 	| "assert"             { SJSIL_Parser.ASSERT }
 	| "make-symbol-number" { SJSIL_Parser.RNUMSYM }
@@ -278,6 +171,9 @@ rule read = parse
 	| "{{"                 { SJSIL_Parser.LISTOPEN }
   | "}}"                 { SJSIL_Parser.LISTCLOSE }
 	| '"'                  { read_string (Buffer.create 17) lexbuf }
+(* symbolics *)
+	| "pred"							 { SJSIL_Parser.PRED }
+  | "type_env"           { SJSIL_Parser.LTYPEENV }
 (*literals*)
  	| "$$t"                { SJSIL_Parser.TRUE }
   | "$$f"                { SJSIL_Parser.FALSE }

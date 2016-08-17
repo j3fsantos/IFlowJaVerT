@@ -1,0 +1,52 @@
+spec main (x1, x2)
+  [[ (x1 == #z) * (x2 == #w) ]]
+  [[ ((x, "@proto") -> $$null) * ((x, "banana") -> #y1) * ((x, "foo") -> #y2) * ((x, "cenoura") -> #y3) * (x1 == #z) * (x2 == #w) ]]
+  normal
+proc main (x1, x2) {
+            x := new ();
+            goto [x1] then else;
+    then:   [x, "banana"] := 0;
+            [x, "foo"] := 1;
+            goto endif;
+    else:   [x, "banana"] := 1;
+            [x, "foo"] := 0;
+    endif:  skip;
+            x := "xpto" (x) with elab;
+    rlab:   skip;
+    elab:   skip
+}
+with
+{
+	ret: 	x, rlab;
+	err: 	x, elab;
+};
+
+pred xpto(x) : (x, "cenoura") -> "cenourinha";
+
+spec xpto (x)
+   [[ ((x, "@proto") -> $$null) * ((x, "cenoura") -> #y) ]]
+   [[ ((x, "@proto") -> $$null) * ((x, "cenoura") -> "cenourinha")]]
+   normal
+proc xpto (x) {
+            [x, "cenoura"] := "cenourinha";
+    rlab:   skip;
+    elab:   skip
+} with {
+    ret: 	x, rlab;
+    err: 	x, elab;
+}
+
+spec xpto2 (x, y)
+  [[ ((x, "foo") -> "bar") * ((x, "baz") -> y + 1) * (y == _w + 3) ]]
+  [[ ((x, "foo") -> none) * ((x, "baz") -> _w) ]]
+  normal;
+  
+  [[ ((x, "foo") -> "googoo") * ((x, "baz") -> y + 1) * (y == _w + 3) ]]
+  [[ ((x, "foo") -> none) * ((x, "gaga") -> _w) ]]
+  normal
+
+proc xpto2 (x, y) {
+    rlab:   skip
+} with {
+    ret:    x, rlab;
+}

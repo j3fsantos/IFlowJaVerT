@@ -114,9 +114,10 @@ type jsil_lit =
 	(* LISTS (FOR DESCRIPTORS) *)
 	| LList of jsil_lit list
 
-(* jsil expressions *)
+(* SJSIL variables *)
 type jsil_var = string
 
+(* SJSIL expressions *)
 type jsil_expr = 
   | Literal of jsil_lit
   | Var of jsil_var
@@ -132,85 +133,10 @@ type jsil_expr =
 	| RNumSymb 
 	| RStrSymb 
 	(* LISTS (FOR DESCRIPTORS) *)
-	| LEList of jsil_expr list
-	| LLNth of jsil_expr * jsil_expr
-
-(* jsil logical expressions *)
-type jsil_logic_var = string
-
-type jsil_logic_expr =
-	| LLit				of jsil_lit
-	| LNone
-	| LVar				of jsil_logic_var
-	| LLVar				of jsil_logic_var
-	| PVar				of jsil_var
-	| LBinOp			of jsil_logic_expr * bin_op * jsil_logic_expr
-	| LUnOp				of unary_op * jsil_logic_expr
-	| LEVRef			of jsil_logic_expr * jsil_logic_expr
-	| LEORef			of jsil_logic_expr * jsil_logic_expr
-	| LBase				of jsil_logic_expr
-	| LField			of jsil_logic_expr
-	| LTypeOf			of jsil_logic_expr
-	| LLEList     of jsil_logic_expr list 
-	| LLLLNth     of jsil_logic_expr * jsil_logic_expr
-
-type jsil_logic_assertion =
-	| LAnd				of jsil_logic_assertion * jsil_logic_assertion
-	| LOr					of jsil_logic_assertion * jsil_logic_assertion
-	| LNot				of jsil_logic_assertion
-	| LTrue
-	| LFalse
-	| LEq					of jsil_logic_expr * jsil_logic_expr
-	| LLessEq			of jsil_logic_expr * jsil_logic_expr
-	| LStar				of jsil_logic_assertion * jsil_logic_assertion
-	| LPointsTo		of jsil_logic_expr * jsil_logic_expr * jsil_logic_expr
-	| LEmp
-	| LExists			of (jsil_logic_var list) * jsil_logic_assertion
-	| LForAll			of (jsil_logic_var list) * jsil_logic_assertion
-
-type jsil_return_flag =
-	| Normal
-	| Error
-
-(* Abstract Heaps and stores *)
-module LHeap = Hashtbl.Make(
-	struct
-		type t = string	
-		let equal = (=)
-		let hash = Hashtbl.hash
-	end)
-
-type symbolic_heap = (((jsil_logic_expr * jsil_logic_expr) list) * (jsil_logic_expr option))  LHeap.t 
-type symbolic_store = (string, jsil_logic_expr) Hashtbl.t
-
-type jsil_single_spec = {
-	  pre : jsil_logic_assertion; 
-		post : jsil_logic_assertion; 
-		ret_flag : jsil_return_flag 
-}
-
-type jsil_spec = { 
-    spec_name : string;
-    spec_params : jsil_var list; 
-		proc_specs : jsil_single_spec list
-}
-
-type jsil_n_single_spec = {
-	  n_pre :  symbolic_heap * symbolic_store * (jsil_logic_assertion DynArray.t); 
-		n_post : symbolic_heap * symbolic_store * (jsil_logic_assertion DynArray.t); 
-		n_ret_flag : jsil_return_flag 
-}
-
-type jsil_n_spec = { 
-    n_spec_name : string;
-    n_spec_params : jsil_var list; 
-		n_proc_specs : jsil_n_single_spec list
-}
-
-type jsil_metadata = {
-	line_offset : int option; 
-	pre_cond : jsil_logic_assertion option 
-}
+	| Cons of jsil_expr * jsil_expr 
+	| EList of jsil_expr list
+	| SNth of jsil_expr * jsil_expr
+  | LNth of jsil_expr * jsil_expr
 
 (* SJSIL Basic statements *)
 type basic_jsil_cmd =
@@ -234,8 +160,85 @@ type jsil_cmd =
 	| SPhiAssignment  of jsil_var  * (jsil_var option array)
 	| SPsiAssignment  of jsil_var  * (jsil_var option array)
 
+(* JSIL logical expressions *)
+type jsil_logic_var = string
+type abs_location = string
+
+type jsil_logic_expr =
+	| LLit				of jsil_lit
+	| LNone
+	| LVar				of jsil_logic_var
+	| ALoc				of abs_location
+	| PVar				of jsil_var
+	| LBinOp			of jsil_logic_expr * bin_op * jsil_logic_expr
+	| LUnOp				of unary_op * jsil_logic_expr
+	| LEVRef			of jsil_logic_expr * jsil_logic_expr
+	| LEORef			of jsil_logic_expr * jsil_logic_expr
+	| LBase				of jsil_logic_expr
+	| LField			of jsil_logic_expr
+	| LTypeOf			of jsil_logic_expr
+(* list stuff *) 
+	| LCons       of jsil_logic_expr * jsil_logic_expr
+	| LEList      of jsil_logic_expr list 
+	| LSNth       of jsil_logic_expr * jsil_logic_expr
+	| LLNth       of jsil_logic_expr * jsil_logic_expr
+(* Unknown *)
+	| LUnknown    
+
+(* JSIL logic assertions *)
+type jsil_logic_assertion =
+	| LAnd				of jsil_logic_assertion * jsil_logic_assertion
+	| LOr					of jsil_logic_assertion * jsil_logic_assertion
+	| LNot				of jsil_logic_assertion
+	| LTrue
+	| LFalse
+	| LEq					of jsil_logic_expr * jsil_logic_expr
+	| LLessEq			of jsil_logic_expr * jsil_logic_expr
+	| LStar				of jsil_logic_assertion * jsil_logic_assertion
+	| LPointsTo		of jsil_logic_expr * jsil_logic_expr * jsil_logic_expr
+	| LEmp
+	| LExists			of (jsil_logic_var list) * jsil_logic_assertion
+	| LForAll			of (jsil_logic_var list) * jsil_logic_assertion
+	| LPred				of string * (jsil_logic_var list)
+	| LTypeEnv    of (jsil_logic_expr * jsil_type) list
+
+(* JSIL logic return flag *)
+type jsil_return_flag =
+	| Normal
+	| Error
+
+(* JSIL logic predicates *)
+type jsil_logic_predicate = {
+	name        : string;
+	num_params  : int;
+	params      : jsil_logic_var list;
+	definitions : jsil_logic_assertion list;
+}
+
+(* JSIL procedure specification *)
+type jsil_single_spec = {
+	  pre : jsil_logic_assertion; 
+		post : jsil_logic_assertion; 
+		ret_flag : jsil_return_flag 
+}
+
+type jsil_spec = { 
+    spec_name : string;
+    spec_params : jsil_var list; 
+		proc_specs : jsil_single_spec list
+}
+
+(* SJSIL command metadata *)
+type jsil_metadata = {
+	line_offset : int option; 
+	pre_cond : jsil_logic_assertion option 
+}
+
+let make_empty_metadata = { line_offset = None; pre_cond = None }
+let make_jsil_metadata offset pre = { line_offset = offset; pre_cond = pre }
+
 (* SJSIL procedures *)
-type procedure = { 
+type jsil_procedure = {
     proc_name : string;
     proc_body : (jsil_metadata * jsil_cmd) array;
     proc_params : jsil_var list; 
@@ -246,13 +249,8 @@ type procedure = {
 		spec: jsil_spec option;
 }
 
-(* SJSIL Program *)
- module SProgram = Hashtbl.Make(
-	struct
-		type t = string  
-		let equal = (=)
-		let hash = Hashtbl.hash
-	end)
+(* SJSIL Program = Name : String --> Procedure *)
+type jsil_program = (string, jsil_procedure) Hashtbl.t
 
 (* SJSIL Heaps *)
  module SHeap = Hashtbl.Make(
@@ -264,7 +262,6 @@ type procedure = {
 
 
 (***** Alternative Procedure Syntax with Labels *****)
-
 type jsil_lab_cmd =
   | SLBasic          of basic_jsil_cmd 
 	| SLGoto           of string
@@ -274,33 +271,24 @@ type jsil_lab_cmd =
 	| SLPhiAssignment  of jsil_var  * (jsil_var option array)
 	| SLPsiAssignment  of jsil_var  * (jsil_var option array) 
 
-(* SJSIL procedures with string labels *)
- module SLProgram = Hashtbl.Make(
-	struct
-		type t = string  
-		let equal = (=)
-		let hash = Hashtbl.hash
-	end)
-
-
-type lprocedure = { 
+(* SJSIL procedures extended with string labels *)
+type jsil_ext_procedure = {
     lproc_name : string;
     lproc_body : ((jsil_metadata * string option * jsil_lab_cmd) array);
     lproc_params : jsil_var list; 
 		lret_label: string option; 
-		lret_var: jsil_var option;
+		lret_var: jsil_var option; 
 		lerror_label: string option; 
 		lerror_var: jsil_var option;
 		lspec: jsil_spec option;
 }
 
-type jsil_lprog = (string list option) * (lprocedure SLProgram.t) 
-
-let make_jsil_metadata offset pre = 
-	{
-		line_offset = offset; 
-		pre_cond = pre 
-	}
-	
-let make_empty_metadata () = { line_offset = None; pre_cond = None }
-		
+(* Extended JSIL program type *)
+type jsil_ext_program = {
+	(* Import statements = [Filename : String] *)
+  imports    : string list;
+	(* Predicates = Name : String --> Definition *)
+	predicates : (string, jsil_logic_predicate) Hashtbl.t;
+	(* SJSIL extended procedures = Name : String --> Procedure *)
+	procedures : (string, jsil_ext_procedure) Hashtbl.t;
+}

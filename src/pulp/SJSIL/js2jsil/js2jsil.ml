@@ -1,7 +1,7 @@
 open Utils
 open Lexing
 open Batteries
-open SSyntax
+open SJSIL_Syntax
 
 let js2jsil_imports = [
 	"Array"; 
@@ -760,7 +760,7 @@ let make_loop_end cur_val_var prev_val_var break_vars end_lab cur_first =
 	cmds, x_ret_5 
 			
 	
-let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : ((SSyntax.jsil_metadata * (string option) * SSyntax.jsil_lab_cmd) list) * SSyntax.jsil_expr * (string list) =
+let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : ((jsil_metadata * (string option) * jsil_lab_cmd) list) * jsil_expr * (string list) =
 	
 	let f = translate_expr offset_converter fid cc_table vis_fid err false in
 	let f_rosette = translate_expr offset_converter fid cc_table vis_fid err true in
@@ -849,9 +849,9 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let x_r = fresh_var () in  
 		let jsil_bop = 
 			(match lbop with 
-			| Parser_syntax.And -> SSyntax.And 
-			| Parser_syntax.Or -> SSyntax.Or) in 
-		let cmd_ass_xr = SLBasic (SAssignment (x_r, SSyntax.BinOp (Var x1_v, jsil_bop, Var x2_v))) in 
+			| Parser_syntax.And -> SJSIL_Syntax.And 
+			| Parser_syntax.Or -> SJSIL_Syntax.Or) in 
+		let cmd_ass_xr = SLBasic (SAssignment (x_r, SJSIL_Syntax.BinOp (Var x1_v, jsil_bop, Var x2_v))) in 
 		
 		let cmds = cmds1 @ (annotate_cmds [   (*         cmds1                                              *)
 			(None,         cmd_gv_x1);          (*         x1_v := i__getValue (x1) with err                  *)
@@ -1017,7 +1017,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmd_cdo_call = annotate_cmd (SLCall (x_cdo, Literal (String createDefaultObjectName), [ Var x_arr; Literal (Loc locArrPrototype); Literal (String "Array") ], None)) None in 
 		
 		(* [x_arr, "length"] := {{ "d", num, $$t, $$f, $$f }} *)
-		let cmd_set_len num = annotate_cmd (SLBasic (SMutation (Var x_arr,  Literal (String "length"), LEList [ Literal (String "d"); Literal (Num (float_of_int num)); Literal (Bool true); Literal (Bool false); Literal (Bool false) ]))) None in 
+		let cmd_set_len num = annotate_cmd (SLBasic (SMutation (Var x_arr,  Literal (String "length"), EList [ Literal (String "d"); Literal (Num (float_of_int num)); Literal (Bool true); Literal (Bool false); Literal (Bool false) ]))) None in 
 		
     (* [x_arr, "@defineOwnProperty"] := "a__defineOwnProperty" *)
 		let set_dop = annotate_cmd (SLBasic (SMutation (Var x_arr, Literal (String defineOwnPropertyPropName), (Literal (String defineOwnPropertyArrayName))))) None in
@@ -1029,7 +1029,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		
 			(* x_desc := {{ "d", x_v, $$t, $$t, $$t}}  *) 
 			let x_desc = fresh_desc_var () in 
-			let cmd_ass_xdesc = SLBasic (SAssignment (x_desc, LEList [ Literal (String "d"); Var x_v; Literal (Bool true); Literal (Bool true); Literal (Bool true) ] )) in 
+			let cmd_ass_xdesc = SLBasic (SAssignment (x_desc, EList [ Literal (String "d"); Var x_v; Literal (Bool true); Literal (Bool true); Literal (Bool true) ] )) in 
 			
 			let prop = Literal (String (string_of_int num)) in 
 			
@@ -1118,7 +1118,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		
 			(* x_desc := {{ "d", x_v, $$t, $$t, $$t}}  *) 
 			let x_desc = fresh_desc_var () in 
-			let cmd_ass_xdesc = SLBasic (SAssignment (x_desc, LEList [ Literal (String "d"); Var x_v; Literal (Bool true); Literal (Bool true); Literal (Bool true) ] )) in 
+			let cmd_ass_xdesc = SLBasic (SAssignment (x_desc, EList [ Literal (String "d"); Var x_v; Literal (Bool true); Literal (Bool true); Literal (Bool true) ] )) in 
 			
 			(* x_dop := o__defineOwnProperty(x_obj, C_pn(pn), x_desc, true) with err *)
 			let x_dop, cmd_dop_x = make_dop_call x_obj prop x_desc true err in
@@ -1148,7 +1148,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 				match is_getter with 
 				| true ->  [ Literal (String "g"); Literal (Bool true); Literal (Bool true); Literal Empty; Literal Empty; Var x_f; Literal Empty ] 
 				| false -> [ Literal (String "g"); Literal (Bool true); Literal (Bool true); Literal Empty; Literal Empty; Literal Empty; Var x_f ] in 
-			let cmd_ass_xdesc = SLBasic (SAssignment (x_desc, LEList desc_params)) in
+			let cmd_ass_xdesc = SLBasic (SAssignment (x_desc, EList desc_params)) in
 			
 			(* x_dop := o__defineOwnProperty(x_obj, C_pn(pn), x_desc, true) with err *)
 			let x_dop, cmd_dop_x = make_dop_call x_obj prop x_desc true err in
@@ -1351,8 +1351,8 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmd_bscope = SLBasic (SLookup (x_bfscope, Var x_tf, Literal (String scopePropName))) in 
 
 		let x_params = fresh_var () in	
-		let jsil_list_params = LEList ([Var x_bbody; Var x_bfscope; Var x_bthis]) in
-		let cmd_append = SLBasic (SAssignment (x_params, (BinOp (BinOp (jsil_list_params, Append, Var x_ba), Append, (LEList x_args_gv))))) in
+		let jsil_list_params = EList ([Var x_bbody; Var x_bfscope; Var x_bthis]) in
+		let cmd_append = SLBasic (SAssignment (x_params, (BinOp (BinOp (jsil_list_params, Append, Var x_ba), Append, (EList x_args_gv))))) in
 		
 		let x_bconstruct = fresh_var () in
 		let cmd_bind = SLApply (x_bconstruct, [ Var x_params ], Some err) in
@@ -1592,8 +1592,8 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmd_bscope = SLBasic (SLookup (x_bfscope, Var x_tf, Literal (String scopePropName))) in 
 
 		let x_params = fresh_var () in
-		let jsil_list_params = LEList ([Var x_bbody; Var x_bfscope; Var x_bt]) in
-		let cmd_append = SLBasic (SAssignment (x_params, (BinOp (BinOp (jsil_list_params, Append, Var x_ba), Append, (LEList x_args_gv))))) in
+		let jsil_list_params = EList ([Var x_bbody; Var x_bfscope; Var x_bt]) in
+		let cmd_append = SLBasic (SAssignment (x_params, (BinOp (BinOp (jsil_list_params, Append, Var x_ba), Append, (EList x_args_gv))))) in
 		
 		let x_rbind = fresh_var () in
 		let cmd_bind = SLApply (x_rbind, [ Var x_params ], Some err) in
@@ -3744,7 +3744,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			
 			(* xp := nth (xf, x_c_1)	*) 
 			let xp = fresh_var () in 
-			let cmd_ass_xp = SLBasic (SAssignment (xp, LLNth (Var xf, Var x_c_1))) in 
+			let cmd_ass_xp = SLBasic (SAssignment (xp, LNth (Var xf, Var x_c_1))) in 
 			
 			(* xl := [xlf, xp];	*) 
 			let xl = fresh_var () in 
@@ -3752,7 +3752,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			
 			(*  xxl := nth (xl, 1)   *)
 			let xxl = fresh_var () in
-			let cmd_ass_xxl = SLBasic (SAssignment (xxl, LLNth (Var xl, Literal (Num 1.)))) in 
+			let cmd_ass_xxl = SLBasic (SAssignment (xxl, LNth (Var xl, Literal (Num 1.)))) in 
 			
 			(* 	xhf := hasField (xxl, xp) *) 
 			let xhf = fresh_var () in 
@@ -4748,7 +4748,10 @@ let js2jsil e offset_converter =
 	let e = Js_pre_processing.add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous e in 
 	Js_pre_processing.closure_clarification_top_level cc_tbl fun_tbl vis_tbl main e [ main ] []; 
 	
-	let jsil_prog = SLProgram.create 1021 in 
+	(* TODO: 'predicates' is empty *)
+	let predicates = Hashtbl.create 101 in
+	
+	let procedures = Hashtbl.create 101 in
 	Hashtbl.iter
 		(fun f_id (_, f_params, f_body) -> 
 			let proc = 
@@ -4760,12 +4763,12 @@ let js2jsil e offset_converter =
 								(let msg = Printf.sprintf "Function %s not found in visibility table" f_id in 
 								raise (Failure msg)) in 	
 						generate_proc offset_converter f_body f_id f_params cc_tbl vis_fid)) in 
-			SLProgram.add jsil_prog f_id proc)
+			Hashtbl.add procedures f_id proc)
 		fun_tbl; 
 	
  	(** let cc_tbl_str = Js_pre_processing.print_cc_tbl cc_tbl in 
 	Printf.printf "marica, the cc_tbl is the following (enjoy): \n %s\n" cc_tbl_str; *)
-	Some js2jsil_imports, jsil_prog, cc_tbl, vis_tbl
+	{ imports = js2jsil_imports; predicates; procedures}, cc_tbl, vis_tbl
 	
 
 
@@ -4798,12 +4801,12 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 								(let msg = Printf.sprintf "Function %s not found in visibility table" f_id in 
 								raise (Failure msg)) in 	
 						generate_proc offset_converter f_body f_id f_params cc_tbl vis_fid)) in
-			let proc_eval_str = SSyntax_Print.string_of_lprocedure proc in 
-		  (* Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
+		(* let proc_eval_str = SSyntax_Print.string_of_ext_procedure proc in 
+		   Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
 			let proc = SSyntax_Utils.desugar_labs proc in 
-			SProgram.add prog f_id proc; 
+			Hashtbl.add prog f_id proc;
 			SSyntax_Utils.extend_which_pred which_pred proc)
 		new_fun_tbl; 
 	
-	let proc_eval = try SProgram.find prog new_fid with _ -> raise (Failure "no eval proc was created") in 
+	let proc_eval = try Hashtbl.find prog new_fid with _ -> raise (Failure "no eval proc was created") in 
 	proc_eval 

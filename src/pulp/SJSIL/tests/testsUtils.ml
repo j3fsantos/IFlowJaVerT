@@ -1,9 +1,18 @@
 open OUnit
-open SSyntax
-open SSyntax_Print
-open SSyntax_Utils
+open SJSIL_Syntax
+open JSIL_Print
 open SJSIL_Interpreter
 open Js2jsil
+
+let if_some p f d =
+	(match p with
+	| None -> d
+	| Some p -> f p)
+
+let string_of_outcome o =
+	match o with
+	| Normal -> "Normal"
+	| Error -> "Error"
 
 (**
 	General test
@@ -72,11 +81,11 @@ let string_of_jsil_test test =
 let test_jsil_template test = 
 	let str = string_of_jsil_test test in
 	let _ = Printf.printf "%s\n" str in
-	let lprog = SSyntax_Utils.lprog_of_string str in
-	let prog, which_pred = SSyntax_Utils.prog_of_lprog lprog in 
+	let ext_prog = SSyntax_Utils.ext_program_of_string str in
+	let prog, which_pred = SSyntax_Utils.prog_of_ext_prog "" ext_prog in 
 	let heap = SHeap.create 1021 in 
   evaluate_prog prog which_pred heap
-							
+
 (** ******************
 	   JAVASCRIPT TESTS
     ****************** **)
@@ -93,8 +102,7 @@ let test_javascript_template test =
       | Parser.ParserFailure file ->
         Printf.printf "\nParsing problems with the file '%s'.\n" file;
         exit 1) in
-	let (oimp, code, cc_tbl, vis_tbl) = js2jsil e offset_converter in 
-	let imp = if_some oimp (fun x -> x) [] in
-	let prog, which_pred = SSyntax_Utils.prog_of_lprog (imp, code) in 
+	let (ext_prog, cc_tbl, vis_tbl) = js2jsil e offset_converter in 
+	let prog, which_pred = SSyntax_Utils.prog_of_ext_prog "" ext_prog in 
 	let heap = SHeap.create 1021 in 
   evaluate_prog prog which_pred heap (Some cc_tbl) (Some vis_tbl)
