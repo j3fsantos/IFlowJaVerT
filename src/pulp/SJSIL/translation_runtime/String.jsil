@@ -310,11 +310,10 @@ with
 {
 	ret: 	xret, rlab;
 	err: 	xret, elab;
-}
+};
 
 
 (* *** SLICE *** *)
-(*
 proc SP_slice (xsc, vthis, start, end) {
 			xret := "i__checkObjectCoercible" (vthis) with elab;
 			xret := "i__toString" (vthis) with elab;
@@ -373,11 +372,9 @@ with
 {
 	ret: 	xret, rlab;
 	err: 	xret, elab;
-}
-*)
+};
 
 (* *** SUBSTRING *** *)
-(*
 proc SP_substring (xsc, vthis, start, end) {
 			xret := "i__checkObjectCoercible" (vthis) with elab;
 			xret := "i__toString" (vthis) with elab;
@@ -429,7 +426,6 @@ with
 	ret: 	xret, rlab;
 	err: 	xret, elab;
 }
-*)
 
 
 
