@@ -156,6 +156,283 @@ proc SP_charAt (xsc, vthis, position) {
 }
 with
 {
-	ret: xret, rlab;
-	err: xret, elab;
+	ret: 	xret, rlab;
+	err: 	xret, elab;
 }
+
+(* *** CONCAT *** *)
+(*
+proc SP_concat () {
+			arguments := args;
+			vthis := nth (arguments, 1);
+			num := length (arguments);
+			
+			xret := "i__checkObjectCoercible" (vthis) with elab;
+			xret := "i__toString" (vthis) with elab;
+			R := xret;
+			idx := 2;
+			
+	loop:	goto [idx < num] add end;
+	
+	add:	next := nth (arguments, idx);
+			xret := "i__toString" (next) with elab;
+			nStr := xret;
+			R := R concat nStr;
+			idx := idx + 1;
+			goto loop;
+	
+	end:	xret := R;
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+}
+*)
+
+(* *** INDEXOF *** *)
+(*
+proc SP_indexOf (xsc, vthis, searchString, position) {
+			xret := "i__checkObjectCoercible" (vthis) with elab;
+			xret := "i__toString" (vthis) with elab;
+			S := xret;
+			
+			xret := "i__toString" (searchString) with elab;
+			sStr := xret;
+			
+			goto [position = $$undefined] zero nzero;
+	zero:	pos := 0;
+			goto leng;
+	
+	nzero:	xret := "i__toInteger" (position) with elab;
+			pos := xret;
+	leng:	len := length (S);
+
+			xret := "M_max" ($$empty, $$empty, pos, 0) with elab;
+			max := xret;
+			xret := "M_min" ($$empty, $$empty, max, len) with elab;
+			start := xret;
+			slen := length (sStr);
+			
+			goto [slen = 0] empts nempt;
+	empts:	xret := start;
+			goto rlab;
+			
+	nempt:	k := start;
+			fink := -1;
+			
+	loop:	kslen := k + slen;
+			j := 0;
+			goto [kslen <= len] iloop end;
+			
+	iloop:	kj := k + j;
+			skj := nth (S, kj);
+			ssj := nth (sStr, j);
+			goto [skj = ssj] checkj next;
+	
+	checkj:	j := j + 1;
+			goto [not (j < slen)] fin inext;
+	inext:	goto iloop;
+	
+	next:	k := k + 1;
+			goto loop;
+			
+	fin:	fink := k;
+	
+	end:	xret := fink;
+	rlab:	skip;
+	elab:	skip
+	
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+}
+*)
+
+(* *** LASTINDEXOF *** *)
+(*
+proc SP_lastIndexOf (xsc, vthis, searchString, position) {
+			xret := "i__checkObjectCoercible" (vthis) with elab;
+			xret := "i__toString" (vthis) with elab;
+			S := xret;
+			
+			len := length (S);
+			
+			xret := "i__toString" (searchString) with elab;
+			sStr := xret;
+			
+			goto [position = $$undefined] pnan npnan;
+	pnan:	pos := len + 1;
+			goto sta;
+	
+	npnan:	xret := "i__toNumber" (position) with elab;
+			npos := xret;
+			xret := "i__toInteger" (npos) with elab;
+			pos := xret;
+			
+	sta:	xret := "M_max" ($$empty, $$empty, pos, 0) with elab;
+			max := xret;
+			xret := "M_min" ($$empty, $$empty, max, len) with elab;
+			start := xret;
+			slen := length (sStr);
+	
+			goto [slen = 0] empts nempt;
+	empts:	xret := len;
+			goto rlab;
+			
+	nempt:	k := start - slen;
+			fink := -1;
+			
+	loop:	j := 0;
+			goto [k < 0] end iloop;
+			
+	iloop:	kj := k + j;
+			skj := nth (S, kj);
+			ssj := nth (sStr, j);
+			goto [skj = ssj] checkj next;
+	
+	checkj:	j := j + 1;
+			goto [not (j < slen)] fin inext;
+	inext:	goto iloop;
+	
+	next:	k := k - 1;
+			goto loop;
+			
+	fin:	fink := k;
+			
+	end:	xret := fink;		
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+}
+*)
+
+
+(* *** SLICE *** *)
+(*
+proc SP_slice (xsc, vthis, start, end) {
+			xret := "i__checkObjectCoercible" (vthis) with elab;
+			xret := "i__toString" (vthis) with elab;
+			S := xret;
+			len := length (S);
+			
+			xret := "i__toInteger" (start) with elab;
+			intS := xret;
+			goto [end = $$undefined] undef def;
+	undef:	intE := len;
+			goto st;
+	
+	def:	xret := "i__toInteger" (end) with elab;
+			intE := xret;
+			
+	st:		goto [intS < 0] negS posS;
+	negS:	lis := len + intS;
+			xret := "M_max" ($$empty, $$empty, lis, 0) with elab;
+			from := xret;
+			goto endd;
+	
+	posS:	xret := "M_min" ($$empty, $$empty, intS, len) with elab;
+			from := xret;
+	
+	endd:	goto [intE < 0] negE posE;
+	negE:	lie := len + intE;
+			xret := "M_max" ($$empty, $$empty, lie, 0) with elab;
+			to := xret;
+			goto sp;
+	
+	posE:	xret := "M_min" ($$empty, $$empty, intE, len) with elab;
+			to := xret;
+	
+	sp:		tfr := to - from;
+			xret := "M_max" ($$empty, $$empty, tfr, 0) with elab;
+			span := xret;
+			
+			R := "";
+			cnt := 0;
+	loop:	goto [cnt < span] add stop;
+			
+	add:	next := nth (S, start);
+			xret := "i__toString" (next) with elab;
+			nStr := xret;
+			R := R concat nStr;
+			cnt := cnt + 1;
+			start := start + 1;
+			goto loop;
+	
+	stop:	xret := R;
+	rlab:	skip;
+	
+	elab: 	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+}
+*)
+
+(* *** SUBSTRING *** *)
+(*
+proc SP_substring (xsc, vthis, start, end) {
+			xret := "i__checkObjectCoercible" (vthis) with elab;
+			xret := "i__toString" (vthis) with elab;
+			S := xret;
+			len := length (S);
+			
+			xret := "i__toInteger" (start) with elab;
+			intS := xret;
+			goto [end = $$undefined] undef def;
+	undef:	intE := len;
+			goto fst;
+	
+	def:	xret := "i__toInteger" (end) with elab;
+			intE := xret;
+			
+	fst:	xret := "M_max" ($$empty, $$empty, intS, 0) with elab;
+			xret := "M_min" ($$empty, $$empty, xret, len) with elab;
+			finS := xret;
+			
+			xret := "M_max" ($$empty, $$empty, intE, 0) with elab;
+			xret := "M_min" ($$empty, $$empty, xret, len) with elab;
+			finE := xret;
+			
+			xret := "M_min" ($$empty, $$empty, finS, finE) with elab;
+			from := xret;
+			xret := "M_max" ($$empty, $$empty, finS, finE) with elab;
+			to := xret;
+			
+			span := to - from;
+			R := "";
+			cnt := 0;
+	loop:	goto [cnt < span] add stop;
+			
+	add:	next := nth (S, from);
+			xret := "i__toString" (next) with elab;
+			nStr := xret;
+			R := R concat nStr;
+			cnt := cnt + 1;
+			from := from + 1;
+			goto loop;
+	
+	stop:	xret := R;
+	rlab:	skip;
+	
+	elab: 	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+}
+*)
+
+
+
