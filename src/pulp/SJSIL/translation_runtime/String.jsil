@@ -159,10 +159,9 @@ with
 {
 	ret: 	xret, rlab;
 	err: 	xret, elab;
-}
+};
 
 (* *** CONCAT *** *)
-(*
 proc SP_concat () {
 			arguments := args;
 			vthis := nth (arguments, 1);
@@ -191,7 +190,7 @@ with
 	ret: 	xret, rlab;
 	err: 	xret, elab;
 }
-*)
+
 
 (* *** INDEXOF *** *)
 (*
