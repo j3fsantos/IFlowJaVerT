@@ -1,21 +1,10 @@
-open SJSIL_Constants
 open SJSIL_Syntax
 
-let fresh_sth (name : string) : (unit -> string) =
-  let counter = ref 0 in
-  let rec f () =
-    let v = name ^ (string_of_int !counter) in
-    counter := !counter + 1;
-    v
-  in f
-
-let fresh_symbol : (unit -> string) = fresh_sth "symb_"
-
 let rec tabs_to_str i  = 
-	if i == 0 then "" else "\t" ^ (tabs_to_str (i - 1))
+	if i = 0 then "" else "\t" ^ (tabs_to_str (i - 1))
 
 (***
- Generate strings from JSIL programs
+ Generate strings from JSIL program types
 *)
 
 let string_of_float x = 
@@ -25,82 +14,25 @@ let string_of_float x =
 			then "-inf"
 			else if (x == infinity) 
 				then "inf"
-				else string_of_float x 
+				else string_of_float x
 
-let string_of_binop bop = match bop with 
-  | Equal -> binop_eq
-  | LessThan -> binop_lt
-	| LessThanString -> binop_lts
-  | LessThanEqual -> binop_leq
- 	| Plus -> binop_plus
-  | Minus -> binop_minus
-  | Times -> binop_times
-  | Div -> binop_div
-  | Mod -> binop_mod
-	| Subtype -> binop_subtype
-	| Concat -> binop_concat
-	| Append -> binop_append
-	| And -> binop_and
-  | Or -> binop_or
-	| BitwiseAnd -> binop_band
-  | BitwiseOr -> binop_bor
-  | BitwiseXor -> binop_bxor
-  | LeftShift -> binop_lsh
-  | SignedRightShift -> binop_srsh
-  | UnsignedRightShift -> binop_ursh
-	| LCons -> binop_lcons
-	| M_atan2 -> binop_atan2
-	| M_pow -> binop_pow
-
-let string_of_unop uop = match uop with 
-  | Not -> unop_not
-  | Negative -> unop_neg
-	| ToStringOp -> unop_tostr
-  | ToNumberOp -> unop_tonum
-  | ToIntOp -> unop_toint
-	| ToInt32Op -> unop_toint32
-  | ToUint16Op -> unop_touint16
-  | ToUint32Op -> unop_touint32
-  | BitwiseNot -> unop_bnot
-	| Car -> unop_car
-	| Cdr -> unop_cdr
-	| IsPrimitive -> unop_isprim
-	| Length -> unop_len
-	| M_abs -> unop_abs            
-	| M_acos -> unop_acos         
-	| M_asin -> unop_asin      
-	| M_atan -> unop_atan    
-	| M_ceil -> unop_ceil            
-	| M_cos -> unop_cos    
-	| M_exp -> unop_exp         
-	| M_floor -> unop_floor          
-	| M_log -> unop_log    
-	| M_round -> unop_round  
-	| M_sgn -> unop_sgn     
-	| M_sin -> unop_sin            
-	| M_sqrt -> unop_sqrt          
-	| M_tan -> unop_tan          
-	
-let string_of_bool x =
-  match x with
-    | true -> "$$t"
-    | false -> "$$f"
-
+(** JSIL types *)
 let string_of_type t =
   match t with
-  | NullType -> "$$null_type"
   | UndefinedType -> "$$undefined_type"
+	| NullType -> "$$null_type"
+	| EmptyType -> "$$empty_type"
   | BooleanType -> "$$boolean_type"
-  | StringType -> "$$string_type"
   | NumberType -> "$$number_type"
+	| StringType -> "$$string_type"
   | ObjectType -> "$$object_type"
   | ReferenceType -> "$$reference_type"
 	| ObjectReferenceType -> "$$o-reference_type"
 	| VariableReferenceType -> "$$v-reference_type"	
-	| EmptyType -> "$$empty_type"
-	| TypeType -> "$$type_type"
 	| ListType -> "$$list_type"
+	| TypeType -> "$$type_type"
 
+(** JSIL constants *)
 let string_of_constant c =
 	match c with
 	| Min_float -> "$$min_value"
@@ -115,91 +47,130 @@ let string_of_constant c =
 	| Sqrt1_2 -> "$$sqrt1_2"
 	| Sqrt2 -> "$$sqrt2"
 
+(** JSIL literals *)
 let rec string_of_literal lit escape_string =
+	let sl = fun l -> string_of_literal l escape_string in
   match lit with
-	  | Undefined -> "$$undefined"
-	  | Null -> "$$null"
-	  | Empty -> "$$empty" 
-		| Loc loc -> loc
-    | Num n -> string_of_float n
-    | String x -> 
-				if escape_string 
-					then Printf.sprintf "\\\"%s\\\"" x
-					else Printf.sprintf "\"%s\"" x
-    | Bool b -> string_of_bool b
-    | Type t -> string_of_type t 
-		| LVRef (l, x) -> Printf.sprintf "%s.v.%s" (string_of_literal l escape_string) x  
-	  | LORef (l, x) -> Printf.sprintf "%s.o.%s" (string_of_literal l escape_string) x   
-		| LList ll -> 
-			(match ll with
-			| [] -> "$$nil"
-			| ll ->
-			let rec loop ll = 
-				(match ll with
-				| [] -> ""
-				| lit :: ll -> 
-					let scar = string_of_literal lit escape_string in
-					let ssep = 
-						(match ll with
-						| [] -> ""
-						| _ -> ", ") in
-					let scdr = loop ll in
-					Printf.sprintf ("%s%s%s") scar ssep scdr)
-			in Printf.sprintf "{{ %s }}" (loop ll))
-		| Constant c -> string_of_constant c 
+	| Undefined -> "$$undefined"
+	| Null -> "$$null"
+	| Empty -> "$$empty"
+	| Constant c -> string_of_constant c
+	| Bool b ->
+		(match b with
+    | true -> "$$t"
+    | false -> "$$f")
+  | Num n -> string_of_float n
+  | String x ->
+		(if escape_string
+			then Printf.sprintf "\\\"%s\\\"" x
+			else Printf.sprintf "\"%s\"" x)
+  | Loc loc -> loc
+  | Type t -> string_of_type t
+	| LVRef (l, x) -> Printf.sprintf "%s.v.%s" (sl l) x
+	| LORef (l, x) -> Printf.sprintf "%s.o.%s" (sl l) x
+	| LList ll ->
+		(match ll with
+		| [] -> "$$nil"
+		| ll -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map sl ll)))
 
+(** JSIL binary operators *)
+let string_of_binop bop =
+	match bop with
+  | Equal -> "="
+  | LessThan -> "<"
+	| LessThanString -> "<s"
+  | LessThanEqual -> "<="
+ 	| Plus -> "+"
+  | Minus -> "-"
+  | Times -> "*"
+  | Div -> "/"
+  | Mod -> "%"
+	| And -> "and"
+  | Or -> "or"
+	| BitwiseAnd -> "&"
+  | BitwiseOr -> "|"
+  | BitwiseXor -> "^"
+	| LeftShift -> "<<"
+  | SignedRightShift -> ">>"
+  | UnsignedRightShift -> ">>>"
+	| M_atan2 -> "m_atan2"
+	| M_pow -> "**"
+	| Subtype -> "<:"
+	| LstCons -> "::"
+	| LstCat -> "@"
+	| StrCat -> "++"
+
+(** JSIL unary operators *)
+let string_of_unop uop =
+	match uop with
+  | UnaryMinus -> "-"
+  | Not -> "not"
+	| BitwiseNot -> "~"
+	| M_abs -> "m_abs"
+	| M_acos -> "m_acos"
+	| M_asin -> "m_asin"
+	| M_atan -> "m_atan"
+	| M_ceil -> "m_ceil"
+	| M_cos -> "m_cos"
+	| M_exp -> "m_exp"
+	| M_floor -> "m_floor"
+	| M_log -> "m_log"
+	| M_round -> "m_round"
+	| M_sgn -> "m_sgn"
+	| M_sin -> "m_sin"
+	| M_sqrt -> "m_sqrt"
+	| M_tan -> "m_tan"
+	| IsPrimitive -> "is_primitive"
+  | ToStringOp -> "num_to_string"
+	| ToIntOp -> "num_to_int"
+	| ToUint16Op -> "num_to_uint16"
+  | ToInt32Op -> "num_to_int32"
+  | ToUint32Op -> "num_to_uint32"
+	| ToNumberOp -> "string_to_num"
+	| Car -> "car"
+	| Cdr -> "cdr"
+	| LstLen -> "l-len"
+	| StrLen -> "s-len"
+
+(** JSIL expressions *)
 let rec string_of_expression e escape_string =
   let se = fun e -> string_of_expression e escape_string in
   match e with
     | Literal l -> string_of_literal l escape_string
-    | Var v -> Pulp_Syntax_Print.string_of_var v
+    | Var v -> v
 		(* (e1 bop e2) *)
     | BinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (se e1) (string_of_binop op) (se e2)
 		(* (uop e) *)
     | UnaryOp (op, e) -> Printf.sprintf "(%s %s)" (string_of_unop op) (se e)
-		(* (typeof e) *)
-    | TypeOf e -> Printf.sprintf "typeOf(%s)" (se e)
-		(* ('ref-v e1 e2) *)
+		(* v-ref(e1 e2) *)
     | VRef (e1, e2) -> Printf.sprintf "v-ref(%s, %s)" (se e1) (se e2)
-  	(* ('ref-o e1 e2) *)
+  	(* o-ref(e1 e2) *)
     | ORef (e1, e2) -> Printf.sprintf "o-ref(%s, %s)" (se e1) (se e2)
-		(* ('base e) *)
+		(* base(e) *)
     | Base e -> Printf.sprintf "base(%s)" (se e)
-		(* ('field e) *)
+		(* field(e) *)
     | Field e -> Printf.sprintf "field(%s)" (se e)
-		(* ('s-nth e n) *)
-		| SNth (e1, e2) -> Printf.sprintf "s-nth(%s, %s)" (se e1) (se e2)
-		(* ('l-nth e n) *)
-		| LNth (e1, e2) -> Printf.sprintf "l-nth(%s, %s)" (se e1) (se e2)
-		(* *)
+		(* typeof(e) *)
+    | TypeOf e -> Printf.sprintf "typeOf(%s)" (se e)
+		(* assume(e) *) 
+		| RAssume e -> Printf.sprintf "assume(%s)" (se e)
+		(* assert(e) *)
+		| RAssert e -> Printf.sprintf "assert(%s)" (se e)
+		(* make-symbol-number() *) 
+		| RNumSymb -> "make-symbol-number()" 
+		(* make-symbol-string() *) 
+		| RStrSymb -> "make-symbol-string()"
+		(* {{ e1, e2, ... }} *)
 		| EList ll -> 
 			(match ll with
 			| [] -> "$$nil"
-			| ll ->
-			let rec loop ll = 
-				(match ll with
-				| [] -> ""
-				| e :: ll -> 
-					let scar = string_of_expression e escape_string in
-					let ssep = 
-						(match ll with
-						| [] -> ""
-						| _ -> ", ") in
-					let scdr = loop ll in
-					Printf.sprintf ("%s%s%s") scar ssep scdr)
-			in Printf.sprintf "{{ %s }}" (loop ll))
-		(* cons(e, e) *)
-		| Cons (e1, e2) -> 
-			Printf.sprintf "cons(%s, %s)" (se e1) (se e2) 
-		(* (assume e) *) 
-		| RAssume e -> Printf.sprintf "assume(%s)" (se e)
-		(* (assert e) *)
-		| RAssert e -> Printf.sprintf "assert(%s)" (se e)
-		(* (make-symbol-number) *) 
-		| RNumSymb -> "make-symbol-number()" 
-		(* (make-symbol-string) *) 
-		| RStrSymb -> "make-symbol-string()"
+			| ll -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map se ll)))
+		(* l-nth(e1, e2) *)
+		| LstNth (e1, e2) -> Printf.sprintf "l-nth(%s, %s)" (se e1) (se e2)
+		(* s-nth(e1, e2) *)
+		| StrNth (e1, e2) -> Printf.sprintf "s-nth(%s, %s)" (se e1) (se e2)
 
+(** JSIL Basic statements *)
 let rec string_of_bcmd bcmd i line_numbers_on escape_string = 
 	let se = fun e -> string_of_expression e escape_string in
 	let str_i = if line_numbers_on then (string_of_int i) ^ ". " else "" in
@@ -223,19 +194,12 @@ let rec string_of_bcmd bcmd i line_numbers_on escape_string =
 	(* x := args *)
 	| SArguments var -> Printf.sprintf "%s%s := args" str_i var
 
-let string_of_list list =
-	match list with
-	| [] -> ""
-	| elem :: rest ->
-  	List.fold_left 
-  		(fun prev_elems elem -> prev_elems ^ ", " ^ elem) elem rest
-
-(** Returns a string from a JSIL Logic expression. *)
+(** JSIL logical expressions *)
 let rec string_of_logic_expression e escape_string =
   let sle = fun e -> string_of_logic_expression e escape_string in
   match e with
     | LLit llit -> string_of_literal llit escape_string
-		| LNone -> "none"
+		| LNone -> "None"
     | LVar lvar -> lvar
 		| ALoc aloc -> aloc
 		| PVar pvar -> pvar
@@ -251,45 +215,22 @@ let rec string_of_logic_expression e escape_string =
     | LBase e -> Printf.sprintf "base(%s)" (sle e)
 		(* field(e) *)
     | LField e -> Printf.sprintf "field(%s)" (sle e)
-		(* typeof(e) *)
-    | LTypeOf e -> Printf.sprintf "typeof(%s)" (sle e)
-		(* (cons(e) *)
-		| LCons (e1, e2) -> Printf.sprintf "cons(%s, %s)" (sle e1) (sle e2) 
-		(* {{  }}*) 
-    | LEList list -> 
+		(* typeOf(e) *)
+    | LTypeOf e -> Printf.sprintf "typeOf(%s)" (sle e)
+		(* {{ e1, ..., en }} *)
+    | LEList list ->
 			(match list with
 			| [] -> "$$nil"
-			| ll ->
-			let rec loop ll = 
-				(match ll with
-				| [] -> ""
-				| e :: ll -> 
-					let scar = sle e in
-					let ssep = 
-						(match ll with
-						| [] -> ""
-						| _ -> ", ") in
-					let scdr = loop ll in
-					Printf.sprintf ("%s%s%s") scar ssep scdr)
-			in Printf.sprintf "{{ %s }}" (loop ll))
-		(* s-nth(e, n) *)
-		| LSNth (e1, e2) -> Printf.sprintf "s-nth(%s, %s)" (sle e1) (sle e2)
-		(* (l-nth(e, n) *)
-		| LLNth (e1, e2) -> Printf.sprintf "l-nth(%s, %s)" (sle e1) (sle e2)
-		(* $$unknown *) 
+			| ll -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map sle ll)))
+		(* l-nth(e1, e2) *)
+		| LLstNth (e1, e2) -> Printf.sprintf "l-nth(%s, %s)" (sle e1) (sle e2)
+		(* s-nth(e1, e2) *)
+		| LStrNth (e1, e2) -> Printf.sprintf "s-nth(%s, %s)" (sle e1) (sle e2)
+		(* $$unknown *)
 		| LUnknown -> "$$unknown"
 
-(** Returns a string from a JSIL Logic predicate definition. *)
-let rec string_of_predicate predicate =
-	List.fold_left 
-		(fun acc_str assertion -> 
-			acc_str ^ (Printf.sprintf "pred %s (%s) : %s ;\n"
-				predicate.name (string_of_list predicate.params) (string_of_logic_assertion assertion false)))
-		""
-		predicate.definitions
-and
-(** Returns a string from a JSIL Logic assertion. *)
-string_of_logic_assertion a escape_string =
+(** JSIL logic assertions *)
+let rec string_of_logic_assertion a escape_string =
 	let sla = fun a -> string_of_logic_assertion a escape_string in
 	let sle = fun e -> string_of_logic_expression e escape_string in
 	match a with
@@ -300,9 +241,9 @@ string_of_logic_assertion a escape_string =
 		(* ~ a *)
 		| LNot a -> Printf.sprintf "~ %s" (sla a)
 		(* true *)
-		| LTrue -> Printf.sprintf "true"
+		| LTrue -> "true"
 		(* false *)
-		| LFalse -> Printf.sprintf "false"
+		| LFalse -> "false"
 		(* e1 == e2 *)
 		| LEq (e1, e2) -> Printf.sprintf "%s == %s" (sle e1) (sle e2)
 		(* e1 <== e2 *)
@@ -312,18 +253,34 @@ string_of_logic_assertion a escape_string =
 		(* (e1, e2) -> e3 *)
 		| LPointsTo (e1, e2, e3) -> Printf.sprintf "(%s, %s) -> %s" (sle e1) (sle e2) (sle e3)
 		(* emp *)
-		| LEmp -> Printf.sprintf "emp"
+		| LEmp -> "emp"
 		(* exists vars . a *)
-		| LExists (lvars, a) -> Printf.sprintf "exists %s . %s" (string_of_list lvars) (sla a)
+		| LExists (lvars, a) -> Printf.sprintf "exists %s . %s" (String.concat ", " lvars) (sla a)
 		(* forall vars . a *)
-		| LForAll (lvars, a) -> Printf.sprintf "forall %s . %s" (string_of_list lvars) (sla a)
+		| LForAll (lvars, a) -> Printf.sprintf "forall %s . %s" (String.concat ", " lvars) (sla a)
+		(* x(y1, ..., yn) *)
+		| LPred (name, params) -> Printf.sprintf "%s(%s)" name (String.concat ", " (List.map sle params))
+		(* types(e1:t1, ..., en:tn) *)
+		| LTypes type_list -> Printf.sprintf "types(%s)"
+			(String.concat ", " (List.map (fun (e, t) -> Printf.sprintf "%s : %s" (sle e) (string_of_type t)) type_list))
 
-(** Returns a string from a JSIL command. *)
+(** JSIL logic predicates *)
+let rec string_of_predicate predicate =
+	List.fold_left 
+		(fun acc_str assertion -> 
+			acc_str ^ (Printf.sprintf "pred %s (%s) : %s ;\n"
+				predicate.name (String.concat ", " predicate.params) (string_of_logic_assertion assertion false)))
+		""
+		predicate.definitions
+
+(** JSIL All Statements *)
 let rec string_of_cmd sjsil_cmd tabs i line_numbers_on specs_on escape_string =
-	let metadata, sjsil_cmd = sjsil_cmd in 
-	let str_i = if line_numbers_on then (string_of_int i) ^ " " else "" in
-	let str_tabs = tabs_to_str tabs in  
-	let ass = metadata.pre_cond in 
+	let se = fun e -> string_of_expression e escape_string in
+	let str_i = if line_numbers_on then (string_of_int i) ^ ". " else "" in
+	let str_tabs = tabs_to_str tabs in
+	
+	let metadata, sjsil_cmd = sjsil_cmd in
+	let ass = metadata.pre_cond in
 	let str_ass =
 		if (specs_on)
 		then
@@ -333,30 +290,30 @@ let rec string_of_cmd sjsil_cmd tabs i line_numbers_on specs_on escape_string =
 		else "" in
 	str_ass ^ 
   (match sjsil_cmd with
-	(* goto j *) 
-  | SGoto j -> 
-		let str_j = string_of_int j in 
-			str_tabs ^ Printf.sprintf "%sgoto %s" str_i str_j 
+	(* Basic command *)
+	| SBasic bcmd ->
+		str_tabs ^ (string_of_bcmd bcmd i line_numbers_on escape_string)
+	(* goto j *)
+  | SGoto j ->
+		str_tabs ^ Printf.sprintf "%sgoto %s" str_i (string_of_int j)
   (* goto [e] j k *)
-	| SGuardedGoto (e, j, k) -> 
-		let str_j = string_of_int j in
-		let str_k = string_of_int k in
-		let str_e = (string_of_expression e escape_string) in 
-			str_tabs ^  Printf.sprintf "%sgoto [%s] %s %s" str_i str_e str_j str_k
-	(* basic command *)
-	| SBasic bcmd -> str_tabs ^ (string_of_bcmd bcmd i line_numbers_on escape_string)
+	| SGuardedGoto (e, j, k) ->
+		str_tabs ^ Printf.sprintf "%sgoto [%s] %s %s" str_i (se e) (string_of_int j) (string_of_int k)
 	(* x := f(y1, ..., yn) with j *)
-	| SCall (var, proc_name_expr, arg_expr_list, error_lab) -> 
-		let proc_name_expr_str = string_of_expression proc_name_expr escape_string in 
-		let error_lab = (match error_lab with | None -> "" | Some error_lab -> ("with " ^ (string_of_int error_lab))) in 
-		let se = fun e -> string_of_expression e escape_string in 
-		let arg_expr_list_str = match arg_expr_list with
-		|	[] -> ""
-		| _ -> String.concat ", " (List.map se arg_expr_list) in 
-			str_tabs ^  Printf.sprintf "%s%s := %s(%s) %s" str_i var proc_name_expr_str arg_expr_list_str error_lab
+	| SCall (var, name, args, error) ->
+		str_tabs ^  Printf.sprintf "%s%s := %s(%s) %s" str_i var (se name) (String.concat ", " (List.map se args))
+			(match error with
+			| None -> ""
+			| Some index -> ("with " ^ (string_of_int index)))
+	(* x := apply(y1, ..., yn) with j *)
+	| SApply (var, args, error) ->
+		Printf.sprintf "%s := apply(%s)%s" var (String.concat ", " (List.map se args))
+		  (match error with
+			| None -> ""
+			| Some index -> (" with " ^ (string_of_int index)))
 	(* var := PHI(var_1, var_2, ..., var_n) *)
-	| SPhiAssignment (var, var_arr) -> 
-		let len = Array.length var_arr in  
+	| SPhiAssignment (var, var_arr) ->
+		let len = Array.length var_arr in
 		let rec loop i str_ac =
 			if (i >= len) 
 				then str_ac 
@@ -403,13 +360,14 @@ let string_of_cmd_arr cmds tabs line_numbers =
 		string_of_cmd cmd tabs i line_numbers true false in 
 	serialize_cmd_arr cmds tabs line_numbers string_of_cmd_aux
 
+(** JSIL spec return flag *)
 let string_of_return_flag flag =
 	match flag with
 		| Normal -> "normal"
 		| Error -> "error"
 
-(** Returns a string from a JSIL procedure specification. *)
-let rec string_of_specs (specs : jsil_single_spec list) = 
+(** JSIL procedure specification *)
+let rec string_of_specs specs =
 	match specs with
 	| [] -> ""
 	| spec :: specs -> 
@@ -421,7 +379,7 @@ let rec string_of_specs (specs : jsil_single_spec list) =
 		| _ -> "; ") ^ "\n" ^
 		string_of_specs specs
 
-(** Returns a string from a JSIL procedure. *)
+(** JSIL procedures *)
 (*
   spec xpto (arg1, arg2, ...)
 	  [[ ... ]]
@@ -435,27 +393,29 @@ let rec string_of_specs (specs : jsil_single_spec list) =
 		err: x_err, i_err
 	}
 *)
-let string_of_procedure proc line_numbers =			
+let string_of_procedure proc line_numbers =
+	(* Optional specification block *)
 	(match proc.spec with
 	| None -> ""
 	| Some spec ->
-		Printf.sprintf "spec %s (%s) \n %s \n" spec.spec_name (string_of_list spec.spec_params) (string_of_specs spec.proc_specs)
-	)
+		Printf.sprintf "spec %s (%s)\n %s\n" spec.spec_name (String.concat ", " spec.spec_params)
+		  (string_of_specs spec.proc_specs))
 	^
-	(Printf.sprintf "proc %s (%s) { \n %s \n} with {\n%s%s}\n" 
+	(* Procedure definition block *)
+	(Printf.sprintf "proc %s (%s) {\n%s\n} with {\n%s%s}\n"
   	proc.proc_name 
-   	(string_of_list proc.proc_params) 
+   	(String.concat ", " proc.proc_params) 
 		(string_of_cmd_arr proc.proc_body 2 line_numbers)
 		(match proc.ret_var, proc.ret_label with
 		| None, None -> "" 
-		| Some var, Some label -> (Printf.sprintf "\t ret: %s, %s; \n" var (string_of_int label))
-		| _, _ -> raise (Failure "Error variable and error label not both present or both absent!"))
+		| Some var, Some label -> (Printf.sprintf "\tret: %s, %s;\n" var (string_of_int label))
+		| _, _ -> raise (Failure "Error: variable and error label not both present or both absent!"))
 		(match proc.error_var, proc.error_label with
 		| None, None -> "" 
-		| Some var, Some label -> (Printf.sprintf "\t err: %s, %s; \n" var (string_of_int label))
-		| _, _ -> raise (Failure "Error variable and error label not both present or both absent!")))
+		| Some var, Some label -> (Printf.sprintf "\terr: %s, %s;\n" var (string_of_int label))
+		| _, _ -> raise (Failure "Error: variable and error label not both present or both absent!")))
 
-(** Returns a string from a JSIL program. *)
+(** JSIL programs *)
 let string_of_program program line_numbers = 
 	Hashtbl.fold 
 	(fun _ proc acc_str ->
@@ -463,32 +423,32 @@ let string_of_program program line_numbers =
 	program	
 	""
 
-(**
-		Printing out lprocedures
 
-		lproc_body : ((jsil_logic_assertion option * string option * jsil_lab_cmd) array);
-*)
-
-let string_of_lab_cmd lcmd = 
-  (match lcmd with
+(** JSIL procedures with labels *)
+let string_of_lab_cmd lcmd =
+	let se = fun e -> string_of_expression e false in
+  match lcmd with
+	(* Basic command *)
+	| SLBasic bcmd ->
+		(string_of_bcmd bcmd 0 false false)
 	(* goto j *) 
-  | SLGoto j -> 
-			Printf.sprintf "goto %s" j 
+  | SLGoto j ->
+		Printf.sprintf "goto %s" j
   (* goto [e] j k *)
-	| SLGuardedGoto (e, j, k) -> 
-		let str_e = (string_of_expression e false) in 
-			Printf.sprintf "goto [%s] %s %s" str_e j k
-	(* basic command *)
-	| SLBasic bcmd -> (string_of_bcmd bcmd 0 false false)
+	| SLGuardedGoto (e, j, k) ->
+		Printf.sprintf "goto [%s] %s %s" (se e) j k
 	(* x := f(y1, ..., yn) with j *)
-	| SLCall (var, proc_name_expr, arg_expr_list, error_lab) -> 
-		let proc_name_expr_str = string_of_expression proc_name_expr false in 
-		let error_lab = (match error_lab with | None -> "" | Some error_lab -> (" with " ^ error_lab)) in 
-		let se = fun e -> string_of_expression e false in 
-		let arg_expr_list_str = match arg_expr_list with
-		|	[] -> ""
-		| _ -> String.concat ", " (List.map se arg_expr_list) in 
-			Printf.sprintf "%s := %s(%s)%s" var proc_name_expr_str arg_expr_list_str error_lab
+	| SLCall (var, name, args, error) ->
+		Printf.sprintf "%s := %s(%s)%s" var (se name) (String.concat ", " (List.map se args))
+		  (match error with
+			| None -> ""
+			| Some label -> (" with " ^ label))
+	(* x := apply(y1, ..., yn) with j *)
+	| SLApply (var, args, error) ->
+		Printf.sprintf "%s := apply(%s)%s" var (String.concat ", " (List.map se args))
+		  (match error with
+			| None -> ""
+			| Some label -> (" with " ^ label))
 	(* var := PHI(var_1, var_2, ..., var_n) *)
 	| SLPhiAssignment (var, var_arr) -> 
 		let len = Array.length var_arr in  
@@ -521,15 +481,6 @@ let string_of_lab_cmd lcmd =
 						else  loop (i + 1) (str_ac ^ ", " ^ var_arr_i_str)) in 
 		let var_arr_str = loop 0 "" in 
 		Printf.sprintf "%s := PSI(%s)" var var_arr_str
-	| SLApply (var, arg_expr_list, error_lab) -> 
-		let error_lab = (match error_lab with | None -> "" | Some error_lab -> (" with " ^ error_lab)) in 
-		let se = fun e -> string_of_expression e false in 
-		let arg_expr_list_str = 
-			(match arg_expr_list with
-		  |	[] -> ""
-		  | _ -> String.concat ", " (List.map se arg_expr_list)) in 
-			Printf.sprintf "%s := apply (%s)%s" var arg_expr_list_str error_lab
-)
 
 let string_of_lbody lbody = 
 	let len = Array.length lbody in
@@ -551,45 +502,45 @@ let string_of_lbody lbody =
 	done;
 	!str
 
-(** Returns a string from an extended JSIL procedure. *)
-let string_of_ext_procedure lproc =
-	(match lproc.lspec with
+(** Extended JSIL procedures *)
+let string_of_ext_procedure proc =
+	(* Optional specification block *)
+	(match proc.lspec with
 	| None -> ""
 	| Some spec ->
-		Printf.sprintf "spec %s (%s) \n %s \n" spec.spec_name (string_of_list spec.spec_params) (string_of_specs spec.proc_specs)
-	)
+		Printf.sprintf "spec %s (%s)\n %s\n" spec.spec_name (String.concat ", " spec.spec_params)
+		  (string_of_specs spec.proc_specs))
 	^
-	(Printf.sprintf "proc %s (%s) { \n %s \n} with {\n%s%s}" 
-  	lproc.lproc_name 
-   	(string_of_list lproc.lproc_params) 
-		(string_of_lbody lproc.lproc_body)
-		(match lproc.lret_var, lproc.lret_label with
+	(* Procedure definition block *)
+	(Printf.sprintf "proc %s (%s) {\n%s\n} with {\n%s%s}\n"
+  	proc.lproc_name 
+   	(String.concat ", " proc.lproc_params) 
+		(string_of_lbody proc.lproc_body)
+		(match proc.lret_var, proc.lret_label with
 		| None, None -> "" 
-		| Some var, Some label -> (Printf.sprintf "\t ret: %s, %s; \n" var label)
-		| _, _ -> raise (Failure "Error variable and error label not both present or both absent!"))
-		(match lproc.lerror_var, lproc.lerror_label with
+		| Some var, Some label -> (Printf.sprintf "\tret: %s, %s;\n" var label)
+		| _, _ -> raise (Failure "Error: variable and error label not both present or both absent!"))
+		(match proc.lerror_var, proc.lerror_label with
 		| None, None -> "" 
-		| Some var, Some label -> (Printf.sprintf "\t err: %s, %s; \n" var label)
-		| _, _ -> raise (Failure "Error variable and error label not both present or both absent!")))
+		| Some var, Some label -> (Printf.sprintf "\terr: %s, %s;\n" var label)
+		| _, _ -> raise (Failure "Error: variable and error label not both present or both absent!")))
 
-(** Returns a string from an extended JSIL program. *)
-let string_of_ext_program program = 
-	let imports_str = 
-		(match program.imports with 
-		| [] -> ""
-		| hd :: tl ->
-				"import " ^ (List.fold_left (fun ac import_file -> ac ^ ", " ^ import_file) hd tl) ^ ";\n") in 
-	let preds_str =
-		Hashtbl.fold
-			(fun _ pred acc_str -> acc_str ^ "\n" ^ (string_of_predicate pred)) 
-			program.predicates
-			"" in
+(** Extended JSIL programs *)
+let string_of_ext_program program =
+	(* Imports line *)
+	(match program.imports with
+	| [] -> ""
+	| hd :: tl -> "import " ^ (String.concat ", " (hd :: tl)) ^ ";\n")
+	^
+	(* Predicates *)
+	(Hashtbl.fold
+			(fun _ pred acc_str -> acc_str ^ "\n" ^ (string_of_predicate pred)) program.predicates "")
+	^
+	(* Procedures *)
 	let procs_str	= 
 		Hashtbl.fold 
-			(fun _ proc acc_str -> acc_str ^ "\n" ^ (string_of_ext_procedure proc) ^ ";\n") 
-			program.procedures
-			"" in 
-	imports_str ^ preds_str ^ (String.sub procs_str 0 (String.length procs_str - 2))
+			(fun _ proc acc_str -> acc_str ^ "\n" ^ (string_of_ext_procedure proc) ^ ";\n") program.procedures "" in 
+	(String.sub procs_str 0 (String.length procs_str - 2))
 
 
 let string_of_proc_metadata proc = 
@@ -607,7 +558,7 @@ let string_of_proc_metadata proc =
 			""
 			line_info_lst in 
 	"Proc: " ^ proc.proc_name ^ "\n" ^ line_info_str  
-	
+
 let string_of_prog_metadata prog = 
 	Hashtbl.fold 
 		(fun _ proc acc_str -> 
@@ -616,7 +567,6 @@ let string_of_prog_metadata prog =
 				else acc_str ^ "\n" ^ (string_of_proc_metadata proc)) 
 		prog	
 		""
-
 
 let string_of_ext_proc_metadata ext_proc = 
 	let line_info_lst = 
@@ -642,13 +592,3 @@ let string_of_ext_prog_metadata ext_prog =
 				else acc_str ^ "\n" ^ (string_of_ext_proc_metadata ext_proc))
 		ext_prog
 		""
-
-
-let string_of_store store = 
-	Hashtbl.fold 
-		(fun (var : string) (v_val : jsil_lit) (ac : string) ->
-			let v_val_str = string_of_literal v_val true in 
-			let var_val_str = var ^ ": " ^ v_val_str  in 
-			if (ac != "") then var_val_str else ac ^ "; " ^ var_val_str)
-		store
-		"Store: "

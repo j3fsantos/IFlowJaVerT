@@ -22,6 +22,35 @@ let fresh_int =
 let fresh_loc () : string =
   "$l" ^ (fresh_int ())
 
+let evaluate_constant c = 
+	match c with
+  | Min_float -> Num (5e-324)
+	| Max_float -> Num (max_float)
+	| Random -> Num (Random.float (1.0 -. epsilon_float))
+	| E -> Num (exp 1.0)
+	| Ln10 -> Num (log 10.0)
+	| Ln2 -> Num (log 2.)
+	| Log2e -> Num (log (exp 1.0) /. log (2.0))
+	| Log10e -> Num (log10 (exp 1.0))
+	| Pi -> Num (4.0 *. atan 1.0)
+	| Sqrt1_2 -> Num (sqrt 0.5)
+	| Sqrt2 -> Num (sqrt 2.0)
+
+let evaluate_type_of lit = 
+	match lit with 
+	| Undefined -> UndefinedType
+	| Null -> NullType
+	| Empty -> EmptyType
+	| Constant _ -> NumberType
+	| Bool _ -> BooleanType
+	| Num _ -> NumberType
+	| String _ -> StringType
+	| Loc _ -> ObjectType
+	| Type _ -> TypeType
+	| LVRef (_, _) -> VariableReferenceType
+	| LORef (_, _) -> ObjectReferenceType
+	| LList _ -> ListType
+
 (* Taken from jscert *)
 let to_int = fun n ->   
 match classify_float n with
@@ -99,27 +128,91 @@ let uint32_right_shift = (fun x y ->
   if r < 0. then r +. i32 else r)
 
 let evaluate_unop op lit = 
-	match op with 
+	match op with
+	| UnaryMinus -> 
+		(match lit with
+		| Num n -> Num (-.n)
+		| _ -> raise (Failure "Non-number argument to UnaryMinus"))
 	| Not -> 
 		(match lit with 
 		| Bool b -> (Bool (not b))
 		| _ -> raise (Failure (Printf.sprintf "Non-bool argument to Not: %s" (JSIL_Print.string_of_literal lit false))))
-	| Negative -> 
+	| BitwiseNot ->
 		(match lit with
-		| Num n -> Num (-.n)
-		| _ -> raise (Failure "Non-number argument to Negative"))
+		| Num n -> Num (int32_bitwise_not n)
+		| _ -> raise (Failure "Non-number argument to BitwiseNot"))
+	| M_abs ->
+		(match lit with
+		| Num n -> Num (abs_float n)
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
+	| M_acos ->
+		(match lit with
+		| Num n -> Num (acos n)
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
+	| M_asin ->
+		(match lit with
+		| Num n -> Num (asin n)
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
+	| M_atan ->
+		(match lit with
+		| Num n -> Num (atan n)
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
+	| M_ceil ->
+		(match lit with
+		| Num n -> Num (ceil n)
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
+	| M_cos ->
+		(match lit with
+		| Num n -> Num (cos n)
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
+	| M_exp ->
+		(match lit with
+		| Num n -> Num (exp n)
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
+	| M_floor ->
+		(match lit with
+		| Num n -> Num (floor n)
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
+	| M_log ->
+		(match lit with
+		| Num n -> Num (log n)
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
+	| M_round ->
+		(match lit with
+		| Num n -> Num (let sign = copysign 1.0 n in
+										if ((sign < 0.0) && (n >= -0.5))
+										then (-0.0)
+										else (floor (n +. 0.5))
+									 )
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
+	| M_sgn ->
+		(match lit with
+		| Num n -> Num (copysign 1.0 n)
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
+	| M_sin ->
+		(match lit with
+		| Num n -> Num (sin n)
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
+	| M_sqrt ->
+		(match lit with
+		| Num n -> Num (sqrt n)
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
+	| M_tan ->
+		(match lit with
+		| Num n -> Num (tan n)
+		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
+	| IsPrimitive ->
+		(match lit with
+		| Null
+		| Undefined
+		| Bool _
+		| Num _
+		| String _ -> (Bool true)
+		| _ -> Bool false)
 	| ToStringOp -> 
 		(match lit with
 		| Num n -> String (Utils.float_to_string_inner n)
 		| _ -> raise (Failure (Printf.sprintf "Non-number argument to ToStringOp: %s" (JSIL_Print.string_of_literal lit false))))
-	| ToNumberOp -> 
-		(match lit with
-		| String s -> 
-			let num = try Float.of_string s 
-				with Failure "float_of_string" -> 
-					if s = "" then 0. else nan in
-				(Num num)
-		| _ -> raise (Failure "Non-string argument to ToNumberOp"))
 	| ToIntOp ->
 		(match lit with
 		| Num n -> Num (to_int n)
@@ -135,11 +228,15 @@ let evaluate_unop op lit =
 	| ToUint32Op ->
 		(match lit with
 		| Num n -> Num (to_uint32 n)
-		| _ -> raise (Failure "Non-number argument to ToUint32Op"))		
-	| BitwiseNot ->
+		| _ -> raise (Failure "Non-number argument to ToUint32Op"))
+	| ToNumberOp -> 
 		(match lit with
-		| Num n -> Num (int32_bitwise_not n)
-		| _ -> raise (Failure "Non-number argument to BitwiseNot"))
+		| String s -> 
+			let num = try Float.of_string s 
+				with Failure "float_of_string" -> 
+					if s = "" then 0. else nan in
+				(Num num)
+		| _ -> raise (Failure "Non-string argument to ToNumberOp"))
 	| Car ->
 		(match lit with
 		| LList ll -> 
@@ -154,99 +251,19 @@ let evaluate_unop op lit =
 			| [] -> Empty
 			| _ :: ll -> LList ll)
 		| _ -> raise (Failure "Non-list argument to Cdr"))
-	| Length ->
+	| LstLen ->
 		(match lit with
 		| LList l -> Num (float_of_int (List.length l))
+		| _ -> raise (Failure (Printf.sprintf "Non-list argument to LstLen: %s" (JSIL_Print.string_of_literal lit false))))
+	| StrLen ->
+		(match lit with
 		| String s -> Num (float_of_int (String.length s))
-		| _ -> raise (Failure (Printf.sprintf "Non-string and non-list argument to Length: %s" (JSIL_Print.string_of_literal lit false))))
+		| _ -> raise (Failure (Printf.sprintf "Non-string argument to StrLen: %s" (JSIL_Print.string_of_literal lit false))))
 
-	| IsPrimitive ->
-		(match lit with
-		| Null
-		| Undefined
-		| Bool _
-		| Num _
-		| String _ -> (Bool true)
-		| _ -> Bool false)
-
-	| M_abs ->
-		(match lit with
-		| Num n -> Num (abs_float n)
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
-
-	| M_acos ->
-		(match lit with
-		| Num n -> Num (acos n)
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
-
-	| M_asin ->
-		(match lit with
-		| Num n -> Num (asin n)
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
-
-	| M_atan ->
-		(match lit with
-		| Num n -> Num (atan n)
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
-
-	| M_ceil ->
-		(match lit with
-		| Num n -> Num (ceil n)
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
-
-	| M_cos ->
-		(match lit with
-		| Num n -> Num (cos n)
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
-		
-	| M_exp ->
-		(match lit with
-		| Num n -> Num (exp n)
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
-		
-	| M_floor ->
-		(match lit with
-		| Num n -> Num (floor n)
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
-		
-	| M_log ->
-		(match lit with
-		| Num n -> Num (log n)
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
-	
-	| M_round ->
-		(match lit with
-		| Num n -> Num (let sign = copysign 1.0 n in
-										if ((sign < 0.0) && (n >= -0.5))
-										then (-0.0)
-										else (floor (n +. 0.5))
-									 )
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
-  | M_sgn ->
-		(match lit with
-		| Num n -> Num (copysign 1.0 n)
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
- 
-	| M_sin ->
-		(match lit with
-		| Num n -> Num (sin n)
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
-
-	| M_sqrt ->
-		(match lit with
-		| Num n -> Num (sqrt n)
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
- 
-	| M_tan ->
-		(match lit with
-		| Num n -> Num (tan n)
-		| _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
-	
 (*
 			xret := "create_object_with_body" ($lmath_max, "M_max", 2);	
 			xret := "create_object_with_body" ($lmath_min, "M_min", 2);
-*)
-	
+
 let same_value_num n1 n2 = 
 	let cfn1 = classify_float n1 in
 	let cfn2 = classify_float n2 in
@@ -257,7 +274,8 @@ let same_value_num n1 n2 =
 		let sign2 = copysign 1.0 n2 in
 			sign1 = sign2
 	| _, _ -> (n1 = n2)
-	
+*)
+
 let evaluate_binop op lit1 lit2 = 
 	match op with 
 	| Equal -> 
@@ -265,6 +283,7 @@ let evaluate_binop op lit1 lit2 =
 		| Undefined, Undefined -> (Bool true)
 		| Null, Null -> (Bool true)
 		| Empty, Empty -> (Bool true)
+		| Constant c1, Constant c2 -> (Bool (c1 = c2))
 		| Bool b1, Bool b2 -> (Bool (b1 = b2))
 		| Num n1, Num n2 -> (Bool (n1 = n2))
 		| String s1, String s2 -> (Bool (s1 = s2))
@@ -306,23 +325,6 @@ let evaluate_binop op lit1 lit2 =
 		(match lit1, lit2 with 
 		| Num n1, Num n2 -> (Num (mod_float n1 n2)) 
 		| _, _ -> raise (Failure "Non-number argument to Mod"))
-	| Subtype -> 
-		(match lit1, lit2 with 
-		| Type t1, Type t2 -> 
-			(match t1, t2  with 
-			| ObjectReferenceType, ReferenceType -> Bool true 
-			| VariableReferenceType, ReferenceType -> Bool true 
-			| x, y when x == y -> Bool true
-			| _, _ -> Bool false)
-		| _, _ -> raise (Failure "Non-type argument to Subtype")) 
-	| Concat -> 
-		(match lit1, lit2 with 
-		| String s1, String s2 -> (String (s1 ^ s2)) 
-		| _, _ -> raise (Failure (Printf.sprintf "Non-string argument to Concat: %s, %s" (JSIL_Print.string_of_literal lit1 false) (JSIL_Print.string_of_literal lit2 false))))
-	| Append -> 
-		(match lit1, lit2 with 
-		| LList l1, LList l2 -> (LList (List.append l1 l2))
-		| _, _ -> raise (Failure "Non-list argument to Append"))
 	| And -> 
 		(match lit1, lit2 with 
 		| Bool b1, Bool b2 -> (Bool (b1 && b2)) 
@@ -355,17 +357,6 @@ let evaluate_binop op lit1 lit2 =
 		(match lit1, lit2 with 
 		| Num n1, Num n2 -> (Num (uint32_right_shift n1 n2)) 
 		| _, _ -> raise (Failure "Non-string argument to SignedRightShift"))
-	| LCons -> 
-		(match lit2 with
-		| LList list -> LList 
-			(match lit1 with
-				| LList [] -> list
-				| _ -> lit1 :: list)
-		| String s2 -> 
-			(match lit1 with
-			| String s1 -> String (s1 ^ s2)
-			| _ -> raise (Failure "Non-string concatenation with a string"))
-		| _ -> raise (Failure "Non-list second argument or non-string arguments to LCons"))
 	| M_atan2 ->
 		(match lit1, lit2 with
 		| Num x, Num y -> Num (atan2 x y)
@@ -374,36 +365,31 @@ let evaluate_binop op lit1 lit2 =
 		(match lit1, lit2 with
 		| Num x, Num y -> Num (x ** y)
 		| _, _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s %s instead of numbers." (JSIL_Print.string_of_literal lit1 false) (JSIL_Print.string_of_literal lit2 false))))
-	
+	| Subtype -> 
+		(match lit1, lit2 with 
+		| Type t1, Type t2 -> 
+			(match t1, t2  with 
+			| ObjectReferenceType, ReferenceType -> Bool true 
+			| VariableReferenceType, ReferenceType -> Bool true 
+			| x, y when x == y -> Bool true
+			| _, _ -> Bool false)
+		| _, _ -> raise (Failure "Non-type argument to Subtype")) 
+	| LstCons ->
+		(match lit2 with
+		| LList list -> LList
+			(match lit1 with
+			| LList [] -> list		(* Are we sure this is the semantics we want for LstCons? *)
+			| _ -> lit1 :: list)
+		| _ -> raise (Failure "Non-list second argument to LstCons"))
+	| LstCat -> 
+		(match lit1, lit2 with 
+		| LList l1, LList l2 -> (LList (List.append l1 l2))
+		| _, _ -> raise (Failure "Non-list argument to LstCat"))
+	| StrCat -> 
+		(match lit1, lit2 with 
+		| String s1, String s2 -> (String (s1 ^ s2)) 
+		| _, _ -> raise (Failure (Printf.sprintf "Non-string argument to StrCat: %s, %s" (JSIL_Print.string_of_literal lit1 false) (JSIL_Print.string_of_literal lit2 false))))
 
-let evaluate_type_of lit = 
-	match lit with 
-	| Undefined -> UndefinedType
-	| Null -> NullType
-	| Empty -> EmptyType
-	| Bool _ -> BooleanType
-	| String _ -> StringType
-	| Num _ -> NumberType
-	| Loc _ -> ObjectType
-	| Type _ -> TypeType
-	| LVRef (_, _) -> VariableReferenceType
-	| LORef (_, _) -> ObjectReferenceType
-	| LList _ -> ListType
-
-let evaluate_constant c = 
-	match c with
-  | Min_float -> Num (5e-324)
-	| Max_float -> Num (max_float)
-	| Random -> Num (Random.float (1.0 -. epsilon_float))
-	| E -> Num (exp 1.0)
-	| Ln10 -> Num (log 10.0)
-	| Ln2 -> Num (log 2.)
-	| Log2e -> Num (log (exp 1.0) /. log (2.0))
-	| Log10e -> Num (log10 (exp 1.0))
-	| Pi -> Num (4.0 *. atan 1.0)
-	| Sqrt1_2 -> Num (sqrt 0.5)
-	| Sqrt2 -> Num (sqrt 2.0)
-							
 let rec evaluate_expr (e : jsil_expr) store = 
 	match e with 
 	| Literal l -> 
@@ -415,7 +401,7 @@ let rec evaluate_expr (e : jsil_expr) store =
 		(match SSyntax_Aux.try_find store x with 
 		| None -> 
 			let err_msg = Printf.sprintf "Variable %s not found in the store" x in 
-			let store_str = JSIL_Print.string_of_store store in 
+			let store_str = JSIL_Exec_Print.string_of_store store in 
 			if (!verbose) then Printf.printf "The current store is: \n %s" store_str;
 			raise (Failure err_msg) 
 		| Some v -> v)
@@ -469,22 +455,6 @@ let rec evaluate_expr (e : jsil_expr) store =
 		let v = evaluate_expr e store in
 		Type (evaluate_type_of v) 
 	
-	| SNth (e1, e2) ->
-		let v = evaluate_expr e1 store in 
-		let n = evaluate_expr e2 store in
-		(match v, n with 
-		| String s, Num n -> 
-				String (String.make 1 (String.get s (int_of_float n)))
-		| _, _ -> raise (Failure (Printf.sprintf "Incorrect argument to SNth: %s, %s" (JSIL_Print.string_of_literal v false) (JSIL_Print.string_of_literal n false))))
-	
-	| LNth (e1, e2) ->
-		let v = evaluate_expr e1 store in 
-		let n = evaluate_expr e2 store in
-		(match v, n with 
-		| LList list, Num n -> 
-				(List.nth list (int_of_float n))
-		| _, _ -> raise (Failure (Printf.sprintf "Incorrect argument to LNth: %s, %s" (JSIL_Print.string_of_literal v false) (JSIL_Print.string_of_literal n false))))
-	
 	| EList ll ->
 		(match ll with 
 		| [] -> LList []
@@ -495,13 +465,22 @@ let rec evaluate_expr (e : jsil_expr) store =
 			| LList vll -> LList (ve :: vll)
 			| _ -> raise (Failure "List evaluation error"))
 	
-	| Cons (e1, e2) ->
+	| LstNth (e1, e2) ->
 		let v = evaluate_expr e1 store in 
-		let l = evaluate_expr e2 store in
-		(match l with 
-		| LList list -> LList (v :: list)
-		| _ -> raise (Failure "Cons evaluation error"))
-	
+		let n = evaluate_expr e2 store in
+		(match v, n with 
+		| LList list, Num n -> 
+				(List.nth list (int_of_float n))
+		| _, _ -> raise (Failure (Printf.sprintf "Incorrect argument to LstNth: %s, %s" (JSIL_Print.string_of_literal v false) (JSIL_Print.string_of_literal n false))))
+
+	| StrNth (e1, e2) ->
+		let v = evaluate_expr e1 store in 
+		let n = evaluate_expr e2 store in
+		(match v, n with 
+		| String s, Num n -> 
+				String (String.make 1 (String.get s (int_of_float n)))
+		| _, _ -> raise (Failure (Printf.sprintf "Incorrect argument to StrNth: %s, %s" (JSIL_Print.string_of_literal v false) (JSIL_Print.string_of_literal n false))))
+
 	| _ -> raise (Failure (Printf.sprintf "Unknown expression: %s" (JSIL_Print.string_of_expression e false)))
 				
 let rec proto_field heap loc field =
@@ -531,7 +510,7 @@ let rec proto_obj heap l1 l2 =
 		| Null -> Bool (false) 
 		| _ -> raise (Failure "Illegal value for proto: this should not happen")
 
-let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store = 
+let rec evaluate_bcmd bcmd heap store =
 	match bcmd with 
 	| SSkip -> Empty
 	
@@ -615,16 +594,7 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store =
 			if (!verbose) then Printf.printf "hasField: %s := hf (%s, %s) = %s \n" x (JSIL_Print.string_of_literal v_e1 false) (JSIL_Print.string_of_literal v_e2 false) (JSIL_Print.string_of_literal v false);
 			v
 		| _, _ -> raise (Failure "Illegal Field Check"))
-
-  | SArguments x ->
-		let arg_obj = (try SHeap.find heap larguments with
-		| _ -> raise (Failure "The arguments object doesn't exist.")) in
-		let v = (try SHeap.find arg_obj "args" with
-		| _ -> raise (Failure "The arguments are not available.")) in
-			Hashtbl.replace store x v;
-			if (!verbose) then Printf.printf "args: %s \n" (JSIL_Print.string_of_literal v false);
-			v
-
+	
 	| SGetFields (x, e) ->
 		let v_e = evaluate_expr e store in
 		(match v_e with
@@ -645,6 +615,15 @@ let rec evaluate_bcmd (bcmd : basic_jsil_cmd) heap store =
 			if (!verbose) then Printf.printf "hasField: %s := gf (%s) = %s \n" x (JSIL_Print.string_of_literal v_e false) (JSIL_Print.string_of_literal v false);
 			v
 		| _ -> raise (Failure "Passing non-object value to getFields"))
+	
+  | SArguments x ->
+		let arg_obj = (try SHeap.find heap larguments with
+		| _ -> raise (Failure "The arguments object doesn't exist.")) in
+		let v = (try SHeap.find arg_obj "args" with
+		| _ -> raise (Failure "The arguments are not available.")) in
+			Hashtbl.replace store x v;
+			if (!verbose) then Printf.printf "args: %s \n" (JSIL_Print.string_of_literal v false);
+			v
 
 let init_store params args = 
 	let number_of_params = List.length params in 
@@ -665,7 +644,7 @@ let init_store params args =
 				loop rest_params []) in 
 	loop params args; 
 	
-	let str_store = JSIL_Print.string_of_store new_store in 
+	let str_store = JSIL_Exec_Print.string_of_store new_store in 
 	if (!verbose) then Printf.printf "I have just initialized the following store\n %s \n" str_store; 
 	new_store 
 	
@@ -689,21 +668,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 		| Bool true -> evaluate_cmd prog cur_proc_name which_pred heap store i cur_cmd cc_tbl vis_tbl
 		| Bool false -> evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl
 		| _ -> raise (Failure (Printf.sprintf "So you're really trying to do a goto based on %s? Ok..." (JSIL_Print.string_of_literal v_e false))))
-	
-	| SPhiAssignment (x, x_arr) -> 
-		evaluate_phi_psi_cmd prog proc which_pred heap store cur_cmd prev_cmd cur_cmd x x_arr cc_tbl vis_tbl
 
-	| SPsiAssignment (x, x_arr) ->
-		let rec find_prev_non_psi_cmd index = 
-			(if (index < 0) 
-				then raise (Failure "Psi node does not have non-psi antecedent") 
-				else 
-					match proc.proc_body.(index) with 
-					| _, SPsiAssignment (_, _) -> find_prev_non_psi_cmd (index - 1) 
-					| _ -> index) in 
-		let ac_cur_cmd = find_prev_non_psi_cmd cur_cmd in 
-		evaluate_phi_psi_cmd prog proc which_pred heap store cur_cmd prev_cmd ac_cur_cmd x x_arr cc_tbl vis_tbl
-	
 	| SCall (x, e, e_args, j) 
 		when  evaluate_expr e store = String "Object_eval" ->
 		(* Printf.printf "I intercepted something!!!\n";  *)
@@ -779,17 +744,21 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 				evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl))
 
 	| SApply (x, e_args, j) ->
-		let arguments = evaluate_expr (EList e_args)	store in 
-		(match arguments with
-		| LList args ->
-		let rec flatten le = 
-			(match le with
-			| [] -> []
-			| e :: le -> 
-				List.append (match e with 
-			                | LList e -> e
-											| x -> [ x ]) (flatten le)) in 
-		let args = flatten args in
+		let arguments = evaluate_expr (EList e_args) store in 
+		let args =
+			(match arguments with
+			| LList args ->
+				let rec flatten le = 
+					(match le with
+					| [] -> []
+					| e :: le -> 
+						List.append
+							(match e with 
+			      	| LList e -> e
+							| x -> [ x ])
+							(flatten le)) in
+				flatten args
+			| _ -> raise (Failure "Nope!")) in
 		(match args with
   		| [] -> raise (Failure "No no no. Not at all")
   		| call_proc_name_val :: arg_vals -> 
@@ -816,7 +785,21 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
   			| None -> raise (Failure ("Procedure "^ call_proc_name ^" just returned an error, but no error label was provided. Bad programmer."))
   			| Some j -> Hashtbl.replace store x v;
   				evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl)))
-	 | _ -> raise (Failure "Nope!"))
+	
+	| SPhiAssignment (x, x_arr) -> 
+		evaluate_phi_psi_cmd prog proc which_pred heap store cur_cmd prev_cmd cur_cmd x x_arr cc_tbl vis_tbl
+
+	| SPsiAssignment (x, x_arr) ->
+		let rec find_prev_non_psi_cmd index = 
+			(if (index < 0) 
+				then raise (Failure "Psi node does not have non-psi antecedent") 
+				else 
+					match proc.proc_body.(index) with 
+					| _, SPsiAssignment (_, _) -> find_prev_non_psi_cmd (index - 1) 
+					| _ -> index) in 
+		let ac_cur_cmd = find_prev_non_psi_cmd cur_cmd in 
+		evaluate_phi_psi_cmd prog proc which_pred heap store cur_cmd prev_cmd ac_cur_cmd x x_arr cc_tbl vis_tbl
+
 and 
 evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl = 	
 	let cur_proc_name = proc.proc_name in 
@@ -879,5 +862,3 @@ let evaluate_prog prog which_pred heap cc_tbl vis_tbl =
 	Random.self_init();
 	let store = init_store [] [] in 
 	evaluate_cmd prog "main" which_pred heap store 0 0 cc_tbl vis_tbl
-
-	

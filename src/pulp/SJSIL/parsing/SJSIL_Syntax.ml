@@ -1,74 +1,23 @@
 (***
- SJSIL - syntax
+ SJSIL - types
 *)
 
-(* jsil binary and unary operators *)
-type bin_op = 
-	(* comparison *)
-  | Equal
-  | LessThan
-	| LessThanString
-  | LessThanEqual
-	(* arithmetic operators *)
-  | Plus
-  | Minus
-  | Times
-  | Div
-  | Mod
-	(* subtyping operator for reference types *)
-  | Subtype
-	(* string concatenation *)
-  | Concat
-	(* list concatenation *)
-	| Append
-  (* Boolean Operators *)
-	| And 
-  | Or
-	(* bitwise operators *)
-  | BitwiseAnd
-  | BitwiseOr
-  | BitwiseXor
-  | LeftShift
-  | SignedRightShift
-  | UnsignedRightShift
-	(* Lists *)
-	| LCons				
-	(* Mathematics *)
-	| M_atan2
-	| M_pow
+(* JSIL types *)
+type jsil_type =
+	| UndefinedType
+  | NullType
+	| EmptyType
+  | BooleanType
+  | NumberType
+	| StringType
+  | ObjectType 
+	| ReferenceType
+	| ObjectReferenceType
+	| VariableReferenceType
+	| ListType
+	| TypeType
 
-type unary_op = 
-  | Not
-  | Negative
-	| IsPrimitive
-  | ToStringOp
-  | ToNumberOp
-	| ToIntOp
-	| ToUint16Op
-  | ToInt32Op
-  | ToUint32Op
-  | BitwiseNot
-  | Length
-	(* UNARY OPERATORS FOR LISTS *)
-	| Car
-	| Cdr
-	(* Mathematics *)
-	| M_sgn
-	| M_abs
-	| M_acos
-	| M_asin
-	| M_atan
-	| M_ceil
-	| M_cos
-	| M_exp
-	| M_floor
-	| M_log
-	| M_round
-	| M_sin
-	| M_sqrt
-	| M_tan
-
-(* constants *)
+(* JSIL constants *)
 type constant = 
 	| Min_float
 	| Max_float
@@ -82,64 +31,119 @@ type constant =
 	| Sqrt1_2
 	| Sqrt2
 
-(* jsil types *)
-type jsil_type =
-  | NullType
-  | UndefinedType
-	| EmptyType
-  | BooleanType
-  | StringType
-  | NumberType
-  | ObjectType 
-	| ReferenceType
-	| ObjectReferenceType
-	| VariableReferenceType
-	| TypeType
-	(* LIST TYPE *)
-	| ListType
-
-(* jsil literals *)
+(* JSIL literals *)
 type jsil_lit =
 	| Undefined
 	| Null
 	| Empty
 	| Constant of constant
-	| Bool of bool
-	| Num of float
-	| String of string
-  | Loc of string
-  | Type of jsil_type
-	| LVRef of jsil_lit * string 
-	| LORef of jsil_lit * string 
-	(* LISTS (FOR DESCRIPTORS) *)
-	| LList of jsil_lit list
+	| Bool     of bool
+	| Num      of float
+	| String   of string
+  | Loc      of string
+  | Type     of jsil_type
+	| LVRef    of jsil_lit * string
+	| LORef    of jsil_lit * string
+	(* List of literals (for descriptors) *)
+	| LList    of jsil_lit list
 
-(* SJSIL variables *)
+(* JSIL variables *)
 type jsil_var = string
 
-(* SJSIL expressions *)
-type jsil_expr = 
-  | Literal of jsil_lit
-  | Var of jsil_var
-  | BinOp of jsil_expr * bin_op * jsil_expr
-  | UnaryOp of unary_op * jsil_expr
-  | VRef of jsil_expr * jsil_expr
-  | ORef of jsil_expr * jsil_expr
-  | Base of jsil_expr
-  | Field of jsil_expr
-  | TypeOf of jsil_expr
-	| RAssume of jsil_expr 
-	| RAssert of jsil_expr 
-	| RNumSymb 
-	| RStrSymb 
-	(* LISTS (FOR DESCRIPTORS) *)
-	| Cons of jsil_expr * jsil_expr 
-	| EList of jsil_expr list
-	| SNth of jsil_expr * jsil_expr
-  | LNth of jsil_expr * jsil_expr
+(* JSIL binary operators *)
+type bin_op = 
+	(* Comparison *)
+  | Equal
+  | LessThan
+	| LessThanString
+  | LessThanEqual
+	(* Arithmetic operators *)
+  | Plus
+  | Minus
+  | Times
+  | Div
+  | Mod
+  (* Boolean operators *)
+	| And 
+  | Or
+	(* Bitwise operators *)
+  | BitwiseAnd
+  | BitwiseOr
+  | BitwiseXor
+  | LeftShift
+  | SignedRightShift
+  | UnsignedRightShift
+	(* Mathematics *)
+	| M_atan2
+	| M_pow
+	(* Subtyping operator for reference types *)
+  | Subtype
+	(* List manipulation *)
+	| LstCons
+	| LstCat
+	(* String manipulation *)
+  | StrCat
 
-(* SJSIL Basic statements *)
-type basic_jsil_cmd =
+(* JSIL unary operators *)
+type unary_op =
+	(* Arithmetic operators *)
+  | UnaryMinus
+	(* Boolean operators *)
+  | Not
+	(* Bitwise operators *)
+	| BitwiseNot
+	(* Mathematics *)
+	| M_abs
+	| M_acos
+	| M_asin
+	| M_atan
+	| M_ceil
+	| M_cos
+	| M_exp
+	| M_floor
+	| M_log
+	| M_round
+	| M_sgn
+	| M_sin
+	| M_sqrt
+	| M_tan
+	(* Type checking and conversion *)
+	| IsPrimitive
+  | ToStringOp
+	| ToIntOp
+	| ToUint16Op
+  | ToInt32Op
+  | ToUint32Op
+	| ToNumberOp
+	(* List manipulation *)
+	| Car
+	| Cdr
+	| LstLen
+	(* String manipulation *)
+	| StrLen
+
+(* JSIL expressions *)
+type jsil_expr =
+  | Literal  of jsil_lit
+  | Var      of jsil_var
+  | BinOp    of jsil_expr * bin_op * jsil_expr
+  | UnaryOp  of unary_op * jsil_expr
+  | VRef     of jsil_expr * jsil_expr
+  | ORef     of jsil_expr * jsil_expr
+  | Base     of jsil_expr
+  | Field    of jsil_expr
+  | TypeOf   of jsil_expr
+	| RAssume  of jsil_expr
+	| RAssert  of jsil_expr
+	| RNumSymb
+	| RStrSymb
+	(* List of expressions (for descriptors) *)
+	| EList    of jsil_expr list
+	| LstNth   of jsil_expr * jsil_expr
+	| StrNth   of jsil_expr * jsil_expr
+
+(* JSIL Basic statements *)
+type jsil_basic_cmd =
   | SSkip	      
   | SAssignment     of jsil_var  * jsil_expr
 	| SNew            of jsil_var
@@ -150,9 +154,9 @@ type basic_jsil_cmd =
 	| SGetFields      of jsil_var  * jsil_expr
 	| SArguments      of jsil_var
 
-(* SJSIL All Statements *)
+(* JSIL All Statements *)
 type jsil_cmd =
-  | SBasic          of basic_jsil_cmd  
+  | SBasic          of jsil_basic_cmd  
 	| SGoto           of int
 	| SGuardedGoto    of jsil_expr * int        * int
 	| SCall           of jsil_var  * jsil_expr  * jsil_expr list * int option
@@ -162,13 +166,11 @@ type jsil_cmd =
 
 (* JSIL logical expressions *)
 type jsil_logic_var = string
-type abs_location = string
-
 type jsil_logic_expr =
 	| LLit				of jsil_lit
 	| LNone
 	| LVar				of jsil_logic_var
-	| ALoc				of abs_location
+	| ALoc				of string
 	| PVar				of jsil_var
 	| LBinOp			of jsil_logic_expr * bin_op * jsil_logic_expr
 	| LUnOp				of unary_op * jsil_logic_expr
@@ -177,13 +179,10 @@ type jsil_logic_expr =
 	| LBase				of jsil_logic_expr
 	| LField			of jsil_logic_expr
 	| LTypeOf			of jsil_logic_expr
-(* list stuff *) 
-	| LCons       of jsil_logic_expr * jsil_logic_expr
-	| LEList      of jsil_logic_expr list 
-	| LSNth       of jsil_logic_expr * jsil_logic_expr
-	| LLNth       of jsil_logic_expr * jsil_logic_expr
-(* Unknown *)
-	| LUnknown    
+	| LEList      of jsil_logic_expr list
+	| LLstNth     of jsil_logic_expr * jsil_logic_expr
+	| LStrNth     of jsil_logic_expr * jsil_logic_expr
+	| LUnknown
 
 (* JSIL logic assertions *)
 type jsil_logic_assertion =
@@ -199,13 +198,8 @@ type jsil_logic_assertion =
 	| LEmp
 	| LExists			of (jsil_logic_var list) * jsil_logic_assertion
 	| LForAll			of (jsil_logic_var list) * jsil_logic_assertion
-	| LPred				of string * (jsil_logic_var list)
-	| LTypeEnv    of (jsil_logic_expr * jsil_type) list
-
-(* JSIL logic return flag *)
-type jsil_return_flag =
-	| Normal
-	| Error
+	| LPred				of string * (jsil_logic_expr list)
+	| LTypes      of (jsil_logic_expr * jsil_type) list
 
 (* JSIL logic predicates *)
 type jsil_logic_predicate = {
@@ -214,6 +208,11 @@ type jsil_logic_predicate = {
 	params      : jsil_logic_var list;
 	definitions : jsil_logic_assertion list;
 }
+
+(* JSIL spec return flag *)
+type jsil_return_flag =
+	| Normal
+	| Error
 
 (* JSIL procedure specification *)
 type jsil_single_spec = {
@@ -228,7 +227,7 @@ type jsil_spec = {
 		proc_specs : jsil_single_spec list
 }
 
-(* SJSIL command metadata *)
+(* JSIL command metadata *)
 type jsil_metadata = {
 	line_offset : int option; 
 	pre_cond : jsil_logic_assertion option 
@@ -237,7 +236,7 @@ type jsil_metadata = {
 let make_empty_metadata = { line_offset = None; pre_cond = None }
 let make_jsil_metadata offset pre = { line_offset = offset; pre_cond = pre }
 
-(* SJSIL procedures *)
+(* JSIL procedures *)
 type jsil_procedure = {
     proc_name : string;
     proc_body : (jsil_metadata * jsil_cmd) array;
@@ -249,7 +248,7 @@ type jsil_procedure = {
 		spec: jsil_spec option;
 }
 
-(* SJSIL Program = Name : String --> Procedure *)
+(* JSIL Program = Name : String --> Procedure *)
 type jsil_program = (string, jsil_procedure) Hashtbl.t
 
 (* SJSIL Heaps *)
@@ -263,7 +262,7 @@ type jsil_program = (string, jsil_procedure) Hashtbl.t
 
 (***** Alternative Procedure Syntax with Labels *****)
 type jsil_lab_cmd =
-  | SLBasic          of basic_jsil_cmd 
+  | SLBasic          of jsil_basic_cmd 
 	| SLGoto           of string
 	| SLGuardedGoto    of jsil_expr * string                    * string
 	| SLCall           of jsil_var  * jsil_expr                 * jsil_expr list * string option
@@ -271,7 +270,7 @@ type jsil_lab_cmd =
 	| SLPhiAssignment  of jsil_var  * (jsil_var option array)
 	| SLPsiAssignment  of jsil_var  * (jsil_var option array) 
 
-(* SJSIL procedures extended with string labels *)
+(* JSIL procedures extended with string labels *)
 type jsil_ext_procedure = {
     lproc_name : string;
     lproc_body : ((jsil_metadata * string option * jsil_lab_cmd) array);
@@ -289,6 +288,6 @@ type jsil_ext_program = {
   imports    : string list;
 	(* Predicates = Name : String --> Definition *)
 	predicates : (string, jsil_logic_predicate) Hashtbl.t;
-	(* SJSIL extended procedures = Name : String --> Procedure *)
+	(* JSIL extended procedures = Name : String --> Procedure *)
 	procedures : (string, jsil_ext_procedure) Hashtbl.t;
 }

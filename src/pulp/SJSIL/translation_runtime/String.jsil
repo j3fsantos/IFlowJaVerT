@@ -18,7 +18,7 @@ proc s__getOwnProperty (l, prop) {
 			goto [sidx = prop] index rlab;
 	
 	index:	str := [l, "@primitiveValue"];
-			len := length (str);
+			len := s-len (str);
 			goto [len <= idx] rlab return;
 			
 	return: rstr := s-nth (str, idx);
@@ -37,7 +37,7 @@ with
 
 proc String_call (xsc, vthis, s) {
 			la := args;
-			len := length (la);
+			len := l-len (la);
 			
 			goto [len < 3] empty to_str;
 	
@@ -59,7 +59,7 @@ with
 
 proc String_construct (xsc, vthis, s) {
 			la := args;
-			len := length (la);
+			len := l-len (la);
 			
 			goto [len < 3] empty to_str;
 	empty:	pv := ""; 
@@ -74,7 +74,7 @@ proc String_construct (xsc, vthis, s) {
 			[s, "@getOwnProperty"] := "s__getOwnProperty";
 			[s, "@primitiveValue"] := pv;
 			
-			len := length (pv);
+			len := s-len (pv);
 			
 			dop := [s, "@defineOwnProperty"];
 			xret := dop (s, "length", {{ "d", len, $$f, $$f, $$f }}, $$t) with elab; 
@@ -142,7 +142,7 @@ proc SP_charAt (xsc, vthis, position) {
 			S := xret;
 			xret := "i__toInteger" (position) with elab;
 			pos := xret;
-			size := length (S);
+			size := s-len (S);
 			goto [pos < 0] empt next;
 			
 	next:	goto [size <= pos] empt fll;
@@ -165,7 +165,7 @@ with
 proc SP_concat () {
 			arguments := args;
 			vthis := l-nth (arguments, 1);
-			num := length (arguments);
+			num := l-len (arguments);
 			
 			xret := "i__checkObjectCoercible" (vthis) with elab;
 			xret := "i__toString" (vthis) with elab;
@@ -178,7 +178,7 @@ proc SP_concat () {
 	add:	next := l-nth (arguments, idx);
 			xret := "i__toString" (next) with elab;
 			nStr := xret;
-			R := R concat nStr;
+			R := R ++ nStr;
 			idx := idx + 1;
 			goto loop;
 	
@@ -208,13 +208,13 @@ proc SP_indexOf (xsc, vthis, searchString, position) {
 	
 	nzero:	xret := "i__toInteger" (position) with elab;
 			pos := xret;
-	leng:	len := length (S);
+	leng:	len := s-len (S);
 
 			xret := "M_max" ($$empty, $$empty, pos, 0) with elab;
 			max := xret;
 			xret := "M_min" ($$empty, $$empty, max, len) with elab;
 			start := xret;
-			slen := length (sStr);
+			slen := s-len (sStr);
 			
 			goto [slen = 0] empts nempt;
 	empts:	xret := start;
@@ -258,7 +258,7 @@ proc SP_lastIndexOf (xsc, vthis, searchString, position) {
 			xret := "i__toString" (vthis) with elab;
 			S := xret;
 			
-			len := length (S);
+			len := s-len (S);
 			
 			xret := "i__toString" (searchString) with elab;
 			sStr := xret;
@@ -276,7 +276,7 @@ proc SP_lastIndexOf (xsc, vthis, searchString, position) {
 			max := xret;
 			xret := "M_min" ($$empty, $$empty, max, len) with elab;
 			start := xret;
-			slen := length (sStr);
+			slen := s-len (sStr);
 	
 			goto [slen = 0] empts nempt;
 	empts:	xret := len;
@@ -318,7 +318,7 @@ proc SP_slice (xsc, vthis, start, end) {
 			xret := "i__checkObjectCoercible" (vthis) with elab;
 			xret := "i__toString" (vthis) with elab;
 			S := xret;
-			len := length (S);
+			len := s-len (S);
 			
 			xret := "i__toInteger" (start) with elab;
 			intS := xret;
@@ -358,7 +358,7 @@ proc SP_slice (xsc, vthis, start, end) {
 	add:	next := s-nth (S, start);
 			xret := "i__toString" (next) with elab;
 			nStr := xret;
-			R := R concat nStr;
+			R := R ++ nStr;
 			cnt := cnt + 1;
 			start := start + 1;
 			goto loop;
@@ -379,7 +379,7 @@ proc SP_substring (xsc, vthis, start, end) {
 			xret := "i__checkObjectCoercible" (vthis) with elab;
 			xret := "i__toString" (vthis) with elab;
 			S := xret;
-			len := length (S);
+			len := s-len (S);
 			
 			xret := "i__toInteger" (start) with elab;
 			intS := xret;
@@ -411,7 +411,7 @@ proc SP_substring (xsc, vthis, start, end) {
 	add:	next := s-nth (S, from);
 			xret := "i__toString" (next) with elab;
 			nStr := xret;
-			R := R concat nStr;
+			R := R ++ nStr;
 			cnt := cnt + 1;
 			from := from + 1;
 			goto loop;

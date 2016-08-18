@@ -21,7 +21,7 @@ with
 proc Array_construct () {
 
 			la := args;
-			len := length (la);
+			len := l-len (la);
 			
 			xret := new ();
 			xret := "create_default_object" (xret, $larr_proto, "Array", $$t);
@@ -299,7 +299,7 @@ proc AP_join (xsc, vthis, sep) {
 	prep:	k := 1;
 	
 	loop:	goto [k < len] head end;
-	head:	R := R concat sep;
+	head:	R := R ++ sep;
 			
 			next := "";
 			xret := "i__toString" (k) with elab;
@@ -309,7 +309,7 @@ proc AP_join (xsc, vthis, sep) {
 	def:	xret := "i__toString" (xret) with elab;
 			next := xret;
 			
-	cc:		R := R concat next;
+	cc:		R := R ++ next;
 			k := k + 1;
 			goto loop;
 	
@@ -375,7 +375,7 @@ proc AP_push() {
 			len := xret;
 			
 			n := 2;
-			num := length (arguments);
+			num := l-len (arguments);
 			p := [vthis, "@put"];
 
 	loop:	goto [n < num] add stop;
@@ -444,13 +444,13 @@ proc AP_toLocaleString(xsc, vthis) {
 			R := xret;
 	
 	next:	goto [k = 0] fe ne;
-	ne:		R := S concat R;
+	ne:		R := S ++ R;
 	fe:		k := k + 1;
 			goto loop;
 			
 	loop:	goto [k < len] lp end;
 	
-	lp:		S := R concat sep;
+	lp:		S := R ++ sep;
 			goto fill;
 	
 	end:	xret := R;
@@ -486,7 +486,7 @@ proc AP_concat() {
 			idx := 2;
 			
 			(* Get the number of arguments *)
-			num := length (arguments);
+			num := l-len (arguments);
 			
 			(* We are starting with the this object *)
 			elem := vthis;
@@ -763,7 +763,7 @@ proc AP_unshift() {
 			len := xret;
 			k := len;
 			
-			num := length (arguments);
+			num := l-len (arguments);
 			argc := num - 2;
 			p := [vthis, "@put"];
 			
@@ -823,7 +823,7 @@ with
 proc AP_splice() {
 			arguments := args;
 			vthis := l-nth (arguments, 1);
-			num := length (arguments);
+			num := l-len (arguments);
 			
 			goto [num < 3] nstrt ystrt;
 	nstrt:	start := $$undefined;
@@ -881,7 +881,7 @@ proc AP_splice() {
 	fpf:	k := k + 1;
 			goto loop1;
 	
-	end1:	num := length (arguments);
+	end1:	num := l-len (arguments);
 			xret := "M_max" ($$empty, $$empty, num - 4, 0) with elab;
 			itemc := xret;
 			ladcic := len - adc;
@@ -973,7 +973,7 @@ with
 proc AP_indexOf() {
 			arguments := args;
 			vthis  := l-nth (arguments, 1);
-			num := length (arguments);
+			num := l-len (arguments);
 			
 			selem := $$undefined;
 	        goto [num <= 2] tobj selem;
@@ -1048,7 +1048,7 @@ with
 proc AP_lastIndexOf() {
 			arguments := args;
 			vthis  := l-nth (arguments, 1);
-			num := length (arguments);
+			num := l-len (arguments);
 			
 			selem := $$undefined;
 	        goto [num <= 2] tobj selem;
@@ -1118,7 +1118,7 @@ with
 proc AP_every() {
 			arguments := args;
 			vthis  := l-nth (arguments, 1);
-			num := length (arguments);
+			num := l-len (arguments);
 
 			cbf := $$undefined;
 	        goto [num <= 2] tobj cbf;
@@ -1183,7 +1183,7 @@ with
 proc AP_some() {
 			arguments := args;
 			vthis  := l-nth (arguments, 1);
-			num := length (arguments);
+			num := l-len (arguments);
 
 			cbf := $$undefined;
 	        goto [num <= 2] tobj cbf;
@@ -1249,7 +1249,7 @@ with
 proc AP_forEach() {
 			arguments := args;
 			vthis  := l-nth (arguments, 1);
-			num := length (arguments);
+			num := l-len (arguments);
 			
 			cbf := $$undefined;
 	        goto [num <= 2] tobj cbf;
@@ -1308,7 +1308,7 @@ with
 proc AP_map() {
 			arguments := args;
 			vthis  := l-nth (arguments, 1);
-			num := length (arguments);
+			num := l-len (arguments);
 			
 			cbf := $$undefined;
 	        goto [num <= 2] tobj cbf;
@@ -1370,7 +1370,7 @@ with
 proc AP_filter() {
 			arguments := args;
 			vthis  := l-nth (arguments, 1);
-			num := length (arguments);
+			num := l-len (arguments);
 
 			cbf := $$undefined;
 	        goto [num <= 2] tobj cbf;
@@ -1442,7 +1442,7 @@ with
 proc AP_reduce() {
 			arguments := args;
 			vthis  := l-nth (arguments, 1);
-			num := length (arguments);
+			num := l-len (arguments);
 
 			cbf := $$undefined;
 	        goto [num <= 2] tobj cbf;
@@ -1520,7 +1520,7 @@ with
 proc AP_reduceRight() {
 			arguments := args;
 			vthis  := l-nth (arguments, 1);
-			num := length (arguments);
+			num := l-len (arguments);
 
 			cbf := $$undefined;
 	        goto [num <= 2] tobj cbf;

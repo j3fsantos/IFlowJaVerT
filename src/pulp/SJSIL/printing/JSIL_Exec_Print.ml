@@ -106,3 +106,12 @@ let string_of_n_spec_table spec_table =
 			if ac = "" then spec_str else ac ^ "----------\n" ^ spec_str)
 		spec_table
 		""
+
+let string_of_store store = 
+	Hashtbl.fold 
+		(fun (var : string) (v_val : jsil_lit) (ac : string) ->
+			let v_val_str = string_of_literal v_val true in 
+			let var_val_str = var ^ ": " ^ v_val_str  in 
+			if (ac != "") then var_val_str else ac ^ "; " ^ var_val_str)
+		store
+		"Store: "

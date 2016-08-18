@@ -1,13 +1,22 @@
-open SJSIL_Constants
 open SJSIL_Syntax
 open JSIL_Print
+
+let is_int v =
+  v = (snd (modf v))
+
+let fresh_sth (name : string) : (unit -> string) =
+  let counter = ref 0 in
+  let rec f () =
+    let v = name ^ (string_of_int !counter) in
+    counter := !counter + 1;
+    v
+  in f
+
+let fresh_symbol = fresh_sth "symb_"
 
 (***
  S-Expression Serialization
 *)
-
-let is_int v =
-  v = (snd (modf v))
 
 let sexpr_of_float x = 
 	if (x == nan) 
@@ -17,68 +26,55 @@ let sexpr_of_float x =
 			else if (x == infinity) 
 				then "+inf.0"
 				else if (is_int x) 
-				then string_of_int (int_of_float x) 
+				  then string_of_int (int_of_float x) 
 					else string_of_float x 
-
-let sexpr_of_binop bop = match bop with 
-  | Equal -> binop_eq
-  | LessThan -> binop_lt
-	| LessThanString -> binop_lts
-  | LessThanEqual -> binop_leq
- 	| Plus -> binop_plus
-  | Minus -> binop_minus
-  | Times -> binop_times
-  | Div -> binop_div
-  | Mod -> binop_mod
-	| Subtype -> binop_subtype
-	| Concat -> binop_concat
-	| Append -> binop_append
-	| And -> binop_and
-  | Or -> binop_or
-	| BitwiseAnd -> binop_band
-  | BitwiseOr -> "bor"
-  | BitwiseXor -> binop_bxor
-  | LeftShift -> binop_lsh
-  | SignedRightShift -> binop_srsh
-  | UnsignedRightShift -> binop_ursh
-	| LCons -> binop_lcons
-	| M_atan2 -> binop_atan2
-	| M_pow -> binop_pow
-
-let sexpr_of_bool x =
-  match x with
-    | true -> "#t"
-    | false -> "#f"
 
 let rec sexpr_of_literal lit =
   match lit with
 	  | Undefined -> "$$undefined"
 	  | Null -> "$$null"
-	  | Empty -> "$$empty" 
-		| Loc loc -> loc
+	  | Empty -> "$$empty"
+		| Constant c -> string_of_constant c
+		| Bool b ->
+			(match b with
+      | true -> "#t"
+      | false -> "#f")
     | Num n -> sexpr_of_float n
     | String x -> Printf.sprintf "\"%s\"" x
-    | Bool b -> sexpr_of_bool b
+    | Loc loc -> loc
     | Type t -> string_of_type t 
 		| LVRef (l, x) -> Printf.sprintf "(ref %s \"%s\" $$v-reference_type)" (sexpr_of_literal l) x  
 	  | LORef (l, x) -> Printf.sprintf "(ref %s \"%s\" $$o-reference_type)" (sexpr_of_literal l) x   
 		| LList ll -> 
 			(match ll with
 			| [] -> "(jsil-list )"
-			| ll ->
-			let rec loop ll = 
-				(match ll with
-				| [] -> ""
-				| lit :: ll -> 
-					let scar = sexpr_of_literal lit in
-					let ssep = 
-						(match ll with
-						| [] -> ""
-						| _ -> " ") in
-					let scdr = loop ll in
-					Printf.sprintf ("%s%s%s") scar ssep scdr)
-			in Printf.sprintf "(jsil-list %s )" (loop ll))
-		| Constant c -> string_of_constant c 
+			| ll -> Printf.sprintf "(jsil-list %s )" (String.concat " " (List.map sexpr_of_literal ll)))
+
+let sexpr_of_binop bop =
+  match bop with
+  | Equal -> "="
+  | LessThan -> "<"
+	| LessThanString -> "<s"
+  | LessThanEqual -> "<="
+ 	| Plus -> "+"
+  | Minus -> "-"
+  | Times -> "*"
+  | Div -> "/"
+  | Mod -> "%"
+	| And -> "and"
+  | Or -> "or"
+	| BitwiseAnd -> "&"
+  | BitwiseOr -> "|"
+  | BitwiseXor -> "bor"
+	| LeftShift -> "<<"
+  | SignedRightShift -> ">>"
+  | UnsignedRightShift -> ">>>"
+	| M_atan2 -> "m_atan2"
+	| M_pow -> "**"
+	| Subtype -> "<:"
+	| LstCons -> "::"
+	| LstCat -> "@"
+	| StrCat -> "++"
 
 let rec sexpr_of_expression e =
   let se = sexpr_of_expression in
@@ -89,8 +85,6 @@ let rec sexpr_of_expression e =
     | BinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (sexpr_of_binop op) (se e1) (se e2)
 		(* (uop e1 e2) *)
     | UnaryOp (op, e) -> Printf.sprintf "(%s %s)" (string_of_unop op) (se e)
-		(* (typeof e) *)
-    | TypeOf e -> Printf.sprintf "(typeof %s)" (se e) 
 		(* (ref-v e1 e2) *)
     | VRef (e1, e2) -> Printf.sprintf "(ref-v %s %s)" (se e1) (se e2)
   	(* (ref-o e1 e2) *)
@@ -99,30 +93,8 @@ let rec sexpr_of_expression e =
     | Base e -> Printf.sprintf "(base %s)" (se e)
 		(* (field e) *)
     | Field e -> Printf.sprintf "(field %s)" (se e)
-		(* (s-nth e n) *)
-		| SNth (e1, e2) -> Printf.sprintf "(s-nth %s %s)" (se e1) (se e2)
-		(* (l-nth e n) *)
-		| LNth (e1, e2) -> Printf.sprintf "(l-nth %s %s)" (se e1) (se e2)
-		(* (jsil-list sexpr-e1 ... sexpr-en) *) 
-		| EList ll -> 
-			(match ll with
-			| [] -> "(jsil-list )"
-			| ll ->
-			let rec loop ll = 
-				(match ll with
-				| [] -> ""
-				| e :: ll -> 
-					let scar = sexpr_of_expression e in
-					let ssep = 
-						(match ll with
-						| [] -> ""
-						| _ -> " ") in
-					let scdr = loop ll in
-					Printf.sprintf ("%s%s%s") scar ssep scdr)
-			in Printf.sprintf "(jsil-list %s)" (loop ll))
-		(* (jsil-cons e, e) *)
-		| Cons (e1, e2) -> 
-			Printf.sprintf "(jsil-cons %s %s)" (se e1) (se e2) 
+		(* (typeof e) *)
+    | TypeOf e -> Printf.sprintf "(typeof %s)" (se e) 
 		(* (assume e) *) 
 		| RAssume e -> Printf.sprintf "(assume %s)" (se e)
 		(* (assert e) *)
@@ -135,6 +107,15 @@ let rec sexpr_of_expression e =
 		| RStrSymb -> 
 			let x = fresh_symbol () in 
 			Printf.sprintf "(make-symbol-string %s)" x
+		(* (jsil-list sexpr-e1 ... sexpr-en) *) 
+		| EList ll -> 
+			(match ll with
+			| [] -> "(jsil-list )"
+			| ll -> Printf.sprintf "(jsil-list %s)" (String.concat " " (List.map sexpr_of_expression ll)))
+		(* (l-nth e n) *)
+		| LstNth (e1, e2) -> Printf.sprintf "(l-nth %s %s)" (se e1) (se e2)
+		(* (s-nth e n) *)
+		| StrNth (e1, e2) -> Printf.sprintf "(s-nth %s %s)" (se e1) (se e2)
 
 let rec sexpr_of_bcmd bcmd i line_numbers_on = 
 	let se = sexpr_of_expression in
@@ -156,6 +137,7 @@ let rec sexpr_of_bcmd bcmd i line_numbers_on =
   | SHasField (var, e1, e2) -> Printf.sprintf "'(%shas-field %s %s %s)" str_i var (se e1) (se e2)
   (* ('get-fields var e) *)
 	| SGetFields (var, e) -> Printf.sprintf "'(%sget-fields %s %s)" str_i var (se e)
+	(* ('arguments var) *)
 	| SArguments (var) -> Printf.sprintf "'(%sarguments %s)" str_i var
 
 let rec sexpr_of_cmd sjsil_cmd tabs i line_numbers_on =
@@ -163,6 +145,8 @@ let rec sexpr_of_cmd sjsil_cmd tabs i line_numbers_on =
 	let str_i = if line_numbers_on then (string_of_int i) ^ " " else "" in
 	let str_tabs = tabs_to_str tabs in  
   match sjsil_cmd with
+	(* basic command *)
+	| SBasic bcmd -> str_tabs ^ sexpr_of_bcmd bcmd i line_numbers_on
 	(* ('goto j) *) 
   | SGoto j -> 
 		let str_j = string_of_int j in 
@@ -173,8 +157,6 @@ let rec sexpr_of_cmd sjsil_cmd tabs i line_numbers_on =
 		let str_k = string_of_int k in
 		let str_e = (sexpr_of_expression e) in 
 			str_tabs ^  Printf.sprintf "'(%sgoto %s %s %s)" str_i str_e str_j str_k
-	(* basic command *)
-	| SBasic bcmd -> str_tabs ^ sexpr_of_bcmd bcmd i line_numbers_on
 	(* ('call left_var proc_name '(arg1 ... argn) err_lab) *)
 	| SCall (var, proc_name_expr, arg_expr_list, error_lab) -> 
 		let proc_name_expr_str = sexpr_of_expression proc_name_expr in 
@@ -183,6 +165,13 @@ let rec sexpr_of_cmd sjsil_cmd tabs i line_numbers_on =
 		|	[] -> ""
 		| _ -> String.concat " " (List.map sexpr_of_expression arg_expr_list) in 
 			str_tabs ^  Printf.sprintf "'(%scall %s %s (%s) %s)" str_i var proc_name_expr_str arg_expr_list_str error_lab
+	(* ('apply left_var expr_list err_lab) *)
+	| SApply (var, arg_expr_list, error_lab) ->
+		let error_lab = (match error_lab with | None -> "" | Some error_lab -> (string_of_int error_lab)) in 
+		let arg_expr_list_str = match arg_expr_list with
+		|	[] -> ""
+		| _ -> String.concat " " (List.map sexpr_of_expression arg_expr_list) in 
+			str_tabs ^  Printf.sprintf "'(%sapply %s (%s) %s)" str_i var arg_expr_list_str error_lab
 	(* ('v-phi-assign var var_1 var_2 ... var_n) *)
 	| SPhiAssignment (var, var_arr) -> 
 		let var_arr_str = 
@@ -207,13 +196,6 @@ let rec sexpr_of_cmd sjsil_cmd tabs i line_numbers_on =
 				""
 				var_arr in 
 		str_tabs ^ (Printf.sprintf "'(%sv-psi-assign %s %s)" str_i var var_arr_str)	
-	(* ('apply left_var expr_list err_lab) *)
-	| SApply (var, arg_expr_list, error_lab) ->
-		let error_lab = (match error_lab with | None -> "" | Some error_lab -> (string_of_int error_lab)) in 
-		let arg_expr_list_str = match arg_expr_list with
-		|	[] -> ""
-		| _ -> String.concat " " (List.map sexpr_of_expression arg_expr_list) in 
-			str_tabs ^  Printf.sprintf "'(%sapply %s (%s) %s)" str_i var arg_expr_list_str error_lab
 
 let sexpr_of_params fparams =
 	match fparams with

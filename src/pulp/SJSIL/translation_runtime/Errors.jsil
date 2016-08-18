@@ -83,7 +83,7 @@ proc EP_toString(xsc, vthis) {
 	memp:	xret := name;
 			goto rlab;
 			
-	cc:		xret := name :: ": " :: msg;
+	cc:		xret := name ++ ": " ++ msg;
 
 	rlab:	skip;
 	

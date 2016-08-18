@@ -1414,8 +1414,8 @@ proc i__checkParameters (fid, params) {
 			goto [(fid = "eval") or (fid = "arguments")] se pars;
 			
 	pars:	n := 0;
-			l := length (params);
-
+			l := l-len (params);
+			
 	loop:	goto [n < l] head rlab;
 	head:	par := l-nth (params, n);
 			goto [(par = "eval") or (par = "arguments")] se next;

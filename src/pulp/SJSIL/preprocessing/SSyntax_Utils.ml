@@ -204,13 +204,10 @@ let extend_which_pred global_which_pred proc =
 			Hashtbl.replace global_which_pred (proc_name, prev_cmd, cur_cmd) i)
 		which_pred	
 
-	
 let print_which_pred wp = 
 	Hashtbl.fold
 	  (fun k v ac -> 
-		 let str = 
+		 ac ^
 		 (match k with
-			| (pn : string), (pc : int), (cc : int) ->
-				Printf.sprintf "    (\"%s\" %d %d %d)\n" pn pc cc v;
-			| _ -> raise (Failure "Oopsie. Incorrect which pred structure.")) in
-	   ac ^ str) wp ""
+			| (pn : string), (pc : int), (cc : int) -> Printf.sprintf "    (\"%s\" %d %d %d)\n" pn pc cc v))
+		wp ""

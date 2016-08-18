@@ -261,7 +261,7 @@ with
 
 proc M_random (xsc, vthis) {
 			
-			xret := random;
+			xret := $$random;
 
 	rlab:	skip
 }
@@ -275,7 +275,7 @@ with
 proc M_min (xsc, vthis) {
 			
 			la := args;
-			len := length (la);
+			len := l-len (la);
 			goto [len < 3] ri setup;
 			
 	setup:	n := 2;
@@ -316,7 +316,7 @@ with
 proc M_max (xsc, vthis) {
 			
 			la := args;
-			len := length (la);
+			len := l-len (la);
 			goto [len < 3] ri setup;
 			
 	setup:	n := 2;

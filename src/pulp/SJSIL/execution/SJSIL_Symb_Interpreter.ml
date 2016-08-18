@@ -9,6 +9,7 @@ let rec lexpr_substitution lexpr subst =
 	let f e = lexpr_substitution e subst in 
 	match lexpr with 
 	| LLit lit -> LLit lit 
+	
 	| LNone -> LNone
 	
 	| LVar var -> (try Hashtbl.find subst var with _ -> LVar (JSIL_Logic_Normalise.fresh_lvar ()))
@@ -31,15 +32,13 @@ let rec lexpr_substitution lexpr subst =
 
 	| LTypeOf le -> LTypeOf (f le) 
 	
-	| LCons (le1, le2) -> LCons ((f le1), (f le2))
-	
 	| LEList les -> 
 		let s_les = List.map (fun le -> (f le)) les in 
-		LEList s_les 
+		LEList s_les
 	
-	| LSNth (le1, le2) -> LSNth ((f le1), (f le2))
+	| LLstNth (le1, le2) -> LLstNth ((f le1), (f le2))
 	
-	| LLNth (le1, le2) -> LLNth ((f le1), (f le2))
+	| LStrNth (le1, le2) -> LStrNth ((f le1), (f le2))
 	
 	| LUnknown -> LUnknown 
 
@@ -134,29 +133,6 @@ symb_evaluate_expr (expr : jsil_expr) store gamma =
 		| LField _ -> LLit (Type StringType)
 		| LTypeOf _ -> LLit (Type TypeType))
 	
-	| LNth (e1, e2) ->
-		let list = safe_symb_evaluate_expr e1 store gamma in
-		let index = safe_symb_evaluate_expr e2 store gamma in
-		(match list, index with 
-		| LLit (LList list), LLit (Num n) -> 
-			(try (LLit (List.nth list (int_of_float n))) with _ -> 
-					raise (Failure "List index out of bounds"))
-		
-		| LEList list, LLit (Num n) ->
-			(try (List.nth list (int_of_float n)) with _ -> 
-					raise (Failure "List index out of bounds"))
-				
-		| _, _ -> LLNth (list, index))
-
-	| SNth (e1, e2) ->
-		let str = safe_symb_evaluate_expr e1 store gamma in
-		let index = safe_symb_evaluate_expr e2 store gamma  in
-		(match str, index with 
-		| LLit (String s), LLit (Num n) -> 
-			LLit (String (String.make 1 (String.get s (int_of_float n))))
-				
-		| _, _ -> LSNth (str, index))
-	
 	| EList es ->
 		let les = 
 			List.map (fun e -> safe_symb_evaluate_expr e store gamma) es in 
@@ -172,18 +148,28 @@ symb_evaluate_expr (expr : jsil_expr) store gamma =
 			then LLit (LList lits)
 			else LEList les 
 	
-	| Cons (e1, e2) -> 
-		let value = safe_symb_evaluate_expr e1 store gamma in
-		let list = safe_symb_evaluate_expr e2 store gamma in
-		(match list with 
-		| LLit (LList list) ->
-			(match value with 
-			| LLit l -> LLit (LList (l :: list))
-			| _ -> 
-				let les = List.map (fun l -> LLit l) list in 
-				LEList (value :: les))
-		| LEList les -> LEList (value :: les)  
-		| _ -> LCons (value, list))	 
+	| LstNth (e1, e2) ->
+		let list = safe_symb_evaluate_expr e1 store gamma in
+		let index = safe_symb_evaluate_expr e2 store gamma in
+		(match list, index with 
+		| LLit (LList list), LLit (Num n) -> 
+			(try (LLit (List.nth list (int_of_float n))) with _ -> 
+					raise (Failure "List index out of bounds"))
+		
+		| LEList list, LLit (Num n) ->
+			(try (List.nth list (int_of_float n)) with _ -> 
+					raise (Failure "List index out of bounds"))
+				
+		| _, _ -> LLstNth (list, index))
+	
+	| StrNth (e1, e2) ->
+		let str = safe_symb_evaluate_expr e1 store gamma in
+		let index = safe_symb_evaluate_expr e2 store gamma  in
+		(match str, index with 
+		| LLit (String s), LLit (Num n) -> 
+			LLit (String (String.make 1 (String.get s (int_of_float n))))
+				
+		| _, _ -> LStrNth (str, index))
 	
 	| _ -> raise (Failure "not supported yet")
 
@@ -450,7 +436,7 @@ let merge_heaps heap new_heap p_formulae =
 		(fun loc (n_fv_list, n_def) ->
 			match n_def with 
 			| LUnknown ->  
-				try
+				(try
 					begin  
 					let fv_list, def = LHeap.find heap loc in 
 					let rec loop q_fv_list n_fv_list = 
@@ -465,12 +451,12 @@ let merge_heaps heap new_heap p_formulae =
 					let q_fv_list = loop [] n_fv_list in 
 					LHeap.replace heap loc (q_fv_list @ fv_list, def)
 					end
-				with _ -> LHeap.add heap loc (n_fv_list, LUnknown)
+				with _ -> LHeap.add heap loc (n_fv_list, LUnknown))
 			| _ -> raise (Failure "heaps non-mergeable"))
 		new_heap
 
 
-let symb_evaluate_bcmd (bcmd : basic_jsil_cmd) heap store pure_formulae gamma = 
+let symb_evaluate_bcmd bcmd heap store pure_formulae gamma = 
 	match bcmd with 
 	| SSkip -> LLit Empty
 
@@ -485,6 +471,21 @@ let symb_evaluate_bcmd (bcmd : basic_jsil_cmd) heap store pure_formulae gamma =
 		update_abs_heap heap new_loc (LLit (String proto_f)) (LLit Null) pure_formulae; 
 		update_abs_store store x (ALoc new_loc); 
 		ALoc new_loc 
+		
+	| SLookup (x, e1, e2) -> 
+		let ne1 = symb_evaluate_expr e1 store gamma in
+		let ne2 = symb_evaluate_expr e2 store gamma in 	
+		let l = 
+			(match ne1 with 
+			| LLit (Loc l) 
+			| ALoc l -> l
+			| _ -> 
+			let ne1_str = JSIL_Print.string_of_logic_expression ne1 false  in 
+			let msg = Printf.sprintf "I do not know which location %s denotes in the symbolic heap" ne1_str in 
+			raise (Failure msg)) in 
+		let ne = abs_heap_find heap l ne2 pure_formulae in 
+		update_abs_store store x ne; 
+		ne
 	
 	| SMutation (e1, e2, e3) ->
 		let ne1 = symb_evaluate_expr e1 store gamma in
@@ -500,21 +501,6 @@ let symb_evaluate_bcmd (bcmd : basic_jsil_cmd) heap store pure_formulae gamma =
 			let msg = Printf.sprintf "I do not know which location %s denotes in the symbolic heap" ne1_str in 
 			raise (Failure msg)); 
 		ne3
-	
-	| SLookup (x, e1, e2) -> 
-		let ne1 = symb_evaluate_expr e1 store gamma in
-		let ne2 = symb_evaluate_expr e2 store gamma in 	
-		let l = 
-			(match ne1 with 
-			| LLit (Loc l) 
-			| ALoc l -> l
-			| _ -> 
-			let ne1_str = JSIL_Print.string_of_logic_expression ne1 false  in 
-			let msg = Printf.sprintf "I do not know which location %s denotes in the symbolic heap" ne1_str in 
-			raise (Failure msg)) in 
-		let ne = abs_heap_find heap l ne2 pure_formulae in 
-		update_abs_store store x ne; 
-		ne
 	
 	| SDelete (e1, e2) -> 
 		let ne1 = symb_evaluate_expr e1 store gamma in
