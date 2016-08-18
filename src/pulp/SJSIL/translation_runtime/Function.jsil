@@ -103,7 +103,7 @@ proc FP_apply (xsc, vthis, this_arg, arg_array) {
 			body   := [vthis, "@call"]; 
 			xscope := [vthis, "@scope"];
 			
-			new_args := xscope @ xthis @ params;
+			new_args := xscope :: (xthis :: params);
 			
 			xret := apply (body, new_args) with elab;
 			goto rlab;
