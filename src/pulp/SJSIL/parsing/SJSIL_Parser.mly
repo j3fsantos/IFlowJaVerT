@@ -229,13 +229,13 @@ import_target:
   IMPORT; imports = separated_nonempty_list(COMMA, VAR); SCOLON { imports }
 ;
 
-proc_target: 
-(* [spec;] proc xpto (x, y) { cmd_list[;] } with { ret: x, i; [err: x, j] }; *) 
+proc_target:
+(* [spec;] proc xpto (x, y) { cmd_list } with { ret: x, i; [err: x, j] }; *)
   spec = option(spec_target);
 	PROC; proc_name = VAR; LBRACE; param_list = separated_list(COMMA, VAR); RBRACE;
-		CLBRACKET; cmd_list = cmd_list_target; option(SCOLON); CRBRACKET;
+		CLBRACKET; cmd_list = cmd_list_target; CRBRACKET;
 	WITH;
-		CLBRACKET; ctx_ret = option(ctx_target_ret); ctx_err = option(ctx_target_err); CRBRACKET; option(SCOLON)
+		CLBRACKET; ctx_ret = option(ctx_target_ret); ctx_err = option(ctx_target_err); CRBRACKET; SCOLON
 	{
 		(* Printf.printf "Parsing Procedure.\n"; *)
 		(match spec with

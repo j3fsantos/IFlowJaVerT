@@ -6,4 +6,4 @@ proc main () {
 with
 {
 	ret:	xret, rlab;
-}
+};

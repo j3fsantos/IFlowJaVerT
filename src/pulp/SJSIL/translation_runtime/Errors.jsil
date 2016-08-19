@@ -284,4 +284,4 @@ proc ThrowTypeError (xsc, vthis) {
 with
 {
 	err: xerr, elab;
-}
+};
