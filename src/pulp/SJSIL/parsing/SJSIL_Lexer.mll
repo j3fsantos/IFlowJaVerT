@@ -87,8 +87,8 @@ rule read = parse
 	| "@"                  { SJSIL_Parser.LSTCAT }
 	| "++"                 { SJSIL_Parser.STRCAT }
 (* Unary operators *)
-	| "not"                { SJSIL_Parser.NOT }
 	(* Unary minus uses the same symbol as binary minus, token MINUS *)
+	| "not"                { SJSIL_Parser.NOT }
 	| "~"                  { SJSIL_Parser.BITWISENOT }
 	| "m_abs"              { SJSIL_Parser.M_ABS }
 	| "m_acos"             { SJSIL_Parser.M_ACOS }

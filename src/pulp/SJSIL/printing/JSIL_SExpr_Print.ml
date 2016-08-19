@@ -80,7 +80,7 @@ let rec sexpr_of_expression e =
   let se = sexpr_of_expression in
   match e with
     | Literal l -> sexpr_of_literal l
-    | Var v -> Pulp_Syntax_Print.string_of_var v
+    | Var v -> v
 		(* (bop e1 e2) *)
     | BinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (sexpr_of_binop op) (se e1) (se e2)
 		(* (uop e1 e2) *)

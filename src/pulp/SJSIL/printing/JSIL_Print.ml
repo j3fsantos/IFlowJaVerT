@@ -239,7 +239,7 @@ let rec string_of_logic_assertion a escape_string =
 		(* a1 \/ a2 *)
 		| LOr (a1, a2) -> Printf.sprintf "%s \\/ %s" (sla a1) (sla a2)
 		(* ~ a *)
-		| LNot a -> Printf.sprintf "~ %s" (sla a)
+		| LNot a -> Printf.sprintf "! %s" (sla a)
 		(* true *)
 		| LTrue -> "true"
 		(* false *)
@@ -370,14 +370,13 @@ let string_of_return_flag flag =
 let rec string_of_specs specs =
 	match specs with
 	| [] -> ""
-	| spec :: specs -> 
-		"\t[[" ^ string_of_logic_assertion spec.pre false ^ "]]\n" ^ 
-		"\t[[" ^ string_of_logic_assertion spec.post false ^ "]]\n" ^ 
-		"\t" ^ string_of_return_flag spec.ret_flag ^
-		(match specs with
-		| [] -> ""
-		| _ -> "; ") ^ "\n" ^
-		string_of_specs specs
+	| hd :: tl ->
+		"\t[[" ^ string_of_logic_assertion hd.pre false ^ "]]\n" ^
+		"\t[[" ^ string_of_logic_assertion hd.post false ^ "]]\n" ^
+		"\t" ^ string_of_return_flag hd.ret_flag ^
+		(match tl with
+		| [] -> "\n"
+		| _ -> ";\n" ^ string_of_specs tl)
 
 (** JSIL procedures *)
 (*
@@ -402,7 +401,7 @@ let string_of_procedure proc line_numbers =
 		  (string_of_specs spec.proc_specs))
 	^
 	(* Procedure definition block *)
-	(Printf.sprintf "proc %s (%s) {\n%s\n} with {\n%s%s}\n"
+	(Printf.sprintf "proc %s (%s) {\n%s\n} with {\n%s%s};\n"
   	proc.proc_name 
    	(String.concat ", " proc.proc_params) 
 		(string_of_cmd_arr proc.proc_body 2 line_numbers)
@@ -418,10 +417,9 @@ let string_of_procedure proc line_numbers =
 (** JSIL programs *)
 let string_of_program program line_numbers = 
 	Hashtbl.fold 
-	(fun _ proc acc_str ->
-		acc_str ^ "\n" ^ (string_of_procedure proc line_numbers))
-	program	
-	""
+		(fun _ proc acc_str -> acc_str ^ "\n" ^ (string_of_procedure proc line_numbers))
+		program
+		""
 
 
 (** JSIL procedures with labels *)
@@ -512,7 +510,7 @@ let string_of_ext_procedure proc =
 		  (string_of_specs spec.proc_specs))
 	^
 	(* Procedure definition block *)
-	(Printf.sprintf "proc %s (%s) {\n%s\n} with {\n%s%s}\n"
+	(Printf.sprintf "proc %s (%s) {\n%s\n} with {\n%s%s};\n"
   	proc.lproc_name 
    	(String.concat ", " proc.lproc_params) 
 		(string_of_lbody proc.lproc_body)
@@ -534,12 +532,16 @@ let string_of_ext_program program =
 	^
 	(* Predicates *)
 	(Hashtbl.fold
-			(fun _ pred acc_str -> acc_str ^ "\n" ^ (string_of_predicate pred)) program.predicates "")
+		(fun _ pred acc_str -> acc_str ^ "\n" ^ (string_of_predicate pred))
+		program.predicates
+		"")
 	^
 	(* Procedures *)
 	let procs_str	= 
 		Hashtbl.fold 
-			(fun _ proc acc_str -> acc_str ^ "\n" ^ (string_of_ext_procedure proc) ^ ";\n") program.procedures "" in 
+			(fun _ proc acc_str -> acc_str ^ "\n" ^ (string_of_ext_procedure proc))
+			program.procedures
+			"" in
 	(String.sub procs_str 0 (String.length procs_str - 2))
 
 
