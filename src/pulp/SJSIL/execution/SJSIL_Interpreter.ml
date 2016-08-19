@@ -3,6 +3,7 @@
 *)
 open Batteries
 open SJSIL_Syntax
+open SJSIL_Memory_Model
 
 let larguments = "$largs"
 let largvals = "args"
@@ -401,7 +402,7 @@ let rec evaluate_expr (e : jsil_expr) store =
 		(match SSyntax_Aux.try_find store x with 
 		| None -> 
 			let err_msg = Printf.sprintf "Variable %s not found in the store" x in 
-			let store_str = JSIL_Exec_Print.string_of_store store in 
+			let store_str = JSIL_Memory_Print.string_of_store store in 
 			if (!verbose) then Printf.printf "The current store is: \n %s" store_str;
 			raise (Failure err_msg) 
 		| Some v -> v)
@@ -644,7 +645,7 @@ let init_store params args =
 				loop rest_params []) in 
 	loop params args; 
 	
-	let str_store = JSIL_Exec_Print.string_of_store new_store in 
+	let str_store = JSIL_Memory_Print.string_of_store new_store in 
 	if (!verbose) then Printf.printf "I have just initialized the following store\n %s \n" str_store; 
 	new_store 
 	

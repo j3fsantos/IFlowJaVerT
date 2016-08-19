@@ -1,5 +1,5 @@
 open SJSIL_Syntax
-open SJSIL_Exec_Types
+open SJSIL_Memory_Model
 
 let verbose = ref false
 
@@ -50,7 +50,7 @@ let rec safe_symb_evaluate_expr (expr : jsil_expr) store gamma =
 		then nle 
 		else 
 			begin 
-				let gamma_str = JSIL_Exec_Print.string_of_gamma gamma in 
+				let gamma_str = JSIL_Memory_Print.string_of_gamma gamma in 
 				let msg = Printf.sprintf "The logical expression %s is not typable in the typing enviroment: %s" (JSIL_Print.string_of_logic_expression nle false) gamma_str in
 				raise (Failure msg)  
 			end
@@ -175,7 +175,7 @@ symb_evaluate_expr (expr : jsil_expr) store gamma =
 
 let update_abs_store store x ne = 
 	(* Printf.printf "I am in the update store\n"; 
-	let str_store = "\t Store: " ^ (JSIL_Exec_Print.string_of_shallow_symb_store store) ^ "\n" in 
+	let str_store = "\t Store: " ^ (JSIL_Memory_Print.string_of_shallow_symb_store store) ^ "\n" in 
 	Printf.printf "%s" str_store;  *)
 	Hashtbl.replace store x ne
 
@@ -426,10 +426,10 @@ let heap_substitution (heap : symbolic_heap) (subst : (string, jsil_logic_expr) 
 			
 			
 let merge_heaps heap new_heap p_formulae = 
-	(** 	let str_heap = JSIL_Exec_Print.string_of_shallow_symb_heap heap in 
+	(** 	let str_heap = JSIL_Memory_Print.string_of_shallow_symb_heap heap in 
 	Printf.printf "heap 1: %s\n" str_heap; 			
 				
-	let str_new_heap = JSIL_Exec_Print.string_of_shallow_symb_heap new_heap in 
+	let str_new_heap = JSIL_Memory_Print.string_of_shallow_symb_heap new_heap in 
 	Printf.printf "new_heap 1: %s\n" str_new_heap; *)
 	
 	LHeap.iter 
@@ -570,7 +570,7 @@ let rec symb_evaluate_cmd (spec_table : (string, jsil_n_spec) Hashtbl.t) post re
 	let cmd = proc.proc_body.(cur_cmd) in 
 	(* let cmd_str = JSIL_Print.string_of_cmd cmd 0 0 false false false in 
 	Printf.printf ("cmd: %s \n") cmd_str;
-	let str_store = "\t Store: " ^ (JSIL_Exec_Print.string_of_shallow_symb_store store) ^ "\n" in 
+	let str_store = "\t Store: " ^ (JSIL_Memory_Print.string_of_shallow_symb_store store) ^ "\n" in 
 	Printf.printf "%s" str_store; *) 
 	let metadata, cmd = cmd in
 	match cmd with 
@@ -611,7 +611,7 @@ let rec symb_evaluate_cmd (spec_table : (string, jsil_n_spec) Hashtbl.t) post re
 		| Some (heap, store, pure_formulae, gamma, ret_flag, ret_val) -> 
 			(match ret_flag with 
 			| Normal -> 
-				(** let str_heap = JSIL_Exec_Print.string_of_shallow_symb_heap heap in 
+				(** let str_heap = JSIL_Memory_Print.string_of_shallow_symb_heap heap in 
 				Printf.printf "Heap after calling the procedure:\n%s\n" str_heap; *)
 				symb_evaluate_next_command spec_table post ret_flag prog proc which_pred heap store pure_formulae gamma cur_cmd prev_cmd
 			| Error ->
@@ -637,7 +637,7 @@ symb_evaluate_next_command spec_table post ret_flag prog proc which_pred heap st
 			| Some ret_var -> ret_var) in 
 		let ret_expr = (try (Hashtbl.find store ret_var) with
 			| _ -> 
-				let str_store = "\t Store: " ^ (JSIL_Exec_Print.string_of_shallow_symb_store store) ^ "\n" in 
+				let str_store = "\t Store: " ^ (JSIL_Memory_Print.string_of_shallow_symb_store store) ^ "\n" in 
 				Printf.printf "%s" str_store; 
 				raise (Failure (Printf.sprintf "Cannot find return variable."))) in 
 		check_final_symb_state cur_proc_name post ret_flag heap store gamma Normal ret_expr pure_formulae)
@@ -663,15 +663,15 @@ symb_evaluate_next_command spec_table post ret_flag prog proc which_pred heap st
 and 
 check_final_symb_state proc_name post ret_flag heap store gamma flag lexpr pure_formulae = 
 	let post_heap, post_store, post_p_formulae, post_gamma = post in 
-	(** let str = JSIL_Exec_Print.string_of_shallow_symb_state heap store pure_formulae gamma in 
+	(** let str = JSIL_Memory_Print.string_of_shallow_symb_state heap store pure_formulae gamma in 
 	Printf.printf "Final symbolic state: \n %s" str; **)
 	
 	let print_error_to_console msg = 
 		(if (msg = "") 
 			then Printf.printf "Failed to verify a spec of proc %s\n" proc_name
 			else Printf.printf "Failed to verify a spec of proc %s -- %s\n" proc_name msg); 
-		let final_symb_state_str = JSIL_Exec_Print.string_of_shallow_symb_state heap store pure_formulae gamma in 
-		let post_symb_state_str = JSIL_Exec_Print.string_of_shallow_symb_state post_heap post_store post_p_formulae post_gamma in
+		let final_symb_state_str = JSIL_Memory_Print.string_of_shallow_symb_state heap store pure_formulae gamma in 
+		let post_symb_state_str = JSIL_Memory_Print.string_of_shallow_symb_state post_heap post_store post_p_formulae post_gamma in
 		Printf.printf "Final symbolic state: %s\n" final_symb_state_str;
 		Printf.printf "Post condition: %s\n" post_symb_state_str in 
 	

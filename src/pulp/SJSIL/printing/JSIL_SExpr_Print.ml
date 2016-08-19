@@ -1,4 +1,5 @@
 open SJSIL_Syntax
+open SJSIL_Memory_Model
 open JSIL_Print
 
 let is_int v =

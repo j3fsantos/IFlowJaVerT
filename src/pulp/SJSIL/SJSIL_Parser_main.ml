@@ -1,5 +1,6 @@
 open Lexing
 open SJSIL_Syntax
+open SJSIL_Memory_Model
 open SJSIL_Interpreter
 open Js2jsil
 

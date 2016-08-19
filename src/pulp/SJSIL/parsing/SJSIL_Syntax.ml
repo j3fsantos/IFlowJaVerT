@@ -251,14 +251,6 @@ type jsil_procedure = {
 (* JSIL Program = Name : String --> Procedure *)
 type jsil_program = (string, jsil_procedure) Hashtbl.t
 
-(* SJSIL Heaps *)
- module SHeap = Hashtbl.Make(
-	struct
-		type t = string	
-		let equal = (=)
-		let hash = Hashtbl.hash
-	end)
-
 
 (***** Alternative Procedure Syntax with Labels *****)
 type jsil_lab_cmd =

@@ -1,5 +1,5 @@
 open SJSIL_Syntax
-open SJSIL_Exec_Types
+open SJSIL_Memory_Model
 open JSIL_Logic_Normalise
 open SJSIL_Symb_Interpreter
 
@@ -59,7 +59,7 @@ let build_spec_tbl prog =
 			Hashtbl.replace spec_table spec_name new_spec)
 		spec_list; 
 	(* Printf.printf "before printing the spec table\n"; *)
-	let spec_table_str : string = JSIL_Exec_Print.string_of_n_spec_table spec_table in 
+	let spec_table_str : string = JSIL_Memory_Print.string_of_n_spec_table spec_table in 
 	Printf.printf "Spec Table: \n%s" spec_table_str; 
   spec_table
 

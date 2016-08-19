@@ -1,5 +1,13 @@
 open SJSIL_Syntax
 
+(* SJSIL Heaps *)
+ module SHeap = Hashtbl.Make(
+	struct
+		type t = string	
+		let equal = (=)
+		let hash = Hashtbl.hash
+	end)
+
 (* Abstract Heaps and stores *)
 module LHeap = Hashtbl.Make(
 	struct

@@ -2,7 +2,7 @@ open DynArray
 open Set
 open Stack
 open SJSIL_Syntax
-open SJSIL_Exec_Types
+open SJSIL_Memory_Model
 
 module StringSet = Set.Make( 
   struct

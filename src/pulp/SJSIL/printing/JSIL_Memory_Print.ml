@@ -1,9 +1,9 @@
 open SJSIL_Syntax
-open SJSIL_Exec_Types
+open SJSIL_Memory_Model
 open JSIL_Print
 
 (***
- Generate strings from JSIL execution types
+ Generate strings from JSIL memory types
 *)
 
 let string_of_shallow_symb_heap heap = 
