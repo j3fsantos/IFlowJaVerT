@@ -277,13 +277,23 @@ proc SP_lastIndexOf (xsc, vthis, searchString, position) {
 			xret := "M_min" ($$empty, $$empty, max, len) with elab;
 			start := xret;
 			slen := s-len (sStr);
+			fink := -1;
 	
 			goto [slen = 0] empts nempt;
 	empts:	xret := len;
 			goto rlab;
 			
-	nempt:	k := start - slen;
-			fink := -1;
+	nempt:	goto [len < slen] short nshort;
+	
+	short:	xret := fink;
+			goto rlab;
+			
+	nshort:	goto [len = slen] eqlen norm;
+	
+	eqlen:	k := 0;
+			goto loop;
+			
+	norm:	k := start - slen;
 			
 	loop:	j := 0;
 			goto [k < 0] end iloop;
@@ -320,7 +330,13 @@ proc SP_slice (xsc, vthis, start, end) {
 			S := xret;
 			len := s-len (S);
 			
-			xret := "i__toInteger" (start) with elab;
+			goto [start = $$undefined] sund snull;
+	sund:	start := 0;
+			goto sdef;
+	
+	snull:	goto [start = $$null] sund sdef;	
+			
+	sdef:	xret := "i__toInteger" (start) with elab;
 			intS := xret;
 			goto [end = $$undefined] undef def;
 	undef:	intE := len;
@@ -355,12 +371,12 @@ proc SP_slice (xsc, vthis, start, end) {
 			cnt := 0;
 	loop:	goto [cnt < span] add stop;
 			
-	add:	next := s-nth (S, start);
+	add:	next := s-nth (S, from);
 			xret := "i__toString" (next) with elab;
 			nStr := xret;
 			R := R ++ nStr;
 			cnt := cnt + 1;
-			start := start + 1;
+			from := from + 1;
 			goto loop;
 	
 	stop:	xret := R;
