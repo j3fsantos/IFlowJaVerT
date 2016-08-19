@@ -401,7 +401,7 @@ let string_of_procedure proc line_numbers =
 		  (string_of_specs spec.proc_specs))
 	^
 	(* Procedure definition block *)
-	(Printf.sprintf "proc %s (%s) {\n%s\n} with {\n%s%s};\n"
+	(Printf.sprintf "proc %s (%s) {\n%s} with {\n%s%s};\n"
   	proc.proc_name 
    	(String.concat ", " proc.proc_params) 
 		(string_of_cmd_arr proc.proc_body 2 line_numbers)
@@ -510,7 +510,7 @@ let string_of_ext_procedure proc =
 		  (string_of_specs spec.proc_specs))
 	^
 	(* Procedure definition block *)
-	(Printf.sprintf "proc %s (%s) {\n%s\n} with {\n%s%s};\n"
+	(Printf.sprintf "proc %s (%s) {\n%s} with {\n%s%s};\n"
   	proc.lproc_name 
    	(String.concat ", " proc.lproc_params) 
 		(string_of_lbody proc.lproc_body)
@@ -537,12 +537,10 @@ let string_of_ext_program program =
 		"")
 	^
 	(* Procedures *)
-	let procs_str	= 
-		Hashtbl.fold 
-			(fun _ proc acc_str -> acc_str ^ "\n" ^ (string_of_ext_procedure proc))
-			program.procedures
-			"" in
-	(String.sub procs_str 0 (String.length procs_str - 2))
+	Hashtbl.fold
+		(fun _ proc acc_str -> acc_str ^ "\n" ^ (string_of_ext_procedure proc))
+		program.procedures
+		""
 
 
 let string_of_proc_metadata proc = 
