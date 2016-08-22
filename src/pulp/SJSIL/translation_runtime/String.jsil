@@ -263,13 +263,15 @@ proc SP_lastIndexOf (xsc, vthis, searchString, position) {
 			xret := "i__toString" (searchString) with elab;
 			sStr := xret;
 			
-			goto [position = $$undefined] pnan npnan;
+			xret := "i__toNumber" (position) with elab;
+			npos := xret;
+			
+			(* NaN test! *)
+			goto [not (npos = npos)] pnan npnan;
 	pnan:	pos := len + 1;
 			goto sta;
 	
-	npnan:	xret := "i__toNumber" (position) with elab;
-			npos := xret;
-			xret := "i__toInteger" (npos) with elab;
+	npnan:	xret := "i__toInteger" (npos) with elab;
 			pos := xret;
 			
 	sta:	xret := "M_max" ($$empty, $$empty, pos, 0) with elab;
