@@ -134,6 +134,7 @@ let string_of_type t =
   | BooleanType -> "$$boolean_type"
   | StringType -> "$$string_type"
   | NumberType -> "$$number_type"
+	| IntType -> "$$int_type"
   | ObjectType -> "$$object_type"
   | ReferenceType -> "$$reference_type"
 	| ObjectReferenceType -> "$$o-reference_type"
@@ -477,8 +478,8 @@ let rec string_of_assertion lass escape_string =
 	   | LOr (lass1, lass2) ->	(string_of_assertion lass1 escape_string) ^ " \\/ " ^ (string_of_assertion lass2 escape_string)
 	   | LNot	lass1 -> "~ " ^ (string_of_assertion lass1 escape_string)
 	   | LStar (lass1, lass2) -> "(" ^ (string_of_assertion lass1 escape_string) ^ ") * (" ^ (string_of_assertion lass2 escape_string) ^ ")"
-	   | LExists (lvl, lass1) -> "exists " ^ (string_of_params lvl) ^ (string_of_assertion lass1 escape_string)
-	   | LForAll (lvl, lass1) -> "forall " ^ (string_of_params lvl) ^ (string_of_assertion lass1 escape_string)
+	 (*  | LExists (lvl, lass1) -> "exists " ^ (string_of_params lvl) ^ (string_of_assertion lass1 escape_string)
+	   | LForAll (lvl, lass1) -> "forall " ^ (string_of_params lvl) ^ (string_of_assertion lass1 escape_string) *) 
 	   | LEq (lexpr1, lexpr2) -> (string_of_lexpression lexpr1 escape_string) ^ " == " ^ (string_of_lexpression lexpr2 escape_string)
 	   | LLessEq (lexpr1, lexpr2) -> (string_of_lexpression lexpr1 escape_string) ^ " <== " ^ (string_of_lexpression lexpr2 escape_string)
 	   | LPointsTo (lexpr1, lexpr2, lexpr3) -> "(" ^ (string_of_lexpression lexpr1 escape_string) ^ ", " ^ (string_of_lexpression lexpr2 escape_string) ^ ") -> " ^ (string_of_lexpression lexpr3 escape_string)

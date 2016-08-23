@@ -262,8 +262,9 @@ let get_assertion_vars ass =
 		| LStar (a1, a2) -> get_ass_vars_iter a1; get_ass_vars_iter a2
 		| LPointsTo (e1, e2, e3) -> get_expr_vars vars_tbl e1; get_expr_vars vars_tbl e2; get_expr_vars vars_tbl e3
 		| LEmp -> () 
-		| LExists (_, _) -> raise (Failure "Unsupported assertion during normalization: LExists")
-		| LForAll (_, _) -> raise (Failure "Unsupported assertion during normalization: LForAll") in 
+		| LTypeEnv _ -> ()
+	(*	| LExists (_, _) -> raise (Failure "Unsupported assertion during normalization: LExists")
+		| LForAll (_, _) -> raise (Failure "Unsupported assertion during normalization: LForAll") *) in 
 	
 	get_ass_vars_iter ass; 
 	vars_tbl 
@@ -525,7 +526,8 @@ let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_form
 	| LLessEq (_, _) 
 	| LNot (LEq (_, _)) 
 	| LNot (LLessEq (_, _))
- 	| LEmp -> () 
+ 	| LEmp 
+	| LTypeEnv _ -> () 
 	
 let rec init_gamma gamma a = 
 	let f = init_gamma gamma in
@@ -723,3 +725,96 @@ let normalize_assertion_top_level a =
 	let p_formulae = init_pure_assignments a store gamma subst in 
 	compute_symb_heap heap store p_formulae gamma subst a; 
 	heap, store, p_formulae, gamma
+	
+
+let rec push_in_negations_off a =
+	let err_msg = "Normalize pure assertion got inpure argument" in 
+	let f_off = push_in_negations_off in 
+	let f_on = push_in_negations_on in
+	(match a with 
+	| LAnd (a1, a2) -> LAnd ((f_off a1), (f_off a2))
+	| LOr (a1, a2) -> LOr ((f_off a1), (f_off a2))
+	| LNot a1 -> f_on a1
+	| LTrue 
+	| LFalse
+	| LEq (_, _)
+	| LLess (_, _)
+	| LLessEq (_, _) 
+	| LStrLess (_, _) 
+	| LPred (_, _) -> a 
+	| _ -> raise (Failure err_msg))
+and push_in_negations_on a = 
+	let err_msg = "Normalize pure assertion got inpure argument" in 
+	let f_off = push_in_negations_off in
+	let f_on = push_in_negations_on in 
+	(match a with 
+	|	LAnd (a1, a2) -> LOr ((f_on a1), (f_on a2)) 
+	| LOr (a1, a2) -> LAnd ((f_on a1), (f_on a2)) 
+	| LTrue -> LFalse 
+	| LFalse -> LTrue 
+	| LEq (_, _)
+	| LLess (_, _)
+	| LLessEq (_, _) 
+	| LStrLess (_, _) 
+	| LPred (_, _) -> LNot a 
+	| _ -> raise (Failure err_msg))	
+
+
+
+(** 
+  point-wise union composed with cross-product 
+	CP((L11::L12::L13), (L21::L22)) = ((L11 U L21)::(L11 U L22)::(L12 U L21)::(L12 U L22)::(L13 U L21)::(L13 U L22))
+*)
+	
+let cross_product or_list1 or_list2 = 
+	let rec loop1 or_list1 or_list2 ac_list = 	
+		let rec loop2 and_list1 or_list2 ac_list =
+			(match or_list2 with 
+			| [] -> ac_list 
+			| and_list2 :: rest_or_list2 -> 
+				loop2 and_list1 rest_or_list2 ((List.append and_list1 and_list2) :: ac_list)) in 		
+		match or_list1 with 
+		| [] -> ac_list 
+		| and_list1 :: rest_or_list1 -> 
+			loop1 rest_or_list1 or_list2 (loop2 and_list1 or_list2 ac_list) in 
+	loop1 or_list1 or_list2 []
+
+let rec build_disjunt_normal_form a = 
+	let f = build_disjunt_normal_form in 
+	let err_msg = "Normalize pure assertion got inpure argument" in 
+	match a with 
+	| LAnd (a1, a2) -> cross_product (f a1) (f a2) 
+	| LOr (a1, a2) -> List.append (f a1) (f a2) 
+	| LTrue -> []
+	| LFalse
+	| LEq (_, _)
+	| LLess (_, _)
+	| LLessEq (_, _) 
+	| LStrLess (_, _) 
+	| LPred (_, _) -> [[ a ]]
+	| _ -> raise (Failure err_msg)	
+
+
+let remove_falses a_dnf = 
+	let contains_false list = 
+		List.fold_left
+			(fun ac ele -> if (ele = LFalse) then true else ac)
+			false
+			list in 
+	let rec loop conjuncts processed_conjuncts = 
+		match conjuncts with 
+		| [] -> processed_conjuncts
+		| conjunct :: rest_conjuncts -> 
+			if (contains_false conjunct) 
+				then (loop rest_conjuncts processed_conjuncts)
+				else (loop rest_conjuncts (conjunct :: processed_conjuncts)) in 	
+	loop a_dnf [] 
+
+
+let normalize_pure_assertion a = 
+	let a = push_in_negations_off a in 
+	let a = build_disjunt_normal_form a in 
+	remove_falses a
+
+
+			

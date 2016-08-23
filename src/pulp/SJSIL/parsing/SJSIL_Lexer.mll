@@ -138,6 +138,7 @@ rule read = parse
 	| "$$empty_type"       { SJSIL_Parser.EMPTYTYPELIT }
 	| "$$null_type"        { SJSIL_Parser.NULLTYPELIT }
 	| "$$boolean_type"     { SJSIL_Parser.BOOLTYPELIT }
+	| "$$int_type"         { SJSIL_Parser.INTTYPELIT }
 	| "$$number_type"      { SJSIL_Parser.NUMTYPELIT }
 	| "$$string_type"      { SJSIL_Parser.STRTYPELIT }
 	| "$$object_type"      { SJSIL_Parser.OBJTYPELIT }

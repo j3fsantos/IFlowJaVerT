@@ -89,6 +89,7 @@ type jsil_type =
 	| EmptyType
   | BooleanType
   | StringType
+	| IntType
   | NumberType
   | ObjectType 
 	| ReferenceType
@@ -106,6 +107,7 @@ type jsil_lit =
 	| Constant of constant
 	| Bool of bool
 	| Num of float
+	| Integer of int 
 	| String of string
   | Loc of string
   | Type of jsil_type
@@ -169,14 +171,17 @@ type jsil_logic_assertion =
 	| LTrue
 	| LFalse
 	| LEq					of jsil_logic_expr * jsil_logic_expr
-	| LLessEq			of jsil_logic_expr * jsil_logic_expr
+	| LLess	   		of jsil_logic_expr * jsil_logic_expr
+	| LLessEq	   	of jsil_logic_expr * jsil_logic_expr
+	| LStrLess    of jsil_logic_expr * jsil_logic_expr
 	| LStar				of jsil_logic_assertion * jsil_logic_assertion
 	| LPointsTo		of jsil_logic_expr * jsil_logic_expr * jsil_logic_expr
 	| LEmp
-	| LExists			of (jsil_logic_var list) * jsil_logic_assertion
-	| LForAll			of (jsil_logic_var list) * jsil_logic_assertion
+(*	| LExists			of (jsil_logic_var list) * jsil_logic_assertion
+	| LForAll			of (jsil_logic_var list) * jsil_logic_assertion *)
 	| LPred				of string * (jsil_logic_var list)
 	| LTypeEnv    of (jsil_logic_expr * jsil_type) list
+
 
 type jsil_return_flag =
 	| Normal

@@ -1,4 +1,5 @@
 open SSyntax
+open Entailment_Engine
 
 let verbose = ref false
 
@@ -41,6 +42,26 @@ let rec lexpr_substitution lexpr subst =
 	| LLNth (le1, le2) -> LLNth ((f le1), (f le2))
 	
 	| LUnknown -> LUnknown 
+
+
+let rec assertion_substitution a subst = 
+	let fa a = assertion_substitution a subst in 
+	let fe e = lexpr_substitution e subst in 
+	match a with 
+	| LAnd (a1, a2) -> LAnd ((fa a1), (fa a2)) 
+	| LOr (a1, a2) -> LOr ((fa a1), (fa a2)) 
+	| LNot a -> LNot (fa a) 
+	| LTrue -> LTrue 
+	| LFalse -> LFalse
+	| LEq (e1, e2) -> LEq ((fe e1), (fe e2))
+	| LLess (e1, e2) -> LLess ((fe e1), (fe e2))
+	| LLessEq (e1, e2) -> LLessEq ((fe e1), (fe e2))
+	| LStrLess (e1, e2) -> LStrLess ((fe e1), (fe e2)) 
+	| LStar (a1, a2) -> LStar ((fa a1), (fa a2))
+	| LPointsTo (e1, e2, e3) -> LPointsTo ((fe e1), (fe e2), (fe e3))
+	| LEmp -> LEmp 
+	| LPred (_, _) 
+	| LTypeEnv _ -> raise (Failure "Substitution for assertions not defined for cases LPred and LTypeEnv")
 
 
 let rec safe_symb_evaluate_expr (expr : jsil_expr) store gamma = 
@@ -185,6 +206,54 @@ symb_evaluate_expr (expr : jsil_expr) store gamma =
 		| _ -> LCons (value, list))	 
 	
 	| _ -> raise (Failure "not supported yet")
+
+
+let rec lift_logic_expr lexpr = 
+	let f = lift_logic_expr in 
+	(match lexpr with 
+	| LBinOp (le1, op, le2) -> lift_binop_logic_expr op le1 le2 
+	| LUnOp (op, le) -> lift_unop_logic_expr op le
+	| LLit (Bool true) -> None, Some LTrue 
+	| LLit (Bool false) -> None, Some LFalse 
+	| _ -> Some lexpr, None)
+and lift_binop_logic_expr op le1 le2 = 
+	let err_msg = "logical expression cannot be lifted to assertion" in 
+	let f = lift_logic_expr in 
+	let lexpr_to_ass_binop binop = 
+		(match binop with 
+		| Equal -> (fun le1 le1 -> LEq (le1, le2))
+		| LessThan -> (fun le1 le1 -> LLess (le1, le2)) 
+		| LessThanString -> (fun le1 le1 -> LStrLess (le1, le2))  
+		| LessThanEqual -> (fun le1 le1 -> LLessEq (le1, le2)) 
+		| _ -> raise (Failure "Error: lift_binop_expr")) in  
+	(match op with 
+	| Equal 
+	| LessThan
+	| LessThanString
+	| LessThanEqual -> 
+		let l_op_fun = lexpr_to_ass_binop op in 
+		(match ((f le1), (f le2)) with 
+		| ((Some le1, None), (Some le2, None)) -> None, Some (l_op_fun le1 le2)
+		| (_, _) -> raise (Failure err_msg)) 
+	| And -> 
+		(match ((f le1), (f le2)) with 
+		| ((None, Some a1), (None, Some a2)) -> None, Some (LAnd (a1, a2))
+		| (_, _) -> raise (Failure err_msg))
+	| Or -> 
+		(match ((f le1), (f le2)) with 
+		| ((None, Some a1), (None, Some a2)) -> None, Some (LOr (a1, a2))
+		| (_, _) -> raise (Failure err_msg))
+	| _ -> Some (LBinOp (le1, op, le2)), None) 
+and lift_unop_logic_expr op le = 
+	let f = lift_logic_expr in
+	let err_msg = "logical expression cannot be lifted to assertion" in 
+	(match op with 
+	| Not -> 
+		(match (f le) with 
+		| (None, Some a) -> None, Some (LNot a)
+		| (_, _) -> raise (Failure err_msg)) 		
+	| _ -> Some (LUnOp (op, le)), None)
+
 
 let update_abs_store store x ne = 
 	(* Printf.printf "I am in the update store\n"; 
@@ -392,8 +461,17 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 		Some quotient_heap
 	with _ -> None
 	
+let check_entailment_pf pf pat_pf gamma subst = 
+	Printf.printf "I am inside the check entailment patati patata\n";
+	let pf_list = DynArray.to_list pf in 
+	let pat_pf_list = 
+		(List.map 
+			(fun a -> assertion_substitution a subst) 
+			(DynArray.to_list pat_pf)) in 
+	Entailment_Engine.check_entailment pf_list pat_pf_list gamma
 		
-let unify_symb_heaps_top_level pat_heap pat_store pat_gamma pat_pf heap store pf gamma : (symbolic_heap * ((string, jsil_logic_expr) Hashtbl.t)) option  = 
+						
+let unify_symb_heaps_top_level pat_heap pat_store (pat_pf : jsil_logic_assertion DynArray.t) pat_gamma heap store pf gamma : (symbolic_heap * ((string, jsil_logic_expr) Hashtbl.t)) option  = 
 	let subst = unify_stores pat_store store in 
 	(match subst with 
 	| None -> None 
@@ -401,7 +479,10 @@ let unify_symb_heaps_top_level pat_heap pat_store pat_gamma pat_pf heap store pf
 		let quotient_heap : symbolic_heap option = unify_symb_heaps pat_heap heap pf subst in 
 		(match quotient_heap with 
 		| None -> None
-		| Some quotient_heap -> Some (quotient_heap, subst)))
+		| Some quotient_heap ->
+			if (check_entailment_pf pf pat_pf gamma subst) then 
+				Some (quotient_heap, subst)
+				else None))
 
 let is_symb_heap_empty heap = 
 	LHeap.fold  
@@ -676,8 +757,8 @@ symb_evaluate_next_command spec_table post ret_flag prog proc which_pred heap st
 and 
 check_final_symb_state proc_name post ret_flag heap store gamma flag lexpr pure_formulae = 
 	let post_heap, post_store, post_p_formulae, post_gamma = post in 
-	(** let str = JSIL_Logic_Print.string_of_shallow_symb_state heap store pure_formulae gamma in 
-	Printf.printf "Final symbolic state: \n %s" str; **)
+	let str = JSIL_Logic_Print.string_of_shallow_symb_state heap store pure_formulae gamma in 
+	Printf.printf "Final symbolic state: \n %s" str; 
 	
 	let print_error_to_console msg = 
 		(if (msg = "") 
@@ -688,7 +769,11 @@ check_final_symb_state proc_name post ret_flag heap store gamma flag lexpr pure_
 		Printf.printf "Final symbolic state: %s\n" final_symb_state_str;
 		Printf.printf "Post condition: %s\n" post_symb_state_str in 
 	
+	
 	let unifier = unify_symb_heaps_top_level post_heap post_store post_p_formulae post_gamma heap store pure_formulae gamma in 
+	
+	Printf.printf "I computed the unifier\n";
+	
 	match unifier with 
 	| Some (quotient_heap, _) ->	
 		if (is_symb_heap_empty quotient_heap) 

@@ -32,6 +32,7 @@ open SSyntax
 %token EMPTYTYPELIT
 %token BOOLTYPELIT
 %token NUMTYPELIT
+%token INTTYPELIT
 %token STRTYPELIT
 %token OBJTYPELIT
 %token REFTYPELIT
@@ -553,12 +554,12 @@ assertion_target:
 		{ 
 			LEmp 
 		}
-(* exists X, Y, Z . P *)
+(* exists X, Y, Z . P
 	| LEXISTS; vars=var_list_target; DOT; ass=assertion_target
-		{ LExists (vars, ass) }
-(* forall X, Y, Z . P *)
+		{ LExists (vars, ass) }  *)
+(* forall X, Y, Z . P 
 	| LFORALL; vars=var_list_target; DOT; ass=assertion_target
-		{ LForAll (vars, ass) }
+		{ LForAll (vars, ass) } *)
 		
 (* type_env (type_pairs) *)
   | LTYPEENV; LBRACE; type_pairs = type_env_pair_list_target; RBRACE
@@ -588,6 +589,7 @@ jsil_type_target:
 	| NULLTYPELIT { SSyntax.NullType }
   | EMPTYTYPELIT { SSyntax.EmptyType }
 	| BOOLTYPELIT { SSyntax.BooleanType }
+	| INTTYPELIT { SSyntax.IntType }
 	| NUMTYPELIT { SSyntax.NumberType }
 	| STRTYPELIT { SSyntax.StringType }
 	| OBJTYPELIT { SSyntax.ObjectType }

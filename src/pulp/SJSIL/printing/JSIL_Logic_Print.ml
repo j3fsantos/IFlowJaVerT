@@ -172,10 +172,10 @@ let rec string_of_logic_assertion a escape_string =
 		| LPointsTo (e1, e2, e3) -> Printf.sprintf "(%s, %s) -> %s" (sle e1) (sle e2) (sle e3)
 		(* emp *)
 		| LEmp -> Printf.sprintf "emp"
-		(* exists vars . a *)
-		| LExists (lvars, a) -> Printf.sprintf "exists %s . %s" (string_of_lvar_list lvars) (sla a)
-		(* forall vars . a *)
-		| LForAll (lvars, a) -> Printf.sprintf "forall %s . %s" (string_of_lvar_list lvars) (sla a)
+		(* exists vars . a 
+		| LExists (lvars, a) -> Printf.sprintf "exists %s . %s" (string_of_lvar_list lvars) (sla a) *)
+		(* forall vars . a 
+		| LForAll (lvars, a) -> Printf.sprintf "forall %s . %s" (string_of_lvar_list lvars) (sla a) *)
 
 let string_of_return_flag flag =
 	match flag with
