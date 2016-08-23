@@ -41,9 +41,6 @@ let try_find table entry =
 		Some (Hashtbl.find table entry)
 	with _ -> None in
 	value
-	
-let rec tabs_to_str i  = 
-	if i == 0 then "" else "\t" ^ (tabs_to_str (i - 1))
 
 let spec_function_get_args sf = match sf with
   | GetValue expr -> [expr]

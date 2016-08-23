@@ -1,4 +1,4 @@
-open SSyntax 
+open SJSIL_Syntax
 
 let verbose_ssa = ref false 
 
@@ -114,15 +114,6 @@ let rec rewrite_expr_ssa (expr : jsil_expr) var_stacks rename_var  =
 	| TypeOf e1 -> 
 		let new_e1 = rewrite_expr_ssa e1 var_stacks rename_var in
 		TypeOf (new_e1)
-		
-	| LNth (e1, n) ->
-		let new_e1 = rewrite_expr_ssa e1 var_stacks rename_var in
-		LNth (new_e1, n)
-
-	| SNth (e1, n) ->
-		let new_e1 = rewrite_expr_ssa e1 var_stacks rename_var in
-		SNth (new_e1, n)
-						
   | EList ll -> 
 			(match ll with
 			| [] -> EList []
@@ -132,11 +123,12 @@ let rec rewrite_expr_ssa (expr : jsil_expr) var_stacks rename_var  =
 						(match new_ll with
 						| EList new_ll -> EList (new_e1 :: new_ll)
 						| _ -> raise (Failure "Non-list construct")))
-						
-	| Cons (e1, e2) ->
-		let new_e1 = rewrite_expr_ssa e1 var_stacks rename_var in 
-		let new_e2 = rewrite_expr_ssa e1 var_stacks rename_var in
-		Cons (new_e1, new_e2)
+	| LstNth (e1, n) ->
+		let new_e1 = rewrite_expr_ssa e1 var_stacks rename_var in
+		LstNth (new_e1, n)
+	| StrNth (e1, n) ->
+		let new_e1 = rewrite_expr_ssa e1 var_stacks rename_var in
+		StrNth (new_e1, n)
 
 let rec rewrite_logic_expression (lexpr : jsil_logic_expr) var_stacks rename_var = 
 	(match lexpr with
@@ -192,7 +184,7 @@ let rewrite_non_assignment_ssa cmd var_stacks rename_var =
 		let new_e = rewrite_expr_ssa e var_stacks rename_var in 
 		SGuardedGoto (new_e, i, j) 
 	| _ ->
-		let cmd_str = (SSyntax_Print.string_of_cmd (SSyntax.make_empty_metadata (), cmd) 0 0 false false false) in  
+		let cmd_str = (JSIL_Print.string_of_cmd (make_empty_metadata, cmd) 0 0 false false false) in  
 		raise (Failure ("Cannot Rewrite the command " ^ cmd_str ^ " using in the non-assignment case of SSA Rewriting")) 
 
 let rename_var = fun (var : string) (i : int) -> var ^ "_" ^ (string_of_int i) 
@@ -229,7 +221,7 @@ let print_phi_functions_per_node phi_functions_per_node =
 let insert_phi_args args vars cmds (spec : jsil_spec option) (rvar : string option) (evar : string option) 
                     (ret_lab : int option) (err_lab : int option) succ pred idom_table idom_graph phi_functions_per_node which_pred = 
 	
-	let metadata = SSyntax.make_empty_metadata () in 
+	let metadata = make_empty_metadata in 
 	
 	let var_counters : (string, int) Hashtbl.t  = Hashtbl.create 1021 in 
 	let var_stacks :  (string, int list) Hashtbl.t = Hashtbl.create 1021 in 
@@ -433,7 +425,7 @@ let insert_phi_args args vars cmds (spec : jsil_spec option) (rvar : string opti
  		let u_successors = succ.(u) in
  		List.iter 
  			(fun k -> 
-				Printf.printf "Processing statement: %s\n" (SSyntax_Print.string_of_cmd cmds.(k) 0 0 false false false);
+				Printf.printf "Processing statement: %s\n" (JSIL_Print.string_of_cmd cmds.(k) 0 0 false false false);
  				let j = SSyntax_Aux.try_find which_pred (u, k) in
 				match j with 
 				| Some j -> 
@@ -523,7 +515,7 @@ let insert_phi_args args vars cmds (spec : jsil_spec option) (rvar : string opti
  	
 	
 let create_phi_assignment var v_args old_var =
-	let metadata = make_empty_metadata () in  
+	let metadata = make_empty_metadata in  
 	let len = Array.length v_args in 
 	let new_v_args = Array.make len None in 
 	for i=0 to len-1 do 
@@ -629,10 +621,10 @@ let ssa_compile_proc proc (vars : string list) (nodes : (jsil_metadata * jsil_cm
 
 (** Given a JSIL program 'prog' (Hashtbl: String --> Procedure), compiles its procedures into SSA form. *)
 let ssa_compile_prog prog = 
-	let ssa_prog = SProgram.create 1021 in 
+	let ssa_prog = Hashtbl.create 1021 in 
 	let global_which_pred = Hashtbl.create 1021 in 
 	
-	SProgram.iter 
+	Hashtbl.iter 
 		(fun proc_name proc -> 
 			let nodes, vars, succ_table, pred_table, tree_table, parent_table, dfs_num_table_f, dfs_num_table_r, which_pred = 
 				SSyntax_Utils.get_proc_info proc in 
@@ -646,6 +638,6 @@ let ssa_compile_prog prog =
 					Hashtbl.replace global_which_pred (proc_name, prev_cmd, cur_cmd) i)
 				new_which_pred;
 			
-			SProgram.replace ssa_prog proc_name proc)
+			Hashtbl.replace ssa_prog proc_name proc)
 		prog; 
 	ssa_prog, global_which_pred

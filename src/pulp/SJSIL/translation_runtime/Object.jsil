@@ -13,12 +13,12 @@ proc i__getFields (l) {
 			goto [class = "String"] add rlab;
 
 	add:	str := [l, "@primitiveValue"];
-			len := length (str);
+			len := s-len (str);
 			
 			n := len - 1;
 			
 			gop := [l, "@getOwnProperty"];
-						
+			
 	loop:	goto [n < 0] rlab head;
 	head:	sn := num_to_string n;
 			xret := sn :: xret;
@@ -55,7 +55,7 @@ proc i__getOwnFieldsIter (prop_list) {
 	init:	xh := car prop_list;
 			xt := cdr prop_list;
 			
-			goto [0 < length (xh)] maybe yes;
+			goto [0 < s-len (xh)] maybe yes;
 	maybe:	test := s-nth (xh, 0);
 			goto [test = "@"] no yes;
 	
@@ -183,7 +183,7 @@ proc i__getAllEnumerableFieldsIter (l, props, b) {
 			b := b;
 			enums := "i__getEnumerableFields" (l);
 			
-			len := length (enums);
+			len := l-len (enums);
 			n := 0;
 	loop:	goto [n < len] head next;
 	
@@ -301,7 +301,7 @@ proc Object_getOwnPropertyNames (xsc, vthis, o) {
 			n := 0;
 			l := xret;
 			props := "i__getOwnFields" (o);
-			len := length (props);
+			len := l-len (props);
 			
 			dop := [xret, "@defineOwnProperty"];
 			
@@ -384,7 +384,7 @@ proc Object_defineProperties (xsc, vthis, o, props) {
 			descs := l-nth (xret, 1);
 			
 			n := 0;
-			len := length (props);
+			len := l-len (props);
 			dop := [o, "@defineOwnProperty"];
 			
 	loop:	goto [n < len] head end;
@@ -431,7 +431,7 @@ proc Object_seal (xsc, vthis, o) {
 	start:	props := "i__getOwnFields" (o);
 			
 			n := 0;
-			len := length (props);
+			len := l-len (props);
 			gop := [o, "@getOwnProperty"];
 			dop := [o, "@defineOwnProperty"];
 			
@@ -463,7 +463,7 @@ proc Object_isSealed (xsc, vthis, o) {
 	start:	props := "i__getOwnFields" (o);
 			
 			n := 0;
-			len := length (props);
+			len := l-len (props);
 			gop := [o, "@getOwnProperty"];
 			
 	loop:	goto [n < len] head ext;
@@ -499,7 +499,7 @@ proc Object_freeze (xsc, vthis, o) {
 	start:	props := "i__getOwnFields" (o);
 			
 			n := 0;
-			len := length (props);
+			len := l-len (props);
 			gop := [o, "@getOwnProperty"];
 			dop := [o, "@defineOwnProperty"];
 			
@@ -534,7 +534,7 @@ proc Object_isFrozen (xsc, vthis, o) {
 	start:	props := "i__getOwnFields" (o);
 			
 			n := 0;
-			len := length (props);
+			len := l-len (props);
 			gop := [o, "@getOwnProperty"];
 			
 	loop:	goto [n < len] head ext;
@@ -590,7 +590,7 @@ proc Object_keys (xsc, vthis, o) {
 			n := 0;
 			l := xret;
 			props := "i__getEnumerableFields" (o);
-			len := length (props);
+			len := l-len (props);
 			
 			dop := [xret, "@defineOwnProperty"];
 			
@@ -630,7 +630,7 @@ proc OP_toString(xsc, vthis) {
 			
 	nnull:	xret := "i__toObject" (vthis) with elab;
 			c := [xret, "@class"];
-			xret := "[object " :: c :: "]";
+			xret := "[object " ++ c ++ "]";
 	
 	rlab:	skip;
 	elab:	skip
@@ -759,4 +759,4 @@ with
 {
 	ret:	xret, rlab;
 	err:	xret, elab;
-}
+};

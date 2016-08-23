@@ -6,4 +6,4 @@ proc Date_construct (xsc, vthis) {
 with
 {
 	ret: xret, rlab;
-}
+};

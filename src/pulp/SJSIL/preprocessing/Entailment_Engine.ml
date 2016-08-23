@@ -13,7 +13,7 @@ open Z3.Arithmetic
 open Z3.Arithmetic.Integer
 open Z3.Arithmetic.Real
 open Z3.BitVector
-open SSyntax
+open SJSIL_Syntax
 
 let encode_string_as_fapp ctx str = 
 	let fname = (mk_string ctx str) in 
@@ -53,7 +53,7 @@ let encode_literal ctx lit =
 		
   | Loc l -> encode_string_as_fapp ctx ("loc_" ^ l)
 
-  | Type t -> encode_string_as_fapp ctx ("type_" ^ (SSyntax_Print.string_of_type t))
+  | Type t -> encode_string_as_fapp ctx ("type_" ^ (JSIL_Print.string_of_type t))
 	
 	| _ -> raise (Failure "smt encoding: Construct not supported yet!")
 
@@ -70,7 +70,7 @@ let encode_binop ctx op le1 le2 =
 
 let encode_unop ctx op le = 
 	match op with 
-	| Negative -> (mk_neg ctx le) 
+	| UnaryMinus -> (mk_neg ctx le) 
 	| _ -> raise (Failure "smt encoding: Construct not supported yet!")
 
 

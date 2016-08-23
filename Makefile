@@ -162,9 +162,9 @@ byte: tags parsing $(SOURCE1) $(SOURCE2_byte) $(SOURCE3)
 	rm $(REMOVE)
 clean:
 	ocamlbuild -clean
-	rm $(REMOVE_COMPILED)
+	rm -f $(REMOVE_COMPILED)
 	rm -rf $(BUILD_DIR)
-	rm $(REMOVE)
+	rm -f $(REMOVE)
 
 tags:
 	etags -R .

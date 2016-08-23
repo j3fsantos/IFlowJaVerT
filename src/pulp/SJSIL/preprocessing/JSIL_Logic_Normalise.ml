@@ -1,7 +1,8 @@
-open SSyntax 
 open DynArray
 open Set
 open Stack
+open SJSIL_Syntax
+open SJSIL_Memory_Model
 
 module StringSet = Set.Make( 
   struct
@@ -37,6 +38,7 @@ let rec normalise_lexpr store gamma subst le =
 	let f = normalise_lexpr store gamma subst in 
 	match le with 
 	| LLit lit -> LLit lit
+	| LUnknown -> LUnknown
 	| LNone -> LNone
 	| LVar lvar -> (try Hashtbl.find subst lvar with _ -> LVar lvar)
 	| ALoc aloc -> raise (Failure "Unsupported expression during normalization: ALoc")
@@ -63,8 +65,6 @@ let rec normalise_lexpr store gamma subst le =
 			LLit lit 
 		| _ -> LUnOp (uop, nle1))
 
-	| _ -> raise (Failure "Program variable not found: sth went wrong")
-		
 	| LEVRef (le1, le2) ->
 		let nle1 = f le1 in 
 		let nle2 = f le2 in 
@@ -96,10 +96,11 @@ let rec normalise_lexpr store gamma subst le =
 		| LEVRef (_, fe) 
 		| LEORef (_, fe) -> fe
 		| _ -> LField (nle1))	
-				
+	
 	| LTypeOf (le1) -> 
 		let nle1 = f le1 in 
 		(match nle1 with 
+		| LUnknown -> raise (Failure "Illegal Logic Expression: TypeOf of Unknown")
 		| LLit llit -> LLit (Type (SJSIL_Interpreter.evaluate_type_of llit)) 
 		| LNone -> raise (Failure "Illegal Logic Expression: TypeOf of None")
 		| LVar lvar -> 
@@ -114,9 +115,8 @@ let rec normalise_lexpr store gamma subst le =
 		| LBase _ -> LTypeOf (nle1)
 		| LField _ -> LLit (Type StringType)
 		| LTypeOf _ -> LLit (Type TypeType)
-		| LCons (_, _) 
 		| LEList _ -> LLit (Type ListType)
-	  | LLNth (list, index) ->
+	  | LLstNth (list, index) ->
 			(match list, index with 
 			| LLit (LList list), LLit (Num n) ->
 				let lit_n = (try List.nth list (int_of_float n) with _ -> 
@@ -127,24 +127,13 @@ let rec normalise_lexpr store gamma subst le =
 					 raise (Failure "List index out of bounds")) in
 				f (LTypeOf le_n)
 			| _, _ -> LTypeOf (nle1))
-	  | LSNth (str, index) ->
+		| LStrNth (str, index) ->
 			(match str, index with 
 			| LLit (String s), LLit (Num n) ->
 				let _ = (try (String.get s (int_of_float n)) with _ ->
 					raise (Failure "String index out of bounds")) in
 				LLit (Type StringType)
 			| _, _ -> LTypeOf (nle1)))
-		
-	| LCons (le1, le2) -> 
-		let nle1 = f le1 in 
-		let nle2 = f le2 in 
-		(match nle1, nle2 with 
-		| LLit lit, LLit (LList list) -> LLit (LList (lit :: list))
-		| _, LEList list -> LEList (nle1 :: list)
-		| _, LLit (LList list) -> 
-			let le_list = List.map (fun lit -> LLit lit) list in 
-			LEList (nle1 :: le_list) 
-		| _, _ -> LCons (nle1, nle2))
 	
 	| LEList le_list -> 
 		let n_le_list = List.map (fun le -> f le) le_list in 
@@ -160,7 +149,7 @@ let rec normalise_lexpr store gamma subst le =
 			then LLit (LList lit_list) 
 			else LEList n_le_list 
 	
-	| LLNth (le1, le2) -> 
+	| LLstNth (le1, le2) -> 
 		let nle1 = f le1 in 
 		let nle2 = f le2 in 
 		(match nle1, nle2 with 
@@ -168,15 +157,16 @@ let rec normalise_lexpr store gamma subst le =
 			 raise (Failure "List index out of bounds"))
 		| LEList list, LLit (Num n) -> (try (List.nth list (int_of_float n)) with _ -> 
 			 raise (Failure "List index out of bounds"))
-		| _, _ -> LLNth (nle1, nle2))
-
-	| LSNth (le1, le2) -> 
+		| _, _ -> LLstNth (nle1, nle2))
+	
+	| LStrNth (le1, le2) -> 
 		let nle1 = f le1 in 
 		let nle2 = f le2 in 
-		match nle1, nle2 with 
-		| LLit (String s), LLit (Num n) -> (try LLit (String (String.make 1 (String.get s (int_of_float n)))) with _ ->
-			 raise (Failure "String index out of bounds"))
-		| _, _ -> LSNth (nle1, nle2)
+		(match nle1, nle2 with 
+		| LLit (String s), LLit (Num n) ->
+			(try LLit (String (String.make 1 (String.get s (int_of_float n))))
+				with _ -> raise (Failure "String index out of bounds"))
+		| _, _ -> LStrNth (nle1, nle2))
 
 let normalise_pure_assertion store gamma subst assertion =
 	let fe = normalise_lexpr store gamma subst in 
@@ -213,6 +203,7 @@ let rec get_expr_vars var_set e =
 	| LLit _
 	| LNone 
 	| LVar _ 
+	| LUnknown
 	| ALoc _ -> ()
 	| PVar var -> (try Hashtbl.find var_set var; () with _ -> Hashtbl.add var_set var true)
 	| LBinOp (e1, op, e2) -> f e1; f e2
@@ -222,11 +213,9 @@ let rec get_expr_vars var_set e =
 	| LBase e1 
 	| LField e1
 	| LTypeOf e1 -> f e1 
-	| LCons (e1, e2)    
-	| LLNth (e1, e2) 
-	| LSNth (e1, e2) -> f e1; f e2
 	| LEList le_list -> List.iter (fun le -> f le) le_list 
-	
+	| LLstNth (e1, e2) 
+	| LStrNth (e1, e2) -> f e1; f e2
 
 let get_expr_vars_lst le =
 	let vars_tbl = Hashtbl.create 101 in
@@ -258,11 +247,14 @@ let get_assertion_vars ass =
 		| LTrue
 		| LFalse -> () 
 		| LEq (e1, e2) 
-		| LLessEq (e1, e2) -> get_expr_vars vars_tbl e1; get_expr_vars vars_tbl e2
+		| LLess (e1, e2) 
+		| LLessEq (e1, e2)
+		| LStrLess (e1, e2) -> get_expr_vars vars_tbl e1; get_expr_vars vars_tbl e2
 		| LStar (a1, a2) -> get_ass_vars_iter a1; get_ass_vars_iter a2
 		| LPointsTo (e1, e2, e3) -> get_expr_vars vars_tbl e1; get_expr_vars vars_tbl e2; get_expr_vars vars_tbl e3
-		| LEmp -> () 
-		| LTypeEnv _ -> ()
+		| LEmp  
+		| LTypes _ 
+		| LPred (_, _) -> () 
 	(*	| LExists (_, _) -> raise (Failure "Unsupported assertion during normalization: LExists")
 		| LForAll (_, _) -> raise (Failure "Unsupported assertion during normalization: LForAll") *) in 
 	
@@ -280,21 +272,19 @@ let rec init_symb_store_alocs store gamma subst ass : unit =
 		f a_left; f a_right 
 		
 	| LPointsTo (PVar var, _, _) ->
-		(try Hashtbl.find store var; ()
-		with _ ->
+		if (not (Hashtbl.mem store var))
+		then
 			(let aloc = new_abs_loc_name var in 
 			Hashtbl.add store var (ALoc aloc);
 			Hashtbl.add subst var (ALoc aloc); 
-			Hashtbl.replace gamma var ObjectType; 
-			()))
+			Hashtbl.replace gamma var ObjectType)
 		 
 	| LPointsTo (LVar var, _, _) ->
-		(try (Hashtbl.find subst var); ()
-			with _ ->
-				(let aloc = new_abs_loc_name var in  
-				Hashtbl.add subst var (ALoc aloc); 
-				Hashtbl.replace gamma var ObjectType; 
-				()))
+		if (not (Hashtbl.mem subst var))
+		then
+			(let aloc = new_abs_loc_name var in  
+			Hashtbl.add subst var (ALoc aloc); 
+			Hashtbl.replace gamma var ObjectType)
 				
 	| LPointsTo (ALoc _, _, _) ->
 		raise (Failure "Unsupported assertion during normalization")	
@@ -358,7 +348,8 @@ let init_pure_assignments a store gamma subst =
 	let fill_store p_vars =
 	Hashtbl.iter 
 		(fun var _ -> 
-			try Hashtbl.find store var; () with _ ->  
+			if (not (Hashtbl.mem store var))
+			then
 				let new_l_var = new_lvar_name var in 
 				Hashtbl.add store var (LVar new_l_var); 
 				Hashtbl.add subst var (LVar new_l_var);
@@ -484,8 +475,8 @@ let init_pure_assignments a store gamma subst =
 	normalize_pure_assignments succs p_vars p_vars_tbl;   
 	(* Printf.printf "after fill store \n"; *)
 	normalize_pure_assertions ()
-	
-	
+
+
 let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_formulae gamma subst a = 
 	let f = compute_symb_heap heap store p_formulae gamma subst in  
 	let fe = normalise_lexpr store gamma subst in 
@@ -522,17 +513,27 @@ let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_form
 		let field_val_pairs, default_val = (try LHeap.find heap loc with _ -> ([], LUnknown)) in
 		LHeap.replace heap loc (((nle2, nle3) :: field_val_pairs), default_val)
 	
+	| LPointsTo (_, _, _) -> raise (Failure "Unsupported points-to assertion")
+	
+	| LPred (_, _) -> raise (Failure "LPred not supported at normalization time")
+	
+	| LTrue 
+	| LFalse
+	| LAnd (_, _)
+	| LOr (_, _)
 	| LEq (_, _)
+	| LLess (_, _) 
 	| LLessEq (_, _) 
+	| LStrLess (_, _)
 	| LNot (LEq (_, _)) 
 	| LNot (LLessEq (_, _))
  	| LEmp 
-	| LTypeEnv _ -> () 
+	| LTypes _ -> () 
 	
 let rec init_gamma gamma a = 
 	let f = init_gamma gamma in
 	match a with
-	  | LTypeEnv type_list -> 
+	  | LTypes type_list -> 
 			List.iter 
 				(fun (v, t) -> 
 					match v with
@@ -570,7 +571,7 @@ let rec normalised_is_typable gamma nlexpr =
 		 If it is a variable that has a reference type, we signal that 
 		 it is typable, but we can't recover the type of the base *)
 	| LBase le ->
-		match le with
+		(match le with
 		| LVar var
 		| PVar var ->
 			let tvar, itvar = (try ((Some (Hashtbl.find gamma var), true)) with _ -> (None, false)) in
@@ -581,14 +582,14 @@ let rec normalised_is_typable gamma nlexpr =
 					| Some ReferenceType -> (None, true)
 					| _ -> (None, false))
 				else
-					(None, false)
+					(None, false))
 
 	(* If we have 'field' in a normalised expression, this means that
 	   the expression we're trying to field is not a reference. It could
 		 either be a variable or something non-normalisable further. If it 
 		 is a variable that has a string type, we signal that it is typable *)
 	| LField le -> 
-		match le with
+		(match le with
 		| LVar var
 		| PVar var ->
 			let tvar, itvar = (try ((Some (Hashtbl.find gamma var), true)) with _ -> (None, false)) in
@@ -597,7 +598,7 @@ let rec normalised_is_typable gamma nlexpr =
 					| Some StringType -> (Some StringType, true)
 					| _ -> (None, false))
 				else
-					(None, false)
+					(None, false))
 
   (* I don't quite understand what happens here when (None, true).
 	   LEVRef (E, LBase(y)), where x is a reference whose base
@@ -637,17 +638,6 @@ let rec normalised_is_typable gamma nlexpr =
 			else
 				(None, false) 
 
-  (* LCons *)
-	| LCons (e, le) ->
-		let (te,  ite)  = f e in
-		let (tle, itle) = f le in
-		if (ite && itle) then
-			if (tle = Some ListType) then (Some ListType, true)
-				else 
-					(None, false)
-			else
-				(None, false)
-
   (* LEList *)
 	| LEList le ->
 		let all_typable = 
@@ -666,44 +656,40 @@ let rec normalised_is_typable gamma nlexpr =
 		let (te, ite) = f e in
 		let tt t1 t2 = (if (te = Some t1) then (Some t2, true) else (None, false)) in
 		if (ite) then
-		(match unop with
-     (* Number *)
-      | ToStringOp -> tt NumberType StringType
-			| Negative
-			| BitwiseNot
-    	| ToIntOp
-    	| ToUint16Op
+  		(match unop with
+  		| Not -> tt BooleanType BooleanType
+  		| UnaryMinus
+  		| BitwiseNot
+      | M_sgn
+      | M_abs
+      | M_acos
+      | M_asin
+      | M_atan
+      | M_ceil
+      | M_cos
+      | M_exp
+      | M_floor
+      | M_log
+      | M_round
+      | M_sin
+      | M_sqrt
+      | M_tan 
+  		| ToIntOp
+      | ToUint16Op
       | ToInt32Op
-      | ToUint32Op
-    	| M_sgn
-    	| M_abs
-    	| M_acos
-    	| M_asin
-    	| M_atan
-    	| M_ceil
-    	| M_cos
-    	| M_exp
-    	| M_floor
-    	| M_log
-    	| M_round
-    	| M_sin
-    	| M_sqrt
-    	| M_tan -> tt NumberType NumberType
-		 (* Boolean *)
-      | Not -> tt BooleanType BooleanType
-		 (* String *)
-			| ToNumberOp -> tt StringType NumberType
-		 (* Any *)
-    	| IsPrimitive -> (Some BooleanType, true)
-		 (* Lists *)
-    	| Cdr
-    	| Car -> (None, false)
-		)
+      | ToUint32Op-> tt NumberType NumberType
+  		| ToStringOp -> tt NumberType StringType
+  		| ToNumberOp -> tt StringType NumberType
+      | IsPrimitive -> (Some BooleanType, true)
+      | Cdr
+      | Car -> (None, false)
+  		| LstLen (* CHECK *)
+			| StrLen -> (None, false)) (* CHECK *)
 		else
 			(None, false)
 
-	| LLNth (_, _) 
-	| LSNth (_, _) -> (None, false)
+	| LLstNth (_, _) 
+	| LStrNth (_, _) -> (None, false)
 
 	| LNone
   | LUnknown -> (None, false)

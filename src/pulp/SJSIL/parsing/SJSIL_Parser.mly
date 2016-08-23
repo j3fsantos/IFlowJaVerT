@@ -1,38 +1,15 @@
 %{
-open SSyntax 
+open SJSIL_Syntax
 %}
 
-(* procedures *) 
-%token IMPORT
-%token PROC
-%token RET
-%token ERR
-%token SPEC
-%token NORMAL
-%token PRED
-(*literals*)
-%token <string> LVAR
-%token <string> VAR
-(* %token <int> INT *)
-%token <float> FLOAT
-%token <string> STRING
-%token <string> LOC
-%token TRUE
-%token FALSE
-%token NULL 
-%token UNDEFINED
-%token EMPTY
-%token LNONE
-%token LNIL
-%token NAN
-%token INFINITY
+(***** Token definitions *****)
 (* Type literals *)
 %token UNDEFTYPELIT
 %token NULLTYPELIT
 %token EMPTYTYPELIT
 %token BOOLTYPELIT
-%token NUMTYPELIT
 %token INTTYPELIT
+%token NUMTYPELIT
 %token STRTYPELIT
 %token OBJTYPELIT
 %token REFTYPELIT
@@ -40,98 +17,7 @@ open SSyntax
 %token OREFTYPELIT
 %token LISTTYPELIT
 %token TYPETYPELIT
-(* command keywords  *)
-%token PHI
-%token PSI
-%token GOTO
-%token SKIP
-%token DEFEQ
-%token NEW
-%token DELETE
-%token HASFIELD
-%token WITH
-(* assertion keywords *)
-%token LAND
-%token LOR
-%token LNOT
-%token LTRUE
-%token LFALSE
-%token LEQUAL
-%token LLESSTHANEQUAL	
-(*%token LSTAR*)
-%token LARROW
-%token LEMP 
-%token LEXISTS 
-%token LFORALL
-(* expression keywords *)
-%token VREF
-%token OREF
-%token BASE
-%token FIELD
-%token TYPEOF
-%token CONS
-%token ASSUME
-%token ASSERT
-%token RNUMSYM
-%token RSTRSYM
-(* binary operators *)
-%token EQUAL
-%token LESSTHAN
-%token LESSTHANSTRING
-%token LESSTHANEQUAL
-%token PLUS
-%token MINUS
-%token TIMES
-%token DIV
-%token MOD
-%token SUBTYPE
-%token CONCAT
-%token APPEND
-%token AND
-%token OR
-%token BITWISEAND
-%token BITWISEOR
-%token BITWISEXOR
-%token LEFTSHIFT
-%token SIGNEDRIGHTSHIFT
-%token UNSIGNEDRIGHTSHIFT
-%token LCONS
-%token SNTH
-%token LNTH
-%token M_ATAN2
-%token M_POW
-(* unary operators *)
-%token NOT
-%token TOSTRING
-%token TONUMBER
-%token TOINT
-%token TOUINT16
-%token TOINT32
-%token TOUINT32
-%token BITWISENOT
-%token CAR
-%token CDR
-%token ISPRIMITIVE
-%token LENGTH
-%token GETFIELDS
-%token ARGUMENTS
-%token APPLY
-%token M_ABS 
-%token M_ACOS 
-%token M_ASIN 
-%token M_ATAN 
-%token M_CEIL
-%token M_COS 
-%token M_EXP 
-%token M_FLOOR 
-%token M_LOG 
-%token M_ROUND 
-%token M_SIN 
-%token M_SGN
-%token M_SQRT 
-%token M_TAN 
-%token M_RANDOM
-(* constants *)
+(* Constants *)
 %token MIN_FLOAT
 %token MAX_FLOAT
 %token RANDOM
@@ -143,47 +29,188 @@ open SSyntax
 %token PI
 %token SQRT1_2
 %token SQRT2
-(* separators *)
-%token EOF
+(* Literals *)
+%token UNDEFINED
+%token NULL 
+%token EMPTY
+%token TRUE
+%token FALSE
+%token <float> FLOAT
+%token NAN
+%token INFINITY
+%token <string> STRING
+%token <string> LOC
+%token VREFLIT
+%token OREFLIT
+%token LSTNIL
+%token LSTOPEN
+%token LSTCLOSE
+(* Variables *)
+%token <string> VAR
+(* Binary operators *)
+%token EQUAL
+%token LESSTHAN
+%token LESSTHANSTRING
+%token LESSTHANEQUAL
+%token PLUS
+%token MINUS
+%token TIMES
+%token DIV
+%token MOD
+%token AND
+%token OR
+%token BITWISEAND
+%token BITWISEOR
+%token BITWISEXOR
+%token LEFTSHIFT
+%token SIGNEDRIGHTSHIFT
+%token UNSIGNEDRIGHTSHIFT
+%token M_ATAN2
+%token M_POW
+%token SUBTYPE
+%token LSTCONS
+%token LSTCAT
+%token STRCAT
+(* Unary operators *)
+%token NOT
+(* Unary minus uses the same token as binary minus: MINUS *)
+%token BITWISENOT
+%token M_ABS
+%token M_ACOS
+%token M_ASIN
+%token M_ATAN
+%token M_CEIL
+%token M_COS
+%token M_EXP
+%token M_FLOOR
+%token M_LOG
+%token M_ROUND
+%token M_SGN
+%token M_SIN
+%token M_SQRT
+%token M_TAN
+%token ISPRIMITIVE
+%token TOSTRING
+%token TOINT
+%token TOUINT16
+%token TOINT32
+%token TOUINT32
+%token TONUMBER
+%token CAR
+%token CDR
+%token LSTLEN
+%token STRLEN
+(* Expression keywords *)
+%token VREF
+%token OREF
+%token BASE
+%token FIELD
+%token TYPEOF
+%token ASSUME
+%token ASSERT
+%token RNUMSYM
+%token RSTRSYM
+%token LSTNTH
+%token STRNTH
+(* Command keywords  *)
+%token SKIP
+%token DEFEQ
+%token NEW
+%token DELETE
+%token HASFIELD
+%token GETFIELDS
+%token ARGUMENTS
+%token GOTO
+%token WITH
+%token APPLY
+%token PHI
+%token PSI
+(* Logic variables *)
+%token <string> LVAR
+(* Logical expressions *)
+%token LNONE
+(* Logic assertions *)
+%token OASSERT
+%token CASSERT
+%token LAND
+%token LOR
+%token LNOT
+%token LTRUE
+%token LFALSE
+%token LEQUAL
+%token LLESSTHANEQUAL
+%token LARROW
+%token LEMP 
+%token LEXISTS 
+%token LFORALL
+%token LTYPES
+(* Logic predicates *)
+%token PRED
+(* Procedure specification keywords *)
+%token SPEC
+%token NORMAL
+%token ERROR
+(* Procedure definition keywords *)
+%token PROC
+%token RET
+%token ERR
+(* Others *)
+%token IMPORT
+(* Separators *)
 %token COMMA
 %token COLON
 %token SCOLON
 %token DOT
 %token LBRACE
 %token RBRACE
-%token VREFLIT
-%token OREFLIT
 %token LBRACKET
 %token RBRACKET
 %token CLBRACKET
 %token CRBRACKET
-%token OSPEC
-%token CSPEC
-%token LISTOPEN
-%token LISTCLOSE
+(* EOF *)
+%token EOF
 
-%token LTYPEENV
-%token LDOMAIN
+(***** Precedence of operators *****)
+(* The later an operator is listed, the higher precedence it is given. Based on JavaScript:
+   https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Operators/Operator_Precedence *)
+%nonassoc DOT
+%left OR
+%left AND
+%left separating_conjunction
+%nonassoc LARROW
+%left BITWISEOR
+%left BITWISEXOR
+%left BITWISEAND
+%left EQUAL
+%nonassoc LESSTHAN LESSTHANSTRING LESSTHANEQUAL SUBTYPE
+%left LEFTSHIFT SIGNEDRIGHTSHIFT UNSIGNEDRIGHTSHIFT
+%left PLUS MINUS
+%left TIMES DIV MOD M_POW
+%right NOT BITWISENOT unary_minus
+%left M_ATAN2 LSTCONS LSTCAT STRCAT
+%right M_ABS M_ACOS M_ASIN M_ATAN M_CEIL M_COS M_EXP M_FLOOR M_LOG M_ROUND M_SGN M_SIN M_SQRT M_TAN
+  ISPRIMITIVE TOSTRING TOINT TOUINT16 TOINT32 TOUINT32 TONUMBER CAR CDR LSTLEN STRLEN
 
-%type <((SSyntax.jsil_metadata * string option * SSyntax.jsil_lab_cmd) list)> cmd_list_top_target
-%type <SSyntax.jsil_ext_procedure> proc_target
-%type <SSyntax.jsil_ext_program> main_target
-
+(***** Types and entry points *****)
+%type <((SJSIL_Syntax.jsil_metadata * string option * SJSIL_Syntax.jsil_lab_cmd) list)> cmd_list_top_target
+%type <SJSIL_Syntax.jsil_ext_procedure> proc_target
+%type <SJSIL_Syntax.jsil_ext_program> main_target
 %start main_target proc_target cmd_list_top_target
+
 %%
 
 (********* JSIL *********)
 
 main_target:
-    import_target declaration_target
+  | import_target declaration_target
 		{ (* Add the imports to the program *)
 	  	{$2 with imports = $1}
 		}
 	| declaration_target { $1 }
-	;
+;
 
 declaration_target:
-	  pred_target declaration_target
+	| pred_target declaration_target
 		{ (* Add the predicate to the hash table of predicates *)
 			Hashtbl.add $2.predicates $1.name $1;
 			$2
@@ -197,21 +224,22 @@ declaration_target:
 		{ (* Return an empty program *)
 			{ imports = []; predicates = Hashtbl.create 64; procedures = Hashtbl.create 64; }
 		}
-	;
+;
 
 import_target: 
-  IMPORT; imports=separated_list(COMMA, VAR); SCOLON { imports } 
+  IMPORT; imports = separated_nonempty_list(COMMA, VAR); SCOLON { imports }
+;
 
-proc_target: 
-(* [spec;] proc xpto (x, y) { cmd_list[;] } with { ret: x, i; [err: x, j] }; *) 
+proc_target:
+(* [spec;] proc xpto (x, y) { cmd_list } with { ret: x, i; [err: x, j] }; *)
   spec = option(spec_target);
-	PROC; proc_name=VAR; LBRACE; param_list=param_list_target; RBRACE; 
-		CLBRACKET; cmd_list=cmd_list_target; option(SCOLON); CRBRACKET; 
-	WITH; 
-		CLBRACKET; ctx_ret=option(ctx_target_ret); ctx_err=option(ctx_target_err); CRBRACKET; opt_scolon
+	PROC; proc_name = VAR; LBRACE; param_list = separated_list(COMMA, VAR); RBRACE;
+		CLBRACKET; cmd_list = cmd_list_target; CRBRACKET;
+	WITH;
+		CLBRACKET; ctx_ret = option(ctx_target_ret); ctx_err = option(ctx_target_err); CRBRACKET; SCOLON
 	{
 		(* Printf.printf "Parsing Procedure.\n"; *)
-		(match (spec : SSyntax.jsil_spec option) with
+		(match spec with
 		| None -> ()
 		| Some specif ->  if (not (specif.spec_name = proc_name))    then (raise (Failure "Specification name does not match procedure name."))           else 
 			               (if (not (specif.spec_params = param_list)) then (raise (Failure "Specification parameters do not match procedure parameters.")) else ())
@@ -224,45 +252,39 @@ proc_target:
 			(match ctx_err with 
 			| None -> None, None
 			| Some (ev, ei) -> Some ev, Some ei) in
-		let cmd_arr = Array.of_list cmd_list in 
 		{
-    	SSyntax.lproc_name = proc_name;
-    	SSyntax.lproc_body = cmd_arr;
-    	SSyntax.lproc_params = param_list; 
-			SSyntax.lret_label = ret_index;
-			SSyntax.lret_var = ret_var;
-			SSyntax.lerror_label = err_index;
-			SSyntax.lerror_var = err_var;
-			SSyntax.lspec = spec;
+			lproc_name = proc_name;
+			lproc_body = Array.of_list cmd_list;
+			lproc_params = param_list;
+			lret_label = ret_index;
+			lret_var = ret_var;
+			lerror_label = err_index;
+			lerror_var = err_var;
+			lspec = spec;
 		}
-	};
-
-opt_scolon:
-		/* empty */ { }
-	| SCOLON { }
-  ;
+	}
+;
 
 ctx_target_ret: 
 (* ret: x, i; *)
-	RET; COLON; ret_v=VAR; COMMA; i=VAR; SCOLON;
+	RET; COLON; ret_v=VAR; COMMA; i=VAR; SCOLON
 	{ 
 		(* Printf.printf "Parsing return context.\n"; *)
 		ret_v, i
 	}
+;
 	
 ctx_target_err: 
 (* err: x, j *)
-	ERR; COLON; err_v=VAR; COMMA; j=VAR; SCOLON;
+	ERR; COLON; err_v=VAR; COMMA; j=VAR; SCOLON
 	{ 
 		(* Printf.printf "Parsing error context.\n"; *)	
 		err_v, j
 	}
-
-param_list_target: 
-	param_list = separated_list(COMMA, VAR) { param_list };
+;
 
 cmd_list_target: 
-	cmd_list = separated_list(SCOLON, cmd_with_label_and_specs) {
+	cmd_list = separated_nonempty_list(SCOLON, cmd_with_label_and_specs) {
 		List.rev 
 			(List.fold_left
 				(fun ac c ->
@@ -275,7 +297,8 @@ cmd_list_target:
 				)
 				[] 
 				cmd_list)
-	};
+	}
+;
 
 cmd_list_top_target: 
 	cmd_list = separated_list(SCOLON, cmd_with_label_and_specs); EOF {
@@ -291,231 +314,156 @@ cmd_list_top_target:
 				)
 				[] 
 				cmd_list)
-	};
+	}
+;
 
 cmd_with_label_and_specs:
   | pre = option(spec_line); cmd = cmd_target
 		{ (pre, None, cmd) }
-		
-	| pre = option(spec_line); lab = label; cmd = cmd_target; 
+	| pre = option(spec_line); lab = VAR; COLON; cmd = cmd_target
 		{ (pre, Some lab, cmd) }
-
-cmd_target: 
-(* skip *)
-	| SKIP 
-		{ 
-			(* Printf.printf "Parsing Skip.\n"; *)
-			Some (SSyntax.SLBasic(SSyntax.SSkip))
-		} 
-(* x := new() *) 
-	| v=VAR; DEFEQ; NEW; LBRACE; RBRACE
-		{ 
-			(* Printf.printf "Parsing New.\n"; *)
-			Some (SSyntax.SLBasic (SSyntax.SNew v))
-		}
-(* x := e *)
-	| v=VAR; DEFEQ; e=expr_target 
-	{ 
-		(* Printf.printf "Parsing Assignment.\n"; *)
-		Some (SSyntax.SLBasic (SSyntax.SAssignment (v, e)))
-	}
-
-(* x := PHI(e1, e2, ... en); *)
-  | v=VAR; DEFEQ; PHI; LBRACE; es = param_list_target; RBRACE
-	  {
-			(* Printf.printf "Parsing PHI-node.\n"; *)
-			let rec oes l =
-				(match l with
-				| [] -> []
-				| x :: l -> Some x :: oes l) in
-			Some (SLPhiAssignment (v, Array.of_list (oes es)))
-		}
-
-(* x := PSI(e1, e2, ... en); *)
-  | v=VAR; DEFEQ; PSI; LBRACE; es = param_list_target; RBRACE
-	  {
-			(* Printf.printf "Parsing PSI-node.\n"; *)
-			let rec oes l =
-				(match l with
-				| [] -> []
-				| x :: l -> Some x :: oes l) in
-			Some (SLPsiAssignment (v, Array.of_list (oes es)))
-		}	
-			
-(* x := [e1, e2] *)
-	| v=VAR; DEFEQ; LBRACKET; e1=expr_target; COMMA; e2=expr_target; RBRACKET 
-		{ 
-			(* Printf.printf "Parsing Field Look-up.\n"; *)
-			Some (SSyntax.SLBasic (SSyntax.SLookup (v, e1, e2)))
-		}
-(* [e1, e2] := e3 *)
-	| LBRACKET; e1=expr_target; COMMA; e2=expr_target; RBRACKET; DEFEQ; e3=expr_target    
-		{ 
-			(* Printf.printf "Parsing Field Assignment.\n"; *)
-			Some (SSyntax.SLBasic (SSyntax.SMutation (e1, e2, e3))) 
-		}
-(* delete(e1, e2) *)
-	| DELETE; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
-		{ 
-			(* Printf.printf "Parsing Deletion.\n"; *)
-			Some (SSyntax.SLBasic (SSyntax.SDelete (e1, e2)))
-		}
-(* x := hasField(e1, e2) *)
-	| v=VAR; DEFEQ; HASFIELD; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
-		{ 
-			(* Printf.printf "Parsing HasField.\n"; *)
-			Some (SSyntax.SLBasic (SSyntax.SHasField (v, e1, e2)))
-		}
-(* x := getFields (e1) *)
-	| v = VAR; DEFEQ; GETFIELDS; LBRACE; e=expr_target; RBRACE
-		{ Some (SSyntax.SLBasic (SGetFields (v, e))) }
-(* x := args *)
-	| v = VAR; DEFEQ; ARGUMENTS
-	  {
-			Some (SSyntax.SLBasic (SArguments v))
-		}
-(* goto i *)
-	| GOTO; i=VAR 
-		{
-			(* Printf.printf "Parsing Goto.\n"; *)
-			Some (SSyntax.SLGoto i)
-		}
-(* goto [e] i j *)
-	| GOTO LBRACKET; e=expr_target; RBRACKET; i=VAR; j=VAR 
-		{
-			(* Printf.printf "Parsing Conditional Goto.\n"; *)
-			Some (SSyntax.SLGuardedGoto (e, i, j))
-		}
-(* x := e(e1, ..., en) with j *)
-	| v=VAR; DEFEQ; e=expr_target; LBRACE; es=expr_list_target; RBRACE; oi = option(call_with_target)
-		{
-			(* Printf.printf "Parsing Procedure Call.\n"; *)
-			Some (SSyntax.SLCall (v, e, es, oi))
-		};
-(* x := apply (e1, ..., en) with j *)
-	| v=VAR; DEFEQ; APPLY; LBRACE; es=expr_list_target; RBRACE; oi = option(call_with_target)
-		{
-			(* Printf.printf "Parsing Procedure Call.\n"; *)
-			Some (SSyntax.SLApply (v, es, oi))
-		}
 ;
 
-label: 
-	lab=VAR; COLON; 
-		{ lab }
+cmd_target:
+(*** Basic commands ***)
+(* skip *)
+	| SKIP
+		{ Some (SLBasic (SSkip)) }
+(* x := e *)
+	| v=VAR; DEFEQ; e=expr_target
+		{ Some (SLBasic (SAssignment (v, e))) }
+(* x := new() *) 
+	| v=VAR; DEFEQ; NEW; LBRACE; RBRACE
+		{ Some (SLBasic (SNew v)) }
+(* x := [e1, e2] *)
+	| v=VAR; DEFEQ; LBRACKET; e1=expr_target; COMMA; e2=expr_target; RBRACKET
+		{ Some (SLBasic (SLookup (v, e1, e2))) }
+(* [e1, e2] := e3 *)
+	| LBRACKET; e1=expr_target; COMMA; e2=expr_target; RBRACKET; DEFEQ; e3=expr_target
+		{ Some (SLBasic (SMutation (e1, e2, e3))) }
+(* delete(e1, e2) *)
+	| DELETE; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
+		{ Some (SLBasic (SDelete (e1, e2))) }
+(* x := hasField(e1, e2) *)
+	| v=VAR; DEFEQ; HASFIELD; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
+		{ Some (SLBasic (SHasField (v, e1, e2))) }
+(* x := getFields (e1) *)
+	| v = VAR; DEFEQ; GETFIELDS; LBRACE; e=expr_target; RBRACE
+		{ Some (SLBasic (SGetFields (v, e))) }
+(* x := args *)
+	| v = VAR; DEFEQ; ARGUMENTS
+	  { Some (SLBasic (SArguments v)) }
+(*** Other commands ***)
+(* goto i *)
+	| GOTO; i=VAR
+		{ Some (SLGoto i) }
+(* goto [e] i j *)
+	| GOTO LBRACKET; e=expr_target; RBRACKET; i=VAR; j=VAR
+		{ Some (SLGuardedGoto (e, i, j)) }
+(* x := e(e1, ..., en) with j *)
+	| v=VAR; DEFEQ; e=expr_target;
+	  LBRACE; es=separated_list(COMMA, expr_target); RBRACE; oi = option(call_with_target)
+		{ Some (SLCall (v, e, es, oi)) }
+(* x := apply (e1, ..., en) with j *)
+	| v=VAR; DEFEQ; APPLY;
+	  LBRACE; es=separated_list(COMMA, expr_target); RBRACE; oi = option(call_with_target)
+		{ Some (SLApply (v, es, oi)) }
+(* x := PHI(e1, e2, ... en); *)
+  | v=VAR; DEFEQ; PHI; LBRACE; es = separated_list(COMMA, VAR); RBRACE
+	  { Some (SLPhiAssignment (v, Array.of_list (List.map (fun e -> Some e) es))) }
+(* x := PSI(e1, e2, ... en); *)
+  | v=VAR; DEFEQ; PSI; LBRACE; es = separated_list(COMMA, VAR); RBRACE
+	  { Some (SLPsiAssignment (v, Array.of_list (List.map (fun e -> Some e) es))) }
+;
 
-expr_list_target: 
-	expr_list=separated_list(COMMA, expr_target) { expr_list }
+call_with_target: 
+	WITH; i=VAR { i }
 ;
 
 expr_target: 
 (* literal *)
-	| lit=lit_target { SSyntax.Literal lit }
+	| lit=lit_target { Literal lit }
 (* var *)
-	| v=VAR { SSyntax.Var v }
-(* binop *)	
-	| e1=expr_target; bop=binop_target; e2=expr_target { SSyntax.BinOp (e1, bop, e2) }
-(* unop *)
-  | uop=unop_target; e=expr_target { SSyntax.UnaryOp (uop, e) }
-(* vref *)
+	| v=VAR { Var v }
+(* e binop e *)
+	| e1=expr_target; bop=binop_target; e2=expr_target
+		{ BinOp (e1, bop, e2) }
+(* unop e *)
+  | uop=unop_target; e=expr_target
+		{ UnaryOp (uop, e) }
+(* - e *)
+(* Unary negation has the same precedence as logical not, not as binary negation. *)
+	| MINUS; e=expr_target
+		{ UnaryOp (UnaryMinus, e) } %prec unary_minus
+(* v-ref *)
 	| VREF; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
-		{ SSyntax.VRef (e1, e2) }
-(* oref *)
+		{ VRef (e1, e2) }
+(* o-ref *)
 	| OREF; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
-		{ SSyntax.ORef (e1, e2) }
+		{ ORef (e1, e2) }
 (* base *)
 	| BASE; LBRACE; e=expr_target; RBRACE
-		{ SSyntax.Base (e) }
+		{ Base (e) }
 (* field *)
 	| FIELD; LBRACE; e=expr_target; RBRACE
-		{ SSyntax.Field (e) }		
-(* typeof *)
+		{ Field (e) }
+(* typeOf *)
 	| TYPEOF; LBRACE; e=expr_target; RBRACE
-		{ SSyntax.TypeOf (e) }
-(* s-nth (string, n) *)
-	| SNTH; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE 
-		{ SSyntax.SNth (e1, e2) }
-(* l-nth (list, n) *)
-	| LNTH; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE 
-		{ SSyntax.LNth (e1, e2) }
-(* {{ }}	| LISTOPEN; LISTCLOSE { SSyntax.LEList [] } *)
+		{ TypeOf (e) }
+(* asssume (e) *)
+  | ASSUME; LBRACE; e=expr_target; RBRACE
+	  { RAssume (e) }
+(* assert (e) *)
+  | ASSERT; LBRACE;  e=expr_target; RBRACE
+	  { RAssert (e) }
+(* make_symbol_number() *)
+  | RNUMSYM; LBRACE;  RBRACE
+	  { RNumSymb }
+(* make_symbol_string() *)
+  | RSTRSYM; LBRACE; RBRACE
+	  { RStrSymb }
 (* {{ e, ..., e }} *)
-	| LISTOPEN; exprlist = separated_list(COMMA, expr_target); LISTCLOSE 
-		{ SSyntax.EList exprlist }
-(* cons(e, e) *)
-	| LISTOPEN; CONS; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE 
-		{ SSyntax.Cons (e1, e2) }
+	| LSTOPEN; exprlist = separated_nonempty_list(COMMA, expr_target); LSTCLOSE
+		{ EList exprlist }
+(* l-nth (list, n) *)
+	| LSTNTH; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE 
+		{ LstNth (e1, e2) }
+(* s-nth (string, n) *)
+	| STRNTH; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE 
+		{ StrNth (e1, e2) }
 (* (e) *)
   | LBRACE; e=expr_target; RBRACE
 		{ e }
-(* asssume (e) *)
-  | ASSUME; LBRACE; e=expr_target; RBRACE
-	  { SSyntax.RAssume (e) }	
-(* assert (e) *)
-  | ASSERT; LBRACE;  e=expr_target; RBRACE
-	  { SSyntax.RAssert (e) }
-(* make_symbol_number() *)
-  | RNUMSYM; LBRACE;  RBRACE
-	  { SSyntax.RNumSymb }		
-(* make_symbol_string() *)
-  | RSTRSYM; LBRACE; RBRACE
-	  { SSyntax.RStrSymb }		
 ;
 
 (********* LOGIC *********)
 
 pred_target:
-	PRED name=VAR LBRACE params=param_list_target RBRACE COLON
-		definitions=separated_list(COMMA, assertion_target) SCOLON
-  {
-		{
-			name        = name;
-			num_params  = List.length params;
-			params      = params;
-			definitions = definitions;
-		}
-	};
-
-specs_target:
-	spec_list_target EOF	{ $1 }
+(* pred name (arg1, ..., argn) : def1, ..., defn ; *)
+	PRED; name = VAR; LBRACE; params = separated_list(COMMA, VAR); RBRACE; COLON;
+		definitions = separated_nonempty_list(COMMA, assertion_target); SCOLON
+  { { name; num_params  = List.length params; params; definitions; } }
 ;
 
-spec_list_target: 
-	spec_list = separated_list(SCOLON, spec_target) { spec_list };
-
-spec_target: 
+spec_target:
 (* spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *) 
-	SPEC; proc_name=VAR; LBRACE; param_list=param_list_target; RBRACE; pre_post_list=pre_post_list_target;
-	{ 
-		{ 
-      spec_name = proc_name;
-    	spec_params = param_list;
-			proc_specs = pre_post_list 
-		}
-	};
-	
-pre_post_list_target:
-	pre_post_list = separated_list(SCOLON, pre_post_target) { pre_post_list };
+	SPEC; spec_name = VAR; LBRACE; spec_params = separated_list(COMMA, VAR); RBRACE;
+	proc_specs = separated_nonempty_list(SCOLON, pre_post_target);
+	{ { spec_name; spec_params; proc_specs } }
+;
 
-(* [[ .... ]] [[ .... ]] flag *)
 pre_post_target:
-	pre_assertion = spec_line; post_assertion = spec_line; ret_flag=ret_flag_target
-	{
-		{
-			pre = pre_assertion;
-			post = post_assertion;
-			ret_flag = ret_flag
-		}
-	};
+(* [[ .... ]] [[ .... ]] Normal *)
+	| pre = spec_line; post = spec_line; NORMAL
+		{ { pre; post; ret_flag = Normal } }
+(* [[ .... ]] [[ .... ]] Error *)
+	| pre = spec_line; post = spec_line; ERROR
+		{ { pre; post; ret_flag = Error } }
+;
 
 spec_line:
-  OSPEC; assertion=assertion_target; CSPEC
-	{ assertion }
-
-ret_flag_target: 
-	| NORMAL { Normal }
-	| ERR { Error }
-; 
+  OASSERT; assertion = assertion_target; CASSERT { assertion }
+;
 
 assertion_target:
 (* P /\ Q *)
@@ -524,7 +472,7 @@ assertion_target:
 (* P \/ Q *)
 	| left_ass=assertion_target; LOR; right_ass=assertion_target 
 		{ LOr (left_ass, right_ass) }
-(* ~ Q *)
+(* ! Q *)
 	| LNOT; ass=assertion_target 
 		{ LNot (ass) }
 (* true *)
@@ -540,88 +488,62 @@ assertion_target:
 	| left_expr=lexpr_target; LLESSTHANEQUAL; right_expr=lexpr_target
 		{ LLessEq (left_expr, right_expr) }
 (* P * Q *)
+(* The precedence of the separating conjunction is not the same as the arithmetic product *)
 	| left_ass=assertion_target; TIMES; right_ass=assertion_target 
-		{ 
-			LStar (left_ass, right_ass) 
-		}
+		{ LStar (left_ass, right_ass) } %prec separating_conjunction
 (* (E, E) -> E *)
 	| LBRACE; obj_expr=lexpr_target; COMMA; prop_expr=lexpr_target; RBRACE; LARROW; val_expr=lexpr_target
-		{ 
-			LPointsTo (obj_expr, prop_expr, val_expr) 
-		}
+		{ LPointsTo (obj_expr, prop_expr, val_expr) }
 (* emp *)
 	| LEMP;
-		{ 
-			LEmp 
-		}
-(* exists X, Y, Z . P
-	| LEXISTS; vars=var_list_target; DOT; ass=assertion_target
-		{ LExists (vars, ass) }  *)
+		{ LEmp }
+(* exists X, Y, Z . P 
+	| LEXISTS; vars = separated_nonempty_list(COMMA, LVAR); DOT; ass = assertion_target
+		{ LExists (vars, ass) } *)
 (* forall X, Y, Z . P 
-	| LFORALL; vars=var_list_target; DOT; ass=assertion_target
+	| LFORALL; vars = separated_nonempty_list(COMMA, LVAR); DOT; ass = assertion_target
 		{ LForAll (vars, ass) } *)
-		
-(* type_env (type_pairs) *)
-  | LTYPEENV; LBRACE; type_pairs = type_env_pair_list_target; RBRACE
-    { LTypeEnv type_pairs }
-
+(* x(e1, ..., en) *)
+	| name = VAR; LBRACE; params = separated_list(COMMA, lexpr_target); RBRACE
+	  { LPred (name, params) }
+(* types (type_pairs) *)
+  | LTYPES; LBRACE; type_pairs = separated_list(COMMA, type_env_pair_target); RBRACE
+    { LTypes type_pairs }
 (* (P) *)
   | LBRACE; ass=assertion_target; RBRACE
 	  { ass }
 ;
 
-var_target:
-  | pv = VAR  { PVar pv }
-	| lv = LVAR { LVar lv }
-;
-
-type_env_pair_list_target:
-  type_env_pair_list = separated_list(COMMA, type_env_pair_target) { type_env_pair_list; }
-;
-
 type_env_pair_target:
-  | v = var_target; COLON; the_type=jsil_type_target
-	  { (v, the_type) }
-;
-
-jsil_type_target:
-	| UNDEFTYPELIT { SSyntax.UndefinedType }
-	| NULLTYPELIT { SSyntax.NullType }
-  | EMPTYTYPELIT { SSyntax.EmptyType }
-	| BOOLTYPELIT { SSyntax.BooleanType }
-	| INTTYPELIT { SSyntax.IntType }
-	| NUMTYPELIT { SSyntax.NumberType }
-	| STRTYPELIT { SSyntax.StringType }
-	| OBJTYPELIT { SSyntax.ObjectType }
-	| REFTYPELIT { SSyntax.ReferenceType }
-	| VREFTYPELIT { SSyntax.VariableReferenceType }
-	| OREFTYPELIT { SSyntax.ObjectReferenceType }	
-	| LISTTYPELIT { SSyntax.ListType }
-  | TYPETYPELIT { SSyntax.TypeType }
-;
-
-var_list_target:
-	var_list = separated_list(COMMA, LVAR) { var_list }
+  | v = VAR; COLON; the_type=type_target
+    { (PVar v, the_type) }
+  | v = LVAR; COLON; the_type=type_target
+    { (LVar v, the_type) }
 ;
 
 lexpr_target:
 (* literal *)
 	| lit=lit_target { LLit lit }
-(* none *)
-	| LNONE
-		{ LNone }
+(* None *)
+	| LNONE { LNone }
 (* lvar *)
 	| v=LVAR { LVar v }
 (* pvar *)
 	| v=VAR { PVar v }
-(* binop *)	
-	| e1=lexpr_target; bop=binop_target; e2=lexpr_target { LBinOp (e1, bop, e2) }
-(* unop *)
-  | uop=unop_target; e=lexpr_target { LUnOp (uop, e) }
-(* vref *)
+(* e binop e *)	
+	| e1=lexpr_target; bop=binop_target; e2=lexpr_target
+		{ LBinOp (e1, bop, e2) }
+(* unop e *)
+  | uop=unop_target; e=lexpr_target
+		{ LUnOp (uop, e) }
+(* - e *)
+(* Unary negation has the same precedence as logical not, not as binary negation. *)
+	| MINUS; e=lexpr_target
+		{ LUnOp (UnaryMinus, e) } %prec unary_minus
+(* v-ref *)
 	| VREF; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE
 		{ LEVRef (e1, e2) }
-(* oref *)
+(* o-ref *)
 	| OREF; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE
 		{ LEORef (e1, e2) }
 (* base *)
@@ -630,19 +552,18 @@ lexpr_target:
 (* field *)
 	| FIELD; LBRACE; e=lexpr_target; RBRACE
 		{ LBase (e) }		
-(* typeof *)
+(* typeOf *)
 	| TYPEOF; LBRACE; e=lexpr_target; RBRACE
 		{ LTypeOf (e) }
-(* l-nth(e1, e2) *)
-	| LNTH; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE { SSyntax.LLNth (e1, e2) }
-(* s-nth(e1, e2) *)
-	| SNTH; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE { SSyntax.LSNth (e1, e2) }
 (* {{ e, ..., e }} *)
-	| LISTOPEN; exprlist = separated_list(COMMA, lexpr_target); LISTCLOSE 
-		{ SSyntax.LEList exprlist }
-(* cons(e, e) *)
-	| LISTOPEN; CONS; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE 
-		{ SSyntax.LCons (e1, e2) }
+	| LSTOPEN; exprlist = separated_nonempty_list(COMMA, lexpr_target); LSTCLOSE
+		{ LEList exprlist }
+(* l-nth(e1, e2) *)
+	| LSTNTH; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE
+		{ LLstNth (e1, e2) }
+(* s-nth(e1, e2) *)
+	| STRNTH; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE
+		{ LStrNth (e1, e2) }
 (* (e) *)
   | LBRACE; e=lexpr_target; RBRACE
 	  { e }	
@@ -651,103 +572,107 @@ lexpr_target:
 (********* COMMON *********)
 
 lit_target: 
-	| UNDEFINED { SSyntax.Undefined }
-	| NULL { SSyntax.Null }
-	| EMPTY { SSyntax.Empty }
-	| UNDEFTYPELIT { SSyntax.Type SSyntax.UndefinedType }
-	| NULLTYPELIT { SSyntax.Type SSyntax.NullType }
-  | EMPTYTYPELIT { SSyntax.Type SSyntax.EmptyType }
-	| BOOLTYPELIT { SSyntax.Type SSyntax.BooleanType }
-	| NUMTYPELIT { SSyntax.Type SSyntax.NumberType }
-	| STRTYPELIT { SSyntax.Type SSyntax.StringType }
-	| OBJTYPELIT { SSyntax.Type SSyntax.ObjectType }
-	| REFTYPELIT { SSyntax.Type SSyntax.ReferenceType }
-	| VREFTYPELIT { SSyntax.Type SSyntax.VariableReferenceType }
-	| OREFTYPELIT { SSyntax.Type SSyntax.ObjectReferenceType }	
-	| LISTTYPELIT { SSyntax.Type SSyntax.ListType }
-	| TYPETYPELIT { SSyntax.Type SSyntax.TypeType }
-	| TRUE { SSyntax.Bool true }
-	| FALSE { SSyntax.Bool false }
-(*	| i=INT { SSyntax.Num (float_of_int i) } *)
-	| NAN { SSyntax.Num nan }
-	| INFINITY { SSyntax.Num infinity }
-	| x=FLOAT { SSyntax.Num x }
-	| s=STRING { SSyntax.String s }
-	| loc=LOC { SSyntax.Loc loc }
-	| loc=lit_target; VREFLIT; s=STRING { SSyntax.LVRef (loc, s) }
-	| loc=lit_target; OREFLIT; s=STRING { SSyntax.LORef (loc, s) }
-	(* EMPTY AND NON-EMPTY LISTS *)
-	| LNIL { SSyntax.LList [] }
-	| LISTOPEN; LISTCLOSE { SSyntax.LList [] }
-	| MIN_FLOAT { SSyntax.Constant Min_float }
-	| MAX_FLOAT { SSyntax.Constant Max_float }
-	| RANDOM { SSyntax.Constant Random }
-	| E { SSyntax.Constant E }
-	| LN10 { SSyntax.Constant Ln10 }
-	| LN2 { SSyntax.Constant Ln2 }
-	| LOG2E { SSyntax.Constant Log2e }
-	| LOG10E { SSyntax.Constant Log10e }
-	| PI { SSyntax.Constant Pi }
-	| SQRT1_2 { SSyntax.Constant Sqrt1_2 }
-	| SQRT2 { SSyntax.Constant Sqrt2 }
-	| M_RANDOM { SSyntax.Constant Random }
+	| UNDEFINED                 { Undefined }
+	| NULL                      { Null }
+	| EMPTY                     { Empty }
+	| constant_target           { Constant $1 }
+	| TRUE                      { Bool true }
+	| FALSE                     { Bool false }
+	| FLOAT                     { Num $1 }
+	| NAN                       { Num nan }
+	| INFINITY                  { Num infinity }
+	| STRING                    { String $1 }
+	| LOC                       { Loc $1 }
+	| type_target               { Type $1 }
+	| lit_target VREFLIT STRING { LVRef ($1, $3) }
+	| lit_target OREFLIT STRING { LORef ($1, $3) }
+	| LSTNIL                    { LList [] }
+	| LSTOPEN LSTCLOSE          { LList [] }
 ;
 
-binop_target: 
-	| EQUAL { SSyntax.Equal }
-	| LESSTHAN { SSyntax.LessThan }
-	| LESSTHANSTRING { SSyntax.LessThanString }
-	| LESSTHANEQUAL { SSyntax.LessThanEqual }
-	| PLUS { SSyntax.Plus }
-	| MINUS { SSyntax.Minus }
-	| TIMES { SSyntax.Times }
-	| DIV { SSyntax.Div }
-	| MOD { SSyntax.Mod }
-	| SUBTYPE { SSyntax.Subtype }
-	| CONCAT { SSyntax.Concat }
-	| APPEND { SSyntax.Append }
-	| AND { SSyntax.And }
-	| OR { SSyntax.Or }
-	| BITWISEAND { SSyntax.BitwiseAnd }
-	| BITWISEOR { SSyntax.BitwiseOr}
-	| BITWISEXOR { SSyntax.BitwiseXor }
-	| LEFTSHIFT { SSyntax.LeftShift }
-	| SIGNEDRIGHTSHIFT { SSyntax.SignedRightShift }
-	| UNSIGNEDRIGHTSHIFT { SSyntax.UnsignedRightShift }
-	| LCONS { SSyntax.LCons }
-	| M_ATAN2 { SSyntax.M_atan2 }
-	| M_POW {SSyntax.M_pow }
+%inline binop_target: 
+	| EQUAL              { Equal }
+	| LESSTHAN           { LessThan }
+	| LESSTHANSTRING     { LessThanString }
+	| LESSTHANEQUAL      { LessThanEqual }
+	| PLUS               { Plus }
+	| MINUS              { Minus }
+	| TIMES              { Times }
+	| DIV                { Div }
+	| MOD                { Mod }
+	| AND                { And }
+	| OR                 { Or }
+	| BITWISEAND         { BitwiseAnd }
+	| BITWISEOR          { BitwiseOr}
+	| BITWISEXOR         { BitwiseXor }
+	| LEFTSHIFT          { LeftShift }
+	| SIGNEDRIGHTSHIFT   { SignedRightShift }
+	| UNSIGNEDRIGHTSHIFT { UnsignedRightShift }
+	| M_ATAN2            { M_atan2 }
+	| M_POW              { M_pow }
+	| SUBTYPE            { Subtype }
+	| LSTCONS            { LstCons }
+	| LSTCAT             { LstCat }
+	| STRCAT             { StrCat }
 ;
 
-unop_target: 
-	| NOT { SSyntax.Not }
-	| MINUS { SSyntax.Negative }
-	| TOSTRING { SSyntax.ToStringOp }
-	| TONUMBER { SSyntax.ToNumberOp }
-	| TOINT { SSyntax.ToIntOp }
-	| TOUINT16 { SSyntax.ToUint16Op }
-	| TOINT32 { SSyntax.ToInt32Op }
-	| TOUINT32 { SSyntax.ToUint32Op }
-	| BITWISENOT { SSyntax.BitwiseNot }
-	| CAR { SSyntax.Car }
-	| CDR { SSyntax.Cdr }
-	| ISPRIMITIVE { SSyntax.IsPrimitive }
-	| LENGTH { SSyntax.Length }
-	| M_ABS   { SSyntax.M_abs }
-	| M_ACOS  { SSyntax.M_acos }
-	| M_ASIN  { SSyntax.M_asin }
-	| M_ATAN  { SSyntax.M_atan }
-	| M_CEIL  { SSyntax.M_ceil }
-	| M_COS   { SSyntax.M_cos }
-	| M_EXP   { SSyntax.M_exp }
-	| M_FLOOR { SSyntax.M_floor }
-	| M_LOG   { SSyntax.M_log }
-	| M_ROUND { SSyntax.M_round }
-	| M_SGN   { SSyntax.M_sgn }
-	| M_SIN   { SSyntax.M_sin }
-	| M_SQRT  { SSyntax.M_sqrt }
-	| M_TAN   { SSyntax.M_tan }
+%inline unop_target:
+	| NOT         { Not }
+	(* Unary minus defined in (l)expr_target *)
+	| BITWISENOT  { BitwiseNot }
+	| M_ABS       { M_abs }
+	| M_ACOS      { M_acos }
+	| M_ASIN      { M_asin }
+	| M_ATAN      { M_atan }
+	| M_CEIL      { M_ceil }
+	| M_COS       { M_cos }
+	| M_EXP       { M_exp }
+	| M_FLOOR     { M_floor }
+	| M_LOG       { M_log }
+	| M_ROUND     { M_round }
+	| M_SGN       { M_sgn }
+	| M_SIN       { M_sin }
+	| M_SQRT      { M_sqrt }
+	| M_TAN       { M_tan }
+	| ISPRIMITIVE { IsPrimitive }
+	| TOSTRING    { ToStringOp }
+	| TOINT       { ToIntOp }
+	| TOUINT16    { ToUint16Op }
+	| TOINT32     { ToInt32Op }
+	| TOUINT32    { ToUint32Op }
+	| TONUMBER    { ToNumberOp }
+	| CAR         { Car }
+	| CDR         { Cdr }
+	| LSTLEN      { LstLen }
+	| STRLEN      { StrLen }
 ;
 
-call_with_target: 
-	WITH; i=VAR { i }
+%inline constant_target:
+	| MIN_FLOAT { Min_float }
+	| MAX_FLOAT { Max_float }
+	| RANDOM    { Random }
+	| E         { E }
+	| LN10      { Ln10 }
+	| LN2       { Ln2 }
+	| LOG2E     { Log2e }
+	| LOG10E    { Log10e }
+	| PI        { Pi }
+	| SQRT1_2   { Sqrt1_2 }
+	| SQRT2     { Sqrt2 }
+;
+
+%inline type_target:
+	| UNDEFTYPELIT { UndefinedType }
+	| NULLTYPELIT  { NullType }
+	| EMPTYTYPELIT { EmptyType }
+	| BOOLTYPELIT  { BooleanType }
+	| INTTYPELIT 	 { IntType }
+	| NUMTYPELIT   { NumberType }
+	| STRTYPELIT   { StringType }
+	| OBJTYPELIT   { ObjectType }
+	| REFTYPELIT   { ReferenceType }
+	| OREFTYPELIT  { ObjectReferenceType }
+	| VREFTYPELIT  { VariableReferenceType }
+	| LISTTYPELIT  { ListType }
+	| TYPETYPELIT  { TypeType }
+;

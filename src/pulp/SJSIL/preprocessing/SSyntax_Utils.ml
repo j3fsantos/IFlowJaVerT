@@ -1,12 +1,7 @@
-open SSyntax
 open Lexing
+open SJSIL_Syntax
 
 let verbose = ref false
-
-let if_some p f d =
-	(match p with
-	| None -> d
-	| Some p -> f p)
 
 let get_proc_variables proc = 
 	
@@ -95,7 +90,7 @@ let desugar_labs lproc =
 			error_var = lev;
 			spec = lspec;
 		} in
-	if (!verbose) then Printf.printf "%s" (SSyntax_Print.string_of_procedure proc false);
+	if (!verbose) then Printf.printf "%s" (JSIL_Print.string_of_procedure proc false);
 	proc
 	 
 let rec desugar_labs_list lproc_list =
@@ -179,7 +174,7 @@ let prog_of_ext_prog filename ext_program =
 	(* Add the declarations from the imported files *)
 	resolve_imports filename ext_program;
 	(* Desugar the labels in the procedures, etc. *)
-	let prog = SProgram.create 101 in 
+	let prog = Hashtbl.create 101 in 
 	let global_which_pred = Hashtbl.create 101 in 
 	Hashtbl.iter 
 		(fun proc_name ext_proc -> 
@@ -195,7 +190,7 @@ let prog_of_ext_prog filename ext_program =
 					Hashtbl.replace global_which_pred (proc_name, prev_cmd, cur_cmd) i)
 				which_pred;
 			
-			SProgram.replace prog proc_name proc)
+			Hashtbl.replace prog proc_name proc)
 	ext_program.procedures;
 	prog, global_which_pred
 
@@ -209,13 +204,10 @@ let extend_which_pred global_which_pred proc =
 			Hashtbl.replace global_which_pred (proc_name, prev_cmd, cur_cmd) i)
 		which_pred	
 
-	
 let print_which_pred wp = 
 	Hashtbl.fold
 	  (fun k v ac -> 
-		 let str = 
+		 ac ^
 		 (match k with
-			| (pn : string), (pc : int), (cc : int) ->
-				Printf.sprintf "    (\"%s\" %d %d %d)\n" pn pc cc v;
-			| _ -> raise (Failure "Oopsie. Incorrect which pred structure.")) in
-	   ac ^ str) wp ""
+			| (pn : string), (pc : int), (cc : int) -> Printf.sprintf "    (\"%s\" %d %d %d)\n" pn pc cc v))
+		wp ""

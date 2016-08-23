@@ -1,7 +1,7 @@
 open Utils
 open Lexing
 open Batteries
-open SSyntax
+open SJSIL_Syntax
 
 let js2jsil_imports = [
 	"Array"; 
@@ -550,9 +550,9 @@ let translate_binop_plus x1 x2 x1_v x2_v err =
 	(* x2_s := i__toString (x2_p) with err *) 
 	let x2_s, cmd_ts_x2 = make_to_string_call x2 x2_p err in
 		
-	(* x_rthen := x1_s :: x2_s  *) 
+	(* x_rthen := x1_s ++ x2_s  *) 
 	let x_rthen = fresh_var () in 
-	let cmd_ass_xrthen = SLBasic (SAssignment (x_rthen, BinOp((Var x1_s), Concat, (Var x2_s)))) in 
+	let cmd_ass_xrthen = SLBasic (SAssignment (x_rthen, BinOp((Var x1_s), StrCat, (Var x2_s)))) in 
 		
 	(* else: x1_n := i__toNumber (x1_p) with err *) 
 	let x1_n, cmd_tn_x1 = make_to_number_call x1 x1_p err in
@@ -760,7 +760,7 @@ let make_loop_end cur_val_var prev_val_var break_vars end_lab cur_first =
 	cmds, x_ret_5 
 			
 	
-let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : ((SSyntax.jsil_metadata * (string option) * SSyntax.jsil_lab_cmd) list) * SSyntax.jsil_expr * (string list) =
+let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : ((jsil_metadata * (string option) * jsil_lab_cmd) list) * jsil_expr * (string list) =
 	
 	let f = translate_expr offset_converter fid cc_table vis_fid err false in
 	let f_rosette = translate_expr offset_converter fid cc_table vis_fid err true in
@@ -849,9 +849,9 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let x_r = fresh_var () in  
 		let jsil_bop = 
 			(match lbop with 
-			| Parser_syntax.And -> SSyntax.And 
-			| Parser_syntax.Or -> SSyntax.Or) in 
-		let cmd_ass_xr = SLBasic (SAssignment (x_r, SSyntax.BinOp (Var x1_v, jsil_bop, Var x2_v))) in 
+			| Parser_syntax.And -> SJSIL_Syntax.And 
+			| Parser_syntax.Or -> SJSIL_Syntax.Or) in 
+		let cmd_ass_xr = SLBasic (SAssignment (x_r, SJSIL_Syntax.BinOp (Var x1_v, jsil_bop, Var x2_v))) in 
 		
 		let cmds = cmds1 @ (annotate_cmds [   (*         cmds1                                              *)
 			(None,         cmd_gv_x1);          (*         x1_v := i__getValue (x1) with err                  *)
@@ -1352,7 +1352,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 
 		let x_params = fresh_var () in	
 		let jsil_list_params = EList ([Var x_bbody; Var x_bfscope; Var x_bthis]) in
-		let cmd_append = SLBasic (SAssignment (x_params, (BinOp (BinOp (jsil_list_params, Append, Var x_ba), Append, (EList x_args_gv))))) in
+		let cmd_append = SLBasic (SAssignment (x_params, (BinOp (BinOp (jsil_list_params, LstCat, Var x_ba), LstCat, (EList x_args_gv))))) in
 		
 		let x_bconstruct = fresh_var () in
 		let cmd_bind = SLApply (x_bconstruct, [ Var x_params ], Some err) in
@@ -1593,7 +1593,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 
 		let x_params = fresh_var () in
 		let jsil_list_params = EList ([Var x_bbody; Var x_bfscope; Var x_bt]) in
-		let cmd_append = SLBasic (SAssignment (x_params, (BinOp (BinOp (jsil_list_params, Append, Var x_ba), Append, (EList x_args_gv))))) in
+		let cmd_append = SLBasic (SAssignment (x_params, (BinOp (BinOp (jsil_list_params, LstCat, Var x_ba), LstCat, (EList x_args_gv))))) in
 		
 		let x_rbind = fresh_var () in
 		let cmd_bind = SLApply (x_rbind, [ Var x_params ], Some err) in
@@ -1959,7 +1959,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		
 		(* else: x_else := (negative x_n) *)
 		let x_else = fresh_var () in 
-		let cmd_ass_xelse = SLBasic (SAssignment (x_else, UnaryOp (Negative, (Var x_n)))) in
+		let cmd_ass_xelse = SLBasic (SAssignment (x_else, UnaryOp (UnaryMinus, (Var x_n)))) in
 		
 		(* end:  x_r := PHI(x_then, x_else) *) 
 		let x_r = fresh_var () in 
@@ -3649,13 +3649,13 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 								xlf := "i__getAllEnumerableFields" (x4)  with err					Put all of its enumerable properties (protochain included) in xlf
 								xf  := getFields (xlf) 																		Get all of those properties
 								
-								len := length (xf)																				Get the number of properties
+								len := l-len (xf)																					Get the number of properties
 								x_c := 0;																									Initialise counter
 								
 			head:     x_ret_1 := PHI(x_ret_0, x_ret_3)													Setup return value
 								x_c_1 := PSI(x_c, x_c_2);																	Setup counter
 								goto [x_c_1 < len] body end_loop 											6.	Are we done?
-			body: 		xp := nth (xf, x_c_1)																	6a.	Get the nth property
+			body: 		xp := l-nth (xf, x_c_1)																6a.	Get the nth property
 								xl := [xlf, xp];																			6a.	Get the location of where it should be
 								xhf := hasField (xl, xp)              			  				6a.	Understand if it's still there!
 								goto [xhf] next1 next3																6a.	And jump accordingly 
@@ -3723,9 +3723,9 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			let xf = fresh_var () in 
 			let cmd_xf_ass = SLBasic (SGetFields (xf, Var xlf)) in 
 			
-			(* len := length (xf)	 *) 
+			(* len := l-len (xf)	 *) 
 			let len = fresh_var () in 
-			let cmd_ass_len = SLBasic (SAssignment (len, UnaryOp (Length, Var xf))) in 
+			let cmd_ass_len = SLBasic (SAssignment (len, UnaryOp (LstLen, Var xf))) in 
 			
 			(* x_c := 0 *) 
 			let x_c = fresh_var () in 
@@ -3742,17 +3742,17 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			(* goto [x_c_1 < len] body end_loop  *) 
 			let cmd_goto_len = SLGuardedGoto (BinOp (Var x_c_1, LessThan, Var len), body, end_loop) in 
 			
-			(* xp := nth (xf, x_c_1)	*) 
+			(* xp := l-nth (xf, x_c_1)	*) 
 			let xp = fresh_var () in 
-			let cmd_ass_xp = SLBasic (SAssignment (xp, LNth (Var xf, Var x_c_1))) in 
+			let cmd_ass_xp = SLBasic (SAssignment (xp, LstNth (Var xf, Var x_c_1))) in 
 			
 			(* xl := [xlf, xp];	*) 
 			let xl = fresh_var () in 
 			let cmd_ass_xl = SLBasic (SLookup (xl, Var xlf, Var xp)) in 
 			
-			(*  xxl := nth (xl, 1)   *)
+			(*  xxl := l-nth (xl, 1)   *)
 			let xxl = fresh_var () in
-			let cmd_ass_xxl = SLBasic (SAssignment (xxl, LNth (Var xl, Literal (Num 1.)))) in 
+			let cmd_ass_xxl = SLBasic (SAssignment (xxl, LstNth (Var xl, Literal (Num 1.)))) in 
 			
 			(* 	xhf := hasField (xxl, xp) *) 
 			let xhf = fresh_var () in 
@@ -3805,14 +3805,14 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 				(Some next0,    cmd_to_obj_call);         (* next0:		x4 := "i__toObject" (x2_v) with err			                      *)
 				(None,          cmd_get_enum_fields);     (*           xlf := "i__getAllEnumerableFields" (x4)  with err            *)
 				(None,          cmd_xf_ass);              (*           xf  := getFields (xlf)                                       *)
-				(None,          cmd_ass_len);             (*           len := length (xf)                                           *)
+				(None,          cmd_ass_len);             (*           len := l-len (xf)                                           *)
 				(None,          cmd_ass_xc);              (*           x_c := 0                                                     *)
 				(Some head,     cmd_ass_xret1);           (* head:     x_ret_1 := PHI(x_ret_0, x_ret_3)                             *)
 				(None,          cmd_ass_xc1);             (*           x_c_1 := PSI(x_c, x_c_2) 		                                *)
 				(None,          cmd_goto_len);            (*           goto [x_c_1 < len] body end_loop 	                          *)  
-				(Some body,     cmd_ass_xp);              (* body: 		 xp := nth (xf, x_c_1)		                                    *)
+				(Some body,     cmd_ass_xp);              (* body: 		 xp := l-nth (xf, x_c_1)		                                    *)
 				(None,          cmd_ass_xl);              (*           xl := [xlf, xp] 	                                            *)
-				(None,          cmd_ass_xxl);             (*           xxl := nth (xl, 1)                                           *)
+				(None,          cmd_ass_xxl);             (*           xxl := l-nth (xl, 1)                                           *)
 				(None,          cmd_ass_hf);              (*           xhf := hasField (xxl, xp)                                    *)
 				(None,          cmd_goto_xhf)             (*           goto [xhf] next1 next4	                                      *)
 			]) @ cmds1 @ (annotate_cmds [               (* next1:    cmds1                                                        *)                                
@@ -4804,9 +4804,9 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 		(* let proc_eval_str = SSyntax_Print.string_of_ext_procedure proc in 
 		   Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
 			let proc = SSyntax_Utils.desugar_labs proc in 
-			SProgram.add prog f_id proc; 
+			Hashtbl.add prog f_id proc;
 			SSyntax_Utils.extend_which_pred which_pred proc)
 		new_fun_tbl; 
 	
-	let proc_eval = try SProgram.find prog new_fid with _ -> raise (Failure "no eval proc was created") in 
+	let proc_eval = try Hashtbl.find prog new_fid with _ -> raise (Failure "no eval proc was created") in 
 	proc_eval 

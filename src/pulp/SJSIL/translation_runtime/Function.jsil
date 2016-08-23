@@ -31,7 +31,7 @@ with
 proc FP_call () {
 					
 			arguments := args;
-			len := length (arguments);
+			len := l-len (arguments);
 			vthis  := l-nth (arguments, 1); 
 			
 			xret := "i__isCallable" (vthis);
@@ -95,7 +95,7 @@ proc FP_apply (xsc, vthis, this_arg, arg_array) {
 	
 	head:	xret := "i__toString" (index) with elab;
 			xret := g (arg_array, xret) with elab;
-			params :=  params ++ {{ xret }};
+			params :=  params @ {{ xret }};
 			index := index + 1;
 			goto loop;
 			
@@ -103,7 +103,7 @@ proc FP_apply (xsc, vthis, this_arg, arg_array) {
 			body   := [vthis, "@call"]; 
 			xscope := [vthis, "@scope"];
 			
-			new_args := xscope :: xthis :: params;
+			new_args := xscope :: (xthis :: params);
 			
 			xret := apply (body, new_args) with elab;
 			goto rlab;
@@ -175,7 +175,7 @@ proc FP_bind (xsc, vthis, thisArg) {
 			goto [xret] cont1 throw;
 			
 	cont1:	A := {{ }};
-			goto [(length arguments) < 4] cont2 setarg;
+			goto [(l-len arguments) < 4] cont2 setarg;
 	setarg:	A := cdr (cdr (cdr arguments));
 	
 	cont2:	xret := new ();
@@ -204,7 +204,7 @@ proc FP_bind (xsc, vthis, thisArg) {
 	
 	fun:	g := [Target, "@get"];
 			xret := g (Target, "length") with elab;
-			L := xret - (length A);
+			L := xret - (l-len A);
 			xret := "M_max" ($$empty, $$empty, L, 0);
 			[F, "length"] := {{ "d", xret, $$f, $$f, $$f }};
 			goto tterr;
@@ -223,4 +223,4 @@ with
 {
 	ret: xret, rlab;
 	err: xret, elab;
-}
+};
