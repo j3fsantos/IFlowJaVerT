@@ -184,7 +184,7 @@ let rewrite_non_assignment_ssa cmd var_stacks rename_var =
 		let new_e = rewrite_expr_ssa e var_stacks rename_var in 
 		SGuardedGoto (new_e, i, j) 
 	| _ ->
-		let cmd_str = (JSIL_Print.string_of_cmd (make_empty_metadata, cmd) 0 0 false false false) in  
+		let cmd_str = (JSIL_Print.string_of_cmd (empty_metadata, cmd) 0 0 false false false) in  
 		raise (Failure ("Cannot Rewrite the command " ^ cmd_str ^ " using in the non-assignment case of SSA Rewriting")) 
 
 let rename_var = fun (var : string) (i : int) -> var ^ "_" ^ (string_of_int i) 
@@ -221,13 +221,11 @@ let print_phi_functions_per_node phi_functions_per_node =
 let insert_phi_args args vars cmds (spec : jsil_spec option) (rvar : string option) (evar : string option) 
                     (ret_lab : int option) (err_lab : int option) succ pred idom_table idom_graph phi_functions_per_node which_pred = 
 	
-	let metadata = make_empty_metadata in 
-	
 	let var_counters : (string, int) Hashtbl.t  = Hashtbl.create 1021 in 
 	let var_stacks :  (string, int list) Hashtbl.t = Hashtbl.create 1021 in 
 	
 	let number_of_nodes = Array.length succ in
-	let new_cmds = Array.make number_of_nodes (metadata, SBasic SSkip) in 
+	let new_cmds = Array.make number_of_nodes (empty_metadata, SBasic SSkip) in 
 	let new_phi_functions_per_node = Array.make number_of_nodes [] in 
 	
 	let new_ret_var = ref (match rvar with | None -> "" | Some rvar -> rvar) in
@@ -515,7 +513,6 @@ let insert_phi_args args vars cmds (spec : jsil_spec option) (rvar : string opti
  	
 	
 let create_phi_assignment var v_args old_var =
-	let metadata = make_empty_metadata in  
 	let len = Array.length v_args in 
 	let new_v_args = Array.make len None in 
 	for i=0 to len-1 do 
@@ -523,7 +520,7 @@ let create_phi_assignment var v_args old_var =
 			then new_v_args.(i) <- Some (rename_var old_var v_args.(i))
 			else ()
 	done; 
-	(metadata, SPhiAssignment (var, new_v_args))
+	(empty_metadata, SPhiAssignment (var, new_v_args))
 
 let adjust_goto cmd displacements = 
 	let spec, command = cmd in

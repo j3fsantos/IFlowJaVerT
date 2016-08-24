@@ -775,7 +775,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
   
 	let js_char_offset = e.Parser_syntax.exp_offset in 
 	let js_line_offset = offset_converter js_char_offset in 
-	let metadata = { line_offset = Some js_line_offset; pre_cond = None } in 
+	let metadata = { line_offset = Some js_line_offset; pre_cond = None; logic_cmds = [] } in 
 	
 	let annotate_cmds cmds = 
 		List.map
@@ -2811,7 +2811,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 	
 	let js_char_offset = e.Parser_syntax.exp_offset in 
 	let js_line_offset = offset_converter js_char_offset in 
-	let metadata = { line_offset = Some js_line_offset; pre_cond = None } in 
+	let metadata = { line_offset = Some js_line_offset; pre_cond = None; logic_cmds = [] } in 
 	
 	let annotate_cmds cmds = 
 		List.map
@@ -4374,7 +4374,6 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 
 
 let make_final_cmd vars final_lab final_var =
-	let metadata = make_jsil_metadata None None in 
 	let cmd_final = 
 		(match vars with 
 		| [] -> SLBasic SSkip 
@@ -4383,7 +4382,7 @@ let make_final_cmd vars final_lab final_var =
 			let vars = List.map (fun x_r -> Some x_r) vars in 
 			let vars = Array.of_list vars in 
 			SLPhiAssignment (final_var, vars)) in 
-	(metadata, (Some final_lab), cmd_final)   
+	(empty_metadata, (Some final_lab), cmd_final)   
 		
 		
 
@@ -4405,12 +4404,11 @@ let translate_fun_decls e enclosing_fid vis_fid err =
 				
 
 let generate_main offset_converter e main cc_table =
-	let metadata = make_jsil_metadata None None in
-	let annotate_cmd cmd lab = (metadata, lab, cmd) in 
+	let annotate_cmd cmd lab = (empty_metadata, lab, cmd) in
 	let annotate_cmds cmds = 
 		List.map
 			(fun (lab, cmd) -> 
-				(metadata, lab, cmd))
+				(empty_metadata, lab, cmd))
 		cmds in 
 		
 	let cc_tbl_main = 
@@ -4475,12 +4473,11 @@ let generate_main offset_converter e main cc_table =
 	}
 	
 let generate_proc_eval new_fid e cc_table vis_fid =
-	let metadata = make_jsil_metadata None None in
-	let annotate_cmd cmd lab = (metadata, lab, cmd) in 
+	let annotate_cmd cmd lab = (empty_metadata, lab, cmd) in 
 	let annotate_cmds cmds = 
 		List.map
 			(fun (lab, cmd) -> 
-				(metadata, lab, cmd))
+				(empty_metadata, lab, cmd))
 		cmds in 
 	let offset_converter x = 0 in 
 	
@@ -4601,12 +4598,11 @@ let generate_proc_er_restoring_code fid x_er_old end_lab =
 	
 				
 let generate_proc offset_converter e fid params cc_table vis_fid =
-	let metadata = make_jsil_metadata None None in
-	let annotate_cmd cmd lab = (metadata, lab, cmd) in 
+	let annotate_cmd cmd lab = (empty_metadata, lab, cmd) in 
 	let annotate_cmds cmds = 
 		List.map
 			(fun (lab, cmd) -> 
-				(metadata, lab, cmd))
+				(empty_metadata, lab, cmd))
 		cmds in 
 	
 	let cmds_save_old_er, x_er_old = generate_proc_er_saving_code fid in 
@@ -4646,10 +4642,10 @@ let generate_proc offset_converter e fid params cc_table vis_fid =
 	let x_args = fresh_var () in
 	let cmds_arg_obj =
 		[
-			(metadata, None, SLBasic (SArguments (x_argList_pre)));
-			(metadata, None, SLBasic (SAssignment (x_argList_act, UnaryOp (Cdr, (UnaryOp (Cdr, Var x_argList_pre))))));
-			(metadata, None, SLCall  (x_args, Literal (String createArgsName), [ Var x_argList_act ], Some new_ctx.tr_error_lab));
-			(metadata, None, SLBasic (SMutation (Var x_er, Literal (String "arguments"), Var x_args)))
+			(empty_metadata, None, SLBasic (SArguments (x_argList_pre)));
+			(empty_metadata, None, SLBasic (SAssignment (x_argList_act, UnaryOp (Cdr, (UnaryOp (Cdr, Var x_argList_pre))))));
+			(empty_metadata, None, SLCall  (x_args, Literal (String createArgsName), [ Var x_argList_act ], Some new_ctx.tr_error_lab));
+			(empty_metadata, None, SLBasic (SMutation (Var x_er, Literal (String "arguments"), Var x_args)))
 		] in
 
 	(* [__scope, "fid"] := x_er *) 

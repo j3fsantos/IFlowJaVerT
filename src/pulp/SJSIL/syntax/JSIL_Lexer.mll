@@ -160,6 +160,8 @@ rule read = parse
   | "types"              { JSIL_Parser.LTYPES }
 (* Logic predicates *)
 	| "pred"							 { JSIL_Parser.PRED }
+	| "fold"							 { JSIL_Parser.FOLD }
+	| "unfold"						 { JSIL_Parser.UNFOLD }
 (* Procedure specification keywords *)
 	| "spec"     					 { JSIL_Parser.SPEC }
 	| "normal"             { JSIL_Parser.NORMAL }

@@ -69,7 +69,7 @@ let string_of_shallow_symb_state heap store p_formulae gamma =
 	let str_store = "\t Store: " ^ (string_of_shallow_symb_store store) ^ "\n" in 
 	let str_p_formulae = "\t Pure Formulae: " ^ (string_of_shallow_p_formulae p_formulae) ^ "\n" in 
 	let str_gamma = "\t Gamma: " ^ (string_of_gamma gamma) ^ "\n" in 
-	str ^ str_heap ^ str_store ^ str_p_formulae
+	str ^ str_heap ^ str_store ^ str_p_formulae ^ str_gamma
 
 (* spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *) 
 let string_of_n_spec spec = 
