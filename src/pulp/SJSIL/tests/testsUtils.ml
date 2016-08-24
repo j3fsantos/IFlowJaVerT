@@ -1,7 +1,7 @@
 open OUnit
-open SJSIL_Syntax
+open JSIL_Syntax
 open JSIL_Print
-open SJSIL_Interpreter
+open JSIL_Interpreter
 open Js2jsil
 
 let if_some p f d =
@@ -81,9 +81,9 @@ let string_of_jsil_test test =
 let test_jsil_template test = 
 	let str = string_of_jsil_test test in
 	let _ = Printf.printf "%s\n" str in
-	let ext_prog = SSyntax_Utils.ext_program_of_string str in
-	let prog, which_pred = SSyntax_Utils.prog_of_ext_prog "" ext_prog in 
-	let heap = SJSIL_Memory_Model.SHeap.create 1021 in 
+	let ext_prog = JSIL_Utils.ext_program_of_string str in
+	let prog, which_pred = JSIL_Utils.prog_of_ext_prog "" ext_prog in 
+	let heap = JSIL_Memory_Model.SHeap.create 1021 in 
   evaluate_prog prog which_pred heap
 
 (** ******************
@@ -103,6 +103,6 @@ let test_javascript_template test =
         Printf.printf "\nParsing problems with the file '%s'.\n" file;
         exit 1) in
 	let (ext_prog, cc_tbl, vis_tbl) = js2jsil e offset_converter in 
-	let prog, which_pred = SSyntax_Utils.prog_of_ext_prog "" ext_prog in 
-	let heap = SJSIL_Memory_Model.SHeap.create 1021 in 
+	let prog, which_pred = JSIL_Utils.prog_of_ext_prog "" ext_prog in 
+	let heap = JSIL_Memory_Model.SHeap.create 1021 in 
   evaluate_prog prog which_pred heap (Some cc_tbl) (Some vis_tbl)

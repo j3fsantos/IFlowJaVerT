@@ -1,5 +1,5 @@
 open Lexing
-open SJSIL_Syntax
+open JSIL_Syntax
 
 let verbose = ref false
 
@@ -31,13 +31,13 @@ let get_proc_nodes cmd_list = Array.of_list cmd_list
 
 let get_proc_info proc = 
 	(*  computing successors and predecessors *)
-	let succ_table, pred_table = SSyntax_Utils_Graphs.get_succ_pred proc.proc_body proc.ret_label proc.error_label in 
+	let succ_table, pred_table = JSIL_Utils_Graphs.get_succ_pred proc.proc_body proc.ret_label proc.error_label in 
 	(* compute which_pred table *)
-	let which_pred = SSyntax_Utils_Graphs.compute_which_preds pred_table in  
+	let which_pred = JSIL_Utils_Graphs.compute_which_preds pred_table in  
 	(*  get an array of nodes instead of a list *)
 	let nodes = proc.proc_body in 
 	(* perform a dfs on the graph *) 
-	let tree_table, parent_table, _, _, dfs_num_table_f, dfs_num_table_r = SSyntax_Utils_Graphs.dfs succ_table in 
+	let tree_table, parent_table, _, _, dfs_num_table_f, dfs_num_table_r = JSIL_Utils_Graphs.dfs succ_table in 
 	(* get the variables defined in proc *)
 	let vars = get_proc_variables proc in 
 	nodes, vars, succ_table, pred_table, tree_table, parent_table, dfs_num_table_f, dfs_num_table_r, which_pred
@@ -106,11 +106,11 @@ let print_position outx lexbuf =
 
 (** Parse contents in 'lexbuf' from the starting symbol 'start'. Terminates if an error occurs. *)
 let parse_with_error start lexbuf =
-  try start SJSIL_Lexer.read lexbuf with
-  | SJSIL_Lexer.SyntaxError msg ->
+  try start JSIL_Lexer.read lexbuf with
+  | JSIL_Lexer.SyntaxError msg ->
     Printf.fprintf stderr "%a: %s\n" print_position lexbuf msg;
 		exit (-1)
-  | SJSIL_Parser.Error ->
+  | JSIL_Parser.Error ->
     Printf.fprintf stderr "%a: syntax error\n" print_position lexbuf;
     exit (-1)
 
@@ -119,7 +119,7 @@ let ext_program_of_path path =
 	let inx = open_in path in
   let lexbuf = Lexing.from_channel inx in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = path };
-  let prog = parse_with_error SJSIL_Parser.main_target lexbuf in
+  let prog = parse_with_error JSIL_Parser.main_target lexbuf in
 	close_in inx;
 	prog
 
@@ -127,13 +127,13 @@ let ext_program_of_path path =
 let ext_program_of_string str = 
   let lexbuf = Lexing.from_string str in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
-	parse_with_error SJSIL_Parser.main_target lexbuf
+	parse_with_error JSIL_Parser.main_target lexbuf
 
 (** Run the parser on the given string, parsing just a procedure and desugaring it. *)
 let proc_of_string str = 
   let lexbuf = Lexing.from_string str in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
-	desugar_labs (parse_with_error SJSIL_Parser.proc_target lexbuf)
+	desugar_labs (parse_with_error JSIL_Parser.proc_target lexbuf)
 
 
 (** Add the declarations in 'program_from' to 'program_to'. *)
@@ -180,11 +180,11 @@ let prog_of_ext_prog filename ext_program =
 		(fun proc_name ext_proc -> 
 			let proc = desugar_labs ext_proc in 
 			(* Removing dead code and recalculating everything 
-			let proc = SSyntax_Utils_Graphs.remove_unreachable_code proc false in
-			let proc = SSyntax_Utils_Graphs.remove_unreachable_code proc true in *)
+			let proc = JSIL_Utils_Graphs.remove_unreachable_code proc false in
+			let proc = JSIL_Utils_Graphs.remove_unreachable_code proc true in *)
 			
-			let succ_table, pred_table = SSyntax_Utils_Graphs.get_succ_pred proc.proc_body proc.ret_label proc.error_label in 
-			let which_pred = SSyntax_Utils_Graphs.compute_which_preds pred_table in  
+			let succ_table, pred_table = JSIL_Utils_Graphs.get_succ_pred proc.proc_body proc.ret_label proc.error_label in 
+			let which_pred = JSIL_Utils_Graphs.compute_which_preds pred_table in  
 			Hashtbl.iter 
 				(fun (prev_cmd, cur_cmd) i ->
 					Hashtbl.replace global_which_pred (proc_name, prev_cmd, cur_cmd) i)
@@ -196,8 +196,8 @@ let prog_of_ext_prog filename ext_program =
 
 
 let extend_which_pred global_which_pred proc = 
-	let succ_table, pred_table = SSyntax_Utils_Graphs.get_succ_pred proc.proc_body proc.ret_label proc.error_label in 
-	let which_pred = SSyntax_Utils_Graphs.compute_which_preds pred_table in  
+	let succ_table, pred_table = JSIL_Utils_Graphs.get_succ_pred proc.proc_body proc.ret_label proc.error_label in 
+	let which_pred = JSIL_Utils_Graphs.compute_which_preds pred_table in  
 	let proc_name = proc.proc_name in 
 	Hashtbl.iter 
 		(fun (prev_cmd, cur_cmd) i ->

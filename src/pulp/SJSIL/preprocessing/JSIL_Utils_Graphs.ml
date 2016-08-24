@@ -1,5 +1,5 @@
 open Set
-open SJSIL_Syntax
+open JSIL_Syntax
 
 (* node set *)
  module NS = Set.Make(

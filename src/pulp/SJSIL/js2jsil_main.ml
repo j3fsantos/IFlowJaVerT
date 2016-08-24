@@ -1,5 +1,5 @@
 (* open Core.Std *)
-open SJSIL_Syntax
+open JSIL_Syntax
 open Js_pre_processing
 open Js2jsil
 

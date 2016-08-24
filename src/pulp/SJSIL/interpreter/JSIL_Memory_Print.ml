@@ -1,5 +1,5 @@
-open SJSIL_Syntax
-open SJSIL_Memory_Model
+open JSIL_Syntax
+open JSIL_Memory_Model
 open JSIL_Print
 
 (***

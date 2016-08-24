@@ -1,7 +1,7 @@
 open Utils
 open Lexing
 open Batteries
-open SJSIL_Syntax
+open JSIL_Syntax
 
 let js2jsil_imports = [
 	"Array"; 
@@ -241,11 +241,11 @@ let make_translation_ctx fid =
 
 let parse str =
   let lexbuf = Lexing.from_string str in
-  try SJSIL_Parser.cmd_list_top_target SJSIL_Lexer.read lexbuf with
-  | SJSIL_Lexer.SyntaxError msg ->
+  try JSIL_Parser.cmd_list_top_target JSIL_Lexer.read lexbuf with
+  | JSIL_Lexer.SyntaxError msg ->
     Printf.fprintf stderr "%a: %s\n" print_position lexbuf msg;
 		[]
-  | SJSIL_Parser.Error ->
+  | JSIL_Parser.Error ->
     Printf.fprintf stderr "%a: syntax error\n" print_position lexbuf;
     exit (-1)
 
@@ -849,9 +849,9 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let x_r = fresh_var () in  
 		let jsil_bop = 
 			(match lbop with 
-			| Parser_syntax.And -> SJSIL_Syntax.And 
-			| Parser_syntax.Or -> SJSIL_Syntax.Or) in 
-		let cmd_ass_xr = SLBasic (SAssignment (x_r, SJSIL_Syntax.BinOp (Var x1_v, jsil_bop, Var x2_v))) in 
+			| Parser_syntax.And -> JSIL_Syntax.And 
+			| Parser_syntax.Or -> JSIL_Syntax.Or) in 
+		let cmd_ass_xr = SLBasic (SAssignment (x_r, JSIL_Syntax.BinOp (Var x1_v, jsil_bop, Var x2_v))) in 
 		
 		let cmds = cmds1 @ (annotate_cmds [   (*         cmds1                                              *)
 			(None,         cmd_gv_x1);          (*         x1_v := i__getValue (x1) with err                  *)
@@ -4803,9 +4803,9 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 						generate_proc offset_converter f_body f_id f_params cc_tbl vis_fid)) in
 		(* let proc_eval_str = SSyntax_Print.string_of_ext_procedure proc in 
 		   Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
-			let proc = SSyntax_Utils.desugar_labs proc in 
+			let proc = JSIL_Utils.desugar_labs proc in 
 			Hashtbl.add prog f_id proc;
-			SSyntax_Utils.extend_which_pred which_pred proc)
+			JSIL_Utils.extend_which_pred which_pred proc)
 		new_fun_tbl; 
 	
 	let proc_eval = try Hashtbl.find prog new_fid with _ -> raise (Failure "no eval proc was created") in 

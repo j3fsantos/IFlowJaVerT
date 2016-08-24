@@ -1,7 +1,7 @@
-open SJSIL_Syntax
-open SJSIL_Memory_Model
+open JSIL_Syntax
+open JSIL_Memory_Model
 open JSIL_Logic_Normalise
-open SJSIL_Symb_Interpreter
+open JSIL_Symb_Interpreter
 
 let file = ref ""
 
@@ -84,8 +84,8 @@ let sym_run_procs spec_table prog which_pred =
 
 
 let process_file path = 
-	let ext_prog = SSyntax_Utils.ext_program_of_path path in 
-	let prog, which_pred = SSyntax_Utils.prog_of_ext_prog path ext_prog in 
+	let ext_prog = JSIL_Utils.ext_program_of_path path in 
+	let prog, which_pred = JSIL_Utils.prog_of_ext_prog path ext_prog in 
 	let spec_tbl = build_spec_tbl prog in 
 	sym_run_procs spec_tbl prog which_pred;
 	burn_to_disk "sym_execution_info.txt" "Success"; 

@@ -1,6 +1,6 @@
 open Entailment_Engine
-open SJSIL_Syntax
-open SJSIL_Memory_Model
+open JSIL_Syntax
+open JSIL_Memory_Model
 
 let verbose = ref false
 
@@ -91,14 +91,14 @@ symb_evaluate_expr (expr : jsil_expr) store gamma =
 		let nle2 = safe_symb_evaluate_expr e2 store gamma in 
 		(match nle1, nle2 with
 		| LLit l1, LLit l2 -> 
-			let l = SJSIL_Interpreter.evaluate_binop op l1 l2 in 
+			let l = JSIL_Interpreter.evaluate_binop op l1 l2 in 
 			LLit l
 		| _, _ -> LBinOp (nle1, op, nle2))
 	
 	| UnaryOp (op, e) -> 
 		let nle = safe_symb_evaluate_expr e store gamma in
 		(match nle with 
-		| LLit lit -> LLit (SJSIL_Interpreter.evaluate_unop op lit)
+		| LLit lit -> LLit (JSIL_Interpreter.evaluate_unop op lit)
 		| _ -> LUnOp (op, nle))
 	
 	| VRef (e1, e2) ->
@@ -136,7 +136,7 @@ symb_evaluate_expr (expr : jsil_expr) store gamma =
 	| TypeOf (e) -> 
 		let nle = safe_symb_evaluate_expr e store gamma in 
 		(match nle with 
-		| LLit llit -> LLit (Type (SJSIL_Interpreter.evaluate_type_of llit)) 
+		| LLit llit -> LLit (Type (JSIL_Interpreter.evaluate_type_of llit)) 
 		| LNone -> raise (Failure "Illegal Logic Expression: TypeOf of None")
 		| PVar _ -> raise (Failure "This should never happen: program variable in normalized expression") 
 		| LVar var 

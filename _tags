@@ -1,4 +1,4 @@
-true: package(z3),  package(batteries), package(xml-light), package(extlib), package(oUnit), use_menhir
+true: package(Z3),  package(batteries), package(xml-light), package(extlib), package(oUnit), use_menhir
 <src/**>: include
 <tests/*>: package(oUnit), include
 <lib/runtests>: not_hygienic

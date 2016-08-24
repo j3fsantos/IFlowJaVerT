@@ -1,5 +1,5 @@
 %{
-open SJSIL_Syntax
+open JSIL_Syntax
 %}
 
 (***** Token definitions *****)
@@ -141,8 +141,8 @@ open SJSIL_Syntax
 %token LLESSTHANEQUAL
 %token LARROW
 %token LEMP 
-%token LEXISTS 
-%token LFORALL
+(*%token LEXISTS 
+%token LFORALL *)
 %token LTYPES
 (* Logic predicates *)
 %token PRED
@@ -160,7 +160,7 @@ open SJSIL_Syntax
 %token COMMA
 %token COLON
 %token SCOLON
-%token DOT
+(*%token DOT*)
 %token LBRACE
 %token RBRACE
 %token LBRACKET
@@ -173,7 +173,7 @@ open SJSIL_Syntax
 (***** Precedence of operators *****)
 (* The later an operator is listed, the higher precedence it is given. Based on JavaScript:
    https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Operators/Operator_Precedence *)
-%nonassoc DOT
+(*%nonassoc DOT*)
 %left OR
 %left AND
 %left separating_conjunction
@@ -192,9 +192,9 @@ open SJSIL_Syntax
   ISPRIMITIVE TOSTRING TOINT TOUINT16 TOINT32 TOUINT32 TONUMBER CAR CDR LSTLEN STRLEN
 
 (***** Types and entry points *****)
-%type <((SJSIL_Syntax.jsil_metadata * string option * SJSIL_Syntax.jsil_lab_cmd) list)> cmd_list_top_target
-%type <SJSIL_Syntax.jsil_ext_procedure> proc_target
-%type <SJSIL_Syntax.jsil_ext_program> main_target
+%type <((JSIL_Syntax.jsil_metadata * string option * JSIL_Syntax.jsil_lab_cmd) list)> cmd_list_top_target
+%type <JSIL_Syntax.jsil_ext_procedure> proc_target
+%type <JSIL_Syntax.jsil_ext_program> main_target
 %start main_target proc_target cmd_list_top_target
 
 %%

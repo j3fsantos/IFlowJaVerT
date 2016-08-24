@@ -2,8 +2,8 @@
  SJSIL - Interpreter 
 *)
 open Batteries
-open SJSIL_Syntax
-open SJSIL_Memory_Model
+open JSIL_Syntax
+open JSIL_Memory_Model
 
 let larguments = "$largs"
 let largvals = "args"
@@ -44,6 +44,7 @@ let evaluate_type_of lit =
 	| Empty -> EmptyType
 	| Constant _ -> NumberType
 	| Bool _ -> BooleanType
+	| Integer _ -> IntType
 	| Num _ -> NumberType
 	| String _ -> StringType
 	| Loc _ -> ObjectType

@@ -1,8 +1,8 @@
 open DynArray
 open Set
 open Stack
-open SJSIL_Syntax
-open SJSIL_Memory_Model
+open JSIL_Syntax
+open JSIL_Memory_Model
 
 module StringSet = Set.Make( 
   struct
@@ -53,7 +53,7 @@ let rec normalise_lexpr store gamma subst le =
 		let nle2 = f le2 in 
 		(match nle1, nle2 with 
 		| LLit lit1, LLit lit2 ->
-			let lit = SJSIL_Interpreter.evaluate_binop bop lit1 lit2 in 
+			let lit = JSIL_Interpreter.evaluate_binop bop lit1 lit2 in 
 			LLit lit
 		| _, _ -> LBinOp (nle1, bop, nle2))
 
@@ -61,7 +61,7 @@ let rec normalise_lexpr store gamma subst le =
 		let nle1 = f le1 in 
 		(match nle1 with 
 		| LLit lit1 -> 
-			let lit = SJSIL_Interpreter.evaluate_unop uop lit1 in 
+			let lit = JSIL_Interpreter.evaluate_unop uop lit1 in 
 			LLit lit 
 		| _ -> LUnOp (uop, nle1))
 
@@ -101,7 +101,7 @@ let rec normalise_lexpr store gamma subst le =
 		let nle1 = f le1 in 
 		(match nle1 with 
 		| LUnknown -> raise (Failure "Illegal Logic Expression: TypeOf of Unknown")
-		| LLit llit -> LLit (Type (SJSIL_Interpreter.evaluate_type_of llit)) 
+		| LLit llit -> LLit (Type (JSIL_Interpreter.evaluate_type_of llit)) 
 		| LNone -> raise (Failure "Illegal Logic Expression: TypeOf of None")
 		| LVar lvar -> 
 			(try LLit (Type (Hashtbl.find gamma lvar)) with _ -> 
@@ -121,7 +121,7 @@ let rec normalise_lexpr store gamma subst le =
 			| LLit (LList list), LLit (Num n) ->
 				let lit_n = (try List.nth list (int_of_float n) with _ -> 
 					raise (Failure "List index out of bounds")) in
-				LLit (Type (SJSIL_Interpreter.evaluate_type_of lit_n))
+				LLit (Type (JSIL_Interpreter.evaluate_type_of lit_n))
 			| LEList list, LLit (Num n) ->
 				let le_n = (try List.nth list (int_of_float n) with _ ->
 					 raise (Failure "List index out of bounds")) in
@@ -550,7 +550,7 @@ let rec normalised_is_typable gamma nlexpr =
 	let f = normalised_is_typable gamma in
 	match nlexpr with
 	(* Literals are always typable *)
-  | LLit lit -> (Some (SJSIL_Interpreter.evaluate_type_of lit), true)
+  | LLit lit -> (Some (JSIL_Interpreter.evaluate_type_of lit), true)
 	
 	(* Variables are typable if in gamma, otherwise no no *)
 	| LVar var 
