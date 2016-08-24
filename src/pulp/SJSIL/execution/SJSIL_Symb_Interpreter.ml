@@ -383,6 +383,8 @@ let update_subst2 subst unifier1 unifier2 p_formulae =
 
 
 let unify_fv_pair (pat_field, pat_value) (fv_list : (jsil_logic_expr * jsil_logic_expr) list) p_formulae subst :  (jsil_logic_expr * jsil_logic_expr) list option = 
+	(* Printf.printf "unify_fv_pair. pat_field: %s, pat_value: %s\n" (JSIL_Print.string_of_logic_expression pat_field false) (JSIL_Print.string_of_logic_expression pat_value false); 
+	Printf.printf "fv_list: %s\n" (JSIL_Memory_Print.string_of_symb_fv_list fv_list); *)
 	let rec loop fv_list traversed_fv_list = 
 		match fv_list with 
 		| [] -> None
@@ -411,6 +413,7 @@ let unify_symb_fv_lists pat_fv_list fv_list def_val p_formulae subst : (jsil_log
 			let rest_fv_list = unify_fv_pair (pat_field, pat_val) fv_list p_formulae subst in 
 			(match rest_fv_list with
 			| None -> 
+				(* Printf.printf "I could NOT unify an fv-pair. pat_val: %s. def_val: %s\n" (JSIL_Print.string_of_logic_expression pat_val false) (JSIL_Print.string_of_logic_expression def_val false); *)
 				(match def_val with 
 				| LUnknown -> None
 				| _ ->
@@ -435,14 +438,14 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 						| ALoc loc -> loc 
 				  	| _ -> pat_loc)
 						with _ -> pat_loc in 
-					let fv_list, def = 
+					let fv_list, (def : jsil_logic_expr) = 
 						(try LHeap.find heap loc with _ -> 
 							let msg = Printf.sprintf "Location %s in pattern has not been matched" loc in 
 							raise (Failure msg)) in 
-						let new_fv_list = unify_symb_fv_lists pat_fv_list fv_list def pure_formulae subst in
-						(match new_fv_list with 
-						| Some new_fv_list -> LHeap.replace quotient_heap loc (new_fv_list, def)
-						| None -> raise (Failure ("Pattern heaps cannot have default values")))
+					let new_fv_list = unify_symb_fv_lists pat_fv_list fv_list def pure_formulae subst in
+					(match new_fv_list with 
+					| Some new_fv_list -> LHeap.replace quotient_heap loc (new_fv_list, def)
+					| None -> raise (Failure ("Pattern heaps cannot have default values")))
 				| _ -> raise (Failure ("Pattern heaps cannot have default values"))))
 			pat_heap;  
 		Some quotient_heap
@@ -460,9 +463,13 @@ let check_entailment_pf pf pat_pf gamma subst =
 						
 let unify_symb_heaps_top_level pat_heap pat_store (pat_pf : jsil_logic_assertion DynArray.t) pat_gamma heap store pf gamma : (symbolic_heap * ((string, jsil_logic_expr) Hashtbl.t)) option  = 
 	let subst = unify_stores pat_store store in 
+	
+	(* let str_heap = JSIL_Memory_Print.string_of_shallow_symb_heap pat_heap in 
+	Printf.printf "unify_symb_heaps_top_level -- pattern heap:\n%s\n" str_heap; *)
+	
 	(match subst with 
 	| None -> None 
-	| Some subst -> 
+	| Some subst ->
 		let quotient_heap : symbolic_heap option = unify_symb_heaps pat_heap heap pf subst in 
 		(match quotient_heap with 
 		| None -> None
@@ -509,9 +516,7 @@ let heap_substitution (heap : symbolic_heap) (subst : (string, jsil_logic_expr) 
 let merge_heaps heap new_heap p_formulae = 
 	(** 	let str_heap = JSIL_Memory_Print.string_of_shallow_symb_heap heap in 
 	Printf.printf "heap 1: %s\n" str_heap; 			
-				
-	let str_new_heap = JSIL_Memory_Print.string_of_shallow_symb_heap new_heap in 
-	Printf.printf "new_heap 1: %s\n" str_new_heap; *)
+				*)
 	
 	LHeap.iter 
 		(fun loc (n_fv_list, n_def) ->
@@ -607,7 +612,7 @@ let find_and_apply_spec proc proc_specs heap store p_formulae gamma =
 		(match spec_list with 
 		| [] -> None 
 		| spec :: rest_spec_list -> 
-			let pre_heap, pre_store, pre_p_formulae, pre_gamma = spec.n_pre in  
+			let pre_heap, pre_store, pre_p_formulae, pre_gamma = spec.n_pre in 
 			let unifier = unify_symb_heaps_top_level pre_heap pre_store pre_p_formulae pre_gamma heap store p_formulae gamma in 
 			(match unifier with 
 			| Some (quotient_heap, subst) ->	
@@ -672,7 +677,7 @@ let rec symb_evaluate_cmd (spec_table : (string, jsil_n_spec) Hashtbl.t) post re
 			symb_evaluate_cmd spec_table post ret_flag prog cur_proc_name which_pred copy_heap store pure_formulae gamma j cur_cmd)
 	
 	| SCall (x, e, e_args, j) ->
-		(* Printf.printf "symbolically executing a procedure call - ai que locura!!!\n"; *)
+		(*  "symbolically executing a procedure call - ai que locura!!!\n"; *)
 		let proc_name = symb_evaluate_expr e store gamma in
 		let proc_name = 
 			match proc_name with 
@@ -688,11 +693,13 @@ let rec symb_evaluate_cmd (spec_table : (string, jsil_n_spec) Hashtbl.t) post re
 		with _ ->
 			let msg = Printf.sprintf "No spec found for proc %s" proc_name in 
 			raise (Failure msg) in 
+		(* let str_heap = JSIL_Memory_Print.string_of_shallow_symb_heap heap in 
+		Printf.printf "Heap before calling the procedure:\n%s\n" str_heap; *)
 		(match (find_and_apply_spec proc proc_specs heap store pure_formulae gamma) with 
 		| Some (heap, store, pure_formulae, gamma, ret_flag, ret_val) -> 
 			(match ret_flag with 
 			| Normal -> 
-				(** let str_heap = JSIL_Memory_Print.string_of_shallow_symb_heap heap in 
+				(* let str_heap = JSIL_Memory_Print.string_of_shallow_symb_heap heap in 
 				Printf.printf "Heap after calling the procedure:\n%s\n" str_heap; *)
 				symb_evaluate_next_command spec_table post ret_flag prog proc which_pred heap store pure_formulae gamma cur_cmd prev_cmd
 			| Error ->
@@ -755,11 +762,7 @@ check_final_symb_state proc_name post ret_flag heap store gamma flag lexpr pure_
 		Printf.printf "Final symbolic state: %s\n" final_symb_state_str;
 		Printf.printf "Post condition: %s\n" post_symb_state_str in 
 	
-	
 	let unifier = unify_symb_heaps_top_level post_heap post_store post_p_formulae post_gamma heap store pure_formulae gamma in 
-	
-	Printf.printf "I computed the unifier\n";
-	
 	match unifier with 
 	| Some (quotient_heap, _) ->	
 		if (is_symb_heap_empty quotient_heap) 

@@ -6,20 +6,22 @@ open JSIL_Print
  Generate strings from JSIL memory types
 *)
 
+let string_of_symb_fv_list fv_list = 
+	List.fold_left
+		(fun ac (field, value) ->
+				let field_str = string_of_logic_expression field false in 
+				let value_str = string_of_logic_expression value false in 
+				let field_value_str = "(" ^ field_str ^ ": " ^ value_str ^ ")"  in 
+				if (ac = "") 
+					then field_value_str 
+					else ac ^ ", " ^ field_value_str)
+		""
+		fv_list 
+
 let string_of_shallow_symb_heap heap = 
 	LHeap.fold
 		(fun loc (fv_pairs, default_value) ac -> 
-			let str_fv_pairs = 
-				List.fold_left
-					(fun ac (field, value) ->
-						let field_str = string_of_logic_expression field false in 
-						let value_str = string_of_logic_expression value false in 
-						let field_value_str = "(" ^ field_str ^ ": " ^ value_str ^ ")"  in 
-						if (ac = "") 
-							then field_value_str 
-							else ac ^ ", " ^ field_value_str)
-					""
-					fv_pairs in 
+			let str_fv_pairs = string_of_symb_fv_list fv_pairs in 
 			let default_value_str = "(default: " ^ (string_of_logic_expression default_value false) ^ ")" in
 			let symb_obj_str = 
 				(if (str_fv_pairs = "") 
