@@ -1,10 +1,10 @@
 
 spec xpto (x)
-   [[ (x == "maria") * types(#x: $$string_type, #y: $$string_type)]]
-   [[ (x == #y) * (#y == "foo") ]]
+   [[ (x == #x) * (#x == "maria") * types(#x: $$string_type)]]
+   [[ (! (x == None)) ]]
    normal
 proc xpto (x) {
-               x := "foo";
+               skip; 
        rlab:   skip;
        elab:   skip
 }

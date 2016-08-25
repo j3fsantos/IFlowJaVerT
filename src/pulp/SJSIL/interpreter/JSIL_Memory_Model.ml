@@ -16,11 +16,12 @@ module LHeap = Hashtbl.Make(
 		let hash = Hashtbl.hash
 	end)
 
+type substitution = ((string, jsil_logic_expr) Hashtbl.t)
 type symbolic_heap = (((jsil_logic_expr * jsil_logic_expr) list) * jsil_logic_expr)  LHeap.t 
 type symbolic_store = (string, jsil_logic_expr) Hashtbl.t
-type symbolic_state = symbolic_heap * symbolic_store * (jsil_logic_assertion DynArray.t) * ((string, jsil_type) Hashtbl.t) * ((string * (jsil_logic_expr list)) DynArray.t)
-type substitution = ((string, jsil_logic_expr) Hashtbl.t)
-
+type typing_environment = ((string, jsil_type) Hashtbl.t)
+type predicate_set = ((string * (jsil_logic_expr list)) DynArray.t)
+type symbolic_state = symbolic_heap * symbolic_store * (jsil_logic_assertion DynArray.t) * typing_environment * predicate_set
 
 type jsil_n_single_spec = {
 	  n_pre : symbolic_state; 

@@ -336,8 +336,10 @@ let init_pure_assignments a store gamma subst =
 				then Hashtbl.add pure_assignments x le
 				else Stack.push (LEq (PVar x, le)) non_store_pure_assertions
 		
-		| LNot a -> Stack.push (LNot a) non_store_pure_assertions 
-		| LLessEq (e1, e2) -> Stack.push (LLessEq (e1, e2)) non_store_pure_assertions		
+		| LEq (_, _) -> Stack.push a non_store_pure_assertions
+		
+		| LNot _ -> Stack.push a non_store_pure_assertions 
+		| LLessEq (_, _) -> Stack.push a non_store_pure_assertions		
 		
 		| _ -> ()) in 
 	

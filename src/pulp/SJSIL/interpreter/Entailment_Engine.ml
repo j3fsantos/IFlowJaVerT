@@ -85,7 +85,9 @@ let rec encode_logical_expression ctx gamma str_codes e =
 	| LNone -> encode_string_as_num ctx str_codes "lnone"
 	| LVar var -> 
 		let var_type = 
-			try Hashtbl.find gamma var with _ -> raise (Failure "Logical variables must be typed") in 
+			(try Hashtbl.find gamma var with _ ->
+				let msg = Printf.sprintf "Logical variables must be typed. Could not find type of %s.\n" var in 
+				raise (Failure msg)) in 
 		let var_sort = encode_type_as_sort ctx var_type in 
 		let var_name = (Symbol.mk_string ctx var) in	
 		let var_expr = (Expr.mk_const ctx var_name var_sort) in

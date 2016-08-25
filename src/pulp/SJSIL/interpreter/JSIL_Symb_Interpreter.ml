@@ -13,7 +13,11 @@ let rec lexpr_substitution lexpr subst =
 	
 	| LNone -> LNone
 	
-	| LVar var -> (try Hashtbl.find subst var with _ -> LVar (JSIL_Logic_Normalise.fresh_lvar ()))
+	| LVar var -> 
+			(try Hashtbl.find subst var with _ -> 
+				let new_var = JSIL_Logic_Normalise.fresh_lvar () in 
+				Hashtbl.replace subst var (LVar new_var);
+				LVar new_var)
 	
 	| ALoc aloc -> (try Hashtbl.find subst aloc with _ -> ALoc (JSIL_Logic_Normalise.fresh_aloc ())) 
 								
@@ -63,6 +67,71 @@ let rec assertion_substitution a subst =
 	| LPred (_, _) 
 	| LTypes _ -> raise (Failure "Substitution for assertions not defined for cases LPred and LTypeEnv")
 
+
+let pf_substitution pf_r subst = 
+	for i=0 to (DynArray.length pf_r) do 
+		let a = DynArray.get pf_r i in 
+		let s_a = assertion_substitution a subst in 
+		DynArray.set pf_r i s_a 
+	done	
+
+
+let fv_list_substitution fv_list subst = 
+	List.map 
+		(fun (le_field, le_val) -> 
+			let s_le_field = lexpr_substitution le_field subst in 
+			let s_le_val = lexpr_substitution le_val subst in 
+			(s_le_field, s_le_val))
+		fv_list
+
+
+let heap_substitution (heap : symbolic_heap) (subst : (string, jsil_logic_expr) Hashtbl.t) = 
+	let new_heap = LHeap.create 1021 in 
+	LHeap.iter 
+		(fun loc (fv_list, def) -> 
+			let s_loc = 
+				(try 
+					(match (Hashtbl.find subst loc) with 
+					| LLit (Loc loc) -> loc 
+					| ALoc loc -> loc 
+					| _ -> loc)
+				 with _ -> loc) in  
+			let s_fv_list = fv_list_substitution fv_list subst in 
+			let s_def = lexpr_substitution def subst in
+			LHeap.add new_heap s_loc (s_fv_list, s_def))
+		heap; 
+	new_heap
+			
+
+let rec gamma_substitution gamma subst = 
+	let new_gamma = Hashtbl.create 31 in 
+	Hashtbl.iter 
+		(fun var v_type -> 
+			try 
+			let new_var = Hashtbl.find subst var in 
+			(match new_var with 
+			| LVar new_var -> Hashtbl.replace new_gamma new_var v_type
+			| _ -> ())
+			with _ -> ())
+		gamma; 
+	new_gamma
+
+
+let pred_substitution pred subst = 
+	let pred_name, les = pred in 
+	let s_les = List.map (fun le -> lexpr_substitution le subst)  les in 
+	(pred_name, s_les) 
+
+
+let preds_substitution preds subst = 
+	let len = DynArray.length preds in 
+	let new_preds = DynArray.make len in 
+	for i=0 to len do 
+		let pred = DynArray.get preds i in 
+		let s_pred = pred_substitution pred subst in 
+		DynArray.set new_preds i s_pred 
+	done; 
+	new_preds
 
 let rec safe_symb_evaluate_expr (expr : jsil_expr) store gamma = 
 	let nle = symb_evaluate_expr expr store gamma in 
@@ -425,7 +494,7 @@ let unify_symb_fv_lists pat_fv_list fv_list def_val p_formulae subst : (jsil_log
 	loop fv_list pat_fv_list
 		
 		
-let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_formulae (subst : (string, jsil_logic_expr) Hashtbl.t) : symbolic_heap option = 
+let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_formulae (subst : substitution) : symbolic_heap option = 
 	let quotient_heap = LHeap.create 1021 in 
 	try 
 		LHeap.iter 
@@ -450,7 +519,79 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 			pat_heap;  
 		Some quotient_heap
 	with _ -> None
+
+
+let unify_pred_against_pred (pat_pred : (string * (jsil_logic_expr list))) (pred : (string * (jsil_logic_expr list))) (subst : substitution) p_formulae : substitution option = 
+	let pat_pred_name, pat_pred_args = pat_pred in 
+	let pred_name, pred_args = pred in
 	
+	let rec unify_expr_lists pat_list list subst = 
+		(match pat_list, list with 
+		| [], [] -> true 
+		| (pat_le :: rest_pat_list), (le :: rest_list) -> 
+			let unifier = unify_lexprs pat_le le p_formulae subst in 
+			if (update_subst1 subst unifier) 
+				then unify_expr_lists rest_pat_list rest_list subst 
+				else false
+		| _, _ -> false) in 
+
+	if (pat_pred_name = pred_name) then 
+		begin 
+		let new_subst = Hashtbl.copy subst in 
+		if (unify_expr_lists pat_pred_args pred_args new_subst) 
+			then Some new_subst
+			else None					
+		end 
+		else None
+
+		
+let unify_pred_against_pred_set (pat_pred : (string * (jsil_logic_expr list))) (preds : (string * (jsil_logic_expr list)) list) (subst : substitution) p_formulae = 	
+	let rec loop preds quotient_preds = 
+		(match preds with 
+		| [] -> None, quotient_preds  
+		| pred :: rest_preds -> 
+			let new_subst = unify_pred_against_pred pat_pred pred subst p_formulae in 
+			(match new_subst with 
+			| None -> loop rest_preds (pred :: quotient_preds) 
+			| Some new_subst -> Some new_subst, (quotient_preds @ rest_preds))) in 
+	loop preds [] 
+
+let unify_pred_list_against_pred_list (pat_preds : (string * (jsil_logic_expr list)) list) (preds : (string * (jsil_logic_expr list)) list) (subst : substitution) p_formulae = 
+	let rec loop pat_preds preds subst = 
+		(match pat_preds with 
+		| [] -> Some subst, preds 
+		| pat_pred :: rest_pat_preds ->
+			let new_subst, rest_preds = unify_pred_against_pred_set pat_pred preds subst p_formulae in 
+			(match new_subst with 
+			| None -> None, []
+			| Some new_subst -> loop rest_pat_preds rest_preds new_subst)) in 
+	loop pat_preds preds subst 
+	
+let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) (subst : substitution) p_formulae =
+	let pat_preds = DynArray.to_list pat_preds in 
+	let preds = DynArray.to_list preds in 
+	let new_subst, quotient_preds = unify_pred_list_against_pred_list pat_preds preds subst p_formulae in 
+	new_subst, (DynArray.of_list quotient_preds)		
+
+let unify_gamma pat_gamma gamma subst =
+	Hashtbl.fold 	
+		(fun var v_type ac ->
+			(if (not ac) 
+				then ac 
+				else 
+					try 
+						let le = Hashtbl.find subst var in
+						let le_type, is_typable = JSIL_Logic_Normalise.normalised_is_typable gamma le in  
+						if is_typable then 
+							(match le_type with 
+							| Some le_type -> le_type = v_type 
+							| None -> false)
+							else false
+					with _ -> false))
+	pat_gamma 
+	true		
+			
+			
 let check_entailment_pf pf pat_pf gamma subst = 
 	(* Printf.printf "I am inside the check entailment patati patata\n"; *)
 	
@@ -469,10 +610,12 @@ let check_entailment_pf pf pat_pf gamma subst =
 			(DynArray.to_list pat_pf)) in 
 			
 	Printf.printf "About to check if (%s) entails (%s)\n" (str_of_assertion_list pf_list) (str_of_assertion_list pat_pf_list); 
-	Entailment_Engine.check_entailment pf_list pat_pf_list gamma
+	if (Entailment_Engine.check_entailment pf_list pat_pf_list gamma) then 
+		(Printf.printf "The entailment holds!!!\n"; true)
+		else (Printf.printf "The entailment does NOT hold!!!\n"; false)
 		
 						
-let unify_symb_heaps_top_level pat_symb_state symb_state : (symbolic_heap * substitution) option  = 
+let unify_symb_heaps_top_level pat_symb_state symb_state : (symbolic_heap * predicate_set * substitution) option  = 
 	let pat_heap, pat_store, pat_pf, pat_gamma, pat_preds = pat_symb_state in 
 	let heap, store, pf, gamma, preds = symb_state in
 	let subst = unify_stores pat_store store in 
@@ -481,13 +624,14 @@ let unify_symb_heaps_top_level pat_symb_state symb_state : (symbolic_heap * subs
 	| None -> None 
 	| Some subst ->
 		let quotient_heap : symbolic_heap option = unify_symb_heaps pat_heap heap pf subst in 
-		(match quotient_heap with 
-		| None -> None
-		| Some quotient_heap ->
+		let new_subst, quotient_preds = unify_pred_arrays pat_preds preds subst pf in 
+		(match new_subst, quotient_heap with 
+		| Some new_subst, Some quotient_heap ->
 			Printf.printf "I computed a quotient heap but I also need to check an entailment\n"; 
-			if (check_entailment_pf pf pat_pf gamma subst) then 
-				Some (quotient_heap, subst)
-				else None))
+			if ((check_entailment_pf pf pat_pf gamma new_subst) && (unify_gamma pat_gamma gamma new_subst)) then 
+				Some (quotient_heap, quotient_preds, new_subst)
+				else None)
+		| _ -> None)
 
 
 let is_symb_heap_empty heap = 
@@ -499,37 +643,19 @@ let is_symb_heap_empty heap =
 		heap 
 		true
 
-let fv_list_substitution fv_list subst = 
-	List.map 
-		(fun (le_field, le_val) -> 
-			let s_le_field = lexpr_substitution le_field subst in 
-			let s_le_val = lexpr_substitution le_val subst in 
-			(s_le_field, s_le_val))
-		fv_list
+let is_preds_empty preds = 
+	(DynArray.length preds) = 0
+	
 
-let heap_substitution (heap : symbolic_heap) (subst : (string, jsil_logic_expr) Hashtbl.t) = 
-	let new_heap = LHeap.create 1021 in 
-	LHeap.iter 
-		(fun loc (fv_list, def) -> 
-			let s_loc = 
-				(try 
-					(match (Hashtbl.find subst loc) with 
-					| LLit (Loc loc) -> loc 
-					| ALoc loc -> loc 
-					| _ -> loc)
-				 with _ -> loc) in  
-			let s_fv_list = fv_list_substitution fv_list subst in 
-			let s_def = lexpr_substitution def subst in
-			LHeap.add new_heap s_loc (s_fv_list, s_def))
-		heap; 
-	new_heap
-			
+let is_empty_symb_state symb_state = 
+	(is_symb_heap_empty (get_heap symb_state)) && (is_preds_empty (get_preds symb_state)) 
+
+		
 			
 let merge_heaps heap new_heap p_formulae = 
 	(** 	let str_heap = JSIL_Memory_Print.string_of_shallow_symb_heap heap in 
 	Printf.printf "heap 1: %s\n" str_heap; 			
 				*)
-	
 	LHeap.iter 
 		(fun loc (n_fv_list, n_def) ->
 			match n_def with 
@@ -552,6 +678,29 @@ let merge_heaps heap new_heap p_formulae =
 				with _ -> LHeap.add heap loc (n_fv_list, LUnknown))
 			| _ -> raise (Failure "heaps non-mergeable"))
 		new_heap
+		
+
+let merge_gammas gamma_l gamma_r = 
+	Hashtbl.iter 
+		(fun var v_type -> 
+			try 
+				Hashtbl.find gamma_l var; ()  
+			with _ -> 
+				Hashtbl.add gamma_l var v_type)
+		gamma_r
+
+
+let merge_symb_states symb_state_l symb_state_r subst = 
+	let heap_l, store_l, pf_l, gamma_l, preds_l = symb_state_l in 
+	let heap_r, store_r, pf_r, gamma_r, preds_r = symb_state_r in 
+	let s_heap_r = heap_substitution heap_r subst in   
+	let s_pf_r = pf_substitution pf_r subst in 
+	let s_gamma_r = gamma_substitution gamma_r subst in 
+	let s_preds_r = preds_substitution preds_r subst in 
+	merge_heaps heap_l s_heap_r pf_l;
+	DynArray.append pf_l pf_r;
+	merge_gammas gamma_l s_gamma_r;  
+	DynArray.append preds_l s_preds_r
 
 
 let symb_evaluate_bcmd bcmd symb_state = 
@@ -630,12 +779,12 @@ let find_and_apply_spec prog proc_name proc_specs symb_state =
 		
 			let unifier = unify_symb_heaps_top_level spec.n_pre symb_state in 
 			(match unifier with 
-			| Some (quotient_heap, subst) ->	
-				let post_heap, post_store, post_p_formulae, post_gamma, _ = spec.n_post in 
-				let ret_flag = spec.n_ret_flag in 
-				let s_post_heap = heap_substitution post_heap subst in 
+			| Some (quotient_heap, quotient_preds, subst) ->	
 				let _, store, p_formulae, gamma, preds = symb_state in 
-				merge_heaps quotient_heap s_post_heap p_formulae; 
+				let new_symb_state = (quotient_heap, store, p_formulae, gamma, preds) in
+				merge_symb_states new_symb_state spec.n_post subst; 
+				let ret_flag = spec.n_ret_flag in 
+				
 				let ret_lexpr = 
 					(match ret_flag with 
 					| Normal ->  
@@ -644,7 +793,7 @@ let find_and_apply_spec prog proc_name proc_specs symb_state =
 						| None -> None 
 						| Some ret_var ->  
 							try 
-								let ret_lexpr = Hashtbl.find post_store ret_var in 
+								let ret_lexpr = Hashtbl.find (get_store spec.n_post) ret_var in 
 								Some (lexpr_substitution ret_lexpr subst)
 							with _ -> None)
 					
@@ -654,11 +803,9 @@ let find_and_apply_spec prog proc_name proc_specs symb_state =
 						| None -> None 
 						| Some error_var ->
 							try 
-								let error_lexpr = Hashtbl.find post_store error_var in 
+								let error_lexpr = Hashtbl.find (get_store spec.n_post) error_var in 
 								Some (lexpr_substitution error_lexpr subst)
-							with _ -> None)) in 
-				
-				let new_symb_state = (quotient_heap, store, p_formulae, gamma, preds) in  	
+							with _ -> None)) in   	
 				Some (new_symb_state, ret_flag, ret_lexpr)
 				
 			| None -> (find_correct_spec rest_spec_list))) in 
@@ -734,6 +881,8 @@ let rec symb_evaluate_cmd spec_table prog cur_proc_name which_pred vis_tbl ret_f
 			let msg = Printf.sprintf "No spec found for proc %s" proc_name in 
 			raise (Failure msg) in 
 	
+		let symb_state_str = JSIL_Memory_Print.string_of_shallow_symb_state cur_symb_state in 
+		Printf.printf "About to call the procedure %s in the symbolic state:\n%s" cur_proc_name symb_state_str; 
 		(match (find_and_apply_spec prog proc_name proc_specs cur_symb_state) with 
 		| Some (symb_state, ret_flag, ret_val) -> 
 			(match ret_flag with 
@@ -782,8 +931,8 @@ check_final_symb_state proc_name post_symb_state post_flag symb_state flag =
 	
 	let unifier = unify_symb_heaps_top_level post_symb_state symb_state in 
 	match unifier with 
-	| Some (quotient_heap, _) ->	
-		if (is_symb_heap_empty quotient_heap) 
+	| Some (quotient_heap, quotient_preds, _) ->	
+		if ((is_symb_heap_empty quotient_heap) && (is_preds_empty quotient_preds))
 			then Printf.printf "Verified one spec of proc %s\n" proc_name
 			else (print_error_to_console "incomplete match"; raise (Failure "post condition is not unifiable"))
 	| None -> (print_error_to_console "non_unifiable heaps";  raise (Failure "post condition is not unifiable"))
