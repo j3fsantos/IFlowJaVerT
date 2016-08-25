@@ -452,20 +452,30 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 	with _ -> None
 	
 let check_entailment_pf pf pat_pf gamma subst = 
-	Printf.printf "I am inside the check entailment patati patata\n";
+	(* Printf.printf "I am inside the check entailment patati patata\n"; *)
+	
+	let str_of_assertion_list a_list = 
+		List.fold_left 
+			(fun ac a -> 
+				let a_str = JSIL_Print.string_of_logic_assertion a false in 
+				if (ac = "") then a_str else (ac ^ ", " ^ a_str))
+			""
+			a_list in 
+	
 	let pf_list = DynArray.to_list pf in 
 	let pat_pf_list = 
 		(List.map 
 			(fun a -> assertion_substitution a subst) 
 			(DynArray.to_list pat_pf)) in 
+			
+	Printf.printf "About to check if (%s) entails (%s)\n" (str_of_assertion_list pf_list) (str_of_assertion_list pat_pf_list); 
 	Entailment_Engine.check_entailment pf_list pat_pf_list gamma
 		
 						
-let unify_symb_heaps_top_level pat_heap pat_store (pat_pf : jsil_logic_assertion DynArray.t) pat_gamma heap store pf gamma : (symbolic_heap * ((string, jsil_logic_expr) Hashtbl.t)) option  = 
+let unify_symb_heaps_top_level pat_symb_state symb_state : (symbolic_heap * substitution) option  = 
+	let pat_heap, pat_store, pat_pf, pat_gamma, pat_preds = pat_symb_state in 
+	let heap, store, pf, gamma, preds = symb_state in
 	let subst = unify_stores pat_store store in 
-	
-	(* let str_heap = JSIL_Memory_Print.string_of_shallow_symb_heap pat_heap in 
-	Printf.printf "unify_symb_heaps_top_level -- pattern heap:\n%s\n" str_heap; *)
 	
 	(match subst with 
 	| None -> None 
@@ -474,9 +484,11 @@ let unify_symb_heaps_top_level pat_heap pat_store (pat_pf : jsil_logic_assertion
 		(match quotient_heap with 
 		| None -> None
 		| Some quotient_heap ->
+			Printf.printf "I computed a quotient heap but I also need to check an entailment\n"; 
 			if (check_entailment_pf pf pat_pf gamma subst) then 
 				Some (quotient_heap, subst)
 				else None))
+
 
 let is_symb_heap_empty heap = 
 	LHeap.fold  
@@ -542,7 +554,8 @@ let merge_heaps heap new_heap p_formulae =
 		new_heap
 
 
-let symb_evaluate_bcmd bcmd heap store pure_formulae gamma = 
+let symb_evaluate_bcmd bcmd symb_state = 
+	let heap, store, pure_formulae, gamma, _ = symb_state in 
 	match bcmd with 
 	| SSkip -> LLit Empty
 
@@ -606,20 +619,23 @@ let symb_evaluate_bcmd bcmd heap store pure_formulae gamma =
 		raise (Failure "not implemented yet!")
 
 
-let find_and_apply_spec proc proc_specs heap store p_formulae gamma = 
+let find_and_apply_spec prog proc_name proc_specs symb_state = 
+	let proc = try Hashtbl.find prog proc_name with
+		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist. Ew." proc_name)) in
 	
 	let rec find_correct_spec spec_list = 
 		(match spec_list with 
 		| [] -> None 
 		| spec :: rest_spec_list -> 
-			let pre_heap, pre_store, pre_p_formulae, pre_gamma = spec.n_pre in 
-			let unifier = unify_symb_heaps_top_level pre_heap pre_store pre_p_formulae pre_gamma heap store p_formulae gamma in 
+		
+			let unifier = unify_symb_heaps_top_level spec.n_pre symb_state in 
 			(match unifier with 
 			| Some (quotient_heap, subst) ->	
-				let post_heap, post_store, post_p_formulae, post_gamma = spec.n_post in 
+				let post_heap, post_store, post_p_formulae, post_gamma, _ = spec.n_post in 
 				let ret_flag = spec.n_ret_flag in 
 				let s_post_heap = heap_substitution post_heap subst in 
-				merge_heaps quotient_heap s_post_heap p_formulae;
+				let _, store, p_formulae, gamma, preds = symb_state in 
+				merge_heaps quotient_heap s_post_heap p_formulae; 
 				let ret_lexpr = 
 					(match ret_flag with 
 					| Normal ->  
@@ -642,43 +658,67 @@ let find_and_apply_spec proc proc_specs heap store p_formulae gamma =
 								Some (lexpr_substitution error_lexpr subst)
 							with _ -> None)) in 
 				
-				Some (quotient_heap, store, p_formulae, gamma, ret_flag, ret_lexpr)
+				let new_symb_state = (quotient_heap, store, p_formulae, gamma, preds) in  	
+				Some (new_symb_state, ret_flag, ret_lexpr)
 				
 			| None -> (find_correct_spec rest_spec_list))) in 
 	find_correct_spec (proc_specs.n_proc_specs)
 
 
-let rec symb_evaluate_cmd (spec_table : (string, jsil_n_spec) Hashtbl.t) post ret_flag prog cur_proc_name which_pred heap store pure_formulae gamma cur_cmd prev_cmd = 	
-	let f = symb_evaluate_cmd spec_table post ret_flag prog cur_proc_name which_pred heap store pure_formulae gamma in 
+let rec symb_evaluate_cmd spec_table prog cur_proc_name which_pred vis_tbl ret_flag post_symb_state cur_symb_state cur_cmd prev_cmd = 	
+	
+	let f_state_change = symb_evaluate_cmd spec_table prog cur_proc_name which_pred vis_tbl ret_flag post_symb_state in 
+	let f = f_state_change cur_symb_state in 
 	
 	let proc = try Hashtbl.find prog cur_proc_name with
 		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist. Ew." cur_proc_name)) in  
+	
+	let f_next_state_change = symb_evaluate_next_command spec_table prog proc which_pred vis_tbl ret_flag post_symb_state in
+	let f_next = f_next_state_change cur_symb_state in
+	
+	let keep_on_searching i = 
+		try 
+			let _ = Hashtbl.find vis_tbl i in 
+			let i_metadata, _ = proc.proc_body.(i) in 
+			(match (i_metadata.pre_cond) with 
+			| None -> raise (Failure "back edges need to point to commands annotated with invariants")
+			| Some _ -> false)
+		with _ -> true in  		
+	
 	let cmd = proc.proc_body.(cur_cmd) in 
-	(* let cmd_str = JSIL_Print.string_of_cmd cmd 0 0 false false false in 
-	Printf.printf ("cmd: %s \n") cmd_str;
-	let str_store = "\t Store: " ^ (JSIL_Memory_Print.string_of_shallow_symb_store store) ^ "\n" in 
-	Printf.printf "%s" str_store; *) 
+	
+	Hashtbl.replace vis_tbl cur_cmd true; 
 	let metadata, cmd = cmd in
 	match cmd with 
 	| SBasic bcmd -> 
-		let _ = symb_evaluate_bcmd bcmd heap store pure_formulae gamma in 
-	  symb_evaluate_next_command spec_table post ret_flag prog proc which_pred heap store pure_formulae gamma cur_cmd prev_cmd
+		let _ = symb_evaluate_bcmd bcmd cur_symb_state in  
+		(f_next cur_cmd prev_cmd)
 		 
 	| SGoto i -> f i cur_cmd 
 	
 	| SGuardedGoto (e, i, j) -> 
-		let v_e = symb_evaluate_expr e store gamma in
-		(match v_e with 
-		| LLit (Bool true) -> f i cur_cmd 
-		| LLit (Bool false) -> f j cur_cmd 
-		| _ -> 
-			let copy_heap = LHeap.copy heap in 
-			symb_evaluate_cmd spec_table post ret_flag prog cur_proc_name which_pred heap store pure_formulae gamma i cur_cmd; 
-			symb_evaluate_cmd spec_table post ret_flag prog cur_proc_name which_pred copy_heap store pure_formulae gamma j cur_cmd)
+		let v_e = symb_evaluate_expr e (get_store cur_symb_state) (get_gamma cur_symb_state) in
+			(match v_e with 
+			| LLit (Bool true) -> 
+				if (keep_on_searching i) then 
+					f i cur_cmd 
+				else () 
+			| LLit (Bool false) -> 
+				if (keep_on_searching j) then 
+					f j cur_cmd
+				else ()  
+			| _ -> 
+				if (keep_on_searching i) then 
+					let symb_state_then = cur_symb_state in
+					f_state_change symb_state_then i cur_cmd
+				else ();
+				if (keep_on_searching j) then 
+					let symb_state_else = copy_symb_state cur_symb_state in
+					f_state_change symb_state_else j cur_cmd)
 	
 	| SCall (x, e, e_args, j) ->
 		(*  "symbolically executing a procedure call - ai que locura!!!\n"; *)
-		let proc_name = symb_evaluate_expr e store gamma in
+		let proc_name = symb_evaluate_expr e (get_store cur_symb_state) (get_gamma cur_symb_state) in
 		let proc_name = 
 			match proc_name with 
 			| LLit (String proc_name) -> 
@@ -687,86 +727,70 @@ let rec symb_evaluate_cmd (spec_table : (string, jsil_n_spec) Hashtbl.t) post re
 			| _ ->
 				let msg = Printf.sprintf "Symb Execution Error - Cannot analyse a procedure call without the name of the procedure. Got: %s." (JSIL_Print.string_of_logic_expression proc_name false) in 
 				raise (Failure msg) in 
-		(* let v_args = List.map (fun e -> symb_evaluate_expr e store gamma) e_args in *)
+	
 		let proc_specs = try 
 			Hashtbl.find spec_table proc_name 
 		with _ ->
 			let msg = Printf.sprintf "No spec found for proc %s" proc_name in 
 			raise (Failure msg) in 
-		(* let str_heap = JSIL_Memory_Print.string_of_shallow_symb_heap heap in 
-		Printf.printf "Heap before calling the procedure:\n%s\n" str_heap; *)
-		(match (find_and_apply_spec proc proc_specs heap store pure_formulae gamma) with 
-		| Some (heap, store, pure_formulae, gamma, ret_flag, ret_val) -> 
+	
+		(match (find_and_apply_spec prog proc_name proc_specs cur_symb_state) with 
+		| Some (symb_state, ret_flag, ret_val) -> 
 			(match ret_flag with 
-			| Normal -> 
-				(* let str_heap = JSIL_Memory_Print.string_of_shallow_symb_heap heap in 
-				Printf.printf "Heap after calling the procedure:\n%s\n" str_heap; *)
-				symb_evaluate_next_command spec_table post ret_flag prog proc which_pred heap store pure_formulae gamma cur_cmd prev_cmd
+			| Normal -> f_next_state_change symb_state cur_cmd prev_cmd
 			| Error ->
 				(match j with 
 				| None -> 
-					let msg = Printf.sprintf "Procedure %s returned an error, but no error label was provided." proc_name in 
+					let msg = Printf.sprintf "Procedure %s may return an error, but no error label was provided." proc_name in 
 					raise (Failure msg)
 				| Some j -> 
-					symb_evaluate_cmd spec_table post ret_flag prog cur_proc_name which_pred heap store pure_formulae gamma j cur_cmd))
+					if (keep_on_searching j) then 
+						f_state_change symb_state j cur_cmd
+					else ()))
 		| None -> 
 			let msg = Printf.sprintf "No precondition of procedure %s matches the current symbolic state" proc_name in 
 			raise (Failure msg))
 	
 	| _ -> raise (Failure "not implemented yet")
 and 
-symb_evaluate_next_command spec_table post ret_flag prog proc which_pred heap store pure_formulae gamma cur_cmd prev_cmd =
+symb_evaluate_next_command spec_table prog proc which_pred vis_tbl ret_flag post_symb_state cur_symb_state cur_cmd prev_cmd =
 	let cur_proc_name = proc.proc_name in 
-	if (Some cur_cmd = proc.ret_label)
-	then 
-		(let ret_var = 
-			(match proc.ret_var with
-			| None -> raise (Failure "No no!") 
-			| Some ret_var -> ret_var) in 
-		let ret_expr = (try (Hashtbl.find store ret_var) with
-			| _ -> 
-				let str_store = "\t Store: " ^ (JSIL_Memory_Print.string_of_shallow_symb_store store) ^ "\n" in 
-				Printf.printf "%s" str_store; 
-				raise (Failure (Printf.sprintf "Cannot find return variable."))) in 
-		check_final_symb_state cur_proc_name post ret_flag heap store gamma Normal ret_expr pure_formulae)
-	else (if (Some cur_cmd = proc.error_label) 
-			then 
-				(let err_expr = 
-					(let err_var = (match proc.error_var with 
-					                      | None -> raise (Failure "No no!") 
-																| Some err_var -> err_var) in
-				         (try (Hashtbl.find store err_var) with
-				| _ -> raise (Failure (Printf.sprintf "Cannot find error variable in proc %s, err_lab = %d, err_var = %s, cmd = %s" proc.proc_name cur_cmd err_var (JSIL_Print.string_of_cmd proc.proc_body.(prev_cmd)  0 0 false false false))))) in
-			check_final_symb_state cur_proc_name post ret_flag heap store gamma Error err_expr pure_formulae)
-	else (
-			let next_cmd = 
-				(if ((cur_cmd + 1) < (Array.length proc.proc_body)) 
-					then Some proc.proc_body.(cur_cmd+1)
-					else None) in 
-			let next_prev = 
-				match next_cmd with 
-				| Some (_, SPsiAssignment (_, _)) -> prev_cmd 
-				| _ -> cur_cmd in 
-			symb_evaluate_cmd spec_table post ret_flag prog cur_proc_name which_pred heap store pure_formulae gamma (cur_cmd + 1) next_prev))
+	if (Some cur_cmd = proc.ret_label) then 
+		check_final_symb_state cur_proc_name post_symb_state ret_flag cur_symb_state Normal
+	else (if (Some cur_cmd = proc.error_label) then 
+		check_final_symb_state cur_proc_name post_symb_state ret_flag cur_symb_state Error 
+	else
+		let next_cmd = 
+			(if ((cur_cmd + 1) < (Array.length proc.proc_body)) then 
+				Some proc.proc_body.(cur_cmd + 1) 
+			else None) in 
+		let next_prev = 
+			match next_cmd with 
+			| Some (_, SPsiAssignment (_, _)) -> prev_cmd 
+			| _ -> cur_cmd in 
+		symb_evaluate_cmd spec_table prog cur_proc_name which_pred vis_tbl ret_flag post_symb_state cur_symb_state (cur_cmd + 1) next_prev)
 and 
-check_final_symb_state proc_name post ret_flag heap store gamma flag lexpr pure_formulae = 
-	let post_heap, post_store, post_p_formulae, post_gamma = post in 
-	(** let str = JSIL_Memory_Print.string_of_shallow_symb_state heap store pure_formulae gamma in 
-	Printf.printf "Final symbolic state: \n %s" str; **)	
+check_final_symb_state proc_name post_symb_state post_flag symb_state flag = 
 	let print_error_to_console msg = 
 		(if (msg = "") 
 			then Printf.printf "Failed to verify a spec of proc %s\n" proc_name
 			else Printf.printf "Failed to verify a spec of proc %s -- %s\n" proc_name msg); 
-		let final_symb_state_str = JSIL_Memory_Print.string_of_shallow_symb_state heap store pure_formulae gamma in 
-		let post_symb_state_str = JSIL_Memory_Print.string_of_shallow_symb_state post_heap post_store post_p_formulae post_gamma in
+		let final_symb_state_str = JSIL_Memory_Print.string_of_shallow_symb_state symb_state in 
+		let post_symb_state_str = JSIL_Memory_Print.string_of_shallow_symb_state post_symb_state in
 		Printf.printf "Final symbolic state: %s\n" final_symb_state_str;
 		Printf.printf "Post condition: %s\n" post_symb_state_str in 
 	
-	let unifier = unify_symb_heaps_top_level post_heap post_store post_p_formulae post_gamma heap store pure_formulae gamma in 
+	let unifier = unify_symb_heaps_top_level post_symb_state symb_state in 
 	match unifier with 
 	| Some (quotient_heap, _) ->	
 		if (is_symb_heap_empty quotient_heap) 
 			then Printf.printf "Verified one spec of proc %s\n" proc_name
 			else (print_error_to_console "incomplete match"; raise (Failure "post condition is not unifiable"))
 	| None -> (print_error_to_console "non_unifiable heaps";  raise (Failure "post condition is not unifiable"))
+
+let symb_evaluate_proc spec_table prog proc_name which_pred ret_flag post_symb_state pre_symb_state = 
+	let vis_tbl = Hashtbl.create 31 in 
+	symb_evaluate_cmd spec_table prog proc_name which_pred vis_tbl ret_flag post_symb_state pre_symb_state 0 0
+	
+
 	

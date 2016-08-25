@@ -515,8 +515,7 @@ let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_form
 	
 	| LPointsTo (_, _, _) -> raise (Failure "Unsupported points-to assertion")
 	
-	| LPred (_, _) -> raise (Failure "LPred not supported at normalization time")
-	
+	| LPred (_, _)	
 	| LTrue 
 	| LFalse
 	| LAnd (_, _)
@@ -699,6 +698,22 @@ let rec normalised_is_typable gamma nlexpr =
 	| LBinOp			of jsil_logic_expr * bin_op * jsil_logic_expr
 *)
 
+
+let init_preds a store gamma subst =
+	let preds = DynArray.make 11 in 
+	let rec init_preds_aux preds a =
+		let f = init_preds_aux preds in  
+		let fe = normalise_lexpr store gamma subst in 
+		(match a with 
+		| LStar (a1, a2) -> f a1; f a2
+		| LPred (name, les) -> 
+			let n_les =	List.map fe les in
+			DynArray.add preds (name, n_les)
+		| _ -> ()) in 
+	init_preds_aux preds a; 
+	preds
+
+
 let normalize_assertion_top_level a = 
 	
 	let heap = LHeap.create 1021 in 
@@ -710,7 +725,8 @@ let normalize_assertion_top_level a =
 	init_symb_store_alocs store gamma subst a;
 	let p_formulae = init_pure_assignments a store gamma subst in 
 	compute_symb_heap heap store p_formulae gamma subst a; 
-	heap, store, p_formulae, gamma
+	let preds = init_preds a store gamma subst in 
+	heap, store, p_formulae, gamma, preds
 	
 
 let rec push_in_negations_off a =

@@ -114,7 +114,11 @@ let check_entailment left_as right_as gamma =
 				let a = encode_pure_formula ctx gamma a in 
 				Boolean.mk_not ctx a)
 			right_as in 
-	let right_as_or = (Boolean.mk_or ctx right_as) in 
+	let right_as_or = 
+		if ((List.length right_as) > 1) then 
+				(Boolean.mk_or ctx right_as) 
+			else
+				(List.nth right_as 0) in 
 	let left_as = 
 		List.map 
 			(fun a -> encode_pure_formula ctx gamma a)
@@ -123,7 +127,8 @@ let check_entailment left_as right_as gamma =
 	Goal.add g (left_as @ [ right_as_or ]); 
 	let solver = (mk_solver ctx None) in
 	(List.iter (fun a -> (Solver.add solver [ a ])) (get_formulas g)); 
-	Printf.printf "I checked what I had to check\n";
-	(if (check solver []) != SATISFIABLE then true else false)
+	(if (check solver []) != SATISFIABLE then 
+			(Printf.printf "encoded formula NOT satisfiable\n"; true) 
+	 else (Printf.printf "encoded formula satisfiable\n"; false) )
 				
 	
