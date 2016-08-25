@@ -1,0 +1,15 @@
+
+spec xpto (x)
+   [[ (#x == "maria") * types(#x: $$string_type)]]
+   [[ (#x == "joel") ]]
+   normal
+proc xpto (x) {
+               x := 0;
+       rlab:   skip;
+       elab:   skip
+}
+with
+{
+      ret: 	x, rlab;
+      err: 	x, elab;
+};
