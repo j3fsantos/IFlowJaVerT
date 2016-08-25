@@ -1,0 +1,14 @@
+spec xpto (x)
+   [[ ((x - 3) <== 0) * types(x: $$int_type)]]
+   [[ ((x + 1) <== 0) ]]
+   normal
+proc xpto (x) {
+               skip;
+       rlab:   skip;
+       elab:   skip
+}
+with
+{
+      ret: 	x, rlab;
+      err: 	x, elab;
+};
