@@ -220,25 +220,30 @@ type jsil_return_flag =
 
 (* JSIL procedure specification *)
 type jsil_single_spec = {
-	  pre : jsil_logic_assertion; 
-		post : jsil_logic_assertion; 
-		ret_flag : jsil_return_flag 
+	pre : jsil_logic_assertion;
+	post : jsil_logic_assertion;
+	ret_flag : jsil_return_flag
 }
 
-type jsil_spec = { 
-    spec_name : string;
-    spec_params : jsil_var list; 
-		proc_specs : jsil_single_spec list
+type jsil_spec = {
+	spec_name : string;
+	spec_params : jsil_var list;
+	proc_specs : jsil_single_spec list
 }
+
+(* JSIL logic commands *)
+type jsil_logic_command =
+	| Fold   of string
+	| Unfold of string
 
 (* JSIL command metadata *)
 type jsil_metadata = {
-	line_offset : int option; 
-	pre_cond : jsil_logic_assertion option 
+	line_offset : int option;
+	pre_cond : jsil_logic_assertion option;
+	logic_cmds : jsil_logic_command list;
 }
 
-let make_empty_metadata = { line_offset = None; pre_cond = None }
-let make_jsil_metadata offset pre = { line_offset = offset; pre_cond = pre }
+let empty_metadata = { line_offset = None; pre_cond = None; logic_cmds = [] }
 
 (* JSIL procedures *)
 type jsil_procedure = {

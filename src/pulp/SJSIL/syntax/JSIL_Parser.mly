@@ -1,5 +1,5 @@
 %{
-open SJSIL_Syntax
+open JSIL_Syntax
 %}
 
 (***** Token definitions *****)
@@ -141,11 +141,13 @@ open SJSIL_Syntax
 %token LLESSTHANEQUAL
 %token LARROW
 %token LEMP 
-%token LEXISTS 
-%token LFORALL
+(*%token LEXISTS 
+%token LFORALL *)
 %token LTYPES
 (* Logic predicates *)
 %token PRED
+%token FOLD
+%token UNFOLD
 (* Procedure specification keywords *)
 %token SPEC
 %token NORMAL
@@ -160,7 +162,7 @@ open SJSIL_Syntax
 %token COMMA
 %token COLON
 %token SCOLON
-%token DOT
+(*%token DOT*)
 %token LBRACE
 %token RBRACE
 %token LBRACKET
@@ -173,7 +175,7 @@ open SJSIL_Syntax
 (***** Precedence of operators *****)
 (* The later an operator is listed, the higher precedence it is given. Based on JavaScript:
    https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Operators/Operator_Precedence *)
-%nonassoc DOT
+(*%nonassoc DOT*)
 %left OR
 %left AND
 %left separating_conjunction
@@ -192,9 +194,9 @@ open SJSIL_Syntax
   ISPRIMITIVE TOSTRING TOINT TOUINT16 TOINT32 TOUINT32 TONUMBER CAR CDR LSTLEN STRLEN
 
 (***** Types and entry points *****)
-%type <((SJSIL_Syntax.jsil_metadata * string option * SJSIL_Syntax.jsil_lab_cmd) list)> cmd_list_top_target
-%type <SJSIL_Syntax.jsil_ext_procedure> proc_target
-%type <SJSIL_Syntax.jsil_ext_program> main_target
+%type <((JSIL_Syntax.jsil_metadata * string option * JSIL_Syntax.jsil_lab_cmd) list)> cmd_list_top_target
+%type <JSIL_Syntax.jsil_ext_procedure> proc_target
+%type <JSIL_Syntax.jsil_ext_program> main_target
 %start main_target proc_target cmd_list_top_target
 
 %%
@@ -284,16 +286,12 @@ ctx_target_err:
 ;
 
 cmd_list_target: 
-	cmd_list = separated_nonempty_list(SCOLON, cmd_with_label_and_specs) {
+	cmd_list = separated_nonempty_list(SCOLON, cmd_with_label_and_logic) {
 		List.rev 
 			(List.fold_left
-				(fun ac c ->
-					match c with
-			 		| (None, None, None) -> ac
-					| (pre, lab, Some v) -> 
-						let metadata = make_jsil_metadata None pre in 
-						(metadata, lab, v) :: ac
-          | _, _, _ -> raise (Failure "Yeah, that's not really going to work without a command.")
+				(fun ac (pre_cond, logic_cmds, lab, cmd) ->
+					let metadata = { line_offset = None; pre_cond; logic_cmds } in
+					(metadata, lab, cmd) :: ac
 				)
 				[] 
 				cmd_list)
@@ -301,86 +299,84 @@ cmd_list_target:
 ;
 
 cmd_list_top_target: 
-	cmd_list = separated_list(SCOLON, cmd_with_label_and_specs); EOF {
+	cmd_list = separated_list(SCOLON, cmd_with_label_and_logic); EOF {
 		List.rev 
 			(List.fold_left
-				(fun ac c ->
-					match c with
-			 		| (None, None, None) -> ac
-					| (pre, lab, Some v) -> 
-						let metadata = make_jsil_metadata None pre in 
-						(metadata, lab, v) :: ac
-          | _, _, _ -> raise (Failure "Yeah, that's not really going to work without a command.")
+				(fun ac (pre_cond, logic_cmds, lab, cmd) ->
+					let metadata = { line_offset = None; pre_cond; logic_cmds } in
+					(metadata, lab, cmd) :: ac
 				)
 				[] 
 				cmd_list)
 	}
 ;
 
-cmd_with_label_and_specs:
-  | pre = option(spec_line); cmd = cmd_target
-		{ (pre, None, cmd) }
-	| pre = option(spec_line); lab = VAR; COLON; cmd = cmd_target
-		{ (pre, Some lab, cmd) }
+cmd_with_label_and_logic:
+  | pre = option(spec_line); logic_cmds = list(logic_cmd_target);
+	  cmd = cmd_target
+		{ (pre, logic_cmds, None, cmd) }
+	| pre = option(spec_line); logic_cmds = list(logic_cmd_target);
+	  lab = VAR; COLON; cmd = cmd_target
+		{ (pre, logic_cmds, Some lab, cmd) }
 ;
 
 cmd_target:
 (*** Basic commands ***)
 (* skip *)
 	| SKIP
-		{ Some (SLBasic (SSkip)) }
+		{ SLBasic (SSkip) }
 (* x := e *)
 	| v=VAR; DEFEQ; e=expr_target
-		{ Some (SLBasic (SAssignment (v, e))) }
+		{ SLBasic (SAssignment (v, e)) }
 (* x := new() *) 
 	| v=VAR; DEFEQ; NEW; LBRACE; RBRACE
-		{ Some (SLBasic (SNew v)) }
+		{ SLBasic (SNew v) }
 (* x := [e1, e2] *)
 	| v=VAR; DEFEQ; LBRACKET; e1=expr_target; COMMA; e2=expr_target; RBRACKET
-		{ Some (SLBasic (SLookup (v, e1, e2))) }
+		{ SLBasic (SLookup (v, e1, e2)) }
 (* [e1, e2] := e3 *)
 	| LBRACKET; e1=expr_target; COMMA; e2=expr_target; RBRACKET; DEFEQ; e3=expr_target
-		{ Some (SLBasic (SMutation (e1, e2, e3))) }
+		{ SLBasic (SMutation (e1, e2, e3)) }
 (* delete(e1, e2) *)
 	| DELETE; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
-		{ Some (SLBasic (SDelete (e1, e2))) }
+		{ SLBasic (SDelete (e1, e2)) }
 (* x := hasField(e1, e2) *)
 	| v=VAR; DEFEQ; HASFIELD; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
-		{ Some (SLBasic (SHasField (v, e1, e2))) }
+		{ SLBasic (SHasField (v, e1, e2)) }
 (* x := getFields (e1) *)
 	| v = VAR; DEFEQ; GETFIELDS; LBRACE; e=expr_target; RBRACE
-		{ Some (SLBasic (SGetFields (v, e))) }
+		{ SLBasic (SGetFields (v, e)) }
 (* x := args *)
 	| v = VAR; DEFEQ; ARGUMENTS
-	  { Some (SLBasic (SArguments v)) }
+	  { SLBasic (SArguments v) }
 (*** Other commands ***)
 (* goto i *)
 	| GOTO; i=VAR
-		{ Some (SLGoto i) }
+		{ SLGoto i }
 (* goto [e] i j *)
 	| GOTO LBRACKET; e=expr_target; RBRACKET; i=VAR; j=VAR
-		{ Some (SLGuardedGoto (e, i, j)) }
+		{ SLGuardedGoto (e, i, j) }
 (* x := e(e1, ..., en) with j *)
 	| v=VAR; DEFEQ; e=expr_target;
 	  LBRACE; es=separated_list(COMMA, expr_target); RBRACE; oi = option(call_with_target)
-		{ Some (SLCall (v, e, es, oi)) }
+		{ SLCall (v, e, es, oi) }
 (* x := apply (e1, ..., en) with j *)
 	| v=VAR; DEFEQ; APPLY;
 	  LBRACE; es=separated_list(COMMA, expr_target); RBRACE; oi = option(call_with_target)
-		{ Some (SLApply (v, es, oi)) }
+		{ SLApply (v, es, oi) }
 (* x := PHI(e1, e2, ... en); *)
   | v=VAR; DEFEQ; PHI; LBRACE; es = separated_list(COMMA, VAR); RBRACE
-	  { Some (SLPhiAssignment (v, Array.of_list (List.map (fun e -> Some e) es))) }
+	  { SLPhiAssignment (v, Array.of_list (List.map (fun e -> Some e) es)) }
 (* x := PSI(e1, e2, ... en); *)
   | v=VAR; DEFEQ; PSI; LBRACE; es = separated_list(COMMA, VAR); RBRACE
-	  { Some (SLPsiAssignment (v, Array.of_list (List.map (fun e -> Some e) es))) }
+	  { SLPsiAssignment (v, Array.of_list (List.map (fun e -> Some e) es)) }
 ;
 
-call_with_target: 
+call_with_target:
 	WITH; i=VAR { i }
 ;
 
-expr_target: 
+expr_target:
 (* literal *)
 	| lit=lit_target { Literal lit }
 (* var *)
@@ -443,6 +439,15 @@ pred_target:
 	PRED; name = VAR; LBRACE; params = separated_list(COMMA, VAR); RBRACE; COLON;
 		definitions = separated_nonempty_list(COMMA, assertion_target); SCOLON
   { { name; num_params  = List.length params; params; definitions; } }
+;
+
+logic_cmd_target:
+(* [[ fold(x) ]] *)
+	| OASSERT; FOLD; LBRACE; pred_name = VAR; RBRACE; CASSERT
+	  { Fold (pred_name) }
+(* [[ unfold(x) ]] *)
+	| OASSERT; UNFOLD; LBRACE; pred_name = VAR; RBRACE; CASSERT
+	  { Unfold (pred_name) }
 ;
 
 spec_target:

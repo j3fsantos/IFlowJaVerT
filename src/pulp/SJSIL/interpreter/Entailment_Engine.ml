@@ -13,7 +13,7 @@ open Z3.Arithmetic
 open Z3.Arithmetic.Integer
 open Z3.Arithmetic.Real
 open Z3.BitVector
-open SJSIL_Syntax
+open JSIL_Syntax
 
 let encode_string_as_fapp ctx str = 
 	let fname = (mk_string ctx str) in 

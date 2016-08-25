@@ -1,5 +1,5 @@
-open SJSIL_Syntax
-open SJSIL_Memory_Model
+open JSIL_Syntax
+open JSIL_Memory_Model
 open JSIL_Print
 
 let is_int v =
@@ -40,6 +40,7 @@ let rec sexpr_of_literal lit =
 			(match b with
       | true -> "#t"
       | false -> "#f")
+		| Integer i -> string_of_int i
     | Num n -> sexpr_of_float n
     | String x -> Printf.sprintf "\"%s\"" x
     | Loc loc -> loc
@@ -238,13 +239,13 @@ let sexpr_of_program program line_numbers =
 
 let serialize_prog_racket prog line_numbers = 
 	let serialized_prog	= sexpr_of_program prog line_numbers in 
-	Printf.sprintf SSyntax_Templates.template_procs_racket serialized_prog																						
+	Printf.sprintf SExpr_Templates.template_procs_racket serialized_prog																						
 
 let serialize_internals_racket specs builtins line_numbers = 
 	let serialized_specs = sexpr_of_program specs line_numbers in 
 	let serialized_builtins = sexpr_of_program builtins line_numbers in 
 	let serialized_internals = serialized_specs ^ "\n" ^ serialized_builtins in 
-	Printf.sprintf SSyntax_Templates.template_internal_procs_racket serialized_internals
+	Printf.sprintf SExpr_Templates.template_internal_procs_racket serialized_internals
 
 let sexpr_of_heap (h : jsil_lit SHeap.t SHeap.t) = 
 	SHeap.fold 
@@ -263,4 +264,4 @@ let sexpr_of_heap (h : jsil_lit SHeap.t SHeap.t) =
 (* (define target (heap (cell loc prop val) (cell loc prop val) ... )) *)
 let serialize_heap_racket h =  
 	let serialized_h = sexpr_of_heap h in 
-	Printf.sprintf SSyntax_Templates.template_hp_racket serialized_h
+	Printf.sprintf SExpr_Templates.template_hp_racket serialized_h

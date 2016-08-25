@@ -1,4 +1,4 @@
-open SJSIL_Syntax
+open JSIL_Syntax
 
 (* SJSIL Heaps *)
  module SHeap = Hashtbl.Make(

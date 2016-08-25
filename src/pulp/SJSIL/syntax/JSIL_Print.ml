@@ -1,4 +1,4 @@
-open SJSIL_Syntax
+open JSIL_Syntax
 
 let rec tabs_to_str i  = 
 	if i = 0 then "" else "\t" ^ (tabs_to_str (i - 1))
@@ -60,6 +60,7 @@ let rec string_of_literal lit escape_string =
 		(match b with
     | true -> "$$t"
     | false -> "$$f")
+	| Integer i -> string_of_int i
   | Num n -> string_of_float n
   | String x ->
 		(if escape_string
