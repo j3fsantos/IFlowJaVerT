@@ -34,7 +34,7 @@ proc xpto (x) {
 } with {
     ret: 	x, rlab;
     err: 	x, elab;
-}
+};
 
 spec xpto2 (x, y)
   [[ ((x, "foo") -> "bar") * ((x, "baz") -> y + 1) * (y == _w + 3) ]]
@@ -49,4 +49,4 @@ proc xpto2 (x, y) {
     rlab:   skip
 } with {
     ret:    x, rlab;
-}
+};

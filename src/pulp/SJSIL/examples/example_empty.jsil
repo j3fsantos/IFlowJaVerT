@@ -1,0 +1,11 @@
+
+spec empty_proc (x,y)
+	[[ !(x <== 6) * x <== 10 ]]
+	[[ !(x <== 8) * x <== 10 ]]
+	normal
+
+proc empty_proc (x, y) {
+	rlab:	skip
+} with {
+	ret: xret, rlab;
+};
