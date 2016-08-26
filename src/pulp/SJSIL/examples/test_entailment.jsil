@@ -1,0 +1,66 @@
+
+(** Check if (#x == "maria") entails (! #x == None) **)
+(** Expected result: YES                            **)
+spec test1 (x)
+   [[ (x == #x) * (#x == "maria") * types(#x: $$string_type) ]]
+   [[ (! (x == None)) ]]
+   normal
+proc test1 (x) {
+   rlab:   skip
+} with { ret: x, rlab; };
+
+
+(** Check if (#x == "maria") entails (! #x == 5) **)
+(** Expected result: YES                         **)
+spec test2 (x)
+   [[ (x == #x) * (#x == "maria") * types(#x: $$string_type) ]]
+   [[ (! (x == 5)) ]]
+   normal
+proc test2 (x) {
+   rlab:   skip
+} with { ret: x, rlab; };
+
+
+(** Check if (#x == "maria") entails (! #x == "pepe") **)
+(** Expected result: YES                              **)
+spec test3 (x)
+   [[ (x == #x) * (#x == "maria") * types(#x: $$string_type) ]]
+   [[ (! (x == "pepe")) ]]
+   normal
+proc test3 (x) {
+   rlab:   skip
+} with { ret: x, rlab; };
+
+
+(** Check if (#x == "maria") entails (! #x == "maria") **)
+(** Expected result: NO                                **)
+spec test4 (x)
+   [[ (x == #x) * (#x == "maria") * types(#x: $$string_type) ]]
+   [[ (! (x == "maria")) ]]
+   normal
+proc test4 (x) {
+   rlab:   skip
+} with { ret: x, rlab; };
+
+
+(** Check if (#x == "maria") entails (#x == "maria") **)
+(** Expected result: YES                             **)
+spec test5 (x)
+   [[ (x == #x) * (#x == "maria") * types(#x: $$string_type) ]]
+   [[ (#x == "maria") ]]
+   normal
+proc test5 (x) {
+   rlab:   skip
+} with { ret: x, rlab; };
+
+
+(** Check if (#x == "maria") entails (#x == "maria") **)
+(** Expected result: YES                             **)
+spec test6 (x)
+   [[ (x == #x) * (#x == "maria") * types(#x: $$string_type) ]]
+   [[ (x == #y) * (#y == "maria") ]]
+   normal
+proc test6 (x) {
+   rlab:   skip
+} with { ret: x, rlab; };
+
