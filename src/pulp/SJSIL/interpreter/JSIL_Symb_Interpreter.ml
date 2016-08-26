@@ -579,19 +579,17 @@ let unify_gamma pat_gamma gamma subst =
 			(if (not ac) 
 				then ac 
 				else 
-					try 
-						let le = Hashtbl.find subst var in
-						let le_type, is_typable = JSIL_Logic_Normalise.normalised_is_typable gamma le in  
-						if is_typable then 
-							(match le_type with 
-							| Some le_type -> le_type = v_type 
-							| None -> false)
-							else false
-					with _ -> false))
+					let le = try Hashtbl.find subst var with _ -> (LVar var) in
+					let le_type, is_typable = JSIL_Logic_Normalise.normalised_is_typable gamma le in  
+					if is_typable then 
+						(match le_type with 
+						| Some le_type -> le_type = v_type 
+						| None -> false)
+						else false))
 	pat_gamma 
-	true		
-			
-			
+	true
+
+
 let check_entailment_pf pf pat_pf gamma subst = 
 	(* Printf.printf "I am inside the check entailment patati patata\n"; *)
 	
@@ -628,10 +626,10 @@ let unify_symb_heaps_top_level pat_symb_state symb_state : (symbolic_heap * pred
 		(match new_subst, quotient_heap with 
 		| Some new_subst, Some quotient_heap ->
 			Printf.printf "I computed a quotient heap but I also need to check an entailment\n"; 
-			if ((check_entailment_pf pf pat_pf gamma new_subst) && (unify_gamma pat_gamma gamma new_subst)) then 
+			(if ((check_entailment_pf pf pat_pf gamma new_subst) && (unify_gamma pat_gamma gamma new_subst)) then 
 				Some (quotient_heap, quotient_preds, new_subst)
 				else None)
-		| _ -> None)
+		| _ -> None))
 
 
 let is_symb_heap_empty heap = 

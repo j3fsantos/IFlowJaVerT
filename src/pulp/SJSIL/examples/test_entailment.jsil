@@ -58,7 +58,7 @@ proc test5 (x) {
 (** Expected result: YES                             **)
 spec test6 (x)
    [[ (x == #x) * (#x == "maria") * types(#x: $$string_type) ]]
-   [[ (x == #y) * (#y == "maria") ]]
+   [[ (x == #y) * (#y == "maria") * types(#x: $$string_type, #y: $$string_type) ]]
    normal
 proc test6 (x) {
    rlab:   skip

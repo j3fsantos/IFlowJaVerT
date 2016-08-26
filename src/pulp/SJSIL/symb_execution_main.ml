@@ -72,8 +72,7 @@ let sym_run_procs spec_table prog which_pred =
 					(try
 						symb_evaluate_proc spec_table prog proc_name which_pred ret_flag pre_post.n_post pre_post.n_pre 
 					 with Failure msg -> 
-						let data = (Printf.sprintf "Failure: %s\n" msg) in 
-						burn_to_disk "sym_execution_info.txt" data; 
+						Printf.printf "Failure: %s\n" msg;
 						exit 1
 					))
 			pre_post_list)
@@ -85,7 +84,7 @@ let process_file path =
 	let prog, which_pred = JSIL_Utils.prog_of_ext_prog path ext_prog in 
 	let spec_tbl = build_spec_tbl prog in 
 	sym_run_procs spec_tbl prog which_pred;
-	burn_to_disk "sym_execution_info.txt" "Success"; 
+	Printf.printf "Success";
 	exit 0
 
 let main () = 
