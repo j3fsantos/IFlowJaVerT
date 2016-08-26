@@ -13,6 +13,7 @@ let next_line lexbuf =
 }
 
 let digit = ['0'-'9']
+let int = '-'? digit+
 let float = '-'? digit+ ('.' digit*)?
 let letter = ['a'-'z''A'-'Z']
 let var = (letter|'_')(letter|digit|'_')*
@@ -28,6 +29,7 @@ rule read = parse
   | "$$undefined_type"   { JSIL_Parser.UNDEFTYPELIT }
 	| "$$null_type"        { JSIL_Parser.NULLTYPELIT }
 	| "$$empty_type"       { JSIL_Parser.EMPTYTYPELIT }
+	| "$$none_type"        { JSIL_Parser.NONETYPELIT }
 	| "$$boolean_type"     { JSIL_Parser.BOOLTYPELIT }
 	| "$$int_type"         { JSIL_Parser.INTTYPELIT }
 	| "$$number_type"      { JSIL_Parser.NUMTYPELIT }
@@ -66,8 +68,8 @@ rule read = parse
 (* Binary operators *)
 	| "="                  { JSIL_Parser.EQUAL }
 	| "<"                  { JSIL_Parser.LESSTHAN }
-	| "<s"                 { JSIL_Parser.LESSTHANSTRING }
 	| "<="                 { JSIL_Parser.LESSTHANEQUAL }
+	| "<s"                 { JSIL_Parser.LESSTHANSTRING }
 	| "+"                  { JSIL_Parser.PLUS }
 	| "-"                  { JSIL_Parser.MINUS }
 	| "*"                  { JSIL_Parser.TIMES }
@@ -152,7 +154,10 @@ rule read = parse
 	| "true"							 { JSIL_Parser.LTRUE }
 	| "false"							 { JSIL_Parser.LFALSE }
 	| "=="								 { JSIL_Parser.LEQUAL }
-	| "<=="								 { JSIL_Parser.LLESSTHANEQUAL }
+	| "<<"								 { JSIL_Parser.LLESSTHAN }
+	| "<<="								 { JSIL_Parser.LLESSTHANEQUAL }
+	| "<<s"								 { JSIL_Parser.LLESSTHANSTRING }
+	(* Separating conjunction uses the same symbol as product, token TIMES *)
 	| "->"								 { JSIL_Parser.LARROW }
 	| "emp"								 { JSIL_Parser.LEMP }
 	(*| "exists"						 { JSIL_Parser.LEXISTS }
@@ -185,8 +190,9 @@ rule read = parse
 	| '{'                  { JSIL_Parser.CLBRACKET }
 	| '}'                  { JSIL_Parser.CRBRACKET }
 (* Literals (cont.) *)
-  | float                { JSIL_Parser.FLOAT (float_of_string (Lexing.lexeme lexbuf)) }
-  | '"'                  { read_string (Buffer.create 17) lexbuf }
+	| int                  { JSIL_Parser.INT (int_of_string (Lexing.lexeme lexbuf)) }
+	| float                { JSIL_Parser.FLOAT (float_of_string (Lexing.lexeme lexbuf)) }
+	| '"'                  { read_string (Buffer.create 17) lexbuf }
 	| loc                  { JSIL_Parser.LOC (Lexing.lexeme lexbuf) }
 (* Variables *)
 	| var                  { JSIL_Parser.VAR (Lexing.lexeme lexbuf) }

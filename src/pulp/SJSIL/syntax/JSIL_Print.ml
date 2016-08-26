@@ -22,6 +22,7 @@ let string_of_type t =
   | UndefinedType -> "$$undefined_type"
 	| NullType -> "$$null_type"
 	| EmptyType -> "$$empty_type"
+	| NoneType -> "$$none_type"
   | BooleanType -> "$$boolean_type"
 	| IntType -> "$$int_type"
   | NumberType -> "$$number_type"
@@ -80,8 +81,8 @@ let string_of_binop bop =
 	match bop with
   | Equal -> "="
   | LessThan -> "<"
+	| LessThanEqual -> "<="
 	| LessThanString -> "<s"
-  | LessThanEqual -> "<="
  	| Plus -> "+"
   | Minus -> "-"
   | Times -> "*"
@@ -240,7 +241,7 @@ let rec string_of_logic_assertion a escape_string =
 		| LAnd (a1, a2) -> Printf.sprintf "%s /\\ %s" (sla a1) (sla a2)
 		(* a1 \/ a2 *)
 		| LOr (a1, a2) -> Printf.sprintf "%s \\/ %s" (sla a1) (sla a2)
-		(* ~ a *)
+		(* ! a *)
 		| LNot a -> Printf.sprintf "! %s" (sla a)
 		(* true *)
 		| LTrue -> "true"
@@ -248,8 +249,12 @@ let rec string_of_logic_assertion a escape_string =
 		| LFalse -> "false"
 		(* e1 == e2 *)
 		| LEq (e1, e2) -> Printf.sprintf "%s == %s" (sle e1) (sle e2)
-		(* e1 <== e2 *)
-		| LLessEq (e1, e2) -> Printf.sprintf "%s <== %s" (sle e1) (sle e2)
+		(* e1 << e2 *)
+		| LLess (e1, e2) -> Printf.sprintf "%s << %s" (sle e1) (sle e2)
+		(* e1 <<= e2 *)
+		| LLessEq (e1, e2) -> Printf.sprintf "%s <<= %s" (sle e1) (sle e2)
+		(* e1 <<s e2 *)
+		| LStrLess (e1, e2) -> Printf.sprintf "%s <<s %s" (sle e1) (sle e2)
 		(* a1 * a2 *)
 		| LStar (a1, a2) -> Printf.sprintf "%s * %s" (sla a1) (sla a2)
 		(* (e1, e2) -> e3 *)
@@ -270,7 +275,7 @@ let rec string_of_logic_assertion a escape_string =
 let rec string_of_predicate predicate =
 	List.fold_left 
 		(fun acc_str assertion -> 
-			acc_str ^ (Printf.sprintf "pred %s (%s) : %s ;\n"
+			acc_str ^ (Printf.sprintf "pred %s (%s) : %s;\n"
 				predicate.name (String.concat ", " predicate.params) (string_of_logic_assertion assertion false)))
 		""
 		predicate.definitions

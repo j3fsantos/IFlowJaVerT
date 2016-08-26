@@ -58,8 +58,8 @@ type bin_op =
 	(* Comparison *)
   | Equal
   | LessThan
+	| LessThanEqual
 	| LessThanString
-  | LessThanEqual
 	(* Arithmetic operators *)
   | Plus
   | Minus

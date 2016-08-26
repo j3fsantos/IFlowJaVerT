@@ -7,6 +7,7 @@ open JSIL_Syntax
 %token UNDEFTYPELIT
 %token NULLTYPELIT
 %token EMPTYTYPELIT
+%token NONETYPELIT
 %token BOOLTYPELIT
 %token INTTYPELIT
 %token NUMTYPELIT
@@ -35,6 +36,7 @@ open JSIL_Syntax
 %token EMPTY
 %token TRUE
 %token FALSE
+%token <int> INT
 %token <float> FLOAT
 %token NAN
 %token INFINITY
@@ -50,8 +52,8 @@ open JSIL_Syntax
 (* Binary operators *)
 %token EQUAL
 %token LESSTHAN
-%token LESSTHANSTRING
 %token LESSTHANEQUAL
+%token LESSTHANSTRING
 %token PLUS
 %token MINUS
 %token TIMES
@@ -72,8 +74,8 @@ open JSIL_Syntax
 %token LSTCAT
 %token STRCAT
 (* Unary operators *)
-%token NOT
 (* Unary minus uses the same token as binary minus: MINUS *)
+%token NOT
 %token BITWISENOT
 %token M_ABS
 %token M_ACOS
@@ -138,7 +140,9 @@ open JSIL_Syntax
 %token LTRUE
 %token LFALSE
 %token LEQUAL
+%token LLESSTHAN
 %token LLESSTHANEQUAL
+%token LLESSTHANSTRING
 %token LARROW
 %token LEMP 
 (*%token LEXISTS 
@@ -219,7 +223,7 @@ declaration_target:
 		}
 	| proc_target declaration_target
 		{ (* Add the procedure to the hash table of procedures *)
-			Hashtbl.replace $2.procedures $1.lproc_name $1; (* Warn if conflicting names? *)
+			Hashtbl.replace $2.procedures $1.lproc_name $1; (* TODO: Warn if conflicting names? *)
 			$2
 		}
 	| EOF
@@ -286,28 +290,22 @@ ctx_target_err:
 ;
 
 cmd_list_target: 
-	cmd_list = separated_nonempty_list(SCOLON, cmd_with_label_and_logic) {
-		List.rev 
-			(List.fold_left
-				(fun ac (pre_cond, logic_cmds, lab, cmd) ->
-					let metadata = { line_offset = None; pre_cond; logic_cmds } in
-					(metadata, lab, cmd) :: ac
-				)
-				[] 
-				cmd_list)
+	cmd_list = separated_nonempty_list(SCOLON, cmd_with_label_and_logic)
+	{
+		List.map
+			(fun (pre_cond, logic_cmds, lab, cmd) ->
+				({ line_offset = None; pre_cond; logic_cmds }, lab, cmd))
+			cmd_list
 	}
 ;
 
 cmd_list_top_target: 
-	cmd_list = separated_list(SCOLON, cmd_with_label_and_logic); EOF {
-		List.rev 
-			(List.fold_left
-				(fun ac (pre_cond, logic_cmds, lab, cmd) ->
-					let metadata = { line_offset = None; pre_cond; logic_cmds } in
-					(metadata, lab, cmd) :: ac
-				)
-				[] 
-				cmd_list)
+	cmd_list = separated_list(SCOLON, cmd_with_label_and_logic); EOF
+	{
+		List.map
+			(fun (pre_cond, logic_cmds, lab, cmd) ->
+				({ line_offset = None; pre_cond; logic_cmds }, lab, cmd))
+			cmd_list
 	}
 ;
 
@@ -378,7 +376,7 @@ call_with_target:
 
 expr_target:
 (* literal *)
-	| lit=lit_target { Literal lit }
+	| lit=prog_lit_target { Literal lit }
 (* var *)
 	| v=VAR { Var v }
 (* e binop e *)
@@ -430,6 +428,12 @@ expr_target:
 (* (e) *)
   | LBRACE; e=expr_target; RBRACE
 		{ e }
+;
+
+prog_lit_target:
+  (* Treat integers as floats *)
+  | INT                       { Num (float $1) }
+	| lit_target                { $1 }
 ;
 
 (********* LOGIC *********)
@@ -489,9 +493,15 @@ assertion_target:
 (* E == E *)
 	| left_expr=lexpr_target; LEQUAL; right_expr=lexpr_target
 		{ LEq (left_expr, right_expr) }
-(* E <== E *)
+(* E << E *)
+	| left_expr=lexpr_target; LLESSTHAN; right_expr=lexpr_target
+		{ LLess (left_expr, right_expr) }
+(* E <<= E *)
 	| left_expr=lexpr_target; LLESSTHANEQUAL; right_expr=lexpr_target
 		{ LLessEq (left_expr, right_expr) }
+(* E <<s E *)
+	| left_expr=lexpr_target; LLESSTHANSTRING; right_expr=lexpr_target
+		{ LStrLess (left_expr, right_expr) }
 (* P * Q *)
 (* The precedence of the separating conjunction is not the same as the arithmetic product *)
 	| left_ass=assertion_target; TIMES; right_ass=assertion_target 
@@ -527,13 +537,14 @@ type_env_pair_target:
 ;
 
 lexpr_target:
-(* literal *)
-	| lit=lit_target { LLit lit }
+(* Logic literal *)
+	| lit=logic_lit_target { LLit lit }
 (* None *)
 	| LNONE { LNone }
-(* lvar *)
+(* Logic variable *)
 	| v=LVAR { LVar v }
-(* pvar *)
+(* Abstract locations are computed on normalisation *)
+(* Program variable *)
 	| v=VAR { PVar v }
 (* e binop e *)	
 	| e1=lexpr_target; bop=binop_target; e2=lexpr_target
@@ -574,6 +585,12 @@ lexpr_target:
 	  { e }	
 ;		
 
+logic_lit_target:
+  (* Use the Integer type for ints *)
+  | INT                       { Integer $1 }
+	| lit_target                { $1 }
+;
+
 (********* COMMON *********)
 
 lit_target: 
@@ -598,8 +615,8 @@ lit_target:
 %inline binop_target: 
 	| EQUAL              { Equal }
 	| LESSTHAN           { LessThan }
-	| LESSTHANSTRING     { LessThanString }
 	| LESSTHANEQUAL      { LessThanEqual }
+	| LESSTHANSTRING     { LessThanString }
 	| PLUS               { Plus }
 	| MINUS              { Minus }
 	| TIMES              { Times }
@@ -622,8 +639,8 @@ lit_target:
 ;
 
 %inline unop_target:
-	| NOT         { Not }
 	(* Unary minus defined in (l)expr_target *)
+	| NOT         { Not }
 	| BITWISENOT  { BitwiseNot }
 	| M_ABS       { M_abs }
 	| M_ACOS      { M_acos }
@@ -670,6 +687,7 @@ lit_target:
 	| UNDEFTYPELIT { UndefinedType }
 	| NULLTYPELIT  { NullType }
 	| EMPTYTYPELIT { EmptyType }
+	| NONETYPELIT  { NoneType }
 	| BOOLTYPELIT  { BooleanType }
 	| INTTYPELIT 	 { IntType }
 	| NUMTYPELIT   { NumberType }
