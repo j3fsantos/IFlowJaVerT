@@ -112,7 +112,12 @@ let rec encode_pure_formula ctx gamma a =
 	let fe = encode_logical_expression ctx gamma in
 	match a with
 	| LNot a             -> Boolean.mk_not ctx (f a)
-	| LEq (le1, le2)     -> Boolean.mk_eq ctx (fe le1) (fe le2)
+	| LEq (le1, le2)     ->
+		let le1_sort = Expr.get_sort (fe le1) in
+		let le2_sort = Expr.get_sort (fe le2) in
+		(if Sort.equal le1_sort le2_sort
+			then Boolean.mk_eq ctx (fe le1) (fe le2)
+			else Boolean.mk_false ctx)
 	| LLess (le1, le2)   -> Arithmetic.mk_lt ctx (fe le1) (fe le2)
 	| LLessEq (le1, le2) -> Arithmetic.mk_le ctx (fe le1) (fe le2)
 	| LStrLess (_, _)    -> raise (Failure ("I don't know how to do string comparison in Z3"))
