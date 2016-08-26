@@ -5,13 +5,14 @@
 (* JSIL types *)
 type jsil_type =
 	| UndefinedType
-  | NullType
+	| NullType
 	| EmptyType
-  | BooleanType
+	| NoneType
+	| BooleanType
 	| IntType
-  | NumberType
+	| NumberType
 	| StringType
-  | ObjectType 
+	| ObjectType
 	| ReferenceType
 	| ObjectReferenceType
 	| VariableReferenceType
