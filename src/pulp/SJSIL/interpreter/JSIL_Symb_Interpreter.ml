@@ -832,6 +832,25 @@ let rec symb_evaluate_cmd spec_table prog cur_proc_name which_pred vis_tbl ret_f
 			| Some _ -> false)
 		with _ -> true in  		
 	
+	let f_jump_next next_cmd cur_cmd copy_state branch_expr =
+		let new_pfs = (match branch_expr with 
+		| None -> []
+		| Some (ve, negate_ve) -> 
+			let _, a_ve = lift_logic_expr ve in 
+			(match a_ve with 
+			| None -> []
+			| Some a_ve ->  if (negate_ve) then [ (LNot a_ve) ] else [ a_ve ])) in 
+		
+		if (keep_on_searching next_cmd) then
+			(if (copy_state) then
+					let cur_symb_state = copy_symb_state cur_symb_state in
+					extend_symb_state_with_pfs cur_symb_state new_pfs; 
+					f_state_change cur_symb_state next_cmd cur_cmd
+				else 
+					extend_symb_state_with_pfs cur_symb_state new_pfs; 
+					f_state_change cur_symb_state next_cmd cur_cmd)
+			else () in 
+		
 	let cmd = proc.proc_body.(cur_cmd) in 
 	
 	Hashtbl.replace vis_tbl cur_cmd true; 
@@ -845,23 +864,13 @@ let rec symb_evaluate_cmd spec_table prog cur_proc_name which_pred vis_tbl ret_f
 	
 	| SGuardedGoto (e, i, j) -> 
 		let v_e = symb_evaluate_expr e (get_store cur_symb_state) (get_gamma cur_symb_state) in
-			(match v_e with 
-			| LLit (Bool true) -> 
-				if (keep_on_searching i) then 
-					f i cur_cmd 
-				else () 
-			| LLit (Bool false) -> 
-				if (keep_on_searching j) then 
-					f j cur_cmd
-				else ()  
-			| _ -> 
-				if (keep_on_searching i) then 
-					let symb_state_then = cur_symb_state in
-					f_state_change symb_state_then i cur_cmd
-				else ();
-				if (keep_on_searching j) then 
-					let symb_state_else = copy_symb_state cur_symb_state in
-					f_state_change symb_state_else j cur_cmd)
+		if (isEqual v_e (LLit (Bool true)) (get_pf cur_symb_state)) then 
+			f_jump_next i cur_cmd false None
+			else (if (isEqual v_e (LLit (Bool false)) (get_pf cur_symb_state)) then
+				f_jump_next j cur_cmd false None
+				else   
+					f_jump_next i cur_cmd false (Some (v_e, false)); 
+					f_jump_next j cur_cmd true (Some (v_e, true)))
 	
 	| SCall (x, e, e_args, j) ->
 		(*  "symbolically executing a procedure call - ai que locura!!!\n"; *)

@@ -67,5 +67,12 @@ let copy_symb_state symb_state =
 	let c_preds = DynArray.copy preds in 
 	(c_heap, c_store, c_pformulae, c_gamma, c_preds)
 
+
+let rec extend_symb_state_with_pfs symb_state pfs = 
+	match pfs with 
+	| [] -> () 
+	| pf :: rest_pfs -> 
+		DynArray.add (get_pf symb_state) pf; 
+		extend_symb_state_with_pfs symb_state rest_pfs 
 	
 
