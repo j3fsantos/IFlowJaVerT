@@ -887,8 +887,35 @@ check_final_symb_state proc_name spec symb_state flag =
 			else (print_error_to_console "incomplete match"; raise (Failure "post condition is not unifiable"))
 	| None -> (print_error_to_console "non_unifiable heaps";  raise (Failure "post condition is not unifiable"))
 
+
 let symb_evaluate_proc s_prog proc_name spec = 
 	let vis_tbl = Hashtbl.create 31 in 
 	symb_evaluate_cmd s_prog proc_name spec vis_tbl spec.n_pre 0 0
 
+
+let sym_run_procs spec_table prog which_pred = 
+	let s_prog = {
+		program = prog; 
+		which_pred = which_pred; 
+		spec_tbl = spec_table
+	} in 
+	let results = Hashtbl.fold 
+		(fun proc_name spec ac_results ->
+			let pre_post_list = spec.n_proc_specs in 
+			let results = List.map  
+				(fun pre_post ->
+					(try
+						symb_evaluate_proc s_prog proc_name pre_post;
+						(proc_name, pre_post, true, None)
+					 with Failure msg ->
+						(proc_name, pre_post, false, Some msg)
+					))
+				pre_post_list in
+			ac_results @ results)
+		spec_table
+		[] in 
+	let results_str = JSIL_Memory_Print.string_of_symb_exe_results results in 
+	results_str
+	
+	
 	

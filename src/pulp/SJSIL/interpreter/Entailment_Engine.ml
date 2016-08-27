@@ -149,8 +149,9 @@ let check_entailment left_as right_as gamma =
 	let right_as_or = 
 		if ((List.length right_as) > 1) then 
 				(Boolean.mk_or ctx right_as) 
-			else
-				(List.nth right_as 0) in 
+			else if ((List.length right_as) = 1) then
+				(List.nth right_as 0) 
+			else Boolean.mk_false ctx in 
 	let left_as = 
 		List.map 
 			(fun a -> encode_pure_formula ctx gamma a)
@@ -161,4 +162,6 @@ let check_entailment left_as right_as gamma =
 		(fun expr -> Printf.printf "Z3 Expression: %s\n" (Expr.to_string expr))
 		(left_as @ [ right_as_or ]);
 	Printf.printf "I checked what I had to check\n";
-	(if (Solver.check solver []) != Solver.SATISFIABLE then true else false)
+	let ret = (if (Solver.check solver []) != Solver.SATISFIABLE then true else false) in 
+	Gc.full_major (); 
+	ret

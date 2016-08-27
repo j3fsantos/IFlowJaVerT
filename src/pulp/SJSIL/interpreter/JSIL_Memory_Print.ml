@@ -89,6 +89,16 @@ let string_of_shallow_symb_state symb_state =
 	let str_preds = "\t Preds: " ^ (string_of_preds preds) ^ "\n" in  
 	str ^ str_heap ^ str_store ^ str_p_formulae ^ str_gamma ^ str_preds 
 
+let string_of_single_spec s_spec = 
+	let ret_flag = s_spec.n_ret_flag in 
+	let pre_str = string_of_shallow_symb_state s_spec.n_pre in 
+	let post_str = string_of_shallow_symb_state s_spec.n_post in 
+	let ret_flag_str = 
+		(match ret_flag with 
+		| Normal -> "normal"
+		| Error -> "error") in 
+	"Single Spec - " ^ ret_flag_str ^ "\nPre " ^ pre_str ^ "Post " ^ post_str 
+
 (* spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *) 
 let string_of_n_spec spec = 
 	let spec_name = spec.n_spec_name in 
@@ -103,14 +113,7 @@ let string_of_n_spec spec =
 	let pre_post_list_str =
 		List.fold_left
 			(fun ac single_spec -> 
-				let ret_flag = single_spec.n_ret_flag in 
-				let pre_str = string_of_shallow_symb_state single_spec.n_pre in 
-				let post_str = string_of_shallow_symb_state single_spec.n_post in 
-				let ret_flag_str = 
-					(match ret_flag with 
-					| Normal -> "normal"
-					| Error -> "error") in 
-				let single_spec_str = "Single Spec - " ^ ret_flag_str ^ "\n Pre " ^ pre_str ^ "Post " ^ post_str in 
+				let single_spec_str = string_of_single_spec single_spec in 
 				if (ac = "") then single_spec_str else ac ^ single_spec_str)
 			""
 			pre_post_list in
@@ -133,3 +136,25 @@ let string_of_store store =
 			if (ac != "") then var_val_str else ac ^ "; " ^ var_val_str)
 		store
 		"Store: "
+
+
+let string_of_symb_exe_result result = 
+	let proc_name, pre_post, success, msg = result in 
+	let str = "Proc " ^ proc_name ^ "  - " ^ (string_of_single_spec pre_post) ^ " -- " in 
+	let str = 
+		if (success) then 
+			str ^ "VERIFIED\n\n" 
+		else
+			(match msg with 
+			| None ->  str ^ "FAILED\n\n"
+			| Some msg -> str ^ "FAILED with msg: " ^ msg ^ "\n\n") in 
+	str
+
+let string_of_symb_exe_results results = 
+	let str = List.fold_left
+		(fun ac result -> 
+			let result_str = string_of_symb_exe_result result in 
+			ac ^ result_str)
+		""
+		results in 
+ 	str
