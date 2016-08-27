@@ -64,12 +64,17 @@ let encode_constant ctx constant =
 let str_codes = Hashtbl.create 1000
 let str_counter = ref 0
 let encode_string ctx str =
-	try Hashtbl.find str_codes str with
-	| Not_found ->
+	Printf.printf "I am going to encode a string\n";
+	try 
+		let str_number = Hashtbl.find str_codes str in 
+		(* Printf.printf "the string is already there!"; *)
+		let z3_code = Arithmetic.Integer.mk_numeral_i ctx str_number in 
+		z3_code
+	with Not_found ->
 		(* New string: add it to the hashtable *)
 		let z3_code = Arithmetic.Integer.mk_numeral_i ctx !str_counter in
+		Hashtbl.add str_codes str (!str_counter);
 		str_counter := !str_counter + 1;
-		Hashtbl.add str_codes str z3_code;
 		z3_code
 
 (** Encode JSIL literals as Z3 numerical constants *)
@@ -143,7 +148,9 @@ let check_entailment left_as right_as gamma =
 	let ctx = (mk_context cfg) in
 	let right_as = List.map 
 			(fun a -> 
+				Printf.printf "I am about to encode a pure formula: %s\n" (JSIL_Print.string_of_logic_assertion a false);
 				let a = encode_pure_formula ctx gamma a in
+				Printf.printf "I encoded a pure formula successfully\n";
 				Boolean.mk_not ctx a)
 			right_as in 
 	let right_as_or = 
