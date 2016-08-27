@@ -64,3 +64,14 @@ proc test6 (x) {
    rlab:   skip
 } with { ret: x, rlab; };
 
+
+(** Check if           **)
+(** Expected result:   **)
+(* This is broken with Failure("normalize_pure_assertion can only process pure assertions") 
+spec test7 (x,y)
+	[[ !(x <<= 6) * (x <<= 10) ]]
+	[[ !(x <<= 8) * (x <<= 10) ]]
+	normal
+proc test7 (x,y) {
+   rlab:   skip
+} with { ret: x, rlab; }; *)
