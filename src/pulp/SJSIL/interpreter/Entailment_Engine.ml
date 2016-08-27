@@ -156,12 +156,13 @@ let check_entailment left_as right_as gamma =
 		List.map 
 			(fun a -> encode_pure_formula ctx gamma a)
 			left_as in 
-	let solver = (Solver.mk_solver ctx None) in
-	Solver.add solver (left_as @ [ right_as_or ]);
 	List.iter
 		(fun expr -> Printf.printf "Z3 Expression: %s\n" (Expr.to_string expr))
 		(left_as @ [ right_as_or ]);
+	let solver = (Solver.mk_solver ctx None) in
+	Solver.add solver (left_as @ [ right_as_or ]);
 	Printf.printf "I checked what I had to check\n";
 	let ret = (if (Solver.check solver []) != Solver.SATISFIABLE then true else false) in 
 	Gc.full_major (); 
+	Solver.reset solver; 
 	ret
