@@ -1,77 +1,18 @@
 open Entailment_Engine
 open JSIL_Syntax
 open JSIL_Memory_Model
+open JSIL_Logic_Utils
 
 let verbose = ref false
 
 let proto_f = "@proto"
 
-let rec lexpr_substitution lexpr subst = 
-	let f e = lexpr_substitution e subst in 
-	match lexpr with 
-	| LLit lit -> LLit lit 
-	
-	| LNone -> LNone
-	
-	| LVar var -> 
-			(try Hashtbl.find subst var with _ -> 
-				let new_var = JSIL_Logic_Normalise.fresh_lvar () in 
-				Hashtbl.replace subst var (LVar new_var);
-				LVar new_var)
-	
-	| ALoc aloc -> (try Hashtbl.find subst aloc with _ -> ALoc (JSIL_Logic_Normalise.fresh_aloc ())) 
-								
-	| PVar _ -> raise (Failure "Illegal program variable in logical expression. lexpr_substitution requires its argument to be normalized.")
-
-	| LBinOp (le1, op, le2) -> LBinOp ((f le1), op, (f le2)) 
-	
-	| LUnOp (op, le) -> LUnOp (op, (f le)) 
-	
-	| LEVRef (le1, le2) -> LEVRef ((f le1), (f le2))
-	
-	| LEORef (le1, le2) -> LEORef ((f le1), (f le2))
-	
-	| LBase le -> LBase	(f le)
-
-	| LField le -> LField (f le)
-
-	| LTypeOf le -> LTypeOf (f le) 
-	
-	| LEList les -> 
-		let s_les = List.map (fun le -> (f le)) les in 
-		LEList s_les
-	
-	| LLstNth (le1, le2) -> LLstNth ((f le1), (f le2))
-	
-	| LStrNth (le1, le2) -> LStrNth ((f le1), (f le2))
-	
-	| LUnknown -> LUnknown 
-
-
-let rec assertion_substitution a subst = 
-	let fa a = assertion_substitution a subst in 
-	let fe e = lexpr_substitution e subst in 
-	match a with 
-	| LAnd (a1, a2) -> LAnd ((fa a1), (fa a2)) 
-	| LOr (a1, a2) -> LOr ((fa a1), (fa a2)) 
-	| LNot a -> LNot (fa a) 
-	| LTrue -> LTrue 
-	| LFalse -> LFalse
-	| LEq (e1, e2) -> LEq ((fe e1), (fe e2))
-	| LLess (e1, e2) -> LLess ((fe e1), (fe e2))
-	| LLessEq (e1, e2) -> LLessEq ((fe e1), (fe e2))
-	| LStrLess (e1, e2) -> LStrLess ((fe e1), (fe e2)) 
-	| LStar (a1, a2) -> LStar ((fa a1), (fa a2))
-	| LPointsTo (e1, e2, e3) -> LPointsTo ((fe e1), (fe e2), (fe e3))
-	| LEmp -> LEmp 
-	| LPred (_, _) 
-	| LTypes _ -> raise (Failure "Substitution for assertions not defined for cases LPred and LTypeEnv")
 
 
 let pf_substitution pf_r subst = 
 	for i=0 to (DynArray.length pf_r) do 
 		let a = DynArray.get pf_r i in 
-		let s_a = assertion_substitution a subst in 
+		let s_a = assertion_substitution a subst true in 
 		DynArray.set pf_r i s_a 
 	done	
 
@@ -79,8 +20,8 @@ let pf_substitution pf_r subst =
 let fv_list_substitution fv_list subst = 
 	List.map 
 		(fun (le_field, le_val) -> 
-			let s_le_field = lexpr_substitution le_field subst in 
-			let s_le_val = lexpr_substitution le_val subst in 
+			let s_le_field = lexpr_substitution le_field subst true in 
+			let s_le_val = lexpr_substitution le_val subst true in 
 			(s_le_field, s_le_val))
 		fv_list
 
@@ -97,7 +38,7 @@ let heap_substitution (heap : symbolic_heap) (subst : (string, jsil_logic_expr) 
 					| _ -> loc)
 				 with _ -> loc) in  
 			let s_fv_list = fv_list_substitution fv_list subst in 
-			let s_def = lexpr_substitution def subst in
+			let s_def = lexpr_substitution def subst true in
 			LHeap.add new_heap s_loc (s_fv_list, s_def))
 		heap; 
 	new_heap
@@ -119,7 +60,7 @@ let rec gamma_substitution gamma subst =
 
 let pred_substitution pred subst = 
 	let pred_name, les = pred in 
-	let s_les = List.map (fun le -> lexpr_substitution le subst)  les in 
+	let s_les = List.map (fun le -> lexpr_substitution le subst true)  les in 
 	(pred_name, s_les) 
 
 
@@ -379,8 +320,7 @@ let abs_heap_delete heap l e p_formulae =
 	| None -> raise (Failure "Trying to delete an inexistent field") 
 		
 		
-let unify_stores (pat_store : symbolic_store) (store : symbolic_store) :  (string, jsil_logic_expr) Hashtbl.t option = 
-	let subst = Hashtbl.create 31 in
+let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (subst : substitution) : bool = 
 	try 
 		Hashtbl.iter 
 			(fun var pat_lexpr ->
@@ -398,8 +338,8 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) :  (strin
 						
 				| _, _ -> raise (Failure "the pattern store is not normalized."))
 			pat_store;
-		Some subst
-	with _ -> None
+		true
+	with _ -> false
 
 
 let unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (subst : (string, jsil_logic_expr) Hashtbl.t) : (bool * ((string * jsil_logic_expr) option)) = 
@@ -604,7 +544,7 @@ let check_entailment_pf pf pat_pf gamma subst =
 	let pf_list = DynArray.to_list pf in 
 	let pat_pf_list = 
 		(List.map 
-			(fun a -> assertion_substitution a subst) 
+			(fun a -> assertion_substitution a subst true) 
 			(DynArray.to_list pat_pf)) in 
 			
 	Printf.printf "About to check if (%s) entails (%s)\n" (str_of_assertion_list pf_list) (str_of_assertion_list pat_pf_list); 
@@ -613,23 +553,25 @@ let check_entailment_pf pf pat_pf gamma subst =
 		else (Printf.printf "The entailment does NOT hold!!!\n"; false)
 		
 						
-let unify_symb_heaps_top_level pat_symb_state symb_state : (symbolic_heap * predicate_set * substitution) option  = 
+let unify_symb_states lvars pat_symb_state symb_state : (symbolic_heap * predicate_set * substitution) option  = 
 	let pat_heap, pat_store, pat_pf, pat_gamma, pat_preds = pat_symb_state in 
 	let heap, store, pf, gamma, preds = symb_state in
-	let subst = unify_stores pat_store store in 
+	let subst = init_substitution lvars in 
 	
-	(match subst with 
-	| None -> None 
-	| Some subst ->
+	if (unify_stores pat_store store subst) then 
+		begin 
 		let quotient_heap : symbolic_heap option = unify_symb_heaps pat_heap heap pf subst in 
 		let new_subst, quotient_preds = unify_pred_arrays pat_preds preds subst pf in 
 		(match new_subst, quotient_heap with 
 		| Some new_subst, Some quotient_heap ->
 			Printf.printf "I computed a quotient heap but I also need to check an entailment\n"; 
+			Printf.printf "the symbolic state after computing quotient heap:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state);
 			(if ((check_entailment_pf pf pat_pf gamma new_subst) && (unify_gamma pat_gamma gamma new_subst)) then 
 				Some (quotient_heap, quotient_preds, new_subst)
 				else None)
-		| _ -> None))
+		| _ -> None)
+		end 
+		else None
 
 
 let is_symb_heap_empty heap = 
@@ -712,7 +654,7 @@ let symb_evaluate_bcmd bcmd symb_state =
 		nle
 	
 	| SNew x -> 
-		let new_loc = JSIL_Logic_Normalise.fresh_aloc () in 
+		let new_loc = fresh_aloc () in 
 		update_abs_heap_default heap new_loc LNone;
 		update_abs_heap heap new_loc (LLit (String proto_f)) (LLit Null) pure_formulae; 
 		update_abs_store store x (ALoc new_loc); 
@@ -775,7 +717,7 @@ let find_and_apply_spec prog proc_name proc_specs symb_state =
 		| [] -> None 
 		| spec :: rest_spec_list -> 
 		
-			let unifier = unify_symb_heaps_top_level spec.n_pre symb_state in 
+			let unifier = unify_symb_states [] spec.n_pre symb_state in 
 			(match unifier with 
 			| Some (quotient_heap, quotient_preds, subst) ->	
 				let _, store, p_formulae, gamma, preds = symb_state in 
@@ -792,7 +734,7 @@ let find_and_apply_spec prog proc_name proc_specs symb_state =
 						| Some ret_var ->  
 							try 
 								let ret_lexpr = Hashtbl.find (get_store spec.n_post) ret_var in 
-								Some (lexpr_substitution ret_lexpr subst)
+								Some (lexpr_substitution ret_lexpr subst true)
 							with _ -> None)
 					
 					| Error -> 
@@ -802,7 +744,7 @@ let find_and_apply_spec prog proc_name proc_specs symb_state =
 						| Some error_var ->
 							try 
 								let error_lexpr = Hashtbl.find (get_store spec.n_post) error_var in 
-								Some (lexpr_substitution error_lexpr subst)
+								Some (lexpr_substitution error_lexpr subst true)
 							with _ -> None)) in   	
 				Some (new_symb_state, ret_flag, ret_lexpr)
 				
@@ -810,15 +752,15 @@ let find_and_apply_spec prog proc_name proc_specs symb_state =
 	find_correct_spec (proc_specs.n_proc_specs)
 
 
-let rec symb_evaluate_cmd spec_table prog cur_proc_name which_pred vis_tbl ret_flag post_symb_state cur_symb_state cur_cmd prev_cmd = 	
+let rec symb_evaluate_cmd symb_prog cur_proc_name spec vis_tbl cur_symb_state cur_cmd prev_cmd = 	
 	
-	let f_state_change = symb_evaluate_cmd spec_table prog cur_proc_name which_pred vis_tbl ret_flag post_symb_state in 
+	let f_state_change = symb_evaluate_cmd symb_prog cur_proc_name spec vis_tbl in 
 	let f = f_state_change cur_symb_state in 
 	
-	let proc = try Hashtbl.find prog cur_proc_name with
+	let proc = try Hashtbl.find symb_prog.program cur_proc_name with
 		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist. Ew." cur_proc_name)) in  
 	
-	let f_next_state_change = symb_evaluate_next_command spec_table prog proc which_pred vis_tbl ret_flag post_symb_state in
+	let f_next_state_change = symb_evaluate_next_command symb_prog proc spec vis_tbl in
 	let f_next = f_next_state_change cur_symb_state in
 	
 	let keep_on_searching i = 
@@ -883,14 +825,14 @@ let rec symb_evaluate_cmd spec_table prog cur_proc_name which_pred vis_tbl ret_f
 				raise (Failure msg) in 
 	
 		let proc_specs = try 
-			Hashtbl.find spec_table proc_name 
+			Hashtbl.find symb_prog.spec_tbl proc_name 
 		with _ ->
 			let msg = Printf.sprintf "No spec found for proc %s" proc_name in 
 			raise (Failure msg) in 
 	
 		let symb_state_str = JSIL_Memory_Print.string_of_shallow_symb_state cur_symb_state in 
 		Printf.printf "About to call the procedure %s in the symbolic state:\n%s" cur_proc_name symb_state_str; 
-		(match (find_and_apply_spec prog proc_name proc_specs cur_symb_state) with 
+		(match (find_and_apply_spec symb_prog.program proc_name proc_specs cur_symb_state) with 
 		| Some (symb_state, ret_flag, ret_val) -> 
 			(match ret_flag with 
 			| Normal -> f_next_state_change symb_state cur_cmd prev_cmd
@@ -909,12 +851,12 @@ let rec symb_evaluate_cmd spec_table prog cur_proc_name which_pred vis_tbl ret_f
 	
 	| _ -> raise (Failure "not implemented yet")
 and 
-symb_evaluate_next_command spec_table prog proc which_pred vis_tbl ret_flag post_symb_state cur_symb_state cur_cmd prev_cmd =
+symb_evaluate_next_command s_prog proc spec vis_tbl cur_symb_state cur_cmd prev_cmd =
 	let cur_proc_name = proc.proc_name in 
 	if (Some cur_cmd = proc.ret_label) then 
-		check_final_symb_state cur_proc_name post_symb_state ret_flag cur_symb_state Normal
+		check_final_symb_state cur_proc_name spec cur_symb_state Normal
 	else (if (Some cur_cmd = proc.error_label) then 
-		check_final_symb_state cur_proc_name post_symb_state ret_flag cur_symb_state Error 
+		check_final_symb_state cur_proc_name spec cur_symb_state Error 
 	else
 		let next_cmd = 
 			(if ((cur_cmd + 1) < (Array.length proc.proc_body)) then 
@@ -924,19 +866,20 @@ symb_evaluate_next_command spec_table prog proc which_pred vis_tbl ret_flag post
 			match next_cmd with 
 			| Some (_, SPsiAssignment (_, _)) -> prev_cmd 
 			| _ -> cur_cmd in 
-		symb_evaluate_cmd spec_table prog cur_proc_name which_pred vis_tbl ret_flag post_symb_state cur_symb_state (cur_cmd + 1) next_prev)
+		symb_evaluate_cmd s_prog cur_proc_name spec vis_tbl cur_symb_state (cur_cmd + 1) next_prev)
 and 
-check_final_symb_state proc_name post_symb_state post_flag symb_state flag = 
+check_final_symb_state proc_name spec symb_state flag = 
 	let print_error_to_console msg = 
 		(if (msg = "") 
 			then Printf.printf "Failed to verify a spec of proc %s\n" proc_name
 			else Printf.printf "Failed to verify a spec of proc %s -- %s\n" proc_name msg); 
 		let final_symb_state_str = JSIL_Memory_Print.string_of_shallow_symb_state symb_state in 
-		let post_symb_state_str = JSIL_Memory_Print.string_of_shallow_symb_state post_symb_state in
+		let post_symb_state_str = JSIL_Memory_Print.string_of_shallow_symb_state spec.n_post in
 		Printf.printf "Final symbolic state: %s\n" final_symb_state_str;
 		Printf.printf "Post condition: %s\n" post_symb_state_str in 
 	
-	let unifier = unify_symb_heaps_top_level post_symb_state symb_state in 
+	Printf.printf "the symbolic state before unification:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state);
+	let unifier = unify_symb_states spec.n_lvars spec.n_post symb_state in 
 	match unifier with 
 	| Some (quotient_heap, quotient_preds, _) ->	
 		if ((is_symb_heap_empty quotient_heap) && (is_preds_empty quotient_preds))
@@ -944,9 +887,8 @@ check_final_symb_state proc_name post_symb_state post_flag symb_state flag =
 			else (print_error_to_console "incomplete match"; raise (Failure "post condition is not unifiable"))
 	| None -> (print_error_to_console "non_unifiable heaps";  raise (Failure "post condition is not unifiable"))
 
-let symb_evaluate_proc spec_table prog proc_name which_pred ret_flag post_symb_state pre_symb_state = 
+let symb_evaluate_proc s_prog proc_name spec = 
 	let vis_tbl = Hashtbl.create 31 in 
-	symb_evaluate_cmd spec_table prog proc_name which_pred vis_tbl ret_flag post_symb_state pre_symb_state 0 0
-	
+	symb_evaluate_cmd s_prog proc_name spec vis_tbl spec.n_pre 0 0
 
 	

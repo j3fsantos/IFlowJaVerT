@@ -26,7 +26,8 @@ type symbolic_state = symbolic_heap * symbolic_store * (jsil_logic_assertion Dyn
 type jsil_n_single_spec = {
 	  n_pre : symbolic_state; 
 		n_post : symbolic_state; 
-		n_ret_flag : jsil_return_flag 
+		n_ret_flag : jsil_return_flag; 
+		n_lvars: string list
 }
 
 type jsil_n_spec = { 
@@ -75,4 +76,9 @@ let rec extend_symb_state_with_pfs symb_state pfs =
 		DynArray.add (get_pf symb_state) pf; 
 		extend_symb_state_with_pfs symb_state rest_pfs 
 	
+type symb_jsil_program = {
+	program:  jsil_program; 
+	spec_tbl:   specification_table; 
+	which_pred: (string * int * int, int) Hashtbl.t
+}
 
