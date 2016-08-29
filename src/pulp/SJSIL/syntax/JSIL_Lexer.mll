@@ -154,9 +154,9 @@ rule read = parse
 	| "true"							 { JSIL_Parser.LTRUE }
 	| "false"							 { JSIL_Parser.LFALSE }
 	| "=="								 { JSIL_Parser.LEQUAL }
-	| "<<"								 { JSIL_Parser.LLESSTHAN }
-	| "<<="								 { JSIL_Parser.LLESSTHANEQUAL }
-	| "<<s"								 { JSIL_Parser.LLESSTHANSTRING }
+	| "<#"								 { JSIL_Parser.LLESSTHAN }
+	| "<=#"								 { JSIL_Parser.LLESSTHANEQUAL }
+	| "<s#"								 { JSIL_Parser.LLESSTHANSTRING }
 	(* Separating conjunction uses the same symbol as product, token TIMES *)
 	| "->"								 { JSIL_Parser.LARROW }
 	| "emp"								 { JSIL_Parser.LEMP }

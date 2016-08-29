@@ -10,7 +10,8 @@ let proto_f = "@proto"
 
 
 let pf_substitution pf_r subst = 
-	for i=0 to (DynArray.length pf_r) do 
+	let len = (DynArray.length pf_r) - 1 in 
+	for i=0 to len do 
 		let a = DynArray.get pf_r i in 
 		let s_a = assertion_substitution a subst true in 
 		DynArray.set pf_r i s_a 
@@ -67,7 +68,7 @@ let pred_substitution pred subst =
 let preds_substitution preds subst = 
 	let len = DynArray.length preds in 
 	let new_preds = DynArray.make len in 
-	for i=0 to len do 
+	for i=0 to len - 1 do 
 		let pred = DynArray.get preds i in 
 		let s_pred = pred_substitution pred subst in 
 		DynArray.set new_preds i s_pred 
@@ -76,9 +77,9 @@ let preds_substitution preds subst =
 
 let rec safe_symb_evaluate_expr (expr : jsil_expr) store gamma = 
 	let nle = symb_evaluate_expr expr store gamma in 
-	let _, is_typable = JSIL_Logic_Normalise.normalised_is_typable gamma nle in 
+	let nle_type, is_typable = JSIL_Logic_Normalise.normalised_is_typable gamma nle in 
 	if (is_typable) 
-		then nle 
+		then nle, nle_type, is_typable 
 		else 
 			begin 
 				let gamma_str = JSIL_Memory_Print.string_of_gamma gamma in 
@@ -97,8 +98,8 @@ symb_evaluate_expr (expr : jsil_expr) store gamma =
 			raise (Failure msg))
 	
 	| BinOp (e1, op, e2) ->
-		let nle1 = safe_symb_evaluate_expr e1 store gamma in 
-		let nle2 = safe_symb_evaluate_expr e2 store gamma in 
+		let nle1, _, _ = safe_symb_evaluate_expr e1 store gamma in 
+		let nle2, _, _ = safe_symb_evaluate_expr e2 store gamma in 
 		(match nle1, nle2 with
 		| LLit l1, LLit l2 -> 
 			let l = JSIL_Interpreter.evaluate_binop op l1 l2 in 
@@ -106,27 +107,27 @@ symb_evaluate_expr (expr : jsil_expr) store gamma =
 		| _, _ -> LBinOp (nle1, op, nle2))
 	
 	| UnaryOp (op, e) -> 
-		let nle = safe_symb_evaluate_expr e store gamma in
+		let nle, _, _ = safe_symb_evaluate_expr e store gamma in
 		(match nle with 
 		| LLit lit -> LLit (JSIL_Interpreter.evaluate_unop op lit)
 		| _ -> LUnOp (op, nle))
 	
 	| VRef (e1, e2) ->
-		let nle1 = safe_symb_evaluate_expr e1 store gamma in 
-		let nle2 = safe_symb_evaluate_expr e2 store gamma in 
+		let nle1, _, _ = safe_symb_evaluate_expr e1 store gamma in 
+		let nle2, _, _ = safe_symb_evaluate_expr e2 store gamma in 
 		(match nle1, nle2 with 
 		| LLit l, LLit (String field) -> LLit (LVRef (l, field))
 		| _, _ -> LEVRef (nle1, nle2))
 	
 	| ORef (e1, e2) ->
-		let nle1 = safe_symb_evaluate_expr e1 store gamma in 
-		let nle2 = safe_symb_evaluate_expr e2 store gamma in 
+		let nle1, _, _ = safe_symb_evaluate_expr e1 store gamma in 
+		let nle2, _, _ = safe_symb_evaluate_expr e2 store gamma in 
 		(match nle1, nle2 with 
 		| LLit l, LLit (String field) -> LLit (LORef (l, field))
 		| _, _ -> LEORef (nle1, nle2))
 	
 	| Base	(e) -> 
-		let nle = safe_symb_evaluate_expr e store gamma in 
+		let nle, _, _ = safe_symb_evaluate_expr e store gamma in 
 		(match nle with 
 		| LLit (LVRef (l, _)) 
 		| LLit (LORef (l, _)) -> LLit l
@@ -135,7 +136,7 @@ symb_evaluate_expr (expr : jsil_expr) store gamma =
 		| _ -> LBase (nle))
 	
 	| Field	(e) -> 
-		let nle = safe_symb_evaluate_expr e store gamma in 
+		let nle, _, _ = safe_symb_evaluate_expr e store gamma in 
 		(match nle with 
 		| LLit (LVRef (_, f)) 
 		| LLit (LORef (_, f)) -> LLit (String f)
@@ -144,7 +145,7 @@ symb_evaluate_expr (expr : jsil_expr) store gamma =
 		| _ -> LField (nle))	
 	
 	| TypeOf (e) -> 
-		let nle = safe_symb_evaluate_expr e store gamma in 
+		let nle, _, _ = safe_symb_evaluate_expr e store gamma in 
 		(match nle with 
 		| LLit llit -> LLit (Type (JSIL_Interpreter.evaluate_type_of llit)) 
 		| LNone -> raise (Failure "Illegal Logic Expression: TypeOf of None")
@@ -166,7 +167,11 @@ symb_evaluate_expr (expr : jsil_expr) store gamma =
 	
 	| EList es ->
 		let les = 
-			List.map (fun e -> safe_symb_evaluate_expr e store gamma) es in 
+			List.map 
+				(fun e -> 
+					let nle, _, _ = safe_symb_evaluate_expr e store gamma in 
+					nle) 
+				es in 
 		let rec loop les lits = 
 			(match les with 
 			| [] -> true, lits 
@@ -180,8 +185,8 @@ symb_evaluate_expr (expr : jsil_expr) store gamma =
 			else LEList les 
 	
 	| LstNth (e1, e2) ->
-		let list = safe_symb_evaluate_expr e1 store gamma in
-		let index = safe_symb_evaluate_expr e2 store gamma in
+		let list, _, _ = safe_symb_evaluate_expr e1 store gamma in
+		let index, _, _ = safe_symb_evaluate_expr e2 store gamma in
 		(match list, index with 
 		| LLit (LList list), LLit (Num n) -> 
 			(try (LLit (List.nth list (int_of_float n))) with _ -> 
@@ -194,8 +199,8 @@ symb_evaluate_expr (expr : jsil_expr) store gamma =
 		| _, _ -> LLstNth (list, index))
 	
 	| StrNth (e1, e2) ->
-		let str = safe_symb_evaluate_expr e1 store gamma in
-		let index = safe_symb_evaluate_expr e2 store gamma  in
+		let str, _, _ = safe_symb_evaluate_expr e1 store gamma in
+		let index, _, _ = safe_symb_evaluate_expr e2 store gamma  in
 		(match str, index with 
 		| LLit (String s), LLit (Num n) -> 
 			LLit (String (String.make 1 (String.get s (int_of_float n))))
@@ -251,6 +256,11 @@ and lift_unop_logic_expr op le =
 		| (_, _) -> raise (Failure err_msg)) 		
 	| _ -> Some (LUnOp (op, le)), None)
 
+
+let update_gamma (gamma : typing_environment) x te = 
+	(match te with 
+	| None -> Hashtbl.remove gamma x
+	| Some te -> Hashtbl.replace gamma x te)
 
 let update_abs_store store x ne = 
 	(* Printf.printf "I am in the update store\n"; 
@@ -514,7 +524,9 @@ let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) (subst
 	new_subst, (DynArray.of_list quotient_preds)		
 
 let unify_gamma pat_gamma gamma subst =
-	Hashtbl.fold 	
+	Printf.printf "I am about to unify two gammas\n";
+	Printf.printf "pat_gamma: %s.\ngamma: %s\n" (JSIL_Memory_Print.string_of_gamma pat_gamma) (JSIL_Memory_Print.string_of_gamma gamma);
+	let res = (Hashtbl.fold 	
 		(fun var v_type ac ->
 			(if (not ac) 
 				then ac 
@@ -524,9 +536,11 @@ let unify_gamma pat_gamma gamma subst =
 					if is_typable then 
 						(match le_type with 
 						| Some le_type -> le_type = v_type 
-						| None -> false)
-						else false))
-	pat_gamma 
+						| None -> (Printf.printf "I could not unify the gammas\n"; false))
+						else (Printf.printf "I could not unify the gammas\n"; false)))
+		pat_gamma 
+		true) in 
+	Printf.printf "I could unify the gammas!\n"; 
 	true
 
 
@@ -635,6 +649,7 @@ let merge_symb_states symb_state_l symb_state_r subst =
 	let heap_r, store_r, pf_r, gamma_r, preds_r = symb_state_r in 
 	let s_heap_r = heap_substitution heap_r subst in   
 	let s_pf_r = pf_substitution pf_r subst in 
+		Printf.printf("Done with pf substitution\n"); 
 	let s_gamma_r = gamma_substitution gamma_r subst in 
 	let s_preds_r = preds_substitution preds_r subst in 
 	merge_heaps heap_l s_heap_r pf_l;
@@ -649,8 +664,9 @@ let symb_evaluate_bcmd bcmd symb_state =
 	| SSkip -> LLit Empty
 
 	| SAssignment (x, e) -> 
-		let nle = symb_evaluate_expr e store gamma in 
+		let nle, t_le, _ = safe_symb_evaluate_expr e store gamma in 
 		update_abs_store store x nle; 
+		update_gamma gamma x t_le; 
 		nle
 	
 	| SNew x -> 
@@ -658,11 +674,12 @@ let symb_evaluate_bcmd bcmd symb_state =
 		update_abs_heap_default heap new_loc LNone;
 		update_abs_heap heap new_loc (LLit (String proto_f)) (LLit Null) pure_formulae; 
 		update_abs_store store x (ALoc new_loc); 
+		update_gamma gamma x (Some ObjectType);
 		ALoc new_loc 
 		
 	| SLookup (x, e1, e2) -> 
-		let ne1 = symb_evaluate_expr e1 store gamma in
-		let ne2 = symb_evaluate_expr e2 store gamma in 	
+		let ne1, t_le1, _ = safe_symb_evaluate_expr e1 store gamma in
+		let ne2, t_le2, _ = safe_symb_evaluate_expr e2 store gamma in 	
 		let l = 
 			(match ne1 with 
 			| LLit (Loc l) 
@@ -676,9 +693,9 @@ let symb_evaluate_bcmd bcmd symb_state =
 		ne
 	
 	| SMutation (e1, e2, e3) ->
-		let ne1 = symb_evaluate_expr e1 store gamma in
-		let ne2 = symb_evaluate_expr e2 store gamma in 	
-		let ne3 = symb_evaluate_expr e3 store gamma in
+		let ne1, t_le1, _ = safe_symb_evaluate_expr e1 store gamma in
+		let ne2, t_le2, _ = safe_symb_evaluate_expr e2 store gamma in 	
+		let ne3, _, _ = safe_symb_evaluate_expr e3 store gamma in
 		(match ne1 with 
 		| LLit (Loc l) 
 		| ALoc l -> 
@@ -691,8 +708,8 @@ let symb_evaluate_bcmd bcmd symb_state =
 		ne3
 	
 	| SDelete (e1, e2) -> 
-		let ne1 = symb_evaluate_expr e1 store gamma in
-		let ne2 = symb_evaluate_expr e2 store gamma in
+		let ne1, t_le1, _ = safe_symb_evaluate_expr e1 store gamma in
+		let ne2, t_le2, _ = safe_symb_evaluate_expr e2 store gamma in
 		let l = 
 			(match ne1 with 
 			| LLit (Loc l) 
@@ -722,7 +739,9 @@ let find_and_apply_spec prog proc_name proc_specs symb_state =
 			| Some (quotient_heap, quotient_preds, subst) ->	
 				let _, store, p_formulae, gamma, preds = symb_state in 
 				let new_symb_state = (quotient_heap, store, p_formulae, gamma, preds) in
+				Printf.printf "I found a precondition that is applicable!\n"; 
 				merge_symb_states new_symb_state spec.n_post subst; 
+				Printf.printf "I merged the symbolic states!\n";
 				let ret_flag = spec.n_ret_flag in 
 				
 				let ret_lexpr = 
@@ -831,7 +850,7 @@ let rec symb_evaluate_cmd symb_prog cur_proc_name spec vis_tbl cur_symb_state cu
 			raise (Failure msg) in 
 	
 		let symb_state_str = JSIL_Memory_Print.string_of_shallow_symb_state cur_symb_state in 
-		Printf.printf "About to call the procedure %s in the symbolic state:\n%s" cur_proc_name symb_state_str; 
+		Printf.printf "About to call the procedure %s in the symbolic state:\n%s" proc_name symb_state_str; 
 		(match (find_and_apply_spec symb_prog.program proc_name proc_specs cur_symb_state) with 
 		| Some (symb_state, ret_flag, ret_val) -> 
 			(match ret_flag with 
@@ -846,6 +865,7 @@ let rec symb_evaluate_cmd symb_prog cur_proc_name spec vis_tbl cur_symb_state cu
 						f_state_change symb_state j cur_cmd
 					else ()))
 		| None -> 
+			
 			let msg = Printf.sprintf "No precondition of procedure %s matches the current symbolic state" proc_name in 
 			raise (Failure msg))
 	

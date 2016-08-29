@@ -24,7 +24,7 @@ with
 };
 
 spec xpto (x)
-   [[ ((x, "@proto") -> $$null) * ((x, "cenoura") -> #y) * (! (#y == None)) ]]
+   [[ ((x, "@proto") -> $$null) * ((x, "cenoura") -> #y) * (! (#y == None)) * types(#y: $$none_type) ]]
    [[ ((x, "@proto") -> $$null) * ((x, "cenoura") -> "cenourinha")]]
    normal
 proc xpto (x) {

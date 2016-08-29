@@ -14,12 +14,3 @@ with
 };
 
 
-(** Check if (x == "maria") entails (x == "maria") **)
-(** Expected result: YES                           **)
-spec test1 (x)
-   [[ (x == "maria") ]]
-   [[ (x == "maria") ]]
-   normal
-proc test1 (x) {
-   rlab:   skip
-} with { ret: x, rlab; };

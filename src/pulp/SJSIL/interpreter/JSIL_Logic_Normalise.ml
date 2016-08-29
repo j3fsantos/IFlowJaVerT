@@ -155,6 +155,11 @@ let normalise_pure_assertion store gamma subst assertion =
 		let nle2 = fe le2 in 
 		LEq(nle1, nle2)
 	
+	| LLess (le1, le2) ->
+		let nle1 = fe le1 in 
+		let nle2 = fe le2 in 
+		LLess(nle1, nle2)
+	
 	| LLessEq (le1, le2) ->
 		let nle1 = fe le1 in 
 		let nle2 = fe le2 in 
@@ -169,8 +174,15 @@ let normalise_pure_assertion store gamma subst assertion =
 		let nle1 = fe le1 in 
 		let nle2 = fe le2 in 
 		LNot (LLessEq(nle1, nle2)) 
-	
-	| _ -> raise (Failure "normalise_pure_assertion can only process pure assertions")		
+
+	| LNot (LLess (le1, le2)) ->
+		let nle1 = fe le1 in 
+		let nle2 = fe le2 in 
+		LNot (LLess(nle1, nle2)) 
+			
+	| _ ->
+		let msg = Printf.sprintf "normalise_pure_assertion can only process pure assertions: %s" (JSIL_Print.string_of_logic_assertion assertion false) in  
+		raise (Failure msg)		
 
 
 let new_abs_loc_name var = abs_loc_prefix ^ var 
@@ -253,6 +265,7 @@ let init_pure_assignments a store gamma subst =
 		
 		| LNot _ -> Stack.push a non_store_pure_assertions 
 		| LLessEq (_, _) -> Stack.push a non_store_pure_assertions		
+		| LLess (_, _) -> Stack.push a non_store_pure_assertions
 		
 		| _ -> ()) in 
 	
@@ -439,7 +452,8 @@ let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_form
 	| LLess (_, _) 
 	| LLessEq (_, _) 
 	| LStrLess (_, _)
-	| LNot (LEq (_, _)) 
+	| LNot (LEq (_, _))
+	| LNot (LLess (_, _)) 
 	| LNot (LLessEq (_, _))
  	| LEmp 
 	| LTypes _ -> () 

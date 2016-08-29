@@ -1,0 +1,10 @@
+(** Check if (#x == "maria") entails (#x == "maria") **)
+(** Expected result: YES                             **)
+spec test0 (x)
+   [[ (x == #x) * (#x == "maria") * types(#x: $$string_type) ]]
+   [[ (#x == "maria") ]]
+   normal
+proc test0 (x) {
+   rlab:   skip
+} with { ret: x, rlab; };
+
