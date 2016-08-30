@@ -23,10 +23,10 @@ let white = [' ' '\t']+
 let newline = '\r' | '\n' | "\r\n"
 
 rule read = parse
-  | white       	       { read lexbuf }
+	| white       	       { read lexbuf }
 	|	newline	             { next_line lexbuf; read lexbuf }
 (* Type literals *)
-  | "$$undefined_type"   { JSIL_Parser.UNDEFTYPELIT }
+	| "$$undefined_type"   { JSIL_Parser.UNDEFTYPELIT }
 	| "$$null_type"        { JSIL_Parser.NULLTYPELIT }
 	| "$$empty_type"       { JSIL_Parser.EMPTYTYPELIT }
 	| "$$none_type"        { JSIL_Parser.NONETYPELIT }
@@ -41,7 +41,7 @@ rule read = parse
 	| "$$list_type"        { JSIL_Parser.LISTTYPELIT }
 	| "$$type_type"        { JSIL_Parser.TYPETYPELIT }
 (* Constants *)
-  | "$$min_float"        { JSIL_Parser.MIN_FLOAT }
+	| "$$min_float"        { JSIL_Parser.MIN_FLOAT }
 	| "$$max_float"        { JSIL_Parser.MAX_FLOAT }
 	| "$$random"           { JSIL_Parser.RANDOM } 
 	| "$$e"                { JSIL_Parser.E }
@@ -57,14 +57,14 @@ rule read = parse
 	| "$$null"             { JSIL_Parser.NULL }
 	| "$$empty"            { JSIL_Parser.EMPTY } 
  	| "$$t"                { JSIL_Parser.TRUE }
-  | "$$f"                { JSIL_Parser.FALSE }
+	| "$$f"                { JSIL_Parser.FALSE }
 	| "nan"                { JSIL_Parser.NAN }
 	| "inf"                { JSIL_Parser.INFINITY }
 	| ".v."                { JSIL_Parser.VREFLIT }
-  | ".o."                { JSIL_Parser.OREFLIT }
-  | "$$nil"              { JSIL_Parser.LSTNIL }
-  | "{{"                 { JSIL_Parser.LSTOPEN }
-  | "}}"                 { JSIL_Parser.LSTCLOSE }
+	| ".o."                { JSIL_Parser.OREFLIT }
+	| "$$nil"              { JSIL_Parser.LSTNIL }
+	| "{{"                 { JSIL_Parser.LSTOPEN }
+	| "}}"                 { JSIL_Parser.LSTCLOSE }
 (* Binary operators *)
 	| "="                  { JSIL_Parser.EQUAL }
 	| "<"                  { JSIL_Parser.LESSTHAN }
@@ -103,7 +103,7 @@ rule read = parse
 	| "m_floor"            { JSIL_Parser.M_FLOOR }
 	| "m_log"              { JSIL_Parser.M_LOG }
 	| "m_round"            { JSIL_Parser.M_ROUND }
-  | "m_sgn"              { JSIL_Parser.M_SGN }
+	| "m_sgn"              { JSIL_Parser.M_SGN }
 	| "m_sin"              { JSIL_Parser.M_SIN }
 	| "m_sqrt"             { JSIL_Parser.M_SQRT }
 	| "m_tan"              { JSIL_Parser.M_TAN }
@@ -116,7 +116,7 @@ rule read = parse
 	| "string_to_num"      { JSIL_Parser.TONUMBER }
 	| "car"                { JSIL_Parser.CAR }
 	| "cdr"                { JSIL_Parser.CDR }
-  | "l-len"              { JSIL_Parser.LSTLEN }
+	| "l-len"              { JSIL_Parser.LSTLEN }
 	| "s-len"              { JSIL_Parser.STRLEN }
 (* Expression keywords *)
 	| "v-ref"              { JSIL_Parser.VREF }
@@ -124,14 +124,14 @@ rule read = parse
 	| "base"               { JSIL_Parser.BASE }
 	| "field"              { JSIL_Parser.FIELD }
 	| "typeOf"             { JSIL_Parser.TYPEOF }
-  |	"assume"             { JSIL_Parser.ASSUME }
+	| "assume"             { JSIL_Parser.ASSUME }
 	| "assert"             { JSIL_Parser.ASSERT }
 	| "make-symbol-number" { JSIL_Parser.RNUMSYM }
 	| "make-symbol-string" { JSIL_Parser.RSTRSYM }
 	| "l-nth"              { JSIL_Parser.LSTNTH }
 	| "s-nth"              { JSIL_Parser.STRNTH }
 (* Command keywords *)
-  | "skip"               { JSIL_Parser.SKIP }
+	| "skip"               { JSIL_Parser.SKIP }
 	| ":="                 { JSIL_Parser.DEFEQ }
 	| "new"                { JSIL_Parser.NEW }
 	| "delete"             { JSIL_Parser.DELETE }
@@ -141,48 +141,51 @@ rule read = parse
 	| "goto"               { JSIL_Parser.GOTO }
 	| "with"               { JSIL_Parser.WITH }
 	| "apply"              { JSIL_Parser.APPLY }
-  | "PHI"                { JSIL_Parser.PHI }
-  | "PSI"                { JSIL_Parser.PSI }
+	| "PHI"                { JSIL_Parser.PHI }
+	| "PSI"                { JSIL_Parser.PSI }
 (* Logical expressions: most match with the program expressions *)
-	| "None"							 { JSIL_Parser.LNONE }
+	| "None"               { JSIL_Parser.LNONE }
 (* Logic assertions *)
 	| "[["                 { JSIL_Parser.OASSERT }
-  | "]]"                 { JSIL_Parser.CASSERT }
-	| "/\\"								 { JSIL_Parser.LAND }
-	| "\\/"								 { JSIL_Parser.LOR }
-	| "!"									 { JSIL_Parser.LNOT }
-	| "true"							 { JSIL_Parser.LTRUE }
-	| "false"							 { JSIL_Parser.LFALSE }
-	| "=="								 { JSIL_Parser.LEQUAL }
-	| "<#"								 { JSIL_Parser.LLESSTHAN }
-	| "<=#"								 { JSIL_Parser.LLESSTHANEQUAL }
-	| "<s#"								 { JSIL_Parser.LLESSTHANSTRING }
+	| "]]"                 { JSIL_Parser.CASSERT }
+	| "/\\"                { JSIL_Parser.LAND }
+	| "\\/"                { JSIL_Parser.LOR }
+	| "!"                  { JSIL_Parser.LNOT }
+	| "true"               { JSIL_Parser.LTRUE }
+	| "false"              { JSIL_Parser.LFALSE }
+	| "=="                 { JSIL_Parser.LEQUAL }
+	| "<#"                 { JSIL_Parser.LLESSTHAN }
+	| "<=#"                { JSIL_Parser.LLESSTHANEQUAL }
+	| "<s#"                { JSIL_Parser.LLESSTHANSTRING }
 	(* Separating conjunction uses the same symbol as product, token TIMES *)
-	| "->"								 { JSIL_Parser.LARROW }
-	| "emp"								 { JSIL_Parser.LEMP }
-	(*| "exists"						 { JSIL_Parser.LEXISTS }
-	| "forall"						 { JSIL_Parser.LFORALL }*)
-  | "types"              { JSIL_Parser.LTYPES }
+	| "->"                 { JSIL_Parser.LARROW }
+	| "emp"                { JSIL_Parser.LEMP }
+(*| "exists"             { JSIL_Parser.LEXISTS }
+	| "forall"             { JSIL_Parser.LFORALL }*)
+	| "types"              { JSIL_Parser.LTYPES }
 (* Logic predicates *)
-	| "pred"							 { JSIL_Parser.PRED }
-	| "fold"							 { JSIL_Parser.FOLD }
-	| "unfold"						 { JSIL_Parser.UNFOLD }
+	| "pred"               { JSIL_Parser.PRED }
+(* Logic commands *)
+	| "[*"                 { JSIL_Parser.OLCMD }
+	| "*]"                 { JSIL_Parser.CLCMD }
+	| "fold"               { JSIL_Parser.FOLD }
+	| "unfold"             { JSIL_Parser.UNFOLD }
 (* Procedure specification keywords *)
-	| "spec"     					 { JSIL_Parser.SPEC }
+	| "spec"               { JSIL_Parser.SPEC }
 	| "normal"             { JSIL_Parser.NORMAL }
 	| "error"              { JSIL_Parser.ERROR }
 (* Procedure definition keywords *)
-	| "proc"     					 { JSIL_Parser.PROC }
+	| "proc"               { JSIL_Parser.PROC }
 	| "ret"                { JSIL_Parser.RET }
 	| "err"                { JSIL_Parser.ERR }
 (* Others *)
-	| "import"     				 { JSIL_Parser.IMPORT }
+	| "import"             { JSIL_Parser.IMPORT }
 (* Separators *)
-  | "(*"                 { read_comment lexbuf }
+	| "(*"                 { read_comment lexbuf }
 	| ','                  { JSIL_Parser.COMMA }
 	| ':'                  { JSIL_Parser.COLON }
 	| ';'                  { JSIL_Parser.SCOLON }
-	(*| '.'									 { JSIL_Parser.DOT }*)
+(*| '.'                  { JSIL_Parser.DOT }*)
 	| '('                  { JSIL_Parser.LBRACE }
 	| ')'                  { JSIL_Parser.RBRACE }
 	| '['                  { JSIL_Parser.LBRACKET }
