@@ -1,10 +1,11 @@
-(** Tested feature: property check 2                 **)
-(** Expected result: YES                             **)
-spec test4 (x)
-   [[ ((x, "cenoura") -> None) * ((x, "@proto") -> $$null) ]]
-   [[ ((x, "cenoura") -> None) * ((x, "@proto") -> $$null) * (y == $$f) ]]
+(** Tested feature: field look-up 1              **)
+(** Expected result: NO                          **)
+spec test7 (x, y)
+   [[ ((x, "@proto") -> $$null) * ((x, y) -> "maria") * types(x: $$object_type, y: $$string_type) ]]
+   [[ ((x, "@proto") -> $$null) * (z == "maria") ]]
    normal
-proc test4 (x) {
-  		   y := hasField(x, "cenoura");
+proc test7 (x, y) {
+		   z := [x, y];
+		   delete(x, y); 
    rlab:   skip
 } with { ret: x, rlab; };

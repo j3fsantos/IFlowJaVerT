@@ -405,80 +405,11 @@ let init_pure_assignments a store gamma subst =
 	normalise_pure_assertions ()
 
 
-let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_formulae gamma subst a = 
-	let f = compute_symb_heap heap store p_formulae gamma subst in  
-	let fe = normalise_lexpr store gamma subst in 
-	
-	let simplify_element_of_cell_assertion ele = 
-		(match ele with 
-		| LLit _ 
-		| LVar _ 
-		| ALoc _ 
-		| LNone 
-		| LUnknown -> ele 
-		| _ -> 
-			let lvar = fresh_lvar () in 
-			(* I need to add the type of the new logical variable to the gamma *) 
-			DynArray.add p_formulae (LEq ((LVar lvar), ele)); 
-			LVar lvar) in 
-	
-	match a with 
-	| LStar (a1, a2) -> f a1; f a2
-	
-	| LPointsTo (LVar var, le2, le3) 
-	| LPointsTo (PVar var, le2, le3) ->
-		let aloc = (try
-			(match Hashtbl.find subst var with 
-			| ALoc aloc -> aloc 
-			| _ -> raise (Failure "This should not happen, ever!"))
-			with _ -> raise (Failure "This should not happen, ever!")) in  
-		let nle2 = simplify_element_of_cell_assertion (fe le2) in 
-		let nle3 = simplify_element_of_cell_assertion (fe le3) in
-		let field_val_pairs, default_val = (try LHeap.find heap aloc with _ -> ([], LUnknown)) in  
-		LHeap.replace heap aloc (((nle2, nle3) :: field_val_pairs), default_val)
-		
-	| LPointsTo (LLit (Loc loc), le2, le3) -> 
-		let nle2 = simplify_element_of_cell_assertion (fe le2) in 
-		let nle3 = simplify_element_of_cell_assertion (fe le3) in
-		let field_val_pairs, default_val = (try LHeap.find heap loc with _ -> ([], LUnknown)) in
-		LHeap.replace heap loc (((nle2, nle3) :: field_val_pairs), default_val)
-	
-	| LPointsTo (_, _, _) -> raise (Failure "Unsupported points-to assertion")
-	
-	| LPred (_, _)	
-	| LTrue 
-	| LFalse
-	| LAnd (_, _)
-	| LOr (_, _)
-	| LEq (_, _)
-	| LLess (_, _) 
-	| LLessEq (_, _) 
-	| LStrLess (_, _)
-	| LNot (LEq (_, _))
-	| LNot (LLess (_, _)) 
-	| LNot (LLessEq (_, _))
- 	| LEmp 
-	| LTypes _ -> () 
-	
-let rec init_gamma gamma a = 
-	let f = init_gamma gamma in
-	match a with
-	  | LTypes type_list -> 
-			List.iter 
-				(fun (v, t) -> 
-					match v with
-					| LVar v 
-					| PVar v -> Hashtbl.replace gamma v t
-					| _ -> raise (Failure ("Only vars or lvars in the typing environment, for the love of God.")))
-				type_list
-		| LStar	(al, ar) -> f al; f ar
-		| _ -> ()
-
 
 
 let rec normalised_is_typable gamma nlexpr =
 	let f = normalised_is_typable gamma in
-	match nlexpr with
+	(match nlexpr with
 	(* Literals are always typable *)
   | LLit lit -> (Some (JSIL_Interpreter.evaluate_type_of lit), true)
 	
@@ -622,7 +553,79 @@ let rec normalised_is_typable gamma nlexpr =
 	| LStrNth (_, _) -> (None, false)
 
 	| LNone
-  | LUnknown -> (None, false)
+  | LUnknown -> (None, false))
+
+
+let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_formulae gamma subst a = 
+	let f = compute_symb_heap heap store p_formulae gamma subst in  
+	let fe = normalise_lexpr store gamma subst in 
+	
+	let simplify_element_of_cell_assertion ele = 
+		(match ele with 
+		| LLit _ 
+		| LVar _ 
+		| ALoc _ 
+		| LNone 
+		| LUnknown -> ele 
+		| _ -> 
+			let lvar = fresh_lvar () in 
+			(* I need to add the type of the new logical variable to the gamma *) 
+			DynArray.add p_formulae (LEq ((LVar lvar), ele)); 
+			let te, _ = normalised_is_typable gamma ele in 
+			update_gamma gamma lvar te; 
+			LVar lvar) in 
+	
+	match a with 
+	| LStar (a1, a2) -> f a1; f a2
+	
+	| LPointsTo (LVar var, le2, le3) 
+	| LPointsTo (PVar var, le2, le3) ->
+		let aloc = (try
+			(match Hashtbl.find subst var with 
+			| ALoc aloc -> aloc 
+			| _ -> raise (Failure "This should not happen, ever!"))
+			with _ -> raise (Failure "This should not happen, ever!")) in  
+		let nle2 = simplify_element_of_cell_assertion (fe le2) in 
+		let nle3 = simplify_element_of_cell_assertion (fe le3) in
+		let field_val_pairs, default_val = (try LHeap.find heap aloc with _ -> ([], LUnknown)) in  
+		LHeap.replace heap aloc (((nle2, nle3) :: field_val_pairs), default_val)
+		
+	| LPointsTo (LLit (Loc loc), le2, le3) -> 
+		let nle2 = simplify_element_of_cell_assertion (fe le2) in 
+		let nle3 = simplify_element_of_cell_assertion (fe le3) in
+		let field_val_pairs, default_val = (try LHeap.find heap loc with _ -> ([], LUnknown)) in
+		LHeap.replace heap loc (((nle2, nle3) :: field_val_pairs), default_val)
+	
+	| LPointsTo (_, _, _) -> raise (Failure "Unsupported points-to assertion")
+	
+	| LPred (_, _)	
+	| LTrue 
+	| LFalse
+	| LAnd (_, _)
+	| LOr (_, _)
+	| LEq (_, _)
+	| LLess (_, _) 
+	| LLessEq (_, _) 
+	| LStrLess (_, _)
+	| LNot (LEq (_, _))
+	| LNot (LLess (_, _)) 
+	| LNot (LLessEq (_, _))
+ 	| LEmp 
+	| LTypes _ -> () 
+	
+let rec init_gamma gamma a = 
+	let f = init_gamma gamma in
+	match a with
+	  | LTypes type_list -> 
+			List.iter 
+				(fun (v, t) -> 
+					match v with
+					| LVar v 
+					| PVar v -> Hashtbl.replace gamma v t
+					| _ -> raise (Failure ("Only vars or lvars in the typing environment, for the love of God.")))
+				type_list
+		| LStar	(al, ar) -> f al; f ar
+		| _ -> ()
 	
 
 let init_preds a store gamma subst =

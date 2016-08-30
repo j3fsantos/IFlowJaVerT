@@ -82,3 +82,14 @@ type symb_jsil_program = {
 	which_pred: (string * int * int, int) Hashtbl.t
 }
 
+let update_gamma (gamma : typing_environment) x te = 
+	(match te with 
+	| None -> Hashtbl.remove gamma x
+	| Some te -> Hashtbl.replace gamma x te)
+
+let update_abs_store store x ne = 
+	(* Printf.printf "I am in the update store\n"; 
+	let str_store = "\t Store: " ^ (JSIL_Memory_Print.string_of_shallow_symb_store store) ^ "\n" in 
+	Printf.printf "%s" str_store;  *)
+	Hashtbl.replace store x ne
+

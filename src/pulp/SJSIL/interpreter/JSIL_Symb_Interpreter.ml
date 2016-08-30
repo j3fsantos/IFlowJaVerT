@@ -256,18 +256,6 @@ and lift_unop_logic_expr op le =
 		| (_, _) -> raise (Failure err_msg)) 		
 	| _ -> Some (LUnOp (op, le)), None)
 
-
-let update_gamma (gamma : typing_environment) x te = 
-	(match te with 
-	| None -> Hashtbl.remove gamma x
-	| Some te -> Hashtbl.replace gamma x te)
-
-let update_abs_store store x ne = 
-	(* Printf.printf "I am in the update store\n"; 
-	let str_store = "\t Store: " ^ (JSIL_Memory_Print.string_of_shallow_symb_store store) ^ "\n" in 
-	Printf.printf "%s" str_store;  *)
-	Hashtbl.replace store x ne
-
 let isEqual e1 e2 pure_formulae = (e1 = e2) 
 
 let isDifferent e1 e2 pure_formulae = 
