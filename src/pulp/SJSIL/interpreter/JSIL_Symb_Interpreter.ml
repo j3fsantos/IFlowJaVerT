@@ -37,7 +37,11 @@ let heap_substitution (heap : symbolic_heap) (subst : (string, jsil_logic_expr) 
 					| LLit (Loc loc) -> loc 
 					| ALoc loc -> loc 
 					| _ -> loc)
-				 with _ -> loc) in  
+				 with _ -> 
+					let new_aloc = fresh_aloc () in 
+					Hashtbl.replace subst loc (ALoc new_aloc); 
+					new_aloc  
+				) in  
 			let s_fv_list = fv_list_substitution fv_list subst in 
 			let s_def = lexpr_substitution def subst true in
 			LHeap.add new_heap s_loc (s_fv_list, s_def))
@@ -783,7 +787,7 @@ let find_and_apply_spec prog proc_name proc_specs symb_state =
 				let new_symb_state = (quotient_heap, store, p_formulae, gamma, preds) in
 				Printf.printf "I found a precondition that is applicable!\n"; 
 				merge_symb_states new_symb_state spec.n_post subst; 
-				Printf.printf "I merged the symbolic states!\n";
+				Printf.printf "I merged the symbolic states and got: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state new_symb_state);
 				let ret_flag = spec.n_ret_flag in 
 				
 				let ret_lexpr = 
@@ -895,9 +899,13 @@ let rec symb_evaluate_cmd symb_prog cur_proc_name spec vis_tbl cur_symb_state cu
 		Printf.printf "About to call the procedure %s in the symbolic state:\n%s" proc_name symb_state_str; 
 		(match (find_and_apply_spec symb_prog.program proc_name proc_specs cur_symb_state) with 
 		| Some (symb_state, ret_flag, ret_val) -> 
-			(match ret_flag with 
-			| Normal -> f_next_state_change symb_state cur_cmd prev_cmd
-			| Error ->
+			(match ret_flag, ret_val with 
+			| Normal, Some ret_val ->
+				let ret_type, _ = JSIL_Logic_Normalise.normalised_is_typable (get_gamma cur_symb_state) ret_val in
+				update_abs_store (get_store cur_symb_state) x ret_val;   
+				update_gamma (get_gamma cur_symb_state) x ret_type;
+				f_next_state_change symb_state cur_cmd prev_cmd
+			| Error, Some ret_val ->
 				(match j with 
 				| None -> 
 					let msg = Printf.sprintf "Procedure %s may return an error, but no error label was provided." proc_name in 
@@ -905,7 +913,8 @@ let rec symb_evaluate_cmd symb_prog cur_proc_name spec vis_tbl cur_symb_state cu
 				| Some j -> 
 					if (keep_on_searching j) then 
 						f_state_change symb_state j cur_cmd
-					else ()))
+					else ())
+			| _, _ -> raise (Failure "No return value after return/error"))
 		| None -> 
 			
 			let msg = Printf.sprintf "No precondition of procedure %s matches the current symbolic state" proc_name in 

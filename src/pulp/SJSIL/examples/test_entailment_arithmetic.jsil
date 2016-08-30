@@ -20,3 +20,23 @@ proc test1 (x) {
 } with { ret: x, rlab; };
 
 
+(** Expected result: YES                       **)
+spec test2 (x)
+   [[ (#x <# 0) * (! (#y <# 0)) * types(#x: $$int_type, #y: $$int_type) ]]
+   [[ ((#x - #y) <# 0) ]]
+   normal
+proc test2 (x) {
+   rlab:   skip
+} with { ret: x, rlab; };
+
+
+(** Expected result: NO                       **)
+spec test3 (x)
+   [[ (#x <# 0) * (! (#y <# 0)) * types(#x: $$int_type, #y: $$int_type) ]]
+   [[ ((#x + #y) <# 0) ]]
+   normal
+proc test3 (x) {
+   rlab:   skip
+} with { ret: x, rlab; };
+
+
