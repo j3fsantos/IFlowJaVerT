@@ -413,7 +413,9 @@ let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_form
 		(match ele with 
 		| LLit _ 
 		| LVar _ 
-		| ALoc _ -> ele 
+		| ALoc _ 
+		| LNone 
+		| LUnknown -> ele 
 		| _ -> 
 			let lvar = fresh_lvar () in 
 			(* I need to add the type of the new logical variable to the gamma *) 
@@ -658,11 +660,13 @@ let normalise_precondition a =
 	let new_subst = filter_substitution subst lvars in 
 	symb_state, (lvars, new_subst)
 
+
 let normalise_postcondition a subst = 
 	let a = assertion_substitution a subst false in 	
 	let symb_state, _ = normalise_assertion a in 
 	symb_state
-	
+
+		
 let normalise_single_spec spec =
 	let pre_symb_state, (lvars, subst) = normalise_precondition spec.pre in 
 	let post_symb_state = normalise_postcondition spec.post subst in 

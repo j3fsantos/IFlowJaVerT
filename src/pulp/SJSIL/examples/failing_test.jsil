@@ -1,8 +1,8 @@
 (** Tested feature: property check 2                 **)
 (** Expected result: YES                             **)
 spec test4 (x)
-   [[ ((x, "cenoura") -> none) * ((x, "@proto") -> $$null) ]]
-   [[ ((x, "cenoura") -> none) * ((x, "@proto") -> $$null) * (y == $$f) ]]
+   [[ ((x, "cenoura") -> None) * ((x, "@proto") -> $$null) ]]
+   [[ ((x, "cenoura") -> None) * ((x, "@proto") -> $$null) * (y == $$f) ]]
    normal
 proc test4 (x) {
   		   y := hasField(x, "cenoura");

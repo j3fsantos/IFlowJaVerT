@@ -324,10 +324,16 @@ let abs_heap_find heap l e p_formulae =
 
 let abs_heap_check_field_existence heap l e p_formulae = 
 	let f_val = abs_heap_find heap l e p_formulae in 
+	Printf.printf "abs_heap_check_field_existence found %s\n" (JSIL_Print.string_of_logic_expression f_val false); 
 	match f_val with 
 	| LUnknown -> None
 	| LNone -> Some false 
-	|	_ -> Some true  
+	|	_ ->
+		if (isEqual f_val LNone p_formulae) then 
+			(Some false)
+			else (if (isDifferent f_val LNone p_formulae) then
+				(Some true)
+				else None)
 
 let abs_heap_delete heap l e p_formulae = 
 	let fv_list, default_val = try LHeap.find heap l with _ -> [], LUnknown in 
@@ -374,6 +380,16 @@ let unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (subst : (string, jsil
 			then (true, None)
 			else (false, None)
 	
+	| LNone -> 
+		if (isEqual LNone le p_formulae)
+			then (true, None)
+			else (false, None)
+
+	| LUnknown -> 
+		if (isEqual LUnknown le p_formulae)
+			then (true, None)
+			else (false, None)
+			
 	| _ -> raise (Failure "Illegal expression in pattern to unify")
 
 let update_subst1 subst unifier = 
@@ -432,6 +448,9 @@ let unify_symb_fv_lists pat_fv_list fv_list def_val p_formulae subst : (jsil_log
 		let pat_val_str = JSIL_Print.string_of_logic_expression pat_val false in 
 			Printf.sprintf "Field-val pair (%s, %s) in pattern has not been matched" pat_field_str pat_val_str in
 	*)
+	
+	(* Printf.printf "Inside unify_symb_fv_lists. pat_fv_list: %s. fv_list: %s.\n" (JSIL_Memory_Print.string_of_symb_fv_list pat_fv_list) (JSIL_Memory_Print.string_of_symb_fv_list fv_list); *)
+	
 	let rec loop (fv_list : (jsil_logic_expr * jsil_logic_expr) list) (pat_list : (jsil_logic_expr * jsil_logic_expr) list) = 
 		match pat_list with 
 		| [] -> Some fv_list 
@@ -439,7 +458,7 @@ let unify_symb_fv_lists pat_fv_list fv_list def_val p_formulae subst : (jsil_log
 			let rest_fv_list = unify_fv_pair (pat_field, pat_val) fv_list p_formulae subst in 
 			(match rest_fv_list with
 			| None -> 
-				(* Printf.printf "I could NOT unify an fv-pair. pat_val: %s. def_val: %s\n" (JSIL_Print.string_of_logic_expression pat_val false) (JSIL_Print.string_of_logic_expression def_val false); *)
+				(* Printf.printf "I could NOT unify an fv-pair. pat_val: %s. def_val: %s\n" (JSIL_Print.string_of_logic_expression pat_val false) (JSIL_Print.string_of_logic_expression def_val false); *) 
 				(match def_val with 
 				| LUnknown -> None
 				| _ ->
@@ -590,7 +609,7 @@ let unify_symb_states lvars pat_symb_state symb_state : (symbolic_heap * predica
 			(if ((check_entailment_pf pf pat_pf gamma new_subst) && (unify_gamma pat_gamma gamma new_subst)) then 
 				Some (quotient_heap, quotient_preds, new_subst)
 				else None)
-		| _ -> None)
+		| _ ->  None)
 		end 
 		else None
 
