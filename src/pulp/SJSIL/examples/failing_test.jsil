@@ -1,11 +1,8 @@
-(** Tested feature: field look-up 1              **)
-(** Expected result: NO                          **)
-spec test7 (x, y)
-   [[ ((x, "@proto") -> $$null) * ((x, y) -> "maria") * types(x: $$object_type, y: $$string_type) ]]
-   [[ ((x, "@proto") -> $$null) * (z == "maria") ]]
+(** Expected result: YES                             **)
+spec test3 (x)
+   [[ (x == #x) * (#x == "maria") * joe(#x) * (#z == "maria") * types(#x: $$string_type, #z: $$string_type) ]]
+   [[ (#x == "maria") * joe(#z) ]]
    normal
-proc test7 (x, y) {
-		   z := [x, y];
-		   delete(x, y); 
+proc test3 (x) {
    rlab:   skip
 } with { ret: x, rlab; };

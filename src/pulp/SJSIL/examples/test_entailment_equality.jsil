@@ -75,8 +75,8 @@ proc test6 (x) {
 } with { ret: x, rlab; };
 
 
-(** Check if (#x == 0) entails (#x == 1)             **)
-(** Expected result: NO                              **)
+(** Check if (#x == 0) entails (#x == 0)             **)
+(** Expected result: YES                             **)
 spec test7 (x)
    [[ (x == #x) * (#x == 0) * types(#x: $$int_type) ]]
    [[ (#x == 0) ]]

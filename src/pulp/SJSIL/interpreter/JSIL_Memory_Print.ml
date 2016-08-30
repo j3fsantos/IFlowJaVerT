@@ -62,19 +62,23 @@ let string_of_gamma (gamma : (string, jsil_type) Hashtbl.t) : string =
 			"" in
 	gamma_str 
 
+let string_of_pred pred = 
+	let cur_pred_name, cur_pred_args = pred in 
+	let args_str = 
+			List.fold_left
+				(fun ac le -> 
+					let le_str = string_of_logic_expression le false in 
+					if (ac = "") then 
+						le_str 
+					else (ac ^ ", " ^ le_str))
+				""
+				cur_pred_args in
+	cur_pred_name ^ "(" ^ args_str ^ ")" 
+	
 let string_of_preds preds = 
 	DynArray.fold_left
-		(fun ac (cur_pred_name, cur_pred_args) -> 
-			let args_str = 
-				List.fold_left
-					(fun ac le -> 
-						let le_str = string_of_logic_expression le false in 
-						if (ac = "") then 
-							le_str 
-						else (ac ^ ", " ^ le_str))
-					""
-					cur_pred_args in 			
-			let cur_pred_str = cur_pred_name ^ "(" ^ args_str ^ ")" in 
+		(fun ac pred ->
+			let cur_pred_str = string_of_pred pred in 
 			if (ac = "") then cur_pred_str else ac ^ ", " ^ cur_pred_str)
 		""
 		preds

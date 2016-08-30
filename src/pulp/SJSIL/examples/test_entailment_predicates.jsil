@@ -1,0 +1,38 @@
+(** Expected result: YES                             **)
+spec test0 (x)
+   [[ (x == #x) * (#x == "maria") * joe(#x) * types(#x: $$string_type) ]]
+   [[ (#x == "maria") * joe(#x) ]]
+   normal
+proc test0 (x) {
+   rlab:   skip
+} with { ret: x, rlab; };
+
+
+(** Expected result: YES                             **)
+spec test1 (x)
+   [[ (x == #x) * (#x == "maria") * joe(#x) * types(#x: $$string_type) ]]
+   [[ (#x == "maria") * joe("maria") ]]
+   normal
+proc test1 (x) {
+   rlab:   skip
+} with { ret: x, rlab; };
+
+
+(** Expected result: NO                             **)
+spec test2 (x)
+   [[ (x == #x) * (#x == "maria") * joe(#x) * types(#x: $$string_type) ]]
+   [[ (#x == "maria") * joe("cocker") ]]
+   normal
+proc test2 (x) {
+   rlab:   skip
+} with { ret: x, rlab; };
+
+
+(** Expected result: YES                             **)
+spec test3 (x)
+   [[ (x == #x) * (#x == "maria") * joe(#x) * (#z == "maria") * types(#x: $$string_type, #z: $$string_type) ]]
+   [[ (#x == "maria") * joe("#z") ]]
+   normal
+proc test3 (x) {
+   rlab:   skip
+} with { ret: x, rlab; };

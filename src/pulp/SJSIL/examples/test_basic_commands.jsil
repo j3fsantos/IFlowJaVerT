@@ -99,12 +99,11 @@ proc test6 (x, y) {
 } with { ret: x, rlab; };
 
 
-
 (** Tested feature: delete 1                     **)
 (** Expected result: YES                         **)
 spec test7 (x, y)
    [[ ((x, "@proto") -> $$null) * ((x, y) -> "maria") * types(x: $$object_type, y: $$string_type) ]]
-   [[ ((x, "@proto") -> $$null) * (z == "maria") ]]
+   [[ ((x, "@proto") -> $$null) * ((x, y) -> None) * (z == "maria") ]]
    normal
 proc test7 (x, y) {
 		   z := [x, y];
