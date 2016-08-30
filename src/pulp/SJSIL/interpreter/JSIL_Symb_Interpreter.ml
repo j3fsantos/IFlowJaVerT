@@ -257,12 +257,12 @@ and lift_unop_logic_expr op le =
 	| _ -> Some (LUnOp (op, le)), None)
 
 let isEqual e1 e2 pure_formulae gamma = 
+	(* Printf.printf "Checking if %s is equal to %s given that: %s\n;" (JSIL_Print.string_of_logic_expression e1 false) (JSIL_Print.string_of_logic_expression e2 false) (JSIL_Memory_Print.string_of_shallow_p_formulae pure_formulae); *) 
 	match e1, e2 with 
 	| LLit l1, LLit l2 -> l1 = l2
 	| ALoc aloc1 , ALoc aloc2 -> aloc1 = aloc2
 	| LNone, LNone -> true
 	| LUnknown, LUnknown -> false
-	| LVar x1, LVar x2 -> x1 = x2
 	| _, _ -> Entailment_Engine.check_entailment (DynArray.to_list pure_formulae) [ (LEq (e1, e2)) ] gamma
 
 let isDifferent e1 e2 pure_formulae gamma = 
@@ -496,12 +496,12 @@ let unify_pred_against_pred (pat_pred : (string * (jsil_logic_expr list))) (pred
 	let pat_pred_name, pat_pred_args = pat_pred in 
 	let pred_name, pred_args = pred in
 	
-	Printf.printf "Trying to unify %s against %s\n" (JSIL_Memory_Print.string_of_pred pat_pred) (JSIL_Memory_Print.string_of_pred pred);
-	
+	(* Printf.printf "Trying to unify %s against %s\n" (JSIL_Memory_Print.string_of_pred pat_pred) (JSIL_Memory_Print.string_of_pred pred); *)
 	let rec unify_expr_lists pat_list list subst = 
 		(match pat_list, list with 
 		| [], [] -> true 
 		| (pat_le :: rest_pat_list), (le :: rest_list) -> 
+			Printf.printf "pat_le: %s. le: %s\n" (JSIL_Print.string_of_logic_expression pat_le false) (JSIL_Print.string_of_logic_expression le false);
 			let unifier = unify_lexprs pat_le le p_formulae gamma subst in 
 			if (update_subst1 subst unifier) 
 				then unify_expr_lists rest_pat_list rest_list subst 
