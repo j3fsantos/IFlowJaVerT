@@ -261,13 +261,26 @@ let rec assertion_substitution a subst normalize =
 		let s_types = List.map (fun (le, te) -> ((fe le), te)) types in 
 		LTypes s_types
 		
-
+		
 let filter_substitution subst vars = 
-	let new_subst = Hashtbl.create ((List.length vars) + 3) in 
-	Hashtbl.iter 
-		(fun var _ -> Hashtbl.add new_subst var true)
-		subst; 
+	let new_subst = Hashtbl.create (List.length vars) in 
+	List.iter 
+		(fun var -> 
+			try 
+				(let le = Hashtbl.find subst var in 
+				Hashtbl.add new_subst var le)
+			with _ -> ())
+		vars;
 	new_subst
+	
+
+let init_substitution vars = 
+	let new_subst = Hashtbl.create 31 in 
+	List.iter 
+		(fun var -> Hashtbl.replace new_subst var (LVar var))
+		vars; 
+	new_subst
+
 
 
 
