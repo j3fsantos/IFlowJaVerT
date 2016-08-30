@@ -254,9 +254,13 @@ let rec assertion_substitution a subst normalize =
 	| LStar (a1, a2) -> LStar ((fa a1), (fa a2))
 	| LPointsTo (e1, e2, e3) -> LPointsTo ((fe e1), (fe e2), (fe e3))
 	| LEmp -> LEmp 
-	| LPred (_, _) 
-	| LTypes _ -> raise (Failure "Substitution for assertions not defined for cases LPred and LTypeEnv")
-
+	| LPred (p_name, args) -> 
+		let s_args = List.map fe args in 
+		LPred (p_name, s_args)
+	| LTypes types -> 
+		let s_types = List.map (fun (le, te) -> ((fe le), te)) types in 
+		LTypes s_types
+		
 
 let filter_substitution subst vars = 
 	let new_subst = Hashtbl.create ((List.length vars) + 3) in 

@@ -322,6 +322,13 @@ let abs_heap_find heap l e p_formulae =
 	| Some (_, f_val) -> f_val
 	| None -> default_val
 
+let abs_heap_check_field_existence heap l e p_formulae = 
+	let f_val = abs_heap_find heap l e p_formulae in 
+	match f_val with 
+	| LUnknown -> None
+	| LNone -> Some false 
+	|	_ -> Some true  
+
 let abs_heap_delete heap l e p_formulae = 
 	let fv_list, default_val = try LHeap.find heap l with _ -> [], LUnknown in 
 	let rest_fv_pairs, del_fv_pair = find_field fv_list e p_formulae in
@@ -720,7 +727,26 @@ let symb_evaluate_bcmd bcmd symb_state =
 				raise (Failure msg)) in 
 		abs_heap_delete heap l ne2 pure_formulae; 
 		LLit (Bool true)  
-				
+	
+	| SHasField (x, e1, e2) -> 
+		let ne1, t_le1, _ = safe_symb_evaluate_expr e1 store gamma in
+		let ne2, t_le2, _ = safe_symb_evaluate_expr e2 store gamma in
+		match ne1 with 
+		| LLit (Loc l) 
+		| ALoc l ->
+			let res = abs_heap_check_field_existence heap l ne2 pure_formulae in 
+			update_gamma gamma x (Some BooleanType);
+			(match res with 
+			| Some res -> 
+				let res_lit = LLit (Bool res) in 
+				update_abs_store store x res_lit; 
+				res_lit 
+			| None -> LUnknown)
+		| _ -> 
+			let ne1_str = JSIL_Print.string_of_logic_expression ne1 false  in 
+			let msg = Printf.sprintf "I do not know which location %s denotes in the symbolic heap" ne1_str in 
+			raise (Failure msg); 
+	
 	| _ -> 
 		raise (Failure "not implemented yet!")
 

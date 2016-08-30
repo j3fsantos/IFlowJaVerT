@@ -1,10 +1,66 @@
-(** Check if (#x == "maria") entails (#x == "maria") **)
+(** Tested feature: field assignment 1               **)
 (** Expected result: YES                             **)
 spec test0 (x)
-   [[ (x == #x) * (#x == "maria") * types(#x: $$string_type) ]]
-   [[ (#x == "maria") ]]
+   [[ emp ]]
+   [[ ((x, "cenoura") -> "maria") * ((x, "@proto") -> $$null) ]]
    normal
 proc test0 (x) {
+  		   x := new ();
+           [x, "cenoura"] := "maria";
    rlab:   skip
 } with { ret: x, rlab; };
+
+
+(** Tested feature: field assignment 2               **)
+(** Expected result: YES                             **)
+spec test1 (x)
+   [[ emp ]]
+   [[ ((x, "cenoura") -> #y) * ((x, "@proto") -> $$null) ]]
+   normal
+proc test1 (x) {
+  		   x := new ();
+           [x, "cenoura"] := "maria";
+   rlab:   skip
+} with { ret: x, rlab; };
+
+
+(** Tested feature: field assignment 2               **)
+(** Expected result: NO                              **)
+spec test2 (x)
+   [[ emp ]]
+   [[ ((x, "cenoura") -> #y) * ((x, "@proto") -> $$null) * (! (#y == "maria")) * types(#y: $$string_type)]]
+   normal
+proc test2 (x) {
+  		   x := new ();
+           [x, "cenoura"] := "maria";
+   rlab:   skip
+} with { ret: x, rlab; };
+
+
+(** Tested feature: property check 1                 **)
+(** Expected result: YES                             **)
+spec test3 (x)
+   [[ ((x, "cenoura") -> #y) * ((x, "@proto") -> $$null) * types(#y: $$string_type) ]]
+   [[ ((x, "cenoura") -> #y) * ((x, "@proto") -> $$null) * types(#y: $$string_type) * (y == $$t) ]]
+   normal
+proc test3 (x) {
+  		   y := hasField(x, "cenoura");
+   rlab:   skip
+} with { ret: x, rlab; };
+
+
+(** Tested feature: property check 2                 **)
+(** Expected result: YES                             **)
+spec test4 (x)
+   [[ ((x, "cenoura") -> none) * ((x, "@proto") -> $$null) ]]
+   [[ ((x, "cenoura") -> none) * ((x, "@proto") -> $$null) * (y == $$f) ]]
+   normal
+proc test4 (x) {
+  		   y := hasField(x, "cenoura");
+   rlab:   skip
+} with { ret: x, rlab; };
+
+
+
+
 
