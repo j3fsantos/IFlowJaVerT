@@ -150,6 +150,9 @@ open JSIL_Syntax
 %token LTYPES
 (* Logic predicates *)
 %token PRED
+(* Logic commands *)
+%token OLCMD
+%token CLCMD
 %token FOLD
 %token UNFOLD
 (* Procedure specification keywords *)
@@ -177,13 +180,19 @@ open JSIL_Syntax
 %token EOF
 
 (***** Precedence of operators *****)
-(* The later an operator is listed, the higher precedence it is given. Based on JavaScript:
-   https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Operators/Operator_Precedence *)
+(* The later an operator is listed, the higher precedence it is given. *)
+(* Logic operators have lower precedence *)
 (*%nonassoc DOT*)
+%left LOR
+%left LAND
+%left separating_conjunction
+%right LNOT
+%nonassoc LEQUAL LLESSTHAN LLESSTHANEQUAL LLESSTHANSTRING LARROW
+(* Program operators have higher precedence.*)
+(* Based on JavaScript:
+   https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Operators/Operator_Precedence *)
 %left OR
 %left AND
-%left separating_conjunction
-%nonassoc LARROW
 %left BITWISEOR
 %left BITWISEXOR
 %left BITWISEAND
@@ -208,7 +217,7 @@ open JSIL_Syntax
 (********* JSIL *********)
 
 main_target:
-  | import_target declaration_target
+	| import_target declaration_target
 		{ (* Add the imports to the program *)
 	  	{$2 with imports = $1}
 		}
@@ -279,7 +288,7 @@ ctx_target_ret:
 		ret_v, i
 	}
 ;
-	
+
 ctx_target_err: 
 (* err: x, j *)
 	ERR; COLON; err_v=VAR; COMMA; j=VAR; SCOLON
@@ -310,7 +319,7 @@ cmd_list_top_target:
 ;
 
 cmd_with_label_and_logic:
-  | pre = option(spec_line); logic_cmds = list(logic_cmd_target);
+	| pre = option(spec_line); logic_cmds = list(logic_cmd_target);
 	  cmd = cmd_target
 		{ (pre, logic_cmds, None, cmd) }
 	| pre = option(spec_line); logic_cmds = list(logic_cmd_target);
@@ -446,11 +455,11 @@ pred_target:
 ;
 
 logic_cmd_target:
-(* [[ fold(x) ]] *)
-	| OASSERT; FOLD; LBRACE; pred_name = VAR; RBRACE; CASSERT
+(* [* fold(x) *] *)
+	| OLCMD; FOLD; LBRACE; pred_name = VAR; RBRACE; CLCMD
 	  { Fold (pred_name) }
-(* [[ unfold(x) ]] *)
-	| OASSERT; UNFOLD; LBRACE; pred_name = VAR; RBRACE; CASSERT
+(* [* unfold(x) *] *)
+	| OLCMD; UNFOLD; LBRACE; pred_name = VAR; RBRACE; CLCMD
 	  { Unfold (pred_name) }
 ;
 
@@ -493,13 +502,13 @@ assertion_target:
 (* E == E *)
 	| left_expr=lexpr_target; LEQUAL; right_expr=lexpr_target
 		{ LEq (left_expr, right_expr) }
-(* E << E *)
+(* E <# E *)
 	| left_expr=lexpr_target; LLESSTHAN; right_expr=lexpr_target
 		{ LLess (left_expr, right_expr) }
-(* E <<= E *)
+(* E <=# E *)
 	| left_expr=lexpr_target; LLESSTHANEQUAL; right_expr=lexpr_target
 		{ LLessEq (left_expr, right_expr) }
-(* E <<s E *)
+(* E <s# E *)
 	| left_expr=lexpr_target; LLESSTHANSTRING; right_expr=lexpr_target
 		{ LStrLess (left_expr, right_expr) }
 (* P * Q *)
