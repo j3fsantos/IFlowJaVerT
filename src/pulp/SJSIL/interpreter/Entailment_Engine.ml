@@ -84,7 +84,10 @@ let encode_literal ctx lit =
 	| Null       -> Arithmetic.Integer.mk_numeral_i ctx 1
 	| Empty      -> Arithmetic.Integer.mk_numeral_i ctx 2
 	| Constant c -> encode_constant ctx c
-	| Bool b     -> Boolean.mk_val ctx b
+	| Bool b     ->
+		(match b with
+		| true  -> Arithmetic.Integer.mk_numeral_i ctx 0
+		| false -> Arithmetic.Integer.mk_numeral_i ctx 1)
 	| Integer i  -> Arithmetic.Integer.mk_numeral_i ctx i
 	| Num n      ->
 		if (n = (snd (modf n)))
