@@ -1,0 +1,14 @@
+(** Expected result: YES                             **)
+spec test0 (y)
+   [[ types(y: $$boolean_type) ]]
+   [[ ((x, "cenoura") -> #y) * ((x, "@proto") -> $$null) ]]
+   normal
+proc test0 (y) {
+  		   x := new ();
+  		   goto [y] then else; 
+   then:   [x, "cenoura"] := "maria";
+           goto rlab; 
+   else:   [x, "cenoura"] := "jose"; 
+   rlab:   skip
+} with { ret: x, rlab; };
+

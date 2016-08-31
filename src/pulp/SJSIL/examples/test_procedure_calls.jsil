@@ -61,11 +61,11 @@ proc test4 (y) {
 (** Expected result: NO                             **)
 spec test5 (y)
    [[ xuxu(y) * types(y: $$string_type) ]]
-   [[ ((x, "cenoura") -> "el_capitan") * ((x, "@proto") -> $$null) * ((x, "tutifruti") -> y) * xuxu(y)  ]]
+   [[ ((x, "cenoura") -> "cenoura") * ((x, "@proto") -> $$null) * ((x, "tutifruti") -> y) * xuxu(y)  ]]
    normal
-proc test4 (y) {
+proc test5 (y) {
   		   x := new();
-  		   [x, "cenoura"] := "maria";
+  		   [x, "cenourinha"] := "maria";
   		   x := "aux1" (x, y); 
    rlab:   skip
 } with { ret: x, rlab; };

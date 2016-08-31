@@ -5,7 +5,6 @@ open JSIL_Syntax
 open JSIL_Memory_Model
 open JSIL_Logic_Utils
 
-
 (** 
   le -> non-normalised logical expression
 	subst -> table mapping variable and logical variable
@@ -24,15 +23,9 @@ let rec normalise_lexpr store gamma subst le =
 	| PVar pvar -> 
 		(try Hashtbl.find store pvar with
 		|  _ -> 
-			let new_l_var_name = fresh_lvar () in 
-			let new_l_var = LVar new_l_var_name in 
-			(try 
-				let pvar_type = Hashtbl.find gamma pvar in 
-				Hashtbl.add gamma new_l_var_name pvar_type
-			with _ -> ()); 
-			Hashtbl.add subst pvar new_l_var;
-			Hashtbl.add store pvar new_l_var;
-			new_l_var)
+			let new_lvar = extend_abs_store pvar store gamma in 
+			Hashtbl.add subst pvar new_lvar;
+			new_lvar)
 	
 	| LBinOp (le1, bop, le2) -> 
 		let nle1 = f le1 in 

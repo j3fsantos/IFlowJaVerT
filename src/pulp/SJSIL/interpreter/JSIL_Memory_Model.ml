@@ -1,4 +1,5 @@
 open JSIL_Syntax
+open JSIL_Logic_Utils
 
 (* SJSIL Heaps *)
  module SHeap = Hashtbl.Make(
@@ -102,3 +103,12 @@ let update_abs_store store x ne =
 	Printf.printf "%s" str_store;  *)
 	Hashtbl.replace store x ne
 
+let extend_abs_store x store gamma = 
+	let new_l_var_name = fresh_lvar () in 
+	let new_l_var = LVar new_l_var_name in 
+	(try 
+		let x_type = Hashtbl.find gamma x in 
+		Hashtbl.add gamma new_l_var_name x_type
+	with _ -> ()); 
+	Hashtbl.add store x new_l_var;
+	new_l_var

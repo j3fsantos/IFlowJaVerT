@@ -99,8 +99,7 @@ symb_evaluate_expr (expr : jsil_expr) store gamma =
 	| Var var -> 
 		(try Hashtbl.find store var 
 		with _ -> 
-			let msg = Printf.sprintf "Variable %s not found in logical store." var in 
-			raise (Failure msg))
+			extend_abs_store var store gamma)
 	
 	| BinOp (e1, op, e2) ->
 		let nle1, _, _ = safe_symb_evaluate_expr e1 store gamma in 
@@ -881,6 +880,8 @@ let rec symb_evaluate_cmd symb_prog cur_proc_name spec vis_tbl cur_symb_state cu
 	
 	| SGuardedGoto (e, i, j) -> 
 		let v_e = symb_evaluate_expr e (get_store cur_symb_state) (get_gamma cur_symb_state) in
+		Printf.printf "I am going to evaluate a conditional goto. the symbolic state is:\n %s" (JSIL_Memory_Print.string_of_shallow_symb_state cur_symb_state); 	
+		Printf.printf "v_e: %s\n" (JSIL_Print.string_of_logic_expression v_e false);
 		if (isEqual v_e (LLit (Bool true)) (get_pf cur_symb_state) (get_gamma cur_symb_state)) then 
 			f_jump_next i cur_cmd false None
 			else (if (isEqual v_e (LLit (Bool false)) (get_pf cur_symb_state) (get_gamma cur_symb_state)) then
