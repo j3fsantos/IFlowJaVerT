@@ -8,6 +8,57 @@ proc test0 (x) {
    rlab:   skip
 } with { ret: x, rlab; };
 
+(** Expected result: YES                             **)
+spec test1 (x, y)
+   [[ ((y, "@proto") -> $$null) ]]
+   [[ ((x, "cenoura") -> "maria") * ((x, "@proto") -> $$null) * ((y, "@proto") -> x) ]]
+   normal
+proc test1 (x, y) {
+  		   x := "aux0"();
+  		   [y, "@proto"] := x;
+   rlab:   skip
+} with { ret: x, rlab; };
+
+
+(** Expected result: NO                             **)
+spec test2 (x, y)
+   [[ ((y, "@proto") -> $$null) ]]
+   [[ ((x, "cenoura") -> "maria") * ((x, "@proto") -> $$null) ]]
+   normal
+proc test2 (x, y) {
+  		   x := "aux0"();
+  		   [y, "@proto"] := x;
+   rlab:   skip
+} with { ret: x, rlab; };
+
+
+(** Expected result: YES                             **)
+spec test3 (y)
+   [[ xuxu(y) * types(y: $$string_type) ]]
+   [[ ((x, "cenoura") -> "jose") * ((x, "@proto") -> $$null) * ((x, "tutifruti") -> y) * xuxu(y)  ]]
+   normal
+proc test3 (y) {
+  		   x := new();
+  		   [x, "cenoura"] := "maria";
+  		   x := "aux1" (x, y); 
+   rlab:   skip
+} with { ret: x, rlab; };
+
+
+(** Expected result: NO                             **)
+spec test4 (y)
+   [[ xuxu(y) * types(y: $$string_type) ]]
+   [[ ((x, "cenoura") -> "el_capitan") * ((x, "@proto") -> $$null) * ((x, "tutifruti") -> y) * xuxu(y)  ]]
+   normal
+proc test4 (y) {
+  		   x := new();
+  		   [x, "cenoura"] := "maria";
+  		   x := "aux1" (x, y); 
+   rlab:   skip
+} with { ret: x, rlab; };
+
+
+(** Expected result: YES                             **)
 spec aux0 (x)
    [[ emp ]]
    [[ ((x, "cenoura") -> "maria") * ((x, "@proto") -> $$null) ]]
@@ -17,6 +68,20 @@ proc aux0 (x) {
            [x, "cenoura"] := "maria";
    rlab:   skip
 } with { ret: x, rlab; };
+
+
+(** Expected result: YES                             **)
+spec aux1 (x, y)
+   [[ ((x, "cenoura") -> "maria") * ((x, "@proto") -> $$null) * xuxu(y) * types(y: $$string_type) ]]
+   [[ ((x, "cenoura") -> "jose") * ((x, "@proto") -> $$null) * ((x, "tutifruti") -> y) * xuxu(y) ]]
+   normal
+proc aux1 (x, y) {
+           [x, "cenoura"] := "jose";
+           [x, "tutifruti"] := y; 
+   rlab:   skip
+} with { ret: x, rlab; };
+ 
+
 
 
 

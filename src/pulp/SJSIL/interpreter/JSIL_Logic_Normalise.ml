@@ -24,8 +24,15 @@ let rec normalise_lexpr store gamma subst le =
 	| PVar pvar -> 
 		(try Hashtbl.find store pvar with
 		|  _ -> 
-			let msg = Printf.sprintf "Program variable %s not found: sth went wrong" pvar in 
-			raise (Failure msg))
+			let new_l_var_name = fresh_lvar () in 
+			let new_l_var = LVar new_l_var_name in 
+			(try 
+				let pvar_type = Hashtbl.find gamma pvar in 
+				Hashtbl.add gamma new_l_var_name pvar_type
+			with _ -> ()); 
+			Hashtbl.add subst pvar new_l_var;
+			Hashtbl.add store pvar new_l_var;
+			new_l_var)
 	
 	| LBinOp (le1, bop, le2) -> 
 		let nle1 = f le1 in 

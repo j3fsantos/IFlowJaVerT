@@ -1,8 +1,23 @@
 (** Expected result: YES                             **)
-spec test3 (x)
-   [[ (x == #x) * (#x == "maria") * joe(#x) * (#z == "maria") * types(#x: $$string_type, #z: $$string_type) ]]
-   [[ (#x == "maria") * joe(#z) ]]
+spec test3 (y)
+   [[ xuxu(y) * types(y: $$string_type) ]]
+   [[ ((x, "cenoura") -> "jose") * ((x, "@proto") -> $$null) * ((x, "tutifruti") -> y) * xuxu(y)  ]]
    normal
-proc test3 (x) {
+proc test3 (y) {
+  		   x := new();
+  		   [x, "cenoura"] := "maria";
+  		   x := "aux1" (x, y); 
    rlab:   skip
 } with { ret: x, rlab; };
+
+(** Expected result: YES                             **)
+spec aux1 (x, y)
+   [[ ((x, "cenoura") -> "maria") * ((x, "@proto") -> $$null) * xuxu(y) * types(y: $$string_type) ]]
+   [[ ((x, "cenoura") -> "jose") * ((x, "@proto") -> $$null) * ((x, "tutifruti") -> y) * xuxu(y) ]]
+   normal
+proc aux1 (x, y) {
+           [x, "cenoura"] := "jose";
+           [x, "tutifruti"] := y; 
+   rlab:   skip
+} with { ret: x, rlab; };
+ 

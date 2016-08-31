@@ -71,11 +71,12 @@ let pred_substitution pred subst =
 
 let preds_substitution preds subst = 
 	let len = DynArray.length preds in 
-	let new_preds = DynArray.make len in 
-	for i=0 to len - 1 do 
+	let new_preds = DynArray.create () in 
+	for i=0 to len - 1 do
 		let pred = DynArray.get preds i in 
-		let s_pred = pred_substitution pred subst in 
-		DynArray.set new_preds i s_pred 
+		let s_pred = pred_substitution pred subst in
+		(* Printf.printf "len: %i. i: %i. pred: %s. s_pred: %s\n" len i (JSIL_Memory_Print.string_of_pred pred) (JSIL_Memory_Print.string_of_pred s_pred); *)
+		DynArray.add new_preds s_pred
 	done; 
 	new_preds
 
@@ -492,6 +493,14 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 					| None -> raise (Failure ("Pattern heaps cannot have default values")))
 				| _ -> raise (Failure ("Pattern heaps cannot have default values"))))
 			pat_heap;
+		LHeap.iter 
+			(fun loc (fv_list, def) ->
+				try 
+					let _ = LHeap.find quotient_heap loc in 
+					() 
+				with _ -> 
+					LHeap.add quotient_heap loc (fv_list, def))
+			heap; 
 		Some quotient_heap
 	with _ -> None
 
@@ -598,7 +607,7 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 	let pat_heap, pat_store, pat_pf, pat_gamma, pat_preds = pat_symb_state in 
 	let heap, store, pf, gamma, preds = symb_state in
 	let subst = init_substitution lvars in 
-	
+	Printf.printf "unify_symb_states. heap:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_heap heap);
 	if (unify_stores pat_store store subst) then 
 		begin 
 		let quotient_heap : symbolic_heap option = unify_symb_heaps pat_heap heap pf gamma subst in 
@@ -606,6 +615,7 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 		(match new_subst, quotient_heap with 
 		| Some new_subst, Some quotient_heap ->
 			Printf.printf "I computed a quotient heap but I also need to check an entailment\n"; 
+			Printf.printf "The quotient heap that I just computed:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap);
 			Printf.printf "the symbolic state after computing quotient heap:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state);
 			(if ((check_entailment_pf pf pat_pf gamma new_subst) && (unify_gamma pat_gamma gamma new_subst)) then 
 				Some (quotient_heap, quotient_preds, new_subst)
@@ -675,10 +685,10 @@ let merge_symb_states symb_state_l symb_state_r subst =
 	let heap_l, store_l, pf_l, gamma_l, preds_l = symb_state_l in 
 	let heap_r, store_r, pf_r, gamma_r, preds_r = symb_state_r in 
 	let s_heap_r = heap_substitution heap_r subst in   
-	let s_pf_r = pf_substitution pf_r subst in 
-		Printf.printf("Done with pf substitution\n"); 
+	let s_pf_r = pf_substitution pf_r subst in  
 	let s_gamma_r = gamma_substitution gamma_r subst in 
 	let s_preds_r = preds_substitution preds_r subst in 
+	Printf.printf("Done with pred substitution\n");
 	merge_heaps heap_l s_heap_r pf_l gamma_l;
 	DynArray.append pf_l pf_r;
 	merge_gammas gamma_l s_gamma_r;  
@@ -779,7 +789,9 @@ let find_and_apply_spec prog proc_name proc_specs symb_state =
 		(match spec_list with 
 		| [] -> None 
 		| spec :: rest_spec_list -> 
-		
+			
+			Printf.printf "I am trying to unify the current symbolic state agains the following precondition:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre); 
+			
 			let unifier = unify_symb_states [] spec.n_pre symb_state in 
 			(match unifier with 
 			| Some (quotient_heap, quotient_preds, subst) ->	
@@ -904,6 +916,8 @@ let rec symb_evaluate_cmd symb_prog cur_proc_name spec vis_tbl cur_symb_state cu
 				let ret_type, _ = JSIL_Logic_Normalise.normalised_is_typable (get_gamma cur_symb_state) ret_val in
 				update_abs_store (get_store cur_symb_state) x ret_val;   
 				update_gamma (get_gamma cur_symb_state) x ret_type;
+				let symb_state_str = JSIL_Memory_Print.string_of_shallow_symb_state symb_state in 
+				Printf.printf "After the symbolically executing proc %s the symbolic state is:\n%s" proc_name symb_state_str; 
 				f_next_state_change symb_state cur_cmd prev_cmd
 			| Error, Some ret_val ->
 				(match j with 
@@ -976,7 +990,8 @@ let sym_run_procs spec_table prog which_pred =
 			let results = List.map  
 				(fun pre_post ->
 					(try
-						symb_evaluate_proc s_prog proc_name pre_post;
+						let new_pre_post = copy_single_spec pre_post in 
+						symb_evaluate_proc s_prog proc_name new_pre_post;
 						(proc_name, pre_post, true, None)
 					 with Failure msg ->
 						(proc_name, pre_post, false, Some msg)

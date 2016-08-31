@@ -68,6 +68,15 @@ let copy_symb_state symb_state =
 	let c_preds = DynArray.copy preds in 
 	(c_heap, c_store, c_pformulae, c_gamma, c_preds)
 
+let copy_single_spec s_spec = 
+	let copy_pre = copy_symb_state s_spec.n_pre in 
+	{
+		n_pre = copy_pre; 
+		n_post = s_spec.n_post; 
+		n_ret_flag = s_spec.n_ret_flag; 
+		n_lvars = s_spec.n_lvars
+	}
+
 
 let rec extend_symb_state_with_pfs symb_state pfs = 
 	match pfs with 
