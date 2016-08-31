@@ -58,6 +58,19 @@ proc test4 (y) {
 } with { ret: x, rlab; };
 
 
+(** Expected result: NO                             **)
+spec test5 (y)
+   [[ xuxu(y) * types(y: $$string_type) ]]
+   [[ ((x, "cenoura") -> "el_capitan") * ((x, "@proto") -> $$null) * ((x, "tutifruti") -> y) * xuxu(y)  ]]
+   normal
+proc test4 (y) {
+  		   x := new();
+  		   [x, "cenoura"] := "maria";
+  		   x := "aux1" (x, y); 
+   rlab:   skip
+} with { ret: x, rlab; };
+
+
 (** Expected result: YES                             **)
 spec aux0 (x)
    [[ emp ]]
