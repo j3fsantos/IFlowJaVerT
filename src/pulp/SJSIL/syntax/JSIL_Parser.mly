@@ -1,5 +1,11 @@
 %{
 open JSIL_Syntax
+open JSIL_Syntax_Checks
+
+(* Tables where we collect the predicates and the procedures as we parse them. *)
+let predicate_table = Hashtbl.create 100
+let procedure_table = Hashtbl.create 100
+
 %}
 
 (***** Token definitions *****)
@@ -207,38 +213,25 @@ open JSIL_Syntax
   ISPRIMITIVE TOSTRING TOINT TOUINT16 TOINT32 TOUINT32 TONUMBER CAR CDR LSTLEN STRLEN
 
 (***** Types and entry points *****)
-%type <((JSIL_Syntax.jsil_metadata * string option * JSIL_Syntax.jsil_lab_cmd) list)> cmd_list_top_target
-%type <JSIL_Syntax.jsil_ext_procedure> proc_target
 %type <JSIL_Syntax.jsil_ext_program> main_target
-%start main_target proc_target cmd_list_top_target
+%start main_target
 
 %%
 
 (********* JSIL *********)
 
 main_target:
-	| import_target declaration_target
-		{ (* Add the imports to the program *)
-	  	{$2 with imports = $1}
-		}
-	| declaration_target { $1 }
+	| imports = import_target; declaration_target; EOF
+		{ { imports; predicates = predicate_table; procedures = procedure_table; } }
+	| declaration_target; EOF
+		{ { imports = []; predicates = predicate_table; procedures = procedure_table; } }
 ;
 
 declaration_target:
-	| pred_target declaration_target
-		{ (* Add the predicate to the hash table of predicates *)
-			Hashtbl.add $2.predicates $1.name $1;
-			$2
-		}
-	| proc_target declaration_target
-		{ (* Add the procedure to the hash table of procedures *)
-			Hashtbl.replace $2.procedures $1.lproc_name $1; (* TODO: Warn if conflicting names? *)
-			$2
-		}
-	| EOF
-		{ (* Return an empty program *)
-			{ imports = []; predicates = Hashtbl.create 64; procedures = Hashtbl.create 64; }
-		}
+	| declaration_target; pred_target
+	| pred_target
+	| declaration_target; proc_target
+	| proc_target { }
 ;
 
 import_target: 
@@ -247,36 +240,43 @@ import_target:
 
 proc_target:
 (* [spec;] proc xpto (x, y) { cmd_list } with { ret: x, i; [err: x, j] }; *)
-  spec = option(spec_target);
-	PROC; proc_name = VAR; LBRACE; param_list = separated_list(COMMA, VAR); RBRACE;
+  proc_head = proc_head_target;
 		CLBRACKET; cmd_list = cmd_list_target; CRBRACKET;
 	WITH;
 		CLBRACKET; ctx_ret = option(ctx_target_ret); ctx_err = option(ctx_target_err); CRBRACKET; SCOLON
 	{
 		(* Printf.printf "Parsing Procedure.\n"; *)
-		(match spec with
-		| None -> ()
-		| Some specif ->  if (not (specif.spec_name = proc_name))    then (raise (Failure "Specification name does not match procedure name."))           else 
-			               (if (not (specif.spec_params = param_list)) then (raise (Failure "Specification parameters do not match procedure parameters.")) else ())
-		);
-		let ret_var, ret_index = 
+		let (lproc_name, lproc_params, lspec) = proc_head in
+		let lret_var, lret_label = 
 		(match ctx_ret with 
 			| None -> None, None
 			| Some (rv, ri) -> Some rv, Some ri) in 
-		let err_var, err_index = 
+		let lerror_var, lerror_label = 
 			(match ctx_err with 
 			| None -> None, None
 			| Some (ev, ei) -> Some ev, Some ei) in
-		{
-			lproc_name = proc_name;
+		let proc = {
+			lproc_name;
 			lproc_body = Array.of_list cmd_list;
-			lproc_params = param_list;
-			lret_label = ret_index;
-			lret_var = ret_var;
-			lerror_label = err_index;
-			lerror_var = err_var;
-			lspec = spec;
-		}
+			lproc_params;
+			lret_label;
+			lret_var;
+			lerror_label;
+			lerror_var;
+			lspec;
+		} in
+		(* TODO: Warn if conflicting names? *)
+		Hashtbl.replace procedure_table lproc_name proc;
+	}
+;
+
+proc_head_target:
+	spec = option(spec_target);
+	PROC; proc_name = VAR; LBRACE; param_list = separated_list(COMMA, VAR); RBRACE
+	{ (* TODO: Check pvars statically in the assertions? *)
+		enter_procedure;
+		validate_proc_signature spec proc_name param_list;
+		(proc_name, param_list, spec)
 	}
 ;
 
@@ -300,16 +300,6 @@ ctx_target_err:
 
 cmd_list_target: 
 	cmd_list = separated_nonempty_list(SCOLON, cmd_with_label_and_logic)
-	{
-		List.map
-			(fun (pre_cond, logic_cmds, lab, cmd) ->
-				({ line_offset = None; pre_cond; logic_cmds }, lab, cmd))
-			cmd_list
-	}
-;
-
-cmd_list_top_target: 
-	cmd_list = separated_list(SCOLON, cmd_with_label_and_logic); EOF
 	{
 		List.map
 			(fun (pre_cond, logic_cmds, lab, cmd) ->
@@ -449,9 +439,38 @@ prog_lit_target:
 
 pred_target:
 (* pred name (arg1, ..., argn) : def1, ..., defn ; *)
-	PRED; name = VAR; LBRACE; params = separated_list(COMMA, VAR); RBRACE; COLON;
-		definitions = separated_nonempty_list(COMMA, assertion_target); SCOLON
-  { { name; num_params  = List.length params; params; definitions; } }
+	pred_start; pred_head = pred_head_target; COLON;
+	definitions = separated_nonempty_list(COMMA, assertion_target); SCOLON
+  { (* Add the predicate to the collection *)
+		let (name, num_params, params) = pred_head in
+	  let pred = { name; num_params; params; definitions; } in
+		Hashtbl.add predicate_table name pred
+	}
+;
+
+pred_start:
+  PRED { enter_predicate }
+;
+
+pred_head_target:
+  name = VAR; LBRACE; params = separated_list(COMMA, pred_param_target); RBRACE;
+	{ (* Register the predicate declaration in the syntax checker *)
+		let num_params = List.length params in
+		register_predicate name num_params;
+	  (name, num_params, params)
+	}
+;
+
+pred_param_target:
+(* Logic literal *)
+	| lit = logic_lit_target
+	  { LLit lit }
+(* None *)
+	| LNONE
+	  { LNone }
+(* Logic variable *)
+	| lvar = logic_variable_target
+	  { lvar }
 ;
 
 logic_cmd_target:
@@ -465,9 +484,18 @@ logic_cmd_target:
 
 spec_target:
 (* spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *) 
-	SPEC; spec_name = VAR; LBRACE; spec_params = separated_list(COMMA, VAR); RBRACE;
+	SPEC; spec_head = spec_head_target;
 	proc_specs = separated_nonempty_list(SCOLON, pre_post_target);
-	{ { spec_name; spec_params; proc_specs } }
+	{ let (spec_name, spec_params) = spec_head in
+		{ spec_name; spec_params; proc_specs }
+	}
+;
+
+spec_head_target:
+  spec_name = VAR; LBRACE; spec_params = separated_list(COMMA, VAR); RBRACE
+	{ enter_specs spec_params;
+		(spec_name, spec_params)
+	}
 ;
 
 pre_post_target:
@@ -529,7 +557,9 @@ assertion_target:
 		{ LForAll (vars, ass) } *)
 (* x(e1, ..., en) *)
 	| name = VAR; LBRACE; params = separated_list(COMMA, lexpr_target); RBRACE
-	  { LPred (name, params) }
+	  { validate_pred_assertion (name, params);
+			LPred (name, params)
+		}
 (* types (type_pairs) *)
   | LTYPES; LBRACE; type_pairs = separated_list(COMMA, type_env_pair_target); RBRACE
     { LTypes type_pairs }
@@ -539,22 +569,26 @@ assertion_target:
 ;
 
 type_env_pair_target:
-  | v = VAR; COLON; the_type=type_target
-    { (PVar v, the_type) }
-  | v = LVAR; COLON; the_type=type_target
-    { (LVar v, the_type) }
+  | lvar = logic_variable_target; COLON; the_type=type_target
+    { (lvar, the_type) }
+  | pvar = program_variable_target; COLON; the_type=type_target
+    { (pvar, the_type) }
 ;
 
 lexpr_target:
 (* Logic literal *)
-	| lit=logic_lit_target { LLit lit }
+	| lit = logic_lit_target
+	  { LLit lit }
 (* None *)
-	| LNONE { LNone }
+	| LNONE
+	  { LNone }
 (* Logic variable *)
-	| v=LVAR { LVar v }
+	| lvar = logic_variable_target
+	  { lvar }
 (* Abstract locations are computed on normalisation *)
-(* Program variable *)
-	| v=VAR { PVar v }
+(* Program variable (including the special variable "ret") *)
+	| pvar = program_variable_target
+	  { pvar }
 (* e binop e *)	
 	| e1=lexpr_target; bop=binop_target; e2=lexpr_target
 		{ LBinOp (e1, bop, e2) }
@@ -592,7 +626,19 @@ lexpr_target:
 (* (e) *)
   | LBRACE; e=lexpr_target; RBRACE
 	  { e }	
-;		
+;
+
+logic_variable_target:
+  v = LVAR
+	{ validate_lvar v; LVar v }
+;
+
+program_variable_target:
+  | v = VAR
+	  { validate_pvar v; PVar v }
+	| RET
+	  { validate_pvar "ret"; PVar "ret" }
+;
 
 logic_lit_target:
   (* Use the Integer type for ints *)

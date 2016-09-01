@@ -1,5 +1,5 @@
-pred objectPropNone (l, prop, v) : types(l : $$object_type, prop : $$string_type) * (l, prop) -> None;
-pred objectProp (l, prop, v) : types(l : $$object_type, prop : $$string_type) * ((l, prop) -> v) * !(v == None);
+pred objectPropNone (#l, #prop, #v) : types(#l : $$object_type, #prop : $$string_type) * (#l, #prop) -> None;
+pred objectProp (#l, #prop, #v) : types(#l : $$object_type, #prop : $$string_type) * ((#l, #prop) -> #v) * !(#v == None);
 
 spec o__getOwnProperty (l, prop)
 	[[ objectPropNone(l, prop, None) ]]

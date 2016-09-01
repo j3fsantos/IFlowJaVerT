@@ -273,10 +273,13 @@ let rec string_of_logic_assertion a escape_string =
 
 (** JSIL logic predicates *)
 let rec string_of_predicate predicate =
+	let sle = fun e -> string_of_logic_expression e false in
 	List.fold_left 
 		(fun acc_str assertion -> 
 			acc_str ^ (Printf.sprintf "pred %s (%s) : %s;\n"
-				predicate.name (String.concat ", " predicate.params) (string_of_logic_assertion assertion false)))
+				predicate.name
+				(String.concat ", " (List.map sle predicate.params))
+				(string_of_logic_assertion assertion false)))
 		""
 		predicate.definitions
 

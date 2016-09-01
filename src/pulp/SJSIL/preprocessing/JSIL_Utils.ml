@@ -107,7 +107,7 @@ let print_position outx lexbuf =
 (** Parse contents in 'lexbuf' from the starting symbol 'start'. Terminates if an error occurs. *)
 let parse_with_error start lexbuf =
   try start JSIL_Lexer.read lexbuf with
-  | JSIL_Lexer.SyntaxError msg ->
+  | Syntax_error msg ->
     Printf.fprintf stderr "%a: %s\n" print_position lexbuf msg;
 		exit (-1)
   | JSIL_Parser.Error ->
@@ -128,12 +128,6 @@ let ext_program_of_string str =
   let lexbuf = Lexing.from_string str in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
 	parse_with_error JSIL_Parser.main_target lexbuf
-
-(** Run the parser on the given string, parsing just a procedure and desugaring it. *)
-let proc_of_string str = 
-  let lexbuf = Lexing.from_string str in
-  lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
-	desugar_labs (parse_with_error JSIL_Parser.proc_target lexbuf)
 
 
 (** Add the declarations in 'program_from' to 'program_to'. *)

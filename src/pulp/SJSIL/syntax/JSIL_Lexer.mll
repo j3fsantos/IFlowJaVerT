@@ -1,15 +1,5 @@
 {
 open Lexing
-
-exception SyntaxError of string
-
-let next_line lexbuf =
-  let pos = lexbuf.lex_curr_p in
-  lexbuf.lex_curr_p <-
-    { pos with pos_bol = lexbuf.lex_curr_pos;
-               pos_lnum = pos.pos_lnum + 1
-    }
-
 }
 
 let digit = ['0'-'9']
@@ -24,7 +14,7 @@ let newline = '\r' | '\n' | "\r\n"
 
 rule read = parse
 	| white       	       { read lexbuf }
-	|	newline	             { next_line lexbuf; read lexbuf }
+	|	newline	             { new_line lexbuf; read lexbuf }
 (* Type literals *)
 	| "$$undefined_type"   { JSIL_Parser.UNDEFTYPELIT }
 	| "$$null_type"        { JSIL_Parser.NULLTYPELIT }
@@ -203,7 +193,7 @@ rule read = parse
 	| lvar                 { JSIL_Parser.LVAR (Lexing.lexeme lexbuf) }
 (* EOF *)
 	| eof                  { JSIL_Parser.EOF }
-	| _                    { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
+	| _                    { raise (JSIL_Syntax.Syntax_error ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
 and
 (* Read strings *)
 read_string buf =
@@ -221,13 +211,13 @@ read_string buf =
 		                       Buffer.add_string buf (Lexing.lexeme lexbuf);
     											 read_string buf lexbuf
     			               }
-  | _                    { raise (SyntaxError ("Illegal string character: " ^ Lexing.lexeme lexbuf)) }
-  | eof                  { raise (SyntaxError ("String is not terminated")) }
+  | _                    { raise (JSIL_Syntax.Syntax_error ("Illegal string character: " ^ Lexing.lexeme lexbuf)) }
+  | eof                  { raise (JSIL_Syntax.Syntax_error ("String is not terminated")) }
 and
 (* Read comments *)
 read_comment =
   parse
 	| "*)"                 { read lexbuf }
-	| eof                  { raise (SyntaxError ("Comment is not terminated")) }
+	| eof                  { raise (JSIL_Syntax.Syntax_error ("Comment is not terminated")) }
 	| _                    { read_comment lexbuf }
 	
