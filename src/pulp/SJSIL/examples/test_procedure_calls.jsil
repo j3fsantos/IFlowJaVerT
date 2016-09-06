@@ -31,11 +31,12 @@ proc test2 (x, y) {
    rlab:   skip
 } with { ret: x, rlab; };
 
+pred xuxu (y) : xuxu(y);
 
 (** Expected result: YES                             **)
 spec test3 (y)
    [[ xuxu(y) * types(y: $$string_type) ]]
-   [[ ((x, "cenoura") -> "jose") * ((x, "@proto") -> $$null) * ((x, "tutifruti") -> y) * xuxu(y)  ]]
+   [[ ((ret, "cenoura") -> "jose") * ((ret, "@proto") -> $$null) * ((ret, "tutifruti") -> y) * xuxu(y)  ]]
    normal
 proc test3 (y) {
   		   x := new();
@@ -48,7 +49,7 @@ proc test3 (y) {
 (** Expected result: NO                             **)
 spec test4 (y)
    [[ xuxu(y) * types(y: $$string_type) ]]
-   [[ ((x, "cenoura") -> "el_capitan") * ((x, "@proto") -> $$null) * ((x, "tutifruti") -> y) * xuxu(y)  ]]
+   [[ ((ret, "cenoura") -> "el_capitan") * ((ret, "@proto") -> $$null) * ((ret, "tutifruti") -> y) * xuxu(y)  ]]
    normal
 proc test4 (y) {
   		   x := new();
@@ -61,7 +62,7 @@ proc test4 (y) {
 (** Expected result: NO                             **)
 spec test5 (y)
    [[ xuxu(y) * types(y: $$string_type) ]]
-   [[ ((x, "cenoura") -> "cenoura") * ((x, "@proto") -> $$null) * ((x, "tutifruti") -> y) * xuxu(y)  ]]
+   [[ ((ret, "cenoura") -> "cenoura") * ((ret, "@proto") -> $$null) * ((ret, "tutifruti") -> y) * xuxu(y)  ]]
    normal
 proc test5 (y) {
   		   x := new();
@@ -93,8 +94,3 @@ proc aux1 (x, y) {
            [x, "tutifruti"] := y; 
    rlab:   skip
 } with { ret: x, rlab; };
- 
-
-
-
-

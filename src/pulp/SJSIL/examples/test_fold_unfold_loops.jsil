@@ -22,7 +22,7 @@ proc list_cons (x, y) {
 (** Expected result: YES                             **)
 spec list_count (x)
    [[ (x == #x) * my_list(#x) ]]
-   [[ my_list(#x) * types(count: $$int_type) ]]
+   [[ my_list(#x) * types(ret: $$int_type) ]]
    normal
 proc list_count (x) {
 		   [* unfold(my_list(x)) *]
@@ -62,9 +62,4 @@ proc list_append (x, y) {
            skip;
    rlab:   skip
 } with { ret: x, rlab; }; 
-
-
-
-
-
 

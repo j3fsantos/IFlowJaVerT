@@ -164,7 +164,9 @@ let rec encode_pure_formula ctx gamma z3_typeof_fun a =
 		
 	| LStrLess (_, _)    -> raise (Failure ("I don't know how to do string comparison in Z3"))
 
-	| LTrue              -> Boolean.mk_true ctx 
+	| LTrue              -> Boolean.mk_true ctx
+	
+	| LFalse             -> Boolean.mk_false ctx
 
 	| _                  -> 
 		let msg = Printf.sprintf "Unsupported assertion to encode for Z3: %s" (JSIL_Print.string_of_logic_assertion a false) in 

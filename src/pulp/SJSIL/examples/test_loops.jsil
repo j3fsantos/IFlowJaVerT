@@ -13,10 +13,3 @@ proc test0 (x) {
 
 } with { ret: x, rlab; };
 
- 
-  
-
-
-
-
-

@@ -1,3 +1,6 @@
+pred joe(x) : joe(x);
+pred alice(x, y) : alice(x, y);
+
 (** Expected result: YES                             **)
 spec test0 (x)
    [[ (x == #x) * (#x == "maria") * joe(#x) * types(#x: $$string_type) ]]
