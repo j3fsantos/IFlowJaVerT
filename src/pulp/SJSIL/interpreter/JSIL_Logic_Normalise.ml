@@ -725,7 +725,7 @@ let normalise_assertion a =
 	
 let normalise_precondition a = 
 	let lvars = get_ass_vars_lst a false in 	
-	(* let lvars_str = List.fold_left (fun ac var -> (ac ^ var ^ ", ")) "" lvars in 
+	(*let lvars_str = List.fold_left (fun ac var -> (ac ^ var ^ ", ")) "" lvars in 
 	Printf.printf "LVARS BABY %s\n\n\n" lvars_str; *)
 	let symb_state, subst = normalise_assertion a in 
 	let new_subst = filter_substitution subst lvars in 
@@ -733,7 +733,7 @@ let normalise_precondition a =
 	symb_state, (lvars, new_subst)
 
 let normalise_postcondition a subst = 
-	let a = assertion_substitution a subst false in 	
+	let a = assertion_substitution a subst true in 	
 	let symb_state, _ = normalise_assertion a in 
 	symb_state
 
