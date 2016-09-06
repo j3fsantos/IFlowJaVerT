@@ -1148,7 +1148,7 @@ let symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 				(* Printf.printf "\n\nFOLDED SUCCESSFULLY!!!!\n\n\n"; *)
 				[ symb_state ]
 			| None -> 
-				let msg = Printf.sprintf "Could not fold baby: %s " (JSIL_Print.string_of_logic_assertion a false) in 
+				let msg = Printf.sprintf "Could not fold: %s " (JSIL_Print.string_of_logic_assertion a false) in 
 				raise (Failure msg))
 		| _ -> 
 			let msg = Printf.sprintf "Illegal fold command %s" (JSIL_Print.string_of_logic_assertion a false) in 

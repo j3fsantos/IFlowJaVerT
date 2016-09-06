@@ -4,6 +4,7 @@ open Stack
 open JSIL_Syntax
 open JSIL_Memory_Model
 open JSIL_Logic_Utils
+open Logic_Predicates
 
 (** 
   le -> non-normalised logical expression
@@ -738,9 +739,19 @@ let normalise_postcondition a subst =
 	symb_state
 
 		
-let normalise_single_spec spec =
-	let pre_symb_state, (lvars, subst) = normalise_precondition spec.pre in 
-	let post_symb_state = normalise_postcondition spec.post subst in 
+let normalise_single_spec preds spec =
+	let unfolded_pre =
+		(match Logic_Predicates.auto_unfold preds spec.pre with
+	  | [] -> print_string "Warning: Precondition lost after auto-unfolding!\n"; LFalse
+	  | hd :: [] -> hd
+	  | hd :: tl -> print_string "Warning: Too many auto-unfoldings, won't do!\n"; spec.pre) in
+	let unfolded_post =
+		(match Logic_Predicates.auto_unfold preds spec.post with
+	  | [] -> print_string "Warning: Postcondition lost after auto-unfolding!\n"; LFalse
+	  | hd :: [] -> hd
+	  | hd :: tl -> print_string "Warning: Too many auto-unfoldings, won't do!\n"; spec.post) in
+	let pre_symb_state, (lvars, subst) = normalise_precondition unfolded_pre in 
+	let post_symb_state = normalise_postcondition unfolded_post subst in 
 	{	
 		n_pre = pre_symb_state; 
 		n_post = post_symb_state; 
@@ -750,8 +761,8 @@ let normalise_single_spec spec =
 	}
 
 
-let normalise_spec spec = 
-	let normalised_pre_post_list = List.map normalise_single_spec spec.proc_specs in 
+let normalise_spec preds spec = 
+	let normalised_pre_post_list = List.map (normalise_single_spec preds) spec.proc_specs in 
 	{
 		n_spec_name = spec.spec_name; 
 		n_spec_params =  spec.spec_params; 
@@ -759,14 +770,14 @@ let normalise_spec spec =
 	} 
 
 
-let build_spec_tbl prog = 
+let build_spec_tbl preds prog = 
 	let spec_tbl = Hashtbl.create 31 in 
 	Hashtbl.iter 
 		(fun proc_name proc -> 
 			match proc.spec with 
 			| None -> ()
 			| Some spec -> 
-				let n_spec = normalise_spec spec in 
+				let n_spec = normalise_spec preds spec in 
 				Hashtbl.replace spec_tbl n_spec.n_spec_name n_spec)
 		prog; 
 	Printf.printf "Spec Table:\n%s" (JSIL_Memory_Print.string_of_n_spec_table spec_tbl);		
@@ -786,20 +797,18 @@ let init_store vars les =
 	
 	loop vars les; 
 	store
-	
-				
-			
+
+
 let normalise_predicate_definitions pred_defs : (string, JSIL_Memory_Model.n_jsil_logic_predicate) Hashtbl.t = 
-	let new_pred_defs : (string, Logic_Predicates.normalised_predicate) Hashtbl.t = Logic_Predicates.normalise pred_defs in 
 	let n_pred_defs = Hashtbl.create 31 in 
 	Hashtbl.iter 
-		(fun pred_name (pred : Logic_Predicates.normalised_predicate) ->
+		(fun pred_name pred ->
 			let n_definitions = 
 				List.map 
 					(fun a -> 
 						let symb_state, _ = normalise_assertion a in 
 						symb_state)
-					pred.definitions in 		 
+					pred.definitions in
 			let n_pred = {
 				n_pred_name = pred.name; 
 				n_pred_num_params = pred.num_params; 
@@ -808,7 +817,7 @@ let normalise_predicate_definitions pred_defs : (string, JSIL_Memory_Model.n_jsi
 				n_pred_is_rec = pred.is_recursive 
 			} in 
 			Hashtbl.replace n_pred_defs pred_name n_pred)
-		new_pred_defs; 		
+		pred_defs; 		
 	n_pred_defs
 	
 
