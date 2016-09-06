@@ -1,7 +1,7 @@
 
 spec main (x1, x2)
   [[ (x1 == #w1) * (x2 == #w2) ]]
-  [[ ((x, "@proto") -> $$null) * ((x, "banana") -> #y1) * ((x, "foo") -> #y2) * ((x, "cenoura") -> #y3) ]]
+  [[ ((#x, "@proto") -> $$null) * ((#x, "banana") -> #y1) * ((#x, "foo") -> #y2) * ((#x, "cenoura") -> #y3) ]]
   normal
 proc main (x1, x2) {
                 x := new ();

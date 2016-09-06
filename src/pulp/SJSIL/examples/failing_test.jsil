@@ -1,0 +1,12 @@
+(* FROM test_basic_commands.jsil *)
+
+(** Tested feature: property check 1                 **)
+(** Expected result: YES                             **)
+spec test3 (x)
+   [[ ((x, "cenoura") -> #y) * ((x, "@proto") -> $$null) * types(#y: $$string_type) ]]
+   [[ ((x, "cenoura") -> #y) * ((x, "@proto") -> $$null) * types(#y: $$string_type) * (ret == $$t) ]]
+   normal
+proc test3 (x) {
+  		   y := hasField(x, "cenoura");
+   rlab:   skip
+} with { ret: y, rlab; };

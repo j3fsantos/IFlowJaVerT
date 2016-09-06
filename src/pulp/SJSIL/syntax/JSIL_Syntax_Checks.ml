@@ -23,16 +23,17 @@ let register_predicate name num_params =
 (** The following functions activate/deactivate syntax validation.
     They are called from the JSIL_Parser when starting to parse definitions. *)
 (* Entering procedure body: any program variable allowed, predicate check enforced *)
-let enter_procedure =
+let enter_procedure () =
 	allowed_pvars := None;
 	allow_any_predicate := false
-(* Entering predicate: no program variable allowed, any predicate allowed *)
-let enter_predicate =
-	allowed_pvars := Some [];
+(* Entering predicate: those predicate parameters which are variables allowed, any predicate allowed *)
+let enter_predicate params =
+	let str_params = List.map (fun lexpr -> match lexpr with LVar var -> var | _ -> "") params in
+	allowed_pvars := Some (List.filter (fun str -> str <> "") str_params);
 	allow_any_predicate := true
-(* Entering specs: procedure parameters and "ret" allowed, predicate check enforced *)
+(* Entering specs: procedure parameters, "ret" and "err" allowed, predicate check enforced *)
 let enter_specs params =
-	allowed_pvars := (Some ("ret" :: params));
+	allowed_pvars := (Some ("ret" :: ("err" :: params)));
 	allow_any_predicate := false
 
 (** Checks whether a logical variable is syntactically coherent, i.e., allowed in the current scope.
@@ -89,3 +90,36 @@ let validate_proc_signature spec name params =
 		if (spec.spec_params = params)
 		  then ()
 			else (raise (Syntax_error "Specification parameters do not match procedure parameters."))
+
+(** Returns a spec option resulting from the substitution of "ret" for ret_var and "err" for err_var *)
+let replace_spec_keywords spec ret_var err_var =
+	let ret_var =
+		(match ret_var with
+		| None -> ""
+		| Some var -> var) in
+	let err_var =
+		(match err_var with
+		| None -> ""
+		| Some var -> var) in
+	match spec with
+	| None      -> None
+	| Some spec ->
+		Some {
+			spec_name = spec.spec_name;
+			spec_params = spec.spec_params;
+			proc_specs = List.map
+		    (fun current_spec ->
+				  let subst_ret_err =
+					  (fun lexpr ->
+						  match lexpr with
+						  | PVar "ret" -> PVar ret_var
+						  | PVar "err" -> PVar err_var
+						  | _ -> lexpr)
+					  in
+				  { pre = current_spec.pre;
+					  post = JSIL_Logic_Utils.assertion_map subst_ret_err current_spec.post;
+					  ret_flag = current_spec.ret_flag;
+				  }
+			  )
+			  spec.proc_specs
+		}

@@ -33,6 +33,47 @@ let is_pvar_name (name : string) : bool =
 	(not ((is_abs_loc_name name) || (is_lvar_name name)))
 
 
+(** Apply function f to a logic expression, recusively when it makes sense. *)
+let rec logic_expression_map f lexpr =
+	(* Apply the mapping *)
+	let map_e = logic_expression_map f in
+	let mapped_lexpr = f lexpr in
+	(* Map recursively to expressions *)
+	match mapped_lexpr with
+	| LLit _ | LNone | LVar _ | ALoc _ | PVar _ -> mapped_lexpr
+	| LBinOp (e1, op, e2) -> LBinOp (map_e e1, op, map_e e2)
+	| LUnOp (op, e)       -> LUnOp (op, map_e e)
+	| LEVRef (e1, e2)     -> LEVRef (map_e e1, map_e e2)
+	| LEORef (e1, e2)     -> LEORef (map_e e1, map_e e2)
+	| LBase e             -> LBase (map_e e)
+	| LField e            -> LField (map_e e)
+	| LTypeOf e           -> LTypeOf (map_e e)
+	| LEList le           -> LEList (List.map map_e le)
+	| LLstNth (e1, e2)    -> LLstNth (map_e e1, map_e e2)
+	| LStrNth (e1, e2)    -> LStrNth (map_e e1, map_e e2)
+	| LUnknown            -> LUnknown
+
+(** Apply function f to the logic expressions in an assertion, recusively when it makes sense. *)
+let rec assertion_map f asrt =
+	(* Map recursively to assertions and expressions *)
+	let map_a = assertion_map f in
+	let map_e = logic_expression_map f in
+	match asrt with
+	| LAnd (a1, a2)          -> LAnd (map_a a1, map_a a2)
+	| LOr (a1, a2)           -> LOr (map_a a1, map_a a2)
+	| LNot a                 -> LNot (map_a a)
+	| LTrue                  -> LTrue
+	| LFalse                 -> LFalse
+	| LEq (e1, e2)           -> LEq (map_e e1, map_e e2)
+	| LLess (e1, e2)         -> LLess (map_e e1, map_e e2)
+	| LLessEq (e1, e2)       -> LLessEq (map_e e1, map_e e2)
+	| LStrLess (e1, e2)      -> LStrLess (map_e e1, map_e e2)
+	| LStar (a1, a2)         -> LStar (map_a a1, map_a a2)
+	| LPointsTo (e1, e2, e3) -> LPointsTo (map_e e1, map_e e2, map_e e3)
+	| LEmp                   -> LEmp
+	| LPred (s, le)          -> LPred (s, List.map map_e le)
+	| LTypes lt              -> LTypes (List.map (fun (exp, typ) -> (map_e exp, typ)) lt)
+
 
 (**
   var_set is a hashtbl (what else?) that models the set of variables  

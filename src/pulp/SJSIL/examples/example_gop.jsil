@@ -1,13 +1,13 @@
-pred objectPropNone (#l, #prop, #v) : types(#l : $$object_type, #prop : $$string_type) * (#l, #prop) -> None;
-pred objectProp (#l, #prop, #v) : types(#l : $$object_type, #prop : $$string_type) * ((#l, #prop) -> #v) * !(#v == None);
+pred ObjectProp (l, prop, v) :
+	types(l : $$object_type, prop : $$string_type) * ((l, prop) -> v);
 
 spec o__getOwnProperty (l, prop)
-	[[ objectPropNone(l, prop, None) ]]
-	[[ objectPropNone(l, prop, None) * xret == $$undefined ]]
+	[[ ObjectProp (l, prop, None) ]]
+	[[ ObjectProp (l, prop, None) * ret == $$undefined ]]
 	normal;
 	
-	[[ objectProp(l, prop, #d) ]]
-	[[ objectProp(l, prop, #d) * types(#d : $$list_type) * xret == #d ]]
+	[[ ObjectProp (l, prop, #d) * !(#d == None) ]]
+	[[ ObjectProp (l, prop, #d) * !(#d == None) * types(#d : $$list_type) * ret == #d ]]
 	normal
 proc o__getOwnProperty (l, prop) {
             x := hasField(l, prop);		
@@ -23,4 +23,37 @@ proc o__getOwnProperty (l, prop) {
 with
 {
     ret: 	xret, rlab;
+};
+
+pred CommonMethods (l) :
+	((l, "@getProperty") -> "o__getProperty") * ((l, "@getOwnProperty") -> "o__getOwnProperty");
+
+pred ProtoLookup (l, prop, d) :
+	ObjectProp (l, prop, d),
+	ObjectProp (l, prop, None) * ((l, "@proto") -> $$null) * d == $$undefined,
+	ObjectProp (l, prop, None) * ((l, "@proto") -> #lp) * !(#lp == $$null) * CommonMethods(#lp) * ProtoLookup(#lp, prop, d);
+
+spec o__getProperty (l, prop)
+	[[ ProtoLookup (l, prop, #d) ]]
+	[[ ProtoLookup (l, prop, #d) * ret == #d ]]
+	normal
+proc o__getProperty (l, prop) {
+			
+			gop := [l, "@getOwnProperty"];
+			xret := gop (l, prop) with elab;
+			goto [xret = $$undefined] next rlab;
+			
+	next:	proto := [l, "@proto"];
+			goto [proto = $$null] rlab call;
+			
+	call:	gp := [proto, "@getProperty"];
+			xret := gp (proto, prop) with elab;
+	
+    rlab:   skip;
+    elab:	skip
+}
+with 
+{
+    ret: 	xret, rlab;
+    err:	xret, elab;
 };

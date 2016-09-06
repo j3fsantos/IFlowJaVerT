@@ -246,7 +246,7 @@ proc_target:
 		CLBRACKET; ctx_ret = option(ctx_target_ret); ctx_err = option(ctx_target_err); CRBRACKET; SCOLON
 	{
 		(* Printf.printf "Parsing Procedure.\n"; *)
-		let (lproc_name, lproc_params, lspec) = proc_head in
+		let (lproc_name, lproc_params, spec) = proc_head in
 		let lret_var, lret_label = 
 		(match ctx_ret with 
 			| None -> None, None
@@ -255,6 +255,8 @@ proc_target:
 			(match ctx_err with 
 			| None -> None, None
 			| Some (ev, ei) -> Some ev, Some ei) in
+		(* Replace keywords "ret" and "err" from the postcondition with the correspondig program variables *)
+		let lspec = replace_spec_keywords spec lret_var lerror_var in
 		let proc = {
 			lproc_name;
 			lproc_body = Array.of_list cmd_list;
@@ -273,8 +275,8 @@ proc_target:
 proc_head_target:
 	spec = option(spec_target);
 	PROC; proc_name = VAR; LBRACE; param_list = separated_list(COMMA, VAR); RBRACE
-	{ (* TODO: Check pvars statically in the assertions? *)
-		enter_procedure;
+	{ (* TODO: Check pvars statically in the logic commands? *)
+		enter_procedure ();
 		validate_proc_signature spec proc_name param_list;
 		(proc_name, param_list, spec)
 	}
@@ -439,7 +441,7 @@ prog_lit_target:
 
 pred_target:
 (* pred name (arg1, ..., argn) : def1, ..., defn ; *)
-	pred_start; pred_head = pred_head_target; COLON;
+	PRED; pred_head = pred_head_target; COLON;
 	definitions = separated_nonempty_list(COMMA, assertion_target); SCOLON
   { (* Add the predicate to the collection *)
 		let (name, num_params, params) = pred_head in
@@ -448,15 +450,12 @@ pred_target:
 	}
 ;
 
-pred_start:
-  PRED { enter_predicate }
-;
-
 pred_head_target:
   name = VAR; LBRACE; params = separated_list(COMMA, pred_param_target); RBRACE;
 	{ (* Register the predicate declaration in the syntax checker *)
 		let num_params = List.length params in
 		register_predicate name num_params;
+		enter_predicate params;
 	  (name, num_params, params)
 	}
 ;
@@ -468,17 +467,18 @@ pred_param_target:
 (* None *)
 	| LNONE
 	  { LNone }
-(* Logic variable *)
-	| lvar = logic_variable_target
-	  { lvar }
+(* Logic variable, but with the shape of a program variable *)
+	| v = VAR
+	  { LVar v }
 ;
 
+(* TODO: Check that the assertions are only predicates, or deal with full assertions in the execution *)
 logic_cmd_target:
-(* [* fold(x) *] *)
-	| OLCMD; FOLD; LBRACE; assertion = assertion_target; RBRACE; CLCMD
+(* [* fold x(e1, ..., en)  *] *)
+	| OLCMD; FOLD; assertion = assertion_target; CLCMD
 	  { Fold (assertion) }
-(* [* unfold(x) *] *)
-	| OLCMD; UNFOLD; LBRACE; assertion = assertion_target; RBRACE; CLCMD
+(* [* unfold x(e1, ..., en) *] *)
+	| OLCMD; UNFOLD; assertion = assertion_target; CLCMD
 	  { Unfold (assertion) }
 ;
 
@@ -638,6 +638,8 @@ program_variable_target:
 	  { validate_pvar v; PVar v }
 	| RET
 	  { validate_pvar "ret"; PVar "ret" }
+	| ERR
+	  { validate_pvar "err"; PVar "err" }
 ;
 
 logic_lit_target:

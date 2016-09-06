@@ -1,6 +1,6 @@
 spec main (x1, x2)
   [[ (x1 == #z) * (x2 == #w) ]]
-  [[ ((x, "@proto") -> $$null) * ((x, "banana") -> #y1) * ((x, "foo") -> #y2) * ((x, "cenoura") -> #y3) * (x1 == #z) * (x2 == #w) ]]
+  [[ ((#x, "@proto") -> $$null) * ((#x, "banana") -> #y1) * ((#x, "foo") -> #y2) * ((#x, "cenoura") -> #y3) * (x1 == #z) * (x2 == #w) ]]
   normal
 proc main (x1, x2) {
             x := new ();
@@ -37,12 +37,12 @@ proc xpto (x) {
 };
 
 spec xpto2 (x, y)
-  [[ ((x, "foo") -> "bar") * ((x, "baz") -> y + 1) * (y == _w + 3) ]]
-  [[ ((x, "foo") -> none) * ((x, "baz") -> _w) ]]
+  [[ ((x, "foo") -> "bar") * ((x, "baz") -> y + 1) * (y == #w + 3) ]]
+  [[ ((x, "foo") -> None) * ((x, "baz") -> #w) ]]
   normal;
   
-  [[ ((x, "foo") -> "googoo") * ((x, "baz") -> y + 1) * (y == _w + 3) ]]
-  [[ ((x, "foo") -> none) * ((x, "gaga") -> _w) ]]
+  [[ ((x, "foo") -> "googoo") * ((x, "baz") -> y + 1) * (y == #w + 3) ]]
+  [[ ((x, "foo") -> None) * ((x, "gaga") -> #w) ]]
   normal
 
 proc xpto2 (x, y) {

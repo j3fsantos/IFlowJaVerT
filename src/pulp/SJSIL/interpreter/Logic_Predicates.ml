@@ -29,7 +29,7 @@ let replace_head_literals (pred : jsil_logic_predicate) =
 				let new_lvar = JSIL_Logic_Utils.fresh_lvar () in
 				let new_assertions =
 					List.map
-						(fun prev_ass -> LAnd (prev_ass, LEq (LVar new_lvar, cur_param)))
+						(fun prev_ass -> LStar (prev_ass, LEq (LVar new_lvar, cur_param)))
 						norm_pred.definitions in
 				{ name         = norm_pred.name;
 				  num_params   = norm_pred.num_params;
@@ -62,44 +62,14 @@ let unify_list_lvars l1 l2 =
 		l1 l2;
 	subst
 
-let rec substitute_lexpr_in_lexpr subst lexpr =
-	try (* Substitute directly if possible *)
-		Hashtbl.find subst lexpr
-	with Not_found -> (* Or try to apply recursively *)
-		let sub = substitute_lexpr_in_lexpr subst in
-		match lexpr with
-		| LLit _ | LNone | LVar _ | ALoc _ | PVar _ -> lexpr
-		| LBinOp (e1, op, e2) -> LBinOp (sub e1, op, sub e2)
-		| LUnOp (op, e)       -> LUnOp (op, sub e)
-		| LEVRef (e1, e2)     -> LEVRef (sub e1, sub e2)
-		| LEORef (e1, e2)     -> LEORef (sub e1, sub e2)
-		| LBase e             -> LBase (sub e)
-		| LField e            -> LField (sub e)
-		| LTypeOf e           -> LTypeOf (sub e)
-		| LEList le           -> LEList (List.map sub le)
-		| LLstNth (e1, e2)    -> LLstNth (sub e1, sub e2)
-		| LStrNth (e1, e2)    -> LStrNth (sub e1, sub e2)
-		| LUnknown            -> LUnknown
-
-let rec substitute_lexpr_in_asrt subst asrt =
-	(* Apply recursively to assertions and expressions *)
-	let sub_a = substitute_lexpr_in_asrt subst in
-	let sub = substitute_lexpr_in_lexpr subst in
-	match asrt with
-	| LAnd (a1, a2)          -> LAnd (sub_a a1, sub_a a2)
-	| LOr (a1, a2)           -> LOr (sub_a a1, sub_a a2)
-	| LNot a                 -> LNot (sub_a a)
-	| LTrue                  -> LTrue
-	| LFalse                 -> LFalse
-	| LEq (e1, e2)           -> LEq (sub e1, sub e2)
-	| LLess (e1, e2)         -> LLess (sub e1, sub e2)
-	| LLessEq (e1, e2)       -> LLessEq (sub e1, sub e2)
-	| LStrLess (e1, e2)      -> LStrLess (sub e1, sub e2)
-	| LStar (a1, a2)         -> LStar (sub_a a1, sub_a a2)
-	| LPointsTo (e1, e2, e3) -> LPointsTo (sub e1, sub e2, sub e3)
-	| LEmp                   -> LEmp
-	| LPred (s, le)          -> LPred (s, List.map sub le)
-	| LTypes lt              -> LTypes (List.map (fun (exp, typ) -> (sub exp, typ)) lt)
+(* Replaces the logic_expressions in asrt that have a substitute in the hashtable subst *)
+let apply_substitution subst asrt =
+	JSIL_Logic_Utils.assertion_map
+	  (fun lexpr -> (* Replace the logic expression if it has a substitute *)
+		  try
+	      Hashtbl.find subst lexpr
+	    with Not_found -> lexpr)
+	  asrt
 
 (* Join two normalised_predicate defining different cases of the same predicate in a single
    normalised_predicate
@@ -110,7 +80,7 @@ let join_pred pred1 pred2 =
 		else
 		  let subst = unify_list_lvars (List.map (fun var -> LVar var) pred1.params) pred2.params in
 		  { pred1 with
-			   definitions  = pred1.definitions @ (List.map (substitute_lexpr_in_asrt subst) pred2.definitions);
+			   definitions  = pred1.definitions @ (List.map (apply_substitution subst) pred2.definitions);
 				 is_recursive = pred1.is_recursive || pred2.is_recursive; }
 
 (* Returns a list with the names of the predicates that occur in an assertion *)
@@ -230,7 +200,7 @@ let rec auto_unfold predicates asrt =
 				(* If it is not, unify the formal parameters with the actual parameters, *)
 				(* apply the substitution to each definition of the predicate, and recurse. *)
 				let subst = unify_list_lvars args pred.params in
-				let new_asrts = List.map (substitute_lexpr_in_asrt subst) pred.definitions in
+				let new_asrts = List.map (apply_substitution subst) pred.definitions in
 				List.fold_left
 				  (fun list asrt -> list @ (au asrt))
 					[]

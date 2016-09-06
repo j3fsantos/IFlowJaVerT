@@ -1,35 +1,28 @@
-pred factorial (#n, #r) : (#n == 0) * (#r == 1),
-						  (#n == 1) * (#r == 1),
-						  !(#n <# 2) * factorial(#n - 1, #n1) * (#r == #n * #n1);
+pred factorial (n, r) : (n == 0) * (r == 1),
+						!(n <# 1) * factorial(n - 1, #n1) * (r == n * #n1);
 
 spec factorial (n)
 	[[ !(n <# 0) ]]
-	[[ !(n <# 0) * factorial(n, xret) ]]
+	[[ !(n <# 0) * factorial(n, ret) ]]
 	normal
 proc factorial (n) {
 	xret := 1;
-	goto [n < 0] elab pos;
 pos:
 	goto [n = 0 or n = 1] rlab rec;
 rec:
-	xret := "factorial" (n - 1) with elab;
+	xret := "factorial" (n - 1);
 	xret := n * xret;
+	[* fold factorial(n, xret) *]
 rlab:
-	skip;	
-elab:
 	skip
 } with {
 	ret: xret, rlab;
-	err: xret, elab;
 };
 
 proc main () {
-	xret := "factorial" (6) with elab;
+	xret := "factorial" (6);
 rlab:
-	skip;
-elab:
 	skip
 } with {
 	ret:	xret, rlab;
-	err: 	xret, elab;
 };

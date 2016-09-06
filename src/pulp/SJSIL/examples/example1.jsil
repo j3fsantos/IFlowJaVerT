@@ -1,15 +1,14 @@
-pred dog (x, y) : (x == 1) * (y <<= 5),
-				  (x == 2) * (! y <<= 5);
-pred dog (x) : x == 0;
+pred dog (x, y) : (x == 1) * (y <=# 5),
+				  (x == 2) * (! y <=# 5);
 (*pred cat (x, y) : (!dog(x)) * (dog(y, 10));*)
 
 spec test_proc (x)
-  [[ ! x <<= 2 ]]
-  [[ (! x <<= 4)  * ( xret <<= 5 ) ]]
+  [[ ! x <=# 2 ]]
+  [[ (! x <=# 4)  * ( ret <=# 5 ) ]]
   normal;
   
-  [[ ! x <<= 1 ]]
-  [[ (! x <<= 7)  * ( xret <<= 4 ) ]]
+  [[ ! x <=# 1 ]]
+  [[ (! x <=# 7)  * ( ret <=# 4 ) ]]
   error
   
 proc test_proc (x) {
@@ -24,7 +23,7 @@ proc test_proc (x) {
 			x := 3;
 			[[ (xret == 2) * (x == 3)]]
 			xret := xret + 6;
-			[[ ! xret <<= 2 ]]
+			[[ ! xret <=# 2 ]]
 			goto rlab;
 	elab: 	skip
 }
