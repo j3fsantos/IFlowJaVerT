@@ -790,9 +790,10 @@ let init_store vars les =
 				
 			
 let normalise_predicate_definitions pred_defs : (string, JSIL_Memory_Model.n_jsil_logic_predicate) Hashtbl.t = 
+	let new_pred_defs : (string, Logic_Predicates.normalised_predicate) Hashtbl.t = Logic_Predicates.normalise pred_defs in 
 	let n_pred_defs = Hashtbl.create 31 in 
 	Hashtbl.iter 
-		(fun pred_name pred -> 
+		(fun pred_name (pred : Logic_Predicates.normalised_predicate) ->
 			let n_definitions = 
 				List.map 
 					(fun a -> 
@@ -803,10 +804,11 @@ let normalise_predicate_definitions pred_defs : (string, JSIL_Memory_Model.n_jsi
 				n_pred_name = pred.name; 
 				n_pred_num_params = pred.num_params; 
 				n_pred_params = pred.params; 
-				n_pred_definitions = n_definitions
+				n_pred_definitions = n_definitions; 
+				n_pred_is_rec = pred.is_recursive 
 			} in 
 			Hashtbl.replace n_pred_defs pred_name n_pred)
-			pred_defs; 		
+		new_pred_defs; 		
 	n_pred_defs
 	
 

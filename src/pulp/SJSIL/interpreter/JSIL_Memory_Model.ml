@@ -122,6 +122,7 @@ type n_jsil_logic_predicate = {
 	n_pred_num_params  : int;
 	n_pred_params      : jsil_logic_var list;
 	n_pred_definitions : symbolic_state list;
+	n_pred_is_rec      : bool
 }
 		
 type symb_jsil_program = {
