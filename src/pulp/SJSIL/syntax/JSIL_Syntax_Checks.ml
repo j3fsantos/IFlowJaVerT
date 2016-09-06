@@ -112,9 +112,9 @@ let replace_spec_keywords spec ret_var err_var =
 				  let subst_ret_err =
 					  (fun lexpr ->
 						  match lexpr with
-						  | PVar "ret" -> PVar ret_var
-						  | PVar "err" -> PVar err_var
-						  | _ -> lexpr)
+						  | PVar "ret" -> (PVar ret_var, false)
+						  | PVar "err" -> (PVar err_var, false)
+						  | _ -> (lexpr, true))
 					  in
 				  { pre = current_spec.pre;
 					  post = JSIL_Logic_Utils.assertion_map subst_ret_err current_spec.post;

@@ -34,25 +34,28 @@ let is_pvar_name (name : string) : bool =
 	(not ((is_abs_loc_name name) || (is_lvar_name name)))
 
 
-(** Apply function f to a logic expression, recursively when it makes sense. *)
+(** Apply function f to a logic expression, recursively when f returns (new_expr, true). *)
 let rec logic_expression_map f lexpr =
 	(* Apply the mapping *)
 	let map_e = logic_expression_map f in
-	let mapped_lexpr = f lexpr in
-	(* Map recursively to expressions *)
-	match mapped_lexpr with
-	| LLit _ | LNone | LVar _ | ALoc _ | PVar _ -> mapped_lexpr
-	| LBinOp (e1, op, e2) -> LBinOp (map_e e1, op, map_e e2)
-	| LUnOp (op, e)       -> LUnOp (op, map_e e)
-	| LEVRef (e1, e2)     -> LEVRef (map_e e1, map_e e2)
-	| LEORef (e1, e2)     -> LEORef (map_e e1, map_e e2)
-	| LBase e             -> LBase (map_e e)
-	| LField e            -> LField (map_e e)
-	| LTypeOf e           -> LTypeOf (map_e e)
-	| LEList le           -> LEList (List.map map_e le)
-	| LLstNth (e1, e2)    -> LLstNth (map_e e1, map_e e2)
-	| LStrNth (e1, e2)    -> LStrNth (map_e e1, map_e e2)
-	| LUnknown            -> LUnknown
+	let (mapped_lexpr, recurse) = f lexpr in
+	if not recurse then
+		mapped_lexpr
+	else
+  	(* Map recursively to expressions *)
+  	match mapped_lexpr with
+  	| LLit _ | LNone | LVar _ | ALoc _ | PVar _ -> mapped_lexpr
+  	| LBinOp (e1, op, e2) -> LBinOp (map_e e1, op, map_e e2)
+  	| LUnOp (op, e)       -> LUnOp (op, map_e e)
+  	| LEVRef (e1, e2)     -> LEVRef (map_e e1, map_e e2)
+  	| LEORef (e1, e2)     -> LEORef (map_e e1, map_e e2)
+  	| LBase e             -> LBase (map_e e)
+  	| LField e            -> LField (map_e e)
+  	| LTypeOf e           -> LTypeOf (map_e e)
+  	| LEList le           -> LEList (List.map map_e le)
+  	| LLstNth (e1, e2)    -> LLstNth (map_e e1, map_e e2)
+  	| LStrNth (e1, e2)    -> LStrNth (map_e e1, map_e e2)
+  	| LUnknown            -> LUnknown
 
 (** Apply function f to the logic expressions in an assertion, recursively when it makes sense. *)
 let rec assertion_map f asrt =

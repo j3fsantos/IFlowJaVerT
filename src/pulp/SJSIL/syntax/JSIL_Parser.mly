@@ -472,7 +472,7 @@ pred_param_target:
 (* None *)
 	| LNONE
 	  { LNone }
-(* Logic variable, but with the shape of a program variable *)
+(* Program variable *)
 	| v = VAR
 	  { PVar v }
 ;

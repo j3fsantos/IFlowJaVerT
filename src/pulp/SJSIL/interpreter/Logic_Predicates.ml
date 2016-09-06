@@ -5,7 +5,7 @@ exception Non_unifiable of string
 type normalised_predicate = {
 	name         : string;
 	num_params   : int;
-	params       : jsil_logic_var list;
+	params       : jsil_var list;
 	definitions  : jsil_logic_assertion list;
 	is_recursive : bool;
 }
@@ -25,7 +25,7 @@ let replace_head_literals (pred : jsil_logic_predicate) =
 			(* Check each parameter in reverse order! *)
 			match cur_param with
 			| LLit _ | LNone -> (* If the parameter is a JSIL literal or None... *)
-			  (* Get a fresh logical variable and add a constraint to each definition *)
+			  (* Get a fresh program variable and add a constraint to each definition *)
 				let new_pvar = JSIL_Logic_Utils.fresh_pvar () in
 				let new_assertions =
 					List.map
@@ -36,7 +36,7 @@ let replace_head_literals (pred : jsil_logic_predicate) =
 					params       = new_pvar :: norm_pred.params;
 					definitions  = new_assertions;
 					is_recursive = false }
-			| PVar var -> (* If the parameter is a logical variable, add the parameter as it is *)
+			| PVar var -> (* If the parameter is a program variable, add the parameter as it is *)
 				{ name         = norm_pred.name;
 				  num_params   = norm_pred.num_params;
 					params       = var :: norm_pred.params;
@@ -48,7 +48,7 @@ let replace_head_literals (pred : jsil_logic_predicate) =
 		pred.params
 		norm_empty_pred
 
-(* Given a list of logical expressions and a list of logical variables,
+(* Given a list of logical expressions and a list of program variables,
    returns a substitution for the elements of the second list.
 *)
 let unify_list_pvars l1 l2 =
@@ -65,17 +65,10 @@ let unify_list_pvars l1 l2 =
 (* Replaces the logic_expressions in asrt that have a substitute in the hashtable subst *)
 let apply_substitution subst asrt =
 	JSIL_Logic_Utils.assertion_map 
-	  (fun lexpr -> (* Replace the logic expression if it has a substitute *)
+	  (fun lexpr -> (* Replace the logic expression if it has a substitute, but do not recurse *)
 		  try
-				Printf.printf "Substitution: ";
-				Hashtbl.iter
-					(fun key value ->
-						Printf.printf "[%s, %s] " (JSIL_Print.string_of_logic_expression key false) (JSIL_Print.string_of_logic_expression value false)
-					) 
-				subst;
-				Printf.printf ": Expression %s\n" (JSIL_Print.string_of_logic_expression lexpr false);
-	      Hashtbl.find subst lexpr
-	    with Not_found -> Printf.printf "Not found: %s\n" (JSIL_Print.string_of_logic_expression lexpr false); lexpr)
+	      (Hashtbl.find subst lexpr, false)
+	    with Not_found -> (lexpr, true))
 	  asrt
 
 (* Join two normalised_predicate defining different cases of the same predicate in a single
@@ -207,15 +200,6 @@ let rec auto_unfold predicates asrt =
 				(* If it is not, unify the formal parameters with the actual parameters, *)
 				(* apply the substitution to each definition of the predicate, and recurse. *)
 				let subst = unify_list_pvars args pred.params in
-				
-				Printf.printf "Substitution: ";
-				Hashtbl.iter
-					(fun key value ->
-						Printf.printf "[%s, %s] " (JSIL_Print.string_of_logic_expression key false) (JSIL_Print.string_of_logic_expression value false)
-					) 
-					subst;
-				Printf.printf "\n";
-				
 				let new_asrts = List.map (apply_substitution subst) pred.definitions in
 				List.fold_left
 				  (fun list asrt -> list @ (au asrt))
