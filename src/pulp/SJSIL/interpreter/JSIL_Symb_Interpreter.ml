@@ -986,7 +986,6 @@ let symb_state_replace_preds symb_state new_preds =
 let get_proc_cmd proc i = 
 	proc.proc_body.(i)
 
-let copy_vis_tbl vis_tbl = Hashtbl.copy vis_tbl 
 
 
 let find_and_apply_spec prog proc_name proc_specs symb_state le_args = 
@@ -1177,11 +1176,11 @@ let rec symb_evaluate_logic_cmds s_prog (l_cmds : jsil_logic_command list) (symb
 		symb_evaluate_logic_cmds s_prog rest_l_cmds new_symb_states subst spec_vars
 
 
-let rec symb_evaluate_cmd s_prog proc spec vis_tbl symb_state i = 
+let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i = 
 	
 	(* auxiliary functions *)	
-	let mark_as_visited vis_tbl i = 
-		Hashtbl.replace vis_tbl i true in 
+	let mark_as_visited search_info i = 
+		Hashtbl.replace search_info.vis_tbl i true in 
 	
 	let print_symb_state_and_cmd () = 
 		let symb_state_str = JSIL_Memory_Print.string_of_shallow_symb_state symb_state in 
@@ -1204,21 +1203,22 @@ let rec symb_evaluate_cmd s_prog proc spec vis_tbl symb_state i =
 	
 		if (Entailment_Engine.check_entailment (get_pf_list symb_state) a_le_then (get_gamma symb_state)) then
 			(Printf.printf "in the THEN branch\n";
-			symb_evaluate_next_cmd s_prog proc spec vis_tbl symb_state i j)
+			symb_evaluate_next_cmd s_prog proc spec search_info symb_state i j)
 			else (if (Entailment_Engine.check_entailment (get_pf_list symb_state) a_le_else (get_gamma symb_state)) then
 					(Printf.printf "in the ELSE branch\n";
-					symb_evaluate_next_cmd s_prog proc spec vis_tbl symb_state i k)
+					symb_evaluate_next_cmd s_prog proc spec search_info symb_state i k)
 				else 
 					(* Printf.printf "I could not determine the branch bla bla \n"; *)
 					
-					let then_symb_state = symb_state in 
-					let then_vis_tbl = vis_tbl in 
+					let then_symb_state = symb_state in
+					let then_search_info = search_info in 
 					let else_symb_state = copy_symb_state symb_state in
-					let else_vis_tbl = copy_vis_tbl vis_tbl in 
+					let else_search_info = update_vis_tbl search_info (copy_vis_tbl search_info.vis_tbl) in
+					 
 					extend_symb_state_with_pfs then_symb_state a_le_then;
-					symb_evaluate_next_cmd s_prog proc spec then_vis_tbl then_symb_state i j; 
+					symb_evaluate_next_cmd s_prog proc spec then_search_info then_symb_state i j; 
 					extend_symb_state_with_pfs else_symb_state a_le_else; 
-					symb_evaluate_next_cmd s_prog proc spec else_vis_tbl else_symb_state i k) in  
+					symb_evaluate_next_cmd s_prog proc spec else_search_info else_symb_state i k) in  
 				
 				
 	(* symbolically evaluate a procedure call *) 
@@ -1249,25 +1249,25 @@ let rec symb_evaluate_cmd s_prog proc spec vis_tbl symb_state i =
 		List.iter 
 			(fun (symb_state, ret_flag, ret_le) ->
 				let ret_type, _ = JSIL_Logic_Normalise.normalised_is_typable (get_gamma symb_state) ret_le in
-				let new_vis_tbl = copy_vis_tbl vis_tbl in
 				update_abs_store (get_store symb_state) x ret_le; 
 				update_gamma (get_gamma symb_state) x ret_type;
+				let new_search_info = update_vis_tbl search_info (copy_vis_tbl search_info.vis_tbl) in 
 				(match ret_flag, j with 
-				| Normal, _ -> symb_evaluate_next_cmd s_prog proc spec new_vis_tbl symb_state i (i+1) 
+				| Normal, _ -> symb_evaluate_next_cmd s_prog proc spec new_search_info symb_state i (i+1) 
 				| Error, None -> raise (Failure (Printf.sprintf "Procedure %s may return an error, but no error label was provided." proc_name))
-				| Error, Some j -> symb_evaluate_next_cmd s_prog proc spec new_vis_tbl symb_state i j))
+				| Error, Some j -> symb_evaluate_next_cmd s_prog proc spec new_search_info symb_state i j))
 			new_symb_states in 
 	
 		
 	if (!verbose) then print_symb_state_and_cmd (); 			
 	let metadata, cmd = get_proc_cmd proc i in 
-	mark_as_visited vis_tbl i; 	
+	mark_as_visited search_info i; 	
 	match cmd with 
 	| SBasic bcmd -> 
 		let _ = symb_evaluate_bcmd bcmd symb_state in  
-		symb_evaluate_next_cmd s_prog proc spec vis_tbl symb_state i (i+1)
+		symb_evaluate_next_cmd s_prog proc spec search_info symb_state i (i+1)
 		 
-	| SGoto j -> symb_evaluate_next_cmd s_prog proc spec vis_tbl symb_state i j
+	| SGoto j -> symb_evaluate_next_cmd s_prog proc spec search_info symb_state i j
 	
 	| SGuardedGoto (e, j, k) -> symb_evaluate_guarded_goto e j k 
 		
@@ -1276,12 +1276,12 @@ let rec symb_evaluate_cmd s_prog proc spec vis_tbl symb_state i =
 	| _ -> raise (Failure "not implemented yet")
 
 
-and symb_evaluate_next_cmd s_prog proc spec vis_tbl symb_state cur next = 
+and symb_evaluate_next_cmd s_prog proc spec search_info symb_state cur next = 
 	
 	(* auxiliary function *) 
 	let is_visited i = 
 		(try 
-			let _ = Hashtbl.find vis_tbl i in 
+			let _ = Hashtbl.find search_info.vis_tbl i in 
 			true
 		with _ -> false) in 
 	
@@ -1321,8 +1321,8 @@ and symb_evaluate_next_cmd s_prog proc spec vis_tbl symb_state cur next =
 					let symb_states = symb_evaluate_logic_cmds s_prog metadata.logic_cmds [ symb_state ] spec.n_subst spec.n_lvars in 
 					List.iter 
 						(fun symb_state -> 
-							let new_vis_tbl = copy_vis_tbl vis_tbl in
-							symb_evaluate_cmd s_prog proc spec new_vis_tbl symb_state next) 
+							let new_search_info = update_vis_tbl search_info (copy_vis_tbl search_info.vis_tbl) in  
+							symb_evaluate_cmd s_prog proc spec search_info symb_state next) 
 						symb_states
 				end 
 		end) 
@@ -1331,12 +1331,12 @@ and symb_evaluate_next_cmd s_prog proc spec vis_tbl symb_state cur next =
 	
 
 let symb_evaluate_proc s_prog proc_name spec = 
-	let vis_tbl = Hashtbl.create 31 in 
+	let search_info = make_symb_exe_search_info () in  
 	let proc = get_proc s_prog.program proc_name in 
 	let sep_str = "---------------------------------------------------\n" in 
 
 	if (!verbose) then Printf.printf "%s" (sep_str ^ sep_str ^ sep_str ^ "Symbolic execution of " ^ proc_name ^ "\n"); 
-	symb_evaluate_next_cmd s_prog proc spec vis_tbl spec.n_pre (-1) 0;
+	symb_evaluate_next_cmd s_prog proc spec search_info spec.n_pre (-1) 0;
 	if (!verbose) then Printf.printf "%s" (sep_str ^ sep_str ^ sep_str) 
 
 
