@@ -599,3 +599,11 @@ let string_of_ext_prog_metadata ext_prog =
 				else acc_str ^ "\n" ^ (string_of_ext_proc_metadata ext_proc))
 		ext_prog
 		""
+
+let str_of_assertion_list a_list = 
+	List.fold_left 
+		(fun ac a -> 
+			let a_str = string_of_logic_assertion a false in 
+			if (ac = "") then a_str else (ac ^ ", " ^ a_str))
+			""
+			a_list 

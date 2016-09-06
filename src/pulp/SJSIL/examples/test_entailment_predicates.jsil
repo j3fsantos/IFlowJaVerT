@@ -68,7 +68,7 @@ proc test6 (x) {
 } with { ret: x, rlab; };
 
 
-(** Expected result: NO                             **)
+(** Expected result: YES                             **)
 spec test7 (x)
    [[ joe(#x) * alice(#y, #w) * types(#x: $$string_type, #y: $$string_type, #w: $$string_type) * (#x == #w) ]]
    [[ joe(#w) * alice(#y, #w) ]]

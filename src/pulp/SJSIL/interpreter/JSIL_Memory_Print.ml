@@ -85,13 +85,12 @@ let string_of_preds preds =
 
 let string_of_shallow_symb_state symb_state =
 	let heap, store, p_formulae, gamma, preds = symb_state in  
-	let str = "Symbolic State: \n" in 
-	let str_heap = "\t Heap: " ^ (string_of_shallow_symb_heap heap) ^ "\n" in 
-	let str_store = "\t Store: " ^ (string_of_shallow_symb_store store) ^ "\n" in 
-	let str_p_formulae = "\t Pure Formulae: " ^ (string_of_shallow_p_formulae p_formulae) ^ "\n" in 
-	let str_gamma = "\t Gamma: " ^ (string_of_gamma gamma) ^ "\n" in
-	let str_preds = "\t Preds: " ^ (string_of_preds preds) ^ "\n" in  
-	str ^ str_heap ^ str_store ^ str_p_formulae ^ str_gamma ^ str_preds 
+	let str_heap = "Heap: " ^ (string_of_shallow_symb_heap heap) ^ "\n" in 
+	let str_store = "Store: " ^ (string_of_shallow_symb_store store) ^ "\n" in 
+	let str_p_formulae = "Pure Formulae: " ^ (string_of_shallow_p_formulae p_formulae) ^ "\n" in 
+	let str_gamma = "Gamma: " ^ (string_of_gamma gamma) ^ "\n" in
+	let str_preds = "Preds: " ^ (string_of_preds preds) ^ "\n" in  
+	str_heap ^ str_store ^ str_p_formulae ^ str_gamma ^ str_preds
 
 let string_of_single_spec s_spec = 
 	let ret_flag = s_spec.n_ret_flag in 
@@ -137,9 +136,20 @@ let string_of_store store =
 		(fun (var : string) (v_val : jsil_lit) (ac : string) ->
 			let v_val_str = string_of_literal v_val true in 
 			let var_val_str = var ^ ": " ^ v_val_str  in 
-			if (ac != "") then var_val_str else ac ^ "; " ^ var_val_str)
+			if (ac = "") then var_val_str else ac ^ "; " ^ var_val_str)
 		store
 		"Store: "
+
+let string_of_substitution substitution = 
+	let str = 
+		(Hashtbl.fold 
+			(fun (var : string) (le : jsil_logic_expr) (ac : string) ->
+				let le_str = string_of_logic_expression le false in 
+				let var_le_str = var ^ ": " ^ le_str  in 
+				if (ac = "") then var_le_str else ac ^ "; " ^ var_le_str)
+			substitution
+			"") in 
+	"Substitution: " ^ str ^ "\n"
 
 
 let string_of_symb_exe_result result = 

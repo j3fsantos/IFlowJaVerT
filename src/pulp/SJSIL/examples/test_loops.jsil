@@ -1,0 +1,22 @@
+(** Expected result: YES                             **)
+spec test0 (x)
+   [[ types(x: $$int_type) ]]
+   [[ types(x: $$int_type) * (x <=# 10) ]]
+   normal
+proc test0 (x) {
+		   skip;
+   [[ types(x: $$int_type) ]]
+   head:   goto [(not (x <= 10))] then rlab; 
+   then:   x := x - 1; 
+  		   goto head;
+   rlab:   skip
+
+} with { ret: x, rlab; };
+
+ 
+  
+
+
+
+
+

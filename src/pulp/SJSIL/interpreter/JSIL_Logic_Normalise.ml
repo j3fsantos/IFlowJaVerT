@@ -409,6 +409,7 @@ let init_pure_assignments a store gamma subst =
 
 let rec normalised_is_typable gamma nlexpr =
 	let f = normalised_is_typable gamma in
+	(* Printf.printf "nlexpr: %s\n\n\n" (JSIL_Print.string_of_logic_expression nlexpr false); *)
 	(match nlexpr with
 	(* Literals are always typable *)
   | LLit lit -> (Some (JSIL_Interpreter.evaluate_type_of lit), true)
@@ -516,6 +517,7 @@ let rec normalised_is_typable gamma nlexpr =
   | LUnOp (unop, e) ->
 		let (te, ite) = f e in
 		let tt t1 t2 = (if (te = Some t1) then (Some t2, true) else (None, false)) in
+		(* Printf.printf "UNOP\n\n\n"; *)
 		if (ite) then
   		(match unop with
   		| Not -> tt BooleanType BooleanType
@@ -548,6 +550,45 @@ let rec normalised_is_typable gamma nlexpr =
 			| StrLen -> (None, false)) (* CHECK *)
 		else
 			(None, false)
+	
+	| LBinOp (e1, op, e2) -> 
+		let all_types = [ UndefinedType; NullType; EmptyType; BooleanType; IntType; NumberType; StringType; ObjectType; ReferenceType; ObjectReferenceType; VariableReferenceType; ListType; TypeType ] in 
+		let (te1, ite1) = f e1 in
+		let (te2, ite2) = f e2 in
+		let check_valid_type t types ret_type = 
+			let is_t_in_types = List.exists (fun t_arg -> (t = t_arg)) types in 
+			if (is_t_in_types) then (Some ret_type, true) else (None, false) in 
+		(match te1, te2 with 
+		| (Some t1), (Some t2) ->
+			let t = types_lub t1 t2 in 
+			(*(match t with 
+			| Some t -> Printf.printf  "I am typing a binop on values of type %s\n" (JSIL_Print.string_of_type t)
+			| None -> Printf.printf "I am typing a binop on values of types that cannot be combined");*)
+			(match op, t with 
+			| Equal, (Some t) -> check_valid_type t all_types BooleanType
+			| LessThan, (Some t) 
+			| LessThanEqual, (Some t) -> check_valid_type t [ IntType; NumberType ] BooleanType
+			| LessThanString, (Some t) -> check_valid_type t [ StringType ] BooleanType
+			| Plus, (Some t) 
+			| Minus, (Some t)
+			| Times, (Some t)
+			| Mod, (Some t) -> check_valid_type t [ IntType; NumberType ] t
+			| Div, (Some t) -> check_valid_type t [ IntType; NumberType ] NumberType
+			| And, (Some t) 
+			| Or, (Some t) -> check_valid_type t [ BooleanType ] BooleanType
+			| BitwiseAnd, (Some t) 
+			| BitwiseOr, (Some t)
+			| BitwiseXor, (Some t) 
+			| LeftShift, (Some t)
+			| SignedRightShift, (Some t) 
+			| UnsignedRightShift, (Some t)
+			| M_atan2, (Some t) -> check_valid_type t [ IntType; NumberType ] NumberType
+			| M_pow, (Some t) -> check_valid_type t [ IntType; NumberType ] t
+			| Subtype, (Some t) -> check_valid_type t all_types BooleanType
+			| LstCons, _ -> check_valid_type t2 [ ListType ] ListType
+			| LstCat, (Some t) -> check_valid_type t [ ListType ] ListType
+			| StrCat, (Some t) -> check_valid_type t [ ListType ] ListType)
+		| _, _ -> (None, false))
 
 	| LLstNth (_, _) 
 	| LStrNth (_, _) -> (None, false)
@@ -620,8 +661,20 @@ let rec init_gamma gamma a =
 			List.iter 
 				(fun (v, t) -> 
 					match v with
-					| LVar v 
+					| LVar v -> Hashtbl.replace gamma v t
 					| PVar v -> Hashtbl.replace gamma v t
+							(* let new_v, new_v_name = 
+								(match t with 
+								| ObjectType -> 
+									let new_v_name = fresh_aloc () in 
+									ALoc (new_v_name), new_v_name 
+								| _ ->
+									let new_v_name = fresh_lvar () in 
+									LVar (new_v_name), new_v_name) in 
+							Hashtbl.replace store v new_v; 
+							Hashtbl.replace subst v new_v; 
+							Hashtbl.replace gamma v t;
+							Hashtbl.replace gamma new_v_name t *)
 					| _ -> raise (Failure ("Only vars or lvars in the typing environment, for the love of God.")))
 				type_list
 		| LStar	(al, ar) -> f al; f ar
@@ -643,15 +696,28 @@ let init_preds a store gamma subst =
 	preds
 
 
+let fill_store_with_gamma store gamma subst =
+	Hashtbl.iter 
+		(fun var t -> 
+			if ((is_pvar_name var) && (not (Hashtbl.mem store var)))
+			then
+				let new_l_var = new_lvar_name var in 
+				Hashtbl.add gamma new_l_var t; 
+				Hashtbl.add store var (LVar new_l_var); 
+				Hashtbl.add subst var (LVar new_l_var))
+	gamma 
+
+
 let normalise_assertion a = 
-	let heap = LHeap.create 1021 in 
-	let store = Hashtbl.create 1021 in 
-	let gamma = Hashtbl.create 1021 in 
-	let subst = Hashtbl.create 1021 in 
+	let heap = LHeap.create 101 in 
+	let store = Hashtbl.create 101 in 
+	let gamma = Hashtbl.create 101 in 
+	let subst = Hashtbl.create 101 in 
 	
 	init_gamma gamma a;
 	init_symb_store_alocs store gamma subst a;
 	let p_formulae = init_pure_assignments a store gamma subst in 
+	fill_store_with_gamma store gamma subst;
 	compute_symb_heap heap store p_formulae gamma subst a; 
 	let preds = init_preds a store gamma subst in 
 	(heap, store, p_formulae, gamma, preds), subst
@@ -659,10 +725,12 @@ let normalise_assertion a =
 	
 let normalise_precondition a = 
 	let lvars = get_ass_vars_lst a false in 	
+	(* let lvars_str = List.fold_left (fun ac var -> (ac ^ var ^ ", ")) "" lvars in 
+	Printf.printf "LVARS BABY %s\n\n\n" lvars_str; *)
 	let symb_state, subst = normalise_assertion a in 
 	let new_subst = filter_substitution subst lvars in 
+	(* Printf.printf "SUBSTITUTION BABY: %s\n\n" (JSIL_Memory_Print.string_of_substitution new_subst); *)
 	symb_state, (lvars, new_subst)
-
 
 let normalise_postcondition a subst = 
 	let a = assertion_substitution a subst false in 	
@@ -677,7 +745,8 @@ let normalise_single_spec spec =
 		n_pre = pre_symb_state; 
 		n_post = post_symb_state; 
 		n_ret_flag = spec.ret_flag; 
-		n_lvars = lvars
+		n_lvars = lvars; 
+		n_subst = subst
 	}
 
 
@@ -702,4 +771,60 @@ let build_spec_tbl prog =
 		prog; 
 	Printf.printf "Spec Table:\n%s" (JSIL_Memory_Print.string_of_n_spec_table spec_tbl);		
 	spec_tbl		
+	
+					
+let init_store vars les = 
+	let store = Hashtbl.create 31 in 
+	
+	let rec loop vars les = 
+		match vars, les with 
+		| [], _ -> () 
+		| var :: rest_vars, le :: rest_les -> 
+			Hashtbl.replace store var le; loop rest_vars rest_les 
+		| var :: rest_vars, [] -> 
+			Hashtbl.replace store var (LLit Undefined); loop rest_vars [] in 
+	
+	loop vars les; 
+	store
+	
+				
+			
+let normalise_predicate_definitions pred_defs : (string, JSIL_Memory_Model.n_jsil_logic_predicate) Hashtbl.t = 
+	let n_pred_defs = Hashtbl.create 31 in 
+	Hashtbl.iter 
+		(fun pred_name pred -> 
+			let n_definitions = 
+				List.map 
+					(fun a -> 
+						let symb_state, _ = normalise_assertion a in 
+						symb_state)
+					pred.definitions in 		 
+			let n_pred = {
+				n_pred_name = pred.name; 
+				n_pred_num_params = pred.num_params; 
+				n_pred_params = pred.params; 
+				n_pred_definitions = n_definitions
+			} in 
+			Hashtbl.replace n_pred_defs pred_name n_pred)
+			pred_defs; 		
+	n_pred_defs
+	
+
+let store_substitution store gamma subst partial = 
+	let vars, les = 
+		Hashtbl.fold
+			(fun pvar le (vars, les) -> 
+				let s_le = lexpr_substitution le subst partial in 
+				let s_le_type, is_typable = normalised_is_typable gamma s_le in 
+				(match s_le_type with 
+				| Some s_le_type -> 
+					(* Printf.printf "I am adding the type of %s to the store with type %s\n" pvar (JSIL_Print.string_of_type s_le_type); *)
+					Hashtbl.replace gamma pvar s_le_type
+				|	None -> ()); 
+				(pvar :: vars), (s_le :: les))
+			store 
+			([], []) in
+	let store = init_store vars les in 
+	store 
+
 			

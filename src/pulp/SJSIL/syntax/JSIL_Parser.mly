@@ -456,11 +456,11 @@ pred_target:
 
 logic_cmd_target:
 (* [* fold(x) *] *)
-	| OLCMD; FOLD; LBRACE; pred_name = VAR; RBRACE; CLCMD
-	  { Fold (pred_name) }
+	| OLCMD; FOLD; LBRACE; assertion = assertion_target; RBRACE; CLCMD
+	  { Fold (assertion) }
 (* [* unfold(x) *] *)
-	| OLCMD; UNFOLD; LBRACE; pred_name = VAR; RBRACE; CLCMD
-	  { Unfold (pred_name) }
+	| OLCMD; UNFOLD; LBRACE; assertion = assertion_target; RBRACE; CLCMD
+	  { Unfold (assertion) }
 ;
 
 spec_target:

@@ -234,8 +234,8 @@ type jsil_spec = {
 
 (* JSIL logic commands *)
 type jsil_logic_command =
-	| Fold   of string
-	| Unfold of string
+	| Fold   of jsil_logic_assertion
+	| Unfold of jsil_logic_assertion
 
 (* JSIL command metadata *)
 type jsil_metadata = {
@@ -293,3 +293,41 @@ type jsil_ext_program = {
 	(* JSIL extended procedures = Name : String --> Procedure *)
 	procedures : (string, jsil_ext_procedure) Hashtbl.t;
 }
+
+
+
+(** Basic functions **) 
+
+let types_lub t1 t2 = 
+	match t1, t2 with 
+	| UndefinedType, UndefinedType -> Some UndefinedType
+	| NullType, NullType -> Some NullType
+	| EmptyType, EmptyType -> Some EmptyType
+	| NoneType, NoneType -> Some NoneType
+	| BooleanType, BooleanType -> Some BooleanType
+	| IntType, IntType -> Some IntType
+	| IntType, NumberType -> Some NumberType
+	| NumberType, NumberType -> Some NumberType
+	| NumberType, IntType -> Some NumberType
+	| StringType, StringType -> Some StringType
+	| ObjectType, ObjectType -> Some ObjectType
+	| ReferenceType, ReferenceType -> Some ReferenceType
+	| ReferenceType, ObjectReferenceType -> Some ReferenceType
+	| ReferenceType, VariableReferenceType -> Some ReferenceType
+	| ObjectReferenceType, ReferenceType -> Some ReferenceType
+	| ObjectReferenceType, ObjectReferenceType -> Some ObjectReferenceType
+	| ObjectReferenceType, VariableReferenceType -> Some ReferenceType
+	| VariableReferenceType, ReferenceType -> Some ReferenceType
+	| VariableReferenceType, ObjectReferenceType -> Some ReferenceType
+	| VariableReferenceType, VariableReferenceType -> Some VariableReferenceType
+	| ListType, ListType -> Some ListType
+	| TypeType, TypeType -> Some TypeType
+	| _, _ -> None
+
+let types_leq t1 t2 = 
+	let t = types_lub t1 t2 in 
+	match t with 
+	| Some t -> (t = t2)
+	| None -> false
+
+

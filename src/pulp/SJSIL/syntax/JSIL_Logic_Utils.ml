@@ -19,6 +19,21 @@ let lvar_prefix = "_lvar_"
 let fresh_aloc = fresh_sth abs_loc_prefix 
 let fresh_lvar = fresh_sth lvar_prefix 
 
+let is_abs_loc_name (name : string) : bool = 
+	if ((String.length name) < 4)
+		then false
+		else ((String.sub name 0 4) = abs_loc_prefix)
+
+let is_lvar_name (name : string) : bool = 
+	if ((String.length name) < 6)
+		then false
+		else ((String.sub name 0 6) = lvar_prefix)
+
+let is_pvar_name (name : string) : bool = 
+	(not ((is_abs_loc_name name) || (is_lvar_name name)))
+
+
+
 (**
   var_set is a hashtbl (what else?) that models the set of variables  
 *)
@@ -190,8 +205,8 @@ let normalize_pure_assertion a =
 	remove_falses a
 	
 
-let rec lexpr_substitution lexpr subst normalize = 
-	let f e = lexpr_substitution e subst normalize in 
+let rec lexpr_substitution lexpr subst partial = 
+	let f e = lexpr_substitution e subst partial in 
 	match lexpr with 
 	| LLit lit -> LLit lit 
 	
@@ -199,19 +214,24 @@ let rec lexpr_substitution lexpr subst normalize =
 	
 	| LVar var -> 
 			(try Hashtbl.find subst var with _ -> 
-				if (normalize) 
+				if (not partial) 
 					then 
 						let new_var = fresh_lvar () in 
 						Hashtbl.replace subst var (LVar new_var);
 						LVar new_var
 					else (LVar var))
 	
-	| ALoc aloc -> (try Hashtbl.find subst aloc with _ -> ALoc (fresh_aloc ())) 
+	| ALoc aloc -> 
+			(try Hashtbl.find subst aloc with _ -> 
+				if (not partial) 
+					then
+						let new_aloc = ALoc (fresh_aloc ()) in 
+						Hashtbl.replace subst aloc new_aloc; 
+						new_aloc
+					else 
+						ALoc aloc) 
 								
-	| PVar var -> 
-			if (normalize) 
-				then raise (Failure "Illegal program variable in logical expression. lexpr_substitution requires its argument to be normalized.")
-				else (PVar var) 
+	| PVar var -> (PVar var) 
 				
 	| LBinOp (le1, op, le2) -> LBinOp ((f le1), op, (f le2)) 
 	
@@ -238,9 +258,9 @@ let rec lexpr_substitution lexpr subst normalize =
 	| LUnknown -> LUnknown 
 
 
-let rec assertion_substitution a subst normalize = 
-	let fa a = assertion_substitution a subst normalize in 
-	let fe e = lexpr_substitution e subst normalize in 
+let rec assertion_substitution a subst partial = 
+	let fa a = assertion_substitution a subst partial in 
+	let fe e = lexpr_substitution e subst partial in 
 	match a with 
 	| LAnd (a1, a2) -> LAnd ((fa a1), (fa a2)) 
 	| LOr (a1, a2) -> LOr ((fa a1), (fa a2)) 
@@ -280,7 +300,21 @@ let init_substitution vars =
 		(fun var -> Hashtbl.replace new_subst var (LVar var))
 		vars; 
 	new_subst
+					
+let init_substitution2 vars les = 
+	let subst = Hashtbl.create 1021 in 
+	
+	let rec loop vars les = 
+		match vars, les with 
+		| [], _ 
+		| _, [] -> () 
+		| var :: rest_vars, le :: rest_les -> 
+			Hashtbl.replace subst var le; loop rest_vars rest_les in
+	
+	loop vars les; 
+	subst
 
 
-
-
+let extend_subst subst var v = 
+	Hashtbl.replace subst var v
+				

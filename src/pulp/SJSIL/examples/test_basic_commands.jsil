@@ -116,7 +116,7 @@ proc test7 (x, y) {
 (** Expected result: NO                          **)
 spec test8 (x, y)
    [[ ((x, "@proto") -> $$null) * ((x, y) -> "maria") * types(x: $$object_type, y: $$string_type) ]]
-   [[ ((x, "@proto") -> $$null) * ((x, y) -> #z) * (z == "maria") ]]
+   [[ ((x, "@proto") -> $$null) * ((x, y) -> #z) * (z == "maria") * (! (#z == None)) ]]
    normal
 proc test8 (x, y) {
 		   z := [x, y];
