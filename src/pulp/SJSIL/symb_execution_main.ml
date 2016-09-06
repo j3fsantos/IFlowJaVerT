@@ -1,8 +1,3 @@
-open JSIL_Syntax
-open JSIL_Memory_Model
-open JSIL_Logic_Normalise
-open JSIL_Symb_Interpreter
-
 let file = ref ""
 
 let arguments () =
@@ -24,8 +19,8 @@ let burn_to_disk path data =
 let process_file path = 
 	let ext_prog = JSIL_Utils.ext_program_of_path path in 
 	let prog, which_pred = JSIL_Utils.prog_of_ext_prog path ext_prog in 
-	let spec_tbl = build_spec_tbl prog in 
-	let results = sym_run_procs spec_tbl prog which_pred ext_prog.predicates in 
+	let spec_tbl = JSIL_Logic_Normalise.build_spec_tbl prog in 
+	let results = JSIL_Symb_Interpreter.sym_run_procs spec_tbl prog which_pred ext_prog.predicates in 
 	Printf.printf "RESULTS\n%s" results;
 	exit 0
 

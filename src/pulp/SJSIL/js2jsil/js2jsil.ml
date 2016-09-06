@@ -239,16 +239,6 @@ let make_translation_ctx fid =
 	tr_error_var = "xerr"; (* ^ fid *)
 }
 
-let parse str =
-  let lexbuf = Lexing.from_string str in
-  try JSIL_Parser.cmd_list_top_target JSIL_Lexer.read lexbuf with
-  | JSIL_Lexer.SyntaxError msg ->
-    Printf.fprintf stderr "%a: %s\n" print_position lexbuf msg;
-		[]
-  | JSIL_Parser.Error ->
-    Printf.fprintf stderr "%a: syntax error\n" print_position lexbuf;
-    exit (-1)
-
 let add_initial_label cmds lab metadata = 
 	(match cmds with 
 	| [] -> [ (metadata, Some lab, SLBasic SSkip) ]
