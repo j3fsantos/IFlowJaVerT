@@ -25,9 +25,8 @@ let is_abs_loc_name (name : string) : bool =
 		else ((String.sub name 0 4) = abs_loc_prefix)
 
 let is_lvar_name (name : string) : bool = 
-	if ((String.length name) < 6)
-		then false
-		else ((String.sub name 0 6) = lvar_prefix)
+	((String.sub name 0 1) = "#") || (((String.length name) > 6) && ((String.sub name 0 6) = lvar_prefix))
+	 
 
 let is_pvar_name (name : string) : bool = 
 	(not ((is_abs_loc_name name) || (is_lvar_name name)))
