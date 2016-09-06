@@ -15,9 +15,11 @@ let fresh_sth (name : string) : (unit -> string) =
 
 let abs_loc_prefix = "_$l_"
 let lvar_prefix = "_lvar_"
+let pvar_prefix = "_pvar_"
 
 let fresh_aloc = fresh_sth abs_loc_prefix 
 let fresh_lvar = fresh_sth lvar_prefix 
+let fresh_pvar = fresh_sth pvar_prefix 
 
 let is_abs_loc_name (name : string) : bool = 
 	if ((String.length name) < 4)
@@ -32,7 +34,7 @@ let is_pvar_name (name : string) : bool =
 	(not ((is_abs_loc_name name) || (is_lvar_name name)))
 
 
-(** Apply function f to a logic expression, recusively when it makes sense. *)
+(** Apply function f to a logic expression, recursively when it makes sense. *)
 let rec logic_expression_map f lexpr =
 	(* Apply the mapping *)
 	let map_e = logic_expression_map f in
@@ -52,7 +54,7 @@ let rec logic_expression_map f lexpr =
 	| LStrNth (e1, e2)    -> LStrNth (map_e e1, map_e e2)
 	| LUnknown            -> LUnknown
 
-(** Apply function f to the logic expressions in an assertion, recusively when it makes sense. *)
+(** Apply function f to the logic expressions in an assertion, recursively when it makes sense. *)
 let rec assertion_map f asrt =
 	(* Map recursively to assertions and expressions *)
 	let map_a = assertion_map f in

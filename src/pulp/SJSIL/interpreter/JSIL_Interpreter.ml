@@ -713,7 +713,75 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 
 		| _ -> Hashtbl.replace store x str_e;
 					 evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl)
-	
+
+	| SCall (x, e, e_args, j)
+	  when evaluate_expr e store = String "Function_construct" ->
+			
+			Printf.printf "Function constructor encountered.\n";
+			
+			let argCount = (List.length e_args - 2) in
+			let params = ref "" in
+			let body = ref "" in
+			if (argCount = 0) then () else 
+			begin
+				if (argCount = 1) then 
+				let bd = List.nth e_args 2 in
+					let ebd = evaluate_expr bd store in
+					(match ebd with
+					   | String bd -> body := bd
+					   | _ -> raise (Failure "Non-string body in the Function constructor"));
+				else
+			  	let firstArg = List.nth e_args 2 in
+					let evalFirstArg = evaluate_expr firstArg store in
+					(match evalFirstArg with
+					 | String efa -> params := efa
+					 | _ -> raise (Failure "Non-string parameter in the Function constructor"));
+					for i = 3 to argCount do
+						let arg = List.nth e_args i in
+						let evalArg = evaluate_expr arg store in
+						(match evalArg with
+					   | String efa -> params := !params ^ ", " ^ efa
+					   | _ -> raise (Failure "Non-string parameter in the Function constructor"));
+					done;
+					let bd = List.nth e_args (argCount + 1) in
+					let ebd = evaluate_expr bd store in
+					(match ebd with
+					   | String bd -> body := bd
+					   | _ -> raise (Failure "Non-string body in the Function constructor"));
+			end;
+
+			Printf.printf "\tParameters: %s\n" !params;
+			Printf.printf "\tBody: %s\n\n" !body;
+ 
+			(* Parsing the parameters as a FormalParametersList *)
+			let lexbuf = Lexing.from_string !params in
+			let parsed_params = 
+				(try (JSIL_Utils.parse_without_error JSIL_Parser.param_list_FC_target lexbuf) with 
+				  | _ -> raise (Failure "Oops!") (* THROW JSIL SYNTAX ERROR MAGICALLY *)) in 
+			let len = List.length parsed_params in
+			
+			Printf.printf "\tParsed parameters: ";
+			for i = 0 to (len - 1) do
+				let elem = List.nth parsed_params i in
+				Printf.printf "%s " elem;
+			done;
+			Printf.printf "\n";
+			
+			(* Parsing the body as a FunctionBody *)
+			
+			
+			(* DIE HORRIBLY *)
+			raise (Failure "I've had enough!");
+			(Normal, Empty)
+			
+			
+			
+			
+			
+			
+			
+			
+			
 	| SCall (x, e, e_args, j) -> 
 		(* Printf.printf "Nothing was intercepted!!!\n"; *)
 		let call_proc_name_val = evaluate_expr e store in 

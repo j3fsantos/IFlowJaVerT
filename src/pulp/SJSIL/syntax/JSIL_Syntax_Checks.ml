@@ -28,7 +28,7 @@ let enter_procedure () =
 	allow_any_predicate := false
 (* Entering predicate: those predicate parameters which are variables allowed, any predicate allowed *)
 let enter_predicate params =
-	let str_params = List.map (fun lexpr -> match lexpr with LVar var -> var | _ -> "") params in
+	let str_params = List.map (fun lexpr -> match lexpr with PVar var -> var | _ -> "") params in
 	allowed_pvars := Some (List.filter (fun str -> str <> "") str_params);
 	allow_any_predicate := true
 (* Entering specs: procedure parameters, "ret" and "err" allowed, predicate check enforced *)

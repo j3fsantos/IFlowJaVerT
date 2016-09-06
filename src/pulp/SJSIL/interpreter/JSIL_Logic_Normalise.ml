@@ -750,6 +750,12 @@ let normalise_single_spec preds spec =
 	  | [] -> print_string "Warning: Postcondition lost after auto-unfolding!\n"; LFalse
 	  | hd :: [] -> hd
 	  | hd :: tl -> print_string "Warning: Too many auto-unfoldings, won't do!\n"; spec.post) in
+
+	Printf.printf "Precondition  : %s\n" (JSIL_Print.string_of_logic_assertion spec.pre      false);
+	Printf.printf "Postcondition : %s\n" (JSIL_Print.string_of_logic_assertion spec.post     false);
+	Printf.printf "UPrecondition : %s\n" (JSIL_Print.string_of_logic_assertion unfolded_pre  false);
+	Printf.printf "UPostcondition: %s\n" (JSIL_Print.string_of_logic_assertion unfolded_post false);
+
 	let pre_symb_state, (lvars, subst) = normalise_precondition unfolded_pre in 
 	let post_symb_state = normalise_postcondition unfolded_post subst in 
 	{	
