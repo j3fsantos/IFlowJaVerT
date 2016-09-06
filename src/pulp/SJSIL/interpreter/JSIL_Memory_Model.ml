@@ -133,6 +133,23 @@ type symb_jsil_program = {
 }
 
 
+type symbolic_execution_search_info = {
+	vis_tbl    : (int, bool) Hashtbl.t 
+} 
+
+
+let make_symb_exe_search_info () = 
+	{
+		vis_tbl = (Hashtbl.create 31)
+	}
+
+let copy_vis_tbl vis_tbl = Hashtbl.copy vis_tbl 
+
+let update_vis_tbl search_info vis_tbl = 
+	{
+		vis_tbl = vis_tbl
+	}
+
 let update_gamma (gamma : typing_environment) x te = 
 	(match te with 
 	| None -> Hashtbl.remove gamma x
