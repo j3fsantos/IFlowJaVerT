@@ -703,7 +703,7 @@ let check_entailment_pf pf pat_pf gamma subst =
 			(fun a -> assertion_substitution a subst true) 
 			(pfs_to_list pat_pf)) in 
 			
-	(* Printf.printf "About to check if (%s) entails (%s)\n" (str_of_assertion_list pf_list) (str_of_assertion_list pat_pf_list); *)
+	Printf.printf "About to check if (%s) entails (%s)\n" (JSIL_Print.str_of_assertion_list pf_list) (JSIL_Print.str_of_assertion_list pat_pf_list); 
 	Entailment_Engine.check_entailment pf_list pat_pf_list gamma
 
 let is_symb_heap_empty heap = 
