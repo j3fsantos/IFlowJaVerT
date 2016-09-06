@@ -314,6 +314,21 @@ let init_substitution2 vars les =
 	loop vars les; 
 	subst
 
+		
+(**
+ subst1 after subst2    
+**)
+let compose_partial_substitutions subst1 subst2 = 
+	let subst = Hashtbl.create 1021 in 
+	Hashtbl.iter 
+		(fun var le -> 
+			let n_le = lexpr_substitution le subst1 true in 
+			Hashtbl.add subst var n_le)
+		subst2; 
+	subst
+
+
+let copy_substitution subst = Hashtbl.copy subst
 
 let extend_subst subst var v = 
 	Hashtbl.replace subst var v
