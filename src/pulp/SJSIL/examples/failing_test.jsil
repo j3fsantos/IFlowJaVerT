@@ -1,16 +1,26 @@
-pred p1 ("hello", x) : x == "hi",
-                       false;
+pred ObjectProp (l, prop, v) :
+	types(l : $$object_type, prop : $$string_type) * ((l, prop) -> v);
 
-spec xpto (x)
-   [[ ((x - 3) <=# 0) * types(x: $$int_type) ]]
-   [[ p1("hello", "hi") ]]
-   normal
-proc xpto (x) {
-			skip;
-			[* fold p1("hello", "hi") *]
-	rlab:   skip
+spec o__getOwnProperty (l, prop)
+	[[ ObjectProp (l, prop, None) ]]
+	[[ ObjectProp (l, prop, None) * ret == $$undefined ]]
+	normal;
+	
+	[[ ObjectProp (l, prop, #d) * (!(#d == None)) ]]
+	[[ ObjectProp (l, prop, #d) * (!(#d == None)) * types(#d : $$list_type) * ret == #d ]]
+	normal
+proc o__getOwnProperty (l, prop) {
+            x := hasField(l, prop);		
+            goto [x] hp nhp; 			(* Does the field exist? *)
+            
+    nhp:    xret := $$undefined;		(* Field doesn't exist; return undefined *)
+            goto rlab;					
+            
+    hp:     xret := [l, prop];			(* Field exists; return the descriptor *)
+    
+    rlab:   skip
 }
 with
 {
-	ret: 	x, rlab;
+    ret: 	xret, rlab;
 };

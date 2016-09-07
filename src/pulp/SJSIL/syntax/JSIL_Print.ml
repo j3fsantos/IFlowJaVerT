@@ -284,22 +284,10 @@ let rec string_of_predicate predicate =
 		predicate.definitions
 
 (** JSIL All Statements *)
-let rec string_of_cmd sjsil_cmd tabs i line_numbers_on specs_on escape_string =
+let string_of_cmd_aux sjsil_cmd i line_numbers_on escape_string str_tabs = 
 	let se = fun e -> string_of_expression e escape_string in
 	let str_i = if line_numbers_on then (string_of_int i) ^ ". " else "" in
-	let str_tabs = tabs_to_str tabs in
-	
-	let metadata, sjsil_cmd = sjsil_cmd in
-	let ass = metadata.pre_cond in
-	let str_ass =
-		if (specs_on)
-		then
-		  (match ass with
-		  | None -> ""
-		  | Some ass -> str_tabs ^ "[[" ^ string_of_logic_assertion ass escape_string ^ "]]\n")
-		else "" in
-	str_ass ^ 
-  (match sjsil_cmd with
+ 	match sjsil_cmd with
 	(* Basic command *)
 	| SBasic bcmd ->
 		str_tabs ^ (string_of_bcmd bcmd i line_numbers_on escape_string)
@@ -352,7 +340,27 @@ let rec string_of_cmd sjsil_cmd tabs i line_numbers_on specs_on escape_string =
 						then loop 1 var_arr_i_str
 						else  loop (i + 1) (str_ac ^ ", " ^ var_arr_i_str)) in 
 		let var_arr_str = loop 0 "" in 
-		Printf.sprintf "%s%s := PSI(%s)" str_i var var_arr_str)
+		Printf.sprintf "%s%s := PSI(%s)" str_i var var_arr_str
+
+
+(** JSIL All Statements *)
+let rec string_of_cmd sjsil_cmd tabs i line_numbers_on specs_on escape_string =
+	let str_tabs = tabs_to_str tabs in
+	
+	let metadata, sjsil_cmd = sjsil_cmd in
+	let ass = metadata.pre_cond in
+	let str_ass =
+		if (specs_on)
+		then
+		  (match ass with
+		  | None -> ""
+		  | Some ass -> str_tabs ^ "[[" ^ string_of_logic_assertion ass escape_string ^ "]]\n")
+		else "" in
+	str_ass ^ 
+  (string_of_cmd_aux sjsil_cmd i line_numbers_on escape_string str_tabs)
+
+
+
 
 let serialize_cmd_arr cmds tabs line_numbers serialize_cmd =
 	let number_of_cmds = Array.length cmds in 
@@ -609,4 +617,11 @@ let str_of_assertion_list a_list =
 			let a_str = string_of_logic_assertion a false in 
 			if (ac = "") then a_str else (ac ^ ", " ^ a_str))
 			""
-			a_list 
+			a_list
+
+
+let string_of_logic_command lcmd escape_string = 
+	match lcmd with 
+	| Fold a    -> "fold(" ^ (string_of_logic_assertion a escape_string) ^ ")"
+	| Unfold a  -> "unfold(" ^ (string_of_logic_assertion a escape_string) ^ ")"
+ 
