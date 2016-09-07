@@ -1142,12 +1142,13 @@ let symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 		(match a with 
 		| LPred	(pred_name, les) -> 
 			let params, pred_defs, args = get_pred_data pred_name les in
-			let symb_state = fold_predicate pred_name pred_defs symb_state params args in 
-			(match symb_state with 
+			let new_symb_state = fold_predicate pred_name pred_defs symb_state params args in 
+			(match new_symb_state with 
 			| Some symb_state -> 
 				(* Printf.printf "\n\nFOLDED SUCCESSFULLY!!!!\n\n\n"; *)
 				[ symb_state ]
 			| None -> 
+				Printf.printf "\nSTATE ON ERROR: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state);
 				let msg = Printf.sprintf "Could not fold: %s " (JSIL_Print.string_of_logic_assertion a false) in 
 				raise (Failure msg))
 		| _ -> 
