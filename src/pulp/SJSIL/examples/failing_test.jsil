@@ -1,12 +1,16 @@
-(* FROM test_basic_commands.jsil *)
+pred p1 ("hello", x) : x == "hi",
+                       false;
 
-(** Tested feature: property check 1                 **)
-(** Expected result: YES                             **)
-spec test3 (x)
-   [[ ((x, "cenoura") -> #y) * ((x, "@proto") -> $$null) * types(#y: $$string_type) * (! (#y == None))  ]]
-   [[ ((x, "cenoura") -> #y) * ((x, "@proto") -> $$null) * types(#y: $$string_type) * (ret == $$t)      ]]
+spec xpto (x)
+   [[ ((x - 3) <=# 0) * types(x: $$int_type) ]]
+   [[ p1("hello", "hi") ]]
    normal
-proc test3 (x) {
-  		   y := hasField(x, "cenoura");
-   rlab:   skip
-} with { ret: y, rlab; };
+proc xpto (x) {
+			skip;
+			[* fold p1("hello", "hi") *]
+	rlab:   skip
+}
+with
+{
+	ret: 	x, rlab;
+};

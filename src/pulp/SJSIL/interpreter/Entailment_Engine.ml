@@ -144,18 +144,19 @@ let rec encode_pure_formula ctx gamma z3_typeof_fun a =
 			let cur_as2 = Boolean.mk_eq ctx te1 te2 in 
 			Boolean.mk_and ctx ([ cur_as1; cur_as2 ] @ as1 @ as2))
 	
-	| LLess (le1, le2)   -> 
-		let t1, _ = JSIL_Logic_Normalise.normalised_is_typable gamma le1 in 
-		let t2, _ = JSIL_Logic_Normalise.normalised_is_typable gamma le2 in
-		let le1, te1, as1 = fe le1 in 
-		let le2, te2, as2 = fe le2 in 
+	| LLess (le1', le2')   -> 
+		let t1, _ = JSIL_Logic_Normalise.normalised_is_typable gamma le1' in 
+		let t2, _ = JSIL_Logic_Normalise.normalised_is_typable gamma le2' in
+		let le1, te1, as1 = fe le1' in 
+		let le2, te2, as2 = fe le2' in 
 		(match t1, t2 with 
 		| Some t1, Some t2 -> 
 			let t = types_lub t1 t2 in 
-			match t with 
+			(match t with 
 			| Some IntType
 			| Some NumberType -> Arithmetic.mk_lt ctx le1 le2
 			| _ -> raise (Failure "Arithmetic operation invoked on non-numeric types"))
+    | _, _ -> Printf.printf "Shit: %s %s\n" (JSIL_Print.string_of_logic_expression le1' false) (JSIL_Print.string_of_logic_expression le2' false) ; raise (Failure "Death."))
 	
 	| LLessEq (le1, le2) -> 
 		let le1, te1, as1 = fe le1 in 
@@ -164,7 +165,9 @@ let rec encode_pure_formula ctx gamma z3_typeof_fun a =
 		
 	| LStrLess (_, _)    -> raise (Failure ("I don't know how to do string comparison in Z3"))
 
-	| LTrue              -> Boolean.mk_true ctx 
+	| LTrue              -> Boolean.mk_true ctx
+	
+	| LFalse             -> Boolean.mk_false ctx
 
 	| _                  -> 
 		let msg = Printf.sprintf "Unsupported assertion to encode for Z3: %s" (JSIL_Print.string_of_logic_assertion a false) in 

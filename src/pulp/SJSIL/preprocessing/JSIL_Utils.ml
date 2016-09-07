@@ -114,6 +114,10 @@ let parse_with_error start lexbuf =
     Printf.fprintf stderr "%a: syntax error\n" print_position lexbuf;
     exit (-1)
 
+let parse_without_error start lexbuf =
+  try start JSIL_Lexer.read lexbuf with
+  | _ -> raise (Failure "Oops!")
+
 (** Open the file given by 'path' and run the parser on its contents. *)
 let ext_program_of_path path = 
 	let inx = open_in path in

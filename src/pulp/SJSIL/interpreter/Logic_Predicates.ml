@@ -5,7 +5,7 @@ exception Non_unifiable of string
 type normalised_predicate = {
 	name         : string;
 	num_params   : int;
-	params       : jsil_logic_var list;
+	params       : jsil_var list;
 	definitions  : jsil_logic_assertion list;
 	is_recursive : bool;
 }
@@ -25,18 +25,18 @@ let replace_head_literals (pred : jsil_logic_predicate) =
 			(* Check each parameter in reverse order! *)
 			match cur_param with
 			| LLit _ | LNone -> (* If the parameter is a JSIL literal or None... *)
-			  (* Get a fresh logical variable and add a constraint to each definition *)
-				let new_lvar = JSIL_Logic_Utils.fresh_lvar () in
+			  (* Get a fresh program variable and add a constraint to each definition *)
+				let new_pvar = JSIL_Logic_Utils.fresh_pvar () in
 				let new_assertions =
 					List.map
-						(fun prev_ass -> LStar (prev_ass, LEq (LVar new_lvar, cur_param)))
+						(fun prev_ass -> LStar (prev_ass, LEq (PVar new_pvar, cur_param)))
 						norm_pred.definitions in
 				{ name         = norm_pred.name;
 				  num_params   = norm_pred.num_params;
-					params       = new_lvar :: norm_pred.params;
+					params       = new_pvar :: norm_pred.params;
 					definitions  = new_assertions;
 					is_recursive = false }
-			| LVar var -> (* If the parameter is a logical variable, add the parameter as it is *)
+			| PVar var -> (* If the parameter is a program variable, add the parameter as it is *)
 				{ name         = norm_pred.name;
 				  num_params   = norm_pred.num_params;
 					params       = var :: norm_pred.params;
@@ -48,27 +48,27 @@ let replace_head_literals (pred : jsil_logic_predicate) =
 		pred.params
 		norm_empty_pred
 
-(* Given a list of logical expressions and a list of logical variables,
+(* Given a list of logical expressions and a list of program variables,
    returns a substitution for the elements of the second list.
 *)
-let unify_list_lvars l1 l2 =
+let unify_list_pvars l1 l2 =
 	let subst = Hashtbl.create 10 in
 	(* Compute and return the substitution of logic variables *)
 	List.iter2
-		(fun lexpr lvar2 ->
-			if Hashtbl.mem subst (LVar lvar2)
+		(fun lexpr pvar2 ->
+			if Hashtbl.mem subst (PVar pvar2)
 			  then raise (Non_unifiable ("Duplicated parameter."))
-				else Hashtbl.add subst (LVar lvar2) lexpr)
+				else Hashtbl.add subst (PVar pvar2) lexpr)
 		l1 l2;
 	subst
 
 (* Replaces the logic_expressions in asrt that have a substitute in the hashtable subst *)
 let apply_substitution subst asrt =
-	JSIL_Logic_Utils.assertion_map
-	  (fun lexpr -> (* Replace the logic expression if it has a substitute *)
+	JSIL_Logic_Utils.assertion_map 
+	  (fun lexpr -> (* Replace the logic expression if it has a substitute, but do not recurse *)
 		  try
-	      Hashtbl.find subst lexpr
-	    with Not_found -> lexpr)
+	      (Hashtbl.find subst lexpr, false)
+	    with Not_found -> (lexpr, true))
 	  asrt
 
 (* Join two normalised_predicate defining different cases of the same predicate in a single
@@ -78,7 +78,7 @@ let join_pred pred1 pred2 =
 	if pred1.name <> pred2.name || pred1.num_params <> pred2.num_params
 	  then raise (Non_unifiable ("Incompatible predicate definitions."))
 		else
-		  let subst = unify_list_lvars (List.map (fun var -> LVar var) pred1.params) pred2.params in
+		  let subst = unify_list_pvars (List.map (fun var -> PVar var) pred1.params) pred2.params in
 		  { pred1 with
 			   definitions  = pred1.definitions @ (List.map (apply_substitution subst) pred2.definitions);
 				 is_recursive = pred1.is_recursive || pred2.is_recursive; }
@@ -199,12 +199,13 @@ let rec auto_unfold predicates asrt =
 			else
 				(* If it is not, unify the formal parameters with the actual parameters, *)
 				(* apply the substitution to each definition of the predicate, and recurse. *)
-				let subst = unify_list_lvars args pred.params in
+				let subst = unify_list_pvars args pred.params in
 				let new_asrts = List.map (apply_substitution subst) pred.definitions in
 				List.fold_left
 				  (fun list asrt -> list @ (au asrt))
 					[]
 				  new_asrts
+
 		 (* If the predicate is not found, raise an error *)
 		with Not_found -> raise (Failure ("Error: Can't auto_unfold predicate " ^ name)))
 	| LTrue | LFalse | LEq _ | LLess _ | LLessEq _ | LStrLess _ | LPointsTo _ | LEmp | LTypes _-> [asrt]

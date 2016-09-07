@@ -6,8 +6,8 @@ spec o__getOwnProperty (l, prop)
 	[[ ObjectProp (l, prop, None) * ret == $$undefined ]]
 	normal;
 	
-	[[ ObjectProp (l, prop, #d) * !(#d == None) ]]
-	[[ ObjectProp (l, prop, #d) * !(#d == None) * types(#d : $$list_type) * ret == #d ]]
+	[[ ObjectProp (l, prop, #d) * (!(#d == None)) ]]
+	[[ ObjectProp (l, prop, #d) * (!(#d == None)) * types(#d : $$list_type) * ret == #d ]]
 	normal
 proc o__getOwnProperty (l, prop) {
             x := hasField(l, prop);		
@@ -31,7 +31,7 @@ pred CommonMethods (l) :
 pred ProtoLookup (l, prop, d) :
 	ObjectProp (l, prop, d),
 	ObjectProp (l, prop, None) * ((l, "@proto") -> $$null) * d == $$undefined,
-	ObjectProp (l, prop, None) * ((l, "@proto") -> #lp) * !(#lp == $$null) * CommonMethods(#lp) * ProtoLookup(#lp, prop, d);
+	ObjectProp (l, prop, None) * ((l, "@proto") -> #lp) * (!(#lp == $$null)) * CommonMethods(#lp) * ProtoLookup(#lp, prop, d);
 
 spec o__getProperty (l, prop)
 	[[ ProtoLookup (l, prop, #d) ]]

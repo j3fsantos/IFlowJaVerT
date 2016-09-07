@@ -203,9 +203,9 @@ let rec string_of_logic_expression e escape_string =
   match e with
     | LLit llit -> string_of_literal llit escape_string
 		| LNone -> "None"
-    | LVar lvar -> lvar
-		| ALoc aloc -> aloc
-		| PVar pvar -> pvar
+    | LVar lvar -> lvar (* Printf.sprintf "(Lvar %s)" lvar *)
+		| ALoc aloc -> aloc (* Printf.sprintf "(Aloc %s)" aloc *)
+		| PVar pvar -> pvar (* Printf.sprintf "(Pvar %s)" pvar *)
 		(* (e1 bop e2) *)
     | LBinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (sle e1) (string_of_binop op) (sle e2)
 		(* (uop e1 e2) *)

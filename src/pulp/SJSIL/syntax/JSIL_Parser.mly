@@ -214,8 +214,9 @@ let procedure_table = Hashtbl.create 100
 
 (***** Types and entry points *****)
 %type <JSIL_Syntax.jsil_ext_program> main_target
+%type <string list> param_list_FC_target
 %start main_target
-
+%start param_list_FC_target
 %%
 
 (********* JSIL *********)
@@ -271,6 +272,10 @@ proc_target:
 		Hashtbl.replace procedure_table lproc_name proc;
 	}
 ;
+
+param_list_FC_target:
+	param_list = separated_list(COMMA, VAR); EOF
+	{ param_list };
 
 proc_head_target:
 	spec = option(spec_target);
@@ -467,9 +472,9 @@ pred_param_target:
 (* None *)
 	| LNONE
 	  { LNone }
-(* Logic variable, but with the shape of a program variable *)
+(* Program variable *)
 	| v = VAR
-	  { LVar v }
+	  { PVar v }
 ;
 
 (* TODO: Check that the assertions are only predicates, or deal with full assertions in the execution *)

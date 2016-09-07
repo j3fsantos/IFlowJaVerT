@@ -258,17 +258,19 @@ let safe_symb_evaluate_expr (expr : jsil_expr) store gamma =
 				raise (Failure msg)  
 			end)
 			
-
-let rec lift_logic_expr lexpr = 
+(** Turns a logical expression into an assertions.
+    Returns a logical expression option and an assertion option. *)
+let rec lift_logic_expr lexpr =
+	(* TODO: Think of how to structure this code better *)
 	let f = lift_logic_expr in 
-	(match lexpr with 
+	(match lexpr with
 	| LBinOp (le1, op, le2) -> lift_binop_logic_expr op le1 le2 
 	| LUnOp (op, le) -> lift_unop_logic_expr op le
 	| LLit (Bool true) -> None, Some LTrue 
 	| LLit (Bool false) -> None, Some LFalse 
-	| _ -> Some lexpr, None)
+	| _ -> Some lexpr, Some (LEq (lexpr, LLit (Bool true))))
 and lift_binop_logic_expr op le1 le2 = 
-	let err_msg = "logical expression cannot be lifted to assertion" in 
+	let err_msg = "logical expression binop cannot be lifted to assertion" in 
 	let f = lift_logic_expr in 
 	let lexpr_to_ass_binop binop = 
 		(match binop with 
@@ -284,25 +286,25 @@ and lift_binop_logic_expr op le1 le2 =
 	| LessThanEqual -> 
 		let l_op_fun = lexpr_to_ass_binop op in 
 		(match ((f le1), (f le2)) with 
-		| ((Some le1, None), (Some le2, None)) -> None, Some (l_op_fun le1 le2)
-		| (_, _) -> raise (Failure err_msg)) 
+		| ((Some le1, _), (Some le2, _)) -> None, Some (l_op_fun le1 le2)
+		| (_, _) -> raise (Failure (err_msg ^ " <=#"))) 
 	| And -> 
 		(match ((f le1), (f le2)) with 
-		| ((None, Some a1), (None, Some a2)) -> None, Some (LAnd (a1, a2))
+		| ((_, Some a1), (_, Some a2)) -> None, Some (LAnd (a1, a2))
 		| (_, _) -> raise (Failure err_msg))
 	| Or -> 
 		(match ((f le1), (f le2)) with 
-		| ((None, Some a1), (None, Some a2)) -> None, Some (LOr (a1, a2))
+		| ((_, Some a1), (_, Some a2)) -> None, Some (LOr (a1, a2))
 		| (_, _) -> raise (Failure err_msg))
 	| _ -> Some (LBinOp (le1, op, le2)), None) 
 and lift_unop_logic_expr op le = 
 	let f = lift_logic_expr in
-	let err_msg = "logical expression cannot be lifted to assertion" in 
+	let err_msg = "logical expression unop cannot be lifted to assertion" in 
 	(match op with 
 	| Not -> 
 		(match (f le) with 
 		| (None, Some a) -> None, Some (LNot a)
-		| (_, _) -> raise (Failure err_msg)) 		
+		| (_, _) -> raise (Failure (err_msg ^ " Not"))) 		
 	| _ -> Some (LUnOp (op, le)), None)
 
 let isEqual e1 e2 pure_formulae gamma = 
@@ -701,7 +703,7 @@ let check_entailment_pf pf pat_pf gamma subst =
 			(fun a -> assertion_substitution a subst true) 
 			(pfs_to_list pat_pf)) in 
 			
-	(* Printf.printf "About to check if (%s) entails (%s)\n" (str_of_assertion_list pf_list) (str_of_assertion_list pat_pf_list); *)
+	Printf.printf "About to check if (%s) entails (%s)\n" (JSIL_Print.str_of_assertion_list pf_list) (JSIL_Print.str_of_assertion_list pat_pf_list); 
 	Entailment_Engine.check_entailment pf_list pat_pf_list gamma
 
 let is_symb_heap_empty heap = 
@@ -1146,7 +1148,7 @@ let symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 				(* Printf.printf "\n\nFOLDED SUCCESSFULLY!!!!\n\n\n"; *)
 				[ symb_state ]
 			| None -> 
-				let msg = Printf.sprintf "Could not fold baby: %s " (JSIL_Print.string_of_logic_assertion a false) in 
+				let msg = Printf.sprintf "Could not fold: %s " (JSIL_Print.string_of_logic_assertion a false) in 
 				raise (Failure msg))
 		| _ -> 
 			let msg = Printf.sprintf "Illegal fold command %s" (JSIL_Print.string_of_logic_assertion a false) in 
@@ -1235,8 +1237,8 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i =
 		let _, a_le = lift_logic_expr le in 
 		let a_le_then, a_le_else = 
 			match a_le with 
-			| Some a_le -> 
-				(* Printf.printf "Lifted assertion: %s\n" (JSIL_Print.string_of_logic_assertion a_le false); *) 
+			| Some a_le ->
+				(* Printf.printf "Lifted assertion: %s\n" (JSIL_Print.string_of_logic_assertion a_le false); *)
 				([ a_le ], [ (LNot a_le) ])
 			| None -> ([], []) in 
 	

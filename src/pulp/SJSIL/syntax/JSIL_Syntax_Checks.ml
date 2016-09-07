@@ -28,7 +28,7 @@ let enter_procedure () =
 	allow_any_predicate := false
 (* Entering predicate: those predicate parameters which are variables allowed, any predicate allowed *)
 let enter_predicate params =
-	let str_params = List.map (fun lexpr -> match lexpr with LVar var -> var | _ -> "") params in
+	let str_params = List.map (fun lexpr -> match lexpr with PVar var -> var | _ -> "") params in
 	allowed_pvars := Some (List.filter (fun str -> str <> "") str_params);
 	allow_any_predicate := true
 (* Entering specs: procedure parameters, "ret" and "err" allowed, predicate check enforced *)
@@ -112,9 +112,9 @@ let replace_spec_keywords spec ret_var err_var =
 				  let subst_ret_err =
 					  (fun lexpr ->
 						  match lexpr with
-						  | PVar "ret" -> PVar ret_var
-						  | PVar "err" -> PVar err_var
-						  | _ -> lexpr)
+						  | PVar "ret" -> (PVar ret_var, false)
+						  | PVar "err" -> (PVar err_var, false)
+						  | _ -> (lexpr, true))
 					  in
 				  { pre = current_spec.pre;
 					  post = JSIL_Logic_Utils.assertion_map subst_ret_err current_spec.post;
