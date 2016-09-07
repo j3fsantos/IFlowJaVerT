@@ -1,13 +1,13 @@
-pred ObjectProp (l, prop, v) :
+pred Cell_o (l, prop, v) :
 	types(l : $$object_type, prop : $$string_type) * ((l, prop) -> v);
 
 spec o__getOwnProperty (l, prop)
-	[[ ObjectProp (l, prop, None) ]]
-	[[ ObjectProp (l, prop, None) * ret == $$undefined ]]
+	[[ Cell_o (l, prop, None) ]]
+	[[ Cell_o (l, prop, None) * (ret == $$undefined) ]]
 	normal;
 	
-	[[ ObjectProp (l, prop, #d) * (!(#d == None)) ]]
-	[[ ObjectProp (l, prop, #d) * (!(#d == None)) * types(#d : $$list_type) * ret == #d ]]
+	[[ Cell_o (l, prop, #d) * (!(#d == None)) ]]
+	[[ Cell_o (l, prop, #d) * (!(#d == None)) * types(#d : $$list_type) * (ret == #d) ]]
 	normal
 proc o__getOwnProperty (l, prop) {
             x := hasField(l, prop);		
@@ -26,19 +26,24 @@ with
 };
 
 pred CommonMethods (l) :
-	((l, "@getProperty") -> "o__getProperty") * ((l, "@getOwnProperty") -> "o__getOwnProperty");
+	((l, "@getProperty") -> "o__getProperty");
+
+pred SpecificMethods_o (l) :
+	((l, "@getOwnProperty") -> "o__getOwnProperty");
+pred SpecificMethods_s (l) :
+	((l, "@getOwnProperty") -> "s__getOwnProperty");
 
 pred ProtoLookup (l, prop, d) :
-	ObjectProp (l, prop, d) * CommonMethods(l),
-	ObjectProp (l, prop, None) * CommonMethods(l) * ((l, "@proto") -> $$null) * d == $$undefined,
-	ObjectProp (l, prop, None) * CommonMethods(l) * ((l, "@proto") -> #lp) * (!(#lp == $$null)) * CommonMethods(#lp) * ProtoLookup(#lp, prop, d);
+	SpecificMethods_o (l) * Cell_o (l, prop, None) * Cell_o (l, "@proto", $$null) * (d == $$undefined),
+	SpecificMethods_o (l) * Cell_o (l, prop, d) * (!(d == None)),
+	SpecificMethods_o (l) * Cell_o (l, prop, None) * Cell_o (l, "@proto", #lp)  * (!(#lp == $$null)) * CommonMethods(#lp) * ProtoLookup(#lp, prop, d);
 
 spec o__getProperty (l, prop)
 	[[ ProtoLookup (l, prop, #d) ]]
 	[[ ProtoLookup (l, prop, #d) * ret == #d ]]
 	normal
 proc o__getProperty (l, prop) {
-			
+			[* unfold ProtoLookup (l, prop, #d) *]
 			gop := [l, "@getOwnProperty"];
 			xret := gop (l, prop) with elab;
 			goto [xret = $$undefined] next rlab;
@@ -48,7 +53,7 @@ proc o__getProperty (l, prop) {
 			
 	call:	gp := [proto, "@getProperty"];
 			xret := gp (proto, prop) with elab;
-	
+			[* fold ProtoLookup (l, prop, #d) *]
     rlab:   skip;
     elab:	skip
 }
