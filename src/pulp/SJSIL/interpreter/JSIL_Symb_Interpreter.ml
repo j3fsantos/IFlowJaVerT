@@ -1261,7 +1261,7 @@ let create_info_node_from_post search_info symb_state ret_flag success : unit =
 let create_info_node_from_error search_info error_msg = 
 	Printf.printf "INSIDE create_info_node_from_error!!!!!\n\n";
 	let new_node_number : int = !(search_info.next_node) in
-	let msg = "ERROR: " ^ error_msg in 
+	let msg = "ERROR: " ^ (String.escaped error_msg) in 
 	let new_node_info =
 		{
 			heap_str = ""; 
