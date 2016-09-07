@@ -118,7 +118,9 @@ let find_recursive_preds preds =
 			let index = !count in
 			count := !count + 1;
 			Hashtbl.add visited pred_name index;
-			let pred = Hashtbl.find preds pred_name in
+			let pred =
+				(try Hashtbl.find preds pred_name with
+				| Not_found -> raise (Failure ("Undefined predicate " ^ pred_name))) in
 			let neighbours = (* Find the names of all predicates that the current predicate uses *)
 				List.fold_left
 				  (fun list asrt -> list @ (get_predicate_names asrt))
@@ -208,7 +210,10 @@ let normalise preds =
 	let norm_rec_predicates = Hashtbl.create (Hashtbl.length norm_predicates) in
 	Hashtbl.iter
 	  (fun name pred ->
-			Hashtbl.add norm_rec_predicates pred.name { pred with is_recursive = (Hashtbl.find rec_table name); })
+			Hashtbl.add norm_rec_predicates pred.name
+			  { pred with is_recursive =
+					(try Hashtbl.find rec_table name with
+					| Not_found -> raise (Failure ("Undefined predicate " ^ name))); })
 		norm_predicates;
 	(* Auto-unfold the predicates in the definitions of other predicates *)
 	let norm_rec_unfolded_predicates = Hashtbl.create (Hashtbl.length norm_rec_predicates) in

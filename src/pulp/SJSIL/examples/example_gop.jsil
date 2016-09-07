@@ -29,9 +29,9 @@ pred CommonMethods (l) :
 	((l, "@getProperty") -> "o__getProperty") * ((l, "@getOwnProperty") -> "o__getOwnProperty");
 
 pred ProtoLookup (l, prop, d) :
-	ObjectProp (l, prop, d),
-	ObjectProp (l, prop, None) * ((l, "@proto") -> $$null) * d == $$undefined,
-	ObjectProp (l, prop, None) * ((l, "@proto") -> #lp) * (!(#lp == $$null)) * CommonMethods(#lp) * ProtoLookup(#lp, prop, d);
+	ObjectProp (l, prop, d) * CommonMethods(l),
+	ObjectProp (l, prop, None) * CommonMethods(l) * ((l, "@proto") -> $$null) * d == $$undefined,
+	ObjectProp (l, prop, None) * CommonMethods(l) * ((l, "@proto") -> #lp) * (!(#lp == $$null)) * CommonMethods(#lp) * ProtoLookup(#lp, prop, d);
 
 spec o__getProperty (l, prop)
 	[[ ProtoLookup (l, prop, #d) ]]
