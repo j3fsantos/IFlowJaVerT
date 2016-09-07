@@ -150,30 +150,6 @@ let find_recursive_preds preds =
 		preds;
 	rec_table
 
-
-let normalise preds =
-	let norm_predicates = Hashtbl.create 100 in
-	Hashtbl.iter
-		(fun name pred ->
-			(* Substitute literals in the head for logical variables *)
-			let norm_pred = replace_head_literals pred in
-			try
-				(* Join the new predicate definition with all previous for the same predicate (if any) *)
-				let current_pred = Hashtbl.find norm_predicates name in
-				Hashtbl.replace norm_predicates name (join_pred current_pred norm_pred)
-			with
-			| Not_found -> Hashtbl.add norm_predicates name norm_pred
-			| Non_unifiable reason -> raise (Failure ("Error in predicate " ^ name ^ ": " ^ reason)))
-		preds;
-	(* Detect recursive predicates *)
-  let rec_table = find_recursive_preds norm_predicates in
-	let norm_rec_predicates = Hashtbl.create (Hashtbl.length norm_predicates) in
-	Hashtbl.iter
-	  (fun name pred ->
-			Hashtbl.add norm_rec_predicates pred.name { pred with is_recursive = (Hashtbl.find rec_table name); })
-		norm_predicates;
-	norm_rec_predicates
-
 (* Cross product of two lists, l1 and l2, combining its elements with function f *)
 (* 'a list -> 'b list -> ('a -> 'b -> 'c) -> 'c list *)
 let cross_product l1 l2 f =
@@ -182,6 +158,7 @@ let cross_product l1 l2 f =
 			result @ (List.map (f e1) l2))
 		[]
 		l1
+
 
 let rec auto_unfold predicates asrt =
 	let au = auto_unfold predicates in
@@ -209,6 +186,39 @@ let rec auto_unfold predicates asrt =
 		 (* If the predicate is not found, raise an error *)
 		with Not_found -> raise (Failure ("Error: Can't auto_unfold predicate " ^ name)))
 	| LTrue | LFalse | LEq _ | LLess _ | LLessEq _ | LStrLess _ | LPointsTo _ | LEmp | LTypes _-> [asrt]
+
+
+let normalise preds =
+	let norm_predicates = Hashtbl.create 100 in
+	Hashtbl.iter
+		(fun name pred ->
+			(* Substitute literals in the head for logical variables *)
+			let norm_pred = replace_head_literals pred in
+			try
+				(* Join the new predicate definition with all previous for the same predicate (if any) *)
+				let current_pred = Hashtbl.find norm_predicates name in
+				Hashtbl.replace norm_predicates name (join_pred current_pred norm_pred)
+			with
+			| Not_found -> Hashtbl.add norm_predicates name norm_pred
+			| Non_unifiable reason -> raise (Failure ("Error in predicate " ^ name ^ ": " ^ reason)))
+		preds;
+	(* Detect recursive predicates *)
+  let rec_table = find_recursive_preds norm_predicates in
+	(* Flag those that are recursive *)
+	let norm_rec_predicates = Hashtbl.create (Hashtbl.length norm_predicates) in
+	Hashtbl.iter
+	  (fun name pred ->
+			Hashtbl.add norm_rec_predicates pred.name { pred with is_recursive = (Hashtbl.find rec_table name); })
+		norm_predicates;
+	(* Auto-unfold the predicates in the definitions of other predicates *)
+	let norm_rec_unfolded_predicates = Hashtbl.create (Hashtbl.length norm_rec_predicates) in
+	Hashtbl.iter
+	  (fun name pred ->
+			Hashtbl.add norm_rec_unfolded_predicates pred.name
+			  { pred with definitions = List.flatten (List.map (auto_unfold norm_rec_predicates) pred.definitions); })
+		norm_rec_predicates;
+	norm_rec_unfolded_predicates
+
 
 let to_string { name; num_params; params; definitions; is_recursive; } =
 	"pred " ^ name ^ " (" ^ (String.concat ", " params) ^ ")" ^
