@@ -1210,9 +1210,11 @@ let register_new_node_aux2 search_info new_node_info =
 	
 let register_new_node_aux search_info new_node_info parent_node_info = 
 	register_new_node_aux2 search_info new_node_info; 
+	try 
 	let parent_children = Hashtbl.find search_info.info_edges parent_node_info.node_number in 
 	Hashtbl.replace search_info.info_edges parent_node_info.node_number ((new_node_info.node_number) :: parent_children)
-
+	with _ -> Printf.printf "What are you DOING??????\n\n"
+	
 let register_new_node search_info new_node_info = 
 	let parent_node_info = search_info.cur_node_info in
 	register_new_node_aux search_info new_node_info parent_node_info
