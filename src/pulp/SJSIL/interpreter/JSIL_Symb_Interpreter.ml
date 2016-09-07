@@ -334,7 +334,7 @@ let isDifferent e1 e2 pure_formulae gamma =
 				pure_formulae |=
 					
 *)
-let find_field fv_list e p_formulae gamma = 
+let find_field loc fv_list e p_formulae gamma = 
 	let rec find_field_rec fv_list traversed_fv_list = 
 		match fv_list with 
 		| [] -> traversed_fv_list, None 
@@ -344,9 +344,12 @@ let find_field fv_list e p_formulae gamma =
 				else 
 					(if (isDifferent e e_field p_formulae gamma)
 						then find_field_rec rest ((e_field, e_value) :: traversed_fv_list)
-						else 
-							let e_str = JSIL_Print.string_of_logic_expression e false  in  
-							let msg = Printf.sprintf "I cannot decide whether or not the field denoted by %s already exists in the symbolic heap" e_str in   
+						else   
+							let msg = Printf.sprintf "Cannot decide if (%s, %s) already exists in the symbolic heap. confusion: (%s, %s)" 
+								loc
+								(JSIL_Print.string_of_logic_expression e false) 
+								(JSIL_Print.string_of_logic_expression e_field false) 
+								(JSIL_Print.string_of_logic_expression e_value false) in   
 							raise (Failure msg))) in 
 	find_field_rec fv_list []
 
@@ -361,13 +364,13 @@ let update_abs_heap_default (heap : symbolic_heap) loc e =
 let update_abs_heap (heap : symbolic_heap) loc e_field e_val p_formulae gamma =
 	(* Printf.printf "Update Abstract Heap\n"; *)
 	let fv_list, default_val = try LHeap.find heap loc with _ -> [], LUnknown in 
-	let unchanged_fv_list, _ = find_field fv_list e_field p_formulae gamma in 
+	let unchanged_fv_list, _ = find_field loc fv_list e_field p_formulae gamma in 
 	LHeap.replace heap loc ((e_field, e_val) :: unchanged_fv_list, default_val)    
 
 
 let abs_heap_find heap l e p_formulae gamma = 
 	let fv_list, default_val = try LHeap.find heap l with _ -> [], LUnknown in 
-	let _, field_val_pair = find_field fv_list e p_formulae gamma in
+	let _, field_val_pair = find_field l fv_list e p_formulae gamma in
 	match field_val_pair with 
 	| Some (_, f_val) -> f_val
 	| None -> default_val
@@ -386,7 +389,7 @@ let abs_heap_check_field_existence heap l e p_formulae gamma =
 
 let abs_heap_delete heap l e p_formulae gamma = 
 	let fv_list, default_val = try LHeap.find heap l with _ -> [], LUnknown in 
-	let rest_fv_pairs, del_fv_pair = find_field fv_list e p_formulae gamma in
+	let rest_fv_pairs, del_fv_pair = find_field l fv_list e p_formulae gamma in
 	match del_fv_pair with 
 	| Some (_, _) -> LHeap.replace heap l (rest_fv_pairs, default_val) 
 	| None -> raise (Failure "Trying to delete an inexistent field") 
@@ -795,7 +798,7 @@ let unify_symb_state_against_post proc_name spec symb_state flag =
 		
 			
 let merge_heaps heap new_heap p_formulae gamma = 
-	(** 	let str_heap = JSIL_Memory_Print.string_of_shallow_symb_heap heap in 
+	(* let str_heap = JSIL_Memory_Print.string_of_shallow_symb_heap heap in 
 	Printf.printf "heap 1: %s\n" str_heap; 			
 				*)
 	LHeap.iter 
@@ -810,14 +813,16 @@ let merge_heaps heap new_heap p_formulae gamma =
 						| [] -> q_fv_list 
 						| (le_field, le_val) :: rest_n_fv_list -> 
 							(* Printf.printf "le_field: %s, le_val: %s\n" (JSIL_Print.string_of_logic_expression le_field false) (JSIL_Print.string_of_logic_expression le_val false); *)
-							let _, fv_pair = find_field fv_list le_field p_formulae gamma in 
+							let _, fv_pair = find_field loc fv_list le_field p_formulae gamma in 
 							(match fv_pair with 
 							| None -> loop ((le_field, le_val) :: q_fv_list) rest_n_fv_list 
 							| Some _ -> raise (Failure "heaps non-mergeable"))) in 
 					let q_fv_list = loop [] n_fv_list in 
 					LHeap.replace heap loc (q_fv_list @ fv_list, def)
 					end
-				with _ -> LHeap.add heap loc (n_fv_list, LUnknown))
+				with (Failure msg) -> 
+					(Printf.printf "\n\n\nI AM HERE AND THIS IS BADDDDDD VERYY BADDDD: %s!!\n\n\n" msg;
+					LHeap.add heap loc (n_fv_list, LUnknown)))
 			| _ -> raise (Failure "heaps non-mergeable"))
 		new_heap
 		

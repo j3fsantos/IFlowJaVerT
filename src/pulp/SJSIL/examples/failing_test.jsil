@@ -1,13 +1,13 @@
 pred ObjectProp (l, prop, v) :
 	types(l : $$object_type, prop : $$string_type) * ((l, prop) -> v);
-
+	
 pred CommonMethods (l) :
 	((l, "@getProperty") -> "o__getProperty") * ((l, "@getOwnProperty") -> "o__getOwnProperty");
 
 pred ProtoLookup (l, prop, d) :
-	ObjectProp (l, prop, d),
-	ObjectProp (l, prop, None) * ((l, "@proto") -> $$null) * d == $$undefined,
-	ObjectProp (l, prop, None) * ((l, "@proto") -> #lp) * (!(#lp == $$null)) * CommonMethods(#lp) * ProtoLookup(#lp, prop, d);
+	ObjectProp (l, prop, d) * CommonMethods(l) * (! (prop == "@proto")),
+	ObjectProp (l, prop, None) * CommonMethods(l) * ((l, "@proto") -> $$null) * (d == $$undefined) * (! (prop == "@proto")),
+	ObjectProp (l, prop, None) * CommonMethods(l) * ((l, "@proto") -> #lp) * (!(#lp == $$null)) * CommonMethods(#lp) * (! (prop == "@proto")) * ProtoLookup(#lp, prop, d);
 
 spec o__getProperty (l, prop)
 	[[ ProtoLookup (l, prop, #d) ]]
@@ -32,4 +32,29 @@ with
 {
     ret: 	xret, rlab;
     err:	xret, elab;
+};
+
+
+spec o__getOwnProperty (l, prop)
+	[[ ObjectProp (l, prop, None) ]]
+	[[ ObjectProp (l, prop, None) * ret == $$undefined ]]
+	normal;
+	
+	[[ ObjectProp (l, prop, #d) * (!(#d == None)) ]]
+	[[ ObjectProp (l, prop, #d) * (!(#d == None)) * types(#d : $$list_type) * ret == #d ]]
+	normal
+proc o__getOwnProperty (l, prop) {
+            x := hasField(l, prop);		
+            goto [x] hp nhp; 			(* Does the field exist? *)
+            
+    nhp:    xret := $$undefined;		(* Field doesn't exist; return undefined *)
+            goto rlab;					
+            
+    hp:     xret := [l, prop];			(* Field exists; return the descriptor *)
+    
+    rlab:   skip
+}
+with
+{
+    ret: 	xret, rlab;
 };
