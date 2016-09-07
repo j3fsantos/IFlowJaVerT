@@ -1176,11 +1176,50 @@ let rec symb_evaluate_logic_cmds s_prog (l_cmds : jsil_logic_command list) (symb
 		symb_evaluate_logic_cmds s_prog rest_l_cmds new_symb_states subst spec_vars
 
 
+let create_info_node_aux symb_state new_node_number cmd_index cmd_str = 
+	let heap_str = JSIL_Memory_Print.string_of_shallow_symb_heap (get_heap symb_state) true in 
+	let store_str = JSIL_Memory_Print.string_of_shallow_symb_store (get_store symb_state) true in 
+	let pfs_str = JSIL_Memory_Print.string_of_shallow_p_formulae (get_pf symb_state) true in 
+	let gamma_str = JSIL_Memory_Print.string_of_gamma (get_gamma symb_state) in 
+	let preds_str = JSIL_Memory_Print.string_of_preds (get_preds symb_state) true in
+	let new_node_info = 
+		{
+			heap_str = heap_str; 
+			store_str = store_str; 
+			pfs_str = pfs_str; 
+			gamma_str = gamma_str; 
+			preds_str = preds_str;
+			(* cmd index *) 
+			cmd_index = cmd_index; 
+			cmd_str = cmd_str;
+			(* node number *) 
+			node_number = new_node_number 
+		} in 
+	new_node_info
+
+
+let create_info_node_from_cmd search_info symb_state cmd i = 
+	
+	let cmd_str = JSIL_Print.string_of_cmd_aux cmd i false true "" in
+	let new_node_number : int = !(search_info.next_node) in
+	let new_node_info = create_info_node_aux symb_state new_node_number i cmd_str in 
+	
+	search_info.next_node := new_node_number + 1; 
+	Hashtbl.add (search_info.info_nodes) new_node_number new_node_info;  
+	let parent_node_info = search_info.cur_node_info in
+	let parent_children = Hashtbl.find search_info.info_edges parent_node_info.node_number in 
+	Hashtbl.replace search_info.info_edges new_node_info.node_number [];
+	Hashtbl.replace search_info.info_edges parent_node_info.node_number ((new_node_info.node_number) :: parent_children); 
+	new_node_info
+	
+
 let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i = 
 	
 	(* auxiliary functions *)	
 	let mark_as_visited search_info i = 
-		Hashtbl.replace search_info.vis_tbl i true in 
+		let cur_node_info = search_info.cur_node_info in 
+		Hashtbl.replace search_info.vis_tbl i cur_node_info.node_number in 
+	
 	
 	let print_symb_state_and_cmd () = 
 		let symb_state_str = JSIL_Memory_Print.string_of_shallow_symb_state symb_state in 
@@ -1253,9 +1292,11 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i =
 				update_gamma (get_gamma symb_state) x ret_type;
 				let new_search_info = update_vis_tbl search_info (copy_vis_tbl search_info.vis_tbl) in 
 				(match ret_flag, j with 
-				| Normal, _ -> symb_evaluate_next_cmd s_prog proc spec new_search_info symb_state i (i+1) 
+				| Normal, _ -> 
+					symb_evaluate_next_cmd s_prog proc spec new_search_info symb_state i (i+1) 
 				| Error, None -> raise (Failure (Printf.sprintf "Procedure %s may return an error, but no error label was provided." proc_name))
-				| Error, Some j -> symb_evaluate_next_cmd s_prog proc spec new_search_info symb_state i j))
+				| Error, Some j -> 
+					symb_evaluate_next_cmd s_prog proc spec new_search_info symb_state i j))
 			new_symb_states in 
 	
 		
@@ -1276,7 +1317,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i =
 	| _ -> raise (Failure "not implemented yet")
 
 
-and symb_evaluate_next_cmd s_prog proc spec search_info symb_state cur next = 
+and symb_evaluate_next_cmd s_prog proc spec search_info symb_state cur next  = 
 	
 	(* auxiliary function *) 
 	let is_visited i = 
@@ -1289,7 +1330,7 @@ and symb_evaluate_next_cmd s_prog proc spec search_info symb_state cur next =
 	if ((Some cur) = proc.ret_label) then 
 		unify_symb_state_against_post proc.proc_name spec symb_state Normal
 	else (if ((Some cur) = proc.error_label) then 
-		unify_symb_state_against_post proc.proc_name spec symb_state Error 
+		unify_symb_state_against_post proc.proc_name spec symb_state Error
 	else 
 		(* the control did not reach the end of the symbolic execution *)
 		begin 
@@ -1319,10 +1360,13 @@ and symb_evaluate_next_cmd s_prog proc spec search_info symb_state cur next =
 							| None, msg -> raise (Failure msg)) in 
 					
 					let symb_states = symb_evaluate_logic_cmds s_prog metadata.logic_cmds [ symb_state ] spec.n_subst spec.n_lvars in 
+					let len = List.length symb_states in 
 					List.iter 
 						(fun symb_state -> 
-							let new_search_info = update_vis_tbl search_info (copy_vis_tbl search_info.vis_tbl) in  
-							symb_evaluate_cmd s_prog proc spec search_info symb_state next) 
+							let vis_tbl = if (len > 1) then (copy_vis_tbl search_info.vis_tbl) else search_info.vis_tbl in 
+							let info_node = create_info_node_from_cmd search_info symb_state cmd next in 
+							let new_search_info = udpdate_search_info search_info info_node vis_tbl in  
+							symb_evaluate_cmd s_prog proc spec new_search_info symb_state next) 
 						symb_states
 				end 
 		end) 
@@ -1330,14 +1374,23 @@ and symb_evaluate_next_cmd s_prog proc spec search_info symb_state cur next =
 	
 	
 
-let symb_evaluate_proc s_prog proc_name spec = 
-	let search_info = make_symb_exe_search_info () in  
+let symb_evaluate_proc s_prog proc_name spec i = 
+	let node_info = create_info_node_aux spec.n_pre 0 (-1) "Precondition" in
+	let search_info = make_symb_exe_search_info node_info in  
+	
 	let proc = get_proc s_prog.program proc_name in 
 	let sep_str = "---------------------------------------------------\n" in 
 
-	if (!verbose) then Printf.printf "%s" (sep_str ^ sep_str ^ sep_str ^ "Symbolic execution of " ^ proc_name ^ "\n"); 
-	symb_evaluate_next_cmd s_prog proc spec search_info spec.n_pre (-1) 0;
-	if (!verbose) then Printf.printf "%s" (sep_str ^ sep_str ^ sep_str) 
+	if (!verbose) then Printf.printf "%s" (sep_str ^ sep_str ^ sep_str ^ "Symbolic execution of " ^ proc_name ^ "\n");
+	let success, failure_msg = 
+		(try  
+			symb_evaluate_next_cmd s_prog proc spec search_info spec.n_pre (-1) 0;
+			true, None
+		with Failure msg -> false, Some msg) in  
+	let proc_name = Printf.sprintf "Spec_%d_of_%s" i proc_name in 
+	let search_dot_graph = JSIL_Memory_Print.dot_of_search_info search_info proc_name in 
+	(if (!verbose) then Printf.printf "%s" (sep_str ^ sep_str ^ sep_str));
+	search_dot_graph, success, failure_msg
 
 
 
@@ -1352,21 +1405,17 @@ let sym_run_procs spec_table prog which_pred pred_defs =
 	let results = Hashtbl.fold 
 		(fun proc_name spec ac_results ->
 			let pre_post_list = spec.n_proc_specs in 
-			let results = List.map  
-				(fun pre_post ->
-					(try
-						let new_pre_post = copy_single_spec pre_post in 
-						symb_evaluate_proc s_prog proc_name new_pre_post;
-						(proc_name, pre_post, true, None)
-					 with Failure msg ->
-						(proc_name, pre_post, false, Some msg)
-					))
+			let results = List.mapi  
+				(fun i pre_post ->
+					let new_pre_post = copy_single_spec pre_post in 
+					let dot_graph, success, failure_msg = symb_evaluate_proc s_prog proc_name new_pre_post i in 
+					(proc_name, pre_post, success, failure_msg, dot_graph))
 				pre_post_list in
 			ac_results @ results)
 		spec_table
 		[] in 
-	let results_str = JSIL_Memory_Print.string_of_symb_exe_results results in 
-	results_str
+	let results_str, dot_graphs = JSIL_Memory_Print.string_of_symb_exe_results results in 
+	results_str, dot_graphs
 	
 	
 	

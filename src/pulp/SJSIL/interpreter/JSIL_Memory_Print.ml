@@ -6,11 +6,11 @@ open JSIL_Print
  Generate strings from JSIL memory types
 *)
 
-let string_of_symb_fv_list fv_list = 
+let string_of_symb_fv_list fv_list escape_string = 
 	List.fold_left
 		(fun ac (field, value) ->
-				let field_str = string_of_logic_expression field false in 
-				let value_str = string_of_logic_expression value false in 
+				let field_str = string_of_logic_expression field escape_string in 
+				let value_str = string_of_logic_expression value escape_string in 
 				let field_value_str = "(" ^ field_str ^ ": " ^ value_str ^ ")"  in 
 				if (ac = "") 
 					then field_value_str 
@@ -18,11 +18,11 @@ let string_of_symb_fv_list fv_list =
 		""
 		fv_list 
 
-let string_of_shallow_symb_heap heap = 
+let string_of_shallow_symb_heap heap escape_string = 
 	LHeap.fold
 		(fun loc (fv_pairs, default_value) ac -> 
-			let str_fv_pairs = string_of_symb_fv_list fv_pairs in 
-			let default_value_str = "(default: " ^ (string_of_logic_expression default_value false) ^ ")" in
+			let str_fv_pairs = string_of_symb_fv_list fv_pairs escape_string in 
+			let default_value_str = "(default: " ^ (string_of_logic_expression default_value escape_string) ^ ")" in
 			let symb_obj_str = 
 				(if (str_fv_pairs = "") 
 					then loc ^ " |-> [" ^  default_value_str ^ "]" 
@@ -32,20 +32,20 @@ let string_of_shallow_symb_heap heap =
 		""
 		
 		
-let string_of_shallow_symb_store store = 
+let string_of_shallow_symb_store store escape_string = 
 	Hashtbl.fold 
-		(fun var v_val ac ->
-			 let v_val_str = string_of_logic_expression v_val false in 
-			 let var_val_str = "(" ^ var ^ ": " ^ v_val_str ^ ")" in 
-			if (ac = "") then var_val_str else ac ^ ", " ^ var_val_str )
+		(fun var le ac ->
+			 let le_str = string_of_logic_expression le escape_string in 
+			 let var_le_str = "(" ^ var ^ ": " ^ le_str ^ ")" in 
+			if (ac = "") then var_le_str else ac ^ ", " ^ var_le_str )
 		store
 		""
 
 
-let string_of_shallow_p_formulae p_formulae = 
+let string_of_shallow_p_formulae p_formulae escape_string = 
 	DynArray.fold_left
 		(fun ac cur_ass -> 
-			let cur_ass_str = string_of_logic_assertion cur_ass false in 
+			let cur_ass_str = string_of_logic_assertion cur_ass escape_string in 
 			if (ac = "") then cur_ass_str else ac ^ ", " ^ cur_ass_str)
 		""
 		p_formulae
@@ -62,12 +62,12 @@ let string_of_gamma (gamma : (string, jsil_type) Hashtbl.t) : string =
 			"" in
 	gamma_str 
 
-let string_of_pred pred = 
+let string_of_pred pred escape_string = 
 	let cur_pred_name, cur_pred_args = pred in 
 	let args_str = 
 			List.fold_left
 				(fun ac le -> 
-					let le_str = string_of_logic_expression le false in 
+					let le_str = string_of_logic_expression le escape_string in 
 					if (ac = "") then 
 						le_str 
 					else (ac ^ ", " ^ le_str))
@@ -75,21 +75,21 @@ let string_of_pred pred =
 				cur_pred_args in
 	cur_pred_name ^ "(" ^ args_str ^ ")" 
 	
-let string_of_preds preds = 
+let string_of_preds preds escape_string = 
 	DynArray.fold_left
 		(fun ac pred ->
-			let cur_pred_str = string_of_pred pred in 
+			let cur_pred_str = string_of_pred pred escape_string in 
 			if (ac = "") then cur_pred_str else ac ^ ", " ^ cur_pred_str)
 		""
 		preds
 
 let string_of_shallow_symb_state symb_state =
 	let heap, store, p_formulae, gamma, preds = symb_state in  
-	let str_heap = "Heap: " ^ (string_of_shallow_symb_heap heap) ^ "\n" in 
-	let str_store = "Store: " ^ (string_of_shallow_symb_store store) ^ "\n" in 
-	let str_p_formulae = "Pure Formulae: " ^ (string_of_shallow_p_formulae p_formulae) ^ "\n" in 
+	let str_heap = "Heap: " ^ (string_of_shallow_symb_heap heap true) ^ "\n" in 
+	let str_store = "Store: " ^ (string_of_shallow_symb_store store true) ^ "\n" in 
+	let str_p_formulae = "Pure Formulae: " ^ (string_of_shallow_p_formulae p_formulae true) ^ "\n" in 
 	let str_gamma = "Gamma: " ^ (string_of_gamma gamma) ^ "\n" in
-	let str_preds = "Preds: " ^ (string_of_preds preds) ^ "\n" in  
+	let str_preds = "Preds: " ^ (string_of_preds preds true) ^ "\n" in  
 	str_heap ^ str_store ^ str_p_formulae ^ str_gamma ^ str_preds
 
 let string_of_single_spec s_spec = 
@@ -153,7 +153,7 @@ let string_of_substitution substitution =
 
 
 let string_of_symb_exe_result result = 
-	let proc_name, pre_post, success, msg = result in 
+	let proc_name, pre_post, success, msg, dot_graph = result in 
 	let str = "Proc " ^ proc_name ^ "  - " ^ (string_of_single_spec pre_post) ^ " -- " in 
 	let str = 
 		if (success) then 
@@ -162,13 +162,73 @@ let string_of_symb_exe_result result =
 			(match msg with 
 			| None ->  str ^ "FAILED\n\n"
 			| Some msg -> str ^ "FAILED with msg: " ^ msg ^ "\n\n") in 
-	str
+	str, (dot_graph ^ "\n")
 
 let string_of_symb_exe_results results = 
-	let str = List.fold_left
-		(fun ac result -> 
-			let result_str = string_of_symb_exe_result result in 
-			ac ^ result_str)
-		""
+	let str_console, dot_file = List.fold_left
+		(fun (ac_console, ac_file) result -> 
+			let (result_console, dot_graph) = string_of_symb_exe_result result in 
+			((ac_console ^ result_console), (ac_file ^ dot_graph)))
+		("", "")
 		results in 
- 	str
+ 	str_console, dot_file
+
+
+let dot_of_search_info search_info proof_name = 
+	
+	let string_of_search_node node = 
+		let cmd_info_str  = if (not (node.cmd_index = (-1))) then 
+			Printf.sprintf "CMD %d: %s\n" node.cmd_index node.cmd_str 
+			else node.cmd_str in 
+		let heap_str  = "HEAP: " ^ node.heap_str ^ "\n" in 
+		let store_str = "STORE: " ^ node.store_str ^ "\n" in 
+		let pfs_str = "PFs: " ^ node.pfs_str ^ "\n" in 
+		let gamma_str = "TYPEs: " ^ node.gamma_str ^ "\n" in 
+		let preds_str = "PREDs: " ^ node.preds_str ^ "\n" in 
+		let dashes = "-----------------------------------------\n" in 
+		heap_str ^ store_str ^ pfs_str ^ gamma_str ^ preds_str ^ dashes ^ cmd_info_str in 
+		
+	
+	(**
+		return: 0[shape=box, label=cmd_0]; ...;n[shape=box, label=cmd_n];  
+	*)
+	let dot_of_search_nodes nodes len = 
+		let rec loop ac_str i = 
+			if (i >= len) then ac_str 
+			else begin
+				try 
+					let node = Hashtbl.find nodes i in 
+					let node_str = string_of_search_node node in 
+					let ac_str = (ac_str ^ "\t" ^ (string_of_int i) ^ "[shape=box, label=\"" ^ node_str ^ "\"];\n") in 
+					loop ac_str (i + 1) 
+				with _ -> loop ac_str (i + 1) 
+			end in 
+		loop "" 0 in 
+	 
+	
+	(**
+    node_i -> node_j; where j \in succ(i)
+  *)
+	let dot_of_edges edges len =
+		let rec loop ac_str i = 
+			(if (i >= len) then ac_str 
+			else begin 
+				try 
+					let succs = Hashtbl.find edges i in 
+					let ac_str = ac_str ^ 
+						(List.fold_left
+							(fun i_ac_str succ -> i_ac_str ^ "\t" ^ (string_of_int i) ^ " -> " ^ (string_of_int succ) ^ ";\n") 
+							""
+							succs) in 
+					loop ac_str (i + 1) 
+				with _ -> loop ac_str (i + 1) 
+				end) in 
+		loop "" 0 in 
+	
+	let str = "digraph " ^ proof_name ^ "{\n" in 
+	let len = !(search_info.next_node) in 
+	let str_nodes = dot_of_search_nodes search_info.info_nodes len in 
+	let str_edges = dot_of_edges search_info.info_edges len in 
+	Printf.printf "I finish printing the edges\n";  
+	let str = str ^ str_nodes ^ str_edges ^ "}" in
+	str

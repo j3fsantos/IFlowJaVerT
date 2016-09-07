@@ -1,4 +1,5 @@
 let file = ref ""
+let output_file = ref ""
 
 let arguments () =
   let usage_msg="Usage: -file <path>" in
@@ -6,6 +7,7 @@ let arguments () =
     [ 
 			(* file containing the program to symbolically execute *)
 			"-file", Arg.String(fun f -> file := f), "file to run";
+			"-o", Arg.String(fun f -> output_file := f), "output file";
 	  ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
@@ -20,8 +22,9 @@ let process_file path =
 	let ext_prog = JSIL_Utils.ext_program_of_path path in 
 	let prog, which_pred = JSIL_Utils.prog_of_ext_prog path ext_prog in 
 	let spec_tbl = JSIL_Logic_Normalise.build_spec_tbl prog in 
-	let results = JSIL_Symb_Interpreter.sym_run_procs spec_tbl prog which_pred ext_prog.predicates in 
+	let results, dot_graph = JSIL_Symb_Interpreter.sym_run_procs spec_tbl prog which_pred ext_prog.predicates in 
 	Printf.printf "RESULTS\n%s" results;
+	if (not ((!output_file) = "")) then burn_to_disk (!output_file) dot_graph;
 	exit 0
 
 

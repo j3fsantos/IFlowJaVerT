@@ -126,29 +126,61 @@ type n_jsil_logic_predicate = {
 }
 		
 type symb_jsil_program = {
-	program    : jsil_program; 
-	spec_tbl   : specification_table; 
-	which_pred : (string * int * int, int) Hashtbl.t; 
-	pred_defs  : (string, n_jsil_logic_predicate) Hashtbl.t
+	program    	: jsil_program; 
+	spec_tbl   	: specification_table; 
+	which_pred 	: (string * int * int, int) Hashtbl.t; 
+	pred_defs  	: (string, n_jsil_logic_predicate) Hashtbl.t
 }
 
 
+type search_info_node = {
+	heap_str    : string; 
+	store_str   : string; 
+	pfs_str     : string; 
+	gamma_str   : string; 
+	preds_str   : string;
+	(* cmd index *) 
+	cmd_index   : int; 
+	cmd_str     : string;
+	(* node number *) 
+	node_number : int
+}
+
 type symbolic_execution_search_info = {
-	vis_tbl    : (int, bool) Hashtbl.t 
+	vis_tbl    		: (int, int) Hashtbl.t;
+	cur_node_info :	search_info_node; 
+	info_nodes 		: (int, search_info_node) Hashtbl.t; 
+	info_edges    : (int, int list) Hashtbl.t; 
+	next_node     : int ref
 } 
 
+let make_symb_exe_search_info node_info = 
+	if (not (node_info.node_number = 0)) then 
+		raise (Failure "the node number of the first node must be 0")
+	else begin 
+		let new_search_info = 
+			{	
+				vis_tbl       = Hashtbl.create 31; 
+				cur_node_info = node_info; 
+				info_nodes    = Hashtbl.create 31; 
+				info_edges    = Hashtbl.create 31; 
+				next_node     = ref 1	
+			} in 
+		Hashtbl.replace new_search_info.info_edges 0 []; 
+		Hashtbl.replace new_search_info.info_nodes 0 node_info; 
+		new_search_info
+	end 
 
-let make_symb_exe_search_info () = 
-	{
-		vis_tbl = (Hashtbl.create 31)
+let udpdate_search_info search_info info_node vis_tbl = 
+	{ 
+		search_info with cur_node_info = info_node; vis_tbl = vis_tbl 
 	}
+
 
 let copy_vis_tbl vis_tbl = Hashtbl.copy vis_tbl 
 
 let update_vis_tbl search_info vis_tbl = 
-	{
-		vis_tbl = vis_tbl
-	}
+	{	search_info with vis_tbl = vis_tbl }
 
 let update_gamma (gamma : typing_environment) x te = 
 	(match te with 
@@ -173,5 +205,3 @@ let extend_abs_store x store gamma =
 	Hashtbl.add store x new_l_var;
 	new_l_var
 	
-
-
