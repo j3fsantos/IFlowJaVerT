@@ -107,6 +107,9 @@ let copy_single_spec s_spec =
 		n_subst = s_spec.n_subst
 	}
 
+let extend_pf pf new_pf = 
+	DynArray.append (DynArray.of_list new_pf) pf
+
 let pfs_to_list pfs = DynArray.to_list pfs 
 
 let rec extend_symb_state_with_pfs symb_state pfs = 
@@ -204,4 +207,24 @@ let extend_abs_store x store gamma =
 	with _ -> ()); 
 	Hashtbl.add store x new_l_var;
 	new_l_var
-	
+
+
+let pf_of_store store subst = 
+	Hashtbl.fold
+		(fun var le pfs -> 
+			try 
+				let sle = Hashtbl.find subst var in 
+				((LEq (sle, le)) :: pfs)
+			with _ -> pfs)
+		store 
+		[]
+		
+		
+let pf_of_substitution subst = 
+	Hashtbl.fold
+		(fun var le pfs -> 
+			if (is_lvar_name var) 
+				then ((LEq (LVar var, le)) :: pfs) 
+				else pfs)
+		subst 
+		[]

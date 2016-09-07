@@ -127,8 +127,8 @@ let get_assertion_vars ass catch_pvars =
 		| LStar (a1, a2) -> f a1; f a2
 		| LPointsTo (e1, e2, e3) -> fe e1; fe e2; fe e3
 		| LEmp  
-		| LTypes _ 
-		| LPred (_, _) -> () in 
+		| LTypes _ -> ()
+		| LPred (_, es) -> List.iter fe es  in 
 	get_ass_vars_iter ass; 
 	vars_tbl 
 
