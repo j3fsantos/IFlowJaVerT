@@ -1,7 +1,7 @@
 open JSIL_Syntax
 
 let file = ref ""
-let output_file = ref ""
+let output_folder = ref ""
 
 let arguments () =
   let usage_msg="Usage: -file <path>" in
@@ -9,7 +9,7 @@ let arguments () =
     [ 
 			(* file containing the program to symbolically execute *)
 			"-file", Arg.String(fun f -> file := f), "file to run";
-			"-o", Arg.String(fun f -> output_file := f), "output file";
+			"-o", Arg.String(fun f -> output_folder := f), "output folder";
 	  ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
@@ -19,15 +19,26 @@ let burn_to_disk path data =
 		output_string oc data; 
 		close_out oc 
 
+let register_dot_graphs dot_graphs = 
+	let folder_name = !output_folder in 
+	if (folder_name = "") then ()
+	else 
+		begin 
+			Utils.safe_mkdir folder_name;
+			Hashtbl.iter 
+				(fun (proc_name, i) dot_graph -> 
+					burn_to_disk (folder_name ^ "/" ^ proc_name ^ "_" ^ (string_of_int i) ^ ".dot") dot_graph)
+				dot_graphs
+		end
 
 let process_file path = 
 	let ext_prog = JSIL_Utils.ext_program_of_path path in 
 	let norm_preds = Logic_Predicates.normalise ext_prog.predicates in
 	let prog, which_pred = JSIL_Utils.prog_of_ext_prog path ext_prog in 
 	let spec_tbl = JSIL_Logic_Normalise.build_spec_tbl norm_preds prog in 
-	let results, dot_graph = JSIL_Symb_Interpreter.sym_run_procs spec_tbl prog which_pred norm_preds in 
+	let results, dot_graphs = JSIL_Symb_Interpreter.sym_run_procs spec_tbl prog which_pred norm_preds in 
 	Printf.printf "RESULTS\n%s" results;
-	if (not ((!output_file) = "")) then burn_to_disk (!output_file) dot_graph;
+	register_dot_graphs dot_graphs;
 	exit 0
 
 

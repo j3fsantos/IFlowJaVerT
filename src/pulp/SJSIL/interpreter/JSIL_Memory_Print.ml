@@ -153,7 +153,7 @@ let string_of_substitution substitution =
 
 
 let string_of_symb_exe_result result = 
-	let proc_name, pre_post, success, msg, dot_graph = result in 
+	let proc_name, i, pre_post, success, msg, dot_graph = result in 
 	let str = "Proc " ^ proc_name ^ "  - " ^ (string_of_single_spec pre_post) ^ " -- " in 
 	let str = 
 		if (success) then 
@@ -162,16 +162,18 @@ let string_of_symb_exe_result result =
 			(match msg with 
 			| None ->  str ^ "FAILED\n\n"
 			| Some msg -> str ^ "FAILED with msg: " ^ msg ^ "\n\n") in 
-	str, (dot_graph ^ "\n")
+	str, (proc_name, i, dot_graph)
 
 let string_of_symb_exe_results results = 
-	let str_console, dot_file = List.fold_left
-		(fun (ac_console, ac_file) result -> 
-			let (result_console, dot_graph) = string_of_symb_exe_result result in 
-			((ac_console ^ result_console), (ac_file ^ dot_graph)))
-		("", "")
+	let dot_graphs = Hashtbl.create 31 in 
+	let str_console = List.fold_left
+		(fun ac_console result -> 
+			let result_console, (proc_name, i, dot_graph) = string_of_symb_exe_result result in 
+			Hashtbl.add dot_graphs (proc_name, i) dot_graph;
+			ac_console ^ result_console)
+		""
 		results in 
- 	str_console, dot_file
+ 	str_console, dot_graphs
 
 
 let dot_of_search_info search_info proof_name = 
