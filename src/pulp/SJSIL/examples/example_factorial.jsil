@@ -1,9 +1,9 @@
-pred factorial (n, r) : (n == 0) * (r == 1),
-						(!(n <# 1)) * factorial(n - 1, #n1) * (r == n * #n1);
+pred factorial (n, r) : (n == 0) * (r == 1) * types(n: $$int_type, r: $$int_type),
+						(!(n <# 1)) * factorial(#n2, #n1) * (r == #r) * (#r == (n * #n1)) * (#n2 == (n - 1)) * types(n: $$int_type, r: $$int_type);
 
 spec factorial (n)
 	[[ types(n : $$int_type) * (!(n <# 0)) ]]
-	[[ types(n : $$int_type, ret : $$int_type) * (!(n <# 0)) * factorial(n, ret) ]]
+	[[ types(n : $$int_type, ret : $$int_type) * (!(ret <# 0)) * factorial(n, ret) ]]
 	normal
 proc factorial (n) {
 	xret := 1;
@@ -12,9 +12,11 @@ pos:
 rec:
 	xret := "factorial" (n - 1);
 	xret := n * xret;
+	skip;
 	[* fold factorial(n, xret) *]
 rlab:
 	skip
 } with {
 	ret: xret, rlab;
 };
+

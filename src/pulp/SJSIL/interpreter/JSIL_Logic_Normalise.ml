@@ -662,6 +662,11 @@ let rec init_gamma gamma a =
 			List.iter 
 				(fun (v, t) -> 
 					match v with
+					| LLit lit ->
+						if ((JSIL_Interpreter.evaluate_type_of lit) = t) 
+							then () 
+							else  raise (Failure ("Invalid types assertion."))
+						 
 					| LVar v -> Hashtbl.replace gamma v t
 					| PVar v -> Hashtbl.replace gamma v t
 							(* let new_v, new_v_name = 

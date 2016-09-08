@@ -1,55 +1,13 @@
-pred ObjectProp (l, prop, v) :
+pred Cell_o (l, prop, v) :
 	types(l : $$object_type, prop : $$string_type) * ((l, prop) -> v);
-	
-pred CommonMethods (l) :
-	((l, "@getProperty") -> "o__getProperty") * ((l, "@getOwnProperty") -> "o__getOwnProperty");
-
-pred ProtoLookup (l, prop, d) :
-	ObjectProp (l, prop, d) * (! (d == None)) * CommonMethods(l) * (! (prop == "@proto")),
-	ObjectProp (l, prop, None) * CommonMethods(l) * ((l, "@proto") -> $$null) * (d == $$undefined) * (! (prop == "@proto")),
-	ObjectProp (l, prop, None) * CommonMethods(l) * ((l, "@proto") -> #lp) * (!(#lp == $$null)) * CommonMethods(#lp) * (! (prop == "@proto")) * ProtoLookup(#lp, prop, d);
-
-spec o__getProperty (l, prop)
-	[[ ProtoLookup (l, prop, #d) * (l == #l) * (prop == #prop) ]]
-	[[ ProtoLookup (#l, #prop, #d) * ret == #d ]]
-	normal
-proc o__getProperty (l, prop) {
-			[* unfold (ProtoLookup (l, prop, #d)) *]
-			gop := [l, "@getOwnProperty"];
-			xret := gop (l, prop) with elab;
-			goto [xret = $$undefined] next1 next3;
-			
-	next1:	proto := [l, "@proto"];
-			goto [proto = $$null] next2 call;
-	
-			[* fold (ProtoLookup (l, prop, #d)) *]
-	next2:  goto rlab;
-	
-			[* fold (ProtoLookup (l, prop, #d)) *]
-	next3:  goto rlab;
-			
-	call:	gp := [proto, "@getProperty"];
-			xret := gp (proto, prop) with elab;
-			[* fold (ProtoLookup (l, prop, #d)) *]
-			goto rlab; 
-				
-    rlab:   skip;
-    elab:	skip
-}
-with 
-{
-    ret: 	xret, rlab;
-    err:	xret, elab;
-};
-
 
 spec o__getOwnProperty (l, prop)
-	[[ ObjectProp (l, prop, None) ]]
-	[[ ObjectProp (l, prop, None) * ret == $$undefined ]]
+	[[ Cell_o (l, prop, None) ]]
+	[[ Cell_o (l, prop, None) * (ret == $$undefined) ]]
 	normal;
 	
-	[[ ObjectProp (l, prop, #d) * (!(#d == None)) ]]
-	[[ ObjectProp (l, prop, #d) * (!(#d == None)) * types(#d : $$list_type) * ret == #d ]]
+	[[ Cell_o (l, prop, #d) * (!(#d == None)) ]]
+	[[ Cell_o (l, prop, #d) * (!(#d == None)) * types(#d : $$list_type) * (ret == #d) ]]
 	normal
 proc o__getOwnProperty (l, prop) {
             x := hasField(l, prop);		
@@ -67,3 +25,40 @@ with
     ret: 	xret, rlab;
 };
 
+pred CommonMethods (l) :
+	((l, "@getProperty") -> "o__getProperty");
+
+pred SpecificMethods_o (l) :
+	((l, "@getOwnProperty") -> "o__getOwnProperty");
+pred SpecificMethods_s (l) :
+	((l, "@getOwnProperty") -> "s__getOwnProperty");
+
+pred ProtoLookup (l, prop, d) :
+	SpecificMethods_o (l) * Cell_o (l, prop, None) * Cell_o (l, "@proto", $$null) * (d == $$undefined),
+	SpecificMethods_o (l) * Cell_o (l, prop, d) * (!(d == None)),
+	SpecificMethods_o (l) * Cell_o (l, prop, None) * Cell_o (l, "@proto", #lp)  * (!(#lp == $$null)) * CommonMethods(#lp) * ProtoLookup(#lp, prop, d);
+
+spec o__getProperty (l, prop)
+	[[ ProtoLookup (#l, #prop, #d) * (l == l) * (#prop == prop) ]]
+	[[ ProtoLookup (#l, #prop, #d) * ret == #d ]]
+	normal
+proc o__getProperty (l, prop) {
+			[* unfold ProtoLookup (l, prop, #d) *]
+			gop := [l, "@getOwnProperty"];
+			xret := gop (l, prop) with elab;
+			goto [xret = $$undefined] next rlab;
+			
+	next:	proto := [l, "@proto"];
+			goto [proto = $$null] rlab call;
+			
+	call:	gp := [proto, "@getProperty"];
+			xret := gp (proto, prop) with elab;
+			[* fold ProtoLookup (l, prop, #d) *]
+    rlab:   skip;
+    elab:	skip
+}
+with 
+{
+    ret: 	xret, rlab;
+    err:	xret, elab;
+};
