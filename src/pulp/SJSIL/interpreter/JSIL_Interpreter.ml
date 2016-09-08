@@ -699,7 +699,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 						evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
 					| Error, v ->
 						match j with
-						| None -> raise (Failure "procedure throws an error without a ret label")
+						| None -> raise (Failure "procedure throws an error without an error label")
 						| Some j ->
 							Hashtbl.replace store x v;
 							evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl)
@@ -718,6 +718,8 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 	  when evaluate_expr e store = String "Function_construct" ->
 			
 			Printf.printf "Function constructor encountered.\n";
+			
+			let se = (evaluate_expr (Var (Js2jsil.var_se)) store) in
 			
 			let argCount = (List.length e_args - 2) in
 			let params = ref "" in
@@ -756,32 +758,54 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 			(* Parsing the parameters as a FormalParametersList *)
 			let lexbuf = Lexing.from_string !params in
 			let parsed_params = 
-				(try (JSIL_Utils.parse_without_error JSIL_Parser.param_list_FC_target lexbuf) with 
-				  | _ -> raise (Failure "Oops!") (* THROW JSIL SYNTAX ERROR MAGICALLY *)) in 
-			let len = List.length parsed_params in
+				(try (Some (JSIL_Utils.parse_without_error JSIL_Parser.param_list_FC_target lexbuf)) with 
+				 | _ -> None) in
+			(match parsed_params with
+			| None -> (Error, se)
+			| Some parsed_params -> 
+				let len = List.length parsed_params in
 			
-			Printf.printf "\tParsed parameters: ";
-			for i = 0 to (len - 1) do
-				let elem = List.nth parsed_params i in
-				Printf.printf "%s " elem;
-			done;
-			Printf.printf "\n";
+				Printf.printf "\tParsed parameters: ";
+				for i = 0 to (len - 1) do
+					let elem = List.nth parsed_params i in
+					Printf.printf "%s " elem;
+				done;
+				Printf.printf "\n";
 			
-			(* Parsing the body as a FunctionBody *)
-			
-			
-			(* DIE HORRIBLY *)
-			raise (Failure "I've had enough!");
-			(Normal, Empty)
-			
-			
-			
-			
-			
-			
-			
-			
-			
+				(* Parsing the body as a FunctionBody *)
+				let e_body = (evaluate_expr (Literal (String !body)) store) in
+				(match e_body with
+				| String code ->
+					let code = Str.global_replace (Str.regexp (Str.quote "\\\"")) "\"" code in
+					let code = "function (" ^ !params ^ ") {" ^ code ^ "}" in
+					
+					Printf.printf "\n\tParsing: %s\n\n" code;
+					
+					let e_js = 
+						(try (Some (Parser_main.exp_from_string code)) with
+					   | _ -> None) in
+					(match e_js with
+					| None -> (Error, se)
+    			| Some e_js -> 
+    					Js_pre_processing.test_early_errors e_js;
+							
+							(match e_js.Parser_syntax.exp_stx with
+							  | Script (_, le) -> 
+									(match le with
+									| e :: [] -> 
+										(match e.Parser_syntax.exp_stx with
+										| Parser_syntax.AnonymousFun _ ->
+        							(* DIE HORRIBLY *)
+            					raise (Failure "I've had enough!");
+            					(Normal, Empty)
+										| _ -> (Error, se))
+									| _ -> (Error, se))
+								| _ -> (Error, se))
+					| _ -> (Error, se))
+
+				| _ -> (Error, se))
+      )
+		
 	| SCall (x, e, e_args, j) -> 
 		(* Printf.printf "Nothing was intercepted!!!\n"; *)
 		let call_proc_name_val = evaluate_expr e store in 
