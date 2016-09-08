@@ -1,13 +1,13 @@
 pred Cell_o (l, prop, v) :
-	types(l : $$object_type, prop : $$string_type) * ((l, prop) -> v);
+	types(l : $$object_type, prop : $$string_type) * ((l, prop) -> v);  	
 
 spec o__getOwnProperty (l, prop)
 	[[ Cell_o (l, prop, None) ]]
 	[[ Cell_o (l, prop, None) * (ret == $$undefined) ]]
 	normal;
 	
-	[[ Cell_o (l, prop, #d) * (!(#d == None)) ]]
-	[[ Cell_o (l, prop, #d) * (!(#d == None)) * types(#d : $$list_type) * (ret == #d) ]]
+	[[ Cell_o (l, prop, #d) * (!(#d == None))  ]]
+	[[ Cell_o (l, prop, #d) * (!(#d == None)) * (ret == #d) ]]
 	normal
 proc o__getOwnProperty (l, prop) {
             x := hasField(l, prop);		
@@ -35,11 +35,11 @@ pred SpecificMethods_s (l) :
 
 pred ProtoLookup (l, prop, d) :
 	SpecificMethods_o (l) * Cell_o (l, prop, None) * Cell_o (l, "@proto", $$null) * (d == $$undefined),
-	SpecificMethods_o (l) * Cell_o (l, prop, d) * (!(d == None)),
+	SpecificMethods_o (l) * Cell_o (l, prop, d) * (!(d == None)) * (! (d == $$undefined)),
 	SpecificMethods_o (l) * Cell_o (l, prop, None) * Cell_o (l, "@proto", #lp)  * (!(#lp == $$null)) * CommonMethods(#lp) * ProtoLookup(#lp, prop, d);
 
 spec o__getProperty (l, prop)
-	[[ ProtoLookup (#l, #prop, #d) * (l == l) * (#prop == prop) ]]
+	[[ ProtoLookup (#l, #prop, #d) * (l == #l) * (#prop == prop) ]]
 	[[ ProtoLookup (#l, #prop, #d) * ret == #d ]]
 	normal
 proc o__getProperty (l, prop) {

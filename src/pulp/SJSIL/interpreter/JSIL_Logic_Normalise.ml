@@ -209,7 +209,7 @@ let rec init_symb_store_alocs store gamma subst ass : unit =
 		then
 			(let aloc = new_abs_loc_name var in  
 			Hashtbl.add subst var (ALoc aloc); 
-			Hashtbl.replace gamma var ObjectType)
+			Hashtbl.remove gamma var)
 				
 	| LPointsTo (ALoc _, _, _) ->
 		raise (Failure "Unsupported assertion during normalization")	
@@ -665,7 +665,11 @@ let rec init_gamma gamma a =
 					| LLit lit ->
 						if ((JSIL_Interpreter.evaluate_type_of lit) = t) 
 							then () 
-							else  raise (Failure ("Invalid types assertion."))
+							else  
+								(let msg = Printf.sprintf "Only vars or lvars in the typing environment, for the love of God. PUTTING: %s with type %s" 
+									(JSIL_Print.string_of_logic_expression v false)
+									(JSIL_Print.string_of_type t) in 
+								raise (Failure msg))
 						 
 					| LVar v -> Hashtbl.replace gamma v t
 					| PVar v -> Hashtbl.replace gamma v t
@@ -681,7 +685,11 @@ let rec init_gamma gamma a =
 							Hashtbl.replace subst v new_v; 
 							Hashtbl.replace gamma v t;
 							Hashtbl.replace gamma new_v_name t *)
-					| _ -> raise (Failure ("Only vars or lvars in the typing environment, for the love of God.")))
+					| LNone -> ()
+					| _ ->
+						let msg = Printf.sprintf "Only vars or lvars in the typing environment, for the love of God. PUTTING: %s" 
+							(JSIL_Print.string_of_logic_expression v false) in  
+						raise (Failure msg))
 				type_list
 		| LStar	(al, ar) -> f al; f ar
 		| _ -> ()

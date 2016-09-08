@@ -419,7 +419,7 @@ let subtract_pred pred_name args pred_set pfs gamma =
 	let pred_list = DynArray.to_list pred_set in 
 	let rec loop pred_list index = 
 		match pred_list with 
-		| [] -> raise (Failure "predicate not found. bananas!!!")
+		| [] -> raise (Failure "Predicate to fold not found in the predicate set!!!")
 		| pred :: rest_pred_list -> 
 			if (predicate_assertion_equality (pred_name, args) pred pfs gamma) then 
 				index
@@ -716,23 +716,25 @@ let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) p_form
 
 
 let unify_gamma pat_gamma gamma subst =
-	(* Printf.printf "I am about to unify two gammas\n";
-	Printf.printf "pat_gamma: %s.\ngamma: %s\n" (JSIL_Memory_Print.string_of_gamma pat_gamma) (JSIL_Memory_Print.string_of_gamma gamma); *)
+	Printf.printf "I am about to unify two gammas\n";
+	Printf.printf "pat_gamma: %s.\ngamma: %s.\nsubst: %s\n" 
+		(JSIL_Memory_Print.string_of_gamma pat_gamma) (JSIL_Memory_Print.string_of_gamma gamma)
+		(JSIL_Memory_Print.string_of_substitution subst); 
 	let res = (Hashtbl.fold 	
 		(fun var v_type ac ->
-			(if (not ac) 
+			(if ((not ac) || (not (is_lvar_name var))) 
 				then ac 
 				else 
-					let le = try Hashtbl.find subst var with _ -> (LVar var) in
-					let le_type, is_typable = JSIL_Logic_Normalise.normalised_is_typable gamma le in  
-					if is_typable then 
-						(match le_type with 
+					try 
+						let le = Hashtbl.find subst var in 
+						let le_type, is_typable = JSIL_Logic_Normalise.normalised_is_typable gamma le in  
+						match le_type with 
 						| Some le_type -> le_type = v_type 
-						| None -> false)
-						else false))
+						| None -> false
+					with _ -> false))
 		pat_gamma 
 		true) in 
-	true
+	res
 
 
 let check_entailment_pf pf pat_pf gamma subst = 
