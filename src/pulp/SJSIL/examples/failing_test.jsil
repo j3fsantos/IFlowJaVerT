@@ -37,9 +37,9 @@ pred SpecificMethods_s (l) :
 	((l, "@getOwnProperty") -> "s__getOwnProperty");
 
 pred ProtoLookup (l, prop, d) :
-	Cell_o (l, prop, None) * SpecificMethods_o (l) * Cell_o (l, "@proto", $$null) * (d == $$undefined) * (! (#prop == "@proto")),
-	Cell_o (l, prop, d) * SpecificMethods_o (l) * (!(d == None)) * (! (#prop == "@proto")),
-	Cell_o (l, prop, None) * Cell_o (l, "@proto", #lp) * SpecificMethods_o (l) * CommonMethods(#lp) * (!(#lp == $$null)) * ProtoLookup(#lp, prop, d) * (! (#prop == "@proto"));
+	SpecificMethods_o (l) * Cell_o (l, prop, None) * Cell_o (l, "@proto", $$null) * (d == $$undefined) * (! (#prop == "@proto")),
+	SpecificMethods_o (l) * Cell_o (l, prop, d) * (!(d == None)) * (! (#prop == "@proto")),
+	SpecificMethods_o (l) * CommonMethods(#lp) * Cell_o (l, prop, None) * Cell_o (l, "@proto", #lp) * (!(#lp == $$null)) * ProtoLookup(#lp, prop, d) * (! (#prop == "@proto"));
 
 spec o__getProperty (l, prop)
 	[[ ProtoLookup (#l, #prop, #d) * (l == #l) * (#prop == prop)  ]]
