@@ -45,7 +45,7 @@ let evaluate_type_of lit =
 	| Constant _ -> NumberType
 	| Bool _ -> BooleanType
 	| Integer _ -> IntType
-	| Num n -> if (n = (snd (modf n))) then IntType else NumberType
+	| Num n -> NumberType (* if (n = (snd (modf n))) then IntType else NumberType *)
 	| String _ -> StringType
 	| Loc _ -> ObjectType
 	| Type _ -> TypeType
@@ -128,6 +128,89 @@ let uint32_right_shift = (fun x y ->
   let right = (int_of_float y) mod 32 in
   let r = Int32.to_float (Int32.shift_right_logical left right) in
   if r < 0. then r +. i32 else r)
+
+(* SPECIAL STUFF FOR OBJECTS *)
+
+let copy_object heap loc fields = 
+	let obj = (try SHeap.find heap loc with _ -> raise (Failure (Printf.sprintf "Not found: object %s" loc))) in
+	let new_obj = SHeap.create 1021 in
+	List.iter 
+		(fun x -> 
+			let value = (try SHeap.find obj x with _ -> raise (Failure (Printf.sprintf "Not found: [%s, %s]" loc x))) in
+			SHeap.add new_obj x value)
+		fields;
+	new_obj
+
+(* Default objects *)
+let create_default_object proto cls ext = 
+	let obj = SHeap.create 1021 in
+		SHeap.add obj "@proto" (String proto);
+		SHeap.add obj "@class" (String cls);
+		SHeap.add obj "@extensible" (Bool ext);
+		SHeap.add obj "@getOwnProperty" (String "o__getOwnProperty");
+		SHeap.add obj "@getProperty" (String "o__getProperty");
+		SHeap.add obj "@get" (String "o__get");
+		SHeap.add obj "@canPut" (String "o__canPut");
+		SHeap.add obj "@put" (String "o__put");
+		SHeap.add obj "@hasProperty" (String "o__hasProperty");
+		SHeap.add obj "@deleteProperty" (String "o__deleteProperty");
+		SHeap.add obj "@defaultValue" (String "o__defaultValue");
+		SHeap.add obj "@defineOwnProperty" (String "o__defineOwnProperty");
+		SHeap.add obj "@primitiveValue" Empty;
+		SHeap.add obj "@construct" Empty;
+		SHeap.add obj "@call" Empty;
+		SHeap.add obj "@hasInstance" Empty;
+		SHeap.add obj "@scope" Empty;
+		SHeap.add obj "@formalParameters" Empty;
+		SHeap.add obj "@call" Empty;
+		SHeap.add obj "@construct" Empty;
+		SHeap.add obj "@targetFunction" Empty;
+		SHeap.add obj "@boundThis" Empty;
+		SHeap.add obj "@boundArguments" Empty;
+		SHeap.add obj "@match" Empty;
+		SHeap.add obj "@parameterMap" Empty;
+		obj
+		
+(* Call-construct objects *)
+let create_object_with_call_construct call construct len = 
+	let obj = create_default_object "$lfun_proto" "Function" true in
+		SHeap.add obj "length" (LList [String "d"; Num (float_of_int len); Bool false; Bool false; Bool false]); 
+		SHeap.replace obj "@call" (String call);
+		SHeap.replace obj "@construct" (String construct);
+		SHeap.replace obj "@get" (String "f__get");
+		SHeap.replace obj "@hasInstance" (String "f__hasInstance");
+		obj
+
+(* Function objects - with heap addition *)
+let create_anonymous_function_object heap call construct params scope vis_fid =
+	let loc = fresh_loc () in
+	let len = List.length params in
+	let obj = create_object_with_call_construct call construct len in
+	
+		(* Do the scope properly *)
+		let loc_scope = fresh_loc () in
+		let scope_obj = copy_object heap scope (List.tl vis_fid) in
+		SHeap.add scope_obj (List.hd vis_fid) (Loc loc);
+		SHeap.replace obj "@scope" (Loc loc_scope);
+		
+		
+		SHeap.replace obj "@formalParameters" (LList (List.map (fun x -> String x) params));
+		SHeap.add obj "caller"    (LList [(String "a"); Loc "$lthrow_type_error"; Loc "$lthrow_type_error"; Bool false; Bool false]);
+		SHeap.add obj "arguments" (LList [(String "a"); Loc "$lthrow_type_error"; Loc "$lthrow_type_error"; Bool false; Bool false]);
+			
+		let loc_proto = fresh_loc () in
+		let proto_obj = create_default_object "$lobj_proto" "Object" true in
+			SHeap.add proto_obj "constructor" (LList [String "d"; Loc loc; Bool true; Bool false; Bool true]);
+			SHeap.add obj "prototype" (LList [String "d"; Loc loc_proto; Bool true; Bool false; Bool true]);
+	
+			(* PUT BOTH IN THE HEAP *)
+			SHeap.add heap loc_scope scope_obj;
+			SHeap.add heap loc_proto proto_obj;
+			SHeap.add heap loc obj;
+
+			loc
+			
+(* END SPECIAL STUFF *)
 
 let evaluate_unop op lit = 
 	match op with
@@ -519,7 +602,7 @@ let rec evaluate_bcmd bcmd heap store =
 	| SAssignment (x, e) ->
 		let v_e = evaluate_expr e store in 
 		if (!verbose) then Printf.printf "Assignment: %s := %s\n" x (JSIL_Print.string_of_literal v_e false);
-		Hashtbl.add store x v_e; 
+		Hashtbl.replace store x v_e; 
 		v_e
 		
 	| SNew x -> 
@@ -527,7 +610,7 @@ let rec evaluate_bcmd bcmd heap store =
 		let obj = SHeap.create 1021 in
 		SHeap.add obj proto_f Null;
 		SHeap.add heap new_loc obj;
-		Hashtbl.add store x (Loc new_loc);
+		Hashtbl.replace store x (Loc new_loc);
 		Loc new_loc
 		
 	| SLookup (x, e1, e2) -> 
@@ -587,15 +670,17 @@ let rec evaluate_bcmd bcmd heap store =
 	| SHasField (x, e1, e2) -> 
 		let v_e1 = evaluate_expr e1 store in
 		let v_e2 = evaluate_expr e2 store in 	
+		let pv_e1 = JSIL_Print.string_of_literal v_e1 false in
+		let pv_e2 = JSIL_Print.string_of_literal v_e2 false in
 		(match v_e1, v_e2 with 
 		| Loc l, String f -> 
 			let obj = (try SHeap.find heap l with
-			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (JSIL_Print.string_of_literal v_e1 false)))) in
+			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" pv_e1))) in
 			let v = Bool (SHeap.mem obj f) in 
 			Hashtbl.replace store x v; 
-			if (!verbose) then Printf.printf "hasField: %s := hf (%s, %s) = %s \n" x (JSIL_Print.string_of_literal v_e1 false) (JSIL_Print.string_of_literal v_e2 false) (JSIL_Print.string_of_literal v false);
+			if (!verbose) then Printf.printf "hasField: %s := hf (%s, %s) = %s \n" x pv_e1 pv_e2 (JSIL_Print.string_of_literal v false);
 			v
-		| _, _ -> raise (Failure "Illegal Field Check"))
+		| _, _ -> raise (Failure (Printf.sprintf "Illegal Field Check: [%s, %s]" pv_e1 pv_e2)))
 	
 	| SGetFields (x, e) ->
 		let v_e = evaluate_expr e store in
@@ -631,7 +716,16 @@ let init_store params args =
 	let number_of_params = List.length params in 
 	let new_store = Hashtbl.create (number_of_params + 1) in
 	
-	if (!verbose) then Printf.printf "I am initializing a store! Number of args: %d, Number of params: %d\n" (List.length args) (List.length params);
+	if (!verbose) then 
+		begin
+			Printf.printf "I am initializing a store! Number of args: %d, Number of params: %d\n" (List.length args) (List.length params);
+			Printf.printf "Params: ";
+			List.iter (fun x -> Printf.printf "%s " x) params;
+			Printf.printf "\n";
+			Printf.printf "Args: ";
+			List.iter (fun x -> Printf.printf "%s " (JSIL_Print.string_of_literal x false)) args;
+			Printf.printf "\n"
+		end;
 	
 	let rec loop params args = 
 		match params with 
@@ -639,10 +733,10 @@ let init_store params args =
 		| param :: rest_params -> 
 			(match args with 
 			| arg :: rest_args -> 
-				Hashtbl.add new_store param arg;
+				Hashtbl.replace new_store param arg;
 				loop rest_params rest_args
 			| [] -> 
-				Hashtbl.add new_store param Undefined;
+				Hashtbl.replace new_store param Undefined;
 				loop rest_params []) in 
 	loop params args; 
 	
@@ -717,7 +811,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 	| SCall (x, e, e_args, j)
 	  when evaluate_expr e store = String "Function_construct" ->
 			
-			Printf.printf "Function constructor encountered.\n";
+			(* Printf.printf "Function constructor encountered.\n"; *)
 			
 			let se = (evaluate_expr (Var (Js2jsil.var_se)) store) in
 			
@@ -752,8 +846,8 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 					   | _ -> raise (Failure "Non-string body in the Function constructor"));
 			end;
 
-			Printf.printf "\tParameters: %s\n" !params;
-			Printf.printf "\tBody: %s\n\n" !body;
+			(* Printf.printf "\tParameters: %s\n" !params;
+			Printf.printf "\tBody: %s\n\n" !body; *)
  
 			(* Parsing the parameters as a FormalParametersList *)
 			let lexbuf = Lexing.from_string !params in
@@ -765,12 +859,12 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 			| Some parsed_params -> 
 				let len = List.length parsed_params in
 			
-				Printf.printf "\tParsed parameters: ";
+				(* Printf.printf "\tParsed parameters: ";
 				for i = 0 to (len - 1) do
 					let elem = List.nth parsed_params i in
 					Printf.printf "%s " elem;
 				done;
-				Printf.printf "\n";
+				Printf.printf "\n"; *)
 			
 				(* Parsing the body as a FunctionBody *)
 				let e_body = (evaluate_expr (Literal (String !body)) store) in
@@ -779,25 +873,43 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 					let code = Str.global_replace (Str.regexp (Str.quote "\\\"")) "\"" code in
 					let code = "function (" ^ !params ^ ") {" ^ code ^ "}" in
 					
-					Printf.printf "\n\tParsing: %s\n\n" code;
+					(* Printf.printf "\n\tParsing: %s\n\n" code; *)
 					
 					let e_js = 
 						(try (Some (Parser_main.exp_from_string code)) with
 					   | _ -> None) in
 					(match e_js with
 					| None -> (Error, se)
-    			| Some e_js -> 
-    					Js_pre_processing.test_early_errors e_js;
-							
+    			| Some e_js -> 							
 							(match e_js.Parser_syntax.exp_stx with
 							  | Script (_, le) -> 
 									(match le with
 									| e :: [] -> 
 										(match e.Parser_syntax.exp_stx with
-										| Parser_syntax.AnonymousFun _ ->
-        							(* DIE HORRIBLY *)
-            					raise (Failure "I've had enough!");
-            					(Normal, Empty)
+										| Parser_syntax.AnonymousFun (_, params, body) ->		
+												(* Printf.printf "Params: ";
+												List.iter (fun x -> Printf.printf "%s " x) params;
+												Printf.printf "\n"; *)
+												let new_proc = Js2jsil.js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl cur_proc_name params e in
+												let fun_name = new_proc.proc_name in
+												let vis_tbl = (match vis_tbl with
+												                | Some t -> t
+																				| None -> raise (Failure "No visibility table")) in 
+												let vis_fid = try (Hashtbl.find vis_tbl fun_name) 
+													with _ -> (let msg = Printf.sprintf "Function %s not found in visibility table" fun_name in 
+																		raise (Failure msg)) in
+												let scope = (evaluate_expr (Var Js2jsil.var_scope) store) in
+												let lsc = (match scope with
+												             | Loc lsc -> lsc
+																		 | _ -> raise (Failure "Scope not a location.")) in  
+												(* Printf.printf "Function name: %s\n" fun_name;
+												Printf.printf "vis_fid: ";
+												List.iter (fun x -> Printf.printf "%s " x) vis_fid;
+												Printf.printf "\n"; *)
+												let new_loc = create_anonymous_function_object heap fun_name fun_name params lsc vis_fid in
+												Hashtbl.replace store x (Loc new_loc);
+					 							evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl (Some vis_tbl)
+											
 										| _ -> (Error, se))
 									| _ -> (Error, se))
 								| _ -> (Error, se))
@@ -948,7 +1060,7 @@ evaluate_phi_psi_cmd prog proc which_pred heap store cur_cmd prev_cmd ac_cur_cmd
 		   (match x_live with
 			  | None -> "NONE!" 
 				| Some x_live -> x_live) cur_which_pred (Array.length x_arr - 1) x (JSIL_Print.string_of_literal v false);
-		Hashtbl.add store x v; 
+		Hashtbl.replace store x v; 
 		evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
 								
 																						 		
