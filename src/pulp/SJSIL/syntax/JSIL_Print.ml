@@ -65,8 +65,8 @@ let rec string_of_literal lit escape_string =
   | Num n -> string_of_float n
   | String x ->
 		(if escape_string
-			then Printf.sprintf "\\\"%s\\\"" x
-			else Printf.sprintf "\"%s\"" x)
+			then Printf.sprintf "String \\\"%s\\\"" x
+			else Printf.sprintf "String \"%s\"" x)
   | Loc loc -> loc
   | Type t -> string_of_type t
 	| LVRef (l, x) -> Printf.sprintf "%s.v.%s" (sl l) x

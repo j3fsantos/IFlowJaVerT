@@ -144,7 +144,7 @@ let copy_object heap loc fields =
 (* Default objects *)
 let create_default_object proto cls ext = 
 	let obj = SHeap.create 1021 in
-		SHeap.add obj "@proto" (String proto);
+		SHeap.add obj "@proto" (Loc proto);
 		SHeap.add obj "@class" (String cls);
 		SHeap.add obj "@extensible" (Bool ext);
 		SHeap.add obj "@getOwnProperty" (String "o__getOwnProperty");
