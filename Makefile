@@ -5,7 +5,7 @@ default:
 	#ocamlbuild -use-ocamlfind tests/test_interpreter.byte
 	#ocamlbuild -use-ocamlfind src/pulp/syntax/translate.byte
 	#ocamlbuild -use-ocamlfind tests/spec_Functions_Tests.byte
-	ocamlbuild -use-ocamlfind src/pulp/SJSIL/symb_execution_main.byte
+	#ocamlbuild -use-ocamlfind src/pulp/SJSIL/symb_execution_main.byte
 	ocamlbuild -use-ocamlfind -verbose 1 sjsil.otarget
 
 init:
