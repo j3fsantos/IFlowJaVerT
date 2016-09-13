@@ -48,7 +48,7 @@ spec o__getOwnProperty (l, prop)
 	[[ ObjectProp (l, prop, None) * ret == $$undefined ]]
 	normal;
 	
-	[[ ObjectProp (l, prop, #d) * (!(#d == None)) ]]
+	[[ ObjectProp (l, prop, #d) * (!(#d == None)) * types(#d : $$list_type) ]]
 	[[ ObjectProp (l, prop, #d) * (!(#d == None)) * types(#d : $$list_type) * ret == #d ]]
 	normal
 proc o__getOwnProperty (l, prop) {
