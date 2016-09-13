@@ -118,7 +118,11 @@ let rec extend_symb_state_with_pfs symb_state pfs =
 	| pf :: rest_pfs -> 
 		DynArray.add (get_pf symb_state) pf; 
 		extend_symb_state_with_pfs symb_state rest_pfs 
-	
+
+let gamma_get_type gamma var = 
+	try Some (Hashtbl.find gamma var) with Not_found -> None
+
+
 (* JSIL logic predicates *)
 type n_jsil_logic_predicate = {
 	n_pred_name        : string;

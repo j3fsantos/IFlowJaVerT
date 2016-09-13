@@ -231,6 +231,6 @@ let dot_of_search_info search_info proof_name =
 	let len = !(search_info.next_node) in 
 	let str_nodes = dot_of_search_nodes search_info.info_nodes len in 
 	let str_edges = dot_of_edges search_info.info_edges len in 
-	Printf.printf "I finish printing the edges\n";  
+	(* Printf.printf "I finish printing the edges\n";  *)
 	let str = str ^ str_nodes ^ str_edges ^ "}" in
 	str

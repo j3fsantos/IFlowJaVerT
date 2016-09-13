@@ -547,8 +547,8 @@ let rec normalised_is_typable gamma nlexpr =
       | IsPrimitive -> (Some BooleanType, true)
       | Cdr
       | Car -> (None, false)
-  		| LstLen (* CHECK *)
-			| StrLen -> (None, false)) (* CHECK *)
+  		| LstLen -> tt ListType IntType
+			| StrLen -> tt StringType IntType) (* CHECK *)
 		else
 			(None, false)
 	
@@ -588,13 +588,19 @@ let rec normalised_is_typable gamma nlexpr =
 			| Subtype, (Some t) -> check_valid_type t all_types BooleanType
 			| LstCons, _ -> check_valid_type t2 [ ListType ] ListType
 			| LstCat, (Some t) -> check_valid_type t [ ListType ] ListType
-			| StrCat, (Some t) -> check_valid_type t [ ListType ] ListType)
+			| StrCat, (Some t) -> check_valid_type t [ ListType ] ListType
+			| _, Some t -> 
+				Printf.printf "op: %s, t: %s"  (JSIL_Print.string_of_binop op) (JSIL_Print.string_of_type t); 
+				raise (Failure "ERROR")
+		 	| _, None -> 
+				Printf.printf "op: %s, t: none"  (JSIL_Print.string_of_binop op) ; 
+				raise (Failure "ERROR"))
 		| _, _ -> (None, false))
 
 	| LLstNth (_, _) 
 	| LStrNth (_, _) -> (None, false)
 
-	| LNone
+	| LNone    -> (Some NoneType, true)
   | LUnknown -> (None, false))
 
 

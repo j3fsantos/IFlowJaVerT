@@ -1,6 +1,63 @@
 open Z3
 open JSIL_Syntax
 
+type smt_translation_ctx = {
+	z3_ctx            : context;
+	tr_typing_env     : JSIL_Memory_Model.typing_environment; 
+	tr_typeof_fun     : FuncDecl.func_decl;
+  tr_list_sort      : Sort.sort; 
+  tr_list_nil       : FuncDecl.func_decl;
+	tr_list_is_nil    : FuncDecl.func_decl;  
+	tr_list_cons      : FuncDecl.func_decl;
+	tr_list_is_cons   : FuncDecl.func_decl;  
+	tr_list_head      : FuncDecl.func_decl; 
+	tr_list_tail      : FuncDecl.func_decl
+}
+
+
+let mk_smt_translation_ctx gamma = 
+	let cfg = [("model", "true"); ("proof", "false")] in
+	let ctx = (mk_context cfg) in
+
+	let z3_typeof_fun_name = (Symbol.mk_string ctx "typeof") in
+	let z3_typeof_fun_domain = [ Arithmetic.Integer.mk_sort ctx ] in
+	let z3_typeof_fun = FuncDecl.mk_func_decl ctx z3_typeof_fun_name z3_typeof_fun_domain (Arithmetic.Integer.mk_sort ctx) in 
+	
+	let z3_list_sort_name = (Symbol.mk_string ctx "tr_list") in
+	let list_sort = Z3List.mk_sort ctx z3_list_sort_name (Arithmetic.Integer.mk_sort ctx) in 
+	
+	let list_nil     = Z3List.get_nil_decl     list_sort in 
+	let list_is_nil  = Z3List.get_is_nil_decl  list_sort in 
+	let list_cons    = Z3List.get_cons_decl    list_sort in 
+	let list_is_cons = Z3List.get_is_cons_decl list_sort in 
+	let list_head    = Z3List.get_head_decl    list_sort in 
+	let list_tail    = Z3List.get_tail_decl    list_sort in 
+	
+	{
+		z3_ctx            = ctx;
+		tr_typing_env     = gamma; 
+		tr_typeof_fun     = z3_typeof_fun;
+  	tr_list_sort      = list_sort; 
+ 		tr_list_nil       = list_nil; 
+		tr_list_is_nil    = list_is_nil;
+		tr_list_cons      = list_cons;
+		tr_list_is_cons   = list_is_cons;  
+		tr_list_head      = list_head; 
+		tr_list_tail      = list_tail
+	}
+
+
+let mk_z3_list les tr_ctx = 
+	let empty_list = Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_list_nil [ ] in
+	let rec loop les cur_list = 
+		match les with 
+		| [] -> cur_list 
+		| le :: rest_les -> 
+			let new_cur_list = Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_list_cons [ le; cur_list ] in
+			loop rest_les new_cur_list in 
+	loop les empty_list
+	
+
 
 (** Encode JSIL type literals as Z3 numerical constants *)
 let encode_type ctx jsil_type =
@@ -19,6 +76,20 @@ let encode_type ctx jsil_type =
 	| VariableReferenceType -> Arithmetic.Integer.mk_numeral_i ctx 11
 	| ListType              -> Arithmetic.Integer.mk_numeral_i ctx 12
 	| TypeType              -> Arithmetic.Integer.mk_numeral_i ctx 13
+
+
+let types_encoded_as_ints = [
+	UndefinedType; 
+	NullType; 
+	EmptyType; 
+	NoneType; 
+	BooleanType; 
+	IntType; 
+	StringType; 
+	ObjectType; 
+	TypeType
+]
+
 
 (** Encode JSIL constants as Z3 numerical constants *)
 let encode_constant ctx constant =
@@ -46,34 +117,51 @@ let encode_string ctx str =
 		z3_code
 
 (** Encode JSIL literals as Z3 numerical constants *)
-let encode_literal ctx lit =
+let rec encode_literal tr_ctx lit =
+	let f = encode_literal tr_ctx in 
+	let ctx = tr_ctx.z3_ctx in 
+	let gamma = tr_ctx.tr_typing_env in
 	match lit with
-	| Undefined  -> (Arithmetic.Integer.mk_numeral_i ctx 0), (encode_type ctx UndefinedType)
-	| Null       -> (Arithmetic.Integer.mk_numeral_i ctx 1), (encode_type ctx NullType)
-	| Empty      -> (Arithmetic.Integer.mk_numeral_i ctx 2), (encode_type ctx EmptyType)
-	| Constant c -> encode_constant ctx c
-	| Bool b     ->
+	| Undefined     -> (Arithmetic.Integer.mk_numeral_i ctx 0), (encode_type ctx UndefinedType)
+	| Null          -> (Arithmetic.Integer.mk_numeral_i ctx 1), (encode_type ctx NullType)
+	| Empty         -> (Arithmetic.Integer.mk_numeral_i ctx 2), (encode_type ctx EmptyType)
+	| Constant c    -> encode_constant ctx c
+	| Bool b        ->
 		(match b with
-		| true     -> (Arithmetic.Integer.mk_numeral_i ctx 0), (encode_type ctx BooleanType)
-		| false    -> (Arithmetic.Integer.mk_numeral_i ctx 1), (encode_type ctx BooleanType))
-	| Integer i  -> (Arithmetic.Integer.mk_numeral_i ctx i), (encode_type ctx IntType)
-	| Num n      ->
+		| true        -> (Arithmetic.Integer.mk_numeral_i ctx 0), (encode_type ctx BooleanType)
+		| false       -> (Arithmetic.Integer.mk_numeral_i ctx 1), (encode_type ctx BooleanType))
+	| Integer i     -> (Arithmetic.Integer.mk_numeral_i ctx i), (encode_type ctx IntType)
+	| Num n         ->
 		if (n = (snd (modf n)))
 			then        (Arithmetic.Integer.mk_numeral_i ctx (int_of_float n)), (encode_type ctx IntType)
 			else        (Arithmetic.Real.mk_numeral_s ctx (string_of_float n)), (encode_type ctx NumberType)
-	| String s   -> (encode_string ctx s), (encode_type ctx StringType)
-	| Loc l      -> (encode_string ctx ("$l" ^ l)), (encode_type ctx ObjectType)
-	| Type t     -> (encode_type ctx t), (encode_type ctx TypeType)
-	| _          -> raise (Failure "SMT encoding: Construct not supported yet - literal!")
+	| String s      -> (encode_string ctx s), (encode_type ctx StringType)
+	| Loc l         -> (encode_string ctx ("$l" ^ l)), (encode_type ctx ObjectType)
+	| Type t        -> (encode_type ctx t), (encode_type ctx TypeType)
+	| LList lits -> 
+		let les_tes = List.map f lits in
+		let les, tes = 
+			List.fold_left
+				(fun (les, tes) (le, te) -> (le :: les, te :: tes))
+				([], [])
+				les_tes in   
+		let le_list = mk_z3_list les tr_ctx in 
+		le_list,  (encode_type ctx ListType)
+		 						  
+	| _             -> raise (Failure "SMT encoding: Construct not supported yet - literal!")
 
 (** Encode JSIL binary operators *)
-let encode_binop ctx op le1 le2 =
+let encode_binop tr_ctx op le1 le2 =
+	let ctx = tr_ctx.z3_ctx in 
 	match op with
 	| Plus          -> (Arithmetic.mk_add ctx [ le1; le2 ])
 	| Minus         -> (Arithmetic.mk_sub ctx [ le1; le2 ])
 	| Times         -> (Arithmetic.mk_mul ctx [ le1; le2 ])
 	| Div           -> (Arithmetic.mk_div ctx le1 le2)
 	| Mod           -> (Arithmetic.Integer.mk_mod ctx le1 le2)
+	| LstCons       -> 
+		(* Printf.printf "I am going to BURST\nBURST. le1: %s. le2: %s. \n" (Expr.to_string le1) (Expr.to_string le2); *)
+		(Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_list_cons [ le1; le2 ]) 
 	| _     -> 
 		let msg = Printf.sprintf "SMT encoding: Construct not supported yet - binop - %s!" (JSIL_Print.string_of_binop op) in 
 		raise (Failure msg)
@@ -89,11 +177,14 @@ let encode_unop ctx op le =
 	
 
 (** Encode JSIL logical expressions *)
-let rec encode_logical_expression ctx gamma z3_typeof_fun e =
-	let ele = encode_logical_expression ctx gamma z3_typeof_fun in
+let rec encode_logical_expression tr_ctx e =
+	let ele = encode_logical_expression tr_ctx in
+	let ctx = tr_ctx.z3_ctx in 
+	let gamma = tr_ctx.tr_typing_env in 
+	
 	(match e with
 	| LLit lit        -> 
-		let le, te = encode_literal ctx lit in 
+		let le, te = encode_literal tr_ctx lit in 
 		le, te, []
 	
 	| LNone           -> 
@@ -102,8 +193,17 @@ let rec encode_logical_expression ctx gamma z3_typeof_fun e =
 	
 	| LVar var
 	| ALoc var        -> 
-		let le = Arithmetic.Integer.mk_const_s ctx var in 
-		let te = Expr.mk_app ctx z3_typeof_fun [ le ] in 
+		let var_type = JSIL_Memory_Model.gamma_get_type gamma var in 
+		let le, te = 
+			(match var_type with 
+			| None              -> 
+					                   let le = (Arithmetic.Integer.mk_const_s ctx var) in 
+														 le, (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ le ])
+			| Some t when (List.mem t types_encoded_as_ints)  
+			                    -> (Arithmetic.Integer.mk_const_s ctx var),       (encode_type ctx t)  
+			| Some ListType     -> (Expr.mk_const_s ctx var tr_ctx.tr_list_sort), (encode_type ctx ListType) 
+			| Some NumberType   -> (Arithmetic.Real.mk_const_s ctx var),          (encode_type ctx NumberType) 
+			| _ -> raise (Failure "z3 variable encoding: fatal error")) in 
 		le, te, []
 		
 	| PVar _          -> raise (Failure "Program variable in pure formula: FIRE")
@@ -111,7 +211,7 @@ let rec encode_logical_expression ctx gamma z3_typeof_fun e =
 	| LBinOp (le1, op, le2) -> 
 		let le1, te1, as1 = ele le1 in 
 		let le2, te2, as2 = ele le2 in
-		let le = encode_binop ctx op le1 le2 in 
+		let le = encode_binop tr_ctx op le1 le2 in 
 		let as_op = Boolean.mk_eq ctx te1 te2 in 
 		le, te1, (as_op :: (as1 @ as2))
 		
@@ -119,13 +219,25 @@ let rec encode_logical_expression ctx gamma z3_typeof_fun e =
 		let le, te, as1 = ele le in 
 		let le = encode_unop ctx op le in 
 		le, te, as1
+	
+	| LEList les -> 
+		let les_tes_as = List.map ele les in
+		let les, tes, assertions = 
+			List.fold_left
+				(fun (les, tes, ac_assertions) (le, te, le_assertions) -> (le :: les, te :: tes, le_assertions @ ac_assertions))
+				([], [], [])
+				les_tes_as in   
+		let le_list = mk_z3_list les tr_ctx in 
+		le_list,  (encode_type ctx ListType), assertions
 						
 	| _                     -> raise (Failure "Failure - z3 encoding: Unsupported logical expression"))
 
 
-let rec encode_pure_formula ctx gamma z3_typeof_fun a =
-	let f = encode_pure_formula ctx gamma z3_typeof_fun in
-	let fe = encode_logical_expression ctx gamma z3_typeof_fun in
+let rec encode_pure_formula tr_ctx a =
+	let f = encode_pure_formula tr_ctx in
+	let fe = encode_logical_expression tr_ctx in
+	let ctx = tr_ctx.z3_ctx in 
+	let gamma = tr_ctx.tr_typing_env in 
 	match a with
 	| LNot a             -> Boolean.mk_not ctx (f a)
 	
@@ -133,13 +245,16 @@ let rec encode_pure_formula ctx gamma z3_typeof_fun a =
 		let t1, _ = JSIL_Logic_Normalise.normalised_is_typable gamma le1 in 
 		let t2, _ = JSIL_Logic_Normalise.normalised_is_typable gamma le2 in
 		let le1, te1, as1 = fe le1 in 
-		let le2, te2, as2 = fe le2 in 
+		let le2, te2, as2 = fe le2 in
 		(match t1, t2 with 
-		| Some t1, Some t2 -> 
+		| Some t1, Some t2 ->
 			if (t1 = t2)  
-				then Boolean.mk_eq ctx le1 le2
+				then Boolean.mk_eq ctx le2 le1
 				else Boolean.mk_false ctx
+					
 		| _, _ ->
+		  (* Printf.printf "I AM THERE!!!!!. gamma: %s\n" (JSIL_Memory_Print.string_of_gamma gamma);
+			Printf.printf "Type hazard. le1: %s. le2: %s\n" (Expr.to_string le1) (Expr.to_string le2); *)
 			let cur_as1 = Boolean.mk_eq ctx le1 le2 in 
 			let cur_as2 = Boolean.mk_eq ctx te1 te2 in 
 			Boolean.mk_and ctx ([ cur_as1; cur_as2 ] @ as1 @ as2))
@@ -156,7 +271,7 @@ let rec encode_pure_formula ctx gamma z3_typeof_fun a =
 			| Some IntType
 			| Some NumberType -> Arithmetic.mk_lt ctx le1 le2
 			| _ -> raise (Failure "Arithmetic operation invoked on non-numeric types"))
-    | _, _ -> Printf.printf "Shit: %s %s\n" (JSIL_Print.string_of_logic_expression le1' false) (JSIL_Print.string_of_logic_expression le2' false) ; raise (Failure "Death."))
+    | _, _ -> Printf.printf "LLess Error: %s %s\n" (JSIL_Print.string_of_logic_expression le1' false) (JSIL_Print.string_of_logic_expression le2' false) ; raise (Failure "Death."))
 	
 	| LLessEq (le1, le2) -> 
 		let le1, te1, as1 = fe le1 in 
@@ -176,37 +291,32 @@ let rec encode_pure_formula ctx gamma z3_typeof_fun a =
 
 let check_satisfiability assertions gamma = 
 	let cfg = [("model", "true"); ("proof", "false")] in
-	let ctx = (mk_context cfg) in
 	
-	let z3_typeof_fun_name = (Symbol.mk_string ctx "typeof") in
-	let z3_typeof_fun_domain = [ Arithmetic.Integer.mk_sort ctx ] in
-	let z3_typeof_fun = FuncDecl.mk_func_decl ctx z3_typeof_fun_name z3_typeof_fun_domain (Arithmetic.Integer.mk_sort ctx) in 
-	
+	let tr_ctx = mk_smt_translation_ctx gamma in 	
 	let assertions = 
 		List.map 
 			(fun a -> 
 				(* Printf.printf "I am about to check the satisfiablity of: %s\n" (JSIL_Print.string_of_logic_assertion a false); *)
-				let a = encode_pure_formula ctx gamma z3_typeof_fun a in 
+				let a = encode_pure_formula tr_ctx a in 
 				(* Printf.printf "Z3 Expression: %s\n" (Expr.to_string a); *)
 				a)
 			assertions in 
-	let solver = (Solver.mk_solver ctx None) in
+	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 	Solver.add solver assertions;
 	let ret = (Solver.check solver []) = Solver.SATISFIABLE in 
 	Gc.full_major (); 
 	Solver.reset solver;
+	(* Printf.printf "Check_satisfiability. Result %b" ret; *)
 	ret
 
 
 (* right_as must be satisfiable *)
 let check_entailment left_as right_as gamma =
 	let cfg = [("model", "true"); ("proof", "false")] in
-	let ctx = (mk_context cfg) in
-
-	let z3_typeof_fun_name = (Symbol.mk_string ctx "typeof") in
-	let z3_typeof_fun_domain = [ Arithmetic.Integer.mk_sort ctx ] in
-	let z3_typeof_fun = FuncDecl.mk_func_decl ctx z3_typeof_fun_name z3_typeof_fun_domain (Arithmetic.Integer.mk_sort ctx) in 
-
+	
+	let tr_ctx = mk_smt_translation_ctx gamma in 
+	let ctx = tr_ctx.z3_ctx in
+	
 	let ret_right = check_satisfiability right_as gamma in 
 	if (not (ret_right)) then false 
 	else 	
@@ -215,10 +325,10 @@ let check_entailment left_as right_as gamma =
 		(* check if left_as => right_as *)
 		let right_as = List.map 
 				(fun a -> 
-					(* Printf.printf "I am about to encode a pure formula inside the check_entailment: %s\n" (JSIL_Print.string_of_logic_assertion a false); *) 
-					let a = encode_pure_formula ctx gamma z3_typeof_fun a in
-					(* Printf.printf "Z3 Expression: %s\n" (Expr.to_string a); *)
-					(* Printf.printf "I encoded a pure formula successfully\n"; *)
+					(* Printf.printf "I am about to encode a pure formula inside the check_entailment: %s\n" (JSIL_Print.string_of_logic_assertion a false); *)
+					let a = encode_pure_formula tr_ctx a in
+					(* Printf.printf "Z3 Expression: %s\n" (Expr.to_string a); 
+					Printf.printf "I encoded a pure formula successfully\n"; *)
 					Boolean.mk_not ctx a)
 				right_as in 
 		let right_as_or = 
@@ -229,16 +339,17 @@ let check_entailment left_as right_as gamma =
 				else Boolean.mk_false ctx in 
 		let left_as = 
 			List.map 
-				(fun a -> encode_pure_formula ctx gamma z3_typeof_fun a)
+				(fun a -> encode_pure_formula tr_ctx a)
 				left_as in 
 		(* List.iter
 			(fun expr -> Printf.printf "Z3 Expression: %s\n" (Expr.to_string expr))
 			(left_as @ [ right_as_or ]); *)	
-		let solver = (Solver.mk_solver ctx None) in
+		let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 		Solver.add solver (left_as @ [ right_as_or ]);
 		let ret = (Solver.check solver []) != Solver.SATISFIABLE in 
 		(* Printf.printf "ret: %s\n" (string_of_bool ret); *)
 		Gc.full_major (); 
 		Solver.reset solver; 
+		(* Printf.printf "Check_entailment. Result %b" ret; *)
 		ret
 		end 
