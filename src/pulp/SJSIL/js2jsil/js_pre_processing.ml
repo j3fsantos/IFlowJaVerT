@@ -453,12 +453,12 @@ let rec add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous exp
 
 
 let update_fun_tbl fun_tbl f_id f_args f_body = 
-	if (Hashtbl.mem fun_tbl f_id) 
+	(* if (Hashtbl.mem fun_tbl f_id) 
 		then 
 			let msg = Printf.sprintf "fun tbl already has the function %s" f_id in 
 			raise (Failure msg)
-		else 
-			Hashtbl.add fun_tbl f_id (f_id, f_args, f_body) 
+		else *)
+			Hashtbl.replace fun_tbl f_id (f_id, f_args, f_body) 
 
 let update_cc_tbl cc_tbl f_parent_id f_id f_args f_body =
 	let f_parent_var_table = 

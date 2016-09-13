@@ -4796,3 +4796,40 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 	
 	let proc_eval = try Hashtbl.find prog new_fid with _ -> raise (Failure "no eval proc was created") in 
 	proc_eval 
+	
+	(* FUNCTION CONSTRUCTOR *)
+	
+	let js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl f_parent_id params e = 
+	let offset_converter x = 0 in 
+	(* Js_pre_processing.test_early_errors e; *)
+	let vis_tbl, cc_tbl, vis_fid = 
+		(match vis_tbl, cc_tbl with 
+		| Some vis_tbl, Some cc_tbl -> 
+			vis_tbl, cc_tbl, (try (Hashtbl.find vis_tbl f_parent_id) with _ ->
+				raise (Failure (Printf.sprintf "Function %s not found in visibility table" f_parent_id)))
+		| _, _ -> raise (Failure "Wrong call to function constructor. Whatever.")) in 
+	let new_fun_tbl = Hashtbl.create 1 in
+	let e = Js_pre_processing.add_codenames "main" fresh_anonymous fresh_named fresh_catch_anonymous e in 
+	let new_fid = Js_pre_processing.get_codename e in 
+	Js_pre_processing.update_cc_tbl cc_tbl f_parent_id new_fid params e;
+	Hashtbl.replace new_fun_tbl new_fid (new_fid, params, e);
+	Hashtbl.replace vis_tbl new_fid (new_fid :: vis_fid);
+	Js_pre_processing.closure_clarification_stmt cc_tbl new_fun_tbl vis_tbl new_fid vis_fid e;
+	
+	Hashtbl.iter
+		(fun f_id (_, f_params, f_body) -> 
+			let proc = 
+  			(let vis_fid = try Hashtbl.find vis_tbl f_id 
+  				with _ -> 
+  					(let msg = Printf.sprintf "Function %s not found in visibility table" f_id in 
+  					raise (Failure msg)) in 	
+  			generate_proc offset_converter f_body f_id f_params cc_tbl vis_fid) in
+		  (* let proc_str = JSIL_Print.string_of_ext_procedure proc in 
+		  Printf.printf "FC:\n %s\n" proc_str; *)
+			let proc = JSIL_Utils.desugar_labs proc in 
+			Hashtbl.replace prog f_id proc;
+			JSIL_Utils.extend_which_pred which_pred proc)
+		new_fun_tbl; 
+	
+	let proc_fun_constr = try Hashtbl.find prog new_fid with _ -> raise (Failure "no function constructor proc was created") in 
+	proc_fun_constr 

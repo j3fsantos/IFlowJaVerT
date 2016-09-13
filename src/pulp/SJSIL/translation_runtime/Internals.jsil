@@ -814,12 +814,14 @@ with
 
 proc i__toPrimitive (v, hint) {
 			xret := v;
+			tv := typeOf(v);
 
 	iu:		goto [(v = $$undefined) or (v = $$null) or
 	              (typeOf(v) = $$boolean_type) or (typeOf(v) = $$number_type) or
 	              (typeOf(v) = $$string_type)] rlab is_obj;
 
-	is_obj:	goto [typeOf(v) = $$object_type] obj oops;
+	is_obj:	print := "object";
+			goto [typeOf(v) = $$object_type] obj oops;
 	obj:	dv := [v, "@defaultValue"];
 			xret := dv (v, hint) with elab;
 			goto rlab;
