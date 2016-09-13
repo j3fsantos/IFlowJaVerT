@@ -15,7 +15,12 @@ with
 (* *** CONSTRUCT *** *)
 
 proc Function_call () {
-			xret := "Function_construct" ("args") with elab;
+		
+			arguments := args;	
+	
+			x__se := "SyntaxError" ();
+
+			xret := "Function_construct" (arguments) with elab;
 			
 	rlab:	skip;
 	elab:	skip

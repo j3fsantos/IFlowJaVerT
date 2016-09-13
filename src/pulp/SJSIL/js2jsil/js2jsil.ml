@@ -4806,8 +4806,8 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 		(match vis_tbl, cc_tbl with 
 		| Some vis_tbl, Some cc_tbl -> 
 			vis_tbl, cc_tbl, (try (Hashtbl.find vis_tbl f_parent_id) with _ ->
-				raise (Failure (Printf.sprintf "Function %s not found in visibility table" f_parent_id)))
-		| _, _ -> raise (Failure "Wrong call to function constructor. Whatever.")) in 
+				raise (Failure (Printf.sprintf "FC: Function %s not found in visibility table" f_parent_id)))
+		| _, _ -> raise (Failure "FC: Wrong call to function constructor. Whatever.")) in 
 	let new_fun_tbl = Hashtbl.create 1 in
 	let e = Js_pre_processing.add_codenames "main" fresh_anonymous fresh_named fresh_catch_anonymous e in 
 	let new_fid = Js_pre_processing.get_codename e in 

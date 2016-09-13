@@ -709,7 +709,7 @@ let rec evaluate_bcmd bcmd heap store =
 		let v = (try SHeap.find arg_obj "args" with
 		| _ -> raise (Failure "The arguments are not available.")) in
 			Hashtbl.replace store x v;
-			if (!verbose) then Printf.printf "args: %s \n" (JSIL_Print.string_of_literal v false);
+			if (!verbose) then Printf.printf "Arguments: %s := %s \n" x (JSIL_Print.string_of_literal v false);
 			v
 
 let init_store params args = 
@@ -809,11 +809,27 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 					 evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl)
 
 	| SCall (x, e, e_args, j)
-	  when evaluate_expr e store = String "Function_construct" ->
+	  when ((evaluate_expr e store = String "Function_construct") or (evaluate_expr e store = String "Function_call")) ->
 			
-			(* Printf.printf "Function constructor encountered.\n"; *)
+			(* Printf.printf "\nFunction call or constructor encountered.\n"; *)
+			
+			(* let args = (evaluate_expr (List.nth e_args store)) in
+			Printf.printf "Arguments: %s" (JSIL_Print.string_of_literal args false); *)
 			
 			let se = (evaluate_expr (Var (Js2jsil.var_se)) store) in
+
+			let throw_syntax_error message = 
+				((* Printf.printf "SYNTAX ERROR: %s\n" message; *)
+				 let tse = 
+					(match j with
+				  	| None -> raise (Failure "procedure throws an error without an error label")
+					  | Some j ->
+						  	Hashtbl.replace store x se;
+								evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl) in
+						tse) in
+						
+			let error = ref false in
+			let message = ref "" in
 			
 			let argCount = (List.length e_args - 2) in
 			let params = ref "" in
@@ -825,98 +841,107 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 					let ebd = evaluate_expr bd store in
 					(match ebd with
 					   | String bd -> body := bd
-					   | _ -> raise (Failure "Non-string body in the Function constructor"));
+					   | _ -> message := "One argument, but body is not a string"; error := true);
 				else
 			  	let firstArg = List.nth e_args 2 in
 					let evalFirstArg = evaluate_expr firstArg store in
 					(match evalFirstArg with
 					 | String efa -> params := efa
-					 | _ -> raise (Failure "Non-string parameter in the Function constructor"));
+					 | _ -> message := "More than one argument, 1 not a string!"; error := true);
 					for i = 3 to argCount do
 						let arg = List.nth e_args i in
 						let evalArg = evaluate_expr arg store in
 						(match evalArg with
 					   | String efa -> params := !params ^ ", " ^ efa
-					   | _ -> raise (Failure "Non-string parameter in the Function constructor"));
+					   | _ -> message := Printf.sprintf "More than one argument, %d not a string" (i-2); error := true);
 					done;
 					let bd = List.nth e_args (argCount + 1) in
 					let ebd = evaluate_expr bd store in
-					(match ebd with
-					   | String bd -> body := bd
-					   | _ -> raise (Failure "Non-string body in the Function constructor"));
-			end;
-
-			(* Printf.printf "\tParameters: %s\n" !params;
-			Printf.printf "\tBody: %s\n\n" !body; *)
- 
-			(* Parsing the parameters as a FormalParametersList *)
-			let lexbuf = Lexing.from_string !params in
-			let parsed_params = 
-				(try (Some (JSIL_Utils.parse_without_error JSIL_Parser.param_list_FC_target lexbuf)) with 
-				 | _ -> None) in
-			(match parsed_params with
-			| None -> (Error, se)
-			| Some parsed_params -> 
-				let len = List.length parsed_params in
+  					(* Do the "toString"! *)
+  					let new_store = init_store ["v"] [ebd] in 
+        		(match evaluate_cmd prog "i__toString" which_pred heap new_store 0 0 cc_tbl vis_tbl with 
+        		| Normal, v -> (match v with
+						                 | String bd -> body := bd
+      					             | _ -> message := Printf.sprintf "toString didn't return string!"; error := true)
+        		| Error, v -> message := "Couldn't do toString!"; error := true)
+      				
+      					
+      end;
 			
-				(* Printf.printf "\tParsed parameters: ";
-				for i = 0 to (len - 1) do
-					let elem = List.nth parsed_params i in
-					Printf.printf "%s " elem;
-				done;
-				Printf.printf "\n"; *)
+			if (!error) then (throw_syntax_error !message) else
+			begin
 			
-				(* Parsing the body as a FunctionBody *)
-				let e_body = (evaluate_expr (Literal (String !body)) store) in
-				(match e_body with
-				| String code ->
-					let code = Str.global_replace (Str.regexp (Str.quote "\\\"")) "\"" code in
-					let code = "function (" ^ !params ^ ") {" ^ code ^ "}" in
-					
-					(* Printf.printf "\n\tParsing: %s\n\n" code; *)
-					
-					let e_js = 
-						(try (Some (Parser_main.exp_from_string code)) with
-					   | _ -> None) in
-					(match e_js with
-					| None -> (Error, se)
-    			| Some e_js -> 							
-							(match e_js.Parser_syntax.exp_stx with
-							  | Script (_, le) -> 
-									(match le with
-									| e :: [] -> 
-										(match e.Parser_syntax.exp_stx with
-										| Parser_syntax.AnonymousFun (_, params, body) ->		
-												(* Printf.printf "Params: ";
-												List.iter (fun x -> Printf.printf "%s " x) params;
-												Printf.printf "\n"; *)
-												let new_proc = Js2jsil.js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl cur_proc_name params e in
-												let fun_name = new_proc.proc_name in
-												let vis_tbl = (match vis_tbl with
-												                | Some t -> t
-																				| None -> raise (Failure "No visibility table")) in 
-												let vis_fid = try (Hashtbl.find vis_tbl fun_name) 
-													with _ -> (let msg = Printf.sprintf "Function %s not found in visibility table" fun_name in 
-																		raise (Failure msg)) in
-												let scope = (evaluate_expr (Var Js2jsil.var_scope) store) in
-												let lsc = (match scope with
-												             | Loc lsc -> lsc
-																		 | _ -> raise (Failure "Scope not a location.")) in  
-												(* Printf.printf "Function name: %s\n" fun_name;
-												Printf.printf "vis_fid: ";
-												List.iter (fun x -> Printf.printf "%s " x) vis_fid;
-												Printf.printf "\n"; *)
-												let new_loc = create_anonymous_function_object heap fun_name fun_name params lsc vis_fid in
-												Hashtbl.replace store x (Loc new_loc);
-					 							evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl (Some vis_tbl)
-											
-										| _ -> (Error, se))
-									| _ -> (Error, se))
-								| _ -> (Error, se))
-					| _ -> (Error, se))
-
-				| _ -> (Error, se))
-      )
+  			(* Printf.printf "\tParameters: %s\n" !params;
+  			Printf.printf "\tBody: %s\n\n" !body; *)
+   
+  			(* Parsing the parameters as a FormalParametersList *)
+  			let lexbuf = Lexing.from_string !params in
+  			let parsed_params = 
+  				(try (Some (JSIL_Utils.parse_without_error JSIL_Parser.param_list_FC_target lexbuf)) with 
+  				 | _ -> None) in
+  			(match parsed_params with
+  			| None -> (Error, se)
+  			| Some parsed_params -> 
+  				let len = List.length parsed_params in
+  			
+  				(* Printf.printf "\tParsed parameters: ";
+  				for i = 0 to (len - 1) do
+  					let elem = List.nth parsed_params i in
+  					Printf.printf "%s " elem;
+  				done;
+  				Printf.printf "\n"; *)
+  			
+  				(* Parsing the body as a FunctionBody *)
+  				let e_body = (evaluate_expr (Literal (String !body)) store) in
+  				(match e_body with
+  				| String code ->
+  					let code = Str.global_replace (Str.regexp (Str.quote "\\\"")) "\"" code in
+  					let code = "function (" ^ !params ^ ") {" ^ code ^ "}" in
+  					
+  					(* Printf.printf "\n\tParsing: %s\n\n" code; *)
+  					
+  					let e_js = 
+  						(try (Some (Parser_main.exp_from_string code)) with
+  					   | _ -> None) in
+  					(match e_js with
+  					| None -> throw_syntax_error "Body not parsable."
+      			| Some e_js -> 							
+  							(match e_js.Parser_syntax.exp_stx with
+  							  | Script (_, le) -> 
+  									(match le with
+  									| e :: [] -> 
+  										(match e.Parser_syntax.exp_stx with
+  										| Parser_syntax.AnonymousFun (_, params, body) ->		
+  												(* Printf.printf "Params: ";
+  												List.iter (fun x -> Printf.printf "%s " x) params;
+  												Printf.printf "\n"; *)
+  												let new_proc = Js2jsil.js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl cur_proc_name params e in
+  												let fun_name = new_proc.proc_name in
+  												let vis_tbl = (match vis_tbl with
+  												                | Some t -> t
+  																				| None -> raise (Failure "No visibility table")) in 
+  												let vis_fid = try (Hashtbl.find vis_tbl fun_name) 
+  													with _ -> (let msg = Printf.sprintf "Function %s not found in visibility table" fun_name in 
+  																		raise (Failure msg)) in
+  												let scope = (evaluate_expr (Var Js2jsil.var_scope) store) in
+  												let lsc = (match scope with
+  												             | Loc lsc -> lsc
+  																		 | _ -> raise (Failure "Scope not a location.")) in  
+  												(* Printf.printf "Function name: %s\n" fun_name;
+  												Printf.printf "vis_fid: ";
+  												List.iter (fun x -> Printf.printf "%s " x) vis_fid;
+  												Printf.printf "\n"; *)
+  												let new_loc = create_anonymous_function_object heap fun_name fun_name params lsc vis_fid in
+  												Hashtbl.replace store x (Loc new_loc);
+  					 							evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl (Some vis_tbl)
+  											
+  										| _ -> throw_syntax_error "Body not an anonymous function.")
+  									| _ -> throw_syntax_error "More than a function body in the string.")
+  								| _ -> throw_syntax_error "Not a script."))
+  
+  				| _ -> throw_syntax_error "Body not a string.")
+        )
+			end
 		
 	| SCall (x, e, e_args, j) -> 
 		(* Printf.printf "Nothing was intercepted!!!\n"; *)
@@ -941,13 +966,16 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 		end;
 		(match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 cc_tbl vis_tbl with 
 		| Normal, v -> 
-			Hashtbl.replace store x v;
-	 		evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
+				if (!verbose) then Printf.printf "Procedure %s normal return: %s := %s\n" call_proc_name x (JSIL_Print.string_of_literal v false);
+				Hashtbl.replace store x v;
+	 			evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
 		| Error, v -> 
 			(match j with
 			| None -> raise (Failure ("Procedure "^ call_proc_name ^" just returned an error, but no error label was provided. Bad programmer."))
-			| Some j -> Hashtbl.replace store x v;
-				evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl))
+			| Some j -> 
+					if (!verbose) then Printf.printf "Procedure %s error return: %s := %s\n" call_proc_name x (JSIL_Print.string_of_literal v false);
+					Hashtbl.replace store x v;
+					evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl))
 
 	| SApply (x, e_args, j) ->
 		let arguments = evaluate_expr (EList e_args) store in 
