@@ -12,7 +12,7 @@ type smt_translation_ctx = {
 	tr_list_is_cons   : FuncDecl.func_decl;  
 	tr_list_head      : FuncDecl.func_decl; 
 	tr_list_tail      : FuncDecl.func_decl; 
-	tr_existentials   : string list
+	(* tr_existentials   : string list *)
 }
 
 
@@ -45,7 +45,7 @@ let mk_smt_translation_ctx gamma existentials =
 		tr_list_is_cons   = list_is_cons;  
 		tr_list_head      = list_head; 
 		tr_list_tail      = list_tail;
-		tr_existentials   = existentials
+		(* tr_existentials   = existentials *)
 	}
 
 
@@ -282,11 +282,11 @@ let rec encode_pure_formula tr_ctx a =
 			| Some NumberType -> Arithmetic.mk_lt ctx le1 le2
 			| _ -> raise (Failure "Arithmetic operation invoked on non-numeric types"))
     | _, _ -> 
-			Printf.printf "LLess Error: %s %s. gamma: %s\n" 
+			(Printf.printf "LLess Error: %s %s. gamma: %s\n" 
 				(JSIL_Print.string_of_logic_expression le1' false) 
 				(JSIL_Print.string_of_logic_expression le2' false) 
 				(JSIL_Memory_Print.string_of_gamma gamma); 
-			raise (Failure "Death."))
+			raise (Failure "Death.")))
 	
 	| LLessEq (le1, le2) -> 
 		let le1, te1, as1 = fe le1 in 
@@ -305,8 +305,6 @@ let rec encode_pure_formula tr_ctx a =
 
 
 let check_satisfiability assertions gamma existentials = 
-	let cfg = [("model", "true"); ("proof", "false")] in
-	
 	let tr_ctx = mk_smt_translation_ctx gamma existentials in 	
 	let assertions = 
 		List.map 
@@ -371,24 +369,43 @@ let encode_quantifier tr_ctx quantified_vars assertion =
 				None 
 				None in 
 		let quantifier_str = Quantifier.to_string quantified_assertion in 
-		Printf.printf "Quantifier STR: %s\n" quantifier_str; 
+		Printf.printf "Ok, some info about this shit.\n";
+		Printf.printf "Number of shitty bound variables: %d\n" (Quantifier.get_num_bound quantified_assertion);
+		Printf.printf "Is the shit universally quantified? %b\n" (Quantifier.is_universal quantified_assertion);
+		Printf.printf "The body of the shitty quantifier: \n%s\n" (Expr.to_string (Quantifier.get_body quantified_assertion));
+		Printf.printf "\n";
 		let quantified_assertion = Quantifier.expr_of_quantifier quantified_assertion in
+		Printf.printf "Shitty expression is: \n%s\n\n" (Expr.to_string quantified_assertion);
+		let quantified_assertion = Expr.simplify quantified_assertion None in
+		Printf.printf "Shitty expression after simplification is: \n%s\n\n" (Expr.to_string quantified_assertion);
 		quantified_assertion)
 	else assertion	
 
 	
 let get_solver tr_ctx existentials left_as right_as_or = 
+	Printf.printf "----- Creating the solver -----\n\n";
 	if ((List.length existentials) > 0) 
 		then ( 
+			Printf.printf "There are existentials.\n\n";
+			Printf.printf "Left ass:\n";
+			List.iter (fun x -> Printf.printf "\n%s\n" (Expr.to_string x)) left_as;
+			Printf.printf "\nRight ass:\n";
+			Printf.printf "\n%s\n\n" (Expr.to_string right_as_or);
+						
 			let target_assertion = 
 				(if ((List.length left_as) > 0) 
 					then Boolean.mk_and tr_ctx.z3_ctx (left_as @ [ right_as_or ])
 					else right_as_or) in 
 			let target_assertion = encode_quantifier tr_ctx existentials target_assertion in
+			
+			Printf.printf "The assertion to check is:\n";
+			Printf.printf "\n%s\n\n" (Expr.to_string target_assertion);
+			
 			let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 			Solver.add solver [ target_assertion ];
 			solver)
 		else (
+			Printf.printf "There are no existentials.\n";
 			let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 			Solver.add solver (left_as @ [ right_as_or ]); 
 			solver)
@@ -397,6 +414,7 @@ let get_solver tr_ctx existentials left_as right_as_or =
 
 (* right_as must be satisfiable *)
 let check_entailment existentials left_as right_as gamma =
+	Printf.printf "------------------------------\n    Entering entailment\n\n";
 	let cfg = [("model", "true"); ("proof", "false")] in
 	
 	let tr_ctx = mk_smt_translation_ctx gamma existentials in 
@@ -428,26 +446,35 @@ let check_entailment existentials left_as right_as gamma =
 			List.map 
 				(fun a -> encode_pure_formula tr_ctx a)
 				left_as in 
+		 Printf.printf "The thingies prior to existentials are:\n";
 		 List.iter
-			(fun expr -> Printf.printf "Z3 Expression: %s\n" (Expr.to_string expr))
+			(fun expr -> Printf.printf "\n%s\n" (Expr.to_string expr))
 			(left_as @ [ right_as_or ]); 
-		 	
+		 Printf.printf "\nDone printing\n";
+		
+		Printf.printf "\nThe existentials are: ";
+		List.iter (fun x -> Printf.printf "%s " x) existentials;
+		Printf.printf "\n\n";
+		
+		(* SOMETHING HAPPENS HERE! *)
 		let solver = get_solver tr_ctx existentials left_as right_as_or in 
 	
 		let ret = (Solver.check solver []) != Solver.SATISFIABLE in 
 		
-		Printf.printf "I am going to get the model\n"; 
-		let model = Solver.get_model solver in 
-		Printf.printf "I got the model\n"; 
+		if (not ret) then 
+			begin
+				let model = Solver.get_model solver in 
 		(match model with 
 			| Some model -> 
 				let str_model = Model.to_string model in 
-				Printf.printf "I found the model: %s\n" str_model
+				Printf.printf "I found the model: \n\n%s\n\n" str_model
 			| None -> 
 				Printf.printf "No model filha\n");
 		(* Printf.printf "ret: %s\n" (string_of_bool ret); *)
+		end;
 		Gc.full_major (); 
 		Solver.reset solver; 
 		Printf.printf "Check_entailment. Result %b\n" ret; 
+		Printf.printf "\n    Exiting entailment\n------------------------------\n\n";
 		ret
 		end 
