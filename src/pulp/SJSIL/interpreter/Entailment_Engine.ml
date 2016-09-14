@@ -11,11 +11,12 @@ type smt_translation_ctx = {
 	tr_list_cons      : FuncDecl.func_decl;
 	tr_list_is_cons   : FuncDecl.func_decl;  
 	tr_list_head      : FuncDecl.func_decl; 
-	tr_list_tail      : FuncDecl.func_decl
+	tr_list_tail      : FuncDecl.func_decl; 
+	tr_existentials   : string list
 }
 
 
-let mk_smt_translation_ctx gamma = 
+let mk_smt_translation_ctx gamma existentials = 
 	let cfg = [("model", "true"); ("proof", "false")] in
 	let ctx = (mk_context cfg) in
 
@@ -43,7 +44,8 @@ let mk_smt_translation_ctx gamma =
 		tr_list_cons      = list_cons;
 		tr_list_is_cons   = list_is_cons;  
 		tr_list_head      = list_head; 
-		tr_list_tail      = list_tail
+		tr_list_tail      = list_tail;
+		tr_existentials   = existentials
 	}
 
 
@@ -174,7 +176,25 @@ let encode_unop ctx op le =
 		let msg = Printf.sprintf "SMT encoding: Construct not supported yet - unop - %s!" (JSIL_Print.string_of_unop op) in 
 		raise (Failure msg)
 		
+let get_z3_var_symbol tr_ctx var = Symbol.mk_string (tr_ctx.z3_ctx) var
+		
 	
+let get_z3_var_and_type tr_ctx var = 
+	let ctx = tr_ctx.z3_ctx in 
+	let gamma = tr_ctx.tr_typing_env in 
+	let var_type = JSIL_Memory_Model.gamma_get_type gamma var in 
+	let le, te = 
+		(match var_type with 
+		| None              -> 
+				                   let le = (Arithmetic.Integer.mk_const_s ctx var) in 
+		    								   le, (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ le ])
+		| Some t when (List.mem t types_encoded_as_ints)  
+			                  -> (Arithmetic.Integer.mk_const_s ctx var),       (encode_type ctx t)  
+			| Some ListType   -> (Expr.mk_const_s ctx var tr_ctx.tr_list_sort), (encode_type ctx ListType) 
+			| Some NumberType -> (Arithmetic.Real.mk_const_s ctx var),          (encode_type ctx NumberType) 
+			| _               -> raise (Failure "z3 variable encoding: fatal error")) in
+	le, te 
+
 
 (** Encode JSIL logical expressions *)
 let rec encode_logical_expression tr_ctx e =
@@ -183,30 +203,20 @@ let rec encode_logical_expression tr_ctx e =
 	let gamma = tr_ctx.tr_typing_env in 
 	
 	(match e with
-	| LLit lit        -> 
+	| LLit lit              -> 
 		let le, te = encode_literal tr_ctx lit in 
 		le, te, []
 	
-	| LNone           -> 
+	| LNone                 -> 
 		let le, te = (Arithmetic.Integer.mk_numeral_i ctx 3), (encode_type ctx NoneType) in
 		le, te, []
 	
 	| LVar var
-	| ALoc var        -> 
-		let var_type = JSIL_Memory_Model.gamma_get_type gamma var in 
-		let le, te = 
-			(match var_type with 
-			| None              -> 
-					                   let le = (Arithmetic.Integer.mk_const_s ctx var) in 
-														 le, (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ le ])
-			| Some t when (List.mem t types_encoded_as_ints)  
-			                    -> (Arithmetic.Integer.mk_const_s ctx var),       (encode_type ctx t)  
-			| Some ListType     -> (Expr.mk_const_s ctx var tr_ctx.tr_list_sort), (encode_type ctx ListType) 
-			| Some NumberType   -> (Arithmetic.Real.mk_const_s ctx var),          (encode_type ctx NumberType) 
-			| _ -> raise (Failure "z3 variable encoding: fatal error")) in 
+	| ALoc var              -> 
+		let le, te = get_z3_var_and_type tr_ctx var in 
 		le, te, []
 		
-	| PVar _          -> raise (Failure "Program variable in pure formula: FIRE")
+	| PVar _                -> raise (Failure "Program variable in pure formula: FIRE")
 	
 	| LBinOp (le1, op, le2) -> 
 		let le1, te1, as1 = ele le1 in 
@@ -215,12 +225,12 @@ let rec encode_logical_expression tr_ctx e =
 		let as_op = Boolean.mk_eq ctx te1 te2 in 
 		le, te1, (as_op :: (as1 @ as2))
 		
-	| LUnOp (op, le)  -> 
+	| LUnOp (op, le)        -> 
 		let le, te, as1 = ele le in 
 		let le = encode_unop ctx op le in 
 		le, te, as1
 	
-	| LEList les -> 
+	| LEList les            -> 
 		let les_tes_as = List.map ele les in
 		let les, tes, assertions = 
 			List.fold_left
@@ -271,7 +281,12 @@ let rec encode_pure_formula tr_ctx a =
 			| Some IntType
 			| Some NumberType -> Arithmetic.mk_lt ctx le1 le2
 			| _ -> raise (Failure "Arithmetic operation invoked on non-numeric types"))
-    | _, _ -> Printf.printf "LLess Error: %s %s\n" (JSIL_Print.string_of_logic_expression le1' false) (JSIL_Print.string_of_logic_expression le2' false) ; raise (Failure "Death."))
+    | _, _ -> 
+			Printf.printf "LLess Error: %s %s. gamma: %s\n" 
+				(JSIL_Print.string_of_logic_expression le1' false) 
+				(JSIL_Print.string_of_logic_expression le2' false) 
+				(JSIL_Memory_Print.string_of_gamma gamma); 
+			raise (Failure "Death."))
 	
 	| LLessEq (le1, le2) -> 
 		let le1, te1, as1 = fe le1 in 
@@ -289,10 +304,10 @@ let rec encode_pure_formula tr_ctx a =
 		raise (Failure msg)
 
 
-let check_satisfiability assertions gamma = 
+let check_satisfiability assertions gamma existentials = 
 	let cfg = [("model", "true"); ("proof", "false")] in
 	
-	let tr_ctx = mk_smt_translation_ctx gamma in 	
+	let tr_ctx = mk_smt_translation_ctx gamma existentials in 	
 	let assertions = 
 		List.map 
 			(fun a -> 
@@ -310,14 +325,85 @@ let check_satisfiability assertions gamma =
 	ret
 
 
+let get_sort tr_ctx var_type = 
+	let ctx = tr_ctx.z3_ctx in 
+	match var_type with 
+	| None                                           -> Arithmetic.Integer.mk_sort ctx                                    
+	| Some t when (List.mem t types_encoded_as_ints) -> Arithmetic.Integer.mk_sort ctx
+	| Some NumberType                                -> Arithmetic.Real.mk_sort ctx 
+	| Some ListType                                  -> tr_ctx.tr_list_sort
+	| _  -> raise (Failure "Z3 encoding: Unsupported type.")
+
+
+let get_sorts tr_ctx vars = 
+	let gamma = tr_ctx.tr_typing_env in 
+	let rec loop vars sorts = 
+		(match vars with 
+		| [] -> List.rev sorts 
+		| var :: rest_vars -> 
+			let var_type = JSIL_Memory_Model.gamma_get_type gamma var in 
+			let sort = get_sort tr_ctx var_type in 
+			loop rest_vars (sort :: sorts)) in 
+	loop vars []
+
+
+let get_z3_vars tr_ctx vars =
+	let rec loop vars z3_vars = 
+		match vars with 
+		| [] -> List.rev z3_vars 
+		| var :: rest_vars -> 
+			let z3_var = get_z3_var_symbol tr_ctx var in 
+			loop rest_vars (z3_var :: z3_vars) in 
+	loop vars []
+	
+
+let encode_quantifier tr_ctx quantified_vars assertion = 
+	if ((List.length quantified_vars) > 0) then 
+		(let quantified_assertion = 
+			Quantifier.mk_forall 
+				(tr_ctx.z3_ctx)
+				(get_sorts tr_ctx quantified_vars) 
+				(get_z3_vars tr_ctx quantified_vars) 
+				assertion
+				None 
+				[]
+				[]
+				None 
+				None in 
+		let quantifier_str = Quantifier.to_string quantified_assertion in 
+		Printf.printf "Quantifier STR: %s\n" quantifier_str; 
+		let quantified_assertion = Quantifier.expr_of_quantifier quantified_assertion in
+		quantified_assertion)
+	else assertion	
+
+	
+let get_solver tr_ctx existentials left_as right_as_or = 
+	if ((List.length existentials) > 0) 
+		then ( 
+			let target_assertion = 
+				(if ((List.length left_as) > 0) 
+					then Boolean.mk_and tr_ctx.z3_ctx (left_as @ [ right_as_or ])
+					else right_as_or) in 
+			let target_assertion = encode_quantifier tr_ctx existentials target_assertion in
+			let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
+			Solver.add solver [ target_assertion ];
+			solver)
+		else (
+			let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
+			Solver.add solver (left_as @ [ right_as_or ]); 
+			solver)
+	
+
+
 (* right_as must be satisfiable *)
-let check_entailment left_as right_as gamma =
+let check_entailment existentials left_as right_as gamma =
 	let cfg = [("model", "true"); ("proof", "false")] in
 	
-	let tr_ctx = mk_smt_translation_ctx gamma in 
+	let tr_ctx = mk_smt_translation_ctx gamma existentials in 
 	let ctx = tr_ctx.z3_ctx in
 	
-	let ret_right = check_satisfiability right_as gamma in 
+	
+	let ret_right = check_satisfiability right_as gamma existentials in 
 	if (not (ret_right)) then false 
 	else 	
 		begin 
@@ -337,19 +423,31 @@ let check_entailment left_as right_as gamma =
 				else if ((List.length right_as) = 1) then
 					(List.nth right_as 0) 
 				else Boolean.mk_false ctx in 
+		
 		let left_as = 
 			List.map 
 				(fun a -> encode_pure_formula tr_ctx a)
 				left_as in 
-		(* List.iter
+		 List.iter
 			(fun expr -> Printf.printf "Z3 Expression: %s\n" (Expr.to_string expr))
-			(left_as @ [ right_as_or ]); *)	
-		let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
-		Solver.add solver (left_as @ [ right_as_or ]);
+			(left_as @ [ right_as_or ]); 
+		 	
+		let solver = get_solver tr_ctx existentials left_as right_as_or in 
+	
 		let ret = (Solver.check solver []) != Solver.SATISFIABLE in 
+		
+		Printf.printf "I am going to get the model\n"; 
+		let model = Solver.get_model solver in 
+		Printf.printf "I got the model\n"; 
+		(match model with 
+			| Some model -> 
+				let str_model = Model.to_string model in 
+				Printf.printf "I found the model: %s\n" str_model
+			| None -> 
+				Printf.printf "No model filha\n");
 		(* Printf.printf "ret: %s\n" (string_of_bool ret); *)
 		Gc.full_major (); 
 		Solver.reset solver; 
-		(* Printf.printf "Check_entailment. Result %b" ret; *)
+		Printf.printf "Check_entailment. Result %b\n" ret; 
 		ret
 		end 

@@ -17,20 +17,21 @@ module LHeap = Hashtbl.Make(
 		let hash = Hashtbl.hash
 	end)
 
-type substitution = ((string, jsil_logic_expr) Hashtbl.t)
-type symbolic_heap = (((jsil_logic_expr * jsil_logic_expr) list) * jsil_logic_expr)  LHeap.t 
-type symbolic_store = (string, jsil_logic_expr) Hashtbl.t
+type substitution       = ((string, jsil_logic_expr) Hashtbl.t)
+type symbolic_heap      = (((jsil_logic_expr * jsil_logic_expr) list) * jsil_logic_expr)  LHeap.t 
+type symbolic_store     = (string, jsil_logic_expr) Hashtbl.t
 type typing_environment = ((string, jsil_type) Hashtbl.t)
-type predicate_set = ((string * (jsil_logic_expr list)) DynArray.t)
-type pure_formulae = (jsil_logic_assertion DynArray.t)
-type symbolic_state = symbolic_heap * symbolic_store * pure_formulae * typing_environment * predicate_set
+type predicate_set      = ((string * (jsil_logic_expr list)) DynArray.t)
+type pure_formulae      = (jsil_logic_assertion DynArray.t)
+type symbolic_state     = symbolic_heap * symbolic_store * pure_formulae * typing_environment * predicate_set
 
 type jsil_n_single_spec = {
-	  n_pre : symbolic_state; 
-		n_post : symbolic_state; 
-		n_ret_flag : jsil_return_flag; 
-		n_lvars: string list; 
-		n_subst: substitution
+	  n_pre         : symbolic_state; 
+		n_post        : symbolic_state; 
+		n_ret_flag    : jsil_return_flag; 
+		n_lvars       : string list; 
+		n_post_lvars  : string list;
+		n_subst       : substitution
 }
 
 type jsil_n_spec = { 
@@ -98,13 +99,15 @@ let copy_symb_state symb_state =
 	(c_heap, c_store, c_pformulae, c_gamma, c_preds)
 
 let copy_single_spec s_spec = 
-	let copy_pre = copy_symb_state s_spec.n_pre in 
+	let copy_pre  = copy_symb_state s_spec.n_pre in 
+	let copy_post = copy_symb_state s_spec.n_post in 
 	{
-		n_pre = copy_pre; 
-		n_post = s_spec.n_post; 
-		n_ret_flag = s_spec.n_ret_flag; 
-		n_lvars = s_spec.n_lvars; 
-		n_subst = s_spec.n_subst
+		n_pre        = copy_pre; 
+		n_post       = s_spec.n_post; 
+		n_ret_flag   = s_spec.n_ret_flag; 
+		n_lvars      = s_spec.n_lvars; 
+		n_post_lvars = s_spec.n_post_lvars;
+		n_subst      = s_spec.n_subst
 	}
 
 let extend_pf pf new_pf = 
