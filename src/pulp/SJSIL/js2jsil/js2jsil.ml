@@ -4824,8 +4824,8 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
   					(let msg = Printf.sprintf "Function %s not found in visibility table" f_id in 
   					raise (Failure msg)) in 	
   			generate_proc offset_converter f_body f_id f_params cc_tbl vis_fid) in
-		  (* let proc_str = JSIL_Print.string_of_ext_procedure proc in 
-		  Printf.printf "FC:\n %s\n" proc_str; *)
+		  let proc_str = JSIL_Print.string_of_ext_procedure proc in 
+		  Printf.printf "FC:\n %s\n" proc_str;
 			let proc = JSIL_Utils.desugar_labs proc in 
 			Hashtbl.replace prog f_id proc;
 			JSIL_Utils.extend_which_pred which_pred proc)
