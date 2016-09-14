@@ -45,7 +45,7 @@ let evaluate_type_of lit =
 	| Constant _ -> NumberType
 	| Bool _ -> BooleanType
 	| Integer _ -> IntType
-	| Num n -> NumberType (* if (n = (snd (modf n))) then IntType else NumberType *)
+	| Num n -> if (n = (snd (modf n))) then IntType else NumberType 
 	| String _ -> StringType
 	| Loc _ -> ObjectType
 	| Type _ -> TypeType

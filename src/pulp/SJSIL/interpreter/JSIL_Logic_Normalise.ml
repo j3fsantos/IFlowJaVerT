@@ -752,10 +752,15 @@ let normalise_precondition a =
 	(* Printf.printf "SUBSTITUTION BABY: %s\n\n" (JSIL_Memory_Print.string_of_substitution new_subst); *)
 	symb_state, (lvars, new_subst)
 
-let normalise_postcondition a subst = 
+let normalise_postcondition a subst (lvars : string list) : symbolic_state * (string list) = 
 	let a = assertion_substitution a subst true in 	
+	let a_vars = get_ass_vars_lst a false in 
+	let a_vars = filter_vars a_vars lvars in 
+	
+	(* let a_vars_str = List.fold_left (fun ac var -> (ac ^ var ^ ", ")) "" a_vars in 
+	Printf.printf "Post Existentially Quantified Vars BABY: %s\n\n\n" a_vars_str; *)
 	let symb_state, _ = normalise_assertion a in 
-	symb_state
+	symb_state, a_vars
 
 		
 let normalise_single_spec preds spec =
@@ -776,12 +781,13 @@ let normalise_single_spec preds spec =
 	Printf.printf "UPostcondition: %s\n" (JSIL_Print.string_of_logic_assertion unfolded_post false);
 
 	let pre_symb_state, (lvars, subst) = normalise_precondition unfolded_pre in 
-	let post_symb_state = normalise_postcondition unfolded_post subst in 
+	let post_symb_state, post_lvars = normalise_postcondition unfolded_post subst lvars in 
 	{	
 		n_pre = pre_symb_state; 
 		n_post = post_symb_state; 
 		n_ret_flag = spec.ret_flag; 
 		n_lvars = lvars; 
+		n_post_lvars = post_lvars; 
 		n_subst = subst
 	}
 

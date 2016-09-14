@@ -30,7 +30,7 @@ proc o__getProperty (l, prop) {
 			
 	call:	gp := [proto, "@getProperty"];
 			xret := gp (proto, prop) with elab;
-			[* fold (ProtoLookup (l, prop, #d)) *]
+			[* fold (ProtoLookup (l, prop, #d)) *] 
 			goto rlab; 
 				
     rlab:   skip;
