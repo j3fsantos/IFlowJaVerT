@@ -743,6 +743,7 @@ let normalise_assertion a =
 	(heap, store, p_formulae, gamma, preds), subst
 	
 	
+	
 let normalise_precondition a = 
 	let lvars = get_ass_vars_lst a false in 	
 	(*let lvars_str = List.fold_left (fun ac var -> (ac ^ var ^ ", ")) "" lvars in 
@@ -790,6 +791,7 @@ let normalise_single_spec preds spec =
 		n_post_lvars = post_lvars; 
 		n_subst = subst
 	}
+
 
 
 let normalise_spec preds spec = 

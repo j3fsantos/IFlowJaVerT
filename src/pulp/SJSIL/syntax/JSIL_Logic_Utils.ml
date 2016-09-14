@@ -3,6 +3,7 @@ open Set
 open Stack
 open JSIL_Syntax
 
+module SS = Set.Make(String) 
 
 let fresh_sth (name : string) : (unit -> string) =
   let counter = ref 0 in
@@ -377,4 +378,22 @@ let copy_substitution subst = Hashtbl.copy subst
 
 let extend_subst subst var v = 
 	Hashtbl.replace subst var v
+
+
+
+let filter_vars vars ignore_vars : string list = 
+	let ignore_vars = SS.of_list ignore_vars in 
+	let vars = 
+		List.fold_left
+			(fun ac var -> 
+				if (SS.mem var ignore_vars) 
+					then 
+						(Printf.printf "Inside filter_vars. then: %s\n" var; 
+						ac) 
+					else 
+						(Printf.printf "Inside filter_vars. then: %s\n" var; 
+						(var :: ac)))
+			[ ]
+			vars in 
+	vars	
 				
