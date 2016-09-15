@@ -185,13 +185,13 @@ let get_z3_var_and_type tr_ctx var =
 	let var_type = JSIL_Memory_Model.gamma_get_type gamma var in 
 	let le, te = 
 		(match var_type with 
-		| None              -> 
-				                   let le = (Arithmetic.Integer.mk_const_s ctx var) in 
+		  | None            -> 
+				                   let le = (Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx var)) in 
 		    								   le, (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ le ])
-		| Some t when (List.mem t types_encoded_as_ints)  
-			                  -> (Arithmetic.Integer.mk_const_s ctx var),       (encode_type ctx t)  
-			| Some ListType   -> (Expr.mk_const_s ctx var tr_ctx.tr_list_sort), (encode_type ctx ListType) 
-			| Some NumberType -> (Arithmetic.Real.mk_const_s ctx var),          (encode_type ctx NumberType) 
+		  | Some t when (List.mem t types_encoded_as_ints)  
+			                  -> (Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx var)),       (encode_type ctx t)  
+			| Some ListType   -> (Expr.mk_const ctx (Symbol.mk_string ctx var) tr_ctx.tr_list_sort), (encode_type ctx ListType) 
+			| Some NumberType -> (Arithmetic.Real.mk_const ctx (Symbol.mk_string ctx var)),          (encode_type ctx NumberType) 
 			| _               -> raise (Failure "z3 variable encoding: fatal error")) in
 	le, te 
 
@@ -335,33 +335,21 @@ let get_sort tr_ctx var_type =
 
 let get_sorts tr_ctx vars = 
 	let gamma = tr_ctx.tr_typing_env in 
-	let rec loop vars sorts = 
-		(match vars with 
-		| [] -> List.rev sorts 
-		| var :: rest_vars -> 
-			let var_type = JSIL_Memory_Model.gamma_get_type gamma var in 
-			let sort = get_sort tr_ctx var_type in 
-			loop rest_vars (sort :: sorts)) in 
-	loop vars []
-
+	List.map (fun x -> let var_type = JSIL_Memory_Model.gamma_get_type gamma x in get_sort tr_ctx var_type) vars
 
 let get_z3_vars tr_ctx vars =
-	let rec loop vars z3_vars = 
-		match vars with 
-		| [] -> List.rev z3_vars 
-		| var :: rest_vars -> 
-			let z3_var = get_z3_var_symbol tr_ctx var in 
-			loop rest_vars (z3_var :: z3_vars) in 
-	loop vars []
+	List.map (fun x -> get_z3_var_symbol tr_ctx x) vars
 	
 
 let encode_quantifier tr_ctx quantified_vars assertion = 
 	if ((List.length quantified_vars) > 0) then 
 		(let quantified_assertion = 
-			Quantifier.mk_forall 
-				(tr_ctx.z3_ctx)
-				(get_sorts tr_ctx quantified_vars) 
-				(get_z3_vars tr_ctx quantified_vars) 
+			let sorts = get_sorts tr_ctx quantified_vars in
+			let ctx = tr_ctx.z3_ctx in
+			Quantifier.mk_quantifier 
+				ctx
+				true
+				(List.map2 (fun v s -> Expr.mk_const_s ctx v s) quantified_vars sorts)
 				assertion
 				None 
 				[]
@@ -369,15 +357,8 @@ let encode_quantifier tr_ctx quantified_vars assertion =
 				None 
 				None in 
 		let quantifier_str = Quantifier.to_string quantified_assertion in 
-		Printf.printf "Ok, some info about this shit.\n";
-		Printf.printf "Number of shitty bound variables: %d\n" (Quantifier.get_num_bound quantified_assertion);
-		Printf.printf "Is the shit universally quantified? %b\n" (Quantifier.is_universal quantified_assertion);
-		Printf.printf "The body of the shitty quantifier: \n%s\n" (Expr.to_string (Quantifier.get_body quantified_assertion));
-		Printf.printf "\n";
 		let quantified_assertion = Quantifier.expr_of_quantifier quantified_assertion in
-		Printf.printf "Shitty expression is: \n%s\n\n" (Expr.to_string quantified_assertion);
 		let quantified_assertion = Expr.simplify quantified_assertion None in
-		Printf.printf "Shitty expression after simplification is: \n%s\n\n" (Expr.to_string quantified_assertion);
 		quantified_assertion)
 	else assertion	
 
