@@ -364,38 +364,31 @@ let encode_quantifier tr_ctx quantified_vars assertion =
 
 	
 let get_solver tr_ctx existentials left_as right_as_or = 
-	Printf.printf "----- Creating the solver -----\n\n";
-	if ((List.length existentials) > 0) 
-		then ( 
-			Printf.printf "There are existentials.\n\n";
+	
+		(* Printf.printf "There are existentials.\n\n";
 			Printf.printf "Left ass:\n";
 			List.iter (fun x -> Printf.printf "\n%s\n" (Expr.to_string x)) left_as;
 			Printf.printf "\nRight ass:\n";
-			Printf.printf "\n%s\n\n" (Expr.to_string right_as_or);
-						
-			let target_assertion = 
-				(if ((List.length left_as) > 0) 
-					then Boolean.mk_and tr_ctx.z3_ctx (left_as @ [ right_as_or ])
-					else right_as_or) in 
-			let target_assertion = encode_quantifier tr_ctx existentials target_assertion in
-			
-			Printf.printf "The assertion to check is:\n";
-			Printf.printf "\n%s\n\n" (Expr.to_string target_assertion);
-			
-			let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
-			Solver.add solver [ target_assertion ];
-			solver)
-		else (
-			Printf.printf "There are no existentials.\n";
-			let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
-			Solver.add solver (left_as @ [ right_as_or ]); 
-			solver)
+			Printf.printf "\n%s\n\n" (Expr.to_string right_as_or); *)
 	
+		(*
+			Printf.printf "The assertion to check is:\n";
+			Printf.printf "\n%s\n\n" (Expr.to_string target_assertion);*)
+		(* Printf.printf "----- Creating the solver -----\n\n"; *)
+		
+	let right_as_or = 
+		if ((List.length existentials) > 0) 
+			then encode_quantifier tr_ctx existentials right_as_or
+			else right_as_or in 
+			
+	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
+	Solver.add solver (left_as @ [ right_as_or ]);
+	solver
 
 
 (* right_as must be satisfiable *)
 let check_entailment existentials left_as right_as gamma =
-	Printf.printf "------------------------------\n    Entering entailment\n\n";
+	(* Printf.printf "------------------------------\n    Entering entailment\n\n";*)
 	let cfg = [("model", "true"); ("proof", "false")] in
 	
 	let tr_ctx = mk_smt_translation_ctx gamma existentials in 
@@ -427,15 +420,16 @@ let check_entailment existentials left_as right_as gamma =
 			List.map 
 				(fun a -> encode_pure_formula tr_ctx a)
 				left_as in 
-		 Printf.printf "The thingies prior to existentials are:\n";
+		 
+		(* Printf.printf "The thingies prior to existentials are:\n";
 		 List.iter
 			(fun expr -> Printf.printf "\n%s\n" (Expr.to_string expr))
 			(left_as @ [ right_as_or ]); 
-		 Printf.printf "\nDone printing\n";
+		 Printf.printf "\nDone printing\n"; *)
 		
-		Printf.printf "\nThe existentials are: ";
+		(* Printf.printf "\nThe existentials are: ";
 		List.iter (fun x -> Printf.printf "%s " x) existentials;
-		Printf.printf "\n\n";
+		Printf.printf "\n\n";*)
 		
 		(* SOMETHING HAPPENS HERE! *)
 		let solver = get_solver tr_ctx existentials left_as right_as_or in 
@@ -456,6 +450,6 @@ let check_entailment existentials left_as right_as gamma =
 		Gc.full_major (); 
 		Solver.reset solver; 
 		Printf.printf "Check_entailment. Result %b\n" ret; 
-		Printf.printf "\n    Exiting entailment\n------------------------------\n\n";
+		(* Printf.printf "\n    Exiting entailment\n------------------------------\n\n"; *)
 		ret
 		end 
