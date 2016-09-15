@@ -717,14 +717,14 @@ let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) p_form
 	new_subst, (DynArray.of_list quotient_preds)		
 
 
-let unify_gamma pat_gamma gamma subst =
+let unify_gamma pat_gamma gamma subst ignore_vars =
 	(* Printf.printf "I am about to unify two gammas\n";
 	Printf.printf "pat_gamma: %s.\ngamma: %s.\nsubst: %s\n" 
 		(JSIL_Memory_Print.string_of_gamma pat_gamma) (JSIL_Memory_Print.string_of_gamma gamma)
 		(JSIL_Memory_Print.string_of_substitution subst); *)
 	let res = (Hashtbl.fold 	
 		(fun var v_type ac ->
-			(if ((not ac) || (not (is_lvar_name var))) 
+			(if ((not ac) || (not (is_lvar_name var)) || (List.mem var ignore_vars)) 
 				then ac 
 				else 
 					try 
@@ -732,14 +732,14 @@ let unify_gamma pat_gamma gamma subst =
 						let le_type, is_typable = JSIL_Logic_Normalise.normalised_is_typable gamma le in  
 						match le_type with 
 						| Some le_type -> 
-							(*Printf.printf "unify_gamma. pat gamma var: %s. le: %s. v_type: %s. le_type: %s" 
+							(* Printf.printf "unify_gamma. pat gamma var: %s. le: %s. v_type: %s. le_type: %s" 
 								var 
 								(JSIL_Print.string_of_logic_expression le false)
 								(JSIL_Print.string_of_type v_type)
 								(JSIL_Print.string_of_type le_type); *)
 							true
 						| None ->
-							(*Printf.printf "failed unify_gamma. pat gamma var: %s. le: %s. v_type: %s" 
+							(* Printf.printf "failed unify_gamma. pat gamma var: %s. le: %s. v_type: %s" 
 								var 
 								(JSIL_Print.string_of_logic_expression le false)
 								(JSIL_Print.string_of_type v_type); *)
@@ -749,7 +749,7 @@ let unify_gamma pat_gamma gamma subst =
 						false))
 		pat_gamma 
 		true) in 
-	(* Printf.printf "unify_gamma. res: %b" res; *)
+	Printf.printf "unify_gamma. res: %b\n" res; 
 	res
 
 
@@ -816,7 +816,7 @@ let unify_symb_states lvars existentials pat_symb_state (symb_state : symbolic_s
 			Printf.printf "The quotient heap that I just computed:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false);
 			Printf.printf "the symbolic state after computing quotient heap:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state); *)
 			extend_pf pf new_pfs;
-			(if ((check_entailment_pf existentials pf pat_pf gamma s_new_subst) && (unify_gamma pat_gamma gamma s_new_subst)) then 
+			(if ((check_entailment_pf existentials pf pat_pf gamma s_new_subst) && (unify_gamma pat_gamma gamma s_new_subst existentials)) then 
 				Some (quotient_heap, quotient_preds, s_new_subst, true)
 				else 
 				Some (quotient_heap, quotient_preds, new_subst,false))
