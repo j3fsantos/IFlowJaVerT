@@ -421,7 +421,7 @@ let subtract_pred pred_name args pred_set pfs gamma =
 	let pred_list = DynArray.to_list pred_set in 
 	let rec loop pred_list index = 
 		match pred_list with 
-		| [] -> raise (Failure "Predicate to fold not found in the predicate set!!!")
+		| [] -> raise (Failure (Printf.sprintf "Predicate %s to fold not found in the predicate set!!!" pred_name))
 		| pred :: rest_pred_list -> 
 			if (predicate_assertion_equality (pred_name, args) pred pfs gamma) then 
 				index

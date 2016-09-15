@@ -1,5 +1,5 @@
 pred interval (x, a, b) : 
-	(! (x <# a)) * (x <=# b) * (a <=# b) * types(x: $$int_type, a: $$int_type, b: $$int_type);
+	((a <=# b) * (a <=# x) * (x <=# b) * types(x: $$int_type, a: $$int_type, b: $$int_type));
 
 spec interval_addition (x, a, b)
    [[ interval(x, a, b) * (a == #a) * (b == #b) * types (#a: $$int_type, #b: $$int_type, #c: $$int_type, #d: $$int_type) ]]
