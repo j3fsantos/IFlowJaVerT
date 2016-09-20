@@ -749,8 +749,13 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 	let execute_function_constructor proc x e_args j = (
 			(* Printf.printf "\nFunction call or constructor encountered.\n"; *)
 			
-			(* let args = (evaluate_expr (List.nth e_args store)) in
-			Printf.printf "Arguments: %s" (JSIL_Print.string_of_literal args false); *)
+			(* let len = List.length e_args in
+			let args n = (evaluate_expr (List.nth e_args n) store) in
+			Printf.printf "Arguments: ";
+			for i = 0 to (len - 1) do
+				Printf.printf "%d: %s " i (JSIL_Print.string_of_literal (args i) false);
+			done;
+			Printf.printf "\n"; *)
 			
 			let se = (evaluate_expr (Var (Js2jsil.var_se)) store) in
 
@@ -781,15 +786,21 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 				else
 			  	let firstArg = List.nth e_args 2 in
 					let evalFirstArg = evaluate_expr firstArg store in
-					(match evalFirstArg with
-					 | String efa -> params := efa
-					 | _ -> message := "More than one argument, 1 not a string!"; error := true);
+					let new_store = init_store ["v"] [evalFirstArg] in 
+        	(match evaluate_cmd prog "i__toString" which_pred heap new_store 0 0 cc_tbl vis_tbl with 
+        		| Normal, v -> (match v with
+						                 | String efa -> params := efa
+      					             | _ -> message := Printf.sprintf "toString didn't return string!"; error := true)
+        		| Error, v -> message := "Couldn't do toString!"; error := true);
 					for i = 3 to argCount do
 						let arg = List.nth e_args i in
 						let evalArg = evaluate_expr arg store in
-						(match evalArg with
-					   | String efa -> params := !params ^ ", " ^ efa
-					   | _ -> message := Printf.sprintf "More than one argument, %d not a string" (i-2); error := true);
+					  let new_store = init_store ["v"] [evalFirstArg] in 
+        		(match evaluate_cmd prog "i__toString" which_pred heap new_store 0 0 cc_tbl vis_tbl with 
+        			| Normal, v -> (match v with
+						   	              | String efa -> params := !params ^ ", " ^ efa
+      						             | _ -> message := Printf.sprintf "toString didn't return string!"; error := true)
+        			| Error, v -> message := "Couldn't do toString!"; error := true);
 					done;
 					let bd = List.nth e_args (argCount + 1) in
 					let ebd = evaluate_expr bd store in
@@ -805,8 +816,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 			if (!error) then (throw_syntax_error !message) else
 			begin
 			
-  			(* Printf.printf "\tParameters: %s\n" !params;
-  			Printf.printf "\tBody: %s\n\n" !body; *)
+  			
    
   			(* Parsing the parameters as a FormalParametersList *)
   			let lexbuf = Lexing.from_string !params in
@@ -975,6 +985,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 
 	| SCall (x, e, e_args, j)
 	  when ((evaluate_expr e store = String "Function_call") || (evaluate_expr e store = String "Function_construct")) ->
+			(* Printf.printf "Call: Entering FC from %s\n"  (JSIL_Print.string_of_literal (evaluate_expr e store) false); *)
 			execute_function_constructor proc x e_args j
 		
 	| SCall (x, e, e_args, j) -> 
@@ -1007,9 +1018,12 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
   		                         | _ -> raise (Failure (Printf.sprintf "No. You can't call a procedure %s." (JSIL_Print.string_of_literal call_proc_name_val false)))) in
 				if ((call_proc_name = "Function_call") || (call_proc_name = "Function_construct")) 
 				then
+				begin
+					(* Printf.printf "Apply: Entering FC from apply %s.\n";*)
 					execute_function_constructor proc x e_args j
+				end
 				else
-					execute_procedure_body proc x (Literal call_proc_name_val) e_args j)
+					execute_procedure_body proc x (Literal call_proc_name_val) ((List.map (fun x -> (Literal x))) (List.tl args)) j)
 				
 				(*
   		let call_proc_name = (match call_proc_name_val with 
