@@ -745,72 +745,8 @@ let init_store params args =
 	new_store 
 	
 let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl = 	
-	let proc = try Hashtbl.find prog cur_proc_name with
-		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist. Ew." cur_proc_name)) in  
-	let cmd = proc.proc_body.(cur_cmd) in 
-
-	let metadata, cmd = cmd in
-	match cmd with 
-	| SBasic bcmd -> 
-		let _ = evaluate_bcmd bcmd heap store in 
-	  evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
-		 
-	| SGoto i -> 
-		evaluate_cmd prog cur_proc_name which_pred heap store i cur_cmd cc_tbl vis_tbl
 	
-	| SGuardedGoto (e, i, j) -> 
-		let v_e = evaluate_expr e store in
-		(match v_e with 
-		| Bool true -> evaluate_cmd prog cur_proc_name which_pred heap store i cur_cmd cc_tbl vis_tbl
-		| Bool false -> evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl
-		| _ -> raise (Failure (Printf.sprintf "So you're really trying to do a goto based on %s? Ok..." (JSIL_Print.string_of_literal v_e false))))
-
-	| SCall (x, e, e_args, j) 
-		when  evaluate_expr e store = String "Object_eval" ->
-		(* Printf.printf "I intercepted something!!!\n";  *)
-		let e_args = 
-			(if (List.length e_args < 3) then (List.append e_args [Literal Undefined]) else e_args) in
-		let str_e = List.nth e_args 2 in
-		let str_e = (evaluate_expr str_e store) in
-		(match str_e with
-		| String code ->
-				let code = Str.global_replace (Str.regexp (Str.quote "\\\"")) "\"" code in
-				(* Printf.printf "\n%s\n" code; *)
-				let x_scope, x_this = 
-					(match SSyntax_Aux.try_find store (Js2jsil.var_scope), SSyntax_Aux.try_find store (Js2jsil.var_this)  with 
-					| Some x_scope, Some x_this -> x_scope, x_this
-					| _, _ -> raise (Failure "No var_scope or var_this to give to eval")) in
-				(match (try
-					let e_js = Parser_main.exp_from_string code in
-					Some (Js2jsil.js2jsil_eval prog which_pred cc_tbl vis_tbl cur_proc_name e_js)
-					with _ -> None) with
-				| Some proc_eval ->
-					(let new_store = init_store [ Js2jsil.var_scope; Js2jsil.var_this ] [ x_scope; x_this ] in
-					match evaluate_cmd prog proc_eval.proc_name which_pred heap new_store 0 0 cc_tbl vis_tbl with
-					| Normal, v ->
-						Hashtbl.replace store x v;
-						Hashtbl.remove prog proc_eval.proc_name;
-						evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
-					| Error, v ->
-						match j with
-						| None -> raise (Failure "procedure throws an error without an error label")
-						| Some j ->
-							Hashtbl.replace store x v;
-							evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl)
-				| None -> (* Any sort of error from Parsing and JS2JSIL compilation *)
-					(match SSyntax_Aux.try_find store (Js2jsil.var_se), j with
-					| Some v, Some j ->
-						Hashtbl.replace store x v;
-						evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl
-					| _, None -> raise (Failure ("Procedure "^ cur_proc_name ^" just returned an error, but no error label was provided. Bad programmer."))
-					| _, _ -> raise (Failure "No Syntax Error for you, no noooo!")))
-
-		| _ -> Hashtbl.replace store x str_e;
-					 evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl)
-
-	| SCall (x, e, e_args, j)
-	  when ((evaluate_expr e store = String "Function_construct") or (evaluate_expr e store = String "Function_call")) ->
-			
+	let execute_function_constructor proc x e_args j = (
 			(* Printf.printf "\nFunction call or constructor encountered.\n"; *)
 			
 			(* let args = (evaluate_expr (List.nth e_args store)) in
@@ -863,9 +799,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
         		| Normal, v -> (match v with
 						                 | String bd -> body := bd
       					             | _ -> message := Printf.sprintf "toString didn't return string!"; error := true)
-        		| Error, v -> message := "Couldn't do toString!"; error := true)
-      				
-      					
+        		| Error, v -> message := "Couldn't do toString!"; error := true)	
       end;
 			
 			if (!error) then (throw_syntax_error !message) else
@@ -941,10 +875,9 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
   
   				| _ -> throw_syntax_error "Body not a string.")
         )
-			end
-		
-	| SCall (x, e, e_args, j) -> 
-		(* Printf.printf "Nothing was intercepted!!!\n"; *)
+			end) in
+			
+	let execute_procedure_body proc x e e_args j = (
 		let call_proc_name_val = evaluate_expr e store in 
 		let call_proc_name = (match call_proc_name_val with 
 		| String call_proc_name -> 
@@ -955,7 +888,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 			(fun e_arg -> evaluate_expr e_arg store) 
 			e_args in 
 		let call_proc = try Hashtbl.find prog call_proc_name with
-		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist." call_proc_name)) in
+		| _ -> raise (Failure (Printf.sprintf "CALL: The procedure %s you're trying to call doesn't exist." call_proc_name)) in
 		let new_store = init_store call_proc.proc_params arg_vals in 
 
 		if (List.length arg_vals = 0) || (List.nth arg_vals 0 <> String "args") then
@@ -975,7 +908,78 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 			| Some j -> 
 					if (!verbose) then Printf.printf "Procedure %s error return: %s := %s\n" call_proc_name x (JSIL_Print.string_of_literal v false);
 					Hashtbl.replace store x v;
-					evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl))
+					evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl))) in
+	
+	let proc = try Hashtbl.find prog cur_proc_name with
+		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist. Ew." cur_proc_name)) in  
+	let cmd = proc.proc_body.(cur_cmd) in 
+
+	let metadata, cmd = cmd in
+	match cmd with 
+	| SBasic bcmd -> 
+		let _ = evaluate_bcmd bcmd heap store in 
+	  evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
+		 
+	| SGoto i -> 
+		evaluate_cmd prog cur_proc_name which_pred heap store i cur_cmd cc_tbl vis_tbl
+	
+	| SGuardedGoto (e, i, j) -> 
+		let v_e = evaluate_expr e store in
+		(match v_e with 
+		| Bool true -> evaluate_cmd prog cur_proc_name which_pred heap store i cur_cmd cc_tbl vis_tbl
+		| Bool false -> evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl
+		| _ -> raise (Failure (Printf.sprintf "So you're really trying to do a goto based on %s? Ok..." (JSIL_Print.string_of_literal v_e false))))
+
+	| SCall (x, e, e_args, j) 
+		when  evaluate_expr e store = String "Object_eval" ->
+		(* Printf.printf "I intercepted something!!!\n";  *)
+		let e_args = 
+			(if (List.length e_args < 3) then (List.append e_args [Literal Undefined]) else e_args) in
+		let str_e = List.nth e_args 2 in
+		let str_e = (evaluate_expr str_e store) in
+		(match str_e with
+		| String code ->
+				let code = Str.global_replace (Str.regexp (Str.quote "\\\"")) "\"" code in
+				(* Printf.printf "\n%s\n" code; *)
+				let x_scope, x_this = 
+					(match SSyntax_Aux.try_find store (Js2jsil.var_scope), SSyntax_Aux.try_find store (Js2jsil.var_this)  with 
+					| Some x_scope, Some x_this -> x_scope, x_this
+					| _, _ -> raise (Failure "No var_scope or var_this to give to eval")) in
+				(match (try
+					let e_js = Parser_main.exp_from_string code in
+					Some (Js2jsil.js2jsil_eval prog which_pred cc_tbl vis_tbl cur_proc_name e_js)
+					with _ -> None) with
+				| Some proc_eval ->
+					(let new_store = init_store [ Js2jsil.var_scope; Js2jsil.var_this ] [ x_scope; x_this ] in
+					match evaluate_cmd prog proc_eval.proc_name which_pred heap new_store 0 0 cc_tbl vis_tbl with
+					| Normal, v ->
+						Hashtbl.replace store x v;
+						Hashtbl.remove prog proc_eval.proc_name;
+						evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
+					| Error, v ->
+						match j with
+						| None -> raise (Failure "procedure throws an error without an error label")
+						| Some j ->
+							Hashtbl.replace store x v;
+							evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl)
+				| None -> (* Any sort of error from Parsing and JS2JSIL compilation *)
+					(match SSyntax_Aux.try_find store (Js2jsil.var_se), j with
+					| Some v, Some j ->
+						Hashtbl.replace store x v;
+						evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl
+					| _, None -> raise (Failure ("Procedure "^ cur_proc_name ^" just returned an error, but no error label was provided. Bad programmer."))
+					| _, _ -> raise (Failure "No Syntax Error for you, no noooo!")))
+
+		| _ -> Hashtbl.replace store x str_e;
+					 evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl)
+
+	| SCall (x, e, e_args, j)
+	  when ((evaluate_expr e store = String "Function_call") || (evaluate_expr e store = String "Function_construct")) ->
+			execute_function_constructor proc x e_args j
+		
+	| SCall (x, e, e_args, j) -> 
+		  (* Printf.printf "Nothing was intercepted!!!\n"; *)
+		  execute_procedure_body proc x e e_args j
 
 	| SApply (x, e_args, j) ->
 		let arguments = evaluate_expr (EList e_args) store in 
@@ -996,13 +1000,25 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 		(match args with
   		| [] -> raise (Failure "No no no. Not at all")
   		| call_proc_name_val :: arg_vals -> 
+			  let e_args = List.tl e_args in
+				let call_proc_name = (match call_proc_name_val with 
+  		                         | String call_proc_name -> 
+  				                       if (!verbose) then Printf.printf "\nExecuting procedure %s\n" call_proc_name; call_proc_name 
+  		                         | _ -> raise (Failure (Printf.sprintf "No. You can't call a procedure %s." (JSIL_Print.string_of_literal call_proc_name_val false)))) in
+				if ((call_proc_name = "Function_call") || (call_proc_name = "Function_construct")) 
+				then
+					execute_function_constructor proc x e_args j
+				else
+					execute_procedure_body proc x (Literal call_proc_name_val) e_args j)
+				
+				(*
   		let call_proc_name = (match call_proc_name_val with 
   		| String call_proc_name -> 
   				if (!verbose) then Printf.printf "\nExecuting procedure %s\n" call_proc_name; 
   				call_proc_name 
   		| _ -> raise (Failure (Printf.sprintf "No. You can't call a procedure %s." (JSIL_Print.string_of_literal call_proc_name_val false)))) in 
   		let call_proc = try Hashtbl.find prog call_proc_name with
-  		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist." call_proc_name)) in
+  		| _ -> raise (Failure (Printf.sprintf "APPLY: The procedure %s you're trying to call doesn't exist." call_proc_name)) in
   		let new_store = init_store call_proc.proc_params arg_vals in 
   		if (List.length arg_vals = 0) || (List.nth arg_vals 0 <> String "args") then
   		begin
@@ -1018,7 +1034,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
   			(match j with
   			| None -> raise (Failure ("Procedure "^ call_proc_name ^" just returned an error, but no error label was provided. Bad programmer."))
   			| Some j -> Hashtbl.replace store x v;
-  				evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl)))
+  				evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl))) *)
 	
 	| SPhiAssignment (x, x_arr) -> 
 		evaluate_phi_psi_cmd prog proc which_pred heap store cur_cmd prev_cmd cur_cmd x x_arr cc_tbl vis_tbl

@@ -12,25 +12,6 @@ with
 	ret: 	xret, rlab;
 };
 
-(* *** CONSTRUCT *** *)
-
-proc Function_call () {
-		
-			arguments := args;	
-	
-			x__se := "SyntaxError" ();
-
-			xret := "Function_construct" (arguments) with elab;
-			
-	rlab:	skip;
-	elab:	skip
-}
-with
-{
-	ret: 	xret, rlab;
-	err:	xret, elab;
-};
-
 (* *** CALL *** *)
 
 proc FP_call () {
@@ -52,6 +33,8 @@ proc FP_call () {
 		
 	body:	body   := [vthis, "@call"]; 
 			xscope := [vthis, "@scope"]; 
+			
+			x__se := "SyntaxError" ();
 			
 			xret := apply (body, xscope, xthis, pars) with elab;
 			
@@ -86,11 +69,13 @@ proc FP_apply (xsc, vthis, this_arg, arg_array) {
 			xret := "i__isCallable" (vthis);
 			goto [xret] array te;
 	
-	array:	goto [(arg_array = $$null) or (arg_array = $$undefined)] call obj;
+	array:	goto [(arg_array = $$null) or (arg_array = $$undefined)] call isobj;
 			
 	isobj:	goto [typeOf (arg_array) = $$object_type] obj te;
 	
-	obj:	g := [arg_array, "@get"];
+	obj:	class := [arg_array, "@class"];
+			goto [class = "Array"] arr te;
+	arr:	g := [arg_array, "@get"];
 			xret := g (arg_array, "length") with elab;
 			xret := "i__toUint32" (xret) with elab;
 			len := xret;
