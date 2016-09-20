@@ -73,9 +73,7 @@ proc FP_apply (xsc, vthis, this_arg, arg_array) {
 			
 	isobj:	goto [typeOf (arg_array) = $$object_type] obj te;
 	
-	obj:	class := [arg_array, "@class"];
-			goto [class = "Array"] arr te;
-	arr:	g := [arg_array, "@get"];
+	obj:	g := [arg_array, "@get"];
 			xret := g (arg_array, "length") with elab;
 			xret := "i__toUint32" (xret) with elab;
 			len := xret;
