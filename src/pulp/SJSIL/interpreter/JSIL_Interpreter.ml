@@ -795,7 +795,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 					for i = 3 to argCount do
 						let arg = List.nth e_args i in
 						let evalArg = evaluate_expr arg store in
-					  let new_store = init_store ["v"] [evalFirstArg] in 
+					  let new_store = init_store ["v"] [evalArg] in 
         		(match evaluate_cmd prog "i__toString" which_pred heap new_store 0 0 cc_tbl vis_tbl with 
         			| Normal, v -> (match v with
 						   	              | String efa -> params := !params ^ ", " ^ efa
