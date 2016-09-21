@@ -511,7 +511,7 @@ let rec closure_clarification_expr cc_tbl fun_tbl vis_tbl f_id visited_funs e =
   | AnonymousFun (_, args, fb) -> 
 		let new_f_id = get_codename e in 
 		update_cc_tbl cc_tbl f_id new_f_id args fb;
-		update_fun_tbl fun_tbl new_f_id args fb; 
+		update_fun_tbl fun_tbl new_f_id args fb;
 		Hashtbl.replace vis_tbl new_f_id (new_f_id :: visited_funs); 
 		closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: visited_funs) fb
 	| NamedFun (_, f_name, args, fb) ->

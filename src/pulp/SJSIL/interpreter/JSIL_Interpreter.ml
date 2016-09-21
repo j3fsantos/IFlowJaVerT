@@ -182,17 +182,19 @@ let create_object_with_call_construct call construct len =
 		obj
 
 (* Function objects - with heap addition *)
-let create_anonymous_function_object heap call construct params scope vis_fid =
+let create_anonymous_function_object heap call construct params =
 	let loc = fresh_loc () in
 	let len = List.length params in
 	let obj = create_object_with_call_construct call construct len in
 	
-		(* Do the scope properly *)
-		let loc_scope = fresh_loc () in
-		let scope_obj = copy_object heap scope (List.tl vis_fid) in
-		SHeap.add scope_obj (List.hd vis_fid) (Loc loc);
-		SHeap.replace obj "@scope" (Loc loc_scope);
 		
+		let loc_scope = fresh_loc () in
+		let scope_obj = SHeap.create 1021 in
+			 SHeap.add scope_obj call (Loc loc);
+		   SHeap.add scope_obj "main" (Loc "$lg");
+			 SHeap.add scope_obj "@proto" Null;
+			 SHeap.add heap loc_scope scope_obj;
+		   SHeap.replace obj "@scope" (Loc loc_scope);
 		
 		SHeap.replace obj "@formalParameters" (LList (List.map (fun x -> String x) params));
 		SHeap.add obj "caller"    (LList [(String "a"); Loc "$lthrow_type_error"; Loc "$lthrow_type_error"; Bool false; Bool false]);
@@ -203,8 +205,7 @@ let create_anonymous_function_object heap call construct params scope vis_fid =
 			SHeap.add proto_obj "constructor" (LList [String "d"; Loc loc; Bool true; Bool false; Bool true]);
 			SHeap.add obj "prototype" (LList [String "d"; Loc loc_proto; Bool true; Bool false; Bool true]);
 	
-			(* PUT BOTH IN THE HEAP *)
-			SHeap.add heap loc_scope scope_obj;
+			(* Add to the heap *)
 			SHeap.add heap loc_proto proto_obj;
 			SHeap.add heap loc obj;
 
@@ -487,7 +488,7 @@ let rec evaluate_expr (e : jsil_expr) store =
 		| None -> 
 			let err_msg = Printf.sprintf "Variable %s not found in the store" x in 
 			let store_str = JSIL_Memory_Print.string_of_store store in 
-			if (!verbose) then Printf.printf "The current store is: \n %s" store_str;
+			if (!verbose) then Printf.printf "The current store is: \n%s" store_str;
 			raise (Failure err_msg) 
 		| Some v -> v)
 	
@@ -755,7 +756,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 			for i = 0 to (len - 1) do
 				Printf.printf "%d: %s " i (JSIL_Print.string_of_literal (args i) false);
 			done;
-			Printf.printf "\n"; *)
+			Printf.printf "\n";  *)
 			
 			let se = (evaluate_expr (Var (Js2jsil.var_se)) store) in
 
@@ -813,10 +814,10 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
         		| Error, v -> message := "Couldn't do toString!"; error := true)	
       end;
 			
+			(* Printf.printf "Error status: %b, message: %s\n" !error !message; *)
+			
 			if (!error) then (throw_syntax_error !message) else
 			begin
-			
-  			
    
   			(* Parsing the parameters as a FormalParametersList *)
   			let lexbuf = Lexing.from_string !params in
@@ -824,7 +825,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
   				(try (Some (JSIL_Utils.parse_without_error JSIL_Parser.param_list_FC_target lexbuf)) with 
   				 | _ -> None) in
   			(match parsed_params with
-  			| None -> (Error, se)
+  			| None -> throw_syntax_error "Parameters not parseable."
   			| Some parsed_params -> 
   				let len = List.length parsed_params in
   			
@@ -842,7 +843,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
   					let code = Str.global_replace (Str.regexp (Str.quote "\\\"")) "\"" code in
   					let code = "function (" ^ !params ^ ") {" ^ code ^ "}" in
   					
-  					(* Printf.printf "\n\tParsing: %s\n\n" code; *)
+  					(* Printf.printf "\n\tParsing body: %s\n\n" code; *)
   					
   					let e_js = 
   						(try (Some (Parser_main.exp_from_string code)) with
@@ -856,26 +857,12 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
   									| e :: [] -> 
   										(match e.Parser_syntax.exp_stx with
   										| Parser_syntax.AnonymousFun (_, params, body) ->		
-  												(* Printf.printf "Params: ";
-  												List.iter (fun x -> Printf.printf "%s " x) params;
-  												Printf.printf "\n"; *)
   												let new_proc = Js2jsil.js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl cur_proc_name params e in
   												let fun_name = new_proc.proc_name in
   												let vis_tbl = (match vis_tbl with
   												                | Some t -> t
   																				| None -> raise (Failure "No visibility table")) in 
-  												let vis_fid = try (Hashtbl.find vis_tbl fun_name) 
-  													with _ -> (let msg = Printf.sprintf "Function %s not found in visibility table" fun_name in 
-  																		raise (Failure msg)) in
-  												let scope = (evaluate_expr (Var Js2jsil.var_scope) store) in
-  												let lsc = (match scope with
-  												             | Loc lsc -> lsc
-  																		 | _ -> raise (Failure "Scope not a location.")) in  
-  												(* Printf.printf "Function name: %s\n" fun_name;
-  												Printf.printf "vis_fid: ";
-  												List.iter (fun x -> Printf.printf "%s " x) vis_fid;
-  												Printf.printf "\n"; *)
-  												let new_loc = create_anonymous_function_object heap fun_name fun_name params lsc vis_fid in
+  												let new_loc = create_anonymous_function_object heap fun_name fun_name params in
   												Hashtbl.replace store x (Loc new_loc);
   					 							evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl (Some vis_tbl)
   											
@@ -1006,7 +993,15 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 			      	| LList e -> e
 							| x -> [ x ])
 							(flatten le)) in
-				flatten args
+				let fargs = flatten args in
+				(* Printf.printf "Flattened: ";
+				let len = List.length fargs in
+				for i = 0 to (len - 1) do
+					let lit = List.nth fargs i in
+					Printf.printf "%s " (JSIL_Print.string_of_literal lit false);
+				done;
+				Printf.printf "\n"; *)
+				fargs
 			| _ -> raise (Failure "Nope!")) in
 		(match args with
   		| [] -> raise (Failure "No no no. Not at all")
@@ -1016,14 +1011,15 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
   		                         | String call_proc_name -> 
   				                       if (!verbose) then Printf.printf "\nExecuting procedure %s\n" call_proc_name; call_proc_name 
   		                         | _ -> raise (Failure (Printf.sprintf "No. You can't call a procedure %s." (JSIL_Print.string_of_literal call_proc_name_val false)))) in
+				let new_args = ((List.map (fun x -> (Literal x))) (List.tl args)) in
 				if ((call_proc_name = "Function_call") || (call_proc_name = "Function_construct")) 
 				then
 				begin
-					(* Printf.printf "Apply: Entering FC from apply %s.\n";*)
-					execute_function_constructor proc x e_args j
+					(* Printf.printf "Apply: Entering FC from apply.\n"; *)
+					execute_function_constructor proc x new_args j
 				end
 				else
-					execute_procedure_body proc x (Literal call_proc_name_val) ((List.map (fun x -> (Literal x))) (List.tl args)) j)
+					execute_procedure_body proc x (Literal call_proc_name_val) new_args j)
 				
 				(*
   		let call_proc_name = (match call_proc_name_val with 
