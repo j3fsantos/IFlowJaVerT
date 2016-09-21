@@ -203,7 +203,7 @@ let create_anonymous_function_object heap call construct params =
 		let loc_proto = fresh_loc () in
 		let proto_obj = create_default_object "$lobj_proto" "Object" true in
 			SHeap.add proto_obj "constructor" (LList [String "d"; Loc loc; Bool true; Bool false; Bool true]);
-			SHeap.add obj "prototype" (LList [String "d"; Loc loc_proto; Bool true; Bool false; Bool true]);
+			SHeap.add obj "prototype" (LList [String "d"; Loc loc_proto; Bool true; Bool false; Bool false]);
 	
 			(* Add to the heap *)
 			SHeap.add heap loc_proto proto_obj;

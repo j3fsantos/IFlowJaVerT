@@ -4759,7 +4759,6 @@ let js2jsil e offset_converter =
 
 
 let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e = 
-	Printf.printf "EVAL: parent_id = %s\n" f_parent_id;
 	let offset_converter x = 0 in 
 	Js_pre_processing.test_early_errors e;
 	let vis_tbl, cc_tbl, vis_fid = 
