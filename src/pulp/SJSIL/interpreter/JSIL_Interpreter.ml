@@ -760,18 +760,21 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 			
 			let se = (evaluate_expr (Var (Js2jsil.var_se)) store) in
 
+			let error = ref false in
+			let propagate = ref false in
+			let message = ref "" in
+			let retvalue = ref Empty in
+
 			let throw_syntax_error message = 
 				((* Printf.printf "SYNTAX ERROR: %s\n" message; *)
+				 let throw_value = if !propagate then !retvalue else se in
 				 let tse = 
 					(match j with
 				  	| None -> raise (Failure "procedure throws an error without an error label")
 					  | Some j ->
-						  	Hashtbl.replace store x se;
+						  	Hashtbl.replace store x throw_value;
 								evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl) in
 						tse) in
-						
-			let error = ref false in
-			let message = ref "" in
 			
 			let argCount = (List.length e_args - 2) in
 			let params = ref "" in
@@ -781,44 +784,73 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 				if (argCount = 1) then 
 				let bd = List.nth e_args 2 in
 					let ebd = evaluate_expr bd store in
-					(match ebd with
-					   | String bd -> body := bd
-					   | _ -> message := "One argument, but body is not a string"; error := true);
+  					(* Do the "toString"! *)
+  					let new_store = init_store ["v"] [ebd] in 
+						if (!verbose) then 
+						  begin
+							  Printf.printf "FC: Body: i__toString with %s.\n" (JSIL_Print.string_of_literal ebd false);
+						  end;
+        		(match evaluate_cmd prog "i__toString" which_pred heap new_store 0 0 cc_tbl vis_tbl with 
+        		| Normal, v -> (match v with
+						                 | String bd -> body := bd
+      					             | _ -> message := Printf.sprintf "toString didn't return string!"; propagate := false; error := true)
+        		| Error, v -> message := "Couldn't do toString!"; propagate := true; retvalue := v; error := true);
 				else
 			  	let firstArg = List.nth e_args 2 in
 					let evalFirstArg = evaluate_expr firstArg store in
 					let new_store = init_store ["v"] [evalFirstArg] in 
+					if (!verbose) then 
+						begin
+							Printf.printf "FC: Params: 1: i__toString with %s.\n" (JSIL_Print.string_of_literal evalFirstArg false);
+						end;
         	(match evaluate_cmd prog "i__toString" which_pred heap new_store 0 0 cc_tbl vis_tbl with 
         		| Normal, v -> (match v with
 						                 | String efa -> params := efa
-      					             | _ -> message := Printf.sprintf "toString didn't return string!"; error := true)
-        		| Error, v -> message := "Couldn't do toString!"; error := true);
+      					             | _ -> message := Printf.sprintf "toString didn't return string!"; propagate := false; error := true)
+        		| Error, v -> message := "Couldn't do toString!"; propagate := true; retvalue := v; error := true);
+					if (not !error) then 
+					begin
 					for i = 3 to argCount do
 						let arg = List.nth e_args i in
 						let evalArg = evaluate_expr arg store in
 					  let new_store = init_store ["v"] [evalArg] in 
+						if (!verbose) then 
+						  begin
+							  Printf.printf "FC: Params: %d: i__toString with %s.\n" (i-2) (JSIL_Print.string_of_literal evalArg false);
+						  end;
         		(match evaluate_cmd prog "i__toString" which_pred heap new_store 0 0 cc_tbl vis_tbl with 
         			| Normal, v -> (match v with
 						   	              | String efa -> params := !params ^ ", " ^ efa
-      						             | _ -> message := Printf.sprintf "toString didn't return string!"; error := true)
-        			| Error, v -> message := "Couldn't do toString!"; error := true);
+      						             | _ -> message := Printf.sprintf "toString didn't return string!"; propagate := false; error := true)
+        			| Error, v -> message := "Couldn't do toString!"; propagate := true; retvalue := v; error := true);
 					done;
+					if (not !error) then
+					begin
 					let bd = List.nth e_args (argCount + 1) in
 					let ebd = evaluate_expr bd store in
   					(* Do the "toString"! *)
   					let new_store = init_store ["v"] [ebd] in 
+						if (!verbose) then 
+						  begin
+							  Printf.printf "FC: Body: i__toString with %s.\n" (JSIL_Print.string_of_literal ebd false);
+						  end;
         		(match evaluate_cmd prog "i__toString" which_pred heap new_store 0 0 cc_tbl vis_tbl with 
         		| Normal, v -> (match v with
 						                 | String bd -> body := bd
-      					             | _ -> message := Printf.sprintf "toString didn't return string!"; error := true)
-        		| Error, v -> message := "Couldn't do toString!"; error := true)	
+      					             | _ -> Printf.printf "Body toString fail: %s\n" (JSIL_Print.string_of_literal v false);
+														        message := Printf.sprintf "toString didn't return string!"; propagate := false; error := true)
+        		| Error, v -> message := "Couldn't do toString!"; propagate := true; retvalue := v; error := true)	
+					end;
+					end;
       end;
 			
 			(* Printf.printf "Error status: %b, message: %s\n" !error !message; *)
 			
 			if (!error) then (throw_syntax_error !message) else
 			begin
-   
+        
+				propagate := false; retvalue := Empty;
+				
   			(* Parsing the parameters as a FormalParametersList *)
   			let lexbuf = Lexing.from_string !params in
   			let parsed_params = 

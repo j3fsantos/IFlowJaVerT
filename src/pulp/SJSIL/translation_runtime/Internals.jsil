@@ -983,6 +983,8 @@ with
 (* *** TOSTRING *** *)
 
 proc i__toString (v) {
+			v := v;
+
 	iu:		goto [v = $$undefined] undef in;
 	undef:	xret := "undefined";
 			goto rlab;
