@@ -766,7 +766,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 			let retvalue = ref Empty in
 
 			let throw_syntax_error message = 
-				((* Printf.printf "SYNTAX ERROR: %s\n" message; *)
+				(Printf.printf "SYNTAX ERROR: %s\n" message; 
 				 let throw_value = if !propagate then !retvalue else se in
 				 let tse = 
 					(match j with
@@ -873,12 +873,12 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
   				(match e_body with
   				| String code ->
   					let code = Str.global_replace (Str.regexp (Str.quote "\\\"")) "\"" code in
-  					let code = "function (" ^ !params ^ ") {" ^ code ^ "}" in
+  					let code = "function ICANTBELIEVEIHAVETOPUTAFRIGGINGNAMEHERE (" ^ !params ^ ") {" ^ code ^ "}" in
   					
   					(* Printf.printf "\n\tParsing body: %s\n\n" code; *)
   					
   					let e_js = 
-  						(try (Some (Parser_main.exp_from_string code)) with
+  						(try (Some (Parser_main.exp_from_string ~force_strict:true code)) with
   					   | _ -> None) in
   					(match e_js with
   					| None -> throw_syntax_error "Body not parsable."
@@ -888,7 +888,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
   									(match le with
   									| e :: [] -> 
   										(match e.Parser_syntax.exp_stx with
-  										| Parser_syntax.Function (_, None, params, body) ->		
+  										| Parser_syntax.Function (_, Some "ICANTBELIEVEIHAVETOPUTAFRIGGINGNAMEHERE", params, body) ->		
   												let new_proc = Js2jsil.js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl cur_proc_name params e in
   												let fun_name = new_proc.proc_name in
   												let vis_tbl = (match vis_tbl with
