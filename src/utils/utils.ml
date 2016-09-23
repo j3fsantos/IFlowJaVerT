@@ -55,22 +55,82 @@ let debugPrint (s:string) =
     ()
     
 let is_int (f : float) : bool =
-  f -. floor f < Float.epsilon
-  
-let rec float_to_string_inner n = (* TODO *)
-  let string_of_number n =
-    let inum = int_of_float n in
-    if (float_of_int inum = n) then string_of_int inum
-    else if n > 1e+9 && n < 1e+21 then Printf.sprintf "%.0f" n
-    else if n < 0.1 && n > 1e-7 then Printf.sprintf "%f" n
-    else
-      let re = Str.regexp "e\\([-+]\\)0" in (* e+0 -> e+ *)
-      Str.replace_first re "e\\1" (string_of_float n) in
+  let i_f = int_of_float f in
+		(float_of_int i_f = f) 
+
+let precision = 1e-6
+
+(* This is intended to work on positive floats! *)
+let string_of_pos_float num =
+	  (* Is the number an integer? *)
+		let inum = int_of_float num in
+    if (is_int num) then string_of_int inum
+		(* It is not an integer *)
+    else 
+		(*
+		begin
+			let n   = ref 0   in
+			let k   = ref 0   in
+			let s   = ref 0   in
+			let str = ref ""  in
+			let aux = ref num in
+			let (below, above) = Float.modf num in
+			Printf.printf "Above: %s Below: %s\n" (Float.to_string above) (Float.to_string below); 
+			if (above = 0.0) then
+			begin
+				while (!aux < 1.) do
+					n := !n + 1; 
+					aux := Float.mul !aux 10.;
+				done;
+				while ((!aux < 10.0 -. precision) && (!aux <> 0.0)) do
+					let (fmod, fdiv) = Float.modf !aux in
+					Printf.printf "%s %s " (Float.to_string fdiv) (Float.to_string fmod);
+					aux := Float.mul fmod 10.; 
+					let fdiv = (if (!aux >= 10.0 -. precision) then (fdiv +. 1.) else fdiv) in
+					let digit = (string_of_int (int_of_float fdiv)) in
+					str := !str ^ digit; 
+					Printf.printf "%s %s\n" (Float.to_string !aux) !str;
+					k := !k + 1;
+				done;
+				s := int_of_string !str;
+			end;
+			
+			Printf.printf "%d %d %d %s\n" !n !k !s (Float.to_string !aux); *)
+			if ((1e-5 <= num) && (num < 1e-4)) 
+			then
+			begin
+				let s = (string_of_float (num *. 10.)) in
+				let len = String.length s in
+				"0.0" ^ (String.sub s 2 (len - 2))
+			end
+			else
+			if ((1e-6 <= num) && (num < 1e-5)) 
+			then
+			begin
+				let s = (string_of_float (num *. 100.)) in
+				let len = String.length s in
+				"0.00" ^ (String.sub s 2 (len - 2))
+			end
+			else
+			let re = Str.regexp "e\\([-+]\\)0" in (* e+0 -> e+ *)
+      				Str.replace_first re "e\\1" (string_of_float num)
+			(*
+			  if num > 1e+9 && num < 1e+21 
+				then Printf.sprintf "%.0f" num
+				else 
+					if num < 0.1 && num > 1e-7 
+						then Printf.sprintf "%f" num
+    				else
+      				let re = Str.regexp "e\\([-+]\\)0" in (* e+0 -> e+ *)
+      				Str.replace_first re "e\\1" (string_of_float num) *)
+	(* end *)
+	
+let rec float_to_string_inner n =
   if Float.is_nan n then "NaN"
-  else if n = 0.0 or n = -0.0 then "0"
-  else if n = Float.infinity then "Infinity"
-  else if n < 0. then "-" ^ (float_to_string_inner (-. n))
-  else string_of_number n
+  else if ((n = 0.0) || (n = -0.0)) then "0"
+  else if (n < 0.0) then "-" ^ (float_to_string_inner (-. n))
+  else if (n = Float.infinity) then "Infinity"
+  else string_of_pos_float n
   
 let safe_mkdir path = 
    if (not (Sys.file_exists path)) then Unix.mkdir path 0o777
