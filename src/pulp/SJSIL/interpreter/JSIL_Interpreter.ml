@@ -888,7 +888,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
   									(match le with
   									| e :: [] -> 
   										(match e.Parser_syntax.exp_stx with
-  										| Parser_syntax.AnonymousFun (_, params, body) ->		
+  										| Parser_syntax.Function (_, None, params, body) ->		
   												let new_proc = Js2jsil.js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl cur_proc_name params e in
   												let fun_name = new_proc.proc_name in
   												let vis_tbl = (match vis_tbl with
