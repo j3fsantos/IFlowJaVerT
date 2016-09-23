@@ -535,7 +535,7 @@ let rec evaluate_expr (e : jsil_expr) store =
 		(match v with 
 		| LORef (_, field) 
 		| LVRef (_, field) -> String field  
-		| _ -> raise (Failure "Illegal Field parameter"))
+		| _ -> raise (Failure (Printf.sprintf "Non-reference Field parameter: %s" (JSIL_Print.string_of_literal v false))))
 	
 	| TypeOf e ->
 		let v = evaluate_expr e store in

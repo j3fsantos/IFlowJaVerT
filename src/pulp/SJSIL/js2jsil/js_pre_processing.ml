@@ -519,7 +519,6 @@ let rec closure_clarification_expr cc_tbl fun_tbl vis_tbl f_id visited_funs e =
       Hashtbl.replace vis_tbl new_f_id (new_f_id :: visited_funs); 
       closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: visited_funs) fb
     | Some f_name ->
-      (* Printf.printf("named function oleee\n"); *)  
       let new_f_id = get_codename e in
       let new_f_id_outer = new_f_id ^ "_outer" in
       update_cc_tbl_single_var_er cc_tbl f_id new_f_id_outer f_name;  

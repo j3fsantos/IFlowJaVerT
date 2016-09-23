@@ -2696,7 +2696,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		cmds, (Var x2_v), errs
 		
 		
-	| Parser_syntax.FunctionExp (_, f_name, params, e_body) ->
+	| Parser_syntax.FunctionExp (_, None, params, e_body) ->
 		(**
        Section 13
        x_sc := copy_scope_chain_obj (x_scope, {{main, fid1, ..., fidn }}); 
@@ -2709,6 +2709,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		cmds, Var x_f, errs
 	
 	
+	| Parser_syntax.FunctionExp (_, Some f_name, params, _)
 	| Parser_syntax.Function (_, Some f_name, params, _) ->
 		let f_id = try Js_pre_processing.get_codename e 
 			with _ -> raise (Failure "named function literals should be annotated with their respective code names") in
