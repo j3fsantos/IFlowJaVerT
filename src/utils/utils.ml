@@ -96,6 +96,9 @@ let string_of_pos_float num =
 			end;
 			
 			Printf.printf "%d %d %d %s\n" !n !k !s (Float.to_string !aux); *)
+			if num > 1e+9 && num < 1e+21 
+				then Printf.sprintf "%.0f" num
+			else
 			if ((1e-5 <= num) && (num < 1e-4)) 
 			then
 			begin
