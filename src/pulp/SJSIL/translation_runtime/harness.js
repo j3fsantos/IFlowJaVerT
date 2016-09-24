@@ -277,7 +277,7 @@ function assertRelativeDateMs(date, expectedMs) {
 	  if (actualMs - localOffset !== expectedMs) {
 	    $ERROR(
 	      'Expected ' + date + ' to be ' + expectedMs +
-	      ' milliseconds from the Unix epoch'
+	      ' milliseconds from the Unix epoch, instead of ' + (actualMs - localOffset)
 	    );
 	  }
 	}

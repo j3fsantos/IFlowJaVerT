@@ -36,6 +36,22 @@ let evaluate_constant c =
 	| Pi -> Num (4.0 *. atan 1.0)
 	| Sqrt1_2 -> Num (sqrt 0.5)
 	| Sqrt2 -> Num (sqrt 2.0)
+	| UTCTime -> 
+			let t = Unix.gettimeofday() in 
+			let (usec, _) = Float.modf t in
+			let gct = Unix.gmtime t in
+			let (gctime, _) = Unix.mktime gct in
+			let gctime = gctime +. usec in
+			let (_, tg) = Float.modf (gctime *. 1e+3) in
+				Num tg
+	| LocalTime -> 
+		  let t = Unix.gettimeofday() in 
+			let (usec, _) = Float.modf t in
+			let lct = Unix.localtime t in
+			let (lctime, _) = Unix.mktime lct in
+			let lctime = lctime +. usec in
+			let (_, tl) = Float.modf (lctime *. 1e+3) in
+				Num tl
 
 let evaluate_type_of lit = 
 	match lit with 
@@ -774,7 +790,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 			let retvalue = ref Empty in
 
 			let throw_syntax_error message = 
-				(Printf.printf "SYNTAX ERROR: %s\n" message; 
+				((* Printf.printf "SYNTAX ERROR: %s\n" message; *)
 				 let throw_value = if !propagate then !retvalue else se in
 				 let tse = 
 					(match j with

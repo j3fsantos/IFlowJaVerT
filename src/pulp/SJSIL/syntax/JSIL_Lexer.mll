@@ -42,6 +42,8 @@ rule read = parse
 	| "$$pi"               { JSIL_Parser.PI }
 	| "$$sqrt1_2"          { JSIL_Parser.SQRT1_2 }
 	| "$$sqrt2"            { JSIL_Parser.SQRT2 }
+	| "$$UTCTime"          { JSIL_Parser.UTCTIME }
+	| "$$LocalTime"        { JSIL_Parser.LOCALTIME }
 (* Literals (scroll down for more) *)
 	| "$$undefined"        { JSIL_Parser.UNDEFINED }
 	| "$$null"             { JSIL_Parser.NULL }

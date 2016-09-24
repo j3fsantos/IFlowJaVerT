@@ -36,6 +36,8 @@ let procedure_table = Hashtbl.create 100
 %token PI
 %token SQRT1_2
 %token SQRT2
+%token UTCTIME
+%token LOCALTIME
 (* Literals *)
 %token UNDEFINED
 %token NULL 
@@ -743,6 +745,8 @@ lit_target:
 	| PI        { Pi }
 	| SQRT1_2   { Sqrt1_2 }
 	| SQRT2     { Sqrt2 }
+	| UTCTIME   { UTCTime }
+	| LOCALTIME { LocalTime }
 ;
 
 %inline type_target:

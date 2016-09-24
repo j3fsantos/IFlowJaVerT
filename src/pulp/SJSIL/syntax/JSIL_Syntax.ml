@@ -34,6 +34,8 @@ type constant =
 	| Pi
 	| Sqrt1_2
 	| Sqrt2
+	| UTCTime
+	| LocalTime
 
 (* JSIL literals *)
 type jsil_lit =
