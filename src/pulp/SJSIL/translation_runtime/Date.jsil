@@ -160,14 +160,29 @@ proc Date_construct (xsc, vthis) {
 			goto [argc = 0] arg0 test1;
 	
 			(* No arguments, return now *)
-	arg0:	skip;
+	arg0:	[date, "@primitiveValue"] := $$UTCTime;
 			goto rlab;
+			
+			
+			
 			
 	test1:	goto [argc = 1] arg1 test2;
 	
 			(* One argument, convert *)
-	arg1:	skip;
+	arg1:	v := l-nth (arguments, 2);
+			xret := "i__toPrimitive" (v) with elab;
+			goto [typeOf(xret) = $$string_type] nimpl tonum;
+	
+	tonum:  xret := "i__toNumber" (xret) with elab;
+			xret := "d__TimeClip" (xret);
+			[date, "@primitiveValue"] := xret;
 			goto rlab;
+			
+	nimpl:	xret := magic;
+	
+			
+			
+			
 			
 			(* More than one argument *)
 	test2:	y := l-nth (arguments, 2);
@@ -263,6 +278,26 @@ proc DP_getTimezoneOffset (xsc, vthis) {
 			goto [class = "Date"] rlab tt;
 			
 	rlab:	xret := m_round (($$UTCTime - $$LocalTime) / 60000);
+	
+	tt:		xret := "TypeError" ();
+		
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
+
+(* *** NOW *** *)
+
+proc DP_now (xsc, vthis) {
+
+			goto [typeOf(vthis) = $$object_type] class tt;
+	class:	class := [vthis, "@class"];
+			goto [class = "Date"] rlab tt;
+			
+	rlab:	xret := $$UTCTime;
 	
 	tt:		xret := "TypeError" ();
 		
