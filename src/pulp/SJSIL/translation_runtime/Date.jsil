@@ -314,19 +314,9 @@ with
 (* *** NOW *** *)
 
 proc Date_now (xsc, vthis) {
-
-			goto [typeOf(vthis) = $$object_type] class tt;
-	class:	class := [vthis, "@class"];
-			goto [class = "Date"] rlab tt;
-			
-	rlab:	xret := $$UTCTime;
-	
-	tt:		xret := "TypeError" ();
-		
-	elab:	skip
+	rlab:	xret := $$UTCTime
 }
 with
 {
 	ret: 	xret, rlab;
-	err: 	xret, elab;
 };
