@@ -362,7 +362,21 @@ let same_value_num n1 n2 =
 	| _, _ -> (n1 = n2)
 *)
 
-let evaluate_binop op lit1 lit2 = 
+let rec evaluate_binop op e1 e2 store =
+	if (op = And) then
+	begin
+		let lit1 = evaluate_expr e1 store in
+		(match lit1 with
+		| Bool false -> Bool false
+		| Bool true -> let lit2 = evaluate_expr e2 store in
+		               (match lit2 with
+		                 | Bool b2 -> Bool b2
+										 | _ ->  raise (Failure "Non-boolean argument to And"))
+		| _ -> raise (Failure "Non-boolean argument to And"))
+	end
+	else
+	let lit1 = evaluate_expr e1 store in 
+	let lit2 = evaluate_expr e2 store in  
 	match op with 
 	| Equal -> 
 		(match lit1, lit2 with 
@@ -411,10 +425,6 @@ let evaluate_binop op lit1 lit2 =
 		(match lit1, lit2 with 
 		| Num n1, Num n2 -> (Num (mod_float n1 n2)) 
 		| _, _ -> raise (Failure "Non-number argument to Mod"))
-	| And -> 
-		(match lit1, lit2 with 
-		| Bool b1, Bool b2 -> (Bool (b1 && b2)) 
-		| _, _ -> raise (Failure "Non-boolean argument to And"))
 	| Or -> 
 		(match lit1, lit2 with 
 		| Bool b1, Bool b2 -> (Bool (b1 || b2)) 
@@ -475,8 +485,8 @@ let evaluate_binop op lit1 lit2 =
 		(match lit1, lit2 with 
 		| String s1, String s2 -> (String (s1 ^ s2)) 
 		| _, _ -> raise (Failure (Printf.sprintf "Non-string argument to StrCat: %s, %s" (JSIL_Print.string_of_literal lit1 false) (JSIL_Print.string_of_literal lit2 false))))
-
-let rec evaluate_expr (e : jsil_expr) store = 
+and
+evaluate_expr (e : jsil_expr) store = 
 	match e with 
 	| Literal l -> 
 		(match l with
@@ -493,9 +503,7 @@ let rec evaluate_expr (e : jsil_expr) store =
 		| Some v -> v)
 	
 	| BinOp (e1, bop, e2) -> 
-		let v1 = evaluate_expr e1 store in 
-		let v2 = evaluate_expr e2 store in 
-		evaluate_binop bop v1 v2  
+		evaluate_binop bop e1 e2 store
 	
 	| UnaryOp (unop, e) -> 
 		let v = evaluate_expr e store in 
