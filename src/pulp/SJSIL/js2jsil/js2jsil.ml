@@ -477,8 +477,8 @@ let translate_inc_dec x is_plus err =
 	let x_r = fresh_var () in 
 	let cmd_ass_xr = 
 		(match is_plus with 
-			| true -> SLBasic (SAssignment (x_r, (BinOp (Var x_n, Plus, Literal (Num 1.))))) 
-			| false -> SLBasic (SAssignment (x_r, (BinOp (Var x_n, Minus, Literal (Num 1.)))))) in 
+			| true -> SLBasic (SAssignment (x_r, (BinOp (Var x_n, Plus, Literal (Integer 1))))) 
+			| false -> SLBasic (SAssignment (x_r, (BinOp (Var x_n, Minus, Literal (Integer 1)))))) in 
 		
 	(* x_pv = putValue (x, x_r) with err4 *) 
 	let x_pv, cmd_pv_x = make_put_value_call x x_r err in 
@@ -3722,7 +3722,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			
 			(* x_c := 0 *) 
 			let x_c = fresh_var () in 
-			let cmd_ass_xc = SLBasic (SAssignment (x_c, Literal (Num 0.))) in 
+			let cmd_ass_xc = SLBasic (SAssignment (x_c, Literal (Integer 0))) in 
 			
 			(*   x_ret_1 := PHI(x_ret_0, x_ret_3)	 *)
 			let cmd_ass_xret1 = SLPhiAssignment (x_ret_1, [| Some x_ret_0; Some x_ret_3 |]) in 
@@ -3745,7 +3745,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			
 			(*  xxl := l-nth (xl, 1)   *)
 			let xxl = fresh_var () in
-			let cmd_ass_xxl = SLBasic (SAssignment (xxl, LstNth (Var xl, Literal (Num 1.)))) in 
+			let cmd_ass_xxl = SLBasic (SAssignment (xxl, LstNth (Var xl, Literal (Integer 1)))) in 
 			
 			(* 	xhf := hasField (xxl, xp) *) 
 			let xhf = fresh_var () in 
@@ -3775,7 +3775,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			let cmd_phi_xret3 = SLPhiAssignment (x_ret_3, [| Some x_ret_1; Some x_ret_1; Some x_ret_2 |]) in 
 			
 			(* x_c_2 := x_c_1 + 1 *) 
-			let cmd_ass_incr = SLBasic (SAssignment (x_c_2, BinOp (Var x_c_1, Plus, Literal (Num 1.)))) in 
+			let cmd_ass_incr = SLBasic (SAssignment (x_c_2, BinOp (Var x_c_1, Plus, Literal (Integer 1)))) in 
 			
 			(* 	x_ret_4 := PHI(x_ret_1, break_vars)  *) 
 			let phi_args = x_ret_1 :: cur_breaks in 

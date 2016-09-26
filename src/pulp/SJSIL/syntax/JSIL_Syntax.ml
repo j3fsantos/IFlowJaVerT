@@ -141,6 +141,7 @@ type jsil_expr =
 	| StrNth   of jsil_expr * jsil_expr
 
 (* Shorthand *)
+let lit_int i = Literal (Integer i) 
 let lit_num n = Literal (Num n) 
 let lit_str s = Literal (String s)
 let lit_loc l = Literal (Loc l)
@@ -148,9 +149,9 @@ let lit_typ t = Literal (Type t)
 
 let lit_refv = lit_str "v"
 let lit_refo = lit_str "o"
-let rtype  r = LstNth (r, lit_num 0.)
-let base  r = LstNth (r, lit_num 1.)
-let field r = LstNth (r, lit_num 2.)
+let rtype  r = LstNth (r, lit_int 0)
+let base  r = LstNth (r, lit_int 1)
+let field r = LstNth (r, lit_int 2)
 
 (* JSIL Basic statements *)
 type jsil_basic_cmd =

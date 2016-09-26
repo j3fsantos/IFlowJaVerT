@@ -380,6 +380,8 @@ let rec evaluate_binop op e1 e2 store =
 		| Constant c1, Constant c2 -> (Bool (c1 = c2))
 		| Bool b1, Bool b2 -> (Bool (b1 = b2))
 		| Num n1, Num n2 -> (Bool (n1 = n2))
+		| Num n1, Integer i1
+		| Integer i1, Num n1 -> (Bool (n1 = float_of_int i1))
 		| Integer i1, Integer i2 -> (Bool (i1 = i2))
 		| String s1, String s2 -> (Bool (s1 = s2))
 		| Loc l1, Loc l2 -> (Bool (l1 = l2))

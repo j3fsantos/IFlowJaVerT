@@ -55,8 +55,7 @@ let debugPrint (s:string) =
     ()
     
 let is_int (f : float) : bool =
-  let (_, i_f) = modf f in
-		i_f = 0.
+  (float_of_int (int_of_float f) = f)
 
 let precision = 1e-6
 
