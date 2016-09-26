@@ -77,6 +77,7 @@ rule read = parse
 	| "::"                 { JSIL_Parser.LSTCONS }
 	| "@"                  { JSIL_Parser.LSTCAT }
 	| "++"                 { JSIL_Parser.STRCAT }
+	| "<:"                 { JSIL_Parser.SUBTYPE }
 (* Unary operators *)
 	(* Unary minus uses the same symbol as binary minus, token MINUS *)
 	| "not"                { JSIL_Parser.NOT }
@@ -178,7 +179,10 @@ rule read = parse
 	| '}'                  { JSIL_Parser.CRBRACKET }
 (* Literals (cont.) *)
 	| int                  { JSIL_Parser.INT (int_of_string (Lexing.lexeme lexbuf)) }
-	| float                { JSIL_Parser.FLOAT (float_of_string (Lexing.lexeme lexbuf)) }
+	| float                { let n = float_of_string (Lexing.lexeme lexbuf) in 
+													   if (n = snd (modf n)) 
+														    then (JSIL_Parser.INT (int_of_float n)) 
+																else (JSIL_Parser.FLOAT n) }
 	| '"'                  { read_string (Buffer.create 17) lexbuf }
 	| loc                  { JSIL_Parser.LOC (Lexing.lexeme lexbuf) }
 (* Variables *)

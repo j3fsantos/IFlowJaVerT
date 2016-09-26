@@ -52,7 +52,7 @@ with
 (* *** VALUEOF *** *)
 
 proc NP_valueOf (xsc, vthis) {
-			goto [typeOf (vthis) = $$number_type] num ionum;
+			goto [typeOf (vthis) <: $$number_type] num ionum;
 	num:	xret := vthis;
 			goto rlab;
 			
@@ -75,7 +75,7 @@ with
 (* *** TOSTRING *** *)
 
 proc NP_toString (xsc, vthis, radix) {
-			goto [typeOf (vthis) = $$number_type] num ionum;
+			goto [typeOf (vthis) <: $$number_type] num ionum;
 	num:	xret := vthis;
 			goto retstr;
 			

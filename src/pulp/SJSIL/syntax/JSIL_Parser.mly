@@ -21,6 +21,7 @@ let procedure_table = Hashtbl.create 100
 %token OBJTYPELIT
 %token LISTTYPELIT
 %token TYPETYPELIT
+%token SUBTYPE
 (* Constants *)
 %token MIN_FLOAT
 %token MAX_FLOAT
@@ -206,6 +207,9 @@ let procedure_table = Hashtbl.create 100
 %right M_ABS M_ACOS M_ASIN M_ATAN M_CEIL M_COS M_EXP M_FLOOR M_LOG M_ROUND M_SGN M_SIN M_SQRT M_TAN
   ISPRIMITIVE TOSTRING TOINT TOUINT16 TOINT32 TOUINT32 TONUMBER CAR CDR LSTLEN STRLEN
 
+%nonassoc INT
+%nonassoc FLOAT
+
 (***** Types and entry points *****)
 %type <JSIL_Syntax.jsil_ext_program> main_target
 %type <string list> param_list_FC_target
@@ -376,7 +380,7 @@ call_with_target:
 
 expr_target:
 (* literal *)
-	| lit=prog_lit_target { Literal lit }
+	| lit=lit_target { Literal lit }
 (* var *)
 	| v=VAR { Var v }
 (* e binop e *)
@@ -418,12 +422,6 @@ expr_target:
 		{ e }
 ;
 
-prog_lit_target:
-  (* Treat integers as floats *)
-  | INT                       { Num (float $1) }
-	| lit_target                { $1 }
-;
-
 (********* LOGIC *********)
 
 pred_target:
@@ -449,7 +447,7 @@ pred_head_target:
 
 pred_param_target:
 (* Logic literal *)
-	| lit = logic_lit_target
+	| lit = lit_target
 	  { LLit lit }
 (* None *)
 	| LNONE
@@ -564,7 +562,7 @@ type_env_pair_target:
 
 lexpr_target:
 (* Logic literal *)
-	| lit = logic_lit_target
+	| lit = lit_target
 	  { LLit lit }
 (* None *)
 	| LNONE
@@ -617,12 +615,6 @@ program_variable_target:
 	  { validate_pvar "err"; PVar "err" }
 ;
 
-logic_lit_target:
-  (* Use the Integer type for ints *)
-  | INT                       { Integer $1 }
-	| lit_target                { $1 }
-;
-
 (********* COMMON *********)
 
 (* Why are there no literal lists here? *)
@@ -633,6 +625,7 @@ lit_target:
 	| constant_target           { Constant $1 }
 	| TRUE                      { Bool true }
 	| FALSE                     { Bool false }
+	| INT												{ Integer $1 }
 	| FLOAT                     { Num $1 }
 	| NAN                       { Num nan }
 	| INFINITY                  { Num infinity }
@@ -666,6 +659,7 @@ lit_target:
 	| LSTCONS            { LstCons }
 	| LSTCAT             { LstCat }
 	| STRCAT             { StrCat }
+	| SUBTYPE            { SubType }
 ;
 
 %inline unop_target:

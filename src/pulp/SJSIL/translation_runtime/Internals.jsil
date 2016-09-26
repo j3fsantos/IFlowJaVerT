@@ -816,7 +816,7 @@ proc i__toPrimitive (v, hint) {
 			tv := typeOf(v);
 
 	iu:		goto [(v = $$undefined) or (v = $$null) or
-	              (typeOf(v) = $$boolean_type) or (typeOf(v) = $$number_type) or
+	              (typeOf(v) = $$boolean_type) or (typeOf(v) <: $$number_type) or
 	              (typeOf(v) = $$string_type)] rlab is_obj;
 
 	is_obj:	print := "object";
@@ -852,7 +852,7 @@ proc i__toBoolean (v) {
 	bool:	xret := v;
 			goto rlab;
 			
-	inum:	goto [typeOf(v) = $$number_type] num is;
+	inum:	goto [typeOf(v) <: $$number_type] num is;
 	num:	goto [(v = 0) or (not (v = v))] is_f is_t;
 			
 	is:		goto [typeOf(v) = $$string_type] str io;
@@ -895,7 +895,7 @@ proc i__toNumber (v) {
 	is_f:	xret := 0;
 			goto rlab;
 			
-	inum:	goto [typeOf(v) = $$number_type] num is;
+	inum:	goto [typeOf(v) <: $$number_type] num is;
 	num:	xret := v;
 			goto rlab;
 			
@@ -999,7 +999,7 @@ proc i__toString (v) {
 	is_f:	xret := "false";
 			goto rlab;
 			
-	inum:	goto [typeOf(v) = $$number_type] num is;
+	inum:	goto [typeOf(v) <: $$number_type] num is;
 	num:	xret := num_to_string v;
 			goto rlab;
 			
@@ -1034,7 +1034,7 @@ proc i__toObject (v) {
 	bool:	xret := "Boolean_construct" ($$undefined, $$undefined, v);
 			goto rlab;
 			
-	inum:	goto [typeOf(v) = $$number_type] num is;
+	inum:	goto [typeOf(v) <: $$number_type] num is;
 	num:	xret := "Number_construct" ($$undefined, $$undefined, v);
 			goto rlab;
 			
@@ -1072,7 +1072,7 @@ proc i__checkObjectCoercible (v) {
 	
 	in:		goto [v = $$null] throw other;
 			
-	other:	goto [(typeOf(v) = $$boolean_type) or (typeOf(v) = $$number_type) or 
+	other:	goto [(typeOf(v) = $$boolean_type) or (typeOf(v) <: $$number_type) or 
 	              (typeOf(v) = $$string_type) or (typeOf(v) = $$object_type)] rlab oops;
 	
 	oops:	xret := "CheckObjectCoercible: This should not happen.";
@@ -1237,7 +1237,7 @@ proc i__typeOf (v) {
 	bool:	xret := "boolean";
 			goto rlab;
 			
-	inum:	goto [typeOf(v) = $$number_type] num is;
+	inum:	goto [typeOf(v) <: $$number_type] num is;
 	num:	xret := "number";
 			goto rlab;
 			
@@ -1278,7 +1278,7 @@ proc i__abstractEquality (v1, v2) {
 			goto [tv1 = tv2] same diff;
 				
 	same:	goto [(tv1 = $$undefined_type) or (tv1 = $$null_type) or
-	              (tv1 = $$boolean_type)   or (tv1 = $$number_type) or
+	              (tv1 = $$boolean_type)   or (tv1 <: $$number_type) or
 	              (tv1 = $$string_type)    or (tv1 = $$object_type)] ieq oops;
 	ieq:	xret := (v1 = v2); 
 			goto rlab;
@@ -1286,12 +1286,12 @@ proc i__abstractEquality (v1, v2) {
 	diff:	goto [((tv1 = $$undefined_type) and (tv2 = $$null_type)) or
 			      ((tv1 = $$null_type) and (tv2 = $$undefined_type))] rt dns;
 			      
-	dns:	goto [(tv1 = $$number_type) and (tv2 = $$string_type)] tn2 dsn;
+	dns:	goto [(tv1 <: $$number_type) and (tv2 = $$string_type)] tn2 dsn;
 	tn2:	xret := "i__toNumber" (v2) with elab;
 			xret := "i__abstractEquality" (v1, xret) with elab;
 			goto rlab;
 			
-	dsn:	goto [(tv1 = $$string_type) and (tv2 = $$number_type)] tn1 s1b;
+	dsn:	goto [(tv1 = $$string_type) and (tv2 <: $$number_type)] tn1 s1b;
 	tn1:	xret := "i__toNumber" (v1) with elab;
 			xret := "i__abstractEquality" (xret, v2) with elab;
 			goto rlab;
@@ -1299,12 +1299,12 @@ proc i__abstractEquality (v1, v2) {
 	s1b:	goto [tv1 = $$boolean_type] tn1 s2b;
 	s2b:	goto [tv2 = $$boolean_type] tn2 s2o;
 	
-	s2o:	goto [((tv1 = $$number_type) or (tv1 = $$string_type)) and (tv2 = $$object_type)] tp2 s1o;
+	s2o:	goto [((tv1 <: $$number_type) or (tv1 = $$string_type)) and (tv2 = $$object_type)] tp2 s1o;
 	tp2:	xret := "i__toPrimitive" (v2) with elab;
 			xret := "i__abstractEquality" (v1, xret) with elab;
 			goto rlab;
 	
-	s1o:	goto [(tv1 = $$object_type) and ((tv2 = $$number_type) or (tv2 = $$string_type))] tp1 rf;
+	s1o:	goto [(tv1 = $$object_type) and ((tv2 <: $$number_type) or (tv2 = $$string_type))] tp1 rf;
 	tp1:	xret := "i__toPrimitive" (v1) with elab;
 			xret := "i__abstractEquality" (xret, v2) with elab;
 			goto rlab;
@@ -1344,7 +1344,7 @@ with
 proc i__sameValue (v1, v2) {
 			xret := (v1 = v2);
 			
-			goto [(typeOf(v1) = $$number_type) and (typeOf(v2) = $$number_type)] inan rlab;
+			goto [(typeOf(v1) <: $$number_type) and (typeOf(v2) <: $$number_type)] inan rlab;
 			
 	inan:	goto [(not (v1 = v1)) and (not (v2 = v2))] rt zero;
 	zero:	goto [(v1 = 0) and (v2 = 0)] fix rlab;

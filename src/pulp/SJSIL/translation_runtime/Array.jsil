@@ -35,7 +35,7 @@ proc Array_construct () {
 	ltest:	goto [len = 3] len3 other;
 	
 	len3:	len := l-nth (la, 2);
-			goto [typeOf(len) = $$number_type] len0 setl;
+			goto [typeOf(len) <: $$number_type] len0 setl;
 	len0:	xret := "i__toUint32" (len) with elab;
 			goto [len = xret] dop re;
 	dop:	prop := "length";

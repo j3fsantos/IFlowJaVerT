@@ -83,6 +83,8 @@ type bin_op =
 	| LstCat
 	(* String manipulation *)
   | StrCat
+	(* Types *)
+	| SubType
 
 (* JSIL unary operators *)
 type unary_op =
