@@ -28,9 +28,6 @@ let string_of_type t =
   | NumberType -> "$$number_type"
 	| StringType -> "$$string_type"
   | ObjectType -> "$$object_type"
-  | ReferenceType -> "$$reference_type"
-	| ObjectReferenceType -> "$$o-reference_type"
-	| VariableReferenceType -> "$$v-reference_type"	
 	| ListType -> "$$list_type"
 	| TypeType -> "$$type_type"
 
@@ -69,8 +66,6 @@ let rec string_of_literal lit escape_string =
 			else Printf.sprintf "\"%s\"" x)
   | Loc loc -> loc
   | Type t -> string_of_type t
-	| LVRef (l, x) -> Printf.sprintf "%s.v.%s" (sl l) x
-	| LORef (l, x) -> Printf.sprintf "%s.o.%s" (sl l) x
 	| LList ll ->
 		(match ll with
 		| [] -> "$$nil"
@@ -98,7 +93,6 @@ let string_of_binop bop =
   | UnsignedRightShift -> ">>>"
 	| M_atan2 -> "m_atan2"
 	| M_pow -> "**"
-	| Subtype -> "<:"
 	| LstCons -> "::"
 	| LstCat -> "@"
 	| StrCat -> "++"
@@ -145,14 +139,6 @@ let rec string_of_expression e escape_string =
     | BinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (se e1) (string_of_binop op) (se e2)
 		(* (uop e) *)
     | UnaryOp (op, e) -> Printf.sprintf "(%s %s)" (string_of_unop op) (se e)
-		(* v-ref(e1 e2) *)
-    | VRef (e1, e2) -> Printf.sprintf "v-ref(%s, %s)" (se e1) (se e2)
-  	(* o-ref(e1 e2) *)
-    | ORef (e1, e2) -> Printf.sprintf "o-ref(%s, %s)" (se e1) (se e2)
-		(* base(e) *)
-    | Base e -> Printf.sprintf "base(%s)" (se e)
-		(* field(e) *)
-    | Field e -> Printf.sprintf "field(%s)" (se e)
 		(* typeof(e) *)
     | TypeOf e -> Printf.sprintf "typeOf(%s)" (se e)
 		(* assume(e) *) 
@@ -210,14 +196,6 @@ let rec string_of_logic_expression e escape_string =
     | LBinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (sle e1) (string_of_binop op) (sle e2)
 		(* (uop e1 e2) *)
     | LUnOp (op, e) -> Printf.sprintf "(%s %s)" (string_of_unop op) (sle e)
-		(* v-ref(e1, e2) *)
-    | LEVRef (e1, e2) -> Printf.sprintf "v-ref(%s, %s)" (sle e1) (sle e2)
-  	(* o-ref(e1, e2) *)
-    | LEORef (e1, e2) -> Printf.sprintf "o-ref(%s, %s)" (sle e1) (sle e2)
-		(* base(e) *)
-    | LBase e -> Printf.sprintf "base(%s)" (sle e)
-		(* field(e) *)
-    | LField e -> Printf.sprintf "field(%s)" (sle e)
 		(* typeOf(e) *)
     | LTypeOf e -> Printf.sprintf "typeOf(%s)" (sle e)
 		(* {{ e1, ..., en }} *)

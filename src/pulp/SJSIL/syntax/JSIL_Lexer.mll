@@ -25,9 +25,6 @@ rule read = parse
 	| "$$number_type"      { JSIL_Parser.NUMTYPELIT }
 	| "$$string_type"      { JSIL_Parser.STRTYPELIT }
 	| "$$object_type"      { JSIL_Parser.OBJTYPELIT }
-	| "$$reference_type"   { JSIL_Parser.REFTYPELIT }
-	| "$$o-reference_type" { JSIL_Parser.OREFTYPELIT }
-	| "$$v-reference_type" { JSIL_Parser.VREFTYPELIT }
 	| "$$list_type"        { JSIL_Parser.LISTTYPELIT }
 	| "$$type_type"        { JSIL_Parser.TYPETYPELIT }
 (* Constants *)
@@ -77,7 +74,6 @@ rule read = parse
 	| ">>>"                { JSIL_Parser.UNSIGNEDRIGHTSHIFT }
 	| "m_atan2"            { JSIL_Parser.M_ATAN2 }
 	| "**"                 { JSIL_Parser.M_POW }
-	| "<:"                 { JSIL_Parser.SUBTYPE }
 	| "::"                 { JSIL_Parser.LSTCONS }
 	| "@"                  { JSIL_Parser.LSTCAT }
 	| "++"                 { JSIL_Parser.STRCAT }
@@ -111,10 +107,6 @@ rule read = parse
 	| "l-len"              { JSIL_Parser.LSTLEN }
 	| "s-len"              { JSIL_Parser.STRLEN }
 (* Expression keywords *)
-	| "v-ref"              { JSIL_Parser.VREF }
-	| "o-ref"              { JSIL_Parser.OREF }
-	| "base"               { JSIL_Parser.BASE }
-	| "field"              { JSIL_Parser.FIELD }
 	| "typeOf"             { JSIL_Parser.TYPEOF }
 	| "assume"             { JSIL_Parser.ASSUME }
 	| "assert"             { JSIL_Parser.ASSERT }

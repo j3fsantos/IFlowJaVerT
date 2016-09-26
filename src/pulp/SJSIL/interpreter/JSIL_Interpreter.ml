@@ -65,8 +65,6 @@ let evaluate_type_of lit =
 	| String _ -> StringType
 	| Loc _ -> ObjectType
 	| Type _ -> TypeType
-	| LVRef (_, _) -> VariableReferenceType
-	| LORef (_, _) -> ObjectReferenceType
 	| LList _ -> ListType
 
 (* Taken from jscert *)
@@ -405,8 +403,6 @@ let rec evaluate_binop op e1 e2 store =
 		| String s1, String s2 -> (Bool (s1 = s2))
 		| Loc l1, Loc l2 -> (Bool (l1 = l2))
 		| Type t1, Type t2 -> (Bool (t1 = t2))
-		| LVRef (l11, l12), LVRef  (l21, l22)
-		| LORef (l11, l12), LORef  (l21, l22) -> (Bool ((l11 = l21) && (l12 = l22)))
 		| LList l1, LList l2 -> (Bool (l1 = l2))
 		| _, _ -> Bool false)
 	| LessThan -> 
@@ -477,15 +473,6 @@ let rec evaluate_binop op e1 e2 store =
 		(match lit1, lit2 with
 		| Num x, Num y -> Num (x ** y)
 		| _, _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s %s instead of numbers." (JSIL_Print.string_of_literal lit1 false) (JSIL_Print.string_of_literal lit2 false))))
-	| Subtype -> 
-		(match lit1, lit2 with 
-		| Type t1, Type t2 -> 
-			(match t1, t2  with 
-			| ObjectReferenceType, ReferenceType -> Bool true 
-			| VariableReferenceType, ReferenceType -> Bool true 
-			| x, y when x == y -> Bool true
-			| _, _ -> Bool false)
-		| _, _ -> raise (Failure "Non-type argument to Subtype")) 
 	| LstCons ->
 		(match lit2 with
 		| LList list -> LList
@@ -524,42 +511,6 @@ evaluate_expr (e : jsil_expr) store =
 	| UnaryOp (unop, e) -> 
 		let v = evaluate_expr e store in 
 		evaluate_unop unop v
-	
-	| VRef (e1, e2) -> 
-		let v1 = evaluate_expr e1 store in 
-		let v2 = evaluate_expr e2 store in 
-		(match v1, v2 with 
-		| l, String field -> 
-			(match l with
-			| Undefined | Bool _ 
-			| Num _ | String _ | Loc _ -> LVRef (l, field)
-			| _ -> raise (Failure (Printf.sprintf "Illegal V-Reference constructor parameter : %s, %s" (JSIL_Print.string_of_literal v1 false) (JSIL_Print.string_of_literal v2 false))))
-		| _, _ -> raise (Failure (Printf.sprintf "Illegal V-Reference constructor parameter : %s, %s" (JSIL_Print.string_of_literal v1 false) (JSIL_Print.string_of_literal v2 false))))
-	
-	| ORef (e1, e2) -> 
-		let v1 = evaluate_expr e1 store in 
-		let v2 = evaluate_expr e2 store in 
-    (match v1, v2 with 
-		| l, String field -> 
-			(match l with
-			| Undefined | Bool _ 
-			| Num _ | String _ | Loc _ -> LORef (l, field)
-			| _ -> raise (Failure (Printf.sprintf "Illegal O-Reference constructor parameter : %s, %s" (JSIL_Print.string_of_literal v1 false) (JSIL_Print.string_of_literal v2 false))))
-		| _, _ -> raise (Failure (Printf.sprintf "Illegal O-Reference constructor parameter : %s, %s" (JSIL_Print.string_of_literal v1 false) (JSIL_Print.string_of_literal v2 false))))
-	
-	| Base e -> 
-		let v = evaluate_expr e store in
-		(match v with 
-		| LORef (loc, _) 
-		| LVRef (loc, _) -> loc  
-		| _ -> raise (Failure "Illegal Base parameter"))
-	
-	| Field e -> 
-		let v = evaluate_expr e store in
-		(match v with 
-		| LORef (_, field) 
-		| LVRef (_, field) -> String field  
-		| _ -> raise (Failure (Printf.sprintf "Non-reference Field parameter: %s" (JSIL_Print.string_of_literal v false))))
 	
 	| TypeOf e ->
 		let v = evaluate_expr e store in

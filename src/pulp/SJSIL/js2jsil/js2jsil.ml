@@ -183,7 +183,6 @@ let fresh_tcf_vars () =
 	let ret = fresh_tcf_ret () in 
 	err1, err2, finally, end_l, fresh_abnormal_finally, ret
 
-
 let val_var_of_var x = 
 	(match x with 
 	| Var x_name -> x_name ^ "_v" 
@@ -253,6 +252,9 @@ let var_scope = "x__scope"
 let var_se = "x__se"
 let var_te = "x__te"
 
+let is_vref x = BinOp (BinOp ((TypeOf x), Equal, lit_typ ListType), And, BinOp (rtype x, Equal, lit_refv))
+let is_oref x = BinOp (BinOp ((TypeOf x), Equal, lit_typ ListType), And, BinOp (rtype x, Equal, lit_refo))
+let is_ref  x = BinOp (is_vref x, Or, is_oref x)
 
 let rec get_break_lab loop_list lab = 
 	match loop_list with 
@@ -329,9 +331,9 @@ let add_skip_if_empty cmds x metadata =
 		cmds @ [ (metadata, None, cmd_ass_xr) ], Var x_r 
 	| _ -> raise (Failure "The compiler must always generate a variable or a literal"))
 
-let make_var_ass_se () = SLCall (var_se, Literal (String syntaxErrorName), [ ], None) 
+let make_var_ass_se () = SLCall (var_se, lit_str syntaxErrorName, [ ], None) 
 	
-let make_var_ass_te () = SLCall (var_te, Literal (String typeErrorName), [ ], None)  	
+let make_var_ass_te () = SLCall (var_te, lit_str typeErrorName, [ ], None)  	
 
 let add_final_var cmds x metadata = 
 	match x with 
@@ -347,12 +349,12 @@ Auxiliary Compilers
 *)
 let non_writable_ref_test x = 
 	(* (typeof (x) = $$v-reference_type) and ((field(x) = "eval") or (field(x) = "arguments"))  *) 
-	let left_e = BinOp ((TypeOf x), Equal, Literal (Type VariableReferenceType)) in 
-	let right_e = BinOp ((BinOp ((Field x), Equal, Literal (String "eval"))), Or, (BinOp ((Field x), Equal, Literal (String "arguments")))) in 
+	let left_e = is_vref x in 
+	let right_e = BinOp ((BinOp (field x, Equal, lit_str "eval")), Or, (BinOp (field x, Equal, Literal (String "arguments")))) in 
 	BinOp (left_e, And, right_e) 
 	
 let make_unresolvable_ref_test x = 
-	BinOp (BinOp ((Base x), Equal, (Literal Null)), Or, BinOp ((Base x), Equal, (Literal Undefined))) 
+	BinOp (BinOp (base x, Equal, (Literal Null)), Or, BinOp (base x, Equal, (Literal Undefined))) 
 	
 let make_get_value_call x err = 
 	(* x_v := getValue (x) with err *)
@@ -439,7 +441,7 @@ let translate_named_function_literal cur_fid f_id f_name params vis_fid err =
 		
 		(* x_ref_n := ref-v(x_er, "f_name") *)
 		let x_ref_n = fresh_var () in 
-		let cmd_ass_xrefn = (None, (SLBasic (SAssignment (x_ref_n, VRef (Var x_er, Literal (String f_name)))))) in 
+		let cmd_ass_xrefn = (None, (SLBasic (SAssignment (x_ref_n, EList [lit_refv; Var x_er; lit_str f_name])))) in 
 		
 		(* x_cae := i__checkAssignmentErrors (x_ref_n) with err *)
 		let x_cae = fresh_var () in 
@@ -789,7 +791,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmd_xsf_ass = SLBasic (SLookup (x_sf, Var var_scope, Literal (String v_fid))) in 
 		(* x_ref := ref_v(x_sf, "x")  *) 
 		let x_ref = fresh_var () in 
-		let cmd_xref_ass = SLBasic (SAssignment (x_ref, VRef (Var x_sf, Literal (String x)))) in 
+		let cmd_xref_ass = SLBasic (SAssignment (x_ref, EList [lit_refv; Var x_sf; lit_str x])) in 
 		(* x_cae := i__checkAssignmentErrors (x_ref) with err *)
 		let x_cae, cmd_cae = make_cae_call (Var x_ref)  err in 
 		(* x_pv := i__putValue(x_ref, x_v) with err2 *) 
@@ -815,7 +817,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmd_xsf_ass = SLBasic (SLookup (x_sf, Var var_scope, Literal (String v_fid))) in 
 		(* x_ref := ref_v(x_sf, "x")  *) 
 		let x_ref = fresh_var () in 
-		let cmd_xref_ass = SLBasic (SAssignment (x_ref, VRef (Var x_sf, Literal (String x)))) in 
+		let cmd_xref_ass = SLBasic (SAssignment (x_ref, EList [lit_refv; Var x_sf; lit_str x])) in 
 		(* x_cae := i__checkAssignmentErrors (x_ref) with err *)
 		let x_cae, cmd_cae = make_cae_call (Var x_ref)  err in 
 		let cmds = annotate_cmds (add_none_labs [
@@ -941,11 +943,11 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 			
 			(* x_then := v-ref($lg, "x");   *) 
 			let x_then = fresh_var () in 
-			let cmd_ass_xthen = SLBasic (SAssignment (x_then, VRef (Literal (Loc locGlobName), Literal (String v))))  in 
+			let cmd_ass_xthen = SLBasic (SAssignment (x_then, EList [lit_refv; lit_loc locGlobName; lit_str v]))  in 
 			
 			(* x_then := v-ref($$undefined, "x");  *) 
 			let x_else = fresh_var () in 
-			let cmd_ass_xelse = SLBasic (SAssignment (x_else, VRef (Literal Undefined, Literal (String v)))) in
+			let cmd_ass_xelse = SLBasic (SAssignment (x_else, EList [lit_refv; Literal Undefined; lit_str v])) in
 			
 			(* x_r = PHI(x_then, x_else)  *)
 			let x_r = fresh_var () in  
@@ -969,7 +971,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 			
 			(* x_r := v-ref(x_1, "x") *) 
 			let x_r = fresh_var () in 
-			let cmd_ass_xret = SLBasic (SAssignment (x_r, VRef (Var x_1, Literal (String v)))) in
+			let cmd_ass_xret = SLBasic (SAssignment (x_r, EList [lit_refv; Var x_1; lit_str v])) in
 			
 			let cmds = [
 				(None, cmd_ass_x1);     (*   x_1 := [__scope_chain, fid]  *) 
@@ -1196,7 +1198,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		
 		(* 	x_r := ref-o(x1_v, x2_s) *) 
 		let x_r = fresh_var () in 
-		let cmd_ass_xr = SLBasic (SAssignment (x_r, (ORef ((Var x1_v), (Var x2_s))))) in 
+		let cmd_ass_xr = SLBasic (SAssignment (x_r, EList [lit_refo; Var x1_v; Var x2_s])) in 
 		
 		let cmds = cmds1 @ [            (* cmds1                                            *)
 			(annotate_cmd cmd_gv_x1 None) (* x1_v := i__getValue (x1) with err                *) 
@@ -1232,7 +1234,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		
 		(* 	x_r := ref-o(x_v, "p") *) 
 		let x_r = fresh_var () in 
-		let cmd_ass_xr = SLBasic (SAssignment (x_r, (ORef (Var x_v, Literal (String p))))) in 
+		let cmd_ass_xr = SLBasic (SAssignment (x_r, EList [lit_refo; Var x_v; lit_str p])) in 
 		
 		let cmds = cmds @ (annotate_cmds [  (* cmds                                             *)
 			(None, cmd_gv_x);               	(* x_v := i__getValue (x) with err                  *) 
@@ -1314,7 +1316,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		
 		(* x_bref_fprototype := ref-o(x_tf, "prototype");  *) 
 		let x_bref_fprototype = fresh_var () in 
-		let cmd_bass_xreffprototype = SLBasic (SAssignment (x_bref_fprototype, ORef (Var x_tf, Literal (String "prototype")))) in  
+		let cmd_bass_xreffprototype = SLBasic (SAssignment (x_bref_fprototype, EList [lit_refo; Var x_tf; lit_str "prototype"])) in  
 		
 		(* x_bf_prototype := i__getValue(x_bref_prototype) with err; *) 
 		let x_bf_prototype, cmd_bgv_xreffprototype = make_get_value_call (Var x_bref_fprototype) err in 
@@ -1371,7 +1373,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		
 		(* x_ref_fprototype := ref-o(x_f_val, "prototype");  *) 
 		let x_ref_fprototype = fresh_var () in 
-		let cmd_ass_xreffprototype = SLBasic (SAssignment (x_ref_fprototype, ORef (Var x_f_val, Literal (String "prototype")))) in  
+		let cmd_ass_xreffprototype = SLBasic (SAssignment (x_ref_fprototype, EList [lit_refo; Var x_f_val; lit_str "prototype"])) in  
 		
 		(* x_f_prototype := i__getValue(x_ref_prototype) with err; *) 
 		let x_f_prototype, cmd_gv_xreffprototype = make_get_value_call (Var x_ref_fprototype) err in 
@@ -1597,12 +1599,12 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let then_lab = fresh_then_label () in 
 		let else_lab = fresh_else_label () in 
 		let end_lab = fresh_endif_label () in 
-		let goto_guard_expr = BinOp (TypeOf x_ef, Equal, Literal (Type ObjectReferenceType)) in 
+		let goto_guard_expr = is_oref x_ef in 
 		let cmd_goto_obj_ref = SLGuardedGoto (goto_guard_expr, then_lab, else_lab) in 
 		
 		(* then: x_then_this := base(x_f); *)
 		let x_this_then = fresh_this_var () in 
-		let cmd_this_base = SLBasic (SAssignment (x_this_then, Base x_ef)) in 
+		let cmd_this_base = SLBasic (SAssignment (x_this_then, base x_ef)) in 
 		
 		(*  goto end; *)  
 		let cmd_goto_end = SLGoto end_lab in 
@@ -1750,24 +1752,24 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let next2 = fresh_next_label () in 
 		let next3 = fresh_next_label () in
 		let next4 = fresh_next_label () in
-		let goto_guard = BinOp (TypeOf x, Subtype, Literal (Type ReferenceType)) in  
+		let goto_guard = is_ref x in  
 		let cmd_goto_isref = SLGuardedGoto (goto_guard, next1, next4) in 
 		
 		(* next1: goto [ ((base(x) = $$null) or (base(x) = $$undefined)) ] err next2 *) 
 		let cmd_goto_is_resolvable_ref = SLGuardedGoto (make_unresolvable_ref_test x , err, next2) in 
 		
 		(* next2: goto [ (typeOf x) = $$v-reference_type ] err next3 *) 
-		let goto_guard = BinOp (TypeOf x, Equal, Literal (Type VariableReferenceType)) in 
+		let goto_guard = is_vref x in 
 		let cmd_goto_is_vref = SLGuardedGoto (goto_guard, err, next3) in 
 		
 		(* next3: x_obj := toObject(base(x)) err *)
 		let x_obj = fresh_obj_var () in 
-		let cmd_to_obj = SLCall (x_obj, Literal (String toObjectName), [ (Base x) ], Some err) in 
+		let cmd_to_obj = SLCall (x_obj, lit_str toObjectName, [ (base x) ], Some err) in 
 		
 		(* x_r1 := deleteProperty(x_obj, field(x), $$t) with err *) 
 		let x_r1 = fresh_var () in 
-		let cmd_delete = SLCall (x_r1, Literal (String deletePropertyName), 
-			[ (Var x_obj); (Field x); (Literal (Bool true)) ], Some err) in
+		let cmd_delete = SLCall (x_r1, lit_str deletePropertyName, 
+			[ (Var x_obj); (field x); (Literal (Bool true)) ], Some err) in
 		
 		let x_r2 = fresh_var () in 
 		let x_r = fresh_var () in 
@@ -1829,7 +1831,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let next2 = fresh_next_label () in 
 		let next3 = fresh_next_label () in 
 		let next4 = fresh_next_label () in 
-		let cmd_goto_ref_guard = BinOp ((TypeOf x), Subtype, Literal (Type ReferenceType)) in 
+		let cmd_goto_ref_guard = is_ref x in 
 		let cmd_goto_ref = SLGuardedGoto (cmd_goto_ref_guard, next1, next4) in  
 		
 		(* goto [ ((base(x_e) = $$null) or (base(x_e) = $$undefined)) ] next2 next3 *) 
@@ -2736,7 +2738,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		
 		(* x_cae := i__checkAssignmentErrors (ref-v(x_f_outer_er, "f")) with err *)
 		let x_cae = fresh_var () in 
-		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ VRef (Var x_f_outer_er, Literal (String f_name)) ], Some err) in 
+		let cmd_cae = SLCall (x_cae, lit_str checkAssignmentErrorsName, [ EList [lit_refv; Var x_f_outer_er; lit_str f_name] ], Some err) in 
 
 		(* [x_f_outer_er, f] := x_f *)
 		let cmd_fname_updt = SLBasic (SMutation (Var x_f_outer_er, Literal (String f_name), Var x_f)) in 
@@ -2825,7 +2827,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		let cmd_xsf_ass = SLBasic (SLookup (x_sf, Var var_scope, Literal (String v_fid))) in 
 		(* x_ref := ref_v(x_sf, "x")  *) 
 		let x_ref = fresh_var () in  
-		let cmd_xref_ass = SLBasic (SAssignment (x_ref, VRef (Var x_sf, Literal (String x)))) in 
+		let cmd_xref_ass = SLBasic (SAssignment (x_ref, EList [lit_refv; Var x_sf; lit_str x])) in 
 		(* x_cae := i__checkAssignmentErrors (x_ref) with err *)
 		let x_cae = fresh_var () in 
 		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ (Var x_ref) ], Some err) in 
@@ -2962,7 +2964,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 	
 		(* x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err2 *)
 		let x_cae = fresh_var () in 
-		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ VRef (Var x_er, Literal (String x)) ], Some new_err2) in 
+		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ EList [lit_refv; Var x_er; lit_str x] ], Some new_err2) in 
 	
 		(* [x_er, "x"] := x_err *) 
 		let cmd_mutate_x = SLBasic (SMutation (Var x_er, Literal (String x), Var x_err)) in  					  				
@@ -3060,7 +3062,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		
 		(* x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err2 *)
 		let x_cae = fresh_var () in 
-		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ VRef (Var x_er, Literal (String x)) ], Some new_err2) in 
+		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ EList [lit_refv; Var x_er; lit_str x] ], Some new_err2) in 
 	
 		(* [x_er, "x"] := x_err *) 
 		let cmd_mutate_x = SLBasic (SMutation (Var x_er, Literal (String x), Var x_err)) in  					  				

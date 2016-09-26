@@ -45,8 +45,6 @@ let rec sexpr_of_literal lit =
     | String x -> Printf.sprintf "\"%s\"" x
     | Loc loc -> loc
     | Type t -> string_of_type t 
-		| LVRef (l, x) -> Printf.sprintf "(ref %s \"%s\" $$v-reference_type)" (sexpr_of_literal l) x  
-	  | LORef (l, x) -> Printf.sprintf "(ref %s \"%s\" $$o-reference_type)" (sexpr_of_literal l) x   
 		| LList ll -> 
 			(match ll with
 			| [] -> "(jsil-list )"
@@ -73,7 +71,6 @@ let sexpr_of_binop bop =
   | UnsignedRightShift -> ">>>"
 	| M_atan2 -> "m_atan2"
 	| M_pow -> "**"
-	| Subtype -> "<:"
 	| LstCons -> "::"
 	| LstCat -> "@"
 	| StrCat -> "++"
@@ -87,14 +84,6 @@ let rec sexpr_of_expression e =
     | BinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (sexpr_of_binop op) (se e1) (se e2)
 		(* (uop e1 e2) *)
     | UnaryOp (op, e) -> Printf.sprintf "(%s %s)" (string_of_unop op) (se e)
-		(* (ref-v e1 e2) *)
-    | VRef (e1, e2) -> Printf.sprintf "(ref-v %s %s)" (se e1) (se e2)
-  	(* (ref-o e1 e2) *)
-    | ORef (e1, e2) -> Printf.sprintf "(ref-o %s %s)" (se e1) (se e2)
-		(* (base e) *)
-    | Base e -> Printf.sprintf "(base %s)" (se e)
-		(* (field e) *)
-    | Field e -> Printf.sprintf "(field %s)" (se e)
 		(* (typeof e) *)
     | TypeOf e -> Printf.sprintf "(typeof %s)" (se e) 
 		(* (assume e) *) 

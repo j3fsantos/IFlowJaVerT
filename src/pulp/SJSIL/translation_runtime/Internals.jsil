@@ -685,10 +685,10 @@ with
 
 proc i__getValue (v) {
 
-			goto [(typeOf(v) = $$v-reference_type) or (typeOf(v) = $$o-reference_type)] init dflt;
+			goto [(typeOf(v) = $$list_type) and ((l-nth (v, 0) = "v") or (l-nth (v, 0) = "o"))] init dflt;
 	
-	init:	rbase := base (v);
-			rfield := field (v);
+	init:	rbase := l-nth (v, 1);
+			rfield := l-nth (v, 2);
 			goto [rbase = $$undefined] throw prim;
 	
 	prim:	goto [(is_primitive rbase) and (not (rbase = $$undefined)) and (not (rbase = $$null))] is_pr ref;
@@ -708,7 +708,7 @@ proc i__getValue (v) {
 			goto [xret = $$empty] undef rlab;
 	undef:	xret := $$undefined;
 	
-	ref:	goto [typeOf(v) = $$o-reference_type] oref vref;
+	ref:	goto [(typeOf(v) = $$list_type) and (l-nth (v, 0) = "o")] oref vref;
 	
 	oref:	gp := [rbase, "@get"];
 			xret := gp (rbase, rfield) with elab;
@@ -741,16 +741,15 @@ with
 
 proc i__putValue (v, w) {
 
-			xret := typeOf(v);
-			goto [(xret = $$v-reference_type) or (xret = $$o-reference_type)] init throw;
+			goto [(typeOf(v) = $$list_type) and ((l-nth (v, 0) = "v") or (l-nth (v, 0) = "o"))] init throw;
 	
-	init:	rbase := base (v);
-			rfield := field (v);
+	init:	rbase := l-nth (v, 1);
+			rfield := l-nth (v, 2);
 			goto [rbase = $$undefined] throw prim;
 	
 	prim:	goto [(is_primitive rbase) and (not (rbase = $$undefined)) and (not (rbase = $$null))] is_pr refr;
 	
-	refr:	goto [typeOf(v) = $$o-reference_type] oref vref;
+	refr:	goto [(typeOf(v) = $$list_type) and (l-nth (v, 0) = "o")] oref vref;
 	
 	oref:	p := [rbase, "@put"];
 			xret := p (rbase, rfield, w, $$t) with elab;
@@ -1371,17 +1370,17 @@ with
 
 proc i__checkAssignmentErrors (v) {
 			tv := typeOf (v);
-			goto [(tv = $$v-reference_type) or (tv = $$o-reference_type)] prep rlab;
+			goto [(tv = $$list_type) and ((l-nth (v, 0) = "v") or (l-nth (v, 0) = "o"))] prep rlab;
 			
-	prep:	bv := base (v);
-			fv := field (v);
+	prep:	bv := l-nth (v, 1);
+			fv := l-nth (v, 2);
 			
-	csyn:	goto [((tv = $$v-reference_type) or (v = $lg)) and ((fv = "eval") or (fv = "arguments"))] se cref;
+	csyn:	goto [(((tv = $$list_type) and (l-nth (v, 0) = "v")) or (bv = $lg)) and ((fv = "eval") or (fv = "arguments"))] se cref;
 	
 			(* Can anything else happen here? *)
 	cref:	goto [(bv = $$undefined)] re ctyp;
 	
-	ctyp:	goto [tv = $$o-reference_type] c1 rlab;
+	ctyp:	goto [(typeOf(tv) = $$list_type) and (l-nth (tv, 0) = "o")] c1 rlab;
 	
 	c1:		xret := hasField (bv, fv);
 			goto [xret] c2 c1a;
@@ -1442,8 +1441,7 @@ with
 (* *********** *)
 
 proc f__hasInstance(v1, v2) {		
-			v1 := v1;
-			v2 := v2;	
+
 			goto [not (typeOf (v2) = $$object_type)] rf s2;
 	
 	s2:		g := [v1, "@get"];

@@ -47,10 +47,6 @@ let rec logic_expression_map f lexpr =
   	| LLit _ | LNone | LVar _ | ALoc _ | PVar _ -> mapped_lexpr
   	| LBinOp (e1, op, e2) -> LBinOp (map_e e1, op, map_e e2)
   	| LUnOp (op, e)       -> LUnOp (op, map_e e)
-  	| LEVRef (e1, e2)     -> LEVRef (map_e e1, map_e e2)
-  	| LEORef (e1, e2)     -> LEORef (map_e e1, map_e e2)
-  	| LBase e             -> LBase (map_e e)
-  	| LField e            -> LField (map_e e)
   	| LTypeOf e           -> LTypeOf (map_e e)
   	| LEList le           -> LEList (List.map map_e le)
   	| LLstNth (e1, e2)    -> LLstNth (map_e e1, map_e e2)
@@ -99,10 +95,6 @@ let rec get_expr_vars var_set catch_pvars e =
 				else ()
 	| LBinOp (e1, op, e2) -> f e1; f e2
 	| LUnOp (op, e1) -> f e1 
-	| LEVRef	(e1, e2) 
-	| LEORef (e1, e2) -> f e1; f e2
-	| LBase e1 
-	| LField e1
 	| LTypeOf e1 -> f e1 
 	| LEList le_list -> List.iter (fun le -> f le) le_list 
 	| LLstNth (e1, e2) 
@@ -281,14 +273,6 @@ let rec lexpr_substitution lexpr subst partial =
 	| LBinOp (le1, op, le2) -> LBinOp ((f le1), op, (f le2)) 
 	
 	| LUnOp (op, le) -> LUnOp (op, (f le)) 
-	
-	| LEVRef (le1, le2) -> LEVRef ((f le1), (f le2))
-	
-	| LEORef (le1, le2) -> LEORef ((f le1), (f le2))
-	
-	| LBase le -> LBase	(f le)
-
-	| LField le -> LField (f le)
 
 	| LTypeOf le -> LTypeOf (f le) 
 	

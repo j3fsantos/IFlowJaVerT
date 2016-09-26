@@ -15,9 +15,6 @@ type jsil_type =
 	| NumberType
 	| StringType
 	| ObjectType
-	| ReferenceType
-	| ObjectReferenceType
-	| VariableReferenceType
 	| ListType
 	| TypeType
 
@@ -49,8 +46,6 @@ type jsil_lit =
 	| String   of string
   | Loc      of string
   | Type     of jsil_type
-	| LVRef    of jsil_lit * string
-	| LORef    of jsil_lit * string
 	(* List of literals (for descriptors) *)
 	| LList    of jsil_lit list
 
@@ -83,8 +78,6 @@ type bin_op =
 	(* Mathematics *)
 	| M_atan2
 	| M_pow
-	(* Subtyping operator for reference types *)
-  | Subtype
 	(* List manipulation *)
 	| LstCons
 	| LstCat
@@ -135,10 +128,6 @@ type jsil_expr =
   | Var      of jsil_var
   | BinOp    of jsil_expr * bin_op * jsil_expr
   | UnaryOp  of unary_op * jsil_expr
-  | VRef     of jsil_expr * jsil_expr
-  | ORef     of jsil_expr * jsil_expr
-  | Base     of jsil_expr
-  | Field    of jsil_expr
   | TypeOf   of jsil_expr
 	| RAssume  of jsil_expr
 	| RAssert  of jsil_expr
@@ -148,6 +137,18 @@ type jsil_expr =
 	| EList    of jsil_expr list
 	| LstNth   of jsil_expr * jsil_expr
 	| StrNth   of jsil_expr * jsil_expr
+
+(* Shorthand *)
+let lit_num n = Literal (Num n) 
+let lit_str s = Literal (String s)
+let lit_loc l = Literal (Loc l)
+let lit_typ t = Literal (Type t)
+
+let lit_refv = lit_str "v"
+let lit_refo = lit_str "o"
+let rtype  r = LstNth (r, lit_num 0.)
+let base  r = LstNth (r, lit_num 1.)
+let field r = LstNth (r, lit_num 2.)
 
 (* JSIL Basic statements *)
 type jsil_basic_cmd =
@@ -181,8 +182,6 @@ type jsil_logic_expr =
 	| PVar				of jsil_var
 	| LBinOp			of jsil_logic_expr * bin_op * jsil_logic_expr
 	| LUnOp				of unary_op * jsil_logic_expr
-	| LEVRef			of jsil_logic_expr * jsil_logic_expr
-	| LEORef			of jsil_logic_expr * jsil_logic_expr
 	| LBase				of jsil_logic_expr
 	| LField			of jsil_logic_expr
 	| LTypeOf			of jsil_logic_expr
@@ -315,15 +314,6 @@ let types_lub t1 t2 =
 	| NumberType, IntType -> Some NumberType
 	| StringType, StringType -> Some StringType
 	| ObjectType, ObjectType -> Some ObjectType
-	| ReferenceType, ReferenceType -> Some ReferenceType
-	| ReferenceType, ObjectReferenceType -> Some ReferenceType
-	| ReferenceType, VariableReferenceType -> Some ReferenceType
-	| ObjectReferenceType, ReferenceType -> Some ReferenceType
-	| ObjectReferenceType, ObjectReferenceType -> Some ObjectReferenceType
-	| ObjectReferenceType, VariableReferenceType -> Some ReferenceType
-	| VariableReferenceType, ReferenceType -> Some ReferenceType
-	| VariableReferenceType, ObjectReferenceType -> Some ReferenceType
-	| VariableReferenceType, VariableReferenceType -> Some VariableReferenceType
 	| ListType, ListType -> Some ListType
 	| TypeType, TypeType -> Some TypeType
 	| _, _ -> None
@@ -333,5 +323,3 @@ let types_leq t1 t2 =
 	match t with 
 	| Some t -> (t = t2)
 	| None -> false
-
-

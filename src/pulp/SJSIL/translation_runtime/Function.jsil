@@ -138,7 +138,7 @@ proc FP_hasInstanceAfterBind (v1, v2) {
 			hi := [target, "@hasInstance"];
 			goto [hi = $$empty] throw cont;
 			
-	cont:	xret := "i__hasInstance" (target, v2);
+	cont:	xret := "f__hasInstance" (target, v2);
 
 	rlab:	skip;
 	
