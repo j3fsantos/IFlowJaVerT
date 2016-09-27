@@ -474,6 +474,7 @@ evaluate_expr (e : jsil_expr) store =
 		(match v, n with 
 		| LList list, Integer n -> 
 				(List.nth list n)
+		| LList list, Num -0. -> List.nth list 0
 		| _, _ -> raise (Failure (Printf.sprintf "Incorrect argument to LstNth: %s, %s" (JSIL_Print.string_of_literal v false) (JSIL_Print.string_of_literal n false))))
 
 	| StrNth (e1, e2) ->
@@ -482,6 +483,8 @@ evaluate_expr (e : jsil_expr) store =
 		(match v, n with 
 		| String s, Integer n -> 
 				String (String.make 1 (String.get s n))
+		| String s, Num -0. -> 
+				String (String.make 1 (String.get s 0))	
 		| _, _ -> raise (Failure (Printf.sprintf "Incorrect argument to StrNth: %s, %s" (JSIL_Print.string_of_literal v false) (JSIL_Print.string_of_literal n false))))
 
 	| _ -> raise (Failure (Printf.sprintf "Unknown expression: %s" (JSIL_Print.string_of_expression e false)))
