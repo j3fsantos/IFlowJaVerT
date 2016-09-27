@@ -19,11 +19,9 @@ let procedure_table = Hashtbl.create 100
 %token NUMTYPELIT
 %token STRTYPELIT
 %token OBJTYPELIT
-%token REFTYPELIT
-%token VREFTYPELIT
-%token OREFTYPELIT
 %token LISTTYPELIT
 %token TYPETYPELIT
+%token SUBTYPE
 (* Constants *)
 %token MIN_FLOAT
 %token MAX_FLOAT
@@ -77,7 +75,6 @@ let procedure_table = Hashtbl.create 100
 %token UNSIGNEDRIGHTSHIFT
 %token M_ATAN2
 %token M_POW
-%token SUBTYPE
 %token LSTCONS
 %token LSTCAT
 %token STRCAT
@@ -111,10 +108,6 @@ let procedure_table = Hashtbl.create 100
 %token LSTLEN
 %token STRLEN
 (* Expression keywords *)
-%token VREF
-%token OREF
-%token BASE
-%token FIELD
 %token TYPEOF
 %token ASSUME
 %token ASSERT
@@ -213,6 +206,9 @@ let procedure_table = Hashtbl.create 100
 %left M_ATAN2 LSTCONS LSTCAT STRCAT
 %right M_ABS M_ACOS M_ASIN M_ATAN M_CEIL M_COS M_EXP M_FLOOR M_LOG M_ROUND M_SGN M_SIN M_SQRT M_TAN
   ISPRIMITIVE TOSTRING TOINT TOUINT16 TOINT32 TOUINT32 TONUMBER CAR CDR LSTLEN STRLEN
+
+%nonassoc INT
+%nonassoc FLOAT
 
 (***** Types and entry points *****)
 %type <JSIL_Syntax.jsil_ext_program> main_target
@@ -384,7 +380,7 @@ call_with_target:
 
 expr_target:
 (* literal *)
-	| lit=prog_lit_target { Literal lit }
+	| lit=lit_target { Literal lit }
 (* var *)
 	| v=VAR { Var v }
 (* e binop e *)
@@ -397,18 +393,6 @@ expr_target:
 (* Unary negation has the same precedence as logical not, not as binary negation. *)
 	| MINUS; e=expr_target
 		{ UnaryOp (UnaryMinus, e) } %prec unary_minus
-(* v-ref *)
-	| VREF; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
-		{ VRef (e1, e2) }
-(* o-ref *)
-	| OREF; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
-		{ ORef (e1, e2) }
-(* base *)
-	| BASE; LBRACE; e=expr_target; RBRACE
-		{ Base (e) }
-(* field *)
-	| FIELD; LBRACE; e=expr_target; RBRACE
-		{ Field (e) }
 (* typeOf *)
 	| TYPEOF; LBRACE; e=expr_target; RBRACE
 		{ TypeOf (e) }
@@ -438,12 +422,6 @@ expr_target:
 		{ e }
 ;
 
-prog_lit_target:
-  (* Treat integers as floats *)
-  | INT                       { Num (float $1) }
-	| lit_target                { $1 }
-;
-
 (********* LOGIC *********)
 
 pred_target:
@@ -469,7 +447,7 @@ pred_head_target:
 
 pred_param_target:
 (* Logic literal *)
-	| lit = logic_lit_target
+	| lit = lit_target
 	  { LLit lit }
 (* None *)
 	| LNONE
@@ -584,7 +562,7 @@ type_env_pair_target:
 
 lexpr_target:
 (* Logic literal *)
-	| lit = logic_lit_target
+	| lit = lit_target
 	  { LLit lit }
 (* None *)
 	| LNONE
@@ -606,18 +584,6 @@ lexpr_target:
 (* Unary negation has the same precedence as logical not, not as binary negation. *)
 	| MINUS; e=lexpr_target
 		{ LUnOp (UnaryMinus, e) } %prec unary_minus
-(* v-ref *)
-	| VREF; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE
-		{ LEVRef (e1, e2) }
-(* o-ref *)
-	| OREF; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE
-		{ LEORef (e1, e2) }
-(* base *)
-	| BASE; LBRACE; e=lexpr_target; RBRACE
-		{ LBase (e) }
-(* field *)
-	| FIELD; LBRACE; e=lexpr_target; RBRACE
-		{ LBase (e) }		
 (* typeOf *)
 	| TYPEOF; LBRACE; e=lexpr_target; RBRACE
 		{ LTypeOf (e) }
@@ -649,14 +615,9 @@ program_variable_target:
 	  { validate_pvar "err"; PVar "err" }
 ;
 
-logic_lit_target:
-  (* Use the Integer type for ints *)
-  | INT                       { Integer $1 }
-	| lit_target                { $1 }
-;
-
 (********* COMMON *********)
 
+(* Why are there no literal lists here? *)
 lit_target: 
 	| UNDEFINED                 { Undefined }
 	| NULL                      { Null }
@@ -664,14 +625,13 @@ lit_target:
 	| constant_target           { Constant $1 }
 	| TRUE                      { Bool true }
 	| FALSE                     { Bool false }
+	| INT												{ Integer $1 }
 	| FLOAT                     { Num $1 }
 	| NAN                       { Num nan }
 	| INFINITY                  { Num infinity }
 	| STRING                    { String $1 }
 	| LOC                       { Loc $1 }
 	| type_target               { Type $1 }
-	| lit_target VREFLIT STRING { LVRef ($1, $3) }
-	| lit_target OREFLIT STRING { LORef ($1, $3) }
 	| LSTNIL                    { LList [] }
 	| LSTOPEN LSTCLOSE          { LList [] }
 ;
@@ -696,10 +656,10 @@ lit_target:
 	| UNSIGNEDRIGHTSHIFT { UnsignedRightShift }
 	| M_ATAN2            { M_atan2 }
 	| M_POW              { M_pow }
-	| SUBTYPE            { Subtype }
 	| LSTCONS            { LstCons }
 	| LSTCAT             { LstCat }
 	| STRCAT             { StrCat }
+	| SUBTYPE            { SubType }
 ;
 
 %inline unop_target:
@@ -759,9 +719,6 @@ lit_target:
 	| NUMTYPELIT   { NumberType }
 	| STRTYPELIT   { StringType }
 	| OBJTYPELIT   { ObjectType }
-	| REFTYPELIT   { ReferenceType }
-	| OREFTYPELIT  { ObjectReferenceType }
-	| VREFTYPELIT  { VariableReferenceType }
 	| LISTTYPELIT  { ListType }
 	| TYPETYPELIT  { TypeType }
 ;

@@ -53,10 +53,11 @@ let debugPrint (s:string) =
     Printf.printf "\nDEBUG:\n%s\n\n" s
   else
     ()
-    
+   
+(* This is very tricky, -0 has to not be an int *)
 let is_int (f : float) : bool =
-  let i_f = int_of_float f in
-		(float_of_int i_f = f) 
+	let f' = float_of_int (int_of_float f) in
+	f = f' && (copysign 1.0 f = copysign 1.0 f')
 
 let precision = 1e-6
 

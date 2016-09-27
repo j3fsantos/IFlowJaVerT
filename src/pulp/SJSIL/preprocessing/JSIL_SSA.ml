@@ -97,20 +97,6 @@ let rec rewrite_expr_ssa (expr : jsil_expr) var_stacks rename_var  =
 	| UnaryOp (un_op, e1) -> 
 		let new_e1 = rewrite_expr_ssa e1 var_stacks rename_var in 
 		UnaryOp (un_op, new_e1) 
-	| VRef (e1, e2) -> 
-		let new_e1 = rewrite_expr_ssa e1 var_stacks rename_var in 
-		let new_e2 = rewrite_expr_ssa e2 var_stacks rename_var in 
-		VRef (new_e1, new_e2) 
-	| ORef (e1, e2) -> 
-		let new_e1 = rewrite_expr_ssa e1 var_stacks rename_var in 
-		let new_e2 = rewrite_expr_ssa e2 var_stacks rename_var in 
-		ORef (new_e1, new_e2)  
- 	| Base e1 -> 
-		let new_e1 = rewrite_expr_ssa e1 var_stacks rename_var in
-		Base (new_e1)
-	| Field e1 -> 
-		let new_e1 = rewrite_expr_ssa e1 var_stacks rename_var in
-		Field (new_e1)
 	| TypeOf e1 -> 
 		let new_e1 = rewrite_expr_ssa e1 var_stacks rename_var in
 		TypeOf (new_e1)
@@ -139,10 +125,6 @@ let rec rewrite_logic_expression (lexpr : jsil_logic_expr) var_stacks rename_var
 		| _ -> raise (Failure ("RLE: Variable " ^ (Printf.sprintf("%s") var) ^ " not found in stack table during ssa transformation")))
 	| LBinOp (lexpr1, binop, lexpr2) -> LBinOp	((rewrite_logic_expression lexpr1 var_stacks rename_var), binop, (rewrite_logic_expression lexpr2 var_stacks rename_var))
 	| LUnOp	(unop, lexpr1) ->	LUnOp (unop, rewrite_logic_expression lexpr1 var_stacks rename_var)
-	| LEVRef (lexpr1, lexpr2) -> LEVRef	((rewrite_logic_expression lexpr1 var_stacks rename_var), (rewrite_logic_expression lexpr2 var_stacks rename_var))
-	| LEORef (lexpr1, lexpr2) -> LEORef	((rewrite_logic_expression lexpr1 var_stacks rename_var), (rewrite_logic_expression lexpr2 var_stacks rename_var))
-	| LBase	lexpr -> LBase (rewrite_logic_expression lexpr var_stacks rename_var)
-	| LField lexpr -> LField (rewrite_logic_expression lexpr var_stacks rename_var)
 	| LTypeOf lexpr	-> LTypeOf (rewrite_logic_expression lexpr var_stacks rename_var)
 	| x -> x)
 		

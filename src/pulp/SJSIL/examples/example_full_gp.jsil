@@ -21,7 +21,7 @@ proc i__toNumber (v) {
 	is_f:	xret := 0;
 			goto rlab;
 			
-	inum:	goto [typeOf(v) = $$number_type] num is;
+	inum:	goto [typeOf(v) <: $$number_type] num is;
 	num:	xret := v;
 			goto rlab;
 			
