@@ -1275,7 +1275,7 @@ proc i__abstractEquality (v1, v2) {
 			tv1 := typeOf(v1);
 			tv2 := typeOf(v2);
 
-			goto [tv1 = tv2] same diff;
+			goto [(tv1 = tv2) or (tv1 <: tv2) or (tv2 <: tv1)] same diff;
 				
 	same:	goto [(tv1 = $$undefined_type) or (tv1 = $$null_type) or
 	              (tv1 = $$boolean_type)   or (tv1 <: $$number_type) or

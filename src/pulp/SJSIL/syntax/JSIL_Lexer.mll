@@ -178,9 +178,12 @@ rule read = parse
 	| '{'                  { JSIL_Parser.CLBRACKET }
 	| '}'                  { JSIL_Parser.CRBRACKET }
 (* Literals (cont.) *)
-	| int                  { JSIL_Parser.INT (int_of_string (Lexing.lexeme lexbuf)) }
+	| int                  { let n = float_of_string (Lexing.lexeme lexbuf) in
+	                           if (Utils.is_int n)   
+														    then JSIL_Parser.INT (int_of_string (Lexing.lexeme lexbuf))
+																else JSIL_Parser.FLOAT n }
 	| float                { let n = float_of_string (Lexing.lexeme lexbuf) in 
-													   if (n = snd (modf n)) 
+													   if (Utils.is_int n) 
 														    then (JSIL_Parser.INT (int_of_float n)) 
 																else (JSIL_Parser.FLOAT n) }
 	| '"'                  { read_string (Buffer.create 17) lexbuf }
