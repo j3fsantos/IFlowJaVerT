@@ -154,7 +154,7 @@ spec s__getOwnProperty (l, prop)
 	normal;
 	(* Same comment as in o__getOwnProperty applies *)
 	[[ Cell_s (l, prop, 1, #u) ]]
-	[[ Cell_s (l, prop, 1, #u) * (ret == #d) * types(#d : $$list_type) * (#d == {{ "d", #u, $$f, $$t, $$f }}) ]]
+	[[ Cell_s (l, prop, 1, #u) * (ret == {{ "d", #u, $$f, $$t, $$f }}) * types(ret : $$list_type) ]]
 	normal; 
 	[[ Cell_s (l, prop, 2, #u) ]]
 	[[ Cell_s (l, prop, 2, #u) * (ret == #u) * types(#u : $$list_type) ]]
@@ -213,36 +213,17 @@ pred Pi (l, prop, "base", "s", $$undefined) :
 pred Pi (l, prop, "base", "o", d) :
 	Class (l, "o") * Cell_o (l, prop, #d) * (! (#d == $$undefined)) * types(#d : $$list_type) * (d == #d); 
 pred Pi (l, prop, "base", "s1", d) : 
-	Class (l, "s") * Cell_s (l, prop, 1, #u) * types(#u : $$string_type) * (d == #u); 
+	Class (l, "s") * Cell_s (l, prop, 1, #u) * types(#u : $$string_type) * (d == {{"d", #u, $$f, $$t, $$f}}); 
 pred Pi (l, prop, "base", "s2", d) : 
 	Class (l, "s") * Cell_s (l, prop, 2, #d) * types(#d : $$list_type) * (d == #d);
 pred Pi (l, prop, "inductive", "o", d) : 
 	Class (l, "o") * Cell_o (l, prop, None) * ((l, "@proto") -> #lp)  * (!(#lp == $$null)) * CommonMethods(#lp) * (d == #d) * Pi(#lp, prop, #caseType, #class, #d);
 pred Pi (l, prop, "inductive", "s", d) : 
 	Class (l, "s") * Cell_s (l, prop, 0, None) * ((l, "@proto") -> #lp)  * (!(#lp == $$null)) * CommonMethods(#lp) * (d == #d) * Pi(#lp, prop, #caseType, #class, #d);  
+
 spec o__getProperty (l, prop)
-	[[ Pi (l, prop, "base", "o", $$undefined) ]]
-	[[ Pi (l, prop, "base", "o", $$undefined) * (ret == $$undefined) ]]
-	normal; 
-	
-	[[ Pi (l, prop, "base", "s", $$undefined) ]]
-	[[ Pi (l, prop, "base", "s", $$undefined) * (ret == $$undefined) ]]
-	normal;
-	
-	[[ Pi (l, prop, "base", "o", #d) * (! (#d == $$undefined)) ]]
-	[[ Pi (l, prop, "base", "o", #d) * (ret == #d) ]]
-	normal;
-	
-	[[ Pi (l, prop, "base", "s1", #d) ]]
-	[[ Pi (l, prop, "base", "s1", #d) * (ret == #d) ]]
-	normal;
-	
-	[[ Pi (l, prop, "base", "s2", #d) ]]
-	[[ Pi (l, prop, "base", "s2", #d) * (ret == #d) ]]
-	normal;
-	
-	[[ Pi (l, prop, "inductive", "o", #d) ]]
-	[[ Pi (l, prop, "inductive", "o", #d) * (ret == #d) ]]
+	[[ Pi (l, prop, #banana1, #banana2, #banana3) ]]
+	[[ Pi (l, prop, #banana1, #banana2, #banana3) * (ret == #banana3) ]]
 	normal
 proc o__getProperty (l, prop) {
 			skip;
