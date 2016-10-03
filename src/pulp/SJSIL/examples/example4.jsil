@@ -1,9 +1,6 @@
-
-(******************* TYPE CONVERSION *******************)
-
 spec i__toNumber (v)
-	[[ types(v : $$string_type) ]]
-	[[ types(v : $$string_type, ret : $$number_type) * (ret == string_to_num v) ]]
+	[[ types(v : $$string_type, #v : $$string_type) * (v == #v) ]]
+	[[ types(#v : $$string_type, ret : $$number_type) * (ret == (string_to_num #v)) ]]
 	normal
 proc i__toNumber (v) {
 	iu:		goto [v = $$undefined] undef in;
@@ -47,8 +44,8 @@ with
 
 
 spec i__toInteger (v)
-	[[ types(v : $$string_type) ]]
-	[[ types(v : $$string_type, ret : $$int_type) * (ret == num_to_int (string_to_num v)) ]]
+	[[ types(v : $$string_type, #v : $$string_type) * (v == #v) ]]
+	[[ types(v : $$string_type, #v : $$string_type, ret : $$int_type) * (ret == num_to_int (string_to_num #v)) ]]
 	normal
 proc i__toInteger (v) {
 			xret := "i__toNumber" (v) with elab;
@@ -65,8 +62,8 @@ with
 
 
 spec i__toString (v)
-	[[ types(v : $$int_type) ]]
-	[[ types(ret : $$string_type) * (ret == (num_to_string v)) ]]
+	[[ types(v : $$int_type, #v : $$int_type) * (v == #v) ]]
+	[[ types(ret : $$string_type, #v : $$int_type) * (ret == (num_to_string #v)) ]]
 	normal
 proc i__toString (v) {
 	iu:		goto [v = $$undefined] undef in;
@@ -84,7 +81,7 @@ proc i__toString (v) {
 	is_f:	xret := "false";
 			goto rlab;
 			
-	inum:	goto [typeOf(v) = $$number_type] num is;
+	inum:	goto [typeOf(v) <: $$number_type] num is;
 	num:	xret := num_to_string v;
 			goto rlab;
 			
@@ -108,10 +105,10 @@ with
 	err:	xret, elab;
 };
 
-(******************* GETOWNPROPERTY *******************)
 
 pred Cell_o (l, prop, v) :
-	types(l : $$object_type, prop : $$string_type) * ((l, prop) -> v);  	
+	types(l : $$object_type, prop : $$string_type) * ((l, prop) -> v); 
+	
 
 spec o__getOwnProperty (l, prop)
 	[[ Cell_o (l, prop, None) ]]
@@ -137,23 +134,29 @@ with
     ret: 	xret, rlab;
 };
 
+
 pred IsStringIndex(S, prop, i) :
 	types(S : $$string_type, prop : $$string_type, i : $$int_type)
 	* (prop == num_to_string i) * (!(i <# 0)) * (i <# s-len S);
 
-pred Cell_s (l, prop, None) :
+pred Cell_s (l, prop, 0, None) :
 	Cell_o (l, prop, None) * ((l, "@primitiveValue") -> #S) * (#i == num_to_int (string_to_num prop)) * (! IsStringIndex(#S, prop, #i));
-pred Cell_s (l, prop, v) :
-	Cell_o (l, prop, None) * ((l, "@primitiveValue") -> #S) * (#i == num_to_int (string_to_num prop)) * IsStringIndex(#S, prop, #i) * (v == #u) * types(#u: $$string_type),
+pred Cell_s (l, prop, 1, v) :
+	Cell_o (l, prop, None) * ((l, "@primitiveValue") -> #S) * (#i == num_to_int (string_to_num prop)) * IsStringIndex(#S, prop, #i) * (v == s-nth(#S, #i)) * types(v : $$string_type); 
+pred Cell_s (l, prop, 2, v) :	
 	Cell_o (l, prop, v) * (!(v == None));
-
+	
+	
 spec s__getOwnProperty (l, prop)
-	[[ Cell_s (l, prop, None) ]]
-	[[ Cell_s (l, prop, None) * (ret == $$undefined) ]]
+	[[ Cell_s (l, prop, 0, None) ]]
+	[[ Cell_s (l, prop, 0, None) * (ret == $$undefined) ]]
 	normal;
 	(* Same comment as in o__getOwnProperty applies *)
-	[[ Cell_s (l, prop, #d) * types(#d : $$list_type) ]]
-	[[ Cell_s (l, prop, #d) * types(#d : $$list_type) * (ret == #d) ]]
+	[[ Cell_s (l, prop, 1, #u) ]]
+	[[ Cell_s (l, prop, 1, #u) * (ret == #d) * types(#d : $$list_type) * (#d == {{ "d", #u, $$f, $$t, $$f }}) ]]
+	normal; 
+	[[ Cell_s (l, prop, 2, #u) ]]
+	[[ Cell_s (l, prop, 2, #u) * (ret == #u) * types(#u : $$list_type) ]]
 	normal
 proc s__getOwnProperty (l, prop) {
 			xret := "o__getOwnProperty" (l, prop);
@@ -180,52 +183,4 @@ with
 {
 	ret: 	xret, rlab;
 	err: 	xret, elab;
-};
-
-(******************* GETPROPERTY *******************)
-
-pred CommonMethods (l) :
-	((l, "@getProperty") -> "o__getProperty");
-
-pred SpecificMethods_o (l) :
-	((l, "@getOwnProperty") -> "o__getOwnProperty");
-pred SpecificMethods_s (l) :
-	((l, "@getOwnProperty") -> "s__getOwnProperty");
-
-pred Class (l, "o") : ((l, "@class") -> #c) * (!(#c == "String")) * SpecificMethods_o (l);
-pred Class (l, "s") : ((l, "@class") -> "String") * SpecificMethods_s (l);
-
-pred Pi (l, prop, $$undefined) :
-	Class (l, "o") * Cell_o (l, prop, None) * ((l, "@proto") -> $$null),
-	Class (l, "s") * Cell_s (l, prop, None) * ((l, "@proto") -> $$null);
-pred Pi (l, prop, d) :
-	(* Same comment as in o__getOwnProperty applies *)
-	Class (l, "o") * Cell_o (l, prop, d) * types(#d : $$list_type),
-	Class (l, "s") * Cell_s (l, prop, d) * types(#d : $$list_type),
-	Class (l, "o") * Cell_o (l, prop, None) * ((l, "@proto") -> #lp)  * (!(#lp == $$null)) * CommonMethods(#lp) * Pi(#lp, prop, d),
-	Class (l, "s") * Cell_s (l, prop, None) * ((l, "@proto") -> #lp)  * (!(#lp == $$null)) * CommonMethods(#lp) * Pi(#lp, prop, d);
-
-spec o__getProperty (l, prop)
-	[[ Pi (l, prop, #d) ]]
-	[[ Pi (l, prop, #d) * (ret == #d) ]]
-	normal
-proc o__getProperty (l, prop) {
-			[* unfold Pi (l, prop, #d) *]
-			gop := [l, "@getOwnProperty"];
-			xret := gop (l, prop) with elab;
-			goto [xret = $$undefined] next rlab;
-			
-	next:	proto := [l, "@proto"];
-			goto [proto = $$null] rlab call;
-			
-	call:	gp := [proto, "@getProperty"];
-			xret := gp (proto, prop) with elab;
-			[* fold Pi (l, prop, #d) *]
-    rlab:   skip;
-    elab:	skip
-}
-with 
-{
-    ret: 	xret, rlab;
-    err:	xret, elab;
 };

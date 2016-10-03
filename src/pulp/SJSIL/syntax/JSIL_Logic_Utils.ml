@@ -5,34 +5,13 @@ open JSIL_Syntax
 
 module SS = Set.Make(String) 
 
-let fresh_sth (name : string) : (unit -> string) =
-  let counter = ref 0 in
-  let rec f () =
-    let v = name ^ (string_of_int !counter) in
-    counter := !counter + 1;
-    v
-  in f
-  
+let small_tbl_size = 31
 
-let abs_loc_prefix = "_$l_"
-let lvar_prefix = "_lvar_"
-let pvar_prefix = "_pvar_"
-
-let fresh_aloc = fresh_sth abs_loc_prefix 
-let fresh_lvar = fresh_sth lvar_prefix 
-let fresh_pvar = fresh_sth pvar_prefix 
-
-let is_abs_loc_name (name : string) : bool = 
-	if ((String.length name) < 4)
-		then false
-		else ((String.sub name 0 4) = abs_loc_prefix)
-
-let is_lvar_name (name : string) : bool = 
-	((String.sub name 0 1) = "#") || (((String.length name) > 6) && ((String.sub name 0 6) = lvar_prefix))
-	 
-
-let is_pvar_name (name : string) : bool = 
-	(not ((is_abs_loc_name name) || (is_lvar_name name)))
+let print_var_list var_list = 
+	List.fold_left
+		(fun ac var -> if (ac = "") then var else ac ^ "; " ^ var)
+		""
+		var_list 
 
 
 (** Apply function f to a logic expression, recursively when f returns (new_expr, true). *)
@@ -58,6 +37,7 @@ let rec logic_expression_map f lexpr =
   	| LStrNth (e1, e2)    -> LStrNth (map_e e1, map_e e2)
   	| LUnknown            -> LUnknown
 
+
 (** Apply function f to the logic expressions in an assertion, recursively when it makes sense. *)
 let rec assertion_map f asrt =
 	(* Map recursively to assertions and expressions *)
@@ -78,6 +58,84 @@ let rec assertion_map f asrt =
 	| LEmp                   -> LEmp
 	| LPred (s, le)          -> LPred (s, List.map map_e le)
 	| LTypes lt              -> LTypes (List.map (fun (exp, typ) -> (map_e exp, typ)) lt)
+
+
+let rec logic_expression_fold f_atom f_fold lexpr =
+	let fold_e = logic_expression_fold f_atom f_fold in
+  match lexpr with
+  | LLit _ | LNone | LVar _ | ALoc _ | PVar _ | LUnknown -> f_atom lexpr
+  | LBinOp (e1, op, e2)   -> f_fold lexpr [ (fold_e e1); (fold_e e2) ]
+  | LUnOp (op, e)         -> f_fold lexpr [ (fold_e e) ]
+ 	| LEVRef (e1, e2)       -> f_fold lexpr [ (fold_e e1); (fold_e e2) ]
+  | LEORef (e1, e2)       -> f_fold lexpr [ (fold_e e1); (fold_e e2) ]
+  | LBase e               -> f_fold lexpr [ (fold_e e) ]
+  | LField e              -> f_fold lexpr [ (fold_e e) ]
+  | LTypeOf e             -> f_fold lexpr [ (fold_e e) ] 
+  | LEList le             -> f_fold lexpr (List.map fold_e le)
+  | LLstNth (e1, e2)      -> f_fold lexpr [ (fold_e e1); (fold_e e2) ]
+  | LStrNth (e1, e2)      -> f_fold lexpr [ (fold_e e1); (fold_e e2) ]
+
+
+let rec assertion_fold f_atom f_fold asrt =
+	let fold_a = assertion_fold f_atom f_fold in
+	match asrt with
+	| LTrue | LFalse | LEq (_, _) | LLess (_, _) | LLessEq (_, _) | LStrLess (_, _) | LPointsTo (_, _, _) | LEmp | LPred (_, _) | LTypes _ -> f_atom asrt
+	| LAnd (a1, a2)         -> f_fold asrt [ (fold_a a1); (fold_a a2) ]
+	| LOr (a1, a2)          -> f_fold asrt [ (fold_a a1); (fold_a a2) ]
+	| LStar (a1, a2)        -> f_fold asrt [ (fold_a a1); (fold_a a2) ] 
+	| LNot a                -> f_fold asrt [ (fold_a a) ]
+
+
+let is_pure_assertion a = 
+	let f_atom a = 
+		(match a with 
+		| LPred (_, _) | LPointsTo (_, _, _) | LEmp -> false 
+		| _                                         -> true)  in 
+	let f_fold a ret_list = 
+		let ret = List.fold_left (fun ac v -> (ac && v)) true ret_list in 
+		(match a with 
+		| LAnd (_, _) | LOr (_, _) | LStar (_, _) | LNot _ -> ret 
+		| _  -> raise (Failure "Internal Error: is_pure_assertion")) in 
+	assertion_fold f_atom f_fold a
+
+
+let is_pure_atom a = 
+	match a with 
+	| LTrue | LFalse | LEq (_, _) | LLess (_, _) | LLessEq (_, _) | LStrLess (_, _) -> true
+	| _ -> false 
+
+let only_pure_atoms_negated a = 
+	let f_atom a = true in 
+	let f_fold a ret_list = 
+		let ret = List.fold_left (fun ac v -> (ac && v)) true ret_list in 
+		(match a with 
+		| LAnd (_, _) | LOr (_, _) | LStar (_, _) -> ret
+		| LNot a -> is_pure_atom a 
+		| _      -> raise (Failure "Internal Error: only_pure_atoms_negated")) in
+	assertion_fold f_atom f_fold a 
+
+
+let rec purify_stars a =
+	let f = purify_stars in  
+	match a with 
+	| LTrue | LFalse | LEq (_,_) | LLess (_,_) | LLessEq (_, _) | LStrLess (_, _) | LPred (_, _) -> a, [] 
+	| LTypes types -> LTrue, types
+	| LAnd (a1, a2)  -> 
+		let new_a1, types_a1 = f a1 in 
+		let new_a2, types_a2 = f a2 in 
+		(LAnd (new_a1, new_a2)), (types_a1 @ types_a2)
+	| LOr (a1, a2)   -> 
+		let new_a1, types_a1 = f a1 in 
+		let new_a2, types_a2 = f a2 in 
+		LOr ((new_a1, new_a2)), (types_a1 @ types_a2)
+	| LStar (a1, a2) -> 
+		let new_a1, types_a1 = f a1 in 
+		let new_a2, types_a2 = f a2 in 
+		LAnd ((new_a1, new_a2)), (types_a1 @ types_a2)
+	| LNot a1        -> 
+		let new_a1, types_a1 = f a1 in 
+		LNot new_a1, types_a1
+	| LPointsTo (_, _, _) | LEmp -> raise (Failure "purify_stars with impure argument")
 
 
 (**
@@ -110,32 +168,68 @@ let rec get_expr_vars var_set catch_pvars e =
 	| LStrNth (e1, e2) -> f e1; f e2
 
 
+let rec get_ass_vars_iter vars_tbl catch_pvars ass = 
+	let f = get_ass_vars_iter vars_tbl catch_pvars in 
+	let fe = get_expr_vars vars_tbl catch_pvars in  
+	match ass with 
+	| LAnd (a1, a2) -> f a1; f a2
+	| LOr (a1, a2) -> f a1; f a2
+	| LNot a1 -> f a1
+	| LTrue
+	| LFalse -> () 
+	| LEq (e1, e2) 
+	| LLess (e1, e2) 
+	| LLessEq (e1, e2)
+	| LStrLess (e1, e2) -> fe e1; fe e2
+	| LStar (a1, a2) -> f a1; f a2
+	| LPointsTo (e1, e2, e3) -> fe e1; fe e2; fe e3
+	| LEmp  
+	| LTypes _ -> ()
+	| LPred (_, es) -> List.iter fe es  
+
+
 let get_assertion_vars ass catch_pvars = 
-	let vars_tbl = Hashtbl.create 101 in 
-	let rec get_ass_vars_iter ass = 
-		let f = get_ass_vars_iter in 
-		let fe = get_expr_vars vars_tbl catch_pvars in  
-		match ass with 
-		| LAnd (_, _) -> raise (Failure "Unsupported assertion during normalization: LAnd")
-		| LOr (_, _) -> raise (Failure "Unsupported assertion during normalization: LOr")
-		| LNot a1 -> f a1
-		| LTrue
-		| LFalse -> () 
-		| LEq (e1, e2) 
-		| LLess (e1, e2) 
-		| LLessEq (e1, e2)
-		| LStrLess (e1, e2) -> fe e1; fe e2
-		| LStar (a1, a2) -> f a1; f a2
-		| LPointsTo (e1, e2, e3) -> fe e1; fe e2; fe e3
-		| LEmp  
-		| LTypes _ -> ()
-		| LPred (_, es) -> List.iter fe es  in 
-	get_ass_vars_iter ass; 
+	let vars_tbl = Hashtbl.create small_tbl_size in 
+	get_ass_vars_iter vars_tbl catch_pvars ass; 
 	vars_tbl 
 
 
+let get_list_of_assertions_vars_tbl assertions catch_pvars = 
+	let vars_tbl = Hashtbl.create small_tbl_size in 
+	let rec loop assertions = 
+		match assertions with 
+		| [] -> () 
+		| a :: rest_assertions -> 
+			get_ass_vars_iter vars_tbl catch_pvars a; 
+			loop rest_assertions in 
+			
+	loop assertions; 
+	vars_tbl 
+
+
+let get_list_of_assertions_vars_list assertions catch_pvars = 
+	let vars_tbl = get_list_of_assertions_vars_tbl assertions catch_pvars in
+	Hashtbl.fold 
+		(fun var v_val ac -> var :: ac)
+		vars_tbl
+		[]
+		
+
+let get_subtraction_vars assertions_left assertions_right catch_pvars = 
+	let assertion_left_vars_list = get_list_of_assertions_vars_list assertions_left catch_pvars in 
+	let assertion_right_vars_tbl = get_list_of_assertions_vars_tbl assertions_right catch_pvars in 
+	
+	(* Printf.printf "pat_pf_vars: %s\n" (print_var_list assertion_left_vars_list); *)
+	
+	let assertion_left_vars_list =
+		List.filter 
+			(fun x -> not (Hashtbl.mem assertion_right_vars_tbl x)) 
+			assertion_left_vars_list in 
+	assertion_left_vars_list 
+	
+
 let get_expr_vars_lst le catch_p_vars =
-	let vars_tbl = Hashtbl.create 31 in
+	let vars_tbl = Hashtbl.create small_tbl_size in
 	get_expr_vars vars_tbl catch_p_vars le; 
 	Hashtbl.fold 
 		(fun var v_val ac -> var :: ac)
@@ -160,38 +254,50 @@ let get_vars_tbl var_arr =
 	vars_tbl	
 			
 
+let get_subtraction_vars_lexpr lexpr_left lexpr_right catch_pvars = 
+	let right_lexpr_vars_tbl = Hashtbl.create small_tbl_size in
+	
+	let left_lexpr_vars_list = get_expr_vars_lst lexpr_left catch_pvars in 
+	get_expr_vars right_lexpr_vars_tbl catch_pvars lexpr_right;
+	
+	let left_lexpr_vars_list =
+		List.filter 
+			(fun x -> not (Hashtbl.mem right_lexpr_vars_tbl x)) 
+			left_lexpr_vars_list in 
+	left_lexpr_vars_list 
+
+
+let list_subraction list1 list2 = []
+
 
 let rec push_in_negations_off a =
-	let err_msg = "Normalize pure assertion got inpure argument" in 
+	let err_msg = "push_in_negations_off: internal error" in 
 	let f_off = push_in_negations_off in 
 	let f_on = push_in_negations_on in
 	(match a with 
-	| LAnd (a1, a2) -> LAnd ((f_off a1), (f_off a2))
-	| LOr (a1, a2) -> LOr ((f_off a1), (f_off a2))
-	| LNot a1 -> f_on a1
-	| LTrue 
-	| LFalse
-	| LEq (_, _)
-	| LLess (_, _)
-	| LLessEq (_, _) 
-	| LStrLess (_, _) 
-	| LPred (_, _) -> a 
-	| _ -> raise (Failure err_msg))
+	| LAnd (a1, a2)  -> LAnd ((f_off a1), (f_off a2))
+	| LOr (a1, a2)   -> LOr ((f_off a1), (f_off a2))
+	| LNot a1        -> 
+		let new_a1, types_a1 = purify_stars a1 in 
+		if ((List.length types_a1) > 0)
+			then LStar (f_on (new_a1), LTypes types_a1)
+			else f_on new_a1
+	| LStar (a1, a2) -> LStar ((f_off a1), (f_off a2))
+	| LTrue        | LFalse | LEq (_, _)          | LLess (_, _) | LLessEq (_, _) | LStrLess (_, _) 
+	| LPred (_, _) | LEmp   | LPointsTo (_, _, _) | LTypes _ -> a)
 and push_in_negations_on a = 
-	let err_msg = "Normalize pure assertion got inpure argument" in 
+	let err_msg = "push_in_negations_on: internal error" in 
 	let f_off = push_in_negations_off in
 	let f_on = push_in_negations_on in 
 	(match a with 
-	|	LAnd (a1, a2) -> LOr ((f_on a1), (f_on a2)) 
-	| LOr (a1, a2) -> LAnd ((f_on a1), (f_on a2)) 
-	| LTrue -> LFalse 
-	| LFalse -> LTrue 
-	| LEq (_, _)
-	| LLess (_, _)
-	| LLessEq (_, _) 
-	| LStrLess (_, _) 
-	| LPred (_, _) -> LNot a 
-	| _ -> raise (Failure err_msg))	
+	|	LAnd (a1, a2)       -> LOr ((f_on a1), (f_on a2)) 
+	| LOr (a1, a2)        -> LAnd ((f_on a1), (f_on a2))
+	| LTrue               -> LFalse 
+	| LFalse              -> LTrue 
+	| LNot a              -> (f_off a)
+	| LEq (_, _)   | LLess (_, _) | LLessEq (_, _) | LStrLess (_, _) | LPred (_, _) -> LNot a 
+	| LStar (_, _) | LEmp         | LPointsTo (_, _, _) -> raise (Failure err_msg)
+	| LTypes _            -> LTrue)	
 
 
 
@@ -215,17 +321,19 @@ let cross_product or_list1 or_list2 =
 
 let rec build_disjunt_normal_form a = 
 	let f = build_disjunt_normal_form in 
-	let err_msg = "Normalize pure assertion got inpure argument" in 
+	let err_msg = "build_disjunt_normal_form: Internal Error" in 
 	match a with 
-	| LAnd (a1, a2) -> cross_product (f a1) (f a2) 
-	| LOr (a1, a2) -> List.append (f a1) (f a2) 
-	| LTrue -> []
-	| LFalse
-	| LEq (_, _)
-	| LLess (_, _)
-	| LLessEq (_, _) 
-	| LStrLess (_, _) 
-	| LPred (_, _) -> [[ a ]]
+	| LAnd (a1, a2)                                
+	| LStar (a1, a2)                               -> cross_product (f a1) (f a2) 
+	| LOr (a1, a2)                                 -> List.append (f a1) (f a2) 
+	| LTrue                                        -> []
+	| LFalse           | LTypes _     
+	| LEq (_, _)    	 | LNot (LEq (_, _))
+	| LLess (_, _)     | LNot (LLess (_, _)) 
+	| LLessEq (_, _)   | LNot (LLessEq (_, _))
+	| LStrLess (_, _)  | LNot (LStrLess (_, _))
+	| LPred (_, _)     | LNot (LPred (_, _))       
+	| LEmp             | LPointsTo (_, _, _)       -> [[ a ]]                              
 	| _ -> raise (Failure err_msg)	
 
 
@@ -244,11 +352,68 @@ let remove_falses a_dnf =
 				else (loop rest_conjuncts (conjunct :: processed_conjuncts)) in 	
 	loop a_dnf [] 
 
+let assertion_list_from_dnf c_list = 
+	let rec loop c_list assertions = 
+		(match c_list with 
+		| [] -> assertions
+		| conjunct :: rest_c_list -> 
+			let assertion = 
+				List.fold_left
+					(fun ac atom -> 
+						(if (ac = LEmp) 
+							then atom 
+							else LStar (ac, atom)))
+					LEmp 
+					conjunct in
+			loop rest_c_list (assertion :: assertions)) in 
+	loop c_list []  
+			
 
 let normalize_pure_assertion a = 
 	let a = push_in_negations_off a in 
 	let a = build_disjunt_normal_form a in 
 	remove_falses a
+
+let old_pre_normalize_assertion a = 
+	(* Printf.printf "I am inside the pre_normalize being HAPPY. Looking at the assertion: %s!!!!\n" 
+		(JSIL_Print.string_of_logic_assertion a false); *)
+	let f asrts = 
+		List.fold_left 
+			(fun ac asrt ->
+				let asrt_str = (JSIL_Print.string_of_logic_assertion asrt false) in 
+				if (ac = "") 
+					then asrt_str 
+					else (ac ^ ";\n" ^ asrt_str))
+			""
+			asrts in  
+	if (only_pure_atoms_negated a) 
+		then [ a ]
+		else 
+			begin 
+				(* Printf.printf "there are non-pure atoms negated!!!!\n"; *)
+				let a = push_in_negations_off a in 
+				let dnf_a = build_disjunt_normal_form a in 
+				let dnf_a = remove_falses dnf_a in 
+				let new_as = assertion_list_from_dnf dnf_a in 
+				(* Printf.printf "Original a: %s.\nAfter prenormalisation:\n%s\n" (JSIL_Print.string_of_logic_assertion a false) (f new_as); *)
+				new_as 
+			end 	
+			
+
+let pre_normalize_assertion a = 
+	(* Printf.printf "I am inside the pre_normalize being HAPPY. Looking at the assertion: %s!!!!\n" 
+		(JSIL_Print.string_of_logic_assertion a false); *)
+	if (only_pure_atoms_negated a) 
+		then [ a ]
+		else 
+			begin 
+				(* Printf.printf "there are non-pure atoms negated!!!!\n"; *)
+				let new_a = push_in_negations_off a in 
+				(* Printf.printf "Original a: %s.\nAfter prenormalisation:\n%s\n" 
+					(JSIL_Print.string_of_logic_assertion a false)
+					(JSIL_Print.string_of_logic_assertion new_a false); *)
+				[ new_a ] 
+			end 
 	
 
 let rec lexpr_substitution lexpr subst partial = 
@@ -262,7 +427,7 @@ let rec lexpr_substitution lexpr subst partial =
 			(try Hashtbl.find subst var with _ -> 
 				if (not partial) 
 					then 
-						let new_var = fresh_lvar () in 
+						let new_var = JSIL_Memory_Model.fresh_lvar () in 
 						Hashtbl.replace subst var (LVar new_var);
 						LVar new_var
 					else (LVar var))
@@ -271,7 +436,7 @@ let rec lexpr_substitution lexpr subst partial =
 			(try Hashtbl.find subst aloc with _ -> 
 				if (not partial) 
 					then
-						let new_aloc = ALoc (fresh_aloc ()) in 
+						let new_aloc = ALoc (JSIL_Memory_Model.fresh_aloc ()) in 
 						Hashtbl.replace subst aloc new_aloc; 
 						new_aloc
 					else 
@@ -365,7 +530,7 @@ let init_substitution2 vars les =
  subst1 after subst2    
 **)
 let compose_partial_substitutions subst1 subst2 = 
-	let subst = Hashtbl.create 1021 in 
+	let subst = Hashtbl.create small_tbl_size in 
 	Hashtbl.iter 
 		(fun var le -> 
 			let n_le = lexpr_substitution le subst1 true in 
@@ -387,13 +552,12 @@ let filter_vars vars ignore_vars : string list =
 		List.fold_left
 			(fun ac var -> 
 				if (SS.mem var ignore_vars) 
-					then 
-						(Printf.printf "Inside filter_vars. then: %s\n" var; 
-						ac) 
-					else 
-						(Printf.printf "Inside filter_vars. then: %s\n" var; 
-						(var :: ac)))
+					then ac
+					else (var :: ac))
 			[ ]
 			vars in 
 	vars	
+
+
+
 				

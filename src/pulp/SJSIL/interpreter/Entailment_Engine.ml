@@ -1,64 +1,22 @@
 open Z3
 open JSIL_Syntax
 
-type smt_translation_ctx = {
-	z3_ctx            : context;
-	tr_typing_env     : JSIL_Memory_Model.typing_environment; 
-	tr_typeof_fun     : FuncDecl.func_decl;
-  tr_list_sort      : Sort.sort; 
-  tr_list_nil       : FuncDecl.func_decl;
-	tr_list_is_nil    : FuncDecl.func_decl;  
-	tr_list_cons      : FuncDecl.func_decl;
-	tr_list_is_cons   : FuncDecl.func_decl;  
-	tr_list_head      : FuncDecl.func_decl; 
-	tr_list_tail      : FuncDecl.func_decl; 
-	(* tr_existentials   : string list *)
-}
+let evaluate_type_of lit = 
+	match lit with 
+	| Undefined    -> UndefinedType
+	| Null         -> NullType
+	| Empty        -> EmptyType
+	| Constant _   -> NumberType
+	| Bool _       -> BooleanType
+	| Integer _    -> IntType
+	| Num n        -> if (n = (snd (modf n))) then IntType else NumberType 
+	| String _     -> StringType
+	| Loc _        -> ObjectType
+	| Type _       -> TypeType
+	| LVRef (_, _) -> VariableReferenceType
+	| LORef (_, _) -> ObjectReferenceType
+	| LList _      -> ListType
 
-
-let mk_smt_translation_ctx gamma existentials = 
-	let cfg = [("model", "true"); ("proof", "false")] in
-	let ctx = (mk_context cfg) in
-
-	let z3_typeof_fun_name = (Symbol.mk_string ctx "typeof") in
-	let z3_typeof_fun_domain = [ Arithmetic.Integer.mk_sort ctx ] in
-	let z3_typeof_fun = FuncDecl.mk_func_decl ctx z3_typeof_fun_name z3_typeof_fun_domain (Arithmetic.Integer.mk_sort ctx) in 
-	
-	let z3_list_sort_name = (Symbol.mk_string ctx "tr_list") in
-	let list_sort = Z3List.mk_sort ctx z3_list_sort_name (Arithmetic.Integer.mk_sort ctx) in 
-	
-	let list_nil     = Z3List.get_nil_decl     list_sort in 
-	let list_is_nil  = Z3List.get_is_nil_decl  list_sort in 
-	let list_cons    = Z3List.get_cons_decl    list_sort in 
-	let list_is_cons = Z3List.get_is_cons_decl list_sort in 
-	let list_head    = Z3List.get_head_decl    list_sort in 
-	let list_tail    = Z3List.get_tail_decl    list_sort in 
-	
-	{
-		z3_ctx            = ctx;
-		tr_typing_env     = gamma; 
-		tr_typeof_fun     = z3_typeof_fun;
-  	tr_list_sort      = list_sort; 
- 		tr_list_nil       = list_nil; 
-		tr_list_is_nil    = list_is_nil;
-		tr_list_cons      = list_cons;
-		tr_list_is_cons   = list_is_cons;  
-		tr_list_head      = list_head; 
-		tr_list_tail      = list_tail;
-		(* tr_existentials   = existentials *)
-	}
-
-
-let mk_z3_list les tr_ctx = 
-	let empty_list = Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_list_nil [ ] in
-	let rec loop les cur_list = 
-		match les with 
-		| [] -> cur_list 
-		| le :: rest_les -> 
-			let new_cur_list = Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_list_cons [ le; cur_list ] in
-			loop rest_les new_cur_list in 
-	loop les empty_list
-	
 
 
 (** Encode JSIL type literals as Z3 numerical constants *)
@@ -91,6 +49,178 @@ let types_encoded_as_ints = [
 	ObjectType; 
 	TypeType
 ]
+
+type smt_translation_ctx = {
+	z3_ctx            : context;
+	tr_typing_env     : JSIL_Memory_Model.typing_environment; 
+	tr_typing_env_aux : JSIL_Memory_Model.typing_environment;
+	tr_typeof_fun     : FuncDecl.func_decl;
+	tr_slen_fun       : FuncDecl.func_decl;
+	tr_num2str_fun    : FuncDecl.func_decl;
+	tr_str2num_fun    : FuncDecl.func_decl;
+	tr_num2int_fun    : FuncDecl.func_decl;
+	tr_snth_fun       : FuncDecl.func_decl;
+  tr_list_sort      : Sort.sort; 
+  tr_list_nil       : FuncDecl.func_decl;
+	tr_list_is_nil    : FuncDecl.func_decl;  
+	tr_list_cons      : FuncDecl.func_decl;
+	tr_list_is_cons   : FuncDecl.func_decl;  
+	tr_list_head      : FuncDecl.func_decl; 
+	tr_list_tail      : FuncDecl.func_decl; 
+	tr_axioms         : Expr.expr list
+	(* tr_existentials   : string list *)
+}
+
+let get_sort tr_ctx var_type = 
+	let ctx = tr_ctx.z3_ctx in 
+	match var_type with 
+	| None                                           -> Arithmetic.Integer.mk_sort ctx                                    
+	| Some t when (List.mem t types_encoded_as_ints) -> Arithmetic.Integer.mk_sort ctx
+	| Some NumberType                                -> Arithmetic.Real.mk_sort ctx 
+	| Some ListType                                  -> tr_ctx.tr_list_sort
+	| _  -> raise (Failure "Z3 encoding: Unsupported type.")
+
+
+let get_z3_var_symbol tr_ctx var = Symbol.mk_string (tr_ctx.z3_ctx) var
+
+let get_sorts tr_ctx vars = 
+	let gamma = tr_ctx.tr_typing_env in 
+	List.map (fun x -> let var_type = JSIL_Memory_Model.gamma_get_type gamma x in get_sort tr_ctx var_type) vars
+
+let get_z3_vars tr_ctx vars =
+	List.map (fun x -> get_z3_var_symbol tr_ctx x) vars
+	
+
+let encode_quantifier quantifier_type ctx quantified_vars var_sorts assertion = 
+	if ((List.length quantified_vars) > 0) then 
+		(let quantified_assertion = 
+			Quantifier.mk_quantifier 
+				ctx
+				quantifier_type
+				(List.map2 (fun v s -> Expr.mk_const_s ctx v s) quantified_vars var_sorts)
+				assertion
+				None 
+				[]
+				[]
+				None 
+				None in 
+		let quantifier_str = Quantifier.to_string quantified_assertion in 
+		(* Printf.printf "Quantified Assertion: %s\n" quantifier_str; *)
+		let quantified_assertion = Quantifier.expr_of_quantifier quantified_assertion in
+		let quantified_assertion = Expr.simplify quantified_assertion None in
+		quantified_assertion)
+	else assertion	
+
+
+(* exists x. (typeof(x) == JSIL_Type) : for every JSIL type*)
+let mk_typeof_axioms ctx z3_typeof_fun z3_typeof_fun_domain = 
+	let loop_fun jsil_type = 
+		(match jsil_type with 
+		| UndefinedType | NullType | EmptyType | NoneType -> 
+			let x = "x" in
+			let le_x = Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx x) in 
+			let le1 = (Expr.mk_app ctx z3_typeof_fun [ le_x ]) in 
+			let le2 = encode_type ctx jsil_type in 
+			let typeof_assertion = Boolean.mk_eq ctx le1 le2 in
+			let z3_typeof_axiom = encode_quantifier false ctx [ x ] z3_typeof_fun_domain typeof_assertion in
+			z3_typeof_axiom  
+		| _ -> 
+			let x = "x" in
+			let y = "y" in 
+			let le_x = Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx x) in
+			let le_y = Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx y) in
+			let le11 = (Expr.mk_app ctx z3_typeof_fun [ le_x ]) in 
+			let le12 =  encode_type ctx jsil_type in  
+			let le21 = (Expr.mk_app ctx z3_typeof_fun [ le_y ]) in 
+			let le22=  encode_type ctx jsil_type in  
+			let typeof_assertion1 = Boolean.mk_eq ctx le11 le12 in
+			let typeof_assertion2 = Boolean.mk_eq ctx le21 le22 in
+			let typeof_assertion3 = Boolean.mk_not ctx (Boolean.mk_eq ctx le_x le_y) in 
+			let typeof_assertion = Boolean.mk_and ctx [ typeof_assertion1; typeof_assertion2; typeof_assertion3 ] in
+			let type_of_domain = List.nth z3_typeof_fun_domain 0 in  
+			let z3_typeof_axiom = encode_quantifier false ctx [ x; y ] [ type_of_domain; type_of_domain ] typeof_assertion in
+			z3_typeof_axiom) in  
+	List.map loop_fun [ UndefinedType; NullType; EmptyType; NoneType; BooleanType; IntType; NumberType; StringType; ObjectType; ListType; TypeType] 
+		 	
+		
+let mk_smt_translation_ctx gamma existentials = 
+	let cfg = [("model", "true"); ("proof", "false")] in
+	let ctx = (mk_context cfg) in
+
+	let z3_typeof_fun_name = (Symbol.mk_string ctx "typeof") in
+	let z3_typeof_fun_domain = [ Arithmetic.Integer.mk_sort ctx ] in
+	let z3_typeof_fun = FuncDecl.mk_func_decl ctx z3_typeof_fun_name z3_typeof_fun_domain (Arithmetic.Integer.mk_sort ctx) in 
+	let z3_typeof_axioms = mk_typeof_axioms ctx z3_typeof_fun z3_typeof_fun_domain in 
+	
+	let z3_slen_name = (Symbol.mk_string ctx "s-len") in
+	let z3_slen_fun_domain = [ Arithmetic.Integer.mk_sort ctx ] in
+	let z3_slen_fun = FuncDecl.mk_func_decl ctx z3_slen_name z3_slen_fun_domain (Arithmetic.Integer.mk_sort ctx) in 
+	
+	(* forall x. slen(x) >= 0 *)
+	let x = "x" in 
+	let le_x = Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx x) in 
+	let le1 = (Expr.mk_app ctx z3_slen_fun [ le_x ]) in 
+	let le2 = (Arithmetic.Integer.mk_numeral_i ctx 0) in 
+	let slen_assertion = Arithmetic.mk_ge ctx le1 le2 in 
+	let z3_slen_axiom = encode_quantifier true ctx [ x ] z3_slen_fun_domain slen_assertion in
+	
+	let z3_num2str_name = (Symbol.mk_string ctx "num2str") in
+	let z3_num2str_fun_domain = [ Arithmetic.Integer.mk_sort ctx ] in
+	let z3_num2str_fun = FuncDecl.mk_func_decl ctx z3_num2str_name z3_num2str_fun_domain (Arithmetic.Integer.mk_sort ctx) in 
+
+	let z3_str2num_name = (Symbol.mk_string ctx "str2num") in
+	let z3_str2num_fun_domain = [ Arithmetic.Integer.mk_sort ctx ] in
+	let z3_str2num_fun = FuncDecl.mk_func_decl ctx z3_str2num_name z3_str2num_fun_domain (Arithmetic.Integer.mk_sort ctx) in 
+	
+	let z3_num2int_name = (Symbol.mk_string ctx "num2int") in
+	let z3_num2int_fun_domain = [ Arithmetic.Integer.mk_sort ctx ] in
+	let z3_num2int_fun = FuncDecl.mk_func_decl ctx z3_num2int_name z3_num2int_fun_domain (Arithmetic.Integer.mk_sort ctx) in 
+
+	let z3_snth_name = (Symbol.mk_string ctx "snth") in
+	let z3_snth_fun_domain = [ Arithmetic.Integer.mk_sort ctx; Arithmetic.Integer.mk_sort ctx ] in
+	let z3_snth_fun = FuncDecl.mk_func_decl ctx z3_snth_name z3_snth_fun_domain (Arithmetic.Integer.mk_sort ctx) in 		
+												
+	let z3_list_sort_name = (Symbol.mk_string ctx "tr_list") in
+	let list_sort = Z3List.mk_sort ctx z3_list_sort_name (Arithmetic.Integer.mk_sort ctx) in 
+	
+	let list_nil     = Z3List.get_nil_decl     list_sort in 
+	let list_is_nil  = Z3List.get_is_nil_decl  list_sort in 
+	let list_cons    = Z3List.get_cons_decl    list_sort in 
+	let list_is_cons = Z3List.get_is_cons_decl list_sort in 
+	let list_head    = Z3List.get_head_decl    list_sort in 
+	let list_tail    = Z3List.get_tail_decl    list_sort in 
+	
+	{
+		z3_ctx            = ctx;
+		tr_typing_env     = gamma; 
+		tr_typing_env_aux = JSIL_Memory_Model.mk_gamma (); 
+		tr_typeof_fun     = z3_typeof_fun;
+		tr_slen_fun       = z3_slen_fun; 
+		tr_num2str_fun    = z3_num2str_fun;
+		tr_str2num_fun    = z3_str2num_fun;
+		tr_num2int_fun    = z3_num2int_fun; 
+		tr_snth_fun       = z3_snth_fun; 
+  	tr_list_sort      = list_sort; 
+ 		tr_list_nil       = list_nil; 
+		tr_list_is_nil    = list_is_nil;
+		tr_list_cons      = list_cons;
+		tr_list_is_cons   = list_is_cons;  
+		tr_list_head      = list_head; 
+		tr_list_tail      = list_tail;
+		tr_axioms         = [ z3_slen_axiom ]
+		(* tr_existentials   = existentials *)
+	}
+
+
+let mk_z3_list les tr_ctx = 
+	let empty_list = Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_list_nil [ ] in
+	let rec loop les cur_list = 
+		match les with 
+		| [] -> cur_list 
+		| le :: rest_les -> 
+			let new_cur_list = Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_list_cons [ le; cur_list ] in
+			loop rest_les new_cur_list in 
+	loop les empty_list
 
 
 (** Encode JSIL constants as Z3 numerical constants *)
@@ -161,37 +291,44 @@ let encode_binop tr_ctx op le1 le2 =
 	| Times         -> (Arithmetic.mk_mul ctx [ le1; le2 ])
 	| Div           -> (Arithmetic.mk_div ctx le1 le2)
 	| Mod           -> (Arithmetic.Integer.mk_mod ctx le1 le2)
-	| LstCons       -> 
-		(* Printf.printf "I am going to BURST\nBURST. le1: %s. le2: %s. \n" (Expr.to_string le1) (Expr.to_string le2); *)
-		(Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_list_cons [ le1; le2 ]) 
+	| LstCons       -> (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_list_cons [ le1; le2 ])
 	| _     -> 
 		let msg = Printf.sprintf "SMT encoding: Construct not supported yet - binop - %s!" (JSIL_Print.string_of_binop op) in 
 		raise (Failure msg)
 
 (** Encode JSIL unary operators *)
-let encode_unop ctx op le = 
+let encode_unop tr_ctx op le = 
+	let ctx = tr_ctx.z3_ctx in 
 	match op with 
 	| UnaryMinus -> (Arithmetic.mk_unary_minus ctx le)
+	| StrLen     -> (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_slen_fun [ le ])
+	| ToStringOp -> (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_num2str_fun [ le ])
+	| ToNumberOp -> (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_str2num_fun [ le ])
+	| ToIntOp    -> (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_num2int_fun [ le ])
 	| _          -> 
 		let msg = Printf.sprintf "SMT encoding: Construct not supported yet - unop - %s!" (JSIL_Print.string_of_unop op) in 
 		raise (Failure msg)
 		
-let get_z3_var_symbol tr_ctx var = Symbol.mk_string (tr_ctx.z3_ctx) var
-		
-	
+
 let get_z3_var_and_type tr_ctx var = 
 	let ctx = tr_ctx.z3_ctx in 
 	let gamma = tr_ctx.tr_typing_env in 
 	let var_type = JSIL_Memory_Model.gamma_get_type gamma var in 
+	let var_type_aux = JSIL_Memory_Model.gamma_get_type (tr_ctx.tr_typing_env_aux) var in
 	let le, te = 
-		(match var_type with 
-		  | None            -> 
-				                   let le = (Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx var)) in 
-		    								   le, (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ le ])
-		  | Some t when (List.mem t types_encoded_as_ints)  
-			                  -> (Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx var)),       (encode_type ctx t)  
-			| Some ListType   -> (Expr.mk_const ctx (Symbol.mk_string ctx var) tr_ctx.tr_list_sort), (encode_type ctx ListType) 
-			| Some NumberType -> (Arithmetic.Real.mk_const ctx (Symbol.mk_string ctx var)),          (encode_type ctx NumberType) 
+		(match var_type, var_type_aux with 
+		  | None, None -> 
+				let le = (Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx var)) in 
+		    le, (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ le ])
+		  | Some t, _
+			| None, Some t when (List.mem t types_encoded_as_ints) -> 
+				(Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx var)), (encode_type ctx t)  
+			| Some ListType, _ 
+			| _, Some ListType -> 
+				(Expr.mk_const ctx (Symbol.mk_string ctx var) tr_ctx.tr_list_sort), (encode_type ctx ListType) 
+			| Some NumberType, _ 
+			| _, Some NumberType ->
+				(Arithmetic.Real.mk_const ctx (Symbol.mk_string ctx var)), (encode_type ctx NumberType) 
 			| _               -> raise (Failure "z3 variable encoding: fatal error")) in
 	le, te 
 
@@ -227,7 +364,7 @@ let rec encode_logical_expression tr_ctx e =
 		
 	| LUnOp (op, le)        -> 
 		let le, te, as1 = ele le in 
-		let le = encode_unop ctx op le in 
+		let le = encode_unop tr_ctx op le in 
 		le, te, as1
 	
 	| LEList les            -> 
@@ -238,22 +375,133 @@ let rec encode_logical_expression tr_ctx e =
 				([], [], [])
 				les_tes_as in   
 		let le_list = mk_z3_list les tr_ctx in 
-		le_list,  (encode_type ctx ListType), assertions
-						
-	| _                     -> raise (Failure "Failure - z3 encoding: Unsupported logical expression"))
+		le_list, (encode_type ctx ListType), assertions
+	
+	| LStrNth (str, index) ->
+		let le_str, te_str, as_str = ele str in 
+		let le_index, te_index, as_index = ele index in
+		let le_len_str = (Expr.mk_app ctx tr_ctx.tr_slen_fun [ le_str ]) in 
+	 	let constraint_string_type   = Boolean.mk_eq ctx te_str (encode_type ctx StringType) in
+		let constraint_index_type    = Boolean.mk_eq ctx te_index (encode_type ctx IntType) in
+		let constraint_valid_index_1 = Arithmetic.mk_lt ctx te_index le_len_str in 
+		let constraint_valid_index_2 = Arithmetic.mk_ge ctx te_index (Arithmetic.Integer.mk_numeral_i ctx 0) in 
+		let assertions = as_str @ as_index @ [ constraint_string_type; constraint_index_type; constraint_valid_index_1; constraint_valid_index_2 ] in 
+		let le_snth = (Expr.mk_app ctx tr_ctx.tr_snth_fun [ le_str; le_index ]) in 
+		le_snth, (encode_type ctx StringType), assertions 				
+																
+	| _                     -> 
+		let msg = Printf.sprintf "Failure - z3 encoding: Unsupported logical expression: %s" 
+			(JSIL_Print.string_of_logic_expression e false) in 
+		raise (Failure msg))
 
 
-let rec encode_pure_formula tr_ctx a =
+let get_solver tr_ctx existentials left_as right_as_or = 
+	
+		 (* Printf.printf "Left ass:\n";
+			List.iter (fun x -> Printf.printf "\n%s\n" (Expr.to_string x)) left_as;
+			Printf.printf "\nRight ass:\n";
+			Printf.printf "\n%s\n\n" (Expr.to_string right_as_or); *)
+	
+		(*
+			Printf.printf "The assertion to check is:\n";
+			Printf.printf "\n%s\n\n" (Expr.to_string target_assertion);*)
+		(* Printf.printf "----- Creating the solver -----\n\n"; *)
+		
+	let right_as_or = 
+		if ((List.length existentials) > 0) 
+			then encode_quantifier true tr_ctx.z3_ctx existentials (get_sorts tr_ctx existentials) right_as_or
+			else right_as_or in 
+
+	(* Printf.printf "The thingies IMMEDIATELY BEFORE THE SOLVER:\n";
+		 List.iter
+			(fun expr -> Printf.printf "\n%s\n" (Expr.to_string expr))
+			(left_as @ [ right_as_or ]); 
+		 Printf.printf "\nDone printing\n"; *)
+			
+	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
+	Solver.add solver (left_as @ [ right_as_or ]);
+	solver
+
+
+(* right_as must be satisfiable *)
+let rec check_entailment existentials left_as right_as gamma =
+	(* Printf.printf "------------------------------\n    Entering entailment\n\n"; *)
+	let cfg = [("model", "true"); ("proof", "false")] in
+	
+	let tr_ctx = mk_smt_translation_ctx gamma existentials in 
+	let ctx = tr_ctx.z3_ctx in
+	
+	
+	let ret_right = check_satisfiability right_as gamma existentials in 
+	if (not (ret_right)) then false 
+	else 	
+		begin 
+		try 
+		(* check if left_as => right_as *)
+		let right_as = List.map 
+				(fun a -> 
+					(* Printf.printf "I am about to encode a pure formula inside the check_entailment: %s\n" (JSIL_Print.string_of_logic_assertion a false); *)  
+					let a = encode_pure_formula tr_ctx a in
+					(* Printf.printf "Z3 Expression: %s\n" (Expr.to_string a); 
+					Printf.printf "I encoded a pure formula successfully\n"; *)
+					Boolean.mk_not ctx a)
+				right_as in 
+		let right_as_or = 
+			if ((List.length right_as) > 1) then 
+					(Boolean.mk_or ctx right_as) 
+				else if ((List.length right_as) = 1) then
+					(List.nth right_as 0) 
+				else Boolean.mk_false ctx in 
+		
+		let left_as = 
+			List.map 
+				(fun a -> encode_pure_formula tr_ctx a)
+				left_as in 
+		let left_as = tr_ctx.tr_axioms @ left_as in 
+		
+		 
+		(* 
+		 Printf.printf "\nThe existentials are: ";
+		List.iter (fun x -> Printf.printf "%s " x) existentials;
+		Printf.printf "\n\n"; *)
+		
+		(* SOMETHING HAPPENS HERE! *)
+		let solver = get_solver tr_ctx existentials left_as right_as_or in 
+	
+		let ret = (Solver.check solver []) != Solver.SATISFIABLE in 
+		
+		(* 
+		 if (not ret) then 
+			begin
+				let model = Solver.get_model solver in 
+		
+			(match model with 
+				| Some model -> 
+					let str_model = Model.to_string model in 
+					Printf.printf "I found the model: \n\n%s\n\n" str_model
+				| None -> 
+					Printf.printf "No model filha\n"); 
+			Printf.printf "ret: %s\n" (string_of_bool ret); 
+			end; *)
+		Gc.full_major (); 
+		Solver.reset solver; 
+		(* Printf.printf "Check_entailment. Result %b\n" ret; *)
+		(* Printf.printf "\n    Exiting entailment\n------------------------------\n\n"; *)
+		ret
+		with _ -> false
+		end
+and 
+encode_pure_formula tr_ctx a =
 	let f = encode_pure_formula tr_ctx in
 	let fe = encode_logical_expression tr_ctx in
 	let ctx = tr_ctx.z3_ctx in 
 	let gamma = tr_ctx.tr_typing_env in 
 	match a with
-	| LNot a             -> Boolean.mk_not ctx (f a)
+	| LNot a             -> Boolean.mk_not ctx (encode_pure_formula tr_ctx a)
 	
 	| LEq (le1, le2)     ->
-		let t1, _ = JSIL_Logic_Normalise.normalised_is_typable gamma le1 in 
-		let t2, _ = JSIL_Logic_Normalise.normalised_is_typable gamma le2 in
+		let t1, _ = normalised_is_typable gamma None le1 in 
+		let t2, _ = normalised_is_typable gamma None le2 in		
 		let le1, te1, as1 = fe le1 in 
 		let le2, te2, as2 = fe le2 in
 		(match t1, t2 with 
@@ -261,7 +509,6 @@ let rec encode_pure_formula tr_ctx a =
 			if (t1 = t2)  
 				then Boolean.mk_eq ctx le2 le1
 				else Boolean.mk_false ctx
-					
 		| _, _ ->
 		  (* Printf.printf "I AM THERE!!!!!. gamma: %s\n" (JSIL_Memory_Print.string_of_gamma gamma);
 			Printf.printf "Type hazard. le1: %s. le2: %s\n" (Expr.to_string le1) (Expr.to_string le2); *)
@@ -270,8 +517,8 @@ let rec encode_pure_formula tr_ctx a =
 			Boolean.mk_and ctx ([ cur_as1; cur_as2 ] @ as1 @ as2))
 	
 	| LLess (le1', le2')   -> 
-		let t1, _ = JSIL_Logic_Normalise.normalised_is_typable gamma le1' in 
-		let t2, _ = JSIL_Logic_Normalise.normalised_is_typable gamma le2' in
+		let t1, _ = normalised_is_typable gamma None le1' in 
+		let t2, _ = normalised_is_typable gamma None le2' in
 		let le1, te1, as1 = fe le1' in 
 		let le2, te2, as2 = fe le2' in 
 		(match t1, t2 with 
@@ -298,20 +545,24 @@ let rec encode_pure_formula tr_ctx a =
 	| LTrue              -> Boolean.mk_true ctx
 	
 	| LFalse             -> Boolean.mk_false ctx
+	
+	| LOr (a1, a2)       -> Boolean.mk_or ctx [ (f a1); (f a2) ] 
+	
+	| LAnd (a1, a2)      -> Boolean.mk_and ctx [ (f a1); (f a2) ]
 
 	| _                  -> 
 		let msg = Printf.sprintf "Unsupported assertion to encode for Z3: %s" (JSIL_Print.string_of_logic_assertion a false) in 
 		raise (Failure msg)
-
-
-let check_satisfiability assertions gamma existentials = 
+and
+check_satisfiability assertions gamma existentials = 
 	let tr_ctx = mk_smt_translation_ctx gamma existentials in 	
+	try 
 	let assertions = 
 		List.map 
 			(fun a -> 
 				(* Printf.printf "I am about to check the satisfiablity of: %s\n" (JSIL_Print.string_of_logic_assertion a false); *)
 				let a = encode_pure_formula tr_ctx a in 
-				(* Printf.printf "Z3 Expression: %s\n" (Expr.to_string a); *)
+				(* Printf.printf "Z3 Expression: %s\n" (Expr.to_string a); *) 
 				a)
 			assertions in 
 	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
@@ -321,135 +572,363 @@ let check_satisfiability assertions gamma existentials =
 	Solver.reset solver;
 	(* Printf.printf "Check_satisfiability. Result %b" ret; *)
 	ret
-
-
-let get_sort tr_ctx var_type = 
-	let ctx = tr_ctx.z3_ctx in 
-	match var_type with 
-	| None                                           -> Arithmetic.Integer.mk_sort ctx                                    
-	| Some t when (List.mem t types_encoded_as_ints) -> Arithmetic.Integer.mk_sort ctx
-	| Some NumberType                                -> Arithmetic.Real.mk_sort ctx 
-	| Some ListType                                  -> tr_ctx.tr_list_sort
-	| _  -> raise (Failure "Z3 encoding: Unsupported type.")
-
-
-let get_sorts tr_ctx vars = 
-	let gamma = tr_ctx.tr_typing_env in 
-	List.map (fun x -> let var_type = JSIL_Memory_Model.gamma_get_type gamma x in get_sort tr_ctx var_type) vars
-
-let get_z3_vars tr_ctx vars =
-	List.map (fun x -> get_z3_var_symbol tr_ctx x) vars
+	with _ -> false
+and
+normalised_is_typable gamma (pf : JSIL_Memory_Model.pure_formulae option) nlexpr =
+	let f = normalised_is_typable gamma pf in
+	(* Printf.printf "nlexpr: %s\n\n\n" (JSIL_Print.string_of_logic_expression nlexpr false); *)
+	(match nlexpr with
+	(* Literals are always typable *)
+  | LLit lit -> (Some (evaluate_type_of lit), true)
 	
+	(* Variables are typable if in gamma, otherwise no no *)
+	| LVar var 
+	| PVar var -> (try ((Some (Hashtbl.find gamma var), true)) with _ -> (None, false))
+  
+	(* Abstract locations are always typable, by construction *)
+  | ALoc _ -> (Some ObjectType, true)
 
-let encode_quantifier tr_ctx quantified_vars assertion = 
-	if ((List.length quantified_vars) > 0) then 
-		(let quantified_assertion = 
-			let sorts = get_sorts tr_ctx quantified_vars in
-			let ctx = tr_ctx.z3_ctx in
-			Quantifier.mk_quantifier 
-				ctx
+  (* If what we're trying to type is typable, we should get a type back.
+	   What happens when the type is none, but we know it's typable? *)
+	| LTypeOf le -> 
+		let tle, itle = f le in
+		if (itle) then (Some TypeType, true) else (None, false)
+	
+	(* If we have 'base' in a normalised expression, this means that
+	   the expression we're trying to base is not a reference. It could
+		 either be a variable or something non-normalisable further. 
+		 If it is a variable that has a reference type, we signal that 
+		 it is typable, but we can't recover the type of the base *)
+	| LBase le ->
+		(match le with
+		| LVar var
+		| PVar var ->
+			let tvar, itvar = (try ((Some (Hashtbl.find gamma var), true)) with _ -> (None, false)) in
+			if (itvar) then
+					(match tvar with
+					| Some VariableReferenceType
+					| Some ObjectReferenceType
+					| Some ReferenceType -> (None, true)
+					| _ -> (None, false))
+				else
+					(None, false))
+
+	(* If we have 'field' in a normalised expression, this means that
+	   the expression we're trying to field is not a reference. It could
+		 either be a variable or something non-normalisable further. If it 
+		 is a variable that has a string type, we signal that it is typable *)
+	| LField le -> 
+		(match le with
+		| LVar var
+		| PVar var ->
+			let tvar, itvar = (try ((Some (Hashtbl.find gamma var), true)) with _ -> (None, false)) in
+			if (itvar) then
+					(match tvar with
+					| Some StringType -> (Some StringType, true)
+					| _ -> (None, false))
+				else
+					(None, false))
+
+  (* I don't quite understand what happens here when (None, true).
+	   LEVRef (E, LBase(y)), where x is a reference whose base
+		 has type String but whose type is lost? *)
+  | LEVRef (be, fe) ->
+		let (bt, ibt) = f be in
+		let (ft, ift) = f fe in
+		if (ibt && ift) then
+			(match ft with
+			| Some StringType ->
+				(match bt with
+				| Some ObjectType
+				| Some NumberType
+				| Some StringType
+				| Some BooleanType
+				| Some UndefinedType -> (Some VariableReferenceType, true)
+				| _ -> (None, false))
+			| _ -> (None, false))
+			else
+				(None, false) 
+		
+	(* Same as LEVRef *)
+  | LEORef (be, fe) ->
+		let (bt, ibt) = f be in
+		let (ft, ift) = f fe in
+		if (ibt && ift) then
+			(match ft with
+			| Some StringType ->
+				(match bt with
+				| Some ObjectType
+				| Some NumberType
+				| Some StringType
+				| Some BooleanType
+				| Some UndefinedType -> (Some ObjectReferenceType, true)
+				| _ -> (None, false))
+			| _ -> (None, false))
+			else
+				(None, false) 
+
+  (* LEList *)
+	| LEList le ->
+		let all_typable = 
+			(List.fold_left
+				(fun ac elem ->
+					let (_, ite) = f elem in
+						ac && ite)
 				true
-				(List.map2 (fun v s -> Expr.mk_const_s ctx v s) quantified_vars sorts)
-				assertion
-				None 
-				[]
-				[]
-				None 
-				None in 
-		let quantifier_str = Quantifier.to_string quantified_assertion in 
-		let quantified_assertion = Quantifier.expr_of_quantifier quantified_assertion in
-		let quantified_assertion = Expr.simplify quantified_assertion None in
-		quantified_assertion)
-	else assertion	
+				le) in
+			if (all_typable) then 
+				(Some ListType, true)
+			else
+				(None, false)
 
+  | LUnOp (unop, e) ->
+		let (te, ite) = f e in
+		let tt t1 t2 =
+			(match te with 
+			| Some te -> 
+				if (types_leq te t1) 
+					then (Some t2, true)
+					else (None, false)
+			| None -> (None, false)) in
+		(* Printf.printf "UNOP\n\n\n"; *)
+		if (ite) then
+  		(match unop with
+  		| Not -> tt BooleanType BooleanType
+  		| UnaryMinus
+  		| BitwiseNot
+      | M_sgn
+      | M_abs
+      | M_acos
+      | M_asin
+      | M_atan
+      | M_ceil
+      | M_cos
+      | M_exp
+      | M_floor
+      | M_log
+      | M_round
+      | M_sin
+      | M_sqrt
+      | M_tan  -> tt NumberType NumberType
+  		| ToIntOp
+      | ToUint16Op
+      | ToInt32Op
+      | ToUint32Op -> tt NumberType IntType
+  		| ToStringOp -> tt NumberType StringType
+  		| ToNumberOp -> tt StringType NumberType
+      | IsPrimitive -> (Some BooleanType, true)
+      | Cdr
+      | Car -> (None, false)
+  		| LstLen -> tt ListType IntType
+			| StrLen -> tt StringType IntType) (* CHECK *)
+		else
+			(None, false)
 	
-let get_solver tr_ctx existentials left_as right_as_or = 
+	| LBinOp (e1, op, e2) -> 
+		let all_types = [ UndefinedType; NullType; EmptyType; BooleanType; IntType; NumberType; StringType; ObjectType; ReferenceType; ObjectReferenceType; VariableReferenceType; ListType; TypeType ] in 
+		let (te1, ite1) = f e1 in
+		let (te2, ite2) = f e2 in
+		let check_valid_type t types ret_type = 
+			let is_t_in_types = List.exists (fun t_arg -> (t = t_arg)) types in 
+			if (is_t_in_types) then (Some ret_type, true) else (None, false) in 
+		(match te1, te2 with 
+		| (Some t1), (Some t2) ->
+			let t = types_lub t1 t2 in 
+			(*(match t with 
+			| Some t -> Printf.printf  "I am typing a binop on values of type %s\n" (JSIL_Print.string_of_type t)
+			| None -> Printf.printf "I am typing a binop on values of types that cannot be combined");*)
+			(match op, t with 
+			| Equal, (Some t) -> check_valid_type t all_types BooleanType
+			| LessThan, (Some t) 
+			| LessThanEqual, (Some t) -> check_valid_type t [ IntType; NumberType ] BooleanType
+			| LessThanString, (Some t) -> check_valid_type t [ StringType ] BooleanType
+			| Plus, (Some t) 
+			| Minus, (Some t)
+			| Times, (Some t)
+			| Mod, (Some t) -> check_valid_type t [ IntType; NumberType ] t
+			| Div, (Some t) -> check_valid_type t [ IntType; NumberType ] NumberType
+			| And, (Some t) 
+			| Or, (Some t) -> check_valid_type t [ BooleanType ] BooleanType
+			| BitwiseAnd, (Some t) 
+			| BitwiseOr, (Some t)
+			| BitwiseXor, (Some t) 
+			| LeftShift, (Some t)
+			| SignedRightShift, (Some t) 
+			| UnsignedRightShift, (Some t)
+			| M_atan2, (Some t) -> check_valid_type t [ IntType; NumberType ] NumberType
+			| M_pow, (Some t) -> check_valid_type t [ IntType; NumberType ] t
+			| Subtype, (Some t) -> check_valid_type t all_types BooleanType
+			| LstCons, _ -> check_valid_type t2 [ ListType ] ListType
+			| LstCat, (Some t) -> check_valid_type t [ ListType ] ListType
+			| StrCat, (Some t) -> check_valid_type t [ StringType ] StringType
+			| _, Some t -> 
+				Printf.printf "op: %s, t: %s"  (JSIL_Print.string_of_binop op) (JSIL_Print.string_of_type t); 
+				raise (Failure "ERROR")
+		 	| _, None -> 
+				Printf.printf "op: %s, t: none"  (JSIL_Print.string_of_binop op) ; 
+				raise (Failure "ERROR"))
+		| _, _ -> (None, false))
+
+	| LLstNth (_, _) -> (None, false) 
 	
-		(* Printf.printf "There are existentials.\n\n";
-			Printf.printf "Left ass:\n";
-			List.iter (fun x -> Printf.printf "\n%s\n" (Expr.to_string x)) left_as;
-			Printf.printf "\nRight ass:\n";
-			Printf.printf "\n%s\n\n" (Expr.to_string right_as_or); *)
+	| LStrNth (str, index) -> 
+		let (type_str, _) = f str in
+		let (type_index, _) = f index in
+		(match (type_str, type_index, pf) with 
+		| Some StringType, Some IntType, Some pf ->
+			let asrt1 = (LNot (LLess (index, LLit (Integer 0)))) in 
+			let asrt2 = (LLess (index, LUnOp (StrLen, str))) in  
+			if (check_entailment [] (JSIL_Memory_Model.pfs_to_list pf) [ asrt1; asrt2 ] gamma) 
+				then (Some StringType, true) 
+				else (None, false) 
+		| _, _, _ -> (None, false))
+
+	| LNone    -> (Some NoneType, true)
+  | LUnknown -> (None, false))
+
+
+let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
+	let f = reverse_type_lexpr_aux gamma new_gamma in
+	(* Printf.printf "le: %s\n\n\n" (JSIL_Print.string_of_logic_expression le false); *)
+	(match le with
+	(* Literals are always typable *)
+  | LLit lit -> if ((evaluate_type_of lit) = le_type) then true else false
 	
-		(*
-			Printf.printf "The assertion to check is:\n";
-			Printf.printf "\n%s\n\n" (Expr.to_string target_assertion);*)
-		(* Printf.printf "----- Creating the solver -----\n\n"; *)
-		
-	let right_as_or = 
-		if ((List.length existentials) > 0) 
-			then encode_quantifier tr_ctx existentials right_as_or
-			else right_as_or in 
+	(* Variables are reverse-typable if they are already typable *)
+	(* with the target type or if they are not typable           *)
+	| LVar var 
+	| PVar var -> 
+		(match (JSIL_Memory_Model.gamma_get_type gamma var), (JSIL_Memory_Model.gamma_get_type new_gamma var) with 
+		| Some t, None  
+		| None, Some t -> if (t = le_type) then true else false
+		| None, None -> (JSIL_Memory_Model.update_gamma new_gamma var (Some le_type)); true
+		| Some t1, Some t2 -> if (t1 = t2) then true else false)
 			
-	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
-	Solver.add solver (left_as @ [ right_as_or ]);
-	solver
+	(* Abstract locations are reverse-typable if the target type is ObjectType *)
+	| ALoc _ -> if (le_type = ObjectType) then true else false
 
+  (* typeof/base/field are not reverse typable because we lose type information *)
+	| LTypeOf _  
+	| LBase _  
+	| LField _ 
+  | LEVRef (_, _)  
+  | LEORef (_, _) 
+	| LEList _ -> false
 
-(* right_as must be satisfiable *)
-let check_entailment existentials left_as right_as gamma =
-	(* Printf.printf "------------------------------\n    Entering entailment\n\n";*)
-	let cfg = [("model", "true"); ("proof", "false")] in
-	
-	let tr_ctx = mk_smt_translation_ctx gamma existentials in 
-	let ctx = tr_ctx.z3_ctx in
-	
-	
-	let ret_right = check_satisfiability right_as gamma existentials in 
-	if (not (ret_right)) then false 
-	else 	
-		begin 
-	
-		(* check if left_as => right_as *)
-		let right_as = List.map 
-				(fun a -> 
-					(* Printf.printf "I am about to encode a pure formula inside the check_entailment: %s\n" (JSIL_Print.string_of_logic_assertion a false); *)
-					let a = encode_pure_formula tr_ctx a in
-					(* Printf.printf "Z3 Expression: %s\n" (Expr.to_string a); 
-					Printf.printf "I encoded a pure formula successfully\n"; *)
-					Boolean.mk_not ctx a)
-				right_as in 
-		let right_as_or = 
-			if ((List.length right_as) > 1) then 
-					(Boolean.mk_or ctx right_as) 
-				else if ((List.length right_as) = 1) then
-					(List.nth right_as 0) 
-				else Boolean.mk_false ctx in 
+  | LUnOp (unop, le) ->
+		(* Printf.printf "UNOP\n\n\n"; *)
+		(match unop with
+  	| Not -> 
+			if (le_type = BooleanType) 
+				then f le BooleanType
+				else false 
 		
-		let left_as = 
-			List.map 
-				(fun a -> encode_pure_formula tr_ctx a)
-				left_as in 
+		| UnaryMinus -> 
+			if (List.mem le_type [ NumberType; IntType ]) 
+				then f le le_type
+				else false
+				
+  	| BitwiseNot
+    | M_sgn
+    | M_abs
+    | M_acos
+    | M_asin
+    | M_atan
+    | M_ceil
+    | M_cos
+    | M_exp
+    | M_floor
+    | M_log
+    | M_round
+    | M_sin
+    | M_sqrt
+    | M_tan 
+  	| ToIntOp
+    | ToUint16Op
+    | ToInt32Op
+    | ToUint32Op ->
+			if (le_type = NumberType) 
+				then f le le_type
+				else false 
+		
+		| ToStringOp -> false 
+			
+		| ToNumberOp -> 
+			if (le_type = StringType) 
+				then f le NumberType
+				else false 
+			
+	  | IsPrimitive -> false 
+    
+		| Cdr
+    | Car  
+		| LstLen -> f le ListType
+		
+		| StrLen -> f le StringType)
+	
+	
+	| LBinOp (le1, op, le2) -> 
+		(match op with 
+		| Equal  
+		| LessThan
+		| LessThanEqual -> false 
+		| LessThanString -> (f le1 StringType) && (f le2 StringType)
+		
+		| Plus
+		| Minus
+		| Times
+		| Mod -> 
+			if ((le_type = NumberType) || (le_type = IntType))
+				then ((f le1 le_type) && (f le2 le_type))
+				else false
+		
+		| Div -> false
+		
+		| And
+		| Or -> 
+			if (le_type = BooleanType) 
+				then ((f le1 BooleanType) && (f le2 BooleanType))
+				else false
+		
+		| BitwiseAnd
+		| BitwiseOr
+		| BitwiseXor 
+		| LeftShift
+		| SignedRightShift 
+		| UnsignedRightShift
+		| M_atan2
+		| M_pow 
+		| Subtype
+		| LstCons -> false
+		
+		| LstCat -> 
+			if (le_type = ListType) 
+				then ((f le1 ListType) && (f le2 ListType))
+				else false
+		
+		| StrCat -> 
+			if (le_type = StringType) 
+				then ((f le1 StringType) && (f le2 StringType))
+				else false 
+			
+		| _ -> 
+			Printf.printf "op: %s, t: %s"  (JSIL_Print.string_of_binop op) (JSIL_Print.string_of_type le_type); 
+			raise (Failure "ERROR"))
+
+	| LLstNth (le1, le2) -> (f le1 ListType) && (f le2 IntType)
 		 
-		(* Printf.printf "The thingies prior to existentials are:\n";
-		 List.iter
-			(fun expr -> Printf.printf "\n%s\n" (Expr.to_string expr))
-			(left_as @ [ right_as_or ]); 
-		 Printf.printf "\nDone printing\n"; *)
-		
-		(* Printf.printf "\nThe existentials are: ";
-		List.iter (fun x -> Printf.printf "%s " x) existentials;
-		Printf.printf "\n\n";*)
-		
-		(* SOMETHING HAPPENS HERE! *)
-		let solver = get_solver tr_ctx existentials left_as right_as_or in 
-	
-		let ret = (Solver.check solver []) != Solver.SATISFIABLE in 
-		
-		if (not ret) then 
-			begin
-				let model = Solver.get_model solver in 
-		(match model with 
-			| Some model -> 
-				let str_model = Model.to_string model in 
-				Printf.printf "I found the model: \n\n%s\n\n" str_model
-			| None -> 
-				Printf.printf "No model filha\n");
-		(* Printf.printf "ret: %s\n" (string_of_bool ret); *)
-		end;
-		Gc.full_major (); 
-		Solver.reset solver; 
-		Printf.printf "Check_entailment. Result %b\n" ret; 
-		(* Printf.printf "\n    Exiting entailment\n------------------------------\n\n"; *)
-		ret
-		end 
+	| LStrNth (le1, le2) -> (f le1 StringType) && (f le2 IntType)
+
+	| LNone    -> (NoneType = le_type) 
+  | LUnknown -> false)
+
+
+let reverse_type_lexpr gamma le le_type : JSIL_Memory_Model.typing_environment option =
+	let new_gamma : JSIL_Memory_Model.typing_environment = JSIL_Memory_Model.mk_gamma () in 
+	let ret = reverse_type_lexpr_aux gamma new_gamma le le_type in 
+	if (ret) 
+		then Some new_gamma 
+		else None
+
+
+ 

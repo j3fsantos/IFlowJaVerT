@@ -223,15 +223,15 @@ type jsil_return_flag =
 
 (* JSIL procedure specification *)
 type jsil_single_spec = {
-	pre : jsil_logic_assertion;
-	post : jsil_logic_assertion;
+	pre      : jsil_logic_assertion;
+	post     : jsil_logic_assertion;
 	ret_flag : jsil_return_flag
 }
 
 type jsil_spec = {
-	spec_name : string;
-	spec_params : jsil_var list;
-	proc_specs : jsil_single_spec list
+	spec_name    : string;
+	spec_params  : jsil_var list;
+	proc_specs   : jsil_single_spec list
 }
 
 (* JSIL logic commands *)
@@ -242,22 +242,22 @@ type jsil_logic_command =
 (* JSIL command metadata *)
 type jsil_metadata = {
 	line_offset : int option;
-	pre_cond : jsil_logic_assertion option;
-	logic_cmds : jsil_logic_command list;
+	pre_cond    : jsil_logic_assertion option;
+	logic_cmds  : jsil_logic_command list;
 }
 
 let empty_metadata = { line_offset = None; pre_cond = None; logic_cmds = [] }
 
 (* JSIL procedures *)
 type jsil_procedure = {
-    proc_name : string;
-    proc_body : (jsil_metadata * jsil_cmd) array;
-    proc_params : jsil_var list; 
-		ret_label: int option; 
-		ret_var: jsil_var option;
-		error_label: int option; 
-		error_var: jsil_var option;
-		spec: jsil_spec option;
+    proc_name    : string;
+    proc_body    : (jsil_metadata * jsil_cmd) array;
+    proc_params  : jsil_var list; 
+		ret_label    : int option; 
+		ret_var      : jsil_var option;
+		error_label  : int option; 
+		error_var    : jsil_var option;
+		spec         : jsil_spec option;
 }
 
 (* JSIL Program = Name : String --> Procedure *)

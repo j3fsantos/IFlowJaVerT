@@ -452,12 +452,7 @@ let evaluate_binop op lit1 lit2 =
 		| _, _ -> raise (Failure (Printf.sprintf "Mathematical function called with %s %s instead of numbers." (JSIL_Print.string_of_literal lit1 false) (JSIL_Print.string_of_literal lit2 false))))
 	| Subtype -> 
 		(match lit1, lit2 with 
-		| Type t1, Type t2 -> 
-			(match t1, t2  with 
-			| ObjectReferenceType, ReferenceType -> Bool true 
-			| VariableReferenceType, ReferenceType -> Bool true 
-			| x, y when x == y -> Bool true
-			| _, _ -> Bool false)
+		| Type t1, Type t2 -> (Bool (types_leq t1 t2))
 		| _, _ -> raise (Failure "Non-type argument to Subtype")) 
 	| LstCons ->
 		(match lit2 with

@@ -36,6 +36,7 @@ let process_file path =
 	let norm_preds = Logic_Predicates.normalise ext_prog.predicates in
 	let prog, which_pred = JSIL_Utils.prog_of_ext_prog path ext_prog in 
 	let spec_tbl = JSIL_Logic_Normalise.build_spec_tbl norm_preds prog in 
+	Printf.printf "I computed the spec table!!!\n";
 	let results, dot_graphs = JSIL_Symb_Interpreter.sym_run_procs spec_tbl prog which_pred norm_preds in 
 	Printf.printf "RESULTS\n%s" results;
 	register_dot_graphs dot_graphs;

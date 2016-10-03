@@ -26,7 +26,7 @@ let replace_head_literals (pred : jsil_logic_predicate) =
 			match cur_param with
 			| LLit _ | LNone -> (* If the parameter is a JSIL literal or None... *)
 			  (* Get a fresh program variable and add a constraint to each definition *)
-				let new_pvar = JSIL_Logic_Utils.fresh_pvar () in
+				let new_pvar = JSIL_Memory_Model.fresh_pvar () in
 				let new_assertions =
 					List.map
 						(fun prev_ass -> LStar (prev_ass, LEq (PVar new_pvar, cur_param)))
@@ -62,6 +62,7 @@ let unify_list_pvars l1 l2 =
 		l1 l2;
 	subst
 
+
 (* Replaces the logic_expressions in asrt that have a substitute in the hashtable subst *)
 let apply_substitution subst asrt =
 	JSIL_Logic_Utils.assertion_map 
@@ -70,6 +71,7 @@ let apply_substitution subst asrt =
 	      (Hashtbl.find subst lexpr, false)
 	    with Not_found -> (lexpr, true))
 	  asrt
+
 
 (* Join two normalised_predicate defining different cases of the same predicate in a single
    normalised_predicate
