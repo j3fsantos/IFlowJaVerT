@@ -216,23 +216,23 @@ let rec string_of_logic_assertion a escape_string =
 	let sle = fun e -> string_of_logic_expression e escape_string in
 	match a with
 		(* a1 /\ a2 *)
-		| LAnd (a1, a2) -> Printf.sprintf "%s /\\ %s" (sla a1) (sla a2)
+		| LAnd (a1, a2) -> Printf.sprintf "(%s /\\ %s)" (sla a1) (sla a2)
 		(* a1 \/ a2 *)
-		| LOr (a1, a2) -> Printf.sprintf "%s \\/ %s" (sla a1) (sla a2)
+		| LOr (a1, a2) -> Printf.sprintf "(%s \\/ %s)" (sla a1) (sla a2)
 		(* ! a *)
-		| LNot a -> Printf.sprintf "! %s" (sla a)
+		| LNot a -> Printf.sprintf "(! %s)" (sla a)
 		(* true *)
 		| LTrue -> "true"
 		(* false *)
 		| LFalse -> "false"
 		(* e1 == e2 *)
-		| LEq (e1, e2) -> Printf.sprintf "%s == %s" (sle e1) (sle e2)
+		| LEq (e1, e2) -> Printf.sprintf "(%s == %s)" (sle e1) (sle e2)
 		(* e1 << e2 *)
-		| LLess (e1, e2) -> Printf.sprintf "%s <# %s" (sle e1) (sle e2)
+		| LLess (e1, e2) -> Printf.sprintf "(%s <# %s)" (sle e1) (sle e2)
 		(* e1 <<= e2 *)
-		| LLessEq (e1, e2) -> Printf.sprintf "%s <=# %s" (sle e1) (sle e2)
+		| LLessEq (e1, e2) -> Printf.sprintf "(%s <=# %s)" (sle e1) (sle e2)
 		(* e1 <<s e2 *)
-		| LStrLess (e1, e2) -> Printf.sprintf "%s <s# %s" (sle e1) (sle e2)
+		| LStrLess (e1, e2) -> Printf.sprintf "(%s <s# %s)" (sle e1) (sle e2)
 		(* a1 * a2 *)
 		| LStar (a1, a2) -> Printf.sprintf "%s * %s" (sla a1) (sla a2)
 		(* (e1, e2) -> e3 *)
@@ -602,4 +602,8 @@ let string_of_logic_command lcmd escape_string =
 	match lcmd with 
 	| Fold a    -> "fold(" ^ (string_of_logic_assertion a escape_string) ^ ")"
 	| Unfold a  -> "unfold(" ^ (string_of_logic_assertion a escape_string) ^ ")"
+
+
+let string_of_var_list var_lst = 
+	List.fold_left (fun ac v -> if (ac = "") then v else (ac ^ ", " ^ v)) "" var_lst 
  

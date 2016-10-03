@@ -1,12 +1,59 @@
 pred interval (x, a, b) : 
 	((a <=# b) * (a <=# x) * (x <=# b) * types(x: $$int_type, a: $$int_type, b: $$int_type));
 
-spec interval_addition (x, a, b)
-   [[ interval(x, a, b) * (a == #a) * (b == #b) * types (#a: $$int_type, #b: $$int_type, #c: $$int_type, #d: $$int_type) ]]
-   [[ (#c == (#a + 1)) * (#d == (#b + 1)) * interval(ret, #c, #d) * types (#a: $$int_type, #b: $$int_type, #c: $$int_type, #d: $$int_type) ]]
+
+(** Expected result: YES                                                                 **)
+spec interval_addition1 (x, a, b)
+   [[ interval(x, a, b) * types (a: $$int_type, b: $$int_type, x: $$int_type) ]]
+   [[ interval(ret, a + 1, b + 1) * types (a: $$int_type, b: $$int_type, ret: $$int_type) ]]
    normal
-proc interval_addition (x, a, b) {
+proc interval_addition1 (x, a, b) {
 			x := x + 1;
+   rlab:	skip
+} 
+with 
+{ 
+	ret: x, rlab; 
+};
+
+
+(** Expected result: YES                                                                  **)
+spec interval_multiplication1 (x, a, b)
+   [[ interval(x, a, b) * types (a: $$int_type, b: $$int_type, x: $$int_type) ]]
+   [[ interval(ret, a*4, b*4) * types (a: $$int_type, b: $$int_type, ret: $$int_type) ]]
+   normal
+proc interval_multiplication1 (x, a, b) {
+			x := x*4;
+   rlab:	skip
+} 
+with 
+{ 
+	ret: x, rlab; 
+};
+
+
+(** Expected result: NO                                                                  **)
+spec interval_multiplication2 (x, a, b)
+   [[ interval(x, a, b) * types (a: $$int_type, b: $$int_type, x: $$int_type) ]]
+   [[ interval(ret, a*4, b*6) * types (a: $$int_type, b: $$int_type, ret: $$int_type) ]]
+   normal
+proc interval_multiplication2 (x, a, b) {
+			x := x*4;
+   rlab:	skip
+} 
+with 
+{ 
+	ret: x, rlab; 
+};
+
+
+(** Expected result: YES                                                                  **)
+spec interval_multiplication2 (x, a, b)
+   [[ interval(x, a, b) * (0 <=# a) * types (a: $$int_type, b: $$int_type, x: $$int_type) ]]
+   [[ interval(ret, a*4, b*6) * types (a: $$int_type, b: $$int_type, ret: $$int_type) ]]
+   normal
+proc interval_multiplication2 (x, a, b) {
+			x := x*4;
    rlab:	skip
 } 
 with 

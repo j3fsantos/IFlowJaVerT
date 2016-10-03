@@ -92,10 +92,24 @@ let string_of_shallow_symb_state symb_state =
 	let str_preds = "Preds: " ^ (string_of_preds preds true) ^ "\n" in  
 	str_heap ^ str_store ^ str_p_formulae ^ str_gamma ^ str_preds
 
+
+let string_of_symb_state_list symb_states = 
+	let ret_str, _ = 
+		List.fold_left 
+			(fun (ac_str, index) post -> 
+				let cur_str = string_of_shallow_symb_state post in 
+				let cur_str = ("Post " ^ (string_of_int index) ^ ": " ^ cur_str ^ ";\n") in 
+				if (ac_str = "") 
+					then (cur_str, (index + 1))
+					else ((ac_str ^ cur_str), (index + 1)))
+			("", 0) 
+			symb_states in 
+	ret_str
+
 let string_of_single_spec s_spec = 
 	let ret_flag = s_spec.n_ret_flag in 
 	let pre_str = string_of_shallow_symb_state s_spec.n_pre in 
-	let post_str = string_of_shallow_symb_state s_spec.n_post in 
+	let post_str = string_of_symb_state_list s_spec.n_post in 
 	let ret_flag_str = 
 		(match ret_flag with 
 		| Normal -> "normal"

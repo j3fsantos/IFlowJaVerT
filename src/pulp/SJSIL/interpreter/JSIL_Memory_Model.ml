@@ -1,5 +1,38 @@
 open JSIL_Syntax
-open JSIL_Logic_Utils
+
+let small_tbl_size = 31
+
+
+let fresh_sth (name : string) : (unit -> string) =
+  let counter = ref 0 in
+  let rec f () =
+    let v = name ^ (string_of_int !counter) in
+    counter := !counter + 1;
+    v
+  in f
+  
+
+let abs_loc_prefix = "_$l_"
+let lvar_prefix = "_lvar_"
+let pvar_prefix = "_pvar_"
+
+let fresh_aloc = fresh_sth abs_loc_prefix 
+let fresh_lvar = fresh_sth lvar_prefix 
+let fresh_pvar = fresh_sth pvar_prefix 
+
+let is_abs_loc_name (name : string) : bool = 
+	if ((String.length name) < 4)
+		then false
+		else ((String.sub name 0 4) = abs_loc_prefix)
+
+let is_lvar_name (name : string) : bool = 
+	((String.sub name 0 1) = "#") || (((String.length name) > 6) && ((String.sub name 0 6) = lvar_prefix))
+	 
+
+let is_pvar_name (name : string) : bool = 
+	(not ((is_abs_loc_name name) || (is_lvar_name name)))
+
+
 
 (* SJSIL Heaps *)
  module SHeap = Hashtbl.Make(
@@ -27,10 +60,10 @@ type symbolic_state     = symbolic_heap * symbolic_store * pure_formulae * typin
 
 type jsil_n_single_spec = {
 	  n_pre         : symbolic_state; 
-		n_post        : symbolic_state; 
+		n_post        : symbolic_state list; 
 		n_ret_flag    : jsil_return_flag; 
 		n_lvars       : string list; 
-		n_post_lvars  : string list;
+		n_post_lvars  : string list list;
 		n_subst       : substitution
 }
 
@@ -42,6 +75,19 @@ type jsil_n_spec = {
 
 type specification_table = (string, jsil_n_spec) Hashtbl.t
 
+
+(* Gamma functions *) 
+
+let extend_gamma gamma new_gamma = 
+	Hashtbl.iter 
+		(fun v t -> 
+			if (not (Hashtbl.mem gamma v)) 
+				then Hashtbl.add gamma v t)
+		new_gamma
+
+let mk_gamma () = Hashtbl.create small_tbl_size
+
+let mk_empty_gamma () = Hashtbl.create 1 
 
 let get_heap symb_state = 
 	let heap, _, _, _, _ = symb_state in 
@@ -85,6 +131,16 @@ let copy_gamma gamma =
 	let new_gamma = Hashtbl.copy gamma in 
 	new_gamma
 
+let filter_gamma gamma vars = 
+	let new_gamma = Hashtbl.create small_tbl_size in 
+	Hashtbl.iter
+		(fun v v_type -> 
+			(if (List.mem v vars) then 
+				Hashtbl.replace new_gamma v v_type))
+		gamma; 
+	new_gamma
+	
+	
 let copy_store store = 
 	let new_store = Hashtbl.copy store in
 	new_store
@@ -100,7 +156,7 @@ let copy_symb_state symb_state =
 
 let copy_single_spec s_spec = 
 	let copy_pre  = copy_symb_state s_spec.n_pre in 
-	let copy_post = copy_symb_state s_spec.n_post in 
+	let copy_post = List.map copy_symb_state s_spec.n_post in 
 	{
 		n_pre        = copy_pre; 
 		n_post       = s_spec.n_post; 
@@ -110,8 +166,23 @@ let copy_single_spec s_spec =
 		n_subst      = s_spec.n_subst
 	}
 
-let extend_pf pf new_pf = 
-	DynArray.append (DynArray.of_list new_pf) pf
+let extend_pf pfs pfs_to_add =
+	
+	let is_pf_fresh pf_to_add = 
+		(DynArray.fold_left 
+			(fun ac pf -> (ac && (not (pf = pf_to_add))))
+			true 
+			pfs) in 
+			
+	let rec loop pfs_to_add fresh_pfs_to_add = 
+		match pfs_to_add with 
+		| [] -> fresh_pfs_to_add 
+		| pf_to_add :: rest_pfs_to_add -> 
+			if (is_pf_fresh pf_to_add) 
+				then loop rest_pfs_to_add (pf_to_add :: fresh_pfs_to_add) 
+				else loop rest_pfs_to_add fresh_pfs_to_add in 
+	
+	DynArray.append (DynArray.of_list (loop pfs_to_add [])) pfs
 
 let pfs_to_list pfs = DynArray.to_list pfs 
 
@@ -157,24 +228,70 @@ type search_info_node = {
 }
 
 type symbolic_execution_search_info = {
-	vis_tbl    		: (int, int) Hashtbl.t;
-	cur_node_info :	search_info_node; 
-	info_nodes 		: (int, search_info_node) Hashtbl.t; 
-	info_edges    : (int, int list) Hashtbl.t; 
-	next_node     : int ref
+	vis_tbl    		      : (int, int) Hashtbl.t;
+	cur_node_info       :	search_info_node; 
+	info_nodes 		      : (int, search_info_node) Hashtbl.t; 
+	info_edges          : (int, int list) Hashtbl.t; 
+	next_node           : int ref; 
+	post_prunning_info  : (string, (bool array) list) Hashtbl.t; 
+	spec_number         : int
 } 
 
-let make_symb_exe_search_info node_info = 
+
+let init_post_prunning_info () = Hashtbl.create small_tbl_size
+
+
+let update_post_prunning_info_with_spec prunning_info n_spec =	
+	let spec_post_prunning_info = 		
+		List.map 
+			(fun spec -> 
+				let number_of_posts = List.length spec.n_post in 
+				Array.make number_of_posts false) 
+			n_spec.n_proc_specs in 
+	Hashtbl.replace prunning_info n_spec.n_spec_name spec_post_prunning_info
+
+
+let activate_post_in_post_prunning_info symb_exe_info proc_name post_number = 
+	try
+		let post_prunning_info_array_list = 
+			Hashtbl.find (symb_exe_info.post_prunning_info) proc_name in 
+		let post_prunning_info_array = List.nth post_prunning_info_array_list (symb_exe_info.spec_number) in 
+		post_prunning_info_array.(post_number) <- true
+	with Not_found -> ()
+
+
+let filter_useless_posts_in_single_spec	spec prunning_array = 
+	let rec loop posts i processed_posts = 
+		(match posts with 
+		| [] -> processed_posts 
+		| post :: rest_posts -> 
+			if (prunning_array.(i)) 
+				then loop rest_posts (i + 1) (post :: processed_posts) 
+				else loop rest_posts (i + 1) processed_posts) in
+	let useful_posts = loop spec.n_post 0 [] in 
+	{ spec with n_post = useful_posts }
+									
+
+let filter_useless_posts_in_multiple_specs proc_name specs prunning_info = 
+	try 
+		let prunning_info = Hashtbl.find prunning_info proc_name in 
+		let new_specs = List.map2 filter_useless_posts_in_single_spec specs prunning_info in 
+		new_specs 
+	with Not_found -> specs
+
+let make_symb_exe_search_info node_info post_prunning_info spec_number = 
 	if (not (node_info.node_number = 0)) then 
 		raise (Failure "the node number of the first node must be 0")
 	else begin 
 		let new_search_info = 
 			{	
-				vis_tbl       = Hashtbl.create 31; 
-				cur_node_info = node_info; 
-				info_nodes    = Hashtbl.create 31; 
-				info_edges    = Hashtbl.create 31; 
-				next_node     = ref 1	
+				vis_tbl             = Hashtbl.create small_tbl_size; 
+				cur_node_info       = node_info; 
+				info_nodes          = Hashtbl.create small_tbl_size; 
+				info_edges          = Hashtbl.create small_tbl_size; 
+				next_node           = ref 1; 
+				post_prunning_info  = post_prunning_info; 
+				spec_number         = spec_number
 			} in 
 		Hashtbl.replace new_search_info.info_edges 0 []; 
 		Hashtbl.replace new_search_info.info_nodes 0 node_info; 
@@ -197,12 +314,22 @@ let update_gamma (gamma : typing_environment) x te =
 	| None -> Hashtbl.remove gamma x
 	| Some te -> Hashtbl.replace gamma x te)
 
+let weak_update_gamma (gamma : typing_environment) x te = 
+	(match te with 
+	| None -> ()
+	| Some te -> Hashtbl.replace gamma x te)
 
 let update_abs_store store x ne = 
 	(* Printf.printf "I am in the update store\n"; 
 	let str_store = "\t Store: " ^ (JSIL_Memory_Print.string_of_shallow_symb_store store) ^ "\n" in 
 	Printf.printf "%s" str_store;  *)
 	Hashtbl.replace store x ne
+
+
+let store_get_var_val store x = 
+	try 
+		Some (Hashtbl.find store x)
+	with Not_found -> None
 
 
 let extend_abs_store x store gamma = 
@@ -226,7 +353,7 @@ let pf_of_store store subst =
 		store 
 		[]
 		
-		
+				
 let pf_of_substitution subst = 
 	Hashtbl.fold
 		(fun var le pfs -> 
@@ -235,3 +362,5 @@ let pf_of_substitution subst =
 				else pfs)
 		subst 
 		[]
+
+
