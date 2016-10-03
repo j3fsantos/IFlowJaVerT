@@ -680,12 +680,12 @@ let normalise_predicate_definitions pred_defs : (string, JSIL_Memory_Model.n_jsi
 										let normalised_as = List.filter
 											(fun symb_state -> Entailment_Engine.check_satisfiability (get_pf_list symb_state) (get_gamma symb_state) []) 
 											normalised_as in
-										List.iter 
+										(* List.iter 
 											(fun symb_state ->
-												Printf.printf "One valid unfolding of %s is:\n%s\n"
+												 Printf.printf "One valid unfolding of %s is:\n%s\n"
 													pred_name 
 													(JSIL_Memory_Print.string_of_shallow_symb_state symb_state))
-											normalised_as;       
+											normalised_as;     *)  
 										normalised_as)
 							pred.definitions in
 					let n_definitions = List.concat n_definitions in

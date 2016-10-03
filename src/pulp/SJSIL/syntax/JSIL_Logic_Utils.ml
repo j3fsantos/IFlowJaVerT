@@ -525,7 +525,9 @@ let init_substitution2 vars les =
 	loop vars les; 
 	subst
 
-		
+
+
+
 (**
  subst1 after subst2    
 **)
@@ -544,6 +546,12 @@ let copy_substitution subst = Hashtbl.copy subst
 let extend_subst subst var v = 
 	Hashtbl.replace subst var v
 
+
+let extend_substitution subst vars les = 
+	List.iter2 
+		(fun v le -> Hashtbl.replace subst v le)
+		vars 
+		les
 
 
 let filter_vars vars ignore_vars : string list = 

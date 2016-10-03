@@ -131,12 +131,16 @@ let copy_gamma gamma =
 	let new_gamma = Hashtbl.copy gamma in 
 	new_gamma
 
-let filter_gamma gamma vars = 
+let filter_gamma gamma vars subst = 
 	let new_gamma = Hashtbl.create small_tbl_size in 
 	Hashtbl.iter
 		(fun v v_type -> 
 			(if (List.mem v vars) then 
-				Hashtbl.replace new_gamma v v_type))
+				try 
+					match (Hashtbl.find subst v) with 
+					| LVar new_v -> Hashtbl.replace new_gamma new_v v_type
+					| _ -> ()
+				with Not_found -> ()))
 		gamma; 
 	new_gamma
 	
