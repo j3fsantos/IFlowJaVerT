@@ -548,7 +548,7 @@ let normalise_assertion a =
 	init_symb_store_alocs store gamma subst a;
 	let p_formulae = init_pure_assignments a store gamma subst in
 	fill_store_with_gamma store gamma subst;
-	extend_typing_env_using_assertion_info ((list_of_pf p_formulae) @ (pf_of_store2 store)) gamma; 
+	extend_typing_env_using_assertion_info ((pfs_to_list p_formulae) @ (pf_of_store2 store)) gamma; 
 	compute_symb_heap heap store p_formulae gamma subst a;
 	let preds = init_preds a store gamma subst in
 	(heap, store, p_formulae, gamma, preds), subst

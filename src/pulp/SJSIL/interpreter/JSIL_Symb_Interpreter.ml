@@ -884,7 +884,7 @@ let unify_symb_states lvars existentials pat_symb_state (symb_state : symbolic_s
 				if ((List.length pat_pf_existentials) > 0)
 					then (
 						let new_gamma = copy_gamma gamma in
-						let new_pat_gamma = filter_gamma pat_gamma pat_pf_existentials s_new_subst in
+						let new_pat_gamma = filter_gamma_with_subst pat_gamma pat_pf_existentials s_new_subst in
 						extend_gamma new_gamma new_pat_gamma;
 						new_gamma)
 				else gamma in
