@@ -488,7 +488,7 @@ let rec check_entailment existentials left_as right_as gamma =
 		(* Printf.printf "Check_entailment. Result %b\n" ret; *)
 		(* Printf.printf "\n    Exiting entailment\n------------------------------\n\n"; *)
 		ret
-		with _ -> false
+		with Failure msg -> (* Printf.printf "Esta merda explodiuuuu: %s\n" msg;*) false
 		end
 and 
 encode_pure_formula tr_ctx a =
