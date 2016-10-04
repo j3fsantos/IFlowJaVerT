@@ -1,0 +1,10 @@
+(** Tested feature: field assignment 1               **)
+(** Expected result: YES                             **)
+spec test0 (x)
+   [[ (x == #x) * types(x: $$int_type) ]]
+   [[ (ret == (#x + 1)) ]]
+   normal
+proc test0 (x) {
+  		   x := x + 1;
+   rlab:   skip
+} with { ret: x, rlab; };
