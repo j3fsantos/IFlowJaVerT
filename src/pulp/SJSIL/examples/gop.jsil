@@ -1,3 +1,7 @@
+(* ******************
+   *** PREDICATES ***
+   ****************** *)
+
 (* Internal properties *)
 pred isInternalProperty (prop) :
   (0 <# s-len prop) * (s-nth (prop, 0) == "@") * types (prop : $$string_type);
@@ -31,6 +35,10 @@ pred Cell_o (l, prop, None) :
   isObjectLocation(l) * isNamedProperty(prop) * ((l, prop) -> None);
 pred Cell_o (l, prop, d) :
   isObjectLocation(l) * isNamedProperty(prop) * isDescriptor(d) * ((l, prop) -> d);
+
+(* *************************
+   *** O__GETOWNPROPERTY ***
+   ************************* *)
 
 spec o__getOwnProperty (l, prop)
   [[ Cell_o (l, prop, None) ]]
@@ -68,3 +76,7 @@ with
     ret: 	xret, rlab;
 		err:	xret, elab;
 };
+
+(* *******************
+   *** GETPROPERTY ***
+   ******************* *)
