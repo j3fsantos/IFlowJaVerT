@@ -48,11 +48,11 @@ with
 
 
 (** Expected result: YES                                                                  **)
-spec interval_multiplication2 (x, a, b)
+spec interval_multiplication3 (x, a, b)
    [[ interval(x, a, b) * (0 <=# a) * types (a: $$int_type, b: $$int_type, x: $$int_type) ]]
    [[ interval(ret, a*4, b*6) * types (a: $$int_type, b: $$int_type, ret: $$int_type) ]]
    normal
-proc interval_multiplication2 (x, a, b) {
+proc interval_multiplication3 (x, a, b) {
 			x := x*4;
    rlab:	skip
 } 

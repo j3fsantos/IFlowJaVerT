@@ -865,10 +865,14 @@ let unify_symb_states lvars existentials pat_symb_state (symb_state : symbolic_s
 				(List.map
 					(fun a -> assertion_substitution a s_new_subst true)
 					(pfs_to_list pat_pf)) in
+
+			(* Printf.printf "pat_pf_list: %s\n" (JSIL_Print.str_of_assertion_list pat_pf_list);*)
 			extend_pf pf new_pfs;
 			let pf_list = pfs_to_list pf in
 			let pat_pf_existentials = get_subtraction_vars pat_pf_list pf_list false in
 			let new_pat_pf_existentials = (List.map (fun v -> fresh_lvar ()) pat_pf_existentials) in
+
+			let existential_substitution = init_substitution2 pat_pf_existentials (List.map (fun v -> LVar v) new_pat_pf_existentials) in
 
 			extend_substitution s_new_subst pat_pf_existentials (List.map (fun v -> LVar v) new_pat_pf_existentials);
 
@@ -884,16 +888,16 @@ let unify_symb_states lvars existentials pat_symb_state (symb_state : symbolic_s
 						new_gamma)
 				else gamma in
 
-			let pat_pf_list = List.map (fun a -> assertion_substitution a s_new_subst true) pat_pf_list in
-			let pf_discharges = List.map (fun a -> assertion_substitution a s_new_subst true) pf_discharges in
-
+			let pat_pf_list = List.map (fun a -> assertion_substitution a existential_substitution true) pat_pf_list in
+			let pf_discharges = List.map (fun a -> assertion_substitution a existential_substitution true) pf_discharges in
+			
 			let existentials_str = print_var_list existentials in
 			(* Printf.printf "Dicharges: %s\n" (JSIL_Print.str_of_assertion_list pf_discharges);
 			Printf.printf "About to check if (%s) ENTAILS (Exists %s. (%s))\n" (JSIL_Print.str_of_assertion_list pf_list) existentials_str (JSIL_Print.str_of_assertion_list (pat_pf_list @ pf_discharges));  *)
 			let unify_gamma_check = (unify_gamma pat_gamma new_gamma pat_store s_new_subst existentials) in
 			let entailment_check_ret = Entailment_Engine.check_entailment existentials pf_list (pat_pf_list @ pf_discharges)  new_gamma in
 			(if (entailment_check_ret & unify_gamma_check) then
-					((* Printf.printf "I could check the entailment!!!\n"; *)
+					( (* Printf.printf "I could check the entailment!!!\n"; *)
 					Some (quotient_heap, quotient_preds, s_new_subst, pf_discharges, true))
 				else
 					((* Printf.printf "I could NOT check the entailment!!!\n";
@@ -1737,5 +1741,11 @@ let sym_run_procs spec_table prog which_pred pred_defs =
 			ac_results @ results)
 		spec_table
 		[] in
+	let complete_success =
+		List.fold_left
+			(fun ac (_, _, _, partial_success, _, _) ->
+				if (ac && partial_success) then true else false)
+			true
+			results in
 	let results_str, dot_graphs = JSIL_Memory_Print.string_of_symb_exe_results results in
-	results_str, dot_graphs
+	results_str, dot_graphs, complete_success
