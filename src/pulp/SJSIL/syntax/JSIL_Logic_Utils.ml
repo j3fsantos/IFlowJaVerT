@@ -207,7 +207,7 @@ let get_list_of_assertions_vars_list assertions catch_pvars =
 		[]
 		
 
-let get_subtraction_vars assertions_left assertions_right catch_pvars = 
+let get_subtraction_vars_old assertions_left assertions_right catch_pvars = 
 	let assertion_left_vars_list = get_list_of_assertions_vars_list assertions_left catch_pvars in 
 	let assertion_right_vars_tbl = get_list_of_assertions_vars_tbl assertions_right catch_pvars in 
 	
@@ -219,6 +219,15 @@ let get_subtraction_vars assertions_left assertions_right catch_pvars =
 			assertion_left_vars_list in 
 	assertion_left_vars_list 
 	
+
+let get_subtraction_vars assertions subst = 
+	let vars_list = get_list_of_assertions_vars_list assertions false in 
+	let new_vars_list =
+		List.filter 
+			(fun x -> not (Hashtbl.mem subst x)) 
+			vars_list in 
+	new_vars_list 
+
 
 let get_expr_vars_lst le catch_p_vars =
 	let vars_tbl = Hashtbl.create small_tbl_size in
