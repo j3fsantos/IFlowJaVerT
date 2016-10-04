@@ -347,6 +347,8 @@ let extend_abs_store x store gamma =
 	new_l_var
 
 
+let list_of_pf pf = DynArray.to_list pf 
+
 let pf_of_store store subst = 
 	Hashtbl.fold
 		(fun var le pfs -> 
@@ -356,7 +358,12 @@ let pf_of_store store subst =
 			with _ -> pfs)
 		store 
 		[]
-		
+
+let pf_of_store2 store = 
+	Hashtbl.fold
+		(fun var le pfs -> ((LEq (PVar var, le)) :: pfs))
+		store 
+		[]
 				
 let pf_of_substitution subst = 
 	Hashtbl.fold

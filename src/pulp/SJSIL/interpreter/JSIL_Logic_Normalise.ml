@@ -519,6 +519,25 @@ let fill_store_with_gamma store gamma subst =
 						Hashtbl.add subst var (LVar new_l_var))
 		gamma
 
+let extend_typing_env_using_assertion_info a_list gamma = 
+	let rec loop a_list =
+		match a_list with 
+		| [] -> ()
+		| (LEq (LVar x, le)) :: rest_a_list 
+		| (LEq (le, LVar x)) :: rest_a_list 
+		| (LEq (PVar x, le)) :: rest_a_list
+		| (LEq (le, PVar x)) :: rest_a_list -> 
+			let x_type = gamma_get_type gamma x in 
+			(match x_type with 
+			| None -> 
+				let le_type, _ = Entailment_Engine.normalised_is_typable gamma None le in 
+				weak_update_gamma gamma x le_type 
+			| Some _ -> ());
+			loop rest_a_list
+		| _ :: rest_a_list -> loop rest_a_list in 
+	loop a_list
+
+
 let normalise_assertion a =
 	let heap = LHeap.create 101 in
 	let store = Hashtbl.create 101 in
@@ -529,6 +548,7 @@ let normalise_assertion a =
 	init_symb_store_alocs store gamma subst a;
 	let p_formulae = init_pure_assignments a store gamma subst in
 	fill_store_with_gamma store gamma subst;
+	extend_typing_env_using_assertion_info ((list_of_pf p_formulae) @ (pf_of_store2 store)) gamma; 
 	compute_symb_heap heap store p_formulae gamma subst a;
 	let preds = init_preds a store gamma subst in
 	(heap, store, p_formulae, gamma, preds), subst
@@ -555,21 +575,6 @@ let normalise_postcondition a subst (lvars : string list) : symbolic_state * (st
 	symb_state, a_vars
 
 
-let extend_typing_env_using_assertion_info a_list gamma = 
-	let rec loop a_list =
-		match a_list with 
-		| [] -> ()
-		| (LEq (LVar x, le)) :: rest_a_list 
-		| (LEq (le, LVar x)) :: rest_a_list -> 
-			let x_type = gamma_get_type gamma x in 
-			(match x_type with 
-			| None -> 
-				let le_type, _ = Entailment_Engine.normalised_is_typable gamma None le in 
-				weak_update_gamma gamma x le_type 
-			| Some _ -> ());
-			loop rest_a_list
-		| _ :: rest_a_list -> loop rest_a_list in 
-	loop a_list
 
 let normalise_single_spec preds spec =
 	
