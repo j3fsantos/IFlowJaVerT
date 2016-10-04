@@ -42,15 +42,14 @@ pred IsStringIndex(S, prop, i) :
 
 (* String cell stuff *)
 pred Cell_s (l, prop, 0, None) :
-     isNamedProperty(prop) * Cell_o (l, prop, None) *
+     Cell_o (l, prop, None) *
      ((l, "@primitiveValue") -> #S) * (#i == num_to_int (string_to_num prop)) *
      (! IsStringIndex(#S, prop, #i));
-pred Cell_s (l, prop, "SI", v) :
-     isNamedProperty(prop) * Cell_o (l, prop, None) *
+pred Cell_s (l, prop, "isStringIndex", v) :
+     Cell_o (l, prop, None) *
      ((l, "@primitiveValue") -> #S) * (#i == num_to_int (string_to_num prop)) *
      IsStringIndex(#S, prop, #i) * (v == s-nth(#S, #i)) * types(v : $$string_type);
-pred Cell_s (l, prop, "NSI", v) :
-     isNamedProperty(prop) *
+pred Cell_s (l, prop, "isntStringIndex", v) :
 	 Cell_o (l, prop, v) * (! (v == None));
 
 (* *******************
@@ -225,11 +224,11 @@ spec s__getOwnProperty (l, prop)
     [[ Cell_s (l, prop, 0, None) * (ret == $$undefined) ]]
    	normal;
    	(* Same comment as in o__getOwnProperty applies *)
-   	[[ Cell_s (l, prop, "SI", #u) ]]
-   	[[ Cell_s (l, prop, "SI", #u) * (ret == {{ "d", #u, $$f, $$t, $$f }}) * types(ret : $$list_type) ]]
+   	[[ Cell_s (l, prop, "isStringIndex", #u) ]]
+   	[[ Cell_s (l, prop, "isStringIndex", #u) * (ret == {{ "d", #u, $$f, $$t, $$f }}) * isDataDescriptor(ret) ]]
    	normal;
-   	[[ Cell_s (l, prop, "NSI", #u) ]]
-   	[[ Cell_s (l, prop, "NSI", #u) * (ret == #u) * types(#u : $$list_type) ]]
+   	[[ Cell_s (l, prop, "isntStringIndex", #u) ]]
+   	[[ Cell_s (l, prop, "isntStringIndex", #u) * (ret == #u) * types(#u : $$list_type) ]]
    	normal
 
 proc s__getOwnProperty (l, prop) {
