@@ -38,7 +38,7 @@ let procedure_table = Hashtbl.create 100
 %token SQRT2
 (* Literals *)
 %token UNDEFINED
-%token NULL 
+%token NULL
 %token EMPTY
 %token TRUE
 %token FALSE
@@ -150,8 +150,8 @@ let procedure_table = Hashtbl.create 100
 %token LLESSTHANEQUAL
 %token LLESSTHANSTRING
 %token LARROW
-%token LEMP 
-(*%token LEXISTS 
+%token LEMP
+(*%token LEXISTS
 %token LFORALL *)
 %token LTYPES
 (* Logic predicates *)
@@ -215,8 +215,10 @@ let procedure_table = Hashtbl.create 100
 (***** Types and entry points *****)
 %type <JSIL_Syntax.jsil_ext_program> main_target
 %type <string list> param_list_FC_target
+%type <JSIL_Syntax.jsil_logic_predicate list * JSIL_Syntax.jsil_spec list> pred_spec_target
 %start main_target
 %start param_list_FC_target
+%start pred_spec_target
 %%
 
 (********* JSIL *********)
@@ -235,7 +237,7 @@ declaration_target:
 	| proc_target { }
 ;
 
-import_target: 
+import_target:
   IMPORT; imports = separated_nonempty_list(COMMA, VAR); SCOLON { imports }
 ;
 
@@ -248,12 +250,12 @@ proc_target:
 	{
 		(* Printf.printf "Parsing Procedure.\n"; *)
 		let (lproc_name, lproc_params, spec) = proc_head in
-		let lret_var, lret_label = 
-		(match ctx_ret with 
+		let lret_var, lret_label =
+		(match ctx_ret with
 			| None -> None, None
-			| Some (rv, ri) -> Some rv, Some ri) in 
-		let lerror_var, lerror_label = 
-			(match ctx_err with 
+			| Some (rv, ri) -> Some rv, Some ri) in
+		let lerror_var, lerror_label =
+			(match ctx_err with
 			| None -> None, None
 			| Some (ev, ei) -> Some ev, Some ei) in
 		(* Replace keywords "ret" and "err" from the postcondition with the correspondig program variables *)
@@ -287,25 +289,25 @@ proc_head_target:
 	}
 ;
 
-ctx_target_ret: 
+ctx_target_ret:
 (* ret: x, i; *)
 	RET; COLON; ret_v=VAR; COMMA; i=VAR; SCOLON
-	{ 
+	{
 		(* Printf.printf "Parsing return context.\n"; *)
 		ret_v, i
 	}
 ;
 
-ctx_target_err: 
+ctx_target_err:
 (* err: x, j *)
 	ERR; COLON; err_v=VAR; COMMA; j=VAR; SCOLON
-	{ 
-		(* Printf.printf "Parsing error context.\n"; *)	
+	{
+		(* Printf.printf "Parsing error context.\n"; *)
 		err_v, j
 	}
 ;
 
-cmd_list_target: 
+cmd_list_target:
 	cmd_list = separated_nonempty_list(SCOLON, cmd_with_label_and_logic)
 	{
 		List.map
@@ -332,7 +334,7 @@ cmd_target:
 (* x := e *)
 	| v=VAR; DEFEQ; e=expr_target
 		{ SLBasic (SAssignment (v, e)) }
-(* x := new() *) 
+(* x := new() *)
 	| v=VAR; DEFEQ; NEW; LBRACE; RBRACE
 		{ SLBasic (SNew v) }
 (* x := [e1, e2] *)
@@ -426,10 +428,10 @@ expr_target:
 	| LSTOPEN; exprlist = separated_nonempty_list(COMMA, expr_target); LSTCLOSE
 		{ EList exprlist }
 (* l-nth (list, n) *)
-	| LSTNTH; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE 
+	| LSTNTH; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
 		{ LstNth (e1, e2) }
 (* s-nth (string, n) *)
-	| STRNTH; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE 
+	| STRNTH; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
 		{ StrNth (e1, e2) }
 (* (e) *)
   | LBRACE; e=expr_target; RBRACE
@@ -451,7 +453,8 @@ pred_target:
   { (* Add the predicate to the collection *)
 		let (name, num_params, params) = pred_head in
 	  let pred = { name; num_params; params; definitions; } in
-		Hashtbl.add predicate_table name pred
+		Hashtbl.add predicate_table name pred;
+    pred
 	}
 ;
 
@@ -488,7 +491,7 @@ logic_cmd_target:
 ;
 
 spec_target:
-(* spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *) 
+(* spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *)
 	SPEC; spec_head = spec_head_target;
 	proc_specs = separated_nonempty_list(SCOLON, pre_post_target);
 	{ let (spec_name, spec_params) = spec_head in
@@ -518,13 +521,13 @@ spec_line:
 
 assertion_target:
 (* P /\ Q *)
-	| left_ass=assertion_target; LAND; right_ass=assertion_target 
+	| left_ass=assertion_target; LAND; right_ass=assertion_target
 		{ LAnd (left_ass, right_ass) }
 (* P \/ Q *)
-	| left_ass=assertion_target; LOR; right_ass=assertion_target 
+	| left_ass=assertion_target; LOR; right_ass=assertion_target
 		{ LOr (left_ass, right_ass) }
 (* ! Q *)
-	| LNOT; ass=assertion_target 
+	| LNOT; ass=assertion_target
 		{ LNot (ass) }
 (* true *)
   | LTRUE
@@ -546,7 +549,7 @@ assertion_target:
 		{ LStrLess (left_expr, right_expr) }
 (* P * Q *)
 (* The precedence of the separating conjunction is not the same as the arithmetic product *)
-	| left_ass=assertion_target; TIMES; right_ass=assertion_target 
+	| left_ass=assertion_target; TIMES; right_ass=assertion_target
 		{ LStar (left_ass, right_ass) } %prec separating_conjunction
 (* (E, E) -> E *)
 	| LBRACE; obj_expr=lexpr_target; COMMA; prop_expr=lexpr_target; RBRACE; LARROW; val_expr=lexpr_target
@@ -554,10 +557,10 @@ assertion_target:
 (* emp *)
 	| LEMP;
 		{ LEmp }
-(* exists X, Y, Z . P 
+(* exists X, Y, Z . P
 	| LEXISTS; vars = separated_nonempty_list(COMMA, LVAR); DOT; ass = assertion_target
 		{ LExists (vars, ass) } *)
-(* forall X, Y, Z . P 
+(* forall X, Y, Z . P
 	| LFORALL; vars = separated_nonempty_list(COMMA, LVAR); DOT; ass = assertion_target
 		{ LForAll (vars, ass) } *)
 (* x(e1, ..., en) *)
@@ -594,7 +597,7 @@ lexpr_target:
 (* Program variable (including the special variable "ret") *)
 	| pvar = program_variable_target
 	  { pvar }
-(* e binop e *)	
+(* e binop e *)
 	| e1=lexpr_target; bop=binop_target; e2=lexpr_target
 		{ LBinOp (e1, bop, e2) }
 (* unop e *)
@@ -615,7 +618,7 @@ lexpr_target:
 		{ LBase (e) }
 (* field *)
 	| FIELD; LBRACE; e=lexpr_target; RBRACE
-		{ LBase (e) }		
+		{ LBase (e) }
 (* typeOf *)
 	| TYPEOF; LBRACE; e=lexpr_target; RBRACE
 		{ LTypeOf (e) }
@@ -630,7 +633,7 @@ lexpr_target:
 		{ LStrNth (e1, e2) }
 (* (e) *)
   | LBRACE; e=lexpr_target; RBRACE
-	  { e }	
+	  { e }
 ;
 
 logic_variable_target:
@@ -653,9 +656,14 @@ logic_lit_target:
 	| lit_target                { $1 }
 ;
 
+(********* PREDS and SPECS only *********)
+
+pred_spec_target: preds = separated_list(AND, pred_target); specs = separated_list(AND, spec_target); EOF
+  { preds, specs }
+
 (********* COMMON *********)
 
-lit_target: 
+lit_target:
 	| UNDEFINED                 { Undefined }
 	| NULL                      { Null }
 	| EMPTY                     { Empty }
@@ -674,7 +682,7 @@ lit_target:
 	| LSTOPEN LSTCLOSE          { LList [] }
 ;
 
-%inline binop_target: 
+%inline binop_target:
 	| EQUAL              { Equal }
 	| LESSTHAN           { LessThan }
 	| LESSTHANEQUAL      { LessThanEqual }
