@@ -10,13 +10,34 @@ pred isNamedProperty (prop) :
 pred isObjectLocation (v) :
   types (v : $$object_type);
 
+pred isList (v) :
+  types (v : $$list_type);
+
+(* Data descriptors *)
+pred isDataDescriptor (d) :
+  isList(d) * (d == {{ "d", #v, #w, #e, #c }});
+
+(* Accessor descriptors *)
+pred isAccessorDescriptor (d) :
+  isList(d) * (d == {{ "a", #g, #s, #e, #c }});
+
+(* Descriptors *)
+pred isDescriptor (d) :
+  isDataDescriptor (d),
+  isAccessorDescriptor (d);
+
 (* Standard object cell stuff *)
-pred Cell_o (l, prop, v) :
-  isObjectLocation(v) * isNamedProperty(prop) * ((l, prop) -> v);
+pred Cell_o (l, prop, None) :
+  isObjectLocation(l) * isNamedProperty(prop) * ((l, prop) -> None);
+pred Cell_o (l, prop, d) :
+  isObjectLocation(l) * isNamedProperty(prop) * isDescriptor(d) * ((l, prop) -> d);
 
 spec o__getOwnProperty (l, prop)
   [[ Cell_o (l, prop, None) ]]
   [[ Cell_o (l, prop, None) * (ret == $$undefined) ]]
+  normal;
+  [[ Cell_o (l, prop, #d) * isDescriptor(#d) ]]
+  [[ Cell_o (l, prop, #d) * isDescriptor(#d) * (ret == #d) ]]
   normal
 
 proc o__getOwnProperty (l, prop) {
