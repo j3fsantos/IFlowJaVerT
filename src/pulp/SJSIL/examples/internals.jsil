@@ -19,11 +19,13 @@ pred isList (v) :
 
 (* Data descriptors *)
 pred isDataDescriptor (d) :
-  isList(d) * (d == {{ "d", #v, #w, #e, #c }});
+  isList(d) * (d == {{ "d", #val, #writ, #enum, #conf }}) *
+  types (#writ : $$boolean_type, #enum : $$boolean_type, #conf : $$boolean_type);
 
 (* Accessor descriptors *)
 pred isAccessorDescriptor (d) :
-    isList(d) * (d == {{ "a", #g, #s, #e, #c }});
+    isList(d) * (d == {{ "a", #get, #set, #enum, #conf }}) *
+    types (#enum : $$boolean_type, #conf : $$boolean_type);
 
 (* Descriptors *)
 pred isDescriptor (d) :
@@ -41,16 +43,62 @@ pred IsStringIndex(S, prop, i) :
     * (prop == num_to_string i) * (!(i <# 0)) * (i <# s-len S);
 
 (* String cell stuff *)
-pred Cell_s (l, prop, 0, None) :
+pred Cell_s (l, prop, "None", None) :
      Cell_o (l, prop, None) *
      ((l, "@primitiveValue") -> #S) * (#i == num_to_int (string_to_num prop)) *
      (! IsStringIndex(#S, prop, #i));
-pred Cell_s (l, prop, "isStringIndex", v) :
+pred Cell_s (l, prop, "SI", v) :
      Cell_o (l, prop, None) *
      ((l, "@primitiveValue") -> #S) * (#i == num_to_int (string_to_num prop)) *
      IsStringIndex(#S, prop, #i) * (v == s-nth(#S, #i)) * types(v : $$string_type);
-pred Cell_s (l, prop, "isntStringIndex", v) :
+pred Cell_s (l, prop, "NSI", v) :
 	 Cell_o (l, prop, v) * (! (v == None));
+
+(* Common and less common methods *)
+
+pred CommonMethods (l) :
+	((l, "@getProperty") -> "o__getProperty");
+
+pred Methods_String (l) :
+	CommonMethods(l) * ((l, "@getOwnProperty") -> "s__getOwnProperty");
+
+pred Methods_General (l) :
+    CommonMethods(l) * ((l, "@getOwnProperty") -> "o__getOwnProperty");
+
+(* Classes and methods *)
+pred Class (l, "String") :
+     ((l, "@class") -> "String") * Methods_String (l);
+pred Class (l, "Object") :
+     ((l, "@class") -> #c) * (!(#c == "String")) * Methods_General (l);
+
+(* The PI predicate *)
+
+pred Pi (l, prop, "base", "General", $$undefined) :
+	Class (l, "Object") * Cell_o (l, prop, None) * ((l, "@proto") -> $$null);
+pred Pi (l, prop, "base", "General", d) :
+	Class (l, "Object") * Cell_o (l, prop, #d) * isDescriptor(#d) * (d == #d);
+
+
+pred Pi (l, prop, "base", "String", $$undefined) :
+    Class (l, "String") * Cell_s (l, prop, "None", None) * ((l, "@proto") -> $$null);
+
+pred Pi (l, prop, "base", "StringSI", d) :
+	Class (l, "String") * Cell_s (l, prop, "SI", #u) * types(#u : $$string_type) * (d == {{"d", #u, $$f, $$t, $$f}});
+
+pred Pi (l, prop, "base", "StringNSI", d) :
+	Class (l, "String") * Cell_s (l, prop, "NSI", #d) * isDescriptor(#d) * (d == #d);
+
+pred Pi (l, prop, "inductive", "General", d) :
+	Class (l, "Object") * Cell_o (l, prop, None) *
+    ((l, "@proto") -> #lp)  * (!(#lp == $$null)) *
+    CommonMethods(#lp) * Pi(#lp, prop, #caseType, #class, #d) *
+    (d == #d);
+
+pred Pi (l, prop, "inductive", "String", d) :
+	Class (l, "String") * Cell_s (l, prop, "None", None) *
+    ((l, "@proto") -> #lp)  * (!(#lp == $$null)) *
+    CommonMethods(#lp) * Pi(#lp, prop, #caseType, #class, #d) *
+    (d == #d);
 
 (* *******************
    *** i__toNumber ***
@@ -220,15 +268,15 @@ with
    ************************* *)
 
 spec s__getOwnProperty (l, prop)
-    [[ Cell_s (l, prop, 0, None) ]]
-    [[ Cell_s (l, prop, 0, None) * (ret == $$undefined) ]]
+    [[ Cell_s (l, prop, "None", None) ]]
+    [[ Cell_s (l, prop, "None", None) * (ret == $$undefined) ]]
    	normal;
    	(* Same comment as in o__getOwnProperty applies *)
-   	[[ Cell_s (l, prop, "isStringIndex", #u) ]]
-   	[[ Cell_s (l, prop, "isStringIndex", #u) * (ret == {{ "d", #u, $$f, $$t, $$f }}) * isDataDescriptor(ret) ]]
+   	[[ Cell_s (l, prop, "SI", #u) ]]
+   	[[ Cell_s (l, prop, "SI", #u) * (ret == {{ "d", #u, $$f, $$t, $$f }}) * isDataDescriptor(ret) ]]
    	normal;
-   	[[ Cell_s (l, prop, "isntStringIndex", #u) ]]
-   	[[ Cell_s (l, prop, "isntStringIndex", #u) * (ret == #u) * types(#u : $$list_type) ]]
+   	[[ Cell_s (l, prop, "NSI", #u) ]]
+   	[[ Cell_s (l, prop, "NSI", #u) * (ret == #u) * types(#u : $$list_type) ]]
    	normal
 
 proc s__getOwnProperty (l, prop) {
@@ -263,3 +311,42 @@ with
     ret: 	xret, rlab;
    	err: 	xret, elab;
 };
+
+(* **********************
+   *** O__GETPROPERTY ***
+   ********************** *)
+
+spec o__getProperty (l, prop)
+	[[ Pi (l, prop, #gp_aux_1, #gp_aux_2, #gp_aux_3) ]]
+	[[ Pi (l, prop, #gp_aux_1, #gp_aux_2, #gp_aux_3) * (ret == #gp_aux_3) ]]
+	normal
+proc o__getProperty (l, prop) {
+
+			[* unfold Pi (l, prop, #gp_aux_1, #gp_aux_2, #gp_aux_3) *]
+    ch0:	goto [typeOf(l) = $$object_type] ch1 elab;
+    ch1:	goto [typeOf(prop) = $$string_type] ch2 elab;
+    ch2:	goto [0 < s-len prop] ch3 elab;
+    ch3:	goto [not (s-nth(prop, 0) = "@")] start elab;
+
+	start:  gop := [l, "@getOwnProperty"];
+			xret := gop (l, prop) with elab;
+			goto [xret = $$undefined] next rlab;
+
+	next:	proto := [l, "@proto"];
+			goto [proto = $$null] rlab call;
+
+	call:	gp := [proto, "@getProperty"];
+			xret := gp (proto, prop) with elab;
+			[* fold Pi (l, prop, #gp_aux_1, #gp_aux_2, #gp_aux_3) *]
+    rlab:   skip;
+    elab:	skip
+}
+with
+{
+    ret: 	xret, rlab;
+    err:	xret, elab;
+};
+
+(* **************
+   *** O__GET ***
+   ************** *)
