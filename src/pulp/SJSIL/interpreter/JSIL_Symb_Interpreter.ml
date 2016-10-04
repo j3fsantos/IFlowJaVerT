@@ -1,4 +1,3 @@
-open Entailment_Engine
 open JSIL_Syntax
 open JSIL_Memory_Model
 open JSIL_Logic_Utils
@@ -258,7 +257,7 @@ let symb_state_add_subst_as_equalities new_symb_state subst pfs spec_vars =
 
 let safe_symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae  =
 	let nle = symb_evaluate_expr expr store gamma pure_formulae in
-	let nle_type, is_typable = Entailment_Engine.normalised_is_typable gamma (Some pure_formulae) nle in
+	let nle_type, is_typable = Pure_Entailment.normalised_is_typable gamma (Some pure_formulae) nle in
 	if (is_typable) then
 		nle, nle_type, is_typable
 	else
@@ -336,8 +335,8 @@ let is_equal e1 e2 pure_formulae gamma =
 	| LVar l1, LVar l2 ->
 		if (l1 = l2)
 			then true
-			else Entailment_Engine.check_entailment [] (pfs_to_list pure_formulae) [ (LEq (e1, e2)) ] gamma
-	| _, _ -> Entailment_Engine.check_entailment [] (pfs_to_list pure_formulae) [ (LEq (e1, e2)) ] gamma
+			else Pure_Entailment.check_entailment [] (pfs_to_list pure_formulae) [ (LEq (e1, e2)) ] gamma
+	| _, _ -> Pure_Entailment.check_entailment [] (pfs_to_list pure_formulae) [ (LEq (e1, e2)) ] gamma
 
 
 
@@ -345,7 +344,7 @@ let isDifferent e1 e2 pure_formulae gamma =
 	match e1, e2 with
 	| LLit l1, LLit l2 -> (not (l1 = l2))
 	| ALoc aloc1, ALoc aloc2 -> (not (aloc1 = aloc2))
-	| _, _ -> Entailment_Engine.check_entailment [] (DynArray.to_list pure_formulae) [ (LNot (LEq (e1, e2))) ] gamma
+	| _, _ -> Pure_Entailment.check_entailment [] (DynArray.to_list pure_formulae) [ (LNot (LEq (e1, e2))) ] gamma
 
 (**
   find_field fv_list e p_formulae = fv_list', (e1, e2)
@@ -503,7 +502,7 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 						extend_subst subst lvar (LLit lit);
 						discharges
 					| None ->
-						if (Entailment_Engine.check_entailment [] pfs [ (LEq (LVar lvar, LLit lit)) ] gamma)
+						if (Pure_Entailment.check_entailment [] pfs [ (LEq (LVar lvar, LLit lit)) ] gamma)
 							then discharges
 							else raise (Failure "the pattern store is not normalized."))
 
@@ -773,7 +772,7 @@ let unify_gamma pat_gamma gamma pat_store subst ignore_vars =
 									(match (store_get_var_val pat_store var) with
 									| Some le -> JSIL_Logic_Utils.lexpr_substitution le subst true
 									| None -> (PVar var))) in
-						let le_type, is_typable = Entailment_Engine.normalised_is_typable gamma None le in
+						let le_type, is_typable = Pure_Entailment.normalised_is_typable gamma None le in
 						match le_type with
 						| Some le_type ->
 							 (* Printf.printf "unify_gamma. pat gamma var: %s. le: %s. v_type: %s. le_type: %s\n"
@@ -825,7 +824,7 @@ let spec_logic_vars_discharge subst lvars pf_list gamma =
 				with _ ->  ac)
 			[]
 			lvars in
-	let ret = Entailment_Engine.check_entailment [] pf_list pfs_to_prove gamma in
+	let ret = Pure_Entailment.check_entailment [] pf_list pfs_to_prove gamma in
 	(* Printf.printf "check if (%s) entails (%s) - ret: %b\n" (JSIL_Print.str_of_assertion_list pf_list) (JSIL_Print.str_of_assertion_list pfs_to_prove) ret;	*)
 	ret
 
@@ -898,7 +897,7 @@ let unify_symb_states lvars existentials pat_symb_state (symb_state : symbolic_s
 			Printf.printf "About to check if (%s) ENTAILS (Exists %s. (%s))\n" (JSIL_Print.str_of_assertion_list pf_list) existentials_str (JSIL_Print.str_of_assertion_list (pat_pf_list @ pf_discharges));  *)
 
 			let unify_gamma_check = (unify_gamma pat_gamma new_gamma pat_store s_new_subst existentials) in 
-			let entailment_check_ret = Entailment_Engine.check_entailment existentials pf_list (pat_pf_list @ pf_discharges)  new_gamma in 
+			let entailment_check_ret = Pure_Entailment.check_entailment existentials pf_list (pat_pf_list @ pf_discharges)  new_gamma in 
 			(if (entailment_check_ret & unify_gamma_check) then 
 					(  (* Printf.printf "I could check the entailment!!!\n"; *)
 					Some (quotient_heap, quotient_preds, s_new_subst, pf_discharges, true))
@@ -1343,7 +1342,7 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 
 					(* Printf.printf "The discharges to prove are: %s\n" (JSIL_Print.str_of_assertion_list pf_discharges); *)
 					(* Printf.printf "I unfolded the following symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state unfolded_symb_state); *)
-					let satisfiability_check = Entailment_Engine.check_satisfiability (get_pf_list unfolded_symb_state) gamma [] in
+					let satisfiability_check = Pure_Entailment.check_satisfiability (get_pf_list unfolded_symb_state) gamma [] in
 					(* let discharges_check = Entailment_Engine.check_entailment [] pf pf_discharges gamma in *)
 					if (satisfiability_check)
 						then (
@@ -1561,10 +1560,10 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i =
 				([ a_le ], [ (LNot a_le) ])
 			| None -> ([], []) in
 
-		if (Entailment_Engine.check_entailment [] (get_pf_list symb_state) a_le_then (get_gamma symb_state)) then
+		if (Pure_Entailment.check_entailment [] (get_pf_list symb_state) a_le_then (get_gamma symb_state)) then
 			(Printf.printf "in the THEN branch\n";
 			symb_evaluate_next_cmd s_prog proc spec search_info symb_state i j)
-			else (if (Entailment_Engine.check_entailment [] (get_pf_list symb_state) a_le_else (get_gamma symb_state)) then
+			else (if (Pure_Entailment.check_entailment [] (get_pf_list symb_state) a_le_else (get_gamma symb_state)) then
 					(Printf.printf "in the ELSE branch\n";
 					symb_evaluate_next_cmd s_prog proc spec search_info symb_state i k)
 				else
@@ -1608,7 +1607,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i =
 
 		List.iter
 			(fun (symb_state, ret_flag, ret_le) ->
-				let ret_type, _ = Entailment_Engine.normalised_is_typable (get_gamma symb_state) (Some (get_pf symb_state)) ret_le in
+				let ret_type, _ = Pure_Entailment.normalised_is_typable (get_gamma symb_state) (Some (get_pf symb_state)) ret_le in
 				update_abs_store (get_store symb_state) x ret_le;
 				update_gamma (get_gamma symb_state) x ret_type;
 				let new_search_info = update_vis_tbl search_info (copy_vis_tbl search_info.vis_tbl) in

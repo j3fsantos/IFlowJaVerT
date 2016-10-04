@@ -402,7 +402,7 @@ let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_form
 					let lvar = fresh_lvar () in
 					(* I need to add the type of the new logical variable to the gamma *)
 					DynArray.add p_formulae (LEq ((LVar lvar), ele));
-					let te, _ = Entailment_Engine.normalised_is_typable gamma None ele in
+					let te, _ = Pure_Entailment.normalised_is_typable gamma None ele in
 					update_gamma gamma lvar te;
 					LVar lvar) in
 	
@@ -469,7 +469,7 @@ let rec init_gamma gamma a =
 							(* t; Hashtbl.replace gamma new_v_name t                                   *)
 							| LNone -> ()
 							| _ ->
-									let v_type, _ = Entailment_Engine.normalised_is_typable gamma None v in
+									let v_type, _ = Pure_Entailment.normalised_is_typable gamma None v in
 									(match v_type with
 										| Some v_type ->
 												(if (v_type = t)
@@ -481,7 +481,7 @@ let rec init_gamma gamma a =
 																(JSIL_Print.string_of_type v_type) in
 														raise (Failure msg)))
 										| None ->
-												let new_gamma = Entailment_Engine.reverse_type_lexpr gamma v t in
+												let new_gamma = Pure_Entailment.reverse_type_lexpr gamma v t in
 												(match new_gamma with
 													| None ->
 															let msg = Printf.sprintf "Only vars or lvars in the typing environment. PUTTING: %s with type %s when it CANNOT be typed or reverse-typed"
@@ -530,7 +530,7 @@ let extend_typing_env_using_assertion_info a_list gamma =
 			let x_type = gamma_get_type gamma x in 
 			(match x_type with 
 			| None -> 
-				let le_type, _ = Entailment_Engine.normalised_is_typable gamma None le in 
+				let le_type, _ = Pure_Entailment.normalised_is_typable gamma None le in 
 				weak_update_gamma gamma x le_type 
 			| Some _ -> ());
 			loop rest_a_list
@@ -600,14 +600,14 @@ let normalise_single_spec preds spec =
 						(* Printf.printf "I am going to check whether the following precondition   *)
 						(* makes sense:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state       *)
 						(* pre_symb_state);                                                        *)
-						let is_valid_precond = Entailment_Engine.check_satisfiability (get_pf_list pre_symb_state) (get_gamma pre_symb_state) [] in
+						let is_valid_precond = Pure_Entailment.check_satisfiability (get_pf_list pre_symb_state) (get_gamma pre_symb_state) [] in
 						if (is_valid_precond)
 						then
 							(let posts, posts_lvars =
 									List.fold_left
 										(fun (ac_posts, ac_posts_lvars) post ->
 													let post_symb_state, post_lvars = normalise_postcondition post subst lvars in
-													if (Entailment_Engine.check_satisfiability (get_pf_list post_symb_state) (get_gamma post_symb_state) post_lvars)
+													if (Pure_Entailment.check_satisfiability (get_pf_list post_symb_state) (get_gamma post_symb_state) post_lvars)
 													then ((post_symb_state :: ac_posts), (post_lvars :: ac_posts_lvars))
 													else ac_posts, ac_posts_lvars)
 										([], [])
@@ -683,7 +683,7 @@ let normalise_predicate_definitions pred_defs : (string, JSIL_Memory_Model.n_jsi
 														symb_state)
 											pre_normalised_as in 
 										let normalised_as = List.filter
-											(fun symb_state -> Entailment_Engine.check_satisfiability (get_pf_list symb_state) (get_gamma symb_state) []) 
+											(fun symb_state -> Pure_Entailment.check_satisfiability (get_pf_list symb_state) (get_gamma symb_state) []) 
 											normalised_as in
 										(* List.iter 
 											(fun symb_state ->
@@ -710,7 +710,7 @@ let store_substitution store gamma subst partial =
 		Hashtbl.fold
 			(fun pvar le (vars, les) ->
 						let s_le = lexpr_substitution le subst partial in
-						let s_le_type, is_typable = Entailment_Engine.normalised_is_typable gamma None s_le in
+						let s_le_type, is_typable = Pure_Entailment.normalised_is_typable gamma None s_le in
 						(match s_le_type with
 							| Some s_le_type ->
 							(* Printf.printf "I am adding the type of %s to the store with   *)
