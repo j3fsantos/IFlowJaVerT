@@ -1,3 +1,5 @@
+(** Totals: 5 fails and 4 passes **)
+
 (** Check if (#x == "maria") entails (#x == "maria") **)
 (** Expected result: YES                             **)
 spec test0 (x)

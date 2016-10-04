@@ -856,21 +856,23 @@ let unify_symb_states lvars existentials pat_symb_state (symb_state : symbolic_s
 		(match spec_vars_check, new_subst, quotient_heap, new_pfs with
 		| true, Some new_subst, Some quotient_heap, Some new_pfs ->
 			let s_new_subst = copy_substitution new_subst in
-			(* Printf.printf "I computed a quotient heap but I also need to check an entailment\n";
+			(* Printf.printf "Substitution afert predicate set unification baby!!!\n%s" (JSIL_Memory_Print.string_of_substitution new_subst); 
+			Printf.printf "I computed a quotient heap but I also need to check an entailment\n";
 			Printf.printf "The quotient heap that I just computed:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false);
-			Printf.printf "the symbolic state after computing quotient heap:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state); *)
+			Printf.printf "the PAT symbolic after computing quotient heap:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state); *)
 			
 			let pf_discharges = pf_list_of_discharges discharges s_new_subst in 
+			let pat_pf_existentials = get_subtraction_vars (get_pf_list pat_symb_state) s_new_subst in 
 			let pat_pf_list = 
 				(List.map 
 					(fun a -> assertion_substitution a s_new_subst true) 
 					(pfs_to_list pat_pf)) in 
 					
-			(* Printf.printf "pat_pf_list: %s\n" (JSIL_Print.str_of_assertion_list pat_pf_list);*)
 			extend_pf pf new_pfs;
 			let pf_list = pfs_to_list pf in 
-			let pat_pf_existentials = get_subtraction_vars pat_pf_list pf_list false in 
 			let new_pat_pf_existentials = (List.map (fun v -> fresh_lvar ()) pat_pf_existentials) in 
+			
+		  (* Printf.printf "pat_pf_existentials: %s\n" (print_var_list pat_pf_existentials); *)
 			
 			let existential_substitution = init_substitution2 pat_pf_existentials (List.map (fun v -> LVar v) new_pat_pf_existentials) in  
 			
@@ -898,11 +900,10 @@ let unify_symb_states lvars existentials pat_symb_state (symb_state : symbolic_s
 			let unify_gamma_check = (unify_gamma pat_gamma new_gamma pat_store s_new_subst existentials) in 
 			let entailment_check_ret = Entailment_Engine.check_entailment existentials pf_list (pat_pf_list @ pf_discharges)  new_gamma in 
 			(if (entailment_check_ret & unify_gamma_check) then 
-					( (* Printf.printf "I could check the entailment!!!\n"; *)
-
+					(  (* Printf.printf "I could check the entailment!!!\n"; *)
 					Some (quotient_heap, quotient_preds, s_new_subst, pf_discharges, true))
 				else
-					((* Printf.printf "I could NOT check the entailment!!!\n";
+					( (* Printf.printf "I could NOT check the entailment!!!\n";
 					Printf.printf "entailment_check_ret: %b. unify_gamma_check: %b.\n" entailment_check_ret unify_gamma_check; *)
 					Some (quotient_heap, quotient_preds, new_subst, pf_discharges, false)))
 		| _ -> None)

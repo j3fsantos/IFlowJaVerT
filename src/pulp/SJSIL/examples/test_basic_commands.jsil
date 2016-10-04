@@ -1,3 +1,5 @@
+(** Totals: 3 fails and 7 passes **)
+
 (** Tested feature: field assignment 1               **)
 (** Expected result: YES                             **)
 spec test0 (x)

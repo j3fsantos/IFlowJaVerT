@@ -1,3 +1,4 @@
+(******************* TYPE CONVERSION *******************)
 
 spec i__toNumber (v)
 	[[ types(v : $$string_type, #v : $$string_type) * (v == #v) ]]
@@ -108,6 +109,8 @@ with
 };
 
 
+(******************* GETOWNPROPERTY *******************)
+
 pred Cell_o (l, prop, v) :
 	types(l : $$object_type, prop : $$string_type) * ((l, prop) -> v);  	
 
@@ -187,6 +190,8 @@ with
 };
 
 
+(******************* GETPROPERTY *******************)
+
 pred CommonMethods (l) :
 	((l, "@getProperty") -> "o__getProperty");
 
@@ -197,8 +202,6 @@ pred SpecificMethods_s (l) :
 
 pred Class (l, "o") : ((l, "@class") -> #c) * (!(#c == "String")) * SpecificMethods_o (l);
 pred Class (l, "s") : ((l, "@class") -> "String") * SpecificMethods_s (l);
-
-
 
 
 pred Pi (l, prop, "base", "o", $$undefined) :
@@ -215,6 +218,7 @@ pred Pi (l, prop, "inductive", "o", d) :
 	Class (l, "o") * Cell_o (l, prop, None) * ((l, "@proto") -> #lp)  * (!(#lp == $$null)) * CommonMethods(#lp) * (d == #d) * Pi(#lp, prop, #caseType, #class, #d);
 pred Pi (l, prop, "inductive", "s", d) : 
 	Class (l, "s") * Cell_s (l, prop, 0, None) * ((l, "@proto") -> #lp)  * (!(#lp == $$null)) * CommonMethods(#lp) * (d == #d) * Pi(#lp, prop, #caseType, #class, #d);  
+
 
 spec o__getProperty (l, prop)
 	[[ Pi (l, prop, #banana1, #banana2, #banana3) ]]

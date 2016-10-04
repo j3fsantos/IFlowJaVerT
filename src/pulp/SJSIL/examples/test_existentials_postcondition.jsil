@@ -1,3 +1,5 @@
+(** Totals: 1 fail and 3 passes **)
+
 pred interval (x, a, b) : 
 	((a <=# b) * (a <=# x) * (x <=# b) * types(x: $$int_type, a: $$int_type, b: $$int_type));
 
