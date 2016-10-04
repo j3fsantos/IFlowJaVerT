@@ -1,3 +1,5 @@
+(** Totals: 2 fails and 2 passes **)
+
 (** Check if (#x <# 0) entails ((#x + 1) <# 0) **)
 (** Expected result: NO                        **)
 spec test0 (x)

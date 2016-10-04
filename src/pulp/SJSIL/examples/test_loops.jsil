@@ -1,3 +1,6 @@
+(** Totals: 0 fails and 1 pass **)
+
+
 (** Expected result: YES                             **)
 spec test0 (x)
    [[ types(x: $$int_type) ]]

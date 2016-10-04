@@ -1,3 +1,5 @@
+(** Totals: 4 fails and 5 passes **)
+
 pred joe(x) : joe(x);
 pred alice(x, y) : alice(x, y);
 

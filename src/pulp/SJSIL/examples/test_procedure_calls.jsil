@@ -1,3 +1,6 @@
+(** Totals: 3 fails and 5 passes **)
+
+
 (** Expected result: YES                             **)
 spec test0 (x)
    [[ emp ]]

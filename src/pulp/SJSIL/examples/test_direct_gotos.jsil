@@ -1,3 +1,5 @@
+(** Totals: 2 fails and 2 passes **)
+
 (** Expected result: YES                             **)
 spec test0 (y)
    [[ types(y: $$boolean_type) ]]
