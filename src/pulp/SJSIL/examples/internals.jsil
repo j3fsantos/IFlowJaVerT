@@ -1,0 +1,265 @@
+(* ******************
+   *** PREDICATES ***
+   ****************** *)
+
+(* Internal properties *)
+pred isInternalProperty (prop) :
+    (0 <# s-len prop) * (s-nth (prop, 0) == "@") * types (prop : $$string_type);
+
+(* Named properties *)
+pred isNamedProperty (prop) :
+    (0 <# s-len prop) * (! (s-nth (prop, 0) == "@")) * types (prop : $$string_type);
+
+(* Location *)
+pred isObjectLocation (v) :
+    types (v : $$object_type);
+
+pred isList (v) :
+    types (v : $$list_type);
+
+(* Data descriptors *)
+pred isDataDescriptor (d) :
+  isList(d) * (d == {{ "d", #v, #w, #e, #c }});
+
+(* Accessor descriptors *)
+pred isAccessorDescriptor (d) :
+    isList(d) * (d == {{ "a", #g, #s, #e, #c }});
+
+(* Descriptors *)
+pred isDescriptor (d) :
+    isDataDescriptor (d),
+    isAccessorDescriptor (d);
+
+(* Standard object cell stuff *)
+pred Cell_o (l, prop, None) :
+    isObjectLocation(l) * isNamedProperty(prop) * ((l, prop) -> None);
+pred Cell_o (l, prop, d) :
+    isObjectLocation(l) * isNamedProperty(prop) * isDescriptor(d) * ((l, prop) -> d);
+
+pred IsStringIndex(S, prop, i) :
+    types(S : $$string_type, prop : $$string_type, i : $$int_type)
+    * (prop == num_to_string i) * (!(i <# 0)) * (i <# s-len S);
+
+(* String cell stuff *)
+pred Cell_s (l, prop, 0, None) :
+     Cell_o (l, prop, None) *
+     ((l, "@primitiveValue") -> #S) * (#i == num_to_int (string_to_num prop)) *
+     (! IsStringIndex(#S, prop, #i));
+pred Cell_s (l, prop, "isStringIndex", v) :
+     Cell_o (l, prop, None) *
+     ((l, "@primitiveValue") -> #S) * (#i == num_to_int (string_to_num prop)) *
+     IsStringIndex(#S, prop, #i) * (v == s-nth(#S, #i)) * types(v : $$string_type);
+pred Cell_s (l, prop, "isntStringIndex", v) :
+	 Cell_o (l, prop, v) * (! (v == None));
+
+(* *******************
+   *** i__toNumber ***
+   ******************* *)
+
+spec i__toNumber (v)
+	[[ types(v : $$string_type, #v : $$string_type) * (v == #v) ]]
+	[[ types(ret : $$number_type) * (ret == (string_to_num #v)) ]]
+	normal
+
+proc i__toNumber (v) {
+    iu:		goto [v = $$undefined] undef in;
+	undef:	xret := nan;
+    		goto rlab;
+
+    in:		goto [v = $$null] null ib;
+	null:	xret := 0;
+    		goto rlab;
+
+    ib:		goto [typeOf(v) = $$boolean_type] bool inum;
+	bool:	goto [v = $$t] is_t is_f;
+    is_t:	xret := 1;
+    		goto rlab;
+    is_f:	xret := 0;
+    		goto rlab;
+
+    inum:	goto [typeOf(v) = $$number_type] num is;
+    num:	xret := v;
+    		goto rlab;
+
+    is:		goto [typeOf(v) = $$string_type] str io;
+    str:	xret := string_to_num v;
+    		goto rlab;
+
+    io:		goto [typeOf(v) = $$object_type] obj oops;
+    obj:	xret := "i__toPrimitive" (v, "Number") with elab;
+    		xret := "i__toNumber" (xret);
+    		goto rlab;
+
+    oops:	xret := "TypeError" ("ToNumber: This should not happen.");
+            goto elab;
+
+    rlab:	skip;
+    elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* ********************
+   *** i__toInteger ***
+   ******************** *)
+
+spec i__toInteger (v)
+	[[ types(v : $$string_type, #v : $$string_type) * (v == #v) ]]
+	[[ types(ret : $$int_type) * (ret == num_to_int (string_to_num #v)) ]]
+	normal
+
+proc i__toInteger (v) {
+			xret := "i__toNumber" (v) with elab;
+			xret := num_to_int (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *******************
+   *** i__toString ***
+   ******************* *)
+
+spec i__toString (v)
+	[[ types(v : $$int_type, #v : $$int_type) * (v == #v) ]]
+	[[ types(ret : $$string_type) * (ret == (num_to_string #v)) ]]
+	normal
+
+proc i__toString (v) {
+	iu:		goto [v = $$undefined] undef in;
+	undef:	xret := "undefined";
+			goto rlab;
+
+	in:		goto [v = $$null] null ib;
+	null:	xret := "null";
+			goto rlab;
+
+	ib:		goto [typeOf(v) = $$boolean_type] bool inum;
+	bool:	goto [v = $$t] is_t is_f;
+	is_t:	xret := "true";
+			goto rlab;
+	is_f:	xret := "false";
+			goto rlab;
+
+	inum:	goto [typeOf(v) <: $$number_type] num is;
+	num:	xret := num_to_string v;
+			goto rlab;
+
+	is:		goto [typeOf(v) = $$string_type] str io;
+	str:	xret := v;
+			goto rlab;
+
+	io:		goto [typeOf(v) = $$object_type] obj oops;
+	obj:	xret := "i__toPrimitive" (v, "String") with elab;
+			xret := "i__toString" (xret) with elab;
+			goto rlab;
+
+	oops:	xret := "TypeError" ("ToString: This should not happen.");
+            goto elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *************************
+   *** O__GETOWNPROPERTY ***
+   ************************* *)
+
+spec o__getOwnProperty (l, prop)
+    [[ Cell_o (l, prop, None) ]]
+    [[ Cell_o (l, prop, None) * (ret == $$undefined) ]]
+    normal;
+    [[ Cell_o (l, prop, #d) * isDescriptor(#d) ]]
+    [[ Cell_o (l, prop, #d) * isDescriptor(#d) * (ret == #d) ]]
+    normal
+
+proc o__getOwnProperty (l, prop) {
+	(*
+		l must be an object
+		prop must be a non-empty string
+		prop must not be an internal property
+	*)
+	ch0:	goto [typeOf(l) = $$object_type] ch1 elab;
+	ch1:	goto [typeOf(prop) = $$string_type] ch2 elab;
+	ch2:	goto [0 < s-len prop] ch3 elab;
+	ch3:	goto [not (s-nth(prop, 0) = "@")] start elab;
+
+    start:	x := hasField(l, prop);
+            goto [x] hp nhp;
+
+    nhp:    xret := $$undefined;
+            goto rlab;
+
+    hp:     xret := [l, prop];
+
+    rlab:   skip;
+
+	elab:	xret := "TypeError" ("Incorrect use of [[getOwnProperty]]")
+}
+with
+{
+    ret: 	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *************************
+   *** S__GETOWNPROPERTY ***
+   ************************* *)
+
+spec s__getOwnProperty (l, prop)
+    [[ Cell_s (l, prop, 0, None) ]]
+    [[ Cell_s (l, prop, 0, None) * (ret == $$undefined) ]]
+   	normal;
+   	(* Same comment as in o__getOwnProperty applies *)
+   	[[ Cell_s (l, prop, "isStringIndex", #u) ]]
+   	[[ Cell_s (l, prop, "isStringIndex", #u) * (ret == {{ "d", #u, $$f, $$t, $$f }}) * isDataDescriptor(ret) ]]
+   	normal;
+   	[[ Cell_s (l, prop, "isntStringIndex", #u) ]]
+   	[[ Cell_s (l, prop, "isntStringIndex", #u) * (ret == #u) * types(#u : $$list_type) ]]
+   	normal
+
+proc s__getOwnProperty (l, prop) {
+
+    ch0:	goto [typeOf(l) = $$object_type] ch1 elab;
+    ch1:	goto [typeOf(prop) = $$string_type] ch2 elab;
+    ch2:	goto [0 < s-len prop] ch3 elab;
+    ch3:	goto [not (s-nth(prop, 0) = "@")] start elab;
+
+   	start:	xret := "o__getOwnProperty" (l, prop);
+   			goto [xret = $$undefined] str rlab;
+
+   	str:	idx := "i__toInteger" (prop) with elab;
+   			goto [idx < 0] rlab next;
+
+   	next:	sidx := "i__toString" (idx);
+
+   			goto [sidx = prop] index rlab;
+
+   	index:	str := [l, "@primitiveValue"];
+   			len := s-len (str);
+   			goto [len <= idx] rlab return;
+
+   	return: rstr := s-nth (str, idx);
+   			xret := {{ "d", rstr, $$f, $$t, $$f }};
+
+   	rlab: 	skip;
+   	elab:	skip
+}
+with
+{
+    ret: 	xret, rlab;
+   	err: 	xret, elab;
+};
