@@ -37,8 +37,11 @@ let process_file path =
 	let prog, which_pred = JSIL_Utils.prog_of_ext_prog path ext_prog in 
 	let spec_tbl = JSIL_Logic_Normalise.build_spec_tbl norm_preds prog in 
 	Printf.printf "I computed the spec table!!!\n";
-	let results, dot_graphs = JSIL_Symb_Interpreter.sym_run_procs spec_tbl prog which_pred norm_preds in 
+	let results, dot_graphs, complete_success = JSIL_Symb_Interpreter.sym_run_procs spec_tbl prog which_pred norm_preds in 
 	Printf.printf "RESULTS\n%s" results;
+	(if (complete_success) then 
+		Printf.printf "ALL Succeeded!!!\n"
+		else Printf.printf "There were Failures\n");
 	register_dot_graphs dot_graphs;
 	exit 0
 

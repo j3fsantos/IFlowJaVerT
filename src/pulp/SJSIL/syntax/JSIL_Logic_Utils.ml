@@ -541,6 +541,7 @@ let compose_partial_substitutions subst1 subst2 =
 	subst
 
 
+
 let copy_substitution subst = Hashtbl.copy subst
 
 let extend_subst subst var v = 

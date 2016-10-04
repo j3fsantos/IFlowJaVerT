@@ -201,11 +201,6 @@ pred Class (l, "s") : ((l, "@class") -> "String") * SpecificMethods_s (l);
 
 
 
-
-
-
-
-
 pred Pi (l, prop, "base", "o", $$undefined) :
 	Class (l, "o") * Cell_o (l, prop, None) * ((l, "@proto") -> $$null); 
 pred Pi (l, prop, "base", "s", $$undefined) : 
