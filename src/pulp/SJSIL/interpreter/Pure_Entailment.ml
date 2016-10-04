@@ -55,10 +55,12 @@ type smt_translation_ctx = {
 	tr_typing_env     : JSIL_Memory_Model.typing_environment; 
 	tr_typing_env_aux : JSIL_Memory_Model.typing_environment;
 	tr_typeof_fun     : FuncDecl.func_decl;
+	tr_llen_fun       : FuncDecl.func_decl;
 	tr_slen_fun       : FuncDecl.func_decl;
 	tr_num2str_fun    : FuncDecl.func_decl;
 	tr_str2num_fun    : FuncDecl.func_decl;
 	tr_num2int_fun    : FuncDecl.func_decl;
+	tr_lnth_fun       : FuncDecl.func_decl;
 	tr_snth_fun       : FuncDecl.func_decl;
   tr_list_sort      : Sort.sort; 
   tr_list_nil       : FuncDecl.func_decl;
@@ -176,12 +178,28 @@ let mk_smt_translation_ctx gamma existentials =
 	let z3_num2int_fun_domain = [ Arithmetic.Integer.mk_sort ctx ] in
 	let z3_num2int_fun = FuncDecl.mk_func_decl ctx z3_num2int_name z3_num2int_fun_domain (Arithmetic.Integer.mk_sort ctx) in 
 
-	let z3_snth_name = (Symbol.mk_string ctx "snth") in
+	let z3_snth_name = (Symbol.mk_string ctx "s-nth") in
 	let z3_snth_fun_domain = [ Arithmetic.Integer.mk_sort ctx; Arithmetic.Integer.mk_sort ctx ] in
 	let z3_snth_fun = FuncDecl.mk_func_decl ctx z3_snth_name z3_snth_fun_domain (Arithmetic.Integer.mk_sort ctx) in 		
-												
+																																			
 	let z3_list_sort_name = (Symbol.mk_string ctx "tr_list") in
 	let list_sort = Z3List.mk_sort ctx z3_list_sort_name (Arithmetic.Integer.mk_sort ctx) in 
+	
+	let z3_lnth_name = (Symbol.mk_string ctx "l-nth") in
+	let z3_lnth_fun_domain = [ list_sort; Arithmetic.Integer.mk_sort ctx ] in
+	let z3_lnth_fun = FuncDecl.mk_func_decl ctx z3_lnth_name z3_lnth_fun_domain (Arithmetic.Integer.mk_sort ctx) in 
+	
+	let z3_llen_name = (Symbol.mk_string ctx "l-len") in
+	let z3_llen_fun_domain = [ list_sort ] in
+	let z3_llen_fun = FuncDecl.mk_func_decl ctx z3_llen_name z3_llen_fun_domain (Arithmetic.Integer.mk_sort ctx) in 
+	
+	(* forall x. slen(x) >= 0 *)
+	let x = "x" in 
+	let le_x = Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx x) in 
+	let le1 = (Expr.mk_app ctx z3_slen_fun [ le_x ]) in 
+	let le2 = (Arithmetic.Integer.mk_numeral_i ctx 0) in 
+	let llen_assertion = Arithmetic.mk_ge ctx le1 le2 in 
+	let z3_llen_axiom = encode_quantifier true ctx [ x ] z3_slen_fun_domain llen_assertion in
 	
 	let list_nil     = Z3List.get_nil_decl     list_sort in 
 	let list_is_nil  = Z3List.get_is_nil_decl  list_sort in 
@@ -196,10 +214,12 @@ let mk_smt_translation_ctx gamma existentials =
 		tr_typing_env_aux = JSIL_Memory_Model.mk_gamma (); 
 		tr_typeof_fun     = z3_typeof_fun;
 		tr_slen_fun       = z3_slen_fun; 
+		tr_llen_fun       = z3_llen_fun; 
 		tr_num2str_fun    = z3_num2str_fun;
 		tr_str2num_fun    = z3_str2num_fun;
 		tr_num2int_fun    = z3_num2int_fun; 
 		tr_snth_fun       = z3_snth_fun; 
+		tr_lnth_fun       = z3_lnth_fun; 
   	tr_list_sort      = list_sort; 
  		tr_list_nil       = list_nil; 
 		tr_list_is_nil    = list_is_nil;
@@ -377,7 +397,12 @@ let rec encode_logical_expression tr_ctx e =
 		let le_list = mk_z3_list les tr_ctx in 
 		le_list, (encode_type ctx ListType), assertions
 	
-	| LStrNth (str, index) ->
+	(* | LLstNth (lst, index)  -> 
+		let le_lst, te_lst, as_lst = ele lst in
+		let le_index, te_index, as_index = ele index in*)
+		 
+	
+	| LStrNth (str, index)  ->
 		let le_str, te_str, as_str = ele str in 
 		let le_index, te_index, as_index = ele index in
 		let le_len_str = (Expr.mk_app ctx tr_ctx.tr_slen_fun [ le_str ]) in 
@@ -394,6 +419,19 @@ let rec encode_logical_expression tr_ctx e =
 			(JSIL_Print.string_of_logic_expression e false) in 
 		raise (Failure msg))
 
+
+(*
+	| LBinOp			of jsil_logic_expr * bin_op * jsil_logic_expr
+	| LUnOp				of unary_op * jsil_logic_expr
+	| LEVRef			of jsil_logic_expr * jsil_logic_expr
+	| LEORef			of jsil_logic_expr * jsil_logic_expr
+	| LBase				of jsil_logic_expr
+	| LField			of jsil_logic_expr
+	| LTypeOf			of jsil_logic_expr
+	| LEList      of jsil_logic_expr list
+	
+	| LStrNth     of jsil_logic_expr * jsil_logic_expr
+	| LUnknown *)
 
 let get_solver tr_ctx existentials left_as right_as_or = 
 	
