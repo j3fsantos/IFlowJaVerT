@@ -320,6 +320,7 @@ spec o__getProperty (l, prop)
 	[[ Pi (l, prop, #gp_aux_1, #gp_aux_2, #gp_aux_3) ]]
 	[[ Pi (l, prop, #gp_aux_1, #gp_aux_2, #gp_aux_3) * (ret == #gp_aux_3) ]]
 	normal
+
 proc o__getProperty (l, prop) {
 
 			[* unfold Pi (l, prop, #gp_aux_1, #gp_aux_2, #gp_aux_3) *]
@@ -337,9 +338,11 @@ proc o__getProperty (l, prop) {
 
 	call:	gp := [proto, "@getProperty"];
 			xret := gp (proto, prop) with elab;
+
 			[* fold Pi (l, prop, #gp_aux_1, #gp_aux_2, #gp_aux_3) *]
     rlab:   skip;
     elab:	skip
+
 }
 with
 {
@@ -350,3 +353,42 @@ with
 (* **************
    *** O__GET ***
    ************** *)
+
+spec o__get (l, prop)
+    [[ Pi (l, prop, #g_aux_1, #g_aux_2, $$undefined) ]]
+    [[ Pi (l, prop, #g_aux_1, #g_aux_2, $$undefined) * (ret == $$undefined) ]]
+    normal
+
+
+proc o__get (l, prop) {
+
+            [* unfold Pi (l, prop, #g_aux_1, #g_aux_2, $$undefined) *]
+    ch0:	goto [typeOf(l) = $$object_type] ch1 elab;
+    ch1:	goto [typeOf(prop) = $$string_type] ch2 elab;
+    ch2:    goto [0 < s-len prop] ch3 elab;
+    ch3:	goto [not (s-nth(prop, 0) = "@")] start elab;
+
+	start:  gp := [l, "@getProperty"];
+		    xret := gp (l, prop) with elab;
+			goto [xret = $$undefined] rlab def;
+
+	def:	d := l-nth (xret, 0);
+			xret := l-nth (xret, 1);
+			goto [d = "d"] rlab acc;
+
+	acc:	goto [xret = $$undefined] rlab get;
+	get:	xsc := [xret, "@scope"];
+			fun := [xret, "@call"];
+			xret := fun (xsc, l) with elab;
+			goto [xret = $$empty] undef rlab;
+	undef:	xret := $$undefined;
+
+            [* fold Pi (l, prop, #g_aux_1, #g_aux_2, $$undefined) *]
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+   ret: xret, rlab;
+   err: xret, elab;
+};
