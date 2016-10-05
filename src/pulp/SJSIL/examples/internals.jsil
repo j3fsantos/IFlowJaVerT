@@ -19,8 +19,8 @@ pred isList (v) :
 
 (* Data descriptors *)
 pred isDataDescriptor (d) :
-  isList(d) * (d == {{ "d", #val, #writ, #enum, #conf }}) *
-  types (#writ : $$boolean_type, #enum : $$boolean_type, #conf : $$boolean_type);
+  isList(d) * (d == {{ #dd, #val, #writ, #enum, #conf }}) * (#dd == "d") *
+  types (#dd : $$string_type, #writ : $$boolean_type, #enum : $$boolean_type, #conf : $$boolean_type);
 
 pred desc_value (d, v) :
     isDataDescriptor (d) * (l-nth (d, 1) == #v) * (v == #v);

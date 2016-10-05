@@ -884,6 +884,7 @@ let unify_symb_states lvars existentials pat_symb_state (symb_state : symbolic_s
 			let existentials_str = print_var_list existentials in
 			(* Printf.printf "Dicharges: %s\n" (JSIL_Print.str_of_assertion_list pf_discharges);
 			Printf.printf "About to check if (%s) ENTAILS (Exists %s. (%s))\n" (JSIL_Print.str_of_assertion_list pf_list) existentials_str (JSIL_Print.str_of_assertion_list (pat_pf_list @ pf_discharges));  *)
+
 			let unify_gamma_check = (unify_gamma pat_gamma new_gamma pat_store s_new_subst existentials) in
 			let entailment_check_ret = Pure_Entailment.check_entailment existentials pf_list (pat_pf_list @ pf_discharges)  new_gamma in
 			(if (entailment_check_ret & unify_gamma_check) then
@@ -1696,7 +1697,7 @@ let symb_evaluate_proc s_prog proc_name spec i prunning_info =
 			symb_evaluate_next_cmd s_prog proc spec search_info spec.n_pre (-1) 0;
 			true, None
 		with Failure msg ->
-			(Printf.printf "The EVALUATION OF THIS PROC GAVE AN ERROR: %d!!!!\n" i;
+			(Printf.printf "The EVALUATION OF THIS PROC GAVE AN ERROR: %d %s!!!!\n" i msg;
 			create_info_node_from_error search_info msg;
 			create_info_node_from_post search_info spec.n_post spec.n_ret_flag false;
 			false, Some msg)) in
