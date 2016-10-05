@@ -317,14 +317,24 @@ let encode_binop tr_ctx op le1 le2 =
 		raise (Failure msg)
 
 (** Encode JSIL unary operators *)
-let encode_unop tr_ctx op le = 
+let encode_unop tr_ctx op le te = 
 	let ctx = tr_ctx.z3_ctx in 
 	match op with 
-	| UnaryMinus -> (Arithmetic.mk_unary_minus ctx le)
-	| StrLen     -> (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_slen_fun [ le ])
-	| ToStringOp -> (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_num2str_fun [ le ])
-	| ToNumberOp -> (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_str2num_fun [ le ])
-	| ToIntOp    -> (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_num2int_fun [ le ])
+	| UnaryMinus -> 
+		let new_le = (Arithmetic.mk_unary_minus ctx le) in 
+		new_le, te
+	| StrLen     -> 
+		let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_slen_fun [ le ]) in 
+		new_le, (encode_type ctx IntType)
+	| ToStringOp -> 
+		let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_num2str_fun [ le ]) in 
+		new_le, (encode_type ctx StringType)
+	| ToNumberOp -> 
+		let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_str2num_fun [ le ]) in 
+		new_le, (encode_type ctx NumberType)
+	| ToIntOp    -> 
+		let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_num2int_fun [ le ]) in 
+		new_le, (encode_type ctx IntType)
 	| _          -> 
 		let msg = Printf.sprintf "SMT encoding: Construct not supported yet - unop - %s!" (JSIL_Print.string_of_unop op) in 
 		raise (Failure msg)
@@ -384,8 +394,8 @@ let rec encode_logical_expression tr_ctx e =
 		
 	| LUnOp (op, le)        -> 
 		let le, te, as1 = ele le in 
-		let le = encode_unop tr_ctx op le in 
-		le, te, as1
+		let le, te      = encode_unop tr_ctx op le te in 
+		le, te, as1 
 	
 	| LEList les            -> 
 		let les_tes_as = List.map ele les in
@@ -523,10 +533,10 @@ let rec check_entailment existentials left_as right_as gamma =
 			end; *)
 		Gc.full_major (); 
 		Solver.reset solver; 
-		(* Printf.printf "Check_entailment. Result %b\n" ret; *)
+		(* Printf.printf "Check_entailment. Result %b\n" ret;                            *)
 		(* Printf.printf "\n    Exiting entailment\n------------------------------\n\n"; *)
 		ret
-		with Failure msg -> (* Printf.printf "Esta merda explodiuuuu: %s\n" msg;*) false
+		with Failure msg -> (* Printf.printf "Esta merda explodiuuuu: %s\n" msg; *) false
 		end
 and 
 encode_pure_formula tr_ctx a =
