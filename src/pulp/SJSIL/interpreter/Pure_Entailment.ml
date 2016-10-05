@@ -190,7 +190,7 @@ let mk_smt_translation_ctx gamma existentials =
 	let z3_lnth_fun = FuncDecl.mk_func_decl ctx z3_lnth_name z3_lnth_fun_domain (Arithmetic.Integer.mk_sort ctx) in
 
 	let z3_llen_name = (Symbol.mk_string ctx "l-len") in
-	let z3_llen_fun_domain = [ Arithmetic.Integer.mk_sort ctx ] in
+	let z3_llen_fun_domain = [ list_sort ] in
 	let z3_llen_fun = FuncDecl.mk_func_decl ctx z3_llen_name z3_llen_fun_domain (Arithmetic.Integer.mk_sort ctx) in
 
 	(* forall x. slen(x) >= 0 *)
@@ -205,7 +205,7 @@ let mk_smt_translation_ctx gamma existentials =
 
 	(* forall x. llen(x) >= 0 *)
 	let x = "x" in
-	let le_x = Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx x) in
+	let le_x = (Expr.mk_const ctx (Symbol.mk_string ctx x) list_sort) in
 	let le1 = (Expr.mk_app ctx z3_llen_fun [ le_x ]) in
 	let le2 = (Arithmetic.Integer.mk_numeral_i ctx 0) in
 	let llen_assertion = Arithmetic.mk_ge ctx le1 le2 in
@@ -330,14 +330,20 @@ let encode_binop tr_ctx op le1 le2 =
 
 (** Encode JSIL unary operators *)
 let encode_unop tr_ctx op le te =
+	Printf.printf "Inside encode_unop\n";
 	let ctx = tr_ctx.z3_ctx in
 	match op with
 	| UnaryMinus ->
 		let new_le = (Arithmetic.mk_unary_minus ctx le) in
 		new_le, te
 	| LstLen     ->
-			let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_llen_fun [ le ]) in
-			new_le, (encode_type ctx IntType)
+			Printf.printf "Inside encode_unop - lstlen. le: %s. te: %s\n" (Expr.to_string le)  (Expr.to_string te); 
+			(try 
+				(let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_llen_fun [ le ]) in
+				new_le, (encode_type ctx IntType))
+			with _ ->
+				(Printf.printf "The error is where we expected it to be!!\n"; 
+				raise (Failure "I am not myself tonight!!\n")))
 	| StrLen     ->
 		let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_slen_fun [ le ]) in
 		new_le, (encode_type ctx IntType)
@@ -381,6 +387,7 @@ let get_z3_var_and_type tr_ctx var =
 
 (** Encode JSIL logical expressions *)
 let rec encode_logical_expression tr_ctx e =
+	Printf.printf "Inside encode logical expression\n";
 	let ele = encode_logical_expression tr_ctx in
 	let ctx = tr_ctx.z3_ctx in
 	let gamma = tr_ctx.tr_typing_env in
@@ -409,6 +416,7 @@ let rec encode_logical_expression tr_ctx e =
 		le, te1, (as_op :: (as1 @ as2))
 
 	| LUnOp (op, le)        ->
+		Printf.printf "Inside encode logical expression - unop\n";
 		let le, te, as1 = ele le in
 		let le, te      = encode_unop tr_ctx op le te in
 		le, te, as1
@@ -865,7 +873,7 @@ normalised_is_typable gamma (pf : JSIL_Memory_Model.pure_formulae option) nlexpr
 			let entail1 = (check_entailment [] (JSIL_Memory_Model.pfs_to_list pf) [ asrt1 ] gamma) in
 			Printf.printf "%b\n" entail1;
 			Printf.printf "Second entailment: in-length: \n";
-			let entail2 = (check_entailment [] (JSIL_Memory_Model.pfs_to_list pf) [ asrt1; asrt2 ] gamma) in
+			let entail2 = (check_entailment [] (JSIL_Memory_Model.pfs_to_list pf) [ asrt2 ] gamma) in
 			Printf.printf "%b\n" entail2;
 		 	if entail2
 				then (Some StringType, true)
