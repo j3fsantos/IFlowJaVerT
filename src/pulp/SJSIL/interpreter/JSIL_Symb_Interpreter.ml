@@ -869,6 +869,18 @@ let unify_symb_states lvars existentials pat_symb_state (symb_state : symbolic_s
 			Hashtbl.iter (fun x y -> Printf.printf "%s -> %s\n\t" x (JSIL_Print.string_of_logic_expression y false)) new_subst;
 			Printf.printf "\n";
 
+			if (LHeap.length quotient_heap = 0) then
+				Printf.printf ("Quotient heap empty.\n\n") else
+				Printf.printf "Quotient heap:\n%s\n\n" (JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false);
+
+			if (new_pfs = []) then
+				Printf.printf ("New pure formulae empty.\n\n") else
+				begin
+					Printf.printf "New pure formulae:\n\t";
+					List.iter (fun x -> Printf.printf "%s\n\t" (JSIL_Print.string_of_logic_assertion x false)) new_pfs;
+					Printf.printf "\n";
+				end;
+
 			(* Printf.printf "Substitution afert predicate set unification baby!!!\n%s" (JSIL_Memory_Print.string_of_substitution new_subst);
 			Printf.printf "I computed a quotient heap but I also need to check an entailment\n";
 			Printf.printf "The quotient heap that I just computed:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false);
@@ -920,11 +932,12 @@ let unify_symb_states lvars existentials pat_symb_state (symb_state : symbolic_s
 					Printf.printf "entailment_check_ret: %b. unify_gamma_check: %b.\n" entailment_check_ret unify_gamma_check; *)
 					Some (quotient_heap, quotient_preds, new_subst, pf_discharges, false)))
 		| _ -> Printf.printf "One of the four things failed.\n"; None)
-	| None -> Printf.printf "Sweet Jesus, no discharges.\n"; None
+	| None -> Printf.printf "Sweet Jesus, broken discharges.\n"; None
 
 
 let fully_unify_symb_state pat_symb_state symb_state lvars existentials =
-	Printf.printf "Fully_unify_symb_state.\nFinal symb_state:\n%s.\nPost symb_state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state) (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state);
+	Printf.printf "Fully_unify_symb_state. Hello\n";
+	(* Printf.printf "Fully_unify_symb_state.\nFinal symb_state:\n%s.\nPost symb_state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state) (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state); *)
 	let unifier = unify_symb_states lvars existentials pat_symb_state symb_state in
 	match unifier with
 	| Some (quotient_heap, quotient_preds, subst, pf_discharges, true) ->
