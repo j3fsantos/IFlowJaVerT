@@ -19,32 +19,8 @@ pred isList (v) :
 
 (* Data descriptors *)
 pred isDataDescriptor (d) :
-    isDataDescriptorWithValue (d, #value);
-
-(*
-pred isDataDescriptorWithValue (d, $$undefined) :
-    isList(d) * (d == {{ #dd, $$undefined, #writ, #enum, #conf }}) * (#dd == "d") *
+    isList(d) * (d == {{ #dd, #val, #writ, #enum, #conf }}) * (#dd == "d") *
     types (#dd : $$string_type, #writ : $$boolean_type, #enum : $$boolean_type, #conf : $$boolean_type);
-pred isDataDescriptorWithValue (d, $$null) :
-    isList(d) * (d == {{ #dd, $$null, #writ, #enum, #conf }}) * (#dd == "d") *
-    types (#dd : $$string_type, #writ : $$boolean_type, #enum : $$boolean_type, #conf : $$boolean_type);
-pred isDataDescriptorWithValue (d, val) :
-    isList(d) * (d == {{ #dd, #val, #writ, #enum, #conf }}) * (#dd == "d") * (#val == val) *
-    types (#dd : $$string_type, #val : $$number_type, #writ : $$boolean_type, #enum : $$boolean_type, #conf : $$boolean_type);
-*)
-
-pred isDataDescriptorWithValue (d, val) :
-    isList(d) * (d == {{ #dd, #val, #writ, #enum, #conf }}) * (#dd == "d") * (#val == val) *
-    types (#dd : $$string_type, #val : $$string_type, #writ : $$boolean_type, #enum : $$boolean_type, #conf : $$boolean_type);
-
-(*
-pred isDataDescriptorWithValue (d, val) :
-    isList(d) * (d == {{ #dd, #val, #writ, #enum, #conf }}) * (#dd == "d") * (#val == val) *
-    types (#dd : $$string_type, #val : $$boolean_type, #writ : $$boolean_type, #enum : $$boolean_type, #conf : $$boolean_type);
-pred isDataDescriptorWithValue (d, val) :
-    isList(d) * (d == {{ #dd, #val, #writ, #enum, #conf }}) * (#dd == "d") * (#val == val) *
-    types (#dd : $$string_type, #val : $$object_type, #writ : $$boolean_type, #enum : $$boolean_type, #conf : $$boolean_type);
-*)
 
 pred desc_value (d, v) :
     isDataDescriptor (d) * (l-nth (d, 1) == #v) * (v == #v);

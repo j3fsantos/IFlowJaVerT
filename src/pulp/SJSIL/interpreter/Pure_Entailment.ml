@@ -230,6 +230,8 @@ let mk_smt_translation_ctx gamma existentials =
 	let nt = encode_type ctx NumberType in
 	let le1 = (Expr.mk_app ctx z3_lub [ it; nt ]) in
 	let lub_int_num_axiom = Boolean.mk_eq ctx le1 nt in
+	let le2 = (Expr.mk_app ctx z3_lub [ nt; it ]) in
+	let lub_num_int_axiom = Boolean.mk_eq ctx le1 nt in
 
 	{
 		z3_ctx            = ctx;
@@ -251,7 +253,7 @@ let mk_smt_translation_ctx gamma existentials =
 		tr_list_head      = list_head;
 		tr_list_tail      = list_tail;
 		tr_lub            = z3_lub;
-		tr_axioms         = [ z3_slen_axiom; z3_llen_axiom; lub_refl_axiom; lub_sym_axiom; lub_int_num_axiom ]
+		tr_axioms         = [ z3_slen_axiom; z3_llen_axiom;  lub_refl_axiom; lub_int_num_axiom; lub_num_int_axiom ]
 		(* tr_existentials   = existentials *)
 	}
 
@@ -613,11 +615,11 @@ let get_solver tr_ctx existentials left_as right_as_or =
 	let right_as_or =
 		Expr.simplify right_as_or None in
 
-	Printf.printf "--- ABOUT TO ENTER THE SOLVER ---\n";
+	print_endline (Printf.sprintf "--- ABOUT TO ENTER THE SOLVER ---");
 	List.iter (fun expr -> Printf.printf "%s\n" (Expr.to_string expr)) left_as;
-	Printf.printf "\nIMPLIES:\n\n";
-	Printf.printf "%s\n" (Expr.to_string right_as_or);
-	Printf.printf "\nDone printing\n";
+	print_endline (Printf.sprintf "\nIMPLIES:\n");
+	print_endline (Printf.sprintf "%s" (Expr.to_string right_as_or));
+	print_endline (Printf.sprintf "\nDone printing");
 
 	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 	Solver.add solver (left_as @ [ right_as_or ]);
@@ -646,7 +648,7 @@ let check_satisfiability assertions gamma existentials =
 
 (* right_as must be satisfiable *)
 let rec check_entailment existentials left_as right_as gamma =
-	Printf.printf "------------------------------\n    Entering entailment\n\n";
+	print_endline (Printf.sprintf "------------------------------\n    Entering entailment\n");
 	let cfg = [("model", "true"); ("proof", "false")] in
 
 	let tr_ctx = mk_smt_translation_ctx gamma existentials in
@@ -655,12 +657,12 @@ let rec check_entailment existentials left_as right_as gamma =
 	let ret_right = check_satisfiability right_as gamma existentials in
 	if (not (ret_right)) then
 	begin
-		Printf.printf "Right side not satisfiable on its own.\n";
+		print_endline (Printf.sprintf "Right side not satisfiable on its own.");
 		false
 	end
 	else
 		begin
-		Printf.printf "Right side satisfiable on its own.\n";
+		print_endline (Printf.sprintf "Right side satisfiable on its own.");
 		try
 		(* check if left_as => right_as *)
 		let right_as = List.map
@@ -688,13 +690,14 @@ let rec check_entailment existentials left_as right_as gamma =
 
 		Printf.printf "\nThe existentials are: ";
 		List.iter (fun x -> Printf.printf "%s " x) existentials;
-		Printf.printf "\n\n";
+		print_endline (Printf.sprintf "\n");
 
 		(* SOMETHING HAPPENS HERE! *)
 		let solver = get_solver tr_ctx existentials left_as right_as_or in
 
+		print_endline (Printf.sprintf "About to ask the solver. So excited!");
 		let ret = (Solver.check solver []) != Solver.SATISFIABLE in
-
+		print_endline (Printf.sprintf "Check_entailment. Result %b" ret);
 		(*
 		 if (not ret) then
 			begin
@@ -710,8 +713,7 @@ let rec check_entailment existentials left_as right_as gamma =
 			end; *)
 		Gc.full_major ();
 		Solver.reset solver;
-		Printf.printf "Check_entailment. Result %b\n" ret;
-		Printf.printf "\n    Exiting entailment\n------------------------------\n\n";
+		print_endline (Printf.sprintf "\n    Exiting entailment\n------------------------------\n");
 		ret
 		with Failure msg -> (* Printf.printf "Esta merda explodiuuuu: %s\n" msg; *) false
 		end
