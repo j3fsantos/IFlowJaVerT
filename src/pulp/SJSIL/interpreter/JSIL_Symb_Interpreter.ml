@@ -753,11 +753,11 @@ let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) p_form
 	new_subst, (DynArray.of_list quotient_preds)
 
 
-let unify_gamma pat_gamma gamma pat_store subst ignore_vars =
-  (* Printf.printf "I am about to unify two gammas\n";
+let unify_gamma pat_gamma gamma pat_store subst ignore_vars pfs =
+  Printf.printf "I am about to unify two gammas\n";
 	 	Printf.printf "pat_gamma: %s.\ngamma: %s.\nsubst: %s\n"
 		(JSIL_Memory_Print.string_of_gamma pat_gamma) (JSIL_Memory_Print.string_of_gamma gamma)
-		(JSIL_Memory_Print.string_of_substitution subst);  *)
+		(JSIL_Memory_Print.string_of_substitution subst);
 	let res = (Hashtbl.fold
 		(fun var v_type ac ->
 			(* (not (is_lvar_name var)) *)
@@ -772,26 +772,26 @@ let unify_gamma pat_gamma gamma pat_store subst ignore_vars =
 									(match (store_get_var_val pat_store var) with
 									| Some le -> JSIL_Logic_Utils.lexpr_substitution le subst true
 									| None -> (PVar var))) in
-						let le_type, is_typable = Pure_Entailment.normalised_is_typable gamma None le in
+						let le_type, is_typable = Pure_Entailment.normalised_is_typable gamma (Some pfs) le in
 						match le_type with
 						| Some le_type ->
-							 (* Printf.printf "unify_gamma. pat gamma var: %s. le: %s. v_type: %s. le_type: %s\n"
+							 Printf.printf "unify_gamma. pat gamma var: %s. le: %s. v_type: %s. le_type: %s\n"
 								var
 								(JSIL_Print.string_of_logic_expression le false)
 								(JSIL_Print.string_of_type v_type)
-								(JSIL_Print.string_of_type le_type); *)
+								(JSIL_Print.string_of_type le_type);
 							(le_type = v_type)
 						| None ->
-							 (* Printf.printf "failed unify_gamma. pat gamma var: %s. le: %s. v_type: %s\n"
+							 Printf.printf "failed unify_gamma. pat gamma var: %s. le: %s. v_type: %s\n"
 								var
 								(JSIL_Print.string_of_logic_expression le false)
-								(JSIL_Print.string_of_type v_type); *)
+								(JSIL_Print.string_of_type v_type);
 							false
 					with _ ->
 						true))
 		pat_gamma
 		true) in
-	(* Printf.printf "unify_gamma. res: %b\n" res; *)
+	Printf.printf "\nEXITING unify_gamma: res: %b\n\n" res;
 	res
 
 
@@ -918,12 +918,11 @@ let unify_symb_states lvars existentials pat_symb_state (symb_state : symbolic_s
 			let pat_pf_list = List.map (fun a -> assertion_substitution a existential_substitution true) pat_pf_list in
 			let pf_discharges = List.map (fun a -> assertion_substitution a existential_substitution true) pf_discharges in
 
+			let unify_gamma_check = (unify_gamma pat_gamma new_gamma pat_store s_new_subst existentials pf) in
 			let existentials_str = print_var_list existentials in
-			(* Printf.printf "Dicharges: %s\n" (JSIL_Print.str_of_assertion_list pf_discharges);
-			Printf.printf "About to check if (%s) ENTAILS (Exists %s. (%s))\n" (JSIL_Print.str_of_assertion_list pf_list) existentials_str (JSIL_Print.str_of_assertion_list (pat_pf_list @ pf_discharges));  *)
-
-			let unify_gamma_check = (unify_gamma pat_gamma new_gamma pat_store s_new_subst existentials) in
+			Printf.printf "About to check if \n(\n%s\n) \n\tENTAILS\n (Exists \n\t%s.\n(\n%s\n))\n" (JSIL_Print.str_of_assertion_list pf_list) existentials_str (JSIL_Print.str_of_assertion_list (pat_pf_list @ pf_discharges));
 			let entailment_check_ret = Pure_Entailment.check_entailment existentials pf_list (pat_pf_list @ pf_discharges)  new_gamma in
+			Printf.printf "Unify gamma: %b Entailment check: %b\n" unify_gamma_check entailment_check_ret;
 			(if (entailment_check_ret & unify_gamma_check) then
 					(  (* Printf.printf "I could check the entailment!!!\n"; *)
 					Some (quotient_heap, quotient_preds, s_new_subst, pf_discharges, true))

@@ -492,13 +492,14 @@ let get_solver tr_ctx existentials left_as right_as_or =
 			then encode_quantifier true tr_ctx.z3_ctx existentials (get_sorts tr_ctx existentials) right_as_or
 			else right_as_or in
 
-(*
+	let right_as_or =
+		Expr.simplify right_as_or None in
+
 	Printf.printf "--- ABOUT TO ENTER THE SOLVER ---\n";
 	List.iter (fun expr -> Printf.printf "%s\n" (Expr.to_string expr)) left_as;
 	Printf.printf "\nIMPLIES:\n\n";
 	Printf.printf "%s\n" (Expr.to_string right_as_or);
 	Printf.printf "\nDone printing\n";
-*)
 
 	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 	Solver.add solver (left_as @ [ right_as_or ]);
@@ -506,22 +507,21 @@ let get_solver tr_ctx existentials left_as right_as_or =
 
 (* right_as must be satisfiable *)
 let rec check_entailment existentials left_as right_as gamma =
-	(* Printf.printf "------------------------------\n    Entering entailment\n\n"; *)
+	Printf.printf "------------------------------\n    Entering entailment\n\n";
 	let cfg = [("model", "true"); ("proof", "false")] in
 
 	let tr_ctx = mk_smt_translation_ctx gamma existentials in
 	let ctx = tr_ctx.z3_ctx in
 
-
 	let ret_right = check_satisfiability right_as gamma existentials in
 	if (not (ret_right)) then
 	begin
-		(* Printf.printf "Right side not satisfiable on its own.\n"; *)
+		Printf.printf "Right side not satisfiable on its own.\n";
 		false
 	end
 	else
 		begin
-		(* Printf.printf "Right side satisfiable on its own.\n"; *)
+		Printf.printf "Right side satisfiable on its own.\n";
 		try
 		(* check if left_as => right_as *)
 		let right_as = List.map
@@ -546,10 +546,10 @@ let rec check_entailment existentials left_as right_as gamma =
 		let left_as = tr_ctx.tr_axioms @ left_as in
 
 
-		(*
-		 Printf.printf "\nThe existentials are: ";
+
+		Printf.printf "\nThe existentials are: ";
 		List.iter (fun x -> Printf.printf "%s " x) existentials;
-		Printf.printf "\n\n"; *)
+		Printf.printf "\n\n";
 
 		(* SOMETHING HAPPENS HERE! *)
 		let solver = get_solver tr_ctx existentials left_as right_as_or in
@@ -571,8 +571,8 @@ let rec check_entailment existentials left_as right_as gamma =
 			end; *)
 		Gc.full_major ();
 		Solver.reset solver;
-		(* Printf.printf "Check_entailment. Result %b\n" ret;                            *)
-		(* Printf.printf "\n    Exiting entailment\n------------------------------\n\n"; *)
+		Printf.printf "Check_entailment. Result %b\n" ret;
+		Printf.printf "\n    Exiting entailment\n------------------------------\n\n";
 		ret
 		with Failure msg -> (* Printf.printf "Esta merda explodiuuuu: %s\n" msg; *) false
 		end
@@ -886,8 +886,9 @@ normalised_is_typable gamma (pfrm : JSIL_Memory_Model.pure_formulae option) nlex
 
 		let (type_str, _) = f str in
 		let (type_index, _) = f index in
-		(match (type_str, type_index, pfrm) with
-		| Some StringType, Some IntType, Some pfrm ->
+		(match (type_str, type_index) with
+		| Some StringType, Some IntType ->
+			let pfrm = (match pfrm with Some pfrm -> pfrm | None -> DynArray.create()) in
 			Printf.printf "Types have matched.\n";
 			let asrt1 = (LNot (LLess (index, LLit (Integer 0)))) in
 			let asrt2 = (LLess (index, LUnOp (StrLen, str))) in
@@ -896,17 +897,14 @@ normalised_is_typable gamma (pfrm : JSIL_Memory_Model.pure_formulae option) nlex
 			if entail
 				then (Some StringType, true)
 				else (None, false)
-		| Some stype, Some itype, Some pf ->
+		| Some stype, Some itype ->
 			Printf.printf "Something went wrong with the types. %s %s\n\n" (JSIL_Print.string_of_type stype) (JSIL_Print.string_of_type stype); (None, false)
-		| Some stype, None, Some pf ->
+		| Some stype, None ->
 			Printf.printf "String type: %s Index not typable.\n\n" (JSIL_Print.string_of_type stype); (None, false)
-		| None, Some itype, Some pf ->
+		| None, Some itype ->
 			Printf.printf "String not typable. Index type: %s\n\n" (JSIL_Print.string_of_type itype); (None, false)
-		| None, None, Some pf ->
-			Printf.printf "Both string and index not typable. Ew.\n\n"; (None, false)
-		| _, _, None ->
-			Printf.printf "No pure formulae?! WTF?!\n\n"; (None, false))
-
+		| None, None ->
+			Printf.printf "Both string and index not typable. Ew.\n\n"; (None, false))
 
 	| LNone    -> (Some NoneType, true)
   | LUnknown -> (None, false))
