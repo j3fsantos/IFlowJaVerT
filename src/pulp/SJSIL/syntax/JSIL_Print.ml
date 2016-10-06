@@ -1,18 +1,18 @@
 open JSIL_Syntax
 
-let rec tabs_to_str i  = 
+let rec tabs_to_str i  =
 	if i = 0 then "" else "\t" ^ (tabs_to_str (i - 1))
 
 (***
  Generate strings from JSIL program types
 *)
 
-let string_of_float x = 
-	if (x == nan) 
+let string_of_float x =
+	if (x == nan)
 		then "nan"
-		else if (x == neg_infinity) 
+		else if (x == neg_infinity)
 			then "-inf"
-			else if (x == infinity) 
+			else if (x == infinity)
 				then "inf"
 				else string_of_float x
 
@@ -141,16 +141,16 @@ let rec string_of_expression e escape_string =
     | UnaryOp (op, e) -> Printf.sprintf "(%s %s)" (string_of_unop op) (se e)
 		(* typeof(e) *)
     | TypeOf e -> Printf.sprintf "typeOf(%s)" (se e)
-		(* assume(e) *) 
+		(* assume(e) *)
 		| RAssume e -> Printf.sprintf "assume(%s)" (se e)
 		(* assert(e) *)
 		| RAssert e -> Printf.sprintf "assert(%s)" (se e)
-		(* make-symbol-number() *) 
-		| RNumSymb -> "make-symbol-number()" 
-		(* make-symbol-string() *) 
+		(* make-symbol-number() *)
+		| RNumSymb -> "make-symbol-number()"
+		(* make-symbol-string() *)
 		| RStrSymb -> "make-symbol-string()"
 		(* {{ e1, e2, ... }} *)
-		| EList ll -> 
+		| EList ll ->
 			(match ll with
 			| [] -> "$$nil"
 			| ll -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map se ll)))
@@ -160,14 +160,14 @@ let rec string_of_expression e escape_string =
 		| StrNth (e1, e2) -> Printf.sprintf "s-nth(%s, %s)" (se e1) (se e2)
 
 (** JSIL Basic statements *)
-let rec string_of_bcmd bcmd i line_numbers_on escape_string = 
+let rec string_of_bcmd bcmd i line_numbers_on escape_string =
 	let se = fun e -> string_of_expression e escape_string in
 	let str_i = if line_numbers_on then (string_of_int i) ^ ". " else "" in
-	match bcmd with 
+	match bcmd with
 	(* skip *)
   | SSkip -> Printf.sprintf "%sskip" str_i
 	(* var := e *)
-	| SAssignment (var, e) -> Printf.sprintf "%s%s := %s" str_i var (se e)					
+	| SAssignment (var, e) -> Printf.sprintf "%s%s := %s" str_i var (se e)
 	(* x := new() *)
 	| SNew var -> Printf.sprintf "%s%s := new()" str_i var
  	(* x := [e1, e2]	*)
@@ -175,11 +175,11 @@ let rec string_of_bcmd bcmd i line_numbers_on escape_string =
 	(* [e1, e2] := e3 *)
 	| SMutation (e1, e2, e3) -> Printf.sprintf "%s[%s, %s] := %s" str_i (se e1) (se e2) (se e3)
 	(* delete(e1, e2) *)
-	| SDelete (e1, e2) ->  Printf.sprintf "%sdelete(%s,%s)" str_i (se e1) (se e2)	
+	| SDelete (e1, e2) ->  Printf.sprintf "%sdelete(%s,%s)" str_i (se e1) (se e2)
 	(* x := hasField(e1, e2) *)
   | SHasField (var, e1, e2) -> Printf.sprintf "%s%s := hasField(%s,%s)" str_i var (se e1) (se e2)
 	(* x := getFields (e1, e2) *)
-	| SGetFields (var, e) -> Printf.sprintf "%s%s := getFields (%s)" str_i var (se e) 	
+	| SGetFields (var, e) -> Printf.sprintf "%s%s := getFields (%s)" str_i var (se e)
 	(* x := args *)
 	| SArguments var -> Printf.sprintf "%s%s := args" str_i var
 
@@ -239,9 +239,9 @@ let rec string_of_logic_assertion a escape_string =
 		| LPointsTo (e1, e2, e3) -> Printf.sprintf "(%s, %s) -> %s" (sle e1) (sle e2) (sle e3)
 		(* emp *)
 		| LEmp -> "emp"
-		(* exists vars . a 
+		(* exists vars . a
 		| LExists (lvars, a) -> Printf.sprintf "exists %s . %s" (String.concat ", " lvars) (sla a) *)
-		(* forall vars . a 
+		(* forall vars . a
 		| LForAll (lvars, a) -> Printf.sprintf "forall %s . %s" (String.concat ", " lvars) (sla a) *)
 		(* x(y1, ..., yn) *)
 		| LPred (name, params) -> Printf.sprintf "%s(%s)" name (String.concat ", " (List.map sle params))
@@ -252,8 +252,8 @@ let rec string_of_logic_assertion a escape_string =
 (** JSIL logic predicates *)
 let rec string_of_predicate predicate =
 	let sle = fun e -> string_of_logic_expression e false in
-	List.fold_left 
-		(fun acc_str assertion -> 
+	List.fold_left
+		(fun acc_str assertion ->
 			acc_str ^ (Printf.sprintf "pred %s (%s) : %s;\n"
 				predicate.name
 				(String.concat ", " (List.map sle predicate.params))
@@ -262,7 +262,7 @@ let rec string_of_predicate predicate =
 		predicate.definitions
 
 (** JSIL All Statements *)
-let string_of_cmd_aux sjsil_cmd i line_numbers_on escape_string str_tabs = 
+let string_of_cmd_aux sjsil_cmd i line_numbers_on escape_string str_tabs =
 	let se = fun e -> string_of_expression e escape_string in
 	let str_i = if line_numbers_on then (string_of_int i) ^ ". " else "" in
  	match sjsil_cmd with
@@ -291,40 +291,40 @@ let string_of_cmd_aux sjsil_cmd i line_numbers_on escape_string str_tabs =
 	| SPhiAssignment (var, var_arr) ->
 		let len = Array.length var_arr in
 		let rec loop i str_ac =
-			if (i >= len) 
-				then str_ac 
-				else 
-					let var_arr_i_str = 
-						(match var_arr.(i) with 
+			if (i >= len)
+				then str_ac
+				else
+					let var_arr_i_str =
+						(match var_arr.(i) with
 						| None -> "$$empty"
-						| Some v_i -> v_i) in 
+						| Some v_i -> v_i) in
 					(if (i == 0)
 						then loop 1 var_arr_i_str
-						else  loop (i + 1) (str_ac ^ ", " ^ var_arr_i_str)) in 
-		let var_arr_str = loop 0 "" in 
+						else  loop (i + 1) (str_ac ^ ", " ^ var_arr_i_str)) in
+		let var_arr_str = loop 0 "" in
 		Printf.sprintf "%s%s := PHI(%s)" str_i var var_arr_str
 	(* var := PSI(var_1, var_2, ..., var_n) *)
-	| SPsiAssignment (var, var_arr) -> 
-		let len = Array.length var_arr in  
+	| SPsiAssignment (var, var_arr) ->
+		let len = Array.length var_arr in
 		let rec loop i str_ac =
-			if (i >= len) 
-				then str_ac 
-				else 
-					let var_arr_i_str = 
-						(match var_arr.(i) with 
+			if (i >= len)
+				then str_ac
+				else
+					let var_arr_i_str =
+						(match var_arr.(i) with
 						| None -> "$$empty"
-						| Some v_i -> v_i) in 
+						| Some v_i -> v_i) in
 					(if (i == 0)
 						then loop 1 var_arr_i_str
-						else  loop (i + 1) (str_ac ^ ", " ^ var_arr_i_str)) in 
-		let var_arr_str = loop 0 "" in 
+						else  loop (i + 1) (str_ac ^ ", " ^ var_arr_i_str)) in
+		let var_arr_str = loop 0 "" in
 		Printf.sprintf "%s%s := PSI(%s)" str_i var var_arr_str
 
 
 (** JSIL All Statements *)
 let rec string_of_cmd sjsil_cmd tabs i line_numbers_on specs_on escape_string =
 	let str_tabs = tabs_to_str tabs in
-	
+
 	let metadata, sjsil_cmd = sjsil_cmd in
 	let ass = metadata.pre_cond in
 	let str_ass =
@@ -334,26 +334,26 @@ let rec string_of_cmd sjsil_cmd tabs i line_numbers_on specs_on escape_string =
 		  | None -> ""
 		  | Some ass -> str_tabs ^ "[[" ^ string_of_logic_assertion ass escape_string ^ "]]\n")
 		else "" in
-	str_ass ^ 
+	str_ass ^
   (string_of_cmd_aux sjsil_cmd i line_numbers_on escape_string str_tabs)
 
 
 
 
 let serialize_cmd_arr cmds tabs line_numbers serialize_cmd =
-	let number_of_cmds = Array.length cmds in 
-	let rec serialize_cmd_arr_iter i str_ac = 
-		if (i >= number_of_cmds) 
+	let number_of_cmds = Array.length cmds in
+	let rec serialize_cmd_arr_iter i str_ac =
+		if (i >= number_of_cmds)
 			then str_ac
-			else 
-				((let cmd = cmds.(i) in 
-				let str_cmd = serialize_cmd cmd tabs i line_numbers in 
-				serialize_cmd_arr_iter (i + 1) (str_ac ^ str_cmd ^ "\n"))) in 
+			else
+				((let cmd = cmds.(i) in
+				let str_cmd = serialize_cmd cmd tabs i line_numbers in
+				serialize_cmd_arr_iter (i + 1) (str_ac ^ str_cmd ^ "\n"))) in
 	serialize_cmd_arr_iter 0 ""
 
 let string_of_cmd_arr cmds tabs line_numbers =
-	let string_of_cmd_aux cmd tabs i line_numbers = 
-		string_of_cmd cmd tabs i line_numbers true false in 
+	let string_of_cmd_aux cmd tabs i line_numbers =
+		string_of_cmd cmd tabs i line_numbers true false in
 	serialize_cmd_arr cmds tabs line_numbers string_of_cmd_aux
 
 (** JSIL spec return flag *)
@@ -381,7 +381,7 @@ let rec string_of_specs specs =
 		[[ ... ]]
 		normal|error;
 		...
-	proc xpto (arg1, arg2, ...) { 
+	proc xpto (arg1, arg2, ...) {
 		cmds
 	} with {
 		ret: x_ret, i_ret;
@@ -398,21 +398,21 @@ let string_of_procedure proc line_numbers =
 	^
 	(* Procedure definition block *)
 	(Printf.sprintf "proc %s (%s) {\n%s} with {\n%s%s};\n"
-  	proc.proc_name 
-   	(String.concat ", " proc.proc_params) 
+  	proc.proc_name
+   	(String.concat ", " proc.proc_params)
 		(string_of_cmd_arr proc.proc_body 2 line_numbers)
 		(match proc.ret_var, proc.ret_label with
-		| None, None -> "" 
+		| None, None -> ""
 		| Some var, Some label -> (Printf.sprintf "\tret: %s, %s;\n" var (string_of_int label))
 		| _, _ -> raise (Failure "Error: variable and error label not both present or both absent!"))
 		(match proc.error_var, proc.error_label with
-		| None, None -> "" 
+		| None, None -> ""
 		| Some var, Some label -> (Printf.sprintf "\terr: %s, %s;\n" var (string_of_int label))
 		| _, _ -> raise (Failure "Error: variable and error label not both present or both absent!")))
 
 (** JSIL programs *)
-let string_of_program program line_numbers = 
-	Hashtbl.fold 
+let string_of_program program line_numbers =
+	Hashtbl.fold
 		(fun _ proc acc_str -> acc_str ^ "\n" ^ (string_of_procedure proc line_numbers))
 		program
 		""
@@ -425,7 +425,7 @@ let string_of_lab_cmd lcmd =
 	(* Basic command *)
 	| SLBasic bcmd ->
 		(string_of_bcmd bcmd 0 false false)
-	(* goto j *) 
+	(* goto j *)
   | SLGoto j ->
 		Printf.sprintf "goto %s" j
   (* goto [e] j k *)
@@ -444,49 +444,49 @@ let string_of_lab_cmd lcmd =
 			| None -> ""
 			| Some label -> (" with " ^ label))
 	(* var := PHI(var_1, var_2, ..., var_n) *)
-	| SLPhiAssignment (var, var_arr) -> 
-		let len = Array.length var_arr in  
+	| SLPhiAssignment (var, var_arr) ->
+		let len = Array.length var_arr in
 		let rec loop i str_ac =
-			if (i >= len) 
-				then str_ac 
-				else 
-					let var_arr_i_str = 
-						(match var_arr.(i) with 
+			if (i >= len)
+				then str_ac
+				else
+					let var_arr_i_str =
+						(match var_arr.(i) with
 						| None -> "$$empty"
-						| Some v_i -> v_i) in 
+						| Some v_i -> v_i) in
 					(if (i == 0)
 						then loop 1 var_arr_i_str
-						else  loop (i + 1) (str_ac ^ ", " ^ var_arr_i_str)) in 
-		let var_arr_str = loop 0 "" in 
+						else  loop (i + 1) (str_ac ^ ", " ^ var_arr_i_str)) in
+		let var_arr_str = loop 0 "" in
 		Printf.sprintf "%s := PHI(%s)" var var_arr_str
 	(* var := PSI(var_1, var_2, ..., var_n) *)
-	| SLPsiAssignment (var, var_arr) -> 
-		let len = Array.length var_arr in  
+	| SLPsiAssignment (var, var_arr) ->
+		let len = Array.length var_arr in
 		let rec loop i str_ac =
-			if (i >= len) 
-				then str_ac 
-				else 
-					let var_arr_i_str = 
-						(match var_arr.(i) with 
+			if (i >= len)
+				then str_ac
+				else
+					let var_arr_i_str =
+						(match var_arr.(i) with
 						| None -> "$$empty"
-						| Some v_i -> v_i) in 
+						| Some v_i -> v_i) in
 					(if (i == 0)
 						then loop 1 var_arr_i_str
-						else  loop (i + 1) (str_ac ^ ", " ^ var_arr_i_str)) in 
-		let var_arr_str = loop 0 "" in 
+						else  loop (i + 1) (str_ac ^ ", " ^ var_arr_i_str)) in
+		let var_arr_str = loop 0 "" in
 		Printf.sprintf "%s := PSI(%s)" var var_arr_str
 
-let string_of_lbody lbody = 
+let string_of_lbody lbody =
 	let len = Array.length lbody in
 	let str = ref "" in
 	for i = 0 to (len - 1) do
 		let metadata, lab, lcmd = lbody.(i) in
-		let spec = metadata.pre_cond in 
-		let str_of_spec = 
-			(match spec with 
-			| None -> "" 
+		let spec = metadata.pre_cond in
+		let str_of_spec =
+			(match spec with
+			| None -> ""
 			| Some ass -> "\t\t\t[[" ^ string_of_logic_assertion ass false ^ "]]\n") in
-		let str_of_lab  = 
+		let str_of_lab  =
 			(match lab with
 			| None -> "\t\t\t"
 			| Some lab -> "\t" ^ lab ^ ":\t" ^ (if (String.length lab < 7) then "\t" else "")) in
@@ -507,15 +507,15 @@ let string_of_ext_procedure proc =
 	^
 	(* Procedure definition block *)
 	(Printf.sprintf "proc %s (%s) {\n%s} with {\n%s%s};\n"
-  	proc.lproc_name 
-   	(String.concat ", " proc.lproc_params) 
+  	proc.lproc_name
+   	(String.concat ", " proc.lproc_params)
 		(string_of_lbody proc.lproc_body)
 		(match proc.lret_var, proc.lret_label with
-		| None, None -> "" 
+		| None, None -> ""
 		| Some var, Some label -> (Printf.sprintf "\tret: %s, %s;\n" var label)
 		| _, _ -> raise (Failure "Error: variable and error label not both present or both absent!"))
 		(match proc.lerror_var, proc.lerror_label with
-		| None, None -> "" 
+		| None, None -> ""
 		| Some var, Some label -> (Printf.sprintf "\terr: %s, %s;\n" var label)
 		| _, _ -> raise (Failure "Error: variable and error label not both present or both absent!")))
 
@@ -539,45 +539,45 @@ let string_of_ext_program program =
 		""
 
 
-let string_of_proc_metadata proc = 
-	let line_info_lst = 
-		List.mapi 
+let string_of_proc_metadata proc =
+	let line_info_lst =
+		List.mapi
 			(fun i (metadata, _) ->
-				match metadata.line_offset with 
+				match metadata.line_offset with
 				| None -> Printf.sprintf "(%d, %d)" i 0
 				| Some n ->  Printf.sprintf "(%d, %d)" i n)
-			(Array.to_list proc.proc_body) in 
-	
-	let line_info_str = 
-		List.fold_left 
+			(Array.to_list proc.proc_body) in
+
+	let line_info_str =
+		List.fold_left
 			(fun ac elem -> if (ac = "") then elem else ac ^ "\n" ^ elem)
 			""
-			line_info_lst in 
-	"Proc: " ^ proc.proc_name ^ "\n" ^ line_info_str  
+			line_info_lst in
+	"Proc: " ^ proc.proc_name ^ "\n" ^ line_info_str
 
-let string_of_prog_metadata prog = 
-	Hashtbl.fold 
-		(fun _ proc acc_str -> 
-			if (acc_str = "") 
+let string_of_prog_metadata prog =
+	Hashtbl.fold
+		(fun _ proc acc_str ->
+			if (acc_str = "")
 				then (string_of_proc_metadata proc)
-				else acc_str ^ "\n" ^ (string_of_proc_metadata proc)) 
-		prog	
+				else acc_str ^ "\n" ^ (string_of_proc_metadata proc))
+		prog
 		""
 
-let string_of_ext_proc_metadata ext_proc = 
-	let line_info_lst = 
-		List.mapi 
+let string_of_ext_proc_metadata ext_proc =
+	let line_info_lst =
+		List.mapi
 			(fun i (metadata, label, cmd) ->
-				match metadata.line_offset with 
+				match metadata.line_offset with
 				| None -> Printf.sprintf "(%d, %d)" i 0
-				| Some n ->  Printf.sprintf "(%d, %d)" i n) 
-			(Array.to_list ext_proc.lproc_body) in 
-	
-	let line_info_str = 
-		List.fold_left 
+				| Some n ->  Printf.sprintf "(%d, %d)" i n)
+			(Array.to_list ext_proc.lproc_body) in
+
+	let line_info_str =
+		List.fold_left
 			(fun ac elem -> if (ac = "") then elem else ac ^ "\n" ^ elem)
 			""
-			line_info_lst in 
+			line_info_lst in
 	"Proc: " ^ ext_proc.lproc_name ^ "\n" ^ line_info_str
 
 let string_of_ext_prog_metadata ext_prog =
@@ -589,21 +589,20 @@ let string_of_ext_prog_metadata ext_prog =
 		ext_prog
 		""
 
-let str_of_assertion_list a_list = 
-	List.fold_left 
-		(fun ac a -> 
-			let a_str = string_of_logic_assertion a false in 
-			if (ac = "") then a_str else (ac ^ ", " ^ a_str))
-			""
+let str_of_assertion_list a_list =
+	List.fold_left
+		(fun ac a ->
+			let a_str = string_of_logic_assertion a false in
+			if (ac = "\t") then (ac ^ a_str) else (ac ^ "\n\t" ^ a_str))
+			"\t"
 			a_list
 
 
-let string_of_logic_command lcmd escape_string = 
-	match lcmd with 
+let string_of_logic_command lcmd escape_string =
+	match lcmd with
 	| Fold a    -> "fold(" ^ (string_of_logic_assertion a escape_string) ^ ")"
 	| Unfold a  -> "unfold(" ^ (string_of_logic_assertion a escape_string) ^ ")"
 
 
-let string_of_var_list var_lst = 
-	List.fold_left (fun ac v -> if (ac = "") then v else (ac ^ ", " ^ v)) "" var_lst 
- 
+let string_of_var_list var_lst =
+	List.fold_left (fun ac v -> if (ac = "") then v else (ac ^ ", " ^ v)) "" var_lst
