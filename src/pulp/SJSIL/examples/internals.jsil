@@ -362,7 +362,7 @@ spec o__get (l, prop)
     [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3) * (#g_aux_3 == $$undefined) * (ret == $$undefined) ]]
     normal;
     [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3) * isDataDescriptor (#g_aux_3) ]]
-    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3) * isDataDescriptor (#g_aux_3) * desc_value (#g_aux_3, #desc_val) * (ret == #desc_val) ]]
+    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3) * desc_value (#g_aux_3, #desc_val) * (ret == #desc_val) ]]
     normal
 
 proc o__get (l, prop) {

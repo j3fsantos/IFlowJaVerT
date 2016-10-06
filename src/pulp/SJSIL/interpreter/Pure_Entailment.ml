@@ -232,6 +232,15 @@ let mk_smt_translation_ctx gamma existentials =
 	let lub_int_num_axiom = Boolean.mk_eq ctx le1 nt in
 	let le2 = (Expr.mk_app ctx z3_lub [ nt; it ]) in
 	let lub_num_int_axiom = Boolean.mk_eq ctx le2 nt in
+	
+	(* forall x. (x = nil) \/ (llen(x) > 0) *)
+  let x = "x" in
+	let le_x = (Expr.mk_const ctx (Symbol.mk_string ctx x) list_sort) in
+	let ass1 = Boolean.mk_eq ctx le_x (Expr.mk_app ctx list_nil [ ]) in
+	let le_llen_x = (Expr.mk_app ctx z3_llen_fun [ le_x ]) in
+	let ass2 = Arithmetic.mk_lt ctx (Arithmetic.Integer.mk_numeral_i ctx 0) le_llen_x in 
+	let ass = Boolean.mk_or ctx [ass1; ass2] in 
+	let axiom_llen_ass = encode_quantifier true ctx [ x ] [ list_sort ] ass in  
 
 	{
 		z3_ctx            = ctx;
@@ -253,7 +262,7 @@ let mk_smt_translation_ctx gamma existentials =
 		tr_list_head      = list_head;
 		tr_list_tail      = list_tail;
 		tr_lub            = z3_lub;
-		tr_axioms         = [ z3_slen_axiom; z3_llen_axiom;  lub_refl_axiom; lub_int_num_axiom; lub_num_int_axiom ]
+		tr_axioms         = [ z3_slen_axiom; z3_llen_axiom;  lub_refl_axiom; lub_int_num_axiom; lub_num_int_axiom; axiom_llen_ass ]
 		(* tr_existentials   = existentials *)
 	}
 

@@ -232,8 +232,9 @@ let symb_state_add_subst_as_equalities new_symb_state subst pfs spec_vars =
 
 let safe_symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae  =
 	let nle = symb_evaluate_expr expr store gamma pure_formulae in
-	(* Printf.printf "safe_symb_evaluate_expr!\n"; *)
+	Printf.printf "safe_symb_evaluate_expr with expr: %s!\n" (JSIL_Print.string_of_logic_expression nle false);
 	let nle_type, is_typable, constraints = type_lexpr gamma nle in
+	Printf.printf "is_typable: %b\nconstraints: %s\n" is_typable (JSIL_Print.str_of_assertion_list constraints);
 	let are_constraints_satisfied =
 		(if ((List.length constraints) > 0)
 			then Pure_Entailment.check_entailment [] (pfs_to_list pure_formulae) constraints gamma
