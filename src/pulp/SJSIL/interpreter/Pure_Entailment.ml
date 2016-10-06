@@ -648,7 +648,7 @@ let check_satisfiability assertions gamma existentials =
 
 (* right_as must be satisfiable *)
 let rec check_entailment existentials left_as right_as gamma =
-	print_endline (Printf.sprintf "------------------------------\n    Entering entailment\n");
+	(* print_endline (Printf.sprintf "------------------------------\n    Entering entailment\n"); *)
 	let cfg = [("model", "true"); ("proof", "false")] in
 
 	let tr_ctx = mk_smt_translation_ctx gamma existentials in
@@ -657,20 +657,20 @@ let rec check_entailment existentials left_as right_as gamma =
 	let ret_right = check_satisfiability right_as gamma existentials in
 	if (not (ret_right)) then
 	begin
-		print_endline (Printf.sprintf "Right side not satisfiable on its own.");
+		(* print_endline (Printf.sprintf "Right side not satisfiable on its own."); *)
 		false
 	end
 	else
 		begin
-		print_endline (Printf.sprintf "Right side satisfiable on its own.");
+		(* print_endline (Printf.sprintf "Right side satisfiable on its own."); *)
 		try
 		(* check if left_as => right_as *)
 		let right_as = List.map
 				(fun a ->
-					(* Printf.printf "I am about to encode a pure formula inside the check_entailment: %s\n" (JSIL_Print.string_of_logic_assertion a false); *)
+					(* Printf.printf "I am about to encode a pure formula inside the check_entailment: %s\n%!" (JSIL_Print.string_of_logic_assertion a false); *) 
 					let a = encode_pure_formula tr_ctx a in
 					(* Printf.printf "Z3 Expression: %s\n" (Expr.to_string a);
-					Printf.printf "I encoded a pure formula successfully\n"; *)
+					Printf.printf "I encoded a pure formula successfully\n%!"; *)
 					Boolean.mk_not ctx a)
 				right_as in
 		let right_as_or =
@@ -688,17 +688,16 @@ let rec check_entailment existentials left_as right_as gamma =
 
 
 
-		Printf.printf "\nThe existentials are: ";
+		(* Printf.printf "\nThe existentials are: ";
 		List.iter (fun x -> Printf.printf "%s " x) existentials;
-		print_endline (Printf.sprintf "\n");
+		print_endline (Printf.sprintf "\n"); *)
 
 		(* SOMETHING HAPPENS HERE! *)
 		let solver = get_solver tr_ctx existentials left_as right_as_or in
 
-		print_endline (Printf.sprintf "About to ask the solver. So excited!");
+		(* print_endline (Printf.sprintf "About to ask the solver. So excited!"); *)
 		let ret = (Solver.check solver []) != Solver.SATISFIABLE in
-		print_endline (Printf.sprintf "Check_entailment. Result %b" ret);
-		(*
+		print_endline (Printf.sprintf "Check_entailment. Result %b" ret); 
 		 if (not ret) then
 			begin
 				let model = Solver.get_model solver in
@@ -710,10 +709,10 @@ let rec check_entailment existentials left_as right_as gamma =
 				| None ->
 					Printf.printf "No model filha\n");
 			Printf.printf "ret: %s\n" (string_of_bool ret);
-			end; *)
+			end; 
 		Gc.full_major ();
 		Solver.reset solver;
-		print_endline (Printf.sprintf "\n    Exiting entailment\n------------------------------\n");
+		(* print_endline (Printf.sprintf "\n    Exiting entailment\n------------------------------\n"); *)
 		ret
 		with Failure msg -> (* Printf.printf "Esta merda explodiuuuu: %s\n" msg; *) false
 		end
