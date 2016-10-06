@@ -232,7 +232,7 @@ let mk_smt_translation_ctx gamma existentials =
 		tr_num2int_fun    = z3_num2int_fun;
 		tr_snth_fun       = z3_snth_fun;
 		tr_lnth_fun       = z3_lnth_fun;
-  		tr_list_sort      = list_sort;
+  	tr_list_sort      = list_sort;
  		tr_list_nil       = list_nil;
 		tr_list_is_nil    = list_is_nil;
 		tr_list_cons      = list_cons;
@@ -337,7 +337,7 @@ let encode_unop tr_ctx op le te =
 		let new_le = (Arithmetic.mk_unary_minus ctx le) in
 		new_le, te
 	| LstLen     ->
-			Printf.printf "Inside encode_unop - lstlen. le: %s. te: %s\n" (Expr.to_string le)  (Expr.to_string te);
+			(* Printf.printf "Inside encode_unop - lstlen. le: %s. te: %s\n" (Expr.to_string le)  (Expr.to_string te); *)
 			(try
 				(let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_llen_fun [ le ]) in
 				new_le, (encode_type ctx IntType))
@@ -461,19 +461,6 @@ let rec encode_logical_expression tr_ctx e =
 			(JSIL_Print.string_of_logic_expression e false) in
 		raise (Failure msg))
 
-
-(*
-	| LBinOp			of jsil_logic_expr * bin_op * jsil_logic_expr
-	| LUnOp				of unary_op * jsil_logic_expr
-	| LEVRef			of jsil_logic_expr * jsil_logic_expr
-	| LEORef			of jsil_logic_expr * jsil_logic_expr
-	| LBase				of jsil_logic_expr
-	| LField			of jsil_logic_expr
-	| LTypeOf			of jsil_logic_expr
-	| LEList      of jsil_logic_expr list
-
-	| LStrNth     of jsil_logic_expr * jsil_logic_expr
-	| LUnknown *)
 
 let get_solver tr_ctx existentials left_as right_as_or =
 
@@ -863,36 +850,36 @@ normalised_is_typable gamma (pfrm : JSIL_Memory_Model.pure_formulae option) nlex
 		| _, _ -> (None, false))
 
 	| LLstNth (lst, index) ->
-		Printf.printf "LLstNth in normalised_is_typable!\n";
-		Printf.printf "Darling targets: %s and %s\n" (JSIL_Print.string_of_logic_expression lst false) (JSIL_Print.string_of_logic_expression index false);
+		(* Printf.printf "LLstNth in normalised_is_typable!\n";
+		Printf.printf "Darling targets: %s and %s\n" (JSIL_Print.string_of_logic_expression lst false) (JSIL_Print.string_of_logic_expression index false); *)
 
 		let (type_lst, _) = f lst in
 		let (type_index, _) = f index in
 		(match (type_lst, type_index, pfrm) with
 		| Some ListType, Some IntType, Some pfrm ->
-			Printf.printf "Types have matched.\n";
+			(* Printf.printf "Types have matched.\n"; *)
 
 			(* I want the shit normalised with respect to the pure part *)
 			let simplified = normalise_me_silly pfrm gamma (LLstNth (lst, index)) in
-			Printf.printf "Simplified: %s" (JSIL_Print.string_of_logic_expression simplified false);
+			(* Printf.printf "Simplified: %s" (JSIL_Print.string_of_logic_expression simplified false); *)
 
 			if (simplified = LLstNth (lst, index)) then (None, false)
 			else (f simplified)
 		| _, _, _ -> (None, false))
 
 	| LStrNth (str, index) ->
-		Printf.printf "LStrNth in normalised_is_typable!\n";
-		Printf.printf "Darling targets: %s and %s\n" (JSIL_Print.string_of_logic_expression str false) (JSIL_Print.string_of_logic_expression index false);
+		(* Printf.printf "LStrNth in normalised_is_typable!\n";
+		Printf.printf "Darling targets: %s and %s\n" (JSIL_Print.string_of_logic_expression str false) (JSIL_Print.string_of_logic_expression index false); *)
 
 		let (type_str, _) = f str in
 		let (type_index, _) = f index in
 		(match (type_str, type_index, pfrm) with
 		| Some StringType, Some IntType, Some pfrm ->
-			Printf.printf "Types have matched.\n";
+			(* Printf.printf "Types have matched.\n"; *)
 			let asrt1 = (LNot (LLess (index, LLit (Integer 0)))) in
 			let asrt2 = (LLess (index, LUnOp (StrLen, str))) in
 			let entail = (check_entailment [] (JSIL_Memory_Model.pfs_to_list pfrm) [ asrt1; asrt2 ] gamma) in
-			Printf.printf "Entailment: %b\n" entail;
+			(* Printf.printf "Entailment: %b\n" entail; *)
 			if entail
 				then (Some StringType, true)
 				else (None, false)
@@ -916,7 +903,7 @@ normalise_me_silly (pure_formulae : JSIL_Memory_Model.pure_formulae) gamma lexpr
 	| LLstNth (lst, index) ->
 		let lit_lst = subst_to_literal pure_formulae gamma lst in
 		let lit_idx = subst_to_literal pure_formulae gamma index in
-		Printf.printf "normalise_me_silly: %s %s\n" (JSIL_Print.string_of_logic_expression lit_lst false) (JSIL_Print.string_of_logic_expression lit_idx false);
+		(* Printf.printf "normalise_me_silly: %s %s\n" (JSIL_Print.string_of_logic_expression lit_lst false) (JSIL_Print.string_of_logic_expression lit_idx false); *)
 		(match lit_idx with
 			| LLit (Num idx) ->
 				(match lit_lst with
