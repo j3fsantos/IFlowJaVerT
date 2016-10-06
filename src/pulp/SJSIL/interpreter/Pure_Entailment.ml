@@ -201,7 +201,7 @@ let mk_smt_translation_ctx gamma existentials =
 	let slen_assertion = Arithmetic.mk_ge ctx le1 le2 in
 	let z3_slen_axiom = encode_quantifier true ctx [ x ] z3_slen_fun_domain slen_assertion in
 
-	Printf.printf "After slen!\n";
+	(* Printf.printf "After slen!\n"; *)
 
 	(* forall x. llen(x) >= 0 *)
 	let x = "x" in
@@ -211,7 +211,7 @@ let mk_smt_translation_ctx gamma existentials =
 	let llen_assertion = Arithmetic.mk_ge ctx le1 le2 in
 	let z3_llen_axiom = encode_quantifier true ctx [ x ] z3_llen_fun_domain llen_assertion in
 
-	Printf.printf "After llen!\n";
+	(* Printf.printf "After llen!\n"; *)
 
 	let list_nil     = Z3List.get_nil_decl     list_sort in
 	let list_is_nil  = Z3List.get_is_nil_decl  list_sort in
@@ -330,19 +330,19 @@ let encode_binop tr_ctx op le1 le2 =
 
 (** Encode JSIL unary operators *)
 let encode_unop tr_ctx op le te =
-	Printf.printf "Inside encode_unop\n";
+	(* Printf.printf "Inside encode_unop\n"; *)
 	let ctx = tr_ctx.z3_ctx in
 	match op with
 	| UnaryMinus ->
 		let new_le = (Arithmetic.mk_unary_minus ctx le) in
 		new_le, te
 	| LstLen     ->
-			Printf.printf "Inside encode_unop - lstlen. le: %s. te: %s\n" (Expr.to_string le)  (Expr.to_string te); 
-			(try 
+			Printf.printf "Inside encode_unop - lstlen. le: %s. te: %s\n" (Expr.to_string le)  (Expr.to_string te);
+			(try
 				(let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_llen_fun [ le ]) in
 				new_le, (encode_type ctx IntType))
 			with _ ->
-				(Printf.printf "The error is where we expected it to be!!\n"; 
+				(Printf.printf "The error is where we expected it to be!!\n";
 				raise (Failure "I am not myself tonight!!\n")))
 	| StrLen     ->
 		let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_slen_fun [ le ]) in
@@ -387,7 +387,7 @@ let get_z3_var_and_type tr_ctx var =
 
 (** Encode JSIL logical expressions *)
 let rec encode_logical_expression tr_ctx e =
-	Printf.printf "Inside encode logical expression\n";
+	(* Printf.printf "Inside encode logical expression\n"; *)
 	let ele = encode_logical_expression tr_ctx in
 	let ctx = tr_ctx.z3_ctx in
 	let gamma = tr_ctx.tr_typing_env in
@@ -416,7 +416,7 @@ let rec encode_logical_expression tr_ctx e =
 		le, te1, (as_op :: (as1 @ as2))
 
 	| LUnOp (op, le)        ->
-		Printf.printf "Inside encode logical expression - unop\n";
+		(* Printf.printf "Inside encode logical expression - unop\n"; *)
 		let le, te, as1 = ele le in
 		let le, te      = encode_unop tr_ctx op le te in
 		le, te, as1
@@ -492,11 +492,13 @@ let get_solver tr_ctx existentials left_as right_as_or =
 			then encode_quantifier true tr_ctx.z3_ctx existentials (get_sorts tr_ctx existentials) right_as_or
 			else right_as_or in
 
-	Printf.printf "The thingies IMMEDIATELY BEFORE THE SOLVER:\n";
-		 List.iter
-			(fun expr -> Printf.printf "\n%s\n" (Expr.to_string expr))
-			(left_as @ [ right_as_or ]);
-		 Printf.printf "\nDone printing\n";
+(*
+	Printf.printf "--- ABOUT TO ENTER THE SOLVER ---\n";
+	List.iter (fun expr -> Printf.printf "%s\n" (Expr.to_string expr)) left_as;
+	Printf.printf "\nIMPLIES:\n\n";
+	Printf.printf "%s\n" (Expr.to_string right_as_or);
+	Printf.printf "\nDone printing\n";
+*)
 
 	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 	Solver.add solver (left_as @ [ right_as_or ]);
@@ -514,12 +516,12 @@ let rec check_entailment existentials left_as right_as gamma =
 	let ret_right = check_satisfiability right_as gamma existentials in
 	if (not (ret_right)) then
 	begin
-		Printf.printf "Right side not satisfiable on its own.\n";
+		(* Printf.printf "Right side not satisfiable on its own.\n"; *)
 		false
 	end
 	else
 		begin
-		Printf.printf "Right side satisfiable on its own.\n";
+		(* Printf.printf "Right side satisfiable on its own.\n"; *)
 		try
 		(* check if left_as => right_as *)
 		let right_as = List.map
@@ -601,21 +603,21 @@ encode_pure_formula tr_ctx a =
 			Boolean.mk_and ctx ([ cur_as1; cur_as2 ] @ as1 @ as2))
 
 	| LLess (le1', le2')   ->
-		Printf.printf "LLess: %s %s\n" (JSIL_Print.string_of_logic_expression le1' false) (JSIL_Print.string_of_logic_expression le2' false);
+		(* Printf.printf "LLess: %s %s\n" (JSIL_Print.string_of_logic_expression le1' false) (JSIL_Print.string_of_logic_expression le2' false); *)
 		let t1, _ = normalised_is_typable gamma None le1' in
 		let t2, _ = normalised_is_typable gamma None le2' in
-		Printf.printf "I determined the types of the things given to less\n";
+		(* Printf.printf "I determined the types of the things given to less\n"; *)
 		let le1, te1, as1 = fe le1' in
-		Printf.printf "First one passes.\n";
+		(* Printf.printf "First one passes.\n"; *)
 		let le2, te2, as2 = fe le2' in
-		Printf.printf "Second one passes\n";
+		(* Printf.printf "Second one passes\n"; *)
 		(match t1, t2 with
 		| Some t1, Some t2 ->
 			let t = types_lub t1 t2 in
 			(match t with
 			| Some IntType
 			| Some NumberType -> Arithmetic.mk_lt ctx le1 le2
-			| _ -> Printf.printf "Coucou t'habites dans quelle planete?\n";
+			| _ -> Printf.printf "Coucou!! T'habites dans quelle planete?\n";
 				   raise (Failure "Arithmetic operation invoked on non-numeric types"))
 
     | _, _ ->
@@ -650,9 +652,9 @@ check_satisfiability assertions gamma existentials =
 	let assertions =
 		List.map
 			(fun a ->
-				Printf.printf "I am about to check the satisfiablity of: %s\n" (JSIL_Print.string_of_logic_assertion a false);
+				(* Printf.printf "I am about to check the satisfiablity of: %s\n" (JSIL_Print.string_of_logic_assertion a false); *)
 				let a = encode_pure_formula tr_ctx a in
-				Printf.printf "Z3 Expression: %s\n" (Expr.to_string a);
+				(* Printf.printf "Z3 Expression: %s\n" (Expr.to_string a); *)
 				a)
 			assertions in
 	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
@@ -660,13 +662,14 @@ check_satisfiability assertions gamma existentials =
 	let ret = (Solver.check solver []) = Solver.SATISFIABLE in
 	Gc.full_major ();
 	Solver.reset solver;
-	Printf.printf "Check_satisfiability. Result %b" ret;
+	(* Printf.printf "Check_satisfiability. Result %b" ret; *)
 	ret
 	with _ -> false
 and
-normalised_is_typable gamma (pf : JSIL_Memory_Model.pure_formulae option) nlexpr =
-	let f = normalised_is_typable gamma pf in
+normalised_is_typable gamma (pfrm : JSIL_Memory_Model.pure_formulae option) nlexpr =
+	let f = normalised_is_typable gamma pfrm in
 	(* Printf.printf "Calling normalised_is_typable with: %s\n" (JSIL_Print.string_of_logic_expression nlexpr false); *)
+
 	(match nlexpr with
 	(* Literals are always typable *)
   | LLit lit -> (Some (evaluate_type_of lit), true)
@@ -862,39 +865,78 @@ normalised_is_typable gamma (pf : JSIL_Memory_Model.pure_formulae option) nlexpr
 	| LLstNth (lst, index) ->
 		Printf.printf "LLstNth in normalised_is_typable!\n";
 		Printf.printf "Darling targets: %s and %s\n" (JSIL_Print.string_of_logic_expression lst false) (JSIL_Print.string_of_logic_expression index false);
+
 		let (type_lst, _) = f lst in
 		let (type_index, _) = f index in
-		(match (type_lst, type_index, pf) with
-		| Some ListType, Some IntType, Some pf ->
+		(match (type_lst, type_index, pfrm) with
+		| Some ListType, Some IntType, Some pfrm ->
 			Printf.printf "Types have matched.\n";
-			let asrt1 = (LNot (LLess (index, LLit (Integer 0)))) in
-			let asrt2 = (LLess (index, LUnOp (LstLen, lst))) in
-			Printf.printf "First entailment: non-negative: \n";
-			let entail1 = (check_entailment [] (JSIL_Memory_Model.pfs_to_list pf) [ asrt1 ] gamma) in
-			Printf.printf "%b\n" entail1;
-			Printf.printf "Second entailment: in-length: \n";
-			let entail2 = (check_entailment [] (JSIL_Memory_Model.pfs_to_list pf) [ asrt2 ] gamma) in
-			Printf.printf "%b\n" entail2;
-		 	if entail2
-				then (Some StringType, true)
-				else (None, false)
+
+			(* I want the shit normalised with respect to the pure part *)
+			let simplified = normalise_me_silly pfrm gamma (LLstNth (lst, index)) in
+			Printf.printf "Simplified: %s" (JSIL_Print.string_of_logic_expression simplified false);
+
+			if (simplified = LLstNth (lst, index)) then (None, false)
+			else (f simplified)
 		| _, _, _ -> (None, false))
 
 	| LStrNth (str, index) ->
 		let (type_str, _) = f str in
 		let (type_index, _) = f index in
-		(match (type_str, type_index, pf) with
-		| Some StringType, Some IntType, Some pf ->
+		(match (type_str, type_index, pfrm) with
+		| Some StringType, Some IntType, Some pfrm ->
 			let asrt1 = (LNot (LLess (index, LLit (Integer 0)))) in
 			let asrt2 = (LLess (index, LUnOp (StrLen, str))) in
-			if (check_entailment [] (JSIL_Memory_Model.pfs_to_list pf) [ asrt1; asrt2 ] gamma)
+			if (check_entailment [] (JSIL_Memory_Model.pfs_to_list pfrm) [ asrt1; asrt2 ] gamma)
 				then (Some StringType, true)
 				else (None, false)
 		| _, _, _ -> (None, false))
 
 	| LNone    -> (Some NoneType, true)
   | LUnknown -> (None, false))
+and
+normalise_me_silly (pure_formulae : JSIL_Memory_Model.pure_formulae) gamma lexpr =
+(match lexpr with
+	| LLstNth (lst, index) ->
+		let lit_lst = subst_to_literal pure_formulae gamma lst in
+		let lit_idx = subst_to_literal pure_formulae gamma index in
+		Printf.printf "normalise_me_silly: %s %s\n" (JSIL_Print.string_of_logic_expression lit_lst false) (JSIL_Print.string_of_logic_expression lit_idx false);
+		(match lit_idx with
+			| LLit (Num idx) ->
+				(match lit_lst with
+					| LLit (LList lst) ->
+						(try
+							let ret = List.nth lst (int_of_float idx) in LLit ret
+						with
+							| _ -> lexpr)
+					| LEList lst ->
+						(try
+							List.nth lst (int_of_float idx)
+						with
+							| _ -> lexpr)
+					| _ -> lexpr)
+			| _ -> lexpr)
 
+	 | _ -> lexpr)
+and
+subst_to_literal (pure_formulae : JSIL_Memory_Model.pure_formulae) gamma lexpr =
+let pf = filter_eqs pure_formulae in
+	let rec subst_it pf lexpr =
+	(match pf with
+	 | LEq (a, b) :: pf ->
+	 	let test = (a = lexpr) in
+	 		if test then b else (subst_it pf lexpr)
+	 | [] -> lexpr
+	 | _ -> raise (Failure "NO!")) in
+	subst_it pf lexpr
+and
+filter_eqs (pure_formulae : JSIL_Memory_Model.pure_formulae) =
+	DynArray.fold_left
+		(fun ac (x : JSIL_Syntax.jsil_logic_assertion) ->
+			(match x with
+			  | LEq (a, b) -> if ((a = b) || List.mem x ac) then ac else (x :: ac)
+			  | _ -> ac)
+		) [] pure_formulae
 
 let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
 	let f = reverse_type_lexpr_aux gamma new_gamma in

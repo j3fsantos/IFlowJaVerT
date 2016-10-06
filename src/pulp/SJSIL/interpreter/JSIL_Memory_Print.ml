@@ -37,9 +37,9 @@ let string_of_shallow_symb_store store escape_string =
 		(fun var le ac ->
 			 let le_str = string_of_logic_expression le escape_string in
 			 let var_le_str = "(" ^ var ^ ": " ^ le_str ^ ")" in
-			if (ac = "") then var_le_str else ac ^ ", " ^ var_le_str )
+			if (ac = "") then var_le_str else ac ^ "\n\t" ^ var_le_str )
 		store
-		""
+		"\t"
 
 
 let string_of_shallow_p_formulae p_formulae escape_string =
