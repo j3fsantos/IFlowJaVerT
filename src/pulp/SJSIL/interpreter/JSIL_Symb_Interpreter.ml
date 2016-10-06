@@ -883,7 +883,6 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 				(JSIL_Print.str_of_assertion_list (pat_pf_list @ pf_discharges))
 				(JSIL_Memory_Print.string_of_gamma new_gamma));
 			
-			
 			let unify_gamma_check = (unify_gamma pat_gamma new_gamma pat_store s_new_subst pat_pf_existentials) in
 			let entailment_check_ret = Pure_Entailment.check_entailment new_pat_pf_existentials pf_list (pat_pf_list @ pf_discharges) new_gamma in
 			Printf.printf "Unify gamma: %b Entailment check: %b\n" unify_gamma_check entailment_check_ret; 
