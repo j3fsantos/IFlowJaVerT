@@ -881,16 +881,32 @@ normalised_is_typable gamma (pfrm : JSIL_Memory_Model.pure_formulae option) nlex
 		| _, _, _ -> (None, false))
 
 	| LStrNth (str, index) ->
+		Printf.printf "LStrNth in normalised_is_typable!\n";
+		Printf.printf "Darling targets: %s and %s\n" (JSIL_Print.string_of_logic_expression str false) (JSIL_Print.string_of_logic_expression index false);
+
 		let (type_str, _) = f str in
 		let (type_index, _) = f index in
 		(match (type_str, type_index, pfrm) with
 		| Some StringType, Some IntType, Some pfrm ->
+			Printf.printf "Types have matched.\n";
 			let asrt1 = (LNot (LLess (index, LLit (Integer 0)))) in
 			let asrt2 = (LLess (index, LUnOp (StrLen, str))) in
-			if (check_entailment [] (JSIL_Memory_Model.pfs_to_list pfrm) [ asrt1; asrt2 ] gamma)
+			let entail = (check_entailment [] (JSIL_Memory_Model.pfs_to_list pfrm) [ asrt1; asrt2 ] gamma) in
+			Printf.printf "Entailment: %b\n" entail;
+			if entail
 				then (Some StringType, true)
 				else (None, false)
-		| _, _, _ -> (None, false))
+		| Some stype, Some itype, Some pf ->
+			Printf.printf "Something went wrong with the types. %s %s\n\n" (JSIL_Print.string_of_type stype) (JSIL_Print.string_of_type stype); (None, false)
+		| Some stype, None, Some pf ->
+			Printf.printf "String type: %s Index not typable.\n\n" (JSIL_Print.string_of_type stype); (None, false)
+		| None, Some itype, Some pf ->
+			Printf.printf "String not typable. Index type: %s\n\n" (JSIL_Print.string_of_type itype); (None, false)
+		| None, None, Some pf ->
+			Printf.printf "Both string and index not typable. Ew.\n\n"; (None, false)
+		| _, _, None ->
+			Printf.printf "No pure formulae?! WTF?!\n\n"; (None, false))
+
 
 	| LNone    -> (Some NoneType, true)
   | LUnknown -> (None, false))
