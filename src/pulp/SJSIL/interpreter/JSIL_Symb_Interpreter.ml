@@ -871,8 +871,6 @@ let unify_symb_states lvars existentials pat_symb_state (symb_state : symbolic_s
 			let pf_list = pfs_to_list pf in
 			let new_pat_pf_existentials = (List.map (fun v -> fresh_lvar ()) pat_pf_existentials) in
 
-		  	Printf.printf "pat_pf_existentials: %s\n" (print_var_list pat_pf_existentials);
-
 			let existential_substitution = init_substitution2 pat_pf_existentials (List.map (fun v -> LVar v) new_pat_pf_existentials) in
 
 			extend_substitution s_new_subst pat_pf_existentials (List.map (fun v -> LVar v) new_pat_pf_existentials);
@@ -880,14 +878,18 @@ let unify_symb_states lvars existentials pat_symb_state (symb_state : symbolic_s
 
 			let existentials = new_pat_pf_existentials @ existentials in
 
+			Printf.printf "existentials: %s\n\n" (print_var_list existentials);
+
 			let new_gamma =
-				if ((List.length pat_pf_existentials) > 0)
+				if ((List.length existentials) > 0)
 					then (
 						let new_gamma = copy_gamma gamma in
-						let new_pat_gamma = filter_gamma_with_subst pat_gamma pat_pf_existentials s_new_subst in
+						let new_pat_gamma = filter_gamma_with_subst pat_gamma existentials s_new_subst in
 						extend_gamma new_gamma new_pat_gamma;
 						new_gamma)
 				else gamma in
+
+			Printf.printf "And so, the new gamma: %s\n" (JSIL_Memory_Print.string_of_gamma new_gamma);
 
 			let pat_pf_list = List.map (fun a -> assertion_substitution a existential_substitution true) pat_pf_list in
 			let pf_discharges = List.map (fun a -> assertion_substitution a existential_substitution true) pf_discharges in
@@ -895,7 +897,7 @@ let unify_symb_states lvars existentials pat_symb_state (symb_state : symbolic_s
 			let unify_gamma_check = (unify_gamma pat_gamma new_gamma pat_store s_new_subst existentials) in
 			let existentials_str = print_var_list existentials in
 
-			print_endline (Printf.sprintf "Dicharges: %s" (JSIL_Print.str_of_assertion_list pf_discharges));
+			print_endline (Printf.sprintf "Discharges: %s" (JSIL_Print.str_of_assertion_list pf_discharges));
 			print_endline (Printf.sprintf "About to check if\n (\n%s\n)	\nENTAILS\n (Exists %s.\n(\n%s\n))" (JSIL_Print.str_of_assertion_list pf_list) existentials_str (JSIL_Print.str_of_assertion_list (pat_pf_list @ pf_discharges)));
 
 			let entailment_check_ret = Pure_Entailment.check_entailment existentials pf_list (pat_pf_list @ pf_discharges)  new_gamma in

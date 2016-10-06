@@ -306,8 +306,8 @@ let rec encode_literal tr_ctx lit =
 	| Constant c    -> encode_constant ctx c
 	| Bool b        ->
 		(match b with
-		| true        -> (Arithmetic.Integer.mk_numeral_i ctx 0), (encode_type ctx BooleanType)
-		| false       -> (Arithmetic.Integer.mk_numeral_i ctx 1), (encode_type ctx BooleanType))
+		| true        -> (Arithmetic.Integer.mk_numeral_i ctx 1), (encode_type ctx BooleanType)
+		| false       -> (Arithmetic.Integer.mk_numeral_i ctx 0), (encode_type ctx BooleanType))
 	| Integer i     -> (Arithmetic.Integer.mk_numeral_i ctx i), (encode_type ctx IntType)
 	| Num n         ->
 		if (n = (snd (modf n)))
