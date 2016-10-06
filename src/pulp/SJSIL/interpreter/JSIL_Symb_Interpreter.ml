@@ -163,11 +163,14 @@ let rec symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae =
 		| _ -> LField (nle))
 
 	| TypeOf (e) ->
+		(** the typeof can only be removed when there are no constraints 
+        If there are constraints, we need to leave it there because 
+				the constraints cannot be ignored.                       **)				
 		let nle = symb_evaluate_expr e store gamma pure_formulae in
-		let nle_type, _ = Pure_Entailment.normalised_is_typable gamma (Some pure_formulae) nle in
+		let nle_type, _, _ = type_lexpr gamma nle in
 		(match nle_type with
 		| Some nle_type -> LLit (Type nle_type)
-		| None        ->  LTypeOf (nle))
+		| None          ->  LTypeOf (nle))
 
 	| EList es ->
 		let les =
@@ -209,21 +212,7 @@ let rec symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae =
 		(match str, index with
 		| LLit (String s), LLit (Num n) ->
 			LLit (String (String.make 1 (String.get s (int_of_float n))))
-
-		(* | str, index ->
-			let type_str, _ = JSIL_Logic_Utils.normalised_is_typable gamma str in
-			let type_index, _ = JSIL_Logic_Utils.normalised_is_typable gamma index in
-			(match type_str, type_index with
-			| Some StringType, Some IntType ->
-				let asrt1 = (LNot (LLess (index, LLit (Integer 0)))) in
-				let asrt2 = (LLess (index, LUnOp (StrLen, str))) in
-				if (Entailment_Engine.check_entailment [] (pfs_to_list pure_formulae) [ asrt1; asrt2 ] gamma)
-					then begin
-						let var = JSIL_Memory_Model.fresh_lvar () in
-						update_gamma gamma var (Some StringType);
-						LVar var
-					end else LStrNth (str, index) *)
-			| _, _ -> LStrNth (str, index))
+		| _, _ -> LStrNth (str, index))
 
 	| _ -> raise (Failure "not supported yet")
 
@@ -243,14 +232,17 @@ let symb_state_add_subst_as_equalities new_symb_state subst pfs spec_vars =
 
 let safe_symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae  =
 	let nle = symb_evaluate_expr expr store gamma pure_formulae in
-	Printf.printf "safe_symb_evaluate_expr!\n";
-	let nle_type, is_typable = Pure_Entailment.normalised_is_typable gamma (Some pure_formulae) nle in
+	(* Printf.printf "safe_symb_evaluate_expr!\n"; *)
+	let nle_type, is_typable, constraints = type_lexpr gamma nle in
+	let are_constraints_satisfied = 
+		(if ((List.length constraints) > 0) 
+			then Pure_Entailment.check_entailment [] (pfs_to_list pure_formulae) constraints gamma
+			else true) in 
+	let is_typable = is_typable && are_constraints_satisfied in 
 	if (is_typable) then
 		nle, nle_type, is_typable
 	else
 		(match nle with
-		| LLit _
-		| ALoc _
 		| LVar _ ->  nle, None, false
 		| _ ->
 			begin
@@ -259,6 +251,7 @@ let safe_symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae  =
 				let msg = Printf.sprintf "The logical expression %s is not typable in the typing enviroment: %s \n with the pure formulae %s" (JSIL_Print.string_of_logic_expression nle false) gamma_str pure_str in
 				raise (Failure msg)
 			end)
+
 
 (** Turns a logical expression into an assertions.
     Returns a logical expression option and an assertion option. *)
@@ -753,11 +746,11 @@ let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) p_form
 	new_subst, (DynArray.of_list quotient_preds)
 
 
-let unify_gamma pat_gamma gamma pat_store subst ignore_vars pfs =
-  Printf.printf "I am about to unify two gammas\n";
+let unify_gamma pat_gamma gamma pat_store subst ignore_vars =
+  (* Printf.printf "I am about to unify two gammas\n";
 	 	Printf.printf "pat_gamma: %s.\ngamma: %s.\nsubst: %s\n"
 		(JSIL_Memory_Print.string_of_gamma pat_gamma) (JSIL_Memory_Print.string_of_gamma gamma)
-		(JSIL_Memory_Print.string_of_substitution subst);
+		(JSIL_Memory_Print.string_of_substitution subst); *)
 	let res = (Hashtbl.fold
 		(fun var v_type ac ->
 			(* (not (is_lvar_name var)) *)
@@ -772,20 +765,20 @@ let unify_gamma pat_gamma gamma pat_store subst ignore_vars pfs =
 									(match (store_get_var_val pat_store var) with
 									| Some le -> JSIL_Logic_Utils.lexpr_substitution le subst true
 									| None -> (PVar var))) in
-						let le_type, is_typable = Pure_Entailment.normalised_is_typable gamma (Some pfs) le in
+						let le_type, is_typable, _ = JSIL_Logic_Utils.type_lexpr gamma le in
 						match le_type with
 						| Some le_type ->
-							 Printf.printf "unify_gamma. pat gamma var: %s. le: %s. v_type: %s. le_type: %s\n"
+							 (* Printf.printf "unify_gamma. pat gamma var: %s. le: %s. v_type: %s. le_type: %s\n"
 								var
 								(JSIL_Print.string_of_logic_expression le false)
 								(JSIL_Print.string_of_type v_type)
-								(JSIL_Print.string_of_type le_type);
+								(JSIL_Print.string_of_type le_type); *)
 							(le_type = v_type)
 						| None ->
-							 Printf.printf "failed unify_gamma. pat gamma var: %s. le: %s. v_type: %s\n"
+							(* Printf.printf "failed unify_gamma. pat gamma var: %s. le: %s. v_type: %s\n"
 								var
 								(JSIL_Print.string_of_logic_expression le false)
-								(JSIL_Print.string_of_type v_type);
+								(JSIL_Print.string_of_type v_type); *)
 							false
 					with _ ->
 						true))
@@ -898,7 +891,7 @@ let unify_symb_states lvars existentials pat_symb_state (symb_state : symbolic_s
 			let pat_pf_list = List.map (fun a -> assertion_substitution a existential_substitution true) pat_pf_list in
 			let pf_discharges = List.map (fun a -> assertion_substitution a existential_substitution true) pf_discharges in
 
-			let unify_gamma_check = (unify_gamma pat_gamma new_gamma pat_store s_new_subst existentials pf) in
+			let unify_gamma_check = (unify_gamma pat_gamma new_gamma pat_store s_new_subst existentials) in
 			let existentials_str = print_var_list existentials in
 			Printf.printf "Dicharges: %s\n" (JSIL_Print.str_of_assertion_list pf_discharges);
 			Printf.printf "About to check if (%s) ENTAILS (Exists %s. (%s))\n" (JSIL_Print.str_of_assertion_list pf_list) existentials_str (JSIL_Print.str_of_assertion_list (pat_pf_list @ pf_discharges));  
@@ -1615,7 +1608,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i =
 
 		List.iter
 			(fun (symb_state, ret_flag, ret_le) ->
-				let ret_type, _ = Pure_Entailment.normalised_is_typable (get_gamma symb_state) (Some (get_pf symb_state)) ret_le in
+				let ret_type, _, _ =	type_lexpr (get_gamma symb_state) ret_le in
 				update_abs_store (get_store symb_state) x ret_le;
 				update_gamma (get_gamma symb_state) x ret_type;
 				let new_search_info = update_vis_tbl search_info (copy_vis_tbl search_info.vis_tbl) in
