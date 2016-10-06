@@ -355,7 +355,7 @@ with
 
 (* **************
    *** O__GET ***
-   **************
+   ************** *)
 
 spec o__get (l, prop)
     [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3) * (#g_aux_3 == $$undefined) ]]
@@ -399,4 +399,3 @@ with
    ret: xret, rlab;
    err: xret, elab;
 };
-*)
