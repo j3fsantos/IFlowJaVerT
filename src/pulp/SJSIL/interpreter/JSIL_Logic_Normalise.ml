@@ -28,7 +28,7 @@ let rec normalise_lexpr store gamma subst le =
 					let new_lvar = extend_abs_store pvar store gamma in
 					Hashtbl.add subst pvar new_lvar;
 					new_lvar)
-	
+
 	| LBinOp (le1, bop, le2) ->
 			let nle1 = f le1 in
 			let nle2 = f le2 in
@@ -37,7 +37,7 @@ let rec normalise_lexpr store gamma subst le =
 						let lit = JSIL_Interpreter.evaluate_binop bop lit1 lit2 in
 						LLit lit
 				| _, _ -> LBinOp (nle1, bop, nle2))
-	
+
 	| LUnOp (uop, le1) ->
 			let nle1 = f le1 in
 			(match nle1 with
@@ -45,21 +45,21 @@ let rec normalise_lexpr store gamma subst le =
 						let lit = JSIL_Interpreter.evaluate_unop uop lit1 in
 						LLit lit
 				| _ -> LUnOp (uop, nle1))
-	
+
 	| LEVRef (le1, le2) ->
 			let nle1 = f le1 in
 			let nle2 = f le2 in
 			(match nle1, nle2 with
 				| LLit l, LLit (String field) -> LLit (LVRef (l, field))
 				| _, _ -> LEVRef (nle1, nle2))
-	
+
 	| LEORef (le1, le2) ->
 			let nle1 = f le1 in
 			let nle2 = f le2 in
 			(match nle1, nle2 with
 				| LLit l, LLit (String field) -> LLit (LORef (l, field))
 				| _, _ -> LEORef (nle1, nle2))
-	
+
 	| LBase	(le1) ->
 			let nle1 = f le1 in
 			(match nle1 with
@@ -68,7 +68,7 @@ let rec normalise_lexpr store gamma subst le =
 				| LEVRef (leb, _)
 				| LEORef (leb, _) -> leb
 				| _ -> LBase (nle1))
-	
+
 	| LField	(le1) ->
 			let nle1 = f le1 in
 			(match nle1 with
@@ -77,7 +77,7 @@ let rec normalise_lexpr store gamma subst le =
 				| LEVRef (_, fe)
 				| LEORef (_, fe) -> fe
 				| _ -> LField (nle1))
-	
+
 	| LTypeOf (le1) ->
 			let nle1 = f le1 in
 			(match nle1 with
@@ -115,7 +115,7 @@ let rec normalise_lexpr store gamma subst le =
 												raise (Failure "String index out of bounds")) in
 									LLit (Type StringType)
 							| _, _ -> LTypeOf (nle1)))
-	
+
 	| LEList le_list ->
 			let n_le_list = List.map (fun le -> f le) le_list in
 			let all_literals, lit_list =
@@ -129,7 +129,7 @@ let rec normalise_lexpr store gamma subst le =
 			if (all_literals)
 			then LLit (LList lit_list)
 			else LEList n_le_list
-	
+
 	| LLstNth (le1, le2) ->
 			let nle1 = f le1 in
 			let nle2 = f le2 in
@@ -139,7 +139,7 @@ let rec normalise_lexpr store gamma subst le =
 				| LEList list, LLit (Num n) -> (try (List.nth list (int_of_float n)) with _ ->
 								raise (Failure "List index out of bounds"))
 				| _, _ -> LLstNth (nle1, nle2))
-	
+
 	| LStrNth (le1, le2) ->
 			let nle1 = f le1 in
 			let nle2 = f le2 in
@@ -154,25 +154,25 @@ let rec normalise_pure_assertion store gamma subst assertion =
 	let fe = normalise_lexpr store gamma subst in
 	match assertion with
 	| LEq (le1, le2) -> LEq((fe le1), (fe le2))
-	
+
 	| LLess (le1, le2) -> LLess((fe le1), (fe le2))
-	
+
 	| LLessEq (le1, le2) -> LLessEq((fe le1), (fe le2))
-	
+
 	| LNot (LEq (le1, le2)) -> LNot (LEq((fe le1), (fe le2)))
-	
+
 	| LNot (LLessEq (le1, le2)) -> LNot (LLessEq((fe le1), (fe le2)))
-	
+
 	| LNot (LLess (le1, le2)) -> LNot (LLess((fe le1), (fe le2)))
-	
+
 	| LAnd (a1, a2) -> LAnd ((fa a1), (fa a2))
-	
+
 	| LOr (a1, a2) -> LOr ((fa a1), (fa a2))
-	
+
 	| LFalse -> LFalse
-	
+
 	| LTrue -> LTrue
-	
+
 	| _ ->
 			let msg = Printf.sprintf "normalise_pure_assertion can only process pure assertions: %s" (JSIL_Print.string_of_logic_assertion assertion false) in
 			raise (Failure msg)
@@ -186,7 +186,7 @@ let rec init_symb_store_alocs store gamma subst ass : unit =
 	match ass with
 	| LStar (a_left, a_right) ->
 			f a_left; f a_right
-	
+
 	| LPointsTo (PVar var, _, _) ->
 			if (not (Hashtbl.mem store var))
 			then
@@ -194,25 +194,25 @@ let rec init_symb_store_alocs store gamma subst ass : unit =
 					Hashtbl.add store var (ALoc aloc);
 					Hashtbl.add subst var (ALoc aloc);
 					Hashtbl.replace gamma var ObjectType)
-	
+
 	| LPointsTo (LVar var, _, _) ->
 			if (not (Hashtbl.mem subst var))
 			then
 				(let aloc = new_abs_loc_name var in
 					Hashtbl.add subst var (ALoc aloc);
 					Hashtbl.remove gamma var)
-	
+
 	| LPointsTo (ALoc _, _, _) ->
 			raise (Failure "Unsupported assertion during normalization")
-	
+
 	| _ -> ()
 
 
 let init_pure_assignments a store gamma subst =
-	
+
 	let pure_assignments = Hashtbl.create 31 in
 	let non_store_pure_assertions = Stack.create () in
-	
+
 	(**
 	* After putting the variables that have assignents of the kind:
 	* x = E (where E is a logical expression) in the store,
@@ -223,7 +223,7 @@ let init_pure_assignments a store gamma subst =
 		let non_store_pure_assertions_array = DynArray.make (stack_size *5) in
 		let cur_index = ref 0 in
 		(* Printf.printf "Stack size: %d\n" stack_size; *)
-		
+
 		while (not (Stack.is_empty non_store_pure_assertions)) do
 			let pure_assertion = Stack.pop non_store_pure_assertions in
 			let normalised_pure_assertion = normalise_pure_assertion store gamma subst pure_assertion in
@@ -233,9 +233,9 @@ let init_pure_assignments a store gamma subst =
 			(* Printf.printf "successfully put"; *)
 			cur_index := (!cur_index) + 1
 		done;
-		
+
 		non_store_pure_assertions_array in
-	
+
 	(**
 	* Given an assertion a, this function returns the list of pure assignments in a.
 	* assignments of the form: x = E or E = x for a logical expression E and a variable x
@@ -245,24 +245,24 @@ let init_pure_assignments a store gamma subst =
 			| LStar (a_l, a_r) ->
 					get_pure_assignments_iter a_l;
 					get_pure_assignments_iter a_r
-			
+
 			| LEq (PVar x, le)
 			| LEq (le, PVar x) ->
 					if (not (Hashtbl.mem pure_assignments x))
 					then Hashtbl.add pure_assignments x le
 					else Stack.push (LEq (PVar x, le)) non_store_pure_assertions
-			
+
 			| LEq (_, _) -> Stack.push a non_store_pure_assertions
-			
+
 			| LNot _ -> Stack.push a non_store_pure_assertions
 			| LLessEq (_, _) -> Stack.push a non_store_pure_assertions
 			| LLess (_, _) -> Stack.push a non_store_pure_assertions
-			
+
 			| LOr (_, _) -> Stack.push a non_store_pure_assertions
 			| LAnd (_, _) -> Stack.push a non_store_pure_assertions
-			
+
 			| _ -> ()) in
-	
+
 	(**
 	* all program variables not in the store need to be added there
 	*)
@@ -279,14 +279,14 @@ let init_pure_assignments a store gamma subst =
 								Hashtbl.add gamma new_l_var var_type
 							with _ -> ()))
 			p_vars	in
-	
+
 	(**
 	* dependency graphs between variable definitions
 	*)
 	let vars_succ p_vars p_vars_tbl =
 		let len = Array.length p_vars in
 		let succs = Array.make len [] in
-		
+
 		(* Printf.printf("computing the succs\n"); *)
 		for u =0 to (len -1) do
 			let cur_var = p_vars.(u) in
@@ -307,20 +307,20 @@ let init_pure_assignments a store gamma subst =
 			loop cur_var_deps
 		done;
 		succs in
-	
+
 	(**
 	* normalization of variable definitions
 	*)
 	let normalise_pure_assignments (succs : int list array) (p_vars : string array) (p_vars_tbl : (string, int) Hashtbl.t) =
 		let len = Array.length p_vars in
 		let visited_tbl = Array.make len false in
-		
+
 		let is_searchable u =
 			List.fold_left
 				(fun ac v -> ac && (not visited_tbl.(v)))
 				true
 				succs.(u) in
-		
+
 		(** a pure assignment that cannot be lifted to the abstract store
 		has to remain in the pure formulae *)
 		let remove_assignment var =
@@ -332,7 +332,7 @@ let init_pure_assignments a store gamma subst =
 			with _ ->
 					let msg = Printf.sprintf "Should not be here: remove_assignment. Var: %s." var in
 					raise (Failure msg)) in
-		
+
 		(** lifting an assignment to the abstract store *)
 		let rewrite_assignment var =
 			(* Printf.printf "Rewriting the assignment to variable %s\n" var; *)
@@ -346,7 +346,7 @@ let init_pure_assignments a store gamma subst =
 						Hashtbl.remove subst var;
 						Hashtbl.remove pure_assignments var;
 						Hashtbl.replace store var normalised_le) in
-		
+
 		let rec search (u : int) =
 			let u_var = p_vars.(u) in
 			(* Printf.printf "Visiting variable %s \n" u_var; *)
@@ -361,16 +361,16 @@ let init_pure_assignments a store gamma subst =
 									else search v)
 						succs.(u);
 					rewrite_assignment u_var in
-		
+
 		for i =0 to (len -1) do
 			if (not (visited_tbl.(i)))
 			then search i
 			else ()
 		done in
-	
+
 	(* get the pure assignments and store them in the hashtbl                *)
 	(* pure_assignments                                                      *)
-	
+
 	(* let str = Hashtbl.fold (fun key value ac -> if (ac = "") then key else  *)
 	(* ac ^ "; " ^ key) pure_assignments "" in Printf.printf "Purely assigned  *)
 	(* variables before checking circularities: %s\n" str;                     *)
@@ -390,7 +390,7 @@ let init_pure_assignments a store gamma subst =
 let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_formulae gamma subst a =
 	let f = compute_symb_heap heap store p_formulae gamma subst in
 	let fe = normalise_lexpr store gamma subst in
-	
+
 	let simplify_element_of_cell_assertion ele =
 		(match ele with
 			| LLit _
@@ -405,10 +405,10 @@ let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_form
 					let te, _ = Pure_Entailment.normalised_is_typable gamma None ele in
 					update_gamma gamma lvar te;
 					LVar lvar) in
-	
+
 	match a with
 	| LStar (a1, a2) -> f a1; f a2
-	
+
 	| LPointsTo (LVar var, le2, le3)
 	| LPointsTo (PVar var, le2, le3) ->
 			let aloc = (try
@@ -420,15 +420,15 @@ let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_form
 			let nle3 = simplify_element_of_cell_assertion (fe le3) in
 			let field_val_pairs, default_val = (try LHeap.find heap aloc with _ -> ([], LUnknown)) in
 			LHeap.replace heap aloc (((nle2, nle3) :: field_val_pairs), default_val)
-	
+
 	| LPointsTo (LLit (Loc loc), le2, le3) ->
 			let nle2 = simplify_element_of_cell_assertion (fe le2) in
 			let nle3 = simplify_element_of_cell_assertion (fe le3) in
 			let field_val_pairs, default_val = (try LHeap.find heap loc with _ -> ([], LUnknown)) in
 			LHeap.replace heap loc (((nle2, nle3) :: field_val_pairs), default_val)
-	
+
 	| LPointsTo (_, _, _) -> raise (Failure "Unsupported points-to assertion")
-	
+
 	| LPred (_, _)
 	| LTrue
 	| LFalse
@@ -459,7 +459,7 @@ let rec init_gamma gamma a =
 													(JSIL_Print.string_of_logic_expression v false)
 													(JSIL_Print.string_of_type t) in
 											raise (Failure msg))
-							
+
 							| LVar v -> Hashtbl.replace gamma v t
 							| PVar v -> Hashtbl.replace gamma v t
 							(* let new_v, new_v_name = (match t with | ObjectType -> let new_v_name =  *)
@@ -519,22 +519,22 @@ let fill_store_with_gamma store gamma subst =
 						Hashtbl.add subst var (LVar new_l_var))
 		gamma
 
-let extend_typing_env_using_assertion_info a_list gamma = 
+let extend_typing_env_using_assertion_info a_list gamma =
 	let rec loop a_list =
-		match a_list with 
+		match a_list with
 		| [] -> ()
-		| (LEq (LVar x, le)) :: rest_a_list 
-		| (LEq (le, LVar x)) :: rest_a_list 
+		| (LEq (LVar x, le)) :: rest_a_list
+		| (LEq (le, LVar x)) :: rest_a_list
 		| (LEq (PVar x, le)) :: rest_a_list
-		| (LEq (le, PVar x)) :: rest_a_list -> 
-			let x_type = gamma_get_type gamma x in 
-			(match x_type with 
-			| None -> 
-				let le_type, _ = Pure_Entailment.normalised_is_typable gamma None le in 
-				weak_update_gamma gamma x le_type 
+		| (LEq (le, PVar x)) :: rest_a_list ->
+			let x_type = gamma_get_type gamma x in
+			(match x_type with
+			| None ->
+				let le_type, _ = Pure_Entailment.normalised_is_typable gamma None le in
+				weak_update_gamma gamma x le_type
 			| Some _ -> ());
 			loop rest_a_list
-		| _ :: rest_a_list -> loop rest_a_list in 
+		| _ :: rest_a_list -> loop rest_a_list in
 	loop a_list
 
 
@@ -543,12 +543,12 @@ let normalise_assertion a =
 	let store = Hashtbl.create 101 in
 	let gamma = Hashtbl.create 101 in
 	let subst = Hashtbl.create 101 in
-	
+
 	init_gamma gamma a;
 	init_symb_store_alocs store gamma subst a;
 	let p_formulae = init_pure_assignments a store gamma subst in
 	fill_store_with_gamma store gamma subst;
-	extend_typing_env_using_assertion_info ((pfs_to_list p_formulae) @ (pf_of_store2 store)) gamma; 
+	extend_typing_env_using_assertion_info ((pfs_to_list p_formulae) @ (pf_of_store2 store)) gamma;
 	compute_symb_heap heap store p_formulae gamma subst a;
 	let preds = init_preds a store gamma subst in
 	(heap, store, p_formulae, gamma, preds), subst
@@ -567,7 +567,7 @@ let normalise_postcondition a subst (lvars : string list) : symbolic_state * (st
 	let a = assertion_substitution a subst true in
 	let a_vars = get_ass_vars_lst a false in
 	let a_vars = filter_vars a_vars lvars in
-	
+
 	(* let a_vars_str = List.fold_left (fun ac var -> (ac ^ var ^ ", ")) ""    *)
 	(* a_vars in Printf.printf "Post Existentially Quantified Vars BABY:       *)
 	(* %s\n\n\n" a_vars_str;                                                   *)
@@ -577,22 +577,22 @@ let normalise_postcondition a subst (lvars : string list) : symbolic_state * (st
 
 
 let normalise_single_spec preds spec =
-	
+
 	(**
 	Printf.printf "Precondition  : %s\n" (JSIL_Print.string_of_logic_assertion spec.pre false);
 	Printf.printf "Postcondition : %s\n" (JSIL_Print.string_of_logic_assertion spec.post false);
 	Printf.printf "UPrecondition : %s\n" (JSIL_Print.string_of_logic_assertion unfolded_pre false);
 	Printf.printf "UPostcondition: %s\n" (JSIL_Print.string_of_logic_assertion unfolded_post false);
 	*)
-	
+
 	let f_pre_normalize a_list = List.concat (List.map pre_normalize_assertion a_list) in
 	let f_print assertions =
 		List.fold_left (fun ac s -> if (ac = "") then s else (ac ^ ";\n" ^ s)) ""
 			(List.map (fun a -> JSIL_Print.string_of_logic_assertion a false) assertions) in
-	
+
 	let unfolded_pres = f_pre_normalize (Logic_Predicates.auto_unfold preds spec.pre) in
 	let unfolded_posts = f_pre_normalize (Logic_Predicates.auto_unfold preds spec.post) in
-	
+
 	let unfolded_spec_list =
 		List.map
 			(fun pre ->
@@ -611,7 +611,7 @@ let normalise_single_spec preds spec =
 													then ((post_symb_state :: ac_posts), (post_lvars :: ac_posts_lvars))
 													else ac_posts, ac_posts_lvars)
 										([], [])
-										unfolded_posts in 		
+										unfolded_posts in
 								Some {
 									n_pre = pre_symb_state;
 									n_post = posts;
@@ -635,7 +635,7 @@ let normalise_single_spec preds spec =
 let normalise_spec preds spec =
 	(* Printf.printf "Going to process the SPECS of %s\n" spec.spec_name; *)
 	let normalised_pre_post_list = List.concat (List.map (normalise_single_spec preds) spec.proc_specs) in
-	
+
 	{
 		n_spec_name = spec.spec_name;
 		n_spec_params = spec.spec_params;
@@ -657,7 +657,7 @@ let build_spec_tbl preds prog =
 
 let init_store vars les =
 	let store = Hashtbl.create 31 in
-	
+
 	let rec loop vars les =
 		match vars, les with
 		| [], _ -> ()
@@ -665,7 +665,7 @@ let init_store vars les =
 				Hashtbl.replace store var le; loop rest_vars rest_les
 		| var :: rest_vars, [] ->
 				Hashtbl.replace store var (LLit Undefined); loop rest_vars [] in
-	
+
 	loop vars les;
 	store
 
@@ -681,16 +681,16 @@ let normalise_predicate_definitions pred_defs : (string, JSIL_Memory_Model.n_jsi
 											(fun a ->
 														let symb_state, _ = normalise_assertion a in
 														symb_state)
-											pre_normalised_as in 
+											pre_normalised_as in
 										let normalised_as = List.filter
-											(fun symb_state -> Pure_Entailment.check_satisfiability (get_pf_list symb_state) (get_gamma symb_state) []) 
+											(fun symb_state -> Pure_Entailment.check_satisfiability (get_pf_list symb_state) (get_gamma symb_state) [])
 											normalised_as in
-										(* List.iter 
+										(* List.iter
 											(fun symb_state ->
 												 Printf.printf "One valid unfolding of %s is:\n%s\n"
-													pred_name 
+													pred_name
 													(JSIL_Memory_Print.string_of_shallow_symb_state symb_state))
-											normalised_as;     *)  
+											normalised_as;     *)
 										normalised_as)
 							pred.definitions in
 					let n_definitions = List.concat n_definitions in
@@ -722,6 +722,3 @@ let store_substitution store gamma subst partial =
 			([], []) in
 	let store = init_store vars les in
 	store
-
-
-

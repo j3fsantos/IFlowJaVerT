@@ -243,6 +243,7 @@ let symb_state_add_subst_as_equalities new_symb_state subst pfs spec_vars =
 
 let safe_symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae  =
 	let nle = symb_evaluate_expr expr store gamma pure_formulae in
+	Printf.printf "safe_symb_evaluate_expr!\n";
 	let nle_type, is_typable = Pure_Entailment.normalised_is_typable gamma (Some pure_formulae) nle in
 	if (is_typable) then
 		nle, nle_type, is_typable
@@ -254,7 +255,8 @@ let safe_symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae  =
 		| _ ->
 			begin
 				let gamma_str = JSIL_Memory_Print.string_of_gamma gamma in
-				let msg = Printf.sprintf "The logical expression %s is not typable in the typing enviroment: %s" (JSIL_Print.string_of_logic_expression nle false) gamma_str in
+				let pure_str = JSIL_Memory_Print.string_of_shallow_p_formulae pure_formulae false in
+				let msg = Printf.sprintf "The logical expression %s is not typable in the typing enviroment: %s \n with the pure formulae %s" (JSIL_Print.string_of_logic_expression nle false) gamma_str pure_str in
 				raise (Failure msg)
 			end)
 
@@ -452,7 +454,8 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 		Hashtbl.fold
 			(fun var pat_lexpr discharges ->
 				let lexpr = try Hashtbl.find store var with _ -> raise (Failure "the stores are not unifiable") in
-				match pat_lexpr, lexpr with
+				let rec spin_me_round pat_lexpr lexpr dishcarges =
+				(match pat_lexpr, lexpr with
 
 				| LLit (Num n), LLit (Integer i)
 				| LLit (Integer i), LLit (Num n) ->
@@ -492,7 +495,16 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 							then discharges
 							else raise (Failure "the pattern store is not normalized."))
 
-				| le_pat, le -> ((le_pat, le) :: discharges))
+				| LEList el1, LEList el2 ->
+					(List.fold_left2
+					(fun ac x y ->
+						let new_ones = spin_me_round x y [] in
+						new_ones @ ac)
+					[] el1 el2) @ discharges
+
+				| le_pat, le -> if (le_pat = le) then discharges
+				                                 else ((le_pat, le) :: discharges)) in
+				spin_me_round pat_lexpr lexpr discharges)
 			pat_store
 			[] in
 	Some discharges
@@ -828,13 +840,21 @@ let pf_list_of_discharges discharges subst =
 
 
 let unify_symb_states lvars existentials pat_symb_state (symb_state : symbolic_state) : (symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * bool) option  =
+	Printf.printf "\nWe are now entering the magical land of general unification of everything. Enjoy.\n";
 	let pat_heap, pat_store, pat_pf, pat_gamma, pat_preds = pat_symb_state in
 	let heap, store, pf, gamma, preds = symb_state in
 	let subst = init_substitution lvars in
-	(* Printf.printf "store: %s. pat_store: %s.\n\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false) (JSIL_Memory_Print.string_of_shallow_symb_store pat_store false); *)
+	Printf.printf "Initial subst:\n\t";
+	Hashtbl.iter (fun x y -> Printf.printf "%s -> %s\n\t" x (JSIL_Print.string_of_logic_expression y false)) subst;
+	Printf.printf "\n";
+
+	Printf.printf "Let's unify the stores first:\nStore: %s. \nPat_store: %s.\n\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false) (JSIL_Memory_Print.string_of_shallow_symb_store pat_store false);
 	let discharges = unify_stores pat_store store subst None (pfs_to_list pf) gamma in
 	match discharges with
 	| Some discharges ->
+		Printf.printf "Discharges:\n\t";
+		List.iter (fun (x, y) -> Printf.printf "%s -> %s\n\t" (JSIL_Print.string_of_logic_expression x false) (JSIL_Print.string_of_logic_expression y false)) discharges;
+		Printf.printf "\n";
 		let spec_vars_check = spec_logic_vars_discharge subst lvars (get_pf_list symb_state) (get_gamma symb_state) in
 	  (* Printf.printf "unify_symb_states. heap:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false);
 		Printf.printf "the PAT symbolic state after computing quotient heap:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state); *)
@@ -844,6 +864,11 @@ let unify_symb_states lvars existentials pat_symb_state (symb_state : symbolic_s
 		(match spec_vars_check, new_subst, quotient_heap, new_pfs with
 		| true, Some new_subst, Some quotient_heap, Some new_pfs ->
 			let s_new_subst = copy_substitution new_subst in
+
+			Printf.printf "New subst:\n\t";
+			Hashtbl.iter (fun x y -> Printf.printf "%s -> %s\n\t" x (JSIL_Print.string_of_logic_expression y false)) new_subst;
+			Printf.printf "\n";
+
 			(* Printf.printf "Substitution afert predicate set unification baby!!!\n%s" (JSIL_Memory_Print.string_of_substitution new_subst);
 			Printf.printf "I computed a quotient heap but I also need to check an entailment\n";
 			Printf.printf "The quotient heap that I just computed:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false);
@@ -860,7 +885,7 @@ let unify_symb_states lvars existentials pat_symb_state (symb_state : symbolic_s
 			let pf_list = pfs_to_list pf in
 			let new_pat_pf_existentials = (List.map (fun v -> fresh_lvar ()) pat_pf_existentials) in
 
-		  (* Printf.printf "pat_pf_existentials: %s\n" (print_var_list pat_pf_existentials); *)
+		  	(* Printf.printf "pat_pf_existentials: %s\n" (print_var_list pat_pf_existentials); *)
 
 			let existential_substitution = init_substitution2 pat_pf_existentials (List.map (fun v -> LVar v) new_pat_pf_existentials) in
 
@@ -894,12 +919,12 @@ let unify_symb_states lvars existentials pat_symb_state (symb_state : symbolic_s
 					(  (* Printf.printf "I could NOT check the entailment!!!\n";
 					Printf.printf "entailment_check_ret: %b. unify_gamma_check: %b.\n" entailment_check_ret unify_gamma_check; *)
 					Some (quotient_heap, quotient_preds, new_subst, pf_discharges, false)))
-		| _ -> None)
-	| None -> None
+		| _ -> Printf.printf "One of the four things failed.\n"; None)
+	| None -> Printf.printf "Sweet Jesus, no discharges.\n"; None
 
 
 let fully_unify_symb_state pat_symb_state symb_state lvars existentials =
-	(* Printf.printf "fully_unify_symb_state. final symb_state:\n%s. Post symb_state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state) (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state); *)
+	Printf.printf "Fully_unify_symb_state.\nFinal symb_state:\n%s.\nPost symb_state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state) (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state);
 	let unifier = unify_symb_states lvars existentials pat_symb_state symb_state in
 	match unifier with
 	| Some (quotient_heap, quotient_preds, subst, pf_discharges, true) ->
@@ -907,7 +932,7 @@ let fully_unify_symb_state pat_symb_state symb_state lvars existentials =
 			(Some subst, "")
 		else (None, "incomplete match")
 	| Some (_, _, _, _, false)
-	| None -> (None, "non_unifiable heaps")
+	| None -> (None, "sorry, non_unifiable heaps")
 
 
 let unify_symb_state_against_post proc_name spec symb_state flag symb_exe_info =
@@ -922,14 +947,14 @@ let unify_symb_state_against_post proc_name spec symb_state flag symb_exe_info =
 
 	let rec loop posts post_vars_lists i =
 		(match posts, post_vars_lists with
-		| [], [] -> print_error_to_console "non_unifiable heaps";  raise (Failure "post condition is not unifiable")
+		| [], [] -> print_error_to_console "OMG, non_unifiable heaps";  raise (Failure "post condition is not unifiable")
 		| post :: rest_posts, post_lvars :: rest_posts_lvars ->
 			let subst = fully_unify_symb_state post symb_state spec.n_lvars post_lvars in
 			(match subst with
 			| Some subst, _ ->
 				activate_post_in_post_prunning_info symb_exe_info proc_name i;
 				Printf.printf "Verified one spec of proc %s\n" proc_name
-			| None, _       -> loop rest_posts rest_posts_lvars (i + 1))) in
+			| None, msg       -> Printf.printf "No go: %s\n" msg; loop rest_posts rest_posts_lvars (i + 1))) in
 
 	loop spec.n_post spec.n_post_lvars 0
 
