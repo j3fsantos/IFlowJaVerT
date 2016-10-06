@@ -127,6 +127,53 @@ let mk_typeof_axioms ctx z3_typeof_fun z3_typeof_fun_domain =
 			z3_typeof_axiom) in
 	List.map loop_fun [ UndefinedType; NullType; EmptyType; NoneType; BooleanType; IntType; NumberType; StringType; ObjectType; ListType; TypeType]
 
+let mk_z3_list_core les ctx list_nil list_cons =
+	let empty_list = Expr.mk_app ctx list_nil [ ] in
+	let rec loop les cur_list =
+		match les with
+		| [] -> cur_list
+		| le :: rest_les ->
+			let new_cur_list = Expr.mk_app ctx list_cons [ le; cur_list ] in
+			loop rest_les new_cur_list in
+	loop les empty_list
+
+
+let mk_z3_list les tr_ctx =
+	mk_z3_list_core les tr_ctx.z3_ctx tr_ctx.tr_list_nil tr_ctx.tr_list_cons 
+	
+
+
+(*  llen({{ }}) = 0) *)
+(* forall a:Any. (llen({{ a }}) = 1) *)
+(* forall a:Any, b:Any. (llen({{ a, b }}) = 2) *)
+let mk_z3_llen_axioms n ctx list_sort list_len list_nil list_cons =
+	
+	(* forall a1: Any, ..., an: Any. (llen{{a1, ..., an}}) = n *)
+	let make_llen_axiom n = 
+		let rec loop n vars le_vars sorts = 
+			if (n = 0) 
+				then vars, le_vars, sorts
+				else 
+					(let x = "x_" ^ (string_of_int n) in 
+					let le_x = Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx x) in
+					loop (n-1) (x :: vars) (le_x :: le_vars) (list_sort :: sorts)) in 
+		let vars, le_vars, sorts = loop n [] [] [] in 
+		let list = mk_z3_list_core le_vars ctx list_nil list_cons 	in 
+		let llen_le = (Expr.mk_app ctx list_len [ list ]) in 
+		let assertion = Boolean.mk_eq ctx (Arithmetic.Integer.mk_numeral_i ctx n) llen_le in 
+		let axiom = encode_quantifier true ctx vars sorts assertion in 
+	 	axiom in 
+		
+	let rec loop n axioms = 
+		let axiom_n = make_llen_axiom n in 
+		let axioms = axiom_n :: axioms in 
+		if (n = 0) 
+			then axioms
+			else loop (n - 1) axioms in 
+	loop n [] 
+			
+
+
 
 let mk_smt_translation_ctx gamma existentials =
 	let cfg = [("model", "true"); ("proof", "false")] in
@@ -184,18 +231,6 @@ let mk_smt_translation_ctx gamma existentials =
 	let slen_assertion = Arithmetic.mk_ge ctx le1 le2 in
 	let z3_slen_axiom = encode_quantifier true ctx [ x ] z3_slen_fun_domain slen_assertion in
 
-	(* Printf.printf "After slen!\n"; *)
-
-	(* forall x. llen(x) >= 0 *)
-	let x = "x" in
-	let le_x = (Expr.mk_const ctx (Symbol.mk_string ctx x) list_sort) in
-	let le1 = (Expr.mk_app ctx z3_llen_fun [ le_x ]) in
-	let le2 = (Arithmetic.Integer.mk_numeral_i ctx 0) in
-	let llen_assertion = Arithmetic.mk_ge ctx le1 le2 in
-	let z3_llen_axiom = encode_quantifier true ctx [ x ] z3_llen_fun_domain llen_assertion in
-
-	(* Printf.printf "After llen!\n"; *)
-
 	let list_nil     = Z3List.get_nil_decl     list_sort in
 	let list_is_nil  = Z3List.get_is_nil_decl  list_sort in
 	let list_cons    = Z3List.get_cons_decl    list_sort in
@@ -233,6 +268,14 @@ let mk_smt_translation_ctx gamma existentials =
 	let le2 = (Expr.mk_app ctx z3_lub [ nt; it ]) in
 	let lub_num_int_axiom = Boolean.mk_eq ctx le2 nt in
 	
+	(* forall x. llen(x) >= 0 *)
+	let x = "x" in
+	let le_x = (Expr.mk_const ctx (Symbol.mk_string ctx x) list_sort) in
+	let le1 = (Expr.mk_app ctx z3_llen_fun [ le_x ]) in
+	let le2 = (Arithmetic.Integer.mk_numeral_i ctx 0) in
+	let llen_assertion = Arithmetic.mk_ge ctx le1 le2 in
+	let z3_llen_axiom1 = encode_quantifier true ctx [ x ] z3_llen_fun_domain llen_assertion in
+	
 	(* forall x. (x = nil) \/ (llen(x) > 0) *)
   let x = "x" in
 	let le_x = (Expr.mk_const ctx (Symbol.mk_string ctx x) list_sort) in
@@ -240,7 +283,9 @@ let mk_smt_translation_ctx gamma existentials =
 	let le_llen_x = (Expr.mk_app ctx z3_llen_fun [ le_x ]) in
 	let ass2 = Arithmetic.mk_lt ctx (Arithmetic.Integer.mk_numeral_i ctx 0) le_llen_x in 
 	let ass = Boolean.mk_or ctx [ass1; ass2] in 
-	let axiom_llen_ass = encode_quantifier true ctx [ x ] [ list_sort ] ass in  
+	let axiom_llen_axiom2 = encode_quantifier true ctx [ x ] [ list_sort ] ass in 
+	
+	let llen_axioms = mk_z3_llen_axioms 5 ctx list_sort z3_llen_fun list_nil list_cons in 
 
 	{
 		z3_ctx            = ctx;
@@ -262,20 +307,9 @@ let mk_smt_translation_ctx gamma existentials =
 		tr_list_head      = list_head;
 		tr_list_tail      = list_tail;
 		tr_lub            = z3_lub;
-		tr_axioms         = [ z3_slen_axiom; z3_llen_axiom;  lub_refl_axiom; lub_int_num_axiom; lub_num_int_axiom; axiom_llen_ass ]
+		tr_axioms         = [ z3_slen_axiom; z3_llen_axiom1;  lub_refl_axiom; lub_int_num_axiom; lub_num_int_axiom; axiom_llen_axiom2 ] @ llen_axioms 
 		(* tr_existentials   = existentials *)
 	}
-
-
-let mk_z3_list les tr_ctx =
-	let empty_list = Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_list_nil [ ] in
-	let rec loop les cur_list =
-		match les with
-		| [] -> cur_list
-		| le :: rest_les ->
-			let new_cur_list = Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_list_cons [ le; cur_list ] in
-			loop rest_les new_cur_list in
-	loop les empty_list
 
 
 (** Encode JSIL constants as Z3 numerical constants *)
