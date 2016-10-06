@@ -231,7 +231,7 @@ let mk_smt_translation_ctx gamma existentials =
 	let le1 = (Expr.mk_app ctx z3_lub [ it; nt ]) in
 	let lub_int_num_axiom = Boolean.mk_eq ctx le1 nt in
 	let le2 = (Expr.mk_app ctx z3_lub [ nt; it ]) in
-	let lub_num_int_axiom = Boolean.mk_eq ctx le1 nt in
+	let lub_num_int_axiom = Boolean.mk_eq ctx le2 nt in
 
 	{
 		z3_ctx            = ctx;
