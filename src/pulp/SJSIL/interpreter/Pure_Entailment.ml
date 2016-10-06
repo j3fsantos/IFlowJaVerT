@@ -208,14 +208,14 @@ let mk_smt_translation_ctx gamma existentials =
 	let z3_lub_domain = [ Arithmetic.Integer.mk_sort ctx; Arithmetic.Integer.mk_sort ctx ] in
 	let z3_lub = FuncDecl.mk_func_decl ctx z3_lub_name z3_lub_domain (Arithmetic.Integer.mk_sort ctx) in
 
-  (* forall x, lub x x = x *) 
+  (* forall x, lub x x = x *)
   let x = "x" in
 	let le_x = Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx x) in
 	let le1 = (Expr.mk_app ctx z3_lub [ le_x; le_x ]) in
 	let lub_refl_ass = Boolean.mk_eq ctx le1 le_x in
 	let lub_refl_axiom = encode_quantifier true ctx [ x ] [ Arithmetic.Integer.mk_sort ctx ] lub_refl_ass in
 
-  (* forall x, lub x y = lub y x *) 
+  (* forall x, lub x y = lub y x *)
   let x = "x" in
 	let le_x = Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx x) in
   let y = "y" in
@@ -230,7 +230,9 @@ let mk_smt_translation_ctx gamma existentials =
 	let nt = encode_type ctx NumberType in
 	let le1 = (Expr.mk_app ctx z3_lub [ it; nt ]) in
 	let lub_int_num_axiom = Boolean.mk_eq ctx le1 nt in
-	
+	let le2 = (Expr.mk_app ctx z3_lub [ nt; it ]) in
+	let lub_num_int_axiom = Boolean.mk_eq ctx le1 nt in
+
 	{
 		z3_ctx            = ctx;
 		tr_typing_env     = gamma;
@@ -251,7 +253,7 @@ let mk_smt_translation_ctx gamma existentials =
 		tr_list_head      = list_head;
 		tr_list_tail      = list_tail;
 		tr_lub            = z3_lub;
-		tr_axioms         = [ z3_slen_axiom; z3_llen_axiom; lub_refl_axiom; lub_sym_axiom; lub_int_num_axiom ]
+		tr_axioms         = [ z3_slen_axiom; z3_llen_axiom;  lub_refl_axiom; lub_int_num_axiom; lub_num_int_axiom ]
 		(* tr_existentials   = existentials *)
 	}
 
@@ -326,41 +328,41 @@ let rec encode_literal tr_ctx lit =
 
 	| _             -> raise (Failure "SMT encoding: Construct not supported yet - literal!")
 
-let mk_constraint_int_num_or tr_ctx te = 
+let mk_constraint_int_num_or tr_ctx te =
 	let ctx = tr_ctx.z3_ctx in
 	let as_op_1 = Boolean.mk_eq ctx te (encode_type ctx NumberType) in
 	let as_op_2 = Boolean.mk_eq ctx te (encode_type ctx IntType) in
 	let as_op   = Boolean.mk_or ctx [ as_op_1; as_op_2 ] in
-	as_op 
-		
-	
-let mk_constraint_int_num tr_ctx te1 te2 = 
+	as_op
+
+
+let mk_constraint_int_num tr_ctx te1 te2 =
 	let ctx = tr_ctx.z3_ctx in
 	let as_op_1 = mk_constraint_int_num_or tr_ctx te1 in
 	let as_op_2 = mk_constraint_int_num_or tr_ctx te2 in
-	let as_op   = Boolean.mk_and ctx [ as_op_1; as_op_2 ] in 
-	as_op 
-		
-let mk_constraint_int tr_ctx te1 te2 = 
+	let as_op   = Boolean.mk_and ctx [ as_op_1; as_op_2 ] in
+	as_op
+
+let mk_constraint_int tr_ctx te1 te2 =
 	let ctx = tr_ctx.z3_ctx in
 	let as_op_1 = Boolean.mk_eq  ctx te1 (encode_type ctx IntType) in
 	let as_op_2 = Boolean.mk_eq  ctx te2 (encode_type ctx IntType) in
-	let as_op   = Boolean.mk_and ctx [ as_op_1; as_op_2 ] in 
-	as_op 
-	
-let mk_constraint_type tr_ctx te t = 
+	let as_op   = Boolean.mk_and ctx [ as_op_1; as_op_2 ] in
+	as_op
+
+let mk_constraint_type tr_ctx te t =
 	let ctx = tr_ctx.z3_ctx in
 	let as_op = Boolean.mk_eq ctx te (encode_type ctx t) in
-	as_op 
+	as_op
 
-let mk_lub_type tr_ctx t1 t2 = 
-	let ctx = tr_ctx.z3_ctx in 
+let mk_lub_type tr_ctx t1 t2 =
+	let ctx = tr_ctx.z3_ctx in
 	(Expr.mk_app ctx tr_ctx.tr_lub [ t1; t2 ])
 
 (** Encode JSIL binary operators *)
 let encode_binop tr_ctx op le1 te1 le2 te2 =
 	let ctx = tr_ctx.z3_ctx in
-	
+
 	match op with
 	| Plus     -> (Arithmetic.mk_add ctx [ le1; le2 ]), mk_lub_type tr_ctx te1 te2, [ mk_constraint_int_num tr_ctx te1 te2 ]
 	| Minus    -> (Arithmetic.mk_sub ctx [ le1; le2 ]), mk_lub_type tr_ctx te1 te2, [ mk_constraint_int_num tr_ctx te1 te2 ]
@@ -377,31 +379,31 @@ let encode_unop tr_ctx op le te =
 	(* Printf.printf "Inside encode_unop\n"; *)
 	let ctx = tr_ctx.z3_ctx in
 	match op with
-	
+
 	| UnaryMinus ->
 		let new_le = (Arithmetic.mk_unary_minus ctx le) in
 		new_le, te, [ mk_constraint_int_num_or tr_ctx te ]
-		 
+
 	| LstLen ->
 		let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_llen_fun [ le ]) in
 		new_le, (encode_type ctx IntType), [ mk_constraint_type tr_ctx te ListType ]
-	
+
 	| StrLen ->
 		let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_slen_fun [ le ]) in
 		new_le, (encode_type ctx IntType), [ mk_constraint_type tr_ctx te StringType ]
-		
+
 	| ToStringOp ->
 		let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_num2str_fun [ le ]) in
 		new_le, (encode_type ctx StringType), [ mk_constraint_int_num_or tr_ctx te ]
-		
+
 	| ToNumberOp ->
 		let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_str2num_fun [ le ]) in
 		new_le, (encode_type ctx NumberType), [ mk_constraint_type tr_ctx te StringType ]
-		
+
 	| ToIntOp ->
 		let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_num2int_fun [ le ]) in
 		new_le, (encode_type ctx IntType), [ mk_constraint_type tr_ctx te NumberType ]
-		
+
 	| _          ->
 		Printf.printf "SMT encoding: Construct not supported yet - unop - %s!\n" (JSIL_Print.string_of_unop op);
 		let msg = Printf.sprintf "SMT encoding: Construct not supported yet - unop - %s!" (JSIL_Print.string_of_unop op) in
@@ -555,10 +557,10 @@ let rec encode_pure_formula tr_ctx a =
 	| LLessEq (le1', le2') ->
 		let t1, _, _ = JSIL_Logic_Utils.type_lexpr gamma le1' in
 		let t2, _, _ = JSIL_Logic_Utils.type_lexpr gamma le2' in
-		
+
 		let le1, te1, as1 = fe le1' in
 		let le2, te2, as2 = fe le2' in
-		
+
 		(match t1, t2 with
 		| Some t1, Some t2 ->
 			let t = types_lub t1 t2 in
@@ -576,7 +578,7 @@ let rec encode_pure_formula tr_ctx a =
 				(JSIL_Memory_Print.string_of_gamma gamma);
 			raise (Failure "Death.")))
 
-	| LStrLess (_, _)    -> 
+	| LStrLess (_, _)    ->
 		(* TO DO - uninterpreted function *)
 		raise (Failure ("I don't know how to do string comparison in Z3"))
 
@@ -613,11 +615,11 @@ let get_solver tr_ctx existentials left_as right_as_or =
 	let right_as_or =
 		Expr.simplify right_as_or None in
 
-	Printf.printf "--- ABOUT TO ENTER THE SOLVER ---\n";
+	print_endline (Printf.sprintf "--- ABOUT TO ENTER THE SOLVER ---");
 	List.iter (fun expr -> Printf.printf "%s\n" (Expr.to_string expr)) left_as;
-	Printf.printf "\nIMPLIES:\n\n";
-	Printf.printf "%s\n" (Expr.to_string right_as_or);
-	Printf.printf "\nDone printing\n";
+	print_endline (Printf.sprintf "\nIMPLIES:\n");
+	print_endline (Printf.sprintf "%s" (Expr.to_string right_as_or));
+	print_endline (Printf.sprintf "\nDone printing");
 
 	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 	Solver.add solver (left_as @ [ right_as_or ]);
@@ -646,7 +648,7 @@ let check_satisfiability assertions gamma existentials =
 
 (* right_as must be satisfiable *)
 let rec check_entailment existentials left_as right_as gamma =
-	Printf.printf "------------------------------\n    Entering entailment\n\n";
+	print_endline (Printf.sprintf "------------------------------\n    Entering entailment\n");
 	let cfg = [("model", "true"); ("proof", "false")] in
 
 	let tr_ctx = mk_smt_translation_ctx gamma existentials in
@@ -655,12 +657,12 @@ let rec check_entailment existentials left_as right_as gamma =
 	let ret_right = check_satisfiability right_as gamma existentials in
 	if (not (ret_right)) then
 	begin
-		Printf.printf "Right side not satisfiable on its own.\n";
+		print_endline (Printf.sprintf "Right side not satisfiable on its own.");
 		false
 	end
 	else
 		begin
-		Printf.printf "Right side satisfiable on its own.\n";
+		print_endline (Printf.sprintf "Right side satisfiable on its own.");
 		try
 		(* check if left_as => right_as *)
 		let right_as = List.map
@@ -688,13 +690,14 @@ let rec check_entailment existentials left_as right_as gamma =
 
 		Printf.printf "\nThe existentials are: ";
 		List.iter (fun x -> Printf.printf "%s " x) existentials;
-		Printf.printf "\n\n";
+		print_endline (Printf.sprintf "\n");
 
 		(* SOMETHING HAPPENS HERE! *)
 		let solver = get_solver tr_ctx existentials left_as right_as_or in
 
+		print_endline (Printf.sprintf "About to ask the solver. So excited!");
 		let ret = (Solver.check solver []) != Solver.SATISFIABLE in
-
+		print_endline (Printf.sprintf "Check_entailment. Result %b" ret);
 		(*
 		 if (not ret) then
 			begin
@@ -710,9 +713,7 @@ let rec check_entailment existentials left_as right_as gamma =
 			end; *)
 		Gc.full_major ();
 		Solver.reset solver;
-		Printf.printf "Check_entailment. Result %b\n" ret;
-		Printf.printf "\n    Exiting entailment\n------------------------------\n\n";
+		print_endline (Printf.sprintf "\n    Exiting entailment\n------------------------------\n");
 		ret
 		with Failure msg -> (* Printf.printf "Esta merda explodiuuuu: %s\n" msg; *) false
 		end
-
