@@ -160,9 +160,9 @@ let string_of_substitution substitution =
 			(fun (var : string) (le : jsil_logic_expr) (ac : string) ->
 				let le_str = string_of_logic_expression le false in
 				let var_le_str = var ^ ": " ^ le_str  in
-				if (ac = "") then var_le_str else ac ^ "; " ^ var_le_str)
+				if (ac = "\n\t") then (ac ^ var_le_str) else ac ^ ";\n\t " ^ var_le_str)
 			substitution
-			"") in
+			"\n\t") in
 	"Substitution: " ^ str ^ "\n"
 
 
