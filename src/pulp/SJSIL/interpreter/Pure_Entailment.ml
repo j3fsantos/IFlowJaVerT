@@ -564,6 +564,10 @@ let rec encode_pure_formula tr_ctx a =
 		| Some ListType, Some ListType -> 
 			(match le1', le2' with 
 			| LLit (LList lits1), LLit (LList lits2) -> if (lits1 = lits2) then Boolean.mk_true ctx else Boolean.mk_false ctx 
+			| LEList les1, LEList les2 -> 
+				if ((List.length les1) = (List.length les2)) 
+					then Boolean.mk_eq ctx le1 le2 
+					else Boolean.mk_false ctx
 			| LLit (LList lits), _ -> 
 				let as1 = Boolean.mk_eq ctx le1 le2 in 
 				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length lits)) in 
@@ -732,6 +736,12 @@ let rec check_entailment existentials left_as right_as gamma =
 		(* print_endline (Printf.sprintf "Right side satisfiable on its own."); *)
 		try
 		(* check if left_as => right_as *)
+		let left_as =
+			List.map
+				(fun a -> encode_pure_formula tr_ctx a)
+				left_as in
+		let left_as = tr_ctx.tr_axioms @ left_as in
+		
 		let right_as = List.map
 				(fun a ->
 					(* Printf.printf "I am about to encode a pure formula inside the check_entailment: %s\n%!" (JSIL_Print.string_of_logic_assertion a false); *)
@@ -746,13 +756,6 @@ let rec check_entailment existentials left_as right_as gamma =
 				else if ((List.length right_as) = 1) then
 					(List.nth right_as 0)
 				else Boolean.mk_false ctx in
-
-		let left_as =
-			List.map
-				(fun a -> encode_pure_formula tr_ctx a)
-				left_as in
-		let left_as = tr_ctx.tr_axioms @ left_as in
-
 
 
 		(* Printf.printf "\nThe existentials are: ";
