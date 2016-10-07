@@ -248,7 +248,7 @@ let init_pure_assignments a store gamma subst =
 
 			| LEq (PVar x, le)
 			| LEq (le, PVar x) ->
-					if (not (Hashtbl.mem pure_assignments x))
+					if ((not (Hashtbl.mem pure_assignments x)) && (not (Hashtbl.mem store x)))
 					then Hashtbl.add pure_assignments x le
 					else Stack.push (LEq (PVar x, le)) non_store_pure_assertions
 
@@ -413,9 +413,9 @@ let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_form
 	| LPointsTo (PVar var, le2, le3) ->
 			let aloc = (try
 					(match Hashtbl.find subst var with
-						| ALoc aloc -> aloc
-						| _ -> raise (Failure "This should not happen, ever!"))
-				with _ -> raise (Failure "This should not happen, ever!")) in
+						| ALoc aloc -> Printf.printf "Subst: %s, %s\n" var aloc; aloc
+						| _ -> raise (Failure (Printf.sprintf "Not an ALoc in subst: %s" (JSIL_Print.string_of_logic_expression (Hashtbl.find subst var) false))))
+				with _ -> raise (Failure (Printf.sprintf "Variable %s not found in subst table!" var))) in
 			let nle2 = simplify_element_of_cell_assertion (fe le2) in
 			let nle3 = simplify_element_of_cell_assertion (fe le3) in
 			let field_val_pairs, default_val = (try LHeap.find heap aloc with _ -> ([], LUnknown)) in
@@ -544,11 +544,29 @@ let normalise_assertion a =
 	let gamma = Hashtbl.create 101 in
 	let subst = Hashtbl.create 101 in
 
+	(* Printf.printf "----- Stage 1 ----- \n\n";
+	Printf.printf "Nasty assertion: %s\n" (JSIL_Print.string_of_logic_assertion a false); *)
 	init_gamma gamma a;
 	init_symb_store_alocs store gamma subst a;
+	(* Printf.printf "Normalise assertion: gamma :%s\n" (JSIL_Memory_Print.string_of_gamma gamma);
+	Printf.printf "Normalise assertion: store :%s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false);
+	Printf.printf "Normalise assertion: subst :%s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
+
 	let p_formulae = init_pure_assignments a store gamma subst in
 	fill_store_with_gamma store gamma subst;
+	(* Printf.printf "----- Stage 1.5 ----- \n\n";
+	Printf.printf "Normalise assertion: pfrs  :%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
+	Printf.printf "Normalise assertion: gamma :%s\n" (JSIL_Memory_Print.string_of_gamma gamma);
+	Printf.printf "Normalise assertion: store :%s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false);
+	Printf.printf "Normalise assertion: subst :%s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
 	extend_typing_env_using_assertion_info ((pfs_to_list p_formulae) @ (pf_of_store2 store)) gamma;
+
+	(* Printf.printf "----- Stage 2 ----- \n\n";
+	Printf.printf "Normalise assertion: pfrs  :%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
+	Printf.printf "Normalise assertion: gamma :%s\n" (JSIL_Memory_Print.string_of_gamma gamma);
+	Printf.printf "Normalise assertion: store :%s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false);
+	Printf.printf "Normalise assertion: subst :%s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
+
 	compute_symb_heap heap store p_formulae gamma subst a;
 	let preds = init_preds a store gamma subst in
 	(heap, store, p_formulae, gamma, preds), subst

@@ -606,8 +606,8 @@ let rec type_lexpr gamma le =
 	indent := !indent + 1;
 
 	(* Printf.printf "I am inside type_lexpr trying to type %s\n%!" (JSIL_Print.string_of_logic_expression le false); *)
-	
-	let ret = 	
+
+	let ret =
 	(match le with
 	(* Literals are always typable *)
   | LLit lit -> (Some (evaluate_type_of lit), true, [])
