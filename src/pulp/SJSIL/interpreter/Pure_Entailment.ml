@@ -278,7 +278,7 @@ let mk_smt_translation_ctx gamma existentials =
 	let z3_llen_axiom1 = encode_quantifier true ctx [ x ] z3_llen_fun_domain llen_assertion in
 
 	(* forall x. (x = nil) \/ (llen(x) > 0) *)
-  let x = "x" in
+    let x = "x" in
 	let le_x = (Expr.mk_const ctx (Symbol.mk_string ctx x) list_sort) in
 	let ass1 = Boolean.mk_eq ctx le_x (Expr.mk_app ctx list_nil [ ]) in
 	let le_llen_x = (Expr.mk_app ctx z3_llen_fun [ le_x ]) in
@@ -286,7 +286,7 @@ let mk_smt_translation_ctx gamma existentials =
 	let ass = Boolean.mk_or ctx [ass1; ass2] in
 	let axiom_llen_axiom2 = encode_quantifier true ctx [ x ] [ list_sort ] ass in
 
-	let llen_axioms = mk_z3_llen_axioms 5 ctx list_sort z3_llen_fun list_nil list_cons in
+	let llen_axioms = mk_z3_llen_axioms 1 ctx list_sort z3_llen_fun list_nil list_cons in
 
 	{
 		z3_ctx            = ctx;
@@ -739,7 +739,7 @@ let rec check_entailment existentials left_as right_as gamma =
 		(* SOMETHING HAPPENS HERE! *)
 		let solver = get_solver tr_ctx existentials left_as right_as_or in
 
-		(* print_endline (Printf.sprintf "About to ask the solver. So excited!"); *)
+		print_endline (Printf.sprintf "About to ask the solver. So excited!");
 		let ret = (Solver.check solver []) != Solver.SATISFIABLE in
 		print_endline (Printf.sprintf "Check_entailment. Result %b" ret);
 		 if (not ret) then
