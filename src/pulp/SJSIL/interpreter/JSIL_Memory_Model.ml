@@ -207,6 +207,18 @@ let filter_gamma_with_subst gamma vars subst =
 		gamma; 
 	new_gamma
 
+let get_gamma_vars gamma = 
+	Hashtbl.fold
+		(fun var t ac_vars -> (var :: ac_vars))
+		gamma
+		[]
+
+let get_gamma_var_type_pairs gamma = 
+	Hashtbl.fold
+		(fun var t ac_vars -> ((var, t) :: ac_vars))
+		gamma
+		[]
+
 
 (*************************************)
 (** Predicate Set functions         **)

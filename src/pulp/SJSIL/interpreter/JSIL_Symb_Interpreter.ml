@@ -232,9 +232,9 @@ let symb_state_add_subst_as_equalities new_symb_state subst pfs spec_vars =
 
 let safe_symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae  =
 	let nle = symb_evaluate_expr expr store gamma pure_formulae in
-	Printf.printf "safe_symb_evaluate_expr with expr: %s!\n" (JSIL_Print.string_of_logic_expression nle false);
+	(* Printf.printf "safe_symb_evaluate_expr with expr: %s!\n" (JSIL_Print.string_of_logic_expression nle false);  *)
 	let nle_type, is_typable, constraints = type_lexpr gamma nle in
-	Printf.printf "is_typable: %b\nconstraints: %s\n" is_typable (JSIL_Print.str_of_assertion_list constraints);
+	(* Printf.printf "is_typable: %b\nconstraints: %s\n" is_typable (JSIL_Print.str_of_assertion_list constraints); *)
 	let are_constraints_satisfied =
 		(if ((List.length constraints) > 0)
 			then Pure_Entailment.check_entailment [] (pfs_to_list pure_formulae) constraints gamma
@@ -785,7 +785,7 @@ let unify_gamma pat_gamma gamma pat_store subst ignore_vars =
 						true))
 		pat_gamma
 		true) in
-	Printf.printf "\nEXITING unify_gamma: res: %b\n\n" res;
+	(* Printf.printf "\nEXITING unify_gamma: res: %b\n\n" res; *)
 	res
 
 
@@ -838,14 +838,14 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 	let heap, store, pf, gamma, preds = symb_state in
 	let subst = init_substitution lvars in
 
-	Printf.printf "unify_symb_states\n";
-	Printf.printf "Let's unify the stores first:\nStore: %s. \nPat_store: %s.\n\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false) (JSIL_Memory_Print.string_of_shallow_symb_store pat_store false);
+	(* Printf.printf "unify_symb_states\n";
+	Printf.printf "Let's unify the stores first:\nStore: %s. \nPat_store: %s.\n\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false) (JSIL_Memory_Print.string_of_shallow_symb_store pat_store false); *)
 
 	let discharges = unify_stores pat_store store subst None (pfs_to_list pf) gamma in
 	match discharges with
 	| Some discharges ->
 		let spec_vars_check = spec_logic_vars_discharge subst lvars (get_pf_list symb_state) (get_gamma symb_state) in
-	  Printf.printf "the PAT symbolic state after computing quotient heap:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state);
+	  (* Printf.printf "the PAT symbolic state after computing quotient heap:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state); *)
 		
 		let (quotient_heap, new_pfs) : (symbolic_heap option) * ((jsil_logic_assertion list) option) = unify_symb_heaps pat_heap heap pf gamma subst in
 		(* print_endline (Printf.sprintf "Substitution after heap unification baby!!!\n%s" (JSIL_Memory_Print.string_of_substitution subst)); *)
@@ -854,8 +854,8 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 		| true, Some new_subst, Some quotient_heap, Some new_pfs ->
 			let s_new_subst = copy_substitution new_subst in
 
-			Printf.printf "Substitution afert predicate set unification baby!!!\n%s" (JSIL_Memory_Print.string_of_substitution new_subst);
-			(* Printf.printf "I computed a quotient heap but I also need to check an entailment\n";
+			(* Printf.printf "Substitution afert predicate set unification baby!!!\n%s" (JSIL_Memory_Print.string_of_substitution new_subst);
+			Printf.printf "I computed a quotient heap but I also need to check an entailment\n";
 			Printf.printf "The quotient heap that I just computed:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false); *)
 				
 			let pat_pf_existentials = get_subtraction_vars (get_pf_list pat_symb_state) s_new_subst in
@@ -877,23 +877,23 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 			let pf_list = pfs_to_list pf in
 
 			let existentials_str = print_var_list new_pat_pf_existentials in
-			print_endline (Printf.sprintf "Dicharges: %s" (JSIL_Print.str_of_assertion_list pf_discharges));
+			(* print_endline (Printf.sprintf "Dicharges: %s" (JSIL_Print.str_of_assertion_list pf_discharges));
 			print_endline (Printf.sprintf "About to check if\n (\n%s\n)	\nENTAILS\n (Exists %s.\n(\n%s\n))\n given the gamma:\n%s" 
 				(JSIL_Print.str_of_assertion_list pf_list) 
 				existentials_str 
 				(JSIL_Print.str_of_assertion_list (pat_pf_list @ pf_discharges))
-				(JSIL_Memory_Print.string_of_gamma new_gamma));
+				(JSIL_Memory_Print.string_of_gamma new_gamma)); *)
 			
 			let unify_gamma_check = (unify_gamma pat_gamma new_gamma pat_store s_new_subst pat_pf_existentials) in
 			let entailment_check_ret = Pure_Entailment.check_entailment new_pat_pf_existentials pf_list (pat_pf_list @ pf_discharges) new_gamma in
-			Printf.printf "Unify gamma: %b Entailment check: %b\n" unify_gamma_check entailment_check_ret; 
+			(* Printf.printf "Unify gamma: %b Entailment check: %b\n" unify_gamma_check entailment_check_ret; *)
 			(if (entailment_check_ret & unify_gamma_check) then
-					(  Printf.printf "I could check the entailment!!!\n";
+					(  (* Printf.printf "I could check the entailment!!!\n"; *)
 					Some (quotient_heap, quotient_preds, s_new_subst, pf_discharges, true))
 				else
 					(
-					Printf.printf "I could NOT check the entailment!!!\n";
-					Printf.printf "entailment_check_ret: %b. unify_gamma_check: %b.\n" entailment_check_ret unify_gamma_check;
+					(* Printf.printf "I could NOT check the entailment!!!\n";
+					Printf.printf "entailment_check_ret: %b. unify_gamma_check: %b.\n" entailment_check_ret unify_gamma_check; *)
 					Some (quotient_heap, quotient_preds, new_subst, pf_discharges, false)))
 		| _ -> (* Printf.printf "One of the four things failed.\n"; *) None)
 	| None -> (* Printf.printf "Sweet Jesus, broken discharges.\n"; *) None
