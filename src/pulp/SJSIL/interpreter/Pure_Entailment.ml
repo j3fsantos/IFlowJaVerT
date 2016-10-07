@@ -547,6 +547,17 @@ let rec encode_logical_expression tr_ctx e =
 		raise (Failure msg))
 
 
+let encode_nth_equalities tr_ctx le_list les =
+	let ctx = tr_ctx.z3_ctx in 
+	List.mapi 
+		(fun i le -> 
+			let le', _, _ = encode_logical_expression tr_ctx le in 
+			let le_nth = (Expr.mk_app ctx tr_ctx.tr_lnth_fun [ le_list; (Arithmetic.Integer.mk_numeral_i ctx i) ]) in 
+			Boolean.mk_eq ctx le_nth le')
+		les 
+	
+	
+
 let rec encode_pure_formula tr_ctx a =
 	let f = encode_pure_formula tr_ctx in
 	let fe = encode_logical_expression tr_ctx in
@@ -570,20 +581,26 @@ let rec encode_pure_formula tr_ctx a =
 					else Boolean.mk_false ctx
 			| LLit (LList lits), _ -> 
 				let as1 = Boolean.mk_eq ctx le1 le2 in 
-				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length lits)) in 
-				Boolean.mk_and ctx [as1; as2 ] 	
+				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length lits)) in
+				let les = List.map (fun lit -> LLit lit) lits in 
+				let nth_as = encode_nth_equalities tr_ctx le2 les in 
+				Boolean.mk_and ctx ([as1; as2 ] @ nth_as)
 			| (LEList les), _ -> 
 				let as1 = Boolean.mk_eq ctx le1 le2 in 
 				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length les)) in 
-				Boolean.mk_and ctx [as1; as2 ] 	
+				let nth_as = encode_nth_equalities tr_ctx le2 les in
+				Boolean.mk_and ctx ([as1; as2 ]  @ nth_as)	
 			| _, LLit (LList lits) ->
 				let as1 = Boolean.mk_eq ctx le1 le2 in 
 				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length lits)) in 
-				Boolean.mk_and ctx [as1; as2 ] 
+				let les = List.map (fun lit -> LLit lit) lits in 
+				let nth_as = encode_nth_equalities tr_ctx le1 les in 
+				Boolean.mk_and ctx ([as1; as2 ] @ nth_as)
 			| _, (LEList les) ->
 				let as1 = Boolean.mk_eq ctx le1 le2 in 
 				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length les)) in 
-				Boolean.mk_and ctx [as1; as2 ] 
+				let nth_as = encode_nth_equalities tr_ctx le1 les in
+				Boolean.mk_and ctx ([as1; as2 ]  @ nth_as)	
 			| _, _ -> 
 				let as1 = Boolean.mk_eq ctx le1 le2 in 
 				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ])  (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) in 
