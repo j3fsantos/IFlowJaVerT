@@ -9,11 +9,11 @@ let encode_type ctx jsil_type =
 	| NullType              -> Arithmetic.Integer.mk_numeral_i ctx 1
 	| EmptyType             -> Arithmetic.Integer.mk_numeral_i ctx 2
 	| NoneType              -> Arithmetic.Integer.mk_numeral_i ctx 3
-  	| BooleanType           -> Arithmetic.Integer.mk_numeral_i ctx 4
+  | BooleanType           -> Arithmetic.Integer.mk_numeral_i ctx 4
 	| IntType               -> Arithmetic.Integer.mk_numeral_i ctx 5
-  	| NumberType            -> Arithmetic.Integer.mk_numeral_i ctx 6
+  | NumberType            -> Arithmetic.Integer.mk_numeral_i ctx 6
 	| StringType            -> Arithmetic.Integer.mk_numeral_i ctx 7
-  	| ObjectType            -> Arithmetic.Integer.mk_numeral_i ctx 8
+  | ObjectType            -> Arithmetic.Integer.mk_numeral_i ctx 8
 	| ReferenceType         -> Arithmetic.Integer.mk_numeral_i ctx 9
 	| ObjectReferenceType   -> Arithmetic.Integer.mk_numeral_i ctx 10
 	| VariableReferenceType -> Arithmetic.Integer.mk_numeral_i ctx 11
@@ -92,7 +92,7 @@ let encode_quantifier quantifier_type ctx quantified_vars var_sorts assertion =
 		let quantifier_str = Quantifier.to_string quantified_assertion in
 		(* Printf.printf "Quantified Assertion: %s\n" quantifier_str; *)
 		let quantified_assertion = Quantifier.expr_of_quantifier quantified_assertion in
-		let quantified_assertion = Expr.simplify quantified_assertion None in
+		(* let quantified_assertion = Expr.simplify quantified_assertion None in *)
 		quantified_assertion)
 	else assertion
 
