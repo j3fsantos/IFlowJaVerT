@@ -41,9 +41,9 @@ let arguments () =
 			"-sexpr",      Arg.Unit(fun () -> do_sexpr      := true), "generate output in s-expression format";
 			(* empty heap *)
 			"-empty_heap",      Arg.Unit(fun () -> empty_heap    := true), "empty heap";
-      "-closure", Arg.Clear(Parser_main.use_json), "use closure parser";
-      (* specs *)
-      "-specs", Arg.String(fun f -> spec_file := f; specs := true), "specs_file";
+            "-closure", Arg.Clear(Parser_main.use_json), "use closure parser";
+            (* specs *)
+            "-specs", Arg.String(fun f -> spec_file := f; specs := true), "specs_file";
     ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
@@ -94,9 +94,9 @@ let run_jsil_prog prog which_pred cc_tbl vis_tbl =
         return_to_exit rettype
 
 let main () =
-        Parser_main.use_json := true;
+    Parser_main.use_json := true;
 	arguments ();
-        Parser_main.init ();
+    Parser_main.init ();
 	if (!compile_and_run) then
           begin try
             Parser_main.verbose := false;
