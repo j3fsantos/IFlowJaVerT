@@ -92,7 +92,7 @@ let encode_quantifier quantifier_type ctx quantified_vars var_sorts assertion =
 		let quantifier_str = Quantifier.to_string quantified_assertion in
 		(* Printf.printf "Quantified Assertion: %s\n" quantifier_str; *)
 		let quantified_assertion = Quantifier.expr_of_quantifier quantified_assertion in
-		(* let quantified_assertion = Expr.simplify quantified_assertion None in *)
+		let quantified_assertion = Expr.simplify quantified_assertion None in 
 		quantified_assertion)
 	else assertion
 
