@@ -852,16 +852,16 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 					JSIL_Logic_Normalise.extend_typing_env_using_assertion_info pf_discharges gamma;
 
 					(* Printf.printf "The discharges to prove are: %s\n" (JSIL_Print.str_of_assertion_list pf_discharges); *)
-					(* Printf.printf "I unfolded the following symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state unfolded_symb_state); *)
+					Printf.printf "I unfolded the following symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state unfolded_symb_state);
 					let satisfiability_check = Pure_Entailment.check_satisfiability (get_pf_list unfolded_symb_state) gamma [] in
 					(* let discharges_check = Entailment_Engine.check_entailment [] pf pf_discharges gamma in *)
 					if (satisfiability_check)
 						then (
-							(* Printf.printf "Checked the pure part of the unfolding!!"; *)
+							Printf.printf "Checked the pure part of the unfolding!!\n";
 							loop rest_pred_defs (unfolded_symb_state :: symb_states))
 						else (
-							(* Printf.printf "Could NOT check the pure part of the unfolding. satisfiability_check: %b.\n" satisfiability_check;
-							Printf.printf "pf_discharges: %s\n" (JSIL_Print.str_of_assertion_list pf_discharges); *)
+							Printf.printf "Could NOT check the pure part of the unfolding. satisfiability_check: %b.\n" satisfiability_check;
+							Printf.printf "pf_discharges: %s\n" (JSIL_Print.str_of_assertion_list pf_discharges);
 							loop rest_pred_defs symb_states)
 			| None -> loop rest_pred_defs symb_states)) in
 

@@ -91,7 +91,7 @@ let encode_quantifier quantifier_type ctx quantified_vars var_sorts assertion =
 		let quantifier_str = Quantifier.to_string quantified_assertion in
 		(* Printf.printf "Quantified Assertion: %s\n" quantifier_str; *)
 		let quantified_assertion = Quantifier.expr_of_quantifier quantified_assertion in
-		let quantified_assertion = Expr.simplify quantified_assertion None in 
+		let quantified_assertion = Expr.simplify quantified_assertion None in
 		quantified_assertion)
 	else assertion
 
@@ -132,6 +132,7 @@ let mk_z3_list_core les ctx list_nil list_cons =
 		match les with
 		| [] -> cur_list
 		| le :: rest_les ->
+			Printf.printf "Current: %s\n" (Expr.to_string le);
 			let new_cur_list = Expr.mk_app ctx list_cons [ le; cur_list ] in
 			loop rest_les new_cur_list in
 	loop les empty_list
@@ -365,7 +366,11 @@ let rec encode_literal tr_ctx lit =
 				(fun (les, tes) (le, te) -> (le :: les, te :: tes))
 				([], [])
 				les_tes in
-		let le_list = mk_z3_list les tr_ctx in
+		let le_list =
+			Printf.printf ("mk_z3_list entry\n");
+			let res = mk_z3_list les tr_ctx in
+			Printf.printf ("mk_z3_list exit\n");
+			res in
 		le_list,  (encode_type ctx ListType)
 
 	| _             -> raise (Failure "SMT encoding: Construct not supported yet - literal!")
@@ -411,7 +416,11 @@ let encode_binop tr_ctx op le1 te1 le2 te2 =
 	| Times    -> (Arithmetic.mk_mul ctx [ le1; le2 ]), mk_lub_type tr_ctx te1 te2, [ mk_constraint_int_num tr_ctx te1 te2 ]
 	| Div      -> (Arithmetic.mk_div ctx le1 le2), mk_lub_type tr_ctx te1 te2, [ mk_constraint_int_num tr_ctx te1 te2 ]
 	| Mod      -> (Arithmetic.Integer.mk_mod ctx le1 le2), (encode_type ctx IntType), [ mk_constraint_int tr_ctx te1 te2 ]
-	| LstCons  -> (Expr.mk_app ctx tr_ctx.tr_list_cons [ le1; le2 ]), (encode_type ctx ListType), [ mk_constraint_type tr_ctx te2 ListType]
+	| LstCons  ->
+		print_endline (Printf.sprintf "So, Bananas...\n (%s : %s) (%s : %s)" (Expr.to_string le1) (Expr.to_string te1) (Expr.to_string le2) (Expr.to_string te2));
+		let le, te, constraints = (Expr.mk_app ctx tr_ctx.tr_list_cons [ le1; le2 ]), (encode_type ctx ListType), [ mk_constraint_type tr_ctx te2 ListType] in
+		Printf.printf "Yeah, we did it.\n";
+		le, te, constraints
 	| _     ->
 		let msg = Printf.sprintf "SMT encoding: Construct not supported yet - binop - %s!" (JSIL_Print.string_of_binop op) in
 		raise (Failure msg)
@@ -458,7 +467,7 @@ let get_z3_var_and_type tr_ctx var =
 	let var_type = JSIL_Memory_Model.gamma_get_type gamma var in
 	let le, te =
 		(match var_type with
-		  | None            -> let le = (Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx var)) in 
+		  | None            -> let le = (Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx var)) in
 													 le, (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ le ])
 			| Some ListType   -> (Expr.mk_const ctx (Symbol.mk_string ctx var) tr_ctx.tr_list_sort), (encode_type ctx ListType)
 			| Some NumberType -> (Arithmetic.Real.mk_const ctx (Symbol.mk_string ctx var)), (encode_type ctx NumberType)
@@ -502,14 +511,23 @@ let rec encode_logical_expression tr_ctx e =
 		let le, te, new_as = encode_unop tr_ctx op le te in
 		le, te, new_as @ as1
 
-	| LEList les            ->
+	| LEList les ->
+		Printf.printf "LEList: mk_z3_list entry : ";
+		List.iter (fun x -> Printf.printf "%s " (JSIL_Print.string_of_logic_expression x false)) les;
+		Printf.printf "\n";
 		let les_tes_as = List.map ele les in
 		let les, tes, assertions =
 			List.fold_left
 				(fun (les, tes, ac_assertions) (le, te, le_assertions) -> (le :: les, te :: tes, le_assertions @ ac_assertions))
 				([], [], [])
 				les_tes_as in
-		let le_list = mk_z3_list les tr_ctx in
+		let le_list =
+			Printf.printf "LEList: encoded : ";
+			List.iter (fun x -> Printf.printf "%s " (Expr.to_string x)) les;
+			Printf.printf "\n";
+			let res = mk_z3_list les tr_ctx in
+			Printf.printf ("LEList: mk_z3_list exit\n");
+			res in
 		le_list, (encode_type ctx ListType), assertions
 
 	| LLstNth (lst, index)  ->
@@ -538,34 +556,34 @@ let rec encode_logical_expression tr_ctx e =
 
 
 let encode_nth_equalities tr_ctx le_list les =
-	let ctx = tr_ctx.z3_ctx in 
-	List.mapi 
-		(fun i le -> 
-			let le', _, _ = encode_logical_expression tr_ctx le in 
-			let le_nth = (Expr.mk_app ctx tr_ctx.tr_lnth_fun [ le_list; (Arithmetic.Integer.mk_numeral_i ctx i) ]) in 
+	let ctx = tr_ctx.z3_ctx in
+	List.mapi
+		(fun i le ->
+			let le', _, _ = encode_logical_expression tr_ctx le in
+			let le_nth = (Expr.mk_app ctx tr_ctx.tr_lnth_fun [ le_list; (Arithmetic.Integer.mk_numeral_i ctx i) ]) in
 			Boolean.mk_eq ctx le_nth le')
-		les 
+		les
 
-let encode_gamma tr_ctx = 
+let encode_gamma tr_ctx =
 	let ctx = tr_ctx.z3_ctx in
 	let gamma = tr_ctx.tr_typing_env in
-	let gamma_var_type_pairs = JSIL_Memory_Model.get_gamma_var_type_pairs gamma in 
+	let gamma_var_type_pairs = JSIL_Memory_Model.get_gamma_var_type_pairs gamma in
 	List.map
 		(fun (x, t_x) ->
-			if (JSIL_Memory_Model.is_lvar_name x) 
-				then ( 
-				(match t_x with 
+			if (JSIL_Memory_Model.is_lvar_name x)
+				then (
+				(match t_x with
 				|	NumberType
 				| ListType   -> Boolean.mk_true ctx
-				| _          -> 
-					let le_x = (Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx x)) in 
-					let le_typeof_le_x = (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ le_x ]) in 
-					let assertion = Boolean.mk_eq ctx le_typeof_le_x (encode_type ctx t_x) in 
+				| _          ->
+					let le_x = (Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx x)) in
+					let le_typeof_le_x = (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ le_x ]) in
+					let assertion = Boolean.mk_eq ctx le_typeof_le_x (encode_type ctx t_x) in
 					assertion))
-				else Boolean.mk_true ctx) 
+				else Boolean.mk_true ctx)
 		gamma_var_type_pairs
-					
-	
+
+
 let rec encode_pure_formula tr_ctx a =
 	let f = encode_pure_formula tr_ctx in
 	let fe = encode_logical_expression tr_ctx in
@@ -580,38 +598,38 @@ let rec encode_pure_formula tr_ctx a =
 		let le1, te1, as1 = fe le1' in
 		let le2, te2, as2 = fe le2' in
 		(match t1, t2 with
-		| Some ListType, Some ListType -> 
-			(match le1', le2' with 
-			| LLit (LList lits1), LLit (LList lits2) -> if (lits1 = lits2) then Boolean.mk_true ctx else Boolean.mk_false ctx 
-			| LEList les1, LEList les2 -> 
-				if ((List.length les1) = (List.length les2)) 
-					then Boolean.mk_eq ctx le1 le2 
+		| Some ListType, Some ListType ->
+			(match le1', le2' with
+			| LLit (LList lits1), LLit (LList lits2) -> if (lits1 = lits2) then Boolean.mk_true ctx else Boolean.mk_false ctx
+			| LEList les1, LEList les2 ->
+				if ((List.length les1) = (List.length les2))
+					then Boolean.mk_eq ctx le1 le2
 					else Boolean.mk_false ctx
-			| LLit (LList lits), _ -> 
-				let as1 = Boolean.mk_eq ctx le1 le2 in 
+			| LLit (LList lits), _ ->
+				let as1 = Boolean.mk_eq ctx le1 le2 in
 				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length lits)) in
-				let les = List.map (fun lit -> LLit lit) lits in 
-				let nth_as = encode_nth_equalities tr_ctx le2 les in 
-				Boolean.mk_and ctx ([as1; as2 ] @ nth_as)
-			| (LEList les), _ -> 
-				let as1 = Boolean.mk_eq ctx le1 le2 in 
-				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length les)) in 
+				let les = List.map (fun lit -> LLit lit) lits in
 				let nth_as = encode_nth_equalities tr_ctx le2 les in
-				Boolean.mk_and ctx ([as1; as2 ]  @ nth_as)	
+				Boolean.mk_and ctx ([as1; as2 ] @ nth_as)
+			| (LEList les), _ ->
+				let as1 = Boolean.mk_eq ctx le1 le2 in
+				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length les)) in
+				let nth_as = encode_nth_equalities tr_ctx le2 les in
+				Boolean.mk_and ctx ([as1; as2 ]  @ nth_as)
 			| _, LLit (LList lits) ->
-				let as1 = Boolean.mk_eq ctx le1 le2 in 
-				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length lits)) in 
-				let les = List.map (fun lit -> LLit lit) lits in 
-				let nth_as = encode_nth_equalities tr_ctx le1 les in 
+				let as1 = Boolean.mk_eq ctx le1 le2 in
+				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length lits)) in
+				let les = List.map (fun lit -> LLit lit) lits in
+				let nth_as = encode_nth_equalities tr_ctx le1 les in
 				Boolean.mk_and ctx ([as1; as2 ] @ nth_as)
 			| _, (LEList les) ->
-				let as1 = Boolean.mk_eq ctx le1 le2 in 
-				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length les)) in 
+				let as1 = Boolean.mk_eq ctx le1 le2 in
+				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length les)) in
 				let nth_as = encode_nth_equalities tr_ctx le1 les in
-				Boolean.mk_and ctx ([as1; as2 ]  @ nth_as)	
-			| _, _ -> 
-				let as1 = Boolean.mk_eq ctx le1 le2 in 
-				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ])  (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) in 
+				Boolean.mk_and ctx ([as1; as2 ]  @ nth_as)
+			| _, _ ->
+				let as1 = Boolean.mk_eq ctx le1 le2 in
+				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ])  (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) in
 				Boolean.mk_and ctx [as1; as2 ])
 		| Some t1, Some t2 ->
 			if (t1 = t2)
@@ -623,7 +641,7 @@ let rec encode_pure_formula tr_ctx a =
 			let cur_as1 = Boolean.mk_eq ctx le1 le2 in
 			let cur_as2 = Boolean.mk_eq ctx te1 te2 in
 			Boolean.mk_and ctx ([ cur_as1; cur_as2 ] @ as1 @ as2))
-			
+
 	| LLess (le1', le2') ->
 		(* Printf.printf "LLess: %s %s\n" (JSIL_Print.string_of_logic_expression le1' false) (JSIL_Print.string_of_logic_expression le2' false); *)
 		let t1, _, _ = JSIL_Logic_Utils.type_lexpr gamma le1' in
@@ -724,13 +742,15 @@ let get_solver tr_ctx existentials left_as right_as_or =
 
 let check_satisfiability assertions gamma existentials =
 	let tr_ctx = mk_smt_translation_ctx gamma existentials in
-	try
+(*	try *)
+	Printf.printf "Check satisfiablity.\n";
+	Printf.printf "Gamma:%s\n" (JSIL_Memory_Print.string_of_gamma gamma);
 	let assertions =
 		List.map
 			(fun a ->
-				(* Printf.printf "I am about to check the satisfiablity of: %s\n" (JSIL_Print.string_of_logic_assertion a false); *)
+				Printf.printf "I am about to check the satisfiablity of: %s\n" (JSIL_Print.string_of_logic_assertion a false);
 				let a = encode_pure_formula tr_ctx a in
-				(* Printf.printf "Z3 Expression: %s\n" (Expr.to_string a); *)
+				Printf.printf "%s\n" (Expr.to_string a);
 				a)
 			assertions in
 	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
@@ -740,7 +760,7 @@ let check_satisfiability assertions gamma existentials =
 	Solver.reset solver;
 	(* Printf.printf "Check_satisfiability. Result %b" ret; *)
 	ret
-	with _ -> false
+(*)	with (Failure msg) -> Printf.printf "Shit happened. %s\n" msg; false *)
 
 (* right_as must be satisfiable *)
 let rec check_entailment existentials left_as right_as gamma =
@@ -766,7 +786,7 @@ let rec check_entailment existentials left_as right_as gamma =
 				(fun a -> encode_pure_formula tr_ctx a)
 				left_as in
 		let left_as = tr_ctx.tr_axioms @ (encode_gamma tr_ctx) @ left_as in
-		
+
 		let right_as = List.map
 				(fun a ->
 					(* Printf.printf "I am about to encode a pure formula inside the check_entailment: %s\n%!" (JSIL_Print.string_of_logic_assertion a false); *)
@@ -832,4 +852,3 @@ let is_different e1 e2 pure_formulae gamma =
 	| LLit l1, LLit l2 -> (not (l1 = l2))
 	| ALoc aloc1, ALoc aloc2 -> (not (aloc1 = aloc2))
 	| _, _ -> check_entailment [] (JSIL_Memory_Model.pfs_to_list pure_formulae) [ (LNot (LEq (e1, e2))) ] gamma
-

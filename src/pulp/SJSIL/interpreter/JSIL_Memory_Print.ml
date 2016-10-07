@@ -27,9 +27,9 @@ let string_of_shallow_symb_heap heap escape_string =
 				(if (str_fv_pairs = "")
 					then loc ^ " |-> [" ^  default_value_str ^ "]"
 					else loc ^ " |-> [" ^  str_fv_pairs ^ ", " ^ default_value_str ^ "]") in
-			if (ac = "") then symb_obj_str else ac ^ ", " ^ symb_obj_str)
+			if (ac = "\n\t") then (ac ^ symb_obj_str) else ac ^ "\n\t" ^ symb_obj_str)
 		heap
-		""
+		"\n\t"
 
 
 let string_of_shallow_symb_store store escape_string =
@@ -105,6 +105,31 @@ let string_of_symb_state_list symb_states =
 			("", 0)
 			symb_states in
 	ret_str
+
+let string_of_specs specs =
+	List.fold_left
+		(fun ac x ->
+			let pre = x.pre in
+			let post = x.post in
+			let flag = (match x.ret_flag with | Normal -> "Normal" | Error -> "Error") in
+			(Printf.sprintf "[[\n\t%s\n\t%s\n\t%s\n]]"
+				(string_of_logic_assertion pre false)
+				(string_of_logic_assertion post false)
+				flag
+			))
+		""
+		specs
+
+let string_of_jsil_spec (spec : JSIL_Syntax.jsil_spec) =
+	let name = spec.spec_name in
+	let params = spec.spec_params in
+	let specs = spec.proc_specs in
+	let ret = Printf.sprintf "JSIL_SPEC\n=========\n\n%s ( " name in
+	let ret = ret ^
+		List.fold_left (fun ac x -> ac ^ (Printf.sprintf "%s " x)) "" params in
+	let ret = ret ^ ")\n" in
+	let ret = ret ^ (string_of_specs specs) ^ "\n" in
+	ret
 
 let string_of_single_spec s_spec =
 	let ret_flag = s_spec.n_ret_flag in

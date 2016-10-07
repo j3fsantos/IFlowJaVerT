@@ -347,3 +347,8 @@ let get_proc_args proc = proc.proc_params
 
 let get_proc_cmd proc i =
 	proc.proc_body.(i)
+
+let debug = ref false
+
+let if_debug code =
+	if (!debug) then begin code end
