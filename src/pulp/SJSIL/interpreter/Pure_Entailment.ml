@@ -286,7 +286,7 @@ let mk_smt_translation_ctx gamma existentials =
 	let ass = Boolean.mk_or ctx [ass1; ass2] in
 	let axiom_llen_axiom2 = encode_quantifier true ctx [ x ] [ list_sort ] ass in
 
-	let llen_axioms = mk_z3_llen_axioms 1 ctx list_sort z3_llen_fun list_nil list_cons in
+	let llen_axioms = mk_z3_llen_axioms 0 ctx list_sort z3_llen_fun list_nil list_cons in
 
 	{
 		z3_ctx            = ctx;
@@ -555,12 +555,27 @@ let rec encode_pure_formula tr_ctx a =
 	match a with
 	| LNot a -> Boolean.mk_not ctx (encode_pure_formula tr_ctx a)
 
-	| LEq (le1, le2) ->
-		let t1, _, _ = JSIL_Logic_Utils.type_lexpr gamma le1 in
-		let t2, _, _ = JSIL_Logic_Utils.type_lexpr gamma le2 in
-		let le1, te1, as1 = fe le1 in
-		let le2, te2, as2 = fe le2 in
+	| LEq (le1', le2') ->
+		let t1, _, _ = JSIL_Logic_Utils.type_lexpr gamma le1' in
+		let t2, _, _ = JSIL_Logic_Utils.type_lexpr gamma le2' in
+		let le1, te1, as1 = fe le1' in
+		let le2, te2, as2 = fe le2' in
 		(match t1, t2 with
+		| Some ListType, Some ListType -> 
+			(match le1', le2' with 
+			| LLit (LList lits1), LLit (LList lits2) -> if (lits1 = lits2) then Boolean.mk_true ctx else Boolean.mk_false ctx 
+			| LLit (LList lits), _ -> 
+				let as1 = Boolean.mk_eq ctx le1 le2 in 
+				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length lits)) in 
+				Boolean.mk_and ctx [as1; as2 ] 	
+			| _, LLit (LList lits) ->
+				let as1 = Boolean.mk_eq ctx le1 le2 in 
+				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length lits)) in 
+				Boolean.mk_and ctx [as1; as2 ] 
+			| _, _ -> 
+				let as1 = Boolean.mk_eq ctx le1 le2 in 
+				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ])  (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) in 
+				Boolean.mk_and ctx [as1; as2 ])
 		| Some t1, Some t2 ->
 			if (t1 = t2)
 				then Boolean.mk_eq ctx le2 le1
