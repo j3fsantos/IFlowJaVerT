@@ -568,9 +568,17 @@ let rec encode_pure_formula tr_ctx a =
 				let as1 = Boolean.mk_eq ctx le1 le2 in 
 				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length lits)) in 
 				Boolean.mk_and ctx [as1; as2 ] 	
+			| (LEList les), _ -> 
+				let as1 = Boolean.mk_eq ctx le1 le2 in 
+				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length les)) in 
+				Boolean.mk_and ctx [as1; as2 ] 	
 			| _, LLit (LList lits) ->
 				let as1 = Boolean.mk_eq ctx le1 le2 in 
 				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length lits)) in 
+				Boolean.mk_and ctx [as1; as2 ] 
+			| _, (LEList les) ->
+				let as1 = Boolean.mk_eq ctx le1 le2 in 
+				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length les)) in 
 				Boolean.mk_and ctx [as1; as2 ] 
 			| _, _ -> 
 				let as1 = Boolean.mk_eq ctx le1 le2 in 
