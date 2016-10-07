@@ -411,7 +411,7 @@ let rec evaluate_binop op e1 e2 store =
 	| UnsignedRightShift -> unary_bin_thing_num lit1 lit2 uint32_right_shift  "Non-number arguments to UnsignedRightShift"
 	| M_atan2 -> unary_bin_thing_num lit1 lit2 atan2 "Non-number arguments to atan2"
 	| M_pow -> unary_bin_thing_num lit1 lit2 (fun x y -> x ** y)  "Non-number arguments to Power"
-	| Subtype ->
+	| SubType ->
 		(match lit1, lit2 with
 		| Type t1, Type t2 -> (Bool (types_leq t1 t2))
 		| _, _ -> raise (Failure "Non-type argument to Subtype"))

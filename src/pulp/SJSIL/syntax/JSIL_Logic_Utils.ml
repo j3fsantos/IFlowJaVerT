@@ -18,8 +18,6 @@ let evaluate_type_of lit =
 	| String _     -> StringType
 	| Loc _        -> ObjectType
 	| Type _       -> TypeType
-	| LVRef (_, _) -> VariableReferenceType
-	| LORef (_, _) -> ObjectReferenceType
 	| LList _      -> ListType
 
 
@@ -79,10 +77,6 @@ let rec logic_expression_fold f_atom f_fold lexpr =
   | LLit _ | LNone | LVar _ | ALoc _ | PVar _ | LUnknown -> f_atom lexpr
   | LBinOp (e1, op, e2)   -> f_fold lexpr [ (fold_e e1); (fold_e e2) ]
   | LUnOp (op, e)         -> f_fold lexpr [ (fold_e e) ]
- 	| LEVRef (e1, e2)       -> f_fold lexpr [ (fold_e e1); (fold_e e2) ]
-  | LEORef (e1, e2)       -> f_fold lexpr [ (fold_e e1); (fold_e e2) ]
-  | LBase e               -> f_fold lexpr [ (fold_e e) ]
-  | LField e              -> f_fold lexpr [ (fold_e e) ]
   | LTypeOf e             -> f_fold lexpr [ (fold_e e) ]
   | LEList le             -> f_fold lexpr (List.map fold_e le)
   | LLstNth (e1, e2)      -> f_fold lexpr [ (fold_e e1); (fold_e e2) ]
@@ -457,7 +451,6 @@ let rec lexpr_substitution lexpr subst partial =
 						let new_aloc = ALoc (JSIL_Memory_Model.fresh_aloc ()) in
 						Hashtbl.replace subst aloc new_aloc;
 						new_aloc
-<<<<<<< 18f80f0857c1f7e1794b3021e93e86c6eef8dc26
 					else
 						ALoc aloc)
 
@@ -466,24 +459,6 @@ let rec lexpr_substitution lexpr subst partial =
 	| LBinOp (le1, op, le2) -> LBinOp ((f le1), op, (f le2))
 
 	| LUnOp (op, le) -> LUnOp (op, (f le))
-=======
-					else
-						ALoc aloc)
-
-	| PVar var -> (PVar var)
-
-	| LBinOp (le1, op, le2) -> LBinOp ((f le1), op, (f le2))
-
-	| LUnOp (op, le) -> LUnOp (op, (f le))
-
-	| LEVRef (le1, le2) -> LEVRef ((f le1), (f le2))
-
-	| LEORef (le1, le2) -> LEORef ((f le1), (f le2))
-
-	| LBase le -> LBase	(f le)
-
-	| LField le -> LField (f le)
->>>>>>> no more symmetry
 
 	| LTypeOf le -> LTypeOf (f le)
 
@@ -706,7 +681,7 @@ let rec type_lexpr gamma le =
 			| BitwiseAnd, (Some t)	| BitwiseOr, (Some t)	| BitwiseXor, (Some t)	| LeftShift, (Some t)	| SignedRightShift, (Some t)
 			| UnsignedRightShift, (Some t)	| M_atan2, (Some t) -> check_valid_type t [ IntType; NumberType ] NumberType []
 			| M_pow, (Some t) -> check_valid_type t [ IntType; NumberType ] t []
-			| Subtype, (Some t) -> check_valid_type t all_types BooleanType []
+			| SubType, (Some t) -> check_valid_type t all_types BooleanType []
 			| LstCons, _ -> check_valid_type t2 [ ListType ] ListType []
 			| LstCat, (Some t) -> check_valid_type t [ ListType ] ListType []
 			| StrCat, (Some t) -> check_valid_type t [ StringType ] StringType []
@@ -877,7 +852,7 @@ let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
 				else false
 
 		| BitwiseAnd	| BitwiseOr	| BitwiseXor	| LeftShift	| SignedRightShift
-		| UnsignedRightShift			| M_atan2			| M_pow			| Subtype
+		| UnsignedRightShift			| M_atan2			| M_pow			| SubType
 		| LstCons -> false
 
 		| LstCat ->
@@ -977,4 +952,3 @@ let make_all_different_pure_assertion fv_list_1 fv_list_2 : jsil_logic_assertion
 			all_different_fv_list_against_fv_list rest fv_list_2 new_pfs) in
 
 	all_different_fv_list_against_fv_list fv_list_1 fv_list_2 []
-
