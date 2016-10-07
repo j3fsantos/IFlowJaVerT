@@ -65,7 +65,7 @@ let unify_list_pvars l1 l2 =
 
 (* Replaces the logic_expressions in asrt that have a substitute in the hashtable subst *)
 let apply_substitution subst asrt =
-	JSIL_Logic_Utils.assertion_map 
+	JSIL_Logic_Utils.assertion_map
 	  (fun lexpr -> (* Replace the logic expression if it has a substitute, but do not recurse *)
 		  try
 	      (Hashtbl.find subst lexpr, false)
@@ -201,7 +201,7 @@ let normalise preds =
 			try
 				(* Join the new predicate definition with all previous for the same predicate (if any) *)
 				let current_pred = Hashtbl.find norm_predicates name in
-				Hashtbl.replace norm_predicates name (join_pred current_pred norm_pred)
+				Hashtbl.replace norm_predicates name (join_pred current_pred norm_pred);
 			with
 			| Not_found -> Hashtbl.add norm_predicates name norm_pred
 			| Non_unifiable reason -> raise (Failure ("Error in predicate " ^ name ^ ": " ^ reason)))

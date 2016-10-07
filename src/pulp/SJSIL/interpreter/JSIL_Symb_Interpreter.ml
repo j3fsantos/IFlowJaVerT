@@ -344,7 +344,7 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 	| Some discharges ->
 		let spec_vars_check = spec_logic_vars_discharge subst lvars (get_pf_list symb_state) (get_gamma symb_state) in
 	  (* Printf.printf "the PAT symbolic state after computing quotient heap:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state); *)
-		
+
 		let (quotient_heap, new_pfs) : (symbolic_heap option) * ((jsil_logic_assertion list) option) = unify_symb_heaps pat_heap heap pf gamma subst in
 		(* print_endline (Printf.sprintf "Substitution after heap unification baby!!!\n%s" (JSIL_Memory_Print.string_of_substitution subst)); *)
 		let new_subst, quotient_preds = unify_pred_arrays pat_preds preds pf gamma subst in
@@ -355,7 +355,7 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 			(* Printf.printf "Substitution afert predicate set unification baby!!!\n%s" (JSIL_Memory_Print.string_of_substitution new_subst);
 			Printf.printf "I computed a quotient heap but I also need to check an entailment\n";
 			Printf.printf "The quotient heap that I just computed:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false); *)
-				
+
 			let pat_pf_existentials = get_subtraction_vars (get_pf_list pat_symb_state) s_new_subst in
 			let new_pat_pf_existentials = (List.map (fun v -> fresh_lvar ()) pat_pf_existentials) in
 			let existential_substitution = init_substitution2 pat_pf_existentials (List.map (fun v -> LVar v) new_pat_pf_existentials) in
@@ -368,7 +368,7 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 						extend_gamma new_gamma new_pat_gamma;
 						new_gamma)
 				else gamma in
-			
+
 			extend_pf pf new_pfs;
 			let pf_discharges = pf_list_of_discharges discharges s_new_subst in
 			let pat_pf_list = List.map (fun a -> assertion_substitution a s_new_subst true) (pfs_to_list pat_pf) in
@@ -376,12 +376,12 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 
 			let existentials_str = print_var_list new_pat_pf_existentials in
 			(* print_endline (Printf.sprintf "Dicharges: %s" (JSIL_Print.str_of_assertion_list pf_discharges));
-			print_endline (Printf.sprintf "About to check if\n (\n%s\n)	\nENTAILS\n (Exists %s.\n(\n%s\n))\n given the gamma:\n%s" 
-				(JSIL_Print.str_of_assertion_list pf_list) 
-				existentials_str 
+			print_endline (Printf.sprintf "About to check if\n (\n%s\n)	\nENTAILS\n (Exists %s.\n(\n%s\n))\n given the gamma:\n%s"
+				(JSIL_Print.str_of_assertion_list pf_list)
+				existentials_str
 				(JSIL_Print.str_of_assertion_list (pat_pf_list @ pf_discharges))
 				(JSIL_Memory_Print.string_of_gamma new_gamma)); *)
-			
+
 			let unify_gamma_check = (unify_gamma pat_gamma new_gamma pat_store s_new_subst pat_pf_existentials) in
 			let entailment_check_ret = Pure_Entailment.check_entailment new_pat_pf_existentials pf_list (pat_pf_list @ pf_discharges) new_gamma in
 			(* Printf.printf "Unify gamma: %b Entailment check: %b\n" unify_gamma_check entailment_check_ret; *)
@@ -848,16 +848,16 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 					JSIL_Logic_Normalise.extend_typing_env_using_assertion_info pf_discharges gamma;
 
 					(* Printf.printf "The discharges to prove are: %s\n" (JSIL_Print.str_of_assertion_list pf_discharges); *)
-					(* Printf.printf "I unfolded the following symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state unfolded_symb_state); *)
+					Printf.printf "I unfolded the following symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state unfolded_symb_state);
 					let satisfiability_check = Pure_Entailment.check_satisfiability (get_pf_list unfolded_symb_state) gamma [] in
 					(* let discharges_check = Entailment_Engine.check_entailment [] pf pf_discharges gamma in *)
 					if (satisfiability_check)
 						then (
-							(* Printf.printf "Checked the pure part of the unfolding!!"; *)
+							Printf.printf "Checked the pure part of the unfolding!!\n";
 							loop rest_pred_defs (unfolded_symb_state :: symb_states))
 						else (
-							(* Printf.printf "Could NOT check the pure part of the unfolding. satisfiability_check: %b.\n" satisfiability_check;
-							Printf.printf "pf_discharges: %s\n" (JSIL_Print.str_of_assertion_list pf_discharges); *)
+							Printf.printf "Could NOT check the pure part of the unfolding. satisfiability_check: %b.\n" satisfiability_check;
+							Printf.printf "pf_discharges: %s\n" (JSIL_Print.str_of_assertion_list pf_discharges);
 							loop rest_pred_defs symb_states)
 			| None -> loop rest_pred_defs symb_states)) in
 

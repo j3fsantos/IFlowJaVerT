@@ -667,10 +667,11 @@ let build_spec_tbl preds prog =
 					match proc.spec with
 					| None -> ()
 					| Some spec ->
+							if_debug (Printf.printf "Now, normalising the spec: \n%s" (JSIL_Memory_Print.string_of_jsil_spec spec));
 							let n_spec = normalise_spec preds spec in
 							Hashtbl.replace spec_tbl n_spec.n_spec_name n_spec)
 		prog;
-	Printf.printf "-----------------------------\n-----------------------------\nSpec Table:\n%s" (JSIL_Memory_Print.string_of_n_spec_table spec_tbl);
+	if_debug (Printf.printf "-----------------------------\n-----------------------------\nSpec Table:\n%s" (JSIL_Memory_Print.string_of_n_spec_table spec_tbl));
 	spec_tbl
 
 let init_store vars les =
@@ -688,12 +689,15 @@ let init_store vars les =
 	store
 
 let normalise_predicate_definitions pred_defs : (string, JSIL_Memory_Model.n_jsil_logic_predicate) Hashtbl.t =
+	if_debug (Printf.printf "Normalising predicate definitions.\n");
 	let n_pred_defs = Hashtbl.create 31 in
 	Hashtbl.iter
 		(fun pred_name pred ->
 					let n_definitions =
 						List.map
 							(fun a ->
+										Printf.printf "So, filha, here we are.\n";
+										Printf.printf "%s : %s\n" pred_name (JSIL_Print.string_of_logic_assertion a false);
 										let pre_normalised_as = pre_normalize_assertion a in
 										let normalised_as = List.map
 											(fun a ->
@@ -701,7 +705,9 @@ let normalise_predicate_definitions pred_defs : (string, JSIL_Memory_Model.n_jsi
 														symb_state)
 											pre_normalised_as in
 										let normalised_as = List.filter
-											(fun symb_state -> Pure_Entailment.check_satisfiability (get_pf_list symb_state) (get_gamma symb_state) [])
+											(fun symb_state ->
+
+												Pure_Entailment.check_satisfiability (get_pf_list symb_state) (get_gamma symb_state) [])
 											normalised_as in
 										(* List.iter
 											(fun symb_state ->

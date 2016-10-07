@@ -22,7 +22,7 @@ type jsil_type =
 	| TypeType
 
 (* JSIL constants *)
-type constant = 
+type constant =
 	| Min_float
 	| Max_float
 	| Random
@@ -56,7 +56,7 @@ type jsil_lit =
 type jsil_var = string
 
 (* JSIL binary operators *)
-type bin_op = 
+type bin_op =
 	(* Comparison *)
   | Equal
   | LessThan
@@ -69,7 +69,7 @@ type bin_op =
   | Div
   | Mod
   (* Boolean operators *)
-	| And 
+	| And
   | Or
 	(* Bitwise operators *)
   | BitwiseAnd
@@ -149,7 +149,7 @@ type jsil_expr =
 
 (* JSIL Basic statements *)
 type jsil_basic_cmd =
-  | SSkip	      
+  | SSkip
   | SAssignment     of jsil_var  * jsil_expr
 	| SNew            of jsil_var
 	| SLookup         of jsil_var  * jsil_expr * jsil_expr
@@ -161,7 +161,7 @@ type jsil_basic_cmd =
 
 (* JSIL All Statements *)
 type jsil_cmd =
-  | SBasic          of jsil_basic_cmd  
+  | SBasic          of jsil_basic_cmd
 	| SGoto           of int
 	| SGuardedGoto    of jsil_expr * int        * int
 	| SCall           of jsil_var  * jsil_expr  * jsil_expr list * int option
@@ -252,10 +252,10 @@ let empty_metadata = { line_offset = None; pre_cond = None; logic_cmds = [] }
 type jsil_procedure = {
     proc_name    : string;
     proc_body    : (jsil_metadata * jsil_cmd) array;
-    proc_params  : jsil_var list; 
-		ret_label    : int option; 
+    proc_params  : jsil_var list;
+		ret_label    : int option;
 		ret_var      : jsil_var option;
-		error_label  : int option; 
+		error_label  : int option;
 		error_var    : jsil_var option;
 		spec         : jsil_spec option;
 }
@@ -266,22 +266,22 @@ type jsil_program = (string, jsil_procedure) Hashtbl.t
 
 (***** Alternative Procedure Syntax with Labels *****)
 type jsil_lab_cmd =
-  | SLBasic          of jsil_basic_cmd 
+  | SLBasic          of jsil_basic_cmd
 	| SLGoto           of string
 	| SLGuardedGoto    of jsil_expr * string                    * string
 	| SLCall           of jsil_var  * jsil_expr                 * jsil_expr list * string option
 	| SLApply          of jsil_var  * jsil_expr list            * string option
 	| SLPhiAssignment  of jsil_var  * (jsil_var option array)
-	| SLPsiAssignment  of jsil_var  * (jsil_var option array) 
+	| SLPsiAssignment  of jsil_var  * (jsil_var option array)
 
 (* JSIL procedures extended with string labels *)
 type jsil_ext_procedure = {
     lproc_name : string;
     lproc_body : ((jsil_metadata * string option * jsil_lab_cmd) array);
-    lproc_params : jsil_var list; 
-		lret_label: string option; 
-		lret_var: jsil_var option; 
-		lerror_label: string option; 
+    lproc_params : jsil_var list;
+		lret_label: string option;
+		lret_var: jsil_var option;
+		lerror_label: string option;
 		lerror_var: jsil_var option;
 		lspec: jsil_spec option;
 }
@@ -298,10 +298,10 @@ type jsil_ext_program = {
 
 
 
-(** Basic functions **) 
+(** Basic functions **)
 
-let types_lub t1 t2 = 
-	match t1, t2 with 
+let types_lub t1 t2 =
+	match t1, t2 with
 	| UndefinedType, UndefinedType -> Some UndefinedType
 	| NullType, NullType -> Some NullType
 	| EmptyType, EmptyType -> Some EmptyType
@@ -326,9 +326,9 @@ let types_lub t1 t2 =
 	| TypeType, TypeType -> Some TypeType
 	| _, _ -> None
 
-let types_leq t1 t2 = 
-	let t = types_lub t1 t2 in 
-	match t with 
+let types_leq t1 t2 =
+	let t = types_lub t1 t2 in
+	match t with
 	| Some t -> (t = t2)
 	| None -> false
 
@@ -353,6 +353,7 @@ let get_proc_args proc = proc.proc_params
 let get_proc_cmd proc i =
 	proc.proc_body.(i)
 
+let debug = ref false
 
-
-
+let if_debug code =
+	if (!debug) then begin code end
