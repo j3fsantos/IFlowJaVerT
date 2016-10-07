@@ -333,3 +333,26 @@ let types_leq t1 t2 =
 	| None -> false
 
 
+let proc_get_ret_var proc ret_flag =
+	let ret_var =
+		match ret_flag with
+		| Normal -> proc.ret_var
+		| Error -> proc.error_var in
+	match ret_var with
+	| Some ret_var -> ret_var
+	| None -> raise (Failure "proc_get_ret_var: fatal error")
+
+let get_proc prog proc_name =
+	try
+		Hashtbl.find prog proc_name
+	with _ ->
+		raise (Failure "get_proc: fatal error")
+
+let get_proc_args proc = proc.proc_params
+
+let get_proc_cmd proc i =
+	proc.proc_body.(i)
+
+
+
+
