@@ -653,7 +653,7 @@ program_variable_target:
 logic_lit_target:
   (* Use the Integer type for ints *)
   | INT                       { Integer $1 }
-	| lit_target                { $1 }
+  | lit_target                { $1 }
 ;
 
 (********* PREDS and SPECS only *********)
