@@ -35,7 +35,6 @@ let types_encoded_as_ints = [
 type smt_translation_ctx = {
 	z3_ctx            : context;
 	tr_typing_env     : JSIL_Memory_Model.typing_environment;
-	tr_typing_env_aux : JSIL_Memory_Model.typing_environment;
 	tr_typeof_fun     : FuncDecl.func_decl;
 	tr_llen_fun       : FuncDecl.func_decl;
 	tr_slen_fun       : FuncDecl.func_decl;
@@ -291,7 +290,6 @@ let mk_smt_translation_ctx gamma existentials =
 	{
 		z3_ctx            = ctx;
 		tr_typing_env     = gamma;
-		tr_typing_env_aux = JSIL_Memory_Model.mk_gamma ();
 		tr_typeof_fun     = z3_typeof_fun;
 		tr_slen_fun       = z3_slen_fun;
 		tr_llen_fun       = z3_llen_fun;
@@ -458,21 +456,13 @@ let get_z3_var_and_type tr_ctx var =
 	let ctx = tr_ctx.z3_ctx in
 	let gamma = tr_ctx.tr_typing_env in
 	let var_type = JSIL_Memory_Model.gamma_get_type gamma var in
-	let var_type_aux = JSIL_Memory_Model.gamma_get_type (tr_ctx.tr_typing_env_aux) var in
 	let le, te =
-		(match var_type, var_type_aux with
-		  | None, None ->
-				let le = (Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx var)) in
-		    le, (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ le ])
-		  | Some t, _
-			| None, Some t when (List.mem t types_encoded_as_ints) ->
-				(Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx var)), (encode_type ctx t)
-			| Some ListType, _
-			| _, Some ListType ->
-				(Expr.mk_const ctx (Symbol.mk_string ctx var) tr_ctx.tr_list_sort), (encode_type ctx ListType)
-			| Some NumberType, _
-			| _, Some NumberType ->
-				(Arithmetic.Real.mk_const ctx (Symbol.mk_string ctx var)), (encode_type ctx NumberType)
+		(match var_type with
+		  | None            -> let le = (Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx var)) in 
+													 le, (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ le ])
+			| Some ListType   -> (Expr.mk_const ctx (Symbol.mk_string ctx var) tr_ctx.tr_list_sort), (encode_type ctx ListType)
+			| Some NumberType -> (Arithmetic.Real.mk_const ctx (Symbol.mk_string ctx var)), (encode_type ctx NumberType)
+			| Some t          -> (Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx var)), (encode_type ctx t)
 			| _               -> raise (Failure "z3 variable encoding: fatal error")) in
 	le, te
 
@@ -556,6 +546,26 @@ let encode_nth_equalities tr_ctx le_list les =
 			Boolean.mk_eq ctx le_nth le')
 		les 
 
+let encode_gamma tr_ctx = 
+	let ctx = tr_ctx.z3_ctx in
+	let gamma = tr_ctx.tr_typing_env in
+	let gamma_var_type_pairs = JSIL_Memory_Model.get_gamma_var_type_pairs gamma in 
+	List.map
+		(fun (x, t_x) ->
+			if (JSIL_Memory_Model.is_lvar_name x) 
+				then ( 
+				(match t_x with 
+				|	NumberType
+				| ListType   -> Boolean.mk_true ctx
+				| _          -> 
+					let le_x = (Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx x)) in 
+					let le_typeof_le_x = (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ le_x ]) in 
+					let assertion = Boolean.mk_eq ctx le_typeof_le_x (encode_type ctx t_x) in 
+					assertion))
+				else Boolean.mk_true ctx) 
+		gamma_var_type_pairs
+					
+	
 let rec encode_pure_formula tr_ctx a =
 	let f = encode_pure_formula tr_ctx in
 	let fe = encode_logical_expression tr_ctx in
@@ -701,11 +711,11 @@ let get_solver tr_ctx existentials left_as right_as_or =
 	let right_as_or =
 		Expr.simplify right_as_or None in
 
-	print_endline (Printf.sprintf "--- ABOUT TO ENTER THE SOLVER ---");
+	(* print_endline (Printf.sprintf "--- ABOUT TO ENTER THE SOLVER ---");
 	List.iter (fun expr -> Printf.printf "%s\n" (Expr.to_string expr)) left_as;
 	print_endline (Printf.sprintf "\nIMPLIES:\n");
 	print_endline (Printf.sprintf "%s" (Expr.to_string right_as_or));
-	print_endline (Printf.sprintf "\nDone printing");
+	print_endline (Printf.sprintf "\nDone printing"); *)
 
 	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 	Solver.add solver (left_as @ [ right_as_or ]);
@@ -755,7 +765,7 @@ let rec check_entailment existentials left_as right_as gamma =
 			List.map
 				(fun a -> encode_pure_formula tr_ctx a)
 				left_as in
-		let left_as = tr_ctx.tr_axioms @ left_as in
+		let left_as = tr_ctx.tr_axioms @ (encode_gamma tr_ctx) @ left_as in
 		
 		let right_as = List.map
 				(fun a ->
@@ -780,9 +790,8 @@ let rec check_entailment existentials left_as right_as gamma =
 		(* SOMETHING HAPPENS HERE! *)
 		let solver = get_solver tr_ctx existentials left_as right_as_or in
 
-		print_endline (Printf.sprintf "About to ask the solver. So excited!");
 		let ret = (Solver.check solver []) != Solver.SATISFIABLE in
-		print_endline (Printf.sprintf "Check_entailment. Result %b" ret);
+		(* print_endline (Printf.sprintf "Check_entailment. Result %b" ret);
 		 if (not ret) then
 			begin
 				let model = Solver.get_model solver in
@@ -794,7 +803,7 @@ let rec check_entailment existentials left_as right_as gamma =
 				| None ->
 					Printf.printf "No model filha\n");
 			Printf.printf "ret: %s\n" (string_of_bool ret);
-			end;
+			end; *)
 		Gc.full_major ();
 		Solver.reset solver;
 		(* print_endline (Printf.sprintf "\n    Exiting entailment\n------------------------------\n"); *)
