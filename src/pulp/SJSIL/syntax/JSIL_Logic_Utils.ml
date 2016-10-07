@@ -617,7 +617,7 @@ let rec type_lexpr gamma le =
 	| PVar var ->
 		(match JSIL_Memory_Model.gamma_get_type gamma var with
 		| Some t -> Some t, true, []
-		| None   -> None,   false, [])
+		| None   -> None,   true, [])
 
 	(* Abstract locations are always typable, by construction *)
   | ALoc _ -> Some ObjectType, true, []
