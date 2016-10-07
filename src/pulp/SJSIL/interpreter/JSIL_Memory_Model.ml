@@ -81,6 +81,13 @@ let store_get_var_val store x =
 		Some (Hashtbl.find store x)
 	with Not_found -> None
 
+let store_get_var store var =
+	(try
+		Hashtbl.find store var
+	with _ ->
+		let msg = Printf.sprintf "store_get_var: fatal error. var: %s" var in
+		raise (Failure msg))
+
 let update_abs_store store x ne = 
 	Hashtbl.replace store x ne
 
@@ -97,6 +104,9 @@ let extend_abs_store x store gamma =
 	with _ -> ()); 
 	Hashtbl.add store x new_l_var;
 	new_l_var
+	
+	
+
 
 
 (*************************************)
@@ -355,6 +365,12 @@ type n_jsil_logic_predicate = {
 	n_pred_is_rec      : bool
 }
 
+let get_pred pred_tbl pred_name =
+	try
+		Hashtbl.find pred_tbl pred_name
+	with _ ->
+		let msg = Printf.sprintf "Predicate %s does not exist" pred_name in
+		raise (Failure msg)
 
 (***************************************************)
 (** JSIL Program Annotated for Symbolic Execution **)

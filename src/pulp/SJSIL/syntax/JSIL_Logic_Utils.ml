@@ -908,3 +908,73 @@ let reverse_type_lexpr gamma le le_type : JSIL_Memory_Model.typing_environment o
 	if (ret)
 		then Some new_gamma
 		else None
+
+
+(** Turns a logical expression into an assertions.
+    Returns a logical expression option and an assertion option. *)
+let rec lift_logic_expr lexpr =
+	(* TODO: Think of how to structure this code better *)
+	let f = lift_logic_expr in
+	(match lexpr with
+	| LBinOp (le1, op, le2) -> lift_binop_logic_expr op le1 le2
+	| LUnOp (op, le) -> lift_unop_logic_expr op le
+	| LLit (Bool true) -> None, Some LTrue
+	| LLit (Bool false) -> None, Some LFalse
+	| _ -> Some lexpr, Some (LEq (lexpr, LLit (Bool true))))
+and lift_binop_logic_expr op le1 le2 =
+	let err_msg = "logical expression binop cannot be lifted to assertion" in
+	let f = lift_logic_expr in
+	let lexpr_to_ass_binop binop =
+		(match binop with
+		| Equal -> (fun le1 le2 -> LEq (le1, le2))
+		| LessThan -> (fun le1 le2 -> LLess (le1, le2))
+		| LessThanString -> (fun le1 le2 -> LStrLess (le1, le2))
+		| LessThanEqual -> (fun le1 le2 -> LLessEq (le1, le2))
+		| _ -> raise (Failure "Error: lift_binop_expr")) in
+	(match op with
+	| Equal
+	| LessThan
+	| LessThanString
+	| LessThanEqual ->
+		let l_op_fun = lexpr_to_ass_binop op in
+		(match ((f le1), (f le2)) with
+		| ((Some le1, _), (Some le2, _)) -> None, Some (l_op_fun le1 le2)
+		| (_, _) -> raise (Failure (err_msg ^ " <=#")))
+	| And ->
+		(match ((f le1), (f le2)) with
+		| ((_, Some a1), (_, Some a2)) -> None, Some (LAnd (a1, a2))
+		| (_, _) -> raise (Failure err_msg))
+	| Or ->
+		(match ((f le1), (f le2)) with
+		| ((_, Some a1), (_, Some a2)) -> None, Some (LOr (a1, a2))
+		| (_, _) -> raise (Failure err_msg))
+	| _ -> Some (LBinOp (le1, op, le2)), None)
+and lift_unop_logic_expr op le =
+	let f = lift_logic_expr in
+	let err_msg = "logical expression unop cannot be lifted to assertion" in
+	(match op with
+	| Not ->
+		(match (f le) with
+		| (None, Some a) -> None, Some (LNot a)
+		| (_, _) -> raise (Failure (err_msg ^ " Not")))
+	| _ -> Some (LUnOp (op, le)), None)
+
+
+let make_all_different_pure_assertion fv_list_1 fv_list_2 : jsil_logic_assertion list =
+	let rec all_different_field_against_fv_list f fv_list pfs : jsil_logic_assertion list =
+		match fv_list with
+		| [] -> pfs
+		| (f', v') :: rest ->
+			(match f, f' with
+			| LLit _, LLit _ -> all_different_field_against_fv_list f rest pfs
+			| _, _ -> all_different_field_against_fv_list f rest ((LNot (LEq (f, f'))) :: pfs)) in
+
+	let rec all_different_fv_list_against_fv_list fv_list_1 fv_list_2 pfs : jsil_logic_assertion list =
+		(match fv_list_1 with
+		| [] -> pfs
+		| (f, _) :: rest ->
+			let new_pfs = all_different_field_against_fv_list f fv_list_2 pfs in
+			all_different_fv_list_against_fv_list rest fv_list_2 new_pfs) in
+
+	all_different_fv_list_against_fv_list fv_list_1 fv_list_2 []
+

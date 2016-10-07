@@ -810,3 +810,26 @@ let rec check_entailment existentials left_as right_as gamma =
 		ret
 		with Failure msg -> (* Printf.printf "Esta merda explodiuuuu: %s\n" msg; *) false
 		end
+
+
+let is_equal e1 e2 pure_formulae gamma =
+  (* Printf.printf "Checking if %s is equal to %s given that: %s\n;" (JSIL_Print.string_of_logic_expression e1 false) (JSIL_Print.string_of_logic_expression e2 false) (JSIL_Memory_Print.string_of_shallow_p_formulae pure_formulae false);
+  Printf.printf "and the gamma is: %s\n" (JSIL_Memory_Print.string_of_gamma gamma); *)
+	match e1, e2 with
+	| LLit l1, LLit l2 -> l1 = l2
+	| ALoc aloc1 , ALoc aloc2 -> aloc1 = aloc2
+	| LNone, LNone -> true
+	| LUnknown, LUnknown -> false
+	| LVar l1, LVar l2 ->
+		if (l1 = l2)
+			then true
+			else check_entailment [] (JSIL_Memory_Model.pfs_to_list pure_formulae) [ (LEq (e1, e2)) ] gamma
+	| _, _ -> check_entailment [] (JSIL_Memory_Model.pfs_to_list pure_formulae) [ (LEq (e1, e2)) ] gamma
+
+
+let is_different e1 e2 pure_formulae gamma =
+	match e1, e2 with
+	| LLit l1, LLit l2 -> (not (l1 = l2))
+	| ALoc aloc1, ALoc aloc2 -> (not (aloc1 = aloc2))
+	| _, _ -> check_entailment [] (JSIL_Memory_Model.pfs_to_list pure_formulae) [ (LNot (LEq (e1, e2))) ] gamma
+
