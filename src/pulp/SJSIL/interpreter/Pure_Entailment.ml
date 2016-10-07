@@ -14,9 +14,6 @@ let encode_type ctx jsil_type =
   | NumberType            -> Arithmetic.Integer.mk_numeral_i ctx 6
 	| StringType            -> Arithmetic.Integer.mk_numeral_i ctx 7
   | ObjectType            -> Arithmetic.Integer.mk_numeral_i ctx 8
-	| ReferenceType         -> Arithmetic.Integer.mk_numeral_i ctx 9
-	| ObjectReferenceType   -> Arithmetic.Integer.mk_numeral_i ctx 10
-	| VariableReferenceType -> Arithmetic.Integer.mk_numeral_i ctx 11
 	| ListType              -> Arithmetic.Integer.mk_numeral_i ctx 12
 	| TypeType              -> Arithmetic.Integer.mk_numeral_i ctx 13
 

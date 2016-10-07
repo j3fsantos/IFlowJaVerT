@@ -46,38 +46,6 @@ let rec normalise_lexpr store gamma subst le =
 						LLit lit
 				| _ -> LUnOp (uop, nle1))
 
-	| LEVRef (le1, le2) ->
-			let nle1 = f le1 in
-			let nle2 = f le2 in
-			(match nle1, nle2 with
-				| LLit l, LLit (String field) -> LLit (LVRef (l, field))
-				| _, _ -> LEVRef (nle1, nle2))
-
-	| LEORef (le1, le2) ->
-			let nle1 = f le1 in
-			let nle2 = f le2 in
-			(match nle1, nle2 with
-				| LLit l, LLit (String field) -> LLit (LORef (l, field))
-				| _, _ -> LEORef (nle1, nle2))
-
-	| LBase	(le1) ->
-			let nle1 = f le1 in
-			(match nle1 with
-				| LLit (LVRef (l, _))
-				| LLit (LORef (l, _)) -> LLit l
-				| LEVRef (leb, _)
-				| LEORef (leb, _) -> leb
-				| _ -> LBase (nle1))
-
-	| LField	(le1) ->
-			let nle1 = f le1 in
-			(match nle1 with
-				| LLit (LVRef (_, f))
-				| LLit (LORef (_, f)) -> LLit (String f)
-				| LEVRef (_, fe)
-				| LEORef (_, fe) -> fe
-				| _ -> LField (nle1))
-
 	| LTypeOf (le1) ->
 			let nle1 = f le1 in
 			(match nle1 with
