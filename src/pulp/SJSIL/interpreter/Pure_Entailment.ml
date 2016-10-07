@@ -530,7 +530,7 @@ let rec encode_logical_expression tr_ctx e =
 		let constraint_index_type        = Boolean.mk_eq ctx te_index (encode_type ctx IntType) in
 		let assertions                   = [ constraint_list_type; constraint_index_type ] @ as_lst @ as_index in
 		let le_lnth                      = (Expr.mk_app ctx tr_ctx.tr_lnth_fun [ le_lst; le_index ]) in
-		le_lnth, (encode_type ctx StringType), assertions
+		le_lnth, (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ le_lnth ]), assertions
 
 	| LStrNth (str, index)  ->
 		let le_str, te_str, as_str = ele str in
@@ -555,8 +555,6 @@ let encode_nth_equalities tr_ctx le_list les =
 			let le_nth = (Expr.mk_app ctx tr_ctx.tr_lnth_fun [ le_list; (Arithmetic.Integer.mk_numeral_i ctx i) ]) in 
 			Boolean.mk_eq ctx le_nth le')
 		les 
-	
-	
 
 let rec encode_pure_formula tr_ctx a =
 	let f = encode_pure_formula tr_ctx in
@@ -615,7 +613,7 @@ let rec encode_pure_formula tr_ctx a =
 			let cur_as1 = Boolean.mk_eq ctx le1 le2 in
 			let cur_as2 = Boolean.mk_eq ctx te1 te2 in
 			Boolean.mk_and ctx ([ cur_as1; cur_as2 ] @ as1 @ as2))
-
+			
 	| LLess (le1', le2') ->
 		(* Printf.printf "LLess: %s %s\n" (JSIL_Print.string_of_logic_expression le1' false) (JSIL_Print.string_of_logic_expression le2' false); *)
 		let t1, _, _ = JSIL_Logic_Utils.type_lexpr gamma le1' in
