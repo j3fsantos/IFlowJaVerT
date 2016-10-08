@@ -410,9 +410,8 @@ let encode_binop tr_ctx op le1 te1 le2 te2 =
 	| Div      -> (Arithmetic.mk_div ctx le1 le2), mk_lub_type tr_ctx te1 te2, [ mk_constraint_int_num tr_ctx te1 te2 ]
 	| Mod      -> (Arithmetic.Integer.mk_mod ctx le1 le2), (encode_type ctx IntType), [ mk_constraint_int tr_ctx te1 te2 ]
 	| LstCons  ->
-		print_endline (Printf.sprintf "So, Bananas...\n (%s : %s) (%s : %s)" (Expr.to_string le1) (Expr.to_string te1) (Expr.to_string le2) (Expr.to_string te2));
+		(* print_endline (Printf.sprintf "So, Bananas...\n (%s : %s) (%s : %s)" (Expr.to_string le1) (Expr.to_string te1) (Expr.to_string le2) (Expr.to_string te2)); *)
 		let le, te, constraints = (Expr.mk_app ctx tr_ctx.tr_list_cons [ le1; le2 ]), (encode_type ctx ListType), [ mk_constraint_type tr_ctx te2 ListType] in
-		Printf.printf "Yeah, we did it.\n";
 		le, te, constraints
 	| _     ->
 		let msg = Printf.sprintf "SMT encoding: Construct not supported yet - binop - %s!" (JSIL_Print.string_of_binop op) in
@@ -711,8 +710,8 @@ let get_solver tr_ctx existentials left_as right_as_or =
 
 		(*
 			Printf.printf "The assertion to check is:\n";
-			Printf.printf "\n%s\n\n" (Expr.to_string target_assertion);*)
-		Printf.printf "----- Creating the solver -----\n\n";
+			Printf.printf "\n%s\n\n" (Expr.to_string target_assertion);
+		Printf.printf "----- Creating the solver -----\n\n";*) 
 
 	let right_as_or =
 		if ((List.length existentials) > 0)
@@ -722,11 +721,12 @@ let get_solver tr_ctx existentials left_as right_as_or =
 	let right_as_or =
 		Expr.simplify right_as_or None in
 
+	(* 
 	print_endline (Printf.sprintf "--- ABOUT TO ENTER THE SOLVER ---");
 	List.iter (fun expr -> Printf.printf "%s\n" (Expr.to_string expr)) left_as;
 	print_endline (Printf.sprintf "\nIMPLIES:\n");
 	print_endline (Printf.sprintf "%s" (Expr.to_string right_as_or));
-	print_endline (Printf.sprintf "\nDone printing");
+	print_endline (Printf.sprintf "\nDone printing"); *)
 
 	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 	Solver.add solver (left_as @ [ right_as_or ]);

@@ -10,7 +10,7 @@ let arguments () =
 			(* file containing the program to symbolically execute *)
 			"-file", Arg.String(fun f -> file := f), "file to run";
 			"-o", Arg.String(fun f -> output_folder := f), "output folder";
-            "-debug", Arg.Unit (fun () -> debug := true), "debug";
+      "-debug", Arg.Unit (fun () -> debug := true), "debug";
 	  ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
@@ -33,17 +33,17 @@ let register_dot_graphs dot_graphs =
 		end
 
 let process_file path =
-    if_debug (Printf.printf ("BANANAS: Parsing program.\n"));
+  print_debug "Parsing program.\n";
 	let ext_prog = JSIL_Utils.ext_program_of_path path in
-    if_debug (Printf.printf ("BANANAS: Normalising predicates.\n"));
+  print_debug "Normalising predicates.\n";
 	let norm_preds = Logic_Predicates.normalise ext_prog.predicates in
-    if_debug (Printf.printf ("BANANAS: Transforming the program.\n"));
+  print_debug "Transforming the program.\n";
 	let prog, which_pred = JSIL_Utils.prog_of_ext_prog path ext_prog in
-    if_debug (Printf.printf ("BANANAS: Building the spec table.\n"));
+  print_debug "Building the spec table.\n";
 	let spec_tbl = JSIL_Logic_Normalise.build_spec_tbl norm_preds prog in
-	if_debug (Printf.printf "Finished computing the spec table!!!\n";);
+	print_debug "Finished computing the spec table!!!\n";
 	let results, dot_graphs, complete_success = JSIL_Symb_Interpreter.sym_run_procs spec_tbl prog which_pred norm_preds in
-	if_debug (Printf.printf "RESULTS\n%s" results);
+	Printf.printf "RESULTS\n%s" results;
 	(if (complete_success) then
 		Printf.printf "ALL Succeeded!!!\n"
 		else Printf.printf "There were Failures\n");

@@ -422,7 +422,7 @@ let unify_symb_state_against_post proc_name spec symb_state flag symb_exe_info =
 
 	let rec loop posts post_vars_lists i =
 		(match posts, post_vars_lists with
-		| [], [] -> print_error_to_console "OMG, non_unifiable heaps";  raise (Failure "post condition is not unifiable")
+		| [], [] -> print_error_to_console "Non_unifiable heaps";  raise (Failure "post condition is not unifiable")
 		| post :: rest_posts, post_lvars :: rest_posts_lvars ->
 			let subst = fully_unify_symb_state post symb_state spec.n_lvars in
 			(match subst with
@@ -817,16 +817,16 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 					JSIL_Logic_Normalise.extend_typing_env_using_assertion_info pf_discharges gamma;
 
 					(* Printf.printf "The discharges to prove are: %s\n" (JSIL_Print.str_of_assertion_list pf_discharges); *)
-					Printf.printf "I unfolded the following symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state unfolded_symb_state);
+					(* Printf.printf "I unfolded the following symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state unfolded_symb_state); *)
 					let satisfiability_check = Pure_Entailment.check_satisfiability (get_pf_list unfolded_symb_state) gamma [] in
 					(* let discharges_check = Entailment_Engine.check_entailment [] pf pf_discharges gamma in *)
 					if (satisfiability_check)
 						then (
-							Printf.printf "Checked the pure part of the unfolding!!\n";
+							(* Printf.printf "Checked the pure part of the unfolding!!\n"; *)
 							loop rest_pred_defs (unfolded_symb_state :: symb_states))
 						else (
-							Printf.printf "Could NOT check the pure part of the unfolding. satisfiability_check: %b.\n" satisfiability_check;
-							Printf.printf "pf_discharges: %s\n" (JSIL_Print.str_of_assertion_list pf_discharges);
+							(* Printf.printf "Could NOT check the pure part of the unfolding. satisfiability_check: %b.\n" satisfiability_check;
+							Printf.printf "pf_discharges: %s\n" (JSIL_Print.str_of_assertion_list pf_discharges); *)
 							loop rest_pred_defs symb_states)
 			| None -> loop rest_pred_defs symb_states)) in
 
