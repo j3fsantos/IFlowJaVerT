@@ -897,7 +897,7 @@ let rec lift_logic_expr lexpr =
 	| LLit (Bool false) -> None, Some LFalse
 	| _ -> Some lexpr, Some (LEq (lexpr, LLit (Bool true))))
 and lift_binop_logic_expr op le1 le2 =
-	let err_msg = "logical expression binop cannot be lifted to assertion" in
+	let err_msg = (Printf.sprintf "logical expression: binop %s :cannot be lifted to assertion" (JSIL_Print.string_of_binop op)) in
 	let f = lift_logic_expr in
 	let lexpr_to_ass_binop binop =
 		(match binop with

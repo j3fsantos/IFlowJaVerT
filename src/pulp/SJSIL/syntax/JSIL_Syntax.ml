@@ -185,8 +185,6 @@ type jsil_logic_expr =
 	| PVar				of jsil_var
 	| LBinOp			of jsil_logic_expr * bin_op * jsil_logic_expr
 	| LUnOp				of unary_op * jsil_logic_expr
-	| LBase				of jsil_logic_expr
-	| LField			of jsil_logic_expr
 	| LTypeOf			of jsil_logic_expr
 	| LEList      of jsil_logic_expr list
 	| LLstNth     of jsil_logic_expr * jsil_logic_expr
