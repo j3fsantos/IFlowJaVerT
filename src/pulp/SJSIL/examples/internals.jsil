@@ -18,45 +18,38 @@ pred isList (v) :
     types (v : $$list_type);
 
 (* Data descriptors *)
-pred isDataDescriptor (d) :
-    isList(d) * (d == {{ #dd, #val, #writ, #enum, #conf }}) * (#dd == "d") *
-    types (#dd : $$string_type, #writ : $$boolean_type, #enum : $$boolean_type, #conf : $$boolean_type);
+pred DataDescriptor (d) :
+        isList(d) * (d == {{ #d, #v, #w, #e, #c }}) * (#d == "d") *
+    types (#d : $$string_type, #w : $$boolean_type, #e : $$boolean_type, #c : $$boolean_type);
 
 pred desc_value (d, v) :
-    isDataDescriptor (d) * (l-nth (d, 1) == #v) * (v == #v);
-
-(* Accessor descriptors *)
-pred isAccessorDescriptor (d) :
-    isList(d) * (d == {{ #ad, #get, #set, #enum, #conf }}) * (#ad == "a") *
-    types (#ad : $$string_type, #enum : $$boolean_type, #conf : $$boolean_type);
-
-(* Descriptors *)
-pred isDescriptor (d) :
-    isDataDescriptor (d),
-    isAccessorDescriptor (d);
+    isList(d) * v == l-nth(d, 1);
 
 (* Standard object cell stuff *)
 pred Cell_o (l, prop, None) :
     isObjectLocation(l) * isNamedProperty(prop) * ((l, prop) -> None);
 pred Cell_o (l, prop, d) :
-    isObjectLocation(l) * isNamedProperty(prop) * isDescriptor(d) * ((l, prop) -> d);
+    isObjectLocation(l) * isNamedProperty(prop) * ((l, prop) -> d) * DataDescriptor(d);
 
 pred IsStringIndex(S, prop, i) :
-    types(S : $$string_type, prop : $$string_type, i : $$int_type)
-    * (prop == num_to_string i) * (!(i <# 0)) * (i <# s-len S);
+    types(S : $$string_type, prop : $$string_type, i : $$int_type) *
+    (prop == num_to_string i) * (!(i <# 0)) * (i <# s-len S);
 
 (* String cell stuff *)
 pred Cell_s (l, prop, "None", None, pv) :
-     Cell_o (l, prop, None) * ((l, "@primitiveValue") -> #S) * (pv == #S) *
-     (#i == num_to_int (string_to_num prop)) * (! IsStringIndex(#S, prop, #i));
+     Cell_o (l, prop, None) * ((l, "@primitiveValue") -> pv) *
+     (#i == num_to_int (string_to_num prop)) * (! IsStringIndex(pv, prop, #i)) *
+     types (pv : $$string_type);
+
 pred Cell_s (l, prop, "SI", desc, pv) :
-     Cell_o (l, prop, None) * ((l, "@primitiveValue") -> #S) * (pv == #S) *
-     ((l, "@primitiveValue") -> #S) * (#i == num_to_int (string_to_num prop)) *
-     IsStringIndex(#S, prop, #i) * (#v == s-nth(#S, #i)) * types(#v : $$string_type) *
-     (desc == {{ "d", #v, $$f, $$t, $$f }}) * isDescriptor(desc);
+     Cell_o (l, prop, None) * ((l, "@primitiveValue") -> pv) *
+     (#i == num_to_int (string_to_num prop)) * IsStringIndex(pv, prop, #i) *
+     (#v == s-nth(pv, #i)) * types(#v : $$string_type, desc : $$list_type) *
+     (desc == {{ "d", #v, $$f, $$t, $$f }}) * types (pv : $$string_type);
+
 pred Cell_s (l, prop, "NSI", desc, pv) :
-     Cell_o (l, prop, desc) * ((l, "@primitiveValue") -> #S) * (pv == #S) *
-     (! (desc == None));
+     Cell_o (l, prop, desc) * ((l, "@primitiveValue") -> pv) *
+     (! (desc == None)) * types (pv : $$string_type);
 
 (* Common and less common methods *)
 
@@ -83,7 +76,7 @@ pred Pi (l, prop, "base", "General", $$undefined, ls, ltf, lpv) :
     (ls == {{ l }}) * (ltf == {{ $$f }}) * (lpv == {{ "" }});
 
 pred Pi (l, prop, "base", "General", d, ls, ltf, lpv) :
-	Class (l, "Object") * Cell_o (l, prop, #d) * isDescriptor(#d) * (d == #d) *
+	Class (l, "Object") * Cell_o (l, prop, d) * DataDescriptor(d) *
     types(ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
     (ls == {{ l }}) * (ltf == {{ $$f }}) * (lpv == {{ "" }});
 
@@ -93,27 +86,27 @@ pred Pi (l, prop, "base", "String", $$undefined, ls, ltf, lpv) :
     (ls == {{ l }}) * (ltf == {{ $$t }}) * (lpv == {{ #pv }});
 
 pred Pi (l, prop, "base", "StringSI", d, ls, ltf, lpv) :
-	Class (l, "String") * Cell_s (l, prop, "SI", #u, #pv) * types(#u : $$string_type) * (d == {{"d", #u, $$f, $$t, $$f}}) *
+	Class (l, "String") * Cell_s (l, prop, "SI", d, #pv) *
     types(ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
-    (ls == {{ l }}) * (ltf == {{ $$f }}) * (lpv == {{ #pv }});
+    (ls == {{ l }}) * (ltf == {{ $$t }}) * (lpv == {{ #pv }});
 
 pred Pi (l, prop, "base", "StringNSI", d, ls, ltf, lpv) :
-	Class (l, "String") * Cell_s (l, prop, "NSI", #d, #pv) * isDescriptor(#d) * (d == #d) *
+	Class (l, "String") * Cell_s (l, prop, "NSI", d, #pv) *
     types(ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
-    (ls == {{ l }}) * (ltf == {{ $$f }}) * (lpv == {{ #pv }});
+    (ls == {{ l }}) * (ltf == {{ $$t }}) * (lpv == {{ #pv }});
 
 pred Pi (l, prop, "inductive", "General", d, ls, ltf, lpv) :
-	Class (l, "Object") * Cell_o (l, prop, None) * ((l, "@proto") -> #lp) *
-    (!(#lp == $$null)) * CommonMethods(#lp) *
-    Pi (#lp, prop, #caseType, #class, #d, #lsp, #ltfp, #lpvp) * (d == #d) *
+	Class (l, "Object") * Cell_o (l, prop, None) *
+    ((l, "@proto") -> #lp) * (!(#lp == $$null)) * CommonMethods(#lp) *
+    Pi (#lp, prop, #caseType, #class, d, #lsp, #ltfp, #lpvp) *
     types(  ls : $$list_type,   ltf : $$list_type,   lpv : $$list_type,
           #lsp : $$list_type, #ltfp : $$list_type, #lpvp : $$list_type) *
     (ls == l :: #lsp) * (ltf == $$f :: #ltfp) * (lpv == "" :: #lpvp);
 
 pred Pi (l, prop, "inductive", "String", d, ls, ltf, lpv) :
-	Class (l, "String") * Cell_s (l, prop, "None", None, #pv) * ((l, "@proto") -> #lp)  *
-    (!(#lp == $$null)) * CommonMethods(#lp) *
-    Pi (#lp, prop, #caseType, #class, #d, #lsp, #ltfp, #lpvp) * (d == #d) *
+	Class (l, "String") * Cell_s (l, prop, "None", None, #pv) *
+    ((l, "@proto") -> #lp) * (!(#lp == $$null)) * CommonMethods(#lp) *
+    Pi (#lp, prop, #caseType, #class, d, #lsp, #ltfp, #lpvp) *
     types(  ls : $$list_type,   ltf : $$list_type,   lpv : $$list_type,
           #lsp : $$list_type, #ltfp : $$list_type, #lpvp : $$list_type) *
     (ls == l :: #lsp) * (ltf == $$t :: #ltfp) * (lpv == #pv :: #lpvp);
@@ -248,8 +241,8 @@ spec o__getOwnProperty (l, prop)
     [[ Cell_o (l, prop, None) ]]
     [[ Cell_o (l, prop, None) * (ret == $$undefined) ]]
     normal;
-    [[ Cell_o (l, prop, #d) * isDescriptor(#d) ]]
-    [[ Cell_o (l, prop, #d) * isDescriptor(#d) * (ret == #d) ]]
+    [[ Cell_o (l, prop, #dx) * DataDescriptor(#dx) ]]
+    [[ Cell_o (l, prop, #dx) * DataDescriptor(#dx) * (ret == #dx) ]]
     normal
 
 proc o__getOwnProperty (l, prop) {
@@ -291,10 +284,10 @@ spec s__getOwnProperty (l, prop)
    	normal;
    	(* Same comment as in o__getOwnProperty applies *)
    	[[ Cell_s (l, prop, "SI", #u, #pv) ]]
-   	[[ Cell_s (l, prop, "SI", #u, #pv) * (ret == #u) * isDataDescriptor(ret) ]]
+   	[[ Cell_s (l, prop, "SI", #u, #pv) * (ret == #u) ]]
    	normal;
    	[[ Cell_s (l, prop, "NSI", #u, #pv) ]]
-   	[[ Cell_s (l, prop, "NSI", #u, #pv) * (ret == #u) * isDescriptor(ret) ]]
+   	[[ Cell_s (l, prop, "NSI", #u, #pv) * (ret == #u) ]]
    	normal
 
 proc s__getOwnProperty (l, prop) {
@@ -376,7 +369,7 @@ spec o__get (l, prop)
     [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (#g_aux_3 == $$undefined) ]]
     [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (#g_aux_3 == $$undefined) * (ret == $$undefined) ]]
     normal;
-    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * isDataDescriptor (#g_aux_3) ]]
+    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * DataDescriptor (#g_aux_3) ]]
     [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * desc_value (#g_aux_3, #desc_val) * (ret == #desc_val) ]]
     normal
 

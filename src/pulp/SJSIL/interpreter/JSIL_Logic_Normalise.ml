@@ -59,10 +59,6 @@ let rec normalise_lexpr store gamma subst le =
 				| PVar _ -> raise (Failure "This should never happen: program variable in normalised expression")
 				| LBinOp (_, _, _)
 				| LUnOp (_, _) -> LTypeOf (nle1)
-				| LEVRef (_, _) -> LLit (Type VariableReferenceType)
-				| LEORef (_, _) -> LLit (Type ObjectReferenceType)
-				| LBase _ -> LTypeOf (nle1)
-				| LField _ -> LLit (Type StringType)
 				| LTypeOf _ -> LLit (Type TypeType)
 				| LEList _ -> LLit (Type ListType)
 				| LLstNth (list, index) ->
@@ -381,7 +377,7 @@ let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_form
 	| LPointsTo (PVar var, le2, le3) ->
 			let aloc = (try
 					(match Hashtbl.find subst var with
-						| ALoc aloc -> Printf.printf "Subst: %s, %s\n" var aloc; aloc
+						| ALoc aloc -> aloc
 						| _ -> raise (Failure (Printf.sprintf "Not an ALoc in subst: %s" (JSIL_Print.string_of_logic_expression (Hashtbl.find subst var) false))))
 				with _ -> raise (Failure (Printf.sprintf "Variable %s not found in subst table!" var))) in
 			let nle2 = simplify_element_of_cell_assertion (fe le2) in
@@ -677,13 +673,13 @@ let normalise_predicate_definitions pred_defs : (string, JSIL_Memory_Model.n_jsi
 
 												Pure_Entailment.check_satisfiability (get_pf_list symb_state) (get_gamma symb_state) [])
 											normalised_as in
-										(* List.iter
+										List.iter
 											(fun symb_state ->
 												 Printf.printf "One valid unfolding of %s is:\n%s\n"
 													pred_name
 													(JSIL_Memory_Print.string_of_shallow_symb_state symb_state))
-											normalised_as;     *)
-										normalised_as)
+											normalised_as;
+								normalised_as)
 							pred.definitions in
 					let n_definitions = List.concat n_definitions in
 					let n_pred = {

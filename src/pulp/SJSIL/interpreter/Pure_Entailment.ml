@@ -129,7 +129,7 @@ let mk_z3_list_core les ctx list_nil list_cons =
 		match les with
 		| [] -> cur_list
 		| le :: rest_les ->
-			Printf.printf "Current: %s\n" (Expr.to_string le);
+			(* Printf.printf "Current: %s\n" (Expr.to_string le); *)
 			let new_cur_list = Expr.mk_app ctx list_cons [ le; cur_list ] in
 			loop rest_les new_cur_list in
 	loop les empty_list
@@ -363,11 +363,7 @@ let rec encode_literal tr_ctx lit =
 				(fun (les, tes) (le, te) -> (le :: les, te :: tes))
 				([], [])
 				les_tes in
-		let le_list =
-			Printf.printf ("mk_z3_list entry\n");
-			let res = mk_z3_list les tr_ctx in
-			Printf.printf ("mk_z3_list exit\n");
-			res in
+		let le_list = mk_z3_list les tr_ctx in
 		le_list,  (encode_type ctx ListType)
 
 	| _             -> raise (Failure "SMT encoding: Construct not supported yet - literal!")
@@ -509,9 +505,9 @@ let rec encode_logical_expression tr_ctx e =
 		le, te, new_as @ as1
 
 	| LEList les ->
-		Printf.printf "LEList: mk_z3_list entry : ";
+		(* Printf.printf "LEList: mk_z3_list entry : ";
 		List.iter (fun x -> Printf.printf "%s " (JSIL_Print.string_of_logic_expression x false)) les;
-		Printf.printf "\n";
+		Printf.printf "\n"; *)
 		let les_tes_as = List.map ele les in
 		let les, tes, assertions =
 			List.fold_left
@@ -519,11 +515,11 @@ let rec encode_logical_expression tr_ctx e =
 				([], [], [])
 				les_tes_as in
 		let le_list =
-			Printf.printf "LEList: encoded : ";
+			(* Printf.printf "LEList: encoded : ";
 			List.iter (fun x -> Printf.printf "%s " (Expr.to_string x)) les;
-			Printf.printf "\n";
+			Printf.printf "\n"; *)
 			let res = mk_z3_list les tr_ctx in
-			Printf.printf ("LEList: mk_z3_list exit\n");
+			(* Printf.printf ("LEList: mk_z3_list exit\n"); *)
 			res in
 		le_list, (encode_type ctx ListType), assertions
 
@@ -716,7 +712,7 @@ let get_solver tr_ctx existentials left_as right_as_or =
 		(*
 			Printf.printf "The assertion to check is:\n";
 			Printf.printf "\n%s\n\n" (Expr.to_string target_assertion);*)
-		(* Printf.printf "----- Creating the solver -----\n\n"; *)
+		Printf.printf "----- Creating the solver -----\n\n";
 
 	let right_as_or =
 		if ((List.length existentials) > 0)
@@ -726,11 +722,11 @@ let get_solver tr_ctx existentials left_as right_as_or =
 	let right_as_or =
 		Expr.simplify right_as_or None in
 
-	(* print_endline (Printf.sprintf "--- ABOUT TO ENTER THE SOLVER ---");
+	print_endline (Printf.sprintf "--- ABOUT TO ENTER THE SOLVER ---");
 	List.iter (fun expr -> Printf.printf "%s\n" (Expr.to_string expr)) left_as;
 	print_endline (Printf.sprintf "\nIMPLIES:\n");
 	print_endline (Printf.sprintf "%s" (Expr.to_string right_as_or));
-	print_endline (Printf.sprintf "\nDone printing"); *)
+	print_endline (Printf.sprintf "\nDone printing");
 
 	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 	Solver.add solver (left_as @ [ right_as_or ]);
@@ -740,14 +736,14 @@ let get_solver tr_ctx existentials left_as right_as_or =
 let check_satisfiability assertions gamma existentials =
 	let tr_ctx = mk_smt_translation_ctx gamma existentials in
 (*	try *)
-	Printf.printf "Check satisfiablity.\n";
-	Printf.printf "Gamma:%s\n" (JSIL_Memory_Print.string_of_gamma gamma);
+	(*Printf.printf "Check satisfiability.\n";
+	Printf.printf "Gamma:%s\n" (JSIL_Memory_Print.string_of_gamma gamma); *)
 	let assertions =
 		List.map
 			(fun a ->
-				Printf.printf "I am about to check the satisfiablity of: %s\n" (JSIL_Print.string_of_logic_assertion a false);
+				(*Printf.printf "I am about to check the satisfiability of: %s\n" (JSIL_Print.string_of_logic_assertion a false);*)
 				let a = encode_pure_formula tr_ctx a in
-				Printf.printf "%s\n" (Expr.to_string a);
+				(*Printf.printf "%s\n" (Expr.to_string a);*)
 				a)
 			assertions in
 	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in

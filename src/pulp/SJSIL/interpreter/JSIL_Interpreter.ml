@@ -356,21 +356,7 @@ let unary_bin_thing_bool lit1 lit2 (f : float -> float -> bool) emsg =
 			| _ -> raise (Failure (Printf.sprintf "%s : %s, %s" emsg (JSIL_Print.string_of_literal lit1 false) (JSIL_Print.string_of_literal lit2 false)))) in
 	Bool (f num1 num2)
 
-let rec evaluate_binop op e1 e2 store =
-	if (op = And) then
-	begin
-		let lit1 = evaluate_expr e1 store in
-		(match lit1 with
-		| Bool false -> Bool false
-		| Bool true -> let lit2 = evaluate_expr e2 store in
-		               (match lit2 with
-		                 | Bool b2 -> Bool b2
-										 | _ ->  raise (Failure "Non-boolean argument to And"))
-		| _ -> raise (Failure "Non-boolean argument to And"))
-	end
-	else
-	let lit1 = evaluate_expr e1 store in
-	let lit2 = evaluate_expr e2 store in
+let evaluate_binop op lit1 lit2 =
 	match op with
 	| Equal ->
 		(match lit1, lit2 with
@@ -434,8 +420,8 @@ let rec evaluate_binop op e1 e2 store =
 		(match lit1, lit2 with
 		| Type t1, Type t2 -> Bool (types_leq t1 t2)
 		| _, _ -> raise (Failure (Printf.sprintf "Non-string argument to StrCat: %s, %s" (JSIL_Print.string_of_literal lit1 false) (JSIL_Print.string_of_literal lit2 false))))
-and
-evaluate_expr (e : jsil_expr) store =
+
+let rec evaluate_expr (e : jsil_expr) store =
 	match e with
 	| Literal l ->
 		(match l with
@@ -452,7 +438,20 @@ evaluate_expr (e : jsil_expr) store =
 		| Some v -> v)
 
 	| BinOp (e1, bop, e2) ->
-		evaluate_binop bop e1 e2 store
+        (match bop with
+        | And ->
+            let lit1 = evaluate_expr e1 store in
+            (match lit1 with
+            | Bool false -> Bool false
+            | Bool true ->
+                (match evaluate_expr e2 store with
+		        | Bool b2 -> Bool b2
+                | _ ->  raise (Failure "Non-boolean argument to And"))
+            | _ -> raise (Failure "Non-boolean argument to And"))
+        | _ ->
+        let lit1 = evaluate_expr e1 store in
+        let lit2 = evaluate_expr e2 store in
+		evaluate_binop bop lit1 lit2) 
 
 	| UnaryOp (unop, e) ->
 		let v = evaluate_expr e store in

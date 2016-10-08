@@ -461,38 +461,6 @@ let rec symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae =
 		| LLit lit -> LLit (JSIL_Interpreter.evaluate_unop op lit)
 		| _ -> LUnOp (op, nle))
 
-	| VRef (e1, e2) ->
-		let nle1 = symb_evaluate_expr e1 store gamma pure_formulae in
-		let nle2 = symb_evaluate_expr e2 store gamma pure_formulae in
-		(match nle1, nle2 with
-		| LLit l, LLit (String field) -> LLit (LVRef (l, field))
-		| _, _ -> LEVRef (nle1, nle2))
-
-	| ORef (e1, e2) ->
-		let nle1 = symb_evaluate_expr e1 store gamma pure_formulae in
-		let nle2 = symb_evaluate_expr e2 store gamma pure_formulae in
-		(match nle1, nle2 with
-		| LLit l, LLit (String field) -> LLit (LORef (l, field))
-		| _, _ -> LEORef (nle1, nle2))
-
-	| Base	(e) ->
-		let nle = symb_evaluate_expr e store gamma pure_formulae in
-		(match nle with
-		| LLit (LVRef (l, _))
-		| LLit (LORef (l, _)) -> LLit l
-		| LEVRef (eb, _)
-		| LEORef (eb, _) -> eb
-		| _ -> LBase (nle))
-
-	| Field	(e) ->
-		let nle = symb_evaluate_expr e store gamma pure_formulae in
-		(match nle with
-		| LLit (LVRef (_, f))
-		| LLit (LORef (_, f)) -> LLit (String f)
-		| LEVRef (_, fe)
-		| LEORef (_, fe) -> fe
-		| _ -> LField (nle))
-
 	| TypeOf (e) ->
 		(** the typeof can only be removed when there are no constraints
         If there are constraints, we need to leave it there because
