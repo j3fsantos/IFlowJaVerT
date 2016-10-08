@@ -350,5 +350,5 @@ let get_proc_cmd proc i =
 
 let debug = ref false
 
-let if_debug code =
-	if (!debug) then begin code end
+let print_debug msg =
+	if (!debug) then print_string msg
