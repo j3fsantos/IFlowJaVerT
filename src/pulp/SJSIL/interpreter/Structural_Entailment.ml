@@ -421,7 +421,7 @@ let unify_symb_state_against_post proc_name spec symb_state flag symb_exe_info =
 			let subst = fully_unify_symb_state post symb_state spec.n_lvars in
 			(match subst with
 			| Some subst, _ ->
-				activate_post_in_post_prunning_info symb_exe_info proc_name i;
+				activate_post_in_post_pruning_info symb_exe_info proc_name i;
 				Printf.printf "Verified one spec of proc %s\n" proc_name
 			| None, msg       -> Printf.printf "No go: %s\n" msg; loop rest_posts rest_posts_lvars (i + 1))) in
 

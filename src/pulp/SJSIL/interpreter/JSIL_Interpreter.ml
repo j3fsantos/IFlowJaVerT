@@ -389,6 +389,10 @@ let evaluate_binop op lit1 lit2 =
 		(match lit1, lit2 with
 		| Bool b1, Bool b2 -> (Bool (b1 || b2))
 		| _, _ -> raise (Failure "Non-string argument to Or"))
+    | And ->
+    		(match lit1, lit2 with
+    		| Bool b1, Bool b2 -> (Bool (b1 && b2))
+    		| _, _ -> raise (Failure "Non-string argument to And"))
 	| BitwiseAnd -> unary_bin_thing_num lit1 lit2 int32_bitwise_and "Non-number arguments to BitwiseAnd"
 	| BitwiseOr -> unary_bin_thing_num lit1 lit2 int32_bitwise_or "Non-number arguments to BitwiseOr"
 	| BitwiseXor -> unary_bin_thing_num lit1 lit2 int32_bitwise_xor "Non-number arguments to BitwiseXor"
@@ -420,6 +424,7 @@ let evaluate_binop op lit1 lit2 =
 		(match lit1, lit2 with
 		| Type t1, Type t2 -> Bool (types_leq t1 t2)
 		| _, _ -> raise (Failure (Printf.sprintf "Non-string argument to StrCat: %s, %s" (JSIL_Print.string_of_literal lit1 false) (JSIL_Print.string_of_literal lit2 false))))
+    | _ -> Printf.printf "BIZARRE BINOP OPERATOR: %s\n" (JSIL_Print.string_of_binop op); exit 1
 
 let rec evaluate_expr (e : jsil_expr) store =
 	match e with
@@ -451,7 +456,7 @@ let rec evaluate_expr (e : jsil_expr) store =
         | _ ->
         let lit1 = evaluate_expr e1 store in
         let lit2 = evaluate_expr e2 store in
-		evaluate_binop bop lit1 lit2) 
+		evaluate_binop bop lit1 lit2)
 
 	| UnaryOp (unop, e) ->
 		let v = evaluate_expr e store in

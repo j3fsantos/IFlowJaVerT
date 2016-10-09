@@ -19,11 +19,28 @@ pred isList (v) :
 
 (* Data descriptors *)
 pred DataDescriptor (d) :
-        isList(d) * (d == {{ #d, #v, #w, #e, #c }}) * (#d == "d") *
-    types (#d : $$string_type, #w : $$boolean_type, #e : $$boolean_type, #c : $$boolean_type);
+    isList(d) * (d == {{ #dtype, #dval, #writ, #enum, #conf }}) * (#dtype == "d") *
+    types (#dtype : $$string_type, #writ : $$boolean_type, #enum : $$boolean_type, #conf : $$boolean_type);
 
-pred desc_value (d, v) :
+pred desc_val (d, v) :
     isList(d) * v == l-nth(d, 1);
+
+pred desc_writ (d, v) :
+    isList(d) * v == l-nth(d, 2);
+
+pred desc_enum (d, v) :
+    isList(d) * v == l-nth(d, 3);
+
+pred desc_conf (d, v) :
+    isList(d) * v == l-nth(d, 4);
+
+pred VariableReference (r) :
+    isList(r) * (r == {{ #rtype, #rbase, #rfield }}) * (#rtype == "v") *
+    types (#rtype : $$string_type, #rfield : $$string_type);
+
+pred ObjectReference (r) :
+    isList(r) * (r == {{ #rtype, #rbase, #rfield }}) * (#rtype == "o") *
+    types (#rtype : $$string_type, #rfield : $$string_type);
 
 (* Standard object cell stuff *)
 pred Cell_o (l, prop, None) :
@@ -54,7 +71,8 @@ pred Cell_s (l, prop, "NSI", desc, pv) :
 (* Common and less common methods *)
 
 pred CommonMethods (l) :
-	((l, "@getProperty") -> "o__getProperty");
+	((l, "@getProperty") -> "o__getProperty") *
+    ((l, "@get")         -> "o__get");
 
 pred Methods_String (l) :
 	CommonMethods(l) * ((l, "@getOwnProperty") -> "s__getOwnProperty");
@@ -110,6 +128,52 @@ pred Pi (l, prop, "inductive", "String", d, ls, ltf, lpv) :
     types(  ls : $$list_type,   ltf : $$list_type,   lpv : $$list_type,
           #lsp : $$list_type, #ltfp : $$list_type, #lpvp : $$list_type) *
     (ls == l :: #lsp) * (ltf == $$t :: #ltfp) * (lpv == #pv :: #lpvp);
+
+(* **********************
+   *** I__ISPRIMITIVE ***
+   ********************** *)
+
+spec i__isPrimitive (v)
+   [[ v == $$undefined ]]
+   [[ ret == $$t ]]
+   normal;
+   [[ v == $$null ]]
+   [[ ret == $$t ]]
+   normal;
+   [[ types (v : $$string_type) ]]
+   [[ (ret == $$t) ]]
+   normal;
+   [[ types (v : $$int_type) ]]
+   [[ (ret == $$t) ]]
+   normal;
+   [[ types (v : $$boolean_type) ]]
+   [[ (ret == $$t) ]]
+   normal;
+   [[ types (v : $$string_type) ]]
+   [[ (ret == $$t) ]]
+   normal;
+   [[ types (v : $$object_type) ]]
+   [[ (ret == $$f) ]]
+   normal
+
+proc i__isPrimitive (v) {
+			tv := typeOf(v);
+
+	iu:		goto [(v = $$undefined) or (v = $$null) or
+	              (typeOf(v) = $$boolean_type) or (typeOf(v) <: $$number_type) or
+	              (typeOf(v) = $$string_type)] rt rf;
+
+	rt:		xret := $$t;
+			goto rlab;
+
+	rf:		xret := $$f;
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};
+
 
 (* *******************
    *** i__toNumber ***
@@ -370,7 +434,7 @@ spec o__get (l, prop)
     [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (#g_aux_3 == $$undefined) * (ret == $$undefined) ]]
     normal;
     [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * DataDescriptor (#g_aux_3) ]]
-    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * desc_value (#g_aux_3, #desc_val) * (ret == #desc_val) ]]
+    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * desc_val (#g_aux_3, #desc_val) * (ret == #desc_val) ]]
     normal
 
 proc o__get (l, prop) {
@@ -406,4 +470,99 @@ with
 {
    ret: xret, rlab;
    err: xret, elab;
+};
+
+(* *******************
+   *** I__GETVALUE ***
+   ******************* *)
+
+spec i__getValue (v)
+    [[ v == $$undefined ]]
+    [[ ret == $$undefined ]]
+    normal;
+    [[ v == $$null ]]
+    [[ ret == $$null ]]
+    normal;
+    [[ types (v : $$string_type) ]]
+    [[ (ret == v) ]]
+    normal;
+    [[ types (v : $$int_type) ]]
+	[[ (ret == v) ]]
+	normal;
+    [[ types (v : $$boolean_type) ]]
+    [[ (ret == v) ]]
+    normal;
+    [[ types (v : $$string_type) ]]
+    [[ (ret == v) ]]
+    normal;
+    [[ (v == #r) * (#r == {{ #rt, #obj, #field }}) * (#rt == "o") *
+       Methods_General(#obj) * types (#obj : $$object_type, #field : $$string_type) *
+       Pi (#obj, #field, #g_aux_1, #g_aux_2, $$undefined, #g_aux_4, #g_aux_5, #g_aux_6) ]]
+    [[ Methods_General(#obj) * Pi (#obj, #field, #g_aux_1, #g_aux_2, $$undefined, #g_aux_4, #g_aux_5, #g_aux_6) * (ret == $$undefined) ]]
+    normal;
+    [[ (v == #r) * (#r == {{ #rt, $lg, #field }}) * (#rt == "v") *
+       Methods_General($lg) * types (#field : $$string_type) *
+       Pi ($lg, #field, #g_aux_1, #g_aux_2, $$undefined, #g_aux_4, #g_aux_5, #g_aux_6) ]]
+    [[ Methods_General($lg) * Pi ($lg, #field, #g_aux_1, #g_aux_2, $$undefined, #g_aux_4, #g_aux_5, #g_aux_6) * (ret == $$undefined) ]]
+    normal;
+    [[ (v == #r) * (#r == {{ #rt, #obj, #field }}) * (#rt == "v") * (! (#obj == $lg)) *
+       types (#obj : $$object_type, #field : $$string_type) * ((#obj, #field) -> #value) ]]
+    [[ ((#obj, #field) -> #value) * (ret == #value) ]]
+    normal
+
+proc i__getValue (v) {
+			goto [(typeOf(v) = $$list_type)] rcand dflt;
+
+    rcand:  rtype := l-nth (v, 0);
+            goto [(rtype = "v") or (rtype = "o")] init dflt;
+
+	init:	rbase := l-nth (v, 1);
+			rfield := l-nth (v, 2);
+			goto [rbase = $$undefined] throw prim;
+
+
+	prim:	prim := "i__isPrimitive" (rbase);
+            goto [prim and (not (rbase = $$undefined)) and (not (rbase = $$null))] is_pr ref;
+
+	is_pr:	xret := "i__toObject" (rbase) with elab;
+			gp := [xret, "@getProperty"];
+			xret := gp (xret, rfield) with elab;
+			goto [xret = $$undefined] rlab def;
+	def:	d := l-nth (xret, 0);						(* Get the descriptor type *)
+			xret := l-nth (xret, 1);					(* Get the value/getter *)
+			goto [d = "d"] rlab acc;				(* Is it a data descriptor? *)
+
+	acc:	goto [xret = $$undefined] rlab get;		(* Is the getter defined? *)
+	get:	xsc := [xret, "@scope"];				(* Get the scope of the getter *)
+			fun := [xret, "@call"];					(* Get the name of the getter *)
+			xret := fun (xsc, rbase) with elab;		(* Call the getter, errors could happen *)
+			goto [xret = $$empty] undef rlab;
+	undef:	xret := $$undefined;
+
+	ref:	goto [(l-nth (v, 0) = "o")] oref vref;
+
+	oref:	gp := [rbase, "@get"];
+			xret := gp (rbase, rfield) with elab;
+			goto rlab;
+
+	vref:	goto [rbase = $lg] lg er;
+
+	lg:		gp := [$lg, "@get"];
+			xret := gp (rbase, rfield) with elab;
+			goto rlab;
+
+	er:		xret := [rbase, rfield];
+			goto rlab;
+
+	dflt:	xret := v;
+
+	rlab:	skip;
+
+	throw:  xret := "ReferenceError" ();
+    elab:   skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
 };

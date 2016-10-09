@@ -311,7 +311,7 @@ type jsil_n_spec = {
 
 type specification_table = (string, jsil_n_spec) Hashtbl.t
 
-type prunning_table = (string, bool array) Hashtbl.t
+type pruning_table = (string, bool array) Hashtbl.t
 
 let copy_single_spec s_spec =
 	let copy_pre  = copy_symb_state s_spec.n_pre in
@@ -325,32 +325,32 @@ let copy_single_spec s_spec =
 		n_subst      = s_spec.n_subst
 	}
 
-let init_post_prunning_info () = Hashtbl.create small_tbl_size
+let init_post_pruning_info () = Hashtbl.create small_tbl_size
 
-let update_post_prunning_info_with_spec prunning_info n_spec =
-	let spec_post_prunning_info =
+let update_post_pruning_info_with_spec pruning_info n_spec =
+	let spec_post_pruning_info =
 		List.map
 			(fun spec ->
 				let number_of_posts = List.length spec.n_post in
 				Array.make number_of_posts false)
 			n_spec.n_proc_specs in
-	Hashtbl.replace prunning_info n_spec.n_spec_name spec_post_prunning_info
+	Hashtbl.replace pruning_info n_spec.n_spec_name spec_post_pruning_info
 
-let filter_useless_posts_in_single_spec	spec prunning_array =
+let filter_useless_posts_in_single_spec	spec pruning_array =
 	let rec loop posts i processed_posts =
 		(match posts with
 		| [] -> processed_posts
 		| post :: rest_posts ->
-			if (prunning_array.(i))
+			if (pruning_array.(i))
 				then loop rest_posts (i + 1) (post :: processed_posts)
 				else loop rest_posts (i + 1) processed_posts) in
 	let useful_posts = loop spec.n_post 0 [] in
 	{ spec with n_post = useful_posts }
 
-let filter_useless_posts_in_multiple_specs proc_name specs prunning_info =
+let filter_useless_posts_in_multiple_specs proc_name specs pruning_info =
 	try
-		let prunning_info = Hashtbl.find prunning_info proc_name in
-		let new_specs = List.map2 filter_useless_posts_in_single_spec specs prunning_info in
+		let pruning_info = Hashtbl.find pruning_info proc_name in
+		let new_specs = List.map2 filter_useless_posts_in_single_spec specs pruning_info in
 		new_specs
 	with Not_found -> specs
 
@@ -405,11 +405,11 @@ type symbolic_execution_search_info = {
 	info_nodes 		      : (int, search_info_node) Hashtbl.t;
 	info_edges          : (int, int list) Hashtbl.t;
 	next_node           : int ref;
-	post_prunning_info  : (string, (bool array) list) Hashtbl.t;
+	post_pruning_info  : (string, (bool array) list) Hashtbl.t;
 	spec_number         : int
 }
 
-let make_symb_exe_search_info node_info post_prunning_info spec_number =
+let make_symb_exe_search_info node_info post_pruning_info spec_number =
 	if (not (node_info.node_number = 0)) then
 		raise (Failure "the node number of the first node must be 0")
 	else begin
@@ -420,7 +420,7 @@ let make_symb_exe_search_info node_info post_prunning_info spec_number =
 				info_nodes          = Hashtbl.create small_tbl_size;
 				info_edges          = Hashtbl.create small_tbl_size;
 				next_node           = ref 1;
-				post_prunning_info  = post_prunning_info;
+				post_pruning_info  = post_pruning_info;
 				spec_number         = spec_number
 			} in
 		Hashtbl.replace new_search_info.info_edges 0 [];
@@ -438,10 +438,10 @@ let copy_vis_tbl vis_tbl = Hashtbl.copy vis_tbl
 let update_vis_tbl search_info vis_tbl =
 	{	search_info with vis_tbl = vis_tbl }
 
-let activate_post_in_post_prunning_info symb_exe_info proc_name post_number =
+let activate_post_in_post_pruning_info symb_exe_info proc_name post_number =
 	try
-		let post_prunning_info_array_list =
-			Hashtbl.find (symb_exe_info.post_prunning_info) proc_name in
-		let post_prunning_info_array = List.nth post_prunning_info_array_list (symb_exe_info.spec_number) in
-		post_prunning_info_array.(post_number) <- true
+		let post_pruning_info_array_list =
+			Hashtbl.find (symb_exe_info.post_pruning_info) proc_name in
+		let post_pruning_info_array = List.nth post_pruning_info_array_list (symb_exe_info.spec_number) in
+		post_pruning_info_array.(post_number) <- true
 	with Not_found -> ()

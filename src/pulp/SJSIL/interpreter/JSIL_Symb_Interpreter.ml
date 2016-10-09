@@ -6,6 +6,18 @@ let verbose = ref true
 
 let proto_f = "@proto"
 
+let find_me_baby le store pfs =
+(match le with
+| PVar var -> Hashtbl.find store var
+| LVar var ->
+	let rec loop pfs =
+	(match pfs with
+	| [] -> LVar var
+	| LEq (LVar v, lexpr) :: pfs -> if (v = var) then lexpr else loop pfs
+	| LEq (lexpr, LVar v) :: pfs -> if (v = var) then lexpr else loop pfs
+	| _  :: pfs -> loop pfs) in
+	loop (DynArray.to_list pfs)
+| _ -> le)
 
 (***************************)
 (** Symbolic Execution    **)
@@ -68,13 +80,18 @@ let rec symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae =
 	| LstNth (e1, e2) ->
 		let list = symb_evaluate_expr e1 store gamma pure_formulae in
 		let index = symb_evaluate_expr e2 store gamma pure_formulae in
+		let list = find_me_baby list store pure_formulae in
+		let index =
+			(match index with
+			| LLit (Num n) -> LLit (Integer (int_of_float n))
+			| _ -> index) in
 		(match list, index with
-		| LLit (LList list), LLit (Num n) ->
-			(try (LLit (List.nth list (int_of_float n))) with _ ->
+		| LLit (LList list), LLit (Integer n) ->
+			(try (LLit (List.nth list n)) with _ ->
 					raise (Failure "List index out of bounds"))
 
-		| LEList list, LLit (Num n) ->
-			(try (List.nth list (int_of_float n)) with _ ->
+		| LEList list, LLit (Integer n) ->
+			(try (List.nth list n) with _ ->
 					raise (Failure "List index out of bounds"))
 
 		| _, _ -> LLstNth (list, index))
@@ -92,7 +109,7 @@ let rec symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae =
 
 let safe_symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae  =
 	let nle = symb_evaluate_expr expr store gamma pure_formulae in
-	(* Printf.printf "safe_symb_evaluate_expr with expr: %s!\n" (JSIL_Print.string_of_logic_expression nle false);  *)
+	Printf.printf "safe_symb_evaluate_expr %s = %s!\n" (JSIL_Print.string_of_expression expr false) (JSIL_Print.string_of_logic_expression nle false);
 	let nle_type, is_typable, constraints = type_lexpr gamma nle in
 	(* Printf.printf "is_typable: %b\nconstraints: %s\n" is_typable (JSIL_Print.str_of_assertion_list constraints); *)
 	let are_constraints_satisfied =
@@ -143,7 +160,7 @@ let symb_evaluate_bcmd bcmd symb_state =
 			| ALoc l -> l
 			| _ ->
 			let ne1_str = JSIL_Print.string_of_logic_expression ne1 false  in
-			let msg = Printf.sprintf "I do not know which location %s denotes in the symbolic heap" ne1_str in
+			let msg = Printf.sprintf "Lookup: I do not know which location %s denotes in the symbolic heap" ne1_str in
 			raise (Failure msg)) in
 		let ne = Symbolic_State_Functions.abs_heap_find heap l ne2 pure_formulae gamma in
 		update_abs_store store x ne;
@@ -160,7 +177,7 @@ let symb_evaluate_bcmd bcmd symb_state =
 			Symbolic_State_Functions.update_abs_heap heap l ne2 ne3 pure_formulae gamma
 		| _ ->
 			let ne1_str = JSIL_Print.string_of_logic_expression ne1 false  in
-			let msg = Printf.sprintf "I do not know which location %s denotes in the symbolic heap" ne1_str in
+			let msg = Printf.sprintf "Mutation: I do not know which location %s denotes in the symbolic heap" ne1_str in
 			raise (Failure msg));
 		ne3
 
@@ -173,7 +190,7 @@ let symb_evaluate_bcmd bcmd symb_state =
 			| ALoc l -> l
 			| _ ->
 				let ne1_str = JSIL_Print.string_of_logic_expression ne1 false  in
-				let msg = Printf.sprintf "I do not know which location %s denotes in the symbolic heap" ne1_str in
+				let msg = Printf.sprintf "Delete: I do not know which location %s denotes in the symbolic heap" ne1_str in
 				raise (Failure msg)) in
 		Symbolic_State_Functions.update_abs_heap heap l ne2 LNone pure_formulae gamma;
 		LLit (Bool true)
@@ -194,7 +211,7 @@ let symb_evaluate_bcmd bcmd symb_state =
 			| None -> LUnknown)
 		| _ ->
 			let ne1_str = JSIL_Print.string_of_logic_expression ne1 false  in
-			let msg = Printf.sprintf "I do not know which location %s denotes in the symbolic heap" ne1_str in
+			let msg = Printf.sprintf "HasField: I do not know which location %s denotes in the symbolic heap" ne1_str in
 			raise (Failure msg);
 
 	| _ ->
@@ -622,9 +639,9 @@ and symb_evaluate_next_cmd s_prog proc spec search_info symb_state cur next  =
 		end)
 
 
-let symb_evaluate_proc s_prog proc_name spec i prunning_info =
+let symb_evaluate_proc s_prog proc_name spec i pruning_info =
 	let node_info = Symbolic_Traces.create_info_node_aux spec.n_pre 0 (-1) "Precondition" in
-	let search_info = make_symb_exe_search_info node_info prunning_info i in
+	let search_info = make_symb_exe_search_info node_info pruning_info i in
 
 	let proc = get_proc s_prog.program proc_name in
 	let sep_str = "---------------------------------------------------\n" in
@@ -654,18 +671,18 @@ let sym_run_procs spec_table prog which_pred pred_defs =
 		spec_tbl = spec_table;
 		pred_defs = n_pred_defs
 	} in
-	let prunning_info = init_post_prunning_info () in
+	let pruning_info = init_post_pruning_info () in
 	let results = Hashtbl.fold
 		(fun proc_name spec ac_results ->
-			update_post_prunning_info_with_spec prunning_info spec;
+			update_post_pruning_info_with_spec pruning_info spec;
 			let pre_post_list = spec.n_proc_specs in
 			let results = List.mapi
 				(fun i pre_post ->
 					let new_pre_post = copy_single_spec pre_post in
-					let dot_graph, success, failure_msg = symb_evaluate_proc s_prog proc_name new_pre_post i prunning_info in
+					let dot_graph, success, failure_msg = symb_evaluate_proc s_prog proc_name new_pre_post i pruning_info in
 					(proc_name, i, pre_post, success, failure_msg, dot_graph))
 				pre_post_list in
-			let new_spec = { spec with n_proc_specs = (filter_useless_posts_in_multiple_specs proc_name pre_post_list prunning_info) } in
+			let new_spec = { spec with n_proc_specs = (filter_useless_posts_in_multiple_specs proc_name pre_post_list pruning_info) } in
 			Hashtbl.replace spec_table proc_name new_spec;
 			ac_results @ results)
 		spec_table

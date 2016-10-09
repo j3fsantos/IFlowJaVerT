@@ -112,7 +112,7 @@ let string_of_specs specs =
 			let pre = x.pre in
 			let post = x.post in
 			let flag = (match x.ret_flag with | Normal -> "Normal" | Error -> "Error") in
-			(Printf.sprintf "[[\n\t%s\n\t%s\n\t%s\n]]"
+			(Printf.sprintf "[[\n%s\n]]\n[[\n%s\n%s\n]]"
 				(string_of_logic_assertion pre false)
 				(string_of_logic_assertion post false)
 				flag
