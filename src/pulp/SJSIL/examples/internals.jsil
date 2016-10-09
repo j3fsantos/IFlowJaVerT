@@ -524,7 +524,7 @@ proc i__getValue (v) {
 
 
 	prim:	prim := "i__isPrimitive" (rbase);
-            goto [prim and (not (rbase = $$undefined)) and (not (rbase = $$null))] is_pr ref;
+            goto [prim] is_pr ref;
 
 	is_pr:	xret := "i__toObject" (rbase) with elab;
 			gp := [xret, "@getProperty"];
