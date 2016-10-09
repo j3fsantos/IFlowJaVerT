@@ -477,7 +477,6 @@ with
    ******************* *)
 
 spec i__getValue (v)
-(*
     [[ v == $$undefined ]]
     [[ ret == $$undefined ]]
     normal;
@@ -496,7 +495,6 @@ spec i__getValue (v)
     [[ types (v : $$string_type) ]]
     [[ (ret == v) ]]
     normal;
-*)
     [[ (v == #r) * (#r == {{ #rt, #obj, #field }}) * (#rt == "o") *
        Methods_General(#obj) * types (#obj : $$object_type, #field : $$string_type) *
        Pi (#obj, #field, #g_aux_1, #g_aux_2, $$undefined, #g_aux_4, #g_aux_5, #g_aux_6) ]]

@@ -546,7 +546,6 @@ let normalise_precondition a =
 	symb_state, (lvars, new_subst)
 
 let normalise_postcondition a subst (lvars : string list) : symbolic_state * (string list) =
-	let a = assertion_substitution a subst true in
 	let a_vars = get_ass_vars_lst a false in
 	let a_vars = filter_vars a_vars lvars in
 
@@ -554,6 +553,7 @@ let normalise_postcondition a subst (lvars : string list) : symbolic_state * (st
 	(* a_vars in Printf.printf "Post Existentially Quantified Vars BABY:       *)
 	(* %s\n\n\n" a_vars_str;                                                   *)
 	let symb_state, _ = normalise_assertion a in
+	let a = assertion_substitution a subst true in
 	symb_state, a_vars
 
 
@@ -567,6 +567,8 @@ let normalise_single_spec preds spec =
 	Printf.printf "UPostcondition: %s\n" (JSIL_Print.string_of_logic_assertion unfolded_post false);
 	*)
 
+	Printf.printf "NSS: Entry\n";
+
 	let f_pre_normalize a_list = List.concat (List.map pre_normalize_assertion a_list) in
 	let f_print assertions =
 		List.fold_left (fun ac s -> if (ac = "") then s else (ac ^ ";\n" ^ s)) ""
@@ -574,6 +576,11 @@ let normalise_single_spec preds spec =
 
 	let unfolded_pres = f_pre_normalize (Logic_Predicates.auto_unfold preds spec.pre) in
 	let unfolded_posts = f_pre_normalize (Logic_Predicates.auto_unfold preds spec.post) in
+
+	Printf.printf "NSS: Pre-normalise\n";
+
+	Printf.printf "Pres: %s\n" (f_print unfolded_pres);
+	Printf.printf "Posts: %s\n" (f_print unfolded_posts);
 
 	let unfolded_spec_list =
 		List.map
@@ -604,6 +611,7 @@ let normalise_single_spec preds spec =
 								})
 						else None)
 			unfolded_pres in
+	Printf.printf "NSS: Matching\n";
 	let unfolded_spec_list =
 		List.fold_left
 			(fun ac elem ->
@@ -612,6 +620,7 @@ let normalise_single_spec preds spec =
 						| Some spec -> spec :: ac)
 			[]
 			unfolded_spec_list in
+	Printf.printf "NSS: Done\n";
 	unfolded_spec_list
 
 let normalise_spec preds spec =

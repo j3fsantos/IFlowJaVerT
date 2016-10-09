@@ -639,9 +639,9 @@ and symb_evaluate_next_cmd s_prog proc spec search_info symb_state cur next  =
 		end)
 
 
-let symb_evaluate_proc s_prog proc_name spec i prunning_info =
+let symb_evaluate_proc s_prog proc_name spec i pruning_info =
 	let node_info = Symbolic_Traces.create_info_node_aux spec.n_pre 0 (-1) "Precondition" in
-	let search_info = make_symb_exe_search_info node_info prunning_info i in
+	let search_info = make_symb_exe_search_info node_info pruning_info i in
 
 	let proc = get_proc s_prog.program proc_name in
 	let sep_str = "---------------------------------------------------\n" in
@@ -671,18 +671,18 @@ let sym_run_procs spec_table prog which_pred pred_defs =
 		spec_tbl = spec_table;
 		pred_defs = n_pred_defs
 	} in
-	let prunning_info = init_post_prunning_info () in
+	let pruning_info = init_post_pruning_info () in
 	let results = Hashtbl.fold
 		(fun proc_name spec ac_results ->
-			update_post_prunning_info_with_spec prunning_info spec;
+			update_post_pruning_info_with_spec pruning_info spec;
 			let pre_post_list = spec.n_proc_specs in
 			let results = List.mapi
 				(fun i pre_post ->
 					let new_pre_post = copy_single_spec pre_post in
-					let dot_graph, success, failure_msg = symb_evaluate_proc s_prog proc_name new_pre_post i prunning_info in
+					let dot_graph, success, failure_msg = symb_evaluate_proc s_prog proc_name new_pre_post i pruning_info in
 					(proc_name, i, pre_post, success, failure_msg, dot_graph))
 				pre_post_list in
-			let new_spec = { spec with n_proc_specs = (filter_useless_posts_in_multiple_specs proc_name pre_post_list prunning_info) } in
+			let new_spec = { spec with n_proc_specs = (filter_useless_posts_in_multiple_specs proc_name pre_post_list pruning_info) } in
 			Hashtbl.replace spec_table proc_name new_spec;
 			ac_results @ results)
 		spec_table
