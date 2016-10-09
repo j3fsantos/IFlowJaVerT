@@ -14,10 +14,11 @@ let rec symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae =
 	match expr with
 	| Literal lit -> LLit lit
 
-	| Var var ->
-		(try Hashtbl.find store var
-		with _ ->
-			extend_abs_store var store gamma)
+	| Var x ->
+		let x_val = store_get_var_val store x in 
+		(match x_val with 
+		| Some x_val -> x_val
+		| None       -> extend_abs_store x store gamma) 
 
 	| BinOp (e1, op, e2) ->
 		let nle1 = symb_evaluate_expr e1 store gamma pure_formulae in
