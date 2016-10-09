@@ -499,6 +499,15 @@ spec i__getValue (v)
        Methods_General(#obj) * types (#obj : $$object_type, #field : $$string_type) *
        Pi (#obj, #field, #g_aux_1, #g_aux_2, $$undefined, #g_aux_4, #g_aux_5, #g_aux_6) ]]
     [[ Methods_General(#obj) * Pi (#obj, #field, #g_aux_1, #g_aux_2, $$undefined, #g_aux_4, #g_aux_5, #g_aux_6) * (ret == $$undefined) ]]
+    normal;
+    [[ (v == #r) * (#r == {{ #rt, $lg, #field }}) * (#rt == "v") *
+       Methods_General($lg) * types (#field : $$string_type) *
+       Pi ($lg, #field, #g_aux_1, #g_aux_2, $$undefined, #g_aux_4, #g_aux_5, #g_aux_6) ]]
+    [[ Methods_General($lg) * Pi ($lg, #field, #g_aux_1, #g_aux_2, $$undefined, #g_aux_4, #g_aux_5, #g_aux_6) * (ret == $$undefined) ]]
+    normal;
+    [[ (v == #r) * (#r == {{ #rt, #obj, #field }}) * (#rt == "v") * (! (#obj == $lg)) *
+       types (#obj : $$object_type, #field : $$string_type) * ((#obj, #field) -> #value) ]]
+    [[ ((#obj, #field) -> #value) * (ret == #value) ]]
     normal
 
 proc i__getValue (v) {
