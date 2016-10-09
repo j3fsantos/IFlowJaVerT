@@ -546,6 +546,7 @@ let normalise_precondition a =
 	symb_state, (lvars, new_subst)
 
 let normalise_postcondition a subst (lvars : string list) : symbolic_state * (string list) =
+	let a = assertion_substitution a subst true in
 	let a_vars = get_ass_vars_lst a false in
 	let a_vars = filter_vars a_vars lvars in
 
@@ -553,7 +554,6 @@ let normalise_postcondition a subst (lvars : string list) : symbolic_state * (st
 	(* a_vars in Printf.printf "Post Existentially Quantified Vars BABY:       *)
 	(* %s\n\n\n" a_vars_str;                                                   *)
 	let symb_state, _ = normalise_assertion a in
-	let a = assertion_substitution a subst true in
 	symb_state, a_vars
 
 
@@ -667,9 +667,9 @@ let normalise_predicate_definitions pred_defs : (string, JSIL_Memory_Model.n_jsi
 	let n_pred_defs = Hashtbl.create 31 in
 	Hashtbl.iter
 		(fun pred_name pred ->
-					(* Printf.printf "========================================\n";
+					Printf.printf "========================================\n";
 					Printf.printf "Enter the normalisation of predicate: %s\n" pred_name;
-					Printf.printf "========================================\n"; *)
+					Printf.printf "========================================\n";
 					let n_definitions =
 						List.map
 							(fun a ->
@@ -684,12 +684,12 @@ let normalise_predicate_definitions pred_defs : (string, JSIL_Memory_Model.n_jsi
 
 												Pure_Entailment.check_satisfiability (get_pf_list symb_state) (get_gamma symb_state) [])
 											normalised_as in
-										(* List.iter
+										List.iter
 											(fun symb_state ->
 												 Printf.printf "I found one valid unfolding of %s.\n" pred_name;
 												 Printf.printf "Unfolding produced by Ivan:\n%s\n" (JSIL_Print.string_of_logic_assertion a false);
 												 Printf.printf "Normalised unfolding:\n%s\n"(JSIL_Memory_Print.string_of_shallow_symb_state symb_state))
-											normalised_as; *)
+											normalised_as;
 										normalised_as)
 							pred.definitions in
 					let n_definitions = List.concat n_definitions in

@@ -11,22 +11,26 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 		Hashtbl.fold
 			(fun var pat_lexpr discharges ->
 				let lexpr = try Hashtbl.find store var with _ -> raise (Failure "the stores are not unifiable") in
-				let rec spin_me_round pat_lexpr lexpr dishcarges =
+				let rec spin_me_round pat_lexpr lexpr discharges =
 				(match pat_lexpr, lexpr with
 
 				| LLit (Num n), LLit (Integer i)
 				| LLit (Integer i), LLit (Num n) ->
 					if ((n = (snd (modf n))) && (i = (int_of_float n)))
 						then discharges
-						else raise (Failure "the stores are not unifiable")
+						else raise (Failure "Numbers : the stores are not unifiable")
 
 				| LLit pat_lit, LLit lit ->
 					if (lit = pat_lit)
 						then discharges
-						else raise (Failure "the stores are not unifiable")
+						else raise (Failure "Other literals: the stores are not unifiable")
 
 				| ALoc pat_aloc, ALoc aloc ->
 					extend_subst pat_subst pat_aloc (ALoc aloc);
+					discharges
+
+				| ALoc pat_aloc, (LLit (Loc loc)) ->
+					extend_subst pat_subst pat_aloc (LLit (Loc loc));
 					discharges
 
 				| LVar lvar, _ ->
@@ -40,7 +44,7 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 						extend_subst subst lvar new_aloc;
 						extend_subst pat_subst pat_aloc new_aloc;
 						discharges
-					| None -> raise (Failure "the pattern store is not normalized."))
+					| None -> raise (Failure (Printf.sprintf "ALoc %s, LVar %s : the pattern store is not normalized." pat_aloc lvar)))
 
 				| LLit lit, LVar lvar ->
 					(match subst with
@@ -50,7 +54,7 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 					| None ->
 						if (Pure_Entailment.check_entailment [] pfs [ (LEq (LVar lvar, LLit lit)) ] gamma)
 							then discharges
-							else raise (Failure "the pattern store is not normalized."))
+							else raise (Failure (Printf.sprintf "LLit %s, LVar %s : the pattern store is not normalized." (JSIL_Print.string_of_literal lit false) lvar)))
 
 				| LEList el1, LEList el2 ->
 					(List.fold_left2
@@ -65,7 +69,7 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 			pat_store
 			[] in
 	Some discharges
-	with _ -> None
+	with (Failure msg) -> Printf.printf "Cannot unify, filha. Sorry: %s\n" msg; None
 
 
 let unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (gamma: typing_environment) (subst : (string, jsil_logic_expr) Hashtbl.t) : (bool * ((string * jsil_logic_expr) option)) =
@@ -331,14 +335,14 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 	let heap, store, pf, gamma, preds = symb_state in
 	let subst = init_substitution lvars in
 
-	(* Printf.printf "unify_symb_states\n";
-	Printf.printf "Let's unify the stores first:\nStore: %s. \nPat_store: %s.\n\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false) (JSIL_Memory_Print.string_of_shallow_symb_store pat_store false); *)
+	Printf.printf "unify_symb_states\n";
+	Printf.printf "Let's unify the stores first:\nStore: %s. \nPat_store: %s.\n\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false) (JSIL_Memory_Print.string_of_shallow_symb_store pat_store false);
 
 	let discharges = unify_stores pat_store store subst None (pfs_to_list pf) gamma in
 	match discharges with
 	| Some discharges ->
 		let spec_vars_check = spec_logic_vars_discharge subst lvars (get_pf_list symb_state) (get_gamma symb_state) in
-	  (* Printf.printf "the PAT symbolic state after computing quotient heap:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state); *)
+	    Printf.printf "the PAT symbolic state after computing quotient heap:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state);
 
 		let (quotient_heap, new_pfs) : (symbolic_heap option) * ((jsil_logic_assertion list) option) = unify_symb_heaps pat_heap heap pf gamma subst in
 		(* print_endline (Printf.sprintf "Substitution after heap unification baby!!!\n%s" (JSIL_Memory_Print.string_of_substitution subst)); *)
@@ -370,7 +374,7 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 			let pf_list = pfs_to_list pf in
 
 			let existentials_str = print_var_list new_pat_pf_existentials in
-			(* print_endline (Printf.sprintf "Dicharges: %s" (JSIL_Print.str_of_assertion_list pf_discharges));
+			print_endline (Printf.sprintf "Discharges: %s" (JSIL_Print.str_of_assertion_list pf_discharges)); (*)
 			print_endline (Printf.sprintf "About to check if\n (\n%s\n)	\nENTAILS\n (Exists %s.\n(\n%s\n))\n given the gamma:\n%s"
 				(JSIL_Print.str_of_assertion_list pf_list)
 				existentials_str
@@ -388,8 +392,8 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 					(* Printf.printf "I could NOT check the entailment!!!\n";
 					Printf.printf "entailment_check_ret: %b. unify_gamma_check: %b.\n" entailment_check_ret unify_gamma_check; *)
 					Some (quotient_heap, quotient_preds, new_subst, pf_discharges, false)))
-		| _ -> (* Printf.printf "One of the four things failed.\n"; *) None)
-	| None -> (* Printf.printf "Sweet Jesus, broken discharges.\n"; *) None
+		| _ -> Printf.printf "One of the four things failed.\n"; None)
+	| None -> Printf.printf "Sweet Jesus, broken discharges.\n"; None
 
 
 let fully_unify_symb_state pat_symb_state symb_state lvars =

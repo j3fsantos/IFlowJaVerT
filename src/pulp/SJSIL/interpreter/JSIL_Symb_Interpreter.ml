@@ -27,10 +27,10 @@ let rec symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae =
 	| Literal lit -> LLit lit
 
 	| Var x ->
-		let x_val = store_get_var_val store x in 
-		(match x_val with 
+		let x_val = store_get_var_val store x in
+		(match x_val with
 		| Some x_val -> x_val
-		| None       -> extend_abs_store x store gamma) 
+		| None       -> extend_abs_store x store gamma)
 
 	| BinOp (e1, op, e2) ->
 		let nle1 = symb_evaluate_expr e1 store gamma pure_formulae in
@@ -338,7 +338,7 @@ let fold_predicate pred_name pred_defs symb_state params args =
 		(match pred_defs with
 		| [] -> None
 		| pred_def :: rest_pred_defs ->
-			(* Printf.printf "Current pred symbolic state: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pred_def); *)
+			Printf.printf "Current pred symbolic state: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pred_def);
 			let unifier = Structural_Entailment.unify_symb_states [] pred_def symb_state_aux in
 			(match unifier with
 			| Some (quotient_heap, quotient_preds, subst, pf_discharges, true) ->
@@ -373,15 +373,16 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 			let pat_subst = init_substitution [] in
 			let subst = init_substitution [] in
 			let pat_store = get_store pred_symb_state in
+			Printf.printf "HERE WE ARE!\n";
 			(* Printf.printf "UNFOLD PREDICATES UNFOLD PREDICATES. Pat_store: %s Store: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_store pat_store false) (JSIL_Memory_Print.string_of_shallow_symb_store store false); *)
 			let discharges = Structural_Entailment.unify_stores pat_store store pat_subst (Some subst) (pfs_to_list (get_pf symb_state)) (get_gamma symb_state) in
 			(match discharges with
 			| Some discharges ->
 					(* Printf.printf "Current pred symbolic state: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pred_symb_state); *)
-					(*Printf.printf "I need to apply the following subst in the current symbolic store: %s\n"
+					Printf.printf "I need to apply the following subst in the current symbolic store: %s\n"
 						(JSIL_Memory_Print.string_of_substitution subst);
 					Printf.printf "I need to apply the following subst in the pattern symbolic store: %s\n"
-						(JSIL_Memory_Print.string_of_substitution pat_subst); *)
+						(JSIL_Memory_Print.string_of_substitution pat_subst);
 					let new_symb_state : symbolic_state = copy_symb_state symb_state in
 					let (new_symb_state : symbolic_state) = Symbolic_State_Functions.symb_state_substitution new_symb_state subst true in
 					Symbolic_State_Functions.symb_state_add_subst_as_equalities new_symb_state subst (get_pf new_symb_state) spec_vars;
@@ -407,17 +408,17 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 					JSIL_Logic_Normalise.extend_typing_env_using_assertion_info new_pfs_subst0 gamma;
 					JSIL_Logic_Normalise.extend_typing_env_using_assertion_info pf_discharges gamma;
 
-					(* Printf.printf "The discharges to prove are: %s\n" (JSIL_Print.str_of_assertion_list pf_discharges); *)
+					Printf.printf "The discharges to prove are: %s\n" (JSIL_Print.str_of_assertion_list pf_discharges);
 					(* Printf.printf "I unfolded the following symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state unfolded_symb_state); *)
 					let satisfiability_check = Pure_Entailment.check_satisfiability (get_pf_list unfolded_symb_state) gamma [] in
 					(* let discharges_check = Entailment_Engine.check_entailment [] pf pf_discharges gamma in *)
 					if (satisfiability_check)
 						then (
-							(* Printf.printf "Checked the pure part of the unfolding!!\n"; *)
+							Printf.printf "Checked the pure part of the unfolding!!\n";
 							loop rest_pred_defs (unfolded_symb_state :: symb_states))
 						else (
-							(* Printf.printf "Could NOT check the pure part of the unfolding. satisfiability_check: %b.\n" satisfiability_check;
-							Printf.printf "pf_discharges: %s\n" (JSIL_Print.str_of_assertion_list pf_discharges); *)
+							Printf.printf "Could NOT check the pure part of the unfolding. satisfiability_check: %b.\n" satisfiability_check;
+							(* Printf.printf "pf_discharges: %s\n" (JSIL_Print.str_of_assertion_list pf_discharges); *)
 							loop rest_pred_defs symb_states)
 			| None -> loop rest_pred_defs symb_states)) in
 

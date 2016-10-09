@@ -495,20 +495,28 @@ spec i__getValue (v)
     [[ types (v : $$string_type) ]]
     [[ (ret == v) ]]
     normal;
-    [[ (v == {{ #rt, #obj, #field }}) * (#rt == "o") *
-       types (#obj : $$object_type, #field : $$string_type) *
-       Pi (#obj, #field, #g_aux_1, #g_aux_2, $$undefined, #g_aux_4, #g_aux_5, #g_aux_6) ]]
-    [[ Pi (#obj, #field, #g_aux_1, #g_aux_2, $$undefined, #g_aux_4, #g_aux_5, #g_aux_6) * (ret == $$undefined) ]]
+    [[ (v == {{ "o", #obj, #field }}) * types (#obj : $$object_type, #field : $$string_type) *
+       Pi (#obj, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * DataDescriptor (#g_aux_3)  ]]
+    [[ Pi (#obj, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * desc_val (#g_aux_3, #desc_val) * (ret == #desc_val) ]]
     normal;
-    
-    [[ (v == #r) * (#r == {{ #rt, $lg, #field }}) * (#rt == "v") *
-       types (#field : $$string_type) *
-       Pi ($lg, #field, #g_aux_1, #g_aux_2, $$undefined, #g_aux_4, #g_aux_5, #g_aux_6) ]]
-    [[ Pi ($lg, #field, #g_aux_1, #g_aux_2, $$undefined, #g_aux_4, #g_aux_5, #g_aux_6) * (ret == $$undefined) ]]
+
+    [[ (v == {{ "o", #obj, #field }}) * types (#obj : $$object_type, #field : $$string_type) *
+       Pi (#obj, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (#g_aux_3 == $$undefined) ]]
+    [[ Pi (#obj, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (ret == $$undefined) ]]
     normal;
-    
-    [[ (v == #r) * (#r == {{ #rt, #obj, #field }}) * (#rt == "v") * (! (#obj == $lg)) *
-       types (#obj : $$object_type, #field : $$string_type) * ((#obj, #field) -> #value) ]]
+
+    [[ (v == {{ "v", $lg, #field }}) * types (#field : $$string_type) *
+       Pi ($lg, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (#g_aux_3 == $$undefined) ]]
+    [[ Pi ($lg, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (ret == $$undefined) ]]
+    normal;
+
+    [[ (v == {{ "v", $lg, #field }}) * types (#field : $$string_type) *
+       Pi ($lg, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * DataDescriptor (#g_aux_3)  ]]
+    [[ Pi ($lg, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * desc_val (#g_aux_3, #desc_val) * (ret == #desc_val) ]]
+    normal;
+
+    [[ (v == {{ "v", #obj, #field }}) * (! (#obj == $lg)) * ((#obj, #field) -> #value) *
+       types (#obj : $$object_type, #field : $$string_type) ]]
     [[ ((#obj, #field) -> #value) * (ret == #value) ]]
     normal
 
@@ -540,17 +548,20 @@ proc i__getValue (v) {
 			xret := fun (xsc, rbase) with elab;		(* Call the getter, errors could happen *)
 			goto [xret = $$empty] undef rlab;
 	undef:	xret := $$undefined;
-			
-			[* unfold 
+
 	ref:	goto [(l-nth (v, 0) = "o")] oref vref;
-			
+
+            [* unfold Pi (#obj, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
 	oref:	gp := [rbase, "@get"];
+            [* fold Pi (#obj, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
 			xret := gp (rbase, rfield) with elab;
 			goto rlab;
 
 	vref:	goto [rbase = $lg] lg er;
 
+            [* unfold Pi ($lg, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
 	lg:		gp := [$lg, "@get"];
+            [* fold Pi ($lg, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
 			xret := gp (rbase, rfield) with elab;
 			goto rlab;
 

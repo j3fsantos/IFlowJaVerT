@@ -550,12 +550,23 @@ let rec encode_logical_expression tr_ctx e =
 		raise (Failure msg))
 
 
-let encode_nth_equalities tr_ctx le_list les =
+(* TODO : Unify the two below *)
+
+let encode_lnth_equalities tr_ctx le_list les =
 	let ctx = tr_ctx.z3_ctx in
 	List.mapi
 		(fun i le ->
 			let le', _, _ = encode_logical_expression tr_ctx le in
 			let le_nth = (Expr.mk_app ctx tr_ctx.tr_lnth_fun [ le_list; (Arithmetic.Integer.mk_numeral_i ctx i) ]) in
+			Boolean.mk_eq ctx le_nth le')
+		les
+
+let encode_snth_equalities tr_ctx s les =
+	let ctx = tr_ctx.z3_ctx in
+	List.mapi
+		(fun i le ->
+			let le', _, _ = encode_logical_expression tr_ctx le in
+			let le_nth = (Expr.mk_app ctx tr_ctx.tr_snth_fun [ s; (Arithmetic.Integer.mk_numeral_i ctx i) ]) in
 			Boolean.mk_eq ctx le_nth le')
 		les
 
@@ -578,6 +589,10 @@ let encode_gamma tr_ctx =
 				else Boolean.mk_true ctx)
 		gamma_var_type_pairs
 
+let explode s =
+  let rec exp i l =
+    if i < 0 then l else exp (i - 1) ((String.make 1 s.[i]) :: l) in
+  exp (String.length s - 1) []
 
 let rec encode_pure_formula tr_ctx a =
 	let f = encode_pure_formula tr_ctx in
@@ -604,28 +619,49 @@ let rec encode_pure_formula tr_ctx a =
 				let as1 = Boolean.mk_eq ctx le1 le2 in
 				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length lits)) in
 				let les = List.map (fun lit -> LLit lit) lits in
-				let nth_as = encode_nth_equalities tr_ctx le2 les in
+				let nth_as = encode_lnth_equalities tr_ctx le2 les in
 				Boolean.mk_and ctx ([as1; as2 ] @ nth_as)
 			| (LEList les), _ ->
 				let as1 = Boolean.mk_eq ctx le1 le2 in
 				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length les)) in
-				let nth_as = encode_nth_equalities tr_ctx le2 les in
+				let nth_as = encode_lnth_equalities tr_ctx le2 les in
 				Boolean.mk_and ctx ([as1; as2 ]  @ nth_as)
 			| _, LLit (LList lits) ->
 				let as1 = Boolean.mk_eq ctx le1 le2 in
 				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length lits)) in
 				let les = List.map (fun lit -> LLit lit) lits in
-				let nth_as = encode_nth_equalities tr_ctx le1 les in
+				let nth_as = encode_lnth_equalities tr_ctx le1 les in
 				Boolean.mk_and ctx ([as1; as2 ] @ nth_as)
 			| _, (LEList les) ->
 				let as1 = Boolean.mk_eq ctx le1 le2 in
 				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length les)) in
-				let nth_as = encode_nth_equalities tr_ctx le1 les in
+				let nth_as = encode_lnth_equalities tr_ctx le1 les in
 				Boolean.mk_and ctx ([as1; as2 ]  @ nth_as)
 			| _, _ ->
 				let as1 = Boolean.mk_eq ctx le1 le2 in
 				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ])  (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) in
 				Boolean.mk_and ctx [as1; as2 ])
+		| Some StringType, Some StringType ->
+			(match le1', le2' with
+			| LLit (String s1), LLit (String s2) -> if (s1 = s2) then Boolean.mk_true ctx else Boolean.mk_false ctx
+			(* TODO: Be more elegant about this! *)
+			| LStrNth (_, _), _
+			| _, LStrNth (_, _) -> Boolean.mk_eq ctx le1 le2
+			(* TODO: Be more elegant about this! *)
+			| LLit (String s), _ ->
+				let as1 = Boolean.mk_eq ctx le1 le2 in
+				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_slen_fun [ le2 ]) (Arithmetic.Integer.mk_numeral_i ctx (String.length s)) in
+				let les = List.map (fun x -> LLit (String x)) (explode s) in
+				let nth_as = encode_snth_equalities tr_ctx le2 les in
+				Boolean.mk_and ctx ([as1; as2 ] @ nth_as)
+			| _, LLit (String s) ->
+				let as1 = Boolean.mk_eq ctx le1 le2 in
+				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_slen_fun [ le1 ]) (Arithmetic.Integer.mk_numeral_i ctx (String.length s)) in
+				let les = List.map (fun x -> LLit (String x)) (explode s) in
+				let nth_as = encode_snth_equalities tr_ctx le1 les in
+				Boolean.mk_and ctx ([as1; as2 ] @ nth_as)
+			| _, _ ->
+				Boolean.mk_eq ctx le1 le2)
 		| Some t1, Some t2 ->
 			if (t1 = t2)
 				then Boolean.mk_eq ctx le2 le1
