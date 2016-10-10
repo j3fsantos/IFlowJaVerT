@@ -51,7 +51,9 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 						extend_subst subst lvar new_aloc;
 						extend_subst pat_subst pat_aloc new_aloc;
 						discharges
-					| None -> raise (Failure (Printf.sprintf "ALoc %s, LVar %s : the pattern store is not normalized." pat_aloc lvar)))
+					| None -> if (Pure_Entailment.check_entailment [] pfs [ (LEq (LVar lvar, ALoc pat_aloc)) ] gamma)
+								then discharges
+								else raise (Failure (Printf.sprintf "ALoc %s, LVar %s : the pattern store is not normalized." pat_aloc lvar)))
 
 				| LLit lit, LVar lvar ->
 					(match subst with
