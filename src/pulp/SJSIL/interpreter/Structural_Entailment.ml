@@ -18,18 +18,18 @@ open JSIL_Logic_Utils
 
 let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subst : substitution) (subst: substitution option) (pfs : jsil_logic_assertion list) (gamma : typing_environment) : ((jsil_logic_expr * jsil_logic_expr) list) option  =
 	try
-	Printf.printf "Let's unify the stores first:\nStore: %s. \nPat_store: %s.\n\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false) (JSIL_Memory_Print.string_of_shallow_symb_store pat_store false);
+	(*Printf.printf "Let's unify the stores first:\nStore: %s. \nPat_store: %s.\n\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false) (JSIL_Memory_Print.string_of_shallow_symb_store pat_store false); *)
 	let str_subst = (match subst with
 	         | None -> "Our substitution doesn't exist. Fantastic.\n"
 			 | Some subst -> "Our substitution: " ^(JSIL_Memory_Print.string_of_substitution subst)) in
-	Printf.printf "%s" str_subst;
-	Printf.printf "The pattern substitution: %s\n" (JSIL_Memory_Print.string_of_substitution pat_subst);
+	(*Printf.printf "%s" str_subst;
+	Printf.printf "The pattern substitution: %s\n" (JSIL_Memory_Print.string_of_substitution pat_subst); *)
 	let discharges =
 		Hashtbl.fold
 			(fun var pat_lexpr discharges ->
 				let lexpr = try Hashtbl.find store var with _ -> raise (Failure "the stores are not unifiable") in
 				let rec spin_me_round pat_lexpr lexpr discharges =
-				Printf.printf "(%s, %s)\n" (JSIL_Print.string_of_logic_expression pat_lexpr false) (JSIL_Print.string_of_logic_expression lexpr false);
+				(*Printf.printf "(%s, %s)\n" (JSIL_Print.string_of_logic_expression pat_lexpr false) (JSIL_Print.string_of_logic_expression lexpr false);*)
 				(match pat_lexpr, lexpr with
 
 				| LLit (Num n), LLit (Integer i)
@@ -56,9 +56,9 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 					discharges
 
 				| ALoc pat_aloc, LVar lvar ->
-					let loc = Symbolic_State_Functions.resolve_location lvar pfs in 
-					(match loc with 
-					| Some loc -> extend_subst pat_subst pat_aloc loc; discharges 
+					let loc = Symbolic_State_Functions.resolve_location lvar pfs in
+					(match loc with
+					| Some loc -> extend_subst pat_subst pat_aloc loc; discharges
 					| None     -> raise (Failure "Variable store against abstract location"))
 
 				| LLit lit, LVar lvar ->
@@ -350,16 +350,16 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 	let heap, store, pf, gamma, preds = symb_state in
 	let subst = init_substitution lvars in
 
-	Printf.printf "Unify Symbolic States:\n";
+	(*Printf.printf "Unify Symbolic States:\n";
 
 	Printf.printf "OUR symbolic state: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state);
-	Printf.printf "PRED symbolic state: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state);
+	Printf.printf "PRED symbolic state: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state);*)
 
 	let discharges = unify_stores pat_store store subst None (pfs_to_list pf) gamma in
 	match discharges with
 	| Some discharges ->
 		let spec_vars_check = spec_logic_vars_discharge subst lvars (get_pf_list symb_state) (get_gamma symb_state) in
-	    Printf.printf "the PAT symbolic state after computing quotient heap:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state);
+	    (*Printf.printf "the PAT symbolic state after computing quotient heap:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state);*)
 
 		let (quotient_heap, new_pfs) : (symbolic_heap option) * ((jsil_logic_assertion list) option) = unify_symb_heaps pat_heap heap pf gamma subst in
 		(* print_endline (Printf.sprintf "Substitution after heap unification baby!!!\n%s" (JSIL_Memory_Print.string_of_substitution subst)); *)
@@ -391,7 +391,7 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 			let pf_list = pfs_to_list pf in
 
 			let existentials_str = print_var_list new_pat_pf_existentials in
-			print_endline (Printf.sprintf "Discharges: %s" (JSIL_Print.str_of_assertion_list pf_discharges)); (*)
+			(* print_endline (Printf.sprintf "Discharges: %s" (JSIL_Print.str_of_assertion_list pf_discharges));
 			print_endline (Printf.sprintf "About to check if\n (\n%s\n)	\nENTAILS\n (Exists %s.\n(\n%s\n))\n given the gamma:\n%s"
 				(JSIL_Print.str_of_assertion_list pf_list)
 				existentials_str
@@ -409,8 +409,8 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 					(* Printf.printf "I could NOT check the entailment!!!\n";
 					Printf.printf "entailment_check_ret: %b. unify_gamma_check: %b.\n" entailment_check_ret unify_gamma_check; *)
 					Some (quotient_heap, quotient_preds, new_subst, pf_discharges, false)))
-		| _ -> Printf.printf "One of the four things failed.\n"; None)
-	| None -> Printf.printf "Sweet Jesus, broken discharges.\n"; None
+		| _ -> (*Printf.printf "One of the four things failed.\n"; *) None)
+	| None -> (*Printf.printf "Sweet Jesus, broken discharges.\n"; *) None
 
 let fully_unify_symb_state pat_symb_state symb_state lvars =
 	(* Printf.printf "Fully_unify_symb_state.\nFinal symb_state:\n%s.\nPost symb_state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state) (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state); *)

@@ -760,12 +760,12 @@ let get_solver tr_ctx existentials left_as right_as_or =
 	let right_as_or =
 		Expr.simplify right_as_or None in
 
-
+	(*
 	print_endline (Printf.sprintf "--- ABOUT TO ENTER THE SOLVER ---");
 	List.iter (fun expr -> Printf.printf "%s\n" (Expr.to_string expr)) left_as;
-	print_endline (Printf.sprintf "\nIMPLIES:\n");
+	print_endline (Printf.sprintf "\nAND:\n");
 	print_endline (Printf.sprintf "%s" (Expr.to_string right_as_or));
-	print_endline (Printf.sprintf "\nDone printing");
+	print_endline (Printf.sprintf "\nDone printing"); *)
 
 	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 	Solver.add solver (left_as @ [ right_as_or ]);
@@ -803,6 +803,12 @@ let rec check_entailment existentials left_as right_as gamma =
 	let ctx = tr_ctx.z3_ctx in
 
 	let ret_right = check_satisfiability right_as gamma existentials in
+
+	(*let ret_left = check_satisfiability left_as gamma existentials in
+	if (ret_left)
+		then Printf.printf "LHS is SAT.\n"
+		else Printf.printf "LHS is UNSAT.\n"; *)
+
 	if (not (ret_right)) then
 	begin
 		(* print_endline (Printf.sprintf "Right side not satisfiable on its own."); *)
@@ -843,8 +849,7 @@ let rec check_entailment existentials left_as right_as gamma =
 		let solver = get_solver tr_ctx existentials left_as right_as_or in
 
 		let ret = (Solver.check solver []) != Solver.SATISFIABLE in
-		print_endline (Printf.sprintf "Check_entailment. Result %b" ret);
-		(*)
+		(* print_endline (Printf.sprintf "Check_entailment. Result %b" ret);
 		 if (not ret) then
 			begin
 				let model = Solver.get_model solver in
@@ -859,7 +864,7 @@ let rec check_entailment existentials left_as right_as gamma =
 			end; *)
 		Gc.full_major ();
 		Solver.reset solver;
-		print_endline (Printf.sprintf "\n    Exiting entailment\n------------------------------\n");
+		(*print_endline (Printf.sprintf "\n    Exiting entailment\n------------------------------\n"); *)
 		ret
 		with Failure msg -> (* Printf.printf "Esta merda explodiuuuu: %s\n" msg; *) false
 		end

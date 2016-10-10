@@ -109,7 +109,7 @@ let rec symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae =
 
 let safe_symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae  =
 	let nle = symb_evaluate_expr expr store gamma pure_formulae in
-	Printf.printf "safe_symb_evaluate_expr %s = %s!\n" (JSIL_Print.string_of_expression expr false) (JSIL_Print.string_of_logic_expression nle false);
+	(*Printf.printf "safe_symb_evaluate_expr %s = %s!\n" (JSIL_Print.string_of_expression expr false) (JSIL_Print.string_of_logic_expression nle false);*)
 	let nle_type, is_typable, constraints = type_lexpr gamma nle in
 	(* Printf.printf "is_typable: %b\nconstraints: %s\n" is_typable (JSIL_Print.str_of_assertion_list constraints); *)
 	let are_constraints_satisfied =
@@ -373,8 +373,9 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 			let pat_subst = init_substitution [] in
 			let subst = init_substitution [] in
 			let pat_store = get_store pred_symb_state in
-			Printf.printf "HERE WE ARE!\n";
-			(* Printf.printf "UNFOLD PREDICATES UNFOLD PREDICATES. Pat_store: %s Store: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_store pat_store false) (JSIL_Memory_Print.string_of_shallow_symb_store store false); *)
+			Printf.printf "HERE WE ARE: UNFOLD!\n";
+			Printf.printf "UNFOLD PREDICATES UNFOLD PREDICATES.\nPat_Symb_State: %s\nSymb_State: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pred_symb_state) (JSIL_Memory_Print.string_of_shallow_symb_state symb_state);
+			Printf.printf "Calling store: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false);
 			let discharges = Structural_Entailment.unify_stores pat_store store pat_subst (Some subst) (pfs_to_list (get_pf symb_state)) (get_gamma symb_state) in
 			(match discharges with
 			| Some discharges ->
@@ -386,12 +387,12 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 					let new_symb_state : symbolic_state = copy_symb_state symb_state in
 					let (new_symb_state : symbolic_state) = Symbolic_State_Functions.symb_state_substitution new_symb_state subst true in
 					Symbolic_State_Functions.symb_state_add_subst_as_equalities new_symb_state subst (get_pf new_symb_state) spec_vars;
-					(* Printf.printf "Symbolic state after substitution: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state new_symb_state);
+					Printf.printf "Symbolic state after substitution: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state new_symb_state); (*)
 					Printf.printf "Pred Symb_sate:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state pred_symb_state);
 					Printf.printf " subst: %s pat_subst: %s\n" (JSIL_Memory_Print.string_of_substitution subst) (JSIL_Memory_Print.string_of_substitution pat_subst); *)
 					let pat_subst = compose_partial_substitutions subst pat_subst in
 					let unfolded_symb_state = Symbolic_State_Functions.merge_symb_states new_symb_state pred_symb_state pat_subst in
-					(* Printf.printf "pred symbolic state at the middle: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pred_symb_state); *)
+					(*Printf.printf "pred symbolic state at the middle: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pred_symb_state);*)
 					let spec_vars_subst = filter_substitution subst spec_vars in
 
 					let pf = get_pf unfolded_symb_state in

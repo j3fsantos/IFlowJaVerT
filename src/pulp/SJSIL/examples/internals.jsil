@@ -34,14 +34,6 @@ pred desc_enum (d, v) :
 pred desc_conf (d, v) :
     isList(d) * v == l-nth(d, 4);
 
-pred VariableReference (r) :
-    isList(r) * (r == {{ #rtype, #rbase, #rfield }}) * (#rtype == "v") *
-    types (#rtype : $$string_type, #rfield : $$string_type);
-
-pred ObjectReference (r) :
-    isList(r) * (r == {{ #rtype, #rbase, #rfield }}) * (#rtype == "o") *
-    types (#rtype : $$string_type, #rfield : $$string_type);
-
 (* Standard object cell stuff *)
 pred Cell_o (l, prop, None) :
     isObjectLocation(l) * isNamedProperty(prop) * ((l, prop) -> None);
@@ -119,7 +111,8 @@ pred Pi (l, prop, "inductive", "General", d, ls, ltf, lpv) :
     Pi (#lp, prop, #caseType, #class, d, #lsp, #ltfp, #lpvp) *
     types(  ls : $$list_type,   ltf : $$list_type,   lpv : $$list_type,
           #lsp : $$list_type, #ltfp : $$list_type, #lpvp : $$list_type) *
-    (ls == l :: #lsp) * (ltf == $$f :: #ltfp) * (lpv == "" :: #lpvp);
+    (ls == l :: #lsp) * (ltf == $$f :: #ltfp) * (lpv == "" :: #lpvp) *
+    (0 <# l-len #lsp) * (0 <# l-len #ltfp) * (0 <# l-len #lpvp);
 
 pred Pi (l, prop, "inductive", "String", d, ls, ltf, lpv) :
 	Class (l, "String") * Cell_s (l, prop, "None", None, #pv) *
@@ -127,7 +120,8 @@ pred Pi (l, prop, "inductive", "String", d, ls, ltf, lpv) :
     Pi (#lp, prop, #caseType, #class, d, #lsp, #ltfp, #lpvp) *
     types(  ls : $$list_type,   ltf : $$list_type,   lpv : $$list_type,
           #lsp : $$list_type, #ltfp : $$list_type, #lpvp : $$list_type) *
-    (ls == l :: #lsp) * (ltf == $$t :: #ltfp) * (lpv == #pv :: #lpvp);
+    (ls == l :: #lsp) * (ltf == $$t :: #ltfp) * (lpv == #pv :: #lpvp) *
+    (0 <# l-len #lsp) * (0 <# l-len #ltfp) * (0 <# l-len #lpvp);
 
 (* **********************
    *** I__ISPRIMITIVE ***
@@ -580,4 +574,62 @@ with
 {
 	ret:	xret, rlab;
 	err:	xret, elab;
+};
+
+(* ****** *)
+(* CANPUT *)
+(* ****** *)
+
+spec o__canPut (l, prop)
+
+    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+       (#g_aux_3 == $$undefined) * (#g_aux_4 == {{ l }}) * 
+       ((l, "@extensible") -> $$t) ]]
+    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+       ((l, "@extensible") -> $$t) * (ret == $$t) ]]
+    normal
+
+proc o__canPut (l, prop) {
+            [* unfold Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
+    ch0:	goto [typeOf(l) = $$object_type] ch1 elab;
+    ch1:	goto [typeOf(prop) = $$string_type] ch2 elab;
+    ch2:    goto [0 < s-len prop] ch3 elab;
+    ch3:	goto [not (s-nth(prop, 0) = "@")] start elab;
+
+	start:  gop := [l, "@getOwnProperty"];
+            [* fold Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
+            xret := gop (l, prop) with elab;
+	op:		goto [xret = $$undefined] nop odesc; 	(* Does the own property exist? *)
+
+	odesc:	d := l-nth (xret, 0);					(* It does; get the descriptor type *)
+			goto [d = "d"] odd nop;					(* Is the descriptor a data descriptor? *)
+
+	odd:	xret := l-nth (xret, 2);				(* It is; return the Writable attribute *)
+			goto rlab;
+
+	nop:	e := [l, "@extensible"];				(* Get the extensible property *)
+			gp := [l, "@getProperty"];
+			xret := gp (l, prop) with elab;			(* Does the property exist? *)
+			goto [xret = $$undefined] ext desc;		(* It doesn't; return extensible *)
+
+	desc:	d := l-nth (xret, 0);					(* Get the descriptor type *)
+			v := l-nth (xret, 2);					(* Get the writable/setter *)
+			goto [d = "d"] dd ad;					(* Is it a data descriptor? *)
+
+	dd:		goto [e] wr ext;						(* Yes; is the object extensible? *)
+	wr:		xret := v;								(* Yes; return writable *)
+			goto rlab;
+
+	ad:		xret := not (v = $$undefined); 			(* Accessor descriptor *)
+			goto rlab;
+
+	ext:	xret := e;								(* Return extensible *)
+
+    rlab:   skip;
+    elab:	skip
+}
+with
+{
+    ret: 	xret, rlab;
+    err:	xret, elab;
 };
