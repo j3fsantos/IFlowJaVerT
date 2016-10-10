@@ -217,6 +217,19 @@ let pf_substitution pf_r subst partial =
 
 let merge_pfs pfs_l pfs_r = DynArray.append pfs_r pfs_l
 
+
+let resolve_location lvar pfs = 
+	let rec loop pfs =	
+		match pfs with 
+		| [] -> None
+		| LEq (LVar lvar, ALoc loc) :: rest 
+		| LEq (ALoc loc, LVar lvar) :: rest  -> Some (ALoc loc)
+		| LEq (LVar lvar, LLit (Loc loc)) :: rest 
+		| LEq (LLit (Loc loc), LVar lvar) :: rest -> Some (LLit (Loc loc)) 
+		| _ :: rest -> loop rest in 
+	loop pfs  
+			
+
 (*************************************)
 (** Typing Environment functions    **)
 (*************************************)

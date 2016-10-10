@@ -5,6 +5,17 @@ open JSIL_Logic_Utils
 (***************************)
 (** Unification Algorithm **)
 (***************************)
+(*				(match subst with
+					| Some subst ->
+						let new_aloc = ALoc (fresh_aloc ()) in
+						extend_subst subst lvar new_aloc;
+						extend_subst pat_subst pat_aloc new_aloc;
+						discharges
+					| None -> if (Pure_Entailment.check_entailment [] pfs [ (LEq (LVar lvar, ALoc pat_aloc)) ] gamma)
+								then discharges
+								else raise (Failure (Printf.sprintf "ALoc %s, LVar %s : the pattern store is not normalized." pat_aloc lvar))) *)
+
+
 let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subst : substitution) (subst: substitution option) (pfs : jsil_logic_assertion list) (gamma : typing_environment) : ((jsil_logic_expr * jsil_logic_expr) list) option  =
 	try
 	Printf.printf "Let's unify the stores first:\nStore: %s. \nPat_store: %s.\n\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false) (JSIL_Memory_Print.string_of_shallow_symb_store pat_store false);
@@ -45,15 +56,10 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 					discharges
 
 				| ALoc pat_aloc, LVar lvar ->
-					(match subst with
-					| Some subst ->
-						let new_aloc = ALoc (fresh_aloc ()) in
-						extend_subst subst lvar new_aloc;
-						extend_subst pat_subst pat_aloc new_aloc;
-						discharges
-					| None -> if (Pure_Entailment.check_entailment [] pfs [ (LEq (LVar lvar, ALoc pat_aloc)) ] gamma)
-								then discharges
-								else raise (Failure (Printf.sprintf "ALoc %s, LVar %s : the pattern store is not normalized." pat_aloc lvar)))
+					let loc = Symbolic_State_Functions.resolve_location lvar pfs in 
+					(match loc with 
+					| Some loc -> extend_subst pat_subst pat_aloc loc; discharges 
+					| None     -> raise (Failure "Variable store against abstract location"))
 
 				| LLit lit, LVar lvar ->
 					(match subst with
