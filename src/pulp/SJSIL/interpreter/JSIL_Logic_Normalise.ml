@@ -537,6 +537,12 @@ let normalise_assertion a =
 
 	compute_symb_heap heap store p_formulae gamma subst a;
 	let preds = init_preds a store gamma subst in
+	Printf.printf "----- Stage 3 ----- \n\n";
+	Printf.printf "Normalise assertion: heap  :%s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false);
+	Printf.printf "Normalise assertion: pfrs  :%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
+	Printf.printf "Normalise assertion: gamma :%s\n" (JSIL_Memory_Print.string_of_gamma gamma);
+	Printf.printf "Normalise assertion: store :%s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false);
+	Printf.printf "Normalise assertion: subst :%s\n" (JSIL_Memory_Print.string_of_substitution subst);
 	(heap, store, p_formulae, gamma, preds), subst
 
 let normalise_precondition a =
