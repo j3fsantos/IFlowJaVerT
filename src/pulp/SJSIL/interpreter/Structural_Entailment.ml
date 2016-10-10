@@ -7,11 +7,18 @@ open JSIL_Logic_Utils
 (***************************)
 let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subst : substitution) (subst: substitution option) (pfs : jsil_logic_assertion list) (gamma : typing_environment) : ((jsil_logic_expr * jsil_logic_expr) list) option  =
 	try
+	Printf.printf "Let's unify the stores first:\nStore: %s. \nPat_store: %s.\n\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false) (JSIL_Memory_Print.string_of_shallow_symb_store pat_store false);
+	let str_subst = (match subst with
+	         | None -> "Our substitution doesn't exist. Fantastic.\n"
+			 | Some subst -> "Our substitution: " ^(JSIL_Memory_Print.string_of_substitution subst)) in
+	Printf.printf "%s" str_subst;
+	Printf.printf "The pattern substitution: %s\n" (JSIL_Memory_Print.string_of_substitution pat_subst);
 	let discharges =
 		Hashtbl.fold
 			(fun var pat_lexpr discharges ->
 				let lexpr = try Hashtbl.find store var with _ -> raise (Failure "the stores are not unifiable") in
 				let rec spin_me_round pat_lexpr lexpr discharges =
+				Printf.printf "(%s, %s)\n" (JSIL_Print.string_of_logic_expression pat_lexpr false) (JSIL_Print.string_of_logic_expression lexpr false);
 				(match pat_lexpr, lexpr with
 
 				| LLit (Num n), LLit (Integer i)
@@ -335,8 +342,10 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 	let heap, store, pf, gamma, preds = symb_state in
 	let subst = init_substitution lvars in
 
-	Printf.printf "unify_symb_states\n";
-	Printf.printf "Let's unify the stores first:\nStore: %s. \nPat_store: %s.\n\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false) (JSIL_Memory_Print.string_of_shallow_symb_store pat_store false);
+	Printf.printf "Unify Symbolic States:\n";
+
+	Printf.printf "OUR symbolic state: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state);
+	Printf.printf "PRED symbolic state: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state);
 
 	let discharges = unify_stores pat_store store subst None (pfs_to_list pf) gamma in
 	match discharges with
@@ -394,7 +403,6 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 					Some (quotient_heap, quotient_preds, new_subst, pf_discharges, false)))
 		| _ -> Printf.printf "One of the four things failed.\n"; None)
 	| None -> Printf.printf "Sweet Jesus, broken discharges.\n"; None
-
 
 let fully_unify_symb_state pat_symb_state symb_state lvars =
 	(* Printf.printf "Fully_unify_symb_state.\nFinal symb_state:\n%s.\nPost symb_state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state) (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state); *)

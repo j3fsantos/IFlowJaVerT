@@ -495,14 +495,15 @@ spec i__getValue (v)
     [[ types (v : $$string_type) ]]
     [[ (ret == v) ]]
     normal;
-    [[ (v == {{ "o", #obj, #field }}) * types (#obj : $$object_type, #field : $$string_type) *
-       Pi (#obj, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * DataDescriptor (#g_aux_3)  ]]
-    [[ Pi (#obj, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * desc_val (#g_aux_3, #desc_val) * (ret == #desc_val) ]]
-    normal;
 
     [[ (v == {{ "o", #obj, #field }}) * types (#obj : $$object_type, #field : $$string_type) *
        Pi (#obj, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (#g_aux_3 == $$undefined) ]]
     [[ Pi (#obj, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (ret == $$undefined) ]]
+    normal;
+
+    [[ (v == {{ "o", #obj, #field }}) * types (#obj : $$object_type, #field : $$string_type) *
+       Pi (#obj, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * DataDescriptor (#g_aux_3)  ]]
+    [[ Pi (#obj, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * desc_val (#g_aux_3, #desc_val) * (ret == #desc_val) ]]
     normal;
 
     [[ (v == {{ "v", $lg, #field }}) * types (#field : $$string_type) *

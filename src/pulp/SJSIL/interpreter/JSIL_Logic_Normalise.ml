@@ -21,7 +21,7 @@ let rec normalise_lexpr store gamma subst le =
 	| LUnknown -> LUnknown
 	| LNone -> LNone
 	| LVar lvar -> (try Hashtbl.find subst lvar with _ -> LVar lvar)
-	| ALoc aloc -> raise (Failure "Unsupported expression during normalization: ALoc") (* Why not ALoc aloc? *)
+	| ALoc aloc -> ALoc aloc (* raise (Failure "Unsupported expression during normalization: ALoc") Why not ALoc aloc? *)
 	| PVar pvar ->
 			(try Hashtbl.find store pvar with
 			| _ ->
@@ -166,8 +166,8 @@ let rec init_symb_store_alocs store gamma subst ass : unit =
 					Hashtbl.add subst var (ALoc aloc);
 					Hashtbl.remove gamma var)
 
-	| LPointsTo (ALoc _, _, _) ->
-			raise (Failure "Unsupported assertion during normalization")
+	| LPointsTo (ALoc _, _, _) -> ()
+			(* raise (Failure "Unsupported assertion during normalization") *)
 
 	| _ -> ()
 
@@ -391,7 +391,11 @@ let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_form
 			let field_val_pairs, default_val = (try LHeap.find heap loc with _ -> ([], LUnknown)) in
 			LHeap.replace heap loc (((nle2, nle3) :: field_val_pairs), default_val)
 
-	| LPointsTo (_, _, _) -> raise (Failure "Unsupported points-to assertion")
+	| LPointsTo (ALoc loc, le2, le3) ->
+			let nle2 = simplify_element_of_cell_assertion (fe le2) in
+			let nle3 = simplify_element_of_cell_assertion (fe le3) in
+			let field_val_pairs, default_val = (try LHeap.find heap loc with _ -> ([], LUnknown)) in
+			LHeap.replace heap loc (((nle2, nle3) :: field_val_pairs), default_val)
 
 	| LPred (_, _)
 	| LTrue

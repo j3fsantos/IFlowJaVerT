@@ -822,7 +822,7 @@ proc i__isPrimitive (v) {
 			goto rlab;
 
 	rf:		xret := $$f;
-	rlab:	skip;
+	rlab:	skip
 }
 with
 {

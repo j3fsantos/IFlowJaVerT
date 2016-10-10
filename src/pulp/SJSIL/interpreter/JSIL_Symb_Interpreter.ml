@@ -338,7 +338,7 @@ let fold_predicate pred_name pred_defs symb_state params args =
 		(match pred_defs with
 		| [] -> None
 		| pred_def :: rest_pred_defs ->
-			Printf.printf "Current pred symbolic state: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pred_def);
+			(* Printf.printf "Current pred symbolic state: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pred_def); *)
 			let unifier = Structural_Entailment.unify_symb_states [] pred_def symb_state_aux in
 			(match unifier with
 			| Some (quotient_heap, quotient_preds, subst, pf_discharges, true) ->
