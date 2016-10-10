@@ -594,6 +594,143 @@ let explode s =
     if i < 0 then l else exp (i - 1) ((String.make 1 s.[i]) :: l) in
   exp (String.length s - 1) []
 
+(*
+	We 'sort' logical expressions that are typable as lists as follows:
+		1) List literals
+		2) Logical lists
+		3) Cons's
+		4) Logical Variables
+		5) Program Variables
+*)
+let sort_lists l1 l2 =
+match l1, l2 with
+| LLit (LList _), _ -> l1, l2
+| _, LLit (LList _) -> l2, l1
+| LEList _, _ -> l1, l2
+| _, LEList _ -> l2, l1
+| LBinOp (_, LstCons, _), _ -> l1, l2
+| _, LBinOp (_, LstCons, _) -> l2, l1
+| LVar _, _ -> l1, l2
+| _, LVar _ -> l2, l1
+| PVar _, PVar _ -> l1, l2
+| _, _ ->
+	raise(Failure (Printf.sprintf "Impossible: %s %s"
+	               (JSIL_Print.string_of_logic_expression l1 false)
+				   (JSIL_Print.string_of_logic_expression l2 false)))
+
+let rec lets_do_some_list_theory_axioms tr_ctx l1 l2 =
+let fe = encode_logical_expression tr_ctx in
+let l1, l2 = sort_lists l1 l2 in
+let le1, te1, as1 = fe l1 in
+let le2, te2, as2 = fe l2 in
+let ctx = tr_ctx.z3_ctx in
+(match l1, l2 with
+ (* Two literal lists, they have to be equal *)
+ | LLit (LList l1), LLit (LList l2) ->
+ 	if (l1 = l2) then [ Boolean.mk_true ctx ] else [ Boolean.mk_false ctx ]
+ (* One literal list, one list of expressions *)
+ | LLit (LList l1), LEList l2 ->
+ 	if (List.length l1 <> List.length l2) then [ Boolean.mk_false ctx ] else
+	let l1 = List.map (fun x -> LLit x) l1 in
+    List.fold_left2
+		(fun ac x y ->
+			let lx, tx, ax = fe x in
+			let ly, ty, ay = fe y in
+			let cur_as1 = Boolean.mk_eq ctx lx ly in
+			let cur_as2 = Boolean.mk_eq ctx tx ty in
+			let conds = [ cur_as1; cur_as2 ] @ as1 @ as2 in
+				ac @ conds) [] l1 l2
+ (* One literal list, one cons *)
+ | LLit (LList l1), LBinOp (e, LstCons, l2) ->
+     if (List.length l1 = 0) then [ Boolean.mk_false ctx ] else
+	 let e' = LLit (List.hd l1) in
+	 let l1' = LLit (LList (List.tl l1)) in
+	 let le, te, ae = fe e in
+	 let le', te', ae' = fe e' in
+	 let le2', te2', ae2' = fe l2 in
+	 let cur_as1 = Boolean.mk_eq ctx le le' in
+	 let cur_as2 = Boolean.mk_eq ctx te te' in
+	 let cur_asc = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ])
+	 								 (Arithmetic.mk_add ctx [ (Arithmetic.Integer.mk_numeral_i ctx 1); (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2' ]) ] ) in
+	 	[ cur_as1; cur_as2; cur_asc ] @ ae @ ae' @ ae2' @ as1 @ as2 @ (lets_do_some_list_theory_axioms tr_ctx l1' l2)
+ (* One literal list, one variable *)
+ | LLit (LList l1), LVar var
+ | LLit (LList l1), PVar var ->
+	 let as1' = Boolean.mk_eq ctx le1 le2 in
+	 let as2' = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length l1)) in
+	 let les = List.map (fun lit -> LLit lit) l1 in
+	 let nth_as = encode_lnth_equalities tr_ctx le2 les in
+	 	[ as1'; as2' ] @ as1 @ as2 @ nth_as
+ (* Done with literal lists, now lists of logical expressions *)
+ (* Two lists of logical expressions *)
+ | LEList l1, LEList l2 ->
+ 	if (List.length l1 <> List.length l2) then [ Boolean.mk_false ctx ] else
+    List.fold_left2
+		(fun ac x y ->
+			let lx, tx, ax = fe x in
+			let ly, ty, ay = fe y in
+			let cur_as1 = Boolean.mk_eq ctx lx ly in
+			let cur_as2 = Boolean.mk_eq ctx tx ty in
+			let conds = [ cur_as1; cur_as2 ] @ as1 @ as2 in
+				ac @ conds) [] l1 l2
+ (* One logical list, one cons *)
+ | LEList l1, LBinOp (e, LstCons, l2) ->
+     if (List.length l1 = 0) then [ Boolean.mk_false ctx ] else
+	 let e' = List.hd l1 in
+	 let l1' = LEList (List.tl l1) in
+	 let le, te, ae = fe e in
+	 let le', te', ae' = fe e' in
+	 let le2', te2', ae2' = fe l2 in
+	 let cur_asl = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ]) (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) in
+	 let cur_asc = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ])
+	                                 (Arithmetic.mk_add ctx [ (Arithmetic.Integer.mk_numeral_i ctx 1); (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2' ]) ] ) in
+	 let cur_as1 = Boolean.mk_eq ctx le le' in
+	 let cur_as2 = Boolean.mk_eq ctx te te' in
+	 	[ cur_asl; cur_asc; cur_as1; cur_as2 ] @ ae @ ae' @ as1 @ as2 @ (lets_do_some_list_theory_axioms tr_ctx l1' l2)
+ (* One logical list, one variable *)
+ | LEList l1, LVar var
+ | LEList l1, PVar var ->
+	 let as1' = Boolean.mk_eq ctx le1 le2 in
+	 let as2' = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length l1)) in
+	 let nth_as = encode_lnth_equalities tr_ctx le2 l1 in
+	 	[ as1'; as2' ] @ as1 @ as2 @ nth_as
+ (* Done with lists of logical expressions, here comes the cons *)
+ (* Two conses *)
+ | LBinOp (e1, LstCons, l1), LBinOp (e2, LstCons, l2) ->
+   let le1', te1', ase1' = fe e1 in
+   let ll1', tl1', asl1' = fe l1 in
+   let le2', te2', ase2' = fe e2 in
+   let ll2', tl2', asl2' = fe l2 in
+   let as_length_ls = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ]) (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) in
+   let cur_len1 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ])
+								    (Arithmetic.mk_add ctx [ (Arithmetic.Integer.mk_numeral_i ctx 1); (Expr.mk_app ctx tr_ctx.tr_llen_fun [ ll1' ]) ]) in
+   let cur_len2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ])
+								    (Arithmetic.mk_add ctx [ (Arithmetic.Integer.mk_numeral_i ctx 1); (Expr.mk_app ctx tr_ctx.tr_llen_fun [ ll2' ]) ]) in
+		[ as_length_ls; cur_len1; cur_len2 ] @ as1 @ as2 @ ase1' @ asl1' @ ase2' @ asl2' @ (lets_do_some_list_theory_axioms tr_ctx l1 l2)
+ (* Cons and a variable *)
+ | LBinOp (e1', LstCons, l1'), LVar var
+ | LBinOp (e1', LstCons, l1'), PVar var ->
+ 	Printf.printf "ConsVar: %s %s\n" (JSIL_Print.string_of_logic_expression l1 false) (JSIL_Print.string_of_logic_expression l2 false);
+ 	let as1' = Boolean.mk_eq ctx le1 le2 in
+	let le1', te1', ase1' = fe e1' in
+	let ll1', tl1', asl1' = fe l1' in
+ 	let as_length_ls = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ]) (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) in
+	Printf.printf "Done lengths.\n";
+	let cur_len1 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ])
+ 								     (Arithmetic.mk_add ctx [ (Arithmetic.Integer.mk_numeral_i ctx 1); (Expr.mk_app ctx tr_ctx.tr_llen_fun [ ll1' ]) ]) in
+		Printf.printf "Done cons length.\n";
+		[ as1'; as_length_ls; cur_len1 ] @ ase1' @ asl1' @ as1 @ as2
+
+ | LVar _, LVar _
+ | LVar _, PVar _
+ | PVar _, PVar _ ->
+	 let as1' = Boolean.mk_eq ctx le1 le2 in
+	 let as2' = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ]) (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) in
+		[ as1'; as2' ] @ as1 @ as2
+ | _, _ -> Printf.printf "Oops! %s %s\n" (JSIL_Print.string_of_logic_expression l1 false) (JSIL_Print.string_of_logic_expression l2 false); exit 1
+
+)
+
 let rec encode_pure_formula tr_ctx a =
 	let f = encode_pure_formula tr_ctx in
 	let fe = encode_logical_expression tr_ctx in
@@ -609,6 +746,9 @@ let rec encode_pure_formula tr_ctx a =
 		let le2, te2, as2 = fe le2' in
 		(match t1, t2 with
 		| Some ListType, Some ListType ->
+			let axioms = lets_do_some_list_theory_axioms tr_ctx le1' le2'
+			in Boolean.mk_and ctx axioms
+			(*
 			(match le1', le2' with
 			| LLit (LList lits1), LLit (LList lits2) -> if (lits1 = lits2) then Boolean.mk_true ctx else Boolean.mk_false ctx
 			| LEList les1, LEList les2 ->
@@ -640,7 +780,7 @@ let rec encode_pure_formula tr_ctx a =
 			| _, _ ->
 				let as1 = Boolean.mk_eq ctx le1 le2 in
 				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ])  (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) in
-				Boolean.mk_and ctx [as1; as2 ])
+				Boolean.mk_and ctx [as1; as2 ]) *)
 		| Some StringType, Some StringType ->
 			(match le1', le2' with
 			| LLit (String s1), LLit (String s2) -> if (s1 = s2) then Boolean.mk_true ctx else Boolean.mk_false ctx
@@ -792,7 +932,7 @@ let check_satisfiability assertions gamma existentials =
 	Solver.reset solver;
 	(* Printf.printf "Check_satisfiability. Result %b" ret; *)
 	ret
-(*)	with (Failure msg) -> Printf.printf "Shit happened. %s\n" msg; false *)
+(*	with (Failure msg) -> Printf.printf "Shit happened. %s\n" msg; false *)
 
 (* right_as must be satisfiable *)
 let rec check_entailment existentials left_as right_as gamma =

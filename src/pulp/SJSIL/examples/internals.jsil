@@ -583,7 +583,7 @@ with
 spec o__canPut (l, prop)
 
     [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
-       (#g_aux_3 == $$undefined) * (#g_aux_4 == {{ l }}) * 
+       (#g_aux_3 == $$undefined) * (#g_aux_4 == {{ l }}) *
        ((l, "@extensible") -> $$t) ]]
     [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
        ((l, "@extensible") -> $$t) * (ret == $$t) ]]
