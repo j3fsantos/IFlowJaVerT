@@ -336,6 +336,7 @@ let encode_string ctx str =
 
 (** Encode JSIL literals as Z3 numerical constants *)
 let rec encode_literal tr_ctx lit =
+	Printf.printf "    EL: %s\n" (JSIL_Print.string_of_literal lit false);
 	let f = encode_literal tr_ctx in
 	let ctx = tr_ctx.z3_ctx in
 	let gamma = tr_ctx.tr_typing_env in
@@ -357,6 +358,7 @@ let rec encode_literal tr_ctx lit =
 	| Loc l         -> (encode_string ctx ("$l" ^ l)), (encode_type ctx ObjectType)
 	| Type t        -> (encode_type ctx t), (encode_type ctx TypeType)
 	| LList lits ->
+		Printf.printf "    Creating literal list.\n";
 		let les_tes = List.map f lits in
 		let les, tes =
 			List.fold_left
@@ -364,6 +366,7 @@ let rec encode_literal tr_ctx lit =
 				([], [])
 				les_tes in
 		let le_list = mk_z3_list les tr_ctx in
+		Printf.printf ("    Created literal list.\n");
 		le_list,  (encode_type ctx ListType)
 
 	| _             -> raise (Failure "SMT encoding: Construct not supported yet - literal!")
@@ -470,7 +473,7 @@ let get_z3_var_and_type tr_ctx var =
 
 (** Encode JSIL logical expressions *)
 let rec encode_logical_expression tr_ctx e =
-	(* Printf.printf "Inside encode logical expression\n"; *)
+	Printf.printf "  ELE: %s\n" (JSIL_Print.string_of_logic_expression e false);
 	let ele = encode_logical_expression tr_ctx in
 	let ctx = tr_ctx.z3_ctx in
 	let gamma = tr_ctx.tr_typing_env in
@@ -507,9 +510,8 @@ let rec encode_logical_expression tr_ctx e =
 		le, te, new_as @ as1
 
 	| LEList les ->
-		(* Printf.printf "LEList: mk_z3_list entry : ";
 		List.iter (fun x -> Printf.printf "%s " (JSIL_Print.string_of_logic_expression x false)) les;
-		Printf.printf "\n"; *)
+		Printf.printf "\n";
 		let les_tes_as = List.map ele les in
 		let les, tes, assertions =
 			List.fold_left
@@ -521,7 +523,6 @@ let rec encode_logical_expression tr_ctx e =
 			List.iter (fun x -> Printf.printf "%s " (Expr.to_string x)) les;
 			Printf.printf "\n"; *)
 			let res = mk_z3_list les tr_ctx in
-			(* Printf.printf ("LEList: mk_z3_list exit\n"); *)
 			res in
 		le_list, (encode_type ctx ListType), assertions
 
@@ -732,6 +733,7 @@ let ctx = tr_ctx.z3_ctx in
 )
 
 let rec encode_pure_formula tr_ctx a =
+	Printf.printf ("EPF: %s\n") (JSIL_Print.string_of_logic_assertion a false);
 	let f = encode_pure_formula tr_ctx in
 	let fe = encode_logical_expression tr_ctx in
 	let ctx = tr_ctx.z3_ctx in
@@ -920,10 +922,10 @@ let check_satisfiability assertions gamma existentials =
 	let assertions =
 		List.map
 			(fun a ->
-				(*Printf.printf "I am about to check the satisfiability of: %s\n" (JSIL_Print.string_of_logic_assertion a false);*)
-				let a = encode_pure_formula tr_ctx a in
-				(*Printf.printf "%s\n" (Expr.to_string a);*)
-				a)
+				Printf.printf "I am about to encode: %s\n" (JSIL_Print.string_of_logic_assertion a false);
+				let a' = encode_pure_formula tr_ctx a in
+				Printf.printf "Done encoding %s: %s\n" (JSIL_Print.string_of_logic_assertion a false) (Expr.to_string a');
+				a')
 			assertions in
 	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 	Solver.add solver assertions;
@@ -961,17 +963,20 @@ let rec check_entailment existentials left_as right_as gamma =
 		(* check if left_as => right_as *)
 		let left_as =
 			List.map
-				(fun a -> encode_pure_formula tr_ctx a)
+				(fun a ->
+					Printf.printf "LHS: I am about to encode: %s\n" (JSIL_Print.string_of_logic_assertion a false);
+					let a' = encode_pure_formula tr_ctx a in
+					Printf.printf "LHS: Done encoding %s: %s\n" (JSIL_Print.string_of_logic_assertion a false) (Expr.to_string a');
+					a')
 				left_as in
 		let left_as = tr_ctx.tr_axioms @ (encode_gamma tr_ctx) @ left_as in
 
 		let right_as = List.map
 				(fun a ->
-					(* Printf.printf "I am about to encode a pure formula inside the check_entailment: %s\n%!" (JSIL_Print.string_of_logic_assertion a false); *)
-					let a = encode_pure_formula tr_ctx a in
-					(* Printf.printf "Z3 Expression: %s\n" (Expr.to_string a);
-					Printf.printf "I encoded a pure formula successfully\n%!"; *)
-					Boolean.mk_not ctx a)
+					Printf.printf "NEG: I am about to encode: %s\n" (JSIL_Print.string_of_logic_assertion a false);
+					let a' = encode_pure_formula tr_ctx a in
+					Printf.printf "NEG: Done encoding %s: %s\n" (JSIL_Print.string_of_logic_assertion a false) (Expr.to_string a');
+					Boolean.mk_not ctx a')
 				right_as in
 		let right_as_or =
 			if ((List.length right_as) > 1) then
