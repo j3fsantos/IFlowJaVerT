@@ -510,8 +510,8 @@ let rec encode_logical_expression tr_ctx e =
 		le, te, new_as @ as1
 
 	| LEList les ->
-		List.iter (fun x -> Printf.printf "%s " (JSIL_Print.string_of_logic_expression x false)) les;
-		Printf.printf "\n";
+		(* List.iter (fun x -> Printf.printf "%s " (JSIL_Print.string_of_logic_expression x false)) les; *)
+		(* Printf.printf "\n"; *)
 		let les_tes_as = List.map ele les in
 		let les, tes, assertions =
 			List.fold_left
@@ -732,6 +732,8 @@ let ctx = tr_ctx.z3_ctx in
 
 )
 
+let if_some x f def = (match x with | Some y -> f y | None -> def)
+
 let rec encode_pure_formula tr_ctx a =
 	(* Printf.printf ("EPF: %s\n") (JSIL_Print.string_of_logic_assertion a false); *)
 	let f = encode_pure_formula tr_ctx in
@@ -744,6 +746,11 @@ let rec encode_pure_formula tr_ctx a =
 	| LEq (le1', le2') ->
 		let t1, _, _ = JSIL_Logic_Utils.type_lexpr gamma le1' in
 		let t2, _, _ = JSIL_Logic_Utils.type_lexpr gamma le2' in
+		(* Printf.printf "Equality: (%s : %s) = (%s : %s)\n"
+			(JSIL_Print.string_of_logic_expression le1' false)
+			(if_some t1 (JSIL_Print.string_of_type) "None")
+			(JSIL_Print.string_of_logic_expression le2' false)
+			(if_some t2 (JSIL_Print.string_of_type) "None"); *)
 		let le1, te1, as1 = fe le1' in
 		let le2, te2, as2 = fe le2' in
 		(match t1, t2 with
@@ -917,14 +924,14 @@ let get_solver tr_ctx existentials left_as right_as_or =
 let check_satisfiability assertions gamma existentials =
 	let tr_ctx = mk_smt_translation_ctx gamma existentials in
 (*	try *)
-	(*Printf.printf "Check satisfiability.\n";
-	Printf.printf "Gamma:%s\n" (JSIL_Memory_Print.string_of_gamma gamma); *)
+	(*Printf.printf "Check satisfiability.\n"; *)
+	(* Printf.printf "Gamma:%s\n" (JSIL_Memory_Print.string_of_gamma gamma); *)
 	let assertions =
 		List.map
 			(fun a ->
-				Printf.printf "I am about to encode: %s\n" (JSIL_Print.string_of_logic_assertion a false);
+				(* Printf.printf "I am about to encode: %s\n" (JSIL_Print.string_of_logic_assertion a false); *)
 				let a' = encode_pure_formula tr_ctx a in
-				Printf.printf "Done encoding %s: %s\n" (JSIL_Print.string_of_logic_assertion a false) (Expr.to_string a');
+				(* Printf.printf "Done encoding %s: %s\n" (JSIL_Print.string_of_logic_assertion a false) (Expr.to_string a'); *)
 				a')
 			assertions in
 	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
@@ -964,18 +971,18 @@ let rec check_entailment existentials left_as right_as gamma =
 		let left_as =
 			List.map
 				(fun a ->
-					Printf.printf "LHS: I am about to encode: %s\n" (JSIL_Print.string_of_logic_assertion a false);
+					(* Printf.printf "LHS: I am about to encode: %s\n" (JSIL_Print.string_of_logic_assertion a false); *)
 					let a' = encode_pure_formula tr_ctx a in
-					Printf.printf "LHS: Done encoding %s: %s\n" (JSIL_Print.string_of_logic_assertion a false) (Expr.to_string a');
+					(* Printf.printf "LHS: Done encoding %s: %s\n" (JSIL_Print.string_of_logic_assertion a false) (Expr.to_string a'); *)
 					a')
 				left_as in
 		let left_as = tr_ctx.tr_axioms @ (encode_gamma tr_ctx) @ left_as in
 
 		let right_as = List.map
 				(fun a ->
-					Printf.printf "NEG: I am about to encode: %s\n" (JSIL_Print.string_of_logic_assertion a false);
+					(* Printf.printf "NEG: I am about to encode: %s\n" (JSIL_Print.string_of_logic_assertion a false); *)
 					let a' = encode_pure_formula tr_ctx a in
-					Printf.printf "NEG: Done encoding %s: %s\n" (JSIL_Print.string_of_logic_assertion a false) (Expr.to_string a');
+					(* Printf.printf "NEG: Done encoding %s: %s\n" (JSIL_Print.string_of_logic_assertion a false) (Expr.to_string a'); *)
 					Boolean.mk_not ctx a')
 				right_as in
 		let right_as_or =

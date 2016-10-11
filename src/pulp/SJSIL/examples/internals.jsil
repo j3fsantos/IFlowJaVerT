@@ -584,7 +584,7 @@ spec o__canPut (l, prop)
 
     [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
        (#g_aux_3 == $$undefined) * (#g_aux_4 == {{ l }}) *
-       ((l, "@extensible") -> $$t) ]]
+       ((l, "@extensible") -> $$t) * types (#g_aux_5 : $$list_type, #g_aux_6 : $$list_type) ]]
     [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
        ((l, "@extensible") -> $$t) * (ret == $$t) ]]
     normal
@@ -597,7 +597,6 @@ proc o__canPut (l, prop) {
     ch3:	goto [not (s-nth(prop, 0) = "@")] start elab;
 
 	start:  gop := [l, "@getOwnProperty"];
-            [* fold Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
             xret := gop (l, prop) with elab;
 	op:		goto [xret = $$undefined] nop odesc; 	(* Does the own property exist? *)
 
@@ -609,6 +608,7 @@ proc o__canPut (l, prop) {
 
 	nop:	e := [l, "@extensible"];				(* Get the extensible property *)
 			gp := [l, "@getProperty"];
+            [* fold Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
 			xret := gp (l, prop) with elab;			(* Does the property exist? *)
 			goto [xret = $$undefined] ext desc;		(* It doesn't; return extensible *)
 
