@@ -336,7 +336,7 @@ let encode_string ctx str =
 
 (** Encode JSIL literals as Z3 numerical constants *)
 let rec encode_literal tr_ctx lit =
-	Printf.printf "    EL: %s\n" (JSIL_Print.string_of_literal lit false);
+	(* Printf.printf "    EL: %s\n" (JSIL_Print.string_of_literal lit false); *)
 	let f = encode_literal tr_ctx in
 	let ctx = tr_ctx.z3_ctx in
 	let gamma = tr_ctx.tr_typing_env in
@@ -358,7 +358,7 @@ let rec encode_literal tr_ctx lit =
 	| Loc l         -> (encode_string ctx ("$l" ^ l)), (encode_type ctx ObjectType)
 	| Type t        -> (encode_type ctx t), (encode_type ctx TypeType)
 	| LList lits ->
-		Printf.printf "    Creating literal list.\n";
+		(* Printf.printf "    Creating literal list.\n"; *)
 		let les_tes = List.map f lits in
 		let les, tes =
 			List.fold_left
@@ -366,7 +366,7 @@ let rec encode_literal tr_ctx lit =
 				([], [])
 				les_tes in
 		let le_list = mk_z3_list les tr_ctx in
-		Printf.printf ("    Created literal list.\n");
+		(* Printf.printf ("    Created literal list.\n"); *)
 		le_list,  (encode_type ctx ListType)
 
 	| _             -> raise (Failure "SMT encoding: Construct not supported yet - literal!")
@@ -473,7 +473,7 @@ let get_z3_var_and_type tr_ctx var =
 
 (** Encode JSIL logical expressions *)
 let rec encode_logical_expression tr_ctx e =
-	Printf.printf "  ELE: %s\n" (JSIL_Print.string_of_logic_expression e false);
+	(* Printf.printf "  ELE: %s\n" (JSIL_Print.string_of_logic_expression e false); *)
 	let ele = encode_logical_expression tr_ctx in
 	let ctx = tr_ctx.z3_ctx in
 	let gamma = tr_ctx.tr_typing_env in
@@ -733,7 +733,7 @@ let ctx = tr_ctx.z3_ctx in
 )
 
 let rec encode_pure_formula tr_ctx a =
-	Printf.printf ("EPF: %s\n") (JSIL_Print.string_of_logic_assertion a false);
+	(* Printf.printf ("EPF: %s\n") (JSIL_Print.string_of_logic_assertion a false); *)
 	let f = encode_pure_formula tr_ctx in
 	let fe = encode_logical_expression tr_ctx in
 	let ctx = tr_ctx.z3_ctx in
