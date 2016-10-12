@@ -69,25 +69,28 @@ type typing_environment = ((string, jsil_type) Hashtbl.t)
 type predicate_set      = ((string * (jsil_logic_expr list)) DynArray.t)
 
 type smt_translation_ctx = {
-	z3_ctx            : context;
-	tr_typing_env     : typing_environment;
-	tr_typeof_fun     : FuncDecl.func_decl;
-	tr_llen_fun       : FuncDecl.func_decl;
-	tr_slen_fun       : FuncDecl.func_decl;
-	tr_num2str_fun    : FuncDecl.func_decl;
-	tr_str2num_fun    : FuncDecl.func_decl;
-	tr_num2int_fun    : FuncDecl.func_decl;
-	tr_lnth_fun       : FuncDecl.func_decl;
-	tr_snth_fun       : FuncDecl.func_decl;
-  tr_list_sort      : Sort.sort;
-  tr_list_nil       : FuncDecl.func_decl;
-	tr_list_is_nil    : FuncDecl.func_decl;
-	tr_list_cons      : FuncDecl.func_decl;
-	tr_list_is_cons   : FuncDecl.func_decl;
-	tr_list_head      : FuncDecl.func_decl;
-	tr_list_tail      : FuncDecl.func_decl;
-	tr_lub            : FuncDecl.func_decl;
-	tr_axioms         : Expr.expr list
+	z3_ctx                 : context;
+	tr_typing_env          : typing_environment;
+	tr_typeof_fun          : FuncDecl.func_decl;
+	tr_llen_fun            : FuncDecl.func_decl;
+	tr_slen_fun            : FuncDecl.func_decl;
+	tr_num2str_fun         : FuncDecl.func_decl;
+	tr_str2num_fun         : FuncDecl.func_decl;
+	tr_num2int_fun         : FuncDecl.func_decl;
+	tr_lnth_fun            : FuncDecl.func_decl;
+	tr_snth_fun            : FuncDecl.func_decl;
+  tr_list_sort           : Sort.sort;
+  tr_list_nil            : FuncDecl.func_decl;
+	tr_list_is_nil         : FuncDecl.func_decl;
+	tr_list_cons           : FuncDecl.func_decl;
+	tr_list_is_cons        : FuncDecl.func_decl;
+	tr_list_head           : FuncDecl.func_decl;
+	tr_list_tail           : FuncDecl.func_decl;
+	tr_lub                 : FuncDecl.func_decl;
+	tr_to_jsil_boolean_fun : FuncDecl.func_decl;
+	tr_jsil_not_fun        : FuncDecl.func_decl;
+	tr_axioms              : Expr.expr list;
+	(* tr_existentials   : string list *)
 }
 
 

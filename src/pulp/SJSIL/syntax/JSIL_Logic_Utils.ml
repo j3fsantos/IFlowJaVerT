@@ -691,7 +691,10 @@ let rec type_lexpr gamma le =
 		 	| _, None ->
 				Printf.printf "op: %s, t: none"  (JSIL_Print.string_of_binop op) ;
 				raise (Failure "ERROR"))
-		| _, _ -> (None, false, []))
+		| _, _ ->
+			match op with
+			| Equal when ite1 && ite2 -> (Some BooleanType, true, constraints)
+			| _ -> (None, false, []))
 
 	| LLstNth (lst, index) ->
 		(* Printf.printf "Darling targets: %s and %s\n" (JSIL_Print.string_of_logic_expression lst false) (JSIL_Print.string_of_logic_expression index false); *)
