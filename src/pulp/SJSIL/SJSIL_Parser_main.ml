@@ -41,9 +41,9 @@ let arguments () =
 			"-sexpr",      Arg.Unit(fun () -> do_sexpr      := true), "generate output in s-expression format";
 			(* empty heap *)
 			"-empty_heap",      Arg.Unit(fun () -> empty_heap    := true), "empty heap";
-            "-closure", Arg.Clear(Parser_main.use_json), "use closure parser";
-            (* specs *)
-            "-specs", Arg.String(fun f -> spec_file := f; specs := true), "specs_file";
+      "-closure", Arg.Clear(Parser_main.use_json), "use closure parser";
+      (* specs *)
+      "-specs", Arg.String(fun f -> spec_file := f; specs := true), "specs_file";
     ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg

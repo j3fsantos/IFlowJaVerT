@@ -1,22 +1,45 @@
-(** Tested feature: field assignment 1               **)
-(** Expected result: YES                             **)
-spec test0 (x)
-   [[ (x == #x) * types(x: $$int_type) ]]
-   [[ (ret == (#x + 1)) ]]
-   normal
-proc test0 (x) {
-  		   x := x + 1;
-   rlab:   skip
-} with { ret: x, rlab; };
+(* **********************
+   *** I__ISPRIMITIVE ***
+   ********************** *)
 
-
-(** Tested feature: field assignment 1               **)
-(** Expected result: YES                             **)
-spec test1 (x)
-   [[ (x == #x) * types(#x: $$int_type) ]]
-   [[ (ret == (#x + 1)) ]]
+spec i__isPrimitive (v)
+   [[ v == $$undefined ]]
+   [[ ret == $$t ]]
+   normal;
+   [[ v == $$null ]]
+   [[ ret == $$t ]]
+   normal;
+   [[ types (v : $$string_type) ]]
+   [[ (ret == $$t) ]]
+   normal;
+   [[ types (v : $$int_type) ]]
+   [[ (ret == $$t) ]]
+   normal;
+   [[ types (v : $$boolean_type) ]]
+   [[ (ret == $$t) ]]
+   normal;
+   [[ types (v : $$string_type) ]]
+   [[ (ret == $$t) ]]
+   normal;
+   [[ types (v : $$object_type) ]]
+   [[ (ret == $$f) ]]
    normal
-proc test1 (x) {
-  		   x := x + 1;
-   rlab:   skip
-} with { ret: x, rlab; };
+
+proc i__isPrimitive (v) {
+			tv := typeOf(v);
+
+	iu:		goto [(v = $$undefined) or (v = $$null) or
+	              (typeOf(v) = $$boolean_type) or (typeOf(v) <: $$number_type) or
+	              (typeOf(v) = $$string_type)] rt rf;
+
+	rt:		xret := $$t;
+			goto rlab;
+
+	rf:		xret := $$f;
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};
+

@@ -506,44 +506,45 @@ let extend_typing_env_using_assertion_info a_list gamma =
 	loop a_list
 
 
-let normalise_assertion a =
+let normalise_assertion a : symbolic_state * substitution =
 	let heap = LHeap.create 101 in
 	let store = Hashtbl.create 101 in
 	let gamma = Hashtbl.create 101 in
 	let subst = Hashtbl.create 101 in
 
-	Printf.printf "----- Stage 1 ----- \n\n";
-	Printf.printf "Nasty assertion:\n\n%s\n\n" (JSIL_Print.string_of_logic_assertion a false);
+	(* Printf.printf "----- Stage 1 ----- \n\n";
+	Printf.printf "Nasty assertion:\n\n%s\n\n" (JSIL_Print.string_of_logic_assertion a false); *)
 	init_gamma gamma a;
 	init_symb_store_alocs store gamma subst a;
-	Printf.printf "Normalise assertion: gamma :%s\n" (JSIL_Memory_Print.string_of_gamma gamma);
+	(* Printf.printf "Normalise assertion: gamma :%s\n" (JSIL_Memory_Print.string_of_gamma gamma);
 	Printf.printf "Normalise assertion: store :%s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false);
-	Printf.printf "Normalise assertion: subst :%s\n" (JSIL_Memory_Print.string_of_substitution subst);
+	Printf.printf "Normalise assertion: subst :%s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
 
 	let p_formulae = init_pure_assignments a store gamma subst in
 	fill_store_with_gamma store gamma subst;
-    Printf.printf "----- Stage 1.5 ----- \n\n";
-	Printf.printf "Normalise assertion: pfrs  :%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
+  (* Printf.printf "----- Stage 1.5 ----- \n\n"; *)
+	(* Printf.printf "Normalise assertion: pfrs  :%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
 	Printf.printf "Normalise assertion: gamma :%s\n" (JSIL_Memory_Print.string_of_gamma gamma);
 	Printf.printf "Normalise assertion: store :%s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false);
-	Printf.printf "Normalise assertion: subst :%s\n" (JSIL_Memory_Print.string_of_substitution subst);
-	extend_typing_env_using_assertion_info ((pfs_to_list p_formulae) @ (pf_of_store2 store)) gamma;
+	Printf.printf "Normalise assertion: subst :%s\n" (JSIL_Memory_Print.string_of_substitution subst);*)
+	extend_typing_env_using_assertion_info ((DynArray.to_list p_formulae) @ (Symbolic_State_Functions.pf_of_store2 store)) gamma;
 
-	Printf.printf "----- Stage 2 ----- \n\n";
+	(* Printf.printf "----- Stage 2 ----- \n\n";
 	Printf.printf "Normalise assertion: pfrs  :%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
 	Printf.printf "Normalise assertion: gamma :%s\n" (JSIL_Memory_Print.string_of_gamma gamma);
 	Printf.printf "Normalise assertion: store :%s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false);
-	Printf.printf "Normalise assertion: subst :%s\n" (JSIL_Memory_Print.string_of_substitution subst);
+	Printf.printf "Normalise assertion: subst :%s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
 
 	compute_symb_heap heap store p_formulae gamma subst a;
 	let preds = init_preds a store gamma subst in
-	Printf.printf "----- Stage 3 ----- \n\n";
+	(* Printf.printf "----- Stage 3 ----- \n\n";
 	Printf.printf "Normalise assertion: heap  :%s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false);
 	Printf.printf "Normalise assertion: pfrs  :%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
 	Printf.printf "Normalise assertion: gamma :%s\n" (JSIL_Memory_Print.string_of_gamma gamma);
 	Printf.printf "Normalise assertion: store :%s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false);
-	Printf.printf "Normalise assertion: subst :%s\n" (JSIL_Memory_Print.string_of_substitution subst);
-	(heap, store, p_formulae, gamma, preds), subst
+	Printf.printf "Normalise assertion: subst :%s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
+	(heap, store, p_formulae, gamma, preds, (ref None)), subst
+
 
 let normalise_precondition a =
 	let lvars = get_ass_vars_lst a false in
@@ -577,7 +578,7 @@ let normalise_single_spec preds spec =
 	Printf.printf "UPostcondition: %s\n" (JSIL_Print.string_of_logic_assertion unfolded_post false);
 	*)
 
-	Printf.printf "NSS: Entry\n";
+	(* Printf.printf "NSS: Entry\n"; *)
 
 	let f_pre_normalize a_list = List.concat (List.map pre_normalize_assertion a_list) in
 	let f_print assertions =
@@ -587,10 +588,10 @@ let normalise_single_spec preds spec =
 	let unfolded_pres = f_pre_normalize (Logic_Predicates.auto_unfold preds spec.pre) in
 	let unfolded_posts = f_pre_normalize (Logic_Predicates.auto_unfold preds spec.post) in
 
-	Printf.printf "NSS: Pre-normalise\n";
+	(* Printf.printf "NSS: Pre-normalise\n";
 
 	Printf.printf "Pres: %s\n" (f_print unfolded_pres);
-	Printf.printf "Posts: %s\n" (f_print unfolded_posts);
+	Printf.printf "Posts: %s\n" (f_print unfolded_posts); *)
 
 	let unfolded_spec_list =
 		List.map
@@ -621,7 +622,7 @@ let normalise_single_spec preds spec =
 								})
 						else None)
 			unfolded_pres in
-	Printf.printf "NSS: Matching\n";
+	(* Printf.printf "NSS: Matching\n"; *)
 	let unfolded_spec_list =
 		List.fold_left
 			(fun ac elem ->
@@ -630,7 +631,7 @@ let normalise_single_spec preds spec =
 						| Some spec -> spec :: ac)
 			[]
 			unfolded_spec_list in
-	Printf.printf "NSS: Done\n";
+	(* Printf.printf "NSS: Done\n"; *)
 	unfolded_spec_list
 
 let normalise_spec preds spec =
@@ -650,7 +651,7 @@ let build_spec_tbl preds prog =
 					match proc.spec with
 					| None -> ()
 					| Some spec ->
-							let msg = Printf.sprintf "Now, normalising the spec: \n%s" (JSIL_Memory_Print.string_of_jsil_spec spec) in
+							let msg = Printf.sprintf "Now, normalising the spec: \n%s" (JSIL_Memory_Print.string_of_jsil_spec spec) in 
 							print_debug (msg);
 							let n_spec = normalise_spec preds spec in
 							Hashtbl.replace spec_tbl n_spec.n_spec_name n_spec)
@@ -658,19 +659,7 @@ let build_spec_tbl preds prog =
 	print_debug (Printf.sprintf "-----------------------------\n-----------------------------\nSpec Table:\n%s" (JSIL_Memory_Print.string_of_n_spec_table spec_tbl));
 	spec_tbl
 
-let init_store vars les =
-	let store = Hashtbl.create 31 in
 
-	let rec loop vars les =
-		match vars, les with
-		| [], _ -> ()
-		| var :: rest_vars, le :: rest_les ->
-				Hashtbl.replace store var le; loop rest_vars rest_les
-		| var :: rest_vars, [] ->
-				Hashtbl.replace store var (LLit Undefined); loop rest_vars [] in
-
-	loop vars les;
-	store
 
 let normalise_predicate_definitions pred_defs : (string, JSIL_Memory_Model.n_jsil_logic_predicate) Hashtbl.t =
 	print_debug "Normalising predicate definitions.\n";
@@ -713,21 +702,3 @@ let normalise_predicate_definitions pred_defs : (string, JSIL_Memory_Model.n_jsi
 					Hashtbl.replace n_pred_defs pred_name n_pred)
 		pred_defs;
 	n_pred_defs
-
-let store_substitution store gamma subst partial =
-	let vars, les =
-		Hashtbl.fold
-			(fun pvar le (vars, les) ->
-						let s_le = lexpr_substitution le subst partial in
-						let s_le_type, is_typable, _ = JSIL_Logic_Utils.type_lexpr gamma s_le in
-						(match s_le_type with
-							| Some s_le_type ->
-							(* Printf.printf "I am adding the type of %s to the store with   *)
-							(* type %s\n" pvar (JSIL_Print.string_of_type s_le_type);        *)
-									Hashtbl.replace gamma pvar s_le_type
-							|	None -> ());
-						(pvar :: vars), (s_le :: les))
-			store
-			([], []) in
-	let store = init_store vars les in
-	store

@@ -1,4 +1,5 @@
 open Z3
+open JSIL_Memory_Model
 open JSIL_Syntax
 
 
@@ -28,29 +29,6 @@ let types_encoded_as_ints = [
 	ObjectType;
 	TypeType
 ]
-
-type smt_translation_ctx = {
-	z3_ctx            : context;
-	tr_typing_env     : JSIL_Memory_Model.typing_environment;
-	tr_typeof_fun     : FuncDecl.func_decl;
-	tr_llen_fun       : FuncDecl.func_decl;
-	tr_slen_fun       : FuncDecl.func_decl;
-	tr_num2str_fun    : FuncDecl.func_decl;
-	tr_str2num_fun    : FuncDecl.func_decl;
-	tr_num2int_fun    : FuncDecl.func_decl;
-	tr_lnth_fun       : FuncDecl.func_decl;
-	tr_snth_fun       : FuncDecl.func_decl;
-  tr_list_sort      : Sort.sort;
-  tr_list_nil       : FuncDecl.func_decl;
-	tr_list_is_nil    : FuncDecl.func_decl;
-	tr_list_cons      : FuncDecl.func_decl;
-	tr_list_is_cons   : FuncDecl.func_decl;
-	tr_list_head      : FuncDecl.func_decl;
-	tr_list_tail      : FuncDecl.func_decl;
-	tr_lub            : FuncDecl.func_decl;
-	tr_axioms         : Expr.expr list
-	(* tr_existentials   : string list *)
-}
 
 let get_sort tr_ctx var_type =
 	let ctx = tr_ctx.z3_ctx in
@@ -740,8 +718,6 @@ let rec encode_pure_formula tr_ctx a =
 		raise (Failure msg)
 
 
-let get_solver tr_ctx existentials left_as right_as_or =
-
 		 (* Printf.printf "Left ass:\n";
 			List.iter (fun x -> Printf.printf "\n%s\n" (Expr.to_string x)) left_as;
 			Printf.printf "\nRight ass:\n";
@@ -752,120 +728,141 @@ let get_solver tr_ctx existentials left_as right_as_or =
 			Printf.printf "\n%s\n\n" (Expr.to_string target_assertion);
 		Printf.printf "----- Creating the solver -----\n\n";*)
 
-	let right_as_or =
-		if ((List.length existentials) > 0)
-			then encode_quantifier true tr_ctx.z3_ctx existentials (get_sorts tr_ctx existentials) right_as_or
-			else right_as_or in
-
-	let right_as_or =
-		Expr.simplify right_as_or None in
-
-
-	print_endline (Printf.sprintf "--- ABOUT TO ENTER THE SOLVER ---");
+	
+	(* print_endline (Printf.sprintf "--- ABOUT TO ENTER THE SOLVER ---");
 	List.iter (fun expr -> Printf.printf "%s\n" (Expr.to_string expr)) left_as;
 	print_endline (Printf.sprintf "\nIMPLIES:\n");
 	print_endline (Printf.sprintf "%s" (Expr.to_string right_as_or));
-	print_endline (Printf.sprintf "\nDone printing");
+	print_endline (Printf.sprintf "\nDone printing"); *)
 
+	
+
+
+let extend_solver solver pfs gamma = () 
+
+
+let string_of_z3_expr_list exprs = 
+	List.fold_left
+		(fun ac e -> 
+			let e_str = Expr.to_string e in 
+			if (ac = "") then e_str else (ac ^ ", " ^ e_str))
+		""
+		exprs 
+
+let get_new_solver assertions gamma existentials = 
+	let tr_ctx = mk_smt_translation_ctx gamma existentials in
+	let assertions = List.map (fun a -> encode_pure_formula tr_ctx a) assertions in 
 	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
-	Solver.add solver (left_as @ [ right_as_or ]);
-	solver
+	Solver.add solver assertions; 
+	(* Printf.printf "I have just created a solver with the content given by:\n: %s\n" (string_of_z3_expr_list assertions); *)
+	solver 
+				
+				
+let dispose_solver solver = 
+	Gc.full_major (); 
+	Solver.reset solver				
 
+
+let print_model solver = 
+	let model = Solver.get_model solver in
+	match model with
+	| Some model ->
+		let str_model = Model.to_string model in
+		Printf.printf "I found the model: \n\n%s\n\n" str_model
+	| None ->
+		Printf.printf "No model filha\n"
+			
 
 let check_satisfiability assertions gamma existentials =
-	let tr_ctx = mk_smt_translation_ctx gamma existentials in
-(*	try *)
-	(*Printf.printf "Check satisfiability.\n";
-	Printf.printf "Gamma:%s\n" (JSIL_Memory_Print.string_of_gamma gamma); *)
-	let assertions =
-		List.map
-			(fun a ->
-				(*Printf.printf "I am about to check the satisfiability of: %s\n" (JSIL_Print.string_of_logic_assertion a false);*)
-				let a = encode_pure_formula tr_ctx a in
-				(*Printf.printf "%s\n" (Expr.to_string a);*)
-				a)
-			assertions in
-	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
-	Solver.add solver assertions;
+	let solver = get_new_solver assertions gamma existentials in 
 	let ret = (Solver.check solver []) = Solver.SATISFIABLE in
-	Gc.full_major ();
-	Solver.reset solver;
-	(* Printf.printf "Check_satisfiability. Result %b" ret; *)
+	(* Printf.printf "ret: %s\n" (string_of_bool ret); *)
 	ret
-(*)	with (Failure msg) -> Printf.printf "Shit happened. %s\n" msg; false *)
+
+let rec string_of_solver solver = 
+	let exprs = Solver.get_assertions solver in 
+	string_of_z3_expr_list exprs
 
 (* right_as must be satisfiable *)
-let rec check_entailment existentials left_as right_as gamma =
-	(* print_endline (Printf.sprintf "------------------------------\n    Entering entailment\n"); *)
-	let cfg = [("model", "true"); ("proof", "false")] in
-
+let rec old_check_entailment existentials left_as right_as gamma =
+	
 	let tr_ctx = mk_smt_translation_ctx gamma existentials in
 	let ctx = tr_ctx.z3_ctx in
-
-	let ret_right = check_satisfiability right_as gamma existentials in
-	if (not (ret_right)) then
-	begin
-		(* print_endline (Printf.sprintf "Right side not satisfiable on its own."); *)
-		false
-	end
-	else
-		begin
-		(* print_endline (Printf.sprintf "Right side satisfiable on its own."); *)
-		try
-		(* check if left_as => right_as *)
-		let left_as =
-			List.map
-				(fun a -> encode_pure_formula tr_ctx a)
-				left_as in
+	(* let ret_right = check_satisfiability right_as gamma existentials in *)
+	
+	let check_entailment_aux () = 
+		let left_as =	List.map (fun a -> encode_pure_formula tr_ctx a) left_as in
 		let left_as = tr_ctx.tr_axioms @ (encode_gamma tr_ctx) @ left_as in
-
-		let right_as = List.map
-				(fun a ->
-					(* Printf.printf "I am about to encode a pure formula inside the check_entailment: %s\n%!" (JSIL_Print.string_of_logic_assertion a false); *)
-					let a = encode_pure_formula tr_ctx a in
-					(* Printf.printf "Z3 Expression: %s\n" (Expr.to_string a);
-					Printf.printf "I encoded a pure formula successfully\n%!"; *)
-					Boolean.mk_not ctx a)
-				right_as in
+		let right_as = List.map (fun a -> let a = encode_pure_formula tr_ctx a in Boolean.mk_not ctx a) right_as in 
 		let right_as_or =
 			if ((List.length right_as) > 1) then
-					(Boolean.mk_or ctx right_as)
-				else if ((List.length right_as) = 1) then
-					(List.nth right_as 0)
-				else Boolean.mk_false ctx in
+				(Boolean.mk_or ctx right_as)
+			else if ((List.length right_as) = 1) then
+				(List.nth right_as 0)
+			else Boolean.mk_false ctx in
+	  (* Printf.printf "checking if:\n %s\nIMPLIES\n%s\n" (string_of_z3_expr_list left_as) (Expr.to_string right_as_or); *)
+		let right_as_or =
+			if ((List.length existentials) > 0)
+				then encode_quantifier true tr_ctx.z3_ctx existentials (get_sorts tr_ctx existentials) right_as_or
+				else right_as_or in
+		let right_as_or = Expr.simplify right_as_or None in
+		let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
+		Solver.add solver left_as;
+		Solver.push solver; 
+		Solver.add solver [ right_as_or ]; 
+		let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in
+		Solver.pop solver 1; 
+		ret, Some (solver, tr_ctx)  in 
+	(* if (not (ret_right)) then false, None *)
+	try check_entailment_aux () with Failure msg -> false, None
+	
+	
 
-
-		(* Printf.printf "\nThe existentials are: ";
-		List.iter (fun x -> Printf.printf "%s " x) existentials;
-		print_endline (Printf.sprintf "\n"); *)
-
-		(* SOMETHING HAPPENS HERE! *)
-		let solver = get_solver tr_ctx existentials left_as right_as_or in
-
-		let ret = (Solver.check solver []) != Solver.SATISFIABLE in
-		print_endline (Printf.sprintf "Check_entailment. Result %b" ret);
-		(*)
-		 if (not ret) then
-			begin
-				let model = Solver.get_model solver in
-
-			(match model with
-				| Some model ->
-					let str_model = Model.to_string model in
-					Printf.printf "I found the model: \n\n%s\n\n" str_model
-				| None ->
-					Printf.printf "No model filha\n");
-			Printf.printf "ret: %s\n" (string_of_bool ret);
-			end; *)
-		Gc.full_major ();
-		Solver.reset solver;
-		print_endline (Printf.sprintf "\n    Exiting entailment\n------------------------------\n");
+let rec check_entailment solver existentials left_as right_as gamma =
+	
+	if ((List.length right_as) = 0) then true
+	else if (not (check_satisfiability right_as gamma existentials)) then false
+	else (
+	match !solver with 
+	| Some (solver, tr_ctx) -> 
+		(* Printf.printf "check_entailment and there is already a solver. backtracking_scopes: %d!!!\n" (Solver.get_num_scopes solver); *)
+		let ctx = tr_ctx.z3_ctx in
+		let tr_ctx = { tr_ctx with tr_typing_env = gamma } in 
+		let not_right_as = List.map (fun a -> Boolean.mk_not ctx (encode_pure_formula tr_ctx a)) right_as in
+		let len_not_right_as = List.length not_right_as in 
+		let right_as_or =
+			if (len_not_right_as > 1) then
+				(Boolean.mk_or ctx not_right_as)
+			else if (len_not_right_as = 1) then
+				(List.nth not_right_as 0)
+			else Boolean.mk_false ctx in
+		let right_as_or =
+			if ((List.length existentials) > 0)
+				then encode_quantifier true ctx existentials (get_sorts tr_ctx existentials) right_as_or
+				else right_as_or in
+		let right_as_or = Expr.simplify right_as_or None in
+		(* Printf.printf "checking if:\n %s\nIMPLIES\n%s\n" (string_of_solver solver) (Expr.to_string right_as_or); *)
+		Solver.push solver; 
+		Solver.add solver [ right_as_or ]; 
+		let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in
+		(* Printf.printf "backtracking_scopes before pop after push: %d!!!\n" (Solver.get_num_scopes solver); *)
+		(* Printf.printf "ret: %b\n" ret; *)
+		Solver.pop solver 1; 
+		(* Printf.printf "backtracking_scopes after pop: %d!!!\n" (Solver.get_num_scopes solver); *)
 		ret
-		with Failure msg -> (* Printf.printf "Esta merda explodiuuuu: %s\n" msg; *) false
-		end
+				
+	| None -> 
+		(* Printf.printf "check_entailment with NO solver!!!\n"; *)
+		let ret, new_solver = old_check_entailment existentials left_as right_as gamma in 
+		(match new_solver with 
+		| Some (new_solver, tr_ctx) -> solver := Some (new_solver, tr_ctx) 
+		| None                      -> ());
+		ret)
+		
+	
 
 
-let is_equal e1 e2 pure_formulae gamma =
+let is_equal e1 e2 pure_formulae solver gamma =
   (* Printf.printf "Checking if %s is equal to %s given that: %s\n;" (JSIL_Print.string_of_logic_expression e1 false) (JSIL_Print.string_of_logic_expression e2 false) (JSIL_Memory_Print.string_of_shallow_p_formulae pure_formulae false);
   Printf.printf "and the gamma is: %s\n" (JSIL_Memory_Print.string_of_gamma gamma); *)
 	match e1, e2 with
@@ -876,12 +873,12 @@ let is_equal e1 e2 pure_formulae gamma =
 	| LVar l1, LVar l2 ->
 		if (l1 = l2)
 			then true
-			else check_entailment [] (JSIL_Memory_Model.pfs_to_list pure_formulae) [ (LEq (e1, e2)) ] gamma
-	| _, _ -> check_entailment [] (JSIL_Memory_Model.pfs_to_list pure_formulae) [ (LEq (e1, e2)) ] gamma
+			else check_entailment solver [] (JSIL_Memory_Model.pfs_to_list pure_formulae) [ (LEq (e1, e2)) ] gamma
+	| _, _ -> check_entailment solver [] (JSIL_Memory_Model.pfs_to_list pure_formulae) [ (LEq (e1, e2)) ] gamma
 
 
-let is_different e1 e2 pure_formulae gamma =
+let is_different e1 e2 pure_formulae solver gamma =
 	match e1, e2 with
 	| LLit l1, LLit l2 -> (not (l1 = l2))
 	| ALoc aloc1, ALoc aloc2 -> (not (aloc1 = aloc2))
-	| _, _ -> check_entailment [] (JSIL_Memory_Model.pfs_to_list pure_formulae) [ (LNot (LEq (e1, e2))) ] gamma
+	| _, _ -> check_entailment solver [] (JSIL_Memory_Model.pfs_to_list pure_formulae) [ (LNot (LEq (e1, e2))) ] gamma

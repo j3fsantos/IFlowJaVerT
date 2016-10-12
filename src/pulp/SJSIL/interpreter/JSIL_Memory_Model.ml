@@ -1,6 +1,8 @@
 open JSIL_Syntax
+open Z3
 
 let small_tbl_size = 31
+
 
 (********************************************************)
 (** Auxiliar functions for generating new program/logical
@@ -65,7 +67,32 @@ type symbolic_store     = (string, jsil_logic_expr) Hashtbl.t
 type pure_formulae      = (jsil_logic_assertion DynArray.t)
 type typing_environment = ((string, jsil_type) Hashtbl.t)
 type predicate_set      = ((string * (jsil_logic_expr list)) DynArray.t)
-type symbolic_state     = symbolic_heap * symbolic_store * pure_formulae * typing_environment * predicate_set
+
+type smt_translation_ctx = {
+	z3_ctx            : context;
+	tr_typing_env     : typing_environment;
+	tr_typeof_fun     : FuncDecl.func_decl;
+	tr_llen_fun       : FuncDecl.func_decl;
+	tr_slen_fun       : FuncDecl.func_decl;
+	tr_num2str_fun    : FuncDecl.func_decl;
+	tr_str2num_fun    : FuncDecl.func_decl;
+	tr_num2int_fun    : FuncDecl.func_decl;
+	tr_lnth_fun       : FuncDecl.func_decl;
+	tr_snth_fun       : FuncDecl.func_decl;
+  tr_list_sort      : Sort.sort;
+  tr_list_nil       : FuncDecl.func_decl;
+	tr_list_is_nil    : FuncDecl.func_decl;
+	tr_list_cons      : FuncDecl.func_decl;
+	tr_list_is_cons   : FuncDecl.func_decl;
+	tr_list_head      : FuncDecl.func_decl;
+	tr_list_tail      : FuncDecl.func_decl;
+	tr_lub            : FuncDecl.func_decl;
+	tr_axioms         : Expr.expr list
+}
+
+
+type symbolic_state = symbolic_heap * symbolic_store * pure_formulae * typing_environment * predicate_set * (((Solver.solver * smt_translation_ctx) option) ref)
+
 
 
 (*************************************)
@@ -112,58 +139,10 @@ let extend_abs_store x store gamma =
 (*************************************)
 (** Pure Formulae functions         **)
 (*************************************)
-let copy_p_formulae pfs =
-	let new_pfs = DynArray.copy pfs in
-	new_pfs
 
-let extend_pf pfs pfs_to_add =
-	let is_pf_fresh pf_to_add =
-		(DynArray.fold_left
-			(fun ac pf -> (ac && (not (pf = pf_to_add))))
-			true
-			pfs) in
+let pfs_to_list (pfs : pure_formulae) = 
+	DynArray.to_list pfs
 
-	let is_pf_sensible pf_to_add =
-		(match pf_to_add with
-		| LEq (le1, le2) -> (not (le1 = le2))
-		| LTrue          -> false
-		| _              -> true) in
-
-	let rec loop pfs_to_add fresh_pfs_to_add =
-		match pfs_to_add with
-		| [] -> fresh_pfs_to_add
-		| pf_to_add :: rest_pfs_to_add ->
-			if ((is_pf_sensible pf_to_add) && (is_pf_fresh pf_to_add))
-				then loop rest_pfs_to_add (pf_to_add :: fresh_pfs_to_add)
-				else loop rest_pfs_to_add fresh_pfs_to_add in
-	DynArray.append (DynArray.of_list (loop pfs_to_add [])) pfs
-
-let pfs_to_list pfs = DynArray.to_list pfs
-
-let pf_of_store store subst =
-	Hashtbl.fold
-		(fun var le pfs ->
-			try
-				let sle = Hashtbl.find subst var in
-				((LEq (sle, le)) :: pfs)
-			with _ -> pfs)
-		store
-		[]
-
-let pf_of_store2 store =
-	Hashtbl.fold
-		(fun var le pfs -> ((LEq (PVar var, le)) :: pfs))
-		store
-		[]
-
-let pf_of_substitution subst =
-	Hashtbl.fold
-		(fun var le pfs ->
-			if (is_lvar_name var)
-				then ((LEq (LVar var, le)) :: pfs)
-				else pfs)
-		subst
-		[]
 
 
 (*************************************)
@@ -248,54 +227,46 @@ let extend_pred_set preds pred_assertion =
 (** Symbolic State functions        **)
 (*************************************)
 let get_heap symb_state =
-	let heap, _, _, _, _ = symb_state in
+	let heap, _, _, _, _, _ = symb_state in
 	heap
 
 let get_store symb_state =
-	let _, store, _, _, _ = symb_state in
+	let _, store, _, _, _, _ = symb_state in
 	store
 
 let get_pf symb_state =
-	let _, _, pf, _, _ = symb_state in
+	let _, _, pf, _, _, _ = symb_state in
 	pf
 
 let get_gamma symb_state =
-	let _, _, _, gamma, _ = symb_state in
+	let _, _, _, gamma, _, _ = symb_state in
 	gamma
 
 let get_preds symb_state =
-	let _, _, _, _, preds = symb_state in
+	let _, _, _, _, preds, _ = symb_state in
 	preds
 
+let get_solver symb_state =
+	let _, _, _, _, _, solver = symb_state in
+	solver	
+			
 let get_pf_list symb_state =
 	let pf = get_pf symb_state in
 	pfs_to_list pf
-
+	
 let symb_state_add_predicate_assertion symb_state pred_assertion =
 	let preds = get_preds symb_state in
 	extend_pred_set preds pred_assertion
 
 let symb_state_replace_store symb_state new_store =
-	let heap, _, pfs, gamma, preds = symb_state in
-	(heap, new_store, pfs, gamma, preds)
-
-let rec extend_symb_state_with_pfs symb_state pfs_to_add =
-	extend_pf (get_pf symb_state) pfs_to_add
-
-let copy_symb_state symb_state =
-	let heap, store, p_formulae, gamma, preds = symb_state in
-	let c_heap      = LHeap.copy heap in
-	let c_store     = copy_store store in
-	let c_pformulae = copy_p_formulae p_formulae in
-	let c_gamma     = copy_gamma gamma in
-	let c_preds     = copy_pred_set preds in
-	(c_heap, c_store, c_pformulae, c_gamma, c_preds)
+	let heap, _, pfs, gamma, preds, solver = symb_state in
+	(heap, new_store, pfs, gamma, preds, solver)
 
 (****************************************)
 (** Normalised Specifications          **)
 (****************************************)
 type jsil_n_single_spec = {
-    n_pre         : symbolic_state;
+  n_pre         : symbolic_state;
 	n_post        : symbolic_state list;
 	n_ret_flag    : jsil_return_flag;
 	n_lvars       : string list;
@@ -312,18 +283,6 @@ type jsil_n_spec = {
 type specification_table = (string, jsil_n_spec) Hashtbl.t
 
 type pruning_table = (string, bool array) Hashtbl.t
-
-let copy_single_spec s_spec =
-	let copy_pre  = copy_symb_state s_spec.n_pre in
-	let copy_post = List.map copy_symb_state s_spec.n_post in
-	{
-		n_pre        = copy_pre;
-		n_post       = s_spec.n_post;
-		n_ret_flag   = s_spec.n_ret_flag;
-		n_lvars      = s_spec.n_lvars;
-		n_post_lvars = s_spec.n_post_lvars;
-		n_subst      = s_spec.n_subst
-	}
 
 let init_post_pruning_info () = Hashtbl.create small_tbl_size
 
@@ -353,6 +312,7 @@ let filter_useless_posts_in_multiple_specs proc_name specs pruning_info =
 		let new_specs = List.map2 filter_useless_posts_in_single_spec specs pruning_info in
 		new_specs
 	with Not_found -> specs
+	
 
 (****************************************)
 (** Normalised Predicate Definitions   **)
@@ -445,3 +405,5 @@ let activate_post_in_post_pruning_info symb_exe_info proc_name post_number =
 		let post_pruning_info_array = List.nth post_pruning_info_array_list (symb_exe_info.spec_number) in
 		post_pruning_info_array.(post_number) <- true
 	with Not_found -> ()
+	
+
