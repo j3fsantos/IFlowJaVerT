@@ -83,6 +83,18 @@ let string_of_preds preds escape_string =
 		""
 		preds
 
+
+let string_of_normalised_predicate (pred : Logic_Predicates.normalised_predicate) =
+    let params = List.fold_left (fun ac param -> ac ^ param ^ " ") "" pred.params in
+    "*** Normalised predicate ***\n" ^
+    "Name : " ^ pred.name ^ "\n" ^
+    "Parameters : " ^ params ^ "\n" ^
+    (Printf.sprintf "Recursive : %b\n" pred.is_recursive)
+
+let string_of_normalised_predicates (preds : (string, Logic_Predicates.normalised_predicate) Hashtbl.t) =
+    Hashtbl.fold (fun pname pred ac -> ac ^ string_of_normalised_predicate pred) preds ""
+		
+
 let string_of_shallow_symb_state (symb_state : symbolic_state) =
 	(* let heap, store, p_formulae, gamma, preds = symb_state in *)
 	let str_heap       = "Heap: " ^ (string_of_shallow_symb_heap (get_heap symb_state) true) ^ "\n" in
@@ -112,10 +124,10 @@ let string_of_specs specs =
 			let pre = x.pre in
 			let post = x.post in
 			let flag = (match x.ret_flag with | Normal -> "Normal" | Error -> "Error") in
-			(Printf.sprintf "[[\n%s\n]]\n[[\n%s\n%s\n]]"
-				(string_of_logic_assertion pre false)
-				(string_of_logic_assertion post false)
-				flag
+			ac ^ (Printf.sprintf "[[ %s ]]\n[[ %s ]]\n%s\n\n"
+				 (string_of_logic_assertion pre false)
+				 (string_of_logic_assertion post false)
+				 flag
 			))
 		""
 		specs
@@ -124,11 +136,11 @@ let string_of_jsil_spec (spec : JSIL_Syntax.jsil_spec) =
 	let name = spec.spec_name in
 	let params = spec.spec_params in
 	let specs = spec.proc_specs in
-	let ret = Printf.sprintf "JSIL_SPEC\n=========\n\n%s ( " name in
+	let ret = name ^ " ( " in
 	let ret = ret ^
 		List.fold_left (fun ac x -> ac ^ (Printf.sprintf "%s " x)) "" params in
-	let ret = ret ^ ")\n" in
-	let ret = ret ^ (string_of_specs specs) ^ "\n" in
+	let ret = ret ^ ")\n\n" in
+	let ret = ret ^ (string_of_specs specs) in
 	ret
 
 let string_of_single_spec s_spec =

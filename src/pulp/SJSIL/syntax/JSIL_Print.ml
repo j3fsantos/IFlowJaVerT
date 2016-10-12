@@ -235,7 +235,7 @@ let rec string_of_logic_assertion a escape_string =
 		(* e1 <<s e2 *)
 		| LStrLess (e1, e2) -> Printf.sprintf "(%s <s# %s)" (sle e1) (sle e2)
 		(* a1 * a2 *)
-		| LStar (a1, a2) -> Printf.sprintf "%s *\n%s" (sla a1) (sla a2)
+		| LStar (a1, a2) -> Printf.sprintf "%s * %s" (sla a1) (sla a2)
 		(* (e1, e2) -> e3 *)
 		| LPointsTo (e1, e2, e3) -> Printf.sprintf "(%s, %s) -> %s" (sle e1) (sle e2) (sle e3)
 		(* emp *)

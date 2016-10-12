@@ -10,6 +10,17 @@ type normalised_predicate = {
 	is_recursive : bool;
 }
 
+let string_of_normalised_predicate (pred : normalised_predicate) =
+    let params = List.fold_left (fun ac param -> ac ^ param ^ " ") "" pred.params in
+    "\n*** Normalised predicate ***\n" ^
+    "Name : " ^ pred.name ^ "\n" ^
+    "Parameters : " ^ params ^ "\n" ^
+    (Printf.sprintf "Recursive : %b\n" pred.is_recursive) ^
+	List.fold_left (fun ac x -> ac ^ "\nDefinition:\n" ^ (JSIL_Print.string_of_logic_assertion x false) ^ "\n") "" pred.definitions
+
+let string_of_normalised_predicates (preds : (string, normalised_predicate) Hashtbl.t) =
+    Hashtbl.fold (fun pname pred ac -> ac ^ string_of_normalised_predicate pred) preds ""
+
 (* Replaces the literals and None in the arguments of a predicate with logical variables,
    and adds constraints for those variables to its definitions.
 *)
@@ -207,7 +218,7 @@ let normalise preds =
 			| Non_unifiable reason -> raise (Failure ("Error in predicate " ^ name ^ ": " ^ reason)))
 		preds;
 	(* Detect recursive predicates *)
-  let rec_table = find_recursive_preds norm_predicates in
+  	let rec_table = find_recursive_preds norm_predicates in
 	(* Flag those that are recursive *)
 	let norm_rec_predicates = Hashtbl.create (Hashtbl.length norm_predicates) in
 	Hashtbl.iter

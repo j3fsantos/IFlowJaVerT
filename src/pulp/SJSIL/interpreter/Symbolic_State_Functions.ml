@@ -38,7 +38,7 @@ let update_subst2 subst unifier1 unifier2 p_formulae solver gamma =
 				end
 
 	| _, _ -> false
-		
+
 
 
 (*************************************)
@@ -51,8 +51,8 @@ let fv_list_substitution fv_list subst partial =
 			let s_le_val = JSIL_Logic_Utils.lexpr_substitution le_val subst partial in
 			(s_le_field, s_le_val))
 		fv_list
-		
-		
+
+
 let heap_substitution (heap : symbolic_heap) (subst : substitution) partial =
 	let new_heap = LHeap.create 1021 in
 	LHeap.iter
@@ -316,13 +316,12 @@ let resolve_location lvar pfs =
 	let rec loop pfs =	
 		match pfs with 
 		| [] -> None
-		| LEq (LVar lvar, ALoc loc) :: rest 
+		| LEq (LVar lvar, ALoc loc) :: rest
 		| LEq (ALoc loc, LVar lvar) :: rest  -> Some (ALoc loc)
 		| LEq (LVar lvar, LLit (Loc loc)) :: rest 
 		| LEq (LLit (Loc loc), LVar lvar) :: rest -> Some (LLit (Loc loc))
 		| _ :: rest -> loop rest in 
 	loop pfs  
-			
 
 (*************************************)
 (** Typing Environment functions    **)
@@ -344,6 +343,20 @@ let rec gamma_substitution gamma subst partial =
 		gamma;
 	new_gamma
 
+let is_sensible_subst subst gamma =
+    try
+	Hashtbl.iter
+		(fun var lexpr ->
+			let lexpr_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma lexpr in
+			let var_type = gamma_get_type gamma var in
+			match lexpr_type, var_type with
+			| Some le_type, Some v_type ->
+			  if (le_type = v_type) then () else raise (Failure "Type mismatch: %s %s")
+			| None, Some v_type -> raise (Failure "Gamma typed, unfold untyped")
+			| _, _ -> ())
+		subst;
+	true
+	with (Failure msg) -> Printf.printf "%s\n" msg; false
 
 let merge_gammas (gamma_l : typing_environment) (gamma_r : typing_environment) =
 	Hashtbl.iter
@@ -351,7 +364,7 @@ let merge_gammas (gamma_l : typing_environment) (gamma_r : typing_environment) =
 			if (not (Hashtbl.mem gamma_l var))
 				then Hashtbl.add gamma_l var v_type)
 		gamma_r
-	
+
 
 (*************************************)
 (** Predicate Set functions         **)
@@ -495,6 +508,9 @@ let symb_state_replace_preds symb_state new_preds =
 	let heap, store, pfs, gamma, _, solver = symb_state in
 	(heap, store, pfs, gamma, new_preds, solver)
 
+let symb_state_replace_gamma symb_state new_gamma =
+	let heap, store, pfs, _, preds, solver = symb_state in
+	(heap, store, pfs, new_gamma, preds, solver)
 
 (*************************************)
 (** Normalised Spec functions       **)
