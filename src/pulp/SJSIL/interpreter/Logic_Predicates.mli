@@ -26,3 +26,5 @@ val auto_unfold : (string, normalised_predicate) Hashtbl.t -> jsil_logic_asserti
 (** Returns a string from a normalised predicate. *)
 val to_string : normalised_predicate -> string
 (** Useful for debugging. *)
+
+val string_of_normalised_predicates : (string, normalised_predicate) Hashtbl.t -> string

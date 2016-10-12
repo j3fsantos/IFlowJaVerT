@@ -711,15 +711,15 @@ let ctx = tr_ctx.z3_ctx in
  (* Cons and a variable *)
  | LBinOp (e1', LstCons, l1'), LVar var
  | LBinOp (e1', LstCons, l1'), PVar var ->
- 	Printf.printf "ConsVar: %s %s\n" (JSIL_Print.string_of_logic_expression l1 false) (JSIL_Print.string_of_logic_expression l2 false);
+ 	(* Printf.printf "ConsVar: %s %s\n" (JSIL_Print.string_of_logic_expression l1 false) (JSIL_Print.string_of_logic_expression l2 false); *)
  	let as1' = Boolean.mk_eq ctx le1 le2 in
 	let le1', te1', ase1' = fe e1' in
 	let ll1', tl1', asl1' = fe l1' in
  	let as_length_ls = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ]) (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) in
-	Printf.printf "Done lengths.\n";
+	(* Printf.printf "Done lengths.\n"; *)
 	let cur_len1 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ])
  								     (Arithmetic.mk_add ctx [ (Arithmetic.Integer.mk_numeral_i ctx 1); (Expr.mk_app ctx tr_ctx.tr_llen_fun [ ll1' ]) ]) in
-		Printf.printf "Done cons length.\n";
+		(* Printf.printf "Done cons length.\n"; *)
 		[ as1'; as_length_ls; cur_len1 ] @ ase1' @ asl1' @ as1 @ as2
 
  | LVar _, LVar _

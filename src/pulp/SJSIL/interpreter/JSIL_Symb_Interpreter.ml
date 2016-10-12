@@ -331,6 +331,7 @@ let fold_predicate pred_name pred_defs symb_state params args =
 
 	(* create a new symb state with the abstract store in which the
 	    called procedure is to be executed *)
+	Printf.printf ("\n\n\nIn the FOLD: \n%s\n\n\n\n") (JSIL_Memory_Print.string_of_shallow_symb_state symb_state);
 	let new_store = JSIL_Logic_Normalise.init_store params args in
 	let symb_state_aux = symb_state_replace_store symb_state new_store in
 
@@ -338,11 +339,11 @@ let fold_predicate pred_name pred_defs symb_state params args =
 		(match pred_defs with
 		| [] -> None
 		| pred_def :: rest_pred_defs ->
-			(* Printf.printf "Current pred symbolic state: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pred_def); *)
+			Printf.printf "Current pred symbolic state: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pred_def);
 			let unifier = Structural_Entailment.unify_symb_states [] pred_def symb_state_aux in
 			(match unifier with
 			| Some (quotient_heap, quotient_preds, subst, pf_discharges, true) ->
-			  (* Printf.printf "I can fold this!!!\n"; *)
+			    Printf.printf "I can fold this!!!\n";
 				let symb_state = Symbolic_State_Functions.symb_state_replace_heap symb_state quotient_heap in
 				let symb_state = Symbolic_State_Functions.symb_state_replace_preds symb_state quotient_preds in
 				extend_symb_state_with_pfs symb_state pf_discharges;
@@ -366,6 +367,23 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 
 	(* Printf.printf "I WILL BEGIN TO UNFOLD: NUMBER OF DEFINITIONS: %i\n" (List.length  pred_defs); *)
 
+	let update_gamma_from_unfolded_predicate store gamma symb_state =
+	let symb_gamma = get_gamma symb_state in
+		Hashtbl.iter
+		(fun pvar lexpr ->
+			let str_lexpr = (JSIL_Print.string_of_logic_expression lexpr false) in
+			(match lexpr with
+			| LVar lvar ->
+			  if (Hashtbl.mem gamma pvar) then
+			  begin
+			    let ltype = Hashtbl.find gamma pvar in
+					if (not (Hashtbl.mem symb_gamma lvar))
+						then update_gamma symb_gamma lvar (Some ltype)
+			  end
+			| _ -> () )) store;
+		symb_gamma in
+
+
 	let rec loop pred_defs (symb_states : symbolic_state list) =
 		(match pred_defs with
 		| [] -> symb_states
@@ -373,12 +391,13 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 			let pat_subst = init_substitution [] in
 			let subst = init_substitution [] in
 			let pat_store = get_store pred_symb_state in
-			Printf.printf "HERE WE ARE: UNFOLD!\n";
-			Printf.printf "UNFOLD PREDICATES UNFOLD PREDICATES.\nPat_Symb_State: %s\nSymb_State: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pred_symb_state) (JSIL_Memory_Print.string_of_shallow_symb_state symb_state);
+			let symb_state = Symbolic_State_Functions.symb_state_replace_gamma symb_state (update_gamma_from_unfolded_predicate store (get_gamma pred_symb_state) symb_state) in
+			Printf.printf "\nUnfolding the predicate.\n\nSymb_State: %s\n\nPat_Symb_State: %s\n\n" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state) (JSIL_Memory_Print.string_of_shallow_symb_state pred_symb_state);
 			Printf.printf "Calling store: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false);
 			let discharges = Structural_Entailment.unify_stores pat_store store pat_subst (Some subst) (pfs_to_list (get_pf symb_state)) (get_gamma symb_state) in
-			(match discharges with
-			| Some discharges ->
+			let sensible_subst = Symbolic_State_Functions.is_sensible_subst subst (get_gamma symb_state) in
+			(match sensible_subst, discharges with
+			| true, Some discharges ->
 					(* Printf.printf "Current pred symbolic state: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pred_symb_state); *)
 					Printf.printf "I need to apply the following subst in the current symbolic store: %s\n"
 						(JSIL_Memory_Print.string_of_substitution subst);
@@ -387,9 +406,8 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 					let new_symb_state : symbolic_state = copy_symb_state symb_state in
 					let (new_symb_state : symbolic_state) = Symbolic_State_Functions.symb_state_substitution new_symb_state subst true in
 					Symbolic_State_Functions.symb_state_add_subst_as_equalities new_symb_state subst (get_pf new_symb_state) spec_vars;
-					Printf.printf "Symbolic state after substitution: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state new_symb_state); (*)
-					Printf.printf "Pred Symb_sate:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state pred_symb_state);
-					Printf.printf " subst: %s pat_subst: %s\n" (JSIL_Memory_Print.string_of_substitution subst) (JSIL_Memory_Print.string_of_substitution pat_subst); *)
+					Printf.printf "Symbolic state after substitution: \n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_state new_symb_state); (*)
+					Printf.printf "Pred Symb_sate:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state pred_symb_state); *)
 					let pat_subst = compose_partial_substitutions subst pat_subst in
 					let unfolded_symb_state = Symbolic_State_Functions.merge_symb_states new_symb_state pred_symb_state pat_subst in
 					(*Printf.printf "pred symbolic state at the middle: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pred_symb_state);*)
@@ -409,7 +427,14 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 					JSIL_Logic_Normalise.extend_typing_env_using_assertion_info new_pfs_subst0 gamma;
 					JSIL_Logic_Normalise.extend_typing_env_using_assertion_info pf_discharges gamma;
 
+					Printf.printf "\nJust before substitution.\n\nSymb_State: %s\n\nPat_Symb_State: %s\n\n" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state) (JSIL_Memory_Print.string_of_shallow_symb_state pred_symb_state);
 					Printf.printf "The discharges to prove are: %s\n" (JSIL_Print.str_of_assertion_list pf_discharges);
+					Printf.printf " subst: %s pat_subst: %s\n" (JSIL_Memory_Print.string_of_substitution subst) (JSIL_Memory_Print.string_of_substitution pat_subst);
+
+					let pat_pf_existentials = get_subtraction_vars (get_pf_list pred_symb_state) pat_subst in
+					let gammas_unifiable = Structural_Entailment.unify_gamma (get_gamma pred_symb_state) gamma pat_store pat_subst pat_pf_existentials in
+					Printf.printf "Are gammas unifiable? Answer, bitch! %b\n" gammas_unifiable;
+
 					(* Printf.printf "I unfolded the following symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state unfolded_symb_state); *)
 					let satisfiability_check = Pure_Entailment.check_satisfiability (get_pf_list unfolded_symb_state) gamma [] in
 					(* let discharges_check = Entailment_Engine.check_entailment [] pf pf_discharges gamma in *)
@@ -421,7 +446,7 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 							Printf.printf "Could NOT check the pure part of the unfolding. satisfiability_check: %b.\n" satisfiability_check;
 							(* Printf.printf "pf_discharges: %s\n" (JSIL_Print.str_of_assertion_list pf_discharges); *)
 							loop rest_pred_defs symb_states)
-			| None -> loop rest_pred_defs symb_states)) in
+			| _, _ -> loop rest_pred_defs symb_states)) in
 
 	loop pred_defs []
 
@@ -651,6 +676,7 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info =
 	if (!verbose) then Printf.printf "%s" (sep_str ^ sep_str ^ sep_str ^ "Symbolic execution of " ^ proc_name ^ "\n");
 	let success, failure_msg =
 		(try
+			print_debug (Printf.sprintf "Initial symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre));
 			symb_evaluate_next_cmd s_prog proc spec search_info spec.n_pre (-1) 0;
 			true, None
 		with Failure msg ->

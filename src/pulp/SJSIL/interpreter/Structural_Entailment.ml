@@ -56,10 +56,18 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 					discharges
 
 				| ALoc pat_aloc, LVar lvar ->
+					(* Printf.printf "So, Aloc %s, Lvar %s\n" pat_aloc lvar; *)
 					let loc = Symbolic_State_Functions.resolve_location lvar pfs in
 					(match loc with
 					| Some loc -> extend_subst pat_subst pat_aloc loc; discharges
-					| None     -> raise (Failure "Variable store against abstract location"))
+					| None     ->
+						(match subst with
+						| None -> raise (Failure "Variable store against abstract location")
+						| Some subst ->
+							let new_aloc = fresh_aloc () in
+							extend_subst subst lvar (ALoc new_aloc);
+							extend_subst pat_subst pat_aloc (ALoc new_aloc);
+							discharges))
 
 				| LLit lit, LVar lvar ->
 					(match subst with
