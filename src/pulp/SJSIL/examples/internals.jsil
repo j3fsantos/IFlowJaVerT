@@ -624,12 +624,20 @@ spec o__canPut (l, prop)
        ((l, "@extensible") -> $$t) * (ret == #writable) ]]
     normal;
 
-    (* Property defined as an accessor descriptor, set doesn't exist, return true *)
+    (* Property defined as an accessor descriptor, set doesn't exist, return false *)
     [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
        AccessorDescriptor(#g_aux_3) * desc_set(#g_aux_3, $$undefined) *
        ((l, "@extensible") -> #ext) * types (#ext : $$boolean_type) ]]
     [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
-       ((l, "@extensible") -> $$t) * (ret == $$f) ]]
+       ((l, "@extensible") -> #ext) * (ret == $$f) ]]
+    normal;
+
+    (* Property defined as an accessor descriptor, set exists, return true *)
+    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+       AccessorDescriptor(#g_aux_3) * desc_set(#g_aux_3, #set) * (! (#set == $$undefined)) *
+       ((l, "@extensible") -> #ext) * types (#ext : $$boolean_type) ]]
+    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+       ((l, "@extensible") -> #ext) * (ret == $$t) ]]
     normal
 
 proc o__canPut (l, prop) {

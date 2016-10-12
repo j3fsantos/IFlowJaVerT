@@ -30,25 +30,27 @@ let types_encoded_as_ints = [
 ]
 
 type smt_translation_ctx = {
-	z3_ctx            : context;
-	tr_typing_env     : JSIL_Memory_Model.typing_environment;
-	tr_typeof_fun     : FuncDecl.func_decl;
-	tr_llen_fun       : FuncDecl.func_decl;
-	tr_slen_fun       : FuncDecl.func_decl;
-	tr_num2str_fun    : FuncDecl.func_decl;
-	tr_str2num_fun    : FuncDecl.func_decl;
-	tr_num2int_fun    : FuncDecl.func_decl;
-	tr_lnth_fun       : FuncDecl.func_decl;
-	tr_snth_fun       : FuncDecl.func_decl;
-  tr_list_sort      : Sort.sort;
-  tr_list_nil       : FuncDecl.func_decl;
-	tr_list_is_nil    : FuncDecl.func_decl;
-	tr_list_cons      : FuncDecl.func_decl;
-	tr_list_is_cons   : FuncDecl.func_decl;
-	tr_list_head      : FuncDecl.func_decl;
-	tr_list_tail      : FuncDecl.func_decl;
-	tr_lub            : FuncDecl.func_decl;
-	tr_axioms         : Expr.expr list
+	z3_ctx                 : context;
+	tr_typing_env          : JSIL_Memory_Model.typing_environment;
+	tr_typeof_fun          : FuncDecl.func_decl;
+	tr_llen_fun            : FuncDecl.func_decl;
+	tr_slen_fun            : FuncDecl.func_decl;
+	tr_num2str_fun         : FuncDecl.func_decl;
+	tr_str2num_fun         : FuncDecl.func_decl;
+	tr_num2int_fun         : FuncDecl.func_decl;
+	tr_lnth_fun            : FuncDecl.func_decl;
+	tr_snth_fun            : FuncDecl.func_decl;
+  	tr_list_sort           : Sort.sort;
+  	tr_list_nil            : FuncDecl.func_decl;
+	tr_list_is_nil         : FuncDecl.func_decl;
+	tr_list_cons           : FuncDecl.func_decl;
+	tr_list_is_cons        : FuncDecl.func_decl;
+	tr_list_head           : FuncDecl.func_decl;
+	tr_list_tail           : FuncDecl.func_decl;
+	tr_lub                 : FuncDecl.func_decl;
+	tr_to_jsil_boolean_fun : FuncDecl.func_decl;
+	tr_jsil_not_fun        : FuncDecl.func_decl;
+	tr_axioms              : Expr.expr list;
 	(* tr_existentials   : string list *)
 }
 
@@ -221,6 +223,23 @@ let mk_smt_translation_ctx gamma existentials =
 	let z3_llen_fun_domain = [ list_sort ] in
 	let z3_llen_fun = FuncDecl.mk_func_decl ctx z3_llen_name z3_llen_fun_domain (Arithmetic.Integer.mk_sort ctx) in
 
+	let z3_to_jsil_boolean_name = (Symbol.mk_string ctx "to_jsil_boolean") in
+	let z3_to_jsil_boolean_domain = [ Boolean.mk_sort ctx ] in
+	let z3_to_jsil_boolean_fun = FuncDecl.mk_func_decl ctx z3_to_jsil_boolean_name z3_to_jsil_boolean_domain (Arithmetic.Integer.mk_sort ctx) in
+
+	let z3_jsil_not_name = (Symbol.mk_string ctx "jsil_not") in
+	let z3_jsil_not_domain = [ Arithmetic.Integer.mk_sort ctx ] in
+	let z3_jsil_not_fun : FuncDecl.func_decl = FuncDecl.mk_func_decl ctx z3_jsil_not_name z3_jsil_not_domain (Arithmetic.Integer.mk_sort ctx) in
+
+	(* to_jsil_boolean axioms *)
+	(* to_jsil_boolean true = 1 *)
+	(* to_jsil_boolean false = 0 *)
+	let to_jsil_boolean_axiom_true = Boolean.mk_eq ctx (Expr.mk_app ctx z3_to_jsil_boolean_fun [ (Boolean.mk_true ctx) ]) (Arithmetic.Integer.mk_numeral_i ctx 1)  in
+	let to_jsil_boolean_axiom_false = Boolean.mk_eq ctx (Expr.mk_app ctx z3_to_jsil_boolean_fun [ (Boolean.mk_false ctx) ]) (Arithmetic.Integer.mk_numeral_i ctx 0) in
+
+	let jsil_not_axiom_true : Z3.Expr.expr = Boolean.mk_eq ctx (Expr.mk_app ctx z3_jsil_not_fun [ (Arithmetic.Integer.mk_numeral_i ctx 1) ]) (Arithmetic.Integer.mk_numeral_i ctx 0) in
+	let jsil_not_axiom_false :  Z3.Expr.expr = Boolean.mk_eq ctx (Expr.mk_app ctx z3_jsil_not_fun [ (Arithmetic.Integer.mk_numeral_i ctx 0) ]) (Arithmetic.Integer.mk_numeral_i ctx 1) in
+
 	(* forall x. slen(x) >= 0 *)
 	let x = "x" in
 	let le_x = Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx x) in
@@ -286,25 +305,27 @@ let mk_smt_translation_ctx gamma existentials =
 	let llen_axioms = mk_z3_llen_axioms 0 ctx list_sort z3_llen_fun list_nil list_cons in
 
 	{
-		z3_ctx            = ctx;
-		tr_typing_env     = gamma;
-		tr_typeof_fun     = z3_typeof_fun;
-		tr_slen_fun       = z3_slen_fun;
-		tr_llen_fun       = z3_llen_fun;
-		tr_num2str_fun    = z3_num2str_fun;
-		tr_str2num_fun    = z3_str2num_fun;
-		tr_num2int_fun    = z3_num2int_fun;
-		tr_snth_fun       = z3_snth_fun;
-		tr_lnth_fun       = z3_lnth_fun;
-  	tr_list_sort      = list_sort;
- 		tr_list_nil       = list_nil;
-		tr_list_is_nil    = list_is_nil;
-		tr_list_cons      = list_cons;
-		tr_list_is_cons   = list_is_cons;
-		tr_list_head      = list_head;
-		tr_list_tail      = list_tail;
-		tr_lub            = z3_lub;
-		tr_axioms         = [ z3_slen_axiom; z3_llen_axiom1;  lub_refl_axiom; lub_int_num_axiom; lub_num_int_axiom; axiom_llen_axiom2 ] @ llen_axioms
+		z3_ctx                  = ctx;
+		tr_typing_env           = gamma;
+		tr_typeof_fun           = z3_typeof_fun;
+		tr_slen_fun             = z3_slen_fun;
+		tr_llen_fun             = z3_llen_fun;
+		tr_num2str_fun          = z3_num2str_fun;
+		tr_str2num_fun          = z3_str2num_fun;
+		tr_num2int_fun          = z3_num2int_fun;
+		tr_snth_fun             = z3_snth_fun;
+		tr_lnth_fun             = z3_lnth_fun;
+  		tr_list_sort            = list_sort;
+ 		tr_list_nil             = list_nil;
+		tr_list_is_nil          = list_is_nil;
+		tr_list_cons            = list_cons;
+		tr_list_is_cons         = list_is_cons;
+		tr_list_head            = list_head;
+		tr_list_tail            = list_tail;
+		tr_lub                  = z3_lub;
+		tr_to_jsil_boolean_fun  = z3_to_jsil_boolean_fun;
+		tr_jsil_not_fun         = z3_jsil_not_fun;
+		tr_axioms               = [ z3_slen_axiom; z3_llen_axiom1;  lub_refl_axiom; lub_int_num_axiom; lub_num_int_axiom; axiom_llen_axiom2; to_jsil_boolean_axiom_true; to_jsil_boolean_axiom_false; jsil_not_axiom_true; jsil_not_axiom_false ] @ llen_axioms
 		(* tr_existentials   = existentials *)
 	}
 
@@ -412,6 +433,9 @@ let encode_binop tr_ctx op le1 te1 le2 te2 =
 	| Times    -> (Arithmetic.mk_mul ctx [ le1; le2 ]), mk_lub_type tr_ctx te1 te2, [ mk_constraint_int_num tr_ctx te1 te2 ]
 	| Div      -> (Arithmetic.mk_div ctx le1 le2), mk_lub_type tr_ctx te1 te2, [ mk_constraint_int_num tr_ctx te1 te2 ]
 	| Mod      -> (Arithmetic.Integer.mk_mod ctx le1 le2), (encode_type ctx IntType), [ mk_constraint_int tr_ctx te1 te2 ]
+	| Equal    ->
+		let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_to_jsil_boolean_fun [ (Boolean.mk_eq ctx le1 le2) ]) in
+		new_le, (encode_type ctx BooleanType), [ ]
 	| LstCons  ->
 		(* print_endline (Printf.sprintf "So, Bananas...\n (%s : %s) (%s : %s)" (Expr.to_string le1) (Expr.to_string te1) (Expr.to_string le2) (Expr.to_string te2)); *)
 		let le, te, constraints = (Expr.mk_app ctx tr_ctx.tr_list_cons [ le1; le2 ]), (encode_type ctx ListType), [ mk_constraint_type tr_ctx te2 ListType] in
@@ -449,6 +473,10 @@ let encode_unop tr_ctx op le te =
 	| ToIntOp ->
 		let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_num2int_fun [ le ]) in
 		new_le, (encode_type ctx IntType), [ mk_constraint_type tr_ctx te NumberType ]
+
+	| Not ->
+		let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_jsil_not_fun [  le ]) in
+		new_le, (encode_type ctx BooleanType), [ mk_constraint_type tr_ctx te BooleanType ]
 
 	| _          ->
 		Printf.printf "SMT encoding: Construct not supported yet - unop - %s!\n" (JSIL_Print.string_of_unop op);
@@ -711,7 +739,7 @@ let ctx = tr_ctx.z3_ctx in
  (* Cons and a variable *)
  | LBinOp (e1', LstCons, l1'), LVar var
  | LBinOp (e1', LstCons, l1'), PVar var ->
- 	(* Printf.printf "ConsVar: %s %s\n" (JSIL_Print.string_of_logic_expression l1 false) (JSIL_Print.string_of_logic_expression l2 false); *)
+ 	Printf.printf "ConsVar: %s %s\n" (JSIL_Print.string_of_logic_expression l1 false) (JSIL_Print.string_of_logic_expression l2 false);
  	let as1' = Boolean.mk_eq ctx le1 le2 in
 	let le1', te1', ase1' = fe e1' in
 	let ll1', tl1', asl1' = fe l1' in
@@ -909,12 +937,12 @@ let get_solver tr_ctx existentials left_as right_as_or =
 	let right_as_or =
 		Expr.simplify right_as_or None in
 
-	(*
+
 	print_endline (Printf.sprintf "--- ABOUT TO ENTER THE SOLVER ---");
 	List.iter (fun expr -> Printf.printf "%s\n" (Expr.to_string expr)) left_as;
 	print_endline (Printf.sprintf "\nAND:\n");
 	print_endline (Printf.sprintf "%s" (Expr.to_string right_as_or));
-	print_endline (Printf.sprintf "\nDone printing"); *)
+	print_endline (Printf.sprintf "\nDone printing");
 
 	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 	Solver.add solver (left_as @ [ right_as_or ]);
