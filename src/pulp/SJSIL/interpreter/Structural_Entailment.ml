@@ -22,14 +22,14 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 	(* let str_subst = (match subst with
 	         | None -> "Our substitution doesn't exist. Fantastic.\n"
 			 | Some subst -> "Our substitution: " ^(JSIL_Memory_Print.string_of_substitution subst)) in*)
-	(* Printf.printf "%s" str_subst;
-	Printf.printf "The pattern substitution: %s\n" (JSIL_Memory_Print.string_of_substitution pat_subst); *)
+	(* Printf.printf "%s" str_subst;*)
+	
 	let discharges =
 		Hashtbl.fold
 			(fun var pat_lexpr discharges ->
 				let lexpr = try Hashtbl.find store var with _ -> raise (Failure "the stores are not unifiable") in
 				let rec spin_me_round pat_lexpr lexpr discharges =
-				Printf.printf "(%s, %s)\n" (JSIL_Print.string_of_logic_expression pat_lexpr false) (JSIL_Print.string_of_logic_expression lexpr false); 
+				(*Printf.printf "(%s, %s)\n" (JSIL_Print.string_of_logic_expression pat_lexpr false) (JSIL_Print.string_of_logic_expression lexpr false);*)
 				(match pat_lexpr, lexpr with
 
 				| LLit (Num n), LLit (Integer i)
@@ -56,10 +56,10 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 					discharges
 
 				| ALoc pat_aloc, LVar lvar ->
-					let loc = Symbolic_State_Functions.resolve_location lvar pfs in 
-					(match loc with 
-					| Some loc -> extend_subst pat_subst pat_aloc loc; discharges 
-					| None     -> Printf.printf "I am here. I am the king of bananas!!!!\n"; raise (Failure "Variable store against abstract location"))
+					let loc = Symbolic_State_Functions.resolve_location lvar pfs in
+					(match loc with
+					| Some loc -> extend_subst pat_subst pat_aloc loc; discharges
+					| None     -> raise (Failure "Variable store against abstract location"))
 
 				| LLit lit, LVar lvar ->
 					(match subst with
@@ -351,16 +351,19 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 	let heap, store, pf, gamma, preds, solver = symb_state in
 	let subst = init_substitution lvars in
 
+
 	(* Printf.printf "Unify Symbolic States:\n";
 
 	Printf.printf "OUR symbolic state: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state);
 	Printf.printf "PRED symbolic state: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state); *)
+
 
 	let discharges = unify_stores pat_store store subst None (pfs_to_list pf) solver gamma in
 	match discharges with
 	| Some discharges ->
 		let spec_vars_check = spec_logic_vars_discharge subst lvars (get_pf symb_state) (get_solver symb_state) (get_gamma symb_state) in
 	  (* Printf.printf "the PAT symbolic state after computing quotient heap:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state); *)
+
 
 		let (quotient_heap, new_pfs) : (symbolic_heap option) * ((jsil_logic_assertion list) option) = unify_symb_heaps pat_heap heap pf solver gamma subst in
 		(* print_endline (Printf.sprintf "Substitution after heap unification baby!!!\n%s" (JSIL_Memory_Print.string_of_substitution subst)); *)
@@ -393,12 +396,14 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 			let pf_list = pfs_to_list pf in
 
 			let existentials_str = print_var_list new_pat_pf_existentials in
+
 			(*print_endline (Printf.sprintf "Discharges: %s" (JSIL_Print.str_of_assertion_list pf_discharges)); *)
-			print_endline (Printf.sprintf "About to check if\n (\n%s\n)	\nENTAILS\n (Exists %s.\n(\n%s\n))\n given the gamma:\n%s"
-				(JSIL_Print.str_of_assertion_list pf_list)
-				existentials_str
-				(JSIL_Print.str_of_assertion_list (pat_pf_list @ pf_discharges))
-				(JSIL_Memory_Print.string_of_gamma new_gamma)); 
+
+		  	print_endline (Printf.sprintf "About to check if\n (\n%s\n)	\nENTAILS\n (Exists %s.\n(\n%s\n))\n given the gamma:\n%s"
+					(JSIL_Print.str_of_assertion_list pf_list)
+					existentials_str
+					(JSIL_Print.str_of_assertion_list (pat_pf_list @ pf_discharges))
+				(	JSIL_Memory_Print.string_of_gamma new_gamma)); 
 
 			let unify_gamma_check = (unify_gamma pat_gamma new_gamma pat_store s_new_subst pat_pf_existentials) in
 			let entailment_check_ret = Pure_Entailment.check_entailment solver new_pat_pf_existentials pf_list (pat_pf_list @ pf_discharges) new_gamma in

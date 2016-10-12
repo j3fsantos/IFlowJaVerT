@@ -163,8 +163,8 @@ let rec init_symb_store_alocs store gamma subst ass : unit =
 			if (not (Hashtbl.mem subst var))
 			then
 				(let aloc = new_abs_loc_name var in
-					Hashtbl.add subst var (ALoc aloc);
-					Hashtbl.remove gamma var)
+					Hashtbl.add subst var (ALoc aloc))
+					(* Hashtbl.remove gamma var) *)
 
 	| LPointsTo (ALoc _, _, _) -> ()
 			(* raise (Failure "Unsupported assertion during normalization") *)
