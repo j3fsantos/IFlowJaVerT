@@ -744,3 +744,62 @@ with
 {
 	ret : xret, rlab;
 };
+
+(* ****** *)
+(* ERRORS *)
+(* ****** *)
+
+spec Error_construct (xsc, vthis, v)
+
+    (* Error constructor without message *)
+    [[ (vthis == #this) * (v == $$undefined) * types (vthis : $$object_type) *
+       ((#this, "@class") -> #cls) * ((#this, "@extensible") -> #ext) ]]
+    [[ (ret == #this) * ((#this, "@class") -> "Error") * ((#this, "@extensible") -> $$t) ]]
+    normal
+
+proc Error_construct (xsc, vthis, v) {
+			xret := vthis;
+
+			[vthis, "@class"] := "Error";
+			[vthis, "@extensible"] := $$t;
+
+			goto [v = $$undefined] rlab mess;
+
+	mess:	xerr := "i__toString" (v) with elab;
+			[xret, "message"] := {{ "d", xerr, $$t, $$f, $$t }};
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xerr, elab;
+};
+
+proc TypeError_call (xsc, vthis, v) {
+			xret := new ();
+			xret := "create_default_object" (xret, $lterr_proto, "Error", $$t);
+
+			xret := "Error_construct" ($$undefined, xret, v) with elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
+};
+
+proc TypeError (v) {
+			xret := "TypeError_call" ($$undefined, $$undefined, v) with elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
