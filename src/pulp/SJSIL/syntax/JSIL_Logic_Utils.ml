@@ -686,10 +686,10 @@ let rec type_lexpr gamma le =
 			| LstCat, (Some t) -> check_valid_type t [ ListType ] ListType []
 			| StrCat, (Some t) -> check_valid_type t [ StringType ] StringType []
 			| _, Some t ->
-				Printf.printf "op: %s, t: %s"  (JSIL_Print.string_of_binop op) (JSIL_Print.string_of_type t);
+				Printf.printf "type_lexpr: op: %s, t: %s\n"  (JSIL_Print.string_of_binop op) (JSIL_Print.string_of_type t);
 				raise (Failure "ERROR")
 		 	| _, None ->
-				Printf.printf "op: %s, t: none"  (JSIL_Print.string_of_binop op) ;
+				Printf.printf "type_lexpr: op: %s, t: none\n"  (JSIL_Print.string_of_binop op) ;
 				raise (Failure "ERROR"))
 		| _, _ ->
 			match op with
@@ -869,7 +869,7 @@ let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
 				else false
 
 		| _ ->
-			Printf.printf "op: %s, t: %s"  (JSIL_Print.string_of_binop op) (JSIL_Print.string_of_type le_type);
+			Printf.printf "Horror: op: %s, t: %s"  (JSIL_Print.string_of_binop op) (JSIL_Print.string_of_type le_type);
 			raise (Failure "ERROR"))
 
 		| LLstNth (le1, le2) -> (f le1 ListType) && (f le2 IntType)

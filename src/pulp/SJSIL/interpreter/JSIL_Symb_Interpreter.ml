@@ -54,10 +54,10 @@ let rec symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae =
 		let nle = symb_evaluate_expr e store gamma pure_formulae in
 		let nle_type, _, _ = type_lexpr gamma nle in
 		(match nle_type with
-		| Some nle_type -> 
-			Printf.printf "I found the type baby!!!\n"; 
+		| Some nle_type ->
+			Printf.printf "I found the type baby!!!\n";
 			LLit (Type nle_type)
-		| None          ->  
+		| None          ->
 			Printf.printf "I did NOT find the type, baby!!!\n";
 			LTypeOf (nle))
 
@@ -334,7 +334,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 let fold_predicate pred_name pred_defs symb_state params args =
 
 	(* create a new symb state with the abstract store in which the
-	    called procedure is to be executed 
+	    called procedure is to be executed
 	Printf.printf ("\n\n\nIn the FOLD: \n%s\n\n\n\n") (JSIL_Memory_Print.string_of_shallow_symb_state symb_state); *)
 	let new_store = Symbolic_State_Functions.init_store params args in
 	let symb_state_aux = symb_state_replace_store symb_state new_store in
@@ -362,7 +362,110 @@ let fold_predicate pred_name pred_defs symb_state params args =
 				find_correct_pred_def rest_pred_defs)) in
 	find_correct_pred_def pred_defs
 
+(* SYMBOLIC STATE SIMPLIFICATION *)
 
+let rec get_list_nth_len_ass subst in_not a =
+	let f = get_list_nth_len_ass subst in
+	(match a with
+	| LAnd  (a1, a2)
+	| LOr   (a1, a2)
+	| LStar	(a1, a2) -> f in_not a1; f in_not a2
+	| LNot a -> f (not in_not) a
+	| LTrue
+	| LFalse
+	| LEmp
+	| LLess	   	(_, _)
+	| LLessEq	(_, _)
+	| LStrLess  (_, _)
+	| LPointsTo	(_, _, _)
+	| LPred (_, _)
+	| LTypes _ -> ()
+	| LEq (e1, e2) -> if in_not then () else
+		(match e1, e2 with
+		| LVar var, LLit (LList l1)
+		| LLit (LList l1), LVar var -> Hashtbl.replace subst var (LLit (LList l1))
+		| LVar var, LEList l1
+		| LEList l1, LVar var -> Hashtbl.replace subst var (LEList l1)
+		| _, _ -> ()))
+
+let rec subst_list_nth_len_e subst e =
+	let f = subst_list_nth_len_e subst in
+	(match e with
+	| LBinOp (e1, op, e2) -> LBinOp (f e1, op, f e2)
+	| LUnOp	(op, e) -> LUnOp (op, e)
+	| LTypeOf e -> LTypeOf (f e)
+	| LEList le -> LEList (List.map (fun x -> f x) le)
+	| LStrNth (str, index) -> LStrNth (f str, f index)
+	(* THIS IS THE POINT *)
+	| LLstNth (lst, index) ->
+		let idx = (match index with
+					| LLit (Integer i) -> Some i
+					| LLit (Num n) -> Some (int_of_float n)
+					| _ -> None) in
+		(match lst with
+		  | LVar var ->
+		  	if (Hashtbl.mem subst var) then
+			begin
+				let lst = Hashtbl.find subst var in
+				(match idx with
+				| Some i ->
+					(match lst with
+					| LLit (LList l) -> LLit (List.nth l i)
+					| LEList l -> List.nth l i
+					| _ -> e)
+				| None -> e)
+			end
+			else e
+		  | LEList lst ->
+			  (match idx with
+				| Some i -> List.nth lst i
+				| None -> e)
+		  | LLit (LList lst) ->
+			  (match idx with
+				| Some i -> LLit (List.nth lst i)
+				| None -> e)
+		  | _ -> e)
+    | _ -> e)
+
+let rec subst_list_nth_len_pf subst a =
+	let f = subst_list_nth_len_pf subst in
+	let fe = subst_list_nth_len_e subst in
+	(match a with
+	| LAnd  (a1, a2) -> LAnd (f a1, f a2)
+	| LOr   (a1, a2) -> LOr (f a1, f a2)
+	| LStar	(a1, a2) -> LStar (f a1, f a2)
+	| LNot a -> LNot (f a)
+	| LEq       (e1, e2) -> LEq (fe e1, fe e2)
+	| LLess	   	(e1, e2) -> LLess (fe e1, fe e2)
+	| LLessEq	(e1, e2) -> LLessEq (fe e1, fe e2)
+	| LStrLess  (e1, e2) -> LStrLess (fe e1, fe e2)
+	| LPointsTo	(e1, e2, e3) -> LPointsTo (fe e1, fe e2, fe e3)
+	| _ -> a)
+
+let expand_gamma gamma pure_formulae =
+	DynArray.iter
+		(fun a -> match a with
+			| LEq (LVar a, LVar b) ->
+				let if_mem var = if (Hashtbl.mem gamma var) then (Some (Hashtbl.find gamma var)) else None in
+				let ta = if_mem a in let tb = if_mem b in
+				(match ta, tb with
+			     | Some ta, None -> update_gamma gamma b (Some ta)
+				 | None, Some tb -> update_gamma gamma a (Some tb)
+				 | _, _ -> ())
+			| _ -> ())
+		pure_formulae;
+	gamma
+
+let simplify_symb_state symb_state =
+	let heap, store, pure_formulae, gamma, preds, solver = symb_state in
+	let list_subst = Hashtbl.create 17 in
+	DynArray.iter (fun a -> get_list_nth_len_ass list_subst false a) pure_formulae;
+	Printf.printf "So, we've got a substitution:\n%s\n" (JSIL_Memory_Print.string_of_substitution list_subst);
+	let pure_formulae = DynArray.map (fun pf -> subst_list_nth_len_pf list_subst pf) pure_formulae in
+	Printf.printf "So, we've got some new pure formulae:\n%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae pure_formulae false);
+	let new_gamma = expand_gamma gamma pure_formulae in
+	Printf.printf "And we've got some new gamma:\n%s\n" (JSIL_Memory_Print.string_of_gamma new_gamma);
+	(heap, store, pure_formulae, new_gamma, preds, solver)
 
 let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 	let subst0 = Symbolic_State_Functions.subtract_pred pred_name args (get_preds symb_state) (get_pf symb_state) (get_solver symb_state) (get_gamma symb_state) spec_vars in
@@ -418,7 +521,7 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 					let spec_vars_subst = filter_substitution subst spec_vars in
 
 					let pf = get_pf unfolded_symb_state in
-					let solver = get_solver unfolded_symb_state in 
+					let solver = get_solver unfolded_symb_state in
 					let gamma =  (get_gamma unfolded_symb_state) in
 					let new_pfs = Symbolic_State_Functions.pf_of_substitution spec_vars_subst in
 					let new_pfs_subst0 = Symbolic_State_Functions.pf_of_substitution subst0 in
@@ -439,6 +542,11 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 					let pat_pf_existentials = get_subtraction_vars (get_pf_list pred_symb_state) pat_subst in
 					let gammas_unifiable = Structural_Entailment.unify_gamma (get_gamma pred_symb_state) gamma pat_store pat_subst pat_pf_existentials in
 					Printf.printf "Are gammas unifiable? Answer, bitch! %b\n" gammas_unifiable;
+
+					Printf.printf "\n\nSymb_State before simplification: %s\n\n" (JSIL_Memory_Print.string_of_shallow_symb_state unfolded_symb_state);
+					(* Go through the pure formulae. Look for l-nth and ways to simplify it. Add types to gamma. *)
+					let unfolded_symb_state = simplify_symb_state unfolded_symb_state in
+					Printf.printf "\n\nSymb_State after simplification: %s\n\n" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state);
 
 					(* Printf.printf "I unfolded the following symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state unfolded_symb_state); *)
 					let satisfiability_check = Pure_Entailment.check_satisfiability (get_pf_list unfolded_symb_state) gamma [] in
@@ -682,7 +790,8 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info =
 	let success, failure_msg =
 		(try
 			print_debug (Printf.sprintf "Initial symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre));
-			symb_evaluate_next_cmd s_prog proc spec search_info spec.n_pre (-1) 0;
+			let symb_state = simplify_symb_state (spec.n_pre) in
+			symb_evaluate_next_cmd s_prog proc spec search_info symb_state (-1) 0;
 			true, None
 		with Failure msg ->
 			(Printf.printf "The EVALUATION OF THIS PROC GAVE AN ERROR: %d %s!!!!\n" i msg;

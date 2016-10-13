@@ -762,39 +762,6 @@ let rec encode_pure_formula tr_ctx a =
 		| Some ListType, Some ListType ->
 			let axioms = lets_do_some_list_theory_axioms tr_ctx le1' le2'
 			in Boolean.mk_and ctx axioms
-			(*
-			(match le1', le2' with
-			| LLit (LList lits1), LLit (LList lits2) -> if (lits1 = lits2) then Boolean.mk_true ctx else Boolean.mk_false ctx
-			| LEList les1, LEList les2 ->
-				if ((List.length les1) = (List.length les2))
-					then Boolean.mk_eq ctx le1 le2
-					else Boolean.mk_false ctx
-			| LLit (LList lits), _ ->
-				let as1 = Boolean.mk_eq ctx le1 le2 in
-				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length lits)) in
-				let les = List.map (fun lit -> LLit lit) lits in
-				let nth_as = encode_lnth_equalities tr_ctx le2 les in
-				Boolean.mk_and ctx ([as1; as2 ] @ nth_as)
-			| (LEList les), _ ->
-				let as1 = Boolean.mk_eq ctx le1 le2 in
-				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length les)) in
-				let nth_as = encode_lnth_equalities tr_ctx le2 les in
-				Boolean.mk_and ctx ([as1; as2 ]  @ nth_as)
-			| _, LLit (LList lits) ->
-				let as1 = Boolean.mk_eq ctx le1 le2 in
-				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length lits)) in
-				let les = List.map (fun lit -> LLit lit) lits in
-				let nth_as = encode_lnth_equalities tr_ctx le1 les in
-				Boolean.mk_and ctx ([as1; as2 ] @ nth_as)
-			| _, (LEList les) ->
-				let as1 = Boolean.mk_eq ctx le1 le2 in
-				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length les)) in
-				let nth_as = encode_lnth_equalities tr_ctx le1 les in
-				Boolean.mk_and ctx ([as1; as2 ]  @ nth_as)
-			| _, _ ->
-				let as1 = Boolean.mk_eq ctx le1 le2 in
-				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ])  (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) in
-				Boolean.mk_and ctx [as1; as2 ]) *)
 		| Some StringType, Some StringType ->
 			(match le1', le2' with
 			| LLit (String s1), LLit (String s2) -> if (s1 = s2) then Boolean.mk_true ctx else Boolean.mk_false ctx
@@ -905,7 +872,7 @@ let rec encode_pure_formula tr_ctx a =
 		Printf.printf "----- Creating the solver -----\n\n";*)
 
 
-	
+
 	(* print_endline (Printf.sprintf "--- ABOUT TO ENTER THE SOLVER ---");
 
 	List.iter (fun expr -> Printf.printf "%s\n" (Expr.to_string expr)) left_as;
@@ -913,35 +880,35 @@ let rec encode_pure_formula tr_ctx a =
 	print_endline (Printf.sprintf "%s" (Expr.to_string right_as_or));
 	print_endline (Printf.sprintf "\nDone printing"); *)
 
-	
 
 
-let extend_solver solver pfs gamma = () 
+
+let extend_solver solver pfs gamma = ()
 
 
-let string_of_z3_expr_list exprs = 
+let string_of_z3_expr_list exprs =
 	List.fold_left
-		(fun ac e -> 
-			let e_str = Expr.to_string e in 
+		(fun ac e ->
+			let e_str = Expr.to_string e in
 			if (ac = "") then e_str else (ac ^ ", " ^ e_str))
 		""
-		exprs 
+		exprs
 
-let get_new_solver assertions gamma existentials = 
+let get_new_solver assertions gamma existentials =
 	let tr_ctx = mk_smt_translation_ctx gamma existentials in
-	let assertions = List.map (fun a -> encode_pure_formula tr_ctx a) assertions in 
+	let assertions = List.map (fun a -> encode_pure_formula tr_ctx a) assertions in
 	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
-	Solver.add solver assertions; 
+	Solver.add solver assertions;
 	(* Printf.printf "I have just created a solver with the content given by:\n: %s\n" (string_of_z3_expr_list assertions); *)
-	solver 
-				
-				
-let dispose_solver solver = 
-	Gc.full_major (); 
-	Solver.reset solver				
+	solver
 
 
-let print_model solver = 
+let dispose_solver solver =
+	Gc.full_major ();
+	Solver.reset solver
+
+
+let print_model solver =
 	let model = Solver.get_model solver in
 	match model with
 	| Some model ->
@@ -949,7 +916,7 @@ let print_model solver =
 		Printf.printf "I found the model: \n\n%s\n\n" str_model
 	| None ->
 		Printf.printf "No model filha\n"
-			
+
 
 let check_satisfiability assertions gamma existentials =
 	Printf.printf "Entering check_satisfiability!\n";
@@ -959,21 +926,21 @@ let check_satisfiability assertions gamma existentials =
 	ret
 
 
-let rec string_of_solver solver = 
-	let exprs = Solver.get_assertions solver in 
+let rec string_of_solver solver =
+	let exprs = Solver.get_assertions solver in
 	string_of_z3_expr_list exprs
 
 (* right_as must be satisfiable *)
 let rec old_check_entailment existentials left_as right_as gamma =
-	
+
 	let tr_ctx = mk_smt_translation_ctx gamma existentials in
 	let ctx = tr_ctx.z3_ctx in
 	(* let ret_right = check_satisfiability right_as gamma existentials in *)
-	
-	let check_entailment_aux () = 
+
+	let check_entailment_aux () =
 		let left_as =	List.map (fun a -> encode_pure_formula tr_ctx a) left_as in
 		let left_as = tr_ctx.tr_axioms @ (encode_gamma tr_ctx) @ left_as in
-		let right_as = List.map (fun a -> let a = encode_pure_formula tr_ctx a in Boolean.mk_not ctx a) right_as in 
+		let right_as = List.map (fun a -> let a = encode_pure_formula tr_ctx a in Boolean.mk_not ctx a) right_as in
 		let right_as_or =
 			if ((List.length right_as) > 1) then
 				(Boolean.mk_or ctx right_as)
@@ -981,6 +948,7 @@ let rec old_check_entailment existentials left_as right_as gamma =
 				(List.nth right_as 0)
 			else Boolean.mk_false ctx in
 	  Printf.printf "checking if:\n %s\nIMPLIES\n%s\n" (string_of_z3_expr_list left_as) (Expr.to_string right_as_or); 
+
 		let right_as_or =
 			if ((List.length existentials) > 0)
 				then encode_quantifier true tr_ctx.z3_ctx existentials (get_sorts tr_ctx existentials) right_as_or
@@ -988,28 +956,29 @@ let rec old_check_entailment existentials left_as right_as gamma =
 		let right_as_or = Expr.simplify right_as_or None in
 		let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 		Solver.add solver left_as;
-		Solver.push solver; 
-		Solver.add solver [ right_as_or ]; 
+		Solver.push solver;
+		Solver.add solver [ right_as_or ];
 		let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in
-		Solver.pop solver 1; 
-		ret, Some (solver, tr_ctx)  in 
+		Solver.pop solver 1;
+		ret, Some (solver, tr_ctx)  in
 	(* if (not (ret_right)) then false, None *)
 	try check_entailment_aux () with Failure msg -> false, None
-	
-	
+
+
 
 let rec check_entailment solver existentials left_as right_as gamma =
 	Printf.printf "Entering check entailment...\n";
+
 	if ((List.length right_as) = 0) then true
 	else if (not (check_satisfiability right_as gamma existentials)) then false
 	else (
-	match !solver with 
-	| Some (solver, tr_ctx) -> 
+	match !solver with
+	| Some (solver, tr_ctx) ->
 		(* Printf.printf "check_entailment and there is already a solver. backtracking_scopes: %d!!!\n" (Solver.get_num_scopes solver); *)
 		let ctx = tr_ctx.z3_ctx in
-		let tr_ctx = { tr_ctx with tr_typing_env = gamma } in 
+		let tr_ctx = { tr_ctx with tr_typing_env = gamma } in
 		let not_right_as = List.map (fun a -> Boolean.mk_not ctx (encode_pure_formula tr_ctx a)) right_as in
-		let len_not_right_as = List.length not_right_as in 
+		let len_not_right_as = List.length not_right_as in
 		let right_as_or =
 			if (len_not_right_as > 1) then
 				(Boolean.mk_or ctx not_right_as)
@@ -1021,16 +990,16 @@ let rec check_entailment solver existentials left_as right_as gamma =
 				then encode_quantifier true ctx existentials (get_sorts tr_ctx existentials) right_as_or
 				else right_as_or in
 		let right_as_or = Expr.simplify right_as_or None in
-		(* Printf.printf "checking if:\n %s\nIMPLIES\n%s\n" (string_of_solver solver) (Expr.to_string right_as_or); *)
-		Solver.push solver; 
-		Solver.add solver [ right_as_or ]; 
+		(* Printf.printf "BICHAAAAAA!!!!checking if:\n %s\nIMPLIES\n%s\n" (string_of_solver solver) (Expr.to_string right_as_or); *)
+		Solver.push solver;
+		Solver.add solver [ right_as_or ];
 		let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in
 		(* Printf.printf "backtracking_scopes before pop after push: %d!!!\n" (Solver.get_num_scopes solver); *)
 		(* Printf.printf "ret: %b\n" ret; *)
-		Solver.pop solver 1; 
+		Solver.pop solver 1;
 		(* Printf.printf "backtracking_scopes after pop: %d!!!\n" (Solver.get_num_scopes solver); *)
-		ret
-				
+		ret 
+		
 	| None -> 
 		Printf.printf "check_entailment with NO solver!!!\n"; 
 		let ret, new_solver = old_check_entailment existentials left_as right_as gamma in 
@@ -1038,8 +1007,8 @@ let rec check_entailment solver existentials left_as right_as gamma =
 		| Some (new_solver, tr_ctx) -> solver := Some (new_solver, tr_ctx) 
 		| None                      -> ());
 		ret)
-		
-	
+
+
 
 
 let is_equal e1 e2 pure_formulae solver gamma =

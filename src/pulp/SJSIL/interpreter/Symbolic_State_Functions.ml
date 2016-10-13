@@ -171,7 +171,7 @@ let merge_heaps heap new_heap p_formulae solver gamma =
 
 	Printf.printf "heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false);
 	Printf.printf "pat_heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap new_heap false);
-	Printf.printf "p_formulae: %s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false); 
+	Printf.printf "p_formulae: %s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
 	LHeap.iter
 		(fun loc (n_fv_list, n_def) ->
 			match n_def with
@@ -182,7 +182,7 @@ let merge_heaps heap new_heap p_formulae solver gamma =
 						(match n_fv_list with
 						| [] -> q_fv_list
 						| (le_field, le_val) :: rest_n_fv_list ->
-							Printf.printf "le_field: %s, le_val: %s\n" (JSIL_Print.string_of_logic_expression le_field false) (JSIL_Print.string_of_logic_expression le_val false); 
+							Printf.printf "le_field: %s, le_val: %s\n" (JSIL_Print.string_of_logic_expression le_field false) (JSIL_Print.string_of_logic_expression le_val false);
 							let _, fv_pair, i_am_sure_the_field_does_exist = find_field loc fv_list le_field p_formulae solver gamma in
 							(match fv_pair, i_am_sure_the_field_does_exist with
 							| None, true -> loop ((le_field, le_val) :: q_fv_list) rest_n_fv_list
@@ -214,7 +214,7 @@ let init_store vars les =
 
 	loop vars les;
 	store
-	
+
 let store_substitution store gamma subst partial =
 	let vars, les =
 		Hashtbl.fold
@@ -241,7 +241,7 @@ let store_substitution store gamma subst partial =
 (*************************************)
 let copy_p_formulae pfs =
 	let new_pfs = DynArray.copy pfs in
-	
+
 	new_pfs
 
 
@@ -297,7 +297,7 @@ let pf_of_substitution subst =
 		subst
 		[]
 
-let pf_substitution pf_r subst partial = 
+let pf_substitution pf_r subst partial =
 	(* *)
 	let new_pf = DynArray.create () in
 	let len = (DynArray.length pf_r) - 1 in
@@ -305,23 +305,23 @@ let pf_substitution pf_r subst partial =
 		let a = DynArray.get pf_r i in
 		let s_a = JSIL_Logic_Utils.assertion_substitution a subst partial in
 		DynArray.add new_pf s_a
-	done; 
-	new_pf 
+	done;
+	new_pf
 
 let merge_pfs pfs_l pfs_r =
   DynArray.append pfs_r pfs_l
 
 (** This function is dramatically incomplete **)
-let resolve_location lvar pfs = 
-	let rec loop pfs =	
-		match pfs with 
+let resolve_location lvar pfs =
+	let rec loop pfs =
+		match pfs with
 		| [] -> None
 		| LEq (LVar lvar, ALoc loc) :: rest
 		| LEq (ALoc loc, LVar lvar) :: rest  -> Some (ALoc loc)
-		| LEq (LVar lvar, LLit (Loc loc)) :: rest 
+		| LEq (LVar lvar, LLit (Loc loc)) :: rest
 		| LEq (LLit (Loc loc), LVar lvar) :: rest -> Some (LLit (Loc loc))
-		| _ :: rest -> loop rest in 
-	loop pfs  
+		| _ :: rest -> loop rest in
+	loop pfs
 
 (*************************************)
 (** Typing Environment functions    **)
@@ -349,11 +349,12 @@ let is_sensible_subst subst gamma =
 		(fun var lexpr ->
 			let lexpr_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma lexpr in
 			let var_type = gamma_get_type gamma var in
-			match lexpr_type, var_type with
+			(match lexpr_type, var_type with
 			| Some le_type, Some v_type ->
-			  if (le_type = v_type) then () else raise (Failure "Type mismatch: %s %s")
+			  if (le_type = v_type) then () else raise (Failure (Printf.sprintf "Type mismatch: %s %s"
+			  	(JSIL_Print.string_of_type le_type) (JSIL_Print.string_of_type v_type)))
 			| None, Some v_type -> raise (Failure "Gamma typed, unfold untyped")
-			| _, _ -> ())
+			| _, _ -> ()))
 		subst;
 	true
 	with (Failure msg) -> Printf.printf "%s\n" msg; false
@@ -480,7 +481,7 @@ let merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbolic_s
 	let heap_r, store_r, pf_r, gamma_r, preds_r, _ = symb_state_r in
 
 	(* DynArray.append pf_r pf_l; *)
-	merge_pfs pf_l pf_r; 
+	merge_pfs pf_l pf_r;
 	merge_gammas gamma_l gamma_r;
 
 	(* Printf.printf "BEFORE MERGING HEAPS. pfs_l: %s\n. pfs_r: %s\n." (JSIL_Memory_Print.string_of_shallow_p_formulae pf_l false)
@@ -526,4 +527,3 @@ let copy_single_spec s_spec =
 		n_post_lvars = s_spec.n_post_lvars;
 		n_subst      = s_spec.n_subst
 	}
-
