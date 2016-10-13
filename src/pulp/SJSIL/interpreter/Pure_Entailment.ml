@@ -560,36 +560,36 @@ let rec encode_logical_expression tr_ctx e =
 
 let encode_lnth_equalities tr_ctx le_list (les : jsil_logic_expr) =
 	let ctx = tr_ctx.z3_ctx in
-	let aux (les : jsil_logic_expr list) = 
+	let aux (les : jsil_logic_expr list) =
 		List.mapi
 			(fun i le ->
 				let le', _, _ = encode_logical_expression tr_ctx le in
 				let le_nth = (Expr.mk_app ctx tr_ctx.tr_lnth_fun [ le_list; (Arithmetic.Integer.mk_numeral_i ctx i) ]) in
 				Boolean.mk_eq ctx le_nth le')
 			les in
-	
+
 	let ctx = tr_ctx.z3_ctx in
-	match les with 
+	match les with
 	| LLit (LList l) -> aux (List.map (fun (v : jsil_lit) -> LLit v) l)
-	| LEList les     -> aux les 
+	| LEList les     -> aux les
 	| _              -> []
 
 
 (* tr_list_cons *)
-let encode_cons_equalities tr_ctx le_list les =	
+let encode_cons_equalities tr_ctx le_list les =
 	let ctx = tr_ctx.z3_ctx in
-	let aux les = 
-		if ((List.length les) = 0) then [] else 
+	let aux les =
+		if ((List.length les) = 0) then [] else
 			let head = List.hd les in
-			let tail = List.tl les in 
-			let head', _, _ = encode_logical_expression tr_ctx head in 
-			let tail', _, _ = encode_logical_expression tr_ctx (LEList tail) in 
+			let tail = List.tl les in
+			let head', _, _ = encode_logical_expression tr_ctx head in
+			let tail', _, _ = encode_logical_expression tr_ctx (LEList tail) in
 			let le_cons = (Expr.mk_app ctx tr_ctx.tr_list_cons [ head'; tail' ]) in
-			[ Boolean.mk_eq ctx le_cons le_list ] in 
-	
-	match les with 
-	| LLit (LList l) -> aux (List.map (fun v -> LLit v) l) 
-	| LEList les     -> aux les 
+			[ Boolean.mk_eq ctx le_cons le_list ] in
+
+	match les with
+	| LLit (LList l) -> aux (List.map (fun v -> LLit v) l)
+	| LEList les     -> aux les
 	| _              -> []
 
 
@@ -651,27 +651,27 @@ match l1, l2 with
 				   (JSIL_Print.string_of_logic_expression l2 false)))
 
 
-let mk_simple_eq tr_ctx le1 le2 = 
+let mk_simple_eq tr_ctx le1 le2 =
 	let fe    = encode_logical_expression tr_ctx in
-	let gamma = tr_ctx.tr_typing_env in 
-	let ctx   = tr_ctx.z3_ctx in 
-	let t1, _, _ = JSIL_Logic_Utils.type_lexpr gamma le1 in 
-	let t2, _, _ = JSIL_Logic_Utils.type_lexpr gamma le2 in 
+	let gamma = tr_ctx.tr_typing_env in
+	let ctx   = tr_ctx.z3_ctx in
+	let t1, _, _ = JSIL_Logic_Utils.type_lexpr gamma le1 in
+	let t2, _, _ = JSIL_Logic_Utils.type_lexpr gamma le2 in
 	let le1', t1', as1 = fe le1 in
 	let le2', t2', as2 = fe le2 in
-	match t1, t2 with 
+	match t1, t2 with
 	| Some t1, Some t2 -> if (t1 <> t2) then [ Boolean.mk_false ctx ] else [ Boolean.mk_eq ctx le1' le2' ]
 	| Some t1, None ->
-		let t1' = encode_type ctx t1 in   
-		[ Boolean.mk_eq ctx le1' le2'; Boolean.mk_eq ctx t1' t2' ] @ as2 
-	| None, Some t2 -> 
+		let t1' = encode_type ctx t1 in
+		[ Boolean.mk_eq ctx le1' le2'; Boolean.mk_eq ctx t1' t2' ] @ as2
+	| None, Some t2 ->
 		let t2' = encode_type ctx t2 in
 		[ Boolean.mk_eq ctx le1' le2'; Boolean.mk_eq ctx t1' t2' ] @ as1
-	| None, None -> [ Boolean.mk_eq ctx le1' le2'; Boolean.mk_eq ctx t1' t2' ] @ as1 @ as2  
+	| None, None -> [ Boolean.mk_eq ctx le1' le2'; Boolean.mk_eq ctx t1' t2' ] @ as1 @ as2
 
 
 let rec lets_do_some_list_theory_axioms tr_ctx l1 l2 =
-	let f = lets_do_some_list_theory_axioms tr_ctx in 
+	let f = lets_do_some_list_theory_axioms tr_ctx in
 	let fe = encode_logical_expression tr_ctx in
 	let l1, l2 = sort_lists l1 l2 in
 
@@ -679,35 +679,35 @@ let rec lets_do_some_list_theory_axioms tr_ctx l1 l2 =
 	(match l1, l2 with
  	(* Two literal lists, they have to be equal - ok *)
  	| LLit (LList l1), LLit (LList l2) ->
- 		if (l1 = l2) 
-			then [ Boolean.mk_true ctx  ], [] 
+ 		if (l1 = l2)
+			then [ Boolean.mk_true ctx  ], []
 			else [ Boolean.mk_false ctx ], []
- 	
+
 	(* One literal list, one list of expressions - ok *)
  	| LLit (LList l1), LEList l2 ->
  		if (List.length l1 <> List.length l2) then [ Boolean.mk_false ctx ], [] else
 		let l1 = List.map (fun x -> LLit x) l1 in
     List.fold_left2 (fun ac x y -> (mk_simple_eq tr_ctx x y) @ ac) [] l1 l2, []
- 	
+
 	(* One literal list, one cons *)
  	| LLit (LList l1), LBinOp (e, LstCons, l2) ->
     if (List.length l1 = 0) then [ Boolean.mk_false ctx ], [] else
 	 	let e' = LLit (List.hd l1) in
 	 	let l1' = LLit (LList (List.tl l1)) in
-		let assertions_head = mk_simple_eq tr_ctx e e' in 
-		let assertions_tail, axioms_tail = f l1' l2 in 
+		let assertions_head = mk_simple_eq tr_ctx e e' in
+		let assertions_tail, axioms_tail = f l1' l2 in
 		assertions_head @ assertions_tail, axioms_tail
 
  	(* One literal list, one variable *)
  	| LLit (LList l1'), LVar var
  	| LLit (LList l1'), PVar var ->
-		let assertions  = mk_simple_eq tr_ctx l1 l2 in 
+		let assertions  = mk_simple_eq tr_ctx l1 l2 in
 		let l2', _, _   = fe l2 in
 		let axiom_len   = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l2' ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length l1')) in
 	 	let axioms_nth  = encode_lnth_equalities tr_ctx l2' l1 in
 		let axioms_cons = encode_cons_equalities tr_ctx l2' l1 in
-		assertions, [ axiom_len ] @ axioms_cons @ axioms_nth	
-	 	
+		assertions, [ axiom_len ] @ axioms_cons @ axioms_nth
+
 	(* Done with literal lists, now lists of logical expressions *)
  	(* Two lists of logical expressions *)
  	| LEList l1, LEList l2 ->
@@ -719,14 +719,14 @@ let rec lets_do_some_list_theory_axioms tr_ctx l1 l2 =
     if (List.length l1 = 0) then [ Boolean.mk_false ctx ], [] else
 		let e' = List.hd l1 in
 		let l1' = LEList (List.tl l1) in
-	 	let assertions_head = mk_simple_eq tr_ctx e e' in 
-		let assertions_tail, axioms_tail = f l1' l2 in 
+	 	let assertions_head = mk_simple_eq tr_ctx e e' in
+		let assertions_tail, axioms_tail = f l1' l2 in
 		assertions_head @ assertions_tail, axioms_tail
 
 	(* One logical list, one variable *)
  	| LEList le1, LVar var
  	| LEList le1, PVar var ->
-		let assertions  = mk_simple_eq tr_ctx l1 l2 in 
+		let assertions  = mk_simple_eq tr_ctx l1 l2 in
 		let l2', _, _   = fe l2 in
 		let axiom_len   = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l2' ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length le1)) in
 	 	let axioms_nth  = encode_lnth_equalities tr_ctx l2' l1 in
@@ -736,47 +736,47 @@ let rec lets_do_some_list_theory_axioms tr_ctx l1 l2 =
  	(* Done with lists of logical expressions, here comes the cons *)
  	(* Two conses *)
  	| LBinOp (e1, LstCons, l1), LBinOp (e2, LstCons, l2) ->
-  	let assertions_head = mk_simple_eq tr_ctx e1 e2 in 
-		let assertions_tail, axioms_tail = f l1 l2 in 
+  	let assertions_head = mk_simple_eq tr_ctx e1 e2 in
+		let assertions_tail, axioms_tail = f l1 l2 in
 		assertions_head @ assertions_tail, axioms_tail
-		
+
 	(* Cons and a variable *)
 	| LBinOp (e1', LstCons, l1'), LVar var
  	| LBinOp (e1', LstCons, l1'), PVar var ->
  		(* Printf.printf "ConsVar: %s %s\n" (JSIL_Print.string_of_logic_expression l1 false) (JSIL_Print.string_of_logic_expression l2 false); *)
- 	 	let assertions  = mk_simple_eq tr_ctx l1 l2 in 
-		let l2', _, _   = fe l2 in		
-		let axiom_len   = 
-			(match l1' with 
+ 	 	let assertions  = mk_simple_eq tr_ctx l1 l2 in
+		let l2', _, _   = fe l2 in
+		let axiom_len   =
+			(match l1' with
 			| LLit (LList l1'') -> Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l2' ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length l1''))
 			| LEList l1''       -> Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l2' ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length l1''))
-			| _                 -> 
-				let l1''', _, _ = fe l1' in 
-				let le_len_tail = (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l1''' ]) in 
-				let le_len_tail_plus_one = Arithmetic.mk_add ctx [ (Arithmetic.Integer.mk_numeral_i ctx 1); le_len_tail ] in 
-				Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l2' ]) le_len_tail_plus_one) in 
+			| _                 ->
+				let l1''', _, _ = fe l1' in
+				let le_len_tail = (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l1''' ]) in
+				let le_len_tail_plus_one = Arithmetic.mk_add ctx [ (Arithmetic.Integer.mk_numeral_i ctx 1); le_len_tail ] in
+				Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l2' ]) le_len_tail_plus_one) in
 		let axioms_nth  = encode_lnth_equalities tr_ctx l2' l1 in
 		let axioms_cons = encode_cons_equalities tr_ctx l2' l1 in
-		assertions, [ axiom_len ] @ axioms_cons @ axioms_nth	
-	
+		assertions, [ axiom_len ] @ axioms_cons @ axioms_nth
+
  | LVar _, LVar _
  | LVar _, PVar _
  | PVar _, PVar _ ->
-	 let assertions = mk_simple_eq tr_ctx l1 l2 in 
+	 let assertions = mk_simple_eq tr_ctx l1 l2 in
 	 let l1', _, _   = fe l1 in
 	 let l2', _, _   = fe l2 in
 	 let axiom_len   = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l1' ]) (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l2' ]) in
 	 let axioms_nth  = encode_lnth_equalities tr_ctx l1' l2 in
 	 let axioms_cons = encode_cons_equalities tr_ctx l1' l2 in
 	 assertions, [ axiom_len ] @ axioms_cons @ axioms_nth
-	
+
  | _, _ -> Printf.printf "Oops! %s %s\n" (JSIL_Print.string_of_logic_expression l1 false) (JSIL_Print.string_of_logic_expression l2 false); exit 1
 )
 
 let if_some x f def = (match x with | Some y -> f y | None -> def)
 
 let rec encode_pure_formula tr_ctx is_premise a =
-	
+
 	let f = encode_pure_formula tr_ctx is_premise in
 	let fe = encode_logical_expression tr_ctx in
 	let ctx = tr_ctx.z3_ctx in
@@ -797,11 +797,11 @@ let rec encode_pure_formula tr_ctx is_premise a =
 		let le2, te2, as2 = fe le2' in
 		(match t1, t2 with
 		| Some ListType, Some ListType ->
-			let encodings, axioms = lets_do_some_list_theory_axioms tr_ctx le1' le2' in 
-			if (is_premise) 
+			let encodings, axioms = lets_do_some_list_theory_axioms tr_ctx le1' le2' in
+			if (is_premise)
 				then Boolean.mk_and ctx (axioms @ encodings)
-				else Boolean.mk_and ctx encodings 
-		
+				else Boolean.mk_and ctx encodings
+
 		| Some StringType, Some StringType ->
 			(match le1', le2' with
 			| LLit (String s1), LLit (String s2) -> if (s1 = s2) then Boolean.mk_true ctx else Boolean.mk_false ctx
@@ -961,7 +961,7 @@ let print_model solver =
 
 let check_satisfiability assertions gamma existentials =
 	(* Printf.printf "Entering check_satisfiability!\n"; *)
-	let solver = get_new_solver assertions gamma existentials in 
+	let solver = get_new_solver assertions gamma existentials in
 	let ret = (Solver.check solver []) = Solver.SATISFIABLE in
 	(* Printf.printf "ret: %s\n" (string_of_bool ret); *)
 	ret
@@ -988,6 +988,7 @@ let rec old_check_entailment existentials left_as right_as gamma =
 			else if ((List.length right_as) = 1) then
 				(List.nth right_as 0)
 			else Boolean.mk_false ctx in
+
 	  (* Printf.printf "checking if:\n %s\nIMPLIES\n%s\n" (string_of_z3_expr_list left_as) (Expr.to_string right_as_or); *)
 
 		let right_as_or =
@@ -1039,13 +1040,13 @@ let rec check_entailment solver existentials left_as right_as gamma =
 		(* Printf.printf "ret: %b\n" ret; *)
 		Solver.pop solver 1;
 		(* Printf.printf "backtracking_scopes after pop: %d!!!\n" (Solver.get_num_scopes solver); *)
-		ret 
-		
-	| None -> 
+		ret
+
+	| None ->
 		(* Printf.printf "check_entailment with NO solver!!!\n"; *)
-		let ret, new_solver = old_check_entailment existentials left_as right_as gamma in 
-		(match new_solver with 
-		| Some (new_solver, tr_ctx) -> solver := Some (new_solver, tr_ctx) 
+		let ret, new_solver = old_check_entailment existentials left_as right_as gamma in
+		(match new_solver with
+		| Some (new_solver, tr_ctx) -> solver := Some (new_solver, tr_ctx)
 		| None                      -> ());
 		ret)
 

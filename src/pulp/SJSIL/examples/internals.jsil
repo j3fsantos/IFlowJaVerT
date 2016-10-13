@@ -80,20 +80,46 @@ pred Cell_s (l, prop, "NSI", desc, pv) :
 (* Common and less common methods *)
 
 pred CommonMethods (l) :
-	((l, "@getProperty") -> "o__getProperty") *
-    ((l, "@get")         -> "o__get");
+	((l, "@getProperty")    -> "o__getProperty") *
+    ((l, "@get")            -> "o__get") *
+    ((l, "@canPut")         -> "o__canPut") *
+    ((l, "@put")            -> "o__put") *
+    ((l, "@hasProperty")    -> "o__hasProperty") *
+    ((l, "@deleteProperty") -> "o__deleteProperty") *
+    ((l, "@defaultValue")   -> "o__defaultValue");
 
 pred Methods_String (l) :
-	CommonMethods(l) * ((l, "@getOwnProperty") -> "s__getOwnProperty");
+	CommonMethods(l) *
+        ((l, "@getOwnProperty")    -> "s__getOwnProperty") *
+        ((l, "@defineOwnProperty") -> "o__defineOwnProperty");
 
-pred Methods_General (l) :
-    CommonMethods(l) * ((l, "@getOwnProperty") -> "o__getOwnProperty");
+pred Methods_Object(l) :
+    CommonMethods(l) *
+        ((l, "@getOwnProperty") -> "o__getOwnProperty") *
+        ((l, "@defineOwnProperty") -> "o__defineOwnProperty") *
+        ((l, "@primitiveValue") -> $$empty) *
+        ((l, "@construct") -> $$empty) *
+        ((l, "@call") -> $$empty) *
+        ((l, "@hasInstance") -> $$empty) *
+        ((l, "@scope") -> $$empty) *
+        ((l, "@formalParameters") -> $$empty) *
+        ((l, "@targetFunction") -> $$empty) *
+        ((l, "@boundThis") -> $$empty) *
+        ((l, "@boundArguments") -> $$empty) *
+        ((l, "@match") -> $$empty) *
+        ((l, "@parameterMap") -> $$empty);
+
+pred Object (l, pr, cl, ext):
+    Methods_Object(l) *
+        ((l, "@proto") -> pr) *
+        ((l, "@class") -> cl) *
+        ((l, "@extensible") -> ext);
 
 (* Classes and methods *)
 pred Class (l, "String") :
      ((l, "@class") -> "String") * Methods_String (l);
 pred Class (l, "Object") :
-     ((l, "@class") -> #c) * (!(#c == "String")) * Methods_General (l);
+     ((l, "@class") -> #c) * (!(#c == "String")) * Methods_Object (l);
 
 (* The PI predicate *)
 
@@ -745,6 +771,79 @@ with
 	ret : xret, rlab;
 };
 
+(* *************** *)
+(* OBJECT CREATION *)
+(* *************** *)
+
+spec create_default_object (l, pr, cl, ext)
+
+    [[ types(l : $$object_type, pr : $$object_type) *
+       (l == #l) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
+       (#cl == $$undefined) * (#ext == $$undefined) *
+       ((#l, "@proto") -> $$null) ]]
+    [[ Object (#l, #pr, "Object", $$t) * (ret == #l) ]]
+    normal;
+
+    [[ types(l : $$object_type, pr : $$object_type, cl : $$string_type) *
+       (l == #l) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
+       (#ext == $$undefined) *
+       ((#l, "@proto") -> $$null) ]]
+    [[ Object (#l, #pr, #cl, $$t) * (ret == #l) ]]
+    normal;
+
+    [[ types(l : $$object_type, pr : $$object_type, ext : $$boolean_type) *
+       (l == #l) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
+       (#cl == $$undefined) *
+       ((#l, "@proto") -> $$null) ]]
+    [[ Object (#l, #pr, "Object", #ext) * (ret == #l) ]]
+    normal;
+
+    [[ types(l : $$object_type, pr : $$object_type, cl : $$string_type, ext : $$boolean_type) *
+       (l == #l) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
+       ((#l, "@proto") -> $$null) ]]
+    [[ Object (#l, #pr, #cl, #ext) * (ret == #l) ]]
+    normal
+
+proc create_default_object (l, pr, cl, ext) {
+
+			goto [cl = $$undefined] scl text;
+	scl:	cl := "Object";
+	text:	goto [ext = $$undefined] sext setall;
+	sext:	ext := $$t;
+
+	setall:	[l, "@proto"] := pr;
+			[l, "@class"] := cl;
+			[l, "@extensible"] := ext;
+
+			[l, "@getOwnProperty"]    := "o__getOwnProperty";
+			[l, "@getProperty"]       := "o__getProperty";
+			[l, "@get"]               := "o__get";
+			[l, "@canPut"]            := "o__canPut";
+			[l, "@put"]               := "o__put";
+			[l, "@hasProperty"]       := "o__hasProperty";
+			[l, "@deleteProperty"]    := "o__deleteProperty";
+			[l, "@defaultValue"]      := "o__defaultValue";
+			[l, "@defineOwnProperty"] := "o__defineOwnProperty";
+
+			[l, "@primitiveValue"]   := $$empty;
+			[l, "@construct"]        := $$empty;
+			[l, "@call"]             := $$empty;
+			[l, "@hasInstance"]      := $$empty;
+			[l, "@scope"]            := $$empty;
+			[l, "@formalParameters"] := $$empty;
+			[l, "@targetFunction"]   := $$empty;
+			[l, "@boundThis"]        := $$empty;
+			[l, "@boundArguments"]   := $$empty;
+			[l, "@match"]            := $$empty;
+			[l, "@parameterMap"]     := $$empty;
+
+	rlab:	xret := l
+}
+with
+{
+	ret:	xret, rlab;
+};
+
 (* ****** *)
 (* ERRORS *)
 (* ****** *)
@@ -777,6 +876,15 @@ with
 	err: 	xerr, elab;
 };
 
+pred isTypeError(l) :
+    Object (l, $lterr_proto, "Error", $$t);
+
+spec TypeError_call (xsc, vthis, v)
+
+    [[ (v == $$undefined) ]]
+    [[ isTypeError(ret) ]]
+    normal
+
 proc TypeError_call (xsc, vthis, v) {
 			xret := new ();
 			xret := "create_default_object" (xret, $lterr_proto, "Error", $$t);
@@ -791,6 +899,12 @@ with
 	ret: xret, rlab;
 	err: xret, elab;
 };
+
+spec TypeError (v)
+
+    [[ (v == $$undefined) ]]
+    [[ isTypeError(ret) ]]
+    normal
 
 proc TypeError (v) {
 			xret := "TypeError_call" ($$undefined, $$undefined, v) with elab;
