@@ -39,7 +39,15 @@ let rec symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae =
 		| LLit l1, LLit l2 ->
 			let l = JSIL_Interpreter.evaluate_binop op l1 l2 in
 			LLit l
-		| _, _ -> LBinOp (nle1, op, nle2))
+		| _, _ -> 
+			(match op with 
+			| Equal -> 
+				let t1, _, _ = JSIL_Logic_Utils.type_lexpr gamma nle1 in 
+				let t2, _, _ = JSIL_Logic_Utils.type_lexpr gamma nle2 in
+				(match t1, t2 with 
+				| Some t1, Some t2 -> if (not (t1 = t2)) then (LLit (Bool false)) else LBinOp (nle1, op, nle2)
+				| _, _             -> LBinOp (nle1, op, nle2))         
+			| _ -> LBinOp (nle1, op, nle2)))
 
 	| UnaryOp (op, e) ->
 		let nle = symb_evaluate_expr e store gamma pure_formulae in

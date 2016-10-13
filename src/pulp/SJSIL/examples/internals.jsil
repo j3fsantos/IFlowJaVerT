@@ -677,10 +677,7 @@ proc o__canPut (l, prop) {
 	wr:		xret := v;								(* Yes; return writable *)
 			goto rlab;
 
-	ad:		goto [not (v = $$undefined)] tt tf;     (* Accessor descriptor *)
-    tt:     xret := $$t;
-			goto rlab;
-    tf:     xret := $$f;
+	ad:		xret := not (v = $$undefined);		     (* Accessor descriptor *)
             goto rlab;
 
 	ext:	xret := e;                				(* Return extensible *)

@@ -453,13 +453,13 @@ let rec add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous exp
         {exp with exp_stx = Script (str, List.map f es); exp_annot = add_codename exp main}
 
 
-let update_fun_tbl fun_tbl f_id f_args f_body = 
-	(* if (Hashtbl.mem fun_tbl f_id) 
-		then 
-			let msg = Printf.sprintf "fun tbl already has the function %s" f_id in 
-			raise (Failure msg)
-		else *)
-			Hashtbl.replace fun_tbl f_id (f_id, f_args, f_body) 
+let update_fun_tbl fun_tbl f_id f_args f_body annotations = 
+	
+	(* let function_preconditions = 
+		List.filter 
+			(fun annotation -> 
+				if (annotation. *)
+	Hashtbl.replace fun_tbl f_id (f_id, f_args, f_body) 
 
 let update_cc_tbl cc_tbl f_parent_id f_id f_args f_body =
 	let f_parent_var_table = 
@@ -594,7 +594,7 @@ closure_clarification_stmt cc_tbl fun_tbl vis_tbl f_id visited_funs e =
 		(* Printf.printf("named function expression hihihi\n");  *)
 		let new_f_id = get_codename e in 
 		update_cc_tbl cc_tbl f_id new_f_id args fb;
-		update_fun_tbl fun_tbl new_f_id args fb; 
+		update_fun_tbl fun_tbl new_f_id args fb e.exp_annot; 
 		Hashtbl.replace vis_tbl new_f_id (new_f_id :: visited_funs); 
 		closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: visited_funs) fb
   | Script (_, es) -> List.iter f es 

@@ -421,8 +421,8 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 					Some (quotient_heap, quotient_preds, s_new_subst, pf_discharges, true))
 				else
 					(
-					(* Printf.printf "I could NOT check the entailment!!!\n";
-					Printf.printf "entailment_check_ret: %b. unify_gamma_check: %b.\n" entailment_check_ret unify_gamma_check; *)
+					Printf.printf "I could NOT check the entailment!!!\n";
+					Printf.printf "entailment_check_ret: %b. unify_gamma_check: %b.\n" entailment_check_ret unify_gamma_check; 
 					Some (quotient_heap, quotient_preds, new_subst, pf_discharges, false)))
 		| _ -> (* Printf.printf "One of the four things failed.\n";*) None)
 	| None -> (* Printf.printf "Sweet Jesus, broken discharges.\n";*) None

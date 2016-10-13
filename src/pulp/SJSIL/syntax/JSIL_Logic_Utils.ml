@@ -689,8 +689,9 @@ let rec type_lexpr gamma le =
 				Printf.printf "type_lexpr: op: %s, t: %s\n"  (JSIL_Print.string_of_binop op) (JSIL_Print.string_of_type t);
 				raise (Failure "ERROR")
 		 	| _, None ->
-				Printf.printf "type_lexpr: op: %s, t: none\n"  (JSIL_Print.string_of_binop op) ;
-				raise (Failure "ERROR"))
+				(match op with 
+				| Equal -> (Some BooleanType, true, constraints)
+				| _     -> Printf.printf "type_lexpr: op: %s, t: none\n"  (JSIL_Print.string_of_binop op); raise (Failure "ERROR")))
 		| _, _ ->
 			match op with
 			| Equal when ite1 && ite2 -> (Some BooleanType, true, constraints)
