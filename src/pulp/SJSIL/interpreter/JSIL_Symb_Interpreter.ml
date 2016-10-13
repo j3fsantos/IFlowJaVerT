@@ -398,16 +398,16 @@ let rec subst_list_nth_len_e subst e =
 	| LStrNth (str, index) -> LStrNth (f str, f index)
 	(* THIS IS THE POINT *)
 	| LLstNth (lst, index) ->
+		let idx = (match index with
+					| LLit (Integer i) -> Some i
+					| LLit (Num n) -> Some (int_of_float n)
+					| _ -> None) in
 		(match lst with
 		  | LVar var ->
 		  	if (Hashtbl.mem subst var) then
 			begin
 				let lst = Hashtbl.find subst var in
-				let oi = (match index with
-				| LLit (Integer i) -> Some i
-				| LLit (Num n) -> Some (int_of_float n)
-				| _ -> None) in
-				(match oi with
+				(match idx with
 				| Some i ->
 					(match lst with
 					| LLit (LList l) -> LLit (List.nth l i)
@@ -416,6 +416,14 @@ let rec subst_list_nth_len_e subst e =
 				| None -> e)
 			end
 			else e
+		  | LEList lst ->
+			  (match idx with
+				| Some i -> List.nth lst i
+				| None -> e)
+		  | LLit (LList lst) ->
+			  (match idx with
+				| Some i -> LLit (List.nth lst i)
+				| None -> e)
 		  | _ -> e)
     | _ -> e)
 
@@ -782,7 +790,8 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info =
 	let success, failure_msg =
 		(try
 			print_debug (Printf.sprintf "Initial symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre));
-			symb_evaluate_next_cmd s_prog proc spec search_info spec.n_pre (-1) 0;
+			let symb_state = simplify_symb_state (spec.n_pre) in
+			symb_evaluate_next_cmd s_prog proc spec search_info symb_state (-1) 0;
 			true, None
 		with Failure msg ->
 			(Printf.printf "The EVALUATION OF THIS PROC GAVE AN ERROR: %d %s!!!!\n" i msg;

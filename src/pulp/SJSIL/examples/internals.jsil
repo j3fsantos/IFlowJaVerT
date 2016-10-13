@@ -19,13 +19,18 @@ pred isList (v) :
 
 (* Data descriptors *)
 pred DataDescriptor (d) :
-    isList(d) * (d == {{ #dtype, #dval, #writ, #enum, #conf }}) * (#dtype == "d") *
-    types (#dtype : $$string_type, #writ : $$boolean_type, #enum : $$boolean_type, #conf : $$boolean_type);
+    isList(d) * (d == {{ #dtype, #dval, #dwrit, #denum, #dconf }}) * (#dtype == "d") *
+    types (#dtype : $$string_type, #dwrit : $$boolean_type, #denum : $$boolean_type, #dconf : $$boolean_type);
 
 (* Accessor descriptors *)
 pred AccessorDescriptor (d) :
-    isList(d) * (d == {{ #dtype, #dget, #dset, #enum, #conf }}) * (#dtype == "a") *
-    types (#dtype : $$string_type, #enum : $$boolean_type, #conf : $$boolean_type);
+    isList(d) * (d == {{ #atype, #aget, #aset, #aenum, #aconf }}) * (#atype == "a") *
+    types (#atype : $$string_type, #aenum : $$boolean_type, #aconf : $$boolean_type);
+
+(* Generic descriptor *)
+pred GenericDescriptor (d) :
+    isList(d) * (d == {{ #gtype, #genum, #gconf, #gval, #gwrit, #gget, #gset }}) * (#gtype == "g") *
+    types (#gtype : $$string_type);
 
 (* Projection functions for descriptors *)
 pred desc_val (d, v) :
@@ -687,4 +692,58 @@ with
 {
     ret: 	xret, rlab;
     err:	xret, elab;
+};
+
+(* ******************* *)
+(* I__ISDATADESCRIPTOR *)
+(* ******************* *)
+
+spec i__isDataDescriptor (desc)
+
+    (* Property not defined at all, returning "@extensible" *)
+    [[ desc == $$undefined ]]
+    [[ ret == $$f ]]
+    normal;
+
+    (* Data descriptor *)
+    [[ DataDescriptor(desc) ]]
+    [[ ret == $$t ]]
+    normal;
+
+    (* Accessor descriptor *)
+    [[ AccessorDescriptor(desc) ]]
+    [[ ret == $$f ]]
+    normal;
+
+    (* Generic descriptor, no data descriptor components *)
+    [[ GenericDescriptor(desc) * (l-nth (desc, 3) == $$empty) * (l-nth (desc, 4) == $$empty) ]]
+    [[ ret == $$f ]]
+    normal;
+
+    (* Generic descriptor, with writable *)
+    [[ GenericDescriptor(desc) * (l-nth (desc, 4) == #w) * (types (#w : $$boolean_type)) ]]
+    [[ ret == $$t ]]
+    normal;
+
+    (* Generic descriptor, with value *)
+    [[ GenericDescriptor(desc) * (! l-nth (desc, 3) == $$empty) ]]
+    [[ ret == $$t ]]
+    normal
+
+proc i__isDataDescriptor (desc) {
+			goto [desc = $$undefined] rf cont;
+	cont:	d := l-nth (desc, 0);
+			goto [d = "d"] rt gen;
+	gen:	goto [d = "g"] test rf;
+	test:	v := l-nth (desc, 3);
+			w := l-nth (desc, 4);
+			goto [(v = $$empty) and (w = $$empty)] rf rt;
+	rt:		xret := $$t;
+			goto rlab;
+	rf:		xret := $$f;
+	rlab:	skip
+}
+with
+{
+	ret : xret, rlab;
 };

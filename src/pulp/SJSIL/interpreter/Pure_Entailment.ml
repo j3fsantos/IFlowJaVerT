@@ -761,39 +761,6 @@ let rec encode_pure_formula tr_ctx a =
 		| Some ListType, Some ListType ->
 			let axioms = lets_do_some_list_theory_axioms tr_ctx le1' le2'
 			in Boolean.mk_and ctx axioms
-			(*
-			(match le1', le2' with
-			| LLit (LList lits1), LLit (LList lits2) -> if (lits1 = lits2) then Boolean.mk_true ctx else Boolean.mk_false ctx
-			| LEList les1, LEList les2 ->
-				if ((List.length les1) = (List.length les2))
-					then Boolean.mk_eq ctx le1 le2
-					else Boolean.mk_false ctx
-			| LLit (LList lits), _ ->
-				let as1 = Boolean.mk_eq ctx le1 le2 in
-				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length lits)) in
-				let les = List.map (fun lit -> LLit lit) lits in
-				let nth_as = encode_lnth_equalities tr_ctx le2 les in
-				Boolean.mk_and ctx ([as1; as2 ] @ nth_as)
-			| (LEList les), _ ->
-				let as1 = Boolean.mk_eq ctx le1 le2 in
-				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length les)) in
-				let nth_as = encode_lnth_equalities tr_ctx le2 les in
-				Boolean.mk_and ctx ([as1; as2 ]  @ nth_as)
-			| _, LLit (LList lits) ->
-				let as1 = Boolean.mk_eq ctx le1 le2 in
-				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length lits)) in
-				let les = List.map (fun lit -> LLit lit) lits in
-				let nth_as = encode_lnth_equalities tr_ctx le1 les in
-				Boolean.mk_and ctx ([as1; as2 ] @ nth_as)
-			| _, (LEList les) ->
-				let as1 = Boolean.mk_eq ctx le1 le2 in
-				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length les)) in
-				let nth_as = encode_lnth_equalities tr_ctx le1 les in
-				Boolean.mk_and ctx ([as1; as2 ]  @ nth_as)
-			| _, _ ->
-				let as1 = Boolean.mk_eq ctx le1 le2 in
-				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le1 ])  (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le2 ]) in
-				Boolean.mk_and ctx [as1; as2 ]) *)
 		| Some StringType, Some StringType ->
 			(match le1', le2' with
 			| LLit (String s1), LLit (String s2) -> if (s1 = s2) then Boolean.mk_true ctx else Boolean.mk_false ctx
@@ -978,7 +945,7 @@ let rec old_check_entailment existentials left_as right_as gamma =
 			else if ((List.length right_as) = 1) then
 				(List.nth right_as 0)
 			else Boolean.mk_false ctx in
-	    Printf.printf "BICHAAA!!!!checking if:\n %s\nIMPLIES\n%s\n" (string_of_z3_expr_list left_as) (Expr.to_string right_as_or);
+	    (* Printf.printf "BICHAAA!!!!checking if:\n %s\nIMPLIES\n%s\n" (string_of_z3_expr_list left_as) (Expr.to_string right_as_or); *)
 		let right_as_or =
 			if ((List.length existentials) > 0)
 				then encode_quantifier true tr_ctx.z3_ctx existentials (get_sorts tr_ctx existentials) right_as_or
@@ -1019,7 +986,7 @@ let rec check_entailment solver existentials left_as right_as gamma =
 				then encode_quantifier true ctx existentials (get_sorts tr_ctx existentials) right_as_or
 				else right_as_or in
 		let right_as_or = Expr.simplify right_as_or None in
-		Printf.printf "BICHAAAAAA!!!!checking if:\n %s\nIMPLIES\n%s\n" (string_of_solver solver) (Expr.to_string right_as_or);
+		(* Printf.printf "BICHAAAAAA!!!!checking if:\n %s\nIMPLIES\n%s\n" (string_of_solver solver) (Expr.to_string right_as_or); *)
 		Solver.push solver;
 		Solver.add solver [ right_as_or ];
 		let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in
