@@ -624,15 +624,15 @@ match l1, l2 with
 				   (JSIL_Print.string_of_logic_expression l2 false)))
 
 let rec lets_do_some_list_theory_axioms tr_ctx l1 l2 =
-let fe = encode_logical_expression tr_ctx in
-let l1, l2 = sort_lists l1 l2 in
-let le1, te1, as1 = fe l1 in
-let le2, te2, as2 = fe l2 in
-let ctx = tr_ctx.z3_ctx in
-(match l1, l2 with
- (* Two literal lists, they have to be equal *)
- | LLit (LList l1), LLit (LList l2) ->
- 	if (l1 = l2) then [ Boolean.mk_true ctx ] else [ Boolean.mk_false ctx ]
+	let fe = encode_logical_expression tr_ctx in
+	let l1, l2 = sort_lists l1 l2 in
+	let le1, te1, as1 = fe l1 in
+	let le2, te2, as2 = fe l2 in
+	let ctx = tr_ctx.z3_ctx in
+	(match l1, l2 with
+ 	(* Two literal lists, they have to be equal *)
+ 	| LLit (LList l1), LLit (LList l2) ->
+ 		if (l1 = l2) then [ Boolean.mk_true ctx ] else [ Boolean.mk_false ctx ]
  (* One literal list, one list of expressions *)
  | LLit (LList l1), LEList l2 ->
  	if (List.length l1 <> List.length l2) then [ Boolean.mk_false ctx ] else
@@ -739,11 +739,12 @@ let ctx = tr_ctx.z3_ctx in
 let if_some x f def = (match x with | Some y -> f y | None -> def)
 
 let rec encode_pure_formula tr_ctx a =
-	(* Printf.printf ("EPF: %s\n") (JSIL_Print.string_of_logic_assertion a false); *)
+	
 	let f = encode_pure_formula tr_ctx in
 	let fe = encode_logical_expression tr_ctx in
 	let ctx = tr_ctx.z3_ctx in
 	let gamma = tr_ctx.tr_typing_env in
+	Printf.printf ("EPF: %s, with gamma:\n%s\n") (JSIL_Print.string_of_logic_assertion a false) (JSIL_Memory_Print.string_of_gamma gamma); 
 	match a with
 	| LNot a -> Boolean.mk_not ctx (encode_pure_formula tr_ctx a)
 
@@ -951,6 +952,7 @@ let print_model solver =
 			
 
 let check_satisfiability assertions gamma existentials =
+	Printf.printf "Entering check_satisfiability!\n";
 	let solver = get_new_solver assertions gamma existentials in 
 	let ret = (Solver.check solver []) = Solver.SATISFIABLE in
 	(* Printf.printf "ret: %s\n" (string_of_bool ret); *)
@@ -978,7 +980,7 @@ let rec old_check_entailment existentials left_as right_as gamma =
 			else if ((List.length right_as) = 1) then
 				(List.nth right_as 0)
 			else Boolean.mk_false ctx in
-	  (* Printf.printf "checking if:\n %s\nIMPLIES\n%s\n" (string_of_z3_expr_list left_as) (Expr.to_string right_as_or); *)
+	  Printf.printf "checking if:\n %s\nIMPLIES\n%s\n" (string_of_z3_expr_list left_as) (Expr.to_string right_as_or); 
 		let right_as_or =
 			if ((List.length existentials) > 0)
 				then encode_quantifier true tr_ctx.z3_ctx existentials (get_sorts tr_ctx existentials) right_as_or
@@ -997,7 +999,7 @@ let rec old_check_entailment existentials left_as right_as gamma =
 	
 
 let rec check_entailment solver existentials left_as right_as gamma =
-	
+	Printf.printf "Entering check entailment...\n";
 	if ((List.length right_as) = 0) then true
 	else if (not (check_satisfiability right_as gamma existentials)) then false
 	else (
@@ -1030,7 +1032,7 @@ let rec check_entailment solver existentials left_as right_as gamma =
 		ret
 				
 	| None -> 
-		(* Printf.printf "check_entailment with NO solver!!!\n"; *)
+		Printf.printf "check_entailment with NO solver!!!\n"; 
 		let ret, new_solver = old_check_entailment existentials left_as right_as gamma in 
 		(match new_solver with 
 		| Some (new_solver, tr_ctx) -> solver := Some (new_solver, tr_ctx) 
