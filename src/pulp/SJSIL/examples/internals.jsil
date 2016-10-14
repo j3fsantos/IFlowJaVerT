@@ -1218,3 +1218,49 @@ with
 	ret: xret, rlab;
 	err: xerr, elab;
 };
+
+(* ************** *)
+(* DELETEPROPERTY *)
+(* ************** *)
+
+spec o__deleteProperty (l, prop, throw)
+
+    [[ Object (l, #pr, "Object", #ext) * ((l, prop) -> #desc) * isNamedProperty(prop) * DataDescriptor (#desc) *
+       desc_conf (#desc, $$f) * (throw == $$t) ]]
+    [[ Object (l, #pr, "Object", #ext) * ((l, prop) -> #desc) * isTypeError(err) ]]
+    error;
+
+    [[ Object (l, #pr, "Object", #ext) * ((l, prop) -> #desc) * isNamedProperty(prop) * DataDescriptor (#desc) *
+       desc_conf (#desc, $$f) * (throw == $$f) ]]
+    [[ Object (l, #pr, "Object", #ext) * ((l, prop) -> #desc) * (ret == $$f) ]]
+    normal;
+
+    [[ Object (l, #pr, "Object", #ext) * ((l, prop) -> None) * isNamedProperty(prop) ]]
+    [[ Object (l, #pr, "Object", #ext) * ((l, prop) -> None) * (ret == $$t) ]]
+    normal
+
+proc o__deleteProperty (l, prop, throw) {
+      gop := [l, "@getOwnProperty"];
+      xret := gop (l, prop) with elab;
+      goto [xret = $$undefined] dt cont;
+
+  cont: c := l-nth (xret, 4);
+      goto [c] del reject;
+  del:  delete (l, prop);
+
+  dt:   xret := $$t;
+      goto rlab;
+
+  df:   xret := $$f;
+  rlab: skip;
+
+    reject: goto [throw] tt df;
+
+    tt:     xret := "TypeError" ();
+    elab:   skip
+}
+with
+{
+  ret: xret, rlab;
+  err: xret, elab;
+};
