@@ -23,7 +23,7 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 	         | None -> "Our substitution doesn't exist. Fantastic.\n"
 			 | Some subst -> "Our substitution: " ^(JSIL_Memory_Print.string_of_substitution subst)) in*)
 	(* Printf.printf "%s" str_subst;*)
-	
+
 	let discharges =
 		Hashtbl.fold
 			(fun var pat_lexpr discharges ->
@@ -80,11 +80,19 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 							else raise (Failure (Printf.sprintf "LLit %s, LVar %s : the pattern store is not normalized." (JSIL_Print.string_of_literal lit false) lvar)))
 
 				| LEList el1, LEList el2 ->
-					(List.fold_left2
-					(fun ac x y ->
-						let new_ones = spin_me_round x y [] in
-						new_ones @ ac)
-					[] el1 el2) @ discharges
+					Printf.printf ("Two lists of lengths: %d %d") (List.length el1) (List.length el2);
+					if (List.length el1 = List.length el2) then
+					begin
+						(List.fold_left2
+						(fun ac x y ->
+							let new_ones = spin_me_round x y [] in
+							new_ones @ ac)
+						[] el1 el2) @ discharges
+					end
+					else
+					begin
+						[ (LLit (Bool true), LLit (Bool false)) ]
+					end
 
 				| le_pat, le -> if (le_pat = le) then discharges
 				                                 else ((le_pat, le) :: discharges)) in
@@ -396,7 +404,7 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 						extend_gamma new_gamma new_pat_gamma;
 						new_gamma)
 				else gamma in
-			
+
 			(* print_endline (Printf.sprintf "new_pfs: %s" (JSIL_Print.str_of_assertion_list new_pfs)); *)
 			Symbolic_State_Functions.extend_pf pf solver new_pfs;
 			let pf_discharges = pf_list_of_discharges discharges s_new_subst in
@@ -411,18 +419,18 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 					(JSIL_Print.str_of_assertion_list pf_list)
 					existentials_str
 					(JSIL_Print.str_of_assertion_list (pat_pf_list @ pf_discharges))
-				(	JSIL_Memory_Print.string_of_gamma new_gamma)); 
+				(	JSIL_Memory_Print.string_of_gamma new_gamma));
 
 			let unify_gamma_check = (unify_gamma pat_gamma new_gamma pat_store s_new_subst pat_pf_existentials) in
 			let entailment_check_ret = Pure_Entailment.check_entailment solver new_pat_pf_existentials pf_list (pat_pf_list @ pf_discharges) new_gamma in
-			(* Printf.printf "Unify gamma: %b Entailment check: %b\n" unify_gamma_check entailment_check_ret; *)
+			Printf.printf "Unify gamma: %b Entailment check: %b\n" unify_gamma_check entailment_check_ret;
 			(if (entailment_check_ret & unify_gamma_check) then
 					(  (* Printf.printf "I could check the entailment!!!\n"; *)
 					Some (quotient_heap, quotient_preds, s_new_subst, pf_discharges, true))
 				else
 					(
 					Printf.printf "I could NOT check the entailment!!!\n";
-					Printf.printf "entailment_check_ret: %b. unify_gamma_check: %b.\n" entailment_check_ret unify_gamma_check; 
+					Printf.printf "entailment_check_ret: %b. unify_gamma_check: %b.\n" entailment_check_ret unify_gamma_check;
 					Some (quotient_heap, quotient_preds, new_subst, pf_discharges, false)))
 		| _ -> (* Printf.printf "One of the four things failed.\n";*) None)
 	| None -> (* Printf.printf "Sweet Jesus, broken discharges.\n";*) None
