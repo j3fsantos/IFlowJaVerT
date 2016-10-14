@@ -113,7 +113,8 @@ pred Object (l, pr, cl, ext):
     Methods_Object(l) *
         ((l, "@proto") -> pr) *
         ((l, "@class") -> cl) *
-        ((l, "@extensible") -> ext);
+        ((l, "@extensible") -> ext) *
+        types (cl : $$string_type, ext : $$boolean_type);
 
 (* Classes and methods *)
 pred Class (l, "String") :
@@ -879,6 +880,16 @@ with
 pred isTypeError(l) :
     Object (l, $lterr_proto, "Error", $$t);
 
+pred isSyntaxError(l) :
+    Object (l, $lserr_proto, "Error", $$t);
+
+pred isReferenceError(l) :
+    Object (l, $lrferr_proto, "Error", $$t);
+
+(* ********* *)
+(* TYPEERROR *)
+(* ********* *)
+
 spec TypeError_call (xsc, vthis, v)
 
     [[ (v == $$undefined) ]]
@@ -916,4 +927,278 @@ with
 {
 	ret: 	xret, rlab;
 	err: 	xret, elab;
+};
+
+(* ************** *)
+(* REFERENCEERROR *)
+(* ************** *)
+
+spec ReferenceError_call (xsc, vthis, v)
+
+    [[ (v == $$undefined) ]]
+    [[ isReferenceError(ret) ]]
+    normal
+
+proc ReferenceError_call (xsc, vthis, v) {
+			xret := new ();
+			xret := "create_default_object" (xret, $lrferr_proto, "Error", $$t);
+
+			xret := "Error_construct" ($$undefined, xret, v) with elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
+};
+
+spec ReferenceError (v)
+
+    [[ (v == $$undefined) ]]
+    [[ isReferenceError(ret) ]]
+    normal
+
+proc ReferenceError (v) {
+			xret := "ReferenceError_call" ($$undefined, $$undefined, v) with elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
+
+(* *********** *)
+(* SYNTAXERROR *)
+(* *********** *)
+
+spec SyntaxError_call (xsc, vthis, v)
+
+    [[ (v == $$undefined) ]]
+    [[ isSyntaxError(ret) ]]
+    normal
+
+proc SyntaxError_call (xsc, vthis, v) {
+			xret := new ();
+			xret := "create_default_object" (xret, $lserr_proto, "Error", $$t);
+
+			xret := "Error_construct" ($$undefined, xret, v) with elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
+};
+
+spec SyntaxError (v)
+
+    [[ (v == $$undefined) ]]
+    [[ isSyntaxError(ret) ]]
+    normal
+
+proc SyntaxError (v) {
+			xret := "SyntaxError_call" ($$undefined, $$undefined, v) with elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
+
+(* ******************** *)
+(* O__DEFINEOWNPROPERTY *)
+(* ******************** *)
+
+spec o__defineOwnProperty (l, prop, desc, throw)
+
+    [[ types (l : $$object_type, prop : $$string_type, desc : $$list_type, throw : $$boolean_type) *
+       isNamedProperty(prop) * DataDescriptor (desc) *
+       desc_val(desc, #dv) * desc_writ(desc, #dw) * desc_enum(desc, #de) * desc_conf (desc, #dc) *
+       types (#dw : $$boolean_type, #de : $$boolean_type, #dc : $$boolean_type ) *
+       (throw == $$t) * Object (l, #prt, #cls, $$f) * ((l, prop) -> None) ]]
+    [[ Object (l, #prt, #cls, $$f) * ((l, prop) -> None) * isTypeError(err) ]]
+    error
+
+proc o__defineOwnProperty (l, prop, desc, throw) {
+
+			xret := $$t;
+
+			gop := [l, "@getOwnProperty"];
+			current := gop (l, prop) with celab;
+			extensible := [l, "@extensible"];
+
+			goto [(current = $$undefined) and (extensible = $$f)] reject l4;
+	l4:		goto [(current = $$undefined) and (extensible = $$t)] l4a getall;
+
+	l4a:	gd := "i__isGenericDescriptor" (desc);
+			dd := "i__isDataDescriptor" (desc);
+
+			goto [gd or dd] l4a1 l4b;
+
+	l4a1:	ndesc := "i__toDataDescriptor" (desc);
+			[l, prop] := ndesc;
+			goto acc_t;
+
+	l4b:	ndesc := "i__toAccessorDescriptor" (desc);
+			[l, prop] := ndesc;
+			goto acc_t;
+
+	getall:	goto [l-nth (desc, 0) = "d"] ddd odd;
+
+			(* Data *)
+	ddd:	de := l-nth (desc, 3);
+			dc := l-nth (desc, 4);
+			dv := l-nth (desc, 1);
+			dw := l-nth (desc, 2);
+			dg := $$empty;
+			ds := $$empty;
+			goto l5;
+
+	odd:	goto [l-nth (desc, 0) = "a"] add gdd;
+
+			(* Accessor *)
+	add:	de := l-nth (desc, 3);
+			dc := l-nth (desc, 4);
+			dv := $$empty;
+			dw := $$empty;
+			dg := l-nth (desc, 1);
+			ds := l-nth (desc, 2);
+			goto l5;
+
+			(* Generic *)
+	gdd:	de := l-nth (desc, 1);
+			dc := l-nth (desc, 2);
+			dv := l-nth (desc, 3);
+			dw := l-nth (desc, 4);
+			dg := l-nth (desc, 5);
+			ds := l-nth (desc, 6);
+
+	l5:		goto [(de = $$empty) and (dc = $$empty) and (dv = $$empty) and
+			      (dw = $$empty) and (dg = $$empty) and (ds = $$empty)] acc_t l6;
+
+	l6:		goto [l-nth (current, 0) = "d"] chd cha;
+
+	chd:	t1 := "i__sameValue" (dv, l-nth (current, 1));
+			t2 := "i__sameValue" (dw, l-nth (current, 2));
+			t3 := "i__sameValue" (de, l-nth (current, 3));
+			t4 := "i__sameValue" (dc, l-nth (current, 4));
+
+			goto [t1 and t2 and t3 and t4 and
+			      (dg = $$empty) and (ds = $$empty)] acc_t l7;
+
+	cha:	t1 := "i__sameValue" (dg, l-nth (current, 1));
+			t2 := "i__sameValue" (ds, l-nth (current, 2));
+			t3 := "i__sameValue" (de, l-nth (current, 3));
+			t4 := "i__sameValue" (dc, l-nth (current, 4));
+
+			goto [t1 and t2 and t3 and t4 and
+			      (dv = $$empty) and (dw = $$empty)] acc_t l7;
+
+	l7:		ct := l-nth (current, 0);
+			cvg := l-nth (current, 1);
+			cws := l-nth (current, 2);
+			ce := l-nth (current, 3);
+			cc := l-nth (current, 4);
+
+			goto [(cc = $$f) and ((dc = $$t) or ((not (de = $$empty)) and (not (ce = de))))] reject l8;
+
+	l8:		gd := "i__isGenericDescriptor" (desc);
+			goto [gd] l12 l9;
+
+	l9:		cdd := "i__isDataDescriptor" (current);
+			ddd := "i__isDataDescriptor" (desc);
+
+			goto [not (cdd = ddd)] l9a l10;
+
+	l9a:	goto [cc = $$f] reject change;
+	change:	goto [cdd = $$t] toa tod;
+	toa:	goto [dg = $$empty] sg gs;
+	sg:		dg := $$undefined;
+	gs:		goto [ds = $$empty] ss ge1;
+	ss:		ds := $$undefined;
+	ge1:	goto [de = $$empty] se1 gc1;
+	se1:	de := ce;
+	gc1:	goto [dc = $$empty] sc1 spa;
+	sc1:	dc := cc;
+	spa:	[l, prop] := {{ "a", dg, ds, de, dc }};
+			goto acc_t;
+
+	tod:	goto [dv = $$empty] sv gw;
+	sv:		dv := $$undefined;
+	gw:		goto [dw = $$empty] sw ge2;
+	sw:		dw := $$f;
+	ge2:	goto [de = $$empty] se2 gc2;
+	se2:	de := ce;
+	gc2:	goto [dc = $$empty] sc2 spd;
+	sc2:	dc := cc;
+	spd:	[l, prop] := {{ "d", dv, dw, de, dc }};
+			goto acc_t;
+
+	l10:	goto [cdd = $$t] l10a l11;
+
+	l10a:	goto [cc = $$f] l10ai l12;
+	l10ai:	goto [(not (dw = $$empty)) and ((cws = $$f) and (dw = $$t))] reject l10aii;
+	l10aii:	t1 := "i__sameValue" (cvg, dv);
+			goto [(cws = $$f) and (not (dv = $$empty)) and (not t1)] reject l12;
+
+	l11: 	t1 := "i__sameValue" (dg, l-nth (current, 1));
+			t2 := "i__sameValue" (ds, l-nth (current, 2));
+			goto [(cc = $$f) and
+	             (((not (dg = $$empty)) and (not t1)) or
+	              ((not (ds = $$empty)) and (not t2)))] reject l12;
+
+	l12:	re := de;
+			rc := dc;
+			goto [de = $$empty] rec red;
+	rec:	re := l-nth (current, 3);
+	red:	goto [dc = $$empty] rcd rd;
+	rcd:	rc := l-nth (current, 4);
+
+	rd: 	goto [ct = "d"] l12d l12a;
+
+	l12d:	rv := dv;
+			rw := dw;
+			goto [dv = $$empty] rvc rvd;
+	rvc:	rv := l-nth (current, 1);
+	rvd:	goto [dw = $$empty] rwd setd;
+	rwd:	rw := l-nth (current, 2);
+	setd:	[l, prop] := {{ "d", rv, rw, re, rc }};
+			goto acc_t;
+
+	l12a:	rg := dg;
+			rs := ds;
+			goto [dg = $$empty] rgc rgd;
+	rgc:	rg := l-nth (current, 1);
+	rgd:	goto [ds = $$empty] rsd seta;
+	rsd:	rs := l-nth (current, 2);
+	seta:	[l, prop] := {{ "a", rg, rs, re, rc }};
+			goto acc_t;
+
+	acc_t:	xret := $$t;
+			goto rlab;
+
+	acc_f:	xret := $$f;
+	rlab:	skip;
+
+	celab:	xerr := current;
+			goto elab;
+
+    reject: goto [throw] tt acc_f;
+    tt:     xerr := "TypeError" ();
+    elab:   skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xerr, elab;
 };
