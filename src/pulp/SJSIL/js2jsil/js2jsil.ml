@@ -4589,7 +4589,7 @@ let generate_proc_er_restoring_code fid x_er_old end_lab =
 	]
 	
 				
-let generate_proc offset_converter e fid params cc_table vis_fid =
+let generate_proc offset_converter e fid params cc_table vis_fid spec =
 	let annotate_cmd cmd lab = (empty_metadata, lab, cmd) in 
 	let annotate_cmds cmds = 
 		List.map
@@ -4694,7 +4694,7 @@ let generate_proc offset_converter e fid params cc_table vis_fid =
 		lret_var = Some ctx.tr_ret_var;
 		lerror_label = Some ctx.tr_error_lab; 
 		lerror_var = Some ctx.tr_error_var;
-		lspec = None 
+		lspec = spec 
 	}
 
 let fresh_name =
@@ -4731,17 +4731,21 @@ let js2jsil e offset_converter =
 	let fun_tbl = Hashtbl.create 101 in
 	let vis_tbl = Hashtbl.create 101 in  
 	
+	let e_annotations_str = Pretty_print.string_of_annots e.Parser_syntax.exp_annot in 
+	Printf.printf "I am at the top level... I have the following annotations: %s\n" e_annotations_str;
+	let global_spec = Js_pre_processing.process_js_logic_annotations "main" [] e.exp_annot TopRequires TopEnsures TopEnsuresErr in 
+	
 	let main = "main" in 
         Js_pre_processing.test_early_errors e;
 	let e = Js_pre_processing.add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous e in 
-	Js_pre_processing.closure_clarification_top_level cc_tbl fun_tbl vis_tbl main e [ main ] []; 
+	Js_pre_processing.closure_clarification_top_level global_spec cc_tbl fun_tbl vis_tbl main e [ main ] []; 
 	
 	(* TODO: 'predicates' is empty *)
 	let predicates = Hashtbl.create 101 in
 	
 	let procedures = Hashtbl.create 101 in
 	Hashtbl.iter
-		(fun f_id (_, f_params, f_body) -> 
+		(fun f_id (_, f_params, f_body, spec) -> 
 			let proc = 
 				(if (f_id = main) 
 					then generate_main offset_converter e main cc_tbl
@@ -4750,7 +4754,7 @@ let js2jsil e offset_converter =
 							with _ -> 
 								(let msg = Printf.sprintf "Function %s not found in visibility table" f_id in 
 								raise (Failure msg)) in 	
-						generate_proc offset_converter f_body f_id f_params cc_tbl vis_fid)) in 
+						generate_proc offset_converter f_body f_id f_params cc_tbl vis_fid spec)) in 
 			Hashtbl.add procedures f_id proc)
 		fun_tbl; 
 	
@@ -4774,12 +4778,12 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 	let new_fid = fresh_anonymous_eval () in 
 	let e = Js_pre_processing.add_codenames new_fid fresh_anonymous_eval fresh_named_eval fresh_catch_anonymous_eval e in 
 	Js_pre_processing.update_cc_tbl cc_tbl f_parent_id new_fid [var_scope; var_this] e;
-	Hashtbl.add new_fun_tbl new_fid (new_fid, [var_scope; var_this], e); 
+	Hashtbl.add new_fun_tbl new_fid (new_fid, [var_scope; var_this], e, None); 
 	Hashtbl.add vis_tbl new_fid (new_fid :: vis_fid);
 	Js_pre_processing.closure_clarification_stmt cc_tbl new_fun_tbl vis_tbl new_fid (new_fid :: vis_fid) e;
 
 	Hashtbl.iter
-		(fun f_id (_, f_params, f_body) -> 
+		(fun f_id (_, f_params, f_body, _) -> 
 			let proc = 
 				(if (f_id = new_fid) 
 					then generate_proc_eval new_fid e cc_tbl vis_fid
@@ -4788,7 +4792,7 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 							with _ -> 
 								(let msg = Printf.sprintf "EV: Function %s not found in visibility table" f_id in 
 								raise (Failure msg)) in 	
-						generate_proc offset_converter f_body f_id f_params cc_tbl vis_fid)) in
+						generate_proc offset_converter f_body f_id f_params cc_tbl vis_fid None)) in
 		(* let proc_eval_str = SSyntax_Print.string_of_ext_procedure proc in 
 		   Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
 			let proc = JSIL_Utils.desugar_labs proc in 
@@ -4814,18 +4818,18 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 	let e = Js_pre_processing.add_codenames "main" fresh_anonymous fresh_named fresh_catch_anonymous e in 
 	let new_fid = Js_pre_processing.get_codename e in 
 	Js_pre_processing.update_cc_tbl cc_tbl "main" (* f_parent_id *) new_fid params e;
-	Hashtbl.replace new_fun_tbl new_fid (new_fid, params, e);
+	Hashtbl.replace new_fun_tbl new_fid (new_fid, params, e, None);
 	Hashtbl.replace vis_tbl new_fid (new_fid :: vis_fid);
 	Js_pre_processing.closure_clarification_stmt cc_tbl new_fun_tbl vis_tbl new_fid vis_fid e;
 	
 	Hashtbl.iter
-		(fun f_id (_, f_params, f_body) -> 
+		(fun f_id (_, f_params, f_body, _) -> 
 			let proc = 
   			(let vis_fid = try Hashtbl.find vis_tbl f_id 
   				with _ -> 
   					(let msg = Printf.sprintf "Function %s not found in visibility table" f_id in 
   					raise (Failure msg)) in 	
-  			generate_proc offset_converter f_body f_id f_params cc_tbl vis_fid) in
+  			generate_proc offset_converter f_body f_id f_params cc_tbl vis_fid None) in
 		  (* let proc_str = JSIL_Print.string_of_ext_procedure proc in 
 		  Printf.printf "FC:\n %s\n" proc_str; *)
 			let proc = JSIL_Utils.desugar_labs proc in 

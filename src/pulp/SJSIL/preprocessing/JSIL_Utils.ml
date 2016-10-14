@@ -141,6 +141,10 @@ let ext_program_of_string str =
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
 	parse_with_error JSIL_Parser.main_target lexbuf
 
+let jsil_assertion_of_string str =
+  let lexbuf = Lexing.from_string str in
+  lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
+	parse_with_error JSIL_Parser.assertion_target lexbuf
 
 (** Add the declarations in 'program_from' to 'program_to'. *)
 let extend_declarations program_to program_from =

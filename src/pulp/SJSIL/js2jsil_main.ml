@@ -61,6 +61,10 @@ let process_file path =
 		let e_str = string_of_file path in 
 		let offset_converter = Js_pre_processing.memoized_offsetchar_to_offsetline e_str in
     let e = Parser_main.exp_from_string ~force_strict:true e_str in
+		
+		let e_annotations_str = Pretty_print.string_of_annots e.Parser_syntax.exp_annot in 
+		Printf.printf "I am in the main... I have the following annotations: %s\n" e_annotations_str;
+	
     let ext_prog, _, _ = js2jsil e offset_converter in
 		let file_name = Filename.chop_extension path in
 		(if (not (!sep_procs)) 

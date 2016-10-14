@@ -214,9 +214,11 @@ let procedure_table = Hashtbl.create 100
 %type <JSIL_Syntax.jsil_ext_program> main_target
 %type <string list> param_list_FC_target
 %type <JSIL_Syntax.jsil_logic_predicate list * JSIL_Syntax.jsil_spec list> pred_spec_target
+%type <JSIL_Syntax.jsil_logic_assertion> assertion_target
 %start main_target
 %start param_list_FC_target
 %start pred_spec_target
+%start assertion_target
 %%
 
 (********* JSIL *********)

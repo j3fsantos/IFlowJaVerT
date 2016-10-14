@@ -453,13 +453,31 @@ let rec add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous exp
         {exp with exp_stx = Script (str, List.map f es); exp_annot = add_codename exp main}
 
 
+let process_js_logic_annotations fun_name fun_args annotations requires_flag ensures_normal_flag ensure_err_flag = 
+	let preconditions  = List.filter (fun annotation -> annotation.annot_type = requires_flag) annotations in 
+	let postconditions = List.filter (fun annotation -> (annotation.annot_type = ensures_normal_flag) || (annotation.annot_type = ensure_err_flag)) annotations in 
+	let single_specs = List.map2 
+		(fun pre post ->
+			let pre_str   = pre.annot_formula in 
+			let post_str  = post.annot_formula in 
+			let ret_flag  = 
+				(match post.annot_type with 
+				| ensures_normal_flag -> JSIL_Syntax.Normal 
+				| ensure_err_flag     -> JSIL_Syntax.Error) in 
+			let pre_jsil  = JSIL_Utils.jsil_assertion_of_string pre_str in 
+			let post_jsil = JSIL_Utils.jsil_assertion_of_string post_str in 
+			let new_spec = JSIL_Syntax.create_single_spec pre_jsil post_jsil ret_flag in 
+			new_spec)
+		preconditions
+		postconditions in  
+	let fun_spec = if ((List.length single_specs) > 0) 
+		then Some (JSIL_Syntax.create_jsil_spec fun_name fun_args single_specs)
+		else None in
+	fun_spec
+
 let update_fun_tbl fun_tbl f_id f_args f_body annotations = 
-	
-	(* let function_preconditions = 
-		List.filter 
-			(fun annotation -> 
-				if (annotation. *)
-	Hashtbl.replace fun_tbl f_id (f_id, f_args, f_body) 
+	let fun_spec = process_js_logic_annotations f_id f_args annotations Requires Ensures EnsuresErr in  						
+	Hashtbl.replace fun_tbl f_id (f_id, f_args, f_body, fun_spec) 
 
 let update_cc_tbl cc_tbl f_parent_id f_id f_args f_body =
 	let f_parent_var_table = 
@@ -591,10 +609,10 @@ closure_clarification_stmt cc_tbl fun_tbl vis_tbl f_id visited_funs e =
   | RegExp _ -> fe e
 	(*Statements*)
 	| Function (_, f_name, args, fb) ->
-		(* Printf.printf("named function expression hihihi\n");  *)
-		let new_f_id = get_codename e in 
-		update_cc_tbl cc_tbl f_id new_f_id args fb;
-		update_fun_tbl fun_tbl new_f_id args fb e.exp_annot; 
+		(* Printf.printf("named function expression hihihi\n");   *)
+		let new_f_id = get_codename e in                           
+		update_cc_tbl cc_tbl f_id new_f_id args fb;                
+		update_fun_tbl fun_tbl new_f_id args fb e.exp_annot;        
 		Hashtbl.replace vis_tbl new_f_id (new_f_id :: visited_funs); 
 		closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: visited_funs) fb
   | Script (_, es) -> List.iter f es 
@@ -629,14 +647,15 @@ closure_clarification_stmt cc_tbl fun_tbl vis_tbl f_id visited_funs e =
 	| With (e1, e2) -> f e1; f e2 
 	| Debugger -> ()  
 
-let closure_clarification_top_level cc_tbl fun_tbl vis_tbl proc_id e vis_fid args =
+let closure_clarification_top_level global_spec cc_tbl fun_tbl vis_tbl proc_id e vis_fid args =
 	let proc_tbl = Hashtbl.create 101 in 
+	
 	let proc_vars = get_all_vars_f e [] in
 	List.iter
 		(fun v -> Hashtbl.replace proc_tbl v proc_id)
 		proc_vars; 
 	Hashtbl.add cc_tbl proc_id proc_tbl; 
-	Hashtbl.add fun_tbl proc_id (proc_id, args, e); 
+	Hashtbl.add fun_tbl proc_id (proc_id, args, e, global_spec); 
 	Hashtbl.add vis_tbl proc_id vis_fid;
 	closure_clarification_stmt cc_tbl fun_tbl vis_tbl proc_id vis_fid e
 

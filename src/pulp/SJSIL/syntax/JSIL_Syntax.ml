@@ -236,6 +236,21 @@ type jsil_spec = {
 	proc_specs   : jsil_single_spec list
 }
 
+let create_single_spec pre post flag = 
+	{
+		pre      = pre; 
+		post     = post; 
+		ret_flag = flag
+	}
+	
+let create_jsil_spec name params specs = 
+	{
+		spec_name   = name; 
+		spec_params = params; 
+		proc_specs  = specs
+	} 
+
+
 (* JSIL logic commands *)
 type jsil_logic_command =
 	| Fold   of jsil_logic_assertion
