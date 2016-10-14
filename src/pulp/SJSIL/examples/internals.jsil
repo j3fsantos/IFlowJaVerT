@@ -534,27 +534,27 @@ spec i__getValue (v)
     [[ (ret == v) ]]
     normal;
 
-    [[ (v == {{ "o", #obj, #field }}) * types (#obj : $$object_type, #field : $$string_type) *
+    [[ (v == {{ "o", #obj, #field }}) * types (#obj : $$object_type, #field : $$string_type) * isNamedProperty(#field) *
        Pi (#obj, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (#g_aux_3 == $$undefined) ]]
     [[ Pi (#obj, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (ret == $$undefined) ]]
     normal;
 
-    [[ (v == {{ "o", #obj, #field }}) * types (#obj : $$object_type, #field : $$string_type) *
+    [[ (v == {{ "o", #obj, #field }}) * types (#obj : $$object_type, #field : $$string_type) * isNamedProperty(#field) *
        Pi (#obj, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * DataDescriptor (#g_aux_3)  ]]
     [[ Pi (#obj, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * desc_val (#g_aux_3, #desc_val) * (ret == #desc_val) ]]
     normal;
 
-    [[ (v == {{ "v", $lg, #field }}) * types (#field : $$string_type) *
+    [[ (v == {{ "v", $lg, #field }}) * types (#field : $$string_type) * isNamedProperty(#field) *
        Pi ($lg, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (#g_aux_3 == $$undefined) ]]
     [[ Pi ($lg, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (ret == $$undefined) ]]
     normal;
 
-    [[ (v == {{ "v", $lg, #field }}) * types (#field : $$string_type) *
+    [[ (v == {{ "v", $lg, #field }}) * types (#field : $$string_type) * isNamedProperty(#field) *
        Pi ($lg, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * DataDescriptor (#g_aux_3)  ]]
     [[ Pi ($lg, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * desc_val (#g_aux_3, #desc_val) * (ret == #desc_val) ]]
     normal;
 
-    [[ (v == {{ "v", #obj, #field }}) * (! (#obj == $lg)) * ((#obj, #field) -> #value) *
+    [[ (v == {{ "v", #obj, #field }}) * (! (#obj == $lg)) * ((#obj, #field) -> #value) * isNamedProperty(#field) *
        types (#obj : $$object_type, #field : $$string_type) ]]
     [[ ((#obj, #field) -> #value) * (ret == #value) ]]
     normal
@@ -724,7 +724,7 @@ with
 
 spec i__isDataDescriptor (desc)
 
-    (* Property not defined at all, returning "@extensible" *)
+    (* Property not defined at all *)
     [[ desc == $$undefined ]]
     [[ ret == $$f ]]
     normal;
@@ -770,6 +770,131 @@ proc i__isDataDescriptor (desc) {
 with
 {
 	ret : xret, rlab;
+};
+
+(* *********************** *)
+(* I__ISACCESSORDESCRIPTOR *)
+(* *********************** *)
+
+spec i__isAccessorDescriptor (desc)
+
+    (* Property not defined at all *)
+    [[ desc == $$undefined ]]
+    [[ ret == $$f ]]
+    normal;
+
+    (* Data descriptor *)
+    [[ DataDescriptor(desc) ]]
+    [[ ret == $$f ]]
+    normal;
+
+    (* Accessor descriptor *)
+    [[ AccessorDescriptor(desc) ]]
+    [[ ret == $$t ]]
+    normal;
+
+    (* Generic descriptor, no data descriptor components *)
+    [[ GenericDescriptor(desc) * (l-nth (desc, 5) == $$empty) * (l-nth (desc, 6) == $$empty) ]]
+    [[ ret == $$f ]]
+    normal;
+
+    (* Generic descriptor, with get *)
+    [[ GenericDescriptor(desc) * (! l-nth (desc, 5) == $$empty) ]]
+    [[ ret == $$t ]]
+    normal;
+
+    (* Generic descriptor, with set *)
+    [[ GenericDescriptor(desc) * (! l-nth (desc, 6) == $$empty) ]]
+    [[ ret == $$t ]]
+    normal
+
+proc i__isAccessorDescriptor (desc) {
+			goto [desc = $$undefined] rf cont;
+	cont:	d := l-nth (desc, 0);
+			goto [d = "a"] rt gen;
+	gen:	goto [d = "g"] test rf;
+	test:	g := l-nth (desc, 5);
+			s := l-nth (desc, 6);
+			goto [(g = $$empty) and (s = $$empty)] rf rt;
+	rt:		xret := $$t;
+			goto rlab;
+	rf:		xret := $$f;
+	rlab:	skip
+}
+with
+{
+	ret : xret, rlab;
+};
+
+(* ********************** *)
+(* I__ISGENERICDESCRIPTOR *)
+(* ********************** *)
+
+spec i__isGenericDescriptor (desc)
+
+    (* Property not defined at all *)
+    [[ desc == $$undefined ]]
+    [[ ret == $$f ]]
+    normal
+
+proc i__isGenericDescriptor (desc) {
+			goto [desc = $$undefined] rf cont;
+
+	cont:	dd := "i__isDataDescriptor" (desc);
+			ad := "i__isAccessorDescriptor" (desc);
+			xret := not (dd or ad);
+			goto rlab;
+
+	rf:		xret := $$f;
+	rlab:	skip
+}
+with
+{
+	ret: xret, rlab;
+};
+
+(* ******************* *)
+(* I__TODATADESCRIPTOR *)
+(* ******************* *)
+
+spec i__toDataDescriptor (desc)
+
+    [[ DataDescriptor (desc) ]]
+    [[ (ret == desc) ]]
+    normal
+
+proc i__toDataDescriptor (desc) {
+			d := l-nth (desc, 0);
+			goto [d = "d"] rd cstr;
+
+	cstr:	goto [d = "a"] ra gen;
+
+	ra:		xret := {{ "d", $$undefined, $$f, l-nth (d, 3), l-nth (d, 4) }};
+			goto rlab;
+
+	gen:	e := l-nth (desc, 1);
+			c := l-nth (desc, 2);
+			v := l-nth (desc, 3);
+			w := l-nth (desc, 4);
+
+			goto [e = $$empty] fixe c;
+	fixe:	e := $$f;
+	c:		goto [c = $$empty] fixc v;
+	fixc:	c := $$f;
+	v:		goto [v = $$empty] fixv w;
+	fixv:	v := $$undefined;
+	w:		goto [w = $$empty] fixw fixed;
+	fixw:	w := $$f;
+
+	fixed:	xret := {{ "d", v, w, e, c }};
+			goto rlab;
+
+	rd:		xret := desc;
+	rlab:	skip
+}
+with
+{
+	ret: xret, rlab;
 };
 
 (* *************** *)

@@ -80,11 +80,19 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 							else raise (Failure (Printf.sprintf "LLit %s, LVar %s : the pattern store is not normalized." (JSIL_Print.string_of_literal lit false) lvar)))
 
 				| LEList el1, LEList el2 ->
-					(List.fold_left2
-					(fun ac x y ->
-						let new_ones = spin_me_round x y [] in
-						new_ones @ ac)
-					[] el1 el2) @ discharges
+					Printf.printf ("Two lists of lengths: %d %d") (List.length el1) (List.length el2);
+					if (List.length el1 = List.length el2) then
+					begin
+						(List.fold_left2
+						(fun ac x y ->
+							let new_ones = spin_me_round x y [] in
+							new_ones @ ac)
+						[] el1 el2) @ discharges
+					end
+					else
+					begin
+						[ (LLit (Bool true), LLit (Bool false)) ]
+					end
 
 				| le_pat, le -> if (le_pat = le) then discharges
 				                                 else ((le_pat, le) :: discharges)) in
