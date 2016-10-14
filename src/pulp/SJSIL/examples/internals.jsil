@@ -857,6 +857,12 @@ with
 (* I__TODATADESCRIPTOR *)
 (* ******************* *)
 
+(*
+    BANANAS BANANAS
+
+    If you comment this out, everything works.
+*)
+
 spec i__toDataDescriptor (desc)
 
     [[ DataDescriptor (desc) ]]
@@ -1160,14 +1166,6 @@ spec o__defineOwnProperty (l, prop, desc, throw)
        types (#dw : $$boolean_type, #de : $$boolean_type, #dc : $$boolean_type ) *
        (throw == $$f) * Object (l, #prt, #cls, $$f) * ((l, prop) -> None) ]]
     [[ Object (l, #prt, #cls, $$f) * ((l, prop) -> None) * (ret == $$f) ]]
-    normal;
-
-    [[ types (l : $$object_type, prop : $$string_type, desc : $$list_type, throw : $$boolean_type) *
-       isNamedProperty(prop) * DataDescriptor (desc) * (desc == #desc) *
-       desc_val(desc, #dv) * desc_writ(desc, #dw) * desc_enum(desc, #de) * desc_conf (desc, #dc) *
-       types (#dw : $$boolean_type, #de : $$boolean_type, #dc : $$boolean_type ) *
-       Object (l, #prt, #cls, $$t) * ((l, prop) -> None) ]]
-    [[ Object (l, #prt, #cls, $$t) * ((l, prop) -> #desc) * (ret == $$t) ]]
     normal
 
 proc o__defineOwnProperty (l, prop, desc, throw) {
