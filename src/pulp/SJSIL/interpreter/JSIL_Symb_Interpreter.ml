@@ -285,6 +285,19 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 	let new_store = Symbolic_State_Functions.init_store proc_args le_args in
 	let symb_state_aux = symb_state_replace_store symb_state new_store in
 
+	let compatible_pfs symb_state pat_symb_state subst =
+		let pfs = get_pf symb_state in
+		let gamma = get_gamma symb_state in
+		let pat_pfs = get_pf pat_symb_state in
+		let pat_gamma = get_gamma pat_symb_state in
+		let pat_pfs = Symbolic_State_Functions.pf_substitution pat_pfs subst false in
+		let pat_gamma = Symbolic_State_Functions.gamma_substitution pat_gamma subst false in
+		let gamma = copy_gamma gamma in
+		Symbolic_State_Functions.merge_gammas gamma pat_gamma;
+		let pf_list = (pfs_to_list pat_pfs) @ (pfs_to_list pfs) in
+		let is_sat = Pure_Entailment.check_satisfiability pf_list gamma [] in
+		is_sat in
+
 	let transform_symb_state (spec : jsil_n_single_spec) (symb_state : symbolic_state) (quotient_heap : symbolic_heap) (quotient_preds : predicate_set) (subst : substitution) (pf_discharges : jsil_logic_assertion list) : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
 		(* Printf.printf "I found the the spec that needs to be applied.\nThe spec pre is:\n%sThe spec post is:\n%sThe substitution is: %s"
 				(JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre)
@@ -293,12 +306,15 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 
 		(* Printf.printf "the quotient heap is the following: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false); *)
 
-		let merge_symb_state_with_single_post (symb_state : symbolic_state) (post : symbolic_state) ret_var ret_flag copy_flag : symbolic_state * jsil_return_flag * jsil_logic_expr =
-			let new_symb_state = if (copy_flag) then (Symbolic_State_Functions.copy_symb_state symb_state) else symb_state in
-			let new_symb_state = Symbolic_State_Functions.merge_symb_states new_symb_state post subst in
-			let ret_lexpr = store_get_var (get_store post) ret_var in
-			let ret_lexpr = JSIL_Logic_Utils.lexpr_substitution ret_lexpr subst false in
-			new_symb_state, ret_flag, ret_lexpr in
+		let merge_symb_state_with_single_post (symb_state : symbolic_state) (post : symbolic_state) ret_var ret_flag copy_flag : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
+			let post_makes_sense = compatible_pfs symb_state post subst in
+			if (post_makes_sense) then (
+				let new_symb_state = if (copy_flag) then (Symbolic_State_Functions.copy_symb_state symb_state) else symb_state in
+				let new_symb_state = Symbolic_State_Functions.merge_symb_states new_symb_state post subst in
+				let ret_lexpr = store_get_var (get_store post) ret_var in
+				let ret_lexpr = JSIL_Logic_Utils.lexpr_substitution ret_lexpr subst false in
+				[ new_symb_state, ret_flag, ret_lexpr ])
+				else [] in
 
 		Symbolic_State_Functions.extend_symb_state_with_pfs symb_state pf_discharges;
 		let symb_state = Symbolic_State_Functions.symb_state_replace_heap symb_state quotient_heap in
@@ -308,12 +324,12 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		let symb_states_and_ret_lexprs =
 			(match spec.n_post with
 			| [] -> []
-			| [ post ] -> [ merge_symb_state_with_single_post symb_state post ret_var ret_flag false ]
+			| [ post ] -> merge_symb_state_with_single_post symb_state post ret_var ret_flag false 
 			| post :: rest_posts ->
-					let symb_states_and_ret_lexprs =
-						List.map (fun post -> merge_symb_state_with_single_post symb_state post ret_var ret_flag true) rest_posts in
+					let symb_states_and_ret_lexprs = List.map (fun post -> merge_symb_state_with_single_post symb_state post ret_var ret_flag true) rest_posts in
 					let symb_states_and_ret_lexprs =
 						(merge_symb_state_with_single_post symb_state post ret_var ret_flag false) :: symb_states_and_ret_lexprs in
+					let symb_states_and_ret_lexprs = List.concat symb_states_and_ret_lexprs in 
 					symb_states_and_ret_lexprs) in
 		symb_states_and_ret_lexprs in
 
@@ -348,6 +364,8 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 			(match unifier with
 			|	Some (quotient_heap, quotient_preds, subst, pf_discharges, true) ->
 				Printf.printf "I found a COMPLETE match\n";
+				Printf.printf "The pre of the spec that completely matches me is:\n%s\n"
+					(JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre);
 				[ (spec, quotient_heap, quotient_preds, subst, pf_discharges) ]
 			| Some (quotient_heap, quotient_preds, subst, pf_discharges, false) ->
 				Printf.printf "I found a PARTIAL match\n";
@@ -355,20 +373,6 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 			| None -> (
 				Printf.printf "I found a NON-match\n";
 				find_correct_specs rest_spec_list ac_quotients)) in
-
-
-	let compatible_pfs symb_state spec subst =
-		let pfs = get_pf symb_state in
-		let gamma = get_gamma symb_state in
-		let pat_pfs = get_pf (spec.n_pre) in
-		let pat_gamma = get_gamma (spec.n_pre) in
-		let pat_pfs = Symbolic_State_Functions.pf_substitution pat_pfs subst false in
-		let pat_gamma = Symbolic_State_Functions.gamma_substitution pat_gamma subst false in
-		let gamma = copy_gamma gamma in
-		Symbolic_State_Functions.merge_gammas gamma pat_gamma;
-		let pf_list = (pfs_to_list pat_pfs) @ (pfs_to_list pfs) in
-		let is_sat = Pure_Entailment.check_satisfiability pf_list gamma [] in
-		is_sat in
 
 
 	let transform_symb_state_partial_match (spec, quotient_heap, quotient_preds, subst, pf_discharges) : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
@@ -402,7 +406,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 			let new_symb_states =
 				List.map
 					(fun (spec, quotient_heap, quotient_preds, subst, pf_discharges) ->
-						if (compatible_pfs symb_state spec subst)
+						if (compatible_pfs symb_state spec.n_pre subst)
 							then transform_symb_state_partial_match (spec, quotient_heap, quotient_preds, subst, pf_discharges)
 							else [])
 					quotients in
