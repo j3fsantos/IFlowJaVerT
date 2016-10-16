@@ -114,7 +114,7 @@ pred Cell_s (l, prop, "None", None, pv) :
      types (pv : $$string_type);
 
 pred Cell_s (l, prop, "SI", desc, pv) :
-     Cell_o (l, prop, None) * ((l, "@primitiveValue") -> pv) *
+	 Cell_o (l, prop, None) * ((l, "@primitiveValue") -> pv) *
      (#i == num_to_int (string_to_num prop)) * IsStringIndex(pv, prop, #i) *
      (#v == s-nth(pv, #i)) * (desc == {{ "d", #v, $$f, $$t, $$f }}) *
      types(#v : $$string_type, desc : $$list_type, #i : $$int_type, pv : $$string_type);
@@ -663,8 +663,8 @@ with
 
 spec i__toDataDescriptor (desc)
 
-    [[ DataDescriptor (desc) ]]
-    [[ (ret == desc) ]]
+    [[ DataDescriptor (#desc) * (desc == #desc) ]]
+    [[ (ret == #desc) ]]
     normal
 
 proc i__toDataDescriptor (desc) {
@@ -718,46 +718,45 @@ with
 
 spec create_default_object (l, pr, cl, ext)
 
-    [[ types(l : $$object_type, pr : $$object_type) *
+    [[ types(#l : $$object_type, pr : $$object_type) *
        (cl == $$undefined) * (ext == $$undefined) *
-       ((l, "@proto") -> $$null) ]]
-    [[ NonFunctionMethods (l) *
-	   ((l, "@proto") -> pr) * ((l, "@class") -> "Object") *
-	   ((l, "@extensible") -> $$t) *  ((l, "@primitiveValue") -> $$empty) *
-	   ((l, "@getOwnProperty") -> "o__getOwnProperty") *
-	   ((l, "@defineOwnProperty") -> "o__defineOwnProperty") *
-	   (ret == l) ]]
+       ((#l, "@proto") -> $$null) * (l == #l)]]
+    [[ NonFunctionMethods (#l) *
+	   ((#l, "@proto") -> pr) * ((#l, "@class") -> "Object") *
+	   ((#l, "@extensible") -> $$t) * ((#l, "@primitiveValue") -> $$empty) *
+	   ((#l, "@getOwnProperty") -> "o__getOwnProperty") *
+	   ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") *
+	   (ret == #l) ]]
     normal;
 
     [[ types(l : $$object_type, pr : $$object_type, cl : $$string_type) *
-       (ext == $$undefined) *
-       ((l, "@proto") -> $$null) ]]
-    [[ NonFunctionMethods (l) *
-	   ((l, "@proto") -> pr) * ((l, "@class") -> cl) *
-	   ((l, "@extensible") -> $$t) *  ((l, "@primitiveValue") -> $$empty) *
-	   ((l, "@getOwnProperty") -> "o__getOwnProperty") *
-	   ((l, "@defineOwnProperty") -> "o__defineOwnProperty") *
-	   (ret == l) ]]
+       (ext == $$undefined) * ((#l, "@proto") -> $$null) * (l == #l) ]]
+    [[ NonFunctionMethods (#l) *
+	   ((#l, "@proto") -> pr) * ((#l, "@class") -> cl) *
+	   ((#l, "@extensible") -> $$t) * ((#l, "@primitiveValue") -> $$empty) *
+	   ((#l, "@getOwnProperty") -> "o__getOwnProperty") *
+	   ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") *
+	   (ret == #l) ]]
     normal;
 
     [[ types(l : $$object_type, pr : $$object_type, ext : $$boolean_type) *
-       (cl == $$undefined) * ((l, "@proto") -> $$null) ]]
-    [[ NonFunctionMethods (l) *
-	   ((l, "@proto") -> pr) * ((l, "@class") -> "Object") *
-	   ((l, "@extensible") -> ext) *  ((l, "@primitiveValue") -> $$empty) *
-	   ((l, "@getOwnProperty") -> "o__getOwnProperty") *
-	   ((l, "@defineOwnProperty") -> "o__defineOwnProperty") *
-	   (ret == l) ]]
+       (cl == $$undefined) * ((#l, "@proto") -> $$null) * (l == #l) ]]
+    [[ NonFunctionMethods (#l) *
+	   ((#l, "@proto") -> pr) * ((#l, "@class") -> "Object") *
+	   ((#l, "@extensible") -> ext) * ((#l, "@primitiveValue") -> $$empty) *
+	   ((#l, "@getOwnProperty") -> "o__getOwnProperty") *
+	   ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") *
+	   (ret == #l) ]]
     normal;
 
     [[ types(l : $$object_type, pr : $$object_type, cl : $$string_type, ext : $$boolean_type) *
-       ((l, "@proto") -> $$null) ]]
-    [[ NonFunctionMethods (l) *
-	   ((l, "@proto") -> pr) * ((l, "@class") -> cl) *
-	   ((l, "@extensible") -> ext) *  ((l, "@primitiveValue") -> $$empty) *
-	   ((l, "@getOwnProperty") -> "o__getOwnProperty") *
-	   ((l, "@defineOwnProperty") -> "o__defineOwnProperty") *
-	   (ret == l) ]]
+       ((#l, "@proto") -> $$null) * (l == #l) ]]
+    [[ NonFunctionMethods (#l) *
+	   ((#l, "@proto") -> pr) * ((#l, "@class") -> cl) *
+	   ((#l, "@extensible") -> ext) * ((#l, "@primitiveValue") -> $$empty) *
+	   ((#l, "@getOwnProperty") -> "o__getOwnProperty") *
+	   ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") *
+	   (ret == #l) ]]
     normal
 
 proc create_default_object (l, pr, cl, ext) {
@@ -807,9 +806,9 @@ with
 spec Error_construct (xsc, vthis, v)
 
     (* Error constructor without message *)
-    [[ (v == $$undefined) * types (vthis : $$object_type) *
-       ((vthis, "@class") -> #cls) * ((vthis, "@extensible") -> #ext) ]]
-    [[ (ret == vthis) * ((vthis, "@class") -> "Error") * ((vthis, "@extensible") -> $$t) ]]
+    [[ (v == $$undefined) * (vthis == #vthis) * types (#vthis : $$object_type) *
+       ((#vthis, "@class") -> #cls) * ((#vthis, "@extensible") -> #ext) ]]
+    [[ (ret == #vthis) * ((#vthis, "@class") -> "Error") * ((#vthis, "@extensible") -> $$t) ]]
     normal
 
 proc Error_construct (xsc, vthis, v) {
@@ -970,11 +969,12 @@ with
    ************************* *)
 
 spec o__getOwnProperty (l, prop)
-    [[ Cell_o (l, prop, None) ]]
-    [[ Cell_o (l, prop, None) * (ret == $$undefined) ]]
+    [[ Cell_o (#l, #prop, None) * (l == #l) * (prop == #prop) ]]
+    [[ Cell_o (#l, #prop, None) * (ret == $$undefined) ]]
     normal;
-    [[ Cell_o (l, prop, #dx) * DataDescriptor(#dx) * types (#dx : $$list_type) ]]
-    [[ Cell_o (l, prop, #dx) * (ret == #dx) ]]
+    [[ Cell_o (#l, #prop, #dx) * (l == #l) * (prop == #prop) *
+	   DataDescriptor(#dx) * types (#dx : $$list_type) ]]
+    [[ Cell_o (#l, #prop, #dx) * (ret == #dx) ]]
     normal
 
 proc o__getOwnProperty (l, prop) {
@@ -1011,15 +1011,15 @@ with
    ************************* *)
 
 spec s__getOwnProperty (l, prop)
-    [[ Cell_s (l, prop, "None", None, #pv) ]]
-    [[ Cell_s (l, prop, "None", None, #pv) * (ret == $$undefined) ]]
+    [[ Cell_s (#l, #prop, "None", None, #pv) * (l == #l) * (prop == #prop) ]]
+    [[ Cell_s (#l, #prop, "None", None, #pv) * (ret == $$undefined) ]]
    	normal;
    	(* Same comment as in o__getOwnProperty applies *)
-   	[[ Cell_s (l, prop, "SI", #u, #pv) ]]
-   	[[ Cell_s (l, prop, "SI", #u, #pv) * (ret == #u) ]]
+   	[[ Cell_s (#l, #prop, "SI", #u, #pv) * (l == #l) * (prop == #prop) ]]
+   	[[ Cell_s (#l, #prop, "SI", #u, #pv) * (ret == #u) ]]
    	normal;
-   	[[ Cell_s (l, prop, "NSI", #u, #pv) ]]
-   	[[ Cell_s (l, prop, "NSI", #u, #pv) * (ret == #u) ]]
+   	[[ Cell_s (#l, #prop, "NSI", #u, #pv) * (l == #l) * (prop == #prop) ]]
+   	[[ Cell_s (#l, #prop, "NSI", #u, #pv) * (ret == #u) ]]
    	normal
 
 proc s__getOwnProperty (l, prop) {
@@ -1060,13 +1060,13 @@ with
    ********************** *)
 
 spec o__getProperty (l, prop)
-	[[ Pi (l, prop, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4, #gp_aux_5, #gp_aux_6) ]]
-	[[ Pi (l, prop, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4, #gp_aux_5, #gp_aux_6) * (ret == #gp_aux_3) ]]
+	[[ Pi (#l, #prop, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4, #gp_aux_5, #gp_aux_6) * (l == #l) * (prop == #prop) ]]
+	[[ Pi (#l, #prop, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4, #gp_aux_5, #gp_aux_6) * (ret == #gp_aux_3) ]]
 	normal
 
 proc o__getProperty (l, prop) {
 
-			[* unfold Pi (l, prop, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4, #gp_aux_5, #gp_aux_6) *]
+			[* unfold Pi (#l, #prop, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4, #gp_aux_5, #gp_aux_6) *]
     ch0:	goto [typeOf(l) = $$object_type] ch1 elab;
     ch1:	goto [typeOf(prop) = $$string_type] ch2 elab;
     ch2:	goto [0 < s-len prop] ch3 elab;
@@ -1082,7 +1082,7 @@ proc o__getProperty (l, prop) {
 	call:	gp := [proto, "@getProperty"];
 			xret := gp (proto, prop) with elab;
 
-			[* fold Pi (l, prop, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4, #gp_aux_5, #gp_aux_6) *]
+			[* fold Pi (#l, #prop, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4, #gp_aux_5, #gp_aux_6) *]
     rlab:   skip;
     elab:	skip
 
@@ -1098,23 +1098,23 @@ with
    ************** *)
 
 spec o__get (l, prop)
-    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (#g_aux_3 == $$undefined) ]]
-    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (#g_aux_3 == $$undefined) * (ret == $$undefined) ]]
+    [[ Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (#g_aux_3 == $$undefined) * (l == #l) * (prop == #prop)]]
+    [[ Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (#g_aux_3 == $$undefined) * (ret == $$undefined) ]]
     normal;
-    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * DataDescriptor (#g_aux_3) ]]
-    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * desc_val (#g_aux_3, #desc_val) * (ret == #desc_val) ]]
+    [[ Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * DataDescriptor (#g_aux_3) * (l == #l) * (prop == #prop) ]]
+    [[ Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * desc_val (#g_aux_3, #desc_val) * (ret == #desc_val) ]]
     normal
 
 proc o__get (l, prop) {
 
-            [* unfold Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
+            [* unfold Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
     ch0:	goto [typeOf(l) = $$object_type] ch1 elab;
     ch1:	goto [typeOf(prop) = $$string_type] ch2 elab;
     ch2:    goto [0 < s-len prop] ch3 elab;
     ch3:	goto [not (s-nth(prop, 0) = "@")] start elab;
 
 	start:  gp := [l, "@getProperty"];
-            [* fold Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
+            [* fold Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
 		    xret := gp (l, prop) with elab;
             goto [xret = $$undefined] rlab def;
 
@@ -1145,53 +1145,53 @@ with
 spec o__canPut (l, prop)
 
     (* Property not defined at all, returning "@extensible" *)
-    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
-       (#g_aux_3 == $$undefined) * ((l, "@extensible") -> #ext) * types (#ext: $$boolean_type) ]]
-    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
-       ((l, "@extensible") -> #ext) * (ret == #ext) ]]
+    [[ Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (l == #l) * (prop == #prop) *
+       (#g_aux_3 == $$undefined) * ((#l, "@extensible") -> #ext) * types (#ext: $$boolean_type) ]]
+    [[ Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+       ((#l, "@extensible") -> #ext) * (ret == #ext) ]]
     normal;
 
 	(* Property defined in the object itself, returning writable *)
-	[[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+	[[ Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (l == #l) * (prop == #prop) *
 	   DataDescriptor(#g_aux_3) * desc_writ(#g_aux_3, #writable) * (#g_aux_4 == {{ l }}) ]]
-	[[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+	[[ Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
 	   (ret == #writable) ]]
 	normal;
 
 	(* Property defined as a data descriptor outside, but object not extensible, return false *)
-	[[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
-	   DataDescriptor(#g_aux_3) * (1 <# l-len (#g_aux_4)) * ((l, "@extensible") -> $$f) *
+	[[ Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (l == #l) * (prop == #prop) *
+	   DataDescriptor(#g_aux_3) * (1 <# l-len (#g_aux_4)) * ((#l, "@extensible") -> $$f) *
 	   types (#g_aux_4 : $$list_type)]]
-	[[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
-	   ((l, "@extensible") -> $$f) * (ret == $$f) ]]
+	[[ Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+	   ((#l, "@extensible") -> $$f) * (ret == $$f) ]]
 	normal;
 
 	(* Property defined as a data descriptor outside, object extensible, return writable *)
-	[[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+	[[ Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (l == #l) * (prop == #prop) *
 	   DataDescriptor(#g_aux_3) * desc_writ(#g_aux_3, #writable) * (1 <# l-len (#g_aux_4)) *
-	   ((l, "@extensible") -> $$t) * types (#g_aux_4 : $$list_type) ]]
-	[[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
-	   ((l, "@extensible") -> $$t) * (ret == #writable) ]]
+	   ((#l, "@extensible") -> $$t) * types (#g_aux_4 : $$list_type) ]]
+	[[ Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+	   ((#l, "@extensible") -> $$t) * (ret == #writable) ]]
 	normal;
 
 	(* Property defined as an accessor descriptor, set doesn't exist, return false *)
-	[[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+	[[ Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (l == #l) * (prop == #prop) *
 	   AccessorDescriptor(#g_aux_3) * desc_set(#g_aux_3, $$undefined) *
-	   ((l, "@extensible") -> #ext) * types (#ext : $$boolean_type) ]]
-	[[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
-	   ((l, "@extensible") -> #ext) * (ret == $$f) ]]
+	   ((#l, "@extensible") -> #ext) * types (#ext : $$boolean_type) ]]
+	[[ Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+	   ((#l, "@extensible") -> #ext) * (ret == $$f) ]]
 	normal;
 
 	(* Property defined as an accessor descriptor, set exists, return true *)
-	[[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+	[[ Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (l == #l) * (prop == #prop) *
 	   AccessorDescriptor(#g_aux_3) * desc_set(#g_aux_3, #set) *
-	   ((l, "@extensible") -> #ext) * types (#ext : $$boolean_type, #set: $$object_type) ]]
-	[[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
-	   ((l, "@extensible") -> #ext) * (ret == $$t) ]]
+	   ((#l, "@extensible") -> #ext) * types (#ext : $$boolean_type, #set: $$object_type) ]]
+	[[ Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+	   ((#l, "@extensible") -> #ext) * (ret == $$t) ]]
 	normal
 
 proc o__canPut (l, prop) {
-            [* unfold Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
+            [* unfold Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
     ch0:	goto [typeOf(l) = $$object_type] ch1 elab;
     ch1:	goto [typeOf(prop) = $$string_type] ch2 elab;
     ch2:    goto [0 < s-len prop] ch3 elab;
@@ -1205,11 +1205,11 @@ proc o__canPut (l, prop) {
 			goto [d = "d"] odd nop;					(* Is the descriptor a data descriptor? *)
 
 	odd:	xret := l-nth (xret, 2);				(* It is; return the Writable attribute *)
-            [* fold Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
+            [* fold Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
 			goto rlab;
 
 	nop:	gp := [l, "@getProperty"];
-            [* fold Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
+            [* fold Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
             xret := gp (l, prop) with elab;			(* Does the property exist? *)
             e := [l, "@extensible"];
             goto [xret = $$undefined] ext desc;		(* It doesn't; return extensible *)
@@ -1242,43 +1242,43 @@ with
 
 spec o__deleteProperty (l, prop, throw)
 
-    [[ Cell_o (l, prop, #v) * ((l, "@getOwnProperty") -> "o__getOwnProperty") *
-	   DataDescriptor(#v) * desc_conf (#v, $$f) * (throw == $$t) ]]
-    [[ Cell_o (l, prop, #v) * ((l, "@getOwnProperty") -> "o__getOwnProperty") *
+    [[ Cell_o (#l, #prop, #v) * ((#l, "@getOwnProperty") -> "o__getOwnProperty") *
+	   DataDescriptor(#v) * desc_conf (#v, $$f) * (throw == $$t) * (l == #l) * (prop == #prop) ]]
+    [[ Cell_o (#l, #prop, #v) * ((#l, "@getOwnProperty") -> "o__getOwnProperty") *
 	   isTypeError(err) ]]
     error;
 
-    [[ Cell_o (l, prop, #v) * ((l, "@getOwnProperty") -> "o__getOwnProperty") *
-	   DataDescriptor(#v) * desc_conf (#v, $$f) * (throw == $$f) ]]
-    [[ Cell_o (l, prop, #v) * ((l, "@getOwnProperty") -> "o__getOwnProperty") *
+    [[ Cell_o (#l, #prop, #v) * ((#l, "@getOwnProperty") -> "o__getOwnProperty") *
+	   DataDescriptor(#v) * desc_conf (#v, $$f) * (throw == $$f) * (l == #l) * (prop == #prop) ]]
+    [[ Cell_o (#l, #prop, #v) * ((#l, "@getOwnProperty") -> "o__getOwnProperty") *
 	   (ret == $$f) ]]
     normal;
 
-    [[ Cell_o (l, prop, #v) * ((l, "@getOwnProperty") -> "o__getOwnProperty") *
-	   DataDescriptor(#v) * desc_conf (#v, $$t) ]]
-    [[ Cell_o (l, prop, None) * ((l, "@getOwnProperty") -> "o__getOwnProperty") *
+    [[ Cell_o (#l, #prop, #v) * ((#l, "@getOwnProperty") -> "o__getOwnProperty") *
+	   DataDescriptor(#v) * desc_conf (#v, $$t) * (l == #l) * (prop == #prop) ]]
+    [[ Cell_o (#l, #prop, None) * ((#l, "@getOwnProperty") -> "o__getOwnProperty") *
 	   (ret == $$t) ]]
     normal;
 
-    [[ Cell_o (l, prop, None) * ((l, "@getOwnProperty") -> "o__getOwnProperty") ]]
-    [[ Cell_o (l, prop, None) * ((l, "@getOwnProperty") -> "o__getOwnProperty") *
+    [[ Cell_o (#l, #prop, None) * ((#l, "@getOwnProperty") -> "o__getOwnProperty") * (l == #l) * (prop == #prop) ]]
+    [[ Cell_o (#l, #prop, None) * ((#l, "@getOwnProperty") -> "o__getOwnProperty") *
 	   (ret == $$t) ]]
     normal;
 
-	[[ Cell_s (l, prop, "None", None, #pv) * ((l, "@getOwnProperty") -> "o__getOwnProperty") ]]
-	[[ Cell_s (l, prop, "None", None, #pv) * ((l, "@getOwnProperty") -> "o__getOwnProperty") *
+	[[ Cell_s (#l, #prop, "None", None, #pv) * ((#l, "@getOwnProperty") -> "o__getOwnProperty") * (l == #l) * (prop == #prop) ]]
+	[[ Cell_s (#l, #prop, "None", None, #pv) * ((#l, "@getOwnProperty") -> "o__getOwnProperty") *
 	   (ret == $$t)]]
 	normal;
 
-	[[ Cell_s (l, prop, "SI", #desc, #pv) * ((l, "@getOwnProperty") -> "s__getOwnProperty") *
-	   (throw == $$t)]]
-	[[ Cell_s (l, prop, "SI", #desc, #pv) * ((l, "@getOwnProperty") -> "s__getOwnProperty") *
+	[[ Cell_s (#l, #prop, "SI", #desc, #pv) * ((#l, "@getOwnProperty") -> "s__getOwnProperty") *
+	   (throw == $$t) * (l == #l) * (prop == #prop)]]
+	[[ Cell_s (#l, #prop, "SI", #desc, #pv) * ((#l, "@getOwnProperty") -> "s__getOwnProperty") *
 	   isTypeError(err) ]]
 	error;
 
-	[[ Cell_s (l, prop, "SI", #desc, #pv) * ((l, "@getOwnProperty") -> "s__getOwnProperty") *
-	   DataDescriptor(#desc) * (throw == $$f)]]
-	[[ Cell_s (l, prop, "SI", #desc, #pv) * ((l, "@getOwnProperty") -> "s__getOwnProperty") *
+	[[ Cell_s (#l, #prop, "SI", #desc, #pv) * ((#l, "@getOwnProperty") -> "s__getOwnProperty") *
+	   DataDescriptor(#desc) * (throw == $$f) * (l == #l) * (prop == #prop)]]
+	[[ Cell_s (#l, #prop, "SI", #desc, #pv) * ((#l, "@getOwnProperty") -> "s__getOwnProperty") *
 	   (ret == $$f) ]]
 	normal
 
