@@ -165,13 +165,13 @@ let is_symb_heap_empty heap =
 
 
 let merge_heaps heap new_heap p_formulae solver gamma =
-	Printf.printf "-------------------------------------------------------------------\n";
+	(* Printf.printf "-------------------------------------------------------------------\n";
 	Printf.printf "-------------INSIDE MERGE HEAPS------------------------------------\n";
 	Printf.printf "-------------------------------------------------------------------\n";
 
 	Printf.printf "heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false);
 	Printf.printf "pat_heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap new_heap false);
-	Printf.printf "p_formulae: %s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
+	Printf.printf "p_formulae: %s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false); *)
 	LHeap.iter
 		(fun loc (n_fv_list, n_def) ->
 			match n_def with
@@ -182,7 +182,7 @@ let merge_heaps heap new_heap p_formulae solver gamma =
 						(match n_fv_list with
 						| [] -> q_fv_list
 						| (le_field, le_val) :: rest_n_fv_list ->
-							Printf.printf "le_field: %s, le_val: %s\n" (JSIL_Print.string_of_logic_expression le_field false) (JSIL_Print.string_of_logic_expression le_val false);
+							(* Printf.printf "le_field: %s, le_val: %s\n" (JSIL_Print.string_of_logic_expression le_field false) (JSIL_Print.string_of_logic_expression le_val false); *)
 							let _, fv_pair, i_am_sure_the_field_does_exist = find_field loc fv_list le_field p_formulae solver gamma in
 							(match fv_pair, i_am_sure_the_field_does_exist with
 							| None, true -> loop ((le_field, le_val) :: q_fv_list) rest_n_fv_list
@@ -265,7 +265,7 @@ let extend_pf pfs solver pfs_to_add =
 			if ((is_pf_sensible pf_to_add) && (is_pf_fresh pf_to_add))
 				then loop rest_pfs_to_add (pf_to_add :: fresh_pfs_to_add)
 				else loop rest_pfs_to_add fresh_pfs_to_add in
-	Printf.printf "I am deleting the solver!!!\n";
+	(* Printf.printf "I am deleting the solver!!!\n"; *)
 	solver := None;
 	DynArray.append (DynArray.of_list (loop pfs_to_add [])) pfs
 
@@ -434,12 +434,15 @@ let is_preds_empty preds =
 (** Symbolic State functions        **)
 (*************************************)
 let copy_symb_state symb_state =
-	let heap, store, p_formulae, gamma, preds, _ = symb_state in
+	let heap, store, p_formulae, gamma, preds, solver = symb_state in
 	let c_heap      = LHeap.copy heap in
 	let c_store     = copy_store store in
 	let c_pformulae = copy_p_formulae p_formulae in
 	let c_gamma     = copy_gamma gamma in
 	let c_preds     = copy_pred_set preds in
+	(match !solver with 
+	| Some (solver, _) -> Z3.Solver.reset solver
+	| None -> ()); 
 	(c_heap, c_store, c_pformulae, c_gamma, c_preds, ref None)
 
 let rec extend_symb_state_with_pfs symb_state pfs_to_add =

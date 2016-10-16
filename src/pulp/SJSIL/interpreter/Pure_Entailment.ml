@@ -979,6 +979,7 @@ let rec old_check_entailment existentials left_as right_as gamma =
 	(* let ret_right = check_satisfiability right_as gamma existentials in *)
 
 	let check_entailment_aux () =
+		Gc.full_major (); 
 		let left_as =	List.map (fun a -> encode_pure_formula tr_ctx true a) left_as in
 		let left_as = tr_ctx.tr_axioms @ (encode_gamma tr_ctx) @ left_as in
 		let right_as = List.map (fun a -> let a = encode_pure_formula tr_ctx false a in Boolean.mk_not ctx a) right_as in
@@ -989,8 +990,6 @@ let rec old_check_entailment existentials left_as right_as gamma =
 				(List.nth right_as 0)
 			else Boolean.mk_false ctx in
 
-	  (* Printf.printf "checking if:\n %s\nIMPLIES\n%s\n" (string_of_z3_expr_list left_as) (Expr.to_string right_as_or); *)
-
 		let right_as_or =
 			if ((List.length existentials) > 0)
 				then encode_quantifier true tr_ctx.z3_ctx existentials (get_sorts tr_ctx existentials) right_as_or
@@ -1000,7 +999,10 @@ let rec old_check_entailment existentials left_as right_as gamma =
 		Solver.add solver left_as;
 		Solver.push solver;
 		Solver.add solver [ right_as_or ];
+		Printf.printf "I am checking the satisfiability of:\n %s\n" (string_of_solver solver);
 		let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in
+		Printf.printf "backtracking_scopes before pop after push: %d!!!\n" (Solver.get_num_scopes solver); 
+		Printf.printf "ret: %b\n" ret; 
 		Solver.pop solver 1;
 		ret, Some (solver, tr_ctx)  in
 	(* if (not (ret_right)) then false, None *)
@@ -1032,12 +1034,12 @@ let rec check_entailment solver existentials left_as right_as gamma =
 				then encode_quantifier true ctx existentials (get_sorts tr_ctx existentials) right_as_or
 				else right_as_or in
 		let right_as_or = Expr.simplify right_as_or None in
-		(* Printf.printf "BICHAAAAAA!!!!checking if:\n %s\nIMPLIES\n%s\n" (string_of_solver solver) (Expr.to_string right_as_or); *)
 		Solver.push solver;
 		Solver.add solver [ right_as_or ];
+		Printf.printf "I am checking the satisfiability of:\n %s\n" (string_of_solver solver); 
 		let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in
-		(* Printf.printf "backtracking_scopes before pop after push: %d!!!\n" (Solver.get_num_scopes solver); *)
-		(* Printf.printf "ret: %b\n" ret; *)
+		Printf.printf "backtracking_scopes before pop after push: %d!!!\n" (Solver.get_num_scopes solver); 
+		Printf.printf "ret: %b\n" ret; 
 		Solver.pop solver 1;
 		(* Printf.printf "backtracking_scopes after pop: %d!!!\n" (Solver.get_num_scopes solver); *)
 		ret
