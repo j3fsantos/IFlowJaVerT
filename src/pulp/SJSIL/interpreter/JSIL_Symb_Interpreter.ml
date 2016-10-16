@@ -6,18 +6,63 @@ let verbose = ref true
 
 let proto_f = "@proto"
 
-let find_me_baby le store pfs =
-(match le with
-| PVar var -> Hashtbl.find store var
-| LVar var ->
-	let rec loop pfs =
-	(match pfs with
-	| [] -> LVar var
-	| LEq (LVar v, lexpr) :: pfs -> if (v = var) then lexpr else loop pfs
-	| LEq (lexpr, LVar v) :: pfs -> if (v = var) then lexpr else loop pfs
-	| _  :: pfs -> loop pfs) in
-	loop (DynArray.to_list pfs)
-| _ -> le)
+exception FoundIt of jsil_logic_expr
+
+let rec find_me_baby le store pfs =
+	let found = ref [le] in
+	let counter = ref 0 in
+	try
+	(
+		while (!counter < List.length !found)
+		do
+			let lex = List.nth !found !counter in
+			counter := !counter + 1;
+			(match lex with
+			| PVar var ->
+				counter := !counter + 1;
+				let value = Hashtbl.find store var in
+				(match value with
+				| LLit (LList _)
+				| LEList _ -> raise (FoundIt value)
+				| _ ->
+					if (not (List.mem value !found)) then
+					begin
+						found := !found @ [value];
+						DynArray.iter
+							(fun x -> (match x with
+								| LEq (PVar v, lexpr)
+								| LEq (lexpr, PVar v) ->
+									if (v = var) then
+										if (not (List.mem lexpr !found)) then
+											found := !found @ [lexpr];
+								| _ -> ())) pfs;
+					end)
+			| LVar var ->
+				DynArray.iter
+					(fun x -> (match x with
+						| LEq (LVar v, lexpr)
+						| LEq (lexpr, LVar v) ->
+							if (v = var) then
+							(match lexpr with
+							| LLit (LList _)
+							| LEList _ -> raise (FoundIt lexpr)
+							| _ ->
+								if (not (List.mem lexpr !found)) then
+									found := !found @ [lexpr])
+						| _ -> ())) pfs;
+			| _ -> ());
+		done;
+		let flist = List.filter
+			(fun x -> match x with
+				| LLit (LList _)
+				| LEList _ -> true
+				| _ -> false) !found in
+		if (flist = [])
+			then le
+			else (List.hd flist)
+	) with FoundIt result -> result
+
+
 
 (***************************)
 (** Symbolic Execution    **)
@@ -39,14 +84,14 @@ let rec symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae =
 		| LLit l1, LLit l2 ->
 			let l = JSIL_Interpreter.evaluate_binop op l1 l2 in
 			LLit l
-		| _, _ -> 
-			(match op with 
-			| Equal -> 
-				let t1, _, _ = JSIL_Logic_Utils.type_lexpr gamma nle1 in 
+		| _, _ ->
+			(match op with
+			| Equal ->
+				let t1, _, _ = JSIL_Logic_Utils.type_lexpr gamma nle1 in
 				let t2, _, _ = JSIL_Logic_Utils.type_lexpr gamma nle2 in
-				(match t1, t2 with 
+				(match t1, t2 with
 				| Some t1, Some t2 -> if (not (t1 = t2)) then (LLit (Bool false)) else LBinOp (nle1, op, nle2)
-				| _, _             -> LBinOp (nle1, op, nle2))         
+				| _, _             -> LBinOp (nle1, op, nle2))
 			| _ -> LBinOp (nle1, op, nle2)))
 
 	| UnaryOp (op, e) ->
@@ -272,7 +317,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 					symb_states_and_ret_lexprs) in
 		symb_states_and_ret_lexprs in
 
-	let enrich_pure_part symb_state spec subst : symbolic_state =
+	let enrich_pure_part symb_state spec subst : bool * symbolic_state =
 		let pre_gamma = (get_gamma spec.n_pre) in
 		let pre_pfs = (get_pf spec.n_pre) in
 		let pre_gamma = copy_gamma pre_gamma in
@@ -285,7 +330,8 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		let heap = get_heap symb_state in
 		let preds = get_preds symb_state in
 		let new_symb_state = (heap, store, pfs, gamma, preds, ref None) in
-		new_symb_state in
+		let is_sat = Pure_Entailment.check_satisfiability (get_pf_list new_symb_state) (get_gamma new_symb_state) [] in
+		(is_sat, new_symb_state) in
 
 
 	let rec find_correct_specs spec_list ac_quotients =
@@ -314,11 +360,17 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 	let transform_symb_state_partial_match (spec, quotient_heap, quotient_preds, subst, pf_discharges) : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
 		let symb_states_and_ret_lexprs = transform_symb_state spec symb_state quotient_heap quotient_preds subst pf_discharges in
 		let symb_states_and_ret_lexprs =
-			List.map
-				(fun (symb_state, ret_flag, ret_lexpr) ->
-					let new_symb_state = enrich_pure_part symb_state spec subst in
-					(new_symb_state, ret_flag, ret_lexpr))
-			symb_states_and_ret_lexprs in
+			List.fold_left
+				(fun ac (symb_state, ret_flag, ret_lexpr) ->
+					let (is_sat, new_symb_state) = enrich_pure_part symb_state spec subst in
+					if is_sat then ((new_symb_state, ret_flag, ret_lexpr) :: ac) else ac)
+				[] symb_states_and_ret_lexprs in
+		let symb_states_and_ret_lexprs =
+			List.map (fun (symb_state, ret_flag, ret_lexpr) ->
+			let new_symb_state =
+				let rpfs = DynArray.map (fun x -> JSIL_Logic_Utils.reduce_assertion x) (get_pf symb_state) in
+				Symbolic_State_Functions.symb_state_replace_pfs symb_state rpfs in
+			(new_symb_state, ret_flag, JSIL_Logic_Utils.reduce_expression ret_lexpr)) symb_states_and_ret_lexprs in
 		symb_states_and_ret_lexprs in
 
 
@@ -469,7 +521,7 @@ let simplify_symb_state symb_state =
 	let list_subst = Hashtbl.create 17 in
 	DynArray.iter (fun a -> get_list_nth_len_ass list_subst false a) pure_formulae;
 	Printf.printf "So, we've got a substitution:\n%s\n" (JSIL_Memory_Print.string_of_substitution list_subst);
-	let pure_formulae = DynArray.map (fun pf -> subst_list_nth_len_pf list_subst pf) pure_formulae in
+	let pure_formulae = DynArray.map (fun pf -> JSIL_Logic_Utils.reduce_assertion (subst_list_nth_len_pf list_subst pf)) pure_formulae in
 	Printf.printf "So, we've got some new pure formulae:\n%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae pure_formulae false);
 	let new_gamma = expand_gamma gamma pure_formulae in
 	Printf.printf "And we've got some new gamma:\n%s\n" (JSIL_Memory_Print.string_of_gamma new_gamma);
@@ -480,7 +532,7 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 	let args = List.map (fun le -> lexpr_substitution le subst0 true) args in
 	let store = Symbolic_State_Functions.init_store params args in
 
-	(* Printf.printf "I WILL BEGIN TO UNFOLD: NUMBER OF DEFINITIONS: %i\n" (List.length  pred_defs); *)
+	Printf.printf "I WILL BEGIN TO UNFOLD: NUMBER OF DEFINITIONS: %i\n" (List.length  pred_defs);
 
 	let update_gamma_from_unfolded_predicate store gamma symb_state =
 	let symb_gamma = get_gamma symb_state in

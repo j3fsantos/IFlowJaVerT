@@ -669,9 +669,9 @@ let normalise_predicate_definitions pred_defs : (string, JSIL_Memory_Model.n_jsi
 	let n_pred_defs = Hashtbl.create 31 in
 	Hashtbl.iter
 		(fun pred_name pred ->
-					Printf.printf "========================================\n";
+					Printf.printf "=====================================\n";
 					Printf.printf "Enter the normalisation of predicate: %s\n" pred_name;
-					Printf.printf "========================================\n";
+					Printf.printf "=====================================\n";
 					let n_definitions =
 						List.map
 							(fun a ->
