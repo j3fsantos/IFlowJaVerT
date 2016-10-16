@@ -2,66 +2,112 @@
    *** PREDICATES ***
    ****************** *)
 
-(* Internal properties *)
+(*
+ * Predicate: isInternalProperty
+ *
+ * Resource: None
+ *
+ *)
 pred isInternalProperty (prop) :
     (0 <# s-len prop) * (s-nth (prop, 0) == "@") * types (prop : $$string_type);
 
-(* Named properties *)
+(*
+ * Predicate: isNamedProperty
+ *
+ * Resource: None
+ *
+ *)
 pred isNamedProperty (prop) :
     (0 <# s-len prop) * (! (s-nth (prop, 0) == "@")) * types (prop : $$string_type);
 
-(* Location *)
-pred isObjectLocation (v) :
-    types (v : $$object_type);
-
-pred isList (v) :
-    types (v : $$list_type);
-
-(* Data descriptors *)
+(*
+ * Predicate: DataDescriptor
+ *
+ * Resource: None
+ *
+ *)
 pred DataDescriptor (d) :
-    isList(d) * (d == {{ #dtype, #dval, #dwrit, #denum, #dconf }}) * (#dtype == "d") *
-    types (#dtype : $$string_type, #dwrit : $$boolean_type, #denum : $$boolean_type, #dconf : $$boolean_type);
+    types (d : $$list_type) * (d == {{ "d", #dval, #dwrit, #denum, #dconf }}) *
+    types (#dwrit : $$boolean_type, #denum : $$boolean_type, #dconf : $$boolean_type);
 
-(* Accessor descriptors *)
+(*
+ * Predicate: AccessorDescriptor
+ *
+ * Resource: None
+ *
+ *)
 pred AccessorDescriptor (d) :
-    isList(d) * (d == {{ #atype, #aget, #aset, #aenum, #aconf }}) * (#atype == "a") *
-    types (#atype : $$string_type, #aenum : $$boolean_type, #aconf : $$boolean_type);
+    types (d : $$list_type) * (d == {{ "a", #aget, #aset, #aenum, #aconf }}) *
+    types (#aenum : $$boolean_type, #aconf : $$boolean_type);
 
-(* Generic descriptor *)
+(*
+ * Predicate: GenericDescriptor
+ *
+ * Resource: None
+ *
+ *)
 pred GenericDescriptor (d) :
-    isList(d) * (d == {{ #gtype, #genum, #gconf, #gval, #gwrit, #gget, #gset }}) * (#gtype == "g") *
-    types (#gtype : $$string_type);
+    types (d : $$list_type) * (d == {{ "g", #genum, #gconf, #gval, #gwrit, #gget, #gset }});
 
-(* Projection functions for descriptors *)
+(*
+ * Predicate: Projection functions for descriptors
+ *
+ * Resource: None
+ *
+ *)
 pred desc_val (d, v) :
-    isList(d) * v == l-nth(d, 1);
+    types (d : $$list_type) * v == l-nth(d, 1);
 
 pred desc_writ (d, v) :
-    isList(d) * v == l-nth(d, 2);
+    types (d : $$list_type) * v == l-nth(d, 2);
 
 pred desc_get (d, v) :
-    isList(d) * v == l-nth(d, 1);
+    types (d : $$list_type) * v == l-nth(d, 1);
 
 pred desc_set (d, v) :
-    isList(d) * v == l-nth(d, 2);
+    types (d : $$list_type) * v == l-nth(d, 2);
 
 pred desc_enum (d, v) :
-    isList(d) * v == l-nth(d, 3);
+    types (d : $$list_type) * v == l-nth(d, 3);
 
 pred desc_conf (d, v) :
-    isList(d) * v == l-nth(d, 4);
+    types (d : $$list_type) * v == l-nth(d, 4);
 
-(* Standard object cell stuff *)
+(*
+ * Predicate: Cell_o(l, prop, X)
+ *
+ * Resource:
+ *      (l, prop)
+ *
+ * Note: We are not allowing accessor descriptors in the heap yet
+ *)
 pred Cell_o (l, prop, None) :
-    isObjectLocation(l) * isNamedProperty(prop) * ((l, prop) -> None);
-pred Cell_o (l, prop, d) :
-    isObjectLocation(l) * isNamedProperty(prop) * ((l, prop) -> d) * DataDescriptor(d);
+    types(l : $$object_type) * isNamedProperty(prop) * ((l, prop) -> None);
 
+pred Cell_o (l, prop, d) :
+    types(l : $$object_type) * isNamedProperty(prop) * ((l, prop) -> d) * DataDescriptor(d);
+
+(*
+ * Predicate: IsStringIndex
+ *
+ * Resource: None
+ *
+ *)
 pred IsStringIndex(S, prop, i) :
     types(S : $$string_type, prop : $$string_type, i : $$int_type) *
     (prop == num_to_string i) * (!(i <# 0)) * (i <# s-len S);
 
-(* String cell stuff *)
+(*
+ * Predicate: Cell_s((l, prop, _, X, primitiveValue))
+ *
+ * Resource:
+ *      (l, prop)               via Cell_o
+ *      (l, "@primitiveValue")
+ *
+ * Note: Must be used with String objects,
+ *       otherwise (l, "@primitiveValue") is $$empty
+ *
+ *)
 pred Cell_s (l, prop, "None", None, pv) :
      Cell_o (l, prop, None) * ((l, "@primitiveValue") -> pv) *
      (#i == num_to_int (string_to_num prop)) * (! IsStringIndex(pv, prop, #i)) *
@@ -70,34 +116,54 @@ pred Cell_s (l, prop, "None", None, pv) :
 pred Cell_s (l, prop, "SI", desc, pv) :
      Cell_o (l, prop, None) * ((l, "@primitiveValue") -> pv) *
      (#i == num_to_int (string_to_num prop)) * IsStringIndex(pv, prop, #i) *
-     (#v == s-nth(pv, #i)) * types(#v : $$string_type, desc : $$list_type) *
-     (desc == {{ "d", #v, $$f, $$t, $$f }}) * types (pv : $$string_type);
+     (#v == s-nth(pv, #i)) * (desc == {{ "d", #v, $$f, $$t, $$f }}) *
+     types(#v : $$string_type, desc : $$list_type, #i : $$int_type, pv : $$string_type);
 
 pred Cell_s (l, prop, "NSI", desc, pv) :
-     Cell_o (l, prop, desc) * ((l, "@primitiveValue") -> pv) *
-     (! (desc == None)) * types (pv : $$string_type);
+	 Cell_o (l, prop, desc) * ((l, "@primitiveValue") -> pv) *
+     (! (desc == None)) * DataDescriptor(desc) * types (desc : $$list_type, pv : $$string_type);
 
-(* Common and less common methods *)
-
+ (*
+  * Predicate: CommonMethods(l)
+  *
+  * Resource:
+  *      (l, "@getProperty")    (l, "@get")         (l, "@canPut")
+  *      (l, "@put")            (l, "@hasProperty") (l, "@deleteProperty")
+  *      (l, "@defaultValue")   (l, "@match")       (l, "@parameterMap")
+  *
+  * Note: Standard methods that are common to all objects.
+  *       Should be used only when specifying ENTIRE objects.
+  *
+  *)
 pred CommonMethods (l) :
+    types (l : $$object_type) *
 	((l, "@getProperty")    -> "o__getProperty") *
     ((l, "@get")            -> "o__get") *
     ((l, "@canPut")         -> "o__canPut") *
     ((l, "@put")            -> "o__put") *
     ((l, "@hasProperty")    -> "o__hasProperty") *
     ((l, "@deleteProperty") -> "o__deleteProperty") *
-    ((l, "@defaultValue")   -> "o__defaultValue");
+    ((l, "@defaultValue")   -> "o__defaultValue") *
+    ((l, "@match")          -> $$empty) *
+    ((l, "@parameterMap")   -> $$empty);
 
-pred Methods_String (l) :
-	CommonMethods(l) *
-        ((l, "@getOwnProperty")    -> "s__getOwnProperty") *
-        ((l, "@defineOwnProperty") -> "o__defineOwnProperty");
-
-pred Methods_Object(l) :
+(*
+ * Predicate: NonFunctionMethods(l)
+ *
+ * Resource:
+ *      (l, "@getProperty")     (l, "@get")                 (l, "@canPut")
+ *      (l, "@put")             (l, "@hasProperty")         (l, "@deleteProperty")
+ *      (l, "@defaultValue")    (l, "@match")               (l, "@parameterMap")
+ *      (l, "@construct")       (l, "@call")                (l, "@hasInstance")
+ *      (l, "@scope")           (l, "@formalParameters")    (l, "@targetFunction")
+ *      (l, "@boundThis")       (l, "@boundArguments")
+ *
+ * Note: Special Methods that are common to non-function objects.
+ *       Should be used only when specifying ENTIRE objects.
+ *
+ *)
+pred NonFunctionMethods (l) :
     CommonMethods(l) *
-        ((l, "@getOwnProperty") -> "o__getOwnProperty") *
-        ((l, "@defineOwnProperty") -> "o__defineOwnProperty") *
-        ((l, "@primitiveValue") -> $$empty) *
         ((l, "@construct") -> $$empty) *
         ((l, "@call") -> $$empty) *
         ((l, "@hasInstance") -> $$empty) *
@@ -105,70 +171,155 @@ pred Methods_Object(l) :
         ((l, "@formalParameters") -> $$empty) *
         ((l, "@targetFunction") -> $$empty) *
         ((l, "@boundThis") -> $$empty) *
-        ((l, "@boundArguments") -> $$empty) *
-        ((l, "@match") -> $$empty) *
-        ((l, "@parameterMap") -> $$empty);
+        ((l, "@boundArguments") -> $$empty);
 
-pred Object (l, pr, cl, ext):
-    Methods_Object(l) *
-        ((l, "@proto") -> pr) *
-        ((l, "@class") -> cl) *
-        ((l, "@extensible") -> ext) *
-        types (cl : $$string_type, ext : $$boolean_type);
+(*
+ * Note: the mutable and non-unique methods are
+ *
+ *      (l, "@proto")       (l, "@class")
+ *      (l, "@extensible")  (l, "@primitiveValue")
+ *
+ *      (l, "@getOwnProperty")    - different for Strings
+ *      (l, "@defineOwnProperty") - different for Arrays
+ *
+ *)
 
-(* Classes and methods *)
-pred Class (l, "String") :
-     ((l, "@class") -> "String") * Methods_String (l);
-pred Class (l, "Object") :
-     ((l, "@class") -> #c) * (!(#c == "String")) * Methods_Object (l);
+pred ErrorObject (l, pr) :
+	NonFunctionMethods(l) *
+	((l, "@proto") -> pr) * ((l, "@class") -> "Error") *
+	((l, "@extensible") -> $$t) * ((l, "@primitiveValue") -> $$empty) *
+	((l, "@getOwnProperty") -> "o__getOwnProperty") *
+	((l, "@defineOwnProperty") -> "o__defineOwnProperty");
 
-(* The PI predicate *)
+pred isTypeError(l) :
+    ErrorObject (l, $lterr_proto);
 
+pred isSyntaxError(l) :
+    ErrorObject (l, $lserr_proto);
+
+pred isReferenceError(l) :
+    ErrorObject (l, $lrferr_proto);
+
+(*
+ * Predicate: PiClass(l, X)
+ *
+ * Resource:
+ *      (l, "@class")	(l, "@getOwnProperty")
+ *
+ *)
+pred PiClass (l, "String") :
+	 types (l : $$object_type) *
+     ((l, "@class") -> "String") * ((l, "@getOwnProperty") -> "s__getOwnProperty");
+pred PiClass (l, "Object") :
+	 types (l : $$object_type) *
+     ((l, "@class") -> #c) * (!(#c == "String")) * ((l, "@getOwnProperty") -> "o__getOwnProperty");
+
+(*
+ * The PI predicate
+ *)
+
+(*
+ * Resource:
+ *		(l, "@class")   (l, "@getOwnProperty")  via PiClass
+ *		(l, "proto")	(l, "prop")		(l, "@getProperty")
+ *)
 pred Pi (l, prop, "base", "General", $$undefined, ls, ltf, lpv) :
-	Class (l, "Object") * Cell_o (l, prop, None) * ((l, "@proto") -> $$null) *
+	PiClass (l, "Object") * Cell_o (l, prop, None) *
+	((l, "@getProperty") -> "o__getProperty") * ((l, "@proto") -> $$null) *
     types(ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
     (ls == {{ l }}) * (ltf == {{ $$f }}) * (lpv == {{ "" }});
 
+(*
+ * Resource:
+ *		(l, "@class")   (l, "@getOwnProperty")  via PiClass
+ *		(l, "proto")	(l, "prop")		(l, "@getProperty")
+ *)
 pred Pi (l, prop, "base", "General", d, ls, ltf, lpv) :
-	Class (l, "Object") * Cell_o (l, prop, d) * DataDescriptor(d) *
+	PiClass (l, "Object") * Cell_o (l, prop, d) * DataDescriptor(d) *
+	((l, "@getProperty") -> "o__getProperty") *
     types(ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
     (ls == {{ l }}) * (ltf == {{ $$f }}) * (lpv == {{ "" }});
 
+(*
+ * Resource:
+ *		(l, "@class")   (l, "@getOwnProperty")  via PiClass
+ *		(l, "proto")	(l, "prop")		(l, "@getProperty")
+ *		(l, "@primitiveValue")
+ *)
 pred Pi (l, prop, "base", "String", $$undefined, ls, ltf, lpv) :
-    Class (l, "String") * Cell_s (l, prop, "None", None, #pv) * ((l, "@proto") -> $$null) *
+    PiClass (l, "String") * Cell_s (l, prop, "None", None, #pv) *
+	((l, "@getProperty") -> "o__getProperty") * ((l, "@proto") -> $$null) *
     types(ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
     (ls == {{ l }}) * (ltf == {{ $$t }}) * (lpv == {{ #pv }});
 
+(*
+ * Resource:
+ *		(l, "@class")   (l, "@getOwnProperty")  via PiClass
+ *		(l, "proto")	(l, "prop")		(l, "@getProperty")
+ *		(l, "@primitiveValue")
+ *)
 pred Pi (l, prop, "base", "StringSI", d, ls, ltf, lpv) :
-	Class (l, "String") * Cell_s (l, prop, "SI", d, #pv) *
+	PiClass (l, "String") * Cell_s (l, prop, "SI", d, #pv) *
+	((l, "@getProperty") -> "o__getProperty") *
     types(ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
     (ls == {{ l }}) * (ltf == {{ $$t }}) * (lpv == {{ #pv }});
 
+(*
+ * Resource:
+ *		(l, "@class")   (l, "@getOwnProperty")  via PiClass
+ *		(l, "proto")	(l, "prop")		(l, "@getProperty")
+ *		(l, "@primitiveValue")
+ *)
 pred Pi (l, prop, "base", "StringNSI", d, ls, ltf, lpv) :
-	Class (l, "String") * Cell_s (l, prop, "NSI", d, #pv) *
+	PiClass (l, "String") * Cell_s (l, prop, "NSI", d, #pv) *
+	((l, "@getProperty") -> "o__getProperty") *
     types(ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
     (ls == {{ l }}) * (ltf == {{ $$t }}) * (lpv == {{ #pv }});
 
+(*
+ * Resource:
+ *		(l, "@class")   (l, "@getOwnProperty")  via PiClass
+ *		(l, "proto")	(l, "prop")		(l, "@getProperty")
+ *		(l, "@primitiveValue")
+ *
+ *		Those five fields captured throughout the chain
+ *)
 pred Pi (l, prop, "inductive", "General", d, ls, ltf, lpv) :
-	Class (l, "Object") * Cell_o (l, prop, None) *
-    ((l, "@proto") -> #lp) * (!(#lp == $$null)) * CommonMethods(#lp) *
+	PiClass (l, "Object") * Cell_o (l, prop, None) *
+	((l, "@getProperty") -> "o__getProperty") *
+    ((l, "@proto") -> #lp) * (! (#lp == $$null)) *
     Pi (#lp, prop, #caseType, #class, d, #lsp, #ltfp, #lpvp) *
+	((#lp, "@getProperty") -> "o__getProperty") *
     types(  ls : $$list_type,   ltf : $$list_type,   lpv : $$list_type,
           #lsp : $$list_type, #ltfp : $$list_type, #lpvp : $$list_type) *
     (ls == l :: #lsp) * (ltf == $$f :: #ltfp) * (lpv == "" :: #lpvp) *
     (0 <# l-len #lsp) * (0 <# l-len #ltfp) * (0 <# l-len #lpvp);
 
+(*
+ * Resource:
+ *		(l, "@class")   (l, "@getOwnProperty")  via PiClass
+ *		(l, "proto")	(l, "prop")		(l, "@getProperty")
+ *		(l, "@primitiveValue")
+ *
+ *		Those five fields captured throughout the chain
+ *)
 pred Pi (l, prop, "inductive", "String", d, ls, ltf, lpv) :
-	Class (l, "String") * Cell_s (l, prop, "None", None, #pv) *
-    ((l, "@proto") -> #lp) * (!(#lp == $$null)) * CommonMethods(#lp) *
+	PiClass (l, "String") * Cell_s (l, prop, "None", None, #pv) *
+    ((l, "@getProperty") -> "o__getProperty") *
+	((l, "@proto") -> #lp) * (! (#lp == $$null)) *
     Pi (#lp, prop, #caseType, #class, d, #lsp, #ltfp, #lpvp) *
+	((#lp, "@getProperty") -> "o__getProperty") *
     types(  ls : $$list_type,   ltf : $$list_type,   lpv : $$list_type,
           #lsp : $$list_type, #ltfp : $$list_type, #lpvp : $$list_type) *
     (ls == l :: #lsp) * (ltf == $$t :: #ltfp) * (lpv == #pv :: #lpvp) *
     (0 <# l-len #lsp) * (0 <# l-len #ltfp) * (0 <# l-len #lpvp);
 
+(* *************************************
+   *** *** ***   AUXILIARY   *** *** ***
+   ************************************* *)
+
 (* **********************
-   *** I__ISPRIMITIVE ***
+   *** i__isPrimitive ***
    ********************** *)
 
 spec i__isPrimitive (v)
@@ -211,7 +362,6 @@ with
 {
 	ret:	xret, rlab;
 };
-
 
 (* *******************
    *** i__toNumber ***
@@ -335,389 +485,6 @@ with
 	err:	xret, elab;
 };
 
-(* *************************
-   *** O__GETOWNPROPERTY ***
-   ************************* *)
-
-spec o__getOwnProperty (l, prop)
-    [[ Cell_o (l, prop, None) ]]
-    [[ Cell_o (l, prop, None) * (ret == $$undefined) ]]
-    normal;
-    [[ Cell_o (l, prop, #dx) * DataDescriptor(#dx) ]]
-    [[ Cell_o (l, prop, #dx) * DataDescriptor(#dx) * (ret == #dx) ]]
-    normal
-
-proc o__getOwnProperty (l, prop) {
-	(*
-		l must be an object
-		prop must be a non-empty string
-		prop must not be an internal property
-	*)
-	ch0:	goto [typeOf(l) = $$object_type] ch1 elab;
-	ch1:	goto [typeOf(prop) = $$string_type] ch2 elab;
-	ch2:	goto [0 < s-len prop] ch3 elab;
-	ch3:	goto [not (s-nth(prop, 0) = "@")] start elab;
-
-    start:	x := hasField(l, prop);
-            goto [x] hp nhp;
-
-    nhp:    xret := $$undefined;
-            goto rlab;
-
-    hp:     xret := [l, prop];
-
-    rlab:   skip;
-
-	elab:	xret := "TypeError" ("Incorrect use of [[getOwnProperty]]")
-}
-with
-{
-    ret: 	xret, rlab;
-	err:	xret, elab;
-};
-
-(* *************************
-   *** S__GETOWNPROPERTY ***
-   ************************* *)
-
-spec s__getOwnProperty (l, prop)
-    [[ Cell_s (l, prop, "None", None, #pv) ]]
-    [[ Cell_s (l, prop, "None", None, #pv) * (ret == $$undefined) ]]
-   	normal;
-   	(* Same comment as in o__getOwnProperty applies *)
-   	[[ Cell_s (l, prop, "SI", #u, #pv) ]]
-   	[[ Cell_s (l, prop, "SI", #u, #pv) * (ret == #u) ]]
-   	normal;
-   	[[ Cell_s (l, prop, "NSI", #u, #pv) ]]
-   	[[ Cell_s (l, prop, "NSI", #u, #pv) * (ret == #u) ]]
-   	normal
-
-proc s__getOwnProperty (l, prop) {
-
-    ch0:	goto [typeOf(l) = $$object_type] ch1 elab;
-    ch1:	goto [typeOf(prop) = $$string_type] ch2 elab;
-    ch2:	goto [0 < s-len prop] ch3 elab;
-    ch3:	goto [not (s-nth(prop, 0) = "@")] start elab;
-
-   	start:	xret := "o__getOwnProperty" (l, prop);
-   			goto [xret = $$undefined] str rlab;
-
-   	str:	idx := "i__toInteger" (prop) with elab;
-   			goto [idx < 0] rlab next;
-
-   	next:	sidx := "i__toString" (idx);
-
-   			goto [sidx = prop] index rlab;
-
-   	index:	str := [l, "@primitiveValue"];
-   			len := s-len (str);
-   			goto [len <= idx] rlab return;
-
-   	return: rstr := s-nth (str, idx);
-   			xret := {{ "d", rstr, $$f, $$t, $$f }};
-
-   	rlab: 	skip;
-   	elab:	skip
-}
-with
-{
-    ret: 	xret, rlab;
-   	err: 	xret, elab;
-};
-
-(* **********************
-   *** O__GETPROPERTY ***
-   ********************** *)
-
-spec o__getProperty (l, prop)
-	[[ Pi (l, prop, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4, #gp_aux_5, #gp_aux_6) ]]
-	[[ Pi (l, prop, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4, #gp_aux_5, #gp_aux_6) * (ret == #gp_aux_3) ]]
-	normal
-
-proc o__getProperty (l, prop) {
-
-			[* unfold Pi (l, prop, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4, #gp_aux_5, #gp_aux_6) *]
-    ch0:	goto [typeOf(l) = $$object_type] ch1 elab;
-    ch1:	goto [typeOf(prop) = $$string_type] ch2 elab;
-    ch2:	goto [0 < s-len prop] ch3 elab;
-    ch3:	goto [not (s-nth(prop, 0) = "@")] start elab;
-
-	start:  gop := [l, "@getOwnProperty"];
-			xret := gop (l, prop) with elab;
-			goto [xret = $$undefined] next rlab;
-
-	next:	proto := [l, "@proto"];
-			goto [proto = $$null] rlab call;
-
-	call:	gp := [proto, "@getProperty"];
-			xret := gp (proto, prop) with elab;
-
-			[* fold Pi (l, prop, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4, #gp_aux_5, #gp_aux_6) *]
-    rlab:   skip;
-    elab:	skip
-
-}
-with
-{
-    ret: 	xret, rlab;
-    err:	xret, elab;
-};
-
-(* **************
-   *** O__GET ***
-   ************** *)
-
-spec o__get (l, prop)
-    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (#g_aux_3 == $$undefined) ]]
-    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (#g_aux_3 == $$undefined) * (ret == $$undefined) ]]
-    normal;
-    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * DataDescriptor (#g_aux_3) ]]
-    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * desc_val (#g_aux_3, #desc_val) * (ret == #desc_val) ]]
-    normal
-
-proc o__get (l, prop) {
-
-            [* unfold Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
-    ch0:	goto [typeOf(l) = $$object_type] ch1 elab;
-    ch1:	goto [typeOf(prop) = $$string_type] ch2 elab;
-    ch2:    goto [0 < s-len prop] ch3 elab;
-    ch3:	goto [not (s-nth(prop, 0) = "@")] start elab;
-
-	start:  gp := [l, "@getProperty"];
-            [* fold Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
-		    xret := gp (l, prop) with elab;
-            [* unfold Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
-			goto [xret = $$undefined] rlab def;
-
-	def:	d := l-nth (xret, 0);
-			xret := l-nth (xret, 1);
-			goto [d = "d"] rlab acc;
-
-	acc:	goto [xret = $$undefined] rlab get;
-	get:	xsc := [xret, "@scope"];
-			fun := [xret, "@call"];
-			xret := fun (xsc, l) with elab;
-			goto [xret = $$empty] undef rlab;
-	undef:	xret := $$undefined;
-
-            [* fold Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
-	rlab:	skip;
-	elab:	skip
-}
-with
-{
-   ret: xret, rlab;
-   err: xret, elab;
-};
-
-(* *******************
-   *** I__GETVALUE ***
-   ******************* *)
-
-spec i__getValue (v)
-    [[ v == $$undefined ]]
-    [[ ret == $$undefined ]]
-    normal;
-    [[ v == $$null ]]
-    [[ ret == $$null ]]
-    normal;
-    [[ types (v : $$string_type) ]]
-    [[ (ret == v) ]]
-    normal;
-    [[ types (v : $$int_type) ]]
-	[[ (ret == v) ]]
-	normal;
-    [[ types (v : $$boolean_type) ]]
-    [[ (ret == v) ]]
-    normal;
-    [[ types (v : $$string_type) ]]
-    [[ (ret == v) ]]
-    normal;
-
-    [[ (v == {{ "o", #obj, #field }}) * types (#obj : $$object_type, #field : $$string_type) * isNamedProperty(#field) *
-       Pi (#obj, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (#g_aux_3 == $$undefined) ]]
-    [[ Pi (#obj, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (ret == $$undefined) ]]
-    normal;
-
-    [[ (v == {{ "o", #obj, #field }}) * types (#obj : $$object_type, #field : $$string_type) * isNamedProperty(#field) *
-       Pi (#obj, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * DataDescriptor (#g_aux_3)  ]]
-    [[ Pi (#obj, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * desc_val (#g_aux_3, #desc_val) * (ret == #desc_val) ]]
-    normal;
-
-    [[ (v == {{ "v", $lg, #field }}) * types (#field : $$string_type) * isNamedProperty(#field) *
-       Pi ($lg, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (#g_aux_3 == $$undefined) ]]
-    [[ Pi ($lg, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (ret == $$undefined) ]]
-    normal;
-
-    [[ (v == {{ "v", $lg, #field }}) * types (#field : $$string_type) * isNamedProperty(#field) *
-       Pi ($lg, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * DataDescriptor (#g_aux_3)  ]]
-    [[ Pi ($lg, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * desc_val (#g_aux_3, #desc_val) * (ret == #desc_val) ]]
-    normal;
-
-    [[ (v == {{ "v", #obj, #field }}) * (! (#obj == $lg)) * ((#obj, #field) -> #value) * isNamedProperty(#field) *
-       types (#obj : $$object_type, #field : $$string_type) ]]
-    [[ ((#obj, #field) -> #value) * (ret == #value) ]]
-    normal
-
-proc i__getValue (v) {
-			goto [(typeOf(v) = $$list_type)] rcand dflt;
-
-    rcand:  rtype := l-nth (v, 0);
-            goto [(rtype = "v") or (rtype = "o")] init dflt;
-
-	init:	rbase := l-nth (v, 1);
-			rfield := l-nth (v, 2);
-			goto [rbase = $$undefined] throw prim;
-
-
-	prim:	prim := "i__isPrimitive" (rbase);
-            goto [prim] is_pr ref;
-
-	is_pr:	xret := "i__toObject" (rbase) with elab;
-			gp := [xret, "@getProperty"];
-			xret := gp (xret, rfield) with elab;
-			goto [xret = $$undefined] rlab def;
-	def:	d := l-nth (xret, 0);						(* Get the descriptor type *)
-			xret := l-nth (xret, 1);					(* Get the value/getter *)
-			goto [d = "d"] rlab acc;				(* Is it a data descriptor? *)
-
-	acc:	goto [xret = $$undefined] rlab get;		(* Is the getter defined? *)
-	get:	xsc := [xret, "@scope"];				(* Get the scope of the getter *)
-			fun := [xret, "@call"];					(* Get the name of the getter *)
-			xret := fun (xsc, rbase) with elab;		(* Call the getter, errors could happen *)
-			goto [xret = $$empty] undef rlab;
-	undef:	xret := $$undefined;
-
-	ref:	goto [(l-nth (v, 0) = "o")] oref vref;
-
-            [* unfold Pi (#obj, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
-	oref:	gp := [rbase, "@get"];
-            [* fold Pi (#obj, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
-			xret := gp (rbase, rfield) with elab;
-			goto rlab;
-
-	vref:	goto [rbase = $lg] lg er;
-
-            [* unfold Pi ($lg, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
-	lg:		gp := [$lg, "@get"];
-            [* fold Pi ($lg, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
-			xret := gp (rbase, rfield) with elab;
-			goto rlab;
-
-	er:		xret := [rbase, rfield];
-			goto rlab;
-
-	dflt:	xret := v;
-
-	rlab:	skip;
-
-	throw:  xret := "ReferenceError" ();
-    elab:   skip
-}
-with
-{
-	ret:	xret, rlab;
-	err:	xret, elab;
-};
-
-(* ****** *)
-(* CANPUT *)
-(* ****** *)
-
-spec o__canPut (l, prop)
-
-    (* Property not defined at all, returning "@extensible" *)
-    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
-       (#g_aux_3 == $$undefined) * ((l, "@extensible") -> #ext) * types (#ext: $$boolean_type) ]]
-    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
-       ((l, "@extensible") -> #ext) * (ret == #ext) ]]
-    normal;
-
-    (* Property defined in the object itself, returning writable *)
-    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
-       DataDescriptor(#g_aux_3) * desc_writ(#g_aux_3, #writable) * (#g_aux_4 == {{ l }}) ]]
-    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
-       (ret == #writable) ]]
-    normal;
-
-    (* Property defined as a data descriptor outside, but object not extensible, return false *)
-    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
-       DataDescriptor(#g_aux_3) * (1 <# l-len (#g_aux_4)) * ((l, "@extensible") -> $$f) *
-       types (#g_aux_4 : $$list_type)]]
-    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
-       ((l, "@extensible") -> $$f) * (ret == $$f) ]]
-    normal;
-
-    (* Property defined as a data descriptor outside, object extensible, return writable *)
-    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
-       DataDescriptor(#g_aux_3) * desc_writ(#g_aux_3, #writable) * (1 <# l-len (#g_aux_4)) *
-       ((l, "@extensible") -> $$t) * types (#g_aux_4 : $$list_type) ]]
-    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
-       ((l, "@extensible") -> $$t) * (ret == #writable) ]]
-    normal;
-
-    (* Property defined as an accessor descriptor, set doesn't exist, return false *)
-    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
-       AccessorDescriptor(#g_aux_3) * desc_set(#g_aux_3, $$undefined) *
-       ((l, "@extensible") -> #ext) * types (#ext : $$boolean_type) ]]
-    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
-       ((l, "@extensible") -> #ext) * (ret == $$f) ]]
-    normal;
-
-    (* Property defined as an accessor descriptor, set exists, return true *)
-    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
-       AccessorDescriptor(#g_aux_3) * desc_set(#g_aux_3, #set) *
-       ((l, "@extensible") -> #ext) * types (#ext : $$boolean_type, #set: $$object_type) ]]
-    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
-       ((l, "@extensible") -> #ext) * (ret == $$t) ]]
-    normal
-
-proc o__canPut (l, prop) {
-            [* unfold Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
-    ch0:	goto [typeOf(l) = $$object_type] ch1 elab;
-    ch1:	goto [typeOf(prop) = $$string_type] ch2 elab;
-    ch2:    goto [0 < s-len prop] ch3 elab;
-    ch3:	goto [not (s-nth(prop, 0) = "@")] start elab;
-
-	start:  gop := [l, "@getOwnProperty"];
-            xret := gop (l, prop) with elab;
-	op:		goto [xret = $$undefined] nop odesc; 	(* Does the own property exist? *)
-
-	odesc:	d := l-nth (xret, 0);					(* It does; get the descriptor type *)
-			goto [d = "d"] odd nop;					(* Is the descriptor a data descriptor? *)
-
-	odd:	xret := l-nth (xret, 2);				(* It is; return the Writable attribute *)
-            [* fold Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
-			goto rlab;
-
-	nop:	gp := [l, "@getProperty"];
-            [* fold Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
-            xret := gp (l, prop) with elab;			(* Does the property exist? *)
-            e := [l, "@extensible"];
-            goto [xret = $$undefined] ext desc;		(* It doesn't; return extensible *)
-
-	desc:	d := l-nth (xret, 0);					(* Get the descriptor type *)
-			v := l-nth (xret, 2);					(* Get the writable/setter *)
-			goto [d = "d"] dd ad;					(* Is it a data descriptor? *)
-
-	dd:     goto [e] wr ext;						(* Yes; is the object extensible? *)
-	wr:		xret := v;								(* Yes; return writable *)
-			goto rlab;
-
-	ad:		xret := not (v = $$undefined);		     (* Accessor descriptor *)
-            goto rlab;
-
-	ext:	xret := e;                				(* Return extensible *)
-
-    rlab:   skip;
-    elab:	skip
-}
-with
-{
-    ret: 	xret, rlab;
-    err:	xret, elab;
-};
-
 (* ******************* *)
 (* I__ISDATADESCRIPTOR *)
 (* ******************* *)
@@ -744,13 +511,13 @@ spec i__isDataDescriptor (desc)
     [[ ret == $$f ]]
     normal;
 
-    (* Generic descriptor, with writable *)
-    [[ GenericDescriptor(desc) * (l-nth (desc, 4) == #w) * (types (#w : $$boolean_type)) ]]
+    (* Generic descriptor, with value *)
+    [[ GenericDescriptor(desc) * (! l-nth (desc, 3) == $$empty) ]]
     [[ ret == $$t ]]
     normal;
 
-    (* Generic descriptor, with value *)
-    [[ GenericDescriptor(desc) * (! l-nth (desc, 3) == $$empty) ]]
+    (* Generic descriptor, with writable *)
+    [[ GenericDescriptor(desc) * (! l-nth (desc, 4) == $$empty) ]]
     [[ ret == $$t ]]
     normal
 
@@ -835,7 +602,44 @@ spec i__isGenericDescriptor (desc)
     (* Property not defined at all *)
     [[ desc == $$undefined ]]
     [[ ret == $$f ]]
-    normal
+    normal;
+
+	(* Data descriptor *)
+	[[ DataDescriptor(desc) ]]
+	[[ ret == $$f ]]
+	normal;
+
+	(* Accessor descriptor *)
+	[[ AccessorDescriptor(desc) ]]
+	[[ ret == $$f ]]
+	normal;
+
+	(* Generic descriptor, no data descriptor components *)
+	[[ GenericDescriptor(desc) *
+	   (l-nth (desc, 3) == $$empty) * (l-nth (desc, 4) == $$empty) *
+	   (l-nth (desc, 5) == $$empty) * (l-nth (desc, 6) == $$empty) ]]
+	[[ ret == $$t ]]
+	normal;
+
+	(* Generic descriptor, with value *)
+	[[ GenericDescriptor(desc) * (! (l-nth (desc, 3) == $$empty)) ]]
+	[[ ret == $$f ]]
+	normal;
+
+	(* Generic descriptor, with writable *)
+	[[ GenericDescriptor(desc) * (! (l-nth (desc, 4) == $$empty)) ]]
+	[[ ret == $$f ]]
+	normal;
+
+	(* Generic descriptor, with get *)
+	[[ GenericDescriptor(desc) * (! (l-nth (desc, 5) == $$empty)) ]]
+	[[ ret == $$f ]]
+	normal;
+
+	(* Generic descriptor, with get *)
+	[[ GenericDescriptor(desc) * (! (l-nth (desc, 6) == $$empty)) ]]
+	[[ ret == $$f ]]
+	normal
 
 proc i__isGenericDescriptor (desc) {
 			goto [desc = $$undefined] rf cont;
@@ -856,12 +660,6 @@ with
 (* ******************* *)
 (* I__TODATADESCRIPTOR *)
 (* ******************* *)
-
-(*
-    BANANAS BANANAS
-
-    If you comment this out, everything works.
-*)
 
 spec i__toDataDescriptor (desc)
 
@@ -907,33 +705,59 @@ with
 (* OBJECT CREATION *)
 (* *************** *)
 
+(*
+ * Note: the mutable and non-unique methods are
+ *
+ *      (l, "@proto")       (l, "@class")
+ *      (l, "@extensible")  (l, "@primitiveValue")
+ *
+ *      (l, "@getOwnProperty")    - different for Strings
+ *      (l, "@defineOwnProperty") - different for Arrays
+ *
+ *)
+
 spec create_default_object (l, pr, cl, ext)
 
     [[ types(l : $$object_type, pr : $$object_type) *
-       (l == #l) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
-       (#cl == $$undefined) * (#ext == $$undefined) *
-       ((#l, "@proto") -> $$null) ]]
-    [[ Object (#l, #pr, "Object", $$t) * (ret == #l) ]]
+       (cl == $$undefined) * (ext == $$undefined) *
+       ((l, "@proto") -> $$null) ]]
+    [[ NonFunctionMethods (l) *
+	   ((l, "@proto") -> pr) * ((l, "@class") -> "Object") *
+	   ((l, "@extensible") -> $$t) *  ((l, "@primitiveValue") -> $$empty) *
+	   ((l, "@getOwnProperty") -> "o__getOwnProperty") *
+	   ((l, "@defineOwnProperty") -> "o__defineOwnProperty") *
+	   (ret == l) ]]
     normal;
 
     [[ types(l : $$object_type, pr : $$object_type, cl : $$string_type) *
-       (l == #l) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
-       (#ext == $$undefined) *
-       ((#l, "@proto") -> $$null) ]]
-    [[ Object (#l, #pr, #cl, $$t) * (ret == #l) ]]
+       (ext == $$undefined) *
+       ((l, "@proto") -> $$null) ]]
+    [[ NonFunctionMethods (l) *
+	   ((l, "@proto") -> pr) * ((l, "@class") -> cl) *
+	   ((l, "@extensible") -> $$t) *  ((l, "@primitiveValue") -> $$empty) *
+	   ((l, "@getOwnProperty") -> "o__getOwnProperty") *
+	   ((l, "@defineOwnProperty") -> "o__defineOwnProperty") *
+	   (ret == l) ]]
     normal;
 
     [[ types(l : $$object_type, pr : $$object_type, ext : $$boolean_type) *
-       (l == #l) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
-       (#cl == $$undefined) *
-       ((#l, "@proto") -> $$null) ]]
-    [[ Object (#l, #pr, "Object", #ext) * (ret == #l) ]]
+       (cl == $$undefined) * ((l, "@proto") -> $$null) ]]
+    [[ NonFunctionMethods (l) *
+	   ((l, "@proto") -> pr) * ((l, "@class") -> "Object") *
+	   ((l, "@extensible") -> ext) *  ((l, "@primitiveValue") -> $$empty) *
+	   ((l, "@getOwnProperty") -> "o__getOwnProperty") *
+	   ((l, "@defineOwnProperty") -> "o__defineOwnProperty") *
+	   (ret == l) ]]
     normal;
 
     [[ types(l : $$object_type, pr : $$object_type, cl : $$string_type, ext : $$boolean_type) *
-       (l == #l) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
-       ((#l, "@proto") -> $$null) ]]
-    [[ Object (#l, #pr, #cl, #ext) * (ret == #l) ]]
+       ((l, "@proto") -> $$null) ]]
+    [[ NonFunctionMethods (l) *
+	   ((l, "@proto") -> pr) * ((l, "@class") -> cl) *
+	   ((l, "@extensible") -> ext) *  ((l, "@primitiveValue") -> $$empty) *
+	   ((l, "@getOwnProperty") -> "o__getOwnProperty") *
+	   ((l, "@defineOwnProperty") -> "o__defineOwnProperty") *
+	   (ret == l) ]]
     normal
 
 proc create_default_object (l, pr, cl, ext) {
@@ -983,9 +807,9 @@ with
 spec Error_construct (xsc, vthis, v)
 
     (* Error constructor without message *)
-    [[ (vthis == #this) * (v == $$undefined) * types (vthis : $$object_type) *
-       ((#this, "@class") -> #cls) * ((#this, "@extensible") -> #ext) ]]
-    [[ (ret == #this) * ((#this, "@class") -> "Error") * ((#this, "@extensible") -> $$t) ]]
+    [[ (v == $$undefined) * types (vthis : $$object_type) *
+       ((vthis, "@class") -> #cls) * ((vthis, "@extensible") -> #ext) ]]
+    [[ (ret == vthis) * ((vthis, "@class") -> "Error") * ((vthis, "@extensible") -> $$t) ]]
     normal
 
 proc Error_construct (xsc, vthis, v) {
@@ -1007,15 +831,6 @@ with
 	ret: 	xret, rlab;
 	err: 	xerr, elab;
 };
-
-pred isTypeError(l) :
-    Object (l, $lterr_proto, "Error", $$t);
-
-pred isSyntaxError(l) :
-    Object (l, $lserr_proto, "Error", $$t);
-
-pred isReferenceError(l) :
-    Object (l, $lrferr_proto, "Error", $$t);
 
 (* ********* *)
 (* TYPEERROR *)
@@ -1146,200 +961,279 @@ with
 	err: 	xret, elab;
 };
 
-(* ******************** *)
-(* O__DEFINEOWNPROPERTY *)
-(* ******************** *)
+(* **********************************************
+   *** *** ***   INTERNAL FUNCTIONS   *** *** ***
+   ********************************************** *)
 
-spec o__defineOwnProperty (l, prop, desc, throw)
+(* *************************
+   *** O__GETOWNPROPERTY ***
+   ************************* *)
 
-    [[ types (l : $$object_type, prop : $$string_type, desc : $$list_type, throw : $$boolean_type) *
-       isNamedProperty(prop) * DataDescriptor (desc) *
-       desc_val(desc, #dv) * desc_writ(desc, #dw) * desc_enum(desc, #de) * desc_conf (desc, #dc) *
-       types (#dw : $$boolean_type, #de : $$boolean_type, #dc : $$boolean_type ) *
-       (throw == $$t) * Object (l, #prt, #cls, $$f) * ((l, prop) -> None) ]]
-    [[ Object (l, #prt, #cls, $$f) * ((l, prop) -> None) * isTypeError(err) ]]
-    error;
-
-    [[ types (l : $$object_type, prop : $$string_type, desc : $$list_type, throw : $$boolean_type) *
-       isNamedProperty(prop) * DataDescriptor (desc) *
-       desc_val(desc, #dv) * desc_writ(desc, #dw) * desc_enum(desc, #de) * desc_conf (desc, #dc) *
-       types (#dw : $$boolean_type, #de : $$boolean_type, #dc : $$boolean_type ) *
-       (throw == $$f) * Object (l, #prt, #cls, $$f) * ((l, prop) -> None) ]]
-    [[ Object (l, #prt, #cls, $$f) * ((l, prop) -> None) * (ret == $$f) ]]
+spec o__getOwnProperty (l, prop)
+    [[ Cell_o (l, prop, None) ]]
+    [[ Cell_o (l, prop, None) * (ret == $$undefined) ]]
+    normal;
+    [[ Cell_o (l, prop, #dx) * DataDescriptor(#dx) * types (#dx : $$list_type) ]]
+    [[ Cell_o (l, prop, #dx) * (ret == #dx) ]]
     normal
 
-proc o__defineOwnProperty (l, prop, desc, throw) {
+proc o__getOwnProperty (l, prop) {
+	(*
+		l must be an object
+		prop must be a non-empty string
+		prop must not be an internal property
+	*)
+	ch0:	goto [typeOf(l) = $$object_type] ch1 elab;
+	ch1:	goto [typeOf(prop) = $$string_type] ch2 elab;
+	ch2:	goto [0 < s-len prop] ch3 elab;
+	ch3:	goto [not (s-nth(prop, 0) = "@")] start elab;
 
-			xret := $$t;
+    start:	x := hasField(l, prop);
+            goto [x] hp nhp;
 
-			gop := [l, "@getOwnProperty"];
-			current := gop (l, prop) with celab;
-			extensible := [l, "@extensible"];
+    nhp:    xret := $$undefined;
+            goto rlab;
 
-			goto [(current = $$undefined) and (extensible = $$f)] reject l4;
-	l4:		goto [(current = $$undefined) and (extensible = $$t)] l4a getall;
+    hp:     xret := [l, prop];
 
-	l4a:	gd := "i__isGenericDescriptor" (desc);
-			dd := "i__isDataDescriptor" (desc);
+    rlab:   skip;
 
-			goto [gd or dd] l4a1 l4b;
-
-	l4a1:	ndesc := "i__toDataDescriptor" (desc);
-			[l, prop] := ndesc;
-			goto acc_t;
-
-	l4b:	ndesc := "i__toAccessorDescriptor" (desc);
-			[l, prop] := ndesc;
-			goto acc_t;
-
-	getall:	goto [l-nth (desc, 0) = "d"] ddd odd;
-
-			(* Data *)
-	ddd:	de := l-nth (desc, 3);
-			dc := l-nth (desc, 4);
-			dv := l-nth (desc, 1);
-			dw := l-nth (desc, 2);
-			dg := $$empty;
-			ds := $$empty;
-			goto l5;
-
-	odd:	goto [l-nth (desc, 0) = "a"] add gdd;
-
-			(* Accessor *)
-	add:	de := l-nth (desc, 3);
-			dc := l-nth (desc, 4);
-			dv := $$empty;
-			dw := $$empty;
-			dg := l-nth (desc, 1);
-			ds := l-nth (desc, 2);
-			goto l5;
-
-			(* Generic *)
-	gdd:	de := l-nth (desc, 1);
-			dc := l-nth (desc, 2);
-			dv := l-nth (desc, 3);
-			dw := l-nth (desc, 4);
-			dg := l-nth (desc, 5);
-			ds := l-nth (desc, 6);
-
-	l5:		goto [(de = $$empty) and (dc = $$empty) and (dv = $$empty) and
-			      (dw = $$empty) and (dg = $$empty) and (ds = $$empty)] acc_t l6;
-
-	l6:		goto [l-nth (current, 0) = "d"] chd cha;
-
-	chd:	t1 := "i__sameValue" (dv, l-nth (current, 1));
-			t2 := "i__sameValue" (dw, l-nth (current, 2));
-			t3 := "i__sameValue" (de, l-nth (current, 3));
-			t4 := "i__sameValue" (dc, l-nth (current, 4));
-
-			goto [t1 and t2 and t3 and t4 and
-			      (dg = $$empty) and (ds = $$empty)] acc_t l7;
-
-	cha:	t1 := "i__sameValue" (dg, l-nth (current, 1));
-			t2 := "i__sameValue" (ds, l-nth (current, 2));
-			t3 := "i__sameValue" (de, l-nth (current, 3));
-			t4 := "i__sameValue" (dc, l-nth (current, 4));
-
-			goto [t1 and t2 and t3 and t4 and
-			      (dv = $$empty) and (dw = $$empty)] acc_t l7;
-
-	l7:		ct := l-nth (current, 0);
-			cvg := l-nth (current, 1);
-			cws := l-nth (current, 2);
-			ce := l-nth (current, 3);
-			cc := l-nth (current, 4);
-
-			goto [(cc = $$f) and ((dc = $$t) or ((not (de = $$empty)) and (not (ce = de))))] reject l8;
-
-	l8:		gd := "i__isGenericDescriptor" (desc);
-			goto [gd] l12 l9;
-
-	l9:		cdd := "i__isDataDescriptor" (current);
-			ddd := "i__isDataDescriptor" (desc);
-
-			goto [not (cdd = ddd)] l9a l10;
-
-	l9a:	goto [cc = $$f] reject change;
-	change:	goto [cdd = $$t] toa tod;
-	toa:	goto [dg = $$empty] sg gs;
-	sg:		dg := $$undefined;
-	gs:		goto [ds = $$empty] ss ge1;
-	ss:		ds := $$undefined;
-	ge1:	goto [de = $$empty] se1 gc1;
-	se1:	de := ce;
-	gc1:	goto [dc = $$empty] sc1 spa;
-	sc1:	dc := cc;
-	spa:	[l, prop] := {{ "a", dg, ds, de, dc }};
-			goto acc_t;
-
-	tod:	goto [dv = $$empty] sv gw;
-	sv:		dv := $$undefined;
-	gw:		goto [dw = $$empty] sw ge2;
-	sw:		dw := $$f;
-	ge2:	goto [de = $$empty] se2 gc2;
-	se2:	de := ce;
-	gc2:	goto [dc = $$empty] sc2 spd;
-	sc2:	dc := cc;
-	spd:	[l, prop] := {{ "d", dv, dw, de, dc }};
-			goto acc_t;
-
-	l10:	goto [cdd = $$t] l10a l11;
-
-	l10a:	goto [cc = $$f] l10ai l12;
-	l10ai:	goto [(not (dw = $$empty)) and ((cws = $$f) and (dw = $$t))] reject l10aii;
-	l10aii:	t1 := "i__sameValue" (cvg, dv);
-			goto [(cws = $$f) and (not (dv = $$empty)) and (not t1)] reject l12;
-
-	l11: 	t1 := "i__sameValue" (dg, l-nth (current, 1));
-			t2 := "i__sameValue" (ds, l-nth (current, 2));
-			goto [(cc = $$f) and
-	             (((not (dg = $$empty)) and (not t1)) or
-	              ((not (ds = $$empty)) and (not t2)))] reject l12;
-
-	l12:	re := de;
-			rc := dc;
-			goto [de = $$empty] rec red;
-	rec:	re := l-nth (current, 3);
-	red:	goto [dc = $$empty] rcd rd;
-	rcd:	rc := l-nth (current, 4);
-
-	rd: 	goto [ct = "d"] l12d l12a;
-
-	l12d:	rv := dv;
-			rw := dw;
-			goto [dv = $$empty] rvc rvd;
-	rvc:	rv := l-nth (current, 1);
-	rvd:	goto [dw = $$empty] rwd setd;
-	rwd:	rw := l-nth (current, 2);
-	setd:	[l, prop] := {{ "d", rv, rw, re, rc }};
-			goto acc_t;
-
-	l12a:	rg := dg;
-			rs := ds;
-			goto [dg = $$empty] rgc rgd;
-	rgc:	rg := l-nth (current, 1);
-	rgd:	goto [ds = $$empty] rsd seta;
-	rsd:	rs := l-nth (current, 2);
-	seta:	[l, prop] := {{ "a", rg, rs, re, rc }};
-			goto acc_t;
-
-	acc_t:	xret := $$t;
-			goto rlab;
-
-	acc_f:	xret := $$f;
-	rlab:	skip;
-
-	celab:	xerr := current;
-			goto elab;
-
-    reject: goto [throw] tt acc_f;
-    tt:     xerr := "TypeError" ();
-    elab:   skip
+	elab:	xret := "TypeError" ()
 }
 with
 {
-	ret: xret, rlab;
-	err: xerr, elab;
+    ret: 	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *************************
+   *** S__GETOWNPROPERTY ***
+   ************************* *)
+
+spec s__getOwnProperty (l, prop)
+    [[ Cell_s (l, prop, "None", None, #pv) ]]
+    [[ Cell_s (l, prop, "None", None, #pv) * (ret == $$undefined) ]]
+   	normal;
+   	(* Same comment as in o__getOwnProperty applies *)
+   	[[ Cell_s (l, prop, "SI", #u, #pv) ]]
+   	[[ Cell_s (l, prop, "SI", #u, #pv) * (ret == #u) ]]
+   	normal;
+   	[[ Cell_s (l, prop, "NSI", #u, #pv) ]]
+   	[[ Cell_s (l, prop, "NSI", #u, #pv) * (ret == #u) ]]
+   	normal
+
+proc s__getOwnProperty (l, prop) {
+
+    ch0:	goto [typeOf(l) = $$object_type] ch1 elab;
+    ch1:	goto [typeOf(prop) = $$string_type] ch2 elab;
+    ch2:	goto [0 < s-len prop] ch3 elab;
+    ch3:	goto [not (s-nth(prop, 0) = "@")] start elab;
+
+   	start:	xret := "o__getOwnProperty" (l, prop);
+   			goto [xret = $$undefined] str rlab;
+
+   	str:	idx := "i__toInteger" (prop) with elab;
+   			goto [idx < 0] rlab next;
+
+   	next:	sidx := "i__toString" (idx);
+
+   			goto [sidx = prop] index rlab;
+
+   	index:	str := [l, "@primitiveValue"];
+   			len := s-len (str);
+   			goto [len <= idx] rlab return;
+
+   	return: rstr := s-nth (str, idx);
+   			xret := {{ "d", rstr, $$f, $$t, $$f }};
+
+   	rlab: 	skip;
+   	elab:	skip
+}
+with
+{
+    ret: 	xret, rlab;
+   	err: 	xret, elab;
+};
+
+(* **********************
+   *** O__GETPROPERTY ***
+   ********************** *)
+
+spec o__getProperty (l, prop)
+	[[ Pi (l, prop, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4, #gp_aux_5, #gp_aux_6) ]]
+	[[ Pi (l, prop, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4, #gp_aux_5, #gp_aux_6) * (ret == #gp_aux_3) ]]
+	normal
+
+proc o__getProperty (l, prop) {
+
+			[* unfold Pi (l, prop, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4, #gp_aux_5, #gp_aux_6) *]
+    ch0:	goto [typeOf(l) = $$object_type] ch1 elab;
+    ch1:	goto [typeOf(prop) = $$string_type] ch2 elab;
+    ch2:	goto [0 < s-len prop] ch3 elab;
+    ch3:	goto [not (s-nth(prop, 0) = "@")] start elab;
+
+	start:  gop := [l, "@getOwnProperty"];
+			xret := gop (l, prop) with elab;
+			goto [xret = $$undefined] next rlab;
+
+	next:	proto := [l, "@proto"];
+			goto [proto = $$null] rlab call;
+
+	call:	gp := [proto, "@getProperty"];
+			xret := gp (proto, prop) with elab;
+
+			[* fold Pi (l, prop, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4, #gp_aux_5, #gp_aux_6) *]
+    rlab:   skip;
+    elab:	skip
+
+}
+with
+{
+    ret: 	xret, rlab;
+    err:	xret, elab;
+};
+
+(* **************
+   *** O__GET ***
+   ************** *)
+
+spec o__get (l, prop)
+    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (#g_aux_3 == $$undefined) ]]
+    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * (#g_aux_3 == $$undefined) * (ret == $$undefined) ]]
+    normal;
+    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * DataDescriptor (#g_aux_3) ]]
+    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) * desc_val (#g_aux_3, #desc_val) * (ret == #desc_val) ]]
+    normal
+
+proc o__get (l, prop) {
+
+            [* unfold Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
+    ch0:	goto [typeOf(l) = $$object_type] ch1 elab;
+    ch1:	goto [typeOf(prop) = $$string_type] ch2 elab;
+    ch2:    goto [0 < s-len prop] ch3 elab;
+    ch3:	goto [not (s-nth(prop, 0) = "@")] start elab;
+
+	start:  gp := [l, "@getProperty"];
+            [* fold Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
+		    xret := gp (l, prop) with elab;
+            goto [xret = $$undefined] rlab def;
+
+	def:	d := l-nth (xret, 0);
+			xret := l-nth (xret, 1);
+			goto [d = "d"] rlab acc;
+
+	acc:	goto [xret = $$undefined] rlab get;
+	get:	xsc := [xret, "@scope"];
+			fun := [xret, "@call"];
+			xret := fun (xsc, l) with elab;
+			goto [xret = $$empty] undef rlab;
+	undef:	xret := $$undefined;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+   ret: xret, rlab;
+   err: xret, elab;
+};
+
+(* ****** *)
+(* CANPUT *)
+(* ****** *)
+
+spec o__canPut (l, prop)
+
+    (* Property not defined at all, returning "@extensible" *)
+    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+       (#g_aux_3 == $$undefined) * ((l, "@extensible") -> #ext) * types (#ext: $$boolean_type) ]]
+    [[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+       ((l, "@extensible") -> #ext) * (ret == #ext) ]]
+    normal;
+
+	(* Property defined in the object itself, returning writable *)
+	[[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+	   DataDescriptor(#g_aux_3) * desc_writ(#g_aux_3, #writable) * (#g_aux_4 == {{ l }}) ]]
+	[[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+	   (ret == #writable) ]]
+	normal;
+
+	(* Property defined as a data descriptor outside, but object not extensible, return false *)
+	[[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+	   DataDescriptor(#g_aux_3) * (1 <# l-len (#g_aux_4)) * ((l, "@extensible") -> $$f) *
+	   types (#g_aux_4 : $$list_type)]]
+	[[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+	   ((l, "@extensible") -> $$f) * (ret == $$f) ]]
+	normal;
+
+	(* Property defined as a data descriptor outside, object extensible, return writable *)
+	[[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+	   DataDescriptor(#g_aux_3) * desc_writ(#g_aux_3, #writable) * (1 <# l-len (#g_aux_4)) *
+	   ((l, "@extensible") -> $$t) * types (#g_aux_4 : $$list_type) ]]
+	[[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+	   ((l, "@extensible") -> $$t) * (ret == #writable) ]]
+	normal;
+
+	(* Property defined as an accessor descriptor, set doesn't exist, return false *)
+	[[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+	   AccessorDescriptor(#g_aux_3) * desc_set(#g_aux_3, $$undefined) *
+	   ((l, "@extensible") -> #ext) * types (#ext : $$boolean_type) ]]
+	[[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+	   ((l, "@extensible") -> #ext) * (ret == $$f) ]]
+	normal;
+
+	(* Property defined as an accessor descriptor, set exists, return true *)
+	[[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+	   AccessorDescriptor(#g_aux_3) * desc_set(#g_aux_3, #set) *
+	   ((l, "@extensible") -> #ext) * types (#ext : $$boolean_type, #set: $$object_type) ]]
+	[[ Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+	   ((l, "@extensible") -> #ext) * (ret == $$t) ]]
+	normal
+
+proc o__canPut (l, prop) {
+            [* unfold Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
+    ch0:	goto [typeOf(l) = $$object_type] ch1 elab;
+    ch1:	goto [typeOf(prop) = $$string_type] ch2 elab;
+    ch2:    goto [0 < s-len prop] ch3 elab;
+    ch3:	goto [not (s-nth(prop, 0) = "@")] start elab;
+
+	start:  gop := [l, "@getOwnProperty"];
+            xret := gop (l, prop) with elab;
+	op:		goto [xret = $$undefined] nop odesc; 	(* Does the own property exist? *)
+
+	odesc:	d := l-nth (xret, 0);					(* It does; get the descriptor type *)
+			goto [d = "d"] odd nop;					(* Is the descriptor a data descriptor? *)
+
+	odd:	xret := l-nth (xret, 2);				(* It is; return the Writable attribute *)
+            [* fold Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
+			goto rlab;
+
+	nop:	gp := [l, "@getProperty"];
+            [* fold Pi (l, prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
+            xret := gp (l, prop) with elab;			(* Does the property exist? *)
+            e := [l, "@extensible"];
+            goto [xret = $$undefined] ext desc;		(* It doesn't; return extensible *)
+
+	desc:	d := l-nth (xret, 0);					(* Get the descriptor type *)
+			v := l-nth (xret, 2);					(* Get the writable/setter *)
+			goto [d = "d"] dd ad;					(* Is it a data descriptor? *)
+
+	dd:     goto [e] wr ext;						(* Yes; is the object extensible? *)
+	wr:		xret := v;								(* Yes; return writable *)
+			goto rlab;
+
+	ad:		xret := not (v = $$undefined);		     (* Accessor descriptor *)
+            goto rlab;
+
+	ext:	xret := e;                				(* Return extensible *)
+
+    rlab:   skip;
+    elab:	skip
+}
+with
+{
+    ret: 	xret, rlab;
+    err:	xret, elab;
 };
 
 (* ************** *)
@@ -1348,36 +1242,67 @@ with
 
 spec o__deleteProperty (l, prop, throw)
 
-    [[ Object (l, #pr, "Object", #ext) * ((l, prop) -> #desc) * isNamedProperty(prop) * DataDescriptor (#desc) *
-       desc_conf (#desc, $$f) * (throw == $$t) ]]
-    [[ Object (l, #pr, "Object", #ext) * ((l, prop) -> #desc) * isTypeError(err) ]]
+    [[ Cell_o (l, prop, #v) * ((l, "@getOwnProperty") -> "o__getOwnProperty") *
+	   DataDescriptor(#v) * desc_conf (#v, $$f) * (throw == $$t) ]]
+    [[ Cell_o (l, prop, #v) * ((l, "@getOwnProperty") -> "o__getOwnProperty") *
+	   isTypeError(err) ]]
     error;
 
-    [[ Object (l, #pr, "Object", #ext) * ((l, prop) -> #desc) * isNamedProperty(prop) * DataDescriptor (#desc) *
-       desc_conf (#desc, $$f) * (throw == $$f) ]]
-    [[ Object (l, #pr, "Object", #ext) * ((l, prop) -> #desc) * (ret == $$f) ]]
+    [[ Cell_o (l, prop, #v) * ((l, "@getOwnProperty") -> "o__getOwnProperty") *
+	   DataDescriptor(#v) * desc_conf (#v, $$f) * (throw == $$f) ]]
+    [[ Cell_o (l, prop, #v) * ((l, "@getOwnProperty") -> "o__getOwnProperty") *
+	   (ret == $$f) ]]
     normal;
 
-    [[ Object (l, #pr, "Object", #ext) * ((l, prop) -> None) * isNamedProperty(prop) ]]
-    [[ Object (l, #pr, "Object", #ext) * ((l, prop) -> None) * (ret == $$t) ]]
-    normal
+    [[ Cell_o (l, prop, #v) * ((l, "@getOwnProperty") -> "o__getOwnProperty") *
+	   DataDescriptor(#v) * desc_conf (#v, $$t) ]]
+    [[ Cell_o (l, prop, None) * ((l, "@getOwnProperty") -> "o__getOwnProperty") *
+	   (ret == $$t) ]]
+    normal;
+
+    [[ Cell_o (l, prop, None) * ((l, "@getOwnProperty") -> "o__getOwnProperty") ]]
+    [[ Cell_o (l, prop, None) * ((l, "@getOwnProperty") -> "o__getOwnProperty") *
+	   (ret == $$t) ]]
+    normal;
+
+	[[ Cell_s (l, prop, "None", None, #pv) * ((l, "@getOwnProperty") -> "o__getOwnProperty") ]]
+	[[ Cell_s (l, prop, "None", None, #pv) * ((l, "@getOwnProperty") -> "o__getOwnProperty") *
+	   (ret == $$t)]]
+	normal;
+
+	[[ Cell_s (l, prop, "SI", #desc, #pv) * ((l, "@getOwnProperty") -> "s__getOwnProperty") *
+	   (throw == $$t)]]
+	[[ Cell_s (l, prop, "SI", #desc, #pv) * ((l, "@getOwnProperty") -> "s__getOwnProperty") *
+	   isTypeError(err) ]]
+	error;
+
+	[[ Cell_s (l, prop, "SI", #desc, #pv) * ((l, "@getOwnProperty") -> "s__getOwnProperty") *
+	   DataDescriptor(#desc) * (throw == $$f)]]
+	[[ Cell_s (l, prop, "SI", #desc, #pv) * ((l, "@getOwnProperty") -> "s__getOwnProperty") *
+	   (ret == $$f) ]]
+	normal
 
 proc o__deleteProperty (l, prop, throw) {
-      gop := [l, "@getOwnProperty"];
-      xret := gop (l, prop) with elab;
-      goto [xret = $$undefined] dt cont;
+    ch0:	goto [typeOf(l) = $$object_type] ch1 elab;
+    ch1:	goto [typeOf(prop) = $$string_type] ch2 elab;
+    ch2:    goto [0 < s-len prop] ch3 elab;
+    ch3:	goto [not (s-nth(prop, 0) = "@")] start elab;
 
-  cont: c := l-nth (xret, 4);
-      goto [c] del reject;
-  del:  delete (l, prop);
+	start:	gop := [l, "@getOwnProperty"];
+			xret := gop (l, prop) with elab;
+			goto [xret = $$undefined] dt cont;
 
-  dt:   xret := $$t;
-      goto rlab;
+  	cont:	c := l-nth (xret, 4);
+  			goto [c] del reject;
+  	del:	delete (l, prop);
 
-  df:   xret := $$f;
-  rlab: skip;
+  	dt:		xret := $$t;
+      		goto rlab;
 
-    reject: goto [throw] tt df;
+	df:   	xret := $$f;
+	rlab: 	skip;
+
+	reject:	goto [throw] tt df;
 
     tt:     xret := "TypeError" ();
     elab:   skip

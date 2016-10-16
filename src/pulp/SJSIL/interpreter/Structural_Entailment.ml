@@ -415,6 +415,10 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 
 			(*print_endline (Printf.sprintf "Discharges: %s" (JSIL_Print.str_of_assertion_list pf_discharges)); *)
 
+			let pf_list = List.map (fun x -> JSIL_Logic_Utils.reduce_assertion x) pf_list in
+			let pat_pf_list = List.map (fun x -> JSIL_Logic_Utils.reduce_assertion x) pat_pf_list in
+			let pf_discharges = List.map (fun x -> JSIL_Logic_Utils.reduce_assertion x) pf_discharges in
+
 		  	print_endline (Printf.sprintf "About to check if\n (\n%s\n)	\nENTAILS\n (Exists %s.\n(\n%s\n))\n given the gamma:\n%s"
 					(JSIL_Print.str_of_assertion_list pf_list)
 					existentials_str

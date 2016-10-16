@@ -21,6 +21,15 @@ let string_of_normalised_predicate (pred : normalised_predicate) =
 let string_of_normalised_predicates (preds : (string, normalised_predicate) Hashtbl.t) =
     Hashtbl.fold (fun pname pred ac -> ac ^ string_of_normalised_predicate pred) preds ""
 
+let detect_trivia_and_nonsense norm_pred =
+	let new_definitions = List.map
+		(fun x ->
+			let rx = JSIL_Logic_Utils.reduce_assertion x in
+			(* Printf.printf "\nReduction:\n\n%s\n\nreduces to\n\n%s\n\n" (JSIL_Print.string_of_logic_assertion x false) (JSIL_Print.string_of_logic_assertion rx false); *)
+			rx) norm_pred.definitions in
+	let new_definitions = List.filter (fun x -> not (x = LFalse)) new_definitions in
+	{ norm_pred with definitions = new_definitions }
+
 (* Replaces the literals and None in the arguments of a predicate with logical variables,
    and adds constraints for those variables to its definitions.
 *)
@@ -92,9 +101,8 @@ let join_pred pred1 pred2 =
 	  then raise (Non_unifiable ("Incompatible predicate definitions."))
 		else
 		  let subst = unify_list_pvars (List.map (fun var -> PVar var) pred1.params) pred2.params in
-		  { pred1 with
-			   definitions  = pred1.definitions @ (List.map (apply_substitution subst) pred2.definitions);
-				 is_recursive = pred1.is_recursive || pred2.is_recursive; }
+		  let definitions = pred1.definitions @ (List.map (apply_substitution subst) pred2.definitions) in
+		  { pred1 with definitions = definitions; is_recursive = pred1.is_recursive || pred2.is_recursive; }
 
 (* Returns a list with the names of the predicates that occur in an assertion *)
 let rec get_predicate_names asrt =
@@ -202,13 +210,12 @@ let rec auto_unfold predicates asrt =
 		with Not_found -> raise (Failure ("Error: Can't auto_unfold predicate " ^ name)))
 	| LTrue | LFalse | LEq _ | LLess _ | LLessEq _ | LStrLess _ | LPointsTo _ | LEmp | LTypes _-> [asrt]
 
-
 let normalise preds =
 	let norm_predicates = Hashtbl.create 100 in
 	Hashtbl.iter
 		(fun name pred ->
 			(* Substitute literals in the head for logical variables *)
-			let norm_pred = replace_head_literals pred in
+			let (norm_pred : normalised_predicate) = replace_head_literals pred in
 			try
 				(* Join the new predicate definition with all previous for the same predicate (if any) *)
 				let current_pred = Hashtbl.find norm_predicates name in
@@ -233,7 +240,9 @@ let normalise preds =
 	Hashtbl.iter
 	  (fun name pred ->
 			Hashtbl.add norm_rec_unfolded_predicates pred.name
-			  { pred with definitions = List.flatten (List.map (auto_unfold norm_rec_predicates) pred.definitions); })
+			(let ret_pred = { pred with definitions = List.flatten (List.map (auto_unfold norm_rec_predicates) pred.definitions); } in
+  		  	 let ret_pred = detect_trivia_and_nonsense ret_pred in
+  		  	 ret_pred))
 		norm_rec_predicates;
 	norm_rec_unfolded_predicates
 

@@ -104,7 +104,6 @@ let find_field loc fv_list e p_formulae solver gamma =
 						else find_field_rec rest ((e_field, e_value) :: traversed_fv_list) false)) in
 	find_field_rec fv_list [] true
 
-
 let update_abs_heap_default (heap : symbolic_heap) loc e =
 	let fv_list, default_val = try LHeap.find heap loc with _ -> [], LUnknown in
 	match default_val with
@@ -165,13 +164,14 @@ let is_symb_heap_empty heap =
 
 
 let merge_heaps heap new_heap p_formulae solver gamma =
-	Printf.printf "-------------------------------------------------------------------\n";
+    Printf.printf "-------------------------------------------------------------------\n";
 	Printf.printf "-------------INSIDE MERGE HEAPS------------------------------------\n";
 	Printf.printf "-------------------------------------------------------------------\n";
 
-	Printf.printf "heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false);
-	Printf.printf "pat_heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap new_heap false);
-	Printf.printf "p_formulae: %s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
+	Printf.printf "\nheap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false);
+	Printf.printf "\npat_heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap new_heap false);
+	Printf.printf "\np_formulae: %s\n\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
+	Printf.printf "\ngamma: %s\n\n" (JSIL_Memory_Print.string_of_gamma gamma);
 	LHeap.iter
 		(fun loc (n_fv_list, n_def) ->
 			match n_def with
@@ -186,15 +186,18 @@ let merge_heaps heap new_heap p_formulae solver gamma =
 							let _, fv_pair, i_am_sure_the_field_does_exist = find_field loc fv_list le_field p_formulae solver gamma in
 							(match fv_pair, i_am_sure_the_field_does_exist with
 							| None, true -> loop ((le_field, le_val) :: q_fv_list) rest_n_fv_list
-							| None, false
-							| Some _, _ ->
+							| None, false ->
 								Printf.printf "i_am_sure_the_field_does_exist: %b\n" i_am_sure_the_field_does_exist;
+								raise (Failure "heaps non-mergeable")
+							| Some (f, v), _ ->
+								Printf.printf "i_am_sure_the_field_does_exist: %b, (%s, %s)\n"
+									i_am_sure_the_field_does_exist (JSIL_Print.string_of_logic_expression f false) (JSIL_Print.string_of_logic_expression v false);
 								raise (Failure "heaps non-mergeable"))) in
 					let q_fv_list = loop [] n_fv_list in
 					LHeap.replace heap loc (q_fv_list @ fv_list, def)
 				with Not_found ->
 					LHeap.add heap loc (n_fv_list, LUnknown))
-			| _ -> raise (Failure "heaps non-mergeable: the default field is not unknwon!!!"))
+			| _ -> raise (Failure "heaps non-mergeable: the default field is not unknown!!!"))
 		new_heap
 
 (*************************************)
@@ -479,6 +482,8 @@ let merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbolic_s
 	let symb_state_r = symb_state_substitution symb_state_r subst false in
 	let heap_l, store_l, pf_l, gamma_l, preds_l, solver_l = symb_state_l in
 	let heap_r, store_r, pf_r, gamma_r, preds_r, _ = symb_state_r in
+	let pf_l = DynArray.map (fun x -> JSIL_Logic_Utils.reduce_assertion x) pf_l in
+	let pf_r = DynArray.map (fun x -> JSIL_Logic_Utils.reduce_assertion x) pf_r in
 
 	(* DynArray.append pf_r pf_l; *)
 	merge_pfs pf_l pf_r;
@@ -512,6 +517,10 @@ let symb_state_replace_preds symb_state new_preds =
 let symb_state_replace_gamma symb_state new_gamma =
 	let heap, store, pfs, _, preds, solver = symb_state in
 	(heap, store, pfs, new_gamma, preds, solver)
+
+let symb_state_replace_pfs symb_state new_pfs =
+	let heap, store, _, gamma, preds, solver = symb_state in
+	(heap, store, new_pfs, gamma, preds, solver)
 
 (*************************************)
 (** Normalised Spec functions       **)

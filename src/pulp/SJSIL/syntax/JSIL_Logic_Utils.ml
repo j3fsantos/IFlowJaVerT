@@ -689,7 +689,7 @@ let rec type_lexpr gamma le =
 				Printf.printf "type_lexpr: op: %s, t: %s\n"  (JSIL_Print.string_of_binop op) (JSIL_Print.string_of_type t);
 				raise (Failure "ERROR")
 		 	| _, None ->
-				(match op with 
+				(match op with
 				| Equal -> (Some BooleanType, true, constraints)
 				| _     -> Printf.printf "type_lexpr: op: %s, t: none\n"  (JSIL_Print.string_of_binop op); raise (Failure "ERROR")))
 		| _, _ ->
@@ -956,3 +956,100 @@ let make_all_different_pure_assertion fv_list_1 fv_list_2 : jsil_logic_assertion
 			all_different_fv_list_against_fv_list rest fv_list_2 new_pfs) in
 
 	all_different_fv_list_against_fv_list fv_list_1 fv_list_2 []
+
+let rec reduce_expression e =
+	let f = reduce_expression in
+	match e with
+	| LBinOp (e1, bop, e2) ->
+		let re1 = f e1 in
+		let re2 = f e2 in
+			LBinOp (re1, bop, re2)
+	| LUnOp	(op, e1) ->
+		let re1 = f e1 in
+			LUnOp (op, re1)
+	| LTypeOf e1 ->
+		let re1 = f e1 in
+			LTypeOf re1
+	| LEList le -> LEList (List.map (fun x -> reduce_expression x) le)
+	| LLstNth (e1, e2) ->
+		let list = f e1 in
+		let index = f e2 in
+		let index =
+			(match index with
+			| LLit (Num n) -> LLit (Integer (int_of_float n))
+			| _ -> index) in
+		(match list, index with
+		| LLit (LList list), LLit (Integer n) ->
+			(try (LLit (List.nth list n)) with _ ->
+					raise (Failure "List index out of bounds"))
+
+		| LEList list, LLit (Integer n) ->
+			(try (List.nth list n) with _ ->
+					raise (Failure "List index out of bounds"))
+
+		| _, _ -> LLstNth (list, index))
+
+	| _ -> e
+
+let rec reduce_assertion a =
+	let f = reduce_assertion in
+	match a with
+	| LAnd (LFalse, _)
+	| LAnd (_, LFalse) -> LFalse
+	| LAnd (LTrue, a1)
+	| LAnd (a1, LTrue) -> f a1
+	| LAnd (a1, a2) ->
+		let ra1 = f a1 in
+		let ra2 = f a2 in
+		let a' = LAnd (ra1, ra2) in
+		if ((ra1 = a1) && (ra2 = a2))
+			then a' else f a'
+
+	| LOr (LTrue, _)
+	| LOr (_, LTrue) -> LTrue
+	| LOr (LFalse, a1)
+	| LOr (a1, LFalse) -> f a1
+	| LOr (a1, a2) ->
+		let ra1 = f a1 in
+		let ra2 = f a2 in
+		let a' = LOr (ra1, ra2) in
+		if ((ra1 = a1) && (ra2 = a2))
+			then a' else f a'
+
+	| LNot LTrue -> LFalse
+	| LNot LFalse -> LTrue
+	| LNot a1 ->
+		let ra1 = f a1 in
+		let a' = LNot ra1 in
+		if (ra1 = a1)
+			then a' else f a'
+
+	| LStar (LFalse, _)
+	| LStar (_, LFalse) -> LFalse
+	| LStar (LTrue, a1)
+	| LStar (a1, LTrue) -> f a1
+	| LStar (a1, a2) ->
+		let ra1 = f a1 in
+		let ra2 = f a2 in
+		let a' = LStar (ra1, ra2) in
+		if ((ra1 = a1) && (ra2 = a2))
+			then a' else f a'
+
+	| LEq (e1, e2) ->
+		let re1 = reduce_expression e1 in
+		let re2 = reduce_expression e2 in
+		if (re1 = re2) then LTrue
+		else
+		let ite a b = if (a = b) then LTrue else LFalse in
+		(match e1, e2 with
+			| LLit l1, LLit l2 -> ite l1 l2
+			| LNone, LLit _
+			| LLit _, LNone
+			| LNone, LEList _
+			| LEList _, LNone -> LFalse
+			| _, _ -> let a' = LEq (re1, re2) in
+				if ((re1 = e1) && (re2 = e2))
+					then a' else f a'
+		)
+
+	| _ -> a
