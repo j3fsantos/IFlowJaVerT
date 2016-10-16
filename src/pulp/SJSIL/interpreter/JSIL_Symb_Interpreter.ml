@@ -355,16 +355,33 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 			| None -> (
 				(* Printf.printf "I found a NON-match\n"; *)
 				find_correct_specs rest_spec_list ac_quotients)) in
+				
+
+	let compatible_pfs symb_state spec subst = 
+		let pfs = get_pf symb_state in 
+		let gamma = get_gamma symb_state in 
+		let pat_pfs = get_pf (spec.n_pre) in 
+		let pat_gamma = get_gamma (spec.n_pre) in 
+		let pat_pfs = Symbolic_State_Functions.pf_substitution pat_pfs subst false in
+		let pat_gamma = Symbolic_State_Functions.gamma_substitution pat_gamma subst false in
+		let gamma = copy_gamma gamma in
+		Symbolic_State_Functions.merge_gammas gamma pat_gamma;
+		let pf_list = (pfs_to_list pat_pfs) @ (pfs_to_list pfs) in 
+		let is_sat = Pure_Entailment.check_satisfiability pf_list gamma [] in
+		is_sat in 
 
 
 	let transform_symb_state_partial_match (spec, quotient_heap, quotient_preds, subst, pf_discharges) : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
+		
 		let symb_states_and_ret_lexprs = transform_symb_state spec symb_state quotient_heap quotient_preds subst pf_discharges in
+		
 		let symb_states_and_ret_lexprs =
 			List.fold_left
 				(fun ac (symb_state, ret_flag, ret_lexpr) ->
 					let (is_sat, new_symb_state) = enrich_pure_part symb_state spec subst in
 					if is_sat then ((new_symb_state, ret_flag, ret_lexpr) :: ac) else ac)
 				[] symb_states_and_ret_lexprs in
+		
 		let symb_states_and_ret_lexprs =
 			List.map (fun (symb_state, ret_flag, ret_lexpr) ->
 			let new_symb_state =
@@ -382,7 +399,13 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 			transform_symb_state spec symb_state quotient_heap quotient_preds subst pf_discharges
 	 	| _ :: _ ->
 			(* Printf.printf "this was a PARTIAL MATCH!!!!\n"; *)
-			let new_symb_states = List.map transform_symb_state_partial_match quotients in
+			let new_symb_states =
+				List.map 
+					(fun (spec, quotient_heap, quotient_preds, subst, pf_discharges) -> 
+						if (compatible_pfs symb_state spec subst) 
+							then transform_symb_state_partial_match (spec, quotient_heap, quotient_preds, subst, pf_discharges)
+							else [])
+					quotients in
 			let new_symb_states = List.concat new_symb_states in
 			new_symb_states in
 
