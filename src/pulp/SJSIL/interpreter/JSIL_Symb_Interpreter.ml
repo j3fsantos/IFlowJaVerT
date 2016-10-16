@@ -347,41 +347,41 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 			let unifier = Structural_Entailment.unify_symb_states [] spec.n_pre symb_state_aux in
 			(match unifier with
 			|	Some (quotient_heap, quotient_preds, subst, pf_discharges, true) ->
-				(* Printf.printf "I found a COMPLETE match\n"; *)
+				Printf.printf "I found a COMPLETE match\n";
 				[ (spec, quotient_heap, quotient_preds, subst, pf_discharges) ]
 			| Some (quotient_heap, quotient_preds, subst, pf_discharges, false) ->
-				(* Printf.printf "I found a PARTIAL match\n"; *)
+				Printf.printf "I found a PARTIAL match\n";
 				find_correct_specs rest_spec_list ((spec, quotient_heap, quotient_preds, subst, pf_discharges) :: ac_quotients)
 			| None -> (
-				(* Printf.printf "I found a NON-match\n"; *)
+				Printf.printf "I found a NON-match\n";
 				find_correct_specs rest_spec_list ac_quotients)) in
-				
 
-	let compatible_pfs symb_state spec subst = 
-		let pfs = get_pf symb_state in 
-		let gamma = get_gamma symb_state in 
-		let pat_pfs = get_pf (spec.n_pre) in 
-		let pat_gamma = get_gamma (spec.n_pre) in 
+
+	let compatible_pfs symb_state spec subst =
+		let pfs = get_pf symb_state in
+		let gamma = get_gamma symb_state in
+		let pat_pfs = get_pf (spec.n_pre) in
+		let pat_gamma = get_gamma (spec.n_pre) in
 		let pat_pfs = Symbolic_State_Functions.pf_substitution pat_pfs subst false in
 		let pat_gamma = Symbolic_State_Functions.gamma_substitution pat_gamma subst false in
 		let gamma = copy_gamma gamma in
 		Symbolic_State_Functions.merge_gammas gamma pat_gamma;
-		let pf_list = (pfs_to_list pat_pfs) @ (pfs_to_list pfs) in 
+		let pf_list = (pfs_to_list pat_pfs) @ (pfs_to_list pfs) in
 		let is_sat = Pure_Entailment.check_satisfiability pf_list gamma [] in
-		is_sat in 
+		is_sat in
 
 
 	let transform_symb_state_partial_match (spec, quotient_heap, quotient_preds, subst, pf_discharges) : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
-		
+
 		let symb_states_and_ret_lexprs = transform_symb_state spec symb_state quotient_heap quotient_preds subst pf_discharges in
-		
+
 		let symb_states_and_ret_lexprs =
 			List.fold_left
 				(fun ac (symb_state, ret_flag, ret_lexpr) ->
 					let (is_sat, new_symb_state) = enrich_pure_part symb_state spec subst in
 					if is_sat then ((new_symb_state, ret_flag, ret_lexpr) :: ac) else ac)
 				[] symb_states_and_ret_lexprs in
-		
+
 		let symb_states_and_ret_lexprs =
 			List.map (fun (symb_state, ret_flag, ret_lexpr) ->
 			let new_symb_state =
@@ -400,9 +400,9 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 	 	| _ :: _ ->
 			(* Printf.printf "this was a PARTIAL MATCH!!!!\n"; *)
 			let new_symb_states =
-				List.map 
-					(fun (spec, quotient_heap, quotient_preds, subst, pf_discharges) -> 
-						if (compatible_pfs symb_state spec subst) 
+				List.map
+					(fun (spec, quotient_heap, quotient_preds, subst, pf_discharges) ->
+						if (compatible_pfs symb_state spec subst)
 							then transform_symb_state_partial_match (spec, quotient_heap, quotient_preds, subst, pf_discharges)
 							else [])
 					quotients in
@@ -592,11 +592,11 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 					(* Printf.printf "I need to apply the following subst in the current symbolic store: %s\n"
 						(JSIL_Memory_Print.string_of_substitution subst);
 					Printf.printf "I need to apply the following subst in the pattern symbolic store: %s\n"*)
-						(JSIL_Memory_Print.string_of_substitution pat_subst);
+					(JSIL_Memory_Print.string_of_substitution pat_subst);
 					let new_symb_state : symbolic_state = Symbolic_State_Functions.copy_symb_state symb_state in
 					let (new_symb_state : symbolic_state) = Symbolic_State_Functions.symb_state_substitution new_symb_state subst true in
 					Symbolic_State_Functions.symb_state_add_subst_as_equalities new_symb_state subst (get_pf new_symb_state) spec_vars;
-					(* Printf.printf "Symbolic state after substitution: \n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_state new_symb_state); 
+					(* Printf.printf "Symbolic state after substitution: \n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_state new_symb_state);
 					Printf.printf "Pred Symb_sate:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state pred_symb_state); *)
 					let pat_subst = compose_partial_substitutions subst pat_subst in
 					let unfolded_symb_state = Symbolic_State_Functions.merge_symb_states new_symb_state pred_symb_state pat_subst in
@@ -631,16 +631,16 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 					let unfolded_symb_state = simplify_symb_state unfolded_symb_state in
 					(* Printf.printf "\n\nSymb_State after simplification: %s\n\n" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state); *)
 
-					(* Printf.printf "I unfolded the following symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state unfolded_symb_state); *)
+					Printf.printf "I unfolded the following symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state unfolded_symb_state);
 					let satisfiability_check = Pure_Entailment.check_satisfiability (get_pf_list unfolded_symb_state) gamma [] in
 					(* let discharges_check = Entailment_Engine.check_entailment [] pf pf_discharges gamma in *)
 					if (satisfiability_check)
 						then (
-							(* Printf.printf "Checked the pure part of the unfolding!!\n"; *)
+							Printf.printf "Checked the pure part of the unfolding!!\n";
 							loop rest_pred_defs (unfolded_symb_state :: symb_states))
 						else (
-							(* Printf.printf "Could NOT check the pure part of the unfolding. satisfiability_check: %b.\n" satisfiability_check; *)
-							(* Printf.printf "pf_discharges: %s\n" (JSIL_Print.str_of_assertion_list pf_discharges); *)
+							Printf.printf "Could NOT check the pure part of the unfolding. satisfiability_check: %b.\n" satisfiability_check;
+							Printf.printf "pf_discharges: %s\n" (JSIL_Print.str_of_assertion_list pf_discharges);
 							loop rest_pred_defs symb_states)
 			| _, _ -> loop rest_pred_defs symb_states)) in
 
@@ -873,7 +873,7 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info =
 	let success, failure_msg =
 		(try
 			print_debug (Printf.sprintf "Initial symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre));
-			let symb_state = Symbolic_State_Functions.copy_symb_state spec.n_pre in 
+			let symb_state = Symbolic_State_Functions.copy_symb_state spec.n_pre in
 			let symb_state = simplify_symb_state (symb_state) in
 			symb_evaluate_next_cmd s_prog proc spec search_info symb_state (-1) 0;
 			true, None

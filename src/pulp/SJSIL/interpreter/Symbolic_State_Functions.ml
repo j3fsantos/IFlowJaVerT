@@ -170,7 +170,8 @@ let merge_heaps heap new_heap p_formulae solver gamma =
 
 	Printf.printf "heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false);
 	Printf.printf "pat_heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap new_heap false);
-	Printf.printf "p_formulae: %s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false); 
+	Printf.printf "p_formulae: %s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
+	Printf.printf "gamma: %s\n" (JSIL_Memory_Print.string_of_gamma gamma); 
 
 	LHeap.iter
 		(fun loc (n_fv_list, n_def) ->
@@ -443,9 +444,9 @@ let copy_symb_state symb_state =
 	let c_pformulae = copy_p_formulae p_formulae in
 	let c_gamma     = copy_gamma gamma in
 	let c_preds     = copy_pred_set preds in
-	(match !solver with 
+	(match !solver with
 	| Some (solver, _) -> Z3.Solver.reset solver
-	| None -> ()); 
+	| None -> ());
 	(c_heap, c_store, c_pformulae, c_gamma, c_preds, ref None)
 
 let rec extend_symb_state_with_pfs symb_state pfs_to_add =
