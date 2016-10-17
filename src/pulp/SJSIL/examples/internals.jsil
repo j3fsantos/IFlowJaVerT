@@ -1687,7 +1687,7 @@ spec o__put (l, prop, value, throw)
 	   ((#l, "@extensible") -> $$t) * ((#l, "@canPut") -> "o__canPut") * ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") *
 	   (#g_aux_3 == $$undefined) ]]
 	[[ Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_7, #g_aux_8, #g_aux_9, #g_aux_10) *
-       (#g_aux_7 == {{ "d", #value, $$t, $$t, $$t }}) * (#g_aux_8 == {{ #obj }}) * (#g_aux_9 == {{ $$f }}) * (#g_aux_10 == {{ "" }}) *
+       (#g_aux_7 == {{ "d", #value, $$t, $$t, $$t }}) * (#g_aux_8 == {{ #l }}) * (#g_aux_9 == {{ $$f }}) * (#g_aux_10 == {{ "" }}) *
        ((#l, "@extensible") -> $$t) * ((#l, "@canPut") -> "o__canPut") * ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") *
 	   (ret == $$empty) ]]
     normal
