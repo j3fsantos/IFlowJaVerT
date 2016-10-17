@@ -151,10 +151,11 @@ rule read = parse
 (* Logic predicates *)
 	| "pred"               { JSIL_Parser.PRED }
 (* Logic commands *)
-	| "[*"                 { JSIL_Parser.OLCMD }
-	| "*]"                 { JSIL_Parser.CLCMD }
-	| "fold"               { JSIL_Parser.FOLD }
-	| "unfold"             { JSIL_Parser.UNFOLD }
+	| "[*"                 { JSIL_Parser.OLCMD     }
+	| "*]"                 { JSIL_Parser.CLCMD     }
+	| "unfold*"            { JSIL_Parser.RECUNFOLD }
+	| "fold"               { JSIL_Parser.FOLD      }
+	| "unfold"             { JSIL_Parser.UNFOLD    }	
 (* Procedure specification keywords *)
 	| "spec"               { JSIL_Parser.SPEC }
 	| "normal"             { JSIL_Parser.NORMAL }

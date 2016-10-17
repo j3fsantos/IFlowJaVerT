@@ -250,11 +250,11 @@ let create_jsil_spec name params specs =
 		proc_specs  = specs
 	} 
 
-
 (* JSIL logic commands *)
 type jsil_logic_command =
-	| Fold   of jsil_logic_assertion
-	| Unfold of jsil_logic_assertion
+	| Fold       of jsil_logic_assertion
+	| Unfold     of jsil_logic_assertion
+	| RecUnfold  of string
 
 (* JSIL command metadata *)
 type jsil_metadata = {

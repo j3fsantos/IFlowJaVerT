@@ -390,6 +390,19 @@ let preds_substitution preds subst partial =
 	done;
 	new_preds
 
+let find_predicate_assertion preds pred_name = 
+	let len = DynArray.length preds in
+	let rec loop preds args =
+		match preds with 
+		| [] -> args 
+		| cur_pred :: rest_preds -> 
+			let cur_pred_name, cur_pred_args = cur_pred in
+			if (cur_pred_name = pred_name) 
+				then loop rest_preds (cur_pred_args :: args)
+				else loop rest_preds args  in 
+	loop (DynArray.to_list preds) []
+		
+	
 
 let predicate_assertion_equality pred pat_pred pfs solver gamma spec_vars =
 	let spec_vars_str = List.fold_left (fun ac v -> if (ac = "") then v else (ac ^ ", " ^ v)) "" spec_vars in

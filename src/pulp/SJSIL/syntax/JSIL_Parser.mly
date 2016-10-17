@@ -156,6 +156,7 @@ let procedure_table = Hashtbl.create 100
 %token CLCMD
 %token FOLD
 %token UNFOLD
+%token RECUNFOLD
 (* Procedure specification keywords *)
 %token SPEC
 %token NORMAL
@@ -470,6 +471,9 @@ logic_cmd_target:
 (* [* unfold x(e1, ..., en) *] *)
 	| OLCMD; UNFOLD; assertion = assertion_target; CLCMD
 	  { Unfold (assertion) }
+(* [* unfold* x *] *)
+	| OLCMD; RECUNFOLD; v = VAR; CLCMD
+	  { RecUnfold v }
 ;
 
 spec_target:

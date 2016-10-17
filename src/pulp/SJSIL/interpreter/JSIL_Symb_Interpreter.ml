@@ -651,6 +651,20 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 	loop pred_defs []
 
 
+let recursive_unfold pred_name pred_defs symb_state params spec_vars = 
+	let rec loop symb_state = 
+		let pred_args = Symbolic_State_Functions.find_predicate_assertion (get_preds symb_state) pred_name in 
+		let len_pred_args = List.length pred_args in 
+		if ((len_pred_args = 0) || (len_pred_args > 1)) then symb_state else (
+			let args = List.hd pred_args in 
+			let unfolded_symb_states = unfold_predicates pred_name pred_defs symb_state params args spec_vars in 
+			if ((List.length unfolded_symb_states > 1) || (List.length unfolded_symb_states = 0)) 
+				then symb_state 
+				else loop (List.hd unfolded_symb_states)) in  
+	loop symb_state 	
+
+				
+
 let symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 
 	let get_pred_data pred_name les =
@@ -689,6 +703,13 @@ let symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 		| _ ->
 			let msg = Printf.sprintf "Illegal unfold command %s" (JSIL_Print.string_of_logic_assertion a false) in
 			raise (Failure msg))
+
+	| RecUnfold pred_name -> 
+		let pred = get_pred s_prog.pred_defs pred_name in
+		let pred_defs = pred.n_pred_definitions in
+		let params = pred.n_pred_params in
+		[ recursive_unfold pred_name pred_defs symb_state params spec_vars ]
+		 
 
 
 let rec symb_evaluate_logic_cmds s_prog (l_cmds : jsil_logic_command list) (symb_states : symbolic_state list) subst spec_vars =
