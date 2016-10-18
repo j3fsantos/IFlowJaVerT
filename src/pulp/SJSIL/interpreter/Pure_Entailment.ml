@@ -791,6 +791,8 @@ let if_some x f def = (match x with | Some y -> f y | None -> def)
 
 let rec encode_pure_formula tr_ctx is_premise a =
 
+	(* Printf.printf ("EPF: %s\n") (JSIL_Print.string_of_logic_assertion a false); *)
+
 	let f = encode_pure_formula tr_ctx is_premise in
 	let fe = encode_logical_expression tr_ctx in
 	let ctx = tr_ctx.z3_ctx in
@@ -990,7 +992,7 @@ let rec old_check_entailment existentials left_as right_as gamma =
 	let ctx = tr_ctx.z3_ctx in
 
 	let check_entailment_aux () =
-		Gc.full_major (); 
+		Gc.full_major ();
 		let old_left_as = left_as in
 		let left_as = List.map (fun a -> encode_pure_formula tr_ctx true a) left_as in
 		let left_as = tr_ctx.tr_axioms @ (encode_gamma tr_ctx (-1)) @ left_as in
@@ -1016,7 +1018,7 @@ let rec old_check_entailment existentials left_as right_as gamma =
 		Solver.add solver [ right_as_or ];
 		(* Printf.printf "I am checking the satisfiability of:\n %s\n" (string_of_solver solver); *)
 		let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in
-		(*  Printf.printf "backtracking_scopes before pop after push: %d!!!\n" (Solver.get_num_scopes solver); 
+		(*  Printf.printf "backtracking_scopes before pop after push: %d!!!\n" (Solver.get_num_scopes solver);
 		Printf.printf "ret: %b\n" ret; *)
 		Solver.pop solver 1;
 		ret, Some (solver, tr_ctx)  in
@@ -1055,7 +1057,7 @@ let rec check_entailment solver existentials left_as right_as gamma =
 		Solver.add solver [ right_as_or ];
 		(* Printf.printf "I am checking the satisfiability of:\n %s\n" (string_of_solver solver); *)
 		let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in
-		(* Printf.printf "backtracking_scopes before pop after push: %d!!!\n" (Solver.get_num_scopes solver); 
+		(* Printf.printf "backtracking_scopes before pop after push: %d!!!\n" (Solver.get_num_scopes solver);
 		Printf.printf "ret: %b\n" ret; *)
 		Solver.pop solver 1;
 		(* Printf.printf "backtracking_scopes after pop: %d!!!\n" (Solver.get_num_scopes solver); *)
