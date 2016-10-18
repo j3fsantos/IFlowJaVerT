@@ -297,7 +297,7 @@ let unify_gamma pat_gamma gamma pat_store subst ignore_vars =
   (* Printf.printf "I am about to unify two gammas\n";
 	 	Printf.printf "pat_gamma: %s.\ngamma: %s.\nsubst: %s\n"
 		(JSIL_Memory_Print.string_of_gamma pat_gamma) (JSIL_Memory_Print.string_of_gamma gamma)
-		(JSIL_Memory_Print.string_of_substitution subst); *)
+		(JSIL_Memory_Print.string_of_substitution subst);  *)
 	let res = (Hashtbl.fold
 		(fun var v_type ac ->
 			(* (not (is_lvar_name var)) *)
@@ -315,14 +315,14 @@ let unify_gamma pat_gamma gamma pat_store subst ignore_vars =
 						let le_type, is_typable, _ = JSIL_Logic_Utils.type_lexpr gamma le in
 						match le_type with
 						| Some le_type ->
-							 (* Printf.printf "unify_gamma. pat gamma var: %s. le: %s. v_type: %s. le_type: %s\n"
+							(* Printf.printf "unify_gamma. pat gamma var: %s. le: %s. v_type: %s. le_type: %s\n"
 								var
 								(JSIL_Print.string_of_logic_expression le false)
 								(JSIL_Print.string_of_type v_type)
 								(JSIL_Print.string_of_type le_type); *)
 							(le_type = v_type)
 						| None ->
-							(* Printf.printf "failed unify_gamma. pat gamma var: %s. le: %s. v_type: %s\n"
+							 (* Printf.printf "failed unify_gamma. pat gamma var: %s. le: %s. v_type: %s\n"
 								var
 								(JSIL_Print.string_of_logic_expression le false)
 								(JSIL_Print.string_of_type v_type); *)
@@ -473,3 +473,57 @@ let unify_symb_state_against_post proc_name spec symb_state flag symb_exe_info =
 			| None, msg       -> Printf.printf "No go: %s\n" msg; loop rest_posts rest_posts_lvars (i + 1))) in
 
 	loop spec.n_post spec.n_post_lvars 0
+
+
+let merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbolic_state) subst  : symbolic_state =
+	(* Printf.printf "gamma_r: %s\n." (JSIL_Memory_Print.string_of_gamma (get_gamma symb_state_r)); *)
+	(* Printf.printf "substitution: %s\n" (JSIL_Memory_Print.string_of_substitution subst); *)	
+	let symb_state_r = Symbolic_State_Functions.symb_state_substitution symb_state_r subst false in
+	let heap_l, store_l, pf_l, gamma_l, preds_l, solver_l = symb_state_l in
+	let heap_r, store_r, pf_r, gamma_r, preds_r, _ = symb_state_r in
+	let pf_l = DynArray.map (fun x -> JSIL_Logic_Utils.reduce_assertion x) pf_l in
+	let pf_r = DynArray.map (fun x -> JSIL_Logic_Utils.reduce_assertion x) pf_r in
+	Symbolic_State_Functions.merge_pfs pf_l pf_r;
+	Symbolic_State_Functions.merge_gammas gamma_l gamma_r;
+	Symbolic_State_Functions.merge_heaps heap_l heap_r pf_l solver_l gamma_l;
+	
+	(* Printf.printf "AFTER MERGING HEAPS\n\n"; *)
+	DynArray.append preds_r preds_l;
+	(heap_l, store_l, pf_l, gamma_l, preds_l, (ref None))
+
+
+let safe_merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbolic_state) subst  : symbolic_state option =
+	(* *)
+
+	(* Printf.printf "gamma_r: %s\n." (JSIL_Memory_Print.string_of_gamma (get_gamma symb_state_r)); *)
+	(* Printf.printf "substitution: %s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
+
+	let pf_r_existentials = get_subtraction_vars (get_pf_list symb_state_r) subst in
+	let gammas_unifiable = unify_gamma (get_gamma symb_state_r) (get_gamma symb_state_l) (get_store symb_state_r) subst pf_r_existentials in
+	
+	let symb_state_r = Symbolic_State_Functions.symb_state_substitution symb_state_r subst false in
+	let heap_l, store_l, pf_l, gamma_l, preds_l, solver_l = symb_state_l in
+	let heap_r, store_r, pf_r, gamma_r, preds_r, _ = symb_state_r in
+	let pf_l = DynArray.map (fun x -> JSIL_Logic_Utils.reduce_assertion x) pf_l in
+	let pf_r = DynArray.map (fun x -> JSIL_Logic_Utils.reduce_assertion x) pf_r in
+
+	(* DynArray.append pf_r pf_l; *)
+	Symbolic_State_Functions.merge_pfs pf_l pf_r;
+	Symbolic_State_Functions.merge_gammas gamma_l gamma_r;
+	
+	
+	let satisfiability_check = gammas_unifiable && (Pure_Entailment.check_satisfiability (pfs_to_list pf_l) gamma_l []) in
+	
+	if (satisfiability_check) 
+		then (
+			(* Printf.printf "BEFORE MERGING HEAPS. pfs_l: %s\n. pfs_r: %s\n." (JSIL_Memory_Print.string_of_shallow_p_formulae pf_l false)
+				(JSIL_Memory_Print.string_of_shallow_p_formulae pf_r false); *)
+			Symbolic_State_Functions.merge_heaps heap_l heap_r pf_l solver_l gamma_l;
+			(* Printf.printf "AFTER MERGING HEAPS\n\n"; *)
+			DynArray.append preds_r preds_l;
+			(* *)
+			(* Printf.printf "s_heap_l after merge: %s.\ns_preds_l: %s.\ns_store_l: %s.\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap_l)
+					(JSIL_Memory_Print.string_of_preds preds_l) (JSIL_Memory_Print.string_of_shallow_symb_store store_l); *)
+			(* *)
+			Some (heap_l, store_l, pf_l, gamma_l, preds_l, (ref None)))
+		else None 

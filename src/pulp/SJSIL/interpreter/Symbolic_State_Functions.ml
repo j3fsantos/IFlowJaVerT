@@ -491,34 +491,6 @@ let symb_state_add_subst_as_equalities new_symb_state subst pfs spec_vars =
 let is_empty_symb_state symb_state =
 	(is_symb_heap_empty (get_heap symb_state)) && (is_preds_empty (get_preds symb_state))
 
-let merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbolic_state) subst  : symbolic_state =
-	(* *)
-
-	(* Printf.printf "gamma_r: %s\n." (JSIL_Memory_Print.string_of_gamma (get_gamma symb_state_r)); *)
-	(* Printf.printf "substitution: %s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
-
-	let symb_state_r = symb_state_substitution symb_state_r subst false in
-	let heap_l, store_l, pf_l, gamma_l, preds_l, solver_l = symb_state_l in
-	let heap_r, store_r, pf_r, gamma_r, preds_r, _ = symb_state_r in
-	let pf_l = DynArray.map (fun x -> JSIL_Logic_Utils.reduce_assertion x) pf_l in
-	let pf_r = DynArray.map (fun x -> JSIL_Logic_Utils.reduce_assertion x) pf_r in
-
-	(* DynArray.append pf_r pf_l; *)
-	merge_pfs pf_l pf_r;
-	merge_gammas gamma_l gamma_r;
-
-	(* Printf.printf "BEFORE MERGING HEAPS. pfs_l: %s\n. pfs_r: %s\n." (JSIL_Memory_Print.string_of_shallow_p_formulae pf_l false)
-		(JSIL_Memory_Print.string_of_shallow_p_formulae pf_r false); *)
-	merge_heaps heap_l heap_r pf_l solver_l gamma_l;
-	(* Printf.printf "AFTER MERGING HEAPS\n\n"; *)
-
-	DynArray.append preds_r preds_l;
-	(* *)
-	(* Printf.printf "s_heap_l after merge: %s.\ns_preds_l: %s.\ns_store_l: %s.\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap_l)
-		(JSIL_Memory_Print.string_of_preds preds_l) (JSIL_Memory_Print.string_of_shallow_symb_store store_l); *)
-	(* *)
-	(heap_l, store_l, pf_l, gamma_l, preds_l, (ref None))
-
 
 let symb_state_replace_store symb_state new_store =
 	let heap, _, pfs, gamma, preds = symb_state in
