@@ -1455,8 +1455,17 @@ spec o__defineOwnProperty (l, prop, desc, throw)
        Cell_o (#l, #prop, None) * ((#l, "@getOwnProperty") -> "o__getOwnProperty") *
 	   ((#l, "@extensible") -> $$t) ]]
     [[ Cell_o (#l, #prop, #desc) * ((#l, "@getOwnProperty") -> "o__getOwnProperty") * ((#l, "@extensible") -> $$t) * (ret == $$t) ]]
-    normal
+    normal;
 
+	 [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
+	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #throw : $$boolean_type) *
+       DataDescriptor (#desc) * desc_val(#desc, #dv) * desc_writ(#desc, #dw) * desc_enum(#desc, #de) * desc_conf (#desc, #dc) *
+       types (#dw : $$boolean_type, #de : $$boolean_type, #dc : $$boolean_type ) *
+       Cell_s (#l, #prop, "None", None, #pv) * ((#l, "@getOwnProperty") -> "s__getOwnProperty") *
+	   ((#l, "@extensible") -> $$t) ]]
+    [[ Cell_s (#l, #prop, "NSI", #desc, #pv) * ((#l, "@getOwnProperty") -> "s__getOwnProperty") 
+    	* ((#l, "@extensible") -> $$t) * (ret == $$t) ]]
+    normal
 proc o__defineOwnProperty (l, prop, desc, throw) {
 
 			xret := $$t;
