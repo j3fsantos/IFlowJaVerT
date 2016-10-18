@@ -1452,7 +1452,7 @@ spec o__defineOwnProperty (l, prop, desc, throw)
 	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #throw : $$boolean_type) *
        DataDescriptor (#desc) * desc_val(#desc, #dv) * desc_writ(#desc, #dw) * desc_enum(#desc, #de) * desc_conf (#desc, #dc) *
        types (#dw : $$boolean_type, #de : $$boolean_type, #dc : $$boolean_type ) *
-       (#throw == $$f) * Cell_o (#l, #prop, None) * ((#l, "@getOwnProperty") -> "o__getOwnProperty") *
+       Cell_o (#l, #prop, None) * ((#l, "@getOwnProperty") -> "o__getOwnProperty") *
 	   ((#l, "@extensible") -> $$t) ]]
     [[ Cell_o (#l, #prop, #desc) * ((#l, "@getOwnProperty") -> "o__getOwnProperty") * ((#l, "@extensible") -> $$t) * (ret == $$t) ]]
     normal
