@@ -421,8 +421,8 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 let fold_predicate pred_name pred_defs symb_state params args =
 
 	(* create a new symb state with the abstract store in which the
-	    called procedure is to be executed
-	Printf.printf ("\n\n\nIn the FOLD: \n%s\n\n\n\n") (JSIL_Memory_Print.string_of_shallow_symb_state symb_state); *)
+	    called procedure is to be executed *)
+	Printf.printf ("\n\n\nIn the FOLD: \n%s\n\n\n\n") (JSIL_Memory_Print.string_of_shallow_symb_state symb_state); 
 	let new_store = Symbolic_State_Functions.init_store params args in
 	let symb_state_aux = symb_state_replace_store symb_state new_store in
 
