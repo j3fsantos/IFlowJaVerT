@@ -103,7 +103,7 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 	with (Failure msg) -> (* Printf.printf "Cannot unify, filha. Sorry: %s\n" msg;*) None
 
 
-let unify_lexprs le_pat (le : jsil_logic_expr) p_formulae solver (gamma: typing_environment) (subst : (string, jsil_logic_expr) Hashtbl.t) : (bool * ((string * jsil_logic_expr) option)) =
+let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae solver (gamma: typing_environment) (subst : (string, jsil_logic_expr) Hashtbl.t) : (bool * ((string * jsil_logic_expr) option)) =
 	(*  Printf.printf "le_pat: %s. le: %s\n" (JSIL_Print.string_of_logic_expression le_pat false)  (JSIL_Print.string_of_logic_expression le false); *)
 	match le_pat with
 	| LVar var
@@ -131,6 +131,38 @@ let unify_lexprs le_pat (le : jsil_logic_expr) p_formulae solver (gamma: typing_
 		if (Pure_Entailment.is_equal LUnknown le p_formulae solver gamma)
 			then (true, None)
 			else (false, None)
+
+	| LEList ple ->
+		Printf.printf "Now, are these lists equal?\n";
+		let list_eq lx ly = List.fold_left2
+			(fun ac x y ->
+				Printf.printf "%s == %s? " (JSIL_Print.string_of_logic_expression x false) (JSIL_Print.string_of_logic_expression y false);
+				let (ch, oops) = unify_lexprs x y p_formulae solver gamma subst in
+				Printf.printf "%b\n" ch;
+				match oops with
+				 | None -> ac && ch
+				 | Some _ -> false ) true lx ly in
+		match le with
+		| LLit (LList le') ->
+	   		let lle = List.length ple in
+			let lle' = List.length le' in
+			if (lle = lle') then
+				let le'' = List.map (fun x -> LLit x) le' in
+				let is_eq = list_eq ple le'' in
+				Printf.printf "And they aaaare: %b\n" is_eq;
+					(is_eq, None)
+			else (false, None)
+		| LEList le' ->
+	   		let lle = List.length ple in
+			let lle' = List.length le' in
+			if (lle = lle') then
+				let is_eq = list_eq ple le' in
+				Printf.printf "And they aaaare: %b\n" is_eq;
+					(is_eq, None)
+			else (false, None)
+		| _ -> 	let msg = Printf.sprintf "Illegal expression in pattern to unify. le_pat: %s. le: %s."
+					(JSIL_Print.string_of_logic_expression le_pat false) (JSIL_Print.string_of_logic_expression le false) in
+				raise (Failure msg)
 
 	| _ ->
 		let msg = Printf.sprintf "Illegal expression in pattern to unify. le_pat: %s. le: %s."
@@ -427,14 +459,13 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 
 			let unify_gamma_check = (unify_gamma pat_gamma new_gamma pat_store s_new_subst pat_pf_existentials) in
 			let entailment_check_ret = Pure_Entailment.check_entailment solver new_pat_pf_existentials pf_list (pat_pf_list @ pf_discharges) new_gamma in
-			(* Printf.printf "Unify gamma: %b Entailment check: %b\n" unify_gamma_check entailment_check_ret; *)
 			(if (entailment_check_ret & unify_gamma_check) then
-					(  (* Printf.printf "I could check the entailment!!!\n"; *)
+					(  Printf.printf "I could check the entailment!!!\n";
 					Some (quotient_heap, quotient_preds, s_new_subst, pf_discharges, true))
 				else
 					(
-					(* Printf.printf "I could NOT check the entailment!!!\n";
-					Printf.printf "entailment_check_ret: %b. unify_gamma_check: %b.\n" entailment_check_ret unify_gamma_check; *)
+					Printf.printf "I could NOT check the entailment!!!\n";
+					Printf.printf "entailment_check_ret: %b. unify_gamma_check: %b.\n" entailment_check_ret unify_gamma_check;
 					Some (quotient_heap, quotient_preds, new_subst, pf_discharges, false)))
 		| _ -> (* Printf.printf "One of the four things failed.\n";*) None)
 	| None -> (* Printf.printf "Sweet Jesus, broken discharges.\n";*) None
@@ -444,9 +475,17 @@ let fully_unify_symb_state pat_symb_state symb_state lvars =
 	let unifier = unify_symb_states lvars pat_symb_state symb_state in
 	match unifier with
 	| Some (quotient_heap, quotient_preds, subst, pf_discharges, true) ->
-		if ((Symbolic_State_Functions.is_symb_heap_empty quotient_heap) && (Symbolic_State_Functions.is_preds_empty quotient_preds)) then
+		let emp_heap = (Symbolic_State_Functions.is_symb_heap_empty quotient_heap) in
+		let emp_preds = (Symbolic_State_Functions.is_preds_empty quotient_preds) in
+		if (emp_heap && emp_preds) then
 			(Some subst, "")
-		else (None, "incomplete match")
+		else
+			let _ = if (emp_heap) then begin Printf.printf "Quotient heap empty.\n" end
+					else begin Printf.printf "Quotient heap left: \n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false) end in
+			let _ = if (emp_preds) then begin Printf.printf "Quotient predicates empty.\n" end
+					else begin Printf.printf "Quotient predicates left: \n%s\n" (JSIL_Memory_Print.string_of_preds quotient_preds false) end in
+
+			(None, "incomplete match")
 	| Some (_, _, _, _, false)
 	| None -> (None, "sorry, non_unifiable heaps")
 
@@ -477,7 +516,7 @@ let unify_symb_state_against_post proc_name spec symb_state flag symb_exe_info =
 
 let merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbolic_state) subst  : symbolic_state =
 	(* Printf.printf "gamma_r: %s\n." (JSIL_Memory_Print.string_of_gamma (get_gamma symb_state_r)); *)
-	(* Printf.printf "substitution: %s\n" (JSIL_Memory_Print.string_of_substitution subst); *)	
+	(* Printf.printf "substitution: %s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
 	let symb_state_r = Symbolic_State_Functions.symb_state_substitution symb_state_r subst false in
 	let heap_l, store_l, pf_l, gamma_l, preds_l, solver_l = symb_state_l in
 	let heap_r, store_r, pf_r, gamma_r, preds_r, _ = symb_state_r in
@@ -486,7 +525,7 @@ let merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbolic_s
 	Symbolic_State_Functions.merge_pfs pf_l pf_r;
 	Symbolic_State_Functions.merge_gammas gamma_l gamma_r;
 	Symbolic_State_Functions.merge_heaps heap_l heap_r pf_l solver_l gamma_l;
-	
+
 	(* Printf.printf "AFTER MERGING HEAPS\n\n"; *)
 	DynArray.append preds_r preds_l;
 	(heap_l, store_l, pf_l, gamma_l, preds_l, (ref None))
@@ -500,7 +539,7 @@ let safe_merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbo
 
 	let pf_r_existentials = get_subtraction_vars (get_pf_list symb_state_r) subst in
 	let gammas_unifiable = unify_gamma (get_gamma symb_state_r) (get_gamma symb_state_l) (get_store symb_state_r) subst pf_r_existentials in
-	
+
 	let symb_state_r = Symbolic_State_Functions.symb_state_substitution symb_state_r subst false in
 	let heap_l, store_l, pf_l, gamma_l, preds_l, solver_l = symb_state_l in
 	let heap_r, store_r, pf_r, gamma_r, preds_r, _ = symb_state_r in
@@ -510,11 +549,11 @@ let safe_merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbo
 	(* DynArray.append pf_r pf_l; *)
 	Symbolic_State_Functions.merge_pfs pf_l pf_r;
 	Symbolic_State_Functions.merge_gammas gamma_l gamma_r;
-	
-	
+
+
 	let satisfiability_check = gammas_unifiable && (Pure_Entailment.check_satisfiability (pfs_to_list pf_l) gamma_l []) in
-	
-	if (satisfiability_check) 
+
+	if (satisfiability_check)
 		then (
 			(* Printf.printf "BEFORE MERGING HEAPS. pfs_l: %s\n. pfs_r: %s\n." (JSIL_Memory_Print.string_of_shallow_p_formulae pf_l false)
 				(JSIL_Memory_Print.string_of_shallow_p_formulae pf_r false); *)
@@ -526,4 +565,4 @@ let safe_merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbo
 					(JSIL_Memory_Print.string_of_preds preds_l) (JSIL_Memory_Print.string_of_shallow_symb_store store_l); *)
 			(* *)
 			Some (heap_l, store_l, pf_l, gamma_l, preds_l, (ref None)))
-		else None 
+		else None
