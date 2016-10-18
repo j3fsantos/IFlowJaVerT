@@ -6,64 +6,6 @@ let verbose = ref true
 
 let proto_f = "@proto"
 
-exception FoundIt of jsil_logic_expr
-
-let rec find_me_baby le store pfs =
-	let found = ref [le] in
-	let counter = ref 0 in
-	try
-	(
-		while (!counter < List.length !found)
-		do
-			let lex = List.nth !found !counter in
-			counter := !counter + 1;
-			(match lex with
-			| PVar var ->
-				counter := !counter + 1;
-				let value = Hashtbl.find store var in
-				(match value with
-				| LLit (LList _)
-				| LEList _ -> raise (FoundIt value)
-				| _ ->
-					if (not (List.mem value !found)) then
-					begin
-						found := !found @ [value];
-						DynArray.iter
-							(fun x -> (match x with
-								| LEq (PVar v, lexpr)
-								| LEq (lexpr, PVar v) ->
-									if (v = var) then
-										if (not (List.mem lexpr !found)) then
-											found := !found @ [lexpr];
-								| _ -> ())) pfs;
-					end)
-			| LVar var ->
-				DynArray.iter
-					(fun x -> (match x with
-						| LEq (LVar v, lexpr)
-						| LEq (lexpr, LVar v) ->
-							if (v = var) then
-							(match lexpr with
-							| LLit (LList _)
-							| LEList _ -> raise (FoundIt lexpr)
-							| _ ->
-								if (not (List.mem lexpr !found)) then
-									found := !found @ [lexpr])
-						| _ -> ())) pfs;
-			| _ -> ());
-		done;
-		let flist = List.filter
-			(fun x -> match x with
-				| LLit (LList _)
-				| LEList _ -> true
-				| _ -> false) !found in
-		if (flist = [])
-			then le
-			else (List.hd flist)
-	) with FoundIt result -> result
-
-
-
 (***************************)
 (** Symbolic Execution    **)
 (***************************)
@@ -310,7 +252,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 			let post_makes_sense = compatible_pfs symb_state post subst in
 			if (post_makes_sense) then (
 				let new_symb_state = if (copy_flag) then (Symbolic_State_Functions.copy_symb_state symb_state) else symb_state in
-				let new_symb_state = Structural_Entailment.merge_symb_states new_symb_state post subst in 
+				let new_symb_state = Structural_Entailment.merge_symb_states new_symb_state post subst in
 				let ret_lexpr = store_get_var (get_store post) ret_var in
 				let ret_lexpr = JSIL_Logic_Utils.lexpr_substitution ret_lexpr subst false in
 				[ new_symb_state, ret_flag, ret_lexpr ])
@@ -324,12 +266,12 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		let symb_states_and_ret_lexprs =
 			(match spec.n_post with
 			| [] -> []
-			| [ post ] -> merge_symb_state_with_single_post symb_state post ret_var ret_flag false 
+			| [ post ] -> merge_symb_state_with_single_post symb_state post ret_var ret_flag false
 			| post :: rest_posts ->
 					let symb_states_and_ret_lexprs = List.map (fun post -> merge_symb_state_with_single_post symb_state post ret_var ret_flag true) rest_posts in
 					let symb_states_and_ret_lexprs =
 						(merge_symb_state_with_single_post symb_state post ret_var ret_flag false) :: symb_states_and_ret_lexprs in
-					let symb_states_and_ret_lexprs = List.concat symb_states_and_ret_lexprs in 
+					let symb_states_and_ret_lexprs = List.concat symb_states_and_ret_lexprs in
 					symb_states_and_ret_lexprs) in
 		symb_states_and_ret_lexprs in
 
@@ -422,7 +364,7 @@ let fold_predicate pred_name pred_defs symb_state params args =
 
 	(* create a new symb state with the abstract store in which the
 	    called procedure is to be executed *)
-	Printf.printf ("\n\n\nIn the FOLD: \n%s\n\n\n\n") (JSIL_Memory_Print.string_of_shallow_symb_state symb_state); 
+	Printf.printf ("\n\n\nIn the FOLD: \n%s\n\n\n\n") (JSIL_Memory_Print.string_of_shallow_symb_state symb_state);
 	let new_store = Symbolic_State_Functions.init_store params args in
 	let symb_state_aux = symb_state_replace_store symb_state new_store in
 
@@ -604,8 +546,8 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 					Printf.printf "Pred Symb_sate:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state pred_symb_state); *)
 					let pat_subst = compose_partial_substitutions subst pat_subst in
 					let unfolded_symb_state = Structural_Entailment.safe_merge_symb_states new_symb_state pred_symb_state pat_subst in
-					(match unfolded_symb_state with 
-					| Some unfolded_symb_state -> 
+					(match unfolded_symb_state with
+					| Some unfolded_symb_state ->
 						(*Printf.printf "pred symbolic state at the middle: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pred_symb_state);*)
 						let spec_vars_subst = filter_substitution subst spec_vars in
 
@@ -632,7 +574,7 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 						let gammas_unifiable = Structural_Entailment.unify_gamma (get_gamma pred_symb_state) gamma pat_store pat_subst pat_pf_existentials in
 						(* Printf.printf "Are gammas unifiable? Answer, bitch! %b\n" gammas_unifiable;
 						Printf.printf "\n\nSymb_State before simplification: %s\n\n" (JSIL_Memory_Print.string_of_shallow_symb_state unfolded_symb_state);*)
-						
+
 						(* Go through the pure formulae. Look for l-nth and ways to simplify it. Add types to gamma. *)
 						let unfolded_symb_state = simplify_symb_state unfolded_symb_state in
 						(* Printf.printf "\n\nSymb_State after simplification: %s\n\n" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state); *)
@@ -654,19 +596,19 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 	loop pred_defs []
 
 
-let recursive_unfold pred_name pred_defs symb_state params spec_vars = 
-	let rec loop symb_state = 
-		let pred_args = Symbolic_State_Functions.find_predicate_assertion (get_preds symb_state) pred_name in 
-		let len_pred_args = List.length pred_args in 
+let recursive_unfold pred_name pred_defs symb_state params spec_vars =
+	let rec loop symb_state =
+		let pred_args = Symbolic_State_Functions.find_predicate_assertion (get_preds symb_state) pred_name in
+		let len_pred_args = List.length pred_args in
 		if ((len_pred_args = 0) || (len_pred_args > 1)) then symb_state else (
-			let args = List.hd pred_args in 
-			let unfolded_symb_states = unfold_predicates pred_name pred_defs symb_state params args spec_vars in 
-			if ((List.length unfolded_symb_states > 1) || (List.length unfolded_symb_states = 0)) 
-				then symb_state 
-				else loop (List.hd unfolded_symb_states)) in  
-	loop symb_state 	
+			let args = List.hd pred_args in
+			let unfolded_symb_states = unfold_predicates pred_name pred_defs symb_state params args spec_vars in
+			if ((List.length unfolded_symb_states > 1) || (List.length unfolded_symb_states = 0))
+				then symb_state
+				else loop (List.hd unfolded_symb_states)) in
+	loop symb_state
 
-				
+
 
 let symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 
@@ -707,12 +649,12 @@ let symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 			let msg = Printf.sprintf "Illegal unfold command %s" (JSIL_Print.string_of_logic_assertion a false) in
 			raise (Failure msg))
 
-	| RecUnfold pred_name -> 
+	| RecUnfold pred_name ->
 		let pred = get_pred s_prog.pred_defs pred_name in
 		let pred_defs = pred.n_pred_definitions in
 		let params = pred.n_pred_params in
 		[ recursive_unfold pred_name pred_defs symb_state params spec_vars ]
-		 
+
 
 
 let rec symb_evaluate_logic_cmds s_prog (l_cmds : jsil_logic_command list) (symb_states : symbolic_state list) subst spec_vars =

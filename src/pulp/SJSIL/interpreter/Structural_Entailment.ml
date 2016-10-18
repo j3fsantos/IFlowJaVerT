@@ -160,10 +160,10 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae solver (gamma: typ
 				Printf.printf "And they aaaare: %b\n" is_eq;
 					(is_eq, None)
 			else (false, None)
-		| _ -> 	let msg = Printf.sprintf "Illegal expression in pattern to unify. le_pat: %s. le: %s."
-					(JSIL_Print.string_of_logic_expression le_pat false) (JSIL_Print.string_of_logic_expression le false) in
-				raise (Failure msg)
-
+		| le' -> let le'' = find_me_baby le' (Hashtbl.create 1) p_formulae in
+			let (is_eq, whatever) = unify_lexprs le_pat le'' p_formulae solver gamma subst in
+			Printf.printf "And they aaaare: %b\n" is_eq;
+			(is_eq, whatever)
 	| _ ->
 		let msg = Printf.sprintf "Illegal expression in pattern to unify. le_pat: %s. le: %s."
 			(JSIL_Print.string_of_logic_expression le_pat false) (JSIL_Print.string_of_logic_expression le false) in

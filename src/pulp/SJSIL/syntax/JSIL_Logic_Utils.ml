@@ -5,6 +5,7 @@ open JSIL_Syntax
 
 module SS = Set.Make(String)
 
+exception FoundIt of jsil_logic_expr
 
 let evaluate_type_of lit =
 	match lit with
@@ -1053,3 +1054,57 @@ let rec reduce_assertion a =
 		)
 
 	| _ -> a
+
+let rec find_me_baby le store pfs =
+	let found = ref [le] in
+	let counter = ref 0 in
+	try
+	(
+		while (!counter < List.length !found)
+		do
+			let lex = List.nth !found !counter in
+			counter := !counter + 1;
+			(match lex with
+			| PVar var ->
+				counter := !counter + 1;
+				let value = Hashtbl.find store var in
+				(match value with
+				| LLit (LList _)
+				| LEList _ -> raise (FoundIt value)
+				| _ ->
+					if (not (List.mem value !found)) then
+					begin
+						found := !found @ [value];
+						DynArray.iter
+							(fun x -> (match x with
+								| LEq (PVar v, lexpr)
+								| LEq (lexpr, PVar v) ->
+									if (v = var) then
+										if (not (List.mem lexpr !found)) then
+											found := !found @ [lexpr];
+								| _ -> ())) pfs;
+					end)
+			| LVar var ->
+				DynArray.iter
+					(fun x -> (match x with
+						| LEq (LVar v, lexpr)
+						| LEq (lexpr, LVar v) ->
+							if (v = var) then
+							(match lexpr with
+							| LLit (LList _)
+							| LEList _ -> raise (FoundIt lexpr)
+							| _ ->
+								if (not (List.mem lexpr !found)) then
+									found := !found @ [lexpr])
+						| _ -> ())) pfs;
+			| _ -> ());
+		done;
+		let flist = List.filter
+			(fun x -> match x with
+				| LLit (LList _)
+				| LEList _ -> true
+				| _ -> false) !found in
+		if (flist = [])
+			then le
+			else (List.hd flist)
+	) with FoundIt result -> result

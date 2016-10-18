@@ -1641,10 +1641,10 @@ spec o__put (l, prop, value, throw)
 	(* Property is not defined within the prototype chain, only one element *)
     [[ (l == #l) * (prop == #prop) * (value == #value) * (throw == #throw) *
 	   types (#l : $$object_type, #prop : $$string_type, #throw : $$boolean_type) *
-       Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
-	   (#g_aux_3 == $$undefined) * (#g_aux_4 == {{ #l }}) * types (#g_aux_new : $$list_type) *
+       Pi (#l, #prop, #g_aux_1, #g_aux_2, $$undefined, {{ #l }}, #g_aux_5, #g_aux_6) *
+	   types (#g_aux_new : $$list_type) *
 	   ((#l, "@extensible") -> $$t) * ((#l, "@canPut") -> "o__canPut") * ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") ]]
-	[[ Pi (#l, #prop, #g_aux_1, #g_aux_2, {{ "d", #value, $$t, $$t, $$t }}, #g_aux_4, #g_aux_5, #g_aux_6) *
+	[[ Pi (#l, #prop, #g_aux_1, #g_aux_2, {{ "d", #value, $$t, $$t, $$t }}, {{ #l }}, #g_aux_5, #g_aux_6) * ((#l, "@proto") -> $$null) *
        ((#l, "@extensible") -> $$t) * ((#l, "@canPut") -> "o__canPut") * ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") *
 	   (ret == $$empty) ]]
     normal
