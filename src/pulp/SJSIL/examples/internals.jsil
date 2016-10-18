@@ -1644,8 +1644,7 @@ spec o__put (l, prop, value, throw)
        Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
 	   (#g_aux_3 == $$undefined) * (#g_aux_4 == {{ #l }}) * types (#g_aux_new : $$list_type) *
 	   ((#l, "@extensible") -> $$t) * ((#l, "@canPut") -> "o__canPut") * ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") ]]
-	[[ Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_new, #g_aux_4, #g_aux_5, #g_aux_6) *
-       (#g_aux_new == {{ "d", #value, $$t, $$t, $$t }}) * types (#g_aux_new : $$list_type) *
+	[[ Pi (#l, #prop, #g_aux_1, #g_aux_2, {{ "d", #value, $$t, $$t, $$t }}, #g_aux_4, #g_aux_5, #g_aux_6) *
        ((#l, "@extensible") -> $$t) * ((#l, "@canPut") -> "o__canPut") * ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") *
 	   (ret == $$empty) ]]
     normal
@@ -1683,7 +1682,7 @@ proc o__put (l, prop, value, throw) {
     		desc := {{ "d", value, $$t, $$t, $$t }};
     		xret := dop (l, prop, desc, throw) with elab;
 
-			[* fold Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_new, #g_aux_4, #g_aux_5, #g_aux_6) *]
+			[* fold Pi (#l, #prop, #g_aux_1, #g_aux_2, {{ "d", #value, $$t, $$t, $$t }}, #g_aux_4, #g_aux_5, #g_aux_6) *]
     remp:   xret := $$empty;
     rlab:   skip;
 
