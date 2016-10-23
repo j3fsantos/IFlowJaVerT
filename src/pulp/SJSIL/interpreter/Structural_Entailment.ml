@@ -206,7 +206,7 @@ let unify_symb_fv_lists pat_fv_list fv_list def_val p_formulae solver gamma subs
 			let res = unify_fv_pair (pat_field, pat_val) fv_list p_formulae solver gamma subst in
 			(match res with
 			| None ->
-				Printf.printf "I could NOT unify an fv-pair. pat_val: %s. def_val: %s\n" (JSIL_Print.string_of_logic_expression pat_val false) (JSIL_Print.string_of_logic_expression def_val false); 
+				Printf.printf "I could NOT unify an fv-pair. pat_val: %s. def_val: %s\n" (JSIL_Print.string_of_logic_expression pat_val false) (JSIL_Print.string_of_logic_expression def_val false);
 				(match def_val with
 				| LUnknown -> None
 				| _ ->
@@ -243,7 +243,7 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 							LHeap.replace quotient_heap loc (new_fv_list, def);
 							let new_pfs : jsil_logic_assertion list = make_all_different_pure_assertion new_fv_list matched_fv_list in
 							new_pfs @ pfs
-						| None -> Printf.printf "I could NOT! unify the fv_lists baby!!!\n"; raise (Failure ("Pattern heaps cannot have default values")))
+						| None -> raise (Failure ("Pattern heaps cannot have default values")))
 					| _ -> raise (Failure ("Pattern heaps cannot have default values"))))
 				pat_heap
 				[] in
@@ -264,8 +264,8 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 				| _ -> ())
 			quotient_heap;
 		(Some quotient_heap), (Some pfs)
-	with _ ->
-		 Printf.printf "unify_symb_heaps FAILED BABYYYY\n"; 
+	with (Failure msg) ->
+		Printf.printf "unify_symb_heaps FAILED BABYYYY with message: %s\n" msg; 
 		None, None
 		
 
