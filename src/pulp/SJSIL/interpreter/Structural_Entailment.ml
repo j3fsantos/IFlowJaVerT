@@ -422,12 +422,10 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 			Printf.printf "I computed a quotient heap but I also need to check an entailment\n";
 			Printf.printf "The quotient heap that I just computed:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false);
 		
-			let pf_discharges = pf_list_of_discharges discharges s_new_subst false in
 			let pat_pf_existentials = get_subtraction_vars (Symbolic_State_Functions.get_symb_state_vars_as_list false pat_symb_state) s_new_subst in
-			
-			Printf.printf "Substitution after discharges computation baby!!!\n%s\nExistentials:\n%s\n" 
-				(JSIL_Memory_Print.string_of_substitution s_new_subst);
-				print_var_list pat_pf_existentials;
+			Printf.printf "Substitution after preset unification baby!!!\n%s\nExistentials:\n%s\n" 
+				(JSIL_Memory_Print.string_of_substitution s_new_subst)
+				(print_var_list pat_pf_existentials);
 			
 			let new_pat_pf_existentials = (List.map (fun v -> fresh_lvar ()) pat_pf_existentials) in
 			let existential_substitution = init_substitution2 pat_pf_existentials (List.map (fun v -> LVar v) new_pat_pf_existentials) in
@@ -444,6 +442,7 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 			print_endline (Printf.sprintf "new_pfs: %s" (JSIL_Print.str_of_assertion_list new_pfs));
 			Symbolic_State_Functions.extend_pf pf solver new_pfs;
 			
+			let pf_discharges = pf_list_of_discharges discharges s_new_subst false in
 			let pat_pf_list = List.map (fun a -> assertion_substitution a s_new_subst true) (pfs_to_list pat_pf) in
 			let pf_list = pfs_to_list pf in
 
