@@ -5,6 +5,8 @@ open JSIL_Memory_Model
 (** Substitution Functions          **)
 (*************************************)
 
+let small_tbl_size = 31
+
 let update_subst1 subst unifier =
 	match unifier with
 	| false, _ -> false
@@ -201,6 +203,19 @@ let merge_heaps heap new_heap p_formulae solver gamma =
 					LHeap.add heap loc (n_fv_list, LUnknown))
 			| _ -> raise (Failure "heaps non-mergeable: the default field is not unknown!!!"))
 		new_heap
+		
+		
+let get_heap_vars var_tbl catch_pvars heap = 
+	LHeap.iter 
+		(fun _ (fv_list, e_def) ->
+			List.iter 
+				(fun (e_field, e_val) ->
+					JSIL_Logic_Utils.get_expr_vars var_tbl catch_pvars e_field; 
+					JSIL_Logic_Utils.get_expr_vars var_tbl catch_pvars e_val)
+				fv_list; 
+			JSIL_Logic_Utils.get_expr_vars var_tbl catch_pvars e_def)
+		heap
+
 
 (*************************************)
 (** Abstract Store functions        **)
@@ -237,9 +252,23 @@ let store_substitution store gamma subst partial =
 			([], []) in
 	let store = init_store vars les in
 	store
+		
+let get_store_vars var_tbl catch_pvars store = 
+	Hashtbl.iter (fun _ e -> JSIL_Logic_Utils.get_expr_vars var_tbl catch_pvars e) store
 
+let filter_store store filter_fun = 
+	Hashtbl.fold
+		(fun var le (filtered_vars, unfiltered_vars) ->
+			if (filter_fun le) 
+				then ((var :: filtered_vars), unfiltered_vars)
+				else (filtered_vars, (var :: unfiltered_vars))) 
+		store 
+		([], [])
 
-
+let store_projection store vars =
+	let les = List.map (fun v -> Hashtbl.find store v) vars in 
+	init_store vars les 
+	
 
 (*************************************)
 (** Pure Formulae functions         **)
@@ -327,6 +356,15 @@ let resolve_location lvar pfs =
 		| LEq (LLit (Loc loc), LVar lvar) :: rest -> Some (LLit (Loc loc))
 		| _ :: rest -> loop rest in
 	loop pfs
+	
+
+let get_pf_vars var_tbl catch_pvars pfs =	
+	let len = DynArray.length pfs in 
+	for i=0 to len - 1 do
+		let a = DynArray.get pfs i in
+		JSIL_Logic_Utils.get_ass_vars_iter var_tbl catch_pvars a 
+	done 
+	 
 
 (*************************************)
 (** Typing Environment functions    **)
@@ -347,18 +385,18 @@ let rec gamma_substitution gamma subst partial =
 					Hashtbl.add new_gamma var v_type))
 		gamma;
 	new_gamma
+	
 
-let is_sensible_subst subst gamma =
-    try
+let is_sensible_subst subst gamma_source gamma_target =
+  try
 	Hashtbl.iter
 		(fun var lexpr ->
-			let lexpr_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma lexpr in
-			let var_type = gamma_get_type gamma var in
+			let lexpr_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma_target lexpr in
+			let var_type = gamma_get_type gamma_source var in
 			(match lexpr_type, var_type with
 			| Some le_type, Some v_type ->
 			  if (le_type = v_type) then () else raise (Failure (Printf.sprintf "Type mismatch: %s %s"
 			  	(JSIL_Print.string_of_type le_type) (JSIL_Print.string_of_type v_type)))
-			| None, Some v_type -> raise (Failure "Gamma typed, unfold untyped")
 			| _, _ -> ()))
 		subst;
 	true
@@ -370,6 +408,15 @@ let merge_gammas (gamma_l : typing_environment) (gamma_r : typing_environment) =
 			if (not (Hashtbl.mem gamma_l var))
 				then Hashtbl.add gamma_l var v_type)
 		gamma_r
+
+
+let get_gamma_vars var_tbl catch_pvars gamma = 
+	Hashtbl.iter 
+		(fun var _ -> 
+			if (catch_pvars || (is_lvar_name var)) 
+				then Hashtbl.replace var_tbl var true 
+				else ())
+		gamma
 
 
 (*************************************)
@@ -448,6 +495,14 @@ let is_preds_empty preds =
 	(DynArray.length preds) = 0
 
 
+let get_preds_vars var_tbl catch_pvars preds =
+	let len = DynArray.length preds in
+	for i=0 to len - 1 do
+		let pred_name, les = DynArray.get preds i in
+		List.iter (fun le -> JSIL_Logic_Utils.get_expr_vars var_tbl catch_pvars le) les
+	done
+
+
 (*************************************)
 (** Symbolic State functions        **)
 (*************************************)
@@ -493,8 +548,8 @@ let is_empty_symb_state symb_state =
 
 
 let symb_state_replace_store symb_state new_store =
-	let heap, _, pfs, gamma, preds = symb_state in
-	(heap, new_store, pfs, gamma, preds)
+	let heap, _, pfs, gamma, preds, solver = symb_state in
+	(heap, new_store, pfs, gamma, preds, solver)
 
 let symb_state_replace_heap symb_state new_heap =
 	let _, store, pfs, gamma, preds, solver = symb_state in
@@ -511,6 +566,24 @@ let symb_state_replace_gamma symb_state new_gamma =
 let symb_state_replace_pfs symb_state new_pfs =
 	let heap, store, _, gamma, preds, solver = symb_state in
 	(heap, store, new_pfs, gamma, preds, solver)
+
+let get_symb_state_vars_as_tbl catch_pvars symb_state = 
+	let var_tbl = Hashtbl.create small_tbl_size in
+	let heap, store, pfs, gamma, preds, _ = symb_state in
+	get_heap_vars var_tbl catch_pvars heap;
+	get_store_vars var_tbl catch_pvars store;
+	get_pf_vars var_tbl catch_pvars pfs;
+	get_gamma_vars var_tbl catch_pvars gamma;
+	get_preds_vars var_tbl catch_pvars preds;
+	var_tbl 
+
+let get_symb_state_vars_as_list catch_pvars symb_state = 
+	let var_tbl = get_symb_state_vars_as_tbl catch_pvars symb_state in 
+	Hashtbl.fold 
+		(fun v _ ac -> v :: ac) 
+		var_tbl 
+		[]
+
 
 (*************************************)
 (** Normalised Spec functions       **)

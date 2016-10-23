@@ -135,6 +135,12 @@ let extend_abs_store x store gamma =
 	Hashtbl.add store x new_l_var;
 	new_l_var
 
+let get_store_domain store = 
+	Hashtbl.fold
+		(fun x _ ac -> x :: ac) 
+		store 
+		[]
+
 
 
 

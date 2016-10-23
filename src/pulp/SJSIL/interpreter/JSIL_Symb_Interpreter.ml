@@ -364,16 +364,24 @@ let fold_predicate pred_name pred_defs symb_state params args =
 
 	(* create a new symb state with the abstract store in which the
 	    called procedure is to be executed *)
-	Printf.printf ("\n\n\nIn the FOLD: \n%s\n\n\n\n") (JSIL_Memory_Print.string_of_shallow_symb_state symb_state);
 	let new_store = Symbolic_State_Functions.init_store params args in
 	let symb_state_aux = symb_state_replace_store symb_state new_store in
 
+	let symb_state_vars : (jsil_var, bool) Hashtbl.t = Symbolic_State_Functions.get_symb_state_vars_as_tbl false symb_state  in 
+	let args_vars : (jsil_var, bool) Hashtbl.t = JSIL_Logic_Utils.get_vars_le_list_as_tbl false args in
+	let existentials : jsil_var list = JSIL_Logic_Utils.tbl_intersection_false_true symb_state_vars args_vars in
+	let existentials_str = print_var_list existentials in 
+	 
+	Printf.printf ("\n\n\nIn the FOLD with the following new variables %s: \n%s\n\n\n\n") 
+		existentials_str
+		(JSIL_Memory_Print.string_of_shallow_symb_state symb_state);
+	
 	let rec find_correct_pred_def pred_defs =
 		(match pred_defs with
 		| [] -> None
 		| pred_def :: rest_pred_defs ->
 			Printf.printf "Current pred symbolic state: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pred_def);
-			let unifier = Structural_Entailment.unify_symb_states [] pred_def symb_state_aux in
+			let unifier = Structural_Entailment.unify_symb_states_fold existentials pred_def symb_state_aux in
 			(match unifier with
 			| Some (quotient_heap, quotient_preds, subst, pf_discharges, true) ->
 			    Printf.printf "I can fold this!!!\n";
@@ -496,102 +504,26 @@ let simplify_symb_state symb_state =
 	Printf.printf "And we've got some new gamma:\n%s\n" (JSIL_Memory_Print.string_of_gamma new_gamma);
 	(heap, store, pure_formulae, new_gamma, preds, solver)
 
+
+
 let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 	let subst0 = Symbolic_State_Functions.subtract_pred pred_name args (get_preds symb_state) (get_pf symb_state) (get_solver symb_state) (get_gamma symb_state) spec_vars in
 	let args = List.map (fun le -> lexpr_substitution le subst0 true) args in
-	let store = Symbolic_State_Functions.init_store params args in
-
-	Printf.printf "I WILL BEGIN TO UNFOLD: NUMBER OF DEFINITIONS: %i\n" (List.length  pred_defs);
-
-	let update_gamma_from_unfolded_predicate store gamma symb_state =
-	let symb_gamma = get_gamma symb_state in
-		Hashtbl.iter
-		(fun pvar lexpr ->
-			let str_lexpr = (JSIL_Print.string_of_logic_expression lexpr false) in
-			(match lexpr with
-			| LVar lvar ->
-			  if (Hashtbl.mem gamma pvar) then
-			  begin
-			    let ltype = Hashtbl.find gamma pvar in
-					if (not (Hashtbl.mem symb_gamma lvar))
-						then update_gamma symb_gamma lvar (Some ltype)
-			  end
-			| _ -> () )) store;
-		symb_gamma in
-
+	let calling_store = Symbolic_State_Functions.init_store params args in
+	
+	Printf.printf "I WILL BEGIN TO UNFOLD: NUMBER OF DEFINITIONS: %i\n" (List.length  pred_defs);	
+	Printf.printf "Current symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state); 
+	Printf.printf "the unfolding store is:\n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_store calling_store false);
 
 	let rec loop pred_defs (symb_states : symbolic_state list) =
 		(match pred_defs with
 		| [] -> symb_states
 		| pred_symb_state :: rest_pred_defs ->
-			let pat_subst = init_substitution [] in
-			let subst = init_substitution [] in
-			let pat_store = get_store pred_symb_state in
-			let symb_state = Symbolic_State_Functions.symb_state_replace_gamma symb_state (update_gamma_from_unfolded_predicate store (get_gamma pred_symb_state) symb_state) in
-			(* Printf.printf "\nUnfolding the predicate.\n\nSymb_State: %s\n\nPat_Symb_State: %s\n\n" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state) (JSIL_Memory_Print.string_of_shallow_symb_state pred_symb_state);
-			Printf.printf "Calling store: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false); *)
-			let discharges = Structural_Entailment.unify_stores pat_store store pat_subst (Some subst) (pfs_to_list (get_pf symb_state)) (get_solver symb_state) (get_gamma symb_state) in
-			let sensible_subst = Symbolic_State_Functions.is_sensible_subst subst (get_gamma symb_state) in
-			(match sensible_subst, discharges with
-			| true, Some discharges ->
-					(* Printf.printf "Current pred symbolic state: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pred_symb_state); *)
-					(* Printf.printf "I need to apply the following subst in the current symbolic store: %s\n"
-						(JSIL_Memory_Print.string_of_substitution subst);
-					Printf.printf "I need to apply the following subst in the pattern symbolic store: %s\n"*)
-					(JSIL_Memory_Print.string_of_substitution pat_subst);
-					let new_symb_state : symbolic_state = Symbolic_State_Functions.copy_symb_state symb_state in
-					let (new_symb_state : symbolic_state) = Symbolic_State_Functions.symb_state_substitution new_symb_state subst true in
-					Symbolic_State_Functions.symb_state_add_subst_as_equalities new_symb_state subst (get_pf new_symb_state) spec_vars;
-					(* Printf.printf "Symbolic state after substitution: \n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_state new_symb_state);
-					Printf.printf "Pred Symb_sate:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state pred_symb_state); *)
-					let pat_subst = compose_partial_substitutions subst pat_subst in
-					let unfolded_symb_state = Structural_Entailment.safe_merge_symb_states new_symb_state pred_symb_state pat_subst in
-					(match unfolded_symb_state with
-					| Some unfolded_symb_state ->
-						(*Printf.printf "pred symbolic state at the middle: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pred_symb_state);*)
-						let spec_vars_subst = filter_substitution subst spec_vars in
-
-						let pf = get_pf unfolded_symb_state in
-						let solver = get_solver unfolded_symb_state in
-						let gamma =  (get_gamma unfolded_symb_state) in
-						let new_pfs = Symbolic_State_Functions.pf_of_substitution spec_vars_subst in
-						let new_pfs_subst0 = Symbolic_State_Functions.pf_of_substitution subst0 in
-						let pf_discharges = Structural_Entailment.pf_list_of_discharges discharges pat_subst in
-
-						Symbolic_State_Functions.extend_pf pf solver new_pfs;
-						Symbolic_State_Functions.extend_pf pf solver new_pfs_subst0;
-						Symbolic_State_Functions.extend_pf pf solver pf_discharges;
-
-						JSIL_Logic_Normalise.extend_typing_env_using_assertion_info new_pfs gamma;
-						JSIL_Logic_Normalise.extend_typing_env_using_assertion_info new_pfs_subst0 gamma;
-						JSIL_Logic_Normalise.extend_typing_env_using_assertion_info pf_discharges gamma;
-
-						(* Printf.printf "\nJust before substitution.\n\nSymb_State: %s\n\nPat_Symb_State: %s\n\n" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state) (JSIL_Memory_Print.string_of_shallow_symb_state pred_symb_state);
-						Printf.printf "The discharges to prove are: %s\n" (JSIL_Print.str_of_assertion_list pf_discharges);
-						Printf.printf " subst: %s pat_subst: %s\n" (JSIL_Memory_Print.string_of_substitution subst) (JSIL_Memory_Print.string_of_substitution pat_subst);*)
-
-						let pat_pf_existentials = get_subtraction_vars (get_pf_list pred_symb_state) pat_subst in
-						let gammas_unifiable = Structural_Entailment.unify_gamma (get_gamma pred_symb_state) gamma pat_store pat_subst pat_pf_existentials in
-						(* Printf.printf "Are gammas unifiable? Answer, bitch! %b\n" gammas_unifiable;
-						Printf.printf "\n\nSymb_State before simplification: %s\n\n" (JSIL_Memory_Print.string_of_shallow_symb_state unfolded_symb_state);*)
-
-						(* Go through the pure formulae. Look for l-nth and ways to simplify it. Add types to gamma. *)
-						let unfolded_symb_state = simplify_symb_state unfolded_symb_state in
-						(* Printf.printf "\n\nSymb_State after simplification: %s\n\n" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state); *)
-
-						Printf.printf "I unfolded the following symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state unfolded_symb_state);
-						let satisfiability_check = Pure_Entailment.check_satisfiability (get_pf_list unfolded_symb_state) gamma [] in
-						(* let discharges_check = Entailment_Engine.check_entailment [] pf pf_discharges gamma in *)
-						if (satisfiability_check)
-							then (
-								Printf.printf "Checked the pure part of the unfolding!!\n";
-								loop rest_pred_defs (unfolded_symb_state :: symb_states))
-							else (
-								Printf.printf "Could NOT check the pure part of the unfolding. satisfiability_check: %b.\n" satisfiability_check;
-								Printf.printf "pf_discharges: %s\n" (JSIL_Print.str_of_assertion_list pf_discharges);
-								loop rest_pred_defs symb_states)
-					| None -> loop rest_pred_defs symb_states)
-			| _, _ -> loop rest_pred_defs symb_states)) in
+			Printf.printf "Current Pred DEF:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state pred_symb_state);
+			let unfolded_symb_state = Structural_Entailment.unfold_predicate_definition symb_state pred_symb_state calling_store subst0 spec_vars in 
+			(match unfolded_symb_state with 
+			| None -> Printf.printf "Unfolidng UNsuccessful!!!\n"; loop rest_pred_defs symb_states 
+			| Some unfolded_symb_state ->  Printf.printf "Unfolidng SUCCESSFUL!!!\n"; loop rest_pred_defs (unfolded_symb_state :: symb_states))) in
 
 	loop pred_defs []
 

@@ -1,24 +1,12 @@
 (** Totals: 0 fails and 2 passes **)
 
-(** Tested feature: field assignment 1               **)
-(** Expected result: YES                             **)
-spec test0 (x)
-   [[ (x == {{ #y, 2, 3, 1 }}) * (#y == 1) * types(#y: $$int_type)  ]]
-   [[  (x == #z) * (#z == {{ 4, 2, 3, 1 }}) * types(x: $$list_type, #z: $$list_type) ]]
-   normal
-proc test0 (x) {
-		   x := {{ 4, l-nth(x, 1) , 3, 1 }};
-   rlab:   skip
-} with { ret: x, rlab; };
-
-
 pred my_list (x, alpha, size) : 
-	(x == #x) * (#x == $$null) * (alpha == #alpha) * (#alpha == {{ }}) * (size == #size) * 
-		(#size == 0) * types(#alpha: $$list_type, #size: $$int_type), 
+	(x == $$null) * (alpha == {{ }}) *
+		(size == 0) * types(alpha: $$list_type, size: $$int_type), 
 		
-	((x, "value") -> #y) * ((x, "next") -> #z) * ((x, "@proto") -> $$null) * (alpha == #alpha) *  
-		(#alpha == (#y :: #beta)) * my_list(#z, #beta, #size_beta) * (size == #size) * (#size == (#size_beta + 1)) * 
-		types(#y: $$int_type, #alpha: $$list_type, #beta: $$list_type, #size: $$int_type, #size_beta: $$int_type);
+	((x, "value") -> #y) * ((x, "next") -> #z) * ((x, "@proto") -> $$null) *   
+		(alpha == (#y :: #beta)) * my_list(#z, #beta, #size_beta) * (size == (#size_beta + 1)) * 
+		types(#y: $$int_type, #alpha: $$list_type, #beta: $$list_type, size: $$int_type, #size_beta: $$int_type);
 
 
 (** Expected result: YES                             **)

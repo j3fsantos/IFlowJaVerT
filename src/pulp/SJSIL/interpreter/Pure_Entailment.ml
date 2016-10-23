@@ -787,117 +787,138 @@ let rec lets_do_some_list_theory_axioms tr_ctx l1 l2 =
  | _, _ -> Printf.printf "Oops! %s %s\n" (JSIL_Print.string_of_logic_expression l1 false) (JSIL_Print.string_of_logic_expression l2 false); exit 1
 )
 
+
+let make_concrete_string_axioms tr_ctx s = 
+	let ctx = tr_ctx.z3_ctx in
+	let s', _, _  = encode_logical_expression tr_ctx (LLit (String s)) in 
+	let len_axiom = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_slen_fun [ s' ]) (Arithmetic.Integer.mk_numeral_i ctx (String.length s)) in
+	let les = List.map (fun x -> LLit (String x)) (explode s) in
+	let snth_axioms = encode_snth_equalities tr_ctx s' les in	
+	len_axiom :: snth_axioms 
+
+
+let rec lets_do_some_string_theory_axioms tr_ctx l1 l2 =
+	let f = lets_do_some_list_theory_axioms tr_ctx in
+	let fe = encode_logical_expression tr_ctx in
+	let ctx = tr_ctx.z3_ctx in
+
+	(match l1, l2 with
+	| LLit (String s1), LLit (String s2) -> if (s1 = s2) then [ Boolean.mk_true ctx ], [] else [ Boolean.mk_false ctx ], []
+	
+	| LStrNth (_, _), _
+	| _, LStrNth (_, _) -> 
+		(* wrong encoding - there are axioms!!! *)
+		(mk_simple_eq tr_ctx l1 l2), []
+	 
+	| LLit (String s), _ ->
+		let as1 = (mk_simple_eq tr_ctx l1 l2) in
+		let l2', _, _ = fe l2 in 
+		let len_axiom = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_slen_fun [ l2' ]) (Arithmetic.Integer.mk_numeral_i ctx (String.length s)) in
+		let les = List.map (fun x -> LLit (String x)) (explode s) in
+		let snth_axioms = encode_snth_equalities tr_ctx l2' les in
+		as1, len_axiom :: snth_axioms 
+	
+	| _, LLit (String s) ->
+		let as1 = (mk_simple_eq tr_ctx l1 l2) in
+		let l1', _, _ = fe l1 in 
+		let len_axiom = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_slen_fun [ l1' ]) (Arithmetic.Integer.mk_numeral_i ctx (String.length s)) in
+		let les = List.map (fun x -> LLit (String x)) (explode s) in
+		let snth_axioms = encode_snth_equalities tr_ctx l1' les in
+		as1, len_axiom :: snth_axioms
+	
+	| _, _ -> (mk_simple_eq tr_ctx l1 l2), [])
+
+
+
 let if_some x f def = (match x with | Some y -> f y | None -> def)
 
-let rec encode_pure_formula tr_ctx is_premise a =
 
-	(* Printf.printf ("EPF: %s\n") (JSIL_Print.string_of_logic_assertion a false); *)
 
-	let f = encode_pure_formula tr_ctx is_premise in
+let rec encode_assertion tr_ctx is_premise a : Expr.expr * (Expr.expr list) =
+	let f = encode_assertion tr_ctx is_premise in
 	let fe = encode_logical_expression tr_ctx in
 	let ctx = tr_ctx.z3_ctx in
 	let gamma = tr_ctx.tr_typing_env in
+	
 	(* Printf.printf ("EPF: %s, with gamma:\n%s\n") (JSIL_Print.string_of_logic_assertion a false) (JSIL_Memory_Print.string_of_gamma gamma); *)
 	match a with
-	| LNot a -> Boolean.mk_not ctx (f a)
+	| LNot a -> 
+		(* (Boolean.mk_and ctx (a' :: axioms)) *)
+		let a', axioms = f a in 
+		Boolean.mk_not ctx a', []
 
-	| LEq (le1', le2') ->
-		let t1, _, _ = JSIL_Logic_Utils.type_lexpr gamma le1' in
-		let t2, _, _ = JSIL_Logic_Utils.type_lexpr gamma le2' in
-		(* Printf.printf "Equality: (%s : %s) = (%s : %s)\n"
-			(JSIL_Print.string_of_logic_expression le1' false)
-			(if_some t1 (JSIL_Print.string_of_type) "None")
-			(JSIL_Print.string_of_logic_expression le2' false)
-			(if_some t2 (JSIL_Print.string_of_type) "None"); *)
-		let le1, te1, as1 = fe le1' in
-		let le2, te2, as2 = fe le2' in
+	| LEq (le1, le2) ->
+		let t1, _, _ = JSIL_Logic_Utils.type_lexpr gamma le1 in
+		let t2, _, _ = JSIL_Logic_Utils.type_lexpr gamma le2 in
+		
 		(match t1, t2 with
 		| Some ListType, Some ListType ->
-			let encodings, axioms = lets_do_some_list_theory_axioms tr_ctx le1' le2' in
-			if (is_premise)
-				then Boolean.mk_and ctx (axioms @ encodings)
-				else Boolean.mk_and ctx encodings
-
+			let encodings, axioms = lets_do_some_list_theory_axioms tr_ctx le1 le2 in
+			(* let axioms = if is_premise then axioms else [] in  *)
+			Boolean.mk_and ctx encodings, axioms
+		
 		| Some StringType, Some StringType ->
-			(match le1', le2' with
-			| LLit (String s1), LLit (String s2) -> if (s1 = s2) then Boolean.mk_true ctx else Boolean.mk_false ctx
-			(* TODO: Be more elegant about this! *)
-			| LStrNth (_, _), _
-			| _, LStrNth (_, _) -> Boolean.mk_eq ctx le1 le2
-			(* TODO: Be more elegant about this! *)
-			| LLit (String s), _ ->
-				let as1 = Boolean.mk_eq ctx le1 le2 in
-				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_slen_fun [ le2 ]) (Arithmetic.Integer.mk_numeral_i ctx (String.length s)) in
-				let les = List.map (fun x -> LLit (String x)) (explode s) in
-				let nth_as = encode_snth_equalities tr_ctx le2 les in
-				Boolean.mk_and ctx ([as1; as2 ] @ nth_as)
-			| _, LLit (String s) ->
-				let as1 = Boolean.mk_eq ctx le1 le2 in
-				let as2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_slen_fun [ le1 ]) (Arithmetic.Integer.mk_numeral_i ctx (String.length s)) in
-				let les = List.map (fun x -> LLit (String x)) (explode s) in
-				let nth_as = encode_snth_equalities tr_ctx le1 les in
-				Boolean.mk_and ctx ([as1; as2 ] @ nth_as)
-			| _, _ ->
-				Boolean.mk_eq ctx le1 le2)
+			let encodings, axioms = lets_do_some_string_theory_axioms tr_ctx le1 le2 in
+			Boolean.mk_and ctx encodings, axioms
+		
 		| Some t1, Some t2 ->
-			(* Printf.printf "Equal with types le1, t1: %s, %s. le2, t2: %s, %s\n" (JSIL_Print.string_of_logic_expression le1' false) (JSIL_Print.string_of_type t1) (JSIL_Print.string_of_logic_expression le2' false) (JSIL_Print.string_of_type t2); *)
+			let le1', _, _ = fe le1 in
+			let le2', _, _ = fe le2 in
 			if (t1 = t2)
-				then Boolean.mk_eq ctx le2 le1
-				else Boolean.mk_false ctx
+				then Boolean.mk_eq ctx le2' le1', []
+				else Boolean.mk_false ctx, []
+		
 		| _, _ ->
-		  (* Printf.printf "I AM THERE!!!!!. gamma: %s\n" (JSIL_Memory_Print.string_of_gamma gamma);
-			Printf.printf "Type hazard. le1: %s. le2: %s\n" (Expr.to_string le1) (Expr.to_string le2); *)
-			let cur_as1 = Boolean.mk_eq ctx le1 le2 in
-			let cur_as2 = Boolean.mk_eq ctx te1 te2 in
-			Boolean.mk_and ctx ([ cur_as1; cur_as2 ] @ as1 @ as2))
+			let le1', t1', as1 = fe le1 in
+			let le2', t2', as2 = fe le2 in
+			let cur_as1 = Boolean.mk_eq ctx le1' le2' in
+			let cur_as2 = Boolean.mk_eq ctx t1' t2' in
+			Boolean.mk_and ctx ([ cur_as1; cur_as2 ] @ as1 @ as2), [])
 
-	| LLess (le1', le2') ->
-		(* Printf.printf "LLess: %s %s\n" (JSIL_Print.string_of_logic_expression le1' false) (JSIL_Print.string_of_logic_expression le2' false); *)
-		let t1, _, _ = JSIL_Logic_Utils.type_lexpr gamma le1' in
-		let t2, _, _ = JSIL_Logic_Utils.type_lexpr gamma le2' in
-		(* Printf.printf "I determined the types of the things given to less\n"; *)
-		let le1, te1, as1 = fe le1' in
-		(* Printf.printf "First one passes.\n"; *)
-		let le2, te2, as2 = fe le2' in
-		(* Printf.printf "Second one passes\n"; *)
+	| LLess (le1, le2) ->
+		let t1, _, _ = JSIL_Logic_Utils.type_lexpr gamma le1 in
+		let t2, _, _ = JSIL_Logic_Utils.type_lexpr gamma le2 in
+	
+		let le1', t1', as1 = fe le1 in
+		let le2', t2', as2 = fe le2 in
 		(match t1, t2 with
 		| Some t1, Some t2 ->
 			let t = types_lub t1 t2 in
 			(match t with
 			| Some IntType
-			| Some NumberType -> Arithmetic.mk_lt ctx le1 le2
-			| _ -> Printf.printf "Coucou!! T'habites dans quelle planete?\n";
-				   raise (Failure "Arithmetic operation invoked on non-numeric types"))
+			| Some NumberType -> Arithmetic.mk_lt ctx le1' le2', []
+			| _ -> Printf.printf "Coucou!! T'habites dans quelle planete?\n"; raise (Failure "Arithmetic operation invoked on non-numeric types"))
 
     | _, _ ->
 			(* TO DO - we need to encode the appropriate type constraints *)
 			(Printf.printf "LLess Error: %s %s. gamma: %s\n"
-				(JSIL_Print.string_of_logic_expression le1' false)
-				(JSIL_Print.string_of_logic_expression le2' false)
+				(JSIL_Print.string_of_logic_expression le1 false)
+				(JSIL_Print.string_of_logic_expression le2 false)
 				(JSIL_Memory_Print.string_of_gamma gamma);
 			raise (Failure "Death.")))
 
-	| LLessEq (le1', le2') ->
-		let t1, _, _ = JSIL_Logic_Utils.type_lexpr gamma le1' in
-		let t2, _, _ = JSIL_Logic_Utils.type_lexpr gamma le2' in
 
-		let le1, te1, as1 = fe le1' in
-		let le2, te2, as2 = fe le2' in
+	| LLessEq (le1, le2) ->
+		let t1, _, _ = JSIL_Logic_Utils.type_lexpr gamma le1 in
+		let t2, _, _ = JSIL_Logic_Utils.type_lexpr gamma le2 in
+
+		let le1', t1', as1 = fe le1 in
+		let le2', t2', as2 = fe le2 in
 
 		(match t1, t2 with
 		| Some t1, Some t2 ->
 			let t = types_lub t1 t2 in
 			(match t with
 			| Some IntType
-			| Some NumberType -> Arithmetic.mk_le ctx le1 le2
+			| Some NumberType -> Arithmetic.mk_le ctx le1' le2', []
 			| _ -> Printf.printf "Coucou!! T'habites dans quelle planete?\n";
 				   raise (Failure "Arithmetic operation invoked on non-numeric types"))
 
     | _, _ ->
 			(* TO DO - we need to encode the appropriate type constraints *)
 			(Printf.printf "LLess Error: %s %s. gamma: %s\n"
-				(JSIL_Print.string_of_logic_expression le1' false)
-				(JSIL_Print.string_of_logic_expression le2' false)
+				(JSIL_Print.string_of_logic_expression le1 false)
+				(JSIL_Print.string_of_logic_expression le2 false)
 				(JSIL_Memory_Print.string_of_gamma gamma);
 			raise (Failure "Death.")))
 
@@ -905,39 +926,35 @@ let rec encode_pure_formula tr_ctx is_premise a =
 		(* TO DO - uninterpreted function *)
 		raise (Failure ("I don't know how to do string comparison in Z3"))
 
-	| LTrue              -> Boolean.mk_true ctx
+	| LTrue	-> Boolean.mk_true ctx, []
 
-	| LFalse             -> Boolean.mk_false ctx
+	| LFalse -> Boolean.mk_false ctx, []
 
-	| LOr (a1, a2)       -> Boolean.mk_or ctx [ (f a1); (f a2) ]
+	| LOr (a1, a2) -> 
+		let a1', axioms1 = f a1 in 
+		let a2', axioms2 = f a2 in 
+		let a1'' = Boolean.mk_and ctx (a1' :: axioms1) in 
+		let a2'' = Boolean.mk_and ctx (a2' :: axioms2) in 
+		Boolean.mk_or ctx [ a1''; a2'' ], []
 
-	| LAnd (a1, a2)      -> Boolean.mk_and ctx [ (f a1); (f a2) ]
+	| LAnd (a1, a2) ->
+		let a1', axioms1 = f a1 in 
+		let a2', axioms2 = f a2 in 
+		Boolean.mk_and ctx ([ a1'; a2' ] @ axioms1 @ axioms2), []  
 
 	| _                  ->
 		let msg = Printf.sprintf "Unsupported assertion to encode for Z3: %s" (JSIL_Print.string_of_logic_assertion a false) in
 		raise (Failure msg)
 
 
-		 (* Printf.printf "Left ass:\n";
-			List.iter (fun x -> Printf.printf "\n%s\n" (Expr.to_string x)) left_as;
-			Printf.printf "\nRight ass:\n";
-			Printf.printf "\n%s\n\n" (Expr.to_string right_as_or); *)
-
-		(*
-			Printf.printf "The assertion to check is:\n";
-			Printf.printf "\n%s\n\n" (Expr.to_string target_assertion);
-		Printf.printf "----- Creating the solver -----\n\n";*)
-
-
-
-	(* print_endline (Printf.sprintf "--- ABOUT TO ENTER THE SOLVER ---");
-
-	List.iter (fun expr -> Printf.printf "%s\n" (Expr.to_string expr)) left_as;
-	print_endline (Printf.sprintf "\nAND:\n");
-	print_endline (Printf.sprintf "%s" (Expr.to_string right_as_or));
-	print_endline (Printf.sprintf "\nDone printing"); *)
-
-
+let encode_assertion_top_level tr_ctx is_premise a =
+	let a_strings = JSIL_Logic_Utils.remove_string_duplicates (JSIL_Logic_Utils.get_assertion_string_literals a) in 
+	let a' = JSIL_Logic_Utils.push_in_negations_off a in 
+	let a'', axioms = encode_assertion tr_ctx is_premise a in 
+	let a_strings_axioms = List.concat (List.map (fun s -> make_concrete_string_axioms tr_ctx s) a_strings) in  
+	if (((List.length axioms) > 0) || ((List.length a_strings_axioms) > 0))
+		then Boolean.mk_and tr_ctx.z3_ctx (a'' :: (axioms @ a_strings_axioms)) 
+		else a'' 
 
 
 let extend_solver solver pfs gamma = ()
@@ -953,7 +970,7 @@ let string_of_z3_expr_list exprs =
 
 let get_new_solver assertions gamma existentials =
 	let tr_ctx = mk_smt_translation_ctx gamma existentials in
-	let assertions = List.map (fun a -> encode_pure_formula tr_ctx true a) assertions in
+	let assertions = List.map (fun a -> encode_assertion_top_level tr_ctx true a) assertions in
 	let assertions = tr_ctx.tr_axioms @ (encode_gamma tr_ctx (-1)) @ assertions in
 	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 	Solver.add solver assertions;
@@ -983,6 +1000,7 @@ let check_satisfiability assertions gamma existentials =
 	let solver = get_new_solver assertions gamma existentials in
 	(* Printf.printf "CS Solver: \n%s\n" (string_of_solver solver); *)
 	let ret = (Solver.check solver []) = Solver.SATISFIABLE in
+	Printf.printf "Satisfiability check of right side: %b\n" ret; 
 	ret
 
 (* right_as must be satisfiable *)
@@ -994,9 +1012,9 @@ let rec old_check_entailment existentials left_as right_as gamma =
 	let check_entailment_aux () =
 		Gc.full_major ();
 		let old_left_as = left_as in
-		let left_as = List.map (fun a -> encode_pure_formula tr_ctx true a) left_as in
+		let left_as = List.map (fun a -> encode_assertion_top_level tr_ctx true a) left_as in
 		let left_as = tr_ctx.tr_axioms @ (encode_gamma tr_ctx (-1)) @ left_as in
-		let right_as = List.map (fun a -> let a = encode_pure_formula tr_ctx false a in Boolean.mk_not ctx a) right_as in
+		let right_as = List.map (fun a -> encode_assertion_top_level tr_ctx false (LNot a)) right_as in
 		let right_as_or =
 			if ((List.length right_as) > 1) then
 				(Boolean.mk_or ctx right_as)
@@ -1010,14 +1028,22 @@ let rec old_check_entailment existentials left_as right_as gamma =
 				else right_as_or in
 		let right_as_or = Expr.simplify right_as_or None in
 
-		(* Printf.printf "Checking if:\n %s\n AND \n%s\n" (string_of_z3_expr_list left_as) (Expr.to_string right_as_or); *)
-
+		Printf.printf "Checking if the current state entails the NEGATION of the following:\n%s\n" (Expr.to_string right_as_or); 
+	
 		let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 		Solver.add solver left_as;
+		
+		let ret_left_side = (Solver.check solver [ ]) = Solver.SATISFIABLE in
+		Printf.printf "I am checking the satisfiability of the left side and got: %b\n" ret_left_side;
+		
 		Solver.push solver;
 		Solver.add solver [ right_as_or ];
+		
 		(* Printf.printf "I am checking the satisfiability of:\n %s\n" (string_of_solver solver); *)
 		let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in
+		
+		if (not ret) then print_model solver; 
+		
 		(*  Printf.printf "backtracking_scopes before pop after push: %d!!!\n" (Solver.get_num_scopes solver);
 		Printf.printf "ret: %b\n" ret; *)
 		Solver.pop solver 1;
@@ -1036,10 +1062,10 @@ let rec check_entailment solver existentials left_as right_as gamma =
 	else (
 	match !solver with
 	| Some (solver, tr_ctx) ->
-		(* Printf.printf "check_entailment and there is already a solver. backtracking_scopes: %d!!!\n" (Solver.get_num_scopes solver); *)
+		Printf.printf "check_entailment and there is already a solver. backtracking_scopes: %d!!!\n" (Solver.get_num_scopes solver); 
 		let ctx = tr_ctx.z3_ctx in
 		let tr_ctx = { tr_ctx with tr_typing_env = gamma } in
-		let not_right_as = List.map (fun a -> Boolean.mk_not ctx (encode_pure_formula tr_ctx false a)) right_as in
+		let not_right_as = List.map (fun a -> encode_assertion_top_level tr_ctx false (LNot a)) right_as in
 		let len_not_right_as = List.length not_right_as in
 		let right_as_or =
 			if (len_not_right_as > 1) then
@@ -1064,7 +1090,7 @@ let rec check_entailment solver existentials left_as right_as gamma =
 		ret
 
 	| None ->
-		(* Printf.printf "check_entailment with NO solver!!!\n"; *)
+		Printf.printf "check_entailment with NO solver!!!\n"; 
 		let ret, new_solver = old_check_entailment existentials left_as right_as gamma in
 		(match new_solver with
 		| Some (new_solver, tr_ctx) -> solver := Some (new_solver, tr_ctx)
