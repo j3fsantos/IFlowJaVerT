@@ -829,6 +829,7 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 		let unfolded_symb_state = merge_symb_states symb_state pat_symb_state pat_subst in
 		Symbolic_State_Functions.extend_pf (get_pf unfolded_symb_state) (get_solver unfolded_symb_state) new_pfs;
 		extend_gamma (get_gamma unfolded_symb_state) new_gamma;
+		JSIL_Logic_Normalise.extend_typing_env_using_assertion_info new_pfs (get_gamma unfolded_symb_state);
 		unfolded_symb_state in 
 		
 	(** Now DOING IT **)
