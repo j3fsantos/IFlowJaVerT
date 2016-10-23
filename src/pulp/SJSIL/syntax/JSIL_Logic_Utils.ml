@@ -278,8 +278,7 @@ let get_subtraction_vars_old assertions_left assertions_right catch_pvars =
 	assertion_left_vars_list
 
 
-let get_subtraction_vars assertions subst =
-	let vars_list = get_list_of_assertions_vars_list assertions false in
+let get_subtraction_vars vars_list subst =
 	let new_vars_list =
 		List.filter
 			(fun x -> not (Hashtbl.mem subst x))
