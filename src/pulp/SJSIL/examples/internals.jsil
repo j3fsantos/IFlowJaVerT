@@ -1651,10 +1651,10 @@ spec o__put (l, prop, value, throw)
 	(* Property is not defined within the prototype chain, only one element, string *)
     [[ (l == #l) * (prop == #prop) * (value == #value) * (throw == #throw) *
 	   types (#l : $$object_type, #prop : $$string_type, #throw : $$boolean_type) *
-       Pi (#l, #prop, #g_aux_1, "String", $$undefined, {{ #l }}, #g_aux_5, #g_aux_6) *
+       Pi (#l, #prop, "base", "String", $$undefined, {{ #l }}, {{ $$t }}, #g_aux_6) *
 	   types (#g_aux_new : $$list_type) *
 	   ((#l, "@extensible") -> $$t) * ((#l, "@canPut") -> "o__canPut") * ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") ]]
-	[[ Pi (#l, #prop, #g_aux_1, "StringNSI", {{ "d", #value, $$t, $$t, $$t }}, {{ #l }}, #g_aux_5, #g_aux_6) * ((#l, "@proto") -> $$null) *
+	[[ Pi (#l, #prop, "base", "StringNSI", {{ "d", #value, $$t, $$t, $$t }}, {{ #l }}, {{ $$t }}, #g_aux_6) * ((#l, "@proto") -> $$null) *
        ((#l, "@extensible") -> $$t) * ((#l, "@canPut") -> "o__canPut") * ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") *
 	   (ret == $$empty) ]]
     normal
