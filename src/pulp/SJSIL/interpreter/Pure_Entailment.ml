@@ -486,7 +486,7 @@ let get_z3_var_and_type tr_ctx var =
 
 (** Encode JSIL logical expressions *)
 let rec encode_logical_expression tr_ctx e =
-	Printf.printf "  ELE: %s\n" (JSIL_Print.string_of_logic_expression e false);
+	(* Printf.printf "  ELE: %s\n" (JSIL_Print.string_of_logic_expression e false); *)
 	let ele = encode_logical_expression tr_ctx in
 	let ctx = tr_ctx.z3_ctx in
 	let gamma = tr_ctx.tr_typing_env in
@@ -840,7 +840,7 @@ let rec encode_assertion tr_ctx is_premise a : Expr.expr * (Expr.expr list) =
 	let ctx = tr_ctx.z3_ctx in
 	let gamma = tr_ctx.tr_typing_env in
 
-	Printf.printf ("EPF: %s, with gamma:\n%s\n") (JSIL_Print.string_of_logic_assertion a false) (JSIL_Memory_Print.string_of_gamma gamma);
+	(* Printf.printf ("EPF: %s, with gamma:\n%s\n") (JSIL_Print.string_of_logic_assertion a false) (JSIL_Memory_Print.string_of_gamma gamma); *)
 	match a with
 	| LNot a ->
 		(* (Boolean.mk_and ctx (a' :: axioms)) *)
