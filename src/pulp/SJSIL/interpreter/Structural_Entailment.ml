@@ -18,7 +18,7 @@ open JSIL_Logic_Utils
 
 let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subst : substitution) (subst: substitution option) (pfs : jsil_logic_assertion list) solver (gamma : typing_environment) : ((jsil_logic_expr * jsil_logic_expr) list) option  =
 	try
-	(* Printf.printf "Let's unify the stores first:\nStore: %s. \nPat_store: %s.\n\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false) (JSIL_Memory_Print.string_of_shallow_symb_store pat_store false); 
+	(* Printf.printf "Let's unify the stores first:\nStore: %s. \nPat_store: %s.\n\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false) (JSIL_Memory_Print.string_of_shallow_symb_store pat_store false);
 	let str_subst = (match subst with
 	         | None -> "Our substitution doesn't exist. Fantastic.\n"
 			 | Some subst -> "Our substitution: " ^(JSIL_Memory_Print.string_of_substitution subst)) in
@@ -104,7 +104,7 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 
 
 let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae solver (gamma: typing_environment) (subst : (string, jsil_logic_expr) Hashtbl.t) : (bool * ((string * jsil_logic_expr) option)) =
-	(*  Printf.printf "le_pat: %s. le: %s\n" (JSIL_Print.string_of_logic_expression le_pat false)  (JSIL_Print.string_of_logic_expression le false); *)
+	Printf.printf "unify_lexprs: %s versus %s\n" (JSIL_Print.string_of_logic_expression le_pat false)  (JSIL_Print.string_of_logic_expression le false);
 	match le_pat with
 	| LVar var
 	| ALoc var ->
@@ -133,7 +133,7 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae solver (gamma: typ
 			else (false, None)
 
 	| LEList ple ->
-		(* Printf.printf "Now, are these lists equal?\n";*)
+		Printf.printf "Now, are these lists equal?\n";
 		let list_eq lx ly = List.fold_left2
 			(fun ac x y ->
 				(* Printf.printf "%s == %s? " (JSIL_Print.string_of_logic_expression x false) (JSIL_Print.string_of_logic_expression y false); *)
@@ -160,10 +160,17 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae solver (gamma: typ
 				(* Printf.printf "And they aaaare: %b\n" is_eq; *)
 					(is_eq, None)
 			else (false, None)
-		| le' -> let le'' = find_me_baby le' (Hashtbl.create 1) p_formulae in
-			let (is_eq, whatever) = unify_lexprs le_pat le'' p_formulae solver gamma subst in
-			(* Printf.printf "And they aaaare: %b\n" is_eq; *)
-			(is_eq, whatever)
+		| le' ->
+			Printf.printf "Second thingy not a list.\n";
+			let le'' = find_me_baby le' (Hashtbl.create 1) p_formulae in
+			Printf.printf "find_me_baby says: %s\n" (JSIL_Print.string_of_logic_expression le'' false);
+			if (le'' == le') then (false, None)
+			else
+			begin
+				let (is_eq, whatever) = unify_lexprs le_pat le'' p_formulae solver gamma subst in
+				(* Printf.printf "And they aaaare: %b\n" is_eq; *)
+				(is_eq, whatever)
+			end
 	| _ ->
 		let msg = Printf.sprintf "Illegal expression in pattern to unify. le_pat: %s. le: %s."
 			(JSIL_Print.string_of_logic_expression le_pat false) (JSIL_Print.string_of_logic_expression le false) in
@@ -235,7 +242,7 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 						let fv_list, (def : jsil_logic_expr) =
 							(try LHeap.find heap loc with _ ->
 								let msg = Printf.sprintf "Location %s in pattern has not been matched" loc in
-								Printf.printf "%s\n" msg; 
+								Printf.printf "%s\n" msg;
 								raise (Failure msg)) in
 						let fv_lists = unify_symb_fv_lists pat_fv_list fv_list def pure_formulae solver gamma subst in
 						(match fv_lists with
@@ -265,24 +272,24 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 			quotient_heap;
 		(Some quotient_heap), (Some pfs)
 	with (Failure msg) ->
-		Printf.printf "unify_symb_heaps FAILED BABYYYY with message: %s\n" msg; 
+		Printf.printf "unify_symb_heaps FAILED BABYYYY with message: %s\n" msg;
 		None, None
-		
+
 
 let unify_pred_against_pred (pat_pred : (string * (jsil_logic_expr list))) (pred : (string * (jsil_logic_expr list))) p_formulae solver gamma (subst : substitution) : substitution option =
 	let pat_pred_name, pat_pred_args = pat_pred in
 	let pred_name, pred_args = pred in
 
-	(* Printf.printf "Trying to unify %s against %s\n" (JSIL_Memory_Print.string_of_pred pat_pred false) (JSIL_Memory_Print.string_of_pred pred false); *)
+	Printf.printf "Trying to unify %s against %s\n" (JSIL_Memory_Print.string_of_pred pat_pred false) (JSIL_Memory_Print.string_of_pred pred false);
 	let rec unify_expr_lists pat_list list subst =
 		(match pat_list, list with
-		| [], [] -> ( (* Printf.printf "Success in predicate set unification\n"; *) true)
+		| [], [] -> ( Printf.printf "Success in predicate set unification\n"; true)
 		| (pat_le :: rest_pat_list), (le :: rest_list) ->
 			let unifier = unify_lexprs pat_le le p_formulae solver gamma subst in
 			(* Printf.printf "pat_le: %s. le: %s\n" (JSIL_Print.string_of_logic_expression pat_le false) (JSIL_Print.string_of_logic_expression le false); *)
 			if (Symbolic_State_Functions.update_subst1 subst unifier)
 				then unify_expr_lists rest_pat_list rest_list subst
-				else ( (* Printf.printf "Tremendous failure in predicate set unification\n"; *) false)
+				else ( Printf.printf "Tremendous failure in predicate set unification\n"; false)
 		| _, _ -> false) in
 
 	if (pat_pred_name = pred_name) then
@@ -296,6 +303,7 @@ let unify_pred_against_pred (pat_pred : (string * (jsil_logic_expr list))) (pred
 
 
 let unify_pred_against_pred_set (pat_pred : (string * (jsil_logic_expr list))) (preds : (string * (jsil_logic_expr list)) list) p_formulae solver gamma (subst : substitution) =
+	Printf.printf "Entering unify_pred_against_pred_set.\n";
 	let rec loop preds quotient_preds =
 		(match preds with
 		| [] -> None, quotient_preds
@@ -304,25 +312,32 @@ let unify_pred_against_pred_set (pat_pred : (string * (jsil_logic_expr list))) (
 			(match new_subst with
 			| None -> loop rest_preds (pred :: quotient_preds)
 			| Some new_subst -> Some new_subst, (quotient_preds @ rest_preds))) in
-	loop preds []
+	let result = loop preds [] in
+	Printf.printf "Exiting unify_pred_against_pred_set.\n";
+	result
 
 
 let unify_pred_list_against_pred_list (pat_preds : (string * (jsil_logic_expr list)) list) (preds : (string * (jsil_logic_expr list)) list) p_formulae solver gamma (subst : substitution) =
+	Printf.printf "Entering unify_pred_list_against_pred_list.\n";
 	let rec loop pat_preds preds subst =
 		(match pat_preds with
 		| [] -> Some subst, preds
 		| pat_pred :: rest_pat_preds ->
 			let new_subst, rest_preds = unify_pred_against_pred_set pat_pred preds p_formulae solver gamma subst in
 			(match new_subst with
-			| None -> None, []
+			| None -> (Printf.printf "I could NOT unify the pred arrays. Llorona :'(\n"; None, [])
 			| Some new_subst -> loop rest_pat_preds rest_preds new_subst)) in
-	loop pat_preds preds subst
+	let result = loop pat_preds preds subst in
+	Printf.printf "Exiting unify_pred_list_against_pred_list.\n";
+	result
 
 
 let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) p_formulae solver gamma (subst : substitution) =
+	Printf.printf "Entering unify_pred_arrays.\n";
 	let pat_preds = DynArray.to_list pat_preds in
 	let preds = DynArray.to_list preds in
 	let new_subst, quotient_preds = unify_pred_list_against_pred_list pat_preds preds p_formulae solver gamma subst in
+	Printf.printf "Exiting unify_pred_arrays.\n";
 	new_subst, (DynArray.of_list quotient_preds)
 
 
@@ -395,13 +410,13 @@ let pf_list_of_discharges discharges subst partial =
 	loop discharges []
 
 
-let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * bool) option  =
+let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment * bool) option  =
 	let pat_heap, pat_store, pat_pf, pat_gamma, pat_preds, _ = pat_symb_state in
 	let heap, store, pf, gamma, preds, solver = symb_state in
 	let subst = init_substitution lvars in
 
 
-	(* Printf.printf "Unify Symbolic States HERE HERE HERE:\n";
+	Printf.printf "Unify Symbolic States HERE HERE HERE:\n"; (*
 
 	Printf.printf "OUR symbolic state: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state);
 	Printf.printf "PRED symbolic state: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state); *)
@@ -411,23 +426,23 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 	match discharges with
 	| Some discharges ->
 		let spec_vars_check = spec_logic_vars_discharge subst lvars (get_pf symb_state) (get_solver symb_state) (get_gamma symb_state) in
-	  (* Printf.printf "the PAT symbolic state after computing quotient heap:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state); *)
+	    Printf.printf "the PAT symbolic state after computing quotient heap:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state);
 		let (quotient_heap, new_pfs) : (symbolic_heap option) * ((jsil_logic_assertion list) option) = unify_symb_heaps pat_heap heap pf solver gamma subst in
-		(* print_endline (Printf.sprintf "Substitution after heap unification baby!!!\n%s" (JSIL_Memory_Print.string_of_substitution subst)); *)
+		print_endline (Printf.sprintf "Substitution after heap unification baby!!!\n%s" (JSIL_Memory_Print.string_of_substitution subst));
 		let new_subst, quotient_preds = unify_pred_arrays pat_preds preds pf solver gamma subst in
-		
+
 		(match spec_vars_check, new_subst, quotient_heap, new_pfs with
 		| true, Some new_subst, Some quotient_heap, Some new_pfs ->
 			let s_new_subst = copy_substitution new_subst in
 
-			(* Printf.printf "I computed a quotient heap but I also need to check an entailment\n";
-			Printf.printf "The quotient heap that I just computed:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false); *)
-		
+			Printf.printf "I computed a quotient heap but I also need to check an entailment\n";
+			Printf.printf "The quotient heap that I just computed:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false);
+
 			let pat_pf_existentials = get_subtraction_vars (Symbolic_State_Functions.get_symb_state_vars_as_list false pat_symb_state) s_new_subst in
-			(* Printf.printf "Substitution after preset unification baby!!!\n%s\nExistentials:\n%s\n" 
+			Printf.printf "Substitution after preset unification baby!!!\n%s\nExistentials:\n%s\n"
 				(JSIL_Memory_Print.string_of_substitution s_new_subst)
-				(print_var_list pat_pf_existentials); *)
-			
+				(print_var_list pat_pf_existentials);
+
 			let new_pat_pf_existentials = (List.map (fun v -> fresh_lvar ()) pat_pf_existentials) in
 			let existential_substitution = init_substitution2 pat_pf_existentials (List.map (fun v -> LVar v) new_pat_pf_existentials) in
 			extend_substitution s_new_subst pat_pf_existentials (List.map (fun v -> LVar v) new_pat_pf_existentials);
@@ -442,7 +457,7 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 
 			(* print_endline (Printf.sprintf "new_pfs: %s" (JSIL_Print.str_of_assertion_list new_pfs)); *)
 			Symbolic_State_Functions.extend_pf pf solver new_pfs;
-			
+
 			let pf_discharges = pf_list_of_discharges discharges s_new_subst false in
 			let pat_pf_list = List.map (fun a -> assertion_substitution a s_new_subst true) (pfs_to_list pat_pf) in
 			let pf_list = pfs_to_list pf in
@@ -455,78 +470,81 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (symb
 			let pat_pf_list = List.map (fun x -> JSIL_Logic_Utils.reduce_assertion x) pat_pf_list in
 			let pf_discharges = List.map (fun x -> JSIL_Logic_Utils.reduce_assertion x) pf_discharges in
 
-		  	(* print_endline (Printf.sprintf "About to check if\n (\n%s\n)	\nENTAILS\n (Exists %s.\n(\n%s\n))\n given the gamma:\n%s"
+		  	print_endline (Printf.sprintf "About to check if\n (\n%s\n)	\nENTAILS\n (Exists %s.\n(\n%s\n))\n given the gamma:\n%s"
 					(JSIL_Print.str_of_assertion_list pf_list)
 					existentials_str
 					(JSIL_Print.str_of_assertion_list (pat_pf_list @ pf_discharges))
-				(	JSIL_Memory_Print.string_of_gamma new_gamma)); *)
+				(	JSIL_Memory_Print.string_of_gamma new_gamma));
 
 			let unify_gamma_check = (unify_gamma pat_gamma new_gamma pat_store s_new_subst pat_pf_existentials) in
 			let entailment_check_ret = Pure_Entailment.check_entailment solver new_pat_pf_existentials pf_list (pat_pf_list @ pf_discharges) new_gamma in
 			(if (entailment_check_ret & unify_gamma_check) then
 					( (*  Printf.printf "I could check the entailment!!!\n"; *)
-					Some (quotient_heap, quotient_preds, s_new_subst, pf_discharges, true))
+					Some (quotient_heap, quotient_preds, s_new_subst, (pat_pf_list @ pf_discharges), new_gamma, true))
 				else
 					(
 					(* Printf.printf "I could NOT check the entailment!!!\n";
 					Printf.printf "entailment_check_ret: %b. unify_gamma_check: %b.\n" entailment_check_ret unify_gamma_check; *)
-					Some (quotient_heap, quotient_preds, new_subst, pf_discharges, false)))
+					Some (quotient_heap, quotient_preds, new_subst, (pat_pf_list @ pf_discharges), new_gamma, false)))
 		| _ -> (* Printf.printf "One of the four things failed.\n"; *) None)
 	| None -> (* Printf.printf "Sweet Jesus, broken discharges.\n"; *) None
 
 
 
 
-let unify_symb_states_fold existentials pat_symb_state (symb_state : symbolic_state)  : (symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * bool) option  =
+let unify_symb_states_fold existentials pat_symb_state (symb_state : symbolic_state)  : (symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment * bool) option  =
 	let pat_heap, pat_store, pat_pf, pat_gamma, pat_preds, _ = pat_symb_state in
 	let heap, store, pf, gamma, preds, solver = symb_state in
 	let subst = init_substitution [] in
-	
-	let find_existentials_types existentials filtered_vars store gamma pat_gamma = 
-		let gamma_existentials = mk_gamma () in 
-		List.iter 
+
+	let find_existentials_types existentials filtered_vars store gamma pat_gamma =
+		let gamma_existentials = mk_gamma () in
+		List.iter
 			(fun x ->
-				let le_x = store_get_var_val store x in 
-				let x_type = gamma_get_type pat_gamma x in 
+				let le_x = store_get_var_val store x in
+				let x_type = gamma_get_type pat_gamma x in
 				match le_x, x_type with
 				| Some le_x, Some x_type -> let _ = JSIL_Logic_Utils.reverse_type_lexpr_aux gamma gamma_existentials le_x x_type in ()
 				|	_, _ -> ())
-			filtered_vars; 
-		let gamma_existentials = filter_gamma gamma_existentials existentials in 
-		gamma_existentials in 
-				 
+			filtered_vars;
+		let gamma_existentials = filter_gamma gamma_existentials existentials in
+		gamma_existentials in
+
 	Printf.printf "Unify Symbolic States FOLD:\n";
 	Printf.printf "OUR symbolic state: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state);
 	Printf.printf "PRED symbolic state: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state);
-	
-	let filtered_vars, unfiltered_vars = 
-		Symbolic_State_Functions.filter_store 
-			store 
-			(fun (le : jsil_logic_expr) -> 
-				let le_vars : (string, bool) Hashtbl.t = JSIL_Logic_Utils.get_expr_vars_tbl le false in 
-				let existentials_in_le = List.filter (fun var -> Hashtbl.mem le_vars var) existentials in 
-				(List.length existentials_in_le > 0)) in 
-	
-	let gamma_existentials = find_existentials_types existentials filtered_vars store gamma pat_gamma in 
-	
-	let discharges_0 = 
-		try 
-			Some 
-				(List.fold_left 
-					(fun ac x -> 
-						let le_x = store_get_var_val store x in 
-						let pat_le_x = store_get_var_val pat_store x in 
-						match le_x, pat_le_x with 
-						| Some le_x, Some pat_le_x -> (pat_le_x, le_x) :: ac 
+
+	let filtered_vars, unfiltered_vars =
+		Symbolic_State_Functions.filter_store
+			store
+			(fun (le : jsil_logic_expr) ->
+				let le_vars : (string, bool) Hashtbl.t = JSIL_Logic_Utils.get_expr_vars_tbl le false in
+				let existentials_in_le = List.filter (fun var -> Hashtbl.mem le_vars var) existentials in
+				(List.length existentials_in_le > 0)) in
+
+	let gamma_existentials = find_existentials_types existentials filtered_vars store gamma pat_gamma in
+
+	Printf.printf "the new logical variables introduced by the fold have the following types, madame marica: %s\n"
+		(JSIL_Memory_Print.string_of_gamma gamma_existentials);
+
+	let discharges_0 =
+		try
+			Some
+				(List.fold_left
+					(fun ac x ->
+						let le_x = store_get_var_val store x in
+						let pat_le_x = store_get_var_val pat_store x in
+						match le_x, pat_le_x with
+						| Some le_x, Some pat_le_x -> (pat_le_x, le_x) :: ac
 						| _ -> raise (Failure ""))
 					[]
 					filtered_vars)
-		with _ -> None in 
-	
-	let store = Symbolic_State_Functions.store_projection store unfiltered_vars in 
-	let old_pat_store = pat_store in 
-	let pat_store = Symbolic_State_Functions.store_projection pat_store unfiltered_vars in 
-	
+		with _ -> None in
+
+	let store = Symbolic_State_Functions.store_projection store unfiltered_vars in
+	let old_pat_store = pat_store in
+	let pat_store = Symbolic_State_Functions.store_projection pat_store unfiltered_vars in
+
 	let discharges = unify_stores pat_store store subst None (pfs_to_list pf) solver gamma in
 	match discharges, discharges_0 with
 	| Some discharges, Some discharges_0 ->
@@ -538,7 +556,7 @@ let unify_symb_states_fold existentials pat_symb_state (symb_state : symbolic_st
 			let s_new_subst = copy_substitution new_subst in
 
 			Printf.printf "Substitution after predicate set unification baby!!!\n%s" (JSIL_Memory_Print.string_of_substitution new_subst);
-			
+
 			(*Printf.printf "I computed a quotient heap but I also need to check an entailment\n";
 			Printf.printf "The quotient heap that I just computed:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false); *)
 
@@ -546,26 +564,26 @@ let unify_symb_states_fold existentials pat_symb_state (symb_state : symbolic_st
 			let new_pat_pf_existentials = (List.map (fun v -> fresh_lvar ()) pat_pf_existentials) in
 			let existential_substitution = init_substitution2 pat_pf_existentials (List.map (fun v -> LVar v) new_pat_pf_existentials) in
 			extend_substitution s_new_subst pat_pf_existentials (List.map (fun v -> LVar v) new_pat_pf_existentials);
-			
+
 			let new_gamma =
-				if ((List.length pat_pf_existentials) > 0)
+				if (((List.length filtered_vars) > 0) || ((List.length pat_pf_existentials) > 0))
 					then (
 						let new_gamma = copy_gamma gamma in
 						let new_pat_gamma = filter_gamma_with_subst pat_gamma pat_pf_existentials existential_substitution in
 						extend_gamma new_gamma new_pat_gamma;
-						extend_gamma new_gamma gamma_existentials; 
+						extend_gamma new_gamma gamma_existentials;
 						new_gamma)
 				else gamma in
 
-			(* print_endline (Printf.sprintf "new_pfs: %s" (JSIL_Print.str_of_assertion_list new_pfs)); *)
+			print_endline (Printf.sprintf "Marica computadora de new_gamma: %s\n" (JSIL_Memory_Print.string_of_gamma new_gamma));
 			Symbolic_State_Functions.extend_pf pf solver new_pfs;
 			let pf_discharges = pf_list_of_discharges (discharges @ discharges_0) s_new_subst false in
 			let pat_pf_list = List.map (fun a -> assertion_substitution a s_new_subst true) (pfs_to_list pat_pf) in
 			let pf_list = pfs_to_list pf in
 
-			let existentials_str = print_var_list (existentials @ new_pat_pf_existentials) in 
+			let existentials_str = print_var_list (existentials @ new_pat_pf_existentials) in
 
-			print_endline (Printf.sprintf "Discharges: %s" (JSIL_Print.str_of_assertion_list pf_discharges)); 
+			print_endline (Printf.sprintf "Discharges: %s" (JSIL_Print.str_of_assertion_list pf_discharges));
 
 			let pf_list = List.map (fun x -> JSIL_Logic_Utils.reduce_assertion x) pf_list in
 			let pat_pf_list = List.map (fun x -> JSIL_Logic_Utils.reduce_assertion x) pat_pf_list in
@@ -575,18 +593,18 @@ let unify_symb_states_fold existentials pat_symb_state (symb_state : symbolic_st
 					(JSIL_Print.str_of_assertion_list pf_list)
 					existentials_str
 					(JSIL_Print.str_of_assertion_list (pat_pf_list @ pf_discharges))
-				(	JSIL_Memory_Print.string_of_gamma new_gamma)); 
+				(	JSIL_Memory_Print.string_of_gamma new_gamma));
 
 			let unify_gamma_check = (unify_gamma pat_gamma new_gamma old_pat_store s_new_subst pat_pf_existentials) in
 			let entailment_check_ret = Pure_Entailment.check_entailment solver (existentials @ new_pat_pf_existentials) pf_list (pat_pf_list @ pf_discharges) new_gamma in
 			(if (entailment_check_ret & unify_gamma_check) then
 					(  (* Printf.printf "I could check the entailment!!!\n"; *)
-					Some (quotient_heap, quotient_preds, s_new_subst, pf_discharges, true))
+					Some (quotient_heap, quotient_preds, s_new_subst, pf_discharges, new_gamma, true))
 				else
 					(
 					 Printf.printf "I could NOT check the entailment!!!\n";
-					Printf.printf "entailment_check_ret: %b. unify_gamma_check: %b.\n" entailment_check_ret unify_gamma_check; 
-					Some (quotient_heap, quotient_preds, new_subst, pf_discharges, false)))
+					Printf.printf "entailment_check_ret: %b. unify_gamma_check: %b.\n" entailment_check_ret unify_gamma_check;
+					Some (quotient_heap, quotient_preds, new_subst, pf_discharges, new_gamma, false)))
 		| _ -> (* Printf.printf "One of the four things failed.\n"; *) None)
 	| _, _ -> (* Printf.printf "Sweet Jesus, broken discharges.\n"; *) None
 
@@ -597,7 +615,7 @@ let fully_unify_symb_state pat_symb_state symb_state lvars =
 	(* Printf.printf "Fully_unify_symb_state.\nFinal symb_state:\n%s.\nPost symb_state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state) (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state); *)
 	let unifier = unify_symb_states lvars pat_symb_state symb_state in
 	match unifier with
-	| Some (quotient_heap, quotient_preds, subst, pf_discharges, true) ->
+	| Some (quotient_heap, quotient_preds, subst, pf_discharges, new_gamma, true) ->
 		let emp_heap = (Symbolic_State_Functions.is_symb_heap_empty quotient_heap) in
 		let emp_preds = (Symbolic_State_Functions.is_preds_empty quotient_preds) in
 		if (emp_heap && emp_preds) then
@@ -608,7 +626,7 @@ let fully_unify_symb_state pat_symb_state symb_state lvars =
 			let _ = if (emp_preds) then begin Printf.printf "Quotient predicates empty.\n" end
 					else begin Printf.printf "Quotient predicates left: \n%s\n" (JSIL_Memory_Print.string_of_preds quotient_preds false) end in *)
 			(None, "incomplete match")
-	| Some (_, _, _, _, false)
+	| Some (_, _, _, _, _, false)
 	| None -> (None, "sorry, non_unifiable heaps")
 
 
@@ -690,100 +708,102 @@ let safe_merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbo
 		else None
 
 
-(** 
+(**
   symb_state        - the current symbolic state minus the predicate that is to be unfolded
 	pat_symb_state    - the symbolic state corresponding to the definition of the predicate that we are trying to unfold
 	calling_store     - a mapping from the parameters of the predicate to the arguments given in the unfolding
-	subst_unfold_args - substitution that matches the arguments of the unfold logical command with the arguments of 
-	                    the predicate as it appears in the current symbolic state 
-	existentials      - new variables introduced in the unfold 
-	spec_vars         - logical variables that appear in the precondition 
+	subst_unfold_args - substitution that matches the arguments of the unfold logical command with the arguments of
+	                    the predicate as it appears in the current symbolic state
+	existentials      - new variables introduced in the unfold
+	spec_vars         - logical variables that appear in the precondition
 *)
-let unfold_predicate_definition symb_state pat_symb_state calling_store subst_unfold_args spec_vars = 
-	
+let unfold_predicate_definition symb_state pat_symb_state calling_store subst_unfold_args spec_vars =
+
 	(* PREAMBLE                                                                                                            *)
 	let store_0 = calling_store in
 	let store_1 = get_store pat_symb_state in
-	let gamma_0 = get_gamma symb_state in 
-	let gamma_1 = get_gamma pat_symb_state in 
-	let store_vars = get_store_domain store_0 in 
-	
-	let find_store_var_type store gamma x = 
+	let gamma_0 = get_gamma symb_state in
+	let gamma_1 = get_gamma pat_symb_state in
+	let store_vars = get_store_domain store_0 in
+
+	let find_store_var_type store gamma x =
 		let x_type = gamma_get_type gamma x in
-		match x_type with 
-		| Some x_type -> Some x_type 
-		| None -> 
+		match x_type with
+		| Some x_type -> Some x_type
+		| None ->
 			let le_x = store_get_var_val store x in
-			(match le_x with 
-			| Some le_x -> 
+			(match le_x with
+			| Some le_x ->
 				let x_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le_x in
 				x_type
-			| None -> None) in  
-	
-	
+			| None -> None) in
+
 	(* STEP 1 - Unify(store_0, store_1, pi_0) = subst, pat_subst, discharges                                               *)
-	(* subst (store_0) =_{pi_0} pat_subst (store_1) provided that the discharges hold                                      *)  
+	(* subst (store_0) =_{pi_0} pat_subst (store_1) provided that the discharges hold                                      *)
 	(* we start by unifying the stores - this unification will produce two substituions: pat_subst and subst               *)
 	(* pat_subst is to applied in the pat_symb_state and subst is to be applied in the symb_state                          *)
 	(* The store unification also generates a list of discharges - discharges - which need to hold for the stores to match *)
-	let step_1 () = 
+	let step_1 () =
 		let pat_subst = init_substitution [] in
 		let subst = init_substitution [] in
 		let discharges = unify_stores store_1 store_0 pat_subst (Some subst) (pfs_to_list (get_pf symb_state)) (get_solver symb_state) (get_gamma symb_state) in
 		Printf.printf "substitutions after store unification.\nSubst:\n%s\nPat_Subst:\n%s\n"
 			(JSIL_Memory_Print.string_of_substitution subst)
 			(JSIL_Memory_Print.string_of_substitution pat_subst);
-		discharges, subst, pat_subst in 	
-	
-	
-	(* STEP 2 - the store must agree on the types                                                                         *)
+		discharges, subst, pat_subst in
+
+
+	(* STEP 2 - the store must agree on the types                                                                          *)
 	(* forall x \in domain(store_0) = domain(store_1) :                                                                    *)
 	(*   ((Gamma_1(x) = tau_1) \/ (Gamma_1 |- store_1(x) : tau_1)  /\ (Gamma_0 |- store_0(x) : tau_0)) => tau_1 = tau_0    *)
-	let step_2 () = 
-		let store_0_var_types = List.map (fun x -> find_store_var_type store_0 gamma_0 x) store_vars in 
-		let store_1_var_types = List.map (fun x -> find_store_var_type store_1 gamma_1 x) store_vars in 
-		let stores_are_type_compatible = 
-			List.fold_left2 
+	let step_2 () =
+		let store_0_var_types = List.map (fun x -> find_store_var_type store_0 gamma_0 x) store_vars in
+		let store_1_var_types = List.map (fun x -> find_store_var_type store_1 gamma_1 x) store_vars in
+		Printf.printf "Step 2:\n%s\n%s\n"
+			(List.fold_left2 (fun ac y x -> ac ^ (Printf.sprintf "%s: %s\n" y (match x with | None -> "None" | Some t -> (JSIL_Print.string_of_type t)))) "" store_vars store_0_var_types)
+			(List.fold_left2 (fun ac y x -> ac ^ (Printf.sprintf "%s: %s\n" y (match x with | None -> "None" | Some t -> (JSIL_Print.string_of_type t)))) "" store_vars store_1_var_types);
+		let stores_are_type_compatible =
+			List.fold_left2
 				(fun ac t1 t2 ->
-					if (not ac) then false else 
-					match t1, t2 with 
-					| Some t1, Some t2 -> t1 = t2 
+					if (not ac) then false else
+					match t1, t2 with
+					| Some t1, Some t2 -> t1 = t2
 					| _, _ -> true) true store_0_var_types store_1_var_types in
-		store_0_var_types, store_1_var_types, stores_are_type_compatible in 
-			
-					
+		store_0_var_types, store_1_var_types, stores_are_type_compatible in
+
+
 	(* STEP 3 - the substitutions need to make sense wrt the gammas                                                        *)
 	(* forall x \in subst : subst(x) = le /\ Gamma_0(x) = tau =>  \Gamma_1 |- le : tau                                     *)
 	(* forall x \in pat_subst : pat_subst (x) = le /\ Gamma_1(x) = tau => \Gamma_0                                         *)
-	let step_3 subst pat_subst = 
+	let step_3 subst pat_subst =
 		let subst_is_sensible = Symbolic_State_Functions.is_sensible_subst subst gamma_0 gamma_1 in
 		let pat_subst_is_sensible = Symbolic_State_Functions.is_sensible_subst pat_subst gamma_1 gamma_0 in
-		subst_is_sensible, pat_subst_is_sensible in 
-		
-	
+		subst_is_sensible, pat_subst_is_sensible in
+
+
 	(* STEP 4 - complete gamma_0 with unfolding info - gamma_0' st dom(gamma_0') \subseteq existentials                    *)
 	(* forall x \in domain(store_0) :                                                                                      *)
 	(* 	!(gamma_0 |- store_0(x) : _) /\ (gamma_1 |- store_1(x) : tau_1) => (gamma_0 + gamma_0' |- store_0(x) : tau_0       *)
-	let step_4 store_0_var_types = 
-		let untyped_store_0_vars = 
+	let step_4 store_0_var_types =
+		let untyped_store_0_vars =
 			List.fold_left2
 				(fun ac v t ->
-					match t with 
-					| None -> v :: ac 
-					| Some _ -> ac) [] store_vars store_0_var_types in 
-		let gamma_0' = mk_gamma () in 
-		List.iter 
+					match t with
+					| None -> v :: ac
+					| Some _ -> ac) [] store_vars store_0_var_types in
+		let gamma_0' = mk_gamma () in
+		List.iter
 			(fun x ->
-				let le_x = store_get_var_val store_0 x in 
-				let x_type = find_store_var_type store_1 gamma_1 x in 
+				let le_x = store_get_var_val store_0 x in
+				let x_type = find_store_var_type store_1 gamma_1 x in
 				match le_x, x_type with
 				| Some le_x, Some x_type -> let _ = JSIL_Logic_Utils.reverse_type_lexpr_aux gamma_0 gamma_0' le_x x_type in ()
 				|	_, _ -> ())
 				untyped_store_0_vars;
-		Printf.printf "Inferred typing information given the unfolding:\n%s\n" (JSIL_Memory_Print.string_of_gamma gamma_0'); 
+		Printf.printf "Inferred typing information given the unfolding:\n%s\n" (JSIL_Memory_Print.string_of_gamma gamma_0');
 		gamma_0' in
-	
-	
+
+
 	(* STEP 5 - check whether the pure formulae make sense together - new_pat_subst = subst (pat_subst (.))                 *)
 	(* pi_0' = subst(pi_0),  pi_1' = new_pat_subst (pi_1)                                                                   *)
 	(* pi_discharges = new_pat_subst ( discharges ); pi_unfold_args = pf_of_subst ( subst_unfold_args )                     *)
@@ -792,25 +812,25 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 	(* gamma_0'' = subst (gamma_0 (.)) + subst( gamma_0' (.))   gamma_1'' = new_pat_subst (gamma_1 (.))                     *)
 	(* gamma = gamma_0'' + gamma_1''                                                                                        *)
 	(* |-_{gamma} pi                                                                                                        *)
-	let step_5 subst pat_subst discharges gamma_0' = 
-		let pi_0 = get_pf symb_state in 
-		let pi_1 = get_pf pat_symb_state in 
+	let step_5 subst pat_subst discharges gamma_0' =
+		let pi_0 = get_pf symb_state in
+		let pi_1 = get_pf pat_symb_state in
 		let new_pat_subst = compose_partial_substitutions subst pat_subst in
-		let spec_vars_subst = filter_substitution subst spec_vars in	
+		let spec_vars_subst = filter_substitution subst spec_vars in
 		let pi_0' = pfs_to_list (Symbolic_State_Functions.pf_substitution pi_0 subst true) in
 		let pi_1' = pfs_to_list (Symbolic_State_Functions.pf_substitution pi_1 new_pat_subst false) in
 		let pi_discharges = pf_list_of_discharges discharges new_pat_subst false in
 		let pi_spec_vars = Symbolic_State_Functions.pf_of_substitution spec_vars_subst in
-		let pi_unfold_args = Symbolic_State_Functions.pf_of_substitution subst_unfold_args in 
+		let pi_unfold_args = Symbolic_State_Functions.pf_of_substitution subst_unfold_args in
 		let pi_subst = Symbolic_State_Functions.pf_of_substitution subst in
-		let pi' = pi_discharges @ pi_spec_vars @ pi_unfold_args @ pi_subst in 
-		let pi = pi' @ pi_1' @ pi_0' in 
-		let gamma_0 = Symbolic_State_Functions.gamma_substitution gamma_0 subst true in 
-		let gamma_0' = Symbolic_State_Functions.gamma_substitution gamma_0' subst true in 
+		let pi' = pi_discharges @ pi_spec_vars @ pi_unfold_args @ pi_subst in
+		let pi = pi' @ pi_1' @ pi_0' in
+		let gamma_0 = Symbolic_State_Functions.gamma_substitution gamma_0 subst true in
+		let gamma_0' = Symbolic_State_Functions.gamma_substitution gamma_0' subst true in
 		extend_gamma gamma_0 gamma_0';
 		let gamma_1'' = Symbolic_State_Functions.gamma_substitution gamma_1 new_pat_subst false in
-		extend_gamma gamma_0 gamma_1''; 
-		let gamma = gamma_0 in 
+		extend_gamma gamma_0 gamma_1'';
+		let gamma = gamma_0 in
 		JSIL_Logic_Normalise.extend_typing_env_using_assertion_info pi gamma;
 		Printf.printf "substitutions immediately before sat check.\nSubst:\n%s\nPat_Subst:\n%s\n"
 			(JSIL_Memory_Print.string_of_substitution subst)
@@ -818,48 +838,48 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 		print_endline (Printf.sprintf "About to check if the following is SATISFIABILITY of:\n%s\nGiven the GAMMA:\n%s\n"
 			(JSIL_Print.str_of_assertion_list pi)
 			(	JSIL_Memory_Print.string_of_gamma gamma));
-		let sat_check = Pure_Entailment.check_satisfiability pi gamma [] in 
+		let sat_check = Pure_Entailment.check_satisfiability pi gamma [] in
 	  sat_check, pi', gamma_0', new_pat_subst in
-	
-	
+
+
 	(* STEP 6 - Finally unfold: Sigma_0, Sigma_1, subst, pat_subst, pi, gamma                              *)
 	(* subst(Sigma_0) + pat_subst(Sigma_1) + (_, _, pi, gamma, _)                                          *)
-	let step_6 subst pat_subst new_pfs new_gamma = 
+	let step_6 subst pat_subst new_pfs new_gamma =
 		let symb_state = Symbolic_State_Functions.symb_state_substitution symb_state subst true in
 		let unfolded_symb_state = merge_symb_states symb_state pat_symb_state pat_subst in
 		Symbolic_State_Functions.extend_pf (get_pf unfolded_symb_state) (get_solver unfolded_symb_state) new_pfs;
 		extend_gamma (get_gamma unfolded_symb_state) new_gamma;
 		JSIL_Logic_Normalise.extend_typing_env_using_assertion_info new_pfs (get_gamma unfolded_symb_state);
-		unfolded_symb_state in 
-		
+		unfolded_symb_state in
+
 	(** Now DOING IT **)
-	let discharges, subst, pat_subst = step_1 () in 
-	match discharges with 
-	| Some discharges -> 
-		let store_0_var_types, store_1_var_types, stores_are_type_compatible = step_2 () in 
-		if (stores_are_type_compatible) 
-			then ( 
-				let subst_is_sensible, pat_subst_is_sensible = step_3 subst pat_subst in 
-				if (subst_is_sensible && pat_subst_is_sensible) 
+	let discharges, subst, pat_subst = step_1 () in
+	match discharges with
+	| Some discharges ->
+		let store_0_var_types, store_1_var_types, stores_are_type_compatible = step_2 () in
+		if (stores_are_type_compatible)
+			then (
+				let subst_is_sensible, pat_subst_is_sensible = step_3 subst pat_subst in
+				if (subst_is_sensible && pat_subst_is_sensible)
 					then (
-						let new_gamma = step_4 store_0_var_types in 
-						let sat_check, new_pi, new_gamma, pat_subst = step_5 subst pat_subst discharges new_gamma in 
-						if (sat_check) 
+						let new_gamma = step_4 store_0_var_types in
+						let sat_check, new_pi, new_gamma, pat_subst = step_5 subst pat_subst discharges new_gamma in
+						if (sat_check)
 							then (
-								let unfolded_symb_state = step_6 subst pat_subst new_pi new_gamma in 
-								Some unfolded_symb_state  
-							) else  ((* Printf.printf "Failed unfolding in step 5\n"; *)None)
-					) else  ((* Printf.printf "Failed unfolding in step 3\n"; *)  None) 
-			) else ((* Printf.printf "Failed unfolding in step 2\n"; *)  None)
-	| None -> (* Printf.printf "Failed unfolding in step 1\n"; *) None
-	
-	 
-	
-	
-	
-	
-	
-(* OLD UNFOLD - let's pray we never need it again - 
+								let unfolded_symb_state = step_6 subst pat_subst new_pi new_gamma in
+								Some unfolded_symb_state
+							) else  ( Printf.printf "Failed unfolding in step 5\n"; None)
+					) else  ( Printf.printf "Failed unfolding in step 3\n";  None)
+			) else ( Printf.printf "Failed unfolding in step 2\n";  None)
+	| None -> Printf.printf "Failed unfolding in step 1\n"; None
+
+
+
+
+
+
+
+(* OLD UNFOLD - let's pray we never need it again -
 
 	let update_gamma_from_unfolded_predicate store gamma symb_state =
 	let symb_gamma = get_gamma symb_state in
@@ -881,14 +901,14 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 let pat_subst = init_substitution [] in
 			let subst = init_substitution [] in
 			let pat_store = get_store pred_symb_state in
-			
+
 			let symb_state = Symbolic_State_Functions.symb_state_replace_gamma symb_state (update_gamma_from_unfolded_predicate store (get_gamma pred_symb_state) symb_state) in
 			Printf.printf "\nUnfolding the predicate.\n\nSymb_State: %s\n\nPat_Symb_State: %s\n\n" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state) (JSIL_Memory_Print.string_of_shallow_symb_state pred_symb_state);
-			Printf.printf "Calling store: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false); 
+			Printf.printf "Calling store: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false);
 			let discharges = Structural_Entailment.unify_stores pat_store store pat_subst (Some subst) (pfs_to_list (get_pf symb_state)) (get_solver symb_state) (get_gamma symb_state) in
-			
+
 			let sensible_subst = Symbolic_State_Functions.is_sensible_subst subst (get_gamma symb_state) (get_gamma pred_symb_state) in
-			
+
 			(match sensible_subst, discharges with
 			| true, Some discharges ->
 					(* Printf.printf "Current pred symbolic state: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pred_symb_state); *)
@@ -914,7 +934,7 @@ let pat_subst = init_substitution [] in
 						let new_pfs = Symbolic_State_Functions.pf_of_substitution spec_vars_subst in
 						let new_pfs_subst0 = Symbolic_State_Functions.pf_of_substitution subst0 in
 						let pf_discharges = Structural_Entailment.pf_list_of_discharges discharges pat_subst false in
-						
+
 						Printf.printf "The discharges to prove are: %s\n" (JSIL_Print.str_of_assertion_list pf_discharges);
 
 						Symbolic_State_Functions.extend_pf pf solver new_pfs;
@@ -951,17 +971,3 @@ let pat_subst = init_substitution [] in
 					| None -> loop rest_pred_defs symb_states)
 			| _, _ -> loop rest_pred_defs symb_states)
 *)
-	
-	
-	
-	
-			
-			
-					
-	
-	
-	
-	
-	
-
-

@@ -615,6 +615,8 @@ let normalise_single_spec preds spec =
 													else ac_posts, ac_posts_lvars)
 										([], [])
 										unfolded_posts in
+								(if (posts = []) then Printf.printf "WARNING: No valid postconditions found.\n" else
+								                      Printf.printf "ALL GOOD: Valid postconditions found.\n");
 								Some {
 									n_pre = pre_symb_state;
 									n_post = posts;

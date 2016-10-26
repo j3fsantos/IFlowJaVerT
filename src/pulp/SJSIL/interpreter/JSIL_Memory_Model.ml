@@ -135,10 +135,10 @@ let extend_abs_store x store gamma =
 	Hashtbl.add store x new_l_var;
 	new_l_var
 
-let get_store_domain store = 
+let get_store_domain store =
 	Hashtbl.fold
-		(fun x _ ac -> x :: ac) 
-		store 
+		(fun x _ ac -> x :: ac)
+		store
 		[]
 
 
@@ -149,7 +149,7 @@ let get_store_domain store =
 (** Pure Formulae functions         **)
 (*************************************)
 
-let pfs_to_list (pfs : pure_formulae) = 
+let pfs_to_list (pfs : pure_formulae) =
 	DynArray.to_list pfs
 
 
@@ -257,12 +257,12 @@ let get_preds symb_state =
 
 let get_solver symb_state =
 	let _, _, _, _, _, solver = symb_state in
-	solver	
-			
+	solver
+
 let get_pf_list symb_state =
 	let pf = get_pf symb_state in
 	pfs_to_list pf
-	
+
 let symb_state_add_predicate_assertion symb_state pred_assertion =
 	let preds = get_preds symb_state in
 	extend_pred_set preds pred_assertion
@@ -275,12 +275,12 @@ let symb_state_replace_store symb_state new_store =
 (** Normalised Specifications          **)
 (****************************************)
 type jsil_n_single_spec = {
-  n_pre         : symbolic_state;
-	n_post        : symbolic_state list;
-	n_ret_flag    : jsil_return_flag;
-	n_lvars       : string list;
-	n_post_lvars  : string list list;
-	n_subst       : substitution
+     n_pre         : symbolic_state;
+	 n_post        : symbolic_state list;
+	 n_ret_flag    : jsil_return_flag;
+	 n_lvars       : string list;
+	 n_post_lvars  : string list list;
+	 n_subst       : substitution
 }
 
 type jsil_n_spec = {
@@ -321,7 +321,7 @@ let filter_useless_posts_in_multiple_specs proc_name specs pruning_info =
 		let new_specs = List.map2 filter_useless_posts_in_single_spec specs pruning_info in
 		new_specs
 	with Not_found -> specs
-	
+
 
 (****************************************)
 (** Normalised Predicate Definitions   **)
@@ -414,5 +414,3 @@ let activate_post_in_post_pruning_info symb_exe_info proc_name post_number =
 		let post_pruning_info_array = List.nth post_pruning_info_array_list (symb_exe_info.spec_number) in
 		post_pruning_info_array.(post_number) <- true
 	with Not_found -> ()
-	
-
