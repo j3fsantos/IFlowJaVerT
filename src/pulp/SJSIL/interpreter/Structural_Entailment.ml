@@ -657,7 +657,8 @@ let unify_symb_state_against_post proc_name spec symb_state flag symb_exe_info =
 let merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbolic_state) subst  : symbolic_state =
 	(* Printf.printf "gamma_r: %s\n." (JSIL_Memory_Print.string_of_gamma (get_gamma symb_state_r)); *)
 	(* Printf.printf "substitution: %s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
-	let symb_state_r = Symbolic_State_Functions.symb_state_substitution symb_state_r subst false in
+	let aux_symb_state = (Symbolic_State_Functions.copy_symb_state symb_state_r) in
+	let symb_state_r = Symbolic_State_Functions.symb_state_substitution aux_symb_state subst false in
 	let heap_l, store_l, pf_l, gamma_l, preds_l, solver_l = symb_state_l in
 	let heap_r, store_r, pf_r, gamma_r, preds_r, _ = symb_state_r in
 	let pf_l = DynArray.map (fun x -> JSIL_Logic_Utils.reduce_assertion x) pf_l in
@@ -738,6 +739,7 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 				x_type
 			| None -> None) in
 
+
 	(* STEP 1 - Unify(store_0, store_1, pi_0) = subst, pat_subst, discharges                                               *)
 	(* subst (store_0) =_{pi_0} pat_subst (store_1) provided that the discharges hold                                      *)
 	(* we start by unifying the stores - this unification will produce two substituions: pat_subst and subst               *)
@@ -747,9 +749,9 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 		let pat_subst = init_substitution [] in
 		let subst = init_substitution [] in
 		let discharges = unify_stores store_1 store_0 pat_subst (Some subst) (pfs_to_list (get_pf symb_state)) (get_solver symb_state) (get_gamma symb_state) in
-		Printf.printf "substitutions after store unification.\nSubst:\n%s\nPat_Subst:\n%s\n"
+		(* Printf.printf "substitutions after store unification.\nSubst:\n%s\nPat_Subst:\n%s\n"
 			(JSIL_Memory_Print.string_of_substitution subst)
-			(JSIL_Memory_Print.string_of_substitution pat_subst);
+			(JSIL_Memory_Print.string_of_substitution pat_subst); *)
 		discharges, subst, pat_subst in
 
 
@@ -759,9 +761,9 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 	let step_2 () =
 		let store_0_var_types = List.map (fun x -> find_store_var_type store_0 gamma_0 x) store_vars in
 		let store_1_var_types = List.map (fun x -> find_store_var_type store_1 gamma_1 x) store_vars in
-		Printf.printf "Step 2:\n%s\n%s\n"
+		(* Printf.printf "Step 2:\n%s\n%s\n"
 			(List.fold_left2 (fun ac y x -> ac ^ (Printf.sprintf "%s: %s\n" y (match x with | None -> "None" | Some t -> (JSIL_Print.string_of_type t)))) "" store_vars store_0_var_types)
-			(List.fold_left2 (fun ac y x -> ac ^ (Printf.sprintf "%s: %s\n" y (match x with | None -> "None" | Some t -> (JSIL_Print.string_of_type t)))) "" store_vars store_1_var_types);
+			(List.fold_left2 (fun ac y x -> ac ^ (Printf.sprintf "%s: %s\n" y (match x with | None -> "None" | Some t -> (JSIL_Print.string_of_type t)))) "" store_vars store_1_var_types); *)
 		let stores_are_type_compatible =
 			List.fold_left2
 				(fun ac t1 t2 ->
@@ -835,11 +837,11 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 		Printf.printf "substitutions immediately before sat check.\nSubst:\n%s\nPat_Subst:\n%s\n"
 			(JSIL_Memory_Print.string_of_substitution subst)
 			(JSIL_Memory_Print.string_of_substitution new_pat_subst);
-		print_endline (Printf.sprintf "About to check if the following is SATISFIABILITY of:\n%s\nGiven the GAMMA:\n%s\n"
+		print_endline (Printf.sprintf "About to check if the following is SATISFIABLE:\n%s\nGiven the GAMMA:\n%s\n"
 			(JSIL_Print.str_of_assertion_list pi)
 			(	JSIL_Memory_Print.string_of_gamma gamma));
 		let sat_check = Pure_Entailment.check_satisfiability pi gamma [] in
-	  sat_check, pi', gamma_0', new_pat_subst in
+	    sat_check, pi', gamma_0', new_pat_subst in
 
 
 	(* STEP 6 - Finally unfold: Sigma_0, Sigma_1, subst, pat_subst, pi, gamma                              *)
