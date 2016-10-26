@@ -1629,6 +1629,8 @@ with
 
 spec o__put (l, prop, value, throw)
 
+	(* ******* UNSUCCESSFUL PUT ******* *)
+
 	(* Property is not defined within the prototype chain at all, object not extensible, throw *)
     [[ (l == #l) * (prop == #prop) * (value == #value) * (throw == #throw) *
 	   types (#l : $$object_type, #prop : $$string_type, #throw : $$boolean_type) *
@@ -1687,6 +1689,44 @@ spec o__put (l, prop, value, throw)
 	   isTypeError(err) ]]
     error;
 
+	(* Property is defined in the prototype chain, not in the object, object not extensible, don't throw *)
+    [[ (l == #l) * (prop == #prop) * (value == #value) * (throw == #throw) *
+	   types (#l : $$object_type, #prop : $$string_type, #throw : $$boolean_type) *
+       Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+	   DataDescriptor(#g_aux_3) * (1 <# l-len (#g_aux_4)) * types (#g_aux_4 : $$list_type) *
+	   ((#l, "@extensible") -> $$f) * ((#l, "@canPut") -> "o__canPut") * ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") *
+	   (#throw == $$f) ]]
+	[[ Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+	   ((#l, "@extensible") -> $$f) * ((#l, "@canPut") -> "o__canPut") * ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") *
+	   (ret == $$empty) ]]
+    normal;
+
+	(* Property is defined in the prototype chain, not in the object, object extensible, property not writable, throw *)
+    [[ (l == #l) * (prop == #prop) * (value == #value) * (throw == #throw) *
+	   types (#l : $$object_type, #prop : $$string_type, #throw : $$boolean_type) *
+       Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+	   DataDescriptor(#g_aux_3) *  desc_writ(#g_aux_3, $$f) * (1 <# l-len (#g_aux_4)) * types (#g_aux_4 : $$list_type) *
+	   ((#l, "@extensible") -> $$t) * ((#l, "@canPut") -> "o__canPut") * ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") *
+	   (#throw == $$t) ]]
+	[[ Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+	   ((#l, "@extensible") -> $$t) * ((#l, "@canPut") -> "o__canPut") * ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") *
+	   isTypeError(err) ]]
+    error;
+
+	(* Property is defined in the prototype chain, not in the object, object extensible, property not writable, don't throw *)
+    [[ (l == #l) * (prop == #prop) * (value == #value) * (throw == #throw) *
+	   types (#l : $$object_type, #prop : $$string_type, #throw : $$boolean_type) *
+       Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+	   DataDescriptor(#g_aux_3) *  desc_writ(#g_aux_3, $$f) * (1 <# l-len (#g_aux_4)) * types (#g_aux_4 : $$list_type) *
+	   ((#l, "@extensible") -> $$t) * ((#l, "@canPut") -> "o__canPut") * ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") *
+	   (#throw == $$f) ]]
+	[[ Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
+	   ((#l, "@extensible") -> $$t) * ((#l, "@canPut") -> "o__canPut") * ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") *
+	   (ret == $$empty) ]]
+    error;
+
+    (* ******* SUCCESSFUL PUT ******* *)
+
 	(* Property is not defined within the prototype chain, only one element, string *)
     [[ (l == #l) * (prop == #prop) * (value == #value) * (throw == #throw) *
 	   types (#l : $$object_type, #prop : $$string_type, #throw : $$boolean_type) *
@@ -1706,7 +1746,6 @@ spec o__put (l, prop, value, throw)
        ((#l, "@extensible") -> $$t) * ((#l, "@canPut") -> "o__canPut") * ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") *
 	   (ret == $$empty) ]]
     normal
-
 
 	(* Property is not defined within the prototype chain, more than one element, non-string
 	 * Must reform the prototype chain manually in the post-condition
