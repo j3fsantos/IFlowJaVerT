@@ -1375,12 +1375,11 @@ proc i__checkAssignmentErrors (v) {
 	prep:	bv := l-nth (v, 1);
 			fv := l-nth (v, 2);
 
-	csyn:	goto [(l-nth (v, 0) = "v") and ((fv = "eval") or (fv = "arguments"))] se rlab;
+			goto [(l-nth (v, 0) = "v") and ((fv = "eval") or (fv = "arguments"))] elab rlab;
 
 	rlab:	xret := $$t;
 
-	se:		xret := "SyntaxError" ();	
-	elab:	skip
+	elab:	xret := "SyntaxError" ()
 }
 with
 {
