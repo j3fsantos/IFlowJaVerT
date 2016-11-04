@@ -167,14 +167,14 @@ let is_symb_heap_empty heap =
 
 
 let merge_heaps heap new_heap p_formulae solver gamma =
-	Printf.printf "-------------------------------------------------------------------\n";
+	(* Printf.printf "-------------------------------------------------------------------\n";
 	Printf.printf "-------------INSIDE MERGE HEAPS------------------------------------\n";
 	Printf.printf "-------------------------------------------------------------------\n";
 
 	Printf.printf "heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false);
 	Printf.printf "pat_heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap new_heap false);
 	Printf.printf "p_formulae: %s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
-	Printf.printf "gamma: %s\n" (JSIL_Memory_Print.string_of_gamma gamma);
+	Printf.printf "gamma: %s\n" (JSIL_Memory_Print.string_of_gamma gamma); *)
 
 	LHeap.iter
 		(fun loc (n_fv_list, n_def) ->
@@ -275,9 +275,10 @@ let store_projection store vars =
 (*************************************)
 let copy_p_formulae pfs =
 	let new_pfs = DynArray.copy pfs in
-
 	new_pfs
 
+let simple_extend_pfs pfs new_pfs = 
+	DynArray.append (DynArray.of_list new_pfs) pfs
 
 let extend_pf pfs solver pfs_to_add =
 	let is_pf_fresh pf_to_add =

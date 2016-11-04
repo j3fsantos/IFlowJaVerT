@@ -361,7 +361,7 @@ with
 
 spec i__toNumber (v)
 	[[ types(v : $$string_type, #v : $$string_type) * (v == #v) ]]
-	[[ types(ret : $$number_type) * (ret == (string_to_num #v)) ]]
+	[[ types(ret : $$number_type, #v: $$string_type) * (ret == (string_to_num #v)) ]]
 	normal
 
 proc i__toNumber (v) {
@@ -411,7 +411,7 @@ with
 
 spec i__toInteger (v)
 	[[ types(v : $$string_type, #v : $$string_type) * (v == #v) ]]
-	[[ types(ret : $$int_type) * (ret == num_to_int (string_to_num #v)) ]]
+	[[ types(ret : $$int_type, #v: $$string_type) * (ret == num_to_int (string_to_num #v)) ]]
 	normal
 
 proc i__toInteger (v) {
@@ -433,7 +433,7 @@ with
 
 spec i__toString (v)
 	[[ types(v : $$int_type, #v : $$int_type) * (v == #v) ]]
-	[[ types(ret : $$string_type) * (ret == (num_to_string #v)) ]]
+	[[ types(ret : $$string_type, #v : $$int_type) * (ret == (num_to_string #v)) ]]
 	normal
 
 proc i__toString (v) {

@@ -1000,7 +1000,7 @@ let check_satisfiability assertions gamma existentials =
 	let solver = get_new_solver assertions gamma existentials in
 	(* Printf.printf "CS Solver: \n%s\n" (string_of_solver solver); *)
 	let ret = (Solver.check solver []) = Solver.SATISFIABLE in
-	Printf.printf "Satisfiability check of right side: %b\n" ret;
+	(* Printf.printf "Satisfiability check of right side: %b\n" ret; *)
 	ret
 
 (* right_as must be satisfiable *)
@@ -1028,13 +1028,13 @@ let rec old_check_entailment existentials left_as right_as gamma =
 				else right_as_or in
 		let right_as_or = Expr.simplify right_as_or None in
 
-		Printf.printf "Checking if the current state entails the NEGATION of the following:\n%s\n" (Expr.to_string right_as_or);
+		(* Printf.printf "Checking if the current state entails the NEGATION of the following:\n%s\n" (Expr.to_string right_as_or); *)
 
 		let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 		Solver.add solver left_as;
 
 		let ret_left_side = (Solver.check solver [ ]) = Solver.SATISFIABLE in
-		Printf.printf "I am checking the satisfiability of the left side and got: %b\n" ret_left_side;
+		(* Printf.printf "I am checking the satisfiability of the left side and got: %b\n" ret_left_side; *)
 
 		Solver.push solver;
 		Solver.add solver [ right_as_or ];
@@ -1042,7 +1042,7 @@ let rec old_check_entailment existentials left_as right_as gamma =
 		(* Printf.printf "I am checking the satisfiability of:\n %s\n" (string_of_solver solver); *)
 		let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in
 
-		if (not ret) then print_model solver;
+		(* if (not ret) then print_model solver; *)
 
 		(*  Printf.printf "backtracking_scopes before pop after push: %d!!!\n" (Solver.get_num_scopes solver);
 		Printf.printf "ret: %b\n" ret; *)
@@ -1062,7 +1062,7 @@ let rec check_entailment solver existentials left_as right_as gamma =
 	else (
 	match !solver with
 	| Some (solver, tr_ctx) ->
-		Printf.printf "check_entailment and there is already a solver. backtracking_scopes: %d!!!\n" (Solver.get_num_scopes solver);
+		(* Printf.printf "check_entailment and there is already a solver. backtracking_scopes: %d!!!\n" (Solver.get_num_scopes solver); *)
 		let ctx = tr_ctx.z3_ctx in
 		let tr_ctx = { tr_ctx with tr_typing_env = gamma } in
 		let not_right_as = List.map (fun a -> encode_assertion_top_level tr_ctx false (LNot a)) right_as in
@@ -1090,7 +1090,7 @@ let rec check_entailment solver existentials left_as right_as gamma =
 		ret
 
 	| None ->
-		Printf.printf "check_entailment with NO solver!!!\n";
+		(* Printf.printf "check_entailment with NO solver!!!\n"; *)
 		let ret, new_solver = old_check_entailment existentials left_as right_as gamma in
 		(match new_solver with
 		| Some (new_solver, tr_ctx) -> solver := Some (new_solver, tr_ctx)

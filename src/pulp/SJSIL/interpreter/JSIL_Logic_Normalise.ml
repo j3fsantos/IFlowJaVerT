@@ -100,7 +100,11 @@ let rec normalise_lexpr store gamma subst le =
 			(match nle1, nle2 with
 				| LLit (LList list), LLit (Num n) -> (try LLit (List.nth list (int_of_float n)) with _ ->
 								raise (Failure "List index out of bounds"))
+				| LLit (LList list), LLit (Integer i) -> (try LLit (List.nth list i) with _ ->
+								raise (Failure "List index out of bounds"))
 				| LEList list, LLit (Num n) -> (try (List.nth list (int_of_float n)) with _ ->
+								raise (Failure "List index out of bounds"))
+				| LEList list, LLit (Integer i) -> (try (List.nth list i) with _ ->
 								raise (Failure "List index out of bounds"))
 				| _, _ -> LLstNth (nle1, nle2))
 
@@ -110,6 +114,9 @@ let rec normalise_lexpr store gamma subst le =
 			(match nle1, nle2 with
 				| LLit (String s), LLit (Num n) ->
 						(try LLit (String (String.make 1 (String.get s (int_of_float n))))
+						with _ -> raise (Failure "String index out of bounds"))
+				| LLit (String s), LLit (Integer i) ->
+						(try LLit (String (String.make 1 (String.get s i)))
 						with _ -> raise (Failure "String index out of bounds"))
 				| _, _ -> LStrNth (nle1, nle2))
 
@@ -462,19 +469,46 @@ let rec init_gamma gamma a =
 	| LStar	(al, ar) -> f al; f ar
 	| _ -> ()
 
+
 let init_preds a store gamma subst =
 	let preds = DynArray.make 11 in
+	
+	let make_normalised_pred_assertion name les = 
+		let new_les, new_assertions = 
+			List.fold_left
+				(fun (new_les, new_equalities) le ->
+					match le with 
+					| LNone	| LVar _ | LLit _ | ALoc _ -> ((le :: new_les), new_equalities) 
+					| PVar x -> 
+						Printf.printf "Inside init_preds (%s)\n" (JSIL_Print.string_of_logic_assertion a false); 
+						Printf.printf "Currrent Store: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false); 
+						Printf.printf "Current Substitution: %s\n" (JSIL_Memory_Print.string_of_substitution subst); 
+						Printf.printf "Program Variable %s in logical expression that was supposed to be normalised!!!\n" x; 
+						raise (Failure "")
+					| _ -> 
+						let x = fresh_lvar () in 
+						((LVar x) :: new_les), ((LEq ((LVar x), le)) :: new_equalities))
+				([], [])
+				les in 
+		let new_les = List.rev new_les in 
+		(name, new_les), new_assertions in 
+	
 	let rec init_preds_aux preds a =
 		let f = init_preds_aux preds in
 		let fe = normalise_lexpr store gamma subst in
 		(match a with
-			| LStar (a1, a2) -> f a1; f a2
+			| LStar (a1, a2) -> 
+				let new_assertions1 = f a1 in 
+				let new_assertions2 = f a2 in 
+				new_assertions1 @ new_assertions2 
 			| LPred (name, les) ->
 					let n_les =	List.map fe les in
-					DynArray.add preds (name, n_les)
-			| _ -> ()) in
-	init_preds_aux preds a;
-	preds
+					let normalised_pred_assertion, new_assertions = make_normalised_pred_assertion name n_les in 
+					DynArray.add preds normalised_pred_assertion; 
+					new_assertions
+			| _ -> []) in
+	let new_assertions = init_preds_aux preds a in 
+	preds, new_assertions 
 
 let fill_store_with_gamma store gamma subst =
 	Hashtbl.iter
@@ -529,8 +563,7 @@ let normalise_assertion a : symbolic_state * substitution =
 	Printf.printf "Normalise assertion: gamma :%s\n" (JSIL_Memory_Print.string_of_gamma gamma);
 	Printf.printf "Normalise assertion: store :%s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false);
 	Printf.printf "Normalise assertion: subst :%s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
-	extend_typing_env_using_assertion_info ((pfs_to_list p_formulae) @ (Symbolic_State_Functions.pf_of_store2 store)) gamma;
-
+	
 
 	(* Printf.printf "----- Stage 2 ----- \n\n";
 	Printf.printf "Normalise assertion: pfrs  :%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
@@ -539,7 +572,12 @@ let normalise_assertion a : symbolic_state * substitution =
 	Printf.printf "Normalise assertion: subst :%s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
 
 	compute_symb_heap heap store p_formulae gamma subst a;
-	let preds = init_preds a store gamma subst in
+	extend_typing_env_using_assertion_info ((pfs_to_list p_formulae) @ (Symbolic_State_Functions.pf_of_store2 store)) gamma;
+	let preds, new_assertions = init_preds a store gamma subst in
+	extend_typing_env_using_assertion_info new_assertions gamma;
+	Symbolic_State_Functions.simple_extend_pfs p_formulae new_assertions;
+	
+	
 	(* Printf.printf "----- Stage 3 ----- \n\n";
 	Printf.printf "Normalise assertion: heap  :%s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false);
 	Printf.printf "Normalise assertion: pfrs  :%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
@@ -574,14 +612,13 @@ let normalise_postcondition a subst (lvars : string list) : symbolic_state * (st
 
 let normalise_single_spec preds spec =
 
-	(**
+
 	Printf.printf "Precondition  : %s\n" (JSIL_Print.string_of_logic_assertion spec.pre false);
 	Printf.printf "Postcondition : %s\n" (JSIL_Print.string_of_logic_assertion spec.post false);
-	Printf.printf "UPrecondition : %s\n" (JSIL_Print.string_of_logic_assertion unfolded_pre false);
-	Printf.printf "UPostcondition: %s\n" (JSIL_Print.string_of_logic_assertion unfolded_post false);
-	*)
+(*	Printf.printf "UPrecondition : %s\n" (JSIL_Print.string_of_logic_assertion unfolded_pre false);
+	Printf.printf "UPostcondition: %s\n" (JSIL_Print.string_of_logic_assertion unfolded_post false); *)
 
-	(* Printf.printf "NSS: Entry\n"; *)
+	Printf.printf "NSS: Entry\n"; 
 
 	let f_pre_normalize a_list = List.concat (List.map pre_normalize_assertion a_list) in
 	let f_print assertions =
@@ -591,18 +628,17 @@ let normalise_single_spec preds spec =
 	let unfolded_pres = f_pre_normalize (Logic_Predicates.auto_unfold preds spec.pre) in
 	let unfolded_posts = f_pre_normalize (Logic_Predicates.auto_unfold preds spec.post) in
 
-	(* Printf.printf "NSS: Pre-normalise\n";
+	 Printf.printf "NSS: Pre-normalise\n";
 
 	Printf.printf "Pres: %s\n\n" (f_print unfolded_pres);
-	Printf.printf "Posts: %s\n\n" (f_print unfolded_posts); *)
+	Printf.printf "Posts: %s\n\n" (f_print unfolded_posts); 
 
 	let unfolded_spec_list =
 		List.map
 			(fun pre ->
 						let pre_symb_state, (lvars, subst) = normalise_precondition pre in
-						(* Printf.printf "I am going to check whether the following precondition   *)
-						(* makes sense:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state       *)
-						(* pre_symb_state);                                                        *)
+						Printf.printf "I am going to check whether the following precondition makes sense:\n%s\n" 
+							(JSIL_Memory_Print.string_of_shallow_symb_state pre_symb_state);                                                        
 						let is_valid_precond = Pure_Entailment.check_satisfiability (get_pf_list pre_symb_state) (get_gamma pre_symb_state) [] in
 						if (is_valid_precond)
 						then
@@ -638,7 +674,7 @@ let normalise_single_spec preds spec =
 	unfolded_spec_list
 
 let normalise_spec preds spec =
-	(* Printf.printf "Going to process the SPECS of %s\n" spec.spec_name; *)
+	Printf.printf "Going to process the SPECS of %s\n" spec.spec_name; 
 	let normalised_pre_post_list = List.concat (List.map (normalise_single_spec preds) spec.proc_specs) in
 
 	{
@@ -669,9 +705,9 @@ let normalise_predicate_definitions pred_defs : (string, JSIL_Memory_Model.n_jsi
 	let n_pred_defs = Hashtbl.create 31 in
 	Hashtbl.iter
 		(fun pred_name pred ->
-					Printf.printf "=====================================\n";
+					(* Printf.printf "=====================================\n";
 					Printf.printf "Enter the normalisation of predicate: %s\n" pred_name;
-					Printf.printf "=====================================\n";
+					Printf.printf "=====================================\n"; *)
 					let n_definitions =
 						List.map
 							(fun a ->
@@ -686,12 +722,12 @@ let normalise_predicate_definitions pred_defs : (string, JSIL_Memory_Model.n_jsi
 
 												Pure_Entailment.check_satisfiability (get_pf_list symb_state) (get_gamma symb_state) [])
 											normalised_as in
-										List.iter
+										(* List.iter
 											(fun symb_state ->
 												 Printf.printf "I found one valid unfolding of %s.\n" pred_name;
 												 Printf.printf "Unfolding produced by Ivan:\n%s\n" (JSIL_Print.string_of_logic_assertion a false);
 												 Printf.printf "Normalised unfolding:\n%s\n"(JSIL_Memory_Print.string_of_shallow_symb_state symb_state))
-											normalised_as;
+											normalised_as; *)
 										normalised_as)
 							pred.definitions in
 					let n_definitions = List.concat n_definitions in

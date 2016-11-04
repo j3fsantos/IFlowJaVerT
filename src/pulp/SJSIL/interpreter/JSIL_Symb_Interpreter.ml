@@ -240,7 +240,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		let is_sat = Pure_Entailment.check_satisfiability pf_list gamma [] in
 		is_sat in
 
-	let transform_symb_state (spec : jsil_n_single_spec) (symb_state : symbolic_state) (quotient_heap : symbolic_heap) (quotient_preds : predicate_set) (subst : substitution) (pf_discharges : jsil_logic_assertion list) : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
+	let transform_symb_state (spec : jsil_n_single_spec) (symb_state : symbolic_state) (quotient_heap : symbolic_heap) (quotient_preds : predicate_set) (subst : substitution) (pf_discharges : jsil_logic_assertion list) (new_gamma : typing_environment) : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
 		(* Printf.printf "I found the the spec that needs to be applied.\nThe spec pre is:\n%sThe spec post is:\n%sThe substitution is: %s"
 				(JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre)
 				(JSIL_Memory_Print.string_of_symb_state_list spec.n_post)
@@ -261,6 +261,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		Symbolic_State_Functions.extend_symb_state_with_pfs symb_state pf_discharges;
 		let symb_state = Symbolic_State_Functions.symb_state_replace_heap symb_state quotient_heap in
 		let symb_state = Symbolic_State_Functions.symb_state_replace_preds symb_state quotient_preds in
+		let symb_state = Symbolic_State_Functions.symb_state_replace_gamma symb_state new_gamma in
 		let ret_var = proc_get_ret_var proc spec.n_ret_flag in
 		let ret_flag = spec.n_ret_flag in
 		let symb_states_and_ret_lexprs =
@@ -296,30 +297,30 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		match spec_list with
 		| [] -> ac_quotients
 		| spec :: rest_spec_list ->
-			(* Printf.printf "------------------------------------------\n";
+			Printf.printf "------------------------------------------\n";
 			Printf.printf "Entering find_correct_specs with the sepc:\n";
 			Printf.printf "------------------------------------------\n";
 			Printf.printf "Pre:\n%sPosts:\n%s"
 				(JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre)
-				(JSIL_Memory_Print.string_of_symb_state_list spec.n_post); *)
+				(JSIL_Memory_Print.string_of_symb_state_list spec.n_post); 
 			let unifier = Structural_Entailment.unify_symb_states [] spec.n_pre symb_state_aux in
 			(match unifier with
-			|	Some (quotient_heap, quotient_preds, subst, pf_discharges, true) ->
+			|	Some (true, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
 				Printf.printf "I found a COMPLETE match\n";
 				Printf.printf "The pre of the spec that completely matches me is:\n%s\n"
 					(JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre);
-				[ (spec, quotient_heap, quotient_preds, subst, pf_discharges) ]
-			| Some (quotient_heap, quotient_preds, subst, pf_discharges, false) ->
+				[ (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ]
+			| Some (false, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
 				Printf.printf "I found a PARTIAL match\n";
-				find_correct_specs rest_spec_list ((spec, quotient_heap, quotient_preds, subst, pf_discharges) :: ac_quotients)
+				find_correct_specs rest_spec_list ((spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) :: ac_quotients)
 			| None -> (
 				Printf.printf "I found a NON-match\n";
 				find_correct_specs rest_spec_list ac_quotients)) in
 
 
-	let transform_symb_state_partial_match (spec, quotient_heap, quotient_preds, subst, pf_discharges) : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
+	let transform_symb_state_partial_match (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
 
-		let symb_states_and_ret_lexprs = transform_symb_state spec symb_state quotient_heap quotient_preds subst pf_discharges in
+		let symb_states_and_ret_lexprs = transform_symb_state spec symb_state quotient_heap quotient_preds subst pf_discharges new_gamma in
 
 		let symb_states_and_ret_lexprs =
 			List.fold_left
@@ -337,19 +338,19 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		symb_states_and_ret_lexprs in
 
 
-	let rec apply_correct_specs (quotients : (jsil_n_single_spec * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list)) list) =
+	let rec apply_correct_specs (quotients : (jsil_n_single_spec * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment) list) =
 		match quotients with
 		| [ ] -> [ ]
-		| [ (spec, quotient_heap, quotient_preds, subst, pf_discharges) ] ->
+		| [ (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ] ->
 			(* Printf.printf "this was a TOTAL MATCH!!!!\n"; *)
-			transform_symb_state spec symb_state quotient_heap quotient_preds subst pf_discharges
+			transform_symb_state spec symb_state quotient_heap quotient_preds subst pf_discharges new_gamma
 	 	| _ :: _ ->
 			(* Printf.printf "this was a PARTIAL MATCH!!!!\n"; *)
 			let new_symb_states =
 				List.map
-					(fun (spec, quotient_heap, quotient_preds, subst, pf_discharges) ->
+					(fun (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
 						if (compatible_pfs symb_state spec.n_pre subst)
-							then transform_symb_state_partial_match (spec, quotient_heap, quotient_preds, subst, pf_discharges)
+							then transform_symb_state_partial_match (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma)
 							else [])
 					quotients in
 			let new_symb_states = List.concat new_symb_states in
@@ -383,16 +384,17 @@ let fold_predicate pred_name pred_defs symb_state params args =
 			Printf.printf "Current pred symbolic state: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pred_def);
 			let unifier = Structural_Entailment.unify_symb_states_fold existentials pred_def symb_state_aux in
 			(match unifier with
-			| Some (quotient_heap, quotient_preds, subst, pf_discharges, true) ->
+			| Some (true, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
 			    Printf.printf "I can fold this!!!\n";
 				let symb_state = Symbolic_State_Functions.symb_state_replace_heap symb_state quotient_heap in
 				let symb_state = Symbolic_State_Functions.symb_state_replace_preds symb_state quotient_preds in
+				let symb_state = Symbolic_State_Functions.symb_state_replace_gamma symb_state new_gamma in
 				Symbolic_State_Functions.extend_symb_state_with_pfs symb_state pf_discharges;
 				symb_state_add_predicate_assertion symb_state (pred_name, args);
 				(* Printf.printf "Symbolic state after FOLDING:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state); *)
 				Some symb_state
 
-			| Some (_, _, _, _, false) ->
+			| Some (false, _, _, _, _, _) ->
 				find_correct_pred_def rest_pred_defs
 
 			| None ->
