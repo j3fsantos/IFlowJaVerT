@@ -240,18 +240,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		let is_sat = Pure_Entailment.check_satisfiability pf_list gamma [] in
 		is_sat in
 
-	let transform_symb_state (spec : jsil_n_single_spec)
-	                         (symb_state : symbolic_state)
-							 (quotient_heap : symbolic_heap)
-							 (quotient_preds : predicate_set)
-							 (subst : substitution)
-							 (pf_discharges : jsil_logic_assertion list)
-							 (new_gamma : typing_environment) :
-							 	(symbolic_state * jsil_return_flag * jsil_logic_expr) list =
-		Printf.printf "I found the the spec that needs to be applied.\nThe spec pre is:\n%sThe spec post is:\n%sThe substitution is: %s"
-				(JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre)
-				(JSIL_Memory_Print.string_of_symb_state_list spec.n_post)
-				(JSIL_Memory_Print.string_of_substitution subst);
+	let transform_symb_state (spec : jsil_n_single_spec) (symb_state : symbolic_state) (quotient_heap : symbolic_heap) (quotient_preds : predicate_set) (subst : substitution) (pf_discharges : jsil_logic_assertion list) (new_gamma : typing_environment) : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
 
 		Printf.printf "the quotient heap is the following: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false);
 
@@ -310,22 +299,22 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		| [] -> ac_quotients
 		| spec :: rest_spec_list ->
 			Printf.printf "------------------------------------------\n";
-			Printf.printf "Entering find_correct_specs with the spec:\n";
+			Printf.printf "Entering find_correct_specs with the sepc:\n";
 			Printf.printf "------------------------------------------\n";
 			Printf.printf "Pre:\n%sPosts:\n%s"
 				(JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre)
-				(JSIL_Memory_Print.string_of_symb_state_list spec.n_post);
-			(if (spec.n_post = []) then Printf.printf "No postcondition for this spec.\n");
+				(JSIL_Memory_Print.string_of_symb_state_list spec.n_post); 
 			let unifier = Structural_Entailment.unify_symb_states [] spec.n_pre symb_state_aux in
 			(match unifier with
-			|	Some (quotient_heap, quotient_preds, subst, new_pfs, new_gamma, true) ->
+			|	Some (true, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
 				Printf.printf "I found a COMPLETE match\n";
 				Printf.printf "The pre of the spec that completely matches me is:\n%s\n"
 					(JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre);
-				[ (spec, quotient_heap, quotient_preds, subst, new_pfs, new_gamma) ]
-			| Some (quotient_heap, quotient_preds, subst, new_pfs, new_gamma, false) ->
+				[ (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ]
+			| Some (false, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
 				Printf.printf "I found a PARTIAL match\n";
-				find_correct_specs rest_spec_list ((spec, quotient_heap, quotient_preds, subst, new_pfs, new_gamma) :: ac_quotients)
+				find_correct_specs rest_spec_list ((spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) :: ac_quotients)
+
 			| None -> (
 				Printf.printf "I found a NON-match\n";
 				find_correct_specs rest_spec_list ac_quotients)) in
@@ -397,8 +386,8 @@ let fold_predicate pred_name pred_defs symb_state params args =
 			Printf.printf "Current pred symbolic state: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pred_def);
 			let unifier = Structural_Entailment.unify_symb_states_fold existentials pred_def symb_state_aux in
 			(match unifier with
-			| Some (quotient_heap, quotient_preds, subst, pf_discharges, new_gamma, true) ->
-			    Printf.printf "I can fold this!!!\n";
+			| Some (true, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
+			  Printf.printf "I can fold this!!!\n";
 				let symb_state = Symbolic_State_Functions.symb_state_replace_heap symb_state quotient_heap in
 				let symb_state = Symbolic_State_Functions.symb_state_replace_preds symb_state quotient_preds in
 				let symb_state = Symbolic_State_Functions.symb_state_replace_gamma symb_state new_gamma in
@@ -406,10 +395,8 @@ let fold_predicate pred_name pred_defs symb_state params args =
 				symb_state_add_predicate_assertion symb_state (pred_name, args);
 				(* Printf.printf "Symbolic state after FOLDING:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state); *)
 				Some symb_state
-
-			| Some (_, _, _, _, _, false) ->
+			| Some (false, _, _, _, _, _) ->
 				find_correct_pred_def rest_pred_defs
-
 			| None ->
 				find_correct_pred_def rest_pred_defs)) in
 	find_correct_pred_def pred_defs
