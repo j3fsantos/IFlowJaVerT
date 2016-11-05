@@ -1395,30 +1395,12 @@ proc i__checkAssignmentErrors (v) {
 	prep:	bv := l-nth (v, 1);
 			fv := l-nth (v, 2);
 
-	csyn:	goto [(((tv = $$list_type) and (l-nth (v, 0) = "v")) or (bv = $lg)) and ((fv = "eval") or (fv = "arguments"))] se cref;
-
-			(* Can anything else happen here? *)
-	cref:	goto [(bv = $$undefined)] re ctyp;
-
-	ctyp:	goto [(typeOf(tv) = $$list_type) and (l-nth (tv, 0) = "o")] c1 rlab;
-
-	c1:		xret := hasField (bv, fv);
-			goto [xret] c2 c1a;
-	c1a:	xret := [bv, "@extensible"];
-			goto [xret] rlab te;
-
-	c2:		xret := [bv, fv];
-			goto [(l-nth (xret, 2) = $$f) or (l-nth (xret, 2) = $$undefined)] te rlab;
+	csyn:	goto [(l-nth (v, 0) = "v") and ((fv = "eval") or (fv = "arguments"))] se rlab;
 
 	rlab:	xret := $$t;
 
 	se:		xret := "SyntaxError" ();
 			goto elab;
-
-	re:		xret := "ReferenceError" ();
-			goto elab;
-
-	te:		xret := "TypeError" ();
 
 	elab:	skip
 }

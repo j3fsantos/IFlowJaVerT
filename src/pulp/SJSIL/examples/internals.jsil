@@ -1406,11 +1406,56 @@ with
     err:	xret, elab;
 };
 
+(* ********* *)
+(* SAMEVALUE *)
+(* ********* *)
+
+spec i__sameValue (v1, v2)
+
+	[[ v1 == v2 ]]
+	[[ ret == $$t ]]
+	normal
+
+proc i__sameValue (v1, v2) {
+			xret := (v1 = v2);
+
+			goto [(typeOf(v1) <: $$number_type)] test2 rlab;
+	test2:	goto [(typeOf(v2) <: $$number_type)] inan  rlab;
+
+	inan:	goto [(not (v1 = v1)) and (not (v2 = v2))] rt zero;
+	zero:	goto [(v1 = 0) and (v2 = 0)] fix rlab;
+
+	fix:	sv1 := m_sgn (v1);
+			sv2 := m_sgn (v2);
+
+			xret := (sv1 = sv2);
+			goto rlab;
+
+	rt:		xret := $$t;
+
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};
+
 (* ******************** *)
 (* O__DEFINEOWNPROPERTY *)
 (* ******************** *)
 
 spec o__defineOwnProperty (l, prop, desc, throw)
+
+	(*
+	 *  1. {{ "d", _,   _,   _, $$f }} - {{ "d", _,   _,   _, $$t }} => Reject
+	 *  2. {{ "d", _,   _, $$t, $$f }} - {{ "d", _,   _, $$f, $$f }} => Reject
+	 *  3. {{ "d", _,   _, $$f, $$f }} - {{ "d", _,   _, $$t, $$f }} => Reject
+	 *  4. {{ "d",     _, $$f,   _, $$f }} - {{ "d",     _,    $$t,      _,    $$f }} => Reject
+ 	 *  5. {{ "d", #cval, $$f,   _, $$f }} - {{ "d", #nval,    $$f,      _,    $$f }} => if #cval !== nval then Reject
+	 *
+	 *  6. {{ "d",     _,   _,   _, $$t }} - {{ "d", #nval, #nwrit, #nenum, #nconf }} => {{ "d", #nval, #nwrit, #nenum, #nconf }}
+	 *
+	 *)
 
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
 	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #throw : $$boolean_type) *
@@ -1447,7 +1492,16 @@ spec o__defineOwnProperty (l, prop, desc, throw)
 	   ((#l, "@extensible") -> $$t) ]]
      [[ Cell_s (#l, #prop, "NSI", #desc, #pv) * ((#l, "@getOwnProperty") -> "s__getOwnProperty")
     	* ((#l, "@extensible") -> $$t) * (ret == $$t) ]]
-     normal
+     normal;
+
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
+	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #throw : $$boolean_type) *
+       DataDescriptor (#desc) * desc_val(#desc, #dv) * desc_writ(#desc, #dw) * desc_enum(#desc, #de) * desc_conf (#desc, #dc) *
+       types (#dw : $$boolean_type, #de : $$boolean_type, #dc : $$boolean_type ) *
+       Cell_o (#l, #prop, {{ "d", #cv, #cw, #ce, $$t }}) * ((#l, "@getOwnProperty") -> "o__getOwnProperty") *
+	   ((#l, "@extensible") -> $$t) ]]
+    [[ Cell_o (#l, #prop, #desc) * ((#l, "@getOwnProperty") -> "o__getOwnProperty") * ((#l, "@extensible") -> $$t) * (ret == $$t) ]]
+    normal
 
 proc o__defineOwnProperty (l, prop, desc, throw) {
 
@@ -1627,11 +1681,31 @@ with
 (* PUT *)
 (* *** *)
 
-spec o__put (l, prop, value, throw)
-
 	(* ******* UNSUCCESSFUL PUT ******* *)
 
-	(* Property is not defined within the prototype chain at all, object not extensible, throw *)
+	(*
+	 *	1. Property is not defined in the prototype chain at all, object is not extensible, throw
+	 *  2. Property is not defined in the prototype chain at all, object is not extensible, no throw
+	 *  3. Property is defined in the object (DD), data descriptor is not writable, throw
+	 *  4. Property is defined in the object (DD), data descriptor is not writable, no throw
+	 *  5. Property is defined in the prototype chain, not in the object (DD), object is not extensible, throw
+	 *  6. Property is defined in the prototype chain, not in the object (DD), object is not extensible, no throw
+     *  7. Property is defined in the prototype chain, not in the object (DD), object is extensible, data descriptor is not writable, throw
+	 *  8. Property is defined in the prototype chain, not in the object (DD), object is extensible, data descriptor is not writable, no throw
+	 *)
+
+	 (* ******* SUCCESSFUL PUT ******* *)
+
+	(*
+	 *	1. Property is not defined in the prototype chain at all, prototype chain of length = 1, object is extensible
+	 *  2. Property is not defined in the prototype chain at all, prototype chain of length > 1, object is extensible
+	 *  3. Property is defined in the object (DD), data descriptor is writable
+     *  4. Property is defined in the prototype chain, not in the object (DD), object is extensible, data descriptor is writable
+	 *)
+
+spec o__put (l, prop, value, throw)
+
+	(* 1. Property is not defined within the prototype chain at all, object not extensible, throw *)
     [[ (l == #l) * (prop == #prop) * (value == #value) * (throw == #throw) *
 	   types (#l : $$object_type, #prop : $$string_type, #throw : $$boolean_type) *
        Pi (#l, #prop, #g_aux_1, #g_aux_2, $$undefined, #g_aux_4, #g_aux_5, #g_aux_6) *
@@ -1642,7 +1716,7 @@ spec o__put (l, prop, value, throw)
 	   isTypeError(err) ]]
     error;
 
-	(* Property is not defined within the prototype chain at all, object not extensible, don't throw *)
+	(* 2. Property is not defined within the prototype chain at all, object not extensible, don't throw *)
     [[ (l == #l) * (prop == #prop) * (value == #value) * (throw == #throw) *
 	   types (#l : $$object_type, #prop : $$string_type, #throw : $$boolean_type) *
        Pi (#l, #prop, #g_aux_1, #g_aux_2, $$undefined, #g_aux_4, #g_aux_5, #g_aux_6) *
@@ -1653,7 +1727,7 @@ spec o__put (l, prop, value, throw)
 	   (ret == $$empty) ]]
     normal;
 
-	(* Property is defined in the object, data descriptor that is not writable, throw *)
+	(* 3. Property is defined in the object, data descriptor that is not writable, throw *)
     [[ (l == #l) * (prop == #prop) * (value == #value) * (throw == #throw) *
 	   types (#l : $$object_type, #prop : $$string_type, #throw : $$boolean_type) *
        Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, {{ #l }}, #g_aux_5, #g_aux_6) *
@@ -1665,7 +1739,7 @@ spec o__put (l, prop, value, throw)
 	   isTypeError(err) ]]
     error;
 
-	(* Property is defined in the object, data descriptor that is not writable, don't throw *)
+	(* 4. Property is defined in the object, data descriptor that is not writable, don't throw *)
     [[ (l == #l) * (prop == #prop) * (value == #value) * (throw == #throw) *
 	   types (#l : $$object_type, #prop : $$string_type, #throw : $$boolean_type) *
        Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, {{ #l }}, #g_aux_5, #g_aux_6) *
@@ -1677,7 +1751,7 @@ spec o__put (l, prop, value, throw)
 	   (ret == $$empty) ]]
     normal;
 
-	(* Property is defined in the prototype chain, not in the object, object not extensible, throw *)
+	(* 5. Property is defined in the prototype chain, not in the object, object not extensible, throw *)
     [[ (l == #l) * (prop == #prop) * (value == #value) * (throw == #throw) *
 	   types (#l : $$object_type, #prop : $$string_type, #throw : $$boolean_type) *
        Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
@@ -1689,7 +1763,7 @@ spec o__put (l, prop, value, throw)
 	   isTypeError(err) ]]
     error;
 
-	(* Property is defined in the prototype chain, not in the object, object not extensible, don't throw *)
+	(* 6. Property is defined in the prototype chain, not in the object, object not extensible, don't throw *)
     [[ (l == #l) * (prop == #prop) * (value == #value) * (throw == #throw) *
 	   types (#l : $$object_type, #prop : $$string_type, #throw : $$boolean_type) *
        Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
@@ -1701,7 +1775,7 @@ spec o__put (l, prop, value, throw)
 	   (ret == $$empty) ]]
     normal;
 
-	(* Property is defined in the prototype chain, not in the object, object extensible, property not writable, throw *)
+	(* 7. Property is defined in the prototype chain, not in the object, object extensible, property not writable, throw *)
     [[ (l == #l) * (prop == #prop) * (value == #value) * (throw == #throw) *
 	   types (#l : $$object_type, #prop : $$string_type, #throw : $$boolean_type) *
        Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
@@ -1713,7 +1787,7 @@ spec o__put (l, prop, value, throw)
 	   isTypeError(err) ]]
     error;
 
-	(* Property is defined in the prototype chain, not in the object, object extensible, property not writable, don't throw *)
+	(* 8. Property is defined in the prototype chain, not in the object, object extensible, property not writable, don't throw *)
     [[ (l == #l) * (prop == #prop) * (value == #value) * (throw == #throw) *
 	   types (#l : $$object_type, #prop : $$string_type, #throw : $$boolean_type) *
        Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *
@@ -1727,7 +1801,7 @@ spec o__put (l, prop, value, throw)
 
     (* ******* SUCCESSFUL PUT ******* *)
 
-	(* Property is not defined within the prototype chain, only one element, string *)
+	(* 9a. Property is not defined within the prototype chain, only one element, string *)
     [[ (l == #l) * (prop == #prop) * (value == #value) * (throw == #throw) *
 	   types (#l : $$object_type, #prop : $$string_type, #throw : $$boolean_type) *
        Pi (#l, #prop, "base", "String", $$undefined, {{ #l }}, {{ $$t }}, #g_aux_6) *
@@ -1737,7 +1811,7 @@ spec o__put (l, prop, value, throw)
 	   (ret == $$empty) ]]
     normal;
 
-	(* Property is not defined within the prototype chain, only one element, non-string *)
+	(* 9b. Property is not defined within the prototype chain, only one element, non-string *)
     [[ (l == #l) * (prop == #prop) * (value == #value) * (throw == #throw) *
 	   types (#l : $$object_type, #prop : $$string_type, #throw : $$boolean_type) *
        Pi (#l, #prop, "base", "General", $$undefined, {{ #l }}, {{ $$f }}, {{ "" }}) *
@@ -1745,17 +1819,27 @@ spec o__put (l, prop, value, throw)
 	[[ Pi (#l, #prop, "base", "General", {{ "d", #value, $$t, $$t, $$t }}, {{ #l }}, {{ $$f }}, {{ "" }}) * ((#l, "@proto") -> $$null) *
        ((#l, "@extensible") -> $$t) * ((#l, "@canPut") -> "o__canPut") * ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") *
 	   (ret == $$empty) ]]
+    normal;
+
+	(* 11. Property is defined in the object, data descriptor that is writable, don't throw *)
+    [[ (l == #l) * (prop == #prop) * (value == #value) * (throw == #throw) *
+	   types (#l : $$object_type, #prop : $$string_type, #throw : $$boolean_type) *
+       Pi (#l, #prop, #g_aux_1, #g_aux_2, {{ "d", #dval, $$t, #denum, #dconf }}, {{ #l }}, #g_aux_5, #g_aux_6) *
+	   ((#l, "@extensible") -> #ext) * ((#l, "@canPut") -> "o__canPut") * ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") ]]
+	[[ Pi (#l, #prop, #g_aux_1, #g_aux_2, {{ "d", #value, #dwrit, #denum, #dconf }}, {{ #l }}, #g_aux_5, #g_aux_6) *
+	   ((#l, "@extensible") -> #ext) * ((#l, "@canPut") -> "o__canPut") * ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") *
+	   (ret == $$empty) ]]
     normal
 
 	(* Property is not defined within the prototype chain, more than one element, non-string
-	 * Must reform the prototype chain manually in the post-condition
+	   Must reform the prototype chain manually in the post-condition, extra tricky
 
     [[ (l == #l) * (prop == #prop) * (value == #value) * (throw == #throw) *
 	   types (#l : $$object_type, #prop : $$string_type, #throw : $$boolean_type) *
        Pi (#l, #prop, "inductive", "General", $$undefined, (#l :: #llp), ($$f :: #ltf), ("" :: #lpv)) * (#llp == #lp :: #lsp) *
 	   types (#llp : $$list_type, #lp : $$object_type, #lsp : $$list_type, #ltf : $$list_type, #lpv : $$list_type) *
 	   ((#l, "@extensible") -> $$t) * ((#l, "@canPut") -> "o__canPut") * ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") ]]
-	[[ Pi (#l, #prop, "base", "General", {{ "d", #value, $$t, $$t, $$t }}, {{ #l }}, {{ $$f }}, {{ "" }}) * ((#l, "@proto") -> #lp) *
+	[[ Cell_o (#l, #prop, {{ "d", #value, $$t, $$t, $$t }}) * ((#l, "@proto") -> #lp) *
 	   Pi (#lp, #prop, #g_aux_01, #g_aux_02, $$undefined, (#lp :: #lsp), #ltf, #lpv) *
        ((#l, "@extensible") -> $$t) * ((#l, "@canPut") -> "o__canPut") * ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") *
 	   (ret == $$empty) ]]
