@@ -2,21 +2,7 @@ open Z3
 open JSIL_Memory_Model
 open JSIL_Syntax
 
-
-(** Encode JSIL type literals as Z3 numerical constants *)
-let encode_type ctx jsil_type =
-	match jsil_type with
-	| UndefinedType         -> Arithmetic.Integer.mk_numeral_i ctx 0
-	| NullType              -> Arithmetic.Integer.mk_numeral_i ctx 1
-	| EmptyType             -> Arithmetic.Integer.mk_numeral_i ctx 2
-	| NoneType              -> Arithmetic.Integer.mk_numeral_i ctx 3
-  | BooleanType           -> Arithmetic.Integer.mk_numeral_i ctx 4
-	| IntType               -> Arithmetic.Integer.mk_numeral_i ctx 5
-  | NumberType            -> Arithmetic.Integer.mk_numeral_i ctx 6
-	| StringType            -> Arithmetic.Integer.mk_numeral_i ctx 7
-  | ObjectType            -> Arithmetic.Integer.mk_numeral_i ctx 8
-	| ListType              -> Arithmetic.Integer.mk_numeral_i ctx 12
-	| TypeType              -> Arithmetic.Integer.mk_numeral_i ctx 13
+let encoding_with_ints = ref false
 
 let types_encoded_as_ints = [
 	UndefinedType;
@@ -30,21 +16,59 @@ let types_encoded_as_ints = [
 	TypeType
 ]
 
+let types_encoded_as_reals = NumberType :: types_encoded_as_ints
+
+(**********************
+ * ENCODING-DEPENDENT *
+ **********************)
+
+let if_ints x y =
+	if (!encoding_with_ints)
+		then begin x end
+		else begin y end
+
+let mk_sort       = if_ints Arithmetic.Integer.mk_sort      Arithmetic.Real.mk_sort
+let mk_const      = if_ints Arithmetic.Integer.mk_const     Arithmetic.Real.mk_const
+let mk_num_i      = if_ints Arithmetic.Integer.mk_numeral_i Arithmetic.Real.mk_numeral_i
+let encoded_types = if_ints types_encoded_as_ints           types_encoded_as_reals
+
+(* ********************
+ * ENCODING-DEPENDENT *
+ ********************** *)
+
+(** Encode JSIL type literals as Z3 numerical constants *)
+let encode_type ctx jsil_type =
+	match jsil_type with
+	| UndefinedType         -> mk_num_i ctx 0
+	| NullType              -> mk_num_i ctx 1
+	| EmptyType             -> mk_num_i ctx 2
+	| NoneType              -> mk_num_i ctx 3
+	| BooleanType           -> mk_num_i ctx 4
+	| IntType               -> mk_num_i ctx 5
+	| NumberType            -> mk_num_i ctx 6
+	| StringType            -> mk_num_i ctx 7
+	| ObjectType            -> mk_num_i ctx 8
+	| ListType              -> mk_num_i ctx 12
+	| TypeType              -> mk_num_i ctx 13
+
+
 let get_sort tr_ctx var_type =
 	let ctx = tr_ctx.z3_ctx in
 	match var_type with
-	| None                                           -> Arithmetic.Integer.mk_sort ctx
-	| Some t when (List.mem t types_encoded_as_ints) -> Arithmetic.Integer.mk_sort ctx
-	| Some NumberType                                -> Arithmetic.Real.mk_sort ctx
-	| Some ListType                                  -> tr_ctx.tr_list_sort
+	| None                                   -> mk_sort ctx
+	| Some t when (List.mem t encoded_types) -> mk_sort ctx
+	| Some ListType                          -> tr_ctx.tr_list_sort
+    | Some NumberType                        -> Arithmetic.Real.mk_sort ctx
 	| _  -> raise (Failure "Z3 encoding: Unsupported type.")
 
 
 let get_z3_var_symbol tr_ctx var = Symbol.mk_string (tr_ctx.z3_ctx) var
 
+
 let get_sorts tr_ctx vars =
 	let gamma = tr_ctx.tr_typing_env in
 	List.map (fun x -> let var_type = JSIL_Memory_Model.gamma_get_type gamma x in get_sort tr_ctx var_type) vars
+
 
 let get_z3_vars tr_ctx vars =
 	List.map (fun x -> get_z3_var_symbol tr_ctx x) vars
@@ -70,8 +94,7 @@ let encode_quantifier quantifier_type ctx quantified_vars var_sorts assertion =
 		quantified_assertion)
 	else assertion
 
-
-(* exists x. (typeof(x) == JSIL_Type) : for every JSIL type*)
+(* exists x. (typeof(x) == JSIL_Type) : for every JSIL type
 let mk_typeof_axioms ctx z3_typeof_fun z3_typeof_fun_domain =
 	let loop_fun jsil_type =
 		(match jsil_type with
@@ -99,7 +122,7 @@ let mk_typeof_axioms ctx z3_typeof_fun z3_typeof_fun_domain =
 			let type_of_domain = List.nth z3_typeof_fun_domain 0 in
 			let z3_typeof_axiom = encode_quantifier false ctx [ x; y ] [ type_of_domain; type_of_domain ] typeof_assertion in
 			z3_typeof_axiom) in
-	List.map loop_fun [ UndefinedType; NullType; EmptyType; NoneType; BooleanType; IntType; NumberType; StringType; ObjectType; ListType; TypeType]
+	List.map loop_fun [ UndefinedType; NullType; EmptyType; NoneType; BooleanType; IntType; NumberType; StringType; ObjectType; ListType; TypeType] *)
 
 let mk_z3_list_core les ctx list_nil list_cons =
 	let empty_list = Expr.mk_app ctx list_nil [ ] in
@@ -117,7 +140,6 @@ let mk_z3_list les tr_ctx =
 	mk_z3_list_core les tr_ctx.z3_ctx tr_ctx.tr_list_nil tr_ctx.tr_list_cons
 
 
-
 (*  llen({{ }}) = 0) *)
 (* forall a:Any. (llen({{ a }}) = 1) *)
 (* forall a:Any, b:Any. (llen({{ a, b }}) = 2) *)
@@ -130,12 +152,12 @@ let mk_z3_llen_axioms n ctx list_sort list_len list_nil list_cons =
 				then vars, le_vars, sorts
 				else
 					(let x = "x_" ^ (string_of_int n) in
-					let le_x = Expr.mk_const_s ctx x (Arithmetic.Integer.mk_sort ctx) in
-					loop (n-1) (x :: vars) (le_x :: le_vars) ((Arithmetic.Integer.mk_sort ctx) :: sorts)) in
+					let le_x = Expr.mk_const_s ctx x (mk_sort ctx) in
+					loop (n-1) (x :: vars) (le_x :: le_vars) (mk_sort ctx :: sorts)) in
 		let vars, le_vars, sorts = loop n [] [] [] in
 		let list = mk_z3_list_core le_vars ctx list_nil list_cons in
 		let llen_le = (Expr.mk_app ctx list_len [ list ]) in
-		let assertion = Boolean.mk_eq ctx (Arithmetic.Integer.mk_numeral_i ctx n) llen_le in
+		let assertion = Boolean.mk_eq ctx (mk_num_i ctx n) llen_le in
 		let axiom = encode_quantifier true ctx vars sorts assertion in
 	 	axiom in
 
@@ -149,78 +171,76 @@ let mk_z3_llen_axioms n ctx list_sort list_len list_nil list_cons =
 	res
 
 
-
-
 let mk_smt_translation_ctx gamma existentials =
 	let cfg = [("model", "true"); ("proof", "false")] in
 	let ctx = (mk_context cfg) in
 
 	let z3_typeof_fun_name = (Symbol.mk_string ctx "typeof") in
-	let z3_typeof_fun_domain = [ Arithmetic.Integer.mk_sort ctx ] in
-	let z3_typeof_fun = FuncDecl.mk_func_decl ctx z3_typeof_fun_name z3_typeof_fun_domain (Arithmetic.Integer.mk_sort ctx) in
-	let z3_typeof_axioms = mk_typeof_axioms ctx z3_typeof_fun z3_typeof_fun_domain in
+	let z3_typeof_fun_domain = [ mk_sort ctx ] in
+	let z3_typeof_fun = FuncDecl.mk_func_decl ctx z3_typeof_fun_name z3_typeof_fun_domain (mk_sort ctx) in
+	(* let z3_typeof_axioms = mk_typeof_axioms ctx z3_typeof_fun z3_typeof_fun_domain in *)
 
 	let z3_slen_name = (Symbol.mk_string ctx "s-len") in
-	let z3_slen_fun_domain = [ Arithmetic.Integer.mk_sort ctx ] in
-	let z3_slen_fun = FuncDecl.mk_func_decl ctx z3_slen_name z3_slen_fun_domain (Arithmetic.Integer.mk_sort ctx) in
+	let z3_slen_fun_domain = [ mk_sort ctx ] in
+	let z3_slen_fun = FuncDecl.mk_func_decl ctx z3_slen_name z3_slen_fun_domain (mk_sort ctx) in
 
 	(* forall x. slen(x) >= 0 *)
 	let x = "x" in
-	let le_x = Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx x) in
+	let le_x = mk_const ctx (Symbol.mk_string ctx x) in
 	let le1 = (Expr.mk_app ctx z3_slen_fun [ le_x ]) in
-	let le2 = (Arithmetic.Integer.mk_numeral_i ctx 0) in
+	let le2 = (mk_num_i ctx 0) in
 	let slen_assertion = Arithmetic.mk_ge ctx le1 le2 in
 	let z3_slen_axiom = encode_quantifier true ctx [ x ] z3_slen_fun_domain slen_assertion in
 
 	let z3_num2str_name = (Symbol.mk_string ctx "num2str") in
-	let z3_num2str_fun_domain = [ Arithmetic.Integer.mk_sort ctx ] in
-	let z3_num2str_fun = FuncDecl.mk_func_decl ctx z3_num2str_name z3_num2str_fun_domain (Arithmetic.Integer.mk_sort ctx) in
+	let z3_num2str_fun_domain = [ mk_sort ctx ] in
+	let z3_num2str_fun = FuncDecl.mk_func_decl ctx z3_num2str_name z3_num2str_fun_domain (mk_sort ctx) in
 
 	let z3_str2num_name = (Symbol.mk_string ctx "str2num") in
-	let z3_str2num_fun_domain = [ Arithmetic.Integer.mk_sort ctx ] in
-	let z3_str2num_fun = FuncDecl.mk_func_decl ctx z3_str2num_name z3_str2num_fun_domain (Arithmetic.Integer.mk_sort ctx) in
+	let z3_str2num_fun_domain = [ mk_sort ctx ] in
+	let z3_str2num_fun = FuncDecl.mk_func_decl ctx z3_str2num_name z3_str2num_fun_domain (mk_sort ctx) in
 
 	let z3_num2int_name = (Symbol.mk_string ctx "num2int") in
-	let z3_num2int_fun_domain = [ Arithmetic.Integer.mk_sort ctx ] in
-	let z3_num2int_fun = FuncDecl.mk_func_decl ctx z3_num2int_name z3_num2int_fun_domain (Arithmetic.Integer.mk_sort ctx) in
+	let z3_num2int_fun_domain = [ mk_sort ctx ] in
+	let z3_num2int_fun = FuncDecl.mk_func_decl ctx z3_num2int_name z3_num2int_fun_domain (mk_sort ctx) in
 
 	let z3_snth_name = (Symbol.mk_string ctx "s-nth") in
-	let z3_snth_fun_domain = [ Arithmetic.Integer.mk_sort ctx; Arithmetic.Integer.mk_sort ctx ] in
-	let z3_snth_fun = FuncDecl.mk_func_decl ctx z3_snth_name z3_snth_fun_domain (Arithmetic.Integer.mk_sort ctx) in
+	let z3_snth_fun_domain = [ mk_sort ctx; mk_sort ctx ] in
+	let z3_snth_fun = FuncDecl.mk_func_decl ctx z3_snth_name z3_snth_fun_domain (mk_sort ctx) in
 
 	let z3_list_sort_name = (Symbol.mk_string ctx "tr_list") in
-	let list_sort = Z3List.mk_sort ctx z3_list_sort_name (Arithmetic.Integer.mk_sort ctx) in
+	let list_sort = Z3List.mk_sort ctx z3_list_sort_name (mk_sort ctx) in
 
 	let z3_lnth_name = (Symbol.mk_string ctx "l-nth") in
-	let z3_lnth_fun_domain = [ list_sort; Arithmetic.Integer.mk_sort ctx ] in
-	let z3_lnth_fun = FuncDecl.mk_func_decl ctx z3_lnth_name z3_lnth_fun_domain (Arithmetic.Integer.mk_sort ctx) in
+	let z3_lnth_fun_domain = [ list_sort; mk_sort ctx ] in
+	let z3_lnth_fun = FuncDecl.mk_func_decl ctx z3_lnth_name z3_lnth_fun_domain (mk_sort ctx) in
 
 	let z3_llen_name = (Symbol.mk_string ctx "l-len") in
 	let z3_llen_fun_domain = [ list_sort ] in
-	let z3_llen_fun = FuncDecl.mk_func_decl ctx z3_llen_name z3_llen_fun_domain (Arithmetic.Integer.mk_sort ctx) in
+	let z3_llen_fun = FuncDecl.mk_func_decl ctx z3_llen_name z3_llen_fun_domain (mk_sort ctx) in
 
 	let z3_to_jsil_boolean_name = (Symbol.mk_string ctx "to_jsil_boolean") in
 	let z3_to_jsil_boolean_domain = [ Boolean.mk_sort ctx ] in
-	let z3_to_jsil_boolean_fun = FuncDecl.mk_func_decl ctx z3_to_jsil_boolean_name z3_to_jsil_boolean_domain (Arithmetic.Integer.mk_sort ctx) in
+	let z3_to_jsil_boolean_fun = FuncDecl.mk_func_decl ctx z3_to_jsil_boolean_name z3_to_jsil_boolean_domain (mk_sort ctx) in
 
 	let z3_jsil_not_name = (Symbol.mk_string ctx "jsil_not") in
-	let z3_jsil_not_domain = [ Arithmetic.Integer.mk_sort ctx ] in
-	let z3_jsil_not_fun : FuncDecl.func_decl = FuncDecl.mk_func_decl ctx z3_jsil_not_name z3_jsil_not_domain (Arithmetic.Integer.mk_sort ctx) in
+	let z3_jsil_not_domain = [ mk_sort ctx ] in
+	let z3_jsil_not_fun : FuncDecl.func_decl = FuncDecl.mk_func_decl ctx z3_jsil_not_name z3_jsil_not_domain (mk_sort ctx) in
 
 	(* to_jsil_boolean axioms *)
 	(* to_jsil_boolean true = 1 *)
 	(* to_jsil_boolean false = 0 *)
-	let to_jsil_boolean_axiom_true = Boolean.mk_eq ctx (Expr.mk_app ctx z3_to_jsil_boolean_fun [ (Boolean.mk_true ctx) ]) (Arithmetic.Integer.mk_numeral_i ctx 1)  in
-	let to_jsil_boolean_axiom_false = Boolean.mk_eq ctx (Expr.mk_app ctx z3_to_jsil_boolean_fun [ (Boolean.mk_false ctx) ]) (Arithmetic.Integer.mk_numeral_i ctx 0) in
+	let to_jsil_boolean_axiom_true = Boolean.mk_eq ctx (Expr.mk_app ctx z3_to_jsil_boolean_fun [ (Boolean.mk_true ctx) ]) (mk_num_i ctx 1)  in
+	let to_jsil_boolean_axiom_false = Boolean.mk_eq ctx (Expr.mk_app ctx z3_to_jsil_boolean_fun [ (Boolean.mk_false ctx) ]) (mk_num_i ctx 0) in
 
-	let jsil_not_axiom_true : Z3.Expr.expr = Boolean.mk_eq ctx (Expr.mk_app ctx z3_jsil_not_fun [ (Arithmetic.Integer.mk_numeral_i ctx 1) ]) (Arithmetic.Integer.mk_numeral_i ctx 0) in
-	let jsil_not_axiom_false :  Z3.Expr.expr = Boolean.mk_eq ctx (Expr.mk_app ctx z3_jsil_not_fun [ (Arithmetic.Integer.mk_numeral_i ctx 0) ]) (Arithmetic.Integer.mk_numeral_i ctx 1) in
+	let jsil_not_axiom_true : Z3.Expr.expr = Boolean.mk_eq ctx (Expr.mk_app ctx z3_jsil_not_fun [ (mk_num_i ctx 1) ]) (mk_num_i ctx 0) in
+	let jsil_not_axiom_false :  Z3.Expr.expr = Boolean.mk_eq ctx (Expr.mk_app ctx z3_jsil_not_fun [ (mk_num_i ctx 0) ]) (mk_num_i ctx 1) in
 
 	(* forall x. slen(x) >= 0 *)
 	let x = "x" in
-	let le_x = Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx x) in
+	let le_x = mk_const ctx (Symbol.mk_string ctx x) in
 	let le1 = (Expr.mk_app ctx z3_slen_fun [ le_x ]) in
-	let le2 = (Arithmetic.Integer.mk_numeral_i ctx 0) in
+	let le2 = (mk_num_i ctx 0) in
 	let slen_assertion = Arithmetic.mk_ge ctx le1 le2 in
 	let z3_slen_axiom = encode_quantifier true ctx [ x ] z3_slen_fun_domain slen_assertion in
 
@@ -233,25 +253,25 @@ let mk_smt_translation_ctx gamma existentials =
 
 	(* TODO: lub_domain is 0..13, not all ints. Deadline: 2020 *)
 	let z3_lub_name = (Symbol.mk_string ctx "type_lub") in
-	let z3_lub_domain = [ Arithmetic.Integer.mk_sort ctx; Arithmetic.Integer.mk_sort ctx ] in
-	let z3_lub = FuncDecl.mk_func_decl ctx z3_lub_name z3_lub_domain (Arithmetic.Integer.mk_sort ctx) in
+	let z3_lub_domain = [ mk_sort ctx; mk_sort ctx ] in
+	let z3_lub = FuncDecl.mk_func_decl ctx z3_lub_name z3_lub_domain (mk_sort ctx) in
 
   (* forall x, lub x x = x *)
   let x = "x" in
-	let le_x = Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx x) in
+	let le_x = mk_const ctx (Symbol.mk_string ctx x) in
 	let le1 = (Expr.mk_app ctx z3_lub [ le_x; le_x ]) in
 	let lub_refl_ass = Boolean.mk_eq ctx le1 le_x in
-	let lub_refl_axiom = encode_quantifier true ctx [ x ] [ Arithmetic.Integer.mk_sort ctx ] lub_refl_ass in
+	let lub_refl_axiom = encode_quantifier true ctx [ x ] [ mk_sort ctx ] lub_refl_ass in
 
   (* forall x, lub x y = lub y x *)
   let x = "x" in
-	let le_x = Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx x) in
+	let le_x = mk_const ctx (Symbol.mk_string ctx x) in
   let y = "y" in
-	let le_y = Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx y) in
+	let le_y = mk_const ctx (Symbol.mk_string ctx y) in
 	let le1 = (Expr.mk_app ctx z3_lub [ le_x; le_y ]) in
 	let le2 = (Expr.mk_app ctx z3_lub [ le_y; le_x ]) in
 	let lub_sym_ass = Boolean.mk_eq ctx le1 le2 in
-	let lub_sym_axiom = encode_quantifier true ctx [ x ] [ Arithmetic.Integer.mk_sort ctx ] lub_sym_ass in
+	let lub_sym_axiom = encode_quantifier true ctx [ x ] [ mk_sort ctx ] lub_sym_ass in
 
   (* lub Int Num = Num *)
 	let it = encode_type ctx IntType in
@@ -265,7 +285,7 @@ let mk_smt_translation_ctx gamma existentials =
 	let x = "x" in
 	let le_x = (Expr.mk_const ctx (Symbol.mk_string ctx x) list_sort) in
 	let le1 = (Expr.mk_app ctx z3_llen_fun [ le_x ]) in
-	let le2 = (Arithmetic.Integer.mk_numeral_i ctx 0) in
+	let le2 = (mk_num_i ctx 0) in
 	let llen_assertion = Arithmetic.mk_ge ctx le1 le2 in
 	let z3_llen_axiom1 = encode_quantifier true ctx [ x ] z3_llen_fun_domain llen_assertion in
 
@@ -274,7 +294,7 @@ let mk_smt_translation_ctx gamma existentials =
 	let le_x = (Expr.mk_const ctx (Symbol.mk_string ctx x) list_sort) in
 	let ass1 = Boolean.mk_eq ctx le_x (Expr.mk_app ctx list_nil [ ]) in
 	let le_llen_x = (Expr.mk_app ctx z3_llen_fun [ le_x ]) in
-	let ass2 = Arithmetic.mk_lt ctx (Arithmetic.Integer.mk_numeral_i ctx 0) le_llen_x in
+	let ass2 = Arithmetic.mk_lt ctx (mk_num_i ctx 0) le_llen_x in
 	let ass = Boolean.mk_or ctx [ass1; ass2] in
 	let axiom_llen_axiom2 = encode_quantifier true ctx [ x ] [ list_sort ] ass in
 
@@ -323,6 +343,7 @@ let encode_constant ctx constant =
 		| _     -> raise (Failure "SMT encoding: Unknown constant")) in
 	(Arithmetic.Real.mk_numeral_s ctx (string_of_float value)), (encode_type ctx NumberType)
 
+
 (** Encode strings as Z3 numerical constants *)
 let str_codes = Hashtbl.create 1000
 let str_counter = ref 0
@@ -331,14 +352,15 @@ let encode_string ctx str =
 	try
 		let str_number = Hashtbl.find str_codes str in
 		(* Printf.printf "the string is already there!"; *)
-		let z3_code = Arithmetic.Integer.mk_numeral_i ctx str_number in
+		let z3_code = mk_num_i ctx str_number in
 		z3_code
 	with Not_found ->
 		(* New string: add it to the hashtable *)
-		let z3_code = Arithmetic.Integer.mk_numeral_i ctx !str_counter in
+		let z3_code = mk_num_i ctx !str_counter in
 		Hashtbl.add str_codes str (!str_counter);
 		str_counter := !str_counter + 1;
 		z3_code
+
 
 (** Encode JSIL literals as Z3 numerical constants *)
 let rec encode_literal tr_ctx lit =
@@ -347,19 +369,19 @@ let rec encode_literal tr_ctx lit =
 	let ctx = tr_ctx.z3_ctx in
 	let gamma = tr_ctx.tr_typing_env in
 	match lit with
-	| Undefined     -> (Arithmetic.Integer.mk_numeral_i ctx 0), (encode_type ctx UndefinedType)
-	| Null          -> (Arithmetic.Integer.mk_numeral_i ctx 1), (encode_type ctx NullType)
-	| Empty         -> (Arithmetic.Integer.mk_numeral_i ctx 2), (encode_type ctx EmptyType)
+	| Undefined     -> (mk_num_i ctx 0), (encode_type ctx UndefinedType)
+	| Null          -> (mk_num_i ctx 1), (encode_type ctx NullType)
+	| Empty         -> (mk_num_i ctx 2), (encode_type ctx EmptyType)
 	| Constant c    -> encode_constant ctx c
 	| Bool b        ->
 		(match b with
-		| true        -> (Arithmetic.Integer.mk_numeral_i ctx 1), (encode_type ctx BooleanType)
-		| false       -> (Arithmetic.Integer.mk_numeral_i ctx 0), (encode_type ctx BooleanType))
-	| Integer i     -> (Arithmetic.Integer.mk_numeral_i ctx i), (encode_type ctx IntType)
+		| true      -> (mk_num_i ctx 1), (encode_type ctx BooleanType)
+		| false     -> (mk_num_i ctx 0), (encode_type ctx BooleanType))
+	| Integer i     -> (mk_num_i ctx i), (encode_type ctx IntType)
 	| Num n         ->
 		if (n = (snd (modf n)))
-			then        (Arithmetic.Integer.mk_numeral_i ctx (int_of_float n)), (encode_type ctx IntType)
-			else        (Arithmetic.Real.mk_numeral_s ctx (string_of_float n)), (encode_type ctx NumberType)
+			then       (mk_num_i ctx (int_of_float n)), (encode_type ctx IntType)
+			else       (Arithmetic.Real.mk_numeral_s ctx (string_of_float n)), (encode_type ctx NumberType)
 	| String s      -> (encode_string ctx s), (encode_type ctx StringType)
 	| Loc l         -> (encode_string ctx ("$l" ^ l)), (encode_type ctx ObjectType)
 	| Type t        -> (encode_type ctx t), (encode_type ctx TypeType)
@@ -377,6 +399,7 @@ let rec encode_literal tr_ctx lit =
 
 	| _             -> raise (Failure "SMT encoding: Construct not supported yet - literal!")
 
+
 let mk_constraint_int_num_or tr_ctx te =
 	let ctx = tr_ctx.z3_ctx in
 	let as_op_1 = Boolean.mk_eq ctx te (encode_type ctx NumberType) in
@@ -392,6 +415,7 @@ let mk_constraint_int_num tr_ctx te1 te2 =
 	let as_op   = Boolean.mk_and ctx [ as_op_1; as_op_2 ] in
 	as_op
 
+
 let mk_constraint_int tr_ctx te1 te2 =
 	let ctx = tr_ctx.z3_ctx in
 	let as_op_1 = Boolean.mk_eq  ctx te1 (encode_type ctx IntType) in
@@ -399,14 +423,17 @@ let mk_constraint_int tr_ctx te1 te2 =
 	let as_op   = Boolean.mk_and ctx [ as_op_1; as_op_2 ] in
 	as_op
 
+
 let mk_constraint_type tr_ctx te t =
 	let ctx = tr_ctx.z3_ctx in
 	let as_op = Boolean.mk_eq ctx te (encode_type ctx t) in
 	as_op
 
+
 let mk_lub_type tr_ctx t1 t2 =
 	let ctx = tr_ctx.z3_ctx in
 	(Expr.mk_app ctx tr_ctx.tr_lub [ t1; t2 ])
+
 
 (** Encode JSIL binary operators *)
 let encode_binop tr_ctx op le1 te1 le2 te2 =
@@ -416,8 +443,7 @@ let encode_binop tr_ctx op le1 te1 le2 te2 =
 	| Plus     -> (Arithmetic.mk_add ctx [ le1; le2 ]), mk_lub_type tr_ctx te1 te2, [ mk_constraint_int_num tr_ctx te1 te2 ]
 	| Minus    -> (Arithmetic.mk_sub ctx [ le1; le2 ]), mk_lub_type tr_ctx te1 te2, [ mk_constraint_int_num tr_ctx te1 te2 ]
 	| Times    -> (Arithmetic.mk_mul ctx [ le1; le2 ]), mk_lub_type tr_ctx te1 te2, [ mk_constraint_int_num tr_ctx te1 te2 ]
-	| Div      -> (Arithmetic.mk_div ctx le1 le2), mk_lub_type tr_ctx te1 te2, [ mk_constraint_int_num tr_ctx te1 te2 ]
-	| Mod      -> (Arithmetic.Integer.mk_mod ctx le1 le2), (encode_type ctx IntType), [ mk_constraint_int tr_ctx te1 te2 ]
+	| Div      -> (Arithmetic.mk_div ctx   le1  le2),   mk_lub_type tr_ctx te1 te2, [ mk_constraint_int_num tr_ctx te1 te2 ]
 	| Equal    ->
 		let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_to_jsil_boolean_fun [ (Boolean.mk_eq ctx le1 le2) ]) in
 		new_le, (encode_type ctx BooleanType), [ ]
@@ -475,12 +501,12 @@ let get_z3_var_and_type tr_ctx var =
 	let var_type = JSIL_Memory_Model.gamma_get_type gamma var in
 	let le, te =
 		(match var_type with
-		  | None            -> let le = (Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx var)) in
-													 le, (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ le ])
-			| Some ListType   -> (Expr.mk_const ctx (Symbol.mk_string ctx var) tr_ctx.tr_list_sort), (encode_type ctx ListType)
-			| Some NumberType -> (Arithmetic.Real.mk_const ctx (Symbol.mk_string ctx var)), (encode_type ctx NumberType)
-			| Some t          -> (Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx var)), (encode_type ctx t)
-			| _               -> raise (Failure "z3 variable encoding: fatal error")) in
+			| None            -> let le = (mk_const ctx (Symbol.mk_string ctx var)) in
+									le, (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ le ])
+			| Some ListType                          -> (Expr.mk_const ctx (Symbol.mk_string ctx var) tr_ctx.tr_list_sort), (encode_type ctx ListType)
+			| Some t when (List.mem t encoded_types) -> (mk_const ctx (Symbol.mk_string ctx var)), (encode_type ctx t)
+			| Some NumberType                        -> (Arithmetic.Real.mk_const ctx (Symbol.mk_string ctx var)), (encode_type ctx NumberType)
+			| _                                      -> raise (Failure "z3 variable encoding: fatal error")) in
 	le, te
 
 
@@ -497,7 +523,7 @@ let rec encode_logical_expression tr_ctx e =
 		le, te, []
 
 	| LNone                 ->
-		let le, te = (Arithmetic.Integer.mk_numeral_i ctx 3), (encode_type ctx NoneType) in
+		let le, te = (mk_num_i ctx 3), (encode_type ctx NoneType) in
 		le, te, []
 
 	| LVar var ->
@@ -505,7 +531,7 @@ let rec encode_logical_expression tr_ctx e =
 		le, te, []
 
 	| ALoc var ->
-		let le = (Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx var)) in
+		let le = (mk_const ctx (Symbol.mk_string ctx var)) in
 			le, (encode_type ctx ObjectType), []
 
 	| PVar _                -> raise (Failure "Program variable in pure formula: FIRE")
@@ -573,7 +599,7 @@ let encode_lnth_equalities tr_ctx le_list (les : jsil_logic_expr) =
 		List.mapi
 			(fun i le ->
 				let le', _, _ = encode_logical_expression tr_ctx le in
-				let le_nth = (Expr.mk_app ctx tr_ctx.tr_lnth_fun [ le_list; (Arithmetic.Integer.mk_numeral_i ctx i) ]) in
+				let le_nth = (Expr.mk_app ctx tr_ctx.tr_lnth_fun [ le_list; (mk_num_i ctx i) ]) in
 				Boolean.mk_eq ctx le_nth le')
 			les in
 
@@ -607,7 +633,7 @@ let encode_snth_equalities tr_ctx s les =
 	List.mapi
 		(fun i le ->
 			let le', _, _ = encode_logical_expression tr_ctx le in
-			let le_nth = (Expr.mk_app ctx tr_ctx.tr_snth_fun [ s; (Arithmetic.Integer.mk_numeral_i ctx i) ]) in
+			let le_nth = (Expr.mk_app ctx tr_ctx.tr_snth_fun [ s; (mk_num_i ctx i) ]) in
 			Boolean.mk_eq ctx le_nth le')
 		les
 
@@ -623,7 +649,7 @@ let encode_gamma tr_ctx how_many =
 				| NumberType
 				| ListType   -> Boolean.mk_true ctx
 				| _          ->
-					let le_x = (Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx x)) in
+					let le_x = (mk_const ctx (Symbol.mk_string ctx x)) in
 					let le_typeof_le_x = (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ le_x ]) in
 					let assertion = Boolean.mk_eq ctx le_typeof_le_x (encode_type ctx t_x) in
 					assertion))
@@ -717,7 +743,7 @@ let rec lets_do_some_list_theory_axioms tr_ctx l1 l2 =
  	| LLit (LList l1'), PVar var ->
 		let assertions  = mk_simple_eq tr_ctx l1 l2 in
 		let l2', _, _   = fe l2 in
-		let axiom_len   = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l2' ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length l1')) in
+		let axiom_len   = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l2' ]) (mk_num_i ctx (List.length l1')) in
 	 	let axioms_nth  = encode_lnth_equalities tr_ctx l2' l1 in
 		let axioms_cons = encode_cons_equalities tr_ctx l2' l1 in
 		assertions, [ axiom_len ] @ axioms_cons @ axioms_nth
@@ -742,7 +768,7 @@ let rec lets_do_some_list_theory_axioms tr_ctx l1 l2 =
  	| LEList le1, PVar var ->
 		let assertions  = mk_simple_eq tr_ctx l1 l2 in
 		let l2', _, _   = fe l2 in
-		let axiom_len   = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l2' ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length le1)) in
+		let axiom_len   = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l2' ]) (mk_num_i ctx (List.length le1)) in
 	 	let axioms_nth  = encode_lnth_equalities tr_ctx l2' l1 in
 		let axioms_cons = encode_cons_equalities tr_ctx l2' l1 in
 		assertions, [ axiom_len ] @ axioms_cons @ axioms_nth
@@ -762,12 +788,12 @@ let rec lets_do_some_list_theory_axioms tr_ctx l1 l2 =
 		let l2', _, _   = fe l2 in
 		let axiom_len   =
 			(match l1' with
-			| LLit (LList l1'') -> Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l2' ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length l1''))
-			| LEList l1''       -> Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l2' ]) (Arithmetic.Integer.mk_numeral_i ctx (List.length l1''))
+			| LLit (LList l1'') -> Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l2' ]) (mk_num_i ctx (List.length l1''))
+			| LEList l1''       -> Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l2' ]) (mk_num_i ctx (List.length l1''))
 			| _                 ->
 				let l1''', _, _ = fe l1' in
 				let le_len_tail = (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l1''' ]) in
-				let le_len_tail_plus_one = Arithmetic.mk_add ctx [ (Arithmetic.Integer.mk_numeral_i ctx 1); le_len_tail ] in
+				let le_len_tail_plus_one = Arithmetic.mk_add ctx [ (mk_num_i ctx 1); le_len_tail ] in
 				Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l2' ]) le_len_tail_plus_one) in
 		let axioms_nth  = encode_lnth_equalities tr_ctx l2' l1 in
 		let axioms_cons = encode_cons_equalities tr_ctx l2' l1 in
@@ -791,14 +817,13 @@ let rec lets_do_some_list_theory_axioms tr_ctx l1 l2 =
 let make_concrete_string_axioms tr_ctx s =
 	let ctx = tr_ctx.z3_ctx in
 	let s', _, _  = encode_logical_expression tr_ctx (LLit (String s)) in
-	let len_axiom = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_slen_fun [ s' ]) (Arithmetic.Integer.mk_numeral_i ctx (String.length s)) in
+	let len_axiom = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_slen_fun [ s' ]) (mk_num_i ctx (String.length s)) in
 	let les = List.map (fun x -> LLit (String x)) (explode s) in
 	let snth_axioms = encode_snth_equalities tr_ctx s' les in
 	len_axiom :: snth_axioms
 
 
 let rec lets_do_some_string_theory_axioms tr_ctx l1 l2 =
-	let f = lets_do_some_list_theory_axioms tr_ctx in
 	let fe = encode_logical_expression tr_ctx in
 	let ctx = tr_ctx.z3_ctx in
 
@@ -813,7 +838,7 @@ let rec lets_do_some_string_theory_axioms tr_ctx l1 l2 =
 	| LLit (String s), _ ->
 		let as1 = (mk_simple_eq tr_ctx l1 l2) in
 		let l2', _, _ = fe l2 in
-		let len_axiom = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_slen_fun [ l2' ]) (Arithmetic.Integer.mk_numeral_i ctx (String.length s)) in
+		let len_axiom = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_slen_fun [ l2' ]) (mk_num_i ctx (String.length s)) in
 		let les = List.map (fun x -> LLit (String x)) (explode s) in
 		let snth_axioms = encode_snth_equalities tr_ctx l2' les in
 		as1, len_axiom :: snth_axioms
@@ -821,7 +846,7 @@ let rec lets_do_some_string_theory_axioms tr_ctx l1 l2 =
 	| _, LLit (String s) ->
 		let as1 = (mk_simple_eq tr_ctx l1 l2) in
 		let l1', _, _ = fe l1 in
-		let len_axiom = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_slen_fun [ l1' ]) (Arithmetic.Integer.mk_numeral_i ctx (String.length s)) in
+		let len_axiom = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_slen_fun [ l1' ]) (mk_num_i ctx (String.length s)) in
 		let les = List.map (fun x -> LLit (String x)) (explode s) in
 		let snth_axioms = encode_snth_equalities tr_ctx l1' les in
 		as1, len_axiom :: snth_axioms
