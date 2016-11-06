@@ -2,7 +2,12 @@ open Z3
 open JSIL_Memory_Model
 open JSIL_Syntax
 
-let encoding_with_ints = ref false
+type encoding =
+ | WithInts
+ | WithReals
+ | WithFPA
+
+let encoding = ref WithFPA
 
 let types_encoded_as_ints = [
 	UndefinedType;
@@ -16,21 +21,34 @@ let types_encoded_as_ints = [
 	TypeType
 ]
 
-let types_encoded_as_reals = NumberType :: types_encoded_as_ints
+let types_encoded_as_reals_fpa = NumberType :: types_encoded_as_ints
 
 (**********************
  * ENCODING-DEPENDENT *
  **********************)
 
-let if_ints x y =
-	if (!encoding_with_ints)
-		then begin x end
-		else begin y end
+let match_enc x y z =
+match (!encoding) with
+ | WithInts  -> x
+ | WithReals -> y
+ | WithFPA   -> z
 
-let mk_sort       = if_ints Arithmetic.Integer.mk_sort      Arithmetic.Real.mk_sort
-let mk_const      = if_ints Arithmetic.Integer.mk_const     Arithmetic.Real.mk_const
-let mk_num_i      = if_ints Arithmetic.Integer.mk_numeral_i Arithmetic.Real.mk_numeral_i
-let encoded_types = if_ints types_encoded_as_ints           types_encoded_as_reals
+let fp_sort = FloatingPoint.mk_sort_64
+let rm ctx  = FloatingPoint.mk_const ctx (Symbol.mk_string ctx "rm") (FloatingPoint.RoundingMode.mk_sort ctx)
+
+let mk_sort       = match_enc Arithmetic.Integer.mk_sort      Arithmetic.Real.mk_sort      fp_sort
+let mk_const      = match_enc Arithmetic.Integer.mk_const     Arithmetic.Real.mk_const     (fun ctx s -> FloatingPoint.mk_const     ctx s (fp_sort ctx))
+let mk_num_i      = match_enc Arithmetic.Integer.mk_numeral_i Arithmetic.Real.mk_numeral_i (fun ctx i -> FloatingPoint.mk_numeral_i ctx i (fp_sort ctx))
+let mk_num_s      = match_enc Arithmetic.Real.mk_numeral_s    Arithmetic.Real.mk_numeral_s (fun ctx s -> FloatingPoint.mk_numeral_s ctx s (fp_sort ctx))
+let mk_lt         = match_enc Arithmetic.mk_lt                Arithmetic.mk_lt             FloatingPoint.mk_lt
+let mk_le         = match_enc Arithmetic.mk_le                Arithmetic.mk_le             FloatingPoint.mk_leq
+let mk_ge         = match_enc Arithmetic.mk_ge                Arithmetic.mk_ge             FloatingPoint.mk_geq
+let encoded_types = match_enc types_encoded_as_ints           types_encoded_as_reals_fpa   types_encoded_as_reals_fpa
+
+let mk_add = match_enc (fun ctx e1 e2 -> Arithmetic.mk_add ctx [e1; e2]) (fun ctx e1 e2 -> Arithmetic.mk_add ctx [e1; e2]) (fun ctx e1 e2 -> FloatingPoint.mk_add ctx (rm ctx) e1 e2)
+let mk_sub = match_enc (fun ctx e1 e2 -> Arithmetic.mk_sub ctx [e1; e2]) (fun ctx e1 e2 -> Arithmetic.mk_sub ctx [e1; e2]) (fun ctx e1 e2 -> FloatingPoint.mk_sub ctx (rm ctx) e1 e2)
+let mk_mul = match_enc (fun ctx e1 e2 -> Arithmetic.mk_mul ctx [e1; e2]) (fun ctx e1 e2 -> Arithmetic.mk_mul ctx [e1; e2]) (fun ctx e1 e2 -> FloatingPoint.mk_mul ctx (rm ctx) e1 e2)
+let mk_div = match_enc (fun ctx e1 e2 -> Arithmetic.mk_div ctx  e1  e2 ) (fun ctx e1 e2 -> Arithmetic.mk_div ctx  e1  e2 ) (fun ctx e1 e2 -> FloatingPoint.mk_div ctx (rm ctx) e1 e2)
 
 (* ********************
  * ENCODING-DEPENDENT *
@@ -189,7 +207,7 @@ let mk_smt_translation_ctx gamma existentials =
 	let le_x = mk_const ctx (Symbol.mk_string ctx x) in
 	let le1 = (Expr.mk_app ctx z3_slen_fun [ le_x ]) in
 	let le2 = (mk_num_i ctx 0) in
-	let slen_assertion = Arithmetic.mk_ge ctx le1 le2 in
+	let slen_assertion = mk_ge ctx le1 le2 in
 	let z3_slen_axiom = encode_quantifier true ctx [ x ] z3_slen_fun_domain slen_assertion in
 
 	let z3_num2str_name = (Symbol.mk_string ctx "num2str") in
@@ -241,7 +259,7 @@ let mk_smt_translation_ctx gamma existentials =
 	let le_x = mk_const ctx (Symbol.mk_string ctx x) in
 	let le1 = (Expr.mk_app ctx z3_slen_fun [ le_x ]) in
 	let le2 = (mk_num_i ctx 0) in
-	let slen_assertion = Arithmetic.mk_ge ctx le1 le2 in
+	let slen_assertion = mk_ge ctx le1 le2 in
 	let z3_slen_axiom = encode_quantifier true ctx [ x ] z3_slen_fun_domain slen_assertion in
 
 	let list_nil     = Z3List.get_nil_decl     list_sort in
@@ -286,7 +304,7 @@ let mk_smt_translation_ctx gamma existentials =
 	let le_x = (Expr.mk_const ctx (Symbol.mk_string ctx x) list_sort) in
 	let le1 = (Expr.mk_app ctx z3_llen_fun [ le_x ]) in
 	let le2 = (mk_num_i ctx 0) in
-	let llen_assertion = Arithmetic.mk_ge ctx le1 le2 in
+	let llen_assertion = mk_ge ctx le1 le2 in
 	let z3_llen_axiom1 = encode_quantifier true ctx [ x ] z3_llen_fun_domain llen_assertion in
 
 	(* forall x. (x = nil) \/ (llen(x) > 0) *)
@@ -294,7 +312,7 @@ let mk_smt_translation_ctx gamma existentials =
 	let le_x = (Expr.mk_const ctx (Symbol.mk_string ctx x) list_sort) in
 	let ass1 = Boolean.mk_eq ctx le_x (Expr.mk_app ctx list_nil [ ]) in
 	let le_llen_x = (Expr.mk_app ctx z3_llen_fun [ le_x ]) in
-	let ass2 = Arithmetic.mk_lt ctx (mk_num_i ctx 0) le_llen_x in
+	let ass2 = mk_lt ctx (mk_num_i ctx 0) le_llen_x in
 	let ass = Boolean.mk_or ctx [ass1; ass2] in
 	let axiom_llen_axiom2 = encode_quantifier true ctx [ x ] [ list_sort ] ass in
 
@@ -341,7 +359,7 @@ let encode_constant ctx constant =
 		(match JSIL_Interpreter.evaluate_constant constant with
 		| Num v -> v
 		| _     -> raise (Failure "SMT encoding: Unknown constant")) in
-	(Arithmetic.Real.mk_numeral_s ctx (string_of_float value)), (encode_type ctx NumberType)
+	(mk_num_s ctx (string_of_float value)), (encode_type ctx NumberType)
 
 
 (** Encode strings as Z3 numerical constants *)
@@ -381,7 +399,7 @@ let rec encode_literal tr_ctx lit =
 	| Num n         ->
 		if (n = (snd (modf n)))
 			then       (mk_num_i ctx (int_of_float n)), (encode_type ctx IntType)
-			else       (Arithmetic.Real.mk_numeral_s ctx (string_of_float n)), (encode_type ctx NumberType)
+			else       (mk_num_s ctx (string_of_float n)), (encode_type ctx NumberType)
 	| String s      -> (encode_string ctx s), (encode_type ctx StringType)
 	| Loc l         -> (encode_string ctx ("$l" ^ l)), (encode_type ctx ObjectType)
 	| Type t        -> (encode_type ctx t), (encode_type ctx TypeType)
@@ -440,10 +458,10 @@ let encode_binop tr_ctx op le1 te1 le2 te2 =
 	let ctx = tr_ctx.z3_ctx in
 
 	match op with
-	| Plus     -> (Arithmetic.mk_add ctx [ le1; le2 ]), mk_lub_type tr_ctx te1 te2, [ mk_constraint_int_num tr_ctx te1 te2 ]
-	| Minus    -> (Arithmetic.mk_sub ctx [ le1; le2 ]), mk_lub_type tr_ctx te1 te2, [ mk_constraint_int_num tr_ctx te1 te2 ]
-	| Times    -> (Arithmetic.mk_mul ctx [ le1; le2 ]), mk_lub_type tr_ctx te1 te2, [ mk_constraint_int_num tr_ctx te1 te2 ]
-	| Div      -> (Arithmetic.mk_div ctx   le1  le2),   mk_lub_type tr_ctx te1 te2, [ mk_constraint_int_num tr_ctx te1 te2 ]
+	| Plus     -> (mk_add ctx le1 le2), mk_lub_type tr_ctx te1 te2, [ mk_constraint_int_num tr_ctx te1 te2 ]
+	| Minus    -> (mk_sub ctx le1 le2), mk_lub_type tr_ctx te1 te2, [ mk_constraint_int_num tr_ctx te1 te2 ]
+	| Times    -> (mk_mul ctx le1 le2), mk_lub_type tr_ctx te1 te2, [ mk_constraint_int_num tr_ctx te1 te2 ]
+	| Div      -> (mk_div ctx le1 le2), mk_lub_type tr_ctx te1 te2, [ mk_constraint_int_num tr_ctx te1 te2 ]
 	| Equal    ->
 		let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_to_jsil_boolean_fun [ (Boolean.mk_eq ctx le1 le2) ]) in
 		new_le, (encode_type ctx BooleanType), [ ]
@@ -793,7 +811,7 @@ let rec lets_do_some_list_theory_axioms tr_ctx l1 l2 =
 			| _                 ->
 				let l1''', _, _ = fe l1' in
 				let le_len_tail = (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l1''' ]) in
-				let le_len_tail_plus_one = Arithmetic.mk_add ctx [ (mk_num_i ctx 1); le_len_tail ] in
+				let le_len_tail_plus_one = mk_add ctx (mk_num_i ctx 1) le_len_tail in
 				Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l2' ]) le_len_tail_plus_one) in
 		let axioms_nth  = encode_lnth_equalities tr_ctx l2' l1 in
 		let axioms_cons = encode_cons_equalities tr_ctx l2' l1 in
@@ -911,7 +929,7 @@ let rec encode_assertion tr_ctx is_premise a : Expr.expr * (Expr.expr list) =
 			let t = types_lub t1 t2 in
 			(match t with
 			| Some IntType
-			| Some NumberType -> Arithmetic.mk_lt ctx le1' le2', []
+			| Some NumberType -> mk_lt ctx le1' le2', []
 			| _ -> Printf.printf "Coucou!! T'habites dans quelle planete?\n"; raise (Failure "Arithmetic operation invoked on non-numeric types"))
 
     | _, _ ->
@@ -935,7 +953,7 @@ let rec encode_assertion tr_ctx is_premise a : Expr.expr * (Expr.expr list) =
 			let t = types_lub t1 t2 in
 			(match t with
 			| Some IntType
-			| Some NumberType -> Arithmetic.mk_le ctx le1' le2', []
+			| Some NumberType -> mk_le ctx le1' le2', []
 			| _ -> Printf.printf "Coucou!! T'habites dans quelle planete?\n";
 				   raise (Failure "Arithmetic operation invoked on non-numeric types"))
 
