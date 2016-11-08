@@ -7,7 +7,13 @@ type encoding =
  | WithReals
  | WithFPA
 
-let encoding = ref WithFPA
+let string_of_enc enc =
+match enc with
+ | WithInts -> "INT"
+ | WithReals -> "REAL"
+ | WithFPA -> "FPA"
+
+let encoding = ref WithInts
 
 let types_encoded_as_ints = [
 	UndefinedType;
@@ -27,28 +33,32 @@ let types_encoded_as_reals_fpa = NumberType :: types_encoded_as_ints
  * ENCODING-DEPENDENT *
  **********************)
 
-let match_enc x y z =
+let match_enc msg x y z =
+print_debug (Printf.sprintf "In the match: %s:\t%s" msg (string_of_enc (!encoding)));
 match (!encoding) with
  | WithInts  -> x
  | WithReals -> y
  | WithFPA   -> z
 
-let fp_sort = FloatingPoint.mk_sort_64
-let rm ctx  = FloatingPoint.mk_const ctx (Symbol.mk_string ctx "rm") (FloatingPoint.RoundingMode.mk_sort ctx)
+let fp_sort ctx = print_debug "Creating floating point sort."; let sort = (FloatingPoint.mk_sort_64 ctx) in
+                  print_debug "Sort created successfully."; sort
 
-let mk_sort       = match_enc Arithmetic.Integer.mk_sort      Arithmetic.Real.mk_sort      fp_sort
-let mk_const      = match_enc Arithmetic.Integer.mk_const     Arithmetic.Real.mk_const     (fun ctx s -> FloatingPoint.mk_const     ctx s (fp_sort ctx))
-let mk_num_i      = match_enc Arithmetic.Integer.mk_numeral_i Arithmetic.Real.mk_numeral_i (fun ctx i -> FloatingPoint.mk_numeral_i ctx i (fp_sort ctx))
-let mk_num_s      = match_enc Arithmetic.Real.mk_numeral_s    Arithmetic.Real.mk_numeral_s (fun ctx s -> FloatingPoint.mk_numeral_s ctx s (fp_sort ctx))
-let mk_lt         = match_enc Arithmetic.mk_lt                Arithmetic.mk_lt             FloatingPoint.mk_lt
-let mk_le         = match_enc Arithmetic.mk_le                Arithmetic.mk_le             FloatingPoint.mk_leq
-let mk_ge         = match_enc Arithmetic.mk_ge                Arithmetic.mk_ge             FloatingPoint.mk_geq
-let encoded_types = match_enc types_encoded_as_ints           types_encoded_as_reals_fpa   types_encoded_as_reals_fpa
+let rm ctx  = print_debug "Creating RoundingMode.\n"; let rm = FloatingPoint.mk_const ctx (Symbol.mk_string ctx "rm") (FloatingPoint.RoundingMode.mk_sort ctx) in
+              print_debug "RoundingMode created successfully.\n"; rm
 
-let mk_add = match_enc (fun ctx e1 e2 -> Arithmetic.mk_add ctx [e1; e2]) (fun ctx e1 e2 -> Arithmetic.mk_add ctx [e1; e2]) (fun ctx e1 e2 -> FloatingPoint.mk_add ctx (rm ctx) e1 e2)
-let mk_sub = match_enc (fun ctx e1 e2 -> Arithmetic.mk_sub ctx [e1; e2]) (fun ctx e1 e2 -> Arithmetic.mk_sub ctx [e1; e2]) (fun ctx e1 e2 -> FloatingPoint.mk_sub ctx (rm ctx) e1 e2)
-let mk_mul = match_enc (fun ctx e1 e2 -> Arithmetic.mk_mul ctx [e1; e2]) (fun ctx e1 e2 -> Arithmetic.mk_mul ctx [e1; e2]) (fun ctx e1 e2 -> FloatingPoint.mk_mul ctx (rm ctx) e1 e2)
-let mk_div = match_enc (fun ctx e1 e2 -> Arithmetic.mk_div ctx  e1  e2 ) (fun ctx e1 e2 -> Arithmetic.mk_div ctx  e1  e2 ) (fun ctx e1 e2 -> FloatingPoint.mk_div ctx (rm ctx) e1 e2)
+let mk_sort       = match_enc "mk_sort"  Arithmetic.Integer.mk_sort      Arithmetic.Real.mk_sort      fp_sort
+let mk_const      = match_enc "mk_const" Arithmetic.Integer.mk_const     Arithmetic.Real.mk_const     (fun ctx s -> FloatingPoint.mk_const     ctx s (fp_sort ctx))
+let mk_num_i      = match_enc "mk_num_i" Arithmetic.Integer.mk_numeral_i Arithmetic.Real.mk_numeral_i (fun ctx i -> FloatingPoint.mk_numeral_i ctx i (fp_sort ctx))
+let mk_num_s      = match_enc "mk_num_s" Arithmetic.Real.mk_numeral_s    Arithmetic.Real.mk_numeral_s (fun ctx s -> FloatingPoint.mk_numeral_s ctx s (fp_sort ctx))
+let mk_lt         = match_enc "mk_lt"    Arithmetic.mk_lt                Arithmetic.mk_lt             FloatingPoint.mk_lt
+let mk_le         = match_enc "mk_le"    Arithmetic.mk_le                Arithmetic.mk_le             FloatingPoint.mk_leq
+let mk_ge         = match_enc "mk_ge"    Arithmetic.mk_ge                Arithmetic.mk_ge             FloatingPoint.mk_geq
+let encoded_types = match_enc "types"    types_encoded_as_ints           types_encoded_as_reals_fpa   types_encoded_as_reals_fpa
+
+let mk_add = match_enc "mk_add" (fun ctx e1 e2 -> Arithmetic.mk_add ctx [e1; e2]) (fun ctx e1 e2 -> Arithmetic.mk_add ctx [e1; e2]) (fun ctx e1 e2 -> FloatingPoint.mk_add ctx (rm ctx) e1 e2)
+let mk_sub = match_enc "mk_sub" (fun ctx e1 e2 -> Arithmetic.mk_sub ctx [e1; e2]) (fun ctx e1 e2 -> Arithmetic.mk_sub ctx [e1; e2]) (fun ctx e1 e2 -> FloatingPoint.mk_sub ctx (rm ctx) e1 e2)
+let mk_mul = match_enc "mk_mul" (fun ctx e1 e2 -> Arithmetic.mk_mul ctx [e1; e2]) (fun ctx e1 e2 -> Arithmetic.mk_mul ctx [e1; e2]) (fun ctx e1 e2 -> FloatingPoint.mk_mul ctx (rm ctx) e1 e2)
+let mk_div = match_enc "mk_div" (fun ctx e1 e2 -> Arithmetic.mk_div ctx  e1  e2 ) (fun ctx e1 e2 -> Arithmetic.mk_div ctx  e1  e2 ) (fun ctx e1 e2 -> FloatingPoint.mk_div ctx (rm ctx) e1 e2)
 
 (* ********************
  * ENCODING-DEPENDENT *
@@ -80,7 +90,8 @@ let get_sort tr_ctx var_type =
 	| _  -> raise (Failure "Z3 encoding: Unsupported type.")
 
 
-let get_z3_var_symbol tr_ctx var = Symbol.mk_string (tr_ctx.z3_ctx) var
+let get_z3_var_symbol tr_ctx var =
+	Symbol.mk_string (tr_ctx.z3_ctx) var
 
 
 let get_sorts tr_ctx vars =
@@ -151,7 +162,8 @@ let mk_z3_list_core les ctx list_nil list_cons =
 			(* Printf.printf "Current: %s\n" (Expr.to_string le); *)
 			let new_cur_list = Expr.mk_app ctx list_cons [ le; cur_list ] in
 			loop rest_les new_cur_list in
-	loop les empty_list
+	let result = loop les empty_list in
+	result
 
 
 let mk_z3_list les tr_ctx =
@@ -162,7 +174,6 @@ let mk_z3_list les tr_ctx =
 (* forall a:Any. (llen({{ a }}) = 1) *)
 (* forall a:Any, b:Any. (llen({{ a, b }}) = 2) *)
 let mk_z3_llen_axioms n ctx list_sort list_len list_nil list_cons =
-
 	(* forall a1: Any, ..., an: Any. (llen{{a1, ..., an}}) = n *)
 	let make_llen_axiom n =
 		let rec loop n vars le_vars sorts =
@@ -318,6 +329,7 @@ let mk_smt_translation_ctx gamma existentials =
 
 	let llen_axioms = mk_z3_llen_axioms 0 ctx list_sort z3_llen_fun list_nil list_cons in
 
+	let result =
 	{
 		z3_ctx                  = ctx;
 		tr_typing_env           = gamma;
@@ -350,7 +362,8 @@ let mk_smt_translation_ctx gamma existentials =
 									jsil_not_axiom_true;
 									jsil_not_axiom_false ] @ llen_axioms
 		(* tr_existentials   = existentials *)
-	}
+	} in
+	result
 
 
 (** Encode JSIL constants as Z3 numerical constants *)
@@ -412,7 +425,6 @@ let rec encode_literal tr_ctx lit =
 				([], [])
 				les_tes in
 		let le_list = mk_z3_list les tr_ctx in
-		(* Printf.printf ("    Created literal list.\n"); *)
 		le_list,  (encode_type ctx ListType)
 
 	| _             -> raise (Failure "SMT encoding: Construct not supported yet - literal!")
@@ -466,7 +478,7 @@ let encode_binop tr_ctx op le1 te1 le2 te2 =
 		let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_to_jsil_boolean_fun [ (Boolean.mk_eq ctx le1 le2) ]) in
 		new_le, (encode_type ctx BooleanType), [ ]
 	| LstCons  ->
-		(* print_endline (Printf.sprintf "So, Bananas...\n (%s : %s) (%s : %s)" (Expr.to_string le1) (Expr.to_string te1) (Expr.to_string le2) (Expr.to_string te2)); *)
+		(* print_debug (Printf.sprintf "So, Bananas...\n (%s : %s) (%s : %s)" (Expr.to_string le1) (Expr.to_string te1) (Expr.to_string le2) (Expr.to_string te2)); *)
 		let le, te, constraints = (Expr.mk_app ctx tr_ctx.tr_list_cons [ le1; le2 ]), (encode_type ctx ListType), [ mk_constraint_type tr_ctx te2 ListType] in
 		le, te, constraints
 	| _     ->
@@ -567,8 +579,9 @@ let rec encode_logical_expression tr_ctx e =
 		le, te, new_as @ as1
 
 	| LEList les ->
-		(* List.iter (fun x -> Printf.printf "%s " (JSIL_Print.string_of_logic_expression x false)) les; *)
-		(* Printf.printf "\n"; *)
+		(* Printf.printf "List: \t";
+		List.iter (fun x -> Printf.printf "%s " (JSIL_Print.string_of_logic_expression x false)) les;
+		Printf.printf "\n"; *)
 		let les_tes_as = List.map ele les in
 		let les, tes, assertions =
 			List.fold_left
@@ -1012,7 +1025,7 @@ let string_of_z3_expr_list exprs =
 		exprs
 
 let get_new_solver assertions gamma existentials =
-	let tr_ctx = mk_smt_translation_ctx gamma existentials in
+    let tr_ctx = mk_smt_translation_ctx gamma existentials in
 	let assertions = List.map (fun a -> encode_assertion_top_level tr_ctx true a) assertions in
 	let assertions = tr_ctx.tr_axioms @ (encode_gamma tr_ctx (-1)) @ assertions in
 	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
@@ -1071,13 +1084,13 @@ let rec old_check_entailment existentials left_as right_as gamma =
 				else right_as_or in
 		let right_as_or = Expr.simplify right_as_or None in
 
-		(* Printf.printf "Checking if the current state entails the NEGATION of the following:\n%s\n" (Expr.to_string right_as_or); *)
+		Printf.printf "Checking if the current state entails the following:\n%s\n" (Expr.to_string right_as_or);
 
 		let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 		Solver.add solver left_as;
 
 		let ret_left_side = (Solver.check solver [ ]) = Solver.SATISFIABLE in
-		(* Printf.printf "I am checking the satisfiability of the left side and got: %b\n" ret_left_side; *)
+		Printf.printf "I am checking the satisfiability of the left side and got: %b\n" ret_left_side;
 
 		Solver.push solver;
 		Solver.add solver [ right_as_or ];
@@ -1087,8 +1100,8 @@ let rec old_check_entailment existentials left_as right_as gamma =
 
 		(* if (not ret) then print_model solver; *)
 
-		(*  Printf.printf "backtracking_scopes before pop after push: %d!!!\n" (Solver.get_num_scopes solver);
-		Printf.printf "ret: %b\n" ret; *)
+		(*  Printf.printf "backtracking_scopes before pop after push: %d!!!\n" (Solver.get_num_scopes solver); *)
+		Printf.printf "ret: %b\n" ret;
 		Solver.pop solver 1;
 		ret, Some (solver, tr_ctx)  in
 

@@ -4,13 +4,24 @@ let file = ref ""
 let output_folder = ref ""
 
 let arguments () =
+  Printf.printf ("In arguments.\n");
   let usage_msg="Usage: -file <path>" in
   Arg.parse
     [
 			(* file containing the program to symbolically execute *)
 			"-file", Arg.String(fun f -> file := f), "file to run";
 			"-o", Arg.String(fun f -> output_folder := f), "output folder";
-      "-debug", Arg.Unit (fun () -> debug := true), "debug";
+            "-debug", Arg.Unit (fun () -> debug := true), "debug";
+			(* "-encoding", Arg.String (fun f ->
+				Printf.printf "I am here.\n";
+				let enc = match f with
+				| "ints" -> Pure_Entailment.WithInts
+				| "reals" -> Pure_Entailment.WithReals
+				| "fpa" -> Pure_Entailment.WithFPA
+				| _ -> raise (Failure "Unrecognised encoding.") in
+				Printf.printf "%s\t" (Pure_Entailment.string_of_enc (!Pure_Entailment.encoding));
+				Pure_Entailment.encoding := enc;
+				Printf.printf "%s\n" (Pure_Entailment.string_of_enc (!Pure_Entailment.encoding));), "encoding"; *)
 	  ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
