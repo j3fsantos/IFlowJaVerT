@@ -760,15 +760,14 @@ proc create_arguments_object (argList) {
 			obj  := xret;
 
 			(* Define length *)
-			dop := [obj, "@defineOwnProperty"];
-			xret := dop (obj, "length", {{ "d", len, $$t, $$f, $$t }}, $$f) with elab;
+			xret := "defineOwnProperty" (obj, "length", {{ "d", len, $$t, $$f, $$t }}, $$f) with elab;
 
 			(* Loop through values *)
 			indx := len - 1;
 
 	loop:	goto [0 <= indx] head call;
 	head:	xret := "i__toString" (indx) with elab;
-			xret := dop (obj, xret, {{ "d", l-nth (argList, indx), $$t, $$t, $$t }}, $$f) with elab;
+			xret := "defineOwnProperty" (obj, xret, {{ "d", l-nth (argList, indx), $$t, $$t, $$t }}, $$f) with elab;
 			indx := indx - 1;
 			goto loop;
 
