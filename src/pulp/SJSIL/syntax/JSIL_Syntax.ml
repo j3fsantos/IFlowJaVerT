@@ -236,19 +236,19 @@ type jsil_spec = {
 	proc_specs   : jsil_single_spec list
 }
 
-let create_single_spec pre post flag = 
+let create_single_spec pre post flag =
 	{
-		pre      = pre; 
-		post     = post; 
+		pre      = pre;
+		post     = post;
 		ret_flag = flag
 	}
-	
-let create_jsil_spec name params specs = 
+
+let create_jsil_spec name params specs =
 	{
-		spec_name   = name; 
-		spec_params = params; 
+		spec_name   = name;
+		spec_params = params;
 		proc_specs  = specs
-	} 
+	}
 
 (* JSIL logic commands *)
 type jsil_logic_command =
@@ -364,4 +364,4 @@ let get_proc_cmd proc i =
 let debug = ref false
 
 let print_debug msg =
-	if (!debug) then print_string msg
+	if (!debug) then print_endline msg

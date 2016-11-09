@@ -281,7 +281,6 @@ pred Pi (l, prop, "inductive", "General", d, ls, ltf, lpv) :
 	((l, "@getProperty") -> "o__getProperty") *
     ((l, "@proto") -> #lp) * (! (#lp == $$null)) *
     Pi (#lp, prop, #caseType, #class, d, #lsp, #ltfp, #lpvp) *
-	((#lp, "@getProperty") -> "o__getProperty") *
     types(  ls : $$list_type,   ltf : $$list_type,   lpv : $$list_type,
           #lsp : $$list_type, #ltfp : $$list_type, #lpvp : $$list_type) *
     (ls == l :: #lsp) * (ltf == $$f :: #ltfp) * (lpv == "" :: #lpvp) *
@@ -300,7 +299,6 @@ pred Pi (l, prop, "inductive", "String", d, ls, ltf, lpv) :
     ((l, "@getProperty") -> "o__getProperty") *
 	((l, "@proto") -> #lp) * (! (#lp == $$null)) *
     Pi (#lp, prop, #caseType, #class, d, #lsp, #ltfp, #lpvp) *
-	((#lp, "@getProperty") -> "o__getProperty") *
     types(  ls : $$list_type,   ltf : $$list_type,   lpv : $$list_type,
           #lsp : $$list_type, #ltfp : $$list_type, #lpvp : $$list_type) *
     (ls == l :: #lsp) * (ltf == $$t :: #ltfp) * (lpv == #pv :: #lpvp) *
@@ -1056,7 +1054,9 @@ proc o__getProperty (l, prop) {
 	next:	proto := [l, "@proto"];
 			goto [proto = $$null] rlab call;
 
+			[* unfold Pi (proto, #v2, #v3, #v4, #v5, #v6, #v7, #v8) *]
 	call:	gp := [proto, "@getProperty"];
+			[* fold Pi (proto, #v2, #v3, #v4, #v5, #v6, #v7, #v8) *]
 			xret := gp (proto, prop) with elab;
 
 			[* fold Pi (#l, #prop, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4, #gp_aux_5, #gp_aux_6) *]
@@ -1412,7 +1412,8 @@ with
 
 spec i__sameValue (v1, v2)
 
-	[[ v1 == v2 ]]
+	[[  (v1 == #v1) * (v2 == #v2) *
+	   (#v1 == #v2) * (! (#v1 == 0)) ]]
 	[[ ret == $$t ]]
 	normal
 
@@ -1420,10 +1421,12 @@ proc i__sameValue (v1, v2) {
 			xret := (v1 = v2);
 
 			goto [(typeOf(v1) <: $$number_type)] test2 rlab;
-	test2:	goto [(typeOf(v2) <: $$number_type)] inan  rlab;
+	test2:	goto [(typeOf(v2) <: $$number_type)] inan1 rlab;
 
-	inan:	goto [(not (v1 = v1)) and (not (v2 = v2))] rt zero;
-	zero:	goto [(v1 = 0) and (v2 = 0)] fix rlab;
+	inan1:	goto [(not (v1 = v1))] inan2 zero1;
+	inan2:	goto [(not (v2 = v2))] rt    zero1;
+	zero1:	goto [v1 = 0] zero2 rlab;
+	zero2:	goto [v2 = 0] fix   rlab;
 
 	fix:	sv1 := m_sgn (v1);
 			sv2 := m_sgn (v2);
@@ -1829,21 +1832,23 @@ spec o__put (l, prop, value, throw)
 	[[ Pi (#l, #prop, #g_aux_1, #g_aux_2, {{ "d", #value, #dwrit, #denum, #dconf }}, {{ #l }}, #g_aux_5, #g_aux_6) *
 	   ((#l, "@extensible") -> #ext) * ((#l, "@canPut") -> "o__canPut") * ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") *
 	   (ret == $$empty) ]]
-    normal
+    normal;
 
 	(* Property is not defined within the prototype chain, more than one element, non-string
-	   Must reform the prototype chain manually in the post-condition, extra tricky
+	   Must reform the prototype chain manually in the post-condition, extra tricky *)
 
     [[ (l == #l) * (prop == #prop) * (value == #value) * (throw == #throw) *
 	   types (#l : $$object_type, #prop : $$string_type, #throw : $$boolean_type) *
        Pi (#l, #prop, "inductive", "General", $$undefined, (#l :: #llp), ($$f :: #ltf), ("" :: #lpv)) * (#llp == #lp :: #lsp) *
 	   types (#llp : $$list_type, #lp : $$object_type, #lsp : $$list_type, #ltf : $$list_type, #lpv : $$list_type) *
 	   ((#l, "@extensible") -> $$t) * ((#l, "@canPut") -> "o__canPut") * ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") ]]
-	[[ Cell_o (#l, #prop, {{ "d", #value, $$t, $$t, $$t }}) * ((#l, "@proto") -> #lp) *
-	   Pi (#lp, #prop, #g_aux_01, #g_aux_02, $$undefined, (#lp :: #lsp), #ltf, #lpv) *
+	[[ Pi (#l, #prop, "base", "General", {{ "d", #value, $$t, $$t, $$t }}, {{ #l }}, {{ $$f }}, {{ "" }}) *
+	   ((#l, "@proto") -> #lp) *
+	   Pi (#lp, #prop, #g_aux_01, #g_aux_02, $$undefined, #llp, #ltf, #lpv) *
        ((#l, "@extensible") -> $$t) * ((#l, "@canPut") -> "o__canPut") * ((#l, "@defineOwnProperty") -> "o__defineOwnProperty") *
+	   types (#llp : $$list_type, #ltf : $$list_type, #lpv : $$list_type) *
 	   (ret == $$empty) ]]
-    normal *)
+    normal
 
 proc o__put (l, prop, value, throw) {
 			cp := [l, "@canPut"];
