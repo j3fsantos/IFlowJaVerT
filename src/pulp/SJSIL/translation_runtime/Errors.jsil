@@ -1,15 +1,15 @@
 import Internals, Init;
 
-(* ***************** *) 
+(* ***************** *)
 (* THE ERROR LIBRARY *)
-(* ***************** *) 
+(* ***************** *)
 
 proc Error_call (xsc, vthis, v) {
 			xret := new ();
 			xret := "create_default_object" (xret, $lerr_proto, "Error", $$t);
-			
+
 			xret := "Error_construct" ($$undefined, xret, v) with elab;
-			
+
 	rlab:	skip;
 	elab:	skip
 }
@@ -19,17 +19,17 @@ with
 	err: xret, elab;
 };
 
-proc Error_construct (xsc, vthis, v) {			
+proc Error_construct (xsc, vthis, v) {
 			xret := vthis;
-			
+
 			[vthis, "@class"] := "Error";
 			[vthis, "@extensible"] := $$t;
-			
+
 			goto [v = $$undefined] rlab mess;
-			
+
 	mess:	xerr := "i__toString" (v) with elab;
 			[xret, "message"] := {{ "d", xerr, $$t, $$f, $$t }};
-			
+
 	rlab:	skip;
 	elab:	skip
 }
@@ -41,7 +41,7 @@ with
 
 proc Error (v) {
 			xret := "Error_call" ($$undefined, $$undefined, v) with elab;
-			
+
 	rlab:	skip;
 	elab:	skip
 }
@@ -56,37 +56,35 @@ with
 
 proc EP_toString(xsc, vthis) {
 			goto [typeOf(vthis) = $$object_type] init throw;
-			
-	init:	g := [vthis, "@get"];
-			
-			name := "";
-			xret := g (vthis, "name") with elab;
+
+	init:	name := "";
+			xret := "get" (vthis, "name") with elab;
 			goto [xret = $$undefined] msg ndef;
-		
+
 	ndef:	xret := "i__toString" (xret) with elab;
 			name := xret;
-			
+
 	msg:	msg := "";
 			xret := g (vthis, "message") with elab;
 			goto [xret = $$undefined] ccat mdef;
 
 	mdef:	xret := "i__toString" (xret) with elab;
 			msg := xret;
-			
+
 	ccat:	goto [name = ""] nemp cmsg;
-			
+
 	nemp:	xret := msg;
 			goto rlab;
-	
+
 	cmsg:	goto [msg = ""] memp cc;
-	
+
 	memp:	xret := name;
 			goto rlab;
-			
+
 	cc:		xret := name ++ ": " ++ msg;
 
 	rlab:	skip;
-	
+
 	throw:	xret := "TypeError" ();
 	elab:	skip
 }
@@ -96,18 +94,18 @@ with
 	err:	xret, elab;
 };
 
-(* ***************** *) 
+(* ***************** *)
 (* THE NATIVE ERRORS *)
-(* ***************** *) 
+(* ***************** *)
 
 (* *** EVALERROR *** *)
 
 proc EvalError_call (xsc, vthis, v) {
 			xret := new ();
 			xret := "create_default_object" (xret, $leerr_proto, "Error", $$t);
-			
+
 			xret := "Error_construct" ($$undefined, xret, v) with elab;
-			
+
 	rlab:	skip;
 	elab:	skip
 }
@@ -119,7 +117,7 @@ with
 
 proc EvalError (v) {
 			xret := "EvalError_call" ($$undefined, $$undefined, v) with elab;
-			
+
 	rlab:	skip;
 	elab:	skip
 }
@@ -134,9 +132,9 @@ with
 proc RangeError_call (xsc, vthis, v) {
 			xret := new ();
 			xret := "create_default_object" (xret, $lrgerr_proto, "Error", $$t);
-			
+
 			xret := "Error_construct" ($$undefined, xret, v) with elab;
-			
+
 	rlab:	skip;
 	elab:	skip
 }
@@ -148,7 +146,7 @@ with
 
 proc RangeError (v) {
 			xret := "RangeError_call" ($$undefined, $$undefined, v) with elab;
-			
+
 	rlab:	skip;
 	elab:	skip
 }
@@ -163,9 +161,9 @@ with
 proc ReferenceError_call (xsc, vthis, v) {
 			xret := new ();
 			xret := "create_default_object" (xret, $lrferr_proto, "Error", $$t);
-			
+
 			xret := "Error_construct" ($$undefined, xret, v) with elab;
-			
+
 	rlab:	skip;
 	elab:	skip
 }
@@ -177,7 +175,7 @@ with
 
 proc ReferenceError (v) {
 			xret := "ReferenceError_call" ($$undefined, $$undefined, v) with elab;
-			
+
 	rlab:	skip;
 	elab:	skip
 }
@@ -192,9 +190,9 @@ with
 proc SyntaxError_call (xsc, vthis, v) {
 			xret := new ();
 			xret := "create_default_object" (xret, $lserr_proto, "Error", $$t);
-			
+
 			xret := "Error_construct" ($$undefined, xret, v) with elab;
-			
+
 	rlab:	skip;
 	elab:	skip
 }
@@ -206,7 +204,7 @@ with
 
 proc SyntaxError (v) {
 			xret := "SyntaxError_call" ($$undefined, $$undefined, v) with elab;
-			
+
 	rlab:	skip;
 	elab:	skip
 }
@@ -221,9 +219,9 @@ with
 proc TypeError_call (xsc, vthis, v) {
 			xret := new ();
 			xret := "create_default_object" (xret, $lterr_proto, "Error", $$t);
-			
+
 			xret := "Error_construct" ($$undefined, xret, v) with elab;
-			
+
 	rlab:	skip;
 	elab:	skip
 }
@@ -235,7 +233,7 @@ with
 
 proc TypeError (v) {
 			xret := "TypeError_call" ($$undefined, $$undefined, v) with elab;
-			
+
 	rlab:	skip;
 	elab:	skip
 }
@@ -252,9 +250,9 @@ with
 proc URIError_call (xsc, vthis, v) {
 			xret := new ();
 			xret := "create_default_object" (xret, $luerr_proto, "Error", $$t);
-			
+
 			xret := "Error_construct" ($$undefined, xret, v) with elab;
-			
+
 	rlab:	skip;
 	elab:	skip
 }
@@ -266,7 +264,7 @@ with
 
 proc URIError (v) {
 			xret := "URIError_call" ($$undefined, $$undefined, v) with elab;
-			
+
 	rlab:	skip;
 	elab:	skip
 }
