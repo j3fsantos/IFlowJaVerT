@@ -167,14 +167,14 @@ let is_symb_heap_empty heap =
 
 
 let merge_heaps heap new_heap p_formulae solver gamma =
-	(* Printf.printf "-------------------------------------------------------------------\n";
+	 Printf.printf "-------------------------------------------------------------------\n";
 	Printf.printf "-------------INSIDE MERGE HEAPS------------------------------------\n";
 	Printf.printf "-------------------------------------------------------------------\n";
 
 	Printf.printf "heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false);
 	Printf.printf "pat_heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap new_heap false);
 	Printf.printf "p_formulae: %s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
-	Printf.printf "gamma: %s\n" (JSIL_Memory_Print.string_of_gamma gamma); *)
+	Printf.printf "gamma: %s\n" (JSIL_Memory_Print.string_of_gamma gamma); 
 
 	LHeap.iter
 		(fun loc (n_fv_list, n_def) ->
@@ -351,10 +351,12 @@ let resolve_location lvar pfs =
 	let rec loop pfs =
 		match pfs with
 		| [] -> None
-		| LEq (LVar lvar, ALoc loc) :: rest
-		| LEq (ALoc loc, LVar lvar) :: rest  -> Some (ALoc loc)
-		| LEq (LVar lvar, LLit (Loc loc)) :: rest
-		| LEq (LLit (Loc loc), LVar lvar) :: rest -> Some (LLit (Loc loc))
+		| LEq (LVar cur_lvar, ALoc loc) :: rest
+		| LEq (ALoc loc, LVar cur_lvar) :: rest  -> 
+			if (cur_lvar = lvar) then Some (ALoc loc) else loop rest
+		| LEq (LVar cur_lvar, LLit (Loc loc)) :: rest
+		| LEq (LLit (Loc loc), LVar cur_lvar) :: rest -> 
+			if (cur_lvar = lvar) then Some (LLit (Loc loc)) else loop rest
 		| _ :: rest -> loop rest in
 	loop pfs
 	

@@ -13,7 +13,7 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 	         | None -> "Our substitution doesn't exist. Fantastic.\n"
 			 | Some subst -> "Our substitution: " ^(JSIL_Memory_Print.string_of_substitution subst)) in
 	Printf.printf "%s" str_subst; *)
-
+	(* Printf.printf "pfs inside unfiy store:\n%s\n" (JSIL_Print.str_of_assertion_list pfs); *)
 	let discharges =
 		Hashtbl.fold
 			(fun var pat_lexpr discharges ->
@@ -49,11 +49,14 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 					(* Printf.printf "So, Aloc %s, Lvar %s\n" pat_aloc lvar; *)
 					let loc = Symbolic_State_Functions.resolve_location lvar pfs in
 					(match loc with
-					| Some loc -> extend_subst pat_subst pat_aloc loc; discharges
+					| Some loc ->
+						(* Printf.printf "I managed to resolve location and I know that %s = %s\n" lvar (JSIL_Print.string_of_logic_expression loc false);  *)
+						extend_subst pat_subst pat_aloc loc; discharges
 					| None     ->
 						(match subst with
 						| None -> raise (Failure "Variable store against abstract location")
 						| Some subst ->
+							(* Printf.printf "I could not resolve the location and I am creating a new location\n"; *)
 							let new_aloc = fresh_aloc () in
 							extend_subst subst lvar (ALoc new_aloc);
 							extend_subst pat_subst pat_aloc (ALoc new_aloc);
@@ -718,6 +721,8 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 				let x_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le_x in
 				x_type
 			| None -> None) in
+	
+	Printf.printf "Store_0:\n%s. Store_1:\n%s.\n" (JSIL_Memory_Print.string_of_shallow_symb_store store_0 false) (JSIL_Memory_Print.string_of_shallow_symb_store store_1 false);
 
 
 	(* STEP 1 - Unify(store_0, store_1, pi_0) = subst, pat_subst, discharges                                               *)
@@ -729,9 +734,9 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 		let pat_subst = init_substitution [] in
 		let subst = init_substitution [] in
 		let discharges = unify_stores store_1 store_0 pat_subst (Some subst) (pfs_to_list (get_pf symb_state)) (get_solver symb_state) (get_gamma symb_state) in
-		(* Printf.printf "substitutions after store unification.\nSubst:\n%s\nPat_Subst:\n%s\n"
+		Printf.printf "substitutions after store unification.\nSubst:\n%s\nPat_Subst:\n%s\n"
 			(JSIL_Memory_Print.string_of_substitution subst)
-			(JSIL_Memory_Print.string_of_substitution pat_subst); *)
+			(JSIL_Memory_Print.string_of_substitution pat_subst); 
 		discharges, subst, pat_subst in
 
 
