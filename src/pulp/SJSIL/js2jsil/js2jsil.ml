@@ -51,7 +51,6 @@ let toPrimitiveName                   = "i__toPrimitive"                 (* 9.1 
 let toInt32Name                       = "i__toInt32"                     (* 9.5               *)
 let toUInt32Name                      = "i__toUint32"                    (* 9.6               *)
 let abstractComparisonName            = "i__abstractComparison"          (* 11.8.5            *)
-let hasInstanceName                   = "@hasInstance"                   (* 15.3.5.3          *)
 let hasPropertyName                   = "hasProperty"                    (* 8.12.6            *)
 let abstractEqualityComparisonName    = "i__abstractEquality"            (* 11.9.3            *)
 let strictEqualityComparisonName      = "i__strictEquality"              (* 11.9.6            *)

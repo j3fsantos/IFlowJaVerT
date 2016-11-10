@@ -134,8 +134,8 @@ proc FP_hasInstanceAfterBind (v1, v2) {
 
 			target := [v1, "@targetFunction"];
 
-			hi := hasField(target, "@hasInstance");
-			goto [hi] cont throw;
+			tclass := [target, "@class"];
+			goto [tclass = "Function"] cont throw;
 
 	cont:	xret := "hasInstance" (target, v2);
 
