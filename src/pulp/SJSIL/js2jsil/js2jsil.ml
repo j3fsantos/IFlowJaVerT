@@ -1278,11 +1278,11 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 
 		(* x_hp := [x_f_val, "@construct"]; *)
 		let x_hp = fresh_var () in
-		let cmd_hf_construct = SLBasic (SLookup (x_hp, Var x_f_val, Literal (String constructPropName))) in
+		let cmd_hf_construct = SLBasic (SHasField (x_hp, Var x_f_val, Literal (String constructPropName))) in
 
 		(* goto [ x_hp = $$empty ] err next2; *)
 		let getbt = fresh_next_label () in
-		let cmd_goto_xhp = SLGuardedGoto (BinOp (Var x_hp, Equal, Literal Empty), err, getbt) in
+		let cmd_goto_xhp = SLGuardedGoto (Var x_hp, getbt, err) in
 
 		let x_bt = fresh_var () in
 		let cmd_get_bt = SLBasic (SHasField (x_bt, Var x_f_val, Literal (String "@boundThis"))) in

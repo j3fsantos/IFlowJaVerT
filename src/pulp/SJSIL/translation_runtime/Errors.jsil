@@ -65,7 +65,7 @@ proc EP_toString(xsc, vthis) {
 			name := xret;
 
 	msg:	msg := "";
-			xret := g (vthis, "message") with elab;
+			xret := "get" (vthis, "message") with elab;
 			goto [xret = $$undefined] ccat mdef;
 
 	mdef:	xret := "i__toString" (xret) with elab;

@@ -81,7 +81,7 @@ proc FP_apply (xsc, vthis, this_arg, arg_array) {
 	loop:	goto [index < len] head call;
 
 	head:	xret := "i__toString" (index) with elab;
-			xret := g (arg_array, xret) with elab;
+			xret := "get" (arg_array, xret) with elab;
 			params :=  params @ {{ xret }};
 			index := index + 1;
 			goto loop;
