@@ -1284,8 +1284,8 @@ proc i__typeOf (v) {
 			goto rlab;
 
 	io:		goto [typeOf(v) = $$object_type] obj oops;
-	obj:	xret := [v, "@call"];
-			goto [xret = $$empty] isobj isfun;
+	obj:	xret := hasField(v, "@call");
+			goto [xret] isfun isobj;
 
 	isobj:	xret := "object";
 			goto rlab;
