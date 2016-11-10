@@ -74,7 +74,10 @@ proc create_object_with_call_construct (l, call, construct, len) {
 			[xret, "length"] := {{ "d", len, $$f, $$f, $$f }};
 
 			[xret, "@call"] := call;
-			[xret, "@construct"] := construct;
+
+			goto [construct = $$empty] rlab cstr;
+
+	cstr:	[xret, "@construct"] := construct;
 
 	rlab:	xret := l
 }
