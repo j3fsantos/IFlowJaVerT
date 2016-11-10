@@ -1551,15 +1551,18 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let getbt = fresh_label () in
 		let cmd_goto_is_callable = SLGuardedGoto (Var x_ic, getbt, err) in
 
-		let x_bt = fresh_var () in
-		let cmd_get_bt = SLBasic (SHasField (x_bt, Var x_f_val, Literal (String "@boundThis"))) in
+		let x_ibt = fresh_var () in
+		let cmd_get_ibt = SLBasic (SHasField (x_ibt, Var x_f_val, Literal (String "@boundThis"))) in
 
 		let call = fresh_then_label () in
 		let bind = fresh_else_label () in
-		let goto_guard_expr = (Var x_bt) in
+		let goto_guard_expr = (Var x_ibt) in
 		let cmd_bind_test = SLGuardedGoto (goto_guard_expr, bind, call) in
 
 		(* BIND *)
+
+		let x_bt = fresh_var () in
+		let cmd_get_bt = SLBasic (SLookup (x_bt, Var x_f_val, Literal (String "@boundThis"))) in
 
 		let x_ba = fresh_var () in
 		let cmd_get_ba = SLBasic (SLookup (x_ba, Var x_f_val, Literal (String "@boundArguments"))) in
@@ -1646,12 +1649,13 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 
 			(* PREP *)
 
-			(Some getbt,     cmd_get_bt);           (*        x_bt := [x_f_val, "@boundTarget"];                                        *)
+			(Some getbt,     cmd_get_ibt);          (*        x_bt := [x_f_val, "@boundTarget"];                                        *)
 			(None,           cmd_bind_test);        (*        goto [x_bt = $$empty] call bind                                           *)
 
 			(* BIND *)
 
-			(Some bind,      cmd_get_ba);           (*        x_ba := [x_f_val, "@boundArgs"];                                          *)
+			(Some bind,      cmd_get_bt);           (*        x_bt := [x_f_val, "@boundThis"];                                          *)
+			(None,           cmd_get_ba);           (*        x_ba := [x_f_val, "@boundArgs"];                                          *)
 			(None,           cmd_get_tf);           (*        x_tf := [x_f_val, "@targetFunction"];                                     *)
 			(None,           cmd_bbody);            (*        x_bbody := [x_tf, "@call"];                                               *)
 			(None,           cmd_bscope);           (*        x_fscope := [x_tf, "@scope"]                                              *)
