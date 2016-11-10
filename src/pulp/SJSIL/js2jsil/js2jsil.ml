@@ -2305,19 +2305,15 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 
 		(* next1: x_cond := hasField (x2_v, "@hasInstance")  *)
 		let x_cond = fresh_var () in
-		let cmd_hasfield = SLBasic (SLookup (x_cond, Var x2_v, Literal (String hasInstanceName))) in
+		let cmd_hasfield = SLBasic (SLookup (x_cond, Var x2_v, Literal (String "@class"))) in
 
 		(* goto [ x_cond = $$empty ] err next2 *)
 		let next2 = fresh_label () in
-		let cmd_goto_xcond = SLGuardedGoto (BinOp (Var x_cond, Equal, Literal Empty), err, next2) in
-
-		(* next2:  x_hi := [x2_v, "i__hasInstance"]   *)
-		let x_hi = fresh_var () in
-		let cmd_ass_xhi = SLBasic (SLookup (x_hi, Var x2_v, Literal (String hasInstanceName))) in
+		let cmd_goto_xcond = SLGuardedGoto (BinOp (Var x_cond, Equal, Literal (String "Function")), next2, err) in
 
 		(* x_r := x_hi (x2_v, x1_v) with err *)
 		let x_r = fresh_var () in
-		let cmd_ass_xr = SLCall (x_r, Var x_hi, [Var x2_v; Var x1_v], Some err) in
+		let cmd_ass_xr = SLCall (x_r, Literal (String "hasInstance"), [Var x2_v; Var x1_v], Some err) in
 
 		let cmds = cmds1 @ [                  (*         cmds1                                              *)
 			annotate_cmd cmd_gv_x1 None         (*         x1_v := i__getValue (x1) with err                  *)
@@ -2326,8 +2322,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 			(None,         cmd_goto_ot);        (*         goto [ (typeOf x2_v) = $$object_type ] next1 err   *)
 			(Some next1,   cmd_hasfield);       (* next1:  x_cond := hasField (x2_v, "@hasInstance")          *)
 			(None,         cmd_goto_xcond);     (*         goto [ x_cond = $$empty ] err next2                *)
-			(Some next2,   cmd_ass_xhi);        (* next2:  x_hi := [x2_v, "@hasInstance"]                     *)
-			(None,         cmd_ass_xr)          (*         x_r := x_hi (x2_v, x1_v) with err                  *)
+			(Some next2,         cmd_ass_xr)          (*         x_r := x_hi (x2_v, x1_v) with err                  *)
 		]) in
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v; var_te; var_te; x_r ] in
 		cmds, Var x_r, errs
