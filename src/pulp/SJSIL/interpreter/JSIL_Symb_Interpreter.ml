@@ -236,6 +236,9 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		let pat_gamma = Symbolic_State_Functions.gamma_substitution pat_gamma subst false in
 		let gamma = copy_gamma gamma in
 		Symbolic_State_Functions.merge_gammas gamma pat_gamma;
+		Symbolic_State_Functions.sanitise_pfs pfs; Symbolic_State_Functions.sanitise_pfs pat_pfs;
+		Printf.printf "pfs: \n%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae pfs false);
+		Printf.printf "pat_pfs: \n%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae pat_pfs false);
 		let pf_list = (pfs_to_list pat_pfs) @ (pfs_to_list pfs) in
 		let is_sat = Pure_Entailment.check_satisfiability pf_list gamma [] in
 		is_sat in
@@ -256,7 +259,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 				let ret_lexpr = store_get_var (get_store post) ret_var in
 				let ret_lexpr = JSIL_Logic_Utils.lexpr_substitution ret_lexpr subst false in
 				[ new_symb_state, ret_flag, ret_lexpr ])
-				else [] in
+				else begin Printf.printf "The post does not make sense.\n"; [] end in
 
 		Symbolic_State_Functions.extend_symb_state_with_pfs symb_state pf_discharges;
 		let symb_state = Symbolic_State_Functions.symb_state_replace_heap symb_state quotient_heap in
@@ -303,7 +306,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 			Printf.printf "------------------------------------------\n";
 			Printf.printf "Pre:\n%sPosts:\n%s"
 				(JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre)
-				(JSIL_Memory_Print.string_of_symb_state_list spec.n_post); 
+				(JSIL_Memory_Print.string_of_symb_state_list spec.n_post);
 			let unifier = Structural_Entailment.unify_symb_states [] spec.n_pre symb_state_aux in
 			(match unifier with
 			|	Some (true, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
@@ -335,6 +338,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 			List.map (fun (symb_state, ret_flag, ret_lexpr) ->
 			let new_symb_state =
 				let rpfs = DynArray.map (fun x -> JSIL_Logic_Utils.reduce_assertion x) (get_pf symb_state) in
+				Symbolic_State_Functions.sanitise_pfs rpfs;
 				Symbolic_State_Functions.symb_state_replace_pfs symb_state rpfs in
 			(new_symb_state, ret_flag, JSIL_Logic_Utils.reduce_expression ret_lexpr)) symb_states_and_ret_lexprs in
 		symb_states_and_ret_lexprs in
@@ -501,6 +505,7 @@ let simplify_symb_state symb_state =
 	DynArray.iter (fun a -> get_list_nth_len_ass list_subst false a) pure_formulae;
 	Printf.printf "So, we've got a substitution:\n%s\n" (JSIL_Memory_Print.string_of_substitution list_subst);
 	let pure_formulae = DynArray.map (fun pf -> JSIL_Logic_Utils.reduce_assertion (subst_list_nth_len_pf list_subst pf)) pure_formulae in
+	Symbolic_State_Functions.sanitise_pfs pure_formulae;
 	Printf.printf "So, we've got some new pure formulae:\n%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae pure_formulae false);
 	let new_gamma = expand_gamma gamma pure_formulae in
 	Printf.printf "And we've got some new gamma:\n%s\n" (JSIL_Memory_Print.string_of_gamma new_gamma);

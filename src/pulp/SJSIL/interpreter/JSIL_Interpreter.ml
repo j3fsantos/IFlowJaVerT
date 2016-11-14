@@ -161,28 +161,6 @@ let create_default_object proto cls ext =
 		SHeap.add obj "@proto" (Loc proto);
 		SHeap.add obj "@class" (String cls);
 		SHeap.add obj "@extensible" (Bool ext);
-		SHeap.add obj "@getOwnProperty" (String "o__getOwnProperty");
-		SHeap.add obj "@getProperty" (String "o__getProperty");
-		SHeap.add obj "@get" (String "o__get");
-		SHeap.add obj "@canPut" (String "o__canPut");
-		SHeap.add obj "@put" (String "o__put");
-		SHeap.add obj "@hasProperty" (String "o__hasProperty");
-		SHeap.add obj "@deleteProperty" (String "o__deleteProperty");
-		SHeap.add obj "@defaultValue" (String "o__defaultValue");
-		SHeap.add obj "@defineOwnProperty" (String "o__defineOwnProperty");
-		SHeap.add obj "@primitiveValue" Empty;
-		SHeap.add obj "@construct" Empty;
-		SHeap.add obj "@call" Empty;
-		SHeap.add obj "@hasInstance" Empty;
-		SHeap.add obj "@scope" Empty;
-		SHeap.add obj "@formalParameters" Empty;
-		SHeap.add obj "@call" Empty;
-		SHeap.add obj "@construct" Empty;
-		SHeap.add obj "@targetFunction" Empty;
-		SHeap.add obj "@boundThis" Empty;
-		SHeap.add obj "@boundArguments" Empty;
-		SHeap.add obj "@match" Empty;
-		SHeap.add obj "@parameterMap" Empty;
 		obj
 
 (* Call-construct objects *)
@@ -191,8 +169,7 @@ let create_object_with_call_construct call construct len =
 		SHeap.add obj "length" (LList [String "d"; Integer len; Bool false; Bool false; Bool false]);
 		SHeap.replace obj "@call" (String call);
 		SHeap.replace obj "@construct" (String construct);
-		SHeap.replace obj "@get" (String "f__get");
-		SHeap.replace obj "@hasInstance" (String "f__hasInstance");
+		SHeap.replace obj "@scope" Empty;
 		obj
 
 (* Function objects - with heap addition *)

@@ -205,6 +205,7 @@ let init_pure_assignments a store gamma subst =
 			cur_index := (!cur_index) + 1
 		done;
 
+		Symbolic_State_Functions.sanitise_pfs non_store_pure_assertions_array;
 		non_store_pure_assertions_array in
 
 	(**
@@ -472,43 +473,45 @@ let rec init_gamma gamma a =
 
 let init_preds a store gamma subst =
 	let preds = DynArray.make 11 in
-	
-	let make_normalised_pred_assertion name les = 
-		let new_les, new_assertions = 
+
+	let make_normalised_pred_assertion name les =
+		let new_les, new_assertions =
 			List.fold_left
 				(fun (new_les, new_equalities) le ->
-					match le with 
-					| LNone	| LVar _ | LLit _ | ALoc _ -> ((le :: new_les), new_equalities) 
-					| PVar x -> 
-						Printf.printf "Inside init_preds (%s)\n" (JSIL_Print.string_of_logic_assertion a false); 
-						Printf.printf "Currrent Store: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false); 
-						Printf.printf "Current Substitution: %s\n" (JSIL_Memory_Print.string_of_substitution subst); 
-						Printf.printf "Program Variable %s in logical expression that was supposed to be normalised!!!\n" x; 
+					match le with
+					| LNone	| LVar _ | LLit _ | ALoc _ -> ((le :: new_les), new_equalities)
+					| PVar x ->
+						Printf.printf "Inside init_preds (%s)\n" (JSIL_Print.string_of_logic_assertion a false);
+						Printf.printf "Currrent Store: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false);
+						Printf.printf "Current Substitution: %s\n" (JSIL_Memory_Print.string_of_substitution subst);
+						Printf.printf "Program Variable %s in logical expression that was supposed to be normalised!!!\n" x;
 						raise (Failure "")
-					| _ -> 
-						let x = fresh_lvar () in 
+					| _ ->
+						let x = fresh_lvar () in
 						((LVar x) :: new_les), ((LEq ((LVar x), le)) :: new_equalities))
 				([], [])
-				les in 
-		let new_les = List.rev new_les in 
-		(name, new_les), new_assertions in 
-	
+				les in
+		let new_les = List.rev new_les in
+		(name, new_les), new_assertions in
+
 	let rec init_preds_aux preds a =
 		let f = init_preds_aux preds in
 		let fe = normalise_lexpr store gamma subst in
 		(match a with
-			| LStar (a1, a2) -> 
-				let new_assertions1 = f a1 in 
-				let new_assertions2 = f a2 in 
-				new_assertions1 @ new_assertions2 
+			| LStar (a1, a2) ->
+				let new_assertions1 = f a1 in
+				let new_assertions2 = f a2 in
+				new_assertions1 @ new_assertions2
 			| LPred (name, les) ->
 					let n_les =	List.map fe les in
-					let normalised_pred_assertion, new_assertions = make_normalised_pred_assertion name n_les in 
-					DynArray.add preds normalised_pred_assertion; 
+					let normalised_pred_assertion, new_assertions = make_normalised_pred_assertion name n_les in
+					DynArray.add preds normalised_pred_assertion;
 					new_assertions
 			| _ -> []) in
-	let new_assertions = init_preds_aux preds a in 
-	preds, new_assertions 
+	let new_assertions = init_preds_aux preds a in
+	let dna = DynArray.of_list new_assertions in
+	Symbolic_State_Functions.sanitise_pfs dna;
+	preds, (DynArray.to_list dna)
 
 let fill_store_with_gamma store gamma subst =
 	Hashtbl.iter
@@ -563,7 +566,7 @@ let normalise_assertion a : symbolic_state * substitution =
 	Printf.printf "Normalise assertion: gamma :%s\n" (JSIL_Memory_Print.string_of_gamma gamma);
 	Printf.printf "Normalise assertion: store :%s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false);
 	Printf.printf "Normalise assertion: subst :%s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
-	
+
 
 	(* Printf.printf "----- Stage 2 ----- \n\n";
 	Printf.printf "Normalise assertion: pfrs  :%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
@@ -575,15 +578,15 @@ let normalise_assertion a : symbolic_state * substitution =
 	extend_typing_env_using_assertion_info ((pfs_to_list p_formulae) @ (Symbolic_State_Functions.pf_of_store2 store)) gamma;
 	let preds, new_assertions = init_preds a store gamma subst in
 	extend_typing_env_using_assertion_info new_assertions gamma;
-	Symbolic_State_Functions.simple_extend_pfs p_formulae new_assertions;
-	
-	
-	(* Printf.printf "----- Stage 3 ----- \n\n";
+	Symbolic_State_Functions.extend_pfs p_formulae None new_assertions;
+
+
+	Printf.printf "----- Stage 3 ----- \n\n";
 	Printf.printf "Normalise assertion: heap  :%s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false);
 	Printf.printf "Normalise assertion: pfrs  :%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
 	Printf.printf "Normalise assertion: gamma :%s\n" (JSIL_Memory_Print.string_of_gamma gamma);
 	Printf.printf "Normalise assertion: store :%s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false);
-	Printf.printf "Normalise assertion: subst :%s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
+	Printf.printf "Normalise assertion: subst :%s\n" (JSIL_Memory_Print.string_of_substitution subst);
 	(heap, store, p_formulae, gamma, preds, (ref None)), subst
 
 
@@ -618,7 +621,7 @@ let normalise_single_spec preds spec =
 (*	Printf.printf "UPrecondition : %s\n" (JSIL_Print.string_of_logic_assertion unfolded_pre false);
 	Printf.printf "UPostcondition: %s\n" (JSIL_Print.string_of_logic_assertion unfolded_post false); *)
 
-	Printf.printf "NSS: Entry\n"; 
+	Printf.printf "NSS: Entry\n";
 
 	let f_pre_normalize a_list = List.concat (List.map pre_normalize_assertion a_list) in
 	let f_print assertions =
@@ -631,17 +634,18 @@ let normalise_single_spec preds spec =
 	 Printf.printf "NSS: Pre-normalise\n";
 
 	Printf.printf "Pres: %s\n\n" (f_print unfolded_pres);
-	Printf.printf "Posts: %s\n\n" (f_print unfolded_posts); 
+	Printf.printf "Posts: %s\n\n" (f_print unfolded_posts);
 
 	let unfolded_spec_list =
 		List.map
 			(fun pre ->
 						let pre_symb_state, (lvars, subst) = normalise_precondition pre in
-						Printf.printf "I am going to check whether the following precondition makes sense:\n%s\n" 
-							(JSIL_Memory_Print.string_of_shallow_symb_state pre_symb_state);                                                        
+						Printf.printf "I am going to check whether the following precondition makes sense:\n%s\n"
+							(JSIL_Memory_Print.string_of_shallow_symb_state pre_symb_state);
 						let is_valid_precond = Pure_Entailment.check_satisfiability (get_pf_list pre_symb_state) (get_gamma pre_symb_state) [] in
 						if (is_valid_precond)
-						then
+						then begin
+							Printf.printf "The precondition makes sense.\n";
 							(let posts, posts_lvars =
 									List.fold_left
 										(fun (ac_posts, ac_posts_lvars) post ->
@@ -661,7 +665,10 @@ let normalise_single_spec preds spec =
 									n_post_lvars = posts_lvars;
 									n_subst = subst
 								})
-						else None)
+						end else begin
+							Printf.printf "The precondition does not make sense.\n";
+							None
+						end)
 			unfolded_pres in
 	(* Printf.printf "NSS: Matching\n"; *)
 	let unfolded_spec_list =
@@ -676,7 +683,7 @@ let normalise_single_spec preds spec =
 	unfolded_spec_list
 
 let normalise_spec preds spec =
-	Printf.printf "Going to process the SPECS of %s\n" spec.spec_name; 
+	Printf.printf "Going to process the SPECS of %s\n" spec.spec_name;
 	let normalised_pre_post_list = List.concat (List.map (normalise_single_spec preds) spec.proc_specs) in
 
 	{

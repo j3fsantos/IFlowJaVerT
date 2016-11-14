@@ -6,21 +6,21 @@ open JSIL_Syntax
 module SS = Set.Make(String)
 
 
-let get_string_hashtbl_keys ht = 
-	Hashtbl.fold 
-		(fun key _ ac -> key :: ac) 
-		ht 
+let get_string_hashtbl_keys ht =
+	Hashtbl.fold
+		(fun key _ ac -> key :: ac)
+		ht
 		[]
 
 
 (** !tbl_left /\ tbl_right **)
-let tbl_intersection_false_true tbl_left tbl_right = 
-	Hashtbl.fold 
-		(fun var _ ac -> 
+let tbl_intersection_false_true tbl_left tbl_right =
+	Hashtbl.fold
+		(fun var _ ac ->
 			if (not (Hashtbl.mem tbl_left var))
-				then var :: ac 
+				then var :: ac
 				else ac)
-		tbl_right 
+		tbl_right
 		[]
 
 
@@ -114,30 +114,30 @@ let rec assertion_fold f_atom f_fold asrt =
 
 
 
-let rec get_logic_expression_string_literals le = 
-	let fe = get_logic_expression_string_literals in 
-	match le with 
+let rec get_logic_expression_string_literals le =
+	let fe = get_logic_expression_string_literals in
+	match le with
 	| LLit (String str) -> [ str ]
 	| LLit _ | LNone | LVar _ | ALoc _ | PVar _ | LUnknown -> []
 	| LBinOp (le1, _, le2) | LLstNth (le1, le2) | LStrNth (le1, le2)  -> (fe le1) @ (fe le2)
-	| LUnOp (_, le) |	LTypeOf le -> fe le 
+	| LUnOp (_, le) |	LTypeOf le -> fe le
  	| LEList les -> List.concat (List.map fe les)
 
-let rec get_assertion_string_literals a = 
-	let f = get_assertion_string_literals in 
-	let fe = get_logic_expression_string_literals in 
-	match a with 
+let rec get_assertion_string_literals a =
+	let f = get_assertion_string_literals in
+	let fe = get_logic_expression_string_literals in
+	match a with
 	| LTrue | LFalse | LLess (_, _) | LLessEq (_, _) | LEmp | LTypes _ -> []
-	| LNot a -> f a 
-	| LAnd (a1, a2) | LOr (a1, a2) | LStar (a1, a2) -> (f a1) @ (f a2) 
+	| LNot a -> f a
+	| LAnd (a1, a2) | LOr (a1, a2) | LStar (a1, a2) -> (f a1) @ (f a2)
 	| LPointsTo (le1, le2, le3) -> (fe le1) @ (fe le2) @ (fe le3)
-	| LEq (le1, le2) | LStrLess (le1, le2) -> (fe le1) @ (fe le2)  
+	| LEq (le1, le2) | LStrLess (le1, le2) -> (fe le1) @ (fe le2)
 	| LPred (_, les) -> List.concat (List.map fe les)
 
 
-let remove_string_duplicates strings = 
-	let string_set = SS.of_list strings in 
-	SS.elements string_set  
+let remove_string_duplicates strings =
+	let string_set = SS.of_list strings in
+	SS.elements string_set
 
 
 let is_pure_assertion a =
@@ -285,7 +285,7 @@ let get_subtraction_vars vars_list subst =
 			vars_list in
 	new_vars_list
 
-let get_expr_vars_tbl le catch_pvars = 
+let get_expr_vars_tbl le catch_pvars =
 	let vars_tbl = Hashtbl.create small_tbl_size in
 	get_expr_vars vars_tbl catch_pvars le;
 	vars_tbl
@@ -314,12 +314,12 @@ let get_vars_tbl var_arr =
 		Hashtbl.add vars_tbl var_u u
 	done;
 	vars_tbl
-	
-	
-let get_vars_le_list_as_tbl catch_pvars le_list = 
+
+
+let get_vars_le_list_as_tbl catch_pvars le_list =
 	let vars_tbl = Hashtbl.create small_tbl_size in
-	List.iter 
-		(fun le -> get_expr_vars vars_tbl catch_pvars le) 
+	List.iter
+		(fun le -> get_expr_vars vars_tbl catch_pvars le)
 		le_list;
 	vars_tbl
 
@@ -1096,7 +1096,8 @@ let rec reduce_assertion a =
 	| LEq (e1, e2) ->
 		let re1 = reduce_expression e1 in
 		let re2 = reduce_expression e2 in
-		if (re1 = re2) then LTrue
+		let eq  = (re1 = re2) in
+		if eq then LTrue
 		else
 		let ite a b = if (a = b) then LTrue else LFalse in
 		(match e1, e2 with

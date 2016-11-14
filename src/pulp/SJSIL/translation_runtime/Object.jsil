@@ -1,30 +1,28 @@
 import Internals;
 
-(* ****************** *) 
+(* ****************** *)
 (* THE OBJECT LIBRARY *)
-(* ****************** *) 
+(* ****************** *)
 
 (* *** GETFIELDS *** *)
 
 proc i__getFields (l) {
 			xret := getFields (l);
-			
+
 			class := [l, "@class"];
 			goto [class = "String"] add rlab;
 
 	add:	str := [l, "@primitiveValue"];
 			len := s-len (str);
-			
+
 			n := len - 1;
-			
-			gop := [l, "@getOwnProperty"];
-			
+
 	loop:	goto [n < 0] rlab head;
 	head:	sn := num_to_string n;
 			xret := sn :: xret;
 			n := n - 1;
 			goto loop;
-			
+
 	rlab:	skip
 }
 with
@@ -48,24 +46,24 @@ with
 
 proc i__getOwnFieldsIter (prop_list) {
 			goto [prop_list = $$nil] nil init;
-			
+
 	nil:	xret := $$nil;
-			goto rlab;	
-	
+			goto rlab;
+
 	init:	xh := car prop_list;
 			xt := cdr prop_list;
-			
+
 			goto [0 < s-len (xh)] maybe yes;
 	maybe:	test := s-nth (xh, 0);
 			goto [test = "@"] no yes;
-	
+
 	no:		fh := $$nil;
-			goto rcall;	
-			
+			goto rcall;
+
 	yes:	fh := xh;
-			
+
 	rcall:	ft := "i__getOwnFieldsIter" (xt);
-			
+
 			xret := fh :: ft;
 	rlab:	skip
 }
@@ -78,10 +76,8 @@ with
 
 proc i__getEnumerableFields (l) {
 			prop_list := "i__getOwnFields" (l);
-			
-			gop := [l, "@getOwnProperty"];			
-			xret := "i__getEnumerableFieldsIter" (l, prop_list, gop);
-	
+			xret := "i__getEnumerableFieldsIter" (l, prop_list);
+
 	rlab:	skip
 }
 with
@@ -91,25 +87,25 @@ with
 
 (* *** GETENUMERABLEFIELDSITER *** *)
 
-proc i__getEnumerableFieldsIter (l, prop_list, gop) {
+proc i__getEnumerableFieldsIter (l, prop_list) {
 			goto [prop_list = $$nil] nil init;
-			
+
 	nil:	xret := $$nil;
-			goto rlab;	
-	
+			goto rlab;
+
 	init:	xh := car prop_list;
 			xt := cdr prop_list;
-			
-			prop := gop (l, xh);
+
+			prop := "getOwnProperty" (l, xh);
 			goto [l-nth (prop, 3) = $$t] yes no;
-	
+
 	no:		fh := $$nil;
-			goto rcall;	
-			
+			goto rcall;
+
 	yes:	fh := xh;
-			
-	rcall:	ft := "i__getEnumerableFieldsIter" (l, xt, gop);
-			
+
+	rcall:	ft := "i__getEnumerableFieldsIter" (l, xt);
+
 			xret := fh :: ft;
 	rlab:	skip
 }
@@ -122,10 +118,8 @@ with
 
 proc i__getEnumerableFieldsWithValues (l) {
 			prop_list := "i__getEnumerableFields" (l);
-			
-			g := [l, "@get"];			
-			xret := "i__getEnumerableFieldsWithValuesIter" (l, prop_list, g) with elab;
-	
+			xret := "i__getEnumerableFieldsWithValuesIter" (l, prop_list) with elab;
+
 	rlab:	skip;
 	elab:	skip
 }
@@ -139,22 +133,22 @@ with
 
 proc i__getEnumerableFieldsWithValuesIter (l, prop_list, g) {
 			goto [prop_list = $$nil] nil init;
-			
+
 	nil:	xret := {{ $$nil, $$nil }};
 			goto rlab;
-	
+
 	init:	xh := car prop_list;
 			xt := cdr prop_list;
-			
-			xret := g (l, xh) with elab;
+
+			xret := "get" (l, xh) with elab;
 			xret := "i__toPropertyDescriptor" (xret) with elab;
-			
+
 			fh := xret;
-			
-	rcall:	xret := "i__getEnumerableFieldsWithValuesIter" (l, xt, g) with elab;
-			
+
+	rcall:	xret := "i__getEnumerableFieldsWithValuesIter" (l, xt) with elab;
+
 			xret := {{ prop_list , (fh :: l-nth (xret, 1)) }};
-			
+
 	rlab:	skip;
 	elab:	skip
 }
@@ -179,14 +173,13 @@ with
 (* *** GETALLENUMERABLEFIELDSITER *** *)
 
 proc i__getAllEnumerableFieldsIter (l, props, b) {
-			l := l;
-			b := b;
+
 			enums := "i__getEnumerableFields" (l);
-			
+
 			len := l-len (enums);
 			n := 0;
 	loop:	goto [n < len] head next;
-	
+
 	head:	hf := hasField (props, l-nth (enums, n));
 			goto [hf] inc test;
 	test:	goto [l = b] add bf;
@@ -195,14 +188,14 @@ proc i__getAllEnumerableFieldsIter (l, props, b) {
 	add:	[props, l-nth (enums, n)] := {{ "d", l, $$f, $$f, $$f }};
 	inc:	n := n + 1;
 			goto loop;
-			
+
 	next:	l := [l, "@proto"];
 			goto [l = $$null] end deeper;
-			
+
 	deeper:	xret := "i__getAllEnumerableFieldsIter" (l, props, b);
 
 	end:	xret := props;
-			
+
 	rlab:	skip
 }
 with
@@ -214,10 +207,10 @@ with
 
 proc Object_call (xsc, vthis, v) {
 			goto [(v = $$undefined) or (v = $$null) or (v = $$empty)] cns to_obj;
-	
+
 	cns:	xret := "Object_construct" (xsc, vthis, v);
 			goto rlab;
-	
+
 	to_obj:	xret := "i__toObject" (v) with elab;
 
 	rlab:	skip;
@@ -237,13 +230,13 @@ proc Object_construct (xsc, vthis, l) {
 			goto [typeOf(l) = $$object_type] obj l1b;
 	obj:	xret := l;
 			goto rlab;
-			
+
 	l1b:	goto [(typeOf(l) = $$boolean_type) or (typeOf(l) <: $$number_type) or (typeOf(l) = $$string_type)] to_obj norm;
 	to_obj:	xret := "i__toObject" (l);
 			goto rlab;
 
 	norm:	xret := new ();
-			xret := "create_default_object" (xret, $lobj_proto, "Object", $$t);		
+			xret := "create_default_object" (xret, $lobj_proto, "Object", $$t);
 	rlab:	skip
 }
 with
@@ -255,15 +248,15 @@ with
 
 proc Object_getPrototypeOf (xsc, vthis, o) {
 			goto [typeOf(o) = $$object_type] proto throw;
-			
+
 	proto:	xret := [o, "@proto"];
-			
+
 	rlab:	skip;
-	
+
 	throw:	xerr := "TypeError" ();
 	elab:	skip
-} 
-with 
+}
+with
 {
 	ret:	xret, rlab;
 	err:	xerr, elab;
@@ -273,19 +266,18 @@ with
 
 proc Object_getOwnPropertyDescriptor (xsc, vthis, o, prop) {
 			goto [typeOf(o) = $$object_type] start throw;
-			
+
 	start:	xret := "i__toString" (prop) with elab;
-			gop := [o, "@getOwnProperty"];
-			xret := gop (o, xret) with elab;
-			
+			xret := "getOwnProperty" (o, xret) with elab;
+
 			xret := "i__fromPropertyDescriptor" (xret) with elab;
-			
+
 	rlab:	skip;
-	
+
 	throw:	xret := "TypeError" ();
 	elab:	skip
-} 
-with 
+}
+with
 {
 	ret:	xret, rlab;
 	err:	xret, elab;
@@ -297,22 +289,20 @@ proc Object_getOwnPropertyNames (xsc, vthis, o) {
 			goto [not (typeOf(o) = $$object_type)] throw start;
 
 	start:	xret := "Array_construct" (xsc, vthis) with elab;
-			
+
 			n := 0;
 			l := xret;
 			props := "i__getOwnFields" (o);
 			len := l-len (props);
-			
-			dop := [xret, "@defineOwnProperty"];
-			
+
 	loop:	goto [n < len] head end;
-	head:	xret := dop (l, num_to_string n, {{ "d", l-nth (props, n), $$t, $$t, $$t }}, $$f) with elab;
+	head:	xret := "defineOwnProperty" (l, num_to_string n, {{ "d", l-nth (props, n), $$t, $$t, $$t }}, $$f) with elab;
 			n := n + 1;
 			goto loop;
 
 	end:	xret := l;
 	rlab:	skip;
-	
+
 	throw:	xret := "TypeError" ();
 	elab:	skip
 }
@@ -326,16 +316,16 @@ with
 
 proc Object_create (xsc, vthis, o, props) {
 			goto [(typeOf(o) = $$object_type) or (o = $$null)] main throw;
-			
+
 	main:	xret := "Object_construct" () with elab;
 			[xret, "@proto"] := o;
-			
+
 			goto [props = $$undefined] rlab props;
-			
+
 	props:	xret := "Object_defineProperties" (xsc, vthis, xret, props) with elab;
-			
+
 	rlab:	skip;
-	
+
 	throw:	xret := "TypeError" ();
 	elab:	skip
 }
@@ -349,18 +339,17 @@ with
 
 proc Object_defineProperty (xsc, vthis, o, prop, attr) {
 			goto [typeOf(o) = $$object_type] main throw;
-			
+
 	main:	xret := "i__toString" (prop) with elab;
 			prop := xret;
-			
+
 			xret := "i__toPropertyDescriptor" (attr) with elab;
-			
-			dop := [o, "@defineOwnProperty"];
-			xret := dop (o, prop, xret, $$t) with elab;
-	
+
+			xret := "defineOwnProperty" (o, prop, xret, $$t) with elab;
+
 	end:	xret := o;
 	rlab:	skip;
-	
+
 	throw:	xret := "TypeError" ();
 	elab:	skip
 }
@@ -377,18 +366,17 @@ proc Object_defineProperties (xsc, vthis, o, props) {
 
 	start:	xret := "i__toObject" (props) with elab;
 			props := xret;
-			
+
 			xret := "i__getEnumerableFieldsWithValues" (props) with elab;
-			
+
 			props := l-nth (xret, 0);
 			descs := l-nth (xret, 1);
-			
+
 			n := 0;
 			len := l-len (props);
-			dop := [o, "@defineOwnProperty"];
-			
+
 	loop:	goto [n < len] head end;
-	head:	xret := dop (o, l-nth (props, n), l-nth (descs, n), $$t) with elab;
+	head:	xret := "defineOwnProperty" (o, l-nth (props, n), l-nth (descs, n), $$t) with elab;
 			n := n + 1;
 			goto loop;
 
@@ -408,12 +396,12 @@ with
 
 proc Object_preventExtensions (xsc, vthis, o) {
 			goto [typeOf(o) = $$object_type] start throw;
-	
+
 	start:	[o, "@extensible"] := $$f;
 			xret := o;
-			
+
 	rlab: 	skip;
-	 
+
 	throw:	xerr := "TypeError" ();
 	elab: 	skip
 }
@@ -427,25 +415,23 @@ with
 
 proc Object_seal (xsc, vthis, o) {
 			goto [typeOf(o) = $$object_type] start throw;
-			
+
 	start:	props := "i__getOwnFields" (o);
-			
+
 			n := 0;
 			len := l-len (props);
-			gop := [o, "@getOwnProperty"];
-			dop := [o, "@defineOwnProperty"];
-			
+
 	loop:	goto [n < len] head ext;
-	head:	xret := gop (o, l-nth (props, n)) with elab;
-			xret := dop (o, l-nth (props, n), {{ l-nth (xret, 0), l-nth (xret, 1), l-nth (xret, 2), l-nth (xret, 3), $$f }}, $$t) with elab;
+	head:	xret := "getOwnProperty" (o, l-nth (props, n)) with elab;
+			xret := "defineOwnProperty" (o, l-nth (props, n), {{ l-nth (xret, 0), l-nth (xret, 1), l-nth (xret, 2), l-nth (xret, 3), $$f }}, $$t) with elab;
 	next:	n := n + 1;
 			goto loop;
-		
+
 	ext:	[o, "@extensible"] := $$f;
 			xret := o;
 
 	rlab:	skip;
-			
+
 	throw:	xret := "TypeError" ();
 	elab: 	skip
 }
@@ -459,29 +445,28 @@ with
 
 proc Object_isSealed (xsc, vthis, o) {
 			goto [typeOf(o) = $$object_type] start throw;
-			
+
 	start:	props := "i__getOwnFields" (o);
-			
+
 			n := 0;
 			len := l-len (props);
-			gop := [o, "@getOwnProperty"];
-			
+
 	loop:	goto [n < len] head ext;
-	head:	xret := gop (o, l-nth (props, n)) with elab;
+	head:	xret := "getOwnProperty" (o, l-nth (props, n)) with elab;
 			goto [l-nth (xret, 4) = $$t] r_f next;
 	next:	n := n + 1;
 			goto loop;
-		
+
 	ext:	xret := [o, "@extensible"];
 			goto [xret] r_f r_t;
-	
+
 	r_t:	xret := $$t;
 			goto rlab;
-	
+
 	r_f:	xret := $$f;
-			
+
 	rlab:	skip;
-			
+
 	throw:	xret := "TypeError" ();
 	elab: 	skip
 }
@@ -495,28 +480,26 @@ with
 
 proc Object_freeze (xsc, vthis, o) {
 			goto [typeOf(o) = $$object_type] start throw;
-			
+
 	start:	props := "i__getOwnFields" (o);
-			
+
 			n := 0;
 			len := l-len (props);
-			gop := [o, "@getOwnProperty"];
-			dop := [o, "@defineOwnProperty"];
-			
+
 	loop:	goto [n < len] head ext;
-	head:	xret := gop (o, l-nth (props, n)) with elab;
+	head:	xret := "getOwnProperty" (o, l-nth (props, n)) with elab;
 			ws := l-nth (xret, 2);
 			goto [ws = $$t] set_w cf;
 	set_w:	ws := $$f;
-	cf:		xret := dop (o, l-nth (props, n), {{ l-nth (xret, 0), l-nth (xret, 1), ws, l-nth (xret, 3), $$f }}, $$t) with elab;
+	cf:		xret := "defineOwnProperty" (o, l-nth (props, n), {{ l-nth (xret, 0), l-nth (xret, 1), ws, l-nth (xret, 3), $$f }}, $$t) with elab;
 	next:	n := n + 1;
 			goto loop;
-		
+
 	ext:	[o, "@extensible"] := $$f;
 			xret := o;
-			
+
 	rlab:	skip;
-			
+
 	throw:	xret := "TypeError" ();
 	elab: 	skip
 }
@@ -530,30 +513,29 @@ with
 
 proc Object_isFrozen (xsc, vthis, o) {
 			goto [typeOf(o) = $$object_type] start throw;
-			
+
 	start:	props := "i__getOwnFields" (o);
-			
+
 			n := 0;
 			len := l-len (props);
-			gop := [o, "@getOwnProperty"];
-			
+
 	loop:	goto [n < len] head ext;
-	head:	xret := gop (o, l-nth (props, n)) with elab;
+	head:	xret := "getOwnProperty" (o, l-nth (props, n)) with elab;
 			goto [l-nth (xret, 2) = $$t] r_f cf;
 	cf:		goto [l-nth (xret, 4) = $$t] r_f next;
 	next:	n := n + 1;
 			goto loop;
-		
+
 	ext:	xret := [o, "@extensible"];
 			goto [xret] r_f r_t;
-	
+
 	r_t:	xret := $$t;
 			goto rlab;
-	
+
 	r_f:	xret := $$f;
-			
+
 	rlab:	skip;
-			
+
 	throw:	xret := "TypeError" ();
 	elab: 	skip
 }
@@ -567,9 +549,9 @@ with
 
 proc Object_isExtensible (xsc, vthis, o) {
 			goto [typeOf(o) = $$object_type] start throw;
-			
+
 	start: 	xret := [o, "@extensible"];
-	rlab:	skip;		
+	rlab:	skip;
 
 	throw:	xerr := "TypeError" ();
 	elab: 	skip
@@ -586,22 +568,20 @@ proc Object_keys (xsc, vthis, o) {
 			goto [not (typeOf(o) = $$object_type)] throw start;
 
 	start:	xret := "Array_construct" () with elab;
-			
+
 			n := 0;
 			l := xret;
 			props := "i__getEnumerableFields" (o);
 			len := l-len (props);
-			
-			dop := [xret, "@defineOwnProperty"];
-			
+
 	loop:	goto [n < len] head end;
-	head:	xret := dop (l, num_to_string n, {{ "d", l-nth (props, n), $$t, $$t, $$t }}, $$f) with elab;
+	head:	xret := "defineOwnProperty" (l, num_to_string n, {{ "d", l-nth (props, n), $$t, $$t, $$t }}, $$f) with elab;
 			n := n + 1;
 			goto loop;
 
 	end:	xret := l;
 	rlab:	skip;
-	
+
 	throw:	xret := "TypeError" ();
 	elab:	skip
 }
@@ -611,27 +591,27 @@ with
 	err:	xret, elab;
 };
 
-(* **************** *) 
+(* **************** *)
 (* OBJECT.PROTOTYPE *)
-(* **************** *) 
+(* **************** *)
 
 (* *** TOSTRING*** *)
 
 proc OP_toString(xsc, vthis) {
 			goto [vthis = $$undefined] undef def;
-			
+
 	undef: 	xret := "[object Undefined]";
 			goto rlab;
-			
+
 	def:	goto [vthis = $$null] null nnull;
-	
+
 	null:	xret := "[object Null]";
 			goto rlab;
-			
+
 	nnull:	xret := "i__toObject" (vthis) with elab;
 			c := [xret, "@class"];
 			xret := "[object " ++ c ++ "]";
-	
+
 	rlab:	skip;
 	elab:	skip
 }
@@ -646,18 +626,17 @@ with
 proc OP_toLocaleString(xsc, vthis) {
 			xret := "i__toObject" (vthis) with elab;
 			o := xret;
-			
-			g := [o, "@get"];
-			xret := g (o, "toString") with elab;
+
+			xret := "get" (o, "toString") with elab;
 			c := "i__isCallable" (xret);
             goto [c] call throw;
-            
+
 	call:	scp := [xret, "@scope"];
-			fun := [xret, "@call"];	
+			fun := [xret, "@call"];
 			xret := fun (scp, vthis) with elab;
-			
+
 	rlab:	skip;
-	
+
 	throw: 	xret := "TypeError" ();
 	elab:	skip
 }
@@ -687,18 +666,17 @@ with
 proc OP_hasOwnProperty(xsc, vthis, v) {
 			xret := "i__toString" (v) with elab;
 			p := xret;
-			
+
 			xret := "i__toObject" (vthis) with elab;
-			gop := [xret, "@getOwnProperty"];
-			xret := gop (xret, p) with elab;
-			
+			xret := "getOwnProperty" (xret, p) with elab;
+
 			goto [xret = $$undefined] undef def;
-			
+
 	undef:  xret := $$f;
 			goto rlab;
-			
+
 	def:	xret := $$t;
-	
+
 	rlab:	skip;
 	elab:	skip
 }
@@ -713,19 +691,19 @@ with
 
 proc OP_isPrototypeOf(xsc, vthis, v) {
 			goto [typeOf(v) = $$object_type] obj fret;
-			
+
 	obj:	xret := "i__toObject" (vthis) with elab;
-	
+
 	rep:	v := [v, "@proto"];
 			goto [v = $$null] fret nnull;
-		
+
 	nnull:  goto [v = xret] tret rep;
-	
+
 	tret: 	xret := $$t;
 			goto rlab;
-	
+
 	fret: 	xret := $$f;
-	
+
 	rlab:	skip;
 	elab:	skip
 }
@@ -740,18 +718,17 @@ with
 proc OP_propertyIsEnumerable(xsc, vthis, v) {
 			xret := "i__toString" (v) with elab;
 			p := xret;
-			
+
 			xret := "i__toObject" (vthis) with elab;
-			gop := [xret, "@getOwnProperty"];
-			xret := gop (xret, p) with elab;
-			
+			xret := "getOwnProperty" (xret, p) with elab;
+
 			goto [xret = $$undefined] undef def;
-			
+
 	undef:  xret := $$f;
 			goto rlab;
-			
+
 	def:	xret := l-nth (xret, 3);
-	
+
 	rlab:	skip;
 	elab:	skip
 }

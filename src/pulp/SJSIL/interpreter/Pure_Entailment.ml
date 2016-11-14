@@ -410,9 +410,21 @@ let rec encode_literal tr_ctx lit =
 		| false     -> (mk_num_i ctx 0), (encode_type ctx BooleanType))
 	| Integer i     -> (mk_num_i ctx i), (encode_type ctx IntType)
 	| Num n         ->
-		if (n = (snd (modf n)))
-			then       (mk_num_i ctx (int_of_float n)), (encode_type ctx IntType)
-			else       (mk_num_s ctx (string_of_float n)), (encode_type ctx NumberType)
+		if (Utils.is_int n)
+			then begin
+				let ifn = int_of_float n in
+				(* Printf.printf "Encoding integer: %d\n" ifn; *)
+				let enc = mk_num_i ctx ifn in
+				(* Printf.printf "Encoded: %s" (Expr.to_string enc); *)
+				enc, (encode_type ctx IntType)
+			end
+			else begin
+				let sfn = string_of_float n in
+				(* Printf.printf "Encoding float: %f: %s\n" n sfn; *)
+				let enc = mk_num_s ctx sfn in
+				(* Printf.printf "Encoded: %s" (Expr.to_string enc); *)
+				enc, (encode_type ctx NumberType)
+			end
 	| String s      -> (encode_string ctx s), (encode_type ctx StringType)
 	| Loc l         -> (encode_string ctx ("$l" ^ l)), (encode_type ctx ObjectType)
 	| Type t        -> (encode_type ctx t), (encode_type ctx TypeType)

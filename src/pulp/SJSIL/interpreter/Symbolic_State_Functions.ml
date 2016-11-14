@@ -174,7 +174,7 @@ let merge_heaps heap new_heap p_formulae solver gamma =
 	Printf.printf "heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false);
 	Printf.printf "pat_heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap new_heap false);
 	Printf.printf "p_formulae: %s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
-	Printf.printf "gamma: %s\n" (JSIL_Memory_Print.string_of_gamma gamma); 
+	Printf.printf "gamma: %s\n" (JSIL_Memory_Print.string_of_gamma gamma);
 
 	LHeap.iter
 		(fun loc (n_fv_list, n_def) ->
@@ -203,16 +203,16 @@ let merge_heaps heap new_heap p_formulae solver gamma =
 					LHeap.add heap loc (n_fv_list, LUnknown))
 			| _ -> raise (Failure "heaps non-mergeable: the default field is not unknown!!!"))
 		new_heap
-		
-		
-let get_heap_vars var_tbl catch_pvars heap = 
-	LHeap.iter 
+
+
+let get_heap_vars var_tbl catch_pvars heap =
+	LHeap.iter
 		(fun _ (fv_list, e_def) ->
-			List.iter 
+			List.iter
 				(fun (e_field, e_val) ->
-					JSIL_Logic_Utils.get_expr_vars var_tbl catch_pvars e_field; 
+					JSIL_Logic_Utils.get_expr_vars var_tbl catch_pvars e_field;
 					JSIL_Logic_Utils.get_expr_vars var_tbl catch_pvars e_val)
-				fv_list; 
+				fv_list;
 			JSIL_Logic_Utils.get_expr_vars var_tbl catch_pvars e_def)
 		heap
 
@@ -252,23 +252,23 @@ let store_substitution store gamma subst partial =
 			([], []) in
 	let store = init_store vars les in
 	store
-		
-let get_store_vars var_tbl catch_pvars store = 
+
+let get_store_vars var_tbl catch_pvars store =
 	Hashtbl.iter (fun _ e -> JSIL_Logic_Utils.get_expr_vars var_tbl catch_pvars e) store
 
-let filter_store store filter_fun = 
+let filter_store store filter_fun =
 	Hashtbl.fold
 		(fun var le (filtered_vars, unfiltered_vars) ->
-			if (filter_fun le) 
+			if (filter_fun le)
 				then ((var :: filtered_vars), unfiltered_vars)
-				else (filtered_vars, (var :: unfiltered_vars))) 
-		store 
+				else (filtered_vars, (var :: unfiltered_vars)))
+		store
 		([], [])
 
 let store_projection store vars =
-	let les = List.map (fun v -> Hashtbl.find store v) vars in 
-	init_store vars les 
-	
+	let les = List.map (fun v -> Hashtbl.find store v) vars in
+	init_store vars les
+
 
 (*************************************)
 (** Pure Formulae functions         **)
@@ -277,32 +277,39 @@ let copy_p_formulae pfs =
 	let new_pfs = DynArray.copy pfs in
 	new_pfs
 
-let simple_extend_pfs pfs new_pfs = 
-	DynArray.append (DynArray.of_list new_pfs) pfs
+let sanitise_pfs dl =
+    (* Printf.printf ("In sanitise: %s\n") (JSIL_Memory_Print.string_of_shallow_p_formulae dl false); *)
+	let length = DynArray.length dl in
+	for i = 0 to (length - 1) do
+		let el = DynArray.get dl i in
+		let rel = JSIL_Logic_Utils.reduce_assertion el in
+			DynArray.set dl i rel
+	done;
+	(* Printf.printf ("After reduction: %s\n") (JSIL_Memory_Print.string_of_shallow_p_formulae dl false); *)
+	let ll = DynArray.to_list dl in
+	let dindex = DynArray.init length (fun x -> false) in
+	let clc = ref 0 in
+	let rec find_duplicates l =
+		(match l with
+		| [] -> ()
+		| a :: l ->
+			let imem = List.mem a l in
+			(if (imem || (a = LTrue)) then
+				DynArray.set dindex !clc true);
+			clc := !clc + 1;
+			find_duplicates l) in
+	find_duplicates ll;
+	for i = 0 to (length - 1) do
+		if (DynArray.get dindex (length - 1 - i))
+			then DynArray.delete dl (length - 1 - i)
+	done
 
-let extend_pf pfs solver pfs_to_add =
-	let is_pf_fresh pf_to_add =
-		(DynArray.fold_left
-			(fun ac pf -> (ac && (not (pf = pf_to_add))))
-			true
-			pfs) in
-
-	let is_pf_sensible pf_to_add =
-		(match pf_to_add with
-		| LEq (le1, le2) -> (not (le1 = le2))
-		| LTrue          -> false
-		| _              -> true) in
-
-	let rec loop pfs_to_add fresh_pfs_to_add =
-		match pfs_to_add with
-		| [] -> fresh_pfs_to_add
-		| pf_to_add :: rest_pfs_to_add ->
-			if ((is_pf_sensible pf_to_add) && (is_pf_fresh pf_to_add))
-				then loop rest_pfs_to_add (pf_to_add :: fresh_pfs_to_add)
-				else loop rest_pfs_to_add fresh_pfs_to_add in
-	(* Printf.printf "I am deleting the solver!!!\n"; *)
-	solver := None;
-	DynArray.append (DynArray.of_list (loop pfs_to_add [])) pfs
+let extend_pfs pfs solver pfs_to_add =
+	(match solver with
+	 | None -> ()
+	 | Some solver -> solver := None);
+	DynArray.append (DynArray.of_list pfs_to_add) pfs;
+	sanitise_pfs pfs
 
 
 let pf_of_store store subst =
@@ -344,7 +351,8 @@ let pf_substitution pf_r subst partial =
 	new_pf
 
 let merge_pfs pfs_l pfs_r =
-  DynArray.append pfs_r pfs_l
+	DynArray.append pfs_r pfs_l;
+	sanitise_pfs pfs_l
 
 (** This function is dramatically incomplete **)
 let resolve_location lvar pfs =
@@ -352,22 +360,22 @@ let resolve_location lvar pfs =
 		match pfs with
 		| [] -> None
 		| LEq (LVar cur_lvar, ALoc loc) :: rest
-		| LEq (ALoc loc, LVar cur_lvar) :: rest  -> 
+		| LEq (ALoc loc, LVar cur_lvar) :: rest  ->
 			if (cur_lvar = lvar) then Some (ALoc loc) else loop rest
 		| LEq (LVar cur_lvar, LLit (Loc loc)) :: rest
-		| LEq (LLit (Loc loc), LVar cur_lvar) :: rest -> 
+		| LEq (LLit (Loc loc), LVar cur_lvar) :: rest ->
 			if (cur_lvar = lvar) then Some (LLit (Loc loc)) else loop rest
 		| _ :: rest -> loop rest in
 	loop pfs
-	
 
-let get_pf_vars var_tbl catch_pvars pfs =	
-	let len = DynArray.length pfs in 
+
+let get_pf_vars var_tbl catch_pvars pfs =
+	let len = DynArray.length pfs in
 	for i=0 to len - 1 do
 		let a = DynArray.get pfs i in
-		JSIL_Logic_Utils.get_ass_vars_iter var_tbl catch_pvars a 
-	done 
-	 
+		JSIL_Logic_Utils.get_ass_vars_iter var_tbl catch_pvars a
+	done
+
 
 (*************************************)
 (** Typing Environment functions    **)
@@ -388,7 +396,7 @@ let rec gamma_substitution gamma subst partial =
 					Hashtbl.add new_gamma var v_type))
 		gamma;
 	new_gamma
-	
+
 
 let is_sensible_subst subst gamma_source gamma_target =
   try
@@ -413,11 +421,11 @@ let merge_gammas (gamma_l : typing_environment) (gamma_r : typing_environment) =
 		gamma_r
 
 
-let get_gamma_vars var_tbl catch_pvars gamma = 
-	Hashtbl.iter 
-		(fun var _ -> 
-			if (catch_pvars || (is_lvar_name var)) 
-				then Hashtbl.replace var_tbl var true 
+let get_gamma_vars var_tbl catch_pvars gamma =
+	Hashtbl.iter
+		(fun var _ ->
+			if (catch_pvars || (is_lvar_name var))
+				then Hashtbl.replace var_tbl var true
 				else ())
 		gamma
 
@@ -441,19 +449,19 @@ let preds_substitution preds subst partial =
 	done;
 	new_preds
 
-let find_predicate_assertion preds pred_name = 
+let find_predicate_assertion preds pred_name =
 	let len = DynArray.length preds in
 	let rec loop preds args =
-		match preds with 
-		| [] -> args 
-		| cur_pred :: rest_preds -> 
+		match preds with
+		| [] -> args
+		| cur_pred :: rest_preds ->
 			let cur_pred_name, cur_pred_args = cur_pred in
-			if (cur_pred_name = pred_name) 
+			if (cur_pred_name = pred_name)
 				then loop rest_preds (cur_pred_args :: args)
-				else loop rest_preds args  in 
+				else loop rest_preds args  in
 	loop (DynArray.to_list preds) []
-		
-	
+
+
 
 let predicate_assertion_equality pred pat_pred pfs solver gamma spec_vars =
 	let spec_vars_str = List.fold_left (fun ac v -> if (ac = "") then v else (ac ^ ", " ^ v)) "" spec_vars in
@@ -522,7 +530,7 @@ let copy_symb_state symb_state =
 	(c_heap, c_store, c_pformulae, c_gamma, c_preds, ref None)
 
 let rec extend_symb_state_with_pfs symb_state pfs_to_add =
-	extend_pf (get_pf symb_state) (get_solver symb_state) pfs_to_add
+	extend_pfs (get_pf symb_state) (Some (get_solver symb_state)) pfs_to_add
 
 let symb_state_substitution (symb_state : symbolic_state) subst partial =
 	let heap, store, pf, gamma, preds, _ = symb_state in
@@ -570,7 +578,7 @@ let symb_state_replace_pfs symb_state new_pfs =
 	let heap, store, _, gamma, preds, solver = symb_state in
 	(heap, store, new_pfs, gamma, preds, solver)
 
-let get_symb_state_vars_as_tbl catch_pvars symb_state = 
+let get_symb_state_vars_as_tbl catch_pvars symb_state =
 	let var_tbl = Hashtbl.create small_tbl_size in
 	let heap, store, pfs, gamma, preds, _ = symb_state in
 	get_heap_vars var_tbl catch_pvars heap;
@@ -578,13 +586,13 @@ let get_symb_state_vars_as_tbl catch_pvars symb_state =
 	get_pf_vars var_tbl catch_pvars pfs;
 	get_gamma_vars var_tbl catch_pvars gamma;
 	get_preds_vars var_tbl catch_pvars preds;
-	var_tbl 
+	var_tbl
 
-let get_symb_state_vars_as_list catch_pvars symb_state = 
-	let var_tbl = get_symb_state_vars_as_tbl catch_pvars symb_state in 
-	Hashtbl.fold 
-		(fun v _ ac -> v :: ac) 
-		var_tbl 
+let get_symb_state_vars_as_list catch_pvars symb_state =
+	let var_tbl = get_symb_state_vars_as_tbl catch_pvars symb_state in
+	Hashtbl.fold
+		(fun v _ ac -> v :: ac)
+		var_tbl
 		[]
 
 

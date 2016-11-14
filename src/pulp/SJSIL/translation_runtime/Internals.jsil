@@ -2,6 +2,30 @@
 (* GETOWNPROPERTY *)
 (* ************** *)
 
+(*
+ * General getOwnProperty
+ * Branch on class: string or non-string
+ *)
+proc getOwnProperty (l, prop) {
+
+			class := [l, "@class"];
+
+			goto [class = "String"] sgop ogop;
+
+	sgop:	xret := "s__getOwnProperty" (l, prop) with elab;
+			goto rlab;
+
+	ogop:	xret := "o__getOwnProperty" (l, prop) with elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
 proc o__getOwnProperty (l, prop) {
             x := hasField(l, prop);
             goto [x] hp nhp; 			(* Does the field exist? *)
@@ -22,17 +46,15 @@ with
 (* GETPROPERTY *)
 (* *********** *)
 
-proc o__getProperty (l, prop) {
+proc getProperty (l, prop) {
 
-			gop := [l, "@getOwnProperty"];
-			xret := gop (l, prop) with elab;
+			xret := "getOwnProperty" (l, prop) with elab;
 			goto [xret = $$undefined] next rlab;
 
 	next:	proto := [l, "@proto"];
 			goto [proto = $$null] rlab call;
 
-	call:	gp := [proto, "@getProperty"];
-			xret := gp (proto, prop) with elab;
+	call:	xret := "getProperty" (proto, prop) with elab;
 
     rlab:   skip;
     elab:	skip
@@ -47,18 +69,24 @@ with
 (* GET *)
 (* *** *)
 
-proc o__get (l, prop) {
-			gp := [l, "@getProperty"];
-			xret := gp (l, prop) with elab;
-			goto [xret = $$undefined] rlab def;		(* Does the field exist? *)
+proc get (l, prop) {
 
-	def:	d := l-nth (xret, 0);						(* Get the descriptor type *)
-			xret := l-nth (xret, 1);					(* Get the value/getter *)
+            [* unfold Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
+    ch0:	goto [typeOf(l) = $$object_type] ch1 elab;
+    ch1:	goto [typeOf(prop) = $$string_type] ch2 elab;
+    ch2:    goto [0 < s-len prop] ch3 elab;
+    ch3:	goto [not (s-nth(prop, 0) = "@")] start elab;
+
+	start:	xret := "getProperty" (l, prop) with elab;
+			goto [xret = $$undefined] rlab def;		(* Does the field exist?    *)
+
+	def:	d := l-nth (xret, 0);					(* Get the descriptor type  *)
+			xret := l-nth (xret, 1);				(* Get the value/getter     *)
 			goto [d = "d"] rlab acc;				(* Is it a data descriptor? *)
 
-	acc:	goto [xret = $$undefined] rlab get;		(* Is the getter defined? *)
-	get:	xsc := [xret, "@scope"];				(* Get the scope of the getter *)
-			fun := [xret, "@call"];					(* Get the name of the getter *)
+	acc:	goto [xret = $$undefined] rlab get;		(* Is the getter defined?               *)
+	get:	xsc := [xret, "@scope"];				(* Get the scope of the getter          *)
+			fun := [xret, "@call"];					(* Get the name of the getter           *)
 			xret := fun (xsc, l) with elab;			(* Call the getter, errors could happen *)
 			goto [xret = $$empty] undef rlab;
 	undef:	xret := $$undefined;
@@ -76,24 +104,22 @@ with
 (* CANPUT *)
 (* ****** *)
 
-proc o__canPut (l, prop) {
-			gop := [l, "@getOwnProperty"];
-            xret := gop (l, prop) with elab;
+proc canPut (l, prop) {
+            xret := "getOwnProperty" (l, prop) with elab;
 	op:		goto [xret = $$undefined] nop odesc; 	(* Does the own property exist? *)
 
 	odesc:	d := l-nth (xret, 0);						(* It does; get the descriptor type *)
-			goto [d = "d"] odd nop;					(* Is the descriptor a data descriptor? *)
+			goto [d = "d"] odd nop;					    (* Is the descriptor a data descriptor? *)
 
 	odd:	xret := l-nth (xret, 2);					(* It is; return the Writable attribute *)
 			goto rlab;
 
-	nop:	e := [l, "@extensible"];				(* Get the extensible property *)
-			gp := [l, "@getProperty"];
-			xret := gp (l, prop) with elab;			(* Does the property exist? *)
-			goto [xret = $$undefined] ext desc;		(* It doesn't; return extensible *)
+	nop:	e := [l, "@extensible"];				   (* Get the extensible property *)
+			xret := "getProperty" (l, prop) with elab; (* Does the property exist? *)
+			goto [xret = $$undefined] ext desc;		   (* It doesn't; return extensible *)
 
-	desc:	d := l-nth (xret, 0);						(* Get the descriptor type *)
-			v := l-nth (xret, 2);						(* Get the writable/setter *)
+	desc:	d := l-nth (xret, 0);					(* Get the descriptor type *)
+			v := l-nth (xret, 2);					(* Get the writable/setter *)
 			goto [d = "d"] dd ad;					(* Is it a data descriptor? *)
 
 	dd:		goto [e] wr ext;						(* Yes; is the object extensible? *)
@@ -118,23 +144,19 @@ with
 (* PUT *)
 (* *** *)
 
-proc o__put (l, prop, value, throw) {
-			cp := [l, "@canPut"];
-            xret := cp (l, prop) with elab;
+proc put (l, prop, value, throw) {
+            xret := "canPut" (l, prop) with elab;
             goto [xret] cp reject;
 
-    cp:     gop := [l, "@getOwnProperty"];
-    		xret := gop (l, prop) with elab;
+    cp:     xret := "getOwnProperty" (l, prop) with elab;
     		dd := "i__isDataDescriptor" (xret);
     		goto [dd] dd gp;
 
     dd:		desc := {{ "g", $$empty, $$empty, value, $$empty, $$empty, $$empty }};
-    		dop := [l, "@defineOwnProperty"];
-    		xret := dop (l, prop, desc, throw) with elab;
+    		xret := "defineOwnProperty" (l, prop, desc, throw) with elab;
     		goto remp;
 
-    gp:		gp := [l, "@getProperty"];
-    		xret := gp (l, prop) with elab;
+    gp:		xret := "getProperty" (l, prop) with elab;
     		ad := "i__isAccessorDescriptor" (xret);
     		goto [ad] ad def;
 
@@ -144,9 +166,8 @@ proc o__put (l, prop, value, throw) {
     		xret := fun (xsc, l, value) with elab;
     		goto remp;
 
-    def:	dop := [l, "@defineOwnProperty"];
-    		desc := {{ "g", $$t, $$t, value, $$t, $$empty, $$empty }};
-    		xret := dop (l, prop, desc, throw) with elab;
+    def:	desc := {{ "g", $$t, $$t, value, $$t, $$empty, $$empty }};
+    		xret := "defineOwnProperty" (l, prop, desc, throw) with elab;
 
     remp:   xret := $$empty;
     rlab:   skip;
@@ -165,9 +186,8 @@ with
 (* HASPROPERTY *)
 (* *********** *)
 
-proc o__hasProperty (l, prop) {
-			gp := [l, "@getProperty"];
-			xret := gp (l, prop) with elab;
+proc hasProperty (l, prop) {
+			xret := "getProperty" (l, prop) with elab;
 
 	rlab:	xret := not (xret = $$undefined);
 	elab:	skip
@@ -182,9 +202,8 @@ with
 (* DELETEPROPERTY *)
 (* ************** *)
 
-proc o__deleteProperty (l, prop, throw) {
-			gop := [l, "@getOwnProperty"];
-			xret := gop (l, prop) with elab;
+proc deleteProperty (l, prop, throw) {
+			xret := "getOwnProperty" (l, prop) with elab;
 			goto [xret = $$undefined] dt cont;
 
 	cont:	c := l-nth (xret, 4);
@@ -212,7 +231,7 @@ with
 (* DEFAULTVALUE *)
 (* ************ *)
 
-proc o__defaultValue (l, hint) {
+proc defaultValue (l, hint) {
 			goto [hint = $$empty] hint init;
 
 	hint:	hint := "Number";
@@ -226,8 +245,7 @@ proc o__defaultValue (l, hint) {
 	main:	goto [pass = 2] throw cc;
 
     cc:		pass := pass + 1;
-    		g := [l, "@get"];
-    		xret := g (l, proc_name) with elab;
+    		xret := "get" (l, proc_name) with elab;
     		goto [xret = $$undefined] next is_c;
 
     is_c:	c := "i__isCallable" (xret);
@@ -261,12 +279,35 @@ with
 (* DEFINEOWNPROPERTY *)
 (* ***************** *)
 
+(*
+ * General defineOwnProperty
+ * Branch on class: array or non-array
+ *)
+proc defineOwnProperty (l, prop, desc, throw) {
+
+			class := [l, "@class"];
+
+			goto [class = "Array"] adop odop;
+
+	adop:	xret := "a__defineOwnProperty" (l, prop, desc, throw) with elab;
+			goto rlab;
+
+	odop:	xret := "o__defineOwnProperty" (l, prop, desc, throw) with elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
 proc o__defineOwnProperty (l, prop, desc, throw) {
 
 			xret := $$t;
 
-			gop := [l, "@getOwnProperty"];
-			current := gop (l, prop) with celab;
+			current := "getOwnProperty" (l, prop) with celab;
 			extensible := [l, "@extensible"];
 
 			goto [(current = $$undefined) and (extensible = $$f)] reject l4;
@@ -576,23 +617,21 @@ proc i__fromPropertyDescriptor (desc) {
 
 	def:	xret := "Object_construct" ();
 
-			dop := [xret, "@defineOwnProperty"];
-
 			dd := "i__isDataDescriptor" (desc);
 			goto [dd] dd is_ac;
 
-	dd:		res := dop (xret, "value",    {{ "d", l-nth (desc, 1), $$t, $$t, $$t}}, $$f);
-			res := dop (xret, "writable", {{ "d", l-nth (desc, 2), $$t, $$t, $$t}}, $$f);
+	dd:		res := "defineOwnProperty" (xret, "value",    {{ "d", l-nth (desc, 1), $$t, $$t, $$t}}, $$f);
+			res := "defineOwnProperty" (xret, "writable", {{ "d", l-nth (desc, 2), $$t, $$t, $$t}}, $$f);
 			goto ec;
 
 	is_ac:	ad := "i__isAccessorDescriptor" (desc);
 			goto [ad] ad oops;
 
-	ad:		res := dop (xret, "get", {{ "d", l-nth (desc, 1), $$t, $$t, $$t}}, $$f);
-			res := dop (xret, "set", {{ "d", l-nth (desc, 2), $$t, $$t, $$t}}, $$f);
+	ad:		res := "defineOwnProperty" (xret, "get", {{ "d", l-nth (desc, 1), $$t, $$t, $$t}}, $$f);
+			res := "defineOwnProperty" (xret, "set", {{ "d", l-nth (desc, 2), $$t, $$t, $$t}}, $$f);
 
-	ec:		res := dop (xret, "enumerable",   {{ "d", l-nth (desc, 3), $$t, $$t, $$t}}, $$f);
-			res := dop (xret, "configurable", {{ "d", l-nth (desc, 4), $$t, $$t, $$t}}, $$f);
+	ec:		res := "defineOwnProperty" (xret, "enumerable",   {{ "d", l-nth (desc, 3), $$t, $$t, $$t}}, $$f);
+			res := "defineOwnProperty" (xret, "configurable", {{ "d", l-nth (desc, 4), $$t, $$t, $$t}}, $$f);
 			goto rlab;
 
 	oops:	xret := "fromPropertyDescriptor: This should not happen";
@@ -618,42 +657,39 @@ proc i__toPropertyDescriptor (v) {
 			de := $$empty;
 			dc := $$empty;
 
-			hp := [v, "@hasProperty"];
-			gt := [v, "@get"];
-
-	has_de:	res := hp (v, "enumerable");
+	has_de:	res := "hasProperty" (v, "enumerable");
 			goto [res] de has_dc;
-	de:		xret := gt (v, "enumerable") with elab;
+	de:		xret := "get" (v, "enumerable") with elab;
 			xret := "i__toBoolean" (xret);
 			de := xret;
 
-	has_dc:	res := hp (v, "configurable");
+	has_dc:	res := "hasProperty" (v, "configurable");
 			goto [res] dc has_dv;
-	dc:		xret := gt (v, "configurable") with elab;
+	dc:		xret := "get" (v, "configurable") with elab;
 			xret := "i__toBoolean" (xret);
 			dc := xret;
 
-	has_dv:	res := hp (v, "value");
+	has_dv:	res := "hasProperty" (v, "value");
 			goto [res] dv has_dw;
-	dv:		xret := gt (v, "value") with elab;
+	dv:		xret := "get" (v, "value") with elab;
 			dv := xret;
 
-	has_dw:	res := hp (v, "writable");
+	has_dw:	res := "hasProperty" (v, "writable");
 			goto [res] dw has_dg;
-	dw:		xret := gt (v, "writable") with elab;
+	dw:		xret := "get" (v, "writable") with elab;
 			xret := "i__toBoolean" (xret);
 			dw := xret;
 
-	has_dg:	res := hp (v, "get");
+	has_dg:	res := "hasProperty" (v, "get");
 			goto [res] dg has_ds;
-	dg:		xret := gt (v, "get") with elab;
+	dg:		xret := "get" (v, "get") with elab;
 			call := "i__isCallable" (xret);
 			goto [call or (xret = $$undefined)] get throw;
 	get:	dg := xret;
 
-	has_ds:	res := hp (v, "set");
+	has_ds:	res := "hasProperty" (v, "set");
 			goto [res] ds check;
-	ds:		xret := gt (v, "set") with elab;
+	ds:		xret := "get" (v, "set") with elab;
 			call := "i__isCallable" (xret);
 			goto [call or (xret = $$undefined)] set throw;
 	set:	ds := xret;
@@ -694,8 +730,7 @@ proc i__getValue (v) {
 	prim:	goto [(is_primitive rbase) and (not (rbase = $$undefined)) and (not (rbase = $$null))] is_pr ref;
 
 	is_pr:	xret := "i__toObject" (rbase) with elab;
-			gp := [xret, "@getProperty"];
-			xret := gp (xret, rfield) with elab;
+			xret := "getProperty" (xret, rfield) with elab;
 			goto [xret = $$undefined] rlab def;
 	def:	d := l-nth (xret, 0);						(* Get the descriptor type *)
 			xret := l-nth (xret, 1);					(* Get the value/getter *)
@@ -710,14 +745,12 @@ proc i__getValue (v) {
 
 	ref:	goto [(typeOf(v) = $$list_type) and (l-nth (v, 0) = "o")] oref vref;
 
-	oref:	gp := [rbase, "@get"];
-			xret := gp (rbase, rfield) with elab;
+	oref:	xret := "get" (rbase, rfield) with elab;
 			goto rlab;
 
 	vref:	goto [rbase = $lg] lg er;
 
-	lg:		gp := [$lg, "@get"];
-			xret := gp (rbase, rfield) with elab;
+	lg:		xret := "get" (rbase, rfield) with elab;
 			goto rlab;
 
 	er:		xret := [rbase, rfield];
@@ -751,14 +784,12 @@ proc i__putValue (v, w) {
 
 	refr:	goto [(typeOf(v) = $$list_type) and (l-nth (v, 0) = "o")] oref vref;
 
-	oref:	p := [rbase, "@put"];
-			xret := p (rbase, rfield, w, $$t) with elab;
+	oref:	xret := "put" (rbase, rfield, w, $$t) with elab;
 			goto dflt;
 
 	vref:	goto [rbase = $lg] lg er;
 
-	lg:		p := [$lg, "@put"];
-			xret := p (rbase, rfield, w, $$t) with elab;
+	lg:		xret := "put" (rbase, rfield, w, $$t) with elab;
 			goto dflt;
 
 	er:		[rbase, rfield] := w;
@@ -773,12 +804,10 @@ proc i__putValue (v, w) {
 
 	is_pr:	xret := "i__toObject" (rbase) with elab;
 			l := xret;
-    		cp := [l, "@canPut"];
-            xret := cp (l, rfield) with elab;
+    		xret := "canPut" (l, rfield) with elab;
             goto [xret] cp reject;
 
-    cp:     gp := [l, "@getProperty"];
-    		xret := gp (l, rfield) with elab;
+    cp:     xret := "getProperty" (l, rfield) with elab;
     		dd := "i__isDataDescriptor" (xret);
     		goto [dd] reject is_ad;
 
@@ -841,8 +870,7 @@ proc i__toPrimitive (v, hint) {
 
 	is_obj:	print := "object";
 			goto [typeOf(v) = $$object_type] obj oops;
-	obj:	dv := [v, "@defaultValue"];
-			xret := dv (v, hint) with elab;
+	obj:	xret := "defaultValue" (v, hint) with elab;
 			goto rlab;
 
 	oops:	xret := "ToPrimitive: This should not happen.";
@@ -1113,12 +1141,9 @@ with
 (* ********** *)
 
 proc i__isCallable (l) {
-			goto [typeOf (l) = $$object_type] obj endf;
-	obj:	xret := [l, "@call"];
-			goto [xret = $$empty] endf endt;
-	endt:	xret := $$t;
-			goto rlab;
-	endf:	xret := $$f;
+			xret := $$f;
+			goto [typeOf(l) = $$object_type] obj rlab;
+	obj:	xret := hasField(l, "@call");
 	rlab:	skip
 }
 with
@@ -1266,8 +1291,8 @@ proc i__typeOf (v) {
 			goto rlab;
 
 	io:		goto [typeOf(v) = $$object_type] obj oops;
-	obj:	xret := [v, "@call"];
-			goto [xret = $$empty] isobj isfun;
+	obj:	xret := hasField(v, "@call");
+			goto [xret] isfun isobj;
 
 	isobj:	xret := "object";
 			goto rlab;
@@ -1442,12 +1467,29 @@ with
 (* HASINSTANCE *)
 (* *********** *)
 
+proc hasInstance(v1, v2) {
+			bind := hasField(v1, "@targetFunction");
+			goto [bind] bind norm;
+
+	bind:	xret := "FP_hasInstanceAfterBind" (v1, v2) with elab;
+			goto rlab;
+
+	norm:	xret := "f__hasInstance" (v1, v2) with elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
 proc f__hasInstance(v1, v2) {
 
 			goto [not (typeOf (v2) = $$object_type)] rf s2;
 
-	s2:		g := [v1, "@get"];
-			xret := g (v1, "prototype") with elab;
+	s2:		xret := "get" (v1, "prototype") with elab;
 			goto [not (typeOf (xret) = $$object_type)] throw s4;
 
 	s4:		v2 := [v2, "@proto"];
@@ -1458,25 +1500,6 @@ proc f__hasInstance(v1, v2) {
 			goto rlab;
 
 	rf:		xret := $$f;
-	rlab:	skip;
-
-	throw:	xret := "TypeError" ();
-	elab:	skip
-}
-with
-{
-	ret:	xret, rlab;
-	err:	xret, elab;
-};
-
-(* ************ *)
-(* FUNCTION GET *)
-(* ************ *)
-
-proc f__get(o, prop) {
-			xret := "o__get" (o, prop) with elab;
-			goto [prop = "caller"] elab rlab;
-
 	rlab:	skip;
 
 	throw:	xret := "TypeError" ();
