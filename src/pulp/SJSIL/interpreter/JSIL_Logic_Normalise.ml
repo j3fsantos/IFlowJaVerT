@@ -578,9 +578,8 @@ let normalise_assertion a : symbolic_state * substitution =
 	extend_typing_env_using_assertion_info ((pfs_to_list p_formulae) @ (Symbolic_State_Functions.pf_of_store2 store)) gamma;
 	let preds, new_assertions = init_preds a store gamma subst in
 	extend_typing_env_using_assertion_info new_assertions gamma;
-	Symbolic_State_Functions.extend_pfs p_formulae None new_assertions;
-
-
+	Symbolic_State_Functions.extend_pfs p_formulae None new_assertions;	
+	
 	Printf.printf "----- Stage 3 ----- \n\n";
 	Printf.printf "Normalise assertion: heap  :%s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false);
 	Printf.printf "Normalise assertion: pfrs  :%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
@@ -641,7 +640,8 @@ let normalise_single_spec preds spec =
 						let pre_symb_state, (lvars, subst) = normalise_precondition pre in
 						Printf.printf "I am going to check whether the following precondition makes sense:\n%s\n"
 							(JSIL_Memory_Print.string_of_shallow_symb_state pre_symb_state);
-						let is_valid_precond = Pure_Entailment.check_satisfiability (get_pf_list pre_symb_state) (get_gamma pre_symb_state) [] in
+						let heap_constraints = Symbolic_State_Functions.get_heap_well_formedness_constraints (get_heap pre_symb_state) in 
+						let is_valid_precond = Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list pre_symb_state)) (get_gamma pre_symb_state) [] in
 						if (is_valid_precond)
 						then begin
 							Printf.printf "The precondition makes sense.\n";
@@ -649,7 +649,8 @@ let normalise_single_spec preds spec =
 									List.fold_left
 										(fun (ac_posts, ac_posts_lvars) post ->
 													let post_symb_state, post_lvars = normalise_postcondition post subst lvars in
-													if (Pure_Entailment.check_satisfiability (get_pf_list post_symb_state) (get_gamma post_symb_state) post_lvars)
+													let heap_constraints = Symbolic_State_Functions.get_heap_well_formedness_constraints (get_heap post_symb_state) in 
+													if (Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list post_symb_state)) (get_gamma post_symb_state) post_lvars)
 													then ((post_symb_state :: ac_posts), (post_lvars :: ac_posts_lvars))
 													else ac_posts, ac_posts_lvars)
 										([], [])
@@ -727,8 +728,8 @@ let normalise_predicate_definitions pred_defs : (string, JSIL_Memory_Model.n_jsi
 											pre_normalised_as in
 										let normalised_as = List.filter
 											(fun symb_state ->
-
-												Pure_Entailment.check_satisfiability (get_pf_list symb_state) (get_gamma symb_state) [])
+												let heap_constraints = Symbolic_State_Functions.get_heap_well_formedness_constraints (get_heap symb_state) in 
+												Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list symb_state)) (get_gamma symb_state) [])
 											normalised_as in
 										(* List.iter
 											(fun symb_state ->

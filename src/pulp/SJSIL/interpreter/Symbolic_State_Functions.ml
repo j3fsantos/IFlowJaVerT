@@ -217,6 +217,35 @@ let get_heap_vars var_tbl catch_pvars heap =
 		heap
 
 
+let make_all_different_assertion_from_fvlist fv_list : jsil_logic_assertion list = 
+	
+	let rec make_all_different_assertion_from_field_and_fvlist field fv_list = 
+		let rec loop fv_list constraints =
+			match fv_list with 
+			| [] -> constraints
+			| (f_name, f_val) :: rest ->
+				loop rest ((LEq (field, f_name)) :: constraints) in 
+		loop fv_list [] in  
+	
+	let rec loop fields_to_cover fields_covered constraints = 
+		match fields_to_cover with 
+		| [] -> constraints 
+		| (f_name, f_val) :: rest -> 
+			let new_constraints = make_all_different_assertion_from_field_and_fvlist f_val (fields_covered @ rest) in 
+			loop rest ((f_name, f_val) :: fields_covered) (new_constraints @ constraints) in 
+	
+	loop fv_list [] []
+	
+
+let get_heap_well_formedness_constraints heap = 
+	LHeap.fold 
+		(fun _ (fv_list, _) constraints -> 
+			let new_constraints = make_all_different_assertion_from_fvlist fv_list in 
+			new_constraints @ constraints)
+		heap 
+		[]		
+			
+
 (*************************************)
 (** Abstract Store functions        **)
 (*************************************)
