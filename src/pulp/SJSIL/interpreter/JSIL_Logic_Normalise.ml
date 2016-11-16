@@ -657,8 +657,7 @@ let normalise_single_spec preds spec =
 													else ac_posts, ac_posts_lvars)
 										([], [])
 										unfolded_posts in
-								(if (posts = []) then Printf.printf "WARNING: No valid postconditions found.\n" else
-								                      Printf.printf "ALL GOOD: Valid postconditions found.\n");
+								(if (posts = []) then Printf.printf "WARNING: No valid postconditions found.\n");
 								Some {
 									n_pre = pre_symb_state;
 									n_post = posts;
@@ -668,7 +667,7 @@ let normalise_single_spec preds spec =
 									n_subst = subst
 								})
 						end else begin
-							Printf.printf "The precondition does not make sense.\n";
+							Printf.printf "WARNING: The precondition does not make sense.\n";
 							None
 						end)
 			unfolded_pres in
@@ -733,6 +732,8 @@ let normalise_predicate_definitions pred_defs : (string, JSIL_Memory_Model.n_jsi
 												let heap_constraints = Symbolic_State_Functions.get_heap_well_formedness_constraints (get_heap symb_state) in 
 												Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list symb_state)) (get_gamma symb_state) [])
 											normalised_as in
+										(if ((List.length normalised_as) = 0) 
+											then Printf.printf "WARNING: One predicate definition does not make sense!.\n");
 										(* List.iter
 											(fun symb_state ->
 												 Printf.printf "I found one valid unfolding of %s.\n" pred_name;

@@ -585,7 +585,12 @@ let symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 		(match a with
 		| LPred (pred_name, les) ->
 			let params, pred_defs, args = get_pred_data pred_name les in
-			unfold_predicates pred_name pred_defs symb_state params args spec_vars
+			let symb_states = unfold_predicates pred_name pred_defs symb_state params args spec_vars in 
+			if ((List.length symb_states) = 0) then (
+				Printf.printf "\nCould not unfold: %s\n" pred_name;
+				let msg = Printf.sprintf "Could not fold: %s " (JSIL_Print.string_of_logic_assertion a false) in
+				raise (Failure msg)) 
+			else symb_states
 		| _ ->
 			let msg = Printf.sprintf "Illegal unfold command %s" (JSIL_Print.string_of_logic_assertion a false) in
 			raise (Failure msg))
