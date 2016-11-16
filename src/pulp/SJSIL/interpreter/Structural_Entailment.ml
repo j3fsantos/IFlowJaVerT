@@ -97,7 +97,7 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 
 
 let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae solver (gamma: typing_environment) (subst : (string, jsil_logic_expr) Hashtbl.t) : (bool * ((string * jsil_logic_expr) option)) =
-	Printf.printf "unify_lexprs: %s versus %s\n" (JSIL_Print.string_of_logic_expression le_pat false)  (JSIL_Print.string_of_logic_expression le false);
+	(* Printf.printf "unify_lexprs: %s versus %s\n" (JSIL_Print.string_of_logic_expression le_pat false)  (JSIL_Print.string_of_logic_expression le false); *)
 	match le_pat with
 	| LVar var
 	| ALoc var ->
@@ -126,7 +126,7 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae solver (gamma: typ
 			else (false, None)
 
 	| LEList ple ->
-		Printf.printf "Now, are these lists equal?\n";
+		(* Printf.printf "Now, are these lists equal?\n"; *)
 		let list_eq lx ly = List.fold_left2
 			(fun ac x y ->
 				(* Printf.printf "%s == %s? " (JSIL_Print.string_of_logic_expression x false) (JSIL_Print.string_of_logic_expression y false); *)
@@ -154,9 +154,9 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae solver (gamma: typ
 					(is_eq, None)
 			else (false, None)
 		| le' ->
-			Printf.printf "Second thingy not a list.\n";
+			(* Printf.printf "Second thingy not a list.\n"; *)
 			let le'' = find_me_baby le' (Hashtbl.create 1) p_formulae in
-			Printf.printf "find_me_baby says: %s\n" (JSIL_Print.string_of_logic_expression le'' false);
+			(* Printf.printf "find_me_baby says: %s\n" (JSIL_Print.string_of_logic_expression le'' false); *)
 			if (le'' == le') then (false, None)
 			else
 			begin
@@ -197,7 +197,7 @@ let unify_symb_fv_lists pat_fv_list fv_list def_val p_formulae solver gamma subs
 			Printf.sprintf "Field-val pair (%s, %s) in pattern has not been matched" pat_field_str pat_val_str in
 	*)
 
-	Printf.printf "Inside unify_symb_fv_lists. pat_fv_list: %s. fv_list: %s.\n" (JSIL_Memory_Print.string_of_symb_fv_list pat_fv_list false) (JSIL_Memory_Print.string_of_symb_fv_list fv_list false);
+	(* Printf.printf "Inside unify_symb_fv_lists. pat_fv_list: %s. fv_list: %s.\n" (JSIL_Memory_Print.string_of_symb_fv_list pat_fv_list false) (JSIL_Memory_Print.string_of_symb_fv_list fv_list false); *)
 
 	let rec order_pat_fv_list pat_fv_list props_and_values props values other =
 		match pat_fv_list with
@@ -216,7 +216,7 @@ let unify_symb_fv_lists pat_fv_list fv_list def_val p_formulae solver gamma subs
 			let res = unify_fv_pair (pat_field, pat_val) fv_list p_formulae solver gamma subst in
 			(match res with
 			| None ->
-				Printf.printf "I could NOT unify an fv-pair. pat_val: %s. def_val: %s\n" (JSIL_Print.string_of_logic_expression pat_val false) (JSIL_Print.string_of_logic_expression def_val false);
+				(* Printf.printf "I could NOT unify an fv-pair. pat_val: %s. def_val: %s\n" (JSIL_Print.string_of_logic_expression pat_val false) (JSIL_Print.string_of_logic_expression def_val false); *)
 				(match def_val with
 				| LUnknown -> None
 				| _ ->
@@ -227,7 +227,7 @@ let unify_symb_fv_lists pat_fv_list fv_list def_val p_formulae solver gamma subs
 			| Some (rest_fv_list, matched_fv_pair) ->
 				loop rest_fv_list rest_pat_list (matched_fv_pair :: matched_fv_list)) in
 	let order_pat_list = order_pat_fv_list pat_fv_list [] [] [] [] in
-	Printf.printf "OogaBooga: %s\n" (JSIL_Memory_Print.string_of_symb_fv_list order_pat_list false);
+	(* Printf.printf "OogaBooga: %s\n" (JSIL_Memory_Print.string_of_symb_fv_list order_pat_list false); *)
 	loop fv_list order_pat_list []
 
 
@@ -288,7 +288,7 @@ let unify_pred_against_pred (pat_pred : (string * (jsil_logic_expr list))) (pred
 	let pat_pred_name, pat_pred_args = pat_pred in
 	let pred_name, pred_args = pred in
 
-	Printf.printf "Trying to unify \n\t%s\n\t\tagainst\n\t%s\n" (JSIL_Memory_Print.string_of_pred pat_pred false) (JSIL_Memory_Print.string_of_pred pred false);
+	(* Printf.printf "Trying to unify \n\t%s\n\t\tagainst\n\t%s\n" (JSIL_Memory_Print.string_of_pred pat_pred false) (JSIL_Memory_Print.string_of_pred pred false); *)
 	let rec unify_expr_lists pat_list list subst =
 		(match pat_list, list with
 		| [], [] -> ( Printf.printf "Success in predicate set unification\n"; true)
