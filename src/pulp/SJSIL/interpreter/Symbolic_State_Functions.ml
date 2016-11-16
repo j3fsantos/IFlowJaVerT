@@ -224,7 +224,7 @@ let make_all_different_assertion_from_fvlist fv_list : jsil_logic_assertion list
 			match fv_list with 
 			| [] -> constraints
 			| (f_name, f_val) :: rest ->
-				loop rest ((LEq (field, f_name)) :: constraints) in 
+				loop rest ((LNot (LEq (field, f_name))) :: constraints) in 
 		loop fv_list [] in  
 	
 	let rec loop fields_to_cover fields_covered constraints = 

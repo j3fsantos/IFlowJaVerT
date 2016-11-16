@@ -650,6 +650,8 @@ let normalise_single_spec preds spec =
 										(fun (ac_posts, ac_posts_lvars) post ->
 													let post_symb_state, post_lvars = normalise_postcondition post subst lvars in
 													let heap_constraints = Symbolic_State_Functions.get_heap_well_formedness_constraints (get_heap post_symb_state) in 
+													Printf.printf "For the postcondition to make sense the following must be satisfiable:\n%s\n" 
+														(JSIL_Print.str_of_assertion_list (heap_constraints @ (get_pf_list post_symb_state)));
 													if (Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list post_symb_state)) (get_gamma post_symb_state) post_lvars)
 													then ((post_symb_state :: ac_posts), (post_lvars :: ac_posts_lvars))
 													else ac_posts, ac_posts_lvars)
