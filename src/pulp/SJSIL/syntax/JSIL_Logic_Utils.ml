@@ -959,7 +959,7 @@ let rec lift_logic_expr lexpr =
 	| LLit (Bool false) -> None, Some LFalse
 	| _ -> Some lexpr, Some (LEq (lexpr, LLit (Bool true))))
 and lift_binop_logic_expr op le1 le2 =
-	let err_msg = (Printf.sprintf "logical expression: binop %s :cannot be lifted to assertion" (JSIL_Print.string_of_binop op)) in
+	let err_msg = (Printf.sprintf "logical expression: binop %s : cannot be lifted to assertion" (JSIL_Print.string_of_binop op)) in
 	let f = lift_logic_expr in
 	let lexpr_to_ass_binop binop =
 		(match binop with
@@ -976,7 +976,9 @@ and lift_binop_logic_expr op le1 le2 =
 		let l_op_fun = lexpr_to_ass_binop op in
 		(match ((f le1), (f le2)) with
 		| ((Some le1, _), (Some le2, _)) -> None, Some (l_op_fun le1 le2)
-		| (_, _) -> raise (Failure (err_msg ^ " <=#")))
+		| ((None    , _), (Some   _, _)) -> raise (Failure (err_msg ^ " : LEFT : " ^ (Printf.sprintf "%s" (JSIL_Print.string_of_logic_expression le1 false)) ^ " : right : " ^ (Printf.sprintf "%s" (JSIL_Print.string_of_logic_expression le2 false))))
+		| ((Some   _, _), (None    , _)) -> raise (Failure (err_msg ^ " : left : " ^ (Printf.sprintf "%s" (JSIL_Print.string_of_logic_expression le1 false)) ^ " : RIGHT : " ^ (Printf.sprintf "%s" (JSIL_Print.string_of_logic_expression le2 false))))
+		| ((None    , _), (None    , _)) -> raise (Failure (err_msg ^ " : left and right.")))
 	| And ->
 		(match ((f le1), (f le2)) with
 		| ((_, Some a1), (_, Some a2)) -> None, Some (LAnd (a1, a2))
@@ -988,7 +990,7 @@ and lift_binop_logic_expr op le1 le2 =
 	| _ -> Some (LBinOp (le1, op, le2)), None)
 and lift_unop_logic_expr op le =
 	let f = lift_logic_expr in
-	let err_msg = "logical expression unop cannot be lifted to assertion" in
+	let err_msg = "Logical expression unop cannot be lifted to assertion." in
 	(match op with
 	| Not ->
 		(match (f le) with
