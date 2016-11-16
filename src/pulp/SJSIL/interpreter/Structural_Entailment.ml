@@ -42,8 +42,13 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 					discharges
 
 				| LVar lvar, _ ->
-					extend_subst pat_subst lvar lexpr;
-					discharges
+					if (Hashtbl.mem pat_subst lvar)
+						then (let current = Hashtbl.find pat_subst lvar in
+							if Pure_Entailment.is_equal current lexpr (DynArray.of_list pfs) solver gamma
+								then discharges
+								else raise (Failure "No no no no NO."))
+						else (extend_subst pat_subst lvar lexpr;
+								discharges)
 
 				| ALoc pat_aloc, LVar lvar ->
 					(* Printf.printf "So, Aloc %s, Lvar %s\n" pat_aloc lvar; *)
@@ -821,7 +826,7 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 		let gamma_0' = Symbolic_State_Functions.gamma_substitution gamma_0' subst true in
 		extend_gamma gamma_0 gamma_0';
 		let gamma_1'' = Symbolic_State_Functions.gamma_substitution gamma_1 new_pat_subst false in
-		Printf.printf "gamma_1'' is:\n%s\n" (JSIL_Memory_Print.string_of_gamma gamma_1''); 
+		Printf.printf "gamma_1'' is:\n%s\n" (JSIL_Memory_Print.string_of_gamma gamma_1'');
 		extend_gamma gamma_0 gamma_1'';
 		let gamma = gamma_0 in
 		JSIL_Logic_Normalise.extend_typing_env_using_assertion_info pi gamma;
