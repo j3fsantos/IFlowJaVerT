@@ -615,7 +615,6 @@ let normalise_postcondition a subst (lvars : string list) : symbolic_state * (st
 
 let normalise_single_spec preds spec =
 
-
 	Printf.printf "Precondition  : %s\n" (JSIL_Print.string_of_logic_assertion spec.pre false);
 	Printf.printf "Postcondition : %s\n" (JSIL_Print.string_of_logic_assertion spec.post false);
 (*	Printf.printf "UPrecondition : %s\n" (JSIL_Print.string_of_logic_assertion unfolded_pre false);
