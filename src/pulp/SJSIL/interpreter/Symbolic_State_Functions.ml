@@ -421,8 +421,14 @@ let rec gamma_substitution gamma subst partial =
 				(if (partial) then
 					Hashtbl.add new_gamma var v_type))
 			with _ ->
-				(if (partial) then
-					Hashtbl.add new_gamma var v_type))
+				(if (partial) 
+					then	Hashtbl.add new_gamma var v_type
+					else (
+						if (is_lvar_name var) then (						
+							let new_lvar = JSIL_Memory_Model.fresh_lvar () in 
+							Hashtbl.add subst var (LVar new_lvar); 
+							Hashtbl.add new_gamma new_lvar v_type
+						))))
 		gamma;
 	new_gamma
 

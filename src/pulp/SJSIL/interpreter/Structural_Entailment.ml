@@ -311,7 +311,7 @@ let unify_pred_against_pred (pat_pred : (string * (jsil_logic_expr list))) (pred
 
 
 let unify_pred_against_pred_set (pat_pred : (string * (jsil_logic_expr list))) (preds : (string * (jsil_logic_expr list)) list) p_formulae solver gamma (subst : substitution) =
-	Printf.printf "Entering unify_pred_against_pred_set.\n";
+	(* Printf.printf "Entering unify_pred_against_pred_set.\n"; *)
 	let rec loop preds quotient_preds =
 		(match preds with
 		| [] -> None, quotient_preds
@@ -321,12 +321,12 @@ let unify_pred_against_pred_set (pat_pred : (string * (jsil_logic_expr list))) (
 			| None -> loop rest_preds (pred :: quotient_preds)
 			| Some new_subst -> Some new_subst, (quotient_preds @ rest_preds))) in
 	let result = loop preds [] in
-	Printf.printf "Exiting unify_pred_against_pred_set.\n";
+	(* Printf.printf "Exiting unify_pred_against_pred_set.\n"; *)
 	result
 
 
 let unify_pred_list_against_pred_list (pat_preds : (string * (jsil_logic_expr list)) list) (preds : (string * (jsil_logic_expr list)) list) p_formulae solver gamma (subst : substitution) =
-	Printf.printf "Entering unify_pred_list_against_pred_list.\n";
+	(* Printf.printf "Entering unify_pred_list_against_pred_list.\n"; *)
 	let rec loop pat_preds preds subst =
 		(match pat_preds with
 		| [] -> Some (subst, (DynArray.of_list preds))
@@ -336,22 +336,22 @@ let unify_pred_list_against_pred_list (pat_preds : (string * (jsil_logic_expr li
 			| None -> None
 			| Some new_subst -> loop rest_pat_preds rest_preds new_subst)) in
 	let result = loop pat_preds preds subst in
-	Printf.printf "Exiting unify_pred_list_against_pred_list.\n";
+	(* Printf.printf "Exiting unify_pred_list_against_pred_list.\n"; *)
 	result
 
 
 let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) p_formulae solver gamma (subst : substitution) =
-	Printf.printf "Entering unify_pred_arrays.\n";
+	(* Printf.printf "Entering unify_pred_arrays.\n"; *)
 	let pat_preds = DynArray.to_list pat_preds in
 	let preds = DynArray.to_list preds in
 	unify_pred_list_against_pred_list pat_preds preds p_formulae solver gamma subst
 
 
 let unify_gamma pat_gamma gamma pat_store subst ignore_vars =
-  Printf.printf "I am about to unify two gammas\n";
+  (* Printf.printf "I am about to unify two gammas\n";
 	 	Printf.printf "pat_gamma: %s.\ngamma: %s.\nsubst: %s\n"
 		(JSIL_Memory_Print.string_of_gamma pat_gamma) (JSIL_Memory_Print.string_of_gamma gamma)
-		(JSIL_Memory_Print.string_of_substitution subst);
+		(JSIL_Memory_Print.string_of_substitution subst); *)
 	let res = (Hashtbl.fold
 		(fun var v_type ac ->
 			(* (not (is_lvar_name var)) *)
@@ -376,16 +376,16 @@ let unify_gamma pat_gamma gamma pat_store subst ignore_vars =
 								(JSIL_Print.string_of_type le_type); *)
 							(le_type = v_type)
 						| None ->
-							 Printf.printf "failed unify_gamma. pat gamma var: %s. le: %s. v_type: %s\n"
+							 (* Printf.printf "failed unify_gamma. pat gamma var: %s. le: %s. v_type: %s\n"
 								var
 								(JSIL_Print.string_of_logic_expression le false)
-								(JSIL_Print.string_of_type v_type);
+								(JSIL_Print.string_of_type v_type); *)
 							false
 					with _ ->
 						true))
 		pat_gamma
 		true) in
-	Printf.printf "\nEXITING unify_gamma: res: %b\n\n" res;
+	(* Printf.printf "\nEXITING unify_gamma: res: %b\n\n" res;*)
 	res
 
 
@@ -821,6 +821,7 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 		let gamma_0' = Symbolic_State_Functions.gamma_substitution gamma_0' subst true in
 		extend_gamma gamma_0 gamma_0';
 		let gamma_1'' = Symbolic_State_Functions.gamma_substitution gamma_1 new_pat_subst false in
+		Printf.printf "gamma_1'' is:\n%s\n" (JSIL_Memory_Print.string_of_gamma gamma_1''); 
 		extend_gamma gamma_0 gamma_1'';
 		let gamma = gamma_0 in
 		JSIL_Logic_Normalise.extend_typing_env_using_assertion_info pi gamma;

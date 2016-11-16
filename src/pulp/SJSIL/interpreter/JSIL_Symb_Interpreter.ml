@@ -530,7 +530,9 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 			let unfolded_symb_state = Structural_Entailment.unfold_predicate_definition symb_state pred_symb_state calling_store subst0 spec_vars in
 			(match unfolded_symb_state with
 			| None -> Printf.printf "Unfolding UNsuccessful!!!\n"; loop rest_pred_defs symb_states
-			| Some unfolded_symb_state ->  Printf.printf "Unfolding SUCCESSFUL!!!\n"; loop rest_pred_defs (unfolded_symb_state :: symb_states))) in
+			| Some unfolded_symb_state ->  
+				Printf.printf "Unfolding SUCCESSFUL!!!\n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_state unfolded_symb_state);
+				loop rest_pred_defs (unfolded_symb_state :: symb_states))) in
 
 	loop pred_defs []
 
