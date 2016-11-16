@@ -137,16 +137,16 @@ pred isReferenceError(l) :
     ErrorObject (l, $lrferr_proto);
 
 (*
- * Predicate: Class(l, X)
+ * Predicate: isClass(c, X)
  *
  * Resource:
  *      (l, "@class")
  *
  *)
-pred Class (l, "Array")      : types (l : $$object_type) * ((l, "@class") -> "Array");
-pred Class (l, "String")     : types (l : $$object_type) * ((l, "@class") -> "String");
-pred Class (l, "Non-String") : types (l : $$object_type, #c : $$string_type) * ((l, "@class") -> #c) * (!(#c == "String"));
-pred Class (l, "Non-Array")  : types (l : $$object_type, #c : $$string_type) * ((l, "@class") -> #c) * (!(#c == "Array"));
+pred isClass (c, "Array")      : types (c : $$string_type) * (c == "Array");
+pred isClass (c, "String")     : types (c : $$string_type) * (c == "String");
+pred isClass (c, "Non-String") : types (c : $$string_type) * (! (c == "String"));
+pred isClass (c, "Non-Array")  : types (c : $$string_type) * (! (c == "Array"));
 
 (*
  * The PI predicate
@@ -154,85 +154,88 @@ pred Class (l, "Non-Array")  : types (l : $$object_type, #c : $$string_type) * (
 
 (*
  * Resource:
- *		(l, "@class")   via Class
+ *		(l, "@class")   via isClass
  *		(l, "@proto")	(l, "prop")
  *)
-pred Pi (l, prop, $$undefined, ls, ltf, lpv) :
-    types(l : $$object_type, prop : $$string_type, ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
-	((l, "@proto") -> $$null) *
-	Class (l, "Non-String") * Cell_o (l, prop, None) *
+pred Pi (l, prop, cls, $$undefined, ls, ltf, lpv) :
+    types(l : $$object_type, prop : $$string_type, cls : $$string_type, ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
+	((l, "@proto") -> $$null) * ((l, "@class") -> cls) *
+	isClass (cls, "Non-String") * Cell_o (l, prop, None) *
     (ls == {{ l }}) * (ltf == {{ $$f }}) * (lpv == {{ "" }});
 
 (*
  * Resource:
- *		(l, "@class")   via Class
+ *		(l, "@class")   via isClass
  *		(l, "@proto")	(l, "prop")
  *)
-pred Pi (l, prop, d, ls, ltf, lpv) :
-    types(l : $$object_type, prop : $$string_type, d : $$list_type, ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
-	Class (l, "Non-String") * Cell_o (l, prop, d) * DataDescriptor(d) *
+pred Pi (l, prop, cls, d, ls, ltf, lpv) :
+    types(l : $$object_type, prop : $$string_type, cls : $$string_type, d : $$list_type, ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
+	((l, "@class") -> cls) *
+	isClass (cls, "Non-String") * Cell_o (l, prop, d) * DataDescriptor(d) *
     (ls == {{ l }}) * (ltf == {{ $$f }}) * (lpv == {{ "" }});
 
 (*
  * Resource:
- *		(l, "@class")   via Class
+ *		(l, "@class")   via isClass
  *		(l, "@proto")	(l, "prop")		(l, "@primitiveValue")
  *)
-pred Pi (l, prop, $$undefined, ls, ltf, lpv) :
-    types(l : $$object_type, prop : $$string_type, ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
-	((l, "@proto") -> $$null) *
-    Class (l, "String") * Cell_s (l, prop, "None", None, #pv) *
+pred Pi (l, prop, cls, $$undefined, ls, ltf, lpv) :
+    types(l : $$object_type, prop : $$string_type, cls : $$string_type, ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
+	((l, "@proto") -> $$null) * ((l, "@class") -> cls) *
+    isClass (cls, "String") * Cell_s (l, prop, "None", None, #pv) *
     (ls == {{ l }}) * (ltf == {{ $$t }}) * (lpv == {{ #pv }});
 
 (*
  * Resource:
- *		(l, "@class")   via Class
+ *		(l, "@class")   via isClass
  *		(l, "@proto")	(l, "prop")		(l, "@primitiveValue")
  *)
-pred Pi (l, prop, d, ls, ltf, lpv) :
-    types(l : $$object_type, prop : $$string_type, d : $$list_type, ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
-	Class (l, "String") * Cell_s (l, prop, "SI", d, #pv) *
+pred Pi (l, prop, cls, d, ls, ltf, lpv) :
+    types(l : $$object_type, prop : $$string_type, cls : $$string_type, d : $$list_type, ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
+	((l, "@class") -> cls) *
+	isClass (cls, "String") * Cell_s (l, prop, "SI", d, #pv) *
 	(ls == {{ l }}) * (ltf == {{ $$t }}) * (lpv == {{ #pv }});
 
 (*
  * Resource:
- *		(l, "@class")   via Class
+ *		(l, "@class")   via isClass
  *		(l, "@proto")	(l, "prop")		(l, "@primitiveValue")
  *)
-pred Pi (l, prop, d, ls, ltf, lpv) :
-    types(l : $$object_type, prop : $$string_type, d : $$list_type, ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
-	Class (l, "String") * Cell_s (l, prop, "NSI", d, #pv) *
+pred Pi (l, prop, cls, d, ls, ltf, lpv) :
+    types(l : $$object_type, prop : $$string_type, cls : $$string_type, d : $$list_type, ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
+	((l, "@class") -> cls) *
+	isClass (cls, "String") * Cell_s (l, prop, "NSI", d, #pv) *
     (ls == {{ l }}) * (ltf == {{ $$t }}) * (lpv == {{ #pv }});
 
 (*
  * Resource:
- *		(l, "@class")   via Class
+ *		(l, "@class")   via isClass
  *		(l, "@proto")	(l, "prop")		(l, "@primitiveValue")
  *
  *		Those five fields captured throughout the chain
  *)
-pred Pi (l, prop, d, ls, ltf, lpv) :
-    types(l : $$object_type, prop : $$string_type, d : $$list_type, ls : $$list_type,
-	      ltf : $$list_type, lpv : $$list_type, #lsp : $$list_type, #ltfp : $$list_type, #lpvp : $$list_type) *
-    ((l, "@proto") -> #lp) * (! (#lp == $$null)) *
-	Class (l, "Non-String") * Cell_o (l, prop, None) *
-    Pi (#lp, prop, d, #lsp, #ltfp, #lpvp) *
+pred Pi (l, prop, cls, d, ls, ltf, lpv) :
+    types(l : $$object_type, prop : $$string_type, cls : $$string_type, d : $$list_type, ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
+	types(#lp : $$object_type, #pcls : $$string_type, #lsp : $$list_type, #ltfp : $$list_type, #lpvp : $$list_type) *
+	((l, "@class") -> cls) * ((l, "@proto") -> #lp) * (! (#lp == $$null)) * 
+	isClass (cls, "Non-String") * Cell_o (l, prop, None) *
+    Pi (#lp, prop, #pcls, d, #lsp, #ltfp, #lpvp) *
     (ls == l :: #lsp) * (ltf == $$f :: #ltfp) * (lpv == "" :: #lpvp) *
     (0 <# l-len #lsp) * (0 <# l-len #ltfp) * (0 <# l-len #lpvp);
 
 (*
  * Resource:
- *		(l, "@class")   via Class
+ *		(l, "@class")   via isClass
  *		(l, "@proto")	(l, "prop")		(l, "@primitiveValue")
  *
  *		Those five fields captured throughout the chain
  *)
-pred Pi (l, prop, d, ls, ltf, lpv) :
-	types(l : $$object_type, prop : $$string_type, d : $$list_type, ls : $$list_type,
-	      ltf : $$list_type,   lpv : $$list_type, #lsp : $$list_type, #ltfp : $$list_type, #lpvp : $$list_type) *
-	((l, "@proto") -> #lp) * (! (#lp == $$null)) *
-	Class (l, "String") * Cell_s (l, prop, "None", None, #pv) *
-    Pi (#lp, prop, d, #lsp, #ltfp, #lpvp) *
+pred Pi (l, prop, cls, d, ls, ltf, lpv) :
+	types(l : $$object_type, prop : $$string_type, cls : $$string_type, d : $$list_type, ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
+	types(#lp : $$object_type, #pcls : $$string_type, #lsp : $$list_type, #ltfp : $$list_type, #lpvp : $$list_type) *
+	((l, "@class") -> cls) * ((l, "@proto") -> #lp) * (! (#lp == $$null)) *
+	isClass (cls, "String") * Cell_s (l, prop, "None", None, #pv) *
+    Pi (#lp, prop, #pcls, d, #lsp, #ltfp, #lpvp) *
     (ls == l :: #lsp) * (ltf == $$t :: #ltfp) * (lpv == #pv :: #lpvp) *
     (0 <# l-len #lsp) * (0 <# l-len #ltfp) * (0 <# l-len #lpvp);
 
@@ -1034,34 +1037,37 @@ with
 spec getOwnProperty (l, prop)
 
     [[ (l == #l) * (prop == #prop) *
-	   types (#l : $$object_type, #prop : $$string_type, #c : $$string_type) *
-	   Cell_o (#l, #prop, None) * Class(#l, "Non-String") ]]
-    [[ Cell_o (#l, #prop, None) * Class(#l, "Non-String") *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type) *
+	   Cell_o (#l, #prop, None) * ((#l, "@class") -> #cls) * isClass(#cls, "Non-String") ]]
+    [[ Cell_o (#l, #prop, None) * ((#l, "@class") -> #cls) * isClass(#cls, "Non-String") *
 	   (ret == $$undefined) ]]
     normal;
 
     [[ (l == #l) * (prop == #prop) *
-	   types (#l : $$object_type, #prop : $$string_type, #c : $$string_type, #dx : $$list_type) *
-	   Cell_o (#l, #prop, #dx) * DataDescriptor(#dx) * Class(#l, "Non-String") ]]
-    [[ Cell_o (#l, #prop, #dx) * Class(#l, "Non-String") *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #dx : $$list_type) *
+	   Cell_o (#l, #prop, #dx) * DataDescriptor(#dx) * ((#l, "@class") -> #cls) * isClass(#cls, "Non-String") ]]
+    [[ Cell_o (#l, #prop, #dx) * ((#l, "@class") -> #cls) * isClass(#cls, "Non-String") *
 	   (ret == #dx) ]]
     normal;
 
     [[ (l == #l) * (prop == #prop) *
-	   Cell_s (#l, #prop, "None", None, #pv) * Class(#l, "String") ]]
-    [[ Cell_s (#l, #prop, "None", None, #pv) * Class(#l, "String") *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type) *
+	   Cell_s (#l, #prop, "None", None, #pv) * ((#l, "@class") -> #cls) * isClass(#cls, "String") ]]
+    [[ Cell_s (#l, #prop, "None", None, #pv) * ((#l, "@class") -> #cls) * isClass(#cls, "String") *
 	   (ret == $$undefined) ]]
    	normal;
 
    	[[ (l == #l) * (prop == #prop) *
-	   Cell_s (#l, #prop, "SI", #u, #pv) * Class(#l, "String") ]]
-   	[[ Cell_s (#l, #prop, "SI", #u, #pv) * Class(#l, "String") *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #u : $$list_type) *
+	   Cell_s (#l, #prop, "SI", #u, #pv) * ((#l, "@class") -> #cls) * isClass(#cls, "String") ]]
+   	[[ Cell_s (#l, #prop, "SI", #u, #pv) * ((#l, "@class") -> #cls) * isClass(#cls, "String") *
 	   (ret == #u) ]]
    	normal;
 
    	[[ (l == #l) * (prop == #prop) *
-	   Cell_s (#l, #prop, "NSI", #u, #pv) * Class(#l, "String") ]]
-   	[[ Cell_s (#l, #prop, "NSI", #u, #pv) * Class(#l, "String") *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #u : $$list_type) *
+	   Cell_s (#l, #prop, "NSI", #u, #pv) * ((#l, "@class") -> #cls) * isClass(#cls, "String") ]]
+   	[[ Cell_s (#l, #prop, "NSI", #u, #pv) * ((#l, "@class") -> #cls) * isClass(#cls, "String") *
 	   (ret == #u) ]]
    	normal
 
@@ -1092,14 +1098,14 @@ with
 spec getProperty (l, prop)
 
 	[[ (l == #l) * (prop == #prop) *
-	   types (#l : $$object_type, #prop : $$string_type) *
-	   Pi (#l, #prop, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4) ]]
-	[[ Pi (#l, #prop, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4) * (ret == #gp_aux_1) ]]
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type) *
+	   Pi (#l, #prop, #cls, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4) ]]
+	[[ Pi (#l, #prop, #cls, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4) * (ret == #gp_aux_1) ]]
 	normal
 
 proc getProperty (l, prop) {
 
-			[* unfold Pi (#l, #prop, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4) *]
+			[* unfold Pi (#l, #prop, #cls, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4) *]
     ch0:	goto [typeOf(l) = $$object_type] ch1 elab;
     ch1:	goto [typeOf(prop) = $$string_type] ch2 elab;
     ch2:	goto [0 < s-len prop] ch3 elab;
@@ -1113,7 +1119,7 @@ proc getProperty (l, prop) {
 
 	call:	xret := "getProperty" (proto, prop) with elab;
 
-			[* fold Pi (#l, #prop, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4) *]
+			[* fold Pi (#l, #prop, #cls, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4) *]
     rlab:   skip;
     elab:	skip
 }
@@ -1130,15 +1136,15 @@ with
 spec get (l, prop)
 
     [[ (l == #l) * (prop == #prop) *
-	   types (#l : $$object_type, #prop : $$string_type) *
-	   Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (#g_aux_1 == $$undefined) ]]
-    [[ Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (#g_aux_1 == $$undefined) * (ret == $$undefined) ]]
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type) *
+	   Pi (#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (#g_aux_1 == $$undefined) ]]
+    [[ Pi (#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (#g_aux_1 == $$undefined) * (ret == $$undefined) ]]
     normal;
 
     [[ (l == #l) * (prop == #prop) *
-	   types (#l : $$object_type, #prop : $$string_type) *
-	   Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * DataDescriptor (#g_aux_1) ]]
-    [[ Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * desc_val (#g_aux_1, #desc_val) * (ret == #desc_val) ]]
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type) *
+	   Pi (#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * DataDescriptor (#g_aux_1) ]]
+    [[ Pi (#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * desc_val (#g_aux_1, #desc_val) * (ret == #desc_val) ]]
     normal
 
 proc get (l, prop) {
@@ -1195,24 +1201,24 @@ spec i__getValue (v)
     [[ (ret == v) ]]
     normal;
 
-    [[ (v == {{ "o", #obj, #field }}) * types (#obj : $$object_type, #field : $$string_type) * isNamedProperty(#field) *
-       Pi (#obj, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (#g_aux_1 == $$undefined) ]]
-    [[ Pi (#obj, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (ret == $$undefined) ]]
+    [[ (v == {{ "o", #obj, #field }}) * types (#obj : $$object_type, #field : $$string_type, #cls : $$string_type) * isNamedProperty(#field) *
+       Pi (#obj, #field, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (#g_aux_1 == $$undefined) ]]
+    [[ Pi (#obj, #field, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (ret == $$undefined) ]]
     normal;
 
-    [[ (v == {{ "o", #obj, #field }}) * types (#obj : $$object_type, #field : $$string_type) * isNamedProperty(#field) *
-       Pi (#obj, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * DataDescriptor (#g_aux_1)  ]]
-    [[ Pi (#obj, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * desc_val (#g_aux_1, #desc_val) * (ret == #desc_val) ]]
+    [[ (v == {{ "o", #obj, #field }}) * types (#obj : $$object_type, #field : $$string_type, #cls : $$string_type) * isNamedProperty(#field) *
+       Pi (#obj, #field, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * DataDescriptor (#g_aux_1)  ]]
+    [[ Pi (#obj, #field, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * desc_val (#g_aux_1, #desc_val) * (ret == #desc_val) ]]
     normal;
 
-    [[ (v == {{ "v", $lg, #field }}) * types (#field : $$string_type) * isNamedProperty(#field) *
-       Pi ($lg, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (#g_aux_1 == $$undefined) ]]
-    [[ Pi ($lg, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (ret == $$undefined) ]]
+    [[ (v == {{ "v", $lg, #field }}) * types (#field : $$string_type, #cls : $$string_type) * isNamedProperty(#field) *
+       Pi ($lg, #field, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (#g_aux_1 == $$undefined) ]]
+    [[ Pi ($lg, #field, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (ret == $$undefined) ]]
     normal;
 
-    [[ (v == {{ "v", $lg, #field }}) * types (#field : $$string_type) * isNamedProperty(#field) *
-       Pi ($lg, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * DataDescriptor (#g_aux_1)  ]]
-    [[ Pi ($lg, #field, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * desc_val (#g_aux_1, #desc_val) * (ret == #desc_val) ]]
+    [[ (v == {{ "v", $lg, #field }}) * types (#field : $$string_type, #cls : $$string_type) * isNamedProperty(#field) *
+       Pi ($lg, #field, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * DataDescriptor (#g_aux_1)  ]]
+    [[ Pi ($lg, #field, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * desc_val (#g_aux_1, #desc_val) * (ret == #desc_val) ]]
     normal;
 
     [[ (v == {{ "v", #obj, #field }}) * (! (#obj == $lg)) * ((#obj, #field) -> #value) * isNamedProperty(#field) *
@@ -1280,15 +1286,15 @@ with
 spec hasProperty (l, prop)
 
 	[[ (l == #l) * (prop == #prop) *
-	   types (#l : $$object_type, #prop : $$string_type) *
-	   Pi (#l, #prop, $$undefined, #gp_aux_2, #gp_aux_3, #gp_aux_4) ]]
-	[[ Pi (#l, #prop, $$undefined, #gp_aux_2, #gp_aux_3, #gp_aux_4) * (ret == $$f) ]]
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type) *
+	   Pi (#l, #prop, #cls, $$undefined, #gp_aux_2, #gp_aux_3, #gp_aux_4) ]]
+	[[ Pi (#l, #prop, #cls, $$undefined, #gp_aux_2, #gp_aux_3, #gp_aux_4) * (ret == $$f) ]]
 	normal;
 
 	[[ (l == #l) * (prop == #prop) *
-	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type) *
-	   Pi (#l, #prop, #desc, #gp_aux_2, #gp_aux_3, #gp_aux_4) ]]
-	[[ Pi (#l, #prop, #desc, #gp_aux_2, #gp_aux_3, #gp_aux_4) * (ret == $$t) ]]
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #desc : $$list_type) *
+	   Pi (#l, #prop, #cls, #desc, #gp_aux_2, #gp_aux_3, #gp_aux_4) ]]
+	[[ Pi (#l, #prop, #cls, #desc, #gp_aux_2, #gp_aux_3, #gp_aux_4) * (ret == $$t) ]]
 	normal
 
 proc hasProperty (l, prop) {
@@ -1310,79 +1316,99 @@ with
 spec deleteProperty (l, prop, throw)
 
     [[ (l == #l) * (prop == #prop) * (throw == $$t) *
-	   types(#l : $$object_type, #prop: $$string_type, #v : $$list_type) *
-	   Class(#l, "Non-String") * Cell_o (#l, #prop, #v) *
+	   types(#l : $$object_type, #prop: $$string_type, #cls: $$string_type, #v : $$list_type) *
+	   ((#l, "@class") -> #cls) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #v) *
 	   DataDescriptor(#v) * desc_conf (#v, $$f) ]]
-    [[ Class(#l, "Non-String") * Cell_o (#l, #prop, #v) *
+    [[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #v) *
 	   isTypeError(err) ]]
     error;
 
     [[ (throw == $$f) * (l == #l) * (prop == #prop) *
-	   types(#l : $$object_type, #prop: $$string_type, #v : $$list_type) *
-	   Class(#l, "Non-String") * Cell_o (#l, #prop, #v) *
+	   types(#l : $$object_type, #prop: $$string_type, #cls: $$string_type, #v : $$list_type) *
+       ((#l, "@class") -> #cls) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #v) *
 	   DataDescriptor(#v) * desc_conf (#v, $$f) ]]
-    [[ Class(#l, "Non-String") * Cell_o (#l, #prop, #v) *
+    [[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #v) *
 	   (ret == $$f) ]]
     normal;
 
     [[ (l == #l) * (prop == #prop) *
-	   types(#l : $$object_type, #prop: $$string_type, #v : $$list_type) *
-	   Class(#l, "Non-String") * Cell_o (#l, #prop, #v) *
+	   types(#l : $$object_type, #prop: $$string_type, #cls: $$string_type, #v : $$list_type) *
+	   ((#l, "@class") -> #cls) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #v) *
 	   DataDescriptor(#v) * desc_conf (#v, $$t) ]]
-    [[ Class(#l, "Non-String") * Cell_o (#l, #prop, None) *
+    [[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) *
 	   (ret == $$t) ]]
     normal;
 
     [[ (l == #l) * (prop == #prop) *
 	   types(#l : $$object_type, #prop: $$string_type) *
-	   Class(#l, "Non-String") * Cell_o (#l, #prop, None) ]]
-    [[ Class(#l, "Non-String") * Cell_o (#l, #prop, None) *
+	   ((#l, "@class") -> #cls) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) ]]
+    [[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) *
 	   (ret == $$t) ]]
     normal;
 
 	[[ (l == #l) * (prop == #prop) *
-	   types(#l : $$object_type, #prop: $$string_type, #pv : $$string_type) *
-	   Class(#l, "String") * Cell_s (#l, #prop, "None", None, #pv) ]]
-	[[ Class(#l, "String") * Cell_s (#l, #prop, "None", None, #pv) *
+	   types(#l : $$object_type, #prop: $$string_type, #cls: $$string_type, #pv : $$string_type) *
+	   ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) ]]
+	[[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) *
 	   (ret == $$t)]]
 	normal;
 
 	[[ (l == #l) * (prop == #prop) * (throw == $$t) *
-	   types(#l : $$object_type, #prop: $$string_type, #pv : $$string_type, #desc : $$list_type) *
-	   Class(#l, "String") * Cell_s (#l, #prop, "SI", #desc, #pv) ]]
-	[[ Class(#l, "String") * Cell_s (#l, #prop, "SI", #desc, #pv) *
+	   types(#l : $$object_type, #prop: $$string_type, #cls: $$string_type, #pv : $$string_type, #desc : $$list_type) *
+	   ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "SI", #desc, #pv) ]]
+	[[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "SI", #desc, #pv) *
 	   isTypeError(err) ]]
 	error;
 
 	[[ (l == #l) * (prop == #prop) * (throw == $$f) *
-	   types(#l : $$object_type, #prop: $$string_type, #pv : $$string_type, #desc : $$list_type) *
-	   Class(#l, "String") * Cell_s (#l, #prop, "SI", #desc, #pv) *
+	   types(#l : $$object_type, #prop: $$string_type, #cls: $$string_type, #pv : $$string_type, #desc : $$list_type) *
+	   ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "SI", #desc, #pv) *
 	   DataDescriptor(#desc) ]]
-	[[ Class(#l, "String") * Cell_s (#l, #prop, "SI", #desc, #pv) *
+	[[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "SI", #desc, #pv) *
 	   (ret == $$f) ]]
 	normal;
 
 	[[ (l == #l) * (prop == #prop) * (throw == $$t) *
-	   types(#l : $$object_type, #prop: $$string_type, #pv : $$string_type, #desc : $$list_type) *
-	   Class(#l, "String") * Cell_s (#l, #prop, "NSI", #desc, #pv) *
+	   types(#l : $$object_type, #prop: $$string_type, #cls: $$string_type, #pv : $$string_type, #desc : $$list_type) *
+	   ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "NSI", #desc, #pv) *
 	   DataDescriptor(#desc) * desc_conf (#desc, $$f)]]
-	[[ Class(#l, "String") * Cell_s (#l, #prop, "NSI", #desc, #pv) *
+	[[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "NSI", #desc, #pv) *
 	   isTypeError(err) ]]
 	error;
 
 	[[ (l == #l) * (prop == #prop) * (throw == $$f) *
-	   types(#l : $$object_type, #prop: $$string_type, #pv : $$string_type, #desc : $$list_type) *
-	   Class(#l, "String") * Cell_s (#l, #prop, "NSI", #desc, #pv) *
+	   types(#l : $$object_type, #prop: $$string_type, #cls: $$string_type, #pv : $$string_type, #desc : $$list_type) *
+	   ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "NSI", #desc, #pv) *
 	   DataDescriptor(#desc) * desc_conf (#desc, $$f)]]
-	[[ Class(#l, "String") * Cell_s (#l, #prop, "NSI", #desc, #pv) *
+	[[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "NSI", #desc, #pv) *
 	   (ret == $$f) ]]
 	normal;
 
 	[[ (l == #l) * (prop == #prop) *
-	   types(#l : $$object_type, #prop: $$string_type, #pv : $$string_type, #desc : $$list_type) *
-	   Class(#l, "String") * Cell_s (#l, #prop, "NSI", #desc, #pv) *
+	   types(#l : $$object_type, #prop: $$string_type, #cls: $$string_type, #pv : $$string_type, #desc : $$list_type) *
+	   ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "NSI", #desc, #pv) *
 	   DataDescriptor(#desc) * desc_conf (#desc, $$t) ]]
-	[[ Class(#l, "String") * Cell_s (#l, #prop, "None", None, #pv) *
+	[[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) *
 	   (ret == $$t) ]]
 	normal
 
@@ -1416,47 +1442,47 @@ spec canPut (l, prop)
 
     (* Property not defined at all, returning "@extensible" *)
     [[ (l == #l) * (prop == #prop) *
-	   types(#ext : $$boolean_type) *
-	   Pi (#l, #prop, $$undefined, #g_aux_2, #g_aux_3, #g_aux_4) *
+	   types(#ext : $$boolean_type, #cls : $$string_type) *
+	   Pi (#l, #prop, #cls, $$undefined, #g_aux_2, #g_aux_3, #g_aux_4) *
        ((#l, "@extensible") -> #ext) ]]
-    [[ Pi (#l, #prop, $$undefined, #g_aux_2, #g_aux_3, #g_aux_4) *
+    [[ Pi (#l, #prop, #cls, $$undefined, #g_aux_2, #g_aux_3, #g_aux_4) *
        ((#l, "@extensible") -> #ext) *
 	   (ret == #ext) ]]
     normal;
 
 	(* Property defined in the object itself, returning writable *)
 	[[ (l == #l) * (prop == #prop) *
-	   types(#writ : $$boolean_type) *
-	   Pi (#l, #prop, #g_aux_1, {{ #l }}, #g_aux_3, #g_aux_4) *
+	   types(#writ : $$boolean_type, #cls : $$string_type) *
+	   Pi (#l, #prop, #cls, #g_aux_1, {{ #l }}, #g_aux_3, #g_aux_4) *
 	   DataDescriptor(#g_aux_1) * desc_writ(#g_aux_1, #writ) ]]
-	[[ Pi (#l, #prop, #g_aux_1, {{ #l }}, #g_aux_3, #g_aux_4) *
+	[[ Pi (#l, #prop, #cls, #g_aux_1, {{ #l }}, #g_aux_3, #g_aux_4) *
 	   (ret == #writ) ]]
 	normal;
 
 	(* Property defined as a data descriptor outside, but object not extensible, return false *)
 	[[ (l == #l) * (prop == #prop) *
-	   types (#g_aux_2 : $$list_type) *
-       Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *
+	   types (#g_aux_2 : $$list_type, #cls : $$string_type) *
+       Pi (#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *
 	   DataDescriptor(#g_aux_1) * (1 <# l-len (#g_aux_2)) * ((#l, "@extensible") -> $$f) ]]
-	[[ Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *
+	[[ Pi (#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *
 	   ((#l, "@extensible") -> $$f) * (ret == $$f) ]]
 	normal;
 
 	(* Property defined as a data descriptor outside, object extensible, return writable *)
 	[[ (l == #l) * (prop == #prop) *
-	   types (#g_aux_2 : $$list_type, #writ : $$boolean_type) *
-	   Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *
+	   types (#g_aux_2 : $$list_type, #writ : $$boolean_type, #cls : $$string_type) *
+	   Pi (#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *
 	   DataDescriptor(#g_aux_1) * desc_writ(#g_aux_1, #writ) * (1 <# l-len (#g_aux_2)) *
 	   ((#l, "@extensible") -> $$t) ]]
-	[[ Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *
+	[[ Pi (#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *
 	   ((#l, "@extensible") -> $$t) * (ret == #writ) ]]
 	normal
 
 proc canPut (l, prop) {
 
-			[* unfold Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *]
+			[* unfold Pi (#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *]
             xret := "getOwnProperty" (l, prop) with elab;
-			[* fold Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *]
+			[* fold Pi (#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *]
 	op:		goto [xret = $$undefined] nop odesc; 	(* Does the own property exist? *)
 
 	odesc:	d := l-nth (xret, 0);						(* It does; get the descriptor type *)
@@ -1510,81 +1536,96 @@ spec o__defineOwnProperty (l, prop, desc, throw)
 
     (* Current is undefined, object is not extensible, non-string, throw *)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$t) *
-	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type) *
-	   Class (#l, "Non-String") * Cell_o (#l, #prop, None) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #desc : $$list_type) *
+	   ((#l, "@class") -> #cls) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) *
 	   ((#l, "@extensible") -> $$f) ]]
-    [[ Class (#l, "Non-String") * Cell_o (#l, #prop, None) * ((#l, "@extensible") -> $$f) *
+    [[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) * ((#l, "@extensible") -> $$f) *
 	   isTypeError(err) ]]
     error;
 
     (* Current is undefined, object is not extensible, non-string, don't throw *)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$f) *
-	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type) *
-	   Class (#l, "Non-String") * Cell_o (#l, #prop, None) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #desc : $$list_type) *
+	   ((#l, "@class") -> #cls) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) *
 	   ((#l, "@extensible") -> $$f) ]]
-    [[ Class (#l, "Non-String") * Cell_o (#l, #prop, None) * ((#l, "@extensible") -> $$f) *
+    [[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) * ((#l, "@extensible") -> $$f) *
 	   (ret == $$f) ]]
     normal;
 
     (* Current is undefined, object is not extensible, string, throw *)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$t) *
-	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type) *
-	   Class (#l, "String") * Cell_s (#l, #prop, "None", None, #pv) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #desc : $$list_type) *
+	   ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) *
 	   ((#l, "@extensible") -> $$f) ]]
-    [[ Class (#l, "String") * Cell_s (#l, #prop, "None", None, #pv) * ((#l, "@extensible") -> $$f) *
+    [[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) * ((#l, "@extensible") -> $$f) *
 	   isTypeError(err) ]]
     error;
 
     (* Current is undefined, object is not extensible, string, don't throw *)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$f) *
-	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type) *
-	   Class (#l, "String") * Cell_s (#l, #prop, "None", None, #pv) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #desc : $$list_type) *
+	   ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) *
 	   ((#l, "@extensible") -> $$f) ]]
-    [[ Class (#l, "String") * Cell_s (#l, #prop, "None", None, #pv) * ((#l, "@extensible") -> $$f) *
+    [[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) * ((#l, "@extensible") -> $$f) *
 	   (ret == $$f) ]]
     normal;
 
 	(* Current is undefined, object is extensible, non-string, data descriptor, success *)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
-	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #throw : $$boolean_type) *
-	   Class (#l, "Non-String") * Cell_o (#l, #prop, None) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #desc : $$list_type, #throw : $$boolean_type) *
+	   ((#l, "@class") -> #cls) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) *
 	   DataDescriptor (#desc) *
 	   ((#l, "@extensible") -> $$t) ]]
-    [[ Class (#l, "Non-String") * Cell_o (#l, #prop, #desc) * ((#l, "@extensible") -> $$t) *
+    [[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #desc) * ((#l, "@extensible") -> $$t) *
 	   (ret == $$t) ]]
     normal;
 
 	(* Current is undefined, object is extensible, string, data descriptor, success *)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
-	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #throw : $$boolean_type) *
-	   Class (#l, "String") * Cell_s (#l, #prop, "None", None, #pv) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #desc : $$list_type, #throw : $$boolean_type) *
+	   ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) *
 	   DataDescriptor (#desc) *
 	   ((#l, "@extensible") -> $$t) ]]
-    [[ Class (#l, "String") * Cell_s (#l, #prop, "NSI", #desc, #pv) * ((#l, "@extensible") -> $$t) *
+    [[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "NSI", #desc, #pv) * ((#l, "@extensible") -> $$t) *
 	   (ret == $$t) ]]
     normal;
 
     (* Current is defined, configurable is true, data descriptor, non-string, success *)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
-	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #dcur : $$list_type, #throw : $$boolean_type,
-	          #cw : $$boolean_type, #ce : $$boolean_type, #ext : $$boolean_type) *
-       DataDescriptor(#desc) * (#dcur == {{ "d", #cv, #cw, #ce, $$t }}) *
-       Class(#l, "Non-String") * Cell_o (#l, #prop, #dcur) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #desc : $$list_type, #dcur : $$list_type, #throw : $$boolean_type, #ext : $$boolean_type) *
+       DataDescriptor(#desc) * desc_conf(#dcur, $$t) *
+       ((#l, "@class") -> #cls) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) *
 	   ((#l, "@extensible") -> #ext) ]]
-    [[ Class(#l, "Non-String") * Cell_o (#l, #prop, #desc) * ((#l, "@extensible") -> #ext) *
+    [[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #desc) * ((#l, "@extensible") -> #ext) *
 	   (ret == $$t) ]]
-    normal;
+    normal
 
-	(* Current is defined, configurable is false, data descriptor, configurable is true, non-string, throw - VARIABLE CAPTURE HORROR *)
+	(* Current is defined, configurable is false, data descriptor, configurable is true, non-string, throw - VARIABLE CAPTURE HORROR
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$t) *
 	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #dcur : $$list_type, #throw : $$boolean_type,
 	          #cw : $$boolean_type, #ce : $$boolean_type, #ext : $$boolean_type) *
-       DataDescriptor(#desc) * desc_conf(#desc, $$t) * (#dcur == {{ "d", #cv, #cw, #ce, $$f }}) *
-       Class(#l, "Non-String") * Cell_o (#l, #prop, #dcur) *
+       DataDescriptor(#desc) * desc_conf(#desc, $$t) * desc_conf(#dcur, $$f) *
+       ((#l, "@class") -> #cls) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) *
 	   ((#l, "@extensible") -> #ext) ]]
-    [[ Class(#l, "Non-String") * Cell_o (#l, #prop, {{ "d", #cv, #cw, #ce, $$f }}) * ((#l, "@extensible") -> #ext) *
+    [[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, {{ "d", #cv, #cw, #ce, $$f }}) * ((#l, "@extensible") -> #ext) *
 	   isTypeError(err) ]]
-    error
+    error *)
 
 proc o__defineOwnProperty (l, prop, desc, throw) {
 
