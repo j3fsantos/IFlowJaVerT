@@ -519,7 +519,6 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 	let calling_store = Symbolic_State_Functions.init_store params args in
 
 	Printf.printf "I WILL BEGIN TO UNFOLD: NUMBER OF DEFINITIONS: %i\n" (List.length  pred_defs);
-	Printf.printf "Current symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state);
 	Printf.printf "The unfolding store is:\n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_store calling_store false);
 
 	let rec loop pred_defs (symb_states : symbolic_state list) =
@@ -527,6 +526,7 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 		| [] -> symb_states
 		| pred_symb_state :: rest_pred_defs ->
 			Printf.printf "Current Pred DEF:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state pred_symb_state);
+			Printf.printf "Current symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state);
 			let unfolded_symb_state = Structural_Entailment.unfold_predicate_definition symb_state pred_symb_state calling_store subst0 spec_vars in
 			(match unfolded_symb_state with
 			| None -> Printf.printf "Unfolding UNsuccessful!!!\n"; loop rest_pred_defs symb_states

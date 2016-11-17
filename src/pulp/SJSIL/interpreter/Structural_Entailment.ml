@@ -402,7 +402,7 @@ let spec_logic_vars_discharge subst lvars pfs solver gamma =
 			[]
 			lvars in
 	let ret = Pure_Entailment.check_entailment solver [] pf_list pfs_to_prove gamma in
-	Printf.printf "Check if \n (%s) \n entails \n (%s) \n with gamma \n (%s) \nret: %b\n" (JSIL_Print.str_of_assertion_list pf_list) (JSIL_Print.str_of_assertion_list pfs_to_prove) (JSIL_Memory_Print.string_of_gamma gamma) ret;
+	(* Printf.printf "Check if \n (%s) \n entails \n (%s) \n with gamma \n (%s) \nret: %b\n" (JSIL_Print.str_of_assertion_list pf_list) (JSIL_Print.str_of_assertion_list pfs_to_prove) (JSIL_Memory_Print.string_of_gamma gamma) ret; *)
 	ret
 
 
@@ -446,9 +446,9 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 	  				if (spec_vars_check)
 						then Some (discharges_0, subst, heap_f, preds_f, new_pfs)
 						else  (Printf.printf "Failed spec vars check\n"; None) *)
-				| None -> (Printf.printf "Failed to unify predicates\n"; None))
-			| None -> (Printf.printf "Failed to unify heaps\n"; None))
-		| None -> (Printf.printf "Failed to unify stores\n"; None) in
+				| None -> ( (* Printf.printf "Failed to unify predicates\n";*) None))
+			| None -> ( (* Printf.printf "Failed to unify heaps\n"; *) None))
+		| None -> ( (* Printf.printf "Failed to unify stores\n"; *) None) in
 
 	(* STEP 1 - Pure entailment and gamma unification                                                                                                    *)
 	(* existentials = vars(Sigma_pat) \ dom(subst)                                                                                                       *)
@@ -475,7 +475,7 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 	  let pf_1_subst_list = List.map (fun a -> assertion_substitution a subst true) (pfs_to_list pf_1) in
 		let pf_discharges = pf_list_of_discharges discharges subst false in
 		let entailment_check_ret = unify_gamma_check && (Pure_Entailment.check_entailment solver fresh_names_for_existentials (pfs_to_list pf_0) (pf_1_subst_list @ pf_discharges) gamma_0') in
-		Printf.printf "unify_gamma_check: %b. entailment_check: %b\n" unify_gamma_check entailment_check_ret;
+		(* Printf.printf "unify_gamma_check: %b. entailment_check: %b\n" unify_gamma_check entailment_check_ret; *)
 		(entailment_check_ret, pf_discharges, pf_1_subst_list, gamma_0') in
 
 	(* Actually doing it!!! *)
@@ -491,7 +491,6 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 let unify_symb_states_fold existentials (pat_symb_state : symbolic_state) (symb_state : symbolic_state)  : (bool * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment) option  =
 	let heap_0, store_0, pf_0, gamma_0, preds_0, solver_0 = symb_state in
 	let heap_1, store_1, pf_1, gamma_1, preds_1, _ = pat_symb_state in
-
 	(** Auxiliary Functions **)
   (* *)
 	(* existentials -> new variables introduced by the fold                                      *)
@@ -636,7 +635,7 @@ let unify_symb_state_against_post proc_name spec symb_state flag symb_exe_info =
 
 	let rec loop posts post_vars_lists i =
 		(match posts, post_vars_lists with
-		| [], [] -> print_error_to_console "Non_unifiable heaps";  raise (Failure "post condition is not unifiable")
+		| [], [] -> print_error_to_console "Non_unifiable symbolic states";  raise (Failure "post condition is not unifiable")
 		| post :: rest_posts, post_lvars :: rest_posts_lvars ->
 			let subst = fully_unify_symb_state post symb_state spec.n_lvars in
 			(match subst with
@@ -709,9 +708,11 @@ let safe_merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbo
 let unfold_predicate_definition symb_state pat_symb_state calling_store subst_unfold_args spec_vars =
 
 	(* PREAMBLE                                                                                                            *)
+	let gamma_old = get_gamma symb_state in 
+	let symb_state = Symbolic_State_Functions.copy_symb_state symb_state in 
 	let store_0 = calling_store in
 	let store_1 = get_store pat_symb_state in
-	let gamma_0 = get_gamma symb_state in
+	let gamma_0 = get_gamma symb_state in 
 	let gamma_1 = get_gamma pat_symb_state in
 	let store_vars = get_store_domain store_0 in
 
@@ -727,7 +728,9 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 				x_type
 			| None -> None) in
 
-	Printf.printf "Store_0:\n%s. Store_1:\n%s.\n" (JSIL_Memory_Print.string_of_shallow_symb_store store_0 false) (JSIL_Memory_Print.string_of_shallow_symb_store store_1 false);
+	(* Printf.printf "Store_0:\n%s. Store_1:\n%s.\n" 
+		(JSIL_Memory_Print.string_of_shallow_symb_store store_0 false) 
+		(JSIL_Memory_Print.string_of_shallow_symb_store store_1 false); *)
 
 
 	(* STEP 1 - Unify(store_0, store_1, pi_0) = subst, pat_subst, discharges                                               *)
@@ -738,10 +741,11 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 	let step_1 () =
 		let pat_subst = init_substitution [] in
 		let subst = init_substitution [] in
-		let discharges = unify_stores store_1 store_0 pat_subst (Some subst) (pfs_to_list (get_pf symb_state)) (get_solver symb_state) (get_gamma symb_state) in
-		Printf.printf "substitutions after store unification.\nSubst:\n%s\nPat_Subst:\n%s\n"
+		let discharges = unify_stores store_1 store_0 pat_subst (Some subst) (pfs_to_list (get_pf symb_state)) (get_solver symb_state) gamma_0 in
+		(* Printf.printf "substitutions after store unification.\nSubst:\n%s\nPat_Subst:\n%s\n"
 			(JSIL_Memory_Print.string_of_substitution subst)
 			(JSIL_Memory_Print.string_of_substitution pat_subst);
+		 Printf.printf "GAMMA_OLD - STEP 1:\n%s\n" (JSIL_Memory_Print.string_of_gamma gamma_old); *)
 		discharges, subst, pat_subst in
 
 
@@ -761,6 +765,7 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 					match t1, t2 with
 					| Some t1, Some t2 -> t1 = t2
 					| _, _ -> true) true store_0_var_types store_1_var_types in
+		(* Printf.printf "GAMMA_OLD - STEP 2:\n%s\n" (JSIL_Memory_Print.string_of_gamma gamma_old);	*)
 		store_0_var_types, store_1_var_types, stores_are_type_compatible in
 
 
@@ -792,7 +797,8 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 				| Some le_x, Some x_type -> let _ = JSIL_Logic_Utils.reverse_type_lexpr_aux gamma_0 gamma_0' le_x x_type in ()
 				|	_, _ -> ())
 				untyped_store_0_vars;
-		Printf.printf "Inferred typing information given the unfolding:\n%s\n" (JSIL_Memory_Print.string_of_gamma gamma_0');
+		(* Printf.printf "GAMMA_OLD - STEP 4:\n%s\n" (JSIL_Memory_Print.string_of_gamma gamma_old);
+		Printf.printf "Inferred typing information given the unfolding:\n%s\n" (JSIL_Memory_Print.string_of_gamma gamma_0'); *)
 		gamma_0' in
 
 
@@ -821,17 +827,18 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 		let gamma_0' = Symbolic_State_Functions.gamma_substitution gamma_0' subst true in
 		extend_gamma gamma_0 gamma_0';
 		let gamma_1'' = Symbolic_State_Functions.gamma_substitution gamma_1 new_pat_subst false in
-		Printf.printf "gamma_1'' is:\n%s\n" (JSIL_Memory_Print.string_of_gamma gamma_1''); 
+		(* Printf.printf "gamma_1'' is:\n%s\n" (JSIL_Memory_Print.string_of_gamma gamma_1''); *)
 		extend_gamma gamma_0 gamma_1'';
 		let gamma = gamma_0 in
 		JSIL_Logic_Normalise.extend_typing_env_using_assertion_info pi gamma;
-		Printf.printf "substitutions immediately before sat check.\nSubst:\n%s\nPat_Subst:\n%s\n"
+		(* Printf.printf "substitutions immediately before sat check.\nSubst:\n%s\nPat_Subst:\n%s\n"
 			(JSIL_Memory_Print.string_of_substitution subst)
-			(JSIL_Memory_Print.string_of_substitution new_pat_subst);
+			(JSIL_Memory_Print.string_of_substitution new_pat_subst); 
 		print_endline (Printf.sprintf "About to check if the following is SATISFIABLE:\n%s\nGiven the GAMMA:\n%s\n"
 			(JSIL_Print.str_of_assertion_list pi)
-			(	JSIL_Memory_Print.string_of_gamma gamma));
+			(	JSIL_Memory_Print.string_of_gamma gamma)); *)
 		let sat_check = Pure_Entailment.check_satisfiability pi gamma [] in
+		(* Printf.printf "GAMMA_OLD - STEP 5:\n%s\n" (JSIL_Memory_Print.string_of_gamma gamma_old); *)
 	    sat_check, pi', gamma_0', new_pat_subst in
 
 
@@ -843,6 +850,7 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 		Symbolic_State_Functions.extend_pfs (get_pf unfolded_symb_state) (Some (get_solver unfolded_symb_state)) new_pfs;
 		extend_gamma (get_gamma unfolded_symb_state) new_gamma;
 		JSIL_Logic_Normalise.extend_typing_env_using_assertion_info new_pfs (get_gamma unfolded_symb_state);
+		(* Printf.printf "GAMMA_OLD - STEP 6:\n%s\n" (JSIL_Memory_Print.string_of_gamma gamma_old);  *)
 		unfolded_symb_state in
 
 	(** Now DOING IT **)
@@ -861,7 +869,7 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 							then (
 								let unfolded_symb_state = step_6 subst pat_subst new_pi new_gamma in
 								Some unfolded_symb_state
-							) else  ((* Printf.printf "Failed unfolding in step 5\n"; *)None)
-					) else  ((* Printf.printf "Failed unfolding in step 3\n"; *)  None)
-			) else ((* Printf.printf "Failed unfolding in step 2\n"; *)  None)
+							) else  ( (* Printf.printf "Failed unfolding in step 5\n" ;*) None)
+					) else  ( (* Printf.printf "Failed unfolding in step 3\n"; *)   None)
+			) else ( (* Printf.printf "Failed unfolding in step 2\n"; *) None)
 	| None -> (* Printf.printf "Failed unfolding in step 1\n"; *) None
