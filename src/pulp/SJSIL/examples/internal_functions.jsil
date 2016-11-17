@@ -217,7 +217,7 @@ pred Pi (l, prop, cls, d, ls, ltf, lpv) :
 pred Pi (l, prop, cls, d, ls, ltf, lpv) :
     types(l : $$object_type, prop : $$string_type, cls : $$string_type, d : $$list_type, ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
 	types(#lp : $$object_type, #pcls : $$string_type, #lsp : $$list_type, #ltfp : $$list_type, #lpvp : $$list_type) *
-	((l, "@class") -> cls) * ((l, "@proto") -> #lp) * (! (#lp == $$null)) * 
+	((l, "@class") -> cls) * ((l, "@proto") -> #lp) * (! (#lp == $$null)) *
 	isClass (cls, "Non-String") * Cell_o (l, prop, None) *
     Pi (#lp, prop, #pcls, d, #lsp, #ltfp, #lpvp) *
     (ls == l :: #lsp) * (ltf == $$f :: #ltfp) * (lpv == "" :: #lpvp) *
@@ -1612,20 +1612,18 @@ spec o__defineOwnProperty (l, prop, desc, throw)
     [[ ((#l, "@class") -> #cls) *
 	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #desc) * ((#l, "@extensible") -> #ext) *
 	   (ret == $$t) ]]
-    normal
+    normal;
 
-	(* Current is defined, configurable is false, data descriptor, configurable is true, non-string, throw - VARIABLE CAPTURE HORROR
+	(* Current is defined, configurable is false, data descriptor, configurable is true, non-string, throw *)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$t) *
-	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #dcur : $$list_type, #throw : $$boolean_type,
-	          #cw : $$boolean_type, #ce : $$boolean_type, #ext : $$boolean_type) *
+	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #dcur : $$list_type, #throw : $$boolean_type, #ext : $$boolean_type) *
        DataDescriptor(#desc) * desc_conf(#desc, $$t) * desc_conf(#dcur, $$f) *
-       ((#l, "@class") -> #cls) *
+       ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) ]]
+    [[ ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
 	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) *
-	   ((#l, "@extensible") -> #ext) ]]
-    [[ ((#l, "@class") -> #cls) *
-	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, {{ "d", #cv, #cw, #ce, $$f }}) * ((#l, "@extensible") -> #ext) *
 	   isTypeError(err) ]]
-    error *)
+	error
 
 proc o__defineOwnProperty (l, prop, desc, throw) {
 
