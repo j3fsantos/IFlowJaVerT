@@ -847,63 +847,47 @@ with
 
 spec i__sameValue (v1, v2)
 
-	[[ (v1 == v2) * types (v1 : $$undefined_type) ]]
+	[[ (v1 == #v1) * (v2 == #v2) * (#v1 == #v2) * types (#v1 : $$undefined_type, #v2 : $$undefined_type) ]]
 	[[ ret == $$t ]]
 	normal;
 
-	[[ (v1 == v2) * types (v1 : $$null_type) ]]
+	[[ (v1 == #v1) * (v2 == #v2) * (#v1 == #v2) * types (#v1 : $$null_type, #v2 : $$null_type) ]]
 	[[ ret == $$t ]]
 	normal;
 
-	[[ (v1 == v2) * types (v1 : $$boolean_type) ]]
+	[[ (v1 == #v1) * (v2 == #v2) * (#v1 == #v2) * types (#v1 : $$boolean_type, #v2 : $$boolean_type) ]]
 	[[ ret == $$t ]]
 	normal;
 
-	[[ (v1 == v2) * types (v1 : $$string_type) ]]
+	[[ (v1 == #v1) * (v2 == #v2) * (#v1 == #v2) * types (#v1 : $$string_type, #v2 : $$string_type) ]]
 	[[ ret == $$t ]]
 	normal;
 
-	[[ (v1 == v2) * types (v1 : $$object_type) ]]
+	[[ (v1 == #v1) * (v2 == #v2) * (#v1 == #v2) * types (#v1 : $$object_type, #v2 : $$object_type) ]]
 	[[ ret == $$t ]]
 	normal;
 
-	[[ (! (v1 == v2)) * types (v1 : $$undefined_type) ]]
+	[[ (! (v1 == v2)) ]]
 	[[ ret == $$f ]]
 	normal;
 
-	[[ (! (v1 == v2)) * types (v1 : $$null_type) ]]
-	[[ ret == $$f ]]
-	normal;
-
-	[[ (! (v1 == v2)) * types (v1 : $$boolean_type) ]]
-	[[ ret == $$f ]]
-	normal;
-
-	[[ (! (v1 == v2)) * types (v1 : $$string_type) ]]
-	[[ ret == $$f ]]
-	normal;
-
-	[[ (! (v1 == v2)) * types (v1 : $$object_type) ]]
-	[[ ret == $$f ]]
-	normal;
-
-	[[ (v1 == v2) * (! (v1 == 0)) * types (v1 : $$number_type) ]]
+	[[ (v1 == #v1) * (v2 == #v2) * (#v1 == #v2) * (! (#v1 == 0)) * types (#v1 : $$number_type, #v2 : $$number_type) ]]
 	[[ ret == $$t ]]
 	normal;
 
-	[[ (v1 == 0) * (v2 == 0) ]]
+	[[ (v1 == 0) * (v2 == 0) * types (v1 : $$number_type, v2 : $$number_type) ]]
 	[[ ret == $$t ]]
 	normal;
 
-	[[ (v1 == 0) * (v2 == -0) ]]
+	[[ (v1 == 0) * (v2 == -0) * types (v1 : $$number_type, v2 : $$number_type) ]]
 	[[ ret == $$f ]]
 	normal;
 
-	[[ (v1 == -0) * (v2 == 0) ]]
+	[[ (v1 == -0) * (v2 == 0) * types (v1 : $$number_type, v2 : $$number_type) ]]
 	[[ ret == $$f ]]
 	normal;
 
-	[[ (v1 == -0) * (v2 == -0) ]]
+	[[ (v1 == -0) * (v2 == -0) * types (v1 : $$number_type, v2 : $$number_type) ]]
 	[[ ret == $$t ]]
 	normal
 
@@ -1617,13 +1601,107 @@ spec o__defineOwnProperty (l, prop, desc, throw)
 	(* Current is defined, configurable is false, data descriptor, configurable is true, non-string, throw *)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$t) *
 	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #dcur : $$list_type, #throw : $$boolean_type, #ext : $$boolean_type) *
-       DataDescriptor(#desc) * desc_conf(#desc, $$t) * desc_conf(#dcur, $$f) *
+       DataDescriptor(#desc) * DataDescriptor(#dcur) * desc_conf(#desc, $$t) * desc_conf(#dcur, $$f) *
        ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
 	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) ]]
     [[ ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
 	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) *
 	   isTypeError(err) ]]
-	error
+	error;
+
+	(* Current is defined, configurable is false, data descriptor, configurable is true, non-string, don't throw *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$f) *
+	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #dcur : $$list_type, #throw : $$boolean_type, #ext : $$boolean_type) *
+       DataDescriptor(#desc) * DataDescriptor(#dcur) * desc_conf(#desc, $$t) * desc_conf(#dcur, $$f) *
+       ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) ]]
+    [[ ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) *
+	   (ret == $$f) ]]
+	normal;
+
+	(* Current is defined, configurable is false, data descriptor, configurable is false, enumerables are different, non-string, throw *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$t) *
+	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #dcur : $$list_type, #throw : $$boolean_type, #ext : $$boolean_type) *
+	   types (#ed : $$boolean_type, #ec : $$boolean_type) *
+       DataDescriptor(#desc) * DataDescriptor(#dcur) * desc_conf(#desc, $$f) * desc_conf(#dcur, $$f) *
+	   desc_enum(#desc, #ed) * desc_enum(#dcur, #ec) * (! (#ed == #ec)) *
+       ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) ]]
+    [[ ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) *
+	   isTypeError(err) ]]
+	error;
+
+	(* Current is defined, configurable is false, data descriptor, configurable is false, enumerables are different, non-string, don't throw *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$f) *
+	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #dcur : $$list_type, #throw : $$boolean_type, #ext : $$boolean_type) *
+	   types (#ed : $$boolean_type, #ec : $$boolean_type) *
+       DataDescriptor(#desc) * DataDescriptor(#dcur) * desc_conf(#desc, $$f) * desc_conf(#dcur, $$f) *
+	   desc_enum(#desc, #ed) * desc_enum(#dcur, #ec) * (! (#ed == #ec)) *
+       ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) ]]
+    [[ ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) *
+	   (ret == $$f) ]]
+	normal;
+
+	(* Current is defined, configurables are false, enumerables are same, writables false and true, non-string, throw *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$t) *
+	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #dcur : $$list_type, #throw : $$boolean_type, #ext : $$boolean_type) *
+	   types (#enum : $$boolean_type) *
+       DataDescriptor(#desc) * DataDescriptor(#dcur) *
+	   desc_conf(#desc, $$f) * desc_conf(#dcur, $$f) *
+	   desc_enum(#desc, #enum) * desc_enum(#dcur, #enum) *
+	   desc_writ(#desc, $$t) * desc_writ(#dcur, $$f) *
+       ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) ]]
+    [[ ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) *
+	   isTypeError(err) ]]
+	error;
+
+	(* Current is defined, configurables are false, enumerables are same, writables false and true, non-string, don't throw *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$f) *
+	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #dcur : $$list_type, #throw : $$boolean_type, #ext : $$boolean_type) *
+	   types (#enum : $$boolean_type) *
+       DataDescriptor(#desc) * DataDescriptor(#dcur) *
+	   desc_conf(#desc, $$f) * desc_conf(#dcur, $$f) *
+	   desc_enum(#desc, #enum) * desc_enum(#dcur, #enum) *
+	   desc_writ(#desc, $$t) * desc_writ(#dcur, $$f) *
+       ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) ]]
+    [[ ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) *
+	   (ret == $$f) ]]
+	normal;
+
+	(* Current is defined, configurables are false, enumerables are same, writable is true, non-string, success *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
+	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #dcur : $$list_type, #throw : $$boolean_type, #ext : $$boolean_type, #throw : $$boolean_type) *
+	   types (#enum : $$boolean_type) *
+       DataDescriptor(#desc) * DataDescriptor(#dcur) *
+	   desc_conf(#desc, $$f) * desc_conf(#dcur, $$f) *
+	   desc_enum(#desc, #enum) * desc_enum(#dcur, #enum) *
+	   desc_writ(#dcur, $$t) *
+       ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) ]]
+    [[ ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #desc) *
+	   (ret == $$t) ]]
+	normal;
+
+	(* Current is defined, data descriptor, writable, sending only value, success *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
+	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #dcur : $$list_type, #throw : $$boolean_type, #ext : $$boolean_type, #throw : $$boolean_type) *
+       (#desc == {{ "g", $$empty, $$empty, #gval, $$empty, $$empty, $$empty }}) * (! (#gval == $$empty)) *
+	   DataDescriptor(#dcur) * desc_writ(#dcur, $$t) * desc_enum(#dcur, #dec) * desc_conf(#dcur, #dcc) *
+       ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) ]]
+    [[ ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   	Cell_o (#l, #prop, {{ "d", #gval, $$t, #dec, #dcc }}) *
+	   (ret == $$t) ]]
+	normal
 
 proc o__defineOwnProperty (l, prop, desc, throw) {
 
@@ -1684,23 +1762,23 @@ proc o__defineOwnProperty (l, prop, desc, throw) {
 	l6:		goto [l-nth (current, 0) = "d"] chd cha;
 
 	chd:	goto [(dg = $$empty) and (ds = $$empty)] chd1 l7;
-	chd1:	t1 := "i__sameValue" (dv, l-nth (current, 1));
+	chd1:	t1 := "i__sameValue" (dc, l-nth (current, 4));
 			goto [t1] chd2 l7;
-	chd2:	t2 := "i__sameValue" (dw, l-nth (current, 2));
+	chd2:	t2 := "i__sameValue" (de, l-nth (current, 3));
 			goto [t2] chd3 l7;
-	chd3:	t3 := "i__sameValue" (de, l-nth (current, 3));
+	chd3:	t3 := "i__sameValue" (dw, l-nth (current, 2));
 			goto [t3] chd4 l7;
-	chd4:	t4 := "i__sameValue" (dc, l-nth (current, 4));
+	chd4:	t4 := "i__sameValue" (dv, l-nth (current, 1));
 			goto [t4] acc_t l7;
 
 	cha:	goto [(dv = $$empty) and (dw = $$empty)] cha1 l7;
-	cha1:	t1 := "i__sameValue" (dg, l-nth (current, 1));
+	cha1:	t1 := "i__sameValue" (dc, l-nth (current, 4));
 			goto [t1] cha2 l7;
-	cha2:	t2 := "i__sameValue" (ds, l-nth (current, 2));
+	cha2:	t2 := "i__sameValue" (de, l-nth (current, 3));
 			goto [t2] cha3 l7;
-	cha3:	t3 := "i__sameValue" (de, l-nth (current, 3));
+	cha3:	t3 := "i__sameValue" (ds, l-nth (current, 2));
 			goto [t3] cha4 l7;
-	cha4:	t4 := "i__sameValue" (dc, l-nth (current, 4));
+	cha4:	t4 := "i__sameValue" (dg, l-nth (current, 1));
 			goto [t4] acc_t l7;
 
 	l7:		cc := l-nth (current, 4);
@@ -1749,9 +1827,10 @@ proc o__defineOwnProperty (l, prop, desc, throw) {
 	l10:	goto [cdd = $$t] l10a l11;
 
 	l10a:	goto [cc = $$f] l10ai l12;
-	l10ai:	goto [(not (dw = $$empty)) and ((cws = $$f) and (dw = $$t))] reject l10aii;
-	l10aii:	t1 := "i__sameValue" (cvg, dv);
-			goto [(cws = $$f) and (not (dv = $$empty)) and (not t1)] reject l12;
+	l10ai:	goto [(cws = $$f) and (dw = $$t)] reject l10aii;
+	l10aii:	goto [(cws = $$f) and (not (dv = $$empty))] sv l12;
+	sv:		t1 := "i__sameValue" (cvg, dv);
+	 		goto [not t1] reject l12;
 
 	l11: 	t1 := "i__sameValue" (dg, l-nth (current, 1));
 			t2 := "i__sameValue" (ds, l-nth (current, 2));
@@ -1803,4 +1882,389 @@ with
 {
 	ret: xret, rlab;
 	err: xerr, elab;
+};
+
+(* ***************** *)
+(* DEFINEOWNPROPERTY *)
+(* ***************** *)
+
+(*
+ * General defineOwnProperty
+ * Branch on class: array or non-array
+ *)
+spec defineOwnProperty(l, prop, desc, throw)
+
+    (* Current is undefined, object is not extensible, non-string, throw *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$t) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #desc : $$list_type) *
+	   ((#l, "@class") -> #cls) * isClass(#cls, "Non-Array") *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) *
+	   ((#l, "@extensible") -> $$f) ]]
+    [[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) * ((#l, "@extensible") -> $$f) *
+	   isTypeError(err) ]]
+    error;
+
+    (* Current is undefined, object is not extensible, non-string, don't throw *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$f) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #desc : $$list_type) *
+	   ((#l, "@class") -> #cls) * isClass(#cls, "Non-Array") *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) *
+	   ((#l, "@extensible") -> $$f) ]]
+    [[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) * ((#l, "@extensible") -> $$f) *
+	   (ret == $$f) ]]
+    normal;
+
+    (* Current is undefined, object is not extensible, string, throw *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$t) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #desc : $$list_type) *
+	   ((#l, "@class") -> #cls) * isClass(#cls, "Non-Array") *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) *
+	   ((#l, "@extensible") -> $$f) ]]
+    [[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) * ((#l, "@extensible") -> $$f) *
+	   isTypeError(err) ]]
+    error;
+
+    (* Current is undefined, object is not extensible, string, don't throw *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$f) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #desc : $$list_type) *
+	   ((#l, "@class") -> #cls) * isClass(#cls, "Non-Array") *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) *
+	   ((#l, "@extensible") -> $$f) ]]
+    [[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) * ((#l, "@extensible") -> $$f) *
+	   (ret == $$f) ]]
+    normal;
+
+	(* Current is undefined, object is extensible, non-string, data descriptor, success *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #desc : $$list_type, #throw : $$boolean_type) *
+	   ((#l, "@class") -> #cls) * isClass(#cls, "Non-Array") *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) *
+	   DataDescriptor (#desc) *
+	   ((#l, "@extensible") -> $$t) ]]
+    [[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #desc) * ((#l, "@extensible") -> $$t) *
+	   (ret == $$t) ]]
+    normal;
+
+	(* Current is undefined, object is extensible, string, data descriptor, success *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #desc : $$list_type, #throw : $$boolean_type) *
+	   ((#l, "@class") -> #cls) * isClass(#cls, "Non-Array") *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) *
+	   DataDescriptor (#desc) *
+	   ((#l, "@extensible") -> $$t) ]]
+    [[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "NSI", #desc, #pv) * ((#l, "@extensible") -> $$t) *
+	   (ret == $$t) ]]
+    normal;
+
+    (* Current is defined, configurable is true, data descriptor, non-string, success *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #desc : $$list_type, #dcur : $$list_type, #throw : $$boolean_type, #ext : $$boolean_type) *
+       DataDescriptor(#desc) * desc_conf(#dcur, $$t) *
+       ((#l, "@class") -> #cls) * isClass(#cls, "Non-Array") *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) *
+	   ((#l, "@extensible") -> #ext) ]]
+    [[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #desc) * ((#l, "@extensible") -> #ext) *
+	   (ret == $$t) ]]
+    normal;
+
+	(* Current is defined, configurable is false, data descriptor, configurable is true, non-string, throw *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$t) *
+	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #dcur : $$list_type, #throw : $$boolean_type, #ext : $$boolean_type) *
+       DataDescriptor(#desc) * DataDescriptor(#dcur) * desc_conf(#desc, $$t) * desc_conf(#dcur, $$f) *
+       ((#l, "@class") -> #cls) * isClass(#cls, "Non-Array") * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) ]]
+    [[ ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) *
+	   isTypeError(err) ]]
+	error;
+
+	(* Current is defined, configurable is false, data descriptor, configurable is true, non-string, don't throw *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$f) *
+	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #dcur : $$list_type, #throw : $$boolean_type, #ext : $$boolean_type) *
+       DataDescriptor(#desc) * DataDescriptor(#dcur) * desc_conf(#desc, $$t) * desc_conf(#dcur, $$f) *
+       ((#l, "@class") -> #cls) * isClass(#cls, "Non-Array") * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) ]]
+    [[ ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) *
+	   (ret == $$f) ]]
+	normal;
+
+	(* Current is defined, configurable is false, data descriptor, configurable is false, enumerables are different, non-string, throw *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$t) *
+	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #dcur : $$list_type, #throw : $$boolean_type, #ext : $$boolean_type) *
+	   types (#ed : $$boolean_type, #ec : $$boolean_type) *
+       DataDescriptor(#desc) * DataDescriptor(#dcur) * desc_conf(#desc, $$f) * desc_conf(#dcur, $$f) *
+	   desc_enum(#desc, #ed) * desc_enum(#dcur, #ec) * (! (#ed == #ec)) *
+       ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * isClass(#cls, "Non-Array") * Cell_o (#l, #prop, #dcur) ]]
+    [[ ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) *
+	   isTypeError(err) ]]
+	error;
+
+	(* Current is defined, configurable is false, data descriptor, configurable is false, enumerables are different, non-string, throw *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$f) *
+	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #dcur : $$list_type, #throw : $$boolean_type, #ext : $$boolean_type) *
+	   types (#ed : $$boolean_type, #ec : $$boolean_type) *
+       DataDescriptor(#desc) * DataDescriptor(#dcur) * desc_conf(#desc, $$f) * desc_conf(#dcur, $$f) *
+	   desc_enum(#desc, #ed) * desc_enum(#dcur, #ec) * (! (#ed == #ec)) *
+       ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * isClass(#cls, "Non-Array") * Cell_o (#l, #prop, #dcur) ]]
+    [[ ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) *
+	   (ret == $$f) ]]
+	normal;
+
+	(* Current is defined, configurables are false, enumerables are same, writables false and true, non-string, throw *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$t) *
+	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #dcur : $$list_type, #throw : $$boolean_type, #ext : $$boolean_type) *
+	   types (#enum : $$boolean_type) *
+       DataDescriptor(#desc) * DataDescriptor(#dcur) *
+	   desc_conf(#desc, $$f) * desc_conf(#dcur, $$f) *
+	   desc_enum(#desc, #enum) * desc_enum(#dcur, #enum) *
+	   desc_writ(#desc, $$t) * desc_writ(#dcur, $$f) *
+       ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * isClass(#cls, "Non-Array") * Cell_o (#l, #prop, #dcur) ]]
+    [[ ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) *
+	   isTypeError(err) ]]
+	error;
+
+	(* Current is defined, configurables are false, enumerables are same, writables false and true, non-string, throw *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$f) *
+	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #dcur : $$list_type, #throw : $$boolean_type, #ext : $$boolean_type) *
+	   types (#enum : $$boolean_type) *
+       DataDescriptor(#desc) * DataDescriptor(#dcur) *
+	   desc_conf(#desc, $$f) * desc_conf(#dcur, $$f) *
+	   desc_enum(#desc, #enum) * desc_enum(#dcur, #enum) *
+	   desc_writ(#desc, $$t) * desc_writ(#dcur, $$f) *
+       ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * isClass(#cls, "Non-Array") * Cell_o (#l, #prop, #dcur) ]]
+    [[ ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #dcur) *
+	   (ret == $$f) ]]
+	normal;
+
+	(* Current is defined, configurables are false, enumerables are same, writable is true, non-string, success *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$f) *
+	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #dcur : $$list_type, #throw : $$boolean_type, #ext : $$boolean_type) *
+	   types (#enum : $$boolean_type) *
+       DataDescriptor(#desc) * DataDescriptor(#dcur) *
+	   desc_conf(#desc, $$f) * desc_conf(#dcur, $$f) *
+	   desc_enum(#desc, #enum) * desc_enum(#dcur, #enum) *
+	   desc_writ(#dcur, $$t) *
+       ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * isClass(#cls, "Non-Array") * Cell_o (#l, #prop, #dcur) ]]
+    [[ ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #desc) *
+	   (ret == $$t) ]]
+	normal;
+
+	(* Current is defined, data descriptor, writable, sending only value, success *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
+	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #dcur : $$list_type, #throw : $$boolean_type, #ext : $$boolean_type, #throw : $$boolean_type) *
+       (#desc == {{ "g", $$empty, $$empty, #gval, $$empty, $$empty, $$empty }}) * (! (#gval == $$empty)) *
+	   DataDescriptor(#dcur) * desc_writ(#dcur, $$t) * desc_enum(#dcur, #dec) * desc_conf(#dcur, #dcc) *
+       ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   isClass(#cls, "Non-String") * isClass(#cls, "Non-Array") * Cell_o (#l, #prop, #dcur) ]]
+    [[ ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   Cell_o (#l, #prop, {{ "d", #gval, $$t, #dec, #dcc }}) *
+	   (ret == $$t) ]]
+	normal
+
+proc defineOwnProperty (l, prop, desc, throw) {
+
+			class := [l, "@class"];
+
+			goto [class = "Array"] adop odop;
+
+	adop:	xret := "a__defineOwnProperty" (l, prop, desc, throw) with elab;
+			goto rlab;
+
+	odop:	xret := "o__defineOwnProperty" (l, prop, desc, throw) with elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** *)
+(* PUT *)
+(* *** *)
+
+	(* ******* UNSUCCESSFUL PUT ******* *)
+
+	(*
+	 *	1. Property is not defined in the prototype chain at all, object is not extensible, throw
+	 *  2. Property is not defined in the prototype chain at all, object is not extensible, no throw
+	 *  3. Property is defined in the object (DD), data descriptor is not writable, throw
+	 *  4. Property is defined in the object (DD), data descriptor is not writable, no throw
+	 *  5. Property is defined in the prototype chain, not in the object (DD), object is not extensible, throw
+	 *  6. Property is defined in the prototype chain, not in the object (DD), object is not extensible, no throw
+     *  7. Property is defined in the prototype chain, not in the object (DD), object is extensible, data descriptor is not writable, throw
+	 *  8. Property is defined in the prototype chain, not in the object (DD), object is extensible, data descriptor is not writable, no throw
+	 *)
+
+	 (* ******* SUCCESSFUL PUT ******* *)
+
+	(*
+	 *	 9. Property is defined in the object (DD), data descriptor is writable
+	 *  10. Property is not defined in the prototype chain at all, prototype chain of length = 1, object is extensible
+	 *  10. Property is not defined in the prototype chain at all, prototype chain of length > 1, object is extensible
+     *  12. Property is defined in the prototype chain, not in the object (DD), object is extensible, data descriptor is writable
+	 *)
+
+spec put (l, prop, value, throw)
+
+	(* 1. Property is not defined within the prototype chain at all, object not extensible, throw *)
+    [[ (l == #l) * (prop == #prop) * (value == #value) * (throw == $$t) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #throw : $$boolean_type) *
+	   ((#l, "@extensible") -> $$f) *
+	   Pi (#l, #prop, #cls, $$undefined, #g_aux_4, #g_aux_5, #g_aux_6) ]]
+	[[ Pi (#l, #prop, #cls, $$undefined, #g_aux_4, #g_aux_5, #g_aux_6) *
+	   ((#l, "@extensible") -> $$f) *
+	   isTypeError(err) ]]
+    error;
+
+	(* 2. Property is not defined within the prototype chain at all, object not extensible, don't throw *)
+    [[ (l == #l) * (prop == #prop) * (value == #value) * (throw == $$f) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #throw : $$boolean_type) *
+	   ((#l, "@extensible") -> $$f) *
+	   Pi (#l, #prop, #cls, $$undefined, #g_aux_4, #g_aux_5, #g_aux_6) ]]
+	[[ Pi (#l, #prop, #cls, $$undefined, #g_aux_4, #g_aux_5, #g_aux_6) *
+	   ((#l, "@extensible") -> $$f) *
+	   (ret == $$empty) ]]
+    normal;
+
+	(* 3. Property is defined in the object, data descriptor that is not writable, throw *)
+	[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == $$t) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #throw : $$boolean_type) *
+	   ((#l, "@extensible") -> $$f) *
+	   Pi (#l, #prop, #cls, #g_aux_1, {{ #l }}, #g_aux_3, #g_aux_4) *
+	   DataDescriptor(#g_aux_3) * desc_writ(#g_aux_1, $$f) ]]
+	[[ Pi (#l, #prop, #cls, #g_aux_1, {{ #l }}, #g_aux_3, #g_aux_4) *
+	   ((#l, "@extensible") -> $$f) *
+	   isTypeError(err) ]]
+	error;
+
+	(* 4. Property is defined in the object, data descriptor that is not writable, don't throw *)
+	[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == $$f) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #throw : $$boolean_type) *
+	   ((#l, "@extensible") -> $$f) *
+	   Pi (#l, #prop, #cls, #g_aux_1, {{ #l }}, #g_aux_3, #g_aux_4) *
+	   DataDescriptor(#g_aux_3) * desc_writ(#g_aux_1, $$f) ]]
+	[[ Pi (#l, #prop, #cls, #g_aux_1, {{ #l }}, #g_aux_3, #g_aux_4) *
+	   ((#l, "@extensible") -> $$f) *
+	   (ret == $$empty) ]]
+    normal;
+
+	(* 5. Property is defined in the prototype chain, not in the object, object not extensible, throw *)
+	[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == $$t) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #throw : $$boolean_type) *
+	   ((#l, "@extensible") -> $$f) *
+	   Pi (#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *
+	   DataDescriptor(#g_aux_1) * (1 <# l-len (#g_aux_2)) * types (#g_aux_2 : $$list_type) ]]
+	[[ Pi (#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *
+	   ((#l, "@extensible") -> $$f) *
+	   isTypeError(err) ]]
+	error;
+
+	(* 6. Property is defined in the prototype chain, not in the object, object not extensible, don't throw *)
+	[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == $$f) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #throw : $$boolean_type) *
+	   ((#l, "@extensible") -> $$f) *
+	   Pi (#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *
+	   DataDescriptor(#g_aux_1) * (1 <# l-len (#g_aux_2)) * types (#g_aux_2 : $$list_type) ]]
+	[[ Pi (#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *
+	   ((#l, "@extensible") -> $$f) *
+	   (ret == $$empty) ]]
+    normal;
+
+	(* 7. Property is defined in the prototype chain, not in the object, object extensible, property not writable, throw *)
+	[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == $$t) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #throw : $$boolean_type) *
+	   ((#l, "@extensible") -> $$t) *
+	   Pi (#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *
+	   DataDescriptor(#g_aux_31) * desc_writ(#g_aux_1, $$f) * (1 <# l-len (#g_aux_2)) * types (#g_aux_2 : $$list_type) ]]
+	[[ Pi (#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *
+	   ((#l, "@extensible") -> $$t) *
+	   isTypeError(err) ]]
+	error;
+
+	(* 8. Property is defined in the prototype chain, not in the object, object extensible, property not writable, don't throw *)
+	[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == $$f) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #throw : $$boolean_type) *
+	   ((#l, "@extensible") -> $$t) *
+	   Pi (#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *
+	   DataDescriptor(#g_aux_31) * desc_writ(#g_aux_1, $$f) * (1 <# l-len (#g_aux_2)) * types (#g_aux_2 : $$list_type) ]]
+	[[ Pi (#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *
+	   ((#l, "@extensible") -> $$t) *
+	   (ret == $$empty) ]]
+    normal;
+
+	(* 9. Property is defined in the object, data descriptor that is writable, don't throw *)
+    [[ (l == #l) * (prop == #prop) * (value == #value) * (throw == #throw) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #throw : $$boolean_type, #ext : $$boolean_type) *
+	   types (#denum : $$boolean_type, #dconf : $$boolean_type) *
+       Pi (#l, #prop, #cls, {{ "d", #dval, $$t, #denum, #dconf }}, {{ #l }}, #g_aux_3, #g_aux_4) * (! (#dval == $$empty)) *
+	   isClass(#cls, "Non-String") * isClass(#cls, "Non-Array") *
+	   ((#l, "@extensible") -> #ext) ]]
+	[[ Pi (#l, #prop, #cls, {{ "d", #value, $$t, #denum, #dconf }}, {{ #l }}, #g_aux_3, #g_aux_4) *
+	   ((#l, "@extensible") -> #ext) *
+	   (ret == $$empty) ]]
+    normal
+
+proc put (l, prop, value, throw) {
+            xret := "canPut" (l, prop) with elab;
+            goto [xret] cp reject;
+
+			[* unfold Pi (#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *]
+    cp:     xret := "getOwnProperty" (l, prop) with elab;
+    		dd := "i__isDataDescriptor" (xret);
+    		goto [dd] dd gp;
+
+    dd:		desc := {{ "g", $$empty, $$empty, value, $$empty, $$empty, $$empty }};
+    		xret := "defineOwnProperty" (l, prop, desc, throw) with elab;
+    		goto remp;
+
+			[* fold Pi (#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *]
+    gp:		xret := "getProperty" (l, prop) with elab;
+    		ad := "i__isAccessorDescriptor" (xret);
+    		goto [ad] ad def;
+
+    ad:		s := l-nth (xret, 2);
+    		xsc := [s, "@scope"];
+    		fun := [s, "@call"];
+    		xret := fun (xsc, l, value) with elab;
+    		goto remp;
+
+    def:	desc := {{ "g", $$t, $$t, value, $$t, $$empty, $$empty }};
+			[* unfold Pi (#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *]
+    		xret := "defineOwnProperty" (l, prop, desc, throw) with elab;
+
+			[* fold Pi (#l, #prop, #cls, {{ "d", #value, $$t, $$t, $$t }}, {{ #l }}, #g_aux_new_, #g_aux_new_4) *]
+    remp:   xret := $$empty;
+    rlab:   skip;
+
+    reject: xret := $$empty;
+			goto [throw] tt rlab;
+
+    tt:     xret := "TypeError" ();
+    elab:   skip
+}
+with
+{
+    ret: xret, rlab;
+    err: xret, elab;
 };

@@ -493,6 +493,14 @@ let encode_binop tr_ctx op le1 te1 le2 te2 =
 		(* print_debug (Printf.sprintf "So, Bananas...\n (%s : %s) (%s : %s)" (Expr.to_string le1) (Expr.to_string te1) (Expr.to_string le2) (Expr.to_string te2)); *)
 		let le, te, constraints = (Expr.mk_app ctx tr_ctx.tr_list_cons [ le1; le2 ]), (encode_type ctx ListType), [ mk_constraint_type tr_ctx te2 ListType] in
 		le, te, constraints
+
+	| SubType ->
+		let new_le = Expr.mk_app ctx tr_ctx.tr_lub [ le1; le2 ] in
+		let new_le' = Boolean.mk_eq ctx new_le le2 in
+		let new_le'' = Expr.mk_app ctx tr_ctx.tr_to_jsil_boolean_fun [ new_le' ] in
+		let le, te, constraints = new_le'', (encode_type ctx BooleanType), [ ] in
+		le, te, constraints
+
 	| _     ->
 		let msg = Printf.sprintf "SMT encoding: Construct not supported yet - binop - %s!" (JSIL_Print.string_of_binop op) in
 		raise (Failure msg)
@@ -626,6 +634,11 @@ let rec encode_logical_expression tr_ctx e =
 		let assertions = [ constraint_string_type; constraint_index_type ] @ as_str @ as_index in
 		let le_snth = (Expr.mk_app ctx tr_ctx.tr_snth_fun [ le_str; le_index ]) in
 		le_snth, (encode_type ctx StringType), assertions
+
+	| LTypeOf le ->
+	 	let le', te', as_types = ele le in
+		let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_typeof_fun [ le' ]) in
+		new_le, (encode_type ctx TypeType), []
 
 	| _                     ->
 		let msg = Printf.sprintf "Failure - z3 encoding: Unsupported logical expression: %s"
