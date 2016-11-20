@@ -167,14 +167,14 @@ let is_symb_heap_empty heap =
 
 
 let merge_heaps heap new_heap p_formulae solver gamma =
-	Printf.printf "-------------------------------------------------------------------\n";
+	(* Printf.printf "-------------------------------------------------------------------\n";
 	Printf.printf "-------------INSIDE MERGE HEAPS------------------------------------\n";
 	Printf.printf "-------------------------------------------------------------------\n";
 
 	Printf.printf "heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false);
 	Printf.printf "pat_heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap new_heap false);
 	Printf.printf "p_formulae: %s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
-	Printf.printf "gamma: %s\n" (JSIL_Memory_Print.string_of_gamma gamma);
+	Printf.printf "gamma: %s\n" (JSIL_Memory_Print.string_of_gamma gamma); *)
 
 	LHeap.iter
 		(fun loc (n_fv_list, n_def) ->
@@ -202,9 +202,9 @@ let merge_heaps heap new_heap p_formulae solver gamma =
 				with Not_found ->
 					LHeap.add heap loc (n_fv_list, LUnknown))
 			| _ -> raise (Failure "heaps non-mergeable: the default field is not unknown!!!"))
-		new_heap;
+		new_heap
 
-	Printf.printf "-------------------------------------------------------------------\n";
+	(* Printf.printf "-------------------------------------------------------------------\n";
 	Printf.printf "-------------DONE MERGING HEAPS------------------------------------\n";
 	Printf.printf "-------------------------------------------------------------------\n";
 
@@ -215,7 +215,7 @@ let merge_heaps heap new_heap p_formulae solver gamma =
 
 	Printf.printf "-------------------------------------------------------------------\n";
 	Printf.printf "-------------NOW WE CONTINUE --------------------------------------\n";
-	Printf.printf "-------------------------------------------------------------------\n"
+	Printf.printf "-------------------------------------------------------------------\n" *)
 
 let get_heap_vars var_tbl catch_pvars heap =
 	LHeap.iter

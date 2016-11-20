@@ -233,18 +233,18 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		let gamma = get_gamma symb_state in
 		let pat_pfs = get_pf pat_symb_state in
 		let pat_gamma = get_gamma pat_symb_state in
-		(* Printf.printf "pfs: \n%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae pfs false);
+		Printf.printf "pfs: \n%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae pfs false);
 		Printf.printf "pat_pfs: \n%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae pat_pfs false);
 		Printf.printf "gamma: \n%s\n" (JSIL_Memory_Print.string_of_gamma gamma);
-		Printf.printf "%s" (JSIL_Memory_Print.string_of_substitution subst); *)
+		Printf.printf "%s" (JSIL_Memory_Print.string_of_substitution subst);
 		let pat_pfs = Symbolic_State_Functions.pf_substitution pat_pfs subst false in
 		let pat_gamma = Symbolic_State_Functions.gamma_substitution pat_gamma subst false in
 		let gamma = copy_gamma gamma in
 		Symbolic_State_Functions.merge_gammas gamma pat_gamma;
 		Symbolic_State_Functions.sanitise_pfs pfs; Symbolic_State_Functions.sanitise_pfs pat_pfs;
-		(* Printf.printf "pfs: \n%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae pfs false);
+		Printf.printf "pfs: \n%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae pfs false);
 		Printf.printf "pat_pfs: \n%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae pat_pfs false);
-		Printf.printf "gamma: \n%s\n" (JSIL_Memory_Print.string_of_gamma gamma); *)
+		Printf.printf "gamma: \n%s\n" (JSIL_Memory_Print.string_of_gamma gamma);
 		let cpfs = Symbolic_State_Functions.copy_p_formulae pfs in
 		Symbolic_State_Functions.extend_pfs cpfs None (pfs_to_list pat_pfs);
 		let pf_list = pfs_to_list cpfs in

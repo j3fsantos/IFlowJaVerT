@@ -738,9 +738,9 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 				x_type
 			| None -> None) in
 
-	(* Printf.printf "Store_0:\n%s. Store_1:\n%s.\n"
+	Printf.printf "Store_0:\n%s. Store_1:\n%s.\n"
 		(JSIL_Memory_Print.string_of_shallow_symb_store store_0 false)
-		(JSIL_Memory_Print.string_of_shallow_symb_store store_1 false); *)
+		(JSIL_Memory_Print.string_of_shallow_symb_store store_1 false);
 
 
 	(* STEP 1 - Unify(store_0, store_1, pi_0) = subst, pat_subst, discharges                                               *)
@@ -765,9 +765,9 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 	let step_2 () =
 		let store_0_var_types = List.map (fun x -> find_store_var_type store_0 gamma_0 x) store_vars in
 		let store_1_var_types = List.map (fun x -> find_store_var_type store_1 gamma_1 x) store_vars in
-		(* Printf.printf "Step 2:\n%s\n%s\n"
+		Printf.printf "Step 2:\n%s\n%s\n"
 			(List.fold_left2 (fun ac y x -> ac ^ (Printf.sprintf "%s: %s\n" y (match x with | None -> "None" | Some t -> (JSIL_Print.string_of_type t)))) "" store_vars store_0_var_types)
-			(List.fold_left2 (fun ac y x -> ac ^ (Printf.sprintf "%s: %s\n" y (match x with | None -> "None" | Some t -> (JSIL_Print.string_of_type t)))) "" store_vars store_1_var_types); *)
+			(List.fold_left2 (fun ac y x -> ac ^ (Printf.sprintf "%s: %s\n" y (match x with | None -> "None" | Some t -> (JSIL_Print.string_of_type t)))) "" store_vars store_1_var_types); 
 		let stores_are_type_compatible =
 			List.fold_left2
 				(fun ac t1 t2 ->
@@ -841,12 +841,12 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 		extend_gamma gamma_0 gamma_1'';
 		let gamma = gamma_0 in
 		JSIL_Logic_Normalise.extend_typing_env_using_assertion_info pi gamma;
-		(* Printf.printf "substitutions immediately before sat check.\nSubst:\n%s\nPat_Subst:\n%s\n"
+		Printf.printf "substitutions immediately before sat check.\nSubst:\n%s\nPat_Subst:\n%s\n"
 			(JSIL_Memory_Print.string_of_substitution subst)
 			(JSIL_Memory_Print.string_of_substitution new_pat_subst);
 		print_endline (Printf.sprintf "About to check if the following is SATISFIABLE:\n%s\nGiven the GAMMA:\n%s\n"
 			(JSIL_Print.str_of_assertion_list pi)
-			(	JSIL_Memory_Print.string_of_gamma gamma)); *)
+			(	JSIL_Memory_Print.string_of_gamma gamma));
 		let sat_check = Pure_Entailment.check_satisfiability pi gamma [] in
 		(* Printf.printf "GAMMA_OLD - STEP 5:\n%s\n" (JSIL_Memory_Print.string_of_gamma gamma_old); *)
 	    sat_check, pi', gamma_0', new_pat_subst in
@@ -879,7 +879,7 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 							then (
 								let unfolded_symb_state = step_6 subst pat_subst new_pi new_gamma in
 								Some unfolded_symb_state
-							) else  ( (* Printf.printf "Failed unfolding in step 5\n" ;*) None)
-					) else  ( (* Printf.printf "Failed unfolding in step 3\n"; *)   None)
-			) else ( (* Printf.printf "Failed unfolding in step 2\n"; *) None)
-	| None -> (* Printf.printf "Failed unfolding in step 1\n"; *) None
+							) else  ( Printf.printf "Failed unfolding in step 5\n"; None)
+					) else  ( Printf.printf "Failed unfolding in step 3\n"; None)
+			) else ( Printf.printf "Failed unfolding in step 2\n"; None)
+	| None -> Printf.printf "Failed unfolding in step 1\n"; None
