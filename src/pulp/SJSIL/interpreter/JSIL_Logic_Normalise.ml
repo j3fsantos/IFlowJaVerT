@@ -599,15 +599,18 @@ let normalise_precondition a =
 	(* (JSIL_Memory_Print.string_of_substitution new_subst);                 *)
 	symb_state, (lvars, new_subst)
 
-let normalise_postcondition a subst (lvars : string list) : symbolic_state * (string list) =
+let normalise_postcondition a subst (lvars : string list) pre_gamma : symbolic_state * (string list) =
 	let a = assertion_substitution a subst true in
 	let a_vars = get_ass_vars_lst a false in
 	let a_vars = filter_vars a_vars lvars in
 
+	let extra_gamma = filter_gamma pre_gamma lvars in 
 	(* let a_vars_str = List.fold_left (fun ac var -> (ac ^ var ^ ", ")) ""    *)
 	(* a_vars in Printf.printf "Post Existentially Quantified Vars BABY:       *)
 	(* %s\n\n\n" a_vars_str;                                                   *)
 	let symb_state, _ = normalise_assertion a in
+	let gamma_post = (get_gamma symb_state) in 
+	Symbolic_State_Functions.merge_gammas gamma_post extra_gamma; 
 	symb_state, a_vars
 
 
@@ -648,7 +651,7 @@ let normalise_single_spec preds spec =
 							(let posts, posts_lvars =
 									List.fold_left
 										(fun (ac_posts, ac_posts_lvars) post ->
-													let post_symb_state, post_lvars = normalise_postcondition post subst lvars in
+													let post_symb_state, post_lvars = normalise_postcondition post subst lvars (get_gamma pre_symb_state) in
 													let heap_constraints = Symbolic_State_Functions.get_heap_well_formedness_constraints (get_heap post_symb_state) in 
 													Printf.printf "For the postcondition to make sense the following must be satisfiable:\n%s\n" 
 														(JSIL_Print.str_of_assertion_list (heap_constraints @ (get_pf_list post_symb_state)));

@@ -94,7 +94,7 @@ let heap_substitution (heap : symbolic_heap) (subst : substitution) partial =
 
 *)
 let find_field loc fv_list e p_formulae solver gamma =
-	Printf.printf "Searching for field: %s\n" (JSIL_Print.string_of_logic_expression e false);
+	(* Printf.printf "Searching for field: %s\n" (JSIL_Print.string_of_logic_expression e false); *)
 	let rec find_field_rec fv_list traversed_fv_list i_am_sure_the_field_does_not_exist =
 		match fv_list with
 		| [] -> traversed_fv_list, None, i_am_sure_the_field_does_not_exist
@@ -167,14 +167,14 @@ let is_symb_heap_empty heap =
 
 
 let merge_heaps heap new_heap p_formulae solver gamma =
-	 Printf.printf "-------------------------------------------------------------------\n";
+  (* Printf.printf "-------------------------------------------------------------------\n";
 	Printf.printf "-------------INSIDE MERGE HEAPS------------------------------------\n";
 	Printf.printf "-------------------------------------------------------------------\n";
 
 	Printf.printf "heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false);
 	Printf.printf "pat_heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap new_heap false);
 	Printf.printf "p_formulae: %s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
-	Printf.printf "gamma: %s\n" (JSIL_Memory_Print.string_of_gamma gamma);
+	Printf.printf "gamma: %s\n" (JSIL_Memory_Print.string_of_gamma gamma); *)
 
 	LHeap.iter
 		(fun loc (n_fv_list, n_def) ->
@@ -191,11 +191,11 @@ let merge_heaps heap new_heap p_formulae solver gamma =
 							(match fv_pair, i_am_sure_the_field_does_exist with
 							| None, true -> loop ((le_field, le_val) :: q_fv_list) rest_n_fv_list
 							| None, false ->
-								Printf.printf "i_am_sure_the_field_does_exist: %b\n" i_am_sure_the_field_does_exist;
+								(* Printf.printf "i_am_sure_the_field_does_exist: %b\n" i_am_sure_the_field_does_exist; *)
 								raise (Failure "heaps non-mergeable")
 							| Some (f, v), _ ->
-								Printf.printf "i_am_sure_the_field_does_exist: %b, (%s, %s)\n"
-									i_am_sure_the_field_does_exist (JSIL_Print.string_of_logic_expression f false) (JSIL_Print.string_of_logic_expression v false);
+								(* Printf.printf "i_am_sure_the_field_does_exist: %b, (%s, %s)\n"
+									i_am_sure_the_field_does_exist (JSIL_Print.string_of_logic_expression f false) (JSIL_Print.string_of_logic_expression v false); *)
 								raise (Failure "heaps non-mergeable"))) in
 					let q_fv_list = loop [] n_fv_list in
 					LHeap.replace heap loc (q_fv_list @ fv_list, def)

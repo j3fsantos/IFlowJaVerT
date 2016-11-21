@@ -285,7 +285,7 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 			quotient_heap;
 		Some (quotient_heap, pfs)
 	with (Failure msg) ->
-		Printf.printf "unify_symb_heaps FAILED with message: %s\n" msg;
+		(* Printf.printf "unify_symb_heaps FAILED with message: %s\n" msg;*)
 		None
 
 
@@ -296,13 +296,13 @@ let unify_pred_against_pred (pat_pred : (string * (jsil_logic_expr list))) (pred
 	(* Printf.printf "Trying to unify \n\t%s\n\t\tagainst\n\t%s\n" (JSIL_Memory_Print.string_of_pred pat_pred false) (JSIL_Memory_Print.string_of_pred pred false); *)
 	let rec unify_expr_lists pat_list list subst =
 		(match pat_list, list with
-		| [], [] -> ( Printf.printf "Success in predicate set unification\n"; true)
+		| [], [] -> ( (* Printf.printf "Success in predicate set unification\n";*) true)
 		| (pat_le :: rest_pat_list), (le :: rest_list) ->
 			let unifier = unify_lexprs pat_le le p_formulae solver gamma subst in
 			(* Printf.printf "pat_le: %s. le: %s\n" (JSIL_Print.string_of_logic_expression pat_le false) (JSIL_Print.string_of_logic_expression le false); *)
 			if (Symbolic_State_Functions.update_subst1 subst unifier)
 				then unify_expr_lists rest_pat_list rest_list subst
-				else ( Printf.printf "Tremendous failure in predicate set unification\n"; false)
+				else ( (* Printf.printf "Tremendous failure in predicate set unification\n";*) false)
 		| _, _ -> false) in
 
 	if (pat_pred_name = pred_name) then
@@ -733,9 +733,9 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 				x_type
 			| None -> None) in
 
-	(* Printf.printf "Store_0:\n%s. Store_1:\n%s.\n" 
+	Printf.printf "Store_0:\n%s. Store_1:\n%s.\n" 
 		(JSIL_Memory_Print.string_of_shallow_symb_store store_0 false) 
-		(JSIL_Memory_Print.string_of_shallow_symb_store store_1 false); *)
+		(JSIL_Memory_Print.string_of_shallow_symb_store store_1 false); 
 
 
 	(* STEP 1 - Unify(store_0, store_1, pi_0) = subst, pat_subst, discharges                                               *)
@@ -760,9 +760,9 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 	let step_2 () =
 		let store_0_var_types = List.map (fun x -> find_store_var_type store_0 gamma_0 x) store_vars in
 		let store_1_var_types = List.map (fun x -> find_store_var_type store_1 gamma_1 x) store_vars in
-		(* Printf.printf "Step 2:\n%s\n%s\n"
+		Printf.printf "Step 2:\n%s\n%s\n"
 			(List.fold_left2 (fun ac y x -> ac ^ (Printf.sprintf "%s: %s\n" y (match x with | None -> "None" | Some t -> (JSIL_Print.string_of_type t)))) "" store_vars store_0_var_types)
-			(List.fold_left2 (fun ac y x -> ac ^ (Printf.sprintf "%s: %s\n" y (match x with | None -> "None" | Some t -> (JSIL_Print.string_of_type t)))) "" store_vars store_1_var_types); *)
+			(List.fold_left2 (fun ac y x -> ac ^ (Printf.sprintf "%s: %s\n" y (match x with | None -> "None" | Some t -> (JSIL_Print.string_of_type t)))) "" store_vars store_1_var_types); 
 		let stores_are_type_compatible =
 			List.fold_left2
 				(fun ac t1 t2 ->
@@ -832,11 +832,7 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 		let gamma_0' = Symbolic_State_Functions.gamma_substitution gamma_0' subst true in
 		extend_gamma gamma_0 gamma_0';
 		let gamma_1'' = Symbolic_State_Functions.gamma_substitution gamma_1 new_pat_subst false in
-<<<<<<< HEAD
 		(* Printf.printf "gamma_1'' is:\n%s\n" (JSIL_Memory_Print.string_of_gamma gamma_1''); *)
-=======
-		Printf.printf "gamma_1'' is:\n%s\n" (JSIL_Memory_Print.string_of_gamma gamma_1'');
->>>>>>> f2aacae5554443e41163fb6385ebc64679128983
 		extend_gamma gamma_0 gamma_1'';
 		let gamma = gamma_0 in
 		JSIL_Logic_Normalise.extend_typing_env_using_assertion_info pi gamma;
@@ -878,7 +874,7 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 							then (
 								let unfolded_symb_state = step_6 subst pat_subst new_pi new_gamma in
 								Some unfolded_symb_state
-							) else  ( (* Printf.printf "Failed unfolding in step 5\n" ;*) None)
-					) else  ( (* Printf.printf "Failed unfolding in step 3\n"; *)   None)
-			) else ( (* Printf.printf "Failed unfolding in step 2\n"; *) None)
-	| None -> (* Printf.printf "Failed unfolding in step 1\n"; *) None
+							) else  ( Printf.printf "Failed unfolding in step 5\n" ; None)
+					) else  ( Printf.printf "Failed unfolding in step 3\n";    None)
+			) else ( Printf.printf "Failed unfolding in step 2\n";  None)
+	| None -> Printf.printf "Failed unfolding in step 1\n";  None

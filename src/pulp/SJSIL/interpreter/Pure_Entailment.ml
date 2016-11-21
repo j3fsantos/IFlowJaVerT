@@ -1096,13 +1096,13 @@ let rec old_check_entailment existentials left_as right_as gamma =
 				else right_as_or in
 		let right_as_or = Expr.simplify right_as_or None in
 
-		Printf.printf "Checking if the current state entails the following:\n%s\n" (Expr.to_string right_as_or);
+		(* Printf.printf "Checking if the current state entails the following:\n%s\n" (Expr.to_string right_as_or); *)
 
 		let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 		Solver.add solver left_as;
 
 		let ret_left_side = (Solver.check solver [ ]) = Solver.SATISFIABLE in
-		Printf.printf "I am checking the satisfiability of the left side and got: %b\n" ret_left_side;
+		(* Printf.printf "I am checking the satisfiability of the left side and got: %b\n" ret_left_side; *)
 
 		Solver.push solver;
 		Solver.add solver [ right_as_or ];
@@ -1113,7 +1113,7 @@ let rec old_check_entailment existentials left_as right_as gamma =
 		(* if (not ret) then print_model solver; *)
 
 		(*  Printf.printf "backtracking_scopes before pop after push: %d!!!\n" (Solver.get_num_scopes solver); *)
-		Printf.printf "ret: %b\n" ret;
+		(* Printf.printf "ret: %b\n" ret; *)
 		Solver.pop solver 1;
 		ret, Some (solver, tr_ctx)  in
 

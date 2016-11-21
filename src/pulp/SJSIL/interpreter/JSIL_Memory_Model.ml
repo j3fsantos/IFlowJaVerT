@@ -291,7 +291,7 @@ let symb_state_replace_store symb_state new_store =
 (** Normalised Specifications          **)
 (****************************************)
 type jsil_n_single_spec = {
-     n_pre         : symbolic_state;
+   n_pre         : symbolic_state;
 	 n_post        : symbolic_state list;
 	 n_ret_flag    : jsil_return_flag;
 	 n_lvars       : string list;
