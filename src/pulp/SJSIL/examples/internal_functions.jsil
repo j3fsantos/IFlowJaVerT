@@ -955,7 +955,8 @@ spec i__checkAssignmentErrors (v)
     [[ ret == $$t ]]
     normal;
 
-    [[ (v == {{ "v", #l, #prop }}) * (! (#prop == "eval")) * (! (#prop == "arguments"))]]
+    [[ (v == {{ "v", #l, #prop }}) * types(#l : $$object_type, #prop : $$string_type) *
+	   (! (#prop == "eval")) * (! (#prop == "arguments"))]]
     [[ ret == $$t ]]
     normal;
 
@@ -1242,25 +1243,25 @@ spec i__getValue (v)
     [[ ret == $$null ]]
     normal;
 
-    [[ types (v : $$int_type) ]]
-	[[ (ret == v) ]]
+    [[ (v == #v) * types (#v : $$int_type) ]]
+	[[ (ret == #v) ]]
 	normal;
 
-    [[ types (v : $$number_type) ]]
-	[[ (ret == v) ]]
+    [[ (v == #v) * types (#v : $$number_type) ]]
+	[[ (ret == #v) ]]
 	normal;
 
-    [[ types (v : $$boolean_type) ]]
-    [[ (ret == v) ]]
-    normal;
+    [[ (v == #v) * types (#v : $$boolean_type) ]]
+	[[ (ret == #v) ]]
+	normal;
 
-    [[ types (v : $$string_type) ]]
-    [[ (ret == v) ]]
-    normal;
+    [[ (v == #v) * types (#v : $$string_type) ]]
+	[[ (ret == #v) ]]
+	normal;
 
-    [[ types (v : $$object_type) ]]
-    [[ (ret == v) ]]
-    normal;
+    [[ (v == #v) * types (#v : $$object_type) ]]
+	[[ (ret == #v) ]]
+	normal;
 
     [[ (v == {{ "o", #obj, #field }}) * types (#obj : $$object_type, #field : $$string_type, #cls : $$string_type) * isNamedProperty(#field) *
        Pi (#obj, #field, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (#g_aux_1 == $$undefined) ]]
@@ -2482,15 +2483,15 @@ spec i__putValue (v, w)
     normal;
 
 	(* Variable reference, $lg, property is defined in the object, data descriptor that is writable, success *)
-    [[ (v == {{ "v", #l, #prop }}) * (w == #w) * isNamedProperty(#prop) *
-	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #ext : $$boolean_type) *
+    [[ (v == {{ "v", $lg, #prop }}) * (w == #w) * isNamedProperty(#prop) *
+	   types (#prop : $$string_type, #cls : $$string_type, #ext : $$boolean_type) *
 	   types (#denum : $$boolean_type, #dconf : $$boolean_type) *
-       Pi (#l, #prop, #cls, {{ "d", #dval, $$t, #denum, #dconf }}, {{ #l }}, #g_aux_3, #g_aux_4) *
-	   (#l == $lg) * (! (#dval == $$empty)) * (! (#w == $$empty)) *
+       Pi ($lg, #prop, #cls, {{ "d", #dval, $$t, #denum, #dconf }}, {{ $lg }}, #g_aux_3, #g_aux_4) *
+	   (! (#dval == $$empty)) * (! (#w == $$empty)) *
 	   isClass(#cls, "Non-String") * isClass(#cls, "Non-Array") *
-	   ((#l, "@extensible") -> #ext) ]]
-	[[ Pi (#l, #prop, #cls, {{ "d", #w, $$t, #denum, #dconf }}, {{ #l }}, #g_aux_3, #g_aux_4) *
-	   ((#l, "@extensible") -> #ext) *
+	   (($lg, "@extensible") -> #ext) ]]
+	[[ Pi ($lg, #prop, #cls, {{ "d", #w, $$t, #denum, #dconf }}, {{ $lg }}, #g_aux_3, #g_aux_4) *
+	   (($lg, "@extensible") -> #ext) *
 	   (ret == $$empty) ]]
     normal;
 
@@ -2642,8 +2643,10 @@ proc main () {
 			x_3 := {{ "v", x_2, "x" }};
 			x_4_v := "i__getValue"(2.) with elab;
 			x_5 := "i__checkAssignmentErrors"(x_3) with elab;
+			[* fold Pi ($lg, "x", "Object", {{ "d", $$undefined, $$t, $$t, $$t }}, {{ $lg }}, {{ $$f }}, {{ ""}}) *]
 			x_6 := "i__putValue"(x_3, x_4_v) with elab;
 			x_4_v_v := "i__getValue"(x_4_v) with elab;
+			[* unfold Pi ($lg, "x", "Object", #v, $$t, $$t, $$t) *]
 			xret := x_4_v_v;
 	rlab:	skip;
 	elab:	xerr := PHI(x_4_v, x_5, x_6, x_4_v_v)
