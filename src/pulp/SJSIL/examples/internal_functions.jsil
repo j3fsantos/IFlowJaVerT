@@ -247,40 +247,28 @@ spec create_default_object (l, pr, cl, ext)
 
     [[ (l == #l) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
 	   types(#l : $$object_type) * (#cl == $$undefined) * (#ext == $$undefined) *
-       ((#l, "@proto") -> $$null) ]]
+	   ((#l, "@proto") -> #v1) * ((#l, "@class") -> #v2) * ((#l, "@extensible") -> #v3) ]]
     [[ ((#l, "@proto") -> #pr) * ((#l, "@class") -> "Object") * ((#l, "@extensible") -> $$t) *
 	   (ret == #l) ]]
     normal;
 
     [[ (l == #l) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
 	   types(#l : $$object_type, #cl : $$string_type) * (ext == $$undefined) *
-	   ((#l, "@proto") -> $$null) ]]
+	   ((#l, "@proto") -> #v1) * ((#l, "@class") -> #v2) * ((#l, "@extensible") -> #v3) ]]
     [[ ((#l, "@proto") -> #pr) * ((#l, "@class") -> #cl) * ((#l, "@extensible") -> $$t) *
 	   (ret == #l) ]]
     normal;
 
     [[ (l == #l) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
 	   types(#l : $$object_type, #ext : $$boolean_type) * (#cl == $$undefined) *
-	   ((#l, "@proto") -> $$null) ]]
+	   ((#l, "@proto") -> #v1) * ((#l, "@class") -> #v2) * ((#l, "@extensible") -> #v3) ]]
     [[ ((#l, "@proto") -> #pr) * ((#l, "@class") -> "Object") * ((#l, "@extensible") -> #ext) *
 	   (ret == #l) ]]
     normal;
 
     [[ (l == #l) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
 	   types(#l : $$object_type, #cl : $$string_type, #ext : $$boolean_type) *
-       ((#l, "@proto") -> $$null) ]]
-    [[ ((#l, "@proto") -> #pr) * ((#l, "@class") -> #cl) * ((#l, "@extensible") -> #ext) *
-	   (ret == #l) ]]
-    normal;
-
-    [[ (l == $lg) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
-	   types(#l : $$object_type, #cl : $$string_type, #ext : $$boolean_type) ]]
-    [[ ((#l, "@proto") -> #pr) * ((#l, "@class") -> #cl) * ((#l, "@extensible") -> #ext) *
-	   (ret == #l) ]]
-    normal;
-
-    [[ (l == $lobj_proto) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
-	   types(#l : $$object_type, #cl : $$string_type, #ext : $$boolean_type) ]]
+       ((#l, "@proto") -> #v1) * ((#l, "@class") -> #v2) * ((#l, "@extensible") -> #v3) ]]
     [[ ((#l, "@proto") -> #pr) * ((#l, "@class") -> #cl) * ((#l, "@extensible") -> #ext) *
 	   (ret == #l) ]]
     normal
@@ -2595,12 +2583,18 @@ with
    *** *** ***   INITIAL HEAP   *** *** ***
    **************************************** *)
 
+pred initialHeapPre () :
+    (($lg,         "@class") -> #v1) * (($lg,         "@proto") -> #v2) * (($lg,         "@extensible") -> #v3) *
+	(($lobj_proto, "@class") -> #v4) * (($lobj_proto, "@proto") -> #v5) * (($lobj_proto, "@extensible") -> #v6);
+
+pred initialHeapPost () :
+    (($lg,         "@class") -> "Object") * (($lg,         "@proto") -> $lobj_proto) * (($lg,         "@extensible") -> $$t) *
+	(($lobj_proto, "@class") -> "Object") * (($lobj_proto, "@proto") -> $$null)      * (($lobj_proto, "@extensible") -> $$t);
+
 spec setupInitialHeap ()
 
-	[[ true ]]
-	[[ (($lg,         "@class") -> "Object") * (($lg,         "@proto") -> $lobj_proto) * (($lg,         "@extensible") -> $$t) *
-	   (($lobj_proto, "@class") -> "Object") * (($lobj_proto, "@proto") -> $$null)      * (($lobj_proto, "@extensible") -> $$t) *
-	   (ret == $$empty) ]]
+	[[ initialHeapPre() ]]
+	[[ initialHeapPost() * (ret == $$empty) ]]
 	normal
 
 proc setupInitialHeap () {
@@ -2618,4 +2612,42 @@ proc setupInitialHeap () {
 with
 {
 	ret:	xret, rlab;
+};
+
+(* *******************************************
+   *** *** ***   JAVASCRIPT TEST   *** *** ***
+   ******************************************* *)
+
+spec main ()
+
+	[[ initialHeapPre() ]]
+	[[ initialHeapPost() *
+	   (($lg, "x") -> 2) *
+	   (ret == 2) ]]
+	normal
+
+proc main () {
+			x_0 := "setupInitialHeap"();
+			x__scope := new();
+			[x__scope, "main"] := $lg;
+			x__this := $lg;
+			[$lg, "x"] := {{ "d", $$undefined, $$t, $$t, $$t }};
+			[$lg, "arguments"] := {{ "d", $$undefined, $$t, $$t, $$t }};
+			x__te := "TypeError"();
+			x__se := "SyntaxError"();
+			x__true := $$t;
+			x__false := $$f;
+			x_1 := $$empty;
+			x_2 := [x__scope, "main"];
+			x_3 := {{ "v", x_2, "x" }};
+			x_4_v := "i__getValue"(2.) with elab;
+			x_5 := "i__checkAssignmentErrors"(x_3) with elab;
+			x_6 := "i__putValue"(x_3, x_4_v) with elab;
+			x_4_v_v := "i__getValue"(x_4_v) with elab;
+			xret := x_4_v_v;
+	rlab:	skip;
+	elab:	xerr := PHI(x_4_v, x_5, x_6, x_4_v_v)
+} with {
+	ret: xret, rlab;
+	err: xerr, elab;
 };
