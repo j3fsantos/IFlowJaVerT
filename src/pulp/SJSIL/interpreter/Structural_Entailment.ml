@@ -8,12 +8,12 @@ open JSIL_Logic_Utils
 
 let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subst : substitution) (subst: substitution option) (pfs : jsil_logic_assertion list) solver (gamma : typing_environment) : ((jsil_logic_expr * jsil_logic_expr) list) option  =
 	try
-	Printf.printf "Let's unify the stores first:\nStore: %s. \nPat_store: %s.\n\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false) (JSIL_Memory_Print.string_of_shallow_symb_store pat_store false);
+	(* Printf.printf "Let's unify the stores first:\nStore: %s. \nPat_store: %s.\n\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false) (JSIL_Memory_Print.string_of_shallow_symb_store pat_store false);
 	let str_subst = (match subst with
 	         | None -> "Our substitution doesn't exist. Fantastic.\n"
 			 | Some subst -> "Our substitution: " ^(JSIL_Memory_Print.string_of_substitution subst)) in
 	Printf.printf "%s" str_subst;
-	Printf.printf "pfs inside unify store:\n%s\n" (JSIL_Print.str_of_assertion_list pfs);
+	Printf.printf "pfs inside unify store:\n%s\n" (JSIL_Print.str_of_assertion_list pfs); *)
 	let discharges =
 		Hashtbl.fold
 			(fun var pat_lexpr discharges ->
@@ -727,21 +727,16 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 	let store_vars = get_store_domain store_0 in
 
 	let find_store_var_type store gamma x =
-		let x_type = gamma_get_type gamma x in
-		match x_type with
-		| Some x_type -> Some x_type
-		| None ->
-			let le_x = store_get_var_val store x in
-			(match le_x with
-			| Some le_x ->
-				let x_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le_x in
-				x_type
-			| None -> None) in
+		let le_x = store_get_var_val store x in
+		(match le_x with
+		| Some le_x ->
+			let x_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le_x in
+			x_type
+		| None -> None) in
 
 	Printf.printf "Store_0:\n%s.\n Store_1:\n%s.\n" 
 		(JSIL_Memory_Print.string_of_shallow_symb_store store_0 false) 
 		(JSIL_Memory_Print.string_of_shallow_symb_store store_1 false); 
-
 
 	(* STEP 1 - Unify(store_0, store_1, pi_0) = subst, pat_subst, discharges                                               *)
 	(* subst (store_0) =_{pi_0} pat_subst (store_1) provided that the discharges hold                                      *)

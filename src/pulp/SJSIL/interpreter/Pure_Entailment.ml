@@ -201,7 +201,7 @@ let mk_z3_llen_axioms n ctx list_sort list_len list_nil list_cons =
 
 
 let mk_smt_translation_ctx gamma existentials =
-	let cfg = [("model", "true"); ("proof", "false")] in
+	let cfg = [("model", "true"); ("proof", "true"); ("unsat_core", "true")] in
 	let ctx = (mk_context cfg) in
 
 	let z3_typeof_fun_name = (Symbol.mk_string ctx "typeof") in
@@ -844,8 +844,8 @@ let rec lets_do_some_list_theory_axioms tr_ctx l1 l2 =
 		let l2', _, _   = fe l2 in
 		let axiom_len   =
 			(match l1' with
-			| LLit (LList l1'') -> Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l2' ]) (mk_num_i ctx (List.length l1''))
-			| LEList l1''       -> Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l2' ]) (mk_num_i ctx (List.length l1''))
+			| LLit (LList l1'') -> Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l2' ]) (mk_num_i ctx ((List.length l1'')+1))
+			| LEList l1''       -> Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l2' ]) (mk_num_i ctx ((List.length l1'')+1))
 			| _                 ->
 				let l1''', _, _ = fe l1' in
 				let le_len_tail = (Expr.mk_app ctx tr_ctx.tr_llen_fun [ l1''' ]) in
@@ -1079,9 +1079,15 @@ let string_of_solver solver =
 
 let check_satisfiability assertions gamma existentials =
 	let solver = get_new_solver assertions gamma existentials in
-	(* Printf.printf "CS Solver: \n%s\n" (string_of_solver solver); *)
-	let ret = (Solver.check solver []) = Solver.SATISFIABLE in
-	(* Printf.printf "Satisfiability check of right side: %b\n" ret; *)
+	Printf.printf "CS Solver: \n%s\n" (string_of_solver solver); 
+	let ret_solver = (Solver.check solver []) in 
+	let ret = (ret_solver = Solver.SATISFIABLE) in
+	Printf.printf "Satisfiability check of right side: %b\n" ret; 
+	if (ret_solver = Solver.UNSATISFIABLE) 
+		then (
+			let core = Solver.get_unsat_core solver in
+			Printf.printf "UNSAT core: %s\n" (string_of_z3_expr_list core)
+		); 
 	ret
 
 (* right_as must be satisfiable *)
