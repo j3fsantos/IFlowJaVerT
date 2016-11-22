@@ -63,14 +63,13 @@ let heap_substitution (heap : symbolic_heap) (subst : substitution) partial =
 				(try Hashtbl.find subst loc
 					with _ ->
 						(* Printf.printf "this location is not in the substitution. es estupido nao?!!!!!\n\n\n"; *)
-						if (partial) then
-							if (is_abs_loc_name loc) then (ALoc loc) else (LLit (Loc loc))
-						else
-							begin
-								let new_aloc = ALoc (fresh_aloc ()) in
-								JSIL_Logic_Utils.extend_subst subst loc new_aloc;
-								new_aloc
-							end) in
+						if (is_abs_loc_name loc) 
+							then
+								(if (partial) then (ALoc loc) else
+									(let new_aloc = ALoc (fresh_aloc ()) in
+									JSIL_Logic_Utils.extend_subst subst loc new_aloc;
+									new_aloc))
+							else (LLit (Loc loc))) in
 			let s_loc =
 				(match s_loc with
 					| LLit (Loc loc) -> loc
