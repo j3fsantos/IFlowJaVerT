@@ -27,6 +27,13 @@ let types_encoded_as_ints = [
 	TypeType
 ]
 
+let undefined_encoding = 1234567890
+let null_encoding      = 1234567891
+let empty_encoding     = 1234567892
+let true_encoding      = 1234567893
+let false_encoding     = 1234567894
+let string_encoding    = 1000000000
+
 let types_encoded_as_reals_fpa = NumberType :: types_encoded_as_ints
 
 (**********************
@@ -259,11 +266,11 @@ let mk_smt_translation_ctx gamma existentials =
 	(* to_jsil_boolean axioms *)
 	(* to_jsil_boolean true = 1 *)
 	(* to_jsil_boolean false = 0 *)
-	let to_jsil_boolean_axiom_true = Boolean.mk_eq ctx (Expr.mk_app ctx z3_to_jsil_boolean_fun [ (Boolean.mk_true ctx) ]) (mk_num_i ctx 1)  in
-	let to_jsil_boolean_axiom_false = Boolean.mk_eq ctx (Expr.mk_app ctx z3_to_jsil_boolean_fun [ (Boolean.mk_false ctx) ]) (mk_num_i ctx 0) in
+	let to_jsil_boolean_axiom_true = Boolean.mk_eq ctx (Expr.mk_app ctx z3_to_jsil_boolean_fun [ (Boolean.mk_true ctx) ]) (mk_num_i ctx true_encoding)  in
+	let to_jsil_boolean_axiom_false = Boolean.mk_eq ctx (Expr.mk_app ctx z3_to_jsil_boolean_fun [ (Boolean.mk_false ctx) ]) (mk_num_i ctx false_encoding) in
 
-	let jsil_not_axiom_true : Z3.Expr.expr = Boolean.mk_eq ctx (Expr.mk_app ctx z3_jsil_not_fun [ (mk_num_i ctx 1) ]) (mk_num_i ctx 0) in
-	let jsil_not_axiom_false :  Z3.Expr.expr = Boolean.mk_eq ctx (Expr.mk_app ctx z3_jsil_not_fun [ (mk_num_i ctx 0) ]) (mk_num_i ctx 1) in
+	let jsil_not_axiom_true : Z3.Expr.expr = Boolean.mk_eq ctx (Expr.mk_app ctx z3_jsil_not_fun [ (mk_num_i ctx true_encoding) ]) (mk_num_i ctx false_encoding) in
+	let jsil_not_axiom_false :  Z3.Expr.expr = Boolean.mk_eq ctx (Expr.mk_app ctx z3_jsil_not_fun [ (mk_num_i ctx false_encoding) ]) (mk_num_i ctx true_encoding) in
 
 	(* forall x. slen(x) >= 0 *)
 	let x = "x" in
@@ -377,7 +384,7 @@ let encode_constant ctx constant =
 
 (** Encode strings as Z3 numerical constants *)
 let str_codes = Hashtbl.create 1000
-let str_counter = ref 0
+let str_counter = ref string_encoding
 let encode_string ctx str =
 	(* Printf.printf "I am going to encode a string\n"; *)
 	try
@@ -400,14 +407,14 @@ let rec encode_literal tr_ctx lit =
 	let ctx = tr_ctx.z3_ctx in
 	let gamma = tr_ctx.tr_typing_env in
 	match lit with
-	| Undefined     -> (mk_num_i ctx 0), (encode_type ctx UndefinedType)
-	| Null          -> (mk_num_i ctx 1), (encode_type ctx NullType)
-	| Empty         -> (mk_num_i ctx 2), (encode_type ctx EmptyType)
+	| Undefined     -> (mk_num_i ctx undefined_encoding), (encode_type ctx UndefinedType)
+	| Null          -> (mk_num_i ctx null_encoding), (encode_type ctx NullType)
+	| Empty         -> (mk_num_i ctx empty_encoding), (encode_type ctx EmptyType)
 	| Constant c    -> encode_constant ctx c
 	| Bool b        ->
 		(match b with
-		| true      -> (mk_num_i ctx 1), (encode_type ctx BooleanType)
-		| false     -> (mk_num_i ctx 0), (encode_type ctx BooleanType))
+		| true      -> (mk_num_i ctx true_encoding), (encode_type ctx BooleanType)
+		| false     -> (mk_num_i ctx false_encoding), (encode_type ctx BooleanType))
 	| Integer i     -> (mk_num_i ctx i), (encode_type ctx IntType)
 	| Num n         ->
 		if (Utils.is_int n)
