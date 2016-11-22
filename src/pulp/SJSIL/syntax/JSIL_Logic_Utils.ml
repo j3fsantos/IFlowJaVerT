@@ -118,6 +118,9 @@ let rec get_logic_expression_string_literals le =
 	let fe = get_logic_expression_string_literals in
 	match le with
 	| LLit (String str) -> [ str ]
+	| LLit (LList ls) ->
+		let ls = List.map (fun x -> LLit x) ls in
+			List.concat (List.map fe ls)
 	| LLit _ | LNone | LVar _ | ALoc _ | PVar _ | LUnknown -> []
 	| LBinOp (le1, _, le2) | LLstNth (le1, le2) | LStrNth (le1, le2)  -> (fe le1) @ (fe le2)
 	| LUnOp (_, le) |	LTypeOf le -> fe le
@@ -127,11 +130,11 @@ let rec get_assertion_string_literals a =
 	let f = get_assertion_string_literals in
 	let fe = get_logic_expression_string_literals in
 	match a with
-	| LTrue | LFalse | LLess (_, _) | LLessEq (_, _) | LEmp | LTypes _ -> []
+	| LTrue | LFalse | LEmp | LTypes _ -> []
 	| LNot a -> f a
 	| LAnd (a1, a2) | LOr (a1, a2) | LStar (a1, a2) -> (f a1) @ (f a2)
 	| LPointsTo (le1, le2, le3) -> (fe le1) @ (fe le2) @ (fe le3)
-	| LEq (le1, le2) | LStrLess (le1, le2) -> (fe le1) @ (fe le2)
+	| LEq (le1, le2) | LLess (le1, le2) | LLessEq (le1, le2) | LStrLess (le1, le2) -> (fe le1) @ (fe le2)
 	| LPred (_, les) -> List.concat (List.map fe les)
 
 
