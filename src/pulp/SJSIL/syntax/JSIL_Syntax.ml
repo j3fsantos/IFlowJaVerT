@@ -44,8 +44,8 @@ type jsil_lit =
 	| Integer  of int
 	| Num      of float
 	| String   of string
-    | Loc      of string
-    | Type     of jsil_type
+  | Loc      of string
+  | Type     of jsil_type
 	(* List of literals (for descriptors) *)
 	| LList    of jsil_lit list
 

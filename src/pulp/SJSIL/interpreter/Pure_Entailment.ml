@@ -74,17 +74,17 @@ let mk_div = match_enc "mk_div" (fun ctx e1 e2 -> Arithmetic.mk_div ctx  e1  e2 
 (** Encode JSIL type literals as Z3 numerical constants *)
 let encode_type ctx jsil_type =
 	match jsil_type with
-	| UndefinedType         -> mk_num_i ctx 0
-	| NullType              -> mk_num_i ctx 1
-	| EmptyType             -> mk_num_i ctx 2
-	| NoneType              -> mk_num_i ctx 3
-	| BooleanType           -> mk_num_i ctx 4
-	| IntType               -> mk_num_i ctx 5
-	| NumberType            -> mk_num_i ctx 6
-	| StringType            -> mk_num_i ctx 7
-	| ObjectType            -> mk_num_i ctx 8
-	| ListType              -> mk_num_i ctx 12
-	| TypeType              -> mk_num_i ctx 13
+	| UndefinedType         -> mk_num_i ctx 1234567895
+	| NullType              -> mk_num_i ctx 1234567896
+	| EmptyType             -> mk_num_i ctx 1234567897
+	| NoneType              -> mk_num_i ctx 1234567898
+	| BooleanType           -> mk_num_i ctx 1234567899
+	| IntType               -> mk_num_i ctx 1234567900
+	| NumberType            -> mk_num_i ctx 1234567901
+	| StringType            -> mk_num_i ctx 1234567902
+	| ObjectType            -> mk_num_i ctx 1234567903
+	| ListType              -> mk_num_i ctx 1234567904
+	| TypeType              -> mk_num_i ctx 1234567905
 
 
 let get_sort tr_ctx var_type =
@@ -130,35 +130,6 @@ let encode_quantifier quantifier_type ctx quantified_vars var_sorts assertion =
 		quantified_assertion)
 	else assertion
 
-(* exists x. (typeof(x) == JSIL_Type) : for every JSIL type
-let mk_typeof_axioms ctx z3_typeof_fun z3_typeof_fun_domain =
-	let loop_fun jsil_type =
-		(match jsil_type with
-		| UndefinedType | NullType | EmptyType | NoneType ->
-			let x = "x" in
-			let le_x = Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx x) in
-			let le1 = (Expr.mk_app ctx z3_typeof_fun [ le_x ]) in
-			let le2 = encode_type ctx jsil_type in
-			let typeof_assertion = Boolean.mk_eq ctx le1 le2 in
-			let z3_typeof_axiom = encode_quantifier false ctx [ x ] z3_typeof_fun_domain typeof_assertion in
-			z3_typeof_axiom
-		| _ ->
-			let x = "x" in
-			let y = "y" in
-			let le_x = Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx x) in
-			let le_y = Arithmetic.Integer.mk_const ctx (Symbol.mk_string ctx y) in
-			let le11 = (Expr.mk_app ctx z3_typeof_fun [ le_x ]) in
-			let le12 =  encode_type ctx jsil_type in
-			let le21 = (Expr.mk_app ctx z3_typeof_fun [ le_y ]) in
-			let le22=  encode_type ctx jsil_type in
-			let typeof_assertion1 = Boolean.mk_eq ctx le11 le12 in
-			let typeof_assertion2 = Boolean.mk_eq ctx le21 le22 in
-			let typeof_assertion3 = Boolean.mk_not ctx (Boolean.mk_eq ctx le_x le_y) in
-			let typeof_assertion = Boolean.mk_and ctx [ typeof_assertion1; typeof_assertion2; typeof_assertion3 ] in
-			let type_of_domain = List.nth z3_typeof_fun_domain 0 in
-			let z3_typeof_axiom = encode_quantifier false ctx [ x; y ] [ type_of_domain; type_of_domain ] typeof_assertion in
-			z3_typeof_axiom) in
-	List.map loop_fun [ UndefinedType; NullType; EmptyType; NoneType; BooleanType; IntType; NumberType; StringType; ObjectType; ListType; TypeType] *)
 
 let mk_z3_list_core les ctx list_nil list_cons =
 	let empty_list = Expr.mk_app ctx list_nil [ ] in
@@ -206,6 +177,28 @@ let mk_z3_llen_axioms n ctx list_sort list_len list_nil list_cons =
 	let res = loop n [] in
 	res
 
+
+let mk_typeof_axioms_for_constants ctx z3_typeof_fun_name = 
+	
+	let mk_typeof_axiom le te = 
+		let type_of_le = (Expr.mk_app ctx z3_typeof_fun_name [ le ]) in
+		Boolean.mk_eq ctx type_of_le te in
+	
+	let mk_typeof_type_le_axiom t = 
+		mk_typeof_axiom (encode_type ctx t) (encode_type ctx TypeType) in 
+
+	let typeof_undefined_axiom = mk_typeof_axiom (mk_num_i ctx undefined_encoding) (encode_type ctx UndefinedType) in 
+	let typeof_null_axiom = mk_typeof_axiom (mk_num_i ctx null_encoding) (encode_type ctx NullType) in 
+	let typeof_empty_axiom = mk_typeof_axiom (mk_num_i ctx empty_encoding) (encode_type ctx EmptyType) in 
+	let typeof_false_axiom = mk_typeof_axiom (mk_num_i ctx false_encoding) (encode_type ctx BooleanType) in
+	let typeof_true_axiom = mk_typeof_axiom (mk_num_i ctx true_encoding) (encode_type ctx BooleanType) in
+	
+	let typeof_types_axioms = List.map mk_typeof_type_le_axiom	
+		[ UndefinedType; NullType; EmptyType; NoneType; BooleanType; IntType; NumberType; StringType; ObjectType; ListType; TypeType] in 
+	
+	[ typeof_undefined_axiom; typeof_null_axiom; typeof_empty_axiom; typeof_false_axiom; typeof_true_axiom] @ typeof_types_axioms 
+	
+	
 
 let mk_smt_translation_ctx gamma existentials =
 	let cfg = [("model", "true"); ("proof", "true"); ("unsat_core", "true")] in
@@ -336,6 +329,8 @@ let mk_smt_translation_ctx gamma existentials =
 
 	let llen_axioms = mk_z3_llen_axioms 0 ctx list_sort z3_llen_fun list_nil list_cons in
 
+	let typeof_axioms = mk_typeof_axioms_for_constants ctx z3_typeof_fun in 
+
 	let result =
 	{
 		z3_ctx                  = ctx;
@@ -348,7 +343,7 @@ let mk_smt_translation_ctx gamma existentials =
 		tr_num2int_fun          = z3_num2int_fun;
 		tr_snth_fun             = z3_snth_fun;
 		tr_lnth_fun             = z3_lnth_fun;
-  		tr_list_sort            = list_sort;
+  	tr_list_sort            = list_sort;
  		tr_list_nil             = list_nil;
 		tr_list_is_nil          = list_is_nil;
 		tr_list_cons            = list_cons;
@@ -360,14 +355,14 @@ let mk_smt_translation_ctx gamma existentials =
 		tr_jsil_not_fun         = z3_jsil_not_fun;
 		tr_axioms               = [ z3_slen_axiom;
 		                            z3_llen_axiom1;
-									lub_refl_axiom;
-									lub_int_num_axiom;
-									lub_num_int_axiom;
-									axiom_llen_axiom2;
-									to_jsil_boolean_axiom_true;
-									to_jsil_boolean_axiom_false;
-									jsil_not_axiom_true;
-									jsil_not_axiom_false ] @ llen_axioms
+																lub_refl_axiom;
+																lub_int_num_axiom;
+																lub_num_int_axiom;
+																axiom_llen_axiom2;
+																to_jsil_boolean_axiom_true;
+																to_jsil_boolean_axiom_false;
+																jsil_not_axiom_true;
+																jsil_not_axiom_false ] @ llen_axioms @ typeof_axioms
 		(* tr_existentials   = existentials *)
 	} in
 	result
