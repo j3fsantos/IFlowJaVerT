@@ -2644,7 +2644,7 @@ proc main () {
 			x_4_v := "i__getValue"(2.) with elab;
 			x_5 := "i__checkAssignmentErrors"(x_3) with elab;
 			skip;
-			[* fold Pi ($lg, "x", "Object", {{ "d", $$undefined, $$t, $$t, $$t }}, {{ $lg }}, {{ $$f }}, {{ ""}}) *]
+			[* fold Pi ($lg, "x", "Object", {{ "d", $$undefined, $$t, $$t, $$t }}, {{ $lg }}, {{ $$f }}, {{ "" }}) *]
 			x_6 := "i__putValue"(x_3, x_4_v) with elab;
 			x_4_v_v := "i__getValue"(x_4_v) with elab;
 			[* unfold Pi ($lg, "x", "Object", #v, $$t, $$t, $$t) *]
@@ -2654,4 +2654,4 @@ proc main () {
 } with {
 	ret: xret, rlab;
 	err: xerr, elab;
-};
+};	

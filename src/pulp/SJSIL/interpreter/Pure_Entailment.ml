@@ -178,27 +178,27 @@ let mk_z3_llen_axioms n ctx list_sort list_len list_nil list_cons =
 	res
 
 
-let mk_typeof_axioms_for_constants ctx z3_typeof_fun_name = 
-	
-	let mk_typeof_axiom le te = 
+let mk_typeof_axioms_for_constants ctx z3_typeof_fun_name =
+
+	let mk_typeof_axiom le te =
 		let type_of_le = (Expr.mk_app ctx z3_typeof_fun_name [ le ]) in
 		Boolean.mk_eq ctx type_of_le te in
-	
-	let mk_typeof_type_le_axiom t = 
-		mk_typeof_axiom (encode_type ctx t) (encode_type ctx TypeType) in 
 
-	let typeof_undefined_axiom = mk_typeof_axiom (mk_num_i ctx undefined_encoding) (encode_type ctx UndefinedType) in 
-	let typeof_null_axiom = mk_typeof_axiom (mk_num_i ctx null_encoding) (encode_type ctx NullType) in 
-	let typeof_empty_axiom = mk_typeof_axiom (mk_num_i ctx empty_encoding) (encode_type ctx EmptyType) in 
+	let mk_typeof_type_le_axiom t =
+		mk_typeof_axiom (encode_type ctx t) (encode_type ctx TypeType) in
+
+	let typeof_undefined_axiom = mk_typeof_axiom (mk_num_i ctx undefined_encoding) (encode_type ctx UndefinedType) in
+	let typeof_null_axiom = mk_typeof_axiom (mk_num_i ctx null_encoding) (encode_type ctx NullType) in
+	let typeof_empty_axiom = mk_typeof_axiom (mk_num_i ctx empty_encoding) (encode_type ctx EmptyType) in
 	let typeof_false_axiom = mk_typeof_axiom (mk_num_i ctx false_encoding) (encode_type ctx BooleanType) in
 	let typeof_true_axiom = mk_typeof_axiom (mk_num_i ctx true_encoding) (encode_type ctx BooleanType) in
-	
-	let typeof_types_axioms = List.map mk_typeof_type_le_axiom	
-		[ UndefinedType; NullType; EmptyType; NoneType; BooleanType; IntType; NumberType; StringType; ObjectType; ListType; TypeType] in 
-	
-	[ typeof_undefined_axiom; typeof_null_axiom; typeof_empty_axiom; typeof_false_axiom; typeof_true_axiom] @ typeof_types_axioms 
-	
-	
+
+	(* let typeof_types_axioms = List.map mk_typeof_type_le_axiom
+		[ UndefinedType; NullType; EmptyType; NoneType; BooleanType; IntType; NumberType; StringType; ObjectType; ListType; TypeType] in *)
+
+	[ typeof_undefined_axiom; typeof_null_axiom; typeof_empty_axiom; typeof_false_axiom; typeof_true_axiom] (* )@ typeof_types_axioms *)
+
+
 
 let mk_smt_translation_ctx gamma existentials =
 	let cfg = [("model", "true"); ("proof", "true"); ("unsat_core", "true")] in
@@ -329,7 +329,7 @@ let mk_smt_translation_ctx gamma existentials =
 
 	let llen_axioms = mk_z3_llen_axioms 0 ctx list_sort z3_llen_fun list_nil list_cons in
 
-	let typeof_axioms = mk_typeof_axioms_for_constants ctx z3_typeof_fun in 
+	let typeof_axioms = mk_typeof_axioms_for_constants ctx z3_typeof_fun in
 
 	let result =
 	{
@@ -1094,15 +1094,15 @@ let string_of_solver solver =
 
 let check_satisfiability assertions gamma existentials =
 	let solver = get_new_solver assertions gamma existentials in
-	Printf.printf "CS Solver: \n%s\n" (string_of_solver solver); 
-	let ret_solver = (Solver.check solver []) in 
+	Printf.printf "CS Solver: \n%s\n" (string_of_solver solver);
+	let ret_solver = (Solver.check solver []) in
 	let ret = (ret_solver = Solver.SATISFIABLE) in
-	Printf.printf "Satisfiability check of right side: %b\n" ret; 
-	if (ret_solver = Solver.UNSATISFIABLE) 
+	Printf.printf "Satisfiability check of right side: %b\n" ret;
+	if (ret_solver = Solver.UNSATISFIABLE)
 		then (
 			let core = Solver.get_unsat_core solver in
 			Printf.printf "UNSAT core: %s\n" (string_of_z3_expr_list core)
-		); 
+		);
 	ret
 
 (* right_as must be satisfiable *)
