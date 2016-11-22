@@ -387,25 +387,26 @@ let fold_predicate pred_name pred_defs symb_state params args =
 	let existentials : jsil_var list = JSIL_Logic_Utils.tbl_intersection_false_true symb_state_vars args_vars in
 	let existentials_str = print_var_list existentials in
 
-	(* Printf.printf ("\n\n\nIn the FOLD with the following new variables %s: \n%s\n\n\n\n")
+	Printf.printf ("\nIn the FOLD with the following new variables %s: \n%s\n\n")
 		existentials_str
-		(JSIL_Memory_Print.string_of_shallow_symb_state symb_state); *)
+		(JSIL_Memory_Print.string_of_shallow_symb_state symb_state);
 
 	let rec find_correct_pred_def pred_defs =
 		(match pred_defs with
 		| [] -> None
 		| pred_def :: rest_pred_defs ->
-			(* Printf.printf "Current pred symbolic state: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pred_def); *)
+			Printf.printf "----------------------------\n";
+			Printf.printf "Current pred symbolic state: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state pred_def);
 			let unifier = Structural_Entailment.unify_symb_states_fold existentials pred_def symb_state_aux in
 			(match unifier with
 			| Some (true, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
-			  (* Printf.printf "I can fold this!!!\n"; *)
+			    Printf.printf "I can fold this!!!\n";
 				let symb_state = Symbolic_State_Functions.symb_state_replace_heap symb_state quotient_heap in
 				let symb_state = Symbolic_State_Functions.symb_state_replace_preds symb_state quotient_preds in
 				let symb_state = Symbolic_State_Functions.symb_state_replace_gamma symb_state new_gamma in
 				Symbolic_State_Functions.extend_symb_state_with_pfs symb_state pf_discharges;
 				symb_state_add_predicate_assertion symb_state (pred_name, args);
-				(* Printf.printf "Symbolic state after FOLDING:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state); *)
+				Printf.printf "Symbolic state after FOLDING:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state);
 				Some symb_state
 			| Some (false, _, _, _, _, _) ->
 				find_correct_pred_def rest_pred_defs
@@ -534,11 +535,11 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 		| [] -> symb_states
 		| pred_symb_state :: rest_pred_defs ->
 			Printf.printf "Current Pred DEF:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state pred_symb_state);
-			Printf.printf "Current symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state); 
+			Printf.printf "Current symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state);
 			let unfolded_symb_state = Structural_Entailment.unfold_predicate_definition symb_state pred_symb_state calling_store subst0 spec_vars in
 			(match unfolded_symb_state with
 			| None -> (* Printf.printf "Unfolding UNsuccessful!!!\n"; *) loop rest_pred_defs symb_states
-			| Some unfolded_symb_state ->  
+			| Some unfolded_symb_state ->
 				(* Printf.printf "Unfolding SUCCESSFUL!!!\n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_state unfolded_symb_state); *)
 				loop rest_pred_defs (unfolded_symb_state :: symb_states))) in
 
@@ -549,7 +550,7 @@ let recursive_unfold pred_name pred_defs symb_state params spec_vars =
 	let rec loop symb_state =
 		let pred_args = Symbolic_State_Functions.find_predicate_assertion (get_preds symb_state) pred_name in
 		let len_pred_args = List.length pred_args in
-		Printf.printf "len_pred_args: %i\n" len_pred_args; 
+		Printf.printf "len_pred_args: %i\n" len_pred_args;
 		if ((len_pred_args = 0) || (len_pred_args > 1)) then symb_state else (
 			let args = List.hd pred_args in
 			let unfolded_symb_states = unfold_predicates pred_name pred_defs symb_state params args spec_vars in

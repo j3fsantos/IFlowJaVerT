@@ -1023,18 +1023,30 @@ let rec encode_assertion tr_ctx is_premise a : Expr.expr * (Expr.expr list) =
 		let a2', axioms2 = f a2 in
 		Boolean.mk_and ctx ([ a1'; a2' ] @ axioms1 @ axioms2), []
 
-	| _                  ->
+	| _ ->
 		let msg = Printf.sprintf "Unsupported assertion to encode for Z3: %s" (JSIL_Print.string_of_logic_assertion a false) in
 		raise (Failure msg)
 
 
+let get_them_nasty_string_axioms tr_ctx assertions =
+	let get_string_axioms a =
+		let a_strings = JSIL_Logic_Utils.remove_string_duplicates (JSIL_Logic_Utils.get_assertion_string_literals a) in
+		List.concat (List.map (fun s -> make_concrete_string_axioms tr_ctx s) a_strings) in
+	List.concat (List.map (fun a -> get_string_axioms a) assertions)
+
+
 let encode_assertion_top_level tr_ctx is_premise a =
-	let a_strings = JSIL_Logic_Utils.remove_string_duplicates (JSIL_Logic_Utils.get_assertion_string_literals a) in
+	(* let a_strings = JSIL_Logic_Utils.remove_string_duplicates (JSIL_Logic_Utils.get_assertion_string_literals a) in *)
+	(* Printf.printf "Assertion: %s\nString literals: %s\n"
+		(JSIL_Print.string_of_logic_assertion a false)
+		(List.fold_left (fun ac x -> ac ^ x ^ " ") "" a_strings); *)
 	let a' = JSIL_Logic_Utils.push_in_negations_off a in
 	let a'', axioms = encode_assertion tr_ctx is_premise a in
-	let a_strings_axioms = List.concat (List.map (fun s -> make_concrete_string_axioms tr_ctx s) a_strings) in
-	if (((List.length axioms) > 0) || ((List.length a_strings_axioms) > 0))
-		then Boolean.mk_and tr_ctx.z3_ctx (a'' :: (axioms @ a_strings_axioms))
+	(* let a_strings_axioms = List.concat (List.map (fun s -> make_concrete_string_axioms tr_ctx s) a_strings) in *)
+	(* Printf.printf "String axioms:\n%s\n"
+	    (List.fold_left (fun ac x -> ac ^ (Expr.to_string x) ^ "\n") "" a_strings_axioms); *)
+	if (List.length axioms > 0)
+		then Boolean.mk_and tr_ctx.z3_ctx (a'' :: axioms)
 		else a''
 
 
@@ -1051,8 +1063,9 @@ let string_of_z3_expr_list exprs =
 
 let get_new_solver assertions gamma existentials =
     let tr_ctx = mk_smt_translation_ctx gamma existentials in
+	let string_axioms = get_them_nasty_string_axioms tr_ctx assertions in
 	let assertions = List.map (fun a -> encode_assertion_top_level tr_ctx true a) assertions in
-	let assertions = tr_ctx.tr_axioms @ (encode_gamma tr_ctx (-1)) @ assertions in
+	let assertions = tr_ctx.tr_axioms @ string_axioms @ (encode_gamma tr_ctx (-1)) @ assertions in
 	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 	Solver.add solver assertions;
 	(* Printf.printf "I have just created a solver with the content given by:\n: %s\n" (string_of_z3_expr_list assertions); *)
@@ -1085,16 +1098,18 @@ let check_satisfiability assertions gamma existentials =
 	ret
 
 (* right_as must be satisfiable *)
-let rec old_check_entailment existentials left_as right_as gamma =
+let old_check_entailment existentials left_as right_as gamma =
 
 	let tr_ctx = mk_smt_translation_ctx gamma existentials in
 	let ctx = tr_ctx.z3_ctx in
+
+	let string_axioms = get_them_nasty_string_axioms tr_ctx (left_as @ right_as) in
 
 	let check_entailment_aux () =
 		Gc.full_major ();
 		let old_left_as = left_as in
 		let left_as = List.map (fun a -> encode_assertion_top_level tr_ctx true a) left_as in
-		let left_as = tr_ctx.tr_axioms @ (encode_gamma tr_ctx (-1)) @ left_as in
+		let left_as = tr_ctx.tr_axioms @ string_axioms @ (encode_gamma tr_ctx (-1)) @ left_as in
 		let right_as = List.map (fun a -> encode_assertion_top_level tr_ctx false (LNot a)) right_as in
 		let right_as_or =
 			if ((List.length right_as) > 1) then
@@ -1178,8 +1193,83 @@ let rec check_entailment solver existentials left_as right_as gamma =
 		| None                      -> ());
 		ret)
 
+let understand_error existentials left_as right_as gamma =
+	Printf.printf "---------------------------------------\n";
+	Printf.printf "An error occurred. Let's understand it.\n";
+	Printf.printf "---------------------------------------\n\n";
 
+	Printf.printf "Existentials: \n\t%s\n\n" (List.fold_left (fun ac x -> ac ^ " " ^ x) "" existentials);
+	Printf.printf "Left side: %d formulae.%s\n\n" (List.length left_as) (JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list left_as) false);
+	Printf.printf "Right side: %d formulae.%s\n\n" (List.length right_as) (JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list right_as) false);
+	Printf.printf "Gamma: %s\n\n" (JSIL_Memory_Print.string_of_gamma gamma);
 
+	Printf.printf "Full string table:\n";
+	Hashtbl.iter (fun x y -> Printf.printf "(%s, %d)\n" x y) str_codes;
+
+	let tr_ctx = mk_smt_translation_ctx gamma existentials in
+	let ctx = tr_ctx.z3_ctx in
+
+	let string_axioms = get_them_nasty_string_axioms tr_ctx (left_as @ right_as) in
+
+	Gc.full_major ();
+
+	let encoded_left_as = List.map (fun a -> encode_assertion_top_level tr_ctx true a) left_as in
+	let encoded_left_as = tr_ctx.tr_axioms @ string_axioms @ (encode_gamma tr_ctx (-1)) @ encoded_left_as in
+
+	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
+	Solver.add solver encoded_left_as;
+
+	let ret_left_side = (Solver.check solver [ ]) = Solver.SATISFIABLE in
+	Printf.printf "Is the left side satisfiable? %b\n\n" ret_left_side;
+
+	let encoded_right_as = List.map (fun a -> encode_assertion_top_level tr_ctx false (LNot a)) right_as in
+
+	let rec accumulate (ac : Z3.Expr.expr list) (last : Z3.Expr.expr option) (l : Z3.Expr.expr list) =
+		(match l with
+		 | [] -> ac
+		 | hd :: tl ->
+		 	(match last with
+			 | None    -> accumulate [ hd ] (Some hd) tl
+			 | Some el ->
+			 	let cf = (Boolean.mk_or ctx [el; hd]) in
+				accumulate (ac @ [ cf ]) (Some cf) tl )) in
+
+	let accumulated_right_as = accumulate [] None encoded_right_as in
+
+	let accumulated_right_as = List.map
+		(fun x ->
+			if ((List.length existentials) > 0)
+			then encode_quantifier true ctx existentials (get_sorts tr_ctx existentials) x
+			else x)
+		accumulated_right_as in
+
+	(* List.iter2 (fun y x -> Printf.printf "%s\n%s\n\n" (JSIL_Print.string_of_logic_assertion y false) (Expr.to_string x)) right_as accumulated_right_as; *)
+
+	let rec find_error (ac_list : Z3.Expr.expr list) (as_list : jsil_logic_assertion list) continue =
+	(match ac_list, as_list with
+	 | [], [] -> Printf.printf "In fact, there is no error.\n"
+	 | acm :: acc_list, ass :: ass_list ->
+	   if (continue) then
+	   begin
+	   	 Solver.push solver;
+	     Solver.add solver [acm];
+		 let continue = ((Solver.check solver [ ]) != Solver.SATISFIABLE) in
+		 	if (continue) then
+			begin
+				Solver.pop solver 1;
+				find_error acc_list ass_list true
+			end
+				else find_error [acm] [ass] false
+	   end
+	   else
+	   begin
+		 Printf.printf "Error: cannot satisfy: \n\t%s\n" (JSIL_Print.string_of_logic_assertion ass false);
+		 Printf.printf "Solver:\n%s\n" (string_of_solver solver);
+	   end
+	 | _, _ -> raise (Failure "This will not do.\n")) in
+
+	find_error accumulated_right_as right_as true;
+	Printf.printf "---------------------------------------\n"
 
 let is_equal e1 e2 pure_formulae solver gamma =
     (* Printf.printf "Checking if %s is equal to %s given that: %s\n;" (JSIL_Print.string_of_logic_expression e1 false) (JSIL_Print.string_of_logic_expression e2 false) (JSIL_Memory_Print.string_of_shallow_p_formulae pure_formulae false);
