@@ -204,6 +204,18 @@ let merge_heaps heap new_heap p_formulae solver gamma =
 			| _ -> raise (Failure "heaps non-mergeable: the default field is not unknown!!!"))
 		new_heap
 
+	(* Printf.printf "-------------------------------------------------------------------\n";
+	Printf.printf "-------------DONE MERGING HEAPS------------------------------------\n";
+	Printf.printf "-------------------------------------------------------------------\n";
+
+	Printf.printf "heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false);
+	Printf.printf "pat_heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap new_heap false);
+	Printf.printf "p_formulae: %s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
+	Printf.printf "gamma: %s\n" (JSIL_Memory_Print.string_of_gamma gamma);
+
+	Printf.printf "-------------------------------------------------------------------\n";
+	Printf.printf "-------------NOW WE CONTINUE --------------------------------------\n";
+	Printf.printf "-------------------------------------------------------------------\n" *)
 
 let get_heap_vars var_tbl catch_pvars heap =
 	LHeap.iter
@@ -217,34 +229,34 @@ let get_heap_vars var_tbl catch_pvars heap =
 		heap
 
 
-let make_all_different_assertion_from_fvlist fv_list : jsil_logic_assertion list = 
-	
-	let rec make_all_different_assertion_from_field_and_fvlist field fv_list = 
+let make_all_different_assertion_from_fvlist fv_list : jsil_logic_assertion list =
+
+	let rec make_all_different_assertion_from_field_and_fvlist field fv_list =
 		let rec loop fv_list constraints =
-			match fv_list with 
+			match fv_list with
 			| [] -> constraints
 			| (f_name, f_val) :: rest ->
-				loop rest ((LNot (LEq (field, f_name))) :: constraints) in 
-		loop fv_list [] in  
-	
-	let rec loop fields_to_cover fields_covered constraints = 
-		match fields_to_cover with 
-		| [] -> constraints 
-		| (f_name, f_val) :: rest -> 
-			let new_constraints = make_all_different_assertion_from_field_and_fvlist f_val (fields_covered @ rest) in 
-			loop rest ((f_name, f_val) :: fields_covered) (new_constraints @ constraints) in 
-	
-	loop fv_list [] []
-	
+				loop rest ((LNot (LEq (field, f_name))) :: constraints) in
+		loop fv_list [] in
 
-let get_heap_well_formedness_constraints heap = 
-	LHeap.fold 
-		(fun _ (fv_list, _) constraints -> 
-			let new_constraints = make_all_different_assertion_from_fvlist fv_list in 
+	let rec loop fields_to_cover fields_covered constraints =
+		match fields_to_cover with
+		| [] -> constraints
+		| (f_name, f_val) :: rest ->
+			let new_constraints = make_all_different_assertion_from_field_and_fvlist f_val (fields_covered @ rest) in
+			loop rest ((f_name, f_val) :: fields_covered) (new_constraints @ constraints) in
+
+	loop fv_list [] []
+
+
+let get_heap_well_formedness_constraints heap =
+	LHeap.fold
+		(fun _ (fv_list, _) constraints ->
+			let new_constraints = make_all_different_assertion_from_fvlist fv_list in
 			new_constraints @ constraints)
-		heap 
-		[]		
-			
+		heap
+		[]
+
 
 (*************************************)
 (** Abstract Store functions        **)
@@ -421,12 +433,12 @@ let rec gamma_substitution gamma subst partial =
 				(if (partial) then
 					Hashtbl.add new_gamma var v_type))
 			with _ ->
-				(if (partial) 
+				(if (partial)
 					then	Hashtbl.add new_gamma var v_type
 					else (
-						if (is_lvar_name var) then (						
-							let new_lvar = JSIL_Memory_Model.fresh_lvar () in 
-							Hashtbl.add subst var (LVar new_lvar); 
+						if (is_lvar_name var) then (
+							let new_lvar = JSIL_Memory_Model.fresh_lvar () in
+							Hashtbl.add subst var (LVar new_lvar);
 							Hashtbl.add new_gamma new_lvar v_type
 						))))
 		gamma;

@@ -228,10 +228,15 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 	let symb_state_aux = symb_state_replace_store symb_state new_store in
 
 	let compatible_pfs symb_state pat_symb_state subst =
+		Printf.printf "Entering compatible_pfs.\n";
 		let pfs = get_pf symb_state in
 		let gamma = get_gamma symb_state in
 		let pat_pfs = get_pf pat_symb_state in
 		let pat_gamma = get_gamma pat_symb_state in
+		Printf.printf "pfs: \n%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae pfs false);
+		Printf.printf "pat_pfs: \n%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae pat_pfs false);
+		Printf.printf "gamma: \n%s\n" (JSIL_Memory_Print.string_of_gamma gamma);
+		Printf.printf "%s" (JSIL_Memory_Print.string_of_substitution subst);
 		let pat_pfs = Symbolic_State_Functions.pf_substitution pat_pfs subst false in
 		let pat_gamma = Symbolic_State_Functions.gamma_substitution pat_gamma subst false in
 		let gamma = copy_gamma gamma in
@@ -240,6 +245,8 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		(* Printf.printf "pfs: \n%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae pfs false);
 		Printf.printf "pat_pfs: \n%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae pat_pfs false);*)
 		let pf_list = (pfs_to_list pat_pfs) @ (pfs_to_list pfs) in
+		(* let cpfs = Symbolic_State_Functions.copy_p_formulae pfs in
+		Symbolic_State_Functions.extend_pfs cpfs None (pfs_to_list pat_pfs); *)
 		let is_sat = Pure_Entailment.check_satisfiability pf_list gamma [] in
 		is_sat in
 
@@ -345,13 +352,14 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 
 
 	let rec apply_correct_specs (quotients : (jsil_n_single_spec * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment) list) =
+		Printf.printf "Entering apply_correct_specs.\n";
 		match quotients with
 		| [ ] -> [ ]
 		| [ (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ] ->
 			(* Printf.printf "This was a TOTAL MATCH!!!!\n"; *)
 			transform_symb_state spec symb_state quotient_heap quotient_preds subst pf_discharges new_gamma
 	 	| _ :: _ ->
-			(* Printf.printf "this was a PARTIAL MATCH!!!!\n"; *)
+			Printf.printf "this was a PARTIAL MATCH!!!!\n";
 			let new_symb_states =
 				List.map
 					(fun (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
@@ -591,11 +599,11 @@ let symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 		(match a with
 		| LPred (pred_name, les) ->
 			let params, pred_defs, args = get_pred_data pred_name les in
-			let symb_states = unfold_predicates pred_name pred_defs symb_state params args spec_vars in 
+			let symb_states = unfold_predicates pred_name pred_defs symb_state params args spec_vars in
 			if ((List.length symb_states) = 0) then (
 				Printf.printf "\nCould not unfold: %s\n" pred_name;
 				let msg = Printf.sprintf "Could not fold: %s " (JSIL_Print.string_of_logic_assertion a false) in
-				raise (Failure msg)) 
+				raise (Failure msg))
 			else symb_states
 		| _ ->
 			let msg = Printf.sprintf "Illegal unfold command %s" (JSIL_Print.string_of_logic_assertion a false) in
@@ -641,14 +649,18 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i =
 	(* symbolically evaluate a guarded goto *)
 	let symb_evaluate_guarded_goto e j k =
 		let le = symb_evaluate_expr e (get_store symb_state) (get_gamma symb_state) (get_pf symb_state) in
-		let _, a_le = lift_logic_expr le in
+		Printf.printf "Evaluated expression: %s --> %s\n" (JSIL_Print.string_of_expression e false) (JSIL_Print.string_of_logic_expression le false);
+		let e_le, a_le = lift_logic_expr le in
 		let a_le_then, a_le_else =
-			match a_le with
-			| Some a_le ->
-				(* Printf.printf "Lifted assertion: %s\n" (JSIL_Print.string_of_logic_assertion a_le false); *)
+			match e_le, a_le with
+			| _, Some a_le ->
+				Printf.printf "Lifted assertion: %s\n" (JSIL_Print.string_of_logic_assertion a_le false);
 				([ a_le ], [ (LNot a_le) ])
-			| None -> ([], []) in
+			| Some e_le, None ->
+				([LEq (e_le, LLit (Bool true))], [LEq (e_le, LLit (Bool false))])
+			| None, None -> ([ LFalse ], [ LFalse ]) in
 
+		Printf.printf "Checking if:\n%s\n\tentails\n%s\n" (JSIL_Print.str_of_assertion_list (get_pf_list symb_state)) (JSIL_Print.str_of_assertion_list a_le_then);
 		if (Pure_Entailment.check_entailment (get_solver symb_state) [] (get_pf_list symb_state) a_le_then (get_gamma symb_state)) then
 			(Printf.printf "in the THEN branch\n";
 			symb_evaluate_next_cmd s_prog proc spec search_info symb_state i j)
