@@ -31,7 +31,7 @@ let burn_to_disk path data =
 		output_string oc data;
 		close_out oc
 
-let register_dot_graphs dot_graphs =
+let register_dot_graphs (dot_graphs : (string * int, string option) Hashtbl.t) =
 	let folder_name = !output_folder in
 	if (folder_name = "") then ()
 	else
@@ -39,7 +39,9 @@ let register_dot_graphs dot_graphs =
 			Utils.safe_mkdir folder_name;
 			Hashtbl.iter
 				(fun (proc_name, i) dot_graph ->
-					burn_to_disk (folder_name ^ "/" ^ proc_name ^ "_" ^ (string_of_int i) ^ ".dot") dot_graph)
+					(match dot_graph with
+					| Some dot_graph -> burn_to_disk (folder_name ^ "/" ^ proc_name ^ "_" ^ (string_of_int i) ^ ".dot") dot_graph
+					| None -> ()))
 				dot_graphs
 		end
 

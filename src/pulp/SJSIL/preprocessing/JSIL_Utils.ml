@@ -106,7 +106,9 @@ let print_position outx lexbuf =
 
 (** Parse contents in 'lexbuf' from the starting symbol 'start'. Terminates if an error occurs. *)
 let parse_with_error start lexbuf =
-  try start JSIL_Lexer.read lexbuf with
+  try
+  	start JSIL_Lexer.read lexbuf
+  with
   | Syntax_error msg ->
     Printf.fprintf stderr "%a: %s\n" print_position lexbuf msg;
 		exit (-1)
@@ -125,7 +127,11 @@ let ext_program_of_path path =
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = path };
   let prog = parse_with_error JSIL_Parser.main_target lexbuf in
 	close_in inx;
-	prog
+	let pred' = Hashtbl.copy JSIL_Syntax.predicate_table in
+	let proc' = Hashtbl.copy JSIL_Syntax.procedure_table in
+	Hashtbl.clear JSIL_Syntax.predicate_table;
+	Hashtbl.clear JSIL_Syntax.procedure_table;
+	{ imports = prog.imports; predicates = pred'; procedures = proc'; }
 
 let specs_of_path path =
 		let inx = open_in path in
@@ -139,7 +145,12 @@ let specs_of_path path =
 let ext_program_of_string str =
   let lexbuf = Lexing.from_string str in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
-	parse_with_error JSIL_Parser.main_target lexbuf
+	let prog = parse_with_error JSIL_Parser.main_target lexbuf in
+	let pred' = Hashtbl.copy JSIL_Syntax.predicate_table in
+	let proc' = Hashtbl.copy JSIL_Syntax.procedure_table in
+	Hashtbl.clear JSIL_Syntax.predicate_table;
+	Hashtbl.clear JSIL_Syntax.procedure_table;
+	{ imports = prog.imports; predicates = pred'; procedures = proc'; }
 
 let jsil_assertion_of_string str =
   let lexbuf = Lexing.from_string str in

@@ -220,6 +220,8 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 
 let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) le_args =
 
+	Printf.printf "Entering find_and_apply_spec: %s.\n" proc_name;
+
 	(* create a new symb state with the abstract store in which the
 	    called procedure is to be executed *)
 	let proc = get_proc prog proc_name in
@@ -252,21 +254,21 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 
 	let transform_symb_state (spec : jsil_n_single_spec) (symb_state : symbolic_state) (quotient_heap : symbolic_heap) (quotient_preds : predicate_set) (subst : substitution) (pf_discharges : jsil_logic_assertion list) (new_gamma : typing_environment) : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
 
-		(* Printf.printf "the quotient heap is the following: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false);
+		(* Printf.printf "the quotient heap is the following: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false); *)
 
-		Printf.printf "Entering transform_symb_state.\n";*)
+		Printf.printf "Entering transform_symb_state.\n";
 
 		let merge_symb_state_with_single_post (symb_state : symbolic_state) (post : symbolic_state) ret_var ret_flag copy_flag : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
-			(* Printf.printf "Entering merge_symb_state_with_single_post.\n"; *)
+			Printf.printf "Entering merge_symb_state_with_single_post.\n";
 			let post_makes_sense = compatible_pfs symb_state post subst in
 			if (post_makes_sense) then (
-				(* Printf.printf "The post makes sense.\n"; *)
+				Printf.printf "The post makes sense.\n";
 				let new_symb_state = if (copy_flag) then (Symbolic_State_Functions.copy_symb_state symb_state) else symb_state in
 				let new_symb_state = Structural_Entailment.merge_symb_states new_symb_state post subst in
 				let ret_lexpr = store_get_var (get_store post) ret_var in
 				let ret_lexpr = JSIL_Logic_Utils.lexpr_substitution ret_lexpr subst false in
 				[ new_symb_state, ret_flag, ret_lexpr ])
-				else begin (* Printf.printf "The post does not make sense.\n"; *) [] end in
+				else begin Printf.printf "The post does not make sense.\n"; [] end in
 
 		Symbolic_State_Functions.extend_symb_state_with_pfs symb_state pf_discharges;
 		let symb_state = Symbolic_State_Functions.symb_state_replace_heap symb_state quotient_heap in
@@ -276,10 +278,10 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		let ret_flag = spec.n_ret_flag in
 		let symb_states_and_ret_lexprs =
 			(match spec.n_post with
-			| [] -> (* Printf.printf "No postconditions found.\n"; *) []
-			| [ post ] -> (* Printf.printf "One postcondition found.\n";*) merge_symb_state_with_single_post symb_state post ret_var ret_flag false
+			| [] -> Printf.printf "No postconditions found.\n"; []
+			| [ post ] -> Printf.printf "One postcondition found.\n"; merge_symb_state_with_single_post symb_state post ret_var ret_flag false
 			| post :: rest_posts ->
-					(* Printf.printf "Multiple postconditions found.\n"; *)
+					Printf.printf "Multiple postconditions found.\n";
 					let symb_states_and_ret_lexprs = List.map (fun post -> merge_symb_state_with_single_post symb_state post ret_var ret_flag true) rest_posts in
 					let symb_states_and_ret_lexprs =
 						(merge_symb_state_with_single_post symb_state post ret_var ret_flag false) :: symb_states_and_ret_lexprs in
@@ -308,25 +310,27 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		match spec_list with
 		| [] -> ac_quotients
 		| spec :: rest_spec_list ->
-			(* Printf.printf "------------------------------------------\n";
-			Printf.printf "Entering find_correct_specs with the sepc:\n";
+			Printf.printf "------------------------------------------\n";
+			Printf.printf "Entering find_correct_specs with the spec:\n";
 			Printf.printf "------------------------------------------\n";
 			Printf.printf "Pre:\n%sPosts:\n%s"
 				(JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre)
-				(JSIL_Memory_Print.string_of_symb_state_list spec.n_post); *)
+				(JSIL_Memory_Print.string_of_symb_state_list spec.n_post);
 			let unifier = Structural_Entailment.unify_symb_states [] spec.n_pre symb_state_aux in
 			(match unifier with
 			|	Some (true, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
-				(* Printf.printf "I found a COMPLETE match\n";
+				Printf.printf "I found a COMPLETE match\n";
 				Printf.printf "The pre of the spec that completely matches me is:\n%s\n"
-					(JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre); *)
+					(JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre);
+				Printf.printf "The number of posts is: %d\n"
+					(List.length spec.n_post);
 				[ (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ]
 			| Some (false, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
-				(* Printf.printf "I found a PARTIAL match\n"; *)
+				Printf.printf "I found a PARTIAL match\n";
 				find_correct_specs rest_spec_list ((spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) :: ac_quotients)
 
 			| None -> (
-				(* Printf.printf "I found a NON-match\n"; *)
+				Printf.printf "I found a NON-match\n";
 				find_correct_specs rest_spec_list ac_quotients)) in
 
 
@@ -356,7 +360,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		match quotients with
 		| [ ] -> [ ]
 		| [ (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ] ->
-			(* Printf.printf "This was a TOTAL MATCH!!!!\n"; *)
+			Printf.printf "This was a TOTAL MATCH!!!!\n";
 			transform_symb_state spec symb_state quotient_heap quotient_preds subst pf_discharges new_gamma
 	 	| _ :: _ ->
 			Printf.printf "this was a PARTIAL MATCH!!!!\n";
@@ -544,6 +548,7 @@ let simplify_symb_state symb_state =
 	(heap, store, pure_formulae, new_gamma, preds, solver)
 
 
+
 let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 	Printf.printf "Current symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state);
 
@@ -582,10 +587,8 @@ let recursive_unfold pred_name pred_defs symb_state params spec_vars =
 				(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) args));
 			Printf.printf "number of unfolded_symb_states: %i\n" (List.length unfolded_symb_states);
 			if ((List.length unfolded_symb_states > 1) || (List.length unfolded_symb_states = 0))
-				then (
-					preds_add_predicate_assertion (get_preds symb_state) (pred_name, args); 
-					symb_state
-				) else (
+				then symb_state
+				else (
 					Printf.printf "Inside recursive unfolding:\n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_state (List.hd unfolded_symb_states));
 					loop (List.hd unfolded_symb_states))) in
 	loop symb_state
@@ -850,7 +853,7 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info =
 			Symbolic_Traces.create_info_node_from_post search_info spec.n_post spec.n_ret_flag false;
 			false, Some msg)) in
 	let proc_name = Printf.sprintf "Spec_%d_of_%s" i proc_name in
-	let search_dot_graph = JSIL_Memory_Print.dot_of_search_info search_info proc_name in
+	let search_dot_graph = Some (JSIL_Memory_Print.dot_of_search_info search_info proc_name) in
 	(if (!verbose) then Printf.printf "%s" (sep_str ^ sep_str ^ sep_str));
 	search_dot_graph, success, failure_msg
 
@@ -867,21 +870,32 @@ let sym_run_procs procs_to_verify spec_table prog which_pred pred_defs =
 	let pruning_info = init_post_pruning_info () in
 	let results = Hashtbl.fold
 		(fun proc_name spec ac_results ->
-			Printf.printf " ***** Procedure %s\n" proc_name;
 			let should_we_verify = (Hashtbl.mem procs_to_verify proc_name) in
-			Printf.printf " ***** We should verify? %b\n" should_we_verify;
-			update_post_pruning_info_with_spec pruning_info spec;
-			let pre_post_list = spec.n_proc_specs in
-			let results =
-				List.mapi
-				(fun i pre_post ->
-					let new_pre_post = Symbolic_State_Functions.copy_single_spec pre_post in
-					let dot_graph, success, failure_msg = symb_evaluate_proc s_prog proc_name new_pre_post i pruning_info in
-					(proc_name, i, pre_post, success, failure_msg, dot_graph))
-				pre_post_list in
-			let new_spec = { spec with n_proc_specs = (filter_useless_posts_in_multiple_specs proc_name pre_post_list pruning_info) } in
-			Hashtbl.replace spec_table proc_name new_spec;
-			ac_results @ results)
+			if (should_we_verify) then
+			begin
+				update_post_pruning_info_with_spec pruning_info spec;
+				let pre_post_list = spec.n_proc_specs in
+				let results =
+					List.mapi
+					(fun i pre_post ->
+						let new_pre_post = Symbolic_State_Functions.copy_single_spec pre_post in
+						let dot_graph, success, failure_msg =
+							if (should_we_verify)
+								then symb_evaluate_proc s_prog proc_name new_pre_post i pruning_info
+								else
+								begin
+									let post_pruning_info_array_list = Hashtbl.find pruning_info proc_name in
+									let post_pruning_info_array = List.nth post_pruning_info_array_list i in
+									Array.fill post_pruning_info_array 0 (Array.length post_pruning_info_array) true;
+									None, true, None
+								end in
+						(proc_name, i, pre_post, success, failure_msg, dot_graph))
+					pre_post_list in
+				let new_spec = { spec with n_proc_specs = (filter_useless_posts_in_multiple_specs proc_name pre_post_list pruning_info) } in
+				Hashtbl.replace spec_table proc_name new_spec;
+				ac_results @ results
+			end
+			else ac_results)
 		spec_table
 		[] in
 	let complete_success =

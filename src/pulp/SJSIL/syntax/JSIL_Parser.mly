@@ -2,10 +2,6 @@
 open JSIL_Syntax
 open JSIL_Syntax_Checks
 
-(* Tables where we collect the predicates and the procedures as we parse them. *)
-let predicate_table = Hashtbl.create 100
-let procedure_table = Hashtbl.create 100
-
 %}
 
 (***** Token definitions *****)
