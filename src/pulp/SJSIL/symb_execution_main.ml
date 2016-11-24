@@ -46,19 +46,23 @@ let register_dot_graphs dot_graphs =
 let process_file path =
     print_debug "\n*** Prelude: Stage 1: Parsing program. ***\n";
     let ext_prog = JSIL_Utils.ext_program_of_path path in
+	let procs_to_verify = Hashtbl.create 37 in
+	Hashtbl.iter (fun k v -> Hashtbl.replace procs_to_verify k true) ext_prog.procedures;
+	print_debug "The procedures that we will be verifying are:\n";
+	Hashtbl.iter (fun k v -> print_debug (Printf.sprintf "\t%s\n" k)) procs_to_verify;
     print_debug "\n*** Prelude: Stage 1: Parsing successfully completed. ***\n";
-    print_debug "\n*** Prelude: Stage 2: Normalising predicates.\n";
+    print_debug "*** Prelude: Stage 2: Transforming the program.\n";
+	let prog, which_pred = JSIL_Utils.prog_of_ext_prog path ext_prog in
+    print_debug "\n*** Prelude: Stage 2: Done transforming the program.\n";
+    print_debug "\n*** Prelude: Stage 3: Normalising predicates.\n";
     let norm_preds = Logic_Predicates.normalise ext_prog.predicates in
-    print_debug "\n*** Prelude: Stage 2: Normalisation of predicates completed successfully.";
+    print_debug "\n*** Prelude: Stage 3: Normalisation of predicates completed successfully.";
     let str_of_norm_pred = Logic_Predicates.string_of_normalised_predicates norm_preds in
     print_debug (Printf.sprintf "\n%s\n" str_of_norm_pred);
-    print_debug "*** Prelude: Stage 3: Transforming the program.\n";
-	let prog, which_pred = JSIL_Utils.prog_of_ext_prog path ext_prog in
-    print_debug "*** Prelude: Stage 3: Done transforming the program.\n";
     print_debug "*** Prelude: Stage 4: Building the spec table.\n";
 	let spec_tbl = JSIL_Logic_Normalise.build_spec_tbl norm_preds prog in
 	print_debug "*** Prelude: Stage 4: Finished building the spec table\n";
-	let results, dot_graphs, complete_success = JSIL_Symb_Interpreter.sym_run_procs spec_tbl prog which_pred norm_preds in
+	let results, dot_graphs, complete_success = JSIL_Symb_Interpreter.sym_run_procs procs_to_verify spec_tbl prog which_pred norm_preds in
 	Printf.printf "RESULTS\n%s" results;
 	(if (complete_success) then
 		Printf.printf "ALL Succeeded!!!\n"

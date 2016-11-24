@@ -149,14 +149,27 @@ let jsil_assertion_of_string str =
 (** Add the declarations in 'program_from' to 'program_to'. *)
 let extend_declarations program_to program_from =
 	(* Extend the predicates *)
+	Printf.printf "Predicates To:\n";
+	Hashtbl.iter (fun k v -> Printf.printf "\t%s\n" k) program_to.predicates;
+	Printf.printf "Procedures To:\n";
+	Hashtbl.iter (fun k v -> Printf.printf "\t%s\n" k) program_to.procedures;
+	Printf.printf "Predicates From:\n";
+	Hashtbl.iter (fun k v -> Printf.printf "\t%s\n" k) program_from.predicates;
+	Printf.printf "Procedures From:\n";
+	Hashtbl.iter (fun k v -> Printf.printf "\t%s\n" k) program_from.procedures;
 	Hashtbl.iter
-	  (fun pred_name pred -> Hashtbl.add program_to.predicates pred_name pred)
+	  (fun pred_name pred ->
+		  (if (Hashtbl.mem program_to.predicates pred_name)
+		   then Printf.printf "*** WARNING: Predicate %s already exists.\n" pred_name
+		   else Printf.printf "*** MESSAGE: Adding predicate %s.\n" pred_name);
+		  Hashtbl.add program_to.predicates pred_name pred)
 		program_from.predicates;
 	(* Extend the procedures, except where a procedure with the same name already exists *)
 	Hashtbl.iter
 		(fun proc_name proc ->
 			if (not (Hashtbl.mem program_to.procedures proc_name))
-				then Hashtbl.add program_to.procedures proc_name proc)
+				then (Printf.printf "*** MESSAGE: Adding procedure: %s.\n" proc_name; Hashtbl.add program_to.procedures proc_name proc)
+				else Printf.printf "*** WARNING: Procedure %s already exists.\n" proc_name)
 		program_from.procedures
 
 (** Load the programs imported in 'program' and add its declarations to 'program' itself. *)
@@ -168,12 +181,17 @@ let resolve_imports filename program =
 		(match imports with
 		| [] -> ()
 		| file :: rest_imports ->
+			Printf.printf "File: %s\n" file;
 			if (not (Hashtbl.mem added_imports file))
 				then
-					(Hashtbl.add added_imports file true;
+					(Hashtbl.replace added_imports file true;
 					let imported_program = ext_program_of_path (file ^ ".jsil") in
 					extend_declarations program imported_program;
 					resolve_imports_iter (rest_imports @ imported_program.imports))) in
+	Printf.printf "Predicates Program:\n";
+	Hashtbl.iter (fun k v -> Printf.printf "\t%s\n" k) program.predicates;
+	Printf.printf "Procedures Program:\n";
+	Hashtbl.iter (fun k v -> Printf.printf "\t%s\n" k) program.procedures;
 	resolve_imports_iter program.imports
 
 (** Converts an extended JSIL program into a set of basic procedures.
@@ -181,8 +199,12 @@ let resolve_imports filename program =
     @param ext_program Program to be processed.
 *)
 let prog_of_ext_prog filename ext_program =
+	let epreds = ext_program.predicates in
+	let eprocs = ext_program.procedures in
 	(* Add the declarations from the imported files *)
+	Printf.printf "Entering resolve_imports.\n";
 	resolve_imports filename ext_program;
+	Printf.printf "Exiting resolve_imports.\n";
 	(* Desugar the labels in the procedures, etc. *)
 	let prog = Hashtbl.create 101 in
 	let global_which_pred = Hashtbl.create 101 in

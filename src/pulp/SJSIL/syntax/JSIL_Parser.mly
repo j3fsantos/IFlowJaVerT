@@ -551,7 +551,7 @@ assertion_target:
 		{ LForAll (vars, ass) } *)
 (* x(e1, ..., en) *)
 	| name = VAR; LBRACE; params = separated_list(COMMA, lexpr_target); RBRACE
-	  { validate_pred_assertion (name, params);
+	  { (* validate_pred_assertion (name, params); *)
 			LPred (name, params)
 		}
 (* types (type_pairs) *)

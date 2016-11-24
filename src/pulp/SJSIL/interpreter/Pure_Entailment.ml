@@ -13,7 +13,7 @@ match enc with
  | WithReals -> "REAL"
  | WithFPA -> "FPA"
 
-let encoding = ref WithInts
+let encoding = ref WithReals
 
 let types_encoded_as_ints = [
 	UndefinedType;
@@ -1097,7 +1097,7 @@ let check_satisfiability assertions gamma existentials =
 	(* Printf.printf "CS Solver: \n%s\n" (string_of_solver solver); *)
 	let ret_solver = (Solver.check solver []) in
 	let ret = (ret_solver = Solver.SATISFIABLE) in
-	(* Printf.printf "Satisfiability check of right side: %b\n" ret; 
+	(* Printf.printf "Satisfiability check of right side: %b\n" ret;
 	if (ret_solver = Solver.UNSATISFIABLE)
 		then (
 			let core = Solver.get_unsat_core solver in

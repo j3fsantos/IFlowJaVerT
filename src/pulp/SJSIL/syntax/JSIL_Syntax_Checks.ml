@@ -7,7 +7,7 @@ let allowed_pvars = ref None
 (* Whether or not to check if a predicate used in assertion has been defined before. *)
 let allow_any_predicate = ref false
 (* Collection of predicates that have been parsed so far, mapping names to number of parameters. *)
-let predicate_info = Hashtbl.create 100
+let (predicate_info : (string, int) Hashtbl.t )= Hashtbl.create 100
 
 (** Adds a new predicate name with its number of parameters to the collection of predicates parsed.
     @return unit
@@ -54,13 +54,13 @@ let validate_lvar var =
     @return unit
     @raise Syntax_error exception if invalid.
 *)
-let validate_pvar var =
+let validate_pvar var = true (*)
 	match !allowed_pvars with
 	| None      -> ()
 	| Some list ->
     (match List.mem var list with
 		| true    -> ()
-	  | false   -> raise (Syntax_error ("Undefined program variable \"" ^ var ^ "\"")))
+	    | false   -> raise (Syntax_error ("Undefined program variable \"" ^ var ^ "\""))) *)
 
 (** Checks whether a predicate is being correctly used in an assertion, i.e.,
     the predicate has been defined before with the correct number of parameters.
@@ -68,13 +68,12 @@ let validate_pvar var =
     @param (name, params) The LPred assertion.
     @return unit
     @raise Syntax_error exception if invalid.
-*)
 let validate_pred_assertion (name, params) =
 	try
 		if !allow_any_predicate || Hashtbl.find predicate_info name = List.length params
 		  then ()
 		  else raise (Syntax_error ("Incorrect no. of parameters for predicate \"" ^ name ^ "\""))
-	with Not_found -> raise (Syntax_error ("Undefined predicate \"" ^ name ^ "\""))
+	with Not_found -> raise (Syntax_error ("Undefined predicate \"" ^ name ^ "\"")) *)
 
 (** Checks whether a procedure spec matches its signature (name and parameters).
     @return unit
