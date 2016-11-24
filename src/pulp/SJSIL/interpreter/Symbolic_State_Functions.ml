@@ -154,13 +154,17 @@ let abs_heap_delete heap l e p_formulae solver gamma =
 	| Some (_, _) -> LHeap.replace heap l (rest_fv_pairs, default_val)
 	| None -> raise (Failure "Trying to delete an inexistent field")
 
+let is_empty_fv_list fv_list = 
+	let rec loop fv_list = 
+		match fv_list with 
+		| [] -> true 
+		| (_, f_val) :: rest -> 
+			if (f_val = LNone) then loop rest else false in 
+	loop fv_list
 
 let is_symb_heap_empty heap =
 	LHeap.fold
-		(fun loc (fv_list, def) ac ->
-			match fv_list with
-			| [] -> ac
-			| _ -> false)
+		(fun loc (fv_list, def) ac -> if (not ac) then ac else is_empty_fv_list fv_list)
 		heap
 		true
 
@@ -535,7 +539,7 @@ let predicate_assertion_equality pred pat_pred pfs solver gamma spec_vars =
 	| _, _ -> raise (Failure "predicate_assertion_equality: FATAL ERROR")
 
 let subtract_pred pred_name args pred_set pfs solver gamma spec_vars =
-	let pred_list = DynArray.to_list pred_set in
+	let pred_list = preds_to_list pred_set in
 	let rec loop pred_list index =
 		(match pred_list with
 		| [] -> raise (Failure (Printf.sprintf "Predicate %s not found in the predicate set!!!" pred_name))

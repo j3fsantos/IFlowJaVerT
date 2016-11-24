@@ -27,21 +27,5 @@ proc list_count (x) {
 
 
 
-(** Expected result: YES                             **)
-spec list_rec_unfold_1 (x)
-   [[ my_list(x, {{1, 2}}) ]]
-   [[ my_list(#y, {{2}}) ]]
-   normal
-proc list_rec_unfold_1 (x) {
-		   [* unfold* my_list *]
-		   y := [x, "next"]; 
-		   delete(x, "value"); 
-		   delete(x, "@proto"); 
-		   delete(x, "next"); 
-		   [* fold(my_list(y, #alpha)) *]
-   rlab:   skip
-} with { ret: y, rlab; };
-
-
 
 

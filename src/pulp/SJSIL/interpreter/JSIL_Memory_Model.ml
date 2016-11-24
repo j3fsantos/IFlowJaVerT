@@ -247,6 +247,26 @@ let extend_pred_set preds pred_assertion =
 		DynArray.add preds (pred_name, args)
 	| _ -> raise (Symb_state_error "Illegal Predicate Assertion")
 
+let preds_to_list preds = DynArray.to_list preds 
+
+let preds_of_list list_preds = DynArray.of_list list_preds
+
+let find_predicate_assertion_index preds (pred_name, args) = 
+	let len = DynArray.length preds in
+	let rec loop i = 
+		if (i >= len) then None else (
+			let cur_pred_name, cur_args = DynArray.get preds i in 
+			if (not (cur_pred_name = pred_name)) then loop (i+1) else (
+				let equal_args = List.fold_left2 (fun ac a1 a2 -> if (not ac) then ac else a1 = a2) true args cur_args in 
+				if (equal_args) then Some i else loop (i+1))) in 
+	loop 0					
+	
+let remove_predicate_assertion preds (pred_name, args) = 
+	let index = find_predicate_assertion_index preds (pred_name, args) in
+	match index with 
+	| Some index -> DynArray.delete preds index
+	| None -> ()
+
 
 (*************************************)
 (** Symbolic State functions        **)

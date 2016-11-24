@@ -332,15 +332,15 @@ let unify_pred_against_pred_set (pat_pred : (string * (jsil_logic_expr list))) (
 
 let unify_pred_list_against_pred_list (pat_preds : (string * (jsil_logic_expr list)) list) (preds : (string * (jsil_logic_expr list)) list) p_formulae solver gamma (subst : substitution) =
 	(* Printf.printf "Entering unify_pred_list_against_pred_list.\n"; *)
-	let rec loop pat_preds preds subst =
+	let rec loop pat_preds preds subst unmatched_pat_preds =
 		(match pat_preds with
-		| [] -> Some (subst, (DynArray.of_list preds))
+		| [] -> Some (subst, (preds_of_list preds), unmatched_pat_preds)
 		| pat_pred :: rest_pat_preds ->
 			let new_subst, rest_preds = unify_pred_against_pred_set pat_pred preds p_formulae solver gamma subst in
 			(match new_subst with
-			| None -> None
-			| Some new_subst -> loop rest_pat_preds rest_preds new_subst)) in
-	let result = loop pat_preds preds subst in
+			| None -> loop rest_pat_preds preds subst (pat_pred :: unmatched_pat_preds)
+			| Some new_subst -> loop rest_pat_preds rest_preds new_subst unmatched_pat_preds)) in
+	let result = loop pat_preds preds subst [] in
 	(* Printf.printf "Exiting unify_pred_list_against_pred_list.\n"; *)
 	result
 
@@ -447,12 +447,12 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 				Printf.printf "Heaps unified successfully.\n";
 				let ret_2 = unify_pred_arrays preds_1 preds_0 pf_0 solver gamma_0 subst in
 				(match ret_2 with
-				| Some (subst, preds_f) -> Some (discharges_0, subst, heap_f, preds_f, new_pfs)
+				| Some (subst, preds_f, []) -> Some (discharges_0, subst, heap_f, preds_f, new_pfs)
 					(* let spec_vars_check = spec_logic_vars_discharge subst lvars pf_0 solver gamma_0 in
 	  				if (spec_vars_check)
 						then Some (discharges_0, subst, heap_f, preds_f, new_pfs)
 						else  (Printf.printf "Failed spec vars check\n"; None) *)
-				| None -> ( Printf.printf "Failed to unify predicates\n"; None))
+				| Some (_, _, _) | None -> ( Printf.printf "Failed to unify predicates\n"; None))
 			| None -> ( Printf.printf "Failed to unify heaps\n"; None))
 		| None -> ( Printf.printf "Failed to unify stores\n"; None) in
 
@@ -498,7 +498,7 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 
 
 
-let unify_symb_states_fold existentials (pat_symb_state : symbolic_state) (symb_state : symbolic_state)  : (bool * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment) option  =
+let unify_symb_states_fold existentials (pat_symb_state : symbolic_state) (symb_state : symbolic_state)  : (bool * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment * (jsil_var list) * ((string * (jsil_logic_expr list)) list)) option  =
 	let heap_0, store_0, pf_0, gamma_0, preds_0, solver_0 = symb_state in
 	let heap_1, store_1, pf_1, gamma_1, preds_1, _ = pat_symb_state in
 	(** Auxiliary Functions **)
@@ -573,7 +573,7 @@ let unify_symb_states_fold existentials (pat_symb_state : symbolic_state) (symb_
 		| Some (heap_f, new_pfs) ->
 			let ret_2 = unify_pred_arrays preds_1 preds_0 pf_0 solver_0 gamma_0 subst in
 			(match ret_2 with
-			| Some (subst, preds_f) -> Some (heap_f, preds_f, subst, new_pfs)
+			| Some (subst, preds_f, unmatched_pat_preds) -> Some (heap_f, preds_f, subst, new_pfs, unmatched_pat_preds)
 			| None -> None)
 		| None -> None) in
 
@@ -593,7 +593,7 @@ let unify_symb_states_fold existentials (pat_symb_state : symbolic_state) (symb_
 					extend_gamma gamma_0' gamma_existentials;
 					gamma_0')
 				else gamma_0 in
-
+		let new_existentials = existentials @ new_pat_existentials in 
 		Symbolic_State_Functions.extend_pfs pf_0 (Some solver_0) new_pfs;
 		let unify_gamma_check = (unify_gamma gamma_1 gamma_0' store_0 subst pat_existentials) in
 		if (unify_gamma_check) then
@@ -603,13 +603,13 @@ let unify_symb_states_fold existentials (pat_symb_state : symbolic_state) (symb_
 			Printf.printf "Checking if %s\n entails %s\n with existentials \n%s\n"
 				(JSIL_Memory_Print.string_of_shallow_p_formulae pf_0 false)
 				(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list (pf_1_subst_list @ pf_discharges)) false)
-				(List.fold_left (fun ac x -> ac ^ " " ^ x) "" (existentials @ new_pat_existentials));
-			let entailment_check = Pure_Entailment.check_entailment solver_0 (existentials @ new_pat_existentials) (pfs_to_list pf_0) (pf_1_subst_list @ pf_discharges) gamma_0' in
-			(if (not entailment_check) then Pure_Entailment.understand_error (existentials @ new_pat_existentials) (pfs_to_list pf_0) (pf_1_subst_list @ pf_discharges) gamma_0');
-			(entailment_check, pf_discharges, pf_1_subst_list, gamma_0')
+				(List.fold_left (fun ac x -> ac ^ " " ^ x) "" new_existentials);
+			let entailment_check = Pure_Entailment.check_entailment solver_0 new_existentials (pfs_to_list pf_0) (pf_1_subst_list @ pf_discharges) gamma_0' in
+			(if (not entailment_check) then Pure_Entailment.understand_error new_existentials (pfs_to_list pf_0) (pf_1_subst_list @ pf_discharges) gamma_0');
+			(entailment_check, pf_discharges, pf_1_subst_list, gamma_0', new_existentials)
 		end
 		else
-		 	(false, [], [], gamma_0') in
+		 	(false, [], [], gamma_0', new_existentials) in
 
 
 	(* Actually doing it!!! *)
@@ -617,10 +617,10 @@ let unify_symb_states_fold existentials (pat_symb_state : symbolic_state) (symb_
 	| Some (subst, filtered_vars, _, gamma_existentials, discharges) ->
 		Printf.printf "Passed step 0.\n";
 		(match step_1 subst with
-		| Some (heap_f, preds_f, subst, new_pfs) ->
+		| Some (heap_f, preds_f, subst, new_pfs, unmatched_pat_preds) ->
 		  Printf.printf "Passed step 1.\n";
-		  let entailment_check_ret, pf_discharges, pf_1_subst_list, gamma_0' = step_2 subst filtered_vars gamma_existentials new_pfs discharges in
-			Some (entailment_check_ret, heap_f, preds_f, subst, (pf_1_subst_list @ pf_discharges), gamma_0')
+		  let entailment_check_ret, pf_discharges, pf_1_subst_list, gamma_0', new_existentials = step_2 subst filtered_vars gamma_existentials new_pfs discharges in
+			Some (entailment_check_ret, heap_f, preds_f, subst, (pf_1_subst_list @ pf_discharges), gamma_0', new_existentials, unmatched_pat_preds)
 		| None -> Printf.printf "Failed in step 1!\n"; None)
 	| None -> Printf.printf "Failed in step 0!\n"; None
 
