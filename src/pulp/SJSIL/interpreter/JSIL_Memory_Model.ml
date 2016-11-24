@@ -247,6 +247,8 @@ let extend_pred_set preds pred_assertion =
 		DynArray.add preds (pred_name, args)
 	| _ -> raise (Symb_state_error "Illegal Predicate Assertion")
 
+let preds_add_predicate_assertion preds (pred_name, args) = DynArray.add preds (pred_name, args)
+
 let preds_to_list preds = DynArray.to_list preds 
 
 let preds_of_list list_preds = DynArray.of_list list_preds

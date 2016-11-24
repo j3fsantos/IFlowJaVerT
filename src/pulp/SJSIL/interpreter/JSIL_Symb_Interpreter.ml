@@ -544,7 +544,6 @@ let simplify_symb_state symb_state =
 	(heap, store, pure_formulae, new_gamma, preds, solver)
 
 
-
 let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 	let subst0 = Symbolic_State_Functions.subtract_pred pred_name args (get_preds symb_state) (get_pf symb_state) (get_solver symb_state) (get_gamma symb_state) spec_vars in
 	let args = List.map (fun le -> lexpr_substitution le subst0 true) args in
@@ -581,8 +580,10 @@ let recursive_unfold pred_name pred_defs symb_state params spec_vars =
 				(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) args));
 			Printf.printf "number of unfolded_symb_states: %i\n" (List.length unfolded_symb_states);
 			if ((List.length unfolded_symb_states > 1) || (List.length unfolded_symb_states = 0))
-				then symb_state
-				else (
+				then (
+					preds_add_predicate_assertion (get_preds symb_state) (pred_name, args); 
+					symb_state
+				) else (
 					Printf.printf "Inside recursive unfolding:\n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_state (List.hd unfolded_symb_states));
 					loop (List.hd unfolded_symb_states))) in
 	loop symb_state
