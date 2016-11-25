@@ -905,4 +905,17 @@ let sym_run_procs procs_to_verify spec_table prog which_pred pred_defs =
 			true
 			results in
 	let results_str, dot_graphs = JSIL_Memory_Print.string_of_symb_exe_results results in
+	let count_prunings = ref 0 in
+	let count_verified = ref 0 in
+	Hashtbl.iter
+		(fun proc_name spec ->
+			let should_we_verify = (Hashtbl.mem procs_to_verify proc_name) in
+			if (should_we_verify) then
+				let pruning_info_list = Hashtbl.find pruning_info proc_name in
+				List.iter (fun l ->
+					Array.iter (fun l -> if l then count_verified := !count_verified + 1
+						                      else count_prunings := !count_prunings + 1) l) pruning_info_list
+			)
+		spec_table;
+	Printf.printf "\nVerified: %d.\t\tPrunings: %d.\n\n" !count_verified !count_prunings;
 	results_str, dot_graphs, complete_success
