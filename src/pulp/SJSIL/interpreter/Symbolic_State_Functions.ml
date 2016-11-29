@@ -63,7 +63,7 @@ let heap_substitution (heap : symbolic_heap) (subst : substitution) partial =
 				(try Hashtbl.find subst loc
 					with _ ->
 						(* Printf.printf "this location is not in the substitution. es estupido nao?!!!!!\n\n\n"; *)
-						if (is_abs_loc_name loc) 
+						if (is_abs_loc_name loc)
 							then
 								(if (partial) then (ALoc loc) else
 									(let new_aloc = ALoc (fresh_aloc ()) in
@@ -514,6 +514,8 @@ let find_predicate_assertion preds pred_name =
 
 
 let predicate_assertion_equality pred pat_pred pfs solver gamma spec_vars =
+	Printf.printf "Entering predicate_assertion_equality.\n";
+
 	let spec_vars_str = List.fold_left (fun ac v -> if (ac = "") then v else (ac ^ ", " ^ v)) "" spec_vars in
 	let subst = JSIL_Logic_Utils.init_substitution [] in
 
@@ -521,7 +523,7 @@ let predicate_assertion_equality pred pat_pred pfs solver gamma spec_vars =
 		(match les, pat_les with
 		| [], [] -> Some subst
 		| le :: rest_les, pat_le :: rest_pat_les ->
-			(* Printf.printf "I am going to test if %s CAN BE equal to %s\n" (JSIL_Print.string_of_logic_expression le1 false) (JSIL_Print.string_of_logic_expression le2 false); *)
+			Printf.printf "I am going to test if %s CAN BE equal to %s\n" (JSIL_Print.string_of_logic_expression le false) (JSIL_Print.string_of_logic_expression pat_le false);
 			(match pat_le with
 			| LVar l2 when (not (List.mem l2 spec_vars)) ->
 				JSIL_Logic_Utils.extend_subst subst l2 le;

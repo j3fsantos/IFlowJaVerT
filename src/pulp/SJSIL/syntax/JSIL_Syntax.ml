@@ -361,6 +361,10 @@ let get_proc_args proc = proc.proc_params
 let get_proc_cmd proc i =
 	proc.proc_body.(i)
 
+(* Tables where we collect the predicates and the procedures as we parse them. *)
+let predicate_table : (string, jsil_logic_predicate) Hashtbl.t = Hashtbl.create 100
+let procedure_table : (string, jsil_ext_procedure) Hashtbl.t = Hashtbl.create 100
+
 let debug = ref false
 
 let print_debug msg =

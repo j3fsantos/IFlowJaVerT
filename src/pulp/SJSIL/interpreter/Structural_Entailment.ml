@@ -593,7 +593,7 @@ let unify_symb_states_fold existentials (pat_symb_state : symbolic_state) (symb_
 					extend_gamma gamma_0' gamma_existentials;
 					gamma_0')
 				else gamma_0 in
-		let new_existentials = existentials @ new_pat_existentials in 
+		let new_existentials = existentials @ new_pat_existentials in
 		Symbolic_State_Functions.extend_pfs pf_0 (Some solver_0) new_pfs;
 		let unify_gamma_check = (unify_gamma gamma_1 gamma_0' store_0 subst pat_existentials) in
 		if (unify_gamma_check) then

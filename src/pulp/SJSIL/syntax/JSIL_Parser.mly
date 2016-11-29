@@ -3,10 +3,6 @@ open JSIL_Syntax
 open JSIL_Syntax_Checks
 open JS_Logic_Syntax
 
-(* Tables where we collect the predicates and the procedures as we parse them. *)
-let predicate_table = Hashtbl.create 100
-let procedure_table = Hashtbl.create 100
-
 %}
 
 (***** Token definitions *****)
@@ -560,7 +556,7 @@ assertion_target:
 		{ LForAll (vars, ass) } *)
 (* x(e1, ..., en) *)
 	| name = VAR; LBRACE; params = separated_list(COMMA, lexpr_target); RBRACE
-	  { validate_pred_assertion (name, params);
+	  { (* validate_pred_assertion (name, params); *)
 			LPred (name, params)
 		}
 (* types (type_pairs) *)
