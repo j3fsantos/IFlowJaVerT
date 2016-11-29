@@ -453,10 +453,19 @@ let rec add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous exp
         {exp with exp_stx = Script (str, List.map f es); exp_annot = add_codename exp main}
 
 
-let process_js_logic_annotations fun_name fun_args annotations requires_flag ensures_normal_flag ensure_err_flag = 
+
+type fun_tbl_type = (string, string * JSIL_Syntax.jsil_var list * Parser_syntax.exp * (JSIL_Syntax.jsil_spec option)) Hashtbl.t
+
+
+let process_js_logic_annotations fun_name fun_args annotations requires_flag ensures_normal_flag ensure_err_flag var_to_fid_tbl vis_list = 
 	let preconditions  = List.filter (fun annotation -> annotation.annot_type = requires_flag) annotations in 
 	let postconditions = List.filter (fun annotation -> (annotation.annot_type = ensures_normal_flag) || (annotation.annot_type = ensure_err_flag)) annotations in 
-	let single_specs = List.map2 
+	
+	let single_specs = 
+		if ((List.length preconditions) <> (List.length postconditions)) then (
+			Printf.printf "WARNING: In %s, preconditions do NOT match postconditions.\n" fun_name; 
+			[] ) else 
+		List.map2 
 		(fun pre post ->
 			let pre_str   = pre.annot_formula in 
 			let post_str  = post.annot_formula in 
@@ -464,19 +473,23 @@ let process_js_logic_annotations fun_name fun_args annotations requires_flag ens
 				(match post.annot_type with 
 				| ensures_normal_flag -> JSIL_Syntax.Normal 
 				| ensure_err_flag     -> JSIL_Syntax.Error) in 
-			let pre_jsil  = JSIL_Utils.jsil_assertion_of_string pre_str in 
-			let post_jsil = JSIL_Utils.jsil_assertion_of_string post_str in 
+			Printf.printf "pre_str: %s. post_str: %s\n" pre_str post_str; 
+			let pre_js  = JSIL_Utils.js_assertion_of_string pre_str in 
+			let post_js = JSIL_Utils.js_assertion_of_string post_str in 
+			let pre_jsil = JS_Logic_Syntax.js2jsil_logic_top_level pre_js var_to_fid_tbl vis_list in 
+			let post_jsil = JS_Logic_Syntax.js2jsil_logic_top_level post_js var_to_fid_tbl vis_list in
 			let new_spec = JSIL_Syntax.create_single_spec pre_jsil post_jsil ret_flag in 
 			new_spec)
 		preconditions
 		postconditions in  
+	
 	let fun_spec = if ((List.length single_specs) > 0) 
 		then Some (JSIL_Syntax.create_jsil_spec fun_name fun_args single_specs)
 		else None in
 	fun_spec
 
-let update_fun_tbl fun_tbl f_id f_args f_body annotations = 
-	let fun_spec = process_js_logic_annotations f_id f_args annotations Requires Ensures EnsuresErr in  						
+let update_fun_tbl (fun_tbl : fun_tbl_type) f_id f_args f_body annotations (var_to_fid_tbl : (string, string) Hashtbl.t) (vis_list : string list) = 
+	let fun_spec : JSIL_Syntax.jsil_spec option = process_js_logic_annotations f_id f_args annotations Requires Ensures EnsuresErr var_to_fid_tbl vis_list in  						
 	Hashtbl.replace fun_tbl f_id (f_id, f_args, f_body, fun_spec) 
 
 let update_cc_tbl cc_tbl f_parent_id f_id f_args f_body =
@@ -493,7 +506,8 @@ let update_cc_tbl cc_tbl f_parent_id f_id f_args f_body =
 	List.iter
 		(fun v -> Hashtbl.replace new_f_tbl v f_id)
 		f_vars; 
-	Hashtbl.add cc_tbl f_id new_f_tbl 	
+	Hashtbl.add cc_tbl f_id new_f_tbl; 
+	new_f_tbl
 
 let update_cc_tbl_single_var_er cc_tbl f_parent_id f_id  x = 
 	let f_parent_var_table = 
@@ -506,9 +520,19 @@ let update_cc_tbl_single_var_er cc_tbl f_parent_id f_id  x =
 		(fun x x_f_id -> Hashtbl.add new_f_tbl x x_f_id) 
 		f_parent_var_table;
 	Hashtbl.replace new_f_tbl x f_id;
-	Hashtbl.add cc_tbl f_id new_f_tbl
+	Hashtbl.add cc_tbl f_id new_f_tbl; 
+	new_f_tbl
 
-let rec closure_clarification_expr cc_tbl fun_tbl vis_tbl f_id visited_funs e = 
+let get_top_level_annot e = 
+	match e.Parser_syntax.exp_stx with 
+	| Script (_, les) -> 
+		let first_le = List.nth les 0 in 
+		let annot = first_le.Parser_syntax.exp_annot in 
+		Some annot 
+	| _ -> None 
+
+
+let rec closure_clarification_expr cc_tbl (fun_tbl : fun_tbl_type) vis_tbl f_id visited_funs e = 
 	let f = closure_clarification_expr cc_tbl fun_tbl vis_tbl f_id visited_funs in 
 	let fo e = (match e with 
 	| None -> () 
@@ -532,16 +556,16 @@ let rec closure_clarification_expr cc_tbl fun_tbl vis_tbl f_id visited_funs e =
     begin match f_name with
     | None ->
       let new_f_id = get_codename e in 
-      update_cc_tbl cc_tbl f_id new_f_id args fb;
-      update_fun_tbl fun_tbl new_f_id args fb; 
+      let new_f_tbl = update_cc_tbl cc_tbl f_id new_f_id args fb in 
+      update_fun_tbl fun_tbl new_f_id args fb e.Parser_syntax.exp_annot new_f_tbl (new_f_id :: visited_funs); 
       Hashtbl.replace vis_tbl new_f_id (new_f_id :: visited_funs); 
       closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: visited_funs) fb
     | Some f_name ->
       let new_f_id = get_codename e in
       let new_f_id_outer = new_f_id ^ "_outer" in
-      update_cc_tbl_single_var_er cc_tbl f_id new_f_id_outer f_name;  
-      update_cc_tbl cc_tbl new_f_id_outer new_f_id args fb;
-      update_fun_tbl fun_tbl new_f_id args fb; 
+      let _ = update_cc_tbl_single_var_er cc_tbl f_id new_f_id_outer f_name in 
+      let new_f_tbl = update_cc_tbl cc_tbl new_f_id_outer new_f_id args fb in 
+      update_fun_tbl fun_tbl new_f_id args fb e.Parser_syntax.exp_annot new_f_tbl (new_f_id :: new_f_id_outer :: visited_funs); 
       Hashtbl.replace vis_tbl new_f_id (new_f_id :: new_f_id_outer :: visited_funs); 
       closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: new_f_id_outer :: visited_funs) fb
     end
@@ -574,7 +598,7 @@ let rec closure_clarification_expr cc_tbl fun_tbl vis_tbl f_id visited_funs e =
 	| With (_, _) -> raise (Failure "statement in expression context - closure clarification: with") 
 	| Debugger -> raise (Failure "statement in expression context - closure clarification: debugger") 
 and 
-closure_clarification_stmt cc_tbl fun_tbl vis_tbl f_id visited_funs e = 
+closure_clarification_stmt cc_tbl (fun_tbl : fun_tbl_type) vis_tbl f_id visited_funs e = 
 	let f = closure_clarification_stmt cc_tbl fun_tbl vis_tbl f_id visited_funs in 
 	let fe = closure_clarification_expr cc_tbl fun_tbl vis_tbl f_id visited_funs in 
 	let fo e = (match e with 
@@ -647,7 +671,8 @@ closure_clarification_stmt cc_tbl fun_tbl vis_tbl f_id visited_funs e =
 	| With (e1, e2) -> f e1; f e2 
 	| Debugger -> ()  
 
-let closure_clarification_top_level global_spec cc_tbl fun_tbl vis_tbl proc_id e vis_fid args =
+
+let closure_clarification_top_level cc_tbl (fun_tbl : fun_tbl_type) vis_tbl proc_id e vis_fid args =
 	let proc_tbl = Hashtbl.create 101 in 
 	
 	let proc_vars = get_all_vars_f e [] in
@@ -655,9 +680,18 @@ let closure_clarification_top_level global_spec cc_tbl fun_tbl vis_tbl proc_id e
 		(fun v -> Hashtbl.replace proc_tbl v proc_id)
 		proc_vars; 
 	Hashtbl.add cc_tbl proc_id proc_tbl; 
-	Hashtbl.add fun_tbl proc_id (proc_id, args, e, global_spec); 
+	Hashtbl.add fun_tbl proc_id (proc_id, args, e, None); 
 	Hashtbl.add vis_tbl proc_id vis_fid;
-	closure_clarification_stmt cc_tbl fun_tbl vis_tbl proc_id vis_fid e
+	closure_clarification_stmt cc_tbl fun_tbl vis_tbl proc_id vis_fid e; 
+	
+	let annots = get_top_level_annot e in 
+	(match annots with 
+	| Some annots -> 
+		Printf.printf "Going to generate main. Top-level annotations:\n%s\n" (Pretty_print.string_of_annots annots); 
+		let specs = process_js_logic_annotations proc_id [] annots TopRequires TopEnsures TopEnsuresErr proc_tbl [ proc_id ] in
+		Hashtbl.replace fun_tbl proc_id (proc_id, args, e, specs);	
+	| None -> Printf.printf "NO TOP LEVEL ANNOTATION BANANAS!!!")   
+	
 
 (**
 	(Hashtbl.iter

@@ -1,6 +1,7 @@
 %{
 open JSIL_Syntax
 open JSIL_Syntax_Checks
+open JS_Logic_Syntax
 
 (* Tables where we collect the predicates and the procedures as we parse them. *)
 let predicate_table = Hashtbl.create 100
@@ -9,6 +10,9 @@ let procedure_table = Hashtbl.create 100
 %}
 
 (***** Token definitions *****)
+(*  JS Logic Literals *)
+%token SCOPE
+%token THIS
 (* Type literals *)
 %token UNDEFTYPELIT
 %token NULLTYPELIT
@@ -215,11 +219,13 @@ let procedure_table = Hashtbl.create 100
 %type <JSIL_Syntax.jsil_ext_program> main_target
 %type <string list> param_list_FC_target
 %type <JSIL_Syntax.jsil_logic_predicate list * JSIL_Syntax.jsil_spec list> pred_spec_target
-%type <JSIL_Syntax.jsil_logic_assertion> assertion_target
+%type <JSIL_Syntax.jsil_logic_assertion> top_level_assertion_target
+%type <JS_Logic_Syntax.js_logic_assertion> top_level_js_assertion_target 
 %start main_target
 %start param_list_FC_target
 %start pred_spec_target
-%start assertion_target
+%start top_level_assertion_target
+%start top_level_js_assertion_target 
 %%
 
 (********* JSIL *********)
@@ -505,6 +511,9 @@ spec_line:
   OASSERT; assertion = assertion_target; CASSERT { assertion }
 ;
 
+top_level_assertion_target: 
+	a = assertion_target; EOF { a }
+
 assertion_target:
 (* P /\ Q *)
 	| left_ass=assertion_target; LAND; right_ass=assertion_target
@@ -741,3 +750,116 @@ lit_target:
 	| LISTTYPELIT  { ListType }
 	| TYPETYPELIT  { TypeType }
 ;
+
+
+
+(** JS Assertions - Copy Paste for YOUR LIFE **) 
+top_level_js_assertion_target: 
+	a = js_assertion_target; EOF { a }
+
+js_assertion_target:
+(* P /\ Q *)
+	| left_ass=js_assertion_target; LAND; right_ass=js_assertion_target
+		{ JSLAnd (left_ass, right_ass) }
+(* P \/ Q *)
+	| left_ass=js_assertion_target; LOR; right_ass=js_assertion_target
+		{ JSLOr (left_ass, right_ass) }
+(* ! Q *)
+	| LNOT; ass=js_assertion_target
+		{ JSLNot (ass) }
+(* true *)
+  | LTRUE
+		{ JSLTrue }
+(* false *)
+  | LFALSE
+		{ JSLFalse }
+(* E == E *)
+	| left_expr=js_lexpr_target; LEQUAL; right_expr=js_lexpr_target
+		{ JSLEq (left_expr, right_expr) }
+(* E <# E *)
+	| left_expr=js_lexpr_target; LLESSTHAN; right_expr=js_lexpr_target
+		{ JSLLess (left_expr, right_expr) }
+(* E <=# E *)
+	| left_expr=js_lexpr_target; LLESSTHANEQUAL; right_expr=js_lexpr_target
+		{ JSLLessEq (left_expr, right_expr) }
+(* E <s# E *)
+	| left_expr=js_lexpr_target; LLESSTHANSTRING; right_expr=js_lexpr_target
+		{ JSLStrLess (left_expr, right_expr) }
+(* P * Q *)
+(* The precedence of the separating conjunction is not the same as the arithmetic product *)
+	| left_ass=js_assertion_target; TIMES; right_ass=js_assertion_target
+		{ JSLStar (left_ass, right_ass) } %prec separating_conjunction
+(* (E, E) -> E *)
+	| LBRACE; obj_expr=js_lexpr_target; COMMA; prop_expr=js_lexpr_target; RBRACE; LARROW; val_expr=js_lexpr_target
+		{ JSLPointsTo (obj_expr, prop_expr, val_expr) }
+(* emp *)
+	| LEMP;
+		{ JSLEmp }
+(* x(e1, ..., en) *)
+	| name = VAR; LBRACE; params = separated_list(COMMA, js_lexpr_target); RBRACE
+	  { 
+			validate_pred_assertion (name, params);
+			JSLPred (name, params)
+		}
+(* types (type_pairs) *)
+  | LTYPES; LBRACE; type_pairs = separated_list(COMMA, js_type_env_pair_target); RBRACE
+    { JSLTypes type_pairs }
+(* scope(x: le) *)
+	| SCOPE; LBRACE; v=VAR; COLON; le=js_lexpr_target; RBRACE 
+		{ JSLScope (v, le) }
+(* (P) *)
+  | LBRACE; ass=js_assertion_target; RBRACE
+	  { ass }
+;
+
+
+js_lexpr_target:
+(* Logic literal *)
+	| lit = lit_target
+	  { JSLLit lit }
+(* None *)
+	| LNONE
+	  { JSLNone }
+(* Logic variable *)
+	| lvar = js_logic_variable_target
+	  { lvar }
+(* e binop e *)
+	| e1=js_lexpr_target; bop=binop_target; e2=js_lexpr_target
+		{ JSLBinOp (e1, bop, e2) }
+(* unop e *)
+  | uop=unop_target; e=js_lexpr_target
+		{ JSLUnOp (uop, e) }
+(* - e *)
+(* Unary negation has the same precedence as logical not, not as binary negation. *)
+	| MINUS; e=js_lexpr_target
+		{ JSLUnOp (UnaryMinus, e) } %prec unary_minus
+(* typeOf *)
+	| TYPEOF; LBRACE; e=js_lexpr_target; RBRACE
+		{ JSLTypeOf (e) }
+(* {{ e, ..., e }} *)
+	| LSTOPEN; exprlist = separated_nonempty_list(COMMA, js_lexpr_target); LSTCLOSE
+		{ JSLEList exprlist }
+(* l-nth(e1, e2) *)
+	| LSTNTH; LBRACE; e1=js_lexpr_target; COMMA; e2=js_lexpr_target; RBRACE
+		{ JSLLstNth (e1, e2) }
+(* s-nth(e1, e2) *)
+	| STRNTH; LBRACE; e1=js_lexpr_target; COMMA; e2=js_lexpr_target; RBRACE
+		{ JSLStrNth (e1, e2) }
+(* this *) 
+	| THIS { JSLThis }
+(* (e) *)
+  | LBRACE; e=js_lexpr_target; RBRACE
+	  { e }
+;
+
+js_type_env_pair_target:
+  | v = LVAR; COLON; the_type=type_target
+    { (v, the_type) }
+;
+
+js_logic_variable_target:
+  v = LVAR
+	{ JSLVar v }
+; 
+
+

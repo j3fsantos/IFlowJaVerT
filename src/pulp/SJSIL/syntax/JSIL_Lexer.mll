@@ -15,6 +15,9 @@ let newline = '\r' | '\n' | "\r\n"
 rule read = parse
 	| white       	       { read lexbuf }
 	|	newline	             { new_line lexbuf; read lexbuf }
+(* js logic tokens *)
+	| "scope"              { JSIL_Parser.SCOPE }
+	| "this"               { JSIL_Parser.THIS }
 (* Type literals *)
 	| "$$undefined_type"   { JSIL_Parser.UNDEFTYPELIT }
 	| "$$null_type"        { JSIL_Parser.NULLTYPELIT }

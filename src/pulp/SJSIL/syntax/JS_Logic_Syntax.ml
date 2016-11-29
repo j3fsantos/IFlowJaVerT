@@ -57,29 +57,30 @@ let rec js2jsil_lexpr le =
 	| JSLLstNth (le1, le2)    -> LLstNth (fe le1, fe le2) 
 	| JSLStrNth (le1, le2)    -> LStrNth (fe le1, fe le2) 
 	| JSLUnknown              -> LUnknown
-	| JSLThis                 -> PVar Js2jsil.var_this 
+	| JSLThis                 -> PVar Js2jsil_constants.var_this 
 
 
-let rec js2jsil_logic a js_var_to_lvar = 
-	let f = js2jsil_logic in 
+let rec js2jsil_logic (js_var_to_lvar : (string, JSIL_Syntax.jsil_logic_expr) Hashtbl.t) (a : js_logic_assertion) : JSIL_Syntax.jsil_logic_assertion = 
+	let f = js2jsil_logic js_var_to_lvar in 
+	let fe = js2jsil_lexpr in 
 	match a with 
 	| JSLAnd (a1, a2)             -> LAnd ((f a1), (f a2))
 	| JSLOr (a1, a2)              -> LOr ((f a1), (f a2)) 
-	| JSLNot a                    -> LNot ((f a1), (f a2))
+	| JSLNot a                    -> LNot (f a)
 	| JSLTrue                     -> LTrue
 	| JSLFalse                    -> LFalse
-	| JSLEq (le1, le2)            -> LEq (le1, le2) 
-	| JSLLessEq (le1, le2)        -> LLessEq (le1, le2) 
-	| JSLStrLess (le1, le2)       -> LStrLess (le1, le2)
+	| JSLEq (le1, le2)            -> LEq ((fe le1), (fe le2)) 
+	| JSLLessEq (le1, le2)        -> LLessEq ((fe le1), (fe le2)) 
+	| JSLStrLess (le1, le2)       -> LStrLess ((fe le1), (fe le2))
 	| JSLStar (a1, a2)            -> LStar ((f a1), (f a2)) 
-	| JSLPointsTo	(le1, le2, le3) -> LPointsTo (le1, le2, le3)
+	| JSLPointsTo	(le1, le2, le3) -> LPointsTo ((fe le1), (fe le2), (fe le3))
 	| JSLEmp                      -> LEmp
-	| JSLPred (s, les)            -> LPred (s, les)
-	| JSLTypes (vts)              -> LTypes (vts) 
+	| JSLPred (s, les)            -> LPred (s, (List.map fe les))
+	| JSLTypes (vts)              -> LTypes (List.map (fun (v, t) -> (LVar v, t)) vts)
 	| JSLScope (x, le) -> 
 		if (Hashtbl.mem js_var_to_lvar x) then (
 			let x_lvar = Hashtbl.find js_var_to_lvar x in
-			LEq (x_lvar, le)
+			LEq (x_lvar, (fe le))
 		) else (
 			let msg = Printf.sprintf "scope predicate misuse: %s needs to be in the scope!\n" x in 
 			raise (Failure msg)
@@ -113,8 +114,8 @@ let var_fid_tbl_to_assertion var_to_fid_tbl =
 			let x_val_name = JSIL_Memory_Model.fresh_lvar () in 
 			let x_val = LVar x_val_name in 
 			let le_desc = LEList [ LLit (String "d"); x_val; LLit (Bool true); LLit (Bool true); LLit (Bool false) ] in 
-			let a_new = LPointsTo (x_fid, Literal (String x), le_desc) in
-			Hashtbl.add js_var_to_lvar x x_val_name;
+			let a_new = LPointsTo (x_fid, LLit (String x), le_desc) in
+			Hashtbl.add js_var_to_lvar x x_val;
 			if (ac = LEmp) then a_new else LStar (ac, a_new))
 		var_to_fid_tbl
 		LEmp in 
@@ -126,16 +127,16 @@ let make_scope_chain_assertion vis_list =
 		match fids with 
 		| [] -> a 
 		| fid :: rest -> 
-			let a_new = LPointsTo (PVar Js2jsil.var_scope, LLit (String fid), LVar (fid_to_lvar fid)) in 
+			let a_new = LPointsTo (PVar Js2jsil_constants.var_scope, LLit (String fid), LVar (fid_to_lvar fid)) in 
 			let a = if (a = LEmp) then a_new else (LStar (a, a_new)) in 
 			loop a rest in 
 	loop LEmp vis_list 
 	
 
-let rec js2jsil_logic_top_level a var_to_fid_tbl vis_list =
+let rec js2jsil_logic_top_level a (var_to_fid_tbl : (string, string) Hashtbl.t) (vis_list : string list) =
 	let a_env_records, js_var_to_lvar = var_fid_tbl_to_assertion var_to_fid_tbl in 
 	let a_scope_chain = make_scope_chain_assertion vis_list in 
-	let a' = js2jsil_logic a js_var_to_lvar in 
+	let a' = js2jsil_logic js_var_to_lvar a in 
 	LStar (a', (LStar (a_env_records, a_scope_chain))) 
 	
 	
