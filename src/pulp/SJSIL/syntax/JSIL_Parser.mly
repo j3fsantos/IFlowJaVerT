@@ -154,9 +154,13 @@ open JS_Logic_Syntax
 (* Logic commands *)
 %token OLCMD
 %token CLCMD
+%token OOLCMD
+%token CCLCMD
 %token FOLD
 %token UNFOLD
 %token RECUNFOLD
+%token LIF
+%token LELSE
 (* Procedure specification keywords *)
 %token SPEC
 %token NORMAL
@@ -314,19 +318,39 @@ cmd_list_target:
 	cmd_list = separated_nonempty_list(SCOLON, cmd_with_label_and_logic)
 	{
 		List.map
-			(fun (pre_cond, logic_cmds, lab, cmd) ->
-				({ line_offset = None; pre_cond; logic_cmds }, lab, cmd))
+			(fun (pre_cond, pre_logic_cmds, post_logic_cmds, lab, cmd) ->
+				({ line_offset = None; pre_cond; pre_logic_cmds; post_logic_cmds }, lab, cmd))
 			cmd_list
 	}
 ;
 
 cmd_with_label_and_logic:
-	| pre = option(spec_line); logic_cmds = list(logic_cmd_target);
-	  cmd = cmd_target
-		{ (pre, logic_cmds, None, cmd) }
-	| pre = option(spec_line); logic_cmds = list(logic_cmd_target);
-	  lab = VAR; COLON; cmd = cmd_target
-		{ (pre, logic_cmds, Some lab, cmd) }
+	| pre = option(spec_line); pre_logic_cmds = option(pre_logic_cmd_target); 
+			cmd = cmd_target; post_logic_cmds = option(post_logic_cmd_target)
+		{ 
+			let pre_logic_cmds = 
+				match pre_logic_cmds with 
+				| None -> [] 
+				| Some pre_logic_cmds -> pre_logic_cmds in 
+			let post_logic_cmds = 
+				match post_logic_cmds with 
+				| None -> []
+				| Some post_logic_cmds -> post_logic_cmds  in 
+			(pre, pre_logic_cmds, post_logic_cmds, None, cmd) 
+		}
+	| pre = option(spec_line); pre_logic_cmds = option(pre_logic_cmd_target); 
+		lab = VAR; COLON; cmd = cmd_target; post_logic_cmds = option(post_logic_cmd_target)
+		{ 
+			let pre_logic_cmds = 
+				match pre_logic_cmds with 
+				| None -> [] 
+				| Some pre_logic_cmds -> pre_logic_cmds in 
+			let post_logic_cmds = 
+				match post_logic_cmds with 
+				| None -> []
+				| Some post_logic_cmds -> post_logic_cmds  in
+			(pre, pre_logic_cmds, post_logic_cmds, Some lab, cmd) 
+		}
 ;
 
 cmd_target:
@@ -465,18 +489,43 @@ pred_param_target:
 	  { PVar v }
 ;
 
+pre_logic_cmd_target: 
+(* [* logic_cmds *] *) 
+	| OLCMD; logic_cmds = separated_list(SCOLON, logic_cmd_target); CLCMD
+		{ logic_cmds }
+
+post_logic_cmd_target: 
+(* [+ logic_cmds +] *) 
+	| OOLCMD; logic_cmds = separated_list(SCOLON, logic_cmd_target); CCLCMD
+		{ logic_cmds }
+
+
+
 (* TODO: Check that the assertions are only predicates, or deal with full assertions in the execution *)
 logic_cmd_target:
-(* [* fold x(e1, ..., en)  *] *)
-	| OLCMD; FOLD; assertion = assertion_target; CLCMD
+(* fold x(e1, ..., en) *)
+	| FOLD; assertion = assertion_target
 	  { Fold (assertion) }
-(* [* unfold x(e1, ..., en) *] *)
-	| OLCMD; UNFOLD; assertion = assertion_target; CLCMD
+(* unfold x(e1, ..., en) *)
+	| UNFOLD; assertion = assertion_target
 	  { Unfold (assertion) }
-(* [* unfold* x *] *)
-	| OLCMD; RECUNFOLD; v = VAR; CLCMD
+(* unfold* x *)
+	| RECUNFOLD; v = VAR
 	  { RecUnfold v }
+(* if(le) { lcmd* } else { lcmd* } *)
+	| LIF; LBRACE; le=lexpr_target; RBRACE; CLBRACKET; 
+			then_lcmds = separated_list(SCOLON, logic_cmd_target); 
+			CRBRACKET; LELSE; CLBRACKET;
+			else_lcmds = separated_list(SCOLON, logic_cmd_target);
+			 CLBRACKET;
+	  { LogicIf (le, then_lcmds, else_lcmds)}
+(* if(e) { lcmd* } *)
+	| LIF; LBRACE; le=lexpr_target; RBRACE; CLBRACKET; 
+			then_lcmds = separated_list(SCOLON, logic_cmd_target); 
+			CRBRACKET;
+	  { LogicIf (le, then_lcmds, [])}
 ;
+
 
 spec_target:
 (* spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *)
@@ -794,7 +843,7 @@ js_assertion_target:
 (* x(e1, ..., en) *)
 	| name = VAR; LBRACE; params = separated_list(COMMA, js_lexpr_target); RBRACE
 	  { 
-			validate_pred_assertion (name, params);
+			(* validate_pred_assertion (name, params); *)
 			JSLPred (name, params)
 		}
 (* types (type_pairs) *)
@@ -816,9 +865,12 @@ js_lexpr_target:
 (* None *)
 	| LNONE
 	  { JSLNone }
+(* program variable *)
+	| pvar = VAR
+	  { JSPVar pvar }
 (* Logic variable *)
-	| lvar = js_logic_variable_target
-	  { lvar }
+	| lvar = LVAR
+	  { JSLVar lvar }
 (* e binop e *)
 	| e1=js_lexpr_target; bop=binop_target; e2=js_lexpr_target
 		{ JSLBinOp (e1, bop, e2) }
@@ -852,10 +904,5 @@ js_type_env_pair_target:
   | v = LVAR; COLON; the_type=type_target
     { (v, the_type) }
 ;
-
-js_logic_variable_target:
-  v = LVAR
-	{ JSLVar v }
-; 
 
 

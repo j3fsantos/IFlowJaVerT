@@ -458,6 +458,8 @@ type fun_tbl_type = (string, string * JSIL_Syntax.jsil_var list * Parser_syntax.
 
 
 let process_js_logic_annotations fun_name fun_args annotations requires_flag ensures_normal_flag ensure_err_flag var_to_fid_tbl vis_list = 
+	Printf.printf "Inside process_js_logic_annotations. function: %s. Annotations: %s\n" fun_name (Pretty_print.string_of_annots annotations); 
+
 	let preconditions  = List.filter (fun annotation -> annotation.annot_type = requires_flag) annotations in 
 	let postconditions = List.filter (fun annotation -> (annotation.annot_type = ensures_normal_flag) || (annotation.annot_type = ensure_err_flag)) annotations in 
 	
@@ -476,8 +478,9 @@ let process_js_logic_annotations fun_name fun_args annotations requires_flag ens
 			Printf.printf "pre_str: %s. post_str: %s\n" pre_str post_str; 
 			let pre_js  = JSIL_Utils.js_assertion_of_string pre_str in 
 			let post_js = JSIL_Utils.js_assertion_of_string post_str in 
-			let pre_jsil = JS_Logic_Syntax.js2jsil_logic_top_level pre_js var_to_fid_tbl vis_list in 
-			let post_jsil = JS_Logic_Syntax.js2jsil_logic_top_level post_js var_to_fid_tbl vis_list in
+			Printf.printf "I manage to parse the js assertions\n";
+			let pre_jsil = JS_Logic_Syntax.js2jsil_logic_top_level_pre pre_js var_to_fid_tbl vis_list fun_name in 
+			let post_jsil = JS_Logic_Syntax.js2jsil_logic_top_level_post post_js var_to_fid_tbl vis_list fun_name in
 			let new_spec = JSIL_Syntax.create_single_spec pre_jsil post_jsil ret_flag in 
 			new_spec)
 		preconditions
@@ -537,6 +540,10 @@ let rec closure_clarification_expr cc_tbl (fun_tbl : fun_tbl_type) vis_tbl f_id 
 	let fo e = (match e with 
 	| None -> () 
 	| Some e -> f e) in 
+
+	(* Printf.printf "Traversing the js code inside closure_clarification_expr. current annotation: %s\n" 
+		(Pretty_print.string_of_annots e.exp_annot); *)
+
 	match e.exp_stx with
   (* Literals *)
 	| Null 
@@ -606,7 +613,11 @@ closure_clarification_stmt cc_tbl (fun_tbl : fun_tbl_type) vis_tbl f_id visited_
 	| Some e -> f e) in 
 	let feo e = (match e with 
 	| None -> () 
-	| Some e -> fe e) in 
+	| Some e -> fe e) in
+	
+	(* Printf.printf "Traversing the js code inside closure_clarification_expr. current annotation: %s\n" 
+		(Pretty_print.string_of_annots e.exp_annot); *)
+	 
 	match e.exp_stx with
   (* Literals *)
 	| Null 
@@ -632,11 +643,10 @@ closure_clarification_stmt cc_tbl (fun_tbl : fun_tbl_type) vis_tbl f_id visited_
   | Comma (_, _)           
   | RegExp _ -> fe e
 	(*Statements*)
-	| Function (_, f_name, args, fb) ->
-		(* Printf.printf("named function expression hihihi\n");   *)
+	| Function (_, f_name, args, fb) ->  
 		let new_f_id = get_codename e in                           
-		update_cc_tbl cc_tbl f_id new_f_id args fb;                
-		update_fun_tbl fun_tbl new_f_id args fb e.exp_annot;        
+		let new_f_tbl = update_cc_tbl cc_tbl f_id new_f_id args fb in 
+		update_fun_tbl fun_tbl new_f_id args fb e.exp_annot new_f_tbl (new_f_id :: visited_funs);       
 		Hashtbl.replace vis_tbl new_f_id (new_f_id :: visited_funs); 
 		closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: visited_funs) fb
   | Script (_, es) -> List.iter f es 

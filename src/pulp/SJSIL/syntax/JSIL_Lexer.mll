@@ -156,29 +156,33 @@ rule read = parse
 (* Logic commands *)
 	| "[*"                 { JSIL_Parser.OLCMD     }
 	| "*]"                 { JSIL_Parser.CLCMD     }
+	| "[+"                 { JSIL_Parser.OOLCMD    }
+	| "+]"                 { JSIL_Parser.CCLCMD    }
 	| "unfold*"            { JSIL_Parser.RECUNFOLD }
 	| "fold"               { JSIL_Parser.FOLD      }
 	| "unfold"             { JSIL_Parser.UNFOLD    }	
+	| "if"                 { JSIL_Parser.LIF       }
+	| "else"               { JSIL_Parser.LELSE     }		
 (* Procedure specification keywords *)
-	| "spec"               { JSIL_Parser.SPEC }
-	| "normal"             { JSIL_Parser.NORMAL }
-	| "error"              { JSIL_Parser.ERROR }
+	| "spec"               { JSIL_Parser.SPEC      }
+	| "normal"             { JSIL_Parser.NORMAL    }
+	| "error"              { JSIL_Parser.ERROR     }
 (* Procedure definition keywords *)
-	| "proc"               { JSIL_Parser.PROC }
-	| "ret"                { JSIL_Parser.RET }
-	| "err"                { JSIL_Parser.ERR }
+	| "proc"               { JSIL_Parser.PROC      }
+	| "ret"                { JSIL_Parser.RET       }
+	| "err"                { JSIL_Parser.ERR       }
 (* Others *)
-	| "import"             { JSIL_Parser.IMPORT }
+	| "import"             { JSIL_Parser.IMPORT    }
 (* Separators *)
-	| "(*"                 { read_comment lexbuf }
-	| ','                  { JSIL_Parser.COMMA }
-	| ':'                  { JSIL_Parser.COLON }
-	| ';'                  { JSIL_Parser.SCOLON }
+	| "(*"                 { read_comment lexbuf   }
+	| ','                  { JSIL_Parser.COMMA     }
+	| ':'                  { JSIL_Parser.COLON     }
+	| ';'                  { JSIL_Parser.SCOLON    }
 (*| '.'                  { JSIL_Parser.DOT }*)
-	| '('                  { JSIL_Parser.LBRACE }
-	| ')'                  { JSIL_Parser.RBRACE }
-	| '['                  { JSIL_Parser.LBRACKET }
-	| ']'                  { JSIL_Parser.RBRACKET }
+	| '('                  { JSIL_Parser.LBRACE    }
+	| ')'                  { JSIL_Parser.RBRACE    }
+	| '['                  { JSIL_Parser.LBRACKET  }
+	| ']'                  { JSIL_Parser.RBRACKET  }
 	| '{'                  { JSIL_Parser.CLBRACKET }
 	| '}'                  { JSIL_Parser.CRBRACKET }
 (* Literals (cont.) *)

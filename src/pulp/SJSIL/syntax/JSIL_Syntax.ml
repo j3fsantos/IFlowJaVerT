@@ -255,15 +255,17 @@ type jsil_logic_command =
 	| Fold       of jsil_logic_assertion
 	| Unfold     of jsil_logic_assertion
 	| RecUnfold  of string
+	| LogicIf    of jsil_logic_expr * (jsil_logic_command list) * (jsil_logic_command list)
 
 (* JSIL command metadata *)
 type jsil_metadata = {
-	line_offset : int option;
-	pre_cond    : jsil_logic_assertion option;
-	logic_cmds  : jsil_logic_command list;
+	line_offset     : int option;
+	pre_cond        : jsil_logic_assertion option;
+	pre_logic_cmds  : jsil_logic_command list;
+	post_logic_cmds : jsil_logic_command list
 }
 
-let empty_metadata = { line_offset = None; pre_cond = None; logic_cmds = [] }
+let empty_metadata = { line_offset = None; pre_cond = None; pre_logic_cmds = []; post_logic_cmds = [] }
 
 (* JSIL procedures *)
 type jsil_procedure = {

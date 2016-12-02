@@ -1171,3 +1171,15 @@ let rec find_me_baby le store pfs =
 			then le
 			else (List.hd flist)
 	) with FoundIt result -> result
+
+
+
+let star_asses asses = 
+	List.fold_left 
+		(fun ac a -> 
+			if (not (a = LEmp)) 
+				then LStar (a, ac)
+				else ac)
+		 LEmp
+		asses
+				

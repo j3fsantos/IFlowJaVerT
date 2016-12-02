@@ -237,7 +237,7 @@ let rec string_of_logic_assertion a escape_string =
 		(* a1 * a2 *)
 		| LStar (a1, a2) -> Printf.sprintf "%s * %s" (sla a1) (sla a2)
 		(* (e1, e2) -> e3 *)
-		| LPointsTo (e1, e2, e3) -> Printf.sprintf "(%s, %s) -> %s" (sle e1) (sle e2) (sle e3)
+		| LPointsTo (e1, e2, e3) -> Printf.sprintf "((%s, %s) -> %s)" (sle e1) (sle e2) (sle e3)
 		(* emp *)
 		| LEmp -> "emp"
 		(* exists vars . a
@@ -249,6 +249,21 @@ let rec string_of_logic_assertion a escape_string =
 		(* types(e1:t1, ..., en:tn) *)
 		| LTypes type_list -> Printf.sprintf "types(%s)"
 			(String.concat ", " (List.map (fun (e, t) -> Printf.sprintf "%s : %s" (sle e) (string_of_type t)) type_list))
+
+
+let rec string_of_lcmd lcmd = 
+	match lcmd with 
+	| Fold a -> "Fold (" ^ (string_of_logic_assertion a false) ^ ")" 
+	| Unfold a -> "Unfold (" ^ (string_of_logic_assertion a false) ^ ")" 
+	| RecUnfold pred_name -> "Unfold* (" ^ pred_name ^ ")"
+	| LogicIf (le, then_lcmds, else_lcmds) -> 
+		let le_str = string_of_logic_expression le false in 
+		let then_lcmds_str = String.concat "; " (List.map string_of_lcmd then_lcmds) in 
+		let else_lcmds_str = String.concat "; " (List.map string_of_lcmd else_lcmds) in 
+		if ((List.length else_lcmds) > 0) 
+			then "if (" ^ le_str ^ ") then { " ^ then_lcmds_str ^ " }"
+			else "if (" ^ le_str ^ ") then { " ^ then_lcmds_str ^ " } else { " ^  else_lcmds_str ^ " }"
+
 
 (** JSIL logic predicates *)
 let rec string_of_predicate predicate =
@@ -325,18 +340,27 @@ let string_of_cmd_aux sjsil_cmd i line_numbers_on escape_string str_tabs =
 (** JSIL All Statements *)
 let rec string_of_cmd sjsil_cmd tabs i line_numbers_on specs_on escape_string =
 	let str_tabs = tabs_to_str tabs in
-
 	let metadata, sjsil_cmd = sjsil_cmd in
-	let ass = metadata.pre_cond in
-	let str_ass =
+	let inv = metadata.pre_cond in
+	let pre_lcmds = metadata.pre_logic_cmds in 
+	let post_lcmds = metadata.post_logic_cmds in  
+	let str_inv =
 		if (specs_on)
 		then
-		  (match ass with
+		  (match inv with
 		  | None -> ""
 		  | Some ass -> str_tabs ^ "[[" ^ string_of_logic_assertion ass escape_string ^ "]]\n")
 		else "" in
-	str_ass ^
-  (string_of_cmd_aux sjsil_cmd i line_numbers_on escape_string str_tabs)
+	let str_pre_lcmds = 
+		if (specs_on && ((List.length pre_lcmds) > 0)) 
+			then "[*" ^ (String.concat "; " (List.map string_of_lcmd pre_lcmds)) ^ "*]\n"
+			else "" in 
+	let str_post_lcmds = 
+		if (specs_on && ((List.length post_lcmds) > 0))
+			then "[+" ^ (String.concat "; " (List.map string_of_lcmd post_lcmds)) ^ "+]\n"
+			else ""  in  
+	str_inv ^ str_pre_lcmds ^ (string_of_cmd_aux sjsil_cmd i line_numbers_on escape_string str_tabs) ^ str_post_lcmds 
+	
 
 
 

@@ -698,7 +698,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 
 	let js_char_offset = e.Parser_syntax.exp_offset in
 	let js_line_offset = offset_converter js_char_offset in
-	let metadata = { line_offset = Some js_line_offset; pre_cond = None; logic_cmds = [] } in
+	let metadata = { line_offset = Some js_line_offset; pre_cond = None; pre_logic_cmds = []; post_logic_cmds = [] } in
 
 	let annotate_cmds cmds =
 		List.map
@@ -2730,7 +2730,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 
 	let js_char_offset = e.Parser_syntax.exp_offset in
 	let js_line_offset = offset_converter js_char_offset in
-	let metadata = { line_offset = Some js_line_offset; pre_cond = None; logic_cmds = [] } in
+	let metadata = { line_offset = Some js_line_offset; pre_cond = None; pre_logic_cmds = []; post_logic_cmds = [] } in
 
 	let annotate_cmds cmds =
 		List.map

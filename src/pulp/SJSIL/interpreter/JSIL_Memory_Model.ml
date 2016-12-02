@@ -412,7 +412,7 @@ type symbolic_execution_search_info = {
 	info_nodes 		      : (int, search_info_node) Hashtbl.t;
 	info_edges          : (int, int list) Hashtbl.t;
 	next_node           : int ref;
-	post_pruning_info  : (string, (bool array) list) Hashtbl.t;
+	post_pruning_info   : (string, (bool array) list) Hashtbl.t;
 	spec_number         : int
 }
 
@@ -427,7 +427,7 @@ let make_symb_exe_search_info node_info post_pruning_info spec_number =
 				info_nodes          = Hashtbl.create small_tbl_size;
 				info_edges          = Hashtbl.create small_tbl_size;
 				next_node           = ref 1;
-				post_pruning_info  = post_pruning_info;
+				post_pruning_info   = post_pruning_info;
 				spec_number         = spec_number
 			} in
 		Hashtbl.replace new_search_info.info_edges 0 [];
