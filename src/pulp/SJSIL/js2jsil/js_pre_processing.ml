@@ -535,8 +535,38 @@ let get_top_level_annot e =
 	| _ -> None 
 
 
-let rec closure_clarification_expr cc_tbl (fun_tbl : fun_tbl_type) vis_tbl f_id visited_funs e = 
-	let f = closure_clarification_expr cc_tbl fun_tbl vis_tbl f_id visited_funs in 
+let update_prev_annot prev_annot cur_annot = 
+	let is_spec_annot annot = 
+		(annot.annot_type == Parser_syntax.Requires) || 
+			(annot.annot_type == Parser_syntax.Ensures) || 
+			(annot.annot_type == Parser_syntax.EnsuresErr) in 
+	
+	let rec annot_has_specs annots = 
+		match annots with 
+		| [] -> false 
+		| annot :: rest_annots -> 
+			if (is_spec_annot annot) 
+				then true 
+				else annot_has_specs rest_annots in 
+	
+	let rec filter_non_spec_annots annots specs_to_remain = 
+		match annots with 
+		| [] -> specs_to_remain 
+		| annot :: rest_annots -> 
+			if (is_spec_annot annot) 
+				then filter_non_spec_annots rest_annots (annot :: specs_to_remain) 
+				else filter_non_spec_annots rest_annots specs_to_remain in 
+	
+	if (annot_has_specs cur_annot) 
+		then cur_annot 
+		else ((filter_non_spec_annots prev_annot []) @ cur_annot)
+
+
+let rec closure_clarification_expr cc_tbl (fun_tbl : fun_tbl_type) vis_tbl f_id visited_funs prev_annot e = 
+	
+	let cur_annot = update_prev_annot prev_annot e.Parser_syntax.exp_annot in 
+	
+	let f = closure_clarification_expr cc_tbl fun_tbl vis_tbl f_id visited_funs cur_annot in 
 	let fo e = (match e with 
 	| None -> () 
 	| Some e -> f e) in 
@@ -564,17 +594,17 @@ let rec closure_clarification_expr cc_tbl (fun_tbl : fun_tbl_type) vis_tbl f_id 
     | None ->
       let new_f_id = get_codename e in 
       let new_f_tbl = update_cc_tbl cc_tbl f_id new_f_id args fb in 
-      update_fun_tbl fun_tbl new_f_id args fb e.Parser_syntax.exp_annot new_f_tbl (new_f_id :: visited_funs); 
+      update_fun_tbl fun_tbl new_f_id args fb cur_annot new_f_tbl (new_f_id :: visited_funs); 
       Hashtbl.replace vis_tbl new_f_id (new_f_id :: visited_funs); 
-      closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: visited_funs) fb
+      closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: visited_funs) [] fb 
     | Some f_name ->
       let new_f_id = get_codename e in
       let new_f_id_outer = new_f_id ^ "_outer" in
       let _ = update_cc_tbl_single_var_er cc_tbl f_id new_f_id_outer f_name in 
       let new_f_tbl = update_cc_tbl cc_tbl new_f_id_outer new_f_id args fb in 
-      update_fun_tbl fun_tbl new_f_id args fb e.Parser_syntax.exp_annot new_f_tbl (new_f_id :: new_f_id_outer :: visited_funs); 
+      update_fun_tbl fun_tbl new_f_id args fb cur_annot new_f_tbl (new_f_id :: new_f_id_outer :: visited_funs); 
       Hashtbl.replace vis_tbl new_f_id (new_f_id :: new_f_id_outer :: visited_funs); 
-      closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: new_f_id_outer :: visited_funs) fb
+      closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: new_f_id_outer :: visited_funs) [] fb
     end
   | Unary_op (_, e) -> f e        
   | Delete e -> f e
@@ -605,9 +635,11 @@ let rec closure_clarification_expr cc_tbl (fun_tbl : fun_tbl_type) vis_tbl f_id 
 	| With (_, _) -> raise (Failure "statement in expression context - closure clarification: with") 
 	| Debugger -> raise (Failure "statement in expression context - closure clarification: debugger") 
 and 
-closure_clarification_stmt cc_tbl (fun_tbl : fun_tbl_type) vis_tbl f_id visited_funs e = 
-	let f = closure_clarification_stmt cc_tbl fun_tbl vis_tbl f_id visited_funs in 
-	let fe = closure_clarification_expr cc_tbl fun_tbl vis_tbl f_id visited_funs in 
+closure_clarification_stmt cc_tbl (fun_tbl : fun_tbl_type) vis_tbl f_id visited_funs prev_annot e = 
+	let cur_annot = update_prev_annot prev_annot e.Parser_syntax.exp_annot in 
+	
+	let f = closure_clarification_stmt cc_tbl fun_tbl vis_tbl f_id visited_funs cur_annot in 
+	let fe = closure_clarification_expr cc_tbl fun_tbl vis_tbl f_id visited_funs cur_annot in 
 	let fo e = (match e with 
 	| None -> () 
 	| Some e -> f e) in 
@@ -646,9 +678,9 @@ closure_clarification_stmt cc_tbl (fun_tbl : fun_tbl_type) vis_tbl f_id visited_
 	| Function (_, f_name, args, fb) ->  
 		let new_f_id = get_codename e in                           
 		let new_f_tbl = update_cc_tbl cc_tbl f_id new_f_id args fb in 
-		update_fun_tbl fun_tbl new_f_id args fb e.exp_annot new_f_tbl (new_f_id :: visited_funs);       
+		update_fun_tbl fun_tbl new_f_id args fb cur_annot new_f_tbl (new_f_id :: visited_funs);       
 		Hashtbl.replace vis_tbl new_f_id (new_f_id :: visited_funs); 
-		closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: visited_funs) fb
+		closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: visited_funs) [] fb
   | Script (_, es) -> List.iter f es 
   | Block es -> List.iter f es
   | VarDec vars -> List.iter (fun (_, e) -> feo e) vars
@@ -661,7 +693,7 @@ closure_clarification_stmt cc_tbl (fun_tbl : fun_tbl_type) vis_tbl f_id visited_
 		f e1; fo e3; 
 		let new_f_id = get_codename e in 
 		update_cc_tbl_single_var_er cc_tbl f_id new_f_id x;
-		closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: visited_funs) e2      
+		closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: visited_funs) cur_annot e2      
   | Try (e1, None, e3) -> f e1; fo e3          
   | Throw e -> fe e
   | Continue _ 
@@ -692,7 +724,7 @@ let closure_clarification_top_level cc_tbl (fun_tbl : fun_tbl_type) vis_tbl proc
 	Hashtbl.add cc_tbl proc_id proc_tbl; 
 	Hashtbl.add fun_tbl proc_id (proc_id, args, e, None); 
 	Hashtbl.add vis_tbl proc_id vis_fid;
-	closure_clarification_stmt cc_tbl fun_tbl vis_tbl proc_id vis_fid e; 
+	closure_clarification_stmt cc_tbl fun_tbl vis_tbl proc_id vis_fid [] e; 
 	
 	let annots = get_top_level_annot e in 
 	(match annots with 

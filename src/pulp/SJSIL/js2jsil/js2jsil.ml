@@ -64,6 +64,8 @@ let fresh_default_label : (unit -> string) = fresh_sth "default_"
 
 let fresh_b_cases_label : (unit -> string) = fresh_sth "b_cases_"
 
+let fresh_logical_variable : (unit -> string) = fresh_sth "#x"
+
 let power_list list n =
 	let rec loop cur_list cur_n =
 		(if (cur_n = 1)
@@ -682,6 +684,62 @@ let make_loop_end cur_val_var prev_val_var break_vars end_lab cur_first =
 	]	in
 	cmds, x_ret_5
 
+let is_get_value_call cmd = 
+	match cmd with 
+	| SLCall (_, (Literal (String proc_name)), _, _) -> (proc_name = getValueName) 
+	| _ -> false  
+
+let is_put_value_call cmd = 
+	match cmd with 
+	| SLCall (_, (Literal (String proc_name)), _, _) -> (proc_name = putValueName) 
+	| _ -> false  		
+						
+let get_args cmd = 
+	match cmd with 
+	| SLCall (_, (Literal (String proc_name)), args, _) -> Some args 
+	| _ -> None 
+
+
+let annotate_cmd_top_level metadata (lab, cmd) =
+	let fold_unfold_pi_code args =
+		let arg = 
+			(match args with 
+			| Some args ->  List.nth args 0
+			| None -> raise (Failure "translate_statement. annotate_cmds. DEATH")) in 
+		
+		(match arg with 
+		| Literal n -> [], []
+		| _ -> 
+			let arg = JSIL_Logic_Utils.expr_2_lexpr arg in 
+			let fold_args = [ LLstNth (arg, LLit (Integer 1)); LLstNth (arg, LLit (Integer 2)); 
+				LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()) ] in
+			let folding_guard_l = LBinOp (LLstNth (arg, LLit (Integer 0)), Equal, LLit (String "o")) in 	
+			let folding_guard_r = LBinOp (LLstNth (arg, LLit (Integer 0)), Equal, LLit (String "v")) in 
+			let folding_guard_r = LBinOp (folding_guard_r, And, (LBinOp (LLstNth (arg, LLit (Integer 1)), Equal, LLit (Loc locGlobName)))) in 
+			let folding_guard = LBinOp (folding_guard_l, Or, folding_guard_r) in  
+			let pre_l_if_inner = LogicIf (folding_guard, [ Fold (LPred (JS_Logic_Syntax.pi_pred_name, fold_args)) ], []) in 
+			let pre_l_if_outer = LogicIf ( LBinOp (LTypeOf (arg), Equal, LLit (Type ListType)), [ pre_l_if_inner ], []) in 
+			let post_l_if_inner = LogicIf (folding_guard, [ RecUnfold JS_Logic_Syntax.pi_pred_name ], []) in
+			let post_l_if_outer = LogicIf ( LBinOp (LTypeOf (arg), Equal, LLit (Type ListType)), [ post_l_if_inner ], []) in 	
+	 		[ pre_l_if_outer ], [ post_l_if_outer ]) in 
+	
+	if (is_get_value_call cmd) then (
+		Printf.printf "I AM CREATING a GETVALUE ANNOTATION!!!!!\n";
+		let fold_lcmds, unfold_lcmds = fold_unfold_pi_code (get_args cmd) in  
+		let new_metadata = 
+			{ metadata with pre_logic_cmds = fold_lcmds; post_logic_cmds = unfold_lcmds } in 
+		(new_metadata, lab, cmd)
+	) else if (is_put_value_call cmd) then (
+		Printf.printf "I AM CREATING a PUTVALUE ANNOTATION!!!!!\n";
+		let fold_lcmds, unfold_lcmds = fold_unfold_pi_code (get_args cmd) in 
+		let new_metadata = 
+			{ metadata with pre_logic_cmds = fold_lcmds; post_logic_cmds = unfold_lcmds } in 
+		(new_metadata, lab, cmd)	
+	) else (metadata, lab, cmd)
+
+let annotate_cmds_top_level metadata cmds =
+	List.map (annotate_cmd_top_level metadata) cmds 
+
 
 let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : ((jsil_metadata * (string option) * jsil_lab_cmd) list) * jsil_expr * (string list) =
 
@@ -700,13 +758,9 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 	let js_line_offset = offset_converter js_char_offset in
 	let metadata = { line_offset = Some js_line_offset; pre_cond = None; pre_logic_cmds = []; post_logic_cmds = [] } in
 
-	let annotate_cmds cmds =
-		List.map
-			(fun (lab, cmd) ->
-				(metadata, lab, cmd))
-		cmds in
+	let annotate_cmds = annotate_cmds_top_level metadata in 
 
-	let annotate_cmd cmd lab = (metadata, lab, cmd) in
+	let annotate_cmd = fun cmd lab -> annotate_cmd_top_level metadata (lab, cmd) in
 
 	let compile_var_dec x e =
 		let v_fid = find_var_fid x in
@@ -2732,12 +2786,9 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 	let js_line_offset = offset_converter js_char_offset in
 	let metadata = { line_offset = Some js_line_offset; pre_cond = None; pre_logic_cmds = []; post_logic_cmds = [] } in
 
-	let annotate_cmds cmds =
-		List.map
-			(fun (lab, cmd) -> (metadata, lab, cmd))
-		cmds in
+	let annotate_cmds = annotate_cmds_top_level metadata in
 
-	let annotate_cmd cmd lab = (metadata, lab, cmd) in
+	let annotate_cmd = fun cmd lab -> annotate_cmd_top_level metadata (lab, cmd) in 
 
 	let compile_var_dec x e =
 		let v_fid = find_var_fid x in
@@ -4703,7 +4754,7 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 	Js_pre_processing.update_cc_tbl cc_tbl f_parent_id new_fid [var_scope; var_this] e;
 	Hashtbl.add new_fun_tbl new_fid (new_fid, [var_scope; var_this], e, None);
 	Hashtbl.add vis_tbl new_fid (new_fid :: vis_fid);
-	Js_pre_processing.closure_clarification_stmt cc_tbl new_fun_tbl vis_tbl new_fid (new_fid :: vis_fid) e;
+	Js_pre_processing.closure_clarification_stmt cc_tbl new_fun_tbl vis_tbl new_fid (new_fid :: vis_fid) [] e;
 
 	Hashtbl.iter
 		(fun f_id (_, f_params, f_body, _) ->
@@ -4743,7 +4794,7 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 	Js_pre_processing.update_cc_tbl cc_tbl "main" (* f_parent_id *) new_fid params e;
 	Hashtbl.replace new_fun_tbl new_fid (new_fid, params, e, None);
 	Hashtbl.replace vis_tbl new_fid (new_fid :: vis_fid);
-	Js_pre_processing.closure_clarification_stmt cc_tbl new_fun_tbl vis_tbl new_fid vis_fid e;
+	Js_pre_processing.closure_clarification_stmt cc_tbl new_fun_tbl vis_tbl new_fid vis_fid [] e;
 
 	Hashtbl.iter
 		(fun f_id (_, f_params, f_body, _) ->
