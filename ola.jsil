@@ -1,0 +1,182 @@
+import Array, Boolean, Date, Function, Global, Init, Internals, Math, Number, Object, RegExp, String, Errors;
+
+spec main ()
+ 	[[emp]]
+	[[isTypeError(x__te) * isSyntaxError(x__se) * ((x__scope, "main") -> _lvar_fid_main) * ((_lvar_fid_main, "foo") -> {{ "d", _lvar_19, $$t, $$t, $$f }}) * ((_lvar_fid_main, "i") -> {{ "d", _lvar_20, $$t, $$t, $$f }}) * ((_lvar_fid_main, "f") -> {{ "d", _lvar_21, $$t, $$t, $$f }}) * ((_lvar_fid_main, "arguments") -> {{ "d", _lvar_22, $$t, $$t, $$f }}) * ((_lvar_fid_main, "x") -> {{ "d", _lvar_23, $$t, $$t, $$f }}) * (_lvar_20 == 0) * emp]]
+	normal
+
+proc main () {
+			x_0 := "setupInitialHeap"();
+			x__scope := new();
+			[x__scope, "main"] := $lg;
+			x__this := $lg;
+			[$lg, "i"] := {{ "d", $$undefined, $$t, $$t, $$t }};
+			[$lg, "x"] := {{ "d", $$undefined, $$t, $$t, $$t }};
+			[$lg, "foo"] := {{ "d", $$undefined, $$t, $$t, $$t }};
+			[$lg, "arguments"] := {{ "d", $$undefined, $$t, $$t, $$t }};
+			x__te := "TypeError"();
+			x__se := "SyntaxError"();
+			x__true := $$t;
+			x__false := $$f;
+			x_1 := "i__checkParameters"("f0", {{ "x" }}) with elab;
+			x_sc_0 := "copy_object"(x__scope, {{ "main" }});
+			x_f_0 := "create_function_object"(x_sc_0, "f0", "f0", {{ "x" }});
+			x_er_0 := [x__scope, "main"];
+			x_2 := {{ "v", x_er_0, "f" }};
+			x_3 := "i__checkAssignmentErrors"(x_2) with elab;
+			x_4 := "i__putValue"(x_2, x_f_0) with elab;
+			x_5_v := "i__getValue"(0.) with elab;
+			x_6 := [x__scope, "main"];
+			x_7 := {{ "v", x_6, "i" }};
+			x_8 := "i__checkAssignmentErrors"(x_7) with elab;
+			x_9 := "i__putValue"(x_7, x_5_v) with elab;
+			x_10 := $$empty;
+			x_11_v := "i__getValue"(1.) with elab;
+			x_12 := [x__scope, "main"];
+			x_13 := {{ "v", x_12, "x" }};
+			x_14 := "i__checkAssignmentErrors"(x_13) with elab;
+			x_15 := "i__putValue"(x_13, x_11_v) with elab;
+			x_16 := $$empty;
+			goto [(x_16 = $$empty)] next_0 next_1;
+	next_0:		skip;
+	next_1:		x_17 := PHI(x_16, x_10);
+			x_18 := "i__checkParameters"("anonymous1", {{ "xixi" }}) with elab;
+			x_sc_1 := "copy_object"(x__scope, {{ "main" }});
+			x_f_1 := "create_function_object"(x_sc_1, "anonymous1", "anonymous1", {{ "xixi" }});
+			x_f_1_v := "i__getValue"(x_f_1) with elab;
+			x_19 := [x__scope, "main"];
+			x_20 := {{ "v", x_19, "foo" }};
+			x_21 := "i__checkAssignmentErrors"(x_20) with elab;
+			x_22 := "i__putValue"(x_20, x_f_1_v) with elab;
+			x_23 := $$empty;
+			x_24 := $$empty;
+			goto [(x_23 = $$empty)] next_2 next_3;
+	next_2:		skip;
+	next_3:		x_25 := PHI(x_23, x_24);
+			xret := x_25;
+	rlab:		skip;
+	elab:		xerr := PHI(x_1, x_3, x_4, x_5_v, x_8, x_9, x_11_v, x_14, x_15, x_18, x_f_1_v, x_21, x_22)
+} with {
+	ret: xret, rlab;
+	err: xerr, elab;
+};
+
+spec f0 (x)
+ 	[[((x__scope, "main") -> _lvar_fid_main) * ((_lvar_fid_main, "foo") -> _lvar_0) * ((_lvar_fid_main, "i") -> _lvar_1) * ((_lvar_fid_main, "f") -> _lvar_2) * emp * (x == #x) * emp]]
+	[[isTypeError(x__te) * isSyntaxError(x__se) * ((x__scope, "f0") -> _lvar_fid_f0) * ((x__scope, "main") -> _lvar_fid_main) * ((_lvar_fid_main, "foo") -> _lvar_3) * ((_lvar_fid_main, "i") -> _lvar_4) * ((_lvar_fid_f0, "w") -> _lvar_5) * ((_lvar_fid_main, "f") -> _lvar_6) * ((_lvar_fid_f0, "arguments") -> _lvar_7) * ((_lvar_fid_f0, "x") -> _lvar_8) * (_lvar_5 == (#x + 2)) * emp]]
+	normal
+
+proc f0 (x__scope, x__this, x) {
+			x_26 := hasField(x__scope,"f0");
+			goto [x_26] then_0 else_0;
+	then_0:		x_27 := [x__scope, "f0"];
+			goto fi_0;
+	else_0:		x_28 := $$empty;
+	fi_0:		x_29 := PHI(x_27, x_28);
+			x_30 := new();
+			[x_30, "w"] := $$undefined;
+			[x_30, "arguments"] := $$undefined;
+			[x_30, "x"] := x;
+			x_31 := args;
+			x_32 := (cdr (cdr x_31));
+			x_33 := "create_arguments_object"(x_32) with pre_elab;
+			[x_30, "arguments"] := x_33;
+			[x__scope, "f0"] := x_30;
+			x__te := "TypeError"();
+			x__se := "SyntaxError"();
+			x__true := $$t;
+			x__false := $$f;
+			x_34 := $$empty;
+			x_35 := [x__scope, "f0"];
+			x_36 := {{ "v", x_35, "w" }};
+			x_37 := [x__scope, "f0"];
+			x_38 := {{ "v", x_37, "x" }};
+			x_38_v := "i__getValue"(x_38) with pre_elab;
+			x_39_v := "i__getValue"(2.) with pre_elab;
+			x_38_p := "i__toPrimitive"(x_38_v) with pre_elab;
+			x_40_p := "i__toPrimitive"(x_39_v) with pre_elab;
+			goto [((typeOf(x_38_p) = $$string_type) or (typeOf(x_40_p) = $$string_type))] then_1 else_1;
+	then_1:		x_38_s := "i__toString"(x_38_p) with pre_elab;
+			x_41_s := "i__toString"(x_40_p) with pre_elab;
+			x_42 := (x_38_s ++ x_41_s);
+			goto fi_1;
+	else_1:		x_38_n := "i__toNumber"(x_38_p) with pre_elab;
+			x_43_n := "i__toNumber"(x_40_p) with pre_elab;
+			x_44 := (x_38_n + x_43_n);
+	fi_1:		x_45 := PHI(x_42, x_44);
+			x_45_v := "i__getValue"(x_45) with pre_elab;
+			x_46 := "i__checkAssignmentErrors"(x_36) with pre_elab;
+			x_47 := "i__putValue"(x_36, x_45_v) with pre_elab;
+			x_45_v_v := "i__getValue"(x_45_v) with pre_elab;
+			x_48 := [x__scope, "f0"];
+			x_49 := {{ "v", x_48, "w" }};
+			x_49_v := "i__getValue"(x_49) with pre_elab;
+			goto pre_rlab;
+			x_50 := $$empty;
+	pre_rlab:	xret := PHI(x_49_v, x_50);
+			goto [(not (x_29 = $$empty))] next_4 rlab;
+	next_4:		[x__scope, "f0"] := x_29;
+	rlab:		skip;
+	pre_elab:	xerr := PHI(x_33, x_38_v, x_39_v, x_38_p, x_40_p, x_38_s, x_41_s, x_38_n, x_43_n, x_45_v, x_46, x_47, x_45_v_v, x_49_v);
+			goto [(not (x_29 = $$empty))] next_5 elab;
+	next_5:		[x__scope, "f0"] := x_29;
+	elab:		skip
+} with {
+	ret: xret, rlab;
+	err: xerr, elab;
+};
+
+spec anonymous1 (xixi)
+ 	[[((x__scope, "main") -> _lvar_fid_main) * ((_lvar_fid_main, "foo") -> _lvar_9) * ((_lvar_fid_main, "i") -> _lvar_10) * ((_lvar_fid_main, "f") -> _lvar_11) * ((_lvar_fid_main, "x") -> _lvar_12) * emp * (x == #x) * emp]]
+	[[isTypeError(x__te) * isSyntaxError(x__se) * ((x__scope, "anonymous1") -> _lvar_fid_anonymous1) * ((x__scope, "main") -> _lvar_fid_main) * ((_lvar_fid_main, "foo") -> _lvar_13) * ((_lvar_fid_anonymous1, "xixi") -> _lvar_14) * ((_lvar_fid_main, "i") -> _lvar_15) * ((_lvar_fid_main, "f") -> _lvar_16) * ((_lvar_fid_anonymous1, "arguments") -> _lvar_17) * ((_lvar_fid_main, "x") -> _lvar_18) * emp]]
+	normal
+
+proc anonymous1 (x__scope, x__this, xixi) {
+			x_51 := hasField(x__scope,"anonymous1");
+			goto [x_51] then_2 else_2;
+	then_2:		x_52 := [x__scope, "anonymous1"];
+			goto fi_2;
+	else_2:		x_53 := $$empty;
+	fi_2:		x_54 := PHI(x_52, x_53);
+			x_55 := new();
+			[x_55, "arguments"] := $$undefined;
+			[x_55, "xixi"] := xixi;
+			x_56 := args;
+			x_57 := (cdr (cdr x_56));
+			x_58 := "create_arguments_object"(x_57) with pre_elab;
+			[x_55, "arguments"] := x_58;
+			[x__scope, "anonymous1"] := x_55;
+			x__te := "TypeError"();
+			x__se := "SyntaxError"();
+			x__true := $$t;
+			x__false := $$f;
+			x_59 := [x__scope, "anonymous1"];
+			x_60 := {{ "v", x_59, "xixi" }};
+			x_60_v := "i__getValue"(x_60) with pre_elab;
+			x_61_v := "i__getValue"("coco") with pre_elab;
+			x_60_p := "i__toPrimitive"(x_60_v) with pre_elab;
+			x_62_p := "i__toPrimitive"(x_61_v) with pre_elab;
+			goto [((typeOf(x_60_p) = $$string_type) or (typeOf(x_62_p) = $$string_type))] then_3 else_3;
+	then_3:		x_60_s := "i__toString"(x_60_p) with pre_elab;
+			x_63_s := "i__toString"(x_62_p) with pre_elab;
+			x_64 := (x_60_s ++ x_63_s);
+			goto fi_3;
+	else_3:		x_60_n := "i__toNumber"(x_60_p) with pre_elab;
+			x_65_n := "i__toNumber"(x_62_p) with pre_elab;
+			x_66 := (x_60_n + x_65_n);
+	fi_3:		x_67 := PHI(x_64, x_66);
+			x_67_v := "i__getValue"(x_67) with pre_elab;
+			goto pre_rlab;
+			x_68 := $$empty;
+	pre_rlab:	xret := PHI(x_67_v, x_68);
+			goto [(not (x_54 = $$empty))] next_6 rlab;
+	next_6:		[x__scope, "anonymous1"] := x_54;
+	rlab:		skip;
+	pre_elab:	xerr := PHI(x_58, x_60_v, x_61_v, x_60_p, x_62_p, x_60_s, x_63_s, x_60_n, x_65_n, x_67_v);
+			goto [(not (x_54 = $$empty))] next_7 elab;
+	next_7:		[x__scope, "anonymous1"] := x_54;
+	elab:		skip
+} with {
+	ret: xret, rlab;
+	err: xerr, elab;
+};
