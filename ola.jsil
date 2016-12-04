@@ -1,0 +1,33 @@
+import Array, Boolean, Date, Function, Global, Init, Internals, Math, Number, Object, RegExp, String, Errors;
+
+spec main ()
+ 	[[(_lvar_0 == #i) * (_lvar_fid_main, "i") -> {{ "d", _lvar_0, $$t, $$t, $$f }} * (_lvar_fid_main, "f") -> {{ "d", _lvar_1, $$t, $$t, $$f }} * (_lvar_fid_main, "arguments") -> {{ "d", _lvar_2, $$t, $$t, $$f }} * (x__scope, "main") -> _lvar_fid_main]]
+	[[(_lvar_3 == 0) * (_lvar_fid_main, "i") -> {{ "d", _lvar_3, $$t, $$t, $$f }} * (_lvar_fid_main, "f") -> {{ "d", _lvar_4, $$t, $$t, $$f }} * (_lvar_fid_main, "arguments") -> {{ "d", _lvar_5, $$t, $$t, $$f }} * (x__scope, "main") -> _lvar_fid_main]]
+	normal
+
+proc main () {
+			x_0 := "setupInitialHeap"();
+			x__scope := new();
+			[x__scope, "main"] := $lg;
+			x__this := $lg;
+			[$lg, "i"] := {{ "d", $$undefined, $$t, $$t, $$f }};
+			[$lg, "arguments"] := {{ "d", $$undefined, $$t, $$t, $$f }};
+			x__te := "TypeError"();
+			x__se := "SyntaxError"();
+			x__true := $$t;
+			x__false := $$f;
+			x_1 := "i__checkParameters"("f0", {{ "x" }}) with elab;
+			x_sc_0 := "copy_object"(x__scope, {{ "main" }});
+			x_f_0 := "create_function_object"(x_sc_0, "f0", "f0", {{ "x" }});
+			x_er_0 := [x__scope, "main"];
+			x_2 := {{ "v", x_er_0, "f" }};
+			x_3 := "i__checkAssignmentErrors"(x_2) with elab;
+			x_4 := "i__putValue"(x_2, x_f_0) with elab;
+			x_5 := $$empty;
+			xret := $$empty;
+	rlab:		skip;
+	elab:		xerr := PHI(x_1, x_3, x_4)
+} with {
+	ret: xret, rlab;
+	err: xerr, elab;
+};

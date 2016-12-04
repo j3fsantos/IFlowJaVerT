@@ -38,9 +38,35 @@ let rec symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae =
 
 	| UnaryOp (op, e) ->
 		let nle = symb_evaluate_expr e store gamma pure_formulae in
-		(match nle with
-		| LLit lit -> LLit (JSIL_Interpreter.evaluate_unop op lit)
-		| _ -> LUnOp (op, nle))
+		(match op with
+		 | Cdr ->
+		 	 let nle = find_me_baby nle store pure_formulae in
+			 (match nle with
+				 | LLit (LList list) ->
+				 	(match list with
+					 | [] -> raise (Failure "Cdr doesn't exist.")
+					 | _ :: list -> LLit (LList list))
+				 | LEList list ->
+				 	(match list with
+					 | [] -> raise (Failure "Cdr doesn't exist.")
+					 | _ :: list -> LEList list)
+				 | LBinOp (el, LstCons, llist) -> llist
+				 | _ -> LUnOp (op, nle))
+		 | LstLen ->
+		 	let nle = find_me_baby nle store pure_formulae in
+		 	(match nle with
+				| LLit (LList list) -> LLit (Integer (List.length list))
+				| LEList list -> LLit (Integer (List.length list))
+				| LBinOp (el, LstCons, llist) ->
+					(match llist with
+					  | LLit (LList list) -> LLit (Integer (1 + List.length list))
+					  | LEList list -> LLit (Integer (1 + List.length list))
+					  | _ -> LUnOp (op, nle))
+				| _ -> LUnOp (op, nle))
+
+		 | _ ->  (match nle with
+			 	  | LLit lit -> LLit (JSIL_Interpreter.evaluate_unop op lit)
+				  | _ -> LUnOp (op, nle)))
 
 	| TypeOf (e) ->
 		(** the typeof can only be removed when there are no constraints
@@ -84,16 +110,28 @@ let rec symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae =
 			(match index with
 			| LLit (Num n) -> LLit (Integer (int_of_float n))
 			| _ -> index) in
-		(match list, index with
-		| LLit (LList list), LLit (Integer n) ->
-			(try (LLit (List.nth list n)) with _ ->
-					raise (Failure "List index out of bounds"))
-
-		| LEList list, LLit (Integer n) ->
-			(try (List.nth list n) with _ ->
-					raise (Failure "List index out of bounds"))
-
-		| _, _ -> LLstNth (list, index))
+		(match index with
+		 | LLit (Integer n) ->
+		 	if (n < 0) then raise (Failure "List index negative.")
+			else
+			(match list with
+				| LLit (LList list) ->
+					(try (LLit (List.nth list n)) with _ ->
+						raise (Failure "List index out of bounds"))
+				| LEList list ->
+					(try (List.nth list n) with _ ->
+						raise (Failure "List index out of bounds"))
+				| LBinOp (el, LstCons, llist) ->
+		  			if (n = 0)
+						then el
+						else (match llist with
+							  | LLit (LList list) -> (try (LLit (List.nth list (n - 1))) with _ ->
+		  							raise (Failure "List index out of bounds"))
+							  | LEList list -> (try (List.nth list (n - 1)) with _ ->
+		  							raise (Failure "List index out of bounds"))
+							  | _ -> LLstNth (list, index))
+				| _ -> LLstNth (list, index))
+		| _ -> LLstNth (list, index))
 
 	| StrNth (e1, e2) ->
 		let str = symb_evaluate_expr e1 store gamma pure_formulae in
@@ -420,6 +458,7 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 			  Printf.printf "I can fold this!!!\n";
 				let new_symb_state = update_symb_state_after_folding symb_state quotient_heap quotient_preds pf_discharges new_gamma pred_name args in
 				Printf.printf "Symbolic state after FOLDING:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state new_symb_state);
+				let new_symb_state = Symbolic_State_Functions.aggresively_simplify new_symb_state in
 				Some new_symb_state
 
 			| Some (true, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma, existentials, [ (missing_pred_name, missing_pred_args) ]) ->
@@ -646,8 +685,8 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 		let pred_defs = pred.n_pred_definitions in
 		let params = pred.n_pred_params in
 		[ recursive_unfold pred_name pred_defs symb_state params spec_vars ]
-	
-	| LogicIf (le, then_lcmds, else_lcmds) -> 
+
+	| LogicIf (le, then_lcmds, else_lcmds) ->
 		let le' = JSIL_Logic_Normalise.normalise_lexpr (get_store symb_state) (get_gamma symb_state) (init_substitution []) le in
 		let e_le', a_le' = lift_logic_expr le' in
 		let a_le_then =
@@ -655,10 +694,10 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 			| _, Some a_le -> a_le
 			| Some e_le, None -> LEq (e_le, LLit (Bool true))
 			| None, None -> LFalse in
-		if (Pure_Entailment.check_entailment (get_solver symb_state) [] (get_pf_list symb_state) [ a_le_then ] (get_gamma symb_state)) 
-			then symb_evaluate_logic_cmds s_prog then_lcmds [ symb_state ] subst spec_vars 
+		if (Pure_Entailment.check_entailment (get_solver symb_state) [] (get_pf_list symb_state) [ a_le_then ] (get_gamma symb_state))
+			then symb_evaluate_logic_cmds s_prog then_lcmds [ symb_state ] subst spec_vars
 			else symb_evaluate_logic_cmds s_prog else_lcmds [ symb_state ] subst spec_vars )
-and 
+and
 symb_evaluate_logic_cmds s_prog (l_cmds : jsil_logic_command list) (symb_states : symbolic_state list) subst spec_vars =
 	match l_cmds with
 	| [] -> symb_states
@@ -766,14 +805,14 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 					symb_evaluate_next_cmd_1 s_prog proc spec new_search_info symb_state i j))
 			new_symb_states in
 
-	(* symbolically evaluate a phi command *) 
-	let symb_evaluate_phi x x_arr = 
+	(* symbolically evaluate a phi command *)
+	let symb_evaluate_phi x x_arr =
 		let cur_proc_name = proc.proc_name in
 		let cur_which_pred =
 			try Hashtbl.find s_prog.which_pred (cur_proc_name, prev, i)
 			with _ ->  raise (Failure (Printf.sprintf "which_pred undefined for command: %s %d %d" cur_proc_name prev i)) in
 		let x_live = x_arr.(cur_which_pred) in
-		let le, te = 
+		let le, te =
 			(match x_live with
 			| None -> LLit Undefined, Some UndefinedType
 			| Some x_live ->
@@ -782,12 +821,12 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 					let cur_cmd_str = JSIL_Print.string_of_cmd proc.proc_body.(i) 0 0 false false false in
 					let prev_cmd_str = JSIL_Print.string_of_cmd proc.proc_body.(prev) 0 0 false false false in
 					raise (Failure (Printf.sprintf "Variable %s not found in the store. Cur_which_pred: %d. cur_cmd: %s. prev_cmd: %s" x_live cur_which_pred cur_cmd_str prev_cmd_str))
-				| Some le -> 
+				| Some le ->
 					let te, _, _ =	type_lexpr (get_gamma symb_state) le in
 					le, te)) in
 		update_abs_store (get_store symb_state) x le;
 		update_gamma (get_gamma symb_state) x te;
-		symb_evaluate_next_cmd_1 s_prog proc spec search_info symb_state i (i+1) in 
+		symb_evaluate_next_cmd_1 s_prog proc spec search_info symb_state i (i+1) in
 
 
 	if (!verbose) then print_symb_state_and_cmd ();
@@ -803,24 +842,24 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 	| SGuardedGoto (e, j, k) -> symb_evaluate_guarded_goto e j k
 
 	| SCall (x, e, e_args, j) -> symb_evaluate_call x e e_args j
-	
-	| SPhiAssignment (x, x_arr) -> symb_evaluate_phi x x_arr 
+
+	| SPhiAssignment (x, x_arr) -> symb_evaluate_phi x x_arr
 
 	| _ -> raise (Failure "not implemented yet")
 
 and symb_evaluate_next_cmd_1 s_prog proc spec search_info symb_state cur next  =
-	let metadata, cmd = get_proc_cmd proc next in
+	let metadata, cmd = get_proc_cmd proc cur in
 	let symb_states = symb_evaluate_logic_cmds s_prog metadata.post_logic_cmds [ symb_state ] spec.n_subst spec.n_lvars in
 	let len = List.length symb_states in
 	List.iter
 		(fun symb_state ->
-			let search_info = 
-				if (len > 1) 
-					then {	search_info with vis_tbl = (copy_vis_tbl search_info.vis_tbl) } 
+			let search_info =
+				if (len > 1)
+					then {	search_info with vis_tbl = (copy_vis_tbl search_info.vis_tbl) }
 					else search_info in
 				symb_evaluate_next_cmd_2 s_prog proc spec search_info symb_state cur next)
 		symb_states
-		
+
 and symb_evaluate_next_cmd_2 s_prog proc spec search_info symb_state cur next  =
 
 	(* auxiliary function *)

@@ -33,7 +33,7 @@ rule read = parse
 (* Constants *)
 	| "$$min_float"        { JSIL_Parser.MIN_FLOAT }
 	| "$$max_float"        { JSIL_Parser.MAX_FLOAT }
-	| "$$random"           { JSIL_Parser.RANDOM } 
+	| "$$random"           { JSIL_Parser.RANDOM }
 	| "$$e"                { JSIL_Parser.E }
 	| "$$ln10"             { JSIL_Parser.LN10 }
 	| "$$ln2"              { JSIL_Parser.LN2 }
@@ -47,7 +47,7 @@ rule read = parse
 (* Literals (scroll down for more) *)
 	| "$$undefined"        { JSIL_Parser.UNDEFINED }
 	| "$$null"             { JSIL_Parser.NULL }
-	| "$$empty"            { JSIL_Parser.EMPTY } 
+	| "$$empty"            { JSIL_Parser.EMPTY }
  	| "$$t"                { JSIL_Parser.TRUE }
 	| "$$f"                { JSIL_Parser.FALSE }
 	| "nan"                { JSIL_Parser.NAN }
@@ -160,9 +160,10 @@ rule read = parse
 	| "+]"                 { JSIL_Parser.CCLCMD    }
 	| "unfold*"            { JSIL_Parser.RECUNFOLD }
 	| "fold"               { JSIL_Parser.FOLD      }
-	| "unfold"             { JSIL_Parser.UNFOLD    }	
+	| "unfold"             { JSIL_Parser.UNFOLD    }
 	| "if"                 { JSIL_Parser.LIF       }
-	| "else"               { JSIL_Parser.LELSE     }		
+	| "then"               { JSIL_Parser.LTHEN     }
+	| "else"               { JSIL_Parser.LELSE     }
 (* Procedure specification keywords *)
 	| "spec"               { JSIL_Parser.SPEC      }
 	| "normal"             { JSIL_Parser.NORMAL    }
@@ -187,12 +188,12 @@ rule read = parse
 	| '}'                  { JSIL_Parser.CRBRACKET }
 (* Literals (cont.) *)
 	| int                  { let n = float_of_string (Lexing.lexeme lexbuf) in
-	                           if (Utils.is_int n)   
+	                           if (Utils.is_int n)
 														    then JSIL_Parser.INT (int_of_string (Lexing.lexeme lexbuf))
 																else JSIL_Parser.FLOAT n }
-	| float                { let n = float_of_string (Lexing.lexeme lexbuf) in 
-													   if (Utils.is_int n) 
-														    then (JSIL_Parser.INT (int_of_float n)) 
+	| float                { let n = float_of_string (Lexing.lexeme lexbuf) in
+													   if (Utils.is_int n)
+														    then (JSIL_Parser.INT (int_of_float n))
 																else (JSIL_Parser.FLOAT n) }
 	| '"'                  { read_string (Buffer.create 17) lexbuf }
 	| loc                  { JSIL_Parser.LOC (Lexing.lexeme lexbuf) }
@@ -216,7 +217,7 @@ read_string buf =
   | '\\' 'r'             { Buffer.add_char buf '\r'; read_string buf lexbuf }
   | '\\' 't'             { Buffer.add_char buf '\t'; read_string buf lexbuf }
   | '\\' '\"'            { Buffer.add_char buf '\"'; read_string buf lexbuf }
-  | [^ '"' '\\']+        { 
+  | [^ '"' '\\']+        {
 		                       Buffer.add_string buf (Lexing.lexeme lexbuf);
     											 read_string buf lexbuf
     			               }
@@ -229,4 +230,3 @@ read_comment =
 	| "*)"                 { read lexbuf }
 	| eof                  { raise (JSIL_Syntax.Syntax_error ("Comment is not terminated")) }
 	| _                    { read_comment lexbuf }
-	

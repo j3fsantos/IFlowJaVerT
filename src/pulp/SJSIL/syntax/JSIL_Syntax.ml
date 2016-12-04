@@ -194,21 +194,21 @@ type jsil_logic_expr =
 (* JSIL logic assertions *)
 type jsil_logic_assertion =
 	| LAnd				of jsil_logic_assertion * jsil_logic_assertion
-	| LOr					of jsil_logic_assertion * jsil_logic_assertion
+	| LOr				of jsil_logic_assertion * jsil_logic_assertion
 	| LNot				of jsil_logic_assertion
 	| LTrue
 	| LFalse
-	| LEq					of jsil_logic_expr * jsil_logic_expr
-	| LLess	   		of jsil_logic_expr * jsil_logic_expr
-	| LLessEq	   	of jsil_logic_expr * jsil_logic_expr
-	| LStrLess    of jsil_logic_expr * jsil_logic_expr
+	| LEq				of jsil_logic_expr * jsil_logic_expr
+	| LLess	   			of jsil_logic_expr * jsil_logic_expr
+	| LLessEq	   		of jsil_logic_expr * jsil_logic_expr
+	| LStrLess    		of jsil_logic_expr * jsil_logic_expr
 	| LStar				of jsil_logic_assertion * jsil_logic_assertion
-	| LPointsTo		of jsil_logic_expr * jsil_logic_expr * jsil_logic_expr
+	| LPointsTo			of jsil_logic_expr * jsil_logic_expr * jsil_logic_expr
 	| LEmp
-(*| LExists			of (jsil_logic_var list) * jsil_logic_assertion
+(*  | LExists			of (jsil_logic_var list) * jsil_logic_assertion
 	| LForAll			of (jsil_logic_var list) * jsil_logic_assertion *)
 	| LPred				of string * (jsil_logic_expr list)
-	| LTypes      of (jsil_logic_expr * jsil_type) list
+	| LTypes      		of (jsil_logic_expr * jsil_type) list
 
 (* JSIL logic predicates *)
 type jsil_logic_predicate = {

@@ -4397,7 +4397,7 @@ let generate_main offset_converter e main cc_table spec =
 		List.map
 			(fun global_v ->
 				(annotate_cmd
-					(SLBasic (SMutation(Literal (Loc locGlobName),  Literal (String global_v), Literal (LList [(String "d"); Undefined; (Bool true); (Bool true); (Bool true)]))))
+					(SLBasic (SMutation(Literal (Loc locGlobName),  Literal (String global_v), Literal (LList [(String "d"); Undefined; (Bool true); (Bool true); (Bool false)]))))
 					None))
 			(Js_pre_processing.var_decls e) in
 
@@ -4707,13 +4707,13 @@ let js2jsil e offset_converter =
 	let cc_tbl = Hashtbl.create 101 in
 	let fun_tbl = Hashtbl.create 101 in
 	let vis_tbl = Hashtbl.create 101 in
-	
+
 	let main = "main" in
   Js_pre_processing.test_early_errors e;
 	let e = Js_pre_processing.add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous e in
 	Js_pre_processing.closure_clarification_top_level cc_tbl fun_tbl vis_tbl main e [ main ] [];
 
-	
+
 	(* TODO: 'predicates' is empty *)
 	let predicates = Hashtbl.create 101 in
 

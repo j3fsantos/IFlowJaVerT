@@ -13,6 +13,7 @@ var x = 1;
 function f (x) {
    var w;
    w = x+2;
+
    return w
 }
 

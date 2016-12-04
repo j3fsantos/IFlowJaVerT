@@ -970,7 +970,8 @@ let rec encode_assertion tr_ctx is_premise a : Expr.expr * (Expr.expr list) =
 			(match t with
 			| Some IntType
 			| Some NumberType -> mk_lt ctx le1' le2', []
-			| _ -> Printf.printf "Coucou!! T'habites dans quelle planete?\n"; raise (Failure "Arithmetic operation invoked on non-numeric types"))
+			| _ -> Printf.printf "Coucou!! T'habites dans quelle planete?\n";
+					raise (Failure (Printf.sprintf "LLess invoked on non-numeric types: %s" (JSIL_Print.string_of_logic_assertion a false))))
 
     | _, _ ->
 			(* TO DO - we need to encode the appropriate type constraints *)
@@ -995,7 +996,7 @@ let rec encode_assertion tr_ctx is_premise a : Expr.expr * (Expr.expr list) =
 			| Some IntType
 			| Some NumberType -> mk_le ctx le1' le2', []
 			| _ -> Printf.printf "Coucou!! T'habites dans quelle planete?\n";
-				   raise (Failure "Arithmetic operation invoked on non-numeric types"))
+				   raise (Failure "LLessEq operation invoked on non-numeric types"))
 
     | _, _ ->
 			(* TO DO - we need to encode the appropriate type constraints *)

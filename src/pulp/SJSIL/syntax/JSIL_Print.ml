@@ -251,19 +251,19 @@ let rec string_of_logic_assertion a escape_string =
 			(String.concat ", " (List.map (fun (e, t) -> Printf.sprintf "%s : %s" (sle e) (string_of_type t)) type_list))
 
 
-let rec string_of_lcmd lcmd = 
-	match lcmd with 
-	| Fold a -> "Fold " ^ (string_of_logic_assertion a false)  
-	| Unfold a -> "Unfold " ^ (string_of_logic_assertion a false)  
-	| RecUnfold pred_name -> "Unfold* " ^ pred_name
-	| LogicIf (le, then_lcmds, else_lcmds) -> 
-		let le_str = string_of_logic_expression le false in 
-		let then_lcmds_str = String.concat "; " (List.map string_of_lcmd then_lcmds) in 
-		let else_lcmds_str = String.concat "; " (List.map string_of_lcmd else_lcmds) in 
-		if ((List.length else_lcmds) > 0) 
+let rec string_of_lcmd lcmd =
+	match lcmd with
+	| Fold a -> "fold " ^ (string_of_logic_assertion a false)
+	| Unfold a -> "unfold " ^ (string_of_logic_assertion a false)
+	| RecUnfold pred_name -> "unfold* " ^ pred_name
+	| LogicIf (le, then_lcmds, else_lcmds) ->
+		let le_str = string_of_logic_expression le false in
+		let then_lcmds_str = String.concat "; " (List.map string_of_lcmd then_lcmds) in
+		let else_lcmds_str = String.concat "; " (List.map string_of_lcmd else_lcmds) in
+		let ret = if ((List.length else_lcmds) = 0)
 			then "if (" ^ le_str ^ ") then { " ^ then_lcmds_str ^ " }"
-			else "if (" ^ le_str ^ ") then { " ^ then_lcmds_str ^ " } else { " ^  else_lcmds_str ^ " }"
-
+			else "if (" ^ le_str ^ ") then { " ^ then_lcmds_str ^ " } else { " ^  else_lcmds_str ^ " }" in
+		ret
 
 (** JSIL logic predicates *)
 let rec string_of_predicate predicate =
@@ -339,31 +339,31 @@ let string_of_cmd_aux sjsil_cmd i line_numbers_on escape_string str_tabs =
 
 (** JSIL All Statements *)
 
-let string_of_logic_metadata metadata str_tabs = 
+let string_of_logic_metadata metadata str_tabs =
 	let inv = metadata.pre_cond in
-	let pre_lcmds = metadata.pre_logic_cmds in 
+	let pre_lcmds = metadata.pre_logic_cmds in
 	let post_lcmds = metadata.post_logic_cmds in
 	let str_inv =
 		  (match inv with
 		  | None -> ""
 		  | Some ass -> str_tabs ^ "[[" ^ string_of_logic_assertion ass false ^ "]]\n") in
-	let str_pre_lcmds = 
+	let str_pre_lcmds =
 		if ((List.length pre_lcmds) > 0)
 			then str_tabs ^ "[* " ^ (String.concat "; " (List.map string_of_lcmd pre_lcmds)) ^ " *]\n"
-			else "" in 
-	let str_post_lcmds = 
+			else "" in
+	let str_post_lcmds =
 		if ((List.length post_lcmds) > 0)
 			then str_tabs ^ "[+ " ^ (String.concat "; " (List.map string_of_lcmd post_lcmds)) ^ " +]"
-			else ""  in  
+			else ""  in
 	str_inv ^ str_pre_lcmds, str_post_lcmds
-	
+
 
 
 let rec string_of_cmd sjsil_cmd tabs i line_numbers_on specs_on escape_string =
 	let str_tabs = tabs_to_str tabs in
 	let metadata, sjsil_cmd = sjsil_cmd in
-	let str_pre, str_post = if specs_on then string_of_logic_metadata metadata str_tabs else "", "" in 
-	str_pre ^ (string_of_cmd_aux sjsil_cmd i line_numbers_on escape_string str_tabs) ^ str_post 
+	let str_pre, str_post = if specs_on then string_of_logic_metadata metadata str_tabs else "", "" in
+	str_pre ^ (string_of_cmd_aux sjsil_cmd i line_numbers_on escape_string str_tabs) ^ str_post
 
 
 let serialize_cmd_arr cmds tabs line_numbers serialize_cmd =
@@ -507,8 +507,8 @@ let string_of_lbody lbody =
 	let str = ref "" in
 	for i = 0 to (len - 1) do
 		let metadata, lab, lcmd = lbody.(i) in
-		let str_pre, str_post = string_of_logic_metadata metadata "\t\t\t" in 
-		let str_post = if (str_post <> "") then "\n" ^ str_post else str_post in 
+		let str_pre, str_post = string_of_logic_metadata metadata "\t\t\t" in
+		let str_post = if (str_post <> "") then "\n" ^ str_post else str_post in
 		let str_of_lab  =
 			(match lab with
 			| None -> "\t\t\t"
