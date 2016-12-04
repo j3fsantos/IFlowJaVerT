@@ -93,7 +93,7 @@ let string_of_normalised_predicate (pred : Logic_Predicates.normalised_predicate
 
 let string_of_normalised_predicates (preds : (string, Logic_Predicates.normalised_predicate) Hashtbl.t) =
     Hashtbl.fold (fun pname pred ac -> ac ^ string_of_normalised_predicate pred) preds ""
-		
+
 
 let string_of_shallow_symb_state (symb_state : symbolic_state) =
 	(* let heap, store, p_formulae, gamma, preds = symb_state in *)

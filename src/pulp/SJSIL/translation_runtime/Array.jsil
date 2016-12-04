@@ -966,14 +966,14 @@ proc AP_indexOf() {
 			xret := "i__toInteger" (fi) with elab;
 			n := xret;
 
-	nlen:	goto [not (n < len)] neg1 next2;
+	nlen:	goto [not (len <= n)] neg1 next2;
 
-	next2:	goto [n < 0] else if;
+	next2:	goto [n < 0] lelse lif;
 
-	if:		k := m_abs n;
+	lif:	k := m_abs n;
 			goto loop;
 
-	else:	k := m_abs n;
+	lelse:	k := m_abs n;
 			k := len - k;
 			goto [k < 0] zero loop;
 
@@ -1038,15 +1038,15 @@ proc AP_lastIndexOf() {
 			xret := "i__toInteger" (fi) with elab;
 			n := xret;
 
-	nlen:	goto [n < 0] else if;
-	if:		len1 := len - 1;
+	nlen:	goto [n < 0] lelse lif;
+	lif:	len1 := len - 1;
 			goto [n <= len1] ls gr;
 	ls:		k := m_abs n;
 			goto loop;
 	gr:		k := len1;
 			goto loop;
 
-	else:	k := m_abs n;
+	lelse:	k := m_abs n;
 			k := len - k;
 
 	loop:	goto [not (k < 0)] lp neg1;
@@ -1413,12 +1413,12 @@ proc AP_reduce() {
 			goto [xret] setk throw;
 
 	setk:	k := 0;
-			goto [num <= 3] else if;
+			goto [num <= 3] lelse lif;
 
-	if:		acc := l-nth (arguments, 3);
+	lif:	acc := l-nth (arguments, 3);
 			goto loop2;
 
-	else:	goto [len = 0] throw cont;
+	lelse:	goto [len = 0] throw cont;
 	cont:	kpres := $$f;
 	loop:	goto [kpres] end1 kf;
 	kf:		goto [k < len] next1 end1;
@@ -1487,12 +1487,12 @@ proc AP_reduceRight() {
 			goto [xret] setk throw;
 
 	setk:	k := len - 1;
-			goto [num <= 3] else if;
+			goto [num <= 3] lelse lif;
 
-	if:		acc := l-nth (arguments, 3);
+	lif:	acc := l-nth (arguments, 3);
 			goto loop2;
 
-	else:	goto [len = 0] throw cont;
+	lelse:	goto [len = 0] throw cont;
 	cont:	kpres := $$f;
 	loop:	goto [kpres] end1 kf;
 	kf:		goto [not (k < 0)] next1 end1;
@@ -1701,9 +1701,9 @@ proc a__sortCompare(j, k, compfn, vthis) {
 			goto [(x = $$undefined) and (y = $$undefined)] nojk xx;
 	xx:		goto [x = $$undefined] yesk yy;
 	yy:		goto [y = $$undefined] nok cont;
-	cont:	goto [compfn = $$undefined] cont1 if;
+	cont:	goto [compfn = $$undefined] cont1 lif;
 
-	if:		xret := "i__isCallable" (compfn);
+	lif:	xret := "i__isCallable" (compfn);
 			goto [xret] call throw;
 	call:	scp := [compfn, "@scope"];
 			fun := [compfn, "@call"];

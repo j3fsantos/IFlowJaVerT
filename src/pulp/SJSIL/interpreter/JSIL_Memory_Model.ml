@@ -24,21 +24,21 @@ let fresh_aloc = fresh_sth abs_loc_prefix
 let fresh_lvar = fresh_sth lvar_prefix
 let fresh_pvar = fresh_sth pvar_prefix
 
-let fresh_lvar_from_lvar_name = 
-	let lvar_tbl = Hashtbl.create small_tbl_size in 
+let fresh_lvar_from_lvar_name =
+	let lvar_tbl = Hashtbl.create small_tbl_size in
 	(fun (pred_name : string) (var : string) ->
 		if (Hashtbl.mem lvar_tbl (pred_name, var))
 			then (
-				let i = Hashtbl.find lvar_tbl (pred_name, var) in 
-				Hashtbl.replace lvar_tbl (pred_name, var) (i + 1); 
-				var ^ "_" ^ (string_of_int i) 				
-			) else 
+				let i = Hashtbl.find lvar_tbl (pred_name, var) in
+				Hashtbl.replace lvar_tbl (pred_name, var) (i + 1);
+				var ^ "_" ^ (string_of_int i)
+			) else
 			(
 				(* Printf.printf  "Could not find the pair (%s, %s) in the pred_lvar_tbl\n" pred_name var; *)
 				Hashtbl.replace lvar_tbl (pred_name, var) 1;
-				var ^ "_" ^ (string_of_int 0) 
+				var ^ "_" ^ (string_of_int 0)
 			))
-					
+
 
 let is_abs_loc_name (name : string) : bool =
 	if ((String.length name) < 4)
@@ -249,23 +249,23 @@ let extend_pred_set preds pred_assertion =
 
 let preds_add_predicate_assertion preds (pred_name, args) = DynArray.add preds (pred_name, args)
 
-let preds_to_list preds = DynArray.to_list preds 
+let preds_to_list preds = DynArray.to_list preds
 
 let preds_of_list list_preds = DynArray.of_list list_preds
 
-let find_predicate_assertion_index preds (pred_name, args) = 
+let find_predicate_assertion_index preds (pred_name, args) =
 	let len = DynArray.length preds in
-	let rec loop i = 
+	let rec loop i =
 		if (i >= len) then None else (
-			let cur_pred_name, cur_args = DynArray.get preds i in 
+			let cur_pred_name, cur_args = DynArray.get preds i in
 			if (not (cur_pred_name = pred_name)) then loop (i+1) else (
-				let equal_args = List.fold_left2 (fun ac a1 a2 -> if (not ac) then ac else a1 = a2) true args cur_args in 
-				if (equal_args) then Some i else loop (i+1))) in 
-	loop 0					
-	
-let remove_predicate_assertion preds (pred_name, args) = 
+				let equal_args = List.fold_left2 (fun ac a1 a2 -> if (not ac) then ac else a1 = a2) true args cur_args in
+				if (equal_args) then Some i else loop (i+1))) in
+	loop 0
+
+let remove_predicate_assertion preds (pred_name, args) =
 	let index = find_predicate_assertion_index preds (pred_name, args) in
-	match index with 
+	match index with
 	| Some index -> DynArray.delete preds index
 	| None -> ()
 
@@ -313,12 +313,12 @@ let symb_state_replace_store symb_state new_store =
 (** Normalised Specifications          **)
 (****************************************)
 type jsil_n_single_spec = {
-   n_pre         : symbolic_state;
-	 n_post        : symbolic_state list;
-	 n_ret_flag    : jsil_return_flag;
-	 n_lvars       : string list;
-	 n_post_lvars  : string list list;
-	 n_subst       : substitution
+	n_pre         : symbolic_state;
+	n_post        : symbolic_state list;
+	n_ret_flag    : jsil_return_flag;
+	n_lvars       : string list;
+	n_post_lvars  : string list list;
+	n_subst       : substitution
 }
 
 type jsil_n_spec = {

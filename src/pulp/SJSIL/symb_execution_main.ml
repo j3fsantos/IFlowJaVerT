@@ -1,6 +1,7 @@
 open JSIL_Syntax
 
 let file = ref ""
+let spec_file = ref ""
 let output_folder = ref ""
 
 let arguments () =
@@ -12,6 +13,7 @@ let arguments () =
 			"-file", Arg.String(fun f -> file := f), "file to run";
 			"-o", Arg.String(fun f -> output_folder := f), "output folder";
             "-debug", Arg.Unit (fun () -> debug := true), "debug";
+			"-specs", Arg.String (fun f -> spec_file := f), "specification file";
 			(* "-encoding", Arg.String (fun f ->
 				Printf.printf "I am here.\n";
 				let enc = match f with
@@ -45,6 +47,10 @@ let register_dot_graphs (dot_graphs : (string * int, string option) Hashtbl.t) =
 				dot_graphs
 		end
 
+let write_spec_file (file : string ref) =
+	let result = "" in
+	burn_to_disk (!file ^ ".spec") result
+
 let process_file path =
     print_debug "\n*** Prelude: Stage 1: Parsing program. ***\n";
     let ext_prog = JSIL_Utils.ext_program_of_path path in
@@ -64,14 +70,16 @@ let process_file path =
     print_debug "*** Prelude: Stage 4: Building the spec table.\n";
 	let spec_tbl = JSIL_Logic_Normalise.build_spec_tbl norm_preds prog in
 	print_debug "*** Prelude: Stage 4: Finished building the spec table\n";
-	let results, dot_graphs, complete_success = JSIL_Symb_Interpreter.sym_run_procs procs_to_verify spec_tbl prog which_pred norm_preds in
-	Printf.printf "RESULTS\n%s" results;
+	let results_str, dot_graphs, complete_success = JSIL_Symb_Interpreter.sym_run_procs procs_to_verify spec_tbl prog which_pred norm_preds in
+	Printf.printf "RESULTS\n%s" results_str;
 	(if (complete_success) then
-		Printf.printf "ALL Succeeded!!!\n"
+		begin
+			Printf.printf "ALL Succeeded!!!\n";
+			if (not (!spec_file = "")) then write_spec_file spec_file
+		end
 		else Printf.printf "There were Failures\n");
 	register_dot_graphs dot_graphs;
 	exit 0
-
 
 let main () =
 		arguments ();

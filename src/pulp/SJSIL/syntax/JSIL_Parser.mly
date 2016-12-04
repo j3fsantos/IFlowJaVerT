@@ -160,6 +160,7 @@ open JS_Logic_Syntax
 %token UNFOLD
 %token RECUNFOLD
 %token LIF
+%token LTHEN
 %token LELSE
 (* Procedure specification keywords *)
 %token SPEC
@@ -220,12 +221,12 @@ open JS_Logic_Syntax
 %type <string list> param_list_FC_target
 %type <JSIL_Syntax.jsil_logic_predicate list * JSIL_Syntax.jsil_spec list> pred_spec_target
 %type <JSIL_Syntax.jsil_logic_assertion> top_level_assertion_target
-%type <JS_Logic_Syntax.js_logic_assertion> top_level_js_assertion_target 
+%type <JS_Logic_Syntax.js_logic_assertion> top_level_js_assertion_target
 %start main_target
 %start param_list_FC_target
 %start pred_spec_target
 %start top_level_assertion_target
-%start top_level_js_assertion_target 
+%start top_level_js_assertion_target
 %%
 
 (********* JSIL *********)
@@ -325,31 +326,31 @@ cmd_list_target:
 ;
 
 cmd_with_label_and_logic:
-	| pre = option(spec_line); pre_logic_cmds = option(pre_logic_cmd_target); 
+	| pre = option(spec_line); pre_logic_cmds = option(pre_logic_cmd_target);
 			cmd = cmd_target; post_logic_cmds = option(post_logic_cmd_target)
-		{ 
-			let pre_logic_cmds = 
-				match pre_logic_cmds with 
-				| None -> [] 
-				| Some pre_logic_cmds -> pre_logic_cmds in 
-			let post_logic_cmds = 
-				match post_logic_cmds with 
+		{
+			let pre_logic_cmds =
+				match pre_logic_cmds with
 				| None -> []
-				| Some post_logic_cmds -> post_logic_cmds  in 
-			(pre, pre_logic_cmds, post_logic_cmds, None, cmd) 
-		}
-	| pre = option(spec_line); pre_logic_cmds = option(pre_logic_cmd_target); 
-		lab = VAR; COLON; cmd = cmd_target; post_logic_cmds = option(post_logic_cmd_target)
-		{ 
-			let pre_logic_cmds = 
-				match pre_logic_cmds with 
-				| None -> [] 
-				| Some pre_logic_cmds -> pre_logic_cmds in 
-			let post_logic_cmds = 
-				match post_logic_cmds with 
+				| Some pre_logic_cmds -> pre_logic_cmds in
+			let post_logic_cmds =
+				match post_logic_cmds with
 				| None -> []
 				| Some post_logic_cmds -> post_logic_cmds  in
-			(pre, pre_logic_cmds, post_logic_cmds, Some lab, cmd) 
+			(pre, pre_logic_cmds, post_logic_cmds, None, cmd)
+		}
+	| pre = option(spec_line); pre_logic_cmds = option(pre_logic_cmd_target);
+		lab = VAR; COLON; cmd = cmd_target; post_logic_cmds = option(post_logic_cmd_target)
+		{
+			let pre_logic_cmds =
+				match pre_logic_cmds with
+				| None -> []
+				| Some pre_logic_cmds -> pre_logic_cmds in
+			let post_logic_cmds =
+				match post_logic_cmds with
+				| None -> []
+				| Some post_logic_cmds -> post_logic_cmds  in
+			(pre, pre_logic_cmds, post_logic_cmds, Some lab, cmd)
 		}
 ;
 
@@ -489,13 +490,13 @@ pred_param_target:
 	  { PVar v }
 ;
 
-pre_logic_cmd_target: 
-(* [* logic_cmds *] *) 
+pre_logic_cmd_target:
+(* [* logic_cmds *] *)
 	| OLCMD; logic_cmds = separated_list(SCOLON, logic_cmd_target); CLCMD
 		{ logic_cmds }
 
-post_logic_cmd_target: 
-(* [+ logic_cmds +] *) 
+post_logic_cmd_target:
+(* [+ logic_cmds +] *)
 	| OOLCMD; logic_cmds = separated_list(SCOLON, logic_cmd_target); CCLCMD
 		{ logic_cmds }
 
@@ -513,15 +514,15 @@ logic_cmd_target:
 	| RECUNFOLD; v = VAR
 	  { RecUnfold v }
 (* if(le) { lcmd* } else { lcmd* } *)
-	| LIF; LBRACE; le=lexpr_target; RBRACE; CLBRACKET; 
-			then_lcmds = separated_list(SCOLON, logic_cmd_target); 
+	| LIF; LBRACE; le=lexpr_target; RBRACE; LTHEN; CLBRACKET;
+			then_lcmds = separated_list(SCOLON, logic_cmd_target);
 			CRBRACKET; LELSE; CLBRACKET;
 			else_lcmds = separated_list(SCOLON, logic_cmd_target);
 			 CLBRACKET;
 	  { LogicIf (le, then_lcmds, else_lcmds)}
 (* if(e) { lcmd* } *)
-	| LIF; LBRACE; le=lexpr_target; RBRACE; CLBRACKET; 
-			then_lcmds = separated_list(SCOLON, logic_cmd_target); 
+	| LIF; LBRACE; le=lexpr_target; RBRACE; LTHEN; CLBRACKET;
+			then_lcmds = separated_list(SCOLON, logic_cmd_target);
 			CRBRACKET;
 	  { LogicIf (le, then_lcmds, [])}
 ;
@@ -556,7 +557,7 @@ spec_line:
   OASSERT; assertion = assertion_target; CASSERT { assertion }
 ;
 
-top_level_assertion_target: 
+top_level_assertion_target:
 	a = assertion_target; EOF { a }
 
 assertion_target:
@@ -798,8 +799,8 @@ lit_target:
 
 
 
-(** JS Assertions - Copy Paste for YOUR LIFE **) 
-top_level_js_assertion_target: 
+(** JS Assertions - Copy Paste for YOUR LIFE **)
+top_level_js_assertion_target:
 	a = js_assertion_target; EOF { a }
 
 js_assertion_target:
@@ -842,7 +843,7 @@ js_assertion_target:
 		{ JSLEmp }
 (* x(e1, ..., en) *)
 	| name = VAR; LBRACE; params = separated_list(COMMA, js_lexpr_target); RBRACE
-	  { 
+	  {
 			(* validate_pred_assertion (name, params); *)
 			JSLPred (name, params)
 		}
@@ -850,7 +851,7 @@ js_assertion_target:
   | LTYPES; LBRACE; type_pairs = separated_list(COMMA, js_type_env_pair_target); RBRACE
     { JSLTypes type_pairs }
 (* scope(x: le) *)
-	| SCOPE; LBRACE; v=VAR; COLON; le=js_lexpr_target; RBRACE 
+	| SCOPE; LBRACE; v=VAR; COLON; le=js_lexpr_target; RBRACE
 		{ JSLScope (v, le) }
 (* (P) *)
   | LBRACE; ass=js_assertion_target; RBRACE
@@ -893,7 +894,7 @@ js_lexpr_target:
 (* s-nth(e1, e2) *)
 	| STRNTH; LBRACE; e1=js_lexpr_target; COMMA; e2=js_lexpr_target; RBRACE
 		{ JSLStrNth (e1, e2) }
-(* this *) 
+(* this *)
 	| THIS { JSLThis }
 (* (e) *)
   | LBRACE; e=js_lexpr_target; RBRACE
@@ -904,5 +905,3 @@ js_type_env_pair_target:
   | v = LVAR; COLON; the_type=type_target
     { (v, the_type) }
 ;
-
-

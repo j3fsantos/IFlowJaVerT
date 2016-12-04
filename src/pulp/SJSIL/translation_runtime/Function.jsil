@@ -21,9 +21,9 @@ proc FP_call () {
 			vthis  := l-nth (arguments, 1);
 
 			xret := "i__isCallable" (vthis);
-			goto [xret] this te;
+			goto [xret] gthis te;
 
-	this:	xthis := $$undefined;
+	gthis:	xthis := $$undefined;
 			goto [len < 3] params sthis;
 	sthis:	xthis := l-nth (arguments, 2);
 

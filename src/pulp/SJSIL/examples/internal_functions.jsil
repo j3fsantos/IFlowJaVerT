@@ -239,6 +239,74 @@ pred Pi (l, prop, cls, d, ls, ltf, lpv) :
     (ls == l :: #lsp) * (ltf == $$t :: #ltfp) * (lpv == #pv :: #lpvp) *
     (0 <# l-len #lsp) * (0 <# l-len #ltfp) * (0 <# l-len #lpvp);
 
+(* *************
+ * COPY_OBJECT *
+ ***************)
+
+spec copy_object (l, fields)
+
+	[[ (l == #l) * (fields == #fields) *
+	   (#fields == {{ #f }}) * isNamedProperty(#f) *
+	   ((#l, #f) -> #v) * isNamedProperty (#f) ]]
+	[[ ((#l, #f) -> #v) * ((ret, #f) -> #v) * ((ret, "@proto") -> $$null) ]]
+	normal;
+
+	[[ (l == #l) * (fields == #fields) *
+	   (#fields == {{ #f1, "main" }}) * isNamedProperty(#f1) *
+	   ((#l, #f1) -> #v1) * ((#l, "main") -> #v2) ]]
+	[[ ((#l, #f1) -> #v1) * ((#l, "main") -> #v2) *
+	   ((ret, #f1) -> #v1) * ((ret, "main") -> #v2) * ((ret, "@proto") -> $$null) ]]
+	normal
+
+proc copy_object (l, fields) {
+			xret := new ();
+
+	rlab:	xret := "copy_object_rec" (l, fields, xret)
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+spec copy_object_rec (lf, fields, lt)
+
+	[[ fields == {{ }} ]]
+	[[ true * (ret == #lt) ]]
+	normal;
+
+	[[ (lf == #lf) * (fields == #fields) * (lt == #lt) *
+	   (#fields == {{ #f }}) *
+	   ((#lf, #f) -> #v) * ((#lt, #f) -> None) ]]
+	[[ ((#lf, #f) -> #v) * ((#lt, #f) -> #v) * (ret == #lt) ]]
+	normal;
+
+	[[ (lf == #lf) * (fields == #fields) * (lt == #lt) *
+	   (#fields == {{ #f1, "main" }}) * isNamedProperty(#f1) *
+	   ((#lf, #f1) -> #v1)  * ((#lf, "main") -> #v2) *
+	   ((#lt, #f1) -> None) * ((#lt, "main") -> None) ]]
+	[[ ((#lf, #f1) -> #v1)  * ((#lf, "main") -> #v2) *
+	   ((#lt, #f1) -> #v1)  * ((#lt, "main") -> #v2) * (ret == #lt) ]]
+	normal
+
+proc copy_object_rec (lf, fields, lt) {
+			goto [fields = {{ }}] rlab next;
+
+	next:	head := l-nth (fields, 0);
+			tail := cdr fields;
+
+			val := [lf, head];
+			[lt, head] := val;
+
+			xret := "copy_object_rec" (lf, tail, lt);
+
+	rlab:	xret := lt
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+
 (* ***********************
  * CREATE_DEFAULT_OBJECT *
  *************************)
@@ -555,6 +623,62 @@ proc i__toNumber (v) {
 
     rlab:	skip;
     elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+
+(* **********************
+   *** i__toPrimitive ***
+   ********************** *)
+
+spec i__toPrimitive (v, hint)
+
+    [[ v == $$undefined ]]
+    [[ ret == $$undefined ]]
+    normal;
+
+    [[ v == $$null ]]
+    [[ ret == $$null ]]
+    normal;
+
+    [[ (v == #v) * types (#v : $$int_type) ]]
+	[[ (ret == #v) ]]
+	normal;
+
+    [[ (v == #v) * types (#v : $$number_type) ]]
+	[[ (ret == #v) ]]
+	normal;
+
+    [[ (v == #v) * types (#v : $$boolean_type) ]]
+	[[ (ret == #v) ]]
+	normal;
+
+    [[ (v == #v) * types (#v : $$string_type) ]]
+	[[ (ret == #v) ]]
+	normal
+
+proc i__toPrimitive (v, hint) {
+			xret := v;
+			tv := typeOf(v);
+
+	iu:		goto [(v = $$undefined) or (v = $$null) or
+	              (typeOf(v) = $$boolean_type) or (typeOf(v) <: $$number_type) or
+	              (typeOf(v) = $$string_type)] rlab is_obj;
+
+	is_obj:	print := "object";
+			goto [typeOf(v) = $$object_type] obj oops;
+	obj:	xret := "defaultValue" (v, hint) with elab;
+			goto rlab;
+
+	oops:	xret := "ToPrimitive: This should not happen.";
+			goto elab;
+
+	rlab:	skip;
+	elab:	skip
 }
 with
 {
@@ -983,6 +1107,92 @@ proc i__checkAssignmentErrors (v) {
 	se:		xret := "SyntaxError" ();
 			goto elab;
 
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* ******************** *)
+(* CHECKOBJECTCOERCIBLE *)
+(* ******************** *)
+
+spec i__checkObjectCoercible (v)
+
+	[[ v == $$undefined ]]
+	[[ isTypeError(ret) ]]
+	normal;
+
+	[[ v == $$null ]]
+	[[ isTypeError(ret) ]]
+	normal;
+
+	[[ types (v : $$int_type) ]]
+	[[ ret == $$empty ]]
+	normal;
+
+	[[ types (v : $$number_type) ]]
+	[[ ret == $$empty ]]
+	normal;
+
+	[[ types (v : $$boolean_type) ]]
+	[[ ret == $$empty ]]
+	normal;
+
+	[[ types (v : $$string_type) ]]
+	[[ ret == $$empty ]]
+	normal;
+
+	[[ types (v : $$object_type) ]]
+	[[ ret == $$empty ]]
+	normal
+
+proc i__checkObjectCoercible (v) {
+
+			xret := $$empty;
+
+	iu:		goto [v = $$undefined] throw in;
+
+	in:		goto [v = $$null] throw other;
+
+	other:	goto [(typeOf(v) = $$boolean_type) or (typeOf(v) <: $$number_type) or
+	              (typeOf(v) = $$string_type) or (typeOf(v) = $$object_type)] rlab oops;
+
+	oops:	xret := "CheckObjectCoercible: This should not happen.";
+
+	rlab:	skip;
+
+	throw:	xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *************** *)
+(* CHECKPARAMETERS *)
+(* *************** *)
+
+proc i__checkParameters (fid, params) {
+
+			goto [(fid = "eval") or (fid = "arguments")] se pars;
+
+	pars:	n := 0;
+			l := l-len (params);
+
+	loop:	goto [n < l] head rlab;
+	head:	par := l-nth (params, n);
+			goto [(par = "eval") or (par = "arguments")] se next;
+	next:	n := n + 1;
+			goto loop;
+
+	rlab:	xret := $$t;
+
+	se:		xret := "SyntaxError" ();
 	elab:	skip
 }
 with
@@ -2585,8 +2795,8 @@ with
    **************************************** *)
 
 pred initialHeapPre () :
-    (($lg,         "@class") -> #v1) * (($lg,         "@proto") -> #v2) * (($lg,         "@extensible") -> #v3) *
-	(($lobj_proto, "@class") -> #v4) * (($lobj_proto, "@proto") -> #v5) * (($lobj_proto, "@extensible") -> #v6);
+    (($lg,         "@class") -> None) * (($lg,         "@proto") -> None) * (($lg,         "@extensible") -> None) *
+	(($lobj_proto, "@class") -> None) * (($lobj_proto, "@proto") -> None) * (($lobj_proto, "@extensible") -> None);
 
 pred initialHeapPost () :
     (($lg,         "@class") -> "Object") * (($lg,         "@proto") -> $lobj_proto) * (($lg,         "@extensible") -> $$t) *

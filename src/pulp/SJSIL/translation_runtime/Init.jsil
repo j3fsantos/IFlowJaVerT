@@ -1,7 +1,3 @@
-(* **** *)
-(* MAIN *)
-(* **** *)
-
 import Object;
 
 proc create_default_object (l, pr, cl, ext) {
@@ -24,17 +20,25 @@ with
 
 proc copy_object (l, fields) {
 			xret := new ();
+	rlab:	xret := "copy_object_rec" (l, fields, xret)
+}
+with
+{
+	ret:	xret, rlab;
+};
 
-			n := 0;
-			len := l-len (fields);
+proc copy_object_rec (lf, fields, lt) {
+			goto [fields = $$nil] rlab next;
 
-	loop:	goto [n < len] head rlab;
-	head:	val := [l, l-nth (fields, n)];
-			[xret, l-nth (fields, n)] := val;
-			n := n + 1;
-			goto loop;
+	next:	head := car fields;
+			tail := cdr fields;
 
-	rlab:	skip
+			val := [lf, head];
+			[lt, head] := val;
+
+			xret := "copy_object_rec" (lf, tail, lt);
+
+	rlab:	xret := lt
 }
 with
 {

@@ -702,11 +702,11 @@ let rec type_lexpr gamma le =
       | IsPrimitive -> (Some BooleanType, true, constraints)
 			(* List to List -> generates constraint *)
 			| Cdr ->
-				let new_constraint = (LNot (LLess (e, (LLit (Integer 1))))) in
+				let new_constraint = (LNot (LLess (LUnOp (LstLen, e), (LLit (Integer 1))))) in
 				tt ListType ListType [ new_constraint ]
 			(* List to Anything -> generates constraint *)
       | Car ->
-				let new_constraint = (LNot (LLess (e, (LLit (Integer 1))))) in
+				let new_constraint = (LNot (LLess (LUnOp (LstLen, e), (LLit (Integer 1))))) in
 				(match te with
 				| Some ListType -> (None, true, [ new_constraint ])
 				| None          -> (None, false, [] ))
@@ -1146,7 +1146,8 @@ let rec find_me_baby le store pfs =
 				let value = Hashtbl.find store var in
 				(match value with
 				| LLit (LList _)
-				| LEList _ -> raise (FoundIt value)
+				| LEList _
+				| LBinOp (_, LstCons, _) -> raise (FoundIt value)
 				| _ ->
 					if (not (List.mem value !found)) then
 					begin
@@ -1168,7 +1169,8 @@ let rec find_me_baby le store pfs =
 							if (v = var) then
 							(match lexpr with
 							| LLit (LList _)
-							| LEList _ -> raise (FoundIt lexpr)
+							| LEList _
+							| LBinOp (_, LstCons, _) -> raise (FoundIt lexpr)
 							| _ ->
 								if (not (List.mem lexpr !found)) then
 									found := !found @ [lexpr])
@@ -1187,12 +1189,11 @@ let rec find_me_baby le store pfs =
 
 
 
-let star_asses asses = 
-	List.fold_left 
-		(fun ac a -> 
-			if (not (a = LEmp)) 
+let star_asses asses =
+	List.fold_left
+		(fun ac a ->
+			if (not (a = LEmp))
 				then LStar (a, ac)
 				else ac)
 		 LEmp
 		asses
-				
