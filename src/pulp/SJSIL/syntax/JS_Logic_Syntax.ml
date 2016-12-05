@@ -4,13 +4,22 @@ open JSIL_Syntax
 
 let small_tbl_size = 31 
 
-let main_fid               = "main"
-let pi_pred_name           = "Pi"
-let object_class           = "Object"
-let syntax_error_pred_name = "isSyntaxError"
-let type_error_pred_name   = "isTypeError"
+let main_fid                      = "main"
+let pi_pred_name                  = "Pi"
+let object_class                  = "Object"
+let syntax_error_pred_name        = "isSyntaxError"
+let type_error_pred_name          = "isTypeError"
+let initial_heap_pre_pred_name    = "initialHeapPre"
+let initial_heap_post_pred_name   = "initialHeapPost"
 
-let fid_to_lvar fid = "_lvar_fid_" ^ fid
+let fid_to_lvar fid = "#fid_" ^ fid
+
+let counter = ref 0
+
+let fresh_lvar () = 
+	let v = "#lvar_" ^ (string_of_int !counter) in
+   counter := !counter + 1;
+   v
 
 type js_logic_expr =
 	| JSLLit				of jsil_lit
@@ -114,9 +123,9 @@ let var_fid_tbl_to_assertion (var_to_fid_tbl : (string, string) Hashtbl.t) (exce
 	let a = Hashtbl.fold 
 		(fun x fid ac ->
 			if (not (List.mem fid exceptions)) then (
-				let x_fid = LVar (fid_to_lvar fid) in 
-				let x_val_name = JSIL_Memory_Model.fresh_lvar () in 
-				let x_val = LVar x_val_name in 
+				let x_fid = if (is_global) then LLit (Loc Js2jsil_constants.locGlobName) else LVar (fid_to_lvar fid) in 
+				let x_val_name = fresh_lvar () in 
+				let x_val = LVar x_val_name in  
 				let le_val = 
 					if (is_global) 
 						then LEList [ LLit (String "d"); x_val; LLit (Bool true); LLit (Bool true); LLit (Bool false) ] 
@@ -150,8 +159,9 @@ let rec js2jsil_logic_top_level_pre a (var_to_fid_tbl : (string, string) Hashtbl
 	let is_global = (fid = main_fid) in
 	let a_env_records, js_var_to_lvar = var_fid_tbl_to_assertion var_to_fid_tbl [ fid ] is_global in 
 	let a_scope_chain = make_scope_chain_assertion vis_list [ fid ] in 
+	let a_pre_js_heap = LPred (initial_heap_pre_pred_name, []) in 
 	let a' = js2jsil_logic js_var_to_lvar a in 
-	JSIL_Logic_Utils.star_asses [a'; a_env_records; a_scope_chain ]
+	JSIL_Logic_Utils.star_asses [a_pre_js_heap; a'; a_env_records; a_scope_chain ]
 	
 	
 let rec js2jsil_logic_top_level_post a (var_to_fid_tbl : (string, string) Hashtbl.t) (vis_list : string list) fid =
@@ -160,8 +170,9 @@ let rec js2jsil_logic_top_level_post a (var_to_fid_tbl : (string, string) Hashtb
 	let a_scope_chain = make_scope_chain_assertion vis_list [ ] in 
 	let a_se = LPred (syntax_error_pred_name, [ PVar Js2jsil_constants.var_se ]) in 
 	let a_te = LPred (type_error_pred_name, [ PVar Js2jsil_constants.var_te ]) in 
+	let a_post_js_heap = LPred (initial_heap_post_pred_name, []) in 
 	let a' = js2jsil_logic js_var_to_lvar a in 
-	JSIL_Logic_Utils.star_asses [a'; a_env_records; a_scope_chain; a_se; a_te ]
+	JSIL_Logic_Utils.star_asses [a_post_js_heap; a'; a_env_records; a_scope_chain; a_se; a_te ]
 
 
 		
