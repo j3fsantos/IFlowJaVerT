@@ -153,7 +153,8 @@ let make_scope_chain_assertion vis_list exceptions =
 				let a_new = LPointsTo (PVar Js2jsil_constants.var_scope, LLit (String fid), LVar (fid_to_lvar fid)) in 
 				let a = if (a = LEmp) then a_new else (LStar (a, a_new)) in 
 				loop a rest) else loop a rest in 
-	loop var_scope_proto_null vis_list 
+	let a' = loop LEmp vis_list in 
+	if (a' <> LEmp) then LStar (a', var_scope_proto_null) else LEmp
 	
 
 let rec js2jsil_logic_top_level_pre a (var_to_fid_tbl : (string, string) Hashtbl.t) (vis_list : string list) fid =
