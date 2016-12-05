@@ -143,6 +143,8 @@ let make_scope_chain_assertion vis_list exceptions =
 	Printf.printf "Inside make_scope_chain_assertion with\n vis_list:%s\nexceptions:%s\n"
 		(String.concat ", " vis_list) (String.concat ", " exceptions); 
 	
+	let var_scope_proto_null = LPointsTo (PVar Js2jsil_constants.var_scope, LLit (String Js2jsil_constants.internalProtoFieldName), LLit Null) in 
+	
 	let rec loop a fids =
 		match fids with 
 		| [] -> a 
@@ -151,7 +153,7 @@ let make_scope_chain_assertion vis_list exceptions =
 				let a_new = LPointsTo (PVar Js2jsil_constants.var_scope, LLit (String fid), LVar (fid_to_lvar fid)) in 
 				let a = if (a = LEmp) then a_new else (LStar (a, a_new)) in 
 				loop a rest) else loop a rest in 
-	loop LEmp vis_list 
+	loop var_scope_proto_null vis_list 
 	
 
 let rec js2jsil_logic_top_level_pre a (var_to_fid_tbl : (string, string) Hashtbl.t) (vis_list : string list) fid =

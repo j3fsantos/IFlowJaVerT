@@ -22,6 +22,7 @@ let constructPropName         = "@construct"
 let scopePropName             = "@scope"
 let classPropName             = "@class"
 let extensiblePropName        = "@extensible"
+let internalProtoFieldName    = "@proto"
 
 let locGlobName        = "$lg"
 let locObjPrototype    = "$lobj_proto"
