@@ -1002,18 +1002,18 @@ and lift_unop_logic_expr op le =
 	| _ -> Some (LUnOp (op, le)), None)
 
 
-let rec expr_2_lexpr (e : jsil_expr) : jsil_logic_expr = 
-	let f = expr_2_lexpr in 
-	match e with 
+let rec expr_2_lexpr (e : jsil_expr) : jsil_logic_expr =
+	let f = expr_2_lexpr in
+	match e with
 	| Literal l           -> LLit l
-	| Var x               -> PVar x 
-	| BinOp (e1, op, e2)  -> LBinOp ((f e1), op, (f e2)) 
+	| Var x               -> PVar x
+	| BinOp (e1, op, e2)  -> LBinOp ((f e1), op, (f e2))
 	| UnaryOp (op, e)     -> LUnOp (op, f e)
-	| TypeOf e            -> LTypeOf (f e) 
+	| TypeOf e            -> LTypeOf (f e)
 	| EList es            -> LEList (List.map f es)
-	| LstNth (e1, e2)     -> LLstNth (f e1, f e2) 
-	| StrNth (e1, e2)     -> LStrNth (f e1, f e2) 
-	
+	| LstNth (e1, e2)     -> LLstNth (f e1, f e2)
+	| StrNth (e1, e2)     -> LStrNth (f e1, f e2)
+
 
 let make_all_different_pure_assertion fv_list_1 fv_list_2 : jsil_logic_assertion list =
 	let rec all_different_field_against_fv_list f fv_list pfs : jsil_logic_assertion list =
@@ -1046,7 +1046,20 @@ let rec reduce_expression e =
 	| LTypeOf e1 ->
 		let re1 = f e1 in
 			LTypeOf re1
-	| LEList le -> LEList (List.map (fun x -> reduce_expression x) le)
+	| LEList le ->
+		let all_literals = List.fold_left
+			(fun ac x -> ac && (match x with
+			  | LLit _ -> true
+			  | _ -> false)) true le in
+		if all_literals then
+		begin
+			Printf.printf "All literals: %s\n" (JSIL_Print.string_of_logic_expression e false);
+			LLit (LList (List.map (fun x -> (match x with
+			  | LLit lit -> lit
+			  | _ -> raise (Failure "List literal nonsense. This cannot happen."))) le))
+		end
+		else
+			LEList (List.map (fun x -> reduce_expression x) le)
 	| LLstNth (e1, e2) ->
 		let list = f e1 in
 		let index = f e2 in

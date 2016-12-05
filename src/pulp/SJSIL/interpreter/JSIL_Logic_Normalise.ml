@@ -733,10 +733,11 @@ let normalise_predicate_definitions pred_defs : (string, JSIL_Memory_Model.n_jsi
 										let normalised_as = List.filter
 											(fun symb_state ->
 												let heap_constraints = Symbolic_State_Functions.get_heap_well_formedness_constraints (get_heap symb_state) in
-												Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list symb_state)) (get_gamma symb_state) [])
+												Printf.printf "Symbolic state to check: %s\n%s\n" pred_name (JSIL_Memory_Print.string_of_shallow_symb_state symb_state);
+												((Symbolic_State_Functions.check_store (get_store symb_state) (get_gamma symb_state)) && (Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list symb_state)) (get_gamma symb_state) [])))
 											normalised_as in
 										(if ((List.length normalised_as) = 0)
-											then Printf.printf "WARNING: One predicate definition does not make sense!.\n");
+											then Printf.printf "WARNING: One predicate definition does not make sense: %s\n" pred_name);
 										(* List.iter
 											(fun symb_state ->
 												 Printf.printf "I found one valid unfolding of %s.\n" pred_name;

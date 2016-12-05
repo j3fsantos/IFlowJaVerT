@@ -681,7 +681,7 @@ let unify_symb_state_against_post proc_name spec symb_state flag symb_exe_info =
 	loop spec.n_post spec.n_post_lvars 0
 
 
-let merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbolic_state) subst  : symbolic_state =
+let merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbolic_state) subst : symbolic_state =
 	(* Printf.printf "gamma_r: %s\n." (JSIL_Memory_Print.string_of_gamma (get_gamma symb_state_r)); *)
 	(* Printf.printf "substitution: %s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
 	let aux_symb_state = (Symbolic_State_Functions.copy_symb_state symb_state_r) in
@@ -693,8 +693,7 @@ let merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbolic_s
 	Symbolic_State_Functions.merge_heaps heap_l heap_r pf_l solver_l gamma_l;
 	(* Printf.printf "AFTER MERGING HEAPS\n\n"; *)
 	DynArray.append preds_r preds_l;
-	Symbolic_State_Functions.aggresively_simplify symb_state_l
-
+	(heap_l, store_l, pf_l, gamma_l, preds_l, (ref None))
 
 let safe_merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbolic_state) (subst : substitution) : symbolic_state option =
 	(* *)

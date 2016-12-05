@@ -85,19 +85,19 @@ let unify_list_pvars l1 l2 =
 
 (* Replaces the logic_expressions in asrt that have a substitute in the hashtable subst *)
 let apply_substitution pred_name subst partial asrt =
-	
+
 	JSIL_Logic_Utils.assertion_map
 	  (fun lexpr -> (* Replace the logic expression if it has a substitute, but do not recurse *)
 		  try
 	      (Hashtbl.find subst lexpr, false)
-	    with Not_found -> 
-				(match lexpr with 
-				| LVar x -> 
-					if partial 
+	    with Not_found ->
+				(match lexpr with
+				| LVar x ->
+					if partial
 						then (lexpr, true)
-						else 
-							(let new_lvar = LVar (JSIL_Memory_Model.fresh_lvar_from_lvar_name pred_name x) in 
-							Hashtbl.add subst lexpr new_lvar; 
+						else
+							(let new_lvar = LVar (JSIL_Memory_Model.fresh_lvar_from_lvar_name pred_name x) in
+							Hashtbl.add subst lexpr new_lvar;
 							(new_lvar, false))
 				| _ -> (lexpr, true)))
 	  asrt

@@ -458,7 +458,6 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 			  Printf.printf "I can fold this!!!\n";
 				let new_symb_state = update_symb_state_after_folding symb_state quotient_heap quotient_preds pf_discharges new_gamma pred_name args in
 				Printf.printf "Symbolic state after FOLDING:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state new_symb_state);
-				let new_symb_state = Symbolic_State_Functions.aggresively_simplify new_symb_state in
 				Some new_symb_state
 
 			| Some (true, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma, existentials, [ (missing_pred_name, missing_pred_args) ]) ->
@@ -729,6 +728,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 
 	(* symbolically evaluate a guarded goto *)
 	let symb_evaluate_guarded_goto e j k =
+		let symb_state = Symbolic_State_Functions.aggresively_simplify [] symb_state in
 		let le = symb_evaluate_expr e (get_store symb_state) (get_gamma symb_state) (get_pf symb_state) in
 		Printf.printf "Evaluated expression: %s --> %s\n" (JSIL_Print.string_of_expression e false) (JSIL_Print.string_of_logic_expression le false);
 		let e_le, a_le = lift_logic_expr le in
@@ -764,6 +764,8 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 
 	(* symbolically evaluate a procedure call *)
 	let symb_evaluate_call x e e_args j =
+
+		let symb_state = Symbolic_State_Functions.aggresively_simplify [] symb_state in
 
 		(* get the name and specs of the procedure being called *)
 		let le_proc_name = symb_evaluate_expr e (get_store symb_state) (get_gamma symb_state) (get_pf symb_state) in
@@ -807,6 +809,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 
 	(* symbolically evaluate a phi command *)
 	let symb_evaluate_phi x x_arr =
+	    let symb_state = Symbolic_State_Functions.aggresively_simplify [] symb_state in
 		let cur_proc_name = proc.proc_name in
 		let cur_which_pred =
 			try Hashtbl.find s_prog.which_pred (cur_proc_name, prev, i)
@@ -848,8 +851,10 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 	| _ -> raise (Failure "not implemented yet")
 
 and symb_evaluate_next_cmd_1 s_prog proc spec search_info symb_state cur next  =
+    let symb_state = Symbolic_State_Functions.aggresively_simplify [] symb_state in
 	let metadata, cmd = get_proc_cmd proc cur in
 	let symb_states = symb_evaluate_logic_cmds s_prog metadata.post_logic_cmds [ symb_state ] spec.n_subst spec.n_lvars in
+	let symb_states = List.map (fun s -> Symbolic_State_Functions.aggresively_simplify [] s) symb_states in
 	let len = List.length symb_states in
 	List.iter
 		(fun symb_state ->
