@@ -688,12 +688,14 @@ let encode_cons_equalities tr_ctx le_list les =
 
 let encode_snth_equalities tr_ctx s les =
 	let ctx = tr_ctx.z3_ctx in
-	List.mapi
+	List.concat (List.mapi
 		(fun i le ->
 			let le', _, _ = encode_logical_expression tr_ctx le in
 			let le_nth = (Expr.mk_app ctx tr_ctx.tr_snth_fun [ s; (mk_num_i ctx i) ]) in
-			Boolean.mk_eq ctx le_nth le')
-		les
+			let a1 = Boolean.mk_eq ctx le_nth le' in 
+			let a2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ le' ]) (encode_type ctx StringType) in 
+			[ a1; a2 ]) 
+		les)
 
 let encode_gamma tr_ctx how_many =
 	let ctx = tr_ctx.z3_ctx in
@@ -878,7 +880,22 @@ let make_concrete_string_axioms tr_ctx s =
 	let len_axiom = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_slen_fun [ s' ]) (mk_num_i ctx (String.length s)) in
 	let les = List.map (fun x -> LLit (String x)) (explode s) in
 	let snth_axioms = encode_snth_equalities tr_ctx s' les in
-	len_axiom :: snth_axioms
+	let typeof_axiom = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ s' ]) (encode_type ctx StringType) in  
+	typeof_axiom :: (len_axiom :: snth_axioms)
+
+
+let make_concrete_number_axioms tr_ctx n =
+	let ctx = tr_ctx.z3_ctx in
+	let n', _, _  = encode_logical_expression tr_ctx (LLit (Num n)) in
+	let typeof_axiom = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ n' ]) (encode_type ctx NumberType) in  
+	[ typeof_axiom ]
+
+
+let make_concrete_int_axioms tr_ctx i =
+	let ctx = tr_ctx.z3_ctx in
+	let i', _, _  = encode_logical_expression tr_ctx (LLit (Integer i)) in
+	let typeof_axiom = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ i' ]) (encode_type ctx IntType) in  
+	[ typeof_axiom ]
 
 
 let rec lets_do_some_string_theory_axioms tr_ctx l1 l2 =
@@ -1031,25 +1048,33 @@ let rec encode_assertion tr_ctx is_premise a : Expr.expr * (Expr.expr list) =
 		raise (Failure msg)
 
 
+(** 
 let get_them_nasty_string_axioms tr_ctx assertions =
 	let get_string_axioms a =
 		let a_strings = JSIL_Logic_Utils.remove_string_duplicates (JSIL_Logic_Utils.get_assertion_string_literals a) in
 		List.concat (List.map (fun s -> make_concrete_string_axioms tr_ctx s) a_strings) in
 	List.concat (List.map (fun a -> get_string_axioms a) assertions)
+*)
 
 
 let encode_assertion_top_level tr_ctx is_premise a =
-	(* let a_strings = JSIL_Logic_Utils.remove_string_duplicates (JSIL_Logic_Utils.get_assertion_string_literals a) in *)
-	(* Printf.printf "Assertion: %s\nString literals: %s\n"
-		(JSIL_Print.string_of_logic_assertion a false)
-		(List.fold_left (fun ac x -> ac ^ x ^ " ") "" a_strings); *)
+	let a_strings, a_numbers, a_ints = 
+		JSIL_Logic_Utils.get_assertion_string_number_int_literals a in 
+	let a_strings, a_numbers, a_ints = 
+		JSIL_Logic_Utils.remove_string_duplicates a_strings, 
+		JSIL_Logic_Utils.remove_number_duplicates a_numbers,
+		JSIL_Logic_Utils.remove_int_duplicates a_ints in 
+	
+	let a_strings_axioms = List.concat (List.map (fun s -> make_concrete_string_axioms tr_ctx s) a_strings) in
+	let a_numbers_axioms = List.concat (List.map (fun s -> make_concrete_number_axioms tr_ctx s) a_numbers) in
+	let a_ints_axioms = List.concat (List.map (fun s -> make_concrete_int_axioms tr_ctx s) a_ints) in
+	
+	let a_strings_numbers_ints_axioms = a_strings_axioms @ a_numbers_axioms @ a_ints_axioms in 
+	
 	let a' = JSIL_Logic_Utils.push_in_negations_off a in
-	let a'', axioms = encode_assertion tr_ctx is_premise a in
-	(* let a_strings_axioms = List.concat (List.map (fun s -> make_concrete_string_axioms tr_ctx s) a_strings) in *)
-	(* Printf.printf "String axioms:\n%s\n"
-	    (List.fold_left (fun ac x -> ac ^ (Expr.to_string x) ^ "\n") "" a_strings_axioms); *)
-	if (List.length axioms > 0)
-		then Boolean.mk_and tr_ctx.z3_ctx (a'' :: axioms)
+	let a'', axioms = encode_assertion tr_ctx is_premise a' in
+	if ((List.length axioms > 0) || (List.length a_strings_numbers_ints_axioms > 0))
+		then Boolean.mk_and tr_ctx.z3_ctx ((a'' :: axioms) @ a_strings_numbers_ints_axioms)
 		else a''
 
 
@@ -1065,10 +1090,10 @@ let string_of_z3_expr_list exprs =
 		exprs
 
 let get_new_solver assertions gamma existentials =
-    let tr_ctx = mk_smt_translation_ctx gamma existentials in
-	let string_axioms = get_them_nasty_string_axioms tr_ctx assertions in
+  let tr_ctx = mk_smt_translation_ctx gamma existentials in
+	(* let string_axioms = get_them_nasty_string_axioms tr_ctx assertions in *)
 	let assertions = List.map (fun a -> encode_assertion_top_level tr_ctx true a) assertions in
-	let assertions = tr_ctx.tr_axioms @ string_axioms @ (encode_gamma tr_ctx (-1)) @ assertions in
+	let assertions = tr_ctx.tr_axioms @ (encode_gamma tr_ctx (-1)) @ assertions in
 	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 	Solver.add solver assertions;
 	(* Printf.printf "I have just created a solver with the content given by:\n: %s\n" (string_of_z3_expr_list assertions); *)
@@ -1112,13 +1137,13 @@ let old_check_entailment existentials left_as right_as gamma =
 	let tr_ctx = mk_smt_translation_ctx gamma existentials in
 	let ctx = tr_ctx.z3_ctx in
 
-	let string_axioms = get_them_nasty_string_axioms tr_ctx (left_as @ right_as) in
+	(* let string_axioms = get_them_nasty_string_axioms tr_ctx (left_as @ right_as) in *)
 
 	let check_entailment_aux () =
 		Gc.full_major ();
 		let old_left_as = left_as in
 		let left_as = List.map (fun a -> encode_assertion_top_level tr_ctx true a) left_as in
-		let left_as = tr_ctx.tr_axioms @ string_axioms @ (encode_gamma tr_ctx (-1)) @ left_as in
+		let left_as = tr_ctx.tr_axioms @ (encode_gamma tr_ctx (-1)) @ left_as in
 		let right_as = List.map (fun a -> encode_assertion_top_level tr_ctx false (LNot a)) right_as in
 		let right_as_or =
 			if ((List.length right_as) > 1) then
@@ -1218,12 +1243,12 @@ let understand_error existentials left_as right_as gamma =
 	let tr_ctx = mk_smt_translation_ctx gamma existentials in
 	let ctx = tr_ctx.z3_ctx in
 
-	let string_axioms = get_them_nasty_string_axioms tr_ctx (left_as @ right_as) in
+	(* let string_axioms = get_them_nasty_string_axioms tr_ctx (left_as @ right_as) in *)
 
 	Gc.full_major ();
 
 	let encoded_left_as = List.map (fun a -> encode_assertion_top_level tr_ctx true a) left_as in
-	let encoded_left_as = tr_ctx.tr_axioms @ string_axioms @ (encode_gamma tr_ctx (-1)) @ encoded_left_as in
+	let encoded_left_as = tr_ctx.tr_axioms @ (encode_gamma tr_ctx (-1)) @ encoded_left_as in
 
 	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 	Solver.add solver encoded_left_as;

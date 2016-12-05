@@ -5,13 +5,28 @@ open JSIL_Syntax
 
 module SS = Set.Make(String)
 
+module MyInt =
+ 	struct
+  	type t = int
+    let compare = Pervasives.compare 
+  end
+
+module MyNumber =
+ 	struct
+  	type t = float 
+    let compare = Pervasives.compare 
+  end
+
+
+
+module SI = Set.Make(MyInt)
+module SN = Set.Make(MyNumber)
 
 let get_string_hashtbl_keys ht =
 	Hashtbl.fold
 		(fun key _ ac -> key :: ac)
 		ht
 		[]
-
 
 (** !tbl_left /\ tbl_right **)
 let tbl_intersection_false_true tbl_left tbl_right =
@@ -114,21 +129,21 @@ let rec assertion_fold f_atom f_fold asrt =
 
 
 
-let rec get_logic_expression_string_literals le =
-	let fe = get_logic_expression_string_literals in
+let rec get_logic_expression_literals le =
+	let fe = get_logic_expression_literals in
 	match le with
-	| LLit (String str) -> [ str ]
+	| LLit lit -> [ lit ]
 	| LLit (LList ls) ->
 		let ls = List.map (fun x -> LLit x) ls in
 			List.concat (List.map fe ls)
-	| LLit _ | LNone | LVar _ | ALoc _ | PVar _ | LUnknown -> []
+	| LNone | LVar _ | ALoc _ | PVar _ | LUnknown -> []
 	| LBinOp (le1, _, le2) | LLstNth (le1, le2) | LStrNth (le1, le2)  -> (fe le1) @ (fe le2)
 	| LUnOp (_, le) |	LTypeOf le -> fe le
  	| LEList les -> List.concat (List.map fe les)
 
-let rec get_assertion_string_literals a =
-	let f = get_assertion_string_literals in
-	let fe = get_logic_expression_string_literals in
+let rec get_assertion_literals a =
+	let f = get_assertion_literals in
+	let fe = get_logic_expression_literals in
 	match a with
 	| LTrue | LFalse | LEmp | LTypes _ -> []
 	| LNot a -> f a
@@ -137,10 +152,29 @@ let rec get_assertion_string_literals a =
 	| LEq (le1, le2) | LLess (le1, le2) | LLessEq (le1, le2) | LStrLess (le1, le2) -> (fe le1) @ (fe le2)
 	| LPred (_, les) -> List.concat (List.map fe les)
 
+let get_assertion_string_number_int_literals a = 
+	let lits = get_assertion_literals a in 
+	let rec loop lits_to_go (strings_so_far, numbers_so_far, ints_so_far) = 
+		match lits_to_go with 
+		| [] ->  (strings_so_far, numbers_so_far, ints_so_far)
+		| (String s) :: rest -> loop rest (s :: strings_so_far, numbers_so_far, ints_so_far) 
+		| (Num n) :: rest -> loop rest (strings_so_far,  n :: numbers_so_far, ints_so_far)
+		| (Integer i) :: rest -> loop rest (strings_so_far, numbers_so_far, i :: ints_so_far) 
+		| _ :: rest -> loop rest (strings_so_far, numbers_so_far, ints_so_far) in 
+	loop lits ([], [], [])  
+	
 
 let remove_string_duplicates strings =
 	let string_set = SS.of_list strings in
 	SS.elements string_set
+
+let remove_number_duplicates numbers =
+	let number_set = SN.of_list numbers in
+	SN.elements number_set
+
+let remove_int_duplicates ints =
+	let int_set = SI.of_list ints in
+	SI.elements int_set
 
 
 let is_pure_assertion a =
