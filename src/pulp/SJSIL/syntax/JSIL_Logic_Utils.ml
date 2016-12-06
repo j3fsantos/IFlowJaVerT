@@ -8,13 +8,13 @@ module SS = Set.Make(String)
 module MyInt =
  	struct
   	type t = int
-    let compare = Pervasives.compare 
+    let compare = Pervasives.compare
   end
 
 module MyNumber =
  	struct
-  	type t = float 
-    let compare = Pervasives.compare 
+  	type t = float
+    let compare = Pervasives.compare
   end
 
 
@@ -132,10 +132,10 @@ let rec assertion_fold f_atom f_fold asrt =
 let rec get_logic_expression_literals le =
 	let fe = get_logic_expression_literals in
 	match le with
-	| LLit lit -> [ lit ]
 	| LLit (LList ls) ->
 		let ls = List.map (fun x -> LLit x) ls in
 			List.concat (List.map fe ls)
+	| LLit lit -> [ lit ]
 	| LNone | LVar _ | ALoc _ | PVar _ | LUnknown -> []
 	| LBinOp (le1, _, le2) | LLstNth (le1, le2) | LStrNth (le1, le2)  -> (fe le1) @ (fe le2)
 	| LUnOp (_, le) |	LTypeOf le -> fe le
@@ -152,17 +152,17 @@ let rec get_assertion_literals a =
 	| LEq (le1, le2) | LLess (le1, le2) | LLessEq (le1, le2) | LStrLess (le1, le2) -> (fe le1) @ (fe le2)
 	| LPred (_, les) -> List.concat (List.map fe les)
 
-let get_assertion_string_number_int_literals a = 
-	let lits = get_assertion_literals a in 
-	let rec loop lits_to_go (strings_so_far, numbers_so_far, ints_so_far) = 
-		match lits_to_go with 
+let get_assertion_string_number_int_literals a =
+	let lits = get_assertion_literals a in
+	let rec loop lits_to_go (strings_so_far, numbers_so_far, ints_so_far) =
+		match lits_to_go with
 		| [] ->  (strings_so_far, numbers_so_far, ints_so_far)
-		| (String s) :: rest -> loop rest (s :: strings_so_far, numbers_so_far, ints_so_far) 
+		| (String s) :: rest -> loop rest (s :: strings_so_far, numbers_so_far, ints_so_far)
 		| (Num n) :: rest -> loop rest (strings_so_far,  n :: numbers_so_far, ints_so_far)
-		| (Integer i) :: rest -> loop rest (strings_so_far, numbers_so_far, i :: ints_so_far) 
-		| _ :: rest -> loop rest (strings_so_far, numbers_so_far, ints_so_far) in 
-	loop lits ([], [], [])  
-	
+		| (Integer i) :: rest -> loop rest (strings_so_far, numbers_so_far, i :: ints_so_far)
+		| _ :: rest -> loop rest (strings_so_far, numbers_so_far, ints_so_far) in
+	loop lits ([], [], [])
+
 
 let remove_string_duplicates strings =
 	let string_set = SS.of_list strings in
@@ -1074,9 +1074,6 @@ let rec reduce_expression e =
 		let re1 = f e1 in
 		let re2 = f e2 in
 			LBinOp (re1, bop, re2)
-	| LUnOp	(op, e1) ->
-		let re1 = f e1 in
-			LUnOp (op, re1)
 	| LTypeOf e1 ->
 		let re1 = f e1 in
 			LTypeOf re1
@@ -1086,12 +1083,9 @@ let rec reduce_expression e =
 			  | LLit _ -> true
 			  | _ -> false)) true le in
 		if all_literals then
-		begin
-			Printf.printf "All literals: %s\n" (JSIL_Print.string_of_logic_expression e false);
 			LLit (LList (List.map (fun x -> (match x with
 			  | LLit lit -> lit
 			  | _ -> raise (Failure "List literal nonsense. This cannot happen."))) le))
-		end
 		else
 			LEList (List.map (fun x -> reduce_expression x) le)
 	| LLstNth (e1, e2) ->
@@ -1112,7 +1106,45 @@ let rec reduce_expression e =
 
 		| _, _ -> LLstNth (list, index))
 
+	| LStrNth (e1, e2) ->
+		let str = f e1 in
+		let index = f e2 in
+		let index =
+			(match index with
+			| LLit (Num n) -> LLit (Integer (int_of_float n))
+			| _ -> index) in
+		(match str, index with
+		| LLit (String str), LLit (Integer n) ->
+			(try (LLit (String (String.sub str n 1))) with _ ->
+				raise (Failure "List index out of bounds"))
+		| _, _ -> LStrNth (str, index))
+
+	| LUnOp (op, e1) ->
+		let re1 = f e1 in
+		(match op with
+		 | LstLen -> (match re1 with
+	        | LLit (LList list) -> (LLit (Integer (List.length list)))
+		    | LEList list -> (LLit (Integer (List.length list)))
+		    | _ -> LUnOp (LstLen, e1))
+		 | StrLen -> (match re1 with
+		    | LLit (String str) -> (LLit (Integer (String.length str)))
+		    | _ -> LUnOp (StrLen, e1))
+		 | _ -> LUnOp (op, re1))
+
 	| _ -> e
+
+(* JSIL logic assertions
+type jsil_logic_assertion =
+	| LLess	   			of jsil_logic_expr * jsil_logic_expr
+	| LLessEq	   		of jsil_logic_expr * jsil_logic_expr
+	| LStrLess    		of jsil_logic_expr * jsil_logic_expr
+	| LStar				of jsil_logic_assertion * jsil_logic_assertion
+	| LPointsTo			of jsil_logic_expr * jsil_logic_expr * jsil_logic_expr
+	| LEmp
+(*  | LExists			of (jsil_logic_var list) * jsil_logic_assertion
+	| LForAll			of (jsil_logic_var list) * jsil_logic_assertion *)
+	| LPred				of string * (jsil_logic_expr list)
+	| LTypes      		of (jsil_logic_expr * jsil_type) list *)
 
 let rec reduce_assertion a =
 	let f = reduce_assertion in
@@ -1175,6 +1207,11 @@ let rec reduce_assertion a =
 				if ((re1 = e1) && (re2 = e2))
 					then a' else f a'
 		)
+
+	| LLess (e1, e2) ->
+		let re1 = reduce_expression e1 in
+		let re2 = reduce_expression e2 in
+		LLess (re1, re2)
 
 	| _ -> a
 

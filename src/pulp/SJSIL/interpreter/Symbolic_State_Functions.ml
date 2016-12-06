@@ -8,40 +8,33 @@ open JSIL_Memory_Model
 let small_tbl_size = 31
 
 let update_subst1 subst unifier =
-	match unifier with
-	| false, _ -> false
-	| _, Some (var, le) ->
-		 Hashtbl.add subst var le;
-		true
-	| _, None -> true
+	(match unifier with
+	 | Some unifier -> List.iter (fun (var, le) -> Hashtbl.add subst var le) unifier;
+	 | None -> ());
+	true
 
 
-let update_subst2 subst unifier1 unifier2 p_formulae solver gamma =
+let update_subst2 subst (unifier1 : (string * jsil_logic_expr) list option)
+                        (unifier2 : (string * jsil_logic_expr) list option) p_formulae solver gamma =
 	match unifier1, unifier2 with
-	| (true, None), (true, None) -> true
-
-	| (true, Some _), (true, None) -> update_subst1 subst unifier1
-
-	| (true, None), (true, Some _) -> update_subst1 subst unifier2
-
-	| (true, Some (var1, le1)), (true, Some (var2, le2)) ->
+	| None, None -> true
+	| Some _, None -> update_subst1 subst unifier1
+	| None, Some _ -> update_subst1 subst unifier2
+	| Some unifier1, Some unifier2 ->
+	  List.fold_left2 (fun ac (var1, le1) (var2, le2) ->
 		if (var1 = var2)
 			then
 				begin
 					if (Pure_Entailment.is_equal le1 le2 p_formulae solver gamma)
-						then (Hashtbl.add subst var1 le1; true)
+						then (Hashtbl.add subst var1 le1; ac)
 						else false
 				end
 			else
 				begin
 					Hashtbl.add subst var1 le1;
 					Hashtbl.add subst var2 le2;
-					true
-				end
-
-	| _, _ -> false
-
-
+					ac
+				end) true unifier1 unifier2
 
 (*************************************)
 (** Abstract Heap functions         **)
@@ -345,14 +338,12 @@ let copy_p_formulae pfs =
 	new_pfs
 
 let sanitise_pfs dl =
-    (* Printf.printf ("In sanitise: %s\n") (JSIL_Memory_Print.string_of_shallow_p_formulae dl false); *)
-	let length = DynArray.length dl in
+    let length = DynArray.length dl in
 	for i = 0 to (length - 1) do
 		let el = DynArray.get dl i in
 		let rel = JSIL_Logic_Utils.reduce_assertion el in
 			DynArray.set dl i rel
 	done;
-	(* Printf.printf ("After reduction: %s\n") (JSIL_Memory_Print.string_of_shallow_p_formulae dl false); *)
 	let ll = DynArray.to_list dl in
 	let dindex = DynArray.init length (fun x -> false) in
 	let clc = ref 0 in
@@ -690,6 +681,18 @@ let copy_single_spec s_spec =
 (** Symbolic state simplification   **)
 (*************************************)
 
+let isSubstitutable le =
+(match le with
+ | LLit _ -> true
+ | ALoc _ -> true
+ | LEList lst ->
+     List.fold_left (fun ac x -> ac && (match x with
+	   | LLit _ -> true
+	   | ALoc _ -> true
+	   | _ -> false)) true lst
+ | _ -> false
+)
+
 let rec aggresively_simplify (to_add : (string * jsil_logic_expr) list) (symb_state : symbolic_state) =
 
 	let f = aggresively_simplify to_add in
@@ -729,7 +732,13 @@ let rec aggresively_simplify (to_add : (string * jsil_logic_expr) list) (symb_st
 		| LAnd  (a1, a2)
 		| LStar	(a1, a2) -> DynArray.set p_formulae n a1; DynArray.add p_formulae a2; f symb_state
 
-		| LNot _ -> go_through_pfs rest (n + 1) (* FOR NOW! *)
+		| LNot la ->
+		  (match la with
+		   | LEq (LLit l1, LLit l2) ->
+		   	 (match (l1 = l2) with
+			  | true -> pfs_false "Two literals are equal."
+			  | false -> DynArray.delete p_formulae n; f symb_state)
+		   | _ -> go_through_pfs rest (n + 1)) (* FOR NOW! *)
 		| LEq (le1, le2) -> (match (le1 = le2) with
 		  | true ->
 		  	  DynArray.delete p_formulae n;
@@ -741,7 +750,7 @@ let rec aggresively_simplify (to_add : (string * jsil_logic_expr) list) (symb_st
 			   | true -> DynArray.delete p_formulae n; f symb_state
 			   | false -> pfs_false "Two literals are not equal.")
 			  (* Variable and a literal: substitute in heap, substitute in store, substitute in pfs, kill in gamma *)
- 			| LVar var, LLit _ ->
+ 			| LVar var, _ when (isSubstitutable le2) ->
  			  (* create substitution *)
  			  let subst = Hashtbl.create 1 in
  		      Hashtbl.add subst var le2;
@@ -771,7 +780,6 @@ let rec aggresively_simplify (to_add : (string * jsil_logic_expr) list) (symb_st
 			  let len2 = List.length ll2 in
 			  if (len1 = len2) then
 			  begin
-				(* Printf.printf "Splitting list equality into constituents\n."; *)
 				DynArray.delete p_formulae n;
 				List.iter2 (fun x y -> DynArray.add p_formulae (LEq (x, y))) ll1 ll2;
 				f symb_state
@@ -787,7 +795,6 @@ let rec aggresively_simplify (to_add : (string * jsil_logic_expr) list) (symb_st
 			  let len2 = List.length ll2 in
 			  if (len1 = len2) then
 			  begin
-				(* Printf.printf "Splitting list equality into constituents\n."; *)
 				DynArray.delete p_formulae n;
 				List.iter2 (fun x y -> DynArray.add p_formulae (LEq (x, LLit y))) ll1 ll2;
 				f symb_state
@@ -851,7 +858,7 @@ let rec aggresively_simplify (to_add : (string * jsil_logic_expr) list) (symb_st
 	  )
 	) p_formulae;
 
-	sanitise_pfs;
+	sanitise_pfs p_formulae;
 
 	let pf_list = DynArray.to_list p_formulae in
 		go_through_pfs pf_list 0

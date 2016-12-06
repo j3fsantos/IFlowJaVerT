@@ -684,12 +684,6 @@ program_variable_target:
 	  { validate_pvar "err"; PVar "err" }
 ;
 
-logic_lit_target:
-  (* Use the Integer type for ints *)
-  | INT                       { Integer $1 }
-  | lit_target                { $1 }
-;
-
 (********* PREDS and SPECS only *********)
 
 pred_spec_target: preds = separated_list(AND, pred_target); specs = separated_list(AND, spec_target); EOF
@@ -867,13 +861,13 @@ js_assertion_target:
 js_lexpr_target:
 (* Logic literal *)
 	| lit = lit_target
-	  { JSLLit lit }
+	  { Printf.printf "JS literal: %s" (JSIL_Print.string_of_literal lit false); JSLLit lit }
 (* None *)
 	| LNONE
 	  { JSLNone }
 (* program variable *)
 	| pvar = VAR
-	  { JSPVar pvar }
+	  { Printf.printf "PVar... no comment: %s\n" pvar; JSPVar pvar }
 (* Logic variable *)
 	| lvar = LVAR
 	  { JSLVar lvar }
