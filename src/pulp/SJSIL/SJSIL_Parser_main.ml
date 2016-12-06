@@ -112,7 +112,7 @@ let main () =
 			| Script (_, le) -> List.iter (fun x -> Printf.printf "Annotations:\n%s\n" (e_annot_str x)) le
 			| _ -> Printf.printf "Top-level tag is not Script.\n");
 
-            let (ext_prog, cc_tbl, vis_tbl) = Js2jsil.js2jsil e offset_converter in
+            let (ext_prog, cc_tbl, vis_tbl) = Js2jsil.js2jsil e offset_converter false in
                 let prog, which_pred = JSIL_Utils.prog_of_ext_prog !file ext_prog in
                 run_jsil_prog prog which_pred (Some cc_tbl) (Some vis_tbl)
               with

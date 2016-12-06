@@ -101,7 +101,7 @@ let test_javascript_template test =
       | Parser.ParserFailure file ->
         Printf.printf "\nParsing problems with the file '%s'.\n" file;
         exit 1) in
-	let (ext_prog, cc_tbl, vis_tbl) = js2jsil e offset_converter in 
+	let (ext_prog, cc_tbl, vis_tbl) = js2jsil e offset_converter false in 
 	let prog, which_pred = JSIL_Utils.prog_of_ext_prog "" ext_prog in 
 	let heap = JSIL_Memory_Model.SHeap.create 1021 in 
   evaluate_prog prog which_pred heap (Some cc_tbl) (Some vis_tbl)
