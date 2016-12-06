@@ -102,7 +102,7 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 
 
 let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae solver (gamma: typing_environment) (subst : (string, jsil_logic_expr) Hashtbl.t) : (bool * ((string * jsil_logic_expr) option)) =
-	(* Printf.printf "unify_lexprs: %s versus %s\n" (JSIL_Print.string_of_logic_expression le_pat false)  (JSIL_Print.string_of_logic_expression le false); *)
+	Printf.printf "unify_lexprs: %s versus %s\n" (JSIL_Print.string_of_logic_expression le_pat false)  (JSIL_Print.string_of_logic_expression le false);
 	match le_pat with
 	| LVar var
 	| ALoc var ->
@@ -236,11 +236,13 @@ let unify_symb_fv_lists pat_fv_list fv_list def_val p_formulae solver gamma subs
 
 
 let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_formulae solver gamma (subst : substitution) : ((symbolic_heap * (jsil_logic_assertion list)) option)  =
+	Printf.printf "Unify heaps with substitution: %s\n" (JSIL_Memory_Print.string_of_substitution subst);
 	let quotient_heap = LHeap.create 1021 in
 	try
 		let pfs : jsil_logic_assertion list =
 			LHeap.fold
 				(fun pat_loc (pat_fv_list, pat_def) pfs ->
+					Printf.printf "Location: %s\n" pat_loc;
 					(match pat_def with
 					| LUnknown ->
 						let loc = try
@@ -612,12 +614,16 @@ let unify_symb_states_fold existentials (pat_symb_state : symbolic_state) (symb_
 		begin
 			let pf_1_subst_list = List.map (fun a -> assertion_substitution a subst true) (pfs_to_list pf_1) in
 			let pf_discharges = pf_list_of_discharges discharges subst false in
+			let pfs = List.map (fun a -> JSIL_Logic_Utils.reduce_assertion a) (pf_1_subst_list @ pf_discharges) in
+			let pfs = DynArray.of_list pfs in
+			Symbolic_State_Functions.sanitise_pfs pfs;
+			let pfs = DynArray.to_list pfs in
 			Printf.printf "Checking if %s\n entails %s\n with existentials \n%s\n"
 				(JSIL_Memory_Print.string_of_shallow_p_formulae pf_0 false)
-				(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list (pf_1_subst_list @ pf_discharges)) false)
+				(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list pfs) false)
 				(List.fold_left (fun ac x -> ac ^ " " ^ x) "" new_existentials);
-			let entailment_check = Pure_Entailment.check_entailment solver_0 new_existentials (pfs_to_list pf_0) (pf_1_subst_list @ pf_discharges) gamma_0' in
-			(if (not entailment_check) then Pure_Entailment.understand_error new_existentials (pfs_to_list pf_0) (pf_1_subst_list @ pf_discharges) gamma_0');
+			let entailment_check = Pure_Entailment.check_entailment solver_0 new_existentials (pfs_to_list pf_0) pfs gamma_0' in
+			(if (not entailment_check) then Pure_Entailment.understand_error new_existentials (pfs_to_list pf_0) pfs gamma_0');
 			(entailment_check, pf_discharges, pf_1_subst_list, gamma_0', new_existentials)
 		end
 		else

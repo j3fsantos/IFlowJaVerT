@@ -692,9 +692,9 @@ let encode_snth_equalities tr_ctx s les =
 		(fun i le ->
 			let le', _, _ = encode_logical_expression tr_ctx le in
 			let le_nth = (Expr.mk_app ctx tr_ctx.tr_snth_fun [ s; (mk_num_i ctx i) ]) in
-			let a1 = Boolean.mk_eq ctx le_nth le' in 
-			let a2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ le' ]) (encode_type ctx StringType) in 
-			[ a1; a2 ]) 
+			let a1 = Boolean.mk_eq ctx le_nth le' in
+			let a2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ le' ]) (encode_type ctx StringType) in
+			[ a1; a2 ])
 		les)
 
 let encode_gamma tr_ctx how_many =
@@ -880,21 +880,21 @@ let make_concrete_string_axioms tr_ctx s =
 	let len_axiom = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_slen_fun [ s' ]) (mk_num_i ctx (String.length s)) in
 	let les = List.map (fun x -> LLit (String x)) (explode s) in
 	let snth_axioms = encode_snth_equalities tr_ctx s' les in
-	let typeof_axiom = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ s' ]) (encode_type ctx StringType) in  
+	let typeof_axiom = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ s' ]) (encode_type ctx StringType) in
 	typeof_axiom :: (len_axiom :: snth_axioms)
 
 
 let make_concrete_number_axioms tr_ctx n =
 	let ctx = tr_ctx.z3_ctx in
 	let n', _, _  = encode_logical_expression tr_ctx (LLit (Num n)) in
-	let typeof_axiom = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ n' ]) (encode_type ctx NumberType) in  
+	let typeof_axiom = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ n' ]) (encode_type ctx NumberType) in
 	[ typeof_axiom ]
 
 
 let make_concrete_int_axioms tr_ctx i =
 	let ctx = tr_ctx.z3_ctx in
 	let i', _, _  = encode_logical_expression tr_ctx (LLit (Integer i)) in
-	let typeof_axiom = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ i' ]) (encode_type ctx IntType) in  
+	let typeof_axiom = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ i' ]) (encode_type ctx IntType) in
 	[ typeof_axiom ]
 
 
@@ -1048,7 +1048,7 @@ let rec encode_assertion tr_ctx is_premise a : Expr.expr * (Expr.expr list) =
 		raise (Failure msg)
 
 
-(** 
+(**
 let get_them_nasty_string_axioms tr_ctx assertions =
 	let get_string_axioms a =
 		let a_strings = JSIL_Logic_Utils.remove_string_duplicates (JSIL_Logic_Utils.get_assertion_string_literals a) in
@@ -1058,19 +1058,19 @@ let get_them_nasty_string_axioms tr_ctx assertions =
 
 
 let encode_assertion_top_level tr_ctx is_premise a =
-	let a_strings, a_numbers, a_ints = 
-		JSIL_Logic_Utils.get_assertion_string_number_int_literals a in 
-	let a_strings, a_numbers, a_ints = 
-		JSIL_Logic_Utils.remove_string_duplicates a_strings, 
+	let a_strings, a_numbers, a_ints =
+		JSIL_Logic_Utils.get_assertion_string_number_int_literals a in
+	let a_strings, a_numbers, a_ints =
+		JSIL_Logic_Utils.remove_string_duplicates a_strings,
 		JSIL_Logic_Utils.remove_number_duplicates a_numbers,
-		JSIL_Logic_Utils.remove_int_duplicates a_ints in 
-	
+		JSIL_Logic_Utils.remove_int_duplicates a_ints in
+
 	let a_strings_axioms = List.concat (List.map (fun s -> make_concrete_string_axioms tr_ctx s) a_strings) in
 	let a_numbers_axioms = List.concat (List.map (fun s -> make_concrete_number_axioms tr_ctx s) a_numbers) in
 	let a_ints_axioms = List.concat (List.map (fun s -> make_concrete_int_axioms tr_ctx s) a_ints) in
-	
-	let a_strings_numbers_ints_axioms = a_strings_axioms @ a_numbers_axioms @ a_ints_axioms in 
-	
+
+	let a_strings_numbers_ints_axioms = a_strings_axioms @ a_numbers_axioms @ a_ints_axioms in
+
 	let a' = JSIL_Logic_Utils.push_in_negations_off a in
 	let a'', axioms = encode_assertion tr_ctx is_premise a' in
 	if ((List.length axioms > 0) || (List.length a_strings_numbers_ints_axioms > 0))

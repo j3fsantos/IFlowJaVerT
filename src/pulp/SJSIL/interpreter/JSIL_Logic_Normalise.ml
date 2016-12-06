@@ -689,7 +689,12 @@ let normalise_single_spec preds spec =
 let normalise_spec preds spec =
 	Printf.printf "Going to process the SPECS of %s\n" spec.spec_name;
 	let normalised_pre_post_list = List.concat (List.map (normalise_single_spec preds) spec.proc_specs) in
-
+	let normalised_pre_post_list =
+		List.map (fun (x : jsil_n_single_spec) ->
+			let pre = Symbolic_State_Functions.aggresively_simplify [] x.n_pre in
+			let post = List.map (fun y -> Symbolic_State_Functions.aggresively_simplify [] y) x.n_post in
+			{ x with n_pre = pre; n_post = post }
+		) normalised_pre_post_list in
 	{
 		n_spec_name = spec.spec_name;
 		n_spec_params = spec.spec_params;

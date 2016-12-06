@@ -1,6 +1,8 @@
 /*
   @toprequires (emp)
-  @topensures (scope(i: 1))
+  @topensures (scope(o: #lo) * scope (s : \"fafafa\") * standardObject(#lo) * dataField(#lo, \"a\", \"oogaBooga\"))
 */
-var i = 0;
-i = i+1
+
+var s = "fafafa";
+
+var o = { a : "oogaBooga" };
