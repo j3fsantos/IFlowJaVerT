@@ -184,13 +184,14 @@ let unify_fv_pair (pat_field, pat_value) (fv_list : (jsil_logic_expr * jsil_logi
 		match fv_list with
 		| [] -> None
 		| (e_field, e_value) :: rest ->
-			let field_unifier = unify_lexprs pat_field e_field p_formulae solver gamma subst in
-			let value_unifier = unify_lexprs pat_value e_value p_formulae solver gamma subst in
-			if (Symbolic_State_Functions.update_subst2 subst field_unifier value_unifier p_formulae solver gamma)
-				then
-					Some ((traversed_fv_list @ rest), (e_field, e_value))
-				else
-					loop rest ((e_field, e_value) :: traversed_fv_list) in
+			let (bf, fu) = unify_lexprs pat_field e_field p_formulae solver gamma subst in
+			(match bf with
+			 | true ->
+			     let (bv, vu) = unify_lexprs pat_value e_value p_formulae solver gamma subst in
+				 if (bv && (Symbolic_State_Functions.update_subst2 subst fu vu p_formulae solver gamma))
+				 	then Some ((traversed_fv_list @ rest), (e_field, e_value))
+					else loop rest ((e_field, e_value) :: traversed_fv_list)
+			 | false -> loop rest ((e_field, e_value) :: traversed_fv_list)) in
 	loop fv_list []
 
 
@@ -225,8 +226,8 @@ let unify_symb_fv_lists pat_fv_list fv_list def_val p_formulae solver gamma subs
 				(match def_val with
 				| LUnknown -> None
 				| _ ->
-					let unifier = unify_lexprs pat_val def_val p_formulae solver gamma subst in
-					if (Symbolic_State_Functions.update_subst1 subst unifier)
+					let (bv, unifier) = unify_lexprs pat_val def_val p_formulae solver gamma subst in
+					if (bv && (Symbolic_State_Functions.update_subst1 subst unifier))
 						then loop fv_list rest_pat_list matched_fv_list
 						else None)
 			| Some (rest_fv_list, matched_fv_pair) ->
@@ -234,8 +235,58 @@ let unify_symb_fv_lists pat_fv_list fv_list def_val p_formulae solver gamma subs
 	let order_pat_list = order_pat_fv_list pat_fv_list [] [] [] [] in
 	loop fv_list order_pat_list []
 
+(* Invariant locations *)
+(* Locations from the store *)
+
+let fail msg = print_debug msg; raise (Failure msg)
+
+let unify_symb_heaps_prime
+	(pat_heap : symbolic_heap) (heap : symbolic_heap) pure_formulae solver gamma (subst : substitution) (inv_locs : string list) :
+		((symbolic_heap * (jsil_logic_assertion list)) option) =
+	let oheap = LHeap.copy heap in
+	let pheap = LHeap.copy pat_heap in
+	let pfs = DynArray.copy pure_formulae in
+	let qheap = LHeap.create 1021 in
+	let qpfs = DynArray.create() in
+	print_debug (Printf.sprintf "Experimental heap unification.");
+	print_debug (Printf.sprintf "Heap: %s\nPattern heap: %s\nPure formulae: %s\nGamma:%s\nSubstitution: %s"
+		(JSIL_Memory_Print.string_of_shallow_symb_heap oheap false) (JSIL_Memory_Print.string_of_shallow_symb_heap pheap false)
+		(JSIL_Memory_Print.string_of_shallow_p_formulae pfs false) (JSIL_Memory_Print.string_of_gamma gamma)
+		(JSIL_Memory_Print.string_of_substitution subst));
+	(* Iterate on the invariants *)
+	List.iter
+		(fun inv_loc ->
+			print_debug (Printf.sprintf "Invariant heap location: %s" inv_loc);
+			let ilp = LHeap.mem pheap inv_loc in
+			let ilo = LHeap.mem oheap inv_loc in
+			(match ilp, ilo with
+			 | true, true ->
+			     print_debug (Printf.sprintf "InvLoc %s in both heaps." inv_loc);
+				 let (pfv, pdef) = LHeap.find pheap inv_loc in
+				 let (ofv, odef) = LHeap.find oheap inv_loc in
+				 (match pdef with
+				  | LUnknown ->
+				      let fv_lists = unify_symb_fv_lists pfv ofv odef pfs solver gamma subst in
+					  (match fv_lists with
+					  | Some (new_fv_list, matched_fv_list) ->
+						  print_debug "fv_lists unified successfully.";
+						  LHeap.add qheap inv_loc (new_fv_list, odef);
+						  print_debug (Printf.sprintf "Quotient heap: %s" (JSIL_Memory_Print.string_of_shallow_symb_heap qheap false));
+						  let new_pfs : jsil_logic_assertion list = make_all_different_pure_assertion new_fv_list matched_fv_list in
+						  DynArray.append (DynArray.of_list new_pfs) qpfs;
+						  Symbolic_State_Functions.sanitise_pfs qpfs;
+						  print_debug (Printf.sprintf "Pure formulae: %s" (JSIL_Memory_Print.string_of_shallow_p_formulae qpfs false));
+					  | None -> let msg = "fv_lists not unifiable" in fail msg)
+				  | _ -> fail "Pattern heaps cannot have default values other than unknown.")
+		     | true, false -> let msg = Printf.sprintf "InvLoc %s in pattern but not in original heap." inv_loc in fail msg
+			 | false, _ -> print_debug (Printf.sprintf "InvLoc %s not in pattern heap." inv_loc))
+		) inv_locs;
+	(* Iterate on the subst *)
+	(* Understand the others *)
+	None
 
 let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_formulae solver gamma (subst : substitution) : ((symbolic_heap * (jsil_logic_assertion list)) option)  =
+	unify_symb_heaps_prime pat_heap heap pure_formulae solver gamma subst ["$lg"; "$lobj_proto"];
 	Printf.printf "Unify heaps with substitution: %s\n" (JSIL_Memory_Print.string_of_substitution subst);
 	let quotient_heap = LHeap.create 1021 in
 	try
@@ -300,9 +351,9 @@ let unify_pred_against_pred (pat_pred : (string * (jsil_logic_expr list))) (pred
 		(match pat_list, list with
 		| [], [] -> ( (* Printf.printf "Success in predicate set unification\n";*) true)
 		| (pat_le :: rest_pat_list), (le :: rest_list) ->
-			let unifier = unify_lexprs pat_le le p_formulae solver gamma subst in
+			let (bv, unifier) = unify_lexprs pat_le le p_formulae solver gamma subst in
 			(* Printf.printf "pat_le: %s. le: %s\n" (JSIL_Print.string_of_logic_expression pat_le false) (JSIL_Print.string_of_logic_expression le false); *)
-			if (Symbolic_State_Functions.update_subst1 subst unifier)
+			if (bv && Symbolic_State_Functions.update_subst1 subst unifier)
 				then unify_expr_lists rest_pat_list rest_list subst
 				else ( (* Printf.printf "Tremendous failure in predicate set unification\n";*) false)
 		| _, _ -> false) in

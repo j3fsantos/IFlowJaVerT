@@ -8,23 +8,18 @@ open JSIL_Memory_Model
 let small_tbl_size = 31
 
 let update_subst1 subst unifier =
-	match unifier with
-	| false, _ -> false
-	| _, Some (var, le) ->
-		 Hashtbl.add subst var le;
-		true
-	| _, None -> true
+	(match unifier with
+	| Some (var, le) -> Hashtbl.add subst var le;
+    | None -> ());
+	true
 
 
 let update_subst2 subst unifier1 unifier2 p_formulae solver gamma =
 	match unifier1, unifier2 with
-	| (true, None), (true, None) -> true
-
-	| (true, Some _), (true, None) -> update_subst1 subst unifier1
-
-	| (true, None), (true, Some _) -> update_subst1 subst unifier2
-
-	| (true, Some (var1, le1)), (true, Some (var2, le2)) ->
+	| None, None -> true
+	| Some _, None -> update_subst1 subst unifier1
+	| None, Some _ -> update_subst1 subst unifier2
+	| Some (var1, le1), Some (var2, le2) ->
 		if (var1 = var2)
 			then
 				begin
@@ -38,10 +33,6 @@ let update_subst2 subst unifier1 unifier2 p_formulae solver gamma =
 					Hashtbl.add subst var2 le2;
 					true
 				end
-
-	| _, _ -> false
-
-
 
 (*************************************)
 (** Abstract Heap functions         **)
