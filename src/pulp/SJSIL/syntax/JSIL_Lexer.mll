@@ -151,6 +151,7 @@ rule read = parse
 (*| "exists"             { JSIL_Parser.LEXISTS }
 	| "forall"             { JSIL_Parser.LFORALL }*)
 	| "types"              { JSIL_Parser.LTYPES }
+	| "empty_fields"       { JSIL_Parser.EMPTYFIELDS }
 (* Logic predicates *)
 	| "pred"               { JSIL_Parser.PRED }
 (* Logic commands *)
@@ -186,6 +187,7 @@ rule read = parse
 	| ']'                  { JSIL_Parser.RBRACKET  }
 	| '{'                  { JSIL_Parser.CLBRACKET }
 	| '}'                  { JSIL_Parser.CRBRACKET }
+	| '|'                  { JSIL_Parser.VERT      }
 (* Literals (cont.) *)
 	| int                  { let n = float_of_string (Lexing.lexeme lexbuf) in
 	                           if (Utils.is_int n)

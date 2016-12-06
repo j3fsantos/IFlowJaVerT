@@ -235,14 +235,15 @@ let unify_symb_fv_lists pat_fv_list fv_list def_val p_formulae solver gamma subs
 	loop fv_list order_pat_list []
 
 
-let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_formulae solver gamma (subst : substitution) : ((symbolic_heap * (jsil_logic_assertion list)) option)  =
+let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_formulae solver gamma (subst : substitution) : (symbolic_heap * (jsil_logic_assertion list)) option  =
 	let quotient_heap = LHeap.create 1021 in
+	let pat_heap_domain : string list = get_heap_domain pat_heap subst in 
 	try
 		let pfs : jsil_logic_assertion list =
-			LHeap.fold
-				(fun pat_loc (pat_fv_list, pat_def) pfs ->
-					(match pat_def with
-					| LUnknown ->
+			List.fold_left
+				(fun pfs pat_loc ->
+					(match abs_heap_get pat_heap pat_loc with
+					| Some (pat_fv_list, LUnknown) ->
 						let loc = try
 							(match (Hashtbl.find subst pat_loc) with
 							| LLit (Loc loc) -> loc
@@ -264,9 +265,9 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 							let new_pfs : jsil_logic_assertion list = make_all_different_pure_assertion new_fv_list matched_fv_list in
 							new_pfs @ pfs
 						| None -> Printf.printf "fv_lists not unifiable. Bugger!\n"; raise (Failure ("fv_lists not unifiable")))
-					| _ -> raise (Failure ("Pattern heaps cannot have default values"))))
-				pat_heap
-				[] in
+					| _ -> raise (Failure ("Pattern heaps cannot have default values")))) 
+				[] 
+				pat_heap_domain in
 		LHeap.iter
 			(fun loc (fv_list, def) ->
 				try

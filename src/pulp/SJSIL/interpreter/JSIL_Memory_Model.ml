@@ -118,6 +118,30 @@ type symbolic_state = symbolic_heap * symbolic_store * pure_formulae * typing_en
 (** Abstract Heap functions         **)
 (*************************************)
 
+let abs_heap_get heap loc = 
+	try Some (LHeap.find heap loc) with _ -> None 
+
+let get_heap_domain heap subst = 
+	let domain = 
+		LHeap.fold
+			(fun l _ ac -> l :: ac) 
+			heap 
+			[] in
+	
+	let rec loop locs matched_abs_locs free_abs_locs concrete_locs =
+		match locs with 
+		| [] -> concrete_locs @ matched_abs_locs @ free_abs_locs 
+		| loc :: rest_locs -> 
+			if (is_abs_loc_name loc) 
+				then ( 
+					if (Hashtbl.mem subst loc) 
+						then loop rest_locs (loc :: matched_abs_locs) free_abs_locs concrete_locs 
+						else loop rest_locs matched_abs_locs (loc :: free_abs_locs) concrete_locs)
+				else loop rest_locs matched_abs_locs free_abs_locs (loc :: concrete_locs) in 
+
+	loop domain [] [] [] 
+
+
 
 (*************************************)
 (** Abstract Store functions        **)

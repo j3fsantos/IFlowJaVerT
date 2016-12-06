@@ -146,6 +146,7 @@ open JS_Logic_Syntax
 %token LLESSTHANSTRING
 %token LARROW
 %token LEMP
+%token EMPTYFIELDS
 (*%token LEXISTS
 %token LFORALL *)
 %token LTYPES
@@ -183,6 +184,7 @@ open JS_Logic_Syntax
 %token RBRACKET
 %token CLBRACKET
 %token CRBRACKET
+%token VERT
 (* EOF *)
 %token EOF
 
@@ -612,6 +614,9 @@ assertion_target:
 (* types (type_pairs) *)
   | LTYPES; LBRACE; type_pairs = separated_list(COMMA, type_env_pair_target); RBRACE
     { LTypes type_pairs }
+(* empty_fields (le | lit1, lit2, lit3, ...) *) 
+	| EMPTYFIELDS; LBRACE; le=lexpr_target; VERT; fields=separated_list(COMMA, VAR); RBRACE
+		{ LEmptyFields (le, fields) }
 (* (P) *)
   | LBRACE; ass=assertion_target; RBRACE
 	  { ass }
