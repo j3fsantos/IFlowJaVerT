@@ -227,67 +227,10 @@ let unify_symb_fv_lists pat_fv_list fv_list def_val p_formulae solver gamma subs
 	let order_pat_list = order_pat_fv_list pat_fv_list [] [] [] [] in
 	loop fv_list order_pat_list []
 
-(* Invariant locations *)
-(* Locations from the store *)
-
-let fail msg = print_debug msg; raise (Failure msg)
-
-let unify_symb_heaps_prime
-	(pat_heap : symbolic_heap) (heap : symbolic_heap) pure_formulae solver gamma (subst : substitution) (inv_locs : string list) :
-		((symbolic_heap * (jsil_logic_assertion list)) option) =
-	let oheap = LHeap.copy heap in
-	let pheap = LHeap.copy pat_heap in
-	let pfs = DynArray.copy pure_formulae in
-	let qheap = LHeap.create 1021 in
-	let qpfs = DynArray.create() in
-	print_debug (Printf.sprintf "Experimental heap unification.");
-	print_debug (Printf.sprintf "Heap: %s\nPattern heap: %s\nPure formulae: %s\nGamma:%s\nSubstitution: %s"
-		(JSIL_Memory_Print.string_of_shallow_symb_heap oheap false) (JSIL_Memory_Print.string_of_shallow_symb_heap pheap false)
-		(JSIL_Memory_Print.string_of_shallow_p_formulae pfs false) (JSIL_Memory_Print.string_of_gamma gamma)
-		(JSIL_Memory_Print.string_of_substitution subst));
-	(* Iterate on the invariants *)
-	List.iter
-		(fun inv_loc ->
-			print_debug (Printf.sprintf "Invariant heap location: %s" inv_loc);
-			let ilp = LHeap.mem pheap inv_loc in
-			let ilo = LHeap.mem oheap inv_loc in
-			(match ilp, ilo with
-			 | true, true ->
-			     print_debug (Printf.sprintf "InvLoc %s in both heaps." inv_loc);
-				 let (pfv, pdef) = LHeap.find pheap inv_loc in
-				 let (ofv, odef) = LHeap.find oheap inv_loc in
-				 (match pdef with
-				  | LUnknown ->
-				      let fv_lists = unify_symb_fv_lists pfv ofv odef pfs solver gamma subst in
-					  (match fv_lists with
-					  | Some (new_fv_list, matched_fv_list) ->
-						  print_debug "fv_lists unified successfully.";
-						  LHeap.add qheap inv_loc (new_fv_list, odef);
-						  let new_pfs : jsil_logic_assertion list = make_all_different_pure_assertion new_fv_list matched_fv_list in
-						  DynArray.append (DynArray.of_list new_pfs) qpfs;
-						  Symbolic_State_Functions.sanitise_pfs qpfs;
-					  | None -> let msg = "fv_lists not unifiable" in fail msg)
-				  | _ -> fail "Pattern heaps cannot have default values other than unknown.")
-		     | true, false -> let msg = Printf.sprintf "InvLoc %s in pattern but not in original heap." inv_loc in fail msg
-			 | false, _ -> print_debug (Printf.sprintf "InvLoc %s not in pattern heap." inv_loc));
-			 while (LHeap.mem oheap inv_loc) do LHeap.remove oheap inv_loc done;
-			 while (LHeap.mem pheap inv_loc) do LHeap.remove pheap inv_loc done;
-		) inv_locs;
-	print_debug "After invariant location processing.";
-	print_debug (Printf.sprintf "Heap: %s\nPattern heap: %s\nPure formulae: %s\nGamma:%s\nSubstitution: %s\nQuotient heap: %s\nQuotient pfs: %s"
-		(JSIL_Memory_Print.string_of_shallow_symb_heap oheap false) (JSIL_Memory_Print.string_of_shallow_symb_heap pheap false)
-		(JSIL_Memory_Print.string_of_shallow_p_formulae pfs false) (JSIL_Memory_Print.string_of_gamma gamma)
-		(JSIL_Memory_Print.string_of_substitution subst) (JSIL_Memory_Print.string_of_shallow_symb_heap qheap false)
-		(JSIL_Memory_Print.string_of_shallow_p_formulae qpfs false));
-	(* Iterate on the subst *)
-	(* Understand the others *)
-	None
-
 let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_formulae solver gamma (subst : substitution) : (symbolic_heap * (jsil_logic_assertion list)) option  =
-	(* unify_symb_heaps_prime pat_heap heap pure_formulae solver gamma subst ["$lg"; "$lobj_proto"]; *)
 	Printf.printf "Unify heaps with substitution: %s\n" (JSIL_Memory_Print.string_of_substitution subst);
 	let quotient_heap = LHeap.create 1021 in
-	let pat_heap_domain : string list = get_heap_domain pat_heap subst in 
+	let pat_heap_domain : string list = get_heap_domain pat_heap subst in
 	try
 		let pfs : jsil_logic_assertion list =
 			List.fold_left
@@ -299,7 +242,7 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 							(match (Hashtbl.find subst pat_loc) with
 							| LLit (Loc loc) -> loc
 							| ALoc loc -> loc
-				  		| _ ->
+				  		    | _ ->
 								(* I really think this case is wrong!!!*)
 								pat_loc)
 							with _ -> (* I really think this case is wrong *) pat_loc in
@@ -316,8 +259,8 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 							let new_pfs : jsil_logic_assertion list = make_all_different_pure_assertion new_fv_list matched_fv_list in
 							new_pfs @ pfs
 						| None -> Printf.printf "fv_lists not unifiable. Bugger!\n"; raise (Failure ("fv_lists not unifiable")))
-					| _ -> raise (Failure ("Pattern heaps cannot have default values")))) 
-				[] 
+					| _ -> raise (Failure ("Pattern heaps cannot have default values"))))
+				[]
 				pat_heap_domain in
 		LHeap.iter
 			(fun loc (fv_list, def) ->

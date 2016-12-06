@@ -44,8 +44,8 @@ type jsil_lit =
 	| Integer  of int
 	| Num      of float
 	| String   of string
-  | Loc      of string
-  | Type     of jsil_type
+    | Loc      of string
+    | Type     of jsil_type
 	(* List of literals (for descriptors) *)
 	| LList    of jsil_lit list
 
@@ -57,18 +57,18 @@ type bin_op =
 	(* Comparison *)
   | Equal
   | LessThan
-	| LessThanEqual
-	| LessThanString
-	(* Arithmetic operators *)
+  | LessThanEqual
+  | LessThanString
+  (* Arithmetic operators *)
   | Plus
   | Minus
   | Times
   | Div
   | Mod
   (* Boolean operators *)
-	| And
+  | And
   | Or
-	(* Bitwise operators *)
+  (* Bitwise operators *)
   | BitwiseAnd
   | BitwiseOr
   | BitwiseXor
@@ -111,11 +111,11 @@ type unary_op =
 	| M_tan
 	(* Type checking and conversion *)
 	| IsPrimitive
-  | ToStringOp
+    | ToStringOp
 	| ToIntOp
 	| ToUint16Op
-  | ToInt32Op
-  | ToUint32Op
+    | ToInt32Op
+    | ToUint32Op
 	| ToNumberOp
 	(* List manipulation *)
 	| Car
