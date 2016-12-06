@@ -101,8 +101,8 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 	with (Failure msg) -> (* Printf.printf "Cannot unify, filha. Sorry: %s\n" msg; *) None
 
 
-let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae solver (gamma: typing_environment) (subst : (string, jsil_logic_expr) Hashtbl.t) : (bool * ((string * jsil_logic_expr) option)) =
-	Printf.printf "unify_lexprs: %s versus %s\n" (JSIL_Print.string_of_logic_expression le_pat false)  (JSIL_Print.string_of_logic_expression le false);
+let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae solver (gamma: typing_environment) (subst : (string, jsil_logic_expr) Hashtbl.t) : (bool * ((string * jsil_logic_expr) list option)) =
+	Printf.printf ": %s versus %s\n" (JSIL_Print.string_of_logic_expression le_pat false)  (JSIL_Print.string_of_logic_expression le false);
 	match le_pat with
 	| LVar var
 	| ALoc var ->
@@ -113,51 +113,43 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae solver (gamma: typ
 					( (* Printf.printf "I managed to UNIFY BABY!!!"; *)
 					(true, None))
 				else (false, None)
-		with _ ->	(true, Some (var, le)))
+		with _ -> print_debug (Printf.sprintf "Abstract location or variable not in subst: %s %s" var (JSIL_Print.string_of_logic_expression le false));
+		          (true, Some [ (var, le) ]))
 
-	| LLit lit ->
-		if (Pure_Entailment.is_equal le_pat le p_formulae solver gamma)
-			then ( (* Printf.printf "I managed to UNIFY BABY!!!"; *)  (true, None))
-			else (false, None)
-
-	| LNone ->
-		if (Pure_Entailment.is_equal LNone le p_formulae solver gamma)
-			then ( (true, None))
-			else (false, None)
-
+	| LLit _
+	| LNone
 	| LUnknown ->
-		if (Pure_Entailment.is_equal LUnknown le p_formulae solver gamma)
+		if (Pure_Entailment.is_equal le_pat le p_formulae solver gamma)
 			then (true, None)
 			else (false, None)
 
 	| LEList ple ->
 		(* Printf.printf "Now, are these lists equal?\n"; *)
 		let list_eq lx ly = List.fold_left2
-			(fun ac x y ->
+			(fun (ac1, ac2) x y ->
 				(* Printf.printf "%s == %s? " (JSIL_Print.string_of_logic_expression x false) (JSIL_Print.string_of_logic_expression y false); *)
 				let (ch, oops) = unify_lexprs x y p_formulae solver gamma subst in
 				(* Printf.printf "%b\n" ch; *)
 				match oops with
-				 | None -> ac && ch
-				 | Some _ -> false ) true lx ly in
+				 | None -> (ac1 && ch, ac2)
+				 | Some formulae -> (ac1 && ch,
+					 (match ac2 with
+					  | None -> Some formulae
+					  | Some fs -> Some (fs @ formulae)))) (true, None) lx ly in
 		match le with
 		| LLit (LList le') ->
 	   		let lle = List.length ple in
 			let lle' = List.length le' in
 			if (lle = lle') then
 				let le'' = List.map (fun x -> LLit x) le' in
-				let is_eq = list_eq ple le'' in
-				(* Printf.printf "And they aaaare: %b\n" is_eq; *)
-					(is_eq, None)
+				list_eq ple le''
 			else (false, None)
 		| LEList le' ->
 	   		let lle = List.length ple in
 			let lle' = List.length le' in
-			if (lle = lle') then
-				let is_eq = list_eq ple le' in
-				(* Printf.printf "And they aaaare: %b\n" is_eq; *)
-					(is_eq, None)
-			else (false, None)
+			if (lle = lle')
+				then list_eq ple le'
+				else (false, None)
 		| le' ->
 			(* Printf.printf "Second thingy not a list.\n"; *)
 			let le'' = find_me_baby le' (Hashtbl.create 1) p_formulae in
@@ -271,22 +263,28 @@ let unify_symb_heaps_prime
 					  | Some (new_fv_list, matched_fv_list) ->
 						  print_debug "fv_lists unified successfully.";
 						  LHeap.add qheap inv_loc (new_fv_list, odef);
-						  print_debug (Printf.sprintf "Quotient heap: %s" (JSIL_Memory_Print.string_of_shallow_symb_heap qheap false));
 						  let new_pfs : jsil_logic_assertion list = make_all_different_pure_assertion new_fv_list matched_fv_list in
 						  DynArray.append (DynArray.of_list new_pfs) qpfs;
 						  Symbolic_State_Functions.sanitise_pfs qpfs;
-						  print_debug (Printf.sprintf "Pure formulae: %s" (JSIL_Memory_Print.string_of_shallow_p_formulae qpfs false));
 					  | None -> let msg = "fv_lists not unifiable" in fail msg)
 				  | _ -> fail "Pattern heaps cannot have default values other than unknown.")
 		     | true, false -> let msg = Printf.sprintf "InvLoc %s in pattern but not in original heap." inv_loc in fail msg
-			 | false, _ -> print_debug (Printf.sprintf "InvLoc %s not in pattern heap." inv_loc))
+			 | false, _ -> print_debug (Printf.sprintf "InvLoc %s not in pattern heap." inv_loc));
+			 while (LHeap.mem oheap inv_loc) do LHeap.remove oheap inv_loc done;
+			 while (LHeap.mem pheap inv_loc) do LHeap.remove pheap inv_loc done;
 		) inv_locs;
+	print_debug "After invariant location processing.";
+	print_debug (Printf.sprintf "Heap: %s\nPattern heap: %s\nPure formulae: %s\nGamma:%s\nSubstitution: %s\nQuotient heap: %s\nQuotient pfs: %s"
+		(JSIL_Memory_Print.string_of_shallow_symb_heap oheap false) (JSIL_Memory_Print.string_of_shallow_symb_heap pheap false)
+		(JSIL_Memory_Print.string_of_shallow_p_formulae pfs false) (JSIL_Memory_Print.string_of_gamma gamma)
+		(JSIL_Memory_Print.string_of_substitution subst) (JSIL_Memory_Print.string_of_shallow_symb_heap qheap false)
+		(JSIL_Memory_Print.string_of_shallow_p_formulae qpfs false));
 	(* Iterate on the subst *)
 	(* Understand the others *)
 	None
 
 let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_formulae solver gamma (subst : substitution) : ((symbolic_heap * (jsil_logic_assertion list)) option)  =
-	unify_symb_heaps_prime pat_heap heap pure_formulae solver gamma subst ["$lg"; "$lobj_proto"];
+	(* unify_symb_heaps_prime pat_heap heap pure_formulae solver gamma subst ["$lg"; "$lobj_proto"]; *)
 	Printf.printf "Unify heaps with substitution: %s\n" (JSIL_Memory_Print.string_of_substitution subst);
 	let quotient_heap = LHeap.create 1021 in
 	try

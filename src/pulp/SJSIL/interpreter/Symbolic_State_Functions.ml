@@ -9,30 +9,32 @@ let small_tbl_size = 31
 
 let update_subst1 subst unifier =
 	(match unifier with
-	| Some (var, le) -> Hashtbl.add subst var le;
-    | None -> ());
+	 | Some unifier -> List.iter (fun (var, le) -> Hashtbl.add subst var le) unifier;
+	 | None -> ());
 	true
 
 
-let update_subst2 subst unifier1 unifier2 p_formulae solver gamma =
+let update_subst2 subst (unifier1 : (string * jsil_logic_expr) list option)
+                        (unifier2 : (string * jsil_logic_expr) list option) p_formulae solver gamma =
 	match unifier1, unifier2 with
 	| None, None -> true
 	| Some _, None -> update_subst1 subst unifier1
 	| None, Some _ -> update_subst1 subst unifier2
-	| Some (var1, le1), Some (var2, le2) ->
+	| Some unifier1, Some unifier2 ->
+	  List.fold_left2 (fun ac (var1, le1) (var2, le2) ->
 		if (var1 = var2)
 			then
 				begin
 					if (Pure_Entailment.is_equal le1 le2 p_formulae solver gamma)
-						then (Hashtbl.add subst var1 le1; true)
+						then (Hashtbl.add subst var1 le1; ac)
 						else false
 				end
 			else
 				begin
 					Hashtbl.add subst var1 le1;
 					Hashtbl.add subst var2 le2;
-					true
-				end
+					ac
+				end) true unifier1 unifier2
 
 (*************************************)
 (** Abstract Heap functions         **)
