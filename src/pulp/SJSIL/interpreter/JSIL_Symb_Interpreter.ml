@@ -614,8 +614,8 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 
 
 let recursive_unfold pred_name pred_defs symb_state params spec_vars =
-	
-	let rec loop symb_state =	
+
+	let rec loop symb_state =
 		let rec aux args =
 			let unfolded_symb_states = unfold_predicates pred_name pred_defs symb_state params args spec_vars in
 			Printf.printf "pred_args: %s\n"
@@ -625,19 +625,19 @@ let recursive_unfold pred_name pred_defs symb_state params spec_vars =
 				then symb_state
 				else (
 					Printf.printf "Inside recursive unfolding:\n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_state (List.hd unfolded_symb_states));
-					loop (List.hd unfolded_symb_states)) in 
-		
+					loop (List.hd unfolded_symb_states)) in
+
 		let pred_args = Symbolic_State_Functions.find_predicate_assertion (get_preds symb_state) pred_name in
 		let len_pred_args = List.length pred_args in
 		Printf.printf "len_pred_args: %i\n" len_pred_args;
-		
+
 		let rec inner_loop pred_args symb_state =
-			match pred_args with 
-			| [] -> symb_state 
-			| args :: more_args -> 
-				let symb_state = aux args in 
+			match pred_args with
+			| [] -> symb_state
+			| args :: more_args ->
+				let symb_state = aux args in
 				inner_loop more_args symb_state in
-		inner_loop pred_args symb_state in 
+		inner_loop pred_args symb_state in
 
 	loop symb_state
 
@@ -728,7 +728,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 		Hashtbl.replace search_info.vis_tbl i cur_node_info.node_number in
 
 
-	let print_symb_state_and_cmd () =
+	let print_symb_state_and_cmd symb_state =
 		let symb_state_str = JSIL_Memory_Print.string_of_shallow_symb_state symb_state in
 		let cmd = get_proc_cmd proc i in
 		let cmd_str = JSIL_Print.string_of_cmd cmd 0 0 false false false in
@@ -737,8 +737,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 			i symb_state_str cmd_str in
 
 	(* symbolically evaluate a guarded goto *)
-	let symb_evaluate_guarded_goto e j k =
-		let symb_state = Symbolic_State_Functions.aggresively_simplify [] symb_state in
+	let symb_evaluate_guarded_goto symb_state e j k =
 		let le = symb_evaluate_expr e (get_store symb_state) (get_gamma symb_state) (get_pf symb_state) in
 		Printf.printf "Evaluated expression: %s --> %s\n" (JSIL_Print.string_of_expression e false) (JSIL_Print.string_of_logic_expression le false);
 		let e_le, a_le = lift_logic_expr le in
@@ -773,9 +772,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 
 
 	(* symbolically evaluate a procedure call *)
-	let symb_evaluate_call x e e_args j =
-
-		let symb_state = Symbolic_State_Functions.aggresively_simplify [] symb_state in
+	let symb_evaluate_call symb_state x e e_args j =
 
 		(* get the name and specs of the procedure being called *)
 		let le_proc_name = symb_evaluate_expr e (get_store symb_state) (get_gamma symb_state) (get_pf symb_state) in
@@ -818,8 +815,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 			new_symb_states in
 
 	(* symbolically evaluate a phi command *)
-	let symb_evaluate_phi x x_arr =
-	    let symb_state = Symbolic_State_Functions.aggresively_simplify [] symb_state in
+	let symb_evaluate_phi symb_state x x_arr =
 		let cur_proc_name = proc.proc_name in
 		let cur_which_pred =
 			try Hashtbl.find s_prog.which_pred (cur_proc_name, prev, i)
@@ -841,8 +837,8 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 		update_gamma (get_gamma symb_state) x te;
 		symb_evaluate_next_cmd_1 s_prog proc spec search_info symb_state i (i+1) in
 
-
-	if (!verbose) then print_symb_state_and_cmd ();
+	let symb_state = Symbolic_State_Functions.aggresively_simplify [] symb_state in
+	if (!verbose) then print_symb_state_and_cmd symb_state;
 	let metadata, cmd = get_proc_cmd proc i in
 	mark_as_visited search_info i;
 	match cmd with
@@ -852,11 +848,11 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 
 	| SGoto j -> symb_evaluate_next_cmd_1 s_prog proc spec search_info symb_state i j
 
-	| SGuardedGoto (e, j, k) -> symb_evaluate_guarded_goto e j k
+	| SGuardedGoto (e, j, k) -> symb_evaluate_guarded_goto symb_state e j k
 
-	| SCall (x, e, e_args, j) -> symb_evaluate_call x e e_args j
+	| SCall (x, e, e_args, j) -> symb_evaluate_call symb_state x e e_args j
 
-	| SPhiAssignment (x, x_arr) -> symb_evaluate_phi x x_arr
+	| SPhiAssignment (x, x_arr) -> symb_evaluate_phi symb_state x x_arr
 
 	| _ -> raise (Failure "not implemented yet")
 
