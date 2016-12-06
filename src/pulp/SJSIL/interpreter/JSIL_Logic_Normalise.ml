@@ -53,8 +53,8 @@ let rec normalise_lexpr store gamma subst le =
 				| LLit llit -> LLit (Type (JSIL_Interpreter.evaluate_type_of llit))
 				| LNone -> raise (Failure "Illegal Logic Expression: TypeOf of None")
 				| LVar lvar ->
-						(try LLit (Type (Hashtbl.find gamma lvar)) with _ ->
-								raise (Failure "Logical variables always have a type"))
+						(try LLit (Type (Hashtbl.find gamma lvar)) with _ -> LTypeOf (LVar lvar))
+								(* raise (Failure (Printf.sprintf "Logical variables always have a type, in particular: %s." lvar))) *)
 				| ALoc _ -> LLit (Type ObjectType)
 				| PVar _ -> raise (Failure "This should never happen: program variable in normalised expression")
 				| LBinOp (_, _, _)
@@ -542,69 +542,69 @@ let extend_typing_env_using_assertion_info a_list gamma =
 		| _ :: rest_a_list -> loop rest_a_list in
 	loop a_list
 
-let process_empty_fields heap store p_formulae gamma subst a = 
-	let rec gather_empty_fields a = 
-		let f = gather_empty_fields in 
-		match a with 
-		| LAnd (_, _) | LOr (_, _) | LNot _ | LTrue | LFalse | LEq (_, _) 
+let process_empty_fields heap store p_formulae gamma subst a =
+	let rec gather_empty_fields a =
+		let f = gather_empty_fields in
+		match a with
+		| LAnd (_, _) | LOr (_, _) | LNot _ | LTrue | LFalse | LEq (_, _)
 			| LLess (_, _) | LLessEq (_, _) | LStrLess (_, _) | LEmp
 			| LTypes (_) | LPred (_, _) | LPointsTo (_, _, _) -> []
-		| LStar (a1, a2) -> (f a1) @ (f a2) 	
-		| LEmptyFields (le, fields) -> 
+		| LStar (a1, a2) -> (f a1) @ (f a2)
+		| LEmptyFields (le, fields) ->
 				let le' = normalise_lexpr store gamma subst le in
-				[ (le', fields) ] in 
-	
-	let rec check_in_fields (le_field : jsil_logic_expr) (fields : string list) (traversed_fields : string list) : (string * (string list)) option = 
-		match fields with 
+				[ (le', fields) ] in
+
+	let rec check_in_fields (le_field : jsil_logic_expr) (fields : string list) (traversed_fields : string list) : (string * (string list)) option =
+		match fields with
 		| [] -> None
 		| field :: rest_fields ->
-			let a = LEq (le_field, (LLit (String field))) in 
-			if (Pure_Entailment.check_entailment (ref None) [] p_formulae [ a ] gamma) 
-				then Some (field, traversed_fields @ rest_fields) 
-				else check_in_fields le_field rest_fields (field :: traversed_fields) in 
-	
-	let rec close_fields (fields : string list) (fv_list : (jsil_logic_expr * jsil_logic_expr) list) (found_fields : string list) = 
-		match fv_list with 
-		| [] -> fields, found_fields 
-		| (le_field, le_val) :: rest_fv_list -> 
-			let ret : (string * (string list)) option = check_in_fields le_field fields [] in 
-			(match ret with 
-			| None -> 
-				if (le_val <> LNone) 
+			let a = LEq (le_field, (LLit (String field))) in
+			if (Pure_Entailment.check_entailment (ref None) [] p_formulae [ a ] gamma)
+				then Some (field, traversed_fields @ rest_fields)
+				else check_in_fields le_field rest_fields (field :: traversed_fields) in
+
+	let rec close_fields (fields : string list) (fv_list : (jsil_logic_expr * jsil_logic_expr) list) (found_fields : string list) =
+		match fv_list with
+		| [] -> fields, found_fields
+		| (le_field, le_val) :: rest_fv_list ->
+			let ret : (string * (string list)) option = check_in_fields le_field fields [] in
+			(match ret with
+			| None ->
+				if (le_val <> LNone)
 					then raise (Failure "empty_fields assertion incompatible with cell assertion")
-					else close_fields fields rest_fv_list found_fields 
-			| Some (found_field, rest_fields) -> 
-				close_fields rest_fields rest_fv_list (found_field :: found_fields)) in 
-	
-	let rec make_fv_list_missing_fields missing_fields fv_list = 
-		match missing_fields with 
-		| [] -> fv_list 
-		| field :: rest -> make_fv_list_missing_fields rest ((LLit (String field), LUnknown) :: fv_list) in 
-	
-	let close_object le_loc non_none_fields = 
-		let ret = 
+					else close_fields fields rest_fv_list found_fields
+			| Some (found_field, rest_fields) ->
+				close_fields rest_fields rest_fv_list (found_field :: found_fields)) in
+
+	let rec make_fv_list_missing_fields missing_fields fv_list =
+		match missing_fields with
+		| [] -> fv_list
+		| field :: rest -> make_fv_list_missing_fields rest ((LLit (String field), LUnknown) :: fv_list) in
+
+	let close_object le_loc non_none_fields =
+		let ret =
 			LHeap.fold (fun cur_loc (cur_fv_list, cur_def) ac ->
-				match ac with 
-				| Some _ -> ac 
-				| None -> 
-					let a = 
+				match ac with
+				| Some _ -> ac
+				| None ->
+					let a =
 						if (is_abs_loc_name cur_loc)
-							then LEq (le_loc, ALoc cur_loc) 
-							else LEq (le_loc, LLit (Loc cur_loc)) in 
-				 	if (Pure_Entailment.check_entailment (ref None) [] p_formulae [ a ] gamma) then ( 
-						let missing_fields, _ = close_fields non_none_fields cur_fv_list [] in 
-						let new_cur_fv_list = make_fv_list_missing_fields missing_fields cur_fv_list in 
+							then LEq (le_loc, ALoc cur_loc)
+							else LEq (le_loc, LLit (Loc cur_loc)) in
+				 	if (Pure_Entailment.check_entailment (ref None) [] p_formulae [ a ] gamma) then (
+						let missing_fields, _ = close_fields non_none_fields cur_fv_list [] in
+						let new_cur_fv_list = make_fv_list_missing_fields missing_fields cur_fv_list in
 						Some (cur_loc, new_cur_fv_list)
 					) else None)
 			heap
-			None in 
-		match ret with 
-		| Some (loc, new_fv_list) -> LHeap.replace heap loc (new_fv_list, LNone) 
-		| None -> raise (Failure "wrong empty field assertions") in 
-			
-	let fields_to_close = gather_empty_fields a in 
+			None in
+		match ret with
+		| Some (loc, new_fv_list) -> LHeap.replace heap loc (new_fv_list, LNone)
+		| None -> raise (Failure "wrong empty field assertions") in
+
+	let fields_to_close = gather_empty_fields a in
 	List.iter (fun (le, non_none_fields) -> close_object le non_none_fields) fields_to_close
-	
+
 
 
 let normalise_assertion a : symbolic_state * substitution =
@@ -639,13 +639,13 @@ let normalise_assertion a : symbolic_state * substitution =
 	Printf.printf "Normalise assertion: subst :%s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
 
 	compute_symb_heap heap store p_formulae gamma subst a;
-	
-	
+
+
 	extend_typing_env_using_assertion_info ((pfs_to_list p_formulae) @ (Symbolic_State_Functions.pf_of_store2 store)) gamma;
 	let preds, new_assertions = init_preds a store gamma subst in
 	extend_typing_env_using_assertion_info new_assertions gamma;
 	Symbolic_State_Functions.extend_pfs p_formulae None new_assertions;
-	process_empty_fields heap store (pfs_to_list p_formulae) gamma subst a; 
+	process_empty_fields heap store (pfs_to_list p_formulae) gamma subst a;
 
 	(* Printf.printf "----- Stage 3 ----- \n\n";
 	Printf.printf "Normalise assertion: heap  :%s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false);

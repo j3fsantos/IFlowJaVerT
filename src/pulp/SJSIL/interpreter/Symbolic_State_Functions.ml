@@ -681,15 +681,21 @@ let copy_single_spec s_spec =
 (** Symbolic state simplification   **)
 (*************************************)
 
-let isSubstitutable le =
+let allowedListMember le =
+(match le with
+ | LLit _ -> true
+ | ALoc _ -> true
+ | LVar var when (String.get var 0 = '_') -> true
+ | _ -> false)
+
+let rec isSubstitutable le =
 (match le with
  | LLit _ -> true
  | ALoc _ -> true
  | LEList lst ->
-     List.fold_left (fun ac x -> ac && (match x with
-	   | LLit _ -> true
-	   | ALoc _ -> true
-	   | _ -> false)) true lst
+     List.fold_left (fun ac x -> ac && allowedListMember x) true lst
+ | LBinOp (le, LstCons, lst) ->
+     allowedListMember le && isSubstitutable lst
  | _ -> false
 )
 
@@ -703,7 +709,7 @@ let rec aggresively_simplify (to_add : (string * jsil_logic_expr) list) (symb_st
 	     print_endline (msg ^ " Pure formulae false.\n");
 	     DynArray.clear p_formulae;
 		 DynArray.add p_formulae LFalse;
-		 f symb_state in
+		 symb_state in
 
 	let rec go_through_pfs (pfs : jsil_logic_assertion list) n =
 	(match pfs with
@@ -718,10 +724,11 @@ let rec aggresively_simplify (to_add : (string * jsil_logic_expr) list) (symb_st
 		(* We cannot simplify these *)
 		| LOr (_, _)
 		| LTrue
-		| LFalse
 		| LLess	(_, _)
 		| LLessEq (_, _)
 		| LStrLess (_, _) -> go_through_pfs rest (n + 1)
+
+		| LFalse -> pfs_false "This is exceptionally bad."
 
 		(* These shouldn't even be here *)
 		| LPointsTo	(_, _, _) -> raise (Failure "Heap cell assertion in pure formulae.")
@@ -738,6 +745,8 @@ let rec aggresively_simplify (to_add : (string * jsil_logic_expr) list) (symb_st
 		   	 (match (l1 = l2) with
 			  | true -> pfs_false "Two literals are equal."
 			  | false -> DynArray.delete p_formulae n; f symb_state)
+		   | LEq (ALoc _, LLit _)
+		   | LEq (LLit _, ALoc _) -> DynArray.delete p_formulae n; f symb_state
 		   | _ -> go_through_pfs rest (n + 1)) (* FOR NOW! *)
 		| LEq (le1, le2) -> (match (le1 = le2) with
 		  | true ->
@@ -785,6 +794,30 @@ let rec aggresively_simplify (to_add : (string * jsil_logic_expr) list) (symb_st
 				f symb_state
 			  end
 			  else pfs_false "Lists are not of the same length."
+			(* LEList and a LstCons *)
+			| LEList ll1, LBinOp (le, LstCons, ll2)
+			| LBinOp (le, LstCons, ll2), LEList ll1 ->
+			  let len1 = List.length ll1 in
+			  if (len1 = 0) then pfs_false "Lists are not of the same length."
+			  else
+			  begin
+				DynArray.delete p_formulae n;
+				DynArray.add p_formulae (LEq (List.hd ll1, le));
+				DynArray.add p_formulae (LEq (LEList (List.tl ll1), le));
+				f symb_state
+			  end
+			(* LitList and a LstCons *)
+			| LLit (LList ll1), LBinOp (le, LstCons, ll2)
+			| LBinOp (le, LstCons, ll2), LLit (LList ll1) ->
+			  let len1 = List.length ll1 in
+			  if (len1 = 0) then pfs_false "Lists are not of the same length."
+			  else
+			  begin
+				DynArray.delete p_formulae n;
+				DynArray.add p_formulae (LEq (LLit (List.hd ll1), le));
+				DynArray.add p_formulae (LEq (LLit (LList (List.tl ll1)), ll2));
+				f symb_state
+			  end
 			(* Lists
 			 *
 			 * 2) One logical, one literal list - lengths must match, element equality, restart
@@ -800,6 +833,13 @@ let rec aggresively_simplify (to_add : (string * jsil_logic_expr) list) (symb_st
 				f symb_state
 			  end
 			  else pfs_false "Lists are not of the same length."
+			| LBinOp (le1, LstCons, le2), LBinOp (le3, LstCons, le4) ->
+			  begin
+			  	DynArray.delete p_formulae n;
+				DynArray.add p_formulae (LEq (le1, le3));
+				DynArray.add p_formulae (LEq (le2, le4));
+				f symb_state
+			  end
 			(* Injective operators *)
 			| LUnOp (ToStringOp, le1), LUnOp (ToStringOp, le2) ->
 			  DynArray.set p_formulae n (LEq (le1, le2));
@@ -815,37 +855,7 @@ let rec aggresively_simplify (to_add : (string * jsil_logic_expr) list) (symb_st
 			)
 		  )
 		)
-	) in (*)
-		  if (le1 = le2) then
-		  begin
-
-		  end else
-		  begin
-			(match le1, le2 with
-			 (* Two variables *)
-			 | LVar chantay_you_stay, LVar sashay_away ->
-			   if ((String.get chantay_you_stay 0 = '_') && (String.get sashay_away 0 = '_')) then
-			   begin
-			   	   (* Printf.printf "LVAR: Substituting %s for %s\n" chantay_you_stay sashay_away; *)
-	 			   let subst = Hashtbl.create 1 in
-	 			   Hashtbl.add subst sashay_away (LVar chantay_you_stay);
-	 			   DynArray.delete p_formulae n;
-				   while (Hashtbl.mem gamma sashay_away) do Hashtbl.remove gamma sashay_away done;
-				   let symb_state = symb_state_substitution symb_state subst true in
-				   let to_add = List.map (fun (var, le) -> (var, JSIL_Logic_Utils.lexpr_substitution le subst true)) to_add in
-	 			   aggresively_simplify to_add symb_state
-			   end
-			   else go_through_pfs rest (n + 1)
-
-
-
-			 (* Whatever else *)
-			 | _, _ -> go_through_pfs rest (n + 1)
-			)
-	      end
-		)
-	)
-	in *)
+	) in
 
 	(* Printf.printf "Simplification:\n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state); *)
 

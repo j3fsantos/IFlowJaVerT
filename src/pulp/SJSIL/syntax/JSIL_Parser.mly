@@ -614,7 +614,7 @@ assertion_target:
 (* types (type_pairs) *)
   | LTYPES; LBRACE; type_pairs = separated_list(COMMA, type_env_pair_target); RBRACE
     { LTypes type_pairs }
-(* empty_fields (le | lit1, lit2, lit3, ...) *) 
+(* empty_fields (le | lit1, lit2, lit3, ...) *)
 	| EMPTYFIELDS; LBRACE; le=lexpr_target; VERT; fields=separated_list(COMMA, VAR); RBRACE
 		{ LEmptyFields (le, fields) }
 (* (P) *)
@@ -901,6 +901,8 @@ js_lexpr_target:
 ;
 
 js_type_env_pair_target:
+  | v = VAR; COLON; the_type=type_target
+    { (v, the_type) }
   | v = LVAR; COLON; the_type=type_target
     { (v, the_type) }
 ;
