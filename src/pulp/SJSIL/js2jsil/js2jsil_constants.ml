@@ -15,6 +15,10 @@ let js2jsil_imports = [
 	"Errors"
 ]
 
+let js2jsil_logic_imports = [
+	"internal_functions"
+]
+
 let setupHeapName = "setupInitialHeap"
 
 let callPropName              = "@call"

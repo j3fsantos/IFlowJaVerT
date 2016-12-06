@@ -162,7 +162,10 @@ let rec js2jsil_logic_top_level_pre a (var_to_fid_tbl : (string, string) Hashtbl
 	let is_global = (fid = main_fid) in
 	let a_env_records, js_var_to_lvar = var_fid_tbl_to_assertion var_to_fid_tbl [ fid ] is_global in
 	let a_scope_chain = make_scope_chain_assertion vis_list [ fid ] in
-	let a_pre_js_heap = LPred (initial_heap_pre_pred_name, []) in
+	let a_pre_js_heap = 
+		if (is_global) 
+			then LPred (initial_heap_pre_pred_name, []) 
+			else LPred (initial_heap_post_pred_name, []) in
 	let a' = js2jsil_logic js_var_to_lvar a in
 	JSIL_Logic_Utils.star_asses [a_pre_js_heap; a'; a_env_records; a_scope_chain ]
 

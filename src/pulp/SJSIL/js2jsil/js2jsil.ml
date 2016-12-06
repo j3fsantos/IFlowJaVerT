@@ -4703,7 +4703,7 @@ let fresh_named_eval n : string =
   fresh_name ("___$eval___" ^ n ^ "_")
 
 
-let js2jsil e offset_converter =
+let js2jsil e offset_converter for_verification =
 	let cc_tbl = Hashtbl.create 101 in
 	let fun_tbl = Hashtbl.create 101 in
 	let vis_tbl = Hashtbl.create 101 in
@@ -4734,7 +4734,8 @@ let js2jsil e offset_converter =
 
  	(** let cc_tbl_str = Js_pre_processing.print_cc_tbl cc_tbl in
 	Printf.printf "marica, the cc_tbl is the following (enjoy): \n %s\n" cc_tbl_str; *)
-	{ imports = js2jsil_imports; predicates; procedures}, cc_tbl, vis_tbl
+	let cur_imports = if for_verification then js2jsil_logic_imports else js2jsil_imports in 
+	{ imports = cur_imports; predicates; procedures}, cc_tbl, vis_tbl
 
 
 

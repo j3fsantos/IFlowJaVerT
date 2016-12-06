@@ -10,6 +10,7 @@ let harnessing = ref false
 let line_numbers = ref false
 let sep_procs = ref false
 let sexpr = ref false
+let for_verification = ref false 
 
 let arguments () =
   let usage_msg="Usage: -file <path>" in
@@ -24,6 +25,8 @@ let arguments () =
 			(* one procedure per file *)
 			"-sep_procs", Arg.Unit(fun () -> sep_procs := true), "one procedure per file";
       "-closure", Arg.Clear(Parser_main.use_json), "use closure parser";
+			(* output for logic verification  *)
+			"-logic", Arg.Unit(fun () -> for_verification := true), "output for logic verification";
     ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
@@ -75,7 +78,7 @@ let process_file path =
 		| Script (_, le) -> List.iter (fun x -> Printf.printf "Annotations:\n%s\n" (e_annot_str x)) le
 		| _ -> Printf.printf "Top-level tag is not Script.\n"); *)
 
-    let ext_prog, _, _ = js2jsil e offset_converter in
+    let ext_prog, _, _ = js2jsil e offset_converter (!for_verification) in
 		let file_name = Filename.chop_extension path in
 		(if (not (!sep_procs))
 			then

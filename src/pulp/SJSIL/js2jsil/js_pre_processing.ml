@@ -457,7 +457,7 @@ let rec add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous exp
 type fun_tbl_type = (string, string * JSIL_Syntax.jsil_var list * Parser_syntax.exp * (JSIL_Syntax.jsil_spec option)) Hashtbl.t
 
 
-let process_js_logic_annotations fun_name fun_args annotations requires_flag ensures_normal_flag ensure_err_flag var_to_fid_tbl vis_list = 
+let process_js_logic_annotations fun_name (fun_args : string list) annotations requires_flag ensures_normal_flag ensure_err_flag var_to_fid_tbl vis_list = 
 	Printf.printf "Inside process_js_logic_annotations. function: %s. Annotations: %s\n" fun_name (Pretty_print.string_of_annots annotations); 
 
 	let preconditions  = List.filter (fun annotation -> annotation.annot_type = requires_flag) annotations in 
@@ -487,11 +487,11 @@ let process_js_logic_annotations fun_name fun_args annotations requires_flag ens
 		postconditions in  
 	
 	let fun_spec = if ((List.length single_specs) > 0) 
-		then Some (JSIL_Syntax.create_jsil_spec fun_name fun_args single_specs)
+		then Some (JSIL_Syntax.create_jsil_spec fun_name (Js2jsil_constants.var_scope :: (Js2jsil_constants.var_this :: fun_args)) single_specs)
 		else None in
 	fun_spec
 
-let update_fun_tbl (fun_tbl : fun_tbl_type) f_id f_args f_body annotations (var_to_fid_tbl : (string, string) Hashtbl.t) (vis_list : string list) = 
+let update_fun_tbl (fun_tbl : fun_tbl_type) (f_id : string) (f_args : string list) f_body annotations (var_to_fid_tbl : (string, string) Hashtbl.t) (vis_list : string list) = 
 	let fun_spec : JSIL_Syntax.jsil_spec option = process_js_logic_annotations f_id f_args annotations Requires Ensures EnsuresErr var_to_fid_tbl vis_list in  						
 	Hashtbl.replace fun_tbl f_id (f_id, f_args, f_body, fun_spec) 
 
