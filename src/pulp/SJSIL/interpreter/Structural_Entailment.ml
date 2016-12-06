@@ -283,6 +283,7 @@ let unify_symb_heaps_prime
 	(* Understand the others *)
 	None
 
+
 let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_formulae solver gamma (subst : substitution) : (symbolic_heap * (jsil_logic_assertion list)) option  =
 	(* unify_symb_heaps_prime pat_heap heap pure_formulae solver gamma subst ["$lg"; "$lobj_proto"]; *)
 	Printf.printf "Unify heaps with substitution: %s\n" (JSIL_Memory_Print.string_of_substitution subst);

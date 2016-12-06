@@ -614,12 +614,9 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 
 
 let recursive_unfold pred_name pred_defs symb_state params spec_vars =
-	let rec loop symb_state =
-		let pred_args = Symbolic_State_Functions.find_predicate_assertion (get_preds symb_state) pred_name in
-		let len_pred_args = List.length pred_args in
-		Printf.printf "len_pred_args: %i\n" len_pred_args;
-		if ((len_pred_args = 0) || (len_pred_args > 1)) then symb_state else (
-			let args = List.hd pred_args in
+	
+	let rec loop symb_state =	
+		let rec aux args =
 			let unfolded_symb_states = unfold_predicates pred_name pred_defs symb_state params args spec_vars in
 			Printf.printf "pred_args: %s\n"
 				(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) args));
@@ -628,7 +625,20 @@ let recursive_unfold pred_name pred_defs symb_state params spec_vars =
 				then symb_state
 				else (
 					Printf.printf "Inside recursive unfolding:\n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_state (List.hd unfolded_symb_states));
-					loop (List.hd unfolded_symb_states))) in
+					loop (List.hd unfolded_symb_states)) in 
+		
+		let pred_args = Symbolic_State_Functions.find_predicate_assertion (get_preds symb_state) pred_name in
+		let len_pred_args = List.length pred_args in
+		Printf.printf "len_pred_args: %i\n" len_pred_args;
+		
+		let rec inner_loop pred_args symb_state =
+			match pred_args with 
+			| [] -> symb_state 
+			| args :: more_args -> 
+				let symb_state = aux args in 
+				inner_loop more_args symb_state in
+		inner_loop pred_args symb_state in 
+
 	loop symb_state
 
 
