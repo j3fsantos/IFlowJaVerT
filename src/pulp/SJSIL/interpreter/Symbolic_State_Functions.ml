@@ -163,19 +163,20 @@ let is_symb_heap_empty heap =
 
 
 let merge_heaps heap new_heap p_formulae solver gamma =
-  (* Printf.printf "-------------------------------------------------------------------\n";
+    Printf.printf "-------------------------------------------------------------------\n";
 	Printf.printf "-------------INSIDE MERGE HEAPS------------------------------------\n";
 	Printf.printf "-------------------------------------------------------------------\n";
 
 	Printf.printf "heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false);
 	Printf.printf "pat_heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap new_heap false);
 	Printf.printf "p_formulae: %s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
-	Printf.printf "gamma: %s\n" (JSIL_Memory_Print.string_of_gamma gamma); *)
+	Printf.printf "gamma: %s\n" (JSIL_Memory_Print.string_of_gamma gamma); 
 
 	LHeap.iter
 		(fun loc (n_fv_list, n_def) ->
 			match n_def with
-			| LUnknown ->
+			| LUnknown
+			| LNone ->
 				(try
 					let fv_list, def = LHeap.find heap loc in
 					let rec loop q_fv_list n_fv_list =
@@ -196,7 +197,7 @@ let merge_heaps heap new_heap p_formulae solver gamma =
 					let q_fv_list = loop [] n_fv_list in
 					LHeap.replace heap loc (q_fv_list @ fv_list, def)
 				with Not_found ->
-					LHeap.add heap loc (n_fv_list, LUnknown))
+					LHeap.add heap loc (n_fv_list, n_def))
 			| _ -> raise (Failure "heaps non-mergeable: the default field is not unknown!!!"))
 		new_heap
 

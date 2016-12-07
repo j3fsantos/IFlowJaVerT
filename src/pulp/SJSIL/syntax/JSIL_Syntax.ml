@@ -369,4 +369,4 @@ let procedure_table : (string, jsil_ext_procedure) Hashtbl.t = Hashtbl.create 10
 let debug = ref false
 
 let print_debug msg =
-	if (!debug) then print_endline msg
+	if (!debug) then (print_endline msg)

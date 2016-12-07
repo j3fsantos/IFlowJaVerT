@@ -229,16 +229,19 @@ let unify_symb_fv_lists pat_fv_list fv_list def_val p_formulae solver gamma subs
 
 
 let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_formulae solver gamma (subst : substitution) : (symbolic_heap * (jsil_logic_assertion list)) option  =
-	Printf.printf "Unify heaps with substitution: %s\n" (JSIL_Memory_Print.string_of_substitution subst);
+	Printf.printf "Unify heaps %s \n and %s \n with substitution: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap pat_heap false)
+	   (JSIL_Memory_Print.string_of_shallow_symb_heap heap false) (JSIL_Memory_Print.string_of_substitution subst);
 	let quotient_heap = LHeap.create 1021 in
 	let pat_heap_domain : string list = get_heap_domain pat_heap subst in
+	Printf.printf "PHD: %s\n" (String.concat ", " pat_heap_domain);
 	try
 		let pfs : jsil_logic_assertion list =
 			List.fold_left
 				(fun pfs pat_loc ->
 					Printf.printf "Location: %s\n" pat_loc;
 					(match abs_heap_get pat_heap pat_loc with
-					| Some (pat_fv_list, LUnknown) ->
+					| Some (pat_fv_list, pat_def) ->
+			  			(if ((pat_def <> LNone) && (pat_def <> LUnknown)) then raise (Failure "Illegal Default Value")  else (
 						let loc = try
 							(match (Hashtbl.find subst pat_loc) with
 							| LLit (Loc loc) -> loc
@@ -258,11 +261,14 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 							Printf.printf "fv_lists unified successfully. Jolly good!\n";
 							LHeap.replace quotient_heap loc (new_fv_list, def);
 							let new_pfs : jsil_logic_assertion list = make_all_different_pure_assertion new_fv_list matched_fv_list in
-							new_pfs @ pfs
-						| None -> Printf.printf "fv_lists not unifiable. Bugger!\n"; raise (Failure ("fv_lists not unifiable")))
+							if ((pat_def = LNone) && ((List.length new_fv_list) > 0))
+								then raise (Failure "LNone in precondition")
+								else new_pfs @ pfs
+						| None -> Printf.printf "fv_lists not unifiable. Bugger!\n"; raise (Failure ("fv_lists not unifiable")))))
 					| _ -> raise (Failure ("Pattern heaps cannot have default values"))))
 				[]
 				pat_heap_domain in
+		Printf.printf "Heap again %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false);
 		LHeap.iter
 			(fun loc (fv_list, def) ->
 				try
@@ -279,6 +285,7 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 						then LHeap.remove quotient_heap loc
 				| _ -> ())
 			quotient_heap;
+		Printf.printf "Enjoy the quotient_heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false);
 		Some (quotient_heap, pfs)
 	with (Failure msg) ->
 		(* Printf.printf "unify_symb_heaps FAILED with message: %s\n" msg;*)

@@ -436,7 +436,7 @@ let rec build_disjunt_normal_form a =
 	| LStar (a1, a2)                               -> cross_product (f a1) (f a2)
 	| LOr (a1, a2)                                 -> List.append (f a1) (f a2)
 	| LTrue                                        -> []
-	| LFalse           | LTypes _    | LEmptyFields _ 
+	| LFalse           | LTypes _    | LEmptyFields _
 	| LEq (_, _)       | LNot (LEq (_, _))
 	| LLess (_, _)     | LNot (LLess (_, _))
 	| LLessEq (_, _)   | LNot (LLessEq (_, _))
@@ -592,6 +592,7 @@ let rec assertion_substitution a subst partial =
 	| LTypes types ->
 		let s_types = List.map (fun (le, te) -> ((fe le), te)) types in
 		LTypes s_types
+	| LEmptyFields (obj, lstr) -> LEmptyFields (fe obj, lstr)
 
 
 let filter_substitution subst vars =

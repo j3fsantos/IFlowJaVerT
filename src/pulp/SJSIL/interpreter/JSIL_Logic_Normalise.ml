@@ -594,16 +594,20 @@ let process_empty_fields heap store p_formulae gamma subst a =
 		| field :: rest -> make_fv_list_missing_fields rest ((LLit (String field), LVar new_lvar) :: fv_list) in
 
 	let close_object le_loc non_none_fields =
+		print_debug (Printf.sprintf "Location: %s" (JSIL_Print.string_of_logic_expression le_loc false));
 		let le_loc_name =
 			match le_loc with
-			| LLit (Loc loc_name) -> loc_name
+			| LLit (Loc loc_name)
+			| ALoc loc_name -> loc_name
 			| PVar x
 			| LVar x ->
-				let x_loc = try Hashtbl.find subst x with _ -> raise (Failure "Illegal Emptyfields!!!") in
+				let x_loc = try Hashtbl.find subst x with _ ->
+					print_debug "Variable not in subst."; raise (Failure "Illegal Emptyfields!!!") in
 				match x_loc with
 				| ALoc loc
 				| LLit (Loc loc) -> loc
-				| _ -> raise (Failure "Illegal Emptyfields!!!") in
+				| _ ->
+				    print_debug "Variable strange after subst."; raise (Failure "Illegal Emptyfields!!!") in
 
 		let ret =
 		    Printf.printf "le_loc: %s\nNasty fields:\n" (JSIL_Print.string_of_logic_expression le_loc false);
