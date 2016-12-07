@@ -1,29 +1,27 @@
 (** Totals: 0 fails and 2 passes **)
 
-pred my_list (x, alpha) : 
-	(x == $$null) * (alpha == {{ }}) * types(alpha: $$list_type), 
-		
-	((x, "value") -> #y) * ((x, "next") -> #z) * ((x, "@proto") -> $$null) *  
-		(alpha == (#y :: #beta)) * my_list(#z, #beta) * 
-		types(#y: $$int_type, alpha: $$list_type, #beta: $$list_type);
+adata domaddr : int
+adata element : {{ tag:string; id:int; children: forest }} 
+adata forest  : element list 
+adata grove   : element list 
+adata domdata : element + forest + grove 
 
+apred domCellAP(alpha:domaddr, d:domdata) : 	
+	split(d, #d', #beta, #d'') => 
+    	domCellAP(alpha, d) <=> domCellAP(alpha, #d') * domCellAP(#beta, #d'')
 
-(** Expected result: YES                             **)
-spec list_count (x)
-   [[ my_list(x, #alpha) * types(#alpha: $$list_type) ]]
-   [[ my_list(x, #alpha) * types(#alpha: $$list_type, ret: $$int_type) * (ret == l-len(#alpha)) ]]
-   normal
-proc list_count (x) {
-		   [* unfold(my_list(x, #alpha)) *]
-		   goto [ x = $$null ] then1 else1;
-   then1:  count := 0; 
-           goto rlab;   
-   else1:  z := [x, "next"];
-   		   count := "list_count"(z);
-           count := count + 1;  
-           [* fold(my_list(x, #alpha)) *]
-   rlab:   skip
-} with { ret: count, rlab; };
+apred documentAP (id:int, element:element, grove:grove) :
+  documentAP (id, element, grove) <=> documentAP (id, #alpha, grove) * domCellAP(#alpha, element); 
+  documentAP (id, element, grove) <=> documentAP (id, element, #alpha) * domCellAP(#alpha, grove)
+
+apred split(d:domdata, ctxt:domdata, alpha:domaddr, d':domdata) : 
+	types (d: element) * d == {{#t, #id, #f}} * split(#f, #f_ctxt, #beta, #f') 
+	   <=> split(d, {{#t, #id, #f_ctx}}, #beta, #f'), 
+	
+	types (d: forest) * d == {{ }} * split(#f, #f_ctxt, #beta, #f') 
+	   <=> split(d, {{#t, #id, #f_ctx}}, #beta, #f')   
+ 
+  
 
 
 

@@ -160,8 +160,8 @@ let make_scope_chain_assertion vis_list exceptions =
 let rec js2jsil_logic_top_level_pre a (var_to_fid_tbl : (string, string) Hashtbl.t) (vis_list : string list) fid =
 	Printf.printf "Inside js2jsil_logic_top_level_pre for procedure %s\n" fid;
 	let is_global = (fid = main_fid) in
-	let a_env_records, js_var_to_lvar = var_fid_tbl_to_assertion var_to_fid_tbl [ fid ] is_global in
-	let a_scope_chain = make_scope_chain_assertion vis_list [ fid ] in
+	let a_env_records, js_var_to_lvar = var_fid_tbl_to_assertion var_to_fid_tbl [ ] is_global in
+	let a_scope_chain = make_scope_chain_assertion vis_list [ ] in
 	let a_pre_js_heap = 
 		if (is_global) 
 			then LPred (initial_heap_pre_pred_name, []) 
