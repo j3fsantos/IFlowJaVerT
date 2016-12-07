@@ -745,8 +745,6 @@ let rec aggresively_simplify (to_add : (string * jsil_logic_expr) list) (symb_st
 		   	 (match (l1 = l2) with
 			  | true -> pfs_false "Two literals are equal."
 			  | false -> DynArray.delete p_formulae n; f symb_state)
-		   | LEq (ALoc _, LLit _)
-		   | LEq (LLit _, ALoc _) -> DynArray.delete p_formulae n; f symb_state
 		   | _ -> go_through_pfs rest (n + 1)) (* FOR NOW! *)
 		| LEq (le1, le2) -> (match (le1 = le2) with
 		  | true ->

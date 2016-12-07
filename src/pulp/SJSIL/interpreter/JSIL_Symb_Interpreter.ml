@@ -616,27 +616,27 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 let recursive_unfold pred_name pred_defs symb_state params spec_vars =
 
 	let rec loop symb_state =
-		let rec aux args =
-			let unfolded_symb_states = unfold_predicates pred_name pred_defs symb_state params args spec_vars in
+		let rec aux symb_state args =
 			Printf.printf "pred_args: %s\n"
 				(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) args));
+			let unfolded_symb_states = unfold_predicates pred_name pred_defs symb_state params args spec_vars in
 			Printf.printf "number of unfolded_symb_states: %i\n" (List.length unfolded_symb_states);
 			if ((List.length unfolded_symb_states > 1) || (List.length unfolded_symb_states = 0))
-				then symb_state
+				then (Printf.printf "More than one unfolding or nothing at all, oops.\n"; symb_state)
 				else (
-					Printf.printf "Inside recursive unfolding:\n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_state (List.hd unfolded_symb_states));
-					loop (List.hd unfolded_symb_states)) in
-
-		let pred_args = Symbolic_State_Functions.find_predicate_assertion (get_preds symb_state) pred_name in
-		let len_pred_args = List.length pred_args in
-		Printf.printf "len_pred_args: %i\n" len_pred_args;
+					let new_symb_state = Symbolic_State_Functions.aggresively_simplify [] (List.hd unfolded_symb_states) in
+					Printf.printf "Inside recursive unfolding:\n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_state new_symb_state);
+					loop new_symb_state) in
 
 		let rec inner_loop pred_args symb_state =
 			match pred_args with
 			| [] -> symb_state
 			| args :: more_args ->
-				let symb_state = aux args in
-				inner_loop more_args symb_state in
+				aux symb_state args in
+
+		let pred_args = Symbolic_State_Functions.find_predicate_assertion (get_preds symb_state) pred_name in
+		let len_pred_args = List.length pred_args in
+		Printf.printf "len_pred_args: %i\n" len_pred_args;
 		inner_loop pred_args symb_state in
 
 	loop symb_state

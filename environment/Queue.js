@@ -20,7 +20,7 @@
  * @param {object|number|string} data The data to initialize with the node
  *
  * @pre  (standardObject(this) * ((this, \"data\") -> None)  * ((this, \"next\") -> None) * ((this, \"prev\") -> None) * ((\$lobj_proto, \"data\") -> None) * ((\$lobj_proto, \"next\") -> None) * ((\$lobj_proto, \"prev\") -> None) * types(data : \$\$number_type))
- * @post (standardObject(this) * dataField(this, \"data\", data) * dataField(this, \"next\", \$\$null) * dataField(this, \"prev\", \$\$null))
+ * @post (standardObject(this) * dataField(this, \"data\", data) * dataField(this, \"next\", \$\$null) * dataField(this, \"prev\", \$\$null) * ((\$lobj_proto, \"data\") -> None) * ((\$lobj_proto, \"next\") -> None) * ((\$lobj_proto, \"prev\") -> None))
  */
 function Node(data) {
     this.data = data;
