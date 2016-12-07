@@ -615,7 +615,7 @@ assertion_target:
   | LTYPES; LBRACE; type_pairs = separated_list(COMMA, type_env_pair_target); RBRACE
     { LTypes type_pairs }
 (* empty_fields (le | lit1, lit2, lit3, ...) *)
-	| EMPTYFIELDS; LBRACE; le=lexpr_target; VERT; fields=separated_list(COMMA, VAR); RBRACE
+	| EMPTYFIELDS; LBRACE; le=lexpr_target; COLON; fields=separated_list(COMMA, STRING); RBRACE
 		{ LEmptyFields (le, fields) }
 (* (P) *)
   | LBRACE; ass=assertion_target; RBRACE

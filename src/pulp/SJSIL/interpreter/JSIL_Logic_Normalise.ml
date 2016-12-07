@@ -150,6 +150,14 @@ let rec normalise_pure_assertion store gamma subst assertion =
 
 let new_abs_loc_name var = abs_loc_prefix ^ var
 
+let unknown_name = "_lvar_unknown_"
+let counter = ref 0
+let new_unknown_lvar =
+	(fun () ->
+		counter := (!counter) + 1;
+		unknown_name ^ (string_of_int !counter))
+
+
 let new_lvar_name var = lvar_prefix ^ var
 
 let rec init_symb_store_alocs store gamma subst ass : unit =
@@ -158,7 +166,8 @@ let rec init_symb_store_alocs store gamma subst ass : unit =
 	| LStar (a_left, a_right) ->
 			f a_left; f a_right
 
-	| LPointsTo (PVar var, _, _) ->
+	| LPointsTo (PVar var, _, _)
+	| LEmptyFields (PVar var, _) ->
 			if (not (Hashtbl.mem store var))
 			then
 				(let aloc = new_abs_loc_name var in
@@ -166,7 +175,8 @@ let rec init_symb_store_alocs store gamma subst ass : unit =
 					Hashtbl.add subst var (ALoc aloc);
 					Hashtbl.replace gamma var ObjectType)
 
-	| LPointsTo (LVar var, _, _) ->
+	| LPointsTo (LVar var, _, _)
+	| LEmptyFields (LVar var, _) ->
 			if (not (Hashtbl.mem subst var))
 			then
 				(let aloc = new_abs_loc_name var in
@@ -418,7 +428,8 @@ let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_form
 	| LNot (LLess (_, _))
 	| LNot (LLessEq (_, _))
 	| LEmp
-	| LTypes _ -> ()
+	| LTypes _
+	| LEmptyFields _ -> ()
 
 let rec init_gamma gamma a =
 	let f = init_gamma gamma in
@@ -577,21 +588,32 @@ let process_empty_fields heap store p_formulae gamma subst a =
 				close_fields rest_fields rest_fv_list (found_field :: found_fields)) in
 
 	let rec make_fv_list_missing_fields missing_fields fv_list =
+		let new_lvar = new_unknown_lvar () in
 		match missing_fields with
 		| [] -> fv_list
-		| field :: rest -> make_fv_list_missing_fields rest ((LLit (String field), LUnknown) :: fv_list) in
+		| field :: rest -> make_fv_list_missing_fields rest ((LLit (String field), LVar new_lvar) :: fv_list) in
 
 	let close_object le_loc non_none_fields =
+		let le_loc_name =
+			match le_loc with
+			| LLit (Loc loc_name) -> loc_name
+			| PVar x
+			| LVar x ->
+				let x_loc = try Hashtbl.find subst x with _ -> raise (Failure "Illegal Emptyfields!!!") in
+				match x_loc with
+				| ALoc loc
+				| LLit (Loc loc) -> loc
+				| _ -> raise (Failure "Illegal Emptyfields!!!") in
+
 		let ret =
+		    Printf.printf "le_loc: %s\nNasty fields:\n" (JSIL_Print.string_of_logic_expression le_loc false);
+			List.iter (fun s -> Printf.printf "\t%s\n" s) non_none_fields;
+			Printf.printf "Heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false);
 			LHeap.fold (fun cur_loc (cur_fv_list, cur_def) ac ->
 				match ac with
 				| Some _ -> ac
 				| None ->
-					let a =
-						if (is_abs_loc_name cur_loc)
-							then LEq (le_loc, ALoc cur_loc)
-							else LEq (le_loc, LLit (Loc cur_loc)) in
-				 	if (Pure_Entailment.check_entailment (ref None) [] p_formulae [ a ] gamma) then (
+				 	if (le_loc_name = cur_loc) then (
 						let missing_fields, _ = close_fields non_none_fields cur_fv_list [] in
 						let new_cur_fv_list = make_fv_list_missing_fields missing_fields cur_fv_list in
 						Some (cur_loc, new_cur_fv_list)
@@ -600,7 +622,7 @@ let process_empty_fields heap store p_formulae gamma subst a =
 			None in
 		match ret with
 		| Some (loc, new_fv_list) -> LHeap.replace heap loc (new_fv_list, LNone)
-		| None -> raise (Failure "wrong empty field assertions") in
+		| None -> LHeap.replace heap le_loc_name (make_fv_list_missing_fields non_none_fields [], LNone) in
 
 	let fields_to_close = gather_empty_fields a in
 	List.iter (fun (le, non_none_fields) -> close_object le non_none_fields) fields_to_close

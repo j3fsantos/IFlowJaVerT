@@ -123,7 +123,7 @@ let rec get_predicate_names asrt =
 	| LNot a                 -> (gp a)
 	| LStar (a1, a2)         -> (gp a1) @ (gp a2)
 	| LPred (s, le)          -> [s]
-	| LTrue | LFalse | LEq _ | LLess _ | LLessEq _ | LStrLess _ | LPointsTo _ | LEmp | LTypes _-> []
+	| LTrue | LFalse | LEq _ | LLess _ | LLessEq _ | LStrLess _ | LPointsTo _ | LEmp | LTypes _ | LEmptyFields _ -> []
 
 (* Given a Hashtbl of normalised predicates, return a Hashtbl from predicate name
    to boolean meaning "recursive" or "not recursive"
@@ -218,7 +218,7 @@ let rec auto_unfold predicates asrt =
 
 		 (* If the predicate is not found, raise an error *)
 		with Not_found -> raise (Failure ("Error: Can't auto_unfold predicate " ^ name)))
-	| LTrue | LFalse | LEq _ | LLess _ | LLessEq _ | LStrLess _ | LPointsTo _ | LEmp | LTypes _-> [asrt]
+	| LTrue | LFalse | LEq _ | LLess _ | LLessEq _ | LStrLess _ | LPointsTo _ | LEmp | LTypes _ | LEmptyFields _ -> [asrt]
 
 let normalise preds =
 	let norm_predicates = Hashtbl.create 100 in

@@ -700,6 +700,8 @@ PriorityQueue.prototype = {
 
 };
 
+Object.defineProperty(Object.prototype, "data", { writable : false, configurable : false });
+
 var queue = new PriorityQueue();
 
 if (queue.isEmpty() !== true) { throw("Oopsie!") };

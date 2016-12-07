@@ -104,6 +104,7 @@ let rec assertion_map f asrt =
 	| LEmp                   -> LEmp
 	| LPred (s, le)          -> LPred (s, List.map map_e le)
 	| LTypes lt              -> LTypes (List.map (fun (exp, typ) -> (map_e exp, typ)) lt)
+	| LEmptyFields (o, ls)   -> LEmptyFields (map_e o, ls)
 
 
 let rec logic_expression_fold f_atom f_fold lexpr =
@@ -121,7 +122,7 @@ let rec logic_expression_fold f_atom f_fold lexpr =
 let rec assertion_fold f_atom f_fold asrt =
 	let fold_a = assertion_fold f_atom f_fold in
 	match asrt with
-	| LTrue | LFalse | LEq (_, _) | LLess (_, _) | LLessEq (_, _) | LStrLess (_, _) | LPointsTo (_, _, _) | LEmp | LPred (_, _) | LTypes _ -> f_atom asrt
+	| LTrue | LFalse | LEq (_, _) | LLess (_, _) | LLessEq (_, _) | LStrLess (_, _) | LPointsTo (_, _, _) | LEmp | LPred (_, _) | LTypes _ | LEmptyFields _ -> f_atom asrt
 	| LAnd (a1, a2)         -> f_fold asrt [ (fold_a a1); (fold_a a2) ]
 	| LOr (a1, a2)          -> f_fold asrt [ (fold_a a1); (fold_a a2) ]
 	| LStar (a1, a2)        -> f_fold asrt [ (fold_a a1); (fold_a a2) ]
@@ -273,6 +274,7 @@ let rec get_ass_vars_iter vars_tbl catch_pvars ass =
 	| LEmp
 	| LTypes _ -> ()
 	| LPred (_, es) -> List.iter fe es
+	| LEmptyFields (o, les) -> fe o
 
 
 let get_assertion_vars ass catch_pvars =
@@ -391,7 +393,7 @@ let rec push_in_negations_off a =
 			else f_on new_a1
 	| LStar (a1, a2) -> LStar ((f_off a1), (f_off a2))
 	| LTrue        | LFalse | LEq (_, _)          | LLess (_, _) | LLessEq (_, _) | LStrLess (_, _)
-	| LPred (_, _) | LEmp   | LPointsTo (_, _, _) | LTypes _ -> a)
+	| LPred (_, _) | LEmp   | LPointsTo (_, _, _) | LTypes _ | LEmptyFields _ -> a)
 and push_in_negations_on a =
 	let err_msg = "push_in_negations_on: internal error" in
 	let f_off = push_in_negations_off in
@@ -403,7 +405,7 @@ and push_in_negations_on a =
 	| LFalse              -> LTrue
 	| LNot a              -> (f_off a)
 	| LEq (_, _)   | LLess (_, _) | LLessEq (_, _) | LStrLess (_, _) | LPred (_, _) -> LNot a
-	| LStar (_, _) | LEmp         | LPointsTo (_, _, _) -> raise (Failure err_msg)
+	| LStar (_, _) | LEmp         | LPointsTo (_, _, _) | LEmptyFields _ -> raise (Failure err_msg)
 	| LTypes _            -> LTrue)
 
 
@@ -434,8 +436,8 @@ let rec build_disjunt_normal_form a =
 	| LStar (a1, a2)                               -> cross_product (f a1) (f a2)
 	| LOr (a1, a2)                                 -> List.append (f a1) (f a2)
 	| LTrue                                        -> []
-	| LFalse           | LTypes _
-	| LEq (_, _)    	 | LNot (LEq (_, _))
+	| LFalse           | LTypes _    | LEmptyFields _ 
+	| LEq (_, _)       | LNot (LEq (_, _))
 	| LLess (_, _)     | LNot (LLess (_, _))
 	| LLessEq (_, _)   | LNot (LLessEq (_, _))
 	| LStrLess (_, _)  | LNot (LStrLess (_, _))
