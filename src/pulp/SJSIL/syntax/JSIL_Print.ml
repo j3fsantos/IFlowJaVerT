@@ -166,7 +166,7 @@ let rec string_of_bcmd bcmd i line_numbers_on escape_string =
 	let str_i = if line_numbers_on then (string_of_int i) ^ ". " else "" in
 	match bcmd with
 	(* skip *)
-  | SSkip -> Printf.sprintf "%sskip" str_i
+	| SSkip -> Printf.sprintf "%sskip" str_i
 	(* var := e *)
 	| SAssignment (var, e) -> Printf.sprintf "%s%s := %s" str_i var (se e)
 	(* x := new() *)
@@ -177,8 +177,10 @@ let rec string_of_bcmd bcmd i line_numbers_on escape_string =
 	| SMutation (e1, e2, e3) -> Printf.sprintf "%s[%s, %s] := %s" str_i (se e1) (se e2) (se e3)
 	(* delete(e1, e2) *)
 	| SDelete (e1, e2) ->  Printf.sprintf "%sdelete(%s,%s)" str_i (se e1) (se e2)
+	(* x := deleteObj(e1) *)
+	| SDeleteObj (e1) ->  Printf.sprintf "%sdeleteObject (%s)" str_i (se e1)
 	(* x := hasField(e1, e2) *)
-  | SHasField (var, e1, e2) -> Printf.sprintf "%s%s := hasField(%s,%s)" str_i var (se e1) (se e2)
+	| SHasField (var, e1, e2) -> Printf.sprintf "%s%s := hasField(%s,%s)" str_i var (se e1) (se e2)
 	(* x := getFields (e1, e2) *)
 	| SGetFields (var, e) -> Printf.sprintf "%s%s := getFields (%s)" str_i var (se e)
 	(* x := args *)

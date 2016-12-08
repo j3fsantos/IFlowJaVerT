@@ -16,7 +16,7 @@ let js2jsil_imports = [
 ]
 
 let js2jsil_logic_imports = [
-	"internal_functions"
+	"obj_int_fun"
 ]
 
 let setupHeapName = "setupInitialHeap"

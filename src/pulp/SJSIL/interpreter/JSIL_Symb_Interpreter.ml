@@ -232,6 +232,20 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 		Symbolic_State_Functions.update_abs_heap heap l ne2 LNone pure_formulae solver gamma;
 		LLit (Bool true)
 
+	| SDeleteObj e1 ->
+		let ne1, t_le1, _ = safe_symb_evaluate_expr e1 store gamma pure_formulae solver in
+		let l =
+			(match ne1 with
+			| LLit (Loc l)
+			| ALoc l -> l
+			| _ ->
+				let ne1_str = JSIL_Print.string_of_logic_expression ne1 false in
+				let msg = Printf.sprintf "Delete: I do not know which location %s denotes in the symbolic heap" ne1_str in
+				raise (Failure msg)) in
+		(match (LHeap.mem heap l) with
+		 | false -> raise (Failure (Printf.sprintf "Attempting to delete inexistent object: %s" (JSIL_Print.string_of_logic_expression ne1 false)))
+		 | true -> LHeap.remove heap l; LLit (Bool true));
+
 	| SHasField (x, e1, e2) ->
 		let ne1, t_le1, _ = safe_symb_evaluate_expr e1 store gamma pure_formulae solver in
 		let ne2, t_le2, _ = safe_symb_evaluate_expr e2 store gamma pure_formulae solver in
@@ -258,7 +272,7 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 
 let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) le_args =
 
-	Printf.printf "Entering find_and_apply_spec: %s.\n" proc_name;
+	print_debug (Printf.sprintf "Entering find_and_apply_spec: %s.\n" proc_name);
 
 	(* create a new symb state with the abstract store in which the
 	    called procedure is to be executed *)
@@ -268,15 +282,15 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 	let symb_state_aux = symb_state_replace_store symb_state new_store in
 
 	let compatible_pfs symb_state pat_symb_state subst =
-		Printf.printf "Entering compatible_pfs.\n";
+		print_debug (Printf.sprintf "Entering compatible_pfs.\n");
 		let pfs = get_pf symb_state in
 		let gamma = get_gamma symb_state in
 		let pat_pfs = get_pf pat_symb_state in
 		let pat_gamma = get_gamma pat_symb_state in
-		Printf.printf "pfs: \n%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae pfs false);
-		Printf.printf "pat_pfs: \n%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae pat_pfs false);
-		Printf.printf "gamma: \n%s\n" (JSIL_Memory_Print.string_of_gamma gamma);
-		Printf.printf "%s" (JSIL_Memory_Print.string_of_substitution subst);
+		print_debug (Printf.sprintf "pfs: \n%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae pfs false));
+		print_debug (Printf.sprintf "pat_pfs: \n%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae pat_pfs false));
+		print_debug (Printf.sprintf "gamma: \n%s\n" (JSIL_Memory_Print.string_of_gamma gamma));
+		print_debug (Printf.sprintf "%s" (JSIL_Memory_Print.string_of_substitution subst));
 		let pat_pfs = Symbolic_State_Functions.pf_substitution pat_pfs subst false in
 		let pat_gamma = Symbolic_State_Functions.gamma_substitution pat_gamma subst false in
 		let gamma = copy_gamma gamma in
@@ -294,19 +308,19 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 
 		(* Printf.printf "the quotient heap is the following: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false); *)
 
-		Printf.printf "Entering transform_symb_state.\n";
+		print_debug (Printf.sprintf"Entering transform_symb_state.\n");
 
 		let merge_symb_state_with_single_post (symb_state : symbolic_state) (post : symbolic_state) ret_var ret_flag copy_flag : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
-			Printf.printf "Entering merge_symb_state_with_single_post.\n";
+			print_debug (Printf.sprintf "Entering merge_symb_state_with_single_post.\n");
 			let post_makes_sense = compatible_pfs symb_state post subst in
 			if (post_makes_sense) then (
-				Printf.printf "The post makes sense.\n";
+				print_debug (Printf.sprintf "The post makes sense.\n");
 				let new_symb_state = if (copy_flag) then (Symbolic_State_Functions.copy_symb_state symb_state) else symb_state in
 				let new_symb_state = Structural_Entailment.merge_symb_states new_symb_state post subst in
 				let ret_lexpr = store_get_var (get_store post) ret_var in
 				let ret_lexpr = JSIL_Logic_Utils.lexpr_substitution ret_lexpr subst false in
 				[ new_symb_state, ret_flag, ret_lexpr ])
-				else begin Printf.printf "The post does not make sense.\n"; [] end in
+				else begin print_debug (Printf.sprintf "The post does not make sense.\n"); [] end in
 
 		Symbolic_State_Functions.extend_symb_state_with_pfs symb_state pf_discharges;
 		let symb_state = Symbolic_State_Functions.symb_state_replace_heap symb_state quotient_heap in
@@ -316,10 +330,10 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		let ret_flag = spec.n_ret_flag in
 		let symb_states_and_ret_lexprs =
 			(match spec.n_post with
-			| [] -> Printf.printf "No postconditions found.\n"; []
-			| [ post ] -> Printf.printf "One postcondition found.\n"; merge_symb_state_with_single_post symb_state post ret_var ret_flag false
+			| [] -> print_debug (Printf.sprintf "No postconditions found.\n"); []
+			| [ post ] -> print_debug (Printf.sprintf "One postcondition found.\n"); merge_symb_state_with_single_post symb_state post ret_var ret_flag false
 			| post :: rest_posts ->
-					Printf.printf "Multiple postconditions found.\n";
+					print_debug (Printf.sprintf "Multiple postconditions found.\n");
 					let symb_states_and_ret_lexprs = List.map (fun post -> merge_symb_state_with_single_post symb_state post ret_var ret_flag true) rest_posts in
 					let symb_states_and_ret_lexprs =
 						(merge_symb_state_with_single_post symb_state post ret_var ret_flag false) :: symb_states_and_ret_lexprs in

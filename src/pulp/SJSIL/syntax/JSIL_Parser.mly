@@ -120,6 +120,7 @@ open JS_Logic_Syntax
 %token DEFEQ
 %token NEW
 %token DELETE
+%token DELETEOBJ
 %token HASFIELD
 %token GETFIELDS
 %token ARGUMENTS
@@ -376,6 +377,9 @@ cmd_target:
 (* delete(e1, e2) *)
 	| DELETE; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
 		{ SLBasic (SDelete (e1, e2)) }
+(* deleteObject(e1) *)
+	| DELETEOBJ; LBRACE; e1=expr_target; RBRACE
+		{ SLBasic (SDeleteObj (e1)) }
 (* x := hasField(e1, e2) *)
 	| v=VAR; DEFEQ; HASFIELD; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
 		{ SLBasic (SHasField (v, e1, e2)) }

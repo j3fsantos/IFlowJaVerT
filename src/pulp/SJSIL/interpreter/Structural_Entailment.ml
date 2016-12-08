@@ -257,13 +257,20 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 								raise (Failure msg)) in
 						let fv_lists = unify_symb_fv_lists pat_fv_list fv_list def pure_formulae solver gamma subst in
 						(match fv_lists with
-						| Some (new_fv_list, matched_fv_list) ->
+						| Some (new_fv_list, matched_fv_list) when ((pat_def = LNone) && ((List.length new_fv_list) > 0)) ->
 							Printf.printf "fv_lists unified successfully. Jolly good!\n";
+							print_debug (Printf.sprintf "QH:%s" (JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false));
+							let all_fields_in_new_fv_list_are_none =
+								List.fold_left (fun ac (_, field_val) -> if (not ac) then ac else (field_val = LNone)) true new_fv_list in
+							if all_fields_in_new_fv_list_are_none then
+								(LHeap.replace quotient_heap loc ([], def); pfs)
+							else raise (Failure "LNone in precondition")
+						| Some (new_fv_list, matched_fv_list) ->
 							LHeap.replace quotient_heap loc (new_fv_list, def);
+							Printf.printf "Adding sth to QH.\n";
+							print_debug (Printf.sprintf "QH:%s" (JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false));
 							let new_pfs : jsil_logic_assertion list = make_all_different_pure_assertion new_fv_list matched_fv_list in
-							if ((pat_def = LNone) && ((List.length new_fv_list) > 0))
-								then raise (Failure "LNone in precondition")
-								else new_pfs @ pfs
+							new_pfs @ pfs
 						| None -> Printf.printf "fv_lists not unifiable. Bugger!\n"; raise (Failure ("fv_lists not unifiable")))))
 					| _ -> raise (Failure ("Pattern heaps cannot have default values"))))
 				[]

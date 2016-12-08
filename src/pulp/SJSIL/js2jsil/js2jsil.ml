@@ -684,61 +684,61 @@ let make_loop_end cur_val_var prev_val_var break_vars end_lab cur_first =
 	]	in
 	cmds, x_ret_5
 
-let is_get_value_call cmd = 
-	match cmd with 
-	| SLCall (_, (Literal (String proc_name)), _, _) -> (proc_name = getValueName) 
-	| _ -> false  
+let is_get_value_call cmd =
+	match cmd with
+	| SLCall (_, (Literal (String proc_name)), _, _) -> (proc_name = getValueName)
+	| _ -> false
 
-let is_put_value_call cmd = 
-	match cmd with 
-	| SLCall (_, (Literal (String proc_name)), _, _) -> (proc_name = putValueName) 
-	| _ -> false  		
-						
-let get_args cmd = 
-	match cmd with 
-	| SLCall (_, (Literal (String proc_name)), args, _) -> Some args 
-	| _ -> None 
+let is_put_value_call cmd =
+	match cmd with
+	| SLCall (_, (Literal (String proc_name)), _, _) -> (proc_name = putValueName)
+	| _ -> false
+
+let get_args cmd =
+	match cmd with
+	| SLCall (_, (Literal (String proc_name)), args, _) -> Some args
+	| _ -> None
 
 
 let annotate_cmd_top_level metadata (lab, cmd) =
 	let fold_unfold_pi_code args =
-		let arg = 
-			(match args with 
+		let arg =
+			(match args with
 			| Some args ->  List.nth args 0
-			| None -> raise (Failure "translate_statement. annotate_cmds. DEATH")) in 
-		
-		(match arg with 
+			| None -> raise (Failure "translate_statement. annotate_cmds. DEATH")) in
+
+		(match arg with
 		| Literal n -> [], []
-		| _ -> 
-			let arg = JSIL_Logic_Utils.expr_2_lexpr arg in 
-			let fold_args = [ LLstNth (arg, LLit (Integer 1)); LLstNth (arg, LLit (Integer 2)); 
+		| _ ->
+			let arg = JSIL_Logic_Utils.expr_2_lexpr arg in
+			let fold_args = [ LLstNth (arg, LLit (Integer 1)); LLstNth (arg, LLit (Integer 2));
 				LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()) ] in
-			let folding_guard_l = LBinOp (LLstNth (arg, LLit (Integer 0)), Equal, LLit (String "o")) in 	
-			let folding_guard_r = LBinOp (LLstNth (arg, LLit (Integer 0)), Equal, LLit (String "v")) in 
-			let folding_guard_r = LBinOp (folding_guard_r, And, (LBinOp (LLstNth (arg, LLit (Integer 1)), Equal, LLit (Loc locGlobName)))) in 
-			let folding_guard = LBinOp (folding_guard_l, Or, folding_guard_r) in  
-			let pre_l_if_inner = LogicIf (folding_guard, [ Fold (LPred (JS_Logic_Syntax.pi_pred_name, fold_args)) ], []) in 
-			let pre_l_if_outer = LogicIf ( LBinOp (LTypeOf (arg), Equal, LLit (Type ListType)), [ pre_l_if_inner ], []) in 
+			let folding_guard_l = LBinOp (LLstNth (arg, LLit (Integer 0)), Equal, LLit (String "o")) in
+			let folding_guard_r = LBinOp (LLstNth (arg, LLit (Integer 0)), Equal, LLit (String "v")) in
+			let folding_guard_r = LBinOp (folding_guard_r, And, (LBinOp (LLstNth (arg, LLit (Integer 1)), Equal, LLit (Loc locGlobName)))) in
+			let folding_guard = LBinOp (folding_guard_l, Or, folding_guard_r) in
+			let pre_l_if_inner = LogicIf (folding_guard, [ Fold (LPred (JS_Logic_Syntax.pi_pred_name, fold_args)) ], []) in
+			let pre_l_if_outer = LogicIf ( LBinOp (LTypeOf (arg), Equal, LLit (Type ListType)), [ pre_l_if_inner ], []) in
 			let post_l_if_inner = LogicIf (folding_guard, [ RecUnfold JS_Logic_Syntax.pi_pred_name ], []) in
-			let post_l_if_outer = LogicIf ( LBinOp (LTypeOf (arg), Equal, LLit (Type ListType)), [ post_l_if_inner ], []) in 	
-	 		[ pre_l_if_outer ], [ post_l_if_outer ]) in 
-	
+			let post_l_if_outer = LogicIf ( LBinOp (LTypeOf (arg), Equal, LLit (Type ListType)), [ post_l_if_inner ], []) in
+	 		[ pre_l_if_outer ], [ post_l_if_outer ]) in
+
 	if (is_get_value_call cmd) then (
 		Printf.printf "I AM CREATING a GETVALUE ANNOTATION!!!!!\n";
-		let fold_lcmds, unfold_lcmds = fold_unfold_pi_code (get_args cmd) in  
-		let new_metadata = 
-			{ metadata with pre_logic_cmds = fold_lcmds; post_logic_cmds = unfold_lcmds } in 
+		let fold_lcmds, unfold_lcmds = fold_unfold_pi_code (get_args cmd) in
+		let new_metadata =
+			{ metadata with pre_logic_cmds = fold_lcmds; post_logic_cmds = unfold_lcmds } in
 		(new_metadata, lab, cmd)
 	) else if (is_put_value_call cmd) then (
 		Printf.printf "I AM CREATING a PUTVALUE ANNOTATION!!!!!\n";
-		let fold_lcmds, unfold_lcmds = fold_unfold_pi_code (get_args cmd) in 
-		let new_metadata = 
-			{ metadata with pre_logic_cmds = fold_lcmds; post_logic_cmds = unfold_lcmds } in 
-		(new_metadata, lab, cmd)	
+		let fold_lcmds, unfold_lcmds = fold_unfold_pi_code (get_args cmd) in
+		let new_metadata =
+			{ metadata with pre_logic_cmds = fold_lcmds; post_logic_cmds = unfold_lcmds } in
+		(new_metadata, lab, cmd)
 	) else (metadata, lab, cmd)
 
 let annotate_cmds_top_level metadata cmds =
-	List.map (annotate_cmd_top_level metadata) cmds 
+	List.map (annotate_cmd_top_level metadata) cmds
 
 
 let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : ((jsil_metadata * (string option) * jsil_lab_cmd) list) * jsil_expr * (string list) =
@@ -758,7 +758,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 	let js_line_offset = offset_converter js_char_offset in
 	let metadata = { line_offset = Some js_line_offset; pre_cond = None; pre_logic_cmds = []; post_logic_cmds = [] } in
 
-	let annotate_cmds = annotate_cmds_top_level metadata in 
+	let annotate_cmds = annotate_cmds_top_level metadata in
 
 	let annotate_cmd = fun cmd lab -> annotate_cmd_top_level metadata (lab, cmd) in
 
@@ -1273,10 +1273,10 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmd_hf_construct = SLBasic (SHasField (x_hp, Var x_f_val, Literal (String constructPropName))) in
 
 		(* goto [ x_hp = $$empty ] err next2; *)
-		let getbt = fresh_next_label () in
-		let cmd_goto_xhp = SLGuardedGoto (Var x_hp, getbt, err) in
+		let call = fresh_then_label () in
+		let cmd_goto_xhp = SLGuardedGoto (Var x_hp, call, err) in
 
-		let x_bt = fresh_var () in
+		(* let x_bt = fresh_var () in
 		let cmd_get_bt = SLBasic (SHasField (x_bt, Var x_f_val, Literal (String "@boundThis"))) in
 
 		let call = fresh_then_label () in
@@ -1305,7 +1305,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 
 		let bthen1 = fresh_then_label () in
 		let belse1 = fresh_else_label () in
-    let goto_guard_expr = BinOp (TypeOf (Var x_bf_prototype), Equal, Literal (Type ObjectType)) in
+		let goto_guard_expr = BinOp (TypeOf (Var x_bf_prototype), Equal, Literal (Type ObjectType)) in
 		let cmd_bis_object = SLGuardedGoto (goto_guard_expr, belse1, bthen1) in
 
 		let x_bwhyGodwhy = fresh_var () in
@@ -1347,7 +1347,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		(* SYNC *)
 
 		let join = fresh_label () in
-		let cmd_sync = SLGoto join in
+		let cmd_sync = SLGoto join in *)
 
 		(* x_this := new (); *)
 		let x_this = fresh_this_var () in
@@ -1362,7 +1362,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 
 		let then1 = fresh_then_label () in
 		let else1 = fresh_else_label () in
-    let goto_guard_expr = BinOp (TypeOf (Var x_f_prototype), Equal, Literal (Type ObjectType)) in
+		let goto_guard_expr = BinOp (TypeOf (Var x_f_prototype), Equal, Literal (Type ObjectType)) in
 		let cmd_is_object = SLGuardedGoto (goto_guard_expr, else1, then1) in
 
 		let x_whyGodwhy = fresh_var () in
@@ -1401,8 +1401,8 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let x_rcall = fresh_var () in
 		let cmd_phi_final = SLPhiAssignment (x_rcall, [| Some x_r1; Some x_this |]) in
 
-		let x_final = fresh_var () in
-		let cmd_phi_join = SLPhiAssignment (x_final, [| Some x_rbind; Some x_rcall |]) in
+		(* let x_final = fresh_var () in
+		let cmd_phi_join = SLPhiAssignment (x_final, [| Some x_rbind; Some x_rcall |]) in *)
 
 		let cmds = cmds_ef @ [                    (*        cmds_ef                                                                  *)
 			(annotate_cmd cmd_gv_f None)            (*        x_f_val := i__getValue (x_f) with err                                    *)
@@ -1411,7 +1411,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 			(Some next1,   cmd_hf_construct);       (* next1: x_hp := [x_f_val, "@construct"];                                         *)
 			(None,         cmd_goto_xhp);           (*        goto [ x_hp = $$empty ] err next2                                        *)
 
-			(* PREP *)
+			(* PREP
 
 			(Some getbt,     cmd_get_bt);           (*        x_bt := [x_f_val, "@boundTarget"];                                       *)
 			(None,           cmd_bind_test);        (*        goto [x_bt = $$empty] call bind                                          *)
@@ -1426,7 +1426,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 			(None,         cmd_bis_object);          (*         goto [typeof (x_bf_prototype) = $$object_type] else1 then1;            *)
 			(Some bthen1,  cmd_bset_proto);          (* bthen1:	x_bwhyGodwhy := $lobj_proto                                            *)
 			(Some belse1,  cmd_bproto_phi);          (* belse1: x_bprototype := PHI (x_bf_prototype, x_bwhyGodwhy)		                 *)
-		  (None,         cmd_bcdo_call);           (*         x_bcdo := create_default_object (x_bthis, x_bprototype)                *)
+		    (None,         cmd_bcdo_call);           (*         x_bcdo := create_default_object (x_bthis, x_bprototype)                *)
 			(None,         cmd_bbody);               (*         x_bbody := [x_tf, "@construct"];                                       *)
 			(None,         cmd_bscope);              (*         x_fscope := [x_tf, "@scope"]                                           *)
 
@@ -1435,7 +1435,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 			(None,         cmd_bgoto_test_type);    (*        goto [typeOf(x_r1) = $$object_type ] next4 next3;                        *)
 			(Some bnext3,  cmd_bret_this);          (* next3: skip                                                                     *)
 			(Some bnext4,  cmd_bphi_final);         (* next4: x_rcall := PHI(x_r1, x_this)                                             *)
-			(None,         cmd_sync);               (*        goto join                                                                *)
+			(None,         cmd_sync);               (*        goto join                                                                *) *)
 
 			(Some call,    cmd_create_xobj);        (* next2: x_this := new ()                                                         *)
 			(None,         cmd_ass_xreffprototype); (*        x_ref_fprototype := ref-o(x_f_val, "prototype")                          *)
@@ -1443,17 +1443,17 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 			(None,         cmd_is_object);          (*        goto [typeof (x_f_prototype) = $$object_type] else1 then1;               *)
 			(Some then1,   cmd_set_proto);          (* then1:	x_whyGodwhy := $lobj_proto                                               *)
 			(Some else1,   cmd_proto_phi);         	(* else1: x_prototype := PHI (x_f_prototype, x_whyGodwhy)		                       *)
-		  (None,         cmd_cdo_call);           (*        x_cdo := create_default_object (x_this, x_prototype)                     *)
+		    (None,         cmd_cdo_call);           (*        x_cdo := create_default_object (x_this, x_prototype)                     *)
 			(None,         cmd_body);               (*        x_body := [x_f_val, "@construct"]                                        *)
 			(None,         cmd_scope);              (*        x_fscope := [x_f_val, "@scope"]                                          *)
 			(None,         cmd_proc_call);          (*        x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err   *)
 			(None,         cmd_goto_test_type);     (*        goto [typeOf(x_r1) = $$object_type ] next4 next3;                        *)
 			(Some next3,   cmd_ret_this);           (* next3: skip                                                                     *)
 			(Some next4,   cmd_phi_final);          (* next4: x_rcall := PHI(x_r1, x_this)                                             *)
-			(Some join,    cmd_phi_join);           (*        x_final := PHI (x_rbind, x_rcall);                                       *)
+			(* (Some join,    cmd_phi_join);           (*        x_final := PHI (x_rbind, x_rcall);                                       *) *)
 		]) in
-		let errs = errs_ef @ [ x_f_val ] @ errs_args @ [ var_te; var_te; x_bf_prototype; x_bconstruct; x_f_prototype; x_r1 ] in
-		cmds, Var x_final, errs
+		let errs = errs_ef @ [ x_f_val ] @ errs_args @ [ var_te; var_te; x_f_prototype; x_r1 ] in
+		cmds, Var x_rcall, errs
 
 	| Parser_syntax.Call (e_f, xes)
 		when (e_f.Parser_syntax.exp_stx = (Parser_syntax.Var "jsil_assert")) ->
@@ -2727,13 +2727,13 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmd_fidouter_updt = SLBasic (SMutation (Var x_sc, Literal (String (f_id ^ "_outer")), Var x_f_outer_er)) in
 
 		let cmds = [
-			(None, cmd_errCheck);         (*  x_t := checkParametersName (f_name, processed_params) with err;      *)
-			(None, cmd_sc_copy);          (*  x_sc := copy_object (x_sc, {{main, fid1, ..., fidn }});              *)
-			(None, cmd_fun_constr);       (*  x_f := create_function_object(x_sc, f_id, params)                    *)
-			(None, cmd_ass_xfouter);      (*  x_f_outer_er := new ();                                              *)
-			(None, cmd_cae);              (* x_cae := i__checkAssignmentErrors (ref-v(x_f_outer_er, "f")) with err *)
-			(None, cmd_fname_updt);       (*  [x_f_outer_er, f] := x_f;                                            *)
-			(None, cmd_fidouter_updt)     (*  [x_sc, f_id_outer] := x_f_outer_er                                   *)
+			(None, cmd_errCheck);         (*  x_t := checkParametersName (f_name, processed_params) with err;       *)
+			(None, cmd_sc_copy);          (*  x_sc := copy_object (x_sc, {{main, fid1, ..., fidn }});               *)
+			(None, cmd_fun_constr);       (*  x_f := create_function_object(x_sc, f_id, params)                     *)
+			(None, cmd_ass_xfouter);      (*  x_f_outer_er := new ();                                               *)
+			(None, cmd_cae);              (*  x_cae := i__checkAssignmentErrors (ref-v(x_f_outer_er, "f")) with err *)
+			(None, cmd_fname_updt);       (*  [x_f_outer_er, f] := x_f;                                             *)
+			(None, cmd_fidouter_updt)     (*  [x_sc, f_id_outer] := x_f_outer_er                                    *)
 		] in
 
 		let cmds = annotate_cmds cmds in
@@ -2788,7 +2788,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 
 	let annotate_cmds = annotate_cmds_top_level metadata in
 
-	let annotate_cmd = fun cmd lab -> annotate_cmd_top_level metadata (lab, cmd) in 
+	let annotate_cmd = fun cmd lab -> annotate_cmd_top_level metadata (lab, cmd) in
 
 	let compile_var_dec x e =
 		let v_fid = find_var_fid x in
@@ -4552,20 +4552,25 @@ let generate_proc_er_saving_code fid =
 
 let generate_proc_er_restoring_code fid x_er_old end_lab =
 	(* goto [not (x_er_old = $$empty) next end_lab *)
-	let next = fresh_next_label () in
-	let cmd_goto_xerold_empty = SLGuardedGoto (UnaryOp (Not, BinOp (Var x_er_old, Equal, Literal Empty)), next, end_lab) in
+	let next = fresh_else_label () in
+	let other = fresh_then_label () in
+	let cmd_goto_xerold_empty = SLGuardedGoto (BinOp (Var x_er_old, Equal, Literal Empty), other, next) in
 
 	(* next: [x_sc, fid] := x_er_old *)
 	let cmd_restore_sc = SLBasic (SMutation (Var var_scope, Literal (String fid), Var x_er_old))  in
+	let cmd_goto_end = SLGoto end_lab in
+
+	let cmd_delete_sc = SLBasic (SDelete (Var var_scope, Literal (String fid))) in
 
 	(* end_lab: skip *)
 	let cmd_end = SLBasic SSkip in
 	[
 		None,         cmd_goto_xerold_empty; 	(*            goto [not (x_er_old = $$empty) next end_lab    *)
 		Some next,    cmd_restore_sc;         (* next:      [x_sc, fid] := x_er_old                        *)
+		None,         cmd_goto_end;
+		Some other,   cmd_delete_sc;
 		Some end_lab, cmd_end                 (* end_lab:   skip                                           *)
 	]
-
 
 let generate_proc offset_converter e fid params cc_table vis_fid spec =
 	let annotate_cmd cmd lab = (empty_metadata, lab, cmd) in
@@ -4606,7 +4611,7 @@ let generate_proc offset_converter e fid params cc_table vis_fid spec =
 			x_argList_act := cdr (cdr (x_argList_pre));
 			x_args := "create_arguments_object" (x_argList_act) with err;
 			[x_er, "arguments"] := x_args;
-  *)
+
 	let x_argList_pre = fresh_var () in
 	let x_argList_act = fresh_var () in
 	let x_args = fresh_var () in
@@ -4616,7 +4621,7 @@ let generate_proc offset_converter e fid params cc_table vis_fid spec =
 			(empty_metadata, None, SLBasic (SAssignment (x_argList_act, UnaryOp (Cdr, (UnaryOp (Cdr, Var x_argList_pre))))));
 			(empty_metadata, None, SLCall  (x_args, Literal (String createArgsName), [ Var x_argList_act ], Some new_ctx.tr_error_lab));
 			(empty_metadata, None, SLBasic (SMutation (Var x_er, Literal (String "arguments"), Var x_args)))
-		] in
+		] in *)
 
 	(* [__scope, "fid"] := x_er *)
 	let cmd_ass_er_to_sc = annotate_cmd  (SLBasic (SMutation (Var var_scope, Literal (String fid), Var x_er))) None in
@@ -4641,11 +4646,16 @@ let generate_proc offset_converter e fid params cc_table vis_fid spec =
 
 	(* pre_lab_ret: x_return := PHI(...) *)
 	let cmd_return_phi = make_final_cmd rets new_ctx.tr_ret_lab new_ctx.tr_ret_var in
+
+	let cmd_del_te = annotate_cmd (SLBasic (SDeleteObj (Var var_te))) None in
+	let cmd_del_se = annotate_cmd (SLBasic (SDeleteObj (Var var_se))) None in
+	let cmd_del_er = annotate_cmd (SLBasic (SDeleteObj (Var x_er))) None in
+
 	let cmds_restore_er_ret = generate_proc_er_restoring_code fid x_er_old ctx.tr_ret_lab in
 	let cmds_restore_er_ret = annotate_cmds cmds_restore_er_ret in
 
 	(* pre_lab_err: x_error := PHI(...) *)
-	let errs = errs_hoist_decls @ [ x_args ] @ errs in
+	let errs = errs_hoist_decls @ (* [ x_args ] @ *) errs in
 	let cmd_error_phi = make_final_cmd errs new_ctx.tr_error_lab new_ctx.tr_error_var in
 	let cmds_restore_er_error = generate_proc_er_restoring_code fid x_er_old ctx.tr_error_lab in
 	let cmds_restore_er_error = annotate_cmds cmds_restore_er_error in
@@ -4655,12 +4665,13 @@ let generate_proc offset_converter e fid params cc_table vis_fid spec =
 		[ cmd_er_creation ] @
 		cmds_decls @
 		cmds_params @
-		cmds_arg_obj @
+		(* cmds_arg_obj @ *)
 		[ cmd_ass_er_to_sc ] @
 		[ cmd_ass_te; cmd_ass_se;  cmd_ass_xtrue; cmd_ass_xfalse ] @
 		cmds_hoist_fdecls @
 		cmds_e @
-		[ cmd_dr_ass; cmd_return_phi ]  @
+		[ cmd_dr_ass; cmd_return_phi ] @
+		[ cmd_del_te; cmd_del_se; cmd_del_er ] @
 		cmds_restore_er_ret @
 		[ cmd_error_phi ]  @
 		cmds_restore_er_error in
@@ -4734,7 +4745,7 @@ let js2jsil e offset_converter for_verification =
 
  	(** let cc_tbl_str = Js_pre_processing.print_cc_tbl cc_tbl in
 	Printf.printf "marica, the cc_tbl is the following (enjoy): \n %s\n" cc_tbl_str; *)
-	let cur_imports = if for_verification then js2jsil_logic_imports else js2jsil_imports in 
+	let cur_imports = if for_verification then js2jsil_logic_imports else js2jsil_imports in
 	{ imports = cur_imports; predicates; procedures}, cc_tbl, vis_tbl
 
 
