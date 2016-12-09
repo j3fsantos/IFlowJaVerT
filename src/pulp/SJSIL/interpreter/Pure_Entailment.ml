@@ -70,7 +70,6 @@ let mk_div = match_enc "mk_div" (fun ctx e1 e2 -> Arithmetic.mk_div ctx  e1  e2 
 (* ********************
  * ENCODING-DEPENDENT *
  ********************** *)
-
 (** Encode JSIL type literals as Z3 numerical constants *)
 let encode_type ctx jsil_type =
 	match jsil_type with

@@ -52,28 +52,9 @@ let rec sexpr_of_literal lit =
 
 let sexpr_of_binop bop =
   match bop with
-  | Equal -> "="
-  | LessThan -> "<"
-	| LessThanString -> "<s"
-  | LessThanEqual -> "<="
- 	| Plus -> "+"
-  | Minus -> "-"
-  | Times -> "*"
-  | Div -> "/"
-  | Mod -> "%"
-	| And -> "and"
-  | Or -> "or"
-	| BitwiseAnd -> "&"
-  | BitwiseOr -> "|"
   | BitwiseXor -> "bor"
-	| LeftShift -> "<<"
-  | SignedRightShift -> ">>"
-  | UnsignedRightShift -> ">>>"
-	| M_atan2 -> "m_atan2"
-	| M_pow -> "**"
-	| LstCons -> "::"
-	| LstCat -> "@"
-	| StrCat -> "++"
+	| _          -> JSIL_Print.string_of_binop bop  
+
 
 let rec sexpr_of_expression e =
   let se = sexpr_of_expression in
