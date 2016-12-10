@@ -371,3 +371,12 @@ let debug = ref false
 
 let print_debug msg =
 	if (!debug) then (print_endline msg)
+
+let print_time msg =
+	let time = Sys.time () in
+	print_endline (msg ^ (Printf.sprintf " Time: %f" time))
+
+let print_time_debug msg =
+    if (!debug) then
+	(let time = Sys.time () in
+	print_endline (msg ^ (Printf.sprintf " Time: %f" time))) 	

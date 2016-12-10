@@ -6,7 +6,6 @@ open JSIL_Memory_Model
 open JSIL_Logic_Utils
 open Logic_Predicates
 
-
 (**
 le -> non - normalised logical expression
 subst -> table mapping variable and logical variable
@@ -215,7 +214,7 @@ let init_pure_assignments a store gamma subst =
 			cur_index := (!cur_index) + 1
 		done;
 
-		Symbolic_State_Functions.sanitise_pfs non_store_pure_assertions_array;
+		Symbolic_State_Functions.sanitise_pfs_no_store_no_gamma non_store_pure_assertions_array;
 		non_store_pure_assertions_array in
 
 	(**
@@ -492,10 +491,10 @@ let init_preds a store gamma subst =
 					match le with
 					| LNone	| LVar _ | LLit _ | ALoc _ -> ((le :: new_les), new_equalities)
 					| PVar x ->
-						Printf.printf "Inside init_preds (%s)\n" (JSIL_Print.string_of_logic_assertion a false);
-						Printf.printf "Currrent Store: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false);
-						Printf.printf "Current Substitution: %s\n" (JSIL_Memory_Print.string_of_substitution subst);
-						Printf.printf "Program Variable %s in logical expression that was supposed to be normalised!!!\n" x;
+						print_debug (Printf.sprintf"Inside init_preds (%s)\n" (JSIL_Print.string_of_logic_assertion a false));
+						print_debug (Printf.sprintf "Currrent Store: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false));
+						print_debug (Printf.sprintf "Current Substitution: %s\n" (JSIL_Memory_Print.string_of_substitution subst));
+						print_debug (Printf.sprintf "Program Variable %s in logical expression that was supposed to be normalised!!!\n" x);
 						raise (Failure "")
 					| _ ->
 						let x = fresh_lvar () in
@@ -521,7 +520,7 @@ let init_preds a store gamma subst =
 			| _ -> []) in
 	let new_assertions = init_preds_aux preds a in
 	let dna = DynArray.of_list new_assertions in
-	Symbolic_State_Functions.sanitise_pfs dna;
+	Symbolic_State_Functions.sanitise_pfs store gamma dna;
 	preds, (DynArray.to_list dna)
 
 let fill_store_with_gamma store gamma subst =
@@ -610,9 +609,9 @@ let process_empty_fields heap store p_formulae gamma subst a =
 				    print_debug "Variable strange after subst."; raise (Failure "Illegal Emptyfields!!!") in
 
 		let ret =
-		    Printf.printf "le_loc: %s\nNasty fields:\n" (JSIL_Print.string_of_logic_expression le_loc false);
-			List.iter (fun s -> Printf.printf "\t%s\n" s) non_none_fields;
-			Printf.printf "Heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false);
+		    print_debug (Printf.sprintf "le_loc: %s\nNasty fields:\n" (JSIL_Print.string_of_logic_expression le_loc false));
+			List.iter (fun s -> print_debug (Printf.sprintf "\t%s\n" s)) non_none_fields;
+			print_debug (Printf.sprintf "Heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false));
 			LHeap.fold (fun cur_loc (cur_fv_list, cur_def) ac ->
 				match ac with
 				| Some _ -> ac
@@ -710,12 +709,12 @@ let normalise_postcondition a subst (lvars : string list) pre_gamma : symbolic_s
 
 let normalise_single_spec preds spec =
 
-	Printf.printf "Precondition  : %s\n" (JSIL_Print.string_of_logic_assertion spec.pre false);
-	Printf.printf "Postcondition : %s\n" (JSIL_Print.string_of_logic_assertion spec.post false);
+	print_debug (Printf.sprintf "Precondition  : %s\n" (JSIL_Print.string_of_logic_assertion spec.pre false));
+	print_debug (Printf.sprintf"Postcondition : %s\n" (JSIL_Print.string_of_logic_assertion spec.post false));
 (*	Printf.printf "UPrecondition : %s\n" (JSIL_Print.string_of_logic_assertion unfolded_pre false);
 	Printf.printf "UPostcondition: %s\n" (JSIL_Print.string_of_logic_assertion unfolded_post false); *)
 
-	Printf.printf "NSS: Entry\n";
+	print_debug (Printf.sprintf "NSS: Entry\n");
 
 	let f_pre_normalize a_list = List.concat (List.map pre_normalize_assertion a_list) in
 	let f_print assertions =
@@ -725,35 +724,35 @@ let normalise_single_spec preds spec =
 	let unfolded_pres = f_pre_normalize (Logic_Predicates.auto_unfold preds spec.pre) in
 	let unfolded_posts = f_pre_normalize (Logic_Predicates.auto_unfold preds spec.post) in
 
-	 Printf.printf "NSS: Pre-normalise\n";
+	print_debug (Printf.sprintf "NSS: Pre-normalise\n");
 
-	Printf.printf "Pres: %s\n\n" (f_print unfolded_pres);
-	Printf.printf "Posts: %s\n\n" (f_print unfolded_posts);
+	print_debug (Printf.sprintf"Pres: %s\n\n" (f_print unfolded_pres));
+	print_debug (Printf.sprintf "Posts: %s\n\n" (f_print unfolded_posts));
 
 	let unfolded_spec_list =
 		List.map
 			(fun pre ->
 						let pre_symb_state, (lvars, subst) = normalise_precondition pre in
-						Printf.printf "I am going to check whether the following precondition makes sense:\n%s\n"
-							(JSIL_Memory_Print.string_of_shallow_symb_state pre_symb_state);
+						print_debug (Printf.sprintf "I am going to check whether the following precondition makes sense:\n%s\n"
+							(JSIL_Memory_Print.string_of_shallow_symb_state pre_symb_state));
 						let heap_constraints = Symbolic_State_Functions.get_heap_well_formedness_constraints (get_heap pre_symb_state) in
 						let is_valid_precond = Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list pre_symb_state)) (get_gamma pre_symb_state) [] in
 						if (is_valid_precond)
 						then begin
-							Printf.printf "The precondition makes sense.\n";
+							print_debug (Printf.sprintf "The precondition makes sense.\n");
 							(let posts, posts_lvars =
 									List.fold_left
 										(fun (ac_posts, ac_posts_lvars) post ->
 													let post_symb_state, post_lvars = normalise_postcondition post subst lvars (get_gamma pre_symb_state) in
 													let heap_constraints = Symbolic_State_Functions.get_heap_well_formedness_constraints (get_heap post_symb_state) in
-													Printf.printf "For the postcondition to make sense the following must be satisfiable:\n%s\n"
-														(JSIL_Print.str_of_assertion_list (heap_constraints @ (get_pf_list post_symb_state)));
+													print_debug (Printf.sprintf "For the postcondition to make sense the following must be satisfiable:\n%s\n"
+														(JSIL_Print.str_of_assertion_list (heap_constraints @ (get_pf_list post_symb_state))));
 													if (Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list post_symb_state)) (get_gamma post_symb_state) post_lvars)
 													then ((post_symb_state :: ac_posts), (post_lvars :: ac_posts_lvars))
 													else ac_posts, ac_posts_lvars)
 										([], [])
 										unfolded_posts in
-								(if (posts = []) then Printf.printf "WARNING: No valid postconditions found.\n");
+								(if (posts = []) then print_debug (Printf.sprintf "WARNING: No valid postconditions found.\n"));
 								Some {
 									n_pre = pre_symb_state;
 									n_post = posts;
@@ -763,7 +762,7 @@ let normalise_single_spec preds spec =
 									n_subst = subst
 								})
 						end else begin
-							Printf.printf "WARNING: The precondition does not make sense.\n";
+							print_debug (Printf.sprintf "WARNING: The precondition does not make sense.\n");
 							None
 						end)
 			unfolded_pres in
@@ -780,12 +779,13 @@ let normalise_single_spec preds spec =
 	unfolded_spec_list
 
 let normalise_spec preds spec =
-	Printf.printf "Going to process the SPECS of %s\n" spec.spec_name;
+	let time = Sys.time () in
+	Printf.printf "Going to process the SPECS of %s. The time now is: %f\n" spec.spec_name time;
 	let normalised_pre_post_list = List.concat (List.map (normalise_single_spec preds) spec.proc_specs) in
 	let normalised_pre_post_list =
 		List.map (fun (x : jsil_n_single_spec) ->
-			let pre = Symbolic_State_Functions.aggresively_simplify [] x.n_pre in
-			let post = List.map (fun y -> Symbolic_State_Functions.aggresively_simplify [] y) x.n_post in
+			let pre = Symbolic_State_Functions.simplify x.n_pre in
+			let post = List.map (fun y -> Symbolic_State_Functions.simplify y) x.n_post in
 			{ x with n_pre = pre; n_post = post }
 		) normalised_pre_post_list in
 	{
@@ -831,7 +831,7 @@ let normalise_predicate_definitions pred_defs : (string, JSIL_Memory_Model.n_jsi
 										let normalised_as = List.filter
 											(fun symb_state ->
 												let heap_constraints = Symbolic_State_Functions.get_heap_well_formedness_constraints (get_heap symb_state) in
-												Printf.printf "Symbolic state to check: %s\n%s\n" pred_name (JSIL_Memory_Print.string_of_shallow_symb_state symb_state);
+												print_debug (Printf.sprintf "Symbolic state to check: %s\n%s\n" pred_name (JSIL_Memory_Print.string_of_shallow_symb_state symb_state));
 												((Symbolic_State_Functions.check_store (get_store symb_state) (get_gamma symb_state)) && (Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list symb_state)) (get_gamma symb_state) [])))
 											normalised_as in
 										(if ((List.length normalised_as) = 0)

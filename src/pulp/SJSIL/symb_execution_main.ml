@@ -74,7 +74,7 @@ let process_file path =
 	Printf.printf "RESULTS\n%s" results_str;
 	(if (complete_success) then
 		begin
-			Printf.printf "ALL Succeeded!!!\n";
+			Printf.printf "ALL Succeeded in %f\n" (Sys.time());
 			if (not (!spec_file = "")) then write_spec_file spec_file
 		end
 		else Printf.printf "There were Failures\n");

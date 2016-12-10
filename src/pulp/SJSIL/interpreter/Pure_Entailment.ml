@@ -564,7 +564,7 @@ let get_z3_var_and_type tr_ctx var =
 
 (** Encode JSIL logical expressions *)
 let rec encode_logical_expression tr_ctx e =
-	(* Printf.printf "  ELE: %s\n" (JSIL_Print.string_of_logic_expression e false); *)
+	(*  Printf.printf "  ELE: %s\n" (JSIL_Print.string_of_logic_expression e false); *)
 	let ele = encode_logical_expression tr_ctx in
 	let ctx = tr_ctx.z3_ctx in
 	let gamma = tr_ctx.tr_typing_env in
@@ -1119,6 +1119,7 @@ let string_of_solver solver =
 	string_of_z3_expr_list exprs
 
 let check_satisfiability assertions gamma existentials =
+	print_time_debug "check_satisfiability:";
 	let solver = get_new_solver assertions gamma existentials in
 	(* Printf.printf "CS Solver: \n%s\n" (string_of_solver solver); *)
 	let ret_solver = (Solver.check solver []) in
@@ -1186,6 +1187,8 @@ let old_check_entailment existentials left_as right_as gamma =
 
 let rec check_entailment solver existentials left_as right_as gamma =
 	(* Printf.printf "Entering check entailment...\n"; *)
+
+	print_time_debug "check_entailment:";
 
 	if ((List.length right_as) = 0) then true
 	else if (not (check_satisfiability right_as gamma existentials)) then false
