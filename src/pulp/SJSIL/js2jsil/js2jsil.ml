@@ -4637,7 +4637,6 @@ let generate_proc offset_converter e fid params cc_table vis_fid spec =
 
 	let cmd_del_te = annotate_cmd (SLBasic (SDeleteObj (Var var_te))) None in
 	let cmd_del_se = annotate_cmd (SLBasic (SDeleteObj (Var var_se))) None in
-	let cmd_del_er = annotate_cmd (SLBasic (SDeleteObj (Var x_er))) None in
 
 	let cmds_restore_er_ret = generate_proc_er_restoring_code fid x_er_old ctx.tr_ret_lab in
 	let cmds_restore_er_ret = annotate_cmds cmds_restore_er_ret in
@@ -4659,7 +4658,7 @@ let generate_proc offset_converter e fid params cc_table vis_fid spec =
 		cmds_hoist_fdecls @
 		cmds_e @
 		[ cmd_dr_ass; cmd_return_phi ] @
-		[ cmd_del_te; cmd_del_se; cmd_del_er ] @
+		[ cmd_del_te; cmd_del_se ] @
 		cmds_restore_er_ret @
 		[ cmd_error_phi ]  @
 		cmds_restore_er_error in

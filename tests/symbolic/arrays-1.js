@@ -4,7 +4,7 @@ function f_three() { return "ten"; }
 function f_two() { return 5; }
 
 function f_one() { return "one"; }
-x2
+
 function top(f1, f2) {
     var a = [ f_one, f_two, f_three ];
     var v1 = (a[f1])();

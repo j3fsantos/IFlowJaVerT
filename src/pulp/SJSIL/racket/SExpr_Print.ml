@@ -105,12 +105,15 @@ let rec sexpr_of_bcmd bcmd i line_numbers_on =
 	| SMutation (e1, e2, e3) -> Printf.sprintf "'(%sh-assign %s %s %s)" str_i (se e1) (se e2) (se e3)
 	(* ('delete var e1 e2) *)
 	| SDelete (e1, e2) ->  Printf.sprintf "'(%sh-delete %s %s)" str_i (se e1) (se e2)
+	(* ('delete-object e1)*)
+	| SDeleteObj (e1) ->  Printf.sprintf "'(%sdelete-object %s)" str_i (se e1)
 	(* ('has-field var e1 e2) *)
   | SHasField (var, e1, e2) -> Printf.sprintf "'(%shas-field %s %s %s)" str_i var (se e1) (se e2)
   (* ('get-fields var e) *)
 	| SGetFields (var, e) -> Printf.sprintf "'(%sget-fields %s %s)" str_i var (se e)
 	(* ('arguments var) *)
 	| SArguments (var) -> Printf.sprintf "'(%sarguments %s)" str_i var
+
 
 let rec sexpr_of_cmd sjsil_cmd tabs i line_numbers_on =
 	let sjsil_cmd = match sjsil_cmd with | (_, cmd) -> cmd in
