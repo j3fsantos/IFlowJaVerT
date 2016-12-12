@@ -1,4 +1,6 @@
 open JSIL_Syntax
+open JSIL_Logic_Utils
+open JSIL_Memory_Model
 
 exception Non_unifiable of string
 
@@ -22,11 +24,9 @@ let string_of_normalised_predicates (preds : (string, normalised_predicate) Hash
     Hashtbl.fold (fun pname pred ac -> ac ^ string_of_normalised_predicate pred) preds ""
 
 let detect_trivia_and_nonsense norm_pred =
+	print_time_debug "detect_trivia_and_nonsense";
 	let new_definitions = List.map
-		(fun x ->
-			let rx = JSIL_Logic_Utils.reduce_assertion x in
-			(* Printf.printf "\nReduction:\n\n%s\n\nreduces to\n\n%s\n\n" (JSIL_Print.string_of_logic_assertion x false) (JSIL_Print.string_of_logic_assertion rx false); *)
-			rx) norm_pred.definitions in
+		(fun x -> reduce_assertion_no_store_no_gamma_no_pfs x) norm_pred.definitions in
 	let new_definitions = List.filter (fun x -> not (x = LFalse)) new_definitions in
 	{ norm_pred with definitions = new_definitions }
 
@@ -46,7 +46,7 @@ let replace_head_literals (pred : jsil_logic_predicate) =
 			match cur_param with
 			| LLit _ | LNone -> (* If the parameter is a JSIL literal or None... *)
 			  (* Get a fresh program variable and add a constraint to each definition *)
-				let new_pvar = JSIL_Memory_Model.fresh_pvar () in
+				let new_pvar = fresh_pvar () in
 				let new_assertions =
 					List.map
 						(fun prev_ass -> LStar (prev_ass, LEq (PVar new_pvar, cur_param)))
@@ -86,7 +86,7 @@ let unify_list_pvars l1 l2 =
 (* Replaces the logic_expressions in asrt that have a substitute in the hashtable subst *)
 let apply_substitution pred_name subst partial asrt =
 
-	JSIL_Logic_Utils.assertion_map
+	assertion_map
 	  (fun lexpr -> (* Replace the logic expression if it has a substitute, but do not recurse *)
 		  try
 	      (Hashtbl.find subst lexpr, false)
@@ -96,7 +96,7 @@ let apply_substitution pred_name subst partial asrt =
 					if partial
 						then (lexpr, true)
 						else
-							(let new_lvar = LVar (JSIL_Memory_Model.fresh_lvar_from_lvar_name pred_name x) in
+							(let new_lvar = LVar (fresh_lvar_from_lvar_name pred_name x) in
 							Hashtbl.add subst lexpr new_lvar;
 							(new_lvar, false))
 				| _ -> (lexpr, true)))

@@ -10,7 +10,7 @@ let harnessing = ref false
 let line_numbers = ref false
 let sep_procs = ref false
 let sexpr = ref false
-let for_verification = ref false 
+let for_verification = ref false
 
 let arguments () =
   let usage_msg="Usage: -file <path>" in
@@ -24,9 +24,11 @@ let arguments () =
 			"-line_numbers", Arg.Unit(fun () -> line_numbers := true), "show line numbers";
 			(* one procedure per file *)
 			"-sep_procs", Arg.Unit(fun () -> sep_procs := true), "one procedure per file";
-      "-closure", Arg.Clear(Parser_main.use_json), "use closure parser";
+			"-closure", Arg.Clear(Parser_main.use_json), "use closure parser";
 			(* output for logic verification  *)
 			"-logic", Arg.Unit(fun () -> for_verification := true), "output for logic verification";
+			(* output for logic verification  *)
+			"-debug", Arg.Unit(fun () -> JSIL_Syntax.debug := true), "debug information";
     ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
@@ -66,12 +68,12 @@ let process_file path =
 		let e_str = string_of_file path in
 		let offset_converter = Js_pre_processing.memoized_offsetchar_to_offsetline e_str in
     let e = Parser_main.exp_from_string ~force_strict:true e_str in
-		
-		(* let annots = get_top_level_annot e in 
-		(match annots with 
+
+		(* let annots = get_top_level_annot e in
+		(match annots with
 		| Some annots -> Printf.printf "Top-level annotations, my sweet bananas!:\n%s\n" (Pretty_print.string_of_annots annots)
 		| None -> Printf.printf "NO TOP LEVEL ANNOTATION BANANAS!!!");
-		
+
 		let e_annot_str e = Pretty_print.string_of_annots e.Parser_syntax.exp_annot in
 		(* Printf.printf "Top-level annotations:\n%s\n" (e_annot_str e); *)
 		(match e.exp_stx with

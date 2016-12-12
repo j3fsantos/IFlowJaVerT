@@ -157,23 +157,24 @@ let field r = LstNth (r, lit_int 2)
 type jsil_basic_cmd =
   | SSkip
   | SAssignment     of jsil_var  * jsil_expr
-	| SNew            of jsil_var
-	| SLookup         of jsil_var  * jsil_expr * jsil_expr
+  | SNew            of jsil_var
+  | SLookup         of jsil_var  * jsil_expr * jsil_expr
   | SMutation       of jsil_expr * jsil_expr * jsil_expr
-	| SDelete         of jsil_expr * jsil_expr
-	| SHasField       of jsil_var  * jsil_expr * jsil_expr
-	| SGetFields      of jsil_var  * jsil_expr
-	| SArguments      of jsil_var
+  | SDelete         of jsil_expr * jsil_expr
+  | SDeleteObj      of jsil_expr
+  | SHasField       of jsil_var  * jsil_expr * jsil_expr
+  | SGetFields      of jsil_var  * jsil_expr
+  | SArguments      of jsil_var
 
 (* JSIL All Statements *)
 type jsil_cmd =
   | SBasic          of jsil_basic_cmd
-	| SGoto           of int
-	| SGuardedGoto    of jsil_expr * int        * int
-	| SCall           of jsil_var  * jsil_expr  * jsil_expr list * int option
-	| SApply          of jsil_var  * jsil_expr list * int option
-	| SPhiAssignment  of jsil_var  * (jsil_var option array)
-	| SPsiAssignment  of jsil_var  * (jsil_var option array)
+  | SGoto           of int
+  | SGuardedGoto    of jsil_expr * int        * int
+  | SCall           of jsil_var  * jsil_expr  * jsil_expr list * int option
+  | SApply          of jsil_var  * jsil_expr list * int option
+  | SPhiAssignment  of jsil_var  * (jsil_var option array)
+  | SPsiAssignment  of jsil_var  * (jsil_var option array)
 
 (* JSIL logical expressions *)
 type jsil_logic_var = string
@@ -370,3 +371,12 @@ let debug = ref false
 
 let print_debug msg =
 	if (!debug) then (print_endline msg)
+
+let print_time msg =
+	let time = Sys.time () in
+	print_endline (msg ^ (Printf.sprintf " Time: %f" time))
+
+let print_time_debug msg =
+    if (!debug) then
+	(let time = Sys.time () in
+	print_endline (msg ^ (Printf.sprintf " Time: %f" time))) 	

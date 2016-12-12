@@ -16,7 +16,7 @@ let js2jsil_imports = [
 ]
 
 let js2jsil_logic_imports = [
-	"internal_functions"
+	"obj_int_fun"; "js_preds"
 ]
 
 let setupHeapName = "setupInitialHeap"
@@ -68,3 +68,4 @@ let var_this = "x__this"
 let var_scope = "x__scope"
 let var_se = "x__se"
 let var_te = "x__te"
+let var_er = "x__er"

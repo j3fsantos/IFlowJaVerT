@@ -120,6 +120,7 @@ open JS_Logic_Syntax
 %token DEFEQ
 %token NEW
 %token DELETE
+%token DELETEOBJ
 %token HASFIELD
 %token GETFIELDS
 %token ARGUMENTS
@@ -211,9 +212,9 @@ open JS_Logic_Syntax
 %left PLUS MINUS
 %left TIMES DIV MOD M_POW
 %right NOT BITWISENOT unary_minus
-%left M_ATAN2 LSTCONS LSTCAT STRCAT
+%left M_ATAN2 LSTCAT STRCAT
 %right M_ABS M_ACOS M_ASIN M_ATAN M_CEIL M_COS M_EXP M_FLOOR M_LOG M_ROUND M_SGN M_SIN M_SQRT M_TAN
-  ISPRIMITIVE TOSTRING TOINT TOUINT16 TOINT32 TOUINT32 TONUMBER CAR CDR LSTLEN STRLEN
+  ISPRIMITIVE TOSTRING TOINT TOUINT16 TOINT32 TOUINT32 TONUMBER CAR CDR LSTLEN STRLEN LSTCONS
 
 %nonassoc INT
 %nonassoc FLOAT
@@ -376,6 +377,9 @@ cmd_target:
 (* delete(e1, e2) *)
 	| DELETE; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
 		{ SLBasic (SDelete (e1, e2)) }
+(* deleteObject(e1) *)
+	| DELETEOBJ; LBRACE; e1=expr_target; RBRACE
+		{ SLBasic (SDeleteObj (e1)) }
 (* x := hasField(e1, e2) *)
 	| v=VAR; DEFEQ; HASFIELD; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
 		{ SLBasic (SHasField (v, e1, e2)) }
@@ -857,6 +861,14 @@ js_assertion_target:
 	  { ass }
 ;
 
+js_program_variable_target:
+  | v = VAR
+	  { validate_pvar v; v }
+	| RET
+	  { validate_pvar "ret"; "ret" }
+	| ERR
+	  { validate_pvar "err"; "err" }
+;
 
 js_lexpr_target:
 (* Logic literal *)
@@ -866,7 +878,7 @@ js_lexpr_target:
 	| LNONE
 	  { JSLNone }
 (* program variable *)
-	| pvar = VAR
+	| pvar = js_program_variable_target
 	  { Printf.printf "PVar... no comment: %s\n" pvar; JSPVar pvar }
 (* Logic variable *)
 	| lvar = LVAR

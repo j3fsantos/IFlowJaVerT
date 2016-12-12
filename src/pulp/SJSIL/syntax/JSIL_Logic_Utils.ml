@@ -17,10 +17,15 @@ module MyNumber =
     let compare = Pervasives.compare
   end
 
-
+module MyAssertion =
+ 	struct
+  	type t = jsil_logic_assertion
+    let compare = Pervasives.compare
+  end
 
 module SI = Set.Make(MyInt)
 module SN = Set.Make(MyNumber)
+module SA = Set.Make(MyAssertion)
 
 let get_string_hashtbl_keys ht =
 	Hashtbl.fold
@@ -1070,29 +1075,134 @@ let make_all_different_pure_assertion fv_list_1 fv_list_2 : jsil_logic_assertion
 
 	all_different_fv_list_against_fv_list fv_list_1 fv_list_2 []
 
-let rec reduce_expression e =
-	let f = reduce_expression in
-	match e with
+let star_asses asses =
+	List.fold_left
+		(fun ac a ->
+			if (not (a = LEmp))
+				then LStar (a, ac)
+				else ac)
+		 LEmp
+		asses
+
+let if_some (a : 'a option) (f : 'a -> 'b) (default : 'b) =
+(match a with
+ | Some x -> f x
+ | None -> default)
+
+(* *************** *
+ * SIMPLIFICATIONS *
+ * *************** *)
+
+(**
+	List simplifications:
+
+	Finding if the given logical expression is equal to a list.
+	If yes, returning one of those lists
+*)
+let find_me_Im_a_list store pfs le =
+	let found = ref [le] in
+	let counter = ref 0 in
+	try
+	(
+		while (!counter < List.length !found)
+		do
+			let lex = List.nth !found !counter in
+			counter := !counter + 1;
+			(match lex with
+			| PVar var ->
+				counter := !counter + 1;
+				if (Hashtbl.mem store var) then
+				(let value = Hashtbl.find store var in
+				(match value with
+				| LLit (LList _)
+				| LEList _
+				| LBinOp (_, LstCons, _) -> raise (FoundIt value)
+				| _ ->
+					if (not (List.mem value !found)) then
+					begin
+						found := !found @ [value];
+						DynArray.iter
+							(fun x -> (match x with
+								| LEq (PVar v, lexpr)
+								| LEq (lexpr, PVar v) ->
+									if (v = var) then
+										if (not (List.mem lexpr !found)) then
+											found := !found @ [lexpr];
+								| _ -> ())) pfs;
+					end))
+			| LVar var ->
+				DynArray.iter
+					(fun x -> (match x with
+						| LEq (LVar v, lexpr)
+						| LEq (lexpr, LVar v) ->
+							if (v = var) then
+							(match lexpr with
+							| LLit (LList _)
+							| LEList _
+							| LBinOp (_, LstCons, _) -> raise (FoundIt lexpr)
+							| _ ->
+								if (not (List.mem lexpr !found)) then
+									found := !found @ [lexpr])
+						| _ -> ())) pfs;
+			| _ -> ());
+		done;
+		let flist = List.filter
+			(fun x -> match x with
+				| LLit (LList _)
+				| LEList _ -> true
+				| _ -> false) !found in
+		if (flist = [])
+			then le
+			else (List.hd flist)
+	) with FoundIt result -> result
+
+
+(**
+	Reduction of expressions: everything must be IMMUTABLE
+
+	Binary operators - recursively
+	TypeOf           - recursively
+	LEList           - reduce each expression, then if we have all literals,
+	                   transform into a literal list
+	List nth         - try to get a list and then actually reduce
+	String nth       - ------- || -------
+	List length      - try to get a list and then actually calculate
+	String length    - ------- || -------
+*)
+let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
+                          (gamma : (string, jsil_type) Hashtbl.t)
+						  (pfs   : jsil_logic_assertion DynArray.t)
+						  (e     : jsil_logic_expr) =
+	let f = reduce_expression store gamma pfs in
+	let result = (match e with
+	(* Binary operators *)
 	| LBinOp (e1, bop, e2) ->
 		let re1 = f e1 in
 		let re2 = f e2 in
 			LBinOp (re1, bop, re2)
+
+	(* TypeOf *)
 	| LTypeOf e1 ->
 		let re1 = f e1 in
 			LTypeOf re1
+
+	(* Logical lists *)
 	| LEList le ->
+		let rle = List.map (fun x -> f x) le in
 		let all_literals = List.fold_left
 			(fun ac x -> ac && (match x with
 			  | LLit _ -> true
-			  | _ -> false)) true le in
+			  | _ -> false)) true rle in
 		if all_literals then
 			LLit (LList (List.map (fun x -> (match x with
 			  | LLit lit -> lit
-			  | _ -> raise (Failure "List literal nonsense. This cannot happen."))) le))
-		else
-			LEList (List.map (fun x -> reduce_expression x) le)
+			  | _ -> raise (Failure "List literal nonsense. This cannot happen."))) rle))
+		else (LEList rle)
+
+	(* List nth *)
 	| LLstNth (e1, e2) ->
 		let list = f e1 in
+		let list = find_me_Im_a_list store pfs list in
 		let index = f e2 in
 		let index =
 			(match index with
@@ -1107,8 +1217,14 @@ let rec reduce_expression e =
 			(try (List.nth list n) with _ ->
 					raise (Failure "List index out of bounds"))
 
+		| LBinOp (le, LstCons, list), LLit (Integer n) ->
+		  (match (n = 1) with
+		   | true -> f le
+		   | false -> f (LLstNth (f list, LLit (Integer (n - 1)))))
+
 		| _, _ -> LLstNth (list, index))
 
+	(* String nth *)
 	| LStrNth (e1, e2) ->
 		let str = f e1 in
 		let index = f e2 in
@@ -1122,36 +1238,39 @@ let rec reduce_expression e =
 				raise (Failure "List index out of bounds"))
 		| _, _ -> LStrNth (str, index))
 
+    (* List and String length *)
 	| LUnOp (op, e1) ->
 		let re1 = f e1 in
 		(match op with
 		 | LstLen -> (match re1 with
 	        | LLit (LList list) -> (LLit (Integer (List.length list)))
 		    | LEList list -> (LLit (Integer (List.length list)))
+			| LBinOp (le, LstCons, list) ->
+				let rlist = f (LUnOp (LstLen, list)) in
+				(match rlist with
+				 | LLit (Integer n) -> LLit (Integer (n + 1))
+				 | _ -> LBinOp (LLit (Integer 1), Plus, rlist))
 		    | _ -> LUnOp (LstLen, e1))
 		 | StrLen -> (match re1 with
 		    | LLit (String str) -> (LLit (Integer (String.length str)))
 		    | _ -> LUnOp (StrLen, e1))
 		 | _ -> LUnOp (op, re1))
 
-	| _ -> e
+	(* Everything else *)
+	| _ -> e) in
+	if (not (e = result)) then print_debug (Printf.sprintf "Reduce expression: %s ---> %s"
+		(JSIL_Print.string_of_logic_expression e false)
+		(JSIL_Print.string_of_logic_expression result false));
+	result
 
-(* JSIL logic assertions
-type jsil_logic_assertion =
-	| LLess	   			of jsil_logic_expr * jsil_logic_expr
-	| LLessEq	   		of jsil_logic_expr * jsil_logic_expr
-	| LStrLess    		of jsil_logic_expr * jsil_logic_expr
-	| LStar				of jsil_logic_assertion * jsil_logic_assertion
-	| LPointsTo			of jsil_logic_expr * jsil_logic_expr * jsil_logic_expr
-	| LEmp
-(*  | LExists			of (jsil_logic_var list) * jsil_logic_assertion
-	| LForAll			of (jsil_logic_var list) * jsil_logic_assertion *)
-	| LPred				of string * (jsil_logic_expr list)
-	| LTypes      		of (jsil_logic_expr * jsil_type) list *)
+let reduce_expression_no_store_no_gamma_no_pfs = reduce_expression (Hashtbl.create 1) (Hashtbl.create 1) (DynArray.create ())
+let reduce_expression_no_store_no_gamma        = reduce_expression (Hashtbl.create 1) (Hashtbl.create 1)
+let reduce_expression_no_store                 = reduce_expression (Hashtbl.create 1)
 
-let rec reduce_assertion a =
-	let f = reduce_assertion in
-	match a with
+let rec reduce_assertion store gamma pfs a =
+	let f = reduce_assertion store gamma pfs in
+	let fe = reduce_expression store gamma pfs in
+	let result = (match a with
 	| LAnd (LFalse, _)
 	| LAnd (_, LFalse) -> LFalse
 	| LAnd (LTrue, a1)
@@ -1194,8 +1313,8 @@ let rec reduce_assertion a =
 			then a' else f a'
 
 	| LEq (e1, e2) ->
-		let re1 = reduce_expression e1 in
-		let re2 = reduce_expression e2 in
+		let re1 = fe e1 in
+		let re2 = fe e2 in
 		let eq  = (re1 = re2) in
 		if eq then LTrue
 		else
@@ -1212,75 +1331,16 @@ let rec reduce_assertion a =
 		)
 
 	| LLess (e1, e2) ->
-		let re1 = reduce_expression e1 in
-		let re2 = reduce_expression e2 in
+		let re1 = fe e1 in
+		let re2 = fe e2 in
 		LLess (re1, re2)
 
-	| _ -> a
+	| _ -> a) in
+	if (not (a = result)) then print_debug (Printf.sprintf "Reduce assertion: %s ---> %s"
+		(JSIL_Print.string_of_logic_assertion a false)
+		(JSIL_Print.string_of_logic_assertion result false));
+	result
 
-let rec find_me_baby le store pfs =
-	let found = ref [le] in
-	let counter = ref 0 in
-	try
-	(
-		while (!counter < List.length !found)
-		do
-			let lex = List.nth !found !counter in
-			counter := !counter + 1;
-			(match lex with
-			| PVar var ->
-				counter := !counter + 1;
-				let value = Hashtbl.find store var in
-				(match value with
-				| LLit (LList _)
-				| LEList _
-				| LBinOp (_, LstCons, _) -> raise (FoundIt value)
-				| _ ->
-					if (not (List.mem value !found)) then
-					begin
-						found := !found @ [value];
-						DynArray.iter
-							(fun x -> (match x with
-								| LEq (PVar v, lexpr)
-								| LEq (lexpr, PVar v) ->
-									if (v = var) then
-										if (not (List.mem lexpr !found)) then
-											found := !found @ [lexpr];
-								| _ -> ())) pfs;
-					end)
-			| LVar var ->
-				DynArray.iter
-					(fun x -> (match x with
-						| LEq (LVar v, lexpr)
-						| LEq (lexpr, LVar v) ->
-							if (v = var) then
-							(match lexpr with
-							| LLit (LList _)
-							| LEList _
-							| LBinOp (_, LstCons, _) -> raise (FoundIt lexpr)
-							| _ ->
-								if (not (List.mem lexpr !found)) then
-									found := !found @ [lexpr])
-						| _ -> ())) pfs;
-			| _ -> ());
-		done;
-		let flist = List.filter
-			(fun x -> match x with
-				| LLit (LList _)
-				| LEList _ -> true
-				| _ -> false) !found in
-		if (flist = [])
-			then le
-			else (List.hd flist)
-	) with FoundIt result -> result
-
-
-
-let star_asses asses =
-	List.fold_left
-		(fun ac a ->
-			if (not (a = LEmp))
-				then LStar (a, ac)
-				else ac)
-		 LEmp
-		asses
+let reduce_assertion_no_store_no_gamma_no_pfs = reduce_assertion (Hashtbl.create 1) (Hashtbl.create 1) (DynArray.create ())
+let reduce_assertion_no_store_no_gamma        = reduce_assertion (Hashtbl.create 1) (Hashtbl.create 1)
+let reduce_assertion_no_store                 = reduce_assertion (Hashtbl.create 1)

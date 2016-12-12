@@ -123,6 +123,7 @@ rule read = parse
 	| ":="                 { JSIL_Parser.DEFEQ }
 	| "new"                { JSIL_Parser.NEW }
 	| "delete"             { JSIL_Parser.DELETE }
+	| "deleteObject"       { JSIL_Parser.DELETEOBJ }
 	| "hasField"           { JSIL_Parser.HASFIELD }
 	| "getFields"          { JSIL_Parser.GETFIELDS }
 	| "args"               { JSIL_Parser.ARGUMENTS }

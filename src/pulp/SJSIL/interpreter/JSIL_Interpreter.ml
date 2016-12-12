@@ -573,6 +573,15 @@ let rec evaluate_bcmd bcmd heap store =
 			else raise (Failure "Deleting inexisting field")
 		| _, _ -> raise (Failure "Illegal field deletion"))
 
+	| SDeleteObj e1 ->
+		let v_e1 = evaluate_expr e1 store in
+		(match v_e1 with
+		| Loc l ->
+		  (match (SHeap.mem heap l) with
+		   | false -> raise (Failure (Printf.sprintf "Attempting to delete inexistent object: %s" (JSIL_Print.string_of_literal v_e1 false)))
+		   | true -> SHeap.remove heap l; Bool true)
+		| _ -> raise (Failure (Printf.sprintf "Attempting to delete something that's not an object: %s" (JSIL_Print.string_of_literal v_e1 false))))
+
 	| SHasField (x, e1, e2) ->
 		let v_e1 = evaluate_expr e1 store in
 		let v_e2 = evaluate_expr e2 store in

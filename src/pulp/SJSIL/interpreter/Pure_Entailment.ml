@@ -1,6 +1,8 @@
-open Z3
-open JSIL_Memory_Model
 open JSIL_Syntax
+open JSIL_Memory_Model
+open JSIL_Logic_Utils
+open Symbolic_State_Basics
+open Z3
 
 type encoding =
  | WithInts
@@ -563,7 +565,7 @@ let get_z3_var_and_type tr_ctx var =
 
 (** Encode JSIL logical expressions *)
 let rec encode_logical_expression tr_ctx e =
-	(* Printf.printf "  ELE: %s\n" (JSIL_Print.string_of_logic_expression e false); *)
+	(*  Printf.printf "  ELE: %s\n" (JSIL_Print.string_of_logic_expression e false); *)
 	let ele = encode_logical_expression tr_ctx in
 	let ctx = tr_ctx.z3_ctx in
 	let gamma = tr_ctx.tr_typing_env in
@@ -1089,6 +1091,12 @@ let string_of_z3_expr_list exprs =
 		exprs
 
 let get_new_solver assertions gamma existentials =
+
+  let existentials, _, assertions, gamma =
+	simplify_implication (SS.of_list existentials) (DynArray.of_list [ LTrue ]) (DynArray.of_list assertions) (copy_gamma gamma) in
+
+  let assertions = DynArray.to_list assertions in
+
   let tr_ctx = mk_smt_translation_ctx gamma existentials in
 	(* let string_axioms = get_them_nasty_string_axioms tr_ctx assertions in *)
 	let assertions = List.map (fun a -> encode_assertion_top_level tr_ctx true a) assertions in
@@ -1118,6 +1126,7 @@ let string_of_solver solver =
 	string_of_z3_expr_list exprs
 
 let check_satisfiability assertions gamma existentials =
+	print_time_debug "check_satisfiability:";
 	let solver = get_new_solver assertions gamma existentials in
 	(* Printf.printf "CS Solver: \n%s\n" (string_of_solver solver); *)
 	let ret_solver = (Solver.check solver []) in
@@ -1132,6 +1141,13 @@ let check_satisfiability assertions gamma existentials =
 
 (* right_as must be satisfiable *)
 let old_check_entailment existentials left_as right_as gamma =
+
+	let existentials, left_as, right_as, gamma =
+		simplify_implication (SS.of_list existentials) (DynArray.of_list left_as) (DynArray.of_list right_as) (copy_gamma gamma) in
+
+	let left_as = DynArray.to_list left_as in
+	let right_as = DynArray.to_list right_as in
+	let existentials = SS.elements existentials in
 
 	let tr_ctx = mk_smt_translation_ctx gamma existentials in
 	let ctx = tr_ctx.z3_ctx in
@@ -1176,15 +1192,17 @@ let old_check_entailment existentials left_as right_as gamma =
 		(*  Printf.printf "backtracking_scopes before pop after push: %d!!!\n" (Solver.get_num_scopes solver); *)
 		(* Printf.printf "ret: %b\n" ret; *)
 		Solver.pop solver 1;
-		ret, Some (solver, tr_ctx)  in
+		ret (* Some (solver, tr_ctx) *)  in
 
 	(* if (not (ret_right)) then false, None *)
-	try check_entailment_aux () with Failure msg -> Printf.printf "Horrible failure\n"; false, None
+	try check_entailment_aux () with Failure msg -> Printf.printf "Horrible failure\n"; false (*, None *)
 
 
 
-let rec check_entailment solver existentials left_as right_as gamma =
+(* let rec check_entailment solver existentials left_as right_as gamma =
 	(* Printf.printf "Entering check entailment...\n"; *)
+
+	print_time_debug "check_entailment:";
 
 	if ((List.length right_as) = 0) then true
 	else if (not (check_satisfiability right_as gamma existentials)) then false
@@ -1224,7 +1242,7 @@ let rec check_entailment solver existentials left_as right_as gamma =
 		(match new_solver with
 		| Some (new_solver, tr_ctx) -> solver := Some (new_solver, tr_ctx)
 		| None                      -> ());
-		ret)
+		ret) *)
 
 let understand_error existentials left_as right_as gamma =
 	Printf.printf "---------------------------------------\n";
@@ -1315,12 +1333,12 @@ let is_equal e1 e2 pure_formulae solver gamma =
 	| LVar l1, LVar l2 ->
 		if (l1 = l2)
 			then true
-			else check_entailment solver [] (JSIL_Memory_Model.pfs_to_list pure_formulae) [ (LEq (e1, e2)) ] gamma
-	| _, _ -> check_entailment solver [] (JSIL_Memory_Model.pfs_to_list pure_formulae) [ (LEq (e1, e2)) ] gamma
+			else old_check_entailment [] (JSIL_Memory_Model.pfs_to_list pure_formulae) [ (LEq (e1, e2)) ] gamma
+	| _, _ -> old_check_entailment [] (JSIL_Memory_Model.pfs_to_list pure_formulae) [ (LEq (e1, e2)) ] gamma
 
 
 let is_different e1 e2 pure_formulae solver gamma =
 	match e1, e2 with
 	| LLit l1, LLit l2 -> (not (l1 = l2))
 	| ALoc aloc1, ALoc aloc2 -> (not (aloc1 = aloc2))
-	| _, _ -> check_entailment solver [] (JSIL_Memory_Model.pfs_to_list pure_formulae) [ (LNot (LEq (e1, e2))) ] gamma
+	| _, _ -> old_check_entailment [] (JSIL_Memory_Model.pfs_to_list pure_formulae) [ (LNot (LEq (e1, e2))) ] gamma

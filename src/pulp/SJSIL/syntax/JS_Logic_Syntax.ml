@@ -1,4 +1,7 @@
+open Set
 open JSIL_Syntax
+
+module SS = Set.Make(String)
 
 (* JS_Logic - Assertions *)
 
@@ -10,7 +13,8 @@ let object_class                  = "Object"
 let syntax_error_pred_name        = "isSyntaxError"
 let type_error_pred_name          = "isTypeError"
 let initial_heap_pre_pred_name    = "initialHeapPre"
-let initial_heap_post_pred_name   = "initialHeapPost"
+let initial_heap_post_pred_name   = "initialHeapPostFull"
+let initial_heap_post_pred_rlx    = "initialHeapPostRelaxed"
 
 let fid_to_lvar fid = "#fid_" ^ fid
 
@@ -120,8 +124,8 @@ let rec js2jsil_logic (js_var_to_lvar : (string, JSIL_Syntax.jsil_logic_expr) Ha
 
 let var_fid_tbl_to_assertion (var_to_fid_tbl : (string, string) Hashtbl.t) (exceptions : string list) is_global =
 	let js_var_to_lvar = Hashtbl.create small_tbl_size in
-	let a = Hashtbl.fold
-		(fun x fid ac ->
+	let (a, locs) = Hashtbl.fold
+		(fun x fid (ac, locs) ->
 			if (not (List.mem fid exceptions)) then (
 				let x_fid = if (is_global) then LLit (Loc Js2jsil_constants.locGlobName) else LVar (fid_to_lvar fid) in
 				let x_val_name = fresh_lvar () in
@@ -132,15 +136,18 @@ let var_fid_tbl_to_assertion (var_to_fid_tbl : (string, string) Hashtbl.t) (exce
 						else x_val in
 				let a_new = LPointsTo (x_fid, LLit (String x), le_val) in
 				Hashtbl.add js_var_to_lvar x x_val;
-				if (ac = LEmp) then a_new else LStar (ac, a_new))
-			else ac)
+				let nlocs = SS.add (fid_to_lvar fid) locs in
+				if (ac = LEmp) then (a_new, nlocs) else (LStar (ac, a_new), nlocs))
+			else (ac, locs))
 		var_to_fid_tbl
-		LEmp in
+		(LEmp, SS.empty) in
+	let a = List.fold_left (fun ac x -> LStar (ac, (LPointsTo (LLit (Loc x), LLit (String Js2jsil_constants.internalProtoFieldName), LLit Null)))) a (SS.elements locs) in
 	a, js_var_to_lvar
 
 
-let make_scope_chain_assertion vis_list fid is_pre =
-	Printf.printf "Inside make_scope_chain_assertion with\n vis_list:%s\n" (String.concat ", " vis_list);
+let make_scope_chain_assertion vis_list exceptions =
+	print_debug (Printf.sprintf "Inside make_scope_chain_assertion with\n vis_list:%s\nexceptions:%s\n"
+		(String.concat ", " vis_list) (String.concat ", " exceptions));
 
 	let var_scope_proto_null = LPointsTo (PVar Js2jsil_constants.var_scope, LLit (String Js2jsil_constants.internalProtoFieldName), LLit Null) in
 
@@ -157,25 +164,28 @@ let make_scope_chain_assertion vis_list fid is_pre =
 
 
 let rec js2jsil_logic_top_level_pre a (var_to_fid_tbl : (string, string) Hashtbl.t) (vis_list : string list) fid =
-	Printf.printf "Inside js2jsil_logic_top_level_pre for procedure %s\n" fid;
+	print_debug (Printf.sprintf "Inside js2jsil_logic_top_level_pre for procedure %s\n" fid);
 	let is_global = (fid = main_fid) in
-	let a_env_records, js_var_to_lvar = var_fid_tbl_to_assertion var_to_fid_tbl [ ] is_global in
-	let a_scope_chain = make_scope_chain_assertion vis_list fid true in
-	let a_pre_js_heap = 
-		if (is_global) 
-			then LPred (initial_heap_pre_pred_name, []) 
-			else LPred (initial_heap_post_pred_name, []) in
+	let a_env_records, js_var_to_lvar = var_fid_tbl_to_assertion var_to_fid_tbl [ fid ] is_global in
+	let a_scope_chain = make_scope_chain_assertion vis_list [ ] in
+	let a_pre_js_heap =
+		if (is_global)
+			then LPred (initial_heap_pre_pred_name, [])
+			else LPred (initial_heap_post_pred_rlx, []) in
 	let a' = js2jsil_logic js_var_to_lvar a in
-	JSIL_Logic_Utils.star_asses [a_pre_js_heap; a'; a_env_records; a_scope_chain ]
+	JSIL_Logic_Utils.star_asses [a'; a_env_records; a_scope_chain; a_pre_js_heap ]
 
 
 let rec js2jsil_logic_top_level_post a (var_to_fid_tbl : (string, string) Hashtbl.t) (vis_list : string list) fid =
 	let is_global = (fid = main_fid) in
-	let a_env_records, js_var_to_lvar = var_fid_tbl_to_assertion var_to_fid_tbl [ ] is_global in
-	let a_scope_chain = make_scope_chain_assertion vis_list fid false in
-	let a_se = LPred (syntax_error_pred_name, [ PVar Js2jsil_constants.var_se ]) in
-	let a_te = LPred (type_error_pred_name, [ PVar Js2jsil_constants.var_te ]) in
-	let a_post_js_heap = LPred (initial_heap_post_pred_name, []) in
+	let a_env_records, js_var_to_lvar = var_fid_tbl_to_assertion var_to_fid_tbl [ fid ] is_global in
+	let a_scope_chain = make_scope_chain_assertion vis_list [ ] in
+	let a_post_js_heap =
+		if (is_global)
+			then LPred (initial_heap_post_pred_name, [])
+			else LPred (initial_heap_post_pred_rlx, []) in
 	let a' = js2jsil_logic js_var_to_lvar a in
-	Printf.printf "J2JPost: %s\n" (JSIL_Print.string_of_logic_assertion a' false);
-	JSIL_Logic_Utils.star_asses [a_post_js_heap; a'; a_env_records; a_scope_chain; a_se; a_te ]
+	print_debug (Printf.sprintf "J2JPost: \n\t%s\n\t%s\n\t%s\n\t%s"
+		(JSIL_Print.string_of_logic_assertion a' false) (JSIL_Print.string_of_logic_assertion a_env_records false)
+		(JSIL_Print.string_of_logic_assertion a_scope_chain false) (JSIL_Print.string_of_logic_assertion a_post_js_heap false));
+	JSIL_Logic_Utils.star_asses [a'; a_env_records; a_scope_chain; a_post_js_heap]
