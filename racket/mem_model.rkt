@@ -381,7 +381,7 @@
        (let* ((obj (cdr (car heap-pulp)))
               (props (foldl
                       (lambda (x ac)
-                       (if (and (pair? x) ((is-llist? (cdr x))))
+                       (if (and (pair? x) (is-llist? (cdr x)))
                            (append ac (list (car x)))
                            ac))
                        (list ) obj))
@@ -389,6 +389,24 @@
          (println (format "Internal get-fields: igf (~a) = ~a" loc sprops))
          sprops)]
       [ else (loop (cdr heap-pulp))])))
+
+(define (my-get-fields heap loc)
+  (let loop ((heap-pulp (unbox heap)))
+    (cond
+      [(null? heap-pulp) jempty]
+      [(equal? (car (car heap-pulp)) loc)
+       (let* ((obj (cdr (car heap-pulp)))
+              (props (foldl
+                      (lambda (x ac)
+                       (if (pair? x)
+                           (append ac (list (car x)))
+                           ac))
+                       (list ) obj))
+              (sprops (sort props string<?)))
+         (println (format "Internal get-fields: igf (~a) = ~a" loc sprops))
+         sprops)]
+      [ else (loop (cdr heap-pulp))])))
+
 
 ;; Delete cell from the heap
 (define (heap-delete-cell heap loc prop)
@@ -461,7 +479,7 @@
 (define (make-jsil-list l)
   (cons 'jsil-list l))
 
-(provide is-a-list? make-heap mutate-heap heap-get heap-delete-cell heap cell get-new-loc make-jsil-list heap-delete-object) ;; heap-contains?
+(provide is-a-list? make-heap mutate-heap heap-get heap-delete-cell heap cell get-new-loc make-jsil-list heap-delete-object my-get-fields) ;; heap-contains?
 
 ;; stores - my stuff
 ;;(define (make-store)
