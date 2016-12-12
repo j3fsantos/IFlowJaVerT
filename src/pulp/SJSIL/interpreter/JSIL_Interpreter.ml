@@ -366,10 +366,6 @@ let evaluate_binop op lit1 lit2 =
 		(match lit1, lit2 with
 		| Bool b1, Bool b2 -> (Bool (b1 || b2))
 		| _, _ -> raise (Failure "Non-string argument to Or"))
-    | And ->
-    		(match lit1, lit2 with
-    		| Bool b1, Bool b2 -> (Bool (b1 && b2))
-    		| _, _ -> raise (Failure "Non-string argument to And"))
 	| BitwiseAnd -> unary_bin_thing_num lit1 lit2 int32_bitwise_and "Non-number arguments to BitwiseAnd"
 	| BitwiseOr -> unary_bin_thing_num lit1 lit2 int32_bitwise_or "Non-number arguments to BitwiseOr"
 	| BitwiseXor -> unary_bin_thing_num lit1 lit2 int32_bitwise_xor "Non-number arguments to BitwiseXor"

@@ -17,6 +17,12 @@ let update_annotation annots atype new_value =
 	(* Printf.printf "I am adding the code name: %s"  new_value; *)
   annot :: old_removed
 
+let update_codename_annotation annots new_value =
+	let ids = List.filter (fun annot -> annot.annot_type = Id) annots in
+	(match ids with
+	 | [ id ] -> update_annotation annots Codename id.annot_formula
+	 | _      -> update_annotation annots Codename new_value)
+
 let get_codename exp =
   let codenames = List.filter (fun annot -> annot.annot_type = Codename) exp.exp_annot in
   match codenames with
@@ -395,7 +401,7 @@ let rec add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous exp
     end in
   let m exp nstx = {exp with exp_stx = nstx} in
   (* I use codename for now. It may be that I want a new annotation for function identifier. *)
-  let add_codename exp fid = update_annotation exp.exp_annot Codename fid
+  let add_codename exp fid = update_codename_annotation exp.exp_annot fid
   in
   match exp.exp_stx with
       (* Literals *)
@@ -459,7 +465,7 @@ type fun_tbl_type = (string, string * JSIL_Syntax.jsil_var list * Parser_syntax.
 
 
 let process_js_logic_annotations fun_name (fun_args : string list) annotations requires_flag ensures_normal_flag ensure_err_flag var_to_fid_tbl vis_list =
-	Printf.printf "Inside process_js_logic_annotations. function: %s. Annotations: %s\n" fun_name (Pretty_print.string_of_annots annotations);
+	Printf.printf "Inside process_js_logic_annotations. function: %s. Annotations: \n%s\n" fun_name (Pretty_print.string_of_annots annotations);
 
 	let preconditions  = List.filter (fun annotation -> annotation.annot_type = requires_flag) annotations in
 	let postconditions = List.filter (fun annotation -> (annotation.annot_type = ensures_normal_flag) || (annotation.annot_type = ensure_err_flag)) annotations in
