@@ -69,7 +69,7 @@
               (prop-expr (fourth bcmd))
               (loc-val (run-expr loc-expr store))
               (prop-val (run-expr prop-expr store))
-              (prop-list (get-fields heap loc-val))
+              (prop-list (my-get-fields heap loc-val))
               (is-js-field (member prop-val prop-list))
               (result (not (eq? is-js-field #f))))
          (println (format "Has-field: ~v = hf [~v, ~v] : ~v, ~v" lhs-var loc-val prop-val is-js-field result))
