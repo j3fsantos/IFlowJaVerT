@@ -71,8 +71,10 @@
               (prop-val (run-expr prop-expr store))
               (prop-list (get-fields heap loc-val))
               (is-js-field (member prop-val prop-list))
-              (result (! (eq? is-js-field #f))))
-         ;; (println (format "Has-field: ~v = hf [~v, ~v] : ~v" lhs-var loc-val prop-val result))
+              (result (not (eq? is-js-field #f))))
+         (println (format "Has-field: ~v = hf [~v, ~v] : ~v, ~v" lhs-var loc-val prop-val is-js-field result))
+         (println (format "object: ~v" (heap-get-obj heap loc-val)))
+         (println (format "proplist: ~v" prop-list))
          (mutate-store store lhs-var result) ;; (to-jsil-bool contains))
          result)] ;; (to-jsil-bool contains))]
       ;;
@@ -258,7 +260,7 @@
              
              [(eq? (first outcome) 'normal)
               (mutate-store store lhs-var (second outcome))
-              (run-cmds-iter prog proc-name heap store (+ cur-index 1) cur-index)]
+              (run-cmds-iter-next prog proc-name heap store cur-index cur-index)]
              
              [else
               (display outcome)
@@ -333,7 +335,7 @@
         (let* ((arg (second expr))
                (val (run-expr arg store))
                (type-of (jsil-type-of val)))
-          ;; (println (format "typeOf: typeof ~v -> ~v = ~v" arg val type-of))
+          (println (format "typeOf: typeof ~v -> ~v = ~v" arg val type-of))
           type-of)]
        ;;
        ;; ('jsil-list l)
@@ -347,17 +349,27 @@
           (cons 'jsil-list lexpr)
         )]
        ;;
-       ;; ('nth l e)
-       [(eq? (first expr) 'nth)
+       ;; ('l-nth l e)
+       [(eq? (first expr) 'l-nth)
         (let* ((elist (second expr))
                (vlist (run-expr elist store))
                (eidx  (third expr))
                (vidx  (run-expr eidx store)))
-          ;; branch-string!
           (if (list? vlist)
               (list-ref vlist (inexact->exact (+ vidx 1)))
-              (make-string 1 (string-ref vlist (inexact->exact vidx))))
-         )]
+              (begin
+                (println (format "Illegal l-nth. l:~v; e:~v" vlist vidx))
+                (error "Illegal list given to l-nth"))))]
+       ;;
+       ;; ('s-nth s e)
+       [(eq? (first expr) 's-nth)
+        (let* ((estr (second expr))
+               (vstr (run-expr estr store))
+               (eidx  (third expr))
+               (vidx  (run-expr eidx store)))
+          (if (string? vstr)
+              (make-string 1 (string-ref vstr (inexact->exact vidx)))
+              (error "Illegal string given to s-nth")))]
        ;;
        ;; (make-symbol-number symb-name)
        [(eq? (first expr) 'make-symbol-number)

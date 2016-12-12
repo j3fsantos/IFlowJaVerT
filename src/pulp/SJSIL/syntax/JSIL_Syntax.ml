@@ -111,11 +111,11 @@ type unary_op =
 	| M_tan
 	(* Type checking and conversion *)
 	| IsPrimitive
-    | ToStringOp
+  | ToStringOp
 	| ToIntOp
 	| ToUint16Op
-    | ToInt32Op
-    | ToUint32Op
+  | ToInt32Op
+  | ToUint32Op
 	| ToNumberOp
 	(* List manipulation *)
 	| Car

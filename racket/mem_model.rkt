@@ -295,7 +295,9 @@
     (cons 'num_to_int jsil_num_to_int)
     (cons 'num_to_int32 jsil_num_to_int_32)
     (cons 'num_to_uint16 jsil_num_to_uint_16)
-    (cons 'num_to_uint32 jsil_num_to_uint_32)))
+    (cons 'num_to_uint32 jsil_num_to_uint_32)
+    (cons 's-len string-length)
+    (cons 'l-len (lambda (x) (- (length x) 1)))))
 
 ;; Obtaining the operator
 (define (to-interp-op op)
@@ -367,13 +369,12 @@
       [(equal? (car (car heap-pulp)) loc)
        (let* ((obj (cdr (car heap-pulp)))
               (props (foldl (lambda (x ac)
-                       (if (is-a-list? (cdr x))
-                       (append ac (list (car x)))
-                       ac)
-                       )
+                       (if (pair? x)
+                           (append ac (list (car x)))
+                           ac))
                        (list ) obj))
               (sprops (sort props string<?)))
-         ;; (println (format "Internal get-fields: igf (~a) = ~a" loc sprops))
+         (println (format "Internal get-fields: igf (~a) = ~a" loc sprops))
          sprops)]
       [ else (loop (cdr heap-pulp))])))
 

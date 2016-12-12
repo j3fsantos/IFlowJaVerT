@@ -721,25 +721,29 @@ with
 
 proc i__getValue (v) {
 
-			goto [(typeOf(v) = $$list_type) and ((l-nth (v, 0) = "v") or (l-nth (v, 0) = "o"))] init dflt;
+			goto [(typeOf(v) = $$list_type)] rcand dflt;
+
+   	rcand:  rtype := l-nth (v, 0);
+           	goto [(rtype = "v") or (rtype = "o")] init dflt;
 
 	init:	rbase := l-nth (v, 1);
 			rfield := l-nth (v, 2);
 			goto [rbase = $$undefined] throw prim;
 
-	prim:	goto [(is_primitive rbase) and (not (rbase = $$undefined)) and (not (rbase = $$null))] is_pr ref;
+	prim:	prim := "i__isPrimitive" (rbase);
+      	    goto [prim] is_pr ref;
 
 	is_pr:	xret := "i__toObject" (rbase) with elab;
 			xret := "getProperty" (xret, rfield) with elab;
 			goto [xret = $$undefined] rlab def;
-	def:	d := l-nth (xret, 0);						(* Get the descriptor type *)
-			xret := l-nth (xret, 1);					(* Get the value/getter *)
-			goto [d = "d"] rlab acc;				(* Is it a data descriptor? *)
+	def:	d := l-nth (xret, 0);	(* Get the descriptor type *)
+			xret := l-nth (xret, 1);	(* Get the value/getter *)
+			goto [d = "d"] rlab acc;	(* Is it a data descriptor? *)
 
-	acc:	goto [xret = $$undefined] rlab get;		(* Is the getter defined? *)
-	get:	xsc := [xret, "@scope"];				(* Get the scope of the getter *)
-			fun := [xret, "@call"];					(* Get the name of the getter *)
-			xret := fun (xsc, rbase) with elab;		(* Call the getter, errors could happen *)
+	acc:	goto [xret = $$undefined] rlab get;	(* Is the getter defined? *)
+	get:	xsc := [xret, "@scope"];	(* Get the scope of the getter *)
+			fun := [xret, "@call"];	(* Get the name of the getter *)
+			xret := fun (xsc, rbase) with elab;	(* Call the getter, errors could happen *)
 			goto [xret = $$empty] undef rlab;
 	undef:	xret := $$undefined;
 
@@ -760,13 +764,16 @@ proc i__getValue (v) {
 	rlab:	skip;
 
 	throw:  xret := "ReferenceError" ();
-    elab:   skip
+   	elab:   skip
 }
 with
 {
 	ret:	xret, rlab;
 	err:	xret, elab;
 };
+
+
+
 
 (* ******** *)
 (* PUTVALUE *)
