@@ -254,9 +254,8 @@
     (cons '/ /)
     (cons '% modulo)
     (cons '<: jsil-subtype)
-    (cons 'concat string-append)
-    (cons '++ (lambda (x y) (append x (cdr y))))
-    (cons 'and (lambda (x y) (and x y)))
+    (cons '@  (lambda (x y) (append x (cdr y))))
+    (cons '++  string-append)
     (cons 'or  (lambda (x y) (or  x y)))
     (cons '& (lambda (x y) (bitwise-and (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
     (cons '^ (lambda (x y) (bitwise-xor (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
@@ -347,6 +346,18 @@
   (let ((new-heap-pulp (mutate-heap-pulp (unbox heap) loc prop val)))
     (set-box! heap new-heap-pulp)))
 
+
+;; Remove an object from the heap
+(define (heap-delete-object heap loc)
+  (define (delete-object-pulp h-pulp loc)
+    (cond
+      [(null? h-pulp) '()]
+      [(equal? (car (car h-pulp)) loc) (cdr h-pulp)]
+      [ else
+       (cons (car h-pulp) (delete-object-pulp (cdr h-pulp) loc))]))
+  (let ((new-heap-pulp (delete-object-pulp (unbox heap) loc)))
+    (set-box! heap new-heap-pulp)))
+
 ;; Get object from heap
 (define (heap-get-obj heap loc)
   (let*
@@ -368,8 +379,9 @@
       [(null? heap-pulp) jempty]
       [(equal? (car (car heap-pulp)) loc)
        (let* ((obj (cdr (car heap-pulp)))
-              (props (foldl (lambda (x ac)
-                       (if (pair? x)
+              (props (foldl
+                      (lambda (x ac)
+                       (if (and (pair? x) ((is-llist? (cdr x))))
                            (append ac (list (car x)))
                            ac))
                        (list ) obj))
@@ -386,7 +398,7 @@
       [(equal? (car (car h-pulp)) loc)
        (cons (cons loc (delete-prop-val (cdr (car h-pulp)) prop)) (cdr h-pulp))]
       [ else
-        (cons (car h-pulp) (heap-delete-cell (cdr h-pulp) loc prop))]))
+        (cons (car h-pulp) (delete-cell-pulp (cdr h-pulp) loc prop))]))
    (let ((new-heap-pulp (delete-cell-pulp (unbox heap) loc prop)))
      (set-box! heap new-heap-pulp)))
 
@@ -449,7 +461,7 @@
 (define (make-jsil-list l)
   (cons 'jsil-list l))
 
-(provide is-a-list? make-heap mutate-heap heap-get heap-delete-cell heap cell get-new-loc make-jsil-list) ;; heap-contains?
+(provide is-a-list? make-heap mutate-heap heap-get heap-delete-cell heap cell get-new-loc make-jsil-list heap-delete-object) ;; heap-contains?
 
 ;; stores - my stuff
 ;;(define (make-store)
