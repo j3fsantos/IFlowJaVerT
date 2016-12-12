@@ -313,10 +313,7 @@ let string_of_cmd_aux sjsil_cmd i line_numbers_on escape_string str_tabs =
 			if (i >= len)
 				then str_ac
 				else
-					let var_arr_i_str =
-						(match var_arr.(i) with
-						| None -> "$$empty"
-						| Some v_i -> v_i) in
+					let var_arr_i_str = se var_arr.(i) in
 					(if (i == 0)
 						then loop 1 var_arr_i_str
 						else  loop (i + 1) (str_ac ^ ", " ^ var_arr_i_str)) in
@@ -329,10 +326,7 @@ let string_of_cmd_aux sjsil_cmd i line_numbers_on escape_string str_tabs =
 			if (i >= len)
 				then str_ac
 				else
-					let var_arr_i_str =
-						(match var_arr.(i) with
-						| None -> "$$empty"
-						| Some v_i -> v_i) in
+					let var_arr_i_str = se var_arr.(i) in
 					(if (i == 0)
 						then loop 1 var_arr_i_str
 						else  loop (i + 1) (str_ac ^ ", " ^ var_arr_i_str)) in
@@ -479,10 +473,7 @@ let string_of_lab_cmd lcmd =
 			if (i >= len)
 				then str_ac
 				else
-					let var_arr_i_str =
-						(match var_arr.(i) with
-						| None -> "$$empty"
-						| Some v_i -> v_i) in
+					let var_arr_i_str = se var_arr.(i) in
 					(if (i == 0)
 						then loop 1 var_arr_i_str
 						else  loop (i + 1) (str_ac ^ ", " ^ var_arr_i_str)) in
@@ -495,10 +486,7 @@ let string_of_lab_cmd lcmd =
 			if (i >= len)
 				then str_ac
 				else
-					let var_arr_i_str =
-						(match var_arr.(i) with
-						| None -> "$$empty"
-						| Some v_i -> v_i) in
+					let var_arr_i_str = se var_arr.(i) in
 					(if (i == 0)
 						then loop 1 var_arr_i_str
 						else  loop (i + 1) (str_ac ^ ", " ^ var_arr_i_str)) in

@@ -405,11 +405,11 @@ cmd_target:
 	  LBRACE; es=separated_list(COMMA, expr_target); RBRACE; oi = option(call_with_target)
 		{ SLApply (v, es, oi) }
 (* x := PHI(e1, e2, ... en); *)
-  | v=VAR; DEFEQ; PHI; LBRACE; es = separated_list(COMMA, VAR); RBRACE
-	  { SLPhiAssignment (v, Array.of_list (List.map (fun e -> Some e) es)) }
+  | v=VAR; DEFEQ; PHI; LBRACE; es = separated_list(COMMA, expr_target); RBRACE
+	  { SLPhiAssignment (v, Array.of_list es) }
 (* x := PSI(e1, e2, ... en); *)
-  | v=VAR; DEFEQ; PSI; LBRACE; es = separated_list(COMMA, VAR); RBRACE
-	  { SLPsiAssignment (v, Array.of_list (List.map (fun e -> Some e) es)) }
+  | v=VAR; DEFEQ; PSI; LBRACE; es = separated_list(COMMA, expr_target); RBRACE
+	  { SLPsiAssignment (v, Array.of_list es) }
 ;
 
 call_with_target:

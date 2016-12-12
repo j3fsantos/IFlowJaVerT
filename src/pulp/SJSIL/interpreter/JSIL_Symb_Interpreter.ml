@@ -847,19 +847,9 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 		let cur_which_pred =
 			try Hashtbl.find s_prog.which_pred (cur_proc_name, prev, i)
 			with _ ->  raise (Failure (Printf.sprintf "which_pred undefined for command: %s %d %d" cur_proc_name prev i)) in
-		let x_live = x_arr.(cur_which_pred) in
-		let le, te =
-			(match x_live with
-			| None -> LLit Undefined, Some UndefinedType
-			| Some x_live ->
-				(match store_get_var_val (get_store symb_state) x_live with
-				| None ->
-					let cur_cmd_str = JSIL_Print.string_of_cmd proc.proc_body.(i) 0 0 false false false in
-					let prev_cmd_str = JSIL_Print.string_of_cmd proc.proc_body.(prev) 0 0 false false false in
-					raise (Failure (Printf.sprintf "Variable %s not found in the store. Cur_which_pred: %d. cur_cmd: %s. prev_cmd: %s" x_live cur_which_pred cur_cmd_str prev_cmd_str))
-				| Some le ->
-					let te, _, _ =	type_lexpr (get_gamma symb_state) le in
-					le, te)) in
+		let expr = x_arr.(cur_which_pred) in
+		let le = symb_evaluate_expr expr (get_store symb_state) (get_gamma symb_state) (get_pf symb_state) in
+		let te, _, _ =	type_lexpr (get_gamma symb_state) le in
 		update_abs_store (get_store symb_state) x le;
 		update_gamma (get_gamma symb_state) x te;
 		symb_evaluate_next_cmd_1 s_prog proc spec search_info symb_state i (i+1) in

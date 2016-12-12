@@ -31,8 +31,8 @@ let arguments () =
 			"-file", Arg.String(fun f -> file := f), "file to run";
 			(* run *)
 			"-run", Arg.Unit(fun () -> jsil_run := true), "run the program given as input";
-			(* ssa normalise *)
-			"-ssa", Arg.Unit(fun () -> do_ssa := true), "ssa normalise";
+			(* ssa normalise
+			"-ssa", Arg.Unit(fun () -> do_ssa := true), "ssa normalise"; *)
 			(* verbositiness *)
 			"-verbose", Arg.Unit(fun () -> verbose := true; JSIL_Interpreter.verbose := true), "verbose output";
 			(* compile js file and run *)
@@ -147,7 +147,7 @@ let main () =
 	begin
 		let ext_prog = JSIL_Utils.ext_program_of_path !file in
 		let prog, which_pred = JSIL_Utils.prog_of_ext_prog !file ext_prog in
-		let prog, which_pred = if (!do_ssa) then JSIL_SSA.ssa_compile_prog prog else prog, which_pred in
+		(* let prog, which_pred = if (!do_ssa) then JSIL_SSA.ssa_compile_prog prog else prog, which_pred in *)
 
 		if (!do_sexpr) then
 			begin

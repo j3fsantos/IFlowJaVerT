@@ -61,9 +61,6 @@ let checkParametersName               = "i__checkParameters"
 let getEnumFieldsName                 = "i__getAllEnumerableFields"
 let createArgsName                    = "create_arguments_object"
 
-
-let var_true = "x__true"
-let var_false = "x__false"
 let var_this = "x__this"
 let var_scope = "x__scope"
 let var_se = "x__se"

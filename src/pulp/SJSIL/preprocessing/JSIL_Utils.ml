@@ -65,13 +65,13 @@ let desugar_labs lproc =
 		let cmds = Array.map (fun x ->
 			match x with | spec, x ->
 				let x = match x with
-				          | SLBasic cmd -> SBasic cmd
+						| SLBasic cmd -> SBasic cmd
 			            | SLGoto lab -> SGoto (Hashtbl.find mapping lab)
 			            | SLGuardedGoto (e, lt, lf) -> SGuardedGoto (e, Hashtbl.find mapping lt, Hashtbl.find mapping lf)
 			            | SLCall (x, e, le, ol) -> SCall (x, e, le, match ol with | None -> None | Some lab -> Some (Hashtbl.find mapping lab))
-									| SLApply (x, le, ol) -> SApply (x, le, match ol with | None -> None | Some lab -> Some (Hashtbl.find mapping lab))
-									| SLPhiAssignment (x, args) -> SPhiAssignment (x, args)
-									| SLPsiAssignment (x, args) -> SPsiAssignment (x, args) in
+						| SLApply (x, le, ol) -> SApply (x, le, match ol with | None -> None | Some lab -> Some (Hashtbl.find mapping lab))
+						| SLPhiAssignment (x, args) -> SPhiAssignment (x, args)
+						| SLPsiAssignment (x, args) -> SPsiAssignment (x, args) in
 				(spec, x)
 			) cmds_nolab in
 
