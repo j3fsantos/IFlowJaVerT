@@ -60,25 +60,11 @@ let create_output ext_proc path =
   output_string oc content;
   close_out oc
 
-
-
-
 let process_file path =
   try
-		let e_str = string_of_file path in
-		let offset_converter = Js_pre_processing.memoized_offsetchar_to_offsetline e_str in
-    let e = Parser_main.exp_from_string ~force_strict:true e_str in
-
-		(* let annots = get_top_level_annot e in
-		(match annots with
-		| Some annots -> Printf.printf "Top-level annotations, my sweet bananas!:\n%s\n" (Pretty_print.string_of_annots annots)
-		| None -> Printf.printf "NO TOP LEVEL ANNOTATION BANANAS!!!");
-
-		let e_annot_str e = Pretty_print.string_of_annots e.Parser_syntax.exp_annot in
-		(* Printf.printf "Top-level annotations:\n%s\n" (e_annot_str e); *)
-		(match e.exp_stx with
-		| Script (_, le) -> List.iter (fun x -> Printf.printf "Annotations:\n%s\n" (e_annot_str x)) le
-		| _ -> Printf.printf "Top-level tag is not Script.\n"); *)
+	let e_str = string_of_file path in
+	let offset_converter = Js_pre_processing.memoized_offsetchar_to_offsetline e_str in
+	let e = Parser_main.exp_from_string ~force_strict:true e_str in
 
     let ext_prog, _, _ = js2jsil e offset_converter (!for_verification) in
 		let file_name = Filename.chop_extension path in

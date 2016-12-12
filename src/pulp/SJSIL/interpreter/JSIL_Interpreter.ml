@@ -1046,20 +1046,10 @@ evaluate_phi_psi_cmd prog proc which_pred heap store cur_cmd prev_cmd ac_cur_cmd
 		let cur_which_pred =
 			try Hashtbl.find which_pred (cur_proc_name, prev_cmd, ac_cur_cmd)
 			with _ ->  raise (Failure (Printf.sprintf "which_pred undefined for command: %s %d %d %d" cur_proc_name prev_cmd cur_cmd ac_cur_cmd)) in
-		let x_live = x_arr.(cur_which_pred) in
-		let v = (match x_live with
-		| None -> Undefined
-		| Some x_live ->
-			(match SSyntax_Aux.try_find store x_live with
-			| None ->
-				let cur_cmd_str = JSIL_Print.string_of_cmd proc.proc_body.(cur_cmd) 0 0 false false false in
-				let prev_cmd_str = JSIL_Print.string_of_cmd proc.proc_body.(prev_cmd) 0 0 false false false in
-				raise (Failure (Printf.sprintf "Variable %s not found in the store. Cur_which_pred: %d. cur_cmd: %s. prev_cmd: %s" x_live cur_which_pred cur_cmd_str prev_cmd_str))
-			| Some v -> v)) in
+		let expr = x_arr.(cur_which_pred) in
+		let v = evaluate_expr expr store in
 		if (!verbose) then Printf.printf "PHI-Assignment: %s : %d/%d : %s := %s\n"
-		   (match x_live with
-			  | None -> "NONE!"
-				| Some x_live -> x_live) cur_which_pred (Array.length x_arr - 1) x (JSIL_Print.string_of_literal v false);
+		   (JSIL_Print.string_of_expression expr false) cur_which_pred (Array.length x_arr - 1) x (JSIL_Print.string_of_literal v false);
 		Hashtbl.replace store x v;
 		evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
 

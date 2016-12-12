@@ -87,7 +87,7 @@ Node.prototype = {
      * @returns {object|string|number} the data of the node
      *
      * @id   getData
-     * @rec false
+     * @rec  false
      *
      * @pre  (standardObject(this) * ((this, "data") -> None))
      * @post (standardObject(this) * ((this, "data") -> None) * (ret == $$undefined))

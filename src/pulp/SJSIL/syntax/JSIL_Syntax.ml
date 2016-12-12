@@ -173,8 +173,8 @@ type jsil_cmd =
   | SGuardedGoto    of jsil_expr * int        * int
   | SCall           of jsil_var  * jsil_expr  * jsil_expr list * int option
   | SApply          of jsil_var  * jsil_expr list * int option
-  | SPhiAssignment  of jsil_var  * (jsil_var option array)
-  | SPsiAssignment  of jsil_var  * (jsil_var option array)
+  | SPhiAssignment  of jsil_var  * (jsil_expr array)
+  | SPsiAssignment  of jsil_var  * (jsil_expr array)
 
 (* JSIL logical expressions *)
 type jsil_logic_var = string
@@ -290,8 +290,8 @@ type jsil_lab_cmd =
 	| SLGuardedGoto    of jsil_expr * string                    * string
 	| SLCall           of jsil_var  * jsil_expr                 * jsil_expr list * string option
 	| SLApply          of jsil_var  * jsil_expr list            * string option
-	| SLPhiAssignment  of jsil_var  * (jsil_var option array)
-	| SLPsiAssignment  of jsil_var  * (jsil_var option array)
+	| SLPhiAssignment  of jsil_var  * (jsil_expr array)
+	| SLPsiAssignment  of jsil_var  * (jsil_expr array)
 
 (* JSIL procedures extended with string labels *)
 type jsil_ext_procedure = {
@@ -379,4 +379,4 @@ let print_time msg =
 let print_time_debug msg =
     if (!debug) then
 	(let time = Sys.time () in
-	print_endline (msg ^ (Printf.sprintf " Time: %f" time))) 	
+	print_endline (msg ^ (Printf.sprintf " Time: %f" time)))
