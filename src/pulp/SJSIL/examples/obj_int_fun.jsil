@@ -3,28 +3,6 @@
    ****************** *)
 
 (*
- * Predicate: standardObject
- *
- * Resource: Some
- *
- *)
-pred standardObject (l) :
-    types (l : $$object_type) *
-	((l, "@proto") -> $lobj_proto) *
-	((l, "@class") -> "Object") *
-	((l, "@extensible") -> $$t);
-
-(*
- * Predicate: dataField
- *
- * Resource: Some
- *
- *)
-pred dataField (l, prop, v) :
-    types (l : $$object_type, prop : $$string_type) *
-	((l, prop) -> {{ "d", v, $$t, $$t, $$t }});
-
-(*
  * Predicate: isInternalProperty
  *
  * Resource: None
@@ -467,14 +445,18 @@ with
 pred initialHeapPre () :
     empty_fields( $lg : ) * empty_fields ( $lobj_proto : );
 
-pred initialHeapPost () :
+pred initialHeapPostFull () :
     (($lg,         "@class") -> "Object") * (($lg,         "@proto") -> $lobj_proto) * (($lg,         "@extensible") -> $$t) * empty_fields ( $lg : "@class", "@proto", "@extensible" ) *
+	(($lobj_proto, "@class") -> "Object") * (($lobj_proto, "@proto") -> $$null)      * (($lobj_proto, "@extensible") -> $$t) * empty_fields ( $lobj_proto : "@class", "@proto", "@extensible" );
+
+pred initialHeapPostRelaxed () :
+    (($lg,         "@class") -> "Object") * (($lg,         "@proto") -> $lobj_proto) * (($lg,         "@extensible") -> $$t) *
 	(($lobj_proto, "@class") -> "Object") * (($lobj_proto, "@proto") -> $$null)      * (($lobj_proto, "@extensible") -> $$t) * empty_fields ( $lobj_proto : "@class", "@proto", "@extensible" );
 
 spec setupInitialHeap ()
 
 	[[ initialHeapPre() ]]
-	[[ initialHeapPost() * (ret == $$empty) ]]
+	[[ initialHeapPostFull() * (ret == $$empty) ]]
 	normal
 
 proc setupInitialHeap () {
@@ -497,6 +479,30 @@ with
 (* *************************************
    *** *** ***   AUXILIARY   *** *** ***
    ************************************* *)
+
+(* *************************
+   *** i__strictEquality ***
+   ************************* *)
+
+spec i__strictEquality (v1, v2)
+
+   [[ (v1 == #v1) * (v2 == #v2) * (#v1 == #v2) ]]
+   [[ ret == $$t ]]
+   normal;
+
+   [[ (v1 == #v1) * (v2 == #v2) * (! (#v1 == #v2)) ]]
+   [[ ret == $$f ]]
+   normal
+
+proc i__strictEquality (v1, v2) {
+			xret := (v1 = v2);
+
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};
 
 (* **********************
    *** i__isPrimitive ***

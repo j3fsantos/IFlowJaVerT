@@ -16,11 +16,14 @@
  * Creates a node object with a data property and pointer
  * to the next node
  *
+ * @id  Node
+ * @rec false
+ *
  * @constructor
  * @param {object|number|string} data The data to initialize with the node
  *
- * @pre  (standardObject(this) * ((this, "data") -> None)  * ((this, "next") -> None) * ((this, "prev") -> None) * types(data : $$number_type))
- * @post (standardObject(this) * dataField(this, "data", data) * dataField(this, "next", $$null) * dataField(this, "prev", $$null))
+ * @pre  (standardObject(this) * emptyNode(this) * types(data : $$number_type))
+ * @post (standardObject(this) * Node(this, data, prev, next))
  */
 function Node(data) {
     this.data = data;
@@ -40,8 +43,20 @@ Node.prototype = {
      *
      * @returns {boolean} true if there is a next node; false otherwise
      *
+     * @id   hasNext
+     * @rec  false
+     *
+     * @pre  (standardObject(this) * dataField(this, "next", $$null))
+     * @post (standardObject(this) * dataField(this, "next", $$null) * (ret == $$f))
+     *
+     * @pre  (standardObject(this) * ((this, "next") -> None))
+     * @post (standardObject(this) * ((this, "next") -> None) * (ret == $$t))
+     *
+     * @pre  (standardObject(this) * dataField(this, "next", #v) * (! (#v == $$null)))
+     * @post (standardObject(this) * dataField(this, "next", #v) * (ret == $$t))
+     *
      */
-    hasNext: function() {
+    hasNext: function () {
         return (this.next !== null);
     },
 
@@ -49,8 +64,20 @@ Node.prototype = {
      * Returns whether or not the node has a pointer to the previous node
      *
      * @returns {boolean} true if there is a previous node; false otherwise
+     *
+     * @id   hasPrev
+     * @rec  false
+     *
+     * @pre  (standardObject(this) * dataField(this, "prev", $$null))
+     * @post (standardObject(this) * dataField(this, "prev", $$null) * (ret == $$f))
+     *
+     * @pre  (standardObject(this) * ((this, "prev") -> None))
+     * @post (standardObject(this) * ((this, "prev") -> None) * (ret == $$t))
+     *
+     * @pre  (standardObject(this) * dataField(this, "prev", #v) * (! (#v == $$null)))
+     * @post (standardObject(this) * dataField(this, "prev", #v) * (ret == $$t))
      */
-    hasPrev: function() {
+    hasPrev: function () {
         return (this.prev !== null);
     },
 
@@ -58,8 +85,17 @@ Node.prototype = {
      * Returns the data of the the node
      *
      * @returns {object|string|number} the data of the node
+     *
+     * @id   getData
+     * @rec false
+     *
+     * @pre  (standardObject(this) * ((this, "data") -> None))
+     * @post (standardObject(this) * ((this, "data") -> None) * (ret == $$undefined))
+     *
+     * @pre  (standardObject(this) * dataField(this, "data", #v))
+     * @post (standardObject(this) * dataField(this, "data", #v) * (ret == #v))
      */
-    getData: function() {
+    getData: function () {
         return this.data;
     }
 };
@@ -201,11 +237,10 @@ DoublyLinkedList.prototype = {
      * Creates a new Node object with 'data' assigned to the node's data
      * property
      *
-     * @param {object|string|number} data The data to initialize with the
-     *                                    node
+     * @param {object|string|number} data The data to initialize with the node                         
      * @returns {object} Node object intialized with 'data'
      */
-    createNewNode: function(data) {
+    createNewNode: function (data) {
         return new Node(data);
     },
 
@@ -213,9 +248,18 @@ DoublyLinkedList.prototype = {
      * Returns the first node in the list, commonly referred to as the
      * 'head' node
      *
+     * @id  getHeadNode
+     * @rec false
+     *
      * @returns {object} the head node of the list
+     *
+     * @pre  (standardObject(this) * ((this, "head") -> None))
+     * @post (standardObject(this) * ((this, "head") -> None) * (ret == $$undefined))
+     *
+     * @pre  (standardObject(this) * dataField(this, "head", #v))
+     * @post (standardObject(this) * dataField(this, "head", #v) * (ret == #v))
      */
-    getHeadNode: function() {
+    getHeadNode: function () {
         return this.head;
     },
 
@@ -223,9 +267,18 @@ DoublyLinkedList.prototype = {
      * Returns the last node in the list, commonly referred to as the
      * 'tail'node
      *
+     * @id  getTailNode
+     * @rec false
+     *
      * @returns {object} the tail node of the list
+     *
+     * @pre  (standardObject(this) * ((this, "tail") -> None))
+     * @post (standardObject(this) * ((this, "tail") -> None) * (ret == $$undefined))
+     *
+     * @pre  (standardObject(this) * dataField(this, "tail", #v))
+     * @post (standardObject(this) * dataField(this, "tail", #v) * (ret == #v))
      */
-    getTailNode: function() {
+    getTailNode: function () {
         return this.tail;
     },
 
@@ -241,7 +294,16 @@ DoublyLinkedList.prototype = {
     /**
      * Returns the size of the list, or number of nodes
      *
+     * @id  getSize
+     * @rec false
+     *
      * @returns {number} the number of nodes in the list
+     *
+     * @pre  (standardObject(this) * ((this, "size") -> None))
+     * @post (standardObject(this) * ((this, "size") -> None) * (ret == $$undefined))
+     *
+     * @pre  (standardObject(this) * dataField(this, "size", #v))
+     * @post (standardObject(this) * dataField(this, "size", #v) * (ret == #v))
      */
     getSize: function() {
         return this.size;

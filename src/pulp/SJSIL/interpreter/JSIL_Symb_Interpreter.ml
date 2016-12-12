@@ -1,6 +1,7 @@
 open JSIL_Syntax
 open JSIL_Memory_Model
 open JSIL_Logic_Utils
+open Symbolic_State_Basics
 
 let verbose = ref true
 
@@ -151,7 +152,7 @@ let safe_symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae solver 
 	(* Printf.printf "is_typable: %b\nconstraints: %s\n" is_typable (JSIL_Print.str_of_assertion_list constraints); *)
 	let are_constraints_satisfied =
 		(if ((List.length constraints) > 0)
-			then Pure_Entailment.check_entailment solver [] (pfs_to_list pure_formulae) constraints gamma
+			then Pure_Entailment.old_check_entailment [] (pfs_to_list pure_formulae) constraints gamma
 			else true) in
 	let is_typable = is_typable && are_constraints_satisfied in
 	if (is_typable) then
@@ -278,7 +279,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 	    called procedure is to be executed *)
 	let proc = get_proc prog proc_name in
 	let proc_args = get_proc_args proc in
-	let new_store = Symbolic_State_Functions.init_store proc_args le_args in
+	let new_store = init_store proc_args le_args in
 	let symb_state_aux = symb_state_replace_store symb_state new_store in
 
 	let compatible_pfs symb_state pat_symb_state subst =
@@ -291,11 +292,10 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		print_debug (Printf.sprintf "pat_pfs: \n%s" (JSIL_Memory_Print.string_of_shallow_p_formulae pat_pfs false));
 		print_debug (Printf.sprintf "gamma: \n%s" (JSIL_Memory_Print.string_of_gamma gamma));
 		print_debug (Printf.sprintf "%s" (JSIL_Memory_Print.string_of_substitution subst));
-		let pat_pfs = Symbolic_State_Functions.pf_substitution pat_pfs subst false in
-		let pat_gamma = Symbolic_State_Functions.gamma_substitution pat_gamma subst false in
+		let pat_pfs = pf_substitution pat_pfs subst false in
+		let pat_gamma = gamma_substitution pat_gamma subst false in
 		let gamma = copy_gamma gamma in
-		Symbolic_State_Functions.merge_gammas gamma pat_gamma;
-		Symbolic_State_Functions.sanitise_pfs_no_store gamma pfs; Symbolic_State_Functions.sanitise_pfs_no_store gamma pat_pfs;
+		merge_gammas gamma pat_gamma;
 		(* Printf.printf "pfs: \n%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae pfs false);
 		Printf.printf "pat_pfs: \n%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae pat_pfs false);*)
 		let pf_list = (pfs_to_list pat_pfs) @ (pfs_to_list pfs) in
@@ -310,24 +310,24 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 
 		(* Printf.printf "the quotient heap is the following: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false); *)
 
-		print_debug (Printf.sprintf"Entering transform_symb_state.\n");
+		print_debug (Printf.sprintf "Entering transform_symb_state.\n");
 
 		let merge_symb_state_with_single_post (symb_state : symbolic_state) (post : symbolic_state) ret_var ret_flag copy_flag : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
 			print_debug (Printf.sprintf "Entering merge_symb_state_with_single_post.");
 			let post_makes_sense = compatible_pfs symb_state post subst in
 			if (post_makes_sense) then (
 				print_debug (Printf.sprintf "The post makes sense.");
-				let new_symb_state = if (copy_flag) then (Symbolic_State_Functions.copy_symb_state symb_state) else symb_state in
+				let new_symb_state = if (copy_flag) then (copy_symb_state symb_state) else symb_state in
 				let new_symb_state = Structural_Entailment.merge_symb_states new_symb_state post subst in
 				let ret_lexpr = store_get_var (get_store post) ret_var in
 				let ret_lexpr = JSIL_Logic_Utils.lexpr_substitution ret_lexpr subst false in
 				[ new_symb_state, ret_flag, ret_lexpr ])
 				else begin print_debug (Printf.sprintf "The post does not make sense."); [] end in
 
-		Symbolic_State_Functions.extend_symb_state_with_pfs symb_state pf_discharges;
-		let symb_state = Symbolic_State_Functions.symb_state_replace_heap symb_state quotient_heap in
-		let symb_state = Symbolic_State_Functions.symb_state_replace_preds symb_state quotient_preds in
-		let symb_state = Symbolic_State_Functions.symb_state_replace_gamma symb_state new_gamma in
+		extend_symb_state_with_pfs symb_state (DynArray.of_list pf_discharges);
+		let symb_state = symb_state_replace_heap symb_state quotient_heap in
+		let symb_state = symb_state_replace_preds symb_state quotient_preds in
+		let symb_state = symb_state_replace_gamma symb_state new_gamma in
 		let ret_var = proc_get_ret_var proc spec.n_ret_flag in
 		let ret_flag = spec.n_ret_flag in
 		let symb_states_and_ret_lexprs =
@@ -347,11 +347,11 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		let pre_gamma = (get_gamma spec.n_pre) in
 		let pre_pfs = (get_pf spec.n_pre) in
 		let pre_gamma = copy_gamma pre_gamma in
-		let pre_pfs = Symbolic_State_Functions.copy_p_formulae pre_pfs in
-		let pfs = Symbolic_State_Functions.pf_substitution pre_pfs subst false in
-		let gamma = Symbolic_State_Functions.gamma_substitution pre_gamma subst false in
-		Symbolic_State_Functions.merge_gammas gamma (get_gamma symb_state);
-		Symbolic_State_Functions.merge_pfs pfs (get_pf symb_state);
+		let pre_pfs = copy_p_formulae pre_pfs in
+		let pfs = pf_substitution pre_pfs subst false in
+		let gamma = gamma_substitution pre_gamma subst false in
+		merge_gammas gamma (get_gamma symb_state);
+		merge_pfs pfs (get_pf symb_state);
 		let store = copy_store (get_store symb_state) in
 		let heap = get_heap symb_state in
 		let preds = get_preds symb_state in
@@ -404,8 +404,8 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 			let new_symb_state =
 				let pfs = get_pf symb_state in
 				let rpfs = DynArray.map (fun x -> JSIL_Logic_Utils.reduce_assertion_no_store new_gamma pfs x) pfs in
-				Symbolic_State_Functions.sanitise_pfs_no_store new_gamma rpfs;
-				Symbolic_State_Functions.symb_state_replace_pfs symb_state rpfs in
+				sanitise_pfs_no_store new_gamma rpfs;
+				symb_state_replace_pfs symb_state rpfs in
 			(new_symb_state, ret_flag, JSIL_Logic_Utils.reduce_expression_no_store_no_gamma_no_pfs ret_lexpr)) symb_states_and_ret_lexprs in
 		symb_states_and_ret_lexprs in
 
@@ -440,13 +440,13 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 
 	(* create a new symb state with the abstract store in which the
 	    called procedure is to be executed *)
-	let new_store = Symbolic_State_Functions.init_store params args in
+	let new_store = init_store params args in
 	let symb_state_aux = symb_state_replace_store symb_state new_store in
 
 	let existentials =
 		(match existentials with
 		| None ->
-			let symb_state_vars : (jsil_var, bool) Hashtbl.t = Symbolic_State_Functions.get_symb_state_vars_as_tbl false symb_state  in
+			let symb_state_vars : (jsil_var, bool) Hashtbl.t = get_symb_state_vars_as_tbl false symb_state  in
 			let args_vars : (jsil_var, bool) Hashtbl.t = JSIL_Logic_Utils.get_vars_le_list_as_tbl false args in
 			let existentials : jsil_var list = JSIL_Logic_Utils.tbl_intersection_false_true symb_state_vars args_vars in
 			existentials
@@ -459,10 +459,10 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 
 	let update_symb_state_after_folding symb_state quotient_heap quotient_preds new_pfs new_gamma pred_name args =
 		print_time_debug ("update_symb_state_after_folding:");
-		let symb_state = Symbolic_State_Functions.symb_state_replace_heap symb_state quotient_heap in
-		let symb_state = Symbolic_State_Functions.symb_state_replace_preds symb_state quotient_preds in
-		let symb_state = Symbolic_State_Functions.symb_state_replace_gamma symb_state new_gamma in
-		Symbolic_State_Functions.extend_symb_state_with_pfs symb_state new_pfs;
+		let symb_state = symb_state_replace_heap symb_state quotient_heap in
+		let symb_state = symb_state_replace_preds symb_state quotient_preds in
+		let symb_state = symb_state_replace_gamma symb_state new_gamma in
+		extend_symb_state_with_pfs symb_state (DynArray.of_list new_pfs);
 		symb_state_add_predicate_assertion symb_state (pred_name, args);
 		symb_state in
 
@@ -599,7 +599,7 @@ let simplify_symb_state symb_state =
 	let list_subst = Hashtbl.create 17 in
 	DynArray.iter (fun a -> get_list_nth_len_ass list_subst false a) pure_formulae;
 	(* Printf.printf "So, we've got a substitution:\n%s\n" (JSIL_Memory_Print.string_of_substitution list_subst); *)
-	Symbolic_State_Functions.sanitise_pfs store gamma pure_formulae;
+	sanitise_pfs store gamma pure_formulae;
 	(* Printf.printf "So, we've got some new pure formulae:\n%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae pure_formulae false); *)
 	let new_gamma = expand_gamma gamma pure_formulae in
 	(* Printf.printf "And we've got some new gamma:\n%s\n" (JSIL_Memory_Print.string_of_gamma new_gamma); *)
@@ -612,7 +612,7 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 
 	let subst0 = Symbolic_State_Functions.subtract_pred pred_name args (get_preds symb_state) (get_pf symb_state) (get_solver symb_state) (get_gamma symb_state) spec_vars in
 	let args = List.map (fun le -> lexpr_substitution le subst0 true) args in
-	let calling_store = Symbolic_State_Functions.init_store params args in
+	let calling_store = init_store params args in
 
 	(* Printf.printf "I WILL BEGIN TO UNFOLD: NUMBER OF DEFINITIONS: %i\n" (List.length  pred_defs);
 	Printf.printf "The unfolding store is:\n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_store calling_store false); *)
@@ -644,7 +644,7 @@ let recursive_unfold pred_name pred_defs symb_state params spec_vars =
 			if ((List.length unfolded_symb_states > 1) || (List.length unfolded_symb_states = 0))
 				then (print_debug (Printf.sprintf "More than one unfolding or nothing at all, oops.\n"); symb_state)
 				else (
-					let new_symb_state = Symbolic_State_Functions.simplify (List.hd unfolded_symb_states) in
+					let new_symb_state = simplify (List.hd unfolded_symb_states) in
 					print_debug (Printf.sprintf "Inside recursive unfolding:\n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_state new_symb_state));
 					loop new_symb_state) in
 
@@ -654,7 +654,7 @@ let recursive_unfold pred_name pred_defs symb_state params spec_vars =
 			| args :: more_args ->
 				aux symb_state args in
 
-		let pred_args = Symbolic_State_Functions.find_predicate_assertion (get_preds symb_state) pred_name in
+		let pred_args = find_predicate_assertion (get_preds symb_state) pred_name in
 		let len_pred_args = List.length pred_args in
 		print_debug (Printf.sprintf "len_pred_args: %i\n" len_pred_args);
 		inner_loop pred_args symb_state in
@@ -727,7 +727,7 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 			| _, Some a_le -> a_le
 			| Some e_le, None -> LEq (e_le, LLit (Bool true))
 			| None, None -> LFalse in
-		if (Pure_Entailment.check_entailment (get_solver symb_state) [] (get_pf_list symb_state) [ a_le_then ] (get_gamma symb_state))
+		if (Pure_Entailment.old_check_entailment [] (get_pf_list symb_state) [ a_le_then ] (get_gamma symb_state))
 			then symb_evaluate_logic_cmds s_prog then_lcmds [ symb_state ] subst spec_vars
 			else symb_evaluate_logic_cmds s_prog else_lcmds [ symb_state ] subst spec_vars )
 and
@@ -778,10 +778,10 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 			| None, None -> ([ LFalse ], [ LFalse ]) in
 
 		print_debug (Printf.sprintf "Checking if:\n%s\n\tentails\n%s\n" (JSIL_Print.str_of_assertion_list (get_pf_list symb_state)) (JSIL_Print.str_of_assertion_list a_le_then));
-		if (Pure_Entailment.check_entailment (get_solver symb_state) [] (get_pf_list symb_state) a_le_then (get_gamma symb_state)) then
+		if (Pure_Entailment.old_check_entailment [] (get_pf_list symb_state) a_le_then (get_gamma symb_state)) then
 			(Printf.printf "in the THEN branch\n";
 			symb_evaluate_next_cmd_1 s_prog proc spec search_info symb_state i j)
-			else (if (Pure_Entailment.check_entailment (get_solver symb_state) [] (get_pf_list symb_state) a_le_else (get_gamma symb_state)) then
+			else (if (Pure_Entailment.old_check_entailment [] (get_pf_list symb_state) a_le_else (get_gamma symb_state)) then
 					(Printf.printf "in the ELSE branch\n";
 					symb_evaluate_next_cmd_1 s_prog proc spec search_info symb_state i k)
 				else
@@ -789,12 +789,12 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 
 					let then_symb_state = symb_state in
 					let then_search_info = search_info in
-					let else_symb_state = Symbolic_State_Functions.copy_symb_state symb_state in
+					let else_symb_state = copy_symb_state symb_state in
 					let else_search_info = update_vis_tbl search_info (copy_vis_tbl search_info.vis_tbl) in
 
-					Symbolic_State_Functions.extend_symb_state_with_pfs then_symb_state a_le_then;
+					extend_symb_state_with_pfs then_symb_state (DynArray.of_list a_le_then);
 					symb_evaluate_next_cmd_1 s_prog proc spec then_search_info then_symb_state i j;
-					Symbolic_State_Functions.extend_symb_state_with_pfs else_symb_state a_le_else;
+					extend_symb_state_with_pfs else_symb_state (DynArray.of_list a_le_else);
 					symb_evaluate_next_cmd_1 s_prog proc spec else_search_info else_symb_state i k)) in
 
 
@@ -884,7 +884,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 
 and symb_evaluate_next_cmd_1 s_prog proc spec search_info symb_state cur next  =
 	let metadata, cmd = get_proc_cmd proc cur in
-	let symb_state = Symbolic_State_Functions.simplify symb_state in
+	let symb_state = simplify symb_state in
 	let symb_states = symb_evaluate_logic_cmds s_prog metadata.post_logic_cmds [ symb_state ] spec.n_subst spec.n_lvars in
 	let len = List.length symb_states in
 	List.iter
@@ -966,7 +966,7 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info =
 	let success, failure_msg =
 		(try
 			print_debug (Printf.sprintf "Initial symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre));
-			let symb_state = Symbolic_State_Functions.copy_symb_state spec.n_pre in
+			let symb_state = copy_symb_state spec.n_pre in
 			let symb_state = simplify_symb_state (symb_state) in
 			symb_evaluate_next_cmd_2 s_prog proc spec search_info symb_state (-1) 0;
 			true, None

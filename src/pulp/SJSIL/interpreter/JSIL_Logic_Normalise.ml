@@ -214,7 +214,7 @@ let init_pure_assignments a store gamma subst =
 			cur_index := (!cur_index) + 1
 		done;
 
-		Symbolic_State_Functions.sanitise_pfs_no_store_no_gamma non_store_pure_assertions_array;
+		Symbolic_State_Basics.sanitise_pfs_no_store_no_gamma non_store_pure_assertions_array;
 		non_store_pure_assertions_array in
 
 	(**
@@ -520,7 +520,7 @@ let init_preds a store gamma subst =
 			| _ -> []) in
 	let new_assertions = init_preds_aux preds a in
 	let dna = DynArray.of_list new_assertions in
-	Symbolic_State_Functions.sanitise_pfs store gamma dna;
+	Symbolic_State_Basics.sanitise_pfs store gamma dna;
 	preds, (DynArray.to_list dna)
 
 let fill_store_with_gamma store gamma subst =
@@ -569,7 +569,7 @@ let process_empty_fields heap store p_formulae gamma subst a =
 		| [] -> None
 		| field :: rest_fields ->
 			let a = LEq (le_field, (LLit (String field))) in
-			if (Pure_Entailment.check_entailment (ref None) [] p_formulae [ a ] gamma)
+			if (Pure_Entailment.old_check_entailment [] p_formulae [ a ] gamma)
 				then Some (field, traversed_fields @ rest_fields)
 				else check_in_fields le_field rest_fields (field :: traversed_fields) in
 
@@ -666,10 +666,10 @@ let normalise_assertion a : symbolic_state * substitution =
 	compute_symb_heap heap store p_formulae gamma subst a;
 
 
-	extend_typing_env_using_assertion_info ((pfs_to_list p_formulae) @ (Symbolic_State_Functions.pf_of_store2 store)) gamma;
+	extend_typing_env_using_assertion_info ((pfs_to_list p_formulae) @ (Symbolic_State_Basics.pf_of_store2 store)) gamma;
 	let preds, new_assertions = init_preds a store gamma subst in
 	extend_typing_env_using_assertion_info new_assertions gamma;
-	Symbolic_State_Functions.extend_pfs p_formulae None new_assertions;
+	Symbolic_State_Basics.merge_pfs p_formulae (DynArray.of_list new_assertions);
 	process_empty_fields heap store (pfs_to_list p_formulae) gamma subst a;
 
 	(* Printf.printf "----- Stage 3 ----- \n\n";
@@ -702,12 +702,13 @@ let normalise_postcondition a subst (lvars : string list) pre_gamma : symbolic_s
 	(* %s\n\n\n" a_vars_str;                                                   *)
 	let symb_state, _ = normalise_assertion a in
 	let gamma_post = (get_gamma symb_state) in
-	Symbolic_State_Functions.merge_gammas gamma_post extra_gamma;
+	Symbolic_State_Basics.merge_gammas gamma_post extra_gamma;
 	symb_state, a_vars
 
 
 
 let normalise_single_spec preds spec =
+	print_time "  normalise_single_spec:";
 
 	print_debug (Printf.sprintf "Precondition  : %s\n" (JSIL_Print.string_of_logic_assertion spec.pre false));
 	print_debug (Printf.sprintf"Postcondition : %s\n" (JSIL_Print.string_of_logic_assertion spec.post false));
@@ -723,6 +724,9 @@ let normalise_single_spec preds spec =
 
 	let unfolded_pres = f_pre_normalize (Logic_Predicates.auto_unfold preds spec.pre) in
 	let unfolded_posts = f_pre_normalize (Logic_Predicates.auto_unfold preds spec.post) in
+
+	(* print_time "  after auto_unfold:";
+	print_endline (Printf.sprintf "Pres: %d, Posts: %d\n" (List.length unfolded_pres) (List.length unfolded_posts)); *)
 
 	print_debug (Printf.sprintf "NSS: Pre-normalise\n");
 
@@ -784,8 +788,8 @@ let normalise_spec preds spec =
 	let normalised_pre_post_list = List.concat (List.map (normalise_single_spec preds) spec.proc_specs) in
 	let normalised_pre_post_list =
 		List.map (fun (x : jsil_n_single_spec) ->
-			let pre = Symbolic_State_Functions.simplify x.n_pre in
-			let post = List.map (fun y -> Symbolic_State_Functions.simplify y) x.n_post in
+			let pre = Symbolic_State_Basics.simplify x.n_pre in
+			let post = List.map (fun y -> Symbolic_State_Basics.simplify y) x.n_post in
 			{ x with n_pre = pre; n_post = post }
 		) normalised_pre_post_list in
 	{
@@ -832,7 +836,7 @@ let normalise_predicate_definitions pred_defs : (string, JSIL_Memory_Model.n_jsi
 											(fun symb_state ->
 												let heap_constraints = Symbolic_State_Functions.get_heap_well_formedness_constraints (get_heap symb_state) in
 												print_debug (Printf.sprintf "Symbolic state to check: %s\n%s\n" pred_name (JSIL_Memory_Print.string_of_shallow_symb_state symb_state));
-												((Symbolic_State_Functions.check_store (get_store symb_state) (get_gamma symb_state)) && (Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list symb_state)) (get_gamma symb_state) [])))
+												((Symbolic_State_Basics.check_store (get_store symb_state) (get_gamma symb_state)) && (Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list symb_state)) (get_gamma symb_state) [])))
 											normalised_as in
 										(if ((List.length normalised_as) = 0)
 											then Printf.printf "WARNING: One predicate definition does not make sense: %s\n" pred_name);

@@ -861,6 +861,14 @@ js_assertion_target:
 	  { ass }
 ;
 
+js_program_variable_target:
+  | v = VAR
+	  { validate_pvar v; v }
+	| RET
+	  { validate_pvar "ret"; "ret" }
+	| ERR
+	  { validate_pvar "err"; "err" }
+;
 
 js_lexpr_target:
 (* Logic literal *)
@@ -870,7 +878,7 @@ js_lexpr_target:
 	| LNONE
 	  { JSLNone }
 (* program variable *)
-	| pvar = VAR
+	| pvar = js_program_variable_target
 	  { Printf.printf "PVar... no comment: %s\n" pvar; JSPVar pvar }
 (* Logic variable *)
 	| lvar = LVAR
