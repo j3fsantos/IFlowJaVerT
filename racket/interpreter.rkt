@@ -112,15 +112,25 @@
          (mutate-store store lhs-var result)
          result)] 
       ;;
-      ;; ('h-delete lhs-var e1 e2)
+      ;; ('h-delete e1 e2)
       [(eq? cmd-type 'h-delete)
-       (let* (
-              (loc-expr (second bcmd))
+       (let* ((loc-expr (second bcmd))
               (prop-expr (third bcmd))
               (loc-val (run-expr loc-expr store))
               (prop-val (run-expr prop-expr store)))
+         (println (format "h-delete delete [~v, ~v]" loc-val prop-val))
+         (println (format "object: ~v" (heap-get-obj heap loc-val)))
+         (println (format "is the heap a box: ~v" (box? heap)))
          (heap-delete-cell heap loc-val prop-val)
-         #t)] ;; (to-jsil-bool #t))]
+         #t)]
+      ;;
+      ;; ('delete-object e)
+      [(eq? cmd-type 'delete-object)
+       (let* (
+              (loc-expr (second bcmd))
+              (loc-val (run-expr loc-expr store)))
+         (heap-delete-object heap loc-val)
+         #t)]
       ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))
 
@@ -390,6 +400,13 @@
        (let* ((expr-arg (second expr))
               (expr-val (run-expr expr-arg store)))
          (jsil-assume expr-val))]
+      ;;
+      ;; ('and e1 e2)
+      [(eq? (first expr) 'and)
+       (let ((v1 (run-expr (second expr) store)))
+         (if (not v1) #f
+             (let ((v2 (run-expr (third expr) store)))
+               (eq? v2 #t))))]
        ;;
        ;; (binop e e)
        [(= (length expr) 3) 
