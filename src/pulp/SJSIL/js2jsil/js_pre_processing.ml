@@ -18,11 +18,10 @@ let update_annotation annots atype new_value =
   annot :: old_removed
 
 let update_codename_annotation annots new_value =
-	 update_annotation annots Codename new_value
-(*	let ids = List.filter (fun annot -> annot.annot_type = Id) annots in
+	let ids = List.filter (fun annot -> annot.annot_type = Id) annots in
 	(match ids with
 	 | [ id ] -> update_annotation annots Codename id.annot_formula
-	 | _      -> update_annotation annots Codename new_value) *)
+	 | _      -> update_annotation annots Codename new_value) 
 
 let get_codename exp =
   let codenames = List.filter (fun annot -> annot.annot_type = Codename) exp.exp_annot in
