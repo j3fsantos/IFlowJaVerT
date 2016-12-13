@@ -462,7 +462,7 @@ let rec add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous exp
 
 
 
-type fun_tbl_type = (string, string * JSIL_Syntax.jsil_var list * Parser_syntax.exp * (JSIL_Syntax.jsil_spec option)) Hashtbl.t
+type fun_tbl_type = (string, string * JSIL_Syntax.jsil_var list * Parser_syntax.exp * bool * (JSIL_Syntax.jsil_spec option)) Hashtbl.t
 
 
 let process_js_logic_annotations fun_name (fun_args : string list) annotations requires_flag ensures_normal_flag ensure_err_flag var_to_fid_tbl vis_list =
@@ -494,14 +494,20 @@ let process_js_logic_annotations fun_name (fun_args : string list) annotations r
 		preconditions
 		postconditions in
 
+	let f_rec =
+		let f_recs = List.filter (fun annotation -> annotation.annot_type = Rec) annotations in
+		(match f_recs with
+		 | [ f_rec_annot ] -> f_rec_annot.annot_formula = "true"
+		 | _ -> false) in
+
 	let fun_spec = if ((List.length single_specs) > 0)
 		then Some (JSIL_Syntax.create_jsil_spec fun_name (Js2jsil_constants.var_scope :: (Js2jsil_constants.var_this :: fun_args)) single_specs)
 		else None in
-	fun_spec
+	fun_spec, f_rec
 
 let update_fun_tbl (fun_tbl : fun_tbl_type) (f_id : string) (f_args : string list) f_body annotations (var_to_fid_tbl : (string, string) Hashtbl.t) (vis_list : string list) =
-	let fun_spec : JSIL_Syntax.jsil_spec option = process_js_logic_annotations f_id f_args annotations Requires Ensures EnsuresErr var_to_fid_tbl vis_list in
-	Hashtbl.replace fun_tbl f_id (f_id, f_args, f_body, fun_spec)
+	let fun_spec, f_rec = process_js_logic_annotations f_id f_args annotations Requires Ensures EnsuresErr var_to_fid_tbl vis_list in
+	Hashtbl.replace fun_tbl f_id (f_id, f_args, f_body, f_rec, fun_spec)
 
 let update_cc_tbl cc_tbl f_parent_id f_id f_args f_body =
 	let f_parent_var_table =
@@ -730,7 +736,7 @@ let closure_clarification_top_level cc_tbl (fun_tbl : fun_tbl_type) vis_tbl proc
 		(fun v -> Hashtbl.replace proc_tbl v proc_id)
 		proc_vars;
 	Hashtbl.add cc_tbl proc_id proc_tbl;
-	Hashtbl.add fun_tbl proc_id (proc_id, args, e, None);
+	Hashtbl.add fun_tbl proc_id (proc_id, args, e, false, None);
 	Hashtbl.add vis_tbl proc_id vis_fid;
 	closure_clarification_stmt cc_tbl fun_tbl vis_tbl proc_id vis_fid [] e;
 
@@ -738,8 +744,8 @@ let closure_clarification_top_level cc_tbl (fun_tbl : fun_tbl_type) vis_tbl proc
 	(match annots with
 	| Some annots ->
 		Printf.printf "Going to generate main. Top-level annotations:\n%s\n" (Pretty_print.string_of_annots annots);
-		let specs = process_js_logic_annotations proc_id [] annots TopRequires TopEnsures TopEnsuresErr proc_tbl [ proc_id ] in
-		Hashtbl.replace fun_tbl proc_id (proc_id, args, e, specs);
+		let specs, _ = process_js_logic_annotations proc_id [] annots TopRequires TopEnsures TopEnsuresErr proc_tbl [ proc_id ] in
+		Hashtbl.replace fun_tbl proc_id (proc_id, args, e, false, specs);
 	| None -> Printf.printf "NO TOP LEVEL ANNOTATION BANANAS!!!")
 
 
