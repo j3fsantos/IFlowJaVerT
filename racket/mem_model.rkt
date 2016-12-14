@@ -102,7 +102,7 @@
            (is-ref? val)
            (list-mem? jsil-constants val)
            (list-mem? jsil-math-constants val))))
-    (println (format "literal? with ~v produced ~v" val ret))
+    ;(println (format "literal? with ~v produced ~v" val ret))
     ret))
 
 ;; Evaluating a literal

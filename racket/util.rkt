@@ -2,10 +2,14 @@
 
 
 (define (make-number-symbol var)
-  (make-symbolic var number?))
+  (begin
+    (define-symbolic* var real?)
+    var))
 
 (define (make-string-symbol var)
-  (make-symbolic var string?))
+  (begin
+    (define-symbolic* var string?)
+    var))
 
 (provide make-number-symbol make-string-symbol) 
 
