@@ -245,13 +245,13 @@ let rec get_expr_vars var_set catch_pvars e =
 	| LNone -> ()
 	| LVar var ->
 			if (not catch_pvars)
-				then (try Hashtbl.find var_set var; () with _ -> Hashtbl.add var_set var true)
+				then (try (Hashtbl.find var_set var; ()) with _ -> (Hashtbl.add var_set var true; ()))
 				else ()
 	| LUnknown
 	| ALoc _ -> ()
 	| PVar var ->
 			if (catch_pvars)
-				then (try Hashtbl.find var_set var; () with _ -> Hashtbl.add var_set var true)
+				then (try (Hashtbl.find var_set var; ()) with _ -> (Hashtbl.add var_set var true; ()))
 				else ()
 	| LBinOp (e1, op, e2) -> f e1; f e2
 	| LUnOp (op, e1) -> f e1
@@ -276,8 +276,19 @@ let rec get_ass_vars_iter vars_tbl catch_pvars ass =
 	| LStrLess (e1, e2) -> fe e1; fe e2
 	| LStar (a1, a2) -> f a1; f a2
 	| LPointsTo (e1, e2, e3) -> fe e1; fe e2; fe e3
-	| LEmp
-	| LTypes _ -> ()
+	| LEmp       -> ()
+	| LTypes vts -> 
+		List.iter 
+			(fun (x, t) -> 
+				let x, is_x_lvar = 
+					match x with 
+					| LVar x -> x, true 
+					| PVar x -> x, false 
+					| _ -> raise (Failure "fatal error! illegal logical expression in types assertion") in 
+				if (((not catch_pvars) && is_x_lvar) || (catch_pvars &&  (not is_x_lvar))) then (
+					try (Hashtbl.find vars_tbl x; ()) with _ -> (Hashtbl.add vars_tbl x true; ())
+				) else ())
+			vts
 	| LPred (_, es) -> List.iter fe es
 	| LEmptyFields (o, les) -> fe o
 
