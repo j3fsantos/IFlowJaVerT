@@ -333,7 +333,29 @@ let unary_bin_thing_bool lit1 lit2 (f : float -> float -> bool) emsg =
 			| _ -> raise (Failure (Printf.sprintf "%s : %s, %s" emsg (JSIL_Print.string_of_literal lit1 false) (JSIL_Print.string_of_literal lit2 false)))) in
 	Bool (f num1 num2)
 
-let evaluate_binop op lit1 lit2 =
+let rec evaluate_binop op e1 e2 store =
+	(match op with
+	| And ->
+        let lit1 = evaluate_expr e1 store in
+        (match lit1 with
+        | Bool false -> Bool false
+        | Bool true ->
+            (match evaluate_expr e2 store with
+	        | Bool b2 -> Bool b2
+            | _ ->  raise (Failure "Non-boolean argument to And"))
+        | _ -> raise (Failure "Non-boolean argument to And"))
+    | Or ->
+        let lit1 = evaluate_expr e1 store in
+        (match lit1 with
+        | Bool true -> Bool true
+        | Bool false ->
+            (match evaluate_expr e2 store with
+	        | Bool b2 -> Bool b2
+            | _ ->  raise (Failure "Non-boolean argument to Or"))
+        | _ -> raise (Failure "Non-boolean argument to Or"))
+	| _ ->
+    let lit1 = evaluate_expr e1 store in
+    let lit2 = evaluate_expr e2 store in
 	match op with
 	| Equal ->
 		(match lit1, lit2 with
@@ -357,15 +379,11 @@ let evaluate_binop op lit1 lit2 =
 		| String s1, String s2 -> (Bool (s1 < s2))
 		| _, _ -> raise (Failure "Non-string arguments to LessThanString"))
 	| LessThanEqual -> unary_bin_thing_bool lit1 lit2 (fun x y -> x <= y) "Non-number arguments to LessThanEqual"
-  | Plus  -> unary_bin_thing_num lit1 lit2 (fun x y -> x +. y) "Non-number arguments to Plus"
+	| Plus  -> unary_bin_thing_num lit1 lit2 (fun x y -> x +. y) "Non-number arguments to Plus"
 	| Minus -> unary_bin_thing_num lit1 lit2 (fun x y -> x -. y) "Non-number arguments to Minus"
 	| Times -> unary_bin_thing_num lit1 lit2 (fun x y -> x *. y) "Non-number arguments to Times"
 	| Div   -> unary_bin_thing_num lit1 lit2 (fun x y -> x /. y) "Non-number arguments to Div"
 	| Mod   -> unary_bin_thing_num lit1 lit2 mod_float "Non-number arguments to Mod"
-	| Or ->
-		(match lit1, lit2 with
-		| Bool b1, Bool b2 -> (Bool (b1 || b2))
-		| _, _ -> raise (Failure "Non-string argument to Or"))
 	| BitwiseAnd -> unary_bin_thing_num lit1 lit2 int32_bitwise_and "Non-number arguments to BitwiseAnd"
 	| BitwiseOr -> unary_bin_thing_num lit1 lit2 int32_bitwise_or "Non-number arguments to BitwiseOr"
 	| BitwiseXor -> unary_bin_thing_num lit1 lit2 int32_bitwise_xor "Non-number arguments to BitwiseXor"
@@ -397,9 +415,9 @@ let evaluate_binop op lit1 lit2 =
 		(match lit1, lit2 with
 		| Type t1, Type t2 -> Bool (types_leq t1 t2)
 		| _, _ -> raise (Failure (Printf.sprintf "Non-string argument to StrCat: %s, %s" (JSIL_Print.string_of_literal lit1 false) (JSIL_Print.string_of_literal lit2 false))))
-    | _ -> Printf.printf "BIZARRE BINOP OPERATOR: %s\n" (JSIL_Print.string_of_binop op); exit 1
-
-let rec evaluate_expr (e : jsil_expr) store =
+    | _ -> Printf.printf "BIZARRE BINOP OPERATOR: %s\n" (JSIL_Print.string_of_binop op); exit 1)
+and
+evaluate_expr (e : jsil_expr) store =
 	match e with
 	| Literal l ->
 		(match l with
@@ -416,20 +434,7 @@ let rec evaluate_expr (e : jsil_expr) store =
 		| Some v -> v)
 
 	| BinOp (e1, bop, e2) ->
-        (match bop with
-        | And ->
-            let lit1 = evaluate_expr e1 store in
-            (match lit1 with
-            | Bool false -> Bool false
-            | Bool true ->
-                (match evaluate_expr e2 store with
-		        | Bool b2 -> Bool b2
-                | _ ->  raise (Failure "Non-boolean argument to And"))
-            | _ -> raise (Failure "Non-boolean argument to And"))
-        | _ ->
-        let lit1 = evaluate_expr e1 store in
-        let lit2 = evaluate_expr e2 store in
-		evaluate_binop bop lit1 lit2)
+		evaluate_binop bop e1 e2 store
 
 	| UnaryOp (unop, e) ->
 		let v = evaluate_expr e store in

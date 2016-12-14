@@ -2,7 +2,7 @@ open JSIL_Syntax
 open Z3
 
 let small_tbl_size = 31
-let big_tbl_size = 1021 
+let big_tbl_size = 1021
 
 
 (********************************************************)
@@ -67,9 +67,9 @@ exception Symb_state_error of string;;
 		let equal = (=)
 		let hash = Hashtbl.hash
 	end)
-	
+
 let make_initial_heap is_big =
-	let size = if (is_big) then big_tbl_size else small_tbl_size in 
+	let size = if (is_big) then big_tbl_size else small_tbl_size in
 	let heap = SHeap.create size in
 	heap
 
@@ -115,7 +115,7 @@ type smt_translation_ctx = {
 }
 
 
-type symbolic_state = symbolic_heap * symbolic_store * pure_formulae * typing_environment * predicate_set * (((Solver.solver * smt_translation_ctx) option) ref)
+type symbolic_state = symbolic_heap * symbolic_store * pure_formulae * typing_environment * predicate_set (* * (((Solver.solver * smt_translation_ctx) option) ref) *)
 
 
 
@@ -303,28 +303,28 @@ let remove_predicate_assertion preds (pred_name, args) =
 (** Symbolic State functions        **)
 (*************************************)
 let get_heap symb_state =
-	let heap, _, _, _, _, _ = symb_state in
+	let heap, _, _, _, _ (*, _ *) = symb_state in
 	heap
 
 let get_store symb_state =
-	let _, store, _, _, _, _ = symb_state in
+	let _, store, _, _, _ (*, _ *) = symb_state in
 	store
 
 let get_pf symb_state =
-	let _, _, pf, _, _, _ = symb_state in
+	let _, _, pf, _, _ (*, _ *) = symb_state in
 	pf
 
 let get_gamma symb_state =
-	let _, _, _, gamma, _, _ = symb_state in
+	let _, _, _, gamma, _ (*, _ *) = symb_state in
 	gamma
 
 let get_preds symb_state =
-	let _, _, _, _, preds, _ = symb_state in
+	let _, _, _, _, preds (*, _ *) = symb_state in
 	preds
 
-let get_solver symb_state =
+(* let get_solver symb_state =
 	let _, _, _, _, _, solver = symb_state in
-	solver
+	solver *)
 
 let get_pf_list symb_state =
 	let pf = get_pf symb_state in

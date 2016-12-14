@@ -323,16 +323,16 @@ let get_preds_vars var_tbl catch_pvars preds =
 (*************************************)
 
 let copy_symb_state symb_state =
-	let heap, store, p_formulae, gamma, preds, solver = symb_state in
+	let heap, store, p_formulae, gamma, preds (*, solver*) = symb_state in
 	let c_heap      = LHeap.copy heap in
 	let c_store     = copy_store store in
 	let c_pformulae = copy_p_formulae p_formulae in
 	let c_gamma     = copy_gamma gamma in
 	let c_preds     = copy_pred_set preds in
-	(match !solver with
+	(* (match !solver with
 	| Some (solver, _) -> Z3.Solver.reset solver
-	| None -> ());
-	(c_heap, c_store, c_pformulae, c_gamma, c_preds, ref None)
+	| None -> ()); *)
+	(c_heap, c_store, c_pformulae, c_gamma, c_preds (*, ref None *))
 
 let rec extend_symb_state_with_pfs symb_state pfs_to_add =
 	merge_pfs (get_pf symb_state) pfs_to_add
@@ -354,28 +354,28 @@ let is_empty_symb_state symb_state =
 
 
 let symb_state_replace_store symb_state new_store =
-	let heap, _, pfs, gamma, preds, solver = symb_state in
-	(heap, new_store, pfs, gamma, preds, solver)
+	let heap, _, pfs, gamma, preds (*, solver *) = symb_state in
+	(heap, new_store, pfs, gamma, preds (*, solver *))
 
 let symb_state_replace_heap symb_state new_heap =
-	let _, store, pfs, gamma, preds, solver = symb_state in
-	(new_heap, store, pfs, gamma, preds, solver)
+	let _, store, pfs, gamma, preds (*, solver *) = symb_state in
+	(new_heap, store, pfs, gamma, preds (*, solver *))
 
 let symb_state_replace_preds symb_state new_preds =
-	let heap, store, pfs, gamma, _, solver = symb_state in
-	(heap, store, pfs, gamma, new_preds, solver)
+	let heap, store, pfs, gamma, _ (*, solver *) = symb_state in
+	(heap, store, pfs, gamma, new_preds (*, solver *))
 
 let symb_state_replace_gamma symb_state new_gamma =
-	let heap, store, pfs, _, preds, solver = symb_state in
-	(heap, store, pfs, new_gamma, preds, solver)
+	let heap, store, pfs, _, preds (*, solver *) = symb_state in
+	(heap, store, pfs, new_gamma, preds (*, solver *))
 
 let symb_state_replace_pfs symb_state new_pfs =
-	let heap, store, _, gamma, preds, solver = symb_state in
-	(heap, store, new_pfs, gamma, preds, solver)
+	let heap, store, _, gamma, preds (*, solver *) = symb_state in
+	(heap, store, new_pfs, gamma, preds (*, solver *))
 
 let get_symb_state_vars_as_tbl catch_pvars symb_state =
 	let var_tbl = Hashtbl.create small_tbl_size in
-	let heap, store, pfs, gamma, preds, _ = symb_state in
+	let heap, store, pfs, gamma, preds (*, _*) = symb_state in
 	get_heap_vars var_tbl catch_pvars heap;
 	get_store_vars var_tbl catch_pvars store;
 	get_pf_vars var_tbl catch_pvars pfs;
@@ -391,14 +391,14 @@ let get_symb_state_vars_as_list catch_pvars symb_state =
 		[]
 
 let symb_state_substitution (symb_state : symbolic_state) subst partial =
-	let heap, store, pf, gamma, preds, _ = symb_state in
+	let heap, store, pf, gamma, preds (*, _ *) = symb_state in
 	let s_heap = heap_substitution heap subst partial in
 	let s_store = store_substitution store gamma subst partial in
 	let s_pf = pf_substitution pf subst partial  in
 	(*Printf.printf "partial: %b. the gamma as it is now: %s.\n" partial (JSIL_Memory_Print.string_of_gamma gamma); *)
 	let s_gamma = gamma_substitution gamma subst partial in
 	let s_preds = preds_substitution preds subst partial in
-	(s_heap, s_store, s_pf, s_gamma, s_preds, ref None)
+	(s_heap, s_store, s_pf, s_gamma, s_preds (* ref None *))
 
 (*************************************)
 (** Symbolic state simplification   **)
@@ -476,16 +476,17 @@ let rec isExistentiallySubstitutable le =
  | _ -> false
 )
 
-let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_pfs (symb_state : symbolic_state)  =
+let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_pfs (symb_state : symbolic_state) : (symbolic_state * jsil_logic_assertion DynArray.t) =
 
 	let f = aggressively_simplify to_add other_pfs in
 
-	let heap, store, p_formulae, gamma, preds, _ = symb_state in
+	let heap, store, p_formulae, gamma, preds (*, _ *) = symb_state in
 
 	let pfs_false msg =
 	     print_debug (msg ^ " Pure formulae false.\n");
 	     DynArray.clear p_formulae;
 		 DynArray.add p_formulae LFalse;
+		 DynArray.clear other_pfs;
 		 symb_state, other_pfs in
 
 	let rec go_through_pfs (pfs : jsil_logic_assertion list) n =
@@ -493,7 +494,7 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 	 | [] ->
 	 	print_debug (Printf.sprintf "To add back: %d equalities\n" (List.length to_add));
 		List.iter (fun (x, y) -> DynArray.add p_formulae (LEq (LVar x, y))) to_add;
-		print_debug (Printf.sprintf "Done.\nSimplified state:\n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state));
+		print_debug (Printf.sprintf "Almost Done.\nSimplified state:\n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state));
 		symb_state, other_pfs
      | pf :: rest ->
 	 	(* Printf.printf "Pure formula: %s\n" (JSIL_Print.string_of_logic_assertion pf false); *)
@@ -501,11 +502,43 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 		(* We cannot simplify these *)
 		| LOr (_, _)
 		| LTrue
-		| LLess	(_, _)
-		| LLessEq (_, _)
 		| LStrLess (_, _) -> go_through_pfs rest (n + 1)
 
 		| LFalse -> pfs_false "This is exceptionally bad."
+
+		| LLess	(le1, le2) ->
+		  (match le1, le2 with
+		   | LLit (Integer n1), LLit (Integer n2) ->
+				let result = if (n1 < n2) then LTrue else LFalse in
+				DynArray.set p_formulae n result; f symb_state
+		   | LLit (Integer n1), LLit (Num n2) ->
+				let result = if (float_of_int n1 < n2) then LTrue else LFalse in
+				DynArray.set p_formulae n result; f symb_state
+		   | LLit (Num n1), LLit (Integer n2) ->
+				let result = if (n1 < float_of_int n2) then LTrue else LFalse in
+				DynArray.set p_formulae n result; f symb_state
+		   | LLit (Num n1), LLit (Num n2) ->
+				let result = if (n1 < n2) then LTrue else LFalse in
+				DynArray.set p_formulae n result; f symb_state
+		   | _, _ -> go_through_pfs rest (n + 1)
+		  )
+
+		| LLessEq (le1, le2) ->
+		  (match le1, le2 with
+		   | LLit (Integer n1), LLit (Integer n2) ->
+				let result = if (n1 <= n2) then LTrue else LFalse in
+				DynArray.set p_formulae n result; f symb_state
+		   | LLit (Integer n1), LLit (Num n2) ->
+				let result = if (float_of_int n1 <= n2) then LTrue else LFalse in
+				DynArray.set p_formulae n result; f symb_state
+		   | LLit (Num n1), LLit (Integer n2) ->
+				let result = if (n1 <= float_of_int n2) then LTrue else LFalse in
+				DynArray.set p_formulae n result; f symb_state
+		   | LLit (Num n1), LLit (Num n2) ->
+				let result = if (n1 <= n2) then LTrue else LFalse in
+				DynArray.set p_formulae n result; f symb_state
+		   | _, _ -> go_through_pfs rest (n + 1)
+		  )
 
 		(* These shouldn't even be here *)
 		| LPointsTo	(_, _, _) -> raise (Failure "Heap cell assertion in pure formulae.")
@@ -657,13 +690,13 @@ let simplify x =
 let simplify_with_pfs pfs = aggressively_simplify [] pfs
 
 let aggressively_simplify_pfs pfs gamma =
-	let solver = ref None in
-		let _, _, pfs, _, _, _ = simplify (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create (), solver) in
+	(* let solver = ref None in *)
+		let _, _, pfs, _, _ = simplify (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create () (*, solver*)) in
 			pfs
 
 let aggressively_simplify_pfs_with_others pfs opfs gamma =
-	let solver = ref None in
-		let (_, _, pfs, gamma, _, _), opfs = aggressively_simplify [] opfs (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create (), solver) in
+	(* let solver = ref None in *)
+		let (_, _, pfs, gamma, _), opfs = aggressively_simplify [] opfs (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create () (*, solver*)) in
 			pfs, opfs, gamma
 
 let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_assertion DynArray.t) (gamma : (string, jsil_type) Hashtbl.t) =
@@ -684,9 +717,47 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 		Hashtbl.add subst v le;
 		simplify_existentials exists lpfs (pf_substitution p_formulae subst true) gamma in
 
+	let test_for_nonsense pfs =
+
+		let rec test_for_nonsense_var_list var lst =
+		print_debug (Printf.sprintf "tfni: %s, %s" (JSIL_Print.string_of_logic_expression var false) (JSIL_Print.string_of_logic_expression lst false));
+		(match var, lst with
+		 | LVar v, LVar w -> v = w
+		 | LVar _, LEList lst ->
+			 List.fold_left (fun ac x -> ac || x = var) false lst
+		 | LVar _, LBinOp (head, LstCons, tail) ->
+			  (var = head) || (test_for_nonsense_var_list var tail)
+		 | _, _ -> false
+		) in
+
+		let rec test_for_nonsense_iter pfs =
+		(match pfs with
+		| [] -> false
+		| a :: rest -> (match a with
+		  | LEq (le1, le2) ->
+			(match le1, le2 with
+			 | LVar _, LEList _
+			 | LVar _, LBinOp (_, LstCons, _) ->
+			   let is_recursive_nonsense = test_for_nonsense_var_list le1 le2 in
+			   (match is_recursive_nonsense with
+				| true -> true
+				| false -> test_for_nonsense_iter rest)
+			 | _, _ -> test_for_nonsense_iter rest)
+		  | _ -> test_for_nonsense_iter rest)
+		) in
+
+	test_for_nonsense_iter pfs in
+
 	let rec go_through_pfs (pfs : jsil_logic_assertion list) n =
 	(match pfs with
-	 | [] -> exists, lpfs, p_formulae, gamma
+	 | [] -> if (test_for_nonsense (pfs_to_list p_formulae))
+			 	then pfs_false "Nonsense."
+				else
+			 (print_debug (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\n\nPure formulae:\n%s\n\nGamma:\n%s\n\n"
+		 		(String.concat ", " (SS.elements exists))
+		 		(JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false)
+		 		(JSIL_Memory_Print.string_of_gamma gamma));
+	 		 exists, lpfs, p_formulae, gamma)
 	 | pf :: rest ->
 	   (match pf with
 		| LEq (LVar v, le) ->
@@ -727,8 +798,6 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	   | _ -> ()
 	  )
 	) p_formulae;
-
-	sanitise_pfs_no_store gamma p_formulae;
 
 	print_debug (Printf.sprintf "Existential simplification:\n\nExistentials:\n%s\n\nPure formulae:\n%s\n\nGamma:\n%s\n\n"
 		(String.concat ", " (SS.elements exists))

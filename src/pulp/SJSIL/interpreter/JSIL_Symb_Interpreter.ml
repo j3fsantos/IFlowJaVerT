@@ -25,7 +25,7 @@ let rec symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae =
 		let nle2 = symb_evaluate_expr e2 store gamma pure_formulae in
 		(match nle1, nle2 with
 		| LLit l1, LLit l2 ->
-			let l = JSIL_Interpreter.evaluate_binop op l1 l2 in
+			let l = JSIL_Interpreter.evaluate_binop op (Literal l1) (Literal l2) (Hashtbl.create 1) in
 			LLit l
 		| _, _ ->
 			(match op with
@@ -145,7 +145,7 @@ let rec symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae =
 	| _ -> raise (Failure "not supported yet")
 
 
-let safe_symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae solver  =
+let safe_symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae (* solver *)  =
 	let nle = symb_evaluate_expr expr store gamma pure_formulae in
 	(*Printf.printf "safe_symb_evaluate_expr %s = %s!\n" (JSIL_Print.string_of_expression expr false) (JSIL_Print.string_of_logic_expression nle false);*)
 	let nle_type, is_typable, constraints = type_lexpr gamma nle in
@@ -170,13 +170,13 @@ let safe_symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae solver 
 
 
 let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
-	let heap, store, pure_formulae, gamma, _, solver = symb_state in
+	let heap, store, pure_formulae, gamma, _ (*, solver *) = symb_state in
 	match bcmd with
 	| SSkip ->
 		LLit Empty
 
 	| SAssignment (x, e) ->
-		let nle, t_le, _ = safe_symb_evaluate_expr e store gamma pure_formulae solver in
+		let nle, t_le, _ = safe_symb_evaluate_expr e store gamma pure_formulae (* solver *) in
 		update_abs_store store x nle;
 		update_gamma gamma x t_le;
 		nle
@@ -184,14 +184,14 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 	| SNew x ->
 		let new_loc = fresh_aloc () in
 		Symbolic_State_Functions.update_abs_heap_default heap new_loc LNone;
-		Symbolic_State_Functions.update_abs_heap heap new_loc (LLit (String proto_f)) (LLit Null) pure_formulae solver gamma;
+		Symbolic_State_Functions.update_abs_heap heap new_loc (LLit (String proto_f)) (LLit Null) pure_formulae (* solver *) gamma;
 		update_abs_store store x (ALoc new_loc);
 		update_gamma gamma x (Some ObjectType);
 		ALoc new_loc
 
 	| SLookup (x, e1, e2) ->
-		let ne1, t_le1, _ = safe_symb_evaluate_expr e1 store gamma pure_formulae solver in
-		let ne2, t_le2, _ = safe_symb_evaluate_expr e2 store gamma pure_formulae solver in
+		let ne1, t_le1, _ = safe_symb_evaluate_expr e1 store gamma pure_formulae (* solver *) in
+		let ne2, t_le2, _ = safe_symb_evaluate_expr e2 store gamma pure_formulae (* solver *) in
 		let l =
 			(match ne1 with
 			| LLit (Loc l)
@@ -200,19 +200,19 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 			let ne1_str = JSIL_Print.string_of_logic_expression ne1 false  in
 			let msg = Printf.sprintf "Lookup: I do not know which location %s denotes in the symbolic heap" ne1_str in
 			raise (Failure msg)) in
-		let ne = Symbolic_State_Functions.abs_heap_find heap l ne2 pure_formulae solver gamma in
+		let ne = Symbolic_State_Functions.abs_heap_find heap l ne2 pure_formulae (* solver *) gamma in
 		update_abs_store store x ne;
 		ne
 
 	| SMutation (e1, e2, e3) ->
-		let ne1, t_le1, _ = safe_symb_evaluate_expr e1 store gamma pure_formulae solver in
-		let ne2, t_le2, _ = safe_symb_evaluate_expr e2 store gamma pure_formulae solver in
-		let ne3, _, _ = safe_symb_evaluate_expr e3 store gamma pure_formulae solver in
+		let ne1, t_le1, _ = safe_symb_evaluate_expr e1 store gamma pure_formulae (* solver *) in
+		let ne2, t_le2, _ = safe_symb_evaluate_expr e2 store gamma pure_formulae (* solver *) in
+		let ne3, _, _ = safe_symb_evaluate_expr e3 store gamma pure_formulae (* solver *) in
 		(match ne1 with
 		| LLit (Loc l)
 		| ALoc l ->
 			(* Printf.printf "I am going to call: Update Abstract Heap\n"; *)
-			Symbolic_State_Functions.update_abs_heap heap l ne2 ne3 pure_formulae solver gamma
+			Symbolic_State_Functions.update_abs_heap heap l ne2 ne3 pure_formulae (* solver *) gamma
 		| _ ->
 			let ne1_str = JSIL_Print.string_of_logic_expression ne1 false  in
 			let msg = Printf.sprintf "Mutation: I do not know which location %s denotes in the symbolic heap" ne1_str in
@@ -220,8 +220,8 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 		ne3
 
 	| SDelete (e1, e2) ->
-		let ne1, t_le1, _ = safe_symb_evaluate_expr e1 store gamma pure_formulae solver in
-		let ne2, t_le2, _ = safe_symb_evaluate_expr e2 store gamma pure_formulae solver in
+		let ne1, t_le1, _ = safe_symb_evaluate_expr e1 store gamma pure_formulae (* solver *) in
+		let ne2, t_le2, _ = safe_symb_evaluate_expr e2 store gamma pure_formulae (* solver *) in
 		let l =
 			(match ne1 with
 			| LLit (Loc l)
@@ -230,11 +230,11 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 				let ne1_str = JSIL_Print.string_of_logic_expression ne1 false  in
 				let msg = Printf.sprintf "Delete: I do not know which location %s denotes in the symbolic heap" ne1_str in
 				raise (Failure msg)) in
-		Symbolic_State_Functions.update_abs_heap heap l ne2 LNone pure_formulae solver gamma;
+		Symbolic_State_Functions.update_abs_heap heap l ne2 LNone pure_formulae (* solver *) gamma;
 		LLit (Bool true)
 
 	| SDeleteObj e1 ->
-		let ne1, t_le1, _ = safe_symb_evaluate_expr e1 store gamma pure_formulae solver in
+		let ne1, t_le1, _ = safe_symb_evaluate_expr e1 store gamma pure_formulae (* solver *) in
 		let l =
 			(match ne1 with
 			| LLit (Loc l)
@@ -248,12 +248,12 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 		 | true -> LHeap.remove heap l; LLit (Bool true));
 
 	| SHasField (x, e1, e2) ->
-		let ne1, t_le1, _ = safe_symb_evaluate_expr e1 store gamma pure_formulae solver in
-		let ne2, t_le2, _ = safe_symb_evaluate_expr e2 store gamma pure_formulae solver in
+		let ne1, t_le1, _ = safe_symb_evaluate_expr e1 store gamma pure_formulae (* solver *) in
+		let ne2, t_le2, _ = safe_symb_evaluate_expr e2 store gamma pure_formulae (* solver *) in
 		match ne1 with
 		| LLit (Loc l)
 		| ALoc l ->
-			let res = Symbolic_State_Functions.abs_heap_check_field_existence heap l ne2 pure_formulae solver gamma in
+			let res = Symbolic_State_Functions.abs_heap_check_field_existence heap l ne2 pure_formulae (* solver *) gamma in
 			update_gamma gamma x (Some BooleanType);
 			(match res with
 			| Some res ->
@@ -355,7 +355,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		let store = copy_store (get_store symb_state) in
 		let heap = get_heap symb_state in
 		let preds = get_preds symb_state in
-		let new_symb_state = (heap, store, pfs, gamma, preds, ref None) in
+		let new_symb_state = (heap, store, pfs, gamma, preds (*, ref None *)) in
 		let is_sat = Pure_Entailment.check_satisfiability (get_pf_list new_symb_state) (get_gamma new_symb_state) [] in
 		(is_sat, new_symb_state) in
 
@@ -595,7 +595,7 @@ let expand_gamma gamma pure_formulae =
 	gamma
 
 let simplify_symb_state symb_state =
-	let heap, store, pure_formulae, gamma, preds, solver = symb_state in
+	let heap, store, pure_formulae, gamma, preds (*, solver *) = symb_state in
 	let list_subst = Hashtbl.create 17 in
 	DynArray.iter (fun a -> get_list_nth_len_ass list_subst false a) pure_formulae;
 	(* Printf.printf "So, we've got a substitution:\n%s\n" (JSIL_Memory_Print.string_of_substitution list_subst); *)
@@ -603,14 +603,14 @@ let simplify_symb_state symb_state =
 	(* Printf.printf "So, we've got some new pure formulae:\n%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae pure_formulae false); *)
 	let new_gamma = expand_gamma gamma pure_formulae in
 	(* Printf.printf "And we've got some new gamma:\n%s\n" (JSIL_Memory_Print.string_of_gamma new_gamma); *)
-	(heap, store, pure_formulae, new_gamma, preds, solver)
+	(heap, store, pure_formulae, new_gamma, preds (*, solver *))
 
 
 
 let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 	print_debug (Printf.sprintf "Current symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state));
 
-	let subst0 = Symbolic_State_Functions.subtract_pred pred_name args (get_preds symb_state) (get_pf symb_state) (get_solver symb_state) (get_gamma symb_state) spec_vars in
+	let subst0 = Symbolic_State_Functions.subtract_pred pred_name args (get_preds symb_state) (get_pf symb_state) (* (get_solver symb_state) *) (get_gamma symb_state) spec_vars in
 	let args = List.map (fun le -> lexpr_substitution le subst0 true) args in
 	let calling_store = init_store params args in
 

@@ -496,8 +496,8 @@ let process_js_logic_annotations fun_name (fun_args : string list) annotations r
 	let f_rec =
 		let f_recs = List.filter (fun annotation -> annotation.annot_type = Rec) annotations in
 		(match f_recs with
-		 | [ f_rec_annot ] -> f_rec_annot.annot_formula = "true"
-		 | _ -> false) in
+		 | [ f_rec_annot ] -> if (f_rec_annot.annot_formula = "false") then false else true
+		 | _ -> true) in
 
 	let fun_spec = if ((List.length single_specs) > 0)
 		then Some (JSIL_Syntax.create_jsil_spec fun_name (Js2jsil_constants.var_scope :: (Js2jsil_constants.var_this :: fun_args)) single_specs)
@@ -735,7 +735,7 @@ let closure_clarification_top_level cc_tbl (fun_tbl : fun_tbl_type) vis_tbl proc
 		(fun v -> Hashtbl.replace proc_tbl v proc_id)
 		proc_vars;
 	Hashtbl.add cc_tbl proc_id proc_tbl;
-	Hashtbl.add fun_tbl proc_id (proc_id, args, e, false, None);
+	Hashtbl.add fun_tbl proc_id (proc_id, args, e, true, None);
 	Hashtbl.add vis_tbl proc_id vis_fid;
 	closure_clarification_stmt cc_tbl fun_tbl vis_tbl proc_id vis_fid [] e;
 

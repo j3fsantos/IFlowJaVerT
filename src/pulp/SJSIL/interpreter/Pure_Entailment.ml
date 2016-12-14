@@ -1095,6 +1095,11 @@ let get_new_solver assertions gamma existentials =
   let existentials, _, assertions, gamma =
 	simplify_implication (SS.of_list existentials) (DynArray.of_list [ LTrue ]) (DynArray.of_list assertions) (copy_gamma gamma) in
 
+  (* print_debug (Printf.sprintf "Getting the solver:\n\nExistentials:\n%s\n\nPure formulae:\n%s\n\nGamma:\n%s\n\n"
+	 (String.concat ", " (SS.elements existentials))
+	 (JSIL_Memory_Print.string_of_shallow_p_formulae assertions false)
+	 (JSIL_Memory_Print.string_of_gamma gamma)); *)
+
   let assertions = DynArray.to_list assertions in
 
   let tr_ctx = mk_smt_translation_ctx gamma existentials in
@@ -1145,6 +1150,12 @@ let old_check_entailment existentials left_as right_as gamma =
 	let existentials, left_as, right_as, gamma =
 		simplify_implication (SS.of_list existentials) (DynArray.of_list left_as) (DynArray.of_list right_as) (copy_gamma gamma) in
 
+	(* print_debug (Printf.sprintf "Firing entailment check:\n\nExistentials:\n%s\n\nLeft:\n%s\n\nRight:\n%s\n\nGamma:\n%s\n\n"
+	   (String.concat ", " (SS.elements existentials))
+	   (JSIL_Memory_Print.string_of_shallow_p_formulae left_as false)
+	   (JSIL_Memory_Print.string_of_shallow_p_formulae right_as false)
+	   (JSIL_Memory_Print.string_of_gamma gamma)); *)
+
 	let left_as = DynArray.to_list left_as in
 	let right_as = DynArray.to_list right_as in
 	let existentials = SS.elements existentials in
@@ -1173,25 +1184,25 @@ let old_check_entailment existentials left_as right_as gamma =
 				else right_as_or in
 		let right_as_or = Expr.simplify right_as_or None in
 
-		(* Printf.printf "Checking if the current state entails the following:\n%s\n" (Expr.to_string right_as_or); *)
+		(* print_debug (Printf.sprintf "Checking if the current state entails the following:\n%s\n" (Expr.to_string right_as_or)); *)
 
 		let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 		Solver.add solver left_as;
 
 		let ret_left_side = (Solver.check solver [ ]) = Solver.SATISFIABLE in
-		(* Printf.printf "I am checking the satisfiability of the left side and got: %b\n" ret_left_side; *)
+		(* print_debug (Printf.sprintf "I am checking the satisfiability of the left side and got: %b\n" ret_left_side); *)
 
-		Solver.push solver;
+		(* Solver.push solver; *)
 		Solver.add solver [ right_as_or ];
 
-		(* Printf.printf "I am checking the satisfiability of:\n %s\n" (string_of_solver solver); *)
+		(* print_debug (Printf.sprintf "I am checking the satisfiability of:\n %s\n" (string_of_solver solver)); *)
 		let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in
 
 		(* if (not ret) then print_model solver; *)
 
 		(*  Printf.printf "backtracking_scopes before pop after push: %d!!!\n" (Solver.get_num_scopes solver); *)
 		(* Printf.printf "ret: %b\n" ret; *)
-		Solver.pop solver 1;
+		(* Solver.pop solver 1; *)
 		ret (* Some (solver, tr_ctx) *)  in
 
 	(* if (not (ret_right)) then false, None *)
@@ -1243,7 +1254,7 @@ let old_check_entailment existentials left_as right_as gamma =
 		| Some (new_solver, tr_ctx) -> solver := Some (new_solver, tr_ctx)
 		| None                      -> ());
 		ret) *)
-
+(*
 let understand_error existentials left_as right_as gamma =
 	Printf.printf "---------------------------------------\n";
 	Printf.printf "An error occurred. Let's understand it.\n";
@@ -1320,9 +1331,9 @@ let understand_error existentials left_as right_as gamma =
 	 | _, _ -> raise (Failure "This will not do.\n")) in
 
 	find_error accumulated_right_as right_as true;
-	Printf.printf "---------------------------------------\n"
+	Printf.printf "---------------------------------------\n" *)
 
-let is_equal e1 e2 pure_formulae solver gamma =
+let is_equal e1 e2 pure_formulae (* solver *) gamma =
     (* Printf.printf "Checking if %s is equal to %s given that: %s\n;" (JSIL_Print.string_of_logic_expression e1 false) (JSIL_Print.string_of_logic_expression e2 false) (JSIL_Memory_Print.string_of_shallow_p_formulae pure_formulae false);
     Printf.printf "and the gamma is: %s\n" (JSIL_Memory_Print.string_of_gamma gamma); *)
 	match e1, e2 with
@@ -1337,7 +1348,7 @@ let is_equal e1 e2 pure_formulae solver gamma =
 	| _, _ -> old_check_entailment [] (JSIL_Memory_Model.pfs_to_list pure_formulae) [ (LEq (e1, e2)) ] gamma
 
 
-let is_different e1 e2 pure_formulae solver gamma =
+let is_different e1 e2 pure_formulae (* solver *) gamma =
 	match e1, e2 with
 	| LLit l1, LLit l2 -> (not (l1 = l2))
 	| ALoc aloc1, ALoc aloc2 -> (not (aloc1 = aloc2))

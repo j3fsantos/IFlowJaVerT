@@ -17,7 +17,7 @@ let update_subst1 subst unifier =
 
 
 let update_subst2 subst (unifier1 : (string * jsil_logic_expr) list option)
-                        (unifier2 : (string * jsil_logic_expr) list option) p_formulae solver gamma =
+                        (unifier2 : (string * jsil_logic_expr) list option) p_formulae (* solver *) gamma =
 	match unifier1, unifier2 with
 	| None, None -> true
 	| Some _, None -> update_subst1 subst unifier1
@@ -37,7 +37,7 @@ let update_subst2 subst (unifier1 : (string * jsil_logic_expr) list option)
 			if (var1 = var2)
 				then
 					begin
-						if (Pure_Entailment.is_equal le1 le2 p_formulae solver gamma)
+						if (Pure_Entailment.is_equal le1 le2 p_formulae (* solver *) gamma)
 							then (Hashtbl.add subst var1 le1; ac)
 							else false
 					end
@@ -56,16 +56,16 @@ let update_subst2 subst (unifier1 : (string * jsil_logic_expr) list option)
 				pure_formulae |=
 
 *)
-let find_field loc fv_list e p_formulae solver gamma =
+let find_field loc fv_list e p_formulae (* solver *) gamma =
 	(* Printf.printf "Searching for field: %s\n" (JSIL_Print.string_of_logic_expression e false); *)
 	let rec find_field_rec fv_list traversed_fv_list i_am_sure_the_field_does_not_exist =
 		match fv_list with
 		| [] -> traversed_fv_list, None, i_am_sure_the_field_does_not_exist
 		| (e_field, e_value) :: rest ->
-			(if (Pure_Entailment.is_equal e e_field p_formulae solver gamma)
+			(if (Pure_Entailment.is_equal e e_field p_formulae (* solver *) gamma)
 				then traversed_fv_list @ rest, Some (e_field, e_value), false
 				else
-					(if (i_am_sure_the_field_does_not_exist && (Pure_Entailment.is_different e e_field p_formulae solver gamma))
+					(if (i_am_sure_the_field_does_not_exist && (Pure_Entailment.is_different e e_field p_formulae (* solver *) gamma))
 						then find_field_rec rest ((e_field, e_value) :: traversed_fv_list) true
 						else find_field_rec rest ((e_field, e_value) :: traversed_fv_list) false)) in
 	find_field_rec fv_list [] true
@@ -77,10 +77,10 @@ let update_abs_heap_default (heap : symbolic_heap) loc e =
  	| _ -> raise (Failure "the default value for the fields of a given object cannot be changed once set")
 
 
-let update_abs_heap (heap : symbolic_heap) loc e_field e_val p_formulae solver gamma =
+let update_abs_heap (heap : symbolic_heap) loc e_field e_val p_formulae (* solver *) gamma =
 	(* Printf.printf "Update Abstract Heap\n"; *)
 	let fv_list, default_val = try LHeap.find heap loc with _ -> [], LUnknown in
-	let unchanged_fv_list, field_val_pair, i_am_sure_the_field_does_not_exist = find_field loc fv_list e_field p_formulae solver gamma in
+	let unchanged_fv_list, field_val_pair, i_am_sure_the_field_does_not_exist = find_field loc fv_list e_field p_formulae (* solver *) gamma in
 	match field_val_pair, i_am_sure_the_field_does_not_exist with
 	| Some _, _
 	| None, true -> LHeap.replace heap loc ((e_field, e_val) :: unchanged_fv_list, default_val)
@@ -89,9 +89,9 @@ let update_abs_heap (heap : symbolic_heap) loc e_field e_val p_formulae solver g
 			raise (Failure msg)
 
 
-let abs_heap_find heap l e p_formulae solver gamma =
+let abs_heap_find heap l e p_formulae (* solver *) gamma =
 	let fv_list, default_val = try LHeap.find heap l with _ -> [], LUnknown in
-	let _, field_val_pair, i_am_sure_the_field_does_not_exist = find_field l fv_list e p_formulae solver gamma in
+	let _, field_val_pair, i_am_sure_the_field_does_not_exist = find_field l fv_list e p_formulae (* solver *) gamma in
 	match field_val_pair, i_am_sure_the_field_does_not_exist with
 	| Some (_, f_val), _ -> f_val
 	| None, true -> default_val
@@ -99,26 +99,26 @@ let abs_heap_find heap l e p_formulae solver gamma =
 		let msg = Printf.sprintf "Cannot decide if %s exists in object %s" (JSIL_Print.string_of_logic_expression e false) l in
 			raise (Failure msg)
 
-let abs_heap_check_field_existence heap l e p_formulae solver gamma =
-	let f_val = abs_heap_find heap l e p_formulae solver gamma in
+let abs_heap_check_field_existence heap l e p_formulae (* solver *) gamma =
+	let f_val = abs_heap_find heap l e p_formulae (* solver *) gamma in
 	match f_val with
 	| LUnknown -> None
 	| LNone -> Some false
 	|	_ ->
-		if (Pure_Entailment.is_equal f_val LNone p_formulae solver gamma) then
+		if (Pure_Entailment.is_equal f_val LNone p_formulae (* solver *) gamma) then
 			(Some false)
-			else (if (Pure_Entailment.is_different f_val LNone p_formulae solver gamma) then
+			else (if (Pure_Entailment.is_different f_val LNone p_formulae (* solver *) gamma) then
 				(Some true)
 				else None)
 
-let abs_heap_delete heap l e p_formulae solver gamma =
+let abs_heap_delete heap l e p_formulae (* solver *) gamma =
 	let fv_list, default_val = try LHeap.find heap l with _ -> [], LUnknown in
-	let rest_fv_pairs, del_fv_pair, _ = find_field l fv_list e p_formulae solver gamma in
+	let rest_fv_pairs, del_fv_pair, _ = find_field l fv_list e p_formulae (* solver *) gamma in
 	match del_fv_pair with
 	| Some (_, _) -> LHeap.replace heap l (rest_fv_pairs, default_val)
 	| None -> raise (Failure "Trying to delete an inexistent field")
 
-let merge_heaps heap new_heap p_formulae solver gamma =
+let merge_heaps heap new_heap p_formulae (* solver *) gamma =
     print_debug (Printf.sprintf "-------------------------------------------------------------------\n");
 	print_debug (Printf.sprintf "-------------INSIDE MERGE HEAPS------------------------------------\n");
 	print_debug (Printf.sprintf "-------------------------------------------------------------------\n");
@@ -140,7 +140,7 @@ let merge_heaps heap new_heap p_formulae solver gamma =
 						| [] -> q_fv_list
 						| (le_field, le_val) :: rest_n_fv_list ->
 							(* Printf.printf "le_field: %s, le_val: %s\n" (JSIL_Print.string_of_logic_expression le_field false) (JSIL_Print.string_of_logic_expression le_val false); *)
-							let _, fv_pair, i_am_sure_the_field_does_exist = find_field loc fv_list le_field p_formulae solver gamma in
+							let _, fv_pair, i_am_sure_the_field_does_exist = find_field loc fv_list le_field p_formulae (* solver *) gamma in
 							(match fv_pair, i_am_sure_the_field_does_exist with
 							| None, true -> loop ((le_field, le_val) :: q_fv_list) rest_n_fv_list
 							| None, false ->
@@ -203,7 +203,7 @@ let get_heap_well_formedness_constraints heap =
 (** Predicate functions             **)
 (*************************************)
 
-let predicate_assertion_equality pred pat_pred pfs solver gamma spec_vars =
+let predicate_assertion_equality pred pat_pred pfs (* solver *) gamma spec_vars =
 	print_debug (Printf.sprintf "Entering predicate_assertion_equality.\n");
 
 	let spec_vars_str = List.fold_left (fun ac v -> if (ac = "") then v else (ac ^ ", " ^ v)) "" spec_vars in
@@ -219,7 +219,7 @@ let predicate_assertion_equality pred pat_pred pfs solver gamma spec_vars =
 				JSIL_Logic_Utils.extend_subst subst l2 le;
 				unify_pred_args rest_les rest_pat_les
 			| _ ->
-				if (Pure_Entailment.is_equal le pat_le pfs solver gamma)
+				if (Pure_Entailment.is_equal le pat_le pfs (* solver *) gamma)
 					then unify_pred_args rest_les rest_pat_les
 					else None)) in
 
@@ -230,13 +230,13 @@ let predicate_assertion_equality pred pat_pred pfs solver gamma spec_vars =
 		else None
 	| _, _ -> raise (Failure "predicate_assertion_equality: FATAL ERROR")
 
-let subtract_pred pred_name args pred_set pfs solver gamma spec_vars =
+let subtract_pred pred_name args pred_set pfs (* solver *) gamma spec_vars =
 	let pred_list = preds_to_list pred_set in
 	let rec loop pred_list index =
 		(match pred_list with
 		| [] -> raise (Failure (Printf.sprintf "Predicate %s not found in the predicate set!!!" pred_name))
 		| pred :: rest_pred_list ->
-			(match (predicate_assertion_equality pred (pred_name, args) pfs solver gamma spec_vars) with
+			(match (predicate_assertion_equality pred (pred_name, args) pfs (* solver *) gamma spec_vars) with
 			| None -> loop rest_pred_list (index + 1)
 			| Some subst -> index, subst)) in
 

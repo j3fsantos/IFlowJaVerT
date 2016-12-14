@@ -125,12 +125,13 @@ let rec js2jsil_logic (js_var_to_lvar : (string, JSIL_Syntax.jsil_logic_expr) Ha
 
 
 
-let var_fid_tbl_to_assertion (var_to_fid_tbl : (string, string) Hashtbl.t) (exceptions : string list) is_global =
+let var_fid_tbl_to_assertion (var_to_fid_tbl : (string, string) Hashtbl.t) current (exceptions : string list) is_global is_pre =
 	let js_var_to_lvar = Hashtbl.create small_tbl_size in
 	let (a, locs) = Hashtbl.fold
 		(fun x fid (ac, locs) ->
-			if (not (List.mem fid exceptions)) then (
-				let x_fid = if (is_global) then LLit (Loc Js2jsil_constants.locGlobName) else LVar (fid_to_lvar fid) in
+			if (not (List.mem fid exceptions) && (not (fid = current) || (fid = current && not is_pre))) then (
+				let target = if (fid = current && not is_pre) then (PVar Js2jsil_constants.var_er) else (LVar (fid_to_lvar fid)) in
+				let x_fid = if (is_global) then LLit (Loc Js2jsil_constants.locGlobName) else target in
 				let x_val_name = fresh_lvar () in
 				let x_val = LVar x_val_name in
 				let le_val =
@@ -144,11 +145,10 @@ let var_fid_tbl_to_assertion (var_to_fid_tbl : (string, string) Hashtbl.t) (exce
 			else (ac, locs))
 		var_to_fid_tbl
 		(LEmp, SS.empty) in
-	let a = List.fold_left (fun ac x -> LStar (ac, (LPointsTo (LLit (Loc x), LLit (String Js2jsil_constants.internalProtoFieldName), LLit Null)))) a (SS.elements locs) in
 	a, js_var_to_lvar
 
 
-let make_scope_chain_assertion vis_list exceptions =
+let make_scope_chain_assertion vis_list current exceptions is_pre =
 	print_debug (Printf.sprintf "Inside make_scope_chain_assertion with\n vis_list:%s\nexceptions:%s\n"
 	(String.concat ", " vis_list) (String.concat ", " exceptions));
 
@@ -158,19 +158,24 @@ let make_scope_chain_assertion vis_list exceptions =
 	match fids with
 	| [] -> a
 	| fid :: rest ->
+		let target = if (fid = current && not is_pre) then (PVar Js2jsil_constants.var_er) else (LVar (fid_to_lvar fid)) in
 		if (not (List.mem fid exceptions)) then (
-			let a_new = LPointsTo (PVar Js2jsil_constants.var_scope, LLit (String fid), LVar (fid_to_lvar fid)) in
-			let a = if (a = LEmp) then a_new else (LStar (a, a_new)) in
+			let a_new = LPointsTo (PVar Js2jsil_constants.var_scope, LLit (String fid), target) in
+			let a_proto_new = LPointsTo (target, LLit (String Js2jsil_constants.internalProtoFieldName), LLit Null) in
+			let to_add = if (fid = current && is_pre)
+				then a_new
+				else (LStar (a_new, a_proto_new)) in
+			let a = if (a = LEmp) then to_add else LStar (a, to_add) in
 			loop a rest) else loop a rest in
 		let a' = loop LEmp vis_list in
-		if (a' <> LEmp) then LStar (a', var_scope_proto_null) else LEmp
+		if (a' <> LEmp) then LStar (a', var_scope_proto_null) else var_scope_proto_null
 
 
 let rec js2jsil_logic_top_level_pre a (var_to_fid_tbl : (string, string) Hashtbl.t) (vis_list : string list) fid =
 	print_debug (Printf.sprintf "Inside js2jsil_logic_top_level_pre for procedure %s\n" fid);
 	let is_global = (fid = main_fid) in
-	let a_env_records, js_var_to_lvar = var_fid_tbl_to_assertion var_to_fid_tbl [ fid ] is_global in
-	let a_scope_chain = make_scope_chain_assertion vis_list [ ] in
+	let a_env_records, js_var_to_lvar = var_fid_tbl_to_assertion var_to_fid_tbl fid [ ] is_global true in
+	let a_scope_chain = make_scope_chain_assertion vis_list fid [ ] true in
 	let a_pre_js_heap =
 		if (is_global)
 			then LPred (initial_heap_pre_pred_name, [])
@@ -181,8 +186,8 @@ let rec js2jsil_logic_top_level_pre a (var_to_fid_tbl : (string, string) Hashtbl
 
 let rec js2jsil_logic_top_level_post a (var_to_fid_tbl : (string, string) Hashtbl.t) (vis_list : string list) fid =
 	let is_global = (fid = main_fid) in
-	let a_env_records, js_var_to_lvar = var_fid_tbl_to_assertion var_to_fid_tbl [ fid ] is_global in
-	let a_scope_chain = make_scope_chain_assertion vis_list [ ] in
+	let a_env_records, js_var_to_lvar = var_fid_tbl_to_assertion var_to_fid_tbl fid [ ] is_global false in
+	let a_scope_chain = make_scope_chain_assertion vis_list fid [ ] false in
 	let a_post_js_heap =
 	if (is_global)
 		then LPred (initial_heap_post_pred_name, [])

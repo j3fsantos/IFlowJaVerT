@@ -1442,7 +1442,7 @@ proc i__getValue (v) {
 			goto [xret = $$empty] undef rlab;
 	undef:	xret := $$undefined;
 
-	ref:	goto [(typeOf(v) = $$list_type) and (l-nth (v, 0) = "o")] oref vref;
+	ref:	goto [l-nth (v, 0) = "o"] oref vref;
 
 	oref:	xret := "get" (rbase, rfield) with elab;
 			goto rlab;
