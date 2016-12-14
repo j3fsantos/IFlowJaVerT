@@ -33,7 +33,7 @@ let rec normalise_lexpr store gamma subst le =
 			let nle2 = f le2 in
 			(match nle1, nle2 with
 				| LLit lit1, LLit lit2 ->
-						let lit = JSIL_Interpreter.evaluate_binop bop lit1 lit2 in
+						let lit = JSIL_Interpreter.evaluate_binop bop (Literal lit1) (Literal lit2) (Hashtbl.create 1) in
 						LLit lit
 				| _, _ -> LBinOp (nle1, bop, nle2))
 
@@ -678,7 +678,7 @@ let normalise_assertion a : symbolic_state * substitution =
 	Printf.printf "Normalise assertion: gamma :%s\n" (JSIL_Memory_Print.string_of_gamma gamma);
 	Printf.printf "Normalise assertion: store :%s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false);
 	Printf.printf "Normalise assertion: subst :%s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
-	(heap, store, p_formulae, gamma, preds, (ref None)), subst
+	(heap, store, p_formulae, gamma, preds (*, (ref None) *)), subst
 
 
 let normalise_precondition a =

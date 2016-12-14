@@ -760,7 +760,7 @@ PriorityQueue.prototype = {
 
 };
 
-var queue = new PriorityQueue();
+/* var queue = new PriorityQueue();
 
 if (queue.isEmpty() !== true) { throw("Oopsie!") };
 
@@ -768,4 +768,4 @@ queue.enqueue('some test data', 1);
 queue.enqueue('some more test data', 1);
 queue.enqueue('and yet some more...', 1);
 
-if (queue.size() !== 3) { throw("Oopsie boo!") };
+if (queue.size() !== 3) { throw("Oopsie boo!") }; */

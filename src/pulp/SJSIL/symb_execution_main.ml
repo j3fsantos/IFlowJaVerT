@@ -77,7 +77,7 @@ let process_file path =
 			Printf.printf "ALL Succeeded in %f\n" (Sys.time());
 			if (not (!spec_file = "")) then write_spec_file spec_file
 		end
-		else Printf.printf "There were Failures\n");
+		else (Printf.printf "There were Failures in %f\n" (Sys.time())));
 	register_dot_graphs dot_graphs;
 	exit 0
 

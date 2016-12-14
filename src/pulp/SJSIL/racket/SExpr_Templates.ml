@@ -27,12 +27,7 @@ let (template_internal_procs_racket:  ('a -> 'b, unit, string) format) = "
 "
 
 let (template_procs_racket: ('a -> 'b, unit, string) format) = "
-#lang s-exp rosette
-
-(require rosette/solver/smt/cvc4)
-(current-solver (new cvc4%%))
-(current-bitwidth 32)
-
+#lang rosette
 
 (require (file \"mem_model.rkt\"))
 (require (file \"interpreter.rkt\"))

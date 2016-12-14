@@ -41,7 +41,7 @@
               (loc-val (run-expr loc-expr store))
               (prop-val (run-expr prop-expr store))
               (rhs-val (run-expr rhs-expr store)))
-         ;; (println (format "Mutation: [~v, ~v] = ~v" loc-val prop-val rhs-val))
+         (println (format "Mutation: [~v, ~v] = ~v" loc-val prop-val rhs-val))
          (mutate-heap heap loc-val prop-val rhs-val)
          rhs-val)]
       ;;

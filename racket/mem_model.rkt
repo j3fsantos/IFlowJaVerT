@@ -92,17 +92,18 @@
 
 ;; Is something a literal?
 (define (literal? val)
-  (or
-   (number? val)
-   (boolean? val)
-   (string? val)
-   (is-loc? val)
-   (is-llist? val)
-   (is-ref? val)
-   (list-mem? jsil-constants val)
-   (list-mem? jsil-math-constants val)
-  )
-)
+  (let (( ret
+          (or
+           (number? val)
+           (boolean? val)
+           (string? val)
+           (is-loc? val)
+           (is-llist? val)
+           (is-ref? val)
+           (list-mem? jsil-constants val)
+           (list-mem? jsil-math-constants val))))
+    ;(println (format "literal? with ~v produced ~v" val ret))
+    ret))
 
 ;; Evaluating a literal
 (define (eval_literal lit)
@@ -237,8 +238,17 @@
   )
 )
 
+;(define (jsil-number-to-string n)
+;  (cond
+;    ((integer? n) (int-to-str n))
+;    (#t (number->string n))))
+
 (define (jsil-number-to-string n)
+<<<<<<< HEAD
 	"0")
+=======
+  (number->string n))
+>>>>>>> a1bfae79ffe67319c7ec327405cb869824354180
 
 (define operators-list
   (list
@@ -424,7 +434,7 @@
              (expr-str-len (string-length expr-str)))
         (and
          (> expr-str-len 1)
-         (eq? (substring (symbol->string loc) 0 2) "$l")))))
+         (equal? (substring (symbol->string loc) 0 2) "$l")))))
 
 (define (is-llist? l)
   (and

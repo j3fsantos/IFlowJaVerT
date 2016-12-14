@@ -1,7 +1,8 @@
+var n_number = jsil_make_symbolic_number (); 
 
 function top() {
 
-    var y = ___str_string;
+    var y = jsil_make_symbolic_string ();
 
     return function inner(x) {
 	var str = "";
@@ -12,4 +13,5 @@ function top() {
     }
 }
 
-(top())( ___n_number );
+(top())( n_number );
+

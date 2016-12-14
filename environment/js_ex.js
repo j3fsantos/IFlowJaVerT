@@ -1,8 +1,21 @@
 /*
-  @toprequires (emp)
-  @topensures (scope(o: #lo) * scope (s : \"fafafa\") * standardObject(#lo) * dataField(#lo, \"a\", \"oogaBooga\"))
-*/
+ * @id  Test
+ * @rec false
+ */
+function Test (data) {
+	this.data = data;
+}
 
-var s = "fafafa";
+Test.prototype = {
+	/*
+	 * @id  getData
+	 * @rec false
+	 */
+	getData : function () {
+		return this.data;
+	}
+}
 
-var o = { a : "oogaBooga" };
+var t = new Test(5);
+
+t.getData();
