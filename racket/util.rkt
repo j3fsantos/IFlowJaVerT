@@ -37,13 +37,11 @@
   (displayln "Printing logic state!")
   (displayln logic-state)
   (displayln "End of logic state!")
-  (let (
-        (mdl (solve (assert (and logic-state expr))))
-       )
-       (displayln "Model:")
-       (displayln mdl)
-       (displayln "")
-  #t))
+  (let ((mdl (solve (assert (and logic-state expr)))))
+    (displayln "Model:")
+    (displayln mdl)
+    (displayln "")
+    (if (equal? mdl (unsat)) (raise "UNSAT assertion") #t)))
 
 (define (jsil-assume expr)
   (update-logic-state expr)

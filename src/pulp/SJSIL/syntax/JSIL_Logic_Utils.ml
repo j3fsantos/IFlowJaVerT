@@ -279,12 +279,14 @@ let rec get_ass_vars_iter vars_tbl catch_pvars ass =
 	| LEmp       -> ()
 	| LTypes vts -> ()
 		(* List.iter 
-			(fun (x, t) -> 
+			(fun (e, t) -> 
 				let abort, x, is_x_lvar = 
-					match x with 
-					| LVar x -> false, x, true 
-					| PVar x -> false, x, false 
-					| _ -> true, "", false in 
+					(match e with 
+					| LVar x_name -> false, x_name, true 
+					| PVar x_name -> false, x_name, false 
+					| le ->
+						(print_debug (Printf.sprintf "Sth illegal in types assertion: %s\n" (JSIL_Print.string_of_logic_expression le false));
+						(true, "", false))) in 
 				if ((not abort) && ((not catch_pvars) && is_x_lvar) || (catch_pvars &&  (not is_x_lvar))) then (
 					try (Hashtbl.find vars_tbl x; ()) with _ -> (Hashtbl.add vars_tbl x true; ())
 				) else ())
