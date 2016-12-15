@@ -1,3 +1,4 @@
+var ___n_number = jsil_make_symbolic_number (); 
 
 function top(n) {
     var total = 0;
