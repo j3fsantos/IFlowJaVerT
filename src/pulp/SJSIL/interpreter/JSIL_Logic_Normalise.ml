@@ -697,9 +697,8 @@ let normalise_postcondition a subst (lvars : string list) pre_gamma : symbolic_s
 	let a_vars = filter_vars a_vars lvars in
 
 	let extra_gamma = filter_gamma pre_gamma lvars in
-	(* let a_vars_str = List.fold_left (fun ac var -> (ac ^ var ^ ", ")) ""    *)
-	(* a_vars in Printf.printf "Post Existentially Quantified Vars BABY:       *)
-	(* %s\n\n\n" a_vars_str;                                                   *)
+	let a_vars_str = List.fold_left (fun ac var -> (ac ^ var ^ ", ")) ""  a_vars in 
+	print_debug (Printf.sprintf "Post Existentially Quantified Vars BABY: %s\n\n\n" a_vars_str);                                         
 	let symb_state, _ = normalise_assertion a in
 	let gamma_post = (get_gamma symb_state) in
 	Symbolic_State_Basics.merge_gammas gamma_post extra_gamma;
@@ -751,9 +750,11 @@ let normalise_single_spec preds spec =
 													let heap_constraints = Symbolic_State_Functions.get_heap_well_formedness_constraints (get_heap post_symb_state) in
 													print_debug (Printf.sprintf "For the postcondition to make sense the following must be satisfiable:\n%s\n"
 														(JSIL_Print.str_of_assertion_list (heap_constraints @ (get_pf_list post_symb_state))));
+													print_debug (Printf.sprintf "I am going to check whether the following postcondition makes sense:\n%s\n"
+														(JSIL_Memory_Print.string_of_shallow_symb_state post_symb_state));
 													if (Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list post_symb_state)) (get_gamma post_symb_state) post_lvars)
-													then ((post_symb_state :: ac_posts), (post_lvars :: ac_posts_lvars))
-													else ac_posts, ac_posts_lvars)
+														then ((post_symb_state :: ac_posts), (post_lvars :: ac_posts_lvars))
+														else ac_posts, ac_posts_lvars)
 										([], [])
 										unfolded_posts in
 								(if (posts = []) then print_debug (Printf.sprintf "WARNING: No valid postconditions found.\n"));
