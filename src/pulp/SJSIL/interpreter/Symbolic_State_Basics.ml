@@ -417,10 +417,10 @@ let reduce_pfs_in_place store gamma pfs =
 		let rel = reduce_assertion store gamma pfs el in
 			changed := !changed && (el = rel);
 			DynArray.set pfs i rel
-	done;
+	done ;
 	if !changed then print_debug (Printf.sprintf "Reduce pfs in place: %s ---> %s"
 		(JSIL_Memory_Print.string_of_shallow_p_formulae pfs_old false)
-		(JSIL_Memory_Print.string_of_shallow_p_formulae pfs false))
+		(JSIL_Memory_Print.string_of_shallow_p_formulae pfs false)) 
 
 let sanitise_pfs store gamma pfs =
     reduce_pfs_in_place store gamma pfs;
@@ -483,8 +483,8 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 	let heap, store, p_formulae, gamma, preds (*, _ *) = symb_state in
 
 	let pfs_false msg =
-	     print_debug (msg ^ " Pure formulae false.\n");
-	     DynArray.clear p_formulae;
+	   print_debug (msg ^ " Pure formulae false.\n"); 
+	   DynArray.clear p_formulae;
 		 DynArray.add p_formulae LFalse;
 		 DynArray.clear other_pfs;
 		 symb_state, other_pfs in
@@ -492,12 +492,12 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 	let rec go_through_pfs (pfs : jsil_logic_assertion list) n =
 	(match pfs with
 	 | [] ->
-	 	print_debug (Printf.sprintf "To add back: %d equalities\n" (List.length to_add));
+	 	print_debug (Printf.sprintf "To add back: %d equalities\n" (List.length to_add)); 
 		List.iter (fun (x, y) -> DynArray.add p_formulae (LEq (LVar x, y))) to_add;
-		print_debug (Printf.sprintf "Almost Done.\nSimplified state:\n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state));
+		print_debug (Printf.sprintf "Almost Done.\nSimplified state:\n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state)); 
 		symb_state, other_pfs
      | pf :: rest ->
-	 	(* Printf.printf "Pure formula: %s\n" (JSIL_Print.string_of_logic_assertion pf false); *)
+	  (*	Printf.printf "Pure formula: %s\n" (JSIL_Print.string_of_logic_assertion pf false); *)
 		(match pf with
 		(* We cannot simplify these *)
 		| LOr (_, _)
@@ -568,7 +568,7 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 			   | false -> pfs_false "Two literals are not equal.")
 			  (* Variable and a literal: substitute in heap, substitute in store, substitute in pfs, kill in gamma *)
  			| LVar var, _ when (isSubstitutable le2) ->
-			  print_debug (Printf.sprintf "Var and substitutable: %s and %s" var (JSIL_Print.string_of_logic_expression le2 false));
+			  print_debug (Printf.sprintf "Var and substitutable: %s and %s" var (JSIL_Print.string_of_logic_expression le2 false)); 
  			  (* create substitution *)
  			  let subst = Hashtbl.create 1 in
  		      Hashtbl.add subst var le2;
@@ -581,7 +581,7 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
  			       while (Hashtbl.mem gamma var) do Hashtbl.remove gamma var done;
  				   to_add
  			   | true ->
- 				 print_debug (Printf.sprintf "Adding: (%s, %s)\n" var (JSIL_Print.string_of_logic_expression le2 false));
+ 				 	print_debug (Printf.sprintf "Adding: (%s, %s)\n" var (JSIL_Print.string_of_logic_expression le2 false));
  			     ((var, le2) :: to_add)
  			   ) in
  			   let symb_state = symb_state_substitution symb_state subst true in
@@ -634,7 +634,7 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 			 *)
 			| LEList ll1, LLit (LList ll2)
 			| LLit (LList ll2), LEList ll1 ->
-			  print_debug (Printf.sprintf "Two lists: %s and %s" (JSIL_Print.string_of_logic_expression le1 false) (JSIL_Print.string_of_logic_expression le2 false));
+			  print_debug (Printf.sprintf "Two lists: %s and %s" (JSIL_Print.string_of_logic_expression le1 false) (JSIL_Print.string_of_logic_expression le2 false)); 
 			  let len1 = List.length ll1 in
 			  let len2 = List.length ll2 in
 			  if (len1 = len2) then
@@ -668,7 +668,7 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 		)
 	) in
 
-	print_debug (Printf.sprintf "Simplification:\n%s\nwith other:%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state) (JSIL_Memory_Print.string_of_shallow_p_formulae other_pfs false));
+	print_debug (Printf.sprintf "Simplification:\n%s\nwith other:%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state) (JSIL_Memory_Print.string_of_shallow_p_formulae other_pfs false)); 
 
 	DynArray.iteri
 	(fun i pf ->
@@ -704,8 +704,8 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	print_time_debug ("simplify_existentials:");
 
 	let pfs_false msg =
-	     print_debug (msg ^ " Pure formulae false.\n");
-	     DynArray.clear p_formulae;
+	     (* print_debug (msg ^ " Pure formulae false.\n"); *)
+	   DynArray.clear p_formulae;
 		 DynArray.add p_formulae LFalse;
 		 SS.empty, lpfs, p_formulae, (Hashtbl.create 1) in
 
@@ -720,7 +720,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	let test_for_nonsense pfs =
 
 		let rec test_for_nonsense_var_list var lst =
-		print_debug (Printf.sprintf "tfni: %s, %s" (JSIL_Print.string_of_logic_expression var false) (JSIL_Print.string_of_logic_expression lst false));
+		print_debug (Printf.sprintf "tfni: %s, %s" (JSIL_Print.string_of_logic_expression var false) (JSIL_Print.string_of_logic_expression lst false)); 
 		(match var, lst with
 		 | LVar v, LVar w -> v = w
 		 | LVar _, LEList lst ->
@@ -753,10 +753,10 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	 | [] -> if (test_for_nonsense (pfs_to_list p_formulae))
 			 	then pfs_false "Nonsense."
 				else
-			 (print_debug (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\n\nPure formulae:\n%s\n\nGamma:\n%s\n\n"
+			 ( print_debug (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\n\nPure formulae:\n%s\n\nGamma:\n%s\n\n"
 		 		(String.concat ", " (SS.elements exists))
 		 		(JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false)
-		 		(JSIL_Memory_Print.string_of_gamma gamma));
+		 		(JSIL_Memory_Print.string_of_gamma gamma)); 
 	 		 exists, lpfs, p_formulae, gamma)
 	 | pf :: rest ->
 	   (match pf with
@@ -799,10 +799,10 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	  )
 	) p_formulae;
 
-	print_debug (Printf.sprintf "Existential simplification:\n\nExistentials:\n%s\n\nPure formulae:\n%s\n\nGamma:\n%s\n\n"
+	(* print_debug (Printf.sprintf "Existential simplification:\n\nExistentials:\n%s\n\nPure formulae:\n%s\n\nGamma:\n%s\n\n"
 		(String.concat ", " (SS.elements exists))
 		(JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false)
-		(JSIL_Memory_Print.string_of_gamma gamma));
+		(JSIL_Memory_Print.string_of_gamma gamma)); *)
 
 	let pf_list = DynArray.to_list p_formulae in
 		go_through_pfs pf_list 0

@@ -1,6 +1,10 @@
+var ___s1_string = jsil_make_symbolic_string(); 
+var ___n1_number = jsil_make_symbolic_number(); 
+
+jsil_assume (___n1_number < 9);
 
 function extend(o) {
-    for(p in o) {
+    for(var p in o) {
 	this[p] = o[p];
     }
 }
@@ -16,4 +20,4 @@ var input = {
 
 Q.extend(input);
 
-assert(Q.n > 10);
+jsil_assert(Q.n > 10);

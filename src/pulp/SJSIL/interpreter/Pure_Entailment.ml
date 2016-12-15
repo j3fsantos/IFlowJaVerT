@@ -43,17 +43,23 @@ let types_encoded_as_reals_fpa = NumberType :: types_encoded_as_ints
  **********************)
 
 let match_enc msg x y z =
-print_debug (Printf.sprintf "In the match: %s:\t%s" msg (string_of_enc (!encoding)));
-match (!encoding) with
- | WithInts  -> x
- | WithReals -> y
- | WithFPA   -> z
+(* print_debug (Printf.sprintf "In the match: %s:\t%s" msg (string_of_enc (!encoding))); *)
+	match (!encoding) with
+ 	|	WithInts  -> x
+ 	| WithReals -> y
+	 | WithFPA   -> z
 
-let fp_sort ctx = print_debug "Creating floating point sort."; let sort = (FloatingPoint.mk_sort_64 ctx) in
-                  print_debug "Sort created successfully."; sort
+let fp_sort ctx = 
+	(* print_debug "Creating floating point sort."; *)
+	let sort = (FloatingPoint.mk_sort_64 ctx) in
+	(* print_debug "Sort created successfully."; *)
+	sort
 
-let rm ctx  = print_debug "Creating RoundingMode.\n"; let rm = FloatingPoint.mk_const ctx (Symbol.mk_string ctx "rm") (FloatingPoint.RoundingMode.mk_sort ctx) in
-              print_debug "RoundingMode created successfully.\n"; rm
+let rm ctx  = 
+	(* print_debug "Creating RoundingMode.\n"; *)
+	let rm = FloatingPoint.mk_const ctx (Symbol.mk_string ctx "rm") (FloatingPoint.RoundingMode.mk_sort ctx) in
+  (* print_debug "RoundingMode created successfully.\n"; *)
+	rm
 
 let mk_sort       = match_enc "mk_sort"  Arithmetic.Integer.mk_sort      Arithmetic.Real.mk_sort      fp_sort
 let mk_const      = match_enc "mk_const" Arithmetic.Integer.mk_const     Arithmetic.Real.mk_const     (fun ctx s -> FloatingPoint.mk_const     ctx s (fp_sort ctx))
@@ -871,7 +877,9 @@ let rec lets_do_some_list_theory_axioms tr_ctx l1 l2 =
 	 let axioms_cons = encode_cons_equalities tr_ctx l1' l2 in
 	 assertions, [ axiom_len ] @ axioms_cons @ axioms_nth
 
- | _, _ -> Printf.printf "Oops! %s %s\n" (JSIL_Print.string_of_logic_expression l1 false) (JSIL_Print.string_of_logic_expression l2 false); exit 1
+ | _, _ -> 
+	Printf.printf "Oops! %s %s\n" (JSIL_Print.string_of_logic_expression l1 false) (JSIL_Print.string_of_logic_expression l2 false); 
+	exit 1
 )
 
 

@@ -698,7 +698,9 @@ let normalise_postcondition a subst (lvars : string list) pre_gamma : symbolic_s
 
 	let extra_gamma = filter_gamma pre_gamma lvars in
 	let a_vars_str = List.fold_left (fun ac var -> (ac ^ var ^ ", ")) ""  a_vars in 
-	print_debug (Printf.sprintf "Post Existentially Quantified Vars BABY: %s\n\n\n" a_vars_str);                                         
+	let lvars_str = String.concat ", " lvars in 
+	print_debug (Printf.sprintf "Post Existentially Quantified Vars BABY: %s\n\n\n" a_vars_str); 
+	print_debug (Printf.sprintf "Post spec vars: %s\n\n\n" lvars_str);                                         
 	let symb_state, _ = normalise_assertion a in
 	let gamma_post = (get_gamma symb_state) in
 	Symbolic_State_Basics.merge_gammas gamma_post extra_gamma;
