@@ -799,10 +799,10 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	  )
 	) p_formulae;
 
-	(* print_debug (Printf.sprintf "Existential simplification:\n\nExistentials:\n%s\n\nPure formulae:\n%s\n\nGamma:\n%s\n\n"
+	print_debug (Printf.sprintf "Existential simplification:\n\nExistentials:\n%s\n\nPure formulae:\n%s\n\nGamma:\n%s\n\n"
 		(String.concat ", " (SS.elements exists))
 		(JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false)
-		(JSIL_Memory_Print.string_of_gamma gamma)); *)
+		(JSIL_Memory_Print.string_of_gamma gamma)); 
 
 	let pf_list = DynArray.to_list p_formulae in
 		go_through_pfs pf_list 0
