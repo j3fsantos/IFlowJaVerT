@@ -290,7 +290,7 @@ spec create_object_with_call_construct (l, call, construct, len)
 
     [[ (l == #l) * (call == #call) * (construct == $$empty) * (len == #len) *
 	   types(#l : $$object_type, #call : $$string_type, #len : $$int_type) *
-       ((#l, "@proto") -> $$null) * empty_fields(#l : "@proto") ]]
+       empty_fields (#l : ) ]]
     [[ ((#l, "@proto") -> $lfun_proto) * ((#l, "@class") -> "Function") * ((#l, "@extensible") -> $$t) *
 	   ((#l, "@scope") -> $$empty) * ((#l, "length") -> {{ "d", #len, $$f, $$f, $$f }}) *
 	   ((#l, "@call") -> #call) *
@@ -529,15 +529,19 @@ with
    **************************************** *)
 
 pred initialHeapPre () :
-    empty_fields( $lg : ) * empty_fields ( $lobj_proto : );
+    empty_fields( $lg : ) * empty_fields ( $lobj_proto : ) * empty_fields ($lfun_proto : );
 
 pred initialHeapPostFull () :
-    (($lg,         "@class") -> "Object") * (($lg,         "@proto") -> $lobj_proto) * (($lg,         "@extensible") -> $$t) * empty_fields ( $lg : "@class", "@proto", "@extensible" ) *
-	(($lobj_proto, "@class") -> "Object") * (($lobj_proto, "@proto") -> $$null)      * (($lobj_proto, "@extensible") -> $$t) * empty_fields ( $lobj_proto : "@class", "@proto", "@extensible" );
+    (($lg,         "@class") -> "Object")   * (($lg,         "@proto") -> $lobj_proto) * (($lg,         "@extensible") -> $$t) * empty_fields ( $lg : "@class", "@proto", "@extensible" ) *
+	(($lobj_proto, "@class") -> "Object")   * (($lobj_proto, "@proto") -> $$null)      * (($lobj_proto, "@extensible") -> $$t) * empty_fields ( $lobj_proto : "@class", "@proto", "@extensible" ) *
+	(($lfun_proto, "@class") -> "Function") * (($lfun_proto, "@proto") -> $lobj_proto) * (($lfun_proto, "@extensible") -> $$t) *
+	(($lfun_proto, "@scope") -> $$empty)    * (($lfun_proto, "length") -> {{ "d", 0, $$f, $$f, $$f }}) * (($lfun_proto, "@call") -> "FP_default") * empty_fields($lfun_proto : "@proto", "@class", "@extensible", "@scope", "length", "@call");
 
 pred initialHeapPostRelaxed () :
-    (($lg,         "@class") -> "Object") * (($lg,         "@proto") -> $lobj_proto) * (($lg,         "@extensible") -> $$t) *
-	(($lobj_proto, "@class") -> "Object") * (($lobj_proto, "@proto") -> $$null)      * (($lobj_proto, "@extensible") -> $$t) * empty_fields ( $lobj_proto : "@class", "@proto", "@extensible" );
+    (($lg,         "@class") -> "Object")   * (($lg,         "@proto") -> $lobj_proto) * (($lg,         "@extensible") -> $$t) *
+	(($lobj_proto, "@class") -> "Object")   * (($lobj_proto, "@proto") -> $$null)      * (($lobj_proto, "@extensible") -> $$t) * empty_fields ( $lobj_proto : "@class", "@proto", "@extensible" ) *
+	(($lfun_proto, "@class") -> "Function") * (($lfun_proto, "@proto") -> $lobj_proto) * (($lfun_proto, "@extensible") -> $$t) *
+	(($lfun_proto, "@scope") -> $$empty)    * (($lfun_proto, "length") -> {{ "d", 0, $$f, $$f, $$f }}) * (($lfun_proto, "@call") -> "FP_default") * empty_fields($lfun_proto : "@proto", "@class", "@extensible", "@scope", "length", "@call");
 
 spec setupInitialHeap ()
 
@@ -554,6 +558,11 @@ proc setupInitialHeap () {
 			(* Object.prototype *)
 
 			xret := "create_default_object" ($lobj_proto, $$null, "Object", $$t);
+
+			(* Function.prototype *)
+
+			xret := "create_object_with_call_construct" ($lfun_proto, "FP_default", $$empty, 0);
+			[$lfun_proto, "@proto"] := $lobj_proto;
 
 	rlab:	xret := $$empty
 }
@@ -1447,13 +1456,38 @@ with
 
 spec i__getValue (v)
 
-    [[ v == $$undefined ]]
-    [[ ret == $$undefined ]]
+    [[ (v == {{ "o", #obj, #field }}) * types (#obj : $$object_type, #field : $$string_type) * isNamedProperty(#field) *
+       Pi (#obj, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (#g_aux_1 == $$undefined) ]]
+    [[ Pi (#obj, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (ret == $$undefined) ]]
+    normal;
+
+    [[ (v == {{ "o", #obj, #field }}) * types (#obj : $$object_type, #field : $$string_type) * isNamedProperty(#field) *
+       Pi (#obj, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * DataDescriptor (#g_aux_1)  ]]
+    [[ Pi (#obj, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * desc_val (#g_aux_1, #desc_val) * (ret == #desc_val) ]]
     normal;
 
     [[ v == $$null ]]
     [[ ret == $$null ]]
     normal;
+
+    [[ (v == {{ "v", $lg, #field }}) * types (#field : $$string_type) * isNamedProperty(#field) *
+       Pi ($lg, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (#g_aux_1 == $$undefined) ]]
+    [[ Pi ($lg, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (ret == $$undefined) ]]
+    normal;
+
+    [[ (v == {{ "v", $lg, #field }}) * types (#field : $$string_type) * isNamedProperty(#field) *
+       Pi ($lg, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * DataDescriptor (#g_aux_1)  ]]
+    [[ Pi ($lg, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * desc_val (#g_aux_1, #desc_val) * (ret == #desc_val) ]]
+    normal;
+
+    [[ (v == {{ "v", #obj, #field }}) * (! (#obj == $lg)) * ((#obj, #field) -> #value) * isNamedProperty(#field) *
+       types (#obj : $$object_type, #field : $$string_type) ]]
+    [[ ((#obj, #field) -> #value) * (ret == #value) ]]
+    normal;
+
+    [[ (v == #v) * types (#v : $$object_type) ]]
+	[[ (ret == #v) ]]
+	normal;
 
     [[ (v == #v) * types (#v : $$int_type) ]]
 	[[ (ret == #v) ]]
@@ -1471,33 +1505,8 @@ spec i__getValue (v)
 	[[ (ret == #v) ]]
 	normal;
 
-    [[ (v == #v) * types (#v : $$object_type) ]]
-	[[ (ret == #v) ]]
-	normal;
-
-    [[ (v == {{ "o", #obj, #field }}) * types (#obj : $$object_type, #field : $$string_type) * isNamedProperty(#field) *
-       Pi (#obj, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (#g_aux_1 == $$undefined) ]]
-    [[ Pi (#obj, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (ret == $$undefined) ]]
-    normal;
-
-    [[ (v == {{ "o", #obj, #field }}) * types (#obj : $$object_type, #field : $$string_type) * isNamedProperty(#field) *
-       Pi (#obj, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * DataDescriptor (#g_aux_1)  ]]
-    [[ Pi (#obj, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * desc_val (#g_aux_1, #desc_val) * (ret == #desc_val) ]]
-    normal;
-
-    [[ (v == {{ "v", $lg, #field }}) * types (#field : $$string_type) * isNamedProperty(#field) *
-       Pi ($lg, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (#g_aux_1 == $$undefined) ]]
-    [[ Pi ($lg, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (ret == $$undefined) ]]
-    normal;
-
-    [[ (v == {{ "v", $lg, #field }}) * types (#field : $$string_type) * isNamedProperty(#field) *
-       Pi ($lg, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * DataDescriptor (#g_aux_1)  ]]
-    [[ Pi ($lg, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * desc_val (#g_aux_1, #desc_val) * (ret == #desc_val) ]]
-    normal;
-
-    [[ (v == {{ "v", #obj, #field }}) * (! (#obj == $lg)) * ((#obj, #field) -> #value) * isNamedProperty(#field) *
-       types (#obj : $$object_type, #field : $$string_type) ]]
-    [[ ((#obj, #field) -> #value) * (ret == #value) ]]
+    [[ v == $$undefined ]]
+    [[ ret == $$undefined ]]
     normal
 
 proc i__getValue (v) {
