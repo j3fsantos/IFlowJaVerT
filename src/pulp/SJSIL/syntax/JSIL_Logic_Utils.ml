@@ -277,18 +277,18 @@ let rec get_ass_vars_iter vars_tbl catch_pvars ass =
 	| LStar (a1, a2) -> f a1; f a2
 	| LPointsTo (e1, e2, e3) -> fe e1; fe e2; fe e3
 	| LEmp       -> ()
-	| LTypes vts -> 
-		List.iter 
+	| LTypes vts -> ()
+		(* List.iter 
 			(fun (x, t) -> 
-				let x, is_x_lvar = 
+				let abort, x, is_x_lvar = 
 					match x with 
-					| LVar x -> x, true 
-					| PVar x -> x, false 
-					| _ -> raise (Failure "fatal error! illegal logical expression in types assertion") in 
-				if (((not catch_pvars) && is_x_lvar) || (catch_pvars &&  (not is_x_lvar))) then (
+					| LVar x -> false, x, true 
+					| PVar x -> false, x, false 
+					| _ -> true, "", false in 
+				if ((not abort) && ((not catch_pvars) && is_x_lvar) || (catch_pvars &&  (not is_x_lvar))) then (
 					try (Hashtbl.find vars_tbl x; ()) with _ -> (Hashtbl.add vars_tbl x true; ())
 				) else ())
-			vts
+			vts *)
 	| LPred (_, es) -> List.iter fe es
 	| LEmptyFields (o, les) -> fe o
 

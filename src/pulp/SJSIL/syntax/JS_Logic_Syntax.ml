@@ -55,7 +55,7 @@ type js_logic_assertion =
 	| JSLEmp
 	| JSLPred				of string * (js_logic_expr list)
 	| JSLTypes      of (string * jsil_type) list
-	| JSLScope      of string * js_logic_expr
+	| JSLScope      of string * js_logic_expr 
 
 
 let rec js2jsil_lexpr le =

@@ -2,7 +2,6 @@
 open JSIL_Syntax
 open JSIL_Syntax_Checks
 open JS_Logic_Syntax
-
 %}
 
 (***** Token definitions *****)
@@ -188,7 +187,6 @@ open JS_Logic_Syntax
 %token VERT
 (* EOF *)
 %token EOF
-
 (***** Precedence of operators *****)
 (* The later an operator is listed, the higher precedence it is given. *)
 (* Logic operators have lower precedence *)
@@ -918,3 +916,6 @@ js_type_env_pair_target:
   | v = LVAR; COLON; the_type=type_target
     { (v, the_type) }
 ;
+
+
+
