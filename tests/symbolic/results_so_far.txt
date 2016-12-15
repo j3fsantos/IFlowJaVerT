@@ -1,0 +1,1 @@
+symbolic_arrays_1.js -> not working due to number->string problem
