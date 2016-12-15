@@ -276,6 +276,92 @@ with
 	ret:	xret, rlab;
 };
 
+spec create_object_with_call_construct (l, call, construct, len)
+
+    [[ (l == #l) * (call == #call) * (construct == #construct) * (len == #len) *
+	   types(#l : $$object_type, #call : $$string_type, #construct: $$string_type, #len : $$int_type) *
+       ((#l, "@proto") -> $$null) * empty_fields(#l : "@proto") ]]
+    [[ ((#l, "@proto") -> $lfun_proto) * ((#l, "@class") -> "Function") * ((#l, "@extensible") -> $$t) *
+	   ((#l, "@scope") -> $$empty) * ((#l, "length") -> {{ "d", #len, $$f, $$f, $$f }}) *
+	   ((#l, "@call") -> #call) * ((#l, "@construct") -> #construct) *
+	   empty_fields(#l : "@proto", "@class", "@extensible", "@scope", "length", "@call", "@construct") *
+	   (ret == #l) ]]
+    normal;
+
+    [[ (l == #l) * (call == #call) * (construct == $$empty) * (len == #len) *
+	   types(#l : $$object_type, #call : $$string_type, #len : $$int_type) *
+       ((#l, "@proto") -> $$null) * empty_fields(#l : "@proto") ]]
+    [[ ((#l, "@proto") -> $lfun_proto) * ((#l, "@class") -> "Function") * ((#l, "@extensible") -> $$t) *
+	   ((#l, "@scope") -> $$empty) * ((#l, "length") -> {{ "d", #len, $$f, $$f, $$f }}) *
+	   ((#l, "@call") -> #call) *
+	   empty_fields(#l : "@proto", "@class", "@extensible", "@scope", "length", "@call") *
+	   (ret == #l) ]]
+    normal
+
+proc create_object_with_call_construct (l, call, construct, len) {
+
+			xret := "create_default_object" (l, $lfun_proto, "Function", $$t);
+
+			[xret, "@scope"] := $$empty;
+			[xret, "length"] := {{ "d", len, $$f, $$f, $$f }};
+			[xret, "@call"] := call;
+
+			goto [construct = $$empty] rlab cstr;
+
+	cstr:	[xret, "@construct"] := construct;
+
+	rlab:	xret := l
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+pred function_object (l, xsc, call, construct, len, prototype) :
+	types(l : $$object_type, xsc : $$object_type, call : $$string_type, construct: $$string_type, len : $$int_type, prototype : $$object_type) *
+	((l, "@proto") -> $lfun_proto) * ((l, "@class") -> "Function") * ((l, "@extensible") -> $$t) *
+	((l, "@scope") -> xsc)  * ((l, "length") -> {{ "d", len, $$f, $$f, $$f }}) *
+	((l, "@call")  -> call) * ((l, "@construct") -> construct) *
+	((l, "caller") -> {{ "a", $lthrow_type_error, $lthrow_type_error, $$f, $$f }}) *
+	((l, "arguments") -> {{ "a", $lthrow_type_error, $lthrow_type_error, $$f, $$f }}) *
+	((l, "prototype") -> {{ "d", prototype, $$t, $$f, $$f }}) *
+	empty_fields(l : "@proto", "@class", "@extensible", "@scope", "length", "@call", "@construct", "caller", "arguments", "prototype");
+
+spec create_function_object (xsc, call, construct, params)
+    [[ (xsc == #xsc) * (call == #call) * (construct == #construct) * (params == #params) *
+	   types(#l : $$object_type, #xsc : $$object_type, #call : $$string_type, #construct: $$string_type, #params : $$list_type) ]]
+    [[ types(#l : $$object_type, #xsc : $$object_type, #call : $$string_type, #construct: $$string_type, #params : $$list_type, #len : $$int_type, ret : $$object_type) *
+	   function_object(ret, #xsc, #call, #construct, #len, prototype) * (#len == l-len #params) *
+	   ((prototype, "@proto") -> $lobj_proto) * ((prototype, "@class") -> "Object") * ((prototype, "@extensible") -> $$t) *
+	   ((prototype, "constructor") -> {{ "d", ret, $$t, $$f, $$t }} ) *
+	   empty_fields(prototype : "@proto", "@class", "@extensible", "constructor") ]]
+    normal
+
+proc create_function_object (xsc, call, construct, params) {
+			len := l-len (params);
+			l := new ();
+			l := "create_object_with_call_construct" (l, call, construct, len);
+
+			[l, "@scope"] := xsc;
+
+			prototype := new ();
+			prototype := "create_default_object" (prototype, $lobj_proto, "Object", $$t);
+			[prototype, "constructor"] := {{ "d", l, $$t, $$f, $$t }};
+			[l, "prototype"] := {{ "d", prototype, $$t, $$f, $$f }};
+
+			(* Strict mode only *)
+			[l, "caller"] := {{ "a", $lthrow_type_error, $lthrow_type_error, $$f, $$f }};
+			[l, "arguments"] := {{ "a", $lthrow_type_error, $lthrow_type_error, $$f, $$f }};
+
+			xret := l;
+
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};
+
 (* ****** *)
 (* ERRORS *)
 (* ****** *)

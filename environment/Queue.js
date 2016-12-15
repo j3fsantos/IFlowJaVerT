@@ -35,7 +35,7 @@ function Node(data) {
  * share these methods, meaning there will NOT be copies made for each
  * instance.  This will be a huge memory savings since there will likely
  * be a large number of individual nodes.
- */
+ */ 
 Node.prototype = {
 
     /**

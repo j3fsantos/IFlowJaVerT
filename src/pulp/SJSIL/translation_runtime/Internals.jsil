@@ -1246,12 +1246,15 @@ proc i__abstractComparison (v1, v2, leftFirst) {
 
 			goto [(not (nx = nx)) or (not (ny = ny))] ru eq;
 
-	eq:	goto [nx = ny] rf sh;
+	eq:	goto [nx = ny] rf sl;
 
+(*
 	sh:		goto [nx = inf] rf si;
 	si:		goto [ny = inf] rt sj;
 	sj:		goto [ny = -inf] rf sk;
 	sk:		goto [nx = -inf] rt sl;
+*)
+
 	sl:		xret := (nx < ny);
 			goto rlab;
 
