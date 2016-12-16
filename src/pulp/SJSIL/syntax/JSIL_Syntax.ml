@@ -380,3 +380,11 @@ let print_time_debug msg =
     if (!debug) then
 	(let time = Sys.time () in
 	print_endline (msg ^ (Printf.sprintf " Time: %f" time)))
+	
+let statistics = Hashtbl.create 511
+
+let update_statistics (fname : string) (time : float) = 
+	if (Hashtbl.mem statistics fname)
+		then let (oc, ot) = Hashtbl.find statistics fname in
+		Hashtbl.replace statistics fname (oc + 1, ot +. time)
+		else Hashtbl.add statistics fname (1, time)

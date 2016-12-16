@@ -1164,7 +1164,10 @@ let check_satisfiability assertions gamma existentials =
 	print_time_debug "check_satisfiability:";
 	let solver = get_new_solver assertions gamma existentials in
 	(* Printf.printf "CS Solver: \n%s\n" (string_of_solver solver); *)
+	let start_time = Sys.time () in
 	let ret_solver = (Solver.check solver []) in
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "actual_solving" (end_time -. start_time);
 	let ret = (ret_solver = Solver.SATISFIABLE) in
 	(* Printf.printf "Satisfiability check of right side: %b\n" ret;
 	if (ret_solver = Solver.UNSATISFIABLE)
@@ -1222,14 +1225,20 @@ let old_check_entailment existentials left_as right_as gamma =
 		let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 		Solver.add solver left_as;
 
+		let start_time = Sys.time () in
 		let ret_left_side = (Solver.check solver [ ]) = Solver.SATISFIABLE in
+		let end_time = Sys.time () in
+		JSIL_Syntax.update_statistics "actual_solving" (end_time -. start_time);
 		print_debug (Printf.sprintf "I am checking the satisfiability of the left side and got: %b\n" ret_left_side);
 
 		(* Solver.push solver; *)
 		Solver.add solver [ right_as_or ];
 
 		print_debug (Printf.sprintf "I am checking the satisfiability of:\n %s\n" (string_of_solver solver));
+		let start_time = Sys.time () in
 		let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in
+		let end_time = Sys.time () in
+		JSIL_Syntax.update_statistics "actual_solving" (end_time -. start_time);
 
 		print_time_debug (Printf.sprintf "check_entailment done: %b :" ret);
 
@@ -1245,148 +1254,74 @@ let old_check_entailment existentials left_as right_as gamma =
 	if (left_as = [ LFalse ]) then (print_debug "Returning false!"; false) else
 	try check_entailment_aux () with Failure msg -> Printf.printf "Horrible failure\n"; false (*, None *)
 
-
-
-(* let rec check_entailment solver existentials left_as right_as gamma =
-	(* Printf.printf "Entering check entailment...\n"; *)
-
-	print_time_debug "check_entailment:";
-
-	if ((List.length right_as) = 0) then true
-	else if (not (check_satisfiability right_as gamma existentials)) then false
-	else (
-	match !solver with
-	| Some (solver, tr_ctx) ->
-		(* Printf.printf "check_entailment and there is already a solver. backtracking_scopes: %d!!!\n" (Solver.get_num_scopes solver); *)
-		let ctx = tr_ctx.z3_ctx in
-		let tr_ctx = { tr_ctx with tr_typing_env = gamma } in
-		let not_right_as = List.map (fun a -> encode_assertion_top_level tr_ctx false (LNot a)) right_as in
-		let len_not_right_as = List.length not_right_as in
-		let right_as_or =
-			if (len_not_right_as > 1) then
-				(Boolean.mk_or ctx not_right_as)
-			else if (len_not_right_as = 1) then
-				(List.nth not_right_as 0)
-			else Boolean.mk_false ctx in
-		let right_as_or =
-			if ((List.length existentials) > 0)
-				then encode_quantifier true ctx existentials (get_sorts tr_ctx existentials) right_as_or
-				else right_as_or in
-		let right_as_or = Expr.simplify right_as_or None in
-
-		Solver.push solver;
-		Solver.add solver [ right_as_or ];
-		(* Printf.printf "I am checking the satisfiability of:\n %s\n" (string_of_solver solver); *)
-		let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in
-		(* Printf.printf "backtracking_scopes before pop after push: %d!!!\n" (Solver.get_num_scopes solver);
-		Printf.printf "ret: %b\n" ret; *)
-		Solver.pop solver 1;
-		(* Printf.printf "backtracking_scopes after pop: %d!!!\n" (Solver.get_num_scopes solver); *)
-		ret
-
-	| None ->
-		(* Printf.printf "check_entailment with NO solver!!!\n"; *)
-		let ret, new_solver = old_check_entailment existentials left_as right_as gamma in
-		(match new_solver with
-		| Some (new_solver, tr_ctx) -> solver := Some (new_solver, tr_ctx)
-		| None                      -> ());
-		ret) *)
-(*
-let understand_error existentials left_as right_as gamma =
-	Printf.printf "---------------------------------------\n";
-	Printf.printf "An error occurred. Let's understand it.\n";
-	Printf.printf "---------------------------------------\n\n";
-
-	Printf.printf "Existentials: \n\t%s\n\n" (List.fold_left (fun ac x -> ac ^ " " ^ x) "" existentials);
-	Printf.printf "Left side: %d formulae.%s\n\n" (List.length left_as) (JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list left_as) false);
-	Printf.printf "Right side: %d formulae.%s\n\n" (List.length right_as) (JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list right_as) false);
-	Printf.printf "Gamma: %s\n\n" (JSIL_Memory_Print.string_of_gamma gamma);
-
-	Printf.printf "Full string table:\n";
-	Hashtbl.iter (fun x y -> Printf.printf "(%s, %d)\n" x y) str_codes;
-
-	let tr_ctx = mk_smt_translation_ctx gamma existentials in
-	let ctx = tr_ctx.z3_ctx in
-
-	(* let string_axioms = get_them_nasty_string_axioms tr_ctx (left_as @ right_as) in *)
-
-	Gc.full_major ();
-
-	let encoded_left_as = List.map (fun a -> encode_assertion_top_level tr_ctx true a) left_as in
-	let encoded_left_as = tr_ctx.tr_axioms @ (encode_gamma tr_ctx (-1)) @ encoded_left_as in
-
-	let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
-	Solver.add solver encoded_left_as;
-
-	let ret_left_side = (Solver.check solver [ ]) = Solver.SATISFIABLE in
-	Printf.printf "Is the left side satisfiable? %b\n\n" ret_left_side;
-
-	let encoded_right_as = List.map (fun a -> encode_assertion_top_level tr_ctx false (LNot a)) right_as in
-
-	let rec accumulate (ac : Z3.Expr.expr list) (last : Z3.Expr.expr option) (l : Z3.Expr.expr list) =
-		(match l with
-		 | [] -> ac
-		 | hd :: tl ->
-		 	(match last with
-			 | None    -> accumulate [ hd ] (Some hd) tl
-			 | Some el ->
-			 	let cf = (Boolean.mk_or ctx [el; hd]) in
-				accumulate (ac @ [ cf ]) (Some cf) tl )) in
-
-	let accumulated_right_as = accumulate [] None encoded_right_as in
-
-	let accumulated_right_as = List.map
-		(fun x ->
-			if ((List.length existentials) > 0)
-			then encode_quantifier true ctx existentials (get_sorts tr_ctx existentials) x
-			else x)
-		accumulated_right_as in
-
-	(* List.iter2 (fun y x -> Printf.printf "%s\n%s\n\n" (JSIL_Print.string_of_logic_assertion y false) (Expr.to_string x)) right_as accumulated_right_as; *)
-
-	let rec find_error (ac_list : Z3.Expr.expr list) (as_list : jsil_logic_assertion list) continue =
-	(match ac_list, as_list with
-	 | [], [] -> Printf.printf "In fact, there is no error.\n"
-	 | acm :: acc_list, ass :: ass_list ->
-	   if (continue) then
-	   begin
-	   	 Solver.push solver;
-	     Solver.add solver [acm];
-		 let continue = ((Solver.check solver [ ]) != Solver.SATISFIABLE) in
-		 	if (continue) then
-			begin
-				Solver.pop solver 1;
-				find_error acc_list ass_list true
-			end
-				else find_error [acm] [ass] false
-	   end
-	   else
-	   begin
-		 Printf.printf "Error: cannot satisfy: \n\t%s\n" (JSIL_Print.string_of_logic_assertion ass false);
-		 Printf.printf "Solver:\n%s\n" (string_of_solver solver);
-	   end
-	 | _, _ -> raise (Failure "This will not do.\n")) in
-
-	find_error accumulated_right_as right_as true;
-	Printf.printf "---------------------------------------\n" *)
+let is_equal_on_lexprs e1 e2 : bool option = 
+(match (e1 = e2) with
+| true -> Some (not (e1 = LUnknown))
+| false -> (match e1, e2 with
+    (* Unknown *)
+	| LUnknown, _
+	| _, LUnknown -> Some false
+	(* Variables *)
+	| PVar x, PVar y 
+	| LVar x, LVar y ->
+		if (x = y) then Some true else None
+	| PVar _, _
+	| _, PVar _
+	| LVar _, _
+	| _, LVar _ -> None
+	
+	(* Now we have no more variables *)
+	
+	(* None *)
+	| LNone, _
+	| _, LNone -> Some false
+	(* Literals *)
+	| LLit l1, LLit l2 -> Some (l1 = l2)
+	(* ALocs *)
+	| ALoc a1, ALoc a2 -> Some (a1 = a2)
+	| ALoc _, LLit (Loc _) 
+	| LLit (Loc _), ALoc _ -> None
+	| ALoc _, _
+	| _, ALoc _ -> Some false
+	(* LELists *)
+	| LLit (LList _), LEList _
+	| LEList _, LLit (LList _) -> None
+	| LLit _, LEList _ 
+	| LEList _, LLit _ -> Some false
+	
+	(* other *)
+	| _, _ -> None))
+	
+ 
+ 
+ (*
+	| LLit				of jsil_lit
+	| ALoc				of string
+	| LBinOp			of jsil_logic_expr * bin_op * jsil_logic_expr
+	| LUnOp				of unary_op * jsil_logic_expr
+	| LTypeOf			of jsil_logic_expr
+	| LEList      of jsil_logic_expr list
+	| LLstNth     of jsil_logic_expr * jsil_logic_expr
+	| LStrNth     of jsil_logic_expr * jsil_logic_expr *)
 
 let is_equal e1 e2 pure_formulae (* solver *) gamma =
-    (* Printf.printf "Checking if %s is equal to %s given that: %s\n;" (JSIL_Print.string_of_logic_expression e1 false) (JSIL_Print.string_of_logic_expression e2 false) (JSIL_Memory_Print.string_of_shallow_p_formulae pure_formulae false);
-    Printf.printf "and the gamma is: %s\n" (JSIL_Memory_Print.string_of_gamma gamma); *)
-	match e1, e2 with
-	| LLit l1, LLit l2 -> l1 = l2
-	| ALoc aloc1 , ALoc aloc2 -> aloc1 = aloc2
-	| LNone, LNone -> true
-	| LUnknown, LUnknown -> false
-	| LVar l1, LVar l2 ->
-		if (l1 = l2)
-			then true
-			else old_check_entailment [] (JSIL_Memory_Model.pfs_to_list pure_formulae) [ (LEq (e1, e2)) ] gamma
-	| _, _ -> old_check_entailment [] (JSIL_Memory_Model.pfs_to_list pure_formulae) [ (LEq (e1, e2)) ] gamma
+	let start_time = Sys.time () in
+	let result = (match (is_equal_on_lexprs e1 e2) with
+	| Some b -> b
+	| None -> JSIL_Syntax.update_statistics "is_equal_entailment" 0.; old_check_entailment [] (JSIL_Memory_Model.pfs_to_list pure_formulae) [ (LEq (e1, e2)) ] gamma) in
+	let end_time = Sys.time () in
+	JSIL_Syntax.update_statistics "is_equal" (end_time -. start_time);
+	print_debug (Printf.sprintf "is_equal : %s ?= %s : %b" (JSIL_Print.string_of_logic_expression e1 false) (JSIL_Print.string_of_logic_expression e2 false) result);
+	result
 
 
 let is_different e1 e2 pure_formulae (* solver *) gamma =
-	match e1, e2 with
-	| LLit l1, LLit l2 -> (not (l1 = l2))
-	| ALoc aloc1, ALoc aloc2 -> (not (aloc1 = aloc2))
-	| _, _ -> old_check_entailment [] (JSIL_Memory_Model.pfs_to_list pure_formulae) [ (LNot (LEq (e1, e2))) ] gamma
+	let start_time = Sys.time () in
+	let result = (match (is_equal_on_lexprs e1 e2) with
+	| Some b -> not b
+	| None -> JSIL_Syntax.update_statistics "is_different_entailment" 0.; old_check_entailment [] (JSIL_Memory_Model.pfs_to_list pure_formulae) [ LNot (LEq (e1, e2)) ] gamma) in
+	let end_time = Sys.time () in
+	JSIL_Syntax.update_statistics "is_different" (end_time -. start_time);
+	print_debug (Printf.sprintf "is_different : %s ?= %s : %b" (JSIL_Print.string_of_logic_expression e1 false) (JSIL_Print.string_of_logic_expression e2 false) result);
+	result
+	

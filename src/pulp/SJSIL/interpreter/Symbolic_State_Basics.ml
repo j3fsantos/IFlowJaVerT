@@ -821,7 +821,7 @@ let clean_up_stuff exists left right =
 	let i = ref 0 in
 	while (!i < DynArray.length right) do
 		let pf = DynArray.get right !i in
-		(match (SA.mem pf sleft) with
+		(match (SA.mem pf sleft && not (pf = LFalse)) with
 		 | false -> i := !i + 1
 		 | true -> DynArray.delete right !i
 		)

@@ -7,145 +7,168 @@ open JSIL_Logic_Utils
 open Logic_Predicates
 
 (**
-le -> non - normalised logical expression
-subst -> table mapping variable and logical variable
-gamma -> table mapping logical variables + variables to types
+	le -> non - normalised logical expression
+	subst -> table mapping variable and logical variable
+	gamma -> table mapping logical variables + variables to types
 
-the store is assumed to contain all the program variables in le
+	the store is assumed to contain all the program variables in le
 *)
 let rec normalise_lexpr store gamma subst le =
+
+	let start_time = Sys.time() in
+
 	let f = normalise_lexpr store gamma subst in
-	match le with
-	| LLit lit -> LLit lit
-	| LUnknown -> LUnknown
-	| LNone -> LNone
+
+	try (
+	let result = match le with
+	| LLit _
+	| LUnknown
+	| LNone -> le
 	| LVar lvar -> (try Hashtbl.find subst lvar with _ -> LVar lvar)
 	| ALoc aloc -> ALoc aloc (* raise (Failure "Unsupported expression during normalization: ALoc") Why not ALoc aloc? *)
 	| PVar pvar ->
-			(try Hashtbl.find store pvar with
-			| _ ->
-					let new_lvar = extend_abs_store pvar store gamma in
-					Hashtbl.add subst pvar new_lvar;
-					new_lvar)
+		(try Hashtbl.find store pvar with
+		| _ ->
+			let new_lvar = extend_abs_store pvar store gamma in
+			Hashtbl.add subst pvar new_lvar;
+			new_lvar)
 
 	| LBinOp (le1, bop, le2) ->
-			let nle1 = f le1 in
-			let nle2 = f le2 in
-			(match nle1, nle2 with
-				| LLit lit1, LLit lit2 ->
-						let lit = JSIL_Interpreter.evaluate_binop bop (Literal lit1) (Literal lit2) (Hashtbl.create 1) in
-						LLit lit
-				| _, _ -> LBinOp (nle1, bop, nle2))
+		let nle1 = f le1 in
+		let nle2 = f le2 in
+		(match nle1, nle2 with
+			| LLit lit1, LLit lit2 ->
+				let lit = JSIL_Interpreter.evaluate_binop bop (Literal lit1) (Literal lit2) (Hashtbl.create 1) in
+					LLit lit
+			| _, _ -> LBinOp (nle1, bop, nle2))
 
 	| LUnOp (uop, le1) ->
-			let nle1 = f le1 in
-			(match nle1 with
-				| LLit lit1 ->
-						let lit = JSIL_Interpreter.evaluate_unop uop lit1 in
-						LLit lit
-				| _ -> LUnOp (uop, nle1))
+		let nle1 = f le1 in
+		(match nle1 with
+			| LLit lit1 ->
+				let lit = JSIL_Interpreter.evaluate_unop uop lit1 in
+				LLit lit
+			| _ -> LUnOp (uop, nle1))
 
 	| LTypeOf (le1) ->
-			let nle1 = f le1 in
-			(match nle1 with
-				| LUnknown -> raise (Failure "Illegal Logic Expression: TypeOf of Unknown")
-				| LLit llit -> LLit (Type (JSIL_Interpreter.evaluate_type_of llit))
-				| LNone -> raise (Failure "Illegal Logic Expression: TypeOf of None")
-				| LVar lvar ->
-						(try LLit (Type (Hashtbl.find gamma lvar)) with _ -> LTypeOf (LVar lvar))
-								(* raise (Failure (Printf.sprintf "Logical variables always have a type, in particular: %s." lvar))) *)
-				| ALoc _ -> LLit (Type ObjectType)
-				| PVar _ -> raise (Failure "This should never happen: program variable in normalised expression")
-				| LBinOp (_, _, _)
-				| LUnOp (_, _) -> LTypeOf (nle1)
-				| LTypeOf _ -> LLit (Type TypeType)
-				| LEList _ -> LLit (Type ListType)
-				| LLstNth (list, index) ->
-						(match list, index with
-							| LLit (LList list), LLit (Num n) ->
-									let lit_n = (try List.nth list (int_of_float n) with _ ->
-												raise (Failure "List index out of bounds")) in
-									LLit (Type (JSIL_Interpreter.evaluate_type_of lit_n))
-							| LEList list, LLit (Num n) ->
-									let le_n = (try List.nth list (int_of_float n) with _ ->
-												raise (Failure "List index out of bounds")) in
-									f (LTypeOf le_n)
-							| _, _ -> LTypeOf (nle1))
-				| LStrNth (str, index) ->
-						(match str, index with
-							| LLit (String s), LLit (Num n) ->
-									let _ = (try (String.get s (int_of_float n)) with _ ->
-												raise (Failure "String index out of bounds")) in
-									LLit (Type StringType)
-							| _, _ -> LTypeOf (nle1)))
+		let nle1 = f le1 in
+		(match nle1 with
+			| LUnknown -> raise (Failure "Illegal Logic Expression: TypeOf of Unknown")
+			| LLit llit -> LLit (Type (JSIL_Interpreter.evaluate_type_of llit))
+			| LNone -> raise (Failure "Illegal Logic Expression: TypeOf of None")
+			| LVar lvar ->
+				(try LLit (Type (Hashtbl.find gamma lvar)) with _ -> LTypeOf (LVar lvar))
+					(* raise (Failure (Printf.sprintf "Logical variables always have a type, in particular: %s." lvar))) *)
+			| ALoc _ -> LLit (Type ObjectType)
+			| PVar _ -> raise (Failure "This should never happen: program variable in normalised expression")
+			| LBinOp (_, _, _)
+			| LUnOp (_, _) -> LTypeOf (nle1)
+			| LTypeOf _ -> LLit (Type TypeType)
+			| LEList _ -> LLit (Type ListType)
+			| LLstNth (list, index) ->
+				(match list, index with
+					| LLit (LList list), LLit (Num n) ->
+						let lit_n = (try List.nth list (int_of_float n) with _ ->
+							raise (Failure "List index out of bounds")) in
+						LLit (Type (JSIL_Interpreter.evaluate_type_of lit_n))
+					| LEList list, LLit (Num n) ->
+						let le_n = (try List.nth list (int_of_float n) with _ ->
+							raise (Failure "List index out of bounds")) in
+						f (LTypeOf le_n)
+					| _, _ -> LTypeOf (nle1))
+			| LStrNth (str, index) ->
+				(match str, index with
+					| LLit (String s), LLit (Num n) ->
+						let _ = (try (String.get s (int_of_float n)) with _ ->
+							raise (Failure "String index out of bounds")) in
+						LLit (Type StringType)
+					| _, _ -> LTypeOf (nle1)))
 
 	| LEList le_list ->
-			let n_le_list = List.map (fun le -> f le) le_list in
-			let all_literals, lit_list =
-				List.fold_left
-					(fun (ac, list) le ->
-								match le with
-								| LLit lit -> (ac, (list @ [ lit ]))
-								| _ -> (false, list))
-					(true, [])
-					n_le_list in
-			if (all_literals)
-			then LLit (LList lit_list)
-			else LEList n_le_list
+		let n_le_list = List.map (fun le -> f le) le_list in
+		let all_literals, lit_list =
+			List.fold_left
+				(fun (ac, list) le ->
+					match le with
+					| LLit lit -> (ac, (list @ [ lit ]))
+					| _ -> (false, list))
+				(true, [])
+				n_le_list in
+		if (all_literals)
+		then LLit (LList lit_list)
+		else LEList n_le_list
 
 	| LLstNth (le1, le2) ->
-			let nle1 = f le1 in
-			let nle2 = f le2 in
-			(match nle1, nle2 with
-				| LLit (LList list), LLit (Num n) -> (try LLit (List.nth list (int_of_float n)) with _ ->
-								raise (Failure "List index out of bounds"))
-				| LLit (LList list), LLit (Integer i) -> (try LLit (List.nth list i) with _ ->
-								raise (Failure "List index out of bounds"))
-				| LEList list, LLit (Num n) -> (try (List.nth list (int_of_float n)) with _ ->
-								raise (Failure "List index out of bounds"))
-				| LEList list, LLit (Integer i) -> (try (List.nth list i) with _ ->
-								raise (Failure "List index out of bounds"))
-				| _, _ -> LLstNth (nle1, nle2))
+		let nle1 = f le1 in
+		let nle2 = f le2 in
+		(match nle1, nle2 with
+			| LLit (LList list), LLit (Num n) -> (try LLit (List.nth list (int_of_float n)) with _ ->
+				raise (Failure "List index out of bounds"))
+			| LLit (LList list), LLit (Integer i) -> (try LLit (List.nth list i) with _ ->
+				raise (Failure "List index out of bounds"))
+			| LEList list, LLit (Num n) -> (try (List.nth list (int_of_float n)) with _ ->
+				raise (Failure "List index out of bounds"))
+			| LEList list, LLit (Integer i) -> (try (List.nth list i) with _ ->
+				raise (Failure "List index out of bounds"))
+			| _, _ -> LLstNth (nle1, nle2))
 
 	| LStrNth (le1, le2) ->
-			let nle1 = f le1 in
-			let nle2 = f le2 in
-			(match nle1, nle2 with
-				| LLit (String s), LLit (Num n) ->
-						(try LLit (String (String.make 1 (String.get s (int_of_float n))))
-						with _ -> raise (Failure "String index out of bounds"))
-				| LLit (String s), LLit (Integer i) ->
-						(try LLit (String (String.make 1 (String.get s i)))
-						with _ -> raise (Failure "String index out of bounds"))
-				| _, _ -> LStrNth (nle1, nle2))
+		let nle1 = f le1 in
+		let nle2 = f le2 in
+		(match nle1, nle2 with
+			| LLit (String s), LLit (Num n) ->
+				(try LLit (String (String.make 1 (String.get s (int_of_float n))))
+				with _ -> raise (Failure "String index out of bounds"))
+			| LLit (String s), LLit (Integer i) ->
+				(try LLit (String (String.make 1 (String.get s i)))
+				with _ -> raise (Failure "String index out of bounds"))
+			| _, _ -> LStrNth (nle1, nle2)) in
+		let end_time = Sys.time () in
+		JSIL_Syntax.update_statistics "normalise_lexpr" (end_time -. start_time);
+		print_debug (Printf.sprintf "normalise_lexpr: %f : %s -> %s" 
+			(end_time -. start_time) (JSIL_Print.string_of_logic_expression le false) 
+			(JSIL_Print.string_of_logic_expression result false));
+		result)
+	with
+	| Failure msg -> let end_time = Sys.time () in
+		JSIL_Syntax.update_statistics "normalise_lexpr" (end_time -. start_time);
+		print_debug (Printf.sprintf "normalise_lexpr: %f : %s -> Failure" 
+			(end_time -. start_time) (JSIL_Print.string_of_logic_expression le false));
+		raise (Failure msg)
 
 let rec normalise_pure_assertion store gamma subst assertion =
 	let fa = normalise_pure_assertion store gamma subst in
 	let fe = normalise_lexpr store gamma subst in
-	match assertion with
+	let start_time = Sys.time() in
+	try (let result = (match assertion with
 	| LEq (le1, le2) -> LEq((fe le1), (fe le2))
-
 	| LLess (le1, le2) -> LLess((fe le1), (fe le2))
-
 	| LLessEq (le1, le2) -> LLessEq((fe le1), (fe le2))
-
 	| LNot (LEq (le1, le2)) -> LNot (LEq((fe le1), (fe le2)))
-
 	| LNot (LLessEq (le1, le2)) -> LNot (LLessEq((fe le1), (fe le2)))
-
 	| LNot (LLess (le1, le2)) -> LNot (LLess((fe le1), (fe le2)))
-
 	| LAnd (a1, a2) -> LAnd ((fa a1), (fa a2))
-
 	| LOr (a1, a2) -> LOr ((fa a1), (fa a2))
-
 	| LFalse -> LFalse
-
 	| LTrue -> LTrue
 
 	| _ ->
 			let msg = Printf.sprintf "normalise_pure_assertion can only process pure assertions: %s" (JSIL_Print.string_of_logic_assertion assertion false) in
-			raise (Failure msg)
+			raise (Failure msg)) in
+	let end_time = Sys.time () in
+	JSIL_Syntax.update_statistics "normalise_pure_assertion" (end_time -. start_time);
+	print_debug (Printf.sprintf "normalise_pure_assertion: %f : %s -> %s" 
+			(end_time -. start_time) (JSIL_Print.string_of_logic_assertion assertion false) 
+			(JSIL_Print.string_of_logic_assertion result false));
+		result)
+	with
+	| Failure msg -> let end_time = Sys.time () in
+		JSIL_Syntax.update_statistics "normalise_pure_assertion" (end_time -. start_time);
+		print_debug (Printf.sprintf "normalise_pure_assertion: %f : %s -> Failure" 
+			(end_time -. start_time) (JSIL_Print.string_of_logic_assertion assertion false));
+		raise (Failure msg)
+
+	
 
 let new_abs_loc_name var = abs_loc_prefix ^ var
 

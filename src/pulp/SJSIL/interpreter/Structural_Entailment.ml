@@ -7,17 +7,38 @@ open Symbolic_State_Basics
 (** Unification Algorithm **)
 (***************************)
 
+(*
+	| LLit				of jsil_lit
+	| LNone
+	| LVar				of jsil_logic_var
+	| ALoc				of string
+	| PVar				of jsil_var
+	| LBinOp			of jsil_logic_expr * bin_op * jsil_logic_expr
+	| LUnOp				of unary_op * jsil_logic_expr
+	| LTypeOf			of jsil_logic_expr
+	| LEList      of jsil_logic_expr list
+	| LLstNth     of jsil_logic_expr * jsil_logic_expr
+	| LStrNth     of jsil_logic_expr * jsil_logic_expr
+	| LUnknown
+*)
+
 let must_be_equal le_pat le pi gamma =
 	print_debug (Printf.sprintf "Must_be_equal: %s, %s" (JSIL_Print.string_of_logic_expression le_pat false) (JSIL_Print.string_of_logic_expression le false));
-	let result = (match le_pat, le with
+	let result = 
+	(match le_pat = le with
+	| true -> true
+	| false -> 
+		(match le_pat, le with
+		
+	
 	| LLit (Num n), LLit (Integer i)
 	| LLit (Integer i), LLit (Num n) -> (float_of_int i == n)
 	| LLit pat_lit, LLit lit -> pat_lit = lit
 	| LLit pat_lit, _ ->
 		Pure_Entailment.is_equal le_pat le pi (* solver *) gamma
 	| LNone, LEList _
-	| LEList _, LNone -> true
-	| _, _ -> false) in
+	| LEList _, LNone -> false
+	| _, _ -> false)) in
 	print_debug (Printf.sprintf "--> %b" result);
 	result
 
@@ -200,11 +221,7 @@ let unify_fv_pair (pat_field, pat_value) (fv_list : (jsil_logic_expr * jsil_logi
 					if (Symbolic_State_Functions.update_subst2 subst fu vu p_formulae (* solver *) gamma)
 						then true, Some ((traversed_fv_list @ rest), (e_field, e_value))
 						else loop rest ((e_field, e_value) :: traversed_fv_list)
-				| false ->
-					(* lots of incompleteness here, enjoy *)
-					if (must_be_equal pat_value e_value p_formulae gamma)
-						then false, None
-						else loop rest ((e_field, e_value) :: traversed_fv_list)
+				| false -> false, None
 			   )
 			 | false ->
 				(* lots of incompleteness here, enjoy *)
