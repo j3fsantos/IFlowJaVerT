@@ -825,10 +825,7 @@ let clean_up_stuff exists left right =
 		 | false -> i := !i + 1
 		 | true -> DynArray.delete right !i
 		)
-	done (*)
-	if (SS.is_empty exists) then
-	 	(DynArray.append right left;
-		 DynArray.clear right) *)
+	done
 
 let simplify_implication exists lpfs rpfs gamma =
 	clean_up_stuff exists lpfs rpfs;

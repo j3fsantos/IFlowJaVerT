@@ -201,6 +201,7 @@ let unify_fv_pair (pat_field, pat_value) (fv_list : (jsil_logic_expr * jsil_logi
 						then true, Some ((traversed_fv_list @ rest), (e_field, e_value))
 						else loop rest ((e_field, e_value) :: traversed_fv_list)
 				| false ->
+					(* lots of incompleteness here, enjoy *)
 					if (must_be_equal pat_value e_value p_formulae gamma)
 						then false, None
 						else loop rest ((e_field, e_value) :: traversed_fv_list)
