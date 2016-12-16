@@ -476,9 +476,9 @@ let rec isExistentiallySubstitutable le =
  | _ -> false
 )
 
-let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_pfs (symb_state : symbolic_state) : (symbolic_state * jsil_logic_assertion DynArray.t) =
+let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_pfs save_all_lvars (symb_state : symbolic_state) : (symbolic_state * jsil_logic_assertion DynArray.t) =
 
-	let f = aggressively_simplify to_add other_pfs in
+	let f = aggressively_simplify to_add other_pfs save_all_lvars in
 
 	let heap, store, p_formulae, gamma, preds (*, _ *) = symb_state in
 
@@ -577,7 +577,7 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
  		      Hashtbl.add subst var le2;
  			  DynArray.delete p_formulae n;
  			  (* understand deletion *)
- 			  let it_stays = (String.get var 0 = '#') in
+ 			  let it_stays = if (save_all_lvars) then true else (String.get var 0 = '#') in
  		      let new_to_add =
  			  (match it_stays with
  			   | false ->
@@ -590,7 +590,7 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
  			   let symb_state = symb_state_substitution symb_state subst true in
 			   let other_pfs = pf_substitution other_pfs subst true in
  			   let to_add = List.map (fun (var, le) -> (var, lexpr_substitution le subst true)) to_add in
- 			   aggressively_simplify new_to_add other_pfs symb_state
+ 			   aggressively_simplify new_to_add other_pfs save_all_lvars symb_state
 
 			| LNone, l2 when (not (l2 = LNone)) -> pfs_false "None and not none."
 
@@ -691,19 +691,19 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 	let pf_list = DynArray.to_list p_formulae in
 		go_through_pfs pf_list 0
 
-let simplify x =
-	let (result, _) = aggressively_simplify [] (DynArray.create ()) x in result
+let simplify how x =
+	let (result, _) = aggressively_simplify [] (DynArray.create ()) how x in result
 
-let simplify_with_pfs pfs = aggressively_simplify [] pfs
+let simplify_with_pfs how pfs = aggressively_simplify [] pfs how
 
-let aggressively_simplify_pfs pfs gamma =
+let aggressively_simplify_pfs pfs gamma how =
 	(* let solver = ref None in *)
-		let _, _, pfs, _, _ = simplify (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create () (*, solver*)) in
+		let _, _, pfs, _, _ = simplify how (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create () (*, solver*)) in
 			pfs
 
-let aggressively_simplify_pfs_with_others pfs opfs gamma =
+let aggressively_simplify_pfs_with_others pfs opfs gamma how =
 	(* let solver = ref None in *)
-		let (_, _, pfs, gamma, _), opfs = aggressively_simplify [] opfs (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create () (*, solver*)) in
+		let (_, _, pfs, gamma, _), opfs = aggressively_simplify [] opfs how (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create () (*, solver*)) in
 			pfs, opfs, gamma
 
 let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_assertion DynArray.t) (gamma : (string, jsil_type) Hashtbl.t) =
@@ -806,6 +806,8 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	  )
 	) p_formulae;
 
+	let p_formulae = aggressively_simplify_pfs p_formulae gamma true in
+
 	(* print_debug (Printf.sprintf "Existential simplification:\n\nExistentials:\n%s\n\nPure formulae:\n%s\n\nGamma:\n%s\n\n"
 		(String.concat ", " (SS.elements exists))
 		(JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false)
@@ -830,5 +832,5 @@ let clean_up_stuff exists left right =
 
 let simplify_implication exists lpfs rpfs gamma =
 	clean_up_stuff exists lpfs rpfs;
-	let lpfs, rpfs, gamma = aggressively_simplify_pfs_with_others lpfs rpfs gamma in
+	let lpfs, rpfs, gamma = aggressively_simplify_pfs_with_others lpfs rpfs gamma false in
 	simplify_existentials exists lpfs rpfs gamma

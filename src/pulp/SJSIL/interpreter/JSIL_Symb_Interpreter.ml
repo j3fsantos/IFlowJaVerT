@@ -645,7 +645,7 @@ let recursive_unfold pred_name pred_defs symb_state params spec_vars =
 			if ((List.length unfolded_symb_states > 1) || (List.length unfolded_symb_states = 0))
 				then (print_debug (Printf.sprintf "More than one unfolding or nothing at all, oops.\n"); symb_state)
 				else (
-					let new_symb_state = simplify (List.hd unfolded_symb_states) in
+					let new_symb_state = simplify false (List.hd unfolded_symb_states) in
 					print_debug (Printf.sprintf "Inside recursive unfolding:\n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_state new_symb_state));
 					loop new_symb_state) in
 
@@ -875,7 +875,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 
 and symb_evaluate_next_cmd_1 s_prog proc spec search_info symb_state cur next  =
 	let metadata, cmd = get_proc_cmd proc cur in
-	let symb_state = simplify symb_state in
+	let symb_state = simplify false symb_state in
 	let symb_states = symb_evaluate_logic_cmds s_prog metadata.post_logic_cmds [ symb_state ] spec.n_subst spec.n_lvars in
 	let len = List.length symb_states in
 	List.iter

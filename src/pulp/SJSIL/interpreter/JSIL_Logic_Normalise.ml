@@ -214,7 +214,7 @@ let init_pure_assignments a store gamma subst =
 			cur_index := (!cur_index) + 1
 		done;
 
-		let non_store_pure_assertions_array = Symbolic_State_Basics.aggressively_simplify_pfs non_store_pure_assertions_array gamma in
+		let non_store_pure_assertions_array = Symbolic_State_Basics.aggressively_simplify_pfs non_store_pure_assertions_array gamma false in
 		non_store_pure_assertions_array in
 
 	(**
@@ -794,8 +794,8 @@ let normalise_spec preds spec =
 	let normalised_pre_post_list = List.concat (List.map (normalise_single_spec preds) spec.proc_specs) in
 	let normalised_pre_post_list =
 		List.map (fun (x : jsil_n_single_spec) ->
-			let pre = Symbolic_State_Basics.simplify x.n_pre in
-			let post = List.map (fun y -> Symbolic_State_Basics.simplify y) x.n_post in
+			let pre = Symbolic_State_Basics.simplify false x.n_pre in
+			let post = List.map (fun y -> Symbolic_State_Basics.simplify false y) x.n_post in
 			{ x with n_pre = pre; n_post = post }
 		) normalised_pre_post_list in
 	{
