@@ -49,13 +49,13 @@ let match_enc msg x y z =
  	| WithReals -> y
 	 | WithFPA   -> z
 
-let fp_sort ctx = 
+let fp_sort ctx =
 	(* print_debug "Creating floating point sort."; *)
 	let sort = (FloatingPoint.mk_sort_64 ctx) in
 	(* print_debug "Sort created successfully."; *)
 	sort
 
-let rm ctx  = 
+let rm ctx  =
 	(* print_debug "Creating RoundingMode.\n"; *)
 	let rm = FloatingPoint.mk_const ctx (Symbol.mk_string ctx "rm") (FloatingPoint.RoundingMode.mk_sort ctx) in
   (* print_debug "RoundingMode created successfully.\n"; *)
@@ -876,8 +876,8 @@ let rec lets_do_some_list_theory_axioms tr_ctx l1 l2 =
 	 let axioms_cons = encode_cons_equalities tr_ctx l1' l2 in
 	 assertions, [ axiom_len ] @ axioms_cons @ axioms_nth
 
- | _, _ -> 
-	Printf.printf "Oops! %s %s\n" (JSIL_Print.string_of_logic_expression l1 false) (JSIL_Print.string_of_logic_expression l2 false); 
+ | _, _ ->
+	Printf.printf "Oops! %s %s\n" (JSIL_Print.string_of_logic_expression l1 false) (JSIL_Print.string_of_logic_expression l2 false);
 	exit 1
 )
 

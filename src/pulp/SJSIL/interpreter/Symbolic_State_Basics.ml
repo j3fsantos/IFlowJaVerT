@@ -557,8 +557,6 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 			   	 (match (l1 = l2) with
 				  | true -> pfs_false "Two literals are equal."
 				  | false -> DynArray.delete p_formulae n; f symb_state)
-			  | ALoc aloc, LLit (Loc loc)
-			  | LLit (Loc loc), ALoc aloc -> DynArray.set p_formulae n LTrue; f symb_state
 			  | _, _ -> go_through_pfs rest (n + 1))
 		   | _ -> go_through_pfs rest (n + 1)) (* FOR NOW! *)
 		| LEq (le1, le2) -> (match (le1 = le2) with
@@ -593,10 +591,6 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 			   let other_pfs = pf_substitution other_pfs subst true in
  			   let to_add = List.map (fun (var, le) -> (var, lexpr_substitution le subst true)) to_add in
  			   aggressively_simplify new_to_add other_pfs symb_state
-
-			(* ALoc and Loc *)
-			| ALoc aloc, LLit (Loc loc)
-			| LLit (Loc loc), ALoc aloc -> pfs_false (Printf.sprintf "ALoc %s and Loc %s never equal." aloc loc)
 
 			| LNone, l2 when (not (l2 = LNone)) -> pfs_false "None and not none."
 
@@ -829,7 +823,10 @@ let clean_up_stuff exists left right =
 		 | false -> i := !i + 1
 		 | true -> DynArray.delete right !i
 		)
-	done
+	done (*)
+	if (SS.is_empty exists) then
+	 	(DynArray.append right left;
+		 DynArray.clear right) *)
 
 let simplify_implication exists lpfs rpfs gamma =
 	clean_up_stuff exists lpfs rpfs;

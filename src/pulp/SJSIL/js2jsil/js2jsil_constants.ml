@@ -66,3 +66,5 @@ let var_scope = "x__scope"
 let var_se = "x__se"
 let var_te = "x__te"
 let var_er = "x__er"
+
+let var_main = "main"

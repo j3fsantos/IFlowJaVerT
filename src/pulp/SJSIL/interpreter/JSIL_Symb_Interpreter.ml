@@ -187,6 +187,7 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 		Symbolic_State_Functions.update_abs_heap heap new_loc (LLit (String proto_f)) (LLit Null) pure_formulae (* solver *) gamma;
 		update_abs_store store x (ALoc new_loc);
 		update_gamma gamma x (Some ObjectType);
+		DynArray.add pure_formulae (LNot (LEq (ALoc new_loc, LLit (Loc Js2jsil_constants.locGlobName))));
 		ALoc new_loc
 
 	| SLookup (x, e1, e2) ->
