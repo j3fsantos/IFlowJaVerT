@@ -79,6 +79,10 @@ let process_file path =
 		end
 		else (Printf.printf "There were Failures in %f\n" (Sys.time())));
 	register_dot_graphs dot_graphs;
+	
+	Printf.printf "\n STATISTICS \n ========== \n\n";
+	Hashtbl.iter (fun f (c, t) -> print_endline (Printf.sprintf " %s : %d : %f" f c t)) JSIL_Syntax.statistics;
+	
 	exit 0
 
 let main () =

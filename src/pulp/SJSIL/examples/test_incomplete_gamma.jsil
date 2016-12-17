@@ -8,3 +8,15 @@ proc test0 (x) {
   		   x := x + 1;
    rlab:   skip
 } with { ret: x, rlab; };
+
+
+(**               **)
+(** Expected result: YES                             **)
+spec test1 (x)
+   [[ (x == #x) * types(#x: $$list_type) ]]
+   [[ (ret == l-len #x) ]]
+   normal
+proc test1 (x) {
+  		   x := l-len (x) ;
+   rlab:   skip
+} with { ret: x, rlab; };

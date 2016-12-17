@@ -1,4 +1,3 @@
-#lang s-exp rosette
 
 (define (symbolic? x) 
   (or (union? x) (term? x)))
@@ -24,18 +23,25 @@
   (displayln "Printing logic state!")
   (displayln logic-state)
   (displayln "End of logic state!")
-  (let (
-        (mdl (solve (assert (and logic-state expr))))
-       )
-       (displayln "Model:")
-       (displayln mdl)
-       (displayln "")
-  #t))
+  (let ((mdl (solve (assert (and logic-state expr)))))
+    (displayln "Model:")
+    (displayln mdl)
+    (displayln "")
+    (if (equal? mdl (unsat)) (raise "UNSAT assertion") #t)))
 
 (define (jsil-assume expr)
   (update-logic-state expr)
   #t)
 
+(define (equivalent-to-true? expr)
+  (let ((mdl (solve (assert (and logic-state (eq? expr #f))))))
+    (equal? mdl (unsat))))
+
+(define (equivalent-to-false? expr)
+  (let ((mdl (solve (assert (and logic-state (eq? expr #t))))))
+    (equal? mdl (unsat))))
+
 (define jsil-discharge (lambda () #t))
 
-(provide jsil-assume jsil-assert jsil-discharge)
+(provide jsil-assume jsil-assert jsil-discharge equivalent-to-true? equivalent-to-false? get-logic-state)
+

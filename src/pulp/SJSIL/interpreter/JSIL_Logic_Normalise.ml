@@ -7,145 +7,168 @@ open JSIL_Logic_Utils
 open Logic_Predicates
 
 (**
-le -> non - normalised logical expression
-subst -> table mapping variable and logical variable
-gamma -> table mapping logical variables + variables to types
+	le -> non - normalised logical expression
+	subst -> table mapping variable and logical variable
+	gamma -> table mapping logical variables + variables to types
 
-the store is assumed to contain all the program variables in le
+	the store is assumed to contain all the program variables in le
 *)
 let rec normalise_lexpr store gamma subst le =
+
+	let start_time = Sys.time() in
+
 	let f = normalise_lexpr store gamma subst in
-	match le with
-	| LLit lit -> LLit lit
-	| LUnknown -> LUnknown
-	| LNone -> LNone
+
+	try (
+	let result = match le with
+	| LLit _
+	| LUnknown
+	| LNone -> le
 	| LVar lvar -> (try Hashtbl.find subst lvar with _ -> LVar lvar)
 	| ALoc aloc -> ALoc aloc (* raise (Failure "Unsupported expression during normalization: ALoc") Why not ALoc aloc? *)
 	| PVar pvar ->
-			(try Hashtbl.find store pvar with
-			| _ ->
-					let new_lvar = extend_abs_store pvar store gamma in
-					Hashtbl.add subst pvar new_lvar;
-					new_lvar)
+		(try Hashtbl.find store pvar with
+		| _ ->
+			let new_lvar = extend_abs_store pvar store gamma in
+			Hashtbl.add subst pvar new_lvar;
+			new_lvar)
 
 	| LBinOp (le1, bop, le2) ->
-			let nle1 = f le1 in
-			let nle2 = f le2 in
-			(match nle1, nle2 with
-				| LLit lit1, LLit lit2 ->
-						let lit = JSIL_Interpreter.evaluate_binop bop (Literal lit1) (Literal lit2) (Hashtbl.create 1) in
-						LLit lit
-				| _, _ -> LBinOp (nle1, bop, nle2))
+		let nle1 = f le1 in
+		let nle2 = f le2 in
+		(match nle1, nle2 with
+			| LLit lit1, LLit lit2 ->
+				let lit = JSIL_Interpreter.evaluate_binop bop (Literal lit1) (Literal lit2) (Hashtbl.create 1) in
+					LLit lit
+			| _, _ -> LBinOp (nle1, bop, nle2))
 
 	| LUnOp (uop, le1) ->
-			let nle1 = f le1 in
-			(match nle1 with
-				| LLit lit1 ->
-						let lit = JSIL_Interpreter.evaluate_unop uop lit1 in
-						LLit lit
-				| _ -> LUnOp (uop, nle1))
+		let nle1 = f le1 in
+		(match nle1 with
+			| LLit lit1 ->
+				let lit = JSIL_Interpreter.evaluate_unop uop lit1 in
+				LLit lit
+			| _ -> LUnOp (uop, nle1))
 
 	| LTypeOf (le1) ->
-			let nle1 = f le1 in
-			(match nle1 with
-				| LUnknown -> raise (Failure "Illegal Logic Expression: TypeOf of Unknown")
-				| LLit llit -> LLit (Type (JSIL_Interpreter.evaluate_type_of llit))
-				| LNone -> raise (Failure "Illegal Logic Expression: TypeOf of None")
-				| LVar lvar ->
-						(try LLit (Type (Hashtbl.find gamma lvar)) with _ -> LTypeOf (LVar lvar))
-								(* raise (Failure (Printf.sprintf "Logical variables always have a type, in particular: %s." lvar))) *)
-				| ALoc _ -> LLit (Type ObjectType)
-				| PVar _ -> raise (Failure "This should never happen: program variable in normalised expression")
-				| LBinOp (_, _, _)
-				| LUnOp (_, _) -> LTypeOf (nle1)
-				| LTypeOf _ -> LLit (Type TypeType)
-				| LEList _ -> LLit (Type ListType)
-				| LLstNth (list, index) ->
-						(match list, index with
-							| LLit (LList list), LLit (Num n) ->
-									let lit_n = (try List.nth list (int_of_float n) with _ ->
-												raise (Failure "List index out of bounds")) in
-									LLit (Type (JSIL_Interpreter.evaluate_type_of lit_n))
-							| LEList list, LLit (Num n) ->
-									let le_n = (try List.nth list (int_of_float n) with _ ->
-												raise (Failure "List index out of bounds")) in
-									f (LTypeOf le_n)
-							| _, _ -> LTypeOf (nle1))
-				| LStrNth (str, index) ->
-						(match str, index with
-							| LLit (String s), LLit (Num n) ->
-									let _ = (try (String.get s (int_of_float n)) with _ ->
-												raise (Failure "String index out of bounds")) in
-									LLit (Type StringType)
-							| _, _ -> LTypeOf (nle1)))
+		let nle1 = f le1 in
+		(match nle1 with
+			| LUnknown -> raise (Failure "Illegal Logic Expression: TypeOf of Unknown")
+			| LLit llit -> LLit (Type (JSIL_Interpreter.evaluate_type_of llit))
+			| LNone -> raise (Failure "Illegal Logic Expression: TypeOf of None")
+			| LVar lvar ->
+				(try LLit (Type (Hashtbl.find gamma lvar)) with _ -> LTypeOf (LVar lvar))
+					(* raise (Failure (Printf.sprintf "Logical variables always have a type, in particular: %s." lvar))) *)
+			| ALoc _ -> LLit (Type ObjectType)
+			| PVar _ -> raise (Failure "This should never happen: program variable in normalised expression")
+			| LBinOp (_, _, _)
+			| LUnOp (_, _) -> LTypeOf (nle1)
+			| LTypeOf _ -> LLit (Type TypeType)
+			| LEList _ -> LLit (Type ListType)
+			| LLstNth (list, index) ->
+				(match list, index with
+					| LLit (LList list), LLit (Num n) ->
+						let lit_n = (try List.nth list (int_of_float n) with _ ->
+							raise (Failure "List index out of bounds")) in
+						LLit (Type (JSIL_Interpreter.evaluate_type_of lit_n))
+					| LEList list, LLit (Num n) ->
+						let le_n = (try List.nth list (int_of_float n) with _ ->
+							raise (Failure "List index out of bounds")) in
+						f (LTypeOf le_n)
+					| _, _ -> LTypeOf (nle1))
+			| LStrNth (str, index) ->
+				(match str, index with
+					| LLit (String s), LLit (Num n) ->
+						let _ = (try (String.get s (int_of_float n)) with _ ->
+							raise (Failure "String index out of bounds")) in
+						LLit (Type StringType)
+					| _, _ -> LTypeOf (nle1)))
 
 	| LEList le_list ->
-			let n_le_list = List.map (fun le -> f le) le_list in
-			let all_literals, lit_list =
-				List.fold_left
-					(fun (ac, list) le ->
-								match le with
-								| LLit lit -> (ac, (list @ [ lit ]))
-								| _ -> (false, list))
-					(true, [])
-					n_le_list in
-			if (all_literals)
-			then LLit (LList lit_list)
-			else LEList n_le_list
+		let n_le_list = List.map (fun le -> f le) le_list in
+		let all_literals, lit_list =
+			List.fold_left
+				(fun (ac, list) le ->
+					match le with
+					| LLit lit -> (ac, (list @ [ lit ]))
+					| _ -> (false, list))
+				(true, [])
+				n_le_list in
+		if (all_literals)
+		then LLit (LList lit_list)
+		else LEList n_le_list
 
 	| LLstNth (le1, le2) ->
-			let nle1 = f le1 in
-			let nle2 = f le2 in
-			(match nle1, nle2 with
-				| LLit (LList list), LLit (Num n) -> (try LLit (List.nth list (int_of_float n)) with _ ->
-								raise (Failure "List index out of bounds"))
-				| LLit (LList list), LLit (Integer i) -> (try LLit (List.nth list i) with _ ->
-								raise (Failure "List index out of bounds"))
-				| LEList list, LLit (Num n) -> (try (List.nth list (int_of_float n)) with _ ->
-								raise (Failure "List index out of bounds"))
-				| LEList list, LLit (Integer i) -> (try (List.nth list i) with _ ->
-								raise (Failure "List index out of bounds"))
-				| _, _ -> LLstNth (nle1, nle2))
+		let nle1 = f le1 in
+		let nle2 = f le2 in
+		(match nle1, nle2 with
+			| LLit (LList list), LLit (Num n) -> (try LLit (List.nth list (int_of_float n)) with _ ->
+				raise (Failure "List index out of bounds"))
+			| LLit (LList list), LLit (Integer i) -> (try LLit (List.nth list i) with _ ->
+				raise (Failure "List index out of bounds"))
+			| LEList list, LLit (Num n) -> (try (List.nth list (int_of_float n)) with _ ->
+				raise (Failure "List index out of bounds"))
+			| LEList list, LLit (Integer i) -> (try (List.nth list i) with _ ->
+				raise (Failure "List index out of bounds"))
+			| _, _ -> LLstNth (nle1, nle2))
 
 	| LStrNth (le1, le2) ->
-			let nle1 = f le1 in
-			let nle2 = f le2 in
-			(match nle1, nle2 with
-				| LLit (String s), LLit (Num n) ->
-						(try LLit (String (String.make 1 (String.get s (int_of_float n))))
-						with _ -> raise (Failure "String index out of bounds"))
-				| LLit (String s), LLit (Integer i) ->
-						(try LLit (String (String.make 1 (String.get s i)))
-						with _ -> raise (Failure "String index out of bounds"))
-				| _, _ -> LStrNth (nle1, nle2))
+		let nle1 = f le1 in
+		let nle2 = f le2 in
+		(match nle1, nle2 with
+			| LLit (String s), LLit (Num n) ->
+				(try LLit (String (String.make 1 (String.get s (int_of_float n))))
+				with _ -> raise (Failure "String index out of bounds"))
+			| LLit (String s), LLit (Integer i) ->
+				(try LLit (String (String.make 1 (String.get s i)))
+				with _ -> raise (Failure "String index out of bounds"))
+			| _, _ -> LStrNth (nle1, nle2)) in
+		let end_time = Sys.time () in
+		JSIL_Syntax.update_statistics "normalise_lexpr" (end_time -. start_time);
+		print_debug (Printf.sprintf "normalise_lexpr: %f : %s -> %s" 
+			(end_time -. start_time) (JSIL_Print.string_of_logic_expression le false) 
+			(JSIL_Print.string_of_logic_expression result false));
+		result)
+	with
+	| Failure msg -> let end_time = Sys.time () in
+		JSIL_Syntax.update_statistics "normalise_lexpr" (end_time -. start_time);
+		print_debug (Printf.sprintf "normalise_lexpr: %f : %s -> Failure" 
+			(end_time -. start_time) (JSIL_Print.string_of_logic_expression le false));
+		raise (Failure msg)
 
 let rec normalise_pure_assertion store gamma subst assertion =
 	let fa = normalise_pure_assertion store gamma subst in
 	let fe = normalise_lexpr store gamma subst in
-	match assertion with
+	let start_time = Sys.time() in
+	try (let result = (match assertion with
 	| LEq (le1, le2) -> LEq((fe le1), (fe le2))
-
 	| LLess (le1, le2) -> LLess((fe le1), (fe le2))
-
 	| LLessEq (le1, le2) -> LLessEq((fe le1), (fe le2))
-
 	| LNot (LEq (le1, le2)) -> LNot (LEq((fe le1), (fe le2)))
-
 	| LNot (LLessEq (le1, le2)) -> LNot (LLessEq((fe le1), (fe le2)))
-
 	| LNot (LLess (le1, le2)) -> LNot (LLess((fe le1), (fe le2)))
-
 	| LAnd (a1, a2) -> LAnd ((fa a1), (fa a2))
-
 	| LOr (a1, a2) -> LOr ((fa a1), (fa a2))
-
 	| LFalse -> LFalse
-
 	| LTrue -> LTrue
 
 	| _ ->
 			let msg = Printf.sprintf "normalise_pure_assertion can only process pure assertions: %s" (JSIL_Print.string_of_logic_assertion assertion false) in
-			raise (Failure msg)
+			raise (Failure msg)) in
+	let end_time = Sys.time () in
+	JSIL_Syntax.update_statistics "normalise_pure_assertion" (end_time -. start_time);
+	print_debug (Printf.sprintf "normalise_pure_assertion: %f : %s -> %s" 
+			(end_time -. start_time) (JSIL_Print.string_of_logic_assertion assertion false) 
+			(JSIL_Print.string_of_logic_assertion result false));
+		result)
+	with
+	| Failure msg -> let end_time = Sys.time () in
+		JSIL_Syntax.update_statistics "normalise_pure_assertion" (end_time -. start_time);
+		print_debug (Printf.sprintf "normalise_pure_assertion: %f : %s -> Failure" 
+			(end_time -. start_time) (JSIL_Print.string_of_logic_assertion assertion false));
+		raise (Failure msg)
+
+	
 
 let new_abs_loc_name var = abs_loc_prefix ^ var
 
@@ -214,7 +237,7 @@ let init_pure_assignments a store gamma subst =
 			cur_index := (!cur_index) + 1
 		done;
 
-		Symbolic_State_Basics.sanitise_pfs_no_store_no_gamma non_store_pure_assertions_array;
+		let non_store_pure_assertions_array = Symbolic_State_Basics.aggressively_simplify_pfs non_store_pure_assertions_array gamma false in
 		non_store_pure_assertions_array in
 
 	(**
@@ -553,6 +576,7 @@ let extend_typing_env_using_assertion_info a_list gamma =
 	loop a_list
 
 let process_empty_fields heap store p_formulae gamma subst a =
+
 	let rec gather_empty_fields a =
 		let f = gather_empty_fields in
 		match a with
@@ -648,37 +672,39 @@ let normalise_assertion a : symbolic_state * substitution =
 	Printf.printf "Normalise assertion: subst :%s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
 
 	let p_formulae = init_pure_assignments a store gamma subst in
-	fill_store_with_gamma store gamma subst;
 
-    (* Printf.printf "----- Stage 1.5 ----- \n\n";
-	Printf.printf "Normalise assertion: pfrs  :%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
-	Printf.printf "Normalise assertion: gamma :%s\n" (JSIL_Memory_Print.string_of_gamma gamma);
-	Printf.printf "Normalise assertion: store :%s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false);
-	Printf.printf "Normalise assertion: subst :%s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
+	 (match (DynArray.to_list p_formulae) with
+	 | [ LFalse ] -> (LHeap.create 1, Hashtbl.create 1, DynArray.of_list [ LFalse ], Hashtbl.create 1, DynArray.create () (*, (ref None) *)), Hashtbl.create 1
+	 | _ ->
 
-
-	(* Printf.printf "----- Stage 2 ----- \n\n";
-	Printf.printf "Normalise assertion: pfrs  :%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
-	Printf.printf "Normalise assertion: gamma :%s\n" (JSIL_Memory_Print.string_of_gamma gamma);
-	Printf.printf "Normalise assertion: store :%s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false);
-	Printf.printf "Normalise assertion: subst :%s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
-
-	compute_symb_heap heap store p_formulae gamma subst a;
+		(* Printf.printf "----- Stage 1.5 ----- \n\n";
+		Printf.printf "Normalise assertion: pfrs  :%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
+		Printf.printf "Normalise assertion: gamma :%s\n" (JSIL_Memory_Print.string_of_gamma gamma);
+		Printf.printf "Normalise assertion: store :%s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false);
+		Printf.printf "Normalise assertion: subst :%s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
 
 
-	extend_typing_env_using_assertion_info ((pfs_to_list p_formulae) @ (Symbolic_State_Basics.pf_of_store2 store)) gamma;
-	let preds, new_assertions = init_preds a store gamma subst in
-	extend_typing_env_using_assertion_info new_assertions gamma;
-	Symbolic_State_Basics.merge_pfs p_formulae (DynArray.of_list new_assertions);
-	process_empty_fields heap store (pfs_to_list p_formulae) gamma subst a;
+		(* Printf.printf "----- Stage 2 ----- \n\n";
+		Printf.printf "Normalise assertion: pfrs  :%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
+		Printf.printf "Normalise assertion: gamma :%s\n" (JSIL_Memory_Print.string_of_gamma gamma);
+		Printf.printf "Normalise assertion: store :%s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false);
+		Printf.printf "Normalise assertion: subst :%s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
 
-	(* Printf.printf "----- Stage 3 ----- \n\n";
-	Printf.printf "Normalise assertion: heap  :%s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false);
-	Printf.printf "Normalise assertion: pfrs  :%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
-	Printf.printf "Normalise assertion: gamma :%s\n" (JSIL_Memory_Print.string_of_gamma gamma);
-	Printf.printf "Normalise assertion: store :%s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false);
-	Printf.printf "Normalise assertion: subst :%s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
-	(heap, store, p_formulae, gamma, preds (*, (ref None) *)), subst
+		fill_store_with_gamma store gamma subst;
+		extend_typing_env_using_assertion_info ((pfs_to_list p_formulae) @ (Symbolic_State_Basics.pf_of_store2 store)) gamma;
+		compute_symb_heap heap store p_formulae gamma subst a;
+		let preds, new_assertions = init_preds a store gamma subst in
+		extend_typing_env_using_assertion_info new_assertions gamma;
+		Symbolic_State_Basics.merge_pfs p_formulae (DynArray.of_list new_assertions);
+		process_empty_fields heap store (pfs_to_list p_formulae) gamma subst a;
+
+		(* Printf.printf "----- Stage 3 ----- \n\n";
+		Printf.printf "Normalise assertion: heap  :%s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false);
+		Printf.printf "Normalise assertion: pfrs  :%s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
+		Printf.printf "Normalise assertion: gamma :%s\n" (JSIL_Memory_Print.string_of_gamma gamma);
+		Printf.printf "Normalise assertion: store :%s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false);
+		Printf.printf "Normalise assertion: subst :%s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
+		(heap, store, p_formulae, gamma, preds (*, (ref None) *)), subst)
 
 
 let normalise_precondition a =
@@ -697,9 +723,10 @@ let normalise_postcondition a subst (lvars : string list) pre_gamma : symbolic_s
 	let a_vars = filter_vars a_vars lvars in
 
 	let extra_gamma = filter_gamma pre_gamma lvars in
-	(* let a_vars_str = List.fold_left (fun ac var -> (ac ^ var ^ ", ")) ""    *)
-	(* a_vars in Printf.printf "Post Existentially Quantified Vars BABY:       *)
-	(* %s\n\n\n" a_vars_str;                                                   *)
+	let a_vars_str = List.fold_left (fun ac var -> (ac ^ var ^ ", ")) ""  a_vars in
+	let lvars_str = String.concat ", " lvars in
+	print_debug (Printf.sprintf "Post Existentially Quantified Vars BABY: %s\n\n\n" a_vars_str);
+	print_debug (Printf.sprintf "Post spec vars: %s\n\n\n" lvars_str);
 	let symb_state, _ = normalise_assertion a in
 	let gamma_post = (get_gamma symb_state) in
 	Symbolic_State_Basics.merge_gammas gamma_post extra_gamma;
@@ -710,12 +737,12 @@ let normalise_postcondition a subst (lvars : string list) pre_gamma : symbolic_s
 let normalise_single_spec preds spec =
 	print_time "  normalise_single_spec:";
 
-	print_debug (Printf.sprintf "Precondition  : %s\n" (JSIL_Print.string_of_logic_assertion spec.pre false));
-	print_debug (Printf.sprintf"Postcondition : %s\n" (JSIL_Print.string_of_logic_assertion spec.post false));
+	print_debug (Printf.sprintf "Precondition  : %s" (JSIL_Print.string_of_logic_assertion spec.pre false));
+	print_debug (Printf.sprintf"Postcondition : %s" (JSIL_Print.string_of_logic_assertion spec.post false));
 (*	Printf.printf "UPrecondition : %s\n" (JSIL_Print.string_of_logic_assertion unfolded_pre false);
 	Printf.printf "UPostcondition: %s\n" (JSIL_Print.string_of_logic_assertion unfolded_post false); *)
 
-	print_debug (Printf.sprintf "NSS: Entry\n");
+	print_debug (Printf.sprintf "NSS: Entry");
 
 	let f_pre_normalize a_list = List.concat (List.map pre_normalize_assertion a_list) in
 	let f_print assertions =
@@ -730,8 +757,8 @@ let normalise_single_spec preds spec =
 
 	print_debug (Printf.sprintf "NSS: Pre-normalise\n");
 
-	print_debug (Printf.sprintf"Pres: %s\n\n" (f_print unfolded_pres));
-	print_debug (Printf.sprintf "Posts: %s\n\n" (f_print unfolded_posts));
+	print_debug (Printf.sprintf "Pres: %s" (f_print unfolded_pres));
+	print_debug (Printf.sprintf "Posts: %s" (f_print unfolded_posts));
 
 	let unfolded_spec_list =
 		List.map
@@ -747,13 +774,15 @@ let normalise_single_spec preds spec =
 							(let posts, posts_lvars =
 									List.fold_left
 										(fun (ac_posts, ac_posts_lvars) post ->
-													let post_symb_state, post_lvars = normalise_postcondition post subst lvars (get_gamma pre_symb_state) in
-													let heap_constraints = Symbolic_State_Functions.get_heap_well_formedness_constraints (get_heap post_symb_state) in
-													print_debug (Printf.sprintf "For the postcondition to make sense the following must be satisfiable:\n%s\n"
-														(JSIL_Print.str_of_assertion_list (heap_constraints @ (get_pf_list post_symb_state))));
-													if (Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list post_symb_state)) (get_gamma post_symb_state) post_lvars)
-													then ((post_symb_state :: ac_posts), (post_lvars :: ac_posts_lvars))
-													else ac_posts, ac_posts_lvars)
+											print_debug ("POST: Checking a postcondition.\n");
+											print_debug (Printf.sprintf "%s" (JSIL_Print.string_of_logic_assertion post false));
+											let post_symb_state, post_lvars = normalise_postcondition post subst lvars (get_gamma pre_symb_state) in
+											let heap_constraints = Symbolic_State_Functions.get_heap_well_formedness_constraints (get_heap post_symb_state) in
+											print_debug (Printf.sprintf "For the postcondition to make sense the following must be satisfiable:\n%s\n"
+												(JSIL_Print.str_of_assertion_list (heap_constraints @ (get_pf_list post_symb_state))));
+											if (Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list post_symb_state)) (get_gamma post_symb_state) post_lvars)
+											then ((post_symb_state :: ac_posts), (post_lvars :: ac_posts_lvars))
+											else ac_posts, ac_posts_lvars)
 										([], [])
 										unfolded_posts in
 								(if (posts = []) then print_debug (Printf.sprintf "WARNING: No valid postconditions found.\n"));
@@ -788,8 +817,8 @@ let normalise_spec preds spec =
 	let normalised_pre_post_list = List.concat (List.map (normalise_single_spec preds) spec.proc_specs) in
 	let normalised_pre_post_list =
 		List.map (fun (x : jsil_n_single_spec) ->
-			let pre = Symbolic_State_Basics.simplify x.n_pre in
-			let post = List.map (fun y -> Symbolic_State_Basics.simplify y) x.n_post in
+			let pre = Symbolic_State_Basics.simplify false x.n_pre in
+			let post = List.map (fun y -> Symbolic_State_Basics.simplify false y) x.n_post in
 			{ x with n_pre = pre; n_post = post }
 		) normalised_pre_post_list in
 	{

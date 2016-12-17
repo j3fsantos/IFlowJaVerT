@@ -130,12 +130,16 @@ let var_fid_tbl_to_assertion (var_to_fid_tbl : (string, string) Hashtbl.t) curre
 	let (a, locs) = Hashtbl.fold
 		(fun x fid (ac, locs) ->
 			if (not (List.mem fid exceptions) && (not (fid = current) || (fid = current && not is_pre))) then (
-				let target = if (fid = current && not is_pre) then (PVar Js2jsil_constants.var_er) else (LVar (fid_to_lvar fid)) in
+				let target = if (fid = main_fid)
+					then LLit (Loc Js2jsil_constants.locGlobName)
+					else if (fid = current && not is_pre)
+							then (PVar Js2jsil_constants.var_er)
+							else (LVar (fid_to_lvar fid)) in
 				let x_fid = if (is_global) then LLit (Loc Js2jsil_constants.locGlobName) else target in
 				let x_val_name = fresh_lvar () in
 				let x_val = LVar x_val_name in
 				let le_val =
-					if (is_global)
+					if (fid = main_fid)
 						then LEList [ LLit (String "d"); x_val; LLit (Bool true); LLit (Bool true); LLit (Bool false) ]
 						else x_val in
 				let a_new = LPointsTo (x_fid, LLit (String x), le_val) in
@@ -149,7 +153,7 @@ let var_fid_tbl_to_assertion (var_to_fid_tbl : (string, string) Hashtbl.t) curre
 
 
 let make_scope_chain_assertion vis_list current exceptions is_pre =
-	print_debug (Printf.sprintf "Inside make_scope_chain_assertion with\n vis_list:%s\nexceptions:%s\n"
+	print_debug (Printf.sprintf "Inside make_scope_chain_assertion with\n\tvis_list:%s\nexceptions:%s"
 	(String.concat ", " vis_list) (String.concat ", " exceptions));
 
 	let var_scope_proto_null = LPointsTo (PVar Js2jsil_constants.var_scope, LLit (String Js2jsil_constants.internalProtoFieldName), LLit Null) in
@@ -158,15 +162,29 @@ let make_scope_chain_assertion vis_list current exceptions is_pre =
 	match fids with
 	| [] -> a
 	| fid :: rest ->
-		let target = if (fid = current && not is_pre) then (PVar Js2jsil_constants.var_er) else (LVar (fid_to_lvar fid)) in
-		if (not (List.mem fid exceptions)) then (
+		let target = if (fid = main_fid)
+			then LLit (Loc Js2jsil_constants.locGlobName)
+			else if (fid = current && not is_pre)
+					then (PVar Js2jsil_constants.var_er)
+					else (LVar (fid_to_lvar fid)) in
+		if (not (List.mem fid exceptions)) then
+		begin
 			let a_new = LPointsTo (PVar Js2jsil_constants.var_scope, LLit (String fid), target) in
+			let a_type = LTypes [ target, ObjectType ] in
 			let a_proto_new = LPointsTo (target, LLit (String Js2jsil_constants.internalProtoFieldName), LLit Null) in
-			let to_add = if (fid = current && is_pre)
-				then a_new
-				else (LStar (a_new, a_proto_new)) in
+			let a_not_lg = LNot (LEq (target, LLit (Loc Js2jsil_constants.locGlobName))) in
+			(* a_new, a_type, a_proto_new, a_not_lg *)
+			print_debug (Printf.sprintf "%s %s %s : %b %b %b" fid main_fid current (fid = main_fid) (fid = current) is_pre);
+			let to_add = (match (fid = main_fid, fid = current, is_pre) with
+			 | true, _,     _     -> a_new
+			 | _,    false, true  -> LStar (a_new, LStar (a_type, LStar (a_proto_new, a_not_lg)))
+			 | _,    false, false -> LStar (a_new, a_proto_new)
+			 | _,    true,  false -> LStar (a_new, a_proto_new)
+			 | _,    true,  true  -> LStar (a_new, a_type)
+			) in
 			let a = if (a = LEmp) then to_add else LStar (a, to_add) in
-			loop a rest) else loop a rest in
+			loop a rest
+		end else loop a rest in
 		let a' = loop LEmp vis_list in
 		if (a' <> LEmp) then LStar (a', var_scope_proto_null) else var_scope_proto_null
 
@@ -181,6 +199,9 @@ let rec js2jsil_logic_top_level_pre a (var_to_fid_tbl : (string, string) Hashtbl
 			then LPred (initial_heap_pre_pred_name, [])
 			else LPred (initial_heap_post_pred_rlx, []) in
 		let a' = js2jsil_logic js_var_to_lvar a in
+		print_debug (Printf.sprintf "J2JPre: \n\t%s\n\t%s\n\t%s\n\t%s"
+			(JSIL_Print.string_of_logic_assertion a' false) (JSIL_Print.string_of_logic_assertion a_env_records false)
+			(JSIL_Print.string_of_logic_assertion a_scope_chain false) (JSIL_Print.string_of_logic_assertion a_pre_js_heap false));
 		JSIL_Logic_Utils.star_asses [a'; a_env_records; a_scope_chain; a_pre_js_heap ]
 
 

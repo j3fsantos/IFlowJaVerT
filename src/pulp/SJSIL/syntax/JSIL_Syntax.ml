@@ -194,21 +194,21 @@ type jsil_logic_expr =
 
 (* JSIL logic assertions *)
 type jsil_logic_assertion =
-	| LAnd				  of jsil_logic_assertion * jsil_logic_assertion
-	| LOr			   	  of jsil_logic_assertion * jsil_logic_assertion
-	| LNot				  of jsil_logic_assertion
+	| LAnd				    of jsil_logic_assertion * jsil_logic_assertion
+	| LOr			   	    of jsil_logic_assertion * jsil_logic_assertion
+	| LNot				    of jsil_logic_assertion
 	| LTrue
 	| LFalse
-	| LEq				    of jsil_logic_expr * jsil_logic_expr
-	| LLess	   	    of jsil_logic_expr * jsil_logic_expr
-	| LLessEq	   	  of jsil_logic_expr * jsil_logic_expr
-	| LStrLess      of jsil_logic_expr * jsil_logic_expr
-	| LStar				  of jsil_logic_assertion * jsil_logic_assertion
-	| LPointsTo		  of jsil_logic_expr * jsil_logic_expr * jsil_logic_expr
+	| LEq				      of jsil_logic_expr * jsil_logic_expr
+	| LLess	   	      of jsil_logic_expr * jsil_logic_expr
+	| LLessEq	   	    of jsil_logic_expr * jsil_logic_expr
+	| LStrLess        of jsil_logic_expr * jsil_logic_expr
+	| LStar				    of jsil_logic_assertion * jsil_logic_assertion
+	| LPointsTo		    of jsil_logic_expr * jsil_logic_expr * jsil_logic_expr
 	| LEmp
-	| LPred		   		of string * (jsil_logic_expr list)
-	| LTypes        of (jsil_logic_expr * jsil_type) list
-	| LEmptyFields  of jsil_logic_expr * (string list)
+	| LPred		   		  of string * (jsil_logic_expr list)
+	| LTypes          of (jsil_logic_expr * jsil_type) list
+	| LEmptyFields    of jsil_logic_expr * (string list)
 
 (* JSIL logic predicates *)
 type jsil_logic_predicate = {
@@ -380,3 +380,11 @@ let print_time_debug msg =
     if (!debug) then
 	(let time = Sys.time () in
 	print_endline (msg ^ (Printf.sprintf " Time: %f" time)))
+	
+let statistics = Hashtbl.create 511
+
+let update_statistics (fname : string) (time : float) = 
+	if (Hashtbl.mem statistics fname)
+		then let (oc, ot) = Hashtbl.find statistics fname in
+		Hashtbl.replace statistics fname (oc + 1, ot +. time)
+		else Hashtbl.add statistics fname (1, time)

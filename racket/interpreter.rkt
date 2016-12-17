@@ -200,6 +200,12 @@
                          (cons (cons proc-name cur-index) (goto-stack))])
            ;; (print expr-val)
            (cond
+             [(and (symbolic? expr-val) (equivalent-to-true? expr-val))
+              (run-cmds-iter prog proc-name heap store then-label cur-index)]
+
+             [(and (symbolic? expr-val) (equivalent-to-false? expr-val))
+              (run-cmds-iter prog proc-name heap store else-label cur-index)]
+             
              [(and (symbolic? expr-val)
                    (> (count-goto proc-name cur-index) goto-limit))
               (kill expr-val)]

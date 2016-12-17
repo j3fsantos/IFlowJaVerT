@@ -1,3 +1,7 @@
+var ___n_number = jsil_make_symbolic_number (); 
+var ___s_string = jsil_make_symbolic_string (); 
+
+jsil_assume ((___n_number > 1) && (___n_number < 3)); 
 
 function f_three() { return "ten"; }
 
@@ -21,5 +25,5 @@ f_two();
 f_three();
 
 var n = ___n_number;
-(1 <= n && n <= 3)? top(n-1, ___s_string): -1;
+top(n-1, ___s_string);
 

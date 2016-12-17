@@ -7,6 +7,41 @@ open Symbolic_State_Basics
 (** Unification Algorithm **)
 (***************************)
 
+(*
+	| LLit				of jsil_lit
+	| LNone
+	| LVar				of jsil_logic_var
+	| ALoc				of string
+	| PVar				of jsil_var
+	| LBinOp			of jsil_logic_expr * bin_op * jsil_logic_expr
+	| LUnOp				of unary_op * jsil_logic_expr
+	| LTypeOf			of jsil_logic_expr
+	| LEList      of jsil_logic_expr list
+	| LLstNth     of jsil_logic_expr * jsil_logic_expr
+	| LStrNth     of jsil_logic_expr * jsil_logic_expr
+	| LUnknown
+*)
+
+let must_be_equal le_pat le pi gamma =
+	print_debug (Printf.sprintf "Must_be_equal: %s, %s" (JSIL_Print.string_of_logic_expression le_pat false) (JSIL_Print.string_of_logic_expression le false));
+	let result = 
+	(match le_pat = le with
+	| true -> true
+	| false -> 
+		(match le_pat, le with
+		
+	
+	| LLit (Num n), LLit (Integer i)
+	| LLit (Integer i), LLit (Num n) -> (float_of_int i == n)
+	| LLit pat_lit, LLit lit -> pat_lit = lit
+	| LLit pat_lit, _ ->
+		Pure_Entailment.is_equal le_pat le pi (* solver *) gamma
+	| LNone, LEList _
+	| LEList _, LNone -> false
+	| _, _ -> false)) in
+	print_debug (Printf.sprintf "--> %b" result);
+	result
+
 let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subst : substitution) (subst: substitution option) (pfs : jsil_logic_assertion list) (* solver *) (gamma : typing_environment) : ((jsil_logic_expr * jsil_logic_expr) list) option  =
 	try
 	print_debug (Printf.sprintf "Let's unify the stores first:\nStore: %s. \nPat_store: %s.\n\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false) (JSIL_Memory_Print.string_of_shallow_symb_store pat_store false)); (*
@@ -104,7 +139,7 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 
 let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (* solver *) (gamma: typing_environment) (subst : (string, jsil_logic_expr) Hashtbl.t) : (bool * ((string * jsil_logic_expr) list option)) =
 	print_debug (Printf.sprintf ": %s versus %s\n" (JSIL_Print.string_of_logic_expression le_pat false)  (JSIL_Print.string_of_logic_expression le false));
-	match le_pat with
+	let result = (match le_pat with
 	| LVar var
 	| ALoc var ->
 		(try
@@ -165,26 +200,34 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (* solver *) (gamm
 	| _ ->
 		let msg = Printf.sprintf "Illegal expression in pattern to unify. le_pat: %s. le: %s."
 			(JSIL_Print.string_of_logic_expression le_pat false) (JSIL_Print.string_of_logic_expression le false) in
-		raise (Failure msg)
+		raise (Failure msg)) in
+	let b, _ = result in print_debug (Printf.sprintf "Result: %b" b);
+	result
 
 
-
-
-let unify_fv_pair (pat_field, pat_value) (fv_list : (jsil_logic_expr * jsil_logic_expr) list) p_formulae (* solver *) gamma subst :  (((jsil_logic_expr * jsil_logic_expr) list) * (jsil_logic_expr * jsil_logic_expr)) option =
+let unify_fv_pair (pat_field, pat_value) (fv_list : (jsil_logic_expr * jsil_logic_expr) list) p_formulae (* solver *) gamma subst : bool * ((((jsil_logic_expr * jsil_logic_expr) list) * (jsil_logic_expr * jsil_logic_expr)) option) =
 	(* Printf.printf "unify_fv_pair. pat_field: %s, pat_value: %s\n" (JSIL_Print.string_of_logic_expression pat_field false) (JSIL_Print.string_of_logic_expression pat_value false);
 	Printf.printf "fv_list: %s\n" (JSIL_Memory_Print.string_of_symb_fv_list fv_list false); *)
 	let rec loop fv_list traversed_fv_list =
 		match fv_list with
-		| [] -> None
+		| [] -> true, None
 		| (e_field, e_value) :: rest ->
 			let (bf, fu) = unify_lexprs pat_field e_field p_formulae (* solver *) gamma subst in
 			(match bf with
 			 | true ->
-			     let (bv, vu) = unify_lexprs pat_value e_value p_formulae (* solver *) gamma subst in
-				 if (bv && (Symbolic_State_Functions.update_subst2 subst fu vu p_formulae (* solver *) gamma))
-				 	then Some ((traversed_fv_list @ rest), (e_field, e_value))
-					else loop rest ((e_field, e_value) :: traversed_fv_list)
-			 | false -> loop rest ((e_field, e_value) :: traversed_fv_list)) in
+			   let (bv, vu) = unify_lexprs pat_value e_value p_formulae (* solver *) gamma subst in
+			   (match bv with
+				| true ->
+					if (Symbolic_State_Functions.update_subst2 subst fu vu p_formulae (* solver *) gamma)
+						then true, Some ((traversed_fv_list @ rest), (e_field, e_value))
+						else loop rest ((e_field, e_value) :: traversed_fv_list)
+				| false -> false, None
+			   )
+			 | false ->
+				(* lots of incompleteness here, enjoy *)
+				if (must_be_equal pat_field e_field p_formulae gamma)
+					then false, None
+					else loop rest ((e_field, e_value) :: traversed_fv_list)) in
 	loop fv_list []
 
 
@@ -212,9 +255,10 @@ let unify_symb_fv_lists pat_fv_list fv_list def_val p_formulae (* solver *) gamm
 		match pat_list with
 		| [] -> Some (fv_list, matched_fv_list)
 		| (pat_field, pat_val) :: rest_pat_list ->
-			let res = unify_fv_pair (pat_field, pat_val) fv_list p_formulae (* solver *) gamma subst in
-			(match res with
-			| None ->
+			let may_be_unifiable, res = unify_fv_pair (pat_field, pat_val) fv_list p_formulae (* solver *) gamma subst in
+			(match may_be_unifiable, res with
+			| false, _ -> None
+			| true, None ->
 				print_debug (Printf.sprintf "I could NOT unify an fv-pair. pat_val: %s. def_val: %s\n" (JSIL_Print.string_of_logic_expression pat_val false) (JSIL_Print.string_of_logic_expression def_val false));
 				(match def_val with
 				| LUnknown -> None
@@ -223,7 +267,7 @@ let unify_symb_fv_lists pat_fv_list fv_list def_val p_formulae (* solver *) gamm
 					if (bv && (Symbolic_State_Functions.update_subst1 subst unifier))
 						then loop fv_list rest_pat_list matched_fv_list
 						else None)
-			| Some (rest_fv_list, matched_fv_pair) ->
+			| true, Some (rest_fv_list, matched_fv_pair) ->
 				loop rest_fv_list rest_pat_list (matched_fv_pair :: matched_fv_list)) in
 	let order_pat_list = order_pat_fv_list pat_fv_list [] [] [] [] in
 	loop fv_list order_pat_list []
