@@ -72,16 +72,16 @@ let process_file path =
 	print_debug "*** Prelude: Stage 4: Finished building the spec table\n";
 	let results_str, dot_graphs, complete_success = JSIL_Symb_Interpreter.sym_run_procs procs_to_verify spec_tbl prog which_pred norm_preds in
 	Printf.printf "RESULTS\n%s" results_str;
+	
 	(if (complete_success) then
 		begin
 			Printf.printf "ALL Succeeded in %f\n" (Sys.time());
 			if (not (!spec_file = "")) then write_spec_file spec_file
 		end
 		else (Printf.printf "There were Failures in %f\n" (Sys.time())));
-	register_dot_graphs dot_graphs;
 	
-	Printf.printf "\n STATISTICS \n ========== \n\n";
-	Hashtbl.iter (fun f (c, t) -> print_endline (Printf.sprintf " %s : %d : %f" f c t)) JSIL_Syntax.statistics;
+	register_dot_graphs dot_graphs;
+	JSIL_Syntax.process_statistics ();
 	
 	exit 0
 
