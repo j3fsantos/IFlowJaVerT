@@ -9,7 +9,7 @@
  *
  *)
 pred isInternalProperty (prop) :
-    types (prop : $$string_type) * (0 <# s-len prop) * (s-nth (prop, 0) == "@");
+    types (prop : $$string_type) * (! (prop == "")) * (s-nth (prop, 0) == "@");
 
 (*
  * Predicate: isNamedProperty
@@ -18,7 +18,7 @@ pred isInternalProperty (prop) :
  *
  *)
 pred isNamedProperty (prop) :
-    types (prop : $$string_type) * (0 <# s-len prop) * (! (s-nth (prop, 0) == "@"));
+    types (prop : $$string_type) * (! (prop == "")) * (! (s-nth (prop, 0) == "@"));
 
 (*
  * Predicate: DataDescriptor
@@ -1387,7 +1387,7 @@ proc getProperty (l, prop) {
 			[* unfold Pi (#l, #prop, #gp_aux_0, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4) *]
     ch0:	goto [typeOf(l) = $$object_type] ch1 elab;
     ch1:	goto [typeOf(prop) = $$string_type] ch2 elab;
-    ch2:	goto [0 < s-len prop] ch3 elab;
+    ch2:	goto [not (prop = "")] ch3 elab;
     ch3:	goto [not (s-nth(prop, 0) = "@")] start elab;
 
 	start:	xret := "getOwnProperty" (l, prop) with elab;

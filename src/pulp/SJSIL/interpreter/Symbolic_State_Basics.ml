@@ -559,6 +559,7 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 				  | false -> DynArray.delete p_formulae n; f symb_state)
 			  | _, _ -> go_through_pfs rest (n + 1))
 		   | _ -> go_through_pfs rest (n + 1)) (* FOR NOW! *)
+		   
 		| LEq (le1, le2) -> (match (le1 = le2) with
 		  | true ->
 		  	  DynArray.delete p_formulae n;
@@ -581,6 +582,7 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
  		      let new_to_add =
  			  (match it_stays with
  			   | false ->
+ 			   	   (* Printf.printf "Deleting variable: %s\n" var; *)	
  			       while (Hashtbl.mem gamma var) do Hashtbl.remove gamma var done;
  				   to_add
  			   | true ->
@@ -680,7 +682,8 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 	DynArray.iteri
 	(fun i pf ->
 	  (match pf with
-	   | LEq (LVar _, LVar _) -> ()
+	   | LEq (LVar v1, LVar v2) when (String.get v1 0 = '_' && String.get v2 0 = '#') -> DynArray.set p_formulae i (LEq (LVar v2, LVar v1))
+	   | LEq (LVar v1, _)       when (String.get v1 0 = '#')                          -> ()
 	   | LEq (le1, LVar var) -> DynArray.set p_formulae i (LEq (LVar var, le1))
 	   | _ -> ()
 	  )
@@ -719,6 +722,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	let delete_substitute_proceed exists p_formulae gamma v n le =
 		DynArray.delete p_formulae n;
 		let exists = SS.remove v exists in
+		(* Printf.printf "Deleting variable: %s\n" v; *)
 		while (Hashtbl.mem gamma v) do Hashtbl.remove gamma v done;
 		let subst = Hashtbl.create 1 in
 		Hashtbl.add subst v le;

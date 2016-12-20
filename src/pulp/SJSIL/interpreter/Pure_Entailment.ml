@@ -38,6 +38,7 @@ let null_encoding      = 1234567891
 let empty_encoding     = 1234567892
 let true_encoding      = 1234567893
 let false_encoding     = 1234567894
+let none_encoding      = 1234567895
 let string_encoding    = 1000000000
 
 let types_encoded_as_reals_fpa = NumberType :: types_encoded_as_ints
@@ -85,17 +86,17 @@ let mk_div = match_enc "mk_div" (fun ctx e1 e2 -> Arithmetic.mk_div ctx  e1  e2 
 (** Encode JSIL type literals as Z3 numerical constants *)
 let encode_type ctx jsil_type =
 	match jsil_type with
-	| UndefinedType         -> mk_num_i ctx 1234567895
-	| NullType              -> mk_num_i ctx 1234567896
-	| EmptyType             -> mk_num_i ctx 1234567897
-	| NoneType              -> mk_num_i ctx 1234567898
-	| BooleanType           -> mk_num_i ctx 1234567899
-	| IntType               -> mk_num_i ctx 1234567900
-	| NumberType            -> mk_num_i ctx 1234567901
-	| StringType            -> mk_num_i ctx 1234567902
-	| ObjectType            -> mk_num_i ctx 1234567903
-	| ListType              -> mk_num_i ctx 1234567904
-	| TypeType              -> mk_num_i ctx 1234567905
+	| UndefinedType         -> mk_num_i ctx 1234567896
+	| NullType              -> mk_num_i ctx 1234567897
+	| EmptyType             -> mk_num_i ctx 1234567898
+	| NoneType              -> mk_num_i ctx 1234567899
+	| BooleanType           -> mk_num_i ctx 1234567900
+	| IntType               -> mk_num_i ctx 1234567901
+	| NumberType            -> mk_num_i ctx 1234567902
+	| StringType            -> mk_num_i ctx 1234567903
+	| ObjectType            -> mk_num_i ctx 1234567904
+	| ListType              -> mk_num_i ctx 1234567905
+	| TypeType              -> mk_num_i ctx 1234567906
 
 
 let get_sort tr_ctx var_type =
@@ -354,7 +355,7 @@ let mk_smt_translation_ctx gamma existentials =
 		tr_num2int_fun          = z3_num2int_fun;
 		tr_snth_fun             = z3_snth_fun;
 		tr_lnth_fun             = z3_lnth_fun;
-  	tr_list_sort            = list_sort;
+		tr_list_sort            = list_sort;
  		tr_list_nil             = list_nil;
 		tr_list_is_nil          = list_is_nil;
 		tr_list_cons            = list_cons;
@@ -366,14 +367,14 @@ let mk_smt_translation_ctx gamma existentials =
 		tr_jsil_not_fun         = z3_jsil_not_fun;
 		tr_axioms               = [ z3_slen_axiom;
 		                            z3_llen_axiom1;
-																lub_refl_axiom;
-																lub_int_num_axiom;
-																lub_num_int_axiom;
-																axiom_llen_axiom2;
-																to_jsil_boolean_axiom_true;
-																to_jsil_boolean_axiom_false;
-																jsil_not_axiom_true;
-																jsil_not_axiom_false ] @ llen_axioms @ typeof_axioms
+									lub_refl_axiom;
+									lub_int_num_axiom;
+									lub_num_int_axiom;
+									axiom_llen_axiom2;
+									to_jsil_boolean_axiom_true;
+									to_jsil_boolean_axiom_false;
+									jsil_not_axiom_true;
+									jsil_not_axiom_false ] @ llen_axioms @ typeof_axioms
 		(* tr_existentials   = existentials *)
 	} in
 	result
@@ -578,7 +579,7 @@ let rec encode_logical_expression tr_ctx e =
 	let start_time = Sys.time () in
 	
 	try (
-	(* Printf.printf "  ELE: %s\n" (JSIL_Print.string_of_logic_expression e false); *)
+	(* Printf.printf "  ELE: %s --> " (JSIL_Print.string_of_logic_expression e false); *)
 	let ele = encode_logical_expression tr_ctx in
 	let ctx = tr_ctx.z3_ctx in
 	let gamma = tr_ctx.tr_typing_env in
@@ -589,7 +590,7 @@ let rec encode_logical_expression tr_ctx e =
 		le, te, []
 
 	| LNone                 ->
-		let le, te = (mk_num_i ctx 3), (encode_type ctx NoneType) in
+		let le, te = (mk_num_i ctx none_encoding), (encode_type ctx NoneType) in
 		le, te, []
 
 	| LVar var ->
@@ -663,7 +664,7 @@ let rec encode_logical_expression tr_ctx e =
 	
 	let end_time = Sys.time() in
 	JSIL_Syntax.update_statistics "encode_lexpr" (end_time -. start_time);
-
+	
 	result)
 	with
 		| Failure msg -> 
@@ -968,7 +969,8 @@ let rec encode_assertion tr_ctx is_premise a : Expr.expr * (Expr.expr list) =
 	let ctx = tr_ctx.z3_ctx in
 	let gamma = tr_ctx.tr_typing_env in
 
-	(* print_debug (Printf.sprintf "EPF: %s" (JSIL_Print.string_of_logic_assertion a false)); *)
+	(* print_endline (Printf.sprintf "EPF: %s" (JSIL_Print.string_of_logic_assertion a false)); *)
+	(* print_endline (Printf.sprintf "With gamma: %s" (JSIL_Memory_Print.string_of_gamma gamma)); *)
 	let result = (
 	match a with
 	| LNot a ->
@@ -1160,29 +1162,29 @@ let string_of_solver solver =
 let check_satisfiability assertions gamma existentials =
 	let start_time_fun = Sys.time () in
 	
-	print_debug (Printf.sprintf "before simpl:\nExistentials:\n%s\nPure formulae:\n%s\nGamma:\n%s\n\n"
-		(String.concat ", " existentials)
-		(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list assertions) false)
-		(JSIL_Memory_Print.string_of_gamma gamma));
+	let new_assertions = aggressively_simplify_pfs (DynArray.of_list assertions) gamma false in
 
-	let assertions = aggressively_simplify_pfs (DynArray.of_list assertions) gamma false in
-
-	print_debug (Printf.sprintf "after simpl:\nExistentials:\n%s\nPure formulae:\n%s\nGamma:\n%s\n\n"
-		(String.concat ", " (existentials))
-		(JSIL_Memory_Print.string_of_shallow_p_formulae assertions false)
-		(JSIL_Memory_Print.string_of_gamma gamma));
-
-	if ((DynArray.empty assertions) || (DynArray.to_list assertions = [ LFalse ])) then
+	if ((DynArray.empty new_assertions) || (DynArray.to_list new_assertions = [ LFalse ])) then
 	begin
 		let end_time = Sys.time() in
 		if (existentials = []) 
 			then (JSIL_Syntax.update_statistics "check_sat_no_exists" (end_time -. start_time_fun)) 
 			else (JSIL_Syntax.update_statistics "check_sat_exists"    (end_time -. start_time_fun));
-		(DynArray.empty assertions)
+		(DynArray.empty new_assertions)
 	end
 	else
 	begin
-		let assertions = DynArray.to_list assertions in
+		print_debug (Printf.sprintf "before simpl:\nExistentials:\n%s\nPure formulae:\n%s\nGamma:\n%s\n\n"
+			(String.concat ", " existentials)
+			(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list assertions) false)
+			(JSIL_Memory_Print.string_of_gamma gamma));
+
+		print_debug (Printf.sprintf "after simpl:\nExistentials:\n%s\nPure formulae:\n%s\nGamma:\n%s\n\n"
+			(String.concat ", " (existentials))
+			(JSIL_Memory_Print.string_of_shallow_p_formulae new_assertions false)
+			(JSIL_Memory_Print.string_of_gamma gamma));
+	
+		let assertions = DynArray.to_list new_assertions in
 
 		let solver = get_new_solver assertions gamma existentials in
 		(* Printf.printf "CS Solver: \n%s\n" (string_of_solver solver); *)
@@ -1201,6 +1203,8 @@ let check_satisfiability assertions gamma existentials =
 let old_check_entailment existentials left_as right_as gamma =
 
 	print_time_debug "check_entailment:";
+
+	(* Printf.printf "Gamma: %s" (JSIL_Memory_Print.string_of_gamma gamma); *)
 
 	let existentials, left_as, right_as, gamma =
 		simplify_implication (SS.of_list existentials) (DynArray.of_list left_as) (DynArray.of_list right_as) (copy_gamma gamma) in
