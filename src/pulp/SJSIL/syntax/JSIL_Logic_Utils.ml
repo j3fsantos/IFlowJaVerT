@@ -1071,19 +1071,24 @@ let rec expr_2_lexpr (e : jsil_expr) : jsil_logic_expr =
 
 
 let make_all_different_pure_assertion fv_list_1 fv_list_2 : jsil_logic_assertion list =
-	let rec all_different_field_against_fv_list f fv_list pfs : jsil_logic_assertion list =
+
+	let sle e = JSIL_Print.string_of_logic_expression e false in
+	
+	let rec all_different_field_against_fv_list f v fv_list pfs : jsil_logic_assertion list =
 		match fv_list with
 		| [] -> pfs
 		| (f', v') :: rest ->
 			(match f, f' with
-			| LLit _, LLit _ -> all_different_field_against_fv_list f rest pfs
-			| _, _ -> all_different_field_against_fv_list f rest ((LNot (LEq (f, f'))) :: pfs)) in
+			| LLit _, LLit _ -> all_different_field_against_fv_list f v rest pfs
+			| _, _ -> 
+				print_debug (Printf.sprintf "all_different: (%s, %s) (%s, %s)\n" (sle f) (sle v) (sle f') (sle v'));
+				all_different_field_against_fv_list f v rest ((LNot (LEq (f, f'))) :: pfs)) in
 
 	let rec all_different_fv_list_against_fv_list fv_list_1 fv_list_2 pfs : jsil_logic_assertion list =
 		(match fv_list_1 with
 		| [] -> pfs
-		| (f, _) :: rest ->
-			let new_pfs = all_different_field_against_fv_list f fv_list_2 pfs in
+		| (f, v) :: rest ->
+			let new_pfs = all_different_field_against_fv_list f v fv_list_2 pfs in
 			all_different_fv_list_against_fv_list rest fv_list_2 new_pfs) in
 
 	all_different_fv_list_against_fv_list fv_list_1 fv_list_2 []

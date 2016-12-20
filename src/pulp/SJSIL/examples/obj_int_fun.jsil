@@ -1600,11 +1600,8 @@ spec deleteProperty (l, prop, throw)
 
     [[ (l == #l) * (prop == #prop) * (throw == $$t) *
 	   types(#l : $$object_type, #prop: $$string_type, #cls: $$string_type, #v : $$list_type) *
-	   ((#l, "@class") -> #cls) *
-	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #v) *
-	   desc_conf (#v, $$f) ]]
-    [[ ((#l, "@class") -> #cls) *
-	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #v) *
+	   ((#l, "@class") -> #cls) * isClass(#cls, "Non-String") * Cell_o (#l, #prop, #v) * desc_conf (#v, $$f) ]]
+    [[ ((#l, "@class") -> #cls) * isClass(#cls, "Non-String") * Cell_o (#l, #prop, #v) *
 	   isTypeError(err) ]]
     error;
 

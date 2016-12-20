@@ -738,7 +738,7 @@ let normalise_single_spec preds spec =
 	print_time "  normalise_single_spec:";
 
 	print_debug (Printf.sprintf "Precondition  : %s" (JSIL_Print.string_of_logic_assertion spec.pre false));
-	print_debug (Printf.sprintf"Postcondition : %s" (JSIL_Print.string_of_logic_assertion spec.post false));
+	print_debug (Printf.sprintf "Postcondition : %s" (JSIL_Print.string_of_logic_assertion spec.post false));
 (*	Printf.printf "UPrecondition : %s\n" (JSIL_Print.string_of_logic_assertion unfolded_pre false);
 	Printf.printf "UPostcondition: %s\n" (JSIL_Print.string_of_logic_assertion unfolded_post false); *)
 
@@ -767,6 +767,7 @@ let normalise_single_spec preds spec =
 						print_debug (Printf.sprintf "I am going to check whether the following precondition makes sense:\n%s\n"
 							(JSIL_Memory_Print.string_of_shallow_symb_state pre_symb_state));
 						let heap_constraints = Symbolic_State_Functions.get_heap_well_formedness_constraints (get_heap pre_symb_state) in
+						print_debug (Printf.sprintf "heap constraints:\n%s" (List.fold_left (fun ac x -> ac ^ "\t" ^ JSIL_Print.string_of_logic_assertion x false ^ "\n") "" heap_constraints));
 						let is_valid_precond = Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list pre_symb_state)) (get_gamma pre_symb_state) [] in
 						if (is_valid_precond)
 						then begin

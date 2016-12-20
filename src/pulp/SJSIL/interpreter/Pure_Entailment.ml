@@ -1174,12 +1174,12 @@ let check_satisfiability assertions gamma existentials =
 	end
 	else
 	begin
-		print_debug (Printf.sprintf "before simpl:\nExistentials:\n%s\nPure formulae:\n%s\nGamma:\n%s\n\n"
+		print_endline (Printf.sprintf "before simpl:\nExistentials:\n%s\nPure formulae:\n%s\nGamma:\n%s\n\n"
 			(String.concat ", " existentials)
 			(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list assertions) false)
 			(JSIL_Memory_Print.string_of_gamma gamma));
 
-		print_debug (Printf.sprintf "after simpl:\nExistentials:\n%s\nPure formulae:\n%s\nGamma:\n%s\n\n"
+		print_endline (Printf.sprintf "after simpl:\nExistentials:\n%s\nPure formulae:\n%s\nGamma:\n%s\n\n"
 			(String.concat ", " (existentials))
 			(JSIL_Memory_Print.string_of_shallow_p_formulae new_assertions false)
 			(JSIL_Memory_Print.string_of_gamma gamma));
@@ -1286,8 +1286,8 @@ let is_equal_on_lexprs e1 e2 pfs : bool option =
 
 	| LLit (String str), LVar x 
 	| LVar x, LLit (String str) ->
-		print_endline "In here.";
-		print_endline (Printf.sprintf "Str: %s, Lvar: %s\n%s" str x (JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list pfs) false));
+		print_debug "In here.";
+		print_debug (Printf.sprintf "Str: %s, Lvar: %s\n%s" str x (JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list pfs) false));
 		if (String.get str 0 = '@') 
 			then if ((List.mem (LNot (LEq (LStrNth (LVar x, LLit (Integer 0)), LLit (String "@")))) pfs)  ||
 			         (List.mem (LNot (LEq (LLit (String "@"), LStrNth (LVar x, LLit (Integer 0))))) pfs))

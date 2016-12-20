@@ -185,11 +185,10 @@ let make_all_different_assertion_from_fvlist fv_list : jsil_logic_assertion list
 		match fields_to_cover with
 		| [] -> constraints
 		| (f_name, f_val) :: rest ->
-			let new_constraints = make_all_different_assertion_from_field_and_fvlist f_val (fields_covered @ rest) in
+			let new_constraints = make_all_different_assertion_from_field_and_fvlist f_name rest in
 			loop rest ((f_name, f_val) :: fields_covered) (new_constraints @ constraints) in
 
 	loop fv_list [] []
-
 
 let get_heap_well_formedness_constraints heap =
 	LHeap.fold
