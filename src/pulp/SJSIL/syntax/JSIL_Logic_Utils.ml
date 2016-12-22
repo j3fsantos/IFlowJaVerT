@@ -3,30 +3,6 @@ open Set
 open Stack
 open JSIL_Syntax
 
-module SS = Set.Make(String)
-
-module MyInt =
- 	struct
-  	type t = int
-    let compare = Pervasives.compare
-  end
-
-module MyNumber =
- 	struct
-  	type t = float
-    let compare = Pervasives.compare
-  end
-
-module MyAssertion =
- 	struct
-  	type t = jsil_logic_assertion
-    let compare = Pervasives.compare
-  end
-
-module SI = Set.Make(MyInt)
-module SN = Set.Make(MyNumber)
-module SA = Set.Make(MyAssertion)
-
 let get_string_hashtbl_keys ht =
 	Hashtbl.fold
 		(fun key _ ac -> key :: ac)

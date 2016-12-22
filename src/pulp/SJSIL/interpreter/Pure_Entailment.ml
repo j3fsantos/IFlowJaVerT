@@ -1171,24 +1171,33 @@ let check_satisfiability assertions gamma =
 	print_debug (Printf.sprintf "after mega simpl:\nPure formulae:\n%s\nGamma:\n%s\n\n"
 			(JSIL_Memory_Print.string_of_shallow_p_formulae new_assertions false)
 			(JSIL_Memory_Print.string_of_gamma new_gamma));
+			
+	let new_assertions = DynArray.to_list new_assertions in
+	let new_assertions_set = SA.of_list new_assertions in
 
-	if ((DynArray.empty new_assertions) || (DynArray.to_list new_assertions = [ LFalse ])) then
+	if (Hashtbl.mem JSIL_Syntax.check_sat_cache new_assertions_set) then
 	begin
+		let ret = Hashtbl.find JSIL_Syntax.check_sat_cache new_assertions_set in
 		let end_time = Sys.time() in
 		JSIL_Syntax.update_statistics "check_sat" (end_time -. start_time_fun);
-		(DynArray.empty new_assertions)
+		JSIL_Syntax.update_statistics "sat_cache" 0.;
+		ret
 	end
 	else
 	begin
-		let new_assertions = DynArray.to_list new_assertions in
+		print_debug (Printf.sprintf "Firing sat check:\nPFS:\n%s\nGamma:\n%s\n"
+			(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list new_assertions) false)
+			(JSIL_Memory_Print.string_of_gamma gamma));
+	
 		let solver = get_new_solver new_assertions new_gamma in
 		(* Printf.printf "CS Solver: \n%s\n" (string_of_solver solver); *)
 		let start_time = Sys.time () in
 		let ret_solver = (Solver.check solver []) in
 		let end_time = Sys.time() in
+		let ret = (ret_solver = Solver.SATISFIABLE) in
+		Hashtbl.add JSIL_Syntax.check_sat_cache new_assertions_set ret;
 		JSIL_Syntax.update_statistics "solver_call" 0.;
 		JSIL_Syntax.update_statistics "check_sat" (end_time -. start_time_fun);
-		let ret = (ret_solver = Solver.SATISFIABLE) in
 		ret
 	end
 
@@ -1205,8 +1214,17 @@ let old_check_entailment existentials left_as right_as gamma =
 	let existentials, left_as, right_as, gamma =
 		simplify_implication (SS.of_list existentials) (DynArray.of_list left_as) (DynArray.of_list right_as) (copy_gamma gamma) in
 		
-	if (DynArray.empty left_as) then check_satisfiability (DynArray.to_list right_as) gamma else
-	if (DynArray.get left_as 0 = LFalse) then (print_debug "Returning false!"; false) else
+	(* Nothing on the left, is right sat? *)
+	if (DynArray.empty left_as)  then check_satisfiability (DynArray.to_list right_as) gamma else
+	(* Nothing on the right, is left sat? *)
+	if (DynArray.empty right_as) then check_satisfiability (DynArray.to_list left_as) gamma else
+	(* If left or right are directly false, everything is false *)
+	if (DynArray.get left_as 0 = LFalse || DynArray.get right_as 0 = LFalse) then (print_debug "Returning false!"; false) else
+	
+	(* If we are here, we know that: 
+	
+		- left side is not empty and is satisfiable
+		- right side is not empty and is not immediately false *)
 
 	(print_debug (Printf.sprintf "Firing entailment check:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n"
 	   (String.concat ", " (SS.elements existentials))
@@ -1243,36 +1261,20 @@ let old_check_entailment existentials left_as right_as gamma =
 
 		let right_as_or = Expr.simplify right_as_or None in
 
-		print_debug (Printf.sprintf "Checking if the current state entails the following:\n%s\n" (Expr.to_string right_as_or));
-
 		let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 		Solver.add solver left_as;
+		Solver.add solver [ right_as_or ];
 
+		print_debug (Printf.sprintf "I am checking the satisfiability of:\n %s\n" (string_of_solver solver));
 		let start_time = Sys.time () in
-		let ret_left_side = (Solver.check solver [ ]) = Solver.SATISFIABLE in
+		let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in
 		let end_time = Sys.time () in
 		JSIL_Syntax.update_statistics "solver_call" 0.;
 		JSIL_Syntax.update_statistics "check_entailment" (end_time -. start_time);
-		
-		print_debug (Printf.sprintf "I am checking the satisfiability of the left side and got: %b\n" ret_left_side);
 
-		(match ret_left_side with
-		| false -> false
-		| true ->
-			if (old_right_as = [ LFalse ]) then false else
-			if (old_right_as = []) then true else
-				(Solver.add solver [ right_as_or ];
+		print_time_debug (Printf.sprintf "check_entailment done: %b :" ret);
 
-				print_debug (Printf.sprintf "I am checking the satisfiability of:\n %s\n" (string_of_solver solver));
-				let start_time = Sys.time () in
-				let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in
-				let end_time = Sys.time () in
-				JSIL_Syntax.update_statistics "solver_call" 0.;
-				JSIL_Syntax.update_statistics "check_entailment" (end_time -. start_time);
-
-				print_time_debug (Printf.sprintf "check_entailment done: %b :" ret);
-
-				ret)) in
+		ret in
 
 	(* if (not (ret_right)) then false, None *)
 	try check_entailment_aux () with Failure msg -> Printf.printf "Horrible failure\n"; false)) (*, None *)

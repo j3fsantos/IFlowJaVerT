@@ -524,6 +524,12 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 			| LFalse -> pfs_false ""
 			| LEq (le1, le2) ->
 				(match le1, le2 with
+				(* Obvious falsity *)
+				| ALoc _, LLit l
+				| LLit l, ALoc _ ->
+					(match l with
+					 | Loc _ -> go_through_pfs rest (n + 1)
+					 | _ -> pfs_false "ALoc and not-a-loc")
 				(* VARIABLES *)
 				| LVar v1, LVar v2 ->
 					let does_this_work = 
@@ -618,7 +624,14 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 					DynArray.add p_formulae (LEq (le2, le4));
 					f symb_state
 				  end
-				| _, _ ->  go_through_pfs rest (n + 1))
+				(* More falsity *)
+				| LEList _, LLit _
+				| LLit _, LEList _ 
+				| LBinOp (_, LstCons, _), LLit _
+				| LLit _ , LBinOp (_, LstCons, _) -> pfs_false "List and not-a-list"
+				(* Otherwise, continue *)
+				| _, _ -> go_through_pfs rest (n + 1))
+			
 			(* Otherwise, continue *)
 			| _ -> go_through_pfs rest (n + 1)
 			)
@@ -815,18 +828,23 @@ let clean_up_stuff exists left right =
 	let i = ref 0 in
 	while (!i < DynArray.length right) do
 		let pf = DynArray.get right !i in
-		(match (SA.mem pf sleft && not (pf = LFalse)) with
-		 | false -> i := !i + 1
+		(match (SA.mem pf sleft) with
+		 | false -> 
+		 	(match (SA.mem (LNot pf) sleft) with
+		 	 | false -> i := !i + 1
+		 	 | true -> 
+		 	 	DynArray.clear right;
+		 	 	DynArray.add right LFalse)
 		 | true -> DynArray.delete right !i
 		)
 	done
 
 let simplify_implication exists lpfs rpfs gamma =
-	clean_up_stuff exists lpfs rpfs;
 	let lpfs, rpfs, gamma = aggressively_simplify_pfs_with_others lpfs rpfs gamma false in
 	sanitise_pfs_no_store gamma rpfs;
-	simplify_existentials exists lpfs rpfs gamma
-	
+	let exists, lpfs, rpfs, gamma = simplify_existentials exists lpfs rpfs gamma in
+	clean_up_stuff exists lpfs rpfs;
+	exists, lpfs, rpfs, gamma
 	
 (* *********************** *
  * ULTIMATE SIMPLIFICATION *

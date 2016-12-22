@@ -382,40 +382,38 @@ let print_time_debug msg =
 	(let time = Sys.time () in
 	print_endline (msg ^ (Printf.sprintf " Time: %f" time)))
 
-(* STATISTICS *)
+(* SETS *)
 
-(* Ordering on jsil logic assertions *)
-module OTJA : Set.OrderedType =
-struct
-	type t = jsil_logic_assertion
-	let compare = Pervasives.compare
-end
+module SS = Set.Make(String)
 
-(* Sets of jsil logic assertions *)
-module SJA = Set.Make(OTJA)
+module MyInt =
+ 	struct
+  	type t = int
+    let compare = Pervasives.compare
+  end
 
-(* Ordering on sets of jsil logic assertions *)
-module OTSJA : Set.OrderedType = 
-struct
-	type t = Set.Make(OTJA).t
-	let compare = Pervasives.compare
-end
+module MyNumber =
+ 	struct
+  	type t = float
+    let compare = Pervasives.compare
+  end
 
-(* Sets of sets of jsil logic assertions *)
-module SSJA = Set.Make (OTSJA)
-	
-(* Ordering on pairs of sets of jsil logic assertions *)
-module OTPSJA : Set.OrderedType = 
-struct
-	type t = (Set.Make(OTJA).t * Set.Make(OTJA).t)
-	let compare = Pervasives.compare
-end
+module MyAssertion =
+ 	struct
+  	type t = jsil_logic_assertion
+    let compare = Pervasives.compare
+  end
 
-(* Sets of pairs of sets of jsil logic assertions *)
-module SPSJA = Set.Make (OTPSJA)
+module SI = Set.Make(MyInt)
+module SN = Set.Make(MyNumber)
+module SA = Set.Make(MyAssertion)
 
-let check_sat_sets = ref (SSJA.empty)
-let check_ent_sets = ref (SPSJA.empty)
+(* Satisfiability cache *)
+let check_sat_cache = Hashtbl.create 513 
+
+let initialise = 
+	Hashtbl.add check_sat_cache SA.empty true;
+	Hashtbl.add check_sat_cache (SA.of_list [ LFalse ]) false
 
 let statistics = Hashtbl.create 511
 
@@ -427,6 +425,7 @@ let update_statistics (fname : string) (time : float) =
 		
 let process_statistics () =
 	print_endline "\n STATISTICS \n ========== \n";
+	print_endline (Printf.sprintf "Check sat cache: %d\n" (Hashtbl.length check_sat_cache));
 	Hashtbl.iter (fun f lt -> 
 		(* Calculate average, min, max *)
 		let min = ref infinity in 
