@@ -5,7 +5,6 @@ let spec_file = ref ""
 let output_folder = ref ""
 
 let arguments () =
-  Printf.printf ("In arguments.\n");
   let usage_msg="Usage: -file <path>" in
   Arg.parse
     [

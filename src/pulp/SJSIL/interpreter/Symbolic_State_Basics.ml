@@ -2,6 +2,12 @@ open JSIL_Syntax
 open JSIL_Memory_Model
 open JSIL_Logic_Utils
 
+(***************)
+(** Shorthand **)
+(***************)
+
+let print_pfs pfs = JSIL_Memory_Print.string_of_shallow_p_formulae pfs false
+
 (*************************************)
 (** Abstract Heap functions         **)
 (*************************************)
@@ -418,8 +424,8 @@ let reduce_pfs_in_place store gamma pfs =
 			DynArray.set pfs i rel
 	done ;
 	if !changed then print_debug (Printf.sprintf "Reduce pfs in place: %s ---> %s"
-		(JSIL_Memory_Print.string_of_shallow_p_formulae pfs_old false)
-		(JSIL_Memory_Print.string_of_shallow_p_formulae pfs false))
+		(print_pfs pfs_old)
+		(print_pfs pfs))
 
 let sanitise_pfs store gamma pfs =
     reduce_pfs_in_place store gamma pfs;
@@ -629,8 +635,13 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 				| LLit _, LEList _ 
 				| LBinOp (_, LstCons, _), LLit _
 				| LLit _ , LBinOp (_, LstCons, _) -> pfs_false "List and not-a-list"
+				
 				(* Otherwise, continue *)
 				| _, _ -> go_through_pfs rest (n + 1))
+			
+			(* I don't know how these could get here, but let's assume they can... *)
+			| LAnd  (a1, a2)
+			| LStar	(a1, a2) -> DynArray.set p_formulae n a1; DynArray.add p_formulae a2; f symb_state
 			
 			(* Otherwise, continue *)
 			| _ -> go_through_pfs rest (n + 1)
@@ -743,7 +754,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 				else
 			 (print_debug (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\n\nPure formulae:\n%s\n\nGamma:\n%s\n\n"
 		 		(String.concat ", " (SS.elements exists))
-		 		(JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false)
+		 		(print_pfs p_formulae)
 		 		(JSIL_Memory_Print.string_of_gamma gamma)); 
 	 		 exists, lpfs, p_formulae, gamma)
 	 | pf :: rest ->
@@ -817,7 +828,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 
 	print_debug (Printf.sprintf "Existential simplification:\n\nExistentials:\n%s\n\nPure formulae:\n%s\n\nGamma:\n%s\n\n"
 		(String.concat ", " (SS.elements exists))
-		(JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false)
+		(print_pfs p_formulae)
 		(JSIL_Memory_Print.string_of_gamma gamma));
 
 	let pf_list = DynArray.to_list p_formulae in
