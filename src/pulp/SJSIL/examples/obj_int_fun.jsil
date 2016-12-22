@@ -188,21 +188,24 @@ with
 spec copy_object_rec (lf, fields, lt)
 
 	[[ fields == {{ }} ]]
-	[[ true * (ret == #lt) ]]
+	[[ ret == #lt ]]
 	normal;
-
+	
 	[[ (lf == #lf) * (fields == #fields) * (lt == #lt) *
-	   (#fields == {{ #f }}) *
-	   ((#lf, #f) -> #v) * ((#lt, #f) -> None) ]]
-	[[ ((#lf, #f) -> #v) * ((#lt, #f) -> #v) * (ret == #lt) ]]
+	   (#fields == {{ #f }}) * isNamedProperty(#f) *
+	   ((#lf, #f) -> #v)   *
+	   ((#lt, #f) -> None) * ((#lt, "@proto") -> $$null) ]]
+	[[ ((#lf, #f) -> #v) * 
+	   ((#lt, #f) -> #v) * ((#lt, "@proto") -> $$null) * (ret == #lt) ]]
 	normal;
 
 	[[ (lf == #lf) * (fields == #fields) * (lt == #lt) *
 	   (#fields == {{ #f1, "main" }}) * isNamedProperty(#f1) *
-	   ((#lf, #f1) -> #v1)  * ((#lf, "main") -> #v2) *
-	   ((#lt, #f1) -> None) * ((#lt, "main") -> None) ]]
-	[[ ((#lf, #f1) -> #v1)  * ((#lf, "main") -> #v2) *
-	   ((#lt, #f1) -> #v1)  * ((#lt, "main") -> #v2) * (ret == #lt) ]]
+	   ((#lf, #f1) -> #v1)  * ((#lf, "main") -> #v2)  *
+	   ((#lt, #f1) -> None) * ((#lt, "main") -> None) * ((#lt, "@proto") -> $$null) ]]
+	[[ ((#lf, #f1) -> #v1) * ((#lf, "main") -> #v2) *
+	   ((#lt, #f1) -> #v1) * ((#lt, "main") -> #v2) * ((#lt, "@proto") -> $$null) * 
+	   (ret == #lt) ]]
 	normal
 
 proc copy_object_rec (lf, fields, lt) {
@@ -1607,9 +1610,7 @@ spec deleteProperty (l, prop, throw)
 
     [[ (l == #l) * (prop == #prop) *
 	   types(#l : $$object_type, #prop: $$string_type, #cls: $$string_type, #v : $$list_type) *
-	   ((#l, "@class") -> #cls) *
-	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #v) *
-	   desc_conf (#v, $$t) ]]
+	   ((#l, "@class") -> #cls) * isClass(#cls, "Non-String") * Cell_o (#l, #prop, #v) * desc_conf (#v, $$t) ]]
     [[ ((#l, "@class") -> #cls) *
 	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) *
 	   (ret == $$t) ]]
@@ -1617,10 +1618,8 @@ spec deleteProperty (l, prop, throw)
 
     [[ (l == #l) * (prop == #prop) *
 	   types(#l : $$object_type, #prop: $$string_type) *
-	   ((#l, "@class") -> #cls) *
-	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) ]]
-    [[ ((#l, "@class") -> #cls) *
-	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) *
+	   ((#l, "@class") -> #cls) * isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) ]]
+    [[ ((#l, "@class") -> #cls) * isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) *
 	   (ret == $$t) ]]
     normal
 

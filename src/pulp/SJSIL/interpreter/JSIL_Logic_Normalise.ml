@@ -768,7 +768,7 @@ let normalise_single_spec preds spec =
 							(JSIL_Memory_Print.string_of_shallow_symb_state pre_symb_state));
 						let heap_constraints = Symbolic_State_Functions.get_heap_well_formedness_constraints (get_heap pre_symb_state) in
 						print_debug (Printf.sprintf "heap constraints:\n%s" (List.fold_left (fun ac x -> ac ^ "\t" ^ JSIL_Print.string_of_logic_assertion x false ^ "\n") "" heap_constraints));
-						let is_valid_precond = Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list pre_symb_state)) (get_gamma pre_symb_state) [] in
+						let is_valid_precond = Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list pre_symb_state)) (get_gamma pre_symb_state) in
 						if (is_valid_precond)
 						then begin
 							print_debug (Printf.sprintf "The precondition makes sense.\n");
@@ -781,7 +781,7 @@ let normalise_single_spec preds spec =
 											let heap_constraints = Symbolic_State_Functions.get_heap_well_formedness_constraints (get_heap post_symb_state) in
 											print_debug (Printf.sprintf "For the postcondition to make sense the following must be satisfiable:\n%s\n"
 												(JSIL_Print.str_of_assertion_list (heap_constraints @ (get_pf_list post_symb_state))));
-											if (Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list post_symb_state)) (get_gamma post_symb_state) post_lvars)
+											if (Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list post_symb_state)) (get_gamma post_symb_state))
 											then ((post_symb_state :: ac_posts), (post_lvars :: ac_posts_lvars))
 											else ac_posts, ac_posts_lvars)
 										([], [])
@@ -866,7 +866,7 @@ let normalise_predicate_definitions pred_defs : (string, JSIL_Memory_Model.n_jsi
 											(fun symb_state ->
 												let heap_constraints = Symbolic_State_Functions.get_heap_well_formedness_constraints (get_heap symb_state) in
 												print_debug (Printf.sprintf "Symbolic state to check: %s\n%s\n" pred_name (JSIL_Memory_Print.string_of_shallow_symb_state symb_state));
-												((Symbolic_State_Basics.check_store (get_store symb_state) (get_gamma symb_state)) && (Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list symb_state)) (get_gamma symb_state) [])))
+												((Symbolic_State_Basics.check_store (get_store symb_state) (get_gamma symb_state)) && (Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list symb_state)) (get_gamma symb_state))))
 											normalised_as in
 										(if ((List.length normalised_as) = 0)
 											then Printf.printf "WARNING: One predicate definition does not make sense: %s\n" pred_name);

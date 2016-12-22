@@ -303,7 +303,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		(* let cpfs = Symbolic_State_Functions.copy_p_formulae pfs in
 		Symbolic_State_Functions.extend_pfs cpfs None (pfs_to_list pat_pfs); *)
 		print_debug (Printf.sprintf "About to check sat of:\n%s\ngiven\n%s" (JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list pf_list) false) (JSIL_Memory_Print.string_of_gamma gamma));
-		let is_sat = Pure_Entailment.check_satisfiability pf_list gamma [] in
+		let is_sat = Pure_Entailment.check_satisfiability pf_list gamma in
 		print_debug (Printf.sprintf "Satisfiable: %b" is_sat);
 		is_sat in
 
@@ -357,7 +357,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		let heap = get_heap symb_state in
 		let preds = get_preds symb_state in
 		let new_symb_state = (heap, store, pfs, gamma, preds (*, ref None *)) in
-		let is_sat = Pure_Entailment.check_satisfiability (get_pf_list new_symb_state) (get_gamma new_symb_state) [] in
+		let is_sat = Pure_Entailment.check_satisfiability (get_pf_list new_symb_state) (get_gamma new_symb_state) in
 		(is_sat, new_symb_state) in
 
 
@@ -733,6 +733,7 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 			else symb_evaluate_logic_cmds s_prog else_lcmds [ symb_state ] subst spec_vars )
 and
 symb_evaluate_logic_cmds s_prog (l_cmds : jsil_logic_command list) (symb_states : symbolic_state list) subst spec_vars =
+	let symb_states = List.map (fun s -> simplify false s) symb_states in
 	match l_cmds with
 	| [] -> symb_states
 	| l_cmd :: rest_l_cmds ->
@@ -855,7 +856,8 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 		update_gamma (get_gamma symb_state) x te;
 		symb_evaluate_next_cmd_1 s_prog proc spec search_info symb_state i (i+1) in
 
-	if (!verbose) then print_symb_state_and_cmd symb_state;
+	let symb_state = simplify false symb_state in
+	print_symb_state_and_cmd symb_state;
 	let metadata, cmd = get_proc_cmd proc i in
 	mark_as_visited search_info i;
 	match cmd with
@@ -875,7 +877,6 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 
 and symb_evaluate_next_cmd_1 s_prog proc spec search_info symb_state cur next  =
 	let metadata, cmd = get_proc_cmd proc cur in
-	let symb_state = simplify false symb_state in
 	let symb_states = symb_evaluate_logic_cmds s_prog metadata.post_logic_cmds [ symb_state ] spec.n_subst spec.n_lvars in
 	let len = List.length symb_states in
 	List.iter

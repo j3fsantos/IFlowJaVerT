@@ -1333,19 +1333,42 @@ let rec reduce_assertion store gamma pfs a =
 	| LEq (e1, e2) ->
 		let re1 = fe e1 in
 		let re2 = fe e2 in
-		let eq  = (re1 = re2) in
+		let eq = (re1 = re2) && (re1 <> LUnknown) in
 		if eq then LTrue
 		else
 		let ite a b = if (a = b) then LTrue else LFalse in
+		let default e1 e2 re1 re2 = 
+			let a' = LEq (re1, re2) in
+				if ((re1 = e1) && (re2 = e2))
+					then a' else f a' in
 		(match e1, e2 with
 			| LLit l1, LLit l2 -> ite l1 l2
-			| LNone, LLit _
-			| LLit _, LNone
-			| LNone, LEList _
-			| LEList _, LNone -> LFalse
-			| _, _ -> let a' = LEq (re1, re2) in
-				if ((re1 = e1) && (re2 = e2))
-					then a' else f a'
+			| LNone, PVar x
+			| PVar x, LNone
+			| LNone, LVar x
+			| LVar x, LNone -> 
+				if (Hashtbl.mem gamma x) 
+					then (let tx = Hashtbl.find gamma x in 
+						if tx = NoneType then default e1 e2 re1 re2 else LFalse)
+					else default e1 e2 re1 re2
+			| LNone, e
+			| e, LNone -> LFalse
+			
+			| LLit (String str), LVar x 
+			| LVar x, LLit (String str) ->
+				(* Specific string hack:
+				      if we have a string starting with @, and also 
+				      that the var-string doesn't start with @, we know it's false *)
+				if (str <> "" && String.get str 0 = '@') 
+					then
+						let pfs = DynArray.to_list pfs in 
+						if ((List.mem (LNot (LEq (LStrNth (LVar x, LLit (Integer 0)), LLit (String "@")))) pfs)  ||
+							 (List.mem (LNot (LEq (LLit (String "@"), LStrNth (LVar x, LLit (Integer 0))))) pfs))
+						then LFalse 
+						else default e1 e2 re1 re2
+					else default e1 e2 re1 re2
+			
+			| _, _ -> default e1 e2 re1 re2
 		)
 
 	| LLess (e1, e2) ->

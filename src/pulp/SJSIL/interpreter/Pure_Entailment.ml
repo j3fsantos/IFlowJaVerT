@@ -212,7 +212,7 @@ let mk_typeof_axioms_for_constants ctx z3_typeof_fun_name =
 
 
 
-let mk_smt_translation_ctx gamma existentials =
+let mk_smt_translation_ctx gamma =
 	let cfg = [("model", "true"); ("proof", "true"); ("unsat_core", "true")] in
 	let ctx = (mk_context cfg) in
 
@@ -375,7 +375,6 @@ let mk_smt_translation_ctx gamma existentials =
 									to_jsil_boolean_axiom_false;
 									jsil_not_axiom_true;
 									jsil_not_axiom_false ] @ llen_axioms @ typeof_axioms
-		(* tr_existentials   = existentials *)
 	} in
 	result
 
@@ -1131,8 +1130,8 @@ let string_of_z3_expr_list exprs =
 		""
 		exprs
 
-let get_new_solver assertions gamma existentials =
-  let tr_ctx = mk_smt_translation_ctx gamma existentials in
+let get_new_solver assertions gamma =
+  let tr_ctx = mk_smt_translation_ctx gamma in
 	(* let string_axioms = get_them_nasty_string_axioms tr_ctx assertions in *)
 	let assertions = List.map (fun a -> encode_assertion_top_level tr_ctx true a) assertions in
 	let assertions = tr_ctx.tr_axioms @ (encode_gamma tr_ctx (-1)) @ assertions in
@@ -1159,42 +1158,36 @@ let string_of_solver solver =
 	let exprs = Solver.get_assertions solver in
 	string_of_z3_expr_list exprs
 
-let check_satisfiability assertions gamma existentials =
+let check_satisfiability assertions gamma =
 	let start_time_fun = Sys.time () in
 	
-	let new_assertions = aggressively_simplify_pfs (DynArray.of_list assertions) gamma false in
+	print_debug (Printf.sprintf "before simpl:\nPure formulae:\n%s\nGamma:\n%s\n\n"
+	(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list assertions) false)
+	(JSIL_Memory_Print.string_of_gamma gamma));
+	
+	let new_assertions = aggressively_simplify_pfs (DynArray.of_list assertions) gamma false in	
+	let new_assertions, new_gamma = simplify_for_your_legacy_pfs new_assertions gamma in
+
+	print_debug (Printf.sprintf "after mega simpl:\nPure formulae:\n%s\nGamma:\n%s\n\n"
+			(JSIL_Memory_Print.string_of_shallow_p_formulae new_assertions false)
+			(JSIL_Memory_Print.string_of_gamma new_gamma));
 
 	if ((DynArray.empty new_assertions) || (DynArray.to_list new_assertions = [ LFalse ])) then
 	begin
 		let end_time = Sys.time() in
-		if (existentials = []) 
-			then (JSIL_Syntax.update_statistics "check_sat_no_exists" (end_time -. start_time_fun)) 
-			else (JSIL_Syntax.update_statistics "check_sat_exists"    (end_time -. start_time_fun));
+		JSIL_Syntax.update_statistics "check_sat" (end_time -. start_time_fun);
 		(DynArray.empty new_assertions)
 	end
 	else
 	begin
-		print_endline (Printf.sprintf "before simpl:\nExistentials:\n%s\nPure formulae:\n%s\nGamma:\n%s\n\n"
-			(String.concat ", " existentials)
-			(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list assertions) false)
-			(JSIL_Memory_Print.string_of_gamma gamma));
-
-		print_endline (Printf.sprintf "after simpl:\nExistentials:\n%s\nPure formulae:\n%s\nGamma:\n%s\n\n"
-			(String.concat ", " (existentials))
-			(JSIL_Memory_Print.string_of_shallow_p_formulae new_assertions false)
-			(JSIL_Memory_Print.string_of_gamma gamma));
-	
-		let assertions = DynArray.to_list new_assertions in
-
-		let solver = get_new_solver assertions gamma existentials in
+		let new_assertions = DynArray.to_list new_assertions in
+		let solver = get_new_solver new_assertions new_gamma in
 		(* Printf.printf "CS Solver: \n%s\n" (string_of_solver solver); *)
 		let start_time = Sys.time () in
 		let ret_solver = (Solver.check solver []) in
 		let end_time = Sys.time() in
 		JSIL_Syntax.update_statistics "solver_call" 0.;
-		if (existentials = [])  
-			then (JSIL_Syntax.update_statistics "check_sat_no_exists" (end_time -. start_time_fun)) 
-			else (JSIL_Syntax.update_statistics "check_sat_exists"    (end_time -. start_time_fun));
+		JSIL_Syntax.update_statistics "check_sat" (end_time -. start_time_fun);
 		let ret = (ret_solver = Solver.SATISFIABLE) in
 		ret
 	end
@@ -1203,13 +1196,19 @@ let check_satisfiability assertions gamma existentials =
 let old_check_entailment existentials left_as right_as gamma =
 
 	print_time_debug "check_entailment:";
+	
+	if (left_as = []) then check_satisfiability right_as gamma
+	else (
 
 	(* Printf.printf "Gamma: %s" (JSIL_Memory_Print.string_of_gamma gamma); *)
 
 	let existentials, left_as, right_as, gamma =
 		simplify_implication (SS.of_list existentials) (DynArray.of_list left_as) (DynArray.of_list right_as) (copy_gamma gamma) in
+		
+	if (DynArray.empty left_as) then check_satisfiability (DynArray.to_list right_as) gamma else
+	if (DynArray.get left_as 0 = LFalse) then (print_debug "Returning false!"; false) else
 
-	print_debug (Printf.sprintf "Firing entailment check:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n"
+	(print_debug (Printf.sprintf "Firing entailment check:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n"
 	   (String.concat ", " (SS.elements existentials))
 	   (JSIL_Memory_Print.string_of_shallow_p_formulae left_as false)
 	   (JSIL_Memory_Print.string_of_shallow_p_formulae right_as false)
@@ -1219,13 +1218,14 @@ let old_check_entailment existentials left_as right_as gamma =
 	let right_as = DynArray.to_list right_as in
 	let existentials = SS.elements existentials in
 
-	let tr_ctx = mk_smt_translation_ctx gamma existentials in
+	let tr_ctx = mk_smt_translation_ctx gamma in
 	let ctx = tr_ctx.z3_ctx in
 
 	(* let string_axioms = get_them_nasty_string_axioms tr_ctx (left_as @ right_as) in *)
 
 	let check_entailment_aux () =
 		let old_left_as = left_as in
+		let old_right_as = right_as in
 		let left_as = List.map (fun a -> encode_assertion_top_level tr_ctx true a) left_as in
 		let left_as = tr_ctx.tr_axioms @ (encode_gamma tr_ctx (-1)) @ left_as in
 		let right_as = List.map (fun a -> encode_assertion_top_level tr_ctx false (LNot a)) right_as in
@@ -1253,31 +1253,29 @@ let old_check_entailment existentials left_as right_as gamma =
 		let end_time = Sys.time () in
 		JSIL_Syntax.update_statistics "solver_call" 0.;
 		JSIL_Syntax.update_statistics "check_entailment" (end_time -. start_time);
+		
 		print_debug (Printf.sprintf "I am checking the satisfiability of the left side and got: %b\n" ret_left_side);
 
-		(* Solver.push solver; *)
-		Solver.add solver [ right_as_or ];
+		(match ret_left_side with
+		| false -> false
+		| true ->
+			if (old_right_as = [ LFalse ]) then false else
+			if (old_right_as = []) then true else
+				(Solver.add solver [ right_as_or ];
 
-		print_debug (Printf.sprintf "I am checking the satisfiability of:\n %s\n" (string_of_solver solver));
-		let start_time = Sys.time () in
-		let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in
-		let end_time = Sys.time () in
-		JSIL_Syntax.update_statistics "solver_call" 0.;
-		JSIL_Syntax.update_statistics "check_entailment" (end_time -. start_time);
+				print_debug (Printf.sprintf "I am checking the satisfiability of:\n %s\n" (string_of_solver solver));
+				let start_time = Sys.time () in
+				let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in
+				let end_time = Sys.time () in
+				JSIL_Syntax.update_statistics "solver_call" 0.;
+				JSIL_Syntax.update_statistics "check_entailment" (end_time -. start_time);
 
-		print_time_debug (Printf.sprintf "check_entailment done: %b :" ret);
+				print_time_debug (Printf.sprintf "check_entailment done: %b :" ret);
 
-		(* if (not ret) then print_model solver; *)
-
-		(*  Printf.printf "backtracking_scopes before pop after push: %d!!!\n" (Solver.get_num_scopes solver); *)
-		(* Printf.printf "ret: %b\n" ret; *)
-		(* Solver.pop solver 1; *)
-		ret
-	 (* Some (solver, tr_ctx) *)  in
+				ret)) in
 
 	(* if (not (ret_right)) then false, None *)
-	if (left_as = [ LFalse ]) then (print_debug "Returning false!"; false) else
-	try check_entailment_aux () with Failure msg -> Printf.printf "Horrible failure\n"; false (*, None *)
+	try check_entailment_aux () with Failure msg -> Printf.printf "Horrible failure\n"; false)) (*, None *)
 
 let is_equal_on_lexprs e1 e2 pfs : bool option = 
 (match (e1 = e2) with
@@ -1295,9 +1293,6 @@ let is_equal_on_lexprs e1 e2 pfs : bool option =
 				else None
 			else None
 
-    (* Unknown *)
-	| LUnknown, _
-	| _, LUnknown -> Some false
 	(* Variables *)
 	| PVar x, PVar y 
 	| LVar x, LVar y ->

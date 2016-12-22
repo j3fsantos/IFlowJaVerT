@@ -842,7 +842,7 @@ let safe_merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbo
 	merge_gammas gamma_l gamma_r;
 
 
-	let satisfiability_check = gammas_unifiable && (Pure_Entailment.check_satisfiability (pfs_to_list pf_l) gamma_l []) in
+	let satisfiability_check = gammas_unifiable && (Pure_Entailment.check_satisfiability (pfs_to_list pf_l) gamma_l) in
 
 	if (satisfiability_check)
 		then (
@@ -995,7 +995,7 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 		print_debug (Printf.sprintf "About to check if the following is SATISFIABLE:\n%s\nGiven the GAMMA:\n%s\n"
 			(JSIL_Print.str_of_assertion_list pi)
 			(	JSIL_Memory_Print.string_of_gamma gamma));
-		let sat_check = Pure_Entailment.check_satisfiability pi gamma [] in
+		let sat_check = Pure_Entailment.check_satisfiability pi gamma in
 		(* Printf.printf "GAMMA_OLD - STEP 5:\n%s\n" (JSIL_Memory_Print.string_of_gamma gamma_old); *)
 	    sat_check, pi', gamma_0', new_pat_subst in
 
