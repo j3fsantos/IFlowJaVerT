@@ -48,23 +48,14 @@ let types_encoded_as_reals_fpa = NumberType :: types_encoded_as_ints
  **********************)
 
 let match_enc msg x y z =
-(* print_debug (Printf.sprintf "In the match: %s:\t%s" msg (string_of_enc (!encoding))); *)
-	match (!encoding) with
- 	|	WithInts  -> x
- 	| WithReals -> y
-	 | WithFPA   -> z
+match (!encoding) with
+| WithInts  -> x
+| WithReals -> y
+| WithFPA   -> z
 
-let fp_sort ctx =
-	(* print_debug "Creating floating point sort."; *)
-	let sort = (FloatingPoint.mk_sort_64 ctx) in
-	(* print_debug "Sort created successfully."; *)
-	sort
+let fp_sort ctx = FloatingPoint.mk_sort_64 ctx
 
-let rm ctx  =
-	(* print_debug "Creating RoundingMode.\n"; *)
-	let rm = FloatingPoint.mk_const ctx (Symbol.mk_string ctx "rm") (FloatingPoint.RoundingMode.mk_sort ctx) in
-  (* print_debug "RoundingMode created successfully.\n"; *)
-	rm
+let rm ctx  = FloatingPoint.mk_const ctx (Symbol.mk_string ctx "rm") (FloatingPoint.RoundingMode.mk_sort ctx)
 
 let mk_sort       = match_enc "mk_sort"  Arithmetic.Integer.mk_sort      Arithmetic.Real.mk_sort      fp_sort
 let mk_const      = match_enc "mk_const" Arithmetic.Integer.mk_const     Arithmetic.Real.mk_const     (fun ctx s -> FloatingPoint.mk_const     ctx s (fp_sort ctx))
@@ -493,7 +484,6 @@ let encode_binop tr_ctx op le1 te1 le2 te2 =
 		let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_to_jsil_boolean_fun [ (Boolean.mk_eq ctx le1 le2) ]) in
 		new_le, (encode_type ctx BooleanType), [ ]
 	| LstCons  ->
-		(* print_debug (Printf.sprintf "So, Bananas...\n (%s : %s) (%s : %s)" (Expr.to_string le1) (Expr.to_string te1) (Expr.to_string le2) (Expr.to_string te2)); *)
 		let le, te, constraints = (Expr.mk_app ctx tr_ctx.tr_list_cons [ le1; le2 ]), (encode_type ctx ListType), [ mk_constraint_type tr_ctx te2 ListType] in
 		le, te, constraints
 
@@ -1089,7 +1079,6 @@ let encode_assertion_top_level tr_ctx is_premise a =
 
 	let a' = JSIL_Logic_Utils.push_in_negations_off a in
 	let a'', axioms = encode_assertion tr_ctx is_premise a' in
-	(* print_debug (Printf.sprintf "Assertion axioms: %d\tOther axioms: %d" (List.length axioms) (List.length a_strings_numbers_ints_axioms)); *)
 	let result = if ((List.length axioms > 0) || (List.length a_strings_numbers_ints_axioms > 0))
 		then Boolean.mk_and tr_ctx.z3_ctx ((a'' :: axioms) @ a_strings_numbers_ints_axioms)
 		else a'' in
@@ -1141,14 +1130,14 @@ let string_of_solver solver =
 let check_satisfiability assertions gamma =
 	let start_time_fun = Sys.time () in
 	
-	print_debug (Printf.sprintf "before simpl:\nPure formulae:\n%s\nGamma:\n%s\n\n"
+	print_debug (Printf.sprintf "Non-simplified:\nPure formulae:\n%s\nGamma:\n%s\n\n"
 	(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list assertions) false)
 	(JSIL_Memory_Print.string_of_gamma gamma));
 	
 	let new_assertions = aggressively_simplify_pfs (DynArray.of_list assertions) gamma false in	
 	let new_assertions, new_gamma = simplify_for_your_legacy_pfs new_assertions gamma in
 
-	print_debug (Printf.sprintf "after mega simpl:\nPure formulae:\n%s\nGamma:\n%s\n\n"
+	print_debug (Printf.sprintf "Simplified:\nPure formulae:\n%s\nGamma:\n%s\n\n"
 			(JSIL_Memory_Print.string_of_shallow_p_formulae new_assertions false)
 			(JSIL_Memory_Print.string_of_gamma new_gamma));
 			
@@ -1196,7 +1185,7 @@ let old_check_entailment existentials left_as right_as gamma =
 	(* Nothing on the right, is left sat? *)
 	if (DynArray.empty right_as) then check_satisfiability (DynArray.to_list left_as) gamma else
 	(* If left or right are directly false, everything is false *)
-	if (DynArray.get left_as 0 = LFalse || DynArray.get right_as 0 = LFalse) then (print_debug "Returning false!"; false) else
+	if (DynArray.get left_as 0 = LFalse || DynArray.get right_as 0 = LFalse) then false else
 	
 	(* If we are here, we know that: 
 	
@@ -1242,7 +1231,6 @@ let old_check_entailment existentials left_as right_as gamma =
 		Solver.add solver left_as;
 		Solver.add solver [ right_as_or ];
 
-		print_debug (Printf.sprintf "I am checking the satisfiability of:\n %s\n" (string_of_solver solver));
 		let start_time = Sys.time () in
 		let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in
 		let end_time = Sys.time () in
@@ -1263,8 +1251,6 @@ let is_equal_on_lexprs e1 e2 pfs : bool option =
 
 	| LLit (String str), LVar x 
 	| LVar x, LLit (String str) ->
-		print_debug "In here.";
-		print_debug (Printf.sprintf "Str: %s, Lvar: %s\n%s" str x (JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list pfs) false));
 		if (String.get str 0 = '@') 
 			then if ((List.mem (LNot (LEq (LStrNth (LVar x, LLit (Integer 0)), LLit (String "@")))) pfs)  ||
 			         (List.mem (LNot (LEq (LLit (String "@"), LStrNth (LVar x, LLit (Integer 0))))) pfs))

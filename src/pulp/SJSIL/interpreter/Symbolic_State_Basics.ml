@@ -35,7 +35,6 @@ let heap_substitution (heap : symbolic_heap) (subst : substitution) partial =
 			let s_loc =
 				(try Hashtbl.find subst loc
 					with _ ->
-						(* Printf.printf "this location is not in the substitution. es estupido nao?!!!!!\n\n\n"; *)
 						if (is_abs_loc_name loc)
 							then
 								(if (partial) then (ALoc loc) else
@@ -48,7 +47,6 @@ let heap_substitution (heap : symbolic_heap) (subst : substitution) partial =
 					| LLit (Loc loc) -> loc
 					| ALoc loc -> loc
 					| _ ->
-						(* Printf.printf "This is a disaster!!"; *)
 						raise (Failure "Heap substitution failed miserably!!!")) in
 			let s_fv_list = fv_list_substitution fv_list subst partial in
 			let s_def = lexpr_substitution def subst partial in
@@ -98,11 +96,8 @@ let store_substitution store gamma subst partial =
 						let s_le = lexpr_substitution le subst partial in
 						let s_le_type, is_typable, _ = type_lexpr gamma s_le in
 						(match s_le_type with
-							| Some s_le_type ->
-							(* Printf.printf "I am adding the type of %s to the store with   *)
-							(* type %s\n" pvar (JSIL_Print.string_of_type s_le_type);        *)
-									Hashtbl.replace gamma pvar s_le_type
-							|	None -> ());
+							| Some s_le_type -> Hashtbl.replace gamma pvar s_le_type
+							| None -> ());
 						(pvar :: vars), (s_le :: les))
 			store
 			([], []) in
@@ -122,7 +117,7 @@ let filter_store store filter_fun =
 		([], [])
 
 let store_projection store vars =
-	let les = List.map (fun v -> print_debug (Printf.sprintf "So, find me: %s\n" v); Hashtbl.find store v) vars in
+	let les = List.map (fun v -> Hashtbl.find store v) vars in
 	init_store vars les
 
 let check_store store gamma =
@@ -264,7 +259,7 @@ let is_sensible_subst subst gamma_source gamma_target =
 			| _, _ -> ()))
 		subst;
 	true
-	with (Failure msg) -> Printf.printf "%s\n" msg; false
+	with (Failure msg) -> print_endline (Printf.sprintf "%s" msg); false
 
 let merge_gammas (gamma_l : typing_environment) (gamma_r : typing_environment) =
 	Hashtbl.iter
@@ -296,7 +291,6 @@ let preds_substitution preds subst partial =
 	for i=0 to len - 1 do
 		let pred = DynArray.get preds i in
 		let s_pred = pred_substitution pred subst partial in
-		(* Printf.printf "len: %i. i: %i. pred: %s. s_pred: %s\n" len i (JSIL_Memory_Print.string_of_pred pred) (JSIL_Memory_Print.string_of_pred s_pred); *)
 		DynArray.add new_preds s_pred
 	done;
 	new_preds
@@ -702,15 +696,14 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	let p_formulae = aggressively_simplify_pfs p_formulae gamma true in
 
 	let pfs_false msg =
-	     (* print_debug (msg ^ " Pure formulae false.\n"); *)
-	   DynArray.clear p_formulae;
-		 DynArray.add p_formulae LFalse;
-		 SS.empty, lpfs, p_formulae, (Hashtbl.create 1) in
+		print_debug (msg ^ " Pure formulae false.\n");
+		DynArray.clear p_formulae;
+		DynArray.add p_formulae LFalse;
+		SS.empty, lpfs, p_formulae, (Hashtbl.create 1) in
 
 	let delete_substitute_proceed exists p_formulae gamma v n le =
 		DynArray.delete p_formulae n;
 		let exists = SS.remove v exists in
-		(* Printf.printf "Deleting variable: %s\n" v; *)
 		while (Hashtbl.mem gamma v) do Hashtbl.remove gamma v done;
 		let subst = Hashtbl.create 1 in
 		Hashtbl.add subst v le;
@@ -719,7 +712,6 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	let test_for_nonsense pfs =
 
 		let rec test_for_nonsense_var_list var lst =
-		(* print_debug (Printf.sprintf "tfni: %s, %s" (JSIL_Print.string_of_logic_expression var false) (JSIL_Print.string_of_logic_expression lst false)); *)
 		(match var, lst with
 		 | LVar v, LVar w -> v = w
 		 | LVar _, LEList lst ->
@@ -758,7 +750,6 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 		 		(JSIL_Memory_Print.string_of_gamma gamma)); 
 	 		 exists, lpfs, p_formulae, gamma)
 	 | pf :: rest ->
-	   print_debug (Printf.sprintf "PF: %s" (JSIL_Print.string_of_logic_assertion pf false));
 	   (match pf with
 	    | LEq (LLit l1, LLit l2) ->
 	    	if (l1 = l2) 
@@ -826,11 +817,6 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	  )
 	) p_formulae;
 
-	print_debug (Printf.sprintf "Existential simplification:\n\nExistentials:\n%s\n\nPure formulae:\n%s\n\nGamma:\n%s\n\n"
-		(String.concat ", " (SS.elements exists))
-		(print_pfs p_formulae)
-		(JSIL_Memory_Print.string_of_gamma gamma));
-
 	let pf_list = DynArray.to_list p_formulae in
 		go_through_pfs pf_list 0 
 
@@ -887,10 +873,10 @@ let rec simplify_for_your_legacy others (symb_state : symbolic_state) : symbolic
 	let heap, store, p_formulae, gamma, preds (*, _ *) = symb_state in
 	
 	let pfs_false msg =
-	   print_debug (msg ^ " Pure formulae false.\n");
-	   DynArray.clear p_formulae;
-		 DynArray.add p_formulae LFalse;
-		 symb_state, DynArray.create () in
+		print_debug (msg ^ " Pure formulae false.\n");
+		DynArray.clear p_formulae;
+		DynArray.add p_formulae LFalse;
+		symb_state, DynArray.create () in
 		 
 	let perform_substitution var lexpr n = 
 		let subst = Hashtbl.create 1 in

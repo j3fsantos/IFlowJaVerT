@@ -500,7 +500,7 @@ let init_preds a store gamma subst =
 					match le with
 					| LNone	| LVar _ | LLit _ | ALoc _ -> ((le :: new_les), new_equalities)
 					| PVar x ->
-						print_debug (Printf.sprintf"Inside init_preds (%s)\n" (JSIL_Print.string_of_logic_assertion a false));
+						print_debug (Printf.sprintf "Inside init_preds (%s)\n" (JSIL_Print.string_of_logic_assertion a false));
 						print_debug (Printf.sprintf "Currrent Store: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false));
 						print_debug (Printf.sprintf "Current Substitution: %s\n" (JSIL_Memory_Print.string_of_substitution subst));
 						print_debug (Printf.sprintf "Program Variable %s in logical expression that was supposed to be normalised!!!\n" x);
@@ -681,7 +681,7 @@ let normalise_postcondition a subst (lvars : string list) pre_gamma : symbolic_s
 	let extra_gamma = filter_gamma pre_gamma lvars in
 	let a_vars_str = List.fold_left (fun ac var -> (ac ^ var ^ ", ")) ""  a_vars in
 	let lvars_str = String.concat ", " lvars in
-	print_debug (Printf.sprintf "Post Existentially Quantified Vars BABY: %s\n\n\n" a_vars_str);
+	print_debug (Printf.sprintf "Post Existentially Quantified Vars: %s\n\n\n" a_vars_str);
 	print_debug (Printf.sprintf "Post spec vars: %s\n\n\n" lvars_str);
 	let symb_state, _ = normalise_assertion a in
 	let gamma_post = (get_gamma symb_state) in

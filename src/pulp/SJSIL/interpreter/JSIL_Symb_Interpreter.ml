@@ -669,7 +669,7 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 			| Some symb_state ->
 				[ symb_state ]
 			| None ->
-				Printf.printf "\nSTATE ON ERROR: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state);
+				print_endline (Printf.sprintf "\nSTATE ON ERROR: %s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state));
 				let msg = Printf.sprintf "Could not fold: %s " (JSIL_Print.string_of_logic_assertion a false) in
 				raise (Failure msg))
 		| _ ->
@@ -683,7 +683,7 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 			let params, pred_defs, args = get_pred_data pred_name les in
 			let symb_states = unfold_predicates pred_name pred_defs symb_state params args spec_vars in
 			if ((List.length symb_states) = 0) then (
-				Printf.printf "\nCould not unfold: %s\n" pred_name;
+				print_endline (Printf.sprintf "\nCould not unfold: %s" pred_name);
 				let msg = Printf.sprintf "Could not unfold: %s " (JSIL_Print.string_of_logic_assertion a false) in
 				raise (Failure msg))
 			else symb_states
@@ -939,7 +939,7 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info =
 			symb_evaluate_next_cmd_2 s_prog proc spec search_info symb_state (-1) 0;
 			true, None
 		with Failure msg ->
-			(Printf.printf "The EVALUATION OF THIS PROC GAVE AN ERROR: %d %s!!!!\n" i msg;
+			(print_endline (Printf.sprintf "The EVALUATION OF THIS PROC GAVE AN ERROR: %d %s!!!!" i msg);
 			Symbolic_Traces.create_info_node_from_error search_info msg;
 			Symbolic_Traces.create_info_node_from_post search_info spec.n_post spec.n_ret_flag false;
 			false, Some msg)) in
@@ -1008,5 +1008,5 @@ let sym_run_procs procs_to_verify spec_table prog which_pred pred_defs =
 						                      else count_prunings := !count_prunings + 1) l) pruning_info_list
 			)
 		spec_table;
-	print_endline (Printf.sprintf "\nVerified: %d.\t\tPrunings: %d.\n\n" !count_verified !count_prunings);
+	print_endline (Printf.sprintf "\nVerified: %d.\t\tPrunings: %d.\n" !count_verified !count_prunings);
 	results_str, dot_graphs, complete_success
