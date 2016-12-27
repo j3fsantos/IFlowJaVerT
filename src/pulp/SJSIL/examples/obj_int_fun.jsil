@@ -9,7 +9,7 @@
  *
  *)
 pred isInternalProperty (prop) :
-    types (prop : $$string_type) * (0 <# s-len prop) * (s-nth (prop, 0) == "@");
+    types (prop : $$string_type) * (! (prop == "")) * (s-nth (prop, 0) == "@");
 
 (*
  * Predicate: isNamedProperty
@@ -18,7 +18,7 @@ pred isInternalProperty (prop) :
  *
  *)
 pred isNamedProperty (prop) :
-    types (prop : $$string_type) * (0 <# s-len prop) * (! (s-nth (prop, 0) == "@"));
+    types (prop : $$string_type) * (! (prop == "")) * (! (s-nth (prop, 0) == "@"));
 
 (*
  * Predicate: DataDescriptor
@@ -188,21 +188,24 @@ with
 spec copy_object_rec (lf, fields, lt)
 
 	[[ fields == {{ }} ]]
-	[[ true * (ret == #lt) ]]
+	[[ ret == #lt ]]
 	normal;
-
+	
 	[[ (lf == #lf) * (fields == #fields) * (lt == #lt) *
-	   (#fields == {{ #f }}) *
-	   ((#lf, #f) -> #v) * ((#lt, #f) -> None) ]]
-	[[ ((#lf, #f) -> #v) * ((#lt, #f) -> #v) * (ret == #lt) ]]
+	   (#fields == {{ #f }}) * isNamedProperty(#f) *
+	   ((#lf, #f) -> #v)   *
+	   ((#lt, #f) -> None) * ((#lt, "@proto") -> $$null) ]]
+	[[ ((#lf, #f) -> #v) * 
+	   ((#lt, #f) -> #v) * ((#lt, "@proto") -> $$null) * (ret == #lt) ]]
 	normal;
 
 	[[ (lf == #lf) * (fields == #fields) * (lt == #lt) *
 	   (#fields == {{ #f1, "main" }}) * isNamedProperty(#f1) *
-	   ((#lf, #f1) -> #v1)  * ((#lf, "main") -> #v2) *
-	   ((#lt, #f1) -> None) * ((#lt, "main") -> None) ]]
-	[[ ((#lf, #f1) -> #v1)  * ((#lf, "main") -> #v2) *
-	   ((#lt, #f1) -> #v1)  * ((#lt, "main") -> #v2) * (ret == #lt) ]]
+	   ((#lf, #f1) -> #v1)  * ((#lf, "main") -> #v2)  *
+	   ((#lt, #f1) -> None) * ((#lt, "main") -> None) * ((#lt, "@proto") -> $$null) ]]
+	[[ ((#lf, #f1) -> #v1) * ((#lf, "main") -> #v2) *
+	   ((#lt, #f1) -> #v1) * ((#lt, "main") -> #v2) * ((#lt, "@proto") -> $$null) * 
+	   (ret == #lt) ]]
 	normal
 
 proc copy_object_rec (lf, fields, lt) {
@@ -1387,7 +1390,7 @@ proc getProperty (l, prop) {
 			[* unfold Pi (#l, #prop, #gp_aux_0, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4) *]
     ch0:	goto [typeOf(l) = $$object_type] ch1 elab;
     ch1:	goto [typeOf(prop) = $$string_type] ch2 elab;
-    ch2:	goto [0 < s-len prop] ch3 elab;
+    ch2:	goto [not (prop = "")] ch3 elab;
     ch3:	goto [not (s-nth(prop, 0) = "@")] start elab;
 
 	start:	xret := "getOwnProperty" (l, prop) with elab;
@@ -1600,19 +1603,14 @@ spec deleteProperty (l, prop, throw)
 
     [[ (l == #l) * (prop == #prop) * (throw == $$t) *
 	   types(#l : $$object_type, #prop: $$string_type, #cls: $$string_type, #v : $$list_type) *
-	   ((#l, "@class") -> #cls) *
-	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #v) *
-	   desc_conf (#v, $$f) ]]
-    [[ ((#l, "@class") -> #cls) *
-	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #v) *
+	   ((#l, "@class") -> #cls) * isClass(#cls, "Non-String") * Cell_o (#l, #prop, #v) * desc_conf (#v, $$f) ]]
+    [[ ((#l, "@class") -> #cls) * isClass(#cls, "Non-String") * Cell_o (#l, #prop, #v) *
 	   isTypeError(err) ]]
     error;
 
     [[ (l == #l) * (prop == #prop) *
 	   types(#l : $$object_type, #prop: $$string_type, #cls: $$string_type, #v : $$list_type) *
-	   ((#l, "@class") -> #cls) *
-	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #v) *
-	   desc_conf (#v, $$t) ]]
+	   ((#l, "@class") -> #cls) * isClass(#cls, "Non-String") * Cell_o (#l, #prop, #v) * desc_conf (#v, $$t) ]]
     [[ ((#l, "@class") -> #cls) *
 	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) *
 	   (ret == $$t) ]]
@@ -1620,10 +1618,8 @@ spec deleteProperty (l, prop, throw)
 
     [[ (l == #l) * (prop == #prop) *
 	   types(#l : $$object_type, #prop: $$string_type) *
-	   ((#l, "@class") -> #cls) *
-	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) ]]
-    [[ ((#l, "@class") -> #cls) *
-	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) *
+	   ((#l, "@class") -> #cls) * isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) ]]
+    [[ ((#l, "@class") -> #cls) * isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) *
 	   (ret == $$t) ]]
     normal
 

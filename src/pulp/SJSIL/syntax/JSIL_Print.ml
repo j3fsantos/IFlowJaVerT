@@ -623,3 +623,49 @@ let string_of_logic_command lcmd escape_string =
 
 let string_of_var_list var_lst =
 	List.fold_left (fun ac v -> if (ac = "") then v else (ac ^ ", " ^ v)) "" var_lst
+
+(* Explicit prints with constructors *)
+
+(** Literals *)
+let rec full_string_of_literal lit  =
+	let sl = full_string_of_literal in
+  match lit with
+	| Undefined -> "Undefined"
+	| Null -> "Null"
+	| Empty -> "Empty"
+	| Constant c -> string_of_constant c
+	| Bool b ->
+		(match b with
+		| true -> "Bool true"
+		| false -> "Bool false")
+	| Integer i -> "Integer " ^ string_of_int i
+	| Num n -> "Num " ^ string_of_float n
+	| String x -> Printf.sprintf "String \"%s\"" x
+	| Loc loc -> "Loc " ^ loc
+	| Type t -> "Type " ^ string_of_type t
+	| LList ll ->
+		(match ll with
+		| [] -> "LList nil"
+		| ll -> Printf.sprintf "LList [ %s ]" (String.concat ", " (List.map sl ll)))
+
+(** JSIL logical expressions *)
+let rec full_string_of_logic_expression e  =
+  let sle = fun e -> full_string_of_logic_expression e in
+  match e with
+    | LLit llit -> let s = (full_string_of_literal llit) in "(LLit (" ^ s ^ "))"
+	| LNone -> "LNone"
+    | LVar lvar -> Printf.sprintf "(Lvar %s)" lvar 
+	| ALoc aloc -> Printf.sprintf "(Aloc %s)" aloc 
+	| PVar pvar -> Printf.sprintf "(Pvar %s)" pvar 
+	| LBinOp (e1, op, e2) -> Printf.sprintf "LBinOp (%s, %s, %s))" (sle e1) (string_of_binop op) (sle e2)
+    | LUnOp (op, e) -> Printf.sprintf "(LUnOp (%s, %s))" (string_of_unop op) (sle e)
+    | LTypeOf e -> Printf.sprintf "(LTypeOf (%s))" (sle e)
+    | LEList list ->
+		(match list with
+		| [] -> "LEList [ ]"
+		| ll -> Printf.sprintf "LEList [ %s ]" (String.concat ", " (List.map sle ll)))
+	| LLstNth (e1, e2) -> Printf.sprintf "(LLstNth (%s, %s))" (sle e1) (sle e2)
+	(* s-nth(e1, e2) *)
+	| LStrNth (e1, e2) -> Printf.sprintf "(LStrNth (%s, %s))" (sle e1) (sle e2)
+	(* $$unknown *)
+	| LUnknown -> "LUnknown"

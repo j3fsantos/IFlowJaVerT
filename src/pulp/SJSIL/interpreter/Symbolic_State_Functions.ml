@@ -57,7 +57,6 @@ let update_subst2 subst (unifier1 : (string * jsil_logic_expr) list option)
 
 *)
 let find_field loc fv_list e p_formulae (* solver *) gamma =
-	(* Printf.printf "Searching for field: %s\n" (JSIL_Print.string_of_logic_expression e false); *)
 	let rec find_field_rec fv_list traversed_fv_list i_am_sure_the_field_does_not_exist =
 		match fv_list with
 		| [] -> traversed_fv_list, None, i_am_sure_the_field_does_not_exist
@@ -78,7 +77,6 @@ let update_abs_heap_default (heap : symbolic_heap) loc e =
 
 
 let update_abs_heap (heap : symbolic_heap) loc e_field e_val p_formulae (* solver *) gamma =
-	(* Printf.printf "Update Abstract Heap\n"; *)
 	let fv_list, default_val = try LHeap.find heap loc with _ -> [], LUnknown in
 	let unchanged_fv_list, field_val_pair, i_am_sure_the_field_does_not_exist = find_field loc fv_list e_field p_formulae (* solver *) gamma in
 	match field_val_pair, i_am_sure_the_field_does_not_exist with
@@ -139,36 +137,17 @@ let merge_heaps heap new_heap p_formulae (* solver *) gamma =
 						(match n_fv_list with
 						| [] -> q_fv_list
 						| (le_field, le_val) :: rest_n_fv_list ->
-							(* Printf.printf "le_field: %s, le_val: %s\n" (JSIL_Print.string_of_logic_expression le_field false) (JSIL_Print.string_of_logic_expression le_val false); *)
 							let _, fv_pair, i_am_sure_the_field_does_exist = find_field loc fv_list le_field p_formulae (* solver *) gamma in
 							(match fv_pair, i_am_sure_the_field_does_exist with
 							| None, true -> loop ((le_field, le_val) :: q_fv_list) rest_n_fv_list
-							| None, false ->
-								(* Printf.printf "i_am_sure_the_field_does_exist: %b\n" i_am_sure_the_field_does_exist; *)
-								raise (Failure "heaps non-mergeable")
-							| Some (f, v), _ ->
-								(* Printf.printf "i_am_sure_the_field_does_exist: %b, (%s, %s)\n"
-									i_am_sure_the_field_does_exist (JSIL_Print.string_of_logic_expression f false) (JSIL_Print.string_of_logic_expression v false); *)
-								raise (Failure "heaps non-mergeable"))) in
+							| None, false -> raise (Failure "heaps non-mergeable")
+							| Some (f, v), _ -> raise (Failure "heaps non-mergeable"))) in
 					let q_fv_list = loop [] n_fv_list in
 					LHeap.replace heap loc (q_fv_list @ fv_list, def)
 				with Not_found ->
 					LHeap.add heap loc (n_fv_list, n_def))
 			| _ -> raise (Failure "heaps non-mergeable: the default field is not unknown!!!"))
 		new_heap
-
-	(* Printf.printf "-------------------------------------------------------------------\n";
-	Printf.printf "-------------DONE MERGING HEAPS------------------------------------\n";
-	Printf.printf "-------------------------------------------------------------------\n";
-
-	Printf.printf "heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false);
-	Printf.printf "pat_heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap new_heap false);
-	Printf.printf "p_formulae: %s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false);
-	Printf.printf "gamma: %s\n" (JSIL_Memory_Print.string_of_gamma gamma);
-
-	Printf.printf "-------------------------------------------------------------------\n";
-	Printf.printf "-------------NOW WE CONTINUE --------------------------------------\n";
-	Printf.printf "-------------------------------------------------------------------\n" *)
 
 
 let make_all_different_assertion_from_fvlist fv_list : jsil_logic_assertion list =
@@ -185,11 +164,10 @@ let make_all_different_assertion_from_fvlist fv_list : jsil_logic_assertion list
 		match fields_to_cover with
 		| [] -> constraints
 		| (f_name, f_val) :: rest ->
-			let new_constraints = make_all_different_assertion_from_field_and_fvlist f_val (fields_covered @ rest) in
+			let new_constraints = make_all_different_assertion_from_field_and_fvlist f_name rest in
 			loop rest ((f_name, f_val) :: fields_covered) (new_constraints @ constraints) in
 
 	loop fv_list [] []
-
 
 let get_heap_well_formedness_constraints heap =
 	LHeap.fold

@@ -461,7 +461,14 @@ let rec add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous exp
 
 
 let process_js_logic_annotations (vis_tbl : (string, string list) Hashtbl.t) fun_tbl fun_name (fun_args : string list) annotations requires_flag ensures_normal_flag ensure_err_flag var_to_fid_tbl vis_list =
-	Printf.printf "Inside process_js_logic_annotations. function: %s. Annotations: \n%s\n" fun_name (Pretty_print.string_of_annots annotations);
+	Printf.printf "Xupa. Inside process_js_logic_annotations. function: %s. Annotations: \n%s\n" fun_name (Pretty_print.string_of_annots annotations);
+	
+	(try 
+	let annot_types_str : string = String.concat ", " (List.map (fun annot -> Pretty_print.string_of_annot_type annot.annot_type) annotations) in 
+	Printf.printf "Marica, annot types: %s\n" annot_types_str;  
+	with _ -> Printf.printf "i filha que nao percebo nada disto!!!"); 
+
+	Printf.printf "oohhhhh i was a king under your control\n";
 
 	let preconditions  = List.filter (fun annotation -> annotation.annot_type = requires_flag) annotations in
 	let postconditions = List.filter (fun annotation -> (annotation.annot_type = ensures_normal_flag) || (annotation.annot_type = ensure_err_flag)) annotations in
@@ -511,7 +518,7 @@ let create_js_logic_annotations vis_tbl (old_fun_tbl : Js2jsil_constants.pre_fun
 	Hashtbl.iter 
 		(fun f_id (f_id, f_args, f_body, (annotations, vis_list, var_to_fid_tbl)) ->
 			let fun_specs, f_rec = 
-				if (f_id = Js2jsil_constants.var_main) 
+				if (not (f_id = Js2jsil_constants.var_main))
 					then process_js_logic_annotations vis_tbl old_fun_tbl f_id f_args annotations Requires Ensures EnsuresErr var_to_fid_tbl vis_list 
 					else process_js_logic_annotations vis_tbl old_fun_tbl f_id [] annotations TopRequires TopEnsures TopEnsuresErr var_to_fid_tbl vis_list in 
 			Hashtbl.add new_fun_tbl f_id (f_id, f_args, f_body, f_rec, fun_specs))

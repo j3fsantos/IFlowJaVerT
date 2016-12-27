@@ -1,17 +1,3 @@
-#lang s-exp rosette
-
-
-(define (make-number-symbol var)
-  (begin
-    (define-symbolic* var integer?)
-    var))
-
-(define (make-string-symbol var)
-  (begin
-    (define-symbolic* var string?)
-    var))
-
-(provide make-number-symbol make-string-symbol) 
 
 (define (symbolic? x) 
   (or (union? x) (term? x)))

@@ -1,0 +1,32 @@
+(********************
+ **** JAVASCRIPT ****
+ ********************)
+
+pred standardObject (l) :
+    types (l : $$object_type) *
+	((l, "@proto") -> $lobj_proto) *
+	((l, "@class") -> "Object") *
+	((l, "@extensible") -> $$t);
+
+pred dataField (l, prop, v) :
+    types (l : $$object_type, prop : $$string_type) *
+	((l, prop) -> {{ "d", v, $$t, $$t, $$t }});
+
+pred emptyNode (l) :
+	types (l : $$object_type) *
+	((l, "data") -> None) * ((l, "next") -> None) * ((l, "prev") -> None);
+
+pred Node (l, data, prev, next) :
+	types (l : $$object_type) *
+	dataField(l, "data", data) * dataField(l, "prev", prev) * dataField(l, "next", next);
+
+pred NodeProto(l) :
+	standardObject(l) *
+	dataField(l, "hasNext", #l_hasNext) *
+	dataField(l, "hasPrev", #l_hasPrev) *
+	dataField(l, "getData", #l_getData) *
+	function_object(#l_hasNext, #l_sc_hasNext, "n_hasNext", "n_hasNext", 0, #pr1) *
+	function_object(#l_hasPrev, #l_sc_hasPrev, "n_hasPrev", "n_hasPrev", 0, #pr2) *
+	function_object(#l_getData, #l_sc_getData, "n_getData", "n_getData", 0, #pr3) *
+	types (#l_sc_hasNext : $$object_type, #l_sc_hasPrev : $$object_type, #l_sc_getData : $$object_type) *
+	types (#pr1 : $$object_type, #pr2 : $$object_type, #pr3 : $$object_type);

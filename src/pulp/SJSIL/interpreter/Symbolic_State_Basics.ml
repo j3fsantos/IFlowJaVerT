@@ -2,6 +2,12 @@ open JSIL_Syntax
 open JSIL_Memory_Model
 open JSIL_Logic_Utils
 
+(***************)
+(** Shorthand **)
+(***************)
+
+let print_pfs pfs = JSIL_Memory_Print.string_of_shallow_p_formulae pfs false
+
 (*************************************)
 (** Abstract Heap functions         **)
 (*************************************)
@@ -29,7 +35,6 @@ let heap_substitution (heap : symbolic_heap) (subst : substitution) partial =
 			let s_loc =
 				(try Hashtbl.find subst loc
 					with _ ->
-						(* Printf.printf "this location is not in the substitution. es estupido nao?!!!!!\n\n\n"; *)
 						if (is_abs_loc_name loc)
 							then
 								(if (partial) then (ALoc loc) else
@@ -42,7 +47,6 @@ let heap_substitution (heap : symbolic_heap) (subst : substitution) partial =
 					| LLit (Loc loc) -> loc
 					| ALoc loc -> loc
 					| _ ->
-						(* Printf.printf "This is a disaster!!"; *)
 						raise (Failure "Heap substitution failed miserably!!!")) in
 			let s_fv_list = fv_list_substitution fv_list subst partial in
 			let s_def = lexpr_substitution def subst partial in
@@ -92,11 +96,8 @@ let store_substitution store gamma subst partial =
 						let s_le = lexpr_substitution le subst partial in
 						let s_le_type, is_typable, _ = type_lexpr gamma s_le in
 						(match s_le_type with
-							| Some s_le_type ->
-							(* Printf.printf "I am adding the type of %s to the store with   *)
-							(* type %s\n" pvar (JSIL_Print.string_of_type s_le_type);        *)
-									Hashtbl.replace gamma pvar s_le_type
-							|	None -> ());
+							| Some s_le_type -> Hashtbl.replace gamma pvar s_le_type
+							| None -> ());
 						(pvar :: vars), (s_le :: les))
 			store
 			([], []) in
@@ -116,7 +117,7 @@ let filter_store store filter_fun =
 		([], [])
 
 let store_projection store vars =
-	let les = List.map (fun v -> print_debug (Printf.sprintf "So, find me: %s\n" v); Hashtbl.find store v) vars in
+	let les = List.map (fun v -> Hashtbl.find store v) vars in
 	init_store vars les
 
 let check_store store gamma =
@@ -258,7 +259,7 @@ let is_sensible_subst subst gamma_source gamma_target =
 			| _, _ -> ()))
 		subst;
 	true
-	with (Failure msg) -> Printf.printf "%s\n" msg; false
+	with (Failure msg) -> print_endline (Printf.sprintf "%s" msg); false
 
 let merge_gammas (gamma_l : typing_environment) (gamma_r : typing_environment) =
 	Hashtbl.iter
@@ -290,7 +291,6 @@ let preds_substitution preds subst partial =
 	for i=0 to len - 1 do
 		let pred = DynArray.get preds i in
 		let s_pred = pred_substitution pred subst partial in
-		(* Printf.printf "len: %i. i: %i. pred: %s. s_pred: %s\n" len i (JSIL_Memory_Print.string_of_pred pred) (JSIL_Memory_Print.string_of_pred s_pred); *)
 		DynArray.add new_preds s_pred
 	done;
 	new_preds
@@ -395,7 +395,6 @@ let symb_state_substitution (symb_state : symbolic_state) subst partial =
 	let s_heap = heap_substitution heap subst partial in
 	let s_store = store_substitution store gamma subst partial in
 	let s_pf = pf_substitution pf subst partial  in
-	(*Printf.printf "partial: %b. the gamma as it is now: %s.\n" partial (JSIL_Memory_Print.string_of_gamma gamma); *)
 	let s_gamma = gamma_substitution gamma subst partial in
 	let s_preds = preds_substitution preds subst partial in
 	(s_heap, s_store, s_pf, s_gamma, s_preds (* ref None *))
@@ -419,8 +418,8 @@ let reduce_pfs_in_place store gamma pfs =
 			DynArray.set pfs i rel
 	done ;
 	if !changed then print_debug (Printf.sprintf "Reduce pfs in place: %s ---> %s"
-		(JSIL_Memory_Print.string_of_shallow_p_formulae pfs_old false)
-		(JSIL_Memory_Print.string_of_shallow_p_formulae pfs false))
+		(print_pfs pfs_old)
+		(print_pfs pfs))
 
 let sanitise_pfs store gamma pfs =
     reduce_pfs_in_place store gamma pfs;
@@ -471,225 +470,209 @@ let rec isExistentiallySubstitutable le =
  | ALoc _ -> true
  | LVar _ -> true
  | LEList les -> List.fold_left
-     (fun ac x -> ac & isExistentiallySubstitutable x) true les
+     (fun ac x -> ac && isExistentiallySubstitutable x) true les
  | LBinOp (le, LstCons, les) -> isExistentiallySubstitutable le && isExistentiallySubstitutable les
  | _ -> false
 )
+
+(*
+	SIMPLIFICATION AND MORE INFORMATION
+	===================================
+
+*)
 
 let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_pfs save_all_lvars (symb_state : symbolic_state) : (symbolic_state * jsil_logic_assertion DynArray.t) =
 
 	let f = aggressively_simplify to_add other_pfs save_all_lvars in
 
+	(* Break down the state into components *)
 	let heap, store, p_formulae, gamma, preds (*, _ *) = symb_state in
 
+	(* When we know the formulae are false, set the implication to false -> true *)
 	let pfs_false msg =
-	   print_debug (msg ^ " Pure formulae false.\n");
-	   DynArray.clear p_formulae;
-		 DynArray.add p_formulae LFalse;
-		 DynArray.clear other_pfs;
-		 symb_state, other_pfs in
+		print_debug (msg ^ " Pure formulae false.\n");
+		DynArray.clear p_formulae;
+		DynArray.add p_formulae LFalse;
+		DynArray.clear other_pfs;
+		symb_state, other_pfs in
+	
+	let perform_substitution var lexpr n chantay = 
+	let subst = Hashtbl.create 1 in
+		Hashtbl.add subst var lexpr;
+		DynArray.delete p_formulae n;
+		let new_to_add =
+		  (match chantay with
+		   | false ->
+			   while (Hashtbl.mem gamma var) do Hashtbl.remove gamma var done;
+			   to_add
+		   | true -> ((var, lexpr) :: to_add)) in
+		let symb_state = symb_state_substitution symb_state subst true in
+		let other_pfs = pf_substitution other_pfs subst true in
+		aggressively_simplify new_to_add other_pfs save_all_lvars symb_state in
 
+	(* Main recursive function *)
 	let rec go_through_pfs (pfs : jsil_logic_assertion list) n =
-	(match pfs with
-	 | [] ->
-	 	(* print_debug (Printf.sprintf "To add back: %d equalities\n" (List.length to_add)); *)
-		List.iter (fun (x, y) -> DynArray.add p_formulae (LEq (LVar x, y))) to_add;
-		print_debug (Printf.sprintf "Simplified state:\n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state));
-		symb_state, other_pfs
-     | pf :: rest ->
-	 	(* print_debug (Printf.sprintf "Pure formula: %s" (JSIL_Print.string_of_logic_assertion pf false)); *)
-		(match pf with
-		(* We cannot simplify these *)
-		| LOr (_, _)
-		| LTrue
-		| LStrLess (_, _) -> go_through_pfs rest (n + 1)
-
-		| LFalse -> pfs_false "This is exceptionally bad."
-
-		| LLess	(le1, le2) ->
-		  (match le1, le2 with
-		   | LLit (Integer n1), LLit (Integer n2) ->
-				let result = if (n1 < n2) then LTrue else LFalse in
-				DynArray.set p_formulae n result; f symb_state
-		   | LLit (Integer n1), LLit (Num n2) ->
-				let result = if (float_of_int n1 < n2) then LTrue else LFalse in
-				DynArray.set p_formulae n result; f symb_state
-		   | LLit (Num n1), LLit (Integer n2) ->
-				let result = if (n1 < float_of_int n2) then LTrue else LFalse in
-				DynArray.set p_formulae n result; f symb_state
-		   | LLit (Num n1), LLit (Num n2) ->
-				let result = if (n1 < n2) then LTrue else LFalse in
-				DynArray.set p_formulae n result; f symb_state
-		   | _, _ -> go_through_pfs rest (n + 1)
-		  )
-
-		| LLessEq (le1, le2) ->
-		  (match le1, le2 with
-		   | LLit (Integer n1), LLit (Integer n2) ->
-				let result = if (n1 <= n2) then LTrue else LFalse in
-				DynArray.set p_formulae n result; f symb_state
-		   | LLit (Integer n1), LLit (Num n2) ->
-				let result = if (float_of_int n1 <= n2) then LTrue else LFalse in
-				DynArray.set p_formulae n result; f symb_state
-		   | LLit (Num n1), LLit (Integer n2) ->
-				let result = if (n1 <= float_of_int n2) then LTrue else LFalse in
-				DynArray.set p_formulae n result; f symb_state
-		   | LLit (Num n1), LLit (Num n2) ->
-				let result = if (n1 <= n2) then LTrue else LFalse in
-				DynArray.set p_formulae n result; f symb_state
-		   | _, _ -> go_through_pfs rest (n + 1)
-		  )
-
-		(* These shouldn't even be here *)
-		| LPointsTo	(_, _, _) -> raise (Failure "Heap cell assertion in pure formulae.")
-		| LEmp -> raise (Failure "Empty heap assertion in pure formulae.")
-		| LPred	(_, _) -> raise (Failure "Predicate in pure formulae.")
-		| LTypes _ -> raise (Failure "Types in pure formulae.")
-
-		| LAnd  (a1, a2)
-		| LStar	(a1, a2) -> DynArray.set p_formulae n a1; DynArray.add p_formulae a2; f symb_state
-
-		| LNot la ->
-		  (match la with
-		   | LEq (le1, le2) ->
-		     (match le1, le2 with
-		      | LLit l1, LLit l2 ->
-			   	 (match (l1 = l2) with
-				  | true -> pfs_false "Two literals are equal."
-				  | false -> DynArray.delete p_formulae n; f symb_state)
-			  | _, _ -> go_through_pfs rest (n + 1))
-		   | _ -> go_through_pfs rest (n + 1)) (* FOR NOW! *)
-		| LEq (le1, le2) -> (match (le1 = le2) with
-		  | true ->
-		  	  DynArray.delete p_formulae n;
-		      f symb_state
-		  | false -> (match le1, le2 with
-			(* Literals *)
-			| LLit l1, LLit l2 ->
-			  (match (l1 = l2) with
-			   | true -> DynArray.delete p_formulae n; f symb_state
-			   | false -> pfs_false "Two literals are not equal.")
-			  (* Variable and a literal: substitute in heap, substitute in store, substitute in pfs, kill in gamma *)
- 			| LVar var, _ when (isSubstitutable le2) ->
-			  (* print_debug (Printf.sprintf "Var and substitutable: %s and %s" var (JSIL_Print.string_of_logic_expression le2 false)); *)
- 			  (* create substitution *)
- 			  let subst = Hashtbl.create 1 in
- 		      Hashtbl.add subst var le2;
- 			  DynArray.delete p_formulae n;
- 			  (* understand deletion *)
- 			  let it_stays = if (save_all_lvars) then true else (String.get var 0 = '#') in
- 		      let new_to_add =
- 			  (match it_stays with
- 			   | false ->
- 			       while (Hashtbl.mem gamma var) do Hashtbl.remove gamma var done;
- 				   to_add
- 			   | true ->
- 				 (* print_debug (Printf.sprintf "Adding: (%s, %s)\n" var (JSIL_Print.string_of_logic_expression le2 false)); *)
- 			     ((var, le2) :: to_add)
- 			   ) in
- 			   let symb_state = symb_state_substitution symb_state subst true in
-			   let other_pfs = pf_substitution other_pfs subst true in
- 			   let to_add = List.map (fun (var, le) -> (var, lexpr_substitution le subst true)) to_add in
- 			   aggressively_simplify new_to_add other_pfs save_all_lvars symb_state
-
-			| LNone, l2 when (not (l2 = LNone)) -> pfs_false "None and not none."
-
-			(*
-			 * Lists
-			 *
-			 * 1) Two logical lists - lengths must match, element equality, restart
-			 *)
-			| LEList ll1, LEList ll2 ->
-			  let len1 = List.length ll1 in
-			  let len2 = List.length ll2 in
-			  if (len1 = len2) then
-			  begin
-				DynArray.delete p_formulae n;
-				List.iter2 (fun x y -> DynArray.add p_formulae (LEq (x, y))) ll1 ll2;
-				f symb_state
-			  end
-			  else pfs_false "Lists are not of the same length."
-			(* LEList and a LstCons *)
-			| LEList ll1, LBinOp (le, LstCons, ll2)
-			| LBinOp (le, LstCons, ll2), LEList ll1 ->
-			  let len1 = List.length ll1 in
-			  if (len1 = 0) then pfs_false "Lists are not of the same length."
-			  else
-			  begin
-				DynArray.delete p_formulae n;
-				DynArray.add p_formulae (LEq (List.hd ll1, le));
-				DynArray.add p_formulae (LEq (LEList (List.tl ll1), ll2));
-				f symb_state
-			  end
-			(* LitList and a LstCons *)
-			| LLit (LList ll1), LBinOp (le, LstCons, ll2)
-			| LBinOp (le, LstCons, ll2), LLit (LList ll1) ->
-			  let len1 = List.length ll1 in
-			  if (len1 = 0) then pfs_false "Lists are not of the same length."
-			  else
-			  begin
-				DynArray.delete p_formulae n;
-				DynArray.add p_formulae (LEq (LLit (List.hd ll1), le));
-				DynArray.add p_formulae (LEq (LLit (LList (List.tl ll1)), ll2));
-				f symb_state
-			  end
-			(* Lists
-			 *
-			 * 2) One logical, one literal list - lengths must match, element equality, restart
-			 *)
-			| LEList ll1, LLit (LList ll2)
-			| LLit (LList ll2), LEList ll1 ->
-
-			  (* print_debug (Printf.sprintf "Two lists: %s and %s" (JSIL_Print.string_of_logic_expression le1 false) (JSIL_Print.string_of_logic_expression le2 false)); *)
-
-			  let len1 = List.length ll1 in
-			  let len2 = List.length ll2 in
-			  if (len1 = len2) then
-			  begin
-				DynArray.delete p_formulae n;
-				List.iter2 (fun x y -> DynArray.add p_formulae (LEq (x, LLit y))) ll1 ll2;
-				f symb_state
-			  end
-			  else pfs_false "Lists are not of the same length."
-			| LBinOp (le1, LstCons, le2), LBinOp (le3, LstCons, le4) ->
-			  begin
-			  	DynArray.delete p_formulae n;
-				DynArray.add p_formulae (LEq (le1, le3));
-				DynArray.add p_formulae (LEq (le2, le4));
-				f symb_state
-			  end
-			(* Injective operators *)
-			| LUnOp (ToStringOp, le1), LUnOp (ToStringOp, le2) ->
-			  DynArray.set p_formulae n (LEq (le1, le2));
-			  f symb_state
-			| LStrNth (le1, le2), LStrNth (le3, le4) ->
-			  if (le1 = le2) then
-			  begin
-				DynArray.set p_formulae n (LEq (le2, le4));
-				f symb_state
-			  end else go_through_pfs rest (n + 1)
-			(* Whatever else *)
-			| _, _ -> go_through_pfs rest (n + 1)
+		(match pfs with
+		| [] ->
+			List.iter (fun (x, y) -> DynArray.add p_formulae (LEq (LVar x, y))) to_add;
+			symb_state, other_pfs
+		| pf :: rest ->
+			(match pf with
+			(* If we have true in the pfs, we delete it and restart *)
+			| LTrue -> DynArray.delete p_formulae n; go_through_pfs rest n
+			(* If we have false in the pfs, everything is false and we stop *)
+			| LFalse -> pfs_false ""
+			| LEq (le1, le2) ->
+				(match le1, le2 with
+				(* Obvious falsity *)
+				| ALoc _, LLit l
+				| LLit l, ALoc _ ->
+					(match l with
+					 | Loc _ -> go_through_pfs rest (n + 1)
+					 | _ -> pfs_false "ALoc and not-a-loc")
+				(* VARIABLES *)
+				| LVar v1, LVar v2 ->
+					let does_this_work = 
+						(match (Hashtbl.mem gamma v1, Hashtbl.mem gamma v2) with
+						| true, true -> 
+							let t1 = Hashtbl.find gamma v1 in
+							let t2 = Hashtbl.find gamma v2 in
+								(types_leq t1 t2 || types_leq t2 t1)
+						| true, false ->
+							let t1 = Hashtbl.find gamma v1 in
+								Hashtbl.add gamma v2 t1;
+								true
+						| false, true ->
+							let t2 = Hashtbl.find gamma v2 in
+								Hashtbl.add gamma v1 t2;
+								true
+						| _, _ -> true) in
+					if does_this_work 
+						then go_through_pfs rest (n + 1)
+						else pfs_false "Nasty type mismatch"
+				| LVar v, LLit lit -> 
+					let does_this_work = 
+						(match Hashtbl.mem gamma v with
+						| true -> 
+							let t1 = Hashtbl.find gamma v in
+							let t2 = JSIL_Interpreter.evaluate_type_of lit in
+								(* If we're assigning a number to sth that was an int, 
+								   is that a problem? *)
+								(types_leq t1 t2 || types_leq t2 t1)
+						| false -> true) in
+					if does_this_work 
+						then perform_substitution v le2 n (save_all_lvars || String.get v 0 = '#')
+						else pfs_false "Nasty type mismatch: var -> lit"
+				| LVar v, _ when (isSubstitutable le2) ->
+					perform_substitution v le2 n (save_all_lvars || String.get v 0 = '#')
+				(*
+				 * Lists
+				 *
+				 * 1) Two logical lists - lengths must match, element equality, restart
+				 *)
+				| LEList ll1, LEList ll2 ->
+				  let len1 = List.length ll1 in
+				  let len2 = List.length ll2 in
+				  if (len1 = len2) then
+				  begin
+					DynArray.delete p_formulae n;
+					List.iter2 (fun x y -> DynArray.add p_formulae (LEq (x, y))) ll1 ll2;
+					f symb_state
+				  end
+				  else pfs_false "Lists are not of the same length."
+				(* LEList and a LstCons *)
+				| LEList ll1, LBinOp (le, LstCons, ll2)
+				| LBinOp (le, LstCons, ll2), LEList ll1 ->
+				  if (ll1 = []) then pfs_false "Lists are not of the same length."
+				  else
+				  begin
+					DynArray.delete p_formulae n;
+					DynArray.add p_formulae (LEq (List.hd ll1, le));
+					DynArray.add p_formulae (LEq (LEList (List.tl ll1), ll2));
+					f symb_state
+				  end
+				(* LitList and a LstCons *)
+				| LLit (LList ll1), LBinOp (le, LstCons, ll2)
+				| LBinOp (le, LstCons, ll2), LLit (LList ll1) ->
+				  if (ll1 = []) then pfs_false "Lists are not of the same length."
+				  else
+				  begin
+					DynArray.delete p_formulae n;
+					DynArray.add p_formulae (LEq (LLit (List.hd ll1), le));
+					DynArray.add p_formulae (LEq (LLit (LList (List.tl ll1)), ll2));
+					f symb_state
+				  end
+				(* Lists
+				 *
+				 * 2) One logical, one literal list - lengths must match, element equality, restart
+				 *)
+				| LEList ll1, LLit (LList ll2)
+				| LLit (LList ll2), LEList ll1 ->
+				  let len1 = List.length ll1 in
+				  let len2 = List.length ll2 in
+				  if (len1 = len2) then
+				  begin
+					DynArray.delete p_formulae n;
+					List.iter2 (fun x y -> DynArray.add p_formulae (LEq (x, LLit y))) ll1 ll2;
+					f symb_state
+				  end
+				  else pfs_false "Lists are not of the same length."
+				| LBinOp (le1, LstCons, le2), LBinOp (le3, LstCons, le4) ->
+				  begin
+					DynArray.delete p_formulae n;
+					DynArray.add p_formulae (LEq (le1, le3));
+					DynArray.add p_formulae (LEq (le2, le4));
+					f symb_state
+				  end
+				(* More falsity *)
+				| LEList _, LLit _
+				| LLit _, LEList _ 
+				| LBinOp (_, LstCons, _), LLit _
+				| LLit _ , LBinOp (_, LstCons, _) -> pfs_false "List and not-a-list"
+				
+				(* Otherwise, continue *)
+				| _, _ -> go_through_pfs rest (n + 1))
+			
+			(* I don't know how these could get here, but let's assume they can... *)
+			| LAnd  (a1, a2)
+			| LStar	(a1, a2) -> DynArray.set p_formulae n a1; DynArray.add p_formulae a2; f symb_state
+			
+			(* Otherwise, continue *)
+			| _ -> go_through_pfs rest (n + 1)
 			)
-		  )
-		)
-	) in
+		) in
 
-	(* print_debug (Printf.sprintf "Simplification:\n%s\nwith other:%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state) (JSIL_Memory_Print.string_of_shallow_p_formulae other_pfs false)); *)
+	(* *******************
+	 *  ACTUAL PROCESSING
+	 * ******************* *) 
 
+	(* Bring lvars to the left side of the equality or not-equality *)
 	DynArray.iteri
 	(fun i pf ->
 	  (match pf with
-	   | LEq (LVar _, LVar _) -> ()
+	   (* Move lvars with # to the left *)
+	   | LEq (LVar v1, LVar v2) when (String.get v1 0 = '_' && String.get v2 0 = '#') -> DynArray.set p_formulae i (LEq (LVar v2, LVar v1))
+	   (* Don't do anything if the left lvar is with _ or with # *)
+	   | LEq (LVar v1, _)       when (String.get v1 0 = '_' || String.get v1 0 = '#') -> ()
+	   (* Otherwise, swap *)
 	   | LEq (le1, LVar var) -> DynArray.set p_formulae i (LEq (LVar var, le1))
+	   (* Move lvars with # to the left *)
+	   | LNot (LEq (LVar v1, LVar v2)) when (String.get v1 0 = '_' && String.get v2 0 = '#') -> DynArray.set p_formulae i (LNot (LEq (LVar v2, LVar v1)))
+	   (* Don't do anything if the left lvar is with _ or with # *)
+	   | LNot (LEq (LVar v1, _))       when (String.get v1 0 = '_' || String.get v1 0 = '#') -> ()
+	   (* Otherwise, swap *)
+	   | LNot (LEq (le1, LVar var)) -> DynArray.set p_formulae i (LNot (LEq (LVar var, le1)))
 	   | _ -> ()
 	  )
 	) p_formulae;
 
+	(* Sanitise *)
 	sanitise_pfs store gamma p_formulae;
 
+	(* Process *)
 	let pf_list = DynArray.to_list p_formulae in
 		go_through_pfs pf_list 0
+		
 
 let simplify how x =
 	let (result, _) = aggressively_simplify [] (DynArray.create ()) how x in result
@@ -705,16 +688,264 @@ let aggressively_simplify_pfs_with_others pfs opfs gamma how =
 	(* let solver = ref None in *)
 		let (_, _, pfs, gamma, _), opfs = aggressively_simplify [] opfs how (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create () (*, solver*)) in
 			pfs, opfs, gamma
+	
+(* *********************** *
+ * ULTIMATE SIMPLIFICATION *
+ * *********************** *)
 
+let rec simplify_for_your_legacy others (symb_state : symbolic_state) : symbolic_state * jsil_logic_assertion DynArray.t = 
+
+	(* Gamma-check *)
+	let symb_state, others = Hashtbl.fold (fun v t (ac, others) -> 
+		let (heap, store, p_formulae, gamma, preds (*, _ *)) = ac in
+		let lexpr = 
+		(match t with
+			| UndefinedType -> Some (LLit Undefined)
+			| NullType -> Some (LLit Null)
+			| EmptyType -> Some (LLit Empty)
+			| NoneType -> Some LNone
+			| _ -> None) in
+		(match lexpr with
+		| Some lexpr ->
+			let subst = Hashtbl.create 1 in
+			Hashtbl.add subst v lexpr;
+			while (Hashtbl.mem gamma v) do Hashtbl.remove gamma v done;
+			(symb_state_substitution (heap, store, p_formulae, gamma, preds) subst true, pf_substitution others subst true)
+		| None -> (ac, others))) (copy_gamma (get_gamma symb_state)) (symb_state, others) in
+
+	let f  = simplify_for_your_legacy in
+	let fo = simplify_for_your_legacy others in
+
+	let heap, store, p_formulae, gamma, preds (*, _ *) = symb_state in
+	
+	let pfs_false msg =
+		print_debug (msg ^ " Pure formulae false.\n");
+		DynArray.clear p_formulae;
+		DynArray.add p_formulae LFalse;
+		symb_state, DynArray.create () in
+		 
+	let perform_substitution var lexpr n = 
+		let subst = Hashtbl.create 1 in
+			Hashtbl.add subst var lexpr;
+			DynArray.delete p_formulae n;
+			while (Hashtbl.mem gamma var) do Hashtbl.remove gamma var done;
+			let symb_state = symb_state_substitution symb_state subst true in
+			let others = pf_substitution others subst true in
+			f others symb_state in
+		 
+	let rec go_through_pfs (pfs : jsil_logic_assertion list) n =
+	(match pfs with
+	 | [] -> symb_state, others
+     | pf :: rest ->
+	 	(match pf with
+			(* If we have true in the pfs, we delete it and restart *)
+			| LTrue -> DynArray.delete p_formulae n; go_through_pfs rest n
+			
+			(* If we have false in the pfs, everything is false and we stop *)
+			| LFalse -> pfs_false ""
+			
+			(* We can reduce < if both are numbers *)
+			| LLess	(le1, le2) ->
+			  (match le1, le2 with
+			   | LLit (Integer n1), LLit (Integer n2) ->
+					let result = if (n1 < n2) then LTrue else LFalse in
+					DynArray.set p_formulae n result; fo symb_state
+			   | LLit (Integer n1), LLit (Num n2) ->
+					let result = if (float_of_int n1 < n2) then LTrue else LFalse in
+					DynArray.set p_formulae n result; fo symb_state
+			   | LLit (Num n1), LLit (Integer n2) ->
+					let result = if (n1 < float_of_int n2) then LTrue else LFalse in
+					DynArray.set p_formulae n result; fo symb_state
+			   | LLit (Num n1), LLit (Num n2) ->
+					let result = if (n1 < n2) then LTrue else LFalse in
+					DynArray.set p_formulae n result; fo symb_state
+			   | _, _ -> go_through_pfs rest (n + 1)
+			  )
+
+			(* Same for <= *)
+			| LLessEq (le1, le2) ->
+			  (match le1, le2 with
+			   | LLit (Integer n1), LLit (Integer n2) ->
+					let result = if (n1 <= n2) then LTrue else LFalse in
+					DynArray.set p_formulae n result; fo symb_state
+			   | LLit (Integer n1), LLit (Num n2) ->
+					let result = if (float_of_int n1 <= n2) then LTrue else LFalse in
+					DynArray.set p_formulae n result; fo symb_state
+			   | LLit (Num n1), LLit (Integer n2) ->
+					let result = if (n1 <= float_of_int n2) then LTrue else LFalse in
+					DynArray.set p_formulae n result; fo symb_state
+			   | LLit (Num n1), LLit (Num n2) ->
+					let result = if (n1 <= n2) then LTrue else LFalse in
+					DynArray.set p_formulae n result; fo symb_state
+			   | _, _ -> go_through_pfs rest (n + 1)
+			  )
+
+			(* These shouldn't even be here *)
+			| LPointsTo	(_, _, _) -> raise (Failure "Heap cell assertion in pure formulae.")
+			| LEmp -> raise (Failure "Empty heap assertion in pure formulae.")
+			| LPred	(_, _) -> raise (Failure "Predicate in pure formulae.")
+			| LTypes _ -> raise (Failure "Types in pure formulae.")
+
+			(* I don't know how these could get here, but let's assume they can... *)
+			| LAnd  (a1, a2)
+			| LStar	(a1, a2) -> DynArray.set p_formulae n a1; DynArray.add p_formulae a2; fo symb_state
+
+			| LEq (le1, le2) ->
+				(match le1, le2 with
+				(* VARIABLES *)
+				| LVar v1, LVar v2 ->
+					let does_this_work = 
+						(match (Hashtbl.mem gamma v1, Hashtbl.mem gamma v2) with
+						| true, true -> 
+							let t1 = Hashtbl.find gamma v1 in
+							let t2 = Hashtbl.find gamma v2 in
+								t1 = t2
+						| true, false ->
+							let t1 = Hashtbl.find gamma v1 in
+								Hashtbl.add gamma v2 t1;
+								true
+						| _, _ -> true) in
+					if does_this_work 
+						then perform_substitution v1 le2 n
+						else pfs_false "Nasty type mismatch"
+				| LVar v, LLit lit -> 
+					let does_this_work = 
+						(match Hashtbl.mem gamma v with
+						| true -> 
+							let t1 = Hashtbl.find gamma v in
+							let t2 = JSIL_Interpreter.evaluate_type_of lit in
+								(* If we're assigning a number to sth that was an int, 
+								   is that a problem? *)
+								(types_leq t2 t1 || types_leq t1 t2)
+						| false -> true) in
+					if does_this_work 
+						then perform_substitution v le2 n
+						else pfs_false "Nasty type mismatch: var -> lit"
+				| LVar v, LEList _ 
+				| LVar v, LBinOp (_, LstCons, _) ->
+					let does_this_work = 
+						(match Hashtbl.mem gamma v with
+						| true -> 
+							let t1 = Hashtbl.find gamma v in
+								t1 = ListType
+						| false -> true) in
+					if does_this_work 
+						then perform_substitution v le2 n
+						else pfs_false "Nasty type mismatch: var -> list"
+				(*
+				 * Lists
+				 *
+				 * 1) Two logical lists - lengths must match, element equality, restart
+				 *)
+				| LEList ll1, LEList ll2 ->
+				  let len1 = List.length ll1 in
+				  let len2 = List.length ll2 in
+				  if (len1 = len2) then
+				  begin
+					DynArray.delete p_formulae n;
+					List.iter2 (fun x y -> DynArray.add p_formulae (LEq (x, y))) ll1 ll2;
+					fo symb_state
+				  end
+				  else pfs_false "Lists are not of the same length."
+				(* LEList and a LstCons *)
+				| LEList ll1, LBinOp (le, LstCons, ll2)
+				| LBinOp (le, LstCons, ll2), LEList ll1 ->
+				  if (ll1 = []) then pfs_false "Lists are not of the same length."
+				  else
+				  begin
+					DynArray.delete p_formulae n;
+					DynArray.add p_formulae (LEq (List.hd ll1, le));
+					DynArray.add p_formulae (LEq (LEList (List.tl ll1), ll2));
+					fo symb_state
+				  end
+				(* LitList and a LstCons *)
+				| LLit (LList ll1), LBinOp (le, LstCons, ll2)
+				| LBinOp (le, LstCons, ll2), LLit (LList ll1) ->
+				  if (ll1 = []) then pfs_false "Lists are not of the same length."
+				  else
+				  begin
+					DynArray.delete p_formulae n;
+					DynArray.add p_formulae (LEq (LLit (List.hd ll1), le));
+					DynArray.add p_formulae (LEq (LLit (LList (List.tl ll1)), ll2));
+					fo symb_state
+				  end
+				(* Lists
+				 *
+				 * 2) One logical, one literal list - lengths must match, element equality, restart
+				 *)
+				| LEList ll1, LLit (LList ll2)
+				| LLit (LList ll2), LEList ll1 ->
+				  let len1 = List.length ll1 in
+				  let len2 = List.length ll2 in
+				  if (len1 = len2) then
+				  begin
+					DynArray.delete p_formulae n;
+					List.iter2 (fun x y -> DynArray.add p_formulae (LEq (x, LLit y))) ll1 ll2;
+					fo symb_state
+				  end
+				  else pfs_false "Lists are not of the same length."
+				| LBinOp (le1, LstCons, le2), LBinOp (le3, LstCons, le4) ->
+				  begin
+					DynArray.delete p_formulae n;
+					DynArray.add p_formulae (LEq (le1, le3));
+					DynArray.add p_formulae (LEq (le2, le4));
+					fo symb_state
+				  end
+				| _, _ -> go_through_pfs rest (n + 1))
+			| _ -> go_through_pfs rest (n + 1))
+	) in
+
+	(* *******************
+	 *  ACTUAL PROCESSING
+	 * ******************* *) 
+
+	(* Bring lvars to the left side of the equality or not-equality *)
+	DynArray.iteri
+	(fun i pf ->
+	  (match pf with
+	   (* Move lvars with # to the left *)
+	   | LEq (LVar v1, LVar v2) when (String.get v1 0 = '_' && String.get v2 0 = '#') -> DynArray.set p_formulae i (LEq (LVar v2, LVar v1))
+	   (* Don't do anything if the left lvar is with _ or with # *)
+	   | LEq (LVar v1, _)       when (String.get v1 0 = '_' || String.get v1 0 = '#') -> ()
+	   (* Otherwise, swap *)
+	   | LEq (le1, LVar var) -> DynArray.set p_formulae i (LEq (LVar var, le1))
+	   (* Move lvars with # to the left *)
+	   | LNot (LEq (LVar v1, LVar v2)) when (String.get v1 0 = '_' && String.get v2 0 = '#') -> DynArray.set p_formulae i (LNot (LEq (LVar v2, LVar v1)))
+	   (* Don't do anything if the left lvar is with _ or with # *)
+	   | LNot (LEq (LVar v1, _))       when (String.get v1 0 = '_' || String.get v1 0 = '#') -> ()
+	   (* Otherwise, swap *)
+	   | LNot (LEq (le1, LVar var)) -> DynArray.set p_formulae i (LNot (LEq (LVar var, le1)))
+	   | _ -> ()
+	  )
+	) p_formulae;
+
+	(* Sanitise *)
+	sanitise_pfs store gamma p_formulae;
+
+	let pf_list = DynArray.to_list p_formulae in
+		go_through_pfs pf_list 0  
+
+let simplify_for_your_legacy_pfs pfs gamma =
+	(* let solver = ref None in *)
+		let (_, _, pfs, gamma, _), _ = simplify_for_your_legacy (DynArray.create()) (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create () (*, solver*)) in
+			pfs, gamma
+			
+let simplify_for_your_legacy_pfs_with_others pfs others gamma =
+	(* let solver = ref None in *)
+		let (_, _, pfs, gamma, _), others = simplify_for_your_legacy others (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create () (*, solver*)) in
+			pfs, others, gamma
+			
 let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_assertion DynArray.t) (gamma : (string, jsil_type) Hashtbl.t) =
 
 	print_time_debug ("simplify_existentials:");
+	
+	let p_formulae = aggressively_simplify_pfs p_formulae gamma true in
 
 	let pfs_false msg =
-	     (* print_debug (msg ^ " Pure formulae false.\n"); *)
-	   DynArray.clear p_formulae;
-		 DynArray.add p_formulae LFalse;
-		 SS.empty, lpfs, p_formulae, (Hashtbl.create 1) in
+		print_debug (msg ^ " Pure formulae false.\n");
+		DynArray.clear p_formulae;
+		DynArray.add p_formulae LFalse;
+		SS.empty, lpfs, p_formulae, (Hashtbl.create 1) in
 
 	let delete_substitute_proceed exists p_formulae gamma v n le =
 		DynArray.delete p_formulae n;
@@ -727,7 +958,6 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	let test_for_nonsense pfs =
 
 		let rec test_for_nonsense_var_list var lst =
-		(* print_debug (Printf.sprintf "tfni: %s, %s" (JSIL_Print.string_of_logic_expression var false) (JSIL_Print.string_of_logic_expression lst false)); *)
 		(match var, lst with
 		 | LVar v, LVar w -> v = w
 		 | LVar _, LEList lst ->
@@ -760,25 +990,52 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	 | [] -> if (test_for_nonsense (pfs_to_list p_formulae))
 			 	then pfs_false "Nonsense."
 				else
-			 ( print_debug (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\n\nPure formulae:\n%s\n\nGamma:\n%s\n\n"
+			 (print_debug (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\n\nPure formulae:\n%s\n\nGamma:\n%s\n\n"
 		 		(String.concat ", " (SS.elements exists))
-		 		(JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false)
-		 		(JSIL_Memory_Print.string_of_gamma gamma));
+		 		(print_pfs p_formulae)
+		 		(JSIL_Memory_Print.string_of_gamma gamma)); 
 	 		 exists, lpfs, p_formulae, gamma)
 	 | pf :: rest ->
 	   (match pf with
+	    | LEq (LLit l1, LLit l2) ->
+	    	if (l1 = l2) 
+	    		then (DynArray.delete p_formulae n; go_through_pfs rest n)
+	    		else pfs_false "Literals."
 		| LEq (LVar v, le) ->
-		  (match (SS.mem v exists) with
+		   (match (SS.mem v exists) with
 		   | false -> go_through_pfs rest (n + 1)
 		   | true ->
+		       (* Why? - if not in gamma and we can type the thing on the right, add to gamma *)
 			   (match (Hashtbl.mem gamma v) with
-			    | false -> go_through_pfs rest (n + 1)
+			    | false -> 
+					(match le with
+						 | LLit lit ->
+							 let ltype = JSIL_Interpreter.evaluate_type_of lit in
+							 Hashtbl.replace gamma v ltype;
+							 delete_substitute_proceed exists p_formulae gamma v n le
+						 | ALoc _ ->
+						 	 Hashtbl.replace gamma v ObjectType;
+							 delete_substitute_proceed exists p_formulae gamma v n le
+						 | LEList _
+						 | LBinOp (_, LstCons, _) ->
+						 	 Hashtbl.replace gamma v ListType;
+							 let can_we_substitute = isExistentiallySubstitutable le in
+							 (match can_we_substitute with
+							  | false -> go_through_pfs rest (n + 1)
+							  | true -> delete_substitute_proceed exists p_formulae gamma v n le
+							 )
+						 | _ -> go_through_pfs rest (n + 1))
 				| true ->
 					let vtype = Hashtbl.find gamma v in
 					(match le with
 					 | LLit lit ->
 					     let ltype = JSIL_Interpreter.evaluate_type_of lit in
-						 (match (vtype = ltype) with
+						 (match (types_leq vtype ltype || types_leq ltype vtype) with
+						  | false -> pfs_false "Mistypes."
+						  | true -> delete_substitute_proceed exists p_formulae gamma v n le
+						 )
+					 | ALoc _ -> 
+					 	(match (vtype = ObjectType) with
 						  | false -> pfs_false "Mistypes."
 						  | true -> delete_substitute_proceed exists p_formulae gamma v n le
 						 )
@@ -806,15 +1063,8 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	  )
 	) p_formulae;
 
-	let p_formulae = aggressively_simplify_pfs p_formulae gamma true in
-
-	(* print_debug (Printf.sprintf "Existential simplification:\n\nExistentials:\n%s\n\nPure formulae:\n%s\n\nGamma:\n%s\n\n"
-		(String.concat ", " (SS.elements exists))
-		(JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false)
-		(JSIL_Memory_Print.string_of_gamma gamma)); *)
-
 	let pf_list = DynArray.to_list p_formulae in
-		go_through_pfs pf_list 0
+		go_through_pfs pf_list 0 
 
 let clean_up_stuff exists left right =
 	let sleft = SA.of_list (DynArray.to_list left) in
@@ -822,15 +1072,19 @@ let clean_up_stuff exists left right =
 	while (!i < DynArray.length right) do
 		let pf = DynArray.get right !i in
 		(match (SA.mem pf sleft) with
-		 | false -> i := !i + 1
+		 | false -> 
+		 	(match (SA.mem (LNot pf) sleft) with
+		 	 | false -> i := !i + 1
+		 	 | true -> 
+		 	 	DynArray.clear right;
+		 	 	DynArray.add right LFalse)
 		 | true -> DynArray.delete right !i
 		)
-	done (*)
-	if (SS.is_empty exists) then
-	 	(DynArray.append right left;
-		 DynArray.clear right) *)
+	done
 
 let simplify_implication exists lpfs rpfs gamma =
+	let lpfs, rpfs, gamma = simplify_for_your_legacy_pfs_with_others lpfs rpfs gamma in
+	sanitise_pfs_no_store gamma rpfs;
+	let exists, lpfs, rpfs, gamma = simplify_existentials exists lpfs rpfs gamma in
 	clean_up_stuff exists lpfs rpfs;
-	let lpfs, rpfs, gamma = aggressively_simplify_pfs_with_others lpfs rpfs gamma false in
-	simplify_existentials exists lpfs rpfs gamma
+	exists, lpfs, rpfs, gamma
