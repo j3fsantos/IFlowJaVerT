@@ -460,13 +460,15 @@ let rec add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous exp
         {exp with exp_stx = Script (str, List.map f es); exp_annot = add_codename exp main}
 
 
-let process_js_logic_annotations (vis_tbl : (string, string list) Hashtbl.t) fun_tbl fun_name (fun_args : string list) annotations requires_flag ensures_normal_flag ensure_err_flag var_to_fid_tbl vis_list =
+
+type fun_tbl_type = (string, string * JSIL_Syntax.jsil_var list * Parser_syntax.exp * bool * (JSIL_Syntax.jsil_spec option)) Hashtbl.t
+
+
+let process_js_logic_annotations fun_name (fun_args : string list) annotations requires_flag ensures_normal_flag ensure_err_flag var_to_fid_tbl vis_list =
 	Printf.printf "Inside process_js_logic_annotations. function: %s. Annotations: \n%s\n" fun_name (Pretty_print.string_of_annots annotations);
 
 	let preconditions  = List.filter (fun annotation -> annotation.annot_type = requires_flag) annotations in
 	let postconditions = List.filter (fun annotation -> (annotation.annot_type = ensures_normal_flag) || (annotation.annot_type = ensure_err_flag)) annotations in
-
-	Printf.printf "number of preconditions: %d. number of postconditions: %d\n" (List.length preconditions) (List.length postconditions);
 
 	let single_specs =
 		if ((List.length preconditions) <> (List.length postconditions)) then (
@@ -484,8 +486,8 @@ let process_js_logic_annotations (vis_tbl : (string, string list) Hashtbl.t) fun
 			let pre_js  = JSIL_Utils.js_assertion_of_string pre_str in
 			let post_js = JSIL_Utils.js_assertion_of_string post_str in
 			Printf.printf "I manage to parse the js assertions\n";
-			let pre_jsil = JS_Logic_Syntax.js2jsil_logic_top_level_pre pre_js var_to_fid_tbl vis_tbl fun_tbl fun_name in
-			let post_jsil = JS_Logic_Syntax.js2jsil_logic_top_level_post post_js var_to_fid_tbl vis_tbl fun_tbl fun_name in
+			let pre_jsil = JS_Logic_Syntax.js2jsil_logic_top_level_pre pre_js var_to_fid_tbl vis_list fun_name in
+			let post_jsil = JS_Logic_Syntax.js2jsil_logic_top_level_post post_js var_to_fid_tbl vis_list fun_name in
 			let new_spec = JSIL_Syntax.create_single_spec pre_jsil post_jsil ret_flag in
 			new_spec)
 		preconditions
@@ -502,25 +504,9 @@ let process_js_logic_annotations (vis_tbl : (string, string list) Hashtbl.t) fun
 		else None in
 	fun_spec, f_rec
 
-
-(**
-vis_tbl fun_tbl fun_name (fun_args : string list) annotations requires_flag ensures_normal_flag ensure_err_flag var_to_fid_tbl vis_list
-*)
-
-let create_js_logic_annotations vis_tbl (old_fun_tbl : Js2jsil_constants.pre_fun_tbl_type) (new_fun_tbl : Js2jsil_constants.fun_tbl_type) =
-	Hashtbl.iter 
-		(fun f_id (f_id, f_args, f_body, (annotations, vis_list, var_to_fid_tbl)) ->
-			let fun_specs, f_rec = 
-				if (f_id = Js2jsil_constants.var_main) 
-					then process_js_logic_annotations vis_tbl old_fun_tbl f_id f_args annotations Requires Ensures EnsuresErr var_to_fid_tbl vis_list 
-					else process_js_logic_annotations vis_tbl old_fun_tbl f_id [] annotations TopRequires TopEnsures TopEnsuresErr var_to_fid_tbl vis_list in 
-			Hashtbl.add new_fun_tbl f_id (f_id, f_args, f_body, f_rec, fun_specs))
-		old_fun_tbl
-
-
-let update_fun_tbl (fun_tbl : Js2jsil_constants.pre_fun_tbl_type) (f_id : string) (f_args : string list) f_body annotations (var_to_fid_tbl : (string, string) Hashtbl.t) (vis_list : string list) =
-	(* let fun_spec, f_rec = process_js_logic_annotations f_id f_args annotations Requires Ensures EnsuresErr var_to_fid_tbl vis_list in *)
-	Hashtbl.replace fun_tbl f_id (f_id, f_args, f_body, (annotations, vis_list, var_to_fid_tbl))
+let update_fun_tbl (fun_tbl : fun_tbl_type) (f_id : string) (f_args : string list) f_body annotations (var_to_fid_tbl : (string, string) Hashtbl.t) (vis_list : string list) =
+	let fun_spec, f_rec = process_js_logic_annotations f_id f_args annotations Requires Ensures EnsuresErr var_to_fid_tbl vis_list in
+	Hashtbl.replace fun_tbl f_id (f_id, f_args, f_body, f_rec, fun_spec)
 
 let update_cc_tbl cc_tbl f_parent_id f_id f_args f_body =
 	let f_parent_var_table =
@@ -589,8 +575,7 @@ let update_prev_annot prev_annot cur_annot =
 		else ((filter_non_spec_annots prev_annot []) @ cur_annot)
 
 
-
-let rec closure_clarification_expr cc_tbl (fun_tbl : Js2jsil_constants.pre_fun_tbl_type) vis_tbl f_id visited_funs prev_annot e =
+let rec closure_clarification_expr cc_tbl (fun_tbl : fun_tbl_type) vis_tbl f_id visited_funs prev_annot e =
 
 	let cur_annot = update_prev_annot prev_annot e.Parser_syntax.exp_annot in
 
@@ -663,7 +648,7 @@ let rec closure_clarification_expr cc_tbl (fun_tbl : Js2jsil_constants.pre_fun_t
 	| With (_, _) -> raise (Failure "statement in expression context - closure clarification: with")
 	| Debugger -> raise (Failure "statement in expression context - closure clarification: debugger")
 and
-closure_clarification_stmt cc_tbl fun_tbl vis_tbl f_id visited_funs prev_annot e =
+closure_clarification_stmt cc_tbl (fun_tbl : fun_tbl_type) vis_tbl f_id visited_funs prev_annot e =
 	let cur_annot = update_prev_annot prev_annot e.Parser_syntax.exp_annot in
 
 	let f = closure_clarification_stmt cc_tbl fun_tbl vis_tbl f_id visited_funs cur_annot in
@@ -742,28 +727,26 @@ closure_clarification_stmt cc_tbl fun_tbl vis_tbl f_id visited_funs prev_annot e
 	| Debugger -> ()
 
 
-let closure_clarification_top_level cc_tbl (fun_tbl : Js2jsil_constants.fun_tbl_type) vis_tbl proc_id e vis_fid args =
-	let old_fun_tbl = Hashtbl.create Js2jsil_constants.medium_tbl_size in
-	let proc_tbl = Hashtbl.create Js2jsil_constants.medium_tbl_size in
+let closure_clarification_top_level cc_tbl (fun_tbl : fun_tbl_type) vis_tbl proc_id e vis_fid args =
+	let proc_tbl = Hashtbl.create 101 in
 
 	let proc_vars = get_all_vars_f e [] in
 	List.iter
 		(fun v -> Hashtbl.replace proc_tbl v proc_id)
 		proc_vars;
 	Hashtbl.add cc_tbl proc_id proc_tbl;
-	Hashtbl.add old_fun_tbl proc_id (proc_id, args, e, ([], [ proc_id ], proc_tbl));
+	Hashtbl.add fun_tbl proc_id (proc_id, args, e, true, None);
 	Hashtbl.add vis_tbl proc_id vis_fid;
-	closure_clarification_stmt cc_tbl old_fun_tbl vis_tbl proc_id vis_fid [] e;
-	create_js_logic_annotations vis_tbl old_fun_tbl fun_tbl;
+	closure_clarification_stmt cc_tbl fun_tbl vis_tbl proc_id vis_fid [] e;
 
 	let annots = get_top_level_annot e in
 	(match annots with
 	| Some annots ->
 		Printf.printf "Going to generate main. Top-level annotations:\n%s\n" (Pretty_print.string_of_annots annots);
-		let specs, _ = process_js_logic_annotations vis_tbl old_fun_tbl proc_id [] annots TopRequires TopEnsures TopEnsuresErr proc_tbl [ proc_id ] in
+		let specs, _ = process_js_logic_annotations proc_id [] annots TopRequires TopEnsures TopEnsuresErr proc_tbl [ proc_id ] in
 		Hashtbl.replace fun_tbl proc_id (proc_id, args, e, false, specs);
 	| None -> Printf.printf "NO TOP LEVEL ANNOTATION BANANAS!!!")
-	
+
 
 (**
 	(Hashtbl.iter
@@ -870,51 +853,7 @@ match e.exp_stx with
 	| _ -> raise (Failure "unsupported construct by Petar M.")
 
 
-let generate_offset_lst str =
-	let rec traverse_str ac_offset cur_str offset_lst =
-		let new_line_index =
-			(try String.index cur_str '\n' with
-				| _ -> -1) in
-			if new_line_index == -1 then
-				offset_lst
-			else
-				let len = String.length cur_str in
-				let new_str = (try String.sub cur_str (new_line_index + 1) ((len - new_line_index) - 1) with | _ -> "") in
-				traverse_str (ac_offset + new_line_index + 1) new_str (offset_lst @ [ (ac_offset + new_line_index + 1) ]) in
-		traverse_str 0 str []
 
-let jsoffsetchar_to_jsoffsetline c_offset offset_list =
-	let rec offsetchar_to_offsetline_aux offset_list cur_line =
-		match offset_list with
-		| [] -> cur_line
-		| hd :: rest ->
-			if c_offset < hd
-				then
-					cur_line
-				else
-					offsetchar_to_offsetline_aux rest (cur_line + 1) in
-		offsetchar_to_offsetline_aux offset_list 1
-
-let memoized_offsetchar_to_offsetline str =
-	let offset_list = generate_offset_lst str in
-	let ht = Hashtbl.create (String.length str) in
-	  fun c_offset ->
-			try Hashtbl.find ht c_offset
-			with Not_found ->
-				begin
-				let l_offset =  jsoffsetchar_to_jsoffsetline c_offset offset_list in
-					Hashtbl.add ht c_offset l_offset;
-					l_offset
-				end
-
-let test_early_errors e =
-  if test_func_decl_in_block e then raise (EarlyError "Function declaration in statement position or use of `with`");
-  if test_expr_eval_arguments_assignment e then raise (EarlyError "Expression assigns to `eval` or `arguments`.")
-
-
-
-(** Ideally I would like to use to use the following to iterator over the 
-grammar of JavaScript, but it is not trivial... **)
 let rec js_iterator f_iter e = 
 	let f = js_iterator f_iter in 
 	let fo e = match e with | Some e -> f e | None -> () in 
@@ -957,8 +896,8 @@ let rec js_iterator f_iter e =
 
 
 
-let rec js_accumulator_top_down f_acc ac e = 
-	let f = js_accumulator_top_down f_acc in 
+let rec js_accumulator f_acc ac e = 
+	let f = js_accumulator f_acc in 
 	let fo ac e = match e with | Some e -> f ac e | None -> ac in 
 	let analyse_cases ac cases = 
 		List.fold_left 
@@ -966,6 +905,8 @@ let rec js_accumulator_top_down f_acc ac e =
 			ac
 			cases in 
 	let e_stx = e.exp_stx in 
+	let ac, recurse = f_acc e_stx ac in 
+	if (not recurse) then ac else (
 	match e_stx with 
 	(* expressions *)
 	|	Num _	| String _	|	Null	| Bool _	| Var _	| This      -> ac
@@ -994,56 +935,47 @@ let rec js_accumulator_top_down f_acc ac e =
 	| Switch (e, cases)                         -> analyse_cases (f ac e) cases  
 	| Function (_, _, _, s)                     -> f ac s
 	(* Non-supported constructs *)
-	| RegExp _ | With (_, _)                    -> raise (Failure "JS Construct Not Supported") 
-
-
-let rec js_accumulator_bottom_up f_combine f_node e = 
-	let f = js_accumulator_bottom_up f_combine f_node in 
-	let fo e = match e with | Some e -> [ f e ] | None -> [] in 
-	let e_stx = e.exp_stx in 
-	let ac, recurse = f_node e_stx in 
-	if (not recurse) then ac else (
-	match e_stx with 
-	(* expressions *)
-	|	Num _	| String _	|	Null	| Bool _	| Var _	| This      -> ac
-  | Delete e | Unary_op (_, e) | Access (e, _)              -> f_combine [ (f e) ] e_stx  
-	| Comma (e1, e2) | BinOp (e1, _, e2) | Assign (e1, e2) 
-			| AssignOp(e1, _, e2) | CAccess (e1, e2)              -> f_combine [ (f e1); (f e2) ] e_stx
-	| ConditionalOp (e1, e2, e3)                              -> f_combine [ (f e1); (f e2); (f e3) ] e_stx
-	| Call (e, es) | New (e, es)                              -> f_combine ((f e) :: (List.map f es)) e_stx
-  | FunctionExp (_, _, _, s)                                -> f_combine [ (f s) ] e_stx
-	| Obj pes                                                 -> f_combine (List.map (fun (_, _, e) -> f e) pes) e_stx
-	| Array es                                                -> 
-		let lst = List.fold_right (fun v ac -> match v with None -> ac | Some v -> (f v) :: ac) es [] in 
-		f_combine lst e_stx
-	(* statement *) 
-	| Label (_, s)                              -> f_combine [ f s ] e_stx  
-	| If (e, s1, s2)                            -> f_combine ([ f e; f s1 ] @ (fo s2)) e_stx
-	| While (e, s)                              -> f_combine [ f e; f s ] e_stx
-	| DoWhile (s, e) 		                        -> f_combine [ f s; f e ] e_stx
-	| Skip | Break _ |	Continue _ | Debugger 	-> ac 
-	| Throw e                                   -> f_combine [ f e ] e_stx
-	| Return e                                  -> f_combine (fo e) e_stx
-	| Script (_, ss) | Block ss                 -> f_combine (List.map f ss) e_stx 
- 	| VarDec ves                                -> 
-		let lst = List.fold_right (fun ve ac -> match ve with (v, None) -> ac | (_, Some e)  -> (f e) :: ac) ves [] in 
-		f_combine lst e_stx  
-	| For(e1, e2, e3, s)                        -> f_combine ((fo e1) @ (fo e2) @ (fo e3) @ [ f s ]) e_stx 
-	| ForIn (e1, e2, s)                         -> f_combine [ (f e1); (f e2); (f s) ] e_stx
-	| Try (s1, Some (_, s2), s3)                -> f_combine ([ (f s1); (f s2) ] @ (fo s3)) e_stx
-	| Try (s1, None, s2)                        -> f_combine ((f s1) :: (fo s2)) e_stx 
-	| Switch (e, cases)                         -> 
-		let lst = List.fold_right 
-			(fun (e_case, s_case) ac ->	
-				match e_case with 
-				| Case e -> (f e) :: (f s_case) :: ac 
-				| DefaultCase -> (f s_case) :: ac)
-			cases [] in 
-		f_combine ((f e) :: lst) e_stx  
-	| Function (_, _, _, s)                     -> f_combine [ (f s) ] e_stx 
-	(* Non-supported constructs *)
-	| RegExp _ | With (_, _)                    -> raise (Failure "JS Construct Not Supported"))
+	| RegExp _ | With (_, _)                    -> raise (Failure "JS Construct Not Supported")) 
 
 
 
+let generate_offset_lst str =
+	let rec traverse_str ac_offset cur_str offset_lst =
+		let new_line_index =
+			(try String.index cur_str '\n' with
+				| _ -> -1) in
+			if new_line_index == -1 then
+				offset_lst
+			else
+				let len = String.length cur_str in
+				let new_str = (try String.sub cur_str (new_line_index + 1) ((len - new_line_index) - 1) with | _ -> "") in
+				traverse_str (ac_offset + new_line_index + 1) new_str (offset_lst @ [ (ac_offset + new_line_index + 1) ]) in
+		traverse_str 0 str []
 
+let jsoffsetchar_to_jsoffsetline c_offset offset_list =
+	let rec offsetchar_to_offsetline_aux offset_list cur_line =
+		match offset_list with
+		| [] -> cur_line
+		| hd :: rest ->
+			if c_offset < hd
+				then
+					cur_line
+				else
+					offsetchar_to_offsetline_aux rest (cur_line + 1) in
+		offsetchar_to_offsetline_aux offset_list 1
+
+let memoized_offsetchar_to_offsetline str =
+	let offset_list = generate_offset_lst str in
+	let ht = Hashtbl.create (String.length str) in
+	  fun c_offset ->
+			try Hashtbl.find ht c_offset
+			with Not_found ->
+				begin
+				let l_offset =  jsoffsetchar_to_jsoffsetline c_offset offset_list in
+					Hashtbl.add ht c_offset l_offset;
+					l_offset
+				end
+
+let test_early_errors e =
+  if test_func_decl_in_block e then raise (EarlyError "Function declaration in statement position or use of `with`");
+  if test_expr_eval_arguments_assignment e then raise (EarlyError "Expression assigns to `eval` or `arguments`.")

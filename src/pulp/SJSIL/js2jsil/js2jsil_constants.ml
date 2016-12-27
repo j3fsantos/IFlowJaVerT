@@ -1,3 +1,5 @@
+let small_tbl_size = 31
+let medium_tbl_size = 101
 
 let js2jsil_imports = [
 	"Array";
@@ -68,3 +70,7 @@ let var_te = "x__te"
 let var_er = "x__er"
 
 let var_main = "main"
+
+type fun_tbl_type = (string, string * JSIL_Syntax.jsil_var list * Parser_syntax.exp * bool * (JSIL_Syntax.jsil_spec option)) Hashtbl.t
+type pre_fun_tbl_type = (string, string * JSIL_Syntax.jsil_var list * Parser_syntax.exp * (Parser_syntax.annotation list * string list * ((string, string) Hashtbl.t))) Hashtbl.t
+

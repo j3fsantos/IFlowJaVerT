@@ -4711,9 +4711,9 @@ let fresh_named_eval n : string =
 
 
 let js2jsil e offset_converter for_verification =
-	let cc_tbl = Hashtbl.create 101 in
-	let fun_tbl = Hashtbl.create 101 in
-	let vis_tbl = Hashtbl.create 101 in
+	let cc_tbl = Hashtbl.create medium_tbl_size in
+	let fun_tbl = Hashtbl.create medium_tbl_size in
+	let vis_tbl = Hashtbl.create medium_tbl_size in
 
 	let main = "main" in
 	Js_pre_processing.test_early_errors e;
@@ -4722,9 +4722,9 @@ let js2jsil e offset_converter for_verification =
 
 
 	(* TODO: 'predicates' is empty *)
-	let predicates = Hashtbl.create 101 in
+	let predicates = Hashtbl.create medium_tbl_size in
 
-	let procedures = Hashtbl.create 101 in
+	let procedures = Hashtbl.create medium_tbl_size in
 	Hashtbl.iter
 		(fun f_id (_, f_params, f_body, f_rec, spec) ->
 			print_endline (Printf.sprintf "Procedure %s is recursive?! %b" f_id f_rec);
@@ -4756,15 +4756,18 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 			vis_tbl, cc_tbl, (try (Hashtbl.find vis_tbl f_parent_id) with _ ->
 				raise (Failure (Printf.sprintf "Function %s not found in visibility table" f_parent_id)))
 		| _, _ -> raise (Failure "Wrong call to eval. Whatever.")) in
+	let temp_new_fun_tbl = Hashtbl.create 101 in
 	let new_fun_tbl = Hashtbl.create 101 in
-
+	
 	let new_fid = fresh_anonymous_eval () in
 	let e = Js_pre_processing.add_codenames new_fid fresh_anonymous_eval fresh_named_eval fresh_catch_anonymous_eval e in
 	Js_pre_processing.update_cc_tbl cc_tbl f_parent_id new_fid [var_scope; var_this] e;
-	Hashtbl.add new_fun_tbl new_fid (new_fid, [var_scope; var_this], e, true, None);
+	Hashtbl.add temp_new_fun_tbl new_fid (new_fid, [var_scope; var_this], e, ([], [ new_fid ],  Hashtbl.create Js2jsil_constants.small_tbl_size));
 	Hashtbl.add vis_tbl new_fid (new_fid :: vis_fid);
-	Js_pre_processing.closure_clarification_stmt cc_tbl new_fun_tbl vis_tbl new_fid (new_fid :: vis_fid) [] e;
+	Js_pre_processing.closure_clarification_stmt cc_tbl temp_new_fun_tbl vis_tbl new_fid (new_fid :: vis_fid) [] e;
 
+	
+	
 	Hashtbl.iter
 		(fun f_id (_, f_params, f_body, _, _) ->
 			let proc =
@@ -4801,12 +4804,12 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 	let e = Js_pre_processing.add_codenames "main" fresh_anonymous fresh_named fresh_catch_anonymous e in
 	let new_fid = Js_pre_processing.get_codename e in
 	Js_pre_processing.update_cc_tbl cc_tbl "main" (* f_parent_id *) new_fid params e;
-	Hashtbl.replace new_fun_tbl new_fid (new_fid, params, e, true, None);
+	Hashtbl.replace new_fun_tbl new_fid (new_fid, params, e, ([], [ new_fid ],  Hashtbl.create Js2jsil_constants.small_tbl_size));
 	Hashtbl.replace vis_tbl new_fid (new_fid :: vis_fid);
 	Js_pre_processing.closure_clarification_stmt cc_tbl new_fun_tbl vis_tbl new_fid vis_fid [] e;
 
 	Hashtbl.iter
-		(fun f_id (_, f_params, f_body, _, _) ->
+		(fun f_id (_, f_params, f_body, (_, _, _)) ->
 			let proc =
   			(let vis_fid = try Hashtbl.find vis_tbl f_id
   				with _ ->

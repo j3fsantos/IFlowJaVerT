@@ -376,40 +376,49 @@
        (val (lht-ref obj prop)))
     (if (eq? val empty) (error (format "Error: (~v, ~v) is not in the heap." loc prop)) val)))
 
+;; get obj fields
+(define (petar-get-obj-fields fv-list)
+  (let loop ((fv-list fv-list)
+             (f-list '()))
+    (cond
+      [(null? fv-list) f-list]
+      [(and (pair? (car fv-list)) (is-llist? (cdr (car fv-list))))
+        (loop (cdr fv-list) (cons (car (car fv-list)) f-list))]
+      [else (loop (cdr fv-list) f-list)])))  
+
+(define (get-obj-fields fv-list)
+  (let loop ((fv-list fv-list)
+             (f-list '()))
+    (if (null? fv-list)
+        f-list
+        (loop (cdr fv-list) (cons (car (car fv-list)) f-list)))))
+
+
 ;; Get all fields of an object in the heap
+(define (petar-get-fields heap loc)
+  (let loop ((heap-pulp (unbox heap)))
+    (cond
+      [(null? heap-pulp) jempty]
+      [(and (pair? (car heap-pulp)) (equal? (car (car heap-pulp)) loc))
+       (let* ((obj (cdr (car heap-pulp)))
+              (props (petar-get-obj-fields obj)))
+         (println (format "Internal get-fields: igf (~a) = ~a" loc props))
+         props)]
+      [ else (loop (cdr heap-pulp))])))
+
+
 (define (get-fields heap loc)
   (let loop ((heap-pulp (unbox heap)))
     (cond
       [(null? heap-pulp) jempty]
-      [(equal? (car (car heap-pulp)) loc)
+      [(and (pair? (car heap-pulp)) (equal? (car (car heap-pulp)) loc))
        (let* ((obj (cdr (car heap-pulp)))
-              (props (foldl
-                      (lambda (x ac)
-                       (if (and (pair? x) (is-llist? (cdr x)))
-                           (append ac (list (car x)))
-                           ac))
-                       (list ) obj))
-              (sprops (sort props string<?)))
-         (println (format "Internal get-fields: igf (~a) = ~a" loc sprops))
-         sprops)]
+              (props (get-obj-fields obj)))
+         (println (format "Internal get-fields: igf (~a) = ~a" loc props))
+         props)]
       [ else (loop (cdr heap-pulp))])))
 
-(define (my-get-fields heap loc)
-  (let loop ((heap-pulp (unbox heap)))
-    (cond
-      [(null? heap-pulp) jempty]
-      [(equal? (car (car heap-pulp)) loc)
-       (let* ((obj (cdr (car heap-pulp)))
-              (props (foldl
-                      (lambda (x ac)
-                       (if (pair? x)
-                           (append ac (list (car x)))
-                           ac))
-                       (list ) obj))
-              (sprops (sort props string<?)))
-         (println (format "Internal get-fields: igf (~a) = ~a" loc sprops))
-         sprops)]
-      [ else (loop (cdr heap-pulp))])))
+
 
 
 ;; Delete cell from the heap
@@ -483,7 +492,7 @@
 (define (make-jsil-list l)
   (cons 'jsil-list l))
 
-(provide is-a-list? make-heap mutate-heap heap-get heap-delete-cell heap cell get-new-loc make-jsil-list heap-delete-object my-get-fields) ;; heap-contains?
+(provide is-a-list? make-heap mutate-heap heap-get heap-delete-cell heap cell get-new-loc make-jsil-list heap-delete-object) ;; heap-contains?
 
 ;; stores - my stuff
 ;;(define (make-store)
@@ -671,7 +680,7 @@
 (define (err-ctx . lst)
   (cons 'error lst))
 
-(provide procedure which-pred eval_literal get-fields heap-get-obj get-ret-var get-err-var get-ret-index get-err-index get-proc-name get-params get-cmd get-number-of-cmds proc-init-store args body ret-ctx err-ctx)
+(provide procedure which-pred eval_literal petar-get-fields get-fields heap-get-obj get-ret-var get-err-var get-ret-index get-err-index get-proc-name get-params get-cmd get-number-of-cmds proc-init-store args body ret-ctx err-ctx)
 
 ;;(define (heap-contains? heap loc prop)
 ;;  (not (equal? jempty (heap-get heap loc prop))))

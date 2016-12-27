@@ -18,6 +18,7 @@ rule read = parse
 (* js logic tokens *)
 	| "scope"              { JSIL_Parser.SCOPE }
 	| "this"               { JSIL_Parser.THIS }
+	| "fun_obj"            { JSIL_Parser.FUNOBJ }
 (* Type literals *)
 	| "$$undefined_type"   { JSIL_Parser.UNDEFTYPELIT }
 	| "$$null_type"        { JSIL_Parser.NULLTYPELIT }
