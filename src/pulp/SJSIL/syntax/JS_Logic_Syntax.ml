@@ -134,7 +134,9 @@ let rec js2jsil_logic (js_var_to_lvar : (string, JSIL_Syntax.jsil_logic_expr) Ha
 			let _, args, _, (_, _, _) = Hashtbl.find fun_tbl id in
 			let n_args = List.length args in
 			let a_scope_chain = make_simple_scope_chain_assertion sc_loc id_vis_list in
-			LPred (function_object_pred_name, [ f_loc'; sc_loc; LLit (String id); LLit (String id); LLit (Integer n_args); f_prototype'] )  
+			LStar (
+				LPred (function_object_pred_name, [ f_loc'; sc_loc; LLit (String id); LLit (String id); LLit (Integer n_args); f_prototype'] ), 
+				a_scope_chain) 
 		with _ -> raise (Failure "js2jsil_logic. JSFunObj - not found business")
 
 
