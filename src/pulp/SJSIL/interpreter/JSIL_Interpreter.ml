@@ -436,7 +436,7 @@ evaluate_expr (e : jsil_expr) store =
 	| BinOp (e1, bop, e2) ->
 		evaluate_binop bop e1 e2 store
 
-	| UnaryOp (unop, e) ->
+	| UnOp (unop, e) ->
 		let v = evaluate_expr e store in
 		evaluate_unop unop v
 

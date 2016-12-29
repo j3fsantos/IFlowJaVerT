@@ -37,7 +37,7 @@ let rec symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae =
 				| _, _             -> LBinOp (nle1, op, nle2))
 			| _ -> LBinOp (nle1, op, nle2)))
 
-	| UnaryOp (op, e) ->
+	| UnOp (op, e) ->
 		let nle = symb_evaluate_expr e store gamma pure_formulae in
 		(match op with
 		 | Cdr ->

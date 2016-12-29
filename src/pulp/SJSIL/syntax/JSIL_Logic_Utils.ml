@@ -1039,7 +1039,7 @@ let rec expr_2_lexpr (e : jsil_expr) : jsil_logic_expr =
 	| Literal l           -> LLit l
 	| Var x               -> PVar x
 	| BinOp (e1, op, e2)  -> LBinOp ((f e1), op, (f e2))
-	| UnaryOp (op, e)     -> LUnOp (op, f e)
+	| UnOp (op, e)     -> LUnOp (op, f e)
 	| TypeOf e            -> LTypeOf (f e)
 	| EList es            -> LEList (List.map f es)
 	| LstNth (e1, e2)     -> LLstNth (f e1, f e2)

@@ -53,8 +53,8 @@ type js_logic_expr =
 	| JSLVar				of string
 	| JSALoc				of string
 	| JSPVar				of string
-	| JSLBinOp			of js_logic_expr * bin_op * js_logic_expr
-	| JSLUnOp				of unary_op * js_logic_expr
+	| JSLBinOp			of js_logic_expr * jsil_binop * js_logic_expr
+	| JSLUnOp				of jsil_unop * js_logic_expr
 	| JSLTypeOf			of js_logic_expr
 	| JSLEList      of js_logic_expr list
 	| JSLLstNth     of js_logic_expr * js_logic_expr

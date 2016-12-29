@@ -425,11 +425,11 @@ expr_target:
 		{ BinOp (e1, bop, e2) }
 (* unop e *)
   | uop=unop_target; e=expr_target
-		{ UnaryOp (uop, e) }
+		{ UnOp (uop, e) }
 (* - e *)
 (* Unary negation has the same precedence as logical not, not as binary negation. *)
 	| MINUS; e=expr_target
-		{ UnaryOp (UnaryMinus, e) } %prec unary_minus
+		{ UnOp (UnaryMinus, e) } %prec unary_minus
 (* typeOf *)
 	| TYPEOF; LBRACE; e=expr_target; RBRACE
 		{ TypeOf (e) }

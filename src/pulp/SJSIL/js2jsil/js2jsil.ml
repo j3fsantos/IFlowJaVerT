@@ -576,7 +576,7 @@ let translate_binop_equality x1 x2 x1_v x2_v non_strict non_negated err =
 		| false ->
 			(let x_r2 = fresh_var () in
 			(* x_r2 := (not x_r1) *)
-			[ (None, SLBasic (SAssignment (x_r2, UnaryOp (Not, Var x_r1)))) ], x_r2)) in
+			[ (None, SLBasic (SAssignment (x_r2, UnOp (Not, Var x_r1)))) ], x_r2)) in
 
 	let new_cmds =	[
 		(None, cmd_ass_xr1)
@@ -1083,7 +1083,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 			(match pname with
 			| Parser_syntax.PropnameId s
       | Parser_syntax.PropnameString s -> Literal (String s)
-      | Parser_syntax.PropnameNum n -> UnaryOp (ToStringOp, (Literal (Num n)))) in
+      | Parser_syntax.PropnameNum n -> UnOp (ToStringOp, (Literal (Num n)))) in
 
 		let translate_data_property_definition x_obj prop e err =
 			let cmds, x, errs = f e in
@@ -1265,7 +1265,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 
 		(* goto [ typeOf(x_f_val) != Object] err next1; err -> typeerror *)
 		let next1 = fresh_next_label () in
-		let goto_guard_expr = UnaryOp (Not, (BinOp (TypeOf (Var x_f_val), Equal, Literal (Type ObjectType)))) in
+		let goto_guard_expr = UnOp (Not, (BinOp (TypeOf (Var x_f_val), Equal, Literal (Type ObjectType)))) in
 		let cmd_goto_is_obj = SLGuardedGoto (goto_guard_expr, err, next1) in
 
 		(* x_hp := [x_f_val, "@construct"]; *)
@@ -1531,7 +1531,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 
 		(* goto [ typeOf(x_f_val) != Object] err next1; err -> typeerror *)
 		let next1 = fresh_next_label () in
-		let goto_guard_expr = UnaryOp (Not, (BinOp (TypeOf (Var x_f_val), Equal, Literal (Type ObjectType)))) in
+		let goto_guard_expr = UnOp (Not, (BinOp (TypeOf (Var x_f_val), Equal, Literal (Type ObjectType)))) in
 		let cmd_goto_is_obj = SLGuardedGoto (goto_guard_expr, err, next1) in
 
 		(* next1: x_ic := isCallable(x_f_val); *)
@@ -1937,7 +1937,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 
 		(* else: x_else := (negative x_n) *)
 		let x_else = fresh_var () in
-		let cmd_ass_xelse = SLBasic (SAssignment (x_else, UnaryOp (UnaryMinus, (Var x_n)))) in
+		let cmd_ass_xelse = SLBasic (SAssignment (x_else, UnOp (UnaryMinus, (Var x_n)))) in
 
 		(* end:  x_r := PHI(x_then, x_else) *)
 		let x_r = fresh_var () in
@@ -1980,8 +1980,8 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds = cmds @ (annotate_cmds [                                         (*  cmds                                *)
 			(None, cmd_gv_x);                                                        (*  x_v := i__getValue (x) with err     *)
 			(None, cmd_tn_x);                                                        (*  x_n := i__toNumber (x_v) with err   *)
-			(None, SLBasic (SAssignment (x_i32, UnaryOp (ToInt32Op, Var x_n))));     (*  x_i32 := (num_to_int32 x_n)         *)
-			(None, SLBasic (SAssignment (x_r, UnaryOp (BitwiseNot, Var x_i32))))     (*  x_r := (! x_i32)                    *)
+			(None, SLBasic (SAssignment (x_i32, UnOp (ToInt32Op, Var x_n))));     (*  x_i32 := (num_to_int32 x_n)         *)
+			(None, SLBasic (SAssignment (x_r, UnOp (BitwiseNot, Var x_i32))))     (*  x_r := (! x_i32)                    *)
 		]) in
 		let errs = errs @ [ x_v; x_n ] in
 		cmds, Var x_r, errs
@@ -2007,7 +2007,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 
 		(*  x_r := (not x_b)   *)
 		let x_r = fresh_var () in
-		let cmd_xr_ass = SLBasic (SAssignment (x_r, UnaryOp (Not, Var x_b))) in
+		let cmd_xr_ass = SLBasic (SAssignment (x_r, UnOp (Not, Var x_b))) in
 
 		let cmds = cmds @ (annotate_cmds [   (* cmds                               *)
 			(None, cmd_gv_x);                  (* x_v := i__getValue (x) with err    *)
@@ -2235,7 +2235,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 
 		let new_cmds, new_errs, x_r1 = translate_binop_comparison x1 x2 x1_v x2_v false false true err in
 		let x_r2 = fresh_var () in
-		let new_cmd = SLBasic (SAssignment (x_r2, UnaryOp (Not, (Var x_r1)))) in
+		let new_cmd = SLBasic (SAssignment (x_r2, UnOp (Not, (Var x_r1)))) in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) @ [ annotate_cmd new_cmd None ] in
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
 		cmds, Var x_r2, errs
@@ -2265,7 +2265,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 
 		let new_cmds, new_errs, x_r1 = translate_binop_comparison x1 x2 x1_v x2_v true true true err in
 		let x_r2 = fresh_var () in
-		let new_cmd = SLBasic (SAssignment (x_r2, UnaryOp (Not, (Var x_r1)))) in
+		let new_cmd = SLBasic (SAssignment (x_r2, UnOp (Not, (Var x_r1)))) in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) @ [ annotate_cmd new_cmd None ] in
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
 		cmds, Var x_r2, errs
@@ -3475,7 +3475,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		let next1 = fresh_next_label () in
 		let next2 = fresh_next_label () in
 		let expr_goto_guard = BinOp (Var x_ret_2, Equal, Literal Empty) in
-		let expr_goto_guard = UnaryOp (Not, expr_goto_guard) in
+		let expr_goto_guard = UnOp (Not, expr_goto_guard) in
 		let cmd_goto_empty_test = SLGuardedGoto (expr_goto_guard, next1, next2) in
 
 		(* x_ret_3 := PHI(x_ret_1, x_ret_2)  *)
@@ -3575,7 +3575,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		let next1 = fresh_next_label () in
 		let next2 = fresh_next_label () in
 		let expr_goto_guard = BinOp (Var x_ret_2, Equal, Literal Empty) in
-		let expr_goto_guard = UnaryOp (Not, expr_goto_guard) in
+		let expr_goto_guard = UnOp (Not, expr_goto_guard) in
 		let cmd_goto_empty_test = SLGuardedGoto (expr_goto_guard, next1, next2) in
 
 		(* x_ret_3 := PHI(x_ret_1, x_ret_2) *)
@@ -3695,7 +3695,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 
 			(* len := l-len (xf)	 *)
 			let len = fresh_var () in
-			let cmd_ass_len = SLBasic (SAssignment (len, UnaryOp (LstLen, Var xf))) in
+			let cmd_ass_len = SLBasic (SAssignment (len, UnOp (LstLen, Var xf))) in
 
 			(* x_c := 0 *)
 			let x_c = fresh_var () in
@@ -3745,7 +3745,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 
 			(* goto [ not (x_ret_2 = $$empty) ] next2 next3 *)
 			let expr_goto_guard = BinOp (Var x_ret_2, Equal, Literal Empty) in
-			let expr_goto_guard = UnaryOp (Not, expr_goto_guard) in
+			let expr_goto_guard = UnOp (Not, expr_goto_guard) in
 			let cmd_goto_xret2 = SLGuardedGoto (expr_goto_guard, next2, next3) in
 
 			(* x_ret_3 := PHI(x_ret_1, x_ret_2) *)
@@ -3897,7 +3897,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		let next1 = fresh_next_label () in
 		let next2 = fresh_next_label () in
 		let expr_goto_guard = BinOp (Var x_ret_2, Equal, Literal Empty) in
-		let expr_goto_guard = UnaryOp (Not, expr_goto_guard) in
+		let expr_goto_guard = UnOp (Not, expr_goto_guard) in
 		let cmd_goto_empty_test = SLGuardedGoto (expr_goto_guard, next1, next2) in
 
 		(* next2:    x_ret_3 := PHI(x_ret_1, x_ret_2) *)
@@ -4179,7 +4179,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			let cmds2 = add_initial_label cmds2 next2 metadata in
 
 			(* goto [ not x_prev_found ] next1 next2 *)
-			let cmd_goto_1 = SLGuardedGoto ( UnaryOp(Not, Var x_prev_found), next1, next2) in
+			let cmd_goto_1 = SLGuardedGoto ( UnOp(Not, Var x_prev_found), next1, next2) in
 
 			(* x1_v := getValue (x1) with err *)
 			let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
@@ -4228,7 +4228,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 
 			(* goto [ not (x_found_b) ] next end_switch *)
 			let next = fresh_next_label () in
-			let cmd_goto = SLGuardedGoto( UnaryOp( Not, Var x_found_b), next, end_switch) in
+			let cmd_goto = SLGuardedGoto( UnOp( Not, Var x_found_b), next, end_switch) in
 			let cmds_def = add_initial_label cmds_def next metadata in
 
 			(* x_r := PHI(breaks_ab, x_ab, breaks_def, breaks_b, x_b) *)
@@ -4615,7 +4615,7 @@ let generate_proc offset_converter e fid params rcr cc_table vis_fid spec =
 	let cmds_arg_obj =
 		[
 			(empty_metadata, None, SLBasic (SArguments (x_argList_pre)));
-			(empty_metadata, None, SLBasic (SAssignment (x_argList_act, UnaryOp (Cdr, (UnaryOp (Cdr, Var x_argList_pre))))));
+			(empty_metadata, None, SLBasic (SAssignment (x_argList_act, UnOp (Cdr, (UnOp (Cdr, Var x_argList_pre))))));
 			(empty_metadata, None, SLCall  (x_args, Literal (String createArgsName), [ Var x_argList_act ], Some new_ctx.tr_error_lab));
 			(empty_metadata, None, SLBasic (SMutation (Var x_er, Literal (String "arguments"), Var x_args)))
 		] in *)
