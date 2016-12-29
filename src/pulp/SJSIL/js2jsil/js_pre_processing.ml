@@ -535,8 +535,13 @@ let process_js_logic_annotations (vis_tbl : (string, string list) Hashtbl.t) fun
 		 | [ f_rec_annot ] -> if (f_rec_annot.annot_formula = "false") then false else true
 		 | _ -> true) in
 
+	let args = 
+		if (fun_name = Js2jsil_constants.var_main)
+			then fun_args 
+			else (Js2jsil_constants.var_scope :: (Js2jsil_constants.var_this :: fun_args)) in 
+
 	let fun_spec = if ((List.length single_specs) > 0)
-		then Some (JSIL_Syntax.create_jsil_spec fun_name (Js2jsil_constants.var_scope :: (Js2jsil_constants.var_this :: fun_args)) single_specs)
+		then Some (JSIL_Syntax.create_jsil_spec fun_name args single_specs)
 		else None in
 	fun_spec, f_rec
 
