@@ -856,7 +856,7 @@ js_assertion_target:
 	| SCOPE; LBRACE; v=VAR; COLON; le=js_lexpr_target; RBRACE
 		{ JSLScope (v, le) }
 (* fun_obj (x, le, le) *)
-	| FUNOBJ; LBRACE; f_id=VAR; COMMA; f_loc=js_lexpr_target; f_prototype=js_lexpr_target; RBRACE
+	| FUNOBJ; LBRACE; f_id=VAR; COMMA; f_loc=js_lexpr_target; COMMA; f_prototype=js_lexpr_target; RBRACE
 		{ JSFunObj(f_id, f_loc, f_prototype) }
 (* (P) *)
   | LBRACE; ass=js_assertion_target; RBRACE

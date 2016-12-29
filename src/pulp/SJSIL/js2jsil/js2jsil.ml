@@ -4717,7 +4717,7 @@ let js2jsil e offset_converter for_verification =
 
 	let main = "main" in
 	Js_pre_processing.test_early_errors e;
-	let e = Js_pre_processing.add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous e in
+	let e : Parser_syntax.exp = Js_pre_processing.add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous [] e in
 	Js_pre_processing.closure_clarification_top_level cc_tbl fun_tbl vis_tbl main e [ main ] [];
 
 
@@ -4760,7 +4760,7 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 	let new_fun_tbl = Hashtbl.create 101 in
 	
 	let new_fid = fresh_anonymous_eval () in
-	let e = Js_pre_processing.add_codenames new_fid fresh_anonymous_eval fresh_named_eval fresh_catch_anonymous_eval e in
+	let e : Parser_syntax.exp = Js_pre_processing.add_codenames new_fid fresh_anonymous_eval fresh_named_eval fresh_catch_anonymous_eval [] e in
 	Js_pre_processing.update_cc_tbl cc_tbl f_parent_id new_fid [var_scope; var_this] e;
 	Hashtbl.add temp_new_fun_tbl new_fid (new_fid, [var_scope; var_this], e, ([], [ new_fid ],  Hashtbl.create Js2jsil_constants.small_tbl_size));
 	Hashtbl.add vis_tbl new_fid (new_fid :: vis_fid);
@@ -4801,7 +4801,7 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 		| _, _ -> raise (Failure "FC: Wrong call to function constructor. Whatever.")) in
 
 	let new_fun_tbl = Hashtbl.create 1 in
-	let e = Js_pre_processing.add_codenames "main" fresh_anonymous fresh_named fresh_catch_anonymous e in
+	let e : Parser_syntax.exp = Js_pre_processing.add_codenames "main" fresh_anonymous fresh_named fresh_catch_anonymous [] e in
 	let new_fid = Js_pre_processing.get_codename e in
 	Js_pre_processing.update_cc_tbl cc_tbl "main" (* f_parent_id *) new_fid params e;
 	Hashtbl.replace new_fun_tbl new_fid (new_fid, params, e, ([], [ new_fid ],  Hashtbl.create Js2jsil_constants.small_tbl_size));

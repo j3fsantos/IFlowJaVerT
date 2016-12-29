@@ -6,6 +6,33 @@ exception CannotHappen
 exception No_Codename
 exception EarlyError of string
 
+let update_prev_annot prev_annot cur_annot =
+	let is_spec_annot annot =
+		(annot.annot_type == Parser_syntax.Requires) ||
+			(annot.annot_type == Parser_syntax.Ensures) ||
+			(annot.annot_type == Parser_syntax.EnsuresErr) || 
+			(annot.annot_type == Parser_syntax.Id) in
+
+	let rec annot_has_specs annots =
+		match annots with
+		| [] -> false
+		| annot :: rest_annots ->
+			if (is_spec_annot annot)
+				then true
+				else annot_has_specs rest_annots in
+
+	let rec filter_non_spec_annots annots specs_to_remain =
+		match annots with
+		| [] -> specs_to_remain
+		| annot :: rest_annots ->
+			if (is_spec_annot annot)
+				then filter_non_spec_annots rest_annots (annot :: specs_to_remain)
+				else filter_non_spec_annots rest_annots specs_to_remain in
+
+	if (annot_has_specs cur_annot)
+		then cur_annot
+		else ((filter_non_spec_annots prev_annot []) @ cur_annot)
+
 
 let sanitise name =
 	let s = Str.global_replace (Str.regexp "\$") "_" name in
@@ -17,11 +44,12 @@ let update_annotation annots atype new_value =
 	(* Printf.printf "I am adding the code name: %s"  new_value; *)
   annot :: old_removed
 
-let update_codename_annotation annots new_value =
+let update_codename_annotation annots fresh_name_generator =
 	let ids = List.filter (fun annot -> annot.annot_type = Id) annots in
-	(match ids with
-	 | [ id ] -> update_annotation annots Codename id.annot_formula
-	 | _      -> update_annotation annots Codename new_value) 
+	(match ids with 
+	| [ id ] -> update_annotation annots Codename id.annot_formula
+	| _ :: _ -> raise (Failure "you cannot have more than one identifier per function")
+	| _      -> update_annotation annots Codename (fresh_name_generator ()))
 
 let get_codename exp =
   let codenames = List.filter (fun annot -> annot.annot_type = Codename) exp.exp_annot in
@@ -392,17 +420,18 @@ let get_all_vars_f f_body f_args =
 	vars
 
 
-let rec add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous exp =
-  let f = add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous in
+let rec add_codenames (main : string) (fresh_anonymous : unit -> string) (fresh_named : string -> string) (fresh_catch_anonymous : unit -> string) prev_annot exp =
+		
+	let cur_annot = update_prev_annot prev_annot exp.Parser_syntax.exp_annot in
+	
+  let f = add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous cur_annot in
   let fo e =
     begin match e with
       | None -> None
       | Some e -> Some (f e)
     end in
-  let m exp nstx = {exp with exp_stx = nstx} in
-  (* I use codename for now. It may be that I want a new annotation for function identifier. *)
-  let add_codename exp fid = update_codename_annotation exp.exp_annot fid
-  in
+  
+	let m exp nstx = {exp with exp_stx = nstx} in
   match exp.exp_stx with
       (* Literals *)
       | Num _
@@ -431,8 +460,13 @@ let rec add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous exp
       | With (e1, e2) -> m exp (With (f e1, f e2))
       | Call (e1, e2s) -> m exp (Call (f e1, List.map f e2s))
       | New (e1, e2s) -> m exp (New (f e1, List.map f e2s))
-      | FunctionExp (str, name, args, fb) -> {exp with exp_stx = FunctionExp (str, name, args, f fb); exp_annot = add_codename exp (fresh_anonymous ())}
-      | Function (str, Some name, args, fb) -> {exp with exp_stx = Function (str, Some name, args, f fb); exp_annot = add_codename exp (fresh_named (sanitise name))}
+      | FunctionExp (str, name, args, fb) -> 
+				let new_annot = update_codename_annotation cur_annot fresh_anonymous in 
+				{exp with exp_stx = FunctionExp (str, name, args, f fb); exp_annot = new_annot }
+      | Function (str, Some name, args, fb) -> 
+				let name_generator : unit -> string = (fun () -> fresh_named (sanitise name)) in 
+				let new_annot = update_codename_annotation cur_annot name_generator in 
+				{exp with exp_stx = Function (str, Some name, args, f fb); exp_annot = new_annot }
       | Obj xs -> m exp (Obj (List.map (fun (pn, pt, e) -> (pn, pt, f e)) xs))
       | Array es -> m exp (Array (List.map fo es))
       | ConditionalOp (e1, e2, e3)  -> m exp (ConditionalOp (f e1, f e2, f e3))
@@ -457,18 +491,15 @@ let rec add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous exp
         f e2) sces))
       | Block es -> m exp (Block (List.map f es))
       | Script (str, es) ->
-        {exp with exp_stx = Script (str, List.map f es); exp_annot = add_codename exp main}
+				let new_annot = update_codename_annotation cur_annot (fun () -> main) in 
+        {exp with exp_stx = Script (str, List.map f es); exp_annot = new_annot }
 
 
 let process_js_logic_annotations (vis_tbl : (string, string list) Hashtbl.t) fun_tbl fun_name (fun_args : string list) annotations requires_flag ensures_normal_flag ensure_err_flag var_to_fid_tbl vis_list =
-	Printf.printf "Xupa. Inside process_js_logic_annotations. function: %s. Annotations: \n%s\n" fun_name (Pretty_print.string_of_annots annotations);
+	Printf.printf "Inside process_js_logic_annotations. function: %s. Annotations: \n%s\n" fun_name (Pretty_print.string_of_annots annotations);
 	
-	(try 
 	let annot_types_str : string = String.concat ", " (List.map (fun annot -> Pretty_print.string_of_annot_type annot.annot_type) annotations) in 
-	Printf.printf "Marica, annot types: %s\n" annot_types_str;  
-	with _ -> Printf.printf "i filha que nao percebo nada disto!!!"); 
-
-	Printf.printf "oohhhhh i was a king under your control\n";
+	Printf.printf "annot types: %s\n" annot_types_str;   
 
 	let preconditions  = List.filter (fun annotation -> annotation.annot_type = requires_flag) annotations in
 	let postconditions = List.filter (fun annotation -> (annotation.annot_type = ensures_normal_flag) || (annotation.annot_type = ensure_err_flag)) annotations in
@@ -567,33 +598,6 @@ let get_top_level_annot e =
 		let annot = first_le.Parser_syntax.exp_annot in
 		Some annot
 	| _ -> None
-
-
-let update_prev_annot prev_annot cur_annot =
-	let is_spec_annot annot =
-		(annot.annot_type == Parser_syntax.Requires) ||
-			(annot.annot_type == Parser_syntax.Ensures) ||
-			(annot.annot_type == Parser_syntax.EnsuresErr) in
-
-	let rec annot_has_specs annots =
-		match annots with
-		| [] -> false
-		| annot :: rest_annots ->
-			if (is_spec_annot annot)
-				then true
-				else annot_has_specs rest_annots in
-
-	let rec filter_non_spec_annots annots specs_to_remain =
-		match annots with
-		| [] -> specs_to_remain
-		| annot :: rest_annots ->
-			if (is_spec_annot annot)
-				then filter_non_spec_annots rest_annots (annot :: specs_to_remain)
-				else filter_non_spec_annots rest_annots specs_to_remain in
-
-	if (annot_has_specs cur_annot)
-		then cur_annot
-		else ((filter_non_spec_annots prev_annot []) @ cur_annot)
 
 
 

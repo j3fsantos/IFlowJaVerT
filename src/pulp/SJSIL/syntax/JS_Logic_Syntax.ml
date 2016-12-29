@@ -130,10 +130,11 @@ let rec js2jsil_logic (js_var_to_lvar : (string, JSIL_Syntax.jsil_logic_expr) Ha
 			let f_loc' = fe f_loc in 
 			let f_prototype' = fe f_prototype in 
 			let id_vis_list = Hashtbl.find vis_tbl id in 
+			Printf.printf "found it in the vistable";
 			let _, args, _, (_, _, _) = Hashtbl.find fun_tbl id in
 			let n_args = List.length args in
 			let a_scope_chain = make_simple_scope_chain_assertion sc_loc id_vis_list in
-			LPred (id, [ f_loc'; sc_loc; LLit (String function_object_pred_name); LLit (String function_object_pred_name); LLit (Integer n_args); f_prototype'] )  
+			LPred (function_object_pred_name, [ f_loc'; sc_loc; LLit (String id); LLit (String id); LLit (Integer n_args); f_prototype'] )  
 		with _ -> raise (Failure "js2jsil_logic. JSFunObj - not found business")
 
 
@@ -220,7 +221,9 @@ let rec js2jsil_logic_top_level_pre a (var_to_fid_tbl : (string, string) Hashtbl
 		print_debug (Printf.sprintf "J2JPre: \n\t%s\n\t%s\n\t%s\n\t%s"
 			(JSIL_Print.string_of_logic_assertion a' false) (JSIL_Print.string_of_logic_assertion a_env_records false)
 			(JSIL_Print.string_of_logic_assertion a_scope_chain false) (JSIL_Print.string_of_logic_assertion a_pre_js_heap false));
-		JSIL_Logic_Utils.star_asses [a'; a_env_records; a_scope_chain; a_pre_js_heap ]
+	if (is_global) 
+		then JSIL_Logic_Utils.star_asses [a'; a_pre_js_heap ]
+		else JSIL_Logic_Utils.star_asses [a'; a_env_records; a_scope_chain; a_pre_js_heap ]
 
 
 let rec js2jsil_logic_top_level_post a (var_to_fid_tbl : (string, string) Hashtbl.t) (vis_tbl : (string, string list) Hashtbl.t) fun_tbl fid =
