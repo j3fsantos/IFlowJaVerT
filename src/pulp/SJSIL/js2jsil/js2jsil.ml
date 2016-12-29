@@ -354,15 +354,15 @@ let translate_function_literal fun_id params vis_fid err =
 	let cmd = SLCall (x_f, Literal (String createFunctionObjectName),
 		[ (Var x_sc); (Literal (String fun_id)); (Literal (String fun_id)); (Literal (LList processed_params)) ], None) in
 
-  let x_t = fresh_var () in
+  (* let x_t = fresh_var () in
 		let cmd_errCheck = SLCall (x_t, Literal (String checkParametersName),
-			[ (Literal (String fun_id)); (Literal (LList processed_params)) ], Some err) in
+			[ (Literal (String fun_id)); (Literal (LList processed_params)) ], Some err) in *)
 
 	[
-		(None, cmd_errCheck);           (*  x_t := checkParametersName (f_name, processed_params);   *)
+		(* (None, cmd_errCheck);           (*  x_t := checkParametersName (f_name, processed_params);   *) *)
 		(None, cmd_sc_copy);            (* x_sc := copy_object (x_scope, {{main, fid1, ..., fidn }});  *)
 		(None, cmd)                     (* x_f := create_function_object (x_sc, f_id, f_id, params)    *)
-	], x_f, [ x_t ]
+	], x_f, [ (* x_t *) ]
 
 
 let translate_named_function_literal cur_fid f_id f_name params vis_fid err =
@@ -2696,11 +2696,12 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let f_id = try Js_pre_processing.get_codename e
 			with _ -> raise (Failure "named function literals should be annotated with their respective code names") in
 
-		(*  x_t := checkParametersName (f_name, processed_params) with err;      *)
+		(*  x_t := checkParametersName (f_name, processed_params) with err; *)
 		let processed_params = List.map (fun p -> String p) params in
-		let x_t = fresh_var () in
+		
+		(* let x_t = fresh_var () in
 		let cmd_errCheck = SLCall (x_t, Literal (String checkParametersName),
-			[ (Literal (String f_name)); (Literal (LList processed_params)) ], Some err) in
+			[ (Literal (String f_name)); (Literal (LList processed_params)) ], Some err) in *)
 
 		(* x_sc := copy_object (x_sc, {{main, fid1, ..., fidn }});  *)
 		let x_sc = fresh_scope_chain_var () in
@@ -2727,7 +2728,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmd_fidouter_updt = SLBasic (SMutation (Var x_sc, Literal (String (f_id ^ "_outer")), Var x_f_outer_er)) in
 
 		let cmds = [
-			(None, cmd_errCheck);         (*  x_t := checkParametersName (f_name, processed_params) with err;       *)
+			(* (None, cmd_errCheck);         (*  x_t := checkParametersName (f_name, processed_params) with err;       *) *)
 			(None, cmd_sc_copy);          (*  x_sc := copy_object (x_sc, {{main, fid1, ..., fidn }});               *)
 			(None, cmd_fun_constr);       (*  x_f := create_function_object(x_sc, f_id, params)                     *)
 			(None, cmd_ass_xfouter);      (*  x_f_outer_er := new ();                                               *)
@@ -2737,7 +2738,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		] in
 
 		let cmds = annotate_cmds cmds in
-		cmds, Var x_f, [ x_t; x_cae ]
+		cmds, Var x_f, [ (* x_t; *) x_cae ]
 
 
 	| Parser_syntax.VarDec decs ->
@@ -4419,6 +4420,9 @@ let generate_main offset_converter e main cc_table spec =
 
 	let errs = errs_hoist_decls @ errs in
 	let cmd_err_phi_node = make_final_cmd errs ctx.tr_error_lab ctx.tr_error_var in
+	
+	let cmd_del_te = annotate_cmd (SLBasic (SDeleteObj (Var var_te))) None in
+	let cmd_del_se = annotate_cmd (SLBasic (SDeleteObj (Var var_se))) None in
 
 	let main_cmds =
 		[ setup_heap_ass; init_scope_chain_ass; lg_ass; this_ass] @
@@ -4426,7 +4430,7 @@ let generate_main offset_converter e main cc_table spec =
 		[ cmd_ass_te; cmd_ass_se ] @
 		cmds_hoist_fdecls @
 		cmds_e @
-		[ret_ass; lab_ret_skip; cmd_err_phi_node ] in
+		[ret_ass; cmd_del_te; cmd_del_se; lab_ret_skip; cmd_err_phi_node ] in
 	{
 		lproc_name = main;
     lproc_body = (Array.of_list main_cmds);

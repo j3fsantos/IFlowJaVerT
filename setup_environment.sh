@@ -13,6 +13,5 @@ cp jsil2rkt.native environment
 cp symb_execution_main.native environment
 cp src/pulp/SJSIL/examples/internal_functions.jsil environment
 cp src/pulp/SJSIL/examples/obj_int_fun.jsil environment
-cp symb_execution_main.byte environment
 cp src/pulp/SJSIL/examples/js_preds.jsil environment
 cp run_racket_example.sh environment

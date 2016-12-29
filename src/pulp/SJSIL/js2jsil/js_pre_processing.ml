@@ -11,7 +11,8 @@ let update_prev_annot prev_annot cur_annot =
 		(annot.annot_type == Parser_syntax.Requires) ||
 			(annot.annot_type == Parser_syntax.Ensures) ||
 			(annot.annot_type == Parser_syntax.EnsuresErr) || 
-			(annot.annot_type == Parser_syntax.Id) in
+			(annot.annot_type == Parser_syntax.Id) ||
+			(annot.annot_type == Parser_syntax.Rec) in
 
 	let rec annot_has_specs annots =
 		match annots with

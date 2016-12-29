@@ -13,9 +13,9 @@ let object_class                  = "Object"
 let syntax_error_pred_name        = "isSyntaxError"
 let type_error_pred_name          = "isTypeError"
 let initial_heap_pre_pred_name    = "initialHeapPre"
-let initial_heap_post_pred_name   = "initialHeapPostFull"
-let initial_heap_post_pred_rlx    = "initialHeapPostRelaxed"
+let initial_heap_post_pred_name   = "initialHeapPost"
 let function_object_pred_name     = "function_object"
+let standard_object_pred_name     = "standardObject"
 
 let fid_to_lvar fid = "#fid_" ^ fid
 
@@ -134,9 +134,15 @@ let rec js2jsil_logic (js_var_to_lvar : (string, JSIL_Syntax.jsil_logic_expr) Ha
 			let _, args, _, (_, _, _) = Hashtbl.find fun_tbl id in
 			let n_args = List.length args in
 			let a_scope_chain = make_simple_scope_chain_assertion sc_loc id_vis_list in
+			let st_obj_fproto = LPred (standard_object_pred_name, [f_prototype']) in
+			let obj_fproto_cstr = 
+				LPointsTo (
+					f_prototype', 
+					LLit (String "constructor"), 
+					LEList [ LLit (String "d"); f_loc'; LLit (Bool true); LLit (Bool false); LLit (Bool true) ]) in
 			LStar (
 				LPred (function_object_pred_name, [ f_loc'; sc_loc; LLit (String id); LLit (String id); LLit (Integer n_args); f_prototype'] ), 
-				a_scope_chain) 
+				LStar (st_obj_fproto, LStar (obj_fproto_cstr, a_scope_chain)))
 		with _ -> raise (Failure "js2jsil_logic. JSFunObj - not found business")
 
 
@@ -215,10 +221,10 @@ let rec js2jsil_logic_top_level_pre a (var_to_fid_tbl : (string, string) Hashtbl
 	let is_global = (fid = main_fid) in
 	let a_env_records, js_var_to_lvar = var_fid_tbl_to_assertion var_to_fid_tbl fid [ ] is_global true in
 	let a_scope_chain = make_scope_chain_assertion vis_list fid [ ] true in
-	let a_pre_js_heap =
+	let a_pre_js_heap = 
 		if (is_global)
 			then LPred (initial_heap_pre_pred_name, [])
-			else LPred (initial_heap_post_pred_rlx, []) in
+			else LPred (initial_heap_post_pred_name, []) in
 		let a' = js2jsil_logic js_var_to_lvar vis_tbl fun_tbl a in
 		print_debug (Printf.sprintf "J2JPre: \n\t%s\n\t%s\n\t%s\n\t%s"
 			(JSIL_Print.string_of_logic_assertion a' false) (JSIL_Print.string_of_logic_assertion a_env_records false)
@@ -233,10 +239,7 @@ let rec js2jsil_logic_top_level_post a (var_to_fid_tbl : (string, string) Hashtb
 	let is_global = (fid = main_fid) in
 	let a_env_records, js_var_to_lvar = var_fid_tbl_to_assertion var_to_fid_tbl fid [ ] is_global false in
 	let a_scope_chain = make_scope_chain_assertion vis_list fid [ ] false in
-	let a_post_js_heap =
-	if (is_global)
-		then LPred (initial_heap_post_pred_name, [])
-		else LPred (initial_heap_post_pred_rlx, []) in
+	let a_post_js_heap = LPred (initial_heap_post_pred_name, []) in
 	let a' = js2jsil_logic js_var_to_lvar vis_tbl fun_tbl a in
 	print_debug (Printf.sprintf "J2JPost: \n\t%s\n\t%s\n\t%s\n\t%s"
 		(JSIL_Print.string_of_logic_assertion a' false) (JSIL_Print.string_of_logic_assertion a_env_records false)
