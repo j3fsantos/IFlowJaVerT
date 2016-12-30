@@ -695,20 +695,20 @@ let encode_gamma tr_ctx how_many =
 	let ctx = tr_ctx.z3_ctx in
 	let gamma = tr_ctx.tr_typing_env in
 	let gamma_var_type_pairs = JSIL_Memory_Model.get_gamma_var_type_pairs gamma in
-	let encoded_gamma = List.map
-		(fun (x, t_x) ->
-			if ((JSIL_Memory_Model.is_lvar_name x) || (JSIL_Memory_Model.is_abs_loc_name x))
-				then (
-				(match t_x with
-				| NumberType
-				| ListType   -> Boolean.mk_true ctx
-				| _          ->
-					let le_x = (mk_const ctx (Symbol.mk_string ctx x)) in
-					let le_typeof_le_x = (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ le_x ]) in
-					let assertion = Boolean.mk_eq ctx le_typeof_le_x (encode_type ctx t_x) in
-					assertion))
-				else Boolean.mk_true ctx)
-		gamma_var_type_pairs in
+	let encoded_gamma = 
+		let z3true = (Boolean.mk_true ctx) in 
+		List.filter 
+			(fun x -> x <> Boolean.mk_true ctx)
+			(List.map
+				(fun (x, t_x) ->
+					if ((JSIL_Memory_Model.is_lvar_name x) || (JSIL_Memory_Model.is_abs_loc_name x))
+						then (
+							let le_x = (mk_const ctx (Symbol.mk_string ctx x)) in
+							let le_typeof_le_x = (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ le_x ]) in
+							let assertion = Boolean.mk_eq ctx le_typeof_le_x (encode_type ctx t_x) in
+							assertion)
+						else Boolean.mk_true ctx)
+			gamma_var_type_pairs) in
 	if ((how_many = -1) || (List.length encoded_gamma <= how_many)) then encoded_gamma else
 		(let rec get_n l n =
 		 if (n = 0) then [] else
@@ -1230,6 +1230,8 @@ let old_check_entailment existentials left_as right_as gamma =
 		let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 		Solver.add solver left_as;
 		Solver.add solver [ right_as_or ];
+
+		print_debug (Printf.sprintf "ENT: About to check the following:\n%s" (string_of_solver solver));
 
 		let start_time = Sys.time () in
 		let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in

@@ -1,13 +1,21 @@
+var ___p1_string = jsil_make_symbolic_string (); 
+var ___v1_number = jsil_make_symbolic_number (); 
 
 function top(o) {
+	var n = 0; 
     for(var p in o) {
-	assert(p != o[p]);
+		n = n + o[p]
     }
-    return 0;
+    return n;
 }
 
-var o = { a: 1, b: 2, c: 3 };
+//jsil_assume (___v1_number == 0); 
+var o = { a: 4, b: 5, c: 6 };
 
-o[ "a" + ___p1_string ] = ("" + ___v1_string + "b");
+o[___p1_string] = ___v1_number;
 
-top(o);
+var t = top(o);
+
+//jsil_assume (t < 10); 
+//jsil_assert (___p1_string == "a"); 
+t

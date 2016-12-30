@@ -64,7 +64,7 @@ let rec sexpr_of_expression e =
 		(* (bop e1 e2) *)
     | BinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (sexpr_of_binop op) (se e1) (se e2)
 		(* (uop e1 e2) *)
-    | UnaryOp (op, e) -> Printf.sprintf "(%s %s)" (string_of_unop op) (se e)
+    | UnOp (op, e) -> Printf.sprintf "(%s %s)" (string_of_unop op) (se e)
 		(* (typeof e) *)
     | TypeOf e -> Printf.sprintf "(typeof %s)" (se e)
 		(* (assume e) *)

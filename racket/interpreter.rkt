@@ -85,9 +85,8 @@
               (loc-expr (third bcmd))
               (loc-val (run-expr loc-expr store))
               (obj (heap-get-obj heap loc-val))
-              (prop-list (get-fields heap loc-val))
-              (result (cons 'jsil-list prop-list))
-             )
+              (prop-list (petar-get-fields heap loc-val))
+              (result (cons 'jsil-list prop-list)))
          ;; (println (format "Get-fields: ~v = gf (~v) : ~v" lhs-var loc-val result))
          (mutate-store store lhs-var result) ;; (to-jsil-bool contains))
          result)] ;; (to-jsil-bool contains))]
@@ -125,7 +124,7 @@
       ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))
 
-(define goto-limit 10)
+(define goto-limit 100)
 
 (define goto-stack (make-parameter '()))
 

@@ -8,6 +8,7 @@ open JS_Logic_Syntax
 (*  JS Logic Literals *)
 %token SCOPE
 %token THIS
+%token FUNOBJ
 (* Type literals *)
 %token UNDEFTYPELIT
 %token NULLTYPELIT
@@ -424,11 +425,11 @@ expr_target:
 		{ BinOp (e1, bop, e2) }
 (* unop e *)
   | uop=unop_target; e=expr_target
-		{ UnaryOp (uop, e) }
+		{ UnOp (uop, e) }
 (* - e *)
 (* Unary negation has the same precedence as logical not, not as binary negation. *)
 	| MINUS; e=expr_target
-		{ UnaryOp (UnaryMinus, e) } %prec unary_minus
+		{ UnOp (UnaryMinus, e) } %prec unary_minus
 (* typeOf *)
 	| TYPEOF; LBRACE; e=expr_target; RBRACE
 		{ TypeOf (e) }
@@ -854,6 +855,9 @@ js_assertion_target:
 (* scope(x: le) *)
 	| SCOPE; LBRACE; v=VAR; COLON; le=js_lexpr_target; RBRACE
 		{ JSLScope (v, le) }
+(* fun_obj (x, le, le) *)
+	| FUNOBJ; LBRACE; f_id=VAR; COMMA; f_loc=js_lexpr_target; COMMA; f_prototype=js_lexpr_target; RBRACE
+		{ JSFunObj(f_id, f_loc, f_prototype) }
 (* (P) *)
   | LBRACE; ass=js_assertion_target; RBRACE
 	  { ass }

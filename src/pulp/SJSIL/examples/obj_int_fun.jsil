@@ -533,14 +533,8 @@ with
 
 pred initialHeapPre () :
     empty_fields( $lg : ) * empty_fields ( $lobj_proto : ) * empty_fields ($lfun_proto : );
-
-pred initialHeapPostFull () :
-    (($lg,         "@class") -> "Object")   * (($lg,         "@proto") -> $lobj_proto) * (($lg,         "@extensible") -> $$t) * empty_fields ( $lg : "@class", "@proto", "@extensible" ) *
-	(($lobj_proto, "@class") -> "Object")   * (($lobj_proto, "@proto") -> $$null)      * (($lobj_proto, "@extensible") -> $$t) * empty_fields ( $lobj_proto : "@class", "@proto", "@extensible" ) *
-	(($lfun_proto, "@class") -> "Function") * (($lfun_proto, "@proto") -> $lobj_proto) * (($lfun_proto, "@extensible") -> $$t) *
-	(($lfun_proto, "@scope") -> $$empty)    * (($lfun_proto, "length") -> {{ "d", 0, $$f, $$f, $$f }}) * (($lfun_proto, "@call") -> "FP_default") * empty_fields($lfun_proto : "@proto", "@class", "@extensible", "@scope", "length", "@call");
-
-pred initialHeapPostRelaxed () :
+    
+pred initialHeapPost () :
     (($lg,         "@class") -> "Object")   * (($lg,         "@proto") -> $lobj_proto) * (($lg,         "@extensible") -> $$t) *
 	(($lobj_proto, "@class") -> "Object")   * (($lobj_proto, "@proto") -> $$null)      * (($lobj_proto, "@extensible") -> $$t) * empty_fields ( $lobj_proto : "@class", "@proto", "@extensible" ) *
 	(($lfun_proto, "@class") -> "Function") * (($lfun_proto, "@proto") -> $lobj_proto) * (($lfun_proto, "@extensible") -> $$t) *
@@ -549,7 +543,7 @@ pred initialHeapPostRelaxed () :
 spec setupInitialHeap ()
 
 	[[ initialHeapPre() ]]
-	[[ initialHeapPostFull() * (ret == $$empty) ]]
+	[[ initialHeapPost() * (ret == $$empty) ]]
 	normal
 
 proc setupInitialHeap () {

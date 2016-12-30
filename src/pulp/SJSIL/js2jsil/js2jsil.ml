@@ -354,15 +354,15 @@ let translate_function_literal fun_id params vis_fid err =
 	let cmd = SLCall (x_f, Literal (String createFunctionObjectName),
 		[ (Var x_sc); (Literal (String fun_id)); (Literal (String fun_id)); (Literal (LList processed_params)) ], None) in
 
-  let x_t = fresh_var () in
+  (* let x_t = fresh_var () in
 		let cmd_errCheck = SLCall (x_t, Literal (String checkParametersName),
-			[ (Literal (String fun_id)); (Literal (LList processed_params)) ], Some err) in
+			[ (Literal (String fun_id)); (Literal (LList processed_params)) ], Some err) in *)
 
 	[
-		(None, cmd_errCheck);           (*  x_t := checkParametersName (f_name, processed_params);   *)
+		(* (None, cmd_errCheck);           (*  x_t := checkParametersName (f_name, processed_params);   *) *)
 		(None, cmd_sc_copy);            (* x_sc := copy_object (x_scope, {{main, fid1, ..., fidn }});  *)
 		(None, cmd)                     (* x_f := create_function_object (x_sc, f_id, f_id, params)    *)
-	], x_f, [ x_t ]
+	], x_f, [ (* x_t *) ]
 
 
 let translate_named_function_literal cur_fid f_id f_name params vis_fid err =
@@ -576,7 +576,7 @@ let translate_binop_equality x1 x2 x1_v x2_v non_strict non_negated err =
 		| false ->
 			(let x_r2 = fresh_var () in
 			(* x_r2 := (not x_r1) *)
-			[ (None, SLBasic (SAssignment (x_r2, UnaryOp (Not, Var x_r1)))) ], x_r2)) in
+			[ (None, SLBasic (SAssignment (x_r2, UnOp (Not, Var x_r1)))) ], x_r2)) in
 
 	let new_cmds =	[
 		(None, cmd_ass_xr1)
@@ -1083,7 +1083,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 			(match pname with
 			| Parser_syntax.PropnameId s
       | Parser_syntax.PropnameString s -> Literal (String s)
-      | Parser_syntax.PropnameNum n -> UnaryOp (ToStringOp, (Literal (Num n)))) in
+      | Parser_syntax.PropnameNum n -> UnOp (ToStringOp, (Literal (Num n)))) in
 
 		let translate_data_property_definition x_obj prop e err =
 			let cmds, x, errs = f e in
@@ -1265,7 +1265,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 
 		(* goto [ typeOf(x_f_val) != Object] err next1; err -> typeerror *)
 		let next1 = fresh_next_label () in
-		let goto_guard_expr = UnaryOp (Not, (BinOp (TypeOf (Var x_f_val), Equal, Literal (Type ObjectType)))) in
+		let goto_guard_expr = UnOp (Not, (BinOp (TypeOf (Var x_f_val), Equal, Literal (Type ObjectType)))) in
 		let cmd_goto_is_obj = SLGuardedGoto (goto_guard_expr, err, next1) in
 
 		(* x_hp := [x_f_val, "@construct"]; *)
@@ -1531,7 +1531,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 
 		(* goto [ typeOf(x_f_val) != Object] err next1; err -> typeerror *)
 		let next1 = fresh_next_label () in
-		let goto_guard_expr = UnaryOp (Not, (BinOp (TypeOf (Var x_f_val), Equal, Literal (Type ObjectType)))) in
+		let goto_guard_expr = UnOp (Not, (BinOp (TypeOf (Var x_f_val), Equal, Literal (Type ObjectType)))) in
 		let cmd_goto_is_obj = SLGuardedGoto (goto_guard_expr, err, next1) in
 
 		(* next1: x_ic := isCallable(x_f_val); *)
@@ -1937,7 +1937,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 
 		(* else: x_else := (negative x_n) *)
 		let x_else = fresh_var () in
-		let cmd_ass_xelse = SLBasic (SAssignment (x_else, UnaryOp (UnaryMinus, (Var x_n)))) in
+		let cmd_ass_xelse = SLBasic (SAssignment (x_else, UnOp (UnaryMinus, (Var x_n)))) in
 
 		(* end:  x_r := PHI(x_then, x_else) *)
 		let x_r = fresh_var () in
@@ -1980,8 +1980,8 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds = cmds @ (annotate_cmds [                                         (*  cmds                                *)
 			(None, cmd_gv_x);                                                        (*  x_v := i__getValue (x) with err     *)
 			(None, cmd_tn_x);                                                        (*  x_n := i__toNumber (x_v) with err   *)
-			(None, SLBasic (SAssignment (x_i32, UnaryOp (ToInt32Op, Var x_n))));     (*  x_i32 := (num_to_int32 x_n)         *)
-			(None, SLBasic (SAssignment (x_r, UnaryOp (BitwiseNot, Var x_i32))))     (*  x_r := (! x_i32)                    *)
+			(None, SLBasic (SAssignment (x_i32, UnOp (ToInt32Op, Var x_n))));     (*  x_i32 := (num_to_int32 x_n)         *)
+			(None, SLBasic (SAssignment (x_r, UnOp (BitwiseNot, Var x_i32))))     (*  x_r := (! x_i32)                    *)
 		]) in
 		let errs = errs @ [ x_v; x_n ] in
 		cmds, Var x_r, errs
@@ -2007,7 +2007,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 
 		(*  x_r := (not x_b)   *)
 		let x_r = fresh_var () in
-		let cmd_xr_ass = SLBasic (SAssignment (x_r, UnaryOp (Not, Var x_b))) in
+		let cmd_xr_ass = SLBasic (SAssignment (x_r, UnOp (Not, Var x_b))) in
 
 		let cmds = cmds @ (annotate_cmds [   (* cmds                               *)
 			(None, cmd_gv_x);                  (* x_v := i__getValue (x) with err    *)
@@ -2235,7 +2235,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 
 		let new_cmds, new_errs, x_r1 = translate_binop_comparison x1 x2 x1_v x2_v false false true err in
 		let x_r2 = fresh_var () in
-		let new_cmd = SLBasic (SAssignment (x_r2, UnaryOp (Not, (Var x_r1)))) in
+		let new_cmd = SLBasic (SAssignment (x_r2, UnOp (Not, (Var x_r1)))) in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) @ [ annotate_cmd new_cmd None ] in
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
 		cmds, Var x_r2, errs
@@ -2265,7 +2265,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 
 		let new_cmds, new_errs, x_r1 = translate_binop_comparison x1 x2 x1_v x2_v true true true err in
 		let x_r2 = fresh_var () in
-		let new_cmd = SLBasic (SAssignment (x_r2, UnaryOp (Not, (Var x_r1)))) in
+		let new_cmd = SLBasic (SAssignment (x_r2, UnOp (Not, (Var x_r1)))) in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) @ [ annotate_cmd new_cmd None ] in
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
 		cmds, Var x_r2, errs
@@ -2696,11 +2696,12 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let f_id = try Js_pre_processing.get_codename e
 			with _ -> raise (Failure "named function literals should be annotated with their respective code names") in
 
-		(*  x_t := checkParametersName (f_name, processed_params) with err;      *)
+		(*  x_t := checkParametersName (f_name, processed_params) with err; *)
 		let processed_params = List.map (fun p -> String p) params in
-		let x_t = fresh_var () in
+		
+		(* let x_t = fresh_var () in
 		let cmd_errCheck = SLCall (x_t, Literal (String checkParametersName),
-			[ (Literal (String f_name)); (Literal (LList processed_params)) ], Some err) in
+			[ (Literal (String f_name)); (Literal (LList processed_params)) ], Some err) in *)
 
 		(* x_sc := copy_object (x_sc, {{main, fid1, ..., fidn }});  *)
 		let x_sc = fresh_scope_chain_var () in
@@ -2727,7 +2728,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmd_fidouter_updt = SLBasic (SMutation (Var x_sc, Literal (String (f_id ^ "_outer")), Var x_f_outer_er)) in
 
 		let cmds = [
-			(None, cmd_errCheck);         (*  x_t := checkParametersName (f_name, processed_params) with err;       *)
+			(* (None, cmd_errCheck);         (*  x_t := checkParametersName (f_name, processed_params) with err;       *) *)
 			(None, cmd_sc_copy);          (*  x_sc := copy_object (x_sc, {{main, fid1, ..., fidn }});               *)
 			(None, cmd_fun_constr);       (*  x_f := create_function_object(x_sc, f_id, params)                     *)
 			(None, cmd_ass_xfouter);      (*  x_f_outer_er := new ();                                               *)
@@ -2737,7 +2738,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		] in
 
 		let cmds = annotate_cmds cmds in
-		cmds, Var x_f, [ x_t; x_cae ]
+		cmds, Var x_f, [ (* x_t; *) x_cae ]
 
 
 	| Parser_syntax.VarDec decs ->
@@ -3475,7 +3476,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		let next1 = fresh_next_label () in
 		let next2 = fresh_next_label () in
 		let expr_goto_guard = BinOp (Var x_ret_2, Equal, Literal Empty) in
-		let expr_goto_guard = UnaryOp (Not, expr_goto_guard) in
+		let expr_goto_guard = UnOp (Not, expr_goto_guard) in
 		let cmd_goto_empty_test = SLGuardedGoto (expr_goto_guard, next1, next2) in
 
 		(* x_ret_3 := PHI(x_ret_1, x_ret_2)  *)
@@ -3575,7 +3576,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		let next1 = fresh_next_label () in
 		let next2 = fresh_next_label () in
 		let expr_goto_guard = BinOp (Var x_ret_2, Equal, Literal Empty) in
-		let expr_goto_guard = UnaryOp (Not, expr_goto_guard) in
+		let expr_goto_guard = UnOp (Not, expr_goto_guard) in
 		let cmd_goto_empty_test = SLGuardedGoto (expr_goto_guard, next1, next2) in
 
 		(* x_ret_3 := PHI(x_ret_1, x_ret_2) *)
@@ -3695,7 +3696,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 
 			(* len := l-len (xf)	 *)
 			let len = fresh_var () in
-			let cmd_ass_len = SLBasic (SAssignment (len, UnaryOp (LstLen, Var xf))) in
+			let cmd_ass_len = SLBasic (SAssignment (len, UnOp (LstLen, Var xf))) in
 
 			(* x_c := 0 *)
 			let x_c = fresh_var () in
@@ -3745,7 +3746,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 
 			(* goto [ not (x_ret_2 = $$empty) ] next2 next3 *)
 			let expr_goto_guard = BinOp (Var x_ret_2, Equal, Literal Empty) in
-			let expr_goto_guard = UnaryOp (Not, expr_goto_guard) in
+			let expr_goto_guard = UnOp (Not, expr_goto_guard) in
 			let cmd_goto_xret2 = SLGuardedGoto (expr_goto_guard, next2, next3) in
 
 			(* x_ret_3 := PHI(x_ret_1, x_ret_2) *)
@@ -3897,7 +3898,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		let next1 = fresh_next_label () in
 		let next2 = fresh_next_label () in
 		let expr_goto_guard = BinOp (Var x_ret_2, Equal, Literal Empty) in
-		let expr_goto_guard = UnaryOp (Not, expr_goto_guard) in
+		let expr_goto_guard = UnOp (Not, expr_goto_guard) in
 		let cmd_goto_empty_test = SLGuardedGoto (expr_goto_guard, next1, next2) in
 
 		(* next2:    x_ret_3 := PHI(x_ret_1, x_ret_2) *)
@@ -4179,7 +4180,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			let cmds2 = add_initial_label cmds2 next2 metadata in
 
 			(* goto [ not x_prev_found ] next1 next2 *)
-			let cmd_goto_1 = SLGuardedGoto ( UnaryOp(Not, Var x_prev_found), next1, next2) in
+			let cmd_goto_1 = SLGuardedGoto ( UnOp(Not, Var x_prev_found), next1, next2) in
 
 			(* x1_v := getValue (x1) with err *)
 			let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
@@ -4228,7 +4229,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 
 			(* goto [ not (x_found_b) ] next end_switch *)
 			let next = fresh_next_label () in
-			let cmd_goto = SLGuardedGoto( UnaryOp( Not, Var x_found_b), next, end_switch) in
+			let cmd_goto = SLGuardedGoto( UnOp( Not, Var x_found_b), next, end_switch) in
 			let cmds_def = add_initial_label cmds_def next metadata in
 
 			(* x_r := PHI(breaks_ab, x_ab, breaks_def, breaks_b, x_b) *)
@@ -4419,6 +4420,9 @@ let generate_main offset_converter e main cc_table spec =
 
 	let errs = errs_hoist_decls @ errs in
 	let cmd_err_phi_node = make_final_cmd errs ctx.tr_error_lab ctx.tr_error_var in
+	
+	let cmd_del_te = annotate_cmd (SLBasic (SDeleteObj (Var var_te))) None in
+	let cmd_del_se = annotate_cmd (SLBasic (SDeleteObj (Var var_se))) None in
 
 	let main_cmds =
 		[ setup_heap_ass; init_scope_chain_ass; lg_ass; this_ass] @
@@ -4426,7 +4430,7 @@ let generate_main offset_converter e main cc_table spec =
 		[ cmd_ass_te; cmd_ass_se ] @
 		cmds_hoist_fdecls @
 		cmds_e @
-		[ret_ass; lab_ret_skip; cmd_err_phi_node ] in
+		[ret_ass; cmd_del_te; cmd_del_se; lab_ret_skip; cmd_err_phi_node ] in
 	{
 		lproc_name = main;
     lproc_body = (Array.of_list main_cmds);
@@ -4615,7 +4619,7 @@ let generate_proc offset_converter e fid params rcr cc_table vis_fid spec =
 	let cmds_arg_obj =
 		[
 			(empty_metadata, None, SLBasic (SArguments (x_argList_pre)));
-			(empty_metadata, None, SLBasic (SAssignment (x_argList_act, UnaryOp (Cdr, (UnaryOp (Cdr, Var x_argList_pre))))));
+			(empty_metadata, None, SLBasic (SAssignment (x_argList_act, UnOp (Cdr, (UnOp (Cdr, Var x_argList_pre))))));
 			(empty_metadata, None, SLCall  (x_args, Literal (String createArgsName), [ Var x_argList_act ], Some new_ctx.tr_error_lab));
 			(empty_metadata, None, SLBasic (SMutation (Var x_er, Literal (String "arguments"), Var x_args)))
 		] in *)
@@ -4711,20 +4715,20 @@ let fresh_named_eval n : string =
 
 
 let js2jsil e offset_converter for_verification =
-	let cc_tbl = Hashtbl.create 101 in
-	let fun_tbl = Hashtbl.create 101 in
-	let vis_tbl = Hashtbl.create 101 in
+	let cc_tbl = Hashtbl.create medium_tbl_size in
+	let fun_tbl = Hashtbl.create medium_tbl_size in
+	let vis_tbl = Hashtbl.create medium_tbl_size in
 
 	let main = "main" in
 	Js_pre_processing.test_early_errors e;
-	let e = Js_pre_processing.add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous e in
+	let e : Parser_syntax.exp = Js_pre_processing.add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous [] e in
 	Js_pre_processing.closure_clarification_top_level cc_tbl fun_tbl vis_tbl main e [ main ] [];
 
 
 	(* TODO: 'predicates' is empty *)
-	let predicates = Hashtbl.create 101 in
+	let predicates = Hashtbl.create medium_tbl_size in
 
-	let procedures = Hashtbl.create 101 in
+	let procedures = Hashtbl.create medium_tbl_size in
 	Hashtbl.iter
 		(fun f_id (_, f_params, f_body, f_rec, spec) ->
 			print_endline (Printf.sprintf "Procedure %s is recursive?! %b" f_id f_rec);
@@ -4756,15 +4760,18 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 			vis_tbl, cc_tbl, (try (Hashtbl.find vis_tbl f_parent_id) with _ ->
 				raise (Failure (Printf.sprintf "Function %s not found in visibility table" f_parent_id)))
 		| _, _ -> raise (Failure "Wrong call to eval. Whatever.")) in
+	let temp_new_fun_tbl = Hashtbl.create 101 in
 	let new_fun_tbl = Hashtbl.create 101 in
-
+	
 	let new_fid = fresh_anonymous_eval () in
-	let e = Js_pre_processing.add_codenames new_fid fresh_anonymous_eval fresh_named_eval fresh_catch_anonymous_eval e in
+	let e : Parser_syntax.exp = Js_pre_processing.add_codenames new_fid fresh_anonymous_eval fresh_named_eval fresh_catch_anonymous_eval [] e in
 	Js_pre_processing.update_cc_tbl cc_tbl f_parent_id new_fid [var_scope; var_this] e;
-	Hashtbl.add new_fun_tbl new_fid (new_fid, [var_scope; var_this], e, true, None);
+	Hashtbl.add temp_new_fun_tbl new_fid (new_fid, [var_scope; var_this], e, ([], [ new_fid ],  Hashtbl.create Js2jsil_constants.small_tbl_size));
 	Hashtbl.add vis_tbl new_fid (new_fid :: vis_fid);
-	Js_pre_processing.closure_clarification_stmt cc_tbl new_fun_tbl vis_tbl new_fid (new_fid :: vis_fid) [] e;
+	Js_pre_processing.closure_clarification_stmt cc_tbl temp_new_fun_tbl vis_tbl new_fid (new_fid :: vis_fid) [] e;
 
+	
+	
 	Hashtbl.iter
 		(fun f_id (_, f_params, f_body, _, _) ->
 			let proc =
@@ -4798,15 +4805,15 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 		| _, _ -> raise (Failure "FC: Wrong call to function constructor. Whatever.")) in
 
 	let new_fun_tbl = Hashtbl.create 1 in
-	let e = Js_pre_processing.add_codenames "main" fresh_anonymous fresh_named fresh_catch_anonymous e in
+	let e : Parser_syntax.exp = Js_pre_processing.add_codenames "main" fresh_anonymous fresh_named fresh_catch_anonymous [] e in
 	let new_fid = Js_pre_processing.get_codename e in
 	Js_pre_processing.update_cc_tbl cc_tbl "main" (* f_parent_id *) new_fid params e;
-	Hashtbl.replace new_fun_tbl new_fid (new_fid, params, e, true, None);
+	Hashtbl.replace new_fun_tbl new_fid (new_fid, params, e, ([], [ new_fid ],  Hashtbl.create Js2jsil_constants.small_tbl_size));
 	Hashtbl.replace vis_tbl new_fid (new_fid :: vis_fid);
 	Js_pre_processing.closure_clarification_stmt cc_tbl new_fun_tbl vis_tbl new_fid vis_fid [] e;
 
 	Hashtbl.iter
-		(fun f_id (_, f_params, f_body, _, _) ->
+		(fun f_id (_, f_params, f_body, (_, _, _)) ->
 			let proc =
   			(let vis_fid = try Hashtbl.find vis_tbl f_id
   				with _ ->
