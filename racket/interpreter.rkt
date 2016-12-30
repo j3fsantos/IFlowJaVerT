@@ -3,6 +3,7 @@
 (require (file "mem_model.rkt"))
 (require (file "wp.rkt"))
 (require (file "util.rkt"))
+(require (file "assertions.rkt"))
 
 (define depth 0)
 
@@ -41,7 +42,7 @@
               (loc-val (run-expr loc-expr store))
               (prop-val (run-expr prop-expr store))
               (rhs-val (run-expr rhs-expr store)))
-         (println (format "Mutation: [~v, ~v] = ~v" loc-val prop-val rhs-val))
+	      ;; (println (format "Mutation: [~v, ~v] = ~v" loc-val prop-val rhs-val))
          (mutate-heap heap loc-val prop-val rhs-val)
          rhs-val)]
       ;;
@@ -72,9 +73,9 @@
               (prop-list (get-fields heap loc-val))
               (is-js-field (member prop-val prop-list))
               (result (not (eq? is-js-field #f))))
-         (println (format "Has-field: ~v = hf [~v, ~v] : ~v, ~v" lhs-var loc-val prop-val is-js-field result))
-         (println (format "object: ~v" (heap-get-obj heap loc-val)))
-         (println (format "proplist: ~v" prop-list))
+         ;; (println (format "Has-field: ~v = hf [~v, ~v] : ~v, ~v" lhs-var loc-val prop-val is-js-field result))
+         ;; (println (format "object: ~v" (heap-get-obj heap loc-val)))
+         ;; (println (format "proplist: ~v" prop-list))
          (mutate-store store lhs-var result) ;; (to-jsil-bool contains))
          result)] ;; (to-jsil-bool contains))]
       ;;
@@ -175,7 +176,7 @@
   (let* ((proc (get-proc prog proc-name))
          (cmd (get-cmd proc cur-index))
          (cmd-type (first cmd)))
-    (print-cmd cmd)
+    ;;(print-cmd cmd)
     ;;(println (format "Run-cmds-iter: procedure: ~v, index ~v, command ~v" proc-name cur-index cmd))
     (cond
       ;;
@@ -183,7 +184,7 @@
       [(eq? cmd-type 'print)
        (let* ((expr (second cmd))
               (expr-val (run-expr expr store)))
-         (println (format "Program Print:: ~v" expr-val))
+         ;; (println (format "Program Print:: ~v" expr-val))
          (run-cmds-iter prog proc-name heap store (+ cur-index 1) cur-index))]
       ;;
       ;; ('goto i)
@@ -250,13 +251,13 @@
               (err-label (if (>= (length cmd) 5) (fifth cmd) null))
               (call-proc-name (run-expr proc-name-expr store))
               (arg-vals (map (lambda (expr) (run-expr expr store)) arg-exprs)))
-         (newline (current-output-port))
-         (println (format "~v : Procedure call: ~v (~v)" depth call-proc-name arg-vals))
+         ;; (newline (current-output-port))
+         ;; (println (format "~v : Procedure call: ~v (~v)" depth call-proc-name arg-vals))
          (set! depth (+ depth 1))
          (let ((outcome (car (run-proc prog call-proc-name heap arg-vals))))
            (set! depth (- depth 1))
-           (println (format "~v : Procedure return: ~v = ~v (~v) -> ~v" depth lhs-var call-proc-name arg-vals outcome)) 
-           (newline (current-output-port))
+           ;; (println (format "~v : Procedure return: ~v = ~v (~v) -> ~v" depth lhs-var call-proc-name arg-vals outcome)) 
+           ;; (newline (current-output-port))
            (cond
              [(and (eq? (first outcome) 'err) (not (null? err-label)))
               (mutate-store store lhs-var (second outcome))
@@ -341,7 +342,7 @@
         (let* ((arg (second expr))
                (val (run-expr arg store))
                (type-of (jsil-type-of val)))
-          (println (format "typeOf: typeof ~v -> ~v = ~v" arg val type-of))
+          ;; (println (format "typeOf: typeof ~v -> ~v = ~v" arg val type-of))
           type-of)]
        ;;
        ;; ('jsil-list l)
@@ -374,26 +375,27 @@
                (eidx  (third expr))
                (vidx  (run-expr eidx store)))
           (if (string? vstr)
-              (make-string 1 (string-ref vstr (inexact->exact vidx)))
+              (string-at vstr (inexact->exact vidx))
               (error "Illegal string given to s-nth")))]
+
+
        ;;
        ;; (make-symbol-number symb-name)
        [(eq? (first expr) 'make-symbol-number)
-        (define-symbolic* n real?)
-	n]
+        (constant (second expr) real?)]
 
        ;;
        ;; (make-symbol-string symb-name)
        [(eq? (first expr) 'make-symbol-string)
-        (define-symbolic* n string?)
-	n]
+        (constant (second expr) string?)]
 
       ;;
       ;; ('assert e)
       [(eq? (first expr) 'assert)
        (let* ((expr-arg (second expr))
               (expr-val (run-expr expr-arg store)))
-         (jsil-assert expr-val))]
+         (op-assert expr-val))]
+
       ;;
       ;; ('assume e)
       [(eq? (first expr) 'assume)
@@ -430,7 +432,7 @@
   (jsil-discharge)
   (run-proc prog "main" heap '()))
   
-(provide run-program run-proc program procedure heap cell store args body ret-ctx err-ctx jempty jnull jundefined protop) ;; jtrue jfalse protop)
+(provide run-program run-proc program procedure heap cell store args body ret-ctx err-ctx jempty jnull jundefined protop get-assertions) ;; jtrue jfalse protop)
 
 
 

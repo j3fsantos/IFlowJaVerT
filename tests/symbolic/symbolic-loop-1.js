@@ -1,11 +1,8 @@
-var ___n_number = jsil_make_symbolic_number (); 
+var n = jsil_make_symbolic_number (); 
 
-function top(n) {
-    var total = 0;
-    for(var i = 0; i < n; i++) {
-	total += i;
-    }
-    return total;
+var total = 0;
+for(var i = 0; i < n; i++) {
+    total += i;
 }
 
-top(___n_number);
+jsil_assert(total === 15);

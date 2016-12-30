@@ -244,11 +244,7 @@
 ;    (#t (number->string n))))
 
 (define (jsil-number-to-string n)
-<<<<<<< HEAD
-	"0")
-=======
   (number->string n))
->>>>>>> a1bfae79ffe67319c7ec327405cb869824354180
 
 (define operators-list
   (list
@@ -382,7 +378,7 @@
                            ac))
                        (list ) obj))
               (sprops (sort props string<?)))
-         (println (format "Internal get-fields: igf (~a) = ~a" loc sprops))
+         ;; (println (format "Internal get-fields: igf (~a) = ~a" loc sprops))
          sprops)]
       [ else (loop (cdr heap-pulp))])))
 
