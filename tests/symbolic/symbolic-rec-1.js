@@ -8,5 +8,6 @@ function top(x) {
 }
 
 var x = jsil_make_symbolic_number();
-top(x);
+var y = top(x);
 
+jsil_assert(y == 34)

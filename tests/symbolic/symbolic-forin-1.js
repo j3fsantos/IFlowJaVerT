@@ -7,6 +7,10 @@ function top(o) {
     return total;
 }
 
-var o = { a: ___av_number, b: ___bv_number, c: ___cv_number };
+var o = { a: jsil_make_symbolic_number(),
+	  b: jsil_make_symbolic_number(),
+	  c: jsil_make_symbolic_number() };
 
-top(o);
+var v = top(o);
+
+jsil_assert(v = 100)

@@ -1,3 +1,4 @@
+#lang rosette
 
 (define (symbolic? x) 
   (or (union? x) (term? x)))

@@ -1,7 +1,8 @@
 var v = 0;
 var s1 = jsil_make_symbolic_string();
+var s2 = jsil_make_symbolic_string();
 
-if (s1.indexOf("abcdef") === 2) {
+if ("ab" == s1+s2) {
     v++;
 }
 

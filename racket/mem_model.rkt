@@ -476,7 +476,7 @@
 (define (make-jsil-list l)
   (cons 'jsil-list l))
 
-(provide is-a-list? make-heap mutate-heap heap-get heap-delete-cell heap cell get-new-loc make-jsil-list heap-delete-object) ;; heap-contains?
+(provide is-a-list? make-heap mutate-heap heap-get heap-delete-cell heap cell get-new-loc make-jsil-list) ;; heap-contains?
 
 
 ;; stores - my stuff
