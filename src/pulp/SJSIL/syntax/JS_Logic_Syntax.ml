@@ -206,7 +206,7 @@ let make_scope_chain_assertion vis_list current exceptions is_pre =
 			 | _,    false, false -> LStar (a_new, a_proto_new)
 			 | _,    true,  false -> LStar (a_new, a_proto_new)
 			 (* why dont I need the proto field in this case? *)
-			 | _,    true,  true  -> LStar (a_new, a_type) 
+			 | _,    true,  true  -> a_new  
 			) in
 			let a = if (a = LEmp) then to_add else LStar (a, to_add) in
 			loop a rest
