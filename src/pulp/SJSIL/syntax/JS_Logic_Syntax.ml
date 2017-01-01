@@ -42,7 +42,7 @@ let make_simple_scope_chain_assertion sc_loc vis_list =
 				loop rest_fids (a_cur_fid :: assertions) targets 
 			) in 
 	let sc_assertions, _ = loop vis_list [] [] in 
-	let a_sc = JSIL_Logic_Utils.star_asses sc_assertions in 
+	let a_sc = JSIL_Logic_Utils.star_asses (var_scope_proto_null :: sc_assertions) in 
 	a_sc  
 			
 

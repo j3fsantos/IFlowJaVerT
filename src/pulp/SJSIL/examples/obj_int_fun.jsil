@@ -165,14 +165,15 @@ spec copy_object (l, fields)
 	[[ (l == #l) * (fields == #fields) *
 	   (#fields == {{ #f }}) * isNamedProperty(#f) *
 	   ((#l, #f) -> #v) * isNamedProperty (#f) ]]
-	[[ ((#l, #f) -> #v) * ((ret, #f) -> #v) * ((ret, "@proto") -> $$null) ]]
+	[[ ((#l, #f) -> #v) * ((ret, #f) -> #v) * ((ret, "@proto") -> $$null) * empty_fields(ret : "@proto", #f) ]]
 	normal;
 
 	[[ (l == #l) * (fields == #fields) *
 	   (#fields == {{ #f1, "main" }}) * isNamedProperty(#f1) *
 	   ((#l, #f1) -> #v1) * ((#l, "main") -> #v2) ]]
 	[[ ((#l, #f1) -> #v1) * ((#l, "main") -> #v2) *
-	   ((ret, #f1) -> #v1) * ((ret, "main") -> #v2) * ((ret, "@proto") -> $$null) ]]
+	   ((ret, #f1) -> #v1) * ((ret, "main") -> #v2) * ((ret, "@proto") -> $$null) 
+	   * empty_fields(ret : "@proto", #f1, "main") ]]
 	normal
 
 proc copy_object (l, fields) {
@@ -331,12 +332,12 @@ pred function_object (l, xsc, call, construct, len, prototype) :
 	empty_fields(l : "@proto", "@class", "@extensible", "@scope", "length", "@call", "@construct", "caller", "arguments", "prototype");
 
 spec create_function_object (xsc, call, construct, params)
-    [[ (xsc == #xsc) * (call == #call) * (construct == #construct) * (params == #params) *
+    [[ (xsc == #xsc) * (call == #call) * (construct == #construct) * (params == #params) * ((#xsc, #call) -> None) * 
 	   types(#l : $$object_type, #xsc : $$object_type, #call : $$string_type, #construct: $$string_type, #params : $$list_type) ]]
     [[ types(#l : $$object_type, #xsc : $$object_type, #call : $$string_type, #construct: $$string_type, #params : $$list_type, #len : $$int_type, ret : $$object_type) *
 	   function_object(ret, #xsc, #call, #construct, #len, prototype) * (#len == l-len #params) *
 	   ((prototype, "@proto") -> $lobj_proto) * ((prototype, "@class") -> "Object") * ((prototype, "@extensible") -> $$t) *
-	   ((prototype, "constructor") -> {{ "d", ret, $$t, $$f, $$t }} ) *
+	   ((prototype, "constructor") -> {{ "d", ret, $$t, $$f, $$t }} ) * ((#xsc, #call) -> $$null) * 
 	   empty_fields(prototype : "@proto", "@class", "@extensible", "constructor") ]]
     normal
 
@@ -346,6 +347,7 @@ proc create_function_object (xsc, call, construct, params) {
 			l := "create_object_with_call_construct" (l, call, construct, len);
 
 			[l, "@scope"] := xsc;
+			[xsc, call] := $$null; 
 
 			prototype := new ();
 			prototype := "create_default_object" (prototype, $lobj_proto, "Object", $$t);
@@ -1258,6 +1260,34 @@ with
 	ret:	xret, rlab;
 	err:	xret, elab;
 };
+
+
+
+(* *************** *)
+(* IsCallable *)
+(* *************** *)
+
+spec i__isCallable (l)
+
+    [[ ((l, "@call") -> None) * types (l : $$object_type) ]]
+    [[ ((l, "@call") -> None) * (ret == $$f) ]]
+    normal;
+	
+	[[ ((l, "@call") -> #y) * (! (#y == None)) * types (l : $$object_type) ]]
+    [[ ((l, "@call") -> #y) * (ret == $$t) ]]
+    normal
+
+proc i__isCallable (l) {
+			xret := $$f;
+			goto [typeOf(l) = $$object_type] obj rlab;
+	obj:	xret := hasField(l, "@call");
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};
+
 
 (* *************** *)
 (* CHECKPARAMETERS *)

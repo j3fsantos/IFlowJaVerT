@@ -289,15 +289,39 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 	let quotient_heap = LHeap.create 1021 in
 	let pat_heap_domain : string list = get_heap_domain pat_heap subst in
 	print_debug (Printf.sprintf "PatHeapDomain: %s" (String.concat ", " pat_heap_domain));
+	
+	let just_pick_the_first locs = 
+		match locs with 
+		| [] -> print_debug "DEATH. MARICA! MARICA brain activate\n"; raise (Failure "DEATH: unify_symb_heaps")
+		| loc :: rest -> loc, rest in 
+	
+	let pick_pat_loc (locs_to_visit : string list) subst : string * (string list) = 
+		print_debug "pick_pat_loc\n";
+		
+		let rec loop (remaining_locs : string list) (traversed_locs : string list) : string * (string list) = 
+			match remaining_locs with 
+			| [] -> just_pick_the_first traversed_locs 
+			| loc :: rest -> 
+				if ((not (is_abs_loc_name loc)) || (Hashtbl.mem subst loc)) 
+					then loc, (traversed_locs @ rest) 
+					else loop rest (traversed_locs @ [ loc ]) in 
+		loop locs_to_visit [] in 	
+		
 	try
-		let pfs : jsil_logic_assertion list =
+		(* let pfs : jsil_logic_assertion list =
 			List.fold_left
-				(fun pfs pat_loc ->
-					print_debug (Printf.sprintf "Location: %s" pat_loc);
-					print_debug (Printf.sprintf "Substitution: %s" (JSIL_Memory_Print.string_of_substitution subst));
-					(match abs_heap_get pat_heap pat_loc with
-					| Some (pat_fv_list, pat_def) ->
-			  			(if ((pat_def <> LNone) && (pat_def <> LUnknown)) then raise (Failure "Illegal Default Value")  else (
+				(fun pfs pat_loc -> *)
+					
+		let rec loop locs_to_visit pfs = 
+			(match locs_to_visit with 
+			| [] -> pfs 
+			| _ ->  
+				let pat_loc, rest_locs = pick_pat_loc locs_to_visit subst in  
+				print_debug (Printf.sprintf "Location: %s" pat_loc);
+				print_debug (Printf.sprintf "Substitution: %s" (JSIL_Memory_Print.string_of_substitution subst));
+				(match abs_heap_get pat_heap pat_loc with
+				| Some (pat_fv_list, pat_def) ->
+			  	(if ((pat_def <> LNone) && (pat_def <> LUnknown)) then raise (Failure "Illegal Default Value")  else (
 						let loc = try
 							let le = Hashtbl.find subst pat_loc in
 							(match le with
@@ -320,18 +344,20 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 							let all_fields_in_new_fv_list_are_none =
 								List.fold_left (fun ac (_, field_val) -> if (not ac) then ac else (field_val = LNone)) true new_fv_list in
 							if all_fields_in_new_fv_list_are_none then
-								(LHeap.replace quotient_heap loc ([], def); pfs)
+								(LHeap.replace quotient_heap loc ([], def); 
+								loop rest_locs pfs)
 							else raise (Failure "LNone in precondition")
 						| Some (new_fv_list, matched_fv_list) ->
 							LHeap.replace quotient_heap loc (new_fv_list, def);
 							print_debug (Printf.sprintf "Adding sth to QH.");
 							print_debug (Printf.sprintf "QH: %s" (JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false));
 							let new_pfs : jsil_logic_assertion list = make_all_different_pure_assertion new_fv_list matched_fv_list in
-							new_pfs @ pfs
+							loop rest_locs (new_pfs @ pfs)
 						| None -> print_debug "fv_lists not unifiable!"; raise (Failure ("fv_lists not unifiable")))))
-					| _ -> raise (Failure ("Pattern heaps cannot have default values"))))
-				[]
-				pat_heap_domain in
+					| _ -> raise (Failure ("Pattern heaps cannot have default values")))) in 
+			
+		let pfs : jsil_logic_assertion list = loop pat_heap_domain [] in 
+				
 		print_debug (Printf.sprintf "Heap again %s" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false));
 		LHeap.iter
 			(fun loc (fv_list, def) ->

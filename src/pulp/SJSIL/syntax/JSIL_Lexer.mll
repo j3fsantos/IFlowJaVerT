@@ -53,8 +53,6 @@ rule read = parse
 	| "$$f"                { JSIL_Parser.FALSE }
 	| "nan"                { JSIL_Parser.NAN }
 	| "inf"                { JSIL_Parser.INFINITY }
-	| ".v."                { JSIL_Parser.VREFLIT }
-	| ".o."                { JSIL_Parser.OREFLIT }
 	| "$$nil"              { JSIL_Parser.LSTNIL }
 	| "{{"                 { JSIL_Parser.LSTOPEN }
 	| "}}"                 { JSIL_Parser.LSTCLOSE }
@@ -189,7 +187,6 @@ rule read = parse
 	| ']'                  { JSIL_Parser.RBRACKET  }
 	| '{'                  { JSIL_Parser.CLBRACKET }
 	| '}'                  { JSIL_Parser.CRBRACKET }
-	| '|'                  { JSIL_Parser.VERT      }
 (* Literals (cont.) *)
 	| int                  { let n = float_of_string (Lexing.lexeme lexbuf) in
 	                           if (Utils.is_int n)

@@ -48,8 +48,6 @@ open JS_Logic_Syntax
 %token INFINITY
 %token <string> STRING
 %token <string> LOC
-%token VREFLIT
-%token OREFLIT
 %token LSTNIL
 %token LSTOPEN
 %token LSTCLOSE
@@ -185,7 +183,6 @@ open JS_Logic_Syntax
 %token RBRACKET
 %token CLBRACKET
 %token CRBRACKET
-%token VERT
 (* EOF *)
 %token EOF
 (***** Precedence of operators *****)
@@ -618,7 +615,7 @@ assertion_target:
   | LTYPES; LBRACE; type_pairs = separated_list(COMMA, type_env_pair_target); RBRACE
     { LTypes type_pairs }
 (* empty_fields (le | lit1, lit2, lit3, ...) *)
-	| EMPTYFIELDS; LBRACE; le=lexpr_target; COLON; fields=separated_list(COMMA, STRING); RBRACE
+	| EMPTYFIELDS; LBRACE; le=lexpr_target; COLON; fields=separated_list(COMMA, lexpr_target); RBRACE
 		{ LEmptyFields (le, fields) }
 (* (P) *)
   | LBRACE; ass=assertion_target; RBRACE
@@ -680,11 +677,11 @@ logic_variable_target:
 
 program_variable_target:
   | v = VAR
-	  { validate_pvar v; PVar v }
+	  { let _ = validate_pvar v in PVar v }
 	| RET
-	  { validate_pvar "ret"; PVar "ret" }
+	  { let _ = validate_pvar "ret" in PVar "ret" }
 	| ERR
-	  { validate_pvar "err"; PVar "err" }
+	  { let _ = validate_pvar "err" in PVar "err" }
 ;
 
 (********* PREDS and SPECS only *********)
@@ -865,11 +862,11 @@ js_assertion_target:
 
 js_program_variable_target:
   | v = VAR
-	  { validate_pvar v; v }
+	  { let _ = validate_pvar v in v }
 	| RET
-	  { validate_pvar "ret"; "ret" }
+	  { let _ = validate_pvar "ret" in "ret" }
 	| ERR
-	  { validate_pvar "err"; "err" }
+	  { let _ = validate_pvar "err" in "err" }
 ;
 
 js_lexpr_target:
