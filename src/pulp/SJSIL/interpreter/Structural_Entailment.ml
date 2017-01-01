@@ -476,7 +476,7 @@ let unify_gamma pat_gamma gamma pat_store subst ignore_vars =
 								(JSIL_Print.string_of_logic_expression le false)
 								(JSIL_Print.string_of_type v_type)
 								(JSIL_Print.string_of_type le_type));
-							(le_type = v_type)
+							(types_leq le_type v_type)
 						| None ->
 							    print_debug (Printf.sprintf "failed unify_gamma. pat gamma var: %s. le: %s. v_type: %s\n"
 								var
