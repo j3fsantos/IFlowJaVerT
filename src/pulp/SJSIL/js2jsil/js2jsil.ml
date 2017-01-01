@@ -4455,6 +4455,9 @@ let generate_proc_eval new_fid e cc_table vis_fid =
 	let x_er = fresh_var () in
 	let cmd_er_creation = annotate_cmd (SLBasic (SNew x_er)) None in
 
+	(* [x_er, "@er"] := $$t *)
+  let cmd_er_flag = annotate_cmd (SLBasic (SMutation (Var x_er, Literal (String erFlagPropName), Literal (Bool true)))) None in
+
 	(* [x_er, decl_var_i] := undefined *)
 	let new_fid_vars = Js_pre_processing.var_decls e in
 	let cmds_decls =
@@ -4496,7 +4499,7 @@ let generate_proc_eval new_fid e cc_table vis_fid =
 	let cmd_error_phi = make_final_cmd (errs @ [ fake_ret_var ]) ctx.tr_error_lab ctx.tr_error_var in
 
 	let fid_cmds =
-		[ cmd_er_creation ] @ cmds_decls @ [ cmd_ass_er_to_sc; cmd_ass_te; cmd_ass_se ] @ cmds_hoist_fdecls @ cmds_e
+		[ cmd_er_creation; cmd_er_flag ] @ cmds_decls @ [ cmd_ass_er_to_sc; cmd_ass_te; cmd_ass_se ] @ cmds_hoist_fdecls @ cmds_e
 		@ [ cmd_gv_xe; cmd_dr_ass; cmd_fake_ret; cmd_error_phi] in
 	{
 		lproc_name = new_fid;
@@ -4591,6 +4594,9 @@ let generate_proc offset_converter e fid params rcr cc_table vis_fid spec =
 
 	(* x_er := new () *)
 	let cmd_er_creation = annotate_cmd (SLBasic (SNew var_er)) None in
+	
+	(* [x_er, "@er"] := $$t *)
+  let cmd_er_flag = annotate_cmd (SLBasic (SMutation (Var var_er, Literal (String Js2jsil_constants.erFlagPropName), Literal (Bool true)))) None in
 
 	(* [x_er, "arg_i"] := x_{i+2} *)
 	let cmds_params =
@@ -4662,7 +4668,7 @@ let generate_proc offset_converter e fid params rcr cc_table vis_fid spec =
 
 	let fid_cmds =
 		cmds_save_old_er @
-		[ cmd_er_creation ] @
+		[ cmd_er_creation; cmd_er_flag ] @
 		cmds_decls @
 		cmds_params @
 		(* cmds_arg_obj @ *)

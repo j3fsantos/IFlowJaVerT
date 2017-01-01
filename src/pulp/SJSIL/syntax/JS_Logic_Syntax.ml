@@ -146,7 +146,6 @@ let rec js2jsil_logic (js_var_to_lvar : (string, JSIL_Syntax.jsil_logic_expr) Ha
 		with _ -> raise (Failure "js2jsil_logic. JSFunObj - not found business")
 
 
-
 let var_fid_tbl_to_assertion (var_to_fid_tbl : (string, string) Hashtbl.t) current (exceptions : string list) is_global is_pre =
 	let js_var_to_lvar = Hashtbl.create small_tbl_size in
 	let (a, locs) = Hashtbl.fold
@@ -198,15 +197,16 @@ let make_scope_chain_assertion vis_list current exceptions is_pre =
 			let a_type = LTypes [ target, ObjectType ] in
 			let a_proto_new = LPointsTo (target, LLit (String Js2jsil_constants.internalProtoFieldName), LLit Null) in
 			let a_not_lg = LNot (LEq (target, LLit (Loc Js2jsil_constants.locGlobName))) in
+			let a_er_flag = LPointsTo (target, LLit (String Js2jsil_constants.erFlagPropName), LLit (Bool true)) in 
 			(* a_new, a_type, a_proto_new, a_not_lg *)
 			print_debug (Printf.sprintf "%s %s %s : %b %b %b" fid main_fid current (fid = main_fid) (fid = current) is_pre);
 			let to_add = (match (fid = main_fid, fid = current, is_pre) with
 			 | true, _,     _     -> a_new
-			 | _,    false, true  -> LStar (a_new, LStar (a_type, LStar (a_proto_new, a_not_lg)))
-			 | _,    false, false -> LStar (a_new, a_proto_new)
+			 | _,    false, true  -> LStar (a_er_flag, LStar (a_new, LStar (a_type, LStar (a_proto_new, a_not_lg))))
+			 | _,    false, false -> LStar (a_er_flag, LStar (a_new, a_proto_new))
 			 | _,    true,  false -> LStar (a_new, a_proto_new)
 			 (* why dont I need the proto field in this case? *)
-			 | _,    true,  true  -> a_new  
+			 | _,    true,  true  -> a_new
 			) in
 			let a = if (a = LEmp) then to_add else LStar (a, to_add) in
 			loop a rest
@@ -244,4 +244,7 @@ let rec js2jsil_logic_top_level_post a (var_to_fid_tbl : (string, string) Hashtb
 	print_debug (Printf.sprintf "J2JPost: \n\t%s\n\t%s\n\t%s\n\t%s"
 		(JSIL_Print.string_of_logic_assertion a' false) (JSIL_Print.string_of_logic_assertion a_env_records false)
 		(JSIL_Print.string_of_logic_assertion a_scope_chain false) (JSIL_Print.string_of_logic_assertion a_post_js_heap false));
-	JSIL_Logic_Utils.star_asses [a'; a_env_records; a_scope_chain; a_post_js_heap]
+	let a_er_flag = LPointsTo (PVar Js2jsil_constants.var_er, LLit (String Js2jsil_constants.erFlagPropName), LLit (Bool true)) in 
+	if (is_global)
+		then JSIL_Logic_Utils.star_asses [a'; a_env_records; a_scope_chain; a_post_js_heap]
+		else JSIL_Logic_Utils.star_asses [a'; a_env_records; a_er_flag; a_scope_chain; a_post_js_heap]

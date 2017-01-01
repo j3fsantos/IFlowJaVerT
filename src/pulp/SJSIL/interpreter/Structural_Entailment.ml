@@ -773,12 +773,12 @@ let unify_symb_states_fold existentials (pat_symb_state : symbolic_state) (symb_
 
 
 
-let fully_unify_symb_state pat_symb_state symb_state lvars =
+let fully_unify_symb_state pat_symb_state symb_state lvars (js : bool) =
 	(* Printf.printf "Fully_unify_symb_state.\nFinal symb_state:\n%s.\nPost symb_state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state) (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state); *)
 	let unifier = unify_symb_states lvars pat_symb_state symb_state in
 	match unifier with
 	| Some (true, quotient_heap, quotient_preds, subst, pf_discharges, _) ->
-		let emp_heap = (is_symb_heap_empty quotient_heap) in
+		let emp_heap = (is_symb_heap_empty quotient_heap js) in
 		let emp_preds = (is_preds_empty quotient_preds) in
 		if (emp_heap && emp_preds) then
 			(Some subst, "")
@@ -792,7 +792,7 @@ let fully_unify_symb_state pat_symb_state symb_state lvars =
 	| None -> (None, "sorry, non_unifiable heaps")
 
 
-let unify_symb_state_against_post proc_name spec symb_state flag symb_exe_info =
+let unify_symb_state_against_post proc_name spec symb_state flag symb_exe_info js =
 	let print_error_to_console msg =
 		(if (msg = "")
 			then Printf.printf "Failed to verify a spec of proc %s\n" proc_name
@@ -806,7 +806,7 @@ let unify_symb_state_against_post proc_name spec symb_state flag symb_exe_info =
 		(match posts, post_vars_lists with
 		| [], [] -> print_error_to_console "Non_unifiable symbolic states";  raise (Failure "post condition is not unifiable")
 		| post :: rest_posts, post_lvars :: rest_posts_lvars ->
-			let subst = fully_unify_symb_state post symb_state spec.n_lvars in
+			let subst = fully_unify_symb_state post symb_state spec.n_lvars js in
 			(match subst with
 			| Some subst, _ ->
 				activate_post_in_post_pruning_info symb_exe_info proc_name i;
