@@ -4411,7 +4411,7 @@ let generate_main offset_converter e main cc_table spec =
 
 	let ctx = make_translation_ctx main in
 	let cmds_hoist_fdecls, errs_hoist_decls = translate_fun_decls e main [ main ] ctx.tr_error_lab in
-	let cmds_hoist_fdecls = annotate_cmds cmds_hoist_fdecls in
+	let cmds_hoist_fdecls = annotate_cmds_top_level empty_metadata cmds_hoist_fdecls in
 	let cmds_e, x_e, errs, _, _, _ = translate_statement offset_converter main cc_table ctx [ main ] ctx.tr_error_lab [] None None e in
 	(* x_ret := x_e *)
 	let ret_ass = annotate_cmd (SLBasic (SAssignment (ctx.tr_ret_var, x_e))) None in
@@ -4590,7 +4590,7 @@ let generate_proc offset_converter e fid params rcr cc_table vis_fid spec =
 	let ctx = make_translation_ctx fid in
 	let new_ctx = { ctx with tr_ret_lab = ("pre_" ^ ctx.tr_ret_lab); tr_error_lab = ("pre_" ^ ctx.tr_error_lab) } in
 	let cmds_hoist_fdecls, errs_hoist_decls = translate_fun_decls e fid vis_fid new_ctx.tr_error_lab in
-	let cmds_hoist_fdecls = annotate_cmds cmds_hoist_fdecls in
+	let cmds_hoist_fdecls = annotate_cmds_top_level empty_metadata cmds_hoist_fdecls in
 
 	(* x_er := new () *)
 	let cmd_er_creation = annotate_cmd (SLBasic (SNew var_er)) None in
