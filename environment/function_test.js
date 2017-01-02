@@ -22,8 +22,8 @@ var g = function (z) { return z + y };
 	@id  f
 	@rec false
 
-	@pre  (scope(g: #g) * scope(f: #f) * scope(y : #y) * (u == #u) * types(#u : $$number_type))
-	@post (scope(g: #g) * scope(f: #f) * scope(y : #y) * (ret == (#u + 1)))
+	@pre  (scope(g : #g) * scope(f : #f) * scope(y : #y) * (u == #u) * types(#u : $$number_type))
+	@post (scope(g : #g) * scope(f : #f) * scope(y : #y) * (ret == (#u + 1)))
 */
 function f (u) { return u + 1 }
 
