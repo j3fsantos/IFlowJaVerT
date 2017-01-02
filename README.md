@@ -1,4 +1,4 @@
-# JavaScript Analyser
+# JaVerT
 
 This is a verification tool for JavaScript programs. In time it will
 plug into eclipse, emacs and verification web services, to make

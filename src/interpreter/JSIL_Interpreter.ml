@@ -424,7 +424,7 @@ evaluate_expr (e : jsil_expr) store =
 		| x -> x)
 
 	| Var x ->
-		(match SSyntax_Aux.try_find store x with
+		(match Utils.try_find store x with
 		| None ->
 			let err_msg = Printf.sprintf "Variable %s not found in the store" x in
 			let store_str = JSIL_Memory_Print.string_of_store store in
@@ -885,7 +885,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 				let code = Str.global_replace (Str.regexp (Str.quote "\\\"")) "\"" code in
 				(* Printf.printf "\n%s\n" code; *)
 				let x_scope, x_this =
-					(match SSyntax_Aux.try_find store (Js2jsil_constants.var_scope), SSyntax_Aux.try_find store (Js2jsil_constants.var_this)  with
+					(match Utils.try_find store (Js2jsil_constants.var_scope), Utils.try_find store (Js2jsil_constants.var_this)  with
 					| Some x_scope, Some x_this -> x_scope, x_this
 					| _, _ -> raise (Failure "No var_scope or var_this to give to eval")) in
 				(match (try
@@ -906,7 +906,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 							Hashtbl.replace store x v;
 							evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl)
 				| None -> (* Any sort of error from Parsing and JS2JSIL compilation *)
-					(match SSyntax_Aux.try_find store (Js2jsil_constants.var_se), j with
+					(match Utils.try_find store (Js2jsil_constants.var_se), j with
 					| Some v, Some j ->
 						Hashtbl.replace store x v;
 						evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl

@@ -147,4 +147,9 @@ let rec create_dir path =
 let create_dir_for_file filename = 
    let dir = Filename.dirname filename in
    if (not (Sys.file_exists dir)) then create_dir dir  
-    
+
+let try_find table entry = 
+	let value = try
+		Some (Hashtbl.find table entry)
+	with _ -> None in
+	value
