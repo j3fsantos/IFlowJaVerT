@@ -1,7 +1,7 @@
 /**
  @toprequires (emp)
  @topensures (scope(y : 3) * scope(g: #g) * scope(f: #f) *
- 	fun_obj(g, #g, #g_proto) * fun_obj(f, #f, #f_proto) * scope(w: 6))
+ 	fun_obj(g, #g, #g_proto) * fun_obj(f, #f, #f_proto) * scope(w: 7))
 */
 var y = 3;
 
@@ -22,9 +22,9 @@ var g = function (z) {
 	@id  f
 	@rec false
 
-	@pre ((u == #u) * types(#u : $$number_type))
-	@post ((ret == (#u + 1)))
+	@pre ((u == #u) * types(#u : $$number_type) * scope(g: #g) * scope(f: #f))
+	@post ((ret == (#u + 1)) * scope(g: #g) * scope(f: #f))
 */
 function f (u) { return u + 1}
 
-var w = g(3)
+var w = f(g(3))
