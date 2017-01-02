@@ -3,7 +3,6 @@ mkdir -p environment
 cp racket/mem_model.rkt environment
 cp racket/interpreter.rkt environment 
 cp racket/util.rkt environment
-cp -r tests/symbolic environment 
 cp src/translation_runtime/*.jsil environment
 cp src/translation_runtime/harness.js environment
 cp test_main.native environment
