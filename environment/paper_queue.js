@@ -1,3 +1,29 @@
+/**
+Predicate Definitions
+
+pred Object (l, proto) :
+    types (l : $$object_type) *
+	((l, "@proto") -> proto) *
+	((l, "@class") -> "Object") *
+	((l, "@extensible") -> $$t)
+
+NodePrototype(np) :
+	StandardObject(np) * 
+	dataField(np, "push", #push) *
+	fun_obj(push, #push, #push_proto)
+
+Node(n, pri, elt, next, node_proto) :
+	Object(n, node_proto) * 
+	dataField(n, "pri",  pri) * 
+    dataField(n, "elt",  elt) * 
+    dataField(n, "next", next)
+
+Queue(q, node_proto, max_pri) :
+   (q == $$null) * (max == -1),
+
+   Node(q, #pri, #elt, #next, node_proto) * Queue(#next, node_proto, #pri)
+      * (#pri <= max_pri)
+*/
 
 /**
    @id  newNodeConstructor
@@ -16,13 +42,16 @@ function newNodeConstructor () {
       @id  Node
       @rec false
 
-      @pre  (((this, "pri") -> None) * ((this, "elt") -> None) *
-               ((this, "next") -> None) * scope(counter: #c) *
-               (pri == #pri) * (elt == #elt) * Object(this, #node_proto) *
-               NodePrototype(#node_proto) *
-               types(pri: $$int_type, elt: $$number_type))
-      @post (Node(this, #pri, #elt, $$null, #node_proto) *
-               NodePrototype(#node_proto) * scope(counter: #c+1))
+      @pre (
+      		scope(counter: #c) * types(#c : $$int_type) *
+      		(pri == #pri) * (elt == #elt) * types(#pri: $$int_type, #elt: $$string_type) *  
+      		((this, "pri") -> None) * ((this, "elt") -> None) * ((this, "next") -> None) * 
+      		Object(this, #node_proto) * NodePrototype(#node_proto)
+      )
+      @post (
+      		 scope(counter: #c + 1) *
+      		 Node(this, #pri, #elt, $$null, #node_proto) *
+      		 NodePrototype(#node_proto))
    */
    var Node = function (pri, elt) {
       this.pri = pri; this.elt = elt; this.next = null;
@@ -85,24 +114,3 @@ function newNodeConstructor () {
 var o = newNodeConstructor ();
 var Node = o.nc;
 var getCounter = o.getCounter;
-
-
-
-
-/**
-Predicate Definitions
-
-NodePrototype(np) :
-   StandardObject(np) * ((np, "push") -> #push)
-      * fun_obj(push, #push, np)
-
-Node(n, pri, elt, next, node_proto) :
-   Object(n, node_proto) * ((n, "pri") -> pri)
-      * ((n, "elt") -> elt) * ((n, "next") -> next)
-
-Queue(q, node_proto, max_pri) :
-   (q == $$null) * (max == -1),
-
-   Node(q, #pri, #elt, #next, node_proto) * Queue(#next, node_proto, #pri)
-      * (#pri <= max_pri)
-*/
