@@ -30,14 +30,17 @@ Queue(q, node_proto, max_pri) :
 */
 
 /**
-   @id  newNodeConstructor
-   @rec false
-
-   @pre  (emp)
-   @post (((ret, "nc") -> #nc) * ((ret, "gc") -> #gc) *
-               fun_obj(Node, #nc, #node_proto) *
-               fun_obj(getCounter, #gc, #gc_proto) *
-               NodePrototype(#node_proto))
+	@id  newNodeConstructor
+	@rec false
+	
+	@pre  (emp)
+	@post (
+		dataField(ret, "nc", #nc) * 
+		datafield(ret, "gc", #gc) *
+		fun_obj(Node, #nc, #node_proto) *
+		fun_obj(getCounter, #gc, #gc_proto) *
+		NodePrototype(#node_proto)
+	)
 */
 function newNodeConstructor () {
 	var counter = 0;
