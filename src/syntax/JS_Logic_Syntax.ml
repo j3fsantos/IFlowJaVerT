@@ -6,6 +6,7 @@ module SS = Set.Make(String)
 (* JS_Logic - Assertions *)
 
 let small_tbl_size = 31
+let medium_tbl_size = 101
 
 let main_fid                      = "main"
 let pi_pred_name                  = "Pi"
@@ -82,6 +83,28 @@ type js_logic_assertion =
 	| JSFunObj      of string  * js_logic_expr * js_logic_expr
 
 
+let filter_var_to_fid_tbl var_to_fid_tbl scope_vars cur_fid = 
+	let new_var_to_fid_tbl = Hashtbl.create small_tbl_size in 
+	Hashtbl.iter
+		(fun x fid -> 
+			if ((fid = cur_fid) || (SS.mem x scope_vars))  
+				then Hashtbl.replace new_var_to_fid_tbl x fid)
+		var_to_fid_tbl; 
+	new_var_to_fid_tbl  
+
+
+let rec get_scope_vars a =
+	let rec loop (a : js_logic_assertion) (svars : string list) : string list = 
+		match a with 
+		| JSLNot a -> loop a svars
+		| JSLAnd (a1, a2) | JSLOr (a1, a2) | JSLStar (a1, a2) -> loop a2 (loop a1 svars) 
+		| JSLScope (x, le)  -> x :: svars 
+		| _ -> svars in 
+	let svars = loop a [] in 
+	let svars_set = SS.of_list svars in 
+	svars_set
+
+
 let rec js2jsil_lexpr le =
 	let fe = js2jsil_lexpr in
 	match le with
@@ -146,9 +169,10 @@ let rec js2jsil_logic (js_var_to_lvar : (string, JSIL_Syntax.jsil_logic_expr) Ha
 		with _ -> raise (Failure "js2jsil_logic. JSFunObj - not found business")
 
 
+
 let var_fid_tbl_to_assertion (var_to_fid_tbl : (string, string) Hashtbl.t) current (exceptions : string list) is_global is_pre =
 	let js_var_to_lvar = Hashtbl.create small_tbl_size in
-	let (a, locs) = Hashtbl.fold
+	let (a, locs) = Hashtbl.fold 
 		(fun x fid (ac, locs) ->
 			if (not (List.mem fid exceptions) && (not (fid = current) || (fid = current && not is_pre))) then (
 				let target = if (fid = main_fid)
