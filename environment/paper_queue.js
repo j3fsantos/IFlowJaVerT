@@ -2,31 +2,31 @@
 Predicate Definitions
 
 pred Object (l, proto) :
-    types (l : $$object_type) *
+	types (l : $$object_type) *
 	((l, "@proto") -> proto) *
 	((l, "@class") -> "Object") *
 	((l, "@extensible") -> $$t);
 
-NodePrototype(np) :
+pred NodePrototype(np) :
 	StandardObject(np) * 
 	dataField(np, "push", #push) *
 	fun_obj(push, #push, #push_proto);
 
-Node(n, pri, elt, next, node_proto) :
+pred Node(n, pri, elt, next, node_proto) :
 	Object(n, node_proto) * 
 	dataField(n, "pri",  pri) * 
     dataField(n, "elt",  elt) * 
     dataField(n, "next", next) *
     types(pri : $$int_type, elt : $$string_type, node_proto : $$object_type);
 
-Queue(q, node_proto, max_pri) :
-   (q == $$null) * (max_pri == -1);
+pred Queue(q, node_proto, max_pri) :
+	(q == $$null) * (max_pri == -1);
 
-Queue(q, node_proto, max_pri) :
-   Node(q, #pri, #elt, #next, node_proto) * 
-   Queue(#next, node_proto, #pri) *
-   (#pri <= max_pri) *
-   types(node_proto : $$object_type, max_pri : $$int_type)
+pred Queue(q, node_proto, max_pri) :
+	Node(q, #pri, #elt, #next, node_proto) * 
+	Queue(#next, node_proto, #pri) *
+	(#pri <= max_pri) *
+	types(node_proto : $$object_type, max_pri : $$int_type);
 */
 
 /**
