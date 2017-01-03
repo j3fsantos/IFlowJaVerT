@@ -7,6 +7,8 @@ let verbose = ref true
 
 let proto_f = "@proto"
 
+let js = ref false
+
 (***************************)
 (** Symbolic Execution    **)
 (***************************)
@@ -876,10 +878,10 @@ and symb_evaluate_next_cmd_2 s_prog proc spec search_info symb_state cur next  =
 
 	(* test if the control reached the end of the symbolic execution *)
 	if ((Some cur) = proc.ret_label) then
-		(Structural_Entailment.unify_symb_state_against_post proc.proc_name spec symb_state Normal search_info;
+		(Structural_Entailment.unify_symb_state_against_post proc.proc_name spec symb_state Normal search_info !js;
 		Symbolic_Traces.create_info_node_from_post search_info spec.n_post Normal true; ())
 	else (if ((Some cur) = proc.error_label) then
-		(Structural_Entailment.unify_symb_state_against_post proc.proc_name spec symb_state Error search_info;
+		(Structural_Entailment.unify_symb_state_against_post proc.proc_name spec symb_state Error search_info !js;
 		Symbolic_Traces.create_info_node_from_post search_info spec.n_post Error true; ())
 	else
 		(* the control did not reach the end of the symbolic execution *)
@@ -893,7 +895,7 @@ and symb_evaluate_next_cmd_2 s_prog proc spec search_info symb_state cur next  =
 					| Some a ->
 						(* check if the current symbolic state entails the invariant *)
 						let new_symb_state, _ = JSIL_Logic_Normalise.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
-						(match (Structural_Entailment.fully_unify_symb_state new_symb_state symb_state spec.n_lvars) with
+						(match (Structural_Entailment.fully_unify_symb_state new_symb_state symb_state spec.n_lvars !js) with
 						| Some _, _ -> ()
 						| None, msg -> raise (Failure msg))
 				end
@@ -905,7 +907,7 @@ and symb_evaluate_next_cmd_2 s_prog proc spec search_info symb_state cur next  =
 						| None -> symb_state
 						| Some a ->
 							let new_symb_state, _ = JSIL_Logic_Normalise.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
-							(match (Structural_Entailment.fully_unify_symb_state new_symb_state symb_state spec.n_lvars) with
+							(match (Structural_Entailment.fully_unify_symb_state new_symb_state symb_state spec.n_lvars !js) with
 							| Some _, _ -> new_symb_state
 							| None, msg -> raise (Failure msg)) in
 

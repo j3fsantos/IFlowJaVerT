@@ -177,6 +177,59 @@ let get_heap_well_formedness_constraints heap =
 		heap
 		[]
 
+
+
+let assertion_of_abs_heap h = 
+	let make_loc_lexpr loc = 
+		if (is_abs_loc_name loc) then ALoc loc else LLit (Loc loc) in 
+	
+	let rec get_fields fv_list fields_so_far = 
+		match fv_list with 
+		| [] -> fields_so_far 
+		| (f_name, f_val) :: rest -> get_fields rest (f_name :: fields_so_far) in 
+
+	let rec assertions_of_fv_list loc_expr fv_list assertions =
+		match fv_list with 
+		| [] -> assertions 
+		| (f_name, f_val) :: rest ->
+			assertions_of_fv_list loc_expr rest ((LPointsTo (loc_expr, f_name, f_val)) :: assertions) in 
+	
+	LHeap.fold 
+		(fun loc (fv_list, def) assertions -> 
+			let loc_lexpr = make_loc_lexpr loc in 
+			let new_assertions = assertions_of_fv_list loc_lexpr fv_list [] in 
+			match def with 
+			| LUnknown -> new_assertions 
+			| LNone -> 
+				let fields = get_fields fv_list [] in 
+				let ef_assertion = LEmptyFields (loc_lexpr, fields) in 
+				ef_assertion :: new_assertions) h [] 
+
+			
+(*************************************)
+(** Store functions                 **)
+(*************************************)
+
+let assertions_of_abs_store s = 
+	Hashtbl.fold
+		(fun x le assertions -> 
+			(LEq (PVar x, le)) :: assertions) s []
+
+
+(*************************************)
+(** Gamma functions                 **)
+(*************************************)
+
+let assertions_of_gamma gamma = 
+	let le_type_pairs = 
+		Hashtbl.fold
+			(fun x t pairs -> 
+				(if (is_lvar_name x) 
+					then (LVar x, t) :: pairs
+					else (PVar x, t) :: pairs)) gamma [] in 
+	LTypes le_type_pairs 
+
+
 (*************************************)
 (** Predicate functions             **)
 (*************************************)
@@ -221,6 +274,15 @@ let subtract_pred pred_name args pred_set pfs (* solver *) gamma spec_vars =
 	let index, subst = loop pred_list 0 in
 	DynArray.delete pred_set index;
 	subst
+	
+let assertions_of_pred_set pred_set = 
+	let preds = preds_to_list pred_set in 
+	let rec loop preds assertions = 
+		match preds with 
+		| [] -> assertions 
+		| (pred_name, args) :: rest -> 
+			loop rest ((LPred (pred_name, args)) :: assertions) in 
+	loop preds [] 
 
 (*************************************)
 (** Normalised Spec functions       **)

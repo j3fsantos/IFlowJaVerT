@@ -422,22 +422,11 @@ let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_form
 			let nle3 = simplify_element_of_cell_assertion (fe le3) in
 			let field_val_pairs, default_val = (try LHeap.find heap loc with _ -> ([], LUnknown)) in
 			LHeap.replace heap loc (((nle2, nle3) :: field_val_pairs), default_val)
+	
+	| LPointsTo (_, _, _) -> 
+			raise (Failure "Illegal PointsTo Assertion")
 
-	| LPred (_, _)
-	| LTrue
-	| LFalse
-	| LAnd (_, _)
-	| LOr (_, _)
-	| LEq (_, _)
-	| LLess (_, _)
-	| LLessEq (_, _)
-	| LStrLess (_, _)
-	| LNot (LEq (_, _))
-	| LNot (LLess (_, _))
-	| LNot (LLessEq (_, _))
-	| LEmp
-	| LTypes _
-	| LEmptyFields _ -> ()
+	| _ -> ()
 
 let rec init_gamma gamma a =
 	let f = init_gamma gamma in
@@ -574,20 +563,23 @@ let process_empty_fields heap store p_formulae gamma subst a =
 				let le' = normalise_lexpr store gamma subst le in
 				[ (le', fields) ] in
 
-	let rec check_in_fields (le_field : jsil_logic_expr) (fields : string list) (traversed_fields : string list) : (string * (string list)) option =
+	let rec check_in_fields (le_field : jsil_logic_expr) (fields : jsil_logic_expr list) (traversed_fields : jsil_logic_expr list) : (jsil_logic_expr * (jsil_logic_expr list)) option =
 		match fields with
 		| [] -> None
 		| field :: rest_fields ->
-			let a = LEq (le_field, (LLit (String field))) in
+			let a = LEq (le_field, field) in
 			if (Pure_Entailment.old_check_entailment [] p_formulae [ a ] gamma)
 				then Some (field, traversed_fields @ rest_fields)
-				else check_in_fields le_field rest_fields (field :: traversed_fields) in
+				else 
+					(if (Pure_Entailment.old_check_entailment [] p_formulae [ LNot a ] gamma)
+						then check_in_fields le_field rest_fields (field :: traversed_fields) 
+						else raise (Failure "empty fields assertion cannot be normalised")) in 
 
-	let rec close_fields (fields : string list) (fv_list : (jsil_logic_expr * jsil_logic_expr) list) (found_fields : string list) =
+	let rec close_fields (fields : jsil_logic_expr list) (fv_list : (jsil_logic_expr * jsil_logic_expr) list) (found_fields : jsil_logic_expr list) =
 		match fv_list with
 		| [] -> fields, found_fields
 		| (le_field, le_val) :: rest_fv_list ->
-			let ret : (string * (string list)) option = check_in_fields le_field fields [] in
+			let ret : (jsil_logic_expr * (jsil_logic_expr list)) option = check_in_fields le_field fields [] in
 			(match ret with
 			| None ->
 				if (le_val <> LNone)
@@ -600,9 +592,9 @@ let process_empty_fields heap store p_formulae gamma subst a =
 		let new_lvar = new_unknown_lvar () in
 		match missing_fields with
 		| [] -> fv_list
-		| field :: rest -> make_fv_list_missing_fields rest ((LLit (String field), LVar new_lvar) :: fv_list) in
+		| field :: rest -> make_fv_list_missing_fields rest ((field, LVar new_lvar) :: fv_list) in
 
-	let close_object le_loc non_none_fields =
+	let close_object le_loc (non_none_fields : jsil_logic_expr list) =
 		print_debug (Printf.sprintf "Location: %s" (JSIL_Print.string_of_logic_expression le_loc false));
 		let le_loc_name =
 			match le_loc with
@@ -612,15 +604,15 @@ let process_empty_fields heap store p_formulae gamma subst a =
 			| LVar x ->
 				let x_loc = try Hashtbl.find subst x with _ ->
 					print_debug "Variable not in subst."; raise (Failure "Illegal Emptyfields!!!") in
-				match x_loc with
+				(match x_loc with
 				| ALoc loc
 				| LLit (Loc loc) -> loc
-				| _ ->
-				    print_debug "Variable strange after subst."; raise (Failure "Illegal Emptyfields!!!") in
+				| _ -> print_debug "Variable strange after subst."; raise (Failure "Illegal Emptyfields!!!"))
+			| _ -> raise (Failure "Illegal Emptyfields!!!") in
 
 		let ret =
 		    print_debug (Printf.sprintf "le_loc: %s\nNasty fields:\n" (JSIL_Print.string_of_logic_expression le_loc false));
-			List.iter (fun s -> print_debug (Printf.sprintf "\t%s\n" s)) non_none_fields;
+			List.iter (fun s -> print_debug (Printf.sprintf "\t%s\n" (JSIL_Print.string_of_logic_expression s false))) non_none_fields;
 			print_debug (Printf.sprintf "Heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false));
 			LHeap.fold (fun cur_loc (cur_fv_list, cur_def) ac ->
 				match ac with

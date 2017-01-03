@@ -12,13 +12,15 @@ let print_pfs pfs = JSIL_Memory_Print.string_of_shallow_p_formulae pfs false
 (** Abstract Heap functions         **)
 (*************************************)
 
-let is_empty_fv_list fv_list =
-	let rec loop fv_list =
+let is_empty_fv_list fv_list js =
+	let rec loop fv_list empty_so_far =
 		match fv_list with
-		| [] -> true
-		| (_, f_val) :: rest ->
-			if (f_val = LNone) then loop rest else false in
-	loop fv_list
+		| [] -> empty_so_far
+		| (f_name, f_val) :: rest ->
+			if ((f_name = (LLit (String Js2jsil_constants.erFlagPropName))) && js) 
+				then true 
+				else ( if (f_val = LNone) then loop rest empty_so_far else loop rest false ) in 
+	loop fv_list true
 
 let fv_list_substitution fv_list subst partial =
 	List.map
@@ -54,9 +56,9 @@ let heap_substitution (heap : symbolic_heap) (subst : substitution) partial =
 		heap;
 	new_heap
 
-let is_symb_heap_empty heap =
+let is_symb_heap_empty (heap : symbolic_heap) (js : bool) : bool =
 	LHeap.fold
-		(fun loc (fv_list, def) ac -> if (not ac) then ac else is_empty_fv_list fv_list)
+		(fun loc (fv_list, def) ac -> if (not ac) then ac else is_empty_fv_list fv_list js)
 		heap
 		true
 
@@ -349,8 +351,9 @@ let symb_state_add_subst_as_equalities new_symb_state subst pfs spec_vars =
 			| _ -> DynArray.add pfs (LEq (LVar var, le)))
 		subst
 
+(* 
 let is_empty_symb_state symb_state =
-	(is_symb_heap_empty (get_heap symb_state)) && (is_preds_empty (get_preds symb_state))
+	(is_symb_heap_empty (get_heap symb_state)) && (is_preds_empty (get_preds symb_state)) *)
 
 
 let symb_state_replace_store symb_state new_store =

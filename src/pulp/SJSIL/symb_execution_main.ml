@@ -13,6 +13,8 @@ let arguments () =
 			"-o", Arg.String(fun f -> output_folder := f), "output folder";
             "-debug", Arg.Unit (fun () -> debug := true), "debug";
 			"-specs", Arg.String (fun f -> spec_file := f), "specification file";
+			(* *)
+			"-js", Arg.Unit (fun () -> JSIL_Symb_Interpreter.js := true), "js2jsil output"; 
 			(* "-encoding", Arg.String (fun f ->
 				Printf.printf "I am here.\n";
 				let enc = match f with
