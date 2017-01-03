@@ -878,7 +878,7 @@ js_lexpr_target:
 	  { JSLNone }
 (* program variable *)
 	| pvar = js_program_variable_target
-	  { Printf.printf "PVar... no comment: %s\n" pvar; JSPVar pvar }
+	  { JSPVar pvar }
 (* Logic variable *)
 	| lvar = LVAR
 	  { JSLVar lvar }

@@ -12,7 +12,10 @@ let update_prev_annot prev_annot cur_annot =
 			(annot.annot_type == Parser_syntax.Ensures) ||
 			(annot.annot_type == Parser_syntax.EnsuresErr) || 
 			(annot.annot_type == Parser_syntax.Id) ||
-			(annot.annot_type == Parser_syntax.Rec) in
+			(annot.annot_type == Parser_syntax.Rec) || 
+			(annot.annot_type == Parser_syntax.Pred) || 
+			(annot.annot_type == Parser_syntax.Fold) || 
+			(annot.annot_type == Parser_syntax.Unfold) in
 
 	let rec annot_has_specs annots =
 		match annots with
@@ -497,10 +500,10 @@ let rec add_codenames (main : string) (fresh_anonymous : unit -> string) (fresh_
 
 
 let process_js_logic_annotations (vis_tbl : (string, string list) Hashtbl.t) fun_tbl fun_name (fun_args : string list) annotations requires_flag ensures_normal_flag ensure_err_flag var_to_fid_tbl vis_list =
-	Printf.printf "Inside process_js_logic_annotations. function: %s. Annotations: \n%s\n" fun_name (Pretty_print.string_of_annots annotations);
+	Printf.printf "Inside process_js_logic_annotations. function: %s.\n\nAnnotations: \n%s\n\n" fun_name (Pretty_print.string_of_annots annotations);
 	
 	let annot_types_str : string = String.concat ", " (List.map (fun annot -> Pretty_print.string_of_annot_type annot.annot_type) annotations) in 
-	Printf.printf "annot types: %s\n" annot_types_str;   
+	Printf.printf "annot types: %s\n\n" annot_types_str;   
 
 	let preconditions  = List.filter (fun annotation -> annotation.annot_type = requires_flag) annotations in
 	let postconditions = List.filter (fun annotation -> (annotation.annot_type = ensures_normal_flag) || (annotation.annot_type = ensure_err_flag)) annotations in

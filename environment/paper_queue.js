@@ -1,29 +1,28 @@
 /**
-Predicate Definitions
 
-pred Object (l, proto) :
+@pred Object (l, proto) :
 	types (l : $$object_type) *
 	((l, "@proto") -> proto) *
 	((l, "@class") -> "Object") *
 	((l, "@extensible") -> $$t);
 
-pred NodePrototype(np) :
-	StandardObject(np) *
+@pred NodePrototype(np) :
+	StandardObject(np) * 
 	dataField(np, "push", #push) *
 	fun_obj(push, #push, #push_proto);
 
-pred Node(n, pri, elt, next, node_proto) :
-	Object(n, node_proto) *
-	dataField(n, "pri",  pri) *
-    dataField(n, "elt",  elt) *
+@pred Node(n, pri, elt, next, node_proto) :
+	Object(n, node_proto) * 
+	dataField(n, "pri",  pri) * 
+    dataField(n, "elt",  elt) * 
     dataField(n, "next", next) *
     types(pri : $$int_type, elt : $$string_type, node_proto : $$object_type);
 
-pred Queue(q, node_proto, max_pri) :
+@pred Queue(q, node_proto, max_pri) :
 	(q == $$null) * (max_pri == -1);
 
-pred Queue(q, node_proto, max_pri) :
-	Node(q, #pri, #elt, #next, node_proto) *
+@pred Queue(q, node_proto, max_pri) :
+	Node(q, #pri, #elt, #next, node_proto) * 
 	Queue(#next, node_proto, #pri) *
 	(#pri <= max_pri) *
 	types(node_proto : $$object_type, max_pri : $$int_type);
@@ -71,30 +70,37 @@ var Node = function (pri, elt) {
 	)
 */
 Node.prototype.push = function (q) {
-	/**
-		@unfold Queue(#q, #node_proto, #pri_q)
-	*/
-	if (q === null) {
-		/**
-			@fold Queue(this, #node_proto, #pri)
-		*/
-		return this
-	}
-	else
-		if (this.pri >= q.pri) {
-			this.next = q;
-			/**
-				@fold Queue(this, #node_proto, #pri)
-			*/
+	/** @unfold Queue(#q, #node_proto, #pri_q) */
+	Node.prototype.push = function (q) {
+		/** @unfold Queue(#q, #node_proto, #pri_q) */
+		if (q === null) {
+			/** @fold Queue(this, #node_proto, #pri) */
 			return this
-		}
-		else
-		{
-			var tmp = this.push (q.next);
-			q.next = tmp;
-			/**
-				@fold Queue(#q, #node_proto, #pri_q)
-			*/
-			return q
-		}
+		} 
+		else 
+			if (this.pri >= q.pri) {
+				this.next = q;
+				/** @fold Queue(this, #node_proto, #pri) */
+				return this
+			} 
+			else 
+			{
+				var tmp = this.push (q.next);
+				q.next = tmp;
+				/** @fold Queue(#q, #node_proto, #pri_q) */
+				return q
+			}
+	}
+
+
+   /**
+   	@id  getCounter
+   	@rec false
+
+   	@pre  (scope(counter: #c) * types(#c : $$int_type))
+   	@post (scope(counter: #c) * (ret == #c))
+   */
+   var getCounter = function () { return counter; };
+   
+   return { nc: Node, gc: getCounter }
 }
