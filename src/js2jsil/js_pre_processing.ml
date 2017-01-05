@@ -38,6 +38,36 @@ let update_prev_annot prev_annot cur_annot =
 		else ((filter_non_spec_annots prev_annot []) @ cur_annot)
 
 
+let get_predicate_defs_from_annots annots : JS_Logic_Syntax.js_logic_predicate list =
+	let rec loop annots pred_defs = 
+		match annots with 
+		| [] -> pred_defs 
+		| annot :: rest -> 
+			let pred_defs = 
+				if (annot.annot_type == Parser_syntax.Pred) 
+					then  (
+						Printf.printf "I am about to parse the following js_pred definition: %s\n" annot.annot_formula;
+						(JSIL_Utils.js_logic_pred_def_of_string ("pred " ^ annot.annot_formula)) :: pred_defs 
+					) else pred_defs in 
+			loop rest pred_defs in 
+	loop annots []
+
+
+let get_fold_unfold_invariant_annots annots = 
+	let rec loop annots fold_unfold_cmds invariant = 
+		match annots with 
+		| [] -> fold_unfold_cmds, invariant 
+		| annot :: rest -> 
+			if ((annot.annot_type == Parser_syntax.Fold) || (annot.annot_type == Parser_syntax.Unfold)) then (
+				let logic_cmd_str = annot.annot_formula in 
+				let logic_cmd_pred = JSIL_Utils.js_assertion_of_string logic_cmd_str in
+				loop rest ((annot.annot_type, logic_cmd_pred) :: fold_unfold_cmds) invariant
+			) else if (annot.annot_type == Parser_syntax.Invariant) then (
+				loop rest fold_unfold_cmds invariant
+			) else loop rest fold_unfold_cmds invariant in 
+	loop annots [] None 
+
+
 let sanitise name =
 	let s = Str.global_replace (Str.regexp "\$") "_" name in
 	s
@@ -616,6 +646,38 @@ let get_top_level_annot e =
 
 
 
+let rec get_predicate_definitions pred_defs e = 
+	let f = get_predicate_definitions in 
+	let fo pred_defs e = match e with | Some e -> f pred_defs e | None -> pred_defs in 
+	let analyse_cases pred_defs cases = 
+		List.fold_left (fun pred_defs (_, s_case) -> get_predicate_definitions pred_defs s_case) pred_defs cases in  
+	let new_pred_defs : JS_Logic_Syntax.js_logic_predicate list = (get_predicate_defs_from_annots e.Parser_syntax.exp_annot) @ pred_defs in 
+	match e.exp_stx with 
+	(* expressions *)
+	|	Num _	| String _	|	Null	| Bool _	| Var _	| This | Delete _ | Unary_op (_, _) 
+	| Access (_, _) | Comma (_, _) | BinOp (_, _, _) | Assign (_, _) | AssignOp(_, _, _) 
+	| CAccess (_, _) | ConditionalOp (_, _, _) | Call (_, _) | New (_, _) 
+	| FunctionExp (_, _, _, _) | Obj _ | Array _ -> new_pred_defs
+	(* statement *) 
+	| Label (_, s)                              -> f new_pred_defs s  
+	| If (_, s1, s2)                            -> fo (f new_pred_defs s1) s2
+	| While (_, s) | DoWhile (s, _) 	 
+	| For(_, _, _, s) | ForIn (_, _, s)         -> (f new_pred_defs s)
+	| Skip | Break _ |	Continue _ | Debugger 
+	| Throw _ | Return _ | VarDec _             -> new_pred_defs
+	| Script (_, ss) | Block ss                 -> List.fold_left get_predicate_definitions new_pred_defs ss 
+	| Try (s1, Some (_, s2), s3)                -> fo (f (f new_pred_defs s1) s2) s3
+	| Try (s1, None, s2)                        -> fo (f new_pred_defs s1) s2
+	| Switch (_, cases)                         -> analyse_cases new_pred_defs cases  
+	| Function (_, _, _, s)                     -> f new_pred_defs s
+	(* Non-supported constructs *)
+	| RegExp _ | With (_, _)                    -> raise (Failure "JS Construct Not Supported")     		 
+
+
+
+
+
+
 let rec closure_clarification_expr cc_tbl (fun_tbl : Js2jsil_constants.pre_fun_tbl_type) vis_tbl f_id visited_funs prev_annot e =
 
 	let cur_annot = update_prev_annot prev_annot e.Parser_syntax.exp_annot in
@@ -781,6 +843,9 @@ let closure_clarification_top_level cc_tbl (fun_tbl : Js2jsil_constants.fun_tbl_
 	Hashtbl.add vis_tbl proc_id vis_fid;
 	closure_clarification_stmt cc_tbl old_fun_tbl vis_tbl proc_id vis_fid [] e;
 	create_js_logic_annotations vis_tbl old_fun_tbl fun_tbl;
+	let js_predicate_definitions : JS_Logic_Syntax.js_logic_predicate list = get_predicate_definitions [] e in  
+	let jsil_predicate_definitions = 
+		List.map (fun pred_def -> JS_Logic_Syntax.translate_predicate_def pred_def vis_tbl old_fun_tbl) js_predicate_definitions in 
 
 	let annots = get_top_level_annot e in
 	(match annots with
@@ -788,7 +853,9 @@ let closure_clarification_top_level cc_tbl (fun_tbl : Js2jsil_constants.fun_tbl_
 		Printf.printf "Going to generate main. Top-level annotations:\n%s\n" (Pretty_print.string_of_annots annots);
 		let specs, _ = process_js_logic_annotations vis_tbl old_fun_tbl proc_id [] annots TopRequires TopEnsures TopEnsuresErr proc_tbl [ proc_id ] in
 		Hashtbl.replace fun_tbl proc_id (proc_id, args, e, false, specs);
-	| None -> Printf.printf "NO TOP LEVEL ANNOTATION BANANAS!!!")
+	| None -> Printf.printf "NO TOP LEVEL ANNOTATION BANANAS!!!");
+	let jsil_pred_def_tbl = JSIL_Logic_Utils.pred_def_tbl_from_list jsil_predicate_definitions in 
+	jsil_pred_def_tbl 
 	
 
 (**

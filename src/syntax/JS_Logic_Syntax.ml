@@ -83,6 +83,14 @@ type js_logic_assertion =
 	| JSFunObj      of string  * js_logic_expr * js_logic_expr
 
 
+type js_logic_predicate = {
+	js_name        : string;
+	js_num_params  : int;
+	js_params      : js_logic_expr list;
+	js_definitions : js_logic_assertion list;
+}
+
+
 let filter_var_to_fid_tbl var_to_fid_tbl scope_vars cur_fid = 
 	let new_var_to_fid_tbl = Hashtbl.create small_tbl_size in 
 	Hashtbl.iter
@@ -123,7 +131,16 @@ let rec js2jsil_lexpr le =
 	| JSLThis                 -> PVar Js2jsil_constants.var_this
 
 
-let rec js2jsil_logic (js_var_to_lvar : (string, JSIL_Syntax.jsil_logic_expr) Hashtbl.t) vis_tbl fun_tbl (a : js_logic_assertion) : JSIL_Syntax.jsil_logic_assertion =
+let rec js2jsil_logic_cmds logic_cmds = 
+	let fe = js2jsil_lexpr in
+	match logic_cmds with 
+	| [] -> []
+	| (Parser_syntax.Fold, (JSLPred (s, les))) :: rest -> (Fold (LPred (s, List.map fe les))) :: (js2jsil_logic_cmds rest)
+	| (Parser_syntax.Unfold, (JSLPred (s, les))) :: rest -> (Unfold (LPred (s, List.map fe les))) :: (js2jsil_logic_cmds rest) 
+	| _ -> raise (Failure "DEATH.")
+
+
+let rec js2jsil_logic (js_var_to_lvar : ((string, JSIL_Syntax.jsil_logic_expr) Hashtbl.t) option) vis_tbl fun_tbl (a : js_logic_assertion) : JSIL_Syntax.jsil_logic_assertion =
 	let f = js2jsil_logic js_var_to_lvar vis_tbl fun_tbl in
 	let fe = js2jsil_lexpr in
 	match a with
@@ -141,6 +158,10 @@ let rec js2jsil_logic (js_var_to_lvar : (string, JSIL_Syntax.jsil_logic_expr) Ha
 	| JSLPred (s, les)                    -> LPred (s, (List.map fe les))
 	| JSLTypes (vts)                      -> LTypes (List.map (fun (v, t) -> (LVar v, t)) vts)
 	| JSLScope (x, le)                    ->
+		let js_var_to_lvar = 
+			(match js_var_to_lvar with 
+			| Some js_var_to_lvar -> js_var_to_lvar 
+			| None -> raise (Failure "DEATH: js2jsil_logic")) in 
 		if (Hashtbl.mem js_var_to_lvar x) then (
 			let x_lvar = Hashtbl.find js_var_to_lvar x in
 			LEq (x_lvar, (fe le))
@@ -197,6 +218,10 @@ let var_fid_tbl_to_assertion (var_to_fid_tbl : (string, string) Hashtbl.t) curre
 	a, js_var_to_lvar
 
 
+let translate_predicate_def pred_def vis_tbl fun_tbl = 
+	let jsil_params = List.map js2jsil_lexpr pred_def.js_params in 
+	let jsil_definitions = List.map (fun a -> js2jsil_logic None vis_tbl fun_tbl a) pred_def.js_definitions in 
+	{ name = pred_def.js_name; num_params = pred_def.js_num_params; params = jsil_params; definitions = jsil_definitions }
 
 
 
@@ -249,7 +274,7 @@ let rec js2jsil_logic_top_level_pre a (var_to_fid_tbl : (string, string) Hashtbl
 		if (is_global)
 			then LPred (initial_heap_pre_pred_name, [])
 			else LPred (initial_heap_post_pred_name, []) in
-		let a' = js2jsil_logic js_var_to_lvar vis_tbl fun_tbl a in
+		let a' = js2jsil_logic (Some js_var_to_lvar) vis_tbl fun_tbl a in
 		print_debug (Printf.sprintf "J2JPre: \n\t%s\n\t%s\n\t%s\n\t%s"
 			(JSIL_Print.string_of_logic_assertion a' false) (JSIL_Print.string_of_logic_assertion a_env_records false)
 			(JSIL_Print.string_of_logic_assertion a_scope_chain false) (JSIL_Print.string_of_logic_assertion a_pre_js_heap false));
@@ -264,7 +289,7 @@ let rec js2jsil_logic_top_level_post a (var_to_fid_tbl : (string, string) Hashtb
 	let a_env_records, js_var_to_lvar = var_fid_tbl_to_assertion var_to_fid_tbl fid [ ] is_global false in
 	let a_scope_chain = make_scope_chain_assertion vis_list fid [ ] false in
 	let a_post_js_heap = LPred (initial_heap_post_pred_name, []) in
-	let a' = js2jsil_logic js_var_to_lvar vis_tbl fun_tbl a in
+	let a' = js2jsil_logic (Some js_var_to_lvar) vis_tbl fun_tbl a in
 	print_debug (Printf.sprintf "J2JPost: \n\t%s\n\t%s\n\t%s\n\t%s"
 		(JSIL_Print.string_of_logic_assertion a' false) (JSIL_Print.string_of_logic_assertion a_env_records false)
 		(JSIL_Print.string_of_logic_assertion a_scope_chain false) (JSIL_Print.string_of_logic_assertion a_post_js_heap false));

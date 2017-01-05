@@ -6,25 +6,24 @@
 	((l, "@class") -> "Object") *
 	((l, "@extensible") -> $$t);
 
-@pred NodePrototype(np) :
-	StandardObject(np) * 
-	dataField(np, "push", #push) *
-	fun_obj(push, #push, #push_proto);
+@pred NodePrototype(np, push_loc) :
+	standardObject(np) *
+	dataField(np, "push", push_loc) *
+	fun_obj(push, push_loc, #push_proto);
 
 @pred Node(n, pri, elt, next, node_proto) :
-	Object(n, node_proto) * 
-	dataField(n, "pri",  pri) * 
-    dataField(n, "elt",  elt) * 
+	Object(n, node_proto) *
+	dataField(n, "pri",  pri) *
+    dataField(n, "elt",  elt) *
     dataField(n, "next", next) *
     types(pri : $$int_type, elt : $$string_type, node_proto : $$object_type);
 
 @pred Queue(q, node_proto, max_pri) :
-	(q == $$null) * (max_pri == -1);
+	(q == $$null) * (max_pri == -1),
 
-@pred Queue(q, node_proto, max_pri) :
-	Node(q, #pri, #elt, #next, node_proto) * 
+	Node(q, #pri, #elt, #next, node_proto) *
 	Queue(#next, node_proto, #pri) *
-	(#pri <= max_pri) *
+	(#pri <=# max_pri) *
 	types(node_proto : $$object_type, max_pri : $$int_type);
 */
 
@@ -38,12 +37,12 @@ var counter = 0;
 	   	scope(counter: #c) * types(#c : $$int_type) *
 	   	(pri == #pri) * (elt == #elt) * types(#pri: $$int_type, #elt: $$string_type) *
 	   	((this, "pri") -> None) * ((this, "elt") -> None) * ((this, "next") -> None) *
-	   	Object(this, #node_proto) * NodePrototype(#node_proto)
+	   	Object(this, #node_proto) * NodePrototype(#node_proto, #push_loc)
 	)
 	@post (
 	   		scope(counter: #c + 1) *
 	   		Node(this, #pri, #elt, $$null, #node_proto) *
-	   		NodePrototype(#node_proto))
+	   		NodePrototype(#node_proto, #push_loc))
 */
 var Node = function (pri, elt) {
 	this.pri = pri; this.elt = elt; this.next = null;
@@ -58,49 +57,43 @@ var Node = function (pri, elt) {
 		(q == #q) *
 		Node(this, #pri, #elt, $$null, #node_proto) *
 		Queue(#q, #node_proto, #pri_q) *
-		NodePrototype(#node_proto) *
-		scope(Node: #node) *
-		fun_obj(Node, #nc, #node_proto)
+		NodePrototype(#node_proto, #push_loc)
 	)
 	@post (
 		Queue(ret, #node_proto, #pri_f) *
-		NodePrototype(#node_proto) *
-		scope(Node: #node) *
-		fun_obj(Node, #nc, #node_proto)
+		NodePrototype(#node_proto, #push_loc)
 	)
 */
-Node.prototype.push = function (q) {
+var push = function (q) {
 	/** @unfold Queue(#q, #node_proto, #pri_q) */
-	Node.prototype.push = function (q) {
-		/** @unfold Queue(#q, #node_proto, #pri_q) */
-		if (q === null) {
+	if (q === null) {
+		/** @fold Queue(this, #node_proto, #pri) */
+		return this
+	}
+	else
+		if (this.pri >= q.pri) {
+			this.next = q;
 			/** @fold Queue(this, #node_proto, #pri) */
 			return this
-		} 
-		else 
-			if (this.pri >= q.pri) {
-				this.next = q;
-				/** @fold Queue(this, #node_proto, #pri) */
-				return this
-			} 
-			else 
-			{
-				var tmp = this.push (q.next);
-				q.next = tmp;
-				/** @fold Queue(#q, #node_proto, #pri_q) */
-				return q
-			}
-	}
-
-
-   /**
-   	@id  getCounter
-   	@rec false
-
-   	@pre  (scope(counter: #c) * types(#c : $$int_type))
-   	@post (scope(counter: #c) * (ret == #c))
-   */
-   var getCounter = function () { return counter; };
-   
-   return { nc: Node, gc: getCounter }
+		}
+		else
+		{
+			var tmp = this.push (q.next);
+			q.next = tmp;
+			/** @fold Queue(#q, #node_proto, #pri_q) */
+			return q
+		}
 }
+
+
+Node.prototype.push = push;
+
+
+/**
+   @id  getCounter
+   @rec false
+
+   @pre  (scope(counter: #c) * types(#c : $$int_type))
+   @post (scope(counter: #c) * (ret == #c))
+*/
+var getCounter = function () { return counter; };

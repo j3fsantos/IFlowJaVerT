@@ -219,6 +219,7 @@ open JS_Logic_Syntax
 %type <JSIL_Syntax.jsil_ext_program> main_target
 %type <string list> param_list_FC_target
 %type <JSIL_Syntax.jsil_logic_predicate list * JSIL_Syntax.jsil_spec list> pred_spec_target
+%type <JS_Logic_Syntax.js_logic_predicate> js_pred_target
 %type <JSIL_Syntax.jsil_logic_assertion> top_level_assertion_target
 %type <JS_Logic_Syntax.js_logic_assertion> top_level_js_assertion_target
 %start main_target
@@ -226,6 +227,7 @@ open JS_Logic_Syntax
 %start pred_spec_target
 %start top_level_assertion_target
 %start top_level_js_assertion_target
+%start js_pred_target
 %%
 
 (********* JSIL *********)
@@ -470,12 +472,34 @@ pred_target:
 	}
 ;
 
+
+js_pred_target:
+(* pred name (arg1, ..., argn) : def1, ..., defn ; *)
+	PRED; pred_head = js_pred_head_target; COLON;
+	definitions = separated_nonempty_list(COMMA, js_assertion_target); SCOLON
+  { (* Add the predicate to the collection *)
+		let (name, num_params, params) = pred_head in
+	  let pred = { js_name = name; js_num_params = num_params; js_params = params; js_definitions = definitions } in
+    pred
+	}
+;
+
+
 pred_head_target:
   name = VAR; LBRACE; params = separated_list(COMMA, pred_param_target); RBRACE;
 	{ (* Register the predicate declaration in the syntax checker *)
 		let num_params = List.length params in
 		register_predicate name num_params;
 		enter_predicate params;
+	  (name, num_params, params)
+	}
+;
+
+
+js_pred_head_target:
+  name = VAR; LBRACE; params = separated_list(COMMA, js_pred_param_target); RBRACE;
+	{ (* Register the predicate declaration in the syntax checker *)
+		let num_params = List.length params in
 	  (name, num_params, params)
 	}
 ;
@@ -491,6 +515,20 @@ pred_param_target:
 	| v = VAR
 	  { PVar v }
 ;
+
+
+js_pred_param_target:
+(* Logic literal *)
+	| lit = lit_target
+	  { JSLLit lit }
+(* None *)
+	| LNONE
+	  { JSLNone }
+(* Program variable *)
+	| v = VAR
+	  { JSPVar v }
+;
+
 
 pre_logic_cmd_target:
 (* [* logic_cmds *] *)
@@ -872,7 +910,7 @@ js_program_variable_target:
 js_lexpr_target:
 (* Logic literal *)
 	| lit = lit_target
-	  { Printf.printf "JS literal: %s" (JSIL_Print.string_of_literal lit false); JSLLit lit }
+	  { (* Printf.printf "JS literal: %s" (JSIL_Print.string_of_literal lit false); *) JSLLit lit }
 (* None *)
 	| LNONE
 	  { JSLNone }

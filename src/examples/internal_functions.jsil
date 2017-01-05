@@ -261,6 +261,8 @@ pred Pi (l, prop, lcls, d, ls, ltf, lpv) :
 	(lcls == #cls :: #pcls) * (ls == l :: #lsp) * (ltf == $$t :: #ltfp) * (lpv == #pv :: #lpvp) *
     (0 <# l-len #lsp) * (0 <# l-len #ltfp) * (0 <# l-len #lpvp);
 
+
+
 (* *************
  * COPY_OBJECT *
  ***************)

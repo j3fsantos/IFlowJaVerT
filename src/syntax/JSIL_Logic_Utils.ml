@@ -1361,3 +1361,14 @@ let rec reduce_assertion store gamma pfs a =
 let reduce_assertion_no_store_no_gamma_no_pfs = reduce_assertion (Hashtbl.create 1) (Hashtbl.create 1) (DynArray.create ())
 let reduce_assertion_no_store_no_gamma        = reduce_assertion (Hashtbl.create 1) (Hashtbl.create 1)
 let reduce_assertion_no_store                 = reduce_assertion (Hashtbl.create 1)
+
+
+let pred_def_tbl_from_list pred_defs = 
+	let pred_def_tbl = Hashtbl.create small_tbl_size in
+	List.iter 
+		(fun pred_def -> Hashtbl.add pred_def_tbl pred_def.name pred_def)
+		pred_defs; 
+	pred_def_tbl
+
+
+

@@ -759,7 +759,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 	let js_char_offset = e.Parser_syntax.exp_offset in
 	let js_line_offset = offset_converter js_char_offset in
 	let metadata = { line_offset = Some js_line_offset; pre_cond = None; pre_logic_cmds = []; post_logic_cmds = [] } in
-
+	
 	let annotate_cmds = annotate_cmds_top_level metadata in
 
 	let annotate_cmd = fun cmd lab -> annotate_cmd_top_level metadata (lab, cmd) in
@@ -2788,10 +2788,30 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 	let js_char_offset = e.Parser_syntax.exp_offset in
 	let js_line_offset = offset_converter js_char_offset in
 	let metadata = { line_offset = Some js_line_offset; pre_cond = None; pre_logic_cmds = []; post_logic_cmds = [] } in
-
+	let annots = e.Parser_syntax.exp_annot in
+	let fold_unfold_annots, invariant = Js_pre_processing.get_fold_unfold_invariant_annots annots in 
+	let fold_unfold_logic_cmds = JS_Logic_Syntax.js2jsil_logic_cmds fold_unfold_annots in 
+	
+	if ((List.length fold_unfold_annots) > 0)
+	 then Printf.printf "xiribitatata I found %d logical commands and %d processed logical commands!!!\nJS code:%s\n" 
+					(List.length fold_unfold_annots)
+					(List.length fold_unfold_logic_cmds)
+					(Pretty_print.string_of_exp_syntax_1  e.Parser_syntax.exp_stx false); 
+	
 	let annotate_cmds = annotate_cmds_top_level metadata in
+	
+	let annotate_cmd cmd lab = annotate_cmd_top_level metadata (lab, cmd) in
 
-	let annotate_cmd = fun cmd lab -> annotate_cmd_top_level metadata (lab, cmd) in
+	let annotate_first_cmd annotated_cmds = 
+		(match annotated_cmds with 
+		| [] -> []
+		| (metadata, lab, cmd) :: rest -> 
+			let cmd_str : string = JSIL_Print.string_of_lab_cmd cmd in 
+			let logic_cmd_str = String.concat ", " (List.map (fun lcmd -> JSIL_Print.string_of_logic_command lcmd false) fold_unfold_logic_cmds) in 
+			Printf.printf "xiribitatat I am annotating %s with (un)folds baby:\n%s!!!\n" cmd_str logic_cmd_str;
+			let new_metadata = { metadata with pre_logic_cmds = fold_unfold_logic_cmds } in
+			(new_metadata, lab, cmd) :: rest) in  		
+
 
 	let compile_var_dec x e =
 		let v_fid = find_var_fid x in
@@ -3192,8 +3212,6 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		cmds, Var x_ret_3, errs, rets, breaks, conts  in
 
 
-
-
 	(** Statements **)
 	match e.Parser_syntax.exp_stx with
 	| Parser_syntax.Script (_, es)
@@ -3260,7 +3278,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 				| _, _ ->
 					loop rest_es (Some x_e) (cmds_ac @ cmds_e) (errs_ac @ errs_e) (rets_ac @ rets_e) (breaks_ac @ breaks_e) (conts_ac @ conts_e))) in
 
-		let cmds, x, errs, rets, breaks, conts = loop es previous [] [] [] [] [] in
+		let cmds, x, errs, rets, breaks, conts = loop es previous [] [] [] [] [] in 
 		create_final_phi_cmd cmds x errs rets breaks conts break_label js_lab
 
 
@@ -3309,10 +3327,11 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 					let new_cmds, _, new_errs	 = compile_var_dec v e in
 					loop rest_decs (cmds @ new_cmds) (errs @ new_errs))) in
 		let x, cmds, errs = loop decs [] [] in
+		let cmds = annotate_first_cmd cmds in 
 		cmds, Var x, errs, [], [], []
 
 
-      | Parser_syntax.Skip (** Section 12.3 - Empty Statement *)
+  | Parser_syntax.Skip (** Section 12.3 - Empty Statement *)
 	| Parser_syntax.Debugger -> (** Section 12.15 - Debugger Statement **)
 		 [], Literal Empty, [], [], [], []
 
@@ -3342,7 +3361,9 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		 *)
 		let cmds_e, x_e, errs_e = fe e in
 		let x_e_v, cmd_gv_xe = make_get_value_call x_e err in
-		cmds_e @ [ annotate_cmd cmd_gv_xe None ], Var x_e_v, errs_e @ [ x_e_v ], [], [], []
+		let cmds = cmds_e @ [ annotate_cmd cmd_gv_xe None ] in 
+		let cmds = annotate_first_cmd cmds in 
+		cmds, Var x_e_v, errs_e @ [ x_e_v ], [], [], []
 
 
 	| Parser_syntax.If (e1, e2, e3) ->
@@ -3418,6 +3439,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			]) in
 		let errs = errs1 @ [ x1_v; x1_b ] @ errs2 @ errs3 in
 
+		let cmds = annotate_first_cmd cmds in 
 		let cmds, x, errs, rets, breaks, conts = cmds, Var x_if, errs, rets2 @ rets3, breaks2 @ breaks3, conts2 @ conts3 in
 		create_final_phi_cmd cmds x errs rets breaks conts break_label js_lab
 
@@ -3510,6 +3532,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 					(None,             cmd_dowhile_goto);      (*              goto [x2_b] head end                         *)
 				]) @ (annotate_cmds cmds_end_loop) in
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v; x2_b ] in
+		let cmds = annotate_first_cmd cmds in 
 		cmds, Var x_ret_5, errs, rets1, outer_breaks, outer_conts
 
 
@@ -3603,6 +3626,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 				(None,           SLGoto head);           (*           goto head                                  *)
 			]) @ (annotate_cmds cmds_end_loop) in
 		let errs = errs1 @ [ x1_v; x1_b ] @ errs2 @ [ x2_v ] in
+		let cmds = annotate_first_cmd cmds in 
 		cmds, Var x_ret_5, errs, rets2, outer_breaks, outer_conts
 
 
@@ -3804,6 +3828,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 				(Some next6,    cmd_phi_xret5)            (* next6:    x_ret_5 := PHI(x_ret_0, x_ret_1, x_ret_4)                    *)
 			]) in
 			let errs = errs2 @ [x2_v; x4; xlf] @ errs1 @ [ x5 ] @ errs3 @ [ x3_v ] in
+			let cmds = annotate_first_cmd cmds in 
 			cmds, Var x_ret_5, errs, rets3, outer_breaks, outer_conts
 
 
@@ -3928,6 +3953,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 				  (None,             SLGoto head);           (*              goto head                                    *)
 				]) @ (annotate_cmds cmds_end_loop) in
 		let errs = errs1 @ errs2 @ [ x2_v; x2_b ] @ errs4 @ [ x4_v ] @ errs3 in
+		let cmds = annotate_first_cmd cmds in 
 		cmds, Var x_ret_5, errs, rets4, outer_breaks, outer_conts
 
 
@@ -3953,7 +3979,9 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			let cmd_xr_ass = annotate_cmd (SLBasic (SAssignment (x_r, Literal Undefined))) None in
 			(* goto lab_ret *)
 			let cmd_goto_ret = annotate_cmd (SLGoto ctx.tr_ret_lab) None in
-			[ cmd_xr_ass; cmd_goto_ret], Var x_r, [], [ x_r ], [], []
+			let cmds = [ cmd_xr_ass; cmd_goto_ret] in 
+			let cmds = annotate_first_cmd cmds in 
+			cmds, Var x_r, [], [ x_r ], [], []
 
 		| Some e ->
 			let cmds, x, errs = fe e in
@@ -3962,7 +3990,9 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			let cmd_gv_x = annotate_cmd cmd_gv_x None in
 			(* goto ret_lab *)
 			let cmd_goto_ret = annotate_cmd (SLGoto ctx.tr_ret_lab) None in
-			cmds @ [ cmd_gv_x; cmd_goto_ret], Var x_r, errs @ [ x_r ], [ x_r ], [], [])
+			let cmds = cmds @ [ cmd_gv_x; cmd_goto_ret] in 
+			let cmds = annotate_first_cmd cmds in 
+			cmds, Var x_r, errs @ [ x_r ], [ x_r ], [], [])
 
 
 	| Parser_syntax.Continue lab ->
@@ -3997,8 +4027,9 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		(* goto lab_c *)
 		let lab_c = get_continue_lab loop_list lab in
 		let cmd_goto =  [ annotate_cmd (SLGoto lab_c) None ] in
-
-		cmd_ret @ cmd_goto, Var x_r, [], [], [], [ (lab, x_r, lab_c) ]
+		let cmds = cmd_ret @ cmd_goto in  
+		let cmds = annotate_first_cmd cmds in 
+		cmds, Var x_r, [], [], [], [ (lab, x_r, lab_c) ]
 
 
 	| Parser_syntax.Break lab ->
@@ -4023,7 +4054,10 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		(* goto lab_r *)
 		let lab_r = get_break_lab loop_list lab in
 		let cmd_goto = [ (annotate_cmd (SLGoto lab_r) None) ] in
-		cmd_ret @ cmd_goto, Var x_r, [], [], [ (lab, x_r, lab_r) ], []
+		
+		let cmds = cmd_ret @ cmd_goto in 
+		let cmds = annotate_first_cmd cmds in
+		cmds, Var x_r, [], [], [ (lab, x_r, lab_r) ], []
 
 
 	| Parser_syntax.Label (js_lab, e) ->
@@ -4049,6 +4083,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		   (None, cmd_gv_x);                 (*  x_v := i__getValue (x) with err *)
 			 (None, SLGoto err)                (*  goto err                        *)
 		]) in
+		let cmds = annotate_first_cmd cmds in 
 		cmds, Literal Empty, errs @ [ x_v; x_v ], [], [], []
 
 
@@ -4074,7 +4109,9 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 
 		let catch_id = try Js_pre_processing.get_codename e
 				with _ -> raise (Failure "catch statemetns must be annotated with their respective code names - try - catch - finally") in
-		make_try_catch_cmds_with_finally e1 (x, e2) catch_id e3
+		let cmds, x, errs, rets, breaks, conts = make_try_catch_cmds_with_finally e1 (x, e2) catch_id e3 in 
+		let cmds = annotate_first_cmd cmds in 
+		cmds, x, errs, rets, breaks, conts
 
 
 	| Parser_syntax.Try (e1, None, Some e3) ->
@@ -4090,7 +4127,9 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 					        cmds3
 			  end:      x_ret_3 := PHI(cur_breaks3, x_ret_2)
 		 *)
-		make_try_finally_cmds e1 e3
+		let cmds, x, errs, rets, breaks, conts =  make_try_finally_cmds e1 e3 in 
+		let cmds = annotate_first_cmd cmds in 
+		cmds, x, errs, rets, breaks, conts
 
 
 	| Parser_syntax.Try (e1, Some (x, e2), None) ->
@@ -4111,7 +4150,8 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		let catch_id = try Js_pre_processing.get_codename e
 				with _ -> raise (Failure "catch statements must be annotated with their respective code names - try - catch - finally") in
 		let cmds12, x_ret_1, errs12, rets12, breaks12, conts12, _ = make_try_catch_cmds e1 (x, e2) catch_id in
-		cmds12, Var x_ret_1, errs12, rets12, breaks12, conts12
+		let cmds = annotate_first_cmd cmds12 in 
+		cmds, Var x_ret_1, errs12, rets12, breaks12, conts12
 
 
 	| Parser_syntax.Switch (e, xs) ->
@@ -4301,7 +4341,9 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			let phi_args = List.map (fun x -> Var x) phi_args in
 			let phi_args = Array.of_list phi_args in
 			let cmd_end_switch = (annotate_cmd (SLPhiAssignment (x_r, phi_args)) (Some end_switch)) in
-			cmds_as @ [ cmd_end_switch ], Var x_r, errs_as, rets_as, outer_breaks_as, conts_as
+			let cmds = cmds_as @ [ cmd_end_switch ] in
+			let cmds = annotate_first_cmd cmds in 
+			cmds, Var x_r, errs_as, rets_as, outer_breaks_as, conts_as
 
 		| [], Some def ->
 			let new_loop_list = (None, end_switch, js_lab, true) :: loop_list in
@@ -4317,7 +4359,9 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			let phi_args = List.map (fun x -> Var x) phi_args in
 			let phi_args = Array.of_list phi_args in
 			let cmd_end_switch = (annotate_cmd (SLPhiAssignment (x_r, phi_args)) (Some end_switch)) in
-			cmds_as @ cmds_def @ [ cmd_end_switch ], Var x_r, errs_as @ errs_def, rets_as @ rets_def, outer_breaks_as @ outer_breaks_def, conts_as @ conts_def
+			let cmds = cmds_as @ cmds_def @ [ cmd_end_switch ] in 
+			let cmds = annotate_first_cmd cmds in 
+			cmds, Var x_r, errs_as @ errs_def, rets_as @ rets_def, outer_breaks_as @ outer_breaks_def, conts_as @ conts_def
 
 	 	| _, Some def ->
 			let b_stmts = List.map (fun (a, b) -> b) b_cases in
@@ -4335,7 +4379,9 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			let cur_breaks_ab = cur_breaks_as @ cur_breaks_bs in
 
 			let cmds_def, x_def, errs_def, rets_def, outer_breaks_def, conts_def = compile_default def b_stmts x_bs x_found_b end_switch js_lab cur_breaks_ab in
-			cmds_as @ [ cmd_goto_xfounda ] @ cmds_bs @ [ cmd_ass_xfoundb ] @ cmds_def, Var x_def, errs_as @ errs_bs @ errs_def, rets_as @ rets_bs @ rets_def, outer_breaks_as @ outer_breaks_bs @ outer_breaks_def, conts_as @ conts_bs @ conts_def
+			let cmds = cmds_as @ [ cmd_goto_xfounda ] @ cmds_bs @ [ cmd_ass_xfoundb ] @ cmds_def in 
+			let cmds = annotate_first_cmd cmds in 
+			cmds, Var x_def, errs_as @ errs_bs @ errs_def, rets_as @ rets_bs @ rets_def, outer_breaks_as @ outer_breaks_bs @ outer_breaks_def, conts_as @ conts_bs @ conts_def
 
 		| _, _ -> raise (Failure "no b cases with no default"))
 
@@ -4343,7 +4389,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 	| Parser_syntax.Function (_, n, params, e_body) -> [], Literal Empty, [], [], [], []
 
   | Parser_syntax.With (_, _) -> raise (Failure "Not implemented: with (this should not happen)")
-	| Parser_syntax.RegExp (_, _) -> raise (Failure "Not implemented: RegExp literal")
+	| Parser_syntax.RegExp (_, _) -> raise (Failure "Not implemented: RegExp literal") 
 
 
 let make_final_cmd vars final_lab final_var =
@@ -4730,11 +4776,8 @@ let js2jsil e offset_converter for_verification =
 	let main = "main" in
 	Js_pre_processing.test_early_errors e;
 	let e : Parser_syntax.exp = Js_pre_processing.add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous [] e in
-	Js_pre_processing.closure_clarification_top_level cc_tbl fun_tbl vis_tbl main e [ main ] [];
+	let predicates = Js_pre_processing.closure_clarification_top_level cc_tbl fun_tbl vis_tbl main e [ main ] [] in
 
-
-	(* TODO: 'predicates' is empty *)
-	let predicates = Hashtbl.create medium_tbl_size in
 
 	let procedures = Hashtbl.create medium_tbl_size in
 	Hashtbl.iter

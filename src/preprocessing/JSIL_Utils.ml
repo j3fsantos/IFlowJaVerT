@@ -162,6 +162,12 @@ let js_assertion_of_string str =
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
 	parse_with_error JSIL_Parser.top_level_js_assertion_target lexbuf
 
+let js_logic_pred_def_of_string str : JS_Logic_Syntax.js_logic_predicate =
+  let lexbuf = Lexing.from_string str in
+  lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
+	parse_with_error JSIL_Parser.js_pred_target lexbuf
+
+
 (** Add the declarations in 'program_from' to 'program_to'. *)
 let extend_declarations program_to program_from =
 	(* Extend the predicates *)

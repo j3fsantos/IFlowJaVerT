@@ -400,6 +400,57 @@ with
 	err: 	xerr, elab;
 };
 
+
+
+(* **************
+ * i__toBoolean *
+ ****************)
+
+spec i__toBoolean (v)
+
+	[[ (v == #v) * types(#v : $$boolean_type) ]]
+	[[ (ret == #v) ]]
+	normal
+
+proc i__toBoolean (v) {
+	iu:		goto [v = $$undefined] undef in;
+	undef:	xret := $$f;
+			goto rlab;
+
+	in:		goto [v = $$null] null ib;
+	null:	xret := $$f;
+			goto rlab;
+
+	ib:		goto [typeOf(v) = $$boolean_type] bool inum;
+	bool:	xret := v;
+			goto rlab;
+
+	inum:	goto [typeOf(v) <: $$number_type] num is;
+	num:	goto [(v = 0) or (not (v = v))] is_f is_t;
+
+	is:		goto [typeOf(v) = $$string_type] str io;
+	str:	goto [v = ""] is_f is_t;
+			goto rlab;
+
+	io:		goto [typeOf(v) = $$object_type] obj oops;
+	obj:	xret := $$t;
+			goto rlab;
+
+	is_t:	xret := $$t;
+			goto rlab;
+	is_f:	xret := $$f;
+			goto rlab;
+
+	oops:	xret := "ToBoolean: This should not happen.";
+
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+
 (* ********* *)
 (* TYPEERROR *)
 (* ********* *)
