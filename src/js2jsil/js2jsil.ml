@@ -2793,7 +2793,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 	let fold_unfold_logic_cmds = JS_Logic_Syntax.js2jsil_logic_cmds fold_unfold_annots in 
 	
 	if ((List.length fold_unfold_annots) > 0)
-	 then Printf.printf "xiribitatata I found %d logical commands and %d processed logical commands!!!\nJS code:%s\n" 
+	 then Printf.printf "I found %d logical commands and %d processed logical commands!!!\nJS code:%s\n" 
 					(List.length fold_unfold_annots)
 					(List.length fold_unfold_logic_cmds)
 					(Pretty_print.string_of_exp_syntax_1  e.Parser_syntax.exp_stx false); 
@@ -2808,7 +2808,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		| (metadata, lab, cmd) :: rest -> 
 			let cmd_str : string = JSIL_Print.string_of_lab_cmd cmd in 
 			let logic_cmd_str = String.concat ", " (List.map (fun lcmd -> JSIL_Print.string_of_logic_command lcmd false) fold_unfold_logic_cmds) in 
-			Printf.printf "xiribitatat I am annotating %s with (un)folds baby:\n%s!!!\n" cmd_str logic_cmd_str;
+			Printf.printf "I am annotating %s with (un)folds baby:\n%s!!!\n" cmd_str logic_cmd_str;
 			let new_metadata = { metadata with pre_logic_cmds = fold_unfold_logic_cmds } in
 			(new_metadata, lab, cmd) :: rest) in  		
 
