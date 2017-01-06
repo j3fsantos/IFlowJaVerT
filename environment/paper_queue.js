@@ -9,7 +9,10 @@
 @pred NodePrototype(np, push_loc) :
 	standardObject(np) *
 	dataField(np, "push", push_loc) *
-	fun_obj(push, push_loc, #push_proto);
+	fun_obj(push, push_loc, #push_proto) *
+	((np, "pri") -> None) *
+	((np, "elt") -> None) *
+	((np, "next") -> None);
 
 @pred Node(n, pri, elt, next, node_proto) :
 	Object(n, node_proto) *
