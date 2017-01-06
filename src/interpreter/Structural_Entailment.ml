@@ -625,6 +625,10 @@ let unify_symb_states_fold existentials (pat_symb_state : symbolic_state) (symb_
 	let heap_1, store_1, pf_1, gamma_1, preds_1 (*, _ *) = pat_symb_state in
 	(** Auxiliary Functions **)
 
+ 	print_debug (Printf.sprintf "store_0: %s.\nstore_1: %s" 
+		(JSIL_Memory_Print.string_of_shallow_symb_store store_0 false)
+		(JSIL_Memory_Print.string_of_shallow_symb_store store_1 false)); 
+				
 	(* existentials -> new variables introduced by the fold                                      *)
 	(* store_vars -> vars in the store which are mapped to logical expressions with existentials *)
 	let find_existentials_types existentials store_vars store gamma pat_gamma =
@@ -682,7 +686,10 @@ let unify_symb_states_fold existentials (pat_symb_state : symbolic_state) (symb_
 			with _ -> None in
 		print_debug (Printf.sprintf "\t\tGot the discharges: %d" (if_some discharges_0 (fun x -> List.length x) (-1)));
 		let store_0' = store_projection store_0 unfiltered_vars in
+		print_debug "I COULD project the store_0\n";
 		let store_1' = store_projection store_1 unfiltered_vars in
+		print_debug "I COULD project the store_1\n";
+		print_debug "I could not finish the MARVELOUS store projection\n";
 		let discharges_1 = unify_stores store_1' store_0' subst None (pfs_to_list pf_0) (* solver_0 *) gamma_0 in
 		match discharges_0, discharges_1 with
 		| Some discharges_0, Some discharges_1 ->

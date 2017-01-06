@@ -19,7 +19,7 @@
     types(pri : $$int_type, elt : $$string_type, node_proto : $$object_type);
 
 @pred Queue(q, node_proto, max_pri) :
-	(q == $$null) * (max_pri == -1),
+	(q == $$null),
 
 	Node(q, #pri, #elt, #next, node_proto) *
 	Queue(#next, node_proto, #pri) *
