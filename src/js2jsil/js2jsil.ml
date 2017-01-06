@@ -4602,7 +4602,7 @@ let generate_proc_er_restoring_code fid rcr x_er_old end_lab =
 	if (rcr) then
 		(let next = fresh_else_label () in
 		let other = fresh_then_label () in
-		let cmd_goto_xerold_empty = SLGuardedGoto (BinOp (Var x_er_old, Equal, Literal Empty), other, next) in
+		let cmd_goto_xerold_empty = SLGuardedGoto (BinOp (Var x_er_old, Equal, Literal Empty), end_lab, next) in
 
 		(* next: [x_sc, fid] := x_er_old *)
 		let cmd_restore_sc = SLBasic (SMutation (Var var_scope, Literal (String fid), Var x_er_old))  in
@@ -4615,8 +4615,6 @@ let generate_proc_er_restoring_code fid rcr x_er_old end_lab =
 		[
 			None,         cmd_goto_xerold_empty; 	(*            goto [not (x_er_old = $$empty) next end_lab    *)
 			Some next,    cmd_restore_sc;         (* next:      [x_sc, fid] := x_er_old                        *)
-			None,         cmd_goto_end;
-			Some other,   cmd_delete_sc;
 			Some end_lab, cmd_end                 (* end_lab:   skip                                           *)
 		])
 	else
