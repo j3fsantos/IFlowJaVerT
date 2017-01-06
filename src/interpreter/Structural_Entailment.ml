@@ -680,6 +680,7 @@ let unify_symb_states_fold existentials (pat_symb_state : symbolic_state) (symb_
 							let le_1 = store_get_var_val store_1 x in
 							match le_0, le_1 with
 							| Some le_0, Some le_1 -> (le_1, le_0) :: ac
+							| _, None -> ac
 							| _ -> raise (Failure ""))
 						[]
 						filtered_vars)
@@ -687,6 +688,15 @@ let unify_symb_states_fold existentials (pat_symb_state : symbolic_state) (symb_
 		print_debug (Printf.sprintf "\t\tGot the discharges: %d" (if_some discharges_0 (fun x -> List.length x) (-1)));
 		let store_0' = store_projection store_0 unfiltered_vars in
 		let store_1' = store_projection store_1 unfiltered_vars in
+		
+		print_debug (Printf.sprintf "store_0: %s.\nstore_1: %s" 
+			(JSIL_Memory_Print.string_of_shallow_symb_store store_0 false)
+			(JSIL_Memory_Print.string_of_shallow_symb_store store_1 false)); 
+		
+		print_debug (Printf.sprintf "store_0': %s.\nstore_1': %s" 
+			(JSIL_Memory_Print.string_of_shallow_symb_store store_0' false)
+			(JSIL_Memory_Print.string_of_shallow_symb_store store_1' false)); 
+		
 		let discharges_1 = unify_stores store_1' store_0' subst None (pfs_to_list pf_0) (* solver_0 *) gamma_0 in
 		match discharges_0, discharges_1 with
 		| Some discharges_0, Some discharges_1 ->
