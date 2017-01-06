@@ -562,14 +562,14 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 						else pfs_false "Nasty type mismatch"
 				| LVar v, LLit lit -> 
 					let does_this_work = 
+						let tl = JSIL_Interpreter.evaluate_type_of lit in
 						(match Hashtbl.mem gamma v with
 						| true -> 
 							let t1 = Hashtbl.find gamma v in
-							let t2 = JSIL_Interpreter.evaluate_type_of lit in
 								(* If we're assigning a number to sth that was an int, 
 								   is that a problem? *)
-								(types_leq t1 t2 || types_leq t2 t1)
-						| false -> true) in
+								(types_leq t1 tl || types_leq tl t1)
+						| false -> Hashtbl.add gamma v tl; true) in
 					if does_this_work 
 						then perform_substitution v le2 n (save_all_lvars || String.get v 0 = '#')
 						else pfs_false "Nasty type mismatch: var -> lit"
