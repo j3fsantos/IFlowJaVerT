@@ -119,7 +119,14 @@ let filter_store store filter_fun =
 		([], [])
 
 let store_projection store vars =
-	let les = List.map (fun v -> Hashtbl.find store v) vars in
+	let vars, les = 
+		List.fold_left 
+			(fun (vars, les) v ->
+				if (Hashtbl.mem store v) 
+					then (v :: vars), ((Hashtbl.find store v) :: les) 
+					else vars, les)
+			([], []) 
+			vars in
 	init_store vars les
 
 let check_store store gamma =
