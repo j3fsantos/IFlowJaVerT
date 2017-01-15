@@ -232,13 +232,20 @@ let prog_of_ext_prog filename ext_program =
 	let global_which_pred = Hashtbl.create 101 in
 	Hashtbl.iter
 		(fun proc_name ext_proc ->
+			print_debug (Printf.sprintf "Going to desugar procedure %s baby!!!\n" proc_name);
 			let proc = desugar_labs ext_proc in
 			(* Removing dead code and recalculating everything
 			let proc = JSIL_Utils_Graphs.remove_unreachable_code proc false in
 			let proc = JSIL_Utils_Graphs.remove_unreachable_code proc true in *)
 
 			let succ_table, pred_table = JSIL_Utils_Graphs.get_succ_pred proc.proc_body proc.ret_label proc.error_label in
+			
+			print_debug "after succ and pred tables!!!\n";
+			
 			let which_pred = JSIL_Utils_Graphs.compute_which_preds pred_table in
+			
+			print_debug "after which pred computation!!!\n";
+			
 			Hashtbl.iter
 				(fun (prev_cmd, cur_cmd) i ->
 					Hashtbl.replace global_which_pred (proc_name, prev_cmd, cur_cmd) i)

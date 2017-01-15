@@ -4561,69 +4561,27 @@ let generate_proc_eval new_fid e cc_table vis_fid =
 	}
 
 
+(** 
+  x_er_old := [ x_sc, fid ] 
+*)
 let generate_proc_er_saving_code fid =
-	(* x_sc_hf_fid := hasField(x_sc, fid) *)
-	let x_sc_hf_fid = fresh_var () in
-	let cmd_ass_xschffid = SLBasic ( SHasField (x_sc_hf_fid, Var var_scope, Literal (String fid))) in
-
-	(* goto [x_sc_hf_fid ] then1 else1 *)
-	let then1 = fresh_then_label () in
-	let else1 = fresh_else_label () in
-	let end_if = fresh_endif_label () in
-	let cmd_goto_xschffid = SLGuardedGoto (Var x_sc_hf_fid, then1, else1) in
-
-	(* then1: x_er_old1 := [ x_sc, fid ] *)
-	let x_er_old1 = fresh_var () in
-	let cmd_ass_xerold1 = SLBasic (SLookup (x_er_old1, Var var_scope, Literal (String fid))) in
-
-	(* goto end_if1 *)
-	let cmd_goto_endif1 = SLGoto end_if in
-
-	(* else1: x_er_old1 := $$empty *)
-	let x_er_old2 = fresh_var () in
-	let cmd_ass_xerold2 = SLBasic (SAssignment (x_er_old2, Literal Empty)) in
-
-	(* end_if1:  x_er_old3 := PHI(x_er_old1, x_er_old_2) *)
-	let x_er_old3 = fresh_var () in
-	let cmd_ass_xerold3 = SLPhiAssignment (x_er_old3, [| (Var x_er_old1); (Var x_er_old2) |]) in
+	(* x_er_old1 := [ x_sc, fid ] *)
+	let x_er_old = fresh_var () in
+	let cmd = SLBasic (SLookup (x_er_old, Var var_scope, Literal (String fid))) in
 
 	[
-		None,        cmd_ass_xschffid;    (*           x_sc_hf_fid := hasField(x_sc, fid)      *)
-		None,        cmd_goto_xschffid;   (*           goto [x_sc_hf_fid ] then1 else1         *)
-		Some then1,  cmd_ass_xerold1;     (* then1:    x_er_old1 := [ x_sc, fid ]              *)
-		None,        cmd_goto_endif1;     (*           goto end_if1                            *)
-		Some else1,  cmd_ass_xerold2;     (* else1:    x_er_old1 := $$empty                    *)
-		Some end_if, cmd_ass_xerold3      (* end_if1:  x_er_old3 := PHI(x_er_old1, x_er_old_2) *)
-	], x_er_old3
+		None,        cmd;    (* x_er_old1 := [ x_sc, fid ] *)
+	], x_er_old
 
 
-let generate_proc_er_restoring_code fid rcr x_er_old end_lab =
-	(* goto [not (x_er_old = $$empty) next end_lab *)
-	if (rcr) then
-		(let next = fresh_else_label () in
-		let other = fresh_then_label () in
-		let cmd_goto_xerold_empty = SLGuardedGoto (BinOp (Var x_er_old, Equal, Literal Empty), end_lab, next) in
+(* [x_sc, fid] := x_er_old  *)
+let generate_proc_er_restoring_code fid x_er_old end_lab =
+	let cmd_restore_sc = SLBasic (SMutation (Var var_scope, Literal (String fid), Var x_er_old))  in
+	[ None,         cmd_restore_sc; 
+	  Some end_lab, SLBasic (SSkip)	]
+	
 
-		(* next: [x_sc, fid] := x_er_old *)
-		let cmd_restore_sc = SLBasic (SMutation (Var var_scope, Literal (String fid), Var x_er_old))  in
-		let cmd_goto_end = SLGoto end_lab in
-
-		let cmd_delete_sc = SLBasic (SDelete (Var var_scope, Literal (String fid))) in
-
-		(* end_lab: skip *)
-		let cmd_end = SLBasic SSkip in
-		[
-			None,         cmd_goto_xerold_empty; 	(*            goto [not (x_er_old = $$empty) next end_lab    *)
-			Some next,    cmd_restore_sc;         (* next:      [x_sc, fid] := x_er_old                        *)
-			Some end_lab, cmd_end                 (* end_lab:   skip                                           *)
-		])
-	else
-		(let cmd_end = SLBasic SSkip in
-		[
-			Some end_lab, cmd_end                 (* end_lab:   skip                                           *)
-		])
-
-let generate_proc offset_converter e fid params rcr cc_table vis_fid spec =
+let generate_proc offset_converter e fid params cc_table vis_fid spec =
 	let annotate_cmd cmd lab = (empty_metadata, lab, cmd) in
 	let annotate_cmds cmds =
 		List.map
@@ -4699,18 +4657,14 @@ let generate_proc offset_converter e fid params rcr cc_table vis_fid spec =
 	let cmd_del_te = annotate_cmd (SLBasic (SDeleteObj (Var var_te))) None in
 	let cmd_del_se = annotate_cmd (SLBasic (SDeleteObj (Var var_se))) None in
 
-	let cmds_restore_er_ret = generate_proc_er_restoring_code fid rcr x_er_old ctx.tr_ret_lab in
+	let cmds_restore_er_ret = generate_proc_er_restoring_code fid x_er_old ctx.tr_ret_lab in
 	let cmds_restore_er_ret = annotate_cmds cmds_restore_er_ret in
 
 	(* pre_lab_err: x_error := PHI(...) *)
 	let errs = errs_hoist_decls @ (* [ x_args ] @ *) errs in
 	let cmd_error_phi = make_final_cmd errs new_ctx.tr_error_lab new_ctx.tr_error_var in
-	let cmds_restore_er_error = generate_proc_er_restoring_code fid rcr x_er_old ctx.tr_error_lab in
+	let cmds_restore_er_error = generate_proc_er_restoring_code fid x_er_old ctx.tr_error_lab in
 	let cmds_restore_er_error = annotate_cmds cmds_restore_er_error in
-
-	let cmds_save_old_er = (match rcr with
-		| true -> cmds_save_old_er
-		| false -> []) in
 
 	let fid_cmds =
 		cmds_save_old_er @
@@ -4789,7 +4743,7 @@ let js2jsil e offset_converter for_verification =
 							with _ ->
 								(let msg = Printf.sprintf "Function %s not found in visibility table" f_id in
 								raise (Failure msg)) in
-						generate_proc offset_converter f_body f_id f_params f_rec cc_tbl vis_fid spec)) in
+						generate_proc offset_converter f_body f_id f_params cc_tbl vis_fid spec)) in
 			Hashtbl.add procedures f_id proc)
 		fun_tbl;
 
@@ -4831,7 +4785,7 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 							with _ ->
 								(let msg = Printf.sprintf "EV: Function %s not found in visibility table" f_id in
 								raise (Failure msg)) in
-						generate_proc offset_converter f_body f_id f_params true cc_tbl vis_fid None)) in
+						generate_proc offset_converter f_body f_id f_params cc_tbl vis_fid None)) in
 		(* let proc_eval_str = SSyntax_Print.string_of_ext_procedure proc in
 		   Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
 			let proc = JSIL_Utils.desugar_labs proc in
@@ -4868,7 +4822,7 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
   				with _ ->
   					(let msg = Printf.sprintf "Function %s not found in visibility table" f_id in
   					raise (Failure msg)) in
-  			generate_proc offset_converter f_body f_id f_params true cc_tbl vis_fid None) in
+  			generate_proc offset_converter f_body f_id f_params cc_tbl vis_fid None) in
 		  (* let proc_str = JSIL_Print.string_of_ext_procedure proc in
 		  Printf.printf "FC:\n %s\n" proc_str; *)
 			let proc = JSIL_Utils.desugar_labs proc in
