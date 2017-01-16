@@ -292,15 +292,24 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 	
 	let just_pick_the_first locs = 
 		match locs with 
-		| [] -> print_debug "DEATH. MARICA! MARICA brain activate\n"; raise (Failure "DEATH: unify_symb_heaps")
+		| [] -> print_debug "DEATH. just_pick_the_first\n"; raise (Failure "DEATH: unify_symb_heaps")
 		| loc :: rest -> loc, rest in 
+	
+	
+	let rec pick_loc_that_exists_in_both_heaps locs traversed_locs  = 
+		match locs with 
+		| [] -> just_pick_the_first traversed_locs
+		| loc :: rest -> 
+			if (LHeap.mem heap loc) 
+				then loc, (traversed_locs @ rest) 
+				else pick_loc_that_exists_in_both_heaps rest (traversed_locs @ [ loc ]) in 
 	
 	let pick_pat_loc (locs_to_visit : string list) subst : string * (string list) = 
 		print_debug "pick_pat_loc\n";
 		
 		let rec loop (remaining_locs : string list) (traversed_locs : string list) : string * (string list) = 
 			match remaining_locs with 
-			| [] -> just_pick_the_first traversed_locs 
+			| [] -> pick_loc_that_exists_in_both_heaps traversed_locs []
 			| loc :: rest -> 
 				if ((not (is_abs_loc_name loc)) || (Hashtbl.mem subst loc)) 
 					then loc, (traversed_locs @ rest) 
@@ -330,7 +339,7 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 				  		    | _ ->
 								(* I really think this case is wrong!!!*)
 								pat_loc)
-							with _ -> (* I really think this case is wrong *) pat_loc in
+							with _ -> (* this case is very interesting *) pat_loc in
 						let fv_list, (def : jsil_logic_expr) =
 							(try LHeap.find heap loc with _ ->
 								let msg = Printf.sprintf "Location %s in pattern has not been matched" loc in
