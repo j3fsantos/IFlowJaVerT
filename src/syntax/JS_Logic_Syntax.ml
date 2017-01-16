@@ -289,9 +289,10 @@ let rec js2jsil_logic_top_level_post a (var_to_fid_tbl : (string, string) Hashtb
 	let a' = js2jsil_logic (Some js_var_to_lvar) vis_tbl fun_tbl a in
 	print_debug (Printf.sprintf "J2JPost: \n\t%s\n\t%s\n\t%s\n\t%s"
 		(JSIL_Print.string_of_logic_assertion a' false) (JSIL_Print.string_of_logic_assertion a_env_records false)
-		(JSIL_Print.string_of_logic_assertion a_scope_chain false) (JSIL_Print.string_of_logic_assertion a_post_js_heap false));
+		(JSIL_Print.string_of_logic_assertion a_scope_chain false) (JSIL_Print.string_of_logic_assertion a_post_js_heap false));	
 	let a_er_flag = LPointsTo (PVar Js2jsil_constants.var_er, LLit (String Js2jsil_constants.erFlagPropName), LLit (Bool true)) in 
 	let a_er_proto = LPointsTo (PVar Js2jsil_constants.var_er, LLit (String Js2jsil_constants.internalProtoFieldName), LLit Null) in
+		
 	if (is_global)
 		then JSIL_Logic_Utils.star_asses [a'; a_env_records; a_scope_chain; a_post_js_heap; a_er_proto]
 		else JSIL_Logic_Utils.star_asses [a'; a_env_records; a_er_flag; a_scope_chain; a_post_js_heap; a_er_proto]
