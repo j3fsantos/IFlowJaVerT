@@ -19,6 +19,7 @@
 	dataField(n, "pri",  pri) *
     dataField(n, "elt",  elt) *
     dataField(n, "next", next) *
+    ((this, "push") -> None) * 
     types(pri : $$int_type, elt : $$string_type, node_proto : $$object_type);
 
 @pred Queue(q, node_proto, max_pri) :
@@ -39,7 +40,7 @@ var counter = 0;
 	@pre (
 	   	scope(counter: #c) * types(#c : $$int_type) *
 	   	(pri == #pri) * (elt == #elt) * types(#pri: $$int_type, #elt: $$string_type) *
-	   	((this, "pri") -> None) * ((this, "elt") -> None) * ((this, "next") -> None) *
+	   	((this, "pri") -> None) * ((this, "elt") -> None) * ((this, "next") -> None) * ((this, "push") -> None) * 
 	   	Object(this, #node_proto) * NodePrototype(#node_proto, #push_loc)
 	)
 	@post (
