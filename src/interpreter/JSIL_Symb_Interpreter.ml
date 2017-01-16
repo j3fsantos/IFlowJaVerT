@@ -447,13 +447,13 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 		existentials_str
 		(JSIL_Memory_Print.string_of_shallow_symb_state symb_state));
 
-	let update_symb_state_after_folding symb_state quotient_heap quotient_preds new_pfs new_gamma pred_name args =
+	let update_symb_state_after_folding complete_fold symb_state quotient_heap quotient_preds new_pfs new_gamma pred_name args =
 		print_time_debug ("update_symb_state_after_folding:");
 		let symb_state = symb_state_replace_heap symb_state quotient_heap in
 		let symb_state = symb_state_replace_preds symb_state quotient_preds in
 		let symb_state = symb_state_replace_gamma symb_state new_gamma in
 		extend_symb_state_with_pfs symb_state (DynArray.of_list new_pfs);
-		symb_state_add_predicate_assertion symb_state (pred_name, args);
+		(* if complete_fold then symb_state_add_predicate_assertion symb_state (pred_name, args); *)
 		symb_state in
 
 	let rec find_correct_pred_def cur_pred_defs =
@@ -467,7 +467,7 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 			(match unifier with
 			| Some (true, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma, _, []) ->
 			  print_debug (Printf.sprintf "I can fold this!!!");
-				let new_symb_state = update_symb_state_after_folding symb_state quotient_heap quotient_preds pf_discharges new_gamma pred_name args in
+				let new_symb_state = update_symb_state_after_folding true symb_state quotient_heap quotient_preds pf_discharges new_gamma pred_name args in
 				print_debug (Printf.sprintf "Symbolic state after FOLDING:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state new_symb_state));
 				Some new_symb_state
 
@@ -477,13 +477,13 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 					print_debug (Printf.sprintf "I can NOT quite fold this because I am missing %s(%s)!!!"
 						missing_pred_name
 						(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) missing_pred_args)));
-					let new_symb_state = update_symb_state_after_folding symb_state quotient_heap quotient_preds pf_discharges new_gamma pred_name args in
+					let new_symb_state = update_symb_state_after_folding false symb_state quotient_heap quotient_preds pf_discharges new_gamma pred_name args in
 					let new_symb_state = simplify true new_symb_state in
 					print_debug (Printf.sprintf "Symbolic state after partial FOLDING:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state new_symb_state));
 					let new_symb_state = fold_predicate pred_name pred_defs new_symb_state params missing_pred_args (Some existentials) in
 					(match new_symb_state with
 					| Some new_symb_state ->
-						remove_predicate_assertion (get_preds new_symb_state) (missing_pred_name, missing_pred_args);
+						(* remove_predicate_assertion (get_preds new_symb_state) (missing_pred_name, missing_pred_args); *) 
 						Some new_symb_state
 					| None -> None))
 
@@ -670,6 +670,7 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 			let new_symb_state = fold_predicate pred_name pred_defs symb_state params args None in
 			(match new_symb_state with
 			| Some symb_state ->
+				symb_state_add_predicate_assertion symb_state (pred_name, args);
 				[ symb_state ]
 			| None ->
 				print_endline (Printf.sprintf "\nSTATE ON ERROR: %s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state));
