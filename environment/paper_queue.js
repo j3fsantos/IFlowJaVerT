@@ -19,7 +19,7 @@
 	dataField(n, "pri",  pri) *
     dataField(n, "elt",  elt) *
     dataField(n, "next", next) *
-    ((this, "push") -> None) * 
+    ((n, "push") -> None) * 
     types(pri : $$int_type, elt : $$string_type, node_proto : $$object_type);
 
 @pred Queue(q, node_proto, max_pri) :
