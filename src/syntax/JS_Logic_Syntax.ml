@@ -150,6 +150,7 @@ let rec js2jsil_logic (js_var_to_lvar : ((string, JSIL_Syntax.jsil_logic_expr) H
 	| JSLTrue                             -> LTrue
 	| JSLFalse                            -> LFalse
 	| JSLEq (le1, le2)                    -> LEq ((fe le1), (fe le2))
+	| JSLLess (le1, le2)                  -> LLess ((fe le1), (fe le2))
 	| JSLLessEq (le1, le2)                -> LLessEq ((fe le1), (fe le2))
 	| JSLStrLess (le1, le2)               -> LStrLess ((fe le1), (fe le2))
 	| JSLStar (a1, a2)                    -> LStar ((f a1), (f a2))

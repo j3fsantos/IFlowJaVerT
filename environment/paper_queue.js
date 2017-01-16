@@ -20,7 +20,7 @@
     dataField(n, "elt",  elt) *
     dataField(n, "next", next) *
     ((n, "push") -> None) *
-    types(pri : $$int_type, elt : $$string_type, node_proto : $$object_type);
+    types(pri : $$number_type, elt : $$string_type, node_proto : $$object_type);
 
 @pred Queue(q, node_proto, max_pri) :
 	(q == $$null),
@@ -28,7 +28,7 @@
 	Node(q, #pri, #elt, #next, node_proto) *
 	Queue(#next, node_proto, #pri) *
 	(#pri <=# max_pri) *
-	types(node_proto : $$object_type, max_pri : $$int_type);
+	types(node_proto : $$object_type, #pri : $$number_type, max_pri : $$number_type);
 */
 
 var counter = 0;
@@ -39,7 +39,7 @@ var counter = 0;
 
 	@pre (
 	   	scope(counter: #c) * types(#c : $$int_type) *
-	   	(pri == #pri) * (elt == #elt) * types(#pri: $$int_type, #elt: $$string_type) *
+	   	(pri == #pri) * (elt == #elt) * types(#pri: $$number_type, #elt: $$string_type) *
 	   	((this, "pri") -> None) * ((this, "elt") -> None) * ((this, "next") -> None) * ((this, "push") -> None) *
 	   	Object(this, #node_proto) * NodePrototype(#node_proto, #push_loc)
 	)
@@ -61,11 +61,24 @@ var Node = function (pri, elt) {
 		(q == #q) *
 		Node(this, #pri, #elt, $$null, #node_proto) *
 		Queue(#q, #node_proto, #pri_q) *
-		NodePrototype(#node_proto, #push_loc)
+		NodePrototype(#node_proto, #push_loc) *
+		(#pri <# #pri_q) * types(#pri_q : $$number_type)
 	)
 	@post (
-		Queue(ret, #node_proto, #pri_f) * (ret == #frakthisshit) *
-		NodePrototype(#node_proto, #push_loc) * types(#frakthisshit : $$object_type) 
+		Queue(ret, #node_proto, #pri_q) * (ret == #ret) *
+		NodePrototype(#node_proto, #push_loc) * types(#ret : $$object_type) 
+	)
+	
+	@pre (
+		(q == #q) *
+		Node(this, #pri, #elt, $$null, #node_proto) *
+		Queue(#q, #node_proto, #pri_q) *
+		NodePrototype(#node_proto, #push_loc) *
+		(#pri_q <=# #pri) * types(#pri_q : $$number_type)
+	)
+	@post (
+		Queue(ret, #node_proto, #pri) * (ret == #ret) *
+		NodePrototype(#node_proto, #push_loc) * types(#ret : $$object_type) 
 	)
 */
 var push = function (q) {

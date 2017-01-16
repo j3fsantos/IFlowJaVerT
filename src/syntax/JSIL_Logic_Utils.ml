@@ -1345,6 +1345,7 @@ let rec reduce_assertion store gamma pfs a =
 					else default e1 e2 re1 re2
 					
 			| LLit (Bool true), LBinOp (e1, LessThan, e2) -> LLess (e1, e2)
+			| LLit (Bool false), LBinOp (e1, LessThan, e2) -> LNot (LLess (e1, e2))
 			
 			| _, _ -> default e1 e2 re1 re2
 		)
