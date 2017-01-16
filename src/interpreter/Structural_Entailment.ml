@@ -629,7 +629,7 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 
 
 
-let unify_symb_states_fold existentials (pat_symb_state : symbolic_state) (symb_state : symbolic_state) : (bool * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment * (jsil_var list) * ((string * (jsil_logic_expr list)) list)) option  =
+let unify_symb_states_fold (pred_name : string) existentials (pat_symb_state : symbolic_state) (symb_state : symbolic_state) : (bool * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment * (jsil_var list) * ((string * (jsil_logic_expr list)) list)) option  =
 	let heap_0, store_0, pf_0, gamma_0, preds_0 (*, solver_0 *) = symb_state in
 	let heap_1, store_1, pf_1, gamma_1, preds_1 (*, _ *) = pat_symb_state in
 	(** Auxiliary Functions **)
@@ -721,7 +721,12 @@ let unify_symb_states_fold existentials (pat_symb_state : symbolic_state) (symb_
 		| Some (heap_f, new_pfs) ->
 			let ret_2 = unify_pred_arrays preds_1 preds_0 pf_0 (* solver_0 *) gamma_0 subst in
 			(match ret_2 with
-			| Some (subst, preds_f, unmatched_pat_preds) -> Some (heap_f, preds_f, subst, new_pfs, unmatched_pat_preds)
+			| Some (new_subst, preds_f, unmatched_pat_preds) -> 
+				print_debug 
+					(Printf.sprintf "subst after unify_heaps: %s" (JSIL_Memory_Print.string_of_substitution subst));
+				print_debug 
+					(Printf.sprintf "subst after unify_preds: %s" (JSIL_Memory_Print.string_of_substitution new_subst));
+				Some (heap_f, preds_f, subst, new_subst, new_pfs, unmatched_pat_preds)
 			| None -> None)
 		| None -> None) in
 
@@ -781,16 +786,40 @@ let unify_symb_states_fold existentials (pat_symb_state : symbolic_state) (symb_
 		else
 		 	(false, [], [], gamma_0', new_existentials) in
 
-
+	let recovery_step heap_f subst filtered_vars gamma_existentials new_pfs discharges = 
+		(* take the predicate out of the pat_preds *)
+		(* unify the preds *)
+		(* call step 2 *) 
+		
+		print_debug (Printf.sprintf "subst in recovery before re-unification of preds: %s" (JSIL_Memory_Print.string_of_substitution subst));
+		
+		let copied_preds_1 = copy_pred_set preds_1 in 
+		let subtracted_pred_ass = simple_subtract_pred copied_preds_1 pred_name in 
+		match subtracted_pred_ass with 
+		| None -> None 
+		| Some subtracted_pred_ass -> 
+			print_debug 
+				(Printf.sprintf "In the middle of the recovery biaaaattccchhhh!!! the pat_preds as they are now:\n%s\n" 
+					(JSIL_Memory_Print.string_of_preds copied_preds_1 false)); 
+			let ret = unify_pred_arrays copied_preds_1 preds_0 pf_0 (* solver_0 *) gamma_0 subst in
+			(match ret with
+			| Some (subst, preds_f, []) -> 
+				print_debug (Printf.sprintf "subst in recovery after re-unify_preds: %s" (JSIL_Memory_Print.string_of_substitution subst));
+				let entailment_check_ret, pf_discharges, pf_1_subst_list, gamma_0', new_existentials = step_2 subst filtered_vars gamma_existentials new_pfs discharges in
+				Some (entailment_check_ret, heap_f, preds_f, subst, (pf_1_subst_list @ pf_discharges), gamma_0', new_existentials, [ subtracted_pred_ass ])
+			| _ -> None) in 
+	
 	(* Actually doing it!!! *)
 	match step_0 () with
 	| Some (subst, filtered_vars, _, gamma_existentials, discharges) ->
 		print_debug "Passed step 0.";
 		(match step_1 subst with
-		| Some (heap_f, preds_f, subst, new_pfs, unmatched_pat_preds) ->
+		| Some (heap_f, preds_f, old_subst, subst, new_pfs, unmatched_pat_preds) ->
 		  print_debug "Passed step 1.";
 		  let entailment_check_ret, pf_discharges, pf_1_subst_list, gamma_0', new_existentials = step_2 subst filtered_vars gamma_existentials new_pfs discharges in
-			Some (entailment_check_ret, heap_f, preds_f, subst, (pf_1_subst_list @ pf_discharges), gamma_0', new_existentials, unmatched_pat_preds)
+			(match entailment_check_ret with 
+			| true  -> Some (entailment_check_ret, heap_f, preds_f, subst, (pf_1_subst_list @ pf_discharges), gamma_0', new_existentials, unmatched_pat_preds)
+			| false -> recovery_step heap_f old_subst filtered_vars gamma_existentials new_pfs discharges)
 		| None -> print_debug "Failed in step 1!"; None)
 	| None -> print_debug "Failed in step 0!"; None
 

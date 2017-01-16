@@ -66,9 +66,9 @@ var Node = function (pri, elt) {
 	)
 	@post (
 		Queue(ret, #node_proto, #pri_q) * (ret == #ret) *
-		NodePrototype(#node_proto, #push_loc) * types(#ret : $$object_type) 
+		NodePrototype(#node_proto, #push_loc) * types(#ret : $$object_type)
 	)
-	
+
 	@pre (
 		(q == #q) *
 		Node(this, #pri, #elt, $$null, #node_proto) *
@@ -78,7 +78,7 @@ var Node = function (pri, elt) {
 	)
 	@post (
 		Queue(ret, #node_proto, #pri) * (ret == #ret) *
-		NodePrototype(#node_proto, #push_loc) * types(#ret : $$object_type) 
+		NodePrototype(#node_proto, #push_loc) * types(#ret : $$object_type)
 	)
 */
 var push = function (q) {

@@ -463,7 +463,7 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 		| pred_def :: rest_pred_defs ->
 			print_debug (Printf.sprintf "----------------------------");
 			print_debug (Printf.sprintf "Current pred symbolic state: %s" (JSIL_Memory_Print.string_of_shallow_symb_state pred_def));
-			let unifier = Structural_Entailment.unify_symb_states_fold existentials pred_def symb_state_aux in
+			let unifier = Structural_Entailment.unify_symb_states_fold pred_name existentials pred_def symb_state_aux in
 			(match unifier with
 			| Some (true, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma, _, []) ->
 			  print_debug (Printf.sprintf "I can fold this!!!");

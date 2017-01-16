@@ -326,6 +326,21 @@ let get_preds_vars var_tbl catch_pvars preds =
 		let pred_name, les = DynArray.get preds i in
 		List.iter (fun le -> get_expr_vars var_tbl catch_pvars le) les
 	done
+	
+
+let simple_subtract_pred preds pred_name = 
+	let pred_asses = DynArray.to_list preds in 
+	let rec loop pred_asses cur = 
+		(match pred_asses with 
+		| [] -> None
+		| (cur_pred_name, les) :: rest -> 
+			if (cur_pred_name = pred_name) 
+			then Some (cur, les)
+			else loop rest (cur + 1)) in 
+	match (loop pred_asses 0) with 
+	| None -> None
+	| Some (cur, les) -> (DynArray.delete preds cur); Some (pred_name, les)
+		
 
 (*************************************)
 (** Symbolic State functions        **)
