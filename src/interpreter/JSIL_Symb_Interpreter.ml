@@ -443,7 +443,9 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 		| Some existentials -> existentials) in
 
 	let existentials_str = print_var_list existentials in
-	print_debug (Printf.sprintf ("\nIn the FOLD with the following new variables %s: \n%s\n")
+	print_debug (Printf.sprintf ("\nFOLDING %s(%s) with the existentials %s in the symbolic state: \n%s\n")
+	  pred_name 
+		(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) args))
 		existentials_str
 		(JSIL_Memory_Print.string_of_shallow_symb_state symb_state));
 
