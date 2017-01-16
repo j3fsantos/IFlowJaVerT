@@ -64,8 +64,8 @@ var Node = function (pri, elt) {
 		NodePrototype(#node_proto, #push_loc)
 	)
 	@post (
-		Queue(ret, #node_proto, #pri_f) *
-		NodePrototype(#node_proto, #push_loc) 
+		Queue(ret, #node_proto, #pri_f) * (ret == #frakthisshit) *
+		NodePrototype(#node_proto, #push_loc) * types(#frakthisshit : $$object_type) 
 	)
 */
 var push = function (q) {
