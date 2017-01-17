@@ -481,6 +481,7 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 						(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) missing_pred_args)));
 					let new_symb_state = update_symb_state_after_folding false symb_state quotient_heap quotient_preds pf_discharges new_gamma pred_name args in
 					let new_symb_state, new_subst = simplify_with_subst true new_symb_state in
+					print_debug (Printf.sprintf "New subst: %d \n%s" (List.length new_subst) (String.concat "\n" (List.map (fun (x, le) -> Printf.sprintf "   (%s, %s)" x (JSIL_Print.string_of_logic_expression le false)) new_subst)));
 					let existentials_to_remove = (List.map (fun (v, _) -> v) new_subst) in 
 					let new_existentials = List.filter (fun v -> (not (List.mem v existentials_to_remove))) existentials in 
 					let new_subst = JSIL_Logic_Utils.init_substitution3 new_subst in 
