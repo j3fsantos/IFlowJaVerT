@@ -336,7 +336,12 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 							(match le with
 							| LLit (Loc loc) -> loc
 							| ALoc loc -> loc
-				  		    | _ ->
+							| LVar v -> 
+								let loc = find_me_Im_a_loc (pfs_to_list pure_formulae) le in 
+								(match loc with 
+								| Some loc -> loc
+								| None -> raise (Failure "I cannot unify this"))
+				  		| _ ->
 								(* I really think this case is wrong!!!*)
 								pat_loc)
 							with _ -> (* this case is very interesting *) pat_loc in

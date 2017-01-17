@@ -1151,6 +1151,31 @@ let find_me_Im_a_list store pfs le =
 	) with FoundIt result -> result
 
 
+let rec find_me_Im_a_loc pfs lvar = 
+	match pfs with 
+	| [] -> None 
+	| LEq (lvar', ALoc loc) :: rest
+	| LEq (lvar', LLit (Loc loc))  :: rest
+	| LEq (ALoc loc, lvar') :: rest
+	| LEq ( LLit (Loc loc), lvar') :: rest ->
+		if (lvar = lvar') 
+			then Some loc 
+			else find_me_Im_a_loc rest lvar  
+
+(*
+let resolve_logical_variables pfs lvars = 
+	let rec loop pfs lvars_found_so_far = 
+		match pfs with 
+		| [] -> lvars_found_so_far 
+		| LEq (LVar v, le) :: rest
+		| LEq (le, LVar v) :: rest ->
+			let vars_le = 
+			if (List.mem v lvars) 
+				then loop rest 
+				else find_me_Im_a_loc rest lvar  *)
+	
+		
+
 (**
 	Reduction of expressions: everything must be IMMUTABLE
 
