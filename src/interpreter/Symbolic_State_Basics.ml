@@ -506,7 +506,7 @@ let rec isExistentiallySubstitutable le =
 
 *)
 
-let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_pfs save_all_lvars (symb_state : symbolic_state) : (symbolic_state * jsil_logic_assertion DynArray.t) =
+let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_pfs save_all_lvars (symb_state : symbolic_state) : (symbolic_state * jsil_logic_assertion DynArray.t * (string * jsil_logic_expr) list) =
 
 	let f = aggressively_simplify to_add other_pfs save_all_lvars in
 
@@ -519,7 +519,7 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 		DynArray.clear p_formulae;
 		DynArray.add p_formulae LFalse;
 		DynArray.clear other_pfs;
-		symb_state, other_pfs in
+		symb_state, other_pfs, [] in
 	
 	let perform_substitution var lexpr n chantay = 
 	let subst = Hashtbl.create 1 in
@@ -540,7 +540,7 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 		(match pfs with
 		| [] ->
 			List.iter (fun (x, y) -> DynArray.add p_formulae (LEq (LVar x, y))) to_add;
-			symb_state, other_pfs
+			symb_state, other_pfs, to_add
 		| pf :: rest ->
 			(match pf with
 			(* If we have true in the pfs, we delete it and restart *)
@@ -550,11 +550,11 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 			| LEq (le1, le2) ->
 				(match le1, le2 with
 				(* Obvious falsity *)
-				| ALoc _, LLit l
-				| LLit l, ALoc _ ->
+				| ALoc loc, LLit l
+				| LLit l, ALoc loc ->
 					(match l with
 					 | Loc _ -> go_through_pfs rest (n + 1)
-					 | _ -> pfs_false "ALoc and not-a-loc")
+					 | _ -> pfs_false (Printf.sprintf "ALoc and not-a-loc: %s, %s" loc (JSIL_Print.string_of_literal l false)))
 				(* VARIABLES *)
 				| LVar v1, LVar v2 ->
 					let does_this_work = 
@@ -700,7 +700,10 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 		
 
 let simplify how x =
-	let (result, _) = aggressively_simplify [] (DynArray.create ()) how x in result
+	let (result, _, _) = aggressively_simplify [] (DynArray.create ()) how x in result
+
+let simplify_with_subst how x = 
+	let (result, _, subst) = aggressively_simplify [] (DynArray.create ()) how x in result, subst
 
 let simplify_with_pfs how pfs = aggressively_simplify [] pfs how
 
@@ -711,7 +714,7 @@ let aggressively_simplify_pfs pfs gamma how =
 
 let aggressively_simplify_pfs_with_others pfs opfs gamma how =
 	(* let solver = ref None in *)
-		let (_, _, pfs, gamma, _), opfs = aggressively_simplify [] opfs how (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create () (*, solver*)) in
+		let (_, _, pfs, gamma, _), opfs, _ = aggressively_simplify [] opfs how (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create () (*, solver*)) in
 			pfs, opfs, gamma
 	
 (* *********************** *
