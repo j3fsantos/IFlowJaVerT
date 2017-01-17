@@ -22,7 +22,7 @@
     dataField(n, "elt",  elt) *
     dataField(n, "next", next) *
     ((n, "push") -> None) *
-	 ((n, "push") -> None) *
+	 ((n, "insert") -> None) *
     types(pri : $$number_type, elt : $$string_type, node_proto : $$object_type);
 
 @pred Queue(q, node_proto, max_pri) :
@@ -110,10 +110,11 @@ Node.prototype.push = push;
 	@id  insert
 
 	@pre (
-		Queue(this, #pri_q, #node_proto) *
+		Queue(this, #node_proto, #pri_q) *
 	   Node(n, #pri, #elt, $$null, #node_proto) *
 		NodePrototype(#node_proto, #push_loc, #insert_loc) *
-		(#pri <=# #pri_q) * types(#pri_q : $$number_type)
+		(this == #this) * (! (#this == $$null)) * 
+		(#pri <=# #pri_q) * types(#pri_q : $$number_type, #this: $$object_type)
 	)
 	@post (
 		Queue(this, #node_proto, #pri_q) * (ret == this) *
