@@ -622,6 +622,20 @@ let init_substitution2 vars les =
 	subst
 
 
+let init_substitution3 vars_les =
+	let subst = Hashtbl.create 1021 in
+
+	let rec loop vars_les =
+		match vars_les with
+		| [] -> ()
+		| (var, le) :: rest ->
+			Hashtbl.replace subst var le; loop rest in
+
+	loop vars_les;
+	subst
+
+
+
 
 
 (**
