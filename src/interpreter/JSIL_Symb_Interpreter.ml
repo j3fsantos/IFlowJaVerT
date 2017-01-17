@@ -484,7 +484,7 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 					let existentials_to_remove = (List.map (fun (v, _) -> v) new_subst) in 
 					let new_existentials = List.filter (fun v -> (List.mem v existentials_to_remove)) existentials in 
 					let new_subst = JSIL_Logic_Utils.init_substitution3 new_subst in 
-					let missing_pred_args = List.map (fun le -> JSIL_Logic_Utils.lexpr_substitution le new_subst false) missing_pred_args in
+					let missing_pred_args = List.map (fun le -> JSIL_Logic_Utils.lexpr_substitution le new_subst true) missing_pred_args in
 					(* let subst = resolve_existentials (get_pf new_symb_state) existentials in 
 					let new_symb_state = Symbolic_State_Basics.symb_state_substitution new_symb_state subst true in *)
 					print_debug (Printf.sprintf "Symbolic state after partial FOLDING:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state new_symb_state));
