@@ -554,6 +554,8 @@ let get_z3_var_and_type tr_ctx var =
 (** Encode JSIL logical expressions *)
 let rec encode_logical_expression tr_ctx e =
 	
+  (* print_debug (Printf.sprintf "ELE: %s" (JSIL_Print.string_of_logic_expression e false)); *)
+	
 	let start_time = Sys.time () in
 	
 	try (
@@ -938,7 +940,7 @@ let rec encode_assertion tr_ctx is_premise a : Expr.expr * (Expr.expr list) =
 	let ctx = tr_ctx.z3_ctx in
 	let gamma = tr_ctx.tr_typing_env in
 
-	(* print_endline (Printf.sprintf "EPF: %s" (JSIL_Print.string_of_logic_assertion a false)); *)
+	(* print_debug (Printf.sprintf "EPF: %s" (JSIL_Print.string_of_logic_assertion a false)); *)
 	(* print_endline (Printf.sprintf "With gamma: %s" (JSIL_Memory_Print.string_of_gamma gamma)); *)
 	let result = (
 	match a with

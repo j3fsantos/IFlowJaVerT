@@ -481,10 +481,18 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 						(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) missing_pred_args)));
 					let new_symb_state = update_symb_state_after_folding false symb_state quotient_heap quotient_preds pf_discharges new_gamma pred_name args in
 					let new_symb_state, new_subst = simplify_with_subst true new_symb_state in
+					print_debug (Printf.sprintf "New subst: %d \n%s" (List.length new_subst) (String.concat "\n" (List.map (fun (x, le) -> Printf.sprintf "   (%s, %s)" x (JSIL_Print.string_of_logic_expression le false)) new_subst)));
 					let existentials_to_remove = (List.map (fun (v, _) -> v) new_subst) in 
-					let new_existentials = List.filter (fun v -> (List.mem v existentials_to_remove)) existentials in 
+					print_debug (Printf.sprintf "Exists to remove: %s" (String.concat "," existentials_to_remove));
+					print_debug (Printf.sprintf "Old exists: %s" (String.concat "," existentials));
+					let new_existentials = List.filter (fun v -> (not (List.mem v existentials_to_remove))) existentials in 
+					print_debug (Printf.sprintf "New exists: %s" (String.concat "," new_existentials));
 					let new_subst = JSIL_Logic_Utils.init_substitution3 new_subst in 
-					let missing_pred_args = List.map (fun le -> JSIL_Logic_Utils.lexpr_substitution le new_subst false) missing_pred_args in
+					print_debug (Printf.sprintf "New substitution: \n%s" (JSIL_Memory_Print.string_of_substitution new_subst));
+					let missing_pred_args = List.map (fun le -> JSIL_Logic_Utils.lexpr_substitution le new_subst true) missing_pred_args in
+					print_debug (Printf.sprintf "And now I am missing %s(%s)!!!"
+						missing_pred_name
+						(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) missing_pred_args)));
 					(* let subst = resolve_existentials (get_pf new_symb_state) existentials in 
 					let new_symb_state = Symbolic_State_Basics.symb_state_substitution new_symb_state subst true in *)
 					print_debug (Printf.sprintf "Symbolic state after partial FOLDING:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state new_symb_state));
