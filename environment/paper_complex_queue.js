@@ -22,7 +22,7 @@
     dataField(n, "elt",  elt) *
     dataField(n, "next", next) *
     ((n, "push") -> None) *
-	 ((n, "insert") -> None) *
+	((n, "insert") -> None) *
     types(pri : $$number_type, elt : $$string_type, node_proto : $$object_type);
 
 @pred Queue(q, node_proto, max_pri) :
@@ -43,7 +43,7 @@ var counter = 0;
 	   	scope(counter: #c) * types(#c : $$int_type) *
 	   	(pri == #pri) * (elt == #elt) * types(#pri: $$number_type, #elt: $$string_type) *
 	   	((this, "pri") -> None) * ((this, "elt") -> None) * ((this, "next") -> None) *
-			((this, "push") -> None) * ((this, "insert") -> None) *
+		((this, "push") -> None) * ((this, "insert") -> None) *
 	   	Object(this, #node_proto) * NodePrototype(#node_proto, #push_loc, #insert_loc)
 	)
 	@post (
@@ -113,7 +113,7 @@ Node.prototype.push = push;
 		Queue(this, #node_proto, #pri_q) *
 	   Node(n, #pri, #elt, $$null, #node_proto) *
 		NodePrototype(#node_proto, #push_loc, #insert_loc) *
-		(this == #this) * (! (#this == $$null)) * 
+		(this == #this) * (! (#this == $$null)) *
 		(#pri <=# #pri_q) * types(#pri_q : $$number_type, #this: $$object_type)
 	)
 	@post (
@@ -121,16 +121,6 @@ Node.prototype.push = push;
 		NodePrototype(#node_proto, #push_loc, #insert_loc)
 	)
 
-	@pre (
-		Queue(this, #node_proto, #pri_q) *
-		Node(n, #pri, #elt, $$null, #node_proto) * (n == #n) *
-		NodePrototype(#node_proto, #push_loc, #insert_loc) *
-		(#pri_q <=# #pri) * types(#pri_q : $$number_type)
-	)
-	@post (
-		Queue(#n, #node_proto, #pri) * (ret == #n) *
-		NodePrototype(#node_proto, #push_loc, #insert_loc)
-	)
 */
 var insert = function (n) {
 	/** @unfold Queue(this, #node_proto, #pri_q) */
