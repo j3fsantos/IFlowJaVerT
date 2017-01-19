@@ -110,14 +110,15 @@ Node.prototype.push = push;
 	@id  insert
 
 	@pre (
-		Queue(this, #node_proto, #pri_q) *
-	   Node(n, #pri, #elt, $$null, #node_proto) *
+		(this == #this) * (! (#this == $$null)) * (n == #n) *
+		Queue(#this, #node_proto, #pri_q) *
+	    Node(#n, #pri, #elt, $$null, #node_proto) *
 		NodePrototype(#node_proto, #push_loc, #insert_loc) *
-		(this == #this) * (! (#this == $$null)) *
-		(#pri <=# #pri_q) * types(#pri_q : $$number_type, #this: $$object_type)
+		(#pri <=# #pri_q) * 
+		types(#pri : $$number_type, #pri_q : $$number_type, #this: $$object_type, #n : $$object_type)
 	)
 	@post (
-		Queue(this, #node_proto, #pri_q) * (ret == this) *
+		Queue(#this, #node_proto, #pri_q) * (ret == #this) *
 		NodePrototype(#node_proto, #push_loc, #insert_loc)
 	)
 
