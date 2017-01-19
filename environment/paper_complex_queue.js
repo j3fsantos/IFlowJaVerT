@@ -129,8 +129,24 @@ var insert = function (n) {
 		/** @fold Queue(#n, #node_proto, #pri) */
 		return n
 	} else {
-		var tmp = this.next.insert (n);
-		this.next = tmp;
+
+		/** @invariant (
+		      (this == #this) * (! (#this == $$null)) *
+				Node(#this, #this_pri, #this_val, #this_next, #node_proto) *
+				Queue(#this_next, #node_proto, #max_pri_next) *
+				Node(n, #pri, #val, $$null, #node_proto) *
+				NodePrototype(#node_proto, #push_loc, #insert_loc) *
+				(#pri <=# #this_pri) * types(#pri_q : $$number_type, #this: $$object_type))
+
+			@unfold Queue(#next_this, #node_proto, #max_pri_next) */
+		var next = this.next;
+		if (next == null) {
+				this.next = n;
+		} else {
+			   /* @fold Queue(next, #node_proto, #pri_next) */
+				var tmp = next.insert (n);
+				this.next = tmp;
+		}
 		/** @fold Queue(this, #node_proto, #pri_q) */
 		return this
 	}

@@ -295,5 +295,5 @@ let rec js2jsil_logic_top_level_post a (var_to_fid_tbl : (string, string) Hashtb
 	let a_er_proto = LPointsTo (PVar Js2jsil_constants.var_er, LLit (String Js2jsil_constants.internalProtoFieldName), LLit Null) in
 		
 	if (is_global)
-		then JSIL_Logic_Utils.star_asses [a'; a_env_records; a_scope_chain; a_post_js_heap; a_er_proto]
+		then JSIL_Logic_Utils.star_asses [a'; a_env_records; a_scope_chain; a_post_js_heap ]
 		else JSIL_Logic_Utils.star_asses [a'; a_env_records; a_er_flag; a_scope_chain; a_post_js_heap; a_er_proto]
