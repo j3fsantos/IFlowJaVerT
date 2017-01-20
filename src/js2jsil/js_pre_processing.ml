@@ -46,7 +46,7 @@ let get_predicate_defs_from_annots annots : JS_Logic_Syntax.js_logic_predicate l
 			let pred_defs = 
 				if (annot.annot_type == Parser_syntax.Pred) 
 					then  (
-						Printf.printf "I am about to parse the following js_pred definition: %s\n" annot.annot_formula;
+						(* Printf.printf "I am about to parse the following js_pred definition: %s\n" annot.annot_formula); *)
 						(JSIL_Utils.js_logic_pred_def_of_string ("pred " ^ annot.annot_formula)) :: pred_defs 
 					) else pred_defs in 
 			loop rest pred_defs in 
@@ -530,15 +530,15 @@ let rec add_codenames (main : string) (fresh_anonymous : unit -> string) (fresh_
 
 
 let process_js_logic_annotations (vis_tbl : (string, string list) Hashtbl.t) fun_tbl fun_name (fun_args : string list) annotations requires_flag ensures_normal_flag ensure_err_flag var_to_fid_tbl vis_list =
-	Printf.printf "Inside process_js_logic_annotations. function: %s.\n\nAnnotations: \n%s\n\n" fun_name (Pretty_print.string_of_annots annotations);
+	(* Printf.printf "Inside process_js_logic_annotations. function: %s.\n\nAnnotations: \n%s\n\n" fun_name (Pretty_print.string_of_annots annotations); *)
 	
 	let annot_types_str : string = String.concat ", " (List.map (fun annot -> Pretty_print.string_of_annot_type annot.annot_type) annotations) in 
-	Printf.printf "annot types: %s\n\n" annot_types_str;   
+	(* Printf.printf "annot types: %s\n\n" annot_types_str;   *)
 
 	let preconditions  = List.filter (fun annotation -> annotation.annot_type = requires_flag) annotations in
 	let postconditions = List.filter (fun annotation -> (annotation.annot_type = ensures_normal_flag) || (annotation.annot_type = ensure_err_flag)) annotations in
 
-	Printf.printf "number of preconditions: %d. number of postconditions: %d\n" (List.length preconditions) (List.length postconditions);
+	(* Printf.printf "number of preconditions: %d. number of postconditions: %d\n" (List.length preconditions) (List.length postconditions); *)
 
 	let single_specs =
 		if ((List.length preconditions) <> (List.length postconditions)) then (
@@ -552,10 +552,10 @@ let process_js_logic_annotations (vis_tbl : (string, string list) Hashtbl.t) fun
 				(match post.annot_type with
 				| ensures_normal_flag -> JSIL_Syntax.Normal
 				| ensure_err_flag     -> JSIL_Syntax.Error) in
-			Printf.printf "pre_str: %s. post_str: %s\n" pre_str post_str;
+			(* Printf.printf "pre_str: %s. post_str: %s\n" pre_str post_str; *)
 			let pre_js  = JSIL_Utils.js_assertion_of_string pre_str in
 			let post_js = JSIL_Utils.js_assertion_of_string post_str in
-			Printf.printf "I manage to parse the js assertions\n";
+			(* Printf.printf "I manage to parse the js assertions\n"; *)
 			
 			let scope_vars_pre = JS_Logic_Syntax.get_scope_vars pre_js in 
 			let scope_vars_post = JS_Logic_Syntax.get_scope_vars post_js in 
@@ -850,10 +850,10 @@ let closure_clarification_top_level cc_tbl (fun_tbl : Js2jsil_constants.fun_tbl_
 	let annots = get_top_level_annot e in
 	(match annots with
 	| Some annots ->
-		Printf.printf "Going to generate main. Top-level annotations:\n%s\n" (Pretty_print.string_of_annots annots);
+		(* Printf.printf "Going to generate main. Top-level annotations:\n%s\n" (Pretty_print.string_of_annots annots); *)
 		let specs, _ = process_js_logic_annotations vis_tbl old_fun_tbl proc_id [] annots TopRequires TopEnsures TopEnsuresErr proc_tbl [ proc_id ] in
 		Hashtbl.replace fun_tbl proc_id (proc_id, args, e, false, specs);
-	| None -> Printf.printf "NO TOP LEVEL ANNOTATION BANANAS!!!");
+	| None -> ()); 
 	let jsil_pred_def_tbl = JSIL_Logic_Utils.pred_def_tbl_from_list jsil_predicate_definitions in 
 	jsil_pred_def_tbl 
 	

@@ -2792,11 +2792,12 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 	let fold_unfold_annots, invariant = Js_pre_processing.get_fold_unfold_invariant_annots annots in 
 	let fold_unfold_logic_cmds = JS_Logic_Syntax.js2jsil_logic_cmds fold_unfold_annots in 
 	
+	(* 
 	if ((List.length fold_unfold_annots) > 0)
 	 then Printf.printf "I found %d logical commands and %d processed logical commands!!!\nJS code:%s\n" 
 					(List.length fold_unfold_annots)
 					(List.length fold_unfold_logic_cmds)
-					(Pretty_print.string_of_exp_syntax_1  e.Parser_syntax.exp_stx false); 
+					(Pretty_print.string_of_exp_syntax_1  e.Parser_syntax.exp_stx false); *)
 	
 	let annotate_cmds = annotate_cmds_top_level metadata in
 	
@@ -2808,7 +2809,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		| (metadata, lab, cmd) :: rest -> 
 			let cmd_str : string = JSIL_Print.string_of_lab_cmd cmd in 
 			let logic_cmd_str = String.concat ", " (List.map (fun lcmd -> JSIL_Print.string_of_logic_command lcmd false) fold_unfold_logic_cmds) in 
-			Printf.printf "I am annotating %s with (un)folds baby:\n%s!!!\n" cmd_str logic_cmd_str;
+			(* Printf.printf "I am annotating %s with (un)folds baby:\n%s!!!\n" cmd_str logic_cmd_str; *)
 			let new_metadata = { metadata with pre_logic_cmds = fold_unfold_logic_cmds } in
 			(new_metadata, lab, cmd) :: rest) in  		
 
@@ -2866,13 +2867,13 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 
 	let rename_cont_break_list cont_break_list finally_lab_gen =
 		let jumps_mapping = Hashtbl.create 101 in
-		Printf.printf "I am creating a jumps mapping for a fucking try catch finally\n";
+		(* Printf.printf "I am creating a jumps mapping for a fucking try catch finally\n"; *)
 		let rec rename_cont_break_list_iter cont_break_list (new_cont_break_list : (string option * string * string option * bool) list) =
 			(match cont_break_list with
 				| [] -> List.rev new_cont_break_list
 				| (None, break_lab, js_lab, is_valid_unlabelled) :: rest ->
 					let new_finally_lab = finally_lab_gen () in
-					Printf.printf "Creating a mapping from %s to %s\n" break_lab new_finally_lab;
+					(* Printf.printf "Creating a mapping from %s to %s\n" break_lab new_finally_lab; *)
 					Hashtbl.add jumps_mapping new_finally_lab break_lab;
 					rename_cont_break_list_iter rest ((None, new_finally_lab, js_lab, is_valid_unlabelled) :: new_cont_break_list)
 				| (Some cont_lab, break_lab, js_lab, is_valid_unlabelled) :: rest ->
@@ -2880,7 +2881,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 					let new_finally_lab2 = finally_lab_gen () in
 					Hashtbl.add jumps_mapping new_finally_lab1 cont_lab;
 					Hashtbl.add jumps_mapping new_finally_lab2 break_lab;
-					Printf.printf "Creating a mapping from %s to %s and %s to %s\n" break_lab new_finally_lab1 cont_lab new_finally_lab2;
+					(* Printf.printf "Creating a mapping from %s to %s and %s to %s\n" break_lab new_finally_lab1 cont_lab new_finally_lab2; *)
           rename_cont_break_list_iter rest ((Some new_finally_lab1, new_finally_lab2, js_lab, is_valid_unlabelled) :: new_cont_break_list)) in
 		let new_cont_break_list = rename_cont_break_list_iter cont_break_list [] in
 		new_cont_break_list, jumps_mapping in
@@ -2913,7 +2914,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			| (js_lab, var, jump) :: rest ->
 				try
 					(
-					Printf.printf ("I am processing a continue!!! \n");
+					(* Printf.printf ("I am processing a continue!!! \n"); *)
 					let original_jump = Hashtbl.find jumps_mapping jump in
 					let new_loop_list = (None, end_label, tcf_lab, false) :: loop_list in
 					let cmds_cur, _, errs_cur, rets_cur, breaks_cur, conts_cur = translate_statement offset_converter fid cc_table ctx vis_fid err new_loop_list None None e in
@@ -4734,7 +4735,7 @@ let js2jsil e offset_converter for_verification =
 	let procedures = Hashtbl.create medium_tbl_size in
 	Hashtbl.iter
 		(fun f_id (_, f_params, f_body, f_rec, spec) ->
-			print_endline (Printf.sprintf "Procedure %s is recursive?! %b" f_id f_rec);
+			(* print_endline (Printf.sprintf "Procedure %s is recursive?! %b" f_id f_rec); *)
 			let proc =
 				(if (f_id = main)
 					then generate_main offset_converter e main cc_tbl spec
