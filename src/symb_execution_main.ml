@@ -82,7 +82,7 @@ let process_file path =
 		else (Printf.printf "There were Failures in %f\n" (Sys.time())));
 	
 	register_dot_graphs dot_graphs;
-	JSIL_Syntax.process_statistics ();
+	(* JSIL_Syntax.process_statistics (); *)
 	
 	exit 0
 
