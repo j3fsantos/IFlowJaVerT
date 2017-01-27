@@ -87,9 +87,9 @@ let update_abs_heap (heap : symbolic_heap) loc e_field e_val p_formulae (* solve
 			raise (Failure msg)
 
 
-let abs_heap_find heap l e p_formulae (* solver *) gamma =
+let abs_heap_find heap l e p_formulae gamma =
 	let fv_list, default_val = try LHeap.find heap l with _ -> [], LUnknown in
-	let _, field_val_pair, i_am_sure_the_field_does_not_exist = find_field l fv_list e p_formulae (* solver *) gamma in
+	let _, field_val_pair, i_am_sure_the_field_does_not_exist = find_field l fv_list e p_formulae gamma in
 	match field_val_pair, i_am_sure_the_field_does_not_exist with
 	| Some (_, f_val), _ -> f_val
 	| None, true -> default_val

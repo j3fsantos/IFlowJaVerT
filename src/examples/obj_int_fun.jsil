@@ -932,6 +932,10 @@ spec i__toString (v)
 	   types(#v : $$int_type) ]]
 	[[ types(ret : $$string_type, #v : $$int_type) *
 	   (ret == (num_to_string #v)) ]]
+	normal;
+	
+	[[ (v == #v) * types(#v : $$string_type) ]]
+	[[ types(ret : $$string_type) * (ret == #v) ]]
 	normal
 
 proc i__toString (v) {

@@ -3,49 +3,78 @@ open JSIL_Memory_Model
 open JSIL_Logic_Utils
 open Symbolic_State_Basics
 
-let verbose = ref true
-
-let proto_f = "@proto"
-
 let js = ref false
 
-(***************************)
-(** Symbolic Execution    **)
-(***************************)
-let rec symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae =
+let print_le = (fun x -> JSIL_Print.string_of_logic_expression x false)
+
+(**********************)
+(* Symbolic Execution *)
+(**********************)
+
+(* List length, when possible *)
+let rec get_list_length (le : jsil_logic_expr) : int option =
+(match le with
+	| LLit (LList list) -> Some (List.length list)
+	| LEList list       -> Some (List.length list)
+	| LBinOp (el, LstCons, llist) ->
+		let len_llist = get_list_length llist in
+		if_some len_llist (fun len -> Some (len + 1)) None
+	| _ -> None)
+
+(*******************************************)
+(* Symbolic evaluation of JSIL expressions *)
+(*******************************************)
+let rec symb_evaluate_expr (store : symbolic_store) (gamma : typing_environment) (pure_formulae : pure_formulae) (expr : jsil_expr) : jsil_logic_expr =
+let f = symb_evaluate_expr store gamma pure_formulae in
 	match expr with
+	(* Literals: Return the literal *)
 	| Literal lit -> LLit lit
 
+  (* Variables: 
+	     a) If a variable is already in the store, return the variable
+			 b) Otherwise, add a fresh logical variable (of the appropriate type) to the store and then return it *)
 	| Var x ->
 		let x_val = store_get_var_val store x in
-		(match x_val with
-		| Some x_val -> x_val
-		| None       -> extend_abs_store x store gamma)
+		if_some_val_lazy x_val (lazy (extend_abs_store x store gamma))
 
+  (* Binary operators:
+	     a) if both operands evaluate to literals, execute the operator and return the result
+	     b) otherwise, if the operator is equality and the types of the operands are not equal, return false
+			 c) otherwise, return the lifted binary operator *)
 	| BinOp (e1, op, e2) ->
-		let nle1 = symb_evaluate_expr e1 store gamma pure_formulae in
-		let nle2 = symb_evaluate_expr e2 store gamma pure_formulae in
+		let nle1 = f e1 in
+		let nle2 = f e2 in
 		(match nle1, nle2 with
 		| LLit l1, LLit l2 ->
 			let l = JSIL_Interpreter.evaluate_binop op (Literal l1) (Literal l2) (Hashtbl.create 1) in
-			LLit l
+				LLit l
 		| _, _ ->
 			(match op with
 			| Equal ->
 				let t1, _, _ = JSIL_Logic_Utils.type_lexpr gamma nle1 in
 				let t2, _, _ = JSIL_Logic_Utils.type_lexpr gamma nle2 in
-				(match t1, t2 with
-				| Some t1, Some t2 -> if (not (t1 = t2)) then (LLit (Bool false)) else LBinOp (nle1, op, nle2)
-				| _, _             -> LBinOp (nle1, op, nle2))
+					(match t1, t2 with
+					| Some t1, Some t2 -> if (t1 = t2) then LBinOp (nle1, op, nle2) else (LLit (Bool false)) 
+					| _, _             -> LBinOp (nle1, op, nle2))
 			| _ -> LBinOp (nle1, op, nle2)))
 
+  (* Unary operators
+	     a) if the operand evaluates to a literal, execute the operator and return the result
+			 b) otherwise, if the operator is Cdr, try to calculate the tail of the list and return it
+			 c) otherwise, if the operator is LstLen, try to calculate the length of the list and return it
+			 d) otherwise, return the lifted unary operator *)
 	| UnOp (op, e) ->
-		let nle = symb_evaluate_expr e store gamma pure_formulae in
-		(match op with
-		 | Cdr ->
-		 	 let nle = find_me_Im_a_list store pure_formulae nle in
-			 (match nle with
-				 | LLit (LList list) ->
+		let nle = f e in
+		(match nle with
+ 	  | LLit lit -> 
+			let l = JSIL_Interpreter.evaluate_unop op lit in
+				LLit l
+		| _ ->
+			(match op with
+			| Cdr ->
+			let nle = find_me_Im_a_list store pure_formulae nle in
+				(match nle with
+				| LLit (LList list) ->
 				 	(match list with
 					 | [] -> raise (Failure "Cdr doesn't exist.")
 					 | _ :: list -> LLit (LList list))
@@ -55,39 +84,26 @@ let rec symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae =
 					 | _ :: list -> LEList list)
 				 | LBinOp (el, LstCons, llist) -> llist
 				 | _ -> LUnOp (op, nle))
-		 | LstLen ->
-		 	let nle = find_me_Im_a_list store pure_formulae nle in
-		 	(match nle with
-				| LLit (LList list) -> LLit (Integer (List.length list))
-				| LEList list -> LLit (Integer (List.length list))
-				| LBinOp (el, LstCons, llist) ->
-					(match llist with
-					  | LLit (LList list) -> LLit (Integer (1 + List.length list))
-					  | LEList list -> LLit (Integer (1 + List.length list))
-					  | _ -> LUnOp (op, nle))
-				| _ -> LUnOp (op, nle))
+			| LstLen ->
+			 	let nle = find_me_Im_a_list store pure_formulae nle in
+				let len = get_list_length nle in
+					if_some len (fun len -> LLit (Integer len)) (LUnOp (op, nle))
+			| _ -> LUnOp (op, nle)))
 
-		 | _ ->  (match nle with
-			 	  | LLit lit -> LLit (JSIL_Interpreter.evaluate_unop op lit)
-				  | _ -> LUnOp (op, nle)))
-
+  (* TypeOf:
+	     a) if the parameter is typable in the typing environment, return the type
+			 b) otherwise, return the lifted typeOf *)
 	| TypeOf (e) ->
-		(** the typeof can only be removed when there are no constraints
-        If there are constraints, we need to leave it there because
-				the constraints cannot be ignored.                       **)
-		let nle = symb_evaluate_expr e store gamma pure_formulae in
+		let nle = f e in
 		let nle_type, _, _ = type_lexpr gamma nle in
-		(match nle_type with
-		| Some nle_type -> LLit (Type nle_type)
-		| None          -> LTypeOf (nle))
+		if_some nle_type (fun t -> LLit (Type t)) (LTypeOf (nle))
 
+  (* List of expressions: Evaluate all elements and then
+	     a) If all are literals, convert to a literal list
+			 b) Otherwise, return the lifted list of logical expressions
+  *)
 	| EList es ->
-		let les =
-			List.map
-				(fun e ->
-					let nle = symb_evaluate_expr e store gamma pure_formulae in
-					nle)
-				es in
+		let les = List.map (fun e -> f e) es in
 		let rec loop les lits =
 			(match les with
 			| [] -> true, lits
@@ -96,14 +112,19 @@ let rec symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae =
 				| LLit l -> loop rest (l :: lits)
 				| _ -> false, [])) in
 		let all_literals, lits = loop les [] in
-		let lits = List.rev lits in
 		if all_literals
-			then LLit (LList lits)
+			then 
+				let lits = List.rev lits in
+					LLit (LList lits)
 			else LEList les
 
+  (* List n-th: Evaluate the list and the index
+	     a) Attempt to reduce fully, if possible, return the result
+			 b) Otherwise, return the lifted list n-th
+  *)
 	| LstNth (e1, e2) ->
-		let list = symb_evaluate_expr e1 store gamma pure_formulae in
-		let index = symb_evaluate_expr e2 store gamma pure_formulae in
+		let list = f e1 in
+		let index = f e2 in
 		let list = find_me_Im_a_list store pure_formulae list in
 		let index =
 			(match index with
@@ -132,139 +153,187 @@ let rec symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae =
 				| _ -> LLstNth (list, index))
 		| _ -> LLstNth (list, index))
 
+  (* List n-th: Evaluate the string and the index
+	     a) Attempt to reduce fully, if possible, return the result
+			 b) Otherwise, return the lifted string n-th
+  *)
 	| StrNth (e1, e2) ->
-		let str = symb_evaluate_expr e1 store gamma pure_formulae in
-		let index = symb_evaluate_expr e2 store gamma  pure_formulae in
-		(match str, index with
-		| LLit (String s), LLit (Num n) ->
-			LLit (String (String.make 1 (String.get s (int_of_float n))))
-		| _, _ -> LStrNth (str, index))
+		let str = f e1 in
+		let index = f e2 in
+		let index =
+			(match index with
+			| LLit (Num n) -> LLit (Integer (int_of_float n))
+			| _ -> index) in
+		(match index with
+		| LLit (Integer n) ->
+		 	if (n < 0) then raise (Failure "String index negative.")
+			else
+				(match str with
+				| LLit (String s) -> LLit (String (String.make 1 (String.get s n)))
+				| _ -> LStrNth (str, index))
+		| _ -> LStrNth (str, index))
 
-	| _ -> raise (Failure "not supported yet")
-
-
-let safe_symb_evaluate_expr (expr : jsil_expr) store gamma pure_formulae (* solver *)  =
-	let nle = symb_evaluate_expr expr store gamma pure_formulae in
+(************************************************)
+(* SAFE Symbolic evaluation of JSIL expressions *)
+(************************************************)
+(* 
+	a) If the result of the evaluation is typable, then any constraints produced by typing must also make sense
+	b) Otherwise, variables are allowed to stay untyped
+	c) Otherwise, an error is thrown 
+*)
+let safe_symb_evaluate_expr store gamma pure_formulae (expr : jsil_expr) =
+	let nle = symb_evaluate_expr store gamma pure_formulae expr in
 	let nle_type, is_typable, constraints = type_lexpr gamma nle in
-	let are_constraints_satisfied =
-		(if ((List.length constraints) > 0)
-			then Pure_Entailment.old_check_entailment [] (pfs_to_list pure_formulae) constraints gamma
-			else true) in
-	let is_typable = is_typable && are_constraints_satisfied in
+	let is_typable = is_typable && ((List.length constraints = 0) || (Pure_Entailment.old_check_entailment [] (pfs_to_list pure_formulae) constraints gamma)) in
 	if (is_typable) then
-		nle, nle_type, is_typable
+		nle, nle_type, true
 	else
 		(match nle with
 		| LVar _ ->  nle, None, false
 		| _ ->
-			begin
 				let gamma_str = JSIL_Memory_Print.string_of_gamma gamma in
 				let pure_str = JSIL_Memory_Print.string_of_shallow_p_formulae pure_formulae false in
-				let msg = Printf.sprintf "The logical expression %s is not typable in the typing enviroment: %s \n with the pure formulae %s" (JSIL_Print.string_of_logic_expression nle false) gamma_str pure_str in
-				raise (Failure msg)
-			end)
+				let msg = Printf.sprintf "The logical expression %s is not typable in the typing enviroment: %s \n with the pure formulae %s" (print_le nle) gamma_str pure_str in
+				raise (Failure msg))
 
-
+(**********************************************)
+(* Symbolic evaluation of JSIL basic commands *)
+(**********************************************)
 let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
-	let heap, store, pure_formulae, gamma, _ (*, solver *) = symb_state in
+	let heap, store, pure_formulae, gamma, _ = symb_state in
+	let ssee = safe_symb_evaluate_expr store gamma pure_formulae in
 	match bcmd with
+	(* Skip: skip;
+			Always return $$empty *)
 	| SSkip ->
 		LLit Empty
 
+  (* Assignment: x = e;
+			a) Safely evaluate e to obtain nle and its type tle
+			b) Update the abstract store with [x |-> nle]
+			c) Update the typing environment with [x |-> tle] 
+			d) Return nle *)
 	| SAssignment (x, e) ->
-		let nle, t_le, _ = safe_symb_evaluate_expr e store gamma pure_formulae (* solver *) in
+		let nle, tle, _ = ssee e in
 		update_abs_store store x nle;
-		update_gamma gamma x t_le;
+		update_gamma gamma x tle;
 		nle
 
+	(* Object creation: x = new ();
+			a) Create fresh object location #l and add it to the heap
+			b) Set (#l, "@proto") -> $$null in the heap
+			c) Update the abstract store with [x |-> #l]
+			d) Update the typing environment with [x |-> $$object_type]
+			e) Add the fact that the new location is not $lg to the pure formulae
+			f) Return the new location
+	*)
 	| SNew x ->
 		let new_loc = fresh_aloc () in
 		Symbolic_State_Functions.update_abs_heap_default heap new_loc LNone;
-		Symbolic_State_Functions.update_abs_heap heap new_loc (LLit (String proto_f)) (LLit Null) pure_formulae (* solver *) gamma;
+		Symbolic_State_Functions.update_abs_heap heap new_loc (LLit (String (Js2jsil_constants.internalProtoFieldName))) (LLit Null) pure_formulae (* solver *) gamma;
 		update_abs_store store x (ALoc new_loc);
 		update_gamma gamma x (Some ObjectType);
 		DynArray.add pure_formulae (LNot (LEq (ALoc new_loc, LLit (Loc Js2jsil_constants.locGlobName))));
 		ALoc new_loc
 
+  (* Property lookup: x = [e1, e2];
+			a) Safely evaluate e1 to obtain the object location ne1 and its type te1
+			b) Safely evaluate e2 to obtain the property name ne2 and its type te2
+			c) If ne1 is not a literal location or an abstract location, throw an error
+			d) Otherwise, try to find the value ne of the property ne2 of object ne1
+			e) If successful, update the store with [x |-> ne]
+			f) Return ne
+	*)
 	| SLookup (x, e1, e2) ->
-		let ne1, t_le1, _ = safe_symb_evaluate_expr e1 store gamma pure_formulae (* solver *) in
-		let ne2, t_le2, _ = safe_symb_evaluate_expr e2 store gamma pure_formulae (* solver *) in
+		let ne1, te1, _ = ssee e1 in
+		let ne2, te2, _ = ssee e2 in
 		let l =
 			(match ne1 with
 			| LLit (Loc l)
 			| ALoc l -> l
-			| _ ->
-			let ne1_str = JSIL_Print.string_of_logic_expression ne1 false  in
-			let msg = Printf.sprintf "Lookup: I do not know which location %s denotes in the symbolic heap" ne1_str in
-			raise (Failure msg)) in
-		let ne = Symbolic_State_Functions.abs_heap_find heap l ne2 pure_formulae (* solver *) gamma in
+			| _ -> raise (Failure (Printf.sprintf "Lookup: I do not know which location %s denotes in the symbolic heap" (print_le ne1)))) in
+		let ne = Symbolic_State_Functions.abs_heap_find heap l ne2 pure_formulae gamma in
 		update_abs_store store x ne;
 		ne
 
+  (* Property assignment: [e1, e2] := e3;
+			a) Safely evaluate e1 to obtain the object location ne1 and its type te1
+			b) Safely evaluate e2 to obtain the property name ne2 and its type te2
+			c) Safely evaluate e3 to obtain the value ne3 to be assigned
+			d) If ne1 is not a literal location or an abstract location, throw an error
+			e) Update the heap with (ne1, ne2) -> ne3
+			f) Return ne3
+	*)
 	| SMutation (e1, e2, e3) ->
-		let ne1, t_le1, _ = safe_symb_evaluate_expr e1 store gamma pure_formulae (* solver *) in
-		let ne2, t_le2, _ = safe_symb_evaluate_expr e2 store gamma pure_formulae (* solver *) in
-		let ne3, _, _ = safe_symb_evaluate_expr e3 store gamma pure_formulae (* solver *) in
+		let ne1, t_le1, _ = ssee e1 in
+		let ne2, t_le2, _ = ssee e2 in
+		let ne3, _, _ = ssee e3 in
 		(match ne1 with
 		| LLit (Loc l)
 		| ALoc l ->
-			Symbolic_State_Functions.update_abs_heap heap l ne2 ne3 pure_formulae (* solver *) gamma
-		| _ ->
-			let ne1_str = JSIL_Print.string_of_logic_expression ne1 false  in
-			let msg = Printf.sprintf "Mutation: I do not know which location %s denotes in the symbolic heap" ne1_str in
-			raise (Failure msg));
+			Symbolic_State_Functions.update_abs_heap heap l ne2 ne3 pure_formulae gamma
+		| _ -> raise (Failure (Printf.sprintf "Mutation: I do not know which location %s denotes in the symbolic heap" (print_le ne1))));
 		ne3
 
+  (* Property deletion: delete(e1, e2)
+			a) Safely evaluate e1 to obtain the object location ne1 and its type te1
+			b) Safely evaluate e2 to obtain the property name ne2 and its type te2
+			c) If ne1 is not a literal location or an abstract location, throw an error
+			e) Delete (ne1, ne2) from the heap
+			f) Return true
+	*)
 	| SDelete (e1, e2) ->
-		let ne1, t_le1, _ = safe_symb_evaluate_expr e1 store gamma pure_formulae (* solver *) in
-		let ne2, t_le2, _ = safe_symb_evaluate_expr e2 store gamma pure_formulae (* solver *) in
+		let ne1, t_le1, _ = ssee e1 in
+		let ne2, t_le2, _ = ssee e2 in
 		let l =
 			(match ne1 with
 			| LLit (Loc l)
 			| ALoc l -> l
-			| _ ->
-				let ne1_str = JSIL_Print.string_of_logic_expression ne1 false  in
-				let msg = Printf.sprintf "Delete: I do not know which location %s denotes in the symbolic heap" ne1_str in
-				raise (Failure msg)) in
-		Symbolic_State_Functions.update_abs_heap heap l ne2 LNone pure_formulae (* solver *) gamma;
+			| _ -> raise (Failure (Printf.sprintf "Delete: I do not know which location %s denotes in the symbolic heap" (print_le ne1)))) in
+		Symbolic_State_Functions.update_abs_heap heap l ne2 LNone pure_formulae gamma;
 		LLit (Bool true)
 
+  (* Object deletion: deleteObj(e1)
+			a) Safely evaluate e1 to obtain the object location ne1 and its type te1
+			b) If ne1 is not a literal location or an abstract location, throw an error
+			c) If the object at ne1 does not exist in the heap, throw an error
+			c) Delete the entire object ne1 from the heap
+			d) Return true
+	*)
 	| SDeleteObj e1 ->
-		let ne1, t_le1, _ = safe_symb_evaluate_expr e1 store gamma pure_formulae (* solver *) in
+		let ne1, t_le1, _ = ssee e1 in
 		let l =
 			(match ne1 with
 			| LLit (Loc l)
 			| ALoc l -> l
-			| _ ->
-				let ne1_str = JSIL_Print.string_of_logic_expression ne1 false in
-				let msg = Printf.sprintf "Delete: I do not know which location %s denotes in the symbolic heap" ne1_str in
-				raise (Failure msg)) in
+			| _ -> raise (Failure (Printf.sprintf "DeleteObject: I do not know which location %s denotes in the symbolic heap" (print_le ne1)))) in
 		(match (LHeap.mem heap l) with
-		 | false -> raise (Failure (Printf.sprintf "Attempting to delete inexistent object: %s" (JSIL_Print.string_of_logic_expression ne1 false)))
+		 | false -> raise (Failure (Printf.sprintf "Attempting to delete an inexistent object: %s" (print_le ne1)))
 		 | true -> LHeap.remove heap l; LLit (Bool true));
 
+  (* Property existence: x = hasField(e1, e2);
+			a) Safely evaluate e1 to obtain the object location ne1 and its type te1
+			b) Safely evaluate e2 to obtain the property name ne2 and its type te2
+			c) If ne1 is not a literal location or an abstract location, throw an error
+			d) Otherwise, understand if the object ne1 has the property ne2 and store that result in res;
+			e) If conclusive, update the store with [x |-> res] and return res
+			f) Otherwise, return unknown
+			e) If successful, update the store with [x |-> ne]
+			f) Return ne
+	*)
 	| SHasField (x, e1, e2) ->
-		let ne1, t_le1, _ = safe_symb_evaluate_expr e1 store gamma pure_formulae (* solver *) in
-		let ne2, t_le2, _ = safe_symb_evaluate_expr e2 store gamma pure_formulae (* solver *) in
+		let ne1, t_le1, _ = ssee e1 in
+		let ne2, t_le2, _ = ssee e2 in
 		match ne1 with
 		| LLit (Loc l)
 		| ALoc l ->
-			let res = Symbolic_State_Functions.abs_heap_check_field_existence heap l ne2 pure_formulae (* solver *) gamma in
-			update_gamma gamma x (Some BooleanType);
-			(match res with
-			| Some res ->
-				let res_lit = LLit (Bool res) in
-				update_abs_store store x res_lit;
-				res_lit
-			| None -> LUnknown)
-		| _ ->
-			let ne1_str = JSIL_Print.string_of_logic_expression ne1 false in
-			let msg = Printf.sprintf "HasField: I do not know which location %s denotes in the symbolic heap" ne1_str in
-			raise (Failure msg);
-
-	| _ ->
-		raise (Failure "not implemented yet!")
-
+				let res = Symbolic_State_Functions.abs_heap_check_field_existence heap l ne2 pure_formulae gamma in
+				update_gamma gamma x (Some BooleanType);
+				if_some res (fun res -> 
+					let res_lit = LLit (Bool res) in
+					update_abs_store store x res_lit;
+					res_lit) LUnknown
+		| _ -> raise (Failure (Printf.sprintf "HasField: I do not know which location %s denotes in the symbolic heap" (print_le ne1)))
 
 
 let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) le_args =
@@ -506,111 +575,6 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 			| Some (_, _, _, _, _, _, _, _) | None -> find_correct_pred_def rest_pred_defs)) in
 	find_correct_pred_def pred_defs
 
-
-(* SYMBOLIC STATE SIMPLIFICATION *)
-
-let rec get_list_nth_len_ass subst in_not a =
-	let f = get_list_nth_len_ass subst in
-	(match a with
-	| LAnd  (a1, a2)
-	| LOr   (a1, a2)
-	| LStar	(a1, a2) -> f in_not a1; f in_not a2
-	| LNot a -> f (not in_not) a
-	| LTrue
-	| LFalse
-	| LEmp
-	| LLess	   	(_, _)
-	| LLessEq	(_, _)
-	| LStrLess  (_, _)
-	| LPointsTo	(_, _, _)
-	| LPred (_, _)
-	| LTypes _ -> ()
-	| LEq (e1, e2) -> if in_not then () else
-		(match e1, e2 with
-		| LVar var, LLit (LList l1)
-		| LLit (LList l1), LVar var -> Hashtbl.replace subst var (LLit (LList l1))
-		| LVar var, LEList l1
-		| LEList l1, LVar var -> Hashtbl.replace subst var (LEList l1)
-		| _, _ -> ()))
-
-let rec subst_list_nth_len_e subst e =
-	let f = subst_list_nth_len_e subst in
-	(match e with
-	| LBinOp (e1, op, e2) -> LBinOp (f e1, op, f e2)
-	| LUnOp	(op, e) -> LUnOp (op, e)
-	| LTypeOf e -> LTypeOf (f e)
-	| LEList le -> LEList (List.map (fun x -> f x) le)
-	| LStrNth (str, index) -> LStrNth (f str, f index)
-	(* THIS IS THE POINT *)
-	| LLstNth (lst, index) ->
-		let idx = (match index with
-					| LLit (Integer i) -> Some i
-					| LLit (Num n) -> Some (int_of_float n)
-					| _ -> None) in
-		(match lst with
-		  | LVar var ->
-		  	if (Hashtbl.mem subst var) then
-			begin
-				let lst = Hashtbl.find subst var in
-				(match idx with
-				| Some i ->
-					(match lst with
-					| LLit (LList l) -> LLit (List.nth l i)
-					| LEList l -> List.nth l i
-					| _ -> e)
-				| None -> e)
-			end
-			else e
-		  | LEList lst ->
-			  (match idx with
-				| Some i -> List.nth lst i
-				| None -> e)
-		  | LLit (LList lst) ->
-			  (match idx with
-				| Some i -> LLit (List.nth lst i)
-				| None -> e)
-		  | _ -> e)
-    | _ -> e)
-
-let rec subst_list_nth_len_pf subst a =
-	let f = subst_list_nth_len_pf subst in
-	let fe = subst_list_nth_len_e subst in
-	(match a with
-	| LAnd  (a1, a2) -> LAnd (f a1, f a2)
-	| LOr   (a1, a2) -> LOr (f a1, f a2)
-	| LStar	(a1, a2) -> LStar (f a1, f a2)
-	| LNot a -> LNot (f a)
-	| LEq       (e1, e2) -> LEq (fe e1, fe e2)
-	| LLess	   	(e1, e2) -> LLess (fe e1, fe e2)
-	| LLessEq	(e1, e2) -> LLessEq (fe e1, fe e2)
-	| LStrLess  (e1, e2) -> LStrLess (fe e1, fe e2)
-	| LPointsTo	(e1, e2, e3) -> LPointsTo (fe e1, fe e2, fe e3)
-	| _ -> a)
-
-let expand_gamma gamma pure_formulae =
-	DynArray.iter
-		(fun a -> match a with
-			| LEq (LVar a, LVar b) ->
-				let if_mem var = if (Hashtbl.mem gamma var) then (Some (Hashtbl.find gamma var)) else None in
-				let ta = if_mem a in let tb = if_mem b in
-				(match ta, tb with
-			     | Some ta, None -> update_gamma gamma b (Some ta)
-				 | None, Some tb -> update_gamma gamma a (Some tb)
-				 | _, _ -> ())
-			| _ -> ())
-		pure_formulae;
-	gamma
-
-let simplify_symb_state symb_state =
-	let heap, store, pure_formulae, gamma, preds (*, solver *) = symb_state in
-	let list_subst = Hashtbl.create 17 in
-	DynArray.iter (fun a -> get_list_nth_len_ass list_subst false a) pure_formulae;
-	sanitise_pfs store gamma pure_formulae;
-	let new_gamma = expand_gamma gamma pure_formulae in
-	(heap, store, pure_formulae, new_gamma, preds (*, solver *))
-
-
-
 let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 	print_debug (Printf.sprintf "Current symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state));
 
@@ -766,7 +730,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 
 	(* symbolically evaluate a guarded goto *)
 	let symb_evaluate_guarded_goto symb_state e j k =
-		let le = symb_evaluate_expr e (get_store symb_state) (get_gamma symb_state) (get_pf symb_state) in
+		let le = symb_evaluate_expr (get_store symb_state) (get_gamma symb_state) (get_pf symb_state) e in
 		print_debug (Printf.sprintf "Evaluated expression: %s --> %s\n" (JSIL_Print.string_of_expression e false) (JSIL_Print.string_of_logic_expression le false));
 		let e_le, a_le = lift_logic_expr le in
 		let a_le_then, a_le_else =
@@ -803,7 +767,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 	let symb_evaluate_call symb_state x e e_args j =
 
 		(* get the name and specs of the procedure being called *)
-		let le_proc_name = symb_evaluate_expr e (get_store symb_state) (get_gamma symb_state) (get_pf symb_state) in
+		let le_proc_name = symb_evaluate_expr (get_store symb_state) (get_gamma symb_state) (get_pf symb_state) e in
 		let proc_name =
 			(match le_proc_name with
 			| LLit (String proc_name) -> proc_name
@@ -820,7 +784,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 		List.iter (fun spec -> if (spec.n_post = []) then print_debug "Exists spec with no post.") proc_specs.n_proc_specs;
 
 		(* symbolically evaluate the args *)
-		let le_args = List.map (fun e -> symb_evaluate_expr e (get_store symb_state) (get_gamma symb_state) (get_pf symb_state)) e_args in
+		let le_args = List.map (fun e -> symb_evaluate_expr (get_store symb_state) (get_gamma symb_state) (get_pf symb_state) e) e_args in
 		let new_symb_states = find_and_apply_spec s_prog.program proc_name proc_specs symb_state le_args in
 
 		(if ((List.length new_symb_states) = 0)
@@ -847,7 +811,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 			try Hashtbl.find s_prog.which_pred (cur_proc_name, prev, i)
 			with _ ->  raise (Failure (Printf.sprintf "which_pred undefined for command: %s %d %d" cur_proc_name prev i)) in
 		let expr = x_arr.(cur_which_pred) in
-		let le = symb_evaluate_expr expr (get_store symb_state) (get_gamma symb_state) (get_pf symb_state) in
+		let le = symb_evaluate_expr (get_store symb_state) (get_gamma symb_state) (get_pf symb_state) expr in
 		let te, _, _ =	type_lexpr (get_gamma symb_state) le in
 		update_abs_store (get_store symb_state) x le;
 		update_gamma (get_gamma symb_state) x te;
@@ -942,7 +906,6 @@ and symb_evaluate_next_cmd_2 s_prog proc spec search_info symb_state cur next  =
 				end
 		end)
 
-
 let symb_evaluate_proc s_prog proc_name spec i pruning_info =
 	let node_info = Symbolic_Traces.create_info_node_aux spec.n_pre 0 (-1) "Precondition" in
 	let search_info = make_symb_exe_search_info node_info pruning_info i in
@@ -955,7 +918,6 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info =
 		(try
 			print_debug (Printf.sprintf "Initial symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre));
 			let symb_state = copy_symb_state spec.n_pre in
-			let symb_state = simplify_symb_state (symb_state) in
 			symb_evaluate_next_cmd_2 s_prog proc spec search_info symb_state (-1) 0;
 			true, None
 		with Failure msg ->

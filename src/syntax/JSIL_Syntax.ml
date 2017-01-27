@@ -56,8 +56,8 @@ type jsil_lit =
 	| Integer   of int           (** JSIL integers *)
 	| Num       of float         (** JSIL floats - double-precision 64-bit IEEE 754 *)
 	| String    of string        (** JSIL strings *)
-    | Loc       of string        (** JSIL object locations *)
-    | Type      of jsil_type     (** JSIL types ({!type:jsil_type}) *)
+	| Loc       of string        (** JSIL object locations *)
+	| Type      of jsil_type     (** JSIL types ({!type:jsil_type}) *)
 	| LList     of jsil_lit list (** Lists of JSIL literals *)
 
 (** {b JSIL unary operators}. JSIL features standard unary operators on numbers, booleans,
@@ -138,7 +138,7 @@ type jsil_binop =
 
 (** {b JSIL expressions}. Literals, variables, unary and binary operators, lists. *)
 	type jsil_expr =
-	| Literal  of jsil_lit                           (** Unary operators ({!type:jsil_lit}) *)
+	| Literal  of jsil_lit                           (** JSIL literals ({!type:jsil_lit}) *)
 	| Var      of jsil_var                           (** JSIL variables ({!type:jsil_var}) *)
 	| BinOp    of jsil_expr * jsil_binop * jsil_expr (** Binary operators ({!type:jsil_binop}) *)
 	| UnOp     of jsil_unop * jsil_expr              (** Unary operators ({!type:jsil_unop}) *)   
@@ -198,49 +198,49 @@ type jsil_logic_var = string
 
 (** {b JSIL logic expressions}. *)
 type jsil_logic_expr =
-	| LLit     of jsil_lit
-	| LVar     of jsil_logic_var
-	| ALoc     of string
-	| PVar     of jsil_var
-	| LBinOp   of jsil_logic_expr * jsil_binop * jsil_logic_expr
-	| LUnOp    of jsil_unop * jsil_logic_expr
-	| LTypeOf  of jsil_logic_expr	 
-	| LLstNth  of jsil_logic_expr * jsil_logic_expr
-	| LStrNth  of jsil_logic_expr * jsil_logic_expr              
-	| LEList   of jsil_logic_expr list
-	| LNone
-	| LUnknown
+	| LLit     of jsil_lit                                       (** JSIL literals ({!type:jsil_lit}) *)
+	| LVar     of jsil_logic_var                                 (** JSIL logic variables ({!type:jsil_logic_var}) *)
+	| ALoc     of string                                         (** Abstract locations *)
+	| PVar     of jsil_var                                       (** JSIL program variables *)
+	| LBinOp   of jsil_logic_expr * jsil_binop * jsil_logic_expr (** Binary operators ({!type:jsil_binop}) *)
+	| LUnOp    of jsil_unop * jsil_logic_expr                    (** Unary operators ({!type:jsil_unop}) *)
+	| LTypeOf  of jsil_logic_expr	                               (** Typing operator *) 
+	| LLstNth  of jsil_logic_expr * jsil_logic_expr              (** Nth element of a list *)
+	| LStrNth  of jsil_logic_expr * jsil_logic_expr              (** Nth element of a string *)              
+	| LEList   of jsil_logic_expr list                           (** Lists of logical expressions *)
+	| LNone                                                      (** Empty field value *)  
+	| LUnknown                                                   (** Unknown field value *)
 
-(* JSIL logic assertions *)
+(** {b JSIL logic assertions}. *)
 type jsil_logic_assertion =
-	| LAnd			    of jsil_logic_assertion * jsil_logic_assertion
-	| LOr		  	    of jsil_logic_assertion * jsil_logic_assertion
-	| LNot			    of jsil_logic_assertion
-	| LTrue
-	| LFalse
-	| LEq			      of jsil_logic_expr * jsil_logic_expr
-	| LLess			    of jsil_logic_expr * jsil_logic_expr
-	| LLessEq		    of jsil_logic_expr * jsil_logic_expr
-	| LStrLess	    of jsil_logic_expr * jsil_logic_expr
-	| LEmp
-	| LStar			    of jsil_logic_assertion * jsil_logic_assertion
-	| LPointsTo	    of jsil_logic_expr * jsil_logic_expr * jsil_logic_expr
-	| LPred			    of string * (jsil_logic_expr list)
-	| LTypes		    of (jsil_logic_expr * jsil_type) list
-	| LEmptyFields	of jsil_logic_expr * (jsil_logic_expr list)
+	| LTrue                                                                (** Logical true *)
+	| LFalse                                                               (** Logical false *)
+	| LNot			    of jsil_logic_assertion                                (** Logical negation *)
+	| LAnd			    of jsil_logic_assertion * jsil_logic_assertion         (** Logical conjunction *)
+	| LOr		  	    of jsil_logic_assertion * jsil_logic_assertion         (** Logical disjunction *)
+	| LEmp                                                                 (** Empty heap *)
+	| LStar			    of jsil_logic_assertion * jsil_logic_assertion         (** Separating conjunction *)
+	| LPointsTo	    of jsil_logic_expr * jsil_logic_expr * jsil_logic_expr (** Heap cell assertion *)
+	| LPred			    of string * (jsil_logic_expr list)                     (** Predicates *)
+	| LTypes		    of (jsil_logic_expr * jsil_type) list                  (** Typing assertion *)
+	| LEmptyFields	of jsil_logic_expr * (jsil_logic_expr list)            (** emptyFields assertion *)
+	| LEq			      of jsil_logic_expr * jsil_logic_expr                   (** Expression equality *)
+	| LLess			    of jsil_logic_expr * jsil_logic_expr                   (** Expression less-than for numbers *)
+	| LLessEq		    of jsil_logic_expr * jsil_logic_expr                   (** Expression less-than-or-equal for numbers *)   
+	| LStrLess	    of jsil_logic_expr * jsil_logic_expr                   (** Expression less-than for strings *)               
 
-(* JSIL logic predicates *)
+(** {b JSIL logic predicate}. *)
 type jsil_logic_predicate = {
-	name        : string;
-	num_params  : int;
-	params      : jsil_logic_expr list;
-	definitions : jsil_logic_assertion list;
+	name        : string;                    (** Name of the predicate *)
+	num_params  : int;                       (** Number of parameters *)
+	params      : jsil_logic_expr list;      (** Actual parameters *)
+	definitions : jsil_logic_assertion list; (** Predicate definitions *)
 }
 
-(* JSIL spec return flag *)
+(** {b Return flags for JSIL specifications}. *)
 type jsil_return_flag =
-	| Normal
-	| Error
+	| Normal (** Normal return *)
+	| Error  (** Error return *)
 
 (* JSIL procedure specification *)
 type jsil_single_spec = {

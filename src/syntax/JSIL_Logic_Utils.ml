@@ -3,6 +3,29 @@ open Set
 open Stack
 open JSIL_Syntax
 
+(************)
+(* Monadics *)
+(************)
+
+let if_some (a : 'a option) (f : 'a -> 'b) (default : 'b) =
+	match a with
+	| Some x -> f x
+	| None -> default
+
+let if_some_val (a : 'a option) (default : 'a) = 
+match a with
+	| Some x -> x
+	| None -> default
+
+let if_some_val_lazy (a : 'a option) (default : ('a lazy_t)) = 
+match a with
+	| Some x -> x
+	| None -> Lazy.force default
+
+(********)
+(* Rest *)
+(********)
+
 let get_string_hashtbl_keys ht =
 	Hashtbl.fold
 		(fun key _ ac -> key :: ac)
@@ -677,18 +700,8 @@ let filter_vars vars ignore_vars : string list =
 			vars in
 	vars
 
-let indent = ref 0
-
 let rec type_lexpr gamma le =
-	let mk_indent = String.make !indent '\t' in
 	let f = type_lexpr gamma in
-
-	(* print_endline (Printf.sprintf "%sI am inside type_lexpr trying to type %s" mk_indent (JSIL_Print.string_of_logic_expression le false)); *)
-	indent := !indent + 1;
-
-	(* Printf.printf "I am inside type_lexpr trying to type %s\n%!" (JSIL_Print.string_of_logic_expression le false); *)
-
-	let ret =
 	(match le with
 	(* Literals are always typable *)
   | LLit lit -> (Some (evaluate_type_of lit), true, [])
@@ -722,12 +735,11 @@ let rec type_lexpr gamma le =
   | LUnOp (unop, e) ->
 		let (te, ite, constraints) = f e in
 		let tt t1 t2 new_constraints =
-			(match te with
-			| Some te ->
-				if (types_leq te t1)
+			if_some te 
+				(fun t -> if (types_leq t t1)
 					then (Some t2, true, (new_constraints @ constraints))
-					else (None, false, [])
-			| None -> (None, false, [])) in
+					else (None, false, [])) 
+				(None, false, []) in
 		if (ite) then
   		(match unop with
 			(* Boolean to Boolean  *)
@@ -804,99 +816,28 @@ let rec type_lexpr gamma le =
 			| _ -> (None, false, []))
 
 	| LLstNth (lst, index) ->
-		(* Printf.printf "Darling targets: %s and %s\n" (JSIL_Print.string_of_logic_expression lst false) (JSIL_Print.string_of_logic_expression index false); *)
 		let type_lst, _, constraints1 = f lst in
 		let type_index, _, constraints2 = f index in
-		let constraints = constraints1 @ constraints2 in
 		(match (type_lst, type_index) with
 		| Some ListType, Some IntType ->
-			(* Printf.printf "Types have matched.\n";
-				 I want the shit normalised with respect to the pure part
-     	   let simplified = normalise_me_silly pfrm gamma (LLstNth (lst, index)) in
-			   Printf.printf "Simplified: %s" (JSIL_Print.string_of_logic_expression simplified false);
-         if (simplified = LLstNth (lst, index)) then (None, false)
-				else (f simplified) *)
 			let new_constraint1 = (LNot (LLess (index, LLit (Integer 0)))) in
 			let new_constraint2 = (LLess (index, LUnOp (LstLen, lst))) in
-			(None, true, (new_constraint1 :: (new_constraint2 :: constraints)))
+			(None, true, (new_constraint1 :: (new_constraint2 :: constraints1 @ constraints2)))
 		| _, _ -> (None, false, []))
 
 	| LStrNth (str, index) ->
-		(* Printf.printf "Darling targets: %s and %s\n" (JSIL_Print.string_of_logic_expression str false) (JSIL_Print.string_of_logic_expression index false); *)
-
 		let type_str, _, constraints1 = f str in
 		let type_index, _, constraints2 = f index in
-		let constraints = constraints1 @ constraints2 in
 		(match (type_str, type_index) with
 		| Some StringType, Some IntType ->
 			let new_constraint1 = (LNot (LLess (index, LLit (Integer 0)))) in
 			let new_constraint2 = (LLess (index, LUnOp (StrLen, str))) in
 			(* Printf.printf "Entailment: %b\n" entail; *)
-			(Some StringType, true, (new_constraint1 :: (new_constraint2 :: constraints)))
-		| Some stype, Some itype ->
-			(* Printf.printf "Something went wrong with the types. %s %s\n\n" (JSIL_Print.string_of_type stype) (JSIL_Print.string_of_type stype); *)
-			(None, false, [])
-		| Some stype, None ->
-			(* Printf.printf "String type: %s Index not typable.\n\n" (JSIL_Print.string_of_type stype); *)
-			(None, false, [])
-		| None, Some itype ->
-			(* Printf.printf "String not typable. Index type: %s\n\n" (JSIL_Print.string_of_type itype); *)
-			(None, false, [])
-		| None, None ->
-			(* Printf.printf "Both string and index not typable. Ew.\n\n"; *)
-			(None, false, []))
+			(Some StringType, true, (new_constraint1 :: (new_constraint2 :: constraints1 @ constraints2)))
+		| _, _ -> (None, false, []))
 
 	| LNone    -> (Some NoneType, true, [])
-  | LUnknown -> (None, false, [])) in
-    indent := !indent - 1;
-	(* print_endline (Printf.sprintf "%sI finished typing %s, baby!" mk_indent (JSIL_Print.string_of_logic_expression le false)); *)
-	ret
-(*
-and
-normalise_me_silly (pure_formulae : JSIL_Memory_Model.pure_formulae) gamma lexpr =
-(match lexpr with
-	| LLstNth (lst, index) ->
-		let lit_lst = subst_to_literal pure_formulae gamma lst in
-		let lit_idx = subst_to_literal pure_formulae gamma index in
-		(* Printf.printf "normalise_me_silly: %s %s\n" (JSIL_Print.string_of_logic_expression lit_lst false) (JSIL_Print.string_of_logic_expression lit_idx false); *)
-		(match lit_idx with
-			| LLit (Num idx) ->
-				(match lit_lst with
-					| LLit (LList lst) ->
-						(try
-							let ret = List.nth lst (int_of_float idx) in LLit ret
-						with
-							| _ -> lexpr)
-					| LEList lst ->
-						(try
-							List.nth lst (int_of_float idx)
-						with
-							| _ -> lexpr)
-					| _ -> lexpr)
-			| _ -> lexpr)
-
-	 | _ -> lexpr)
-and
-subst_to_literal (pure_formulae : JSIL_Memory_Model.pure_formulae) gamma lexpr =
-let pf = filter_eqs pure_formulae in
-	let rec subst_it pf lexpr =
-	(match pf with
-	 | LEq (a, b) :: pf ->
-	 	let test = (a = lexpr) in
-	 		if test then b else (subst_it pf lexpr)
-	 | [] -> lexpr
-	 | _ -> raise (Failure "NO!")) in
-	subst_it pf lexpr
-and
-filter_eqs (pure_formulae : JSIL_Memory_Model.pure_formulae) =
-	DynArray.fold_left
-		(fun ac (x : JSIL_Syntax.jsil_logic_assertion) ->
-			(match x with
-			  | LEq (a, b) -> if ((a = b) || List.mem x ac) then ac else (x :: ac)
-			  | _ -> ac)
-		) [] pure_formulae
-*)
-
+  | LUnknown -> (None, false, []))
 
 
 let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
@@ -1091,11 +1032,6 @@ let star_asses asses =
 				else ac)
 		 LEmp
 		asses
-
-let if_some (a : 'a option) (f : 'a -> 'b) (default : 'b) =
-(match a with
- | Some x -> f x
- | None -> default)
 
 (* *************** *
  * SIMPLIFICATIONS *
