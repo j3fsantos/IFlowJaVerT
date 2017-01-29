@@ -73,7 +73,7 @@ var Node = function (pri, elt) {
 		NodePrototype(#node_proto, #push_loc)
 	)
 */
-var push = function (q) {
+Node.prototype.push = function (q) {
 	/** @unfold Queue(#q, #node_proto, #pri_q) */
 	if (q === null) {
 		/** @fold Queue(this, #node_proto, #pri) */
@@ -93,9 +93,6 @@ var push = function (q) {
 			return q
 		}
 }
-
-
-Node.prototype.push = push;
 
 
 /**
