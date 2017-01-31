@@ -4,11 +4,11 @@ open Z3
 let small_tbl_size = 31
 let big_tbl_size = 1021
 
-
 (********************************************************)
 (** Auxiliar functions for generating new program/logical
     variable names and new abstract locations          **)
 (********************************************************)
+
 let fresh_sth (name : string) : (unit -> string) =
   let counter = ref 0 in
   let rec f () =
@@ -39,7 +39,6 @@ let fresh_lvar_from_lvar_name =
 				Hashtbl.replace lvar_tbl (pred_name, var) 1;
 				var ^ "_" ^ (string_of_int 0)
 			))
-
 
 let is_abs_loc_name (name : string) : bool =
 	if ((String.length name) < 4)

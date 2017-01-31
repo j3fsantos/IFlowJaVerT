@@ -389,18 +389,25 @@ let get_all_vars_f f_body f_args =
 	vars
 
 
-let rec add_codenames (main : string) (fresh_anonymous : unit -> string) (fresh_named : string -> string) (fresh_catch_anonymous : unit -> string) prev_annot exp =
+let rec add_codenames (main : string) 
+											(fresh_anonymous : unit -> string) 
+											(fresh_named : string -> string) 
+											(fresh_catch_anonymous : unit -> string) 
+											(prev_annot : Parser_syntax.annotation list) 
+											exp =
+		
+	(* print_endline (Printf.sprintf "Annotation list length: %d" (List.length prev_annot)); *)
 		
 	let cur_annot = update_prev_annot prev_annot exp.Parser_syntax.exp_annot in
 	
   let f = add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous cur_annot in
   let fo e =
-    begin match e with
-      | None -> None
-      | Some e -> Some (f e)
-    end in
+		(match e with
+		| None -> None
+		| Some e -> Some (f e)) in
   
 	let m exp nstx = {exp with exp_stx = nstx} in
+	
   match exp.exp_stx with
       (* Literals *)
       | Num _
@@ -468,7 +475,7 @@ let process_js_logic_annotations (vis_tbl : (string, string list) Hashtbl.t) fun
 	(* Printf.printf "Inside process_js_logic_annotations. function: %s.\n\nAnnotations: \n%s\n\n" fun_name (Pretty_print.string_of_annots annotations); *)
 	
 	let annot_types_str : string = String.concat ", " (List.map (fun annot -> Pretty_print.string_of_annot_type annot.annot_type) annotations) in 
-	(* Printf.printf "annot types: %s\n\n" annot_types_str;   *)
+	(* Printf.printf "annot types: %s\n\n" annot_types_str; *)
 
 	let preconditions  = List.filter (fun annotation -> annotation.annot_type = requires_flag) annotations in
 	let postconditions = List.filter (fun annotation -> (annotation.annot_type = ensures_normal_flag) || (annotation.annot_type = ensure_err_flag)) annotations in
@@ -490,7 +497,7 @@ let process_js_logic_annotations (vis_tbl : (string, string list) Hashtbl.t) fun
 			(* Printf.printf "pre_str: %s. post_str: %s\n" pre_str post_str; *)
 			let pre_js  = JSIL_Utils.js_assertion_of_string pre_str in
 			let post_js = JSIL_Utils.js_assertion_of_string post_str in
-			(* Printf.printf "I manage to parse the js assertions\n"; *)
+			(* Printf.printf "I managed to parse the js assertions\n"; *)
 			
 			let scope_vars_pre = JS_Logic_Syntax.get_scope_vars pre_js in 
 			let scope_vars_post = JS_Logic_Syntax.get_scope_vars post_js in 

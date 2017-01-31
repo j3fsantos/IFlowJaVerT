@@ -170,24 +170,22 @@ let rec js2jsil_logic (js_var_to_lvar : ((string, JSIL_Syntax.jsil_logic_expr) H
 			let msg = Printf.sprintf "scope predicate misuse: %s needs to be in the scope!\n" x in
 			raise (Failure msg))
 	|	JSFunObj (id, f_loc, f_prototype) -> 
-		try 
-			let sc_loc = LVar (fresh_lvar ()) in 
-			let f_loc' = fe f_loc in 
-			let f_prototype' = fe f_prototype in 
-			let id_vis_list = Hashtbl.find vis_tbl id in 
-			let _, args, _, (_, _, _) = Hashtbl.find fun_tbl id in
-			let n_args = List.length args in
-			let a_scope_chain = make_simple_scope_chain_assertion sc_loc id_vis_list in
-			let st_obj_fproto = LPred (standard_object_pred_name, [f_prototype']) in
-			let obj_fproto_cstr = 
-				LPointsTo (
-					f_prototype', 
-					LLit (String "constructor"), 
-					LEList [ LLit (String "d"); f_loc'; LLit (Bool true); LLit (Bool false); LLit (Bool true) ]) in
-			LStar (
-				LPred (function_object_pred_name, [ f_loc'; sc_loc; LLit (String id); LLit (String id); LLit (Integer n_args); f_prototype'] ), 
-				LStar (st_obj_fproto, LStar (obj_fproto_cstr, a_scope_chain)))
-		with _ -> raise (Failure "js2jsil_logic. JSFunObj - not found business")
+		let sc_loc = LVar (fresh_lvar ()) in 
+		let f_loc' = fe f_loc in 
+		let f_prototype' = fe f_prototype in 
+		let id_vis_list = try Hashtbl.find vis_tbl id with _ -> raise (Failure (Printf.sprintf "Function %s not found in the visibility table." id)) in 
+		let _, args, _, (_, _, _) = try Hashtbl.find fun_tbl id with _ -> raise (Failure (Printf.sprintf "Function %s not found in the fun table." id)) in
+		let n_args = List.length args in
+		let a_scope_chain = make_simple_scope_chain_assertion sc_loc id_vis_list in
+		let st_obj_fproto = LPred (standard_object_pred_name, [f_prototype']) in
+		let obj_fproto_cstr = 
+			LPointsTo (
+				f_prototype', 
+				LLit (String "constructor"), 
+				LEList [ LLit (String "d"); f_loc'; LLit (Bool true); LLit (Bool false); LLit (Bool true) ]) in
+		LStar (
+			LPred (function_object_pred_name, [ f_loc'; sc_loc; LLit (String id); LLit (String id); LLit (Integer n_args); f_prototype'] ), 
+			LStar (st_obj_fproto, LStar (obj_fproto_cstr, a_scope_chain)))
 
 
 

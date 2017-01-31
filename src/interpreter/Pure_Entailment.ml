@@ -925,12 +925,6 @@ let rec lets_do_some_string_theory_axioms tr_ctx l1 l2 =
 
 	| _, _ -> (mk_simple_eq tr_ctx l1 l2), [])
 
-
-
-let if_some x f def = (match x with | Some y -> f y | None -> def)
-
-
-
 let rec encode_assertion tr_ctx is_premise a : Expr.expr * (Expr.expr list) =
 
 	(* print_time_debug "EPF:"; *)
