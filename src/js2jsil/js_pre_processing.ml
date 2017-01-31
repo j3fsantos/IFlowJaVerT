@@ -1,6 +1,7 @@
 open Parser_syntax
 open Utils
 open Batteries
+open Js2jsil_constants
 
 exception CannotHappen
 exception No_Codename
@@ -99,34 +100,11 @@ let test_func_decl_in_block exp =
     match exp.exp_stx with
     | Script (_, es) -> List.exists (f false) es
     (* Expressions *)
-    | This
-    | Var _
-    | Num _
-    | String _
-    | Null
-    | Bool _
-    | RegExp _
-    | Obj _
-    | Array _
-    | Unary_op _
-    | BinOp _
-    | Delete _
-    | Assign _
-    | AssignOp _
-    | Comma _
-    | Access _
-    | CAccess _
-    | ConditionalOp _
-    | Call _
-    | New _
+    | This | Var _ | Num _ | String _ | Null | Bool _ | RegExp _ | Obj _
+    | Array _ | Unary_op _ | BinOp _  | Delete _ | Assign _ | AssignOp _
+    | Comma _ | Access _ | CAccess _ | ConditionalOp _ | Call _ | New _
     (* Statements *)
-    | VarDec _
-    | Skip
-    | Continue _
-    | Break _
-    | Return _
-    | Throw _
-    | Debugger -> false
+    | VarDec _ | Skip | Continue _ | Break _ | Return _ | Throw _ | Debugger -> false
 
     (* with is a syntax error in strict mode *)
     (* TODO: Move to a more appropriate pre-processing mapper function so we can get better errors *)
@@ -135,17 +113,13 @@ let test_func_decl_in_block exp =
     (* Statements with sub-Statements *)
     | Block es -> List.exists (f true) es
     | If (_, s, so) -> f true s || fo (f true) so
-    | While (_, s)
-    | DoWhile (s, _)
-    | For (_, _, _, s)
-    | ForIn (_, _, s)
-    | Label (_, s) -> f true s
+    | While (_, s) | DoWhile (s, _) | For (_, _, _, s)
+    | ForIn (_, _, s) | Label (_, s) -> f true s
     | Switch (_, cs) -> List.exists (fun (_, s) -> f true s) cs
     | Try (s, sc, so) -> f true s || fo (fun (_, s) -> f true s) sc || fo (f true) so
 
     (* TODO: Ideally now the parser identifies these correctly, this test can be amended *)
-    | FunctionExp _
-    | Function _ -> in_block
+    | FunctionExp _ | Function _ -> in_block
   in f true exp
 
 let get_all_assigned_declared_identifiers exp =
@@ -167,25 +141,12 @@ let get_all_assigned_declared_identifiers exp =
     | Function (_, n, vs, e) -> (Option.map_default (List.singleton) [] n) @ vs @ (f false e)
 
     (* Boring Cases *)
-    | Num _
-    | String _
-    | Null
-    | Bool _
-    | RegExp _
-    | This
-    | Skip
-    | Break _
-    | Continue _
-    | Debugger -> []
-    | Throw e
-    | Access (e, _)
-    | Label (_, e) -> f false e
+    | Num _ | String _ | Null | Bool _ | RegExp _ | This
+    | Skip  | Break _  | Continue _ | Debugger -> []
+    | Throw e | Access (e, _) | Label (_, e) -> f false e
     | Return eo -> fo false eo
-    | While (e1, e2)
-    | DoWhile (e1, e2)
-    | BinOp (e1, _, e2)
-    | CAccess (e1, e2)
-    | Comma (e1, e2)
+    | While (e1, e2) | DoWhile (e1, e2) | BinOp (e1, _, e2)
+    | CAccess (e1, e2) | Comma (e1, e2)
     | With (e1, e2)              -> (f false e1) @ (f false e2)
     | ConditionalOp (e1, e2, e3) -> (f false e1) @ (f false e2) @ (f false e3)
     | If (e1, e2, eo3)           -> (f false e1) @ (f false e2) @ (fo false eo3)
@@ -204,6 +165,9 @@ let get_all_assigned_declared_identifiers exp =
 
   in f false exp
 
+
+
+
 let test_expr_eval_arguments_assignment exp =
   List.exists (fun it -> it = "eval" || it = "arguments") (get_all_assigned_declared_identifiers exp)
 
@@ -211,47 +175,19 @@ let rec var_decls_inner exp =
   let f = var_decls_inner in
   let fo e = match e with None -> [] | Some e -> f e in
   match exp.exp_stx with
-  | Num _
-  | String _
-  | Null
-  | Bool _
-  | Var _
-  | RegExp _
-  | This
-  | Skip
-  | Return None
-  | Break _
-  | Continue _
-  | Debugger -> []
+  | Num _	| String _	| Null	| Bool _	| Var _	| RegExp _	| This
+  | Skip	| Return None	| Break _	| Continue _	| Debugger -> []
   | VarDec vars ->
 		flat_map (fun ve -> match ve with (v, None) -> [v] | (v, Some e)  -> v :: (f e)) vars
-  | Throw e
-  | Delete e
-  | Return (Some e)
-  | Access (e, _)
-  | Unary_op (_, e)
-  | Label (_, e) -> f e
-  | While (e1, e2)
-  | DoWhile (e1, e2)
-  | BinOp (e1, _, e2)
-  | Assign (e1, e2)
-  | AssignOp (e1, _, e2)
-  | CAccess (e1, e2)
-  | Comma (e1, e2)
-  | With (e1, e2)
-  | Try (e1, Some (_, e2), None)
-  | Try (e1, None, Some e2)
-  | If (e1, e2, None)-> (f e1) @ (f e2)
-  | If (e1, e2, Some e3)
-  | ForIn (e1, e2, e3)
-  | Try (e1, Some (_, e2), Some e3)
-  | ConditionalOp (e1, e2, e3)-> (f e1) @ (f e2) @ (f e3)
-  | For (e1, e2, e3, e4) ->
-    (fo e1) @ (fo e2) @ (fo e3) @ (f e4)
-  | Call (e1, e2s)
-  | New (e1, e2s) -> (f e1) @ (flat_map (fun e2 -> f e2) e2s)
-  | FunctionExp _
-  | Function _ -> []
+  | Throw e	| Delete e	| Return (Some e)	| Access (e, _)	| Unary_op (_, e)	| Label (_, e) -> f e
+  | While (e1, e2)	| DoWhile (e1, e2)	| BinOp (e1, _, e2)	| Assign (e1, e2)
+  | AssignOp (e1, _, e2)	| CAccess (e1, e2)	| Comma (e1, e2)	| With (e1, e2)
+  | Try (e1, Some (_, e2), None)	| Try (e1, None, Some e2)	| If (e1, e2, None) -> (f e1) @ (f e2)
+  | If (e1, e2, Some e3)	| ForIn (e1, e2, e3)	| Try (e1, Some (_, e2), Some e3)
+  | ConditionalOp (e1, e2, e3) -> (f e1) @ (f e2) @ (f e3)
+  | For (e1, e2, e3, e4) ->	(fo e1) @ (fo e2) @ (fo e3) @ (f e4)
+  | Call (e1, e2s)	| New (e1, e2s) -> (f e1) @ (flat_map (fun e2 -> f e2) e2s)
+  | FunctionExp _	| Function _ -> []
   | Obj xs -> flat_map (fun (_,_,e) -> f e) xs
   | Array es -> flat_map (fun e -> match e with None -> [] | Some e -> f e) es
   | Try (_, None, None) -> raise CannotHappen
@@ -261,8 +197,7 @@ let rec var_decls_inner exp =
         | Case e2 -> f e2
         | DefaultCase -> []) @ (f e3)
      ) e2s)
-  | Block es
-  | Script (_, es) -> flat_map f es
+  | Block es	| Script (_, es) -> flat_map f es
 
 let var_decls exp = (List.unique (var_decls_inner exp))
                   (* List.append (List.unique (var_decls_inner exp)) [ "arguments" ] *)
@@ -605,12 +540,9 @@ let update_fun_tbl (fun_tbl : Js2jsil_constants.pre_fun_tbl_type) (f_id : string
 	(* let fun_spec, f_rec = process_js_logic_annotations f_id f_args annotations Requires Ensures EnsuresErr var_to_fid_tbl vis_list in *)
 	Hashtbl.replace fun_tbl f_id (f_id, f_args, f_body, (annotations, vis_list, var_to_fid_tbl))
 
+
 let update_cc_tbl cc_tbl f_parent_id f_id f_args f_body =
-	let f_parent_var_table =
-		try Hashtbl.find cc_tbl f_parent_id
-		with _ ->
-			let msg = Printf.sprintf "the parent function of %s -- %s -- was not found in the cc table" f_id f_parent_id in
-			raise (Failure msg) in
+	let f_parent_var_table = get_scope_table f_parent_id cc_tbl in 
 	let new_f_tbl = Hashtbl.create 101 in
 	Hashtbl.iter
 		(fun x x_f_id -> Hashtbl.add new_f_tbl x x_f_id)
@@ -675,6 +607,148 @@ let rec get_predicate_definitions pred_defs e =
 
 
 
+let rec ground_fold_annotations folds e = 
+	
+	let rec filter_folds annots traversed_folds traversed_annots =
+		match annots with 
+		| [] -> traversed_folds, traversed_annots 
+		| annot :: rest_annots -> 
+			if (annot.annot_type = Parser_syntax.Fold) 
+				then filter_folds rest_annots (annot :: traversed_folds) traversed_annots
+				else filter_folds rest_annots traversed_folds (annot :: traversed_annots) in 
+		
+	let cur_folds, rest_annots = filter_folds e.exp_annot [] [] in
+	let next_folds = 
+		match e.exp_stx with
+		| New (_, _) | Call (_, _) -> []
+		| _ -> folds @ cur_folds in 
+	
+	let f = ground_fold_annotations next_folds in 
+	
+	let f_2 e1 e2 = 
+		let e1', found_fun_call_1 = f e1 in 
+		if (found_fun_call_1) 
+			then e1', e2, true 
+			else (
+				let e2', found_fun_call_2 = f e2 in 
+				e1', e2', found_fun_call_2
+				) in 
+	
+	let f_3 e1 e2 e3 = 
+		let e1', e2', found_fun_call = f_2 e1 e2 in 
+		if (found_fun_call) 
+			then e1', e2', e3, true 
+			else (
+				let e3', found_fun_call_3 = f e3 in 
+				e1', e2', e3', found_fun_call_3 
+			) in 
+	
+	let rec f_arr es traversed_es =
+		match es with 
+		| [] -> (List.rev traversed_es), false
+		| e :: rest_es -> 
+			(match e with 
+			| None -> f_arr rest_es (e :: traversed_es)
+			| Some e -> 
+				let e', found_fun_call = f e in 
+				if (found_fun_call) 
+					then (List.rev traversed_es) @ ((Some e') :: rest_es), true
+					else f_arr rest_es ((Some e') :: traversed_es)) in 
+	
+	let rec f_var_decl vdecls traversed_vdecls = 
+		match vdecls with 
+		| [] -> (List.rev traversed_vdecls), false
+		| (v, eo) :: rest_vdecls -> 
+			(match eo with 
+			| None -> f_var_decl rest_vdecls ((v, eo) :: traversed_vdecls) 
+			| Some e -> 
+				let e', found_fun_call = f e in 
+				if (found_fun_call) 
+					then (List.rev traversed_vdecls) @ ((v, Some e') :: vdecls), true
+					else f_var_decl rest_vdecls ((v, Some e') :: traversed_vdecls)) in 
+	
+	let rec loop_obj_props props processed_props = 
+		match props with 
+		| [] -> false, (List.rev processed_props)
+		| (x, p, e) :: rest_props -> 
+			let e', found_fun_call = f e in 
+			if (found_fun_call)  
+				then true, ((List.rev processed_props) @ ((x, p, e') :: rest_props))
+				else loop_obj_props rest_props ((x, p, e) :: processed_props) in
+ 			
+	let new_exp_stx, has_inner_fun_call = 				
+		match e.exp_stx with
+ 		(* Literals *)
+		| Null | Bool _ | String _ | Num _ -> e.exp_stx, false
+		(* Expressions *)
+		| This | Var _ -> e.exp_stx, false 
+		| Obj xs -> 
+			let found_fun_call, xs' = loop_obj_props xs [] in 
+			Obj xs', found_fun_call
+		| Access (e, v) -> 
+			let e', found_fun_call = f e in 
+			Access (e', v), found_fun_call 
+		| CAccess (e1, e2) -> 
+			let e1', e2', found_fun_call = f_2 e1 e2 in 
+			CAccess (e1', e2'), found_fun_call
+		| New (e1, e2s) | Call (e1, e2s) -> e.exp_stx, true
+		| FunctionExp (b, f_name, args, fb) -> 
+			let fb', _ = ground_fold_annotations [] fb in 
+			FunctionExp (b, f_name, args, fb'), false
+  	| Function (b, f_name, args, fb) ->
+			let fb', _ = ground_fold_annotations [] fb in 
+			Function (b, f_name, args, fb'), false
+ 		| Unary_op (op, e) -> 
+			let e', found_fun_call = f e in
+			Unary_op (op, e'), found_fun_call  
+		| Delete e ->
+			let e', found_fun_call = f e in 
+			Delete e', found_fun_call 
+		| BinOp (e1, op, e2) ->
+			let e1', e2', found_fun_call = f_2 e1 e2 in 
+			BinOp (e1', op, e2'), found_fun_call 
+		| Assign (e1, e2) -> 
+			let e1', e2', found_fun_call = f_2 e1 e2 in 
+			Assign (e1', e2'), found_fun_call 
+		| Array es -> 
+			let es', found_fun_call = f_arr es [] in 
+			Array es', found_fun_call 
+		| ConditionalOp (e1, e2, e3) -> 
+			let e1', e2', e3', found_fun_call = f_3 e1 e2 e3 in 
+			ConditionalOp (e1', e2', e3'), found_fun_call
+		| AssignOp (e1, op, e2) -> 
+			let e1', e2', found_fun_call = f_2 e1 e2 in 
+			AssignOp (e1', op, e2'), found_fun_call 
+		| Comma (e1, e2) -> 
+			let e1', e2', found_fun_call = f_2 e1 e2 in 
+			Comma (e1', e2'), found_fun_call 
+	 	| VarDec vars -> 
+			let vdecls', found_fun_call = f_var_decl vars [] in 
+			VarDec vdecls', found_fun_call 
+		| RegExp _	-> raise (Failure "construct not supported yet")
+		(* statements *) 
+		| Script (b, es) -> 
+			let es' = List.map (fun e -> let e', _ = ground_fold_annotations [] e in e') es in 
+			Script (b, es), false 
+		| Block es -> 
+			let es' = List.map (fun e -> let e', _ = ground_fold_annotations [] e in e') es in 
+			Block es', false 
+		| Skip _  | If (_, _, _) | While (_,_)
+ 	 	| DoWhile (_, _) | Return _ | Try (_, _, _) | Throw _ | Continue _ 
+  	| Break _ | Label (_, _) | For (_, _, _, _) | Switch (_, _) 
+		| ForIn (_, _, _) | With (_, _) | Debugger -> e.exp_stx, false in 
+	
+	match new_exp_stx, has_inner_fun_call with 
+	| New (e1, e2s), _ | Call (e1, e2s), _ ->
+		let new_e = { exp_offset = e.exp_offset; exp_stx = new_exp_stx; exp_annot = folds @ cur_folds @ rest_annots } in 
+		new_e, true 	
+	| _, false -> 
+		let new_e = { exp_offset = e.exp_offset; exp_stx = new_exp_stx; exp_annot = cur_folds @ rest_annots } in 
+		new_e, false 
+	| _, true -> 
+		let new_e = { exp_offset = e.exp_offset; exp_stx = new_exp_stx; exp_annot = rest_annots } in 
+		new_e, true 
+			
 
 
 
@@ -683,27 +757,23 @@ let rec closure_clarification_expr cc_tbl (fun_tbl : Js2jsil_constants.pre_fun_t
 	let cur_annot = update_prev_annot prev_annot e.Parser_syntax.exp_annot in
 
 	let f = closure_clarification_expr cc_tbl fun_tbl vis_tbl f_id visited_funs cur_annot in
-	let fo e = (match e with
-	| None -> ()
-	| Some e -> f e) in
+	let fo e = 
+		(match e with
+		| None   -> ()
+		| Some e -> f e) in
 
 	(* Printf.printf "Traversing the js code inside closure_clarification_expr. current annotation: %s\n"
 		(Pretty_print.string_of_annots e.exp_annot); *)
 
 	match e.exp_stx with
   (* Literals *)
-	| Null
-	| Bool _
-	| String _
-	| Num _
+	| Null | Bool _ | String _ | Num _
 	(* Expressions *)
-	| This
-	| Var _ -> ()
+	| This | Var _ -> ()
 	| Obj xs -> List.iter (fun (_, _, e) -> f e) xs
-	| Access (e, v) -> f e
-	| CAccess (e1, e2) -> (f e1); (f e2)
-	| New (e1, e2s)
-	| Call (e1, e2s) -> f e1; (List.iter f e2s)
+	| Access (e, v)                  -> f e
+	| CAccess (e1, e2)               -> (f e1); (f e2)
+	| New (e1, e2s) | Call (e1, e2s) -> f e1; (List.iter f e2s)
   | FunctionExp (_, f_name, args, fb)
   | Function (_, f_name, args, fb) ->
     begin match f_name with
@@ -722,34 +792,19 @@ let rec closure_clarification_expr cc_tbl (fun_tbl : Js2jsil_constants.pre_fun_t
       Hashtbl.replace vis_tbl new_f_id (new_f_id :: new_f_id_outer :: visited_funs);
       closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: new_f_id_outer :: visited_funs) [] fb
     end
-  | Unary_op (_, e) -> f e
-  | Delete e -> f e
-  | BinOp (e1, _, e2) -> f e1; f e2
-  | Assign (e1, e2) -> f e1; f e2
+  | Unary_op (_, e)   | Delete e -> f e
+	| BinOp (e1, _, e2) | Assign (e1, e2) -> f e1; f e2
   | Array es -> List.iter fo es
   | ConditionalOp (e1, e2, e3) -> f e1; f e2; f e3
-  | AssignOp (e1, _, e2) -> f e1; f e2
-  | Comma (e1, e2) -> f e1; f e2
+  | AssignOp (e1, _, e2) | Comma (e1, e2) -> f e1; f e2
 	| VarDec vars -> List.iter (fun (_, e) -> fo e) vars
   | RegExp _	-> ()
 	(*Statements*)
-  | Script (_, _) -> raise (Failure "statement in expression context - closure clarification: script")
-  | Block _ -> raise (Failure "statement in expression context - closure clarification: block")
-  | Skip _ -> raise (Failure "statement in expression context - closure clarification: skip")
-  | If (_, _, _) -> raise (Failure "statement in expression context - closure clarification: if")
-  | While (_,_) -> raise (Failure "statement in expression context - closure clarification: while")
-  | DoWhile (_, _) -> raise (Failure "statement in expression context - closure clarification: do-while")
-  | Return _ -> raise (Failure "statement in expression context - closure clarification: return")
-  | Try (_, _, _) -> raise (Failure "statement in expression context - closure clarification: try")
-  | Throw _ -> raise (Failure "statement in expression context - closure clarification: throw")
-  | Continue _ -> raise (Failure "statement in expression context - closure clarification: continue")
-  | Break _ -> raise (Failure "statement in expression context - closure clarification: break")
-  | Label (_, _) -> raise (Failure "statement in expression context - closure clarification: label")
-  | For (_, _, _, _) -> raise (Failure "statement in expression context - closure clarification: for")
-  | Switch (_, _) -> raise (Failure "statement in expression context - closure clarification: switch")
-	| ForIn (_, _, _)  -> raise (Failure "statement in expression context - closure clarification: for-in")
-	| With (_, _) -> raise (Failure "statement in expression context - closure clarification: with")
-	| Debugger -> raise (Failure "statement in expression context - closure clarification: debugger")
+  | Script (_, _) | Block _  | Skip _  | If (_, _, _) | While (_,_)
+  | DoWhile (_, _) | Return _ | Try (_, _, _) | Throw _ | Continue _ 
+  | Break _ | Label (_, _) | For (_, _, _, _) | Switch (_, _) 
+	| ForIn (_, _, _) | With (_, _) | Debugger -> 
+		raise (Failure "statement in expression context - closure clarification")
 and
 closure_clarification_stmt cc_tbl fun_tbl vis_tbl f_id visited_funs prev_annot e =
 	let cur_annot = update_prev_annot prev_annot e.Parser_syntax.exp_annot in
@@ -858,15 +913,7 @@ let closure_clarification_top_level cc_tbl (fun_tbl : Js2jsil_constants.fun_tbl_
 	jsil_pred_def_tbl 
 	
 
-(**
-	(Hashtbl.iter
-		(fun f_id f_tbl ->
-			(Hashtbl.iter
-				(fun v fun_v ->
-					Hashtbl.replace f_tbl v (Printf.sprintf "\"%s\"" fun_v))
-				f_tbl)) cc_tbl);
-	cc_tbl, fun_tbl
-*)
+
 
 let rec print_cc_tbl cc_tbl =
 	let print_fun_tbl fun_tbl =
@@ -1006,7 +1053,7 @@ let test_early_errors e =
 
 
 
-(** Ideally I would like to use to use the following to iterator over the 
+(** Ideally I would like to use to use the following to iterate over the 
 grammar of JavaScript, but it is not trivial... **)
 let rec js_iterator f_iter e = 
 	let f = js_iterator f_iter in 

@@ -9,63 +9,6 @@ let print_position outx lexbuf =
   Printf.fprintf outx "%s:%d:%d" pos.pos_fname
     pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
 
-let fresh_sth (name : string) : (unit -> string) =
-  let counter = ref 0 in
-  let rec f () =
-    let v = name ^ (string_of_int !counter) in
-    counter := !counter + 1;
-    v
-  in f
-
-let fresh_var : (unit -> string) = fresh_sth "x_"
-
-let fresh_scope_chain_var : (unit -> string) = fresh_sth "x_sc_"
-
-let fresh_found_var : (unit -> string) = fresh_sth "x_found_"
-
-let fresh_fun_var : (unit -> string) = fresh_sth "x_f_"
-
-let fresh_obj_var : (unit -> string) = fresh_sth "x_o_"
-
-let fresh_er_var : (unit -> string) = fresh_sth "x_er_"
-
-let fresh_err_var : (unit -> string) = fresh_sth "x_error_"
-
-let fresh_this_var : (unit -> string) = fresh_sth "x_this_"
-
-let fresh_case_var : (unit -> string) = fresh_sth "x_case_"
-
-let fresh_desc_var : (unit -> string) = fresh_sth "x_desc_"
-
-let fresh_body_var : (unit -> string) = fresh_sth "x_body_"
-
-let fresh_fscope_var : (unit -> string) = fresh_sth "x_fscope_"
-
-let fresh_xfoundb_var : (unit -> string) = fresh_sth "x_found_b_"
-
-let fresh_label : (unit -> string) = fresh_sth "lab_"
-
-let fresh_next_label : (unit -> string) = fresh_sth "next_"
-
-let fresh_then_label : (unit -> string) = fresh_sth "then_"
-
-let fresh_else_label : (unit -> string) = fresh_sth "else_"
-
-let fresh_endif_label : (unit -> string) = fresh_sth "fi_"
-
-let fresh_end_label : (unit -> string) = fresh_sth "end_"
-
-
-let fresh_end_switch_label : (unit -> string) = fresh_sth "end_switch_"
-
-let fresh_end_case_label : (unit -> string) = fresh_sth "end_case_"
-
-let fresh_default_label : (unit -> string) = fresh_sth "default_"
-
-let fresh_b_cases_label : (unit -> string) = fresh_sth "b_cases_"
-
-let fresh_logical_variable : (unit -> string) = fresh_sth "#x"
-
 let power_list list n =
 	let rec loop cur_list cur_n =
 		(if (cur_n = 1)
@@ -85,101 +28,8 @@ let fresh_switch_labels () =
 	number_of_switches := (!number_of_switches) + 1;
 	b_cases_lab, default_lab, end_switch, fresh_end_case_label
 
-let fresh_break_label : (unit -> string) = fresh_sth "break_"
 
-let fresh_loop_head_label : (unit -> string) = fresh_sth "loop_h_"
 
-let fresh_loop_cont_label : (unit -> string) = fresh_sth "loop_c_"
-
-let fresh_loop_guard_label : (unit -> string) = fresh_sth "loop_g_"
-
-let fresh_loop_body_label : (unit -> string) = fresh_sth "loop_b_"
-
-let fresh_loop_end_label : (unit -> string) = fresh_sth "loop_e_"
-
-let fresh_tcf_finally_label : (unit -> string) = fresh_sth "finally_"
-
-let fresh_tcf_end_label : (unit -> string) = fresh_sth "end_tcf_"
-
-let fresh_tcf_err_try_label : (unit -> string) = fresh_sth "err_tcf_t_"
-
-let fresh_tcf_err_catch_label : (unit -> string) = fresh_sth "err_tcf_c_"
-
-let fresh_tcf_ret : (unit -> string) = fresh_sth "ret_tcf_"
-
-let fresh_loop_vars () =
-	let head = fresh_loop_head_label () in
-	let end_loop = fresh_loop_end_label () in
-	let cont = fresh_loop_cont_label () in
-	let guard = fresh_loop_guard_label () in
-	let body = fresh_loop_body_label () in
-	head, guard, body, cont, end_loop
-
-let number_of_tcfs = ref 0
-let fresh_tcf_vars () =
-	let err1 = fresh_tcf_err_try_label () in
-	let err2 = fresh_tcf_err_catch_label () in
-	let end_l = fresh_tcf_end_label () in
-	let finally = fresh_tcf_finally_label () in
-	let fresh_abnormal_finally = fresh_sth ("abnormal_finally_" ^ (string_of_int !number_of_tcfs) ^ "_") in
-	number_of_tcfs := (!number_of_tcfs) + 1;
-	let ret = fresh_tcf_ret () in
-	err1, err2, finally, end_l, fresh_abnormal_finally, ret
-
-let val_var_of_var x =
-	(match x with
-	| Var x_name -> x_name ^ "_v"
-	| Literal l -> (fresh_var ()) ^ "_v"
-	| _ -> raise (Failure "val_var_of_var expects a variable or a literal"))
-
-let number_var_of_var x =
-	(match x with
-	| Var x_name -> x_name ^ "_n"
-	| Literal l -> (fresh_var ()) ^ "_n"
-	| _ -> raise (Failure "number_var_of_var expects a variable"))
-
-let boolean_var_of_var x =
-	(match x with
-	| Var x_name -> x_name ^ "_b"
-	| Literal l -> (fresh_var ()) ^ "_b"
-	| _ -> raise (Failure "boolean_var_of_var expects a variable"))
-
-let primitive_var_of_var x =
-	(match x with
-	| Var x_name -> x_name ^ "_p"
-	| Literal l -> (fresh_var ()) ^ "_p"
-	| _ -> raise (Failure "primitive_var_of_var expects a variable"))
-
-let string_var_of_var x =
-	(match x with
-	| Var x_name -> x_name ^ "_s"
-	| Literal l -> (fresh_var ()) ^ "_s"
-	| _ -> raise (Failure "string_var_of_var expects a variable"))
-
-let i32_var_of_var x =
-	(match x with
-	| Var x_name -> x_name ^ "_i32"
-	| Literal l -> (fresh_var ()) ^ "_i32"
-	| _ -> raise (Failure "string_var_of_var expects a variable"))
-
-let fresh_err_label : (unit -> string) = fresh_sth "err_"
-
-let fresh_ret_label : (unit -> string) = fresh_sth "ret_"
-
-type tr_ctx = {
-	tr_ret_lab: string;
-	tr_ret_var: string;
-	tr_error_lab: string;
-	tr_error_var: string;
-}
-
-let make_translation_ctx fid =
-{
-	tr_ret_lab = "rlab"; (* ^ fid; *)
-	tr_ret_var = "xret"; (* ^ fid; *)
-	tr_error_lab = "elab"; (* ^ fid; *)
-	tr_error_var = "xerr"; (* ^ fid *)
-}
 
 let add_initial_label cmds lab metadata =
 	(match cmds with
@@ -743,21 +593,24 @@ let annotate_cmds_top_level metadata cmds =
 	List.map (annotate_cmd_top_level metadata) cmds
 
 
-let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : ((jsil_metadata * (string option) * jsil_lab_cmd) list) * jsil_expr * (string list) =
+(** 
+  *  translate_expr( tr_ctx, e) = cmds, e', x_is
+	   @param tr_ctx  translation context
+		 @param e javascript expression to compile
+		 @return (cmds, e', x_is) -> 
+			  cmd  - the result of the compilation
+				e'   - jsil expression that holds at runtime the outcome of the compilation 
+				x_is - the list of variables that may hold error values  
+	*)
+let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_cmd) list) * jsil_expr * (string list) =
 
-	let f = translate_expr offset_converter fid cc_table vis_fid err false in
-	let f_rosette = translate_expr offset_converter fid cc_table vis_fid err true in
+	let f = translate_expr tr_ctx in
 
-	let cur_var_tbl =
-		(try Hashtbl.find cc_table fid
-			with _ ->
-				let msg = Printf.sprintf "var tbl of function %s is not in cc-table" fid in
-				raise (Failure msg)) in
-
+	let cur_var_tbl = get_scope_table tr_ctx.tr_fid tr_ctx.tr_cc_tbl in
 	let find_var_fid v = (try Some (Hashtbl.find cur_var_tbl v) with _ -> None) in
 
 	let js_char_offset = e.Parser_syntax.exp_offset in
-	let js_line_offset = offset_converter js_char_offset in
+	let js_line_offset = tr_ctx.tr_offset_converter js_char_offset in
 	let metadata = { line_offset = Some js_line_offset; pre_cond = None; pre_logic_cmds = []; post_logic_cmds = [] } in
 	
 	let annotate_cmds = annotate_cmds_top_level metadata in
@@ -772,7 +625,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 			| Some v_fid -> v_fid in
 		let cmds_e, x_e, errs_e = f e in
 		(* x_v := i__getValue (x) with err *)
-		let x_v, cmd_gv_x = make_get_value_call x_e err in
+		let x_v, cmd_gv_x = make_get_value_call x_e tr_ctx.tr_err in
 		(* x_sf := [x__scope, v_fid]  *)
 		let x_sf = fresh_var () in
 		let cmd_xsf_ass = SLBasic (SLookup (x_sf, Var var_scope, Literal (String v_fid))) in
@@ -780,9 +633,9 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let x_ref = fresh_var () in
 		let cmd_xref_ass = SLBasic (SAssignment (x_ref, EList [lit_refv; Var x_sf; lit_str x])) in
 		(* x_cae := i__checkAssignmentErrors (x_ref) with err *)
-		let x_cae, cmd_cae = make_cae_call (Var x_ref)  err in
+		let x_cae, cmd_cae = make_cae_call (Var x_ref)  tr_ctx.tr_err in
 		(* x_pv := i__putValue(x_ref, x_v) with err2 *)
-		let x_pv, cmd_pv = make_put_value_call (Var x_ref) x_v err in
+		let x_pv, cmd_pv = make_put_value_call (Var x_ref) x_v tr_ctx.tr_err in
 		let cmds = cmds_e @ (annotate_cmds (add_none_labs [
 			cmd_gv_x;      (* x_v := i__getValue (x) with err          *)
 			cmd_xsf_ass;   (* x_sf := [x__scope, fid]                  *)
@@ -806,41 +659,13 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let x_ref = fresh_var () in
 		let cmd_xref_ass = SLBasic (SAssignment (x_ref, EList [lit_refv; Var x_sf; lit_str x])) in
 		(* x_cae := i__checkAssignmentErrors (x_ref) with err *)
-		let x_cae, cmd_cae = make_cae_call (Var x_ref)  err in
+		let x_cae, cmd_cae = make_cae_call (Var x_ref)  tr_ctx.tr_err in
 		let cmds = annotate_cmds (add_none_labs [
 			cmd_xsf_ass;   (* x_sf := [x__scope, v_fid]                          *)
 			cmd_xref_ass;  (* x_ref := ref_v(x_sf, "x")                          *)
 			cmd_cae;       (* x_cae := i__checkAssignmentErrors (x_ref) with err *)
 		]) in
 		x_ref, cmds, [ x_cae ] in
-
-	let translate_bin_logical_operator_rosette e1 e2 lbop err =
-		let cmds1, x1, errs1 = f_rosette e1 in
-		let cmds2, x2, errs2 = f_rosette e2 in
-
-		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
-
-		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
-
-		(* x_r := x1_b binop x2_b *)
-		let x_r = fresh_var () in
-		let jsil_bop =
-			(match lbop with
-			| Parser_syntax.And -> JSIL_Syntax.And
-			| Parser_syntax.Or -> JSIL_Syntax.Or) in
-		let cmd_ass_xr = SLBasic (SAssignment (x_r, JSIL_Syntax.BinOp (Var x1_v, jsil_bop, Var x2_v))) in
-
-		let cmds = cmds1 @ (annotate_cmds [   (*         cmds1                                              *)
-			(None,         cmd_gv_x1);          (*         x1_v := i__getValue (x1) with err                  *)
-		]) @ cmds2 @ (annotate_cmds [         (*         cmds2                                              *)
-			(None,         cmd_gv_x2);          (*         x2_v := i__getValue (x2) with err                  *)
-			(None,         cmd_ass_xr)          (*         x_r := x1_v binop x2_v                             *)
-		]) in
-		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] in
-		cmds, Var x_r, errs	in
-
 
 
 	let translate_bin_logical_operator e1 e2 lbop err =
@@ -920,7 +745,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let translate_var_not_found v =
 			(* 	x_1 := o__hasProperty($lg, "x") with err *)
 			let x_1 = fresh_var () in
-		  let cmd_ass_x1 = SLCall (x_1, Literal (String hasPropertyName), [ Literal (Loc locGlobName); Literal (String v) ], Some err) in
+		  let cmd_ass_x1 = SLCall (x_1, Literal (String hasPropertyName), [ Literal (Loc locGlobName); Literal (String v) ], Some tr_ctx.tr_err) in
 
 			(* goto [x_1] then else *)
 			let then_lab = fresh_then_label () in
@@ -1027,7 +852,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 			  	| None ->
 							[cmd_set_len (num + 1)], []
 				  | Some e ->
-					  	translate_array_property_definition x_arr e err num) in
+					  	translate_array_property_definition x_arr e tr_ctx.tr_err num) in
 				(cmds @ new_cmds, errs @ new_errs, num + 1))
 				([], [], 0)
 				eos in
@@ -1114,7 +939,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 				(match accessor.Parser_syntax.exp_stx with
 				| Parser_syntax.FunctionExp (_, _, params, _) -> params
 				| _ -> raise (Failure "getters should be annonymous functions")) in
-			let cmds, x_f, errs = translate_function_literal f_id params vis_fid err in
+			let cmds, x_f, errs = translate_function_literal f_id params tr_ctx.tr_vis_list tr_ctx.tr_err in
 			let cmds = annotate_cmds cmds in
 
 			(* x_desc := {{ "g", $$t, $$t, $$empty, $$empty, x_f, $$empty }} *)
@@ -1140,9 +965,9 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 				let prop = translate_property_name pname in
 				let new_cmds, new_errs =
 					(match ptype with
-					| Parser_syntax.PropbodyVal -> translate_data_property_definition x_obj prop e err
-					| Parser_syntax.PropbodyGet -> translate_accessor_descriptor x_obj prop e true err
-					| Parser_syntax.PropbodySet -> translate_accessor_descriptor x_obj prop e false err) in
+					| Parser_syntax.PropbodyVal -> translate_data_property_definition x_obj prop e tr_ctx.tr_err
+					| Parser_syntax.PropbodyGet -> translate_accessor_descriptor x_obj prop e true tr_ctx.tr_err
+					| Parser_syntax.PropbodySet -> translate_accessor_descriptor x_obj prop e false tr_ctx.tr_err) in
 				cmds @ new_cmds, errs @ new_errs)
 				([], [])
 				xs in
@@ -1168,17 +993,17 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
 
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
 
 		(* x_oc := i__checkObjectCoercible (x1_v) with err *)
 		let x_oc = fresh_var () in
-		let cmd_coc_x1 = SLCall (x_oc, Literal (String checkObjectCoercibleName), [ Var x1_v ], Some err) in
+		let cmd_coc_x1 = SLCall (x_oc, Literal (String checkObjectCoercibleName), [ Var x1_v ], Some tr_ctx.tr_err) in
 
 		(* x2_s := i__toString (x2_v) with err *)
-		let x2_s, cmd_ts_x2 = make_to_string_call x2 x2_v err in
+		let x2_s, cmd_ts_x2 = make_to_string_call x2 x2_v tr_ctx.tr_err in
 
 		(* 	x_r := ref-o(x1_v, x2_s) *)
 		let x_r = fresh_var () in
@@ -1210,11 +1035,11 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds, x, errs = f e in
 
 		(* x_v := i__getValue (x) with err *)
-		let x_v, cmd_gv_x = make_get_value_call x err in
+		let x_v, cmd_gv_x = make_get_value_call x tr_ctx.tr_err in
 
 		(* x_oc := i__checkObjectCoercible (x_v) with err *)
 		let x_oc = fresh_var () in
-		let cmd_coc_x = SLCall (x_oc, Literal (String checkObjectCoercibleName), [ Var x_v ], Some err) in
+		let cmd_coc_x = SLCall (x_oc, Literal (String checkObjectCoercibleName), [ Var x_v ], Some tr_ctx.tr_err) in
 
 		(* 	x_r := ref-o(x_v, "p") *)
 		let x_r = fresh_var () in
@@ -1261,14 +1086,14 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds_ef, x_ef, errs_ef = f e_f in
 
 		(* x_f_val := i__getValue (x_f) with err1;  *)
-		let x_f_val, cmd_gv_f = make_get_value_call x_ef err in
+		let x_f_val, cmd_gv_f = make_get_value_call x_ef tr_ctx.tr_err in
 
-		let cmds_args, x_args_gv, errs_args = translate_arg_list xes err in
+		let cmds_args, x_args_gv, errs_args = translate_arg_list xes tr_ctx.tr_err in
 
 		(* goto [ typeOf(x_f_val) != Object] err next1; err -> typeerror *)
 		let next1 = fresh_next_label () in
 		let goto_guard_expr = UnOp (Not, (BinOp (TypeOf (Var x_f_val), Equal, Literal (Type ObjectType)))) in
-		let cmd_goto_is_obj = SLGuardedGoto (goto_guard_expr, err, next1) in
+		let cmd_goto_is_obj = SLGuardedGoto (goto_guard_expr, tr_ctx.tr_err, next1) in
 
 		(* x_hp := [x_f_val, "@construct"]; *)
 		let x_hp = fresh_var () in
@@ -1276,7 +1101,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 
 		(* goto [ x_hp = $$empty ] err next2; *)
 		let call = fresh_then_label () in
-		let cmd_goto_xhp = SLGuardedGoto (Var x_hp, call, err) in
+		let cmd_goto_xhp = SLGuardedGoto (Var x_hp, call, tr_ctx.tr_err) in
 
 		(* let x_bt = fresh_var () in
 		let cmd_get_bt = SLBasic (SHasField (x_bt, Var x_f_val, Literal (String "@boundThis"))) in
@@ -1360,7 +1185,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmd_ass_xreffprototype = SLBasic (SAssignment (x_ref_fprototype, EList [lit_refo; Var x_f_val; lit_str "prototype"])) in
 
 		(* x_f_prototype := i__getValue(x_ref_prototype) with err; *)
-		let x_f_prototype, cmd_gv_xreffprototype = make_get_value_call (Var x_ref_fprototype) err in
+		let x_f_prototype, cmd_gv_xreffprototype = make_get_value_call (Var x_ref_fprototype) tr_ctx.tr_err in
 
 		let then1 = fresh_then_label () in
 		let else1 = fresh_else_label () in
@@ -1388,7 +1213,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		(* x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err  *)
 		let x_r1 = fresh_var () in
 		let proc_args = (Var x_fscope) :: (Var x_this) :: x_args_gv in
-		let cmd_proc_call = SLCall (x_r1, (Var x_body), proc_args, Some err) in
+		let cmd_proc_call = SLCall (x_r1, (Var x_body), proc_args, Some tr_ctx.tr_err) in
 
 		(* goto [ x_r1 = $$empty ] next3 next4; *)
 		let next3 = fresh_next_label () in
@@ -1456,45 +1281,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		]) in
 		let errs = errs_ef @ [ x_f_val ] @ errs_args @ [ var_te; var_te; x_f_prototype; x_r1 ] in
 		cmds, Var x_rcall, errs
-
-	| Parser_syntax.Call (e_f, xes)
-		when (e_f.Parser_syntax.exp_stx = (Parser_syntax.Var "jsil_assert")) ->
-			(match xes with
-			| [ e_arg ] ->
-				let cmds_arg, x_arg, errs_arg = f e_arg in
-				let x_ret = fresh_var () in
-				let cmd = (None, (SLBasic (SAssignment (x_ret, RAssert x_arg)))) in
-        (cmds_arg @ (annotate_cmds [ cmd ])), Var x_ret, errs_arg
-			| _ -> raise (Failure "jsil_assert should have a single argument"))
-
-	| Parser_syntax.Call (e_f, xes)
-		when (e_f.Parser_syntax.exp_stx = (Parser_syntax.Var "jsil_assume")) ->
-			(match xes with
-			| [ e_arg ] ->
-				let cmds_arg, x_arg, errs_arg = f_rosette e_arg in
-				let x_ret = fresh_var () in
-				let cmd = (None, (SLBasic (SAssignment (x_ret, RAssume x_arg)))) in
-				(cmds_arg @ (annotate_cmds [ cmd ])), Var x_ret, errs_arg
-			| _ -> raise (Failure "jsil_assume should have a single argument"))
-
-	| Parser_syntax.Call (e_f, xes)
-		when (e_f.Parser_syntax.exp_stx = (Parser_syntax.Var "jsil_make_symbolic_number")) ->
-			(match xes with
-			| [ ] ->
-				let x_ret = fresh_var () in
-				let cmd = (None, (SLBasic (SAssignment (x_ret, RNumSymb)))) in
-				(annotate_cmds [ cmd ]), Var x_ret, [ ]
-			| _ -> raise (Failure "jsil_make_symbolic_number expects no arguments"))
-
-	| Parser_syntax.Call (e_f, xes)
-		when (e_f.Parser_syntax.exp_stx = (Parser_syntax.Var "jsil_make_symbolic_string")) ->
-			(match xes with
-			| [ ] ->
-				let x_ret = fresh_var () in
-				let cmd = (None, (SLBasic (SAssignment (x_ret, RStrSymb)))) in
-				(annotate_cmds [ cmd ]), Var x_ret, [ ]
-			| _ -> raise (Failure "jsil_make_symbolic_string expects no arguments"))
-
+		
 
 	| Parser_syntax.Call (e_f, xes) ->
 		(**
@@ -1527,14 +1314,14 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds_ef, x_ef, errs_ef = f e_f in
 
 		(* x_f_val := i__getValue (x_f) with err1;  *)
-		let x_f_val, cmd_gv_f = make_get_value_call x_ef err in
+		let x_f_val, cmd_gv_f = make_get_value_call x_ef tr_ctx.tr_err in
 
-		let cmds_args, x_args_gv, errs_args = translate_arg_list xes err in
+		let cmds_args, x_args_gv, errs_args = translate_arg_list xes tr_ctx.tr_err in
 
 		(* goto [ typeOf(x_f_val) != Object] err next1; err -> typeerror *)
 		let next1 = fresh_next_label () in
 		let goto_guard_expr = UnOp (Not, (BinOp (TypeOf (Var x_f_val), Equal, Literal (Type ObjectType)))) in
-		let cmd_goto_is_obj = SLGuardedGoto (goto_guard_expr, err, next1) in
+		let cmd_goto_is_obj = SLGuardedGoto (goto_guard_expr, tr_ctx.tr_err, next1) in
 
 		(* next1: x_ic := isCallable(x_f_val); *)
 		let x_ic = fresh_var () in
@@ -1543,7 +1330,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		(* goto [ x_ic ] getbt err; -> typeerror *)
 
 		let call = fresh_label () in
-		let cmd_goto_is_callable = SLGuardedGoto (Var x_ic, call, err) in
+		let cmd_goto_is_callable = SLGuardedGoto (Var x_ic, call, tr_ctx.tr_err) in
 
 		(* let x_ibt = fresh_var () in
 		let cmd_get_ibt = SLBasic (SHasField (x_ibt, Var x_f_val, Literal (String "@boundThis"))) in
@@ -1615,7 +1402,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		(* x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err  *)
 		let x_rcall = fresh_var () in
 		let proc_args = (Var x_fscope) :: (Var x_this) :: x_args_gv in
-		let cmd_proc_call = SLCall (x_rcall, (Var x_body), proc_args, Some err) in
+		let cmd_proc_call = SLCall (x_rcall, (Var x_body), proc_args, Some tr_ctx.tr_err) in
 
 		(* let x_r1 = fresh_var () in
 		let cmd_phi_join = SLPhiAssignment (x_r1, [| (Var x_rbind); (Var x_rcall) |]) in *)
@@ -1694,7 +1481,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 												x_pv := putValue (x, x_r) with err;
      *)
 		let cmds, x, errs = f e in
-	 	let new_cmds, new_errs, x_v, x_r = translate_inc_dec x true err in
+	 	let new_cmds, new_errs, x_v, x_r = translate_inc_dec x true tr_ctx.tr_err in
 		let new_cmds = annotate_cmds new_cmds in
 		cmds @ new_cmds, Var x_v, (errs @ new_errs)
 
@@ -1712,7 +1499,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 												x_pv := putValue (x, x_r) with err
      *)
 		let cmds, x, errs = f e in
-	 	let new_cmds, new_errs, x_v, x_r = translate_inc_dec x false err in
+	 	let new_cmds, new_errs, x_v, x_r = translate_inc_dec x false tr_ctx.tr_err in
 		let new_cmds = annotate_cmds new_cmds in
 		cmds @ new_cmds, Var x_v, (errs @ new_errs)
 
@@ -1744,20 +1531,20 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmd_goto_isref = SLGuardedGoto (goto_guard, next1, next4) in
 
 		(* next1: goto [ ((base(x) = $$null) or (base(x) = $$undefined)) ] err next2 *)
-		let cmd_goto_is_resolvable_ref = SLGuardedGoto (make_unresolvable_ref_test x , err, next2) in
+		let cmd_goto_is_resolvable_ref = SLGuardedGoto (make_unresolvable_ref_test x , tr_ctx.tr_err, next2) in
 
 		(* next2: goto [ (typeOf x) = $$v-reference_type ] err next3 *)
 		let goto_guard = is_vref x in
-		let cmd_goto_is_vref = SLGuardedGoto (goto_guard, err, next3) in
+		let cmd_goto_is_vref = SLGuardedGoto (goto_guard, tr_ctx.tr_err, next3) in
 
 		(* next3: x_obj := toObject(base(x)) err *)
 		let x_obj = fresh_obj_var () in
-		let cmd_to_obj = SLCall (x_obj, lit_str toObjectName, [ (base x) ], Some err) in
+		let cmd_to_obj = SLCall (x_obj, lit_str toObjectName, [ (base x) ], Some tr_ctx.tr_err) in
 
 		(* x_r1 := deleteProperty(x_obj, field(x), $$t) with err *)
 		let x_r1 = fresh_var () in
 		let cmd_delete = SLCall (x_r1, lit_str deletePropertyName,
-			[ (Var x_obj); (field x); (Literal (Bool true)) ], Some err) in
+			[ (Var x_obj); (field x); (Literal (Bool true)) ], Some tr_ctx.tr_err) in
 
 		let x_r2 = fresh_var () in
 		let x_r = fresh_var () in
@@ -1787,7 +1574,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
      *)
 		let cmds, x, errs = f e in
 		(* x_v := getValue (x) with err *)
-		let x_v, cmd_gv_x = make_get_value_call x err in
+		let x_v, cmd_gv_x = make_get_value_call x tr_ctx.tr_err in
 		let x_r = fresh_var () in
 		let cmds = cmds @ (annotate_cmds [                           (*  cmds                                *)
 			(None, cmd_gv_x);                                          (*  x_v := getValue (x) with err        *)
@@ -1828,14 +1615,14 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		(* x2 := getValue (x) with err *)
 		let x1 = fresh_var () in
 		let x2 = fresh_var () in
-		let cmd_gv_x = SLCall (x2, (Literal (String getValueName)), [ x ], Some err) in
+		let cmd_gv_x = SLCall (x2, (Literal (String getValueName)), [ x ], Some tr_ctx.tr_err) in
 
 		(* x_r := i__typeOf (x3) with err *)
 		let x3 = fresh_var () in
 		let x_r = fresh_var () in
-		let cmd_ass_xr = SLCall (x_r, (Literal (String jsTypeOfName)), [ Var x3 ], Some err) in
+		let cmd_ass_xr = SLCall (x_r, (Literal (String jsTypeOfName)), [ Var x3 ], Some tr_ctx.tr_err) in
 
-		let cmds = cmds @ (annotate_cmds [                                                       (*             cmds                                                  *)
+		let cmds = cmds @ (annotate_cmds [                                                     (*             cmds                                                  *)
 			(None, cmd_goto_ref);                                                                (*             goto [ typeof (x) <: $$reference-type ] next1 next4   *)
 			(Some next1, cmd_goto_unres_ref);                                                    (* next1:      goto [ base(x) = undefined] next2 next3               *)
 			(Some next2, SLBasic (SAssignment (x1, Literal Undefined)));                         (* next2:      x1 := $$undefined                                     *)
@@ -1860,7 +1647,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 												x_pv := i__putValue (x, x_r) with err
      *)
 		let cmds, x, errs = f e in
-	 	let new_cmds, new_errs, x_v, x_r = translate_inc_dec x true err in
+	 	let new_cmds, new_errs, x_v, x_r = translate_inc_dec x true tr_ctx.tr_err in
 		let new_cmds = annotate_cmds new_cmds in
 		(cmds @ new_cmds), Var x_r, (errs @ new_errs)
 
@@ -1877,7 +1664,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 												x_pv := i__putValue (x, x_r) with err
      *)
 		let cmds, x, errs = f e in
-	 	let new_cmds, new_errs, x_v, x_r = translate_inc_dec x false err in
+	 	let new_cmds, new_errs, x_v, x_r = translate_inc_dec x false tr_ctx.tr_err in
 		let new_cmds = annotate_cmds new_cmds in
 		(cmds @ new_cmds), Var x_r, (errs @ new_errs)
 
@@ -1893,10 +1680,10 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds, x, errs = f e in
 
 		(* x_v := i__getValue (x) with err *)
-		let x_v, cmd_gv_x = make_get_value_call x err in
+		let x_v, cmd_gv_x = make_get_value_call x tr_ctx.tr_err in
 
 		(* x_n := i__toNumber (x_v) with err *)
-		let x_n, cmd_tn_x = make_to_number_call x x_v err in
+		let x_n, cmd_tn_x = make_to_number_call x x_v tr_ctx.tr_err in
 
 		let cmds = cmds @ (annotate_cmds [ (*  cmds                                *)
 			(None, cmd_gv_x);                (*  x_v := i__getValue (x) with err     *)
@@ -1922,10 +1709,10 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds, x, errs = f e in
 
 		(* x_v := getValue (x) with err *)
-		let x_v, cmd_gv_x = make_get_value_call x err in
+		let x_v, cmd_gv_x = make_get_value_call x tr_ctx.tr_err in
 
 		(* x_n := i__toNumber (x_v) with err *)
-		let x_n, cmd_tn_x = make_to_number_call x x_v err in
+		let x_n, cmd_tn_x = make_to_number_call x x_v tr_ctx.tr_err in
 
 		(* goto [x_n = nan] then else *)
 		let then_lab = fresh_then_label () in
@@ -1972,10 +1759,10 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds, x, errs = f e in
 
 		(* x_v := i__getValue (x) with err *)
-		let x_v, cmd_gv_x = make_get_value_call x err in
+		let x_v, cmd_gv_x = make_get_value_call x tr_ctx.tr_err in
 
 		(* x_n := i__toNumber (x_v) with err *)
-		let x_n, cmd_tn_x = make_to_number_call x x_v err in
+		let x_n, cmd_tn_x = make_to_number_call x x_v tr_ctx.tr_err in
 
 		let x_r = fresh_var () in
 		let x_i32 = fresh_var () in
@@ -2002,10 +1789,10 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds, x, errs = f e in
 
 		(* x_v := i__getValue (x) with err1 *)
-		let x_v, cmd_gv_x = make_get_value_call x err in
+		let x_v, cmd_gv_x = make_get_value_call x tr_ctx.tr_err in
 
 		(* x_b := i__toBoolean (x_v) with err2 *)
-		let x_b, cmd_tb_x = make_to_boolean_call x x_v err in
+		let x_b, cmd_tb_x = make_to_boolean_call x x_v tr_ctx.tr_err in
 
 		(*  x_r := (not x_b)   *)
 		let x_r = fresh_var () in
@@ -2036,11 +1823,11 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
 
-		let new_cmds, new_errs, x_r = translate_multiplicative_binop x1 x2 x1_v x2_v aop err in
+		let new_cmds, new_errs, x_r = translate_multiplicative_binop x1 x2 x1_v x2_v aop tr_ctx.tr_err in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ (annotate_cmds ([ (None, cmd_gv_x2) ] @ new_cmds)) in
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
 		cmds, Var x_r, errs
@@ -2071,11 +1858,11 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
 
-		let new_cmds, new_errs, x_r = translate_binop_plus x1 x2 x1_v x2_v err in
+		let new_cmds, new_errs, x_r = translate_binop_plus x1 x2 x1_v x2_v tr_ctx.tr_err in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) in
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
 		cmds, Var x_r, errs
@@ -2097,11 +1884,11 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
 
-		let new_cmds, new_errs, x_r = translate_bitwise_shift x1 x2 x1_v x2_v toInt32Name toUInt32Name LeftShift err in
+		let new_cmds, new_errs, x_r = translate_bitwise_shift x1 x2 x1_v x2_v toInt32Name toUInt32Name LeftShift tr_ctx.tr_err in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) in
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
 		cmds, Var x_r, errs
@@ -2123,11 +1910,11 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
 
-		let new_cmds, new_errs, x_r = translate_bitwise_shift x1 x2 x1_v x2_v toInt32Name toUInt32Name SignedRightShift err in
+		let new_cmds, new_errs, x_r = translate_bitwise_shift x1 x2 x1_v x2_v toInt32Name toUInt32Name SignedRightShift tr_ctx.tr_err in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) in
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
 		cmds, Var x_r, errs
@@ -2149,11 +1936,11 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
 
-		let new_cmds, new_errs, x_r = translate_bitwise_shift x1 x2 x1_v x2_v toUInt32Name toUInt32Name UnsignedRightShift err in
+		let new_cmds, new_errs, x_r = translate_bitwise_shift x1 x2 x1_v x2_v toUInt32Name toUInt32Name UnsignedRightShift tr_ctx.tr_err in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) in
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
 		cmds, Var x_r, errs
@@ -2176,11 +1963,11 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
 
-		let new_cmds, new_errs, x_r = translate_binop_comparison x1 x2 x1_v x2_v true true false err in
+		let new_cmds, new_errs, x_r = translate_binop_comparison x1 x2 x1_v x2_v true true false tr_ctx.tr_err in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2  @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) in
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
 		cmds, Var x_r, errs
@@ -2203,11 +1990,11 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
 
-		let new_cmds, new_errs, x_r = translate_binop_comparison x1 x2 x1_v x2_v false false false err in
+		let new_cmds, new_errs, x_r = translate_binop_comparison x1 x2 x1_v x2_v false false false tr_ctx.tr_err in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) in
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
 		cmds, Var x_r, errs
@@ -2231,11 +2018,11 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
 
-		let new_cmds, new_errs, x_r1 = translate_binop_comparison x1 x2 x1_v x2_v false false true err in
+		let new_cmds, new_errs, x_r1 = translate_binop_comparison x1 x2 x1_v x2_v false false true tr_ctx.tr_err in
 		let x_r2 = fresh_var () in
 		let new_cmd = SLBasic (SAssignment (x_r2, UnOp (Not, (Var x_r1)))) in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) @ [ annotate_cmd new_cmd None ] in
@@ -2261,11 +2048,11 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
 
-		let new_cmds, new_errs, x_r1 = translate_binop_comparison x1 x2 x1_v x2_v true true true err in
+		let new_cmds, new_errs, x_r1 = translate_binop_comparison x1 x2 x1_v x2_v true true true tr_ctx.tr_err in
 		let x_r2 = fresh_var () in
 		let new_cmd = SLBasic (SAssignment (x_r2, UnOp (Not, (Var x_r1)))) in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) @ [ annotate_cmd new_cmd None ] in
@@ -2291,14 +2078,14 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
 
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
 
 		(* goto [ (typeOf x2_v) = $$object_type ] next1 err *)
 		let next1 = fresh_label () in
-		let cmd_goto_ot = SLGuardedGoto (BinOp (TypeOf (Var x2_v), Equal, Literal (Type ObjectType)), next1, err) in
+		let cmd_goto_ot = SLGuardedGoto (BinOp (TypeOf (Var x2_v), Equal, Literal (Type ObjectType)), next1, tr_ctx.tr_err) in
 
 		(* next1: x_cond := hasField (x2_v, "@hasInstance")  *)
 		let x_cond = fresh_var () in
@@ -2306,11 +2093,11 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 
 		(* goto [ x_cond = $$empty ] err next2 *)
 		let next2 = fresh_label () in
-		let cmd_goto_xcond = SLGuardedGoto (BinOp (Var x_cond, Equal, Literal (String "Function")), next2, err) in
+		let cmd_goto_xcond = SLGuardedGoto (BinOp (Var x_cond, Equal, Literal (String "Function")), next2, tr_ctx.tr_err) in
 
 		(* x_r := x_hi (x2_v, x1_v) with err *)
 		let x_r = fresh_var () in
-		let cmd_ass_xr = SLCall (x_r, Literal (String "hasInstance"), [Var x2_v; Var x1_v], Some err) in
+		let cmd_ass_xr = SLCall (x_r, Literal (String "hasInstance"), [Var x2_v; Var x1_v], Some tr_ctx.tr_err) in
 
 		let cmds = cmds1 @ [                  (*         cmds1                                              *)
 			annotate_cmd cmd_gv_x1 None         (*         x1_v := i__getValue (x1) with err                  *)
@@ -2341,21 +2128,21 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
 
 		(* x2_v := getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
 
 		(* goto [ (typeOf x2_v) = $$object_type ] next1 err *)
 		let next1 = fresh_label () in
-		let cmd_goto_ot = SLGuardedGoto (BinOp (TypeOf (Var x2_v), Equal, Literal (Type ObjectType)), next1, err) in
+		let cmd_goto_ot = SLGuardedGoto (BinOp (TypeOf (Var x2_v), Equal, Literal (Type ObjectType)), next1, tr_ctx.tr_err) in
 
 		(* next1: x1_s := i__toString (x1_v) with err   *)
-		let x1_s, cmd_ts_x1 = make_to_string_call x1 x1_v err in
+		let x1_s, cmd_ts_x1 = make_to_string_call x1 x1_v tr_ctx.tr_err in
 
 		(*  x_r := o__hasProperty (x2_v, x1_s) with err   *)
 		let x_r = fresh_var () in
-		let cmd_ass_xr = SLCall (x_r, (Literal (String hasPropertyName)), [ Var x2_v; Var x1_s ], Some err) in
+		let cmd_ass_xr = SLCall (x_r, (Literal (String hasPropertyName)), [ Var x2_v; Var x1_s ], Some tr_ctx.tr_err) in
 
 		let cmds = cmds1 @ [                  (*         cmds1                                             *)
 			annotate_cmd cmd_gv_x1 None         (*         x1_v := getValue (x1) with err                    *)
@@ -2383,11 +2170,11 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
 
-		let new_cmds, new_errs, x_r = translate_binop_equality x1 x2 x1_v x2_v true true err in
+		let new_cmds, new_errs, x_r = translate_binop_equality x1 x2 x1_v x2_v true true tr_ctx.tr_err in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) in
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
 		cmds, Var x_r, errs
@@ -2408,11 +2195,11 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
 
-		let new_cmds, new_errs, x_r = translate_binop_equality x1 x2 x1_v x2_v true false err in
+		let new_cmds, new_errs, x_r = translate_binop_equality x1 x2 x1_v x2_v true false tr_ctx.tr_err in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) in
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
 		cmds, Var x_r, errs
@@ -2432,11 +2219,11 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
 
-		let new_cmds, new_errs, x_r = translate_binop_equality x1 x2 x1_v x2_v false true err in
+		let new_cmds, new_errs, x_r = translate_binop_equality x1 x2 x1_v x2_v false true tr_ctx.tr_err in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) in
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
 		cmds, Var x_r, errs
@@ -2457,11 +2244,11 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
 
-		let new_cmds, new_errs, x_r = translate_binop_equality x1 x2 x1_v x2_v false false err in
+		let new_cmds, new_errs, x_r = translate_binop_equality x1 x2 x1_v x2_v false false tr_ctx.tr_err in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) in
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
 		cmds, Var x_r, errs
@@ -2484,11 +2271,11 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
 
-		let new_cmds, new_errs, x_r = translate_bitwise_bin_op x1 x2 x1_v x2_v bbop err in
+		let new_cmds, new_errs, x_r = translate_bitwise_bin_op x1 x2 x1_v x2_v bbop tr_ctx.tr_err in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) in
 		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
 		cmds, Var x_r, errs
@@ -2506,9 +2293,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 																       x2_v := i__getValue (x2) with err3
 																 end:  x_r := PHI(x1_v, x2_v)
      *)
-		if (is_rosette)
-			then translate_bin_logical_operator_rosette e1 e2 lbop err
- 			else translate_bin_logical_operator e1 e2 lbop err
+		 translate_bin_logical_operator e1 e2 lbop tr_ctx.tr_err
 
 	| Parser_syntax.ConditionalOp (e1, e2, e3) ->
 		(**
@@ -2530,18 +2315,18 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds3, x3, errs3 = f e3 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
 		(* x1_b := i__toBoolean (x1_v) with err  *)
-		let x1_b, cmd_tb_x1 = make_to_boolean_call x1 x1_v err in
+		let x1_b, cmd_tb_x1 = make_to_boolean_call x1 x1_v tr_ctx.tr_err in
 		(* goto [x1_b] then else *)
 		let then_lab = fresh_then_label () in
 		let else_lab = fresh_else_label () in
 		let end_if_lab = fresh_endif_label () in
 		let cmd_goto = SLGuardedGoto (Var x1_b, then_lab, else_lab) in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
 		(* x3_v := i__getValue (x3) with err *)
-		let x3_v, cmd_gv_x3 = make_get_value_call x3 err in
+		let x3_v, cmd_gv_x3 = make_get_value_call x3 tr_ctx.tr_err in
 		(* x_r := PHI(x2_v, x3_v) *)
 		let x_r = fresh_var () in
 		let cmd_ass_xr = SLPhiAssignment (x_r, [| (Var x2_v); (Var x3_v) |]) in
@@ -2579,13 +2364,13 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
 
 		(*  x_cae := i__checkAssignmentErrors (x1) with err *)
-		let x_cae, cmd_cae_x1 = make_cae_call x1 err in
+		let x_cae, cmd_cae_x1 = make_cae_call x1 tr_ctx.tr_err in
 
 		(* x_pv = i__putValue (x1, x2_v) with err *)
-		let x_pv, cmd_put_value = make_put_value_call x1 x2_v err in
+		let x_pv, cmd_put_value = make_put_value_call x1 x2_v tr_ctx.tr_err in
 
 		let cmds =
 			cmds1 @                             (*   cmds1                                           *)
@@ -2617,29 +2402,29 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
 
 		let new_cmds, new_errs, x_r =
 			(match op with
-			| Parser_syntax.Plus -> translate_binop_plus x1 x2 x1_v x2_v err
+			| Parser_syntax.Plus -> translate_binop_plus x1 x2 x1_v x2_v tr_ctx.tr_err
 			| Parser_syntax.Minus
 			| Parser_syntax.Times
 			| Parser_syntax.Div
-			| Parser_syntax.Mod -> translate_multiplicative_binop x1 x2 x1_v x2_v op err
-			| Parser_syntax.Ursh -> translate_bitwise_shift x1 x2 x1_v x2_v toUInt32Name toUInt32Name SignedRightShift err
-			| Parser_syntax.Lsh -> translate_bitwise_shift x1 x2 x1_v x2_v toInt32Name toUInt32Name LeftShift err
-			| Parser_syntax.Rsh -> translate_bitwise_shift x1 x2 x1_v x2_v toInt32Name toUInt32Name UnsignedRightShift err
+			| Parser_syntax.Mod -> translate_multiplicative_binop x1 x2 x1_v x2_v op tr_ctx.tr_err
+			| Parser_syntax.Ursh -> translate_bitwise_shift x1 x2 x1_v x2_v toUInt32Name toUInt32Name SignedRightShift tr_ctx.tr_err
+			| Parser_syntax.Lsh -> translate_bitwise_shift x1 x2 x1_v x2_v toInt32Name toUInt32Name LeftShift tr_ctx.tr_err
+			| Parser_syntax.Rsh -> translate_bitwise_shift x1 x2 x1_v x2_v toInt32Name toUInt32Name UnsignedRightShift tr_ctx.tr_err
 			| Parser_syntax.Bitand
       | Parser_syntax.Bitor
-      | Parser_syntax.Bitxor -> translate_bitwise_bin_op x1 x2 x1_v x2_v op err) in
+      | Parser_syntax.Bitxor -> translate_bitwise_bin_op x1 x2 x1_v x2_v op tr_ctx.tr_err) in
 
 		(* x_cae := i__checkAssertionErrors (x1) with err *)
-		let x_cae, cmd_cae_x1 = make_cae_call x1 err in
+		let x_cae, cmd_cae_x1 = make_cae_call x1 tr_ctx.tr_err in
 
 		(* x_pv = i__putValue (x1, x_r) with err *)
-		let x_pv, cmd_pv = make_put_value_call x1 x_r err in
+		let x_pv, cmd_pv = make_put_value_call x1 x_r tr_ctx.tr_err in
 
 		let cmds = cmds1 @ [               (*    cmds1                                           *)
 			annotate_cmd cmd_gv_x1 None      (*    x1_v := i__getValue (x1) with err               *)
@@ -2666,10 +2451,10 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
 
 		(* x2_v := getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
 
 		let cmds =
 			cmds1 @ [                           (*       cmds1                                *)
@@ -2689,7 +2474,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
    	*)
 		let f_id = try Js_pre_processing.get_codename e
 			with _ -> raise (Failure "anonymous function literals should be annotated with their respective code names") in
-		let cmds, x_f, errs = translate_function_literal f_id params vis_fid err in
+		let cmds, x_f, errs = translate_function_literal f_id params tr_ctx.tr_vis_list tr_ctx.tr_err in
 		let cmds = annotate_cmds cmds in
 		cmds, Var x_f, errs
 
@@ -2707,7 +2492,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 
 		(* x_sc := copy_object (x_sc, {{main, fid1, ..., fidn }});  *)
 		let x_sc = fresh_scope_chain_var () in
-		let vis_fid_strs = List.map (fun fid -> String fid) vis_fid in
+		let vis_fid_strs = List.map (fun fid -> String fid) tr_ctx.tr_vis_list in
 		let cmd_sc_copy = SLCall (x_sc, Literal (String copyObjectName), [ (Var var_scope); Literal (LList vis_fid_strs) ], None) in
 
 		(* x_f := create_function_object(x_sc, f_id, params) *)
@@ -2721,7 +2506,7 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 
 		(* x_cae := i__checkAssignmentErrors (ref-v(x_f_outer_er, "f")) with err *)
 		let x_cae = fresh_var () in
-		let cmd_cae = SLCall (x_cae, lit_str checkAssignmentErrorsName, [ EList [lit_refv; Var x_f_outer_er; lit_str f_name] ], Some err) in
+		let cmd_cae = SLCall (x_cae, lit_str checkAssignmentErrorsName, [ EList [lit_refv; Var x_f_outer_er; lit_str f_name] ], Some tr_ctx.tr_err) in
 
 		(* [x_f_outer_er, f] := x_f *)
 		let cmd_fname_updt = SLBasic (SMutation (Var x_f_outer_er, Literal (String f_name), Var x_f)) in
@@ -2770,23 +2555,20 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 	| x -> raise (Failure (Printf.sprintf "Unhandled expression %s at %s" (Pretty_print.string_of_exp_syntax x) __LOC__))
 
 
-and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list : (string option * string * string option * bool) list) previous js_lab e  =
-	let fe = translate_expr offset_converter fid cc_table vis_fid err false in
+and translate_statement tr_ctx e  =
+	let fe = translate_expr tr_ctx in
 
-	let f = translate_statement offset_converter fid cc_table ctx vis_fid err loop_list previous js_lab in
+	let f = translate_statement tr_ctx in
 
-	let f_previous = translate_statement offset_converter fid cc_table ctx vis_fid err in
-
-	let cur_var_tbl =
-		(try Hashtbl.find cc_table fid
-			with _ ->
-				let msg = Printf.sprintf "var tbl of function %s is not in cc-table" fid in
-				raise (Failure msg)) in
-
+	let f_previous loop_list previous lab e =
+		let new_tr_ctx = update_tr_ctx ~loop_list:loop_list ~previous:previous ~lab:lab tr_ctx in 
+		translate_statement new_tr_ctx e in 
+		
+	let cur_var_tbl = get_scope_table tr_ctx.tr_fid tr_ctx.tr_cc_tbl in 
 	let find_var_fid v = (try Some (Hashtbl.find cur_var_tbl v) with _ -> None) in
 
 	let js_char_offset = e.Parser_syntax.exp_offset in
-	let js_line_offset = offset_converter js_char_offset in
+	let js_line_offset = tr_ctx.tr_offset_converter js_char_offset in
 	let metadata = { line_offset = Some js_line_offset; pre_cond = None; pre_logic_cmds = []; post_logic_cmds = [] } in
 	let annots = e.Parser_syntax.exp_annot in
 	let fold_unfold_annots, invariant = Js_pre_processing.get_fold_unfold_invariant_annots annots in 
@@ -2820,9 +2602,9 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			match v_fid with
 			| None -> raise (Failure (Printf.sprintf "Error: The variable %s that is declared is not in the scope clarification table!" x))
 			| Some v_fid -> v_fid in
-		let cmds_e, x_e, errs_e = translate_expr offset_converter fid cc_table vis_fid err false e in
+		let cmds_e, x_e, errs_e = fe e in
 		(* x_v := i__getValue (x) with err *)
-		let x_v, cmd_gv_x = make_get_value_call x_e err in
+		let x_v, cmd_gv_x = make_get_value_call x_e tr_ctx.tr_err in
 		(* x_sf := [x__scope, v_fid]  *)
 		let x_sf = fresh_var () in
 		let cmd_xsf_ass = SLBasic (SLookup (x_sf, Var var_scope, Literal (String v_fid))) in
@@ -2831,9 +2613,9 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		let cmd_xref_ass = SLBasic (SAssignment (x_ref, EList [lit_refv; Var x_sf; lit_str x])) in
 		(* x_cae := i__checkAssignmentErrors (x_ref) with err *)
 		let x_cae = fresh_var () in
-		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ (Var x_ref) ], Some err) in
+		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ (Var x_ref) ], Some tr_ctx.tr_err) in
 		(* x_pv := i__putValue(x_ref, x_v) with err2 *)
-		let x_pv, cmd_pv = make_put_value_call (Var x_ref) x_v err in
+		let x_pv, cmd_pv = make_put_value_call (Var x_ref) x_v tr_ctx.tr_err in
 		let cmds = cmds_e @ (annotate_cmds [
 			(None, cmd_gv_x);      (* x_v := i__getValue (x) with err                    *)
 			(None, cmd_xsf_ass);   (* x_sf := [x__scope, fid]                            *)
@@ -2864,10 +2646,16 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			let cmd_ass_phi = annotate_cmd (SLPhiAssignment (x_ret, phi_args)) break_label in
 			(cmds @ cmd_new_x @ [ cmd_ass_phi ], Var x_ret, errs, rets, outer_breaks, conts)) in
 
-
+	(** 
+   *  When breaking or continuing inside a try-catch-finally block, the code of the finally 
+	 *  always gets executed before breaking or continuing. Hence, the cont_break_list needs to be 
+	 *  rewritten so that continues and breaks are redirected to the code of the finally. 
+	 *  this procedure returns the new cont_break_list together with a mapping that associates 
+	 *  the newly created labels with their original values. 
+	 *)
 	let rename_cont_break_list cont_break_list finally_lab_gen =
 		let jumps_mapping = Hashtbl.create 101 in
-		(* Printf.printf "I am creating a jumps mapping for a fucking try catch finally\n"; *)
+		(* Printf.printf "I am creating a jumps mapping for a try catch finally\n"; *)
 		let rec rename_cont_break_list_iter cont_break_list (new_cont_break_list : (string option * string * string option * bool) list) =
 			(match cont_break_list with
 				| [] -> List.rev new_cont_break_list
@@ -2887,6 +2675,10 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		new_cont_break_list, jumps_mapping in
 
 
+	(** 
+   *  We create a finally block for each break/continue that occurs inside
+	 *  the try and catch blocks of the try-catch-finally. 
+	 *)
 	let make_finally_break_blocks jump_list jumps_mapping e tcf_lab end_label =
 		let rec make_finally_blocks_iter jump_list finally_blocks cur_break_vars errs rets outer_breaks inner_breaks conts =
 			(match jump_list with
@@ -2894,8 +2686,9 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			| (js_lab, var, jump) :: rest ->
 				try
 					(let original_jump = Hashtbl.find jumps_mapping jump in
-					let new_loop_list = (None, end_label, tcf_lab, false) :: loop_list in
-					let cmds_cur, _, errs_cur, rets_cur, breaks_cur, conts_cur = translate_statement offset_converter fid cc_table ctx vis_fid err new_loop_list None None e in
+					let new_loop_list = (None, end_label, tcf_lab, false) :: tr_ctx.tr_loop_list in
+					let new_tr_ctx = update_tr_ctx ~loop_list:tr_ctx.tr_loop_list ~lab:None ~previous:None tr_ctx in  
+					let cmds_cur, _, errs_cur, rets_cur, breaks_cur, conts_cur = translate_statement new_tr_ctx e in
 					let cmds_cur = add_initial_label cmds_cur jump metadata in
 					let new_finally_block = cmds_cur @ [ annotate_cmd (SLGoto original_jump) None ] in
 					let cur_inner_breaks, cur_outer_breaks = filter_cur_jumps breaks_cur tcf_lab false in
@@ -2916,8 +2709,9 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 					(
 					(* Printf.printf ("I am processing a continue!!! \n"); *)
 					let original_jump = Hashtbl.find jumps_mapping jump in
-					let new_loop_list = (None, end_label, tcf_lab, false) :: loop_list in
-					let cmds_cur, _, errs_cur, rets_cur, breaks_cur, conts_cur = translate_statement offset_converter fid cc_table ctx vis_fid err new_loop_list None None e in
+					let new_loop_list = (None, end_label, tcf_lab, false) :: tr_ctx.tr_loop_list in
+					let new_ctx = update_tr_ctx ~loop_list:new_loop_list ~lab:None ~previous:None tr_ctx in 
+					let cmds_cur, _, errs_cur, rets_cur, breaks_cur, conts_cur = translate_statement new_ctx e in
 					let cmds_cur = add_initial_label cmds_cur jump metadata in
 					let new_finally_block = cmds_cur @ [ annotate_cmd (SLGoto original_jump) None ] in
 					let cur_inner_breaks, cur_outer_breaks = filter_cur_jumps breaks_cur tcf_lab false in
@@ -2943,15 +2737,17 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 				finally:  x_ret_2 := PHI(breaks1, x_1, breaks2, x_2)
 	  *)
 		let new_err1, new_err2, finally, end_label, _, _ = fresh_tcf_vars () in
-		let new_loop_list = (None, finally, js_lab, false) :: loop_list in
-		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement offset_converter fid cc_table ctx vis_fid new_err1 new_loop_list None None e1 in
+		let new_loop_list = (None, finally, tr_ctx.tr_js_lab, false) :: tr_ctx.tr_loop_list in
+		let new_ctx_1 = update_tr_ctx ~loop_list:new_loop_list ~previous:None ~lab:None ~err:new_err1 tr_ctx in 
+		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement new_ctx_1 e1 in
 		let cmds1, x1_v = add_final_var cmds1 x1 metadata in
 
-		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement offset_converter catch_id cc_table ctx (catch_id :: vis_fid) new_err2 new_loop_list None None e2 in
+		let new_ctx_2 = update_tr_ctx ~loop_list:new_loop_list ~previous:None ~lab:None ~err:new_err2 ~vis_list:(catch_id :: tr_ctx.tr_vis_list) tr_ctx in
+		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement new_ctx_2 e2 in
 		let cmds2, x2_v = add_final_var cmds2 x2 metadata in
 
-		let cur_breaks1, outer_breaks1 = filter_cur_jumps breaks1 js_lab false in
-		let cur_breaks2, outer_breaks2 = filter_cur_jumps breaks2 js_lab false in
+		let cur_breaks1, outer_breaks1 = filter_cur_jumps breaks1 tr_ctx.tr_js_lab false in
+		let cur_breaks2, outer_breaks2 = filter_cur_jumps breaks2 tr_ctx.tr_js_lab false in
 
 		(* x_err := PHI(errs1) *)
 		let x_err = fresh_err_var () in
@@ -2996,7 +2792,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		]) @ cmds2 @ (annotate_cmds [
 			(None,          SLGoto finally);
 			(Some new_err2, cmd_ass_xret1);
-			(None,          SLGoto err);
+			(None,          SLGoto tr_ctx.tr_err);
 			(Some finally,  cmd_ass_xret2)
 		]) in
 
@@ -3028,28 +2824,33 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			  end:      x_ret_4 := PHI(breaks_finally, x_ret_2)
 	  *)
 		let new_err1, new_err2, finally, end_label, abnormal_finally, tcf_ret = fresh_tcf_vars () in
-		let new_loop_list, jumps_mapping = rename_cont_break_list loop_list abnormal_finally in
+		let new_loop_list, jumps_mapping = rename_cont_break_list tr_ctx.tr_loop_list abnormal_finally in
 
-		let new_ctx = { ctx with tr_ret_lab = tcf_ret } in
-		let new_loop_list = (None, finally, js_lab, false) :: new_loop_list in
-		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement offset_converter fid cc_table new_ctx vis_fid new_err1 new_loop_list None None e1 in
+		let new_loop_list = (None, finally, tr_ctx.tr_js_lab, false) :: new_loop_list in
+		
+		let new_ctx_1 = update_tr_ctx ~loop_list:new_loop_list ~lab:None ~previous:None ~ret_lab:tcf_ret ~err:new_err1 tr_ctx in  
+		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement new_ctx_1 e1 in
 		let cmds1, x1_v = add_final_var cmds1 x1 metadata in
-		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement offset_converter catch_id cc_table new_ctx (catch_id :: vis_fid) new_err2 new_loop_list None None e2 in
+		
+		let new_ctx_2 = update_tr_ctx ~loop_list:new_loop_list ~lab:None ~previous:None ~ret_lab:tcf_ret ~err:new_err2 ~vis_list:(catch_id :: tr_ctx.tr_vis_list) tr_ctx in  
+		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement new_ctx_1 e1 in
 		let cmds2, x2_v = add_final_var cmds2 x2 metadata in
-		let new_loop_list = (None, end_label, js_lab, false) :: loop_list in
-		let cmds3_1, _, errs3_1, rets3_1, breaks3_1, conts3_1 = translate_statement offset_converter fid cc_table ctx vis_fid err new_loop_list None None e3 in
-		let cmds3_2, _, errs3_2, rets3_2, breaks3_2, conts3_2 = translate_statement offset_converter fid cc_table ctx vis_fid err new_loop_list None None e3 in
-		let cmds3_3, _, errs3_3, rets3_3, breaks3_3, conts3_3 = translate_statement offset_converter fid cc_table ctx vis_fid err new_loop_list None None e3 in
+		
+		let new_loop_list = (None, end_label, tr_ctx.tr_js_lab, false) :: tr_ctx.tr_loop_list in
+		let new_ctx_3 = update_tr_ctx ~loop_list:new_loop_list ~lab:None ~previous:None tr_ctx in 
+		let cmds3_1, _, errs3_1, rets3_1, breaks3_1, conts3_1 = translate_statement new_ctx_3 e3 in
+		let cmds3_2, _, errs3_2, rets3_2, breaks3_2, conts3_2 = translate_statement new_ctx_3 e3 in
+		let cmds3_3, _, errs3_3, rets3_3, breaks3_3, conts3_3 = translate_statement new_ctx_3 e3 in
 
-		let inner_breaks3_1, outer_breaks3_1 = filter_cur_jumps breaks3_1 js_lab false in
-		let inner_breaks3_2, outer_breaks3_2 = filter_cur_jumps breaks3_2 js_lab false in
-		let inner_breaks3_3, outer_breaks3_3 = filter_cur_jumps breaks3_3 js_lab false in
+		let inner_breaks3_1, outer_breaks3_1 = filter_cur_jumps breaks3_1 tr_ctx.tr_js_lab false in
+		let inner_breaks3_2, outer_breaks3_2 = filter_cur_jumps breaks3_2 tr_ctx.tr_js_lab false in
+		let inner_breaks3_3, outer_breaks3_3 = filter_cur_jumps breaks3_3  tr_ctx.tr_js_lab false in
 
-		let finally_cmds_breaks1, cur_break_vars_1, errs_b1, rets_b1, outer_breaks_b1, inner_breaks_b1, conts_b1 = make_finally_break_blocks breaks1 jumps_mapping e3 js_lab end_label in
-		let finally_cmds_conts1, errs_c1, rets_c1, outer_breaks_c1, inner_breaks_c1, conts_c1 = make_finally_cont_blocks conts1 jumps_mapping e3 js_lab end_label in
+		let finally_cmds_breaks1, cur_break_vars_1, errs_b1, rets_b1, outer_breaks_b1, inner_breaks_b1, conts_b1 = make_finally_break_blocks breaks1 jumps_mapping e3 tr_ctx.tr_js_lab end_label in
+		let finally_cmds_conts1, errs_c1, rets_c1, outer_breaks_c1, inner_breaks_c1, conts_c1 = make_finally_cont_blocks conts1 jumps_mapping e3 tr_ctx.tr_js_lab end_label in
 
-		let finally_cmds_breaks2, cur_break_vars_2, errs_b2, rets_b2, outer_breaks_b2, inner_breaks_b2, conts_b2 = make_finally_break_blocks breaks2 jumps_mapping e3 js_lab end_label in
-		let finally_cmds_conts2, errs_c2, rets_c2, outer_breaks_c2, inner_breaks_c2, conts_c2 = make_finally_cont_blocks conts2 jumps_mapping e3 js_lab end_label in
+		let finally_cmds_breaks2, cur_break_vars_2, errs_b2, rets_b2, outer_breaks_b2, inner_breaks_b2, conts_b2 = make_finally_break_blocks breaks2 jumps_mapping e3 tr_ctx.tr_js_lab end_label in
+		let finally_cmds_conts2, errs_c2, rets_c2, outer_breaks_c2, inner_breaks_c2, conts_c2 = make_finally_cont_blocks conts2 jumps_mapping e3 tr_ctx.tr_js_lab end_label in
 
 		(* x_err := PHI(errs1) *)
 		let x_err = fresh_err_var () in
@@ -3098,7 +2899,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		let phi_args5 = Array.of_list phi_args5 in
 		let cmd_ass_xret4 = SLPhiAssignment (x_ret_4, phi_args5) in
 
-		let ret_label = ctx.tr_ret_lab in
+		let ret_label = tr_ctx.tr_ret_lab in
 		let errs = errs3_1 @ [ x_ret_1 ] @ errs3_2 @ errs3_3 @ errs_b1 @ errs_c1 @ errs_b2 @ errs_c2 in
 		let rets = rets3_1 @ rets3_2 @ rets3_3 @ [ x_ret_3 ] @ rets_b1 @ rets_c1 @ errs_b2 @ errs_c2 in
 		let breaks = outer_breaks3_1 @ outer_breaks3_2 @ outer_breaks3_3 @ outer_breaks_b1 @ outer_breaks_c1 @ outer_breaks_b2 @ outer_breaks_c2 in
@@ -3115,7 +2916,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			(None,           SLGoto finally);                 (*            goto finally                                                     *)
 			(Some new_err2,  cmd_ass_xret1);                  (*  err2:     x_ret_1 := PHI(x_cae, errs2)                                     *)
 		]) @ cmds3_1 @ (annotate_cmds [                     (*            cmds3_1                                                          *)
-		  (None,           SLGoto err);                     (*            goto err                                                         *)
+		  (None,           SLGoto tr_ctx.tr_err);           (*            goto err                                                         *)
 			(Some finally,   cmd_ass_xret2)                   (*  finally:  x_ret_2 := PHI(cur_breaks1, x_1, cur_breaks2, x_2)               *)
 		]) @ cmds3_2 @ (annotate_cmds [                     (*            cmds3_2                                                          *)
 		  (None,           SLGoto end_label);               (*            goto end                                                         *)
@@ -3146,22 +2947,24 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			  end:      x_ret_3 := PHI(x_ret_1, breaks_finally)
 	  *)
 		let new_err1, new_err2, finally, end_label, abnormal_finally, tcf_ret = fresh_tcf_vars () in
-		let new_loop_list, jumps_mapping = rename_cont_break_list loop_list abnormal_finally in
+		let new_loop_list, jumps_mapping = rename_cont_break_list tr_ctx.tr_loop_list abnormal_finally in
 
-		let new_ctx = { ctx with tr_ret_lab = tcf_ret } in
-		let new_loop_list = (None, finally, js_lab, false) :: new_loop_list in
-		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement offset_converter fid cc_table new_ctx vis_fid new_err1 new_loop_list None None e1 in
+		let new_loop_list = (None, finally, tr_ctx.tr_js_lab, false) :: new_loop_list in
+		let new_ctx_1 = update_tr_ctx ~loop_list:new_loop_list ~err:new_err1 ~lab:None ~previous:None ~ret_lab:tcf_ret tr_ctx in 
+		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement new_ctx_1 e1 in
 		let cmds1, x1_v = add_final_var cmds1 x1 metadata in
-		let new_loop_list = (None, end_label, js_lab, false) :: loop_list in
-		let cmds3_1, _, errs3_1, rets3_1, breaks3_1, conts3_1 = translate_statement offset_converter fid cc_table ctx vis_fid err new_loop_list None None e3 in
-		let cmds3_2, _, errs3_2, rets3_2, breaks3_2, conts3_2 = translate_statement offset_converter fid cc_table ctx vis_fid err new_loop_list None None e3 in
-		let cmds3_3, _, errs3_3, rets3_3, breaks3_3, conts3_3 = translate_statement offset_converter fid cc_table ctx vis_fid err new_loop_list None None e3 in
-		let inner_breaks3_1, outer_breaks3_1 = filter_cur_jumps breaks3_1 js_lab false in
-		let inner_breaks3_2, outer_breaks3_2 = filter_cur_jumps breaks3_2 js_lab false in
-		let inner_breaks3_3, outer_breaks3_3 = filter_cur_jumps breaks3_3 js_lab false in
+		
+		let new_loop_list = (None, end_label, tr_ctx.tr_js_lab, false) :: tr_ctx.tr_loop_list in
+		let new_ctx_3 = update_tr_ctx ~loop_list:new_loop_list ~lab:None ~previous:None tr_ctx in 
+		let cmds3_1, _, errs3_1, rets3_1, breaks3_1, conts3_1 = translate_statement new_ctx_3 e3 in
+		let cmds3_2, _, errs3_2, rets3_2, breaks3_2, conts3_2 = translate_statement new_ctx_3 e3 in
+		let cmds3_3, _, errs3_3, rets3_3, breaks3_3, conts3_3 = translate_statement new_ctx_3 e3 in
+		let inner_breaks3_1, outer_breaks3_1 = filter_cur_jumps breaks3_1 tr_ctx.tr_js_lab false in
+		let inner_breaks3_2, outer_breaks3_2 = filter_cur_jumps breaks3_2 tr_ctx.tr_js_lab false in
+		let inner_breaks3_3, outer_breaks3_3 = filter_cur_jumps breaks3_3 tr_ctx.tr_js_lab false in
 
-		let finally_cmds_breaks1, cur_break_vars_1, errs_b1, rets_b1, outer_breaks_b1, inner_breaks_b1, conts_b1 = make_finally_break_blocks breaks1 jumps_mapping e3 js_lab end_label in
-		let finally_cmds_conts1, errs_c1, rets_c1, outer_breaks_c1, inner_breaks_c1, conts_c1 = make_finally_cont_blocks conts1 jumps_mapping e3 js_lab end_label in
+		let finally_cmds_breaks1, cur_break_vars_1, errs_b1, rets_b1, outer_breaks_b1, inner_breaks_b1, conts_b1 = make_finally_break_blocks breaks1 jumps_mapping e3 tr_ctx.tr_js_lab end_label in
+		let finally_cmds_conts1, errs_c1, rets_c1, outer_breaks_c1, inner_breaks_c1, conts_c1 = make_finally_cont_blocks conts1 jumps_mapping e3 tr_ctx.tr_js_lab end_label in
 
 		(* x_err := PHI(errs1) *)
 		let x_err = fresh_err_var () in
@@ -3190,7 +2993,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		let phi_args = Array.of_list phi_args in
 		let cmd_ass_xret3 = SLPhiAssignment (x_ret_3, phi_args) in
 
-		let ret_label = ctx.tr_ret_lab in
+		let ret_label = tr_ctx.tr_ret_lab in
 		let errs = errs3_1 @ [ x_err ] @ errs3_2 @ errs3_3 @ errs_b1 @ errs_c1 in
 		let rets = rets3_1 @ rets3_2 @ rets3_3 @ [ x_ret_2 ] @ rets_b1 @ rets_c1 in
 		let breaks = outer_breaks3_1 @ outer_breaks3_2 @ outer_breaks3_3 @ outer_breaks_b1 @ outer_breaks_c1 in
@@ -3200,7 +3003,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			(None,            SLGoto finally);                (*            goto finally                                                *)
 			(Some new_err1,   cmd_ass_xerr);                  (*  err1:     x_err := PHI(errs1)                                         *)
 		]) @ cmds3_1 @ (annotate_cmds [                     (*            cmds3_1                                                     *)
-		  (None,           SLGoto err);                     (*            goto err                                                    *)
+		  (None,           SLGoto tr_ctx.tr_err);           (*            goto err                                                    *)
 			(Some finally,   cmd_ass_xret1)                   (*  finally:  x_ret_1 := PHI(breaks_1, x_1)                               *)
 		]) @ cmds3_2 @ (annotate_cmds [                     (*            cmds3_2                                                     *)
 		  (None,           SLGoto end_label);               (*            goto end                                                    *)
@@ -3249,11 +3052,11 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
      *)
 
 		let break_label, new_loop_list =
-			(match js_lab with
-			| None -> None, loop_list
+			(match tr_ctx.tr_js_lab with
+			| None -> None, tr_ctx.tr_loop_list
 			| Some lab ->
 				let break_label = fresh_break_label () in
-				Some break_label, ((None, break_label, js_lab, false) :: loop_list)) in
+				Some break_label, ((None, break_label, tr_ctx.tr_js_lab, false) :: tr_ctx.tr_loop_list)) in
 
 		let rec loop es bprevious cmds_ac errs_ac rets_ac breaks_ac conts_ac =
 			(match es with
@@ -3279,8 +3082,8 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 				| _, _ ->
 					loop rest_es (Some x_e) (cmds_ac @ cmds_e) (errs_ac @ errs_e) (rets_ac @ rets_e) (breaks_ac @ breaks_e) (conts_ac @ conts_e))) in
 
-		let cmds, x, errs, rets, breaks, conts = loop es previous [] [] [] [] [] in 
-		create_final_phi_cmd cmds x errs rets breaks conts break_label js_lab
+		let cmds, x, errs, rets, breaks, conts = loop es tr_ctx.tr_previous [] [] [] [] [] in 
+		create_final_phi_cmd cmds x errs rets breaks conts break_label tr_ctx.tr_js_lab
 
 
 	| Parser_syntax.VarDec decs ->
@@ -3361,7 +3164,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
      Section 12.4 - Expression Statement
 		 *)
 		let cmds_e, x_e, errs_e = fe e in
-		let x_e_v, cmd_gv_xe = make_get_value_call x_e err in
+		let x_e_v, cmd_gv_xe = make_get_value_call x_e tr_ctx.tr_err in
 		let cmds = cmds_e @ [ annotate_cmd cmd_gv_xe None ] in 
 		let cmds = annotate_first_cmd cmds in 
 		cmds, Var x_e_v, errs_e @ [ x_e_v ], [], [], []
@@ -3384,11 +3187,11 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		 *)
 
 		let break_label, new_loop_list =
-			(match js_lab with
-			| None -> None, loop_list
+			(match tr_ctx.tr_js_lab with
+			| None -> None, tr_ctx.tr_loop_list
 			| Some lab ->
 				let break_label = fresh_break_label () in
-				Some break_label, ((None, break_label, js_lab, false) :: loop_list)) in
+				Some break_label, ((None, break_label, tr_ctx.tr_js_lab, false) :: tr_ctx.tr_loop_list)) in
 
 		let cmds1, x1, errs1 = fe e1 in
 		let cmds2, x2, errs2, rets2, breaks2, conts2 = f_previous new_loop_list None None e2 in
@@ -3400,10 +3203,10 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			| Some e3 -> f_previous new_loop_list None None e3) in
 
 		(* x1_v := getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
 
 		(* x1_b := toBoolean (x1_v) with err *)
-		let x1_b, cmd_tb_x1 = make_to_boolean_call x1 x1_v err in
+		let x1_b, cmd_tb_x1 = make_to_boolean_call x1 x1_v tr_ctx.tr_err in
 
 		(* goto [x1_b] then else *)
 		let then_lab = fresh_then_label () in
@@ -3442,7 +3245,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 
 		let cmds = annotate_first_cmd cmds in 
 		let cmds, x, errs, rets, breaks, conts = cmds, Var x_if, errs, rets2 @ rets3, breaks2 @ breaks3, conts2 @ conts3 in
-		create_final_phi_cmd cmds x errs rets breaks conts break_label js_lab
+		create_final_phi_cmd cmds x errs rets breaks conts break_label tr_ctx.tr_js_lab
 
 
 	| Parser_syntax.DoWhile (e1, e2) ->
@@ -3471,13 +3274,14 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 
 		let head, guard, body, cont, end_loop = fresh_loop_vars () in
 
-		let new_loop_list = (Some cont, end_loop, js_lab, true) :: loop_list in
-		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement offset_converter fid cc_table ctx vis_fid err new_loop_list None None e1 in
+		let new_loop_list = (Some cont, end_loop, tr_ctx.tr_js_lab, true) :: tr_ctx.tr_loop_list in
+		let new_ctx = update_tr_ctx ~previous:None ~lab:None ~loop_list:new_loop_list tr_ctx in 
+		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement new_ctx e1 in
 		let cmds2, x2, errs2 = fe e2 in
 		let cmds2 = add_initial_label cmds2 guard metadata in
 
-		let cur_breaks, outer_breaks = filter_cur_jumps breaks1 js_lab true in
-		let cur_conts, outer_conts = filter_cur_jumps conts1 js_lab true in
+		let cur_breaks, outer_breaks = filter_cur_jumps breaks1 tr_ctx.tr_js_lab true in
+		let cur_conts, outer_conts = filter_cur_jumps conts1 tr_ctx.tr_js_lab true in
 
 		(* x_ret_0 := $$empty *)
 		let x_ret_0, cmd_ass_ret_0 = make_empty_ass () in
@@ -3489,7 +3293,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		let cmd_ass_ret_1 = SLPhiAssignment (x_ret_1, [| (Var x_ret_0); (Var x_ret_3) |]) in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
 
 		(* x_ret_2 := PHI(cont_vars, x1_v) *)
 		let cur_conts = cur_conts @ [ x1_v ] in
@@ -3508,10 +3312,10 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		let cmd_ass_ret_3 = SLPhiAssignment (x_ret_3, [| (Var x_ret_1); (Var x_ret_2) |]) in
 
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
 
 		(* x2_b := i__toBoolean (x2_v) with err *)
-		let x2_b, cmd_tb_x2 = make_to_boolean_call x2 x2_v err in
+		let x2_b, cmd_tb_x2 = make_to_boolean_call x2 x2_v tr_ctx.tr_err in
 
 		(* goto [x2_b] head end_loop *)
 		let cmd_dowhile_goto =  SLGuardedGoto (Var x2_b, head, end_loop) in
@@ -3565,11 +3369,12 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		let head, guard, body, cont, end_loop = fresh_loop_vars () in
 
 		let cmds1, x1, errs1 = fe e1 in
-		let new_loop_list = (Some cont, end_loop, js_lab, true) :: loop_list in
-		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement offset_converter fid cc_table ctx vis_fid err new_loop_list None None e2 in
+		let new_loop_list = (Some cont, end_loop, tr_ctx.tr_js_lab, true) :: tr_ctx.tr_loop_list in
+		let new_ctx = update_tr_ctx ~previous:None ~lab:None ~loop_list:new_loop_list tr_ctx in 
+		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement new_ctx e2 in
 
-		let cur_breaks, outer_breaks = filter_cur_jumps breaks2 js_lab true in
-		let cur_conts, outer_conts = filter_cur_jumps conts2 js_lab true in
+		let cur_breaks, outer_breaks = filter_cur_jumps breaks2 tr_ctx.tr_js_lab true in
+		let cur_conts, outer_conts = filter_cur_jumps conts2 tr_ctx.tr_js_lab true in
 
 		(* x_ret_0 := $$empty *)
 		let x_ret_0, cmd_ass_ret_0 = make_empty_ass () in
@@ -3581,16 +3386,16 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		let cmd_ass_ret_1 = SLPhiAssignment (x_ret_1, [| (Var x_ret_0); (Var x_ret_3) |]) in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
 
 		(* x1_b := i__toBoolean (x1_v) with err *)
-		let x1_b, cmd_tb_x1 = make_to_boolean_call x1 x1_v err in
+		let x1_b, cmd_tb_x1 = make_to_boolean_call x1 x1_v tr_ctx.tr_err in
 
 		(* goto [x1_b] body endwhile  *)
 		let cmd_goto_while = SLGuardedGoto (Var x1_b, body, end_loop) in
 
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
 
 		(* x_ret_2 := PHI(cont_vars, x2_v) *)
 		let cur_conts = cur_conts @ [ x2_v ] in
@@ -3677,14 +3482,15 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			let cmds1, x1, errs1 = fe e1 in
 			let cmds2, x2, errs2 = fe e2 in
 			let head, guard, body, cont, end_loop = fresh_loop_vars () in
-			let new_loop_list = (Some cont, end_loop, js_lab, true) :: loop_list in
-			let cmds3, x3, errs3, rets3, breaks3, conts3 = translate_statement offset_converter fid cc_table ctx vis_fid err new_loop_list None None e3 in
+			let new_loop_list = (Some cont, end_loop, tr_ctx.tr_js_lab, true) :: tr_ctx.tr_loop_list in
+			let new_ctx = update_tr_ctx ~previous:None ~lab:None ~loop_list:new_loop_list tr_ctx in 
+			let cmds3, x3, errs3, rets3, breaks3, conts3 = translate_statement new_ctx e3 in
 
-			let cur_breaks, outer_breaks = filter_cur_jumps breaks3 js_lab true in
-			let cur_conts, outer_conts = filter_cur_jumps conts3 js_lab true in
+			let cur_breaks, outer_breaks = filter_cur_jumps breaks3 tr_ctx.tr_js_lab true in
+			let cur_conts, outer_conts = filter_cur_jumps conts3 tr_ctx.tr_js_lab true in
 
 			(* x2_v := i__getValue (x2) with err *)
-			let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+			let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
 
 			(* 	x_ret_0 := $$empty *)
 			let x_ret_0 = fresh_var () in
@@ -3711,11 +3517,11 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 
 			(* x4 := "i__toObject" (x2_v) with err	 *)
 			let x4 = fresh_var () in
-			let cmd_to_obj_call = SLCall (x4, Literal (String toObjectName), [ Var x2_v ], Some err) in
+			let cmd_to_obj_call = SLCall (x4, Literal (String toObjectName), [ Var x2_v ], Some tr_ctx.tr_err) in
 
 			(* xlf := "i__getAllEnumerableFields" (x4)  with err	*)
 			let xlf = fresh_var () in
-			let cmd_get_enum_fields = SLCall (xlf, Literal (String getEnumFieldsName), [ Var x4 ], Some err) in
+			let cmd_get_enum_fields = SLCall (xlf, Literal (String getEnumFieldsName), [ Var x4 ], Some tr_ctx.tr_err) in
 
 			(* xf  := getFields (xlf)  *)
 			let xf = fresh_var () in
@@ -3760,10 +3566,10 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			let cmd_goto_xhf = SLGuardedGoto (Var xhf, next1, next3) in
 
 			(* x5 := "i__putValue" (x1, xp) with err	 *)
-			let x5, cmd_pv_x1 = make_put_value_call x1 xp err in
+			let x5, cmd_pv_x1 = make_put_value_call x1 xp tr_ctx.tr_err in
 
 			(* x3_v = "i__getValue" (x3) with err *)
-			let x3_v, cmd_gv_x3 = make_get_value_call x3 err in
+			let x3_v, cmd_gv_x3 = make_get_value_call x3 tr_ctx.tr_err in
 
 			(* x_ret_2 := PHI(cont_vars, x3_v) *)
 			let phi_args = cur_conts @ [ x3_v ] in
@@ -3868,7 +3674,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 				let x1_v, cmd_ass_x1v = make_empty_ass () in
 				[ annotate_cmd cmd_ass_x1v None ], Var x1_v, []) in
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
+		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
 		let cmds1, errs1 = cmds1 @ [ annotate_cmd cmd_gv_x1 None ], errs1 @ [ x1_v ] in
 
 		let cmds2, x2, errs2 =
@@ -3888,11 +3694,12 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 
 		let head, guard, body, cont, end_loop = fresh_loop_vars () in
 
-		let new_loop_list = (Some cont, end_loop, js_lab, true) :: loop_list in
-		let cmds4, x4, errs4, rets4, breaks4, conts4 = translate_statement offset_converter fid cc_table ctx vis_fid err new_loop_list None None e4 in
+		let new_loop_list = (Some cont, end_loop, tr_ctx.tr_js_lab, true) :: tr_ctx.tr_loop_list in
+		let new_ctx = update_tr_ctx ~previous:None ~lab:None ~loop_list:new_loop_list tr_ctx in 
+		let cmds4, x4, errs4, rets4, breaks4, conts4 = translate_statement new_ctx e4 in
 
-		let cur_breaks, outer_breaks = filter_cur_jumps breaks4 js_lab true in
-		let cur_conts, outer_conts = filter_cur_jumps conts4 js_lab true in
+		let cur_breaks, outer_breaks = filter_cur_jumps breaks4 tr_ctx.tr_js_lab true in
+		let cur_conts, outer_conts = filter_cur_jumps conts4 tr_ctx.tr_js_lab true in
 
 		(* x_ret_0 := $$empty  *)
 		let x_ret_0, cmd_ass_ret_0 = make_empty_ass () in
@@ -3904,17 +3711,17 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		let cmd_ass_ret_1 = SLPhiAssignment (x_ret_1, [| (Var x_ret_0); (Var x_ret_3) |]) in
 
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
 
 	  (* x2_b := i__toBoolean (x2_v) with err2 *)
-		let x2_b, cmd_tb_x2 = make_to_boolean_call x2 x2_v err in
+		let x2_b, cmd_tb_x2 = make_to_boolean_call x2 x2_v tr_ctx.tr_err in
 
 		(* goto [x2_b] body end_loop *)
 		let body = fresh_loop_body_label () in
 		let cmd_for_goto =  SLGuardedGoto (Var x2_b, body, end_loop) in
 
 		(* x4_v := i__getValue (x4) with err *)
-		let x4_v, cmd_gv_x4 = make_get_value_call x4 err in
+		let x4_v, cmd_gv_x4 = make_get_value_call x4 tr_ctx.tr_err in
 
 		(* cont:     x_ret_2 := PHI(cont_vars, x4_v)  *)
 		let cur_conts = cur_conts @ [ x4_v ] in
@@ -3979,7 +3786,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			(* x_r := $$undefined *)
 			let cmd_xr_ass = annotate_cmd (SLBasic (SAssignment (x_r, Literal Undefined))) None in
 			(* goto lab_ret *)
-			let cmd_goto_ret = annotate_cmd (SLGoto ctx.tr_ret_lab) None in
+			let cmd_goto_ret = annotate_cmd (SLGoto tr_ctx.tr_ret_lab) None in
 			let cmds = [ cmd_xr_ass; cmd_goto_ret] in 
 			let cmds = annotate_first_cmd cmds in 
 			cmds, Var x_r, [], [ x_r ], [], []
@@ -3987,10 +3794,10 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		| Some e ->
 			let cmds, x, errs = fe e in
 			(* x_r := i__getValue(x) with err *)
-			let x_r, cmd_gv_x = make_get_value_call x err in
+			let x_r, cmd_gv_x = make_get_value_call x tr_ctx.tr_err in
 			let cmd_gv_x = annotate_cmd cmd_gv_x None in
 			(* goto ret_lab *)
-			let cmd_goto_ret = annotate_cmd (SLGoto ctx.tr_ret_lab) None in
+			let cmd_goto_ret = annotate_cmd (SLGoto tr_ctx.tr_ret_lab) None in
 			let cmds = cmds @ [ cmd_gv_x; cmd_goto_ret] in 
 			let cmds = annotate_first_cmd cmds in 
 			cmds, Var x_r, errs @ [ x_r ], [ x_r ], [], [])
@@ -4014,7 +3821,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		*)
 
 		let x_r, cmd_ret =
-			(match previous with
+			(match tr_ctx.tr_previous with
 			| None ->
 				let x_r, cmd = make_empty_ass () in
 				x_r, [ annotate_cmd cmd None ]
@@ -4026,7 +3833,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			| Some _ -> raise (Failure ("Continue: The return of the compilation must be either a variable or a literal"))) in
 
 		(* goto lab_c *)
-		let lab_c = get_continue_lab loop_list lab in
+		let lab_c = get_continue_lab tr_ctx.tr_loop_list lab in
 		let cmd_goto =  [ annotate_cmd (SLGoto lab_c) None ] in
 		let cmds = cmd_ret @ cmd_goto in  
 		let cmds = annotate_first_cmd cmds in 
@@ -4041,7 +3848,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		*)
 
 		let x_r, cmd_ret =
-			(match previous with
+			(match tr_ctx.tr_previous with
 			| None ->
 				let x_r, cmd = make_empty_ass () in
 				x_r, [ annotate_cmd cmd None ]
@@ -4053,7 +3860,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			| Some _ -> raise (Failure ("Continue: The return of the compilation must be either a variable or a literal"))) in
 
 		(* goto lab_r *)
-		let lab_r = get_break_lab loop_list lab in
+		let lab_r = get_break_lab tr_ctx.tr_loop_list lab in
 		let cmd_goto = [ (annotate_cmd (SLGoto lab_r) None) ] in
 		
 		let cmds = cmd_ret @ cmd_goto in 
@@ -4063,7 +3870,8 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 
 	| Parser_syntax.Label (js_lab, e) ->
 		(** Section 12.12 *)
-		translate_statement offset_converter fid cc_table ctx vis_fid err loop_list previous (Some js_lab) e
+	  let new_ctx = update_tr_ctx ~lab:(Some js_lab) tr_ctx in 
+		translate_statement new_ctx e
 
 
 	| Parser_syntax.Throw e ->
@@ -4078,11 +3886,11 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 					 goto err
 		*)
 		let cmds, x, errs = fe e in
-		let x_v, cmd_gv_x = make_get_value_call x err in
+		let x_v, cmd_gv_x = make_get_value_call x tr_ctx.tr_err in
 
 		let cmds = cmds @ (annotate_cmds [   (*  cmds                            *)
 		   (None, cmd_gv_x);                 (*  x_v := i__getValue (x) with err *)
-			 (None, SLGoto err)                (*  goto err                        *)
+			 (None, SLGoto tr_ctx.tr_err)      (*  goto err                        *)
 		]) in
 		let cmds = annotate_first_cmd cmds in 
 		cmds, Literal Empty, errs @ [ x_v; x_v ], [], [], []
@@ -4215,10 +4023,12 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			let next1 = fresh_next_label () in
 			let next2 = fresh_next_label () in
 
-			let new_loop_list = (None, end_switch, js_lab, true) :: loop_list in
-			let cmds1, x1, errs1, _, _, _ = f e in
+			let new_loop_list = (None, end_switch, tr_ctx.tr_js_lab, true) :: tr_ctx.tr_loop_list in
+			let new_ctx = update_tr_ctx ~previous:None ~lab:None ~loop_list:new_loop_list tr_ctx in 
+			let cmds1, x1, errs1, _, _, _ = translate_statement new_ctx e in
 			let cmds1 = add_initial_label cmds1 next1 metadata in
-			let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement offset_converter fid cc_table ctx vis_fid err new_loop_list None None s in
+			
+			let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement new_ctx s in
 			let cmds2, x2 = add_final_var cmds2 x2 metadata in
 			let cmds2 = add_initial_label cmds2 next2 metadata in
 
@@ -4226,7 +4036,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			let cmd_goto_1 = SLGuardedGoto ( UnOp(Not, Var x_prev_found), next1, next2) in
 
 			(* x1_v := getValue (x1) with err *)
-			let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
+			let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
 
 			(* goto [ x1_v = x_switch_guard ] next2 end_case *)
 			let next1 = fresh_next_label () in
@@ -4254,8 +4064,9 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 
 
 		let compile_default s b_stmts x_old_b x_found_b end_switch js_lab cur_breaks_ab =
-			let new_loop_list = (None, end_switch, js_lab, true) :: loop_list in
-			let f_default = translate_statement offset_converter fid cc_table ctx vis_fid err new_loop_list None None in
+			let new_loop_list = (None, end_switch, js_lab, true) :: tr_ctx.tr_loop_list in
+			let new_ctx = update_tr_ctx ~loop_list:new_loop_list ~previous:None ~lab:None tr_ctx in 
+			let f_default = translate_statement new_ctx in
 
 			let cmds_def, x_def, errs_def, rets_def, breaks_def, conts_def = f_default s in
 			let cmds_def, x_def = add_final_var cmds_def x_def metadata in
@@ -4307,7 +4118,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 
 		let cmds_guard, x_guard, errs_guard = fe e in
 		(* x_guard_v := i__getValue (x_guard) with err  *)
-		let x_guard_v, cmd_gv_xguardv = make_get_value_call x_guard err in
+		let x_guard_v, cmd_gv_xguardv = make_get_value_call x_guard tr_ctx.tr_err in
 		let cmd_gv_xguardv = annotate_cmd cmd_gv_xguardv None in
 		(* x_found := false *)
 		let cmd_x_found_init = annotate_cmd (SLBasic (SAssignment (x_found_init, Literal (Bool false)))) None in
@@ -4318,7 +4129,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		let cmds_as, x_as, errs_as, rets_as, breaks_as, conts_as, x_found_as =
 			List.fold_left
 				(fun (cmds_ac, x_ac, errs_ac, rets_ac, breaks_ac, conts_ac, x_found_ac) (e, s) ->
-					let cmds_a, x_a, errs_a, rets_a, breaks_a, conts_a, x_found_a = compile_case e s x_found_ac x_ac x_guard_v end_switch js_lab fresh_end_case_label in
+					let cmds_a, x_a, errs_a, rets_a, breaks_a, conts_a, x_found_a = compile_case e s x_found_ac x_ac x_guard_v end_switch tr_ctx.tr_js_lab fresh_end_case_label in
 					cmds_ac @ cmds_a, x_a, errs_ac @ errs_a, rets_ac @ rets_a, breaks_ac @ breaks_a, conts_ac @ conts_a, x_found_a)
 				([], x_init, [], [], [], [], x_found_init)
 				a_cases in
@@ -4328,7 +4139,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		let cmds_bs, x_bs, errs_bs, rets_bs, breaks_bs, conts_bs, x_found_bs =
 			List.fold_left
 				(fun (cmds_bc, x_bc, errs_bc, rets_bc, breaks_bc, conts_bc, x_found_bc) (e, s) ->
-					let cmds_b, x_b, errs_b, rets_b, breaks_b, conts_b, x_found_b = compile_case e s x_found_bc x_bc x_guard_v end_switch js_lab fresh_end_case_label in
+					let cmds_b, x_b, errs_b, rets_b, breaks_b, conts_b, x_found_b = compile_case e s x_found_bc x_bc x_guard_v end_switch tr_ctx.tr_js_lab fresh_end_case_label in
 					cmds_bc @ cmds_b, x_b, errs_bc @ errs_b, rets_bc @ rets_b, breaks_bc @ breaks_b, conts_bc @ conts_b, x_found_b)
 				([], x_as, [], [], [], [], x_found_as)
 				b_cases in
@@ -4337,7 +4148,7 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 		| [], None ->
 			(*  end_switch: x_r := PHI(breaks_a, x_a) *)
 			let x_r = fresh_var () in
-			let cur_breaks_as, outer_breaks_as = filter_cur_jumps breaks_as js_lab true in
+			let cur_breaks_as, outer_breaks_as = filter_cur_jumps breaks_as tr_ctx.tr_js_lab true in
 			let phi_args = cur_breaks_as @ [ x_as ] in
 			let phi_args = List.map (fun x -> Var x) phi_args in
 			let phi_args = Array.of_list phi_args in
@@ -4347,15 +4158,16 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			cmds, Var x_r, errs_as, rets_as, outer_breaks_as, conts_as
 
 		| [], Some def ->
-			let new_loop_list = (None, end_switch, js_lab, true) :: loop_list in
-			let f_default = translate_statement offset_converter fid cc_table ctx vis_fid err new_loop_list None None in
+			let new_loop_list = (None, end_switch, tr_ctx.tr_js_lab, true) :: tr_ctx.tr_loop_list in
+			let new_ctx = update_tr_ctx ~previous:None ~lab:None ~loop_list:new_loop_list tr_ctx in 
+			let f_default = translate_statement new_ctx in
 			let cmds_def, x_def, errs_def, rets_def, breaks_def, conts_def = f_default def in
 			let cmds_def, x_def = add_final_var cmds_def x_def metadata in
 
 			(*  end_switch: x_r := PHI(breaks_a, breaks_def, x_def) *)
 			let x_r = fresh_var () in
-			let cur_breaks_as, outer_breaks_as = filter_cur_jumps breaks_as js_lab true in
-			let cur_breaks_def, outer_breaks_def = filter_cur_jumps breaks_def js_lab true in
+			let cur_breaks_as, outer_breaks_as = filter_cur_jumps breaks_as tr_ctx.tr_js_lab true in
+			let cur_breaks_def, outer_breaks_def = filter_cur_jumps breaks_def tr_ctx.tr_js_lab true in
 			let phi_args = cur_breaks_as @ cur_breaks_def @ [ x_def ] in
 			let phi_args = List.map (fun x -> Var x) phi_args in
 			let phi_args = Array.of_list phi_args in
@@ -4375,11 +4187,11 @@ and translate_statement offset_converter fid cc_table ctx vis_fid err (loop_list
 			let x_found_b = fresh_xfoundb_var () in
 			let cmd_ass_xfoundb = (annotate_cmd (SLPhiAssignment (x_found_b, [| (Literal (Bool false)); (Var x_found_bs) |])) (Some default_lab)) in
 
-			let cur_breaks_as, outer_breaks_as = filter_cur_jumps breaks_as js_lab true in
-			let cur_breaks_bs, outer_breaks_bs = filter_cur_jumps breaks_bs js_lab true in
+			let cur_breaks_as, outer_breaks_as = filter_cur_jumps breaks_as tr_ctx.tr_js_lab true in
+			let cur_breaks_bs, outer_breaks_bs = filter_cur_jumps breaks_bs tr_ctx.tr_js_lab true in
 			let cur_breaks_ab = cur_breaks_as @ cur_breaks_bs in
 
-			let cmds_def, x_def, errs_def, rets_def, outer_breaks_def, conts_def = compile_default def b_stmts x_bs x_found_b end_switch js_lab cur_breaks_ab in
+			let cmds_def, x_def, errs_def, rets_def, outer_breaks_def, conts_def = compile_default def b_stmts x_bs x_found_b end_switch tr_ctx.tr_js_lab cur_breaks_ab in
 			let cmds = cmds_as @ [ cmd_goto_xfounda ] @ cmds_bs @ [ cmd_ass_xfoundb ] @ cmds_def in 
 			let cmds = annotate_first_cmd cmds in 
 			cmds, Var x_def, errs_as @ errs_bs @ errs_def, rets_as @ rets_bs @ rets_def, outer_breaks_as @ outer_breaks_bs @ outer_breaks_def, conts_as @ conts_bs @ conts_def
@@ -4431,9 +4243,10 @@ let generate_main offset_converter e main cc_table spec =
 				(empty_metadata, lab, cmd))
 		cmds in
 
-	let cc_tbl_main =
+	(** let cc_tbl_main =
 		try Hashtbl.find cc_table main
-			with _ -> raise (Failure "main not defined in cc_table - assim fica dificil")  in
+			with _ -> raise (Failure "main not defined in cc_table - assim fica dificil")  in *)
+	
 	let new_var = fresh_var () in
 	let setup_heap_ass =  annotate_cmd (SLCall (new_var, Literal (String setupHeapName), [ ], None)) None in
 	(* __scope := new () *)
@@ -4458,10 +4271,10 @@ let generate_main offset_converter e main cc_table spec =
 	let cmd_ass_se = make_var_ass_se () in
 	let cmd_ass_se = annotate_cmd cmd_ass_se None in
 
-	let ctx = make_translation_ctx main in
+	let ctx = make_translation_ctx offset_converter main cc_table [ main ]  in
 	let cmds_hoist_fdecls, errs_hoist_decls = translate_fun_decls true e main [ main ] ctx.tr_error_lab in
 	let cmds_hoist_fdecls = annotate_cmds_top_level empty_metadata cmds_hoist_fdecls in
-	let cmds_e, x_e, errs, _, _, _ = translate_statement offset_converter main cc_table ctx [ main ] ctx.tr_error_lab [] None None e in
+	let cmds_e, x_e, errs, _, _, _ = translate_statement ctx e in
 	(* x_ret := x_e *)
 	let ret_ass = annotate_cmd (SLBasic (SAssignment (ctx.tr_ret_var, x_e))) None in
 	(* lab_ret: skip *)
@@ -4525,7 +4338,8 @@ let generate_proc_eval new_fid e cc_table vis_fid =
 	let cmd_ass_se = make_var_ass_se () in
 	let cmd_ass_se = annotate_cmd cmd_ass_se None in
 
-	let ctx = make_translation_ctx new_fid in
+	let ctx = make_translation_ctx offset_converter new_fid cc_table vis_fid  in
+		
 	let fake_ret_label = fresh_label () in
 	let fake_ret_var = fresh_var () in
 	let ret_label = ctx.tr_ret_lab in
@@ -4533,7 +4347,7 @@ let generate_proc_eval new_fid e cc_table vis_fid =
 	let new_ctx = { ctx with tr_ret_lab = fake_ret_label;  tr_ret_var = fake_ret_var } in
 	let cmds_hoist_fdecls, errs_hoist_decls = translate_fun_decls false e new_fid vis_fid new_ctx.tr_error_lab in
 	let cmds_hoist_fdecls = annotate_cmds cmds_hoist_fdecls in
-	let cmds_e, x_e, errs, rets, _, _ = translate_statement offset_converter new_fid cc_table new_ctx vis_fid ctx.tr_error_lab [] None None e in
+	let cmds_e, x_e, errs, rets, _, _ = translate_statement new_ctx e in
 
 	let xe_v, cmd_gv_xe = make_get_value_call x_e ctx.tr_error_lab in
 	let cmd_gv_xe = annotate_cmd cmd_gv_xe None in
@@ -4592,7 +4406,10 @@ let generate_proc offset_converter e fid params cc_table vis_fid spec =
 
 	let cmds_save_old_er, x_er_old = generate_proc_er_saving_code fid in
 	let cmds_save_old_er = annotate_cmds cmds_save_old_er in
-	let ctx = make_translation_ctx fid in
+	
+
+	let ctx = make_translation_ctx offset_converter fid cc_table vis_fid  in 
+	
 	let new_ctx = { ctx with tr_ret_lab = ("pre_" ^ ctx.tr_ret_lab); tr_error_lab = ("pre_" ^ ctx.tr_error_lab) } in
 	let cmds_hoist_fdecls, errs_hoist_decls = translate_fun_decls false e fid vis_fid new_ctx.tr_error_lab in
 	let cmds_hoist_fdecls = annotate_cmds_top_level empty_metadata cmds_hoist_fdecls in
@@ -4645,7 +4462,7 @@ let generate_proc offset_converter e fid params cc_table vis_fid spec =
 	let cmd_ass_se = make_var_ass_se () in
 	let cmd_ass_se = annotate_cmd cmd_ass_se None in
 
-	let cmds_e, x_e, errs, rets, _, _ = translate_statement offset_converter fid cc_table new_ctx vis_fid new_ctx.tr_error_lab [] None None e in
+	let cmds_e, x_e, errs, rets, _, _ = translate_statement new_ctx e in
 
 	(* x_dr := $$empty *)
 	let x_dr = fresh_var () in
@@ -4692,33 +4509,6 @@ let generate_proc offset_converter e fid params cc_table vis_fid spec =
 		lerror_var = Some ctx.tr_error_var;
 		lspec = spec
 	}
-
-let fresh_name =
-  let counter = ref 0 in
-  let rec f name =
-    let v = name ^ (string_of_int !counter) in
-    counter := !counter + 1;
-    v
-  in f
-
-let fresh_anonymous () : string =
-  fresh_name "anonymous"
-
-let fresh_catch_anonymous () : string =
-  fresh_name "catch_anonymous"
-
-let fresh_named n : string =
-  fresh_name n
-
-let fresh_anonymous_eval () : string =
-	fresh_name "___$eval___"
-
-let fresh_catch_anonymous_eval () : string =
-  fresh_name "___$eval___catch_anonymous_"
-
-
-let fresh_named_eval n : string =
-  fresh_name ("___$eval___" ^ n ^ "_")
 
 
 let js2jsil e offset_converter for_verification =

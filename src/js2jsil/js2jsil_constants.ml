@@ -1,3 +1,5 @@
+open JSIL_Syntax
+
 let small_tbl_size = 31
 let medium_tbl_size = 101
 
@@ -72,6 +74,260 @@ let var_er = "x__er"
 
 let var_main = "main"
 
+type loop_list_type = (string option * string * string option * bool) list
 type fun_tbl_type = (string, string * JSIL_Syntax.jsil_var list * Parser_syntax.exp * bool * (JSIL_Syntax.jsil_spec option)) Hashtbl.t
 type pre_fun_tbl_type = (string, string * JSIL_Syntax.jsil_var list * Parser_syntax.exp * (Parser_syntax.annotation list * string list * ((string, string) Hashtbl.t))) Hashtbl.t
+type cc_tbl_type = (string, (string, string) Hashtbl.t) Hashtbl.t
+
+type translation_context = {
+	tr_offset_converter:   int -> int;
+	tr_fid:                string; 
+	tr_cc_tbl:             cc_tbl_type; 
+	tr_vis_list:           string list; 
+	tr_err:                string; 
+	tr_loop_list:          loop_list_type; 
+	tr_previous:           jsil_expr option;  
+	tr_js_lab:             string option; 
+	tr_ret_lab:            string;
+	tr_ret_var:            string;
+	tr_error_lab:          string;
+	tr_error_var:          string;
+}
+
+
+let make_translation_ctx ?err ?(loop_list=[]) ?(previous=None) ?(js_lab=None) offset_converter fid cc_tbl vis_list =
+	let err = 
+		match err with 
+		| None     -> "elab"
+		| Some err -> err in 
+	{
+		tr_offset_converter = offset_converter; 
+		tr_fid        = fid; 
+		tr_cc_tbl     = cc_tbl; 
+		tr_vis_list   = vis_list; 
+		tr_err        = err;
+		tr_loop_list  = loop_list; 
+		tr_previous   = previous; 
+		tr_js_lab     = js_lab; 
+		tr_ret_lab    = "rlab"; (* ^ fid; *)
+		tr_ret_var    = "xret"; (* ^ fid; *)
+		tr_error_lab  = "elab"; (* ^ fid; *)
+		tr_error_var  = "xerr"; (* ^ fid *)
+	}
+
+let update_tr_ctx ?err ?loop_list ?previous ?lab ?vis_list ?ret_lab tr_ctx = 
+	(* err *) 
+	let new_err = 
+		match err with 
+		| None           -> tr_ctx.tr_err
+		| Some err       -> err in   
+	(* loop_list *)
+	let new_loop_list = 
+		match loop_list with 
+		| Some loop_list -> loop_list 
+		| None           -> tr_ctx.tr_loop_list in 
+	(* previous *)
+	let new_previous = 
+		match previous with 
+		| Some previous  -> previous 
+		| None           -> tr_ctx.tr_previous in
+	(* lab *)
+	let new_lab = 
+		match lab with 
+		| Some lab       -> lab 
+		| None           -> tr_ctx.tr_js_lab in
+	(* vis_list *) 
+	let new_vis_list = 
+		match vis_list with 
+		| Some vis_list  -> vis_list 
+		| None           -> tr_ctx.tr_vis_list in  
+	(* ret_lab *) 
+	let new_ret_lab = 
+		match ret_lab with 
+		| Some ret_lab   -> ret_lab 
+		| None           -> tr_ctx.tr_ret_lab in 
+	{ tr_ctx with 
+	    tr_vis_list  = new_vis_list; 
+			tr_err       = new_err; 
+			tr_loop_list = new_loop_list; 
+			tr_previous  = new_previous; 
+			tr_js_lab    = new_lab; 
+			tr_ret_lab   = new_ret_lab 
+	}
+
+
+let get_scope_table fid cc_tbl = 
+	try Hashtbl.find cc_tbl fid
+		with _ ->
+			let msg = Printf.sprintf "var tbl of function %s is not in cc-table" fid in
+			raise (Failure msg) 
+
+
+(** 
+ *  Fresh identifiers   
+ *)
+let fresh_sth (name : string) : (unit -> string) =
+  let counter = ref 0 in
+  let rec f () =
+    let v = name ^ (string_of_int !counter) in
+    counter := !counter + 1;
+    v
+  in f
+
+let fresh_var : (unit -> string) = fresh_sth "x_"
+
+let fresh_scope_chain_var : (unit -> string) = fresh_sth "x_sc_"
+
+let fresh_found_var : (unit -> string) = fresh_sth "x_found_"
+
+let fresh_fun_var : (unit -> string) = fresh_sth "x_f_"
+
+let fresh_obj_var : (unit -> string) = fresh_sth "x_o_"
+
+let fresh_er_var : (unit -> string) = fresh_sth "x_er_"
+
+let fresh_err_var : (unit -> string) = fresh_sth "x_error_"
+
+let fresh_this_var : (unit -> string) = fresh_sth "x_this_"
+
+let fresh_case_var : (unit -> string) = fresh_sth "x_case_"
+
+let fresh_desc_var : (unit -> string) = fresh_sth "x_desc_"
+
+let fresh_body_var : (unit -> string) = fresh_sth "x_body_"
+
+let fresh_fscope_var : (unit -> string) = fresh_sth "x_fscope_"
+
+let fresh_xfoundb_var : (unit -> string) = fresh_sth "x_found_b_"
+
+let fresh_label : (unit -> string) = fresh_sth "lab_"
+
+let fresh_next_label : (unit -> string) = fresh_sth "next_"
+
+let fresh_then_label : (unit -> string) = fresh_sth "then_"
+
+let fresh_else_label : (unit -> string) = fresh_sth "else_"
+
+let fresh_endif_label : (unit -> string) = fresh_sth "fi_"
+
+let fresh_end_label : (unit -> string) = fresh_sth "end_"
+
+let fresh_end_switch_label : (unit -> string) = fresh_sth "end_switch_"
+
+let fresh_end_case_label : (unit -> string) = fresh_sth "end_case_"
+
+let fresh_default_label : (unit -> string) = fresh_sth "default_"
+
+let fresh_b_cases_label : (unit -> string) = fresh_sth "b_cases_"
+
+let fresh_logical_variable : (unit -> string) = fresh_sth "#x"
+
+let fresh_break_label : (unit -> string) = fresh_sth "break_"
+
+let fresh_loop_head_label : (unit -> string) = fresh_sth "loop_h_"
+
+let fresh_loop_cont_label : (unit -> string) = fresh_sth "loop_c_"
+
+let fresh_loop_guard_label : (unit -> string) = fresh_sth "loop_g_"
+
+let fresh_loop_body_label : (unit -> string) = fresh_sth "loop_b_"
+
+let fresh_loop_end_label : (unit -> string) = fresh_sth "loop_e_"
+
+let fresh_tcf_finally_label : (unit -> string) = fresh_sth "finally_"
+
+let fresh_tcf_end_label : (unit -> string) = fresh_sth "end_tcf_"
+
+let fresh_tcf_err_try_label : (unit -> string) = fresh_sth "err_tcf_t_"
+
+let fresh_tcf_err_catch_label : (unit -> string) = fresh_sth "err_tcf_c_"
+
+let fresh_tcf_ret : (unit -> string) = fresh_sth "ret_tcf_"
+
+let fresh_loop_vars () =
+	let head = fresh_loop_head_label () in
+	let end_loop = fresh_loop_end_label () in
+	let cont = fresh_loop_cont_label () in
+	let guard = fresh_loop_guard_label () in
+	let body = fresh_loop_body_label () in
+	head, guard, body, cont, end_loop
+
+let number_of_tcfs = ref 0
+let fresh_tcf_vars () =
+	let err1 = fresh_tcf_err_try_label () in
+	let err2 = fresh_tcf_err_catch_label () in
+	let end_l = fresh_tcf_end_label () in
+	let finally = fresh_tcf_finally_label () in
+	let fresh_abnormal_finally = fresh_sth ("abnormal_finally_" ^ (string_of_int !number_of_tcfs) ^ "_") in
+	number_of_tcfs := (!number_of_tcfs) + 1;
+	let ret = fresh_tcf_ret () in
+	err1, err2, finally, end_l, fresh_abnormal_finally, ret
+
+let fresh_name =
+  let counter = ref 0 in
+  let rec f name =
+    let v = name ^ (string_of_int !counter) in
+    counter := !counter + 1;
+    v
+  in f
+
+let fresh_anonymous () : string =
+  fresh_name "anonymous"
+
+let fresh_catch_anonymous () : string =
+  fresh_name "catch_anonymous"
+
+let fresh_named n : string =
+  fresh_name n
+
+let fresh_anonymous_eval () : string =
+	fresh_name "___$eval___"
+
+let fresh_catch_anonymous_eval () : string =
+  fresh_name "___$eval___catch_anonymous_"
+
+
+let fresh_named_eval n : string =
+  fresh_name ("___$eval___" ^ n ^ "_")
+	
+
+let val_var_of_var x =
+	(match x with
+	| Var x_name -> x_name ^ "_v"
+	| Literal l -> (fresh_var ()) ^ "_v"
+	| _ -> raise (Failure "val_var_of_var expects a variable or a literal"))
+
+let number_var_of_var x =
+	(match x with
+	| Var x_name -> x_name ^ "_n"
+	| Literal l -> (fresh_var ()) ^ "_n"
+	| _ -> raise (Failure "number_var_of_var expects a variable"))
+
+let boolean_var_of_var x =
+	(match x with
+	| Var x_name -> x_name ^ "_b"
+	| Literal l -> (fresh_var ()) ^ "_b"
+	| _ -> raise (Failure "boolean_var_of_var expects a variable"))
+
+let primitive_var_of_var x =
+	(match x with
+	| Var x_name -> x_name ^ "_p"
+	| Literal l -> (fresh_var ()) ^ "_p"
+	| _ -> raise (Failure "primitive_var_of_var expects a variable"))
+
+let string_var_of_var x =
+	(match x with
+	| Var x_name -> x_name ^ "_s"
+	| Literal l -> (fresh_var ()) ^ "_s"
+	| _ -> raise (Failure "string_var_of_var expects a variable"))
+
+let i32_var_of_var x =
+	(match x with
+	| Var x_name -> x_name ^ "_i32"
+	| Literal l -> (fresh_var ()) ^ "_i32"
+	| _ -> raise (Failure "string_var_of_var expects a variable"))
+
+let fresh_err_label : (unit -> string) = fresh_sth "err_"
+
+let fresh_ret_label : (unit -> string) = fresh_sth "ret_"
 
