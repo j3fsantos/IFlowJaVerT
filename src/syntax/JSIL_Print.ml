@@ -342,7 +342,7 @@ let string_of_cmd_aux sjsil_cmd i line_numbers_on escape_string str_tabs =
 (** JSIL All Statements *)
 
 let string_of_logic_metadata metadata str_tabs =
-	let inv = metadata.pre_cond in
+	let inv = metadata.invariant in
 	let pre_lcmds = metadata.pre_logic_cmds in
 	let post_lcmds = metadata.post_logic_cmds in
 	let str_inv =

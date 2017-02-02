@@ -72,7 +72,7 @@ let process_file path =
 	JSIL_Logic_Normalise.pre_normalise_invariants_prog norm_preds prog;
 	let spec_tbl = JSIL_Logic_Normalise.build_spec_tbl norm_preds prog in
 	print_debug "*** Prelude: Stage 4: Finished building the spec table\n";
-	let results_str, dot_graphs, complete_success = JSIL_Symb_Interpreter.sym_run_procs procs_to_verify spec_tbl prog which_pred norm_preds in
+	let results_str, dot_graphs, complete_success = JSIL_Symb_Interpreter.sym_run_procs prog procs_to_verify spec_tbl which_pred norm_preds in
 	Printf.printf "RESULTS\n%s" results_str;
 	
 	(if (complete_success) then
@@ -83,7 +83,7 @@ let process_file path =
 		else (Printf.printf "There were Failures in %f\n" (Sys.time())));
 	
 	register_dot_graphs dot_graphs;
-	(* JSIL_Syntax.process_statistics (); *)
+	JSIL_Syntax.process_statistics ();
 	
 	exit 0
 

@@ -745,10 +745,10 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 		print_debug (Printf.sprintf "Checking if:\n%s\n\tentails\n%s\n" (JSIL_Print.str_of_assertion_list (get_pf_list symb_state)) (JSIL_Print.str_of_assertion_list a_le_then));
 		if (Pure_Entailment.old_check_entailment [] (get_pf_list symb_state) a_le_then (get_gamma symb_state)) then
 			(print_endline "in the THEN branch";
-			symb_evaluate_next_cmd_1 s_prog proc spec search_info symb_state i j)
+			symb_evaluate_next_cmd s_prog proc spec search_info symb_state i j)
 			else (if (Pure_Entailment.old_check_entailment [] (get_pf_list symb_state) a_le_else (get_gamma symb_state)) then
 					(print_endline "in the ELSE branch";
-					symb_evaluate_next_cmd_1 s_prog proc spec search_info symb_state i k)
+					symb_evaluate_next_cmd s_prog proc spec search_info symb_state i k)
 				else
 					(print_endline "I could not determine the branch.";
 
@@ -758,9 +758,9 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 					let else_search_info = update_vis_tbl search_info (copy_vis_tbl search_info.vis_tbl) in
 
 					extend_symb_state_with_pfs then_symb_state (DynArray.of_list a_le_then);
-					symb_evaluate_next_cmd_1 s_prog proc spec then_search_info then_symb_state i j;
+					symb_evaluate_next_cmd s_prog proc spec then_search_info then_symb_state i j;
 					extend_symb_state_with_pfs else_symb_state (DynArray.of_list a_le_else);
-					symb_evaluate_next_cmd_1 s_prog proc spec else_search_info else_symb_state i k)) in
+					symb_evaluate_next_cmd s_prog proc spec else_search_info else_symb_state i k)) in
 
 
 	(* symbolically evaluate a procedure call *)
@@ -798,10 +798,10 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 				let new_search_info = update_vis_tbl search_info (copy_vis_tbl search_info.vis_tbl) in
 				(match ret_flag, j with
 				| Normal, _ ->
-					symb_evaluate_next_cmd_1 s_prog proc spec new_search_info symb_state i (i+1)
+					symb_evaluate_next_cmd s_prog proc spec new_search_info symb_state i (i+1)
 				| Error, None -> raise (Failure (Printf.sprintf "Procedure %s may return an error, but no error label was provided." proc_name))
 				| Error, Some j ->
-					symb_evaluate_next_cmd_1 s_prog proc spec new_search_info symb_state i j))
+					symb_evaluate_next_cmd s_prog proc spec new_search_info symb_state i j))
 			new_symb_states in
 
 	(* symbolically evaluate a phi command *)
@@ -815,7 +815,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 		let te, _, _ =	type_lexpr (get_gamma symb_state) le in
 		update_abs_store (get_store symb_state) x le;
 		update_gamma (get_gamma symb_state) x te;
-		symb_evaluate_next_cmd_1 s_prog proc spec search_info symb_state i (i+1) in
+		symb_evaluate_next_cmd s_prog proc spec search_info symb_state i (i+1) in
 
 	let symb_state = simplify false symb_state in
 	print_symb_state_and_cmd symb_state;
@@ -824,9 +824,9 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 	match cmd with
 	| SBasic bcmd ->
 		let _ = symb_evaluate_bcmd bcmd symb_state in
-		symb_evaluate_next_cmd_1 s_prog proc spec search_info symb_state i (i+1)
+		symb_evaluate_next_cmd s_prog proc spec search_info symb_state i (i+1)
 
-	| SGoto j -> symb_evaluate_next_cmd_1 s_prog proc spec search_info symb_state i j
+	| SGoto j -> symb_evaluate_next_cmd s_prog proc spec search_info symb_state i j
 
 	| SGuardedGoto (e, j, k) -> symb_evaluate_guarded_goto symb_state e j k
 
@@ -836,44 +836,82 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 
 	| _ -> raise (Failure "not implemented yet")
 
-and symb_evaluate_next_cmd_1 s_prog proc spec search_info symb_state cur next  =
+(**
+	Symbolically evaluate the next command of the program
+	
+	@param s_prog      Extended JSIL program
+	@param proc        The procedure that is being executed
+	@param spec        The specification to be verified
+	@param search_info Something for the dot graphs
+	@param symb_state  Current symbolic state
+	@param cur         Index of the current command
+	@param next        Index of the next command
+	
+	@return symb_states The list of symbolic states resulting from the evaluation
+*)
+and symb_evaluate_next_cmd s_prog proc spec search_info symb_state cur next  =
+	(* Get the current command and the associated metadata *)
 	let metadata, cmd = get_proc_cmd proc cur in
+	(* Evaluate logic commands, if any *)
 	let symb_states = symb_evaluate_logic_cmds s_prog metadata.post_logic_cmds [ symb_state ] spec.n_subst spec.n_lvars in
+	(* The number of symbolic states resulting from the evaluation of the logic commands *)
 	let len = List.length symb_states in
+	(* For each obtained symbolic state *) 
 	List.iter
+		(* Get the symbolic state *)
 		(fun symb_state ->
 			let search_info =
 				if (len > 1)
-					then {	search_info with vis_tbl = (copy_vis_tbl search_info.vis_tbl) }
+					then { search_info with vis_tbl = (copy_vis_tbl search_info.vis_tbl) }
 					else search_info in
-				symb_evaluate_next_cmd_2 s_prog proc spec search_info symb_state cur next)
+				(* Go bravely into the continuation *)
+				symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state cur next)
 		symb_states
 
-and symb_evaluate_next_cmd_2 s_prog proc spec search_info symb_state cur next  =
+(**
+	Continuation of symbolic evaluation of the next command of the program
+	
+	@param s_prog      Extended JSIL program
+	@param proc        The procedure that is being executed
+	@param spec        The specification to be verified
+	@param search_info Something for the dot graphs
+	@param symb_state  Current symbolic state
+	@param cur         Index of the current command
+	@param next        Index of the next command
+	
+	@return symb_states The list of symbolic states resulting from the evaluation
+*)
+and symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state cur next  =
 
-	(* auxiliary function *)
-	let is_visited i =
-		(try
-			let _ = Hashtbl.find search_info.vis_tbl i in
-			true
-		with _ -> false) in
+  (* i1: Has the current command already been visited? *)
+  let is_visited i = Hashtbl.mem search_info.vis_tbl i in
 
-	(* test if the control reached the end of the symbolic execution *)
-	if ((Some cur) = proc.ret_label) then
-		(Structural_Entailment.unify_symb_state_against_post proc.proc_name spec symb_state Normal search_info !js;
-		Symbolic_Traces.create_info_node_from_post search_info spec.n_post Normal true; ())
-	else (if ((Some cur) = proc.error_label) then
-		(Structural_Entailment.unify_symb_state_against_post proc.proc_name spec symb_state Error search_info !js;
-		Symbolic_Traces.create_info_node_from_post search_info spec.n_post Error true; ())
+	(* Conclusion *)
+	let finish how = 
+		Structural_Entailment.unify_symb_state_against_post proc.proc_name spec symb_state how search_info !js;
+		Symbolic_Traces.create_info_node_from_post search_info spec.n_post how true; () in
+	
+	(* i2: Have we reached the return label? *)
+	if (Some cur = proc.ret_label) then
+		(* i2: YES: Unify the final symbolic state against the postcondition *)
+		finish Normal
+	(* i2: NO: Have we reached the error label? *)
+	else (if (Some cur = proc.error_label) then
+		(* i3: YES: Unify the final symbolic state against the postcondition *)
+		finish Error
+	(* i3: NO: The control did not reach the end of the symbolic execution *)
 	else
-		(* the control did not reach the end of the symbolic execution *)
 		begin
+			(* Get the next command and its metadata *)
 			let metadata, cmd = get_proc_cmd proc next in
+			(* i1: YES: We have visited the current command and are in a loop *)
 			if (is_visited next) then
-				(* a loop was found *)
 				begin
-					match (metadata.pre_cond) with
+					(* Get the invariant *)
+					match (metadata.invariant) with
+					(* No invariant, throw an error *)
 					| None -> raise (Failure "back edges need to point to commands annotated with invariants")
+					(* Invariant present, check if the current symbolic state entails the invariant *)
 					| Some a ->
 						(* check if the current symbolic state entails the invariant *)
 						Printf.printf "MARICA, NO ME ABUSES MAS LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
@@ -884,60 +922,104 @@ and symb_evaluate_next_cmd_2 s_prog proc spec search_info symb_state cur next  =
 						| None, msg -> raise (Failure msg))
 				end
 			else
-				(* no loop found *)
+				(* i1: NO: We have not visited the current command *)
 				begin
+					(* Understand the symbolic state *)
 					let symb_state =
-						match (metadata.pre_cond) with
+						(* Get the invariant *)
+						match (metadata.invariant) with
+						(* No invariant, proceed *)
 						| None -> symb_state
+						(* Invariant present, check if the current symbolic state entails the invariant *)
 						| Some a ->
 							Printf.printf "MARICA. NO ME ABUSES MAS NO LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
 							let new_symb_state, _ = JSIL_Logic_Normalise.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
 							let new_symb_state, _ = simplify_for_your_legacy (DynArray.create()) new_symb_state in
 							(match (Structural_Entailment.fully_unify_symb_state new_symb_state symb_state spec.n_lvars !js) with
+							(* If it does, replace current symbolic state with the invariant *)
 							| Some _, _ -> new_symb_state
 							| None, msg -> raise (Failure msg)) in
 
-
+					(* Evaluate logic commands, if any *)
 					let symb_states = symb_evaluate_logic_cmds s_prog metadata.pre_logic_cmds [ symb_state ] spec.n_subst spec.n_lvars in
+					(* The number of symbolic states resulting from the evaluation of the logic commands *)
 					let len = List.length symb_states in
+					(* For each obtained symbolic state *) 
 					List.iter
+						(* Get the symbolic state *)
 						(fun symb_state ->
+							(* Construct the search info for the next command *)
 							let vis_tbl = if (len > 1) then (copy_vis_tbl search_info.vis_tbl) else search_info.vis_tbl in
 							let info_node = Symbolic_Traces.create_info_node_from_cmd search_info symb_state cmd next in
-							let new_search_info = udpdate_search_info search_info info_node vis_tbl in
+							let new_search_info = update_search_info search_info info_node vis_tbl in
+							(* Actually evaluate the next command *) 
 							symb_evaluate_cmd s_prog proc spec new_search_info symb_state next cur)
 						symb_states
 				end
 		end)
 
+(**
+	Symbolic execution of a JSIL procedure
+	
+	@param s_prog       Extended JSIL program
+	@param proc_name    Name of the procedure
+	@param spec         The specification to be verified
+	@param i            Index of the current specification
+	@param pruning_info Pruning information
+	
+	@return search_dot_graph The dot graph of the symbolic execution
+	@return success          Success indicator
+	@return failure_msg      Error message in case of failure
+*)
 let symb_evaluate_proc s_prog proc_name spec i pruning_info =
+	let sep_str = "----------------------------------\n" in
+	print_endline (Printf.sprintf "%s" (sep_str ^ sep_str ^ "Symbolic execution of " ^ proc_name));
+
 	let node_info = Symbolic_Traces.create_info_node_aux spec.n_pre 0 (-1) "Precondition" in
 	let search_info = make_symb_exe_search_info node_info pruning_info i in
 
+	(* Get the procedure to be symbolically executed *)
 	let proc = get_proc s_prog.program proc_name in
-	let sep_str = "----------------------------------\n" in
-
-	print_endline (Printf.sprintf "%s" (sep_str ^ sep_str ^ "Symbolic execution of " ^ proc_name));
 	let success, failure_msg =
 		(try
 			print_debug (Printf.sprintf "Initial symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre));
 			let symb_state = copy_symb_state spec.n_pre in
-			symb_evaluate_next_cmd_2 s_prog proc spec search_info symb_state (-1) 0;
+			(* Symbolically execute the procedure *)
+			symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state (-1) 0;
+			(* Symbolic execution was successful *)
 			true, None
+		(* An error occurred during the symbolic execution *)
 		with Failure msg ->
 			(print_endline (Printf.sprintf "The EVALUATION OF THIS PROC GAVE AN ERROR: %d %s!!!!" i msg);
 			Symbolic_Traces.create_info_node_from_error search_info msg;
 			Symbolic_Traces.create_info_node_from_post search_info spec.n_post spec.n_ret_flag false;
 			false, Some msg)) in
 	let proc_name = Printf.sprintf "Spec_%d_of_%s" i proc_name in
+	(* Create the dot graph of the symbolic execution *)
 	let search_dot_graph = Some (JSIL_Memory_Print.dot_of_search_info search_info proc_name) in
 	print_debug (Printf.sprintf "%s" (sep_str ^ sep_str ^ sep_str));
+	(* Return *)
 	search_dot_graph, success, failure_msg
 
+(** 
+	Symbolic execution of a given set of JSIL procedures
 
-
-let sym_run_procs procs_to_verify spec_table prog which_pred pred_defs =
+	@param prog            JSIL program 
+	@param procs_to_verify The list of procedures of the JSIL program to be symbolically verified
+	@param spec_table      The table of specifications associated with the JSIL program
+	@param which_pred      The predecessor graph
+	@param pred_defs       Predicate definitions
+	
+	@return results_str      Symbolic execution in string format
+	@return dot_graphs       Dot graph of the symbolic execution
+	@return complete_success Indicator of complete success
+	
+	TODO: Construct call graph, do dfs, do in that order
+*)
+let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
+	(* Normalise predicate definitions *)
 	let n_pred_defs = JSIL_Logic_Normalise.normalise_predicate_definitions pred_defs in
+	(* Construct corresponding extended JSIL program *)
 	let s_prog = {
 		program = prog;
 		which_pred = which_pred;
@@ -945,43 +1027,49 @@ let sym_run_procs procs_to_verify spec_table prog which_pred pred_defs =
 		pred_defs = n_pred_defs
 	} in
 	let pruning_info = init_post_pruning_info () in
+	(* Iterate over the specification table *)
 	let results = Hashtbl.fold
+	  (* For each specification: *)
 		(fun proc_name spec ac_results ->
+			(* i1: Should the procedure be verified? *)
 			let should_we_verify = (Hashtbl.mem procs_to_verify proc_name) in
+			(* i1: YES *)
 			if (should_we_verify) then
 			begin
 				update_post_pruning_info_with_spec pruning_info spec;
+				(* Get list of pre-post pairs *)
 				let pre_post_list = spec.n_proc_specs in
+				(* Iterate over the pre-post pairs *)
 				let results =
 					List.mapi
+					(* For each pre-post pair *)
 					(fun i pre_post ->
 						let new_pre_post = Symbolic_State_Functions.copy_single_spec pre_post in
-						let dot_graph, success, failure_msg =
-							if (should_we_verify)
-								then symb_evaluate_proc s_prog proc_name new_pre_post i pruning_info
-								else
-								begin
-									let post_pruning_info_array_list = Hashtbl.find pruning_info proc_name in
-									let post_pruning_info_array = List.nth post_pruning_info_array_list i in
-									Array.fill post_pruning_info_array 0 (Array.length post_pruning_info_array) true;
-									None, true, None
-								end in
+						(* Symbolically execute the procedure given the pre and post *)
+						let dot_graph, success, failure_msg = symb_evaluate_proc s_prog proc_name new_pre_post i pruning_info in
 						(proc_name, i, pre_post, success, failure_msg, dot_graph))
 					pre_post_list in
+				(* Filter specs that could not be verified *)
 				let new_spec = { spec with n_proc_specs = (filter_useless_posts_in_multiple_specs proc_name pre_post_list pruning_info) } in
+				(* Update the specification table *)
 				Hashtbl.replace spec_table proc_name new_spec;
+				(* Concatenate symbolic trace *)
 				ac_results @ results
 			end
+			(* i1: NO *)
 			else ac_results)
 		spec_table
 		[] in
+	(* Understand complete success *)
 	let complete_success =
 		List.fold_left
 			(fun ac (_, _, _, partial_success, _, _) ->
 				if (ac && partial_success) then true else false)
 			true
 			results in
+	(* Get the string and dot graphs of the symbolic execution *)
 	let results_str, dot_graphs = JSIL_Memory_Print.string_of_symb_exe_results results in
+	(* Some statistics *)
 	let count_prunings = ref 0 in
 	let count_verified = ref 0 in
 	Hashtbl.iter
@@ -995,4 +1083,5 @@ let sym_run_procs procs_to_verify spec_table prog which_pred pred_defs =
 			)
 		spec_table;
 	print_endline (Printf.sprintf "\nVerified: %d.\t\tPrunings: %d.\n" !count_verified !count_prunings);
+	(* Return *)
 	results_str, dot_graphs, complete_success
