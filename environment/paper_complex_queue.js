@@ -114,7 +114,7 @@ Node.prototype.push = push;
 		Queue(#this, #node_proto, #pri_q) *
 	    Node(#n, #pri, #elt, $$null, #node_proto) *
 		NodePrototype(#node_proto, #push_loc, #insert_loc) *
-		(#pri <=# #pri_q) * 
+		(#pri <=# #pri_q) *
 		types(#pri : $$number_type, #pri_q : $$number_type, #this: $$object_type, #n : $$object_type)
 	)
 	@post (
@@ -139,16 +139,16 @@ var insert = function (n) {
 				NodePrototype(#node_proto, #push_loc, #insert_loc) *
 				(#pri <=# #this_pri) * types(#pri_q : $$number_type, #this: $$object_type))
 
-			@unfold Queue(#next_this, #node_proto, #max_pri_next) */
+			@unfold Queue(#this_next, #node_proto, #max_pri_next) */
 		var next = this.next;
 		if (next == null) {
 				this.next = n;
 		} else {
-			   /* @fold Queue(next, #node_proto, #pri_next) */
+			   /* @fold Queue(#this_next, #node_proto, #max_pri_next) */
 				var tmp = next.insert (n);
 				this.next = tmp;
 		}
-		/** @fold Queue(this, #node_proto, #pri_q) */
+		/** @fold Queue(#this, #node_proto, #pri_q) */
 		return this
 	}
 }

@@ -54,6 +54,51 @@ let get_predicate_defs_from_annots annots : JS_Logic_Syntax.js_logic_predicate l
 	loop annots []
 
 
+let parse_logic_annots annots = 
+	List.map 
+		(fun annot -> 
+			let assertion = JSIL_Utils.js_assertion_of_string annot.annot_formula in
+			(annot.annot_type, assertion))
+		annots 				
+
+let pop_relevant_logic_annots_stmt e = 
+	let annots = e.Parser_syntax.exp_annot in 
+	let folds, others = List.partition (fun annot -> annot.annot_type == Parser_syntax.Fold) annots in 
+	let unfolds, others = List.partition (fun annot -> annot.annot_type == Parser_syntax.Unfold) others in 
+	let invariant, others = List.partition (fun annot -> annot.annot_type == Parser_syntax.Invariant) others in
+	
+	let invariant = 
+		(match invariant with 
+		| [] -> None 
+		| invariant :: _ -> Some (JSIL_Utils.js_assertion_of_string invariant.annot_formula)) in 								
+	
+	(* Printf.printf "Inside poppers with the following exp:\n%s\n\n\n" (Pretty_print.string_of_exp false e); *)
+	
+	let relevant_logic_annots, new_e = 
+		(match e.exp_stx with 
+		| Call (_, _)	| New (_, _) -> 
+			(* Printf.printf "I am popping the relevant logical annotation from a function call, querida!\n"; *)
+			let relevant_logic_annots = parse_logic_annots unfolds in 
+			let new_e = { e with exp_annot = folds @ others } in 
+			relevant_logic_annots, new_e 
+		| _ -> 
+			let relevant_logic_annots = parse_logic_annots (unfolds @ folds) in 
+			let new_e = { e with exp_annot = others } in
+			relevant_logic_annots, e) in 
+	
+	new_e, relevant_logic_annots, invariant 
+
+
+let pop_relevant_logic_annots_expr e = 
+	let annots = e.Parser_syntax.exp_annot in 
+	let folds = List.filter (fun annot -> annot.annot_type == Parser_syntax.Fold) annots in 
+	match e.exp_stx with 
+	| Call (_, _) | New (_, _) -> 
+		(* Printf.printf "pop relevant annotations call with the %d folds\n" (List.length folds); *)
+		parse_logic_annots folds
+	| _ -> []
+	
+
 let get_fold_unfold_invariant_annots annots = 
 	let rec loop annots fold_unfold_cmds invariant = 
 		match annots with 
@@ -616,21 +661,20 @@ let rec get_predicate_definitions pred_defs e =
 
 let rec ground_fold_annotations folds e = 
 	
-	let rec filter_folds annots traversed_folds traversed_annots =
-		match annots with 
-		| [] -> traversed_folds, traversed_annots 
-		| annot :: rest_annots -> 
-			if (annot.annot_type = Parser_syntax.Fold) 
-				then filter_folds rest_annots (annot :: traversed_folds) traversed_annots
-				else filter_folds rest_annots traversed_folds (annot :: traversed_annots) in 
+	let cur_folds, rest_annots = List.partition (fun annot -> annot.annot_type = Parser_syntax.Fold) e.exp_annot in 
 		
-	let cur_folds, rest_annots = filter_folds e.exp_annot [] [] in
 	let next_folds = 
 		match e.exp_stx with
 		| New (_, _) | Call (_, _) -> []
 		| _ -> folds @ cur_folds in 
 	
 	let f = ground_fold_annotations next_folds in 
+	let f_empty_optional eo = 
+		(match eo with 
+		| None   -> None
+		| Some e -> 
+			let e', _ = ground_fold_annotations [] e in 
+			Some e') in 
 	
 	let f_2 e1 e2 = 
 		let e1', found_fun_call_1 = f e1 in 
@@ -671,8 +715,25 @@ let rec ground_fold_annotations folds e =
 			| Some e -> 
 				let e', found_fun_call = f e in 
 				if (found_fun_call) 
-					then (List.rev traversed_vdecls) @ ((v, Some e') :: vdecls), true
-					else f_var_decl rest_vdecls ((v, Some e') :: traversed_vdecls)) in 
+					then (
+						(* Printf.printf "ground_fold_annotations: Inside f_var_decl and I found an initialiser baby! 
+							I had a function call inside ME!!! And... I have %d folds to propagate to that poor function call!!\n"
+							(List.length next_folds); *)
+						(List.rev traversed_vdecls) @ ((v, Some e') :: vdecls), true
+					) else f_var_decl rest_vdecls ((v, Some e') :: traversed_vdecls)) in 
+	
+	let f_cases cases = 
+		List.map 
+			(fun (e, s) -> 
+				let e' = 
+					match e with 
+					| DefaultCase -> DefaultCase 
+					| Case e -> 
+						let e', _ = ground_fold_annotations [] e in 
+						Case e' in 
+				let s', _ = ground_fold_annotations [] s in 
+				(e', s'))
+			cases in
 	
 	let rec loop_obj_props props processed_props = 
 		match props with 
@@ -682,7 +743,7 @@ let rec ground_fold_annotations folds e =
 			if (found_fun_call)  
 				then true, ((List.rev processed_props) @ ((x, p, e') :: rest_props))
 				else loop_obj_props rest_props ((x, p, e) :: processed_props) in
- 			
+ 	
 	let new_exp_stx, has_inner_fun_call = 				
 		match e.exp_stx with
  		(* Literals *)
@@ -700,6 +761,7 @@ let rec ground_fold_annotations folds e =
 			CAccess (e1', e2'), found_fun_call
 		| New (e1, e2s) | Call (e1, e2s) -> e.exp_stx, true
 		| FunctionExp (b, f_name, args, fb) -> 
+			(* Printf.printf "I got a ****FUNCTION*** BABY!!!!\n"; *)
 			let fb', _ = ground_fold_annotations [] fb in 
 			FunctionExp (b, f_name, args, fb'), false
   	| Function (b, f_name, args, fb) ->
@@ -731,29 +793,90 @@ let rec ground_fold_annotations folds e =
 			Comma (e1', e2'), found_fun_call 
 	 	| VarDec vars -> 
 			let vdecls', found_fun_call = f_var_decl vars [] in 
+			(* Printf.printf "I processed a vardec. found_fun_call:%b\n" found_fun_call; *)
 			VarDec vdecls', found_fun_call 
 		| RegExp _	-> raise (Failure "construct not supported yet")
 		(* statements *) 
 		| Script (b, es) -> 
+			(* Printf.printf "I got a ****SCRIPT*** BABY!!!!\n"; *)
 			let es' = List.map (fun e -> let e', _ = ground_fold_annotations [] e in e') es in 
-			Script (b, es), false 
+			Script (b, es'), false 
 		| Block es -> 
+			(* Printf.printf "I got a ****BLOCK*** BABY!!!!\n"; *)
+			(* Printf.printf "ground_fold_annotations I found a block statement!!!\n"; *)
 			let es' = List.map (fun e -> let e', _ = ground_fold_annotations [] e in e') es in 
 			Block es', false 
-		| Skip _  | If (_, _, _) | While (_,_)
- 	 	| DoWhile (_, _) | Return _ | Try (_, _, _) | Throw _ | Continue _ 
-  	| Break _ | Label (_, _) | For (_, _, _, _) | Switch (_, _) 
-		| ForIn (_, _, _) | With (_, _) | Debugger -> e.exp_stx, false in 
+		| Skip -> Skip, false
+		| If (e, s1, s2) -> 
+			let e', _ = ground_fold_annotations [] e in 
+			let s1', _ = ground_fold_annotations [] s1 in 
+			let s2' = f_empty_optional s2 in
+			If (e', s1', s2'), false 
+		| While (e,s) ->
+			let e', _ = ground_fold_annotations [] e in 
+			let s', _ = ground_fold_annotations [] s in 
+			While (e', s'), false
+ 	 	| DoWhile (s, e) ->
+			let s', _ = ground_fold_annotations [] s in
+			let e', _ = ground_fold_annotations [] e in 
+			DoWhile (s', e'), false
+ 		| Return e -> 
+			let e' = f_empty_optional e in 
+			Return e', false
+		| Try (s1, None, s3) -> 
+			let s1', _ = ground_fold_annotations [] s1 in
+			let s3' = f_empty_optional s3 in 
+			Try (s1', None, s3'), false
+		| Try (s1, Some (x, s2), s3) -> 
+			let s1', _ = ground_fold_annotations [] s1 in
+			let s2', _ = ground_fold_annotations [] s2 in
+			let s3' = f_empty_optional s3 in 
+			Try (s1', Some (x, s2'), s3'), false
+		| Throw e -> 
+			let e', _ = ground_fold_annotations [] e in
+			Throw e', false
+		| Continue lab -> Continue lab, false
+		| Break lab -> Break lab, false 
+		| Label (lab, s) -> 
+			let s', _ = ground_fold_annotations [] s in
+			Label (lab, s'), false 
+		| For (e1, e2, e3, s) ->
+			let e1' = f_empty_optional e1 in 
+			let e2' = f_empty_optional e2 in 
+			let e3' = f_empty_optional e3 in 
+			let s', _ = ground_fold_annotations [] s in 
+			For (e1', e2', e3', s'), false
+		| Switch (e, s_cases) -> 
+			let e', _ = ground_fold_annotations [] e in 
+			let s_cases' = f_cases s_cases in 
+			Switch (e', s_cases'), false 
+		| ForIn (e1, e2, s) -> 
+			let e1', _ = ground_fold_annotations [] e1 in 
+			let e2', _ = ground_fold_annotations [] e2 in 
+			let s', _ = ground_fold_annotations [] s in 
+			ForIn (e1', e2', s'), false
+		| With (e, s) -> 
+			let e', _ = ground_fold_annotations [] e in 
+			let s', _ = ground_fold_annotations [] s in 
+			With (e', s'), false
+		| Debugger -> Debugger, false in 
 	
 	match new_exp_stx, has_inner_fun_call with 
 	| New (e1, e2s), _ | Call (e1, e2s), _ ->
+		(* Printf.printf "In the pooooor function call with %d propagated folds and %d original folds!!!!\n" 
+			(List.length folds) (List.length  cur_folds); *)
 		let new_e = { exp_offset = e.exp_offset; exp_stx = new_exp_stx; exp_annot = folds @ cur_folds @ rest_annots } in 
 		new_e, true 	
 	| _, false -> 
 		let new_e = { exp_offset = e.exp_offset; exp_stx = new_exp_stx; exp_annot = cur_folds @ rest_annots } in 
+		(* Printf.printf "I didn't propagate shit. but perhaps my submodules did. Here is the potentially new me:\n%s\n"
+			(Pretty_print.string_of_exp true new_e); *)
 		new_e, false 
 	| _, true -> 
+		(* Printf.printf "I am in the case in which I am deleting annotations from the node. I am deleting %d annotations and %d will remain\n"
+			(List.length cur_folds) (List.length rest_annots); *)
 		let new_e = { exp_offset = e.exp_offset; exp_stx = new_exp_stx; exp_annot = rest_annots } in 
+		(* Printf.printf "Here is the new exp withouth the folds that were deleted:\n%s\n" (Pretty_print.string_of_exp true new_e); *)
 		new_e, true 
 			
 
@@ -892,8 +1015,7 @@ closure_clarification_stmt cc_tbl fun_tbl vis_tbl f_id visited_funs prev_annot e
 	| Debugger -> ()
 
 
-let closure_clarification_top_level cc_tbl (fun_tbl : Js2jsil_constants.fun_tbl_type) vis_tbl proc_id e vis_fid args =
-	let old_fun_tbl = Hashtbl.create Js2jsil_constants.medium_tbl_size in
+let closure_clarification_top_level cc_tbl (fun_tbl : Js2jsil_constants.fun_tbl_type) (old_fun_tbl: Js2jsil_constants.pre_fun_tbl_type)  vis_tbl proc_id e vis_fid args =
 	let proc_tbl = Hashtbl.create Js2jsil_constants.medium_tbl_size in
 
 	let proc_vars = get_all_vars_f e [] in
@@ -917,7 +1039,7 @@ let closure_clarification_top_level cc_tbl (fun_tbl : Js2jsil_constants.fun_tbl_
 		Hashtbl.replace fun_tbl proc_id (proc_id, args, e, false, specs);
 	| None -> ()); 
 	let jsil_pred_def_tbl = JSIL_Logic_Utils.pred_def_tbl_from_list jsil_predicate_definitions in 
-	jsil_pred_def_tbl 
+	jsil_pred_def_tbl
 	
 
 

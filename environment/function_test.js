@@ -10,8 +10,6 @@ var y = 3;
 
 /**
 	@id  g
-	@rec false
-
 	@pre  (scope(y : #y) * (z == #z) * types(#y : $$number_type, #z : $$number_type))
 	@post (scope(y : #y) * (ret == (#z + #y)))
 */
@@ -20,8 +18,6 @@ var g = function (z) { return z + y };
 
 /**
 	@id  f
-	@rec false
-
 	@pre  ((u == #u) * types(#u : $$number_type))
 	@post ((ret == (#u + 1)))
 */

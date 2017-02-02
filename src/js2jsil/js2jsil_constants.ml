@@ -78,6 +78,7 @@ type loop_list_type = (string option * string * string option * bool) list
 type fun_tbl_type = (string, string * JSIL_Syntax.jsil_var list * Parser_syntax.exp * bool * (JSIL_Syntax.jsil_spec option)) Hashtbl.t
 type pre_fun_tbl_type = (string, string * JSIL_Syntax.jsil_var list * Parser_syntax.exp * (Parser_syntax.annotation list * string list * ((string, string) Hashtbl.t))) Hashtbl.t
 type cc_tbl_type = (string, (string, string) Hashtbl.t) Hashtbl.t
+type vis_tbl_type = (string, (string list)) Hashtbl.t
 
 type translation_context = {
 	tr_offset_converter:   int -> int;
