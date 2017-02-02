@@ -148,7 +148,7 @@ var insert = function (n) {
 				var tmp = next.insert (n);
 				this.next = tmp
 		}
-		/** @fold Queue(#this, #node_proto, #pri_q) */
+		/** @fold Queue(this, #node_proto, #pri_q) */
 		return this
 	}
 }
