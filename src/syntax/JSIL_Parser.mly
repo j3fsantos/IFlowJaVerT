@@ -320,8 +320,8 @@ cmd_list_target:
 	cmd_list = separated_nonempty_list(SCOLON, cmd_with_label_and_logic)
 	{
 		List.map
-			(fun (pre_cond, pre_logic_cmds, post_logic_cmds, lab, cmd) ->
-				({ line_offset = None; pre_cond; pre_logic_cmds; post_logic_cmds }, lab, cmd))
+			(fun (invariant, pre_logic_cmds, post_logic_cmds, lab, cmd) ->
+				({ line_offset = None; invariant; pre_logic_cmds; post_logic_cmds }, lab, cmd))
 			cmd_list
 	}
 ;

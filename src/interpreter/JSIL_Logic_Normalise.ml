@@ -686,13 +686,13 @@ let pre_normalise_invariants_proc preds body =
 	let len = Array.length body in
 	for i = 0 to (len - 1) do 
 		let metadata, cmd = body.(i) in 
-		match metadata.pre_cond with 
+		match metadata.invariant with 
 		| None -> () 
 		| Some a -> (
 				let unfolded_a = f_pre_normalize (Logic_Predicates.auto_unfold preds a) in
 				match unfolded_a with 
 				| [] -> raise (Failure "invariant unfolds to ZERO assertions")
-				| [ a ] -> body.(i) <- { metadata with pre_cond = Some a }, cmd 
+				| [ a ] -> body.(i) <- { metadata with invariant = Some a }, cmd 
 				| _ -> raise (Failure "invariant unfolds to MORE THAN ONE assertion")
 			)
 	done

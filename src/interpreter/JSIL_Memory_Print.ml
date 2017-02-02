@@ -228,7 +228,7 @@ let string_of_symb_exe_results results =
 
 
 let dot_of_search_info search_info proof_name =
-
+	let start_time = Sys.time () in
 	let string_of_search_node node =
 		let cmd_info_str  = if (not (node.cmd_index = (-1))) then
 			Printf.sprintf "CMD %d: %s\n" node.cmd_index node.cmd_str
@@ -284,4 +284,6 @@ let dot_of_search_info search_info proof_name =
 	let str_edges = dot_of_edges search_info.info_edges len in
 	(* Printf.printf "I finish printing the edges\n";  *)
 	let str = str ^ str_nodes ^ str_edges ^ "}" in
+	let end_time = Sys.time () in
+	JSIL_Syntax.update_statistics "unify_stores" (end_time -. start_time);
 	str

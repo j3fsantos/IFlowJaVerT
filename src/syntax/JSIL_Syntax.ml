@@ -242,17 +242,18 @@ type jsil_return_flag =
 	| Normal (** Normal return *)
 	| Error  (** Error return *)
 
-(* JSIL procedure specification *)
+(** {b Single JSIL specifications}. *)
 type jsil_single_spec = {
-	pre      : jsil_logic_assertion;
-	post     : jsil_logic_assertion;
-	ret_flag : jsil_return_flag
+	pre      : jsil_logic_assertion; (** Precondition *)
+	post     : jsil_logic_assertion; (** Postcondition *)
+	ret_flag : jsil_return_flag      (** Return flag ({!type:jsil_return_flag}) *)
 }
 
+(** {b Full JSIL specifications}. *)
 type jsil_spec = {
-	spec_name    : string;
-	spec_params  : jsil_var list;
-	proc_specs   : jsil_single_spec list
+	spec_name    : string;               (** Procedure/spec name *)
+	spec_params  : jsil_var list;        (** Procedure/spec parameters *) 
+	proc_specs   : jsil_single_spec list (** List of single specifications *)
 }
 
 (**/**)
@@ -271,37 +272,39 @@ let create_jsil_spec name params specs =
 	}
 (**/**)
 
-(* JSIL logic commands *)
+(** {b JSIL logic commands}. *)
 type jsil_logic_command =
-	| Fold       of jsil_logic_assertion
-	| Unfold     of jsil_logic_assertion
-	| RecUnfold  of string
-	| LogicIf    of jsil_logic_expr * (jsil_logic_command list) * (jsil_logic_command list)
+	| Fold       of jsil_logic_assertion                                                    (** Recursive fold *)
+	| Unfold     of jsil_logic_assertion                                                    (** Single unfold *)
+	| RecUnfold  of string                                                                  (** Recursive unfold of everything *)
+	| LogicIf    of jsil_logic_expr * (jsil_logic_command list) * (jsil_logic_command list) (** If-then-else *)
 
-(* JSIL command metadata *)
+(** {b JSIL metadata}. *)
 type jsil_metadata = {
-	line_offset     : int option;
-	pre_cond        : jsil_logic_assertion option;
-	pre_logic_cmds  : jsil_logic_command list;
-	post_logic_cmds : jsil_logic_command list
+	line_offset     : int option;                  (** Better not to know what this is for *)
+	invariant       : jsil_logic_assertion option; (** Invariant *)
+	pre_logic_cmds  : jsil_logic_command list;     (** Logic commands preceding the command *)
+	post_logic_cmds : jsil_logic_command list      (** Logic commands following the command *)
 }
 
-let empty_metadata = { line_offset = None; pre_cond = None; pre_logic_cmds = []; post_logic_cmds = [] }
+(**/**)
+let empty_metadata = { line_offset = None; invariant = None; pre_logic_cmds = []; post_logic_cmds = [] }
+(**/**)
 
-(* JSIL procedures *)
+(** {b JSIL procedures}. *)
 type jsil_procedure = {
-	proc_name    : string;
-	proc_body    : (jsil_metadata * jsil_cmd) array;
-	proc_params  : jsil_var list;
-	ret_label    : int option;
-	ret_var      : jsil_var option;
-	error_label  : int option;
-	error_var    : jsil_var option;
-	spec         : jsil_spec option;
+	proc_name    : string;                           (** Name *)
+	proc_body    : (jsil_metadata * jsil_cmd) array; (** List of commands *)
+	proc_params  : jsil_var list;                    (** Parameters *)
+	ret_label    : int option;                       (** Return index *)
+	ret_var      : jsil_var option;                  (** Return variable *)
+	error_label  : int option;                       (** Error index *)
+	error_var    : jsil_var option;                  (** Error variable *)
+	spec         : jsil_spec option;                 (** Specification *)
 }
 
-(* JSIL Program = Name : String --> Procedure *)
-type jsil_program = (string, jsil_procedure) Hashtbl.t
+(** {b JSIL Program}. *)
+type jsil_program = (string, jsil_procedure) Hashtbl.t 
 
 (**/**)
 

@@ -617,8 +617,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 	let js_char_offset = e.Parser_syntax.exp_offset in
 	let js_line_offset = tr_ctx.tr_offset_converter js_char_offset in
-	let metadata = { line_offset = Some js_line_offset; pre_cond = None; pre_logic_cmds = []; post_logic_cmds = [] } in
-	
+	let metadata = { line_offset = Some js_line_offset; invariant = None; pre_logic_cmds = []; post_logic_cmds = [] } in	
 	let annotate_cmds = annotate_cmds_top_level metadata in
 
 	let annotate_cmd = fun cmd lab -> annotate_cmd_top_level metadata (lab, cmd) in
@@ -2590,7 +2589,7 @@ and translate_statement tr_ctx e  =
 
 	let js_char_offset = e.Parser_syntax.exp_offset in
 	let js_line_offset = tr_ctx.tr_offset_converter js_char_offset in
-	let metadata = { line_offset = Some js_line_offset; pre_cond = None; pre_logic_cmds = []; post_logic_cmds = [] } in
+	let metadata = { line_offset = Some js_line_offset; invariant = None; pre_logic_cmds = []; post_logic_cmds = [] } in
 	
 	let e, fold_unfold_annots, invariant = Js_pre_processing.pop_relevant_logic_annots_stmt e in 
 	let fold_unfold_logic_cmds = JS_Logic_Syntax.js2jsil_logic_cmds fold_unfold_annots in 
@@ -2615,7 +2614,7 @@ and translate_statement tr_ctx e  =
 			(* Printf.printf "I am annotating %s with (un)folds baby:\n%s!!!\n" cmd_str logic_cmd_str; *)
 			let invariant_str : string = (match invariant with None -> "" | Some invariant -> JSIL_Print.string_of_logic_assertion invariant false) in 
 			(* Printf.printf "I am annotating %s with the following invariant:\n%s!!!\n" cmd_str invariant_str; *)
-			let new_metadata = { metadata with pre_logic_cmds = fold_unfold_logic_cmds; pre_cond = invariant } in
+			let new_metadata = { metadata with pre_logic_cmds = fold_unfold_logic_cmds; invariant = invariant } in
 			(new_metadata, lab, cmd) :: rest) in  	
 	
 	

@@ -463,7 +463,7 @@ let make_symb_exe_search_info node_info post_pruning_info spec_number =
 		new_search_info
 	end
 
-let udpdate_search_info search_info info_node vis_tbl =
+let update_search_info search_info info_node vis_tbl =
 	{
 		search_info with cur_node_info = info_node; vis_tbl = vis_tbl
 	}
