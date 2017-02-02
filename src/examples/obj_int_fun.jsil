@@ -897,6 +897,74 @@ with
 	err:	xret, elab;
 };
 
+
+
+(* **************** *)
+(* ABSTRACTEQUALITY *)
+(* **************** *)
+
+spec i__abstractEquality (v1, v2)
+	[[ (v1 == $$null) * (v2 == $$null) ]]
+    [[ (ret == $$t) ]]
+    normal
+
+proc i__abstractEquality (v1, v2) {
+			tv1 := typeOf(v1);
+			tv2 := typeOf(v2);
+
+			goto [(tv1 = tv2) or (tv1 <: tv2) or (tv2 <: tv1)] same diff;
+
+	same:	goto [(tv1 = $$undefined_type) or (tv1 = $$null_type) or
+	              (tv1 = $$boolean_type)   or (tv1 <: $$number_type) or
+	              (tv1 = $$string_type)    or (tv1 = $$object_type)] ieq oops;
+	ieq:	xret := (v1 = v2);
+			goto rlab;
+
+	diff:	goto [((tv1 = $$undefined_type) and (tv2 = $$null_type)) or
+			      ((tv1 = $$null_type) and (tv2 = $$undefined_type))] rt dns;
+
+	dns:	goto [(tv1 <: $$number_type) and (tv2 = $$string_type)] tn2 dsn;
+	tn2:	xret := "i__toNumber" (v2) with elab;
+			xret := "i__abstractEquality" (v1, xret) with elab;
+			goto rlab;
+
+	dsn:	goto [(tv1 = $$string_type) and (tv2 <: $$number_type)] tn1 s1b;
+	tn1:	xret := "i__toNumber" (v1) with elab;
+			xret := "i__abstractEquality" (xret, v2) with elab;
+			goto rlab;
+
+	s1b:	goto [tv1 = $$boolean_type] tn1 s2b;
+	s2b:	goto [tv2 = $$boolean_type] tn2 s2o;
+
+	s2o:	goto [((tv1 <: $$number_type) or (tv1 = $$string_type)) and (tv2 = $$object_type)] tp2 s1o;
+	tp2:	xret := "i__toPrimitive" (v2) with elab;
+			xret := "i__abstractEquality" (v1, xret) with elab;
+			goto rlab;
+
+	s1o:	goto [(tv1 = $$object_type) and ((tv2 <: $$number_type) or (tv2 = $$string_type))] tp1 rf;
+	tp1:	xret := "i__toPrimitive" (v1) with elab;
+			xret := "i__abstractEquality" (xret, v2) with elab;
+			goto rlab;
+
+	rt:		xret := $$t;
+			goto rlab;
+
+	rf:		xret := $$f;
+			goto rlab;
+
+	oops:	xret := "AbstractEquality: This should not happen.";
+			goto elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+
 (* ********************
    *** i__toInteger ***
    ******************** *)

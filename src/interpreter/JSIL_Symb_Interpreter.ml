@@ -876,7 +876,9 @@ and symb_evaluate_next_cmd_2 s_prog proc spec search_info symb_state cur next  =
 					| None -> raise (Failure "back edges need to point to commands annotated with invariants")
 					| Some a ->
 						(* check if the current symbolic state entails the invariant *)
+						Printf.printf "MARICA, NO ME ABUSES MAS LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
 						let new_symb_state, _ = JSIL_Logic_Normalise.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
+						let new_symb_state, _ = simplify_for_your_legacy (DynArray.create()) new_symb_state in
 						(match (Structural_Entailment.fully_unify_symb_state new_symb_state symb_state spec.n_lvars !js) with
 						| Some _, _ -> ()
 						| None, msg -> raise (Failure msg))
@@ -888,7 +890,9 @@ and symb_evaluate_next_cmd_2 s_prog proc spec search_info symb_state cur next  =
 						match (metadata.pre_cond) with
 						| None -> symb_state
 						| Some a ->
+							Printf.printf "MARICA. NO ME ABUSES MAS NO LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
 							let new_symb_state, _ = JSIL_Logic_Normalise.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
+							let new_symb_state, _ = simplify_for_your_legacy (DynArray.create()) new_symb_state in
 							(match (Structural_Entailment.fully_unify_symb_state new_symb_state symb_state spec.n_lvars !js) with
 							| Some _, _ -> new_symb_state
 							| None, msg -> raise (Failure msg)) in

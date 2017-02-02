@@ -148,8 +148,11 @@ let make_unresolvable_ref_test x =
 
 let make_get_value_call x err =
 	(* x_v := getValue (x) with err *)
-	let x_v = val_var_of_var x in
-	(x_v, SLCall (x_v, (Literal (String getValueName)), [ x ], Some err))
+	match is_get_value_var x with 
+	| None -> 
+		let x_v = val_var_of_var x in
+		(x_v, SLCall (x_v, (Literal (String getValueName)), [ x ], Some err))
+	| Some x_v -> (x_v, SLBasic SSkip)
 
 let make_to_number_call x x_v err =
 	let x_n = number_var_of_var x in
@@ -2596,7 +2599,11 @@ and translate_statement tr_ctx e  =
 		| None -> None
 		| Some invariant -> 
 			Printf.printf "I found a fucking invariant!!!!!\n";
-			Some (JS_Logic_Syntax.js2jsil_logic_top_level_post invariant cur_var_tbl vis_tbl old_fun_tbl tr_ctx.tr_fid)) in 
+			Printf.printf "Some more data: %s\n" tr_ctx.tr_fid;
+			let scope_vars_inv = JS_Logic_Syntax.get_scope_vars invariant in 
+			let filtered_cur_var_tbl = JS_Logic_Syntax.filter_var_to_fid_tbl cur_var_tbl scope_vars_inv tr_ctx.tr_fid in
+			let jsil_invariant = JS_Logic_Syntax.js2jsil_logic_top_level_post invariant true filtered_cur_var_tbl vis_tbl old_fun_tbl tr_ctx.tr_fid in 
+			Some (LStar (jsil_invariant, JS_Logic_Syntax.errors_assertion))) in 
 	
 	let annotate_first_cmd annotated_cmds =
 		Printf.printf "inside annotate_first_cmd!!!!\n";  

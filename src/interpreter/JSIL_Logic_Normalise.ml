@@ -681,6 +681,26 @@ let normalise_postcondition a subst (lvars : string list) pre_gamma : symbolic_s
 	symb_state, a_vars
 
 
+let pre_normalise_invariants_proc preds body = 
+	let f_pre_normalize a_list = List.concat (List.map pre_normalize_assertion a_list) in
+	let len = Array.length body in
+	for i = 0 to (len - 1) do 
+		let metadata, cmd = body.(i) in 
+		match metadata.pre_cond with 
+		| None -> () 
+		| Some a -> (
+				let unfolded_a = f_pre_normalize (Logic_Predicates.auto_unfold preds a) in
+				match unfolded_a with 
+				| [] -> raise (Failure "invariant unfolds to ZERO assertions")
+				| [ a ] -> body.(i) <- { metadata with pre_cond = Some a }, cmd 
+				| _ -> raise (Failure "invariant unfolds to MORE THAN ONE assertion")
+			)
+	done
+	
+
+let pre_normalise_invariants_prog preds prog = 
+	Hashtbl.iter (fun proc_name proc -> pre_normalise_invariants_proc preds proc.proc_body) prog
+			
 
 let normalise_single_spec preds spec =
 	print_time_debug"  normalise_single_spec:";

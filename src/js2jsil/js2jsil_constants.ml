@@ -287,10 +287,21 @@ let fresh_anonymous_eval () : string =
 let fresh_catch_anonymous_eval () : string =
   fresh_name "___$eval___catch_anonymous_"
 
-
 let fresh_named_eval n : string =
   fresh_name ("___$eval___" ^ n ^ "_")
 	
+	
+let is_get_value_var x = 
+	match x with 
+	| Var x_name ->
+		let x_name_len = String.length x_name in 
+		Printf.printf "inside is_get_value_var with %s\n" x_name; 
+		if ((x_name_len > 2) && ((String.sub x_name (x_name_len - 2) 2) = "_v"))
+			then (
+				Printf.printf "I am not creating a useless getValue call!!!\n";
+				Some (String.sub x_name 0 (x_name_len - 2))
+			) else None 
+	| _ -> None
 
 let val_var_of_var x =
 	(match x with

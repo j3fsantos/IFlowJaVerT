@@ -550,7 +550,7 @@ let process_js_logic_annotations (vis_tbl : (string, string list) Hashtbl.t) fun
 			let new_var_to_fid_tbl = JS_Logic_Syntax.filter_var_to_fid_tbl var_to_fid_tbl scope_vars fun_name in
 			
 			let pre_jsil = JS_Logic_Syntax.js2jsil_logic_top_level_pre pre_js new_var_to_fid_tbl vis_tbl fun_tbl fun_name in
-			let post_jsil = JS_Logic_Syntax.js2jsil_logic_top_level_post post_js new_var_to_fid_tbl vis_tbl fun_tbl fun_name in
+			let post_jsil = JS_Logic_Syntax.js2jsil_logic_top_level_post post_js false new_var_to_fid_tbl vis_tbl fun_tbl fun_name in
 			let new_spec = JSIL_Syntax.create_single_spec pre_jsil post_jsil ret_flag in
 			new_spec)
 		preconditions
