@@ -137,6 +137,7 @@ var insert = function (n) {
 				Queue(#this_next, #node_proto, #max_pri_next) *
 				Node(#n, #pri, #val, $$null, #node_proto) *
 				NodePrototype(#node_proto, #push_loc, #insert_loc) *
+				(#this_pri <# #pri_q) * 
 				(#pri <=# #this_pri) * types(#pri_q : $$number_type, #this: $$object_type))
 
 			@unfold Queue(#this_next, #node_proto, #max_pri_next) */
