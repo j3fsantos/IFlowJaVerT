@@ -4547,7 +4547,15 @@ let generate_proc offset_converter e fid params cc_table vis_fid spec =
 
 let js2jsil e offset_converter for_verification =
 	let main = "main" in
+	
+	Printf.printf "AST after grounding the annotations:\n%s\n\n" 
+		(Pretty_print.string_of_exp_syntax e.Parser_syntax.exp_stx); 
+		
 	let e, _ = Js_pre_processing.ground_fold_annotations [] e in
+	
+	Printf.printf "AST after grounding the annotations:\n%s\n\n" 
+		(Pretty_print.string_of_exp_syntax e.Parser_syntax.exp_stx); 
+	
 	Js_pre_processing.test_early_errors e;
 	let e : Parser_syntax.exp = Js_pre_processing.add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous [] e in
 	let predicates = Js_pre_processing.closure_clarification_top_level cc_tbl fun_tbl old_fun_tbl vis_tbl main e [ main ] [] in

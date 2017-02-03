@@ -719,7 +719,7 @@ let rec ground_fold_annotations folds e =
 						(* Printf.printf "ground_fold_annotations: Inside f_var_decl and I found an initialiser baby! 
 							I had a function call inside ME!!! And... I have %d folds to propagate to that poor function call!!\n"
 							(List.length next_folds); *)
-						(List.rev traversed_vdecls) @ ((v, Some e') :: vdecls), true
+						(List.rev traversed_vdecls) @ ((v, Some e') :: rest_vdecls), true
 					) else f_var_decl rest_vdecls ((v, Some e') :: traversed_vdecls)) in 
 	
 	let f_cases cases = 
