@@ -618,13 +618,6 @@ let str_of_assertion_list a_list =
 			"\t"
 			a_list
 
-
-let string_of_logic_command lcmd escape_string =
-	match lcmd with
-	| Fold a    -> "fold(" ^ (string_of_logic_assertion a escape_string) ^ ")"
-	| Unfold a  -> "unfold(" ^ (string_of_logic_assertion a escape_string) ^ ")"
-
-
 let string_of_var_list var_lst =
 	List.fold_left (fun ac v -> if (ac = "") then v else (ac ^ ", " ^ v)) "" var_lst
 

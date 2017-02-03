@@ -63,7 +63,7 @@ let create_info_node_from_cmd search_info symb_state cmd i =
 
 
 let create_info_node_from_lcmd search_info symb_state lcmd =
-	let cmd_str = JSIL_Print.string_of_logic_command lcmd true in
+	let cmd_str = JSIL_Print.string_of_lcmd lcmd in
 	create_info_node_aux2 symb_state search_info cmd_str None
 
 

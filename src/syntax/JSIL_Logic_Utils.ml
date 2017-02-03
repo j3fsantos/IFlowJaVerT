@@ -1348,5 +1348,32 @@ let pred_def_tbl_from_list pred_defs =
 		pred_defs; 
 	pred_def_tbl
 
-
-
+(* Unfolding of macros *)
+let rec unfold_macro (macro_name : string) (params_vals : jsil_logic_expr list) : jsil_logic_command =
+	if (Hashtbl.mem macro_table macro_name) then
+		(let macro = Hashtbl.find macro_table macro_name in
+		let params = macro.mparams in
+		let lparo = List.length params in
+		let lparv = List.length params_vals in
+		if (lparo <> lparv) then
+			raise (Failure (Printf.sprintf "Macro %s called with incorrect number of parameters: %d instead of %d." macro.mname lparv lparo))
+		else
+			let subst = Hashtbl.create 17 in
+			List.iter2 (fun x y -> Hashtbl.add subst x y) params params_vals;
+			macro_subst macro.mdefinition subst)
+		else
+			raise (Failure (Printf.sprintf "Macro %s not found in macro table." macro_name))
+and
+macro_subst (lcmd : jsil_logic_command) (subst : (string, jsil_logic_expr) Hashtbl.t) : jsil_logic_command = 
+match lcmd with
+| Fold a -> let sa = assertion_substitution a subst true in Fold sa
+| Unfold a -> let sa = assertion_substitution a subst true in Unfold sa
+| RecUnfold s -> RecUnfold s
+| LogicIf (lexpr, lcmds1, lcmds2) ->
+		let slexpr = lexpr_substitution lexpr subst true in
+		let slcmds1 = List.map (fun x -> macro_subst x subst) lcmds1 in
+		let slcmds2 = List.map (fun x -> macro_subst x subst) lcmds2 in
+		LogicIf (slexpr, slcmds1, slcmds2)
+| Macro (name, params_vals) ->
+		let sparams_vals = List.map (fun x -> lexpr_substitution x subst true) params_vals in
+		unfold_macro name sparams_vals
