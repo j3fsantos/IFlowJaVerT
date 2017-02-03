@@ -257,8 +257,8 @@
     (cons '/ /)
     (cons '% modulo)
     (cons '<: jsil-subtype)
-    (cons 'concat string-append)
-    (cons '++ (lambda (x y) (append x (cdr y))))
+    (cons '++ string-append)
+    (cons '@ (lambda (x y) (append x (cdr y))))
     (cons 'and (lambda (x y) (and x y)))
     (cons 'or  (lambda (x y) (or  x y)))
     (cons '& (lambda (x y) (bitwise-and (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
@@ -423,6 +423,22 @@
   (cond [(null? prop-val-list) '()]
         [(equal? (car (car prop-val-list)) prop) (cdr prop-val-list)]
         [ else (cons (car prop-val-list) (delete-prop-val (cdr prop-val-list) prop))]))
+
+
+;; Delete object
+(define (heap-delete-object heap loc)
+  (define (delete-object-pulp h-pulp loc)
+    (cond
+      [(null? h-pulp) '()]
+      [(equal? (car (car h-pulp)) loc)
+       (println (format "Deleting the object ~v" (cdr (car h-pulp))))
+       (cdr h-pulp)]
+      [ else
+        (cons (car h-pulp) (delete-object-pulp (cdr h-pulp) loc))]))
+   (let ((new-heap-pulp (delete-object-pulp (unbox heap) loc)))
+     (set-box! heap new-heap-pulp)))
+
+
 
 ;;
 ;; Heap cell
