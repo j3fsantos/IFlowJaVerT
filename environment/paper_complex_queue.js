@@ -1,6 +1,5 @@
 /**
 
-
 @pred Object (l, proto) :
 	types (l : $$object_type) *
 	((l, "@proto") -> proto) *
@@ -27,12 +26,10 @@
     types(pri : $$number_type, val : $$string_type, node_proto : $$object_type);
 
 @pred Queue(q, node_proto, max_pri) :
-	(q == $$null),
-
-	Node(q, #pri, #val, #next, node_proto) *
-	Queue(#next, node_proto, #pri) *
-	(#pri <=# max_pri) *
-	types(node_proto : $$object_type, #pri : $$number_type, max_pri : $$number_type);
+	(q == $$null) * (max_pri == 0) * types(max_pri : $$number_type),
+	Node(q, max_pri, #val, #next, node_proto) * (0 <# max_pri) * 
+	Queue(#next, node_proto, #pri) * (#pri <=# max_pri) *
+	types(q : $$object_type, node_proto : $$object_type, #pri : $$number_type, max_pri : $$number_type);
 */
 
 var counter = 0;
@@ -59,41 +56,53 @@ var Node = function (pri, val) {
 
 /**
 	@id  push
-
+	
 	@pre (
-		(q == #q) *
-		Node(this, #pri, #val, $$null, #node_proto) *
-		Queue(#q, #node_proto, #pri_q) *
+		(q == #q) * (#q == $$null) * 
+		Node(this, #npri, #nval, $$null, #node_proto) * (0 <# #npri) *
+		Queue(#q, #node_proto, #pri_q) * 
 		NodePrototype(#node_proto, #push_loc, #insert_loc) *
-		(#pri <# #pri_q) * types(#pri_q : $$number_type)
+		types(#npri : $$number_type, #pri_q : $$number_type)
 	)
 	@post (
-		Queue(#q, #node_proto, #pri_q) * (ret == #q) *
+		Queue(this, #node_proto, #npri) * (ret == this) *
+		NodePrototype(#node_proto, #push_loc, #insert_loc)
+	)
+	
+	@pre (
+		(q == #q) * (! (#q == $$null)) * 
+		Node(this, #npri, #nval, $$null, #node_proto) * (0 <# #npri) *
+		Queue(#q, #node_proto, #pri_q) * 
+		NodePrototype(#node_proto, #push_loc, #insert_loc) *
+		(#npri <# #pri_q) * types(#npri : $$number_type, #pri_q : $$number_type)
+	)
+	@post (
+		Queue(#q, #node_proto, #pri_q) * (ret == #q) * types (#q : $$object_type) *
 		NodePrototype(#node_proto, #push_loc, #insert_loc)
 	)
 
 	@pre (
 		(q == #q) *
-		Node(this, #pri, #val, $$null, #node_proto) *
+		Node(this, #npri, #val, $$null, #node_proto) * (0 <# #npri) *
 		Queue(#q, #node_proto, #pri_q) *
 		NodePrototype(#node_proto, #push_loc, #insert_loc) *
-		(#pri_q <=# #pri) * types(#pri_q : $$number_type)
+		(#pri_q <=# #npri) * types(#npri : $$number_type, #pri_q : $$number_type)
 	)
 	@post (
-		Queue(this, #node_proto, #pri) * (ret == this) *
+		Queue(this, #node_proto, #npri) * (ret == this) *
 		NodePrototype(#node_proto, #push_loc, #insert_loc)
 	)
 */
 Node.prototype.push = function (q) {
 	/** @unfold Queue(#q, #node_proto, #pri_q) */
 	if (q === null) {
-		/** @fold Queue(this, #node_proto, #pri) */
+		/** @fold Queue(this, #node_proto, #npri) */
 		return this
 	}
 	else
 		if (this.pri >= q.pri) {
 			this.next = q;
-			/** @fold Queue(this, #node_proto, #pri) */
+			/** @fold Queue(this, #node_proto, #npri) */
 			return this
 		}
 		else
@@ -112,10 +121,10 @@ Node.prototype.push = function (q) {
 	@pre (
 		(this == #this) * (! (#this == $$null)) * (n == #n) *
 		Queue(#this, #node_proto, #pri_q) *
-	    Node(#n, #pri, #val, $$null, #node_proto) *
+	    Node(#n, #npri, #nval, $$null, #node_proto) *
 		NodePrototype(#node_proto, #push_loc, #insert_loc) *
-		(#pri <=# #pri_q) *
-		types(#pri : $$number_type, #pri_q : $$number_type, #this: $$object_type, #n : $$object_type)
+		(#npri <# #pri_q) * (0 <# #npri) * (0 <# #pri_q) *
+		types(#npri : $$number_type, #pri_q : $$number_type, #this: $$object_type, #n : $$object_type)
 	)
 	@post (
 		Queue(#this, #node_proto, #pri_q) * (ret == #this) *
@@ -125,25 +134,27 @@ Node.prototype.push = function (q) {
 */
 Node.prototype.insert = function (n) {
 	/** @unfold Queue(this, #node_proto, #pri_q) */
-	if (n.pri > this.pri) {
+	if (n.pri >= this.pri) {
 		n.next = this;
-		/** @fold Queue(#n, #node_proto, #pri) */
+		/** @fold Queue(#n, #node_proto, #npri) */
 		return n
 	} else {
 
 		/** @invariant (
 			scope(n : #n) *
 			(this == #this) * (! (#this == $$null)) *
-			Node(#this, #this_pri, #this_val, #this_next, #node_proto) *
-			Queue(#this_next, #node_proto, #max_pri_next) *
-			Node(#n, #pri, #val, $$null, #node_proto) *
+			Node(#this, #pri_q, #this_val, #this_next, #node_proto) *
+			Queue(#this_next, #node_proto, #this_next_pri) *
+			Node(#n, #npri, #nval, $$null, #node_proto) *
 			NodePrototype(#node_proto, #push_loc, #insert_loc) *
-			(#this_pri <=# #pri_q) * 
-			(#pri <=# #this_pri) * 
+			(#this_next_pri <=# #pri_q) * 
+			(#npri <=# #pri_q) * 
+			(0 <# #npri) *
+			(0 <# #pri_q) *
 			scope(n: #n) * 
 			types(#this : $$object_type, #this_pri : $$number_type, #this_val : $$string_type, 
-			      #node_proto : $$object_type, #max_pri_next : $$number_type,
-			      #n : $$object_type, #pri : $$number_type, #val : $$string_type, #push_loc : $$object_type, 
+			      #node_proto : $$object_type, #this_next_pri : $$number_type,
+			      #n : $$object_type, #npri : $$number_type, #nval : $$string_type, #push_loc : $$object_type, 
 			      #pri_q : $$number_type, #insert_loc : $$object_type))
 
 			@unfold Queue(#this_next, #node_proto, #max_pri_next) */

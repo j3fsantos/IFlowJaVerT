@@ -984,7 +984,7 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 				(fun ac t1 t2 ->
 					if (not ac) then false else
 					match t1, t2 with
-					| Some t1, Some t2 -> t1 = t2
+					| Some t1, Some t2 -> types_leq t1 t2 || types_leq t2 t1
 					| _, _ -> true) true store_0_var_types store_1_var_types in
 		(* Printf.printf "GAMMA_OLD - STEP 2:\n%s\n" (JSIL_Memory_Print.string_of_gamma gamma_old);	*)
 		store_0_var_types, store_1_var_types, stores_are_type_compatible in

@@ -263,7 +263,7 @@ let is_sensible_subst subst gamma_source gamma_target =
 			let var_type = gamma_get_type gamma_source var in
 			(match lexpr_type, var_type with
 			| Some le_type, Some v_type ->
-			  if (le_type = v_type) then () else raise (Failure (Printf.sprintf "Type mismatch: %s %s"
+			  if (types_leq le_type v_type || types_leq v_type le_type) then () else raise (Failure (Printf.sprintf "Type mismatch: %s %s"
 			  	(JSIL_Print.string_of_type le_type) (JSIL_Print.string_of_type v_type)))
 			| _, _ -> ()))
 		subst;
