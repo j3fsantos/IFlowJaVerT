@@ -139,6 +139,7 @@ Node.prototype.insert = function (n) {
 			NodePrototype(#node_proto, #push_loc, #insert_loc) *
 			(#this_pri <=# #pri_q) * 
 			(#pri <=# #this_pri) * 
+			scope(n: #n) * 
 			types(#this : $$object_type, #this_pri : $$number_type, #this_val : $$string_type, 
 			      #node_proto : $$object_type, #max_pri_next : $$number_type,
 			      #n : $$object_type, #pri : $$number_type, #val : $$string_type, #push_loc : $$object_type, 
