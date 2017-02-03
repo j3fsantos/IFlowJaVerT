@@ -415,9 +415,10 @@
       [(equal? (car (car h-pulp)) loc)
        (cons (cons loc (delete-prop-val (cdr (car h-pulp)) prop)) (cdr h-pulp))]
       [ else
-        (cons (car h-pulp) (heap-delete-cell (cdr h-pulp) loc prop))]))
-   (let ((new-heap-pulp (delete-cell-pulp (unbox heap) loc prop)))
-     (set-box! heap new-heap-pulp)))
+        (cons (car h-pulp) (delete-cell-pulp (cdr h-pulp) loc prop))]))
+  (println (format "inside heap-delete-cell - before doing all the work with ~v ~v to delete" loc prop))
+  (let ((new-heap-pulp (delete-cell-pulp (unbox heap) loc prop)))
+    (set-box! heap new-heap-pulp)))
 
 (define (delete-prop-val prop-val-list prop)
   (cond [(null? prop-val-list) '()]
