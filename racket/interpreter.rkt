@@ -1,4 +1,4 @@
-#lang s-exp rosette
+#lang rosette
 
 (require (file "mem_model.rkt"))
 (require (file "wp.rkt"))
