@@ -904,8 +904,13 @@ with
 (* **************** *)
 
 spec i__abstractEquality (v1, v2)
+
 	[[ (v1 == $$null) * (v2 == $$null) ]]
     [[ (ret == $$t) ]]
+    normal;
+    
+	[[ types(v1 : $$object_type, v2 : $$null_type) ]]
+    [[ (ret == $$f) ]]
     normal
 
 proc i__abstractEquality (v1, v2) {

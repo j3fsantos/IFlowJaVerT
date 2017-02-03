@@ -132,6 +132,7 @@ Node.prototype.insert = function (n) {
 	} else {
 
 		/** @invariant (
+			scope(n : #n) *
 			(this == #this) * (! (#this == $$null)) *
 			Node(#this, #this_pri, #this_val, #this_next, #node_proto) *
 			Queue(#this_next, #node_proto, #max_pri_next) *
