@@ -1029,7 +1029,8 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	    	if (l1 = l2) 
 	    		then (DynArray.delete p_formulae n; go_through_pfs rest n)
 	    		else pfs_false "Literals."
-		| LEq (LVar v, le) ->
+		| LEq (LVar v, le) 
+		| LEq (le, LVar v) ->
 		   (match (SS.mem v exists) with
 		   | false -> go_through_pfs rest (n + 1)
 		   | true ->
