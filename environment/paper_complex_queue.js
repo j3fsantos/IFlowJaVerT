@@ -1,5 +1,6 @@
 /**
 
+
 @pred Object (l, proto) :
 	types (l : $$object_type) *
 	((l, "@proto") -> proto) *
