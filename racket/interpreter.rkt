@@ -119,6 +119,7 @@
               (prop-expr (third bcmd))
               (loc-val (run-expr loc-expr store))
               (prop-val (run-expr prop-expr store)))
+         ;;(println (format "the current heap: ~v" heap))
          (heap-delete-cell heap loc-val prop-val)
          #t)] ;; (to-jsil-bool #t))]
       ;;
