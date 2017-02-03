@@ -121,6 +121,14 @@
          (heap-delete-cell heap loc-val prop-val)
          #t)] ;; (to-jsil-bool #t))]
       ;;
+      ;; ('delete-object e)
+      [(eq? cmd-type 'delete-object)
+       (let* ((loc-expr (second bcmd))
+              (loc-val (run-expr loc-expr store)))
+         (println (format "deleting the object: ~v" loc-val))
+         (heap-delete-object heap loc-val)
+         #t)] 
+      ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))
 
 (define goto-limit 100)
