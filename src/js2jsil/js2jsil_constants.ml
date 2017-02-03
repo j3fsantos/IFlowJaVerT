@@ -343,3 +343,5 @@ let fresh_err_label : (unit -> string) = fresh_sth "err_"
 
 let fresh_ret_label : (unit -> string) = fresh_sth "ret_"
 
+let macro_GPVF_name = "GPVFold"
+let macro_GPVU_name = "GPVUnfold"

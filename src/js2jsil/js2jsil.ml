@@ -559,6 +559,21 @@ let get_args cmd =
 
 
 let annotate_cmd_top_level metadata (lab, cmd) =
+	
+	let fold_unfold_pi_code_macro args = 
+		let arg =
+			(match args with
+			| Some args ->  List.nth args 0
+			| None -> raise (Failure "No argument passed to GetPutValue folding.")) in
+		(match arg with
+		| Literal n -> [], []
+		| _ ->
+			let arg = JSIL_Logic_Utils.expr_2_lexpr arg in
+			let fold_args = [arg; LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()) ] in
+			let fold_macro = Macro (Js2jsil_constants.macro_GPVF_name, fold_args) in
+			let unfold_macro = Macro (Js2jsil_constants.macro_GPVU_name, [ arg ]) in
+			[ fold_macro ], [ unfold_macro ]) in
+	
 	let fold_unfold_pi_code args =
 		let arg =
 			(match args with
@@ -583,13 +598,13 @@ let annotate_cmd_top_level metadata (lab, cmd) =
 
 	if (is_get_value_call cmd) then (
 		print_debug "I AM CREATING a GETVALUE ANNOTATION!!!!!";
-		let fold_lcmds, unfold_lcmds = fold_unfold_pi_code (get_args cmd) in
+		let fold_lcmds, unfold_lcmds = fold_unfold_pi_code_macro (get_args cmd) in
 		let new_metadata =
 			{ metadata with pre_logic_cmds = fold_lcmds; post_logic_cmds = unfold_lcmds } in
 		(new_metadata, lab, cmd)
 	) else if (is_put_value_call cmd) then (
 		print_debug "I AM CREATING a PUTVALUE ANNOTATION!!!!!";
-		let fold_lcmds, unfold_lcmds = fold_unfold_pi_code (get_args cmd) in
+		let fold_lcmds, unfold_lcmds = fold_unfold_pi_code_macro (get_args cmd) in
 		let new_metadata =
 			{ metadata with pre_logic_cmds = fold_lcmds; post_logic_cmds = unfold_lcmds } in
 		(new_metadata, lab, cmd)

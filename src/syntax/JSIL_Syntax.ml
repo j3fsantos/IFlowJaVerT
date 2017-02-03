@@ -278,6 +278,7 @@ type jsil_logic_command =
 	| Unfold     of jsil_logic_assertion                                                    (** Single unfold *)
 	| RecUnfold  of string                                                                  (** Recursive unfold of everything *)
 	| LogicIf    of jsil_logic_expr * (jsil_logic_command list) * (jsil_logic_command list) (** If-then-else *)
+	| Macro      of string * (jsil_logic_expr list)                                         (** Macro *)
 
 (** {b JSIL metadata}. *)
 type jsil_metadata = {

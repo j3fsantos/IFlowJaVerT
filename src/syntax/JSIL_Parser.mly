@@ -565,8 +565,14 @@ logic_cmd_target:
 			then_lcmds = separated_list(SCOLON, logic_cmd_target);
 			CRBRACKET;
 	  { LogicIf (le, then_lcmds, [])}
+	| macro = macro_target;
+		{ let (name, params) = macro in Macro (name, params) }
 ;
 
+
+macro_target:
+ | name = VAR; LBRACE; params = separated_list(COMMA, lexpr_target); RBRACE
+	 { (name, params) }
 
 spec_target:
 (* spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *)

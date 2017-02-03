@@ -272,6 +272,9 @@ let rec string_of_lcmd lcmd =
 			then "if (" ^ le_str ^ ") then { " ^ then_lcmds_str ^ " }"
 			else "if (" ^ le_str ^ ") then { " ^ then_lcmds_str ^ " } else { " ^  else_lcmds_str ^ " }" in
 		ret
+	| Macro (name, lparams) -> 
+		let lparams_str = String.concat ", " (List.map (fun e -> string_of_logic_expression e false) lparams) in
+		name ^ "(" ^ lparams_str ^ ")"
 
 (** JSIL logic predicates *)
 let rec string_of_predicate predicate =
