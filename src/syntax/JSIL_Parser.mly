@@ -172,6 +172,7 @@ open JS_Logic_Syntax
 %token ERR
 (* Others *)
 %token IMPORT
+%token MACRO
 (* Separators *)
 %token COMMA
 %token COLON
@@ -222,12 +223,14 @@ open JS_Logic_Syntax
 %type <JS_Logic_Syntax.js_logic_predicate> js_pred_target
 %type <JSIL_Syntax.jsil_logic_assertion> top_level_assertion_target
 %type <JS_Logic_Syntax.js_logic_assertion> top_level_js_assertion_target
+%type <JSIL_Syntax.jsil_logic_macro> macro_target
 %start main_target
 %start param_list_FC_target
 %start pred_spec_target
 %start top_level_assertion_target
 %start top_level_js_assertion_target
 %start js_pred_target
+%start macro_target
 %%
 
 (********* JSIL *********)
@@ -569,6 +572,14 @@ logic_cmd_target:
 		{ let (name, params) = macro in Macro (name, params) }
 ;
 
+macro_target: 
+	MACRO; COLON; head = macro_head_def_target; COLON; command = logic_cmd_target; SCOLON
+  { let (name, params) = head in
+		{ mname = name; mparams = params; mdefinition = command } } 
+
+macro_head_def_target:
+ | name = VAR; LBRACE; params = separated_list(COMMA, VAR); RBRACE
+	 { (name, params) }
 
 macro_head_target:
  | name = VAR; LBRACE; params = separated_list(COMMA, lexpr_target); RBRACE

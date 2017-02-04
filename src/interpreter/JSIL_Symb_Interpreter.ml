@@ -697,10 +697,10 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 		
 	| Macro (name, param_vals) ->
 			let actual_command = unfold_macro name param_vals in 
-			print_debug (Printf.sprintf ("Unfolded macro: %s(%s) -> %s") 
+			(* print_debug (Printf.sprintf ("Unfolded macro: %s(%s) -> %s") 
 				name
 				(String.concat ", " (List.map (fun x -> JSIL_Print.string_of_logic_expression x false) param_vals))
-				(JSIL_Print.string_of_lcmd actual_command));
+				(JSIL_Print.string_of_lcmd actual_command)); *)
 					symb_evaluate_logic_cmd s_prog actual_command symb_state subst spec_vars
 	)
 and
@@ -1026,7 +1026,7 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info =
 	TODO: Construct call graph, do dfs, do in that order
 *)
 let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
-	Macros.setup_macros ();
+	Macros.setup_internal_macros ();
 	(* Normalise predicate definitions *)
 	let n_pred_defs = JSIL_Logic_Normalise.normalise_predicate_definitions pred_defs in
 	(* Construct corresponding extended JSIL program *)

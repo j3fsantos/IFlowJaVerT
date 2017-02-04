@@ -175,6 +175,7 @@ rule read = parse
 	| "err"                { JSIL_Parser.ERR       }
 (* Others *)
 	| "import"             { JSIL_Parser.IMPORT    }
+	| "macro"              { JSIL_Parser.MACRO     }
 (* Separators *)
 	| "(*"                 { read_comment lexbuf   }
 	| ','                  { JSIL_Parser.COMMA     }
