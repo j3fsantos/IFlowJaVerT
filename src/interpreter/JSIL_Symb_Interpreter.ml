@@ -1026,7 +1026,6 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info =
 	TODO: Construct call graph, do dfs, do in that order
 *)
 let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
-	Macros.setup_internal_macros ();
 	(* Normalise predicate definitions *)
 	let n_pred_defs = JSIL_Logic_Normalise.normalise_predicate_definitions pred_defs in
 	(* Construct corresponding extended JSIL program *)

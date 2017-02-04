@@ -223,14 +223,12 @@ open JS_Logic_Syntax
 %type <JS_Logic_Syntax.js_logic_predicate> js_pred_target
 %type <JSIL_Syntax.jsil_logic_assertion> top_level_assertion_target
 %type <JS_Logic_Syntax.js_logic_assertion> top_level_js_assertion_target
-%type <JSIL_Syntax.jsil_logic_macro> macro_target
 %start main_target
 %start param_list_FC_target
 %start pred_spec_target
 %start top_level_assertion_target
 %start top_level_js_assertion_target
 %start js_pred_target
-%start macro_target
 %%
 
 (********* JSIL *********)
@@ -246,7 +244,9 @@ declaration_target:
 	| declaration_target; pred_target
 	| pred_target
 	| declaration_target; proc_target
-	| proc_target { }
+	| proc_target 
+	| declaration_target; macro_target
+	| macro_target { }
 ;
 
 import_target:
@@ -575,7 +575,8 @@ logic_cmd_target:
 macro_target: 
 	MACRO; COLON; head = macro_head_def_target; COLON; command = logic_cmd_target; SCOLON
   { let (name, params) = head in
-		{ mname = name; mparams = params; mdefinition = command } } 
+		let macro = { mname = name; mparams = params; mdefinition = command } in 
+		Hashtbl.add macro_table macro.mname macro } 
 
 macro_head_def_target:
  | name = VAR; LBRACE; params = separated_list(COMMA, VAR); RBRACE
