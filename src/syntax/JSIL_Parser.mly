@@ -573,7 +573,7 @@ logic_cmd_target:
 ;
 
 macro_target: 
-	MACRO; COLON; head = macro_head_def_target; COLON; command = logic_cmd_target; SCOLON
+	MACRO; head = macro_head_def_target; COLON; command = logic_cmd_target; SCOLON
   { let (name, params) = head in
 		let macro = { mname = name; mparams = params; mdefinition = command } in 
 		Hashtbl.add macro_table macro.mname macro } 

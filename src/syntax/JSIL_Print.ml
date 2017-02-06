@@ -1,4 +1,5 @@
 open JSIL_Syntax
+open JSIL_Memory_Model
 
 let rec tabs_to_str i  =
 	if i = 0 then "" else "\t" ^ (tabs_to_str (i - 1))
@@ -666,3 +667,17 @@ let rec full_string_of_logic_expression e  =
 	| LStrNth (e1, e2) -> Printf.sprintf "(LStrNth (%s, %s))" (sle e1) (sle e2)
 	(* $$unknown *)
 	| LUnknown -> "LUnknown"
+
+let string_of_heap (h : jsil_lit SHeap.t SHeap.t) =
+	SHeap.fold
+		(fun loc obj printed_heap ->
+			  let printed_object =
+					(SHeap.fold
+						(fun prop hval print_obj ->
+							let printed_hval = string_of_literal hval false in
+							let printed_cell = Printf.sprintf "\n\t(cell '%s \"%s\" '%s)" loc prop printed_hval in
+							print_obj ^ printed_cell)
+						obj "") in
+			printed_heap ^ (printed_object))
+		h
+		""
