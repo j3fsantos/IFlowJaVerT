@@ -169,9 +169,9 @@ spec copy_object (l, fields)
 	normal;
 
 	[[ (l == #l) * (fields == #fields) *
-	   (#fields == {{ #f1, "main" }}) * isNamedProperty(#f1) *
+	   (#fields == {{ #f1, "main" }}) * isNamedProperty(#f1) * (! (#f1 == "main")) *
 	   ((#l, #f1) -> #v1) * ((#l, "main") -> #v2) ]]
-	[[ ((#l, #f1) -> #v1) * ((#l, "main") -> #v2) *
+	[[ ((#l, #f1) -> #v1) * ((#l, "main") -> #v2) * (! (#f1 == "main")) *
 	   ((ret, #f1) -> #v1) * ((ret, "main") -> #v2) * ((ret, "@proto") -> $$null) 
 	   * empty_fields(ret : "@proto", #f1, "main") ]]
 	normal

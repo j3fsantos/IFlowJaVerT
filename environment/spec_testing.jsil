@@ -42,21 +42,22 @@ pred Forest(f, contents, f_proto) :
 	types(contents: $$list_type);
 
 only spec createElement(xsc, xthis, x)
-	[[ (xsc == #xsc) * (xthis == #xthis) * (x == #x) *
-		DocumentNodePrototype(#ldnp) * DocumentNode(#xthis, #forest, #ldnp)  * ForestProto(#ffp) * ElementNodePrototype(#enp) ]]
+	[[ (xsc == #xsc) * (xthis == #xthis) * (x == #x) * 
+	   DocumentNodePrototype(#ldnp) * DocumentNode(#xthis, #forest, #ldnp) * ForestProto(#ffp) * ElementNodePrototype(#enp) ]]
 	[[ DocumentNodePrototype(#ldnp) * DocumentNode(#xthis, #forest, #ldnp) * ForestProto(#ffp) * ElementNodePrototype(#enp) * 
-		ElementNode(#ret, #x, {{}}, #f, #enp) * Forest(#f, {{}}, #ffp) * (#ret == ret) ]]
+	   ElementNode(ret, #x, {{}}, #f, #enp) * Forest(#f, {{}}, #ffp) ]]
 	normal
 
 spec test_func()
-	[[ DocumentNodePrototype(#ldnp) * DocumentNode($ldoc, #forest, #ldnp)  * ForestProto(#ffp) * ElementNodePrototype(#enp) ]]
+	[[ DocumentNodePrototype(#ldnp) * DocumentNode($ldoc, #forest, #ldnp) * ForestProto(#ffp) * ElementNodePrototype(#enp) ]]
 	[[ DocumentNodePrototype(#ldnp) * DocumentNode($ldoc, #forest, #ldnp) * ForestProto(#ffp) * ElementNodePrototype(#enp) * 
-		ElementNode(ret, "test", {{}}, #f, #enp) * Forest(#f, {{}}, #ffp)]]
+	   ElementNode(ret, "test", {{}}, #f, #enp) * Forest(#f, {{}}, #ffp)]]
 	normal
 
 proc test_func() {
-			skip; 
-			xret := "createElement" ({{}}, $ldoc, "test");
+
+			xret := "createElement" ({{}}, $ldoc, "tests");
+
 	rlab:	skip
 }
 with
