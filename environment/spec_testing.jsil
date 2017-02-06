@@ -1,0 +1,65 @@
+import javert_internal_functions, javert_logic_macros, javert_js_predicates;
+
+pred Object (l, proto) :
+	types (l : $$object_type) *
+	((l, "@proto") -> proto) *
+	((l, "@class") -> "Object") *
+	((l, "@extensible") -> $$t);
+
+pred DocumentNodePrototype(dnp) :
+	standardObject(dnp) *
+	((dnp, "nodeName") -> {{ "d", "#document", $$f, $$f, $$f}}) *
+	dataField(dnp, "createElement", #lce) *
+	function_object(#lce, #ignore1, "createElement", "createElement", 3, #ignore2) *
+	((dnp, "forest") -> None);
+
+pred DocumentNode(dn, children, dn_proto) :
+	Object(dn, dn_proto) *
+	dataField(dn, "nodeName", None) *
+	dataField(dn, "forest", children) *
+	types(children: $$object_type, dn_proto: $$object_type);
+
+pred ElementNodePrototype(enp) :
+	standardObject(enp) *
+	((enp, "attributes") -> {{ "d", $$undefined, $$t, $$f, $$f}}) *
+	((enp, "children") -> None) *
+	((enp, "nodeName") -> None);
+
+pred ElementNode(en, name, attr, children, en_proto) :
+	Object(en, en_proto) *
+	dataField(en, "nodeName", name) *
+	dataField(en, "attributes", attr) *
+	dataField(en, "children", children) *
+	types(name: $$string_type, attr: $$list_type, children: $$object_type, en_proto: $$object_type);
+
+pred ForestProto(fp) :
+	standardObject(fp) *
+	((fp, "contents") -> None);
+
+pred Forest(f, contents, f_proto) :
+	Object(f, f_proto) *
+	dataField(f, "contents", contents) *
+	types(contents: $$list_type);
+
+only spec createElement(xsc, xthis, x)
+	[[ (xsc == #xsc) * (xthis == #xthis) * (x == #x) *
+		DocumentNodePrototype(#ldnp) * DocumentNode(#xthis, #forest, #ldnp)  * ForestProto(#ffp) * ElementNodePrototype(#enp) ]]
+	[[ DocumentNodePrototype(#ldnp) * DocumentNode(#xthis, #forest, #ldnp) * ForestProto(#ffp) * ElementNodePrototype(#enp) * 
+		ElementNode(#ret, #x, {{}}, #f, #enp) * Forest(#f, {{}}, #ffp) * (#ret == ret) ]]
+	normal
+
+spec test_func()
+	[[ DocumentNodePrototype(#ldnp) * DocumentNode($ldoc, #forest, #ldnp)  * ForestProto(#ffp) * ElementNodePrototype(#enp) ]]
+	[[ DocumentNodePrototype(#ldnp) * DocumentNode($ldoc, #forest, #ldnp) * ForestProto(#ffp) * ElementNodePrototype(#enp) * 
+		ElementNode(ret, "test", {{}}, #f, #enp) * Forest(#f, {{}}, #ffp)]]
+	normal
+
+proc test_func() {
+			skip; 
+			xret := "createElement" ({{}}, $ldoc, "test");
+	rlab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+};
