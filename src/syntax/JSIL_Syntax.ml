@@ -397,6 +397,7 @@ let get_proc_cmd proc i =
 let predicate_table : (string, jsil_logic_predicate) Hashtbl.t = Hashtbl.create 511
 let procedure_table : (string, jsil_ext_procedure) Hashtbl.t = Hashtbl.create 511
 let macro_table     : (string, jsil_logic_macro) Hashtbl.t = Hashtbl.create 511
+let only_spec_table : (string, jsil_spec) Hashtbl.t = Hashtbl.create 511
 
 (* STATISTICS *)
 

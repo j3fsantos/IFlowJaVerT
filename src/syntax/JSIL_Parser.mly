@@ -163,6 +163,7 @@ open JS_Logic_Syntax
 %token LTHEN
 %token LELSE
 (* Procedure specification keywords *)
+%token ONLY
 %token SPEC
 %token NORMAL
 %token ERROR
@@ -246,7 +247,10 @@ declaration_target:
 	| declaration_target; proc_target
 	| proc_target 
 	| declaration_target; macro_target
-	| macro_target { }
+	| macro_target 
+	| declaration_target; only_spec_target
+	| only_spec_target 
+	{ }
 ;
 
 import_target:
@@ -585,6 +589,16 @@ macro_head_def_target:
 macro_head_target:
  | name = VAR; LBRACE; params = separated_list(COMMA, lexpr_target); RBRACE
 	 { (name, params) }
+
+only_spec_target:
+(* only spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *)
+	ONLY; SPEC; spec_head = spec_head_target;
+	proc_specs = separated_nonempty_list(SCOLON, pre_post_target);
+	{ let (spec_name, spec_params) = spec_head in
+		let spec = { spec_name; spec_params; proc_specs } in
+		Hashtbl.replace only_spec_table spec_name spec;
+	}
+;
 
 spec_target:
 (* spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *)

@@ -166,6 +166,7 @@ rule read = parse
 	| "then"               { JSIL_Parser.LTHEN     }
 	| "else"               { JSIL_Parser.LELSE     }
 (* Procedure specification keywords *)
+  | "only"               { JSIL_Parser.ONLY      }
 	| "spec"               { JSIL_Parser.SPEC      }
 	| "normal"             { JSIL_Parser.NORMAL    }
 	| "error"              { JSIL_Parser.ERROR     }
