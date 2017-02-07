@@ -474,16 +474,27 @@
          (> expr-str-len 1)
          (equal? (substring (symbol->string loc) 0 2) "$l")))))
 
+
+;(define (is-a-list? l)
+;  (and
+;   (list? l)
+;   (not (eq? l '()))
+;   (eq? (first l) 'jsil-list)
+;  )
+;)
+
 (define (is-llist? l)
+  (define (is-literal-list? l)
+    (cond
+       [(null? l) #t]
+       [else
+        (if (not (literal? (car l)))
+            #f
+            (is-literal-list? (cdr l)))]))
   (and
    (list? l)
    (eq? (first l) 'jsil-list)
-   (foldl (lambda (x ac)
-             (and ac (literal? x)))
-           #t
-           (cdr l))
-  )
-)
+   (is-literal-list? (cdr l))))
 
 (define (is-a-list? l)
   (and

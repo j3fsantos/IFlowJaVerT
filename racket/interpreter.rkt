@@ -348,7 +348,10 @@
        [(eq? (first expr) 'typeof) 
         (let* ((arg (second expr))
                (val (run-expr arg store))
-               (type-of (jsil-type-of val)))
+               (type-of
+                (begin
+                  (println (format "argument of typeof ~v" val))
+                  (jsil-type-of val))))
           (println (format "typeOf: typeof ~v -> ~v = ~v" arg val type-of))
           type-of)]
        ;;
