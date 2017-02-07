@@ -127,7 +127,7 @@
       [(eq? cmd-type 'delete-object)
        (let* ((loc-expr (second bcmd))
               (loc-val (run-expr loc-expr store)))
-         (println (format "deleting the object: ~v" loc-val))
+         ;; (println (format "deleting the object: ~v" loc-val))
          (heap-delete-object heap loc-val)
          #t)] 
       ;;
@@ -349,7 +349,10 @@
        [(eq? (first expr) 'typeof) 
         (let* ((arg (second expr))
                (val (run-expr arg store))
-               (type-of (jsil-type-of val)))
+               (type-of
+                (begin
+                  ;; (println (format "argument of typeof ~v" val))
+                  (jsil-type-of val))))
           ;; (println (format "typeOf: typeof ~v -> ~v = ~v" arg val type-of))
           type-of)]
        ;;
