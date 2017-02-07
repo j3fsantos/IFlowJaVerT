@@ -1,5 +1,5 @@
-src/SJSIL_Parser_main.native
 src/js2jsil_main.native
 src/tests/test_main.native
 src/symb_execution_main.native
 src/jsil2rkt.native
+src/jsil_run.native

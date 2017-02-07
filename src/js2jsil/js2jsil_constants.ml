@@ -1,4 +1,5 @@
 open JSIL_Syntax
+open JSIL_Memory_Model 
 
 let small_tbl_size = 31
 let medium_tbl_size = 101
@@ -162,6 +163,18 @@ let get_scope_table fid cc_tbl =
 		with _ ->
 			let msg = Printf.sprintf "var tbl of function %s is not in cc-table" fid in
 			raise (Failure msg) 
+
+
+let get_vis_list_index vis_list fid = 
+	let rec loop cur vis_list = 
+		match vis_list with 
+		| [] -> raise (Failure "get_vis_list_index: DEATH")
+		| cur_fid :: rest -> 
+			if (cur_fid = fid) 
+				then cur 
+				else loop (cur + 1) rest in 
+	loop 0 vis_list 
+
 
 
 (** 
@@ -342,4 +355,34 @@ let i32_var_of_var x =
 let fresh_err_label : (unit -> string) = fresh_sth "err_"
 
 let fresh_ret_label : (unit -> string) = fresh_sth "ret_"
+
+let string_of_js_error heap err_val = 
+	match err_val with
+	| Loc loc ->
+		let obj = 
+			(try SHeap.find heap loc with
+				| _ -> (raise (Failure "Error object without a prototype."))) in
+		let lproto = 
+			(try SHeap.find obj "@proto" with
+				| _ -> (raise (Failure "Error object without a prototype."))) in
+		(match lproto with
+		| Loc loc ->
+				let objproto = 
+					(try SHeap.find heap loc with
+						| _ -> (raise (Failure "Error object without a prototype."))) in
+				let eType = 
+					(try SHeap.find objproto "name" with
+						| _ -> String "") in
+				let message = 
+					(try SHeap.find obj "message" with
+						| _ -> String "") in
+				let eType =
+					(match eType with
+					| LList list -> List.nth list 1
+					| _ -> eType) in
+				(JSIL_Print.string_of_literal eType false) ^ " : " ^ (JSIL_Print.string_of_literal message false)
+		| _ -> (raise (Failure "Prototype object not an object.")))
+	| _ -> JSIL_Print.string_of_literal err_val false
+
+
 

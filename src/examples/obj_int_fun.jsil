@@ -322,7 +322,7 @@ with
 };
 
 pred function_object (l, xsc, call, construct, len, prototype) :
-	types(l : $$object_type, xsc : $$object_type, call : $$string_type, construct: $$string_type, len : $$int_type, prototype : $$object_type) *
+	types(l : $$object_type, xsc : $$list_type, call : $$string_type, construct: $$string_type, len : $$int_type, prototype : $$object_type) *
 	((l, "@proto") -> $lfun_proto) * ((l, "@class") -> "Function") * ((l, "@extensible") -> $$t) *
 	((l, "@scope") -> xsc)  * ((l, "length") -> {{ "d", len, $$f, $$f, $$f }}) *
 	((l, "@call")  -> call) * ((l, "@construct") -> construct) *
@@ -332,12 +332,12 @@ pred function_object (l, xsc, call, construct, len, prototype) :
 	empty_fields(l : "@proto", "@class", "@extensible", "@scope", "length", "@call", "@construct", "caller", "arguments", "prototype");
 
 spec create_function_object (xsc, call, construct, params)
-    [[ (xsc == #xsc) * (call == #call) * (construct == #construct) * (params == #params) * ((#xsc, #call) -> None) * 
-	   types(#l : $$object_type, #xsc : $$object_type, #call : $$string_type, #construct: $$string_type, #params : $$list_type) ]]
-    [[ types(#l : $$object_type, #xsc : $$object_type, #call : $$string_type, #construct: $$string_type, #params : $$list_type, #len : $$int_type, ret : $$object_type) *
+    [[ (xsc == #xsc) * (call == #call) * (construct == #construct) * (params == #params) * 
+	   types(#xsc : $$list_type, #call : $$string_type, #construct: $$string_type, #params : $$list_type) ]]
+    [[ types(#l : $$object_type, #xsc : $$list_type, #call : $$string_type, #construct: $$string_type, #params : $$list_type, #len : $$int_type, ret : $$object_type) *
 	   function_object(ret, #xsc, #call, #construct, #len, prototype) * (#len == l-len #params) *
 	   ((prototype, "@proto") -> $lobj_proto) * ((prototype, "@class") -> "Object") * ((prototype, "@extensible") -> $$t) *
-	   ((prototype, "constructor") -> {{ "d", ret, $$t, $$f, $$t }} ) * ((#xsc, #call) -> $$null) * 
+	   ((prototype, "constructor") -> {{ "d", ret, $$t, $$f, $$t }} ) *
 	   empty_fields(prototype : "@proto", "@class", "@extensible", "constructor") ]]
     normal
 
@@ -346,8 +346,7 @@ proc create_function_object (xsc, call, construct, params) {
 			l := new ();
 			l := "create_object_with_call_construct" (l, call, construct, len);
 
-			[l, "@scope"] := xsc;
-			[xsc, call] := $$null; 
+			[l, "@scope"] := xsc; 
 
 			prototype := new ();
 			prototype := "create_default_object" (prototype, $lobj_proto, "Object", $$t);

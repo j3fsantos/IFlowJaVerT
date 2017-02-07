@@ -5,6 +5,21 @@ open JSIL_Print
 (***
  Generate strings from JSIL memory types
 *)
+let string_of_heap (h : jsil_lit SHeap.t SHeap.t) =
+	SHeap.fold
+		(fun loc obj printed_heap ->
+			  let printed_props =
+					(SHeap.fold
+						(fun prop hval printed_obj ->
+							let printed_hval = string_of_literal hval false in
+							let printed_cell = Printf.sprintf "\n\"%s\": %s" prop printed_hval in
+							if (printed_obj = "") then printed_cell else ", " ^ printed_cell)
+						obj 
+						"") in 
+				let printed_obj = loc ^ "-> [" ^ printed_props ^ "]\n" in
+				printed_heap ^ printed_obj)
+		h
+		""
 
 let string_of_symb_fv_list fv_list escape_string =
 	List.fold_left
