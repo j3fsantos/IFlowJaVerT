@@ -350,7 +350,7 @@
                (val (run-expr arg store))
                (type-of
                 (begin
-                  (println (format "argument of typeof ~v" val))
+                  ;; (println (format "argument of typeof ~v" val))
                   (jsil-type-of val))))
           ;; (println (format "typeOf: typeof ~v -> ~v = ~v" arg val type-of))
           type-of)]
