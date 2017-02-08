@@ -935,10 +935,10 @@ and symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state cur next
 							Printf.printf "MARICA. NO ME ABUSES MAS NO LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
 							let new_symb_state, _ = JSIL_Logic_Normalise.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
 							let new_symb_state, _ = simplify_for_your_legacy (DynArray.create()) new_symb_state in
-							(match (Structural_Entailment.fully_unify_symb_state new_symb_state symb_state spec.n_lvars !js) with
+							(match (Structural_Entailment.unify_symb_state_against_invariant symb_state new_symb_state spec.n_lvars) with
 							(* If it does, replace current symbolic state with the invariant *)
-							| Some _, _ -> new_symb_state
-							| None, msg -> raise (Failure msg)) in
+							| Some new_symb_state -> new_symb_state
+							| None -> raise (Failure "unification with invariant failed")) in
 
 					(* Evaluate logic commands, if any *)
 					let symb_states = symb_evaluate_logic_cmds s_prog metadata.pre_logic_cmds [ symb_state ] spec.n_subst spec.n_lvars in

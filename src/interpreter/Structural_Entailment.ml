@@ -1094,3 +1094,23 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 					) else  ( print_debug (Printf.sprintf "Failed unfolding in step 3");    None)
 			) else ( print_debug (Printf.sprintf "Failed unfolding in step 2");  None)
 	| None -> print_debug (Printf.sprintf "Failed unfolding in step 1");  None
+
+
+
+let unify_symb_state_against_invariant symb_state inv_symb_state lvars = 
+	print_debug (Printf.sprintf "unify_symb_state_against_invariant.\nSymb_state:\n%s.\INVARIANT symb_state:\n%s" 
+		(JSIL_Memory_Print.string_of_shallow_symb_state symb_state) 
+		(JSIL_Memory_Print.string_of_shallow_symb_state inv_symb_state)); 	
+	let unifier = unify_symb_states lvars inv_symb_state symb_state in
+	match unifier with
+	| Some (true, quotient_heap, quotient_preds, subst, pf_discharges, _) ->
+		extend_symb_state_with_pfs symb_state (DynArray.of_list pf_discharges);
+		let symb_state = symb_state_replace_heap symb_state quotient_heap in
+		let symb_state = symb_state_replace_preds symb_state quotient_preds in
+		let new_symb_state = merge_symb_states symb_state inv_symb_state subst in 
+		Some new_symb_state 
+	| _ -> None  
+
+
+
+
