@@ -586,9 +586,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 	let f = translate_expr tr_ctx in
 
-	let cur_var_tbl = get_scope_table tr_ctx.tr_fid tr_ctx.tr_cc_tbl in
+	let cur_var_tbl = get_scope_table tr_ctx.tr_er_fid tr_ctx.tr_cc_tbl in
 	let find_var_er_index v = 
 		(try 
+			Printf.printf "Trying to find variable %s given the vislist %s in the var table %s \n" 
+				v
+				(String.concat ", " tr_ctx.tr_vis_list)
+				(string_of_var_tbl cur_var_tbl); 
 			let fid_v = Hashtbl.find cur_var_tbl v in 
 			let fid_v_index = get_vis_list_index tr_ctx.tr_vis_list fid_v in 
 			fid_v_index
@@ -2567,7 +2571,7 @@ and translate_statement tr_ctx e  =
 		let new_tr_ctx = update_tr_ctx ~loop_list:loop_list ~previous:previous ~lab:lab tr_ctx in 
 		translate_statement new_tr_ctx e in 
 		
-	let cur_var_tbl = get_scope_table tr_ctx.tr_fid tr_ctx.tr_cc_tbl in 
+	let cur_var_tbl = get_scope_table tr_ctx.tr_er_fid tr_ctx.tr_cc_tbl in 
 	let find_var_er_index v = 
 		(try 
 			let fid_v = Hashtbl.find cur_var_tbl v in 
@@ -2764,7 +2768,7 @@ and translate_statement tr_ctx e  =
 		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement new_ctx_1 e1 in
 		let cmds1, x1_v = add_final_var cmds1 x1 metadata in
 
-		let new_ctx_2 = update_tr_ctx ~loop_list:new_loop_list ~previous:None ~lab:None ~err:new_err2 ~vis_list:(catch_id :: tr_ctx.tr_vis_list) tr_ctx in
+		let new_ctx_2 = update_tr_ctx ~loop_list:new_loop_list ~previous:None ~lab:None ~err:new_err2 ~vis_list:(catch_id :: tr_ctx.tr_vis_list) ~er_fid:catch_id tr_ctx in
 		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement new_ctx_2 e2 in
 		let cmds2, x2_v = add_final_var cmds2 x2 metadata in
 
@@ -2788,8 +2792,12 @@ and translate_statement tr_ctx e  =
 		(* [x_er, "x"] := x_err *)
 		let cmd_mutate_x = SLBasic (SMutation (Var x_er, Literal (String x), Var x_err)) in
 
-		(* [x_scope, "cid"] := x_er *)
-		let cmd_sc_updt = SLBasic (SMutation (Var var_scope, Literal (String catch_id), Var x_er)) in
+		(* x_scope := x_er :: x_scope *)
+		let cmd_sc_updt = SLBasic (SAssignment (var_scope, BinOp (Var x_er, LstCons, Var var_scope))) in  
+		
+		(*  x_scope := cdr (x_scope)  *)
+		let cmd_sc_restore = SLBasic (SAssignment (var_scope, UnOp (Cdr, Var var_scope))) in 
+
 
 	  (* err2:     x_ret_1 := PHI(x_cae, errs2) *)
 		let x_ret_1 = fresh_var () in
@@ -2812,10 +2820,11 @@ and translate_statement tr_ctx e  =
 			(None,           cmd_mutate_x);
 			(None,           cmd_sc_updt)
 		]) @ cmds2 @ (annotate_cmds [
-			(None,          SLGoto finally);
-			(Some new_err2, cmd_ass_xret1);
-			(None,          SLGoto tr_ctx.tr_err);
-			(Some finally,  cmd_ass_xret2)
+			(None,           cmd_sc_restore); 
+			(None,           SLGoto finally);
+			(Some new_err2,  cmd_ass_xret1);
+			(None,           SLGoto tr_ctx.tr_err);
+			(Some finally,   cmd_ass_xret2)
 		]) in
 
 		cmds, x_ret_2, [ x_ret_1 ], rets1 @ rets2, outer_breaks1 @ outer_breaks2, conts1 @ conts2, end_label in
@@ -2854,7 +2863,7 @@ and translate_statement tr_ctx e  =
 		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement new_ctx_1 e1 in
 		let cmds1, x1_v = add_final_var cmds1 x1 metadata in
 		
-		let new_ctx_2 = update_tr_ctx ~loop_list:new_loop_list ~lab:None ~previous:None ~ret_lab:tcf_ret ~err:new_err2 ~vis_list:(catch_id :: tr_ctx.tr_vis_list) tr_ctx in  
+		let new_ctx_2 = update_tr_ctx ~loop_list:new_loop_list ~lab:None ~previous:None ~ret_lab:tcf_ret ~err:new_err2 ~vis_list:(catch_id :: tr_ctx.tr_vis_list) ~er_fid:catch_id tr_ctx in  
 		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement new_ctx_1 e1 in
 		let cmds2, x2_v = add_final_var cmds2 x2 metadata in
 		
@@ -2891,8 +2900,11 @@ and translate_statement tr_ctx e  =
 		(* [x_er, "x"] := x_err *)
 		let cmd_mutate_x = SLBasic (SMutation (Var x_er, Literal (String x), Var x_err)) in
 
-		(* [x_scope, "cid"] := x_er *)
-		let cmd_sc_updt = SLBasic (SMutation (Var var_scope, Literal (String catch_id), Var x_er)) in
+		(* x_scope := x_er :: x_scope *)
+		let cmd_sc_updt = SLBasic (SAssignment (var_scope, BinOp (Var x_er, LstCons, Var var_scope))) in  
+
+		(*  x_scope := cdr (x_scope)  *)
+		let cmd_sc_restore = SLBasic (SAssignment (var_scope, UnOp (Cdr, Var var_scope))) in 
 
 	  (* err2:     x_ret_1 := PHI(x_cae, errs2) *)
 		let x_ret_1 = fresh_var () in
@@ -2928,13 +2940,14 @@ and translate_statement tr_ctx e  =
 		let conts = conts3_1 @ conts3_2 @ conts3_3 @ conts_b1 @ conts_c1 @ conts_b2 @ conts_c2 in
 
 		let cmds = cmds1 @ (annotate_cmds [                 (*            cmds1                                                            *)
-			(None,            SLGoto finally);                (*            goto finally                                                     *)
-			(Some new_err1,   cmd_ass_xerr);                  (*  err1:     x_err := PHI(errs1)                                              *)
-			(None,            cmd_ass_xer);                   (*            x_er := new ()                                                   *)
-			(None,            cmd_cae);                       (*            x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err2   *)
-			(None,            cmd_mutate_x);                  (*            [x_er, "x"] := x_err                                             *)
-			(None,            cmd_sc_updt)                    (*            [x_scope, "cid"] := x_er                                         *)
+			(None,           SLGoto finally);                 (*            goto finally                                                     *)
+			(Some new_err1,  cmd_ass_xerr);                   (*  err1:     x_err := PHI(errs1)                                              *)
+			(None,           cmd_ass_xer);                    (*            x_er := new ()                                                   *)
+			(None,           cmd_cae);                        (*            x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err2   *)
+			(None,           cmd_mutate_x);                   (*            [x_er, "x"] := x_err                                             *)
+			(None,           cmd_sc_updt)                     (*            x_scope := x_er :: x_scope                                       *)
 		]) @ cmds2 @ (annotate_cmds [                       (*            cmds2                                                            *)
+		  (None,           cmd_sc_restore);                 (*            x_scope := cdr (x_scope)                                         *)
 			(None,           SLGoto finally);                 (*            goto finally                                                     *)
 			(Some new_err2,  cmd_ass_xret1);                  (*  err2:     x_ret_1 := PHI(x_cae, errs2)                                     *)
 		]) @ cmds3_1 @ (annotate_cmds [                     (*            cmds3_1                                                          *)
@@ -3854,10 +3867,18 @@ and translate_statement tr_ctx e  =
 			| Some (Var x) -> x, []
 			| Some _ -> raise (Failure ("Continue: The return of the compilation must be either a variable or a literal"))) in
 
+		(*  x_scope := cdr (x_scope)  *)
+		let inside_catch_block = (not (tr_ctx.tr_fid = tr_ctx.tr_er_fid)) in 
+		let cmd_sc_restore = 
+			if (inside_catch_block) 
+				then [ annotate_cmd (SLBasic (SAssignment (var_scope, UnOp (Cdr, Var var_scope)))) None ]
+				else [ ] in
+
 		(* goto lab_c *)
 		let lab_c = get_continue_lab tr_ctx.tr_loop_list lab in
 		let cmd_goto =  [ annotate_cmd (SLGoto lab_c) None ] in
-		let cmds = cmd_ret @ cmd_goto in  
+		
+		let cmds = cmd_ret @ cmd_sc_restore @ cmd_goto in  
 		let cmds = annotate_first_cmd cmds in 
 		cmds, Var x_r, [], [], [], [ (lab, x_r, lab_c) ]
 
@@ -3868,7 +3889,7 @@ and translate_statement tr_ctx e  =
       x_r := $$empty;
       goto lab_r
 		*)
-
+		
 		let x_r, cmd_ret =
 			(match tr_ctx.tr_previous with
 			| None ->
@@ -3880,12 +3901,19 @@ and translate_statement tr_ctx e  =
 				x_r,  [ annotate_cmd cmd None ]
 			| Some (Var x) -> x, []
 			| Some _ -> raise (Failure ("Continue: The return of the compilation must be either a variable or a literal"))) in
+		
+		(*  x_scope := cdr (x_scope)  *)
+		let inside_catch_block = (not (tr_ctx.tr_fid = tr_ctx.tr_er_fid)) in 
+		let cmd_sc_restore = 
+			if (inside_catch_block) 
+				then [ annotate_cmd (SLBasic (SAssignment (var_scope, UnOp (Cdr, Var var_scope)))) None ]
+				else [ ] in
 
 		(* goto lab_r *)
 		let lab_r = get_break_lab tr_ctx.tr_loop_list lab in
 		let cmd_goto = [ (annotate_cmd (SLGoto lab_r) None) ] in
 		
-		let cmds = cmd_ret @ cmd_goto in 
+		let cmds = cmd_ret @ cmd_sc_restore @ cmd_goto in 
 		let cmds = annotate_first_cmd cmds in
 		cmds, Var x_r, [], [], [ (lab, x_r, lab_r) ], []
 
@@ -3909,11 +3937,23 @@ and translate_statement tr_ctx e  =
 		*)
 		let cmds, x, errs = fe e in
 		let x_v, cmd_gv_x = make_get_value_call x tr_ctx.tr_err in
+		let cmd_gv_x = [ annotate_cmd cmd_gv_x None ] in 
+		
+		(*  x_scope := cdr (x_scope)  *)
+		let inside_catch_block = (not (tr_ctx.tr_fid = tr_ctx.tr_er_fid)) in 
+		let cmd_sc_restore = 
+			if (inside_catch_block) 
+				then [ annotate_cmd (SLBasic (SAssignment (var_scope, UnOp (Cdr, Var var_scope)))) None ]
+				else [ ] in
+		
+		(* goto err  *)
+		let cmd_goto = [ annotate_cmd (SLGoto tr_ctx.tr_err) None ] in 
 
-		let cmds = cmds @ (annotate_cmds [   (*  cmds                            *)
-		   (None, cmd_gv_x);                 (*  x_v := i__getValue (x) with err *)
-			 (None, SLGoto tr_ctx.tr_err)      (*  goto err                        *)
-		]) in
+		let cmds = cmds @                    (*  cmds                            *)
+		           cmd_gv_x @                (*  x_v := i__getValue (x) with err *)
+							 cmd_sc_restore @          (*  x_scope := cdr (x_scope)        *)
+			         cmd_goto in               (*  goto err                        *)
+		
 		let cmds = annotate_first_cmd cmds in 
 		cmds, Literal Empty, errs @ [ x_v; x_v ], [], [], []
 
@@ -4397,24 +4437,6 @@ let generate_proc_eval new_fid e cc_table vis_fid =
 	}
 
 
-(** 
-  x_er_old := [ x_sc, fid ] 
-*)
-let generate_proc_er_saving_code fid =
-	(* x_er_old1 := [ x_sc, fid ] *)
-	let x_er_old = fresh_var () in
-	let cmd = SLBasic (SLookup (x_er_old, Var var_scope, Literal (String fid))) in
-
-	[
-		None,        cmd;    (* x_er_old1 := [ x_sc, fid ] *)
-	], x_er_old
-
-
-(* [x_sc, fid] := x_er_old  *)
-let generate_proc_er_restoring_code fid x_er_old end_lab =
-	let cmd_restore_sc = SLBasic (SMutation (Var var_scope, Literal (String fid), Var x_er_old))  in
-	[ None,         cmd_restore_sc; 
-	  Some end_lab, SLBasic (SSkip)	]
 	
 
 let generate_proc offset_converter e fid params cc_table vis_fid spec =

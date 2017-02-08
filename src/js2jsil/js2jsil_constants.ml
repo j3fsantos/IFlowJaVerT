@@ -84,6 +84,7 @@ type vis_tbl_type = (string, (string list)) Hashtbl.t
 type translation_context = {
 	tr_offset_converter:   int -> int;
 	tr_fid:                string; 
+	tr_er_fid:             string; 
 	tr_cc_tbl:             cc_tbl_type; 
 	tr_vis_list:           string list; 
 	tr_err:                string; 
@@ -105,6 +106,7 @@ let make_translation_ctx ?err ?(loop_list=[]) ?(previous=None) ?(js_lab=None) of
 	{
 		tr_offset_converter = offset_converter; 
 		tr_fid        = fid; 
+		tr_er_fid     = fid; 
 		tr_cc_tbl     = cc_tbl; 
 		tr_vis_list   = vis_list; 
 		tr_err        = err;
@@ -117,7 +119,7 @@ let make_translation_ctx ?err ?(loop_list=[]) ?(previous=None) ?(js_lab=None) of
 		tr_error_var  = "xerr"; (* ^ fid *)
 	}
 
-let update_tr_ctx ?err ?loop_list ?previous ?lab ?vis_list ?ret_lab tr_ctx = 
+let update_tr_ctx ?err ?loop_list ?previous ?lab ?vis_list ?ret_lab ?er_fid tr_ctx = 
 	(* err *) 
 	let new_err = 
 		match err with 
@@ -148,13 +150,19 @@ let update_tr_ctx ?err ?loop_list ?previous ?lab ?vis_list ?ret_lab tr_ctx =
 		match ret_lab with 
 		| Some ret_lab   -> ret_lab 
 		| None           -> tr_ctx.tr_ret_lab in 
+	(* er_fid *) 
+	let new_er_fid = 
+		match er_fid with 
+		| Some er_fid    -> er_fid 
+		| None           -> tr_ctx.tr_er_fid in 
 	{ tr_ctx with 
 	    tr_vis_list  = new_vis_list; 
 			tr_err       = new_err; 
 			tr_loop_list = new_loop_list; 
 			tr_previous  = new_previous; 
 			tr_js_lab    = new_lab; 
-			tr_ret_lab   = new_ret_lab 
+			tr_ret_lab   = new_ret_lab; 
+			tr_er_fid    = new_er_fid
 	}
 
 
@@ -383,6 +391,20 @@ let string_of_js_error heap err_val =
 				(JSIL_Print.string_of_literal eType false) ^ " : " ^ (JSIL_Print.string_of_literal message false)
 		| _ -> (raise (Failure "Prototype object not an object.")))
 	| _ -> JSIL_Print.string_of_literal err_val false
+
+
+let string_of_var_tbl var_tbl = 
+	let var_tbl_str =  
+		Hashtbl.fold 
+			(fun v fid ac -> 
+				let v_fid_pair_str = v ^ ": " ^ fid in 
+				if (ac = "") 
+					then v_fid_pair_str 
+					else ac ^ ", " ^ v_fid_pair_str) 
+			var_tbl
+			"" in 
+	"[ " ^ var_tbl_str ^ "]"
+			
 
 
 
