@@ -208,7 +208,7 @@ let translate_named_function_literal (top_level : bool) f_name f_id params index
 	
 		(* x_er := l-nth(x_sc, index) *)
 		let x_er = fresh_er_var () in
-		let cmd_ass_xer = (None, (SLBasic (SAssignment (x_er, LstNth(Var x_er, Literal (Integer index)))))) in
+		let cmd_ass_xer = (None, (SLBasic (SAssignment (x_er, LstNth(Var var_scope, Literal (Integer index)))))) in
 
 		(* [x_er, f_name] := x_f *) 
 		(* [x_er, f_name] := {{ "d", x_f, $$t, $$t, $$f }} *)
@@ -731,8 +731,8 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 	| Parser_syntax.Var v ->
 		(**
 		 Section 11.1.2 - Identifier Reference
-		 Found in the closure clarification table: Phi(fid_1, x) = fid_2
-					x_1 := [__scope_chain, fid_2];
+		 Found in the closure clarification table: Phi(fid_1, x) = i
+					x_1 := l-nth(x_sc, i);
 					x_r := v-ref(x_1, "x")
 
 		Not found in the closure clarification table: Phi(fid_1, x) = bot
@@ -788,7 +788,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			let cmd_ass_xret = SLBasic (SAssignment (x_r, EList [lit_refv; Var x_1; lit_str v])) in
 
 			let cmds = [
-				(None, cmd_ass_x1);     (*   x_1 := [__scope_chain, fid]  *)
+				(None, cmd_ass_x1);     (*   x_1 := l-nth(x_sc, index)    *)
 				(None, cmd_ass_xret);   (*   x_r := v-ref(x_1, "x")       *)
 			] in
 			let cmds = annotate_cmds cmds in
@@ -2561,7 +2561,6 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 and translate_statement tr_ctx e  =
 	let fe = translate_expr tr_ctx in
-
 	let f = translate_statement tr_ctx in
 
 	let f_previous loop_list previous lab e =
@@ -2569,7 +2568,13 @@ and translate_statement tr_ctx e  =
 		translate_statement new_tr_ctx e in 
 		
 	let cur_var_tbl = get_scope_table tr_ctx.tr_fid tr_ctx.tr_cc_tbl in 
-	let find_var_fid v = (try Some (Hashtbl.find cur_var_tbl v) with _ -> None) in
+	let find_var_er_index v = 
+		(try 
+			let fid_v = Hashtbl.find cur_var_tbl v in 
+			let fid_v_index = get_vis_list_index tr_ctx.tr_vis_list fid_v in 
+			fid_v_index
+			with _ -> 
+				raise (Failure (Printf.sprintf "Error: %s is not in the scope clarification table!" v))) in
 
 	let js_char_offset = e.Parser_syntax.exp_offset in
 	let js_line_offset = tr_ctx.tr_offset_converter js_char_offset in
@@ -2583,9 +2588,7 @@ and translate_statement tr_ctx e  =
 		| Some invariant -> 
 			Printf.printf "I found a fucking invariant!!!!!\n";
 			Printf.printf "Some more data: %s\n" tr_ctx.tr_fid;
-			let scope_vars_inv = JS_Logic_Syntax.get_scope_vars invariant in 
-			let filtered_cur_var_tbl = JS_Logic_Syntax.filter_var_to_fid_tbl cur_var_tbl scope_vars_inv tr_ctx.tr_fid in
-			let jsil_invariant = JS_Logic_Syntax.js2jsil_logic_top_level_post invariant true filtered_cur_var_tbl vis_tbl old_fun_tbl tr_ctx.tr_fid in 
+			let jsil_invariant = JS_Logic_Syntax.js2jsil_logic_top_level_post invariant cur_var_tbl vis_tbl old_fun_tbl tr_ctx.tr_fid in 
 			Some (LStar (jsil_invariant, JS_Logic_Syntax.errors_assertion))) in 
 	
 	let annotate_first_cmd annotated_cmds =
@@ -2615,31 +2618,32 @@ and translate_statement tr_ctx e  =
 
 
 	let compile_var_dec x e =
-		let v_fid = find_var_fid x in
-		let v_fid =
-			match v_fid with
-			| None -> raise (Failure (Printf.sprintf "Error: The variable %s that is declared is not in the scope clarification table!" x))
-			| Some v_fid -> v_fid in
+		let index = find_var_er_index x in
 		let cmds_e, x_e, errs_e = fe e in
+		
 		(* x_v := i__getValue (x) with err *)
 		let x_v, cmd_gv_x = make_get_value_call x_e tr_ctx.tr_err in
-		(* x_sf := [x__scope, v_fid]  *)
+		
+		(* x_sf := l-nth(x__sc, index)  *)
 		let x_sf = fresh_var () in
-		let cmd_xsf_ass = SLBasic (SLookup (x_sf, Var var_scope, Literal (String v_fid))) in
-		(* x_ref := ref_v(x_sf, "x")  *)
+	  let cmd_xsf_ass = SLBasic (SAssignment (x_sf, LstNth (Var var_scope, lit_int index))) in 
+		
+		(* x_ref := {{ "v", x_sf, "x" }}  *)
 		let x_ref = fresh_var () in
 		let cmd_xref_ass = SLBasic (SAssignment (x_ref, EList [lit_refv; Var x_sf; lit_str x])) in
+		
 		(* x_cae := i__checkAssignmentErrors (x_ref) with err *)
 		let x_cae = fresh_var () in
 		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ (Var x_ref) ], Some tr_ctx.tr_err) in
+		
 		(* x_pv := i__putValue(x_ref, x_v) with err2 *)
 		let x_pv, cmd_pv = make_put_value_call (Var x_ref) x_v tr_ctx.tr_err in
 		let cmds = cmds_e @ (annotate_cmds [
-			(None, cmd_gv_x);      (* x_v := i__getValue (x) with err                    *)
-			(None, cmd_xsf_ass);   (* x_sf := [x__scope, fid]                            *)
-			(None, cmd_xref_ass);  (* x_ref := ref_v(x_sf, "x")                          *)
-			(None, cmd_cae);       (* x_cae := i__checkAssignmentErrors (x_ref) with err *)
-			(None, cmd_pv)         (* x_pv := i__putValue(x_ref, x_v) with err           *)
+			(None, cmd_gv_x);      (* x_v := i__getValue (x) with err                      *)
+			(None, cmd_xsf_ass);   (* x_sf := l-nth(x_sc, index)                           *)
+			(None, cmd_xref_ass);  (* x_ref := {{ "v", x_sf, "x" }}                        *)
+			(None, cmd_cae);       (* x_cae := i__checkAssignmentErrors (x_ref) with err   *)
+			(None, cmd_pv)         (* x_pv := i__putValue(x_ref, x_v) with err             *)
 		]) in
 		let errs = errs_e @ [ x_v; x_cae; x_pv ] in
 		cmds, x_ref, errs	in
@@ -4487,6 +4491,7 @@ let generate_proc offset_converter e fid params cc_table vis_fid spec =
 
 	let cmd_del_te = annotate_cmd (SLBasic (SDeleteObj (Var var_te))) None in
 	let cmd_del_se = annotate_cmd (SLBasic (SDeleteObj (Var var_se))) None in
+	let cmd_ret_final = annotate_cmd (SLBasic (SSkip)) (Some ctx.tr_ret_lab) in 
 
 	(* 
 	let cmds_restore_er_ret = generate_proc_er_restoring_code fid x_er_old ctx.tr_ret_lab in
@@ -4494,13 +4499,14 @@ let generate_proc offset_converter e fid params cc_table vis_fid spec =
 
 	let errs = errs in
 	let cmd_error_phi = make_final_cmd errs new_ctx.tr_error_lab new_ctx.tr_error_var in
+	let cmd_err_final =  annotate_cmd (SLBasic (SSkip)) (Some ctx.tr_error_lab) in 
 
 	let fid_cmds =
 		[ cmd_er_creation; cmd_er_flag ] @
 		cmds_decls @ cmds_params @
 		[ cmd_ass_er_to_sc; cmd_ass_te; cmd_ass_se ] @
 		cmds_hoist_fdecls @ cmds_e @
-		[ cmd_dr_ass; cmd_return_phi; cmd_del_te; cmd_del_se; cmd_error_phi ] in
+		[ cmd_dr_ass; cmd_return_phi; cmd_del_te; cmd_del_se; cmd_ret_final; cmd_error_phi; cmd_err_final ] in
 	{
 		lproc_name = fid;
     lproc_body = (Array.of_list fid_cmds);

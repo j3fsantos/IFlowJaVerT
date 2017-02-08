@@ -544,13 +544,8 @@ let process_js_logic_annotations (vis_tbl : (string, string list) Hashtbl.t) fun
 			let post_js = JSIL_Utils.js_assertion_of_string post_str in
 			(* Printf.printf "I managed to parse the js assertions\n"; *)
 			
-			let scope_vars_pre = JS_Logic_Syntax.get_scope_vars pre_js in 
-			let scope_vars_post = JS_Logic_Syntax.get_scope_vars post_js in 
-			let scope_vars = JSIL_Syntax.SS.union scope_vars_pre scope_vars_post in 
-			let new_var_to_fid_tbl = JS_Logic_Syntax.filter_var_to_fid_tbl var_to_fid_tbl scope_vars fun_name in
-			
-			let pre_jsil = JS_Logic_Syntax.js2jsil_logic_top_level_pre pre_js new_var_to_fid_tbl vis_tbl fun_tbl fun_name in
-			let post_jsil = JS_Logic_Syntax.js2jsil_logic_top_level_post post_js false new_var_to_fid_tbl vis_tbl fun_tbl fun_name in
+			let pre_jsil = JS_Logic_Syntax.js2jsil_logic_top_level_pre pre_js var_to_fid_tbl vis_tbl fun_tbl fun_name in
+			let post_jsil = JS_Logic_Syntax.js2jsil_logic_top_level_post post_js var_to_fid_tbl vis_tbl fun_tbl fun_name in
 			let new_spec = JSIL_Syntax.create_single_spec pre_jsil post_jsil ret_flag in
 			new_spec)
 		preconditions

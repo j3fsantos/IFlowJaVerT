@@ -5,7 +5,6 @@ open JSIL_Interpreter
 
 let file    = ref ""
 let js      = ref false
-let verbose = ref false
 let compile = ref false
 let test262 = ref false
 
@@ -25,8 +24,8 @@ let arguments () =
 			(* file to compile *)
 			"-file", Arg.String(fun f -> file := f), "file to run";
 			
-			(* write the final heap to the standard output *)
-			"-verbose", Arg.Unit(fun () -> verbose := true), "output final heap";
+			(* access debugging information *)
+			"-debug", Arg.Unit(fun () -> debug := true), "debug information";
 			
 			(* it is a compiled js program *)
 			"-js", Arg.Unit(fun () -> js := true), "input is a compiled js program";
@@ -60,7 +59,7 @@ let run_jsil_prog prog which_pred cc_tbl vis_tbl =
 	let heap = SHeap.create 1021 in
   let (ret_flag, ret_val) = evaluate_prog prog which_pred heap cc_tbl vis_tbl  in
 	let final_heap_str = JSIL_Memory_Print.string_of_heap heap in
-  if (!verbose) then Printf.printf "Final heap: \n%s\n" final_heap_str;
+  if (!debug) then Printf.printf "Final heap: \n%s\n" final_heap_str;
 	Printf.printf "%s, %s\n"
 		(JSIL_Print.string_of_return_flag ret_flag)			
 		(string_of_ret_val heap ret_flag ret_val);

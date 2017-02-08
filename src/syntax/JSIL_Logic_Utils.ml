@@ -1028,7 +1028,7 @@ let star_asses asses =
 	List.fold_left
 		(fun ac a ->
 			if (not (a = LEmp))
-				then LStar (a, ac)
+				then (if (ac = LEmp) then a else LStar (a, ac))
 				else ac)
 		 LEmp
 		asses
