@@ -1226,6 +1226,8 @@ let old_check_entailment existentials left_as right_as gamma =
 
 		let start_time = Sys.time () in
 		let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in
+		if (not ret) then
+			print_model solver;
 		let end_time = Sys.time () in
 		JSIL_Syntax.update_statistics "solver_call" 0.;
 		JSIL_Syntax.update_statistics "check_entailment" (end_time -. start_time);
