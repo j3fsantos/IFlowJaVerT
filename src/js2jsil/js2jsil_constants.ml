@@ -67,121 +67,12 @@ let checkParametersName               = "i__checkParameters"
 let getEnumFieldsName                 = "i__getAllEnumerableFields"
 let createArgsName                    = "create_arguments_object"
 
-let var_this = "x__this"
+let var_this  = "x__this"
 let var_scope = "x__scope"
-let var_se = "x__se"
-let var_te = "x__te"
-let var_er = "x__er"
-
-let var_main = "main"
-
-type loop_list_type = (string option * string * string option * bool) list
-type fun_tbl_type = (string, string * JSIL_Syntax.jsil_var list * Parser_syntax.exp * bool * (JSIL_Syntax.jsil_spec option)) Hashtbl.t
-type pre_fun_tbl_type = (string, string * JSIL_Syntax.jsil_var list * Parser_syntax.exp * (Parser_syntax.annotation list * string list * ((string, string) Hashtbl.t))) Hashtbl.t
-type cc_tbl_type = (string, (string, string) Hashtbl.t) Hashtbl.t
-type vis_tbl_type = (string, (string list)) Hashtbl.t
-
-type translation_context = {
-	tr_offset_converter:   int -> int;
-	tr_fid:                string; 
-	tr_er_fid:             string; 
-	tr_cc_tbl:             cc_tbl_type; 
-	tr_vis_list:           string list; 
-	tr_err:                string; 
-	tr_loop_list:          loop_list_type; 
-	tr_previous:           jsil_expr option;  
-	tr_js_lab:             string option; 
-	tr_ret_lab:            string;
-	tr_ret_var:            string;
-	tr_error_lab:          string;
-	tr_error_var:          string;
-}
-
-
-let make_translation_ctx ?err ?(loop_list=[]) ?(previous=None) ?(js_lab=None) offset_converter fid cc_tbl vis_list =
-	let err = 
-		match err with 
-		| None     -> "elab"
-		| Some err -> err in 
-	{
-		tr_offset_converter = offset_converter; 
-		tr_fid        = fid; 
-		tr_er_fid     = fid; 
-		tr_cc_tbl     = cc_tbl; 
-		tr_vis_list   = vis_list; 
-		tr_err        = err;
-		tr_loop_list  = loop_list; 
-		tr_previous   = previous; 
-		tr_js_lab     = js_lab; 
-		tr_ret_lab    = "rlab"; (* ^ fid; *)
-		tr_ret_var    = "xret"; (* ^ fid; *)
-		tr_error_lab  = "elab"; (* ^ fid; *)
-		tr_error_var  = "xerr"; (* ^ fid *)
-	}
-
-let update_tr_ctx ?err ?loop_list ?previous ?lab ?vis_list ?ret_lab ?er_fid tr_ctx = 
-	(* err *) 
-	let new_err = 
-		match err with 
-		| None           -> tr_ctx.tr_err
-		| Some err       -> err in   
-	(* loop_list *)
-	let new_loop_list = 
-		match loop_list with 
-		| Some loop_list -> loop_list 
-		| None           -> tr_ctx.tr_loop_list in 
-	(* previous *)
-	let new_previous = 
-		match previous with 
-		| Some previous  -> previous 
-		| None           -> tr_ctx.tr_previous in
-	(* lab *)
-	let new_lab = 
-		match lab with 
-		| Some lab       -> lab 
-		| None           -> tr_ctx.tr_js_lab in
-	(* vis_list *) 
-	let new_vis_list = 
-		match vis_list with 
-		| Some vis_list  -> vis_list 
-		| None           -> tr_ctx.tr_vis_list in  
-	(* ret_lab *) 
-	let new_ret_lab = 
-		match ret_lab with 
-		| Some ret_lab   -> ret_lab 
-		| None           -> tr_ctx.tr_ret_lab in 
-	(* er_fid *) 
-	let new_er_fid = 
-		match er_fid with 
-		| Some er_fid    -> er_fid 
-		| None           -> tr_ctx.tr_er_fid in 
-	{ tr_ctx with 
-	    tr_vis_list  = new_vis_list; 
-			tr_err       = new_err; 
-			tr_loop_list = new_loop_list; 
-			tr_previous  = new_previous; 
-			tr_js_lab    = new_lab; 
-			tr_ret_lab   = new_ret_lab; 
-			tr_er_fid    = new_er_fid
-	}
-
-
-let get_scope_table fid cc_tbl = 
-	try Hashtbl.find cc_tbl fid
-		with _ ->
-			let msg = Printf.sprintf "var tbl of function %s is not in cc-table" fid in
-			raise (Failure msg) 
-
-
-let get_vis_list_index vis_list fid = 
-	let rec loop cur vis_list = 
-		match vis_list with 
-		| [] -> raise (Failure "get_vis_list_index: DEATH")
-		| cur_fid :: rest -> 
-			if (cur_fid = fid) 
-				then cur 
-				else loop (cur + 1) rest in 
-	loop 0 vis_list 
+let var_se    = "x__se"
+let var_te    = "x__te"
+let var_er    = "x__er"
+let var_main  = "main"
 
 
 
@@ -364,6 +255,125 @@ let fresh_err_label : (unit -> string) = fresh_sth "err_"
 
 let fresh_ret_label : (unit -> string) = fresh_sth "ret_"
 
+
+type loop_list_type = (string option * string * string option * bool) list
+type fun_tbl_type = (string, string * JSIL_Syntax.jsil_var list * Parser_syntax.exp * bool * (JSIL_Syntax.jsil_spec option)) Hashtbl.t
+type pre_fun_tbl_type = (string, string * JSIL_Syntax.jsil_var list * Parser_syntax.exp * (Parser_syntax.annotation list * string list * ((string, string) Hashtbl.t))) Hashtbl.t
+type cc_tbl_type = (string, (string, string) Hashtbl.t) Hashtbl.t
+type vis_tbl_type = (string, (string list)) Hashtbl.t
+
+type translation_context = {
+	tr_offset_converter:   int -> int;
+	tr_fid:                string; 
+	tr_er_fid:             string;
+	tr_sc_var:             string;  
+	tr_cc_tbl:             cc_tbl_type; 
+	tr_vis_list:           string list; 
+	tr_err:                string; 
+	tr_loop_list:          loop_list_type; 
+	tr_previous:           jsil_expr option;  
+	tr_js_lab:             string option; 
+	tr_ret_lab:            string;
+	tr_ret_var:            string;
+	tr_error_lab:          string;
+	tr_error_var:          string;
+}
+
+
+let make_translation_ctx ?err ?(loop_list=[]) ?(previous=None) ?(js_lab=None) offset_converter fid cc_tbl vis_list sc_var =
+	let err = 
+		match err with 
+		| None     -> "elab"
+		| Some err -> err in 
+	{
+		tr_offset_converter = offset_converter; 
+		tr_fid        = fid; 
+		tr_er_fid     = fid; 
+		tr_sc_var     = sc_var; 
+		tr_cc_tbl     = cc_tbl; 
+		tr_vis_list   = vis_list; 
+		tr_err        = err;
+		tr_loop_list  = loop_list; 
+		tr_previous   = previous; 
+		tr_js_lab     = js_lab; 
+		tr_ret_lab    = "rlab"; (* ^ fid; *)
+		tr_ret_var    = "xret"; (* ^ fid; *)
+		tr_error_lab  = "elab"; (* ^ fid; *)
+		tr_error_var  = "xerr"; (* ^ fid *)
+	}
+
+let update_tr_ctx ?err ?loop_list ?previous ?lab ?vis_list ?ret_lab ?er_fid ?sc_var tr_ctx = 
+	(* err *) 
+	let new_err = 
+		match err with 
+		| None           -> tr_ctx.tr_err
+		| Some err       -> err in   
+	(* loop_list *)
+	let new_loop_list = 
+		match loop_list with 
+		| Some loop_list -> loop_list 
+		| None           -> tr_ctx.tr_loop_list in 
+	(* previous *)
+	let new_previous = 
+		match previous with 
+		| Some previous  -> previous 
+		| None           -> tr_ctx.tr_previous in
+	(* lab *)
+	let new_lab = 
+		match lab with 
+		| Some lab       -> lab 
+		| None           -> tr_ctx.tr_js_lab in
+	(* vis_list *) 
+	let new_vis_list = 
+		match vis_list with 
+		| Some vis_list  -> vis_list 
+		| None           -> tr_ctx.tr_vis_list in  
+	(* ret_lab *) 
+	let new_ret_lab = 
+		match ret_lab with 
+		| Some ret_lab   -> ret_lab 
+		| None           -> tr_ctx.tr_ret_lab in 
+	(* er_fid *) 
+	let new_er_fid = 
+		match er_fid with 
+		| Some er_fid    -> er_fid 
+		| None           -> tr_ctx.tr_er_fid in 
+	(* sc_var *)
+	let new_sc_var = 
+		match sc_var with 
+		| Some sc_var    -> sc_var 
+		| None           -> tr_ctx.tr_sc_var in 
+	{ tr_ctx with 
+	    tr_vis_list  = new_vis_list; 
+			tr_err       = new_err; 
+			tr_loop_list = new_loop_list; 
+			tr_previous  = new_previous; 
+			tr_js_lab    = new_lab; 
+			tr_ret_lab   = new_ret_lab; 
+			tr_er_fid    = new_er_fid; 
+			tr_sc_var    = new_sc_var
+	}
+
+
+let get_scope_table fid cc_tbl = 
+	try Hashtbl.find cc_tbl fid
+		with _ ->
+			let msg = Printf.sprintf "var tbl of function %s is not in cc-table" fid in
+			raise (Failure msg) 
+
+
+let get_vis_list_index vis_list fid = 
+	let rec loop cur vis_list = 
+		match vis_list with 
+		| [] -> raise (Failure "get_vis_list_index: DEATH")
+		| cur_fid :: rest -> 
+			if (cur_fid = fid) 
+				then cur 
+				else loop (cur + 1) rest in 
+	loop 0 vis_list 
+			
+
+
 let string_of_js_error heap err_val = 
 	match err_val with
 	| Loc loc ->
@@ -404,7 +414,5 @@ let string_of_var_tbl var_tbl =
 			var_tbl
 			"" in 
 	"[ " ^ var_tbl_str ^ "]"
-			
-
 
 
