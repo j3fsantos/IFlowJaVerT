@@ -2500,7 +2500,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmd_xscf_ass = SLBasic (SAssignment (x_sc_f, BinOp (Var x_f_outer_er, LstCons, Var tr_ctx.tr_sc_var))) in
 
 		(* x_f := create_function_object(x_sc_f, f_id, params) *)
-		let x_f, cmd_fun_constr = make_create_function_object_call x_f_outer_er f_id params in 
+		let x_f, cmd_fun_constr = make_create_function_object_call x_sc_f f_id params in 
 		
 		(* [x_f_outer_er, f] := x_f *)
 		let cmd_fname_updt = SLBasic (SMutation (Var x_f_outer_er, Literal (String f_name), Var x_f)) in

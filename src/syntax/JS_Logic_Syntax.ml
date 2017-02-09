@@ -253,13 +253,12 @@ let rec js2jsil_logic_top_level_pre a (var_to_fid_tbl : (string, string) Hashtbl
 let rec js2jsil_logic_top_level_post a (var_to_fid_tbl : (string, string) Hashtbl.t) (vis_tbl : (string, string list) Hashtbl.t) fun_tbl fid =
 	let vis_list = try Hashtbl.find vis_tbl fid with _ -> raise (Failure "js2jsil_logic_top_level_pre - fid not found") in 
 	let is_global = (fid = main_fid) in
-	let a_scope_chain = make_scope_chain_assertion vis_list false in
+	(* let a_scope_chain = make_scope_chain_assertion vis_list false in *)
 	let a_post_js_heap = LPred (initial_heap_post_pred_name, []) in
 	let a' = js2jsil_logic fid (Some var_to_fid_tbl) vis_tbl fun_tbl a in
-	print_debug (Printf.sprintf "J2JPost: \n\t%s\n\t%s\n\t%s"
+	print_debug (Printf.sprintf "J2JPost: \n\t%s\n\t%s"
 		(JSIL_Print.string_of_logic_assertion a' false) 
-		(JSIL_Print.string_of_logic_assertion a_scope_chain false) 
 		(JSIL_Print.string_of_logic_assertion a_post_js_heap false));	
-	JSIL_Logic_Utils.star_asses [a'; a_scope_chain; a_post_js_heap ]
+	JSIL_Logic_Utils.star_asses [a'; a_post_js_heap ]
 			
 

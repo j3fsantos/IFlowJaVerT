@@ -25,7 +25,7 @@ let arguments () =
 			"-file", Arg.String(fun f -> file := f), "file to run";
 			
 			(* access debugging information *)
-			"-debug", Arg.Unit(fun () -> debug := true), "debug information";
+			"-debug", Arg.Unit(fun () -> debug := true; verbose := true), "debug information";
 			
 			(* it is a compiled js program *)
 			"-js", Arg.Unit(fun () -> js := true), "input is a compiled js program";

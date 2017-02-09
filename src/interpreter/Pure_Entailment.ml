@@ -1170,6 +1170,11 @@ let old_check_entailment existentials left_as right_as gamma =
 
 	print_time_debug "check_entailment:";
 	
+	let ret = check_satisfiability left_as gamma in
+	print_debug (Printf.sprintf "Left side sat: %b" ret);
+	let ret = check_satisfiability right_as gamma in
+	print_debug (Printf.sprintf "Right side sat: %b" ret);
+	
 	if (left_as = []) then check_satisfiability right_as gamma
 	else (
 	
