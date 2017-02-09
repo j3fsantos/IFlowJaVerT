@@ -1168,25 +1168,15 @@ let check_satisfiability assertions gamma =
 (* right_as must be satisfiable *)
 let old_check_entailment existentials left_as right_as gamma =
 
-	print_time_debug "check_entailment:";
-	
-	let ret = check_satisfiability left_as gamma in
-	print_debug (Printf.sprintf "Left side sat: %b" ret);
-	let ret = check_satisfiability right_as gamma in
-	print_debug (Printf.sprintf "Right side sat: %b" ret);
-	
-	if (left_as = []) then check_satisfiability right_as gamma
-	else (
-	
+	print_time_debug "check_entailment:";	
+
 	let existentials, left_as, right_as, gamma =
 		simplify_implication (SS.of_list existentials) (DynArray.of_list left_as) (DynArray.of_list right_as) (copy_gamma gamma) in
 		
-	(* Nothing on the left, is right sat? *)
-	if (DynArray.empty left_as)  then check_satisfiability (DynArray.to_list right_as) gamma else
-	(* Nothing on the right, is left sat? *)
+	(* If right is empty, then the left only needs to be satisfiable *)
 	if (DynArray.empty right_as) then check_satisfiability (DynArray.to_list left_as) gamma else
 	(* If left or right are directly false, everything is false *)
-	if (DynArray.get left_as 0 = LFalse || DynArray.get right_as 0 = LFalse) then false else
+	if (DynArray.get right_as 0 = LFalse || (DynArray.length left_as <> 0 && DynArray.get left_as 0 = LFalse)) then false else
 	
 	(* If we are here, we know that: 
 	
@@ -1236,6 +1226,8 @@ let old_check_entailment existentials left_as right_as gamma =
 
 		let start_time = Sys.time () in
 		let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in
+		if (not ret) then
+			print_model solver;
 		let end_time = Sys.time () in
 		JSIL_Syntax.update_statistics "solver_call" 0.;
 		JSIL_Syntax.update_statistics "check_entailment" (end_time -. start_time);
@@ -1245,7 +1237,7 @@ let old_check_entailment existentials left_as right_as gamma =
 		ret in
 
 	(* if (not (ret_right)) then false, None *)
-	try check_entailment_aux () with Failure msg -> Printf.printf "Horrible failure\n"; false)) (*, None *)
+	try check_entailment_aux () with Failure msg -> Printf.printf "Horrible failure\n"; false) (*, None *)
 
 let is_equal_on_lexprs e1 e2 pfs : bool option = 
 (match (e1 = e2) with

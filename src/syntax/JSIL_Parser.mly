@@ -163,6 +163,7 @@ open JS_Logic_Syntax
 %token LTHEN
 %token LELSE
 (* Procedure specification keywords *)
+%token ONLY
 %token SPEC
 %token NORMAL
 %token ERROR
@@ -172,6 +173,7 @@ open JS_Logic_Syntax
 %token ERR
 (* Others *)
 %token IMPORT
+%token MACRO
 (* Separators *)
 %token COMMA
 %token COLON
@@ -243,7 +245,12 @@ declaration_target:
 	| declaration_target; pred_target
 	| pred_target
 	| declaration_target; proc_target
-	| proc_target { }
+	| proc_target 
+	| declaration_target; macro_target
+	| macro_target 
+	| declaration_target; only_spec_target
+	| only_spec_target 
+	{ }
 ;
 
 import_target:
@@ -565,8 +572,33 @@ logic_cmd_target:
 			then_lcmds = separated_list(SCOLON, logic_cmd_target);
 			CRBRACKET;
 	  { LogicIf (le, then_lcmds, [])}
+	| macro = macro_head_target;
+		{ let (name, params) = macro in Macro (name, params) }
 ;
 
+macro_target: 
+	MACRO; head = macro_head_def_target; COLON; command = logic_cmd_target; SCOLON
+  { let (name, params) = head in
+		let macro = { mname = name; mparams = params; mdefinition = command } in 
+		Hashtbl.add macro_table macro.mname macro } 
+
+macro_head_def_target:
+ | name = VAR; LBRACE; params = separated_list(COMMA, VAR); RBRACE
+	 { (name, params) }
+
+macro_head_target:
+ | name = VAR; LBRACE; params = separated_list(COMMA, lexpr_target); RBRACE
+	 { (name, params) }
+
+only_spec_target:
+(* only spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *)
+	ONLY; SPEC; spec_head = spec_head_target;
+	proc_specs = separated_nonempty_list(SCOLON, pre_post_target);
+	{ let (spec_name, spec_params) = spec_head in
+		let spec = { spec_name; spec_params; proc_specs } in
+		Hashtbl.replace only_spec_table spec_name spec;
+	}
+;
 
 spec_target:
 (* spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *)

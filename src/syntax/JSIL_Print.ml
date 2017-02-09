@@ -1,4 +1,5 @@
 open JSIL_Syntax
+open JSIL_Memory_Model
 
 let rec tabs_to_str i  =
 	if i = 0 then "" else "\t" ^ (tabs_to_str (i - 1))
@@ -272,6 +273,9 @@ let rec string_of_lcmd lcmd =
 			then "if (" ^ le_str ^ ") then { " ^ then_lcmds_str ^ " }"
 			else "if (" ^ le_str ^ ") then { " ^ then_lcmds_str ^ " } else { " ^  else_lcmds_str ^ " }" in
 		ret
+	| Macro (name, lparams) -> 
+		let lparams_str = String.concat ", " (List.map (fun e -> string_of_logic_expression e false) lparams) in
+		name ^ "(" ^ lparams_str ^ ")"
 
 (** JSIL logic predicates *)
 let rec string_of_predicate predicate =
@@ -615,13 +619,6 @@ let str_of_assertion_list a_list =
 			"\t"
 			a_list
 
-
-let string_of_logic_command lcmd escape_string =
-	match lcmd with
-	| Fold a    -> "fold(" ^ (string_of_logic_assertion a escape_string) ^ ")"
-	| Unfold a  -> "unfold(" ^ (string_of_logic_assertion a escape_string) ^ ")"
-
-
 let string_of_var_list var_lst =
 	List.fold_left (fun ac v -> if (ac = "") then v else (ac ^ ", " ^ v)) "" var_lst
 
@@ -670,3 +667,18 @@ let rec full_string_of_logic_expression e  =
 	| LStrNth (e1, e2) -> Printf.sprintf "(LStrNth (%s, %s))" (sle e1) (sle e2)
 	(* $$unknown *)
 	| LUnknown -> "LUnknown"
+
+
+let string_of_heap (h : jsil_lit SHeap.t SHeap.t) =
+	SHeap.fold
+		(fun loc obj printed_heap ->
+			  let printed_object =
+					(SHeap.fold
+						(fun prop hval print_obj ->
+							let printed_hval = string_of_literal hval false in
+							let printed_cell = Printf.sprintf "\n\t(cell '%s \"%s\" '%s)" loc prop printed_hval in
+							print_obj ^ printed_cell)
+						obj "") in
+			printed_heap ^ (printed_object))
+		h
+		""

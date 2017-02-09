@@ -533,37 +533,30 @@ let get_args cmd =
 
 
 let annotate_cmd_top_level metadata (lab, cmd) =
-	let fold_unfold_pi_code args =
+	
+	let fold_unfold_pi_code_macro args = 
 		let arg =
 			(match args with
 			| Some args ->  List.nth args 0
-			| None -> raise (Failure "translate_statement. annotate_cmds. DEATH")) in
-
+			| None -> raise (Failure "No argument passed to GetPutValue folding.")) in
 		(match arg with
 		| Literal n -> [], []
 		| _ ->
 			let arg = JSIL_Logic_Utils.expr_2_lexpr arg in
-			let fold_args = [ LLstNth (arg, LLit (Integer 1)); LLstNth (arg, LLit (Integer 2));
-				LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()) ] in
-			let folding_guard_l = LBinOp (LLstNth (arg, LLit (Integer 0)), Equal, LLit (String "o")) in
-			let folding_guard_r = LBinOp (LLstNth (arg, LLit (Integer 0)), Equal, LLit (String "v")) in
-			let folding_guard_r = LBinOp (folding_guard_r, And, (LBinOp (LLstNth (arg, LLit (Integer 1)), Equal, LLit (Loc locGlobName)))) in
-			let folding_guard = LBinOp (folding_guard_l, Or, folding_guard_r) in
-			let pre_l_if_inner = LogicIf (folding_guard, [ Fold (LPred (JS_Logic_Syntax.pi_pred_name, fold_args)) ], []) in
-			let pre_l_if_outer = LogicIf ( LBinOp (LTypeOf (arg), Equal, LLit (Type ListType)), [ pre_l_if_inner ], []) in
-			let post_l_if_inner = LogicIf (folding_guard, [ RecUnfold JS_Logic_Syntax.pi_pred_name ], []) in
-			let post_l_if_outer = LogicIf ( LBinOp (LTypeOf (arg), Equal, LLit (Type ListType)), [ post_l_if_inner ], []) in
-	 		[ pre_l_if_outer ], [ post_l_if_outer ]) in
-
+			let fold_args = [arg; LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()) ] in
+			let fold_macro = Macro (Js2jsil_constants.macro_GPVF_name, fold_args) in
+			let unfold_macro = Macro (Js2jsil_constants.macro_GPVU_name, [ arg ]) in
+			[ fold_macro ], [ unfold_macro ]) in
+	
 	if (is_get_value_call cmd) then (
 		print_debug "I AM CREATING a GETVALUE ANNOTATION!!!!!";
-		let fold_lcmds, unfold_lcmds = fold_unfold_pi_code (get_args cmd) in
+		let fold_lcmds, unfold_lcmds = fold_unfold_pi_code_macro (get_args cmd) in
 		let new_metadata =
 			{ metadata with pre_logic_cmds = fold_lcmds; post_logic_cmds = unfold_lcmds } in
 		(new_metadata, lab, cmd)
 	) else if (is_put_value_call cmd) then (
 		print_debug "I AM CREATING a PUTVALUE ANNOTATION!!!!!";
-		let fold_lcmds, unfold_lcmds = fold_unfold_pi_code (get_args cmd) in
+		let fold_lcmds, unfold_lcmds = fold_unfold_pi_code_macro (get_args cmd) in
 		let new_metadata =
 			{ metadata with pre_logic_cmds = fold_lcmds; post_logic_cmds = unfold_lcmds } in
 		(new_metadata, lab, cmd)
@@ -614,7 +607,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		| (metadata, lab, cmd) :: rest -> 
 			(* Printf.printf "With STUFF!!!\n\n"; *)
 			let cmd_str : string = JSIL_Print.string_of_lab_cmd cmd in 
-			let logic_cmd_str = String.concat ", " (List.map (fun lcmd -> JSIL_Print.string_of_logic_command lcmd false) fold_unfold_logic_cmds) in 
+			let logic_cmd_str = String.concat ", " (List.map (fun lcmd -> JSIL_Print.string_of_lcmd lcmd) fold_unfold_logic_cmds) in 
 			(* Printf.printf "I am annotating %s with (un)folds baby:\n%s!!!\n" cmd_str logic_cmd_str; *)
 			let new_metadata = { metadata with pre_logic_cmds = fold_unfold_logic_cmds } in
 			(new_metadata, lab, cmd) :: rest) in  		
@@ -2586,7 +2579,7 @@ and translate_statement tr_ctx e  =
 		| [] -> []
 		| (metadata, lab, cmd) :: rest -> 
 			let cmd_str : string = JSIL_Print.string_of_lab_cmd cmd in 
-			let logic_cmd_str = String.concat ", " (List.map (fun lcmd -> JSIL_Print.string_of_logic_command lcmd false) fold_unfold_logic_cmds) in 
+			let logic_cmd_str = String.concat ", " (List.map (fun lcmd -> JSIL_Print.string_of_lcmd lcmd) fold_unfold_logic_cmds) in 
 			(* Printf.printf "I am annotating %s with (un)folds baby:\n%s!!!\n" cmd_str logic_cmd_str; *)
 			let invariant_str : string = (match invariant with None -> "" | Some invariant -> JSIL_Print.string_of_logic_assertion invariant false) in 
 			(* Printf.printf "I am annotating %s with the following invariant:\n%s!!!\n" cmd_str invariant_str; *)

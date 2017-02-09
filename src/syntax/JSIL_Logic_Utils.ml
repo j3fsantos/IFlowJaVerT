@@ -110,7 +110,6 @@ let rec assertion_map f asrt =
 	| LTypes lt              -> LTypes (List.map (fun (exp, typ) -> (map_e exp, typ)) lt)
 	| LEmptyFields (o, ls)   -> LEmptyFields (map_e o, ls)
 
-
 let rec logic_expression_fold f_atom f_fold lexpr =
 	let fold_e = logic_expression_fold f_atom f_fold in
   match lexpr with
@@ -1348,5 +1347,50 @@ let pred_def_tbl_from_list pred_defs =
 		pred_defs; 
 	pred_def_tbl
 
-
-
+(* Unfolding of macros *)
+let rec unfold_macro (macro_name : string) (params_vals : jsil_logic_expr list) : jsil_logic_command =
+	if (Hashtbl.mem macro_table macro_name) then
+		(let macro = Hashtbl.find macro_table macro_name in
+		(* print_debug (Printf.sprintf ("Macro: %s(%s) : %s") 
+				macro.mname
+				(String.concat ", " macro.mparams)
+				(JSIL_Print.string_of_lcmd macro.mdefinition)); *)
+		let params = macro.mparams in
+		let lparo = List.length params in
+		let lparv = List.length params_vals in
+		if (lparo <> lparv) then
+			raise (Failure (Printf.sprintf "Macro %s called with incorrect number of parameters: %d instead of %d." macro.mname lparv lparo))
+		else
+			let subst = Hashtbl.create 17 in
+			List.iter2 (fun x y -> Hashtbl.add subst x y) params params_vals;
+			macro_subst macro.mdefinition subst)
+		else
+			raise (Failure (Printf.sprintf "Macro %s not found in macro table." macro_name))
+and
+(** Apply function f to the logic expressions in a logic command, recursively when it makes sense. *)
+lcmd_map f unfold_macros lcmd =
+	(* Map recursively to commands, assertions, and expressions *)
+	let map_l = lcmd_map f unfold_macros in
+	let map_a = assertion_map f in
+	let map_e = logic_expression_map f in
+	match lcmd with
+	| Fold      a                   -> Fold      (map_a a)
+	| Unfold    a                   -> Unfold    (map_a a)
+	| RecUnfold s                   -> RecUnfold s
+	| LogicIf   (e, lcmds1, lcmds2) -> LogicIf   (map_e e, List.map (fun x -> map_l x) lcmds1, List.map (fun x -> map_l x) lcmds2)
+	| Macro     (name, params_vals) -> 
+		let fparams_vals = List.map (fun x -> map_e x) params_vals in
+		(match unfold_macros with
+		| true  -> unfold_macro name fparams_vals
+		| false -> Macro (name, fparams_vals))
+and
+macro_subst (lcmd : jsil_logic_command) (subst : (string, jsil_logic_expr) Hashtbl.t) : jsil_logic_command = 
+	let substitute = 
+		(fun e ->
+			((match e with
+			| PVar v ->
+				(match Hashtbl.mem subst v with
+				| true  -> Hashtbl.find subst v
+				| false -> e)
+			| _ -> e), true)) in
+	lcmd_map substitute true lcmd

@@ -693,7 +693,16 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 			| None, None -> LFalse in
 		if (Pure_Entailment.old_check_entailment [] (get_pf_list symb_state) [ a_le_then ] (get_gamma symb_state))
 			then symb_evaluate_logic_cmds s_prog then_lcmds [ symb_state ] subst spec_vars
-			else symb_evaluate_logic_cmds s_prog else_lcmds [ symb_state ] subst spec_vars )
+			else symb_evaluate_logic_cmds s_prog else_lcmds [ symb_state ] subst spec_vars 
+		
+	| Macro (name, param_vals) ->
+			let actual_command = unfold_macro name param_vals in 
+			(* print_debug (Printf.sprintf ("Unfolded macro: %s(%s) -> %s") 
+				name
+				(String.concat ", " (List.map (fun x -> JSIL_Print.string_of_logic_expression x false) param_vals))
+				(JSIL_Print.string_of_lcmd actual_command)); *)
+					symb_evaluate_logic_cmd s_prog actual_command symb_state subst spec_vars
+	)
 and
 symb_evaluate_logic_cmds s_prog (l_cmds : jsil_logic_command list) (symb_states : symbolic_state list) subst spec_vars =
 	let symb_states = List.map (fun s -> simplify false s) symb_states in

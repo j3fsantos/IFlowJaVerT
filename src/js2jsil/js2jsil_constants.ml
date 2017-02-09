@@ -21,7 +21,7 @@ let js2jsil_imports = [
 ]
 
 let js2jsil_logic_imports = [
-	"obj_int_fun"; "js_preds"
+	"javert_internal_functions"; "javert_logic_macros"; "javert_js_predicates"
 ]
 
 let setupHeapName = "setupInitialHeap"
@@ -416,3 +416,5 @@ let string_of_var_tbl var_tbl =
 	"[ " ^ var_tbl_str ^ "]"
 
 
+let macro_GPVF_name = "GPVFold"
+let macro_GPVU_name = "GPVUnfold"

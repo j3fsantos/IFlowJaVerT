@@ -51,5 +51,4 @@ racket/compiled
 # Compilation and run-specific
 *.xml
 example.jsil
-environment
-src/pulp/SJSIL/translation_runtime/output.txt
+output.txt

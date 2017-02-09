@@ -278,6 +278,14 @@ type jsil_logic_command =
 	| Unfold     of jsil_logic_assertion                                                    (** Single unfold *)
 	| RecUnfold  of string                                                                  (** Recursive unfold of everything *)
 	| LogicIf    of jsil_logic_expr * (jsil_logic_command list) * (jsil_logic_command list) (** If-then-else *)
+	| Macro      of string * (jsil_logic_expr list)                                         (** Macro *)
+
+(** {b JSIL logic macro}. *)
+type jsil_logic_macro = {
+	mname       : string;             (** Name of the macro *)
+	mparams     : string list;        (** Actual parameters *)
+	mdefinition : jsil_logic_command; (** Macro definition *)
+}
 
 (** {b JSIL metadata}. *)
 type jsil_metadata = {
@@ -386,8 +394,10 @@ let get_proc_cmd proc i =
 	proc.proc_body.(i)
 
 (* Tables where we collect the predicates and the procedures as we parse them. *)
-let predicate_table : (string, jsil_logic_predicate) Hashtbl.t = Hashtbl.create 100
-let procedure_table : (string, jsil_ext_procedure) Hashtbl.t = Hashtbl.create 100
+let predicate_table : (string, jsil_logic_predicate) Hashtbl.t = Hashtbl.create 511
+let procedure_table : (string, jsil_ext_procedure) Hashtbl.t = Hashtbl.create 511
+let macro_table     : (string, jsil_logic_macro) Hashtbl.t = Hashtbl.create 511
+let only_spec_table : (string, jsil_spec) Hashtbl.t = Hashtbl.create 511
 
 (* STATISTICS *)
 
