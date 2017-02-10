@@ -39,21 +39,17 @@ var counter = 0;
 	@id  Node
 
 	@pre (
-	   	scope(counter: #c) * types(#c : $$int_type) *
 	   	(pri == #pri) * (val == #val) * types(#pri: $$number_type, #val: $$string_type) *
 			(0 <=# #pri) *
 	   	((this, "pri") -> None) * ((this, "val") -> None) * ((this, "next") -> None) *
 		   ((this, "push") -> None) * ((this, "insert") -> None) *
 	   	Object(this, #node_proto) * NodePrototype(#node_proto, #push_loc, #insert_loc)
 	)
-	@post (
-	   		scope(counter: #c + 666) *
-	   		Node(this, #pri, #val, $$null, #node_proto) *
+	@post (	Node(this, #pri, #val, $$null, #node_proto) *
 	   		NodePrototype(#node_proto, #push_loc, #insert_loc))
 */
 var Node = function (pri, val) {
-	this.pri = pri; this.val = val; this.next = null;
-	counter++
+	this.pri = pri; this.val = val; this.next = null
 }
 
 /**

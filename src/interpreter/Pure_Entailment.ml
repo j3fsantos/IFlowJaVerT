@@ -891,8 +891,10 @@ let make_concrete_number_axioms tr_ctx n =
 let make_concrete_int_axioms tr_ctx i =
 	let ctx = tr_ctx.z3_ctx in
 	let i', _, _  = encode_logical_expression tr_ctx (LLit (Integer i)) in
-	let typeof_axiom = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ i' ]) (encode_type ctx IntType) in
-	[ typeof_axiom ]
+	let typeof_axiom_1 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ i' ]) (encode_type ctx IntType) in
+	let typeof_axiom_2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ i' ]) (encode_type ctx NumberType) in
+	let typeof_axiom = Boolean.mk_or ctx [ typeof_axiom_1; typeof_axiom_2 ] in
+	[ typeof_axiom ] 
 
 
 let rec lets_do_some_string_theory_axioms tr_ctx l1 l2 =
@@ -1001,6 +1003,11 @@ let rec encode_assertion tr_ctx is_premise a : Expr.expr * (Expr.expr list) =
 
 		let le1', t1', as1 = fe le1 in
 		let le2', t2', as2 = fe le2 in
+		
+		print_debug (
+			Printf.sprintf "LLessEq. le1': %s. le2': %s. asioms_length: %d\n" 
+			(Expr.to_string le1') (Expr.to_string le2')
+			((List.length as1) + (List.length as2))); 
 
 		(match t1, t2 with
 		| Some t1, Some t2 ->
@@ -1075,6 +1082,7 @@ let encode_assertion_top_level tr_ctx is_premise a =
 
 	let a' = JSIL_Logic_Utils.push_in_negations_off a in
 	let a'', axioms = encode_assertion tr_ctx is_premise a' in
+	
 	let result = if ((List.length axioms > 0) || (List.length a_strings_numbers_ints_axioms > 0))
 		then Boolean.mk_and tr_ctx.z3_ctx ((a'' :: axioms) @ a_strings_numbers_ints_axioms)
 		else a'' in
@@ -1170,9 +1178,15 @@ let old_check_entailment existentials left_as right_as gamma =
 
 	print_time_debug "check_entailment:";	
 
+
 	let existentials, left_as, right_as, gamma =
 		simplify_implication (SS.of_list existentials) (DynArray.of_list left_as) (DynArray.of_list right_as) (copy_gamma gamma) in
-		
+
+	let ret_left = check_satisfiability (DynArray.to_list left_as) gamma in 
+	let ret_right = check_satisfiability (DynArray.to_list right_as) gamma in 
+	print_debug (Printf.sprintf "DEBUG: left_side_sat: %b\n" ret_left); 
+	print_debug (Printf.sprintf "DEBUG: right_side_sat: %b\n" ret_right); 
+						
 	(* If right is empty, then the left only needs to be satisfiable *)
 	if (DynArray.empty right_as) then check_satisfiability (DynArray.to_list left_as) gamma else
 	(* If left or right are directly false, everything is false *)
