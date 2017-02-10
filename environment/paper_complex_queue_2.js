@@ -40,16 +40,20 @@ var counter = 0;
 
 	@pre (
 	   	(pri == #pri) * (val == #val) * types(#pri: $$number_type, #val: $$string_type) *
-			(0 <=# #pri) *
+	   	(0 <=# #pri) *
 	   	((this, "pri") -> None) * ((this, "val") -> None) * ((this, "next") -> None) *
-		   ((this, "push") -> None) * ((this, "insert") -> None) *
+	   	((this, "push") -> None) * ((this, "insert") -> None) *
 	   	Object(this, #node_proto) * NodePrototype(#node_proto, #push_loc, #insert_loc)
 	)
-	@post (	Node(this, #pri, #val, $$null, #node_proto) *
+
+	@post (
+	   		scope(counter: #c + 1) *
+	   		Node(this, #pri, #val, $$null, #node_proto) *
 	   		NodePrototype(#node_proto, #push_loc, #insert_loc))
 */
 var Node = function (pri, val) {
-	this.pri = pri; this.val = val; this.next = null
+	this.pri = pri; this.val = val; this.next = null;
+	counter++
 }
 
 /**

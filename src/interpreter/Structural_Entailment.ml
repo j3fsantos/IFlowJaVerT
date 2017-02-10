@@ -537,6 +537,8 @@ let pf_list_of_discharges discharges subst partial =
 
 let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment) option  =
 
+	print_debug (Printf.sprintf "LVARS: %s" (String.concat ", " lvars));
+
 	let start_time = Sys.time () in
 
 	let heap_0, store_0, pf_0, gamma_0, preds_0 (*, solver *) = symb_state in
@@ -586,6 +588,9 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 	let step_1 discharges subst new_pfs =
 		let start_time = Sys.time() in
 		let existentials = get_subtraction_vars (get_symb_state_vars_as_list false pat_symb_state) subst in
+		print_debug (Printf.sprintf "Existentialsies: %s" (String.concat ", " existentials));
+		let existentials = List.filter (fun x -> not (List.mem x lvars)) existentials in
+		print_debug (Printf.sprintf "Existentialsies: %s" (String.concat ", " existentials));
 		let fresh_names_for_existentials = (List.map (fun v -> fresh_lvar ()) existentials) in
 		let subst_existentials = init_substitution2 existentials (List.map (fun v -> LVar v) fresh_names_for_existentials) in
 		extend_substitution subst existentials (List.map (fun v -> LVar v) fresh_names_for_existentials);
@@ -602,8 +607,8 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 		let result = if (unify_gamma_check) then
 		begin
 			merge_pfs pf_0 (DynArray.of_list new_pfs);
-		    let pf_1_subst_list = List.map (fun a -> assertion_substitution a subst true) (pfs_to_list pf_1) in
-			let pf_discharges = pf_list_of_discharges discharges subst false in
+		  let pf_1_subst_list = List.map (fun a -> assertion_substitution a subst true) (pfs_to_list pf_1) in
+			let pf_discharges = pf_list_of_discharges discharges subst true in
 			let pfs = pf_1_subst_list @ pf_discharges in
 
 			print_debug (Printf.sprintf "Checking if %s\n entails %s\n with existentials\n%s\nand gamma %s"
