@@ -748,6 +748,7 @@ let rec understand_types exists pf_list gamma : bool =
 			| Some false -> false
 			| _ -> (* Check for variables *)
 				(match le1, le2 with
+				(* TODO TODO TODO --- FIX HERE WRT RIGHT SIDE --- TODO TODO TODO *)
 				| LVar x, LVar y ->
 					print_debug (Printf.sprintf "Checking: (%s, %s) vs %s" x  from_where y);
 					(match te1, te2 with
