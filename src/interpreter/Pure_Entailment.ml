@@ -892,9 +892,9 @@ let make_concrete_int_axioms tr_ctx i =
 	let ctx = tr_ctx.z3_ctx in
 	let i', _, _  = encode_logical_expression tr_ctx (LLit (Integer i)) in
 	let typeof_axiom_1 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ i' ]) (encode_type ctx IntType) in
-	let typeof_axiom_2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ i' ]) (encode_type ctx NumberType) in
-	let typeof_axiom = Boolean.mk_or ctx [ typeof_axiom_1; typeof_axiom_2 ] in
-	[ typeof_axiom ] 
+	(* let typeof_axiom_2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ i' ]) (encode_type ctx NumberType) in
+	let typeof_axiom = Boolean.mk_or ctx [ typeof_axiom_1; typeof_axiom_2 ] in *)
+	[ typeof_axiom_1 ] 
 
 
 let rec lets_do_some_string_theory_axioms tr_ctx l1 l2 =
