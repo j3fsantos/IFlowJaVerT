@@ -753,17 +753,21 @@ let rec understand_types exists pf_list gamma : bool =
 					print_debug (Printf.sprintf "Checking: (%s, %s) vs %s" x  from_where y);
 					(match te1, te2 with
 					| Some t1, None ->
-						  print_debug (Printf.sprintf "Added (%s, %s) to gamma given %s and %s" 
+						if ((from_where = "l") || ((from_where = "r") && (SS.mem y exists))) 
+						then (print_debug (Printf.sprintf "Added (%s, %s) to gamma given %s and %s" 
 							y (JSIL_Print.string_of_type t1)
 							(String.concat "\n" (List.map (fun (x, y) -> Printf.sprintf "(%s, %s)" (JSIL_Print.string_of_logic_assertion x false) y) pf_list))
 							(JSIL_Memory_Print.string_of_gamma gamma)); 
-							Hashtbl.add gamma y t1; f rest gamma
+							Hashtbl.add gamma y t1); 
+						f rest gamma
 					| None, Some t2 ->
-							print_debug (Printf.sprintf "Added (%s, %s) to gamma given %s and %s" 
-							x (JSIL_Print.string_of_type t2)
-							(String.concat "\n" (List.map (fun (x, y) -> Printf.sprintf "(%s, %s)" (JSIL_Print.string_of_logic_assertion x false) y) pf_list))
-							(JSIL_Memory_Print.string_of_gamma gamma)); 
-							Hashtbl.add gamma x t2; f rest gamma 
+							if ((from_where = "l") || ((from_where = "r") && (SS.mem x exists))) 
+							then (print_debug (Printf.sprintf "Added (%s, %s) to gamma given %s and %s" 
+								x (JSIL_Print.string_of_type t2)
+								(String.concat "\n" (List.map (fun (x, y) -> Printf.sprintf "(%s, %s)" (JSIL_Print.string_of_logic_assertion x false) y) pf_list))
+								(JSIL_Memory_Print.string_of_gamma gamma)); 
+								Hashtbl.add gamma x t2); 
+							f rest gamma 
 					| Some t1, Some t2 ->
 						if (not (t1 = t2))
 							then (let t = if (types_leq t1 t2) then t1 else t2 in

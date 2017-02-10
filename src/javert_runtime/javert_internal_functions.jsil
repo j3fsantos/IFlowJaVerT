@@ -28,7 +28,7 @@ pred isNamedProperty (prop) :
  *)
 pred DataDescriptor (d) :
     types (d : $$list_type, #dwrit : $$boolean_type, #denum : $$boolean_type, #dconf : $$boolean_type) *
-	(d == {{ "d", #dval, #dwrit, #denum, #dconf }});
+    (! (#dval == $$empty)) * (d == {{ "d", #dval, #dwrit, #denum, #dconf }});
 
 (*
  * Predicate: GenericDescriptor
