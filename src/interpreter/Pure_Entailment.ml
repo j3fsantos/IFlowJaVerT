@@ -1178,6 +1178,11 @@ let old_check_entailment existentials left_as right_as gamma =
 
 	print_time_debug "check_entailment:";	
 
+	print_debug (Printf.sprintf "Preparing entailment check:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n"
+	   (String.concat ", " (existentials))
+	   (JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list left_as) false)
+	   (JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list right_as) false)
+	   (JSIL_Memory_Print.string_of_gamma gamma));
 
 	let existentials, left_as, right_as, gamma =
 		simplify_implication (SS.of_list existentials) (DynArray.of_list left_as) (DynArray.of_list right_as) (copy_gamma gamma) in

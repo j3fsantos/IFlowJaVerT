@@ -925,7 +925,7 @@ and symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state cur next
 						(* check if the current symbolic state entails the invariant *)
 						Printf.printf "MARICA, NO ME ABUSES MAS LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
 						let new_symb_state, _ = JSIL_Logic_Normalise.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
-						let new_symb_state, _ = simplify_for_your_legacy (DynArray.create()) new_symb_state in
+						let new_symb_state, _ = simplify_for_your_legacy (SS.empty) (DynArray.create()) new_symb_state in
 						(match (Structural_Entailment.fully_unify_symb_state new_symb_state symb_state spec.n_lvars !js) with
 						| Some _, _ -> ()
 						| None, msg -> raise (Failure msg))
@@ -943,7 +943,7 @@ and symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state cur next
 						| Some a ->
 							Printf.printf "MARICA. NO ME ABUSES MAS NO LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
 							let new_symb_state, _ = JSIL_Logic_Normalise.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
-							let new_symb_state, _ = simplify_for_your_legacy (DynArray.create()) new_symb_state in
+							let new_symb_state, _ = simplify_for_your_legacy (SS.empty) (DynArray.create()) new_symb_state in
 							(match (Structural_Entailment.unify_symb_state_against_invariant symb_state new_symb_state spec.n_lvars) with
 							(* If it does, replace current symbolic state with the invariant *)
 							| Some new_symb_state -> new_symb_state

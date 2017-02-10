@@ -721,12 +721,13 @@ let aggressively_simplify_pfs_with_others pfs opfs gamma how =
  * ULTIMATE SIMPLIFICATION *
  * *********************** *)
 
-let rec understand_types pf_list gamma : bool = 
+let rec understand_types exists pf_list gamma : bool = 
+	let f = understand_types exists in
 	(match pf_list with
 	| [] -> true
-	| pf :: rest ->
+	| (pf, from_where) :: rest ->
 	 	(match pf with
-		| LTrue | LFalse | LEmp | LNot _ -> understand_types rest gamma
+		| LTrue | LFalse | LEmp | LNot _ -> f rest gamma
 		| LPointsTo	(_, _, _) -> raise (Failure "Heap cell assertion in pure formulae.")
 		| LEmp -> raise (Failure "Empty heap assertion in pure formulae.")
 		| LPred	(_, _) -> raise (Failure "Predicate in pure formulae.")
@@ -743,66 +744,69 @@ let rec understand_types pf_list gamma : bool =
 			| None, None -> None
 			| _, _ -> Some true) in
 			(match proceed with
-			| None -> understand_types rest gamma
+			| None -> f rest gamma
 			| Some false -> false
 			| _ -> (* Check for variables *)
 				(match le1, le2 with
 				| LVar x, LVar y ->
-					(* print_debug (Printf.sprintf "Checking: %s vs %s" x y); *)
+					print_debug (Printf.sprintf "Checking: (%s, %s) vs %s" x  from_where y);
 					(match te1, te2 with
 					| Some t1, None ->
-						(* print_debug (Printf.sprintf "Added (%s, %s) to gamma given %s and %s" 
+						  print_debug (Printf.sprintf "Added (%s, %s) to gamma given %s and %s" 
 							y (JSIL_Print.string_of_type t1)
-							(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list pf_list) false)
-							(JSIL_Memory_Print.string_of_gamma gamma)); *)
-							Hashtbl.add gamma y t1; understand_types rest gamma
+							(String.concat "\n" (List.map (fun (x, y) -> Printf.sprintf "(%s, %s)" (JSIL_Print.string_of_logic_assertion x false) y) pf_list))
+							(JSIL_Memory_Print.string_of_gamma gamma)); 
+							Hashtbl.add gamma y t1; f rest gamma
 					| None, Some t2 ->
 							print_debug (Printf.sprintf "Added (%s, %s) to gamma given %s and %s" 
 							x (JSIL_Print.string_of_type t2)
-							(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list pf_list) false)
+							(String.concat "\n" (List.map (fun (x, y) -> Printf.sprintf "(%s, %s)" (JSIL_Print.string_of_logic_assertion x false) y) pf_list))
 							(JSIL_Memory_Print.string_of_gamma gamma)); 
-							Hashtbl.add gamma x t2; understand_types rest gamma
+							Hashtbl.add gamma x t2; f rest gamma 
 					| Some t1, Some t2 ->
 						if (not (t1 = t2))
 							then (let t = if (types_leq t1 t2) then t1 else t2 in
-							(* print_debug (Printf.sprintf "Added (%s, %s) and (%s, %s) to gamma given %s and %s" 
+							print_debug (Printf.sprintf "Added (%s, %s) and (%s, %s) to gamma given \n%s and %s" 
 							x (JSIL_Print.string_of_type t)
 							y (JSIL_Print.string_of_type t)
-							(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list pf_list) false)
-							(JSIL_Memory_Print.string_of_gamma gamma)); *)
-							Hashtbl.replace gamma x t; Hashtbl.replace gamma y t; understand_types rest gamma)
+							(String.concat "\n" (List.map (fun (x, y) -> Printf.sprintf "(%s, %s)" (JSIL_Print.string_of_logic_assertion x false) y) pf_list))
+							(JSIL_Memory_Print.string_of_gamma gamma));
+							Hashtbl.replace gamma x t; Hashtbl.replace gamma y t; f rest gamma)
 							else
-								understand_types rest gamma
+								f rest gamma
 					| None, None -> raise (Failure "Impossible branch."))
 				| LVar x, le
 				| le, LVar x ->
-					(* print_debug (Printf.sprintf "Checking: %s vs %s" x (JSIL_Print.string_of_logic_expression le false)); *)
+					print_debug (Printf.sprintf "Checking: (%s, %s) vs %s" x from_where (JSIL_Print.string_of_logic_expression le false));
 					let tx = gamma_get_type gamma x in
 					let te, _, _ = type_lexpr gamma le in
 					(match te with
-					| None -> understand_types rest gamma
+					| None -> f rest gamma
 					| Some te ->
 						(match tx with
 						| None -> 
-							(* print_debug (Printf.sprintf "Added (%s, %s) to gamma given %s and %s" 
-							x (JSIL_Print.string_of_type te)
-							(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list pf_list) false)
-							(JSIL_Memory_Print.string_of_gamma gamma)); *)
-							Hashtbl.add gamma x te; understand_types rest gamma
+								if ((from_where = "l") || ((from_where = "r") && (SS.mem x exists)))
+								then (
+									print_debug (Printf.sprintf "Added (%s, %s) to gamma given %s and %s" 
+									x (JSIL_Print.string_of_type te)
+									(String.concat "\n" (List.map (fun (x, y) -> Printf.sprintf "(%s, %s)" (JSIL_Print.string_of_logic_assertion x false) y) pf_list))
+									(JSIL_Memory_Print.string_of_gamma gamma)); 
+									Hashtbl.add gamma x te); 
+								f rest gamma
 						| Some tx ->
 							if (not (tx = te))
 								then (let t = if (types_leq tx te) then tx else te in
-								(* print_debug (Printf.sprintf "Added (%s, %s) to gamma given %s and %s" 
+								print_debug (Printf.sprintf "Added (%s, %s) to gamma given %s and %s" 
 								x (JSIL_Print.string_of_type t)
-								(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list pf_list) false)
-								(JSIL_Memory_Print.string_of_gamma gamma)); *)
-								Hashtbl.replace gamma x t; understand_types rest gamma)
+								(String.concat "\n" (List.map (fun (x, y) -> Printf.sprintf "(%s, %s)" (JSIL_Print.string_of_logic_assertion x false) y) pf_list))
+								(JSIL_Memory_Print.string_of_gamma gamma)); 
+								Hashtbl.replace gamma x t; f rest gamma)
 								else
-									understand_types rest gamma))
-					| _, _ -> understand_types rest gamma))
-		| _ -> understand_types rest gamma))
+									f rest gamma))
+					| _, _ -> f rest gamma))
+		| _ -> f rest gamma))
 
-let rec simplify_for_your_legacy others (symb_state : symbolic_state) : symbolic_state * jsil_logic_assertion DynArray.t = 
+let rec simplify_for_your_legacy exists others (symb_state : symbolic_state) : symbolic_state * jsil_logic_assertion DynArray.t = 
 
 	(* Gamma-check *)
 	let symb_state, others = Hashtbl.fold (fun v t (ac, others) -> 
@@ -822,8 +826,8 @@ let rec simplify_for_your_legacy others (symb_state : symbolic_state) : symbolic
 			(symb_state_substitution (heap, store, p_formulae, gamma, preds) subst true, pf_substitution others subst true)
 		| None -> (ac, others))) (copy_gamma (get_gamma symb_state)) (symb_state, others) in
 
-	let f  = simplify_for_your_legacy in
-	let fo = simplify_for_your_legacy others in
+	let f  = simplify_for_your_legacy exists in
+	let fo = simplify_for_your_legacy exists others in
 
 	let heap, store, p_formulae, gamma, preds (*, _ *) = symb_state in
 	
@@ -1003,19 +1007,19 @@ let rec simplify_for_your_legacy others (symb_state : symbolic_state) : symbolic
 	let pf_list = DynArray.to_list p_formulae in
 	let others_list = DynArray.to_list others in
 	(* print_debug (Printf.sprintf "Typing pfs with others: %s%s" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false) (JSIL_Memory_Print.string_of_shallow_p_formulae others false)); *)
-		let types_ok = understand_types (pf_list @ others_list) gamma in
+		let types_ok = understand_types exists ((List.map (fun x -> (x, "l")) pf_list) @ (List.map (fun x -> (x, "r")) others_list)) gamma in
 		(match types_ok with
 		| true -> go_through_pfs pf_list 0  
 		| false -> pfs_false "Nasty type mismatch.")
 
 let simplify_for_your_legacy_pfs pfs gamma =
 	(* let solver = ref None in *)
-		let (_, _, pfs, gamma, _), _ = simplify_for_your_legacy (DynArray.create()) (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create () (*, solver*)) in
+		let (_, _, pfs, gamma, _), _ = simplify_for_your_legacy (SS.empty) (DynArray.create()) (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create () (*, solver*)) in
 			pfs, gamma
 			
-let simplify_for_your_legacy_pfs_with_others pfs others gamma =
+let simplify_for_your_legacy_pfs_with_exists_and_others exists pfs others gamma =
 	(* let solver = ref None in *)
-		let (_, _, pfs, gamma, _), others = simplify_for_your_legacy others (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create () (*, solver*)) in
+		let (_, _, pfs, gamma, _), others = simplify_for_your_legacy exists others (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create () (*, solver*)) in
 			pfs, others, gamma
 			
 let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_assertion DynArray.t) (gamma : (string, jsil_type) Hashtbl.t) =
@@ -1074,7 +1078,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 			 	then pfs_false "Nonsense."
 				else
 			 (let pf_list = DynArray.to_list p_formulae in
-				let types_ok = understand_types pf_list gamma in
+				let types_ok = understand_types exists (List.map (fun x -> (x, "r")) pf_list) gamma in
 				(match types_ok with
 				| false -> pfs_false "Nasty type mismatch."
 				| true -> 
@@ -1172,7 +1176,12 @@ let clean_up_stuff exists left right =
 	done
 
 let simplify_implication exists lpfs rpfs gamma =
-	let lpfs, rpfs, gamma = simplify_for_your_legacy_pfs_with_others lpfs rpfs gamma in
+	let lpfs, rpfs, gamma = simplify_for_your_legacy_pfs_with_exists_and_others exists lpfs rpfs gamma in
+	print_debug (Printf.sprintf "In between:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n"
+   (String.concat ", " (SS.elements exists))
+   (JSIL_Memory_Print.string_of_shallow_p_formulae lpfs false)
+   (JSIL_Memory_Print.string_of_shallow_p_formulae rpfs false)
+   (JSIL_Memory_Print.string_of_gamma gamma));
 	sanitise_pfs_no_store gamma rpfs;
 	let exists, lpfs, rpfs, gamma = simplify_existentials exists lpfs rpfs gamma in
 	clean_up_stuff exists lpfs rpfs;
