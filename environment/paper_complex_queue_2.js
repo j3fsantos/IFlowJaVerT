@@ -39,7 +39,7 @@ var counter = 0;
 	@id  Node
 
 	@pre (
-	    scope(counter: #c) * types(#c : $$int_type) *
+	      scope(counter: #c) * types(#c : $$int_type) *
 	   	(pri == #pri) * (val == #val) * types(#pri: $$number_type, #val: $$string_type) *
 	   	(0 <# #pri) *
 	   	((this, "pri") -> None) * ((this, "val") -> None) * ((this, "next") -> None) *
@@ -48,7 +48,7 @@ var counter = 0;
 	)
 
 	@post (
-	   		scope(counter: #c + 15) *
+	   		scope(counter: #c + 1) *
 	   		Node(this, #pri, #val, $$null, #node_proto) *
 	   		NodePrototype(#node_proto, #push_loc, #insert_loc))
 */
@@ -62,8 +62,8 @@ var Node = function (pri, val) {
 
 	@pre (
 		(q == #q) * (#q == $$null) *
-		Node(this, #npri, #nval, $$null, #node_proto) * (0 <# #npri) *
 		Queue(#q, #node_proto, #pri_q) *
+		Node(this, #npri, #nval, $$null, #node_proto) *
 		NodePrototype(#node_proto, #push_loc, #insert_loc) *
 		types(#npri : $$number_type, #pri_q : $$number_type)
 	)
@@ -74,7 +74,7 @@ var Node = function (pri, val) {
 
 	@pre (
 		(q == #q) * (! (#q == $$null)) *
-		Node(this, #npri, #nval, $$null, #node_proto) * (0 <# #npri) *
+		Node(this, #npri, #nval, $$null, #node_proto) *
 		Queue(#q, #node_proto, #pri_q) *
 		NodePrototype(#node_proto, #push_loc, #insert_loc) *
 		(#npri <# #pri_q) * types(#npri : $$number_type, #pri_q : $$number_type)
@@ -85,9 +85,8 @@ var Node = function (pri, val) {
 	)
 
 	@pre (
-		(q == #q) *
-		Node(this, #npri, #val, $$null, #node_proto) * (0 <# #npri) *
-		Queue(#q, #node_proto, #pri_q) *
+		Node(this, #npri, #val, $$null, #node_proto) *
+		Queue(q, #node_proto, #pri_q) *
 		NodePrototype(#node_proto, #push_loc, #insert_loc) *
 		(#pri_q <=# #npri) * types(#npri : $$number_type, #pri_q : $$number_type)
 	)

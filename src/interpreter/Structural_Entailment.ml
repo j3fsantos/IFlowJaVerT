@@ -516,7 +516,9 @@ let spec_logic_vars_discharge subst lvars pfs (* solver *) gamma =
 					let le = Hashtbl.find subst var in
 					let new_pa =	(LEq ((LVar var), le)) in
 					new_pa :: ac
-				with _ ->  ac)
+				with _ ->
+					Hashtbl.add subst var (LVar var);   
+					ac)
 			[]
 			lvars in
 	let ret = Pure_Entailment.old_check_entailment [] pf_list pfs_to_prove gamma in
@@ -567,11 +569,11 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 				print_debug (Printf.sprintf "Heaps unified successfully.\n");
 				let ret_2 = unify_pred_arrays preds_1 preds_0 pf_0 (* solver *) gamma_0 subst in
 				(match ret_2 with
-				| Some (subst, preds_f, []) -> Some (discharges_0, subst, heap_f, preds_f, new_pfs)
-					(* let spec_vars_check = spec_logic_vars_discharge subst lvars pf_0 solver gamma_0 in
+				| Some (subst, preds_f, []) ->
+					let spec_vars_check = spec_logic_vars_discharge subst lvars pf_0 gamma_0 in
 	  				if (spec_vars_check)
-						then Some (discharges_0, subst, heap_f, preds_f, new_pfs)
-						else  (Printf.printf "Failed spec vars check\n"; None) *)
+							then Some (discharges_0, subst, heap_f, preds_f, new_pfs)
+							else (Printf.printf "Failed spec vars check\n"; None) 
 				| Some (_, _, _) | None -> ( print_debug (Printf.sprintf "Failed to unify predicates\n"); None))
 			| None -> ( print_debug (Printf.sprintf "Failed to unify heaps\n"); None))
 		| None -> ( print_debug (Printf.sprintf "Failed to unify stores\n"); None)) in
@@ -588,9 +590,6 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 	let step_1 discharges subst new_pfs =
 		let start_time = Sys.time() in
 		let existentials = get_subtraction_vars (get_symb_state_vars_as_list false pat_symb_state) subst in
-		(* print_debug (Printf.sprintf "Existentialsies: %s" (String.concat ", " existentials));
-		let existentials = List.filter (fun x -> not (List.mem x lvars)) existentials in 
-		print_debug (Printf.sprintf "Existentialsies: %s" (String.concat ", " existentials)); *)
 		let fresh_names_for_existentials = (List.map (fun v -> fresh_lvar ()) existentials) in
 		let subst_existentials = init_substitution2 existentials (List.map (fun v -> LVar v) fresh_names_for_existentials) in
 		extend_substitution subst existentials (List.map (fun v -> LVar v) fresh_names_for_existentials);
