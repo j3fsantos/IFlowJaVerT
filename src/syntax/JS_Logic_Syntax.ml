@@ -17,6 +17,7 @@ let initial_heap_pre_pred_name    = "initialHeapPre"
 let initial_heap_post_pred_name   = "initialHeapPost"
 let function_object_pred_name     = "function_object"
 let standard_object_pred_name     = "standardObject"
+let this_logic_var_name           = "#this"
 
 let errors_assertion = 
 	LStar (
@@ -92,7 +93,7 @@ let rec js2jsil_lexpr le =
 	| JSLLstNth (le1, le2)    -> LLstNth (fe le1, fe le2)
 	| JSLStrNth (le1, le2)    -> LStrNth (fe le1, fe le2)
 	| JSLUnknown              -> LUnknown
-	| JSLThis                 -> PVar Js2jsil_constants.var_this
+	| JSLThis                 -> LVar this_logic_var_name
 
 
 let rec js2jsil_logic_cmds logic_cmds = 
@@ -241,13 +242,17 @@ let rec js2jsil_logic_top_level_pre a (var_to_fid_tbl : (string, string) Hashtbl
 			then LPred (initial_heap_pre_pred_name, [])
 			else LPred (initial_heap_post_pred_name, []) in
 	let a' = js2jsil_logic fid (Some var_to_fid_tbl) vis_tbl fun_tbl a in
+	
 	print_debug (Printf.sprintf "J2JPre: \n\t%s\n\t%s\n\t%s"
 		(JSIL_Print.string_of_logic_assertion a' false)
 		(JSIL_Print.string_of_logic_assertion a_scope_chain false) 
 		(JSIL_Print.string_of_logic_assertion a_pre_js_heap false));
 	if (is_global) 
 		then JSIL_Logic_Utils.star_asses [a'; a_pre_js_heap ]
-		else JSIL_Logic_Utils.star_asses [a'; a_pre_js_heap; a_scope_chain ]
+	 	else (
+			let a_this = LEq (PVar Js2jsil_constants.var_this, LVar this_logic_var_name) in  
+			JSIL_Logic_Utils.star_asses [ a'; a_pre_js_heap; a_scope_chain; a_this ]
+		)
 
 
 let rec js2jsil_logic_top_level_post a (var_to_fid_tbl : (string, string) Hashtbl.t) (vis_tbl : (string, string list) Hashtbl.t) fun_tbl fid =
