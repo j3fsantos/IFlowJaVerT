@@ -1234,23 +1234,28 @@ let old_check_entailment existentials left_as right_as gamma =
 
 		let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 		Solver.add solver left_as;
-		Solver.add solver [ right_as_or ];
+		let ret_left = 		
+			let start_time = Sys.time () in
+			let ret = (Solver.check solver [ ]) = Solver.SATISFIABLE in
+			let end_time = Sys.time () in
+			JSIL_Syntax.update_statistics "solver_call" 0.;
+			JSIL_Syntax.update_statistics "check_entailment" (end_time -. start_time);
+			ret in
+		let ret = 
+				if (ret_left) then (
+				Solver.add solver [ right_as_or ];
+				print_debug (Printf.sprintf "ENT: About to check the following:\n%s" (string_of_solver solver));
+				let start_time = Sys.time () in
+				let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in
+				let end_time = Sys.time () in
+				JSIL_Syntax.update_statistics "solver_call" 0.;
+				JSIL_Syntax.update_statistics "check_entailment" (end_time -. start_time);
+				print_time_debug (Printf.sprintf "check_entailment done: %b :" ret);
+				ret) else (
+					print_time_debug "check_entailment done: false :";
+					false) in
+			ret in
 
-		print_debug (Printf.sprintf "ENT: About to check the following:\n%s" (string_of_solver solver));
-
-		let start_time = Sys.time () in
-		let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in
-		if (not ret) then
-			print_model solver;
-		let end_time = Sys.time () in
-		JSIL_Syntax.update_statistics "solver_call" 0.;
-		JSIL_Syntax.update_statistics "check_entailment" (end_time -. start_time);
-
-		print_time_debug (Printf.sprintf "check_entailment done: %b :" ret);
-
-		ret in
-
-	(* if (not (ret_right)) then false, None *)
 	try check_entailment_aux () with Failure msg -> Printf.printf "Horrible failure\n"; false) (*, None *)
 
 let is_equal_on_lexprs e1 e2 pfs : bool option = 

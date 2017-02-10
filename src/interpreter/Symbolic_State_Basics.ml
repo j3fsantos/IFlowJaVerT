@@ -721,6 +721,87 @@ let aggressively_simplify_pfs_with_others pfs opfs gamma how =
  * ULTIMATE SIMPLIFICATION *
  * *********************** *)
 
+let rec understand_types pf_list gamma : bool = 
+	(match pf_list with
+	| [] -> true
+	| pf :: rest ->
+	 	(match pf with
+		| LTrue | LFalse | LEmp | LNot _ -> understand_types rest gamma
+		| LPointsTo	(_, _, _) -> raise (Failure "Heap cell assertion in pure formulae.")
+		| LEmp -> raise (Failure "Empty heap assertion in pure formulae.")
+		| LPred	(_, _) -> raise (Failure "Predicate in pure formulae.")
+		| LTypes _ -> raise (Failure "Types in pure formulae.")
+		| LEmptyFields (_, _) -> raise (Failure "EmptyFields in pure formulae.")
+
+		| LEq (le1, le2) -> 
+			(* Get the types, if possible *)
+			let te1, _, _ = type_lexpr gamma le1 in
+			let te2, _, _ = type_lexpr gamma le2 in
+			(* Understand if there's enough information to proceed *)
+			let proceed = (match te1, te2 with
+			| Some t1, Some t2 -> Some ((types_leq t1 t2) || (types_leq t2 t1))
+			| None, None -> None
+			| _, _ -> Some true) in
+			(match proceed with
+			| None -> understand_types rest gamma
+			| Some false -> false
+			| _ -> (* Check for variables *)
+				(match le1, le2 with
+				| LVar x, LVar y ->
+					(* print_debug (Printf.sprintf "Checking: %s vs %s" x y); *)
+					(match te1, te2 with
+					| Some t1, None ->
+						(* print_debug (Printf.sprintf "Added (%s, %s) to gamma given %s and %s" 
+							y (JSIL_Print.string_of_type t1)
+							(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list pf_list) false)
+							(JSIL_Memory_Print.string_of_gamma gamma)); *)
+							Hashtbl.add gamma y t1; understand_types rest gamma
+					| None, Some t2 ->
+							print_debug (Printf.sprintf "Added (%s, %s) to gamma given %s and %s" 
+							x (JSIL_Print.string_of_type t2)
+							(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list pf_list) false)
+							(JSIL_Memory_Print.string_of_gamma gamma)); 
+							Hashtbl.add gamma x t2; understand_types rest gamma
+					| Some t1, Some t2 ->
+						if (not (t1 = t2))
+							then (let t = if (types_leq t1 t2) then t1 else t2 in
+							(* print_debug (Printf.sprintf "Added (%s, %s) and (%s, %s) to gamma given %s and %s" 
+							x (JSIL_Print.string_of_type t)
+							y (JSIL_Print.string_of_type t)
+							(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list pf_list) false)
+							(JSIL_Memory_Print.string_of_gamma gamma)); *)
+							Hashtbl.replace gamma x t; Hashtbl.replace gamma y t; understand_types rest gamma)
+							else
+								understand_types rest gamma
+					| None, None -> raise (Failure "Impossible branch."))
+				| LVar x, le
+				| le, LVar x ->
+					(* print_debug (Printf.sprintf "Checking: %s vs %s" x (JSIL_Print.string_of_logic_expression le false)); *)
+					let tx = gamma_get_type gamma x in
+					let te, _, _ = type_lexpr gamma le in
+					(match te with
+					| None -> understand_types rest gamma
+					| Some te ->
+						(match tx with
+						| None -> 
+							(* print_debug (Printf.sprintf "Added (%s, %s) to gamma given %s and %s" 
+							x (JSIL_Print.string_of_type te)
+							(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list pf_list) false)
+							(JSIL_Memory_Print.string_of_gamma gamma)); *)
+							Hashtbl.add gamma x te; understand_types rest gamma
+						| Some tx ->
+							if (not (tx = te))
+								then (let t = if (types_leq tx te) then tx else te in
+								(* print_debug (Printf.sprintf "Added (%s, %s) to gamma given %s and %s" 
+								x (JSIL_Print.string_of_type t)
+								(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list pf_list) false)
+								(JSIL_Memory_Print.string_of_gamma gamma)); *)
+								Hashtbl.replace gamma x t; understand_types rest gamma)
+								else
+									understand_types rest gamma))
+					| _, _ -> understand_types rest gamma))
+		| _ -> understand_types rest gamma))
+
 let rec simplify_for_your_legacy others (symb_state : symbolic_state) : symbolic_state * jsil_logic_assertion DynArray.t = 
 
 	(* Gamma-check *)
@@ -813,6 +894,7 @@ let rec simplify_for_your_legacy others (symb_state : symbolic_state) : symbolic
 			| LEmp -> raise (Failure "Empty heap assertion in pure formulae.")
 			| LPred	(_, _) -> raise (Failure "Predicate in pure formulae.")
 			| LTypes _ -> raise (Failure "Types in pure formulae.")
+			| LEmptyFields (_, _) -> raise (Failure "EmptyFields in pure formulae.")
 
 			(* I don't know how these could get here, but let's assume they can... *)
 			| LAnd  (a1, a2)
@@ -821,45 +903,8 @@ let rec simplify_for_your_legacy others (symb_state : symbolic_state) : symbolic
 			| LEq (le1, le2) ->
 				(match le1, le2 with
 				(* VARIABLES *)
-				| LVar v1, LVar v2 ->
-					let does_this_work = 
-						(match (Hashtbl.mem gamma v1, Hashtbl.mem gamma v2) with
-						| true, true -> 
-							let t1 = Hashtbl.find gamma v1 in
-							let t2 = Hashtbl.find gamma v2 in
-								t1 = t2
-						| true, false ->
-							let t1 = Hashtbl.find gamma v1 in
-								Hashtbl.add gamma v2 t1;
-								true
-						| _, _ -> true) in
-					if does_this_work 
-						then perform_substitution v1 le2 n
-						else pfs_false "Nasty type mismatch"
-				| LVar v, LLit lit -> 
-					let does_this_work = 
-						(match Hashtbl.mem gamma v with
-						| true -> 
-							let t1 = Hashtbl.find gamma v in
-							let t2 = JSIL_Interpreter.evaluate_type_of lit in
-								(* If we're assigning a number to sth that was an int, 
-								   is that a problem? *)
-								(types_leq t2 t1 || types_leq t1 t2)
-						| false -> true) in
-					if does_this_work 
-						then perform_substitution v le2 n
-						else pfs_false "Nasty type mismatch: var -> lit"
-				| LVar v, LEList _ 
-				| LVar v, LBinOp (_, LstCons, _) ->
-					let does_this_work = 
-						(match Hashtbl.mem gamma v with
-						| true -> 
-							let t1 = Hashtbl.find gamma v in
-								t1 = ListType
-						| false -> true) in
-					if does_this_work 
-						then perform_substitution v le2 n
-						else pfs_false "Nasty type mismatch: var -> list"
+				| LVar v, le 
+				| le, LVar v -> perform_substitution v le n
 				(*
 				 * Lists
 				 *
@@ -922,6 +967,11 @@ let rec simplify_for_your_legacy others (symb_state : symbolic_state) : symbolic
 				| _, _ -> go_through_pfs rest (n + 1))
 			| _ -> go_through_pfs rest (n + 1))
 	) in
+	
+	(*
+	| LLess			    of jsil_logic_expr * jsil_logic_expr                   (** Expression less-than for numbers *)
+	| LLessEq		    of jsil_logic_expr * jsil_logic_expr                   (** Expression less-than-or-equal for numbers *)   
+	| LStrLess	    of jsil_logic_expr * jsil_logic_expr                   (** Expression less-than for strings *) *)
 
 	(* *******************
 	 *  ACTUAL PROCESSING
@@ -951,7 +1001,12 @@ let rec simplify_for_your_legacy others (symb_state : symbolic_state) : symbolic
 	sanitise_pfs store gamma p_formulae;
 
 	let pf_list = DynArray.to_list p_formulae in
-		go_through_pfs pf_list 0  
+	let others_list = DynArray.to_list others in
+	(* print_debug (Printf.sprintf "Typing pfs with others: %s%s" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false) (JSIL_Memory_Print.string_of_shallow_p_formulae others false)); *)
+		let types_ok = understand_types (pf_list @ others_list) gamma in
+		(match types_ok with
+		| true -> go_through_pfs pf_list 0  
+		| false -> pfs_false "Nasty type mismatch.")
 
 let simplify_for_your_legacy_pfs pfs gamma =
 	(* let solver = ref None in *)
@@ -1018,11 +1073,16 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	 | [] -> if (test_for_nonsense (pfs_to_list p_formulae))
 			 	then pfs_false "Nonsense."
 				else
-			 (print_debug (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\n\nPure formulae:\n%s\n\nGamma:\n%s\n\n"
-		 		(String.concat ", " (SS.elements exists))
-		 		(print_pfs p_formulae)
-		 		(JSIL_Memory_Print.string_of_gamma gamma)); 
-	 		 exists, lpfs, p_formulae, gamma)
+			 (let pf_list = DynArray.to_list p_formulae in
+				let types_ok = understand_types pf_list gamma in
+				(match types_ok with
+				| false -> pfs_false "Nasty type mismatch."
+				| true -> 
+					print_debug (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\n\nPure formulae:\n%s\n\nGamma:\n%s\n\n"
+			 		(String.concat ", " (SS.elements exists))
+			 		(print_pfs p_formulae)
+			 		(JSIL_Memory_Print.string_of_gamma gamma)); 
+		 		 	exists, lpfs, p_formulae, gamma))
 	 | pf :: rest ->
 	   (match pf with
 	    | LEq (LLit l1, LLit l2) ->
