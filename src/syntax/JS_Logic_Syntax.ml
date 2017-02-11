@@ -242,6 +242,7 @@ let rec js2jsil_logic_top_level_pre a (var_to_fid_tbl : (string, string) Hashtbl
 			then LPred (initial_heap_pre_pred_name, [])
 			else LPred (initial_heap_post_pred_name, []) in
 	let a' = js2jsil_logic fid (Some var_to_fid_tbl) vis_tbl fun_tbl a in
+	let a_this = LEq (PVar Js2jsil_constants.var_this, LVar this_logic_var_name) in  
 	
 	print_debug (Printf.sprintf "J2JPre: \n\t%s\n\t%s\n\t%s"
 		(JSIL_Print.string_of_logic_assertion a' false)
@@ -249,10 +250,8 @@ let rec js2jsil_logic_top_level_pre a (var_to_fid_tbl : (string, string) Hashtbl
 		(JSIL_Print.string_of_logic_assertion a_pre_js_heap false));
 	if (is_global) 
 		then JSIL_Logic_Utils.star_asses [a'; a_pre_js_heap ]
-	 	else (
-			let a_this = LEq (PVar Js2jsil_constants.var_this, LVar this_logic_var_name) in  
-			JSIL_Logic_Utils.star_asses [ a'; a_pre_js_heap; a_scope_chain; a_this ]
-		)
+	 	else JSIL_Logic_Utils.star_asses [ a'; a_pre_js_heap; a_scope_chain; a_this ]
+		
 
 
 let rec js2jsil_logic_top_level_post a (var_to_fid_tbl : (string, string) Hashtbl.t) (vis_tbl : (string, string list) Hashtbl.t) fun_tbl fid =
@@ -261,9 +260,13 @@ let rec js2jsil_logic_top_level_post a (var_to_fid_tbl : (string, string) Hashtb
 	(* let a_scope_chain = make_scope_chain_assertion vis_list false in *)
 	let a_post_js_heap = LPred (initial_heap_post_pred_name, []) in
 	let a' = js2jsil_logic fid (Some var_to_fid_tbl) vis_tbl fun_tbl a in
+	let a_this = LEq (PVar Js2jsil_constants.var_this, LVar this_logic_var_name) in 
 	print_debug (Printf.sprintf "J2JPost: \n\t%s\n\t%s"
 		(JSIL_Print.string_of_logic_assertion a' false) 
 		(JSIL_Print.string_of_logic_assertion a_post_js_heap false));	
-	JSIL_Logic_Utils.star_asses [a'; a_post_js_heap ]
+	if (is_global) 
+		then JSIL_Logic_Utils.star_asses [a'; a_post_js_heap ]
+	 	else JSIL_Logic_Utils.star_asses [ a'; a_post_js_heap; a_this ]
+		
 			
 
