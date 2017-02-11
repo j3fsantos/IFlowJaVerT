@@ -19,12 +19,12 @@
 @pred Node(n, pri, val, next, node_proto) :
 	Object(n, node_proto) *
 	dataField(n, "pri",  pri) *
-   dataField(n, "val",  val) *
-   dataField(n, "next", next) *
-   ((n, "push") -> None) *
+	dataField(n, "val",  val) *
+	dataField(n, "next", next) *
+	((n, "push") -> None) *
 	((n, "insert") -> None) *
 	(0 <# pri) *
-   types(pri : $$number_type, val : $$string_type, node_proto : $$object_type);
+	types(pri : $$number_type, val : $$string_type, node_proto : $$object_type);
 
 @pred Queue(q, node_proto, max_pri) :
 	(q == $$null) * (max_pri == 0) * types(max_pri : $$number_type),
@@ -73,11 +73,11 @@ var Node = function (pri, val) {
 	)
 
 	@pre (
-		(q == #q) * (! (#q == $$null)) *
+		(q == #q) *
 		Node(this, #npri, #nval, $$null, #node_proto) *
 		Queue(#q, #node_proto, #pri_q) *
 		NodePrototype(#node_proto, #push_loc, #insert_loc) *
-		(#npri <# #pri_q) * types(#npri : $$number_type, #pri_q : $$number_type)
+		(#npri <# #pri_q) * types(#q : $$object_type, #npri : $$number_type, #pri_q : $$number_type)
 	)
 	@post (
 		Queue(#q, #node_proto, #pri_q) * (ret == #q) * types (#q : $$object_type) *
@@ -88,7 +88,7 @@ var Node = function (pri, val) {
 		Node(this, #npri, #val, $$null, #node_proto) *
 		Queue(q, #node_proto, #pri_q) *
 		NodePrototype(#node_proto, #push_loc, #insert_loc) *
-		(#pri_q <=# #npri) * types(#npri : $$number_type, #pri_q : $$number_type)
+		(#pri_q <=# #npri) * types(q : $$object_type, #npri : $$number_type, #pri_q : $$number_type)
 	)
 	@post (
 		Queue(this, #node_proto, #npri) * (ret == this) *
