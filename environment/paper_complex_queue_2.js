@@ -61,19 +61,7 @@ var Node = function (pri, val) {
 	@id  push
 
 	@pre (
-		(q == #q) * (#q == $$null) *
-		Queue(#q, #node_proto, #pri_q) *
-		Node(this, #npri, #nval, $$null, #node_proto) *
-		NodePrototype(#node_proto, #push_loc, #insert_loc) *
-		types(#npri : $$number_type, #pri_q : $$number_type)
-	)
-	@post (
-		Queue(this, #node_proto, #npri) * (ret == this) *
-		NodePrototype(#node_proto, #push_loc, #insert_loc)
-	)
-
-	@pre (
-		(q == #q) *
+		(q == #q) * 
 		Node(this, #npri, #nval, $$null, #node_proto) *
 		Queue(#q, #node_proto, #pri_q) *
 		NodePrototype(#node_proto, #push_loc, #insert_loc) *
@@ -85,8 +73,9 @@ var Node = function (pri, val) {
 	)
 
 	@pre (
+		(q == #q) * 
 		Node(this, #npri, #val, $$null, #node_proto) *
-		Queue(q, #node_proto, #pri_q) *
+		Queue(#q, #node_proto, #pri_q) *
 		NodePrototype(#node_proto, #push_loc, #insert_loc) *
 		(#pri_q <=# #npri) * types(#npri : $$number_type, #pri_q : $$number_type)
 	)
