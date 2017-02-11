@@ -10,4 +10,5 @@ pred standardObject (l) :
 
 pred dataField (l, prop, v) :
     types (l : $$object_type, prop : $$string_type) *
-	((l, prop) -> {{ "d", v, $$t, $$t, $$t }});
+	((l, prop) -> {{ "d", v, $$t, $$t, $$t }}) *
+	(! (v == $$empty));
