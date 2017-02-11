@@ -61,7 +61,7 @@ var Node = function (pri, val) {
 	@id  push
 
 	@pre (
-		(q == #q) * 
+		(q == #q) *
 		Node(this, #npri, #nval, $$null, #node_proto) *
 		Queue(#q, #node_proto, #pri_q) *
 		NodePrototype(#node_proto, #push_loc, #insert_loc) *
@@ -73,7 +73,7 @@ var Node = function (pri, val) {
 	)
 
 	@pre (
-		(q == #q) * 
+		(q == #q) *
 		Node(this, #npri, #val, $$null, #node_proto) *
 		Queue(#q, #node_proto, #pri_q) *
 		NodePrototype(#node_proto, #push_loc, #insert_loc) *
@@ -145,9 +145,7 @@ Node.prototype.insert = function (n) {
 		return n
 	} else {
 
-		/** @invariant (
-			 Node(this, #pri_q, #this_val, #this_next, #node_proto))
-
+		/**
 			@unfold Queue(#this_next, #node_proto, #max_pri_next) */
 		var next = this.next;
 		if (next == null) {
