@@ -88,7 +88,7 @@ var Node = function (pri, val) {
 		Node(this, #npri, #val, $$null, #node_proto) *
 		Queue(q, #node_proto, #pri_q) *
 		NodePrototype(#node_proto, #push_loc, #insert_loc) *
-		(#pri_q <=# #npri) * types(q : $$object_type, #npri : $$number_type, #pri_q : $$number_type)
+		(#pri_q <=# #npri) * types(#npri : $$number_type, #pri_q : $$number_type)
 	)
 	@post (
 		Queue(this, #node_proto, #npri) * (ret == this) *
