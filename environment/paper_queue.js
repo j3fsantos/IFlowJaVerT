@@ -39,7 +39,7 @@ var counter = 0;
 	@id  Node
 
 	@pre (
-	      scope(counter: #c) * types(#c : $$int_type) *
+	      scope(counter: #c) * types(#c : $$number_type) *
 	   	(pri == #pri) * (val == #val) * types(#pri: $$number_type, #val: $$string_type) *
 	   	(0 <# #pri) *
 	   	((this, "pri") -> None) * ((this, "val") -> None) * ((this, "next") -> None) *
@@ -164,7 +164,7 @@ Node.prototype.insert = function (n) {
 /**
    @id  getCounter
 
-   @pre  (scope(counter: #c) * types(#c : $$int_type))
+   @pre  (scope(counter: #c) * types(#c : $$number_type))
    @post (scope(counter: #c) * (ret == #c))
 */
 var getCounter = function () { return counter; };
@@ -173,7 +173,7 @@ var getCounter = function () { return counter; };
 /**
    @id  incCounter
 
-   @pre  (scope(counter: #c) * types(#c : $$int_type))
+   @pre  (scope(counter: #c) * types(#c : $$number_type))
    @post (scope(counter: #c+1) * (ret == #c+1))
 */
 var incCounter = function () { counter++; return counter; };

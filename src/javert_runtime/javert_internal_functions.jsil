@@ -283,7 +283,7 @@ with
 spec create_object_with_call_construct (l, call, construct, len)
 
     [[ (l == #l) * (call == #call) * (construct == #construct) * (len == #len) *
-	   types(#l : $$object_type, #call : $$string_type, #construct: $$string_type, #len : $$int_type) *
+	   types(#l : $$object_type, #call : $$string_type, #construct: $$string_type, #len : $$number_type) *
        ((#l, "@proto") -> $$null) * empty_fields(#l : "@proto") ]]
     [[ ((#l, "@proto") -> $lfun_proto) * ((#l, "@class") -> "Function") * ((#l, "@extensible") -> $$t) *
 	   ((#l, "@scope") -> $$empty) * ((#l, "length") -> {{ "d", #len, $$f, $$f, $$f }}) *
@@ -293,7 +293,7 @@ spec create_object_with_call_construct (l, call, construct, len)
     normal;
 
     [[ (l == #l) * (call == #call) * (construct == $$empty) * (len == #len) *
-	   types(#l : $$object_type, #call : $$string_type, #len : $$int_type) *
+	   types(#l : $$object_type, #call : $$string_type, #len : $$number_type) *
        empty_fields (#l : ) ]]
     [[ ((#l, "@proto") -> $lfun_proto) * ((#l, "@class") -> "Function") * ((#l, "@extensible") -> $$t) *
 	   ((#l, "@scope") -> $$empty) * ((#l, "length") -> {{ "d", #len, $$f, $$f, $$f }}) *
@@ -322,7 +322,7 @@ with
 };
 
 pred function_object (l, xsc, call, construct, len, prototype) :
-	types(l : $$object_type, xsc : $$list_type, call : $$string_type, construct: $$string_type, len : $$int_type, prototype : $$object_type) *
+	types(l : $$object_type, xsc : $$list_type, call : $$string_type, construct: $$string_type, len : $$number_type, prototype : $$object_type) *
 	((l, "@proto") -> $lfun_proto) * ((l, "@class") -> "Function") * ((l, "@extensible") -> $$t) *
 	((l, "@scope") -> xsc)  * ((l, "length") -> {{ "d", len, $$f, $$f, $$f }}) *
 	((l, "@call")  -> call) * ((l, "@construct") -> construct) *
@@ -334,7 +334,7 @@ pred function_object (l, xsc, call, construct, len, prototype) :
 spec create_function_object (xsc, call, construct, params)
     [[ (xsc == #xsc) * (call == #call) * (construct == #construct) * (params == #params) * 
 	   types(#xsc : $$list_type, #call : $$string_type, #construct: $$string_type, #params : $$list_type) ]]
-    [[ types(#l : $$object_type, #xsc : $$list_type, #call : $$string_type, #construct: $$string_type, #params : $$list_type, #len : $$int_type, ret : $$object_type) *
+    [[ types(#l : $$object_type, #xsc : $$list_type, #call : $$string_type, #construct: $$string_type, #params : $$list_type, #len : $$number_type, ret : $$object_type) *
 	   function_object(ret, #xsc, #call, #construct, #len, prototype) * (#len == l-len #params) *
 	   ((prototype, "@proto") -> $lobj_proto) * ((prototype, "@class") -> "Object") * ((prototype, "@extensible") -> $$t) *
 	   ((prototype, "constructor") -> {{ "d", ret, $$t, $$f, $$t }} ) *
@@ -424,7 +424,7 @@ proc i__toBoolean (v) {
 	bool:	xret := v;
 			goto rlab;
 
-	inum:	goto [typeOf(v) <: $$number_type] num is;
+	inum:	goto [typeOf(v) = $$number_type] num is;
 	num:	goto [(v = 0) or (not (v = v))] is_f is_t;
 
 	is:		goto [typeOf(v) = $$string_type] str io;
@@ -662,10 +662,6 @@ spec i__isPrimitive (v)
    [[ ret == $$t ]]
    normal;
 
-   [[ types (v : $$int_type) ]]
-   [[ (ret == $$t) ]]
-   normal;
-
    [[ types (v : $$number_type) ]]
    [[ (ret == $$t) ]]
    normal;
@@ -686,7 +682,7 @@ proc i__isPrimitive (v) {
 			tv := typeOf(v);
 
 	iu:		goto [(v = $$undefined) or (v = $$null) or
-	              (typeOf(v) = $$boolean_type) or (typeOf(v) <: $$number_type) or
+	              (typeOf(v) = $$boolean_type) or (typeOf(v) = $$number_type) or
 	              (typeOf(v) = $$string_type)] rt rf;
 
 	rt:		xret := $$t;
@@ -707,15 +703,11 @@ with
 spec i__toNumber (v)
 
 	[[ v == $$t ]]
-	[[ types(ret : $$int_type) * (ret == 1) ]]
+	[[ types(ret : $$number_type) * (ret == 1) ]]
 	normal;
 
 	[[ v == $$f ]]
-	[[ types(ret : $$int_type) * (ret == 0) ]]
-	normal;
-
-	[[ (v == #v) * types(#v : $$int_type) ]]
-	[[ ret == #v ]]
+	[[ types(ret : $$number_type) * (ret == 0) ]]
 	normal;
 
 	[[ (v == #v) * types(#v : $$number_type) ]]
@@ -743,7 +735,7 @@ proc i__toNumber (v) {
     is_f:	xret := 0;
     		goto rlab;
 
-    inum:	goto [typeOf(v) <: $$number_type] num is;
+    inum:	goto [typeOf(v) = $$number_type] num is;
     num:	xret := v;
     		goto rlab;
 
@@ -783,10 +775,6 @@ spec i__toPrimitive (v, hint)
     [[ ret == $$null ]]
     normal;
 
-    [[ (v == #v) * types (#v : $$int_type) ]]
-	[[ (ret == #v) ]]
-	normal;
-
     [[ (v == #v) * types (#v : $$number_type) ]]
 	[[ (ret == #v) ]]
 	normal;
@@ -804,7 +792,7 @@ proc i__toPrimitive (v, hint) {
 			tv := typeOf(v);
 
 	iu:		goto [(v = $$undefined) or (v = $$null) or
-	              (typeOf(v) = $$boolean_type) or (typeOf(v) <: $$number_type) or
+	              (typeOf(v) = $$boolean_type) or (typeOf(v) = $$number_type) or
 	              (typeOf(v) = $$string_type)] rlab is_obj;
 
 	is_obj:	print := "object";
@@ -916,10 +904,10 @@ proc i__abstractEquality (v1, v2) {
 			tv1 := typeOf(v1);
 			tv2 := typeOf(v2);
 
-			goto [(tv1 = tv2) or (tv1 <: tv2) or (tv2 <: tv1)] same diff;
+			goto [(tv1 = tv2)] same diff;
 
 	same:	goto [(tv1 = $$undefined_type) or (tv1 = $$null_type) or
-	              (tv1 = $$boolean_type)   or (tv1 <: $$number_type) or
+	              (tv1 = $$boolean_type)   or (tv1 = $$number_type) or
 	              (tv1 = $$string_type)    or (tv1 = $$object_type)] ieq oops;
 	ieq:	xret := (v1 = v2);
 			goto rlab;
@@ -927,12 +915,12 @@ proc i__abstractEquality (v1, v2) {
 	diff:	goto [((tv1 = $$undefined_type) and (tv2 = $$null_type)) or
 			      ((tv1 = $$null_type) and (tv2 = $$undefined_type))] rt dns;
 
-	dns:	goto [(tv1 <: $$number_type) and (tv2 = $$string_type)] tn2 dsn;
+	dns:	goto [(tv1 = $$number_type) and (tv2 = $$string_type)] tn2 dsn;
 	tn2:	xret := "i__toNumber" (v2) with elab;
 			xret := "i__abstractEquality" (v1, xret) with elab;
 			goto rlab;
 
-	dsn:	goto [(tv1 = $$string_type) and (tv2 <: $$number_type)] tn1 s1b;
+	dsn:	goto [(tv1 = $$string_type) and (tv2 = $$number_type)] tn1 s1b;
 	tn1:	xret := "i__toNumber" (v1) with elab;
 			xret := "i__abstractEquality" (xret, v2) with elab;
 			goto rlab;
@@ -940,12 +928,12 @@ proc i__abstractEquality (v1, v2) {
 	s1b:	goto [tv1 = $$boolean_type] tn1 s2b;
 	s2b:	goto [tv2 = $$boolean_type] tn2 s2o;
 
-	s2o:	goto [((tv1 <: $$number_type) or (tv1 = $$string_type)) and (tv2 = $$object_type)] tp2 s1o;
+	s2o:	goto [((tv1 = $$number_type) or (tv1 = $$string_type)) and (tv2 = $$object_type)] tp2 s1o;
 	tp2:	xret := "i__toPrimitive" (v2) with elab;
 			xret := "i__abstractEquality" (v1, xret) with elab;
 			goto rlab;
 
-	s1o:	goto [(tv1 = $$object_type) and ((tv2 <: $$number_type) or (tv2 = $$string_type))] tp1 rf;
+	s1o:	goto [(tv1 = $$object_type) and ((tv2 = $$number_type) or (tv2 = $$string_type))] tp1 rf;
 	tp1:	xret := "i__toPrimitive" (v1) with elab;
 			xret := "i__abstractEquality" (xret, v2) with elab;
 			goto rlab;
@@ -977,7 +965,7 @@ spec i__toInteger (v)
 
 	[[ (v == #v) *
 	   types(#v : $$string_type) ]]
-	[[ types(ret : $$int_type, #v: $$string_type) *
+	[[ types(ret : $$number_type, #v: $$string_type) *
 	   (ret == num_to_int (string_to_num #v)) ]]
 	normal
 
@@ -1001,8 +989,8 @@ with
 spec i__toString (v)
 
 	[[ (v == #v) *
-	   types(#v : $$int_type) ]]
-	[[ types(ret : $$string_type, #v : $$int_type) *
+	   types(#v : $$number_type) ]]
+	[[ types(ret : $$string_type, #v : $$number_type) *
 	   (ret == (num_to_string #v)) ]]
 	normal;
 	
@@ -1026,7 +1014,7 @@ proc i__toString (v) {
 	is_f:	xret := "false";
 			goto rlab;
 
-	inum:	goto [typeOf(v) <: $$number_type] num is;
+	inum:	goto [typeOf(v) = $$number_type] num is;
 	num:	xret := num_to_string v;
 			goto rlab;
 
@@ -1305,8 +1293,8 @@ spec i__sameValue (v1, v2)
 proc i__sameValue (v1, v2) {
 			xret := (v1 = v2);
 
-			goto [(typeOf(v1) <: $$number_type)] test2 rlab;
-	test2:	goto [(typeOf(v2) <: $$number_type)] inan1 rlab;
+			goto [(typeOf(v1) = $$number_type)] test2 rlab;
+	test2:	goto [(typeOf(v2) = $$number_type)] inan1 rlab;
 
 	inan1:	goto [(not (v1 = v1))] inan2 zero1;
 	inan2:	goto [(not (v2 = v2))] rt    zero1;
@@ -1341,10 +1329,6 @@ spec i__checkAssignmentErrors (v)
     [[ v == $$null ]]
     [[ ret == $$t ]]
     normal;
-
-    [[ types (v : $$int_type) ]]
-	[[ ret == $$t ]]
-	normal;
 
 	[[ types (v : $$number_type) ]]
 	[[ (ret == $$t) ]]
@@ -1413,10 +1397,6 @@ spec i__checkObjectCoercible (v)
 	[[ isTypeError(ret) ]]
 	normal;
 
-	[[ types (v : $$int_type) ]]
-	[[ ret == $$empty ]]
-	normal;
-
 	[[ types (v : $$number_type) ]]
 	[[ ret == $$empty ]]
 	normal;
@@ -1441,7 +1421,7 @@ proc i__checkObjectCoercible (v) {
 
 	in:		goto [v = $$null] throw other;
 
-	other:	goto [(typeOf(v) = $$boolean_type) or (typeOf(v) <: $$number_type) or
+	other:	goto [(typeOf(v) = $$boolean_type) or (typeOf(v) = $$number_type) or
 	              (typeOf(v) = $$string_type) or (typeOf(v) = $$object_type)] rlab oops;
 
 	oops:	xret := "CheckObjectCoercible: This should not happen.";
@@ -1709,10 +1689,6 @@ spec i__getValue (v)
     normal;
 
     [[ (v == #v) * types (#v : $$object_type) ]]
-	[[ (ret == #v) ]]
-	normal;
-
-    [[ (v == #v) * types (#v : $$int_type) ]]
 	[[ (ret == #v) ]]
 	normal;
 
@@ -2665,10 +2641,6 @@ spec i__putValue (v, w)
     [[ v == $$null ]]
     [[ isReferenceError(err) ]]
     error;
-
-    [[ types (v : $$int_type) ]]
-	[[ isReferenceError(err) ]]
-	error;
 
     [[ types (v : $$number_type) ]]
 	[[ isReferenceError(err) ]]

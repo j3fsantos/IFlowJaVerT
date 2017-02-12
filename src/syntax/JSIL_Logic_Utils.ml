@@ -52,8 +52,7 @@ let evaluate_type_of lit =
 	| Empty        -> EmptyType
 	| Constant _   -> NumberType
 	| Bool _       -> BooleanType
-	| Integer _    -> IntType
-	| Num n        -> if (n = (snd (modf n))) then IntType else NumberType
+	| Num n        -> NumberType
 	| String _     -> StringType
 	| Loc _        -> ObjectType
 	| Type _       -> TypeType
@@ -156,16 +155,15 @@ let rec get_assertion_literals a =
 	| LEq (le1, le2) | LLess (le1, le2) | LLessEq (le1, le2) | LStrLess (le1, le2) -> (fe le1) @ (fe le2)
 	| LPred (_, les) -> List.concat (List.map fe les)
 
-let get_assertion_string_number_int_literals a =
+let get_assertion_string_number_literals a =
 	let lits = get_assertion_literals a in
-	let rec loop lits_to_go (strings_so_far, numbers_so_far, ints_so_far) =
+	let rec loop lits_to_go (strings_so_far, numbers_so_far) =
 		match lits_to_go with
-		| [] ->  (strings_so_far, numbers_so_far, ints_so_far)
-		| (String s) :: rest -> loop rest (s :: strings_so_far, numbers_so_far, ints_so_far)
-		| (Num n) :: rest -> loop rest (strings_so_far,  n :: numbers_so_far, ints_so_far)
-		| (Integer i) :: rest -> loop rest (strings_so_far, numbers_so_far, i :: ints_so_far)
-		| _ :: rest -> loop rest (strings_so_far, numbers_so_far, ints_so_far) in
-	loop lits ([], [], [])
+		| [] ->  (strings_so_far, numbers_so_far)
+		| (String s) :: rest -> loop rest (s :: strings_so_far, numbers_so_far)
+		| (Num n) :: rest -> loop rest (strings_so_far,  n :: numbers_so_far)
+		| _ :: rest -> loop rest (strings_so_far, numbers_so_far) in
+	loop lits ([], [])
 
 
 let remove_string_duplicates strings =
@@ -735,7 +733,7 @@ let rec type_lexpr gamma le =
 		let (te, ite, constraints) = f e in
 		let tt t1 t2 new_constraints =
 			if_some te 
-				(fun t -> if (types_leq t t1)
+				(fun t -> if (t = t1)
 					then (Some t2, true, (new_constraints @ constraints))
 					else (None, false, [])) 
 				(None, false, []) in
@@ -749,7 +747,7 @@ let rec type_lexpr gamma le =
       | M_floor			| M_log				| M_round		| M_sin	| M_sqrt
 			| M_tan  -> tt NumberType NumberType []
 			(* Number to Int       *)
-  		| ToIntOp			| ToUint16Op	| ToInt32Op	| ToUint32Op -> tt NumberType IntType []
+  		| ToIntOp			| ToUint16Op	| ToInt32Op	| ToUint32Op -> tt NumberType NumberType []
   		(* Number to String    *)
 			| ToStringOp -> tt NumberType StringType []
 			(* String to Number    *)
@@ -758,18 +756,18 @@ let rec type_lexpr gamma le =
       | IsPrimitive -> (Some BooleanType, true, constraints)
 			(* List to List -> generates constraint *)
 			| Cdr ->
-				let new_constraint = (LNot (LLess (LUnOp (LstLen, e), (LLit (Integer 1))))) in
+				let new_constraint = (LNot (LLess (LUnOp (LstLen, e), (LLit (Num 1.))))) in
 				tt ListType ListType [ new_constraint ]
 			(* List to Anything -> generates constraint *)
       | Car ->
-				let new_constraint = (LNot (LLess (LUnOp (LstLen, e), (LLit (Integer 1))))) in
+				let new_constraint = (LNot (LLess (LUnOp (LstLen, e), (LLit (Num 1.))))) in
 				(match te with
 				| Some ListType -> (None, true, [ new_constraint ])
 				| None          -> (None, false, [] ))
 			(* List to Int         *)
-  		| LstLen -> tt ListType IntType []
+  		| LstLen -> tt ListType NumberType []
 			(* String to Int       *)
-			| StrLen -> tt StringType IntType [])
+			| StrLen -> tt StringType NumberType [])
 		else
 			(None, false, [])
 
@@ -778,7 +776,7 @@ let rec type_lexpr gamma le =
 		let (te2, ite2, constraints2) = f e2 in
 		let constraints = constraints1 @ constraints2 in
 
-		let all_types = [ UndefinedType; NullType; EmptyType; BooleanType; IntType; NumberType; StringType; ObjectType; ListType; TypeType ] in
+		let all_types = [ UndefinedType; NullType; EmptyType; BooleanType; NumberType; StringType; ObjectType; ListType; TypeType ] in
 		let check_valid_type t types ret_type new_constraints =
 			let is_t_in_types = List.exists (fun t_arg -> (t = t_arg)) types in
 			if (is_t_in_types)
@@ -787,28 +785,30 @@ let rec type_lexpr gamma le =
 
 		(match te1, te2 with
 		| (Some t1), (Some t2) ->
-			let t = types_lub t1 t2 in
-			(match op, t with
-			| Equal, (Some t) -> check_valid_type t all_types BooleanType []
-			| LessThan, (Some t) | LessThanEqual, (Some t) -> check_valid_type t [ IntType; NumberType ] BooleanType []
-			| LessThanString, (Some t) -> check_valid_type t [ StringType ] BooleanType []
-			| Plus, (Some t)	| Minus, (Some t)	| Times, (Some t)	| Mod, (Some t) -> check_valid_type t [ IntType; NumberType ] t []
-			| Div, (Some t) -> check_valid_type t [ IntType; NumberType ] NumberType []
-			| And, (Some t)	| Or, (Some t) -> check_valid_type t [ BooleanType ] BooleanType []
-			| BitwiseAnd, (Some t)	| BitwiseOr, (Some t)	| BitwiseXor, (Some t)	| LeftShift, (Some t)	| SignedRightShift, (Some t)
-			| UnsignedRightShift, (Some t)	| M_atan2, (Some t) -> check_valid_type t [ IntType; NumberType ] NumberType []
-			| M_pow, (Some t) -> check_valid_type t [ IntType; NumberType ] t []
-			| SubType, (Some t) -> check_valid_type t all_types BooleanType []
-			| LstCons, _ -> check_valid_type t2 [ ListType ] ListType []
-			| LstCat, (Some t) -> check_valid_type t [ ListType ] ListType []
-			| StrCat, (Some t) -> check_valid_type t [ StringType ] StringType []
-			| _, Some t ->
-				Printf.printf "type_lexpr: op: %s, t: %s\n"  (JSIL_Print.string_of_binop op) (JSIL_Print.string_of_type t);
-				raise (Failure "ERROR")
-		 	| _, None ->
+			let teq = (t1 = t2) in
+			(match teq with
+			| false -> 
 				(match op with
 				| Equal -> (Some BooleanType, true, constraints)
-				| _     -> Printf.printf "type_lexpr: op: %s, t: none\n"  (JSIL_Print.string_of_binop op); raise (Failure "ERROR")))
+				| LstCons -> check_valid_type t2 [ ListType ] ListType []
+				| _     -> Printf.printf "type_lexpr: op: %s, t: none\n"  (JSIL_Print.string_of_binop op); raise (Failure "ERROR"))
+			| true -> 
+			(match op with
+			| Equal -> check_valid_type t1 all_types BooleanType []
+			| LessThan | LessThanEqual -> check_valid_type t1 [ NumberType ] BooleanType []
+			| LessThanString -> check_valid_type t1 [ StringType ] BooleanType []
+			| Plus	| Minus	| Times	| Mod -> check_valid_type t1 [ NumberType ] t1 []
+			| Div -> check_valid_type t1 [ NumberType ] NumberType []
+			| And	| Or -> check_valid_type t1 [ BooleanType ] BooleanType []
+			| BitwiseAnd	| BitwiseOr	| BitwiseXor	| LeftShift	| SignedRightShift
+			| UnsignedRightShift	| M_atan2 -> check_valid_type t1 [ NumberType ] NumberType []
+			| M_pow -> check_valid_type t1 [ NumberType ] t1 []
+			| LstCons -> check_valid_type t2 [ ListType ] ListType []
+			| LstCat -> check_valid_type t1 [ ListType ] ListType []
+			| StrCat -> check_valid_type t1 [ StringType ] StringType []
+			| _ ->
+				Printf.printf "type_lexpr: op: %s, t: %s\n"  (JSIL_Print.string_of_binop op) (JSIL_Print.string_of_type t1);
+				raise (Failure "ERROR")))
 		| _, _ ->
 			match op with
 			| Equal when ite1 && ite2 -> (Some BooleanType, true, constraints)
@@ -818,8 +818,8 @@ let rec type_lexpr gamma le =
 		let type_lst, _, constraints1 = f lst in
 		let type_index, _, constraints2 = f index in
 		(match (type_lst, type_index) with
-		| Some ListType, Some IntType ->
-			let new_constraint1 = (LNot (LLess (index, LLit (Integer 0)))) in
+		| Some ListType, Some NumberType ->
+			let new_constraint1 = (LNot (LLess (index, LLit (Num 0.)))) in
 			let new_constraint2 = (LLess (index, LUnOp (LstLen, lst))) in
 			(None, true, (new_constraint1 :: (new_constraint2 :: constraints1 @ constraints2)))
 		| _, _ -> (None, false, []))
@@ -828,8 +828,8 @@ let rec type_lexpr gamma le =
 		let type_str, _, constraints1 = f str in
 		let type_index, _, constraints2 = f index in
 		(match (type_str, type_index) with
-		| Some StringType, Some IntType ->
-			let new_constraint1 = (LNot (LLess (index, LLit (Integer 0)))) in
+		| Some StringType, Some NumberType ->
+			let new_constraint1 = (LNot (LLess (index, LLit (Num 0.)))) in
 			let new_constraint2 = (LLess (index, LUnOp (StrLen, str))) in
 			(* Printf.printf "Entailment: %b\n" entail; *)
 			(Some StringType, true, (new_constraint1 :: (new_constraint2 :: constraints1 @ constraints2)))
@@ -844,7 +844,7 @@ let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
 	(* Printf.printf "le: %s\n\n\n" (JSIL_Print.string_of_logic_expression le false); *)
 	(match le with
 	(* Literals are always typable *)
-  | LLit lit -> if (types_leq (evaluate_type_of lit) le_type) then true else false
+  | LLit lit -> (evaluate_type_of lit = le_type)
 
 	(* Variables are reverse-typable if they are already typable *)
 	(* with the target type or if they are not typable           *)
@@ -852,7 +852,7 @@ let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
 	| PVar var ->
 		(match (JSIL_Memory_Model.gamma_get_type gamma var), (JSIL_Memory_Model.gamma_get_type new_gamma var) with
 		| Some t, None
-		| None, Some t     -> if (types_leq t le_type) then true else false
+		| None, Some t     -> (t = le_type)
 		| None, None       -> (JSIL_Memory_Model.update_gamma new_gamma var (Some le_type)); true
 		| Some t1, Some t2 -> if (t1 = t2) then true else false)
 
@@ -866,12 +866,12 @@ let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
 		(* Printf.printf "UNOP\n\n\n"; *)
 		(match unop with
   	| Not        -> if (le_type = BooleanType) then f le BooleanType else false
-		| UnaryMinus -> if (types_leq le_type NumberType) then f le le_type else false
+		| UnaryMinus -> if (le_type = NumberType)  then f le le_type     else false
   	| BitwiseNot	| M_sgn	| M_abs		| M_acos	| M_asin	| M_atan	| M_ceil
     | M_cos				| M_exp	| M_floor	| M_log		| M_round	| M_sin		| M_sqrt
   	| M_tan      -> if (le_type = NumberType) then f le le_type else false
 		| ToIntOp			| ToUint16Op			| ToInt32Op					| ToUint32Op
-								 ->	if (le_type = IntType) then f le NumberType else false
+								 ->	if (le_type = NumberType) then f le NumberType else false
 
 		| ToStringOp ->	if (le_type = StringType) then f le NumberType else false
 
@@ -881,7 +881,7 @@ let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
 
 		| Cdr	| Car	| LstLen -> f le ListType
 
-		| StrLen -> if (le_type = IntType) then f le StringType else false)
+		| StrLen -> if (le_type = NumberType) then f le StringType else false)
 
 
 	| LBinOp (le1, op, le2) ->
@@ -890,7 +890,7 @@ let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
 		| LessThanString -> (f le1 StringType) && (f le2 StringType)
 
 		| Plus	| Minus	| Times	| Mod ->
-			if ((le_type = NumberType) || (le_type = IntType))
+			if (le_type = NumberType)
 				then ((f le1 le_type) && (f le2 le_type))
 				else false
 
@@ -902,7 +902,7 @@ let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
 				else false
 
 		| BitwiseAnd	| BitwiseOr	| BitwiseXor	| LeftShift	| SignedRightShift
-		| UnsignedRightShift			| M_atan2			| M_pow			| SubType
+		| UnsignedRightShift			| M_atan2			| M_pow			
 		| LstCons -> false
 
 		| LstCat ->
@@ -919,9 +919,9 @@ let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
 			Printf.printf "Horror: op: %s, t: %s"  (JSIL_Print.string_of_binop op) (JSIL_Print.string_of_type le_type);
 			raise (Failure "ERROR"))
 
-		| LLstNth (le1, le2) -> (f le1 ListType) && (f le2 IntType)
+		| LLstNth (le1, le2) -> (f le1 ListType) && (f le2 NumberType)
 
-		| LStrNth (le1, le2) -> (f le1 StringType) && (f le2 IntType)
+		| LStrNth (le1, le2) -> (f le1 StringType) && (f le2 NumberType)
 
 		| LNone    -> (NoneType = le_type)
  	 	| LUnknown -> false)
@@ -1139,8 +1139,8 @@ let resolve_logical_variables pfs lvars =
 *)
 let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
                           (gamma : (string, jsil_type) Hashtbl.t)
-						  (pfs   : jsil_logic_assertion DynArray.t)
-						  (e     : jsil_logic_expr) =
+						  						(pfs   : jsil_logic_assertion DynArray.t)
+						  						(e     : jsil_logic_expr) =
 	let f = reduce_expression store gamma pfs in
 	let result = (match e with
 	(* Binary operators *)
@@ -1172,23 +1172,29 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 		let list = f e1 in
 		let list = find_me_Im_a_list store pfs list in
 		let index = f e2 in
-		let index =
-			(match index with
-			| LLit (Num n) -> LLit (Integer (int_of_float n))
-			| _ -> index) in
 		(match list, index with
-		| LLit (LList list), LLit (Integer n) ->
-			(try (LLit (List.nth list n)) with _ ->
+		| LLit (LList list), LLit (Num n) ->
+			if (Utils.is_int n) then
+			(try (LLit (List.nth list (int_of_float n))) with _ ->
 					raise (Failure "List index out of bounds"))
+			else
+					raise (Failure (Printf.sprintf "Non-integer list index: %f" n))
 
-		| LEList list, LLit (Integer n) ->
-			(try (List.nth list n) with _ ->
+		| LEList list, LLit (Num n) ->
+			if (Utils.is_int n) then
+			(try (List.nth list (int_of_float n)) with _ ->
 					raise (Failure "List index out of bounds"))
+			else
+					raise (Failure (Printf.sprintf "Non-integer list index: %f" n))
 
-		| LBinOp (le, LstCons, list), LLit (Integer n) ->
-		  (match (n = 1) with
+		| LBinOp (le, LstCons, list), LLit (Num n) ->
+			if (Utils.is_int n) then
+		  let ni = int_of_float n in
+			 (match (ni = 1) with
 		   | true -> f le
-		   | false -> f (LLstNth (f list, LLit (Integer (n - 1)))))
+		   | false -> f (LLstNth (f list, LLit (Num (n -. 1.)))))
+			else
+					raise (Failure (Printf.sprintf "Non-integer list index: %f" n))
 
 		| _, _ -> LLstNth (list, index))
 
@@ -1196,14 +1202,13 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 	| LStrNth (e1, e2) ->
 		let str = f e1 in
 		let index = f e2 in
-		let index =
-			(match index with
-			| LLit (Num n) -> LLit (Integer (int_of_float n))
-			| _ -> index) in
 		(match str, index with
-		| LLit (String str), LLit (Integer n) ->
-			(try (LLit (String (String.sub str n 1))) with _ ->
+		| LLit (String str), LLit (Num n) ->
+			if (Utils.is_int n) then
+			(try (LLit (String (String.sub str (int_of_float n) 1))) with _ ->
 				raise (Failure "List index out of bounds"))
+			else
+				raise (Failure (Printf.sprintf "Non-integer string index: %f" n))
 		| _, _ -> LStrNth (str, index))
 
     (* List and String length *)
@@ -1211,16 +1216,16 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 		let re1 = f e1 in
 		(match op with
 		 | LstLen -> (match re1 with
-	        | LLit (LList list) -> (LLit (Integer (List.length list)))
-		    | LEList list -> (LLit (Integer (List.length list)))
+				| LLit (LList list) -> (LLit (Num (float_of_int (List.length list))))
+		    | LEList list -> (LLit (Num (float_of_int (List.length list))))
 			| LBinOp (le, LstCons, list) ->
 				let rlist = f (LUnOp (LstLen, list)) in
 				(match rlist with
-				 | LLit (Integer n) -> LLit (Integer (n + 1))
-				 | _ -> LBinOp (LLit (Integer 1), Plus, rlist))
-		    | _ -> LUnOp (LstLen, e1))
+				| LLit (Num n) -> LLit (Num (n +. 1.))
+				| _ -> LBinOp (LLit (Num 1.), Plus, rlist))
+				| _ -> LUnOp (LstLen, e1))
 		 | StrLen -> (match re1 with
-		    | LLit (String str) -> (LLit (Integer (String.length str)))
+		    | LLit (String str) -> (LLit (Num (float_of_int (String.length str))))
 		    | _ -> LUnOp (StrLen, e1))
 		 | _ -> LUnOp (op, re1))
 
@@ -1312,8 +1317,8 @@ let rec reduce_assertion store gamma pfs a =
 				if (str <> "" && String.get str 0 = '@') 
 					then
 						let pfs = DynArray.to_list pfs in 
-						if ((List.mem (LNot (LEq (LStrNth (LVar x, LLit (Integer 0)), LLit (String "@")))) pfs)  ||
-							 (List.mem (LNot (LEq (LLit (String "@"), LStrNth (LVar x, LLit (Integer 0))))) pfs))
+						if ((List.mem (LNot (LEq (LStrNth (LVar x, LLit (Num 0.)), LLit (String "@")))) pfs)  ||
+							 (List.mem (LNot (LEq (LLit (String "@"), LStrNth (LVar x, LLit (Num 0.))))) pfs))
 						then LFalse 
 						else default e1 e2 re1 re2
 					else default e1 e2 re1 re2

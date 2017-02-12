@@ -15,13 +15,11 @@ open JS_Logic_Syntax
 %token EMPTYTYPELIT
 %token NONETYPELIT
 %token BOOLTYPELIT
-%token INTTYPELIT
 %token NUMTYPELIT
 %token STRTYPELIT
 %token OBJTYPELIT
 %token LISTTYPELIT
 %token TYPETYPELIT
-%token SUBTYPE
 (* Constants *)
 %token MIN_FLOAT
 %token MAX_FLOAT
@@ -42,7 +40,6 @@ open JS_Logic_Syntax
 %token EMPTY
 %token TRUE
 %token FALSE
-%token <int> INT
 %token <float> FLOAT
 %token NAN
 %token INFINITY
@@ -205,7 +202,7 @@ open JS_Logic_Syntax
 %left BITWISEXOR
 %left BITWISEAND
 %left EQUAL
-%nonassoc LESSTHAN LESSTHANSTRING LESSTHANEQUAL SUBTYPE
+%nonassoc LESSTHAN LESSTHANSTRING LESSTHANEQUAL 
 %left LEFTSHIFT SIGNEDRIGHTSHIFT UNSIGNEDRIGHTSHIFT
 %left PLUS MINUS
 %left TIMES DIV MOD M_POW
@@ -214,7 +211,6 @@ open JS_Logic_Syntax
 %right M_ABS M_ACOS M_ASIN M_ATAN M_CEIL M_COS M_EXP M_FLOOR M_LOG M_ROUND M_SGN M_SIN M_SQRT M_TAN
   ISPRIMITIVE TOSTRING TOINT TOUINT16 TOINT32 TOUINT32 TONUMBER CAR CDR LSTLEN STRLEN LSTCONS
 
-%nonassoc INT
 %nonassoc FLOAT
 
 (***** Types and entry points *****)
@@ -768,7 +764,6 @@ lit_target:
 	| constant_target           { Constant $1 }
 	| TRUE                      { Bool true }
 	| FALSE                     { Bool false }
-	| INT												{ Integer $1 }
 	| FLOAT                     { Num $1 }
 	| NAN                       { Num nan }
 	| INFINITY                  { Num infinity }
@@ -802,7 +797,6 @@ lit_target:
 	| LSTCONS            { LstCons }
 	| LSTCAT             { LstCat }
 	| STRCAT             { StrCat }
-	| SUBTYPE            { SubType }
 ;
 
 %inline unop_target:
@@ -858,7 +852,6 @@ lit_target:
 	| EMPTYTYPELIT { EmptyType }
 	| NONETYPELIT  { NoneType }
 	| BOOLTYPELIT  { BooleanType }
-	| INTTYPELIT 	 { IntType }
 	| NUMTYPELIT   { NumberType }
 	| STRTYPELIT   { StringType }
 	| OBJTYPELIT   { ObjectType }

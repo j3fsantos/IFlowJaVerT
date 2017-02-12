@@ -135,7 +135,7 @@ let check_store store gamma =
 		if (Hashtbl.mem gamma pvar) then
 		begin
 		  let _type = Hashtbl.find gamma pvar in
-		  types_leq target_type _type
+		  	(target_type = _type)
 		end
 		else
 		begin
@@ -263,7 +263,7 @@ let is_sensible_subst subst gamma_source gamma_target =
 			let var_type = gamma_get_type gamma_source var in
 			(match lexpr_type, var_type with
 			| Some le_type, Some v_type ->
-			  if (types_leq le_type v_type || types_leq v_type le_type) then () else raise (Failure (Printf.sprintf "Type mismatch: %s %s"
+			  if (le_type = v_type) then () else raise (Failure (Printf.sprintf "Type mismatch: %s %s"
 			  	(JSIL_Print.string_of_type le_type) (JSIL_Print.string_of_type v_type)))
 			| _, _ -> ()))
 		subst;
@@ -562,7 +562,7 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 						| true, true -> 
 							let t1 = Hashtbl.find gamma v1 in
 							let t2 = Hashtbl.find gamma v2 in
-								(types_leq t1 t2 || types_leq t2 t1)
+								(t1 = t2)
 						| true, false ->
 							let t1 = Hashtbl.find gamma v1 in
 								Hashtbl.add gamma v2 t1;
@@ -581,9 +581,7 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 						(match Hashtbl.mem gamma v with
 						| true -> 
 							let t1 = Hashtbl.find gamma v in
-								(* If we're assigning a number to sth that was an int, 
-								   is that a problem? *)
-								(types_leq t1 tl || types_leq tl t1)
+								(t1 = tl)
 						| false -> Hashtbl.add gamma v tl; true) in
 					if does_this_work 
 						then perform_substitution v le2 n (save_all_lvars || String.get v 0 = '#')
@@ -740,15 +738,14 @@ let rec understand_types exists pf_list gamma : bool =
 			let te2, _, _ = type_lexpr gamma le2 in
 			(* Understand if there's enough information to proceed *)
 			let proceed = (match te1, te2 with
-			| Some t1, Some t2 -> Some ((types_leq t1 t2) || (types_leq t2 t1))
+			| Some t1, Some t2 -> Some (t1 = t2)
 			| None, None -> None
 			| _, _ -> Some true) in
 			(match proceed with
 			| None -> f rest gamma
 			| Some false -> false
-			| _ -> (* Check for variables *)
+			| Some true -> (* Check for variables *)
 				(match le1, le2 with
-				(* TODO TODO TODO --- FIX HERE WRT RIGHT SIDE --- TODO TODO TODO *)
 				| LVar x, LVar y ->
 					print_debug (Printf.sprintf "Checking: (%s, %s) vs %s" x  from_where y);
 					(match te1, te2 with
@@ -768,17 +765,7 @@ let rec understand_types exists pf_list gamma : bool =
 								(JSIL_Memory_Print.string_of_gamma gamma)); 
 								Hashtbl.add gamma x t2); 
 							f rest gamma 
-					| Some t1, Some t2 ->
-						if (not (t1 = t2))
-							then (let t = if (types_leq t1 t2) then t1 else t2 in
-							print_debug (Printf.sprintf "Added (%s, %s) and (%s, %s) to gamma given \n%s and %s" 
-							x (JSIL_Print.string_of_type t)
-							y (JSIL_Print.string_of_type t)
-							(String.concat "\n" (List.map (fun (x, y) -> Printf.sprintf "(%s, %s)" (JSIL_Print.string_of_logic_assertion x false) y) pf_list))
-							(JSIL_Memory_Print.string_of_gamma gamma));
-							Hashtbl.replace gamma x t; Hashtbl.replace gamma y t; f rest gamma)
-							else
-								f rest gamma
+					| Some t1, Some t2 -> f rest gamma
 					| None, None -> raise (Failure "Impossible branch."))
 				| LVar x, le
 				| le, LVar x ->
@@ -798,16 +785,7 @@ let rec understand_types exists pf_list gamma : bool =
 									(JSIL_Memory_Print.string_of_gamma gamma)); 
 									Hashtbl.add gamma x te); 
 								f rest gamma
-						| Some tx ->
-							if (not (tx = te))
-								then (let t = if (types_leq tx te) then tx else te in
-								print_debug (Printf.sprintf "Added (%s, %s) to gamma given %s and %s" 
-								x (JSIL_Print.string_of_type t)
-								(String.concat "\n" (List.map (fun (x, y) -> Printf.sprintf "(%s, %s)" (JSIL_Print.string_of_logic_assertion x false) y) pf_list))
-								(JSIL_Memory_Print.string_of_gamma gamma)); 
-								Hashtbl.replace gamma x t; f rest gamma)
-								else
-									f rest gamma))
+						| Some tx -> f rest gamma))
 					| _, _ -> f rest gamma))
 		| _ -> f rest gamma))
 
@@ -865,15 +843,6 @@ let rec simplify_for_your_legacy exists others (symb_state : symbolic_state) : s
 			(* We can reduce < if both are numbers *)
 			| LLess	(le1, le2) ->
 			  (match le1, le2 with
-			   | LLit (Integer n1), LLit (Integer n2) ->
-					let result = if (n1 < n2) then LTrue else LFalse in
-					DynArray.set p_formulae n result; fo symb_state
-			   | LLit (Integer n1), LLit (Num n2) ->
-					let result = if (float_of_int n1 < n2) then LTrue else LFalse in
-					DynArray.set p_formulae n result; fo symb_state
-			   | LLit (Num n1), LLit (Integer n2) ->
-					let result = if (n1 < float_of_int n2) then LTrue else LFalse in
-					DynArray.set p_formulae n result; fo symb_state
 			   | LLit (Num n1), LLit (Num n2) ->
 					let result = if (n1 < n2) then LTrue else LFalse in
 					DynArray.set p_formulae n result; fo symb_state
@@ -883,15 +852,6 @@ let rec simplify_for_your_legacy exists others (symb_state : symbolic_state) : s
 			(* Same for <= *)
 			| LLessEq (le1, le2) ->
 			  (match le1, le2 with
-			   | LLit (Integer n1), LLit (Integer n2) ->
-					let result = if (n1 <= n2) then LTrue else LFalse in
-					DynArray.set p_formulae n result; fo symb_state
-			   | LLit (Integer n1), LLit (Num n2) ->
-					let result = if (float_of_int n1 <= n2) then LTrue else LFalse in
-					DynArray.set p_formulae n result; fo symb_state
-			   | LLit (Num n1), LLit (Integer n2) ->
-					let result = if (n1 <= float_of_int n2) then LTrue else LFalse in
-					DynArray.set p_formulae n result; fo symb_state
 			   | LLit (Num n1), LLit (Num n2) ->
 					let result = if (n1 <= n2) then LTrue else LFalse in
 					DynArray.set p_formulae n result; fo symb_state
@@ -1040,6 +1000,9 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 		SS.empty, lpfs, p_formulae, (Hashtbl.create 1) in
 
 	let delete_substitute_proceed exists p_formulae gamma v n le =
+		print_debug (Printf.sprintf "Deleting the formula \n%s\n and substituting the variable %s for %s." 
+			(JSIL_Print.string_of_logic_assertion (DynArray.get p_formulae n) false) 
+			v (JSIL_Print.string_of_logic_expression le false));
 		DynArray.delete p_formulae n;
 		let exists = SS.remove v exists in
 		while (Hashtbl.mem gamma v) do Hashtbl.remove gamma v done;
@@ -1098,6 +1061,13 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	    	if (l1 = l2) 
 	    		then (DynArray.delete p_formulae n; go_through_pfs rest n)
 	    		else pfs_false "Literals."
+		| LEq (LVar x, LVar y) ->
+			let mx = SS.mem x exists in
+			let my = SS.mem y exists in
+			(match mx, my with
+			| false, false -> go_through_pfs rest (n + 1)
+			| false, true  -> delete_substitute_proceed exists p_formulae gamma y n (LVar x) 
+			| true,  _ -> delete_substitute_proceed exists p_formulae gamma x n (LVar y))
 		| LEq (LVar v, le) 
 		| LEq (le, LVar v) ->
 		   (match (SS.mem v exists) with
@@ -1128,7 +1098,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 					(match le with
 					 | LLit lit ->
 					     let ltype = JSIL_Interpreter.evaluate_type_of lit in
-						 (match (types_leq vtype ltype || types_leq ltype vtype) with
+						 (match (vtype = ltype) with
 						  | false -> pfs_false "Mistypes."
 						  | true -> delete_substitute_proceed exists p_formulae gamma v n le
 						 )
@@ -1164,18 +1134,29 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	let pf_list = DynArray.to_list p_formulae in
 		go_through_pfs pf_list 0 
 
+(* *********** *)
+(*   CLEANUP   *)
+(* *********** *)
 let clean_up_stuff exists left right =
 	let sleft = SA.of_list (DynArray.to_list left) in
 	let i = ref 0 in
+	
 	while (!i < DynArray.length right) do
 		let pf = DynArray.get right !i in
-		(match (SA.mem pf sleft) with
-		 | false -> 
-		 	(match (SA.mem (LNot pf) sleft) with
-		 	 | false -> i := !i + 1
-		 	 | true -> 
-		 	 	DynArray.clear right;
-		 	 	DynArray.add right LFalse)
+		let pf_sym pf = (match pf with
+			| LEq (e1, e2) -> SA.mem (LEq (e2, e1)) sleft
+			| LNot (LEq (e1, e2)) -> SA.mem (LNot (LEq (e2, e1))) sleft
+			| _ -> false) in
+		(match ((SA.mem pf sleft) || (pf_sym pf)) with
+		| false -> 
+			let npf = (match pf with
+					| LNot pf -> pf
+					| _ -> LNot pf) in
+			 	(match ((SA.mem npf sleft) || (pf_sym npf)) with
+				| false -> i := !i + 1
+				| true -> 
+						DynArray.clear left; DynArray.clear right;
+						DynArray.add left LFalse)
 		 | true -> DynArray.delete right !i
 		)
 	done

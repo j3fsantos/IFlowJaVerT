@@ -3,7 +3,6 @@ open Lexing
 }
 
 let digit = ['0'-'9']
-let int = '-'? digit+
 let float = '-'? digit+ ('.' digit*)?
 let letter = ['a'-'z''A'-'Z']
 let var = (letter|'_')(letter|digit|'_')*
@@ -25,7 +24,6 @@ rule read = parse
 	| "$$empty_type"       { JSIL_Parser.EMPTYTYPELIT }
 	| "$$none_type"        { JSIL_Parser.NONETYPELIT }
 	| "$$boolean_type"     { JSIL_Parser.BOOLTYPELIT }
-	| "$$int_type"         { JSIL_Parser.INTTYPELIT }
 	| "$$number_type"      { JSIL_Parser.NUMTYPELIT }
 	| "$$string_type"      { JSIL_Parser.STRTYPELIT }
 	| "$$object_type"      { JSIL_Parser.OBJTYPELIT }
@@ -79,7 +77,6 @@ rule read = parse
 	| "::"                 { JSIL_Parser.LSTCONS }
 	| "@"                  { JSIL_Parser.LSTCAT }
 	| "++"                 { JSIL_Parser.STRCAT }
-	| "<:"                 { JSIL_Parser.SUBTYPE }
 (* Unary operators *)
 	(* Unary minus uses the same symbol as binary minus, token MINUS *)
 	| "not"                { JSIL_Parser.NOT }
@@ -190,14 +187,8 @@ rule read = parse
 	| '{'                  { JSIL_Parser.CLBRACKET }
 	| '}'                  { JSIL_Parser.CRBRACKET }
 (* Literals (cont.) *)
-	| int                  { let n = float_of_string (Lexing.lexeme lexbuf) in
-	                           if (Utils.is_int n)
-														    then JSIL_Parser.INT (int_of_string (Lexing.lexeme lexbuf))
-																else JSIL_Parser.FLOAT n }
 	| float                { let n = float_of_string (Lexing.lexeme lexbuf) in
-													   if (Utils.is_int n)
-														    then (JSIL_Parser.INT (int_of_float n))
-																else (JSIL_Parser.FLOAT n) }
+	                           JSIL_Parser.FLOAT n }
 	| '"'                  { read_string (Buffer.create 17) lexbuf }
 	| loc                  { JSIL_Parser.LOC (Lexing.lexeme lexbuf) }
 (* Variables *)

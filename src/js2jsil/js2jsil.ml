@@ -208,7 +208,7 @@ let translate_named_function_literal (top_level : bool) x_sc f_name f_id params 
 	
 		(* x_er := l-nth(x_sc, index) *)
 		let x_er = fresh_er_var () in
-		let cmd_ass_xer = (None, (SLBasic (SAssignment (x_er, LstNth(Var x_sc, Literal (Integer index)))))) in
+		let cmd_ass_xer = (None, (SLBasic (SAssignment (x_er, LstNth(Var x_sc, Literal (Num (float_of_int index))))))) in
 
 		(* [x_er, f_name] := x_f *) 
 		(* [x_er, f_name] := {{ "d", x_f, $$t, $$t, $$f }} *)
@@ -241,9 +241,8 @@ let translate_inc_dec x is_plus err =
 	(* x_r := x_n +/- 1 *)
 	let x_r = fresh_var () in
 	let cmd_ass_xr =
-		(match is_plus with
-			| true -> SLBasic (SAssignment (x_r, (BinOp (Var x_n, Plus, Literal (Integer 1)))))
-			| false -> SLBasic (SAssignment (x_r, (BinOp (Var x_n, Minus, Literal (Integer 1)))))) in
+		let op = if is_plus then Plus else Minus in
+		SLBasic (SAssignment (x_r, (BinOp (Var x_n, op,  Literal (Num 1.))))) in
 
 	(* x_pv = putValue (x, x_r) with err4 *)
 	let x_pv, cmd_pv_x = make_put_value_call x x_r err in
@@ -622,7 +621,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		(* x_sf := l-nth(x_sc, index) *)
 		let index = find_var_er_index x in
 		let x_sf = fresh_var () in
-		let cmd_xsf_ass = SLBasic (SAssignment (x_sf, LstNth (Var tr_ctx.tr_sc_var, lit_int index))) in
+		let cmd_xsf_ass = SLBasic (SAssignment (x_sf, LstNth (Var tr_ctx.tr_sc_var, lit_num (float_of_int index)))) in
 
 		(* x_ref := {{ v, x_sf, "x" }}  *)
 		let x_ref = fresh_var () in
@@ -649,7 +648,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		(* x_sf := l-nth(x_sc, index) *)
 		let index = find_var_er_index x in
 		let x_sf = fresh_var () in
-		let cmd_xsf_ass = SLBasic (SAssignment (x_sf, LstNth (Var tr_ctx.tr_sc_var, lit_int index))) in
+		let cmd_xsf_ass = SLBasic (SAssignment (x_sf, LstNth (Var tr_ctx.tr_sc_var, lit_num (float_of_int index)))) in
 		
 		(* x_ref := {{ v, x_sf, "x" }}  *)
 		let x_ref = fresh_var () in
@@ -778,7 +777,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let translate_var_found v index =
 			(* x_1 := l-nth(x_sc, index) *)
 			let x_1 = fresh_var () in
-			let cmd_ass_x1 = SLBasic (SAssignment (x_1, LstNth (Var tr_ctx.tr_sc_var, lit_int index))) in 
+			let cmd_ass_x1 = SLBasic (SAssignment (x_1, LstNth (Var tr_ctx.tr_sc_var, lit_num (float_of_int index)))) in 
 
 			(* x_r := {{ "v", x_1, "x" }} *)
 			let x_r = fresh_var () in
@@ -2608,7 +2607,7 @@ and translate_statement tr_ctx e  =
 		
 		(* x_sf := l-nth(x__sc, index)  *)
 		let x_sf = fresh_var () in
-	  let cmd_xsf_ass = SLBasic (SAssignment (x_sf, LstNth (Var tr_ctx.tr_sc_var, lit_int index))) in 
+	  let cmd_xsf_ass = SLBasic (SAssignment (x_sf, LstNth (Var tr_ctx.tr_sc_var, lit_num (float_of_int index)))) in 
 		
 		(* x_ref := {{ "v", x_sf, "x" }}  *)
 		let x_ref = fresh_var () in
@@ -3539,7 +3538,7 @@ and translate_statement tr_ctx e  =
 
 			(* x_c := 0 *)
 			let x_c = fresh_var () in
-			let cmd_ass_xc = SLBasic (SAssignment (x_c, Literal (Integer 0))) in
+			let cmd_ass_xc = SLBasic (SAssignment (x_c, Literal (Num 0.))) in
 
 			(*   x_ret_1 := PHI(x_ret_0, x_ret_3)	 *)
 			let cmd_ass_xret1 = SLPhiAssignment (x_ret_1, [| (Var x_ret_0); (Var x_ret_3) |]) in
@@ -3562,7 +3561,7 @@ and translate_statement tr_ctx e  =
 
 			(*  xxl := l-nth (xl, 1)   *)
 			let xxl = fresh_var () in
-			let cmd_ass_xxl = SLBasic (SAssignment (xxl, LstNth (Var xl, Literal (Integer 1)))) in
+			let cmd_ass_xxl = SLBasic (SAssignment (xxl, LstNth (Var xl, Literal (Num 1.)))) in
 
 			(* 	xhf := hasField (xxl, xp) *)
 			let xhf = fresh_var () in
@@ -3592,7 +3591,7 @@ and translate_statement tr_ctx e  =
 			let cmd_phi_xret3 = SLPhiAssignment (x_ret_3, [| (Var x_ret_1); (Var x_ret_1); (Var x_ret_2) |]) in
 
 			(* x_c_2 := x_c_1 + 1 *)
-			let cmd_ass_incr = SLBasic (SAssignment (x_c_2, BinOp (Var x_c_1, Plus, Literal (Integer 1)))) in
+			let cmd_ass_incr = SLBasic (SAssignment (x_c_2, BinOp (Var x_c_1, Plus, Literal (Num 1.)))) in
 
 			(* 	x_ret_4 := PHI(x_ret_1, break_vars)  *)
 			let phi_args = x_ret_1 :: cur_breaks in

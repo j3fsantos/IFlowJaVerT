@@ -28,8 +28,6 @@ let must_be_equal le_pat le pi gamma =
 	| true -> true
 	| false -> 
 		(match le_pat, le with
-		| LLit (Num n), LLit (Integer i)
-		| LLit (Integer i), LLit (Num n) -> (float_of_int i == n)
 		| LLit pat_lit, LLit lit -> pat_lit = lit
 		| LLit pat_lit, _ ->
 			Pure_Entailment.is_equal le_pat le pi (* solver *) gamma
@@ -49,12 +47,6 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 				let rec spin_me_round pat_lexpr lexpr discharges =
 				(*Printf.printf "(%s, %s)\n" (JSIL_Print.string_of_logic_expression pat_lexpr false) (JSIL_Print.string_of_logic_expression lexpr false);*)
 				(match pat_lexpr, lexpr with
-
-				| LLit (Num n), LLit (Integer i)
-				| LLit (Integer i), LLit (Num n) ->
-					if (float_of_int i == n)
-						then discharges
-						else raise (Failure "Numbers : the stores are not unifiable")
 
 				| LLit pat_lit, LLit lit ->
 					if (lit = pat_lit)
@@ -485,14 +477,14 @@ let unify_gamma pat_gamma gamma pat_store subst ignore_vars =
 						let le_type, is_typable, _ = JSIL_Logic_Utils.type_lexpr gamma le in
 						match le_type with
 						| Some le_type ->
-							    print_debug (Printf.sprintf "unify_gamma. pat gamma var: %s. le: %s. v_type: %s. le_type: %s\n"
+							    print_debug (Printf.sprintf "unify_gamma. pat gamma var: %s. le: %s. v_type: %s. le_type: %s"
 								var
 								(JSIL_Print.string_of_logic_expression le false)
 								(JSIL_Print.string_of_type v_type)
 								(JSIL_Print.string_of_type le_type));
-							(types_leq le_type v_type)
+							(le_type = v_type)
 						| None ->
-							    print_debug (Printf.sprintf "failed unify_gamma. pat gamma var: %s. le: %s. v_type: %s\n"
+							    print_debug (Printf.sprintf "failed unify_gamma. pat gamma var: %s. le: %s. v_type: %s"
 								var
 								(JSIL_Print.string_of_logic_expression le false)
 								(JSIL_Print.string_of_type v_type));
@@ -988,7 +980,7 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 				(fun ac t1 t2 ->
 					if (not ac) then false else
 					match t1, t2 with
-					| Some t1, Some t2 -> types_leq t1 t2 || types_leq t2 t1
+					| Some t1, Some t2 -> t1 = t2
 					| _, _ -> true) true store_0_var_types store_1_var_types in
 		(* Printf.printf "GAMMA_OLD - STEP 2:\n%s\n" (JSIL_Memory_Print.string_of_gamma gamma_old);	*)
 		store_0_var_types, store_1_var_types, stores_are_type_compatible in

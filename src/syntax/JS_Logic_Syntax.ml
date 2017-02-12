@@ -169,7 +169,7 @@ let rec js2jsil_logic cur_fid (var_to_fid_tbl : ((string, string) Hashtbl.t) opt
 				LLit (String "constructor"), 
 				LEList [ LLit (String "d"); f_loc'; LLit (Bool true); LLit (Bool false); LLit (Bool true) ]) in
 		LStar (
-			LPred (function_object_pred_name, [ f_loc'; le_scope_chain; LLit (String id); LLit (String id); LLit (Integer n_args); f_prototype'] ), 
+			LPred (function_object_pred_name, [ f_loc'; le_scope_chain; LLit (String id); LLit (String id); LLit (Num (float_of_int n_args)); f_prototype'] ), 
 			LStar (st_obj_fproto, obj_fproto_cstr))
 
 

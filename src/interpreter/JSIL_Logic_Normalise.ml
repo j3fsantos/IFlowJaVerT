@@ -67,21 +67,24 @@ let rec normalise_lexpr store gamma subst le =
 			| LEList _ -> LLit (Type ListType)
 			| LLstNth (list, index) ->
 				(match list, index with
-					| LLit (LList list), LLit (Num n) ->
+					| LLit (LList list), LLit (Num n) when (Utils.is_int n) ->
 						let lit_n = (try List.nth list (int_of_float n) with _ ->
 							raise (Failure "List index out of bounds")) in
 						LLit (Type (JSIL_Interpreter.evaluate_type_of lit_n))
-					| LEList list, LLit (Num n) ->
+					| LLit (LList list), LLit (Num n) -> raise (Failure "Non-integer list index")
+					| LEList list, LLit (Num n) when (Utils.is_int n) ->
 						let le_n = (try List.nth list (int_of_float n) with _ ->
 							raise (Failure "List index out of bounds")) in
 						f (LTypeOf le_n)
+					| LEList list, LLit (Num n) -> raise (Failure "Non-integer list index")
 					| _, _ -> LTypeOf (nle1))
 			| LStrNth (str, index) ->
 				(match str, index with
-					| LLit (String s), LLit (Num n) ->
+					| LLit (String s), LLit (Num n) when (Utils.is_int n) ->
 						let _ = (try (String.get s (int_of_float n)) with _ ->
 							raise (Failure "String index out of bounds")) in
 						LLit (Type StringType)
+					| LLit (String s), LLit (Num n) -> raise (Failure "Non-integer string index")
 					| _, _ -> LTypeOf (nle1)))
 
 	| LEList le_list ->
@@ -102,14 +105,15 @@ let rec normalise_lexpr store gamma subst le =
 		let nle1 = f le1 in
 		let nle2 = f le2 in
 		(match nle1, nle2 with
-			| LLit (LList list), LLit (Num n) -> (try LLit (List.nth list (int_of_float n)) with _ ->
-				raise (Failure "List index out of bounds"))
-			| LLit (LList list), LLit (Integer i) -> (try LLit (List.nth list i) with _ ->
-				raise (Failure "List index out of bounds"))
-			| LEList list, LLit (Num n) -> (try (List.nth list (int_of_float n)) with _ ->
-				raise (Failure "List index out of bounds"))
-			| LEList list, LLit (Integer i) -> (try (List.nth list i) with _ ->
-				raise (Failure "List index out of bounds"))
+			| LLit (LList list), LLit (Num n) when (Utils.is_int n) -> 
+					(try LLit (List.nth list (int_of_float n)) with _ ->
+						raise (Failure "List index out of bounds"))
+			| LLit (LList list), LLit (Num n) -> raise (Failure "Non-integer list index")
+			| LEList list, LLit (Num n) when (Utils.is_int n) -> 
+					let le = (try (List.nth list (int_of_float n)) with _ ->
+						raise (Failure "List index out of bounds")) in
+					f le
+			| LEList list, LLit (Num n) -> raise (Failure "Non-integer list index")
 			| _, _ -> LLstNth (nle1, nle2))
 
 	| LStrNth (le1, le2) ->
@@ -118,9 +122,6 @@ let rec normalise_lexpr store gamma subst le =
 		(match nle1, nle2 with
 			| LLit (String s), LLit (Num n) ->
 				(try LLit (String (String.make 1 (String.get s (int_of_float n))))
-				with _ -> raise (Failure "String index out of bounds"))
-			| LLit (String s), LLit (Integer i) ->
-				(try LLit (String (String.make 1 (String.get s i)))
 				with _ -> raise (Failure "String index out of bounds"))
 			| _, _ -> LStrNth (nle1, nle2)) in
 		let end_time = Sys.time () in

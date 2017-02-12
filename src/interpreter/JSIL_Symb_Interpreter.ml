@@ -87,7 +87,7 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 			| LstLen ->
 			 	let nle = find_me_Im_a_list store pure_formulae nle in
 				let len = get_list_length nle in
-					if_some len (fun len -> LLit (Integer len)) (LUnOp (op, nle))
+					if_some len (fun len -> LLit (Num (float_of_int len))) (LUnOp (op, nle))
 			| _ -> LUnOp (op, nle)))
 
   (* TypeOf:
@@ -126,12 +126,9 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 		let list = f e1 in
 		let index = f e2 in
 		let list = find_me_Im_a_list store pure_formulae list in
-		let index =
-			(match index with
-			| LLit (Num n) -> LLit (Integer (int_of_float n))
-			| _ -> index) in
 		(match index with
-		 | LLit (Integer n) ->
+		 | LLit (Num n) when (Utils.is_int n) ->
+			let n = int_of_float n in
 		 	if (n < 0) then raise (Failure "List index negative.")
 			else
 			(match list with
@@ -151,6 +148,7 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 		  							raise (Failure "List index out of bounds"))
 							  | _ -> LLstNth (list, index))
 				| _ -> LLstNth (list, index))
+			| LLit (Num n) -> raise (Failure "Non-integer list index.")
 		| _ -> LLstNth (list, index))
 
   (* List n-th: Evaluate the string and the index
@@ -160,17 +158,15 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 	| StrNth (e1, e2) ->
 		let str = f e1 in
 		let index = f e2 in
-		let index =
-			(match index with
-			| LLit (Num n) -> LLit (Integer (int_of_float n))
-			| _ -> index) in
 		(match index with
-		| LLit (Integer n) ->
+		| LLit (Num n) when (Utils.is_int n) ->
+			let n = int_of_float n in
 		 	if (n < 0) then raise (Failure "String index negative.")
 			else
 				(match str with
 				| LLit (String s) -> LLit (String (String.make 1 (String.get s n)))
 				| _ -> LStrNth (str, index))
+		| LLit (Num n) -> raise (Failure "Non-integer string index.")
 		| _ -> LStrNth (str, index))
 
 (************************************************)

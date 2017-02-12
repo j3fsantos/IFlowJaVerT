@@ -25,7 +25,6 @@ let string_of_type t =
 	| EmptyType     -> "$$empty_type"
 	| NoneType      -> "$$none_type"
   | BooleanType   -> "$$boolean_type"
-	| IntType       -> "$$int_type"
   | NumberType    -> "$$number_type"
 	| StringType    -> "$$string_type"
   | ObjectType    -> "$$object_type"
@@ -63,7 +62,6 @@ let rec string_of_literal lit escape_string =
 		(match b with
     | true -> "$$t"
     | false -> "$$f")
-	| Integer i -> string_of_int i
   | Num n -> string_of_float n
   | String x ->
 		(if escape_string
@@ -101,7 +99,6 @@ let string_of_binop bop =
 		| LstCons -> "::"
 		| LstCat -> "@"
 		| StrCat -> "++"
-		| SubType -> "<:"
 
 (** JSIL unary operators *)
 let string_of_unop uop =
@@ -636,7 +633,6 @@ let rec full_string_of_literal lit  =
 		(match b with
 		| true -> "Bool true"
 		| false -> "Bool false")
-	| Integer i -> "Integer " ^ string_of_int i
 	| Num n -> "Num " ^ string_of_float n
 	| String x -> Printf.sprintf "String \"%s\"" x
 	| Loc loc -> "Loc " ^ loc
