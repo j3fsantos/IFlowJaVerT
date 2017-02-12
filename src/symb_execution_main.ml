@@ -3,6 +3,7 @@ open JSIL_Syntax
 let file = ref ""
 let spec_file = ref ""
 let output_folder = ref ""
+let stats = ref false 
 
 let arguments () =
   let usage_msg="Usage: -file <path>" in
@@ -15,6 +16,8 @@ let arguments () =
 			"-specs", Arg.String (fun f -> spec_file := f), "specification file";
 			(* *)
 			"-js", Arg.Unit (fun () -> JSIL_Symb_Interpreter.js := true), "js2jsil output"; 
+			(* *)
+			"-stats", Arg.Unit (fun () -> stats := true), "stats";
 			(* "-encoding", Arg.String (fun f ->
 				Printf.printf "I am here.\n";
 				let enc = match f with
@@ -98,8 +101,9 @@ let process_file path =
 			else (Printf.printf "There were Failures in %f\n" (Sys.time())));
 		
 		register_dot_graphs dot_graphs;
-		JSIL_Syntax.process_statistics ();
-		
+		if (!stats) 
+			then JSIL_Syntax.process_statistics ();
+			
 		exit 0
 
 let main () =
