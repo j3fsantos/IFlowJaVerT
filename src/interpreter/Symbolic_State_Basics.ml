@@ -500,6 +500,19 @@ let rec isExistentiallySubstitutable le =
  | _ -> false
 )
 
+let get_lvars_pfs pfs =
+	List.fold_left
+		(fun lvars pf -> 
+			let lvs = get_assertion_lvars pf in
+				SS.union lvars lvs)
+		SS.empty (DynArray.to_list pfs)
+	
+let filter_gamma_pfs pfs gamma = 
+	let pfs_vars = get_lvars_pfs pfs in
+	Hashtbl.filter_map_inplace 
+		(fun k v -> if (SS.mem k pfs_vars) then Some v else None) 
+		gamma
+	
 (*
 	SIMPLIFICATION AND MORE INFORMATION
 	===================================
@@ -547,6 +560,16 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 			| LTrue -> DynArray.delete p_formulae n; go_through_pfs rest n
 			(* If we have false in the pfs, everything is false and we stop *)
 			| LFalse -> pfs_false ""
+			(* Getting rid of disequalities that we know hold due to typing *)
+			| LNot (LEq (le1, le2)) ->
+				let te1, _, _ = type_lexpr gamma le1 in
+				let te2, _, _ = type_lexpr gamma le2 in
+				(match te1, te2 with
+				| Some t1, Some t2 ->
+					(match (t1 = t2) with
+					| false -> DynArray.delete p_formulae n; go_through_pfs rest n
+					| true -> go_through_pfs rest (n + 1))
+				| _, _ -> go_through_pfs rest (n + 1))
 			| LEq (le1, le2) ->
 				(match le1, le2 with
 				(* Obvious falsity *)
@@ -868,6 +891,17 @@ let rec simplify_for_your_legacy exists others (symb_state : symbolic_state) : s
 			(* I don't know how these could get here, but let's assume they can... *)
 			| LAnd  (a1, a2)
 			| LStar	(a1, a2) -> DynArray.set p_formulae n a1; DynArray.add p_formulae a2; fo symb_state
+
+			(* Getting rid of disequalities that we know hold due to typing *)
+			| LNot (LEq (le1, le2)) ->
+				let te1, _, _ = type_lexpr gamma le1 in
+				let te2, _, _ = type_lexpr gamma le2 in
+				(match te1, te2 with
+				| Some t1, Some t2 ->
+					(match (t1 = t2) with
+					| false -> DynArray.delete p_formulae n; go_through_pfs rest n
+					| true -> go_through_pfs rest (n + 1))
+				| _, _ -> go_through_pfs rest (n + 1))
 
 			| LEq (le1, le2) ->
 				(match le1, le2 with

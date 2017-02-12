@@ -154,6 +154,7 @@ let rec get_assertion_literals a =
 	| LPointsTo (le1, le2, le3) -> (fe le1) @ (fe le2) @ (fe le3)
 	| LEq (le1, le2) | LLess (le1, le2) | LLessEq (le1, le2) | LStrLess (le1, le2) -> (fe le1) @ (fe le2)
 	| LPred (_, les) -> List.concat (List.map fe les)
+	| LEmptyFields (e, les) -> (fe e) @ List.concat (List.map fe les)
 
 let get_assertion_string_number_literals a =
 	let lits = get_assertion_literals a in
@@ -165,6 +166,30 @@ let get_assertion_string_number_literals a =
 		| _ :: rest -> loop rest (strings_so_far, numbers_so_far) in
 	loop lits ([], [])
 
+let rec get_logic_expression_lvars le =
+	let fe = get_logic_expression_lvars in
+	match le with
+	| LLit _ | LNone | ALoc _ | PVar _ | LUnknown -> []
+	| LVar x -> [ x ]
+	| LBinOp (le1, _, le2) | LLstNth (le1, le2) | LStrNth (le1, le2) -> (fe le1) @ (fe le2)
+	| LUnOp (_, le) |	LTypeOf le -> fe le
+ 	| LEList les -> List.concat (List.map fe les)
+
+let get_assertion_lvars a : JSIL_Syntax.SS.t = 
+	
+	let rec get_assertion_lvars_list a =
+		let f = get_assertion_lvars_list in
+		let fe = get_logic_expression_lvars in
+		match a with
+		| LTrue | LFalse | LEmp | LTypes _ -> []
+		| LNot a -> f a
+		| LAnd (a1, a2) | LOr (a1, a2) | LStar (a1, a2) -> (f a1) @ (f a2)
+		| LPointsTo (le1, le2, le3) -> (fe le1) @ (fe le2) @ (fe le3)
+		| LEq (le1, le2) | LLess (le1, le2) | LLessEq (le1, le2) | LStrLess (le1, le2) -> (fe le1) @ (fe le2)
+		| LPred (_, les) -> List.concat (List.map fe les)
+		| LEmptyFields (e, les) -> (fe e) @ List.concat (List.map fe les) in
+		
+	SS.of_list (get_assertion_lvars_list a)
 
 let remove_string_duplicates strings =
 	let string_set = SS.of_list strings in
