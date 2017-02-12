@@ -106,7 +106,6 @@ type smt_translation_ctx = {
 	tr_list_is_cons        : FuncDecl.func_decl;
 	tr_list_head           : FuncDecl.func_decl;
 	tr_list_tail           : FuncDecl.func_decl;
-	tr_lub                 : FuncDecl.func_decl;
 	tr_to_jsil_boolean_fun : FuncDecl.func_decl;
 	tr_jsil_not_fun        : FuncDecl.func_decl;
 	tr_axioms              : Expr.expr list;

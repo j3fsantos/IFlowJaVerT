@@ -18,7 +18,6 @@ type jsil_type =
 	| EmptyType     (** Type of Empty     *)
 	| NoneType      (** Type of None      *)
 	| BooleanType   (** Type of booleans  *)
-	| IntType       (** Type of integers  *)
 	| NumberType    (** Type of floats    *)
 	| StringType    (** Type of strings   *)
 	| ObjectType    (** Type of objects   *)
@@ -53,7 +52,6 @@ type jsil_lit =
 	| Empty                      (** The literal [empty] *)
 	| Constant  of jsil_constant (** JSIL constants ({!type:jsil_constant}) *)
 	| Bool      of bool          (** JSIL booleans: [true] and [false] *)
-	| Integer   of int           (** JSIL integers *)
 	| Num       of float         (** JSIL floats - double-precision 64-bit IEEE 754 *)
 	| String    of string        (** JSIL strings *)
 	| Loc       of string        (** JSIL object locations *)
@@ -133,8 +131,6 @@ type jsil_binop =
 	| LstCat             (** List concatenation *)
 	(* Strings *)
 	| StrCat             (** String concatenation *)
-	(* Types *)
-	| SubType            (** Subtyping, for integers/floats *)
 
 (** {b JSIL expressions}. Literals, variables, unary and binary operators, lists. *)
 	type jsil_expr =
@@ -153,16 +149,15 @@ type jsil_binop =
 
 (**/**)
 (* Shorthand *)
-let lit_int i = Literal (Integer i)
 let lit_num n = Literal (Num n)
 let lit_str s = Literal (String s)
 let lit_loc l = Literal (Loc l)
 let lit_typ t = Literal (Type t)
 let lit_refv = lit_str "v"
 let lit_refo = lit_str "o"
-let rtype r = LstNth (r, lit_int 0)
-let base r = LstNth (r, lit_int 1)
-let field r = LstNth (r, lit_int 2)
+let rtype r = LstNth (r, lit_num 0.)
+let base r = LstNth (r, lit_num 1.)
+let field r = LstNth (r, lit_num 2.)
 (**/**)
 
 (** {b JSIL Basic Commands}. JSIL basic commands include the standard set of commands one 
@@ -349,29 +344,6 @@ type jsil_ext_program = {
 }
 
 (** Basic functions **)
-
-let types_lub t1 t2 =
-	match t1, t2 with
-	| UndefinedType, UndefinedType -> Some UndefinedType
-	| NullType, NullType -> Some NullType
-	| EmptyType, EmptyType -> Some EmptyType
-	| NoneType, NoneType -> Some NoneType
-	| BooleanType, BooleanType -> Some BooleanType
-	| IntType, IntType -> Some IntType
-	| IntType, NumberType -> Some NumberType
-	| NumberType, NumberType -> Some NumberType
-	| NumberType, IntType -> Some NumberType
-	| StringType, StringType -> Some StringType
-	| ObjectType, ObjectType -> Some ObjectType
-	| ListType, ListType -> Some ListType
-	| TypeType, TypeType -> Some TypeType
-	| _, _ -> None
-
-let types_leq t1 t2 =
-	let t = types_lub t1 t2 in
-	match t with
-	| Some t -> (t = t2)
-	| None -> false
 
 let proc_get_ret_var proc ret_flag =
 	let ret_var =

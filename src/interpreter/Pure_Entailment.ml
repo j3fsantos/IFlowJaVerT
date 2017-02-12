@@ -4,9 +4,9 @@ open JSIL_Logic_Utils
 open Symbolic_State_Basics
 open Z3
 
-(* *********
- * CACHING *
- *********** *)
+(* **********
+ * ENCODING *
+ ********** *)
 
 type encoding =
  | WithInts
@@ -27,7 +27,6 @@ let types_encoded_as_ints = [
 	EmptyType;
 	NoneType;
 	BooleanType;
-	IntType;
 	StringType;
 	ObjectType;
 	TypeType
@@ -82,12 +81,11 @@ let encode_type ctx jsil_type =
 	| EmptyType             -> mk_num_i ctx 1234567898
 	| NoneType              -> mk_num_i ctx 1234567899
 	| BooleanType           -> mk_num_i ctx 1234567900
-	| IntType               -> mk_num_i ctx 1234567901
-	| NumberType            -> mk_num_i ctx 1234567902
-	| StringType            -> mk_num_i ctx 1234567903
-	| ObjectType            -> mk_num_i ctx 1234567904
-	| ListType              -> mk_num_i ctx 1234567905
-	| TypeType              -> mk_num_i ctx 1234567906
+	| NumberType            -> mk_num_i ctx 1234567901
+	| StringType            -> mk_num_i ctx 1234567902
+	| ObjectType            -> mk_num_i ctx 1234567903
+	| ListType              -> mk_num_i ctx 1234567904
+	| TypeType              -> mk_num_i ctx 1234567905
 
 
 let get_sort tr_ctx var_type =
@@ -195,7 +193,7 @@ let mk_typeof_axioms_for_constants ctx z3_typeof_fun_name =
 	let typeof_true_axiom = mk_typeof_axiom (mk_num_i ctx true_encoding) (encode_type ctx BooleanType) in
 
 	(* let typeof_types_axioms = List.map mk_typeof_type_le_axiom
-		[ UndefinedType; NullType; EmptyType; NoneType; BooleanType; IntType; NumberType; StringType; ObjectType; ListType; TypeType] in *)
+		[ UndefinedType; NullType; EmptyType; NoneType; BooleanType; NumberType; StringType; ObjectType; ListType; TypeType] in *)
 
 	[ typeof_undefined_axiom; typeof_null_axiom; typeof_empty_axiom; typeof_false_axiom; typeof_true_axiom] (* )@ typeof_types_axioms *)
 
@@ -281,36 +279,6 @@ let mk_smt_translation_ctx gamma =
 	let list_head    = Z3List.get_head_decl    list_sort in
 	let list_tail    = Z3List.get_tail_decl    list_sort in
 
-	(* TODO: lub_domain is 0..13, not all ints. Deadline: 2020 *)
-	let z3_lub_name = (Symbol.mk_string ctx "type_lub") in
-	let z3_lub_domain = [ mk_sort ctx; mk_sort ctx ] in
-	let z3_lub = FuncDecl.mk_func_decl ctx z3_lub_name z3_lub_domain (mk_sort ctx) in
-
-  (* forall x, lub x x = x *)
-  let x = "x" in
-	let le_x = mk_const ctx (Symbol.mk_string ctx x) in
-	let le1 = (Expr.mk_app ctx z3_lub [ le_x; le_x ]) in
-	let lub_refl_ass = Boolean.mk_eq ctx le1 le_x in
-	let lub_refl_axiom = encode_quantifier true ctx [ x ] [ mk_sort ctx ] lub_refl_ass in
-
-  (* forall x, lub x y = lub y x *)
-  let x = "x" in
-	let le_x = mk_const ctx (Symbol.mk_string ctx x) in
-  let y = "y" in
-	let le_y = mk_const ctx (Symbol.mk_string ctx y) in
-	let le1 = (Expr.mk_app ctx z3_lub [ le_x; le_y ]) in
-	let le2 = (Expr.mk_app ctx z3_lub [ le_y; le_x ]) in
-	let lub_sym_ass = Boolean.mk_eq ctx le1 le2 in
-	let lub_sym_axiom = encode_quantifier true ctx [ x ] [ mk_sort ctx ] lub_sym_ass in
-
-  (* lub Int Num = Num *)
-	let it = encode_type ctx IntType in
-	let nt = encode_type ctx NumberType in
-	let le1 = (Expr.mk_app ctx z3_lub [ it; nt ]) in
-	let lub_int_num_axiom = Boolean.mk_eq ctx le1 nt in
-	let le2 = (Expr.mk_app ctx z3_lub [ nt; it ]) in
-	let lub_num_int_axiom = Boolean.mk_eq ctx le2 nt in
-
 	(* forall x. llen(x) >= 0 *)
 	let x = "x" in
 	let le_x = (Expr.mk_const ctx (Symbol.mk_string ctx x) list_sort) in
@@ -320,7 +288,7 @@ let mk_smt_translation_ctx gamma =
 	let z3_llen_axiom1 = encode_quantifier true ctx [ x ] z3_llen_fun_domain llen_assertion in
 
 	(* forall x. (x = nil) \/ (llen(x) > 0) *)
-    let x = "x" in
+	let x = "x" in
 	let le_x = (Expr.mk_const ctx (Symbol.mk_string ctx x) list_sort) in
 	let ass1 = Boolean.mk_eq ctx le_x (Expr.mk_app ctx list_nil [ ]) in
 	let le_llen_x = (Expr.mk_app ctx z3_llen_fun [ le_x ]) in
@@ -335,6 +303,7 @@ let mk_smt_translation_ctx gamma =
 	let result =
 	{
 		z3_ctx                  = ctx;
+		
 		tr_typing_env           = gamma;
 		tr_typeof_fun           = z3_typeof_fun;
 		tr_slen_fun             = z3_slen_fun;
@@ -351,19 +320,15 @@ let mk_smt_translation_ctx gamma =
 		tr_list_is_cons         = list_is_cons;
 		tr_list_head            = list_head;
 		tr_list_tail            = list_tail;
-		tr_lub                  = z3_lub;
 		tr_to_jsil_boolean_fun  = z3_to_jsil_boolean_fun;
 		tr_jsil_not_fun         = z3_jsil_not_fun;
 		tr_axioms               = [ z3_slen_axiom;
-		                            z3_llen_axiom1;
-									lub_refl_axiom;
-									lub_int_num_axiom;
-									lub_num_int_axiom;
-									axiom_llen_axiom2;
-									to_jsil_boolean_axiom_true;
-									to_jsil_boolean_axiom_false;
-									jsil_not_axiom_true;
-									jsil_not_axiom_false ] @ llen_axioms @ typeof_axioms
+																z3_llen_axiom1;
+																axiom_llen_axiom2;
+																to_jsil_boolean_axiom_true;
+																to_jsil_boolean_axiom_false;
+																jsil_not_axiom_true;
+																jsil_not_axiom_false ] @ llen_axioms @ typeof_axioms
 	} in
 	result
 
@@ -407,19 +372,10 @@ let rec encode_literal tr_ctx lit =
 		(match b with
 		| true      -> (mk_num_i ctx true_encoding), (encode_type ctx BooleanType)
 		| false     -> (mk_num_i ctx false_encoding), (encode_type ctx BooleanType))
-	| Integer i     -> (mk_num_i ctx i), (encode_type ctx IntType)
 	| Num n         ->
-		if (Utils.is_int n)
-			then begin
-				let ifn = int_of_float n in
-				let enc = mk_num_i ctx ifn in
-				enc, (encode_type ctx IntType)
-			end
-			else begin
-				let sfn = string_of_float n in
-				let enc = mk_num_s ctx sfn in
+			let sfn = string_of_float n in
+			let enc = mk_num_s ctx sfn in
 				enc, (encode_type ctx NumberType)
-			end
 	| String s      -> (encode_string ctx s), (encode_type ctx StringType)
 	| Loc l         -> (encode_string ctx ("$l" ^ l)), (encode_type ctx ObjectType)
 	| Type t        -> (encode_type ctx t), (encode_type ctx TypeType)
@@ -436,26 +392,10 @@ let rec encode_literal tr_ctx lit =
 	| _             -> raise (Failure "SMT encoding: Construct not supported yet - literal!")
 
 
-let mk_constraint_int_num_or tr_ctx te =
+let mk_constraint_num_num tr_ctx te1 te2 =
 	let ctx = tr_ctx.z3_ctx in
-	let as_op_1 = Boolean.mk_eq ctx te (encode_type ctx NumberType) in
-	let as_op_2 = Boolean.mk_eq ctx te (encode_type ctx IntType) in
-	let as_op   = Boolean.mk_or ctx [ as_op_1; as_op_2 ] in
-	as_op
-
-
-let mk_constraint_int_num tr_ctx te1 te2 =
-	let ctx = tr_ctx.z3_ctx in
-	let as_op_1 = mk_constraint_int_num_or tr_ctx te1 in
-	let as_op_2 = mk_constraint_int_num_or tr_ctx te2 in
-	let as_op   = Boolean.mk_and ctx [ as_op_1; as_op_2 ] in
-	as_op
-
-
-let mk_constraint_int tr_ctx te1 te2 =
-	let ctx = tr_ctx.z3_ctx in
-	let as_op_1 = Boolean.mk_eq  ctx te1 (encode_type ctx IntType) in
-	let as_op_2 = Boolean.mk_eq  ctx te2 (encode_type ctx IntType) in
+	let as_op_1 = Boolean.mk_eq ctx te1 (encode_type ctx NumberType) in
+	let as_op_2 = Boolean.mk_eq ctx te2 (encode_type ctx NumberType) in
 	let as_op   = Boolean.mk_and ctx [ as_op_1; as_op_2 ] in
 	as_op
 
@@ -466,32 +406,20 @@ let mk_constraint_type tr_ctx te t =
 	as_op
 
 
-let mk_lub_type tr_ctx t1 t2 =
-	let ctx = tr_ctx.z3_ctx in
-	(Expr.mk_app ctx tr_ctx.tr_lub [ t1; t2 ])
-
-
 (** Encode JSIL binary operators *)
 let encode_binop tr_ctx op le1 te1 le2 te2 =
 	let ctx = tr_ctx.z3_ctx in
 
 	match op with
-	| Plus     -> (mk_add ctx le1 le2), mk_lub_type tr_ctx te1 te2, [ mk_constraint_int_num tr_ctx te1 te2 ]
-	| Minus    -> (mk_sub ctx le1 le2), mk_lub_type tr_ctx te1 te2, [ mk_constraint_int_num tr_ctx te1 te2 ]
-	| Times    -> (mk_mul ctx le1 le2), mk_lub_type tr_ctx te1 te2, [ mk_constraint_int_num tr_ctx te1 te2 ]
-	| Div      -> (mk_div ctx le1 le2), mk_lub_type tr_ctx te1 te2, [ mk_constraint_int_num tr_ctx te1 te2 ]
+	| Plus     -> (mk_add ctx le1 le2), encode_type ctx NumberType, [ mk_constraint_num_num tr_ctx te1 te2 ]
+	| Minus    -> (mk_sub ctx le1 le2), encode_type ctx NumberType, [ mk_constraint_num_num tr_ctx te1 te2 ]
+	| Times    -> (mk_mul ctx le1 le2), encode_type ctx NumberType, [ mk_constraint_num_num tr_ctx te1 te2 ]
+	| Div      -> (mk_div ctx le1 le2), encode_type ctx NumberType, [ mk_constraint_num_num tr_ctx te1 te2 ]
 	| Equal    ->
 		let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_to_jsil_boolean_fun [ (Boolean.mk_eq ctx le1 le2) ]) in
 		new_le, (encode_type ctx BooleanType), [ ]
 	| LstCons  ->
 		let le, te, constraints = (Expr.mk_app ctx tr_ctx.tr_list_cons [ le1; le2 ]), (encode_type ctx ListType), [ mk_constraint_type tr_ctx te2 ListType] in
-		le, te, constraints
-
-	| SubType ->
-		let new_le = Expr.mk_app ctx tr_ctx.tr_lub [ le1; le2 ] in
-		let new_le' = Boolean.mk_eq ctx new_le le2 in
-		let new_le'' = Expr.mk_app ctx tr_ctx.tr_to_jsil_boolean_fun [ new_le' ] in
-		let le, te, constraints = new_le'', (encode_type ctx BooleanType), [ ] in
 		le, te, constraints
 
 	| _     ->
@@ -505,19 +433,19 @@ let encode_unop tr_ctx op le te =
 
 	| UnaryMinus ->
 		let new_le = (Arithmetic.mk_unary_minus ctx le) in
-		new_le, te, [ mk_constraint_int_num_or tr_ctx te ]
+		new_le, te, [ mk_constraint_type tr_ctx te NumberType ]
 
 	| LstLen ->
 		let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_llen_fun [ le ]) in
-		new_le, (encode_type ctx IntType), [ mk_constraint_type tr_ctx te ListType ]
+		new_le, (encode_type ctx NumberType), [ mk_constraint_type tr_ctx te ListType ]
 
 	| StrLen ->
 		let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_slen_fun [ le ]) in
-		new_le, (encode_type ctx IntType), [ mk_constraint_type tr_ctx te StringType ]
+		new_le, (encode_type ctx NumberType), [ mk_constraint_type tr_ctx te StringType ]
 
 	| ToStringOp ->
 		let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_num2str_fun [ le ]) in
-		new_le, (encode_type ctx StringType), [ mk_constraint_int_num_or tr_ctx te ]
+		new_le, (encode_type ctx StringType), [ mk_constraint_type tr_ctx te NumberType ]
 
 	| ToNumberOp ->
 		let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_str2num_fun [ le ]) in
@@ -525,7 +453,7 @@ let encode_unop tr_ctx op le te =
 
 	| ToIntOp ->
 		let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_num2int_fun [ le ]) in
-		new_le, (encode_type ctx IntType), [ mk_constraint_type tr_ctx te NumberType ]
+		new_le, (encode_type ctx NumberType), [ mk_constraint_type tr_ctx te NumberType ]
 
 	| Not ->
 		let new_le = (Expr.mk_app tr_ctx.z3_ctx tr_ctx.tr_jsil_not_fun [  le ]) in
@@ -610,7 +538,7 @@ let rec encode_logical_expression tr_ctx e =
 		let le_index, te_index, as_index = ele index in
 		let le_len_lst                   = (Expr.mk_app ctx tr_ctx.tr_llen_fun [ le_lst ]) in
 	 	let constraint_list_type         = Boolean.mk_eq ctx te_lst (encode_type ctx ListType) in
-		let constraint_index_type        = Boolean.mk_eq ctx te_index (encode_type ctx IntType) in
+		let constraint_index_type        = Boolean.mk_eq ctx te_index (encode_type ctx NumberType) in
 		let assertions                   = [ constraint_list_type; constraint_index_type ] @ as_lst @ as_index in
 		let le_lnth                      = (Expr.mk_app ctx tr_ctx.tr_lnth_fun [ le_lst; le_index ]) in
 		le_lnth, (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ le_lnth ]), assertions
@@ -619,7 +547,7 @@ let rec encode_logical_expression tr_ctx e =
 		let le_str, te_str, as_str = ele str in
 		let le_index, te_index, as_index = ele index in
 	 	let constraint_string_type       = Boolean.mk_eq ctx te_str (encode_type ctx StringType) in
-		let constraint_index_type        = Boolean.mk_eq ctx te_index (encode_type ctx IntType) in
+		let constraint_index_type        = Boolean.mk_eq ctx te_index (encode_type ctx NumberType) in
 		let assertions = [ constraint_string_type; constraint_index_type ] @ as_str @ as_index in
 		let le_snth = (Expr.mk_app ctx tr_ctx.tr_snth_fun [ le_str; le_index ]) in
 		le_snth, (encode_type ctx StringType), assertions
@@ -888,15 +816,6 @@ let make_concrete_number_axioms tr_ctx n =
 	[ typeof_axiom ]
 
 
-let make_concrete_int_axioms tr_ctx i =
-	let ctx = tr_ctx.z3_ctx in
-	let i', _, _  = encode_logical_expression tr_ctx (LLit (Integer i)) in
-	let typeof_axiom_1 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ i' ]) (encode_type ctx IntType) in
-	(* let typeof_axiom_2 = Boolean.mk_eq ctx (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ i' ]) (encode_type ctx NumberType) in
-	let typeof_axiom = Boolean.mk_or ctx [ typeof_axiom_1; typeof_axiom_2 ] in *)
-	[ typeof_axiom_1 ] 
-
-
 let rec lets_do_some_string_theory_axioms tr_ctx l1 l2 =
 	let fe = encode_logical_expression tr_ctx in
 	let ctx = tr_ctx.z3_ctx in
@@ -981,11 +900,10 @@ let rec encode_assertion tr_ctx is_premise a : Expr.expr * (Expr.expr list) =
 		let le2', t2', as2 = fe le2 in
 		(match t1, t2 with
 		| Some t1, Some t2 ->
-			let t = types_lub t1 t2 in
+			let t = (t1 = NumberType) && (t2 = NumberType) in
 			(match t with
-			| Some IntType
-			| Some NumberType -> mk_lt ctx le1' le2', []
-			| _ -> Printf.printf "Coucou!! T'habites dans quelle planete?\n";
+			| true  -> mk_lt ctx le1' le2', []
+			| false -> Printf.printf "Coucou!! T'habites dans quelle planete?\n";
 					raise (Failure (Printf.sprintf "LLess invoked on non-numeric types: %s" (JSIL_Print.string_of_logic_assertion a false))))
 
     | _, _ ->
@@ -1003,20 +921,14 @@ let rec encode_assertion tr_ctx is_premise a : Expr.expr * (Expr.expr list) =
 
 		let le1', t1', as1 = fe le1 in
 		let le2', t2', as2 = fe le2 in
-		
-		print_debug (
-			Printf.sprintf "LLessEq. le1': %s. le2': %s. asioms_length: %d\n" 
-			(Expr.to_string le1') (Expr.to_string le2')
-			((List.length as1) + (List.length as2))); 
 
 		(match t1, t2 with
 		| Some t1, Some t2 ->
-			let t = types_lub t1 t2 in
+			let t = (t1 = NumberType) && (t2 = NumberType) in
 			(match t with
-			| Some IntType
-			| Some NumberType -> mk_le ctx le1' le2', []
-			| _ -> Printf.printf "Coucou!! T'habites dans quelle planete?\n";
-				   raise (Failure "LLessEq operation invoked on non-numeric types"))
+			| true  -> mk_le ctx le1' le2', []
+			| false -> Printf.printf "Coucou!! T'habites dans quelle planete?\n";
+					raise (Failure (Printf.sprintf "LLessEq invoked on non-numeric types: %s" (JSIL_Print.string_of_logic_assertion a false))))
 
     | _, _ ->
 			(* TO DO - we need to encode the appropriate type constraints *)
@@ -1067,24 +979,22 @@ let encode_assertion_top_level tr_ctx is_premise a =
 
 	let start_time = Sys.time () in
 
-	let a_strings, a_numbers, a_ints =
-		JSIL_Logic_Utils.get_assertion_string_number_int_literals a in
-	let a_strings, a_numbers, a_ints =
+	let a_strings, a_numbers =
+		JSIL_Logic_Utils.get_assertion_string_number_literals a in
+	let a_strings, a_numbers =
 		JSIL_Logic_Utils.remove_string_duplicates a_strings,
-		JSIL_Logic_Utils.remove_number_duplicates a_numbers,
-		JSIL_Logic_Utils.remove_int_duplicates a_ints in
+		JSIL_Logic_Utils.remove_number_duplicates a_numbers in
 
 	let a_strings_axioms = List.concat (List.map (fun s -> make_concrete_string_axioms tr_ctx s) a_strings) in
 	let a_numbers_axioms = List.concat (List.map (fun s -> make_concrete_number_axioms tr_ctx s) a_numbers) in
-	let a_ints_axioms = List.concat (List.map (fun s -> make_concrete_int_axioms tr_ctx s) a_ints) in
 
-	let a_strings_numbers_ints_axioms = a_strings_axioms @ a_numbers_axioms @ a_ints_axioms in
+	let a_strings_numbers_axioms = a_strings_axioms @ a_numbers_axioms in
 
 	let a' = JSIL_Logic_Utils.push_in_negations_off a in
 	let a'', axioms = encode_assertion tr_ctx is_premise a' in
 	
-	let result = if ((List.length axioms > 0) || (List.length a_strings_numbers_ints_axioms > 0))
-		then Boolean.mk_and tr_ctx.z3_ctx ((a'' :: axioms) @ a_strings_numbers_ints_axioms)
+	let result = if ((List.length axioms > 0) || (List.length a_strings_numbers_axioms > 0))
+		then Boolean.mk_and tr_ctx.z3_ctx ((a'' :: axioms) @ a_strings_numbers_axioms)
 		else a'' in
 
 	let end_time = Sys.time () in
@@ -1138,8 +1048,7 @@ let check_satisfiability assertions gamma =
 	(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list assertions) false)
 	(JSIL_Memory_Print.string_of_gamma gamma));
 	
-	let new_assertions = aggressively_simplify_pfs (DynArray.of_list assertions) gamma false in	
-	let new_assertions, new_gamma = simplify_for_your_legacy_pfs new_assertions gamma in
+	let new_assertions, new_gamma = simplify_for_your_legacy_pfs (DynArray.of_list assertions) gamma in
 
 	print_debug (Printf.sprintf "Simplified:\nPure formulae:\n%s\nGamma:\n%s\n\n"
 			(JSIL_Memory_Print.string_of_shallow_p_formulae new_assertions false)
@@ -1186,11 +1095,6 @@ let old_check_entailment existentials left_as right_as gamma =
 
 	let existentials, left_as, right_as, gamma =
 		simplify_implication (SS.of_list existentials) (DynArray.of_list left_as) (DynArray.of_list right_as) (copy_gamma gamma) in
-
-	let ret_left = check_satisfiability (DynArray.to_list left_as) gamma in 
-	let ret_right = check_satisfiability (DynArray.to_list right_as) gamma in 
-	print_debug (Printf.sprintf "DEBUG: left_side_sat: %b\n" ret_left); 
-	print_debug (Printf.sprintf "DEBUG: right_side_sat: %b\n" ret_right); 
 						
 	(* If right is empty, then the left only needs to be satisfiable *)
 	if (DynArray.empty right_as) then check_satisfiability (DynArray.to_list left_as) gamma else
@@ -1218,25 +1122,9 @@ let old_check_entailment existentials left_as right_as gamma =
 	(* let string_axioms = get_them_nasty_string_axioms tr_ctx (left_as @ right_as) in *)
 
 	let check_entailment_aux () =
-		let old_left_as = left_as in
-		let old_right_as = right_as in
 		let left_as = List.map (fun a -> encode_assertion_top_level tr_ctx true a) left_as in
 		let left_as = tr_ctx.tr_axioms @ (encode_gamma tr_ctx (-1)) @ left_as in
-		let right_as = List.map (fun a -> encode_assertion_top_level tr_ctx false (LNot a)) right_as in
-		let right_as_or =
-			if ((List.length right_as) > 1) then
-				(Boolean.mk_or ctx right_as)
-			else if ((List.length right_as) = 1) then
-				(List.nth right_as 0)
-			else Boolean.mk_false ctx in
-
-		let right_as_or =
-			if ((List.length existentials) > 0)
-				then encode_quantifier true tr_ctx.z3_ctx existentials (get_sorts tr_ctx existentials) right_as_or
-				else right_as_or in
-
-		let right_as_or = Expr.simplify right_as_or None in
-
+		
 		let solver = (Solver.mk_solver tr_ctx.z3_ctx None) in
 		Solver.add solver left_as;
 		let ret_left = 		
@@ -1248,6 +1136,22 @@ let old_check_entailment existentials left_as right_as gamma =
 			ret in
 		let ret = 
 				if (ret_left) then (
+				
+				let right_as = List.map (fun a -> encode_assertion_top_level tr_ctx false (LNot a)) right_as in
+				let right_as_or =
+					if ((List.length right_as) > 1) then
+						(Boolean.mk_or ctx right_as)
+					else if ((List.length right_as) = 1) then
+						(List.nth right_as 0)
+					else Boolean.mk_false ctx in
+		
+				let right_as_or =
+					if ((List.length existentials) > 0)
+						then encode_quantifier true tr_ctx.z3_ctx existentials (get_sorts tr_ctx existentials) right_as_or
+						else right_as_or in
+		
+				let right_as_or = Expr.simplify right_as_or None in
+					
 				Solver.add solver [ right_as_or ];
 				print_debug (Printf.sprintf "ENT: About to check the following:\n%s" (string_of_solver solver));
 				let start_time = Sys.time () in
@@ -1271,8 +1175,8 @@ let is_equal_on_lexprs e1 e2 pfs : bool option =
 	| LLit (String str), LVar x 
 	| LVar x, LLit (String str) ->
 		if (String.get str 0 = '@') 
-			then if ((List.mem (LNot (LEq (LStrNth (LVar x, LLit (Integer 0)), LLit (String "@")))) pfs)  ||
-			         (List.mem (LNot (LEq (LLit (String "@"), LStrNth (LVar x, LLit (Integer 0))))) pfs))
+			then if ((List.mem (LNot (LEq (LStrNth (LVar x, LLit (Num 0.)), LLit (String "@")))) pfs)  ||
+			         (List.mem (LNot (LEq (LLit (String "@"), LStrNth (LVar x, LLit (Num 0.))))) pfs))
 				then Some false 
 				else None
 			else None
@@ -1307,16 +1211,6 @@ let is_equal_on_lexprs e1 e2 pfs : bool option =
 	
 	(* other *)
 	| _, _ -> None))
-	
- (*
-	| LLit				of jsil_lit
-	| ALoc				of string
-	| LBinOp			of jsil_logic_expr * bin_op * jsil_logic_expr
-	| LUnOp				of unary_op * jsil_logic_expr
-	| LTypeOf			of jsil_logic_expr
-	| LEList      of jsil_logic_expr list
-	| LLstNth     of jsil_logic_expr * jsil_logic_expr
-	| LStrNth     of jsil_logic_expr * jsil_logic_expr *)
 
 let is_equal e1 e2 pure_formulae (* solver *) gamma =
 	let start_time = Sys.time () in

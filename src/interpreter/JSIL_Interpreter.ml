@@ -42,7 +42,7 @@ let evaluate_constant c =
 			let (gctime, _) = Unix.mktime gct in
 			let gctime = gctime +. usec in
 			let (_, tg) = Float.modf (gctime *. 1e+3) in
-				Integer (int_of_float tg)
+				Num (float_of_int (int_of_float tg))
 	| LocalTime ->
 		  let t = Unix.gettimeofday() in
 			let (usec, _) = Float.modf t in
@@ -50,7 +50,7 @@ let evaluate_constant c =
 			let (lctime, _) = Unix.mktime lct in
 			let lctime = lctime +. usec in
 			let (_, tl) = Float.modf (lctime *. 1e+3) in
-				Integer (int_of_float tl)
+				Num (float_of_int (int_of_float tl))
 
 let evaluate_type_of lit =
 	match lit with
@@ -59,8 +59,7 @@ let evaluate_type_of lit =
 	| Empty -> EmptyType
 	| Constant _ -> NumberType
 	| Bool _ -> BooleanType
-	| Integer _ -> IntType
-	| Num n -> if (n = (snd (modf n))) then IntType else NumberType
+	| Num n -> NumberType
 	| String _ -> StringType
 	| Loc _ -> ObjectType
 	| Type _ -> TypeType
@@ -165,7 +164,7 @@ let create_default_object proto cls ext =
 (* Call-construct objects *)
 let create_object_with_call_construct call construct len =
 	let obj = create_default_object "$lfun_proto" "Function" true in
-		SHeap.add obj "length" (LList [String "d"; Integer len; Bool false; Bool false; Bool false]);
+		SHeap.add obj "length" (LList [String "d"; Num len; Bool false; Bool false; Bool false]);
 		SHeap.replace obj "@call" (String call);
 		SHeap.replace obj "@construct" (String construct);
 		SHeap.replace obj "@scope" Empty;
@@ -174,9 +173,8 @@ let create_object_with_call_construct call construct len =
 (* Function objects - with heap addition *)
 let create_anonymous_function_object heap call construct params =
 	let loc = fresh_loc () in
-	let len = List.length params in
+	let len = float_of_int (List.length params) in
 	let obj = create_object_with_call_construct call construct len in
-
 
 		let loc_scope = fresh_loc () in
 		let scope_obj = SHeap.create 1021 in
@@ -207,12 +205,9 @@ let unary_int_thing lit (f : float -> float) emsg =
 	let num =
 		(match lit with
  		  | Num n -> n
-			| Integer i -> float_of_int i
 			| _ -> raise (Failure (Printf.sprintf "%s : %s" emsg (JSIL_Print.string_of_literal lit false)))) in
 	let res = f num in
-		if (Utils.is_int res)
-			then Integer (int_of_float res)
-			else Num res
+		Num res
 
 let evaluate_unop op lit =
 	match op with
@@ -238,7 +233,6 @@ let evaluate_unop op lit =
 										then (-0.0)
 										else (floor (n +. 0.5))
 									 )
-		| Integer n -> Integer n
 		| _ -> raise (Failure (Printf.sprintf "round function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
 	| M_sgn  -> unary_int_thing lit (fun x -> copysign 1.0 x) "sgn called with something other than a number"
 	| M_sin  -> unary_int_thing lit sin "sin called with something other than a number"
@@ -249,14 +243,12 @@ let evaluate_unop op lit =
 		| Null
 		| Undefined
 		| Bool _
-		| Integer _
 		| Num _
 		| String _ -> (Bool true)
 		| _ -> Bool false)
 	| ToStringOp ->
 		(match lit with
 		| Num n -> String (Utils.float_to_string_inner n)
-		| Integer i -> String (string_of_int i)
 		| _ -> raise (Failure (Printf.sprintf "Non-number argument to ToStringOp: %s" (JSIL_Print.string_of_literal lit false))))
 	| ToIntOp    -> unary_int_thing lit to_int "to_int called with something other than a number"
 	| ToUint16Op -> unary_int_thing lit to_uint16 "to_uint16 called with something other than a number"
@@ -268,7 +260,7 @@ let evaluate_unop op lit =
 			 let num = try Float.of_string s
 				 with Failure "float_of_string" ->
 					 if s = "" then 0. else nan in
-				 if (Utils.is_int num) then (Integer (int_of_float num)) else (Num num)
+				 Num num
 		 | _ -> raise (Failure "Non-string argument to ToNumberOp"))
 	| Car ->
 		(match lit with
@@ -286,11 +278,11 @@ let evaluate_unop op lit =
 		| _ -> raise (Failure "Non-list argument to Cdr"))
 	| LstLen ->
 		(match lit with
-		| LList l -> Integer (List.length l)
+		| LList l -> Num (float_of_int (List.length l))
 		| _ -> raise (Failure (Printf.sprintf "Non-list argument to LstLen: %s" (JSIL_Print.string_of_literal lit false))))
 	| StrLen ->
 		(match lit with
-		| String s -> Integer (String.length s)
+		| String s -> Num (float_of_int (String.length s))
 		| _ -> raise (Failure (Printf.sprintf "Non-string argument to StrLen: %s" (JSIL_Print.string_of_literal lit false))))
 
 (*
@@ -313,22 +305,14 @@ let unary_bin_thing_num lit1 lit2 (f : float -> float -> float) emsg =
 	let num1, num2 =
 		(match lit1, lit2 with
  		  | Num n1, Num n2 -> n1, n2
-			| Num n1, Integer n2 -> n1, float_of_int n2
-			| Integer n1, Num n2 -> float_of_int n1, n2
-			| Integer i1, Integer i2 -> float_of_int i1, float_of_int i2
 			| _ -> raise (Failure (Printf.sprintf "%s : %s, %s" emsg (JSIL_Print.string_of_literal lit1 false) (JSIL_Print.string_of_literal lit2 false)))) in
 	let res = f num1 num2 in
-		if (Utils.is_int res)
-			then Integer (int_of_float res)
-			else Num res
+		Num res
 
 let unary_bin_thing_bool lit1 lit2 (f : float -> float -> bool) emsg =
 	let num1, num2 =
 		(match lit1, lit2 with
  		  | Num n1, Num n2 -> n1, n2
-			| Num n1, Integer n2 -> n1, float_of_int n2
-			| Integer n1, Num n2 -> float_of_int n1, n2
-			| Integer i1, Integer i2 -> float_of_int i1, float_of_int i2
 			| _ -> raise (Failure (Printf.sprintf "%s : %s, %s" emsg (JSIL_Print.string_of_literal lit1 false) (JSIL_Print.string_of_literal lit2 false)))) in
 	Bool (f num1 num2)
 
@@ -364,9 +348,6 @@ let rec evaluate_binop op e1 e2 store =
 		| Constant c1, Constant c2 -> (Bool (c1 = c2))
 		| Bool b1, Bool b2 -> (Bool (b1 = b2))
 		| Num n1, Num n2 -> (Bool (n1 = n2))
-		| Num n1, Integer i1
-		| Integer i1, Num n1 -> (Bool (n1 = float_of_int i1))
-		| Integer i1, Integer i2 -> (Bool (i1 = i2))
 		| String s1, String s2 -> (Bool (s1 = s2))
 		| Loc l1, Loc l2 -> (Bool (l1 = l2))
 		| Type t1, Type t2 -> (Bool (t1 = t2))
@@ -391,10 +372,6 @@ let rec evaluate_binop op e1 e2 store =
 	| UnsignedRightShift -> unary_bin_thing_num lit1 lit2 uint32_right_shift  "Non-number arguments to UnsignedRightShift"
 	| M_atan2 -> unary_bin_thing_num lit1 lit2 atan2 "Non-number arguments to atan2"
 	| M_pow -> unary_bin_thing_num lit1 lit2 (fun x y -> x ** y)  "Non-number arguments to Power"
-	| SubType ->
-		(match lit1, lit2 with
-		| Type t1, Type t2 -> (Bool (types_leq t1 t2))
-		| _, _ -> raise (Failure "Non-type argument to Subtype"))
 	| LstCons ->
 		(match lit2 with
 		| LList list -> LList
@@ -410,11 +387,7 @@ let rec evaluate_binop op e1 e2 store =
 		(match lit1, lit2 with
 		| String s1, String s2 -> (String (s1 ^ s2))
 		| _, _ -> raise (Failure (Printf.sprintf "Non-string argument to StrCat: %s, %s" (JSIL_Print.string_of_literal lit1 false) (JSIL_Print.string_of_literal lit2 false))))
-	| SubType ->
-		(match lit1, lit2 with
-		| Type t1, Type t2 -> Bool (types_leq t1 t2)
-		| _, _ -> raise (Failure (Printf.sprintf "Non-string argument to StrCat: %s, %s" (JSIL_Print.string_of_literal lit1 false) (JSIL_Print.string_of_literal lit2 false))))
-    | _ -> Printf.printf "BIZARRE BINOP OPERATOR: %s\n" (JSIL_Print.string_of_binop op); exit 1)
+    | _ -> Printf.printf "Unsupported binary operator: %s\n" (JSIL_Print.string_of_binop op); exit 1)
 and
 evaluate_expr (e : jsil_expr) store =
 	match e with
@@ -457,8 +430,8 @@ evaluate_expr (e : jsil_expr) store =
 		let v = evaluate_expr e1 store in
 		let n = evaluate_expr e2 store in
 		(match v, n with
-		| LList list, Integer n ->
-				(List.nth list n)
+		| LList list, Num n when (Utils.is_int n) ->
+				List.nth list (int_of_float n)
 		| LList list, Num -0. -> List.nth list 0
 		| _, _ -> raise (Failure (Printf.sprintf "Incorrect argument to LstNth: %s, %s" (JSIL_Print.string_of_literal v false) (JSIL_Print.string_of_literal n false))))
 
@@ -466,8 +439,8 @@ evaluate_expr (e : jsil_expr) store =
 		let v = evaluate_expr e1 store in
 		let n = evaluate_expr e2 store in
 		(match v, n with
-		| String s, Integer n ->
-				String (String.make 1 (String.get s n))
+		| String s, Num n when (Utils.is_int n) ->
+				String (String.make 1 (String.get s (int_of_float n)))
 		| String s, Num -0. ->
 				String (String.make 1 (String.get s 0))
 		| _, _ -> raise (Failure (Printf.sprintf "Incorrect argument to StrNth: %s, %s" (JSIL_Print.string_of_literal v false) (JSIL_Print.string_of_literal n false))))
