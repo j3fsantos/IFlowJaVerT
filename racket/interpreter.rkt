@@ -41,7 +41,7 @@
               (loc-val (run-expr loc-expr store))
               (prop-val (run-expr prop-expr store))
               (rhs-val (run-expr rhs-expr store)))
-         (println (format "Mutation: [~v, ~v] = ~v" loc-val prop-val rhs-val))
+         ;;(println (format "Mutation: [~v, ~v] = ~v" loc-val prop-val rhs-val))
          (mutate-heap heap loc-val prop-val rhs-val)
          rhs-val)]
       ;;
@@ -72,9 +72,9 @@
               (prop-list (get-fields heap loc-val))
               (is-js-field (member prop-val prop-list))
               (result (not (eq? is-js-field #f))))
-         (println (format "Has-field: ~v = hf [~v, ~v] : ~v, ~v" lhs-var loc-val prop-val is-js-field result))
-         (println (format "object: ~v" (heap-get-obj heap loc-val)))
-         (println (format "proplist: ~v" prop-list))
+         ;; (println (format "Has-field: ~v = hf [~v, ~v] : ~v, ~v" lhs-var loc-val prop-val is-js-field result))
+         ;; (println (format "object: ~v" (heap-get-obj heap loc-val)))
+         ;; (println (format "proplist: ~v" prop-list))
          (mutate-store store lhs-var result) ;; (to-jsil-bool contains))
          result)] ;; (to-jsil-bool contains))]
       ;;
@@ -126,13 +126,13 @@
       [(eq? cmd-type 'delete-object)
        (let* ((loc-expr (second bcmd))
               (loc-val (run-expr loc-expr store)))
-         (println (format "deleting the object: ~v" loc-val))
+         ;; (println (format "deleting the object: ~v" loc-val))
          (heap-delete-object heap loc-val)
          #t)] 
       ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))
 
-(define goto-limit 100)
+(define goto-limit 4)
 
 (define goto-stack (make-parameter '()))
 
@@ -183,8 +183,8 @@
   (let* ((proc (get-proc prog proc-name))
          (cmd (get-cmd proc cur-index))
          (cmd-type (first cmd)))
-    (print-cmd cmd)
-    ;;(println (format "Run-cmds-iter: procedure: ~v, index ~v, command ~v" proc-name cur-index cmd))
+    ;;(print-cmd cmd)
+    ;;(println (format "Run-cmds-iter: procedure: ~v, index ~v, command" proc-name cur-index))
     (cond
       ;;
       ;; ('print e) 
@@ -258,13 +258,13 @@
               (err-label (if (>= (length cmd) 5) (fifth cmd) null))
               (call-proc-name (run-expr proc-name-expr store))
               (arg-vals (map (lambda (expr) (run-expr expr store)) arg-exprs)))
-         (newline (current-output-port))
+         ;; (newline (current-output-port))
          (println (format "~v : Procedure call: ~v (~v)" depth call-proc-name arg-vals))
          (set! depth (+ depth 1))
          (let ((outcome (car (run-proc prog call-proc-name heap arg-vals))))
            (set! depth (- depth 1))
            (println (format "~v : Procedure return: ~v = ~v (~v) -> ~v" depth lhs-var call-proc-name arg-vals outcome)) 
-           (newline (current-output-port))
+           ;; (newline (current-output-port))
            (cond
              [(and (eq? (first outcome) 'err) (not (null? err-label)))
               (mutate-store store lhs-var (second outcome))
@@ -351,9 +351,9 @@
                (val (run-expr arg store))
                (type-of
                 (begin
-                  (println (format "argument of typeof ~v" val))
+                  ;; (println (format "argument of typeof ~v" val))
                   (jsil-type-of val))))
-          (println (format "typeOf: typeof ~v -> ~v = ~v" arg val type-of))
+          ;; (println (format "typeOf: typeof ~v -> ~v = ~v" arg val type-of))
           type-of)]
        ;;
        ;; ('jsil-list l)

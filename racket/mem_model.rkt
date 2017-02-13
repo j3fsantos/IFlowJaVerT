@@ -103,7 +103,7 @@
            (is-ref? val)
            (list-mem? jsil-constants val)
            (list-mem? jsil-math-constants val))))
-    ;(println (format "literal? with ~v produced ~v" val ret))
+    ;; (println (format "literal? with ~v produced ~v" val ret))
     ret))
 
 ;; Evaluating a literal
@@ -391,7 +391,7 @@
       [(and (pair? (car heap-pulp)) (equal? (car (car heap-pulp)) loc))
        (let* ((obj (cdr (car heap-pulp)))
               (props (petar-get-obj-fields obj)))
-         (println (format "Internal get-fields: igf (~a) = ~a" loc props))
+         ;; (println (format "Internal get-fields: igf (~a) = ~a" loc props))
          props)]
       [ else (loop (cdr heap-pulp))])))
 
@@ -403,7 +403,7 @@
       [(and (pair? (car heap-pulp)) (equal? (car (car heap-pulp)) loc))
        (let* ((obj (cdr (car heap-pulp)))
               (props (get-obj-fields obj)))
-         (println (format "Internal get-fields: igf (~a) = ~a" loc props))
+         ;; (println (format "Internal get-fields: igf (~a) = ~a" loc props))
          props)]
       [ else (loop (cdr heap-pulp))])))
 
@@ -417,7 +417,7 @@
        (cons (cons loc (delete-prop-val (cdr (car h-pulp)) prop)) (cdr h-pulp))]
       [ else
         (cons (car h-pulp) (delete-cell-pulp (cdr h-pulp) loc prop))]))
-  (println (format "inside heap-delete-cell - before doing all the work with ~v ~v to delete" loc prop))
+  ;; (println (format "inside heap-delete-cell - before doing all the work with ~v ~v to delete" loc prop))
   (let ((new-heap-pulp (delete-cell-pulp (unbox heap) loc prop)))
     (set-box! heap new-heap-pulp)))
 
@@ -433,7 +433,7 @@
     (cond
       [(null? h-pulp) '()]
       [(equal? (car (car h-pulp)) loc)
-       (println (format "Deleting the object ~v" (cdr (car h-pulp))))
+       ;; (println (format "Deleting the object ~v" (cdr (car h-pulp))))
        (cdr h-pulp)]
       [ else
         (cons (car h-pulp) (delete-object-pulp (cdr h-pulp) loc))]))
