@@ -12,3 +12,9 @@ pred dataField (l, prop, v) :
     types (l : $$object_type, prop : $$string_type) *
 	((l, prop) -> {{ "d", v, $$t, $$t, $$t }}) *
 	(! (v == $$empty));
+	
+pred ObjectWithProto (l, proto) :
+	types (l : $$object_type) *
+	((l, "@proto") -> proto) *
+	((l, "@class") -> "Object") *
+	((l, "@extensible") -> $$t);
