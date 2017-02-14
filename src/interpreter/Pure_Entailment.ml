@@ -1049,6 +1049,7 @@ let check_satisfiability assertions gamma =
 	(JSIL_Memory_Print.string_of_gamma gamma));
 	
 	let new_assertions, new_gamma = simplify_for_your_legacy_pfs (DynArray.of_list assertions) gamma in
+	filter_gamma_pfs new_assertions new_gamma;
 
 	print_debug (Printf.sprintf "Simplified:\nPure formulae:\n%s\nGamma:\n%s\n\n"
 			(JSIL_Memory_Print.string_of_shallow_p_formulae new_assertions false)
@@ -1069,7 +1070,7 @@ let check_satisfiability assertions gamma =
 	begin
 		print_debug (Printf.sprintf "Firing sat check:\nPFS:\n%s\nGamma:\n%s\n"
 			(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list new_assertions) false)
-			(JSIL_Memory_Print.string_of_gamma gamma));
+			(JSIL_Memory_Print.string_of_gamma new_gamma));
 	
 		let solver = get_new_solver new_assertions new_gamma in
 		let start_time = Sys.time () in
@@ -1095,7 +1096,8 @@ let old_check_entailment existentials left_as right_as gamma =
 
 	let existentials, left_as, right_as, gamma =
 		simplify_implication (SS.of_list existentials) (DynArray.of_list left_as) (DynArray.of_list right_as) (copy_gamma gamma) in
-						
+	filter_gamma_pfs (DynArray.of_list (DynArray.to_list left_as @ DynArray.to_list right_as)) gamma;
+	
 	(* If right is empty, then the left only needs to be satisfiable *)
 	if (DynArray.empty right_as) then check_satisfiability (DynArray.to_list left_as) gamma else
 	(* If left or right are directly false, everything is false *)
