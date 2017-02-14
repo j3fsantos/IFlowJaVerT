@@ -10,7 +10,7 @@ pred DocumentNodePrototype(dnp) :
 	standardObject(dnp) *
 	((dnp, "nodeName") -> {{ "d", "#document", $$f, $$f, $$f}}) *
 	dataField(dnp, "createElement", #lce) *
-	function_object(#lce, #ignore1, "createElement", "createElement", 3, #ignore2) *
+	function_object(#lce, #ignore1, "createElement", "", 3, #ignore2) *
 	((dnp, "forest") -> None);
 
 pred DocumentNode(dn, children, dn_proto) :
