@@ -114,7 +114,8 @@ let make_simple_scope_chain_logic_expression vis_list =
 		List.map 
 			(fun x -> if (x = main_fid) then LLit (Loc Js2jsil_constants.locGlobName) else LVar (fid_to_lvar x))
 			vis_list in 
-	LEList le_vis_list
+	let types_list = List.map (fun x -> (x, ObjectType)) (List.filter (fun x -> match x with | LLit (Loc _) -> false | _ -> true) le_vis_list) in
+	LEList le_vis_list, LTypes types_list
 
 
 let rec js2jsil_logic cur_fid (var_to_fid_tbl : ((string, string) Hashtbl.t) option) vis_tbl fun_tbl (a : js_logic_assertion) : JSIL_Syntax.jsil_logic_assertion =
@@ -161,7 +162,7 @@ let rec js2jsil_logic cur_fid (var_to_fid_tbl : ((string, string) Hashtbl.t) opt
 		let id_vis_list = try Hashtbl.find vis_tbl id with _ -> raise (Failure (Printf.sprintf "Function %s not found in the visibility table." id)) in 
 		let _, args, _, (_, _, _) = try Hashtbl.find fun_tbl id with _ -> raise (Failure (Printf.sprintf "Function %s not found in the fun table." id)) in
 		let n_args = List.length args in
-		let le_scope_chain = make_simple_scope_chain_logic_expression id_vis_list in
+		let le_scope_chain, le_scope_chain_types = make_simple_scope_chain_logic_expression id_vis_list in
 		let st_obj_fproto = LPred (standard_object_pred_name, [f_prototype']) in
 		let obj_fproto_cstr = 
 			LPointsTo (
@@ -170,7 +171,8 @@ let rec js2jsil_logic cur_fid (var_to_fid_tbl : ((string, string) Hashtbl.t) opt
 				LEList [ LLit (String "d"); f_loc'; LLit (Bool true); LLit (Bool false); LLit (Bool true) ]) in
 		LStar (
 			LPred (function_object_pred_name, [ f_loc'; le_scope_chain; LLit (String id); LLit (String id); LLit (Num (float_of_int n_args)); f_prototype'] ), 
-			LStar (st_obj_fproto, obj_fproto_cstr))
+			LStar (le_scope_chain_types, 
+				LStar (st_obj_fproto, obj_fproto_cstr)))
 
 
 let translate_predicate_def pred_def vis_tbl fun_tbl = 
