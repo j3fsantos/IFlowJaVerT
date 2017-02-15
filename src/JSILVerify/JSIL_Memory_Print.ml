@@ -125,7 +125,7 @@ let string_of_symb_state_list symb_states =
 		List.fold_left
 			(fun (ac_str, index) post ->
 				let cur_str = string_of_shallow_symb_state post in
-				let cur_str = ("Post " ^ (string_of_int index) ^ ": " ^ cur_str ^ ";\n") in
+				let cur_str = ("Post " ^ (string_of_int index) ^ ": \n" ^ cur_str ^ ";\n") in
 				if (ac_str = "")
 					then (cur_str, (index + 1))
 					else ((ac_str ^ cur_str), (index + 1)))
@@ -166,7 +166,7 @@ let string_of_single_spec s_spec =
 		(match ret_flag with
 		| Normal -> "normal"
 		| Error -> "error") in
-	"Single Spec - " ^ ret_flag_str ^ "\nPre " ^ pre_str ^ "Post " ^ post_str
+	"Single Spec - " ^ ret_flag_str ^ "\n\nPrecondition\n" ^ pre_str ^ "\nPostconditions\n" ^ post_str
 
 (* spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *)
 let string_of_n_spec spec =
@@ -220,7 +220,7 @@ let string_of_substitution substitution =
 
 let string_of_symb_exe_result result =
 	let proc_name, i, pre_post, success, msg, dot_graph = result in
-	let str = "Proc " ^ proc_name ^ "  - " ^ (string_of_single_spec pre_post) ^ " -- " in
+	let str = "Proc" ^ proc_name ^ "  - " ^ (string_of_single_spec pre_post) ^ " -- " in
 	let str =
 		if (success) then
 			str ^ "VERIFIED\n\n"

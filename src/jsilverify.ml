@@ -58,6 +58,28 @@ let write_spec_file (file : string ref) =
 	let result = "" in
 	burn_to_disk (!file ^ ".spec") result
 
+
+let symb_interpreter prog procs_to_verify spec_tbl which_pred norm_preds  = 
+	if (!bi_abduction) then
+		(* Perform symbolic interpretation with bi-abduction then use the result to verify using the normal symbolic execution.*)
+		begin
+			print_endline ("\n********************** STARTING BI-ABDUCTION SYMBOLIC EXECUTION ***************************\n") ;
+			let _, _, _, new_spec_tbl = 
+					JSIL_Bi_Symb_Interpreter.sym_run_procs prog procs_to_verify spec_tbl which_pred norm_preds in
+			print_endline ("\n********************** FINISHED BI-ABDUCTION SYMBOLIC EXECUTION ***************************\n") ;
+			print_endline ("\n**********************    STARTING NORMAL SYMBOLIC EXECUTION    ***************************\n") ;
+			let results_str, dot_graphs, complete_success = 
+					JSIL_Symb_Interpreter.sym_run_procs prog procs_to_verify new_spec_tbl which_pred norm_preds in
+			print_endline ("\n**********************     ENDING NORMAL SYMBOLIC EXECUTION     ***************************\n") ;
+			(results_str, dot_graphs, complete_success)
+		end
+	else
+		begin
+			let results_str, dot_graphs, complete_success =  
+					JSIL_Symb_Interpreter.sym_run_procs prog procs_to_verify spec_tbl which_pred norm_preds in
+			(results_str, dot_graphs, complete_success)
+		end
+		
 let process_file path =
 		print_debug "\n*** Prelude: Stage 1: Parsing program. ***\n";
 		let ext_prog = JSIL_Utils.ext_program_of_path path in
@@ -92,12 +114,8 @@ let process_file path =
 			)
 			only_spec_table;
 		print_debug "*** Prelude: Stage 5: Finished adding phantom procedures for only-specs\n";
-		let results_str, dot_graphs, complete_success = 
-			if (!bi_abduction) then
-				JSIL_Bi_Symb_Interpreter.sym_run_procs prog procs_to_verify spec_tbl which_pred norm_preds  
-			else
-				JSIL_Symb_Interpreter.sym_run_procs prog procs_to_verify spec_tbl which_pred norm_preds
-			in
+		let (results_str, dot_graphs, complete_success) =   
+			symb_interpreter prog procs_to_verify spec_tbl which_pred norm_preds in
 		Printf.printf "RESULTS\n%s" results_str;
 		
 		(if (complete_success) then
