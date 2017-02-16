@@ -47,6 +47,7 @@
 (define jempty     '$$empty)
 (define jnull      '$$null)
 (define jundefined '$$undefined)
+(define jsglobal   '$lg)
 
 (define undefined-type '$$undefined_type)
 (define null-type      '$$null_type)
@@ -715,3 +716,28 @@
       
 ;;(define (heap-contains? heap loc prop)
 ;;  (hash-has-key? heap (cons loc prop)))
+
+
+;;
+;; Internal / Builtin Procedure Implemented in Racket 
+;;
+
+
+(define racket-js-implementations (make-hash))
+
+(define (has-racket-implementation? proc-name)
+  (hash-has-key? racket-js-implementations proc-name))
+
+(define (get-racket-implementation proc-name)
+  (hash-ref racket-js-implementations proc-name))
+
+
+(define (register-js-builtin-method builtin-obj-name method-name racket-method hp)
+  (let* ((builtin-obj-loc (heap-get hp jsglobal builtin-obj-name))
+         (method-obj-loc (heap-get hp builtin-obj-loc method-name)))
+    hp))
+    
+
+
+
+

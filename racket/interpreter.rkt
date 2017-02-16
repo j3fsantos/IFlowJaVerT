@@ -300,7 +300,8 @@
       [(eq? cur-index (get-err-index proc))
        (list 'err (store-get store err-var))]
       [else (run-cmds-iter prog proc-name heap store (+ cur-index 1) next-prev-index)])))
-  
+
+
 (define (run-expr expr store)
   (cond
     ;;
@@ -431,13 +432,19 @@
        )]))
 
 (define (run-proc prog proc-name heap arg-vals)
-  (let* ((proc (get-proc prog proc-name))
-         (store (proc-init-store proc arg-vals)))
-    (mutate-heap heap larguments parguments (make-jsil-list arg-vals))
-    ;;(println (format "About to run procedure ~v with arguments ~v" proc-name arg-vals))
-    (let ((res (run-cmds-iter prog proc-name heap store 0 0)))
-      ;;(println (format "About to return from procedure ~v with return value ~v" proc-name res))
-      (cons res store))))
+  (if (has-racket-implementation? proc-name)
+      ;; Procedure Implemented in Racket
+      (let* ((racket-proc (get-racket-implementation proc-name))
+             (outcome (apply racket-proc (cdr arg-vals))))
+        (cons outcome '()))
+      ;; Procedure Implemented in JSIL
+      (let* ((proc (get-proc prog proc-name))
+             (store (proc-init-store proc arg-vals)))
+        (mutate-heap heap larguments parguments (make-jsil-list arg-vals))
+        ;;(println (format "About to run procedure ~v with arguments ~v" proc-name arg-vals))
+        (let ((res (run-cmds-iter prog proc-name heap store 0 0)))
+        ;;(println (format "About to return from procedure ~v with return value ~v" proc-name res))
+          (cons res store)))))
 
 (define (run-program prog heap)
   (jsil-discharge)
