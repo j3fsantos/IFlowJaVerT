@@ -807,6 +807,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 				let ret_type, _, _ =	type_lexpr (get_gamma symb_state) ret_le in
 				update_abs_store (get_store symb_state) x ret_le;
 				update_gamma (get_gamma symb_state) x ret_type;
+				let symb_state = Symbolic_State_Basics.simplify_symbolic_state symb_state in 
 				let new_search_info = update_vis_tbl search_info (copy_vis_tbl search_info.vis_tbl) in
 				(match ret_flag, j with
 				| Normal, _ ->

@@ -826,6 +826,7 @@ let unify_symb_states_fold (pred_name : string) existentials (pat_symb_state : s
 
 
 
+(* get rid of the js flag here ASAP *) 
 let fully_unify_symb_state pat_symb_state symb_state lvars (js : bool) =
 	print_debug (Printf.sprintf "Fully_unify_symb_state.\nSymb_state:\n%s.\nPAT symb_state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state) (JSIL_Memory_Print.string_of_shallow_symb_state pat_symb_state)); 
 	
@@ -860,13 +861,26 @@ let unify_symb_state_against_post proc_name spec symb_state flag symb_exe_info j
 		(match posts, post_vars_lists with
 		| [], [] -> print_error_to_console "Non_unifiable symbolic states";  raise (Failure "post condition is not unifiable")
 		| post :: rest_posts, post_lvars :: rest_posts_lvars ->
-			let subst = fully_unify_symb_state post symb_state spec.n_lvars js in
-			(match subst with
-			| Some subst, _ ->
-				activate_post_in_post_pruning_info symb_exe_info proc_name i;
-				print_endline (Printf.sprintf "Verified one spec of proc %s" proc_name);
-			| None, msg  -> print_debug (Printf.sprintf "No go: %s" msg); loop rest_posts rest_posts_lvars (i + 1))) in
-
+			let is_unifiable, msg = 
+				if (js) then (
+					let subst = unify_symb_states spec.n_lvars post symb_state in
+					match subst with
+					| Some (true, _, _, _, _, _) -> true, ""
+					| _                          -> false, ""
+				) else (
+					let subst = fully_unify_symb_state post symb_state spec.n_lvars false in 
+					match subst with 
+					| Some _, _ -> true, ""
+					| None, msg -> false, msg) in 
+			if (is_unifiable) 	
+				then (
+					activate_post_in_post_pruning_info symb_exe_info proc_name i;
+					print_endline (Printf.sprintf "Verified one spec of proc %s" proc_name)
+				) else (
+					print_debug (Printf.sprintf "No go: %s" msg); 
+					loop rest_posts rest_posts_lvars (i + 1)
+				)) in 
+					
 	loop spec.n_post spec.n_post_lvars 0
 
 

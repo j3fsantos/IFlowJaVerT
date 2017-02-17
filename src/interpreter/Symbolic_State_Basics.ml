@@ -424,9 +424,12 @@ let symb_state_substitution (symb_state : symbolic_state) subst partial =
 	let s_preds = preds_substitution preds subst partial in
 	(s_heap, s_store, s_pf, s_gamma, s_preds (* ref None *))
 
+
+
 (*************************************)
 (** Symbolic state simplification   **)
 (*************************************)
+
 
 let reduce_pfs_no_store_no_gamma pfs = DynArray.map (fun x -> reduce_assertion_no_store_no_gamma pfs x) pfs
 let reduce_pfs_no_store    gamma pfs = DynArray.map (fun x -> reduce_assertion_no_store    gamma pfs x) pfs
@@ -1168,6 +1171,8 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	let pf_list = DynArray.to_list p_formulae in
 		go_through_pfs pf_list 0 
 
+
+
 (* *********** *)
 (*   CLEANUP   *)
 (* *********** *)
@@ -1206,3 +1211,16 @@ let simplify_implication exists lpfs rpfs gamma =
 	let exists, lpfs, rpfs, gamma = simplify_existentials exists lpfs rpfs gamma in
 	clean_up_stuff exists lpfs rpfs;
 	exists, lpfs, rpfs, gamma
+	
+
+(*************************************************)
+(** Symbolic state simplification  - top level  **)
+(*************************************************)
+
+let simplify_symbolic_state symb_state = 
+	let pfs = get_pf_list symb_state in 
+	let gamma = get_gamma symb_state in 
+	let types_ok = understand_types SS.empty (List.map (fun x -> (x, "l")) pfs) gamma in
+	match types_ok with
+		| true -> symb_state
+		| false -> raise (Failure "INCONSISTENT STATE") 	
