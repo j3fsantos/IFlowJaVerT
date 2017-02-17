@@ -10,13 +10,16 @@ exception EarlyError of string
 let update_prev_annot prev_annot cur_annot =
 	let is_spec_annot annot =
 		(annot.annot_type == Parser_syntax.Requires) ||
-			(annot.annot_type == Parser_syntax.Ensures) ||
-			(annot.annot_type == Parser_syntax.EnsuresErr) || 
-			(annot.annot_type == Parser_syntax.Id) ||
-			(annot.annot_type == Parser_syntax.Rec) || 
-			(annot.annot_type == Parser_syntax.Pred) || 
-			(annot.annot_type == Parser_syntax.Fold) || 
-			(annot.annot_type == Parser_syntax.Unfold) in
+		(annot.annot_type == Parser_syntax.Ensures) ||
+		(annot.annot_type == Parser_syntax.EnsuresErr) || 
+		(annot.annot_type == Parser_syntax.Spec) ||
+		(annot.annot_type == Parser_syntax.TopSpec) ||
+		(annot.annot_type == Parser_syntax.OnlySpec) || 
+		(annot.annot_type == Parser_syntax.Id) ||
+		(annot.annot_type == Parser_syntax.Rec) || 
+		(annot.annot_type == Parser_syntax.Pred) || 
+		(annot.annot_type == Parser_syntax.Fold) || 
+		(annot.annot_type == Parser_syntax.Unfold) in
 
 	let rec annot_has_specs annots =
 		match annots with
@@ -514,7 +517,6 @@ let rec add_codenames (main : string)
       | Script (str, es) ->
 				let new_annot = update_codename_annotation cur_annot (fun () -> main) in 
         {exp with exp_stx = Script (str, List.map f es); exp_annot = new_annot }
-
 
 let process_js_logic_annotations (cc_tbl : cc_tbl_type) (vis_tbl : (string, string list) Hashtbl.t) fun_tbl fun_name (fun_args : string list) annotations requires_flag ensures_normal_flag ensure_err_flag =
 	(* Printf.printf "Inside process_js_logic_annotations. function: %s.\n\nAnnotations: \n%s\n\n" fun_name (Pretty_print.string_of_annots annotations); *)
