@@ -4,6 +4,7 @@ let file = ref ""
 let spec_file = ref ""
 let output_folder = ref ""
 let stats = ref false 
+let bi_abduction = ref false
 
 let arguments () =
   let usage_msg="Usage: -file <path>" in
@@ -18,6 +19,8 @@ let arguments () =
 			"-js", Arg.Unit (fun () -> JSIL_Symb_Interpreter.js := true), "js2jsil output"; 
 			(* *)
 			"-stats", Arg.Unit (fun () -> stats := true), "stats";
+			(* Flag to use symbolic execution file with bi-abduction *)
+			"-bi", Arg.Unit (fun () -> bi_abduction  := true), "bi-abduction";
 			(* "-encoding", Arg.String (fun f ->
 				Printf.printf "I am here.\n";
 				let enc = match f with
@@ -89,8 +92,12 @@ let process_file path =
 			)
 			only_spec_table;
 		print_debug "*** Prelude: Stage 5: Finished adding phantom procedures for only-specs\n";
-	
-		let results_str, dot_graphs, complete_success = JSIL_Symb_Interpreter.sym_run_procs prog procs_to_verify spec_tbl which_pred norm_preds in
+		let results_str, dot_graphs, complete_success = 
+			if (!bi_abduction) then
+				JSIL_Bi_Symb_Interpreter.sym_run_procs prog procs_to_verify spec_tbl which_pred norm_preds  
+			else
+				JSIL_Symb_Interpreter.sym_run_procs prog procs_to_verify spec_tbl which_pred norm_preds
+			in
 		Printf.printf "RESULTS\n%s" results_str;
 		
 		(if (complete_success) then
