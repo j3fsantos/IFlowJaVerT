@@ -18,7 +18,7 @@
    scope(counter_2: #c2) *
    fun_obj(make_counter, #mc, #mc_proto, #mc_sc) *
    counter(#c1, 1) *
-   counter(#c2, 5))
+   counter(#c2, 0))
 */
 
 /**
