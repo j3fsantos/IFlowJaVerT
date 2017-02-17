@@ -1,7 +1,7 @@
 (* open Core.Std *)
 open JSIL_Syntax
 open Js_pre_processing
-open Js2jsil
+open Js2jsil_compiler
 
 let harness_path = "harness.js"
 

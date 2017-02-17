@@ -1,9 +1,6 @@
 open JSIL_Syntax
 open Z3
 
-let small_tbl_size = 31
-let big_tbl_size = 1021
-
 (********************************************************)
 (** Auxiliar functions for generating new program/logical
     variable names and new abstract locations          **)
@@ -56,21 +53,6 @@ type substitution = ((string, jsil_logic_expr) Hashtbl.t)
 
 (* Symbolic State Error                                *)
 exception Symb_state_error of string;;
-
-(*************************************)
-(** JSIL Heaps                      **)
-(*************************************)
- module SHeap = Hashtbl.Make(
-	struct
-		type t = string
-		let equal = (=)
-		let hash = Hashtbl.hash
-	end)
-
-let make_initial_heap is_big =
-	let size = if (is_big) then big_tbl_size else small_tbl_size in
-	let heap = SHeap.create size in
-	heap
 
 (*************************************)
 (** Symbolic States                 **)

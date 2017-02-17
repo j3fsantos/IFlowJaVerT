@@ -1,4 +1,4 @@
-src/js2jsil_main.native
+src/js2jsil.native
 src/tests/test_main.native
-src/symb_execution_main.native
-src/jsil_run.native
+src/jsilverify.native
+src/jsil.native

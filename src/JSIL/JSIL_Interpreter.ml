@@ -776,7 +776,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
   									| e :: [] ->
   										(match e.Parser_syntax.exp_stx with
   										| Parser_syntax.Function (_, Some "ICANTBELIEVEIHAVETOPUTAFRIGGINGNAMEHERE", params, body) ->
-  												let new_proc = Js2jsil.js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl cur_proc_name params e in
+  												let new_proc = Js2jsil_compiler.js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl cur_proc_name params e in
   												let fun_name = new_proc.proc_name in
   												let vis_tbl = (match vis_tbl with
   												                | Some t -> t
@@ -863,7 +863,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 					| _, _ -> raise (Failure "No var_scope or var_this to give to eval")) in
 				(match (try
 					let e_js = Parser_main.exp_from_string ~force_strict:true code in
-					Some (Js2jsil.js2jsil_eval prog which_pred cc_tbl vis_tbl cur_proc_name e_js)
+					Some (Js2jsil_compiler.js2jsil_eval prog which_pred cc_tbl vis_tbl cur_proc_name e_js)
 					with _ -> None) with
 				| Some proc_eval ->
 					(let new_store = init_store [ Js2jsil_constants.var_scope; Js2jsil_constants.var_this ] [ x_scope; x_this ] in

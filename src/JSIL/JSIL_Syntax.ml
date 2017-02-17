@@ -343,6 +343,25 @@ type jsil_ext_program = {
 	procedures : (string, jsil_ext_procedure) Hashtbl.t;
 }
 
+(*************************************)
+(** JSIL Heaps                      **)
+(*************************************)
+
+let small_tbl_size = 31
+let big_tbl_size = 1021
+
+module SHeap = Hashtbl.Make(
+	struct
+		type t = string
+		let equal = (=)
+		let hash = Hashtbl.hash
+	end)
+
+let make_initial_heap is_big =
+	let size = if (is_big) then big_tbl_size else small_tbl_size in
+	let heap = SHeap.create size in
+	heap
+
 (** Basic functions **)
 
 let proc_get_ret_var proc ret_flag =

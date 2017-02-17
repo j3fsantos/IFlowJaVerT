@@ -2,7 +2,7 @@ open OUnit
 open JSIL_Syntax
 open JSIL_Print
 open JSIL_Interpreter
-open Js2jsil
+open Js2jsil_compiler
 
 let if_some p f d =
 	(match p with
@@ -83,7 +83,7 @@ let test_jsil_template test =
 	let _ = Printf.printf "%s\n" str in
 	let ext_prog = JSIL_Utils.ext_program_of_string str in
 	let prog, which_pred = JSIL_Utils.prog_of_ext_prog "" ext_prog in 
-	let heap = JSIL_Memory_Model.SHeap.create 1021 in 
+	let heap = SHeap.create 1021 in 
   evaluate_prog prog which_pred heap
 
 (** ******************
@@ -103,5 +103,5 @@ let test_javascript_template test =
         exit 1) in
 	let (ext_prog, cc_tbl, vis_tbl) = js2jsil e offset_converter false in 
 	let prog, which_pred = JSIL_Utils.prog_of_ext_prog "" ext_prog in 
-	let heap = JSIL_Memory_Model.SHeap.create 1021 in 
+	let heap = SHeap.create 1021 in 
   evaluate_prog prog which_pred heap (Some cc_tbl) (Some vis_tbl)
