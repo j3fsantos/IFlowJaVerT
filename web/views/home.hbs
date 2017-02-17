@@ -1,0 +1,33 @@
+<div class="row">
+  <div class="twelve columns">
+    <h3 class="subheader">
+    An  <strong>Infrastructure</strong> for Tractable Verification of JavaScript Programs
+	</h3>
+  </div>
+
+<div class="panel-group">
+<div class="panel panel-default">
+The dynamic nature of JavaScript, together with its complex semantics, makes it
+a difficult target for symbolic verification techniques. To address this issue,
+we develop an infrastructure for tractable symbolic verification of JavaScript
+programs  (ECMAScript 5 Strict mode), and present JaVerT, a semi-automatic
+JavaScript Verification Toolchain built on top of this infrastructure.
+
+The infrastructure consists of: (1), a compiler from JavaScript to JSIL, a
+simple intermediate goto language suitable for verification; (2) JSILVerify,
+a semi-automatic JSIL verification tool based on separation logic; and (3)
+verified JSIL specifications of JavaScript internal functions.
+We design JS-2-JSIL to be step-by-step faithful to the ECMAScript standard
+and systematically test it against the official ECMAScript test suite, passing
+100% of the appropriate tests. We provide JSIL reference implementations of
+the JavaScript internal functions and use JSILVerify to show that these
+implementations satisfy their specifications.
+
+We demonstrate the feasibility of  our verification infrastructure using JaVerT
+to specify and verify simple JavaScript programs, illustrating our ideas using
+an implementation of a priority queue. We believe that our infrastructure can
+be reused for other styles of program analysis for JavaScript.
+</div>
+</div>
+
+</div>

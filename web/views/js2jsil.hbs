@@ -1,0 +1,57 @@
+  <!-- Title and subtitle -->
+    <div class="row">
+      <div class="twelve columns">
+         <h3 class="subheader"><strong>JS-2-JSIL</strong></h3>
+      </div>
+    </div>
+
+    <!-- Main content -->
+  <div class="row">
+      <div class="six columns">
+
+      <pre id="editor" spellcheck="false" style="height: 350px">// Est modus in rebus</pre>
+
+      <div id="info" class="alert-box secondary">Ready.</div>
+
+        <input class="small radius button secondary right" type="button" id="btn-run" value="Compile & Run" />
+        <span  class="right" style="visibility: hidden;">c</span>
+        <input class="small radius button secondary right" type="button" id="btn-translate" value="Compile" />
+
+
+        <div class="twelve columns">
+         <p>Print Lines:
+          <div class="six columns">
+            <label> From <input type="text" id="js_init_line"> </label>
+          </div>
+          <div class="six columns">
+            <label> To <input type="text" id="js_final_line"/> </label>
+          </div>
+          <input class="small radius button secondary right" type="button" id="js_lines_reset" value="Reset"/>
+          <span  class="right" style="visibility: hidden;">c</span>
+          <input class="small radius button secondary right" type="button" id="js_lines_show" value="Show"/>
+        </div>
+
+
+      </div>
+
+      <div class="six columns">
+        <dl class="tabs">
+          <dd id="show_syntax" class="active"><a href="#">JSIL Output</a></dd>
+          <dd id="show_tree"><a href="#">Control Flow Graph</a></dd>
+        </dl>
+        <ul class="tabs-content">
+          <li class="active" id="tab_syntax">
+            <div class="resizable">
+              <textarea wrap="off" id="syntax" rows="20" readonly></textarea>
+            </div>
+          <li>
+          <!-- <li id="tab_tree">
+            <div id="treeview"> </div>
+          </li>
+          <label>Procedure Type:</label> <select id="select-proc-type"> </select> &nbsp; -->
+        </ul>
+        <label>Procedure:</label><select id="select-proc"> </select>
+      </div>
+    </div>
+
+    <script src="controllers/js2jsil-client.js"></script>

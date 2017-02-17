@@ -4523,8 +4523,6 @@ let js2jsil e offset_converter for_verification =
 			Hashtbl.add procedures f_id proc)
 		fun_tbl;
 
- 	(** let cc_tbl_str = Js_pre_processing.print_cc_tbl cc_tbl in
-	Printf.printf "marica, the cc_tbl is the following (enjoy): \n %s\n" cc_tbl_str; *)
 	let cur_imports = if for_verification then js2jsil_logic_imports else js2jsil_imports in
 	{ imports = cur_imports; predicates; procedures}, cc_tbl, vis_tbl
 
