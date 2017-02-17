@@ -9,6 +9,7 @@ open JS_Logic_Syntax
 %token SCOPE
 %token THIS
 %token FUNOBJ
+%token CLOSURE
 (* Type literals *)
 %token UNDEFTYPELIT
 %token NULLTYPELIT
@@ -916,12 +917,23 @@ js_assertion_target:
 	| SCOPE; LBRACE; v=VAR; COLON; le=js_lexpr_target; RBRACE
 		{ JSLScope (v, le) }
 (* fun_obj (x, le, le) *)
-	| FUNOBJ; LBRACE; f_id=VAR; COMMA; f_loc=js_lexpr_target; COMMA; f_prototype=js_lexpr_target; RBRACE
-		{ JSFunObj(f_id, f_loc, f_prototype) }
+	| FUNOBJ; LBRACE; f_id=VAR; COMMA; f_loc=js_lexpr_target; COMMA; f_prototype=js_lexpr_target; f_scope_chain=option(js_lexpr_preceded_by_comma_target); RBRACE
+		{ JSFunObj(f_id, f_loc, f_prototype, f_scope_chain) }
+(* closure(x_0: le_0, ..., x_n: le_n; fid_0: le_0', ..., fid_n: le_n') *)
+	| CLOSURE; LBRACE; var_les=separated_list(COMMA, var_js_le_pair_target); SCOLON; fid_scs=separated_list(COMMA, var_js_le_pair_target); RBRACE
+		{	JSClosure (var_les, fid_scs)	}
 (* (P) *)
   | LBRACE; ass=js_assertion_target; RBRACE
 	  { ass }
 ;
+
+var_js_le_pair_target: 
+	v=VAR; COLON; le=js_lexpr_target { (v, le) }
+	
+
+js_lexpr_preceded_by_comma_target: 
+	COMMA; le=js_lexpr_target	{ le }
+; 
 
 js_program_variable_target:
   | v = VAR

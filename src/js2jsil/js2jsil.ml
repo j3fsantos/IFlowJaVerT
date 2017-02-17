@@ -2569,7 +2569,7 @@ and translate_statement tr_ctx e  =
 		| Some invariant -> 
 			Printf.printf "I found a fucking invariant!!!!!\n";
 			Printf.printf "Some more data: %s\n" tr_ctx.tr_fid;
-			let jsil_invariant = JS_Logic_Syntax.js2jsil_logic_top_level_post invariant cur_var_tbl vis_tbl old_fun_tbl tr_ctx.tr_fid in 
+			let jsil_invariant = JS_Logic_Syntax.js2jsil_logic_top_level_post invariant tr_ctx.tr_cc_tbl vis_tbl old_fun_tbl tr_ctx.tr_fid in 
 			Some (LStar (jsil_invariant, JS_Logic_Syntax.errors_assertion))) in 
 	
 	let annotate_first_cmd annotated_cmds =

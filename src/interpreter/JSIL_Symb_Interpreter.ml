@@ -56,6 +56,13 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 					(match t1, t2 with
 					| Some t1, Some t2 -> if (t1 = t2) then LBinOp (nle1, op, nle2) else (LLit (Bool false)) 
 					| _, _             -> LBinOp (nle1, op, nle2))
+			| LstCons -> 
+				(match nle2 with 
+				| LEList les -> LEList (nle1 :: les)
+				| LLit (LList lits) -> 
+					let les2 = List.map (fun lit -> LLit lit) lits in 
+					LEList (nle1 :: les2) 
+				| _ -> LBinOp (nle1, op, nle2))
 			| _ -> LBinOp (nle1, op, nle2)))
 
   (* Unary operators

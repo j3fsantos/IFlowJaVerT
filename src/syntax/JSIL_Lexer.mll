@@ -15,45 +15,46 @@ rule read = parse
 	| white       	       { read lexbuf }
 	|	newline	             { new_line lexbuf; read lexbuf }
 (* js logic tokens *)
-	| "scope"              { JSIL_Parser.SCOPE }
-	| "this"               { JSIL_Parser.THIS }
-	| "fun_obj"            { JSIL_Parser.FUNOBJ }
+	| "scope"              { JSIL_Parser.SCOPE     }
+	| "this"               { JSIL_Parser.THIS      }
+	| "fun_obj"            { JSIL_Parser.FUNOBJ    }
+	| "closure"            { JSIL_Parser.CLOSURE   }
 (* Type literals *)
-	| "$$undefined_type"   { JSIL_Parser.UNDEFTYPELIT }
-	| "$$null_type"        { JSIL_Parser.NULLTYPELIT }
-	| "$$empty_type"       { JSIL_Parser.EMPTYTYPELIT }
-	| "$$none_type"        { JSIL_Parser.NONETYPELIT }
-	| "$$boolean_type"     { JSIL_Parser.BOOLTYPELIT }
-	| "$$number_type"      { JSIL_Parser.NUMTYPELIT }
-	| "$$string_type"      { JSIL_Parser.STRTYPELIT }
-	| "$$object_type"      { JSIL_Parser.OBJTYPELIT }
-	| "$$list_type"        { JSIL_Parser.LISTTYPELIT }
-	| "$$type_type"        { JSIL_Parser.TYPETYPELIT }
+	| "$$undefined_type"   { JSIL_Parser.UNDEFTYPELIT  }
+	| "$$null_type"        { JSIL_Parser.NULLTYPELIT   }
+	| "$$empty_type"       { JSIL_Parser.EMPTYTYPELIT  }
+	| "$$none_type"        { JSIL_Parser.NONETYPELIT   }
+	| "$$boolean_type"     { JSIL_Parser.BOOLTYPELIT   }
+	| "$$number_type"      { JSIL_Parser.NUMTYPELIT    }
+	| "$$string_type"      { JSIL_Parser.STRTYPELIT    }
+	| "$$object_type"      { JSIL_Parser.OBJTYPELIT    }
+	| "$$list_type"        { JSIL_Parser.LISTTYPELIT   }
+	| "$$type_type"        { JSIL_Parser.TYPETYPELIT   }
 (* Constants *)
-	| "$$min_float"        { JSIL_Parser.MIN_FLOAT }
-	| "$$max_float"        { JSIL_Parser.MAX_FLOAT }
-	| "$$random"           { JSIL_Parser.RANDOM }
-	| "$$e"                { JSIL_Parser.E }
-	| "$$ln10"             { JSIL_Parser.LN10 }
-	| "$$ln2"              { JSIL_Parser.LN2 }
-	| "$$log2e"            { JSIL_Parser.LOG2E }
-	| "$$log10e"           { JSIL_Parser.LOG10E }
-	| "$$pi"               { JSIL_Parser.PI }
-	| "$$sqrt1_2"          { JSIL_Parser.SQRT1_2 }
-	| "$$sqrt2"            { JSIL_Parser.SQRT2 }
-	| "$$UTCTime"          { JSIL_Parser.UTCTIME }
-	| "$$LocalTime"        { JSIL_Parser.LOCALTIME }
+	| "$$min_float"        { JSIL_Parser.MIN_FLOAT     }
+	| "$$max_float"        { JSIL_Parser.MAX_FLOAT     }
+	| "$$random"           { JSIL_Parser.RANDOM        }
+	| "$$e"                { JSIL_Parser.E             }
+	| "$$ln10"             { JSIL_Parser.LN10          }
+	| "$$ln2"              { JSIL_Parser.LN2           }
+	| "$$log2e"            { JSIL_Parser.LOG2E         }
+	| "$$log10e"           { JSIL_Parser.LOG10E        }
+	| "$$pi"               { JSIL_Parser.PI            }
+	| "$$sqrt1_2"          { JSIL_Parser.SQRT1_2       }
+	| "$$sqrt2"            { JSIL_Parser.SQRT2         }
+	| "$$UTCTime"          { JSIL_Parser.UTCTIME       }
+	| "$$LocalTime"        { JSIL_Parser.LOCALTIME     }
 (* Literals (scroll down for more) *)
-	| "$$undefined"        { JSIL_Parser.UNDEFINED }
-	| "$$null"             { JSIL_Parser.NULL }
-	| "$$empty"            { JSIL_Parser.EMPTY }
- 	| "$$t"                { JSIL_Parser.TRUE }
-	| "$$f"                { JSIL_Parser.FALSE }
-	| "nan"                { JSIL_Parser.NAN }
-	| "inf"                { JSIL_Parser.INFINITY }
-	| "$$nil"              { JSIL_Parser.LSTNIL }
-	| "{{"                 { JSIL_Parser.LSTOPEN }
-	| "}}"                 { JSIL_Parser.LSTCLOSE }
+	| "$$undefined"        { JSIL_Parser.UNDEFINED     }
+	| "$$null"             { JSIL_Parser.NULL          }
+	| "$$empty"            { JSIL_Parser.EMPTY         }
+ 	| "$$t"                { JSIL_Parser.TRUE          }
+	| "$$f"                { JSIL_Parser.FALSE         }
+	| "nan"                { JSIL_Parser.NAN           }
+	| "inf"                { JSIL_Parser.INFINITY      }
+	| "$$nil"              { JSIL_Parser.LSTNIL        }
+	| "{{"                 { JSIL_Parser.LSTOPEN       }
+	| "}}"                 { JSIL_Parser.LSTCLOSE      }
 (* Binary operators *)
 	| "="                  { JSIL_Parser.EQUAL }
 	| "<"                  { JSIL_Parser.LESSTHAN }

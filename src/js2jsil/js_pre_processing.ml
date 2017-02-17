@@ -516,8 +516,11 @@ let rec add_codenames (main : string)
         {exp with exp_stx = Script (str, List.map f es); exp_annot = new_annot }
 
 
-let process_js_logic_annotations (vis_tbl : (string, string list) Hashtbl.t) fun_tbl fun_name (fun_args : string list) annotations requires_flag ensures_normal_flag ensure_err_flag var_to_fid_tbl vis_list =
+let process_js_logic_annotations (cc_tbl : cc_tbl_type) (vis_tbl : (string, string list) Hashtbl.t) fun_tbl fun_name (fun_args : string list) annotations requires_flag ensures_normal_flag ensure_err_flag =
 	(* Printf.printf "Inside process_js_logic_annotations. function: %s.\n\nAnnotations: \n%s\n\n" fun_name (Pretty_print.string_of_annots annotations); *)
+	
+	let var_to_fid_tbl = try Hashtbl.find cc_tbl fun_name with _ -> raise (Failure "DEATH") in 
+	let vis_list = try Hashtbl.find vis_tbl fun_name with _ -> raise (Failure "DEATH") in 
 	
 	let annot_types_str : string = String.concat ", " (List.map (fun annot -> Pretty_print.string_of_annot_type annot.annot_type) annotations) in 
 	(* Printf.printf "annot types: %s\n\n" annot_types_str; *)
@@ -544,8 +547,8 @@ let process_js_logic_annotations (vis_tbl : (string, string list) Hashtbl.t) fun
 			let post_js = JSIL_Utils.js_assertion_of_string post_str in
 			(* Printf.printf "I managed to parse the js assertions\n"; *)
 			
-			let pre_jsil = JS_Logic_Syntax.js2jsil_logic_top_level_pre pre_js var_to_fid_tbl vis_tbl fun_tbl fun_name in
-			let post_jsil = JS_Logic_Syntax.js2jsil_logic_top_level_post post_js var_to_fid_tbl vis_tbl fun_tbl fun_name in
+			let pre_jsil = JS_Logic_Syntax.js2jsil_logic_top_level_pre pre_js cc_tbl vis_tbl fun_tbl fun_name in
+			let post_jsil = JS_Logic_Syntax.js2jsil_logic_top_level_post post_js cc_tbl vis_tbl fun_tbl fun_name in
 			let new_spec = JSIL_Syntax.create_single_spec pre_jsil post_jsil ret_flag in
 			new_spec)
 		preconditions
@@ -572,13 +575,13 @@ let process_js_logic_annotations (vis_tbl : (string, string list) Hashtbl.t) fun
 vis_tbl fun_tbl fun_name (fun_args : string list) annotations requires_flag ensures_normal_flag ensure_err_flag var_to_fid_tbl vis_list
 *)
 
-let create_js_logic_annotations vis_tbl (old_fun_tbl : Js2jsil_constants.pre_fun_tbl_type) (new_fun_tbl : Js2jsil_constants.fun_tbl_type) =
+let create_js_logic_annotations (cc_tbl: cc_tbl_type) vis_tbl (old_fun_tbl : Js2jsil_constants.pre_fun_tbl_type) (new_fun_tbl : Js2jsil_constants.fun_tbl_type) =
 	Hashtbl.iter 
-		(fun f_id (f_id, f_args, f_body, (annotations, vis_list, var_to_fid_tbl)) ->
+		(fun f_id (f_id, f_args, f_body, (annotations, _, _)) ->
 			let fun_specs, f_rec = 
 				if (not (f_id = Js2jsil_constants.var_main))
-					then process_js_logic_annotations vis_tbl old_fun_tbl f_id f_args annotations Requires Ensures EnsuresErr var_to_fid_tbl vis_list 
-					else process_js_logic_annotations vis_tbl old_fun_tbl f_id [] annotations TopRequires TopEnsures TopEnsuresErr var_to_fid_tbl vis_list in 
+					then process_js_logic_annotations cc_tbl vis_tbl old_fun_tbl f_id f_args annotations Requires Ensures EnsuresErr   
+					else process_js_logic_annotations cc_tbl vis_tbl old_fun_tbl f_id [] annotations TopRequires TopEnsures TopEnsuresErr in 
 			Hashtbl.add new_fun_tbl f_id (f_id, f_args, f_body, f_rec, fun_specs))
 		old_fun_tbl
 
@@ -1021,16 +1024,16 @@ let closure_clarification_top_level cc_tbl (fun_tbl : Js2jsil_constants.fun_tbl_
 	Hashtbl.add old_fun_tbl proc_id (proc_id, args, e, ([], [ proc_id ], proc_tbl));
 	Hashtbl.add vis_tbl proc_id vis_fid;
 	closure_clarification_stmt cc_tbl old_fun_tbl vis_tbl proc_id vis_fid [] e;
-	create_js_logic_annotations vis_tbl old_fun_tbl fun_tbl;
+	create_js_logic_annotations cc_tbl vis_tbl old_fun_tbl fun_tbl;
 	let js_predicate_definitions : JS_Logic_Syntax.js_logic_predicate list = get_predicate_definitions [] e in  
 	let jsil_predicate_definitions = 
-		List.map (fun pred_def -> JS_Logic_Syntax.translate_predicate_def pred_def vis_tbl old_fun_tbl) js_predicate_definitions in 
+		List.map (fun pred_def -> JS_Logic_Syntax.translate_predicate_def pred_def cc_tbl vis_tbl old_fun_tbl) js_predicate_definitions in 
 
 	let annots = get_top_level_annot e in
 	(match annots with
 	| Some annots ->
 		(* Printf.printf "Going to generate main. Top-level annotations:\n%s\n" (Pretty_print.string_of_annots annots); *)
-		let specs, _ = process_js_logic_annotations vis_tbl old_fun_tbl proc_id [] annots TopRequires TopEnsures TopEnsuresErr proc_tbl [ proc_id ] in
+		let specs, _ = process_js_logic_annotations cc_tbl vis_tbl old_fun_tbl proc_id [] annots TopRequires TopEnsures TopEnsuresErr in
 		Hashtbl.replace fun_tbl proc_id (proc_id, args, e, false, specs);
 	| None -> ()); 
 	let jsil_pred_def_tbl = JSIL_Logic_Utils.pred_def_tbl_from_list jsil_predicate_definitions in 
