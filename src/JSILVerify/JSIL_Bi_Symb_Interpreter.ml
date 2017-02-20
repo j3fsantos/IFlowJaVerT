@@ -373,8 +373,8 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) (anti_frame : symbolic
 				ii) Create a logical boolean variable y
 				iii) Update the store with [x -> y]
 				iv) Add pure formula which says:
-						IF z is none then y is false 
-						IF z is not none then y is true 
+						If z is none then y is false 
+						If z is not none then y is true 
 				v) Return y
 			d) Otherwise, understand if the object ne1 has the property ne2 and store that result in res;
 				i) If conclusive, update the store with [x |-> res] and return res
@@ -399,12 +399,14 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) (anti_frame : symbolic
 				let new_loc, z = create_new_location e1 symb_state anti_frame in
 				Symbolic_State_Functions.update_abs_heap anti_heap new_loc ne2 (LVar z) pure_formulae gamma; 
 				Symbolic_State_Functions.update_abs_heap heap new_loc ne2 (LVar z) pure_formulae gamma; 
-				let y = fresh_lvar () in 
+				(*let y = fresh_lvar () in 
 				update_gamma gamma y (Some BooleanType);
-				update_abs_store store x (LVar y);
-				DynArray.add pure_formulae (LOr (LAnd ((LNot (LEq (LVar z, LNone))),(LEq (LVar y, LLit (Bool true))))  ,
-					(LAnd ((LEq (LVar z, LNone)),(LEq (LVar y, LLit (Bool false)))))));
-				(LVar y) )
+				update_abs_store store x (LVar y);*)
+				update_gamma gamma x (Some BooleanType);
+				(*let formula = (LOr (LAnd ((LNot (LEq (LVar z, LNone))),(LEq (LVar y, LLit (Bool true))))  ,
+					(LAnd ((LEq (LVar z, LNone)),(LEq (LVar y, LLit (Bool false))))))) in
+				DynArray.add pure_formulae formula; *)
+				LUnknown )
 
 let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) le_args =
 
