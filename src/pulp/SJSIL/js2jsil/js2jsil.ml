@@ -4388,7 +4388,7 @@ let generate_main offset_converter e main cc_table spec =
 		try Hashtbl.find cc_table main
 			with _ -> raise (Failure "main not defined in cc_table - assim fica dificil")  in
 	let new_var = fresh_var () in
-	let setup_heap_ass =  annotate_cmd (SLCall (new_var, Literal (String setupHeapName), [ ], None)) None in
+	(* let setup_heap_ass =  annotate_cmd (SLCall (new_var, Literal (String setupHeapName), [ ], None)) None in *)
 	(* __scope := new () *)
 	let init_scope_chain_ass = annotate_cmd (SLBasic (SNew (var_scope))) None in
 	(* [__scope, "main"] := $lg *)
@@ -4427,7 +4427,7 @@ let generate_main offset_converter e main cc_table spec =
 	let cmd_del_se = annotate_cmd (SLBasic (SDeleteObj (Var var_se))) None in
 
 	let main_cmds =
-		[ setup_heap_ass; init_scope_chain_ass; lg_ass; this_ass] @
+		[ init_scope_chain_ass; lg_ass; this_ass] @
 		global_var_asses @
 		[ cmd_ass_te; cmd_ass_se ] @
 		cmds_hoist_fdecls @
