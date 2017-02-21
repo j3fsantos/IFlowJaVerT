@@ -37,11 +37,15 @@ let (template_procs_racket: ('a -> 'b, unit, string) format) = "
 (require (file \"hp.rkt\"))
 (require (file \"internals_builtins_procs.rkt\"))
 
+(require (file \"internals_racket.rkt\"))
+
 (define prog
 	(program
 		%s
 	)
 )
+
+(register-racket-methods hp)
 
 (let*
     (

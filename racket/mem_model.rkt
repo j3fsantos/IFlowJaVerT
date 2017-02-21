@@ -722,7 +722,6 @@
 ;; Internal / Builtin Procedure Implemented in Racket 
 ;;
 
-
 (define racket-js-implementations (make-hash))
 
 (define (has-racket-implementation? proc-name)
@@ -731,11 +730,40 @@
 (define (get-racket-implementation proc-name)
   (hash-ref racket-js-implementations proc-name))
 
+(define (create-new-function-obj hp function-name)
+  (let ((fun-loc (get-new-loc)))
+    (mutate-heap hp fun-loc "@call" function-name)
+    (mutate-heap hp fun-loc "@construct" function-name)
+    (mutate-heap hp fun-loc "@scope" '(jsil-list))
+    (mutate-heap hp fun-loc "@proto" '$lfun_proto)
+    (mutate-heap hp fun-loc "@class" "Function")
+    (mutate-heap hp fun-loc "@extensible" #t)
+    fun-loc))
 
 (define (register-js-builtin-method builtin-obj-name method-name racket-method hp)
-  (let* ((builtin-obj-loc (heap-get hp jsglobal builtin-obj-name))
-         (method-obj-loc (heap-get hp builtin-obj-loc method-name)))
-    hp))
+  (println "inside register-js-builtin-method")
+  (println (format "checking the object at ~v" jsglobal))
+  (let* ((builtin-obj-desc (heap-get hp jsglobal builtin-obj-name))
+         (builtin-obj-loc (third builtin-obj-desc))
+         (builtin-obj-proto-loc (third (heap-get hp builtin-obj-loc "prototype")))
+         (builtin-obj-proto (heap-get-obj hp builtin-obj-proto-loc))
+         (method-obj-loc (lht-ref builtin-obj-proto method-name))
+         (fresh-function-name (symbol->string (gensym "internal-function-"))))
+    ;; put the racket method in the hashtable
+    (hash-set! racket-js-implementations fresh-function-name racket-method)
+    ;;
+    (if (eq? method-obj-loc empty)
+        ;; the method does not exist - we need to create it
+        (let* ((method-obj-loc (create-new-function-obj hp fresh-function-name))
+               (method-obj-desc (list 'jsil-list "d" method-obj-loc #t #f #t)))
+          (mutate-heap hp builtin-obj-proto-loc method-name method-obj-desc))
+        ;; the method already exists and we are just going to override it with a racket implementation
+        (begin
+          (mutate-heap hp method-obj-loc "@call" fresh-function-name)
+          (mutate-heap hp method-obj-loc "@construct" fresh-function-name)))
+    (println (format "just updated the heap:~v" hp))))
+
+(provide has-racket-implementation? get-racket-implementation register-js-builtin-method)
     
 
 
