@@ -129,6 +129,13 @@ let store_projection store vars =
 			vars in
 	init_store vars les
 
+let merge_stores (store_l : symbolic_store) (store_r : symbolic_store) =
+	Hashtbl.iter
+		(fun var expr ->
+			if (not (Hashtbl.mem store_l var))
+				then Hashtbl.add store_l var expr)
+		store_r
+
 let check_store store gamma =
 
 	let placeholder pvar le target_type =
@@ -346,6 +353,10 @@ let simple_subtract_pred preds pred_name =
 (** Symbolic State functions        **)
 (*************************************)
 
+let init_symb_state : symbolic_state =
+	(* Heap, Store, Pure Formula, Gamma, Preds *)
+	(LHeap.create 1, Hashtbl.create 1, DynArray.create (), Hashtbl.create 1, DynArray.create ())
+
 let copy_symb_state symb_state =
 	let heap, store, p_formulae, gamma, preds (*, solver*) = symb_state in
 	let c_heap      = LHeap.copy heap in
@@ -423,8 +434,6 @@ let symb_state_substitution (symb_state : symbolic_state) subst partial =
 	let s_gamma = gamma_substitution gamma subst partial in
 	let s_preds = preds_substitution preds subst partial in
 	(s_heap, s_store, s_pf, s_gamma, s_preds (* ref None *))
-
-
 
 (*************************************)
 (** Symbolic state simplification   **)

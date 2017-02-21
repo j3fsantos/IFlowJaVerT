@@ -205,6 +205,18 @@ let assertion_of_abs_heap h =
 				let ef_assertion = LEmptyFields (loc_lexpr, fields) in 
 				ef_assertion :: new_assertions) h [] 
 
+(* TODO(Beatrix): There is probably more to this but in the case of merging the anti-frame 
+	and the precondition we know that what is in the anti-frame was not in the precondition
+	so technically there should be no clashes.*)
+let merge_symb_states (symb_state_1 : symbolic_state) (symb_state_2 : symbolic_state)  =
+	let heap_1, store_1, pf_1, gamma_1, preds_1  = symb_state_1 in
+	let heap_2, store_2, pf_2, gamma_2, preds_2 = symb_state_2 in
+ 	merge_pfs pf_1 pf_2;
+	merge_gammas gamma_1 gamma_2;
+	merge_stores store_1 store_2;
+	merge_heaps heap_1 heap_2 pf_1 gamma_1;
+	DynArray.append preds_2 preds_1;
+	(heap_1, store_1, pf_1, gamma_1, preds_1)
 			
 (*************************************)
 (** Store functions                 **)

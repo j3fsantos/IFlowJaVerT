@@ -6,6 +6,7 @@ open Symbolic_State_Basics
 let js = ref false
 
 let print_le = (fun x -> JSIL_Print.string_of_logic_expression x false)
+let print_e = (fun x -> JSIL_Print.string_of_expression x false)
 
 (**********************)
 (* Symbolic Execution *)
@@ -24,7 +25,8 @@ let rec get_list_length (le : jsil_logic_expr) : int option =
 (*******************************************)
 (* Symbolic evaluation of JSIL expressions *)
 (*******************************************)
-let rec symb_evaluate_expr (store : symbolic_store) (gamma : typing_environment) (pure_formulae : pure_formulae) (expr : jsil_expr) : jsil_logic_expr =
+let rec symb_evaluate_expr (store : symbolic_store) (gamma : typing_environment) (pure_formulae : pure_formulae) 
+							(expr : jsil_expr) : jsil_logic_expr =
 let f = symb_evaluate_expr store gamma pure_formulae in
 	match expr with
 	(* Literals: Return the literal *)
@@ -169,6 +171,39 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 		| LLit (Num n) -> raise (Failure "Non-integer string index.")
 		| _ -> LStrNth (str, index))
 
+
+(* TODO(Beatrix): This needs more thought. 
+	At the moment due to symb_evaluate_expr expanding the store when a variable is not found,
+	this just gives back the varaible to be used further *)
+let get_expr_var (expr : jsil_expr) : jsil_var = 
+	(match  expr with
+		| Var x -> x
+		| _ -> raise (Failure (Printf.sprintf "Unknown expression:  %s" (print_e expr))))
+
+(*
+	Common Pattern with bi-abduction rules: 
+		Create an abritary location. 
+		Associate the location with the given expression 
+		(This expression 'should' have been a location)
+		Generate an abritary value for the missing heap cell. 
+*)
+let create_new_location (expr: jsil_expr) (symb_state : symbolic_state) (anti_frame : symbolic_state) : string * string = 
+	let _, store, _, gamma, _ = symb_state in
+	let _, anti_store, _, anti_gamma, _ = anti_frame in
+	(* New location which 'expr' will be associated with *)
+	let new_loc = fresh_aloc () in
+	(* Get the string value of e1 *)
+	let var = get_expr_var expr in
+	(* Get a new logical variable *)
+	let anything = fresh_lvar () in 
+	(* Update the store with the new location *)
+	update_abs_store store var (ALoc new_loc);
+	update_abs_store anti_store var (ALoc new_loc);
+	(* Update the type enviroment with the variable 'expr' being an object type *)
+	update_gamma gamma var (Some ObjectType);
+	update_gamma anti_gamma var (Some ObjectType);
+	(new_loc, anything)
+
 (************************************************)
 (* SAFE Symbolic evaluation of JSIL expressions *)
 (************************************************)
@@ -195,8 +230,9 @@ let safe_symb_evaluate_expr store gamma pure_formulae (expr : jsil_expr) =
 (**********************************************)
 (* Symbolic evaluation of JSIL basic commands *)
 (**********************************************)
-let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
+let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) (anti_frame : symbolic_state) =
 	let heap, store, pure_formulae, gamma, _ = symb_state in
+	let anti_heap, anti_store, anti_pure_formulae, anti_gamma, _ = anti_frame in
 	let ssee = safe_symb_evaluate_expr store gamma pure_formulae in
 	match bcmd with
 	(* Skip: skip;
@@ -235,9 +271,12 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
   (* Property lookup: x = [e1, e2];
 			a) Safely evaluate e1 to obtain the object location ne1 and its type te1
 			b) Safely evaluate e2 to obtain the property name ne2 and its type te2
-			c) If ne1 is not a literal location or an abstract location, throw an error
+			c) If ne1 is not a literal location or an abstract location
+				i) Create a new heap cell (e1, e2) -> v
+				ii) Add pure formula v != none
+				iii) Return new cell location
 			d) Otherwise, try to find the value ne of the property ne2 of object ne1
-			e) If successful, update the store with [x |-> ne]
+			e) Update the store with [x |-> ne]
 			f) Return ne
 	*)
 	| SLookup (x, e1, e2) ->
@@ -247,7 +286,13 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 			(match ne1 with
 			| LLit (Loc l)
 			| ALoc l -> l
-			| _ -> raise (Failure (Printf.sprintf "Lookup: I do not know which location %s denotes in the symbolic heap" (print_le ne1)))) in
+			| _ -> 
+				let new_loc, anything = create_new_location e1 symb_state anti_frame in
+				DynArray.add pure_formulae (LNot (LEq (LVar anything, LNone)));
+				DynArray.add anti_pure_formulae (LNot (LEq (LVar anything, LNone)));
+				Symbolic_State_Functions.update_abs_heap heap new_loc ne2 (LVar anything) pure_formulae gamma;
+				Symbolic_State_Functions.update_abs_heap anti_heap new_loc ne2 (LVar anything) pure_formulae gamma;
+				new_loc) in
 		let ne = Symbolic_State_Functions.abs_heap_find heap l ne2 pure_formulae gamma in
 		update_abs_store store x ne;
 		ne
@@ -256,7 +301,9 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 			a) Safely evaluate e1 to obtain the object location ne1 and its type te1
 			b) Safely evaluate e2 to obtain the property name ne2 and its type te2
 			c) Safely evaluate e3 to obtain the value ne3 to be assigned
-			d) If ne1 is not a literal location or an abstract location, throw an error
+			d) If ne1 is not a literal location or an abstract location
+				i) Create the cell (e1, e2) -> v 
+				ii) Return new cell location
 			e) Update the heap with (ne1, ne2) -> ne3
 			f) Return ne3
 	*)
@@ -264,17 +311,23 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 		let ne1, t_le1, _ = ssee e1 in
 		let ne2, t_le2, _ = ssee e2 in
 		let ne3, _, _ = ssee e3 in
-		(match ne1 with
-		| LLit (Loc l)
-		| ALoc l ->
-			Symbolic_State_Functions.update_abs_heap heap l ne2 ne3 pure_formulae gamma
-		| _ -> raise (Failure (Printf.sprintf "Mutation: I do not know which location %s denotes in the symbolic heap" (print_le ne1))));
+		let l = 
+			(match ne1 with
+				| LLit (Loc l)
+				| ALoc l -> l	
+				| _ -> 
+					let new_loc, anything = create_new_location e1 symb_state anti_frame in
+					Symbolic_State_Functions.update_abs_heap anti_heap new_loc ne2 (LVar anything) pure_formulae gamma; 
+					new_loc) in
+		Symbolic_State_Functions.update_abs_heap heap l ne2 ne3 pure_formulae gamma;
 		ne3
 
   (* Property deletion: delete(e1, e2)
 			a) Safely evaluate e1 to obtain the object location ne1 and its type te1
 			b) Safely evaluate e2 to obtain the property name ne2 and its type te2
-			c) If ne1 is not a literal location or an abstract location, throw an error
+			c) If ne1 is not a literal location or an abstract location
+				i) Create the cell (e1, e2) -> v 
+				ii) Return new cell location
 			e) Delete (ne1, ne2) from the heap
 			f) Return true
 	*)
@@ -285,7 +338,11 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 			(match ne1 with
 			| LLit (Loc l)
 			| ALoc l -> l
-			| _ -> raise (Failure (Printf.sprintf "Delete: I do not know which location %s denotes in the symbolic heap" (print_le ne1)))) in
+			| _ -> 
+				let new_loc, anything = create_new_location e1 symb_state anti_frame in
+				Symbolic_State_Functions.update_abs_heap anti_heap new_loc ne2 (LVar anything) pure_formulae gamma;
+				new_loc)
+			in
 		Symbolic_State_Functions.update_abs_heap heap l ne2 LNone pure_formulae gamma;
 		LLit (Bool true)
 
@@ -296,6 +353,7 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 			c) Delete the entire object ne1 from the heap
 			d) Return true
 	*)
+	(* TODO(Beatrix): Look into case *)
 	| SDeleteObj e1 ->
 		let ne1, t_le1, _ = ssee e1 in
 		let l =
@@ -310,17 +368,24 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
   (* Property existence: x = hasField(e1, e2);
 			a) Safely evaluate e1 to obtain the object location ne1 and its type te1
 			b) Safely evaluate e2 to obtain the property name ne2 and its type te2
-			c) If ne1 is not a literal location or an abstract location, throw an error
+			c) If ne1 is not a literal location or an abstract location
+				i) Create the cell (e1, e2) -> z 
+				ii) Create a logical boolean variable y
+				iii) Update the store with [x -> y]
+				iv) Add pure formula which says:
+						If z is none then y is false 
+						If z is not none then y is true 
+				v) Return y
 			d) Otherwise, understand if the object ne1 has the property ne2 and store that result in res;
-			e) If conclusive, update the store with [x |-> res] and return res
-			f) Otherwise, return unknown
-			e) If successful, update the store with [x |-> ne]
-			f) Return ne
+				i) If conclusive, update the store with [x |-> res] and return res
+				ii) Otherwise, return unknown
+				iii) If successful, update the store with [x |-> ne]
+				iv) Return ne
 	*)
 	| SHasField (x, e1, e2) ->
 		let ne1, t_le1, _ = ssee e1 in
 		let ne2, t_le2, _ = ssee e2 in
-		match ne1 with
+		(match ne1 with
 		| LLit (Loc l)
 		| ALoc l ->
 				let res = Symbolic_State_Functions.abs_heap_check_field_existence heap l ne2 pure_formulae gamma in
@@ -329,8 +394,19 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 					let res_lit = LLit (Bool res) in
 					update_abs_store store x res_lit;
 					res_lit) LUnknown
-		| _ -> raise (Failure (Printf.sprintf "HasField: I do not know which location %s denotes in the symbolic heap" (print_le ne1)))
-
+		| _ ->  
+				(* TODO(Beatrix): This ain't working. *)
+				let new_loc, z = create_new_location e1 symb_state anti_frame in
+				Symbolic_State_Functions.update_abs_heap anti_heap new_loc ne2 (LVar z) pure_formulae gamma; 
+				Symbolic_State_Functions.update_abs_heap heap new_loc ne2 (LVar z) pure_formulae gamma; 
+				(*let y = fresh_lvar () in 
+				update_gamma gamma y (Some BooleanType);
+				update_abs_store store x (LVar y);*)
+				update_gamma gamma x (Some BooleanType);
+				(*let formula = (LOr (LAnd ((LNot (LEq (LVar z, LNone))),(LEq (LVar y, LLit (Bool true))))  ,
+					(LAnd ((LEq (LVar z, LNone)),(LEq (LVar y, LLit (Bool false))))))) in
+				DynArray.add pure_formulae formula; *)
+				LUnknown )
 
 let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) le_args =
 
@@ -621,10 +697,6 @@ let recursive_unfold pred_name pred_defs symb_state params spec_vars =
 
 	loop symb_state
 
-
-
-
-
 let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 
 	let get_pred_data pred_name les =
@@ -715,7 +787,7 @@ symb_evaluate_logic_cmds s_prog (l_cmds : jsil_logic_command list) (symb_states 
 		symb_evaluate_logic_cmds s_prog rest_l_cmds new_symb_states subst spec_vars
 
 
-let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
+let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i prev =
 
 	(* auxiliary functions *)
 	let mark_as_visited search_info i =
@@ -723,18 +795,19 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 		Hashtbl.replace search_info.vis_tbl i cur_node_info.node_number in
 
 
-	let print_symb_state_and_cmd symb_state =
+	let print_symb_state_and_cmd symb_state anti_frame =
 		let symb_state_str = JSIL_Memory_Print.string_of_shallow_symb_state symb_state in
+		let anti_frame_str = JSIL_Memory_Print.string_of_shallow_symb_state anti_frame in
 		let cmd = get_proc_cmd proc i in
 		let cmd_str = JSIL_Print.string_of_cmd cmd 0 0 false false false in
 		let time = Sys.time() in
 		print_endline (Printf.sprintf
-			"----------------------------------\n--%i--\nTIME: %f\nSTATE:\n%sCMD: %s\n----------------------------------"
-			i time symb_state_str cmd_str) in
+			"----------------------------------\n--%i--\nTIME: %f\n ---- STATE: ---- \n%s -------- \n ---- ANTI_FRAME: ----\n%s -------- \n CMD: %s\n----------------------------------"
+			i time symb_state_str anti_frame_str cmd_str) in
 
 
 	(* symbolically evaluate a guarded goto *)
-	let symb_evaluate_guarded_goto symb_state e j k =
+	let symb_evaluate_guarded_goto symb_state anti_frame e j k =
 		let le = symb_evaluate_expr (get_store symb_state) (get_gamma symb_state) (get_pf symb_state) e in
 		print_debug (Printf.sprintf "Evaluated expression: %s --> %s\n" (JSIL_Print.string_of_expression e false) (JSIL_Print.string_of_logic_expression le false));
 		let e_le, a_le = lift_logic_expr le in
@@ -750,26 +823,26 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 		print_debug (Printf.sprintf "Checking if:\n%s\n\tentails\n%s\n" (JSIL_Print.str_of_assertion_list (get_pf_list symb_state)) (JSIL_Print.str_of_assertion_list a_le_then));
 		if (Pure_Entailment.old_check_entailment [] (get_pf_list symb_state) a_le_then (get_gamma symb_state)) then
 			(print_endline "in the THEN branch";
-			symb_evaluate_next_cmd s_prog proc spec search_info symb_state i j)
+			symb_evaluate_next_cmd s_prog proc spec search_info symb_state anti_frame i j)
 			else (if (Pure_Entailment.old_check_entailment [] (get_pf_list symb_state) a_le_else (get_gamma symb_state)) then
 					(print_endline "in the ELSE branch";
-					symb_evaluate_next_cmd s_prog proc spec search_info symb_state i k)
+					symb_evaluate_next_cmd s_prog proc spec search_info symb_state anti_frame i k)
 				else
 					(print_endline "I could not determine the branch.";
-
+					(* TODO(Beatrix): Case where the condition not known to be false nor true needs to be done. *)
 					let then_symb_state = symb_state in
 					let then_search_info = search_info in
 					let else_symb_state = copy_symb_state symb_state in
 					let else_search_info = update_vis_tbl search_info (copy_vis_tbl search_info.vis_tbl) in
 
 					extend_symb_state_with_pfs then_symb_state (DynArray.of_list a_le_then);
-					symb_evaluate_next_cmd s_prog proc spec then_search_info then_symb_state i j;
+					symb_evaluate_next_cmd s_prog proc spec then_search_info then_symb_state anti_frame i j;
 					extend_symb_state_with_pfs else_symb_state (DynArray.of_list a_le_else);
-					symb_evaluate_next_cmd s_prog proc spec else_search_info else_symb_state i k)) in
+					symb_evaluate_next_cmd s_prog proc spec else_search_info else_symb_state anti_frame i k)) in
 
 
 	(* symbolically evaluate a procedure call *)
-	let symb_evaluate_call symb_state x e e_args j =
+	let symb_evaluate_call symb_state anti_frame x e e_args j =
 
 		(* get the name and specs of the procedure being called *)
 		let le_proc_name = symb_evaluate_expr (get_store symb_state) (get_gamma symb_state) (get_pf symb_state) e in
@@ -803,14 +876,14 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 				let new_search_info = update_vis_tbl search_info (copy_vis_tbl search_info.vis_tbl) in
 				(match ret_flag, j with
 				| Normal, _ ->
-					symb_evaluate_next_cmd s_prog proc spec new_search_info symb_state i (i+1)
+					symb_evaluate_next_cmd s_prog proc spec new_search_info symb_state anti_frame i (i+1)
 				| Error, None -> raise (Failure (Printf.sprintf "Procedure %s may return an error, but no error label was provided." proc_name))
 				| Error, Some j ->
-					symb_evaluate_next_cmd s_prog proc spec new_search_info symb_state i j))
+					symb_evaluate_next_cmd s_prog proc spec new_search_info symb_state anti_frame i j))
 			new_symb_states in
 
 	(* symbolically evaluate a phi command *)
-	let symb_evaluate_phi symb_state x x_arr =
+	let symb_evaluate_phi symb_state anti_frame x x_arr =
 		let cur_proc_name = proc.proc_name in
 		let cur_which_pred =
 			try Hashtbl.find s_prog.which_pred (cur_proc_name, prev, i)
@@ -820,24 +893,24 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 		let te, _, _ =	type_lexpr (get_gamma symb_state) le in
 		update_abs_store (get_store symb_state) x le;
 		update_gamma (get_gamma symb_state) x te;
-		symb_evaluate_next_cmd s_prog proc spec search_info symb_state i (i+1) in
+		symb_evaluate_next_cmd s_prog proc spec search_info symb_state anti_frame i (i+1) in
 
 	let symb_state = simplify false symb_state in
-	print_symb_state_and_cmd symb_state;
+	print_symb_state_and_cmd symb_state anti_frame;
 	let metadata, cmd = get_proc_cmd proc i in
 	mark_as_visited search_info i;
 	match cmd with
 	| SBasic bcmd ->
-		let _ = symb_evaluate_bcmd bcmd symb_state in
-		symb_evaluate_next_cmd s_prog proc spec search_info symb_state i (i+1)
+		let _ = symb_evaluate_bcmd bcmd symb_state anti_frame in
+		symb_evaluate_next_cmd s_prog proc spec search_info symb_state anti_frame i (i+1)
 
-	| SGoto j -> symb_evaluate_next_cmd s_prog proc spec search_info symb_state i j
+	| SGoto j -> symb_evaluate_next_cmd s_prog proc spec search_info symb_state anti_frame i j
 
-	| SGuardedGoto (e, j, k) -> symb_evaluate_guarded_goto symb_state e j k
+	| SGuardedGoto (e, j, k) -> symb_evaluate_guarded_goto symb_state anti_frame e j k
 
-	| SCall (x, e, e_args, j) -> symb_evaluate_call symb_state x e e_args j
+	| SCall (x, e, e_args, j) -> symb_evaluate_call symb_state anti_frame x e e_args j
 
-	| SPhiAssignment (x, x_arr) -> symb_evaluate_phi symb_state x x_arr
+	| SPhiAssignment (x, x_arr) -> symb_evaluate_phi symb_state anti_frame x x_arr
 
 	| _ -> raise (Failure "not implemented yet")
 
@@ -854,7 +927,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 	
 	@return symb_states The list of symbolic states resulting from the evaluation
 *)
-and symb_evaluate_next_cmd s_prog proc spec search_info symb_state cur next  =
+and symb_evaluate_next_cmd s_prog proc spec search_info symb_state anti_frame cur next   =
 	(* Get the current command and the associated metadata *)
 	let metadata, cmd = get_proc_cmd proc cur in
 	(* Evaluate logic commands, if any *)
@@ -866,11 +939,12 @@ and symb_evaluate_next_cmd s_prog proc spec search_info symb_state cur next  =
 		(* Get the symbolic state *)
 		(fun symb_state ->
 			let search_info =
-				if (len > 1)
-					then { search_info with vis_tbl = (copy_vis_tbl search_info.vis_tbl) }
-					else search_info in
-				(* Go bravely into the continuation *)
-				symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state cur next)
+				if (len > 1) then 
+					{ search_info with vis_tbl = (copy_vis_tbl search_info.vis_tbl) }
+				else search_info in
+			(* Go bravely into the continuation *)
+			let (_,_,_,_) = symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state anti_frame cur next in
+			();)
 		symb_states
 
 (**
@@ -886,82 +960,88 @@ and symb_evaluate_next_cmd s_prog proc spec search_info symb_state cur next  =
 	
 	@return symb_states The list of symbolic states resulting from the evaluation
 *)
-and symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state cur next  =
+and symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state anti_frame cur next =
 
-  (* i1: Has the current command already been visited? *)
-  let is_visited i = Hashtbl.mem search_info.vis_tbl i in
+	(* i1: Has the current command already been visited? *)
+	let is_visited i = Hashtbl.mem search_info.vis_tbl i in
 
 	(* Conclusion *)
 	let finish how = 
-		Structural_Entailment.unify_symb_state_against_post proc.proc_name spec symb_state how search_info !js;
-		Symbolic_Traces.create_info_node_from_post search_info spec.n_post how true; () in
+		(try
+			Structural_Entailment.unify_symb_state_against_post proc.proc_name spec symb_state how search_info !js;
+			Symbolic_Traces.create_info_node_from_post search_info spec.n_post how true; 
+			(true, None, symb_state, anti_frame) 
+		with Failure msg ->
+			(false, Some msg, symb_state, anti_frame))
+		in
 	
 	(* i2: Have we reached the return label? *)
-	if (Some cur = proc.ret_label) then
+	(if (Some cur = proc.ret_label) then
 		(* i2: YES: Unify the final symbolic state against the postcondition *)
 		finish Normal
-	(* i2: NO: Have we reached the error label? *)
-	else (if (Some cur = proc.error_label) then
-		(* i3: YES: Unify the final symbolic state against the postcondition *)
-		finish Error
-	(* i3: NO: The control did not reach the end of the symbolic execution *)
-	else
+	else 
+		(* i2: NO: Have we reached the error label? *)
+		(if (Some cur = proc.error_label) then
+			(* i3: YES: Unify the final symbolic state against the postcondition *)
+			finish Error
+			(* i3: NO: The control did not reach the end of the symbolic execution *)
+		else
 		begin
 			(* Get the next command and its metadata *)
 			let metadata, cmd = get_proc_cmd proc next in
 			(* i1: YES: We have visited the current command and are in a loop *)
 			if (is_visited next) then
-				begin
-					(* Get the invariant *)
-					match (metadata.invariant) with
-					(* No invariant, throw an error *)
-					| None -> raise (Failure "back edges need to point to commands annotated with invariants")
-					(* Invariant present, check if the current symbolic state entails the invariant *)
-					| Some a ->
-						(* check if the current symbolic state entails the invariant *)
-						Printf.printf "LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
-						let new_symb_state, _ = JSIL_Logic_Normalise.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
-						let new_symb_state, _ = simplify_for_your_legacy (SS.empty) (DynArray.create()) new_symb_state in
-						(match (Structural_Entailment.fully_unify_symb_state new_symb_state symb_state spec.n_lvars !js) with
-						| Some _, _ -> ()
-						| None, msg -> raise (Failure msg))
-				end
+				(* Get the invariant *)
+				match (metadata.invariant) with
+				(* No invariant, throw an error *)
+				| None -> raise (Failure "back edges need to point to commands annotated with invariants")
+				(* Invariant present, check if the current symbolic state entails the invariant *)
+				| Some a ->
+					(* check if the current symbolic state entails the invariant *)
+					Printf.printf "LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
+					let new_symb_state, _ = JSIL_Logic_Normalise.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
+					let new_symb_state, _ = simplify_for_your_legacy (SS.empty) (DynArray.create()) new_symb_state in
+					(match (Structural_Entailment.fully_unify_symb_state new_symb_state symb_state spec.n_lvars !js) with
+					| Some _, _ -> (true, None, symb_state, anti_frame)
+					| None, msg -> (false, Some msg, symb_state, anti_frame))
 			else
 				(* i1: NO: We have not visited the current command *)
-				begin
-					(* Understand the symbolic state *)
-					let symb_state =
-						(* Get the invariant *)
-						match (metadata.invariant) with
-						(* No invariant, proceed *)
-						| None -> symb_state
-						(* Invariant present, check if the current symbolic state entails the invariant *)
-						| Some a ->
-							Printf.printf "NO LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
-							let new_symb_state, _ = JSIL_Logic_Normalise.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
-							let new_symb_state, _ = simplify_for_your_legacy (SS.empty) (DynArray.create()) new_symb_state in
-							(match (Structural_Entailment.unify_symb_state_against_invariant symb_state new_symb_state spec.n_lvars) with
-							(* If it does, replace current symbolic state with the invariant *)
-							| Some new_symb_state -> new_symb_state
-							| None -> raise (Failure "unification with invariant failed")) in
+				(* Understand the symbolic state *)
+				let symb_state =
+					(* Get the invariant *)
+					match (metadata.invariant) with
+					(* No invariant, proceed *)
+					| None -> symb_state
+					(* Invariant present, check if the current symbolic state entails the invariant *)
+					| Some a ->
+						Printf.printf "NO LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
+						let new_symb_state, _ = JSIL_Logic_Normalise.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
+						let new_symb_state, _ = simplify_for_your_legacy (SS.empty) (DynArray.create()) new_symb_state in
+						(match (Structural_Entailment.unify_symb_state_against_invariant symb_state new_symb_state spec.n_lvars) with
+						(* If it does, replace current symbolic state with the invariant *)
+						| Some new_symb_state -> new_symb_state
+						| None -> raise (Failure "unification with invariant failed")) in
 
-					(* Evaluate logic commands, if any *)
-					let symb_states = symb_evaluate_logic_cmds s_prog metadata.pre_logic_cmds [ symb_state ] spec.n_subst spec.n_lvars in
-					(* The number of symbolic states resulting from the evaluation of the logic commands *)
-					let len = List.length symb_states in
-					(* For each obtained symbolic state *) 
-					List.iter
-						(* Get the symbolic state *)
-						(fun symb_state ->
-							(* Construct the search info for the next command *)
-							let vis_tbl = if (len > 1) then (copy_vis_tbl search_info.vis_tbl) else search_info.vis_tbl in
-							let info_node = Symbolic_Traces.create_info_node_from_cmd search_info symb_state cmd next in
-							let new_search_info = update_search_info search_info info_node vis_tbl in
-							(* Actually evaluate the next command *) 
-							symb_evaluate_cmd s_prog proc spec new_search_info symb_state next cur)
-						symb_states
-				end
-		end)
+				(* Evaluate logic commands, if any *)
+				let symb_states = symb_evaluate_logic_cmds s_prog metadata.pre_logic_cmds [ symb_state ] spec.n_subst spec.n_lvars in
+				(* The number of symbolic states resulting from the evaluation of the logic commands *)
+				let len = List.length symb_states in
+				(* For each obtained symbolic state *) 
+				List.iter
+					(* Get the symbolic state *)
+					(fun symb_state ->
+						(* Construct the search info for the next command *)
+						let vis_tbl = if (len > 1) then (copy_vis_tbl search_info.vis_tbl) else search_info.vis_tbl in
+						let info_node = Symbolic_Traces.create_info_node_from_cmd search_info symb_state cmd next in
+						let new_search_info = update_search_info search_info info_node vis_tbl in
+						(* Actually evaluate the next command *) 
+						symb_evaluate_cmd s_prog proc spec new_search_info symb_state anti_frame next cur)
+					symb_states;
+				(true, None, symb_state, anti_frame)
+		end
+		);
+	);
+	(true, None, symb_state, anti_frame)
 
 (**
 	Symbolic execution of a JSIL procedure
@@ -982,29 +1062,43 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info =
 
 	let node_info = Symbolic_Traces.create_info_node_aux spec.n_pre 0 (-1) "Precondition" in
 	let search_info = make_symb_exe_search_info node_info pruning_info i in
+	let process_failure search_info msg_option spec i = 
+		let msg = Option.get(msg_option) in
+		print_endline (Printf.sprintf " !!!!( ERROR: The evaluation of this proc gave an error: %d %s )!!!!" i msg);
+		Symbolic_Traces.create_info_node_from_error search_info msg;
+		Symbolic_Traces.create_info_node_from_post search_info spec.n_post spec.n_ret_flag false;
+ 	in
 
 	(* Get the procedure to be symbolically executed *)
 	let proc = get_proc s_prog.program proc_name in
-	let success, failure_msg =
+	let success, failure_msg, post_state, anti_frame =
 		(try
-			print_debug (Printf.sprintf "Initial symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre));
+			print_debug (Printf.sprintf "Initial symbolic state:\n%s" 
+				(JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre));
 			let symb_state = copy_symb_state spec.n_pre in
+			(* Empty initial anti-frame*)
+			let anti_frame = Symbolic_State_Basics.init_symb_state in
 			(* Symbolically execute the procedure *)
-			symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state (-1) 0;
-			(* Symbolic execution was successful *)
-			true, None
+			let (success, msg, post_state, anti_frame) = 
+				symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state anti_frame (-1) 0 in
+			if (success) then 
+				(* Symbolic execution was successful *)
+				success, None, Some post_state, Some anti_frame 
+			else
+			begin
+				process_failure search_info msg spec i;
+				success, msg, Some post_state, Some anti_frame
+			end
 		(* An error occurred during the symbolic execution *)
 		with Failure msg ->
-			(print_endline (Printf.sprintf "The EVALUATION OF THIS PROC GAVE AN ERROR: %d %s!!!!" i msg);
-			Symbolic_Traces.create_info_node_from_error search_info msg;
-			Symbolic_Traces.create_info_node_from_post search_info spec.n_post spec.n_ret_flag false;
-			false, Some msg)) in
+			(process_failure search_info (Some msg) spec i;
+			false, Some msg, None, None)) in
 	let proc_name = Printf.sprintf "Spec_%d_of_%s" i proc_name in
 	(* Create the dot graph of the symbolic execution *)
 	let search_dot_graph = Some (JSIL_Memory_Print.dot_of_search_info search_info proc_name) in
 	print_debug (Printf.sprintf "%s" (sep_str ^ sep_str ^ sep_str));
 	(* Return *)
-	search_dot_graph, success, failure_msg
+	search_dot_graph, success, failure_msg, post_state, anti_frame
 
 (** 
 	Symbolic execution of a given set of JSIL procedures
@@ -1024,6 +1118,8 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info =
 let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 	(* Normalise predicate definitions *)
 	let n_pred_defs = JSIL_Logic_Normalise.normalise_predicate_definitions pred_defs in
+	(* Going to add the initial heap * anti-frame as the post and resulting heap as the anti-frame *)
+	let new_spec_tbl = Hashtbl.create 511 in
 	(* Construct corresponding extended JSIL program *)
 	let s_prog = {
 		program = prog;
@@ -1051,13 +1147,38 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 					(fun i pre_post ->
 						let new_pre_post = Symbolic_State_Functions.copy_single_spec pre_post in
 						(* Symbolically execute the procedure given the pre and post *)
-						let dot_graph, success, failure_msg = symb_evaluate_proc s_prog proc_name new_pre_post i pruning_info in
+						let dot_graph, success, failure_msg, post_state, anti_frame = symb_evaluate_proc s_prog proc_name new_pre_post i pruning_info in
+						(* Create new sepcification is there is an anti frame *)
+						(if (Option.is_some(anti_frame)) then  
+						begin
+							let suc_anti_frame = Option.get anti_frame in
+							let suc_post_state = Option.get post_state in
+							(* The new precondition = old precondition * anti frame *)
+							(* The new postconition is the final state after evaluation *)
+							let new_pre  =  Symbolic_State_Functions.merge_symb_states pre_post.n_pre suc_anti_frame in
+							let new_proc_spec  = 
+								{
+									n_pre        = new_pre;
+									n_post       = [suc_post_state];
+									n_ret_flag   = pre_post.n_ret_flag;
+									n_lvars      = pre_post.n_lvars;
+									n_post_lvars = pre_post.n_post_lvars;
+									n_subst      = pre_post.n_subst
+								} in 
+							Hashtbl.add new_spec_tbl proc_name {
+								n_spec_name = spec.n_spec_name;
+								n_spec_params = spec.n_spec_params;
+								n_proc_specs = [new_proc_spec];
+							};
+						end);
 						(proc_name, i, pre_post, success, failure_msg, dot_graph))
 					pre_post_list in
 				(* Filter specs that could not be verified *)
 				let new_spec = { spec with n_proc_specs = (filter_useless_posts_in_multiple_specs proc_name pre_post_list pruning_info) } in
 				(* Update the specification table *)
 				Hashtbl.replace spec_table proc_name new_spec;
+				let results_str, dot_graphs =  JSIL_Memory_Print.string_of_symb_exe_results results in
+				print_endline (Printf.sprintf "\n -- Result -- \n %s \n -- End of result --" results_str);
 				(* Concatenate symbolic trace *)
 				ac_results @ results
 			end
@@ -1068,8 +1189,8 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 	(* Understand complete success *)
 	let complete_success =
 		List.fold_left
-			(fun ac (_, _, _, partial_success, _, _) ->
-				if (ac && partial_success) then true else false)
+			(fun ac (_, _, _, partial_success, _, _) -> 
+				(ac && partial_success))
 			true
 			results in
 	(* Get the string and dot graphs of the symbolic execution *)
@@ -1089,4 +1210,4 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 		spec_table;
 	print_endline (Printf.sprintf "\nVerified: %d.\t\tPrunings: %d.\n" !count_verified !count_prunings);
 	(* Return *)
-	results_str, dot_graphs, complete_success
+	results_str, dot_graphs, complete_success, new_spec_tbl

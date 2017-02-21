@@ -15,6 +15,5 @@ init_parser:
 	opam pin -y add JS_Parser "https://github.com/resource-reasoning/JS_Parser.git#4c46f268fefc34fa63c61871f6d2f38cb1d5ddbb"
 #	opam pin -y add JS_Parser ../JS_Parser
 
-
 clean:
 	ocamlbuild ${OCAMLBUILDFLAGS} -clean
