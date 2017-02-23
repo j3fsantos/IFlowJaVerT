@@ -18,8 +18,8 @@ pred DOMField (l, prop, v) :
 
 pred DOMFunctionObject (l, call) :
 	types(l : $$object_type, call : $$string_type) *
-	((l, "@proto") -> $lfun_proto) * 
-	((l, "@class") -> "Function") * 
+	((l, "@proto") -> $lfun_proto) *
+	((l, "@class") -> "Function") *
 	((l, "@extensible") -> $$f) *
 	((l, "@scope") -> {{}}) *
 	((l, "@call")  -> call) *
@@ -47,7 +47,7 @@ pred NodePrototype() :
 	DOMFunctionField($l_np, "removeChild") *
 	DOMFunctionField($l_np, "appendChild") *
 	DOMFunctionField($l_np, "hasChildNodes") *
-	empty_fields($l_np : "@proto", "@class", "@extensible", "nodeName", "nodeValue", "nodeType", "parentNode", "childNodes", "firstChild", 
+	empty_fields($l_np : "@proto", "@class", "@extensible", "nodeName", "nodeValue", "nodeType", "parentNode", "childNodes", "firstChild",
 		"lastChild", "previousSibling", "nextSibling", "ownerDocument", "insertBefore", "replaceChild", "removeChild", "appendChild", "hasChildNodes");
 
 pred DocumentNodePrototype() :
@@ -76,7 +76,7 @@ pred ElementNodePrototype() :
 	DOMFunctionField($l_enp, "setAttributeNode") *
 	DOMFunctionField($l_enp, "removeAttributeNode") *
 	DOMFunctionField($l_enp, "getElementsByTagName") *
-	empty_fields($l_enp : "@proto", "@class", "@extensible", "tagName", "getAttribute", "setAttribute", "removeAttribute", "getAttributeNode", 
+	empty_fields($l_enp : "@proto", "@class", "@extensible", "tagName", "getAttribute", "setAttribute", "removeAttribute", "getAttributeNode",
 		"setAttributeNode", "removeAttributeNode", "getElementsByTagName");
 
 pred ElementNode(en, name, attr, children) :
@@ -93,7 +93,7 @@ pred ElementNodeSpecial(en, name, attr, children, parent) :
 	((en, "@attributes") -> attr) *
 	((en, "@children") -> children) *
 	((en, "@parent") -> parent) *
-	types(name: $$string_type, attr: $$list_type, children: $$list_type, parent: $$object_type) *
+	types(name: $$string_type, attr: $$list_type, children: $$list_type) *
 	empty_fields(en : "@proto", "@class", "@extensible", "@name", "@attributes", "@children", "@parent");
 
 pred InitialDOMHeap() :
@@ -111,7 +111,7 @@ only spec parentNode(xsc, xthis)
 
 spec test_func()
 	[[ DocumentNode($ldoc, #element) ]]
-	[[ DocumentNode($ldoc, #element) * ElementNodeSpecial(ret, "tests", {{}}, {{}}, $$null) ]]
+	[[ DocumentNode($ldoc, #element) * ElementNodeSpecial(ret, "test", {{}}, {{}}, $$null) ]]
 	normal
 
 proc test_func() {
