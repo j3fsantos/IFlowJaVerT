@@ -3,7 +3,7 @@
 *)
 open Batteries
 open JSIL_Syntax
-open JSIL_Memory_Model
+open Symbolic_State
 
 let larguments = "$largs"
 let largvals = "args"

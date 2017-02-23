@@ -1,5 +1,5 @@
 open JSIL_Syntax
-open JSIL_Memory_Model
+open Symbolic_State
 open JSIL_Logic_Utils
 open Symbolic_State_Basics
 

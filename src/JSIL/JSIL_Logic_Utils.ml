@@ -266,13 +266,13 @@ let rec get_expr_vars var_set catch_pvars e =
 	| LNone -> ()
 	| LVar var ->
 			if (not catch_pvars)
-				then (try (Hashtbl.find var_set var; ()) with _ -> (Hashtbl.add var_set var true; ()))
+				then (try (let _ = Hashtbl.find var_set var in ()) with _ -> (Hashtbl.add var_set var true; ()))
 				else ()
 	| LUnknown
 	| ALoc _ -> ()
 	| PVar var ->
 			if (catch_pvars)
-				then (try (Hashtbl.find var_set var; ()) with _ -> (Hashtbl.add var_set var true; ()))
+				then (try (let _ = Hashtbl.find var_set var in ()) with _ -> (Hashtbl.add var_set var true; ()))
 				else ()
 	| LBinOp (e1, op, e2) -> f e1; f e2
 	| LUnOp (op, e1) -> f e1
@@ -309,7 +309,7 @@ let rec get_ass_vars_iter vars_tbl catch_pvars ass =
 						(print_debug (Printf.sprintf "Sth illegal in types assertion: %s\n" (JSIL_Print.string_of_logic_expression le false));
 						(true, "", false))) in 
 				if ((not abort) && (((not catch_pvars) && is_x_lvar) || (catch_pvars &&  (not is_x_lvar)))) then (
-					try (Hashtbl.find vars_tbl x; ()) with _ -> (Hashtbl.add vars_tbl x true; ())
+					try (let _ = Hashtbl.find vars_tbl x in ()) with _ -> (Hashtbl.add vars_tbl x true; ())
 				) else ())
 			vts 
 	| LPred (_, es) -> List.iter fe es
@@ -575,7 +575,7 @@ let rec lexpr_substitution lexpr subst partial =
 			(try Hashtbl.find subst var with _ ->
 				if (not partial)
 					then
-						let new_var = JSIL_Memory_Model.fresh_lvar () in
+						let new_var = Symbolic_State.fresh_lvar () in
 						Hashtbl.replace subst var (LVar new_var);
 						LVar new_var
 					else (LVar var))
@@ -584,7 +584,7 @@ let rec lexpr_substitution lexpr subst partial =
 			(try Hashtbl.find subst aloc with _ ->
 				if (not partial)
 					then
-						let new_aloc = ALoc (JSIL_Memory_Model.fresh_aloc ()) in
+						let new_aloc = ALoc (Symbolic_State.fresh_aloc ()) in
 						Hashtbl.replace subst aloc new_aloc;
 						new_aloc
 					else
@@ -731,7 +731,7 @@ let rec type_lexpr gamma le =
 	(* Variables are typable if in gamma, otherwise no no *)
 	| LVar var
 	| PVar var ->
-		(match JSIL_Memory_Model.gamma_get_type gamma var with
+		(match Symbolic_State.gamma_get_type gamma var with
 		| Some t -> Some t, true, []
 		| None   -> None,   true, [])
 
@@ -875,10 +875,10 @@ let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
 	(* with the target type or if they are not typable           *)
 	| LVar var
 	| PVar var ->
-		(match (JSIL_Memory_Model.gamma_get_type gamma var), (JSIL_Memory_Model.gamma_get_type new_gamma var) with
+		(match (Symbolic_State.gamma_get_type gamma var), (Symbolic_State.gamma_get_type new_gamma var) with
 		| Some t, None
 		| None, Some t     -> (t = le_type)
-		| None, None       -> (JSIL_Memory_Model.update_gamma new_gamma var (Some le_type)); true
+		| None, None       -> (Symbolic_State.update_gamma new_gamma var (Some le_type)); true
 		| Some t1, Some t2 -> if (t1 = t2) then true else false)
 
 	(* Abstract locations are reverse-typable if the target type is ObjectType *)
@@ -952,8 +952,8 @@ let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
  	 	| LUnknown -> false)
 
 
-let reverse_type_lexpr gamma le le_type : JSIL_Memory_Model.typing_environment option =
-	let new_gamma : JSIL_Memory_Model.typing_environment = JSIL_Memory_Model.mk_gamma () in
+let reverse_type_lexpr gamma le le_type : Symbolic_State.typing_environment option =
+	let new_gamma : Symbolic_State.typing_environment = Symbolic_State.mk_gamma () in
 	let ret = reverse_type_lexpr_aux gamma new_gamma le le_type in
 	if (ret)
 		then Some new_gamma

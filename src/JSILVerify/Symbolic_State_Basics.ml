@@ -1,5 +1,5 @@
 open JSIL_Syntax
-open JSIL_Memory_Model
+open Symbolic_State
 open JSIL_Logic_Utils
 
 (***************)
@@ -255,7 +255,7 @@ let rec gamma_substitution gamma subst partial =
 					then	Hashtbl.add new_gamma var v_type
 					else (
 						if (is_lvar_name var) then (
-							let new_lvar = JSIL_Memory_Model.fresh_lvar () in
+							let new_lvar = Symbolic_State.fresh_lvar () in
 							Hashtbl.add subst var (LVar new_lvar);
 							Hashtbl.add new_gamma new_lvar v_type
 						))))

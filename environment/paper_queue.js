@@ -28,6 +28,7 @@
 
 @pred Queue(q, node_proto, max_pri) :
 	(q == $$null) * (max_pri == 0) * types(max_pri : $$number_type),
+
 	Node(q, max_pri, #val, #next, node_proto) * (0 <# max_pri) *
 	Queue(#next, node_proto, #pri) * (#pri <=# max_pri) *
 	types(q : $$object_type, node_proto : $$object_type, #pri : $$number_type, max_pri : $$number_type);
@@ -148,13 +149,9 @@ Node.prototype.insert = function (n) {
 		/**
 			@unfold Queue(#this_next, #node_proto, #max_pri_next) */
 		var next = this.next;
-		if (next == null) {
-				this.next = n
-		} else {
-			   /* @fold Queue(#this_next, #node_proto, #max_pri_next) */
-				var tmp = next.insert (n);
-				this.next = tmp
-		}
+		/* @fold Queue(#this_next, #node_proto, #max_pri_next) */
+		var tmp = next.insert(n);
+		this.next = tmp;
 		/** @fold Queue(this, #node_proto, #pri_q) */
 		return this
 	}

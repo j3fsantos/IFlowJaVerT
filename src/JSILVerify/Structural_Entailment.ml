@@ -1,5 +1,5 @@
 open JSIL_Syntax
-open JSIL_Memory_Model
+open Symbolic_State
 open JSIL_Logic_Utils
 open Symbolic_State_Basics
 
@@ -500,7 +500,7 @@ let unify_gamma pat_gamma gamma pat_store subst ignore_vars =
 
 
 let spec_logic_vars_discharge subst lvars pfs (* solver *) gamma =
-	let pf_list = (JSIL_Memory_Model.pfs_to_list pfs) in
+	let pf_list = (Symbolic_State.pfs_to_list pfs) in
 	let pfs_to_prove =
 		List.fold_left
 			(fun ac var ->

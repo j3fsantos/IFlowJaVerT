@@ -1,5 +1,4 @@
 open JSIL_Syntax
-open JSIL_Memory_Model
 
 let rec tabs_to_str i  =
 	if i = 0 then "" else "\t" ^ (tabs_to_str (i - 1))
