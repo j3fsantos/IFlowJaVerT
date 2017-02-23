@@ -23,7 +23,7 @@ pred DOMFunctionObject (l, call) :
 	((l, "@extensible") -> $$f) *
 	((l, "@scope") -> {{}}) *
 	((l, "@call")  -> call) *
-	empty_fields(l : "@proto", "@class", "@extensible", "@call");
+	empty_fields(l : "@proto", "@class", "@extensible", "@scope", "@call");
 
 pred DOMFunctionField(l, call) :
 	DOMField(l, call, #lnn) *
@@ -58,7 +58,7 @@ pred DocumentNodePrototype() :
 	DOMFunctionField($l_dnp, "createTextNode") *
 	DOMFunctionField($l_dnp, "createAttribute") *
 	DOMFunctionField($l_dnp, "getElementsByTagName") *
-	empty_fields($l_dnp : "@proto", "@class", "@extensible", "documentElement", "createElement", "createTextNode", "createAttribute", "getElementsByTagName");
+	empty_fields($l_dnp : "@proto", "@class", "@extensible", "@name", "documentElement", "createElement", "createTextNode", "createAttribute", "getElementsByTagName");
 
 pred DocumentNode(dn, element) :
 	DOMObject(dn, $l_dnp) *
@@ -87,22 +87,36 @@ pred ElementNode(en, name, attr, children) :
 	types(name: $$string_type, attr: $$list_type, children: $$list_type) *
 	empty_fields(en : "@proto", "@class", "@extensible", "@name", "@attributes", "@children");
 
+pred ElementNodeSpecial(en, name, attr, children, parent) :
+	DOMObject(en, $l_enp) *
+	((en, "@name") -> name) *
+	((en, "@attributes") -> attr) *
+	((en, "@children") -> children) *
+	((en, "@parent") -> parent) *
+	types(name: $$string_type, attr: $$list_type, children: $$list_type, parent: $$object_type) *
+	empty_fields(en : "@proto", "@class", "@extensible", "@name", "@attributes", "@children", "@parent");
+
 pred InitialDOMHeap() :
 	NodePrototype() * DocumentNodePrototype() * ElementNodePrototype();
 
 only spec createElement(xsc, xthis, x)
-	[[ (xsc == #xsc) * (xthis == #dn) * (x == #name) * DocumentNode(#dn, #element) ]]
-	[[ DocumentNode(#dn, #element) * ElementNode(ret, #name, {{}}, {{}}) ]]
+	[[ (xthis == #dn) * (x == #name) * DocumentNode(#dn, #element) ]]
+	[[ DocumentNode(#dn, #element) * ElementNodeSpecial(ret, #name, {{}}, {{}}, $$null) ]]
+	normal
+
+only spec parentNode(xsc, xthis)
+	[[ (xthis == #en) * ElementNodeSpecial(#en, #name, #att, #children, $$null) ]]
+	[[ ElementNodeSpecial(#en, #name, #att, #children, $$null) * (ret == $$null) ]]
 	normal
 
 spec test_func()
 	[[ DocumentNode($ldoc, #element) ]]
-	[[ DocumentNode($ldoc, #element) * (#ldnp) * ElementNode(ret, "tests", {{}}, {{}}) ]]
+	[[ DocumentNode($ldoc, #element) * ElementNodeSpecial(ret, "tests", {{}}, {{}}, $$null) ]]
 	normal
 
 proc test_func() {
 
-			xret := "createElement" ({{}}, $ldoc, "tests");
+			xret := "createElement" ({{}}, $ldoc, "test");
 
 	rlab:	skip
 }
