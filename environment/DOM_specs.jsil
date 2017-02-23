@@ -97,7 +97,7 @@ only spec createElement(xsc, xthis, x)
 
 spec test_func()
 	[[ DocumentNode($ldoc, #element) ]]
-	[[ DocumentNode($ldoc, #element) * (#ldnp) * ElementNode(ret, "tests", {{}}, {{}}) ]]
+	[[ DocumentNode($ldoc, #element) * ElementNode(ret, "tests", {{}}, {{}}) ]]
 	normal
 
 proc test_func() {
