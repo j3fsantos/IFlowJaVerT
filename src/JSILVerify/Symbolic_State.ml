@@ -154,6 +154,10 @@ let pfs_to_list (pfs : pure_formulae) =
 	DynArray.to_list pfs
 
 
+let add_pure_assertion (pfs : pure_formulae) (a : jsil_logic_assertion) = 
+	DynArray.add pfs a
+	
+
 
 (*************************************)
 (** Typing Environment functions    **)
