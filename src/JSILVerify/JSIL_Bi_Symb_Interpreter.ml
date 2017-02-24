@@ -189,21 +189,14 @@ let get_expr_var (expr : jsil_expr) : jsil_var =
 		Generate an abritary value for the missing heap cell. 
 *)
 let create_new_location (expr: jsil_logic_expr) (symb_state : symbolic_state) (anti_frame : symbolic_state) : string * string = 
-	let _, store, _, gamma, _ = symb_state in
-	let _, anti_store, _, anti_gamma, _ = anti_frame in
+	let _, store, pfs, gamma, _ = symb_state in
+	let _, anti_store, anti_pfs, anti_gamma, _ = anti_frame in
 	(* New location which 'expr' will be associated with *)
+	let anything = fresh_lvar () in
 	let new_loc = fresh_aloc () in
-	(* Get the string value of e1 *)
-	(*let var = get_expr_var expr in*)
-	(* Get a new logical variable *)
-	update_
-
-	(* Update the store with the new location *)
-	update_abs_store store var (ALoc new_loc);
-	update_abs_store anti_store var (ALoc new_loc);
-	(* Update the type enviroment with the variable 'expr' being an object type *)
-	update_gamma gamma var (Some ObjectType);
-	update_gamma anti_gamma var (Some ObjectType);
+	let pf = (LEq ((ALoc new_loc), expr)) in
+	add_pure_assertion pfs pf;
+	add_pure_assertion anti_pfs pf;
 	(new_loc, anything)
 
 (************************************************)
@@ -290,7 +283,7 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) (anti_frame : symbolic
 			| LLit (Loc l)
 			| ALoc l -> l
 			| _ -> 
-				let new_loc, anything = create_new_location e1 symb_state anti_frame in
+				let new_loc, anything = create_new_location ne1 symb_state anti_frame in
 				DynArray.add pure_formulae (LNot (LEq (LVar anything, LNone)));
 				DynArray.add anti_pure_formulae (LNot (LEq (LVar anything, LNone)));
 				Symbolic_State_Functions.update_abs_heap heap new_loc ne2 (LVar anything) pure_formulae gamma;
@@ -322,7 +315,7 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) (anti_frame : symbolic
 					let new_loc, anything = create_new_location ne1 symb_state anti_frame in
 					Symbolic_State_Functions.update_abs_heap anti_heap new_loc ne2 (LVar anything) pure_formulae gamma; 
 					new_loc) in
-		Symbolic_State_Functions.update_abs_heap heap l ne2 ne3 pure_formulae gamma;
+		Bi_Symbolic_State_Functions.update_abs_heap heap anti_heap l ne2 ne3 pure_formulae gamma;
 		ne3
 
   (* Property deletion: delete(e1, e2)
@@ -342,7 +335,7 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) (anti_frame : symbolic
 			| LLit (Loc l)
 			| ALoc l -> l
 			| _ -> 
-				let new_loc, anything = create_new_location e1 symb_state anti_frame in
+				let new_loc, anything = create_new_location ne1 symb_state anti_frame in
 				Symbolic_State_Functions.update_abs_heap anti_heap new_loc ne2 (LVar anything) pure_formulae gamma;
 				new_loc)
 			in
@@ -399,7 +392,7 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) (anti_frame : symbolic
 					res_lit) LUnknown
 		| _ ->  
 				(* TODO(Beatrix): This ain't working. *)
-				let new_loc, z = create_new_location e1 symb_state anti_frame in
+				let new_loc, z = create_new_location ne1 symb_state anti_frame in
 				Symbolic_State_Functions.update_abs_heap anti_heap new_loc ne2 (LVar z) pure_formulae gamma; 
 				Symbolic_State_Functions.update_abs_heap heap new_loc ne2 (LVar z) pure_formulae gamma; 
 				(*let y = fresh_lvar () in 
