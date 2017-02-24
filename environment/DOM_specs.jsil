@@ -63,7 +63,6 @@ pred DocumentNodePrototype() :
 pred DocumentNode(dn, element) :
 	DOMObject(dn, $l_dnp) *
 	((dn, "@element") -> element) *
-	types(element: $$object_type) *
 	empty_fields(dn : "@proto", "@class", "@extensible", "@element");
 
 pred ElementNodePrototype() :
@@ -109,6 +108,13 @@ only spec parentNode(xsc, xthis)
 	[[ ElementNodeSpecial(#en, #name, #att, #children, $$null) * (ret == $$null) ]]
 	normal
 
+only spec appendChild(xsc, xthis, newchild)
+	[[ (xthis == #dn) * (newchild == #en) * DocumentNode(#dn, $$null) * ElementNodeSpecial(#en, #name, #att, #children, $$null)]]
+	[[ DocumentNode(#dn, #en) * ElementNodeSpecial(#en, #name, #att, #children, #dn) * (ret == #en) ]]
+	normal
+
+
+
 spec test_func()
 	[[ DocumentNode($ldoc, #element) ]]
 	[[ DocumentNode($ldoc, #element) * ElementNodeSpecial(ret, "test", {{}}, {{}}, $$null) ]]
@@ -119,6 +125,27 @@ proc test_func() {
 			xret := "createElement" ({{}}, $ldoc, "test");
 
 	rlab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+};
+
+
+
+spec appendChild_program(m, n)
+	[[ (m == #dn) * (n == #en) * DocumentNode(#dn, $$null) * ElementNodeSpecial(#en, #name, #att, #children, $$null) ]]
+	[[ DocumentNode(#dn, #en) * ElementNodeSpecial(#en, #name, #att, #children, #dn) ]]
+	normal
+
+proc appendChild_program(m, n) {
+				p := "parentNode" ({{}}, n);
+				goto [ (p = $$null) ] then1 else1;
+		then1:  xret := "appendChild" ({{}}, m, n); 
+		        goto rlab; 
+		else1:  aux := "removeChild"({{}}, p, n); 
+		        xret := "appendChild"({{}}, m, n);
+		rlab:   skip				
 }
 with
 {
