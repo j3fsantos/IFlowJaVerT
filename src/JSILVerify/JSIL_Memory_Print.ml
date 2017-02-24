@@ -220,7 +220,7 @@ let string_of_substitution substitution =
 
 let string_of_symb_exe_result result =
 	let proc_name, i, pre_post, success, msg, dot_graph = result in
-	let str = "Proc" ^ proc_name ^ "  - " ^ (string_of_single_spec pre_post) ^ " -- " in
+	let str = "Proc " ^ proc_name ^ "  - " ^ (string_of_single_spec pre_post) ^ " -- " in
 	let str =
 		if (success) then
 			str ^ "VERIFIED\n\n"
