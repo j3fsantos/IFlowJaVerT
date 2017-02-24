@@ -104,8 +104,7 @@ let get_heap_domain heap subst =
 
 
 let extend_abs_heap (heap : symbolic_heap) (loc : string) (field : jsil_logic_expr) (value : jsil_logic_expr) = 
-	let fv_list, def_val = try LHeap.find heap loc with _ -> 
-		raise (Failure "loc does not exist in the heap") in  
+	let fv_list, def_val = try LHeap.find heap loc with _ -> ([], LUnknown) in  
 	LHeap.replace heap loc (((field, value) :: fv_list), def_val)
 
 
