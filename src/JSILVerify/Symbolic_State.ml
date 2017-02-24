@@ -70,30 +70,6 @@ type pure_formulae      = (jsil_logic_assertion DynArray.t)
 type typing_environment = ((string, jsil_type) Hashtbl.t)
 type predicate_set      = ((string * (jsil_logic_expr list)) DynArray.t)
 
-type smt_translation_ctx = {
-	z3_ctx                 : context;
-	tr_typing_env          : typing_environment;
-	tr_typeof_fun          : FuncDecl.func_decl;
-	tr_llen_fun            : FuncDecl.func_decl;
-	tr_slen_fun            : FuncDecl.func_decl;
-	tr_num2str_fun         : FuncDecl.func_decl;
-	tr_str2num_fun         : FuncDecl.func_decl;
-	tr_num2int_fun         : FuncDecl.func_decl;
-	tr_lnth_fun            : FuncDecl.func_decl;
-	tr_snth_fun            : FuncDecl.func_decl;
-  tr_list_sort           : Sort.sort;
-  tr_list_nil            : FuncDecl.func_decl;
-	tr_list_is_nil         : FuncDecl.func_decl;
-	tr_list_cons           : FuncDecl.func_decl;
-	tr_list_is_cons        : FuncDecl.func_decl;
-	tr_list_head           : FuncDecl.func_decl;
-	tr_list_tail           : FuncDecl.func_decl;
-	tr_to_jsil_boolean_fun : FuncDecl.func_decl;
-	tr_jsil_not_fun        : FuncDecl.func_decl;
-	tr_axioms              : Expr.expr list;
-	(* tr_existentials   : string list *)
-}
-
 
 type symbolic_state = symbolic_heap * symbolic_store * pure_formulae * typing_environment * predicate_set (* * (((Solver.solver * smt_translation_ctx) option) ref) *)
 
@@ -177,6 +153,10 @@ let get_store_domain store =
 let pfs_to_list (pfs : pure_formulae) =
 	DynArray.to_list pfs
 
+
+let add_pure_assertion (pfs : pure_formulae) (a : jsil_logic_assertion) = 
+	DynArray.add pfs a
+	
 
 
 (*************************************)

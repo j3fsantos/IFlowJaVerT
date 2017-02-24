@@ -18,12 +18,12 @@ pred DOMField (l, prop, v) :
 
 pred DOMFunctionObject (l, call) :
 	types(l : $$object_type, call : $$string_type) *
-	((l, "@proto") -> $lfun_proto) * 
-	((l, "@class") -> "Function") * 
+	((l, "@proto") -> $lfun_proto) *
+	((l, "@class") -> "Function") *
 	((l, "@extensible") -> $$f) *
 	((l, "@scope") -> {{}}) *
 	((l, "@call")  -> call) *
-	empty_fields(l : "@proto", "@class", "@extensible", "@call");
+	empty_fields(l : "@proto", "@class", "@extensible", "@scope", "@call");
 
 pred DOMFunctionField(l, call) :
 	DOMField(l, call, #lnn) *
@@ -47,7 +47,7 @@ pred NodePrototype() :
 	DOMFunctionField($l_np, "removeChild") *
 	DOMFunctionField($l_np, "appendChild") *
 	DOMFunctionField($l_np, "hasChildNodes") *
-	empty_fields($l_np : "@proto", "@class", "@extensible", "nodeName", "nodeValue", "nodeType", "parentNode", "childNodes", "firstChild", 
+	empty_fields($l_np : "@proto", "@class", "@extensible", "nodeName", "nodeValue", "nodeType", "parentNode", "childNodes", "firstChild",
 		"lastChild", "previousSibling", "nextSibling", "ownerDocument", "insertBefore", "replaceChild", "removeChild", "appendChild", "hasChildNodes");
 
 pred DocumentNodePrototype() :
@@ -58,12 +58,11 @@ pred DocumentNodePrototype() :
 	DOMFunctionField($l_dnp, "createTextNode") *
 	DOMFunctionField($l_dnp, "createAttribute") *
 	DOMFunctionField($l_dnp, "getElementsByTagName") *
-	empty_fields($l_dnp : "@proto", "@class", "@extensible", "documentElement", "createElement", "createTextNode", "createAttribute", "getElementsByTagName");
+	empty_fields($l_dnp : "@proto", "@class", "@extensible", "@name", "documentElement", "createElement", "createTextNode", "createAttribute", "getElementsByTagName");
 
 pred DocumentNode(dn, element) :
 	DOMObject(dn, $l_dnp) *
 	((dn, "@element") -> element) *
-	types(element: $$object_type) *
 	empty_fields(dn : "@proto", "@class", "@extensible", "@element");
 
 pred ElementNodePrototype() :
@@ -76,7 +75,7 @@ pred ElementNodePrototype() :
 	DOMFunctionField($l_enp, "setAttributeNode") *
 	DOMFunctionField($l_enp, "removeAttributeNode") *
 	DOMFunctionField($l_enp, "getElementsByTagName") *
-	empty_fields($l_enp : "@proto", "@class", "@extensible", "tagName", "getAttribute", "setAttribute", "removeAttribute", "getAttributeNode", 
+	empty_fields($l_enp : "@proto", "@class", "@extensible", "tagName", "getAttribute", "setAttribute", "removeAttribute", "getAttributeNode",
 		"setAttributeNode", "removeAttributeNode", "getElementsByTagName");
 
 pred ElementNode(en, name, attr, children) :
@@ -87,24 +86,66 @@ pred ElementNode(en, name, attr, children) :
 	types(name: $$string_type, attr: $$list_type, children: $$list_type) *
 	empty_fields(en : "@proto", "@class", "@extensible", "@name", "@attributes", "@children");
 
+pred ElementNodeSpecial(en, name, attr, children, parent) :
+	DOMObject(en, $l_enp) *
+	((en, "@name") -> name) *
+	((en, "@attributes") -> attr) *
+	((en, "@children") -> children) *
+	((en, "@parent") -> parent) *
+	types(name: $$string_type, attr: $$list_type, children: $$list_type) *
+	empty_fields(en : "@proto", "@class", "@extensible", "@name", "@attributes", "@children", "@parent");
+
 pred InitialDOMHeap() :
 	NodePrototype() * DocumentNodePrototype() * ElementNodePrototype();
 
 only spec createElement(xsc, xthis, x)
-	[[ (xsc == #xsc) * (xthis == #dn) * (x == #name) * DocumentNode(#dn, #element) ]]
-	[[ DocumentNode(#dn, #element) * ElementNode(ret, #name, {{}}, {{}}) ]]
+	[[ (xthis == #dn) * (x == #name) * DocumentNode(#dn, #element) ]]
+	[[ DocumentNode(#dn, #element) * ElementNodeSpecial(ret, #name, {{}}, {{}}, $$null) ]]
 	normal
+
+only spec parentNode(xsc, xthis)
+	[[ (xthis == #en) * ElementNodeSpecial(#en, #name, #att, #children, $$null) ]]
+	[[ ElementNodeSpecial(#en, #name, #att, #children, $$null) * (ret == $$null) ]]
+	normal
+
+only spec appendChild(xsc, xthis, newchild)
+	[[ (xthis == #dn) * (newchild == #en) * DocumentNode(#dn, $$null) * ElementNodeSpecial(#en, #name, #att, #children, $$null)]]
+	[[ DocumentNode(#dn, #en) * ElementNodeSpecial(#en, #name, #att, #children, #dn) * (ret == #en) ]]
+	normal
+
+
 
 spec test_func()
 	[[ DocumentNode($ldoc, #element) ]]
-	[[ DocumentNode($ldoc, #element) * (#ldnp) * ElementNode(ret, "tests", {{}}, {{}}) ]]
+	[[ DocumentNode($ldoc, #element) * ElementNodeSpecial(ret, "test", {{}}, {{}}, $$null) ]]
 	normal
 
 proc test_func() {
 
-			xret := "createElement" ({{}}, $ldoc, "tests");
+			xret := "createElement" ({{}}, $ldoc, "test");
 
 	rlab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+};
+
+
+
+spec appendChild_program(m, n)
+	[[ (m == #dn) * (n == #en) * DocumentNode(#dn, $$null) * ElementNodeSpecial(#en, #name, #att, #children, $$null) ]]
+	[[ DocumentNode(#dn, #en) * ElementNodeSpecial(#en, #name, #att, #children, #dn) ]]
+	normal
+
+proc appendChild_program(m, n) {
+				p := "parentNode" ({{}}, n);
+				goto [ (p = $$null) ] then1 else1;
+		then1:  xret := "appendChild" ({{}}, m, n); 
+		        goto rlab; 
+		else1:  aux := "removeChild"({{}}, p, n); 
+		        xret := "appendChild"({{}}, m, n);
+		rlab:   skip				
 }
 with
 {

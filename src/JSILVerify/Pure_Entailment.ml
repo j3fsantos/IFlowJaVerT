@@ -1,5 +1,5 @@
 open JSIL_Syntax
-open JSIL_Memory_Model
+open Symbolic_State
 open JSIL_Logic_Utils
 open Symbolic_State_Basics
 open Z3
@@ -41,6 +41,32 @@ let none_encoding      = 1234567895
 let string_encoding    = 1000000000
 
 let types_encoded_as_reals_fpa = NumberType :: types_encoded_as_ints
+
+
+type smt_translation_ctx = {
+	z3_ctx                 : context;
+	tr_typing_env          : typing_environment;
+	tr_typeof_fun          : FuncDecl.func_decl;
+	tr_llen_fun            : FuncDecl.func_decl;
+	tr_slen_fun            : FuncDecl.func_decl;
+	tr_num2str_fun         : FuncDecl.func_decl;
+	tr_str2num_fun         : FuncDecl.func_decl;
+	tr_num2int_fun         : FuncDecl.func_decl;
+	tr_lnth_fun            : FuncDecl.func_decl;
+	tr_snth_fun            : FuncDecl.func_decl;
+  tr_list_sort           : Sort.sort;
+  tr_list_nil            : FuncDecl.func_decl;
+	tr_list_is_nil         : FuncDecl.func_decl;
+	tr_list_cons           : FuncDecl.func_decl;
+	tr_list_is_cons        : FuncDecl.func_decl;
+	tr_list_head           : FuncDecl.func_decl;
+	tr_list_tail           : FuncDecl.func_decl;
+	tr_to_jsil_boolean_fun : FuncDecl.func_decl;
+	tr_jsil_not_fun        : FuncDecl.func_decl;
+	tr_axioms              : Expr.expr list;
+	(* tr_existentials   : string list *)
+}
+
 
 (**********************
  * ENCODING-DEPENDENT *
@@ -104,7 +130,7 @@ let get_z3_var_symbol tr_ctx var =
 
 let get_sorts tr_ctx vars =
 	let gamma = tr_ctx.tr_typing_env in
-	List.map (fun x -> let var_type = JSIL_Memory_Model.gamma_get_type gamma x in get_sort tr_ctx var_type) vars
+	List.map (fun x -> let var_type = Symbolic_State.gamma_get_type gamma x in get_sort tr_ctx var_type) vars
 
 
 let get_z3_vars tr_ctx vars =
@@ -468,7 +494,7 @@ let encode_unop tr_ctx op le te =
 let get_z3_var_and_type tr_ctx var =
 	let ctx = tr_ctx.z3_ctx in
 	let gamma = tr_ctx.tr_typing_env in
-	let var_type = JSIL_Memory_Model.gamma_get_type gamma var in
+	let var_type = Symbolic_State.gamma_get_type gamma var in
 	let le, te =
 		(match var_type with
 			| None            -> let le = (mk_const ctx (Symbol.mk_string ctx var)) in
@@ -624,14 +650,14 @@ let encode_snth_equalities tr_ctx s les =
 let encode_gamma tr_ctx how_many =
 	let ctx = tr_ctx.z3_ctx in
 	let gamma = tr_ctx.tr_typing_env in
-	let gamma_var_type_pairs = JSIL_Memory_Model.get_gamma_var_type_pairs gamma in
+	let gamma_var_type_pairs = Symbolic_State.get_gamma_var_type_pairs gamma in
 	let encoded_gamma = 
 		let z3true = (Boolean.mk_true ctx) in 
 		List.filter 
 			(fun x -> x <> Boolean.mk_true ctx)
 			(List.map
 				(fun (x, t_x) ->
-					if ((JSIL_Memory_Model.is_lvar_name x) || (JSIL_Memory_Model.is_abs_loc_name x))
+					if ((Symbolic_State.is_lvar_name x) || (Symbolic_State.is_abs_loc_name x))
 						then (
 							let le_x = (mk_const ctx (Symbol.mk_string ctx x)) in
 							let le_typeof_le_x = (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ le_x ]) in
@@ -1219,7 +1245,7 @@ let is_equal e1 e2 pure_formulae (* solver *) gamma =
 	let pfs = DynArray.to_list pure_formulae in
 	let result = (match (is_equal_on_lexprs e1 e2 pfs) with
 	| Some b -> b
-	| None -> JSIL_Syntax.update_statistics "is_equal_entailment" 0.; old_check_entailment [] (JSIL_Memory_Model.pfs_to_list pure_formulae) [ (LEq (e1, e2)) ] gamma) in
+	| None -> JSIL_Syntax.update_statistics "is_equal_entailment" 0.; old_check_entailment [] (Symbolic_State.pfs_to_list pure_formulae) [ (LEq (e1, e2)) ] gamma) in
 	let end_time = Sys.time () in
 	JSIL_Syntax.update_statistics "is_equal" (end_time -. start_time);
 	result
@@ -1230,7 +1256,7 @@ let is_different e1 e2 pure_formulae (* solver *) gamma =
 	let pfs = DynArray.to_list pure_formulae in
 	let result = (match (is_equal_on_lexprs e1 e2 pfs) with
 	| Some b -> not b
-	| None -> JSIL_Syntax.update_statistics "is_different_entailment" 0.; old_check_entailment [] (JSIL_Memory_Model.pfs_to_list pure_formulae) [ LNot (LEq (e1, e2)) ] gamma) in
+	| None -> JSIL_Syntax.update_statistics "is_different_entailment" 0.; old_check_entailment [] (Symbolic_State.pfs_to_list pure_formulae) [ LNot (LEq (e1, e2)) ] gamma) in
 	let end_time = Sys.time () in
 	JSIL_Syntax.update_statistics "is_different" (end_time -. start_time);
 	result

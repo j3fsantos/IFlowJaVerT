@@ -1,6 +1,6 @@
 open JSIL_Syntax
 open JSIL_Logic_Utils
-open JSIL_Memory_Model
+open Symbolic_State
 
 exception Non_unifiable of string
 

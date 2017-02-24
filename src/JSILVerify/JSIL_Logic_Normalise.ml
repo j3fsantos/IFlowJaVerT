@@ -2,7 +2,7 @@ open DynArray
 open Set
 open Stack
 open JSIL_Syntax
-open JSIL_Memory_Model
+open Symbolic_State
 open JSIL_Logic_Utils
 open Logic_Predicates
 
@@ -584,7 +584,12 @@ let process_empty_fields heap store p_formulae gamma subst a =
 			(match ret with
 			| None ->
 				if (le_val <> LNone)
-					then raise (Failure "empty_fields assertion incompatible with cell assertion")
+					then raise 
+						(Failure (
+							Printf.sprintf "empty_fields assertion incompatible with cell assertion. Field %s is not in the none-fields: {{ %s }}" 
+								(JSIL_Print.string_of_logic_expression le_field false)
+								(String.concat ", "
+									(List.map (fun le -> JSIL_Print.string_of_logic_expression le false) fields))))
 					else close_fields fields rest_fv_list found_fields
 			| Some (found_field, rest_fields) ->
 				close_fields rest_fields rest_fv_list (found_field :: found_fields)) in
@@ -814,7 +819,7 @@ let build_spec_tbl preds prog =
 
 
 
-let normalise_predicate_definitions pred_defs : (string, JSIL_Memory_Model.n_jsil_logic_predicate) Hashtbl.t =
+let normalise_predicate_definitions pred_defs : (string, Symbolic_State.n_jsil_logic_predicate) Hashtbl.t =
 	print_debug "Normalising predicate definitions.\n";
 	let n_pred_defs = Hashtbl.create 31 in
 	Hashtbl.iter

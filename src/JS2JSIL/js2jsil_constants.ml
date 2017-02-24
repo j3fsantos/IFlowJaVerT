@@ -1,5 +1,5 @@
 open JSIL_Syntax
-open JSIL_Memory_Model 
+open Symbolic_State 
 
 let small_tbl_size = 31
 let medium_tbl_size = 101

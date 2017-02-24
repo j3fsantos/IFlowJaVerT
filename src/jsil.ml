@@ -1,6 +1,6 @@
 open Lexing
 open JSIL_Syntax
-open JSIL_Memory_Model
+open Symbolic_State
 open JSIL_Interpreter
 
 let file    = ref ""
