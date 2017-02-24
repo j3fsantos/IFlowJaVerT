@@ -25,9 +25,10 @@ let rec get_list_length (le : jsil_logic_expr) : int option =
 (*******************************************)
 (* Symbolic evaluation of JSIL expressions *)
 (*******************************************)
-let rec symb_evaluate_expr (store : symbolic_store) (gamma : typing_environment) (pure_formulae : pure_formulae) 
-							(expr : jsil_expr) : jsil_logic_expr =
-let f = symb_evaluate_expr store gamma pure_formulae in
+let rec symb_evaluate_expr (symb_state: symbolic_state) (anti_frame: symbolic_state) (expr : jsil_expr) : jsil_logic_expr =
+let heap, store, pure_formulae, gamma, _ = symb_state in
+let anti_heap, anti_store, anti_pure_formulae, anti_gamma, _ = anti_frame in
+let f = symb_evaluate_expr symb_state anti_frame in
 	match expr with
 	(* Literals: Return the literal *)
 	| Literal lit -> LLit lit
@@ -37,7 +38,7 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 			 b) Otherwise, add a fresh logical variable (of the appropriate type) to the store and then return it *)
 	| Var x ->
 		let x_val = store_get_var_val store x in
-		if_some_val_lazy x_val (lazy (extend_abs_store x store gamma))
+		if_some_val_lazy x_val (lazy (extend_abs_store x store gamma; extend_abs_store x anti_store gamma))
 
   (* Binary operators:
 	     a) if both operands evaluate to literals, execute the operator and return the result
@@ -187,15 +188,16 @@ let get_expr_var (expr : jsil_expr) : jsil_var =
 		(This expression 'should' have been a location)
 		Generate an abritary value for the missing heap cell. 
 *)
-let create_new_location (expr: jsil_expr) (symb_state : symbolic_state) (anti_frame : symbolic_state) : string * string = 
+let create_new_location (expr: jsil_logic_expr) (symb_state : symbolic_state) (anti_frame : symbolic_state) : string * string = 
 	let _, store, _, gamma, _ = symb_state in
 	let _, anti_store, _, anti_gamma, _ = anti_frame in
 	(* New location which 'expr' will be associated with *)
 	let new_loc = fresh_aloc () in
 	(* Get the string value of e1 *)
-	let var = get_expr_var expr in
+	(*let var = get_expr_var expr in*)
 	(* Get a new logical variable *)
-	let anything = fresh_lvar () in 
+	update_
+
 	(* Update the store with the new location *)
 	update_abs_store store var (ALoc new_loc);
 	update_abs_store anti_store var (ALoc new_loc);
@@ -212,8 +214,9 @@ let create_new_location (expr: jsil_expr) (symb_state : symbolic_state) (anti_fr
 	b) Otherwise, variables are allowed to stay untyped
 	c) Otherwise, an error is thrown 
 *)
-let safe_symb_evaluate_expr store gamma pure_formulae (expr : jsil_expr) =
-	let nle = symb_evaluate_expr store gamma pure_formulae expr in
+let safe_symb_evaluate_expr (symb_state: symbolic_state) (anti_frame : symbolic_state) (expr : jsil_expr) =
+	let _, _, pure_formulae, gamma, _ = symb_state in
+	let nle = symb_evaluate_expr symb_state anti_frame expr in
 	let nle_type, is_typable, constraints = type_lexpr gamma nle in
 	let is_typable = is_typable && ((List.length constraints = 0) || (Pure_Entailment.old_check_entailment [] (pfs_to_list pure_formulae) constraints gamma)) in
 	if (is_typable) then
@@ -233,7 +236,7 @@ let safe_symb_evaluate_expr store gamma pure_formulae (expr : jsil_expr) =
 let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) (anti_frame : symbolic_state) =
 	let heap, store, pure_formulae, gamma, _ = symb_state in
 	let anti_heap, anti_store, anti_pure_formulae, anti_gamma, _ = anti_frame in
-	let ssee = safe_symb_evaluate_expr store gamma pure_formulae in
+	let ssee = safe_symb_evaluate_expr symb_state anti_frame in
 	match bcmd with
 	(* Skip: skip;
 			Always return $$empty *)
@@ -316,7 +319,7 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) (anti_frame : symbolic
 				| LLit (Loc l)
 				| ALoc l -> l	
 				| _ -> 
-					let new_loc, anything = create_new_location e1 symb_state anti_frame in
+					let new_loc, anything = create_new_location ne1 symb_state anti_frame in
 					Symbolic_State_Functions.update_abs_heap anti_heap new_loc ne2 (LVar anything) pure_formulae gamma; 
 					new_loc) in
 		Symbolic_State_Functions.update_abs_heap heap l ne2 ne3 pure_formulae gamma;
@@ -808,7 +811,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
 
 	(* symbolically evaluate a guarded goto *)
 	let symb_evaluate_guarded_goto symb_state anti_frame e j k =
-		let le = symb_evaluate_expr (get_store symb_state) (get_gamma symb_state) (get_pf symb_state) e in
+		let le = symb_evaluate_expr symb_state anti_frame e in
 		print_debug (Printf.sprintf "Evaluated expression: %s --> %s\n" (JSIL_Print.string_of_expression e false) (JSIL_Print.string_of_logic_expression le false));
 		let e_le, a_le = lift_logic_expr le in
 		let a_le_then, a_le_else =
@@ -837,15 +840,23 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
 
 					extend_symb_state_with_pfs then_symb_state (DynArray.of_list a_le_then);
 					symb_evaluate_next_cmd s_prog proc spec then_search_info then_symb_state anti_frame i j;
+					print_endline "THEN BRANCH ";
+					print_symb_state_and_cmd then_symb_state  anti_frame;
+					print_endline "END ";
 					extend_symb_state_with_pfs else_symb_state (DynArray.of_list a_le_else);
-					symb_evaluate_next_cmd s_prog proc spec else_search_info else_symb_state anti_frame i k)) in
+					symb_evaluate_next_cmd s_prog proc spec else_search_info else_symb_state anti_frame i k;
+					print_endline "ELSE BRANCH ";
+					print_symb_state_and_cmd else_symb_state  anti_frame;
+					print_endline "END ";
+				)) in
+
 
 
 	(* symbolically evaluate a procedure call *)
 	let symb_evaluate_call symb_state anti_frame x e e_args j =
 
 		(* get the name and specs of the procedure being called *)
-		let le_proc_name = symb_evaluate_expr (get_store symb_state) (get_gamma symb_state) (get_pf symb_state) e in
+		let le_proc_name = symb_evaluate_expr symb_state anti_frame e in
 		let proc_name =
 			(match le_proc_name with
 			| LLit (String proc_name) -> proc_name
@@ -862,7 +873,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
 		List.iter (fun spec -> if (spec.n_post = []) then print_debug "Exists spec with no post.") proc_specs.n_proc_specs;
 
 		(* symbolically evaluate the args *)
-		let le_args = List.map (fun e -> symb_evaluate_expr (get_store symb_state) (get_gamma symb_state) (get_pf symb_state) e) e_args in
+		let le_args = List.map (fun e -> symb_evaluate_expr symb_state anti_frame e) e_args in
 		let new_symb_states = find_and_apply_spec s_prog.program proc_name proc_specs symb_state le_args in
 
 		(if ((List.length new_symb_states) = 0)
@@ -889,7 +900,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
 			try Hashtbl.find s_prog.which_pred (cur_proc_name, prev, i)
 			with _ ->  raise (Failure (Printf.sprintf "which_pred undefined for command: %s %d %d" cur_proc_name prev i)) in
 		let expr = x_arr.(cur_which_pred) in
-		let le = symb_evaluate_expr (get_store symb_state) (get_gamma symb_state) (get_pf symb_state) expr in
+		let le = symb_evaluate_expr symb_state anti_frame expr in
 		let te, _, _ =	type_lexpr (get_gamma symb_state) le in
 		update_abs_store (get_store symb_state) x le;
 		update_gamma (get_gamma symb_state) x te;
