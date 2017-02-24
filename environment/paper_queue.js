@@ -145,13 +145,16 @@ Node.prototype.insert = function (n) {
 		/** @fold Queue(#n, #node_proto, #npri) */
 		return n
 	} else {
-
 		/**
 			@unfold Queue(#this_next, #node_proto, #max_pri_next) */
-		var next = this.next;
-		/* @fold Queue(#this_next, #node_proto, #max_pri_next) */
-		var tmp = next.insert(n);
-		this.next = tmp;
+		if (this.next == null) {
+			this.next = n;
+		}	else {
+			var next = this.next;
+			/* @fold Queue(#this_next, #node_proto, #max_pri_next) */
+			var tmp = next.insert(n);
+			this.next = tmp;
+		}
 		/** @fold Queue(this, #node_proto, #pri_q) */
 		return this
 	}
