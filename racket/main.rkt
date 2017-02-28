@@ -1,4 +1,4 @@
-#lang racket
+#lang rosette
 
 ;; parsing command line arguments + sets
 (require racket/cmdline)

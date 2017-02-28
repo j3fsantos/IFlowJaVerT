@@ -1,5 +1,5 @@
 let (template_hp_racket:  ('a -> 'b, unit, string) format) = "
-#lang s-exp rosette
+#lang rosette
 
 (current-bitwidth #f)
 
@@ -15,7 +15,7 @@ let (template_hp_racket:  ('a -> 'b, unit, string) format) = "
 "
 
 let (template_internal_procs_racket:  ('a -> 'b, unit, string) format) = "
-#lang s-exp rosette
+#lang rosette
 
 (require (file \"mem_model.rkt\"))
 
@@ -57,7 +57,7 @@ let (template_procs_racket: ('a -> 'b, unit, string) format) = "
 "
 
 let (template_wp_racket:  ('a -> 'b, unit, string) format) = "
-#lang s-exp rosette
+#lang rosette
 
 (require (file \"mem_model.rkt\"))
 

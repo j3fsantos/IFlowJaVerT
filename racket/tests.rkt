@@ -1,4 +1,4 @@
-#lang s-exp rosette
+#lang rosette
 
 (require rosette/solver/smt/cvc4)
 (current-solver (new cvc4%))
