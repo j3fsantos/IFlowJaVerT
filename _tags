@@ -1,4 +1,2 @@
 true: package(z3), package(batteries), package(extlib), package(oUnit), use_menhir, package(JS_Parser)
-<src/**>: include
-<tests/*>: package(oUnit), include
-<lib/runtests>: not_hygienic
+<ocaml/**>: include

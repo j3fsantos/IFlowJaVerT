@@ -1,5 +1,2 @@
-src/pulp/SJSIL/SJSIL_Parser_main.native
-src/pulp/SJSIL/js2jsil_main.native
-src/pulp/SJSIL/tests/test_main.native
-src/pulp/SJSIL/symb_execution_main.native
-src/pulp/SJSIL/jsil2rkt.native
+ocaml/js2jsil.native
+ocaml/jsil2rkt.native
