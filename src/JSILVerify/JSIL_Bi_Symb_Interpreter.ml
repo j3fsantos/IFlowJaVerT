@@ -1146,7 +1146,7 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 							let suc_post_state = Option.get post_state in
 							(* The new precondition = old precondition * anti frame *)
 							(* The new postconition is the final state after evaluation *)
-							let new_pre  =  Symbolic_State_Functions.merge_symb_states pre_post.n_pre suc_anti_frame in
+							let new_pre  =  Symbolic_State_Functions.bi_merge_symb_states pre_post.n_pre suc_anti_frame in
 							let new_proc_spec  = 
 								{
 									n_pre        = new_pre;

@@ -116,7 +116,7 @@ let abs_heap_delete heap l e p_formulae (* solver *) gamma =
 	| None -> raise (Failure "Trying to delete an inexistent field")
 
 let merge_heaps heap new_heap p_formulae (* solver *) gamma =
-    print_debug (Printf.sprintf "-------------------------------------------------------------------\n");
+	print_debug (Printf.sprintf "-------------------------------------------------------------------\n");
 	print_debug (Printf.sprintf "-------------INSIDE MERGE HEAPS------------------------------------\n");
 	print_debug (Printf.sprintf "-------------------------------------------------------------------\n");
 
@@ -127,6 +127,7 @@ let merge_heaps heap new_heap p_formulae (* solver *) gamma =
 
 	LHeap.iter
 		(fun loc (n_fv_list, n_def) ->
+			print_debug (Printf.sprintf "Object: %s" loc);
 			match n_def with
 			| LUnknown
 			| LNone ->
@@ -136,6 +137,7 @@ let merge_heaps heap new_heap p_formulae (* solver *) gamma =
 						(match n_fv_list with
 						| [] -> q_fv_list
 						| (le_field, le_val) :: rest_n_fv_list ->
+							print_debug (Printf.sprintf "  Field: (%s, %s)" (JSIL_Print.string_of_logic_expression le_field false) (JSIL_Print.string_of_logic_expression le_val false));
 							let _, fv_pair, i_am_sure_the_field_does_exist = find_field loc fv_list le_field p_formulae (* solver *) gamma in
 							(match fv_pair, i_am_sure_the_field_does_exist with
 							| None, true -> loop ((le_field, le_val) :: q_fv_list) rest_n_fv_list
@@ -146,7 +148,8 @@ let merge_heaps heap new_heap p_formulae (* solver *) gamma =
 				with Not_found ->
 					LHeap.add heap loc (n_fv_list, n_def))
 			| _ -> raise (Failure "heaps non-mergeable: the default field is not unknown!!!"))
-		new_heap
+		new_heap;
+	print_debug "Finished merging heaps."
 
 
 let make_all_different_assertion_from_fvlist fv_list : jsil_logic_assertion list =
@@ -207,7 +210,8 @@ let assertion_of_abs_heap h =
 (* TODO(Beatrix): There is probably more to this but in the case of merging the anti-frame 
 	and the precondition we know that what is in the anti-frame was not in the precondition
 	so technically there should be no clashes.*)
-let merge_symb_states (symb_state_1 : symbolic_state) (symb_state_2 : symbolic_state)  =
+(* Petar: Dangerous overloading of procedure calls - renamed to sth safe *)
+let bi_merge_symb_states (symb_state_1 : symbolic_state) (symb_state_2 : symbolic_state)  =
 	let heap_1, store_1, pf_1, gamma_1, preds_1  = symb_state_1 in
 	let heap_2, store_2, pf_2, gamma_2, preds_2 = symb_state_2 in
  	merge_pfs pf_1 pf_2;

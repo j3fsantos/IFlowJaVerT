@@ -782,7 +782,7 @@ let rec understand_types exists pf_list gamma : bool =
 			| Some true -> (* Check for variables *)
 				(match le1, le2 with
 				| LVar x, LVar y ->
-					print_debug (Printf.sprintf "Checking: (%s, %s) vs %s" x  from_where y);
+					(* print_debug (Printf.sprintf "Checking: (%s, %s) vs %s" x  from_where y); *)
 					(match te1, te2 with
 					| Some t1, None ->
 						if ((from_where = "l") || ((from_where = "r") && (SS.mem y exists))) 
@@ -804,7 +804,7 @@ let rec understand_types exists pf_list gamma : bool =
 					| None, None -> raise (Failure "Impossible branch."))
 				| LVar x, le
 				| le, LVar x ->
-					print_debug (Printf.sprintf "Checking: (%s, %s) vs %s" x from_where (JSIL_Print.string_of_logic_expression le false));
+					(* print_debug (Printf.sprintf "Checking: (%s, %s) vs %s" x from_where (JSIL_Print.string_of_logic_expression le false)); *)
 					let tx = gamma_get_type gamma x in
 					let te, _, _ = type_lexpr gamma le in
 					(match te with
