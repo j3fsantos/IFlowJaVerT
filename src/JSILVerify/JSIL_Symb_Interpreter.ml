@@ -374,18 +374,18 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 
 		print_debug (Printf.sprintf "Entering transform_symb_state.\n");
 
-		let merge_symb_state_with_single_post (symb_state : symbolic_state) (post : symbolic_state) ret_var ret_flag : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
+		let merge_symb_state_with_single_post (symb_state : symbolic_state) (post : symbolic_state) ret_var ret_flag copy_flag : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
 			print_debug (Printf.sprintf "Entering merge_symb_state_with_single_post.");
 			let post_makes_sense = compatible_pfs symb_state post subst in
 			if (post_makes_sense) then (
 				print_debug (Printf.sprintf "The post makes sense.");
-				let new_symb_state = copy_symb_state symb_state in
+				let new_symb_state = if (copy_flag) then (copy_symb_state symb_state) else symb_state in
 				let new_symb_state = Structural_Entailment.merge_symb_states new_symb_state post subst in
 				let ret_lexpr = store_get_var (get_store post) ret_var in
 				let ret_lexpr = JSIL_Logic_Utils.lexpr_substitution ret_lexpr subst false in
 				[ new_symb_state, ret_flag, ret_lexpr ])
 				else begin print_debug (Printf.sprintf "The post does not make sense."); [] end in
-
+   
 		extend_symb_state_with_pfs symb_state (DynArray.of_list pf_discharges);
 		let symb_state = symb_state_replace_heap symb_state quotient_heap in
 		let symb_state = symb_state_replace_preds symb_state quotient_preds in
@@ -395,12 +395,12 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		let symb_states_and_ret_lexprs =
 			(match spec.n_post with
 			| [] -> print_debug (Printf.sprintf "No postconditions found."); []
-			| [ post ] -> print_debug (Printf.sprintf "One postcondition found."); merge_symb_state_with_single_post symb_state post ret_var ret_flag
+			| [ post ] -> print_debug (Printf.sprintf "One postcondition found."); merge_symb_state_with_single_post symb_state post ret_var ret_flag false
 			| post :: rest_posts ->
 					print_debug (Printf.sprintf "Multiple postconditions found.");
-					let symb_states_and_ret_lexprs = List.map (fun post -> merge_symb_state_with_single_post symb_state post ret_var ret_flag) rest_posts in
+					let symb_states_and_ret_lexprs = List.map (fun post -> merge_symb_state_with_single_post symb_state post ret_var ret_flag true) rest_posts in
 					let symb_states_and_ret_lexprs =
-						(merge_symb_state_with_single_post symb_state post ret_var ret_flag) :: symb_states_and_ret_lexprs in
+						(merge_symb_state_with_single_post symb_state post ret_var ret_flag false) :: symb_states_and_ret_lexprs in
 					let symb_states_and_ret_lexprs = List.concat symb_states_and_ret_lexprs in
 					symb_states_and_ret_lexprs) in
 		symb_states_and_ret_lexprs in
@@ -451,7 +451,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 
 
 	let transform_symb_state_partial_match (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
-
+    let symb_state = copy_symb_state symb_state in 
 		let symb_states_and_ret_lexprs = transform_symb_state spec symb_state quotient_heap quotient_preds subst pf_discharges new_gamma in
 
 		let symb_states_and_ret_lexprs =
