@@ -174,15 +174,6 @@ let f = symb_evaluate_expr symb_state anti_frame in
 		| LLit (Num n) -> raise (Failure "Non-integer string index.")
 		| _ -> LStrNth (str, index))
 
-
-(* TODO(Beatrix): This needs more thought. 
-	At the moment due to symb_evaluate_expr expanding the store when a variable is not found,
-	this just gives back the varaible to be used further *)
-let get_expr_var (expr : jsil_expr) : jsil_var = 
-	(match  expr with
-		| Var x -> x
-		| _ -> raise (Failure (Printf.sprintf "Unknown expression:  %s" (print_e expr))))
-
 (*
 	Common Pattern with bi-abduction rules: 
 		Create an abritary location. 
@@ -824,22 +815,19 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
 					symb_evaluate_next_cmd s_prog proc spec search_info symb_state anti_frame i k)
 				else
 					(print_endline "I could not determine the branch.";
-					(* TODO(Beatrix): Case where the condition not known to be false nor true needs to be done. *)
 					let then_symb_state = symb_state in
+					let then_anti_frame = anti_frame in
 					let then_search_info = search_info in
 					let else_symb_state = copy_symb_state symb_state in
+					let else_anti_frame = copy_symb_state anti_frame in
 					let else_search_info = update_vis_tbl search_info (copy_vis_tbl search_info.vis_tbl) in
 
 					extend_symb_state_with_pfs then_symb_state (DynArray.of_list a_le_then);
 					symb_evaluate_next_cmd s_prog proc spec then_search_info then_symb_state anti_frame i j;
-					print_endline "THEN BRANCH ";
 					print_symb_state_and_cmd then_symb_state  anti_frame;
-					print_endline "END ";
 					extend_symb_state_with_pfs else_symb_state (DynArray.of_list a_le_else);
 					symb_evaluate_next_cmd s_prog proc spec else_search_info else_symb_state anti_frame i k;
-					print_endline "ELSE BRANCH ";
 					print_symb_state_and_cmd else_symb_state  anti_frame;
-					print_endline "END ";
 				)) in
 
 
