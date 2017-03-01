@@ -84,8 +84,7 @@ let update_abs_heap (heap : symbolic_heap) loc e_field e_val p_formulae (* solve
 	| None, true -> LHeap.replace heap loc ((e_field, e_val) :: unchanged_fv_list, default_val)
 	| None, false ->
 		let msg = Printf.sprintf "Cannot decide if %s exists in object %s" (JSIL_Print.string_of_logic_expression e_field false) loc in
-			raise (Failure msg)
-
+			raise (Failure msg)			
 
 let abs_heap_find heap l e p_formulae gamma =
 	let fv_list, default_val = try LHeap.find heap l with _ -> [], LUnknown in

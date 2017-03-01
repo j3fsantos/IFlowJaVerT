@@ -237,7 +237,8 @@ let rec js2jsil_logic cur_fid cc_tbl vis_tbl fun_tbl (a : js_logic_assertion) : 
 			match f_sc with 
 			| None -> scope_chain_types 
 			| Some f_sc -> LStar (LEq (fe f_sc, le_scope_chain), scope_chain_types) in 
-		let st_obj_fproto = LPred (standard_object_pred_name, [f_prototype']) in
+		(* Before we included the prototype in the footprint                        *)
+		(* let st_obj_fproto = LPred (standard_object_pred_name, [f_prototype']) in *)
 		let obj_fproto_cstr = 
 			LPointsTo (
 				f_prototype', 
@@ -245,9 +246,7 @@ let rec js2jsil_logic cur_fid cc_tbl vis_tbl fun_tbl (a : js_logic_assertion) : 
 				LEList [ LLit (String "d"); f_loc'; LLit (Bool true); LLit (Bool false); LLit (Bool true) ]) in
 		LStar (
 			LPred (function_object_pred_name, [ f_loc'; le_scope_chain; LLit (String id); LLit (String id); LLit (Num (float_of_int n_args)); f_prototype'] ), 
-			LStar (
-				a_scope_chain, 
-				LStar (st_obj_fproto, obj_fproto_cstr)))
+			LStar (a_scope_chain, obj_fproto_cstr))
 	
 	| JSClosure (var_les, fid_sc_les) -> 
 		let vis_lists = 

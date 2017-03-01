@@ -103,6 +103,10 @@ let get_heap_domain heap subst =
 	loop domain [] [] []
 
 
+let extend_abs_heap (heap : symbolic_heap) (loc : string) (field : jsil_logic_expr) (value : jsil_logic_expr) = 
+	let fv_list, def_val = try LHeap.find heap loc with _ -> ([], LUnknown) in  
+	LHeap.replace heap loc (((field, value) :: fv_list), def_val)
+
 
 (*************************************)
 (** Abstract Store functions        **)
@@ -153,6 +157,10 @@ let get_store_domain store =
 let pfs_to_list (pfs : pure_formulae) =
 	DynArray.to_list pfs
 
+
+let add_pure_assertion (pfs : pure_formulae) (a : jsil_logic_assertion) = 
+	DynArray.add pfs a
+	
 
 
 (*************************************)
