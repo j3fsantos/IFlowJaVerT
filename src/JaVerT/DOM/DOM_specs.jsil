@@ -174,11 +174,11 @@ spec appendChild_program(m, n)
 proc appendChild_program(m, n) {
 				p := "parentNode" ({{}}, n);
 				goto [ (p = $$null) ] then1 else1;
-		then1:  xret := "appendChild" ({{}}, m, n);
-		        goto rlab;
-		else1:  aux := "removeChild"({{}}, p, n);
+		then1:  xret := "appendChild" ({{}}, m, n); 
+		        goto rlab; 
+		else1:  aux := "removeChild"({{}}, p, n); 
 		        xret := "appendChild"({{}}, m, n);
-		rlab:   skip
+		rlab:   skip				
 }
 with
 {
