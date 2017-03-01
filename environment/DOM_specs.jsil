@@ -95,8 +95,38 @@ pred ElementNodeSpecial(en, name, attr, children, parent) :
 	types(name: $$string_type, attr: $$list_type, children: $$list_type) *
 	empty_fields(en : "@proto", "@class", "@extensible", "@name", "@attributes", "@children", "@parent");
 
+pred TextNodePrototype() :
+	DOMObject($l_tnp, $l_np) *
+	(($l_tnp, "@name") -> "#text") *
+	DOMFunctionField($l_tnp, "data") *
+	DOMFunctionField($l_tnp, "length") *
+	DOMFunctionField($l_tnp, "substringData") *
+	DOMFunctionField($l_tnp, "appendData") *
+	DOMFunctionField($l_tnp, "insertData") *
+	DOMFunctionField($l_tnp, "deleteData") *
+	DOMFunctionField($l_tnp, "replaceData") *
+	DOMFunctionField($l_tnp, "splitText") *
+	empty_fields($l_tnp : "@proto", "@class", "@extensible", "@name", "data", "length", "substringData", "appendData",
+								 "insertData", "deleteData", "replaceData", "splitText");
+
+pred TextNode(tn, text) :
+	DOMObject(tn, $l_tnp) *
+	((tn, "@text") -> text) *
+	empty_fields(tn : "@proto", "@class", "@extensible", "@text");
+
+pred AttributeNodePrototype() :
+	DOMObject($l_anp, $l_np) *
+	empty_fields($l_anp : "@proto", "@class", "@extensible");
+
+pred AttributeNode(an, name, children) :
+	DOMObject(an, $l_anp) *
+	((an, "@name") -> name) *
+	((an, "@children") -> children) *
+	types(name: $$string_type, children: $$list_type) *
+	empty_fields(an : "@proto", "@class", "@extensible", "@name", "@children");
+
 pred InitialDOMHeap() :
-	NodePrototype() * DocumentNodePrototype() * ElementNodePrototype();
+	NodePrototype() * DocumentNodePrototype() * ElementNodePrototype() * AttributeNodePrototype() * TextNodePrototype();
 
 only spec createElement(xsc, xthis, x)
 	[[ (xthis == #dn) * (x == #name) * DocumentNode(#dn, #element) ]]
@@ -106,7 +136,10 @@ only spec createElement(xsc, xthis, x)
 only spec parentNode(xsc, xthis)
 	[[ (xthis == #en) * ElementNodeSpecial(#en, #name, #att, #children, $$null) ]]
 	[[ ElementNodeSpecial(#en, #name, #att, #children, $$null) * (ret == $$null) ]]
-	normal
+	normal;
+	[[ (xthis == #dn) * DocumentNode(#dn, #element) ]]
+	[[ (ret == $null) * DocumentNode(#dn, #element) ]]
+	normal;
 
 only spec appendChild(xsc, xthis, newchild)
 	[[ (xthis == #dn) * (newchild == #en) * DocumentNode(#dn, $$null) * ElementNodeSpecial(#en, #name, #att, #children, $$null)]]
