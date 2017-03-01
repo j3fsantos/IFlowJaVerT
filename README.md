@@ -26,11 +26,16 @@ To compile:
 
 To run:
 
-0.  JSIL Interpreter: `./jsil.native -file <file_name>`
-1.  JSILVerify: `./jsilverify.native -file <file_name>` 
-    (use the flag `-js` if the jsil program resulted from the compilation of a JavaScript program)
-3.  JS2JSIL: `./js2jsil -file <file_name`
-    (use the flag `-logic` if the compiled jsil file will be given as input to JSILVerify) 
+1.  JSIL Interpreter: 
+	`./jsil.native -file <file_name>`
+
+2.  JS2JSIL: 
+	`./js2jsil -file <file_name>`
+    Use the flag `-logic` if the compiled JSIL file will be given as input to JSILVerify. 
+
+3.  JSILVerify: 
+	`./jsilverify.native -file <file_name>` 
+    Use the flag `-js` if the JSIL program resulted from the compilation of a JavaScript program.
 
 
 
