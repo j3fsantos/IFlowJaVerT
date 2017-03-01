@@ -20,8 +20,7 @@ Prerequisites:
     Install Z3 **with** the OCaml bindings.
 
 
-5. [make]
-    Compile the project:
+To compile: 
 
     `make`
 
