@@ -22,7 +22,7 @@ Prerequisites:
 
 To compile: 
 
-    `make`
+    make
 
 To run:
 
