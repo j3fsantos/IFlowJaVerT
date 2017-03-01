@@ -894,8 +894,8 @@ let merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbolic_s
 	merge_pfs pf_l pf_r;
 	merge_gammas gamma_l gamma_r;
 	Symbolic_State_Functions.merge_heaps heap_l heap_r pf_l (* solver_l *) gamma_l;
-	(* Printf.printf "AFTER MERGING HEAPS\n\n"; *)
 	DynArray.append preds_r preds_l;
+	print_debug ("Finished merge_symb_states");
 	(heap_l, store_l, pf_l, gamma_l, preds_l (*, (ref None) *))
 
 let safe_merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbolic_state) (subst : substitution) : symbolic_state option =
@@ -1076,12 +1076,13 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 	(* STEP 6 - Finally unfold: Sigma_0, Sigma_1, subst, pat_subst, pi, gamma                              *)
 	(* subst(Sigma_0) + pat_subst(Sigma_1) + (_, _, pi, gamma, _)                                          *)
 	let step_6 subst pat_subst new_pfs new_gamma =
+		print_debug ("Entering step 6 of safe_merge_symb_states");
 		let symb_state = symb_state_substitution symb_state subst true in
 		let unfolded_symb_state = merge_symb_states symb_state pat_symb_state pat_subst in
 		merge_pfs (get_pf unfolded_symb_state) (DynArray.of_list new_pfs);
 		extend_gamma (get_gamma unfolded_symb_state) new_gamma;
 		JSIL_Logic_Normalise.extend_typing_env_using_assertion_info new_pfs (get_gamma unfolded_symb_state);
-		(* Printf.printf "GAMMA_OLD - STEP 6:\n%s\n" (JSIL_Memory_Print.string_of_gamma gamma_old);  *)
+		print_debug ("Finished step 6 of safe_merge_symb_states");
 		unfolded_symb_state in
 
 	(** Now DOING IT **)
