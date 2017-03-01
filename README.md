@@ -16,7 +16,7 @@ Prerequisites:
 
     `make init`
 
-4. [z3](https://github.com/Z3Prover/z3)
+4. [Z3](https://github.com/Z3Prover/z3)
     Install Z3 **with** the OCaml bindings.
 
 
