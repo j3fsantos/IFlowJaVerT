@@ -1,9 +1,0 @@
-import Init;
-
-proc main () {
-	rlab:	xret := "setupInitialHeap" ()
-}
-with
-{
-	ret:	xret, rlab;
-};
