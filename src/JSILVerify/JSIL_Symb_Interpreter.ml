@@ -469,6 +469,9 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 				sanitise_pfs_no_store new_gamma rpfs;
 				symb_state_replace_pfs symb_state rpfs in
 			(new_symb_state, ret_flag, JSIL_Logic_Utils.reduce_expression_no_store_no_gamma_no_pfs ret_lexpr)) symb_states_and_ret_lexprs in
+			
+		print_debug (Printf.sprintf "TSSPM: Pure formulae: %s" (JSIL_Memory_Print.string_of_shallow_p_formulae (get_pf symb_state) false));
+			
 		symb_states_and_ret_lexprs in
 
 
@@ -476,11 +479,11 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		print_debug (Printf.sprintf "Entering apply_correct_specs.");
 		match quotients with
 		| [ ] -> [ ]
-		| [ (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ] ->
+		| [ (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ] -> 
 			print_debug (Printf.sprintf "This was a TOTAL MATCH!!!!");
 			transform_symb_state spec symb_state quotient_heap quotient_preds subst pf_discharges new_gamma
-	 	| _ :: _ ->
-			print_debug (Printf.sprintf "This was a PARTIAL MATCH!!!!");
+	 	| _ :: _ -> 
+			print_debug (Printf.sprintf "We have a PARTIAL MATCH of length: %d" (List.length quotients));
 			let new_symb_states =
 				List.map
 					(fun (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->

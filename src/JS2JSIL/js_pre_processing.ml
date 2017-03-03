@@ -8,6 +8,7 @@ exception No_Codename
 exception EarlyError of string
 
 let update_prev_annot prev_annot cur_annot =
+	
 	let is_spec_annot annot =
 		(annot.annot_type == Parser_syntax.Requires) ||
 		(annot.annot_type == Parser_syntax.Ensures) ||
@@ -56,7 +57,20 @@ let get_predicate_defs_from_annots annots : JS_Logic_Syntax.js_logic_predicate l
 			loop rest pred_defs in 
 	loop annots []
 
-
+let get_only_specs_from_annots annots : unit =
+	let rec loop annots = 
+		match annots with 
+		| [] -> () 
+		| annot :: rest -> 
+			let _ = 
+				if (annot.annot_type == Parser_syntax.OnlySpec) 
+					then  (
+						(* Printf.printf "I am about to parse the following only_spec definition:\n%s\n" annot.annot_formula; *)
+						JSIL_Utils.js_only_spec_from_string ("js_only_spec " ^ annot.annot_formula)
+					) in 
+			loop rest in 
+	loop annots 
+	
 let parse_logic_annots annots = 
 	List.map 
 		(fun annot -> 
@@ -1030,7 +1044,6 @@ let closure_clarification_top_level cc_tbl (fun_tbl : Js2jsil_constants.fun_tbl_
 	let js_predicate_definitions : JS_Logic_Syntax.js_logic_predicate list = get_predicate_definitions [] e in  
 	let jsil_predicate_definitions = 
 		List.map (fun pred_def -> JS_Logic_Syntax.translate_predicate_def pred_def cc_tbl vis_tbl old_fun_tbl) js_predicate_definitions in 
-
 	let annots = get_top_level_annot e in
 	(match annots with
 	| Some annots ->

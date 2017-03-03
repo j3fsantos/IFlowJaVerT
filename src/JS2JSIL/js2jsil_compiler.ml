@@ -3,6 +3,7 @@ open Lexing
 open Batteries
 open JSIL_Syntax
 open Js2jsil_constants
+open JS_Logic_Syntax
 
 let cc_tbl      : cc_tbl_type      = Hashtbl.create medium_tbl_size 
 let fun_tbl     : fun_tbl_type     = Hashtbl.create medium_tbl_size
@@ -581,10 +582,10 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 	let cur_var_tbl = get_scope_table tr_ctx.tr_er_fid tr_ctx.tr_cc_tbl in
 	let find_var_er_index v = 
 		(try 
-			Printf.printf "Trying to find variable %s given the vislist %s in the var table %s \n" 
+			print_debug (Printf.sprintf "Trying to find variable %s given the vislist %s in the var table %s \n" 
 				v
 				(String.concat ", " tr_ctx.tr_vis_list)
-				(string_of_var_tbl cur_var_tbl); 
+				(string_of_var_tbl cur_var_tbl)); 
 			let fid_v = Hashtbl.find cur_var_tbl v in 
 			let fid_v_index = get_vis_list_index tr_ctx.tr_vis_list fid_v in 
 			fid_v_index
@@ -2567,13 +2568,13 @@ and translate_statement tr_ctx e  =
 		(match invariant with 
 		| None -> None
 		| Some invariant -> 
-			Printf.printf "I found a fucking invariant!!!!!\n";
-			Printf.printf "Some more data: %s\n" tr_ctx.tr_fid;
+			print_debug "I found the invariant!!!!!";
+			print_debug (Printf.sprintf "Some more data: %s\n" tr_ctx.tr_fid);
 			let jsil_invariant = JS_Logic_Syntax.js2jsil_logic_top_level_post invariant tr_ctx.tr_cc_tbl vis_tbl old_fun_tbl tr_ctx.tr_fid in 
 			Some (LStar (jsil_invariant, JS_Logic_Syntax.errors_assertion))) in 
 	
 	let annotate_first_cmd annotated_cmds =
-		Printf.printf "inside annotate_first_cmd!!!!\n";  
+		print_debug "inside annotate_first_cmd!!!!";  
 		(match annotated_cmds with 
 		| [] -> []
 		| (metadata, lab, cmd) :: rest -> 
@@ -4491,42 +4492,7 @@ let generate_proc offset_converter e fid params cc_table vis_fid spec =
 		lspec = spec
 	}
 
-
-let js2jsil e offset_converter for_verification =
-	let main = "main" in
-	
-	Printf.printf "AST after grounding the annotations:\n%s\n\n" 
-		(Pretty_print.string_of_exp_syntax e.Parser_syntax.exp_stx); 
-		
-	let e, _ = Js_pre_processing.ground_fold_annotations [] e in
-	
-	Printf.printf "AST after grounding the annotations:\n%s\n\n" 
-		(Pretty_print.string_of_exp_syntax e.Parser_syntax.exp_stx); 
-	
-	Js_pre_processing.test_early_errors e;
-	let e : Parser_syntax.exp = Js_pre_processing.add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous [] e in
-	let predicates = Js_pre_processing.closure_clarification_top_level cc_tbl fun_tbl old_fun_tbl vis_tbl main e [ main ] [] in
-
-	let procedures = Hashtbl.create medium_tbl_size in
-	Hashtbl.iter
-		(fun f_id (_, f_params, f_body, f_rec, spec) ->
-			(* print_endline (Printf.sprintf "Procedure %s is recursive?! %b" f_id f_rec); *)
-			let proc =
-				(if (f_id = main)
-					then generate_main offset_converter e main cc_tbl spec
-					else
-						(let vis_fid = try Hashtbl.find vis_tbl f_id
-							with _ ->
-								(let msg = Printf.sprintf "Function %s not found in visibility table" f_id in
-								raise (Failure msg)) in
-						generate_proc offset_converter f_body f_id f_params cc_tbl vis_fid spec)) in
-			Hashtbl.add procedures f_id proc)
-		fun_tbl;
-
-	let cur_imports = if for_verification then js2jsil_logic_imports else js2jsil_imports in
-	{ imports = cur_imports; predicates; procedures}, cc_tbl, vis_tbl
-
-
+(**** EVAL ****)
 
 let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 	let offset_converter x = 0 in
@@ -4547,8 +4513,6 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 	Hashtbl.add vis_tbl new_fid (new_fid :: vis_fid);
 	Js_pre_processing.closure_clarification_stmt cc_tbl temp_new_fun_tbl vis_tbl new_fid (new_fid :: vis_fid) [] e;
 
-	
-	
 	Hashtbl.iter
 		(fun f_id (_, f_params, f_body, _, _) ->
 			let proc =
@@ -4566,6 +4530,8 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 			Hashtbl.add prog f_id proc;
 			JSIL_Utils.extend_which_pred which_pred proc)
 		new_fun_tbl;
+
+  (**** ERROR ****)
 
 	let proc_eval = try Hashtbl.find prog new_fid with _ -> raise (Failure "no eval proc was created") in
 	proc_eval
@@ -4606,3 +4572,58 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 
 	let proc_fun_constr = try Hashtbl.find prog new_fid with _ -> raise (Failure "no function constructor proc was created") in
 	proc_fun_constr
+
+let js2jsil e offset_converter for_verification =
+	
+	Js_pre_processing.test_early_errors e;
+	
+	(* get the only-specs *)
+	let _ = 
+		(match e.Parser_syntax.exp_stx with
+		| Parser_syntax.Script (_, es) ->
+			(match es with
+			| e :: _ -> 
+				let annots = e.Parser_syntax.exp_annot in
+				Js_pre_processing.get_only_specs_from_annots annots
+			| [] -> ())
+		| _ -> ()) in
+	
+	let main = "main" in
+	print_debug (Printf.sprintf "AST before grounding the annotations:\n%s\n" (Pretty_print.string_of_exp true e)); 
+	let e, _ = Js_pre_processing.ground_fold_annotations [] e in
+	print_debug (Printf.sprintf "AST after grounding the annotations:\n%s\n" (Pretty_print.string_of_exp true e)); 
+	
+	let e : Parser_syntax.exp = Js_pre_processing.add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous [] e in
+	let predicates = Js_pre_processing.closure_clarification_top_level cc_tbl fun_tbl old_fun_tbl vis_tbl main e [ main ] [] in
+	
+	let procedures = Hashtbl.create medium_tbl_size in
+	Hashtbl.iter
+		(fun f_id (_, f_params, f_body, f_rec, spec) ->
+			(* print_endline (Printf.sprintf "Procedure %s is recursive?! %b" f_id f_rec); *)
+			let proc =
+				(if (f_id = main)
+					then generate_main offset_converter e main cc_tbl spec
+					else
+						(let vis_fid = try Hashtbl.find vis_tbl f_id
+							with _ ->
+								(let msg = Printf.sprintf "Function %s not found in visibility table" f_id in
+								raise (Failure msg)) in
+						generate_proc offset_converter f_body f_id f_params cc_tbl vis_fid spec)) in
+			Hashtbl.add procedures f_id proc)
+		fun_tbl;
+
+	let onlyspecs = Hashtbl.create 511 in
+	Hashtbl.iter
+	(fun _ v ->
+		let { js_spec_name; js_spec_params; js_proc_specs } = v in
+		Hashtbl.replace vis_tbl js_spec_name [ js_spec_name; "main" ];
+		let proc_specs = List.map (fun { js_pre; js_post; js_ret_flag } -> 
+			let pre  = JS_Logic_Syntax.js2jsil_logic_top_level_pre  js_pre  cc_tbl vis_tbl (Hashtbl.create 0) js_spec_name in
+			let post = JS_Logic_Syntax.js2jsil_logic_top_level_post js_post cc_tbl vis_tbl (Hashtbl.create 0) js_spec_name in
+				{ pre; post; ret_flag = js_ret_flag }) js_proc_specs in
+		Hashtbl.replace onlyspecs js_spec_name { spec_name = js_spec_name; spec_params = [Js2jsil_constants.var_scope; Js2jsil_constants.var_this] @ js_spec_params; proc_specs } 
+	)
+	JS_Logic_Syntax.js_only_spec_table;
+	
+	let cur_imports = if for_verification then js2jsil_logic_imports else js2jsil_imports in
+	{ imports = cur_imports; predicates; onlyspecs; procedures}, cc_tbl, vis_tbl

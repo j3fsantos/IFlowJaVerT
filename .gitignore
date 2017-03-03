@@ -52,3 +52,6 @@ racket/compiled
 *.xml
 example.jsil
 output.txt
+
+# Environment
+environment
