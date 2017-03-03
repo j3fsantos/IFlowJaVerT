@@ -36,6 +36,24 @@ let must_be_equal le_pat le pi gamma =
 		| _, _ -> false)) in
 	result
 
+
+let must_be_different le_pat le pi gamma =
+	let result = 
+	(match le_pat = le with
+	| true -> true
+	| false -> 
+		(match le_pat, le with
+		| LLit pat_lit, LLit lit -> not (pat_lit = lit)
+		| LLit pat_lit, _ ->
+			Pure_Entailment.is_different le_pat le pi (* solver *) gamma
+		| LNone, LEList _
+		| LEList _, LNone -> false
+		| _, _ -> false)) in
+	result
+
+
+
+
 let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subst : substitution) (subst: substitution option) (pfs : jsil_logic_assertion list) (* solver *) (gamma : typing_environment) : ((jsil_logic_expr * jsil_logic_expr) list) option  =
 	let start_time = Sys.time () in
 	try
@@ -230,18 +248,25 @@ let unify_fv_pair ((pat_field, pat_value) : (jsil_logic_expr * jsil_logic_expr))
 	
 	(* Printf.printf "unify_fv_pair. pat_field: %s, pat_value: %s\n" (JSIL_Print.string_of_logic_expression pat_field false) (JSIL_Print.string_of_logic_expression pat_value false);
 	Printf.printf "fv_list: %s\n" (JSIL_Memory_Print.string_of_symb_fv_list fv_list false); *)
-	let rec loop fv_list traversed_fv_list =
+	let rec loop fv_list traversed_fv_list i_have_not_found_the_field_for_sure =
 		
 		(* Before trying to unify (pat_field, pat_val) with the rest of the    *)
 		(* fv_list, check if the current field and pat_field must be the same. *)
 		(* If they must be the same, the unfication fails immediately, because *)
 		(* the pat_field is equal to the current field but their expressions   *)
 		(* do not coincide.                                                    *)
-		let guarded_loop_next e_field e_value rest =
+		
+		let guarded_loop_next_2 e_field e_value rest = 
+			let new_traversed_field_list = (e_field, e_value) :: traversed_fv_list in 
+			if (not i_have_not_found_the_field_for_sure) 
+				then loop rest new_traversed_field_list false 
+				else loop rest new_traversed_field_list (must_be_different pat_field e_field p_formulae gamma) in 
+		
+		let guarded_loop_next_1 e_field e_value rest =
 			if (must_be_equal pat_field e_field p_formulae gamma)
 				then (false, Some ((traversed_fv_list @ rest), (e_field, e_value)))
-				else loop rest ((e_field, e_value) :: traversed_fv_list) in 	
-			
+				else guarded_loop_next_2 e_field e_value rest in 	
+		
 		match fv_list with
 		| [] -> true, None
 		| (e_field, e_value) :: rest ->
@@ -256,10 +281,10 @@ let unify_fv_pair ((pat_field, pat_value) : (jsil_logic_expr * jsil_logic_expr))
 					(* check if the unifiers for the field and value are compatible *)
 					if (Symbolic_State_Functions.update_subst2 subst fu vu p_formulae gamma)
 						then true, Some ((traversed_fv_list @ rest), (e_field, e_value))
-						else guarded_loop_next e_field e_value rest
-				| false -> guarded_loop_next e_field e_value rest)
-			| false -> loop rest ((e_field, e_value) :: traversed_fv_list)) in
-	loop fv_list []
+						else guarded_loop_next_1 e_field e_value rest
+				| false -> guarded_loop_next_1 e_field e_value rest)
+			| false -> guarded_loop_next_2 e_field e_value rest) in
+	loop fv_list [] true
 
 
 

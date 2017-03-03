@@ -539,7 +539,7 @@ let get_args cmd =
 
 let annotate_cmd_top_level metadata (lab, cmd) =
 	
-	let fold_unfold_pi_code_macro args = 
+	let fold_unfold_pi_macro_for_put_and_get_value args = 
 		let new_args =
 			(match args with
 			| Some args ->  args
@@ -548,12 +548,22 @@ let annotate_cmd_top_level metadata (lab, cmd) =
 	  (* JOSE: I do not understand this case *)
 		| [ Literal n ] -> [], []
 		(* PUTVALUE and GETVALUE cases *)
-		| [ arg ] ->
+		| [ arg ]
+		| [ arg; _ ] ->
 			let arg = JSIL_Logic_Utils.expr_2_lexpr arg in
 			let fold_args = [arg; LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()) ] in
 			let fold_macro = Macro (Js2jsil_constants.macro_GPVF_name, fold_args) in
 			let unfold_macro = Macro (Js2jsil_constants.macro_GPVU_name, [ arg ]) in
 			[ fold_macro ], [ unfold_macro ]
+		(* No other cases handled *)	
+		| _ -> raise (Failure "Folding/Unfolding in the wrong place.")) in
+
+	let fold_unfold_pi_for_hasProperty args = 
+		let new_args =
+			(match args with
+			| Some args ->  args
+			| None -> raise (Failure "No argument passed to GetPutValue folding.")) in
+		(match new_args with
 		(* HasProperty case *)
 		| [ arg1; arg2] -> 
 			let l_arg1 = JSIL_Logic_Utils.expr_2_lexpr arg1 in
@@ -567,12 +577,12 @@ let annotate_cmd_top_level metadata (lab, cmd) =
 	
 	if ((is_get_value_call cmd) || (is_put_value_call cmd))  then (
 		print_debug "I AM CREATING FOLD/UNFOLD ANNOTATIONS!!!!!";
-		let fold_lcmds, unfold_lcmds = fold_unfold_pi_code_macro (get_args cmd) in
+		let fold_lcmds, unfold_lcmds = fold_unfold_pi_macro_for_put_and_get_value (get_args cmd) in
 		let new_metadata =
 			{ metadata with pre_logic_cmds = fold_lcmds; post_logic_cmds = unfold_lcmds } in
 		(new_metadata, lab, cmd)
 	) else if (is_hasProperty_call cmd) then ( 
-			let fold_lcmds, unfold_lcmds = fold_unfold_pi_code_macro (get_args cmd) in
+			let fold_lcmds, unfold_lcmds = fold_unfold_pi_for_hasProperty (get_args cmd) in
 			Printf.printf "I found a call to hasProperty. %n Folds: %s.\nUnfolds: %n!\n"
 				(List.length fold_lcmds) 
 				(String.concat "," 
