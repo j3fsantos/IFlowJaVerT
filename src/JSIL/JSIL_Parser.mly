@@ -615,8 +615,8 @@ js_only_spec_target:
 	
 js_pre_post_target:
 (* pre: ... post: ... outcome: ... *)
-	JSOSPRE; js_pre = js_assertion_target; 
-	JSOSPOST; js_post = js_assertion_target; 
+	JSOSPRE; OASSERT; js_pre = js_assertion_target; CASSERT;
+	JSOSPOST; OASSERT; js_post = js_assertion_target; CASSERT;
 	JSOSOUT; js_ret_flag = outcome_target;
 	{ { js_pre; js_post; js_ret_flag } }
 ;

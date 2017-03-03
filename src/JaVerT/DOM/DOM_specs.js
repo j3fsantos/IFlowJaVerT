@@ -22,7 +22,6 @@
 		DOMField(l, call, #lnn) *
 		DOMFunctionObject(#lnn, call);
 
-
 	@pred NodePrototype() :
 		DOMObject($l_np, $$null) *
 		DOMFunctionField($l_np, "nodeName") *
@@ -43,7 +42,7 @@
 		empty_fields($l_np : "@proto", "@class", "@extensible", "nodeName", "nodeValue", "nodeType", "parentNode", "childNodes", "firstChild",
 			"lastChild", "previousSibling", "nextSibling", "ownerDocument", "insertBefore", "replaceChild", "removeChild", "appendChild", "hasChildNodes");
 
-	@pred  DocumentNodePrototype() :
+	@pred DocumentNodePrototype() :
 		DOMObject($l_dnp, $l_np) *
 		(($l_dnp, "@name") -> "#document") *
 		DOMFunctionField($l_dnp, "documentElement") *
@@ -53,12 +52,12 @@
 		DOMFunctionField($l_dnp, "getElementsByTagName") *
 		empty_fields($l_dnp : "@proto", "@class", "@extensible", "@name", "documentElement", "createElement", "createTextNode", "createAttribute", "getElementsByTagName");
 
-	@pred  DocumentNode(dn, element) :
+	@pred DocumentNode(dn, element) :
 		DOMObject(dn, $l_dnp) *
 		((dn, "@element") -> element) *
 		empty_fields(dn : "@proto", "@class", "@extensible", "@element");
 
-	@pred  ElementNodePrototype() :
+	@pred ElementNodePrototype() :
 		DOMObject($l_enp, $l_np) *
 		DOMFunctionField($l_enp, "tagName") *
 		DOMFunctionField($l_enp, "getAttribute") *
@@ -71,7 +70,7 @@
 		empty_fields($l_enp : "@proto", "@class", "@extensible", "tagName", "getAttribute", "setAttribute", "removeAttribute", "getAttributeNode",
 			"setAttributeNode", "removeAttributeNode", "getElementsByTagName");
 
-	@pred  ElementNode(en, name, attr, children) :
+	@pred ElementNode(en, name, attr, children) :
 		DOMObject(en, $l_enp) *
 		((en, "@name") -> name) *
 		((en, "@attributes") -> attr) *
@@ -79,7 +78,7 @@
 		types(name: $$string_type, attr: $$list_type, children: $$list_type) *
 		empty_fields(en : "@proto", "@class", "@extensible", "@name", "@attributes", "@children");
 
-	@pred  ElementNodeSpecial(en, name, attr, children, parent) :
+	@pred ElementNodeSpecial(en, name, attr, children, parent) :
 		DOMObject(en, $l_enp) *
 		((en, "@name") -> name) *
 		((en, "@attributes") -> attr) *
@@ -88,7 +87,7 @@
 		types(name: $$string_type, attr: $$list_type, children: $$list_type) *
 		empty_fields(en : "@proto", "@class", "@extensible", "@name", "@attributes", "@children", "@parent");
 
-	@pred  TextNodePrototype() :
+	@pred TextNodePrototype() :
 		DOMObject($l_tnp, $l_np) *
 		(($l_tnp, "@name") -> "#text") *
 		DOMFunctionField($l_tnp, "data") *
@@ -102,54 +101,47 @@
 		empty_fields($l_tnp : "@proto", "@class", "@extensible", "@name", "data", "length", "substringData", "appendData",
 									 "insertData", "deleteData", "replaceData", "splitText");
 
-	@pred  TextNode(tn, text) :
+	@pred TextNode(tn, text) :
 		DOMObject(tn, $l_tnp) *
 		((tn, "@text") -> text) *
 		empty_fields(tn : "@proto", "@class", "@extensible", "@text");
 
-	@pred  AttributeNodePrototype() :
+	@pred AttributeNodePrototype() :
 		DOMObject($l_anp, $l_np) *
 		empty_fields($l_anp : "@proto", "@class", "@extensible");
 
-	@pred  AttributeNode(an, name, children) :
+	@pred AttributeNode(an, name, children) :
 		DOMObject(an, $l_anp) *
 		((an, "@name") -> name) *
 		((an, "@children") -> children) *
 		types(name: $$string_type, children: $$list_type) *
 		empty_fields(an : "@proto", "@class", "@extensible", "@name", "@children");
 
-	@pred  InitialDOMHeap() :
+	@pred InitialDOMHeap() :
 		NodePrototype() * DocumentNodePrototype() * ElementNodePrototype() * AttributeNodePrototype() * TextNodePrototype();
 
 	@onlyspec createElement(x)
-		pre: 
-			(x == #name) * DocumentNode(this, #element)
-		post:
-			DocumentNode(this, #element) * ElementNodeSpecial(ret, #name, {{}}, {{}}, $$null)
-		outcome:
-			normal
+		pre: [[ (x == #name) * DocumentNode(this, #element) ]]
+		post: [[ DocumentNode(this, #element) * ElementNodeSpecial(ret, #name, {{}}, {{}}, $$null) ]]
+		outcome: normal
 
 	@onlyspec parentNode()
-		pre:
-			ElementNodeSpecial(this, #name, #att, #children, $$null)
-		post:
-			ElementNodeSpecial(this, #name, #att, #children, $$null) * (ret == $$null)
-		outcome:
-			normal;
-		pre:
-			DocumentNode(this, #element)
-		post:
-			DocumentNode(this, #element) * (ret == $$null)
-		outcome:
-			normal
+		pre:  [[ ElementNodeSpecial(this, #name, #att, #children, $$null) ]]
+		post: [[ ElementNodeSpecial(this, #name, #att, #children, $$null) * (ret == $$null) ]]
+		outcome: normal;
+		
+		pre:  [[ DocumentNode(this, #element) ]]
+		post: [[DocumentNode(this, #element) * (ret == $$null) ]]
+		outcome: normal
 
 	@onlyspec appendChild(newchild)
-		pre:
-			(newchild == #en) * DocumentNode(this, $$null) * ElementNodeSpecial(#en, #name, #att, #children, $$null)
-		post:
-			DocumentNode(this, #en) * ElementNodeSpecial(#en, #name, #att, #children, this) * (ret == #en)
-		outcome:
-			normal
+		pre:  [[ (newchild == #en) * DocumentNode(this, $$null) * ElementNodeSpecial(#en, #name, #att, #children, $$null) ]]
+		post: [[ DocumentNode(this, #en) * ElementNodeSpecial(#en, #name, #att, #children, this) * (ret == #en) ]]
+		outcome: normal
 */
 
-var x;
+/** 
+	@toprequires (InitialDOMHeap())
+	@topensures (InitialDOMHeap())
+*/
+42;
