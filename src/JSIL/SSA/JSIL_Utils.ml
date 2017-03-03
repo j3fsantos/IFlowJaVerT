@@ -128,10 +128,11 @@ let ext_program_of_path path =
   let prog = parse_with_error JSIL_Parser.main_target lexbuf in
 	close_in inx;
 	let pred' = Hashtbl.copy JSIL_Syntax.predicate_table in
+	let ospc' = Hashtbl.copy JSIL_Syntax.only_spec_table in
 	let proc' = Hashtbl.copy JSIL_Syntax.procedure_table in
 	Hashtbl.clear JSIL_Syntax.predicate_table;
 	Hashtbl.clear JSIL_Syntax.procedure_table;
-	{ imports = prog.imports; predicates = pred'; procedures = proc'; }
+	{ imports = prog.imports; predicates = pred'; onlyspecs = ospc'; procedures = proc'; }
 
 let specs_of_path path =
 		let inx = open_in path in
@@ -147,10 +148,12 @@ let ext_program_of_string str =
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
 	let prog = parse_with_error JSIL_Parser.main_target lexbuf in
 	let pred' = Hashtbl.copy JSIL_Syntax.predicate_table in
+	let ospc' = Hashtbl.copy JSIL_Syntax.only_spec_table in
 	let proc' = Hashtbl.copy JSIL_Syntax.procedure_table in
 	Hashtbl.clear JSIL_Syntax.predicate_table;
+	Hashtbl.clear JSIL_Syntax.only_spec_table;
 	Hashtbl.clear JSIL_Syntax.procedure_table;
-	{ imports = prog.imports; predicates = pred'; procedures = proc'; }
+	{ imports = prog.imports; predicates = pred'; onlyspecs = ospc'; procedures = proc'; }
 
 let jsil_assertion_of_string str =
   let lexbuf = Lexing.from_string str in
@@ -167,6 +170,10 @@ let js_logic_pred_def_of_string str : JS_Logic_Syntax.js_logic_predicate =
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
 	parse_with_error JSIL_Parser.js_pred_target lexbuf
 
+let js_only_spec_from_string str : unit =
+  let lexbuf = Lexing.from_string str in
+  lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
+	parse_with_error JSIL_Parser.js_only_spec_target lexbuf
 
 (** Add the declarations in 'program_from' to 'program_to'. *)
 let extend_declarations program_to program_from =

@@ -125,9 +125,9 @@ type js_logic_assertion =
 	| JSLPred				of string  * (js_logic_expr list)
 	| JSLTypes      of (string * jsil_type) list
 	| JSLScope      of string  * js_logic_expr
-	(* JSFunObj (f_id, f_loc, f_prototype) *)
 	| JSFunObj      of string  * js_logic_expr * js_logic_expr * (js_logic_expr option) 
 	| JSClosure     of ((string * js_logic_expr) list) * ((string * js_logic_expr) list)
+	| JSEmptyFields of js_logic_expr * (js_logic_expr list)
 
 
 type js_logic_predicate = {
@@ -137,6 +137,19 @@ type js_logic_predicate = {
 	js_definitions : js_logic_assertion list;
 }
 
+type js_single_spec = {
+	js_pre      : js_logic_assertion;   
+	js_post     : js_logic_assertion;  
+	js_ret_flag : jsil_return_flag      
+}
+
+type js_spec = {
+	js_spec_name    : string;               
+	js_spec_params  : string list;        
+	js_proc_specs   : js_single_spec list
+}
+
+let js_only_spec_table : (string, js_spec) Hashtbl.t = Hashtbl.create 511
 
 let rec js2jsil_lexpr le =
 	let fe = js2jsil_lexpr in
@@ -225,7 +238,10 @@ let rec js2jsil_logic cur_fid cc_tbl vis_tbl fun_tbl (a : js_logic_assertion) : 
 			else (
 			let msg = Printf.sprintf "scope predicate misuse: %s needs to be in the scope!\n" x in
 			raise (Failure msg))
-			
+	
+	| JSEmptyFields (e, le) ->
+			LEmptyFields (fe e, List.map (fun e -> fe e) le)
+	
 	|	JSFunObj (id, f_loc, f_prototype, f_sc) -> 
 		let f_loc' = fe f_loc in 
 		let f_prototype' = fe f_prototype in 

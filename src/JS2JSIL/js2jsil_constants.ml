@@ -207,10 +207,10 @@ let is_get_value_var x =
 	match x with 
 	| Var x_name ->
 		let x_name_len = String.length x_name in 
-		Printf.printf "inside is_get_value_var with %s\n" x_name; 
+		print_debug (Printf.sprintf "inside is_get_value_var with %s\n" x_name); 
 		if ((x_name_len > 2) && ((String.sub x_name (x_name_len - 2) 2) = "_v"))
 			then (
-				Printf.printf "I am not creating a useless getValue call!!!\n";
+				print_debug "I am not creating a useless getValue call!!!";
 				Some (String.sub x_name 0 (x_name_len - 2))
 			) else None 
 	| _ -> None

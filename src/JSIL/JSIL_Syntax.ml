@@ -339,6 +339,8 @@ type jsil_ext_program = {
 	imports : string list;
 	(* Predicates = Name : String --> Definition *)
 	predicates : (string, jsil_logic_predicate) Hashtbl.t;
+	(* Specs = Name : String --> Spec *)
+	onlyspecs : (string, jsil_spec) Hashtbl.t;
 	(* JSIL extended procedures = Name : String --> Procedure *)
 	procedures : (string, jsil_ext_procedure) Hashtbl.t;
 }

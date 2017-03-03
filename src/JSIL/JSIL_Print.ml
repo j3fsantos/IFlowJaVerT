@@ -395,8 +395,8 @@ let rec string_of_specs specs =
 	match specs with
 	| [] -> ""
 	| hd :: tl ->
-		"\t[[" ^ string_of_logic_assertion hd.pre false ^ "]]\n" ^
-		"\t[[" ^ string_of_logic_assertion hd.post false ^ "]]\n" ^
+		"\t[[ " ^ string_of_logic_assertion hd.pre  false ^ " ]]\n" ^
+		"\t[[ " ^ string_of_logic_assertion hd.post false ^ " ]]\n" ^
 		"\t" ^ string_of_return_flag hd.ret_flag ^
 		(match tl with
 		| [] -> "\n"
@@ -537,6 +537,10 @@ let string_of_ext_procedure proc =
 		| Some var, Some label -> (Printf.sprintf "\terr: %s, %s;\n" var label)
 		| _, _ -> raise (Failure "Error: variable and error label not both present or both absent!")))
 
+let string_of_jsil_spec spec = 
+	Printf.sprintf "spec %s (%s)\n %s" spec.spec_name (String.concat ", " spec.spec_params)
+	(string_of_specs spec.proc_specs) 
+
 (** Extended JSIL programs *)
 let string_of_ext_program program =
 	(* Imports line *)
@@ -549,6 +553,12 @@ let string_of_ext_program program =
 		(fun _ pred acc_str -> acc_str ^ "\n" ^ (string_of_predicate pred))
 		program.predicates
 		"")
+	^
+	(* Onlyspecs *)
+	(Hashtbl.fold
+		(fun _ spec acc_str -> acc_str ^ "\n" ^ "only " ^ (string_of_jsil_spec spec))
+		program.onlyspecs
+		"")	
 	^
 	(* Procedures *)
 	Hashtbl.fold

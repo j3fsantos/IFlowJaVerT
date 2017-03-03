@@ -165,6 +165,11 @@ open JS_Logic_Syntax
 %token SPEC
 %token NORMAL
 %token ERROR
+(* JS only spec specifics *)
+%token JSOS
+%token JSOSPRE
+%token JSOSPOST
+%token JSOSOUT
 (* Procedure definition keywords *)
 %token PROC
 %token RET
@@ -221,21 +226,23 @@ open JS_Logic_Syntax
 %type <JS_Logic_Syntax.js_logic_predicate> js_pred_target
 %type <JSIL_Syntax.jsil_logic_assertion> top_level_assertion_target
 %type <JS_Logic_Syntax.js_logic_assertion> top_level_js_assertion_target
+%type <unit> js_only_spec_target
 %start main_target
 %start param_list_FC_target
 %start pred_spec_target
 %start top_level_assertion_target
 %start top_level_js_assertion_target
 %start js_pred_target
+%start js_only_spec_target
 %%
 
 (********* JSIL *********)
 
 main_target:
 	| imports = import_target; declaration_target; EOF
-		{ { imports; predicates = predicate_table; procedures = procedure_table; } }
+		{ { imports; predicates = predicate_table; onlyspecs = only_spec_table; procedures = procedure_table; } }
 	| declaration_target; EOF
-		{ { imports = []; predicates = predicate_table; procedures = procedure_table; } }
+		{ { imports = []; predicates = predicate_table; onlyspecs = only_spec_table; procedures = procedure_table; } }
 ;
 
 declaration_target:
@@ -595,7 +602,28 @@ only_spec_target:
 		let spec = { spec_name; spec_params; proc_specs } in
 		Hashtbl.replace only_spec_table spec_name spec;
 	}
+
+js_only_spec_target:
+(* js_only_spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *)
+	JSOS; spec_head = spec_head_target;
+	js_proc_specs = separated_nonempty_list(SCOLON, js_pre_post_target); EOF
+	{
+		let (js_spec_name, js_spec_params) = spec_head in
+		let js_spec = { js_spec_name; js_spec_params; js_proc_specs } in
+		Hashtbl.replace js_only_spec_table js_spec_name js_spec
+	}
+	
+js_pre_post_target:
+(* pre: ... post: ... outcome: ... *)
+	JSOSPRE; js_pre = js_assertion_target; 
+	JSOSPOST; js_post = js_assertion_target; 
+	JSOSOUT; js_ret_flag = outcome_target;
+	{ { js_pre; js_post; js_ret_flag } }
 ;
+
+outcome_target:
+	| NORMAL { Normal }
+	| ERROR  { Error  }
 
 spec_target:
 (* spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *)
@@ -922,6 +950,9 @@ js_assertion_target:
 (* closure(x_0: le_0, ..., x_n: le_n; fid_0: le_0', ..., fid_n: le_n') *)
 	| CLOSURE; LBRACE; var_les=separated_list(COMMA, var_js_le_pair_target); SCOLON; fid_scs=separated_list(COMMA, var_js_le_pair_target); RBRACE
 		{	JSClosure (var_les, fid_scs)	}
+(* empty_fields (le | lit1, lit2, lit3, ...) *)
+	| EMPTYFIELDS; LBRACE; le=js_lexpr_target; COLON; fields=separated_list(COMMA, js_lexpr_target); RBRACE
+		{ JSEmptyFields (le, fields) }
 (* (P) *)
   | LBRACE; ass=js_assertion_target; RBRACE
 	  { ass }

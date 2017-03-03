@@ -168,6 +168,11 @@ rule read = parse
 	| "spec"               { JSIL_Parser.SPEC      }
 	| "normal"             { JSIL_Parser.NORMAL    }
 	| "error"              { JSIL_Parser.ERROR     }
+(* JS only spec specifics *)
+	| "js_only_spec"       { JSIL_Parser.JSOS      }
+	| "pre:"               { JSIL_Parser.JSOSPRE   }
+	| "post:"              { JSIL_Parser.JSOSPOST  }
+	| "outcome:"           { JSIL_Parser.JSOSOUT   }
 (* Procedure definition keywords *)
 	| "proc"               { JSIL_Parser.PROC      }
 	| "ret"                { JSIL_Parser.RET       }
