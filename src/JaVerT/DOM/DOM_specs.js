@@ -145,4 +145,5 @@
 	@topensures  (InitialDOMHeap() * DocumentNode($l_document, $$null) * scope(document : $l_document))
 */
 
-var r = document.createElement("test");
+var r;
+r = document.createElement("test");
