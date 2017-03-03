@@ -419,7 +419,13 @@ let get_symb_state_vars_as_tbl catch_pvars symb_state =
 	get_preds_vars var_tbl catch_pvars preds;
 	var_tbl
 
-let get_symb_state_vars_as_list catch_pvars symb_state =
+
+(**
+   @arg catch_pvars boolean - if true, the procedure returns logical variables AND program variables. 
+	      otherwise it only returns logical variables 
+	 @ret a list containing all the variables in symb_state   
+*)
+let get_symb_state_vars_as_list (catch_pvars : bool) (symb_state : symbolic_state) =
 	let var_tbl = get_symb_state_vars_as_tbl catch_pvars symb_state in
 	Hashtbl.fold
 		(fun v _ ac -> v :: ac)
