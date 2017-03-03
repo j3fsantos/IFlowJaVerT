@@ -2625,6 +2625,32 @@ with
     err: xret, elab;
 };
 
+
+
+(* *********** *)
+(* HASPROPERTY *)
+(* *********** *)
+
+spec hasProperty (l, prop) 
+	[[ (l == #l) * (prop == #prop) *
+	   types (#l : $$object_type, #prop : $$string_type) *
+	   Pi (#l, #prop, #gp_aux_0, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4) ]]
+	[[ Pi (#l, #prop, #gp_aux_0, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4) 
+		* (ret == (not (#gp_aux_1 = $$undefined)))  ]]
+	normal
+proc hasProperty (l, prop) {
+			xret := "getProperty" (l, prop) with elab;
+
+	rlab:	xret := not (xret = $$undefined);
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err:	xret, elab;
+};
+
+
 (* ******** *)
 (* PUTVALUE *)
 (* ******** *)

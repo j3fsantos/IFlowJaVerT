@@ -526,6 +526,11 @@ let is_put_value_call cmd =
 	| SLCall (_, (Literal (String proc_name)), _, _) -> (proc_name = putValueName)
 	| _ -> false
 
+let is_hasProperty_call cmd =
+	match cmd with
+	| SLCall (_, (Literal (String proc_name)), _, _) -> (proc_name = hasPropertyName)
+	| _ -> false
+
 let get_args cmd =
 	match cmd with
 	| SLCall (_, (Literal (String proc_name)), args, _) -> Some args
@@ -535,31 +540,47 @@ let get_args cmd =
 let annotate_cmd_top_level metadata (lab, cmd) =
 	
 	let fold_unfold_pi_code_macro args = 
-		let arg =
+		let new_args =
 			(match args with
-			| Some args ->  List.nth args 0
+			| Some args ->  args
 			| None -> raise (Failure "No argument passed to GetPutValue folding.")) in
-		(match arg with
-		| Literal n -> [], []
-		| _ ->
+		(match new_args with
+	  (* JOSE: I do not understand this case *)
+		| [ Literal n ] -> [], []
+		(* PUTVALUE and GETVALUE cases *)
+		| [ arg ] ->
 			let arg = JSIL_Logic_Utils.expr_2_lexpr arg in
 			let fold_args = [arg; LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()) ] in
 			let fold_macro = Macro (Js2jsil_constants.macro_GPVF_name, fold_args) in
 			let unfold_macro = Macro (Js2jsil_constants.macro_GPVU_name, [ arg ]) in
-			[ fold_macro ], [ unfold_macro ]) in
+			[ fold_macro ], [ unfold_macro ]
+		(* HasProperty case *)
+		| [ arg1; arg2] -> 
+			let l_arg1 = JSIL_Logic_Utils.expr_2_lexpr arg1 in
+			let l_arg2 = JSIL_Logic_Utils.expr_2_lexpr arg2 in
+			let fold_args = [l_arg1; l_arg2; LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()) ] in
+			let fold_lcmd = Fold (LPred (pi_predicate_name, fold_args)) in 
+			let unfold_lcmd = RecUnfold pi_predicate_name in 
+			[ fold_lcmd ], [ unfold_lcmd ] 
+		(* No other cases handled *)	
+		| _ -> raise (Failure "Folding/Unfolding in the wrong place.")) in
 	
-	if (is_get_value_call cmd) then (
-		print_debug "I AM CREATING a GETVALUE ANNOTATION!!!!!";
+	if ((is_get_value_call cmd) || (is_put_value_call cmd))  then (
+		print_debug "I AM CREATING FOLD/UNFOLD ANNOTATIONS!!!!!";
 		let fold_lcmds, unfold_lcmds = fold_unfold_pi_code_macro (get_args cmd) in
 		let new_metadata =
 			{ metadata with pre_logic_cmds = fold_lcmds; post_logic_cmds = unfold_lcmds } in
 		(new_metadata, lab, cmd)
-	) else if (is_put_value_call cmd) then (
-		print_debug "I AM CREATING a PUTVALUE ANNOTATION!!!!!";
-		let fold_lcmds, unfold_lcmds = fold_unfold_pi_code_macro (get_args cmd) in
-		let new_metadata =
-			{ metadata with pre_logic_cmds = fold_lcmds; post_logic_cmds = unfold_lcmds } in
-		(new_metadata, lab, cmd)
+	) else if (is_hasProperty_call cmd) then ( 
+			let fold_lcmds, unfold_lcmds = fold_unfold_pi_code_macro (get_args cmd) in
+			Printf.printf "I found a call to hasProperty. %n Folds: %s.\nUnfolds: %n!\n"
+				(List.length fold_lcmds) 
+				(String.concat "," 
+					(List.map JSIL_Print.string_of_lcmd fold_lcmds))
+				(List.length unfold_lcmds); 
+			let new_metadata =
+				{ metadata with pre_logic_cmds = fold_lcmds; post_logic_cmds = unfold_lcmds } in
+			(new_metadata, lab, cmd)
 	) else (metadata, lab, cmd)
 
 let annotate_cmds_top_level metadata cmds =
