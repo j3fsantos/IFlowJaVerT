@@ -584,7 +584,10 @@ with
    **************************************** *)
 
 pred initialHeapPre () :
-    empty_fields( $lg : ) * empty_fields ( $lobj_proto : ) * empty_fields ($lfun_proto : );
+    (($lg,      "@class") -> None) * 
+    (($lg, 	    "@proto") -> None) * 
+    (($lg, "@extensible") -> None) *
+    empty_fields ( $lobj_proto : ) * empty_fields ($lfun_proto : );
     
 pred initialHeapPost () :
     (($lg,         "@class") -> "Object")   * (($lg,         "@proto") -> $lobj_proto) * (($lg,         "@extensible") -> $$t) *

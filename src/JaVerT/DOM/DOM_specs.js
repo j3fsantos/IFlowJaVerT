@@ -141,8 +141,8 @@
 */
 
 /** 
-	@toprequires (scope(document : $l_document))
-	@topensures  (scope(document : $l_document))
+	@toprequires (InitialDOMHeap() * DocumentNode($l_document, $$null) * scope(document : $l_document))
+	@topensures  (InitialDOMHeap() * DocumentNode($l_document, $$null) * scope(document : $l_document))
 */
 
 var r = document.createElement("test");
