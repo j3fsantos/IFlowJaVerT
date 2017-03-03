@@ -1,0 +1,322 @@
+import Global;
+
+(* Magic + UTC and daylight conversion *)
+
+proc d__makeDay (year, month, date) {
+			
+			xret := "Object_isFinite" ($$empty, $$empty, year) with elab;
+			goto [xret = $$f] rnan ifnm;
+	ifnm:	xret := "Object_isFinite" ($$empty, $$empty, month) with elab;
+			goto [xret = $$f] rnan ifnd;
+	ifnd:	xret := "Object_isFinite" ($$empty, $$empty, date) with elab;
+			goto [xret = $$f] rnan main;
+
+	main:	xret := "i__toInteger" (year) with elab;
+			y := xret;
+			xret := "i__toInteger" (month) with elab;
+			m := xret;
+			xret := "i__toInteger" (date) with elab;
+			dt := xret;
+
+			ym := y + m_floor (m / 12);
+			mn := m % 12;
+
+			dfy := (365 * (ym - 1970)) + (m_floor ((ym - 1969) / 4)) + (m_floor ((ym - 1601) / 400)) - (m_floor ((ym - 1901) / 100));
+
+			month_days := {{ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 }};
+			dm := l-nth (month_days, mn);
+
+			leap_year := ((y % 4 = 0) and (not (y % 100 = 0))) or (y % 400 = 0);
+
+			goto [leap_year and (2 <= mn)] add1 finish;
+	add1:	dm := dm + 1;
+
+	finish:	xret := dfy + dm + dt - 1;
+			goto rlab;
+
+	rnan:	xret := nan;
+			goto rlab;
+
+	rlab:	skip;
+
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
+
+proc d__makeTime (hour, min, sec, ms) {
+
+			xret := "Object_isFinite" ($$empty, $$empty, hour) with elab;
+			goto [xret = $$f] rnan ifnm;
+	ifnm:	xret := "Object_isFinite" ($$empty, $$empty, min) with elab;
+			goto [xret = $$f] rnan ifns;
+	ifns:	xret := "Object_isFinite" ($$empty, $$empty, sec) with elab;
+			goto [xret = $$f] rnan ifnms;
+	ifnms:	xret := "Object_isFinite" ($$empty, $$empty, ms) with elab;
+			goto [xret = $$f] rnan main;
+
+	main:	xret := "i__toInteger" (hour) with elab;
+			h := xret;
+			xret := "i__toInteger" (min) with elab;
+			m := xret;
+			xret := "i__toInteger" (sec) with elab;
+			s := xret;
+			xret := "i__toInteger" (ms) with elab;
+			milli := xret;
+
+			xret := (h * 3600000) + (m * 60000) + (s * 1000) + milli;
+			goto rlab;
+
+	rnan:	xret := nan;
+			goto rlab;
+
+	rlab:	skip;
+
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
+
+proc d__makeDate (day, time) {
+
+			xret := "Object_isFinite" ($$empty, $$empty, day) with elab;
+			goto [xret = $$f] rnan ifnt;
+	ifnt:	xret := "Object_isFinite" ($$empty, $$empty, time) with elab;
+			goto [xret = $$f] rnan main;
+
+	main:	xret := (day * 86400000) + time;
+			goto rlab;
+
+	rnan:	xret := nan;
+			goto rlab;
+
+	rlab:	skip;
+
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
+
+proc d__UTC (time) {
+
+			dt := m_round (($$UTCTime - $$LocalTime) / 60000);
+			xret := time + (dt * 60000);
+
+	rlab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+};
+
+proc d__TimeClip (time) {
+
+			xret := "Object_isFinite" ($$empty, $$empty, time) with elab;
+			goto [xret = $$f] rnan range;
+	range:	goto [8640000000000000 <= m_abs (time)] rnan main;
+
+	main:	xret := "i__toInteger" (time) with elab;
+			xret := xret + 0;
+			goto rlab;
+
+	rnan:	xret := nan;
+			goto rlab;
+
+	rlab:	skip;
+
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
+
+(* CONSTRUCTOR *)
+
+proc Date_construct (xsc, vthis) {
+
+			UT := $$UTCTime;
+			LT := $$LocalTime;
+
+			DT := UT - LT;
+
+			arguments := args;
+			len := l-len (arguments);
+			argc := len - 2;
+
+			xret := new ();
+			date := "create_default_object" (xret, $ldt_proto, "Date", $$t);
+
+			goto [argc = 0] arg0 test1;
+
+			(* No arguments, return now *)
+	arg0:	[date, "@primitiveValue"] := $$UTCTime;
+			goto rlab;
+
+
+
+
+	test1:	goto [argc = 1] arg1 test2;
+
+			(* One argument, convert *)
+	arg1:	v := l-nth (arguments, 2);
+			xret := "i__toPrimitive" (v) with elab;
+			goto [typeOf(xret) = $$string_type] nimpl tonum;
+
+	tonum:  xret := "i__toNumber" (xret) with elab;
+			xret := "d__TimeClip" (xret);
+			[date, "@primitiveValue"] := xret;
+			goto rlab;
+
+	nimpl:	xret := magic;
+
+
+
+
+
+			(* More than one argument *)
+	test2:	y := l-nth (arguments, 2);
+			xret := "i__toNumber" (y) with elab;
+			y := xret;
+
+			m := l-nth (arguments, 3);
+			xret := "i__toNumber" (m) with elab;
+			m := xret;
+
+			dt := 1;
+			h := 0;
+			min := 0;
+			s := 0;
+			ms := 0;
+
+			goto [2 < argc] dt th;
+	dt:		dt := l-nth (arguments, 4);
+			xret := "i__toNumber" (dt) with elab;
+			dt := xret;
+
+	th:		goto [3 < argc] h tm;
+	h:		h := l-nth (arguments, 5);
+			xret := "i__toNumber" (h) with elab;
+			h := xret;
+
+	tm:		goto [4 < argc] m ts;
+	m:		min := l-nth (arguments, 6);
+			xret := "i__toNumber" (min) with elab;
+			min := xret;
+
+	ts:		goto [5 < argc] s tms;
+	s:		s := l-nth (arguments, 7);
+			xret := "i__toNumber" (s) with elab;
+			s := xret;
+
+	tms:	goto [6 < argc] ms yr;
+	ms:		ms := l-nth (arguments, 8);
+			xret := "i__toNumber" (ms) with elab;
+			ms := xret;
+
+	yr:		yr := y;
+			goto [not (y = y)] fd tiy;
+	tiy:	xret := "i__toInteger" (y) with elab;
+			goto [(0 <= xret) and (xret <= 99)] adjy fd;
+	adjy:	yr := 1900 + xret;
+
+	fd:		md := "d__makeDay" (yr, m, dt);
+			mt := "d__makeTime" (h, min, s, ms);
+			fd := "d__makeDate" (md, mt);
+
+			utc := "d__UTC" (fd);
+			res := "d__TimeClip" (utc);
+
+			[date, "@primitiveValue"] := res;
+
+	rlab:	xret := date;
+
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
+};
+
+(* *** VALUEOF *** *)
+
+proc DP_valueOf (xsc, vthis) {
+
+			goto [typeOf(vthis) = $$object_type] class tt;
+	class:	class := [vthis, "@class"];
+			goto [class = "Date"] rlab tt;
+
+	rlab:	xret := [vthis, "@primitiveValue"];
+
+	tt:		xret := "TypeError" ();
+
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
+
+
+(* *** GETTIME *** *)
+
+proc DP_getTime (xsc, vthis) {
+
+			goto [typeOf(vthis) = $$object_type] class tt;
+	class:	class := [vthis, "@class"];
+			goto [class = "Date"] rlab tt;
+
+	rlab:	xret := [vthis, "@primitiveValue"];
+
+	tt:		xret := "TypeError" ();
+
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
+
+
+(* *** GETTIMEZONEOFFSET *** *)
+
+proc DP_getTimezoneOffset (xsc, vthis) {
+
+			goto [typeOf(vthis) = $$object_type] class tt;
+	class:	class := [vthis, "@class"];
+			goto [class = "Date"] rlab tt;
+
+	rlab:	xret := m_round (($$UTCTime - $$LocalTime) / 60000);
+
+	tt:		xret := "TypeError" ();
+
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
+
+(* *** NOW *** *)
+
+proc Date_now (xsc, vthis) {
+	rlab:	xret := $$UTCTime
+}
+with
+{
+	ret: 	xret, rlab;
+};

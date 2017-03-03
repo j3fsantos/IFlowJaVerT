@@ -434,6 +434,8 @@ let symb_state_substitution (symb_state : symbolic_state) subst partial =
 	let s_gamma = gamma_substitution gamma subst partial in
 	let s_preds = preds_substitution preds subst partial in
 	(s_heap, s_store, s_pf, s_gamma, s_preds (* ref None *))
+	
+	
 
 (*************************************)
 (** Symbolic state simplification   **)

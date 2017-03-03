@@ -480,7 +480,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 			print_debug (Printf.sprintf "This was a TOTAL MATCH!!!!");
 			transform_symb_state spec symb_state quotient_heap quotient_preds subst pf_discharges new_gamma
 	 	| _ :: _ ->
-			print_debug (Printf.sprintf "this was a PARTIAL MATCH!!!!");
+			print_debug (Printf.sprintf "This was a PARTIAL MATCH!!!!");
 			let new_symb_states =
 				List.map
 					(fun (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->

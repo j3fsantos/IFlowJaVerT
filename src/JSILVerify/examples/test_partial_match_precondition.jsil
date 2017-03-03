@@ -1,0 +1,31 @@
+(** Totals: 3 fails and 7 passes **)
+
+(** Tested feature: field assignment 1               **)
+(** Expected result: YES                             **)
+spec f1 (x)
+   [[ ((x, "carrot") -> #y) * types(#y: $$number_type) * (#y <# 10) ]]
+   [[ ((x, "carrot") -> (#y + 1))  ]]
+   normal; 
+   
+   [[ ((x, "carrot") -> #y) * types(#y: $$number_type) * (! (#y <# 10)) ]]
+   [[ ((x, "carrot") -> #y)  ]]
+   normal
+proc f1 (x) {
+ 	   	   y := [x, "carrot"]; 
+  		   goto [y < 10] slab rlab;  
+   	slab:  [x, "carrot"] := (y + 1);
+           goto rlab;
+ 	rlab:  skip 
+} with { ret: x, rlab; };
+
+
+spec f2 (x) 
+    [[ emp * types(x: $$number_type) ]]
+    [[ ((ret, "carrot") -> #z) * ((ret, "@proto") -> $$null) * types(#z: $$number_type) ]]
+    normal
+proc f2 (x) {
+			y := new(); 
+			[y, "carrot"] := x; 
+			z := "f1"(y); 
+	rlab:	skip 
+} with { ret: z, rlab; };
