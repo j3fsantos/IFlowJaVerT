@@ -827,13 +827,35 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
 				let else_anti_frame = copy_symb_state anti_frame in
 				let else_search_info = update_vis_tbl search_info (copy_vis_tbl search_info.vis_tbl) in
 
+				(* L-Var Check *)
+				let anti_frame_logical_varaibles = get_symb_state_vars_as_list false anti_frame in
+				let spec_logical_varaibles = spec.n_lvars in 
+				let expression_logical_varaibles = get_logic_expression_lvars le in
+				let lvars_not_in_spec_or_af = List.filter 
+					(fun var ->
+ 						let in_anti_frame = List.mem var anti_frame_logical_varaibles in
+ 						let in_spec = List.mem var spec_logical_varaibles in
+ 						((not in_anti_frame) && (not in_spec))
+ 					) 
+					expression_logical_varaibles in
+				if (List.length lvars_not_in_spec_or_af > 0) then
+					print_endline "TODO: Logical Variables of expression not contained within the spec or anti_frame";
+
+				(* Then Branch *)
 				extend_symb_state_with_pfs then_symb_state (DynArray.of_list a_le_then);
-				let (_,_) = symb_evaluate_next_cmd s_prog proc spec then_search_info then_symb_state anti_frame i j in
-				print_symb_state_and_cmd then_symb_state  anti_frame;
+				extend_symb_state_with_pfs then_anti_frame (DynArray.of_list a_le_then);
+				let (then_post_state, then_anti_frame_result) = 
+						symb_evaluate_next_cmd s_prog proc spec then_search_info then_symb_state then_anti_frame i j in
+				print_symb_state_and_cmd then_symb_state then_anti_frame;
+
+				(* Else Branch *)
 				extend_symb_state_with_pfs else_symb_state (DynArray.of_list a_le_else);
-				let (_,_) = symb_evaluate_next_cmd s_prog proc spec else_search_info else_symb_state anti_frame i k in
-				print_symb_state_and_cmd else_symb_state  anti_frame;
-				([],[]) (*TODO*)
+				extend_symb_state_with_pfs else_anti_frame (DynArray.of_list a_le_else);
+				let (else_post_state, else_anti_frame_result) = 
+						symb_evaluate_next_cmd s_prog proc spec else_search_info else_symb_state else_anti_frame i k in
+				print_symb_state_and_cmd else_symb_state  else_anti_frame;
+
+				(then_post_state @ else_post_state, then_anti_frame_result @ else_anti_frame_result)
 			)
 		) 
 		in
@@ -967,16 +989,10 @@ and symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state anti_fra
 	(* i1: Has the current command already been visited? *)
 	let is_visited i = Hashtbl.mem search_info.vis_tbl i in
 
-	(* Conclusion *)
 	let finish how = 
-		(try
-			Structural_Entailment.unify_symb_state_against_post proc.proc_name spec symb_state how search_info !js;
-			Symbolic_Traces.create_info_node_from_post search_info spec.n_post how true; 
-			(true, None, [symb_state], [anti_frame]) 
-		with Failure msg ->
-			(false, Some msg, [symb_state], [anti_frame]))
-		in
-	
+		print_endline ("----------------- FINISH -----------------");
+		(true, None, [symb_state], [anti_frame]) in
+
 	(* i2: Have we reached the return label? *)
 	(if (Some cur = proc.ret_label) then
 		(* i2: YES: Unify the final symbolic state against the postcondition *)
@@ -1103,6 +1119,15 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info
 	(* Return *)
 	search_dot_graph, success, failure_msg, post_state, anti_frame
 
+let print_new_specification pre post anti_frame = 
+	let pre_str = JSIL_Memory_Print.string_of_shallow_symb_state pre in
+	let post_str = JSIL_Memory_Print.string_of_shallow_symb_state post in
+	print_endline "----------------- NEW SPECIFICATION ----------------- ";
+	print_endline (Printf.sprintf "Pre-condition: \n %s" pre_str);
+	print_endline (Printf.sprintf "Post-condition: \n %s" post_str);
+	print_endline "-----------------------------------------------------";
+	()
+
 let add_new_spec spec proc_name pre_post post_state_list anti_frame_list new_spec_tbl = 
 	(* Create new sepcification is there is an anti frame *)
 	let suc_anti_frame = Option.get anti_frame_list in
@@ -1110,7 +1135,8 @@ let add_new_spec spec proc_name pre_post post_state_list anti_frame_list new_spe
 	List.map2 (fun post_state anti_frame ->
 					(* The new precondition = old precondition * anti frame *)
 					(* The new postconition is the final state after evaluation *)
-					let new_pre  =  Symbolic_State_Functions.bi_merge_symb_states pre_post.n_pre anti_frame in 
+					let new_pre  =  Symbolic_State_Functions.bi_merge_symb_states anti_frame pre_post.n_pre in 
+					print_new_specification new_pre post_state;
 					let new_proc_spec = {
 						n_pre        = new_pre;
 						n_post       = [post_state];
