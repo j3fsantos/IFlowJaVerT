@@ -1360,9 +1360,6 @@ let rec reduce_assertion store gamma pfs a =
 		LLess (re1, re2)
 
 	| _ -> a) in
-	if (not (a = result)) then print_debug (Printf.sprintf "Reduce assertion: %s ---> %s"
-		(JSIL_Print.string_of_logic_assertion a false)
-		(JSIL_Print.string_of_logic_assertion result false));
 	result
 
 let reduce_assertion_no_store_no_gamma_no_pfs = reduce_assertion (Hashtbl.create 1) (Hashtbl.create 1) (DynArray.create ())

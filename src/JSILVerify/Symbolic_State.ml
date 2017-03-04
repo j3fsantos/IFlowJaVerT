@@ -48,8 +48,14 @@ let is_lvar_name (name : string) : bool =
 let is_pvar_name (name : string) : bool =
 	(not ((is_abs_loc_name name) || (is_lvar_name name)))
 
+
 (* A substitution type                                 *)
 type substitution = ((string, jsil_logic_expr) Hashtbl.t)
+
+
+
+
+
 
 (* Symbolic State Error                                *)
 exception Symb_state_error of string;;
@@ -64,14 +70,15 @@ module LHeap = Hashtbl.Make(
 		let hash = Hashtbl.hash
 	end)
 
-type symbolic_heap      = (((jsil_logic_expr * jsil_logic_expr) list) * jsil_logic_expr)  LHeap.t
-type symbolic_store     = (string, jsil_logic_expr) Hashtbl.t
-type pure_formulae      = (jsil_logic_assertion DynArray.t)
-type typing_environment = ((string, jsil_type) Hashtbl.t)
-type predicate_set      = ((string * (jsil_logic_expr list)) DynArray.t)
+type symbolic_field_value_list = ((jsil_logic_expr * jsil_logic_expr) list)
+type symbolic_heap             = (symbolic_field_value_list * jsil_logic_expr) LHeap.t
+type symbolic_store            = (string, jsil_logic_expr) Hashtbl.t
+type pure_formulae             = (jsil_logic_assertion DynArray.t)
+type typing_environment        = ((string, jsil_type) Hashtbl.t)
+type predicate_set             = ((string * (jsil_logic_expr list)) DynArray.t)
 
 
-type symbolic_state = symbolic_heap * symbolic_store * pure_formulae * typing_environment * predicate_set (* * (((Solver.solver * smt_translation_ctx) option) ref) *)
+type symbolic_state = symbolic_heap * symbolic_store * pure_formulae * typing_environment * predicate_set 
 
 
 

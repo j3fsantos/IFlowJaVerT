@@ -236,8 +236,11 @@ let rec js2jsil_logic cur_fid cc_tbl vis_tbl fun_tbl (a : js_logic_assertion) : 
 					then LPointsTo (PVar Js2jsil_constants.var_er, LLit (String x), fe le) 
 					else LPointsTo (LVar (fid_to_lvar fid), LLit (String x), fe le)))
 			else (
-			let msg = Printf.sprintf "scope predicate misuse: %s needs to be in the scope!\n" x in
-			raise (Failure msg))
+				LPointsTo (
+							LLit (Loc Js2jsil_constants.locGlobName), 
+							LLit (String x), 
+							LEList [ LLit (String "d"); (fe le); LLit (Bool true); LLit (Bool true); LLit (Bool false) ])
+			)
 	
 	| JSEmptyFields (e, le) ->
 			LEmptyFields (fe e, List.map (fun e -> fe e) le)

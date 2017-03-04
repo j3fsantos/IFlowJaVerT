@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+	<button onclick="sanitise()">Sanitise!</button>
+	<div>
+		<img src="https://image.freepik.com/free-icon/thumbs-up_318-31579.jpg" width="128" height="128">
+		<p>Safe image.</p>
+	</div>
+	<div>
+		<img src="https://image.freepik.com/free-icon/dislike-on-facebook-thumb-down-symbol-outline_318-37193.jpg" width="128" height="128">	
+		<p>Blacklisted, not cached.</p>
+	</div>
+	<div>
+		<img src="https://image.freepik.com/free-icon/dislike-on-facebook-thumb-down-symbol-outline_318-37193.jpg" width="128" height="128">
+		<p>Blacklisted, now cached.</p>
+	</div>
+
+	<script src="sanitise.js"></script>
+	<script type="text/javascript">
+		var cache = {"https://image.freepik.com/free-icon/thumbs-up_318-31579.jpg": 0};
+
+		function isBlackListed(url) {
+			return url === "https://image.freepik.com/free-icon/dislike-on-facebook-thumb-down-symbol-outline_318-37193.jpg";
+		}
+
+		function sanitise() {
+			var images = document.getElementsByTagName('img');
+			var cat = "https://www.petdrugsonline.co.uk/images/page-headers/cats-master-header";
+			for (var i = 0; i < images.length; i++) {
+				sanitiseImg(images[i], cat);
+			}	
+		}
+		
+	</script>
+
+</body>
+</html>

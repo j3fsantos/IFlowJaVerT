@@ -1,11 +1,5 @@
 import javert_internal_functions, javert_logic_macros, javert_js_predicates;
 
-pred Object (l, proto) :
-	types (l : $$object_type) *
-	((l, "@proto") -> proto) *
-	((l, "@class") -> "Object") *
-	((l, "@extensible") -> $$t);
-
 pred DOMObject (l, proto) :
     types (l : $$object_type) *
 	((l, "@proto") -> proto) *
@@ -28,7 +22,6 @@ pred DOMFunctionObject (l, call) :
 pred DOMFunctionField(l, call) :
 	DOMField(l, call, #lnn) *
 	DOMFunctionObject(#lnn, call);
-
 
 pred NodePrototype() :
 	DOMObject($l_np, $$null) *
@@ -128,9 +121,15 @@ pred AttributeNode(an, name, children) :
 pred InitialDOMHeap() :
 	NodePrototype() * DocumentNodePrototype() * ElementNodePrototype() * AttributeNodePrototype() * TextNodePrototype();
 
+
 only spec createElement(xsc, xthis, x)
 	[[ (xthis == #dn) * (x == #name) * DocumentNode(#dn, #element) ]]
 	[[ DocumentNode(#dn, #element) * ElementNodeSpecial(ret, #name, {{}}, {{}}, $$null) ]]
+	normal
+
+only spec removeChild(xsc, xthis, n)
+	[[ (xthis == #pn) * (n == #nn) * ElementNodeSpecial(#nn, #name, #att, #children, #pn) ]]
+	[[ ElementNodeSpecial(ret, #name, #att, #children, $$null) ]]
 	normal
 
 only spec parentNode(xsc, xthis)
@@ -138,32 +137,13 @@ only spec parentNode(xsc, xthis)
 	[[ ElementNodeSpecial(#en, #name, #att, #children, $$null) * (ret == $$null) ]]
 	normal;
 	[[ (xthis == #dn) * DocumentNode(#dn, #element) ]]
-	[[ (ret == $null) * DocumentNode(#dn, #element) ]]
+	[[ (ret == $$null) * DocumentNode(#dn, #element) ]]
 	normal;
 
 only spec appendChild(xsc, xthis, newchild)
 	[[ (xthis == #dn) * (newchild == #en) * DocumentNode(#dn, $$null) * ElementNodeSpecial(#en, #name, #att, #children, $$null)]]
 	[[ DocumentNode(#dn, #en) * ElementNodeSpecial(#en, #name, #att, #children, #dn) * (ret == #en) ]]
 	normal
-
-
-
-spec test_func()
-	[[ DocumentNode($ldoc, #element) ]]
-	[[ DocumentNode($ldoc, #element) * ElementNodeSpecial(ret, "test", {{}}, {{}}, $$null) ]]
-	normal
-
-proc test_func() {
-
-			xret := "createElement" ({{}}, $ldoc, "test");
-
-	rlab:	skip
-}
-with
-{
-	ret: 	xret, rlab;
-};
-
 
 
 spec appendChild_program(m, n)

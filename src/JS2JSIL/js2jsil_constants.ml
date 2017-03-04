@@ -418,3 +418,4 @@ let string_of_var_tbl var_tbl =
 
 let macro_GPVF_name = "GPVFold"
 let macro_GPVU_name = "GPVUnfold"
+let pi_predicate_name = "Pi"
