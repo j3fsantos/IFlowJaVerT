@@ -20,11 +20,10 @@
 		scope(isB: #ignore2) *
 		ElementNode(#n, #name, #attr, #children) *
 		#attr == {("hole", #alpha):("attr", #a, "src", #tf1)} *
-		#tf1 == {("hole", #t_alpha1):("text", #t, #s1)} *
-		Grove(#l_g, #g1) *
-		#g1 = {("hole", #g_alpha)} *
+		val(#tf1, #s1) * isB(#s1) * 
+		Grove(#alpha, {{}}) *
 		((#c, #s1) -> 0) *
-		isB(#s1)
+		
 	)
 	@post (
 		scope(img: #n) * 
@@ -33,10 +32,9 @@
 		scope(url: #s1) * 
 		scope(isB: 1) * 
 		ElementNode(#n, #name, #new_attr, #children) *
-		(#new_attr == {("hole", #alpha):("attr", #a, "src", #tf2)}) *
+		(#new_attr == ("hole", #alpha):{("attr", #a, "src", #tf2)}) *
 		(#tf2 == {("text", #r, #s2)}) *
-		Grove(#l_g, #g2) *
-		#g2 = {("hole", #g_alpha):#tf1} *
+		Grove(#alpha, #tf1) *
 		((#c, #s1) -> 1) *
 		isB(#s1)
 	)

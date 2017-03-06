@@ -218,10 +218,11 @@ only spec deallocF(xsc, xthis, alpha)
 
 
 
-only spec allocAS(xsc, xthis, l, i)
-	[[ (l == #l) * (i == #i) * AttributeSet(#l, #as) * (#as == #as1 ++ (#a2 : #as2)) * (length(#as1) == #i) ]]
-	[[ AttributeSet(#l, (#as1 ++ (("hole", #alpha) : #tf3)) * AttributeSet(#alpha, {{#a2}}) ]]
+only spec allocAS(xsc, xthis, l, i, j)
+	[[ (l == #l) * (i == #i) * (j == #j) * AttributeSet(#l, #as) * (#as == #as1 ++ (#as2 ++ #as2)) * (length(#as1) == #i) * (length(#as2) == #j)]]
+	[[ AttributeSet(#l, (#as1 ++ (("hole", #alpha) : #as3)) * AttributeSet(#alpha, #as2) ]]
 	normal;
+
 
 	[[ (l == #l) * (i == #i) AttributeSet(#l, #as) * (length(#as) <=# #i) ]]
 	[[ AttributeSet(#l, (("hole", #alpha) : #as) * AttributeSet(#alpha, {{}} ) ]]
