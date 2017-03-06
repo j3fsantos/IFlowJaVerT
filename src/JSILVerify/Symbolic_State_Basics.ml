@@ -353,7 +353,7 @@ let simple_subtract_pred preds pred_name =
 (** Symbolic State functions        **)
 (*************************************)
 
-let init_symb_state : symbolic_state =
+let init_symb_state () : symbolic_state =
 	(* Heap, Store, Pure Formula, Gamma, Preds *)
 	(LHeap.create 1, Hashtbl.create 1, DynArray.create (), Hashtbl.create 1, DynArray.create ())
 

@@ -912,7 +912,6 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
 
 	(* symbolically evaluate a procedure call *)
 	let symb_evaluate_call symb_state anti_frame x e e_args j : (symbolic_state list) * (symbolic_state list) =
-
 		(* get the name and specs of the procedure being called *)
 		let le_proc_name = symb_evaluate_expr symb_state anti_frame e in
 		let proc_name =
@@ -1038,6 +1037,8 @@ and symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state anti_fra
 	let is_visited i = Hashtbl.mem search_info.vis_tbl i in
 
 	let finish how = 
+		Structural_Entailment.unify_symb_state_against_post proc.proc_name spec symb_state how search_info !js;
+		Symbolic_Traces.create_info_node_from_post search_info spec.n_post how true;
 		print_endline ("----------------- FINISH -----------------");
 		(true, None, [symb_state], [anti_frame]) in
 
