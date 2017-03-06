@@ -138,6 +138,10 @@
 		pre:  [[ (newchild == #en) * DocumentNode(this, $$null) * ElementNodeSpecial(#en, #name, #att, #children, $$null) ]]
 		post: [[ DocumentNode(this, #en) * ElementNodeSpecial(#en, #name, #att, #children, this) * (ret == #en) ]]
 		outcome: normal
+
+	@onlyspec setAttribute(s, v)
+		pre:  [[ (s == #s) * (v == #v) * ElementNode(this, #name, #attr, #children) * (#attr == ("text", #m, #t)::#attr2) * Grove(#g_alpha, {{}}) ]]
+		post: [[ (s == #s) * (v == #v) * ElementNode(this, #name, #attr, #children) * (#attr == ("text", #m, #v)::#attr2) * Grove(#g_alpha, {{#t}}) ]]
 */
 
 /** 
