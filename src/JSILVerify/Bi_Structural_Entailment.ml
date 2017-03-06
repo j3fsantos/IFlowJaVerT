@@ -61,7 +61,7 @@ let unify_symb_fv_lists (pat_fv_list : symbolic_field_value_list)
 	
 	
 
-let bi_unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_formulae (* solver *) gamma (subst : substitution) : (symbolic_heap * symbolic_heap * (jsil_logic_assertion list) * symbolic_discharge_list) option =
+let bi_unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_formulae gamma (subst : substitution) : (symbolic_heap * symbolic_heap * (jsil_logic_assertion list) * symbolic_discharge_list) option =
 	print_debug (Printf.sprintf "Unify heaps %s \nand %s \nwith substitution: %s\nwith pure formulae: %s\nwith gamma: %s"
 		(JSIL_Memory_Print.string_of_shallow_symb_heap pat_heap false)
 		(JSIL_Memory_Print.string_of_shallow_symb_heap heap false)
@@ -326,7 +326,19 @@ let bi_unify_symb_state_against_post proc_name spec symb_state anti_frame flag s
 				| Some (true, heap_f, heap_af, preds_f, subst, new_pfs, new_gamma) 
 				| Some (false,  heap_f, heap_af, preds_f, subst, new_pfs, new_gamma) 
 					->	
-						(** REQUIRES DOING **)
+						(*let post_heap, _, post_pfs, post_gamma, _ = post in 
+						let af_heap, _, af_pfs, af_gamma, _ = anti_frame in 
+						let pfs = pf_substitution new_pfs subst false in 
+						let gamma = gamma_substitution new_gamma subst false in
+						merge_gammas post_gamma gamma;
+						merge_pfs post_pfs pfs;
+						Symbolic_State_Functions.merge_heaps post_heap heap_f post_pfs post_gamma in 
+						let new_af_heap = heap_substitution heap_af subst false in
+						Symbolic_State_Functions.merge_heaps af_heap new_af_heap af_pfs af_gamma in 
+						()
+*)
+						(*let new_pre = Symbolic_State_Functions.merge_symbolic *)
+
 						true, ""
 				| _  -> false, "") in 	
 			if (is_unifiable) 	
