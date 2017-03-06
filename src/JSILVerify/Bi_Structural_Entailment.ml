@@ -297,11 +297,46 @@ let bi_unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) :
 	let result = (match step_0 () with
 	| Some (discharges, subst, heap_f, anti_frame, preds_f, new_pfs) ->
 		(match (step_1 discharges subst new_pfs) with
-		| Some (entailment_check_ret, pf_discharges, pf_1_subst_list, gamma_0') -> Some (entailment_check_ret, heap_f, anti_frame, preds_f, subst, (pf_1_subst_list @ pf_discharges), gamma_0')
+		| Some (entailment_check_ret, pf_discharges, pf_1_subst_list, gamma_0') -> 
+				Some (entailment_check_ret, heap_f, anti_frame, preds_f, subst, (pf_1_subst_list @ pf_discharges), gamma_0')
 		| None -> None)
 	| None -> None) in
 	let end_time = Sys.time () in
 		JSIL_Syntax.update_statistics "unify_symb_states" (end_time -. start_time);
 		result
+		
+	
+let bi_unify_symb_state_against_post proc_name spec symb_state anti_frame flag symb_exe_info =
+	let print_error_to_console msg =
+		(if (msg = "")
+			then Printf.printf "Failed to verify a spec of proc %s\n" proc_name
+			else Printf.printf "Failed to verify a spec of proc %s -- %s\n" proc_name msg);
+		let final_symb_state_str = JSIL_Memory_Print.string_of_shallow_symb_state symb_state in
+		let post_symb_state_str = JSIL_Memory_Print.string_of_symb_state_list spec.n_post in
+		Printf.printf "Final symbolic state: %s\n" final_symb_state_str;
+		Printf.printf "Post condition: %s\n" post_symb_state_str in
+
+	let rec loop posts post_vars_lists i =
+		(match posts, post_vars_lists with
+		| [], [] -> print_error_to_console "Non_unifiable symbolic states";  raise (Failure "post condition is not unifiable")
+		| post :: rest_posts, post_lvars :: rest_posts_lvars ->
+			let is_unifiable, msg = 
+				let subst = bi_unify_symb_states spec.n_lvars post symb_state in
+				(match subst with
+				| Some (true, heap_f, heap_af, preds_f, subst, new_pfs, new_gamma) 
+				| Some (false,  heap_f, heap_af, preds_f, subst, new_pfs, new_gamma) 
+					->	
+						(** REQUIRES DOING **)
+						true, ""
+				| _  -> false, "") in 	
+			if (is_unifiable) 	
+				then (
+					activate_post_in_post_pruning_info symb_exe_info proc_name i;
+					print_endline (Printf.sprintf "Verified one spec of proc %s" proc_name)
+				) else (
+					print_debug (Printf.sprintf "No go: %s" msg); 
+					loop rest_posts rest_posts_lvars (i + 1)
+				)) in 		
+	loop spec.n_post spec.n_post_lvars 0
 
 
