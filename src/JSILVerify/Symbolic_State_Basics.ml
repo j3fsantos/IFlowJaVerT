@@ -22,6 +22,12 @@ let is_empty_fv_list fv_list js =
 				else ( if (f_val = LNone) then loop rest empty_so_far else loop rest false ) in 
 	loop fv_list true
 
+let is_symb_heap_empty (heap : symbolic_heap) (js : bool) : bool =
+	LHeap.fold
+		(fun loc (fv_list, def) ac -> if (not ac) then ac else is_empty_fv_list fv_list js)
+		heap
+		true
+		
 let fv_list_substitution fv_list subst partial =
 	List.map
 		(fun (le_field, le_val) ->
@@ -55,12 +61,6 @@ let heap_substitution (heap : symbolic_heap) (subst : substitution) partial =
 			LHeap.add new_heap s_loc (s_fv_list, s_def))
 		heap;
 	new_heap
-
-let is_symb_heap_empty (heap : symbolic_heap) (js : bool) : bool =
-	LHeap.fold
-		(fun loc (fv_list, def) ac -> if (not ac) then ac else is_empty_fv_list fv_list js)
-		heap
-		true
 
 let get_heap_vars var_tbl catch_pvars heap =
 	LHeap.iter

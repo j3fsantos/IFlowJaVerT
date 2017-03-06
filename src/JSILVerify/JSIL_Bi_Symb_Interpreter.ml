@@ -398,9 +398,18 @@ let symb_evaluate_bcmd (bcmd : jsil_basic_cmd) (symb_state : symbolic_state) (an
 				update_gamma gamma x (Some BooleanType);
 				LUnknown )
 
-let find_and_apply_spec (prog : jsil_program) (proc_name : string) (proc_specs : jsil_n_spec) (symb_state : symbolic_state) le_args =
+type precondition_total_unifier = (jsil_n_single_spec * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment) 
+type precondition_partial_unifier = (jsil_n_single_spec * symbolic_heap * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment) 
 
-	print_debug (Printf.sprintf "Entering find_and_apply_spec: %s." proc_name);
+let find_and_apply_spec 
+			(prog : jsil_program) 
+			(proc_name : string) 
+			(proc_specs : jsil_n_spec) 
+			(symb_state : symbolic_state) 
+			(anti_frame : symbolic_state) 
+			(le_args : jsil_logic_expr list) =
+
+	print_debug (Printf.sprintf "Entering BI_find_and_apply_spec: %s." proc_name);
 
 	(* create a new symb state with the abstract store in which the
 	    called procedure is to be executed *)
@@ -428,6 +437,7 @@ let find_and_apply_spec (prog : jsil_program) (proc_name : string) (proc_specs :
 		let is_sat = Pure_Entailment.check_satisfiability pf_list gamma in
 		print_debug (Printf.sprintf "Satisfiable: %b" is_sat);
 		is_sat in
+
 
 	let transform_symb_state (spec : jsil_n_single_spec) (symb_state : symbolic_state) (quotient_heap : symbolic_heap) (quotient_preds : predicate_set) (subst : substitution) (pf_discharges : jsil_logic_assertion list) (new_gamma : typing_environment) : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
 
@@ -464,7 +474,7 @@ let find_and_apply_spec (prog : jsil_program) (proc_name : string) (proc_specs :
 					symb_states_and_ret_lexprs) in
 		symb_states_and_ret_lexprs in
 
-	let enrich_pure_part symb_state spec subst : bool * symbolic_state =
+	let enrich_pure_part symb_state spec subst : symbolic_state =
 		let pre_gamma = (get_gamma spec.n_pre) in
 		let pre_pfs = (get_pf spec.n_pre) in
 		let pre_gamma = copy_gamma pre_gamma in
@@ -473,84 +483,122 @@ let find_and_apply_spec (prog : jsil_program) (proc_name : string) (proc_specs :
 		let gamma = gamma_substitution pre_gamma subst false in
 		merge_gammas gamma (get_gamma symb_state);
 		merge_pfs pfs (get_pf symb_state);
-		let store = copy_store (get_store symb_state) in
+		let store =	get_store symb_state in
 		let heap = get_heap symb_state in
 		let preds = get_preds symb_state in
-		let new_symb_state = (heap, store, pfs, gamma, preds (*, ref None *)) in
-		let is_sat = Pure_Entailment.check_satisfiability (get_pf_list new_symb_state) (get_gamma new_symb_state) in
-		(is_sat, new_symb_state) in
+		let new_symb_state = (heap, store, pfs, gamma, preds) in
+		new_symb_state in
+	
+	let enrich_anti_frame anti_frame af_heap subst = 
+		let old_af_heap, store, pfs, gamma, preds = anti_frame in 
+		let new_af_heap = heap_substitution af_heap subst false in
+		Symbolic_State_Functions.merge_heaps old_af_heap new_af_heap pfs gamma in 
 
-
-	let rec find_correct_specs spec_list ac_quotients =
+	let rec find_correct_specs 
+			spec_list (ac_qs_complete, ac_qs_partial, ac_qs_af)  
+				: ((precondition_total_unifier list) * (precondition_partial_unifier list) * (precondition_partial_unifier list)) =
 		match spec_list with
-		| [] -> ac_quotients
+		| [] -> (ac_qs_complete, ac_qs_partial, ac_qs_af)
 		| spec :: rest_spec_list ->
 			print_debug (Printf.sprintf "------------------------------------------");
-			print_debug (Printf.sprintf "Entering find_correct_specs with the spec:");
+			print_debug (Printf.sprintf "Entering BI-find_correct_specs with the spec:");
 			print_debug (Printf.sprintf "------------------------------------------");
 			print_debug (Printf.sprintf "Pre:\n%sPosts:\n%s"
 				(JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre)
 				(JSIL_Memory_Print.string_of_symb_state_list spec.n_post));
-			let unifier = Structural_Entailment.unify_symb_states [] spec.n_pre symb_state_aux in
+			let unifier = Bi_Structural_Entailment.bi_unify_symb_states [] spec.n_pre symb_state_aux in
 			(match unifier with
-			|	Some (true, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
+			|	Some (true, quotient_heap, antiframe_heap, quotient_preds, subst, pf_discharges, new_gamma) 
+					when (is_symb_heap_empty antiframe_heap !js) ->
 				print_debug (Printf.sprintf "I found a COMPLETE match");
 				print_debug (Printf.sprintf "The pre of the spec that completely matches me is:\n%s"
 					(JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre));
 				print_debug (Printf.sprintf "The number of posts is: %d"
 					(List.length spec.n_post));
-				[ (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ]
-			| Some (false, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
+				[ (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ], [], []
+			
+			| Some (false, quotient_heap, antiframe_heap, quotient_preds, subst, pf_discharges, new_gamma)
+					 when (is_symb_heap_empty antiframe_heap !js) ->
 				print_debug (Printf.sprintf "I found a PARTIAL match");
-				find_correct_specs rest_spec_list ((spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) :: ac_quotients)
-
+				let new_ac_qs_partial = (spec, quotient_heap, antiframe_heap, quotient_preds, subst, pf_discharges, new_gamma) :: ac_qs_partial in 
+				find_correct_specs rest_spec_list (ac_qs_complete, new_ac_qs_partial, ac_qs_af)
+			
+			| Some (_, quotient_heap, antiframe_heap, quotient_preds, subst, pf_discharges, new_gamma) -> 
+				print_debug (Printf.sprintf "I found a match requering an AF");
+				let new_ac_qs_af = (spec, quotient_heap, antiframe_heap, quotient_preds, subst, pf_discharges, new_gamma) :: ac_qs_af in 
+				find_correct_specs rest_spec_list (ac_qs_complete, ac_qs_partial, new_ac_qs_af)
+				
 			| None -> (
 				print_debug (Printf.sprintf "I found a NON-match");
-				find_correct_specs rest_spec_list ac_quotients)) in
+				find_correct_specs rest_spec_list (ac_qs_complete, ac_qs_partial, ac_qs_af))) in
 
 
-	let transform_symb_state_partial_match (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
-
-		let symb_states_and_ret_lexprs = transform_symb_state spec symb_state quotient_heap quotient_preds subst pf_discharges new_gamma in
+	let transform_symb_state_partial_match 
+		(spec, quotient_heap, af_heap, quotient_preds, subst, pf_discharges, new_gamma) 
+			: (symbolic_state * symbolic_state * jsil_return_flag * jsil_logic_expr) list =
+		let symb_state = copy_symb_state symb_state in 
+		let anti_frame = copy_symb_state anti_frame in 
+		let symb_states_and_ret_lexprs = 
+			transform_symb_state spec symb_state quotient_heap quotient_preds subst pf_discharges new_gamma in
 
 		let symb_states_and_ret_lexprs =
 			List.fold_left
 				(fun ac (symb_state, ret_flag, ret_lexpr) ->
-					let (is_sat, new_symb_state) = enrich_pure_part symb_state spec subst in
-					if is_sat then ((new_symb_state, ret_flag, ret_lexpr) :: ac) else ac)
+					let new_symb_state = enrich_pure_part symb_state spec subst in
+					let new_anti_frame = enrich_pure_part anti_frame spec subst in
+					enrich_anti_frame new_anti_frame af_heap subst;
+					let is_sat = Pure_Entailment.check_satisfiability (get_pf_list new_symb_state) (get_gamma new_symb_state) in
+					if is_sat then ((new_symb_state, new_anti_frame, ret_flag, ret_lexpr) :: ac) else ac)
 				[] symb_states_and_ret_lexprs in
 
 		let symb_states_and_ret_lexprs =
-			List.map (fun (symb_state, ret_flag, ret_lexpr) ->
+			List.map (fun (symb_state, new_anti_frame, ret_flag, ret_lexpr) ->
 			let new_symb_state =
 				let pfs = get_pf symb_state in
 				let rpfs = DynArray.map (fun x -> JSIL_Logic_Utils.reduce_assertion_no_store new_gamma pfs x) pfs in
 				sanitise_pfs_no_store new_gamma rpfs;
 				symb_state_replace_pfs symb_state rpfs in
-			(new_symb_state, ret_flag, JSIL_Logic_Utils.reduce_expression_no_store_no_gamma_no_pfs ret_lexpr)) symb_states_and_ret_lexprs in
+			(new_symb_state, new_anti_frame, ret_flag, JSIL_Logic_Utils.reduce_expression_no_store_no_gamma_no_pfs ret_lexpr)) symb_states_and_ret_lexprs in
 		symb_states_and_ret_lexprs in
-
-
-	let rec apply_correct_specs (quotients : (jsil_n_single_spec * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment) list) =
+	
+	let transform_symb_state_partial_match_list 
+		(symb_state : symbolic_state)
+		(quotients  : precondition_partial_unifier list) =
+		let new_symb_states = 
+			List.map
+				(fun (spec, quotient_heap, antiframe_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
+					if (compatible_pfs symb_state spec.n_pre subst)
+						then transform_symb_state_partial_match (spec, quotient_heap, antiframe_heap, quotient_preds, subst, pf_discharges, new_gamma)
+						else [])
+				quotients in
+			let new_symb_states = List.concat new_symb_states in
+			new_symb_states in 
+					
+	let rec apply_correct_specs 
+		(quotients : ((precondition_total_unifier list) * (precondition_partial_unifier list) * (precondition_partial_unifier list))) =
 		print_debug (Printf.sprintf "Entering apply_correct_specs.");
 		match quotients with
-		| [ ] -> [ ]
-		| [ (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ] ->
+		| ([], [], []) -> [ ]
+		
+		| [ (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ], _, _ ->
 			print_debug (Printf.sprintf "This was a TOTAL MATCH!!!!");
-			transform_symb_state spec symb_state quotient_heap quotient_preds subst pf_discharges new_gamma
-	 	| _ :: _ ->
-			print_debug (Printf.sprintf "this was a PARTIAL MATCH!!!!");
-			let new_symb_states =
-				List.map
-					(fun (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
-						if (compatible_pfs symb_state spec.n_pre subst)
-							then transform_symb_state_partial_match (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma)
-							else [])
-					quotients in
-			let new_symb_states = List.concat new_symb_states in
-			new_symb_states in
+			let symb_states_and_ret_lexprs = transform_symb_state spec symb_state quotient_heap quotient_preds subst pf_discharges new_gamma in 
+			List.map 
+				(fun (symb_state, ret_flag, ret_lexpr) -> 
+					let anti_frame = copy_symb_state anti_frame in 
+					(symb_state, anti_frame, ret_flag, ret_lexpr))
+				symb_states_and_ret_lexprs 
+				
+		| _, _ :: _, _ ->
+			let _, qs_partial, _ = quotients in 
+			print_debug (Printf.sprintf "This was a PARTIAL MATCH!!!!");
+			transform_symb_state_partial_match_list symb_state qs_partial 
+		
+		| _, _, qs_af -> 
+			print_debug (Printf.sprintf "This was a PARTIAL MATCH with AF!!!!");
+			transform_symb_state_partial_match_list symb_state qs_af in  
 
-	let quotients = find_correct_specs proc_specs.n_proc_specs [] in
+	let quotients = find_correct_specs proc_specs.n_proc_specs ([], [], []) in
 	apply_correct_specs quotients
 
 
@@ -884,14 +932,14 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
 
 		(* symbolically evaluate the args *)
 		let le_args = List.map (fun e -> symb_evaluate_expr symb_state anti_frame e) e_args in
-		let new_symb_states = find_and_apply_spec s_prog.program proc_name proc_specs symb_state le_args in
+		let new_symb_states = find_and_apply_spec s_prog.program proc_name proc_specs symb_state anti_frame le_args in
 
 		(if ((List.length new_symb_states) = 0)
 			then raise (Failure (Printf.sprintf "No precondition found for procedure %s." proc_name)));
 
 
 		let tuple_result = (List.map
-			(fun (symb_state, ret_flag, ret_le) ->
+			(fun (symb_state, anti_frame, ret_flag, ret_le) ->
 				let ret_type, _, _ =	type_lexpr (get_gamma symb_state) ret_le in
 				update_abs_store (get_store symb_state) x ret_le;
 				update_gamma (get_gamma symb_state) x ret_type;
@@ -1053,6 +1101,9 @@ and symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state anti_fra
 						let info_node = Symbolic_Traces.create_info_node_from_cmd search_info symb_state cmd next in
 						let new_search_info = update_search_info search_info info_node vis_tbl in
 						(* Actually evaluate the next command *) 
+						print_debug 
+							(Printf.sprintf  "AF in symb_evaluate_next_cmd_cont:\n%s\n" 
+								(JSIL_Memory_Print.string_of_shallow_symb_state anti_frame));
 						symb_evaluate_cmd s_prog proc spec new_search_info symb_state anti_frame next cur)
 					symb_states) in
 				let (res_post_state, res_anti_frame) = format_result tuple_result in
@@ -1096,7 +1147,10 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info
 				(JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre));
 			let symb_state = copy_symb_state spec.n_pre in
 			(* Empty initial anti-frame*)
-			let anti_frame = Symbolic_State_Basics.init_symb_state in
+			let anti_frame = Symbolic_State_Basics.init_symb_state () in
+			print_debug 
+							(Printf.sprintf  "AF in symb_evaluate_proc :\n%s\n" 
+								(JSIL_Memory_Print.string_of_shallow_symb_state anti_frame));
 			(* Symbolically execute the procedure *)
 			let (success, msg, post_state, anti_frame) = 
 				symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state anti_frame (-1) 0 in

@@ -202,3 +202,106 @@ let bi_unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_f
 		None
 	
 
+
+
+
+let bi_unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : 
+	(bool * symbolic_heap * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment) option  =
+
+	print_debug (Printf.sprintf "LVARS: %s" (String.concat ", " lvars));
+
+	let start_time = Sys.time () in
+
+	let heap_0, store_0, pf_0, gamma_0, preds_0 (*, solver *) = symb_state in
+	let heap_1, store_1, pf_1, gamma_1, preds_1 (*, _  *) = copy_symb_state pat_symb_state in
+
+	(* STEP 0 - Unify stores, heaps, and predicate sets                                                                                                  *)
+	(* subst = empty substitution                                                                                                                        *)
+	(* discharges_0 = unify_stores (store_1, store_0, subst, pi_0, gamma_0)	                                                                             *)
+	(* discharges_1, heap_f, new_pfs = unify_heaps (heap_1, heap_0, subst, pi_0)                                                                         *)
+	(* discharges_2, preds_f = unify_predicate_sets (preds_1, preds_0, subst, pi_0)                                                                      *)
+	(* if discharges_i != None for i \in {0, 1, 2} => return Some ((disharches_0 @ discharges_1 @ discharges_2), subst, heap_f, preds_f, new_pfs)        *)
+	(* if exists i \in {0, 1, 2} . discharges_i = None => return None                                                                                    *)
+	(* If Step 0 returns a list of discharges and a substitution then the following implication holds:                                                   *)
+	(*    pi_0 |- discharges  => store_0 =_{pi_0} subst(store_1)  /\ heap_0 =_{pi_0} subst(heap_1) + heap_f /\ preds_0 =_{pi_0} subst(preds_1) + preds_f *)
+	let step_0 () =
+		let start_time = Sys.time() in
+		let subst = init_substitution [] in
+		let discharges_0 = unify_stores store_1 store_0 subst None (pfs_to_list pf_0) (* solver *) gamma_0 in
+		let result = (match discharges_0 with
+		| Some discharges_0 ->
+			print_debug (Printf.sprintf "Discharges: %d\n" (List.length discharges_0));
+			List.iter (fun (x, y) -> print_debug (Printf.sprintf "\t%s : %s\n" (JSIL_Print.string_of_logic_expression x false) (JSIL_Print.string_of_logic_expression y false))) discharges_0;
+			let ret_1 = bi_unify_symb_heaps heap_1 heap_0 pf_0 gamma_0 subst in
+			(match ret_1 with
+			| Some (heap_f, anti_frame, new_pfs, negative_discharges) ->
+				print_debug (Printf.sprintf "Heaps unified successfully.\n");
+				let ret_2 = unify_pred_arrays preds_1 preds_0 pf_0 gamma_0 subst in
+				(match ret_2 with
+				| Some (subst, preds_f, []) ->
+					let spec_vars_check = spec_logic_vars_discharge subst lvars pf_0 gamma_0 in
+	  				if (spec_vars_check)
+							then Some (discharges_0, subst, heap_f, anti_frame, preds_f, new_pfs)
+							else (Printf.printf "Failed spec vars check\n"; None) 
+				| Some (_, _, _) | None -> ( print_debug (Printf.sprintf "Failed to unify predicates\n"); None))
+			| None -> ( print_debug (Printf.sprintf "Failed to unify heaps\n"); None))
+		| None -> ( print_debug (Printf.sprintf "Failed to unify stores\n"); None)) in
+		let end_time = Sys.time() in
+		JSIL_Syntax.update_statistics "USS: Step 0" (end_time -. start_time);
+		result in
+
+	(* STEP 1 - Pure entailment and gamma unification                                                                                                    *)
+	(* existentials = vars(Sigma_pat) \ dom(subst)                                                                                                       *)
+	(* subst' = subst + [ x_i \in existentials -> fresh_lvar() ]                                                                                         *)
+	(* gamma_0' = gamma_0 + gamma_existentials, where gamma_existentials(x) = gamma_1(y) iff x = subst'(y)                                               *)
+	(* unify_gamma(gamma_1, gamma_0', store_1, subst, existentials) = true                                                                               *)
+	(* pf_0 + new_pfs |-_{gamma_0'} Exists_{existentials} subst'(pf_1) + pf_list_of_discharges(discharges)                                               *)
+	let step_1 discharges subst new_pfs =
+		let start_time = Sys.time() in
+		let existentials = get_subtraction_vars (get_symb_state_vars_as_list false pat_symb_state) subst in
+		let fresh_names_for_existentials = (List.map (fun v -> fresh_lvar ()) existentials) in
+		let subst_existentials = init_substitution2 existentials (List.map (fun v -> LVar v) fresh_names_for_existentials) in
+		extend_substitution subst existentials (List.map (fun v -> LVar v) fresh_names_for_existentials);
+		let gamma_0' =
+			if ((List.length existentials) > 0)
+				then (
+					let gamma_0' = copy_gamma gamma_0 in
+					let gamma_1_existentials = filter_gamma_with_subst gamma_1 existentials subst_existentials in
+					extend_gamma gamma_0' gamma_1_existentials;
+					gamma_0')
+				else gamma_0 in
+
+		let unify_gamma_check = (unify_gamma gamma_1 gamma_0' store_1 subst existentials) in
+		let result = if (unify_gamma_check) then
+		begin
+			merge_pfs pf_0 (DynArray.of_list new_pfs);
+		  let pf_1_subst_list = List.map (fun a -> assertion_substitution a subst true) (pfs_to_list pf_1) in
+			let pf_discharges = pf_list_of_discharges discharges subst false in
+			let pfs = pf_1_subst_list @ pf_discharges in
+
+			print_debug (Printf.sprintf "Checking if %s\n entails %s\n with existentials\n%s\nand gamma %s"
+				(JSIL_Memory_Print.string_of_shallow_p_formulae pf_0 false)
+				(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list pfs) false)
+				(List.fold_left (fun ac x -> ac ^ " " ^ x) "" fresh_names_for_existentials)
+				(JSIL_Memory_Print.string_of_gamma gamma_0'));
+
+			let entailment_check_ret = Pure_Entailment.old_check_entailment fresh_names_for_existentials (pfs_to_list pf_0) pfs gamma_0' in
+			print_debug (Printf.sprintf "unify_gamma_check: %b. entailment_check: %b" unify_gamma_check entailment_check_ret);
+			Some (entailment_check_ret, pf_discharges, pf_1_subst_list, gamma_0')
+		end else (print_debug "Gammas not unifiable."; None) in
+		let end_time = Sys.time() in
+		JSIL_Syntax.update_statistics "USS: Step 1" (end_time -. start_time);
+		result in
+
+	(* Actually doing it!!! *)
+	let result = (match step_0 () with
+	| Some (discharges, subst, heap_f, anti_frame, preds_f, new_pfs) ->
+		(match (step_1 discharges subst new_pfs) with
+		| Some (entailment_check_ret, pf_discharges, pf_1_subst_list, gamma_0') -> Some (entailment_check_ret, heap_f, anti_frame, preds_f, subst, (pf_1_subst_list @ pf_discharges), gamma_0')
+		| None -> None)
+	| None -> None) in
+	let end_time = Sys.time () in
+		JSIL_Syntax.update_statistics "unify_symb_states" (end_time -. start_time);
+		result
+
+
