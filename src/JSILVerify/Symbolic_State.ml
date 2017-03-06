@@ -71,12 +71,13 @@ module LHeap = Hashtbl.Make(
 	end)
 
 type symbolic_field_value_list = ((jsil_logic_expr * jsil_logic_expr) list)
+type symbolic_discharge_list   = ((jsil_logic_expr * jsil_logic_expr) list)
 type symbolic_heap             = (symbolic_field_value_list * jsil_logic_expr) LHeap.t
 type symbolic_store            = (string, jsil_logic_expr) Hashtbl.t
 type pure_formulae             = (jsil_logic_assertion DynArray.t)
 type typing_environment        = ((string, jsil_type) Hashtbl.t)
 type predicate_set             = ((string * (jsil_logic_expr list)) DynArray.t)
-
+type prediate_assertion        = (string * (jsil_logic_expr list))
 
 type symbolic_state = symbolic_heap * symbolic_store * pure_formulae * typing_environment * predicate_set 
 
@@ -86,10 +87,29 @@ type symbolic_state = symbolic_heap * symbolic_store * pure_formulae * typing_en
 (** Abstract Heap functions         **)
 (*************************************)
 
-let abs_heap_get heap loc =
+let create_empty_abs_heap () = 
+	LHeap.create 1021
+
+let abs_heap_get (heap : symbolic_heap) (loc : string) =
 	try Some (LHeap.find heap loc) with _ -> None
 
-let get_heap_domain heap subst =
+let abs_heap_put (heap : symbolic_heap) (loc : string) (fv_list : symbolic_field_value_list) (def : jsil_logic_expr) =
+	LHeap.replace heap loc (fv_list, def)   
+
+let abs_heap_remove (heap : symbolic_heap) (loc : string) =
+	LHeap.remove heap loc  
+
+let get_heap_as_list (heap : symbolic_heap) = 
+	LHeap.fold 
+		(fun loc (fv_list, def) heap_as_list -> 
+			((loc, (fv_list, def)) :: heap_as_list))
+		heap
+		[]
+		
+let heap_iterator (heap: symbolic_heap) (f : string -> (symbolic_field_value_list * jsil_logic_expr) -> unit) = 
+	LHeap.iter f heap
+
+let get_heap_domain (heap : symbolic_heap) subst =
 	let domain =
 		LHeap.fold
 			(fun l _ ac -> l :: ac)
@@ -108,7 +128,6 @@ let get_heap_domain heap subst =
 				else loop rest_locs matched_abs_locs free_abs_locs (loc :: concrete_locs) in
 
 	loop domain [] [] []
-
 
 let extend_abs_heap (heap : symbolic_heap) (loc : string) (field : jsil_logic_expr) (value : jsil_logic_expr) = 
 	let fv_list, def_val = try LHeap.find heap loc with _ -> ([], LUnknown) in  
