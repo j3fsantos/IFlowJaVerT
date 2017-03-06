@@ -22,6 +22,13 @@
 	((n, "insertToQueue") -> None) *
 	(0 <# pri) *
 	types(pri : $$number_type, val : $$string_type, node_proto : $$object_type);
+
+  @pred Queue(q, node_proto, max_pri, length) :
+  	(q == $$null) * (max_pri == 0) * (length == 0) * types(max_pri : $$number_type, length : $$number_type),
+
+  	Node(q, max_pri, #val, #next, node_proto) * (0 <# max_pri) *
+  	Queue(#next, node_proto, #pri, #len_q) * (#pri <=# max_pri) * (length == #len_q + 1) *
+  	types(q : $$object_type, node_proto : $$object_type, #pri : $$number_type, max_pri : $$number_type, length : $$number_type, #len_q : $$number_type);
 */
 
 
@@ -47,19 +54,54 @@ var PriorityQueue = (function () {
       this.pri = pri; this.val = val; this.next = null;
    }
 
-   /* @id insertToQueue */
+   /**
+   	@id  insertToQueue
+
+    @pre (
+      (q == #q) *
+      Queue(#q, #node_proto, #pri_q, #length) *
+      Node(this, #npri, #nval, $$null, #node_proto) *
+      NodePrototype(#node_proto, #insert_loc) *
+      (#pri_q <=# #npri) *
+      types(#npri : $$number_type, #pri_q : $$number_type, #length : $$number_type)
+    )
+    @post (
+      Queue(this, #node_proto, #npri, #length + 1) *
+      (ret == this) *
+      NodePrototype(#node_proto, #insert_loc)
+    )
+
+    @pre (
+   		(q == #q) *
+   		Queue(#q, #node_proto, #pri_q, #length) *
+   		Node(this, #npri, #nval, $$null, #node_proto) *
+   		NodePrototype(#node_proto, #insert_loc) *
+   		(#npri <# #pri_q) *
+   		types(#npri : $$number_type, #pri_q : $$number_type, #q : $$object_type)
+   	)
+   	@post (
+   		Queue(#q, #node_proto, #pri_q, #length + 1) * (ret == #q) *
+   		NodePrototype(#node_proto, #insert_loc) * types (#q : $$object_type)
+   	)
+
+
+  */
    Node.prototype.insertToQueue = function (q) {
+      /** @unfold Queue(#q, #node_proto, #pri_q, #length) */
       if (q === null) {
+         /** @fold Queue(this, #node_proto, #npri, #length + 1) */
          return this
       }
 
       if (this.pri >= q.pri) {
          this.next = q;
+         /** @fold Queue(this, #node_proto, #npri, #length + 1) */
          return this
       }
 
       var tmp = this.insertToQueue (q.next);
       q.next = tmp;
+      /** @fold Queue(#q, #node_proto, #pri_q, #length + 1) */
       return q
    }
 
