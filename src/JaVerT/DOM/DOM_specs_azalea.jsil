@@ -1,0 +1,282 @@
+import javert_internal_functions, javert_logic_macros, javert_js_predicates;
+
+pred DOMObject (l, proto) :
+    types (l : $$object_type) *
+	((l, "@proto") -> proto) *
+	((l, "@class") -> "Object") *
+	((l, "@extensible") -> $$f);
+
+pred DOMField (l, prop, v) :
+    types (l : $$object_type, prop : $$string_type) *
+	((l, prop) -> {{ "d", v, $$f, $$f, $$f }});
+
+pred DOMFunctionObject (l, call) :
+	types(l : $$object_type, call : $$string_type) *
+	((l, "@proto") -> $lfun_proto) *
+	((l, "@class") -> "Function") *
+	((l, "@extensible") -> $$f) *
+	((l, "@scope") -> {{}}) *
+	((l, "@call")  -> call) *
+	empty_fields(l : "@proto", "@class", "@extensible", "@scope", "@call");
+
+pred DOMFunctionField(l, call) :
+	DOMField(l, call, #lnn) *
+	DOMFunctionObject(#lnn, call);
+
+pred NodePrototype() :
+	DOMObject($l_np, $$null) *
+	DOMFunctionField($l_np, "nodeName") *
+	DOMFunctionField($l_np, "nodeValue") *
+	DOMFunctionField($l_np, "nodeType") *
+	DOMFunctionField($l_np, "parentNode") *
+	DOMFunctionField($l_np, "childNodes") *
+	DOMFunctionField($l_np, "firstChild") *
+	DOMFunctionField($l_np, "lastChild") *
+	DOMFunctionField($l_np, "previousSibling") *
+	DOMFunctionField($l_np, "nextSibling") *
+	DOMFunctionField($l_np, "ownerDocument") *
+	DOMFunctionField($l_np, "insertBefore") *
+	DOMFunctionField($l_np, "replaceChild") *
+	DOMFunctionField($l_np, "removeChild") *
+	DOMFunctionField($l_np, "appendChild") *
+	DOMFunctionField($l_np, "hasChildNodes") *
+	empty_fields($l_np : "@proto", "@class", "@extensible", "nodeName", "nodeValue", "nodeType", "parentNode", "childNodes", "firstChild",
+		"lastChild", "previousSibling", "nextSibling", "ownerDocument", "insertBefore", "replaceChild", "removeChild", "appendChild", "hasChildNodes");
+
+pred DocumentNodePrototype() :
+	DOMObject($l_dnp, $l_np) *
+	(($l_dnp, "@name") -> "#document") *
+	DOMFunctionField($l_dnp, "documentElement") *
+	DOMFunctionField($l_dnp, "createElement") *
+	DOMFunctionField($l_dnp, "createTextNode") *
+	DOMFunctionField($l_dnp, "createAttribute") *
+	DOMFunctionField($l_dnp, "getElementsByTagName") *
+	empty_fields($l_dnp : "@proto", "@class", "@extensible", "@name", "documentElement", "createElement", "createTextNode", "createAttribute", "getElementsByTagName");
+
+pred DocumentNode(dn, element, grove) :
+	DOMObject(dn, $l_dnp) *
+	((dn, "@element") -> #l_element) * DocumentElement(#l_element, element) *
+	((dn, "@grove") -> #l_grove) * Grove(#l_grove, grove) *
+	empty_fields(dn : "@proto", "@class", "@extensible", "@element", "@grove");
+
+pred ElementNodePrototype() :
+	DOMObject($l_enp, $l_np) *
+	DOMFunctionField($l_enp, "tagName") *
+	DOMFunctionField($l_enp, "getAttribute") *
+	DOMFunctionField($l_enp, "setAttribute") *
+	DOMFunctionField($l_enp, "removeAttribute") *
+	DOMFunctionField($l_enp, "getAttributeNode") *
+	DOMFunctionField($l_enp, "setAttributeNode") *
+	DOMFunctionField($l_enp, "removeAttributeNode") *
+	DOMFunctionField($l_enp, "getElementsByTagName") *
+	empty_fields($l_enp : "@proto", "@class", "@extensible", "tagName", "getAttribute", "setAttribute", "removeAttribute", "getAttributeNode",
+		"setAttributeNode", "removeAttributeNode", "getElementsByTagName");
+
+/* pred ElementNodeSpecial(en, name, attr, children, parent) :
+	DOMObject(en, $l_enp) *
+	((en, "@name") -> name) *
+	//((en, "@attributes") -> attr) *
+	((en, "@attributes") -> #l_attr) * AttributeSet(#l_attr, attr) *
+	//((en, "@children") -> children) *
+	((en, "@children") -> #l_children) * Forest(#l_children, children)
+	((en, "@parent") -> parent) *
+	types(name: $$string_type, attr: $$list_type, children: $$list_type) *
+	empty_fields(en : "@proto", "@class", "@extensible", "@name", "@attributes", "@children", "@parent");
+	*/
+
+pred ElementNode(en, name, attr, children) :
+	DOMObject(en, $l_enp) *
+	((en, "@name") -> name) *
+	//((en, "@attributes") -> attr) *
+	((en, "@attributes") -> #l_attr) * AttributeSet(#l_attr, attr) *
+	//((en, "@children") -> children) *
+	((en, "@children") -> #l_children) * Forest(#l_children, children) * 
+	types(name: $$string_type, attr: $$list_type, children: $$list_type) *
+	empty_fields(en : "@proto", "@class", "@extensible", "@name", "@attributes", "@children");
+
+pred TextNodePrototype() :
+	DOMObject($l_tnp, $l_np) *
+	(($l_tnp, "@name") -> "#text") *
+	DOMFunctionField($l_tnp, "data") *
+	DOMFunctionField($l_tnp, "length") *
+	DOMFunctionField($l_tnp, "substringData") *
+	DOMFunctionField($l_tnp, "appendData") *
+	DOMFunctionField($l_tnp, "insertData") *
+	DOMFunctionField($l_tnp, "deleteData") *
+	DOMFunctionField($l_tnp, "replaceData") *
+	DOMFunctionField($l_tnp, "splitText") *
+	empty_fields($l_tnp : "@proto", "@class", "@extensible", "@name", "data", "length", "substringData", "appendData",
+								 "insertData", "deleteData", "replaceData", "splitText");
+
+pred TextNode(tn, text) :
+	DOMObject(tn, $l_tnp) *
+	((tn, "@text") -> text) *
+	empty_fields(tn : "@proto", "@class", "@extensible", "@text");
+
+pred AttributeNodePrototype() :
+	DOMObject($l_anp, $l_np) *
+	empty_fields($l_anp : "@proto", "@class", "@extensible");
+
+pred AttributeNode(an, name, children) :
+	DOMObject(an, $l_anp) *
+	((an, "@name") -> name) *
+	((an, "@children") -> #l_children) * TextForest(#l_children, children) *
+	types(name: $$string_type, children: $$list_type) *
+	empty_fields(an : "@proto", "@class", "@extensible", "@name", "@children");
+
+Pred DocumentElement(l, element) :
+	element == {{}} * l == $$null,
+	element == {{("elem", #id, #name, #cList, #aList)}} 
+				* DOMObject(l, $$null) * (l, "@data") -> #id * ElementNode(#id, #name, #aLit, #cList)
+    			* empty_fields(l : "@proto", "@class", "@extensible", "@data"),
+    element == {{("hole", #alpha}} 
+				* DOMObject(l, $$null) * (l, "@data") -> #alpha 
+    			* empty_fields(l : "@proto", "@class", "@extensible", "@data"); 			
+
+Pred AttributeSet(l, attrs) : 
+    attrs == {{}} * DOMObject(l, $$null) * (l, "@data") -> $$null * (l, "@next") ->  $$null,
+    attrs == {("attr", #id, #name, #tf): attrsNext} * DOMObject(l, $$null)
+    	* (l, "@data") -> #id * (l, "@next") -> #next * AttributeNode(#id, #name, #tf) * AttributeSet(#next, attrsNext)
+    	* empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next"),
+    attrs == {("hole", #alpha): attrsNext} * DOMObject(l, $$null) 
+    	* (l, "@data") -> #alpha * (l, "@next") -> #next * AttributeSet(#next, attrsNext)
+    	* empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next");   	
+
+Pred Forest(l, childList) :
+	childList == {{}} * DOMObject(l, $$null) * (l, "@data") -> $$null * (l, "@next") ->  $$null,
+	childList == {("text", #id, #text): childListNext} * DOMObject(l, $$null) 
+		* (l, "@data") -> #id * (l, "@next") -> #next * TextNode(#id, #text) * Forest(#next, childListNext)
+		* empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next"),
+	childList == {("elem", #id, #name, #cList, #aList): childListNext} * DOMObject(l, $$null) 
+		* (l, "@data") -> #id * (l, "@next") -> #next * ElementNode(#id, #name, #aLit, #cList) * Forest(#next, childListNext)
+		* empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next"),	
+    childList == {("hole", #alpha): attrListNext} * DOMObject(l, $$unll)
+    	* (l, "@data") -> #alpha * (l, "@next") -> #next * Forest(#next, attrListNext)
+    	* empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next");
+
+pred TextForest(l, childList) :
+	childList == {{}} * DOMObject(l, $$null) * (l, "@data") -> $$null * (l, "@next") ->  $$null,
+	childList == {("text", #id, #text): #childListNext} * DOMObject(l, $$null) 
+		* (l, "@data") -> #id * (l, "@next") -> #next * TextNode(#id, #text) * TextForest(#next, #childListNext) 
+		* empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next"),
+	childList == {("hole", #alpha): #childListNext} * DOMObject(l, $$null) 
+		* (l, "@data") -> #alpha * (l, "@next") -> #next * TextForest(#next, #childListNext)
+		* empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next");
+
+Pred Grove(l, content) :
+	content == {{}} * DOMObject(l, $$null) * (l, "@data") -> $$null * (l, "@next") ->  $$null,
+	content == {("text", #id, #text): contentNext} * DOMObject(l, $$null) 
+		* (l, "@data") -> #id * (l, "@next") -> #next * TextNode(#id, #text) * Grove(#next, contentNext)
+		* empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next"),
+	content == {("elem", #id, #name, #cList, #aList): contentNext} * DOMObject(l, $$null) 
+		* (l, "@data") -> #id * (l, "@next") -> #next * ElementNode(#id, #name, #aLit, #cList) * Grove(#next, contentNext)
+		* empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next"),	
+	content == {("attr", #id, #name, #tList): contentNext} * DOMObject(l, $$null) 
+		* (l, "@data") -> #id * (l, "@next") -> #next * AttributeNode(#id, #name, #tList) * Grove(#next, contentNext)
+		* empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next"),	
+    content == {("hole", #alpha): attrListNext} * DOMObject(l, $$unll)
+    	* (l, "@data") -> #alpha * (l, "@next") -> #next * Grove(#next, attrListNext)
+    	* empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next");    	
+		
+
+pred InitialDOMHeap() :
+	NodePrototype() * DocumentNodePrototype() * ElementNodePrototype() * AttributeNodePrototype() * TextNodePrototype();
+
+
+// abstract allocation and deallocation
+
+only spec allocTF(xsc, xthis, l, i, j)
+	[[ (l == #l) * (i == #i) * (j == #j) * TextForest(#l, #tf) * (#tf == #tf1 ++ (#tf2 ++ #tf3)) * (length(#tf1) == #i) * (length(#tf2) == #j) ]]
+	[[ TextForest(#l, (#tf1 ++ (("hole", #alpha) : #tf3)) * TextForest(#alpha, #tf2) ]]
+	normal;
+
+	[[ (l == #l) * (i == #i) TextForest(#l, #tf) * (length(#tf) <=# #i) ]]
+	[[ TextForest(#l, (("hole", #alpha) : #tf) * TextForest(#alpha, {{}} ) ]]
+	normal;
+
+only spec deallocTF(xsc, xthis, alpha)
+	[[ (alpha == #alpha) * TextForest(#l, #tf) * (#tf == #tf1 ++ (("hole", #alpha) : #tf3))* TextForest(#alpha, #tf2) ]]
+	[[ TextForest(#l, (#tf1 ++ (#tf2 ++ #tf3)) ]]
+	normal;	
+
+
+
+only spec allocF(xsc, xthis, l, i, j)
+	[[ (l == #l) * (i == #i) * (j == #j) * Forest(#l, #f) * (#f == #f1 ++ (#f2 ++ #f3)) * (length(#f1) == #i) * (length(#f2) == #j) ]]
+	[[ Forest(#l, (#f1 ++ (("hole", #alpha) : #f3)) * Forest(#alpha, #f2) ]]
+	normal;
+
+	[[ (l == #l) * (i == #i) Forest(#l, #f) * (length(#f) <=# #i) ]]
+	[[ Forest(#l, (("hole", #alpha): #f) * Forest(#alpha, {{}} ) ]]
+	normal;
+
+only spec deallocF(xsc, xthis, alpha)
+	[[ (alpha == #alpha) * Forest(#l, #f) * (#f == #f1 ++ (("hole", #alpha) : #f3)) * TextForest(#alpha, #f2) ]]
+	[[ Forest(#l, (#f1 ++ (#f2 ++ #f3)) ]]
+	normal;		
+
+
+
+only spec allocAS(xsc, xthis, l, i)
+	[[ (l == #l) * (i == #i) * AttributeSet(#l, #as) * (#as == #as1 ++ (#a2 : #as2)) * (length(#as1) == #i) ]]
+	[[ AttributeSet(#l, (#as1 ++ (("hole", #alpha) : #tf3)) * AttributeSet(#alpha, {{#a2}}) ]]
+	normal;
+
+	[[ (l == #l) * (i == #i) AttributeSet(#l, #as) * (length(#as) <=# #i) ]]
+	[[ AttributeSet(#l, (("hole", #alpha) : #as) * AttributeSet(#alpha, {{}} ) ]]
+	normal;
+
+only spec deallocAS(xsc, xthis, alpha)
+	[[ (alpha == #alpha) * AttributeSet(#l, #as) * (#as == #as1 ++ (("hole", #alpha) : #as3)) * AttributeSet(#alpha, #as2) ]]
+	[[ AttributeSet(#l, (#as1 ++ (#as2 ++ #as3)) ]]
+	normal;
+
+
+
+only spec allocG(xsc, xthis, l, i)
+	[[ (l == #l) * (i == #i) * Grove(#l, #g) * (#g == #g1 ++ (#g2 : #g3)) * (length(#g1) == #i) ]]
+	[[ Grove(#l, (#g1 ++(("hole", #alpha) : #g3)) * Grove(#alpha, {{#g2}}) ]]
+	normal;
+
+	[[ (l == #l) * (i == #i) * Grove(#l, #g) * (length(#g) <=# #i) ]]
+	[[ Grove(#l, (("hole", #alpha) : #g)) * Grove(#alpha, {{}}) ]]
+	normal;
+
+only spec deallocG(xsc, xthis, alpha)
+	[[ (alpha == #alpha) * Grove(#l, #g) * (#g == #g1 ++ (("hole", #alpha) ++ #g3)) * Grove(#alpha, #g2) ]]
+	[[ Grove(#dn, (#g1 ++ (#g2 ++ #g3)) ]]
+	normal;
+
+
+
+/* only spec createElement(xsc, xthis, x)
+	[[ (xthis == #dn) * (x == #name) * DocumentNode(#dn, #element) ]]
+	[[ DocumentNode(#dn, #element) * ElementNodeSpecial(ret, #name, {{}}, {{}}, $$null) ]]
+	normal
+*/
+
+only spec createElement(xsc, xthis, x)
+	[[ (xthis == #dn) * (x == #name) * DocumentNode(#dn, #element, #g) ]]
+	[[ DocumentNode(#dn, #element, ((ret, #name, {{}}, {{}} ) : #g)  ]]
+	normal
+
+/* only spec removeChild(xsc, xthis, n)
+	[[ (xthis == #pn) * (n == #nn) * ElementNodeSpecial(#nn, #name, #att, #children, #pn) ]]
+	[[ ElementNodeSpecial(ret, #name, #att, #children, $$null) ]]
+	normal
+*/
+
+only spec removeChild(xsc, xthis, n)
+	[[ (xthis == #pn) * (n == #nn) 
+		* Forest(#alpha, {{(#pn, #name, #att, #children)}} * (#children == #beta1 ++ ((#nn, #name1, #att1, #children1): #beta_2))
+		* Grove(#gamma, {{}})
+	]]
+	[[ Forest(#alpha, {{(#pn, #name, #att, (#beta1 ++ #beta2) )}} * Grove(#gamma, {{(#nn, #name1, #att1, #children1)}}) ]]
+	normal
+
+
+only spec appendChild(xsc, xthis, newchild)
+	[[ (xthis == #dn) * (newchild == #en) * DocumentNode(#dn, $$null, ((#en, #name, #att, #children) : #g) )]]
+	[[ DocumentNode(#dn, #en, #g) * (ret == #en) ]]
+	normal
+
