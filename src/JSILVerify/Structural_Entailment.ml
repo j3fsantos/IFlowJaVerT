@@ -23,6 +23,7 @@ open Symbolic_State_Basics
 *)
 
 let must_be_equal le_pat le pi gamma =
+	print_debug (Printf.sprintf "Must be equal: %s = %s" (JSIL_Print.string_of_logic_expression le_pat false) (JSIL_Print.string_of_logic_expression le false));
 	let result = 
 	(match le_pat = le with
 	| true -> true

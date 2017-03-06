@@ -1,10 +1,9 @@
-
 /**
 	@id  g
 	@rec false
 
-	@pre  (scope(g : #g) * scope(f : #f) * types(#y : $$number_type))
-	@post (scope(g : #g) * scope(f : #f) * (ret == $$empty))
+	@pre  ( emp )
+	@post ( standardObject(this) * (ret == $$empty))
 */
 var g = function () { };
 
