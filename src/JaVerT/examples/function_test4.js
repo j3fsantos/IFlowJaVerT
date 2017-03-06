@@ -3,7 +3,7 @@
 	@rec false
 
 	@pre  ( emp )
-	@post ( standardObject(this) * (ret == $$empty))
+	@post ( ret == $$empty )
 */
 var g = function () { };
 
@@ -13,6 +13,6 @@ var g = function () { };
 	@rec false
 
 	@pre  (scope(g : #g) * scope(f : #f) * fun_obj(g, #g, #gproto))
-	@post (scope(g : #g) * scope(f : #f))
+	@post (scope(g : #g) * scope(f : #f) * fun_obj(g, #g, #gproto))
 */
 function f () { new g() }
