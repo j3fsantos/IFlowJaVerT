@@ -19,10 +19,11 @@
 		scope(url: #ignore1) * 
 		scope(isB: #ignore2) *
 		ElementNode(#n, #name, #attr, #children) *
-		(#attr = #attr1 @ #a) *
-		AttributeNode(#a, "src", {{#t}}) *
-		TextNode(#t, #s1) *
-		((#c, #t) -> 0) *
+		#attr == {("hole", #alpha):("attr", #a, "src", #tf1)} *
+		#tf1 == {("hole", #t_alpha1):("text", #t, #s1)} *
+		Grove(#l_g, #g1) *
+		#g1 = {("hole", #g_alpha)} *
+		((#c, #s1) -> 0) *
 		isB(#s1)
 	)
 	@post (
@@ -32,10 +33,11 @@
 		scope(url: #s1) * 
 		scope(isB: 1) * 
 		ElementNode(#n, #name, #new_attr, #children) *
-		(#new_attr = #attr1 @ #a) *
-		AttributeNode(#a, "src", {{#tn}}) *
-		TextNode(#tn, #s2) *
-		((#c, #t) -> 1) *
+		(#new_attr == {("hole", #alpha):("attr", #a, "src", #tf2)}) *
+		(#tf2 == {("text", #r, #s2)}) *
+		Grove(#l_g, #g2) *
+		#g2 = {("hole", #g_alpha):#tf1} *
+		((#c, #s1) -> 1) *
 		isB(#s1)
 	)
 **/

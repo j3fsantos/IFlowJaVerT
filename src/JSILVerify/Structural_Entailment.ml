@@ -22,7 +22,9 @@ open Symbolic_State_Basics
 	| LUnknown
 *)
 
-let must_be_equal le_pat le pi gamma =
+let must_be_equal le_pat le pi gamma subst =
+	let le_pat = lexpr_substitution le_pat subst true in
+	print_debug (Printf.sprintf "Must be equal: %s = %s" (JSIL_Print.string_of_logic_expression le_pat false) (JSIL_Print.string_of_logic_expression le false));
 	let result = 
 	(match le_pat = le with
 	| true -> true
@@ -37,7 +39,8 @@ let must_be_equal le_pat le pi gamma =
 	result
 
 
-let must_be_different le_pat le pi gamma =
+let must_be_different le_pat le pi gamma subst =
+	let le_pat = lexpr_substitution le_pat subst true in
 	let result = 
 	(match le_pat = le with
 	| true -> true
@@ -256,10 +259,10 @@ let unify_fv_pair ((pat_field, pat_value) : (jsil_logic_expr * jsil_logic_expr))
 			let new_traversed_field_list = (e_field, e_value) :: traversed_fv_list in 
 			if (not i_have_not_found_the_field_for_sure) 
 				then loop rest new_traversed_field_list false 
-				else loop rest new_traversed_field_list (must_be_different pat_field e_field p_formulae gamma) in 
+				else loop rest new_traversed_field_list (must_be_different pat_field e_field p_formulae gamma subst) in 
 		
 		let guarded_loop_next_1 e_field e_value rest =
-			if (must_be_equal pat_field e_field p_formulae gamma)
+			if (must_be_equal pat_field e_field p_formulae gamma subst)
 				then (true, false, None)
 				else guarded_loop_next_2 e_field e_value rest in 	
 		
