@@ -1,5 +1,8 @@
 /**
 
+ @toprequires (emp)
+ @topensures (scope(q: #q) * PQ(#q, #head, #pq_proto, #node_proto, 1, 1) * (ret == $$undefined))
+
 @pred Object (l, proto) :
 	types (l : $$object_type) *
 	((l, "@proto") -> proto) *
@@ -41,7 +44,7 @@
   	dataField(pq, "_head",  head) *
     Queue(head, node_proto, max_pri, length) *
   	((pq, "enqueue") -> None) *
-  	types(pq_proto : $$object_type, node_proto : $$object_type, max_pri : $$number_type, length : $$number_type);
+  	types(pq_proto : $$object_type, max_pri : $$number_type, length : $$number_type);
 */
 
 
@@ -125,16 +128,21 @@
     @pre (
         ((this, "_head") -> None) *
         ((this, "enqueue") -> None) *
+        scope(Node: #n) *
+        fun_obj(Node, #n, #node_proto) *
         Object(this, #pq_proto) * PQPrototype(#pq_proto, #enqueue_loc) *
         NodePrototype(#node_proto, #insert_loc)
     )
     @post (
           PQ(this, $$null, #pq_proto, #node_proto, 0, 0) *
-          PQPrototype(#pq_proto, #enqueue_loc)) *
+          PQPrototype(#pq_proto, #enqueue_loc) * (ret == $$empty) *
+          scope(Node: #n) *
+          fun_obj(Node, #n, #node_proto) *
           NodePrototype(#node_proto, #insert_loc)
+    )
    */
    var PriorityQueue = function () {
-       /** @fold Queue($$null, #node_proto, 0, 0) */
+      /** @fold Queue($$null, #node_proto, 0, 0) */
       this._head = null;
    };
 
@@ -156,7 +164,7 @@
       @post (
         PQ(this, #new_head, #pq_proto, #node_proto, #npri, #length + 1) *
         PQPrototype(#pq_proto, #enqueue_loc) *
-        NodePrototype(#node_proto, #insert_loc)
+        NodePrototype(#node_proto, #insert_loc) * (ret == $$empty)
       )
 
       @pre (
@@ -174,7 +182,7 @@
       @post (
         PQ(this, #head, #pq_proto, #node_proto, #pri_q, #length + 1) *
         PQPrototype(#pq_proto, #enqueue_loc) *
-        NodePrototype(#node_proto, #insert_loc)
+        NodePrototype(#node_proto, #insert_loc) * (ret == $$empty)
       )
 
    */
@@ -199,6 +207,6 @@
 
 var q = new PriorityQueue();
 q.enqueue(1, "last");
-q.enqueue(3, "bar");
-q.enqueue(2, "foo");
+//q.enqueue(3, "bar");
+//q.enqueue(2, "foo");
 //var r = q.dequeue();
