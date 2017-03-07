@@ -15,7 +15,7 @@ if (name.length > 0) {
     }
 
     var id = jsil_make_symbolic_string();
-    var useId = (account.id == 8 && id.startsWith("id"));
+    var useId = (id.length == 8 && id.startsWith("id"));
     if (useId) {
 	base += ("?id"+id);
     }
@@ -23,5 +23,5 @@ if (name.length > 0) {
 
 base
 
-jsil_assert(base.includes("?acct") || base.includes("?id"))
+jsil_assert(base.includes("?id"))
 
