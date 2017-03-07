@@ -993,10 +993,56 @@ let rec simplify_for_your_legacy exists others (symb_state : symbolic_state) : s
 					DynArray.add p_formulae (LEq (le2, le4));
 					fo symb_state
 				  end
-				| LUnOp (LstLen, l), LLit (Num len)
-				| LLit (Num len), LUnOp (LstLen, l) -> 
-						print_debug (Printf.sprintf "Found list length: %s %f" (JSIL_Print.string_of_logic_expression (LUnOp (LstLen, l)) false) len);
-						go_through_pfs rest (n + 1)
+					
+				(* LIST MAGIC *)
+				| LLit (Num len), LUnOp (LstLen, LVar v)
+				| LUnOp (LstLen, LVar v), LLit (Num len) ->
+						print_debug "List length equality.";
+						(match (Utils.is_int len) with
+						| false -> pfs_false "Non-integer list-length. Good luck."
+						| true -> 
+							let len = int_of_float len in
+							(match (0 <= len) with
+							| false -> pfs_false "Sub-zero length. Good luck."
+							| true -> 
+									let subst_list = Array.to_list (Array.init len (fun _ -> fresh_lvar())) in
+									let subst_list = List.map (fun x -> LVar x) subst_list in
+									DynArray.delete p_formulae n;
+									DynArray.add p_formulae (LEq (LVar v, LEList subst_list));
+									fo symb_state
+							)
+						)
+				
+				| LBinOp (LEList l1, LstCat, le), LEList l2
+				| LEList l2, LBinOp (LEList l1, LstCat, le) -> 
+					let len1 = List.length l1 in
+					let len2 = List.length l2 in
+					(match len1 <= len2 with
+					| false -> pfs_false "Impossible list concatenation"
+					| true -> 
+							let al2 = Array.of_list l2 in
+							let lleft = Array.to_list (Array.sub al2 0 len1) in
+							let lright = Array.to_list (Array.sub al2 len1 (len2 - len1)) in
+							DynArray.set p_formulae n (LEq (LEList l1, LEList lleft));
+							DynArray.add p_formulae (LEq (le, LEList lright));
+							fo symb_state
+					)
+					
+				| LBinOp (LEList l1, LstCat, le), LLit (LList l2)
+				| LLit (LList l2), LBinOp (LEList l1, LstCat, le) ->
+					let len1 = List.length l1 in
+					let len2 = List.length l2 in
+					(match len1 <= len2 with
+					| false -> pfs_false "Impossible list concatenation"
+					| true -> 
+							let al2 = Array.of_list l2 in
+							let lleft = Array.to_list (Array.sub al2 0 len1) in
+							let lright = Array.to_list (Array.sub al2 len1 (len2 - len1)) in
+							DynArray.set p_formulae n (LEq (LEList l1, LLit (LList lleft)));
+							DynArray.add p_formulae (LEq (le, LLit (LList lright)));
+							fo symb_state;
+					)
+					
 				| _, _ -> go_through_pfs rest (n + 1))
 			| _ -> go_through_pfs rest (n + 1))
 	) in
@@ -1064,7 +1110,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 		SS.empty, lpfs, p_formulae, (Hashtbl.create 1) in
 
 	let delete_substitute_proceed exists p_formulae gamma v n le =
-		print_debug (Printf.sprintf "Deleting the formula \n%s\n and substituting the variable %s for %s." 
+		print_debug (Printf.sprintf "Deleting the formula \n%s\nand substituting the variable %s for %s." 
 			(JSIL_Print.string_of_logic_assertion (DynArray.get p_formulae n) false) 
 			v (JSIL_Print.string_of_logic_expression le false));
 		DynArray.delete p_formulae n;
@@ -1194,8 +1240,41 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 					let len = int_of_float len in
 					(match (0 <= len) with
 					| false -> pfs_false "Sub-zero length. Good luck."
-					| true -> go_through_pfs rest (n + 1)))
+					| true -> 
+							let subst_list = Array.to_list (Array.init len (fun _ -> fresh_lvar())) in
+							let exists = SS.union exists (SS.of_list subst_list) in
+							let subst_list = List.map (fun x -> LVar x) subst_list in
+							delete_substitute_proceed exists p_formulae gamma v n (LEList subst_list)
+					)
+				)
+		
+		| LEq (LBinOp (LEList l1, LstCat, le), LEList l2) ->
+			let len1 = List.length l1 in
+			let len2 = List.length l2 in
+			(match len1 <= len2 with
+			| false -> pfs_false "Impossible list concatenation"
+			| true -> 
+					let al2 = Array.of_list l2 in
+					let lleft = Array.to_list (Array.sub al2 0 len1) in
+					let lright = Array.to_list (Array.sub al2 len1 (len2 - len1)) in
+					DynArray.set p_formulae n (LEq (LEList l1, LEList lleft));
+					DynArray.add p_formulae (LEq (le, LEList lright));
+					go_through_pfs (DynArray.to_list p_formulae) 0
+			)
 			
+		| LEq (LBinOp (LEList l1, LstCat, le), LLit (LList l2)) ->
+			let len1 = List.length l1 in
+			let len2 = List.length l2 in
+			(match len1 <= len2 with
+			| false -> pfs_false "Impossible list concatenation"
+			| true -> 
+					let al2 = Array.of_list l2 in
+					let lleft = Array.to_list (Array.sub al2 0 len1) in
+					let lright = Array.to_list (Array.sub al2 len1 (len2 - len1)) in
+					DynArray.set p_formulae n (LEq (LEList l1, LLit (LList lleft)));
+					DynArray.add p_formulae (LEq (le, LLit (LList lright)));
+					go_through_pfs (DynArray.to_list p_formulae) 0
+			)
 			
 		| _ -> go_through_pfs rest (n + 1)
 	   )
@@ -1252,7 +1331,7 @@ let simplify_implication exists lpfs rpfs gamma =
 	sanitise_pfs_no_store gamma rpfs;
 	let exists, lpfs, rpfs, gamma = simplify_existentials exists lpfs rpfs gamma in
 	clean_up_stuff exists lpfs rpfs;
-	exists, lpfs, rpfs, gamma
+	exists, lpfs, rpfs, gamma (* DO THE SUBST *)
 	
 
 (*************************************************)
