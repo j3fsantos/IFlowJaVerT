@@ -537,7 +537,9 @@ let get_args cmd =
 	| _ -> None
 
 
-let annotate_cmd_top_level metadata (lab, cmd) =
+let annotate_cmd_top_level metadata lcmd =
+	
+	let lab, (cmd : jsil_lab_cmd) = lcmd in
 	
 	let fold_unfold_pi_macro_for_put_and_get_value args = 
 		let new_args =
@@ -562,7 +564,7 @@ let annotate_cmd_top_level metadata (lab, cmd) =
 		let new_args =
 			(match args with
 			| Some args ->  args
-			| None -> raise (Failure "No argument passed to GetPutValue folding.")) in
+			| None -> raise (Failure "No argument passed to hasProperty folding.")) in
 		(match new_args with
 		(* HasProperty case *)
 		| [ arg1; arg2] -> 
@@ -576,18 +578,18 @@ let annotate_cmd_top_level metadata (lab, cmd) =
 		| _ -> raise (Failure "Folding/Unfolding in the wrong place.")) in
 	
 	if ((is_get_value_call cmd) || (is_put_value_call cmd))  then (
-		print_debug "I AM CREATING FOLD/UNFOLD ANNOTATIONS!!!!!";
+		(* Printf.printf "I found a call to GetValue/PutValue.\n"; *)
 		let fold_lcmds, unfold_lcmds = fold_unfold_pi_macro_for_put_and_get_value (get_args cmd) in
 		let new_metadata =
 			{ metadata with pre_logic_cmds = fold_lcmds; post_logic_cmds = unfold_lcmds } in
 		(new_metadata, lab, cmd)
 	) else if (is_hasProperty_call cmd) then ( 
 			let fold_lcmds, unfold_lcmds = fold_unfold_pi_for_hasProperty (get_args cmd) in
-			Printf.printf "I found a call to hasProperty. %n Folds: %s.\nUnfolds: %n!\n"
+			(* Printf.printf "I found a call to hasProperty.\n\t%n Folds: %s.\n\tUnfolds: %n!\n"
 				(List.length fold_lcmds) 
 				(String.concat "," 
 					(List.map JSIL_Print.string_of_lcmd fold_lcmds))
-				(List.length unfold_lcmds); 
+				(List.length unfold_lcmds); *)
 			let new_metadata =
 				{ metadata with pre_logic_cmds = fold_lcmds; post_logic_cmds = unfold_lcmds } in
 			(new_metadata, lab, cmd)
@@ -626,8 +628,8 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 	let js_char_offset = e.Parser_syntax.exp_offset in
 	let js_line_offset = tr_ctx.tr_offset_converter js_char_offset in
 	let metadata = { line_offset = Some js_line_offset; invariant = None; pre_logic_cmds = []; post_logic_cmds = [] } in	
+	
 	let annotate_cmds = annotate_cmds_top_level metadata in
-
 	let annotate_cmd = fun cmd lab -> annotate_cmd_top_level metadata (lab, cmd) in
 	
 	let fold_unfold_annots = Js_pre_processing.pop_relevant_logic_annots_expr e in 
@@ -636,11 +638,12 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		(match annotated_cmds with 
 		| [] -> []
 		| (metadata, lab, cmd) :: rest -> 
+			let pre_l_cmds = metadata.pre_logic_cmds in
 			(* Printf.printf "With STUFF!!!\n\n"; *)
 			let cmd_str : string = JSIL_Print.string_of_lab_cmd cmd in 
 			let logic_cmd_str = String.concat ", " (List.map (fun lcmd -> JSIL_Print.string_of_lcmd lcmd) fold_unfold_logic_cmds) in 
 			(* Printf.printf "I am annotating %s with (un)folds baby:\n%s!!!\n" cmd_str logic_cmd_str; *)
-			let new_metadata = { metadata with pre_logic_cmds = fold_unfold_logic_cmds } in
+			let new_metadata = { metadata with pre_logic_cmds = pre_l_cmds @ fold_unfold_logic_cmds } in
 			(new_metadata, lab, cmd) :: rest) in  		
 
 
@@ -804,6 +807,8 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 				(Some end_lab,  cmd_ass_xr)           (*       x_r = PHI(x_then, x_else)                   *)
 			] in
 			let cmds = annotate_cmds cmds in
+			(* List.iter (fun ({ line_offset; invariant; pre_logic_cmds; post_logic_cmds }, _, _) -> 
+				Printf.printf "Length: pre: %d \t post: %d\n" (List.length pre_logic_cmds) (List.length post_logic_cmds)) cmds; *)
 			cmds, Var x_r, [ x_1 ] in
 
 		let translate_var_found v index =
@@ -2609,12 +2614,13 @@ and translate_statement tr_ctx e  =
 		(match annotated_cmds with 
 		| [] -> []
 		| (metadata, lab, cmd) :: rest -> 
+			let pre_l_cmds = metadata.pre_logic_cmds in
 			let cmd_str : string = JSIL_Print.string_of_lab_cmd cmd in 
 			let logic_cmd_str = String.concat ", " (List.map (fun lcmd -> JSIL_Print.string_of_lcmd lcmd) fold_unfold_logic_cmds) in 
 			(* Printf.printf "I am annotating %s with (un)folds baby:\n%s!!!\n" cmd_str logic_cmd_str; *)
 			let invariant_str : string = (match invariant with None -> "" | Some invariant -> JSIL_Print.string_of_logic_assertion invariant false) in 
 			(* Printf.printf "I am annotating %s with the following invariant:\n%s!!!\n" cmd_str invariant_str; *)
-			let new_metadata = { metadata with pre_logic_cmds = fold_unfold_logic_cmds; invariant = invariant } in
+			let new_metadata = { metadata with pre_logic_cmds = pre_l_cmds @ fold_unfold_logic_cmds; invariant = invariant } in
 			(new_metadata, lab, cmd) :: rest) in  	
 	
 	
@@ -2626,9 +2632,7 @@ and translate_statement tr_ctx e  =
 					(Pretty_print.string_of_exp_syntax_1  e.Parser_syntax.exp_stx false); *)
 	
 	let annotate_cmds = annotate_cmds_top_level metadata in
-	
 	let annotate_cmd cmd lab = annotate_cmd_top_level metadata (lab, cmd) in
-
 
 	let compile_var_dec x e =
 		let index = find_var_er_index x in
@@ -4316,6 +4320,8 @@ let generate_main offset_converter e main cc_table spec =
 	let cmds_hoist_fdecls = translate_fun_decls true sc_var_main e in
 	let cmds_hoist_fdecls = annotate_cmds_top_level empty_metadata cmds_hoist_fdecls in
 	let cmds_e, x_e, errs, _, _, _ = translate_statement ctx e in
+	(* List.iter (fun ({ line_offset; invariant; pre_logic_cmds; post_logic_cmds }, _, _) -> 
+		Printf.printf "Length: pre: %d \t post: %d\n" (List.length pre_logic_cmds) (List.length post_logic_cmds)) cmds_e; *)
 	
 	(* x_ret := x_e *)
 	let ret_ass = annotate_cmd (SLBasic (SAssignment (ctx.tr_ret_var, x_e))) None in
@@ -4485,6 +4491,8 @@ let generate_proc offset_converter e fid params cc_table vis_fid spec =
 	let cmd_ass_se = annotate_cmd cmd_ass_se None in
 
 	let cmds_e, x_e, errs, rets, _, _ = translate_statement new_ctx e in
+	(* List.iter (fun ({ line_offset; invariant; pre_logic_cmds; post_logic_cmds }, _, _) -> 
+		Printf.printf "Length: pre: %d \t post: %d\n" (List.length pre_logic_cmds) (List.length post_logic_cmds)) cmds_e; *)
 
 	(* x_dr := $$empty *)
 	let x_dr = fresh_var () in

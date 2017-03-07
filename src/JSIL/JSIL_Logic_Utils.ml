@@ -723,8 +723,9 @@ let filter_vars vars ignore_vars : string list =
 	vars
 
 let rec type_lexpr gamma le =
+	
 	let f = type_lexpr gamma in
-	(match le with
+	let result = (match le with
 	(* Literals are always typable *)
   | LLit lit -> (Some (evaluate_type_of lit), true, [])
 
@@ -803,7 +804,7 @@ let rec type_lexpr gamma le =
 
 		let all_types = [ UndefinedType; NullType; EmptyType; BooleanType; NumberType; StringType; ObjectType; ListType; TypeType ] in
 		let check_valid_type t types ret_type new_constraints =
-			let is_t_in_types = List.exists (fun t_arg -> (t = t_arg)) types in
+			let is_t_in_types = List.mem t types in
 			if (is_t_in_types)
 				then (Some ret_type, true, (new_constraints @ constraints))
 				else (None, false, []) in
@@ -861,7 +862,9 @@ let rec type_lexpr gamma le =
 		| _, _ -> (None, false, []))
 
 	| LNone    -> (Some NoneType, true, [])
-  | LUnknown -> (None, false, []))
+  | LUnknown -> (None, false, [])) in
+	
+	result
 
 
 let rec reverse_type_lexpr_aux gamma new_gamma le le_type =

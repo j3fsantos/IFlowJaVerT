@@ -14,7 +14,7 @@
 		((l, "@proto") -> $lfun_proto) *
 		((l, "@class") -> "Function") *
 		((l, "@extensible") -> $$f) *
-		((l, "@scope") -> {{}}) *
+		((l, "@scope") -> {{ $lg }}) *
 		((l, "@call")  -> call) *
 		empty_fields(l : "@proto", "@class", "@extensible", "@scope", "@call");
 
@@ -148,6 +148,5 @@
 	@toprequires (InitialDOMHeap() * DocumentNode($l_document, $$null) * scope(document : $l_document))
 	@topensures  (InitialDOMHeap() * DocumentNode($l_document, $$null) * scope(document : $l_document))
 */
-
-var r;
-r = document.createElement("test");
+document.createElement("one");
+document.createElement("two");

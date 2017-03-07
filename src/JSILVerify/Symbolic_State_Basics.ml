@@ -834,6 +834,8 @@ let rec understand_types exists pf_list gamma : bool =
 
 let rec simplify_for_your_legacy exists others (symb_state : symbolic_state) : symbolic_state * jsil_logic_assertion DynArray.t = 
 
+	print_time_debug ("simplify_for_your_legacy_start:");
+	
 	(* Gamma-check *)
 	let symb_state, others = Hashtbl.fold (fun v t (ac, others) -> 
 		let (heap, store, p_formulae, gamma, preds (*, _ *)) = ac in
@@ -873,8 +875,11 @@ let rec simplify_for_your_legacy exists others (symb_state : symbolic_state) : s
 			f others symb_state in
 		 
 	let rec go_through_pfs (pfs : jsil_logic_assertion list) n =
+	print_debug (Printf.sprintf "go through: %d" n);
 	(match pfs with
-	 | [] -> symb_state, others
+	 | [] -> 
+				print_time_debug ("simplify_for_your_legacy_end:");
+				symb_state, others
      | pf :: rest ->
 	 	(match pf with
 			(* If we have true in the pfs, we delete it and restart *)
@@ -924,6 +929,7 @@ let rec simplify_for_your_legacy exists others (symb_state : symbolic_state) : s
 				| _, _ -> go_through_pfs rest (n + 1))
 
 			| LEq (le1, le2) ->
+				print_debug "Equality";
 				(match le1, le2 with
 				(* VARIABLES *)
 				| LVar v, le 
@@ -987,6 +993,10 @@ let rec simplify_for_your_legacy exists others (symb_state : symbolic_state) : s
 					DynArray.add p_formulae (LEq (le2, le4));
 					fo symb_state
 				  end
+				| LUnOp (LstLen, l), LLit (Num len)
+				| LLit (Num len), LUnOp (LstLen, l) -> 
+						print_debug (Printf.sprintf "Found list length: %s %f" (JSIL_Print.string_of_logic_expression (LUnOp (LstLen, l)) false) len);
+						go_through_pfs rest (n + 1)
 				| _, _ -> go_through_pfs rest (n + 1))
 			| _ -> go_through_pfs rest (n + 1))
 	) in
@@ -1172,6 +1182,21 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 					)
 			   )
 		  )
+			
+			
+		(* LIST MAGIC *)
+		| LEq (LLit (Num len), LUnOp (LstLen, LVar v))
+		| LEq (LUnOp (LstLen, LVar v), LLit (Num len)) ->
+				print_debug "List length equality.";
+				(match (Utils.is_int len) with
+				| false -> pfs_false "Non-integer list-length. Good luck."
+				| true -> 
+					let len = int_of_float len in
+					(match (0 <= len) with
+					| false -> pfs_false "Sub-zero length. Good luck."
+					| true -> go_through_pfs rest (n + 1)))
+			
+			
 		| _ -> go_through_pfs rest (n + 1)
 	   )
 	) in

@@ -121,12 +121,12 @@ pred DocumentElement(l, element) :
     			* empty_fields(l : "@proto", "@class", "@extensible", "@data");		
 
 pred AttributeSet(l, attrs) : 
-    isEmpty(attrs) * DOMObject(l, $$null) * (l, "@data") -> $$null * (l, "@next") ->  $$null,
+    isEmpty(attrs) * DOMObject(l, $$null) * ((l, "@data") -> $$null) * ((l, "@next") ->  $$null),
     (attrs == (#head :: #attrsNext)) * isAttr(#head, #name, #id, #tf) * DOMObject(l, $$null)
-    	* (l, "@data") -> #id * (l, "@next") -> #next * AttributeNode(#id, #name, #tf) * AttributeSet(#next, #attrsNext)
+    	* ((l, "@data") -> #id) * ((l, "@next") -> #next) * AttributeNode(#id, #name, #tf) * AttributeSet(#next, #attrsNext)
     	* empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next"),
     (attrs == (#head :: #attrsNext)) * isHole(#head, #alpha) * DOMObject(l, $$null) 
-    	* (l, "@data") -> #alpha * (l, "@next") -> #next * AttributeSet(#next, #attrsNext)
+    	* ((l, "@data") -> #alpha) * ((l, "@next") -> #next) * AttributeSet(#next, #attrsNext)
     	* empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next");   	
 
 pred Forest(l, childList) :
