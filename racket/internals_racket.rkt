@@ -11,7 +11,11 @@
 (define (replace str from to)
   (list 'normal (string-replace str from to #:all? #f)))
 
+(define (includes? str stuff)
+  (list 'normal (string-contains? str stuff)))
+
 (define (register-racket-methods hp)
+  (register-js-builtin-method "String" "includes" includes? hp)
   (register-js-builtin-method "String" "startsWith" starts-with? hp)
   (register-js-builtin-method "String" "toUpperCase" toUpperCase hp)
   (register-js-builtin-method "String" "replace" replace hp))
