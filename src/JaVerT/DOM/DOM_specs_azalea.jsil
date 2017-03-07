@@ -173,65 +173,64 @@ pred InitialDOMHeap() :
 (* abstract allocation and deallocation *)
 
 only spec allocTF(xsc, xthis, l, i, j)
-	[[ (l == #l) * (i == #i) * (j == #j) * TextForest(#l, #tf) * (#tf == #tf1 @ (#tf2 @ #tf3)) * (length(#tf1) == #i) * (length(#tf2) == #j) ]]
-	[[ TextForest(#l, (#tf1 @ (("hole", #alpha) :: #tf3)) * TextForest(#alpha, #tf2) ]]
+	[[ (l == #l) * (i == #i) * (j == #j) * TextForest(#l, #tf) * (#tf == #tf1 @ (#tf2 @ #tf3)) * (l-len(#tf1) == #i) * (l-len(#tf2) == #j)]]
+	[[ TextForest(#l, (#tf1 @ ({{"hole", #alpha}} @ #tf3))) * TextForest(#alpha, #tf2) ]]
 	normal;
 
-	[[ (l == #l) * (i == #i) TextForest(#l, #tf) * (length(#tf) <=# #i) ]]
-	[[ TextForest(#l, (("hole", #alpha) :: #tf) * TextForest(#alpha, {{}} ) ]]
+	[[ (l == #l) * (i == #i) * TextForest(#l, #tf) * (l-len(#tf) <=# #i) ]]
+	[[ TextForest(#l, {{"hole", #alpha}} @ #tf) * TextForest(#alpha, {{}}) ]]
 	normal;
 
 only spec deallocTF(xsc, xthis, alpha)
-	[[ (alpha == #alpha) * TextForest(#l, #tf) * (#tf == #tf1 @ (("hole", #alpha) :: #tf3)) * TextForest(#alpha, #tf2) ]]
+	[[ (alpha == #alpha) * TextForest(#l, #tf) * (#tf == #tf1 @ ({{"hole", #alpha}} @ #tf3)) * TextForest(#alpha, #tf2) ]]
 	[[ TextForest(#l, (#tf1 @ (#tf2 @ #tf3)) ]]
-	normal;	
-
+	normal;
 
 
 only spec allocF(xsc, xthis, l, i, j)
-	[[ (l == #l) * (i == #i) * (j == #j) * Forest(#l, #f) * (#f == #f1 @ (#f2 @ #f3)) * (length(#f1) == #i) * (length(#f2) == #j) ]]
-	[[ Forest(#l, (#f1 @ (("hole", #alpha) :: #f3)) * Forest(#alpha, #f2) ]]
+	[[ (l == #l) * (i == #i) * (j == #j) * Forest(#l, #f) * (#f == #f1 @ (#f2 @ #f3)) * (l-len(#f1) == #i) * (l-len(#f2) == #j) ]]
+	[[ Forest(#l, (#f1 @ ({{"hole", #alpha}} @ #f3)) * Forest(#alpha, #f2) ]]
 	normal;
 
-	[[ (l == #l) * (i == #i) Forest(#l, #f) * (length(#f) <=# #i) ]]
-	[[ Forest(#l, (("hole", #alpha) :: #f) * Forest(#alpha, {{}} ) ]]
+	[[ (l == #l) * (i == #i) Forest(#l, #f) * (l-len(#f) <=# #i) ]]
+	[[ Forest(#l, ({{"hole", #alpha}} @ #f) * Forest(#alpha, {{}} ) ]]
 	normal;
 
 only spec deallocF(xsc, xthis, alpha)
-	[[ (alpha == #alpha) * Forest(#l, #f) * (#f == #f1 @ (("hole", #alpha) :: #f3)) * TextForest(#alpha, #f2) ]]
+	[[ (alpha == #alpha) * Forest(#l, #f) * (#f == #f1 @ ({{"hole", #alpha}} @ #f3)) * TextForest(#alpha, #f2) ]]
 	[[ Forest(#l, (#f1 @ (#f2 @ #f3)) ]]
 	normal;		
 
 
 
 only spec allocAS(xsc, xthis, l, i, j)
-	[[ (l == #l) * (i == #i) * (j == #j) * AttributeSet(#l, #as) * (#as == #as1 @ (#as2 @ #as2)) * (length(#as1) == #i) * (length(#as2) == #j)]]
-	[[ AttributeSet(#l, (#as1 @ (("hole", #alpha) :: #as3)) * AttributeSet(#alpha, #as2) ]]
+	[[ (l == #l) * (i == #i) * (j == #j) * AttributeSet(#l, #as) * (#as == #as1 @ (#as2 @ #as2)) * (l-len(#as1) == #i) * (l-len(#as2) == #j)]]
+	[[ AttributeSet(#l, (#as1 @ ({{"hole", #alpha}} @ #as3)) * AttributeSet(#alpha, #as2) ]]
 	normal;
 
 
-	[[ (l == #l) * (i == #i) AttributeSet(#l, #as) * (length(#as) <=# #i) ]]
-	[[ AttributeSet(#l, (("hole", #alpha) :: #as) * AttributeSet(#alpha, {{}} ) ]]
+	[[ (l == #l) * (i == #i) AttributeSet(#l, #as) * (l-len(#as) <=# #i) ]]
+	[[ AttributeSet(#l, ({{"hole", #alpha}} @ #as) * AttributeSet(#alpha, {{}} ) ]]
 	normal;
 
 only spec deallocAS(xsc, xthis, alpha)
-	[[ (alpha == #alpha) * AttributeSet(#l, #as) * (#as == #as1 @ (("hole", #alpha) :: #as3)) * AttributeSet(#alpha, #as2) ]]
+	[[ (alpha == #alpha) * AttributeSet(#l, #as) * (#as == #as1 @ ({{"hole", #alpha}} @ #as3)) * AttributeSet(#alpha, #as2) ]]
 	[[ AttributeSet(#l, (#as1 @ (#as2 @ #as3)) ]]
 	normal;
 
 
 
 only spec allocG(xsc, xthis, l, i)
-	[[ (l == #l) * (i == #i) * Grove(#l, #g) * (#g == #g1 @ (#g2 :: #g3)) * (length(#g1) == #i) ]]
-	[[ Grove(#l, (#g1 @ (("hole", #alpha) :: #g3)) * Grove(#alpha, {{#g2}}) ]]
+	[[ (l == #l) * (i == #i) * Grove(#l, #g) * (#g == #g1 @ (#g2 @ #g3)) * (l-len(#g1) == #i) ]]
+	[[ Grove(#l, (#g1 @ ({{"hole", #alpha}} @ #g3)) * Grove(#alpha, {{#g2}}) ]]
 	normal;
 
-	[[ (l == #l) * (i == #i) * Grove(#l, #g) * (length(#g) <=# #i) ]]
-	[[ Grove(#l, (("hole", #alpha) :: #g)) * Grove(#alpha, {{}}) ]]
+	[[ (l == #l) * (i == #i) * Grove(#l, #g) * (l-len(#g) <=# #i) ]]
+	[[ Grove(#l, ({{"hole", #alpha}} @ #g)) * Grove(#alpha, {{}}) ]]
 	normal;
 
 only spec deallocG(xsc, xthis, alpha)
-	[[ (alpha == #alpha) * Grove(#l, #g) * (#g == #g1 @ (("hole", #alpha) :: #g3)) * Grove(#alpha, #g2) ]]
+	[[ (alpha == #alpha) * Grove(#l, #g) * (#g == #g1 @ ({{"hole", #alpha}} @ #g3)) * Grove(#alpha, #g2) ]]
 	[[ Grove(#dn, (#g1 @ (#g2 @ #g3)) ]]
 	normal;
 
@@ -240,33 +239,33 @@ only spec deallocG(xsc, xthis, alpha)
 (* only spec createElement(xsc, xthis, x)
 	[[ (xthis == #dn) * (x == #name) * DocumentNode(#dn, #element) ]]
 	[[ DocumentNode(#dn, #element) * ElementNodeSpecial(ret, #name, {{}}, {{}}, $$null) ]]
-	normal
+	normal;
 *)
 
 only spec createElement(xsc, xthis, x)
 	[[ (xthis == #dn) * (x == #name) * DocumentNode(#dn, #element, #g) ]]
-	[[ DocumentNode(#dn, #element, ((ret, #name, {{}}, {{}} ) :: #g)  ]]
-	normal
+	[[ DocumentNode(#dn, #element, ({{"elem", ret, #name, {{}}, {{}}}} @ #g)  ]]
+	normal;
 
 (* only spec removeChild(xsc, xthis, n)
 	[[ (xthis == #pn) * (n == #nn) * ElementNodeSpecial(#nn, #name, #att, #children, #pn) ]]
 	[[ ElementNodeSpecial(ret, #name, #att, #children, $$null) ]]
-	normal
+	normal;
 *)
 
 only spec removeChild(xsc, xthis, n)
 	[[ (xthis == #pn) * (n == #nn) 
-		* Forest(#alpha, {{(#pn, #name, #att, #children)}} * (#children == #beta1 @ ((#nn, #name1, #att1, #children1) :: #beta_2))
+		* Forest(#alpha, {{"elem", #pn, #name, #att, #children}}) * (#children == #beta1 @ ({{"elem", #nn, #name1, #att1, #children1}} @ #beta_2))
 		* Grove(#gamma, {{}})
 	]]
-	[[ Forest(#alpha, {{(#pn, #name, #att, (#beta1 @ #beta2) )}} * Grove(#gamma, {{(#nn, #name1, #att1, #children1)}}) ]]
-	normal
+	[[ Forest(#alpha, {{"elem", #pn, #name, #att, (#beta1 @ #beta2)}} * Grove(#gamma, {{("elem", #nn, #name1, #att1, #children1)}}) ]]
+	normal;
 
 
 only spec appendChild(xsc, xthis, newchild)
-	[[ (xthis == #dn) * (newchild == #en) * DocumentNode(#dn, $$null, ((#en, #name, #att, #children) :: #g) )]]
+	[[ (xthis == #dn) * (newchild == #en) * DocumentNode(#dn, $$null, {{"elem", #en, #name, #att, #children}} @ #g)]]
 	[[ DocumentNode(#dn, #en, #g) * (ret == #en) ]]
-	normal
+	normal;
 
 
 pred isEpmty (l) :
