@@ -197,11 +197,17 @@
 	    (content == (#head :: #contentNext)) * isHole(#head, #alpha) * DOMObject(l, $$null) *
 	    ((l, "@data") -> #alpha) * ((l, "@next") -> #next) * Grove(#next, #contentNext) *
 	    empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next");
-	    
+
 	@onlyspec createElement(x)
 		pre:  [[ (x == #name) *  DocumentNode(this, #element, #g) ]]
 		post: [[ (ret == #ret) * DocumentNode(this, #element, ({{ {{ "elem", #name, #ret, {{}}, {{}} }} }} @ #g)) * types(#ret : $$object_type) ]]
 		outcome: normal
+
+	@onlyspec getAttribute(s)
+		pre:  [[ (s == #s) * ElementNode(this, #name, #attr, #children) * (#attr = {{ {{ "attr", #s, #m, #t }} :: {{ "hole", #alpha }} }}) ]]
+		post: [[ (s == #s) * ElementNode(this, #name, #attr, #children) * (#attr = {{ {{ "attr", #s, #m, #t }} :: {{ "hole", #alpha }} }}) * (ret == #t) ]]
+		outcome: normal
+
 */
 
 /** 
