@@ -224,6 +224,33 @@
 		pre:  [[ (s == #s) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#attr == {{ {{ "attr", #s, #m, #t }}, {{ "hole", #alpha }} }}) ]]
 		post: [[ (s == #s) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#attr == {{ {{ "attr", #s, #m, #t }}, {{ "hole", #alpha }} }}) * (ret == #t) * types(#t : $$string_type) ]]
 		outcome: normal
+
+
+	@onlyspec nodeName()
+		pre:  [[ DocumentNode(this, #l_element, #element, #grove) ]]
+		post: [[ DocumentNode(this, #l_element, #element, #grove) * (ret == "#document")]]
+		outcome: normal;
+
+		pre:  [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) ]]
+		post: [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (ret == #name) ]]
+		outcome: normal;
+
+		pre:  [[ TextNode(this, #text) ]]
+		post: [[ TextNode(this, #text) * (ret == "#text") ]]
+		outcome: normal;
+
+		pre:  [[ AttributeNode(this, #name, #l_children, #children) ]]
+		post: [[ AttributeNode(this, #name, #l_children, #children) * (ret == #name) ]]
+		outcome: normal
+
+	@onlyspec nodeValue()
+		pre:  [[ DocumentNode(this, #l_element, #element, #grove) ]]
+		post: [[ DocumentNode(this, #l_element, #element, #grove) * (ret == $$null) ]]
+		outcome: normal;
+
+		pre:  [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) ]]
+		post: [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (ret == $$null) ]]
+		outcome: normal;
 */
 
 /**
