@@ -19,11 +19,10 @@
 		scope(url: #ignore1) * 
 		scope(isB: #ignore2) *
 		ElementNode(#n, #name, #attr, #children) *
-		#attr == {("hole", #alpha):("attr", #a, "src", #tf1)} *
+		#attr == {{("hole", #alpha)::("attr", #a, "src", #tf1)}} *
 		val(#tf1, #s1) * isB(#s1) * 
 		Grove(#alpha, {{}}) *
-		((#c, #s1) -> 0) *
-		
+		((#c, #s1) -> 0)
 	)
 	@post (
 		scope(img: #n) * 
