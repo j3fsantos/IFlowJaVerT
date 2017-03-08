@@ -33,11 +33,13 @@
 	Queue(#next, node_proto, #pri, #len_q) * (#pri <=# max_pri) * (length == #len_q + 1) *
 	types(q : $$object_type, node_proto : $$object_type, #pri : $$number_type, max_pri : $$number_type, length : $$number_type, #len_q : $$number_type);
 
-@pred PQPrototype(pqp, enqueue_loc, enqueue_sc) :
+@pred PQPrototype(pqp, enqueue_loc, enqueue_sc, n, node_proto, insert_loc) :
 	standardObject(pqp) *
 	dataField(pqp, "enqueue", enqueue_loc) *
 	fun_obj(enqueue, enqueue_loc, #enqueue_proto, enqueue_sc) *
-	((pqp, "_head") -> None);
+	((pqp, "_head") -> None) *
+  fun_obj(Node, n, node_proto) *
+  NodePrototype(node_proto, insert_loc);
 
   @pred PQ(pq, head, pq_proto, node_proto, max_pri, length) :
   	Object(pq, pq_proto) *
@@ -56,9 +58,7 @@ var PriorityQueue;
     @post ((ret == #pq) *
       fun_obj(PriorityQueue, #pq, #pq_proto, #pq_sc) *
       closure(Node: #n; PriorityQueue: #pq_sc, enqueue: #enqueue_sc) *
-      fun_obj(Node, #n, #node_proto) *
-      NodePrototype(#node_proto, #insert_loc) *
-      PQPrototype(#pq_proto, #enqueue_loc, #enqueue_sc))
+      PQPrototype(#pq_proto, #enqueue_loc, #enqueue_sc, #n, #node_proto, #insert_loc))
 
   */
 PriorityQueue = (function () {
@@ -140,16 +140,12 @@ PriorityQueue = (function () {
         ((this, "_head") -> None) *
         ((this, "enqueue") -> None) *
         scope(Node: #n) *
-        fun_obj(Node, #n, #node_proto) *
-        Object(this, #pq_proto) * PQPrototype(#pq_proto, #enqueue_loc, #enqueue_sc) *
-        NodePrototype(#node_proto, #insert_loc)
+        Object(this, #pq_proto) * PQPrototype(#pq_proto, #enqueue_loc, #enqueue_sc, #n, #node_proto, #insert_loc)
     )
     @post (
           PQ(this, $$null, #pq_proto, #node_proto, 0, 0) *
-          PQPrototype(#pq_proto, #enqueue_loc, #enqueue_sc) * (ret == $$empty) *
-          scope(Node: #n) *
-          fun_obj(Node, #n, #node_proto) *
-          NodePrototype(#node_proto, #insert_loc)
+          PQPrototype(#pq_proto, #enqueue_loc, #enqueue_sc, #n, #node_proto, #insert_loc) * (ret == $$empty) *
+          scope(Node: #n)
     )
    */
    var module = function () {
@@ -165,19 +161,16 @@ PriorityQueue = (function () {
         (val == #nval) *
         (0 <# #npri) *
         scope(Node: #n) *
-        fun_obj(Node, #n, #node_proto) *
         PQ(this, #head, #pq_proto, #node_proto, #pri_q, #length) *
-        PQPrototype(#pq_proto, #enqueue_loc, #enqueue_sc) *
-        NodePrototype(#node_proto, #insert_loc) *
+        PQPrototype(#pq_proto, #enqueue_loc, #enqueue_sc, #n, #node_proto, #insert_loc) *
         types(#pri_q : $$number_type, #length : $$number_type, #npri : $$number_type, #pri_q : $$number_type, #nval: $$string_type) *
         (#pri_q <=# #npri)
       )
       @post (
         scope(Node: #n) *
-        fun_obj(Node, #n, #node_proto) *
         PQ(this, #new_head, #pq_proto, #node_proto, #npri, #length + 1) *
-        PQPrototype(#pq_proto, #enqueue_loc, #enqueue_sc) *
-        NodePrototype(#node_proto, #insert_loc) * (ret == $$empty) *
+        PQPrototype(#pq_proto, #enqueue_loc, #enqueue_sc, #n, #node_proto, #insert_loc) *
+        (ret == $$empty) *
         types(#new_head : $$object_type)
       )
 
@@ -186,19 +179,16 @@ PriorityQueue = (function () {
         (val == #nval) *
         (0 <# #npri) *
         scope(Node: #n) *
-        fun_obj(Node, #n, #node_proto) *
         PQ(this, #head, #pq_proto, #node_proto, #pri_q, #length) *
-        PQPrototype(#pq_proto, #enqueue_loc, #enqueue_sc) *
-        NodePrototype(#node_proto, #insert_loc) *
+        PQPrototype(#pq_proto, #enqueue_loc, #enqueue_sc, #n, #node_proto, #insert_loc) *
         types(#pri_q : $$number_type, #length : $$number_type, #npri : $$number_type, #pri_q : $$number_type, #nval: $$string_type, #head: $$object_type) *
         (#npri <# #pri_q)
       )
       @post (
         scope(Node: #n) *
-        fun_obj(Node, #n, #node_proto) *
         PQ(this, #head, #pq_proto, #node_proto, #pri_q, #length + 1) *
-        PQPrototype(#pq_proto, #enqueue_loc, #enqueue_sc) *
-        NodePrototype(#node_proto, #insert_loc) * (ret == $$empty)
+        PQPrototype(#pq_proto, #enqueue_loc, #enqueue_sc, #n, #node_proto, #insert_loc) *
+        (ret == $$empty)
       )
 
    */
