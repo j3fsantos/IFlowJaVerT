@@ -34,16 +34,18 @@ To run:
 Inside the **environment folder** after step 1: 
 
 2.  JSIL Interpreter: 
-	`./jsil.native -file <file_name>`
+	`./jsil.native -file <file_name>.jsil`
+    The output of the execution is written to the console. 
 
 3.  JS2JSIL: 
-	`./js2jsil.native -file <file_name>`
+	`./js2jsil.native -file <file_name>.js`
     Use the flag `-logic` if the compiled JSIL file will be given as input to JSILVerify. 
+    The compiled code will be written to <file_name>.jsil. 
 
 4.  JSILVerify: 
-	`./jsilverify.native -file <file_name>` 
+	`./jsilverify.native -file <file_name>.jsil` 
     Use the flag `-js` if the JSIL program resulted from the compilation of a JavaScript program.
-
+    The symbolic execution traces will be written to the console. 
 
 
 
