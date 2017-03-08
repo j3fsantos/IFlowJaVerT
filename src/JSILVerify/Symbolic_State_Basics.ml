@@ -539,9 +539,9 @@ let filter_gamma_pfs pfs gamma =
 
 *)
 
-let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_pfs save_all_lvars (symb_state : symbolic_state) : (symbolic_state * jsil_logic_assertion DynArray.t * (string * jsil_logic_expr) list) =
+let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_pfs save_all_lvars exists (symb_state : symbolic_state) =
 
-	let f = aggressively_simplify to_add other_pfs save_all_lvars in
+	let f = aggressively_simplify to_add other_pfs save_all_lvars exists in
 
 	(* Break down the state into components *)
 	let heap, store, p_formulae, gamma, preds (*, _ *) = symb_state in
@@ -552,7 +552,7 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 		DynArray.clear p_formulae;
 		DynArray.add p_formulae LFalse;
 		DynArray.clear other_pfs;
-		symb_state, other_pfs, [] in
+		symb_state, other_pfs, [], exists in
 	
 	let perform_substitution var lexpr n chantay = 
 	let subst = Hashtbl.create 1 in
@@ -566,14 +566,14 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 		   | true -> ((var, lexpr) :: to_add)) in
 		let symb_state = symb_state_substitution symb_state subst true in
 		let other_pfs = pf_substitution other_pfs subst true in
-		aggressively_simplify new_to_add other_pfs save_all_lvars symb_state in
+		aggressively_simplify new_to_add other_pfs save_all_lvars exists symb_state in
 
 	(* Main recursive function *)
 	let rec go_through_pfs (pfs : jsil_logic_assertion list) n =
 		(match pfs with
 		| [] ->
 			List.iter (fun (x, y) -> DynArray.add p_formulae (LEq (LVar x, y))) to_add;
-			symb_state, other_pfs, to_add
+			symb_state, other_pfs, to_add, exists
 		| pf :: rest ->
 			(match pf with
 			(* If we have true in the pfs, we delete it and restart *)
@@ -690,6 +690,55 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 					DynArray.add p_formulae (LEq (le2, le4));
 					f symb_state
 				  end
+					
+				(* LIST MAGIC *)
+				| LLit (Num len), LUnOp (LstLen, LVar v)
+				| LUnOp (LstLen, LVar v), LLit (Num len) ->
+						(match (Utils.is_int len) with
+						| false -> pfs_false "Non-integer list-length. Good luck."
+						| true -> 
+							let len = int_of_float len in
+							(match (0 <= len) with
+							| false -> pfs_false "Sub-zero length. Good luck."
+							| true -> 
+									let subst_list = Array.to_list (Array.init len (fun _ -> fresh_lvar())) in
+									let exists = SS.union exists (SS.of_list subst_list) in
+									let subst_list = List.map (fun x -> LVar x) subst_list in
+									DynArray.delete p_formulae n;
+									DynArray.add p_formulae (LEq (LVar v, LEList subst_list));
+									aggressively_simplify to_add other_pfs save_all_lvars exists symb_state
+							)
+						)
+				
+				| LBinOp (LEList l1, LstCat, le), LEList l2
+				| LEList l2, LBinOp (LEList l1, LstCat, le) -> 
+					let len1 = List.length l1 in
+					let len2 = List.length l2 in
+					(match len1 <= len2 with
+					| false -> pfs_false "Impossible list concatenation"
+					| true -> 
+							let al2 = Array.of_list l2 in
+							let lleft = Array.to_list (Array.sub al2 0 len1) in
+							let lright = Array.to_list (Array.sub al2 len1 (len2 - len1)) in
+							DynArray.set p_formulae n (LEq (LEList l1, LEList lleft));
+							DynArray.add p_formulae (LEq (le, LEList lright));
+							f symb_state
+					)
+					
+				| LBinOp (LEList l1, LstCat, le), LLit (LList l2)
+				| LLit (LList l2), LBinOp (LEList l1, LstCat, le) ->
+					let len1 = List.length l1 in
+					let len2 = List.length l2 in
+					(match len1 <= len2 with
+					| false -> pfs_false "Impossible list concatenation"
+					| true -> 
+							let al2 = Array.of_list l2 in
+							let lleft = Array.to_list (Array.sub al2 0 len1) in
+							let lright = Array.to_list (Array.sub al2 len1 (len2 - len1)) in
+							DynArray.set p_formulae n (LEq (LEList l1, LLit (LList lleft)));
+							DynArray.add p_formulae (LEq (le, LLit (LList lright)));
+							f symb_state;
+					)
 				(* More falsity *)
 				| LEList _, LLit _
 				| LLit _, LEList _ 
@@ -741,10 +790,10 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 		
 
 let simplify how x =
-	let (result, _, _) = aggressively_simplify [] (DynArray.create ()) how x in result
+	let (result : symbolic_state), _, _, _ = aggressively_simplify [] (DynArray.create ()) how (SS.empty) x in result
 
 let simplify_with_subst how x = 
-	let (result, _, subst) = aggressively_simplify [] (DynArray.create ()) how x in result, subst
+	let result, _, subst, _ = aggressively_simplify [] (DynArray.create ()) how (SS.empty) x in result, subst
 
 let simplify_with_pfs how pfs = aggressively_simplify [] pfs how
 
@@ -753,9 +802,14 @@ let aggressively_simplify_pfs pfs gamma how =
 		let _, _, pfs, _, _ = simplify how (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create () (*, solver*)) in
 			pfs
 
+let aggressively_simplify_pfs_with_exists (exists : SS.t) (pfs : jsil_logic_assertion DynArray.t) gamma (how : bool) =
+	let ss = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create ()) in
+	let (_, _, pfs, _, _), _, _, exists = aggressively_simplify [] (DynArray.create ()) how exists ss in
+		pfs, exists
+
 let aggressively_simplify_pfs_with_others pfs opfs gamma how =
 	(* let solver = ref None in *)
-		let (_, _, pfs, gamma, _), opfs, _ = aggressively_simplify [] opfs how (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create () (*, solver*)) in
+		let (_, _, pfs, gamma, _), opfs, _, _ = aggressively_simplify [] opfs how (SS.empty) (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create () (*, solver*)) in
 			pfs, opfs, gamma
 	
 (* *********************** *
@@ -833,8 +887,6 @@ let rec understand_types exists pf_list gamma : bool =
 		| _ -> f rest gamma))
 
 let rec simplify_for_your_legacy exists others (symb_state : symbolic_state) : symbolic_state * jsil_logic_assertion DynArray.t = 
-
-	print_time_debug ("simplify_for_your_legacy_start:");
 	
 	(* Gamma-check *)
 	let symb_state, others = Hashtbl.fold (fun v t (ac, others) -> 
@@ -875,10 +927,8 @@ let rec simplify_for_your_legacy exists others (symb_state : symbolic_state) : s
 			f others symb_state in
 		 
 	let rec go_through_pfs (pfs : jsil_logic_assertion list) n =
-	print_debug (Printf.sprintf "go through: %d" n);
 	(match pfs with
 	 | [] -> 
-				print_time_debug ("simplify_for_your_legacy_end:");
 				symb_state, others
      | pf :: rest ->
 	 	(match pf with
@@ -929,7 +979,6 @@ let rec simplify_for_your_legacy exists others (symb_state : symbolic_state) : s
 				| _, _ -> go_through_pfs rest (n + 1))
 
 			| LEq (le1, le2) ->
-				print_debug "Equality";
 				(match le1, le2 with
 				(* VARIABLES *)
 				| LVar v, le 
@@ -997,7 +1046,6 @@ let rec simplify_for_your_legacy exists others (symb_state : symbolic_state) : s
 				(* LIST MAGIC *)
 				| LLit (Num len), LUnOp (LstLen, LVar v)
 				| LUnOp (LstLen, LVar v), LLit (Num len) ->
-						print_debug "List length equality.";
 						(match (Utils.is_int len) with
 						| false -> pfs_false "Non-integer list-length. Good luck."
 						| true -> 
@@ -1099,9 +1147,11 @@ let simplify_for_your_legacy_pfs_with_exists_and_others exists pfs others gamma 
 			
 let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_assertion DynArray.t) (gamma : (string, jsil_type) Hashtbl.t) =
 
-	print_time_debug ("simplify_existentials:");
+	(* print_time_debug ("simplify_existentials:"); *)
 	
-	let p_formulae = aggressively_simplify_pfs p_formulae gamma true in
+	let p_formulae, exists = aggressively_simplify_pfs_with_exists exists p_formulae gamma true in
+	
+	(* print_debug (Printf.sprintf "PFS: %s" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false)); *)
 
 	let pfs_false msg =
 		print_debug (msg ^ " Pure formulae false.\n");
@@ -1110,9 +1160,9 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 		SS.empty, lpfs, p_formulae, (Hashtbl.create 1) in
 
 	let delete_substitute_proceed exists p_formulae gamma v n le =
-		print_debug (Printf.sprintf "Deleting the formula \n%s\nand substituting the variable %s for %s." 
+		(* print_debug (Printf.sprintf "Deleting the formula \n%s\nand substituting the variable %s for %s." 
 			(JSIL_Print.string_of_logic_assertion (DynArray.get p_formulae n) false) 
-			v (JSIL_Print.string_of_logic_expression le false));
+			v (JSIL_Print.string_of_logic_expression le false)); *)
 		DynArray.delete p_formulae n;
 		let exists = SS.remove v exists in
 		while (Hashtbl.mem gamma v) do Hashtbl.remove gamma v done;
@@ -1230,7 +1280,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 		  )
 			
 			
-		(* LIST MAGIC *)
+		(* LIST MAGIC 
 		| LEq (LLit (Num len), LUnOp (LstLen, LVar v))
 		| LEq (LUnOp (LstLen, LVar v), LLit (Num len)) ->
 				print_debug "List length equality.";
@@ -1274,7 +1324,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 					DynArray.set p_formulae n (LEq (LEList l1, LLit (LList lleft)));
 					DynArray.add p_formulae (LEq (le, LLit (LList lright)));
 					go_through_pfs (DynArray.to_list p_formulae) 0
-			)
+			) *)
 			
 		| _ -> go_through_pfs rest (n + 1)
 	   )
