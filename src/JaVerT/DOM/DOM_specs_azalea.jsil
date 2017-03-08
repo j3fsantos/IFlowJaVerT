@@ -140,7 +140,7 @@ only spec deallocF(xsc, xthis, alpha)
 	normal	
 
 only spec allocAS(xsc, xthis, l, i, j)
-	[[ (l == #l) * (i == #i) * (j == #j) * AttributeSet(#l, #as) * (#as == #as1 @ (#as2 @ #as2)) * (l-len(#as1) == #i) * (l-len(#as2) == #j)]]
+	[[ (l == #l) * (i == #i) * (j == #j) * AttributeSet(#l, #as) * (#as == #as1 @ (#as2 @ #as3)) * (l-len(#as1) == #i) * (l-len(#as2) == #j)]]
 	[[ AttributeSet(#l, (#as1 @ ({{"hole", #alpha}} @ #as3))) * AttributeSet(#alpha, #as2) ]]
 	normal;
 

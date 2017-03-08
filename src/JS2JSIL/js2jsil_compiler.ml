@@ -4627,10 +4627,25 @@ let js2jsil e offset_converter for_verification =
 			| [] -> ())
 		| _ -> ()) in
 	
+	(* JS2JSIL *)
+	
 	let main = "main" in
 	print_debug (Printf.sprintf "AST before grounding the annotations:\n%s\n" (Pretty_print.string_of_exp true e)); 
 	let e, _ = Js_pre_processing.ground_fold_annotations [] e in
 	print_debug (Printf.sprintf "AST after grounding the annotations:\n%s\n" (Pretty_print.string_of_exp true e)); 
+	
+	let onlyspecs = Hashtbl.create 511 in
+	Hashtbl.iter
+	(fun _ v ->
+		let { js_spec_name; js_spec_params; js_proc_specs } = v in
+		Hashtbl.replace vis_tbl js_spec_name [ js_spec_name; "main" ];
+		let proc_specs = List.map (fun { js_pre; js_post; js_ret_flag } -> 
+			let pre  = JS_Logic_Syntax.js2jsil_logic_top_level_pre  js_pre  cc_tbl vis_tbl (Hashtbl.create 0) js_spec_name in
+			let post = JS_Logic_Syntax.js2jsil_logic_top_level_post js_post cc_tbl vis_tbl (Hashtbl.create 0) js_spec_name in
+				{ pre; post; ret_flag = js_ret_flag }) js_proc_specs in
+		Hashtbl.replace onlyspecs js_spec_name { spec_name = js_spec_name; spec_params = [Js2jsil_constants.var_scope; Js2jsil_constants.var_this] @ js_spec_params; proc_specs } 
+	)
+	JS_Logic_Syntax.js_only_spec_table;
 	
 	let e : Parser_syntax.exp = Js_pre_processing.add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous [] e in
 	let predicates = Js_pre_processing.closure_clarification_top_level cc_tbl fun_tbl old_fun_tbl vis_tbl main e [ main ] [] in
@@ -4650,19 +4665,6 @@ let js2jsil e offset_converter for_verification =
 						generate_proc offset_converter f_body f_id f_params cc_tbl vis_fid spec)) in
 			Hashtbl.add procedures f_id proc)
 		fun_tbl;
-
-	let onlyspecs = Hashtbl.create 511 in
-	Hashtbl.iter
-	(fun _ v ->
-		let { js_spec_name; js_spec_params; js_proc_specs } = v in
-		Hashtbl.replace vis_tbl js_spec_name [ js_spec_name; "main" ];
-		let proc_specs = List.map (fun { js_pre; js_post; js_ret_flag } -> 
-			let pre  = JS_Logic_Syntax.js2jsil_logic_top_level_pre  js_pre  cc_tbl vis_tbl (Hashtbl.create 0) js_spec_name in
-			let post = JS_Logic_Syntax.js2jsil_logic_top_level_post js_post cc_tbl vis_tbl (Hashtbl.create 0) js_spec_name in
-				{ pre; post; ret_flag = js_ret_flag }) js_proc_specs in
-		Hashtbl.replace onlyspecs js_spec_name { spec_name = js_spec_name; spec_params = [Js2jsil_constants.var_scope; Js2jsil_constants.var_this] @ js_spec_params; proc_specs } 
-	)
-	JS_Logic_Syntax.js_only_spec_table;
 	
 	let cur_imports = if for_verification then js2jsil_logic_imports else js2jsil_imports in
 	{ imports = cur_imports; predicates; onlyspecs; procedures}, cc_tbl, vis_tbl

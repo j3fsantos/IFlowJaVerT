@@ -1,5 +1,4 @@
 /**
-
 	@pred isEmpty (l) :
 		l == {{ }};
 	
@@ -32,8 +31,8 @@
 		((l, "@scope") -> {{ $lg }}) *
 		((l, "@call")  -> call) *
 		empty_fields(l : "@proto", "@class", "@extensible", "@scope", "@call");
-
-	@pred DOMFunctionField(l, call) :
+	
+		@pred DOMFunctionField(l, call) :
 		DOMField(l, call, #lnn) *
 		DOMFunctionObject(#lnn, call);
 
@@ -93,7 +92,7 @@
 		((en, "@children") -> l_children) * Forest(l_children, children) * 
 		types(name: $$string_type, attr: $$list_type, children: $$list_type) *
 		empty_fields(en : "@proto", "@class", "@extensible", "@name", "@attributes", "@children");
-
+	
 	@pred ElementNodeSpecial(en, name, attr, children, parent) :
 		DOMObject(en, $l_enp) *
 		((en, "@name") -> name) *
@@ -168,6 +167,7 @@
 	    ((l, "@data") -> #alpha) * ((l, "@next") -> #next) * Forest(#next, #childListNext) *
 	    empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next");
 
+	
 	@pred TextForest(l, childList) :
 		isEmpty(childList) * DOMObject(l, $$null) * ((l, "@data") -> $$null) * ((l, "@next") ->  $$null),
 		
@@ -198,17 +198,66 @@
 	    ((l, "@data") -> #alpha) * ((l, "@next") -> #next) * Grove(#next, #contentNext) *
 	    empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next");
 
+	@onlyspec allocAS(l, i, j)
+		pre:  [[ (l == #l) * (i == #i) * (j == #j) * 
+		         AttributeSet(#l, #as) * (#as == #as1 @ (#as2 @ #as3)) * (l-len(#as1) == #i) * (l-len(#as2) == #j)]]
+		post: [[ AttributeSet(#l, (#as1 @ ({{"hole", #alpha}} @ #as3))) * 
+		         AttributeSet(#alpha, #as2) * (ret == #alpha) * types(#alpha : $$object_type) ]]
+		outcome: normal
+
+	@onlyspec deallocAS(alpha)
+		pre:  [[ (alpha == #alpha) * AttributeSet(#l, #as) * (#as == #as1 @ ({{"hole", #alpha}} @ #as3)) * AttributeSet(#alpha, #as2) * types(#alpha : $$object_type)]]
+		post: [[ AttributeSet(#l, (#as1 @ (#as2 @ #as3))) ]]
+		outcome: normal
+
 	@onlyspec createElement(x)
 		pre:  [[ (x == #name) *  DocumentNode(this, #l_element, #element, #g) ]]
 		post: [[ (ret == #ret) * DocumentNode(this, #l_element, #element, ({{ {{ "elem", #name, #ret, {{}}, {{}} }} }} @ #g)) * types(#ret : $$object_type) ]]
 		outcome: normal
 
 	@onlyspec getAttribute(s)
-		pre:  [[ (s == #s) * ElementNode(this, #name, #attr, #children) * (#attr = {{ {{ "attr", #s, #m, #t }} :: {{ "hole", #alpha }} }}) ]]
-		post: [[ (s == #s) * ElementNode(this, #name, #attr, #children) * (#attr = {{ {{ "attr", #s, #m, #t }} :: {{ "hole", #alpha }} }}) * (ret == #t) ]]
+		pre:  [[ (s == #s) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#attr == {{ {{ "attr", #s, #m, #t }}, {{ "hole", #alpha }} }}) ]]
+		post: [[ (s == #s) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#attr == {{ {{ "attr", #s, #m, #t }}, {{ "hole", #alpha }} }}) * (ret == #t) ]]
 		outcome: normal
-
 */
+
+/**
+	@id singleGet
+	@rec false
+
+	@pre (
+		scope(allocAS   : #allocAS)   * fun_obj(allocAS,   #allocAS,   #allocAS_proto) *
+		scope(deallocAS : #deallocAS) * fun_obj(deallocAS, #deallocAS, #deallocAS_proto) *
+		(element == #en) * (l_attr == #l_attr) * types (#en : $$object_type, #l_attr : $$object_type) *
+		InitialDOMHeap() *
+		ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) *
+		(#attr == {{ 
+			{{ "attr", "src", #a0, #atf0 }}, 
+			{{ "attr", "width", #a1, #atf1 }}, 
+			{{ "attr", "height", #a2, #atf2 }}, 
+			{{ "hole", #a_alpha2 }} 
+		}})
+	)
+	
+	@post (
+		fun_obj(allocAS,   #allocAS,   #allocAS_proto) *
+		fun_obj(deallocAS, #deallocAS, #deallocAS_proto) *
+		ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) *
+		InitialDOMHeap() *
+		(#attr == {{ 
+			{{ "attr", "src", #a0, #atf0 }}, 
+			{{ "attr", "width", #a1, #atf1 }}, 
+			{{ "attr", "height", #a2, #atf2 }},
+			{{ "hole", #a_alpha2 }} 
+		}})
+	)
+*/
+function singleGet(element, l_attr) {
+	/* @unfold ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) */
+	var a = allocAS(l_attr, 1, 3);
+	var w = element.getAttribute("src");
+	deallocAS(a);
+}
 
 /** 
 	@toprequires (DocumentNode($l_document, #l_element, {{ }}, {{ }}) * InitialDOMHeap() * scope(document : $l_document))
