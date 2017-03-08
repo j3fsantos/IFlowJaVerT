@@ -250,7 +250,7 @@
 
 		pre:  [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) ]]
 		post: [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (ret == $$null) ]]
-		outcome: normal;
+		outcome: normal
 */
 
 /**
