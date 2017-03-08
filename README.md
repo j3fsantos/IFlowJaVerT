@@ -40,7 +40,7 @@ Inside the **environment folder** after step 1:
 3.  JS2JSIL: 
 	`./js2jsil.native -file <file_name>.js`
     Use the flag `-logic` if the compiled JSIL file will be given as input to JSILVerify. 
-    The compiled code will be written to <file_name>.jsil. 
+    The compiled code will be written to `<file_name>.jsil`. 
 
 4.  JSILVerify: 
 	`./jsilverify.native -file <file_name>.jsil` 
