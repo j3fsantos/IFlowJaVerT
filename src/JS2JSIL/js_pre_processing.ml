@@ -535,8 +535,8 @@ let rec add_codenames (main : string)
 let process_js_logic_annotations (cc_tbl : cc_tbl_type) (vis_tbl : (string, string list) Hashtbl.t) fun_tbl fun_name (fun_args : string list) annotations requires_flag ensures_normal_flag ensure_err_flag =
 	(* Printf.printf "Inside process_js_logic_annotations. function: %s.\n\nAnnotations: \n%s\n\n" fun_name (Pretty_print.string_of_annots annotations); *)
 	
-	let var_to_fid_tbl = try Hashtbl.find cc_tbl fun_name with _ -> raise (Failure "DEATH") in 
-	let vis_list = try Hashtbl.find vis_tbl fun_name with _ -> raise (Failure "DEATH") in 
+	let var_to_fid_tbl = try Hashtbl.find cc_tbl fun_name with _ -> raise (Failure "DEATH: no fun in cc_table") in 
+	let vis_list = try Hashtbl.find vis_tbl fun_name with _ -> raise (Failure "DEATH: no fun in vis_tbl") in 
 	
 	let annot_types_str : string = String.concat ", " (List.map (fun annot -> Pretty_print.string_of_annot_type annot.annot_type) annotations) in 
 	(* Printf.printf "annot types: %s\n\n" annot_types_str; *)
@@ -924,7 +924,7 @@ let rec closure_clarification_expr cc_tbl (fun_tbl : Js2jsil_constants.pre_fun_t
     | None ->
       let new_f_id = get_codename e in
       let new_f_tbl = update_cc_tbl cc_tbl f_id new_f_id args fb in
-      update_fun_tbl fun_tbl new_f_id args fb cur_annot new_f_tbl (new_f_id :: visited_funs);
+      update_fun_tbl fun_tbl new_f_id args (Some fb) cur_annot new_f_tbl (new_f_id :: visited_funs);
       Hashtbl.replace vis_tbl new_f_id (new_f_id :: visited_funs);
       closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: visited_funs) [] fb
     | Some f_name ->
@@ -932,7 +932,7 @@ let rec closure_clarification_expr cc_tbl (fun_tbl : Js2jsil_constants.pre_fun_t
       let new_f_id_outer = new_f_id ^ "_outer" in
       let _ = update_cc_tbl_single_var_er cc_tbl f_id new_f_id_outer f_name in
       let new_f_tbl = update_cc_tbl cc_tbl new_f_id_outer new_f_id args fb in
-      update_fun_tbl fun_tbl new_f_id args fb cur_annot new_f_tbl (new_f_id :: new_f_id_outer :: visited_funs);
+      update_fun_tbl fun_tbl new_f_id args (Some fb) cur_annot new_f_tbl (new_f_id :: new_f_id_outer :: visited_funs);
       Hashtbl.replace vis_tbl new_f_id (new_f_id :: new_f_id_outer :: visited_funs);
       closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: new_f_id_outer :: visited_funs) [] fb
     end
@@ -993,7 +993,7 @@ closure_clarification_stmt cc_tbl fun_tbl vis_tbl f_id visited_funs prev_annot e
 	| Function (_, f_name, args, fb) ->
 		let new_f_id = get_codename e in
 		let new_f_tbl = update_cc_tbl cc_tbl f_id new_f_id args fb in
-		update_fun_tbl fun_tbl new_f_id args fb cur_annot new_f_tbl (new_f_id :: visited_funs);
+		update_fun_tbl fun_tbl new_f_id args (Some fb) cur_annot new_f_tbl (new_f_id :: visited_funs);
 		Hashtbl.replace vis_tbl new_f_id (new_f_id :: visited_funs);
 		closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: visited_funs) [] fb
   | Script (_, es) -> List.iter f es
@@ -1037,7 +1037,7 @@ let closure_clarification_top_level cc_tbl (fun_tbl : Js2jsil_constants.fun_tbl_
 		(fun v -> Hashtbl.replace proc_tbl v proc_id)
 		proc_vars;
 	Hashtbl.add cc_tbl proc_id proc_tbl;
-	Hashtbl.add old_fun_tbl proc_id (proc_id, args, e, ([], [ proc_id ], proc_tbl));
+	Hashtbl.add old_fun_tbl proc_id (proc_id, args, Some e, ([], [ proc_id ], proc_tbl));
 	Hashtbl.add vis_tbl proc_id vis_fid;
 	closure_clarification_stmt cc_tbl old_fun_tbl vis_tbl proc_id vis_fid [] e;
 	create_js_logic_annotations cc_tbl vis_tbl old_fun_tbl fun_tbl;
@@ -1049,7 +1049,7 @@ let closure_clarification_top_level cc_tbl (fun_tbl : Js2jsil_constants.fun_tbl_
 	| Some annots ->
 		(* Printf.printf "Going to generate main. Top-level annotations:\n%s\n" (Pretty_print.string_of_annots annots); *)
 		let specs, _ = process_js_logic_annotations cc_tbl vis_tbl old_fun_tbl proc_id [] annots TopRequires TopEnsures TopEnsuresErr in
-		Hashtbl.replace fun_tbl proc_id (proc_id, args, e, false, specs);
+		Hashtbl.replace fun_tbl proc_id (proc_id, args, Some e, false, specs);
 	| None -> ()); 
 	let jsil_pred_def_tbl = JSIL_Logic_Utils.pred_def_tbl_from_list jsil_predicate_definitions in 
 	jsil_pred_def_tbl

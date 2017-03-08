@@ -1,3 +1,8 @@
+/** 
+	@toprequires (DocumentNode($l_document, #l_element, {{ }}, {{ }}) * InitialDOMHeap() * scope(document : $l_document))
+	@topensures  (DocumentNode($l_document, #l_element, {{ }}, {{ {{ "elem", "one", #ret, {{}}, {{}} }} }}) * InitialDOMHeap() * scope(document : $l_document))
+*/
+
 /**
 	@pred isEmpty (l) :
 		l == {{ }};
@@ -12,7 +17,7 @@
 		l == {{ "elem", name, id, attrs, children }};
 	
 	@pred isAttr(l, name, id, tf) :
-		l == {{ "attr", name, id, tf }};
+		(l == {{ "attr", name, id, tf }});
 
 	@pred DOMObject(l, proto) :
 		types (l : $$object_type) *
@@ -199,15 +204,15 @@
 	    empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next");
 
 	@onlyspec allocAS(l, i, j)
-		pre:  [[ (l == #l) * (i == #i) * (j == #j) * 
+		pre:  [[ (l == #l) * (i == #i) * (j == #j) * types (#as : $$list_type, #as1 : $$list_type, #as2 : $$list_type, #as3 : $$list_type) *
 		         AttributeSet(#l, #as) * (#as == #as1 @ (#as2 @ #as3)) * (l-len(#as1) == #i) * (l-len(#as2) == #j)]]
-		post: [[ AttributeSet(#l, (#as1 @ ({{"hole", #alpha}} @ #as3))) * 
+		post: [[ AttributeSet(#l, (#as1 @ ({{ "hole", #alpha }} :: #as3))) * 
 		         AttributeSet(#alpha, #as2) * (ret == #alpha) * types(#alpha : $$object_type) ]]
 		outcome: normal
 
 	@onlyspec deallocAS(alpha)
-		pre:  [[ (alpha == #alpha) * AttributeSet(#l, #as) * (#as == #as1 @ ({{"hole", #alpha}} @ #as3)) * AttributeSet(#alpha, #as2) * types(#alpha : $$object_type)]]
-		post: [[ AttributeSet(#l, (#as1 @ (#as2 @ #as3))) ]]
+		pre:  [[ (alpha == #alpha) * AttributeSet(#l, #as) * (#as == #as1 @ ({{ "hole", #alpha }} :: #as3)) * AttributeSet(#alpha, #as2) * types(#alpha : $$object_type)]]
+		post: [[ AttributeSet(#l, (#as1 @ (#as2 @ #as3))) * (ret == $$empty) ]]
 		outcome: normal
 
 	@onlyspec createElement(x)
@@ -217,7 +222,7 @@
 
 	@onlyspec getAttribute(s)
 		pre:  [[ (s == #s) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#attr == {{ {{ "attr", #s, #m, #t }}, {{ "hole", #alpha }} }}) ]]
-		post: [[ (s == #s) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#attr == {{ {{ "attr", #s, #m, #t }}, {{ "hole", #alpha }} }}) * (ret == #t) ]]
+		post: [[ (s == #s) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#attr == {{ {{ "attr", #s, #m, #t }}, {{ "hole", #alpha }} }}) * (ret == #t) * types(#t : $$string_type) ]]
 		outcome: normal
 */
 
@@ -249,18 +254,18 @@
 			{{ "attr", "width", #a1, #atf1 }}, 
 			{{ "attr", "height", #a2, #atf2 }},
 			{{ "hole", #a_alpha2 }} 
-		}})
+		}}) * (ret == #atf0)
 	)
 */
 function singleGet(element, l_attr) {
 	/* @unfold ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) */
 	var a = allocAS(l_attr, 1, 3);
+	/* @fold ElementNode(#name, #en, #l_attr, #attr_1, #l_children, #children) */
 	var w = element.getAttribute("src");
+	/* @unfold ElementNode(#name, #en, #l_attr, #attr_1, #l_children, #children) */
 	deallocAS(a);
+	/* @fold ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) */
+	return w
 }
 
-/** 
-	@toprequires (DocumentNode($l_document, #l_element, {{ }}, {{ }}) * InitialDOMHeap() * scope(document : $l_document))
-	@topensures  (DocumentNode($l_document, #l_element, {{ }}, {{ {{ "elem", "one", #ret, {{}}, {{}} }} }}) * InitialDOMHeap() * scope(document : $l_document))
-*/
 document.createElement("one");

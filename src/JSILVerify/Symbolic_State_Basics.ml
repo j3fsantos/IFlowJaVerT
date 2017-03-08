@@ -739,6 +739,19 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 							DynArray.add p_formulae (LEq (le, LLit (LList lright)));
 							f symb_state;
 					)
+				
+				| LEList l1, LBinOp (lel, LstCat, LBinOp (le, LstCons, ler)) ->
+					print_debug "Specific @ case";
+					(try (let m = DynArray.index_of (fun x -> x = le) (DynArray.of_list l1) in
+							let ll1 = List.length l1 in
+							let al1 = Array.of_list l1 in
+							let l1l = Array.to_list (Array.sub al1 0 m) in
+							let l1r = Array.to_list (Array.sub al1 (m + 1) (ll1 - m - 1)) in
+							DynArray.set p_formulae n (LEq (lel, LEList l1l));
+							DynArray.add p_formulae (LEq (ler, LEList l1r));
+							f symb_state) with
+					| Not_found -> go_through_pfs rest (n + 1))
+					 
 				(* More falsity *)
 				| LEList _, LLit _
 				| LLit _, LEList _ 
@@ -1090,6 +1103,18 @@ let rec simplify_for_your_legacy exists others (symb_state : symbolic_state) : s
 							DynArray.add p_formulae (LEq (le, LLit (LList lright)));
 							fo symb_state;
 					)
+					
+					| LEList l1, LBinOp (lel, LstCat, LBinOp (le, LstCons, ler)) ->
+					print_debug "Specific @ case";
+					(try (let m = DynArray.index_of (fun x -> x = le) (DynArray.of_list l1) in
+							let ll1 = List.length l1 in
+							let al1 = Array.of_list l1 in
+							let l1l = Array.to_list (Array.sub al1 0 m) in
+							let l1r = Array.to_list (Array.sub al1 (m + 1) (ll1 - m - 1)) in
+							DynArray.set p_formulae n (LEq (lel, LEList l1l));
+							DynArray.add p_formulae (LEq (ler, LEList l1r));
+							fo symb_state) with
+					| Not_found -> go_through_pfs rest (n + 1))
 					
 				| _, _ -> go_through_pfs rest (n + 1))
 			| _ -> go_through_pfs rest (n + 1))

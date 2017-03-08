@@ -1172,6 +1172,12 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 	let f = reduce_expression store gamma pfs in
 	let result = (match e with
 
+	| LBinOp (le1, LstCons, LEList []) -> LEList [ f le1 ]
+	| LBinOp (le1, LstCons, LLit (LList [])) -> LEList [ f le1 ] 
+
+	| LBinOp (LEList le1, LstCat, LEList le2) ->
+			f (LEList (le1 @ le2))
+
 	(* List append *)
 	| LBinOp (le1, LstCat, le2) ->
 		let fe1 = f le1 in 
@@ -1184,11 +1190,6 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 			| LEList [] -> fe1
 			| LLit (LList []) -> fe1
 			| _ -> LBinOp (fe1, LstCat, fe2))) in
-		print_debug (Printf.sprintf "LSTCAT: %s --> (%s, %s) --> %s" 
-			(JSIL_Print.string_of_logic_expression e false) 
-			(JSIL_Print.string_of_logic_expression fe1 false) 
-			(JSIL_Print.string_of_logic_expression fe2 false) 
-			(JSIL_Print.string_of_logic_expression result false));
 		result
 
 	(* Binary operators *)
