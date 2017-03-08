@@ -26,21 +26,21 @@ To compile:
 
 To run: 
 
-0.  Setup the running environment: 
+1.  Setup the running environment: 
     `./setup_environment.sh`
     If inside the environment folder: 
     `./remake.sh`
     
-Inside the **environment folder** after step 0: 
+Inside the **environment folder** after step 1: 
 
-1.  JSIL Interpreter: 
+2.  JSIL Interpreter: 
 	`./jsil.native -file <file_name>`
 
-2.  JS2JSIL: 
+3.  JS2JSIL: 
 	`./js2jsil.native -file <file_name>`
     Use the flag `-logic` if the compiled JSIL file will be given as input to JSILVerify. 
 
-3.  JSILVerify: 
+4.  JSILVerify: 
 	`./jsilverify.native -file <file_name>` 
     Use the flag `-js` if the JSIL program resulted from the compilation of a JavaScript program.
 
