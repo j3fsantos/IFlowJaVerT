@@ -67,9 +67,9 @@
 		DOMFunctionField($l_dnp, "getElementsByTagName") *
 		empty_fields($l_dnp : "@proto", "@class", "@extensible", "@name", "documentElement", "createElement", "createTextNode", "createAttribute", "getElementsByTagName");
 
-	@pred DocumentNode(dn, element, grove) :
+	@pred DocumentNode(dn, l_element, element, grove) :
 		DOMObject(dn, $l_dnp) *
-		((dn, "@element") -> #l_element) * DocumentElement(#l_element, element) *
+		((dn, "@element") -> l_element) * DocumentElement(l_element, element) *
 		((dn, "@grove") -> #l_grove) * Grove(#l_grove, grove) *
 		empty_fields(dn : "@proto", "@class", "@extensible", "@element", "@grove");
 
@@ -86,11 +86,11 @@
 		empty_fields($l_enp : "@proto", "@class", "@extensible", "tagName", "getAttribute", "setAttribute", "removeAttribute", "getAttributeNode",
 			"setAttributeNode", "removeAttributeNode", "getElementsByTagName");
 
-	@pred ElementNode(name, en, attr, children) :
+	@pred ElementNode(name, en, l_attr, attr, l_children, children) :
 		DOMObject(en, $l_enp) *
 		((en, "@name") -> name) *
-		((en, "@attributes") -> #l_attr) * AttributeSet(#l_attr, attr) *
-		((en, "@children") -> #l_children) * Forest(#l_children, children) * 
+		((en, "@attributes") -> l_attr) * AttributeSet(l_attr, attr) *
+		((en, "@children") -> l_children) * Forest(l_children, children) * 
 		types(name: $$string_type, attr: $$list_type, children: $$list_type) *
 		empty_fields(en : "@proto", "@class", "@extensible", "@name", "@attributes", "@children");
 
@@ -126,10 +126,10 @@
 		DOMObject($l_anp, $l_np) *
 		empty_fields($l_anp : "@proto", "@class", "@extensible");
 
-	@pred AttributeNode(an, name, children) :
+	@pred AttributeNode(an, name, l_children, children) :
 		DOMObject(an, $l_anp) *
 		((an, "@name") -> name) *
-		((an, "@children") -> #l_children) * TextForest(#l_children, children) *
+		((an, "@children") -> l_children) * TextForest(l_children, children) *
 		types(name: $$string_type, children: $$list_type) *
 		empty_fields(an : "@proto", "@class", "@extensible", "@name", "@children");
 
@@ -141,7 +141,7 @@
 		empty_fields(l : "@proto", "@class", "@extensible", "@data"),
 		
 		isElement(element, #id, #name, #aList, #cList) * DOMObject(l, $$null) * ((l, "@data") -> #id) * 
-		ElementNode(#name, #id, #aList, #cList) * empty_fields(l : "@proto", "@class", "@extensible", "@data"),
+		ElementNode(#name, #id, #l_addr, #aList, #l_children, #cList) * empty_fields(l : "@proto", "@class", "@extensible", "@data"),
 	    
 	    isHole(element, #alpha) * DOMObject(l, $$null) * ((l, "@data") -> #alpha) * 
 	    empty_fields(l : "@proto", "@class", "@extensible", "@data");		
@@ -150,7 +150,7 @@
 	    isEmpty(attrs) * DOMObject(l, $$null) * ((l, "@data") -> $$null) * ((l, "@next") ->  $$null),
 	    
 	    (attrs == (#head :: #attrsNext)) * isAttr(#head, #name, #id, #tf) * DOMObject(l, $$null) * 
-	    ((l, "@data") -> #id) * ((l, "@next") -> #next) * AttributeNode(#name, #id, #tf) * 
+	    ((l, "@data") -> #id) * ((l, "@next") -> #next) * AttributeNode(#name, #id, #l_tf, #tf) * 
 	    AttributeSet(#next, #attrsNext) * empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next"); 	
 
 	@pred Forest(l, childList) :
@@ -161,7 +161,7 @@
 		empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next"),
 		
 		(childList == (#head :: #childListNext)) * isElement(#head, #name, #id, #aList, #cList) * DOMObject(l, $$null) *
-		((l, "@data") -> #id) * ((l, "@next") -> #next) * ElementNode(#name, #id, #aList, #cList) * Forest(#next, #childListNext) *
+		((l, "@data") -> #id) * ((l, "@next") -> #next) * ElementNode(#name, #id, #l_addr, #aList, #l_children, #cList) * Forest(#next, #childListNext) *
 		empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next"),
 		
 	    (childList == (#head :: #childListNext)) * isHole(#head, #alpha) * DOMObject(l, $$null) *
@@ -187,11 +187,11 @@
 		empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next"),
 		
 		(content == (#head :: #contentNext)) * isElement(#head, #name, #id, #aList, #cList) * DOMObject(l, $$null) *
-		((l, "@data") -> #id) * ((l, "@next") -> #next) * ElementNode(#name, #id, #aLit, #cList) * Grove(#next, #contentNext) *
+		((l, "@data") -> #id) * ((l, "@next") -> #next) * ElementNode(#name, #id, #l_addr, #aList, #l_children, #cList) * Grove(#next, #contentNext) *
 		empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next"),	
 		
 		(content == (#head :: #contentNext)) * isAttr(head, #name, #id, #tList) * DOMObject(l, $$null) *
-		((l, "@data") -> #id) * ((l, "@next") -> #next) * AttributeNode(#id, #name, #tList) * Grove(#next, #contentNext) *
+		((l, "@data") -> #id) * ((l, "@next") -> #next) * AttributeNode(#id, #name, #l_tf, #tList) * Grove(#next, #contentNext) *
 		empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next"),	
 			
 	    (content == (#head :: #contentNext)) * isHole(#head, #alpha) * DOMObject(l, $$null) *
@@ -199,13 +199,13 @@
 	    empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next");
 	    
 	@onlyspec createElement(x)
-		pre:  [[ (x == #name) *  DocumentNode(this, #element, #g) ]]
-		post: [[ (ret == #ret) * DocumentNode(this, #element, ({{ {{ "elem", #name, #ret, {{}}, {{}} }} }} @ #g)) * types(#ret : $$object_type) ]]
+		pre:  [[ (x == #name) *  DocumentNode(this, #l_element, #element, #g) ]]
+		post: [[ (ret == #ret) * DocumentNode(this, #l_element, #element, ({{ {{ "elem", #name, #ret, {{}}, {{}} }} }} @ #g)) * types(#ret : $$object_type) ]]
 		outcome: normal
 */
 
 /** 
-	@toprequires (DocumentNode($l_document, {{ }}, {{ }}) * InitialDOMHeap() * scope(document : $l_document))
-	@topensures  (DocumentNode($l_document, {{ }}, {{ {{ "elem", "one", #ret, {{}}, {{}} }} }}) * InitialDOMHeap() * scope(document : $l_document))
+	@toprequires (DocumentNode($l_document, #l_element, {{ }}, {{ }}) * InitialDOMHeap() * scope(document : $l_document))
+	@topensures  (DocumentNode($l_document, #l_element, {{ }}, {{ {{ "elem", "one", #ret, {{}}, {{}} }} }}) * InitialDOMHeap() * scope(document : $l_document))
 */
 document.createElement("one");
