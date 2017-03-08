@@ -715,7 +715,7 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 					let len1 = List.length l1 in
 					let len2 = List.length l2 in
 					(match len1 <= len2 with
-					| false -> pfs_false "Impossible list concatenation"
+					| false -> pfs_false (Printf.sprintf "AS: Impossible list concatenation: %d, %d" len1 len2)
 					| true -> 
 							let al2 = Array.of_list l2 in
 							let lleft = Array.to_list (Array.sub al2 0 len1) in
@@ -730,7 +730,7 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 					let len1 = List.length l1 in
 					let len2 = List.length l2 in
 					(match len1 <= len2 with
-					| false -> pfs_false "Impossible list concatenation"
+					| false -> pfs_false (Printf.sprintf "AS: Impossible list concatenation: %d, %d" len1 len2)
 					| true -> 
 							let al2 = Array.of_list l2 in
 							let lleft = Array.to_list (Array.sub al2 0 len1) in
@@ -1066,7 +1066,7 @@ let rec simplify_for_your_legacy exists others (symb_state : symbolic_state) : s
 					let len1 = List.length l1 in
 					let len2 = List.length l2 in
 					(match len1 <= len2 with
-					| false -> pfs_false "Impossible list concatenation"
+					| false -> pfs_false (Printf.sprintf "SSFL: Impossible list concatenation: %d, %d" len1 len2)
 					| true -> 
 							let al2 = Array.of_list l2 in
 							let lleft = Array.to_list (Array.sub al2 0 len1) in
@@ -1081,7 +1081,7 @@ let rec simplify_for_your_legacy exists others (symb_state : symbolic_state) : s
 					let len1 = List.length l1 in
 					let len2 = List.length l2 in
 					(match len1 <= len2 with
-					| false -> pfs_false "Impossible list concatenation"
+					| false -> pfs_false (Printf.sprintf "SSFL: Impossible list concatenation: %d, %d" len1 len2)
 					| true -> 
 							let al2 = Array.of_list l2 in
 							let lleft = Array.to_list (Array.sub al2 0 len1) in

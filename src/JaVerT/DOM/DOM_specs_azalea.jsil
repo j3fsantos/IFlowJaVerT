@@ -53,11 +53,7 @@ pred DocumentNodePrototype() :
 	DOMFunctionField($l_dnp, "getElementsByTagName") *
 	empty_fields($l_dnp : "@proto", "@class", "@extensible", "@name", "documentElement", "createElement", "createTextNode", "createAttribute", "getElementsByTagName");
 
-pred DocumentNode(dn, element, grove) :
-	DOMObject(dn, $l_dnp) *
-	((dn, "@element") -> #l_element) * DocumentElement(#l_element, element) *
-	((dn, "@grove") -> #l_grove) * Grove(#l_grove, grove) *
-	empty_fields(dn : "@proto", "@class", "@extensible", "@element", "@grove");
+
 
 pred ElementNodePrototype() :
 	DOMObject($l_enp, $l_np) *
@@ -103,12 +99,7 @@ pred AttributeNodePrototype() :
 	DOMObject($l_anp, $l_np) *
 	empty_fields($l_anp : "@proto", "@class", "@extensible");
 
-pred AttributeNode(an, name, children) :
-	DOMObject(an, $l_anp) *
-	((an, "@name") -> name) *
-	((an, "@children") -> #l_children) * TextForest(#l_children, children) *
-	types(name: $$string_type, children: $$list_type) *
-	empty_fields(an : "@proto", "@class", "@extensible", "@name", "@children");
+
 
   	
 		
