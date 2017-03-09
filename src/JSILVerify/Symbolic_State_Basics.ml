@@ -517,6 +517,7 @@ let rec isExistentiallySubstitutable le =
  | LEList les -> List.fold_left
      (fun ac x -> ac && isExistentiallySubstitutable x) true les
  | LBinOp (le, LstCons, les) -> isExistentiallySubstitutable le && isExistentiallySubstitutable les
+ | LBinOp (lel, StrCat, ler) -> isExistentiallySubstitutable lel && isExistentiallySubstitutable ler
  | _ -> false
 )
 
@@ -564,6 +565,7 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 			   while (Hashtbl.mem gamma var) do Hashtbl.remove gamma var done;
 			   to_add
 		   | true -> ((var, lexpr) :: to_add)) in
+		print_debug (Printf.sprintf "Just added %s to subst." var);
 		let symb_state = symb_state_substitution symb_state subst true in
 		let other_pfs = pf_substitution other_pfs subst true in
 		aggressively_simplify new_to_add other_pfs save_all_lvars exists symb_state in
@@ -861,19 +863,11 @@ let rec understand_types exists pf_list gamma : bool =
 					(match te1, te2 with
 					| Some t1, None ->
 						if ((from_where = "l") || ((from_where = "r") && (SS.mem y exists))) 
-						then (print_debug (Printf.sprintf "Added (%s, %s) to gamma given %s and %s" 
-							y (JSIL_Print.string_of_type t1)
-							(String.concat "\n" (List.map (fun (x, y) -> Printf.sprintf "(%s, %s)" (JSIL_Print.string_of_logic_assertion x false) y) pf_list))
-							(JSIL_Memory_Print.string_of_gamma gamma)); 
-							Hashtbl.add gamma y t1); 
+						then Hashtbl.add gamma y t1; 
 						f rest gamma
 					| None, Some t2 ->
 							if ((from_where = "l") || ((from_where = "r") && (SS.mem x exists))) 
-							then (print_debug (Printf.sprintf "Added (%s, %s) to gamma given %s and %s" 
-								x (JSIL_Print.string_of_type t2)
-								(String.concat "\n" (List.map (fun (x, y) -> Printf.sprintf "(%s, %s)" (JSIL_Print.string_of_logic_assertion x false) y) pf_list))
-								(JSIL_Memory_Print.string_of_gamma gamma)); 
-								Hashtbl.add gamma x t2); 
+							then Hashtbl.add gamma x t2; 
 							f rest gamma 
 					| Some t1, Some t2 -> f rest gamma
 					| None, None -> raise (Failure "Impossible branch."))
@@ -888,12 +882,7 @@ let rec understand_types exists pf_list gamma : bool =
 						(match tx with
 						| None -> 
 								if ((from_where = "l") || ((from_where = "r") && (SS.mem x exists)))
-								then (
-									print_debug (Printf.sprintf "Added (%s, %s) to gamma given %s and %s" 
-									x (JSIL_Print.string_of_type te)
-									(String.concat "\n" (List.map (fun (x, y) -> Printf.sprintf "(%s, %s)" (JSIL_Print.string_of_logic_assertion x false) y) pf_list))
-									(JSIL_Memory_Print.string_of_gamma gamma)); 
-									Hashtbl.add gamma x te); 
+								then Hashtbl.add gamma x te; 
 								f rest gamma
 						| Some tx -> f rest gamma))
 					| _, _ -> f rest gamma))
@@ -1272,6 +1261,13 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 						 | LEList _
 						 | LBinOp (_, LstCons, _) ->
 						 	 Hashtbl.replace gamma v ListType;
+							 let can_we_substitute = isExistentiallySubstitutable le in
+							 (match can_we_substitute with
+							  | false -> go_through_pfs rest (n + 1)
+							  | true -> delete_substitute_proceed exists p_formulae gamma v n le
+							 )
+						 | LBinOp (_, StrCat, _) ->
+						 	 Hashtbl.replace gamma v StringType;
 							 let can_we_substitute = isExistentiallySubstitutable le in
 							 (match can_we_substitute with
 							  | false -> go_through_pfs rest (n + 1)
