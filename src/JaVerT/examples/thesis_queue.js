@@ -100,7 +100,7 @@ PriorityQueue = (function () {
       Node(this, #npri, #nval, $$null, #node_proto) *
       NodePrototype(#node_proto, #insert_loc) *
       (#pri_q <=# #npri) *
-      types(#npri : $$number_type, #pri_q : $$number_type, #length : $$number_type)
+      types(#npri : $$number_type, #pri_q : $$number_type)
     )
     @post (
       NodeList(this, #node_proto, #npri, #length + 1) *
@@ -174,7 +174,7 @@ PriorityQueue = (function () {
         scope(Node: #n) *
         Queue(this, #pq_proto, #node_proto, #pri_q, #length) *
         QueuePrototype(#pq_proto, #enqueue_loc, #enqueue_sc, #dequeue_loc, #dequeue_sc, #n, #node_proto, #insert_loc) *
-        types(#pri_q : $$number_type, #length : $$number_type, #npri : $$number_type, #pri_q : $$number_type, #nval: $$string_type) *
+        types(#npri : $$number_type, #nval: $$string_type) *
         (#pri_q <=# #npri)
       )
       @post (
@@ -191,7 +191,7 @@ PriorityQueue = (function () {
         scope(Node: #n) *
         Queue(this, #pq_proto, #node_proto, #pri_q, #length) *
         QueuePrototype(#pq_proto, #enqueue_loc, #enqueue_sc, #dequeue_loc, #dequeue_sc, #n, #node_proto, #insert_loc) *
-        types(#pri_q : $$number_type, #length : $$number_type, #npri : $$number_type, #nval: $$string_type) *
+        types(#npri : $$number_type, #nval: $$string_type) *
         (#npri <# #pri_q)
       )
       @post (
@@ -213,8 +213,7 @@ PriorityQueue = (function () {
        scope(Node: #n) *
        Queue(this, #pq_proto, #node_proto, #pri_q, #length) *
        (0 <# #length) *
-       QueuePrototype(#pq_proto, #enqueue_loc, #enqueue_sc, #dequeue_loc, #dequeue_sc, #n, #node_proto, #insert_loc) *
-       types(#pri_q : $$number_type, #length : $$number_type)
+       QueuePrototype(#pq_proto, #enqueue_loc, #enqueue_sc, #dequeue_loc, #dequeue_sc, #n, #node_proto, #insert_loc)
      )
      @post (
        scope(Node: #n) *
