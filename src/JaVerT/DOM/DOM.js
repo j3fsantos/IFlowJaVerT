@@ -196,7 +196,7 @@
 
 	@pred val(t, s) :
 		isEmpty(t) * (s == ""),
-		(childList == (#head :: #childListNext)) * isText(#head, #id, #s1) * val(#childListNext, #s2) * (s == #s1 ++ #s2);
+		(t == (#head :: #childListNext)) * isText(#head, #id, #s1) * val(#childListNext, #s2) * (s == #s1 ++ #s2);
 
 	@pred out(a, s) :
 		isEmpty(a),
@@ -293,7 +293,8 @@
 function singleGet(element, l_attr) {
 	/* @unfold ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) */
 	var a = allocAS(l_attr, 1, 3);
-	/* @fold ElementNode(#name, #en, #l_attr, #attr_1, #l_children, #children) */
+	/* @fold ElementNode(#name, #en, #l_attr, #attr_1, #l_children, #children) */ 
+	/* @fold val(#atf0, #s) */
 	var w = element.getAttribute("src");
 	/* @unfold ElementNode(#name, #en, #l_attr, #attr_1, #l_children, #children) */
 	deallocAS(a);
