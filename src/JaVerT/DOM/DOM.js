@@ -200,7 +200,7 @@
 
 	@pred out(a, s) :
 		isEmpty(a),
-		(a == (#head :: #childListNext)) * isAttr(#head, #name, #id, #tf) * !(s == #name) * out(#childListNext, s) * types(s: $$string_type, #name: $$string_type);
+		(a == (#head :: #childListNext)) * isAttr(#head, #name, #id, #tf) * (! (s == #name)) * out(#childListNext, s) * types(s: $$string_type, #name: $$string_type);
 
 
 	@onlyspec allocAS(l, i, j)
@@ -282,12 +282,7 @@
 		fun_obj(deallocAS, #deallocAS, #deallocAS_proto) *
 		ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) *
 		InitialDOMHeap() *
-		(#attr == {{ 
-			{{ "attr", "src", #a0, #atf0 }}, 
-			{{ "attr", "width", #a1, #atf1 }}, 
-			{{ "attr", "height", #a2, #atf2 }},
-			{{ "hole", #a_alpha2 }} 
-		}}) * (ret == #s0 ++ #s1)
+		(ret == #s0 ++ #s1)
 	)
 */
 function singleGet(element, l_attr) {

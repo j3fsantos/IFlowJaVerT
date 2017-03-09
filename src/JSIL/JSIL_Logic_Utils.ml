@@ -1191,7 +1191,19 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 			| LLit (LList []) -> fe1
 			| _ -> LBinOp (fe1, LstCat, fe2))) in
 		result
-
+		
+	(* String concat *)
+	| LBinOp (le1, StrCat, le2) ->
+		let fe1 = f le1 in 
+		let fe2 = f le2 in
+		let result = 
+		(match fe1 with
+		| LLit (String "") -> fe2
+		| _ -> (match fe2 with
+			| LLit (String "") -> fe1
+			| _ -> LBinOp (fe1, StrCat, fe2))) in
+		result
+		
 	(* Binary operators *)
 	| LBinOp (e1, bop, e2) ->
 		let re1 = f e1 in
