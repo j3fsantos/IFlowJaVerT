@@ -203,6 +203,11 @@
 	    ((l, "@data") -> #alpha) * ((l, "@next") -> #next) * Grove(#next, #contentNext) *
 	    empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next");
 
+	@pred val(t, s) :
+		isEmpty(t) * (s == ""),
+		(childList == (#head :: #childListNext)) * isText(#head, #id, #s1) * val(#childListNext, #s2) * (s == #text ++ #s2);
+
+
 	@onlyspec allocAS(l, i, j)
 		pre:  [[ (l == #l) * (i == #i) * (j == #j) * types (#as : $$list_type, #as1 : $$list_type, #as2 : $$list_type, #as3 : $$list_type) *
 		         AttributeSet(#l, #as) * (#as == #as1 @ (#as2 @ #as3)) * (l-len(#as1) == #i) * (l-len(#as2) == #j)]]
@@ -215,14 +220,15 @@
 		post: [[ AttributeSet(#l, (#as1 @ (#as2 @ #as3))) * (ret == $$empty) ]]
 		outcome: normal
 
+
 	@onlyspec createElement(x)
 		pre:  [[ (x == #name) *  DocumentNode(this, #l_element, #element, #g) ]]
 		post: [[ (ret == #ret) * DocumentNode(this, #l_element, #element, ({{ {{ "elem", #name, #ret, {{}}, {{}} }} }} @ #g)) * types(#ret : $$object_type) ]]
 		outcome: normal
 
 	@onlyspec getAttribute(s)
-		pre:  [[ (s == #s) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#attr == {{ {{ "attr", #s, #m, #t }}, {{ "hole", #alpha }} }}) ]]
-		post: [[ (s == #s) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#attr == {{ {{ "attr", #s, #m, #t }}, {{ "hole", #alpha }} }}) * (ret == #t) * types(#t : $$string_type) ]]
+		pre:  [[ (s == #s) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#attr == {{ {{ "attr", #s, #m, #t }}, {{ "hole", #alpha }} }}) * val(#t, #s1) ]]
+		post: [[ (s == #s) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#attr == {{ {{ "attr", #s, #m, #t }}, {{ "hole", #alpha }} }}) * (ret == #s1) * types(#s1 : $$string_type) ]]
 		outcome: normal
 
 
@@ -268,7 +274,8 @@
 			{{ "attr", "width", #a1, #atf1 }}, 
 			{{ "attr", "height", #a2, #atf2 }}, 
 			{{ "hole", #a_alpha2 }} 
-		}})
+		}}) *
+		val(#atf0, #s)
 	)
 	
 	@post (
@@ -281,7 +288,7 @@
 			{{ "attr", "width", #a1, #atf1 }}, 
 			{{ "attr", "height", #a2, #atf2 }},
 			{{ "hole", #a_alpha2 }} 
-		}}) * (ret == #atf0)
+		}}) * (ret == #s)
 	)
 */
 function singleGet(element, l_attr) {
