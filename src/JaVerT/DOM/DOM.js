@@ -198,6 +198,10 @@
 		isEmpty(t) * (s == ""),
 		(childList == (#head :: #childListNext)) * isText(#head, #id, #s1) * val(#childListNext, #s2) * (s == #s1 ++ #s2);
 
+	@pred out(a, s) :
+		isEmpty(a),
+		(a == (#head :: #childListNext)) * isAttr(#head, #name, #id, #tf) * !(s == #name) * out(#childListNext, s) * types(s: $$string_type, #name: $$string_type);
+
 
 	@onlyspec allocAS(l, i, j)
 		pre:  [[ (l == #l) * (i == #i) * (j == #j) * types (#as : $$list_type, #as1 : $$list_type, #as2 : $$list_type, #as3 : $$list_type) *
