@@ -97,15 +97,6 @@
 		((en, "@children") -> l_children) * Forest(l_children, children) * 
 		types(name: $$string_type, attr: $$list_type, children: $$list_type) *
 		empty_fields(en : "@proto", "@class", "@extensible", "@name", "@attributes", "@children");
-	
-	@pred ElementNodeSpecial(en, name, attr, children, parent) :
-		DOMObject(en, $l_enp) *
-		((en, "@name") -> name) *
-		((en, "@attributes") -> attr) *
-		((en, "@children") -> children) *
-		((en, "@parent") -> parent) *
-		types(name: $$string_type, attr: $$list_type, children: $$list_type) *
-		empty_fields(en : "@proto", "@class", "@extensible", "@name", "@attributes", "@children", "@parent");
 
 	@pred TextNodePrototype() :
 		DOMObject($l_tnp, $l_np) *
@@ -205,7 +196,7 @@
 
 	@pred val(t, s) :
 		isEmpty(t) * (s == ""),
-		(childList == (#head :: #childListNext)) * isText(#head, #id, #s1) * val(#childListNext, #s2) * (s == #text ++ #s2);
+		(childList == (#head :: #childListNext)) * isText(#head, #id, #s1) * val(#childListNext, #s2) * (s == #s1 ++ #s2);
 
 
 	@onlyspec allocAS(l, i, j)
@@ -275,7 +266,11 @@
 			{{ "attr", "height", #a2, #atf2 }}, 
 			{{ "hole", #a_alpha2 }} 
 		}}) *
-		val(#atf0, #s)
+		(#atf0 == {{
+			{{ "text", #t0, #s0 }},
+			{{ "text", #t1, #s1 }}	
+		}}
+		)
 	)
 	
 	@post (
@@ -288,7 +283,7 @@
 			{{ "attr", "width", #a1, #atf1 }}, 
 			{{ "attr", "height", #a2, #atf2 }},
 			{{ "hole", #a_alpha2 }} 
-		}}) * (ret == #s)
+		}}) * (ret == #s0 ++ #s1)
 	)
 */
 function singleGet(element, l_attr) {
