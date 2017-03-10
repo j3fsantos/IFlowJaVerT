@@ -1,0 +1,9 @@
+spec test1 (x)
+   [[ emp ]]
+   [[ emp ]]
+   normal
+proc test1 (x) {
+        delete(x, "cenoura");
+   rlab:   skip
+} with { ret: x, rlab; };
+

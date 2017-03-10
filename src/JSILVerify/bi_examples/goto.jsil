@@ -1,0 +1,11 @@
+spec test2 (x, y)
+   [[ emp ]] 
+   [[ emp ]] 
+   normal
+proc test2 (x, y) {
+  		   goto [y] then4 else4; 
+   then4:   [x, "cenoura"] := "maria";
+           goto rlab; 
+   else4:   [x, "cenoura"] := "jose"; 
+   rlab:   skip
+} with { ret: x, rlab; };

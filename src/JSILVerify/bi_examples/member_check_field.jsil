@@ -1,0 +1,8 @@
+spec test0 (x)
+   [[ (y,"foo") -> "bar" ]]
+   [[ emp ]]
+   normal
+proc test0 (x) {
+           x := hasField(y, "bean");
+   rlab:   skip
+} with { ret: x, rlab; };
