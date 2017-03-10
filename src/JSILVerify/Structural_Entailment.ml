@@ -951,10 +951,10 @@ let unify_symb_state_against_post proc_name spec symb_state flag symb_exe_info j
 		Printf.printf "Final symbolic state: %s\n" final_symb_state_str;
 		Printf.printf "Post condition: %s\n" post_symb_state_str in
 
-	let rec loop posts post_vars_lists i =
-		(match posts, post_vars_lists with
-		| [], [] -> print_error_to_console "Non_unifiable symbolic states";  raise (Failure "post condition is not unifiable")
-		| post :: rest_posts, post_lvars :: rest_posts_lvars ->
+	let rec loop posts i =
+		(match posts with
+		| [] -> print_error_to_console "Non_unifiable symbolic states";  raise (Failure "post condition is not unifiable")
+		| post :: rest_posts ->
 			let is_unifiable, msg = 
 				if (js) then (
 					let subst = unify_symb_states spec.n_lvars post symb_state in
@@ -972,10 +972,10 @@ let unify_symb_state_against_post proc_name spec symb_state flag symb_exe_info j
 					print_endline (Printf.sprintf "Verified one spec of proc %s" proc_name)
 				) else (
 					print_debug (Printf.sprintf "No go: %s" msg); 
-					loop rest_posts rest_posts_lvars (i + 1)
+					loop rest_posts (i + 1)
 				)) in 
 					
-	loop spec.n_post spec.n_post_lvars 0
+	loop spec.n_post 0
 
 
 let merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbolic_state) subst : symbolic_state =

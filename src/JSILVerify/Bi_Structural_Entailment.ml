@@ -304,9 +304,41 @@ let bi_unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) :
 	let end_time = Sys.time () in
 		JSIL_Syntax.update_statistics "unify_symb_states" (end_time -. start_time);
 		result
-		
 	
-let bi_unify_symb_state_against_post proc_name spec symb_state anti_frame flag symb_exe_info =
+
+
+(** 
+  Extends symb_state with the pure part of pat_symb_state 
+	symb_state and pat_symb_state are connected via subst
+*)
+let enrich_pure_part (symb_state : symbolic_state)
+										 (pat_symb_state : symbolic_state) 
+										 (subst : substitution) : symbolic_state =
+	
+	let pat_gamma = (get_gamma pat_symb_state) in
+	let pat_pfs = (get_pf pat_symb_state) in
+	let pat_gamma = copy_gamma pat_gamma in
+	let pat_pfs = copy_p_formulae pat_pfs in
+	
+	let pfs = pf_substitution pat_pfs subst false in
+	let gamma = gamma_substitution pat_gamma subst false in
+	merge_gammas gamma (get_gamma symb_state);
+	merge_pfs pfs (get_pf symb_state);
+	let store =	get_store symb_state in
+	let heap = get_heap symb_state in
+	let preds = get_preds symb_state in
+	let new_symb_state = (heap, store, pfs, gamma, preds) in
+	new_symb_state 
+
+
+	
+let bi_unify_symb_state_against_post 
+		(proc_name     : string)
+		(spec          : jsil_n_single_spec)
+		(symb_state    : symbolic_state) 
+		(anti_frame    : symbolic_state)
+		(flag          : jsil_return_flag)
+		(symb_exe_info : symbolic_execution_search_info) =
 	let print_error_to_console msg =
 		(if (msg = "")
 			then Printf.printf "Failed to verify a spec of proc %s\n" proc_name
@@ -315,40 +347,37 @@ let bi_unify_symb_state_against_post proc_name spec symb_state anti_frame flag s
 		let post_symb_state_str = JSIL_Memory_Print.string_of_symb_state_list spec.n_post in
 		Printf.printf "Final symbolic state: %s\n" final_symb_state_str;
 		Printf.printf "Post condition: %s\n" post_symb_state_str in
+	
+	let enrich_symb_state_with_heap symb_state new_heap subst = 
+		let old_heap, store, pfs, gamma, preds = symb_state in 
+		let new_heap' = heap_substitution new_heap subst false in
+		Symbolic_State_Functions.merge_heaps old_heap new_heap' pfs gamma in 
 
-	let rec loop posts post_vars_lists i =
-		(match posts, post_vars_lists with
-		| [], [] -> print_error_to_console "Non_unifiable symbolic states";  raise (Failure "post condition is not unifiable")
-		| post :: rest_posts, post_lvars :: rest_posts_lvars ->
-			let is_unifiable, msg = 
-				let subst = bi_unify_symb_states spec.n_lvars post symb_state in
-				(match subst with
-				| Some (true, heap_f, heap_af, preds_f, subst, new_pfs, new_gamma) 
-				| Some (false,  heap_f, heap_af, preds_f, subst, new_pfs, new_gamma) 
-					->	
-						(*let post_heap, _, post_pfs, post_gamma, _ = post in 
-						let af_heap, _, af_pfs, af_gamma, _ = anti_frame in 
-						let pfs = pf_substitution new_pfs subst false in 
-						let gamma = gamma_substitution new_gamma subst false in
-						merge_gammas post_gamma gamma;
-						merge_pfs post_pfs pfs;
-						Symbolic_State_Functions.merge_heaps post_heap heap_f post_pfs post_gamma in 
-						let new_af_heap = heap_substitution heap_af subst false in
-						Symbolic_State_Functions.merge_heaps af_heap new_af_heap af_pfs af_gamma in 
-						()
-*)
-						(*let new_pre = Symbolic_State_Functions.merge_symbolic *)
-
-						true, ""
-				| _  -> false, "") in 	
-			if (is_unifiable) 	
-				then (
-					activate_post_in_post_pruning_info symb_exe_info proc_name i;
-					print_endline (Printf.sprintf "Verified one spec of proc %s" proc_name)
-				) else (
-					print_debug (Printf.sprintf "No go: %s" msg); 
-					loop rest_posts rest_posts_lvars (i + 1)
-				)) in 		
-	loop spec.n_post spec.n_post_lvars 0
-
+	let rec loop posts computed_posts =
+		(match posts with
+		| [] -> 
+			print_error_to_console "Non_unifiable symbolic states";  
+			raise (Failure "post condition is not unifiable")
+		| post :: rest_posts ->
+			let subst = bi_unify_symb_states spec.n_lvars post symb_state in
+			(match subst with
+			| Some (true, _, heap_af, _, subst, _, _) ->
+				(* complete match with the post *)
+				let symb_state = copy_symb_state symb_state in 
+				enrich_symb_state_with_heap symb_state heap_af subst; 
+				[ (symb_state, anti_frame) ]
+				
+			| Some (false, _, heap_af, _, subst, _, _) ->	
+				let symb_state = copy_symb_state symb_state in 
+				enrich_symb_state_with_heap symb_state heap_af subst; 
+				let new_symb_state = enrich_pure_part symb_state post in 
+				let new_anti_frame = enrich_pure_part anti_frame post in 
+				loop rest_posts ((new_symb_state, new_anti_frame) :: computed_posts)
+					
+			| _  -> loop rest_posts computed_posts)) in
+		 	
+	let processed_posts = loop spec.n_post [] in  
+	match processed_posts with 
+	| []     -> raise (Failure "Specification not verifiable")
+	| _ :: _ -> processed_posts
 

@@ -401,6 +401,8 @@ let symb_evaluate_bcmd (bcmd : jsil_basic_cmd) (symb_state : symbolic_state) (an
 type precondition_total_unifier = (jsil_n_single_spec * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment) 
 type precondition_partial_unifier = (jsil_n_single_spec * symbolic_heap * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment) 
 
+
+
 let find_and_apply_spec 
 			(prog : jsil_program) 
 			(proc_name : string) 
@@ -474,20 +476,6 @@ let find_and_apply_spec
 					symb_states_and_ret_lexprs) in
 		symb_states_and_ret_lexprs in
 
-	let enrich_pure_part symb_state spec subst : symbolic_state =
-		let pre_gamma = (get_gamma spec.n_pre) in
-		let pre_pfs = (get_pf spec.n_pre) in
-		let pre_gamma = copy_gamma pre_gamma in
-		let pre_pfs = copy_p_formulae pre_pfs in
-		let pfs = pf_substitution pre_pfs subst false in
-		let gamma = gamma_substitution pre_gamma subst false in
-		merge_gammas gamma (get_gamma symb_state);
-		merge_pfs pfs (get_pf symb_state);
-		let store =	get_store symb_state in
-		let heap = get_heap symb_state in
-		let preds = get_preds symb_state in
-		let new_symb_state = (heap, store, pfs, gamma, preds) in
-		new_symb_state in
 	
 	let enrich_anti_frame anti_frame af_heap subst = 
 		let old_af_heap, store, pfs, gamma, preds = anti_frame in 
@@ -544,8 +532,8 @@ let find_and_apply_spec
 		let symb_states_and_ret_lexprs =
 			List.fold_left
 				(fun ac (symb_state, ret_flag, ret_lexpr) ->
-					let new_symb_state = enrich_pure_part symb_state spec subst in
-					let new_anti_frame = enrich_pure_part anti_frame spec subst in
+					let new_symb_state = Bi_Structural_Entailment.enrich_pure_part symb_state spec.n_pre subst in
+					let new_anti_frame = Bi_Structural_Entailment.enrich_pure_part anti_frame spec.n_pre subst in
 					enrich_anti_frame new_anti_frame af_heap subst;
 					let is_sat = Pure_Entailment.check_satisfiability (get_pf_list new_symb_state) (get_gamma new_symb_state) in
 					if is_sat then ((new_symb_state, new_anti_frame, ret_flag, ret_lexpr) :: ac) else ac)
@@ -1030,17 +1018,32 @@ and symb_evaluate_next_cmd s_prog proc spec search_info symb_state anti_frame cu
 	
 	@return symb_states The list of symbolic states resulting from the evaluation
 *)
-and symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state anti_frame cur next 
+and symb_evaluate_next_cmd_cont 
+				(s_prog      : symb_jsil_program)
+				(proc        : jsil_procedure)
+				(spec        : jsil_n_single_spec) 
+				(search_info : symbolic_execution_search_info)
+				(symb_state  : symbolic_state) 
+				(anti_frame  : symbolic_state)
+				(cur         : int)
+				(next        : int) 
 										: bool * (string option) * (symbolic_state list) * (symbolic_state list) =
 
 	(* i1: Has the current command already been visited? *)
 	let is_visited i = Hashtbl.mem search_info.vis_tbl i in
 
 	let finish how = 
-		Structural_Entailment.unify_symb_state_against_post proc.proc_name spec symb_state how search_info !js;
+		let posts_and_afs = 
+				(Bi_Structural_Entailment.bi_unify_symb_state_against_post 
+					proc.proc_name spec symb_state anti_frame how search_info) in
+		let post_symb_states, anti_frames = 
+				List.fold_left 
+					(fun (ac_posts, ac_afs) (ac_post, ac_af) -> (ac_post :: ac_posts), (ac_af :: ac_afs))
+					([], [])
+					posts_and_afs in 
 		Symbolic_Traces.create_info_node_from_post search_info spec.n_post how true;
 		print_endline ("----------------- FINISH -----------------");
-		(true, None, [symb_state], [anti_frame]) in
+		(true, None, post_symb_states, anti_frames) in
 
 	(* i2: Have we reached the return label? *)
 	(if (Some cur = proc.ret_label) then
@@ -1142,7 +1145,7 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info
 
 	(* Get the procedure to be symbolically executed *)
 	let proc = get_proc s_prog.program proc_name in
-	let success, failure_msg, post_state, anti_frame =
+	let success, failure_msg, post_states, anti_frames =
 		(try
 			print_debug (Printf.sprintf "Initial symbolic state:\n%s" 
 				(JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre));
@@ -1153,15 +1156,15 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info
 							(Printf.sprintf  "AF in symb_evaluate_proc :\n%s\n" 
 								(JSIL_Memory_Print.string_of_shallow_symb_state anti_frame));
 			(* Symbolically execute the procedure *)
-			let (success, msg, post_state, anti_frame) = 
+			let (success, msg, post_states, anti_frames) = 
 				symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state anti_frame (-1) 0 in
 			if (success) then 
 				(* Symbolic execution was successful *)
-				success, None, Some post_state, Some anti_frame 
+				success, None, Some post_states, Some anti_frames
 			else
 			begin
 				process_failure search_info msg spec i;
-				success, msg, Some post_state, Some anti_frame
+				success, msg, Some post_states, Some anti_frames
 			end
 		(* An error occurred during the symbolic execution *)
 		with Failure msg ->
@@ -1172,7 +1175,7 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info
 	let search_dot_graph = Some (JSIL_Memory_Print.dot_of_search_info search_info proc_name) in
 	print_debug (Printf.sprintf "%s" (sep_str ^ sep_str ^ sep_str));
 	(* Return *)
-	search_dot_graph, success, failure_msg, post_state, anti_frame
+	search_dot_graph, success, failure_msg, post_states, anti_frames
 
 let print_new_specification pre post anti_frame = 
 	let pre_str = JSIL_Memory_Print.string_of_shallow_symb_state pre in
@@ -1228,7 +1231,7 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 	(* Normalise predicate definitions *)
 	let n_pred_defs = JSIL_Logic_Normalise.normalise_predicate_definitions pred_defs in
 	(* Going to add the initial heap * anti-frame as the post and resulting heap as the anti-frame *)
-	let new_spec_tbl = Hashtbl.create 511 in
+	let new_spec_tbl = Hashtbl.create small_tbl_size in
 	(* Construct corresponding extended JSIL program *)
 	let s_prog = {
 		program = prog;
@@ -1256,17 +1259,11 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 					(fun i pre_post ->
 						let new_pre_post = Symbolic_State_Functions.copy_single_spec pre_post in
 						(* Symbolically execute the procedure given the pre and post *)
-						let dot_graph, success, failure_msg, post_state, anti_frame = symb_evaluate_proc s_prog proc_name new_pre_post i pruning_info in
-						(if (Option.is_some(anti_frame)) then  
-						begin
-							add_new_spec spec proc_name pre_post post_state anti_frame new_spec_tbl;
-						end);
+						let dot_graph, success, failure_msg, post_states, anti_frames = symb_evaluate_proc s_prog proc_name new_pre_post i pruning_info in
+						if (Option.is_some(anti_frames)) then  
+							add_new_spec spec proc_name pre_post post_states anti_frames new_spec_tbl;
 						(proc_name, i, pre_post, success, failure_msg, dot_graph))
 					pre_post_list in
-				(* Filter specs that could not be verified *)
-				let new_spec = { spec with n_proc_specs = (filter_useless_posts_in_multiple_specs proc_name pre_post_list pruning_info) } in
-				(* Update the specification table *)
-				Hashtbl.replace spec_table proc_name new_spec;
 				let results_str, dot_graphs =  JSIL_Memory_Print.string_of_symb_exe_results results in
 				print_endline (Printf.sprintf "\n -- Result -- \n %s \n -- End of result --" results_str);
 				(* Concatenate symbolic trace *)
