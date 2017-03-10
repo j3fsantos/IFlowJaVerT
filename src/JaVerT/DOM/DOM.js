@@ -121,7 +121,7 @@
 		DOMObject($l_anp, $l_np) *
 		empty_fields($l_anp : "@proto", "@class", "@extensible");
 
-	@pred AttributeNode(an, name, l_children, children) :
+	@pred AttributeNode(name, an, l_children, children) :
 		DOMObject(an, $l_anp) *
 		((an, "@name") -> name) *
 		((an, "@children") -> l_children) * TextForest(l_children, children) *
@@ -187,7 +187,7 @@
 		empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next"),	
 		
 		(content == (#head :: #contentNext)) * isAttr(head, #name, #id, #tList) * DOMObject(l, $$null) *
-		((l, "@data") -> #id) * ((l, "@next") -> #next) * AttributeNode(#id, #name, #l_tf, #tList) * Grove(#next, #contentNext) *
+		((l, "@data") -> #id) * ((l, "@next") -> #next) * AttributeNode(#name, #id, #l_tf, #tList) * Grove(#next, #contentNext) *
 		empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next"),	
 			
 	    (content == (#head :: #contentNext)) * isHole(#head, #alpha) * DOMObject(l, $$null) *
@@ -201,7 +201,6 @@
 	@pred out(a, s) :
 		isEmpty(a),
 		(a == (#head :: #childListNext)) * isAttr(#head, #name, #id, #tf) * (! (s == #name)) * out(#childListNext, s) * types(s: $$string_type, #name: $$string_type);
-
 
 	@onlyspec allocAS(l, i, j)
 		pre:  [[ (l == #l) * (i == #i) * (j == #j) * types (#as : $$list_type, #as1 : $$list_type, #as2 : $$list_type, #as3 : $$list_type) *
@@ -224,6 +223,10 @@
 	@onlyspec getAttribute(s)
 		pre:  [[ (s == #s) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#attr == {{ {{ "attr", #s, #m, #t }}, {{ "hole", #alpha }} }}) * val(#t, #s1) ]]
 		post: [[ (s == #s) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#attr == {{ {{ "attr", #s, #m, #t }}, {{ "hole", #alpha }} }}) * (ret == #s1) * types(#s1 : $$string_type) ]]
+		outcome: normal;
+		
+		pre:  [[ (s == #s) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * out(#attr, #s) ]]
+		post: [[ (s == #s) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (ret == "")    ]]
 		outcome: normal
 
 
@@ -240,8 +243,8 @@
 		post: [[ TextNode(this, #text) * (ret == "#text") ]]
 		outcome: normal;
 
-		pre:  [[ AttributeNode(this, #name, #l_children, #children) ]]
-		post: [[ AttributeNode(this, #name, #l_children, #children) * (ret == #name) ]]
+		pre:  [[ AttributeNode(#name, this, #l_children, #children) ]]
+		post: [[ AttributeNode(#name, this, #l_children, #children) * (ret == #name) ]]
 		outcome: normal
 
 	@onlyspec nodeValue()
@@ -251,7 +254,49 @@
 
 		pre:  [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) ]]
 		post: [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (ret == $$null) ]]
+		outcome: normal;
+
+		pre:  [[ TextNode(this, #t) ]]
+		post: [[ TextNode(this, #t) * (ret == #t) * types(#t: $$string_type) ]]
+		outcome: normal;
+
+		pre:  [[ AttributeNode(#name, this, #l_children, #children) * val(#children, #s1) ]]
+		post: [[ AttributeNode(#name, this, #l_children, #children) * (ret == #s1) * types(#s1 : $$string_type) ]]
 		outcome: normal
+
+	@onlyspec parentNode()
+		pre:  [[ DocumentNode(#dn, #l_element, #element, #grove) * (#element == {{ "elem", #name, this, #attrs, #children }}) ]]
+		post: [[ DocumentNode(#dn, #l_element, #element, #grove) * (#element == {{ "elem", #name, this, #attrs, #children }}) * (ret == #dn) ]]
+		outcome: normal;
+
+		pre:  [[ ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) * (#children == {{ {{ "hole", #alpha1 }}, {{ "elem", #name, this, #attrs, #children }}, {{ "hole", #alpha2 }} }}) ]]
+		post: [[ ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) * (#children == {{ {{ "hole", #alpha1 }}, {{ "elem", #name, this, #attrs, #children }}, {{ "hole", #alpha2 }} }}) * (ret == #en) ]]
+		outcome: normal;
+
+		pre:  [[ ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) * (#children == {{ {{ "hole", #alpha1 }}, {{ "text", this, #t }}, {{ "hole", #alpha2 }} }}) ]]
+		post: [[ ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) * (#children == {{ {{ "hole", #alpha1 }}, {{ "text", this, #t }}, {{ "hole", #alpha2 }} }}) * (ret == #en) ]]
+		outcome: normal;
+
+		pre:  [[ AttributeNode(#name, #an, #l_children, #children) * (#children == {{ {{ "text", this, #t }}, {{ "hole", #alpha }} }}) ]]
+		post: [[ AttributeNode(#name, #an, #l_children, #children) * (#children == {{ {{ "text", this, #t }}, {{ "hole", #alpha }} }}) * (ret == #an) ]]
+		outcome: normal;
+
+		pre:  [[ DocumentNode(this, #l_element, #element, #grove) ]]
+		post: [[ DocumentNode(this, #l_element, #element, #grove) * (ret == $$null) ]]
+		outcome: normal;
+
+		pre:  [[ AttributeNode(#name, this, #l_children, #children) ]]
+		post: [[ AttributeNode(#name, this, #l_children, #children) * (ret == $$null) ]]
+		outcome: normal;
+
+		pre:  [[ Grove(#alpha, #nodes) * (#nodes == {{ {{ "elem", #name, this, #attrs, #children }}, {{ "hole", #alpha1 }} }}) ]]
+		post: [[ Grove(#alpha, #nodes) * (#nodes == {{ {{ "elem", #name, this, #attrs, #children }}, {{ "hole", #alpha1 }} }}) * (ret == $$null) ]]
+		outcome: normal;
+
+		pre:  [[ Grove(#alpha, #nodes) * (#nodes == {{ {{ "text", this, #t }}, {{ "hole", #alpha1 }} }}) ]]
+		post: [[ Grove(#alpha, #nodes) * (#nodes == {{ {{ "text", this, #t }}, {{ "hole", #alpha1 }} }}) * (ret == $$null) ]]
+		outcome: normal
+
 */
 
 /**
