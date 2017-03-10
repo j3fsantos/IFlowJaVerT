@@ -1171,6 +1171,39 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 						  						(e     : jsil_logic_expr) =
 	let f = reduce_expression store gamma pfs in
 	let result = (match e with
+
+	| LBinOp (le1, LstCons, LEList []) -> LEList [ f le1 ]
+	| LBinOp (le1, LstCons, LLit (LList [])) -> LEList [ f le1 ] 
+
+	| LBinOp (LEList le1, LstCat, LEList le2) ->
+			f (LEList (le1 @ le2))
+
+	(* List append *)
+	| LBinOp (le1, LstCat, le2) ->
+		let fe1 = f le1 in 
+		let fe2 = f le2 in
+		let result = 
+		(match fe1 with
+		| LEList [] -> fe2
+		| LLit (LList []) -> fe2
+		| _ -> (match fe2 with
+			| LEList [] -> fe1
+			| LLit (LList []) -> fe1
+			| _ -> LBinOp (fe1, LstCat, fe2))) in
+		result
+		
+	(* String concat *)
+	| LBinOp (le1, StrCat, le2) ->
+		let fe1 = f le1 in 
+		let fe2 = f le2 in
+		let result = 
+		(match fe1 with
+		| LLit (String "") -> fe2
+		| _ -> (match fe2 with
+			| LLit (String "") -> fe1
+			| _ -> LBinOp (fe1, StrCat, fe2))) in
+		result
+		
 	(* Binary operators *)
 	| LBinOp (e1, bop, e2) ->
 		let re1 = f e1 in

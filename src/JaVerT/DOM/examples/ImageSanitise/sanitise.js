@@ -31,7 +31,7 @@
 		scope(url: #s1) * 
 		scope(isB: 1) * 
 		ElementNode(#n, #name, #new_attr, #children) *
-		(#new_attr == ("hole", #alpha):{("attr", #a, "src", #tf2)}) *
+		(#new_attr == ("hole", #alpha) :: {{ {{"attr", #a, "src", #tf2}} }}) *
 		(#tf2 == {("text", #r, #s2)}) *
 		Grove(#alpha, #tf1) *
 		((#c, #s1) -> 1) *

@@ -28,7 +28,7 @@
 
 @pred Queue(q, node_proto, max_pri, length) :
 	(q == $$null) * (max_pri == 0) * (length == 0) * types(max_pri : $$number_type, length : $$number_type),
-	
+
 	Node(q, max_pri, #val, #next, node_proto) * (0 <# max_pri) *
 	Queue(#next, node_proto, #pri, #len_q) * (#pri <=# max_pri) * (length == #len_q + 1) *
 	types(q : $$object_type, node_proto : $$object_type, #pri : $$number_type, max_pri : $$number_type, length : $$number_type, #len_q : $$number_type);
@@ -66,7 +66,7 @@ var Node = function (pri, val) {
 		Node(this, #npri, #nval, $$null, #node_proto) *
 		Queue(#q, #node_proto, #pri_q, #length) *
 		NodePrototype(#node_proto, #push_loc, #insert_loc) *
-		(#npri <# #pri_q) * types(#q : $$object_type, #npri : $$number_type, #pri_q : $$number_type, #length : $$number_type)
+		(#npri <# #pri_q) * types(#npri : $$number_type, #pri_q : $$number_type, #length : $$number_type)
 	)
 	@post (
 		Queue(#q, #node_proto, #pri_q, #length + 1) * (ret == #q) * types (#q : $$object_type) *

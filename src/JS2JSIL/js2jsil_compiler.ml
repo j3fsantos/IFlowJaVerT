@@ -4548,7 +4548,7 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 	let new_fid = fresh_anonymous_eval () in
 	let e : Parser_syntax.exp = Js_pre_processing.add_codenames new_fid fresh_anonymous_eval fresh_named_eval fresh_catch_anonymous_eval [] e in
 	Js_pre_processing.update_cc_tbl cc_tbl f_parent_id new_fid [var_scope; var_this] e;
-	Hashtbl.add temp_new_fun_tbl new_fid (new_fid, [var_scope; var_this], e, ([], [ new_fid ],  Hashtbl.create Js2jsil_constants.small_tbl_size));
+	Hashtbl.add temp_new_fun_tbl new_fid (new_fid, [var_scope; var_this], Some e, ([], [ new_fid ],  Hashtbl.create Js2jsil_constants.small_tbl_size));
 	Hashtbl.add vis_tbl new_fid (new_fid :: vis_fid);
 	Js_pre_processing.closure_clarification_stmt cc_tbl temp_new_fun_tbl vis_tbl new_fid (new_fid :: vis_fid) [] e;
 
@@ -4590,23 +4590,26 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 	let e : Parser_syntax.exp = Js_pre_processing.add_codenames "main" fresh_anonymous fresh_named fresh_catch_anonymous [] e in
 	let new_fid = Js_pre_processing.get_codename e in
 	Js_pre_processing.update_cc_tbl cc_tbl "main" (* f_parent_id *) new_fid params e;
-	Hashtbl.replace new_fun_tbl new_fid (new_fid, params, e, ([], [ new_fid ],  Hashtbl.create Js2jsil_constants.small_tbl_size));
+	Hashtbl.replace new_fun_tbl new_fid (new_fid, params, Some e, ([], [ new_fid ],  Hashtbl.create Js2jsil_constants.small_tbl_size));
 	Hashtbl.replace vis_tbl new_fid (new_fid :: vis_fid);
 	Js_pre_processing.closure_clarification_stmt cc_tbl new_fun_tbl vis_tbl new_fid vis_fid [] e;
 
 	Hashtbl.iter
 		(fun f_id (_, f_params, f_body, (_, _, _)) ->
-			let proc =
-  			(let vis_fid = try Hashtbl.find vis_tbl f_id
-  				with _ ->
-  					(let msg = Printf.sprintf "Function %s not found in visibility table" f_id in
-  					raise (Failure msg)) in
-  			generate_proc offset_converter f_body f_id f_params cc_tbl vis_fid None) in
-		  (* let proc_str = JSIL_Print.string_of_ext_procedure proc in
-		  Printf.printf "FC:\n %s\n" proc_str; *)
-			let proc = JSIL_Utils.desugar_labs proc in
-			Hashtbl.replace prog f_id proc;
-			JSIL_Utils.extend_which_pred which_pred proc)
+		  (match f_body with
+			| Some f_body -> 
+				let proc =
+	  			(let vis_fid = try Hashtbl.find vis_tbl f_id
+	  				with _ ->
+	  					(let msg = Printf.sprintf "Function %s not found in visibility table" f_id in
+	  					raise (Failure msg)) in
+	  			generate_proc offset_converter f_body f_id f_params cc_tbl vis_fid None) in
+			  (* let proc_str = JSIL_Print.string_of_ext_procedure proc in
+			  Printf.printf "FC:\n %s\n" proc_str; *)
+				let proc = JSIL_Utils.desugar_labs proc in
+				Hashtbl.replace prog f_id proc;
+				JSIL_Utils.extend_which_pred which_pred proc
+			| None -> ()))
 		new_fun_tbl;
 
 	let proc_fun_constr = try Hashtbl.find prog new_fid with _ -> raise (Failure "no function constructor proc was created") in
@@ -4627,30 +4630,13 @@ let js2jsil e offset_converter for_verification =
 			| [] -> ())
 		| _ -> ()) in
 	
+	(* JS2JSIL *)
+	
 	let main = "main" in
 	print_debug (Printf.sprintf "AST before grounding the annotations:\n%s\n" (Pretty_print.string_of_exp true e)); 
 	let e, _ = Js_pre_processing.ground_fold_annotations [] e in
 	print_debug (Printf.sprintf "AST after grounding the annotations:\n%s\n" (Pretty_print.string_of_exp true e)); 
 	
-	let e : Parser_syntax.exp = Js_pre_processing.add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous [] e in
-	let predicates = Js_pre_processing.closure_clarification_top_level cc_tbl fun_tbl old_fun_tbl vis_tbl main e [ main ] [] in
-	
-	let procedures = Hashtbl.create medium_tbl_size in
-	Hashtbl.iter
-		(fun f_id (_, f_params, f_body, f_rec, spec) ->
-			(* print_endline (Printf.sprintf "Procedure %s is recursive?! %b" f_id f_rec); *)
-			let proc =
-				(if (f_id = main)
-					then generate_main offset_converter e main cc_tbl spec
-					else
-						(let vis_fid = try Hashtbl.find vis_tbl f_id
-							with _ ->
-								(let msg = Printf.sprintf "Function %s not found in visibility table" f_id in
-								raise (Failure msg)) in
-						generate_proc offset_converter f_body f_id f_params cc_tbl vis_fid spec)) in
-			Hashtbl.add procedures f_id proc)
-		fun_tbl;
-
 	let onlyspecs = Hashtbl.create 511 in
 	Hashtbl.iter
 	(fun _ v ->
@@ -4660,9 +4646,35 @@ let js2jsil e offset_converter for_verification =
 			let pre  = JS_Logic_Syntax.js2jsil_logic_top_level_pre  js_pre  cc_tbl vis_tbl (Hashtbl.create 0) js_spec_name in
 			let post = JS_Logic_Syntax.js2jsil_logic_top_level_post js_post cc_tbl vis_tbl (Hashtbl.create 0) js_spec_name in
 				{ pre; post; ret_flag = js_ret_flag }) js_proc_specs in
-		Hashtbl.replace onlyspecs js_spec_name { spec_name = js_spec_name; spec_params = [Js2jsil_constants.var_scope; Js2jsil_constants.var_this] @ js_spec_params; proc_specs } 
+		let spec = { spec_name = js_spec_name; spec_params = [Js2jsil_constants.var_scope; Js2jsil_constants.var_this] @ js_spec_params; proc_specs } in
+		Hashtbl.replace onlyspecs js_spec_name spec;
+		Hashtbl.replace cc_tbl      js_spec_name (Hashtbl.create 1);
+		Hashtbl.replace old_fun_tbl js_spec_name (js_spec_name, js_spec_params, None, ([], [ js_spec_name; "main" ], Hashtbl.create 1));
+		Hashtbl.replace fun_tbl     js_spec_name (js_spec_name, js_spec_params, None, false, Some spec);
 	)
 	JS_Logic_Syntax.js_only_spec_table;
+	
+	let e : Parser_syntax.exp = Js_pre_processing.add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous [] e in
+	let predicates = Js_pre_processing.closure_clarification_top_level cc_tbl fun_tbl old_fun_tbl vis_tbl main e [ main ] [] in
+	
+	let procedures = Hashtbl.create medium_tbl_size in
+	Hashtbl.iter
+		(fun f_id (_, f_params, f_body, f_rec, spec) ->
+			(match f_body with
+			| Some f_body -> 
+				(* print_endline (Printf.sprintf "Procedure %s is recursive?! %b" f_id f_rec); *)
+				let proc =
+					(if (f_id = main)
+						then generate_main offset_converter e main cc_tbl spec
+						else
+							(let vis_fid = try Hashtbl.find vis_tbl f_id
+								with _ ->
+									(let msg = Printf.sprintf "Function %s not found in visibility table" f_id in
+									raise (Failure msg)) in
+							generate_proc offset_converter f_body f_id f_params cc_tbl vis_fid spec)) in
+				Hashtbl.add procedures f_id proc
+			| None -> ()))
+		fun_tbl;
 	
 	let cur_imports = if for_verification then js2jsil_logic_imports else js2jsil_imports in
 	{ imports = cur_imports; predicates; onlyspecs; procedures}, cc_tbl, vis_tbl
