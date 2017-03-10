@@ -1249,7 +1249,6 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 			(* i1: YES *)
 			if (should_we_verify) then
 			begin
-				update_post_pruning_info_with_spec pruning_info spec;
 				(* Get list of pre-post pairs *)
 				let pre_post_list = spec.n_proc_specs in
 				(* Iterate over the pre-post pairs *)
@@ -1257,6 +1256,7 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 					List.mapi
 					(* For each pre-post pair *)
 					(fun i pre_post ->
+						(* TODO: we should remove this line - but first we need to make sure we are not updating the spec by mistake during symb execution *)
 						let new_pre_post = Symbolic_State_Functions.copy_single_spec pre_post in
 						(* Symbolically execute the procedure given the pre and post *)
 						let dot_graph, success, failure_msg, post_states, anti_frames = symb_evaluate_proc s_prog proc_name new_pre_post i pruning_info in

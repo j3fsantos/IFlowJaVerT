@@ -353,25 +353,33 @@ let bi_unify_symb_state_against_post
 		let new_heap' = heap_substitution new_heap subst false in
 		Symbolic_State_Functions.merge_heaps old_heap new_heap' pfs gamma in 
 
-	let rec loop posts computed_posts =
+	let rec loop 
+				(posts : symbolic_state list) 
+				(computed_posts : (symbolic_state * symbolic_state) list) 
+						: (symbolic_state * symbolic_state) list =
 		(match posts with
 		| [] -> 
-			print_error_to_console "Non_unifiable symbolic states";  
-			raise (Failure "post condition is not unifiable")
+			if ((List.length computed_posts) > 0)
+				then computed_posts 
+				else (
+					print_error_to_console "Non_unifiable symbolic states";  
+				raise (Failure "post condition is not unifiable"))
 		| post :: rest_posts ->
 			let subst = bi_unify_symb_states spec.n_lvars post symb_state in
 			(match subst with
 			| Some (true, _, heap_af, _, subst, _, _) ->
 				(* complete match with the post *)
 				let symb_state = copy_symb_state symb_state in 
-				enrich_symb_state_with_heap symb_state heap_af subst; 
+				enrich_symb_state_with_heap symb_state heap_af subst;
+				enrich_symb_state_with_heap anti_frame heap_af subst;  
 				[ (symb_state, anti_frame) ]
 				
 			| Some (false, _, heap_af, _, subst, _, _) ->	
 				let symb_state = copy_symb_state symb_state in 
 				enrich_symb_state_with_heap symb_state heap_af subst; 
-				let new_symb_state = enrich_pure_part symb_state post in 
-				let new_anti_frame = enrich_pure_part anti_frame post in 
+				enrich_symb_state_with_heap anti_frame heap_af subst; 
+				let new_symb_state : symbolic_state = enrich_pure_part symb_state post subst in 
+				let new_anti_frame : symbolic_state = enrich_pure_part anti_frame post subst in 
 				loop rest_posts ((new_symb_state, new_anti_frame) :: computed_posts)
 					
 			| _  -> loop rest_posts computed_posts)) in
