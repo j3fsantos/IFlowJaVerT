@@ -2,6 +2,21 @@
 open JSIL_Syntax
 open JSIL_Syntax_Checks
 open JS_Logic_Syntax
+(* Tables where we collect the predicates and the procedures as we parse them. *)
+let predicate_table : (string, jsil_logic_predicate) Hashtbl.t = Hashtbl.create 511
+let procedure_table : (string, jsil_ext_procedure) Hashtbl.t = Hashtbl.create 511
+let only_spec_table : (string, jsil_spec) Hashtbl.t = Hashtbl.create 511
+let procedure_names  : (string list) ref = ref []
+let copy_and_clear_globals () = 
+	let pred' = Hashtbl.copy predicate_table in
+	let ospc' = Hashtbl.copy only_spec_table in
+	let proc' = Hashtbl.copy procedure_table in
+	let proc_names = !procedure_names in
+	Hashtbl.clear predicate_table;
+	Hashtbl.clear procedure_table;
+	Hashtbl.clear only_spec_table;
+	procedure_names = ref [];
+	(pred' , ospc', proc', proc_names)
 %}
 
 (***** Token definitions *****)
@@ -240,9 +255,11 @@ open JS_Logic_Syntax
 
 main_target:
 	| imports = import_target; declaration_target; EOF
-		{ { imports; predicates = predicate_table; onlyspecs = only_spec_table; procedures = procedure_table; } }
+		{  let (pred, ospc, proc, proc_names) = copy_and_clear_globals () in
+			{ imports; predicates = pred; onlyspecs = ospc; procedures = proc; procedure_names = List.rev proc_names } }
 	| declaration_target; EOF
-		{ { imports = []; predicates = predicate_table; onlyspecs = only_spec_table; procedures = procedure_table; } }
+		{   let (pred, ospc, proc, proc_names) = copy_and_clear_globals () in
+			{ imports = []; predicates = pred; onlyspecs = ospc; procedures = proc; procedure_names = List.rev proc_names } }
 ;
 
 declaration_target:
@@ -291,6 +308,7 @@ proc_target:
 			lspec;
 		} in
 		(* TODO: Warn if conflicting names? *)
+		procedure_names :=  lproc_name :: (!procedure_names);
 		Hashtbl.replace procedure_table lproc_name proc;
 	}
 ;

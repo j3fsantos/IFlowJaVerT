@@ -343,6 +343,8 @@ type jsil_ext_program = {
 	onlyspecs : (string, jsil_spec) Hashtbl.t;
 	(* JSIL extended procedures = Name : String --> Procedure *)
 	procedures : (string, jsil_ext_procedure) Hashtbl.t;
+	(* List of JSIL procedure names in order.*)
+	procedure_names : (string list);
 }
 
 (*************************************)
@@ -386,11 +388,8 @@ let get_proc_args proc = proc.proc_params
 let get_proc_cmd proc i =
 	proc.proc_body.(i)
 
-(* Tables where we collect the predicates and the procedures as we parse them. *)
-let predicate_table : (string, jsil_logic_predicate) Hashtbl.t = Hashtbl.create 511
-let procedure_table : (string, jsil_ext_procedure) Hashtbl.t = Hashtbl.create 511
+
 let macro_table     : (string, jsil_logic_macro) Hashtbl.t = Hashtbl.create 511
-let only_spec_table : (string, jsil_spec) Hashtbl.t = Hashtbl.create 511
 
 (* STATISTICS *)
 
