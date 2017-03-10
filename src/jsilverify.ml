@@ -83,12 +83,10 @@ let symb_interpreter prog procs_to_verify spec_tbl which_pred norm_preds  =
 let process_file path =
 		print_debug "\n*** Prelude: Stage 1: Parsing program. ***\n";
 		let ext_prog = JSIL_Utils.ext_program_of_path path in
-		let str = String.concat ", " ext_prog.procedure_names in
-		print_endline  ("Procedure names  "  ^ str);
-		let procs_to_verify = Hashtbl.create 37 in
-		Hashtbl.iter (fun k v -> Hashtbl.replace procs_to_verify k true) ext_prog.procedures;
-		print_debug "The procedures that we will be verifying are:\n";
-		Hashtbl.iter (fun k v -> print_debug (Printf.sprintf "\t%s\n" k)) procs_to_verify;
+		print_debug	
+			("The procedures that we will be verifying are: " ^
+				(String.concat ", " ext_prog.procedure_names) ^
+				"\n");
 		print_debug "\n*** Prelude: Stage 1: Parsing successfully completed. ***\n";
 		print_debug "*** Prelude: Stage 2: Transforming the program.\n";
 		let prog, which_pred = JSIL_Utils.prog_of_ext_prog path ext_prog in
@@ -117,7 +115,7 @@ let process_file path =
 			ext_prog.onlyspecs;
 		print_debug "*** Prelude: Stage 5: Finished adding phantom procedures for only-specs\n";
 		let (results_str, dot_graphs, complete_success) =   
-			symb_interpreter prog procs_to_verify spec_tbl which_pred norm_preds in
+			symb_interpreter prog ext_prog.procedure_names spec_tbl which_pred norm_preds in
 		Printf.printf "RESULTS\n%s" results_str;
 		
 		(if (complete_success) then
