@@ -83,6 +83,8 @@ let symb_interpreter prog procs_to_verify spec_tbl which_pred norm_preds  =
 let process_file path =
 		print_debug "\n*** Prelude: Stage 1: Parsing program. ***\n";
 		let ext_prog = JSIL_Utils.ext_program_of_path path in
+		let str = String.concat ", " ext_prog.procedure_names in
+		print_endline  ("Procedure names  "  ^ str);
 		let procs_to_verify = Hashtbl.create 37 in
 		Hashtbl.iter (fun k v -> Hashtbl.replace procs_to_verify k true) ext_prog.procedures;
 		print_debug "The procedures that we will be verifying are:\n";
@@ -98,7 +100,7 @@ let process_file path =
 		print_debug (Printf.sprintf "\n%s\n" str_of_norm_pred);
 		print_debug "*** Prelude: Stage 4: Building the spec table.\n";
 		JSIL_Logic_Normalise.pre_normalise_invariants_prog norm_preds prog;
-		let spec_tbl = JSIL_Logic_Normalise.build_spec_tbl norm_preds prog in
+		let spec_tbl = JSIL_Logic_Normalise.build_spec_tbl norm_preds prog ext_prog.onlyspecs in
 		print_debug "*** Prelude: Stage 4: Finished building the spec table\n";
 		print_debug "*** Prelude: Stage 5: Add phantom procedures for only-specs.\n";
 		Hashtbl.iter
@@ -112,7 +114,7 @@ let process_file path =
 					spec = Some spec } in
 				Hashtbl.replace prog spec_name proc
 			)
-			only_spec_table;
+			ext_prog.onlyspecs;
 		print_debug "*** Prelude: Stage 5: Finished adding phantom procedures for only-specs\n";
 		let (results_str, dot_graphs, complete_success) =   
 			symb_interpreter prog procs_to_verify spec_tbl which_pred norm_preds in

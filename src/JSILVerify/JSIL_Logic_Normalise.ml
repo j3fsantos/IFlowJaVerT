@@ -795,7 +795,7 @@ let normalise_spec preds spec =
 		n_proc_specs = normalised_pre_post_list
 	}
 
-let build_spec_tbl preds prog =
+let build_spec_tbl preds prog onlyspecs =
 	let spec_tbl = Hashtbl.create 511 in
 	Hashtbl.iter
 		(fun proc_name proc ->
@@ -813,7 +813,7 @@ let build_spec_tbl preds prog =
 			print_debug (msg);
 			let n_spec = normalise_spec preds spec in
 			Hashtbl.replace spec_tbl n_spec.n_spec_name n_spec)
-		only_spec_table;
+		onlyspecs;
 	print_debug (Printf.sprintf "-----------------------------\n-----------------------------\nSpec Table:\n%s" (JSIL_Memory_Print.string_of_n_spec_table spec_tbl));
 	spec_tbl
 

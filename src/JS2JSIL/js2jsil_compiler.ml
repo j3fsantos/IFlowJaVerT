@@ -4658,23 +4658,26 @@ let js2jsil e offset_converter for_verification =
 	let predicates = Js_pre_processing.closure_clarification_top_level cc_tbl fun_tbl old_fun_tbl vis_tbl main e [ main ] [] in
 	
 	let procedures = Hashtbl.create medium_tbl_size in
-	Hashtbl.iter
-		(fun f_id (_, f_params, f_body, f_rec, spec) ->
-			(match f_body with
-			| Some f_body -> 
-				(* print_endline (Printf.sprintf "Procedure %s is recursive?! %b" f_id f_rec); *)
-				let proc =
-					(if (f_id = main)
-						then generate_main offset_converter e main cc_tbl spec
-						else
-							(let vis_fid = try Hashtbl.find vis_tbl f_id
-								with _ ->
-									(let msg = Printf.sprintf "Function %s not found in visibility table" f_id in
-									raise (Failure msg)) in
-							generate_proc offset_converter f_body f_id f_params cc_tbl vis_fid spec)) in
-				Hashtbl.add procedures f_id proc
-			| None -> ()))
-		fun_tbl;
+	let proc_names = 
+		Hashtbl.fold 
+			(fun f_id (_, f_params, f_body, f_rec, spec) ac ->
+				(match f_body with
+				| Some f_body -> 
+					(* print_endline (Printf.sprintf "Procedure %s is recursive?! %b" f_id f_rec); *)
+					let proc =
+						(if (f_id = main)
+							then generate_main offset_converter e main cc_tbl spec
+							else
+								(let vis_fid = try Hashtbl.find vis_tbl f_id
+									with _ ->
+										(let msg = Printf.sprintf "Function %s not found in visibility table" f_id in
+										raise (Failure msg)) in
+								generate_proc offset_converter f_body f_id f_params cc_tbl vis_fid spec)) in
+						Hashtbl.add procedures f_id proc;
+						f_id :: ac
+				| None -> ac))
+			fun_tbl
+			[] in 
 	
 	let cur_imports = if for_verification then js2jsil_logic_imports else js2jsil_imports in
-	{ imports = cur_imports; predicates; onlyspecs; procedures}, cc_tbl, vis_tbl
+	{ imports = cur_imports; predicates; onlyspecs; procedures; procedure_names = proc_names;}, cc_tbl, vis_tbl
