@@ -1241,15 +1241,12 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 	} in
 	let pruning_info = init_post_pruning_info () in
 	(* Iterate over the specification table *)
-	let results = Hashtbl.fold
-	  (* For each specification: *)
-		(fun proc_name spec ac_results ->
-			(* i1: Should the procedure be verified? *)
-			let should_we_verify = (Hashtbl.mem procs_to_verify proc_name) in
-			(* i1: YES *)
-			if (should_we_verify) then
-			begin
-				(* Get list of pre-post pairs *)
+	let results = List.fold_left
+		(fun ac_results proc_name -> 
+	  	let spec = try Some (Hashtbl.find spec_table proc_name) with Not_found -> None in 
+			match spec with 
+			| Some spec -> 
+				(* Get list of pre-post pairs      *)
 				let pre_post_list = spec.n_proc_specs in
 				(* Iterate over the pre-post pairs *)
 				let results =
@@ -1268,11 +1265,9 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 				print_endline (Printf.sprintf "\n -- Result -- \n %s \n -- End of result --" results_str);
 				(* Concatenate symbolic trace *)
 				ac_results @ results
-			end
-			(* i1: NO *)
-			else ac_results)
-		spec_table
-		[] in
+			| None -> ac_results)
+		[]
+		procs_to_verify in 
 	(* Understand complete success *)
 	let complete_success =
 		List.fold_left

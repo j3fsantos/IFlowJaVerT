@@ -1048,7 +1048,7 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 	  (* For each specification: *)
 		(fun proc_name spec ac_results ->
 			(* i1: Should the procedure be verified? *)
-			let should_we_verify = (Hashtbl.mem procs_to_verify proc_name) in
+			let should_we_verify = (List.mem proc_name procs_to_verify) in
 			(* i1: YES *)
 			if (should_we_verify) then
 			begin
@@ -1090,7 +1090,7 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 	let count_verified = ref 0 in
 	Hashtbl.iter
 		(fun proc_name spec ->
-			let should_we_verify = (Hashtbl.mem procs_to_verify proc_name) in
+			let should_we_verify = (List.mem proc_name procs_to_verify) in
 			if (should_we_verify) then
 				let pruning_info_list = Hashtbl.find pruning_info proc_name in
 				List.iter (fun l ->
