@@ -300,6 +300,16 @@ spec create_object_with_call_construct (l, call, construct, len)
 	   ((#l, "@call") -> #call) *
 	   empty_fields(#l : "@proto", "@class", "@extensible", "@scope", "length", "@call") *
 	   (ret == #l) ]]
+    normal;
+    
+    [[ (l == #l) * (call == #call) * (construct == #construct) * (len == #len) *
+	   types(#l : $$object_type, #call : $$string_type, #len : $$number_type, #construct: $$string_type) *
+       empty_fields (#l : ) ]]
+    [[ ((#l, "@proto") -> $lfun_proto) * ((#l, "@class") -> "Function") * ((#l, "@extensible") -> $$t) *
+	   ((#l, "@scope") -> $$empty) * ((#l, "length") -> {{ "d", #len, $$f, $$f, $$f }}) *
+	   ((#l, "@call") -> #call) * ((#l, "@construct") -> #construct) *
+	   empty_fields(#l : "@proto", "@class", "@extensible", "@scope", "length", "@call", "@construct") *
+	   (ret == #l) ]]
     normal
 
 proc create_object_with_call_construct (l, call, construct, len) {
@@ -377,6 +387,13 @@ spec Error_construct (xsc, vthis, v)
 	   types (#vthis : $$object_type) *
        ((#vthis, "@class") -> #cls) * ((#vthis, "@extensible") -> #ext) ]]
     [[ (ret == #vthis) * ((#vthis, "@class") -> "Error") * ((#vthis, "@extensible") -> $$t) ]]
+    normal;
+    
+    (* Error constructor with message of type string *)
+    [[ (v == #m) * (vthis == #vthis) *
+	   types (#vthis : $$object_type, #m : $$string_type) * 
+       ((#vthis, "@class") -> #cls) * ((#vthis, "@extensible") -> #ext) ]]
+    [[ (ret == #vthis) * ((#vthis, "@class") -> "Error") * ((#vthis, "@extensible") -> $$t) * ((#vthis, "message") -> {{ "d", #m, $$t, $$f, $$t }}) ]]
     normal
 
 proc Error_construct (xsc, vthis, v) {
@@ -587,13 +604,18 @@ pred initialHeapPre () :
     (($lg,      "@class") -> None) * 
     (($lg, 	    "@proto") -> None) * 
     (($lg, "@extensible") -> None) *
-    empty_fields ( $lobj_proto : ) * empty_fields ($lfun_proto : );
+    empty_fields ( $lobj_proto : ) * empty_fields ($lfun_proto : ) * empty_fields ($lerr : ) * empty_fields ($lerr_proto : );
     
 pred initialHeapPost () :
-    (($lg,         "@class") -> "Object")   * (($lg,         "@proto") -> $lobj_proto) * (($lg,         "@extensible") -> $$t) *
+    (($lg,         "@class") -> "Object")   * (($lg,         "@proto") -> $lobj_proto) * (($lg,         "@extensible") -> $$t) * (($lg,         "Error") -> {{ "d", $lerr, $$t, $$f, $$t }}) * 
 	(($lobj_proto, "@class") -> "Object")   * (($lobj_proto, "@proto") -> $$null)      * (($lobj_proto, "@extensible") -> $$t) * empty_fields ( $lobj_proto : "@class", "@proto", "@extensible" ) *
 	(($lfun_proto, "@class") -> "Function") * (($lfun_proto, "@proto") -> $lobj_proto) * (($lfun_proto, "@extensible") -> $$t) *
-	(($lfun_proto, "@scope") -> $$empty)    * (($lfun_proto, "length") -> {{ "d", 0, $$f, $$f, $$f }}) * (($lfun_proto, "@call") -> "FP_default") * empty_fields($lfun_proto : "@proto", "@class", "@extensible", "@scope", "length", "@call");
+	(($lfun_proto, "@scope") -> $$empty)    * (($lfun_proto, "length") -> {{ "d", 0, $$f, $$f, $$f }}) * (($lfun_proto, "@call") -> "FP_default") * empty_fields($lfun_proto : "@proto", "@class", "@extensible", "@scope", "length", "@call") *	
+	(($lerr,       "@class") -> "Function") * (($lerr,       "@proto") -> $lfun_proto) * (($lerr,       "@extensible") -> $$t) *
+	(($lerr,       "@scope") -> $$empty)    * (($lerr,       "length") -> {{ "d", 1, $$f, $$f, $$f }}) * (($lerr,       "@call") -> "Error_call") * 
+	(($lerr, "@construct") -> "Error_construct") * (($lerr,  "prototype") -> {{ "d", $lerr_proto, $$f, $$f, $$f }}) * empty_fields($lerr : "@proto", "@class", "@extensible", "@scope", "length", "@call", "@construct", "prototype") *
+	(($lerr_proto, "@class") -> "Error")   * (($lerr_proto, "@proto") -> $lobj_proto) * (($lerr_proto, "@extensible") -> $$t) * 
+	(($lerr_proto, "message") -> {{ "d", "", $$t, $$f, $$t }}) * empty_fields ($lerr_proto : "@class", "@proto", "@extensible", "message");    
 
 spec setupInitialHeap ()
 
@@ -612,9 +634,20 @@ proc setupInitialHeap () {
 			xret := "create_default_object" ($lobj_proto, $$null, "Object", $$t);
 
 			(* Function.prototype *)
-
+			
 			xret := "create_object_with_call_construct" ($lfun_proto, "FP_default", $$empty, 0);
 			[$lfun_proto, "@proto"] := $lobj_proto;
+			
+			(* Error object *)
+
+			xret := "create_object_with_call_construct" ($lerr, "Error_call", "Error_construct", 1);
+			[$lg, "Error"] := {{ "d", $lerr, $$t, $$f, $$t }};
+			[$lerr, "prototype"] := {{ "d", $lerr_proto, $$f, $$f, $$f }};
+
+			(* Error.prototype *)
+
+			xret := "create_default_object" ($lerr_proto, $lobj_proto, "Error", $$t);
+			[$lerr_proto, "message"]     := {{ "d", "", $$t, $$f, $$t }};
 
 	rlab:	xret := $$empty
 }
