@@ -13,6 +13,12 @@
 	((l, "@class") -> "Object") *
 	((l, "@extensible") -> $$t);
 
+@pred ErrorObjectWithMessage (l, m) :
+  types (l : $$object_type) *
+  ((l, "@proto") -> $lerr_proto) * ((l, "@class") -> "Error") *
+  ((l, "@extensible") -> $$t) *
+  ((l, "message") -> {{"d", m, $$t, $$f, $$t}});
+
 @pred NodePrototype(np, insert_loc) :
 	standardObject(np) *
 	dataField(np, "insertToQueue", insert_loc) *
@@ -233,9 +239,7 @@ PriorityQueue = (function () {
        scope(Node: #n) *
        Queue(this, #pq_proto, #node_proto, 0, 0) *
        QueuePrototype(#pq_proto, #enqueue_loc, #enqueue_sc, #dequeue_loc, #dequeue_sc, #n, #node_proto, #insert_loc) *
-       ((#r, "@proto") -> $lerr_proto) * ((#r, "@class") -> "Error") * ((#r, "@extensible") -> $$t) *
-       ((#r, "message") -> {{"d", "Queue is empty", $$t, $$f, $$t}}) *
-       (err == #r)
+       (err == #r) * ErrorObjectWithMessage(#r, "Queue is empty")
      )
    */
    module.prototype.dequeue = function () {
