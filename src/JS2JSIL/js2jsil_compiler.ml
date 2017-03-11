@@ -4332,7 +4332,7 @@ let generate_main offset_converter e main cc_table spec =
 	(* lab_ret: skip *)
 	let lab_ret_skip = annotate_cmd (SLBasic SSkip) (Some ctx.tr_ret_lab) in
 
-	let cmd_err_phi_node = make_final_cmd errs ctx.tr_error_lab ctx.tr_error_var in
+	let cmd_err_phi_node = make_final_cmd errs ctx.tr_err ctx.tr_error_var in
 	
 	let main_cmds =
 		[ setup_heap_ass; init_scope_chain_ass; this_ass] @
@@ -4347,7 +4347,7 @@ let generate_main offset_converter e main cc_table spec =
     lproc_params = [];
 		lret_label = Some ctx.tr_ret_lab;
 		lret_var = Some ctx.tr_ret_var;
-		lerror_label = Some ctx.tr_error_lab;
+		lerror_label = Some ctx.tr_err;
 		lerror_var = Some ctx.tr_error_var;
 		lspec = spec
 	}
@@ -4399,7 +4399,7 @@ let generate_proc_eval new_fid e cc_table vis_fid =
 	let cmds_hoist_fdecls = annotate_cmds cmds_hoist_fdecls in
 	let cmds_e, x_e, errs, rets, _, _ = translate_statement new_ctx e in
 
-	let xe_v, cmd_gv_xe = make_get_value_call x_e ctx.tr_error_lab in
+	let xe_v, cmd_gv_xe = make_get_value_call x_e ctx.tr_err in
 	let cmd_gv_xe = annotate_cmd cmd_gv_xe None in
 
 	(* ret_lab: x_ret := xe_v *)
@@ -4408,7 +4408,7 @@ let generate_proc_eval new_fid e cc_table vis_fid =
 	(* fake_ret_lab: x_fake_ret := PHI(rets) *)
 	let cmd_fake_ret = make_final_cmd rets new_ctx.tr_ret_lab new_ctx.tr_ret_var in
 	(* lab_err: x_error := PHI(errs, x_fake_ret) *)
-	let cmd_error_phi = make_final_cmd (errs @ [ fake_ret_var ]) ctx.tr_error_lab ctx.tr_error_var in
+	let cmd_error_phi = make_final_cmd (errs @ [ fake_ret_var ]) ctx.tr_err ctx.tr_error_var in
 
 	let fid_cmds =
 		[ cmd_er_creation; cmd_er_flag ] @ cmds_decls @ [ cmd_ass_er_to_sc; cmd_ass_te; cmd_ass_se ] @ cmds_hoist_fdecls @ cmds_e
@@ -4419,7 +4419,7 @@ let generate_proc_eval new_fid e cc_table vis_fid =
     lproc_params = [ var_scope; var_this ];
 		lret_label = Some ctx.tr_ret_lab;
 		lret_var = Some ctx.tr_ret_var;
-		lerror_label = Some ctx.tr_error_lab;
+		lerror_label = Some ctx.tr_err;
 		lerror_var = Some ctx.tr_error_var;
 		lspec = None
 	}
@@ -4438,7 +4438,7 @@ let generate_proc offset_converter e fid params cc_table vis_fid spec =
 	let var_sc_proc = fresh_scope_chain_var () in 
 	let ctx = make_translation_ctx offset_converter fid cc_table vis_fid var_sc_proc in 
 	
-	let new_ctx = { ctx with tr_ret_lab = ("pre_" ^ ctx.tr_ret_lab); tr_error_lab = ("pre_" ^ ctx.tr_error_lab) } in
+	let new_ctx = { ctx with tr_ret_lab = ("pre_" ^ ctx.tr_ret_lab); tr_err = ("pre_" ^ ctx.tr_err) } in
 	let cmds_hoist_fdecls = translate_fun_decls false var_sc_proc e in
 	let cmds_hoist_fdecls = annotate_cmds_top_level empty_metadata cmds_hoist_fdecls in
 
@@ -4476,7 +4476,7 @@ let generate_proc offset_converter e fid params cc_table vis_fid spec =
 				[
 					(empty_metadata, None, SLBasic (SArguments (x_argList_pre)));
 					(empty_metadata, None, SLBasic (SAssignment (x_argList_act, UnOp (Cdr, (UnOp (Cdr, Var x_argList_pre))))));
-					(empty_metadata, None, SLCall  (x_args, Literal (String createArgsName), [ Var x_argList_act ], Some new_ctx.tr_error_lab));
+					(empty_metadata, None, SLCall  (x_args, Literal (String createArgsName), [ Var x_argList_act ], Some new_ctx.tr_err));
 					(empty_metadata, None, SLBasic (SMutation (Var x_er, Literal (String "arguments"), Var x_args)))
 				] in *)
 
@@ -4511,8 +4511,8 @@ let generate_proc offset_converter e fid params cc_table vis_fid spec =
 	let cmds_restore_er_ret = annotate_cmds cmds_restore_er_ret in *)
 
 	let errs = errs in
-	let cmd_error_phi = make_final_cmd errs new_ctx.tr_error_lab new_ctx.tr_error_var in
-	let cmd_err_final =  annotate_cmd (SLBasic (SSkip)) (Some ctx.tr_error_lab) in 
+	let cmd_error_phi = make_final_cmd errs new_ctx.tr_err new_ctx.tr_error_var in
+	let cmd_err_final =  annotate_cmd (SLBasic (SSkip)) (Some ctx.tr_err) in 
 
 	let fid_cmds =
 		[ cmd_er_creation; cmd_er_flag ] @
@@ -4526,7 +4526,7 @@ let generate_proc offset_converter e fid params cc_table vis_fid spec =
     lproc_params = var_scope :: var_this :: params;
 		lret_label = Some ctx.tr_ret_lab;
 		lret_var = Some ctx.tr_ret_var;
-		lerror_label = Some ctx.tr_error_lab;
+		lerror_label = Some ctx.tr_err;
 		lerror_var = Some ctx.tr_error_var;
 		lspec = spec
 	}

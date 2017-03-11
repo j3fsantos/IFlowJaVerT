@@ -269,13 +269,12 @@ type translation_context = {
 	tr_sc_var:             string;  
 	tr_cc_tbl:             cc_tbl_type; 
 	tr_vis_list:           string list; 
-	tr_err:                string; 
 	tr_loop_list:          loop_list_type; 
 	tr_previous:           jsil_expr option;  
 	tr_js_lab:             string option; 
 	tr_ret_lab:            string;
 	tr_ret_var:            string;
-	tr_error_lab:          string;
+	tr_err:                string; 
 	tr_error_var:          string;
 }
 
@@ -298,7 +297,6 @@ let make_translation_ctx ?err ?(loop_list=[]) ?(previous=None) ?(js_lab=None) of
 		tr_js_lab     = js_lab; 
 		tr_ret_lab    = "rlab"; (* ^ fid; *)
 		tr_ret_var    = "xret"; (* ^ fid; *)
-		tr_error_lab  = "elab"; (* ^ fid; *)
 		tr_error_var  = "xerr"; (* ^ fid *)
 	}
 
