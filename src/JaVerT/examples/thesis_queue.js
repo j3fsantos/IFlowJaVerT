@@ -223,10 +223,25 @@ PriorityQueue = (function () {
        standardObject(#r) * dataField(#r, "pri", #pri_q) *
        dataField(#r, "val", #some_val) * (ret == #r)
      )
+
+     @pre (
+       scope(Node: #n) *
+       Queue(this, #pq_proto, #node_proto, 0, 0) *
+       QueuePrototype(#pq_proto, #enqueue_loc, #enqueue_sc, #dequeue_loc, #dequeue_sc, #n, #node_proto, #insert_loc)
+     )
+     @posterr (
+       scope(Node: #n) *
+       Queue(this, #pq_proto, #node_proto, 0, 0) *
+       QueuePrototype(#pq_proto, #enqueue_loc, #enqueue_sc, #dequeue_loc, #dequeue_sc, #n, #node_proto, #insert_loc) *
+       ((#r, "@proto") -> $lerr_proto) * ((#r, "@class") -> "Error") * ((#r, "@extensible") -> $$t) *
+       ((#r, "message") -> {{"d", "Queue is empty", $$t, $$f, $$t}}) *
+       (err == #r)
+     )
    */
    module.prototype.dequeue = function () {
       /** @unfold NodeList(#head, #node_proto, #pri_q, #length) */
       if (this._head === null) {
+        /** @fold NodeList(#head, #node_proto, #pri_q, #length) */
         throw new Error("Queue is empty");
       }
 
