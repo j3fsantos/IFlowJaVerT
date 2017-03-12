@@ -132,67 +132,67 @@
 		NodePrototype() * DocumentNodePrototype() * ElementNodePrototype() * AttributeNodePrototype() * TextNodePrototype();
 		
 	@pred DocumentElement(l, element) :
-		isEmpty(element) * DOMObject(l, $$null) * ((l, "@data") -> $$null) *
-		empty_fields(l : "@proto", "@class", "@extensible", "@data"),
+		isEmpty(element) * DOMObject(l, $$null) *
+		empty_fields(l : "@proto", "@class", "@extensible"),
 		
-		isElement(element, #id, #name, #aList, #cList) * DOMObject(l, $$null) * ((l, "@data") -> #id) * 
-		ElementNode(#name, #id, #l_addr, #aList, #l_children, #cList) * empty_fields(l : "@proto", "@class", "@extensible", "@data"),
+		isElement(element, #id, #name, #aList, #cList) * DOMObject(l, $$null) *
+		ElementNode(#name, #id, #l_addr, #aList, #l_children, #cList) * empty_fields(l : "@proto", "@class", "@extensible"),
 	    
-	    isHole(element, #alpha) * DOMObject(l, $$null) * ((l, "@data") -> #alpha) * 
-	    empty_fields(l : "@proto", "@class", "@extensible", "@data");		
+	    isHole(element, #alpha) * DOMObject(l, $$null) *
+	    empty_fields(l : "@proto", "@class", "@extensible");		
 
 	@pred AttributeSet(l, attrs) : 
-	    isEmpty(attrs) * DOMObject(l, $$null) * ((l, "@data") -> $$null) * ((l, "@next") ->  $$null),
+	    isEmpty(attrs) * DOMObject(l, $$null) * ((l, "@next") ->  $$null),
 	    
 	    (attrs == (#head :: #attrsNext)) * isAttr(#head, #name, #id, #tf) * DOMObject(l, $$null) * 
 	    ((l, "@next") -> #next) * AttributeNode(#name, #id, #l_tf, #tf) * AttributeSet(#next, #attrsNext) * 
-	    empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next"); 	
+	    empty_fields(l : "@proto", "@class", "@extensible", "@next"); 	
 
 	@pred Forest(l, childList) :
 		isEmpty(childList) * DOMObject(l, $$null) * ((l, "@next") ->  $$null),
 		
 		(childList == (#head :: #childListNext)) * isText(#head, #id, #text) * DOMObject(l, $$null) *
 		((l, "@next") -> #next) * TextNode(#id, #text) * Forest(#next, #childListNext) *
-		empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next"),
+		empty_fields(l : "@proto", "@class", "@extensible", "@next"),
 		
 		(childList == (#head :: #childListNext)) * isElement(#head, #name, #id, #aList, #cList) * DOMObject(l, $$null) *
 		((l, "@next") -> #next) * ElementNode(#name, #id, #l_addr, #aList, #l_children, #cList) * Forest(#next, #childListNext) *
-		empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next"),
+		empty_fields(l : "@proto", "@class", "@extensible", "@next"),
 		
 	    (childList == (#head :: #childListNext)) * isHole(#head, #alpha) * DOMObject(l, $$null) *
-	    ((l, "@data") -> #alpha) * ((l, "@next") -> #next) * Forest(#next, #childListNext) *
-	    empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next");
+	    ((l, "@next") -> #next) * Forest(#next, #childListNext) *
+	    empty_fields(l : "@proto", "@class", "@extensible", "@next");
 
 	
 	@pred TextForest(l, childList) :
-		isEmpty(childList) * DOMObject(l, $$null) * ((l, "@data") -> $$null) * ((l, "@next") ->  $$null),
+		isEmpty(childList) * DOMObject(l, $$null) * ((l, "@next") ->  $$null),
 		
 		(childList == (#head :: #childListNext)) * isText(#head, #id, #text) * DOMObject(l, $$null) *
-		((l, "@data") -> #id) * ((l, "@next") -> #next) * TextNode(#id, #text) * TextForest(#next, #childListNext) *
-		empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next"),
+		((l, "@next") -> #next) * TextNode(#id, #text) * TextForest(#next, #childListNext) *
+		empty_fields(l : "@proto", "@class", "@extensible", "@next"),
 		
 		(childList == (#head :: #childListNext)) * isHole(#head, #alpha) * DOMObject(l, $$null) *
-		((l, "@data") -> #alpha) * ((l, "@next") -> #next) * TextForest(#next, #childListNext) *
-		empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next");
+		((l, "@next") -> #next) * TextForest(#next, #childListNext) *
+		empty_fields(l : "@proto", "@class", "@extensible", "@next");
 	
 	@pred Grove(l, content) :
-		isEmpty(content) * DOMObject(l, $$null) * ((l, "@data") -> $$null) * ((l, "@next") ->  $$null),
+		isEmpty(content) * DOMObject(l, $$null) * ((l, "@next") ->  $$null),
 		
 		(content == (#head :: #contentNext)) * isText(#head, #id, #text) * DOMObject(l, $$null) *
-		((l, "@data") -> #id) * ((l, "@next") -> #next) * TextNode(#id, #text) * Grove(#next, contentNext) *
-		empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next"),
+		((l, "@next") -> #next) * TextNode(#id, #text) * Grove(#next, contentNext) *
+		empty_fields(l : "@proto", "@class", "@extensible", "@next"),
 		
 		(content == (#head :: #contentNext)) * isElement(#head, #name, #id, #aList, #cList) * DOMObject(l, $$null) *
-		((l, "@data") -> #id) * ((l, "@next") -> #next) * ElementNode(#name, #id, #l_addr, #aList, #l_children, #cList) * Grove(#next, #contentNext) *
-		empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next"),	
+		((l, "@next") -> #next) * ElementNode(#name, #id, #l_addr, #aList, #l_children, #cList) * Grove(#next, #contentNext) *
+		empty_fields(l : "@proto", "@class", "@extensible", "@next"),	
 		
 		(content == (#head :: #contentNext)) * isAttr(head, #name, #id, #tList) * DOMObject(l, $$null) *
-		((l, "@data") -> #id) * ((l, "@next") -> #next) * AttributeNode(#name, #id, #l_tf, #tList) * Grove(#next, #contentNext) *
-		empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next"),	
+		((l, "@next") -> #next) * AttributeNode(#name, #id, #l_tf, #tList) * Grove(#next, #contentNext) *
+		empty_fields(l : "@proto", "@class", "@extensible", "@next"),	
 			
 	    (content == (#head :: #contentNext)) * isHole(#head, #alpha) * DOMObject(l, $$null) *
-	    ((l, "@data") -> #alpha) * ((l, "@next") -> #next) * Grove(#next, #contentNext) *
-	    empty_fields(l : "@proto", "@class", "@extensible", "@data", "@next");
+	    ((l, "@next") -> #next) * Grove(#next, #contentNext) *
+	    empty_fields(l : "@proto", "@class", "@extensible", "@next");
 
 	@pred val(t, s) :
 		isEmpty(t) * (s == ""),
@@ -202,8 +202,7 @@
 		isEmpty(a),
 		(a == (#head :: #childListNext)) * isAttr(#head, #name, #id, #tf) * (! (s == #name)) * out(#childListNext, s) * types(s: $$string_type, #name: $$string_type);
 
-	@pred safeName(s) : 
-		(!(s == #s1 ++ "#" ++ #s2));
+
 
 	@onlyspec allocAS(l, i, j)
 		pre:  [[ (l == #l) * (i == #i) * (j == #j) * types (#as : $$list_type, #as1 : $$list_type, #as2 : $$list_type, #as3 : $$list_type) *
@@ -225,9 +224,7 @@
 
 	@onlyspec getAttribute(s)
 		pre:  [[ (s == #s) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#attr == {{ {{ "attr", #s, #m, #t }}, {{ "hole", #alpha }} }}) * val(#t, #s1) ]]
-
 		post: [[ (s == #s) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#attr == {{ {{ "attr", #s, #m, #t }}, {{ "hole", #alpha }} }}) * (ret == #s1) * types(#s1 : $$string_type) ]]
-
 		outcome: normal;
 		
 		pre:  [[ (s == #s) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * out(#attr, #s) ]]
@@ -300,6 +297,12 @@
 
 		pre:  [[ Grove(#alpha, #nodes) * (#nodes == {{ {{ "text", this, #t }}, {{ "hole", #alpha1 }} }}) ]]
 		post: [[ Grove(#alpha, #nodes) * (#nodes == {{ {{ "text", this, #t }}, {{ "hole", #alpha1 }} }}) * (ret == $$null) ]]
+		outcome: normal
+
+
+	@onlyspec firstChild()
+		pre:  [[ DocumentNode(this, #l_element, #element, #grove) * (#element == {{ "elem", #name, #en, #attrs, #children }}) ]]
+		post: [[ DocumentNode(this, #l_element, #element, #grove) * (#element == {{ "elem", #name, #en, #attrs, #children }}) * (ret == #en) ]]
 		outcome: normal
 
 */

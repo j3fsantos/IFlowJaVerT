@@ -15,6 +15,12 @@ function createNewAttribute(element){
 	return n === e;
 }
 
+function groveParent(s) {
+	var t = document.createTextNode(s);
+	var r = t.parentNode();
+	return r;
+}
+
 function builtSingleGet(element) {
 	var t1 = document.createTextNode("test1");
 	var t2 = document.createTextNode("test2");
