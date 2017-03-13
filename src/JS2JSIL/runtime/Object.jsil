@@ -231,7 +231,7 @@ proc Object_construct (xsc, vthis, l) {
 	obj:	xret := l;
 			goto rlab;
 
-	l1b:	goto [(typeOf(l) = $$boolean_type) or (typeOf(l) <: $$number_type) or (typeOf(l) = $$string_type)] to_obj norm;
+	l1b:	goto [(typeOf(l) = $$boolean_type) or (typeOf(l) = $$number_type) or (typeOf(l) = $$string_type)] to_obj norm;
 	to_obj:	xret := "i__toObject" (l);
 			goto rlab;
 
