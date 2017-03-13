@@ -15,10 +15,85 @@ function createNewAttribute(element){
 	return n === e;
 }
 
+/**
+	@id groveParent
+	@rec false
+
+	TODO: complete spec
+	
+	@pre (
+		scope(allocAS   : #allocG)   * fun_obj(allocG,   #allocG,   #allocG_proto) *
+		scope(deallocAS : #deallocG) * fun_obj(deallocG, #deallocG, #deallocG_proto) *
+		InitialDOMHeap() *
+		scope(document : $l_document) *
+		DocumentNode($l_document, #l_element, #element, #grove)
+	)
+	@post (
+		fun_obj(allocAS,   #allocAS,   #allocAS_proto) *
+		fun_obj(deallocAS, #deallocAS, #deallocAS_proto) *
+		InitialDOMHeap() *
+		DocumentNode($l_document, #l_element, #element, ({{ "elem", "one", #ret, {{}}, {{}} }} :: #grove))
+	)
+*/
 function groveParent(s) {
 	var t = document.createTextNode(s);
 	var r = t.parentNode();
 	return r;
+}
+
+function childToParent(element) {
+	var c = element.firstChild();
+	var p = c.parentNode();
+	return p;
+}
+
+function holePunch(element) {
+	var r = element.firstChild();
+	var s = r.nextSibling();
+	return s;
+}
+
+/**
+	@id singleGet
+	@rec false
+
+	@pre (
+		scope(allocAS   : #allocAS)   * fun_obj(allocAS,   #allocAS,   #allocAS_proto) *
+		scope(deallocAS : #deallocAS) * fun_obj(deallocAS, #deallocAS, #deallocAS_proto) *
+		InitialDOMHeap() *
+		(element == #en) * (l_attr == #l_attr) * types (#en : $$object_type, #l_attr : $$object_type) *
+		ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) *
+		(#attr == {{ 
+			{{ "attr", "src", #a0, #atf0 }}, 
+			{{ "attr", "width", #a1, #atf1 }}, 
+			{{ "attr", "height", #a2, #atf2 }}, 
+			{{ "hole", #a_alpha2 }} 
+		}}) *
+		(#atf0 == {{
+			{{ "text", #t0, #s0 }},
+			{{ "text", #t1, #s1 }}	
+		}}
+		)
+	)
+	
+	@post (
+		fun_obj(allocAS,   #allocAS,   #allocAS_proto) *
+		fun_obj(deallocAS, #deallocAS, #deallocAS_proto) *
+		InitialDOMHeap() *
+		ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) *
+		(ret == #s0 ++ #s1)
+	)
+*/
+function singleGet(element, l_attr) {
+	/* @unfold ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) */
+	var a = allocAS(l_attr, 1, 3);
+	/* @fold ElementNode(#name, #en, #l_attr, #attr_1, #l_children, #children) */ 
+	/* @fold val(#atf0, #s) */
+	var w = element.getAttribute("src");
+	/* @unfold ElementNode(#name, #en, #l_attr, #attr_1, #l_children, #children) */
+	deallocAS(a);
+	/* @fold ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) */
+	return w
 }
 
 function builtSingleGet(element) {
@@ -31,6 +106,12 @@ function builtSingleGet(element) {
 	var src = element.getAttribute("src");
 	return src;
 }
+
+/** 
+	@toprequires (DocumentNode($l_document, #l_element, {{ }}, {{ }}) * InitialDOMHeap() * scope(document : $l_document))
+	@topensures  (DocumentNode($l_document, #l_element, {{ }}, {{ {{ "elem", "one", #ret, {{ }}, {{ }} }} }}) * InitialDOMHeap() * scope(document : $l_document))
+*/
+document.createElement("one");
 
 /**
 Unsupported specs
