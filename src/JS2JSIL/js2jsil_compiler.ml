@@ -4522,8 +4522,8 @@ let generate_proc offset_converter e fid params cc_table vis_fid spec =
 		[ cmd_dr_ass; cmd_return_phi; cmd_del_te; cmd_del_se; cmd_ret_final; cmd_error_phi; cmd_err_final ] in
 	{
 		lproc_name = fid;
-    lproc_body = (Array.of_list fid_cmds);
-    lproc_params = var_scope :: var_this :: params;
+    	lproc_body = (Array.of_list fid_cmds);
+    	lproc_params = var_scope :: var_this :: params;
 		lret_label = Some ctx.tr_ret_lab;
 		lret_var = Some ctx.tr_ret_var;
 		lerror_label = Some ctx.tr_err;
