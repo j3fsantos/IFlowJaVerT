@@ -3,6 +3,12 @@ open JSIL_Syntax
 (* Shorthand for printing logical expressions *)
 let print_lexpr le = JSIL_Print.string_of_logic_expression le false 
 
+(* ***** *
+ *       *
+ * LISTS *
+ *       *
+ * ***** *)
+
 (* What does it mean to be a list? *)
 let rec isList (le : jsil_logic_expr) : bool =
 (match le with
@@ -206,42 +212,3 @@ let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : bool optio
 			let msg = Printf.sprintf "Non-arranged lists passed to unify_lists : %s, %s" (print_lexpr le1) (print_lexpr le2) in
 			raise (Failure msg)
 	)
-
-(*
-let print_result_of_list_unification le1 le2 ob uni_list =
-	Printf.printf "\nList unification:\n\t%s\n\t\tvs.\n\t%s\nResult:\n%s\n" (print_lexpr le1) (print_lexpr le2)
-	(match ob with
-	| None -> "Horrible failure"
-	| Some false -> "No changes made."
-	| _ -> String.concat "\n" (List.map (fun (x, y) -> Printf.sprintf "%s = %s" (print_lexpr x) (print_lexpr y)) uni_list))
-
-let test_list_unification le1 le2 = 	
-	let le1, le2 = arrange_lists le1 le2 in
-	let ob, uni_list = unify_lists le1 le2 in
-	print_result_of_list_unification le1 le2 ob uni_list
-	
-let _ = 
-	let le1 = LLit (LList [Num 3.; Bool true; String "flarb"]) in
-	let le2 = LEList [ LVar "x"; LVar "y"; LVar "z" ] in
-	test_list_unification le1 le2;
-	
-	let le1 = LEList [ LVar "x"; LVar "y"; LVar "z" ] in
-	let le2 = LBinOp ( LVar "v", LstCons, LVar "w" ) in
-	test_list_unification le1 le2;
-	
-	let le1 = LEList [ LVar "x"; LVar "y"; LVar "z" ] in
-	let le2 = LEList [ LVar "x"; LVar "y" ] in
-	test_list_unification le1 le2;
-
-	let le1 = LEList [ LVar "x"; LVar "y"; LVar "z" ] in
-	let le2 = LBinOp ( LVar "v", LstCat, LVar "w" ) in
-	test_list_unification le1 le2;
-	
-	let le1 = LEList [ LVar "x"; LVar "y"; LVar "w"; LVar "t"; LVar "u" ] in
-	let le2 = LBinOp ( LVar "v", LstCat, LBinOp (LVar "w", LstCons, LVar "z")) in
-	test_list_unification le1 le2;
-	
-	let le1 = LBinOp (LBinOp ( LEList [ LVar "x"; LVar "y" ], LstCat, LBinOp (LVar "w", LstCons, LEList [ LVar "t"; LVar "u" ])), LstCat, LBinOp ( LEList [ LVar "x"; LVar "y" ], LstCat, LBinOp (LVar "w", LstCons, LEList [ LVar "t"; LVar "u" ]))) in
-	let le2 = LBinOp ( LVar "v", LstCat, LBinOp (LVar "w", LstCons, LVar "z")) in
-	test_list_unification le1 le2
-*)
