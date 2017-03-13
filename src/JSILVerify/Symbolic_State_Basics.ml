@@ -2,6 +2,8 @@ open JSIL_Syntax
 open Symbolic_State
 open JSIL_Logic_Utils
 
+open Simplifications
+
 (***************)
 (** Shorthand **)
 (***************)
@@ -633,126 +635,26 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 						else pfs_false "Nasty type mismatch: var -> lit"
 				| LVar v, _ when (isSubstitutable le2) ->
 					perform_substitution v le2 n (save_all_lvars || String.get v 0 = '#')
-				(*
-				 * Lists
-				 *
-				 * 1) Two logical lists - lengths must match, element equality, restart
-				 *)
-				| LEList ll1, LEList ll2 ->
-				  let len1 = List.length ll1 in
-				  let len2 = List.length ll2 in
-				  if (len1 = len2) then
-				  begin
-					DynArray.delete p_formulae n;
-					List.iter2 (fun x y -> DynArray.add p_formulae (LEq (x, y))) ll1 ll2;
-					f symb_state
-				  end
-				  else pfs_false "Lists are not of the same length."
-				(* LEList and a LstCons *)
-				| LEList ll1, LBinOp (le, LstCons, ll2)
-				| LBinOp (le, LstCons, ll2), LEList ll1 ->
-				  if (ll1 = []) then pfs_false "Lists are not of the same length."
-				  else
-				  begin
-					DynArray.delete p_formulae n;
-					DynArray.add p_formulae (LEq (List.hd ll1, le));
-					DynArray.add p_formulae (LEq (LEList (List.tl ll1), ll2));
-					f symb_state
-				  end
-				(* LitList and a LstCons *)
-				| LLit (LList ll1), LBinOp (le, LstCons, ll2)
-				| LBinOp (le, LstCons, ll2), LLit (LList ll1) ->
-				  if (ll1 = []) then pfs_false "Lists are not of the same length."
-				  else
-				  begin
-					DynArray.delete p_formulae n;
-					DynArray.add p_formulae (LEq (LLit (List.hd ll1), le));
-					DynArray.add p_formulae (LEq (LLit (LList (List.tl ll1)), ll2));
-					f symb_state
-				  end
-				(* Lists
-				 *
-				 * 2) One logical, one literal list - lengths must match, element equality, restart
-				 *)
-				| LEList ll1, LLit (LList ll2)
-				| LLit (LList ll2), LEList ll1 ->
-				  let len1 = List.length ll1 in
-				  let len2 = List.length ll2 in
-				  if (len1 = len2) then
-				  begin
-					DynArray.delete p_formulae n;
-					List.iter2 (fun x y -> DynArray.add p_formulae (LEq (x, LLit y))) ll1 ll2;
-					f symb_state
-				  end
-				  else pfs_false "Lists are not of the same length."
-				| LBinOp (le1, LstCons, le2), LBinOp (le3, LstCons, le4) ->
-				  begin
-					DynArray.delete p_formulae n;
-					DynArray.add p_formulae (LEq (le1, le3));
-					DynArray.add p_formulae (LEq (le2, le4));
-					f symb_state
-				  end
 					
-				(* LIST MAGIC *)
-				| LLit (Num len), LUnOp (LstLen, LVar v)
-				| LUnOp (LstLen, LVar v), LLit (Num len) ->
-						(match (Utils.is_int len) with
-						| false -> pfs_false "Non-integer list-length. Good luck."
-						| true -> 
-							let len = int_of_float len in
-							(match (0 <= len) with
-							| false -> pfs_false "Sub-zero length. Good luck."
-							| true -> 
-									let subst_list = Array.to_list (Array.init len (fun _ -> fresh_lvar())) in
-									let exists = SS.union exists (SS.of_list subst_list) in
-									let subst_list = List.map (fun x -> LVar x) subst_list in
-									DynArray.delete p_formulae n;
-									DynArray.add p_formulae (LEq (LVar v, LEList subst_list));
-									aggressively_simplify to_add other_pfs save_all_lvars exists symb_state
-							)
-						)
-				
-				| LBinOp (LEList l1, LstCat, le), LEList l2
-				| LEList l2, LBinOp (LEList l1, LstCat, le) -> 
-					let len1 = List.length l1 in
-					let len2 = List.length l2 in
-					(match len1 <= len2 with
-					| false -> pfs_false (Printf.sprintf "AS: Impossible list concatenation: %d, %d" len1 len2)
-					| true -> 
-							let al2 = Array.of_list l2 in
-							let lleft = Array.to_list (Array.sub al2 0 len1) in
-							let lright = Array.to_list (Array.sub al2 len1 (len2 - len1)) in
-							DynArray.set p_formulae n (LEq (LEList l1, LEList lleft));
-							DynArray.add p_formulae (LEq (le, LEList lright));
+				(* LISTS *)
+				| le1, le2 when (isList le1 && isList le2) ->
+					let ok, subst = unify_lists le1 le2 in
+					(match ok with
+					(* Error while unifying lists *)
+					| None -> pfs_false "List error"
+					(* No error, but no progress *)
+					| Some false -> (match subst with
+					  | [ (le1', le2') ] -> 
+							(match (le1' = le1 && le2' = le2) with
+							| true -> go_through_pfs rest (n + 1)
+							| false -> raise (Failure "Unexpected list content obtained from list unification.")
+						| _ -> raise (Failure "Unexpected list obtained from list unification.")))
+					(* Progress *)
+					| Some true -> 
+							DynArray.delete p_formulae n;
+							List.iter (fun (x, y) -> DynArray.add p_formulae (LEq (x, y))) subst;
 							f symb_state
 					)
-					
-				| LBinOp (LEList l1, LstCat, le), LLit (LList l2)
-				| LLit (LList l2), LBinOp (LEList l1, LstCat, le) ->
-					let len1 = List.length l1 in
-					let len2 = List.length l2 in
-					(match len1 <= len2 with
-					| false -> pfs_false (Printf.sprintf "AS: Impossible list concatenation: %d, %d" len1 len2)
-					| true -> 
-							let al2 = Array.of_list l2 in
-							let lleft = Array.to_list (Array.sub al2 0 len1) in
-							let lright = Array.to_list (Array.sub al2 len1 (len2 - len1)) in
-							DynArray.set p_formulae n (LEq (LEList l1, LLit (LList lleft)));
-							DynArray.add p_formulae (LEq (le, LLit (LList lright)));
-							f symb_state;
-					)
-				
-				| LEList l1, LBinOp (lel, LstCat, LBinOp (le, LstCons, ler)) ->
-					print_debug "Specific @ case";
-					(try (let m = DynArray.index_of (fun x -> x = le) (DynArray.of_list l1) in
-							let ll1 = List.length l1 in
-							let al1 = Array.of_list l1 in
-							let l1l = Array.to_list (Array.sub al1 0 m) in
-							let l1r = Array.to_list (Array.sub al1 (m + 1) (ll1 - m - 1)) in
-							DynArray.set p_formulae n (LEq (lel, LEList l1l));
-							DynArray.add p_formulae (LEq (ler, LEList l1r));
-							f symb_state) with
-					| Not_found -> go_through_pfs rest (n + 1))
 					 
 				(* More falsity *)
 				| LEList _, LLit _
