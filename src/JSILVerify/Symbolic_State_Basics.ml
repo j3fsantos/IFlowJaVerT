@@ -636,6 +636,24 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 				| LVar v, _ when (isSubstitutable le2) ->
 					perform_substitution v le2 n (save_all_lvars || String.get v 0 = '#')
 					
+				(* LIST LENGTH *)
+				| LLit (Num len), LUnOp (LstLen, LVar v)
+				| LUnOp (LstLen, LVar v), LLit (Num len) ->
+						(match (Utils.is_int len) with
+						| false -> pfs_false "Non-integer list-length. Good luck."
+						| true -> 
+							let len = int_of_float len in
+							(match (0 <= len) with
+							| false -> pfs_false "Sub-zero length. Good luck."
+							| true -> 
+									let subst_list = Array.to_list (Array.init len (fun _ -> fresh_lvar())) in
+									let subst_list = List.map (fun x -> LVar x) subst_list in
+									DynArray.delete p_formulae n;
+									DynArray.add p_formulae (LEq (LVar v, LEList subst_list));
+									f symb_state
+							)
+						)
+				
 				(* LISTS *)
 				| le1, le2 when (isList le1 && isList le2) ->
 					let ok, subst = unify_lists le1 le2 in
@@ -645,7 +663,7 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 					(* No error, but no progress *)
 					| Some false -> (match subst with
 					  | [ (le1', le2') ] -> 
-							(match (le1' = le1 && le2' = le2) with
+							(match ((le1' = le1 && le2' = le2) || (le2' = le1 && le1' = le2)) with
 							| true -> go_through_pfs rest (n + 1)
 							| false -> raise (Failure "Unexpected list content obtained from list unification.")
 						| _ -> raise (Failure "Unexpected list obtained from list unification.")))

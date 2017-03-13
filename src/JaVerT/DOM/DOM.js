@@ -220,16 +220,16 @@
 	@onlyspec allocG(l, i, j)
 		pre:  [[ (l == #l) * (i == #i) * (j == #j) * types(#g : $$list_type, #g1 : $$list_type, #g2 : $$list_type, #g3 : $$list_type) * 
 				 Grove(#l, #g) * (#g == #g1 @ (#g2 @ #g3)) * (l-len(#g1) == #i) * (l-len(#g2) == #j) ]]
-		post: [[ Grove(#l, (#g1 @ ({{"hole", #alpha}} @ #g3))) * Grove(#alpha, {{#g2}}) * (ret == #alpha) * types(#alpha : $$object_type)]]
+		post: [[ Grove(#l, (#g1 @ ({{"hole", #alpha}} :: #g3))) * Grove(#alpha, {{#g2}}) * (ret == #alpha) * types(#alpha : $$object_type)]]
 		outcome: normal;
 
 		pre:  [[ (l == #l) * (i == 0) * (j == #j) * types(#g : $$list_type) * Grove(#l, #g) ]]
-		post: [[ Grove(#l, ({{"hole", #alpha}} @ #g)) * Grove(#alpha, {{}}) * (ret == #alpha) ]]
+		post: [[ Grove(#l, ({{"hole", #alpha}} :: #g)) * Grove(#alpha, {{}}) * (ret == #alpha) ]]
 		outcome: normal
 
 	@onlyspec deallocG(alpha)
 		pre:  [[ (alpha == #alpha) * types(#alpha : $$object_type, #g : $$list_type, #g1 : $$list_type, #g2 : $$list_type, #g3 : $$list_type) * 
-				 Grove(#l, #g) * (#g == #g1 @ ({{"hole", #alpha}} @ #g3)) * Grove(#alpha, #g2)]]
+				 Grove(#l, #g) * (#g == #g1 @ ({{"hole", #alpha}} :: #g3)) * Grove(#alpha, #g2)]]
 		post: [[ Grove(#dn, (#g1 @ (#g2 @ #g3))) ]]
 		outcome: normal
 
@@ -557,12 +557,10 @@
 */
 function groveParent(grove, s) {
 	var t = document.createTextNode(s);
-	/* @unfold DocumentNode($l_document, #l_element, #element, #l_grove, #grove) */
 	var a = allocG(grove, 0, 0);
-	/* @fold DocumentNode($l_document, #l_element, #element, #l_grove, #grove) */
+	/* @recunfold Grove */
+	/* @fold Grove(#l_grove, #JesusTakeTheWheel) */
 	var r = t.parentNode();
-	/* @unfold DocumentNode($l_document, #l_element, #element, #l_grove, #grove) */
-	deallocG(a);	
-	/* @fold DocumentNode($l_document, #l_element, #element, #l_grove, #grove) */
+	deallocG(a);
 	return r;
 }

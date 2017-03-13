@@ -20,7 +20,8 @@ let update_prev_annot prev_annot cur_annot =
 		(annot.annot_type == Parser_syntax.Rec) || 
 		(annot.annot_type == Parser_syntax.Pred) || 
 		(annot.annot_type == Parser_syntax.Fold) || 
-		(annot.annot_type == Parser_syntax.Unfold) in
+		(annot.annot_type == Parser_syntax.Unfold) ||
+		(annot.annot_type == Parser_syntax.RecUnfold) in
 
 	let rec annot_has_specs annots =
 		match annots with
@@ -81,7 +82,7 @@ let parse_logic_annots annots =
 let pop_relevant_logic_annots_stmt e = 
 	let annots = e.Parser_syntax.exp_annot in 
 	let folds, others = List.partition (fun annot -> annot.annot_type == Parser_syntax.Fold) annots in 
-	let unfolds, others = List.partition (fun annot -> annot.annot_type == Parser_syntax.Unfold) others in 
+	let unfolds, others = List.partition (fun annot -> annot.annot_type == Parser_syntax.Unfold) others in  
 	let invariant, others = List.partition (fun annot -> annot.annot_type == Parser_syntax.Invariant) others in
 	
 	let invariant = 
