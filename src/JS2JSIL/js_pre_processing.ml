@@ -1047,7 +1047,7 @@ let closure_clarification_top_level cc_tbl (fun_tbl : Js2jsil_constants.fun_tbl_
 	let annots = get_top_level_annot e in
 	(match annots with
 	| Some annots ->
-		(* Printf.printf "Going to generate main. Top-level annotations:\n%s\n" (Pretty_print.string_of_annots annots); *)
+		Printf.printf "Going to generate main. Top-level annotations:\n%s\n" (Pretty_print.string_of_annots annots); 
 		let specs, _ = process_js_logic_annotations cc_tbl vis_tbl old_fun_tbl proc_id [] annots TopRequires TopEnsures TopEnsuresErr in
 		Hashtbl.replace fun_tbl proc_id (proc_id, args, Some e, false, specs);
 	| None -> ()); 
