@@ -465,10 +465,10 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 			List.map (fun (symb_state, ret_flag, ret_lexpr) ->
 			let new_symb_state =
 				let pfs = get_pf symb_state in
-				let rpfs = DynArray.map (fun x -> JSIL_Logic_Utils.reduce_assertion_no_store new_gamma pfs x) pfs in
+				let rpfs = DynArray.map (fun x -> Simplifications.reduce_assertion_no_store new_gamma pfs x) pfs in
 				sanitise_pfs_no_store new_gamma rpfs;
 				symb_state_replace_pfs symb_state rpfs in
-			(new_symb_state, ret_flag, JSIL_Logic_Utils.reduce_expression_no_store_no_gamma_no_pfs ret_lexpr)) symb_states_and_ret_lexprs in
+			(new_symb_state, ret_flag, Simplifications.reduce_expression_no_store_no_gamma_no_pfs ret_lexpr)) symb_states_and_ret_lexprs in
 			
 		print_debug (Printf.sprintf "TSSPM: Pure formulae: %s" (JSIL_Memory_Print.string_of_shallow_p_formulae (get_pf symb_state) false));
 			

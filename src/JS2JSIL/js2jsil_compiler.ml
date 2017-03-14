@@ -1,6 +1,5 @@
 open Utils
 open Lexing
-open Batteries
 open JSIL_Syntax
 open Js2jsil_constants
 open JS_Logic_Syntax
@@ -639,10 +638,10 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		| [] -> []
 		| (metadata, lab, cmd) :: rest -> 
 			let pre_l_cmds = metadata.pre_logic_cmds in
-			(* Printf.printf "With STUFF!!!\n\n"; *)
+			(* Printf.printf "With STUFF!!!\n\n"; 
 			let cmd_str : string = JSIL_Print.string_of_lab_cmd cmd in 
 			let logic_cmd_str = String.concat ", " (List.map (fun lcmd -> JSIL_Print.string_of_lcmd lcmd) fold_unfold_logic_cmds) in 
-			(* Printf.printf "I am annotating %s with (un)folds baby:\n%s!!!\n" cmd_str logic_cmd_str; *)
+			Printf.printf "I am annotating %s with (un)folds baby:\n%s!!!\n" cmd_str logic_cmd_str; *)
 			let new_metadata = { metadata with pre_logic_cmds = pre_l_cmds @ fold_unfold_logic_cmds } in
 			(new_metadata, lab, cmd) :: rest) in  		
 

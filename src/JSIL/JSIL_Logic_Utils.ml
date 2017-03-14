@@ -43,8 +43,6 @@ let tbl_intersection_false_true tbl_left tbl_right =
 		[]
 
 
-exception FoundIt of jsil_logic_expr
-
 let evaluate_type_of lit =
 	match lit with
 	| Undefined    -> UndefinedType
@@ -1060,9 +1058,7 @@ let star_asses asses =
 		 LEmp
 		asses
 
-(* *************** *
- * SIMPLIFICATIONS *
- * *************** *)
+exception FoundIt of jsil_logic_expr
 
 (**
 	List simplifications:
@@ -1127,7 +1123,6 @@ let find_me_Im_a_list store pfs le =
 			else (List.hd flist)
 	) with FoundIt result -> result
 
-
 let rec find_me_Im_a_loc pfs lvar = 
 	match pfs with 
 	| [] -> None 
@@ -1151,258 +1146,6 @@ let resolve_logical_variables pfs lvars =
 				then loop rest 
 				else find_me_Im_a_loc rest lvar  *)
 	
-		
-
-(**
-	Reduction of expressions: everything must be IMMUTABLE
-
-	Binary operators - recursively
-	TypeOf           - recursively
-	LEList           - reduce each expression, then if we have all literals,
-	                   transform into a literal list
-	List nth         - try to get a list and then actually reduce
-	String nth       - ------- || -------
-	List length      - try to get a list and then actually calculate
-	String length    - ------- || -------
-*)
-let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
-                          (gamma : (string, jsil_type) Hashtbl.t)
-						  						(pfs   : jsil_logic_assertion DynArray.t)
-						  						(e     : jsil_logic_expr) =
-	let f = reduce_expression store gamma pfs in
-	let result = (match e with
-
-	| LBinOp (le1, LstCons, LEList []) -> LEList [ f le1 ]
-	| LBinOp (le1, LstCons, LLit (LList [])) -> LEList [ f le1 ] 
-
-	| LBinOp (LEList le1, LstCat, LEList le2) ->
-			f (LEList (le1 @ le2))
-
-	(* List append *)
-	| LBinOp (le1, LstCat, le2) ->
-		let fe1 = f le1 in 
-		let fe2 = f le2 in
-		let result = 
-		(match fe1 with
-		| LEList [] -> fe2
-		| LLit (LList []) -> fe2
-		| _ -> (match fe2 with
-			| LEList [] -> fe1
-			| LLit (LList []) -> fe1
-			| _ -> LBinOp (fe1, LstCat, fe2))) in
-		result
-		
-	(* String concat *)
-	| LBinOp (le1, StrCat, le2) ->
-		let fe1 = f le1 in 
-		let fe2 = f le2 in
-		let result = 
-		(match fe1 with
-		| LLit (String "") -> fe2
-		| _ -> (match fe2 with
-			| LLit (String "") -> fe1
-			| _ -> LBinOp (fe1, StrCat, fe2))) in
-		result
-		
-	(* Binary operators *)
-	| LBinOp (e1, bop, e2) ->
-		let re1 = f e1 in
-		let re2 = f e2 in
-			LBinOp (re1, bop, re2)
-
-	(* TypeOf *)
-	| LTypeOf e1 ->
-		let re1 = f e1 in
-			LTypeOf re1
-
-	(* Logical lists *)
-	| LEList le ->
-		let rle = List.map (fun x -> f x) le in
-		let all_literals = List.fold_left
-			(fun ac x -> ac && (match x with
-			  | LLit _ -> true
-			  | _ -> false)) true rle in
-		if all_literals then
-			LLit (LList (List.map (fun x -> (match x with
-			  | LLit lit -> lit
-			  | _ -> raise (Failure "List literal nonsense. This cannot happen."))) rle))
-		else (LEList rle)
-
-	(* List nth *)
-	| LLstNth (e1, e2) ->
-		let list = f e1 in
-		let list = find_me_Im_a_list store pfs list in
-		let index = f e2 in
-		(match list, index with
-		| LLit (LList list), LLit (Num n) ->
-			if (Utils.is_int n) then
-			(try (LLit (List.nth list (int_of_float n))) with _ ->
-					raise (Failure "List index out of bounds"))
-			else
-					raise (Failure (Printf.sprintf "Non-integer list index: %f" n))
-
-		| LEList list, LLit (Num n) ->
-			if (Utils.is_int n) then
-			(try (List.nth list (int_of_float n)) with _ ->
-					raise (Failure "List index out of bounds"))
-			else
-					raise (Failure (Printf.sprintf "Non-integer list index: %f" n))
-
-		| LBinOp (le, LstCons, list), LLit (Num n) ->
-			if (Utils.is_int n) then
-		  let ni = int_of_float n in
-			 (match (ni = 1) with
-		   | true -> f le
-		   | false -> f (LLstNth (f list, LLit (Num (n -. 1.)))))
-			else
-					raise (Failure (Printf.sprintf "Non-integer list index: %f" n))
-
-		| _, _ -> LLstNth (list, index))
-
-	(* String nth *)
-	| LStrNth (e1, e2) ->
-		let str = f e1 in
-		let index = f e2 in
-		(match str, index with
-		| LLit (String str), LLit (Num n) ->
-			if (Utils.is_int n) then
-			(try (LLit (String (String.sub str (int_of_float n) 1))) with _ ->
-				raise (Failure "List index out of bounds"))
-			else
-				raise (Failure (Printf.sprintf "Non-integer string index: %f" n))
-		| _, _ -> LStrNth (str, index))
-
-    (* List and String length *)
-	| LUnOp (op, e1) ->
-		let re1 = f e1 in
-		(match op with
-		 | LstLen -> (match re1 with
-				| LLit (LList list) -> (LLit (Num (float_of_int (List.length list))))
-		    | LEList list -> (LLit (Num (float_of_int (List.length list))))
-			| LBinOp (le, LstCons, list) ->
-				let rlist = f (LUnOp (LstLen, list)) in
-				(match rlist with
-				| LLit (Num n) -> LLit (Num (n +. 1.))
-				| _ -> LBinOp (LLit (Num 1.), Plus, rlist))
-				| _ -> LUnOp (LstLen, e1))
-		 | StrLen -> (match re1 with
-		    | LLit (String str) -> (LLit (Num (float_of_int (String.length str))))
-		    | _ -> LUnOp (StrLen, e1))
-		 | _ -> LUnOp (op, re1))
-
-	(* Everything else *)
-	| _ -> e) in
-	if (not (e = result)) then print_debug (Printf.sprintf "Reduce expression: %s ---> %s"
-		(JSIL_Print.string_of_logic_expression e false)
-		(JSIL_Print.string_of_logic_expression result false));
-	result
-
-let reduce_expression_no_store_no_gamma_no_pfs = reduce_expression (Hashtbl.create 1) (Hashtbl.create 1) (DynArray.create ())
-let reduce_expression_no_store_no_gamma        = reduce_expression (Hashtbl.create 1) (Hashtbl.create 1)
-let reduce_expression_no_store                 = reduce_expression (Hashtbl.create 1)
-
-let rec reduce_assertion store gamma pfs a =
-	let f = reduce_assertion store gamma pfs in
-	let fe = reduce_expression store gamma pfs in
-	let result = (match a with
-	| LAnd (LFalse, _)
-	| LAnd (_, LFalse) -> LFalse
-	| LAnd (LTrue, a1)
-	| LAnd (a1, LTrue) -> f a1
-	| LAnd (a1, a2) ->
-		let ra1 = f a1 in
-		let ra2 = f a2 in
-		let a' = LAnd (ra1, ra2) in
-		if ((ra1 = a1) && (ra2 = a2))
-			then a' else f a'
-
-	| LOr (LTrue, _)
-	| LOr (_, LTrue) -> LTrue
-	| LOr (LFalse, a1)
-	| LOr (a1, LFalse) -> f a1
-	| LOr (a1, a2) ->
-		let ra1 = f a1 in
-		let ra2 = f a2 in
-		let a' = LOr (ra1, ra2) in
-		if ((ra1 = a1) && (ra2 = a2))
-			then a' else f a'
-
-	| LNot LTrue -> LFalse
-	| LNot LFalse -> LTrue
-	| LNot a1 ->
-		let ra1 = f a1 in
-		let a' = LNot ra1 in
-		if (ra1 = a1)
-			then a' else f a'
-
-	| LStar (LFalse, _)
-	| LStar (_, LFalse) -> LFalse
-	| LStar (LTrue, a1)
-	| LStar (a1, LTrue) -> f a1
-	| LStar (a1, a2) ->
-		let ra1 = f a1 in
-		let ra2 = f a2 in
-		let a' = LStar (ra1, ra2) in
-		if ((ra1 = a1) && (ra2 = a2))
-			then a' else f a'
-
-	| LEq (e1, e2) ->
-		let re1 = fe e1 in
-		let re2 = fe e2 in
-		let eq = (re1 = re2) && (re1 <> LUnknown) in
-		if eq then LTrue
-		else
-		let ite a b = if (a = b) then LTrue else LFalse in
-		let default e1 e2 re1 re2 = 
-			let a' = LEq (re1, re2) in
-				if ((re1 = e1) && (re2 = e2))
-					then a' else f a' in
-		(match e1, e2 with
-			| LLit l1, LLit l2 -> ite l1 l2
-			| LNone, PVar x
-			| PVar x, LNone
-			| LNone, LVar x
-			| LVar x, LNone -> 
-				if (Hashtbl.mem gamma x) 
-					then (let tx = Hashtbl.find gamma x in 
-						if tx = NoneType then default e1 e2 re1 re2 else LFalse)
-					else default e1 e2 re1 re2
-			| LNone, e
-			| e, LNone -> LFalse
-			
-			| LLit (String str), LVar x 
-			| LVar x, LLit (String str) ->
-				(* Specific string hack:
-				      if we have a string starting with @, and also 
-				      that the var-string doesn't start with @, we know it's false *)
-				if (str <> "" && String.get str 0 = '@') 
-					then
-						let pfs = DynArray.to_list pfs in 
-						if ((List.mem (LNot (LEq (LStrNth (LVar x, LLit (Num 0.)), LLit (String "@")))) pfs)  ||
-							 (List.mem (LNot (LEq (LLit (String "@"), LStrNth (LVar x, LLit (Num 0.))))) pfs))
-						then LFalse 
-						else default e1 e2 re1 re2
-					else default e1 e2 re1 re2
-					
-			| LLit (Bool true), LBinOp (e1, LessThan, e2) -> LLess (e1, e2)
-			| LLit (Bool false), LBinOp (e1, LessThan, e2) -> LNot (LLess (e1, e2))
-			
-			| _, _ -> default e1 e2 re1 re2
-		)
-
-	| LLess (e1, e2) ->
-		let re1 = fe e1 in
-		let re2 = fe e2 in
-		LLess (re1, re2)
-
-	| _ -> a) in
-	result
-
-let reduce_assertion_no_store_no_gamma_no_pfs = reduce_assertion (Hashtbl.create 1) (Hashtbl.create 1) (DynArray.create ())
-let reduce_assertion_no_store_no_gamma        = reduce_assertion (Hashtbl.create 1) (Hashtbl.create 1)
-let reduce_assertion_no_store                 = reduce_assertion (Hashtbl.create 1)
-
-
 let pred_def_tbl_from_list pred_defs = 
 	let pred_def_tbl = Hashtbl.create small_tbl_size in
 	List.iter 
