@@ -1,3 +1,7 @@
+/** 
+  @return #t
+*/
+
 function isPrime(value) {
     var primes = [];
     for(var i = 2; i <= value; i++) {
