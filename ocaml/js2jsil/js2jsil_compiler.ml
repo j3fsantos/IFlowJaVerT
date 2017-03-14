@@ -1482,17 +1482,32 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 			(match xes with
 			| [ ] ->
 				let x_ret = fresh_var () in
-				let cmd = (None, (SLBasic (SAssignment (x_ret, RNumSymb)))) in
+				let cmd = (None, (SLBasic (SAssignment (x_ret, (RNumSymb None))))) in
 				(annotate_cmds [ cmd ]), Var x_ret, [ ]
+			| [ e ] ->
+				(match e.Parser_syntax.exp_stx with 
+				| Parser_syntax.Var x ->
+					let x_ret = fresh_var () in
+					let cmd = (None, (SLBasic (SAssignment (x_ret, (RNumSymb (Some x)))))) in
+					(annotate_cmds [ cmd ]), Var x_ret, [ ]
+				| _ -> raise (Failure "jsil_make_symbolic_number expects no arguments"))
 			| _ -> raise (Failure "jsil_make_symbolic_number expects no arguments"))
+
 
 	| Parser_syntax.Call (e_f, xes)
 		when (e_f.Parser_syntax.exp_stx = (Parser_syntax.Var "jsil_make_symbolic_string")) ->
 			(match xes with
 			| [ ] ->
 				let x_ret = fresh_var () in
-				let cmd = (None, (SLBasic (SAssignment (x_ret, RStrSymb)))) in
+				let cmd = (None, (SLBasic (SAssignment (x_ret, RStrSymb None)))) in
 				(annotate_cmds [ cmd ]), Var x_ret, [ ]
+			| [ e ] ->
+				(match e.Parser_syntax.exp_stx with 
+				| Parser_syntax.Var x ->
+					let x_ret = fresh_var () in
+					let cmd = (None, (SLBasic (SAssignment (x_ret, RStrSymb (Some x))))) in
+					(annotate_cmds [ cmd ]), Var x_ret, [ ]
+				| _ -> raise (Failure "jsil_make_symbolic_string expects no arguments"))
 			| _ -> raise (Failure "jsil_make_symbolic_string expects no arguments"))
 
 

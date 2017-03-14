@@ -1,3 +1,6 @@
+/** 
+  @return 8
+*/
 
 function top(x) {
     if (x < 3) {

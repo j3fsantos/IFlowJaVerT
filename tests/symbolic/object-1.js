@@ -1,3 +1,6 @@
+/** 
+  @return 9
+*/
 
 function top(base) {
     this.base = base;

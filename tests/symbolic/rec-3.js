@@ -1,3 +1,6 @@
+/** 
+  @return 8
+*/
 
 var o = {
     fib: function f_fib(x) {

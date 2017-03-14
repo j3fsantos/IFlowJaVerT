@@ -1,4 +1,6 @@
-
+/**
+  @return: 6 
+*/
 function top(o) {
     var total = 0;
     for(var p in o) {

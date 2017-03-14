@@ -1,3 +1,7 @@
+/** 
+  @return 15
+*/
+
 
 function top(n) {
     var total = 0;

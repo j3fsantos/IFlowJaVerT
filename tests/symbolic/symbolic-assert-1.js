@@ -6,7 +6,7 @@ function top(n) {
     return total;
 }
 
-var n_number = jsil_make_symbolic_number (); 
+var n_number = jsil_make_symbolic_number (n1); 
 jsil_assume ((n_number > 0) && (n_number < 2) && (typeof(n_number) == "number")); 
 
 var t = top(n_number);

@@ -1,3 +1,6 @@
+/** 
+  @return "aaaaaa"
+*/
 
 function top(x, y) {
     var str = "";

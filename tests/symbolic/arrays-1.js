@@ -1,3 +1,6 @@
+/** 
+  @return: "ten"
+*/
 
 function f_three() { return "ten"; }
 

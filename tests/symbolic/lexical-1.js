@@ -1,5 +1,7 @@
-
-var y = "ab";
+/** 
+ @return "ababab"
+*/ 
+var y = "ab"; 
 
 function top(x) {
     var str = "";

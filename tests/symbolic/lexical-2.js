@@ -1,4 +1,6 @@
-
+/** 
+  @return "ababab"
+*/
 var y = "ab";
 
 function top(z) {

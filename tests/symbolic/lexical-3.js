@@ -1,3 +1,7 @@
+/** 
+  @return "ababab"
+*/
+
 
 function top() {
 

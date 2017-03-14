@@ -1,3 +1,8 @@
+/** 
+  @return 2
+*/
+
+
 function one() {
     return 1;
 }
