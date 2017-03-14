@@ -723,11 +723,11 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmd_ass_xr = SLPhiAssignment (x_r, [| (Var x1_v); (Var x2_v) |]) in
 
 		let cmds2 = add_initial_label cmds2 next metadata in
-		let cmds = cmds1 @ (annotate_cmds [   (*         cmds1                                              *)
+		let cmds = cmds1 @ (annotate_cmds [     (*         cmds1                                              *)
 			(None,         cmd_gv_x1);          (*         x1_v := i__getValue (x1) with err                  *)
 			(None,         cmd_tb_x1);          (*         x1_b := i__toBoolean (x1_v) with err               *)
 			(None,         cmd_goto)            (*         goto [x1_b] next end                               *)
-		]) @ cmds2 @ (annotate_cmds [         (* next:   cmds2                                              *)
+		]) @ cmds2 @ (annotate_cmds [           (* next:   cmds2                                              *)
 			(None,         cmd_gv_x2);          (*         x2_v := i__getValue (x2) with err                  *)
 			(Some end_lab, cmd_ass_xr)          (* end:    x_r := PHI(x1_v, x2_v)                             *)
 		]) in
@@ -1046,9 +1046,9 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let x_r = fresh_var () in
 		let cmd_ass_xr = SLBasic (SAssignment (x_r, EList [lit_refo; Var x1_v; Var x2_s])) in
 
-		let cmds = cmds1 @ [            (* cmds1                                            *)
+		let cmds = cmds1 @ [              (* cmds1                                            *)
 			(annotate_cmd cmd_gv_x1 None) (* x1_v := i__getValue (x1) with err                *)
-		] @ cmds2 @ (annotate_cmds [    (* cmds2                                            *)
+		] @ cmds2 @ (annotate_cmds [      (* cmds2                                            *)
 			(None, cmd_gv_x2);            (* x2_v := i__getValue (x2) with err                *)
 			(None, cmd_coc_x1);           (* x_oc := i__checkObjectCoercible (x1_v) with err  *)
 			(None, cmd_ts_x2);            (* x2_s := i__toString (x2_v) with err              *)
@@ -1082,8 +1082,8 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let x_r = fresh_var () in
 		let cmd_ass_xr = SLBasic (SAssignment (x_r, EList [lit_refo; Var x_v; lit_str p])) in
 
-		let cmds = cmds @ (annotate_cmds [  (* cmds                                             *)
-			(None, cmd_gv_x);               	(* x_v := i__getValue (x) with err                  *)
+		let cmds = cmds @ (annotate_cmds [    (* cmds                                             *)
+			(None, cmd_gv_x);                 (* x_v := i__getValue (x) with err                  *)
 			(None, cmd_coc_x) ;               (* x_oc := i__checkObjectCoercible (x_v) with err   *)
 			(None, cmd_ass_xr)                (* x_r := ref-o(x_v, "p")                           *)
 		]) in
@@ -1268,7 +1268,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		(* let x_final = fresh_var () in
 		let cmd_phi_join = SLPhiAssignment (x_final, [| Some x_rbind; Some x_rcall |]) in *)
 
-		let cmds = cmds_ef @ [                    (*        cmds_ef                                                                  *)
+		let cmds = cmds_ef @ [                      (*        cmds_ef                                                                  *)
 			(annotate_cmd cmd_gv_f None)            (*        x_f_val := i__getValue (x_f) with err                                    *)
 		] @ annotate_first_cmd(
 			cmds_args @ (annotate_cmds [            (*        cmds_arg_i; x_arg_i_val := i__getValue (x_arg_i) with err                *)
@@ -1291,31 +1291,31 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			(None,         cmd_bis_object);          (*         goto [typeof (x_bf_prototype) = $$object_type] else1 then1;            *)
 			(Some bthen1,  cmd_bset_proto);          (* bthen1:	x_bwhyGodwhy := $lobj_proto                                            *)
 			(Some belse1,  cmd_bproto_phi);          (* belse1: x_bprototype := PHI (x_bf_prototype, x_bwhyGodwhy)		                 *)
-		  (None,         cmd_bcdo_call);           (*         x_bcdo := create_default_object (x_bthis, x_bprototype)                *)
+		  (None,         cmd_bcdo_call);             (*         x_bcdo := create_default_object (x_bthis, x_bprototype)                *)
 			(None,         cmd_bbody);               (*         x_bbody := [x_tf, "@construct"];                                       *)
 			(None,         cmd_bscope);              (*         x_fscope := [x_tf, "@scope"]                                           *)
 
-			(None,         cmd_append);             (*        SOMETHING ABOUT PARAMETERS                                               *)
-			(None,         cmd_bind);               (*        MAGICAL FLATTENING CALL                                                  *)
-			(None,         cmd_bgoto_test_type);    (*        goto [typeOf(x_r1) = $$object_type ] next4 next3;                        *)
-			(Some bnext3,  cmd_bret_this);          (* next3: skip                                                                     *)
-			(Some bnext4,  cmd_bphi_final);         (* next4: x_rcall := PHI(x_r1, x_this)                                             *)
-			(None,         cmd_sync);               (*        goto join                                                                *) *)
+			(None,         cmd_append);              (*        SOMETHING ABOUT PARAMETERS                                               *)
+			(None,         cmd_bind);                (*        MAGICAL FLATTENING CALL                                                  *)
+			(None,         cmd_bgoto_test_type);     (*        goto [typeOf(x_r1) = $$object_type ] next4 next3;                        *)
+			(Some bnext3,  cmd_bret_this);           (* next3: skip                                                                     *)
+			(Some bnext4,  cmd_bphi_final);          (* next4: x_rcall := PHI(x_r1, x_this)                                             *)
+			(None,         cmd_sync);                (*        goto join                                                                *) *)
 
-			(Some call,    cmd_create_xobj);        (* next2: x_this := new ()                                                         *)
-			(None,         cmd_ass_xreffprototype); (*        x_ref_fprototype := ref-o(x_f_val, "prototype")                          *)
-			(None,         cmd_gv_xreffprototype);  (*        x_f_prototype := i__getValue(x_ref_prototype) with err                   *)
-			(None,         cmd_is_object);          (*        goto [typeof (x_f_prototype) = $$object_type] else1 then1;               *)
-			(Some then1,   cmd_set_proto);          (* then1:	x_whyGodwhy := $lobj_proto                                               *)
-			(Some else1,   cmd_proto_phi);         	(* else1: x_prototype := PHI (x_f_prototype, x_whyGodwhy)		                       *)
-		  (None,         cmd_cdo_call);           (*        x_cdo := create_default_object (x_this, x_prototype)                     *)
-			(None,         cmd_body);               (*        x_body := [x_f_val, "@construct"]                                        *)
-			(None,         cmd_scope);              (*        x_fscope := [x_f_val, "@scope"]                                          *)
-			(None,         cmd_proc_call);          (*        x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err   *)
-			(None,         cmd_goto_test_type);     (*        goto [typeOf(x_r1) = $$object_type ] next4 next3;                        *)
-			(Some next3,   cmd_ret_this);           (* next3: skip                                                                     *)
-			(Some next4,   cmd_phi_final);          (* next4: x_rcall := PHI(x_r1, x_this)                                             *)
-			(* (Some join,    cmd_phi_join);           (*        x_final := PHI (x_rbind, x_rcall);                                       *) *)
+			(Some call,    cmd_create_xobj);         (* next2: x_this := new ()                                                         *)
+			(None,         cmd_ass_xreffprototype);  (*        x_ref_fprototype := ref-o(x_f_val, "prototype")                          *)
+			(None,         cmd_gv_xreffprototype);   (*        x_f_prototype := i__getValue(x_ref_prototype) with err                   *)
+			(None,         cmd_is_object);           (*        goto [typeof (x_f_prototype) = $$object_type] else1 then1;               *)
+			(Some then1,   cmd_set_proto);           (* then1:	x_whyGodwhy := $lobj_proto                                               *)
+			(Some else1,   cmd_proto_phi);         	 (* else1: x_prototype := PHI (x_f_prototype, x_whyGodwhy)		                       *)
+		  (None,         cmd_cdo_call);              (*        x_cdo := create_default_object (x_this, x_prototype)                     *)
+			(None,         cmd_body);                (*        x_body := [x_f_val, "@construct"]                                        *)
+			(None,         cmd_scope);               (*        x_fscope := [x_f_val, "@scope"]                                          *)
+			(None,         cmd_proc_call);           (*        x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err   *)
+			(None,         cmd_goto_test_type);      (*        goto [typeOf(x_r1) = $$object_type ] next4 next3;                        *)
+			(Some next3,   cmd_ret_this);            (* next3: skip                                                                     *)
+			(Some next4,   cmd_phi_final);           (* next4: x_rcall := PHI(x_r1, x_this)                                             *)
+			(* (Some join,    cmd_phi_join);         (*        x_final := PHI (x_rbind, x_rcall);                                       *) *)
 		])) in
 		let errs = errs_ef @ errs_xf_val @ errs_args @ [ var_te; var_te ] @ errs_xf_prototype @ [ x_r1 ] in
 		cmds, Var x_rcall, errs
@@ -2421,7 +2421,6 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		let cmds =  cmds in
 		let errs = errs1 @ errs2 @ errs_x2_v @ [ x_cae; x_pv ] in
-		Printf.printf "I've got %d error shits:%s\n" (List.length errs) (String.concat " * " errs);
 		cmds, (Var x2_v), errs
 
 
@@ -3116,7 +3115,6 @@ and translate_statement tr_ctx e  =
 					cmds_ac @ cmds_e, x_e, errs_ac @ errs_e, rets_ac @ rets_e, breaks_ac @ breaks_e, conts_ac @ conts_e)
 
 			| e :: rest_es ->
-				Printf.printf "the e para ti: %s\n" (Pretty_print.string_of_exp false e);
 				let cmds_e, x_e, errs_e, rets_e, breaks_e, conts_e = f_previous new_loop_list bprevious None e in
 				(match (Js_pre_processing.returns_empty_exp e), bprevious with
 				| true, Some x_previous ->
@@ -3124,7 +3122,6 @@ and translate_statement tr_ctx e  =
 					let new_cmds = annotate_cmds new_cmds in
 					loop rest_es (Some (Var x_r)) (cmds_ac @ cmds_e @ new_cmds) (errs_ac @ errs_e) (rets_ac @ rets_e) (breaks_ac @ breaks_e) (conts_ac @ conts_e))
 				| _, _ -> 
-					Printf.printf "new errors: %s\n" (String.concat ", " errs_e); 
 					loop rest_es (Some x_e) (cmds_ac @ cmds_e) (errs_ac @ errs_e) (rets_ac @ rets_e) (breaks_ac @ breaks_e) (conts_ac @ conts_e))) in
 
 		let cmds, x, errs, rets, breaks, conts = loop es tr_ctx.tr_previous [] [] [] [] [] in 
