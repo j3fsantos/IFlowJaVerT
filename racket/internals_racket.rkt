@@ -14,10 +14,14 @@
 (define (includes? str stuff)
   (list 'normal (string-contains? str stuff)))
 
+(define (sub-string str l r)
+  (list 'normal (substring str l r)))
+
 (define (register-racket-methods hp)
   (register-js-builtin-method "String" "includes" includes? hp)
   (register-js-builtin-method "String" "startsWith" starts-with? hp)
   (register-js-builtin-method "String" "toUpperCase" toUpperCase hp)
+  (register-js-builtin-method "String" "substring" sub-string hp)
   (register-js-builtin-method "String" "replace" replace hp))
 
 

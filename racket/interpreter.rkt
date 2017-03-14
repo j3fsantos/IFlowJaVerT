@@ -394,7 +394,7 @@
        ;;
        ;; (make-symbol-number symb-name)
        [(eq? (first expr) 'make-symbol-number)
-        (constant (second expr) real?)]
+        (constant (second expr) integer?)]
 
        ;;
        ;; (make-symbol-string symb-name)

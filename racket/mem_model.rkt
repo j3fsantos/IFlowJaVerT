@@ -240,9 +240,11 @@
 )
 
 (define (jsil-number-to-string n)
-  (cond
-    ((integer? n) (integer->string n))
-    (#t (number->string n))))
+  (integer->string n))
+	
+;  (cond
+;    ((integer? n) (integer->string n))
+;    (#t (number->string n))))
 
 (define operators-list
   (list
