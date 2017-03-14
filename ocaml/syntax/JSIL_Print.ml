@@ -151,9 +151,19 @@ let rec string_of_expression e escape_string =
 		(* assert(e) *)
 		| RAssert e -> Printf.sprintf "assert(%s)" (se e)
 		(* make-symbol-number() *)
-		| RNumSymb -> "make-symbol-number()"
+		| RNumSymb x -> 
+			let x_str = 
+				match x with 
+				| None   -> "" 
+				| Some x -> x in 
+			"make-symbol-number(" ^ x_str ^ ")"
 		(* make-symbol-string() *)
-		| RStrSymb -> "make-symbol-string()"
+		| RStrSymb x -> 
+			let x_str = 
+				match x with 
+				| None   -> "" 
+				| Some x -> x in 
+			"make-symbol-string(" ^ x_str ^")"
 		(* {{ e1, e2, ... }} *)
 		| EList ll ->
 			(match ll with

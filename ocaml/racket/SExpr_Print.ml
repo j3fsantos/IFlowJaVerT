@@ -71,12 +71,18 @@ let rec sexpr_of_expression e =
 		(* (assert e) *)
 		| RAssert e -> Printf.sprintf "(assert %s)" (se e)
 		(* (make-symbol-number) *)
-		| RNumSymb ->
-			let x = fresh_symbol () in
+		| RNumSymb x ->
+			let x = 
+				match x with 
+				| None -> fresh_symbol ()
+				| Some x -> x in  
 			Printf.sprintf "(make-symbol-number %s)" x
 		(* (make-symbol-string) *)
-		| RStrSymb ->
-			let x = fresh_symbol () in
+		| RStrSymb x ->
+			let x = 
+				match x with 
+				| None -> fresh_symbol () 
+				| Some x -> x in
 			Printf.sprintf "(make-symbol-string %s)" x
 		(* (jsil-list sexpr-e1 ... sexpr-en) *)
 		| EList ll ->

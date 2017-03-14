@@ -171,8 +171,8 @@ type jsil_binop =
 	| EList    of jsil_expr list                     (** Lists of expressions *)
 	| RAssume  of jsil_expr                          
 	| RAssert  of jsil_expr
-	| RNumSymb
-	| RStrSymb
+	| RNumSymb of jsil_var option 
+	| RStrSymb of jsil_var option
 
 (**/**)
 (* Shorthand *)

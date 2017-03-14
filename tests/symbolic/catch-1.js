@@ -1,4 +1,6 @@
-
+/** 
+  @return: 12
+**/
 function top(s) {
     var total = 0;
     for(var i = 0; i < s; i++) {

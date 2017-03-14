@@ -1,3 +1,6 @@
+/** 
+  @return 8
+*/
 
 var o = {
     top: function f_top(x) {

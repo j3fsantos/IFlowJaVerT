@@ -1,3 +1,7 @@
+/** 
+  @return: 22
+*/
+
 var total = 0;
 
 var o = {

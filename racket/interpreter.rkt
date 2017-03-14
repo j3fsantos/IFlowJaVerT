@@ -303,6 +303,7 @@
 
 
 (define (run-expr expr store)
+  ;;(println (format "run-expr: ~v" expr))
   (cond
     ;;
     ;; literals
@@ -414,13 +415,28 @@
        (let* ((expr-arg (second expr))
               (expr-val (run-expr expr-arg store)))
          (jsil-assume expr-val))]
-       ;;
-       ;; (binop e e)
-       [(= (length expr) 3) 
-        (let* ((binop (to-interp-op (first expr)))
-               (larg (run-expr (second expr) store))
-               (rarg (run-expr (third expr) store)))
-          (apply-binop binop larg rarg))]
+      ;;
+      ;; (binop e e)
+      [(= (length expr) 3) 
+       (let ((binop (first expr)))
+         (cond
+           [(eq? binop 'and)
+            (let ((larg (run-expr (second expr) store)))
+              (if (not (eq? larg #t))
+                  #f
+                  (let ((rarg (run-expr (third expr) store)))
+                    (eq? rarg #t))))]
+           [(eq? binop 'or)
+            (let ((larg (run-expr (second expr) store)))
+              (if (eq? larg #t)
+                  #t
+                  (let ((rarg (run-expr (third expr) store)))
+                    (eq? rarg #t))))]
+           [else
+            (let ((binop (to-interp-op binop))
+                  (larg (run-expr (second expr) store))
+                  (rarg (run-expr (third expr) store)))
+              (apply-binop binop larg rarg))]))]
        ;;
        ;; (unop e)
        [(= (length expr) 2) 

@@ -1,3 +1,7 @@
+/** 
+  @return 1
+*/
+
 
 function f_three() { return this.z; }
 

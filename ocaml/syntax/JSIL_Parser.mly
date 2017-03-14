@@ -436,12 +436,12 @@ expr_target:
 (* assert (e) *)
   | ASSERT; LBRACE;  e=expr_target; RBRACE
 	  { RAssert (e) }
-(* make_symbol_number() *)
-  | RNUMSYM; LBRACE;  RBRACE
-	  { RNumSymb }
-(* make_symbol_string() *)
-  | RSTRSYM; LBRACE; RBRACE
-	  { RStrSymb }
+(* make_symbol_number(x) *)
+  | RNUMSYM; LBRACE; x=option(VAR); RBRACE
+	  { RNumSymb x }
+(* make_symbol_string(x) *)
+  | RSTRSYM; LBRACE; x=option(VAR); RBRACE
+	  { RStrSymb x }
 (* {{ e, ..., e }} *)
 	| LSTOPEN; exprlist = separated_nonempty_list(COMMA, expr_target); LSTCLOSE
 		{ EList exprlist }

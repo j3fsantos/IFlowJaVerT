@@ -1,3 +1,8 @@
+/** 
+  @return "abczbc"
+*/
+
+
 var f = function (x) {
     var y = x + "b";
     var z = y + "c";
@@ -6,3 +11,4 @@ var f = function (x) {
 
 var a = f("a");
 var b = f("z");
+a+b
