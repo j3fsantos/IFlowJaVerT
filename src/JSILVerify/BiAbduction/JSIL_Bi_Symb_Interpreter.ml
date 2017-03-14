@@ -543,10 +543,10 @@ let find_and_apply_spec
 			List.map (fun (symb_state, new_anti_frame, ret_flag, ret_lexpr) ->
 			let new_symb_state =
 				let pfs = get_pf symb_state in
-				let rpfs = DynArray.map (fun x -> JSIL_Logic_Utils.reduce_assertion_no_store new_gamma pfs x) pfs in
+				let rpfs = DynArray.map (fun x -> Simplifications.reduce_assertion_no_store new_gamma pfs x) pfs in
 				sanitise_pfs_no_store new_gamma rpfs;
 				symb_state_replace_pfs symb_state rpfs in
-			(new_symb_state, new_anti_frame, ret_flag, JSIL_Logic_Utils.reduce_expression_no_store_no_gamma_no_pfs ret_lexpr)) symb_states_and_ret_lexprs in
+			(new_symb_state, new_anti_frame, ret_flag, Simplifications.reduce_expression_no_store_no_gamma_no_pfs ret_lexpr)) symb_states_and_ret_lexprs in
 		symb_states_and_ret_lexprs in
 	
 	let transform_symb_state_partial_match_list 
