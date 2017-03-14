@@ -187,10 +187,10 @@ let bi_unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_f
 				then Some (loc, (traversed_locs @ rest))
 				else pick_loc_that_exists_in_both_heaps rest (traversed_locs @ [ loc ]) in 
 	
-	let pick_pat_loc (locs_to_visit : string list) subst : string * (string list) = 
+	let pick_pat_loc (locs_to_visit : string list) subst : (string * (string list)) option = 
 		print_debug "pick_pat_loc\n";
 		
-		let rec loop (remaining_locs : string list) (traversed_locs : string list) : string * (string list) = 
+		let rec loop (remaining_locs : string list) (traversed_locs : string list) : (string * (string list)) option = 
 			match remaining_locs with 
 			| [] -> pick_loc_that_exists_in_both_heaps traversed_locs []
 			| loc :: rest -> 
