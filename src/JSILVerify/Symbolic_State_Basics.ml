@@ -935,8 +935,8 @@ let rec simplify_for_your_legacy exists others (symb_state : symbolic_state) : s
 					  | [ (le1', le2') ] -> 
 							(match ((le1' = le1 && le2' = le2) || (le2' = le1 && le1' = le2)) with
 							| true -> go_through_pfs rest (n + 1)
-							| false -> raise (Failure "Unexpected list content obtained from list unification.")
-						| _ -> raise (Failure "Unexpected list obtained from list unification.")))
+							| false -> raise (Failure "Unexpected list content obtained from list unification."))
+						| _ -> raise (Failure "Unexpected list obtained from list unification."))
 					(* Progress *)
 					| Some true -> 
 							DynArray.delete p_formulae n;

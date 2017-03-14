@@ -468,3 +468,21 @@ let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : bool optio
 			let msg = Printf.sprintf "Non-arranged lists passed to unify_lists : %s, %s" (print_lexpr le1) (print_lexpr le2) in
 			raise (Failure msg)
 	)
+
+(* ******************* *
+ * MAIN SIMPLIFICATION *
+ * ******************* *)
+
+ (*
+  * What do we need? 
+  *
+  * - The symbolic state
+  * - An indicator if we're substituting all lvars or not
+  * - If not, the set of allowed lvars (presumably, the spec_vars)
+  * - Other formulas to which we propagate the subst, but we don't simplify otherwise
+  *
+  * What should we return?
+  *
+  * - The full substitution 
+  * - Any newly created variables 
+  *)
