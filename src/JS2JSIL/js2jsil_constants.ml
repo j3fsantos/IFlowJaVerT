@@ -211,7 +211,8 @@ let is_get_value_var x =
 		if ((x_name_len > 2) && ((String.sub x_name (x_name_len - 2) 2) = "_v"))
 			then (
 				print_debug "I am not creating a useless getValue call!!!";
-				Some (String.sub x_name 0 (x_name_len - 2))
+				(* Some (String.sub x_name 0 (x_name_len - 2), x_name) *)
+				Some x_name
 			) else None 
 	| _ -> None
 

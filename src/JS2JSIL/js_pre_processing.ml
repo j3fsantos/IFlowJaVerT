@@ -554,10 +554,13 @@ let process_js_logic_annotations (cc_tbl : cc_tbl_type) (vis_tbl : (string, stri
 		(fun pre post ->
 			let pre_str   = pre.annot_formula in
 			let post_str  = post.annot_formula in
+      let annot_type = post.annot_type in 
 			let ret_flag  =
-				(match post.annot_type with
-				| ensures_normal_flag -> JSIL_Syntax.Normal
-				| ensure_err_flag     -> JSIL_Syntax.Error) in
+				if (annot_type = ensures_normal_flag)
+          then JSIL_Syntax.Normal
+          else (if (annot_type = ensure_err_flag)
+            then JSIL_Syntax.Error
+            else raise (Failure "DEATH: process_js_logic_annotations")) in
 			(* Printf.printf "pre_str: %s. post_str: %s\n" pre_str post_str; *)
 			let pre_js  = JSIL_Utils.js_assertion_of_string pre_str in
 			let post_js = JSIL_Utils.js_assertion_of_string post_str in

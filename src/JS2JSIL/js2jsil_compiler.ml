@@ -152,8 +152,8 @@ let make_get_value_call x err =
 	match is_get_value_var x with 
 	| None -> 
 		let x_v = val_var_of_var x in
-		(x_v, SLCall (x_v, (Literal (String getValueName)), [ x ], Some err))
-	| Some x_v -> (x_v, SLBasic SSkip)
+		(x_v, SLCall (x_v, (Literal (String getValueName)), [ x ], Some err), [x_v])
+	| Some x_v -> (x_v, SLBasic SSkip, [])
 
 let make_to_number_call x x_v err =
 	let x_n = number_var_of_var x in
@@ -234,7 +234,7 @@ let translate_inc_dec x is_plus err =
 	let cmd_goto_legalass = SLGuardedGoto ((non_writable_ref_test x), err, next) in
 
 	(* next:  x_v := getValue (x) with err *)
-	let x_v, cmd_gv_x = make_get_value_call x err in
+	let x_v, cmd_gv_x, errs_x_v = make_get_value_call x err in
 
 	(* x_n := i__toNumber (x_v) with err *)
 	let x_n, cmd_tn_x = make_to_number_call x x_v err in
@@ -651,7 +651,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds_e, x_e, errs_e = f e in
 		
 		(* x_v := i__getValue (x) with err *)
-		let x_v, cmd_gv_x = make_get_value_call x_e tr_ctx.tr_err in
+		let x_v, cmd_gv_x, errs_x_v = make_get_value_call x_e tr_ctx.tr_err in
 		
 		(* x_sf := l-nth(x_sc, index) *)
 		let index = find_var_er_index x in
@@ -674,7 +674,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			cmd_cae;
 			cmd_pv         (* x_pv := i__putValue(x_ref, x_v) with err *)
 		])) in
-		let errs = errs_e @ [ x_v; x_cae; x_pv ] in
+		let errs = errs_e @ errs_x_v @ [ x_cae; x_pv ] in
 		cmds, x_ref, errs in
 
 	let compile_var_dec_without_exp x =
@@ -706,7 +706,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 err in
+		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 err in
 		(* x1_b := i__toBoolean (x1_v) with err  *)
 		let x1_b, cmd_tb_x1 = make_to_boolean_call x1 x1_v err in
 		(* goto [x1_b] end next *)
@@ -717,7 +717,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			| Parser_syntax.And -> SLGuardedGoto (Var x1_b, next, end_lab)
 			| Parser_syntax.Or -> SLGuardedGoto (Var x1_b, end_lab, next)) in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 err in
+		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 err in
 		(* x_r := PHI(x1_v, x2_v) *)
 		let x_r = fresh_var () in
 		let cmd_ass_xr = SLPhiAssignment (x_r, [| (Var x1_v); (Var x2_v) |]) in
@@ -731,17 +731,18 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			(None,         cmd_gv_x2);          (*         x2_v := i__getValue (x2) with err                  *)
 			(Some end_lab, cmd_ass_xr)          (* end:    x_r := PHI(x1_v, x2_v)                             *)
 		]) in
-		let errs = errs1 @ [ x1_v; x1_b ] @ errs2 @ [ x2_v ] in
+		let errs = errs1 @ errs_x1_v @ [ x1_b ] @ errs2 @ errs_x2_v in
 		cmds, Var x_r, errs	in
 
 	let translate_arg_list xes err =
 		let cmds_args, x_args_gv, errs_args =
-			List.fold_left (fun (cmds_args, x_args_gv, errs_args) e_arg ->
-				let cmds_arg, x_arg, errs_arg = f e_arg in
-				let x_arg_v, cmd_gv_arg = make_get_value_call x_arg err in
-				(cmds_args @ cmds_arg @ [ (annotate_cmd cmd_gv_arg None) ], x_args_gv @ [ Var x_arg_v ], (errs_args @ errs_arg @ [ x_arg_v ])))
-			([], [], [])
-			xes in
+			List.fold_left 
+				(fun (cmds_args, x_args_gv, errs_args) e_arg ->
+					let cmds_arg, x_arg, errs_arg = f e_arg in
+					let x_arg_v, cmd_gv_arg, errs_xarg_v = make_get_value_call x_arg err in
+					(cmds_args @ cmds_arg @ [ (annotate_cmd cmd_gv_arg None) ], x_args_gv @ [ Var x_arg_v ], (errs_args @ errs_arg @ errs_xarg_v)))
+				([], [], [])
+				xes in
 		cmds_args, x_args_gv, errs_args in
 
 
@@ -860,7 +861,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
     let translate_array_property_definition x_obj e err num =
 		let cmds, x, errs = f e in
 		(* x_v := i__getValue (x) with err *)
-		let x_v, cmd_gv_x = make_get_value_call x err in
+		let x_v, cmd_gv_x, errs_x_v = make_get_value_call x err in
 
 		(* x_desc := {{ "d", x_v, $$t, $$t, $$t}}  *)
 		let x_desc = fresh_desc_var () in
@@ -876,7 +877,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			(None, cmd_ass_xdesc);      (* x_desc := {{ "d", x_v, $$t, $$t, $$t}}                                     *)
 			(None, cmd_adop_x)          (* x_dop := a__defineOwnProperty(x_obj, toString(num), x_desc, true) with err *)
 		]) in
-		let errs = errs @ [ x_v; x_adop ] in
+		let errs = errs @ errs_x_v @ [ x_adop ] in
 		cmds, errs in
 
 		let cmds, errs, num =
@@ -949,7 +950,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let translate_data_property_definition x_obj prop e err =
 			let cmds, x, errs = f e in
 			(* x_v := i__getValue (x) with err *)
-			let x_v, cmd_gv_x = make_get_value_call x err in
+			let x_v, cmd_gv_x, errs_x_v = make_get_value_call x err in
 
 			(* x_desc := {{ "d", x_v, $$t, $$t, $$t}}  *)
 			let x_desc = fresh_desc_var () in
@@ -963,7 +964,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 				(None, cmd_ass_xdesc);     (* x_desc := {{ "d", x_v, $$t, $$t, $$t}}                                   *)
 				(None, cmd_dop_x)          (* x_dop := o__defineOwnProperty(x_obj, C_pn(pn), x_desc, true) with err    *)
 			]) in
-			let errs = errs @ [ x_v; x_dop ] in
+			let errs = errs @ errs_x_v @ [ x_dop ] in
 			cmds, errs in
 
 		let translate_accessor_descriptor x_obj prop accessor is_getter err =
@@ -1029,10 +1030,10 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
+		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
 
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
+		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
 		(* x_oc := i__checkObjectCoercible (x1_v) with err *)
 		let x_oc = fresh_var () in
@@ -1053,7 +1054,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			(None, cmd_ts_x2);            (* x2_s := i__toString (x2_v) with err              *)
 			(None, cmd_ass_xr)            (* x_r := ref-o(x1_v, xs_s)                         *)
 		]) in
-		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v; x_oc; x2_s ] in
+		let errs = errs1 @ errs_x1_v @ errs2 @ errs_x2_v @ [ x_oc; x2_s ] in
 		cmds, (Var x_r), errs
 
 
@@ -1071,7 +1072,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds, x, errs = f e in
 
 		(* x_v := i__getValue (x) with err *)
-		let x_v, cmd_gv_x = make_get_value_call x tr_ctx.tr_err in
+		let x_v, cmd_gv_x, errs_x_v = make_get_value_call x tr_ctx.tr_err in
 
 		(* x_oc := i__checkObjectCoercible (x_v) with err *)
 		let x_oc = fresh_var () in
@@ -1086,7 +1087,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			(None, cmd_coc_x) ;               (* x_oc := i__checkObjectCoercible (x_v) with err   *)
 			(None, cmd_ass_xr)                (* x_r := ref-o(x_v, "p")                           *)
 		]) in
-		let errs = errs @ [ x_v; x_oc ] in
+		let errs = errs @ errs_x_v @ [ x_oc ] in
 		cmds, (Var x_r), errs
 
 
@@ -1122,7 +1123,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds_ef, x_ef, errs_ef = f e_f in
 
 		(* x_f_val := i__getValue (x_f) with err1;  *)
-		let x_f_val, cmd_gv_f = make_get_value_call x_ef tr_ctx.tr_err in
+		let x_f_val, cmd_gv_f, errs_xf_val = make_get_value_call x_ef tr_ctx.tr_err in
 
 		let cmds_args, x_args_gv, errs_args = translate_arg_list xes tr_ctx.tr_err in
 
@@ -1221,7 +1222,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmd_ass_xreffprototype = SLBasic (SAssignment (x_ref_fprototype, EList [lit_refo; Var x_f_val; lit_str "prototype"])) in
 
 		(* x_f_prototype := i__getValue(x_ref_prototype) with err; *)
-		let x_f_prototype, cmd_gv_xreffprototype = make_get_value_call (Var x_ref_fprototype) tr_ctx.tr_err in
+		let x_f_prototype, cmd_gv_xreffprototype, errs_xf_prototype = make_get_value_call (Var x_ref_fprototype) tr_ctx.tr_err in
 
 		let then1 = fresh_then_label () in
 		let else1 = fresh_else_label () in
@@ -1316,7 +1317,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			(Some next4,   cmd_phi_final);          (* next4: x_rcall := PHI(x_r1, x_this)                                             *)
 			(* (Some join,    cmd_phi_join);           (*        x_final := PHI (x_rbind, x_rcall);                                       *) *)
 		])) in
-		let errs = errs_ef @ [ x_f_val ] @ errs_args @ [ var_te; var_te; x_f_prototype; x_r1 ] in
+		let errs = errs_ef @ errs_xf_val @ errs_args @ [ var_te; var_te ] @ errs_xf_prototype @ [ x_r1 ] in
 		cmds, Var x_rcall, errs
 		
 
@@ -1351,7 +1352,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds_ef, x_ef, errs_ef = f e_f in
 
 		(* x_f_val := i__getValue (x_f) with err1;  *)
-		let x_f_val, cmd_gv_f = make_get_value_call x_ef tr_ctx.tr_err in
+		let x_f_val, cmd_gv_f, errs_xf_val = make_get_value_call x_ef tr_ctx.tr_err in
 
 		let cmds_args, x_args_gv, errs_args = translate_arg_list xes tr_ctx.tr_err in
 
@@ -1501,7 +1502,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			(Some next3,     cmd_ret_undefined);    (* next3: x_r2 := $$undefined                                                       *)
 			(Some next4,     cmd_phi_final)         (* next4: x_r3 := PHI(x_r1, x_r2)                                                   *)
 		])) in
-		let errs = errs_ef @ [ x_f_val ] @ errs_args @ [ var_te; var_te; x_rcall ] in
+		let errs = errs_ef @ errs_xf_val @ errs_args @ [ var_te; var_te; x_rcall ] in
 		cmds, Var x_r3, errs
 
 
@@ -1612,13 +1613,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
      *)
 		let cmds, x, errs = f e in
 		(* x_v := getValue (x) with err *)
-		let x_v, cmd_gv_x = make_get_value_call x tr_ctx.tr_err in
+		let x_v, cmd_gv_x, errs_x_v = make_get_value_call x tr_ctx.tr_err in
 		let x_r = fresh_var () in
 		let cmds = cmds @ (annotate_cmds [                           (*  cmds                                *)
 			(None, cmd_gv_x);                                          (*  x_v := getValue (x) with err        *)
 			(None, SLBasic (SAssignment (x_r, Literal Undefined)));    (*  x_r := $$undefined                  *)
 		]) in
-		let errs = errs @ [ x_v ] in
+		let errs = errs @ errs_x_v in
 		cmds, Var x_r, errs
 
 
@@ -1718,7 +1719,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds, x, errs = f e in
 
 		(* x_v := i__getValue (x) with err *)
-		let x_v, cmd_gv_x = make_get_value_call x tr_ctx.tr_err in
+		let x_v, cmd_gv_x, errs_x_v = make_get_value_call x tr_ctx.tr_err in
 
 		(* x_n := i__toNumber (x_v) with err *)
 		let x_n, cmd_tn_x = make_to_number_call x x_v tr_ctx.tr_err in
@@ -1727,7 +1728,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			(None, cmd_gv_x);                (*  x_v := i__getValue (x) with err     *)
 			(None, cmd_tn_x);                (*  x_n := i__toNumber (x_v) with err   *)
 		]) in
-		let errs = errs @ [ x_v; x_n ] in
+		let errs = errs @ errs_x_v @ [ x_n ] in
 		cmds, Var x_n, errs
 
 
@@ -1747,7 +1748,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds, x, errs = f e in
 
 		(* x_v := getValue (x) with err *)
-		let x_v, cmd_gv_x = make_get_value_call x tr_ctx.tr_err in
+		let x_v, cmd_gv_x, errs_x_v = make_get_value_call x tr_ctx.tr_err in
 
 		(* x_n := i__toNumber (x_v) with err *)
 		let x_n, cmd_tn_x = make_to_number_call x x_v tr_ctx.tr_err in
@@ -1779,7 +1780,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			(Some else_lab, cmd_ass_xelse);         (* else:      x_else := (negative x_n)            *)
 			(Some end_lab,  cmd_ass_xr)             (* end:       x_r := PHI(x_then, x_else)          *)
 		]) in
-		let errs = errs @ [ x_v; x_n ] in
+		let errs = errs @ errs_x_v @ [ x_n ] in
 		cmds, Var x_r, errs
 
 
@@ -1797,7 +1798,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds, x, errs = f e in
 
 		(* x_v := i__getValue (x) with err *)
-		let x_v, cmd_gv_x = make_get_value_call x tr_ctx.tr_err in
+		let x_v, cmd_gv_x, errs_x_v = make_get_value_call x tr_ctx.tr_err in
 
 		(* x_n := i__toNumber (x_v) with err *)
 		let x_n, cmd_tn_x = make_to_number_call x x_v tr_ctx.tr_err in
@@ -1810,7 +1811,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			(None, SLBasic (SAssignment (x_i32, UnOp (ToInt32Op, Var x_n))));        (*  x_i32 := (num_to_int32 x_n)         *)
 			(None, SLBasic (SAssignment (x_r, UnOp (BitwiseNot, Var x_i32))))        (*  x_r := (! x_i32)                    *)
 		]) in
-		let errs = errs @ [ x_v; x_n ] in
+		let errs = errs @ errs_x_v @ [ x_n ] in
 		cmds, Var x_r, errs
 
 
@@ -1827,7 +1828,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds, x, errs = f e in
 
 		(* x_v := i__getValue (x) with err1 *)
-		let x_v, cmd_gv_x = make_get_value_call x tr_ctx.tr_err in
+		let x_v, cmd_gv_x, errs_x_v = make_get_value_call x tr_ctx.tr_err in
 
 		(* x_b := i__toBoolean (x_v) with err2 *)
 		let x_b, cmd_tb_x = make_to_boolean_call x x_v tr_ctx.tr_err in
@@ -1841,7 +1842,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			(None, cmd_tb_x);                  (* x_b := i__toBoolean (x_v) with err *)
 			(None, cmd_xr_ass);                (* x_r := (not x_b)                   *)
 		]) in
-		let errs = errs @ [ x_v; x_b ] in
+		let errs = errs @ errs_x_v @ [ x_b ] in
 		cmds, Var x_r, errs
 
 
@@ -1861,13 +1862,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
+		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
+		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
 		let new_cmds, new_errs, x_r = translate_multiplicative_binop x1 x2 x1_v x2_v aop tr_ctx.tr_err in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ (annotate_cmds ([ (None, cmd_gv_x2) ] @ new_cmds)) in
-		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
+		let errs = errs1 @ errs_x1_v @ errs2 @ errs_x2_v @ new_errs in
 		cmds, Var x_r, errs
 
 
@@ -1896,13 +1897,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
+		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
+		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
 		let new_cmds, new_errs, x_r = translate_binop_plus x1 x2 x1_v x2_v tr_ctx.tr_err in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) in
-		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
+		let errs = errs1 @ errs_x1_v @ errs2 @ errs_x2_v @ new_errs in
 		cmds, Var x_r, errs
 
 
@@ -1922,13 +1923,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
+		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
+		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
 		let new_cmds, new_errs, x_r = translate_bitwise_shift x1 x2 x1_v x2_v toInt32Name toUInt32Name LeftShift tr_ctx.tr_err in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) in
-		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
+		let errs = errs1 @ errs_x1_v @ errs2 @ errs_x2_v @ new_errs in
 		cmds, Var x_r, errs
 
 
@@ -1948,13 +1949,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
+		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
+		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
 		let new_cmds, new_errs, x_r = translate_bitwise_shift x1 x2 x1_v x2_v toInt32Name toUInt32Name SignedRightShift tr_ctx.tr_err in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) in
-		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
+		let errs = errs1 @ errs_x1_v @ errs2 @ errs_x2_v @ new_errs in
 		cmds, Var x_r, errs
 
 
@@ -1974,13 +1975,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
+		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
+		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
 		let new_cmds, new_errs, x_r = translate_bitwise_shift x1 x2 x1_v x2_v toUInt32Name toUInt32Name UnsignedRightShift tr_ctx.tr_err in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) in
-		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
+		let errs = errs1 @ errs_x1_v @ errs2 @ errs_x2_v @ new_errs in
 		cmds, Var x_r, errs
 
 
@@ -2001,13 +2002,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
+		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
+		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
 		let new_cmds, new_errs, x_r = translate_binop_comparison x1 x2 x1_v x2_v true true false tr_ctx.tr_err in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2  @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) in
-		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
+		let errs = errs1 @ errs_x1_v @ errs2 @ errs_x2_v @ new_errs in
 		cmds, Var x_r, errs
 
 
@@ -2028,13 +2029,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
+		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
+		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
 		let new_cmds, new_errs, x_r = translate_binop_comparison x1 x2 x1_v x2_v false false false tr_ctx.tr_err in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) in
-		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
+		let errs = errs1 @ errs_x1_v @ errs2 @ errs_x2_v @ new_errs in
 		cmds, Var x_r, errs
 
 
@@ -2056,15 +2057,15 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
+		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
+		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
 		let new_cmds, new_errs, x_r1 = translate_binop_comparison x1 x2 x1_v x2_v false false true tr_ctx.tr_err in
 		let x_r2 = fresh_var () in
 		let new_cmd = SLBasic (SAssignment (x_r2, UnOp (Not, (Var x_r1)))) in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) @ [ annotate_cmd new_cmd None ] in
-		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
+		let errs = errs1 @ errs_x1_v @ errs2 @ errs_x2_v @ new_errs in
 		cmds, Var x_r2, errs
 
 
@@ -2086,15 +2087,15 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
+		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
+		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
 		let new_cmds, new_errs, x_r1 = translate_binop_comparison x1 x2 x1_v x2_v true true true tr_ctx.tr_err in
 		let x_r2 = fresh_var () in
 		let new_cmd = SLBasic (SAssignment (x_r2, UnOp (Not, (Var x_r1)))) in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) @ [ annotate_cmd new_cmd None ] in
-		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
+		let errs = errs1 @ errs_x1_v @ errs2 @ errs_x2_v @ new_errs in
 		cmds, Var x_r2, errs
 
 
@@ -2116,10 +2117,10 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
+		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
 
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
+		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
 		(* goto [ (typeOf x2_v) = $$object_type ] next1 err *)
 		let next1 = fresh_label () in
@@ -2146,7 +2147,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			(None,         cmd_goto_xcond);     (*         goto [ x_cond = $$empty ] err next2                *)
 			(Some next2,         cmd_ass_xr)          (*         x_r := x_hi (x2_v, x1_v) with err                  *)
 		]) in
-		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v; var_te; var_te; x_r ] in
+		let errs = errs1 @ errs_x1_v @ errs2 @ errs_x2_v @ [ var_te; var_te; x_r ] in
 		cmds, Var x_r, errs
 
 
@@ -2166,10 +2167,10 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
+		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
 
 		(* x2_v := getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
+		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
 		(* goto [ (typeOf x2_v) = $$object_type ] next1 err *)
 		let next1 = fresh_label () in
@@ -2190,7 +2191,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			(Some next1,   cmd_ts_x1);          (* next1:  x1_s := i__toString (x1_v) with err               *)
 			(None,         cmd_ass_xr);         (*         x_r := o__hasProperty (x2_v, x1_s) with err       *)
 		]) in
-		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v; var_te; x1_s; x_r ] in
+		let errs = errs1 @ errs_x1_v @ errs2 @ errs_x2_v @ [ var_te; x1_s; x_r ] in
 		cmds, Var x_r, errs
 
 
@@ -2208,13 +2209,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
+		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
+		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
 		let new_cmds, new_errs, x_r = translate_binop_equality x1 x2 x1_v x2_v true true tr_ctx.tr_err in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) in
-		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
+		let errs = errs1 @ errs_x1_v @ errs2 @ errs_x2_v @ new_errs in
 		cmds, Var x_r, errs
 
 
@@ -2233,13 +2234,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
+		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
+		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
 		let new_cmds, new_errs, x_r = translate_binop_equality x1 x2 x1_v x2_v true false tr_ctx.tr_err in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) in
-		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
+		let errs = errs1 @ errs_x1_v @ errs2 @ errs_x2_v @ new_errs in
 		cmds, Var x_r, errs
 
 
@@ -2257,13 +2258,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
+		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
+		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
 		let new_cmds, new_errs, x_r = translate_binop_equality x1 x2 x1_v x2_v false true tr_ctx.tr_err in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) in
-		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
+		let errs = errs1 @ errs_x1_v @ errs2 @ errs_x2_v @ new_errs in
 		cmds, Var x_r, errs
 
 
@@ -2282,13 +2283,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
+		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
+		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
 		let new_cmds, new_errs, x_r = translate_binop_equality x1 x2 x1_v x2_v false false tr_ctx.tr_err in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) in
-		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
+		let errs = errs1 @ errs_x1_v @ errs2 @ errs_x2_v @ new_errs in
 		cmds, Var x_r, errs
 
 
@@ -2309,13 +2310,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
+		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
+		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
 		let new_cmds, new_errs, x_r = translate_bitwise_bin_op x1 x2 x1_v x2_v bbop tr_ctx.tr_err in
 		let cmds = cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) in
-		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs in
+		let errs = errs1 @ errs_x1_v @ errs2 @ errs_x2_v @ new_errs in
 		cmds, Var x_r, errs
 
 
@@ -2353,7 +2354,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds3, x3, errs3 = f e3 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
+		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
 		(* x1_b := i__toBoolean (x1_v) with err  *)
 		let x1_b, cmd_tb_x1 = make_to_boolean_call x1 x1_v tr_ctx.tr_err in
 		(* goto [x1_b] then else *)
@@ -2362,9 +2363,9 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let end_if_lab = fresh_endif_label () in
 		let cmd_goto = SLGuardedGoto (Var x1_b, then_lab, else_lab) in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
+		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 		(* x3_v := i__getValue (x3) with err *)
-		let x3_v, cmd_gv_x3 = make_get_value_call x3 tr_ctx.tr_err in
+		let x3_v, cmd_gv_x3, errs_x3_v = make_get_value_call x3 tr_ctx.tr_err in
 		(* x_r := PHI(x2_v, x3_v) *)
 		let x_r = fresh_var () in
 		let cmd_ass_xr = SLPhiAssignment (x_r, [| (Var x2_v); (Var x3_v) |]) in
@@ -2372,18 +2373,18 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds2 = add_initial_label cmds2 then_lab metadata in
 		let cmds3 = add_initial_label cmds3 else_lab metadata in
 		let cmds = cmds1 @ (annotate_cmds [      (*         cmds1                                              *)
-			(None,            cmd_gv_x1);          (*         x1_v := i__getValue (x1) with err                  *)
-			(None,            cmd_tb_x1);          (*         x1_b := i__toBoolean (x1_v) with err               *)
-			(None,            cmd_goto)            (*         goto [x1_b] then else                              *)
+			(None,            cmd_gv_x1);        (*         x1_v := i__getValue (x1) with err                  *)
+			(None,            cmd_tb_x1);        (*         x1_b := i__toBoolean (x1_v) with err               *)
+			(None,            cmd_goto)          (*         goto [x1_b] then else                              *)
 		]) @ cmds2 @ (annotate_cmds [            (* then:   cmds2                                              *)
-			(None,            cmd_gv_x2);          (*         x2_v := i__getValue (x2) with err                  *)
-			(None,            SLGoto end_if_lab)   (*         goto end_if                                        *)
+			(None,            cmd_gv_x2);        (*         x2_v := i__getValue (x2) with err                  *)
+			(None,            SLGoto end_if_lab) (*         goto end_if                                        *)
 		]) @ cmds3 @ (annotate_cmds [            (* else:   cmds3                                              *)
-			(None,            cmd_gv_x3);          (*         x3_v := i__getValue (x3) with err                  *)
-			(Some end_if_lab, cmd_ass_xr)          (* end_if: x_r := PHI(x2_v, x3_v)                             *)
+			(None,            cmd_gv_x3);        (*         x3_v := i__getValue (x3) with err                  *)
+			(Some end_if_lab, cmd_ass_xr)        (* end_if: x_r := PHI(x2_v, x3_v)                             *)
 		]) in
 
-		let errs = errs1 @ [ x1_v; x1_b ] @ errs2 @ [ x2_v ] @ errs3 @ [ x3_v ] in
+		let errs = errs1 @ errs_x1_v @ [ x1_b ] @ errs2 @ errs_x2_v @ errs3 @ errs_x3_v in
 		cmds, Var x_r, errs
 
 
@@ -2402,7 +2403,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
+		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
 		(*  x_cae := i__checkAssignmentErrors (x1) with err *)
 		let x_cae, cmd_cae_x1 = make_cae_call x1 tr_ctx.tr_err in
@@ -2419,7 +2420,8 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		]) in
 
 		let cmds =  cmds in
-		let errs = errs1 @ errs2 @ [ x2_v; x_cae; x_pv ] in
+		let errs = errs1 @ errs2 @ errs_x2_v @ [ x_cae; x_pv ] in
+		Printf.printf "I've got %d error shits:%s\n" (List.length errs) (String.concat " * " errs);
 		cmds, (Var x2_v), errs
 
 
@@ -2440,9 +2442,9 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
+		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
+		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
 		let new_cmds, new_errs, x_r =
 			(match op with
@@ -2455,8 +2457,8 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			| Parser_syntax.Lsh -> translate_bitwise_shift x1 x2 x1_v x2_v toInt32Name toUInt32Name LeftShift tr_ctx.tr_err
 			| Parser_syntax.Rsh -> translate_bitwise_shift x1 x2 x1_v x2_v toInt32Name toUInt32Name UnsignedRightShift tr_ctx.tr_err
 			| Parser_syntax.Bitand
-      | Parser_syntax.Bitor
-      | Parser_syntax.Bitxor -> translate_bitwise_bin_op x1 x2 x1_v x2_v op tr_ctx.tr_err) in
+      		| Parser_syntax.Bitor
+      		| Parser_syntax.Bitxor -> translate_bitwise_bin_op x1 x2 x1_v x2_v op tr_ctx.tr_err) in
 
 		(* x_cae := i__checkAssertionErrors (x1) with err *)
 		let x_cae, cmd_cae_x1 = make_cae_call x1 tr_ctx.tr_err in
@@ -2465,14 +2467,14 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let x_pv, cmd_pv = make_put_value_call x1 x_r tr_ctx.tr_err in
 
 		let cmds = cmds1 @ [               (*    cmds1                                           *)
-			annotate_cmd cmd_gv_x1 None      (*    x1_v := i__getValue (x1) with err               *)
+			annotate_cmd cmd_gv_x1 None    (*    x1_v := i__getValue (x1) with err               *)
 		] @ cmds2 @ [                      (*    cmds2                                           *)
-			annotate_cmd cmd_gv_x2 None      (*    x2_v := i__getValue (x2) with err               *)
+			annotate_cmd cmd_gv_x2 None    (*    x2_v := i__getValue (x2) with err               *)
 		] @ (annotate_cmds (new_cmds @ [   (*    new_cmds                                        *)
-			(None, cmd_cae_x1);              (*    x_cae := i__checkAssertionErrors (x1) with err  *)
-			(None, cmd_pv)                   (*    x_pv = putValue (x1, x2_v) with err             *)
+			(None, cmd_cae_x1);            (*    x_cae := i__checkAssertionErrors (x1) with err  *)
+			(None, cmd_pv)                 (*    x_pv = putValue (x1, x2_v) with err             *)
 		])) in
-		let errs = errs1 @  [ x1_v ] @ errs2 @ [ x2_v ] @ new_errs @ [ x_cae; x_pv ] in
+		let errs = errs1 @  errs_x1_v @ errs2 @ errs_x2_v @ new_errs @ [ x_cae; x_pv ] in
 		cmds, (Var x_r), errs
 
 
@@ -2489,18 +2491,18 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds2, x2, errs2 = f e2 in
 
 		(* x1_v := getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
+		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
 
 		(* x2_v := getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
+		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
 		let cmds =
 			cmds1 @ [                           (*       cmds1                                *)
-				annotate_cmd cmd_gv_x1 None       (*       x1_v := i__getValue (x1) with err    *)
+				annotate_cmd cmd_gv_x1 None     (*       x1_v := i__getValue (x1) with err    *)
 			] @ cmds2 @ [                       (*       cmds2                                *)
-				annotate_cmd cmd_gv_x2 None       (*       x2_v := i__getValue (x2) with err    *)
+				annotate_cmd cmd_gv_x2 None     (*       x2_v := i__getValue (x2) with err    *)
 			] in
-		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v ] in
+		let errs = errs1 @ errs_x1_v @ errs2 @ errs_x2_v in
 		cmds, (Var x2_v), errs
 
 
@@ -2639,7 +2641,7 @@ and translate_statement tr_ctx e  =
 		let cmds_e, x_e, errs_e = fe e in
 		
 		(* x_v := i__getValue (x) with err *)
-		let x_v, cmd_gv_x = make_get_value_call x_e tr_ctx.tr_err in
+		let x_v, cmd_gv_x, errs_x_v = make_get_value_call x_e tr_ctx.tr_err in
 		
 		(* x_sf := l-nth(x__sc, index)  *)
 		let x_sf = fresh_var () in
@@ -2662,7 +2664,7 @@ and translate_statement tr_ctx e  =
 			(None, cmd_cae);       (* x_cae := i__checkAssignmentErrors (x_ref) with err   *)
 			(None, cmd_pv)         (* x_pv := i__putValue(x_ref, x_v) with err             *)
 		]) in
-		let errs = errs_e @ [ x_v; x_cae; x_pv ] in
+		let errs = errs_e @ errs_x_v @ [ x_cae; x_pv ] in
 		cmds, x_ref, errs	in
 
 	let create_final_phi_cmd cmds x errs rets breaks conts break_label js_lab =
@@ -3114,13 +3116,15 @@ and translate_statement tr_ctx e  =
 					cmds_ac @ cmds_e, x_e, errs_ac @ errs_e, rets_ac @ rets_e, breaks_ac @ breaks_e, conts_ac @ conts_e)
 
 			| e :: rest_es ->
+				Printf.printf "the e para ti: %s\n" (Pretty_print.string_of_exp false e);
 				let cmds_e, x_e, errs_e, rets_e, breaks_e, conts_e = f_previous new_loop_list bprevious None e in
 				(match (Js_pre_processing.returns_empty_exp e), bprevious with
 				| true, Some x_previous ->
 					(let new_cmds, x_r = make_check_empty_test x_previous x_e in
 					let new_cmds = annotate_cmds new_cmds in
 					loop rest_es (Some (Var x_r)) (cmds_ac @ cmds_e @ new_cmds) (errs_ac @ errs_e) (rets_ac @ rets_e) (breaks_ac @ breaks_e) (conts_ac @ conts_e))
-				| _, _ ->
+				| _, _ -> 
+					Printf.printf "new errors: %s\n" (String.concat ", " errs_e); 
 					loop rest_es (Some x_e) (cmds_ac @ cmds_e) (errs_ac @ errs_e) (rets_ac @ rets_e) (breaks_ac @ breaks_e) (conts_ac @ conts_e))) in
 
 		let cmds, x, errs, rets, breaks, conts = loop es tr_ctx.tr_previous [] [] [] [] [] in 
@@ -3205,10 +3209,10 @@ and translate_statement tr_ctx e  =
      Section 12.4 - Expression Statement
 		 *)
 		let cmds_e, x_e, errs_e = fe e in
-		let x_e_v, cmd_gv_xe = make_get_value_call x_e tr_ctx.tr_err in
+		let x_e_v, cmd_gv_xe, errs_x_e_v = make_get_value_call x_e tr_ctx.tr_err in
 		let cmds = cmds_e @ [ annotate_cmd cmd_gv_xe None ] in 
 		let cmds = annotate_first_cmd cmds in 
-		cmds, Var x_e_v, errs_e @ [ x_e_v ], [], [], []
+		cmds, Var x_e_v, errs_e @ errs_x_e_v, [], [], []
 
 
 	| Parser_syntax.If (e1, e2, e3) ->
@@ -3244,7 +3248,7 @@ and translate_statement tr_ctx e  =
 			| Some e3 -> f_previous new_loop_list None None e3) in
 
 		(* x1_v := getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
+		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
 
 		(* x1_b := toBoolean (x1_v) with err *)
 		let x1_b, cmd_tb_x1 = make_to_boolean_call x1 x1_v tr_ctx.tr_err in
@@ -3282,7 +3286,7 @@ and translate_statement tr_ctx e  =
 			]) @ cmds3 @ (annotate_cmds [  (* else: cmds3                               *)
 				(Some end_lab, cmd_end_if)   (* end:  x_if := PHI(x3, x2)                 *)
 			]) in
-		let errs = errs1 @ [ x1_v; x1_b ] @ errs2 @ errs3 in
+		let errs = errs1 @ errs_x1_v @ [ x1_b ] @ errs2 @ errs3 in
 
 		let cmds = annotate_first_cmd cmds in 
 		let cmds, x, errs, rets, breaks, conts = cmds, Var x_if, errs, rets2 @ rets3, breaks2 @ breaks3, conts2 @ conts3 in
@@ -3334,7 +3338,7 @@ and translate_statement tr_ctx e  =
 		let cmd_ass_ret_1 = SLPhiAssignment (x_ret_1, [| (Var x_ret_0); (Var x_ret_3) |]) in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
+		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
 
 		(* x_ret_2 := PHI(cont_vars, x1_v) *)
 		let cur_conts = cur_conts @ [ x1_v ] in
@@ -3353,7 +3357,7 @@ and translate_statement tr_ctx e  =
 		let cmd_ass_ret_3 = SLPhiAssignment (x_ret_3, [| (Var x_ret_1); (Var x_ret_2) |]) in
 
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
+		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
 		(* x2_b := i__toBoolean (x2_v) with err *)
 		let x2_b, cmd_tb_x2 = make_to_boolean_call x2 x2_v tr_ctx.tr_err in
@@ -3366,18 +3370,18 @@ and translate_statement tr_ctx e  =
 		let cmds = (annotate_cmds [
 					(None,             cmd_ass_ret_0);         (*              x_ret_0 := $$empty                           *)
 					(Some head,        cmd_ass_ret_1);         (* head:        x_ret_1 := PHI(x_ret_0, x_ret_3)             *)
-				]) @ cmds1 @ (annotate_cmds [                (*              cmds1                                        *)
-				  (None,             cmd_gv_x1);             (*              x1_v := i__getValue (x1) with err            *)
+				]) @ cmds1 @ (annotate_cmds [                  (*              cmds1                                        *)
+				  (None,             cmd_gv_x1);               (*              x1_v := i__getValue (x1) with err            *)
 					(Some cont,        cmd_ass_ret_2);         (* cont:	       x_ret_2 := PHI(cont_vars, x1_v) 	            *)
 					(None,             cmd_goto_empty_test);   (*              goto [ not (x_ret_2 = $$empty) ] next1 next2 *)
 					(Some next1,       SLBasic SSkip);         (* next1:       skip                                         *)
 					(Some next2,       cmd_ass_ret_3);         (* next2:       x_ret_3 := PHI(x_ret_1, x_ret_2)             *)
-				]) @ cmds2 @ (annotate_cmds [                (* guard:       cmds2                                        *)
-				  (None,             cmd_gv_x2);             (*              x2_v := i__getValue (x2) with err            *)
+				]) @ cmds2 @ (annotate_cmds [                  (* guard:       cmds2                                        *)
+				  (None,             cmd_gv_x2);               (*              x2_v := i__getValue (x2) with err            *)
 					(None,             cmd_tb_x2);             (*              x2_b := i__toBoolean (x2_v) with err         *)
 					(None,             cmd_dowhile_goto);      (*              goto [x2_b] head end                         *)
 				]) @ (annotate_cmds cmds_end_loop) in
-		let errs = errs1 @ [ x1_v ] @ errs2 @ [ x2_v; x2_b ] in
+		let errs = errs1 @ errs_x1_v @ errs2 @ errs_x2_v @ [ x2_b ] in
 		let cmds = annotate_first_cmd cmds in 
 		cmds, Var x_ret_5, errs, rets1, outer_breaks, outer_conts
 
@@ -3427,7 +3431,7 @@ and translate_statement tr_ctx e  =
 		let cmd_ass_ret_1 = SLPhiAssignment (x_ret_1, [| (Var x_ret_0); (Var x_ret_3) |]) in
 
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
+		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
 
 		(* x1_b := i__toBoolean (x1_v) with err *)
 		let x1_b, cmd_tb_x1 = make_to_boolean_call x1 x1_v tr_ctx.tr_err in
@@ -3436,7 +3440,7 @@ and translate_statement tr_ctx e  =
 		let cmd_goto_while = SLGuardedGoto (Var x1_b, body, end_loop) in
 
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
+		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
 		(* x_ret_2 := PHI(cont_vars, x2_v) *)
 		let cur_conts = cur_conts @ [ x2_v ] in
@@ -3460,19 +3464,19 @@ and translate_statement tr_ctx e  =
 		let cmds = (annotate_cmds [
 				(None,           cmd_ass_ret_0);         (*           x_ret_0 := $$empty                         *)
 				(Some head,      cmd_ass_ret_1);         (* head:     x_ret_1 := PHI(x_ret_0, x_ret_3)           *)
-			]) @ cmds1 @ (annotate_cmds [              (*           cmds1                                      *)
-			  (None,           cmd_gv_x1);             (*           x1_v := i__getValue (x1) with err          *)
+			]) @ cmds1 @ (annotate_cmds [                (*           cmds1                                      *)
+			  (None,           cmd_gv_x1);               (*           x1_v := i__getValue (x1) with err          *)
 				(None,           cmd_tb_x1);             (*           x1_b := i__toBoolean (x1_b) with err       *)
 				(None,           cmd_goto_while)         (*           goto [x1_b] body endwhile                  *)
-			]) @ cmds2 @ (annotate_cmds [              (* body:     cmds2                                      *)
-			  (None,           cmd_gv_x2);             (*           x2_v := i__getValue (x2) with err          *)
+			]) @ cmds2 @ (annotate_cmds [                (* body:     cmds2                                      *)
+			  (None,           cmd_gv_x2);               (*           x2_v := i__getValue (x2) with err          *)
 				(Some cont,      cmd_ass_ret_2);         (* cont:     x_ret_2 := PHI(cont_vars, x2_v)            *)
 				(None,           cmd_goto_empty_test);   (*           goto [not (x_ret_2 = $$empty)] next1 next2 *)
-			  (Some next1,     SLBasic SSkip);         (* next1:    skip                                       *)
+			  (Some next1,     SLBasic SSkip);           (* next1:    skip                                       *)
 				(Some next2,     cmd_ass_ret_3);         (* next2:    x_ret_3 := PHI(x_ret_1, x_ret_2)           *)
 				(None,           SLGoto head);           (*           goto head                                  *)
 			]) @ (annotate_cmds cmds_end_loop) in
-		let errs = errs1 @ [ x1_v; x1_b ] @ errs2 @ [ x2_v ] in
+		let errs = errs1 @ errs_x1_v @ [ x1_b ] @ errs2 @ errs_x2_v in
 		let cmds = annotate_first_cmd cmds in 
 		cmds, Var x_ret_5, errs, rets2, outer_breaks, outer_conts
 
@@ -3531,7 +3535,7 @@ and translate_statement tr_ctx e  =
 			let cur_conts, outer_conts = filter_cur_jumps conts3 tr_ctx.tr_js_lab true in
 
 			(* x2_v := i__getValue (x2) with err *)
-			let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
+			let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
 			(* 	x_ret_0 := $$empty *)
 			let x_ret_0 = fresh_var () in
@@ -3610,7 +3614,7 @@ and translate_statement tr_ctx e  =
 			let x5, cmd_pv_x1 = make_put_value_call x1 xp tr_ctx.tr_err in
 
 			(* x3_v = "i__getValue" (x3) with err *)
-			let x3_v, cmd_gv_x3 = make_get_value_call x3 tr_ctx.tr_err in
+			let x3_v, cmd_gv_x3, errs_x3_v = make_get_value_call x3 tr_ctx.tr_err in
 
 			(* x_ret_2 := PHI(cont_vars, x3_v) *)
 			let phi_args = cur_conts @ [ x3_v ] in
@@ -3643,39 +3647,39 @@ and translate_statement tr_ctx e  =
 			let cmd_phi_xret5 = SLPhiAssignment (x_ret_5, [| (Var x_ret_0); (Var x_ret_1); (Var x_ret_4) |]) in
 
 			let cmds1 = add_initial_label cmds1 next1 metadata in
-			let cmds = cmds2 @ (annotate_cmds [         (*           cmds2                                                        *)
+			let cmds = cmds2 @ (annotate_cmds [           (*           cmds2                                                        *)
 				(None,          cmd_gv_x2);               (*           x2_v := i__getValue (x2) with err                            *)
-				(None,          cmd_ass_xret0);           (*           x_ret_0 := $$empty 		                                      *)
+				(None,          cmd_ass_xret0);           (*           x_ret_0 := $$empty 		                                    *)
 				(None,          cmd_goto_null_undef);     (*           goto [(x2_v = $$null) or (x2_v = $$undefined)] next6 next0   *)
-				(Some next0,    cmd_to_obj_call);         (* next0:		x4 := "i__toObject" (x2_v) with err			                      *)
+				(Some next0,    cmd_to_obj_call);         (* next0:	   x4 := "i__toObject" (x2_v) with err			                *)
 				(None,          cmd_get_enum_fields);     (*           xlf := "i__getAllEnumerableFields" (x4)  with err            *)
 				(None,          cmd_xf_ass);              (*           xf  := getFields (xlf)                                       *)
-				(None,          cmd_ass_len);             (*           len := l-len (xf)                                           *)
+				(None,          cmd_ass_len);             (*           len := l-len (xf)                                            *)
 				(None,          cmd_ass_xc);              (*           x_c := 0                                                     *)
 				(Some head,     cmd_ass_xret1);           (* head:     x_ret_1 := PHI(x_ret_0, x_ret_3)                             *)
-				(None,          cmd_ass_xc1);             (*           x_c_1 := PSI(x_c, x_c_2) 		                                *)
-				(None,          cmd_goto_len);            (*           goto [x_c_1 < len] body end_loop 	                          *)
-				(Some body,     cmd_ass_xp);              (* body: 		 xp := l-nth (xf, x_c_1)		                                    *)
+				(None,          cmd_ass_xc1);             (*           x_c_1 := PSI(x_c, x_c_2) 		                            *)
+				(None,          cmd_goto_len);            (*           goto [x_c_1 < len] body end_loop 	                        *)
+				(Some body,     cmd_ass_xp);              (* body: 	   xp := l-nth (xf, x_c_1)		                                *)
 				(None,          cmd_ass_xl);              (*           xl := [xlf, xp] 	                                            *)
-				(None,          cmd_ass_xxl);             (*           xxl := l-nth (xl, 1)                                           *)
+				(None,          cmd_ass_xxl);             (*           xxl := l-nth (xl, 1)                                         *)
 				(None,          cmd_ass_hf);              (*           xhf := hasField (xxl, xp)                                    *)
-				(None,          cmd_goto_xhf)             (*           goto [xhf] next1 next4	                                      *)
-			]) @ cmds1 @ (annotate_cmds [               (* next1:    cmds1                                                        *)
-			  (None,          cmd_pv_x1)                (*           x5 := "i__putValue" (x1, xp) with err	                      *)
-			]) @ cmds3 @ (annotate_cmds [               (*           cmds3                                                        *)
-			  (None,          cmd_gv_x3);               (*           x3_v = "i__getValue" (x3) with err                           *)
+				(None,          cmd_goto_xhf)             (*           goto [xhf] next1 next4	                                    *)
+			]) @ cmds1 @ (annotate_cmds [                 (* next1:    cmds1                                                        *)
+			    (None,          cmd_pv_x1)                (*           x5 := "i__putValue" (x1, xp) with err	                    *)
+			]) @ cmds3 @ (annotate_cmds [                 (*           cmds3                                                        *)
+			    (None,          cmd_gv_x3);               (*           x3_v = "i__getValue" (x3) with err                           *)
 				(Some cont,     cmd_phi_cont);            (* cont:     x_ret_2 := PHI(cont_vars, x3_v)                              *)
-			  (None,          cmd_goto_xret2);          (*           goto [ not (x_ret_2 = $$empty) ] next2 next3                 *)
+			    (None,          cmd_goto_xret2);          (*           goto [ not (x_ret_2 = $$empty) ] next2 next3                 *)
 				(Some next2,    SLBasic SSkip);           (* next2:    skip                                                         *)
-			  (Some next3,    cmd_phi_xret3);           (* next3:    x_ret_3 := PHI(x_ret_1, x_ret_1, x_ret_2)                    *)
-				(Some next4,    cmd_ass_incr);            (* next4:		 x_c_2 := x_c_1 + 1                                           *)
+			    (Some next3,    cmd_phi_xret3);           (* next3:    x_ret_3 := PHI(x_ret_1, x_ret_1, x_ret_2)                    *)
+				(Some next4,    cmd_ass_incr);            (* next4:	   x_c_2 := x_c_1 + 1                                           *)
 				(None,          SLGoto head);             (*           goto head                                                    *)
 				(Some end_loop, cmd_phi_xret4);           (* end_loop: x_ret_4 := PHI(x_ret_1, break_vars)                          *)
-			  (None,          cmd_goto_xret4_empty);    (*           goto [ x_ret_4 = $$empty ] next5 next6                       *)
-			  (Some next5,    SLBasic SSkip);           (* next5:    skip                                                         *)
+			    (None,          cmd_goto_xret4_empty);    (*           goto [ x_ret_4 = $$empty ] next5 next6                       *)
+			    (Some next5,    SLBasic SSkip);           (* next5:    skip                                                         *)
 				(Some next6,    cmd_phi_xret5)            (* next6:    x_ret_5 := PHI(x_ret_0, x_ret_1, x_ret_4)                    *)
 			]) in
-			let errs = errs2 @ [x2_v; x4; xlf] @ errs1 @ [ x5 ] @ errs3 @ [ x3_v ] in
+			let errs = errs2 @ errs_x2_v @ [x4; xlf] @ errs1 @ [ x5 ] @ errs3 @ errs_x3_v in
 			let cmds = annotate_first_cmd cmds in 
 			cmds, Var x_ret_5, errs, rets3, outer_breaks, outer_conts
 
@@ -3715,7 +3719,7 @@ and translate_statement tr_ctx e  =
 				let x1_v, cmd_ass_x1v = make_empty_ass () in
 				[ annotate_cmd cmd_ass_x1v None ], Var x1_v, []) in
 		(* x1_v := i__getValue (x1) with err *)
-		let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
+		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
 		let cmds1, errs1 = cmds1 @ [ annotate_cmd cmd_gv_x1 None ], errs1 @ [ x1_v ] in
 
 		let cmds2, x2, errs2 =
@@ -3752,7 +3756,7 @@ and translate_statement tr_ctx e  =
 		let cmd_ass_ret_1 = SLPhiAssignment (x_ret_1, [| (Var x_ret_0); (Var x_ret_3) |]) in
 
 		(* x2_v := i__getValue (x2) with err *)
-		let x2_v, cmd_gv_x2 = make_get_value_call x2 tr_ctx.tr_err in
+		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
 	  (* x2_b := i__toBoolean (x2_v) with err2 *)
 		let x2_b, cmd_tb_x2 = make_to_boolean_call x2 x2_v tr_ctx.tr_err in
@@ -3762,7 +3766,7 @@ and translate_statement tr_ctx e  =
 		let cmd_for_goto =  SLGuardedGoto (Var x2_b, body, end_loop) in
 
 		(* x4_v := i__getValue (x4) with err *)
-		let x4_v, cmd_gv_x4 = make_get_value_call x4 tr_ctx.tr_err in
+		let x4_v, cmd_gv_x4, errs_x4_v = make_get_value_call x4 tr_ctx.tr_err in
 
 		(* cont:     x_ret_2 := PHI(cont_vars, x4_v)  *)
 		let cur_conts = cur_conts @ [ x4_v ] in
@@ -3784,24 +3788,23 @@ and translate_statement tr_ctx e  =
 
 		let cmds4 = add_initial_label cmds4 body metadata in
 
-		let cmds =
-						 cmds1 @ (annotate_cmds [                (*              cmds1                                        *)
+		let cmds = cmds1 @ (annotate_cmds [                    (*              cmds1                                        *)
 					(None,             cmd_ass_ret_0);         (*              x_ret_0 := $$empty                           *)
 					(Some head,        cmd_ass_ret_1);         (* head:        x_ret_1 := PHI(x_ret_0, x_ret_3)             *)
-				]) @ cmds2 @ (annotate_cmds [                (*              cmds2                                        *)
+				]) @ cmds2 @ (annotate_cmds [                  (*              cmds2                                        *)
 					(None,             cmd_gv_x2);             (*              x2_v := i__getValue (x2) with err            *)
 					(None,             cmd_tb_x2);             (*              x2_b := i__toBoolean (x2_v) with err         *)
 					(None,             cmd_for_goto);          (*              goto [x2_b] body end                         *)
-				]) @ cmds4 @ (annotate_cmds [                (* body:        cmds4                                        *)
+				]) @ cmds4 @ (annotate_cmds [                  (* body:        cmds4                                        *)
 					(None,             cmd_gv_x4);             (*              x4_v := i__getValue (x4) with err            *)
 					(Some cont,        cmd_ass_ret_2);         (* cont:        x_ret_2 := PHI(cont_vars, x4_v)              *)
 					(None,             cmd_goto_empty_test);   (*              goto [ not (x_ret_2 = $$empty) ] next1 next2 *)
 					(Some next1,       SLBasic SSkip);         (* next1:       skip                                         *)
 					(Some next2,       cmd_ass_ret_3);         (* next2:       x_ret_3 := PHI(x_ret_1, x_ret_2)             *)
-				]) @ cmds3 @ (annotate_cmds [                (*              cmds3                                        *)
-				  (None,             SLGoto head);           (*              goto head                                    *)
+				]) @ cmds3 @ (annotate_cmds [                  (*              cmds3                                        *)
+				  (None,             SLGoto head);             (*              goto head                                    *)
 				]) @ (annotate_cmds cmds_end_loop) in
-		let errs = errs1 @ errs2 @ [ x2_v; x2_b ] @ errs4 @ [ x4_v ] @ errs3 in
+		let errs = errs1 @ errs2 @ errs_x2_v @ [ x2_b ] @ errs4 @ errs_x4_v @ errs3 in
 		let cmds = annotate_first_cmd cmds in 
 		cmds, Var x_ret_5, errs, rets4, outer_breaks, outer_conts
 
@@ -3835,13 +3838,13 @@ and translate_statement tr_ctx e  =
 		| Some e ->
 			let cmds, x, errs = fe e in
 			(* x_r := i__getValue(x) with err *)
-			let x_r, cmd_gv_x = make_get_value_call x tr_ctx.tr_err in
+			let x_r, cmd_gv_x, errs_x_r = make_get_value_call x tr_ctx.tr_err in
 			let cmd_gv_x = annotate_cmd cmd_gv_x None in
 			(* goto ret_lab *)
 			let cmd_goto_ret = annotate_cmd (SLGoto tr_ctx.tr_ret_lab) None in
 			let cmds = cmds @ [ cmd_gv_x; cmd_goto_ret] in 
 			let cmds = annotate_first_cmd cmds in 
-			cmds, Var x_r, errs @ [ x_r ], [ x_r ], [], [])
+			cmds, Var x_r, errs @ errs_x_r, [ x_r ], [], [])
 
 
 	| Parser_syntax.Continue lab ->
@@ -3928,7 +3931,7 @@ and translate_statement tr_ctx e  =
 					 goto err
 		*)
 		let cmds, x, errs = fe e in
-		let x_v, cmd_gv_x = make_get_value_call x tr_ctx.tr_err in
+		let x_v, cmd_gv_x, errs_x_v = make_get_value_call x tr_ctx.tr_err in
 		let cmd_gv_x = [ annotate_cmd cmd_gv_x None ] in 
 		
 		(* goto err  *)
@@ -3936,10 +3939,10 @@ and translate_statement tr_ctx e  =
 
 		let cmds = cmds @                    (*  cmds                            *)
 		           cmd_gv_x @                (*  x_v := i__getValue (x) with err *)
-			         cmd_goto in               (*  goto err                        *)
+			       cmd_goto in               (*  goto err                        *)
 		
 		let cmds = annotate_first_cmd cmds in 
-		cmds, Literal Empty, errs @ [ x_v; x_v ], [], [], []
+		cmds, Literal Empty, errs @ errs_x_v @ [ x_v ], [], [], []
 
 
 	| Parser_syntax.Try (e1, Some (x, e2), Some e3) ->
@@ -4082,7 +4085,7 @@ and translate_statement tr_ctx e  =
 			let cmd_goto_1 = SLGuardedGoto ( UnOp(Not, Var x_prev_found), next1, next2) in
 
 			(* x1_v := getValue (x1) with err *)
-			let x1_v, cmd_gv_x1 = make_get_value_call x1 tr_ctx.tr_err in
+			let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
 
 			(* goto [ x1_v = x_switch_guard ] next2 end_case *)
 			let next1 = fresh_next_label () in
@@ -4098,14 +4101,14 @@ and translate_statement tr_ctx e  =
 
 			let cmds = (annotate_cmds [
 				(None,          cmd_goto_1)           (*           goto [ not x_prev_found ] next1 next2          *)
-			]) @ cmds1 @ (annotate_cmds [           (* next1:    cmds1                                          *)
-	      (None,          cmd_gv_x1);           (*           x1_v := getValue (x1) with err                 *)
+			]) @ cmds1 @ (annotate_cmds [             (* next1:    cmds1                                          *)
+	            (None,          cmd_gv_x1);           (*           x1_v := getValue (x1) with err                 *)
 				(None,          cmd_goto_2);          (*           goto [ x1_v = x_switch_guard ] next2 end_case  *)
-			]) @ cmds2 @ (annotate_cmds [           (* next2:    cmds2                                          *)
+			]) @ cmds2 @ (annotate_cmds [             (* next2:    cmds2                                          *)
 				(Some end_case, cmd_ass_xfound);      (* end_case: x_found := PHI(x_false, x_true)                *)
 				(None,          cmd_ass_case)         (*           x_case := PSI(x_prev_case, x_2)                *)
 			]) in
-			let errs = errs1 @ [ x1_v ] @ errs2 in
+			let errs = errs1 @ errs_x1_v @ errs2 in
 			cmds, x_case, errs, rets2, breaks2, conts2, x_found  in
 
 
@@ -4164,7 +4167,7 @@ and translate_statement tr_ctx e  =
 
 		let cmds_guard, x_guard, errs_guard = fe e in
 		(* x_guard_v := i__getValue (x_guard) with err  *)
-		let x_guard_v, cmd_gv_xguardv = make_get_value_call x_guard tr_ctx.tr_err in
+		let x_guard_v, cmd_gv_xguardv, errs_x_guard_v = make_get_value_call x_guard tr_ctx.tr_err in
 		let cmd_gv_xguardv = annotate_cmd cmd_gv_xguardv None in
 		(* x_found := false *)
 		let cmd_x_found_init = annotate_cmd (SLBasic (SAssignment (x_found_init, Literal (Bool false)))) None in
@@ -4180,7 +4183,7 @@ and translate_statement tr_ctx e  =
 				([], x_init, [], [], [], [], x_found_init)
 				a_cases in
 		let cmds_as = cmds_guard @ [ cmd_gv_xguardv; cmd_x_found_init; cmd_val_init ] @ cmds_as in
-		let errs_as = errs_guard @ [ x_guard_v ] @ errs_as in
+		let errs_as = errs_guard @ errs_x_guard_v @ errs_as in
 
 		let cmds_bs, x_bs, errs_bs, rets_bs, breaks_bs, conts_bs, x_found_bs =
 			List.fold_left
@@ -4399,7 +4402,7 @@ let generate_proc_eval new_fid e cc_table vis_fid =
 	let cmds_hoist_fdecls = annotate_cmds cmds_hoist_fdecls in
 	let cmds_e, x_e, errs, rets, _, _ = translate_statement new_ctx e in
 
-	let xe_v, cmd_gv_xe = make_get_value_call x_e ctx.tr_err in
+	let xe_v, cmd_gv_xe, errs_xe_v = make_get_value_call x_e ctx.tr_err in
 	let cmd_gv_xe = annotate_cmd cmd_gv_xe None in
 
 	(* ret_lab: x_ret := xe_v *)
@@ -4408,15 +4411,15 @@ let generate_proc_eval new_fid e cc_table vis_fid =
 	(* fake_ret_lab: x_fake_ret := PHI(rets) *)
 	let cmd_fake_ret = make_final_cmd rets new_ctx.tr_ret_lab new_ctx.tr_ret_var in
 	(* lab_err: x_error := PHI(errs, x_fake_ret) *)
-	let cmd_error_phi = make_final_cmd (errs @ [ fake_ret_var ]) ctx.tr_err ctx.tr_error_var in
+	let cmd_error_phi = make_final_cmd (errs @ errs_xe_v) ctx.tr_err ctx.tr_error_var in
 
 	let fid_cmds =
 		[ cmd_er_creation; cmd_er_flag ] @ cmds_decls @ [ cmd_ass_er_to_sc; cmd_ass_te; cmd_ass_se ] @ cmds_hoist_fdecls @ cmds_e
 		@ [ cmd_gv_xe; cmd_dr_ass; cmd_fake_ret; cmd_error_phi] in
 	{
 		lproc_name = new_fid;
-    lproc_body = (Array.of_list fid_cmds);
-    lproc_params = [ var_scope; var_this ];
+        lproc_body = (Array.of_list fid_cmds);
+        lproc_params = [ var_scope; var_this ];
 		lret_label = Some ctx.tr_ret_lab;
 		lret_var = Some ctx.tr_ret_var;
 		lerror_label = Some ctx.tr_err;
