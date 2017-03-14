@@ -1,0 +1,24 @@
+(** Totals: 3 fails and 5 passes **)
+
+
+(** Expected result: YES                             **)
+spec aux1 (x, y)
+   [[ ((x, "cenoura") -> #z) * ((x, "@proto") -> $$null) * (! (#z == None)) * ((x, "tutifruti") -> #w) * (y == #y) ]]
+   [[ ((x, "cenoura") -> "jose") * ((x, "@proto") -> $$null) * ((x, "tutifruti") -> #y) ]]
+   normal
+proc aux1 (x, y) {
+           [x, "cenoura"] := "jose";
+           [x, "tutifruti"] := y; 
+   rlab:   skip
+} with { ret: x, rlab; };
+
+
+spec test1 (x, y)
+   [[ emp ]]
+   [[ emp ]]
+   normal
+proc test1 (x, y) {
+  		   x := "aux1" (x, y); 
+   rlab:   skip
+} with { ret: x, rlab; }; 
+

@@ -5,6 +5,104 @@ open Symbolic_State_Basics
 open Structural_Entailment
 
 
+
+
+let bi_unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subst : substitution) (subst: substitution option) (pfs : jsil_logic_assertion list) (* solver *) (gamma : typing_environment) : ((jsil_logic_expr * jsil_logic_expr) list) option  =
+	let start_time = Sys.time () in
+	try
+	print_debug (Printf.sprintf "Unifying stores:\nStore: %s \nPat_store: %s" (JSIL_Memory_Print.string_of_shallow_symb_store store false) (JSIL_Memory_Print.string_of_shallow_symb_store pat_store false)); 
+	let discharges =
+		Hashtbl.fold
+			(fun var pat_lexpr discharges ->
+				let lexpr = try Hashtbl.find store var with _ -> raise (Failure "the stores are not unifiable") in
+				let rec spin_me_round pat_lexpr lexpr discharges =
+				(*Printf.printf "(%s, %s)\n" (JSIL_Print.string_of_logic_expression pat_lexpr false) (JSIL_Print.string_of_logic_expression lexpr false);*)
+				(match pat_lexpr, lexpr with
+
+				| LLit pat_lit, LLit lit ->
+					if (lit = pat_lit)
+						then discharges
+						else raise (Failure "Other literals: the stores are not unifiable")
+
+				| ALoc pat_aloc, ALoc aloc ->
+					extend_subst pat_subst pat_aloc (ALoc aloc);
+					discharges
+
+				| ALoc pat_aloc, (LLit (Loc loc)) ->
+					extend_subst pat_subst pat_aloc (LLit (Loc loc));
+					discharges
+
+				| LVar lvar, _ ->
+					if (Hashtbl.mem pat_subst lvar)
+						then (let current = Hashtbl.find pat_subst lvar in
+							if Pure_Entailment.is_equal current lexpr (DynArray.of_list pfs) (* solver *) gamma
+								then discharges
+								else raise (Failure "No no no no NO."))
+						else (extend_subst pat_subst lvar lexpr;
+								discharges)
+
+				| ALoc pat_aloc, LVar lvar ->
+					print_debug (Printf.sprintf "So, in unify_stores: Aloc %s, Lvar %s\n" pat_aloc lvar); 
+					let loc = resolve_location lvar pfs in
+					(match loc with
+					| Some loc ->
+						(* Printf.printf "I managed to resolve location and I know that %s = %s\n" lvar (JSIL_Print.string_of_logic_expression loc false);  *)
+						extend_subst pat_subst pat_aloc loc; discharges
+					| None     ->
+						(match subst with
+						| None -> 
+							let new_aloc = fresh_aloc () in 
+							extend_subst pat_subst pat_aloc (ALoc new_aloc);
+							discharges
+							
+						| Some subst ->
+							(* Printf.printf "I could not resolve the location and I am creating a new location\n"; *)
+							let new_aloc = fresh_aloc () in
+							extend_subst subst lvar (ALoc new_aloc);
+							extend_subst pat_subst pat_aloc (ALoc new_aloc);
+							discharges))
+
+				| LLit lit, LVar lvar ->
+					(match subst with
+					| Some subst ->
+						extend_subst subst lvar (LLit lit);
+						discharges
+					| None ->
+						if (Pure_Entailment.old_check_entailment [] pfs [ (LEq (LVar lvar, LLit lit)) ] gamma)
+							then discharges
+							else raise (Failure (Printf.sprintf "LLit %s, LVar %s : the pattern store is not normalized." (JSIL_Print.string_of_literal lit false) lvar)))
+
+				| LEList el1, LEList el2 ->
+					(* Printf.printf ("Two lists of lengths: %d %d") (List.length el1) (List.length el2); *)
+					if (List.length el1 = List.length el2) then
+					begin
+						(List.fold_left2
+						(fun ac x y ->
+							let new_ones = spin_me_round x y [] in
+							new_ones @ ac)
+						[] el1 el2) @ discharges
+					end
+					else
+					begin
+						[ (LLit (Bool true), LLit (Bool false)) ]
+					end
+
+				| le_pat, le -> if (le_pat = le) then discharges
+				                                 else ((le_pat, le) :: discharges)) in
+				spin_me_round pat_lexpr lexpr discharges)
+			pat_store
+			[] in
+	let end_time = Sys.time () in
+	JSIL_Syntax.update_statistics "unify_stores" (end_time -. start_time);
+	Some discharges
+	with (Failure msg) -> 
+		let end_time = Sys.time () in
+		JSIL_Syntax.update_statistics "unify_stores" (end_time -. start_time); None
+		
+		
+		
+	
+
 (** 
 	Unify two logical field-value lists
 
@@ -77,8 +175,8 @@ let bi_unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_f
 	
 	let just_pick_the_first locs = 
 		match locs with 
-		| [] -> print_debug "DEATH. just_pick_the_first\n"; raise (Failure "DEATH: unify_symb_heaps")
-		| loc :: rest -> loc, rest in 
+		| [] -> print_debug "DEATH. just_pick_the_first\n"; None
+		| loc :: rest -> Some (loc, rest) in 
 	
 	
 	let rec pick_loc_that_exists_in_both_heaps locs traversed_locs  = 
@@ -86,7 +184,7 @@ let bi_unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_f
 		| [] -> just_pick_the_first traversed_locs
 		| loc :: rest -> 
 			if (LHeap.mem heap loc) 
-				then loc, (traversed_locs @ rest) 
+				then Some (loc, (traversed_locs @ rest))
 				else pick_loc_that_exists_in_both_heaps rest (traversed_locs @ [ loc ]) in 
 	
 	let pick_pat_loc (locs_to_visit : string list) subst : string * (string list) = 
@@ -97,7 +195,7 @@ let bi_unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_f
 			| [] -> pick_loc_that_exists_in_both_heaps traversed_locs []
 			| loc :: rest -> 
 				if ((not (is_abs_loc_name loc)) || (Hashtbl.mem subst loc)) 
-					then loc, (traversed_locs @ rest) 
+					then Some (loc, (traversed_locs @ rest)) 
 					else loop rest (traversed_locs @ [ loc ]) in 
 		loop locs_to_visit [] in 	
 		
@@ -110,58 +208,60 @@ let bi_unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_f
 			(match locs_to_visit with 
 			| [] -> (pfs, discharges)
 			| _ ->  
-				let pat_loc, rest_locs = pick_pat_loc locs_to_visit subst in  
-				print_debug (Printf.sprintf "Location: %s" pat_loc);
-				print_debug (Printf.sprintf "Substitution: %s" (JSIL_Memory_Print.string_of_substitution subst));
-				(match abs_heap_get pat_heap pat_loc with
-				| Some (pat_fv_list, pat_def) ->
-			  	(if ((pat_def <> LNone) && (pat_def <> LUnknown)) then raise (Failure "Illegal Default Value")  else (
-						let loc = try
-							let le = Hashtbl.find subst pat_loc in
-							(match le with
-							| LLit (Loc loc) -> loc
-							| ALoc loc -> loc
-							| LVar v -> 
-								let loc = find_me_Im_a_loc (pfs_to_list pure_formulae) le in 
-								(match loc with 
-								| Some loc -> loc
-								| None -> raise (Failure "I cannot unify this"))
-				  		| _ ->
-								(* I really think this case is wrong!!!*)
-								pat_loc)
-							with _ -> (* this case is very interesting *) pat_loc in
-						let fv_list, (def : jsil_logic_expr) =
-							(match abs_heap_get heap loc with 
-							| Some (fv_list, def) -> fv_list, def 
-							| None -> 
-								let msg = Printf.sprintf "Location %s in pattern has not been matched" loc in
-								Printf.printf "%s\n" msg;
-								raise (Failure msg)) in
-						let fv_lists = unify_symb_fv_lists pat_fv_list fv_list def pure_formulae gamma subst in
-						(match fv_lists with
-						| Some (frame_fv_list, matched_fv_list, antiframe_fv_list, new_discharges) when ((pat_def = LNone) && ((List.length frame_fv_list) > 0)) ->
-							print_debug (Printf.sprintf "fv_lists unified successfully");
-							print_debug (Printf.sprintf "QH:%s\nAFH:%s" 
-								(JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false)
-								(JSIL_Memory_Print.string_of_shallow_symb_heap antiframe_heap false));
-							let all_fields_in_new_fv_list_are_none =
-								List.fold_left (fun ac (_, field_val) -> if (not ac) then ac else (field_val = LNone)) true frame_fv_list in
-							if all_fields_in_new_fv_list_are_none then (
-								abs_heap_put quotient_heap  loc []                def; 
-								abs_heap_put antiframe_heap loc antiframe_fv_list def; 
-								loop rest_locs pfs (new_discharges @ discharges))
-							else raise (Failure "LNone in precondition")
-						| Some (frame_fv_list, matched_fv_list, antiframe_fv_list, new_discharges) ->
-							abs_heap_put quotient_heap  loc frame_fv_list     def;
-							abs_heap_put antiframe_heap loc antiframe_fv_list def;
-							print_debug (Printf.sprintf "Adding sth to QH and AF.");
-							print_debug (Printf.sprintf "QH:%s\nAFH:%s" 
-								(JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false)
-								(JSIL_Memory_Print.string_of_shallow_symb_heap antiframe_heap false));
-							let new_pfs : jsil_logic_assertion list = make_all_different_pure_assertion frame_fv_list matched_fv_list in
-							loop rest_locs (new_pfs @ pfs) (new_discharges @ discharges)
-						| None -> print_debug "fv_lists not unifiable!"; raise (Failure ("fv_lists not unifiable")))))
-					| _ -> raise (Failure ("Pattern heaps cannot have default values")))) in 
+				(match pick_pat_loc locs_to_visit subst with  
+				| Some (pat_loc, rest_locs) -> 
+					print_debug (Printf.sprintf "Location: %s" pat_loc);
+					print_debug (Printf.sprintf "Substitution: %s" (JSIL_Memory_Print.string_of_substitution subst));
+					(match abs_heap_get pat_heap pat_loc with
+					| Some (pat_fv_list, pat_def) ->
+			  		(if ((pat_def <> LNone) && (pat_def <> LUnknown)) then raise (Failure "Illegal Default Value")  else (
+							let loc = try
+								let le = Hashtbl.find subst pat_loc in
+								(match le with
+								| LLit (Loc loc) -> loc
+								| ALoc loc -> loc
+								| LVar v -> 
+									let loc = find_me_Im_a_loc (pfs_to_list pure_formulae) le in 
+									(match loc with 
+									| Some loc -> loc
+									| None -> raise (Failure "I cannot unify this"))
+				  			| _ ->
+									(* I really think this case is wrong!!!*)
+									pat_loc)
+								with _ -> (* this case is very interesting *) pat_loc in
+							let fv_list, (def : jsil_logic_expr) =
+								(match abs_heap_get heap loc with 
+								| Some (fv_list, def) -> fv_list, def 
+								| None -> 
+									let msg = Printf.sprintf "Location %s in pattern has not been matched" loc in
+									Printf.printf "%s\n" msg;
+									raise (Failure msg)) in
+							let fv_lists = unify_symb_fv_lists pat_fv_list fv_list def pure_formulae gamma subst in
+							(match fv_lists with
+							| Some (frame_fv_list, matched_fv_list, antiframe_fv_list, new_discharges) when ((pat_def = LNone) && ((List.length frame_fv_list) > 0)) ->
+								print_debug (Printf.sprintf "fv_lists unified successfully");
+								print_debug (Printf.sprintf "QH:%s\nAFH:%s" 
+									(JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false)
+									(JSIL_Memory_Print.string_of_shallow_symb_heap antiframe_heap false));
+								let all_fields_in_new_fv_list_are_none =
+									List.fold_left (fun ac (_, field_val) -> if (not ac) then ac else (field_val = LNone)) true frame_fv_list in
+								if all_fields_in_new_fv_list_are_none then (
+									abs_heap_put quotient_heap  loc []                def; 
+									abs_heap_put antiframe_heap loc antiframe_fv_list def; 
+									loop rest_locs pfs (new_discharges @ discharges))
+								else raise (Failure "LNone in precondition")
+							| Some (frame_fv_list, matched_fv_list, antiframe_fv_list, new_discharges) ->
+								abs_heap_put quotient_heap  loc frame_fv_list     def;
+								abs_heap_put antiframe_heap loc antiframe_fv_list def;
+								print_debug (Printf.sprintf "Adding sth to QH and AF.");
+								print_debug (Printf.sprintf "QH:%s\nAFH:%s" 
+									(JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false)
+									(JSIL_Memory_Print.string_of_shallow_symb_heap antiframe_heap false));
+								let new_pfs : jsil_logic_assertion list = make_all_different_pure_assertion frame_fv_list matched_fv_list in
+								loop rest_locs (new_pfs @ pfs) (new_discharges @ discharges)
+							| None -> print_debug "fv_lists not unifiable!"; raise (Failure ("fv_lists not unifiable")))))
+						| _ -> raise (Failure ("Pattern heaps cannot have default values")))
+				| None -> raise (Failure ("Pattern heaps cannot have default values")))) in 
 			
 		let (pfs : (jsil_logic_assertion list)), (discharges: (symbolic_discharge_list)) = loop pat_heap_domain [] [] in 
 				
@@ -227,7 +327,7 @@ let bi_unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) :
 	let step_0 () =
 		let start_time = Sys.time() in
 		let subst = init_substitution [] in
-		let discharges_0 = unify_stores store_1 store_0 subst None (pfs_to_list pf_0) (* solver *) gamma_0 in
+		let discharges_0 = bi_unify_stores store_1 store_0 subst None (pfs_to_list pf_0) (* solver *) gamma_0 in
 		let result = (match discharges_0 with
 		| Some discharges_0 ->
 			print_debug (Printf.sprintf "Discharges: %d\n" (List.length discharges_0));

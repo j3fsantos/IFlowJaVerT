@@ -1,0 +1,22 @@
+(** Totals: 3 fails and 5 passes **)
+
+spec aux1 (x, y)
+   [[ emp ]]
+   [[ emp ]]
+   normal
+proc aux1 (x, y) {
+           [x, "cenoura"] := "jose";
+           [x, "tutifruti"] := y; 
+   rlab:   skip
+} with { ret: x, rlab; };
+
+
+spec test1 (x, y)
+   [[ emp ]]
+   [[ emp ]]
+   normal
+proc test1 (x, y) {
+  		   x := "aux1" (x, y); 
+   rlab:   skip
+} with { ret: x, rlab; }; 
+

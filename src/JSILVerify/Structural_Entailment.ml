@@ -92,7 +92,7 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 								discharges)
 
 				| ALoc pat_aloc, LVar lvar ->
-					(* Printf.printf "So, Aloc %s, Lvar %s\n" pat_aloc lvar; *)
+					print_debug (Printf.sprintf "So, in unify_stores: Aloc %s, Lvar %s\n" pat_aloc lvar); 
 					let loc = resolve_location lvar pfs in
 					(match loc with
 					| Some loc ->

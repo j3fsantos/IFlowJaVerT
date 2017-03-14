@@ -922,7 +922,9 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
 		let new_symb_states = find_and_apply_spec s_prog.program proc_name proc_specs symb_state anti_frame le_args in
 
 		(if ((List.length new_symb_states) = 0)
-			then raise (Failure (Printf.sprintf "No precondition found for procedure %s." proc_name)));
+			then (
+				raise (Failure (Printf.sprintf "No precondition found for procedure %s." proc_name)))
+			);
 
 
 		let tuple_result = (List.map
@@ -1236,7 +1238,7 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 	let s_prog = {
 		program = prog;
 		which_pred = which_pred;
-		spec_tbl = spec_table;
+		spec_tbl = new_spec_tbl;
 		pred_defs = n_pred_defs
 	} in
 	let pruning_info = init_post_pruning_info () in
