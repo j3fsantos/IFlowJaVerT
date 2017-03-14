@@ -7,18 +7,6 @@
   dataField(#r, "val", #some_val) *
   (ret == $$undefined))
 
-@pred Object (l, proto) :
-	types (l : $$object_type) *
-	((l, "@proto") -> proto) *
-	((l, "@class") -> "Object") *
-	((l, "@extensible") -> $$t);
-
-@pred ErrorObjectWithMessage (l, m) :
-  types (l : $$object_type) *
-  ((l, "@proto") -> $lerr_proto) * ((l, "@class") -> "Error") *
-  ((l, "@extensible") -> $$t) *
-  ((l, "message") -> {{"d", m, $$t, $$f, $$t}});
-
 @pred NodePrototype(np, insert_loc) :
 	standardObject(np) *
 	dataField(np, "insertToQueue", insert_loc) *
@@ -28,7 +16,7 @@
 	((np, "next") -> None);
 
 @pred Node(n, pri, val, next, node_proto) :
-	Object(n, node_proto) *
+	ObjectWithProto(n, node_proto) *
 	dataField(n, "pri",  pri) *
 	dataField(n, "val",  val) *
 	dataField(n, "next", next) *
@@ -55,7 +43,7 @@
   NodePrototype(node_proto, insert_loc);
 
   @pred Queue(pq, pq_proto, node_proto, max_pri, length) :
-  	Object(pq, pq_proto) *
+  	ObjectWithProto(pq, pq_proto) *
   	dataField(pq, "_head",  #head) *
     NodeList(#head, node_proto, max_pri, length) *
   	((pq, "enqueue") -> None) *
@@ -86,7 +74,7 @@ PriorityQueue = (function () {
   	   	(0 <# #pri) *
   	   	((this, "pri") -> None) * ((this, "val") -> None) *
         ((this, "next") -> None) * ((this, "insertToQueue") -> None) *
-  	   	Object(this, #node_proto) * NodePrototype(#node_proto, #insert_loc)
+  	   	ObjectWithProto(this, #node_proto) * NodePrototype(#node_proto, #insert_loc)
   	)
 
   	@post (
@@ -156,7 +144,7 @@ PriorityQueue = (function () {
         ((this, "enqueue") -> None) *
         ((this, "dequeue") -> None) *
         scope(Node: #n) *
-        Object(this, #pq_proto) *
+        ObjectWithProto(this, #pq_proto) *
         QueuePrototype(#pq_proto, #enqueue_loc, #enqueue_sc, #dequeue_loc, #dequeue_sc, #n, #node_proto, #insert_loc)
     )
     @post (

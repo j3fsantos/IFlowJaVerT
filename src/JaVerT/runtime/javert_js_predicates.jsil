@@ -23,3 +23,9 @@ pred ObjectWithProto (l, proto) :
 	((l, "@proto") -> proto) *
 	((l, "@class") -> "Object") *
 	((l, "@extensible") -> $$t);
+	
+pred ErrorObjectWithMessage (l, m) :
+  types (l : $$object_type) *
+  ((l, "@proto") -> $lerr_proto) * ((l, "@class") -> "Error") *
+  ((l, "@extensible") -> $$t) *
+  ((l, "message") -> {{"d", m, $$t, $$f, $$t}});
