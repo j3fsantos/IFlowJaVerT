@@ -694,7 +694,7 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 		let e_le', a_le' = lift_logic_expr le' in
 		let a_le_then =
 			match e_le', a_le' with
-			| _, Some a_le -> a_le
+			| _, Some (a_le, _) -> a_le
 			| Some e_le, None -> LEq (e_le, LLit (Bool true))
 			| None, None -> LFalse in
 		if (Pure_Entailment.old_check_entailment [] (get_pf_list symb_state) [ a_le_then ] (get_gamma symb_state))
@@ -750,9 +750,9 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 		let e_le, a_le = lift_logic_expr le in
 		let a_le_then, a_le_else =
 			match e_le, a_le with
-			| _, Some a_le ->
+			| _, Some (a_le, a_not_le) ->
 				print_debug (Printf.sprintf "Lifted assertion: %s\n" (JSIL_Print.string_of_logic_assertion a_le false));
-				([ a_le ], [ (LNot a_le) ])
+				([ a_le ], [ a_not_le ])
 			| Some e_le, None ->
 				([LEq (e_le, LLit (Bool true))], [LEq (e_le, LLit (Bool false))])
 			| None, None -> ([ LFalse ], [ LFalse ]) in

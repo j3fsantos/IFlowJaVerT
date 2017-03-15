@@ -3,10 +3,10 @@ spec test2 (x, y)
    [[ emp ]] 
    normal
 proc test2 (x, y) {
-		   y := [x, "cenoura"];
-  		   goto [y] then4 else4; 
+		    y := [x, "cenoura"];
+  		    goto [y] then4 else4; 
    then4:   [x, "cenoura"] := "maria";
-           goto rlab; 
-   else4:   [z, "foo"] := "bar"; 
-   rlab:   skip
+            goto rlab; 
+   else4:   [x, "foo"] := "bar"; 
+   rlab:    skip
 } with { ret: x, rlab; };

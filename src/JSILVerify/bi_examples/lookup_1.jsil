@@ -1,5 +1,5 @@
 spec test0 (x)
-   [[ ((x, "foo") -> "bar")   ]]
+   [[ ((x, "foo") -> "bar") ]]
    [[ emp ]]
    normal
 proc test0 (x) {

@@ -969,9 +969,9 @@ let rec lift_logic_expr lexpr =
 	(match lexpr with
 	| LBinOp (le1, op, le2) -> lift_binop_logic_expr op le1 le2
 	| LUnOp (op, le) -> lift_unop_logic_expr op le
-	| LLit (Bool true) -> Some (LLit (Bool true)), Some LTrue
-	| LLit (Bool false) -> Some (LLit (Bool false)), Some LFalse
-	| _ -> Some lexpr, Some (LEq (lexpr, LLit (Bool true))))
+	| LLit (Bool true) -> Some (LLit (Bool true)), Some (LTrue, LFalse)
+	| LLit (Bool false) -> Some (LLit (Bool false)), Some (LFalse, LTrue)
+	| _ -> Some lexpr, Some (LEq (lexpr, LLit (Bool true)), (LEq (lexpr, LLit (Bool false)))))
 and lift_binop_logic_expr op le1 le2 =
 	let err_msg = (Printf.sprintf "logical expression: binop %s : cannot be lifted to assertion" (JSIL_Print.string_of_binop op)) in
 	let f = lift_logic_expr in
@@ -989,17 +989,17 @@ and lift_binop_logic_expr op le1 le2 =
 	| LessThanEqual ->
 		let l_op_fun = lexpr_to_ass_binop op in
 		(match ((f le1), (f le2)) with
-		| ((Some le1, _), (Some le2, _)) -> None, Some (l_op_fun le1 le2)
+		| ((Some le1, _), (Some le2, _)) -> None, Some ((l_op_fun le1 le2), LNot (l_op_fun le1 le2))
 		| ((None    , _), (Some   _, _)) -> raise (Failure (err_msg ^ " : LEFT : " ^ (Printf.sprintf "%s" (JSIL_Print.string_of_logic_expression le1 false)) ^ " : right : " ^ (Printf.sprintf "%s" (JSIL_Print.string_of_logic_expression le2 false))))
 		| ((Some   _, _), (None    , _)) -> raise (Failure (err_msg ^ " : left : " ^ (Printf.sprintf "%s" (JSIL_Print.string_of_logic_expression le1 false)) ^ " : RIGHT : " ^ (Printf.sprintf "%s" (JSIL_Print.string_of_logic_expression le2 false))))
 		| ((None    , _), (None    , _)) -> raise (Failure (err_msg ^ " : left and right.")))
 	| And ->
 		(match ((f le1), (f le2)) with
-		| ((_, Some a1), (_, Some a2)) -> None, Some (LAnd (a1, a2))
+		| ((_, Some (a1, a1')), (_, Some (a2, a2'))) -> None, Some (LAnd (a1, a2), LOr (a1', a2'))
 		| (_, _) -> raise (Failure err_msg))
 	| Or ->
 		(match ((f le1), (f le2)) with
-		| ((_, Some a1), (_, Some a2)) -> None, Some (LOr (a1, a2))
+		| ((_, Some (a1, a1')), (_, Some (a2, a2'))) -> None, Some (LOr (a1, a2), LAnd (a1', a2'))
 		| (_, _) -> raise (Failure err_msg))
 	| _ -> Some (LBinOp (le1, op, le2)), None)
 and lift_unop_logic_expr op le =
@@ -1008,7 +1008,7 @@ and lift_unop_logic_expr op le =
 	(match op with
 	| Not ->
 		(match (f le) with
-		| (None, Some a) -> None, Some (LNot a)
+		| (None, Some (a, a')) -> None, Some (a', a)
 		| (_, _) -> raise (Failure (err_msg ^ " Not")))
 	| _ -> Some (LUnOp (op, le)), None)
 
