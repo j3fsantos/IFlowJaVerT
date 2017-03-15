@@ -183,6 +183,8 @@ let get_store_domain store =
 let pfs_to_list (pfs : pure_formulae) =
 	DynArray.to_list pfs
 
+let pfs_of_list (pfs : jsil_logic_assertion list) =
+	DynArray.of_list pfs
 
 let add_pure_assertion (pfs : pure_formulae) (a : jsil_logic_assertion) = 
 	DynArray.add pfs a
