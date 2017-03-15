@@ -255,166 +255,114 @@ let rec purify_stars a =
 
 
 (**
-  var_set is a hashtbl (what else?) that models the set of variables
+  var_set is a set (NOT A HASHTABLE) that models the set of variables
 *)
-let rec get_expr_vars var_set catch_pvars e =
-	let f = get_expr_vars var_set catch_pvars in
+let rec get_expr_vars catch_pvars e : SS.t =
+	let f = get_expr_vars catch_pvars in
 	match e with
 	| LLit _
-	| LNone -> ()
-	| LVar var ->
+	| ALoc _
+	| LNone 
+	| LUnknown -> SS.empty
+	| LVar var -> 
 			if (not catch_pvars)
-				then (try (let _ = Hashtbl.find var_set var in ()) with _ -> (Hashtbl.add var_set var true; ()))
-				else ()
-	| LUnknown
-	| ALoc _ -> ()
+				then SS.singleton var
+				else SS.empty
 	| PVar var ->
 			if (catch_pvars)
-				then (try (let _ = Hashtbl.find var_set var in ()) with _ -> (Hashtbl.add var_set var true; ()))
-				else ()
-	| LBinOp (e1, op, e2) -> f e1; f e2
-	| LUnOp (op, e1) -> f e1
+				then SS.singleton var 
+				else SS.empty
+	| LUnOp (_, e1) -> f e1
 	| LTypeOf e1 -> f e1
-	| LEList le_list -> List.iter (fun le -> f le) le_list
+	| LEList le_list -> 
+			List.fold_left (fun ac e -> 
+				let v_e = f e in
+					SS.union ac v_e) SS.empty le_list
+	| LBinOp (e1, _, e2) 
 	| LLstNth (e1, e2)
-	| LStrNth (e1, e2) -> f e1; f e2
+	| LStrNth (e1, e2) -> 
+			let v_e1 = f e1 in
+			let v_e2 = f e2 in
+				SS.union v_e1 v_e2
 
-
-let rec get_ass_vars_iter vars_tbl catch_pvars ass =
-	let f = get_ass_vars_iter vars_tbl catch_pvars in
-	let fe = get_expr_vars vars_tbl catch_pvars in
-	match ass with
-	| LAnd (a1, a2) -> f a1; f a2
-	| LOr (a1, a2) -> f a1; f a2
-	| LNot a1 -> f a1
+let rec get_assertion_vars catch_pvars a : SS.t = 
+	let f = get_assertion_vars catch_pvars in
+	let fe = get_expr_vars catch_pvars in
+	let result = (match a with
 	| LTrue
-	| LFalse -> ()
+	| LFalse 
+	| LEmp -> SS.empty
+	| LNot a1 -> f a1
+	| LAnd (a1, a2) 
+	| LOr (a1, a2)
+	| LStar (a1, a2) -> 
+			let v_a1 = f a1 in
+			let v_a2 = f a2 in
+			SS.union v_a1 v_a2
 	| LEq (e1, e2)
 	| LLess (e1, e2)
 	| LLessEq (e1, e2)
-	| LStrLess (e1, e2) -> fe e1; fe e2
-	| LStar (a1, a2) -> f a1; f a2
-	| LPointsTo (e1, e2, e3) -> fe e1; fe e2; fe e3
-	| LEmp       -> ()
-	| LTypes vts ->
-		List.iter 
-			(fun (e, t) -> 
-				let abort, x, is_x_lvar = 
+	| LStrLess (e1, e2) -> 
+			let v_e1 = fe e1 in
+			let v_e2 = fe e2 in
+			SS.union v_e1 v_e2
+	| LPointsTo (e1, e2, e3) -> 
+			let v_e1 = fe e1 in
+			let v_e2 = fe e2 in
+			let v_e3 = fe e3 in
+			SS.union v_e1 (SS.union v_e2 v_e3)
+	| LTypes vts -> List.fold_left 
+			(fun ac (e, t) -> 
+				let proceed, x, is_x_lvar = 
 					(match e with 
-					| LVar x_name -> false, x_name, true 
-					| PVar x_name -> false, x_name, false 
-					| le ->
-						(print_debug (Printf.sprintf "Sth illegal in types assertion: %s\n" (JSIL_Print.string_of_logic_expression le false));
-						(true, "", false))) in 
-				if ((not abort) && (((not catch_pvars) && is_x_lvar) || (catch_pvars &&  (not is_x_lvar)))) then (
-					try (let _ = Hashtbl.find vars_tbl x in ()) with _ -> (Hashtbl.add vars_tbl x true; ())
-				) else ())
-			vts 
-	| LPred (_, es) -> List.iter fe es
-	| LEmptyFields (o, les) -> fe o
+					| LVar x_name -> true, x_name, true 
+					| PVar x_name -> true, x_name, false 
+					| le -> false, "", false) in 
+				if (proceed && (((not catch_pvars) && is_x_lvar) || (catch_pvars &&  (not is_x_lvar)))) 
+					then SS.add x ac
+					else ac) SS.empty vts 
+	| LPred (_, es) -> 
+			List.fold_left (fun ac e -> 
+				let v_e = fe e in
+					SS.union ac v_e) SS.empty es
+	| LEmptyFields (o, les) -> 
+			let v_o = fe o in
+			let v_les = List.fold_left (fun ac e -> 
+				let v_e = fe e in
+					SS.union ac v_e) SS.empty les in
+			SS.union v_o v_les) in
+	result
 
+let get_assertion_list_vars assertions catch_pvars =
+	List.fold_left (fun ac a ->
+		let v_a = get_assertion_vars catch_pvars a in
+		SS.union ac v_a) SS.empty assertions
 
-let get_assertion_vars ass catch_pvars =
-	let vars_tbl = Hashtbl.create small_tbl_size in
-	get_ass_vars_iter vars_tbl catch_pvars ass;
-	vars_tbl
-
-
-let get_list_of_assertions_vars_tbl assertions catch_pvars =
-	let vars_tbl = Hashtbl.create small_tbl_size in
-	let rec loop assertions =
-		match assertions with
-		| [] -> ()
-		| a :: rest_assertions ->
-			get_ass_vars_iter vars_tbl catch_pvars a;
-			loop rest_assertions in
-
-	loop assertions;
-	vars_tbl
-
-
-let get_list_of_assertions_vars_list assertions catch_pvars =
-	let vars_tbl = get_list_of_assertions_vars_tbl assertions catch_pvars in
-	Hashtbl.fold
-		(fun var v_val ac -> var :: ac)
-		vars_tbl
-		[]
-
+(* *********************************** *)
 
 let get_subtraction_vars_old assertions_left assertions_right catch_pvars =
-	let assertion_left_vars_list = get_list_of_assertions_vars_list assertions_left catch_pvars in
-	let assertion_right_vars_tbl = get_list_of_assertions_vars_tbl assertions_right catch_pvars in
+	let v_l = get_assertion_list_vars assertions_left catch_pvars in
+	let v_r = get_assertion_list_vars assertions_right catch_pvars in
+		SS.diff v_l v_r
 
-	(* Printf.printf "pat_pf_vars: %s\n" (print_var_list assertion_left_vars_list); *)
+let get_subtraction_vars vars subst =
+	SS.filter (fun x -> not (Hashtbl.mem subst x)) vars
 
-	let assertion_left_vars_list =
-		List.filter
-			(fun x -> not (Hashtbl.mem assertion_right_vars_tbl x))
-			assertion_left_vars_list in
-	assertion_left_vars_list
-
-
-let get_subtraction_vars vars_list subst =
-	let new_vars_list =
-		List.filter
-			(fun x -> not (Hashtbl.mem subst x))
-			vars_list in
-	new_vars_list
-
-let get_expr_vars_tbl le catch_pvars =
-	let vars_tbl = Hashtbl.create small_tbl_size in
-	get_expr_vars vars_tbl catch_pvars le;
-	vars_tbl
-
-let get_expr_vars_lst le catch_p_vars =
-	let vars_tbl = Hashtbl.create small_tbl_size in
-	get_expr_vars vars_tbl catch_p_vars le;
-	Hashtbl.fold
-		(fun var v_val ac -> var :: ac)
-		vars_tbl
-		[]
-
-let get_ass_vars_lst a catch_p_vars =
-	let vars_tbl = get_assertion_vars a catch_p_vars in
-	Hashtbl.fold
-		(fun var v_val ac -> var :: ac)
-		vars_tbl
-		[]
-
-
-let get_vars_tbl var_arr =
-	let len = Array.length var_arr in
-	let vars_tbl = Hashtbl.create len in
-	for u=0 to (len-1) do
-		let var_u = var_arr.(u) in
-		Hashtbl.add vars_tbl var_u u
-	done;
-	vars_tbl
-
-
-let get_vars_le_list_as_tbl catch_pvars le_list =
-	let vars_tbl = Hashtbl.create small_tbl_size in
-	List.iter
-		(fun le -> get_expr_vars vars_tbl catch_pvars le)
-		le_list;
-	vars_tbl
-
+let get_vars_le_list catch_pvars le_list =
+	List.fold_left (fun ac e ->
+		let v_e = get_expr_vars catch_pvars e in
+		SS.union ac v_e) SS.empty le_list
 
 let get_subtraction_vars_lexpr lexpr_left lexpr_right catch_pvars =
-	let right_lexpr_vars_tbl = Hashtbl.create small_tbl_size in
-
-	let left_lexpr_vars_list = get_expr_vars_lst lexpr_left catch_pvars in
-	get_expr_vars right_lexpr_vars_tbl catch_pvars lexpr_right;
-
-	let left_lexpr_vars_list =
-		List.filter
-			(fun x -> not (Hashtbl.mem right_lexpr_vars_tbl x))
-			left_lexpr_vars_list in
-	left_lexpr_vars_list
-
-
-let list_subraction list1 list2 = []
-
+	let v_l = get_expr_vars lexpr_left catch_pvars in
+	let v_r = get_expr_vars lexpr_right catch_pvars in
+		SS.diff v_l v_r
+		
+let get_vars_tbl vars =
+  let len = SS.cardinal vars in
+  let vars_tbl = Hashtbl.create len in
+  List.iteri (fun i var -> Hashtbl.add vars_tbl var i) (SS.elements vars);
+  vars_tbl
 
 let rec push_in_negations_off a =
 	let err_msg = "push_in_negations_off: internal error" in
@@ -573,7 +521,7 @@ let rec lexpr_substitution lexpr subst partial =
 			(try Hashtbl.find subst var with _ ->
 				if (not partial)
 					then
-						let new_var = Symbolic_State.fresh_lvar () in
+						let new_var = fresh_lvar () in
 						Hashtbl.replace subst var (LVar new_var);
 						LVar new_var
 					else (LVar var))
@@ -582,7 +530,7 @@ let rec lexpr_substitution lexpr subst partial =
 			(try Hashtbl.find subst aloc with _ ->
 				if (not partial)
 					then
-						let new_aloc = ALoc (Symbolic_State.fresh_aloc ()) in
+						let new_aloc = ALoc (fresh_aloc ()) in
 						Hashtbl.replace subst aloc new_aloc;
 						new_aloc
 					else
@@ -633,16 +581,12 @@ let rec assertion_substitution a subst partial =
 
 
 let filter_substitution subst vars =
-	let new_subst = Hashtbl.create (List.length vars) in
-	List.iter
-		(fun var ->
-			try
-				(let le = Hashtbl.find subst var in
-				Hashtbl.add new_subst var le)
-			with _ -> ())
-		vars;
+	let new_subst = Hashtbl.copy subst in
+	Hashtbl.filter_map_inplace (fun v le ->
+		match (SS.mem v vars) with
+		| true -> Some le
+		| false -> None) new_subst;
 	new_subst
-
 
 let init_substitution vars =
 	let new_subst = Hashtbl.create 31 in
@@ -693,13 +637,10 @@ let compose_partial_substitutions subst1 subst2 =
 		subst2;
 	subst
 
-
-
 let copy_substitution subst = Hashtbl.copy subst
 
 let extend_subst subst var v =
 	Hashtbl.replace subst var v
-
 
 let extend_substitution subst vars les =
 	List.iter2
@@ -707,18 +648,8 @@ let extend_substitution subst vars les =
 		vars
 		les
 
-
-let filter_vars vars ignore_vars : string list =
-	let ignore_vars = SS.of_list ignore_vars in
-	let vars =
-		List.fold_left
-			(fun ac var ->
-				if (SS.mem var ignore_vars)
-					then ac
-					else (var :: ac))
-			[ ]
-			vars in
-	vars
+let filter_vars vars ignore_vars : SS.t =
+	SS.diff vars ignore_vars
 
 let rec type_lexpr gamma le =
 	
@@ -1133,6 +1064,257 @@ let rec find_me_Im_a_loc pfs lvar =
 		if (lvar = lvar') 
 			then Some loc 
 			else find_me_Im_a_loc rest lvar  
+
+(**
+	Reduction of expressions: everything must be IMMUTABLE
+
+	Binary operators - recursively
+	TypeOf           - recursively
+	LEList           - reduce each expression, then if we have all literals,
+	                   transform into a literal list
+	List nth         - try to get a list and then actually reduce
+	String nth       - ------- || -------
+	List length      - try to get a list and then actually calculate
+	String length    - ------- || -------
+*)
+let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
+                          (gamma : (string, jsil_type) Hashtbl.t)
+						  (pfs   : jsil_logic_assertion DynArray.t)
+						  (e     : jsil_logic_expr) =
+	let f = reduce_expression store gamma pfs in
+	let result = (match e with
+
+	| LBinOp (le1, LstCons, LEList []) -> LEList [ f le1 ]
+	| LBinOp (le1, LstCons, LLit (LList [])) -> LEList [ f le1 ] 
+	| LBinOp (LEList le1, LstCat, LEList le2) -> f (LEList (le1 @ le2))
+	(* TODO: combinations of LLit (LList _) and LEList *)
+
+	(* List append *)
+	| LBinOp (le1, LstCat, le2) ->
+		let fe1 = f le1 in 
+		let fe2 = f le2 in
+		let result = 
+		(match fe1 with
+		| LEList [] -> fe2
+		| LLit (LList []) -> fe2
+		| _ -> (match fe2 with
+			| LEList [] -> fe1
+			| LLit (LList []) -> fe1
+			| _ -> LBinOp (fe1, LstCat, fe2))) in
+		result
+		
+	(* String concat *)
+	| LBinOp (le1, StrCat, le2) ->
+		let fe1 = f le1 in 
+		let fe2 = f le2 in
+		let result = 
+		(match fe1 with
+		| LLit (String "") -> fe2
+		| _ -> (match fe2 with
+			| LLit (String "") -> fe1
+			| _ -> LBinOp (fe1, StrCat, fe2))) in
+		result
+		
+	(* Binary operators *)
+	| LBinOp (e1, bop, e2) ->
+		let re1 = f e1 in
+		let re2 = f e2 in
+			LBinOp (re1, bop, re2)
+
+	(* TypeOf *)
+	| LTypeOf e1 ->
+		let re1 = f e1 in
+			LTypeOf re1
+
+	(* Logical lists *)
+	| LEList le ->
+		let rle = List.map (fun x -> f x) le in
+		let all_literals = List.fold_left
+			(fun ac x -> ac && (match x with
+			  | LLit _ -> true
+			  | _ -> false)) true rle in
+		if all_literals then
+			LLit (LList (List.map (fun x -> (match x with
+			  | LLit lit -> lit
+			  | _ -> raise (Failure "List literal nonsense. This cannot happen."))) rle))
+		else (LEList rle)
+
+	(* List nth *)
+	| LLstNth (e1, e2) ->
+		let list = f e1 in
+		let list = find_me_Im_a_list store pfs list in
+		let index = f e2 in
+		(match list, index with
+		| LLit (LList list), LLit (Num n) ->
+			if (Utils.is_int n) then
+			(try (LLit (List.nth list (int_of_float n))) with _ ->
+					raise (Failure "List index out of bounds"))
+			else
+					raise (Failure (Printf.sprintf "Non-integer list index: %f" n))
+
+		| LEList list, LLit (Num n) ->
+			if (Utils.is_int n) then
+			(try (List.nth list (int_of_float n)) with _ ->
+					raise (Failure "List index out of bounds"))
+			else
+					raise (Failure (Printf.sprintf "Non-integer list index: %f" n))
+
+		| LBinOp (le, LstCons, list), LLit (Num n) ->
+			if (Utils.is_int n) then
+		  let ni = int_of_float n in
+			 (match (ni = 1) with
+		   | true -> f le
+		   | false -> f (LLstNth (f list, LLit (Num (n -. 1.)))))
+			else
+					raise (Failure (Printf.sprintf "Non-integer list index: %f" n))
+
+		| _, _ -> LLstNth (list, index))
+
+	(* String nth *)
+	| LStrNth (e1, e2) ->
+		let str = f e1 in
+		let index = f e2 in
+		(match str, index with
+		| LLit (String str), LLit (Num n) ->
+			if (Utils.is_int n) then
+			(try (LLit (String (String.sub str (int_of_float n) 1))) with _ ->
+				raise (Failure "List index out of bounds"))
+			else
+				raise (Failure (Printf.sprintf "Non-integer string index: %f" n))
+		| _, _ -> LStrNth (str, index))
+
+    (* List and String length *)
+	| LUnOp (op, e1) ->
+		let re1 = f e1 in
+		(match op with
+		 | LstLen -> (match re1 with
+				| LLit (LList list) -> (LLit (Num (float_of_int (List.length list))))
+		    | LEList list -> (LLit (Num (float_of_int (List.length list))))
+			| LBinOp (le, LstCons, list) ->
+				let rlist = f (LUnOp (LstLen, list)) in
+				(match rlist with
+				| LLit (Num n) -> LLit (Num (n +. 1.))
+				| _ -> LBinOp (LLit (Num 1.), Plus, rlist))
+				| _ -> LUnOp (LstLen, e1))
+		 | StrLen -> (match re1 with
+		    | LLit (String str) -> (LLit (Num (float_of_int (String.length str))))
+		    | _ -> LUnOp (StrLen, e1))
+		 | _ -> LUnOp (op, re1))
+
+	(* Everything else *)
+	| _ -> e) in
+	if (not (e = result)) then print_debug (Printf.sprintf "Reduce expression: %s ---> %s"
+		(JSIL_Print.string_of_logic_expression e false)
+		(JSIL_Print.string_of_logic_expression result false));
+	result
+
+let reduce_expression_no_store_no_gamma_no_pfs = reduce_expression (Hashtbl.create 1) (Hashtbl.create 1) (DynArray.create ())
+let reduce_expression_no_store_no_gamma        = reduce_expression (Hashtbl.create 1) (Hashtbl.create 1)
+let reduce_expression_no_store                 = reduce_expression (Hashtbl.create 1)
+
+(* Reduction of assertions *)
+let rec reduce_assertion store gamma pfs a =
+	let f = reduce_assertion store gamma pfs in
+	let fe = reduce_expression store gamma pfs in
+	let result = (match a with
+	| LAnd (LFalse, _)
+	| LAnd (_, LFalse) -> LFalse
+	| LAnd (LTrue, a1)
+	| LAnd (a1, LTrue) -> f a1
+	| LAnd (a1, a2) ->
+		let ra1 = f a1 in
+		let ra2 = f a2 in
+		let a' = LAnd (ra1, ra2) in
+		if ((ra1 = a1) && (ra2 = a2))
+			then a' else f a'
+
+	| LOr (LTrue, _)
+	| LOr (_, LTrue) -> LTrue
+	| LOr (LFalse, a1)
+	| LOr (a1, LFalse) -> f a1
+	| LOr (a1, a2) ->
+		let ra1 = f a1 in
+		let ra2 = f a2 in
+		let a' = LOr (ra1, ra2) in
+		if ((ra1 = a1) && (ra2 = a2))
+			then a' else f a'
+
+	| LNot LTrue -> LFalse
+	| LNot LFalse -> LTrue
+	| LNot a1 ->
+		let ra1 = f a1 in
+		let a' = LNot ra1 in
+		if (ra1 = a1)
+			then a' else f a'
+
+	| LStar (LFalse, _)
+	| LStar (_, LFalse) -> LFalse
+	| LStar (LTrue, a1)
+	| LStar (a1, LTrue) -> f a1
+	| LStar (a1, a2) ->
+		let ra1 = f a1 in
+		let ra2 = f a2 in
+		let a' = LStar (ra1, ra2) in
+		if ((ra1 = a1) && (ra2 = a2))
+			then a' else f a'
+
+	| LEq (e1, e2) ->
+		let re1 = fe e1 in
+		let re2 = fe e2 in
+		let eq = (re1 = re2) && (re1 <> LUnknown) in
+		if eq then LTrue
+		else
+		let ite a b = if (a = b) then LTrue else LFalse in
+		let default e1 e2 re1 re2 = 
+			let a' = LEq (re1, re2) in
+				if ((re1 = e1) && (re2 = e2))
+					then a' else f a' in
+		(match e1, e2 with
+			| LLit l1, LLit l2 -> ite l1 l2
+			| LNone, PVar x
+			| PVar x, LNone
+			| LNone, LVar x
+			| LVar x, LNone -> 
+				if (Hashtbl.mem gamma x) 
+					then (let tx = Hashtbl.find gamma x in 
+						if tx = NoneType then default e1 e2 re1 re2 else LFalse)
+					else default e1 e2 re1 re2
+			| LNone, e
+			| e, LNone -> LFalse
+			
+			| LLit (String str), LVar x 
+			| LVar x, LLit (String str) ->
+				(* Specific string hack:
+				      if we have a string starting with @, and also 
+				      that the var-string doesn't start with @, we know it's false *)
+				if (str <> "" && String.get str 0 = '@') 
+					then
+						let pfs = DynArray.to_list pfs in 
+						if ((List.mem (LNot (LEq (LStrNth (LVar x, LLit (Num 0.)), LLit (String "@")))) pfs)  ||
+							 (List.mem (LNot (LEq (LLit (String "@"), LStrNth (LVar x, LLit (Num 0.))))) pfs))
+						then LFalse 
+						else default e1 e2 re1 re2
+					else default e1 e2 re1 re2
+					
+			| LLit (Bool true), LBinOp (e1, LessThan, e2) -> LLess (e1, e2)
+			| LLit (Bool false), LBinOp (e1, LessThan, e2) -> LNot (LLess (e1, e2))
+			
+			| _, _ -> default e1 e2 re1 re2
+		)
+
+	| LLess (e1, e2) ->
+		let re1 = fe e1 in
+		let re2 = fe e2 in
+		LLess (re1, re2)
+
+	| _ -> a) in
+	result
+
+let reduce_assertion_no_store_no_gamma_no_pfs = reduce_assertion (Hashtbl.create 1) (Hashtbl.create 1) (DynArray.create ())
+let reduce_assertion_no_store_no_gamma        = reduce_assertion (Hashtbl.create 1) (Hashtbl.create 1)
+let reduce_assertion_no_store                 = reduce_assertion (Hashtbl.create 1)
+
+
 
 (*
 let resolve_logical_variables pfs lvars = 

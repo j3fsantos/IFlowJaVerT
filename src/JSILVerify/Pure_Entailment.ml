@@ -657,7 +657,7 @@ let encode_gamma tr_ctx how_many =
 			(fun x -> x <> Boolean.mk_true ctx)
 			(List.map
 				(fun (x, t_x) ->
-					if ((Symbolic_State.is_lvar_name x) || (Symbolic_State.is_abs_loc_name x))
+					if ((is_lvar_name x) || (is_abs_loc_name x))
 						then (
 							let le_x = (mk_const ctx (Symbol.mk_string ctx x)) in
 							let le_typeof_le_x = (Expr.mk_app ctx tr_ctx.tr_typeof_fun [ le_x ]) in
@@ -1115,13 +1115,13 @@ let old_check_entailment existentials left_as right_as gamma =
 	print_time_debug "check_entailment:";	
 
 	print_debug (Printf.sprintf "Preparing entailment check:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n"
-	   (String.concat ", " (existentials))
+	   (String.concat ", " (SS.elements existentials))
 	   (JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list left_as) false)
 	   (JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list right_as) false)
 	   (JSIL_Memory_Print.string_of_gamma gamma));
 
 	let existentials, left_as, right_as, gamma =
-		simplify_implication (SS.of_list existentials) (DynArray.of_list left_as) (DynArray.of_list right_as) (copy_gamma gamma) in
+		simplify_implication existentials (DynArray.of_list left_as) (DynArray.of_list right_as) (copy_gamma gamma) in
 	filter_gamma_pfs (DynArray.of_list (DynArray.to_list left_as @ DynArray.to_list right_as)) gamma;
 	
 	(* If right is empty, then the left only needs to be satisfiable *)
@@ -1245,7 +1245,7 @@ let is_equal e1 e2 pure_formulae (* solver *) gamma =
 	let pfs = DynArray.to_list pure_formulae in
 	let result = (match (is_equal_on_lexprs e1 e2 pfs) with
 	| Some b -> b
-	| None -> JSIL_Syntax.update_statistics "is_equal_entailment" 0.; old_check_entailment [] (Symbolic_State.pfs_to_list pure_formulae) [ (LEq (e1, e2)) ] gamma) in
+	| None -> JSIL_Syntax.update_statistics "is_equal_entailment" 0.; old_check_entailment SS.empty (Symbolic_State.pfs_to_list pure_formulae) [ (LEq (e1, e2)) ] gamma) in
 	let end_time = Sys.time () in
 	JSIL_Syntax.update_statistics "is_equal" (end_time -. start_time);
 	result
@@ -1256,7 +1256,7 @@ let is_different e1 e2 pure_formulae (* solver *) gamma =
 	let pfs = DynArray.to_list pure_formulae in
 	let result = (match (is_equal_on_lexprs e1 e2 pfs) with
 	| Some b -> not b
-	| None -> JSIL_Syntax.update_statistics "is_different_entailment" 0.; old_check_entailment [] (Symbolic_State.pfs_to_list pure_formulae) [ LNot (LEq (e1, e2)) ] gamma) in
+	| None -> JSIL_Syntax.update_statistics "is_different_entailment" 0.; old_check_entailment SS.empty (Symbolic_State.pfs_to_list pure_formulae) [ LNot (LEq (e1, e2)) ] gamma) in
 	let end_time = Sys.time () in
 	JSIL_Syntax.update_statistics "is_different" (end_time -. start_time);
 	result

@@ -465,5 +465,56 @@ let process_statistics () =
 		avg := !tot/.len;
 		std := ((List.fold_left (fun ac t -> ac +. (!avg -. t) ** 2.) 0. lt) /. len) ** 0.5;
 		print_endline (Printf.sprintf "\t%s\n" f);
-		print_endline (Printf.sprintf "Tot: %f\tCll: %d\nMin: %f\tMax: %f\nAvg: %f\tStd: %f\n" !tot (int_of_float len) !min !max !avg !std)) statistics;
+		print_endline (Printf.sprintf "Tot: %f\tCll: %d\nMin: %f\tMax: %f\nAvg: %f\tStd: %f\n" !tot (int_of_float len) !min !max !avg !std)) statistics
 (**/**)
+
+(********************************************************)
+(** Auxiliar functions for generating new program/logical
+    variable names and new abstract locations          **)
+(********************************************************)
+
+let fresh_sth (name : string) : (unit -> string) =
+  let counter = ref 0 in
+  let rec f () =
+    let v = name ^ (string_of_int !counter) in
+    counter := !counter + 1;
+    v
+  in f
+
+let abs_loc_prefix = "_$l_"
+let lvar_prefix = "_lvar_"
+let pvar_prefix = "_pvar_"
+
+let fresh_aloc = fresh_sth abs_loc_prefix
+let fresh_lvar = fresh_sth lvar_prefix
+let fresh_pvar = fresh_sth pvar_prefix
+
+let fresh_lvar_from_lvar_name =
+	let lvar_tbl = Hashtbl.create small_tbl_size in
+	(fun (pred_name : string) (var : string) ->
+		if (Hashtbl.mem lvar_tbl (pred_name, var))
+			then (
+				let i = Hashtbl.find lvar_tbl (pred_name, var) in
+				Hashtbl.replace lvar_tbl (pred_name, var) (i + 1);
+				var ^ "_" ^ (string_of_int i)
+			) else
+			(
+				(* Printf.printf  "Could not find the pair (%s, %s) in the pred_lvar_tbl\n" pred_name var; *)
+				Hashtbl.replace lvar_tbl (pred_name, var) 1;
+				var ^ "_" ^ (string_of_int 0)
+			))
+
+let is_abs_loc_name (name : string) : bool =
+	if ((String.length name) < 4)
+		then false
+		else ((String.sub name 0 4) = abs_loc_prefix)
+
+let is_lvar_name (name : string) : bool =
+	((String.sub name 0 1) = "#") || (((String.length name) > 6) && ((String.sub name 0 6) = lvar_prefix))
+
+let is_pvar_name (name : string) : bool =
+	(not ((is_abs_loc_name name) || (is_lvar_name name)))
+
+
+(* A substitution type                                 *)
+type substitution = ((string, jsil_logic_expr) Hashtbl.t)

@@ -1,5 +1,4 @@
 open JSIL_Syntax
-open Symbolic_State 
 
 let small_tbl_size = 31
 let medium_tbl_size = 101
