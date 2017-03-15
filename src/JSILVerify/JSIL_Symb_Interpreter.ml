@@ -187,7 +187,7 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 let safe_symb_evaluate_expr store gamma pure_formulae (expr : jsil_expr) =
 	let nle = symb_evaluate_expr store gamma pure_formulae expr in
 	let nle_type, is_typable, constraints = type_lexpr gamma nle in
-	let is_typable = is_typable && ((List.length constraints = 0) || (Pure_Entailment.old_check_entailment [] (pfs_to_list pure_formulae) constraints gamma)) in
+	let is_typable = is_typable && ((List.length constraints = 0) || (Pure_Entailment.old_check_entailment SS.empty (pfs_to_list pure_formulae) constraints gamma)) in
 	if (is_typable) then
 		nle, nle_type, true
 	else
@@ -432,7 +432,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 			print_debug (Printf.sprintf "Pre:\n%sPosts:\n%s"
 				(JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre)
 				(JSIL_Memory_Print.string_of_symb_state_list spec.n_post));
-			let unifier = Structural_Entailment.unify_symb_states [] spec.n_pre symb_state_aux in
+			let unifier = Structural_Entailment.unify_symb_states SS.empty spec.n_pre symb_state_aux in
 			(match unifier with
 			|	Some (true, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
 				print_debug (Printf.sprintf "I found a COMPLETE match");
@@ -465,10 +465,10 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 			List.map (fun (symb_state, ret_flag, ret_lexpr) ->
 			let new_symb_state =
 				let pfs = get_pf symb_state in
-				let rpfs = DynArray.map (fun x -> Simplifications.reduce_assertion_no_store new_gamma pfs x) pfs in
+				let rpfs = DynArray.map (fun x -> reduce_assertion_no_store new_gamma pfs x) pfs in
 				sanitise_pfs_no_store new_gamma rpfs;
 				symb_state_replace_pfs symb_state rpfs in
-			(new_symb_state, ret_flag, Simplifications.reduce_expression_no_store_no_gamma_no_pfs ret_lexpr)) symb_states_and_ret_lexprs in
+			(new_symb_state, ret_flag, reduce_expression_no_store_no_gamma_no_pfs ret_lexpr)) symb_states_and_ret_lexprs in
 			
 		print_debug (Printf.sprintf "TSSPM: Pure formulae: %s" (JSIL_Memory_Print.string_of_shallow_p_formulae (get_pf symb_state) false));
 			
@@ -511,13 +511,13 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 	let existentials =
 		(match existentials with
 		| None ->
-			let symb_state_vars : (jsil_var, bool) Hashtbl.t = get_symb_state_vars_as_tbl false symb_state  in
-			let args_vars : (jsil_var, bool) Hashtbl.t = JSIL_Logic_Utils.get_vars_le_list_as_tbl false args in
-			let existentials : jsil_var list = JSIL_Logic_Utils.tbl_intersection_false_true symb_state_vars args_vars in
+			let symb_state_vars : SS.t = get_symb_state_vars false symb_state  in
+			let args_vars : SS.t = JSIL_Logic_Utils.get_vars_le_list false args in
+			let existentials : SS.t = SS.diff args_vars symb_state_vars in
 			existentials
 		| Some existentials -> existentials) in
 
-	let existentials_str = print_var_list existentials in
+	let existentials_str = print_var_list (SS.elements existentials) in
 	print_debug (Printf.sprintf ("\nFOLDING %s(%s) with the existentials %s in the symbolic state: \n%s\n")
 	  pred_name 
 		(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) args))
@@ -559,9 +559,9 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 					print_debug (Printf.sprintf "New subst: %d \n%s" (List.length new_subst) (String.concat "\n" (List.map (fun (x, le) -> Printf.sprintf "   (%s, %s)" x (JSIL_Print.string_of_logic_expression le false)) new_subst)));
 					let existentials_to_remove = (List.map (fun (v, _) -> v) new_subst) in 
 					print_debug (Printf.sprintf "Exists to remove: %s" (String.concat "," existentials_to_remove));
-					print_debug (Printf.sprintf "Old exists: %s" (String.concat "," existentials));
-					let new_existentials = List.filter (fun v -> (not (List.mem v existentials_to_remove))) existentials in 
-					print_debug (Printf.sprintf "New exists: %s" (String.concat "," new_existentials));
+					print_debug (Printf.sprintf "Old exists: %s" (String.concat "," (SS.elements existentials)));
+					let new_existentials = SS.filter (fun v -> (not (List.mem v existentials_to_remove))) existentials in 
+					print_debug (Printf.sprintf "New exists: %s" (String.concat "," (SS.elements new_existentials)));
 					let new_subst = JSIL_Logic_Utils.init_substitution3 new_subst in 
 					let new_subst = JSIL_Logic_Utils.filter_substitution new_subst existentials in
 					print_debug (Printf.sprintf "New substitution: \n%s" (JSIL_Memory_Print.string_of_substitution new_subst));
@@ -697,7 +697,7 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 			| _, Some a_le -> a_le
 			| Some e_le, None -> LEq (e_le, LLit (Bool true))
 			| None, None -> LFalse in
-		if (Pure_Entailment.old_check_entailment [] (get_pf_list symb_state) [ a_le_then ] (get_gamma symb_state))
+		if (Pure_Entailment.old_check_entailment SS.empty (get_pf_list symb_state) [ a_le_then ] (get_gamma symb_state))
 			then symb_evaluate_logic_cmds s_prog then_lcmds [ symb_state ] subst spec_vars
 			else symb_evaluate_logic_cmds s_prog else_lcmds [ symb_state ] subst spec_vars 
 		
@@ -758,10 +758,10 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 			| None, None -> ([ LFalse ], [ LFalse ]) in
 
 		print_debug (Printf.sprintf "Checking if:\n%s\n\tentails\n%s\n" (JSIL_Print.str_of_assertion_list (get_pf_list symb_state)) (JSIL_Print.str_of_assertion_list a_le_then));
-		if (Pure_Entailment.old_check_entailment [] (get_pf_list symb_state) a_le_then (get_gamma symb_state)) then
+		if (Pure_Entailment.old_check_entailment SS.empty (get_pf_list symb_state) a_le_then (get_gamma symb_state)) then
 			(print_endline "in the THEN branch";
 			symb_evaluate_next_cmd s_prog proc spec search_info symb_state i j)
-			else (if (Pure_Entailment.old_check_entailment [] (get_pf_list symb_state) a_le_else (get_gamma symb_state)) then
+			else (if (Pure_Entailment.old_check_entailment SS.empty (get_pf_list symb_state) a_le_else (get_gamma symb_state)) then
 					(print_endline "in the ELSE branch";
 					symb_evaluate_next_cmd s_prog proc spec search_info symb_state i k)
 				else

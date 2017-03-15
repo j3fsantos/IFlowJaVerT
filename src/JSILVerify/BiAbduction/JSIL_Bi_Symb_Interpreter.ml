@@ -208,7 +208,7 @@ let safe_symb_evaluate_expr (symb_state: symbolic_state) (anti_frame : symbolic_
 	let _, _, pure_formulae, gamma, _ = symb_state in
 	let nle = symb_evaluate_expr symb_state anti_frame expr in
 	let nle_type, is_typable, constraints = type_lexpr gamma nle in
-	let is_typable = is_typable && ((List.length constraints = 0) || (Pure_Entailment.old_check_entailment [] (pfs_to_list pure_formulae) constraints gamma)) in
+	let is_typable = is_typable && ((List.length constraints = 0) || (Pure_Entailment.old_check_entailment SS.empty (pfs_to_list pure_formulae) constraints gamma)) in
 	if (is_typable) then
 		nle, nle_type, true
 	else
@@ -494,7 +494,7 @@ let find_and_apply_spec
 			print_debug (Printf.sprintf "Pre:\n%sPosts:\n%s"
 				(JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre)
 				(JSIL_Memory_Print.string_of_symb_state_list spec.n_post));
-			let unifier = Bi_Structural_Entailment.bi_unify_symb_states [] spec.n_pre symb_state_aux in
+			let unifier = Bi_Structural_Entailment.bi_unify_symb_states SS.empty spec.n_pre symb_state_aux in
 			(match unifier with
 			|	Some (true, quotient_heap, antiframe_heap, quotient_preds, subst, pf_discharges, _, new_gamma) 
 					when (is_symb_heap_empty antiframe_heap !js) ->
@@ -547,10 +547,10 @@ let find_and_apply_spec
 			List.map (fun (symb_state, new_anti_frame, ret_flag, ret_lexpr) ->
 			let new_symb_state =
 				let pfs = get_pf symb_state in
-				let rpfs = DynArray.map (fun x -> Simplifications.reduce_assertion_no_store new_gamma pfs x) pfs in
+				let rpfs = DynArray.map (fun x -> reduce_assertion_no_store new_gamma pfs x) pfs in
 				sanitise_pfs_no_store new_gamma rpfs;
 				symb_state_replace_pfs symb_state rpfs in
-			(new_symb_state, new_anti_frame, ret_flag, Simplifications.reduce_expression_no_store_no_gamma_no_pfs ret_lexpr)) symb_states_and_ret_lexprs in
+			(new_symb_state, new_anti_frame, ret_flag, reduce_expression_no_store_no_gamma_no_pfs ret_lexpr)) symb_states_and_ret_lexprs in
 		symb_states_and_ret_lexprs in
 	
 	let transform_symb_state_partial_match_list 
@@ -607,13 +607,13 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 	let existentials =
 		(match existentials with
 		| None ->
-			let symb_state_vars : (jsil_var, bool) Hashtbl.t = get_symb_state_vars_as_tbl false symb_state  in
-			let args_vars : (jsil_var, bool) Hashtbl.t = JSIL_Logic_Utils.get_vars_le_list_as_tbl false args in
-			let existentials : jsil_var list = JSIL_Logic_Utils.tbl_intersection_false_true symb_state_vars args_vars in
+			let symb_state_vars : SS.t = get_symb_state_vars false symb_state  in
+			let args_vars : SS.t = JSIL_Logic_Utils.get_vars_le_list false args in
+			let existentials : SS.t = SS.diff args_vars symb_state_vars in
 			existentials
 		| Some existentials -> existentials) in
 
-	let existentials_str = print_var_list existentials in
+	let existentials_str = print_var_list (SS.elements existentials) in
 	print_debug (Printf.sprintf ("\nFOLDING %s(%s) with the existentials %s in the symbolic state: \n%s\n")
 	  pred_name 
 		(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) args))
@@ -655,9 +655,9 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 					print_debug (Printf.sprintf "New subst: %d \n%s" (List.length new_subst) (String.concat "\n" (List.map (fun (x, le) -> Printf.sprintf "   (%s, %s)" x (JSIL_Print.string_of_logic_expression le false)) new_subst)));
 					let existentials_to_remove = (List.map (fun (v, _) -> v) new_subst) in 
 					print_debug (Printf.sprintf "Exists to remove: %s" (String.concat "," existentials_to_remove));
-					print_debug (Printf.sprintf "Old exists: %s" (String.concat "," existentials));
-					let new_existentials = List.filter (fun v -> (not (List.mem v existentials_to_remove))) existentials in 
-					print_debug (Printf.sprintf "New exists: %s" (String.concat "," new_existentials));
+					print_debug (Printf.sprintf "Old exists: %s" (String.concat "," (SS.elements existentials)));
+					let new_existentials = SS.filter (fun v -> (not (List.mem v existentials_to_remove))) existentials in 
+					print_debug (Printf.sprintf "New exists: %s" (String.concat "," (SS.elements new_existentials)));
 					let new_subst = JSIL_Logic_Utils.init_substitution3 new_subst in 
 					print_debug (Printf.sprintf "New substitution: \n%s" (JSIL_Memory_Print.string_of_substitution new_subst));
 					let missing_pred_args = List.map (fun le -> JSIL_Logic_Utils.lexpr_substitution le new_subst true) missing_pred_args in
@@ -677,7 +677,7 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 			| Some (_, _, _, _, _, _, _, _) | None -> find_correct_pred_def rest_pred_defs)) in
 	find_correct_pred_def pred_defs
 
-let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
+let unfold_predicates pred_name pred_defs symb_state params args (spec_vars : SS.t) =
 	print_debug (Printf.sprintf "Current symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state));
 
 	let subst0 = Symbolic_State_Functions.subtract_pred pred_name args (get_preds symb_state) (get_pf symb_state) (* (get_solver symb_state) *) (get_gamma symb_state) spec_vars in
@@ -789,7 +789,7 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 			| _, Some a_le -> a_le
 			| Some e_le, None -> LEq (e_le, LLit (Bool true))
 			| None, None -> LFalse in
-		if (Pure_Entailment.old_check_entailment [] (get_pf_list symb_state) [ a_le_then ] (get_gamma symb_state))
+		if (Pure_Entailment.old_check_entailment SS.empty (get_pf_list symb_state) [ a_le_then ] (get_gamma symb_state))
 			then symb_evaluate_logic_cmds s_prog then_lcmds [ symb_state ] subst spec_vars
 			else symb_evaluate_logic_cmds s_prog else_lcmds [ symb_state ] subst spec_vars 
 		
@@ -851,11 +851,11 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
 			| None, None -> ([ LFalse ], [ LFalse ]) in
 
 		print_debug (Printf.sprintf "Checking if:\n%s\n\tentails\n%s\n" (JSIL_Print.str_of_assertion_list (get_pf_list symb_state)) (JSIL_Print.str_of_assertion_list a_le_then));
-		if (Pure_Entailment.old_check_entailment [] (get_pf_list symb_state) a_le_then (get_gamma symb_state)) then
+		if (Pure_Entailment.old_check_entailment SS.empty (get_pf_list symb_state) a_le_then (get_gamma symb_state)) then
 			(print_endline "in the THEN branch";
 			symb_evaluate_next_cmd s_prog proc spec search_info symb_state anti_frame i j)
 		else (
-			if (Pure_Entailment.old_check_entailment [] (get_pf_list symb_state) a_le_else (get_gamma symb_state)) then
+			if (Pure_Entailment.old_check_entailment SS.empty (get_pf_list symb_state) a_le_else (get_gamma symb_state)) then
 				(print_endline "in the ELSE branch";
 				symb_evaluate_next_cmd s_prog proc spec search_info symb_state anti_frame i k)
 			else (
@@ -868,16 +868,16 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
 				let else_search_info = update_vis_tbl search_info (copy_vis_tbl search_info.vis_tbl) in
 
 				(* L-Var Check *)
-				let anti_frame_logical_varaibles = get_symb_state_vars_as_list false anti_frame in
+				let anti_frame_logical_variables = get_symb_state_vars false anti_frame in
 				let spec_logical_varaibles = spec.n_lvars in 
-				let expression_logical_varaibles = get_logic_expression_lvars le in
+				let expression_logical_variables = get_logic_expression_lvars le in
 				let lvars_not_in_spec_or_af = List.filter 
 					(fun var ->
- 						let in_anti_frame = List.mem var anti_frame_logical_varaibles in
- 						let in_spec = List.mem var spec_logical_varaibles in
+ 						let in_anti_frame = SS.mem var anti_frame_logical_variables in
+ 						let in_spec = SS.mem var spec_logical_varaibles in
  						((not in_anti_frame) && (not in_spec))
  					) 
-					expression_logical_varaibles in
+					expression_logical_variables in
 				if (List.length lvars_not_in_spec_or_af > 0) then
 					print_endline "TODO: Logical Variables of expression not contained within the spec or anti_frame";
 
@@ -1157,7 +1157,7 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info
 				(JSIL_Memory_Print.string_of_shallow_symb_state spec.n_pre));
 			let symb_state = copy_symb_state spec.n_pre in
 			(* Empty initial anti-frame*)
-			let anti_frame = Symbolic_State_Basics.init_symb_state () in
+			let anti_frame = init_symb_state () in
 			print_debug 
 							(Printf.sprintf  "AF in symb_evaluate_proc :\n%s\n" 
 								(JSIL_Memory_Print.string_of_shallow_symb_state anti_frame));
