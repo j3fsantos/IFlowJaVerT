@@ -268,8 +268,8 @@ let init_pure_assignments a store gamma subst =
 	* all program variables not in the store need to be added there
 	*)
 	let fill_store p_vars =
-		Hashtbl.iter
-			(fun var _ ->
+		SS.iter
+			(fun var ->
 						if (not (Hashtbl.mem store var))
 						then
 							let new_l_var = new_lvar_name var in
@@ -285,30 +285,25 @@ let init_pure_assignments a store gamma subst =
 	* dependency graphs between variable definitions
 	*)
 	let vars_succ p_vars p_vars_tbl =
-		let len = Array.length p_vars in
+		let len = SS.cardinal p_vars in
 		let succs = Array.make len [] in
-
-		for u =0 to (len -1) do
-			let cur_var = p_vars.(u) in
+		
+		List.iteri (fun u cur_var ->
 			let cur_le = Hashtbl.find pure_assignments cur_var in
-			let cur_var_deps = get_expr_vars_lst cur_le true in
-			let rec loop deps =
-				match deps with
-				| [] -> ()
-				| v :: rest_deps ->
-						(try
-							let v_num = Hashtbl.find p_vars_tbl v in
-							succs.(u) <- v_num :: succs.(u)
-						with _ -> ());
-						loop rest_deps in
-			loop cur_var_deps
-		done;
+			let cur_var_deps = get_expr_vars true cur_le in
+			SS.iter (fun v ->
+				(try
+					let v_num = Hashtbl.find p_vars_tbl v in
+					succs.(u) <- v_num :: succs.(u)
+					with _ -> ())) cur_var_deps) (SS.elements p_vars);
+					
 		succs in
 
 	(**
 	* normalization of variable definitions
 	*)
-	let normalise_pure_assignments (succs : int list array) (p_vars : string array) (p_vars_tbl : (string, int) Hashtbl.t) =
+	let normalise_pure_assignments (succs : int list array) (p_vars : SS.t) (p_vars_tbl : (string, int) Hashtbl.t) =
+		let p_vars = Array.of_list (SS.elements p_vars) in
 		let len = Array.length p_vars in
 		let visited_tbl = Array.make len false in
 
@@ -357,7 +352,7 @@ let init_pure_assignments a store gamma subst =
 						succs.(u);
 					rewrite_assignment u_var in
 
-		for i =0 to (len -1) do
+		for i = 0 to (len - 1) do
 			if (not (visited_tbl.(i)))
 			then search i
 			else ()
@@ -366,16 +361,13 @@ let init_pure_assignments a store gamma subst =
 	(* get the pure assignments and store them in the hashtbl                *)
 	(* pure_assignments                                                      *)
 	get_pure_assignments_iter a;
-	let p_vars =
-		Array.of_list
-			(Hashtbl.fold
-					(fun var le ac -> var :: ac)
-					pure_assignments
-					[]) in
+	let p_vars = Hashtbl.fold
+		(fun var le ac -> SS.add var ac)
+		pure_assignments SS.empty in
 	let p_vars_tbl = get_vars_tbl p_vars in
 	let succs = vars_succ p_vars p_vars_tbl in
 	normalise_pure_assignments succs p_vars p_vars_tbl;
-	fill_store (get_assertion_vars a true);
+	fill_store (get_assertion_vars true a);
 	normalise_pure_assertions ()
 
 let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_formulae gamma subst a =
@@ -569,10 +561,10 @@ let process_empty_fields heap store p_formulae gamma subst a =
 		| [] -> None
 		| field :: rest_fields ->
 			let a = LEq (le_field, field) in
-			if (Pure_Entailment.old_check_entailment [] p_formulae [ a ] gamma)
+			if (Pure_Entailment.old_check_entailment SS.empty p_formulae [ a ] gamma)
 				then Some (field, traversed_fields @ rest_fields)
 				else 
-					(if (Pure_Entailment.old_check_entailment [] p_formulae [ LNot a ] gamma)
+					(if (Pure_Entailment.old_check_entailment SS.empty p_formulae [ LNot a ] gamma)
 						then check_in_fields le_field rest_fields (field :: traversed_fields) 
 						else raise (Failure "empty fields assertion cannot be normalised")) in 
 
@@ -655,35 +647,34 @@ let normalise_assertion a : symbolic_state * substitution =
 	 | [ LFalse ] -> (LHeap.create 1, Hashtbl.create 1, DynArray.of_list [ LFalse ], Hashtbl.create 1, DynArray.create () (*, (ref None) *)), Hashtbl.create 1
 	 | _ ->
 		fill_store_with_gamma store gamma subst;
-		extend_typing_env_using_assertion_info ((pfs_to_list p_formulae) @ (Symbolic_State_Basics.pf_of_store2 store)) gamma;
+		extend_typing_env_using_assertion_info ((pfs_to_list p_formulae) @ (pf_of_store2 store)) gamma;
 		compute_symb_heap heap store p_formulae gamma subst a;
 		let preds, new_assertions = init_preds a store gamma subst in
 		extend_typing_env_using_assertion_info new_assertions gamma;
-		Symbolic_State_Basics.merge_pfs p_formulae (DynArray.of_list new_assertions);
+		merge_pfs p_formulae (DynArray.of_list new_assertions);
 		process_empty_fields heap store (pfs_to_list p_formulae) gamma subst a;
 
 		(heap, store, p_formulae, gamma, preds (*, (ref None) *)), subst)
 
-
 let normalise_precondition a =
-	let lvars = get_ass_vars_lst a false in
+	let lvars = get_assertion_vars false a in
 	let symb_state, subst = normalise_assertion a in
 	let new_subst = filter_substitution subst lvars in
 	symb_state, (lvars, new_subst)
 
-let normalise_postcondition a subst (lvars : string list) pre_gamma : symbolic_state * (string list) =
+let normalise_postcondition a subst (lvars : SS.t) pre_gamma : symbolic_state * SS.t =
 	let a = assertion_substitution a subst true in
-	let a_vars = get_ass_vars_lst a false in
-	let a_vars = filter_vars a_vars lvars in
+	let a_vars : SS.t = get_assertion_vars false a in
+	let a_vars : SS.t = filter_vars a_vars lvars in
 
 	let extra_gamma = filter_gamma pre_gamma lvars in
-	let a_vars_str = List.fold_left (fun ac var -> (ac ^ var ^ ", ")) ""  a_vars in
-	let lvars_str = String.concat ", " lvars in
+	let a_vars_str = List.fold_left (fun ac var -> (ac ^ var ^ ", ")) "" (SS.elements a_vars) in
+	let lvars_str = String.concat ", " (SS.elements lvars) in
 	print_debug (Printf.sprintf "Post Existentially Quantified Vars: %s\n\n\n" a_vars_str);
 	print_debug (Printf.sprintf "Post spec vars: %s\n\n\n" lvars_str);
 	let symb_state, _ = normalise_assertion a in
 	let gamma_post = (get_gamma symb_state) in
-	Symbolic_State_Basics.merge_gammas gamma_post extra_gamma;
+	merge_gammas gamma_post extra_gamma;
 	symb_state, a_vars
 
 

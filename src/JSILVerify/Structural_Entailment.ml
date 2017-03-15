@@ -114,7 +114,7 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 						extend_subst subst lvar (LLit lit);
 						discharges
 					| None ->
-						if (Pure_Entailment.old_check_entailment [] pfs [ (LEq (LVar lvar, LLit lit)) ] gamma)
+						if (Pure_Entailment.old_check_entailment SS.empty pfs [ (LEq (LVar lvar, LLit lit)) ] gamma)
 							then discharges
 							else raise (Failure (Printf.sprintf "LLit %s, LVar %s : the pattern store is not normalized." (JSIL_Print.string_of_literal lit false) lvar)))
 
@@ -548,7 +548,7 @@ let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) p_form
 	unify_pred_list_against_pred_list pat_preds preds p_formulae (* solver *) gamma subst
 
 
-let unify_gamma pat_gamma gamma pat_store subst ignore_vars =
+let unify_gamma pat_gamma gamma pat_store subst (ignore_vars : SS.t) =
 	print_debug (Printf.sprintf "I am about to unify two gammas\n");
  	print_debug (Printf.sprintf "pat_gamma: %s.\ngamma: %s.\nsubst: %s\n"
 	(JSIL_Memory_Print.string_of_gamma pat_gamma) (JSIL_Memory_Print.string_of_gamma gamma)
@@ -557,7 +557,7 @@ let unify_gamma pat_gamma gamma pat_store subst ignore_vars =
 	let res = (Hashtbl.fold
 		(fun var v_type ac ->
 			(* (not (is_lvar_name var)) *)
-			(if ((not ac) || (List.mem var ignore_vars))
+			(if ((not ac) || (SS.mem var ignore_vars))
 				then ac
 				else
 					try
@@ -593,21 +593,19 @@ let unify_gamma pat_gamma gamma pat_store subst ignore_vars =
 		res
 
 
-let spec_logic_vars_discharge subst lvars pfs (* solver *) gamma =
+let spec_logic_vars_discharge subst (lvars : SS.t) pfs gamma =
 	let pf_list = (Symbolic_State.pfs_to_list pfs) in
-	let pfs_to_prove =
-		List.fold_left
-			(fun ac var ->
+	let pfs_to_prove : jsil_logic_assertion list =
+		SS.fold
+			(fun var ac ->
 				try
 					let le = Hashtbl.find subst var in
-					let new_pa =	(LEq ((LVar var), le)) in
+					let new_pa = (LEq ((LVar var), le)) in
 					new_pa :: ac
 				with _ ->
 					Hashtbl.add subst var (LVar var);   
-					ac)
-			[]
-			lvars in
-	let ret = Pure_Entailment.old_check_entailment [] pf_list pfs_to_prove gamma in
+					ac) lvars [] in
+	let ret = Pure_Entailment.old_check_entailment SS.empty pf_list pfs_to_prove gamma in
 	(* Printf.printf "Check if \n (%s) \n entails \n (%s) \n with gamma \n (%s) \nret: %b\n" (JSIL_Print.str_of_assertion_list pf_list) (JSIL_Print.str_of_assertion_list pfs_to_prove) (JSIL_Memory_Print.string_of_gamma gamma) ret; *)
 	ret
 
@@ -625,7 +623,7 @@ let pf_list_of_discharges discharges subst partial =
 
 let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment) option  =
 
-	print_debug (Printf.sprintf "LVARS: %s" (String.concat ", " lvars));
+	print_debug (Printf.sprintf "LVARS: %s" (String.concat ", " (SS.elements lvars)));
 
 	let start_time = Sys.time () in
 
@@ -675,15 +673,16 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 	(* pf_0 + new_pfs |-_{gamma_0'} Exists_{existentials} subst'(pf_1) + pf_list_of_discharges(discharges)                                               *)
 	let step_1 discharges subst new_pfs =
 		let start_time = Sys.time() in
-		let existentials = get_subtraction_vars (get_symb_state_vars_as_list false pat_symb_state) subst in
-		let fresh_names_for_existentials = (List.map (fun v -> fresh_lvar ()) existentials) in
-		let subst_existentials = init_substitution2 existentials (List.map (fun v -> LVar v) fresh_names_for_existentials) in
-		extend_substitution subst existentials (List.map (fun v -> LVar v) fresh_names_for_existentials);
+		let existentials = get_subtraction_vars (get_symb_state_vars false pat_symb_state) subst in
+		let lexistentials = SS.elements existentials in
+		let fresh_names_for_existentials = (List.map (fun v -> fresh_lvar ()) lexistentials) in
+		let subst_existentials = init_substitution2 lexistentials (List.map (fun v -> LVar v) fresh_names_for_existentials) in
+		extend_substitution subst lexistentials (List.map (fun v -> LVar v) fresh_names_for_existentials);
 		let gamma_0' =
-			if ((List.length existentials) > 0)
+			if ((List.length lexistentials) > 0)
 				then (
 					let gamma_0' = copy_gamma gamma_0 in
-					let gamma_1_existentials = filter_gamma_with_subst gamma_1 existentials subst_existentials in
+					let gamma_1_existentials = filter_gamma_with_subst gamma_1 lexistentials subst_existentials in
 					extend_gamma gamma_0' gamma_1_existentials;
 					gamma_0')
 				else gamma_0 in
@@ -702,7 +701,7 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 				(List.fold_left (fun ac x -> ac ^ " " ^ x) "" fresh_names_for_existentials)
 				(JSIL_Memory_Print.string_of_gamma gamma_0'));
 
-			let entailment_check_ret = Pure_Entailment.old_check_entailment fresh_names_for_existentials (pfs_to_list pf_0) pfs gamma_0' in
+			let entailment_check_ret = Pure_Entailment.old_check_entailment (SS.of_list fresh_names_for_existentials) (pfs_to_list pf_0) pfs gamma_0' in
 			print_debug (Printf.sprintf "unify_gamma_check: %b. entailment_check: %b" unify_gamma_check entailment_check_ret);
 			Some (entailment_check_ret, pf_discharges, pf_1_subst_list, gamma_0')
 		end else (print_debug "Gammas not unifiable."; None) in
@@ -724,7 +723,7 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 
 
 
-let unify_symb_states_fold (pred_name : string) existentials (pat_symb_state : symbolic_state) (symb_state : symbolic_state) : (bool * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment * (jsil_var list) * ((string * (jsil_logic_expr list)) list)) option  =
+let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_state : symbolic_state) (symb_state : symbolic_state) : (bool * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment * SS.t * ((string * (jsil_logic_expr list)) list)) option  =
 	let heap_0, store_0, pf_0, gamma_0, preds_0 (*, solver_0 *) = symb_state in
 	let heap_1, store_1, pf_1, gamma_1, preds_1 (*, _ *) = pat_symb_state in
 	(** Auxiliary Functions **)
@@ -735,7 +734,7 @@ let unify_symb_states_fold (pred_name : string) existentials (pat_symb_state : s
 				
 	(* existentials -> new variables introduced by the fold                                      *)
 	(* store_vars -> vars in the store which are mapped to logical expressions with existentials *)
-	let find_existentials_types existentials store_vars store gamma pat_gamma =
+	let find_existentials_types (existentials : SS.t) store_vars store gamma pat_gamma =
 		let gamma_existentials = mk_gamma () in
 		List.iter
 			(fun x ->
@@ -771,9 +770,9 @@ let unify_symb_states_fold (pred_name : string) existentials (pat_symb_state : s
 			filter_store
 				store_0
 				(fun (le : jsil_logic_expr) ->
-					let le_vars : (string, bool) Hashtbl.t = JSIL_Logic_Utils.get_expr_vars_tbl le false in
-					let existentials_in_le = List.filter (fun var -> Hashtbl.mem le_vars var) existentials in
-					(List.length existentials_in_le > 0)) in
+					let le_vars : SS.t = get_expr_vars false le in
+					let existentials_in_le = SS.filter (fun var -> SS.mem var le_vars) existentials in
+					(SS.cardinal existentials_in_le > 0)) in
 		let gamma_existentials = find_existentials_types existentials filtered_vars store_0 gamma_0 gamma_1 in
 	 	let discharges_0 =
 			try
@@ -828,20 +827,21 @@ let unify_symb_states_fold (pred_name : string) existentials (pat_symb_state : s
 
 	(* STEP 2 *)
 	let step_2 subst filtered_vars gamma_existentials new_pfs discharges =
-		let pat_existentials = get_subtraction_vars (get_symb_state_vars_as_list false pat_symb_state) subst in
-		let new_pat_existentials = (List.map (fun v -> fresh_lvar ()) pat_existentials) in
-		let existential_substitution = init_substitution2 pat_existentials (List.map (fun v -> LVar v) new_pat_existentials) in
-		extend_substitution subst pat_existentials (List.map (fun v -> LVar v) new_pat_existentials);
+		let pat_existentials = get_subtraction_vars (get_symb_state_vars false pat_symb_state) subst in
+		let lpat_existentials = SS.elements pat_existentials in
+		let new_pat_existentials = (List.map (fun v -> fresh_lvar ()) lpat_existentials) in
+		let existential_substitution = init_substitution2 lpat_existentials (List.map (fun v -> LVar v) new_pat_existentials) in
+		extend_substitution subst lpat_existentials (List.map (fun v -> LVar v) new_pat_existentials);
 		let gamma_0' =
-			if (((List.length filtered_vars) > 0) || ((List.length pat_existentials) > 0))
+			if (((List.length filtered_vars) > 0) || ((List.length lpat_existentials) > 0))
 				then (
 					let gamma_0' = copy_gamma gamma_0 in
-					let gamma_1' = filter_gamma_with_subst gamma_1 pat_existentials existential_substitution in
+					let gamma_1' = filter_gamma_with_subst gamma_1 lpat_existentials existential_substitution in
 					extend_gamma gamma_0' gamma_1';
 					extend_gamma gamma_0' gamma_existentials;
 					gamma_0')
 				else gamma_0 in
-		let new_existentials = existentials @ new_pat_existentials in
+		let new_existentials = SS.union existentials (SS.of_list new_pat_existentials) in
 		merge_pfs pf_0 (DynArray.of_list new_pfs);
 		let unify_gamma_check = (unify_gamma gamma_1 gamma_0' store_0 subst pat_existentials) in
 		if (unify_gamma_check) then
@@ -852,14 +852,12 @@ let unify_symb_states_fold (pred_name : string) existentials (pat_symb_state : s
 			sanitise_pfs_no_store gamma_0' pfs;
 			(* Moving formulae on the left which contain existentials to the right *)
 			let pf0 = DynArray.copy pf_0 in
-			let sext = SS.of_list existentials in
 			let to_delete = SI.empty in
 			let i = ref 0 in
 			while (!i < DynArray.length pf0) do
 				let pf = DynArray.get pf0 !i in
-				let vpf = get_list_of_assertions_vars_list [ pf ] false in
-				let svpf = SS.of_list vpf in
-				let ixt = SS.inter sext svpf in
+				let vpf = get_assertion_vars false pf in
+				let ixt = SS.inter existentials vpf in
 				if (not (ixt = SS.empty)) then
 				begin
 					DynArray.delete pf0 !i;
@@ -871,7 +869,7 @@ let unify_symb_states_fold (pred_name : string) existentials (pat_symb_state : s
 			print_debug (Printf.sprintf "Checking if %s\n entails %s\n with existentials\n%s\nand gamma %s"
 				(JSIL_Memory_Print.string_of_shallow_p_formulae pf0 false)
 				(JSIL_Memory_Print.string_of_shallow_p_formulae pfs false)
-				(List.fold_left (fun ac x -> ac ^ " " ^ x) "" new_existentials)
+				(List.fold_left (fun ac x -> ac ^ " " ^ x) "" (SS.elements new_existentials))
 				(JSIL_Memory_Print.string_of_gamma gamma_0'));
 
 			let entailment_check = Pure_Entailment.old_check_entailment new_existentials (pfs_to_list pf0) (pfs_to_list pfs) gamma_0' in
@@ -998,8 +996,8 @@ let safe_merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbo
 	(* Printf.printf "gamma_r: %s\n." (JSIL_Memory_Print.string_of_gamma (get_gamma symb_state_r)); *)
 	(* Printf.printf "substitution: %s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
 
-	let pf_r_existentials = get_subtraction_vars (get_symb_state_vars_as_list false symb_state_r) subst in
-	let gammas_unifiable = unify_gamma (get_gamma symb_state_r) (get_gamma symb_state_l) (get_store symb_state_r) (subst : substitution) (pf_r_existentials : string list) in
+	let pf_r_existentials = get_subtraction_vars (get_symb_state_vars false symb_state_r) subst in
+	let gammas_unifiable = unify_gamma (get_gamma symb_state_r) (get_gamma symb_state_l) (get_store symb_state_r) subst pf_r_existentials in
 
 	let symb_state_r = symb_state_substitution symb_state_r subst false in
 	let heap_l, store_l, pf_l, gamma_l, preds_l (*, solver_l *) = symb_state_l in

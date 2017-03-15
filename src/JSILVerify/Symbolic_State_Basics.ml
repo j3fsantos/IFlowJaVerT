@@ -2,7 +2,8 @@ open JSIL_Syntax
 open Symbolic_State
 open JSIL_Logic_Utils
 
-open Simplifications
+(* Shorthand for printing logical expressions *)
+let print_lexpr le = JSIL_Print.string_of_logic_expression le false 
 
 (***************)
 (** Shorthand **)
@@ -10,26 +11,220 @@ open Simplifications
 
 let print_pfs pfs = JSIL_Memory_Print.string_of_shallow_p_formulae pfs false
 
+(* ***** *
+ *       *
+ * LISTS *
+ *       *
+ * ***** *)
+
+(* What does it mean to be a list? *)
+let rec isList (le : jsil_logic_expr) : bool =
+(match le with
+	| LVar _ 
+	| LLit (LList _)
+	| LEList _ -> true
+	| LBinOp (_, LstCons, le) -> isList le
+	| LBinOp (lel, LstCat, ler) -> isList lel && isList ler
+	| _ -> false)
+
+(* Arranging lists in a specific order *)
+let arrange_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : (jsil_logic_expr * jsil_logic_expr) =
+	if (isList le1 && isList le2) then
+	(match le1, le2 with
+	  | LVar _, _
+		| LLit (LList _), LLit (LList _) 
+		| LLit (LList _), LEList _
+		| LLit (LList _), LBinOp (_, LstCons, _)
+		| LLit (LList _), LBinOp (_, LstCat, _)
+		| LEList _, LEList _
+		| LEList _, LBinOp (_, LstCons, _)
+		| LEList _, LBinOp (_, LstCat, _)
+		| LBinOp (_, LstCons, _), LBinOp (_, LstCons, _)
+		| LBinOp (_, LstCons, _), LBinOp (_, LstCat, _)
+		| LBinOp (_, LstCat, _), LBinOp (_, LstCat, _) -> le1, le2
+		| _, _ -> le2, le1
+	) else
+		let msg = Printf.sprintf "Non-list expressions passed to arrange_lists : %s, %s" (print_lexpr le1) (print_lexpr le2) in
+		raise (Failure msg)
+
+(* Extracting elements from a list *)
+let rec get_elements_from_list (le : jsil_logic_expr) : jsil_logic_expr list =
+(match le with
+	| LVar _ -> []
+	| LLit (LList l) -> List.map (fun e -> LLit e) l
+	| LEList l -> l
+	| LBinOp (e, LstCons, le) -> e :: get_elements_from_list le
+	| LBinOp (lel, LstCat, ler) -> get_elements_from_list lel @ get_elements_from_list ler
+	| _ -> let msg = Printf.sprintf "Non-list expressions passed to get_elements_from_list : %s" (print_lexpr le) in
+		raise (Failure msg))
+
+(* Separating a list into a head and a tail *)
+let rec get_head_and_tail (le : jsil_logic_expr) : bool option * jsil_logic_expr * jsil_logic_expr =
+(match le with
+	| LLit (LList l) ->
+		(match l with
+		| [] -> None, LLit (Bool false), LLit (Bool false)
+		| e :: l -> Some true, LLit e, LLit (LList l))
+	| LEList l ->
+		(match l with
+		| [] -> None, LLit (Bool false), LLit (Bool false)
+		| e :: l -> Some true, e, LEList l)
+	| LBinOp (e, LstCons, l) -> Some true, e, l
+	| LBinOp (l1, LstCat, l2) -> 
+		let ok, head, tail = get_head_and_tail l1 in
+		(match ok with
+		| None -> None, LLit (Bool false), LLit (Bool false)
+		| Some false -> Some false, LLit (Bool false), LLit (Bool false)
+		| Some true -> Some true, head, LBinOp (tail, LstCat, l2))
+	| LVar _ -> Some false, LLit (Bool false), LLit (Bool false)
+	| _ -> 
+		let msg = Printf.sprintf "Non-list expressions passed to get_head_and_tail : %s" (print_lexpr le) in
+		raise (Failure msg))
+
+(* TODO: IMPROVE THIS *)
+let list_split (l : 'a list) (e : 'a) = 
+(match (List.mem e l) with
+| false -> false, ([], [])
+| true ->
+	let m = DynArray.index_of (fun x -> x = e) (DynArray.of_list l) in
+	let llen = List.length l in
+	let al = Array.of_list l in
+	let ll = Array.to_list (Array.sub al 0 m) in
+	let lr = Array.to_list (Array.sub al (m + 1) (llen - m - 1)) in
+		true, (ll, lr))
+
+(* Splitting a list based on an element *)
+let rec split_list_on_element (le : jsil_logic_expr) (e : jsil_logic_expr) : bool * (jsil_logic_expr * jsil_logic_expr) =
+(match le with
+	| LVar _ -> false, (le, LEList [])
+	| LLit (LList l) -> 
+		(match e with
+		| LLit lit ->
+			let ok, (ll, lr) = list_split l lit in
+			(match ok with
+			| true -> true, (LLit (LList ll), LLit (LList lr))
+			| false -> false, (le, LEList [])
+		| _ -> false, (le, LEList [])))
+  | LEList l ->
+			let ok, (ll, lr) = list_split l e in
+			(match ok with
+			| true -> true, (LEList ll, LEList lr)
+			| false -> false, (le, LEList []))
+	| LBinOp (e', LstCons, le') -> 
+		(match (e = e') with
+		| true -> true, (LEList [], le')
+		| false -> let ok, (ll, lr) = split_list_on_element le' e in
+			(match ok with
+			| false -> false, (le, LEList [])
+			| true -> true, (LBinOp (e', LstCons, ll), lr)))
+	| LBinOp (lel, LstCat, ler) -> 
+		let ok, (lll, llr) = split_list_on_element lel e in
+		(match ok with
+		| true -> 
+			let right = (match ler with 
+			| LLit (LList [])
+			| LEList [] -> llr
+			| _ -> LBinOp (llr, LstCat, ler)) in
+				true, (lll, right)
+		| false -> let ok, (lrl, lrr) = split_list_on_element ler e in
+			(match ok with
+			| true -> 
+				let left = (match lrl with 
+				| LLit (LList [])
+				| LEList [] -> lel
+				| _ -> LBinOp (lel, LstCat, lrl)) in
+					true, (left, lrr)
+			| false -> false, (le, LEList [])))
+	| _ -> let msg = Printf.sprintf "Non-list expressions passed to split_list_on_element : %s" (print_lexpr le) in
+		raise (Failure msg))
+
+(* Unifying lists based on a common literal *)
+let match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : bool * (jsil_logic_expr * jsil_logic_expr) * (jsil_logic_expr * jsil_logic_expr) =
+	let elems1 = get_elements_from_list le1 in
+	(match elems1 with
+	| [] -> false, (LLit (Bool false), LLit (Bool false)), (LLit (Bool false), LLit (Bool false))
+	| _ ->
+		let elems2 = get_elements_from_list le2 in
+		(match elems2 with
+		| [] -> false, (LLit (Bool false), LLit (Bool false)), (LLit (Bool false), LLit (Bool false))
+		| _ -> 
+			let intersection = List.fold_left (fun ac x -> 
+				if (List.mem x elems1) then ac @ [x] else ac) [] elems2 in
+			(match intersection with
+			| [] -> false, (LLit (Bool false), LLit (Bool false)), (LLit (Bool false), LLit (Bool false))
+			| i :: _ ->
+				let ok1, (l1, r1) = split_list_on_element le1 i in
+				let ok2, (l2, r2) = split_list_on_element le2 i in
+				(match ok1, ok2 with
+				| true, true -> true, (l1, r1), (l2, r2) 
+				| _, _ -> let msg = Printf.sprintf "Element %s that was supposed to be in both lists: %s, %s is not." (print_lexpr i) (print_lexpr le1) (print_lexpr le2) in
+						raise (Failure msg)))
+		))
+
+(* List unification *)
+let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : bool option * ((jsil_logic_expr * jsil_logic_expr) list) = 
+	let le1, le2 = arrange_lists le1 le2 in
+	(match le1, le2 with
+	  (* Base cases *)
+	  | LLit (LList []), LLit (LList [])
+		| LLit (LList []), LEList []
+		| LEList [], LEList [] -> Some false, []
+		| LVar _, _ -> Some false, [ (le1, le2) ]
+		(* Inductive cases *)
+		| LLit (LList _), LLit (LList _)
+		| LLit (LList _), LEList _
+		| LEList _, LEList _
+		| LLit (LList _), LBinOp (_, LstCons, _) 
+		| LLit (LList _), LBinOp (_, LstCat, _)
+		| LEList _, LBinOp (_, LstCons, _)
+		| LEList _, LBinOp (_, LstCat, _)
+		| LBinOp (_, LstCons, _), LBinOp (_, LstCons, _)
+		| LBinOp (_, LstCons, _), LBinOp (_, LstCat, _)
+		| LBinOp (_, LstCat, _), LBinOp (_, LstCat, _) -> 
+			let (okl, headl, taill) = get_head_and_tail le1 in
+			let (okr, headr, tailr) = get_head_and_tail le2 in
+			(match okl, okr with
+			(* We can separate both lists *)
+			| Some true, Some true ->
+				(* Do we still have lists? *)
+				if (isList taill && isList tailr) then
+					(* Yes, move in recursively *)
+					(let ok, rest = unify_lists taill tailr in
+					(match ok with
+					| None -> None, []
+					| _ -> Some true, (headl, headr) :: rest))
+				else
+					(* No, we are done *)
+					Some true, [ (headl, headr); (taill, tailr) ]
+			(* Not enough information to separate head and tail *)
+			| Some true, Some false
+			| Some false, Some true 
+			| Some false, Some false -> 
+					(* This means that we have on at least one side a LstCat with a leading variable and we need to dig deeper *)
+					(* Get all literals on both sides, find first match, then split and call again *)
+						let ok, (ll, lr), (rl, rr) = match_lists_on_element le1 le2 in
+						(match ok with
+						| true -> 
+								let okl, left = unify_lists ll rl in
+								(match okl with
+								| None -> None, []
+								| _ -> 
+									let okr, right = unify_lists lr rr in
+									(match okr with
+									| None -> None, []
+									| _ -> Some true, left @ right))
+						| false -> Some false, [ (le1, le2) ])
+			(* A proper error occurred while getting head and tail *)
+			| _, _ -> None, [])
+		| _, _ ->
+			let msg = Printf.sprintf "Non-arranged lists passed to unify_lists : %s, %s" (print_lexpr le1) (print_lexpr le2) in
+			raise (Failure msg)
+	)
+
 (*************************************)
 (** Abstract Heap functions         **)
 (*************************************)
 
-let is_empty_fv_list fv_list js =
-	let rec loop fv_list empty_so_far =
-		match fv_list with
-		| [] -> empty_so_far
-		| (f_name, f_val) :: rest ->
-			if ((f_name = (LLit (String Js2jsil_constants.erFlagPropName))) && js) 
-				then true 
-				else ( if (f_val = LNone) then loop rest empty_so_far else loop rest false ) in 
-	loop fv_list true
-
-let is_symb_heap_empty (heap : symbolic_heap) (js : bool) : bool =
-	LHeap.fold
-		(fun loc (fv_list, def) ac -> if (not ac) then ac else is_empty_fv_list fv_list js)
-		heap
-		true
-		
 let fv_list_substitution fv_list subst partial =
 	List.map
 		(fun (le_field, le_val) ->
@@ -37,7 +232,7 @@ let fv_list_substitution fv_list subst partial =
 			let s_le_val = lexpr_substitution le_val subst partial in
 			(s_le_field, s_le_val))
 		fv_list
-
+		
 let heap_substitution (heap : symbolic_heap) (subst : substitution) partial =
 	let new_heap = LHeap.create 1021 in
 	LHeap.iter
@@ -63,35 +258,23 @@ let heap_substitution (heap : symbolic_heap) (subst : substitution) partial =
 			LHeap.add new_heap s_loc (s_fv_list, s_def))
 		heap;
 	new_heap
-
-let get_heap_vars var_tbl catch_pvars heap =
-	LHeap.iter
-		(fun _ (fv_list, e_def) ->
-			List.iter
-				(fun (e_field, e_val) ->
-					get_expr_vars var_tbl catch_pvars e_field;
-					get_expr_vars var_tbl catch_pvars e_val)
-				fv_list;
-			get_expr_vars var_tbl catch_pvars e_def)
-		heap
+	
+let get_heap_vars catch_pvars heap : SS.t =
+	LHeap.fold
+		(fun _ (fv_list, e_def) ac ->
+			let v_fv = List.fold_left
+				(fun ac (e_field, e_val) ->
+					let v_f = get_expr_vars catch_pvars e_field in
+					let v_v = get_expr_vars catch_pvars e_val in
+						SS.union ac (SS.union v_f v_v))
+				SS.empty fv_list in
+			let v_def = get_expr_vars catch_pvars e_def in
+			SS.union ac (SS.union v_fv v_def))
+		heap SS.empty
 
 (*************************************)
 (** Abstract Store functions        **)
 (*************************************)
-
-let init_store vars les =
-	let store = Hashtbl.create 31 in
-
-	let rec loop vars les =
-		match vars, les with
-		| [], _ -> ()
-		| var :: rest_vars, le :: rest_les ->
-				Hashtbl.replace store var le; loop rest_vars rest_les
-		| var :: rest_vars, [] ->
-				Hashtbl.replace store var (LLit Undefined); loop rest_vars [] in
-
-	loop vars les;
-	store
 
 let store_substitution store gamma subst partial =
 	let vars, les =
@@ -107,36 +290,11 @@ let store_substitution store gamma subst partial =
 			([], []) in
 	let store = init_store vars les in
 	store
-
-let get_store_vars var_tbl catch_pvars store =
-	Hashtbl.iter (fun _ e -> get_expr_vars var_tbl catch_pvars e) store
-
-let filter_store store filter_fun =
-	Hashtbl.fold
-		(fun var le (filtered_vars, unfiltered_vars) ->
-			if (filter_fun le)
-				then ((var :: filtered_vars), unfiltered_vars)
-				else (filtered_vars, (var :: unfiltered_vars)))
-		store
-		([], [])
-
-let store_projection store vars =
-	let vars, les = 
-		List.fold_left 
-			(fun (vars, les) v ->
-				if (Hashtbl.mem store v) 
-					then (v :: vars), ((Hashtbl.find store v) :: les) 
-					else vars, les)
-			([], []) 
-			vars in
-	init_store vars les
-
-let merge_stores (store_l : symbolic_store) (store_r : symbolic_store) =
-	Hashtbl.iter
-		(fun var expr ->
-			if (not (Hashtbl.mem store_l var))
-				then Hashtbl.add store_l var expr)
-		store_r
+	
+let get_store_vars catch_pvars store =
+	Hashtbl.fold (fun _ e ac -> 
+		let v_e = get_expr_vars catch_pvars e in
+		SS.union ac v_e) store SS.empty
 
 let check_store store gamma =
 
@@ -166,42 +324,6 @@ let check_store store gamma =
 (** Pure Formulae functions         **)
 (*************************************)
 
-let copy_p_formulae pfs =
-	let new_pfs = DynArray.copy pfs in
-	new_pfs
-
-(* let extend_pfs pfs solver pfs_to_add =
-	print_time_debug "extend_pfs:";
-	(match solver with
-	 | None -> ()
-	 | Some solver -> solver := None);
-	DynArray.append (DynArray.of_list pfs_to_add) pfs *)
-
-let pf_of_store store subst =
-	Hashtbl.fold
-		(fun var le pfs ->
-			try
-				let sle = Hashtbl.find subst var in
-				((LEq (sle, le)) :: pfs)
-			with _ -> pfs)
-		store
-		[]
-
-let pf_of_store2 store =
-	Hashtbl.fold
-		(fun var le pfs -> ((LEq (PVar var, le)) :: pfs))
-		store
-		[]
-
-let pf_of_substitution subst =
-	Hashtbl.fold
-		(fun var le pfs ->
-			if (is_lvar_name var)
-				then ((LEq (LVar var, le)) :: pfs)
-				else pfs)
-		subst
-		[]
-
 let pf_substitution pf_r subst partial =
 	(* *)
 	let new_pf = DynArray.create () in
@@ -212,9 +334,6 @@ let pf_substitution pf_r subst partial =
 		DynArray.add new_pf s_a
 	done;
 	new_pf
-
-let merge_pfs pfs_l pfs_r =
-	DynArray.append pfs_r pfs_l
 
 (** This function is dramatically incomplete **)
 let resolve_location lvar pfs =
@@ -230,39 +349,14 @@ let resolve_location lvar pfs =
 		| _ :: rest -> loop rest in
 	loop pfs
 
-let get_pf_vars var_tbl catch_pvars pfs =
-	let len = DynArray.length pfs in
-	for i=0 to len - 1 do
-		let a = DynArray.get pfs i in
-		get_ass_vars_iter var_tbl catch_pvars a
-	done
+let get_pf_vars catch_pvars pfs =
+	DynArray.fold_left (fun ac a ->
+		let v_a = get_assertion_vars catch_pvars a in
+		SS.union ac v_a) SS.empty pfs
 
 (*************************************)
 (** Typing Environment functions    **)
 (*************************************)
-
-let rec gamma_substitution gamma subst partial =
-	let new_gamma = Hashtbl.create 31 in
-	Hashtbl.iter
-		(fun var v_type ->
-			try
-			let new_var = Hashtbl.find subst var in
-			(match new_var with
-			| LVar new_var -> Hashtbl.replace new_gamma new_var v_type
-			| _ ->
-				(if (partial) then
-					Hashtbl.add new_gamma var v_type))
-			with _ ->
-				(if (partial)
-					then	Hashtbl.add new_gamma var v_type
-					else (
-						if (is_lvar_name var) then (
-							let new_lvar = Symbolic_State.fresh_lvar () in
-							Hashtbl.add subst var (LVar new_lvar);
-							Hashtbl.add new_gamma new_lvar v_type
-						))))
-		gamma;
-	new_gamma
 
 let is_sensible_subst subst gamma_source gamma_target =
   try
@@ -278,21 +372,6 @@ let is_sensible_subst subst gamma_source gamma_target =
 		subst;
 	true
 	with (Failure msg) -> print_endline (Printf.sprintf "%s" msg); false
-
-let merge_gammas (gamma_l : typing_environment) (gamma_r : typing_environment) =
-	Hashtbl.iter
-		(fun var v_type ->
-			if (not (Hashtbl.mem gamma_l var))
-				then Hashtbl.add gamma_l var v_type)
-		gamma_r
-
-let get_gamma_vars var_tbl catch_pvars gamma =
-	Hashtbl.iter
-		(fun var _ ->
-			if (catch_pvars || (is_lvar_name var))
-				then Hashtbl.replace var_tbl var true
-				else ())
-		gamma
 
 (*************************************)
 (** Predicate Set functions         **)
@@ -313,126 +392,33 @@ let preds_substitution preds subst partial =
 	done;
 	new_preds
 
-let find_predicate_assertion preds pred_name =
-	let len = DynArray.length preds in
-	let rec loop preds args =
-		match preds with
-		| [] -> args
-		| cur_pred :: rest_preds ->
-			let cur_pred_name, cur_pred_args = cur_pred in
-			if (cur_pred_name = pred_name)
-				then loop rest_preds (cur_pred_args :: args)
-				else loop rest_preds args  in
-	loop (DynArray.to_list preds) []
-
-let is_preds_empty preds =
-	(DynArray.length preds) = 0
-
-
-let get_preds_vars var_tbl catch_pvars preds =
-	let len = DynArray.length preds in
-	for i=0 to len - 1 do
-		let pred_name, les = DynArray.get preds i in
-		List.iter (fun le -> get_expr_vars var_tbl catch_pvars le) les
-	done
-	
-
-let simple_subtract_pred preds pred_name = 
-	let pred_asses = DynArray.to_list preds in 
-	let rec loop pred_asses cur = 
-		(match pred_asses with 
-		| [] -> None
-		| (cur_pred_name, les) :: rest -> 
-			if (cur_pred_name = pred_name) 
-			then Some (cur, les)
-			else loop rest (cur + 1)) in 
-	match (loop pred_asses 0) with 
-	| None -> None
-	| Some (cur, les) -> (DynArray.delete preds cur); Some (pred_name, les)
-		
-
 (*************************************)
 (** Symbolic State functions        **)
 (*************************************)
 
-let init_symb_state () : symbolic_state =
-	(* Heap, Store, Pure Formula, Gamma, Preds *)
-	(LHeap.create 1, Hashtbl.create 1, DynArray.create (), Hashtbl.create 1, DynArray.create ())
-
-let copy_symb_state symb_state =
-	let heap, store, p_formulae, gamma, preds (*, solver*) = symb_state in
-	let c_heap      = LHeap.copy heap in
-	let c_store     = copy_store store in
-	let c_pformulae = copy_p_formulae p_formulae in
-	let c_gamma     = copy_gamma gamma in
-	let c_preds     = copy_pred_set preds in
-	(* (match !solver with
-	| Some (solver, _) -> Z3.Solver.reset solver
-	| None -> ()); *)
-	(c_heap, c_store, c_pformulae, c_gamma, c_preds (*, ref None *))
-
-let rec extend_symb_state_with_pfs symb_state pfs_to_add =
-	merge_pfs (get_pf symb_state) pfs_to_add
-
-let symb_state_add_subst_as_equalities new_symb_state subst pfs spec_vars =
-	Hashtbl.iter
-		(fun var le ->
-			match le with
-			| LLit _
-			| ALoc _ ->
-				if (List.mem var spec_vars)
-					then DynArray.add pfs (LEq (LVar var, le))
-					else ()
-			| _ -> DynArray.add pfs (LEq (LVar var, le)))
-		subst
-
-(* 
-let is_empty_symb_state symb_state =
-	(is_symb_heap_empty (get_heap symb_state)) && (is_preds_empty (get_preds symb_state)) *)
-
-
-let symb_state_replace_store symb_state new_store =
-	let heap, _, pfs, gamma, preds (*, solver *) = symb_state in
-	(heap, new_store, pfs, gamma, preds (*, solver *))
-
-let symb_state_replace_heap symb_state new_heap =
-	let _, store, pfs, gamma, preds (*, solver *) = symb_state in
-	(new_heap, store, pfs, gamma, preds (*, solver *))
-
-let symb_state_replace_preds symb_state new_preds =
-	let heap, store, pfs, gamma, _ (*, solver *) = symb_state in
-	(heap, store, pfs, gamma, new_preds (*, solver *))
-
-let symb_state_replace_gamma symb_state new_gamma =
-	let heap, store, pfs, _, preds (*, solver *) = symb_state in
-	(heap, store, pfs, new_gamma, preds (*, solver *))
-
-let symb_state_replace_pfs symb_state new_pfs =
-	let heap, store, _, gamma, preds (*, solver *) = symb_state in
-	(heap, store, new_pfs, gamma, preds (*, solver *))
-
-let get_symb_state_vars_as_tbl catch_pvars symb_state =
-	let var_tbl = Hashtbl.create small_tbl_size in
-	let heap, store, pfs, gamma, preds (*, _*) = symb_state in
-	get_heap_vars var_tbl catch_pvars heap;
-	get_store_vars var_tbl catch_pvars store;
-	get_pf_vars var_tbl catch_pvars pfs;
-	get_gamma_vars var_tbl catch_pvars gamma;
-	get_preds_vars var_tbl catch_pvars preds;
-	var_tbl
-
-
-(**
-   @arg catch_pvars boolean - if true, the procedure returns logical variables AND program variables. 
-	      otherwise it only returns logical variables 
-	 @ret a list containing all the variables in symb_state   
-*)
-let get_symb_state_vars_as_list (catch_pvars : bool) (symb_state : symbolic_state) =
-	let var_tbl = get_symb_state_vars_as_tbl catch_pvars symb_state in
-	Hashtbl.fold
-		(fun v _ ac -> v :: ac)
-		var_tbl
-		[]
+let get_preds_vars catch_pvars preds : SS.t =
+	DynArray.fold_left (fun ac (_, les) ->
+		let v_les = List.fold_left (fun ac e ->
+			let v_e = get_expr_vars catch_pvars e in
+			SS.union ac v_e) SS.empty les in
+		SS.union ac v_les) SS.empty preds
+	
+let get_symb_state_vars catch_pvars symb_state =
+	let heap, store, pfs, gamma, preds = symb_state in
+	let v_h  : SS.t = get_heap_vars catch_pvars heap in
+	let v_s  : SS.t = get_store_vars catch_pvars store in
+	let v_pf : SS.t = get_pf_vars catch_pvars pfs in
+	let v_g  : SS.t = get_gamma_vars catch_pvars gamma in
+	let v_pr : SS.t = get_preds_vars catch_pvars preds in
+		SS.union v_h (SS.union v_s (SS.union v_pf (SS.union v_g v_pr)))
+		
+let get_symb_state_vars_no_gamma catch_pvars symb_state =
+	let heap, store, pfs, gamma, preds = symb_state in
+	let v_h  : SS.t = get_heap_vars catch_pvars heap in
+	let v_s  : SS.t = get_store_vars catch_pvars store in
+	let v_pf : SS.t = get_pf_vars catch_pvars pfs in
+	let v_pr : SS.t = get_preds_vars catch_pvars preds in
+		SS.union v_h (SS.union v_s (SS.union v_pf v_pr))
 
 let symb_state_substitution (symb_state : symbolic_state) subst partial =
 	let heap, store, pf, gamma, preds (*, _ *) = symb_state in
@@ -442,8 +428,6 @@ let symb_state_substitution (symb_state : symbolic_state) subst partial =
 	let s_gamma = gamma_substitution gamma subst partial in
 	let s_preds = preds_substitution preds subst partial in
 	(s_heap, s_store, s_pf, s_gamma, s_preds (* ref None *))
-	
-	
 
 (*************************************)
 (** Symbolic state simplification   **)
@@ -809,7 +793,7 @@ let rec understand_types exists pf_list gamma : bool =
 		| _ -> f rest gamma))
 
 let rec simplify_for_your_legacy exists others (symb_state : symbolic_state) : symbolic_state * jsil_logic_assertion DynArray.t = 
-	
+		
 	(* Gamma-check *)
 	let symb_state, others = Hashtbl.fold (fun v t (ac, others) -> 
 		let (heap, store, p_formulae, gamma, preds (*, _ *)) = ac in
