@@ -130,7 +130,7 @@ let get_z3_var_symbol tr_ctx var =
 
 let get_sorts tr_ctx vars =
 	let gamma = tr_ctx.tr_typing_env in
-	List.map (fun x -> let var_type = Symbolic_State.gamma_get_type gamma x in get_sort tr_ctx var_type) vars
+	List.map (fun x -> let var_type = gamma_get_type gamma x in get_sort tr_ctx var_type) vars
 
 
 let get_z3_vars tr_ctx vars =
@@ -494,7 +494,7 @@ let encode_unop tr_ctx op le te =
 let get_z3_var_and_type tr_ctx var =
 	let ctx = tr_ctx.z3_ctx in
 	let gamma = tr_ctx.tr_typing_env in
-	let var_type = Symbolic_State.gamma_get_type gamma var in
+	let var_type = gamma_get_type gamma var in
 	let le, te =
 		(match var_type with
 			| None            -> let le = (mk_const ctx (Symbol.mk_string ctx var)) in
@@ -650,7 +650,7 @@ let encode_snth_equalities tr_ctx s les =
 let encode_gamma tr_ctx how_many =
 	let ctx = tr_ctx.z3_ctx in
 	let gamma = tr_ctx.tr_typing_env in
-	let gamma_var_type_pairs = Symbolic_State.get_gamma_var_type_pairs gamma in
+	let gamma_var_type_pairs = get_gamma_var_type_pairs gamma in
 	let encoded_gamma = 
 		let z3true = (Boolean.mk_true ctx) in 
 		List.filter 

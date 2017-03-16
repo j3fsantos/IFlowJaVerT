@@ -13,8 +13,8 @@ let update_abs_heap (heap : symbolic_heap) (anti_heap: symbolic_heap) loc e_fiel
 		LHeap.replace heap loc ((e_field, e_val) :: unchanged_fv_list, default_val)
 	| None, true, _ -> 
 		let v = LVar (fresh_lvar ()) in 
-		extend_abs_heap heap loc e_field e_val;
-		extend_abs_heap anti_heap loc e_field v;
+		heap_put_fv_pair heap loc e_field e_val;
+		heap_put_fv_pair anti_heap loc e_field v;
 	| None, false, _ ->
 		let msg = Printf.sprintf "Cannot decide if %s exists in object %s" (JSIL_Print.string_of_logic_expression e_field false) loc in
 			raise (Failure msg)
@@ -30,8 +30,8 @@ let abs_heap_find (symb_state : symbolic_state) (anti_frame : symbolic_state) lo
 		(f_val, false)
 	| None, true, def when (not (def = LNone))  -> 
 		let v = LVar (fresh_lvar ()) in 
-		extend_abs_heap heap loc e_field v;
-		extend_abs_heap anti_heap loc e_field v;
+		heap_put_fv_pair heap loc e_field v;
+		heap_put_fv_pair anti_heap loc e_field v;
 		(v, true)
 	| Some (_, LNone), _, _
 	| None, true, LNone  -> 

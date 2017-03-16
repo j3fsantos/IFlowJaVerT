@@ -225,76 +225,22 @@ let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : bool optio
 (** Abstract Heap functions         **)
 (*************************************)
 
-let fv_list_substitution fv_list subst partial =
-	List.map
-		(fun (le_field, le_val) ->
-			let s_le_field = lexpr_substitution le_field subst partial in
-			let s_le_val = lexpr_substitution le_val subst partial in
-			(s_le_field, s_le_val))
-		fv_list
-		
-let heap_substitution (heap : symbolic_heap) (subst : substitution) partial =
-	let new_heap = LHeap.create 1021 in
-	LHeap.iter
-		(fun loc (fv_list, def) ->
-			let s_loc =
-				(try Hashtbl.find subst loc
-					with _ ->
-						if (is_abs_loc_name loc)
-							then
-								(if (partial) then (ALoc loc) else
-									(let new_aloc = ALoc (fresh_aloc ()) in
-									extend_subst subst loc new_aloc;
-									new_aloc))
-							else (LLit (Loc loc))) in
-			let s_loc =
-				(match s_loc with
-					| LLit (Loc loc) -> loc
-					| ALoc loc -> loc
-					| _ ->
-						raise (Failure "Heap substitution failed miserably!!!")) in
-			let s_fv_list = fv_list_substitution fv_list subst partial in
-			let s_def = lexpr_substitution def subst partial in
-			LHeap.add new_heap s_loc (s_fv_list, s_def))
-		heap;
-	new_heap
-	
-let get_heap_vars catch_pvars heap : SS.t =
-	LHeap.fold
-		(fun _ (fv_list, e_def) ac ->
-			let v_fv = List.fold_left
-				(fun ac (e_field, e_val) ->
-					let v_f = get_expr_vars catch_pvars e_field in
-					let v_v = get_expr_vars catch_pvars e_val in
-						SS.union ac (SS.union v_f v_v))
-				SS.empty fv_list in
-			let v_def = get_expr_vars catch_pvars e_def in
-			SS.union ac (SS.union v_fv v_def))
-		heap SS.empty
+
 
 (*************************************)
 (** Abstract Store functions        **)
 (*************************************)
 
-let store_substitution store gamma subst partial =
-	let vars, les =
-		Hashtbl.fold
-			(fun pvar le (vars, les) ->
-						let s_le = lexpr_substitution le subst partial in
-						let s_le_type, is_typable, _ = type_lexpr gamma s_le in
-						(match s_le_type with
-							| Some s_le_type -> Hashtbl.replace gamma pvar s_le_type
-							| None -> ());
-						(pvar :: vars), (s_le :: les))
-			store
-			([], []) in
-	let store = init_store vars les in
-	store
-	
-let get_store_vars catch_pvars store =
-	Hashtbl.fold (fun _ e ac -> 
-		let v_e = get_expr_vars catch_pvars e in
-		SS.union ac v_e) store SS.empty
+let extend_abs_store x store gamma =
+	let new_l_var_name = fresh_lvar () in
+	let new_l_var = LVar new_l_var_name in
+	(try
+		let x_type = Hashtbl.find gamma x in
+		Hashtbl.add gamma new_l_var_name x_type
+	with _ -> ());
+	Hashtbl.add store x new_l_var;
+	new_l_var
+
 
 let check_store store gamma =
 
@@ -405,8 +351,8 @@ let get_preds_vars catch_pvars preds : SS.t =
 	
 let get_symb_state_vars catch_pvars symb_state =
 	let heap, store, pfs, gamma, preds = symb_state in
-	let v_h  : SS.t = get_heap_vars catch_pvars heap in
-	let v_s  : SS.t = get_store_vars catch_pvars store in
+	let v_h  : SS.t = heap_vars catch_pvars heap in
+	let v_s  : SS.t = store_vars catch_pvars store in
 	let v_pf : SS.t = get_pf_vars catch_pvars pfs in
 	let v_g  : SS.t = get_gamma_vars catch_pvars gamma in
 	let v_pr : SS.t = get_preds_vars catch_pvars preds in
@@ -414,8 +360,8 @@ let get_symb_state_vars catch_pvars symb_state =
 		
 let get_symb_state_vars_no_gamma catch_pvars symb_state =
 	let heap, store, pfs, gamma, preds = symb_state in
-	let v_h  : SS.t = get_heap_vars catch_pvars heap in
-	let v_s  : SS.t = get_store_vars catch_pvars store in
+	let v_h  : SS.t = heap_vars catch_pvars heap in
+	let v_s  : SS.t = store_vars catch_pvars store in
 	let v_pf : SS.t = get_pf_vars catch_pvars pfs in
 	let v_pr : SS.t = get_preds_vars catch_pvars preds in
 		SS.union v_h (SS.union v_s (SS.union v_pf v_pr))

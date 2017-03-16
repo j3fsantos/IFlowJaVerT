@@ -373,7 +373,7 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 		(JSIL_Memory_Print.string_of_gamma gamma));
 	let start_time = Sys.time () in
 	let quotient_heap = LHeap.create 1021 in
-	let pat_heap_domain : string list = get_heap_domain pat_heap subst in
+	let pat_heap_domain : string list = heap_domain pat_heap subst in
 	print_debug (Printf.sprintf "PatHeapDomain: %s" (String.concat ", " pat_heap_domain));
 	
 	let just_pick_the_first locs = 
@@ -414,7 +414,7 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 				let pat_loc, rest_locs = pick_pat_loc locs_to_visit subst in  
 				print_debug (Printf.sprintf "Location: %s" pat_loc);
 				print_debug (Printf.sprintf "Substitution: %s" (JSIL_Memory_Print.string_of_substitution subst));
-				(match abs_heap_get pat_heap pat_loc with
+				(match heap_get pat_heap pat_loc with
 				| Some (pat_fv_list, pat_def) ->
 			  	(if ((pat_def <> LNone) && (pat_def <> LUnknown)) then raise (Failure "Illegal Default Value")  else (
 						let loc = try
@@ -565,7 +565,7 @@ let unify_gamma pat_gamma gamma pat_store subst (ignore_vars : SS.t) =
 							(if (is_lvar_name var)
 								then Hashtbl.find subst var
 								else
-									(match (store_get_var_val pat_store var) with
+									(match (store_get_safe pat_store var) with
 									| Some le -> JSIL_Logic_Utils.lexpr_substitution le subst true
 									| None -> (PVar var))) in
 						let le_type, is_typable, _ = JSIL_Logic_Utils.type_lexpr gamma le in
@@ -734,11 +734,11 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 				
 	(* existentials -> new variables introduced by the fold                                      *)
 	(* store_vars -> vars in the store which are mapped to logical expressions with existentials *)
-	let find_existentials_types (existentials : SS.t) store_vars store gamma pat_gamma =
+	let find_existentials_types (existentials : SS.t) store_vars (store : symbolic_store) gamma pat_gamma =
 		let gamma_existentials = mk_gamma () in
 		List.iter
 			(fun x ->
-				let le_x = store_get_var_val store x in
+				let le_x : jsil_logic_expr option = store_get_safe store x in
 				let x_type = gamma_get_type pat_gamma x in
 				match le_x, x_type with
 				| Some le_x, Some x_type -> let _ = JSIL_Logic_Utils.reverse_type_lexpr_aux gamma gamma_existentials le_x x_type in ()
@@ -767,7 +767,7 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 		print_debug "\tEntering step 0.";
 		let subst = init_substitution [] in
 		let filtered_vars, unfiltered_vars =
-			filter_store
+			store_filter
 				store_0
 				(fun (le : jsil_logic_expr) ->
 					let le_vars : SS.t = get_expr_vars false le in
@@ -779,8 +779,8 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 				Some
 					(List.fold_left
 						(fun ac x ->
-							let le_0 = store_get_var_val store_0 x in
-							let le_1 = store_get_var_val store_1 x in
+							let le_0 = store_get_safe store_0 x in
+							let le_1 = store_get_safe store_1 x in
 							match le_0, le_1 with
 							| Some le_0, Some le_1 -> (le_1, le_0) :: ac
 							| _, None -> ac
@@ -925,7 +925,7 @@ let fully_unify_symb_state pat_symb_state symb_state lvars (js : bool) =
 	let unifier = unify_symb_states lvars pat_symb_state symb_state in
 	match unifier with
 	| Some (true, quotient_heap, quotient_preds, subst, pf_discharges, _) ->
-		let emp_heap = (is_symb_heap_empty quotient_heap js) in
+		let emp_heap = (is_heap_empty quotient_heap js) in
 		let emp_preds = (is_preds_empty quotient_preds) in
 		if (emp_heap && emp_preds) then
 			(Some subst, "")
@@ -1041,10 +1041,10 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 	let store_1 = get_store pat_symb_state in
 	let gamma_0 = get_gamma symb_state in
 	let gamma_1 = get_gamma pat_symb_state in
-	let store_vars = get_store_domain store_0 in
+	let store_vars = store_domain store_0 in
 
 	let find_store_var_type store gamma x =
-		let le_x = store_get_var_val store x in
+		let le_x = store_get_safe store x in
 		(match le_x with
 		| Some le_x ->
 			let x_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le_x in
@@ -1114,7 +1114,7 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 		let gamma_0' = mk_gamma () in
 		List.iter
 			(fun x ->
-				let le_x = store_get_var_val store_0 x in
+				let le_x = store_get_safe store_0 x in
 				let x_type = find_store_var_type store_1 gamma_1 x in
 				match le_x, x_type with
 				| Some le_x, Some x_type -> let _ = JSIL_Logic_Utils.reverse_type_lexpr_aux gamma_0 gamma_0' le_x x_type in ()

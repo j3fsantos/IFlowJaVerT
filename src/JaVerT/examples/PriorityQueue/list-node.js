@@ -1,3 +1,14 @@
+/** 
+    @pred Node(n, data, next, np) :
+        ObjectWithProto(n, np) *
+        dataField(n, "data", data) *
+        dataField(n, "next", next) *
+        dataField(n, "prev", prev) *
+        js_empty_fields (n | "data", "next", "prev" ) * 
+        types(data : $$number_type);
+*/
+
+
 (function () {
     'use strict';
 
@@ -16,12 +27,12 @@
      ***************************************************/
 
     /**
-     * Creates a node object with a data property and pointer
-     * to the next node
-     *
-     * @constructor
-     * @param {object|number|string} data The data to initialize with the node
-     */
+    @id  Node
+
+    @pre ((data == #data) * types(#data: $$number_type) * ObjectWithProto(this, #np))
+
+    @post (Node(this, #data, $$null, $$null, #np) * (ret == $$empty))
+  */
     function Node(data) {
         this.data = data || null;
         this.next = null;

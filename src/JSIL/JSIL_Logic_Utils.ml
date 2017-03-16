@@ -661,7 +661,7 @@ let rec type_lexpr gamma le =
 	(* Variables are typable if in gamma, otherwise no no *)
 	| LVar var
 	| PVar var ->
-		(match Symbolic_State.gamma_get_type gamma var with
+		(match gamma_get_type gamma var with
 		| Some t -> Some t, true, []
 		| None   -> None,   true, [])
 
@@ -807,10 +807,10 @@ let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
 	(* with the target type or if they are not typable           *)
 	| LVar var
 	| PVar var ->
-		(match (Symbolic_State.gamma_get_type gamma var), (Symbolic_State.gamma_get_type new_gamma var) with
+		(match (gamma_get_type gamma var), (gamma_get_type new_gamma var) with
 		| Some t, None
 		| None, Some t     -> (t = le_type)
-		| None, None       -> (Symbolic_State.update_gamma new_gamma var (Some le_type)); true
+		| None, None       -> (update_gamma new_gamma var (Some le_type)); true
 		| Some t1, Some t2 -> if (t1 = t2) then true else false)
 
 	(* Abstract locations are reverse-typable if the target type is ObjectType *)
@@ -884,8 +884,8 @@ let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
  	 	| LUnknown -> false)
 
 
-let reverse_type_lexpr gamma le le_type : Symbolic_State.typing_environment option =
-	let new_gamma : Symbolic_State.typing_environment = Symbolic_State.mk_gamma () in
+let reverse_type_lexpr gamma le le_type : typing_environment option =
+	let new_gamma : typing_environment = mk_gamma () in
 	let ret = reverse_type_lexpr_aux gamma new_gamma le le_type in
 	if (ret)
 		then Some new_gamma

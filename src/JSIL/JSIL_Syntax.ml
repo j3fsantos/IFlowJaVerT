@@ -518,3 +518,103 @@ let is_pvar_name (name : string) : bool =
 
 (* A substitution type                                 *)
 type substitution = ((string, jsil_logic_expr) Hashtbl.t)
+
+
+(* Typing Environment *)
+
+type typing_environment        = ((string, jsil_type) Hashtbl.t)
+
+
+let mk_gamma () = Hashtbl.create small_tbl_size
+
+let gamma_get_type gamma var =
+	try Some (Hashtbl.find gamma var) with Not_found -> None
+
+let update_gamma (gamma : typing_environment) x te =
+	(match te with
+	| None -> Hashtbl.remove gamma x
+	| Some te -> Hashtbl.replace gamma x te)
+
+let weak_update_gamma (gamma : typing_environment) x te =
+	(match te with
+	| None -> ()
+	| Some te -> Hashtbl.replace gamma x te)
+
+let copy_gamma gamma =
+	let new_gamma = Hashtbl.copy gamma in
+	new_gamma
+
+let extend_gamma gamma new_gamma =
+	Hashtbl.iter
+		(fun v t ->
+			if (not (Hashtbl.mem gamma v))
+				then Hashtbl.add gamma v t)
+		new_gamma
+
+let filter_gamma gamma vars =
+	let new_gamma = Hashtbl.create small_tbl_size in
+	Hashtbl.iter
+		(fun v v_type ->
+			(if (SS.mem v vars) then
+				Hashtbl.replace new_gamma v v_type))
+		gamma;
+	new_gamma
+
+let filter_gamma_with_subst gamma vars subst =
+	let new_gamma = Hashtbl.create small_tbl_size in
+	Hashtbl.iter
+		(fun v v_type ->
+			(if (List.mem v vars) then
+				try
+					match (Hashtbl.find subst v) with
+					| LVar new_v -> Hashtbl.replace new_gamma new_v v_type
+					| _ -> ()
+				with Not_found -> ()))
+		gamma;
+	new_gamma
+
+let get_gamma_vars catch_pvars gamma : SS.t =
+	Hashtbl.fold
+		(fun var _ ac -> 
+			let is_lvar = is_lvar_name var in
+			(match ((is_lvar && not catch_pvars) || (not is_lvar && catch_pvars)) with
+			| true -> SS.add var ac
+			| false -> ac))
+		gamma SS.empty
+
+let get_gamma_var_type_pairs gamma =
+	Hashtbl.fold
+		(fun var t ac_vars -> ((var, t) :: ac_vars))
+		gamma
+		[]
+
+let rec gamma_substitution gamma subst partial =
+	let new_gamma = Hashtbl.create 31 in
+	Hashtbl.iter
+		(fun var v_type ->
+			try
+			let new_var = Hashtbl.find subst var in
+			(match new_var with
+			| LVar new_var -> Hashtbl.replace new_gamma new_var v_type
+			| _ ->
+				(if (partial) then
+					Hashtbl.add new_gamma var v_type))
+			with _ ->
+				(if (partial)
+					then	Hashtbl.add new_gamma var v_type
+					else (
+						if (is_lvar_name var) then (
+							let new_lvar = fresh_lvar () in
+							Hashtbl.add subst var (LVar new_lvar);
+							Hashtbl.add new_gamma new_lvar v_type
+						))))
+		gamma;
+	new_gamma
+
+let merge_gammas (gamma_l : typing_environment) (gamma_r : typing_environment) =
+	Hashtbl.iter
+		(fun var v_type ->
+			if (not (Hashtbl.mem gamma_l var))
+				then Hashtbl.add gamma_l var v_type)
+		gamma_r
+

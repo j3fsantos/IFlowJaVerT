@@ -19,39 +19,55 @@ type symbolic_discharge_list   = ((jsil_logic_expr * jsil_logic_expr) list)
 type symbolic_heap             = (symbolic_field_value_list * jsil_logic_expr) LHeap.t
 type symbolic_store            = (string, jsil_logic_expr) Hashtbl.t
 type pure_formulae             = (jsil_logic_assertion DynArray.t)
-type typing_environment        = ((string, jsil_type) Hashtbl.t)
 type predicate_set             = ((string * (jsil_logic_expr list)) DynArray.t)
 type predicate_assertion       = (string * (jsil_logic_expr list))
 
 type symbolic_state = symbolic_heap * symbolic_store * pure_formulae * typing_environment * predicate_set 
 
 (*************************************)
-(** Abstract Heap functions         **)
+(** Field Value Lists               **)
 (*************************************)
 
-let create_empty_abs_heap () = 
+let is_empty_fv_list fv_list js =
+	let rec loop fv_list empty_so_far =
+		match fv_list with
+		| [] -> empty_so_far
+		| (f_name, f_val) :: rest ->
+			if ((f_name = (LLit (String Js2jsil_constants.erFlagPropName))) && js) 
+				then true 
+				else ( if (f_val = LNone) then loop rest empty_so_far else loop rest false ) in 
+	loop fv_list true
+
+
+let fv_list_substitution fv_list subst partial =
+	List.map
+		(fun (le_field, le_val) ->
+			let s_le_field = JSIL_Logic_Utils.lexpr_substitution le_field subst partial in
+			let s_le_val = JSIL_Logic_Utils.lexpr_substitution le_val subst partial in
+			(s_le_field, s_le_val))
+		fv_list
+
+(*************************************)
+(** Heap functions                  **)
+(*************************************)
+
+let heap_init () = 
 	LHeap.create 1021
 
-let abs_heap_get (heap : symbolic_heap) (loc : string) =
+let heap_get (heap : symbolic_heap) (loc : string) =
 	try Some (LHeap.find heap loc) with _ -> None
 
-let abs_heap_put (heap : symbolic_heap) (loc : string) (fv_list : symbolic_field_value_list) (def : jsil_logic_expr) =
+let heap_put (heap : symbolic_heap) (loc : string) (fv_list : symbolic_field_value_list) (def : jsil_logic_expr) =
 	LHeap.replace heap loc (fv_list, def)   
 
-let abs_heap_remove (heap : symbolic_heap) (loc : string) =
+let heap_put_fv_pair (heap : symbolic_heap) (loc : string) (field : jsil_logic_expr) (value : jsil_logic_expr) = 
+	let fv_list, def_val = try LHeap.find heap loc with _ -> ([], LUnknown) in  
+	LHeap.replace heap loc (((field, value) :: fv_list), def_val)
+
+let heap_remove (heap : symbolic_heap) (loc : string) =
 	LHeap.remove heap loc  
 
-let get_heap_as_list (heap : symbolic_heap) = 
-	LHeap.fold 
-		(fun loc (fv_list, def) heap_as_list -> 
-			((loc, (fv_list, def)) :: heap_as_list))
-		heap
-		[]
-		
-let heap_iterator (heap: symbolic_heap) (f : string -> (symbolic_field_value_list * jsil_logic_expr) -> unit) = 
-	LHeap.iter f heap
-
-let get_heap_domain (heap : symbolic_heap) subst =
+let heap_domain (heap : symbolic_heap) subst =
 	let domain =
 		LHeap.fold
 			(fun l _ ac -> l :: ac)
@@ -71,65 +87,69 @@ let get_heap_domain (heap : symbolic_heap) subst =
 
 	loop domain [] [] []
 
-let extend_abs_heap (heap : symbolic_heap) (loc : string) (field : jsil_logic_expr) (value : jsil_logic_expr) = 
-	let fv_list, def_val = try LHeap.find heap loc with _ -> ([], LUnknown) in  
-	LHeap.replace heap loc (((field, value) :: fv_list), def_val)
+let heap_copy heap = LHeap.copy heap 
 
-let is_empty_fv_list fv_list js =
-	let rec loop fv_list empty_so_far =
-		match fv_list with
-		| [] -> empty_so_far
-		| (f_name, f_val) :: rest ->
-			if ((f_name = (LLit (String Js2jsil_constants.erFlagPropName))) && js) 
-				then true 
-				else ( if (f_val = LNone) then loop rest empty_so_far else loop rest false ) in 
-	loop fv_list true
+let heap_substitution (heap : symbolic_heap) (subst : substitution) (partial : bool) =
+	let new_heap = LHeap.create 1021 in
+	LHeap.iter
+		(fun loc (fv_list, def) ->
+			let s_loc =
+				(try Hashtbl.find subst loc
+					with _ ->
+						if (is_abs_loc_name loc)
+							then
+								(if (partial) then (ALoc loc) else
+									(let new_aloc = ALoc (fresh_aloc ()) in
+									JSIL_Logic_Utils.extend_subst subst loc new_aloc;
+									new_aloc))
+							else (LLit (Loc loc))) in
+			let s_loc =
+				(match s_loc with
+					| LLit (Loc loc) -> loc
+					| ALoc loc -> loc
+					| _ ->
+						raise (Failure "Heap substitution failed miserably!!!")) in
+			let s_fv_list = fv_list_substitution fv_list subst partial in
+			let s_def = JSIL_Logic_Utils.lexpr_substitution def subst partial in
+			LHeap.add new_heap s_loc (s_fv_list, s_def))
+		heap;
+	new_heap
 
-let is_symb_heap_empty (heap : symbolic_heap) (js : bool) : bool =
+let heap_vars catch_pvars heap : SS.t =
+	LHeap.fold
+		(fun _ (fv_list, e_def) ac ->
+			let v_fv = List.fold_left
+				(fun ac (e_field, e_val) ->
+					let v_f = JSIL_Logic_Utils.get_expr_vars catch_pvars e_field in
+					let v_v = JSIL_Logic_Utils.get_expr_vars catch_pvars e_val in
+						SS.union ac (SS.union v_f v_v))
+				SS.empty fv_list in
+			let v_def = JSIL_Logic_Utils.get_expr_vars catch_pvars e_def in
+			SS.union ac (SS.union v_fv v_def))
+		heap SS.empty
+
+let heap_as_list (heap : symbolic_heap) = 
+	LHeap.fold 
+		(fun loc (fv_list, def) heap_as_list -> 
+			((loc, (fv_list, def)) :: heap_as_list))
+		heap
+		[]
+		
+let heap_iterator (heap: symbolic_heap) (f : string -> (symbolic_field_value_list * jsil_logic_expr) -> unit) = 
+	LHeap.iter f heap
+
+let is_heap_empty (heap : symbolic_heap) (js : bool) : bool =
 	LHeap.fold
 		(fun loc (fv_list, def) ac -> if (not ac) then ac else is_empty_fv_list fv_list js)
 		heap
 		true
 
+	
 (*************************************)
 (** Abstract Store functions        **)
 (*************************************)
-let store_get_var_val store x =
-	try
-		Some (Hashtbl.find store x)
-	with Not_found -> None
 
-let store_get_var store var =
-	(try
-		Hashtbl.find store var
-	with _ ->
-		let msg = Printf.sprintf "store_get_var: fatal error. var: %s" var in
-		raise (Failure msg))
-
-let update_abs_store store x ne =
-	Hashtbl.replace store x ne
-
-let copy_store store =
-	let new_store = Hashtbl.copy store in
-	new_store
-
-let extend_abs_store x store gamma =
-	let new_l_var_name = fresh_lvar () in
-	let new_l_var = LVar new_l_var_name in
-	(try
-		let x_type = Hashtbl.find gamma x in
-		Hashtbl.add gamma new_l_var_name x_type
-	with _ -> ());
-	Hashtbl.add store x new_l_var;
-	new_l_var
-
-let get_store_domain store =
-	Hashtbl.fold
-		(fun x _ ac -> x :: ac)
-		store
-		[]
-
-let init_store vars les =
+let store_init vars les =
 	let store = Hashtbl.create 31 in
 
 	let rec loop vars les =
@@ -143,7 +163,63 @@ let init_store vars les =
 	loop vars les;
 	store
 
-let filter_store store filter_fun =
+let store_get_safe store x =
+	try
+		Some (Hashtbl.find store x)
+	with Not_found -> None
+
+let store_get store var =
+	(try
+		Hashtbl.find store var
+	with _ ->
+		let msg = Printf.sprintf "store_get_var: fatal error. var: %s" var in
+		raise (Failure msg))
+
+let store_put store x ne =
+	Hashtbl.replace store x ne
+
+let store_remove store x = 
+	Hashtbl.remove store x 
+
+let store_domain store =
+	Hashtbl.fold
+		(fun x _ ac -> x :: ac)
+		store
+		[]
+
+let store_copy store =
+	let new_store = Hashtbl.copy store in
+	new_store
+
+(** why are the types being treated here? **)
+let store_substitution store gamma subst partial =
+	let vars, les =
+		Hashtbl.fold
+			(fun pvar le (vars, les) ->
+				let s_le = JSIL_Logic_Utils.lexpr_substitution le subst partial in
+				let s_le_type, is_typable, _ = JSIL_Logic_Utils.type_lexpr gamma s_le in
+				(match s_le_type with
+					| Some s_le_type -> Hashtbl.replace gamma pvar s_le_type
+					| None -> ());
+				(pvar :: vars), (s_le :: les))
+			store
+			([], []) in
+	let store = store_init vars les in
+	store
+
+let store_vars catch_pvars store =
+	Hashtbl.fold (fun _ e ac -> 
+		let v_e = JSIL_Logic_Utils.get_expr_vars catch_pvars e in
+		SS.union ac v_e) store SS.empty
+
+let store_merge_left (store_l : symbolic_store) (store_r : symbolic_store) =
+	Hashtbl.iter
+		(fun var expr ->
+			if (not (Hashtbl.mem store_l var))
+				then Hashtbl.add store_l var expr)
+		store_r
+
+let store_filter store filter_fun =
 	Hashtbl.fold
 		(fun var le (filtered_vars, unfiltered_vars) ->
 			if (filter_fun le)
@@ -161,14 +237,10 @@ let store_projection store vars =
 					else vars, les)
 			([], []) 
 			vars in
-	init_store vars les
+	store_init vars les
 
-let merge_stores (store_l : symbolic_store) (store_r : symbolic_store) =
-	Hashtbl.iter
-		(fun var expr ->
-			if (not (Hashtbl.mem store_l var))
-				then Hashtbl.add store_l var expr)
-		store_r
+
+
 
 (*************************************)
 (** Pure Formulae functions         **)
@@ -222,101 +294,6 @@ let pf_of_substitution subst =
 let merge_pfs pfs_l pfs_r =
 	DynArray.append pfs_r pfs_l
 
-(*************************************)
-(** Typing Environment functions    **)
-(*************************************)
-let mk_gamma () = Hashtbl.create small_tbl_size
-
-let gamma_get_type gamma var =
-	try Some (Hashtbl.find gamma var) with Not_found -> None
-
-let update_gamma (gamma : typing_environment) x te =
-	(match te with
-	| None -> Hashtbl.remove gamma x
-	| Some te -> Hashtbl.replace gamma x te)
-
-let weak_update_gamma (gamma : typing_environment) x te =
-	(match te with
-	| None -> ()
-	| Some te -> Hashtbl.replace gamma x te)
-
-let copy_gamma gamma =
-	let new_gamma = Hashtbl.copy gamma in
-	new_gamma
-
-let extend_gamma gamma new_gamma =
-	Hashtbl.iter
-		(fun v t ->
-			if (not (Hashtbl.mem gamma v))
-				then Hashtbl.add gamma v t)
-		new_gamma
-
-let filter_gamma gamma vars =
-	let new_gamma = Hashtbl.create small_tbl_size in
-	Hashtbl.iter
-		(fun v v_type ->
-			(if (SS.mem v vars) then
-				Hashtbl.replace new_gamma v v_type))
-		gamma;
-	new_gamma
-
-let filter_gamma_with_subst gamma vars subst =
-	let new_gamma = Hashtbl.create small_tbl_size in
-	Hashtbl.iter
-		(fun v v_type ->
-			(if (List.mem v vars) then
-				try
-					match (Hashtbl.find subst v) with
-					| LVar new_v -> Hashtbl.replace new_gamma new_v v_type
-					| _ -> ()
-				with Not_found -> ()))
-		gamma;
-	new_gamma
-
-let get_gamma_vars catch_pvars gamma : SS.t =
-	Hashtbl.fold
-		(fun var _ ac -> 
-			let is_lvar = is_lvar_name var in
-			(match ((is_lvar && not catch_pvars) || (not is_lvar && catch_pvars)) with
-			| true -> SS.add var ac
-			| false -> ac))
-		gamma SS.empty
-
-let get_gamma_var_type_pairs gamma =
-	Hashtbl.fold
-		(fun var t ac_vars -> ((var, t) :: ac_vars))
-		gamma
-		[]
-
-let rec gamma_substitution gamma subst partial =
-	let new_gamma = Hashtbl.create 31 in
-	Hashtbl.iter
-		(fun var v_type ->
-			try
-			let new_var = Hashtbl.find subst var in
-			(match new_var with
-			| LVar new_var -> Hashtbl.replace new_gamma new_var v_type
-			| _ ->
-				(if (partial) then
-					Hashtbl.add new_gamma var v_type))
-			with _ ->
-				(if (partial)
-					then	Hashtbl.add new_gamma var v_type
-					else (
-						if (is_lvar_name var) then (
-							let new_lvar = fresh_lvar () in
-							Hashtbl.add subst var (LVar new_lvar);
-							Hashtbl.add new_gamma new_lvar v_type
-						))))
-		gamma;
-	new_gamma
-
-let merge_gammas (gamma_l : typing_environment) (gamma_r : typing_environment) =
-	Hashtbl.iter
-		(fun var v_type ->
-			if (not (Hashtbl.mem gamma_l var))
-				then Hashtbl.add gamma_l var v_type)
-		gamma_r
 
 (*************************************)
 (** Predicate Set functions         **)
@@ -429,7 +406,7 @@ let init_symb_state () : symbolic_state =
 let copy_symb_state symb_state =
 	let heap, store, p_formulae, gamma, preds (*, solver*) = symb_state in
 	let c_heap      = LHeap.copy heap in
-	let c_store     = copy_store store in
+	let c_store     = store_copy store in
 	let c_pformulae = copy_p_formulae p_formulae in
 	let c_gamma     = copy_gamma gamma in
 	let c_preds     = copy_pred_set preds in

@@ -29,7 +29,7 @@ let rec normalise_lexpr store gamma subst le =
 	| PVar pvar ->
 		(try Hashtbl.find store pvar with
 		| _ ->
-			let new_lvar = extend_abs_store pvar store gamma in
+			let new_lvar = Symbolic_State_Basics.extend_abs_store pvar store gamma in
 			Hashtbl.add subst pvar new_lvar;
 			new_lvar)
 

@@ -169,9 +169,9 @@ let bi_unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_f
 		(JSIL_Memory_Print.string_of_gamma gamma));
 		
 	let start_time = Sys.time () in
-	let quotient_heap = create_empty_abs_heap () in
-	let antiframe_heap = create_empty_abs_heap () in
-	let pat_heap_domain : string list = get_heap_domain pat_heap subst in
+	let quotient_heap = heap_init () in
+	let antiframe_heap = heap_init () in
+	let pat_heap_domain : string list = heap_domain pat_heap subst in
 	print_debug (Printf.sprintf "PatHeapDomain: %s" (String.concat ", " pat_heap_domain));
 	
 	let just_pick_the_first locs = 
@@ -213,7 +213,7 @@ let bi_unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_f
 				| Some (pat_loc, rest_locs) -> 
 					print_debug (Printf.sprintf "Location: %s" pat_loc);
 					print_debug (Printf.sprintf "Substitution: %s" (JSIL_Memory_Print.string_of_substitution subst));
-					(match abs_heap_get pat_heap pat_loc with
+					(match heap_get pat_heap pat_loc with
 					| Some (pat_fv_list, pat_def) ->
 			  			(if ((pat_def <> LNone) && (pat_def <> LUnknown)) then raise (Failure "Illegal Default Value")  else (
 							let loc = try
@@ -231,7 +231,7 @@ let bi_unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_f
 									pat_loc)
 								with _ -> (* this case is very interesting *) pat_loc in
 							let fv_list, (def : jsil_logic_expr) =
-								(match abs_heap_get heap loc with 
+								(match heap_get heap loc with 
 								| Some (fv_list, def) -> fv_list, def 
 								| None -> 
 									let msg = Printf.sprintf "Location %s in pattern has not been matched" loc in
@@ -247,13 +247,13 @@ let bi_unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_f
 								let all_fields_in_new_fv_list_are_none =
 									List.fold_left (fun ac (_, field_val) -> if (not ac) then ac else (field_val = LNone)) true frame_fv_list in
 								if all_fields_in_new_fv_list_are_none then (
-									abs_heap_put quotient_heap  loc []                def; 
-									abs_heap_put antiframe_heap pat_loc antiframe_fv_list def; 
+									heap_put quotient_heap  loc []                def; 
+									heap_put antiframe_heap pat_loc antiframe_fv_list def; 
 									loop rest_locs pfs (new_discharges @ discharges))
 								else raise (Failure "LNone in precondition")
 							| Some (frame_fv_list, matched_fv_list, antiframe_fv_list, new_discharges) ->
-								abs_heap_put quotient_heap  loc frame_fv_list     def;
-								abs_heap_put antiframe_heap pat_loc antiframe_fv_list def;
+								heap_put quotient_heap  loc frame_fv_list     def;
+								heap_put antiframe_heap pat_loc antiframe_fv_list def;
 								print_debug (Printf.sprintf "Adding sth to QH and AF.");
 								print_debug (Printf.sprintf "QH:%s\nAFH:%s" 
 									(JSIL_Memory_Print.string_of_shallow_symb_heap quotient_heap false)
@@ -271,9 +271,9 @@ let bi_unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_f
 		heap_iterator 
 			heap
 			(fun loc (fv_list, def) ->
-				match abs_heap_get quotient_heap loc with 
+				match heap_get quotient_heap loc with 
 				| Some _ -> () 
-				| None   -> abs_heap_put quotient_heap loc fv_list def);
+				| None   -> heap_put quotient_heap loc fv_list def);
 		
 		heap_iterator
 			quotient_heap
@@ -281,7 +281,7 @@ let bi_unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_f
 				match def with 
 				| LUnknown -> 
 					if ((List.length fv_list) = 0)
-						then abs_heap_remove quotient_heap loc
+						then heap_remove quotient_heap loc
 				| _ -> ()); 
 		
 		heap_iterator 
@@ -290,7 +290,7 @@ let bi_unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_f
 				match def with 
 				| LUnknown -> 
 					if ((List.length fv_list) = 0)
-						then abs_heap_remove antiframe_heap loc
+						then heap_remove antiframe_heap loc
 				| _ -> ()); 
 		
 		let end_time = Sys.time () in

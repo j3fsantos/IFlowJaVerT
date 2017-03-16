@@ -34,7 +34,7 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 	     a) If a variable is already in the store, return the variable
 			 b) Otherwise, add a fresh logical variable (of the appropriate type) to the store and then return it *)
 	| Var x ->
-		let x_val = store_get_var_val store x in
+		let x_val = store_get_safe store x in
 		if_some_val_lazy x_val (lazy (extend_abs_store x store gamma))
 
   (* Binary operators:
@@ -218,7 +218,7 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 			d) Return nle *)
 	| SAssignment (x, e) ->
 		let nle, tle, _ = ssee e in
-		update_abs_store store x nle;
+		store_put store x nle;
 		update_gamma gamma x tle;
 		nle
 
@@ -234,7 +234,7 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 		let new_loc = fresh_aloc () in
 		Symbolic_State_Functions.update_abs_heap_default heap new_loc LNone;
 		Symbolic_State_Functions.update_abs_heap heap new_loc (LLit (String (Js2jsil_constants.internalProtoFieldName))) (LLit Null) pure_formulae (* solver *) gamma;
-		update_abs_store store x (ALoc new_loc);
+		store_put store x (ALoc new_loc);
 		update_gamma gamma x (Some ObjectType);
 		DynArray.add pure_formulae (LNot (LEq (ALoc new_loc, LLit (Loc Js2jsil_constants.locGlobName))));
 		ALoc new_loc
@@ -256,7 +256,7 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 			| ALoc l -> l
 			| _ -> raise (Failure (Printf.sprintf "Lookup: I do not know which location %s denotes in the symbolic heap" (print_le ne1)))) in
 		let ne = Symbolic_State_Functions.abs_heap_find heap l ne2 pure_formulae gamma in
-		update_abs_store store x ne;
+		store_put store x ne;
 		ne
 
   (* Property assignment: [e1, e2] := e3;
@@ -334,7 +334,7 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 				update_gamma gamma x (Some BooleanType);
 				if_some res (fun res -> 
 					let res_lit = LLit (Bool res) in
-					update_abs_store store x res_lit;
+					store_put store x res_lit;
 					res_lit) LUnknown
 		| _ -> raise (Failure (Printf.sprintf "HasField: I do not know which location %s denotes in the symbolic heap" (print_le ne1)))
 
@@ -347,7 +347,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 	    called procedure is to be executed *)
 	let proc = get_proc prog proc_name in
 	let proc_args = get_proc_args proc in
-	let new_store = init_store proc_args le_args in
+	let new_store = store_init proc_args le_args in
 	let symb_state_aux = symb_state_replace_store symb_state new_store in
 
 	let compatible_pfs symb_state pat_symb_state subst =
@@ -381,7 +381,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 				print_debug (Printf.sprintf "The post makes sense.");
 				let new_symb_state = if (copy_flag) then (copy_symb_state symb_state) else symb_state in
 				let new_symb_state = Structural_Entailment.merge_symb_states new_symb_state post subst in
-				let ret_lexpr = store_get_var (get_store post) ret_var in
+				let ret_lexpr = store_get (get_store post) ret_var in
 				let ret_lexpr = JSIL_Logic_Utils.lexpr_substitution ret_lexpr subst false in
 				[ new_symb_state, ret_flag, ret_lexpr ])
 				else begin print_debug (Printf.sprintf "The post does not make sense."); [] end in
@@ -414,7 +414,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		let gamma = gamma_substitution pre_gamma subst false in
 		merge_gammas gamma (get_gamma symb_state);
 		merge_pfs pfs (get_pf symb_state);
-		let store = copy_store (get_store symb_state) in
+		let store = store_copy (get_store symb_state) in
 		let heap = get_heap symb_state in
 		let preds = get_preds symb_state in
 		let new_symb_state = (heap, store, pfs, gamma, preds (*, ref None *)) in
@@ -505,7 +505,7 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 
 	(* create a new symb state with the abstract store in which the
 	    called procedure is to be executed *)
-	let new_store = init_store params args in
+	let new_store = store_init params args in
 	let symb_state_aux = symb_state_replace_store symb_state new_store in
 
 	let existentials =
@@ -586,7 +586,7 @@ let unfold_predicates pred_name pred_defs symb_state params args spec_vars =
 
 	let subst0 = Symbolic_State_Functions.subtract_pred pred_name args (get_preds symb_state) (get_pf symb_state) (* (get_solver symb_state) *) (get_gamma symb_state) spec_vars in
 	let args = List.map (fun le -> lexpr_substitution le subst0 true) args in
-	let calling_store = init_store params args in
+	let calling_store = store_init params args in
 
 	let rec loop pred_defs (symb_states : symbolic_state list) =
 		(match pred_defs with
@@ -808,7 +808,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 		List.iter
 			(fun (symb_state, ret_flag, ret_le) ->
 				let ret_type, _, _ =	type_lexpr (get_gamma symb_state) ret_le in
-				update_abs_store (get_store symb_state) x ret_le;
+				store_put (get_store symb_state) x ret_le;
 				update_gamma (get_gamma symb_state) x ret_type;
 				let symb_state = Symbolic_State_Basics.simplify_symbolic_state symb_state in 
 				let new_search_info = update_vis_tbl search_info (copy_vis_tbl search_info.vis_tbl) in
@@ -829,7 +829,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 		let expr = x_arr.(cur_which_pred) in
 		let le = symb_evaluate_expr (get_store symb_state) (get_gamma symb_state) (get_pf symb_state) expr in
 		let te, _, _ =	type_lexpr (get_gamma symb_state) le in
-		update_abs_store (get_store symb_state) x le;
+		store_put (get_store symb_state) x le;
 		update_gamma (get_gamma symb_state) x te;
 		symb_evaluate_next_cmd s_prog proc spec search_info symb_state i (i+1) in
 
