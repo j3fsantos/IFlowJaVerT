@@ -32,23 +32,25 @@
   (length == #len_q + 1) *
 	types(q : $$object_type, node_proto : $$object_type, #pri : $$number_type, max_pri : $$number_type, length : $$number_type, #len_q : $$number_type);
 
-@pred QueuePrototype(pqp, enqueue_sc, dequeue_sc, n, node_proto) :
+@pred QueuePrototype(pqp, n, np) :
 	standardObject(pqp) *
 	dataField(pqp, "enqueue", #enqueue_loc) *
-  	fun_obj(enqueue, #enqueue_loc, #enqueue_proto, enqueue_sc) *
+  	fun_obj(enqueue, #enqueue_loc, #enqueue_proto, #enqueue_sc) *
  	dataField(pqp, "dequeue", #dequeue_loc) *
-	fun_obj(dequeue, #dequeue_loc, #dequeue_proto, dequeue_sc) *
+	fun_obj(dequeue, #dequeue_loc, #dequeue_proto, #dequeue_sc) *
 	((pqp, "_head") -> None) *
-  	fun_obj(Node, n, node_proto) *
-  	NodePrototype(node_proto);
+  	fun_obj(Node, n, np) *
+  	NodePrototype(np) *
+  	closure(Node: n; enqueue: #enqueue_sc)
+  	;
 
-  @pred Queue(pq, pq_proto, node_proto, max_pri, length) :
-  	ObjectWithProto(pq, pq_proto) *
+  @pred Queue(pq, pqp, np, max_pri, length) :
+  	ObjectWithProto(pq, pqp) *
   	dataField(pq, "_head",  #head) *
-    NodeList(#head, node_proto, max_pri, length) *
+    NodeList(#head, np, max_pri, length) *
   	((pq, "enqueue") -> None) *
     ((pq, "dequeue") -> None) *
-  	types(pq_proto : $$object_type, max_pri : $$number_type, length : $$number_type);
+  	types(pqp : $$object_type, max_pri : $$number_type, length : $$number_type);
 */
 
 
@@ -59,8 +61,7 @@ var PriorityQueue;
 
     @post ((ret == #pq) *
       fun_obj(PriorityQueue, #pq, #pq_proto, #pq_sc) *
-      closure(Node: #n; PriorityQueue: #pq_sc, enqueue: #enqueue_sc, dequeue: #dequeue_sc) *
-      QueuePrototype(#pq_proto, #enqueue_sc, #dequeue_sc, #n, #node_proto))
+      QueuePrototype(#pq_proto, #n, #node_proto))
 
   */
 PriorityQueue = (function () {
@@ -143,14 +144,13 @@ PriorityQueue = (function () {
         ((this, "_head") -> None) *
         ((this, "enqueue") -> None) *
         ((this, "dequeue") -> None) *
-        scope(Node: #n) *
         ObjectWithProto(this, #pq_proto) *
-        QueuePrototype(#pq_proto, #enqueue_sc, #dequeue_sc, #n, #node_proto)
+        QueuePrototype(#pq_proto, #n, #node_proto)
     )
     @post (
           Queue(this, #pq_proto, #node_proto, 0, 0) *
-          QueuePrototype(#pq_proto, #enqueue_sc, #dequeue_sc, #n, #node_proto) *
-          (ret == $$empty) * scope(Node: #n)
+          QueuePrototype(#pq_proto, #n, #node_proto) *
+          (ret == $$empty)
     )
    */
    var module = function () {
@@ -167,14 +167,14 @@ PriorityQueue = (function () {
         (0 <# #npri) *
         scope(Node: #n) *
         Queue(this, #pq_proto, #node_proto, #pri_q, #length) *
-        QueuePrototype(#pq_proto, #enqueue_sc, #dequeue_sc, #n, #node_proto) *
+        QueuePrototype(#pq_proto, #n, #node_proto) *
         types(#npri : $$number_type, #nval: $$string_type) *
         (#pri_q <=# #npri)
       )
       @post (
         scope(Node: #n) *
         Queue(this, #pq_proto, #node_proto, #npri, #length + 1) *
-        QueuePrototype(#pq_proto, #enqueue_sc, #dequeue_sc, #n, #node_proto) *
+        QueuePrototype(#pq_proto, #n, #node_proto) *
         (ret == $$empty)
       )
 
@@ -184,14 +184,14 @@ PriorityQueue = (function () {
         (0 <# #npri) *
         scope(Node: #n) *
         Queue(this, #pq_proto, #node_proto, #pri_q, #length) *
-        QueuePrototype(#pq_proto, #enqueue_sc, #dequeue_sc, #n, #node_proto) *
+        QueuePrototype(#pq_proto, #n, #node_proto) *
         types(#npri : $$number_type, #nval: $$string_type) *
         (#npri <# #pri_q)
       )
       @post (
         scope(Node: #n) *
         Queue(this, #pq_proto, #node_proto, #pri_q, #length + 1) *
-        QueuePrototype(#pq_proto, #enqueue_sc, #dequeue_sc, #n, #node_proto) *
+        QueuePrototype(#pq_proto, #n, #node_proto) *
         (ret == $$empty)
       )
 
@@ -204,29 +204,25 @@ PriorityQueue = (function () {
    /*
      @id dequeue
      @pre (
-       scope(Node: #n) *
        Queue(this, #pq_proto, #node_proto, #pri_q, #length) *
        (0 <# #length) *
-       QueuePrototype(#pq_proto, #enqueue_sc, #dequeue_sc, #n, #node_proto)
+       QueuePrototype(#pq_proto, #n, #node_proto)
      )
      @post (
-       scope(Node: #n) *
        (#length == #new_length + 1) *
        Queue(this, #pq_proto, #node_proto, #new_pri_q, #new_length) *
-       QueuePrototype(#pq_proto, #enqueue_sc, #dequeue_sc, #n, #node_proto) *
+       QueuePrototype(#pq_proto, #n, #node_proto) *
        standardObject(#r) * dataField(#r, "pri", #pri_q) *
        dataField(#r, "val", #some_val) * (ret == #r)
      )
 
      @pre (
-       scope(Node: #n) *
        Queue(this, #pq_proto, #node_proto, 0, 0) *
-       QueuePrototype(#pq_proto, #enqueue_sc, #dequeue_sc, #n, #node_proto)
+       QueuePrototype(#pq_proto, #n, #node_proto)
      )
      @posterr (
-       scope(Node: #n) *
        Queue(this, #pq_proto, #node_proto, 0, 0) *
-       QueuePrototype(#pq_proto, #enqueue_sc, #dequeue_sc, #n, #node_proto) *
+       QueuePrototype(#pq_proto, #n, #node_proto) *
        (err == #r) * ErrorObjectWithMessage(#r, "Queue is empty")
      )
    */
