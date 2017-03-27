@@ -189,6 +189,8 @@
 	    ((l, "@next") -> #next) * Grove(#next, #contentNext) *
 	    empty_fields(l : "@proto", "@class", "@extensible", "@next");
 
+
+
 	@pred val(t, s) :
 		isEmpty(t) * (s == ""),
 		(t == (#head :: #childListNext)) * isText(#head, #id, #s1) * val(#childListNext, #s2) * (s == #s1 ++ #s2);
@@ -203,6 +205,9 @@
 		(l == (#head :: #next)) * isAttr(#head, #n, #id, #tf) * complete(#next),
 		(l == (#head :: #next)) * isElement(#head, #n, #id, #a, #c) * complete(#next);
 
+	@pred grove_or_forest(e) :
+		Grove(#alpha, #l) * (#l == {{ e }}),
+		Forest(#alpha, #l) * (#l == {{ e }});
 
 
 	@onlyspec allocAS(l, i, j)
