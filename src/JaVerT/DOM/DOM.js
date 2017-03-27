@@ -512,21 +512,141 @@
 		outcome: normal
 
 	@onlyspec insertBefore(m, n)
-		pre:  [[ (m == #m) * (n == #n) * ElementNode(#ename, this, #el, #ea, #el, #ec) * 
+		pre:  [[ (m == #m) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
 				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "elem", #ename1, #m, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) *
-				 Grove(#alpha, #g) * (#g == {{ {{ "elem", #ename2, #n, #a2, #c1 }} }}) * complete(#c1) ]]
-		post: [[ ElementNode(#ename, this, #el, #ea, #el, #ec) * 
-				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "elem", #ename2, #n, #a2, #c1 }}, {{ "elem", #ename1, #m, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "elem", #ename2, #n, #a2, #c2 }} }}) * complete(#c2) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "elem", #ename2, #n, #a2, #c2 }}, {{ "elem", #ename1, #m, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) *
 				 Grove(#alpha, #g) * (#g == {{ {{ "hole", #zeta }} }}) * (ret == #n) ]]
 		outcome: normal;
-
-		pre:  [[ (m == #m) * (n == #n) * ElementNode(#ename, this, #el, #ea, #el, #ec) * 
+		pre:  [[ (m == #m) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
 				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "elem", #ename1, #m, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) *
-				 Forest(#alpha, #f) * (#f == {{ {{ "elem", #ename2, #n, #a2, #c1 }} }}) * complete(#c1) ]]
-		post: [[ ElementNode(#ename, this, #el, #ea, #el, #ec) * 
-				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "elem", #ename2, #n, #a2, #c1 }}, {{ "elem", #ename1, #m, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "elem", #ename2, #n, #a2, #c2 }} }}) * complete(#c2) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "elem", #ename2, #n, #a2, #c2 }}, {{ "elem", #ename1, #m, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "hole", #zeta }} }}) * (ret == #n) ]]
+		outcome: normal;
+
+		pre:  [[ (m == #m) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "elem", #ename1, #m, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "text", #n, #t2 }} }}) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "text", #n, #t2 }}, {{ "elem", #ename1, #m, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "hole", #zeta }} }}) * (ret == #n) ]]
+		outcome: normal;
+		pre:  [[ (m == #m) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "elem", #ename1, #m, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "text", #n, #t2 }} }}) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "text", #n, #t2 }}, {{ "elem", #ename1, #m, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "hole", #zeta }} }}) * (ret == #n) ]]
+		outcome: normal;
+
+		pre:  [[ (m == #m) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "elem", #ename2, #n, #a2, #c2 }} }}) * complete(#c2) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "elem", #ename2, #n, #a2, #c2 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "hole", #zeta }} }}) * (ret == #n) ]]
+		outcome: normal;
+		pre:  [[ (m == #m) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "elem", #ename2, #n, #a2, #c2 }} }}) * complete(#c2) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "elem", #ename2, #n, #a2, #c2 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "hole", #zeta }} }}) * (ret == #n) ]]
+		outcome: normal;
+
+		pre:  [[ (m == #m) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "text", #n, #t2 }} }}) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "text", #n, #t2 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "hole", #zeta }} }}) * (ret == #n) ]]
+		outcome: normal;
+		pre:  [[ (m == #m) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "text", #n, #t2 }} }}) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "text", #n, #t2 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "hole", #zeta }} }}) * (ret == #n) ]]
+		outcome: normal;
+
+		pre:  [[ (m == $$null) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "elem", #ename1, #n, #a1, #c1 }} }}) * complete(#c1) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma }}, {{ "elem", #ename1, #n, #a1, #c1 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "hole", #zeta }} }}) * (ret == #n) ]]
+		outcome: normal;
+		pre:  [[ (m == $$null) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "elem", #ename1, #n, #a1, #c1 }} }}) * complete(#c1) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma }}, {{ "elem", #ename1, #n, #a1, #c1 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "hole", #zeta }} }}) * (ret == #n) ]]
+		outcome: normal;
+
+		pre:  [[ (m == $$null) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "text", #n, #t1 }} }}) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma }}, {{ "text", #n, #t1 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "hole", #zeta }} }}) * (ret == #n) ]]
+		outcome: normal;
+		pre:  [[ (m == $$null) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "text", #n, #t1 }} }}) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma }}, {{ "text", #n, #t1 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "hole", #zeta }} }}) * (ret == #n) ]]
+		outcome: normal;
+
+		pre:  [[ (m == #m) * (n == #n) * AttributeNode(#aname, this, #l_ac, #ac) * 
+				 (#ac == {{ {{ "hole", #gamma1 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "text", #n, #t2 }} }}) ]]
+		post: [[ AttributeNode(#aname, this, #l_ac, #ac) * 
+				 (#ac == {{ {{ "hole", #gamma1 }}, {{ "text", #n, #t2 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "hole", #zeta }} }}) * (ret == #n) ]]
+		outcome: normal;
+		pre:  [[ (m == #m) * (n == #n) * AttributeNode(#aname, this, #l_ac, #ac) * 
+				 (#ac == {{ {{ "hole", #gamma1 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "text", #n, #t2 }} }}) ]]
+		post: [[ AttributeNode(#aname, this, #l_ac, #ac) * 
+				 (#ac == {{ {{ "hole", #gamma1 }}, {{ "text", #n, #t2 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "hole", #zeta }} }}) * (ret == #n) ]]
+		outcome: normal;
+		
+		pre:  [[ (m == $$null) * (n == #n) * AttributeNode(#aname, this, #l_ac, #ac) * 
+				 (#ac == {{ {{ "hole", #gamma }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "text", #n, #t1 }} }}) ]]
+		post: [[ AttributeNode(#aname, this, #l_ac, #ac) * 
+				 (#ac == {{ {{ "hole", #gamma }}, {{ "text", #n, #t1 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "hole", #zeta }} }}) * (ret == #n) ]]
+		outcome: normal;
+		pre:  [[ (m == $$null) * (n == #n) * AttributeNode(#aname, this, #l_ac, #ac) * 
+				 (#ac == {{ {{ "hole", #gamma }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "text", #n, #t1 }} }}) ]]
+		post: [[ AttributeNode(#aname, this, #l_ac, #ac) * 
+				 (#ac == {{ {{ "hole", #gamma }}, {{ "text", #n, #t1 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "hole", #zeta }} }}) * (ret == #n) ]]
+		outcome: normal;
+
+		pre:  [[ (m == $$null) * (n == #n) * DocumentNode(this, #l_e, #e, #l_g, #g) * 
+				 (#e == {{ {{ "hole", #gamma }} }}) *
+				 Grove(#alpha, #g2) * (#g2 == {{ {{ "elem", #ename1, #n, #a1, $$nil }} }}) ]]
+		post: [[ DocumentNode(this, #l_e, #e, #l_g, #g) * 
+				 (#e == {{ {{ "hole", #gamma }}, {{ "elem", #ename1, #n, #a1, $$nil }} }}) *
+				 Grove(#alpha, #g2) * (#g2 == {{ {{ "hole", #zeta }} }}) * (ret == #n) ]]
+		outcome: normal;
+		pre:  [[ (m == $$null) * (n == #n) * DocumentNode(this, #l_e, #e, #l_g, #g) * 
+				 (#e == {{ {{ "hole", #gamma }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "elem", #ename1, #n, #a1, $$nil }} }}) ]]
+		post: [[ DocumentNode(this, #l_e, #e, #l_g, #g) * 
+				 (#e == {{ {{ "hole", #gamma }}, {{ "elem", #ename1, #n, #a1, $$nil }} }}) *
 				 Forest(#alpha, #f) * (#f == {{ {{ "hole", #zeta }} }}) * (ret == #n) ]]
 		outcome: normal
+
 */
 
 /**
