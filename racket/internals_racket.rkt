@@ -1,6 +1,7 @@
 #lang rosette
 
 (require (file "mem_model.rkt"))
+(require (file "util.rkt"))
 
 (define (starts-with? s1 s2)
   (list 'normal (string-prefix? s1 s2)))
@@ -17,7 +18,11 @@
 (define (sub-string str l r)
   (list 'normal (substring str l r)))
 
+(define (str-index-of str x)
+  (list 'normal (string-index-of str x)))
+
 (define (register-racket-methods hp)
+  (register-js-builtin-method "String" "indexOf" str-index-of hp)
   (register-js-builtin-method "String" "includes" includes? hp)
   (register-js-builtin-method "String" "startsWith" starts-with? hp)
   (register-js-builtin-method "String" "toUpperCase" toUpperCase hp)
