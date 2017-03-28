@@ -10,6 +10,8 @@
 
 (define (get-assertions) current-assertions)
 
+(define (get-assumptions) current-assertions)
+
 (define (op-assert e) 
   (print e)
   (newline)
@@ -21,4 +23,4 @@
   (newline)
   (set! current-assumptions (and current-assumptions e)))
   
-(provide clear-assertions! get-assertions op-assert op-assume)
+(provide clear-assertions! get-assertions get-assumptions op-assert op-assume)
