@@ -1,4 +1,4 @@
-var base = "https://randombank.ru/api/service/account";
+var url = jsil_make_symbolic_string();
 
 // read from DOM
 var name = jsil_make_symbolic_string(name);
@@ -21,7 +21,7 @@ if (name.length > 0) {
     }
 }
 
-base
+jsil_assert( url.includes("access_token") );
 
-jsil_assert(base.includes("?id"))
+
 
