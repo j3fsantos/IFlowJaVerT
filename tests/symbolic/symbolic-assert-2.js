@@ -16,6 +16,6 @@ o[___p1_string] = ___v1_number;
 
 var t = top(o);
 
-//jsil_assume (t < 10); 
-//jsil_assert (___p1_string == "a"); 
+jsil_assert (t > 14); 
+// jsil_assert (___p1_string == "a"); 
 t

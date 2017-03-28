@@ -1490,8 +1490,8 @@ let rec translate_expr offset_converter fid cc_table vis_fid err is_rosette e : 
 					let x_ret = fresh_var () in
 					let cmd = (None, (SLBasic (SAssignment (x_ret, (RNumSymb (Some x)))))) in
 					(annotate_cmds [ cmd ]), Var x_ret, [ ]
-				| _ -> raise (Failure "jsil_make_symbolic_number expects no arguments"))
-			| _ -> raise (Failure "jsil_make_symbolic_number expects no arguments"))
+				| _ -> raise (Failure "jsil_make_symbolic_number argument needs to be a variable"))
+			| _ -> raise (Failure "jsil_make_symbolic_number expects no more than one argument"))
 
 
 	| Parser_syntax.Call (e_f, xes)
