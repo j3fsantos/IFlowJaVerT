@@ -466,7 +466,7 @@
   (jsil-discharge)
   (run-proc prog "main" heap '()))
   
-(provide run-program run-proc program procedure heap cell store args body ret-ctx err-ctx jempty jnull jundefined protop get-assertions) ;; jtrue jfalse protop)
+(provide run-program run-proc program procedure heap cell store args body ret-ctx err-ctx jempty jnull jundefined protop get-assertions get-assumptions) ;; jtrue jfalse protop)
 
 
 
