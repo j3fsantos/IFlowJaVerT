@@ -414,7 +414,7 @@
       [(eq? (first expr) 'assume)
        (let* ((expr-arg (second expr))
               (expr-val (run-expr expr-arg store)))
-         (jsil-assume expr-val))]
+         (op-assume expr-val))]
       ;;
       ;; (binop e e)
       [(= (length expr) 3) 
