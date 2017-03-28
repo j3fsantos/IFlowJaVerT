@@ -10,7 +10,7 @@
 
 (define (get-assertions) current-assertions)
 
-(define (get-assumptions) current-assertions)
+(define (get-assumptions) current-assumptions)
 
 (define (op-assert e) 
   (print e)
