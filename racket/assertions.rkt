@@ -21,6 +21,7 @@
 (define (op-assume e)
   (print e)
   (newline)
-  (set! current-assumptions (and current-assumptions e)))
+  (set! current-assumptions (and current-assumptions e))
+  #t)
   
 (provide clear-assertions! get-assertions get-assumptions op-assert op-assume)
