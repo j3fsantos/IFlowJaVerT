@@ -1,11 +1,20 @@
 /** 
-    @pred Node(n, data, next, np) :
+    @pred Node(n, data, prev, next, np) :
         ObjectWithProto(n, np) *
         dataField(n, "data", data) *
         dataField(n, "next", next) *
         dataField(n, "prev", prev) *
-        js_empty_fields (n | "data", "next", "prev" ) * 
+        empty_fields (n : "data", "next", "prev" ) * 
         types(data : $$number_type);
+
+    @pred NodePrototype(np) :
+        standardObject(np) *
+        dataField(np, "hasNext",  #hn_floc) * fun_obj(hasNext,  #hn_floc, #hn_proto) *
+        dataField(np, "hasPrev",  #hp_floc) * fun_obj(hasPrev,  #hp_floc, #hp_proto) *
+        dataField(np, "getData",  #gd_floc) * fun_obj(getData,  #gd_floc, #gd_proto) *
+        dataField(np, "toString", #ts_floc) * fun_obj(toString, #ts_floc, #ts_proto) *
+        empty_fields (np : "hasNext", "hasPrev", "getData", "toString" ) ;
+
 */
 
 
@@ -29,9 +38,10 @@
     /**
     @id  Node
 
-    @pre ((data == #data) * types(#data: $$number_type) * ObjectWithProto(this, #np))
+    @pre ((data == #data) * types(#data: $$number_type) * ObjectWithProto(this, #np) * 
+            NodePrototype(#np) * empty_fields(this : ))
 
-    @post (Node(this, #data, $$null, $$null, #np) * (ret == $$empty))
+    @post (Node(this, #data, $$null, $$null, #np) * NodePrototype(#np) * (ret == $$empty))
   */
     function Node(data) {
         this.data = data || null;
@@ -47,38 +57,54 @@
     Node.prototype = {
 
         /**
-         * Returns whether or not the node has a pointer to the next node
-         *
-         * @returns {boolean} true if there is a next node; false otherwise
+         * 
+        @id  hasNext
+
+        @pre  (Node(this, #data, #prev, $$null, #np) * NodePrototype(#np))
+
+        @post (Node(this, #data, #prev, $$null, #np) * NodePrototype(#np) * (ret == $$f))
+
+        @pre  (Node(this, #data, #prev, #next, #np) * NodePrototype(#np) * (! (#next == $$null)))
+
+        @post (Node(this, #data, #prev, #next, #np) * NodePrototype(#np) * (ret == $$t))
+
          */
         hasNext: function() {
             return (this.next !== null);
         },
 
-        /**
-         * Returns whether or not the node has a pointer to the previous node
-         *
-         * @returns {boolean} true if there is a previous node; false otherwise
+        /**         
+         * 
+        @id  hasPrev
+           
+        @pre  (Node(this, #data, $$null, #next, #np) * NodePrototype(#np))
+
+        @post (Node(this, #data, $$null, #next, #np) * NodePrototype(#np) * (ret == $$f))
+
+        @pre  (Node(this, #data, #prev, #next, #np) * NodePrototype(#np) * (! (#prev == $$null)))
+
+        @post (Node(this, #data, #prev, #next, #np) * NodePrototype(#np) * (ret == $$t))
          */
         hasPrev: function() {
             return (this.prev !== null);
         },
 
-        /**
-         * Returns the data of the the node
-         *
-         * @returns {object|string|number} the data of the node
+        /**         
+         * 
+         @id  getData
+         
+         @pre  (Node(this, #data, $$null, #next, #np))
+
+         @post (Node(this, #data, $$null, #next, #np) * (ret == #data))   
+
          */
         getData: function() {
             return this.data;
         },
 
         /**
-         * Returns a string represenation of the node.  If the data is an
-         * object, it returns the JSON.stringify version of the object.
-         * Otherwise, it simply returns the data
-         *
-         * @return {string} the string represenation of the node data
+         *         
+         * @id  toString
          */
         toString: function() {
             if (typeof this.data === 'object') {

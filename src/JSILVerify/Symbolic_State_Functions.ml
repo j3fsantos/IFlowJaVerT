@@ -275,13 +275,19 @@ let predicate_assertion_equality pred pat_pred pfs (* solver *) gamma (spec_vars
 		else None
 	| _, _ -> raise (Failure "predicate_assertion_equality: FATAL ERROR")
 
-let subtract_pred pred_name args pred_set pfs (* solver *) gamma (spec_vars : SS.t) =
+let subtract_pred 
+		(pred_name : string)
+		(args      : jsil_logic_expr list)
+		(pred_set  : predicate_set)
+		(pfs       : pure_formulae)
+		(gamma     : typing_environment)
+		(spec_vars : SS.t) =
 	let pred_list = preds_to_list pred_set in
 	let rec loop pred_list index =
 		(match pred_list with
 		| [] -> raise (Failure (Printf.sprintf "Predicate %s not found in the predicate set!!!" pred_name))
 		| pred :: rest_pred_list ->
-			(match (predicate_assertion_equality pred (pred_name, args) pfs (* solver *) gamma spec_vars) with
+			(match (predicate_assertion_equality pred (pred_name, args) pfs gamma spec_vars) with
 			| None -> loop rest_pred_list (index + 1)
 			| Some subst -> index, subst)) in
 

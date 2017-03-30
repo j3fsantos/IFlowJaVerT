@@ -56,43 +56,43 @@ rule read = parse
 	| "{{"                 { JSIL_Parser.LSTOPEN       }
 	| "}}"                 { JSIL_Parser.LSTCLOSE      }
 (* Binary operators *)
-	| "="                  { JSIL_Parser.EQUAL }
-	| "<"                  { JSIL_Parser.LESSTHAN }
+	| "="                  { JSIL_Parser.EQUAL         }
+	| "<"                  { JSIL_Parser.LESSTHAN      }
 	| "<="                 { JSIL_Parser.LESSTHANEQUAL }
-	| "<s"                 { JSIL_Parser.LESSTHANSTRING }
-	| "+"                  { JSIL_Parser.PLUS }
-	| "-"                  { JSIL_Parser.MINUS }
-	| "*"                  { JSIL_Parser.TIMES }
-	| "/"                  { JSIL_Parser.DIV }
-	| "%"                  { JSIL_Parser.MOD }
-	| "and"                { JSIL_Parser.AND }
-	| "or"                 { JSIL_Parser.OR }
-	| "&"                  { JSIL_Parser.BITWISEAND }
-	| "|"                  { JSIL_Parser.BITWISEOR }
-	| "^"                  { JSIL_Parser.BITWISEXOR }
-	| "<<"                 { JSIL_Parser.LEFTSHIFT }
+	| "<s"                 { JSIL_Parser.LESSTHANSTRING}
+	| "+"                  { JSIL_Parser.PLUS          }
+	| "-"                  { JSIL_Parser.MINUS         }
+	| "*"                  { JSIL_Parser.TIMES         }
+	| "/"                  { JSIL_Parser.DIV           }
+	| "%"                  { JSIL_Parser.MOD           }
+	| "and"                { JSIL_Parser.AND           }
+	| "or"                 { JSIL_Parser.OR            }
+	| "&"                  { JSIL_Parser.BITWISEAND    }
+	| "|"                  { JSIL_Parser.BITWISEOR     }
+	| "^"                  { JSIL_Parser.BITWISEXOR    }
+	| "<<"                 { JSIL_Parser.LEFTSHIFT     }
 	| ">>"                 { JSIL_Parser.SIGNEDRIGHTSHIFT }
 	| ">>>"                { JSIL_Parser.UNSIGNEDRIGHTSHIFT }
-	| "m_atan2"            { JSIL_Parser.M_ATAN2 }
-	| "**"                 { JSIL_Parser.M_POW }
-	| "::"                 { JSIL_Parser.LSTCONS }
-	| "@"                  { JSIL_Parser.LSTCAT }
-	| "++"                 { JSIL_Parser.STRCAT }
+	| "m_atan2"            { JSIL_Parser.M_ATAN2       }
+	| "**"                 { JSIL_Parser.M_POW         }
+	| "::"                 { JSIL_Parser.LSTCONS       }
+	| "@"                  { JSIL_Parser.LSTCAT        }
+	| "++"                 { JSIL_Parser.STRCAT        }
 (* Unary operators *)
 	(* Unary minus uses the same symbol as binary minus, token MINUS *)
-	| "not"                { JSIL_Parser.NOT }
-	| "~"                  { JSIL_Parser.BITWISENOT }
-	| "m_abs"              { JSIL_Parser.M_ABS }
-	| "m_acos"             { JSIL_Parser.M_ACOS }
-	| "m_asin"             { JSIL_Parser.M_ASIN }
-	| "m_atan"             { JSIL_Parser.M_ATAN }
-	| "m_ceil"             { JSIL_Parser.M_CEIL }
-	| "m_cos"              { JSIL_Parser.M_COS }
-	| "m_exp"              { JSIL_Parser.M_EXP }
-	| "m_floor"            { JSIL_Parser.M_FLOOR }
-	| "m_log"              { JSIL_Parser.M_LOG }
-	| "m_round"            { JSIL_Parser.M_ROUND }
-	| "m_sgn"              { JSIL_Parser.M_SGN }
+	| "not"                { JSIL_Parser.NOT           }
+	| "~"                  { JSIL_Parser.BITWISENOT    }
+	| "m_abs"              { JSIL_Parser.M_ABS         }
+	| "m_acos"             { JSIL_Parser.M_ACOS        }
+	| "m_asin"             { JSIL_Parser.M_ASIN        }
+	| "m_atan"             { JSIL_Parser.M_ATAN        }
+	| "m_ceil"             { JSIL_Parser.M_CEIL        }
+	| "m_cos"              { JSIL_Parser.M_COS         }
+	| "m_exp"              { JSIL_Parser.M_EXP         }
+	| "m_floor"            { JSIL_Parser.M_FLOOR       }
+	| "m_log"              { JSIL_Parser.M_LOG         }
+	| "m_round"            { JSIL_Parser.M_ROUND       }
+	| "m_sgn"              { JSIL_Parser.M_SGN         }
 	| "m_sin"              { JSIL_Parser.M_SIN }
 	| "m_sqrt"             { JSIL_Parser.M_SQRT }
 	| "m_tan"              { JSIL_Parser.M_TAN }
@@ -140,15 +140,13 @@ rule read = parse
 	| "true"               { JSIL_Parser.LTRUE }
 	| "false"              { JSIL_Parser.LFALSE }
 	| "=="                 { JSIL_Parser.LEQUAL }
-	| "<#"                 { JSIL_Parser.LLESSTHAN }
-	| "<=#"                { JSIL_Parser.LLESSTHANEQUAL }
+	| "<#"                 { JSIL_Parser.LLESSTHAN       }
+	| "<=#"                { JSIL_Parser.LLESSTHANEQUAL  }
 	| "<s#"                { JSIL_Parser.LLESSTHANSTRING }
 	(* Separating conjunction uses the same symbol as product, token TIMES *)
-	| "->"                 { JSIL_Parser.LARROW }
-	| "emp"                { JSIL_Parser.LEMP }
-(*| "exists"             { JSIL_Parser.LEXISTS }
-	| "forall"             { JSIL_Parser.LFORALL }*)
-	| "types"              { JSIL_Parser.LTYPES }
+	| "->"                 { JSIL_Parser.LARROW      }
+	| "emp"                { JSIL_Parser.LEMP        }
+	| "types"              { JSIL_Parser.LTYPES      }
 	| "empty_fields"       { JSIL_Parser.EMPTYFIELDS }
 (* Logic predicates *)
 	| "pred"               { JSIL_Parser.PRED }
@@ -164,7 +162,7 @@ rule read = parse
 	| "then"               { JSIL_Parser.LTHEN     }
 	| "else"               { JSIL_Parser.LELSE     }
 (* Procedure specification keywords *)
-  | "only"               { JSIL_Parser.ONLY      }
+    | "only"               { JSIL_Parser.ONLY      }
 	| "spec"               { JSIL_Parser.SPEC      }
 	| "normal"             { JSIL_Parser.NORMAL    }
 	| "error"              { JSIL_Parser.ERROR     }
@@ -185,7 +183,6 @@ rule read = parse
 	| ','                  { JSIL_Parser.COMMA     }
 	| ':'                  { JSIL_Parser.COLON     }
 	| ';'                  { JSIL_Parser.SCOLON    }
-(*| '.'                  { JSIL_Parser.DOT }*)
 	| '('                  { JSIL_Parser.LBRACE    }
 	| ')'                  { JSIL_Parser.RBRACE    }
 	| '['                  { JSIL_Parser.LBRACKET  }
