@@ -113,20 +113,65 @@ function builtSingleGet(element) {
 */
 document.createElement("one");
 
-/**
-Unsupported specs
-
+/*
+	Currently unsupported
+	----Text Node Axioms----
+*/ /*
+	
 	@pred safeName(s) : 
-		(!(s == #s1 ++ "#" ++ #s2));
+	(!(s == #s1 ++ "#" ++ #s2));
 
-	@onlyspec setAttribute(s, v)
-		pre:  [[ (s == #s1) * (v == #s2) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#attr == {{ {{ "attr", #s1, #m, #t }}, {{ "hole", #alpha }} }}) * Grove(#g_alpha, {{ }}) ]]
-		post: [[ (s == #s1) * (v == #s2) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#attr == {{ {{ "attr", #s1, #m, #t2 }}, {{ "hole", #alpha }} }}) * (#t2 == {{ {{ "text", #r, #s2 }} }}) * Grove(#g_alpha, {{ #t }}) ]]
-		outcome: normal;
 
-		pre:  [[ (s == #s1) * (v == #s2) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * out(#attr, #s1) * safeName(#s2) ]]
-		post: [[ (s == #s1) * (v == #s2) * ElementNode(#name, this, #l_attr, #attr2, #l_children, #children) * (#attr2 == {{ "attr", #s1, #m, #t }} :: #attr) * (#t == {{ {{ "text", #r, #s2 }} }}) ]]
+	@onlyspec data()
+		pre:  [[ TextNode(this, #text) ]]
+		post: [[ TextNode(this, #text) * (ret == #text) * types(#text : $$string_type) ]]
 		outcome: normal
 
+	@onlyspec length()
+		pre:  [[ TextNode(this, #text) ]]
+		post: [[ TextNode(this, #text) * (ret == #l) * (#l == s-len(#text)) * types(#l : $$number_type) ]]
+		outcome: normal
+
+	@onlyspec substringData(o, c)
+		pre:  [[ (o == #l1) * (c == #l2) * TextNode(this, #text) * (#text == #s1 ++ #s2 ++ #s3) * (#l1 == s-len(#s1)) * (#l2 == s-len(#s2)) * types(#text : $$string_type, #s1 : $$string_type, #s2 : $$string_type) ]]
+		post: [[ TextNode(this, #text) * (ret == #s2) ]]
+		outcome: normal;
+
+		pre:  [[ (o == #l1) * (c == #l2) * TextNode(this, #text) * (#text == #s1 ++ #s2) (#l1 == s-len(#s1)) * (s-len(#s2) <=# #l2)  * types(#text : $$string_type, #s1 : $$string_type, #s2 : $$string_type)]]
+		post: [[ TextNode(this, #text) * (ret == #s2) ]]
+		outcome: normal
+
+	@onlyspec appendData(s)
+		pre:  [[ (s == #s2) * TextNode(this, #text) ]]
+		post: [[ TextNode(this, (#text ++ #s2)) ]]
+		outcome: normal
+
+	@onlyspec insertData(o, s)
+		pre:  [[ (o == #l1) * (s == #s3) * TextNode(this, (#s1 ++ #s2)) * (#l1 == s-len(#s1)) * types(#s1 : $$string_type, #s2 : $$string_type, #s3 : $$string_type) ]]
+		post: [[ TextNode(this, (#s1 ++ #s3 ++ #s2)) ]]
+		outcome: normal
+
+	@onlyspec deleteData(o, c)
+		pre:  [[ (o == #l1) * (c == #l2) * TextNode(this, (#s1 ++ #s2 ++ #s3)) * (#l1 == s-len(#s1)) * (#l2 == s-len(#s2)) * types(#s1 : $$string_type, #s2 : $$string_type, #s3 : $$string_type) ]]
+		post: [[ TextNode(this, (#s1 ++ #s2)) ]]
+		outcome: normal;
+
+		pre:  [[ (o == #l1) * (c == #l2) * TextNode(this, (#s1 ++ #s2 ++ #s3)) * (#l1 == s-len(#s1)) * (s-len(#s2) <=# #l2) * types(#s1 : $$string_type, #s2 : $$string_type, #s3 : $$string_type) ]]
+		post: [[ TextNode(this, #s1) ]]
+		outcome: normal
+
+	@onlyspec replaceData(o, c, s)
+		pre:  [[ (o == #l1) * (c == #l2) * (s == #ns) * TextNode(this, (#s1 ++ #s ++ #s2)) * (#l1 == s-len(#s1)) * (#l2 == s-len(#s)) * types(#s1 : $$string_type, #s2 : $$string_type, #s : $$string_type, #ns : $$string_type) ]]
+		post: [[ TextNode(this, (#s1 ++ #ns ++ #s2)) ]]
+		outcome: normal
+
+		pre:  [[ (o == #l1) * (c == #l2) * (s == #ns) * TextNode(this, (#s1 ++ #s)) * (#l1 == s-len(#s1)) * (s-len(#s) <=# #s) * types(#s1 : $$string_type, #s : $$string_type, #ns : $$string_type) ]]
+		post: [[ TextNode(this, (#s1 ++ #ns)) ]]
+		outcome: normal
+
+	@onlyspec splitText(o)
+		pre:  [[ (o == #l1) * Forest(#f, {{ {{ "text", this, (#s1 ++ #s2) }} }}) * (#l1 == s-len(#s1)) types(#s1 : $$string_type, #s2 : $$string_type) ]]
+		post: [[ Forest(#f, {{ {{ this, #s1 }}, {{ "text", #n, #s2 }} }}) ]]
+		outcome: normal
 
 */
