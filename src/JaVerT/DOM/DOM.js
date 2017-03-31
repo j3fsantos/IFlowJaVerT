@@ -32,7 +32,7 @@
 		((l, "@call")  -> call) *
 		empty_fields(l : "@proto", "@class", "@extensible", "@scope", "@call");
 	
-		@pred DOMFunctionField(l, call) :
+	@pred DOMFunctionField(l, call) :
 		DOMField(l, call, #lnn) *
 		DOMFunctionObject(#lnn, call);
 

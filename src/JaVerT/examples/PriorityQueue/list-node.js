@@ -61,11 +61,9 @@
         @id  hasNext
 
         @pre  (Node(this, #data, #prev, $$null, #np) * NodePrototype(#np))
-
         @post (Node(this, #data, #prev, $$null, #np) * NodePrototype(#np) * (ret == $$f))
 
         @pre  (Node(this, #data, #prev, #next, #np) * NodePrototype(#np) * (! (#next == $$null)))
-
         @post (Node(this, #data, #prev, #next, #np) * NodePrototype(#np) * (ret == $$t))
 
          */
@@ -78,11 +76,9 @@
         @id  hasPrev
            
         @pre  (Node(this, #data, $$null, #next, #np) * NodePrototype(#np))
-
         @post (Node(this, #data, $$null, #next, #np) * NodePrototype(#np) * (ret == $$f))
 
         @pre  (Node(this, #data, #prev, #next, #np) * NodePrototype(#np) * (! (#prev == $$null)))
-
         @post (Node(this, #data, #prev, #next, #np) * NodePrototype(#np) * (ret == $$t))
          */
         hasPrev: function() {
@@ -94,7 +90,6 @@
          @id  getData
          
          @pre  (Node(this, #data, $$null, #next, #np))
-
          @post (Node(this, #data, $$null, #next, #np) * (ret == #data))   
 
          */

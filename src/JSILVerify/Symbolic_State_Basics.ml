@@ -375,6 +375,57 @@ let symb_state_substitution (symb_state : symbolic_state) subst partial =
 	let s_preds = preds_substitution preds subst partial in
 	(s_heap, s_store, s_pf, s_gamma, s_preds (* ref None *))
 
+(* IN PLACE *)
+
+let heap_substitution_in_place (heap : symbolic_heap) (subst : substitution) =
+  LHeap.iter
+  	(fun loc (fv_list, def) ->
+  		let s_loc =
+  			(try Hashtbl.find subst loc
+  				with _ ->
+  					if (is_abs_loc_name loc)
+  						then ALoc loc
+  						else (LLit (Loc loc))) in
+  		let s_loc =
+  			(match s_loc with
+  				| LLit (Loc loc) -> loc
+  				| ALoc loc -> loc
+  				| _ ->
+  					raise (Failure "Heap substitution failed miserably!!!")) in
+  		let s_fv_list = fv_list_substitution fv_list subst true in
+  		let s_def = lexpr_substitution def subst true in
+  		LHeap.replace heap s_loc (s_fv_list, s_def))
+  	heap
+
+let store_substitution_in_place store gamma subst =
+	Hashtbl.iter
+		(fun pvar le ->
+			let s_le = lexpr_substitution le subst true in
+			Hashtbl.replace store pvar s_le;
+			
+			let s_le_type, is_typable, _ = type_lexpr gamma s_le in
+			(match s_le_type with
+				| Some s_le_type -> Hashtbl.replace gamma pvar s_le_type
+				| None -> ()))
+		store
+
+let pf_substitution_in_place pfs subst =
+	DynArray.iteri (fun i a ->
+		let s_a = assertion_substitution a subst true in
+		DynArray.set pfs i s_a) pfs
+
+let preds_substitution_in_place preds subst =
+	DynArray.iteri (fun i pred ->
+		let s_pred = pred_substitution pred subst true in
+		DynArray.set preds i s_pred) preds
+
+let symb_state_substitution_in_place_no_gamma (symb_state : symbolic_state) subst =
+	let heap, store, pf, gamma, preds = symb_state in
+	heap_substitution_in_place heap subst;
+	store_substitution store gamma subst; 
+	pf_substitution_in_place pf subst;
+	preds_substitution_in_place preds subst
+
 (*************************************)
 (** Symbolic state simplification   **)
 (*************************************)
@@ -385,19 +436,10 @@ let reduce_pfs_no_store    gamma pfs = DynArray.map (fun x -> reduce_assertion_n
 let reduce_pfs    store    gamma pfs = DynArray.map (fun x -> reduce_assertion    store    gamma pfs x) pfs
 
 let reduce_pfs_in_place store gamma pfs =
-	let pfs_old = DynArray.copy pfs in
-    let length = DynArray.length pfs in
-	let changed = ref false in
-	for i = 0 to (length - 1) do
-		let el = DynArray.get pfs i in
-		let rel = reduce_assertion store gamma pfs el in
-			changed := !changed && (el = rel);
-			DynArray.set pfs i rel
-	done ;
-	if !changed then print_debug (Printf.sprintf "Reduce pfs in place: %s ---> %s"
-		(print_pfs pfs_old)
-		(print_pfs pfs))
-
+	DynArray.iteri (fun i pf ->
+		let rpf = reduce_assertion store gamma pfs pf in
+		DynArray.set pfs i rpf) pfs
+	
 let sanitise_pfs store gamma pfs =
     reduce_pfs_in_place store gamma pfs;
 
@@ -1163,11 +1205,11 @@ let clean_up_stuff exists left right =
 
 let simplify_implication exists lpfs rpfs gamma =
 	let lpfs, rpfs, gamma = simplify_for_your_legacy_pfs_with_exists_and_others exists lpfs rpfs gamma in
-	print_debug (Printf.sprintf "In between:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n"
+	(* print_debug (Printf.sprintf "In between:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n" 
    (String.concat ", " (SS.elements exists))
    (JSIL_Memory_Print.string_of_shallow_p_formulae lpfs false)
    (JSIL_Memory_Print.string_of_shallow_p_formulae rpfs false)
-   (JSIL_Memory_Print.string_of_gamma gamma));
+   (JSIL_Memory_Print.string_of_gamma gamma)); *)
 	sanitise_pfs_no_store gamma rpfs;
 	let exists, lpfs, rpfs, gamma = simplify_existentials exists lpfs rpfs gamma in
 	clean_up_stuff exists lpfs rpfs;
@@ -1185,3 +1227,321 @@ let simplify_symbolic_state symb_state =
 	match types_ok with
 		| true -> symb_state
 		| false -> raise (Failure "INCONSISTENT STATE") 	
+
+(* ******************* *
+ * MAIN SIMPLIFICATION *
+ * ******************* *)
+
+ (*
+  * What do we need? 
+  *
+  * - The symbolic state
+  * - An indicator if we're substituting all lvars or not
+  * - If not, the set of allowed lvars (presumably, the spec_vars) (string list)
+  * - Other formulas to which we propagate the subst, but we don't simplify otherwise
+	* - Set of existentials
+  *
+  * What should we return?
+  *
+	* - The new symbolic state
+  * - The full substitution 
+	* - New others
+  * - New set of existentials 
+  *)
+	
+(* 
+ * What is the idea?
+ * Calculate the full subst while eliminating from the exists
+ * In the end, bring back the bit that needs to be saved
+ *)
+
+(* Indexing types for easier access *)
+let type_index t = 
+	(match t with
+	| UndefinedType -> 0
+	| NullType      -> 1
+	| EmptyType     -> 2
+	| NoneType      -> 3
+	| BooleanType   -> 4
+	| NumberType    -> 5
+	| StringType    -> 6
+	| ObjectType    -> 7
+	| ListType      -> 8
+	| TypeType      -> 9)
+
+let type_length = 10
+
+let simplify_symb_state 
+	(vars_to_save : SS.t)
+	(other_pfs    : jsil_logic_assertion DynArray.t)
+	(existentials : SS.t)
+	(symb_state   : symbolic_state) =
+
+	let start_time = Sys.time () in
+	print_time_debug "simplify_symb_state:";
+
+	(* Pure formulae false *)
+	let pfs_false subst others exists symb_state msg =
+		let _, _, pfs, _, _ = symb_state in
+		print_debug (msg ^ " Pure formulae false.");
+		DynArray.clear pfs;
+		DynArray.add pfs LFalse;
+		symb_state, subst, others, exists in
+
+	(* Are there any singleton types in gamma? *)
+	let simplify_singleton_types others exists symb_state subst types =		 
+		let gamma = get_gamma symb_state in
+  	if (types.(0) + types.(1) + types.(2) + types.(3) > 0) then
+    	(Hashtbl.iter (fun v t -> 
+    		let lexpr = (match t with
+    			| UndefinedType -> Some (LLit Undefined)
+    			| NullType -> Some (LLit Null)
+    			| EmptyType -> Some (LLit Empty)
+    			| NoneType -> Some LNone
+    			| _ -> None) in
+    		(match lexpr with
+    		| Some lexpr -> 
+						print_debug (Printf.sprintf "Singleton: (%s, %s)" v (JSIL_Print.string_of_type t));
+						Hashtbl.add subst v lexpr;
+    		| None -> ())) gamma;
+    	(* Substitute *)
+    	let symb_state = symb_state_substitution symb_state subst true in
+    	let others = pf_substitution others subst true in
+			let exists = Hashtbl.fold (fun v _ ac -> SS.remove v ac) subst exists in
+			(* and remove from gamma, if allowed *)
+    	Hashtbl.iter (fun v _ ->
+    		match (SS.mem v (SS.union vars_to_save existentials)) with
+    		| true -> ()
+    		| false -> 
+  					while (Hashtbl.mem gamma v) do 
+  						let t = Hashtbl.find gamma v in
+  						let it = type_index t in
+  						types.(it) <- types.(it) - 1;
+  						Hashtbl.remove gamma v 
+  					done
+    		) subst;
+				symb_state, subst, others, exists) 
+			else
+				symb_state, subst, others, exists in
+	
+	let arrange_pfs vars_to_save exists pfs =
+		DynArray.iteri (fun i pf ->
+			(match pf with
+			| LEq (LVar v1, LVar v2) ->
+					let save_v1 = (SS.mem v1 exists || SS.mem v1 vars_to_save) in
+					let save_v2 = (SS.mem v2 exists || SS.mem v2 vars_to_save) in
+					(match save_v1, save_v2 with
+					| true, true 
+				  | false, true -> ()
+					| true, false -> DynArray.set pfs i (LEq (LVar v2, LVar v1))
+					| false, false -> 
+							let lvar_v1 = (String.get v1 0 = '#') in
+							let lvar_v2 = (String.get v2 0 = '#') in
+							(match lvar_v1, lvar_v2 with
+							| false, true -> DynArray.set pfs i (LEq (LVar v2, LVar v1))
+							| _, _ -> ()))
+			| LEq (e, LVar v) -> DynArray.set pfs i (LEq (LVar v, e))
+			| _ -> ())) pfs in
+		 
+	(* Let's start *)
+	let heap, store, p_formulae, gamma, preds = symb_state in	
+
+	(* 
+	 * Trim the variables that are in gamma
+	 * but not in the rest of the state, 
+	 * and are also not in vars_to_save
+	 *)
+	let lvars = get_symb_state_vars_no_gamma false symb_state in	
+	let lvars_gamma = get_gamma_vars false gamma in		
+	let lvars_inter = SS.inter lvars lvars_gamma in
+	Hashtbl.filter_map_inplace (fun v t ->
+		(match (SS.mem v (SS.union lvars_inter (SS.union vars_to_save existentials))) with
+		| true  -> Some t
+		| false -> 
+				print_debug (Printf.sprintf "SIMPL: removing %s from gamma" v); 
+				None)) gamma;
+		
+	(* Setup the type indexes *)
+	let types = Array.make type_length 0 in
+	Hashtbl.iter (fun _ t -> 
+		let it = type_index t in
+			types.(it) <- types.(it) + 1) gamma;
+		
+	(* Instantiate uniquely determined variables *)
+	let subst = Hashtbl.create 57 in
+	let symb_state, subst, others, exists = simplify_singleton_types other_pfs existentials symb_state subst types in
+
+	let pfs = get_pf symb_state in
+
+	print_debug (Printf.sprintf "Entering main loop:\n%s %s" 
+		(JSIL_Memory_Print.string_of_shallow_symb_state symb_state) (JSIL_Memory_Print.string_of_substitution subst));
+	
+	let changes_made = ref true in
+	let symb_state   = ref symb_state in
+	let others       = ref others in
+	let exists       = ref exists in
+	let pfs_ok       = ref true in
+	let msg          = ref "" in
+	
+	(* MAIN LOOP *)
+	
+	while (!changes_made && !pfs_ok) do
+
+		changes_made := false;
+		
+		let (heap, store, pfs, gamma, preds) = !symb_state in
+		
+		arrange_pfs vars_to_save !exists pfs;
+		
+		sanitise_pfs store gamma pfs;
+		
+		let n = ref 0 in
+		while (!pfs_ok && !n < DynArray.length pfs) do 
+			let pf = DynArray.get pfs !n in
+			(match pf with
+
+			(* If we have true in the pfs, we delete it and restart *)
+			| LTrue -> DynArray.delete pfs !n
+			
+			(* If we have false in the pfs, everything is false and we stop *)
+			| LFalse -> pfs_ok := false; msg := "Pure formulae flat-out false."
+			
+			(* We can reduce < if both are numbers *)
+			| LLess	(LLit (Num n1), LLit (Num n2)) ->
+			  (match (n1 < n2) with
+				| true -> DynArray.delete pfs !n
+				| false -> pfs_ok := false; msg := "Incorrect less-than.")
+
+			(* Same for <= *)
+			| LLessEq	(LLit (Num n1), LLit (Num n2)) ->
+			  (match (n1 <= n2) with
+				| true -> DynArray.delete pfs !n
+				| false -> pfs_ok := false; msg := "Incorrect less-than-or-equal.")
+
+			(* These shouldn't even be here *)
+			| LPointsTo	(_, _, _) -> raise (Failure "Heap cell assertion in pure formulae.")
+			| LEmp -> raise (Failure "Empty heap assertion in pure formulae.")
+			| LPred	(_, _) -> raise (Failure "Predicate in pure formulae.")
+			| LTypes _ -> raise (Failure "Types in pure formulae.")
+			| LEmptyFields (_, _) -> raise (Failure "EmptyFields in pure formulae.")
+
+			(* I don't know how these could get here, but let's assume they can... *)
+			| LAnd  (a1, a2)
+			| LStar	(a1, a2) -> DynArray.set pfs !n a1; DynArray.add pfs a2
+						
+			(* Equality *)
+			| LEq (le1, le2) ->
+				(match le1, le2 with
+
+				| LVar v1, LVar v2 when (v1 = v2) ->
+						DynArray.delete pfs !n
+				
+				(* Variable and something else *)
+				| LVar v, le ->					
+					(* Changes made, stay on n *)
+					changes_made := true;
+					DynArray.delete pfs !n;
+					
+					(* Substitute *)
+					let temp_subst = Hashtbl.create 1 in
+					Hashtbl.add temp_subst v le;
+					symb_state_substitution_in_place_no_gamma !symb_state temp_subst;
+    			pf_substitution_in_place !others temp_subst;
+					
+					(* Add to subst *)
+					if (Hashtbl.mem subst v) then 
+						raise (Failure (Printf.sprintf "Impossible variable in subst: %s\n%s"
+							v (JSIL_Memory_Print.string_of_substitution subst)));
+					Hashtbl.iter (fun v' le' ->
+						let sb = Hashtbl.create 1 in
+							Hashtbl.add sb v le;
+							let sa = lexpr_substitution le' sb true in
+								Hashtbl.replace subst v' sa) subst;
+					Hashtbl.replace subst v le;
+					
+					(* Remove from gamma *)
+					(match (SS.mem v (SS.union vars_to_save !exists)) with
+      		| true -> ()
+      		| false -> 
+    					while (Hashtbl.mem gamma v) do 
+    						let t = Hashtbl.find gamma v in
+    						let it = type_index t in
+    						types.(it) <- types.(it) - 1;
+    						Hashtbl.remove gamma v 
+    					done);
+					
+					(* Remove from existentials *)
+					exists := SS.remove v !exists
+					
+				(* List length *)
+				| LLit (Num len), LUnOp (LstLen, LVar v)
+				| LUnOp (LstLen, LVar v), LLit (Num len) ->
+						(match (Utils.is_int len) with
+						| false -> pfs_ok := false; msg := "Non-integer list-length. Good luck."
+						| true -> 
+							let len = int_of_float len in
+							(match (0 <= len) with
+							| false -> pfs_ok := false; msg := "Sub-zero length. Good luck."
+							| true -> 
+									let subst_list = Array.to_list (Array.init len (fun _ -> fresh_lvar())) in
+									let new_exists = !exists in
+									let new_exists = List.fold_left (fun ac v -> SS.add v ac) new_exists subst_list in
+									exists := new_exists;
+									let subst_list = List.map (fun x -> LVar x) subst_list in
+									
+									(* Changes made, stay on n *)
+									changes_made := true;
+									DynArray.delete pfs !n;
+									DynArray.add pfs (LEq (LVar v, LEList subst_list))
+							)
+						)
+				
+				(* List unification *)
+				| le1, le2 when (isList le1 && isList le2) ->
+					let ok, subst = unify_lists le1 le2 in
+					(match ok with
+					(* Error while unifying lists *)
+					| None -> pfs_ok := false; msg := "List error"	
+					(* No error, but no progress *)
+					| Some false -> (match subst with
+					  | [ (le1', le2') ] -> 
+							(match ((le1' = le1 && le2' = le2) || (le2' = le1 && le1' = le2)) with
+							| true -> n := !n + 1 (* No changes, continue with n+1 *)
+							| false -> raise (Failure "Unexpected list content obtained from list unification."))
+						| _ -> raise (Failure "Unexpected list obtained from list unification."))
+					(* Progress *)
+					| Some true -> 
+							(* Changes made, stay on n *)
+							changes_made := true;
+							DynArray.delete pfs !n;
+							List.iter (fun (x, y) -> DynArray.add pfs (LEq (x, y))) subst)
+				
+				| _, _ -> n := !n + 1)
+			
+			(* Special cases *)
+			| LNot (LEq (ALoc _, LLit Empty)) 
+			| LNot (LEq (LLit Empty, ALoc _))
+			| LNot (LEq (ALoc _, LLit Null)) 
+			| LNot (LEq (LLit Null, ALoc _)) ->
+					DynArray.delete pfs !n
+			
+			| _ -> n := !n + 1);
+		done;
+	done;
+	
+	(* Bring back from the subst *)
+	print_debug (Printf.sprintf "The subst is:\n%s" (JSIL_Memory_Print.string_of_substitution subst));
+	
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "simplify_symb_state" (end_time -. start_time);
+	
+	print_debug (Printf.sprintf "Exiting with pfs_ok: %b" !pfs_ok);
+	if (!pfs_ok) 
+		then (!symb_state, subst, !others, !exists)
+		else (pfs_false subst !others !exists !symb_state !msg)
+	
+(* Wrapper for only pfs *)
+let simplify_pfs pfs gamma =
+  let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create ()) in
+  let (_, _, pfs, gamma, _), _, _, _ = simplify_symb_state (SS.empty) (DynArray.create()) (SS.empty) fake_symb_state in
+  pfs, gamma

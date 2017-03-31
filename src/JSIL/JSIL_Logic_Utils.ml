@@ -1114,12 +1114,23 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 			| LLit (String "") -> fe1
 			| _ -> LBinOp (fe1, StrCat, fe2))) in
 		result
+
 		
 	(* Binary operators *)
 	| LBinOp (e1, bop, e2) ->
 		let re1 = f e1 in
 		let re2 = f e2 in
-			LBinOp (re1, bop, re2)
+		(match bop with
+		| Plus ->
+			(match re1, re2 with
+			(* n1 +J n2 ---> n1 + n2 *) 
+			| LLit (Num n1), LLit (Num n2) -> LLit (Num (n1 +. n2))
+			(* (_ +J n1) +J n2 ---> _ +J (n1 + n2) *)
+			| LBinOp (re1, Plus, LLit (Num n1)), LLit (Num n2) -> f (LBinOp (re1, Plus, LLit (Num (n1 +. n2))))
+			(* (n1 +J _) +J n2 ---> _ +J (n1 + n2) *)
+			| LBinOp (LLit (Num n1), Plus, re2), LLit (Num n2) -> f (LBinOp (re2, Plus, LLit (Num (n1 +. n2))))
+			| _, _ -> LBinOp (re1, bop, re2))
+		| _ -> LBinOp (re1, bop, re2))
 
 	(* TypeOf *)
 	| LTypeOf e1 ->
@@ -1261,6 +1272,7 @@ let rec reduce_assertion store gamma pfs a =
 	| LEq (e1, e2) ->
 		let re1 = fe e1 in
 		let re2 = fe e2 in
+		(* Warning - NaNs, infinities, this and that *)
 		let eq = (re1 = re2) && (re1 <> LUnknown) in
 		if eq then LTrue
 		else
@@ -1298,7 +1310,14 @@ let rec reduce_assertion store gamma pfs a =
 					
 			| LLit (Bool true), LBinOp (e1, LessThan, e2) -> LLess (e1, e2)
 			| LLit (Bool false), LBinOp (e1, LessThan, e2) -> LNot (LLess (e1, e2))
-			
+
+			(* Plus theory *)
+			| LBinOp (re1, Plus, LLit (Num n1)), LBinOp (re2, Plus, LLit (Num n2))
+			| LBinOp (re1, Plus, LLit (Num n1)), LBinOp (LLit (Num n2), Plus, re2)
+			| LBinOp (LLit (Num n1), Plus, re1), LBinOp (re2, Plus, LLit (Num n2))
+			| LBinOp (LLit (Num n1), Plus, re1), LBinOp (LLit (Num n2), Plus, re2) ->
+					if (Utils.is_normal n1 && (n1 = n2)) then f (LEq (re1, re2)) else default e1 e2 re1 re2
+						
 			| _, _ -> default e1 e2 re1 re2
 		)
 
@@ -1308,6 +1327,9 @@ let rec reduce_assertion store gamma pfs a =
 		LLess (re1, re2)
 
 	| _ -> a) in
+	if (not (a = result)) then print_debug (Printf.sprintf "Reduce assertion: %s ---> %s"
+		(JSIL_Print.string_of_logic_assertion a false)
+		(JSIL_Print.string_of_logic_assertion result false));
 	result
 
 let reduce_assertion_no_store_no_gamma_no_pfs = reduce_assertion (Hashtbl.create 1) (Hashtbl.create 1) (DynArray.create ())

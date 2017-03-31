@@ -59,6 +59,10 @@ let is_int (f : float) : bool =
 	let f' = float_of_int (int_of_float f) in
 	f = f' && (copysign 1.0 f = copysign 1.0 f')
 
+let is_normal (f : float) =
+	let fc = Float.classify f in
+		(fc = FP_infinite) || (fc = FP_nan)
+
 let precision = 1e-6
 
 (* This is intended to work on positive floats! *)

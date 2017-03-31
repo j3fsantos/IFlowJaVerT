@@ -428,7 +428,7 @@ spec i__toBoolean (v)
 	[[ (ret == #v) ]]
 	normal; 
 
-	[[ (v == #v) * types(#v : $$number_type) * (#v == 0) ]]
+	[[ (v == 0) ]]
 	[[ (ret == $$f) ]]
 	normal;
 
