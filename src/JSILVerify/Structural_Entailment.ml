@@ -1213,7 +1213,10 @@ let unify_symb_state_against_invariant symb_state inv_symb_state lvars =
 		extend_symb_state_with_pfs symb_state (DynArray.of_list pf_discharges);
 		let symb_state = symb_state_replace_heap symb_state quotient_heap in
 		let symb_state = symb_state_replace_preds symb_state quotient_preds in
-		let new_symb_state = merge_symb_states symb_state inv_symb_state subst in 
+		let new_symb_state = merge_symb_states symb_state inv_symb_state subst in
+		let subst_pfs = assertions_of_substitution subst in 
+		extend_symb_state_with_pfs symb_state (DynArray.of_list subst_pfs); 
+		let new_symb_state = Symbolic_State_Basics.simplify_symbolic_state symb_state in 
 		Some new_symb_state 
 	| _ -> None  
 

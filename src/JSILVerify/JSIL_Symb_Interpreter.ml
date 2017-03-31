@@ -581,6 +581,7 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 			| Some (_, _, _, _, _, _, _, _) | None -> find_correct_pred_def rest_pred_defs)) in
 	find_correct_pred_def pred_defs
 
+
 let unfold_predicates 
 				(pred_name  : string) 
 				(pred_defs  : symbolic_state list) 
@@ -591,7 +592,15 @@ let unfold_predicates
 
 	print_debug (Printf.sprintf "Current symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state));
 
-	let subst0 = Symbolic_State_Functions.subtract_pred pred_name args (get_preds symb_state) (get_pf symb_state) (get_gamma symb_state) spec_vars in
+	let symb_state_vars : SS.t = get_symb_state_vars false symb_state  in
+	let args_vars : SS.t = JSIL_Logic_Utils.get_vars_le_list false args in
+	let existentials : SS.t = SS.diff args_vars symb_state_vars in
+	let existentials = SS.elements existentials in 
+
+	let subst0 = Symbolic_State_Functions.subtract_pred pred_name args (get_preds symb_state) (get_pf symb_state) (get_gamma symb_state) spec_vars existentials in
+	
+	Printf.printf "I survived the subtract pred!!!\n";
+
 	let args = List.map (fun le -> lexpr_substitution le subst0 true) args in
 	let calling_store = store_init params args in
 
@@ -608,6 +617,8 @@ let unfold_predicates
 				loop rest_pred_defs (unfolded_symb_state :: symb_states))) in
 
 	loop pred_defs []
+
+
 
 
 let recursive_unfold 

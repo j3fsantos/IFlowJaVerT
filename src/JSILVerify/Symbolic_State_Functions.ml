@@ -271,7 +271,7 @@ let assertions_of_gamma gamma =
 (** Predicate functions             **)
 (*************************************)
 
-let predicate_assertion_equality pred pat_pred pfs (* solver *) gamma (spec_vars : SS.t) =
+let predicate_assertion_equality pred pat_pred pfs gamma (spec_vars : SS.t) (existentials : string list) =
 	print_debug (Printf.sprintf "Entering predicate_assertion_equality.\n");
 
 	let subst = JSIL_Logic_Utils.init_substitution [] in
@@ -282,11 +282,11 @@ let predicate_assertion_equality pred pat_pred pfs (* solver *) gamma (spec_vars
 		| le :: rest_les, pat_le :: rest_pat_les ->
 			print_debug (Printf.sprintf "I am going to test if %s CAN BE equal to %s\n" (JSIL_Print.string_of_logic_expression le false) (JSIL_Print.string_of_logic_expression pat_le false));
 			(match pat_le with
-			| LVar l2 when (not (SS.mem l2 spec_vars)) ->
+			| LVar l2 when (List.mem l2 existentials) ->
 				JSIL_Logic_Utils.extend_subst subst l2 le;
 				unify_pred_args rest_les rest_pat_les
 			| _ ->
-				if (Pure_Entailment.is_equal le pat_le pfs (* solver *) gamma)
+				if (Pure_Entailment.is_equal le pat_le pfs gamma)
 					then unify_pred_args rest_les rest_pat_les
 					else None)) in
 
@@ -303,13 +303,14 @@ let subtract_pred
 		(pred_set  : predicate_set)
 		(pfs       : pure_formulae)
 		(gamma     : typing_environment)
-		(spec_vars : SS.t) =
+		(spec_vars : SS.t)
+		(existentials : string list) =
 	let pred_list = preds_to_list pred_set in
 	let rec loop pred_list index =
 		(match pred_list with
 		| [] -> raise (Failure (Printf.sprintf "Predicate %s not found in the predicate set!!!" pred_name))
 		| pred :: rest_pred_list ->
-			(match (predicate_assertion_equality pred (pred_name, args) pfs gamma spec_vars) with
+			(match (predicate_assertion_equality pred (pred_name, args) pfs gamma spec_vars existentials) with
 			| None -> loop rest_pred_list (index + 1)
 			| Some subst -> index, subst)) in
 

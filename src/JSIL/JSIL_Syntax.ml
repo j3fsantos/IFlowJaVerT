@@ -520,6 +520,11 @@ let is_pvar_name (name : string) : bool =
 (* A substitution type                                 *)
 type substitution = ((string, jsil_logic_expr) Hashtbl.t)
 
+let assertions_of_substitution (subst : substitution) = 
+	Hashtbl.fold
+		(fun v le ac -> (LEq (LVar v, le)) :: ac)
+		subst
+		[]
 
 (* Typing Environment *)
 
