@@ -1437,7 +1437,8 @@ let simplify_symb_state
 						DynArray.delete pfs !n
 				
 				(* Variable and something else *)
-				| LVar v, le ->					
+				| LVar v, le 
+				| le, LVar v ->					
 					(* Changes made, stay on n *)
 					changes_made := true;
 					DynArray.delete pfs !n;
