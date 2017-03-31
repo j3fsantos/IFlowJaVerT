@@ -271,6 +271,7 @@ let create_jsil_spec name params specs =
 type jsil_logic_command =
 	| Fold             of jsil_logic_assertion                                                    (** Recursive fold *)
 	| Unfold           of jsil_logic_assertion                                                    (** Single unfold *)
+	| CallSpec				 of jsil_logic_assertion                                                    (** Spec calling *)
 	| RecUnfold        of string                                                                  (** Recursive unfold of everything *)
 	| LinearRecUnfold  of string * (jsil_logic_expr list)                                         (** Recursive unfold of everything but this time I will give you the arguments *)
 	| LogicIf          of jsil_logic_expr * (jsil_logic_command list) * (jsil_logic_command list) (** If-then-else *)

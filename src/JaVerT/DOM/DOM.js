@@ -1014,8 +1014,6 @@
 function groveParent(grove, s) {
 	var t = document.createTextNode(s);
 	var a = allocG(grove, 0, 0);
-	/* @recunfold Grove */
-	/* @fold Grove(#l_grove, #JesusTakeTheWheel) */
 	var r = t.parentNode();
 	deallocG(a);
 	return r;
