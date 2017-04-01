@@ -19,6 +19,8 @@ let function_object_pred_name     = "function_object"
 let standard_object_pred_name     = "standardObject"
 let this_logic_var_name           = "#this"
 
+let js_obj_internal_fields        = [ "@proto"; "@class"; "@extensible" ]
+
 let errors_assertion = 
 	LStar (
 		LPred (type_error_pred_name,   [ (PVar Js2jsil_constants.var_te) ]), 
@@ -71,8 +73,6 @@ let compute_common_suffix vis_lists =
 	loop 1 [] 	
 
 
-
-
 let fid_to_lvar fid = "#fid_" ^ fid
 
 let fid_to_lvar_fresh = 
@@ -100,12 +100,12 @@ type js_logic_expr =
 	| JSLVar				of string
 	| JSALoc				of string
 	| JSPVar				of string
-	| JSLBinOp			of js_logic_expr * jsil_binop * js_logic_expr
+	| JSLBinOp			    of js_logic_expr * jsil_binop * js_logic_expr
 	| JSLUnOp				of jsil_unop * js_logic_expr
-	| JSLTypeOf			of js_logic_expr
-	| JSLEList      of js_logic_expr list
-	| JSLLstNth     of js_logic_expr * js_logic_expr
-	| JSLStrNth     of js_logic_expr * js_logic_expr
+	| JSLTypeOf			    of js_logic_expr
+	| JSLEList      		of js_logic_expr list
+	| JSLLstNth     		of js_logic_expr * js_logic_expr
+	| JSLStrNth     		of js_logic_expr * js_logic_expr
 	| JSLUnknown
 	| JSLThis
 
@@ -116,18 +116,18 @@ type js_logic_assertion =
 	| JSLTrue
 	| JSLFalse
 	| JSLEq					of js_logic_expr * js_logic_expr
-	| JSLLess	   		of js_logic_expr * js_logic_expr
-	| JSLLessEq	   	of js_logic_expr * js_logic_expr
-	| JSLStrLess    of js_logic_expr * js_logic_expr
+	| JSLLess	   			of js_logic_expr * js_logic_expr
+	| JSLLessEq	   			of js_logic_expr * js_logic_expr
+	| JSLStrLess    		of js_logic_expr * js_logic_expr
 	| JSLStar				of js_logic_assertion * js_logic_assertion
-	| JSLPointsTo		of js_logic_expr * js_logic_expr * js_logic_expr
+	| JSLPointsTo			of js_logic_expr * js_logic_expr * js_logic_expr
 	| JSLEmp
 	| JSLPred				of string  * (js_logic_expr list)
-	| JSLTypes      of (string * jsil_type) list
-	| JSLScope      of string  * js_logic_expr
-	| JSFunObj      of string  * js_logic_expr * js_logic_expr * (js_logic_expr option) 
-	| JSClosure     of ((string * js_logic_expr) list) * ((string * js_logic_expr) list)
-	| JSEmptyFields of js_logic_expr * (js_logic_expr list)
+	| JSLTypes  		    of (string * jsil_type) list
+	| JSLScope      		of string  * js_logic_expr
+	| JSFunObj      		of string  * js_logic_expr * js_logic_expr * (js_logic_expr option) 
+	| JSClosure     		of ((string * js_logic_expr) list) * ((string * js_logic_expr) list)
+	| JSEmptyFields			of js_logic_expr * (js_logic_expr list)
 
 
 type js_logic_predicate = {
@@ -175,6 +175,7 @@ let rec js2jsil_logic_cmds logic_cmds =
 	| [] -> []
 	| (Parser_syntax.Fold, (JSLPred (s, les))) :: rest -> (Fold (LPred (s, List.map fe les))) :: (js2jsil_logic_cmds rest)
 	| (Parser_syntax.Unfold, (JSLPred (s, les))) :: rest -> (Unfold (LPred (s, List.map fe les))) :: (js2jsil_logic_cmds rest) 
+	| (Parser_syntax.CallSpec, (JSLPred (s, les))) :: rest -> (CallSpec (LPred (s, List.map fe les))) :: (js2jsil_logic_cmds rest) 
 	| _ -> raise (Failure "DEATH: No such logic command")
 
 
@@ -242,8 +243,10 @@ let rec js2jsil_logic cur_fid cc_tbl vis_tbl fun_tbl (a : js_logic_assertion) : 
 							LEList [ LLit (String "d"); (fe le); LLit (Bool true); LLit (Bool true); LLit (Bool false) ])
 			)
 	
-	| JSEmptyFields (e, le) ->
-			LEmptyFields (fe e, List.map (fun e -> fe e) le)
+	| JSEmptyFields (e, les) ->
+		let non_nones = List.map (fun e -> fe e) les in
+		let js_nones = List.map (fun f_name -> LLit (String f_name)) js_obj_internal_fields in 
+		LEmptyFields (fe e, js_nones @ non_nones) 
 	
 	|	JSFunObj (id, f_loc, f_prototype, f_sc) -> 
 		let f_loc' = fe f_loc in 

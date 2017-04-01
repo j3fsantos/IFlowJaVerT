@@ -30,9 +30,9 @@
 		((l, "@extensible") -> $$f) *
 		((l, "@scope") -> {{ $lg }}) *
 		((l, "@call")  -> call) *
-		empty_fields(l : "@proto", "@class", "@extensible", "@scope", "@call");
+		empty_fields(l : "@scope", "@call");
 	
-		@pred DOMFunctionField(l, call) :
+	@pred DOMFunctionField(l, call) :
 		DOMField(l, call, #lnn) *
 		DOMFunctionObject(#lnn, call);
 
@@ -53,7 +53,7 @@
 		DOMFunctionField($l_np, "removeChild") *
 		DOMFunctionField($l_np, "appendChild") *
 		DOMFunctionField($l_np, "hasChildNodes") *
-		empty_fields($l_np : "@proto", "@class", "@extensible", "nodeName", "nodeValue", "nodeType", "parentNode", "childNodes", "firstChild",
+		empty_fields($l_np : "nodeName", "nodeValue", "nodeType", "parentNode", "childNodes", "firstChild",
 			"lastChild", "previousSibling", "nextSibling", "ownerDocument", "insertBefore", "replaceChild", "removeChild", "appendChild", "hasChildNodes");
 
 	@pred DocumentNodePrototype() :
@@ -64,13 +64,13 @@
 		DOMFunctionField($l_dnp, "createTextNode") *
 		DOMFunctionField($l_dnp, "createAttribute") *
 		DOMFunctionField($l_dnp, "getElementsByTagName") *
-		empty_fields($l_dnp : "@proto", "@class", "@extensible", "@name", "documentElement", "createElement", "createTextNode", "createAttribute", "getElementsByTagName");
+		empty_fields($l_dnp : "@name", "documentElement", "createElement", "createTextNode", "createAttribute", "getElementsByTagName");
 
 	@pred DocumentNode(dn, l_element, element, l_grove, grove) :
 		DOMObject(dn, $l_dnp) *
 		((dn, "@element") -> l_element) * DocumentElement(l_element, element) *
 		((dn, "@grove") -> l_grove) * Grove(l_grove, grove) *
-		empty_fields(dn : "@proto", "@class", "@extensible", "@element", "@grove");
+		empty_fields(dn : "@element", "@grove");
 
 	@pred ElementNodePrototype() :
 		DOMObject($l_enp, $l_np) *
@@ -82,7 +82,7 @@
 		DOMFunctionField($l_enp, "setAttributeNode") *
 		DOMFunctionField($l_enp, "removeAttributeNode") *
 		DOMFunctionField($l_enp, "getElementsByTagName") *
-		empty_fields($l_enp : "@proto", "@class", "@extensible", "tagName", "getAttribute", "setAttribute", "removeAttribute", "getAttributeNode",
+		empty_fields($l_enp : "tagName", "getAttribute", "setAttribute", "removeAttribute", "getAttributeNode",
 			"setAttributeNode", "removeAttributeNode", "getElementsByTagName");
 
 	@pred ElementNode(name, en, l_attr, attr, l_children, children) :
@@ -91,7 +91,7 @@
 		((en, "@attributes") -> l_attr) * AttributeSet(l_attr, attr) *
 		((en, "@children") -> l_children) * Forest(l_children, children) * 
 		types(name: $$string_type, attr: $$list_type, children: $$list_type) *
-		empty_fields(en : "@proto", "@class", "@extensible", "@name", "@attributes", "@children");
+		empty_fields(en : "@name", "@attributes", "@children");
 
 	@pred TextNodePrototype() :
 		DOMObject($l_tnp, $l_np) *
@@ -104,59 +104,59 @@
 		DOMFunctionField($l_tnp, "deleteData") *
 		DOMFunctionField($l_tnp, "replaceData") *
 		DOMFunctionField($l_tnp, "splitText") *
-		empty_fields($l_tnp : "@proto", "@class", "@extensible", "@name", "data", "length", "substringData", "appendData",
+		empty_fields($l_tnp : "@name", "data", "length", "substringData", "appendData",
 									 "insertData", "deleteData", "replaceData", "splitText");
 
 	@pred TextNode(tn, text) :
 		DOMObject(tn, $l_tnp) *
 		((tn, "@text") -> text) *
-		empty_fields(tn : "@proto", "@class", "@extensible", "@text");
+		empty_fields(tn : "@text");
 
 	@pred AttributeNodePrototype() :
 		DOMObject($l_anp, $l_np) *
-		empty_fields($l_anp : "@proto", "@class", "@extensible");
+		empty_fields($l_anp :);
 
 	@pred AttributeNode(name, an, l_children, children) :
 		DOMObject(an, $l_anp) *
 		((an, "@name") -> name) *
 		((an, "@children") -> l_children) * TextForest(l_children, children) *
 		types(name: $$string_type, children: $$list_type) *
-		empty_fields(an : "@proto", "@class", "@extensible", "@name", "@children");
+		empty_fields(an : "@name", "@children");
 
 	@pred InitialDOMHeap() :
 		NodePrototype() * DocumentNodePrototype() * ElementNodePrototype() * AttributeNodePrototype() * TextNodePrototype();
 		
 	@pred DocumentElement(l, element) :
 		isEmpty(element) * DOMObject(l, $$null) *
-		empty_fields(l : "@proto", "@class", "@extensible"),
+		empty_fields(l :),
 		
 		isElement(element, #id, #name, #aList, #cList) * DOMObject(l, $$null) *
-		ElementNode(#name, #id, #l_addr, #aList, #l_children, #cList) * empty_fields(l : "@proto", "@class", "@extensible"),
+		ElementNode(#name, #id, #l_addr, #aList, #l_children, #cList) * empty_fields(l :),
 	    
 	    isHole(element, #alpha) * DOMObject(l, $$null) *
-	    empty_fields(l : "@proto", "@class", "@extensible");		
+	    empty_fields(l :);		
 
 	@pred AttributeSet(l, attrs) : 
 	    isEmpty(attrs) * DOMObject(l, $$null) * ((l, "@next") ->  $$null),
 	    
 	    (attrs == (#head :: #attrsNext)) * isAttr(#head, #name, #id, #tf) * DOMObject(l, $$null) * 
 	    ((l, "@next") -> #next) * AttributeNode(#name, #id, #l_tf, #tf) * AttributeSet(#next, #attrsNext) * 
-	    empty_fields(l : "@proto", "@class", "@extensible", "@next"); 	
+	    empty_fields(l : "@next"); 	
 
 	@pred Forest(l, childList) :
 		isEmpty(childList) * DOMObject(l, $$null) * ((l, "@next") ->  $$null),
 		
 		(childList == (#head :: #childListNext)) * isText(#head, #id, #text) * DOMObject(l, $$null) *
 		((l, "@next") -> #next) * TextNode(#id, #text) * Forest(#next, #childListNext) *
-		empty_fields(l : "@proto", "@class", "@extensible", "@next"),
+		empty_fields(l : "@next"),
 		
 		(childList == (#head :: #childListNext)) * isElement(#head, #name, #id, #aList, #cList) * DOMObject(l, $$null) *
 		((l, "@next") -> #next) * ElementNode(#name, #id, #l_addr, #aList, #l_children, #cList) * Forest(#next, #childListNext) *
-		empty_fields(l : "@proto", "@class", "@extensible", "@next"),
+		empty_fields(l : "@next"),
 		
 	    (childList == (#head :: #childListNext)) * isHole(#head, #alpha) * DOMObject(l, $$null) *
 	    ((l, "@next") -> #next) * Forest(#next, #childListNext) *
-	    empty_fields(l : "@proto", "@class", "@extensible", "@next");
+	    empty_fields(l : "@next");
 
 	
 	@pred TextForest(l, childList) :
@@ -164,30 +164,32 @@
 		
 		(childList == (#head :: #childListNext)) * isText(#head, #id, #text) * DOMObject(l, $$null) *
 		((l, "@next") -> #next) * TextNode(#id, #text) * TextForest(#next, #childListNext) *
-		empty_fields(l : "@proto", "@class", "@extensible", "@next"),
+		empty_fields(l : "@next"),
 		
 		(childList == (#head :: #childListNext)) * isHole(#head, #alpha) * DOMObject(l, $$null) *
 		((l, "@next") -> #next) * TextForest(#next, #childListNext) *
-		empty_fields(l : "@proto", "@class", "@extensible", "@next");
+		empty_fields(l : "@next");
 	
 	@pred Grove(l, content) :
 		isEmpty(content) * DOMObject(l, $$null) * ((l, "@next") ->  $$null),
 		
 		(content == (#head :: #contentNext)) * isText(#head, #id, #text) * DOMObject(l, $$null) *
 		((l, "@next") -> #next) * TextNode(#id, #text) * Grove(#next, contentNext) *
-		empty_fields(l : "@proto", "@class", "@extensible", "@next"),
+		empty_fields(l : "@next"),
 		
 		(content == (#head :: #contentNext)) * isElement(#head, #name, #id, #aList, #cList) * DOMObject(l, $$null) *
 		((l, "@next") -> #next) * ElementNode(#name, #id, #l_addr, #aList, #l_children, #cList) * Grove(#next, #contentNext) *
-		empty_fields(l : "@proto", "@class", "@extensible", "@next"),	
+		empty_fields(l : "@next"),	
 		
 		(content == (#head :: #contentNext)) * isAttr(head, #name, #id, #tList) * DOMObject(l, $$null) *
 		((l, "@next") -> #next) * AttributeNode(#name, #id, #l_tf, #tList) * Grove(#next, #contentNext) *
-		empty_fields(l : "@proto", "@class", "@extensible", "@next"),	
+		empty_fields(l : "@next"),	
 			
 	    (content == (#head :: #contentNext)) * isHole(#head, #alpha) * DOMObject(l, $$null) *
 	    ((l, "@next") -> #next) * Grove(#next, #contentNext) *
-	    empty_fields(l : "@proto", "@class", "@extensible", "@next");
+	    empty_fields(l : "@next");
+
+
 
 	@pred val(t, s) :
 		isEmpty(t) * (s == ""),
@@ -203,6 +205,9 @@
 		(l == (#head :: #next)) * isAttr(#head, #n, #id, #tf) * complete(#next),
 		(l == (#head :: #next)) * isElement(#head, #n, #id, #a, #c) * complete(#next);
 
+	@pred grove_or_forest(e) :
+		Grove(#alpha, #l) * (#l == {{ e }}),
+		Forest(#alpha, #l) * (#l == {{ e }});
 
 
 	@onlyspec allocAS(l, i, j)
@@ -232,35 +237,16 @@
 				 Grove(#l, #g) * (#g == #g1 @ ({{"hole", #alpha}} :: #g3)) * Grove(#alpha, #g2)]]
 		post: [[ Grove(#dn, (#g1 @ (#g2 @ #g3))) ]]
 		outcome: normal
-
-
-	@onlyspec createElement(x)
-		pre:  [[ (x == #name) *  DocumentNode(this, #l_element, #element, #l_g, #g) ]]
-		post: [[ (ret == #ret) * DocumentNode(this, #l_element, #element, #l_g, ({{ {{ "elem", #name, #ret, {{}}, {{}} }} }} @ #g)) * types(#ret : $$object_type) ]]
-		outcome: normal
-
-	@onlyspec createTextNode(x)
-		pre:  [[ (x == #text)  * DocumentNode(this, #l_element, #element, #l_g, #g) ]]
-		post: [[ (ret == #ret) * DocumentNode(this, #l_element, #element, #l_g, ({{ {{ "text", #ret, #text }} }} @ #g)) * types(#ret : $$object_type) ]]
-		outcome: normal
-
-	@onlyspec getAttribute(s)
-		pre:  [[ (s == #s) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#attr == {{ {{ "attr", #s, #m, #t }}, {{ "hole", #alpha }} }}) * val(#t, #s1) ]]
-		post: [[ (s == #s) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#attr == {{ {{ "attr", #s, #m, #t }}, {{ "hole", #alpha }} }}) * (ret == #s1) * types(#s1 : $$string_type) ]]
-		outcome: normal;
-		
-		pre:  [[ (s == #s) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * out(#attr, #s) ]]
-		post: [[ (s == #s) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (ret == "")    ]]
-		outcome: normal
-
-
+*/ /*
+	----General Axioms----
+*/ /*
 	@onlyspec nodeName()
 		pre:  [[ DocumentNode(this, #l_element, #element, #l_g, #grove) ]]
-		post: [[ DocumentNode(this, #l_element, #element, #l_g, #grove) * (ret == "#document")]]
+		post: [[ DocumentNode(this, #l_element, #element, #l_g, #grove) * (ret == "#document") ]]
 		outcome: normal;
 
 		pre:  [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) ]]
-		post: [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (ret == #name) ]]
+		post: [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (ret == #name) * types(#name : $$string_type) ]]
 		outcome: normal;
 
 		pre:  [[ TextNode(this, #text) ]]
@@ -268,7 +254,7 @@
 		outcome: normal;
 
 		pre:  [[ AttributeNode(#name, this, #l_children, #children) ]]
-		post: [[ AttributeNode(#name, this, #l_children, #children) * (ret == #name) ]]
+		post: [[ AttributeNode(#name, this, #l_children, #children) * (ret == #name) * types(#name : $$string_type) ]]
 		outcome: normal
 
 	@onlyspec nodeValue()
@@ -290,19 +276,19 @@
 
 	@onlyspec parentNode()
 		pre:  [[ DocumentNode(#dn, #l_element, #element, #l_g, #grove) * (#element == {{ "elem", #name, this, #attrs, #children }}) ]]
-		post: [[ DocumentNode(#dn, #l_element, #element, #l_g, #grove) * (#element == {{ "elem", #name, this, #attrs, #children }}) * (ret == #dn) ]]
+		post: [[ DocumentNode(#dn, #l_element, #element, #l_g, #grove) * (#element == {{ "elem", #name, this, #attrs, #children }}) * (ret == #dn) * types(#dn : $$object_type) ]]
 		outcome: normal;
 
 		pre:  [[ ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) * (#children == {{ {{ "hole", #alpha1 }}, {{ "elem", #name, this, #attrs, #children }}, {{ "hole", #alpha2 }} }}) ]]
-		post: [[ ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) * (#children == {{ {{ "hole", #alpha1 }}, {{ "elem", #name, this, #attrs, #children }}, {{ "hole", #alpha2 }} }}) * (ret == #en) ]]
+		post: [[ ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) * (#children == {{ {{ "hole", #alpha1 }}, {{ "elem", #name, this, #attrs, #children }}, {{ "hole", #alpha2 }} }}) * (ret == #en) * types(#en : $$object_type) ]]
 		outcome: normal;
 
 		pre:  [[ ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) * (#children == {{ {{ "hole", #alpha1 }}, {{ "text", this, #t }}, {{ "hole", #alpha2 }} }}) ]]
-		post: [[ ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) * (#children == {{ {{ "hole", #alpha1 }}, {{ "text", this, #t }}, {{ "hole", #alpha2 }} }}) * (ret == #en) ]]
+		post: [[ ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) * (#children == {{ {{ "hole", #alpha1 }}, {{ "text", this, #t }}, {{ "hole", #alpha2 }} }}) * (ret == #en) * types(#en : $$object_type) ]]
 		outcome: normal;
 
 		pre:  [[ AttributeNode(#name, #an, #l_children, #children) * (#children == {{ {{ "text", this, #t }}, {{ "hole", #alpha }} }}) ]]
-		post: [[ AttributeNode(#name, #an, #l_children, #children) * (#children == {{ {{ "text", this, #t }}, {{ "hole", #alpha }} }}) * (ret == #an) ]]
+		post: [[ AttributeNode(#name, #an, #l_children, #children) * (#children == {{ {{ "text", this, #t }}, {{ "hole", #alpha }} }}) * (ret == #an) * types(#an : $$object_type) ]]
 		outcome: normal;
 
 		pre:  [[ DocumentNode(this, #l_element, #element, #l_g, #grove) ]]
@@ -324,7 +310,7 @@
 
 	@onlyspec firstChild()
 		pre:  [[ DocumentNode(this, #l_element, #element, #l_g, #grove) * (#element == {{ "elem", #name, #en, #attrs, #children }}) ]]
-		post: [[ DocumentNode(this, #l_element, #element, #l_g, #grove) * (#element == {{ "elem", #name, #en, #attrs, #children }}) * (ret == #en) ]]
+		post: [[ DocumentNode(this, #l_element, #element, #l_g, #grove) * (#element == {{ "elem", #name, #en, #attrs, #children }}) * (ret == #en) * types(#en : $$object_type) ]]
 		outcome: normal;
 
 		pre:  [[ DocumentNode(this, #l_element, {{ }}, #l_g, #grove) ]]
@@ -332,11 +318,11 @@
 		outcome: normal;
 
 		pre:  [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#children == {{ {{ "elem", #name, #en, #en_attr, #en_children }}, {{ "hole", #alpha }} }}) ]]
-		post: [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#children == {{ {{ "elem", #name, #en, #en_attr, #en_children }}, {{ "hole", #alpha }} }}) * (ret == #en) ]]
+		post: [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#children == {{ {{ "elem", #name, #en, #en_attr, #en_children }}, {{ "hole", #alpha }} }}) * (ret == #en) * types(#en : $$object_type) ]]
 		outcome: normal;
 		
 		pre:  [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#children == {{ {{ "text", #tn, #t }}, {{ "hole", #alpha }} }}) ]]
-		post: [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#children == {{ {{ "text", #tn, #t }}, {{ "hole", #alpha }} }}) * (ret == #tn) ]]
+		post: [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#children == {{ {{ "text", #tn, #t }}, {{ "hole", #alpha }} }}) * (ret == #tn) * types(#tn : $$object_type) ]]
 		outcome: normal;
 
 		pre:  [[ ElementNode(#name, this, #l_attr, #attr, #l_children, {{ }}) ]]
@@ -348,7 +334,7 @@
 		outcome: normal;
 
 		pre:  [[ AttributeNode(#name, this, #l_children, #children) * (#children == {{ {{ "text", #tn, #t }}, {{ "hole", #alpha }} }}) ]]
-		post: [[ AttributeNode(#name, this, #l_children, #children) * (#children == {{ {{ "text", #tn, #t }}, {{ "hole", #alpha }} }}) * (ret == #tn) ]]
+		post: [[ AttributeNode(#name, this, #l_children, #children) * (#children == {{ {{ "text", #tn, #t }}, {{ "hole", #alpha }} }}) * (ret == #tn) * types(#tn : $$object_type) ]]
 		outcome: normal;
 
 		pre:  [[ AttributeNode(#name, this, #l_children, {{ }}) ]]
@@ -357,7 +343,7 @@
 
 	@onlyspec lastChild()
 		pre:  [[ DocumentNode(this, #l_element, #element, #l_g, #grove) * (#element == {{ "elem", #name, #en, #attrs, #children }}) ]]
-		post: [[ DocumentNode(this, #l_element, #element, #l_g, #grove) * (#element == {{ "elem", #name, #en, #attrs, #children }}) * (ret == #en) ]]
+		post: [[ DocumentNode(this, #l_element, #element, #l_g, #grove) * (#element == {{ "elem", #name, #en, #attrs, #children }}) * (ret == #en) * types(#en : $$object_type) ]]
 		outcome: normal;
 
 		pre:  [[ DocumentNode(this, #l_element, {{ }}, #l_g, #grove) ]]
@@ -365,11 +351,11 @@
 		outcome: normal;
 
 		pre:  [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#children == {{ {{ "hole", #alpha }}, {{ "elem", #name, #en, #en_attr, #en_children }} }}) ]]
-		post: [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#children == {{ {{ "hole", #alpha }}, {{ "elem", #name, #en, #en_attr, #en_children }} }}) * (ret == #en) ]]
+		post: [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#children == {{ {{ "hole", #alpha }}, {{ "elem", #name, #en, #en_attr, #en_children }} }}) * (ret == #en) * types(#en : $$object_type) ]]
 		outcome: normal;
 		
 		pre:  [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#children == {{ {{ "hole", #alpha }}, {{ "text", #tn, #t }} }}) ]]
-		post: [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#children == {{ {{ "hole", #alpha }}, {{ "text", #tn, #t }} }}) * (ret == #tn) ]]
+		post: [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (#children == {{ {{ "hole", #alpha }}, {{ "text", #tn, #t }} }}) * (ret == #tn) * types(#tn : $$object_type) ]]
 		outcome: normal;
 
 		pre:  [[ ElementNode(#name, this, #l_attr, #attr, #l_children, {{ }}) ]]
@@ -381,7 +367,7 @@
 		outcome: normal;
 
 		pre:  [[ AttributeNode(#name, this, #l_children, #children) * (#children == {{ {{ "hole", #alpha }}, {{ "text", #tn, #t }} }}) ]]
-		post: [[ AttributeNode(#name, this, #l_children, #children) * (#children == {{ {{ "hole", #alpha }}, {{ "text", #tn, #t }} }}) * (ret == #tn) ]]
+		post: [[ AttributeNode(#name, this, #l_children, #children) * (#children == {{ {{ "hole", #alpha }}, {{ "text", #tn, #t }} }}) * (ret == #tn) * types(#tn : $$object_type) ]]
 		outcome: normal;
 
 		pre:  [[ AttributeNode(#name, this, #l_children, {{ }}) ]]
@@ -390,19 +376,19 @@
 
 	@onlyspec previousSibling()
 		pre:  [[ Forest(#alpha, #f) * (#f == {{ {{ "text", #tn, #t }}, {{ "elem", #name, this, #en_attr, #en_children }} }}) ]]
-		post: [[ Forest(#alpha, #f) * (#f == {{ {{ "text", #tn, #t }}, {{ "elem", #name, this, #en_attr, #en_children }} }}) * (ret == #tn) ]]
+		post: [[ Forest(#alpha, #f) * (#f == {{ {{ "text", #tn, #t }}, {{ "elem", #name, this, #en_attr, #en_children }} }}) * (ret == #tn) * types(#tn : $$object_type) ]]
 		outcome: normal;
 
 		pre:  [[ Forest(#alpha, #f) * (#f == {{ {{ "elem", #name, #en, #en_attr, #en_children }}, {{ "text", this, #t }} }}) ]]
-		post: [[ Forest(#alpha, #f) * (#f == {{ {{ "elem", #name, #en, #en_attr, #en_children }}, {{ "text", this, #t }} }}) * (ret == #en) ]]
+		post: [[ Forest(#alpha, #f) * (#f == {{ {{ "elem", #name, #en, #en_attr, #en_children }}, {{ "text", this, #t }} }}) * (ret == #en) * types(#en : $$object_type) ]]
 		outcome: normal;
 
 		pre:  [[ Forest(#alpha, #f) * (#f == {{ {{ "elem", #n1, #en, #a1, #c1 }}, {{ "elem", #n2, this, #a2, #c2 }} }}) ]]
-		post: [[ Forest(#alpha, #f) * (#f == {{ {{ "elem", #n1, #en, #a1, #c1 }}, {{ "elem", #n2, this, #a2, #c2 }} }}) * (ret == #en) ]]
+		post: [[ Forest(#alpha, #f) * (#f == {{ {{ "elem", #n1, #en, #a1, #c1 }}, {{ "elem", #n2, this, #a2, #c2 }} }}) * (ret == #en) * types(#en : $$object_type) ]]
 		outcome: normal;
 
 		pre:  [[ Forest(#alpha, #f) * (#f == {{ {{ "text", #tn, #t1 }}, {{ "text", this, #t2 }} }}) ]]
-		post: [[ Forest(#alpha, #f) * (#f == {{ {{ "text", #tn, #t1 }}, {{ "text", this, #t2 }} }}) * (ret == #tn) ]]
+		post: [[ Forest(#alpha, #f) * (#f == {{ {{ "text", #tn, #t1 }}, {{ "text", this, #t2 }} }}) * (ret == #tn) * types(#tn : $$object_type) ]]
 		outcome: normal;
 
 		pre:  [[ ElementNode(#name, #en, #l, #a, #l_children, #children) * (#children == {{ {{ "text", this, #t1 }}, {{ "hole", #alpha }} }}) ]]
@@ -434,7 +420,7 @@
 		outcome: normal;
 
 		pre:  [[ TextForest(#alpha, #f) * (#f == {{ {{ "text", #tn, #t1 }}, {{ "text", this, #t2 }} }}) ]]
-		post: [[ TextForest(#alpha, #f) * (#f == {{ {{ "text", #tn, #t1 }}, {{ "text", this, #t2 }} }}) * (ret == #tn) ]]
+		post: [[ TextForest(#alpha, #f) * (#f == {{ {{ "text", #tn, #t1 }}, {{ "text", this, #t2 }} }}) * (ret == #tn) * types(#tn : $$object_type) ]]
 		outcome: normal;
 
 		pre:  [[ AttributeNode(#name, #an, #l_tf, #tf) * (#tf == {{ {{ "text", this, #t }}, {{ "hole", #alpha }} }}) ]]
@@ -443,19 +429,19 @@
 
 	@onlyspec nextSibling()
 		pre:  [[ Forest(#alpha, #f) * (#f == {{ {{ "text", this, #t }}, {{ "elem", #name, #en, #en_attr, #en_children }} }}) ]]
-		post: [[ Forest(#alpha, #f) * (#f == {{ {{ "text", this, #t }}, {{ "elem", #name, #en, #en_attr, #en_children }} }}) * (ret == #en) ]]
+		post: [[ Forest(#alpha, #f) * (#f == {{ {{ "text", this, #t }}, {{ "elem", #name, #en, #en_attr, #en_children }} }}) * (ret == #en) * types(#en : $$object_type) ]]
 		outcome: normal;
 
 		pre:  [[ Forest(#alpha, #f) * (#f == {{ {{ "elem", #name, this, #en_attr, #en_children }}, {{ "text", #tn, #t }} }}) ]]
-		post: [[ Forest(#alpha, #f) * (#f == {{ {{ "elem", #name, this, #en_attr, #en_children }}, {{ "text", #tn, #t }} }}) * (ret == #tn) ]]
+		post: [[ Forest(#alpha, #f) * (#f == {{ {{ "elem", #name, this, #en_attr, #en_children }}, {{ "text", #tn, #t }} }}) * (ret == #tn) * types(#tn : $$object_type) ]]
 		outcome: normal;
 
 		pre:  [[ Forest(#alpha, #f) * (#f == {{ {{ "elem", #n1, this, #a1, #c1 }}, {{ "elem", #n2, #en, #a2, #c2 }} }}) ]]
-		post: [[ Forest(#alpha, #f) * (#f == {{ {{ "elem", #n1, this, #a1, #c1 }}, {{ "elem", #n2, #en, #a2, #c2 }} }}) * (ret == #en) ]]
+		post: [[ Forest(#alpha, #f) * (#f == {{ {{ "elem", #n1, this, #a1, #c1 }}, {{ "elem", #n2, #en, #a2, #c2 }} }}) * (ret == #en) * types(#en : $$object_type) ]]
 		outcome: normal;
 
 		pre:  [[ Forest(#alpha, #f) * (#f == {{ {{ "text", this, #t1 }}, {{ "text", #tn, #t2 }} }}) ]]
-		post: [[ Forest(#alpha, #f) * (#f == {{ {{ "text", this, #t1 }}, {{ "text", #tn, #t2 }} }}) * (ret == #tn) ]]
+		post: [[ Forest(#alpha, #f) * (#f == {{ {{ "text", this, #t1 }}, {{ "text", #tn, #t2 }} }}) * (ret == #tn) * types(#tn : $$object_type) ]]
 		outcome: normal;
 
 		pre:  [[ ElementNode(#name, #en, #l, #a, #l_children, #children) * (#children == {{ {{ "hole", #alpha }}, {{ "text", this, #t1 }} }}) ]]
@@ -487,7 +473,7 @@
 		outcome: normal;
 
 		pre:  [[ TextForest(#alpha, #f) * (#f == {{ {{ "text", this, #t1 }}, {{ "text", #tn, #t2 }} }}) ]]
-		post: [[ TextForest(#alpha, #f) * (#f == {{ {{ "text", this, #t1 }}, {{ "text", #tn, #t2 }} }}) * (ret == #tn) ]]
+		post: [[ TextForest(#alpha, #f) * (#f == {{ {{ "text", this, #t1 }}, {{ "text", #tn, #t2 }} }}) * (ret == #tn) * types(#tn : $$object_type) ]]
 		outcome: normal;
 
 		pre:  [[ AttributeNode(#name, #an, #l_tf, #tf) * (#tf == {{ {{ "hole", #alpha }}, {{ "text", this, #t }} }}) ]]
@@ -512,21 +498,491 @@
 		outcome: normal
 
 	@onlyspec insertBefore(m, n)
-		pre:  [[ (m == #m) * (n == #n) * ElementNode(#ename, this, #el, #ea, #el, #ec) * 
+		pre:  [[ (m == #m) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
 				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "elem", #ename1, #m, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) *
-				 Grove(#alpha, #g) * (#g == {{ {{ "elem", #ename2, #n, #a2, #c1 }} }}) * complete(#c1) ]]
-		post: [[ ElementNode(#ename, this, #el, #ea, #el, #ec) * 
-				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "elem", #ename2, #n, #a2, #c1 }}, {{ "elem", #ename1, #m, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) *
-				 Grove(#alpha, #g) * (#g == {{ {{ "hole", #zeta }} }}) * (ret == #n) ]]
+				 Grove(#alpha, #g) * (#g == {{ {{ "elem", #ename2, #n, #a2, #c2 }} }}) * complete(#c2) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "elem", #ename2, #n, #a2, #c2 }}, {{ "elem", #ename1, #m, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
+		outcome: normal;
+		pre:  [[ (m == #m) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "elem", #ename1, #m, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "elem", #ename2, #n, #a2, #c2 }} }}) * complete(#c2) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "elem", #ename2, #n, #a2, #c2 }}, {{ "elem", #ename1, #m, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
 		outcome: normal;
 
-		pre:  [[ (m == #m) * (n == #n) * ElementNode(#ename, this, #el, #ea, #el, #ec) * 
+		pre:  [[ (m == #m) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
 				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "elem", #ename1, #m, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) *
-				 Forest(#alpha, #f) * (#f == {{ {{ "elem", #ename2, #n, #a2, #c1 }} }}) * complete(#c1) ]]
-		post: [[ ElementNode(#ename, this, #el, #ea, #el, #ec) * 
-				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "elem", #ename2, #n, #a2, #c1 }}, {{ "elem", #ename1, #m, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) *
-				 Forest(#alpha, #f) * (#f == {{ {{ "hole", #zeta }} }}) * (ret == #n) ]]
+				 Grove(#alpha, #g) * (#g == {{ {{ "text", #n, #t2 }} }}) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "text", #n, #t2 }}, {{ "elem", #ename1, #m, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
+		outcome: normal;
+		pre:  [[ (m == #m) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "elem", #ename1, #m, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "text", #n, #t2 }} }}) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "text", #n, #t2 }}, {{ "elem", #ename1, #m, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
+		outcome: normal;
+
+		pre:  [[ (m == #m) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "elem", #ename2, #n, #a2, #c2 }} }}) * complete(#c2) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "elem", #ename2, #n, #a2, #c2 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
+		outcome: normal;
+		pre:  [[ (m == #m) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "elem", #ename2, #n, #a2, #c2 }} }}) * complete(#c2) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "elem", #ename2, #n, #a2, #c2 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
+		outcome: normal;
+
+		pre:  [[ (m == #m) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "text", #n, #t2 }} }}) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "text", #n, #t2 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
+		outcome: normal;
+		pre:  [[ (m == #m) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "text", #n, #t2 }} }}) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma1 }}, {{ "text", #n, #t2 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
+		outcome: normal;
+
+		pre:  [[ (m == $$null) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "elem", #ename1, #n, #a1, #c1 }} }}) * complete(#c1) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma }}, {{ "elem", #ename1, #n, #a1, #c1 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
+		outcome: normal;
+		pre:  [[ (m == $$null) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "elem", #ename1, #n, #a1, #c1 }} }}) * complete(#c1) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma }}, {{ "elem", #ename1, #n, #a1, #c1 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
+		outcome: normal;
+
+		pre:  [[ (m == $$null) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "text", #n, #t1 }} }}) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma }}, {{ "text", #n, #t1 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
+		outcome: normal;
+		pre:  [[ (m == $$null) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "text", #n, #t1 }} }}) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma }}, {{ "text", #n, #t1 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
+		outcome: normal;
+
+		pre:  [[ (m == #m) * (n == #n) * AttributeNode(#aname, this, #l_ac, #ac) * 
+				 (#ac == {{ {{ "hole", #gamma1 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "text", #n, #t2 }} }}) ]]
+		post: [[ AttributeNode(#aname, this, #l_ac, #ac) * 
+				 (#ac == {{ {{ "hole", #gamma1 }}, {{ "text", #n, #t2 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
+		outcome: normal;
+		pre:  [[ (m == #m) * (n == #n) * AttributeNode(#aname, this, #l_ac, #ac) * 
+				 (#ac == {{ {{ "hole", #gamma1 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "text", #n, #t2 }} }}) ]]
+		post: [[ AttributeNode(#aname, this, #l_ac, #ac) * 
+				 (#ac == {{ {{ "hole", #gamma1 }}, {{ "text", #n, #t2 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
+		outcome: normal;
+		
+		pre:  [[ (m == $$null) * (n == #n) * AttributeNode(#aname, this, #l_ac, #ac) * 
+				 (#ac == {{ {{ "hole", #gamma }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "text", #n, #t1 }} }}) ]]
+		post: [[ AttributeNode(#aname, this, #l_ac, #ac) * 
+				 (#ac == {{ {{ "hole", #gamma }}, {{ "text", #n, #t1 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
+		outcome: normal;
+		pre:  [[ (m == $$null) * (n == #n) * AttributeNode(#aname, this, #l_ac, #ac) * 
+				 (#ac == {{ {{ "hole", #gamma }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "text", #n, #t1 }} }}) ]]
+		post: [[ AttributeNode(#aname, this, #l_ac, #ac) * 
+				 (#ac == {{ {{ "hole", #gamma }}, {{ "text", #n, #t1 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
+		outcome: normal;
+
+		pre:  [[ (m == $$null) * (n == #n) * DocumentNode(this, #l_e, #e, #l_g, #g) * 
+				 (#e == {{ }}) *
+				 Grove(#alpha, #g2) * (#g2 == {{ {{ "elem", #ename1, #n, #a1, #c1 }} }}) ]]
+		post: [[ DocumentNode(this, #l_e, #e, #l_g, #g) * 
+				 (#e == {{ "elem", #ename1, #n, #a1, #c1 }}) *
+				 Grove(#alpha, #g2) * (#g2 == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
+		outcome: normal;
+		pre:  [[ (m == $$null) * (n == #n) * DocumentNode(this, #l_e, #e, #l_g, #g) * 
+				 (#e == {{ }}) *
+				 Forest(#alpha, #g2) * (#g2 == {{ {{ "elem", #ename1, #n, #a1, #c1 }} }}) ]]
+		post: [[ DocumentNode(this, #l_e, #e, #l_g, #g) * 
+				 (#e == {{ "elem", #ename1, #n, #a1, #c1 }}) *
+				 Forest(#alpha, #g2) * (#g2 == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
 		outcome: normal
+
+	@onlyspec replaceChild(n, o)
+		pre:  [[ (n == #n) * (o == #o) * ElementNode(#s, this, #l_a, #a, #l_c, #c) *
+				 (#c == {{ {{ "hole", #gamma1 }}, {{ "elem", #s2, #o, #a2, #c2 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha1, #l1) * (#l1 == {{ {{ "elem", #s1, #n, #a1, #c1 }} }}) * complete(#c1) *
+				 Grove(#alpha2, #l2) * (#l2 == {{ }}) ]]
+		post: [[ ElementNode(#s, this, #l_a, #a, #l_c, #c) *
+				 (#c == {{ {{ "hole", #gamma1 }}, {{ "elem", #s1, #n, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha1, #l1) * (#l1 == {{ }}) *
+				 Grove(#alpha2, #l2) * (#l2 == {{ {{ "elem", #s2, #o, #a2, #c2 }} }}) * (ret == #o) * types(#o : $$object_type) ]]
+		outcome: normal;
+		pre:  [[ (n == #n) * (o == #o) * ElementNode(#s, this, #l_a, #a, #l_c, #c) *
+				 (#c == {{ {{ "hole", #gamma1 }}, {{ "elem", #s2, #o, #a2, #c2 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha1, #l1) * (#l1 == {{ {{ "elem", #s1, #n, #a1, #c1 }} }}) * complete(#c1) *
+				 Grove(#alpha2, #l2) * (#l2 == {{ }}) ]]
+		post: [[ ElementNode(#s, this, #l_a, #a, #l_c, #c) *
+				 (#c == {{ {{ "hole", #gamma1 }}, {{ "elem", #s1, #n, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha1, #l1) * (#l1 == {{ }}) *
+				 Grove(#alpha2, #l2) * (#l2 == {{ {{ "elem", #s2, #o, #a2, #c2 }} }}) * (ret == #o) * types(#o : $$object_type) ]]
+		outcome: normal;
+
+		pre:  [[ (n == #n) * (o == #o) * ElementNode(#s, this, #l_a, #a, #l_c, #c) *
+				 (#c == {{ {{ "hole", #gamma1 }}, {{ "elem", #s2, #o, #a2, #c2 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha1, #l1) * (#l1 == {{ {{ "text", #n, #t1 }} }}) *
+				 Grove(#alpha2, #l2) * (#l2 == {{ }}) ]]
+		post: [[ ElementNode(#s, this, #l_a, #a, #l_c, #c) *
+				 (#c == {{ {{ "hole", #gamma1 }}, {{ "text", #n, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha1, #l1) * (#l1 == {{ }}) *
+				 Grove(#alpha2, #l2) * (#l2 == {{ {{ "elem", #s2, #o, #a2, #c2 }} }}) * (ret == #o) * types(#o : $$object_type) ]]
+		outcome: normal;
+		pre:  [[ (n == #n) * (o == #o) * ElementNode(#s, this, #l_a, #a, #l_c, #c) *
+				 (#c == {{ {{ "hole", #gamma1 }}, {{ "elem", #s2, #o, #a2, #c2 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha1, #l1) * (#l1 == {{ {{ "text", #n, #t1 }} }}) *
+				 Grove(#alpha2, #l2) * (#l2 == {{ }}) ]]
+		post: [[ ElementNode(#s, this, #l_a, #a, #l_c, #c) *
+				 (#c == {{ {{ "hole", #gamma1 }}, {{ "text", #n, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha1, #l1) * (#l1 == {{ }}) *
+				 Grove(#alpha2, #l2) * (#l2 == {{ {{ "elem", #s2, #o, #a2, #c2 }} }}) * (ret == #o) * types(#o : $$object_type) ]]
+		outcome: normal;
+
+		pre:  [[ (n == #n) * (o == #o) * ElementNode(#s, this, #l_a, #a, #l_c, #c) *
+				 (#c == {{ {{ "hole", #gamma1 }}, {{ "text", #o, #t2 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha1, #l1) * (#l1 == {{ {{ "elem", #s1, #n, #a1, #c1 }} }}) * complete(#c1) *
+				 Grove(#alpha2, #l2) * (#l2 == {{ }}) ]]
+		post: [[ ElementNode(#s, this, #l_a, #a, #l_c, #c) *
+				 (#c == {{ {{ "hole", #gamma1 }}, {{ "elem", #s1, #n, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha1, #l1) * (#l1 == {{ }}) *
+				 Grove(#alpha2, #l2) * (#l2 == {{ {{ "text", #o, #t2 }} }}) * (ret == #o) * types(#o : $$object_type) ]]
+		outcome: normal;
+		pre:  [[ (n == #n) * (o == #o) * ElementNode(#s, this, #l_a, #a, #l_c, #c) *
+				 (#c == {{ {{ "hole", #gamma1 }}, {{ "text", #o, #t2 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha1, #l1) * (#l1 == {{ {{ "elem", #s1, #n, #a1, #c1 }} }}) * complete(#c1) *
+				 Grove(#alpha2, #l2) * (#l2 == {{ }}) ]]
+		post: [[ ElementNode(#s, this, #l_a, #a, #l_c, #c) *
+				 (#c == {{ {{ "hole", #gamma1 }}, {{ "elem", #s1, #n, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha1, #l1) * (#l1 == {{ }}) *
+				 Grove(#alpha2, #l2) * (#l2 == {{ {{ "text", #o, #t2 }} }}) * (ret == #o) * types(#o : $$object_type) ]]
+		outcome: normal;
+
+		pre:  [[ (n == #n) * (o == #o) * ElementNode(#s, this, #l_a, #a, #l_c, #c) *
+				 (#c == {{ {{ "hole", #gamma1 }}, {{ "text", #o, #t2 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha1, #l1) * (#l == {{ {{ "text", #n, #t1 }} }}) *
+				 Grove(#alpha2, #l2) * (#l2 == {{ }}) ]]
+		post: [[ ElementNode(#s, this, #l_a, #a, #l_c, #c) *
+				 (#c == {{ {{ "hole", #gamma1 }}, {{ "text", #n, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha1, #l1) * (#l1 == {{ }}) *
+				 Grove(#alpha2, #l2) * (#l2 == {{ {{ "text", #o, #t2 }} }}) * (ret == #o) * types(#o : $$object_type) ]]
+		outcome: normal;
+		pre:  [[ (n == #n) * (o == #o) * ElementNode(#s, this, #l_a, #a, #l_c, #c) *
+				 (#c == {{ {{ "hole", #gamma1 }}, {{ "text", #o, #t2 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha1, #l1) * (#l1 == {{ {{ "text", #n, #t1 }} }}) *
+				 Grove(#alpha2, #l2) * (#l2 == {{ }}) ]]
+		post: [[ ElementNode(#s, this, #l_a, #a, #l_c, #c) *
+				 (#c == {{ {{ "hole", #gamma1 }}, {{ "text", #n, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha1, #l1) * (#l1 == {{ }}) *
+				 Grove(#alpha2, #l2) * (#l2 == {{ {{ "text", #o, #t2 }} }}) * (ret == #o) * types(#o : $$object_type) ]]
+		outcome: normal;
+
+		pre:  [[ (n == #n) * (o == #o) * AttributeNode(#s, this, #l_c, #c) *
+				 (#c == {{ {{ "hole", #gamma1 }}, {{ "text", #o, #t2 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha1, #l1) * (#l1 == {{ {{ "text", #n, #t1 }} }}) *
+				 Grove(#alpha2, #l2) * (#l2 == {{ }}) ]]
+		post: [[ AttributeNode(#s, this, #l_c, #c) *
+				 (#c == {{ {{ "hole", #gamma1 }}, {{ "text", #n, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha1, #l1) * (#l1 == {{ }}) *
+				 Grove(#alpha2, #l2) * (#l2 == {{ {{ "text", #o, #t2 }} }}) * (ret == #o) * types(#o : $$object_type) ]]
+		outcome: normal;
+		pre:  [[ (n == #n) * (o == #o) * AttributeNode(#s, this, #l_c, #c) *
+				 (#c == {{ {{ "hole", #gamma1 }}, {{ "text", #o, #t2 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha1, #l1) * (#l1 == {{ {{ "text", #n, #t1 }} }}) *
+				 Grove(#alpha2, #l2) * (#l2 == {{ }}) ]]
+		post: [[ AttributeNode(#s, this, #l_c, #c) *
+				 (#c == {{ {{ "hole", #gamma1 }}, {{ "text", #n, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Forest(#alpha1, #l1) * (#l1 == {{ }}) *
+				 Grove(#alpha2, #l2) * (#l2 == {{ {{ "text", #o, #t2 }} }}) * (ret == #o) * types(#o : $$object_type) ]]
+		outcome: normal;
+
+		pre:  [[ (n == #n) * (o == #o) * DocumentNode(this, #l_c, #c, #l_g, #g) *
+				 (#c == {{ "elem", #s2, #o, #a2, #c2 }}) *
+				 Grove(#alpha1, #l1) * (#l == {{ {{ "elem", #s1, #n, #a1, #c1 }} }}) *
+				 Grove(#alpha2, #l2) * (#l2 == {{ }}) ]]
+		post: [[ DocumentNode(this, #l_c, #c, #l_g, #g) *
+				 (#c == {{ "elem", #s1, #n, #a1, #c1 }}) *
+				 Grove(#alpha1, #l1) * (#l1 == {{ }}) *
+				 Grove(#alpha2, #l2) * (#l2 == {{ {{ "elem", #s2, #o, #a2, #c2 }} }}) * (ret == #o) * types(#o : $$object_type) ]]
+		outcome: normal;
+		pre:  [[ (n == #n) * (o == #o) * DocumentNode(this, #l_c, #c, #l_g, #g) *
+				 (#c == {{ "elem", #s2, #o, #a2, #c2 }}) *
+				 Forest(#alpha1, #l1) * (#l1 == {{ {{ "elem", #s1, #n, #a1, #c1 }} }}) *
+				 Grove(#alpha2, #l2) * (#l2 == {{ }}) ]]
+		post: [[ DocumentNode(this, #l_c, #c, #l_g, #g) *
+				 (#c == {{ "elem", #s1, #n, #a1, #c1 }}) *
+				 Forest(#alpha1, #l1) * (#l == {{ }}) *
+				 Grove(#alpha2, #l2) * (#l2 == {{ {{ "elem", #s2, #o, #a2, #c2 }} }}) * (ret == #o) * types(#o : $$object_type) ]]
+		outcome: normal
+
+	@onlyspec removeChild(o)
+		pre:  [[ (o == #o) * ElementNode(#s, this, #l_a, #a, #l_c, #c) *
+				 (#c == {{ {{ "hole", #gamma1 }}, {{ "elem", #s1, #o, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ }}) ]]
+		post: [[ ElementNode(#s, this, #l_a, #a, #l_c, #c) *
+				 (#c == {{ {{ "hole", #gamma1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "elem", #s1, #o, #a1, #c1 }} }}) * (ret == #o) * types(#o : $$object_type) ]]
+		outcome: normal;
+
+		pre:  [[ (o == #o) * ElementNode(#s, this, #l_a, #a, #l_c, #c) *
+				 (#c == {{ {{ "hole", #gamma1 }}, {{ "text", #o, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ }}) ]]
+		post: [[ ElementNode(#s, this, #l_a, #a, #l_c, #c) *
+				 (#c == {{ {{ "hole", #gamma1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "text", #o, #t1 }} }}) * (ret == #o) * types(#o : $$object_type) ]]
+		outcome: normal;
+
+		pre:  [[ (o == #o) * AttributeNode(#s, this, #l_c, #c) *
+				 (#c == {{ {{ "hole", #gamma1 }}, {{ "text", #o, #t1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ }}) ]]
+		post: [[ AttributeNode(#s, this, #l_c, #c) *
+				 (#c == {{ {{ "hole", #gamma1 }}, {{ "hole", #gamma2 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "text", #o, #t1 }} }}) * (ret == #o) * types(#o : $$object_type) ]]
+		outcome: normal;
+
+		pre:  [[ (o == #o) * DocumentNode(this, #l_c, #c, #l_g, #g) *
+				 (#c == {{ "elem", #s1, #o, #a1, #c1 }}) *
+				 Grove(#alpha, #g) * (#g == {{ }}) ]]
+		post: [[ DocumentNode(this, #l_c, #c, #l_g, #g) *
+				 (#c == {{ }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "elem", #s1, #o, #a1, #c1 }} }}) * (ret == #o) * types(#o : $$object_type) ]]
+		outcome: normal
+
+	@onlyspec appendChild(n)
+		pre:  [[ (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "elem", #ename1, #n, #a1, #c1 }} }}) * complete(#c1) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma }}, {{ "elem", #ename1, #n, #a1, #c1 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
+		outcome: normal;
+		pre:  [[ (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "elem", #ename1, #n, #a1, #c1 }} }}) * complete(#c1) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma }}, {{ "elem", #ename1, #n, #a1, #c1 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
+		outcome: normal;
+
+		pre:  [[ (m == $$null) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "text", #n, #t1 }} }}) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma }}, {{ "text", #n, #t1 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
+		outcome: normal;
+		pre:  [[ (m == $$null) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "text", #n, #t1 }} }}) ]]
+		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+				 (#ec == {{ {{ "hole", #gamma }}, {{ "text", #n, #t1 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
+		outcome: normal;
+		
+		pre:  [[ (n == #n) * AttributeNode(#aname, this, #l_ac, #ac) * 
+				 (#ac == {{ {{ "hole", #gamma }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ {{ "text", #n, #t1 }} }}) ]]
+		post: [[ AttributeNode(#aname, this, #l_ac, #ac) * 
+				 (#ac == {{ {{ "hole", #gamma }}, {{ "text", #n, #t1 }} }}) *
+				 Grove(#alpha, #g) * (#g == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
+		outcome: normal;
+		pre:  [[ (n == #n) * AttributeNode(#aname, this, #l_ac, #ac) * 
+				 (#ac == {{ {{ "hole", #gamma }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ {{ "text", #n, #t1 }} }}) ]]
+		post: [[ AttributeNode(#aname, this, #l_ac, #ac) * 
+				 (#ac == {{ {{ "hole", #gamma }}, {{ "text", #n, #t1 }} }}) *
+				 Forest(#alpha, #f) * (#f == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
+		outcome: normal;
+
+		pre:  [[ (n == #n) * DocumentNode(this, #l_e, #e, #l_g, #g) * 
+				 (#e == {{ }}) *
+				 Grove(#alpha, #g2) * (#g2 == {{ {{ "elem", #ename1, #n, #a1, #c1 }} }}) ]]
+		post: [[ DocumentNode(this, #l_e, #e, #l_g, #g) * 
+				 (#e == {{ "elem", #ename1, #n, #a1, #c1 }}) *
+				 Grove(#alpha, #g2) * (#g2 == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
+		outcome: normal;
+		pre:  [[ (n == #n) * DocumentNode(this, #l_e, #e, #l_g, #g) * 
+				 (#e == {{ }}) *
+				 Forest(#alpha, #g2) * (#g2 == {{ {{ "elem", #ename1, #n, #a1, #c1 }} }}) ]]
+		post: [[ DocumentNode(this, #l_e, #e, #l_g, #g) * 
+				 (#e == {{ "elem", #ename1, #n, #a1, #c1 }}) *
+				 Forest(#alpha, #g2) * (#g2 == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
+		outcome: normal
+
+	@onlyspec hasChildNodes()
+		pre:  [[ DocumentNode(this, #l_element, {{ "elem", #ename1, #n, #a1, #c1 }}, #l_grove, #grove) ]]
+		post: [[ DocumentNode(this, #l_element, {{ "elem", #ename1, #n, #a1, #c1 }}, #l_grove, #grove) * (ret == $$t) ]]
+		outcome: normal;
+
+		pre:  [[ DocumentNode(this, #l_element, {{ }}, #l_grove, #grove) ]]
+		post: [[ DocumentNode(this, #l_element, {{ }}, #l_grove, #grove) * (ret == $$f) ]]
+		outcome: normal;
+
+		pre:  [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * 
+		(#children == {{ {{ "hole", #gamma1 }}, {{ "elem", #ename1, #m, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) ]]
+		post: [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * 
+		(#children == {{ {{ "hole", #gamma1 }}, {{ "elem", #ename1, #m, #a1, #c1 }}, {{ "hole", #gamma2 }} }}) * (ret == $$t) ]]
+		outcome: normal;
+
+		pre:  [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * 
+		(#children == {{ {{ "hole", #gamma1 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }}) ]]
+		post: [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * 
+		(#children == {{ {{ "hole", #gamma1 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }}) * (ret == $$t) ]]
+		outcome: normal;
+
+		pre:  [[ ElementNode(#name, this, #l_attr, #attr, #l_children, {{ }}) ]]
+		post: [[ ElementNode(#name, this, #l_attr, #attr, #l_children, {{ }}) * (ret == $$f) ]]
+		outcome: normal;
+
+		pre:  [[ TextNode(this, #text) ]]
+		post: [[ TextNode(this, #text) * (ret == $$f) ]]
+		outcome: normal;
+
+		pre:  [[ AttributeNode(#name, this, #l_children, #children) * (#children == {{ {{ "hole", #gamma1 }}, {{ "text", #m, #t1 }}, {{ "hole", #gamma2 }} }})]]
+		post: [[ AttributeNode(#name, this, #l_children, {{ }}) * (ret == $$t) ]]
+		outcome: normal;
+
+		pre:  [[ AttributeNode(#name, this, #l_children, {{ }}) ]]
+		post: [[ AttributeNode(#name, this, #l_children, {{ }}) * (ret == $$f) ]]
+		outcome: normal
+
+*/ /*
+	----Document Node Axioms----
+*/ /*
+	@onlyspec documentElement()
+		pre:  [[ DocumentNode(this, #l_element, {{ "elem", #ename1, #n, #a1, #c1 }}, #l_grove, #grove) ]]
+		post: [[ DocumentNode(this, #l_element, {{ "elem", #ename1, #n, #a1, #c1 }}, #l_grove, #grove) * (ret == #n) * types(#n : $$object_type) ]]
+		outcome: normal;
+		
+		pre:  [[ DocumentNode(this, #l_element, $$nil, #l_grove, #grove) ]]
+		post: [[ DocumentNode(this, #l_element, $$nil, #l_grove, #grove) * (ret == $$null) ]]
+		outcome: normal
+
+	@onlyspec createElement(s)
+		pre:  [[ (s == #name) *  DocumentNode(this, #l_element, #element, #l_g, #g) ]]
+		post: [[ (ret == #en) * DocumentNode(this, #l_element, #element, #l_g, ({{ {{ "elem", #name, #en, {{}}, {{}} }} }} @ #g)) * types(#en : $$object_type) ]]
+		outcome: normal
+
+	@onlyspec createTextNode(s)
+		pre:  [[ (s == #text)  * DocumentNode(this, #l_element, #element, #l_g, #g) ]]
+		post: [[ (ret == #tn) * DocumentNode(this, #l_element, #element, #l_g, ({{ {{ "text", #tn, #text }} }} @ #g)) * types(#tn : $$object_type) ]]
+		outcome: normal
+
+	@onlyspec createAttribute(s)
+		pre:  [[ (s == #name) *  DocumentNode(this, #l_element, #element, #l_g, #g) ]]
+		post: [[ (ret == #en) * DocumentNode(this, #l_element, #element, #l_g, ({{ {{ "attr", #name, #an, #tf }} }} @ #g)) * types(#an : $$object_type) ]]
+		outcome: normal
+
+*/ /*
+	----Element Node Axioms----
+*/ /*
+
+	@onlyspec tagName()
+		pre:  [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) ]]
+		post: [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (ret == #name) * types(#name : $$string_type) ]]
+		outcome: normal
+
+	@onlyspec getAttribute(s)
+		pre:  [[ (s == #s) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * 
+				 (#attr == {{ {{ "attr", #s, #m, #t }}, {{ "hole", #alpha }} }}) * val(#t, #s1) ]]
+		post: [[ (s == #s) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * 
+				 (#attr == {{ {{ "attr", #s, #m, #t }}, {{ "hole", #alpha }} }}) * 
+				 (ret == #s1) * types(#s1 : $$string_type) ]]
+		outcome: normal;
+		
+		pre:  [[ (s == #s) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * out(#attr, #s) ]]
+		post: [[ (s == #s) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (ret == "")    ]]
+		outcome: normal
+	
+	@onlyspec setAttribute(s, v)
+		pre:  [[ (s == #s1) * (v == #s2) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * 
+				 (#attr == {{ {{ "attr", #s1, #m, #t }}, {{ "hole", #alpha }} }}) * Grove(#g_alpha, {{ }}) ]]
+		post: [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * 
+				 (#attr == {{ {{ "attr", #s1, #m, #t2 }}, {{ "hole", #alpha }} }}) * 
+				 (#t2 == {{ {{ "text", #r, #s2 }} }}) * Grove(#g_alpha, {{ #t }}) ]]
+		outcome: normal;
+
+		pre:  [[ (s == #s1) * (v == #s2) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * 
+				 out(#attr, #s1) ]]
+		post: [[ ElementNode(#name, this, #l_attr, #attr2, #l_children, #children) * 
+				 (#attr2 == {{ "attr", #s1, #m, #t }} :: #attr) * (#t == {{ {{ "text", #r, #s2 }} }}) ]]
+		outcome: normal
+
+	@onlyspec removeAttribute(s)
+		pre:  [[ (s == #s1) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * 
+				 (#attr == {{ {{ "attr", #s1, #m, #t }}, {{ "hole", #alpha }} }}) * Grove(#g_alpha, {{ }}) ]]
+		post: [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * 
+				 (#attr == {{ {{ "hole", #alpha }} }}) * Grove(#g_alpha, {{ {{ "attr", #s1, #m, #t }} }}) ]]
+		outcome: normal;
+	
+		pre:  [[ (s == #s1) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * 
+				 out(#attr, #s1) ]]
+		post: [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) ]]
+		outcome: normal
+
+	@onlyspec getAttributeNode(s)
+		pre:  [[ (s == #s1) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * 
+				 (#attr == {{ {{ "attr", #s1, #m, #t }}, {{ "hole", #alpha }} }}) ]]
+		post: [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * 
+				 (#attr == {{ {{ "attr", #s1, #m, #t }}, {{ "hole", #alpha }} }}) * (ret == #m) * types(#m : $$object_type)]]
+		outcome: normal;
+
+		pre:  [[ (s == #s1) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * out(#attr, #s1) ]]
+		post: [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * (ret == $$null) ]]
+		outcome: normal
+
+	@onlyspec setAttributeNode(a)
+		pre:  [[ (a == #m) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * 
+				 (#attr == {{ {{ "attr", #s1, #p, #t1 }}, {{ "hole", #alpha1 }} }}) * Grove(#alpha2, {{ {{ "attr", #s1, #m, #t2 }} }}) * Grove(#alpha3, {{ }}) ]]
+		post: [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * 
+				 (#attr == {{ {{ "attr", #s1, #m, #t2 }}, {{ "hole", #alpha1 }} }}) * Grove(#alpha2, {{  }}) * Grove(#alpha3, {{ {{ "attr", #s1, #p, #t1 }} }}) *
+				 (ret == #m) * types(#m : $$object_type) ]]
+		outcome: normal;
+
+		pre:  [[ (a == #m) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * Grove(#alpha, {{ {{ "attr", #s1, #m, #t1 }} }}) ]]
+		post: [[ ElementNode(#name, this, #l_attr, ({{ {{ "attr", #s1, #m, #t1 }} }} @ #attr), #l_children, #children) * Grove(#alpha, {{  }}) * (ret == $$null) ]]
+		outcome: normal
+
+	@onlyspec removeAttributeNode(a)
+		pre:  [[ (a == #m) * ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * 
+				 (#attr == {{ {{ "attr", #s1, #m, #t1 }}, {{ "hole", #alpha1 }} }}) * Grove(#alpha2, {{ }}) ]]
+		post: [[ ElementNode(#name, this, #l_attr, #attr, #l_children, #children) * 
+				 (#attr == {{ {{ "hole", #alpha1 }} }}) * Grove(#alpha2, {{ {{ "attr", #s1, #m, #t1 }} }}) * (ret == #m) * types(#m : $$object_type) ]]
+		outcome: normal
+
 */
 
 /**
@@ -558,8 +1014,6 @@
 function groveParent(grove, s) {
 	var t = document.createTextNode(s);
 	var a = allocG(grove, 0, 0);
-	/* @recunfold Grove */
-	/* @fold Grove(#l_grove, #JesusTakeTheWheel) */
 	var r = t.parentNode();
 	deallocG(a);
 	return r;

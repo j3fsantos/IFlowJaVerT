@@ -152,30 +152,52 @@ let merge_heaps heap new_heap p_formulae (* solver *) gamma =
 	print_debug "Finished merging heaps."
 
 
-let make_all_different_assertion_from_fvlist fv_list : jsil_logic_assertion list =
+let make_all_different_assertion_from_fvlist (f_list : jsil_logic_expr list) : jsil_logic_assertion list =
 
-	let rec make_all_different_assertion_from_field_and_fvlist field fv_list =
-		let rec loop fv_list constraints =
-			match fv_list with
+	let rec make_all_different_assertion_from_field_and_flist field flist =
+		let rec loop flist constraints =
+			match flist with
 			| [] -> constraints
-			| (f_name, f_val) :: rest ->
-				loop rest ((LNot (LEq (field, f_name))) :: constraints) in
-		loop fv_list [] in
+			| f_name :: rest -> 
+				(match List.mem f_name rest with
+				| true -> 
+						print_debug "Horror: Overlapping resources";
+						[ LFalse ]
+				| false -> loop rest ((LNot (LEq (field, f_name))) :: constraints)) in
+		loop flist [] in
 
 	let rec loop fields_to_cover fields_covered constraints =
 		match fields_to_cover with
 		| [] -> constraints
-		| (f_name, f_val) :: rest ->
-			let new_constraints = make_all_different_assertion_from_field_and_fvlist f_name rest in
-			loop rest ((f_name, f_val) :: fields_covered) (new_constraints @ constraints) in
+		| f_name :: rest ->
+			let new_constraints = make_all_different_assertion_from_field_and_flist f_name rest in
+			(match new_constraints with
+			| [ LFalse ] -> [ LFalse ]
+			| _ -> loop rest (f_name :: fields_covered) (new_constraints @ constraints)) in
 
-	loop fv_list [] []
+	let result = loop f_list [] [] in
+	
+	print_debug 
+		(Printf.sprintf "Make all different: %s\n" 
+			(String.concat " " (List.map (fun x -> JSIL_Print.string_of_logic_expression x false) f_list)));
+	
+	result
 
 let get_heap_well_formedness_constraints heap =
 	LHeap.fold
-		(fun _ (fv_list, _) constraints ->
-			let new_constraints = make_all_different_assertion_from_fvlist fv_list in
-			new_constraints @ constraints)
+		(fun field (fv_list, _) constraints ->
+			(match constraints with
+			| [ LFalse ] -> [ LFalse ]
+			| _ -> 
+  			print_debug (Printf.sprintf "Object: %s" field);
+				print_debug "Field-value list:";
+				print_debug (String.concat "\n" 
+					(List.map (fun (field, value) -> Printf.sprintf "(%s, %s)" 
+						(JSIL_Print.string_of_logic_expression field false)
+						(JSIL_Print.string_of_logic_expression value false)) fv_list));
+				let f_list, _ = List.split fv_list in
+  			let new_constraints = make_all_different_assertion_from_fvlist f_list in
+  			new_constraints @ constraints))
 		heap
 		[]
 
@@ -249,7 +271,7 @@ let assertions_of_gamma gamma =
 (** Predicate functions             **)
 (*************************************)
 
-let predicate_assertion_equality pred pat_pred pfs (* solver *) gamma (spec_vars : SS.t) =
+let predicate_assertion_equality pred pat_pred pfs gamma (spec_vars : SS.t) (existentials : string list) =
 	print_debug (Printf.sprintf "Entering predicate_assertion_equality.\n");
 
 	let subst = JSIL_Logic_Utils.init_substitution [] in
@@ -260,11 +282,11 @@ let predicate_assertion_equality pred pat_pred pfs (* solver *) gamma (spec_vars
 		| le :: rest_les, pat_le :: rest_pat_les ->
 			print_debug (Printf.sprintf "I am going to test if %s CAN BE equal to %s\n" (JSIL_Print.string_of_logic_expression le false) (JSIL_Print.string_of_logic_expression pat_le false));
 			(match pat_le with
-			| LVar l2 when (not (SS.mem l2 spec_vars)) ->
+			| LVar l2 when (List.mem l2 existentials) ->
 				JSIL_Logic_Utils.extend_subst subst l2 le;
 				unify_pred_args rest_les rest_pat_les
 			| _ ->
-				if (Pure_Entailment.is_equal le pat_le pfs (* solver *) gamma)
+				if (Pure_Entailment.is_equal le pat_le pfs gamma)
 					then unify_pred_args rest_les rest_pat_les
 					else None)) in
 
@@ -275,13 +297,20 @@ let predicate_assertion_equality pred pat_pred pfs (* solver *) gamma (spec_vars
 		else None
 	| _, _ -> raise (Failure "predicate_assertion_equality: FATAL ERROR")
 
-let subtract_pred pred_name args pred_set pfs (* solver *) gamma (spec_vars : SS.t) =
+let subtract_pred 
+		(pred_name : string)
+		(args      : jsil_logic_expr list)
+		(pred_set  : predicate_set)
+		(pfs       : pure_formulae)
+		(gamma     : typing_environment)
+		(spec_vars : SS.t)
+		(existentials : string list) =
 	let pred_list = preds_to_list pred_set in
 	let rec loop pred_list index =
 		(match pred_list with
 		| [] -> raise (Failure (Printf.sprintf "Predicate %s not found in the predicate set!!!" pred_name))
 		| pred :: rest_pred_list ->
-			(match (predicate_assertion_equality pred (pred_name, args) pfs (* solver *) gamma spec_vars) with
+			(match (predicate_assertion_equality pred (pred_name, args) pfs gamma spec_vars existentials) with
 			| None -> loop rest_pred_list (index + 1)
 			| Some subst -> index, subst)) in
 

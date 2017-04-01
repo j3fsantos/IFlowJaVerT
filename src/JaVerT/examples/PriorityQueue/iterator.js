@@ -25,11 +25,18 @@
      *
      ***************************************************/
 
+
+
+
+
+
     /**
      * Creates an iterator instance to iterate over the linked list provided.
      *
      * @constructor
      * @param {object} theList the linked list to iterate over
+
+
      */
     function Iterator(theList) {
         this.list = theList || null;

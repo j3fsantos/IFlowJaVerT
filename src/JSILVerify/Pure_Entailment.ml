@@ -1074,9 +1074,8 @@ let check_satisfiability assertions gamma =
 	(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list assertions) false)
 	(JSIL_Memory_Print.string_of_gamma gamma));
 	
-	let new_assertions, new_gamma = simplify_for_your_legacy_pfs (DynArray.of_list assertions) gamma in
-	filter_gamma_pfs new_assertions new_gamma;
-
+	let new_assertions, new_gamma = simplify_pfs (DynArray.of_list assertions) gamma in
+	
 	print_debug (Printf.sprintf "Simplified:\nPure formulae:\n%s\nGamma:\n%s\n\n"
 			(JSIL_Memory_Print.string_of_shallow_p_formulae new_assertions false)
 			(JSIL_Memory_Print.string_of_gamma new_gamma));

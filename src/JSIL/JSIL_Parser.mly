@@ -727,7 +727,7 @@ assertion_target:
 (* types (type_pairs) *)
   | LTYPES; LBRACE; type_pairs = separated_list(COMMA, type_env_pair_target); RBRACE
     { LTypes type_pairs }
-(* empty_fields (le | lit1, lit2, lit3, ...) *)
+(* empty_fields (le : lit1, lit2, lit3, ...) *)
 	| EMPTYFIELDS; LBRACE; le=lexpr_target; COLON; fields=separated_list(COMMA, lexpr_target); RBRACE
 		{ LEmptyFields (le, fields) }
 (* (P) *)
@@ -968,7 +968,7 @@ js_assertion_target:
 (* closure(x_0: le_0, ..., x_n: le_n; fid_0: le_0', ..., fid_n: le_n') *)
 	| CLOSURE; LBRACE; var_les=separated_list(COMMA, var_js_le_pair_target); SCOLON; fid_scs=separated_list(COMMA, var_js_le_pair_target); RBRACE
 		{	JSClosure (var_les, fid_scs)	}
-(* empty_fields (le | lit1, lit2, lit3, ...) *)
+(* empty_fields (le : lit1, lit2, lit3, ...) *)
 	| EMPTYFIELDS; LBRACE; le=js_lexpr_target; COLON; fields=separated_list(COMMA, js_lexpr_target); RBRACE
 		{ JSEmptyFields (le, fields) }
 (* (P) *)

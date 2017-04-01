@@ -21,7 +21,8 @@ let update_prev_annot prev_annot cur_annot =
 		(annot.annot_type == Parser_syntax.Pred) || 
 		(annot.annot_type == Parser_syntax.Fold) || 
 		(annot.annot_type == Parser_syntax.Unfold) ||
-		(annot.annot_type == Parser_syntax.RecUnfold) in
+		(annot.annot_type == Parser_syntax.RecUnfold) ||
+		(annot.annot_type == Parser_syntax.CallSpec) in
 
 	let rec annot_has_specs annots =
 		match annots with
@@ -84,6 +85,7 @@ let pop_relevant_logic_annots_stmt e =
 	let folds, others = List.partition (fun annot -> annot.annot_type == Parser_syntax.Fold) annots in 
 	let unfolds, others = List.partition (fun annot -> annot.annot_type == Parser_syntax.Unfold) others in  
 	let invariant, others = List.partition (fun annot -> annot.annot_type == Parser_syntax.Invariant) others in
+	let callspecs, others = List.partition (fun annot -> annot.annot_type = Parser_syntax.CallSpec) others in 
 	
 	let invariant = 
 		(match invariant with 
@@ -100,7 +102,7 @@ let pop_relevant_logic_annots_stmt e =
 			let new_e = { e with exp_annot = folds @ others } in 
 			relevant_logic_annots, new_e 
 		| _ -> 
-			let relevant_logic_annots = parse_logic_annots (unfolds @ folds) in 
+			let relevant_logic_annots = parse_logic_annots (unfolds @ folds @callspecs) in 
 			let new_e = { e with exp_annot = others } in
 			relevant_logic_annots, e) in 
 	

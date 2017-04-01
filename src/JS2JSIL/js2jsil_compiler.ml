@@ -2598,8 +2598,8 @@ and translate_statement tr_ctx e  =
 	let js_line_offset = tr_ctx.tr_offset_converter js_char_offset in
 	let metadata = { line_offset = Some js_line_offset; invariant = None; pre_logic_cmds = []; post_logic_cmds = [] } in
 	
-	let e, fold_unfold_annots, invariant = Js_pre_processing.pop_relevant_logic_annots_stmt e in 
-	let fold_unfold_logic_cmds = JS_Logic_Syntax.js2jsil_logic_cmds fold_unfold_annots in 
+	let e, fold_unfold_callspec_annots, invariant = Js_pre_processing.pop_relevant_logic_annots_stmt e in 
+	let fold_unfold_logic_cmds = JS_Logic_Syntax.js2jsil_logic_cmds fold_unfold_callspec_annots in 
 	let invariant = 
 		(match invariant with 
 		| None -> None

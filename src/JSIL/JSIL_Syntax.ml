@@ -199,7 +199,7 @@ type jsil_logic_expr =
 	| PVar     of jsil_var                                       (** JSIL program variables *)
 	| LBinOp   of jsil_logic_expr * jsil_binop * jsil_logic_expr (** Binary operators ({!type:jsil_binop}) *)
 	| LUnOp    of jsil_unop * jsil_logic_expr                    (** Unary operators ({!type:jsil_unop}) *)
-	| LTypeOf  of jsil_logic_expr	                               (** Typing operator *) 
+	| LTypeOf  of jsil_logic_expr	                             (** Typing operator *) 
 	| LLstNth  of jsil_logic_expr * jsil_logic_expr              (** Nth element of a list *)
 	| LStrNth  of jsil_logic_expr * jsil_logic_expr              (** Nth element of a string *)              
 	| LEList   of jsil_logic_expr list                           (** Lists of logical expressions *)
@@ -208,21 +208,21 @@ type jsil_logic_expr =
 
 (** {b JSIL logic assertions}. *)
 type jsil_logic_assertion =
-	| LTrue                                                                (** Logical true *)
-	| LFalse                                                               (** Logical false *)
+	| LTrue                                                                    (** Logical true *)
+	| LFalse                                                                   (** Logical false *)
 	| LNot			    of jsil_logic_assertion                                (** Logical negation *)
 	| LAnd			    of jsil_logic_assertion * jsil_logic_assertion         (** Logical conjunction *)
 	| LOr		  	    of jsil_logic_assertion * jsil_logic_assertion         (** Logical disjunction *)
-	| LEmp                                                                 (** Empty heap *)
+	| LEmp                                                                     (** Empty heap *)
 	| LStar			    of jsil_logic_assertion * jsil_logic_assertion         (** Separating conjunction *)
-	| LPointsTo	    of jsil_logic_expr * jsil_logic_expr * jsil_logic_expr (** Heap cell assertion *)
+	| LPointsTo	        of jsil_logic_expr * jsil_logic_expr * jsil_logic_expr (** Heap cell assertion *)
 	| LPred			    of string * (jsil_logic_expr list)                     (** Predicates *)
 	| LTypes		    of (jsil_logic_expr * jsil_type) list                  (** Typing assertion *)
-	| LEmptyFields	of jsil_logic_expr * (jsil_logic_expr list)            (** emptyFields assertion *)
-	| LEq			      of jsil_logic_expr * jsil_logic_expr                   (** Expression equality *)
+	| LEmptyFields	    of jsil_logic_expr * (jsil_logic_expr list)            (** emptyFields assertion *)
+	| LEq			    of jsil_logic_expr * jsil_logic_expr                   (** Expression equality *)
 	| LLess			    of jsil_logic_expr * jsil_logic_expr                   (** Expression less-than for numbers *)
 	| LLessEq		    of jsil_logic_expr * jsil_logic_expr                   (** Expression less-than-or-equal for numbers *)   
-	| LStrLess	    of jsil_logic_expr * jsil_logic_expr                   (** Expression less-than for strings *)               
+	| LStrLess	        of jsil_logic_expr * jsil_logic_expr                   (** Expression less-than for strings *)               
 
 (** {b JSIL logic predicate}. *)
 type jsil_logic_predicate = {
@@ -269,11 +269,13 @@ let create_jsil_spec name params specs =
 
 (** {b JSIL logic commands}. *)
 type jsil_logic_command =
-	| Fold       of jsil_logic_assertion                                                    (** Recursive fold *)
-	| Unfold     of jsil_logic_assertion                                                    (** Single unfold *)
-	| RecUnfold  of string                                                                  (** Recursive unfold of everything *)
-	| LogicIf    of jsil_logic_expr * (jsil_logic_command list) * (jsil_logic_command list) (** If-then-else *)
-	| Macro      of string * (jsil_logic_expr list)                                         (** Macro *)
+	| Fold             of jsil_logic_assertion                                                    (** Recursive fold *)
+	| Unfold           of jsil_logic_assertion                                                    (** Single unfold *)
+	| CallSpec				 of jsil_logic_assertion                                                    (** Spec calling *)
+	| RecUnfold        of string                                                                  (** Recursive unfold of everything *)
+	| LinearRecUnfold  of string * (jsil_logic_expr list)                                         (** Recursive unfold of everything but this time I will give you the arguments *)
+	| LogicIf          of jsil_logic_expr * (jsil_logic_command list) * (jsil_logic_command list) (** If-then-else *)
+	| Macro            of string * (jsil_logic_expr list)                                         (** Macro *)
 
 (** {b JSIL logic macro}. *)
 type jsil_logic_macro = {
@@ -519,6 +521,11 @@ let is_pvar_name (name : string) : bool =
 (* A substitution type                                 *)
 type substitution = ((string, jsil_logic_expr) Hashtbl.t)
 
+let assertions_of_substitution (subst : substitution) = 
+	Hashtbl.fold
+		(fun v le ac -> (LEq (LVar v, le)) :: ac)
+		subst
+		[]
 
 (* Typing Environment *)
 

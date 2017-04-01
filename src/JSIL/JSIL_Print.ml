@@ -19,14 +19,14 @@ let string_of_float x =
 (** JSIL types *)
 let string_of_type t =
   match t with
-  | UndefinedType -> "$$undefined_type"
+  	| UndefinedType -> "$$undefined_type"
 	| NullType      -> "$$null_type"
 	| EmptyType     -> "$$empty_type"
 	| NoneType      -> "$$none_type"
-  | BooleanType   -> "$$boolean_type"
-  | NumberType    -> "$$number_type"
+  	| BooleanType   -> "$$boolean_type"
+  	| NumberType    -> "$$number_type"
 	| StringType    -> "$$string_type"
-  | ObjectType    -> "$$object_type"
+  	| ObjectType    -> "$$object_type"
 	| ListType      -> "$$list_type"
 	| TypeType      -> "$$type_type"
 
@@ -61,13 +61,13 @@ let rec string_of_literal lit escape_string =
 		(match b with
     | true -> "$$t"
     | false -> "$$f")
-  | Num n -> string_of_float n
-  | String x ->
+  	| Num n -> string_of_float n
+  	| String x ->
 		(if escape_string
 			then Printf.sprintf "\\\"%s\\\"" x
 			else Printf.sprintf "\"%s\"" x)
-  | Loc loc -> loc
-  | Type t -> string_of_type t
+	| Loc loc -> loc
+  	| Type t -> string_of_type t
 	| LList ll ->
 		(match ll with
 		| [] -> "$$nil"
@@ -78,26 +78,26 @@ let string_of_binop bop =
 	match bop with
   	| Equal -> "="
   	| LessThan -> "<"
-		| LessThanEqual -> "<="
-		| LessThanString -> "<s"
- 		| Plus -> "+"
+	| LessThanEqual -> "<="
+	| LessThanString -> "<s"
+ 	| Plus -> "+"
   	| Minus -> "-"
   	| Times -> "*"
   	| Div -> "/"
   	| Mod -> "%"
-		| And -> "and"
+	| And -> "and"
   	| Or -> "or"
-		| BitwiseAnd -> "&"
+	| BitwiseAnd -> "&"
   	| BitwiseOr -> "|"
   	| BitwiseXor -> "^"
-		| LeftShift -> "<<"
+	| LeftShift -> "<<"
   	| SignedRightShift -> ">>"
   	| UnsignedRightShift -> ">>>"
-		| M_atan2 -> "m_atan2"
-		| M_pow -> "**"
-		| LstCons -> "::"
-		| LstCat -> "@"
-		| StrCat -> "++"
+	| M_atan2 -> "m_atan2"
+	| M_pow -> "**"
+	| LstCons -> "::"
+	| LstCat -> "@"
+	| StrCat -> "++"
 
 (** JSIL unary operators *)
 let string_of_unop uop =

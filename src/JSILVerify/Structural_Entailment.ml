@@ -976,19 +976,22 @@ let unify_symb_state_against_post proc_name spec symb_state flag symb_exe_info j
 	loop spec.n_post 0
 
 
-let merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbolic_state) subst : symbolic_state =
+let merge_symb_states 
+		(symb_state_l : symbolic_state) 
+		(symb_state_r : symbolic_state) 
+		(subst : substitution) : symbolic_state =
 	(* Printf.printf "gamma_r: %s\n." (JSIL_Memory_Print.string_of_gamma (get_gamma symb_state_r)); *)
 	(* Printf.printf "substitution: %s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
 	let aux_symb_state = (copy_symb_state symb_state_r) in
 	let symb_state_r = symb_state_substitution aux_symb_state subst false in
-	let heap_l, store_l, pf_l, gamma_l, preds_l (*, solver_l *) = symb_state_l in
-	let heap_r, store_r, pf_r, gamma_r, preds_r (*, _ *) = symb_state_r in
+	let heap_l, store_l, pf_l, gamma_l, preds_l = symb_state_l in
+	let heap_r, store_r, pf_r, gamma_r, preds_r = symb_state_r in
 	merge_pfs pf_l pf_r;
 	merge_gammas gamma_l gamma_r;
-	Symbolic_State_Functions.merge_heaps heap_l heap_r pf_l (* solver_l *) gamma_l;
+	Symbolic_State_Functions.merge_heaps heap_l heap_r pf_l gamma_l;
 	DynArray.append preds_r preds_l;
 	print_debug ("Finished merge_symb_states");
-	(heap_l, store_l, pf_l, gamma_l, preds_l (*, (ref None) *))
+	(heap_l, store_l, pf_l, gamma_l, preds_l)
 
 let safe_merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbolic_state) (subst : substitution) : symbolic_state option =
 	(* *)
@@ -1024,7 +1027,7 @@ let safe_merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbo
 
 
 (**
-  symb_state        - the current symbolic state minus the predicate that is to be unfolded
+    symb_state        - the current symbolic state minus the predicate that is to be unfolded
 	pat_symb_state    - the symbolic state corresponding to the definition of the predicate that we are trying to unfold
 	calling_store     - a mapping from the parameters of the predicate to the arguments given in the unfolding
 	subst_unfold_args - substitution that matches the arguments of the unfold logical command with the arguments of
@@ -1210,7 +1213,10 @@ let unify_symb_state_against_invariant symb_state inv_symb_state lvars =
 		extend_symb_state_with_pfs symb_state (DynArray.of_list pf_discharges);
 		let symb_state = symb_state_replace_heap symb_state quotient_heap in
 		let symb_state = symb_state_replace_preds symb_state quotient_preds in
-		let new_symb_state = merge_symb_states symb_state inv_symb_state subst in 
+		let new_symb_state = merge_symb_states symb_state inv_symb_state subst in
+		let subst_pfs = assertions_of_substitution subst in 
+		extend_symb_state_with_pfs symb_state (DynArray.of_list subst_pfs); 
+		let new_symb_state = Symbolic_State_Basics.simplify_symbolic_state symb_state in 
 		Some new_symb_state 
 	| _ -> None  
 
