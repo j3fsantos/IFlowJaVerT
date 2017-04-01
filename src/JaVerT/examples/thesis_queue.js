@@ -44,14 +44,7 @@
     ;
 
 @pred PriorityQueueModule(pq) :
-  standardObject(#pq_proto) *
-  dataField(#pq_proto, "enqueue", #enqueue_loc) *
-  fun_obj(enqueue, #enqueue_loc, #enqueue_proto, #enqueue_sc) *
-  dataField(#pq_proto, "dequeue", #dequeue_loc) *
-  fun_obj(dequeue, #dequeue_loc, #dequeue_proto, #dequeue_sc) *
-  ((#pq_proto, "_head") -> None) *
-  fun_obj(Node, #n, #np) *
-  NodePrototype(#np) *
+  QueuePrototype(#pq_proto, #n, #np, #enqueue_sc, #dequeue_sc) *
   fun_obj(PriorityQueue, pq, #pq_proto, #pq_sc) *
   closure(Node: #n; enqueue: #enqueue_sc, PriorityQueue: #pq_sc, dequeue: #dequeue_sc)
     ;
