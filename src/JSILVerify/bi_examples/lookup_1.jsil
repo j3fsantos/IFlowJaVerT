@@ -1,8 +1,0 @@
-spec test0 (x)
-   [[ ((x, "foo") -> "bar") ]]
-   [[ emp ]]
-   normal
-proc test0 (x) {
-           y := [x, "cenoura"];
-   rlab:   skip
-} with { ret: x, rlab; };

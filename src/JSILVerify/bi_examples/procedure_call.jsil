@@ -1,0 +1,52 @@
+(** Totals: 3 fails and 5 passes **)
+
+spec aux1 (x, y)
+   [[ emp ]]
+   [[ emp ]]
+   normal
+proc aux1 (x, y) {
+           [x, "cenoura"] := "jose";
+           [x, "tutifruti"] := y; 
+   rlab:   skip
+} with { ret: x, rlab; };
+
+spec test0 (x, y)
+   [[ emp ]]
+   [[ emp ]]
+   normal
+proc test0 (x, y) {
+  		   x := "aux1" (x, y); 
+   rlab:   skip
+} with { ret: x, rlab; }; 
+
+spec test1 (x, y)
+   [[ emp ]]
+   [[ emp ]]
+   normal
+proc test1 (x, y) {
+         y := [x, "town"];
+         goto [y] then4 else4; 
+   then4:   [x, "station"] := "Waterloo";
+            goto rlab; 
+   else4:   [x, "date"] := "1832"; 
+   rlab:   skip
+} with { ret: x, rlab; }; 
+
+spec test2 (x, y, z)
+   [[ emp ]]
+   [[ emp ]]
+   normal
+proc test2 (x, y, z) {
+         z := "test1" (x, y);
+         z := [y, "station"];
+   rlab:   skip
+} with { ret: z, rlab; }; 
+
+spec test3 (x, y, z)
+   [[ emp ]]
+   [[ emp ]]
+   normal
+proc test3 (x, y,z) {
+         z := "test2" (x, y, z); 
+   rlab:   skip
+} with { ret: z, rlab; }; 

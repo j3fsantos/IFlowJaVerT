@@ -186,8 +186,8 @@ let f = symb_evaluate_expr symb_state anti_frame in
 		Generate an abritary value for the missing heap cell. 
 *)
 let create_new_location (expr: jsil_logic_expr) (symb_state : symbolic_state) (anti_frame : symbolic_state) : string * string = 
-	let _, store, pfs, gamma, _ = symb_state in
-	let _, anti_store, anti_pfs, anti_gamma, _ = anti_frame in
+	let _, store, pfs, _, _ = symb_state in
+	let _, anti_store, anti_pfs, _, _ = anti_frame in
 	(* New location which 'expr' will be associated with *)
 	let anything = fresh_lvar () in
 	let new_loc = fresh_aloc () in
@@ -313,7 +313,6 @@ let symb_evaluate_bcmd (bcmd : jsil_basic_cmd) (symb_state : symbolic_state) (an
 				| ALoc l -> l	
 				| _ -> 
 					let new_loc, anything = create_new_location ne1 symb_state anti_frame in
-					(*Symbolic_State_Functions.update_abs_heap anti_heap new_loc ne2 (LVar anything) pure_formulae gamma; *)
 					new_loc) in
 		Bi_Symbolic_State_Functions.update_abs_heap heap anti_heap l ne2 ne3 pure_formulae gamma;
 		ne3

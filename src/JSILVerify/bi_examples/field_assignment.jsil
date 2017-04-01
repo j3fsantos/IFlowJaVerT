@@ -1,8 +1,52 @@
+(** Field Assignment **)
 spec test0 (x)
-   [[ ((x, "test") -> "tst") ]]
+   [[ ((x, "date") -> "1815") ]]
    [[ emp ]]
    normal
 proc test0 (x) {
-           [x, "cenoura"] := "maria";
+           [x, "date"] := "1832";
+   rlab:   skip
+} with { ret: x, rlab; };
+
+(** Field Assignment - Field Missing **)
+spec test1 (x)
+   [[ ((x, "town") -> "Montreuil") ]]
+   [[ emp ]]
+   normal
+proc test1 (x) {
+           [x, "date"] := "1832";
+   rlab:   skip
+} with { ret: x, rlab; };
+
+(** Field Assignment - Object Missing **)
+spec test2 (x)
+   [[ emp ]]
+   [[ emp ]]
+   normal
+proc test2 (x) {
+           [x, "date"] := "1832";
+   rlab:   skip
+} with { ret: x, rlab; };
+
+(** Field Assignment - then member check **)
+spec test2 (x)
+   [[ emp ]]
+   [[ emp ]]
+   normal
+proc test2 (x) {
+           [x, "date"] := "1832";
+           z := hasField(x, "date");
+   rlab:   skip
+} with { ret: x, rlab; };
+
+(** Field Assignment - with member check before - todo **)
+spec test3 (x)
+   [[ emp ]]
+   [[ emp ]]
+   normal
+proc test3 (x) {
+           z := hasField(x, "date");
+           [x, "date"] := "1832";
+           [x, "exists"] := z;
    rlab:   skip
 } with { ret: x, rlab; };
