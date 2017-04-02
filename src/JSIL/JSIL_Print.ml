@@ -260,6 +260,7 @@ let rec string_of_lcmd lcmd =
 	match lcmd with
 	| Fold a -> "fold " ^ (string_of_logic_assertion a false)
 	| Unfold a -> "unfold " ^ (string_of_logic_assertion a false)
+	| CallSpec a -> "callspec " ^ (string_of_logic_assertion a false)
 	| RecUnfold pred_name -> "unfold* " ^ pred_name
 	| LogicIf (le, then_lcmds, else_lcmds) ->
 		let le_str = string_of_logic_expression le false in

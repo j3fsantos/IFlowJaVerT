@@ -2599,7 +2599,7 @@ and translate_statement tr_ctx e  =
 	let metadata = { line_offset = Some js_line_offset; invariant = None; pre_logic_cmds = []; post_logic_cmds = [] } in
 	
 	let e, fold_unfold_callspec_annots, invariant = Js_pre_processing.pop_relevant_logic_annots_stmt e in 
-	let fold_unfold_logic_cmds = JS_Logic_Syntax.js2jsil_logic_cmds fold_unfold_callspec_annots in 
+	let fold_unfold_callspec_logic_cmds = JS_Logic_Syntax.js2jsil_logic_cmds fold_unfold_callspec_annots in 
 	let invariant = 
 		(match invariant with 
 		| None -> None
@@ -2616,11 +2616,11 @@ and translate_statement tr_ctx e  =
 		| (metadata, lab, cmd) :: rest -> 
 			let pre_l_cmds = metadata.pre_logic_cmds in
 			let cmd_str : string = JSIL_Print.string_of_lab_cmd cmd in 
-			let logic_cmd_str = String.concat ", " (List.map (fun lcmd -> JSIL_Print.string_of_lcmd lcmd) fold_unfold_logic_cmds) in 
+			let logic_cmd_str = String.concat ", " (List.map (fun lcmd -> JSIL_Print.string_of_lcmd lcmd) fold_unfold_callspec_logic_cmds) in 
 			(* Printf.printf "I am annotating %s with (un)folds baby:\n%s!!!\n" cmd_str logic_cmd_str; *)
 			let invariant_str : string = (match invariant with None -> "" | Some invariant -> JSIL_Print.string_of_logic_assertion invariant false) in 
 			(* Printf.printf "I am annotating %s with the following invariant:\n%s!!!\n" cmd_str invariant_str; *)
-			let new_metadata = { metadata with pre_logic_cmds = pre_l_cmds @ fold_unfold_logic_cmds; invariant = invariant } in
+			let new_metadata = { metadata with pre_logic_cmds = pre_l_cmds @ fold_unfold_callspec_logic_cmds; invariant = invariant } in
 			(new_metadata, lab, cmd) :: rest) in  	
 	
 	
