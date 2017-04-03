@@ -387,24 +387,28 @@ let symb_evaluate_bcmd (bcmd : jsil_basic_cmd) (symb_state : symbolic_state) (an
 					symb_state anti_frame l ne2 pure_formulae gamma in
 				update_gamma gamma x (Some BooleanType);
 				(match res with 
-				| Some b -> 
+				| _, Some b -> 
 					let res_lit = LLit (Bool b) in
 					store_put store x res_lit;	
 					res_lit 
-				| None -> 
+				| Some f_val, None -> 
+					let ret_lexpr = LUnOp (Not, LBinOp (f_val, Equal, LNone)) in 
+					store_put store x ret_lexpr; 
+					ret_lexpr
+				| None, _ -> 
 					let l_x = fresh_lvar () in 
 					store_put store x (LVar l_x); 
 					update_gamma gamma l_x (Some BooleanType);
-					LVar l_x)
-		| _ ->
-			let l_x = fresh_lvar () in   
+					LVar l_x 
+				)
+		| _ -> 
 			let new_loc, z = create_new_location ne1 symb_state anti_frame in
 			Symbolic_State_Functions.update_abs_heap anti_heap new_loc ne2 (LVar z) pure_formulae gamma; 
 			Symbolic_State_Functions.update_abs_heap heap new_loc ne2 (LVar z) pure_formulae gamma; 
 			update_gamma gamma x (Some BooleanType);
-			store_put store x (LVar l_x);	
-			update_gamma gamma l_x (Some BooleanType);
-			LVar l_x )
+			let ret_lexpr = LUnOp (Not, LBinOp (LVar z, Equal, LNone)) in 
+			store_put store x ret_lexpr;	
+			ret_lexpr)
 
 type precondition_total_unifier = (jsil_n_single_spec * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment) 
 type precondition_partial_unifier = (jsil_n_single_spec * symbolic_heap * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * (jsil_logic_assertion list) * typing_environment) 
