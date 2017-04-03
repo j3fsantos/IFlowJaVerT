@@ -383,19 +383,28 @@ let symb_evaluate_bcmd (bcmd : jsil_basic_cmd) (symb_state : symbolic_state) (an
 		(match ne1 with
 		| LLit (Loc l)
 		| ALoc l ->
-				let res = Bi_Symbolic_State_Functions.abs_heap_check_field_existence
-				 symb_state anti_frame l ne2 pure_formulae gamma in
+				let res = Bi_Symbolic_State_Functions.abs_heap_check_field_existence 
+					symb_state anti_frame l ne2 pure_formulae gamma in
 				update_gamma gamma x (Some BooleanType);
-				if_some res (fun res -> 
-					let res_lit = LLit (Bool res) in
-					store_put store x res_lit;
-					res_lit) LUnknown
-		| _ ->  
-				let new_loc, z = create_new_location ne1 symb_state anti_frame in
-				Symbolic_State_Functions.update_abs_heap anti_heap new_loc ne2 (LVar z) pure_formulae gamma; 
-				Symbolic_State_Functions.update_abs_heap heap new_loc ne2 (LVar z) pure_formulae gamma; 
-				update_gamma gamma x (Some BooleanType);
-				LUnknown )
+				(match res with 
+				| Some b -> 
+					let res_lit = LLit (Bool b) in
+					store_put store x res_lit;	
+					res_lit 
+				| None -> 
+					let l_x = fresh_lvar () in 
+					store_put store x (LVar l_x); 
+					update_gamma gamma l_x (Some BooleanType);
+					LVar l_x)
+		| _ ->
+			let l_x = fresh_lvar () in   
+			let new_loc, z = create_new_location ne1 symb_state anti_frame in
+			Symbolic_State_Functions.update_abs_heap anti_heap new_loc ne2 (LVar z) pure_formulae gamma; 
+			Symbolic_State_Functions.update_abs_heap heap new_loc ne2 (LVar z) pure_formulae gamma; 
+			update_gamma gamma x (Some BooleanType);
+			store_put store x (LVar l_x);	
+			update_gamma gamma l_x (Some BooleanType);
+			LVar l_x )
 
 type precondition_total_unifier = (jsil_n_single_spec * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment) 
 type precondition_partial_unifier = (jsil_n_single_spec * symbolic_heap * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * (jsil_logic_assertion list) * typing_environment) 

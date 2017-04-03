@@ -13,6 +13,10 @@ let update_abs_heap (heap : symbolic_heap) (anti_heap: symbolic_heap) loc e_fiel
 		LHeap.replace heap loc ((e_field, e_val) :: unchanged_fv_list, default_val)
 	| None, true, _ -> 
 		let v = LVar (fresh_lvar ()) in 
+		Printf.printf "Updtate-abs-heap. loc: %s. field:%s. v:%s"
+			loc
+			(JSIL_Print.string_of_logic_expression e_field false)
+			(JSIL_Print.string_of_logic_expression e_val false);
 		heap_put_fv_pair heap loc e_field e_val;
 		heap_put_fv_pair anti_heap loc e_field v;
 	| None, false, _ ->
