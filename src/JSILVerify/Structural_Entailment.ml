@@ -545,13 +545,16 @@ let unify_pred_list_against_pred_list (pat_preds : (string * (jsil_logic_expr li
 	(* Printf.printf "Exiting unify_pred_list_against_pred_list.\n"; *)
 	result
 
+let sort_pred_list (pl : (string * (jsil_logic_expr list)) list) =
+	List.sort compare pl
 
 let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) p_formulae (* solver *) gamma (subst : substitution) =
 	(* Printf.printf "Entering unify_pred_arrays.\n"; *)
-	let pat_preds = DynArray.to_list pat_preds in
-	let preds = DynArray.to_list preds in
+	let pat_preds = sort_pred_list (DynArray.to_list pat_preds) in
+	let preds = sort_pred_list (DynArray.to_list preds) in
+	print_debug (Printf.sprintf "Pat Preds:\n\t%s" (String.concat "\n\t" (List.map (fun x -> JSIL_Print.string_of_predicate_header x) pat_preds)));
+	print_debug (Printf.sprintf "Preds:\n\t%s" (String.concat "\n\t" (List.map (fun x -> JSIL_Print.string_of_predicate_header x) preds)));
 	unify_pred_list_against_pred_list pat_preds preds p_formulae (* solver *) gamma subst
-
 
 let unify_gamma pat_gamma gamma pat_store subst (ignore_vars : SS.t) =
 	print_debug (Printf.sprintf "I am about to unify two gammas\n");

@@ -19,12 +19,14 @@
        (x == #x) * 
        (y == #y) *  
        List(#x, ({{"hole", #a1}} :: ({{"text", #a2}} :: #values_a))) * 
-       List(#y, (#b1 :: (#b2 :: #values_b)))  
+       List(#y, (#b1 :: (#b2 :: #values_b))) *
+       types (#values_a : $$list_type, #values_b : $$list_type)
     )
     @post (
       (ret == (#a1 + #a2)) * 
       List(#x, ({{"hole", #a1}} :: ({{"text", #a2}} :: #values_a))) * 
-      List(#y, (#b1 :: (#b2 :: #values_b)))  
+      List(#y, (#b1 :: (#b2 :: #values_b))) *
+      types (#values_a : $$list_type, #values_b : $$list_type)
     )
   */
 function f (x, y) { 

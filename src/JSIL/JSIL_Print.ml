@@ -285,6 +285,12 @@ let rec string_of_predicate predicate =
 				(string_of_logic_assertion assertion false)))
 		""
 		predicate.definitions
+		
+let string_of_predicate_header pred_head = 
+	let name, params = pred_head in
+	let sle = fun e -> string_of_logic_expression e false in
+	let result = Printf.sprintf "%s (%s)" name (String.concat ", " (List.map sle params)) in
+	result
 
 (** JSIL All Statements *)
 let string_of_cmd_aux sjsil_cmd i line_numbers_on escape_string str_tabs =

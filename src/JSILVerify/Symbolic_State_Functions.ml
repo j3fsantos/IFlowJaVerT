@@ -23,8 +23,11 @@ let convert_lvars_to_spec_vars (symb_state : symbolic_state) : symbolic_state =
 				then (
 					let new_var = fresh_spec_var var in
 					Hashtbl.add subst var (LVar new_var)
+				);
+				if (is_abs_loc_name var) then (
+					Hashtbl.add subst var (ALoc var)
 				)) symb_vars;
-	symb_state_substitution symb_state subst false
+	symb_state_substitution symb_state subst true
 
 let get_symb_state_lvars symb_state =
 	let symb_vars = get_symb_state_vars false symb_state in 
