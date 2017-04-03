@@ -29,22 +29,22 @@ proc test2 (x) {
 } with { ret: x, rlab; };
 
 (** Field Assignment - then member check **)
-spec test2 (x)
+spec test3 (x)
    [[ emp ]]
    [[ emp ]]
    normal
-proc test2 (x) {
+proc test3 (x) {
            [x, "date"] := "1832";
            z := hasField(x, "date");
    rlab:   skip
 } with { ret: x, rlab; };
 
 (** Field Assignment - with member check before - todo **)
-spec test3 (x)
+spec test4 (x)
    [[ emp ]]
    [[ emp ]]
    normal
-proc test3 (x) {
+proc test4 (x) {
            z := hasField(x, "date");
            [x, "date"] := "1832";
            [x, "exists"] := z;

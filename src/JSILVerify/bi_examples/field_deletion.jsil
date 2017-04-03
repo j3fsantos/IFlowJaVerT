@@ -40,11 +40,11 @@ proc test3 (x,y) {
 } with { ret: x, rlab; };
 
 (** Field Deletion - Assignment before delete **)
-spec test3 (x, y)
+spec test4 (x, y)
    [[ ((y, "town") -> "Montreuil") ]]
    [[ emp ]]
    normal
-proc test3 (x, y) {
+proc test4 (x, y) {
             z := hasField(y, "station");
             goto [z] then4 else4; 
    then4:   [x, "station"] := "Waterloo";
