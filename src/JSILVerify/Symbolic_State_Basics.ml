@@ -197,29 +197,89 @@ let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : bool optio
 					(* No, we are done *)
 					Some true, [ (headl, headr); (taill, tailr) ]
 			(* Not enough information to separate head and tail *)
-			| Some true, Some false
-			| Some false, Some true 
-			| Some false, Some false -> 
-					(* This means that we have on at least one side a LstCat with a leading variable and we need to dig deeper *)
-					(* Get all literals on both sides, find first match, then split and call again *)
-						let ok, (ll, lr), (rl, rr) = match_lists_on_element le1 le2 in
-						(match ok with
-						| true -> 
-								let okl, left = unify_lists ll rl in
-								(match okl with
+			| Some _, Some _ -> 
+				(* This means that we have on at least one side a LstCat with a leading variable and we need to dig deeper *)
+				(* Get all literals on both sides, find first match, then split and call again *)
+				let ok, (ll, lr), (rl, rr) = match_lists_on_element le1 le2 in
+				(match ok with
+					| true -> 
+							let okl, left = unify_lists ll rl in
+							(match okl with
+							| None -> None, []
+							| _ -> 
+								let okr, right = unify_lists lr rr in
+								(match okr with
 								| None -> None, []
-								| _ -> 
-									let okr, right = unify_lists lr rr in
-									(match okr with
-									| None -> None, []
-									| _ -> Some true, left @ right))
-						| false -> Some false, [ (le1, le2) ])
+								| _ -> Some true, left @ right))
+					| false -> Some false, [ (le1, le2) ])
 			(* A proper error occurred while getting head and tail *)
 			| _, _ -> None, [])
 		| _, _ ->
 			let msg = Printf.sprintf "Non-arranged lists passed to unify_lists : %s, %s" (print_lexpr le1) (print_lexpr le2) in
 			raise (Failure msg)
 	)
+
+(* ******* *
+ *         *
+ * STRINGS *
+ *         *
+ * ******* *)
+
+(* What does it mean to be a string? *)
+let rec isString (se : jsil_logic_expr) : bool =
+(match se with
+	| LVar _ 
+	| LLit (String _) -> true
+	| LBinOp (sel, StrCat, ser) -> isString sel && isString ser
+	| _ -> false)
+
+(* Arranging strings in a specific order *)
+let arrange_strings (se1 : jsil_logic_expr) (se2 : jsil_logic_expr) : (jsil_logic_expr * jsil_logic_expr) =
+	if (isString se1 && isString se2) then
+	(match se1, se2 with
+		| LVar _, _
+		| LLit (String _), LLit (String _) 
+		| LLit (String _), LBinOp (_, StrCat, _)
+		| LBinOp (_, StrCat, _), LBinOp (_, StrCat, _) -> se1, se2
+		| _, _ -> se2, se1
+	) else
+		let msg = Printf.sprintf "Non-string expressions passed to arrange_strings : %s, %s" (print_lexpr se1) (print_lexpr se2) in
+		raise (Failure msg)
+
+let explode s =
+  let rec exp i l =
+    if i < 0 then l else exp (i - 1) (s.[i] :: l) in
+  exp (String.length s - 1) []
+
+let rec le_string_to_list (se : jsil_logic_expr) : jsil_logic_expr =
+	(match se with
+		| LVar _ -> se
+		| LLit (String s) -> 
+			LLit (LList (List.map (fun x -> String (String.make 1 x)) (explode s)))
+		| LBinOp (sel, StrCat, ser) -> LBinOp ((le_string_to_list sel), LstCat, (le_string_to_list ser))
+		| _ -> 
+			let msg = Printf.sprintf "Logical expression %s to be converted to List LE is not a String LE." (print_lexpr se) in
+			raise (Failure msg))
+
+let rec le_list_to_string (le : jsil_logic_expr) : jsil_logic_expr =
+	(match le with
+		| LVar _ -> le
+		| LLit (LList l) ->
+			LLit (String (String.concat "" (List.map (fun (String x) -> x) l)))
+		| LBinOp (lel, LstCat, ler) -> LBinOp ((le_list_to_string lel), StrCat, (le_list_to_string ler))
+		| _ -> 
+			let msg = Printf.sprintf "Logical expression %s to be converted to String LE is not (or unexpected) List LE." (print_lexpr le) in
+			raise (Failure msg))
+
+(* String unification *)
+(* Hook into unify_lists by converting the string to a list valid expression, then converting the results back to string form *)
+let unify_strings (se1 : jsil_logic_expr) (se2 : jsil_logic_expr) : bool option * ((jsil_logic_expr * jsil_logic_expr) list) = 
+	let se1, se2 = arrange_strings se1 se2 in
+	let lse1 = le_string_to_list se1 in
+	let lse2 = le_string_to_list se2 in
+	let ok, subst = unify_lists lse1 lse2 in
+	let tuplef f (a,b) = (f a, f b) in
+	ok, List.map (tuplef le_list_to_string) subst
 
 (*************************************)
 (** Abstract Heap functions         **)
@@ -1510,6 +1570,26 @@ let simplify_symb_state
 							| true -> n := !n + 1 (* No changes, continue with n+1 *)
 							| false -> raise (Failure "Unexpected list content obtained from list unification."))
 						| _ -> raise (Failure "Unexpected list obtained from list unification."))
+					(* Progress *)
+					| Some true -> 
+							(* Changes made, stay on n *)
+							changes_made := true;
+							DynArray.delete pfs !n;
+							List.iter (fun (x, y) -> DynArray.add pfs (LEq (x, y))) subst)
+
+				(* String unification *)
+				| se1, se2 when (isString se1 && isString se2) ->
+					let ok, subst = unify_strings se1 se2 in
+					(match ok with
+					(* Error while unifying strings *)
+					| None -> pfs_ok := false; msg := "String error"	
+					(* No error, but no progress *)
+					| Some false -> (match subst with
+					  | [ (se1', se2') ] -> 
+							(match ((se1' = se1 && se2' = se2) || (se2' = se1 && se1' = se2)) with
+							| true -> n := !n + 1 (* No changes, continue with n+1 *)
+							| false -> raise (Failure "Unexpected string content obtained from string unification."))
+						| _ -> raise (Failure "Unexpected string obtained from string unification."))
 					(* Progress *)
 					| Some true -> 
 							(* Changes made, stay on n *)
