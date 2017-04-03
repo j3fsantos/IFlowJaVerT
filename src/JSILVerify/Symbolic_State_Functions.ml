@@ -15,6 +15,24 @@ let update_subst1 subst unifier =
 	 | None -> ());
 	true
 
+let convert_lvars_to_spec_vars (symb_state : symbolic_state) : symbolic_state =
+	let symb_vars = get_symb_state_vars false symb_state in 
+	let subst = Hashtbl.create big_tbl_size in 
+	SS.iter (fun var ->
+			if (not (is_spec_var_name var) && (is_lvar_name var))
+				then (
+					let new_var = fresh_spec_var var in
+					Hashtbl.add subst var (LVar new_var)
+				)) symb_vars;
+	symb_state_substitution symb_state subst false
+
+let get_symb_state_lvars symb_state =
+	let symb_vars = get_symb_state_vars false symb_state in 
+	let symb_lvars = SS.filter(
+						fun var -> 
+							is_lvar_name var)
+					symb_vars in 
+	symb_lvars 
 
 let update_subst2 subst (unifier1 : (string * jsil_logic_expr) list option)
                         (unifier2 : (string * jsil_logic_expr) list option) p_formulae (* solver *) gamma =

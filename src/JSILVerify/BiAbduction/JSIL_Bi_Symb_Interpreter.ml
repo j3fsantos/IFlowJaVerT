@@ -1212,14 +1212,19 @@ let add_new_spec spec proc_name pre_post post_state_list anti_frame_list new_spe
 					(* The new precondition = old precondition * anti frame *)
 					(* The new postconition is the final state after evaluation *)
 					let new_pre  =  Symbolic_State_Functions.bi_merge_symb_states anti_frame pre_post.n_pre in 
+					let new_pre_with_subst = Symbolic_State_Functions.convert_lvars_to_spec_vars new_pre in
+					let new_post_with_subst = Symbolic_State_Functions.convert_lvars_to_spec_vars post_state in
+					let post_lvars = Symbolic_State_Functions.get_symb_state_lvars new_pre_with_subst in
+					let pre_lvars = Symbolic_State_Functions.get_symb_state_lvars new_post_with_subst in
+					let new_subst = Hashtbl.create small_tbl_size in 
 					print_new_specification new_pre post_state;
 					let new_proc_spec = {
-						n_pre        = new_pre;
-						n_post       = [post_state];
+						n_pre        = new_pre_with_subst;
+						n_post       = [new_post_with_subst];
 						n_ret_flag   = pre_post.n_ret_flag;
-						n_lvars      = pre_post.n_lvars;
-						n_post_lvars = pre_post.n_post_lvars;
-						n_subst      = pre_post.n_subst
+						n_lvars      = SS.union post_lvars pre_lvars;
+						n_post_lvars = [post_lvars];
+						n_subst      = new_subst
 					}  in
 					Hashtbl.add new_spec_tbl proc_name {
 						n_spec_name = spec.n_spec_name;
