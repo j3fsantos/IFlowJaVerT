@@ -158,6 +158,7 @@ rule read = parse
 	| "unfold*"            { JSIL_Parser.RECUNFOLD }
 	| "fold"               { JSIL_Parser.FOLD      }
 	| "unfold"             { JSIL_Parser.UNFOLD    }
+	| "callspec"           { JSIL_Parser.CALLSPEC  }
 	| "if"                 { JSIL_Parser.LIF       }
 	| "then"               { JSIL_Parser.LTHEN     }
 	| "else"               { JSIL_Parser.LELSE     }

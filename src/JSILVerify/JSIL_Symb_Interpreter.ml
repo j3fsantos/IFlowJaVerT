@@ -721,6 +721,10 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 		let params, pred_defs, args = get_pred_data pred_name les in
 		[ recursive_unfold pred_name pred_defs symb_state params spec_vars ]
 
+  | CallSpec a ->
+		print_debug "CALLSPEC CALLSPEC CALLSPEC";
+		[ symb_state ]
+
 	| LogicIf (le, then_lcmds, else_lcmds) ->
 		print_time "LIf.";
 		let le' = JSIL_Logic_Normalise.normalise_lexpr (get_store symb_state) (get_gamma symb_state) (init_substitution []) le in
