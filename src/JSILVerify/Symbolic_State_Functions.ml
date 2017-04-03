@@ -99,14 +99,14 @@ let abs_heap_find heap l e p_formulae gamma =
 let abs_heap_check_field_existence heap l e p_formulae (* solver *) gamma =
 	let f_val = abs_heap_find heap l e p_formulae (* solver *) gamma in
 	match f_val with
-	| LUnknown -> None
-	| LNone -> Some false
+	| LUnknown -> None, None
+	| LNone -> None, Some false
 	|	_ ->
 		if (Pure_Entailment.is_equal f_val LNone p_formulae (* solver *) gamma) then
-			(Some false)
+			(Some f_val, Some false)
 			else (if (Pure_Entailment.is_different f_val LNone p_formulae (* solver *) gamma) then
-				(Some true)
-				else None)
+				(Some f_val, Some true)
+				else (Some f_val, None))
 
 let abs_heap_delete heap l e p_formulae (* solver *) gamma =
 	let fv_list, default_val = try LHeap.find heap l with _ -> [], LUnknown in

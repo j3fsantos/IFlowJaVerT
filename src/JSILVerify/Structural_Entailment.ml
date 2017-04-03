@@ -183,7 +183,7 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (* solver *) (gamm
 					 (match ac2 with
 					  | None -> Some formulae
 					  | Some fs -> Some (fs @ formulae)))) (true, None) lx ly in
-		match le with
+		(match le with
 		| LLit (LList le') ->
 	   		let lle = List.length ple in
 			let lle' = List.length le' in
@@ -207,7 +207,7 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (* solver *) (gamm
 				let (is_eq, whatever) = unify_lexprs le_pat le'' p_formulae (* solver *) gamma subst in
 				(* Printf.printf "And they aaaare: %b\n" is_eq; *)
 				(is_eq, whatever)
-			end
+			end)
 	| _ ->
 		let msg = Printf.sprintf "Illegal expression in pattern to unify. le_pat: %s. le: %s."
 			(JSIL_Print.string_of_logic_expression le_pat false) (JSIL_Print.string_of_logic_expression le false) in
