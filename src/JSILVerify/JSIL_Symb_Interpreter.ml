@@ -332,11 +332,19 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 		| ALoc l ->
 				let res = Symbolic_State_Functions.abs_heap_check_field_existence heap l ne2 pure_formulae gamma in
 				update_gamma gamma x (Some BooleanType);
-				if_some res (fun res -> 
-					let res_lit = LLit (Bool res) in
-					store_put store x res_lit;
-					res_lit) LUnknown
+				(match res with 
+				| Some b -> 
+					let res_lit = LLit (Bool b) in
+					store_put store x res_lit;	
+					res_lit 
+				| None -> 
+					let l_x = fresh_lvar () in 
+					store_put store x (LVar l_x); 
+					update_gamma gamma l_x (Some BooleanType);
+					LVar l_x)
 		| _ -> raise (Failure (Printf.sprintf "HasField: I do not know which location %s denotes in the symbolic heap" (print_le ne1)))
+
+	| _ -> raise (Failure (Printf.sprintf "Unsupported basic command"))
 
 
 let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) le_args =
