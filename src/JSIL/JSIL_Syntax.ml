@@ -517,9 +517,24 @@ let is_lvar_name (name : string) : bool =
 let is_pvar_name (name : string) : bool =
 	(not ((is_abs_loc_name name) || (is_lvar_name name)))
 
+let is_spec_var_name (name : string) : bool =
+	((String.sub name 0 1) = "#")
+
+let fresh_spec_var (name : string) : string =
+	( "##" ^ name)
 
 (* A substitution type                                 *)
 type substitution = ((string, jsil_logic_expr) Hashtbl.t)
+
+let convert_lvars_to_spec_vars (vars : SS.t) : substitution =
+	let subst = Hashtbl.create big_tbl_size in 
+	SS.iter (fun var ->
+			if (not (is_spec_var_name var) && (is_lvar_name var))
+				then (
+					let new_var = fresh_spec_var var in
+					Hashtbl.add subst var (LVar new_var)
+				)) vars;
+	subst
 
 let assertions_of_substitution (subst : substitution) = 
 	Hashtbl.fold
