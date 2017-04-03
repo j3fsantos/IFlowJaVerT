@@ -209,7 +209,6 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (* solver *) (gamm
 				(is_eq, whatever)
 			end)
 	| _ ->
-
 		let le_pat' = lexpr_substitution le_pat subst false in 
 		 if (must_be_equal le_pat' le p_formulae gamma subst) 
 		 	then (true, None) 
