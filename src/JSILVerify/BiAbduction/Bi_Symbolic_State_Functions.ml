@@ -49,11 +49,11 @@ let abs_heap_check_field_existence  (symb_state : symbolic_state) (anti_frame : 
 	let _, _, pure_formulae, gamma, _ = symb_state in
 	let ret = abs_heap_find symb_state anti_frame l e in
 	match ret with
-	| (LUnknown, _) -> None
-	| (LNone, _) -> Some false
+	| (LUnknown, _) -> None, None
+	| (LNone, _) -> None, Some false
 	| (f_val, _) ->
 		if (Pure_Entailment.is_equal f_val LNone pure_formulae gamma) then
-			(Some false)
+			(Some f_val, Some false)
 			else (if (Pure_Entailment.is_different f_val LNone pure_formulae gamma) then
-				(Some true)
-				else None)
+				(Some f_val, Some true)
+				else (Some f_val, None))
