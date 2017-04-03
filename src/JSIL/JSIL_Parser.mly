@@ -172,6 +172,7 @@ let copy_and_clear_globals () =
 %token FOLD
 %token UNFOLD
 %token RECUNFOLD
+%token CALLSPEC
 %token LIF
 %token LTHEN
 %token LELSE
@@ -582,6 +583,8 @@ logic_cmd_target:
 (* unfold* x *)
 	| RECUNFOLD; v = VAR
 	  { RecUnfold v }
+	| CALLSPEC; assertion = assertion_target
+	  { CallSpec assertion }
 (* if(le) { lcmd* } else { lcmd* } *)
 	| LIF; LBRACE; le=lexpr_target; RBRACE; LTHEN; CLBRACKET;
 			then_lcmds = separated_list(SCOLON, logic_cmd_target);

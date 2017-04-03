@@ -1013,6 +1013,7 @@
 */
 function groveParent(grove, s) {
 	var t = document.createTextNode(s);
+	/** @callspec oogaBooga(bla, bla) */
 	var a = allocG(grove, 0, 0);
 	var r = t.parentNode();
 	deallocG(a);
