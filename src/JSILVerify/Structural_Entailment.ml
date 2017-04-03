@@ -209,9 +209,15 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (* solver *) (gamm
 				(is_eq, whatever)
 			end)
 	| _ ->
-		let msg = Printf.sprintf "Illegal expression in pattern to unify. le_pat: %s. le: %s."
-			(JSIL_Print.string_of_logic_expression le_pat false) (JSIL_Print.string_of_logic_expression le false) in
-		raise (Failure msg)) in
+
+		let le_pat' = lexpr_substitution le_pat subst false in 
+		 if (must_be_equal le_pat' le p_formulae gamma subst) 
+		 	then (true, None) 
+		 	else (
+		 		let msg = Printf.sprintf "Illegal expression in pattern to unify. le_pat: %s. le: %s."
+					(JSIL_Print.string_of_logic_expression le_pat false) (JSIL_Print.string_of_logic_expression le false) in
+				raise (Failure msg)) 
+		) in
 	let end_time = Sys.time () in
 	JSIL_Syntax.update_statistics "unify_lexprs" (end_time -. start_time);
 	let b, _ = result in print_debug (Printf.sprintf "Result: %b" b);
@@ -629,6 +635,8 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 
 	let heap_0, store_0, pf_0, gamma_0, preds_0 (*, solver *) = symb_state in
 	let heap_1, store_1, pf_1, gamma_1, preds_1 (*, _  *) = copy_symb_state pat_symb_state in
+	let subst = init_substitution [] in
+	SS.iter (fun var -> Hashtbl.replace subst var (LVar var)) lvars;
 
 	(* STEP 0 - Unify stores, heaps, and predicate sets                                                                                                  *)
 	(* subst = empty substitution                                                                                                                        *)
@@ -639,9 +647,8 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 	(* if exists i \in {0, 1, 2} . discharges_i = None => return None                                                                                    *)
 	(* If Step 0 returns a list of discharges and a substitution then the following implication holds:                                                   *)
 	(*    pi_0 |- discharges  => store_0 =_{pi_0} subst(store_1)  /\ heap_0 =_{pi_0} subst(heap_1) + heap_f /\ preds_0 =_{pi_0} subst(preds_1) + preds_f *)
-	let step_0 () =
+	let step_0 subst =
 		let start_time = Sys.time() in
-		let subst = init_substitution [] in
 		let discharges_0 = unify_stores store_1 store_0 subst None (pfs_to_list pf_0) (* solver *) gamma_0 in
 		let result = (match discharges_0 with
 		| Some discharges_0 ->
@@ -655,9 +662,7 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 				(match ret_2 with
 				| Some (subst, preds_f, []) ->
 					let spec_vars_check = spec_logic_vars_discharge subst lvars pf_0 gamma_0 in
-	  				if (spec_vars_check)
-							then Some (discharges_0, subst, heap_f, preds_f, new_pfs)
-							else (Printf.printf "Failed spec vars check\n"; None) 
+					Some (discharges_0, subst, heap_f, preds_f, new_pfs)
 				| Some (_, _, _) | None -> ( print_debug (Printf.sprintf "Failed to unify predicates\n"); None))
 			| None -> ( print_debug (Printf.sprintf "Failed to unify heaps\n"); None))
 		| None -> ( print_debug (Printf.sprintf "Failed to unify stores\n"); None)) in
@@ -710,7 +715,7 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 		result in
 
 	(* Actually doing it!!! *)
-	let result = (match step_0 () with
+	let result = (match step_0 subst with
 	| Some (discharges, subst, heap_f, preds_f, new_pfs) ->
 		(match (step_1 discharges subst new_pfs) with
 		| Some (entailment_check_ret, pf_discharges, pf_1_subst_list, gamma_0') -> Some (entailment_check_ret, heap_f, preds_f, subst, (pf_1_subst_list @ pf_discharges), gamma_0')
