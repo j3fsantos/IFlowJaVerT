@@ -8,37 +8,32 @@ function isSquare(element) {
 	return w === y;
 }
 
+/**
+	@id createNewAttribute
+	@rec false
+
+	@pre (
+		InitialDOMHeap() * (element == #en) * types(#en : $$object_type) *
+		ElementNode(#en, #name, #e_l_attr, #e_attr, #e_l_chld, #e_chld) *
+		(#e_chld == {{ {{ "hole", #alpha }} }}) *
+		DocumentNode($l_document, #d_l_elem, #d_elem, #d_l_g, #d_g) *
+		(#d_g == {{ {{ "hole", #beta }} }})
+	)
+	@post (
+		InitialDOMHeap() * (ret == $$t) * 
+		ElementNode(#en, #name, #e_l_attr, #e_attr, #e_l_chld, #e_chld) *
+		(#e_chld == {{ {{ "hole", #alpha }}, {{ "text", #n, #t1 }} }}) *
+		DocumentNode($l_document, #d_l_elem, #d_elem, #d_l_g, #d_g) *
+		(#d_g == {{ {{ "hole", #beta }} }})
+	)
+*/
 function createNewAttribute(element){
+	/* @unfold ElementNode(#en, #name, #e_l_attr, #e_attr, #e_l_chld, #e_chld) */
+	/* @fold ElementNode(#en, #name, #e_l_attr, #e_attr, #e_l_chld, #e_chld) */
 	var d = element.ownerDocument;
 	var e = d.createElement("test");
 	var n = element.appendChild(e);
 	return n === e;
-}
-
-/**
-	@id groveParent
-	@rec false
-
-	TODO: complete spec
-	
-	@pre (
-		scope(allocAS   : #allocG)   * fun_obj(allocG,   #allocG,   #allocG_proto) *
-		scope(deallocAS : #deallocG) * fun_obj(deallocG, #deallocG, #deallocG_proto) *
-		InitialDOMHeap() *
-		scope(document : $l_document) *
-		DocumentNode($l_document, #l_element, #element, #grove)
-	)
-	@post (
-		fun_obj(allocAS,   #allocAS,   #allocAS_proto) *
-		fun_obj(deallocAS, #deallocAS, #deallocAS_proto) *
-		InitialDOMHeap() *
-		DocumentNode($l_document, #l_element, #element, ({{ "elem", "one", #ret, {{}}, {{}} }} :: #grove))
-	)
-*/
-function groveParent(s) {
-	var t = document.createTextNode(s);
-	var r = t.parentNode();
-	return r;
 }
 
 function childToParent(element) {
@@ -58,10 +53,7 @@ function holePunch(element) {
 	@rec false
 
 	@pre (
-		scope(allocAS   : #allocAS)   * fun_obj(allocAS,   #allocAS,   #allocAS_proto) *
-		scope(deallocAS : #deallocAS) * fun_obj(deallocAS, #deallocAS, #deallocAS_proto) *
-		InitialDOMHeap() *
-		(element == #en) * (l_attr == #l_attr) * types (#en : $$object_type, #l_attr : $$object_type) *
+		InitialDOMHeap() * (element == #en) * types (#en : $$object_type) *
 		ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) *
 		(#attr == {{ 
 			{{ "attr", "src", #a0, #atf0 }}, 
@@ -77,21 +69,18 @@ function holePunch(element) {
 	)
 	
 	@post (
-		fun_obj(allocAS,   #allocAS,   #allocAS_proto) *
-		fun_obj(deallocAS, #deallocAS, #deallocAS_proto) *
-		InitialDOMHeap() *
-		ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) *
-		(ret == #s0 ++ #s1)
+		InitialDOMHeap() * (ret == #s0 ++ #s1) *
+		ElementNode(#name, #en, #l_attr, #attr, #l_children, #children)
 	)
 */
-function singleGet(element, l_attr) {
+function singleGet(element) {
 	/* @unfold ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) */
-	var a = allocAS(l_attr, 1, 3);
+	/* @callspec #a allocAS(#l_attr, 1, 3) */
 	/* @fold ElementNode(#name, #en, #l_attr, #attr_1, #l_children, #children) */ 
 	/* @fold val(#atf0, #s) */
 	var w = element.getAttribute("src");
 	/* @unfold ElementNode(#name, #en, #l_attr, #attr_1, #l_children, #children) */
-	deallocAS(a);
+	/* @callspec deallocAS(#a) */
 	/* @fold ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) */
 	return w
 }
@@ -105,6 +94,62 @@ function builtSingleGet(element) {
 	element.setAttributeNode(a);
 	var src = element.getAttribute("src");
 	return src;
+}
+
+/**
+	@id groveParent
+	@rec false
+
+	@pre (
+		InitialDOMHeap() * (s == #s) * scope(document : $l_document) *
+		types(#s : $$string_type, #grove: $$list_type) *
+		DocumentNode($l_document, #l_element, #element, #l_grove, #grove) *
+		(#grove == {{ {{ "hole", #alpha }} }})
+	)
+	@post (
+		InitialDOMHeap() * scope(document : $l_document) * (ret == $$null) *
+		types(#t : $$object_type) *
+		DocumentNode($l_document, #l_element, #element, #l_grove, #grove) *
+		(#grove == {{ {{ "text", #t, #s }}, {{ "hole", #alpha }} }})
+	)
+*/
+/* 	Currently what we should end up with on our current direction. 
+	Folds/unfolds of the grove are required to show that location #t is an object that has function ParentNode, 
+		i.e. get to TextNode(#t, ...) which has TextNodePrototype which defines a function field parentNode.
+	The amount of fold/unfold increases if we have to dig deeper into the structure.*/
+function groveParent(s) {
+	var t = document.createTextNode(s);
+	/** @callspec #a allocG(#grove, 0, 0) */ /* Make the #grove list correspond to the spec of parentNode, with a context hole before and after the node. This is done here instead of after the fold/unfold just to demonstrate the use of invariant. To simplify things it should go just before parentNode call */
+	/** @unfold Grove(#l_grove, #grove) */   /* Pull out the TextNode(t, ...) predicate that was implied after document.createTextNode(s) */
+	/** @invariant ((#l_grove, "@next") -> #l_g2) */
+	/** @unfold Grove(#l_g2, #g2) */
+	/** @fold Grove(#l_g2, #g2) */
+	/** @fold Grove(#l_grove, #grove) */     /* Undo the folds: we need the grove in list form for the parentNode spec */
+	var r = t.parentNode();
+	/** @callspec deallocG(#a) */            /* Undo internally required alloc */
+	return r;
+}
+
+/* If we can create a macro that causes the fold/unfold cascade, the above simplifies and becomes more systematic */
+function groveParent(s) {
+	var t = document.createTextNode(s);
+	/** @invariant (t == #t) */                      /* Register what has just been created. Maybe the variable and it's logical variable already exist and I missed that fact. */
+	/** @callspec #a allocG(#grove, 0, 0) */         /* Make the #grove list correspond to the spec of parentNode, with a context hole before and after the node */
+	/** @macro findNodePredicate(#t, #grove) */      /* Find the Node predicate associated to an address inside a 
+	var r = t.parentNode();
+	/** @callspec deallocG(#a) */
+	return r;
+}
+
+/* If createTextNode introduces a "side effect" TextNode to whatever the tool has as state, we avoid fold/unfold of the grove. 
+   What I mean here is maybe we can introduce a way to say, in the only specs, that TextNode(#t, ...) should be known to hold.
+   We can't just add it to the post as it is a spatial predicate. */
+function groveParent(s) {
+	var t = document.createTextNode(s);
+	/** @callspec #a allocG(#grove, 0, 0) */
+	var r = t.parentNode();
+	/** @callspec deallocG(#a) */
+	return r;
 }
 
 /** 

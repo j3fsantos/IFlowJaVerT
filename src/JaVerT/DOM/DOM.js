@@ -797,14 +797,14 @@
 				 Forest(#alpha, #f) * (#f == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
 		outcome: normal;
 
-		pre:  [[ (m == $$null) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+		pre:  [[ (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
 				 (#ec == {{ {{ "hole", #gamma }} }}) *
 				 Grove(#alpha, #g) * (#g == {{ {{ "text", #n, #t1 }} }}) ]]
 		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
 				 (#ec == {{ {{ "hole", #gamma }}, {{ "text", #n, #t1 }} }}) *
 				 Grove(#alpha, #g) * (#g == {{ }}) * (ret == #n) * types(#n : $$object_type) ]]
 		outcome: normal;
-		pre:  [[ (m == $$null) * (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
+		pre:  [[ (n == #n) * ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
 				 (#ec == {{ {{ "hole", #gamma }} }}) *
 				 Forest(#alpha, #f) * (#f == {{ {{ "text", #n, #t1 }} }}) ]]
 		post: [[ ElementNode(#ename, this, #l_ea, #ea, #l_ec, #ec) * 
