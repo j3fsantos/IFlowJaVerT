@@ -660,7 +660,7 @@ let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) p_form
 					compare len1 len2) 
 					reasonable_options in
 					
-		print_debug "--------\nOutcomes:\n--------";
+		print_debug (Printf.sprintf "--------\nOutcomes: %d\n--------" (List.length reasonable_options));
 		List.iter (fun (subst, unmatched_preds, unmatched_pat_preds) -> 
 				print_debug (Printf.sprintf "Substitution: %s" (JSIL_Memory_Print.string_of_substitution subst));
 				print_debug "Unmatched predicates:";
@@ -674,7 +674,8 @@ let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) p_form
 		
 		(match reasonable_options with
 		| [] -> None  
-		| op :: _ -> Some op)) in
+		| [ op ] -> Some op
+		| _ :: (op :: _) -> Some op)) in
 		
 		result
 

@@ -1015,9 +1015,9 @@ function createNewAttribute(grove, element){
 	var e = d.createElement("test");
 	var a = allocG(grove, 0, 1);
 	/* @unfold ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld) */
-	/* @fold ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld) */
 	/* @invariant scope(a : #zeta) * scope(e : #e) * Grove(#zeta, #g) * (#g == {{ {{ "elem", #name2, #e, #e_attr2, #e_chld2 }} }}) */
 	/* @fold complete(#e_chld2) */
+	/* @fold ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld) */
 	var n = element.appendChild(e);
 	deallocG(a);
 	return n === e;
