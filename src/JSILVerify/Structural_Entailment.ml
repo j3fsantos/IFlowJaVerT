@@ -1085,7 +1085,7 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 
 	(* STEP 2 - the store must agree on the types                                                                          *)
 	(* forall x \in domain(store_0) = domain(store_1) :                                                                    *)
-	(*   ((Gamma_1(x) = tau_1) \/ (Gamma_1 |- store_1(x) : tau_1)  /\ (Gamma_0 |- store_0(x) : tau_0)) => tau_1 = tau_0    *)
+	(*   ((Gamma_1(x) = tau_1) \/ (Gamma_1 |- store_1(x) : tau_1))  /\ (Gamma_0 |- store_0(x) : tau_0) => tau_1 = tau_0    *)
 	let step_2 () =
 		let store_0_var_types = List.map (fun x -> find_store_var_type store_0 gamma_0 x) store_vars in
 		let store_1_var_types = List.map (fun x -> find_store_var_type store_1 gamma_1 x) store_vars in
