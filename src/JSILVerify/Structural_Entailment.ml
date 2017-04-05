@@ -197,9 +197,25 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (* solver *) (gamm
 				then list_eq ple le'
 				else (false, None)
 		| le' ->
-			(* Printf.printf "Second thingy not a list.\n"; *)
+			print_debug "Second thingy not a list.";
 			let le'' = find_me_Im_a_list (Hashtbl.create 1) p_formulae le' in
-			(* Printf.printf "find_me_baby says: %s\n" (JSIL_Print.string_of_logic_expression le'' false); *)
+			let le''' = (match le'' with
+			| LVar v ->
+					let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy p_formulae), (copy_gamma gamma), DynArray.create ()) in
+					let simpl_pfs, _ = simplify_pfs p_formulae gamma true in
+					let subst = List.filter (fun pf -> (match pf with
+					| LEq (LVar w, _) -> v = w
+					| _ -> false)) (DynArray.to_list simpl_pfs) in
+					assert (List.length subst <= 1);
+					(match subst with 
+					| [] -> None
+					| [ (LEq (_, le''')) ] -> Some le''')
+			| _ -> None) in 
+			let le'' = 
+				if (le'' == le') 
+					then (if (le''' == None) then le' else (Option.get le'''))
+					else le'' in
+			print_debug (Printf.sprintf "Search says: %s\n" (JSIL_Print.string_of_logic_expression le'' false));
 			if (le'' == le') then (false, None)
 			else
 			begin

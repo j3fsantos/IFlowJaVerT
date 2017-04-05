@@ -225,11 +225,11 @@
 	@onlyspec allocG(l, i, j)
 		pre:  [[ (l == #l) * (i == #i) * (j == #j) * types(#g : $$list_type, #g1 : $$list_type, #g2 : $$list_type, #g3 : $$list_type) * 
 				 Grove(#l, #g) * (#g == #g1 @ (#g2 @ #g3)) * (l-len(#g1) == #i) * (l-len(#g2) == #j) ]]
-		post: [[ Grove(#l, (#g1 @ ({{"hole", #alpha}} :: #g3))) * Grove(#alpha, {{#g2}}) * (ret == #alpha) * types(#alpha : $$object_type)]]
+		post: [[ Grove(#l, (#g1 @ ({{ "hole", #alpha }} :: #g3))) * Grove(#alpha, #g2) * (ret == #alpha) * types(#alpha : $$object_type)]]
 		outcome: normal;
 
 		pre:  [[ (l == #l) * (i == 0) * (j == #j) * types(#g : $$list_type) * Grove(#l, #g) ]]
-		post: [[ Grove(#l, ({{"hole", #alpha}} :: #g)) * Grove(#alpha, {{}}) * (ret == #alpha) ]]
+		post: [[ Grove(#l, ({{"hole", #alpha}} :: #g)) * Grove(#alpha, {{ }}) * (ret == #alpha) ]]
 		outcome: normal
 
 	@onlyspec deallocG(alpha)
