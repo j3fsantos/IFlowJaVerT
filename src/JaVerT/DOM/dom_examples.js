@@ -14,23 +14,23 @@ function isSquare(element) {
 
 	@pre (
 		InitialDOMHeap() * (element == #en) * types(#en : $$object_type) *
-		ElementNode(#en, #name, #e_l_attr, #e_attr, #e_l_chld, #e_chld) *
+		ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld) *
 		(#e_chld == {{ {{ "hole", #alpha }} }}) *
 		DocumentNode($l_document, #d_l_elem, #d_elem, #d_l_g, #d_g) *
 		(#d_g == {{ {{ "hole", #beta }} }})
 	)
 	@post (
 		InitialDOMHeap() * (ret == $$t) * 
-		ElementNode(#en, #name, #e_l_attr, #e_attr, #e_l_chld, #e_chld) *
+		ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld) *
 		(#e_chld == {{ {{ "hole", #alpha }}, {{ "text", #n, #t1 }} }}) *
 		DocumentNode($l_document, #d_l_elem, #d_elem, #d_l_g, #d_g) *
 		(#d_g == {{ {{ "hole", #beta }} }})
 	)
 */
 function createNewAttribute(element){
-	/* @unfold ElementNode(#en, #name, #e_l_attr, #e_attr, #e_l_chld, #e_chld) */
-	/* @fold ElementNode(#en, #name, #e_l_attr, #e_attr, #e_l_chld, #e_chld) */
-	var d = element.ownerDocument;
+	/* @unfold ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld) */
+	/* @fold ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld) */
+	var d = element.ownerDocument();
 	var e = d.createElement("test");
 	var n = element.appendChild(e);
 	return n === e;

@@ -986,36 +986,39 @@
 */
 
 /**
-	@id groveParent
+	@id createNewAttribute
 	@rec false
 
-	TODO: complete spec
-	
 	@pre (
 		scope(allocG   : #allocG)   * fun_obj(allocG,   #allocG,   #allocG_proto) *
 		scope(deallocG : #deallocG) * fun_obj(deallocG, #deallocG, #deallocG_proto) *
-		InitialDOMHeap() *
-		(s == #s) * (grove == #l_grove) *
-		scope(document : $l_document) * types(#s : $$string_type, #grove: $$list_type) * 
-		DocumentNode($l_document, #l_element, #element, #l_grove, #grove) *
-		(#element == {{ }}) *
-		(#grove == {{ {{ "hole", #alpha }} }})
+		InitialDOMHeap() * (element == #en) * (grove == #d_g) * types(#en : $$object_type) *
+		ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld) *
+		(#e_chld == {{ {{ "hole", #alpha }} }}) *
+		DocumentNode($l_document, #d_l_elem, #d_elem, #d_l_g, #d_g) *
+		(#d_g == {{ {{ "hole", #beta }} }})
 	)
 	@post (
-		fun_obj(allocG,   #allocG,   #allocG_proto) *
-		fun_obj(deallocG, #deallocG, #deallocG_proto) *
-		InitialDOMHeap() *
-		scope(document : $l_document) * (ret == $$null) * types(#t : $$object_type) *
-		DocumentNode($l_document, #l_element, #element, #l_grove, #grove) *
-		(#element == {{ }}) *
-		(#grove == {{ {{ "text", #t, #s }}, {{ "hole", #alpha }} }})
+		scope(allocG   : #allocG)   * fun_obj(allocG,   #allocG,   #allocG_proto) *
+		scope(deallocG : #deallocG) * fun_obj(deallocG, #deallocG, #deallocG_proto) *
+		InitialDOMHeap() * (ret == $$t) * 
+		ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld) *
+		(#e_chld == {{ {{ "hole", #alpha }}, {{ "text", #n, #t1 }} }}) *
+		DocumentNode($l_document, #d_l_elem, #d_elem, #d_l_g, #d_g) *
+		(#d_g == {{ {{ "hole", #beta }} }})
 	)
 */
-function groveParent(grove, s) {
-	var t = document.createTextNode(s);
-	/** @callspec oogaBooga(bla, bla) */
-	var a = allocG(grove, 0, 0);
-	var r = t.parentNode();
+function createNewAttribute(grove, element){
+	/* @unfold ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld) */
+	/* @fold ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld) */
+	var d = element.ownerDocument();
+	var e = d.createElement("test");
+	var a = allocG(grove, 0, 1);
+	/* @unfold ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld) */
+	/* @fold ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld) */
+	/* @invariant scope(a : #zeta) * scope(e : #e) * Grove(#zeta, #g) * (#g == {{ {{ "elem", #name2, #e, #e_attr2, #e_chld2 }} }}) */
+	/* @fold complete(#e_chld2) */
+	var n = element.appendChild(e);
 	deallocG(a);
-	return r;
+	return n === e;
 }
