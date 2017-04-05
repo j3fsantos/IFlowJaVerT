@@ -564,54 +564,73 @@ let get_unification_candidates
 	print_debug ("Entering fully_unify_pred_list_against_pred_list");
 	let pat_pred_len = DynArray.length pat_preds in
 	(* A queue of so-far-unified + remaining-to-be-unified predicates *)
-	let ps : ((string * (jsil_logic_expr list)) DynArray.t * ((string * (jsil_logic_expr list))) DynArray.t) Queue.t = Queue.create() in
-	(* We start from an empty unified DynArray and all preds remaining *)
-	if (pat_pred_len > 0) then Queue.add (DynArray.create(), preds) ps;
+	let ps : 
+		(((string * (jsil_logic_expr list)) option) DynArray.t * 
+		 ((string * (jsil_logic_expr list))) DynArray.t *
+		 ((string * (jsil_logic_expr list))) list) Queue.t = Queue.create() in
+	(* We start from an empty unified DynArray and all pat_preds remaining *)
+	if (pat_pred_len > 0) then Queue.add (DynArray.create(), preds, []) ps;
 	for i = 0 to (pat_pred_len - 1) do
+		(* Get the current pat_pred to unify *)
 		let cpp_name, cpp_params = DynArray.get pat_preds i in
-		while (let unified_preds, _ = Queue.peek ps in DynArray.length unified_preds = i) do
-			let unified_preds, preds_to_unify = Queue.pop ps in 
+		while (let unified_preds, _, _ = Queue.peek ps in DynArray.length unified_preds = i) do
+			let unified_preds, preds_to_unify, non_unified_preds = Queue.pop ps in 
 			let pred_len = DynArray.length preds_to_unify in
+			let found = ref false in
 			for j = 0 to (pred_len - 1) do
 				let cp_name, cp_params = DynArray.get preds_to_unify j in
 				if (cp_name = cpp_name) then
 					begin
+						found := true;
 						let new_up = DynArray.copy unified_preds in
 						let new_pu = DynArray.copy preds_to_unify in
-							DynArray.add new_up (cp_name, cp_params);
+							DynArray.add new_up (Some (cp_name, cp_params));
 							DynArray.delete new_pu j;
-							Queue.push (new_up, new_pu) ps;
+							Queue.push (new_up, new_pu, non_unified_preds) ps;
 					end
 			done;
+			if (not !found) then
+				begin
+					let new_up = DynArray.copy unified_preds in
+					let new_pu = DynArray.copy preds_to_unify in
+					DynArray.add new_up None;
+					Queue.push (new_up, new_pu, (cpp_name, cpp_params) :: non_unified_preds) ps;
+				end
 		done;
 	done;
 	
+	print_debug "----------------------------";
 	print_debug (Printf.sprintf "Unification options: %d" (Queue.length ps));
-	Queue.iter (fun (unified, remaining) ->
-		print_debug "Option:";
-		List.iter2 (fun (pat_name, pat_params) (uni_name, uni_params) ->
-			print_debug (Printf.sprintf "%s(%s) \t\t vs.\t\t%s(%s)"
+	Queue.iter (fun (unified, remaining, unmatched) ->
+		print_debug "-------\nOption:\n-------";
+		List.iter2 (fun (pat_name, pat_params) unified ->
+			let unified_str = (match unified with
+			| None -> "None"
+			| Some (uni_name, uni_params) -> Printf.sprintf "%s(%s)" 
+				uni_name (String.concat ", " (List.map (fun x -> JSIL_Print.string_of_logic_expression x false) uni_params))) in
+			print_debug (Printf.sprintf "%s(%s) \t\t vs.\t\t%s"
 				pat_name (String.concat ", " (List.map (fun x -> JSIL_Print.string_of_logic_expression x false) pat_params))
-				uni_name (String.concat ", " (List.map (fun x -> JSIL_Print.string_of_logic_expression x false) uni_params)))
+				unified_str
+				)
 			) (DynArray.to_list pat_preds) (DynArray.to_list unified);
+			print_debug "Unmatched predicates:";
+			DynArray.iter (fun (name, params) -> print_debug (Printf.sprintf "\t%s(%s)" 
+				name (String.concat ", " (List.map (fun x -> JSIL_Print.string_of_logic_expression x false) params)))) remaining;
+			print_debug "Unmatched pat predicates:";
+			List.iter (fun (name, params) -> print_debug (Printf.sprintf "\t%s(%s)" 
+				name (String.concat ", " (List.map (fun x -> JSIL_Print.string_of_logic_expression x false) params)))) unmatched;
+		
 		) ps;
+	print_debug "----------------------------";
 	
-	let result = List.rev (Queue.fold (fun ac x -> x :: ac) [] ps) in result
-
-(*******************************************************************)
-
-let create_equalities pat_preds candidate =
-	let pat_preds_names, pat_preds_params = List.split pat_preds in
-	let candidate_names, candidate_params = List.split candidate in
-	assert (pat_preds_names = candidate_names);
-	let subst = DynArray.create() in
-	List.iter2 (fun pat_params cand_params ->
-			assert (List.length pat_params = List.length cand_params);
-			List.iter2 (fun pat_param cand_param ->
-				DynArray.add subst (pat_param, cand_param) 
-				) pat_params cand_params
-		) pat_preds_params candidate_params;
-	subst
+	let result = Array.of_list 
+		(List.rev 
+			(Queue.fold (fun ac (x, y, z) -> 
+				assert (DynArray.length pat_preds = DynArray.length x);
+				let x = List.combine (DynArray.to_list pat_preds) (DynArray.to_list x) in
+				let x = List.filter (fun (_, x) -> x <> None) x in
+				let x = Array.of_list (List.map (fun (x, y) -> (x, Option.get y)) x) in
+				(Hashtbl.copy subst, x, DynArray.to_list y, z) :: ac) [] ps)) in result
 	
 (*******************************************************************)
 
@@ -627,15 +646,28 @@ let rec unify_expr_lists pat_list list p_formulae gamma subst =
 
 (*******************************************************************)
 
-let construct_subst equalities p_formulae gamma subst =
-	let pat_list, list = List.split equalities in
-	(match (unify_expr_lists pat_list list p_formulae gamma subst) with
-	| true -> Some subst
-	| false -> None)
+let unify_preds subst unifier p_formulae gamma =
+	let i = ref 0 in
+	let n = Array.length unifier in
+	let ok = ref true in
+		while (!ok && (!i < n)) do
+			let ((pat_pred_name, pat_pred_params), (cand_pred_name, cand_pred_params)) = Array.get unifier !i in
+			assert (pat_pred_name = cand_pred_name);
+			assert (List.length pat_pred_params = List.length cand_pred_params);
+			let result = unify_expr_lists pat_pred_params cand_pred_params p_formulae gamma subst in
+			ok := result;
+			i := !i + 1;
+		done;
+		if (not !ok) 
+			then None
+			else Some subst
 
 (*******************************************************************)
 
-let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) p_formulae (* solver *) gamma (subst : substitution) =
+(**
+ * Returns a list of triples of the form (substitution, preds that haven't been unified, pat_preds that haven't been unified)
+ *)
+let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) p_formulae gamma (subst : substitution) =
 	print_debug "Entering unify_pred_arrays.";
 	
 	let pat_preds = List.sort compare (DynArray.to_list pat_preds) in
@@ -643,28 +675,36 @@ let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) p_form
 	let p_formulae = DynArray.copy p_formulae in
 	let gamma = Hashtbl.copy gamma in
 	let subst = Hashtbl.copy subst in
-	print_debug (Printf.sprintf "Pat Preds:\n\t%s" (String.concat "\n\t" (List.map (fun x -> JSIL_Print.string_of_predicate_header x) pat_preds)));
-	print_debug (Printf.sprintf "Preds:\n\t%s" (String.concat "\n\t" (List.map (fun x -> JSIL_Print.string_of_predicate_header x) preds)));
-	print_debug (Printf.sprintf "Substitution: %s" (JSIL_Memory_Print.string_of_substitution subst));
 	
-	(* TEST 
 	let ps = get_unification_candidates (DynArray.of_list pat_preds) (DynArray.of_list preds) p_formulae gamma subst in
-	let ps = List.map (fun (candidate, rest) -> DynArray.to_list (create_equalities pat_preds (DynArray.to_list candidate))) ps in
-	let p_formulae, _ = simplify_pfs (DynArray.copy p_formulae) (Hashtbl.copy gamma) true in
 	
-	print_debug "Unification means:";
-	List.iter (fun subst ->
-		print_debug "Equalities:";
-		print_debug (String.concat "\n" (List.map (fun (x, y) -> Printf.sprintf "%s = %s"
-			(JSIL_Print.string_of_logic_expression x false)
-			(JSIL_Print.string_of_logic_expression y false)) subst))) ps;
+	let i = ref 0 in
+	let n = Array.length ps in
+	let options = DynArray.create() in
+	let unified = ref false in
+	while ((not !unified) && (!i < n)) do
+		let (subst, unifier, unmatched_preds, unmatched_pat_preds) = Array.get ps !i in
+		let result = unify_preds subst unifier p_formulae gamma in
+		let result = (match result with
+		| None -> None
+		| Some subst -> Some (subst, unmatched_preds, unmatched_pat_preds)) in
+		DynArray.add options result;
+		i := !i + 1;
+	done;
+		
+	let reasonable_options = List.map (fun x -> Option.get x) (List.filter (fun x -> x <> None) (DynArray.to_list options)) in
 	
-	let ps = List.map (fun eqs -> construct_subst eqs p_formulae gamma (Hashtbl.copy subst)) ps in
-	let ps = List.map (fun x -> Option.get x) (List.filter (fun x -> x <> None) ps) in
-	
-	print_debug "Substs:";
-	List.iter (fun subst ->
-		print_debug (Printf.sprintf "Substitution: %s" (JSIL_Memory_Print.string_of_substitution subst))) ps; *)
+	print_debug "--------\nOutcomes:\n--------";
+	List.iter (fun (subst, unmatched_preds, unmatched_pat_preds) -> 
+			print_debug (Printf.sprintf "Substitution: %s" (JSIL_Memory_Print.string_of_substitution subst));
+			print_debug "Unmatched predicates:";
+			List.iter (fun (name, params) -> print_debug (Printf.sprintf "\t%s(%s)" 
+				name (String.concat ", " (List.map (fun x -> JSIL_Print.string_of_logic_expression x false) params)))) unmatched_preds;
+			print_debug "Unmatched pat predicates:";
+			List.iter (fun (name, params) -> print_debug (Printf.sprintf "\t%s(%s)" 
+				name (String.concat ", " (List.map (fun x -> JSIL_Print.string_of_logic_expression x false) params)))) unmatched_pat_preds;
+		) reasonable_options;
+	print_debug "-------------------------";
 	
 	(* Back to life, back to reality *)
 	unify_pred_list_against_pred_list pat_preds preds p_formulae gamma subst

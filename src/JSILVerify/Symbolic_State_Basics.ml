@@ -685,10 +685,11 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 							| false -> pfs_false "Sub-zero length. Good luck."
 							| true -> 
 									let subst_list = Array.to_list (Array.init len (fun _ -> fresh_lvar())) in
+									let new_exists = SS.union (SS.of_list subst_list) exists in
 									let subst_list = List.map (fun x -> LVar x) subst_list in
 									DynArray.delete p_formulae n;
 									DynArray.add p_formulae (LEq (LVar v, LEList subst_list));
-									f symb_state
+									aggressively_simplify to_add other_pfs save_all_lvars new_exists symb_state
 							)
 						)
 				
@@ -700,11 +701,8 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 					| None -> pfs_false "List error"
 					(* No error, but no progress *)
 					| Some false -> (match subst with
-					  | [ (le1', le2') ] -> 
-							(match ((le1' = le1 && le2' = le2) || (le2' = le1 && le1' = le2)) with
-							| true -> go_through_pfs rest (n + 1)
-							| false -> raise (Failure "Unexpected list content obtained from list unification.")
-						| _ -> raise (Failure "Unexpected list obtained from list unification.")))
+					  | [ (le1', le2') ] -> go_through_pfs rest (n + 1)
+						| _ -> raise (Failure "Unexpected list obtained from list unification."))
 					(* Progress *)
 					| Some true -> 
 							DynArray.delete p_formulae n;
@@ -955,10 +953,11 @@ let rec simplify_for_your_legacy exists others (symb_state : symbolic_state) : s
 							| false -> pfs_false "Sub-zero length. Good luck."
 							| true -> 
 									let subst_list = Array.to_list (Array.init len (fun _ -> fresh_lvar())) in
+									let new_exists = SS.union (SS.of_list subst_list) exists in
 									let subst_list = List.map (fun x -> LVar x) subst_list in
 									DynArray.delete p_formulae n;
 									DynArray.add p_formulae (LEq (LVar v, LEList subst_list));
-									fo symb_state
+									simplify_for_your_legacy new_exists others symb_state
 							)
 						)
 				
@@ -970,10 +969,7 @@ let rec simplify_for_your_legacy exists others (symb_state : symbolic_state) : s
 					| None -> pfs_false "List error"
 					(* No error, but no progress *)
 					| Some false -> (match subst with
-					  | [ (le1', le2') ] -> 
-							(match ((le1' = le1 && le2' = le2) || (le2' = le1 && le1' = le2)) with
-							| true -> go_through_pfs rest (n + 1)
-							| false -> raise (Failure "Unexpected list content obtained from list unification."))
+					  | [ (le1', le2') ] -> go_through_pfs rest (n + 1)
 						| _ -> raise (Failure "Unexpected list obtained from list unification."))
 					(* Progress *)
 					| Some true -> 
@@ -1573,10 +1569,7 @@ let simplify_symb_state
 					| None -> pfs_ok := false; msg := "List error"	
 					(* No error, but no progress *)
 					| Some false -> (match subst with
-					  | [ (le1', le2') ] -> 
-							(match ((le1' = le1 && le2' = le2) || (le2' = le1 && le1' = le2)) with
-							| true -> n := !n + 1 (* No changes, continue with n+1 *)
-							| false -> raise (Failure "Unexpected list content obtained from list unification."))
+					  | [ (le1', le2') ] -> n := !n + 1 
 						| _ -> raise (Failure "Unexpected list obtained from list unification."))
 					(* Progress *)
 					| Some true -> 
