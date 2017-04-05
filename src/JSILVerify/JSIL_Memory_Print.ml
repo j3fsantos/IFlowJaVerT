@@ -188,7 +188,6 @@ let string_of_n_spec spec =
 			pre_post_list in
 		str ^ pre_post_list_str
 
-
 let string_of_n_spec_table spec_table =
 	Hashtbl.fold
 		(fun spec_name spec ac ->

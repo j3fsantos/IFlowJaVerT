@@ -64,14 +64,14 @@ let symb_interpreter prog procs_to_verify spec_tbl which_pred norm_preds  =
 		(* Perform symbolic interpretation with bi-abduction then use the result to verify using the normal symbolic execution.*)
 		begin
 			print_endline ("\n********************** STARTING BI-ABDUCTION SYMBOLIC EXECUTION ***************************\n") ;
-			let _, _, _, new_spec_tbl = 
+			let results_str_bi, _, _, new_spec_tbl = 
 					JSIL_Bi_Symb_Interpreter.sym_run_procs prog procs_to_verify spec_tbl which_pred norm_preds in
 			print_endline ("\n********************** FINISHED BI-ABDUCTION SYMBOLIC EXECUTION ***************************\n") ;
 			print_endline ("\n**********************    STARTING NORMAL SYMBOLIC EXECUTION    ***************************\n") ;
 			let results_str, dot_graphs, complete_success = 
 					JSIL_Symb_Interpreter.sym_run_procs prog procs_to_verify new_spec_tbl which_pred norm_preds in
 			print_endline ("\n**********************     ENDING NORMAL SYMBOLIC EXECUTION     ***************************\n") ;
-			(results_str, dot_graphs, complete_success)
+			(results_str ^ results_str_bi, dot_graphs, complete_success)
 		end
 	else
 		begin
