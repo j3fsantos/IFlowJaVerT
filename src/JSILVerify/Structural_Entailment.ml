@@ -494,65 +494,6 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 (*******************************************************************)
 (*******************************************************************)
 (*******************************************************************)
-
-let unify_pred_against_pred (pat_pred : (string * (jsil_logic_expr list))) (pred : (string * (jsil_logic_expr list))) p_formulae gamma (subst : substitution) : substitution option =
-	let pat_pred_name, pat_pred_args = pat_pred in
-	let pred_name, pred_args = pred in
-
-	(* Printf.printf "Trying to unify \n\t%s\n\t\tagainst\n\t%s\n" (JSIL_Memory_Print.string_of_pred pat_pred false) (JSIL_Memory_Print.string_of_pred pred false); *)
-	let rec unify_expr_lists pat_list list subst =
-		(match pat_list, list with
-		| [], [] -> ( (* Printf.printf "Success in predicate set unification\n";*) true)
-		| (pat_le :: rest_pat_list), (le :: rest_list) ->
-			let (bv, unifier) = unify_lexprs pat_le le p_formulae (* solver *) gamma subst in
-			(* Printf.printf "pat_le: %s. le: %s\n" (JSIL_Print.string_of_logic_expression pat_le false) (JSIL_Print.string_of_logic_expression le false); *)
-			if (bv && Symbolic_State_Functions.update_subst1 subst unifier)
-				then unify_expr_lists rest_pat_list rest_list subst
-				else ( (* Printf.printf "Tremendous failure in predicate set unification\n";*) false)
-		| _, _ -> false) in
-
-	if (pat_pred_name = pred_name) then
-		begin
-		let new_subst = Hashtbl.copy subst in
-		if (unify_expr_lists pat_pred_args pred_args new_subst)
-			then Some new_subst
-			else None
-		end
-		else None
-
-(*******************************************************************)
-
-let unify_pred_against_pred_set (pat_pred : (string * (jsil_logic_expr list))) (preds : (string * (jsil_logic_expr list)) list) p_formulae (* solver *) gamma (subst : substitution) =
-	(* Printf.printf "Entering unify_pred_against_pred_set.\n"; *)
-	let rec loop preds quotient_preds =
-		(match preds with
-		| [] -> None, quotient_preds
-		| pred :: rest_preds ->
-			let new_subst = unify_pred_against_pred pat_pred pred p_formulae (* solver *) gamma subst in
-			(match new_subst with
-			| None -> loop rest_preds (pred :: quotient_preds)
-			| Some new_subst -> Some new_subst, (quotient_preds @ rest_preds))) in
-	let result = loop preds [] in
-	(* Printf.printf "Exiting unify_pred_against_pred_set.\n"; *)
-	result
-
-(*******************************************************************)
-
-let unify_pred_list_against_pred_list (pat_preds : (string * (jsil_logic_expr list)) list) (preds : (string * (jsil_logic_expr list)) list) p_formulae gamma (subst : substitution) =
-	(* Printf.printf "Entering unify_pred_list_against_pred_list.\n"; *)
-	let rec loop pat_preds preds subst unmatched_pat_preds =
-		(match pat_preds with
-		| [] -> Some (subst, (preds_of_list preds), unmatched_pat_preds)
-		| pat_pred :: rest_pat_preds ->
-			let new_subst, rest_preds = unify_pred_against_pred_set pat_pred preds p_formulae (* solver *) gamma subst in
-			(match new_subst with
-			| None -> loop rest_pat_preds preds subst (pat_pred :: unmatched_pat_preds)
-			| Some new_subst -> loop rest_pat_preds rest_preds new_subst unmatched_pat_preds)) in
-	let result = loop pat_preds preds subst [] in
-	(* Printf.printf "Exiting unify_pred_list_against_pred_list.\n"; *)
-	result
-	
-(*******************************************************************)
 	
 (* Generating substitutions for predicate lists *)
 let get_unification_candidates 
@@ -630,7 +571,7 @@ let get_unification_candidates
 				let x = List.combine (DynArray.to_list pat_preds) (DynArray.to_list x) in
 				let x = List.filter (fun (_, x) -> x <> None) x in
 				let x = Array.of_list (List.map (fun (x, y) -> (x, Option.get y)) x) in
-				(Hashtbl.copy subst, x, DynArray.to_list y, z) :: ac) [] ps)) in result
+				(Hashtbl.copy subst, x, y, z) :: ac) [] ps)) in result
 	
 (*******************************************************************)
 
@@ -670,44 +611,56 @@ let unify_preds subst unifier p_formulae gamma =
 let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) p_formulae gamma (subst : substitution) =
 	print_debug "Entering unify_pred_arrays.";
 	
-	let pat_preds = List.sort compare (DynArray.to_list pat_preds) in
-	let preds = List.sort compare (DynArray.to_list preds) in
-	let p_formulae = DynArray.copy p_formulae in
-	let gamma = Hashtbl.copy gamma in
-	let subst = Hashtbl.copy subst in
-	
-	let ps = get_unification_candidates (DynArray.of_list pat_preds) (DynArray.of_list preds) p_formulae gamma subst in
-	
-	let i = ref 0 in
-	let n = Array.length ps in
-	let options = DynArray.create() in
-	let unified = ref false in
-	while ((not !unified) && (!i < n)) do
-		let (subst, unifier, unmatched_preds, unmatched_pat_preds) = Array.get ps !i in
-		let result = unify_preds subst unifier p_formulae gamma in
-		let result = (match result with
-		| None -> None
-		| Some subst -> Some (subst, unmatched_preds, unmatched_pat_preds)) in
-		DynArray.add options result;
-		i := !i + 1;
-	done;
+	let result = (match (DynArray.length pat_preds) with
+	| 0 -> Some (subst, preds, [])
+	| _ -> 
+		let pat_preds = DynArray.to_list pat_preds in
+		let preds = DynArray.to_list preds in
+		let p_formulae = DynArray.copy p_formulae in
+		let gamma = Hashtbl.copy gamma in
+		let subst = Hashtbl.copy subst in
 		
-	let reasonable_options = List.map (fun x -> Option.get x) (List.filter (fun x -> x <> None) (DynArray.to_list options)) in
-	
-	print_debug "--------\nOutcomes:\n--------";
-	List.iter (fun (subst, unmatched_preds, unmatched_pat_preds) -> 
-			print_debug (Printf.sprintf "Substitution: %s" (JSIL_Memory_Print.string_of_substitution subst));
-			print_debug "Unmatched predicates:";
-			List.iter (fun (name, params) -> print_debug (Printf.sprintf "\t%s(%s)" 
-				name (String.concat ", " (List.map (fun x -> JSIL_Print.string_of_logic_expression x false) params)))) unmatched_preds;
-			print_debug "Unmatched pat predicates:";
-			List.iter (fun (name, params) -> print_debug (Printf.sprintf "\t%s(%s)" 
-				name (String.concat ", " (List.map (fun x -> JSIL_Print.string_of_logic_expression x false) params)))) unmatched_pat_preds;
-		) reasonable_options;
-	print_debug "-------------------------";
-	
-	(* Back to life, back to reality *)
-	unify_pred_list_against_pred_list pat_preds preds p_formulae gamma subst
+		let ps = get_unification_candidates (DynArray.of_list pat_preds) (DynArray.of_list preds) p_formulae gamma subst in
+		
+		let i = ref 0 in
+		let n = Array.length ps in
+		let options = DynArray.create() in
+		let unified = ref false in
+		while ((not !unified) && (!i < n)) do
+			let (subst, unifier, unmatched_preds, unmatched_pat_preds) = Array.get ps !i in
+			let result = unify_preds subst unifier p_formulae gamma in
+			let result = (match result with
+			| None -> None
+			| Some subst -> Some (subst, unmatched_preds, unmatched_pat_preds)) in
+			DynArray.add options result;
+			i := !i + 1;
+		done;
+			
+		let reasonable_options = List.map (fun x -> Option.get x) (List.filter (fun x -> x <> None) (DynArray.to_list options)) in
+		let reasonable_options = List.sort 
+			(fun (_, _, upp1) (_, _, upp2) -> 
+				let len1 = List.length upp1 in
+				let len2 = List.length upp2 in
+					compare len1 len2) 
+					reasonable_options in
+					
+		print_debug "--------\nOutcomes:\n--------";
+		List.iter (fun (subst, unmatched_preds, unmatched_pat_preds) -> 
+				print_debug (Printf.sprintf "Substitution: %s" (JSIL_Memory_Print.string_of_substitution subst));
+				print_debug "Unmatched predicates:";
+				DynArray.iter (fun (name, params) -> print_debug (Printf.sprintf "\t%s(%s)" 
+					name (String.concat ", " (List.map (fun x -> JSIL_Print.string_of_logic_expression x false) params)))) unmatched_preds;
+				print_debug "Unmatched pat predicates:";
+				List.iter (fun (name, params) -> print_debug (Printf.sprintf "\t%s(%s)" 
+					name (String.concat ", " (List.map (fun x -> JSIL_Print.string_of_logic_expression x false) params)))) unmatched_pat_preds;
+			) reasonable_options;
+		print_debug "-------------------------";
+		
+		(match reasonable_options with
+		| [] -> None  
+		| op :: _ -> Some op)) in
+		
+		result
 
 (*******************************************************************)
 (*******************************************************************)
