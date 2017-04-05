@@ -1578,7 +1578,7 @@ let simplify_symb_state
 							List.iter (fun (x, y) -> DynArray.add pfs (LEq (x, y))) subst)
 
 				(* String unification *)
-				| se1, se2 when (isString se1 && isString se2) ->
+				(* | se1, se2 when (isString se1 && isString se2) ->
 					let ok, subst = unify_strings se1 se2 in
 					(match ok with
 					(* Error while unifying strings *)
@@ -1595,7 +1595,7 @@ let simplify_symb_state
 							(* Changes made, stay on n *)
 							changes_made := true;
 							DynArray.delete pfs !n;
-							List.iter (fun (x, y) -> DynArray.add pfs (LEq (x, y))) subst)
+							List.iter (fun (x, y) -> DynArray.add pfs (LEq (x, y))) subst) *)
 				
 				| _, _ -> n := !n + 1)
 			
