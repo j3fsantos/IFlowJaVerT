@@ -163,7 +163,11 @@ let match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : boo
 
 (* List unification *)
 let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : bool option * ((jsil_logic_expr * jsil_logic_expr) list) = 
+	let le1 = reduce_expression_no_store_no_gamma_no_pfs le1 in
+	let le2 = reduce_expression_no_store_no_gamma_no_pfs le2 in
 	let le1, le2 = arrange_lists le1 le2 in
+	(* print_debug (Printf.sprintf "unify_lists: \n\t%s\n\t\tand\n\t%s" 
+		(print_lexpr le1) (print_lexpr le2)); *)
 	(match le1, le2 with
 	  (* Base cases *)
 	  | LLit (LList []), LLit (LList [])
@@ -183,6 +187,8 @@ let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : bool optio
 		| LBinOp (_, LstCat, _), LBinOp (_, LstCat, _) -> 
 			let (okl, headl, taill) = get_head_and_tail le1 in
 			let (okr, headr, tailr) = get_head_and_tail le2 in
+			(* print_debug (Printf.sprintf "Got head and tail: left: %b, right: %b" 
+				(Option.map_default (fun v -> v) false okl) (Option.map_default (fun v -> v) false okr)); *)
 			(match okl, okr with
 			(* We can separate both lists *)
 			| Some true, Some true ->
@@ -1333,6 +1339,7 @@ let type_length = 10
 
 let simplify_symb_state 
 	(vars_to_save : SS.t)
+	(save_all     : bool)
 	(other_pfs    : jsil_logic_assertion DynArray.t)
 	(existentials : SS.t)
 	(symb_state   : symbolic_state) =
@@ -1370,7 +1377,7 @@ let simplify_symb_state
 			let exists = Hashtbl.fold (fun v _ ac -> SS.remove v ac) subst exists in
 			(* and remove from gamma, if allowed *)
     	Hashtbl.iter (fun v _ ->
-    		match (SS.mem v (SS.union vars_to_save existentials)) with
+    		match (save_all || SS.mem v (SS.union vars_to_save existentials)) with
     		| true -> ()
     		| false -> 
   					while (Hashtbl.mem gamma v) do 
@@ -1384,12 +1391,13 @@ let simplify_symb_state
 			else
 				symb_state, subst, others, exists in
 	
-	let arrange_pfs vars_to_save exists pfs =
+	let arrange_pfs vars_to_save save_all exists pfs =
+		let to_save = SS.union vars_to_save exists in
 		DynArray.iteri (fun i pf ->
 			(match pf with
 			| LEq (LVar v1, LVar v2) ->
-					let save_v1 = (SS.mem v1 exists || SS.mem v1 vars_to_save) in
-					let save_v2 = (SS.mem v2 exists || SS.mem v2 vars_to_save) in
+					let save_v1 = (save_all || SS.mem v1 to_save) in
+					let save_v2 = (save_all || SS.mem v2 to_save) in
 					(match save_v1, save_v2 with
 					| true, true 
 				  | false, true -> ()
@@ -1415,7 +1423,7 @@ let simplify_symb_state
 	let lvars_gamma = get_gamma_vars false gamma in		
 	let lvars_inter = SS.inter lvars lvars_gamma in
 	Hashtbl.filter_map_inplace (fun v t ->
-		(match (SS.mem v (SS.union lvars_inter (SS.union vars_to_save existentials))) with
+		(match (save_all || SS.mem v (SS.union lvars_inter (SS.union vars_to_save existentials))) with
 		| true  -> Some t
 		| false -> 
 				print_debug (Printf.sprintf "SIMPL: removing %s from gamma" v); 
@@ -1451,7 +1459,7 @@ let simplify_symb_state
 		
 		let (heap, store, pfs, gamma, preds) = !symb_state in
 		
-		arrange_pfs vars_to_save !exists pfs;
+		arrange_pfs vars_to_save save_all !exists pfs;
 		
 		sanitise_pfs store gamma pfs;
 		
@@ -1521,7 +1529,7 @@ let simplify_symb_state
 					Hashtbl.replace subst v le;
 					
 					(* Remove from gamma *)
-					(match (SS.mem v (SS.union vars_to_save !exists)) with
+					(match (save_all || SS.mem v (SS.union vars_to_save !exists)) with
       		| true -> ()
       		| false -> 
     					while (Hashtbl.mem gamma v) do 
@@ -1613,6 +1621,12 @@ let simplify_symb_state
 	(* Bring back from the subst *)
 	print_debug (Printf.sprintf "The subst is:\n%s" (JSIL_Memory_Print.string_of_substitution subst));
 	
+	Hashtbl.iter (fun var lexpr -> 
+		(match (save_all || SS.mem var vars_to_save) with
+		| false -> ()
+		| true -> DynArray.add pfs (LEq (LVar var, lexpr)))
+		) subst;
+	
 	let end_time = Sys.time() in
 	JSIL_Syntax.update_statistics "simplify_symb_state" (end_time -. start_time);
 	
@@ -1622,7 +1636,7 @@ let simplify_symb_state
 		else (pfs_false subst !others !exists !symb_state !msg)
 	
 (* Wrapper for only pfs *)
-let simplify_pfs pfs gamma =
+let simplify_pfs pfs gamma save_vars =
   let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create ()) in
-  let (_, _, pfs, gamma, _), _, _, _ = simplify_symb_state (SS.empty) (DynArray.create()) (SS.empty) fake_symb_state in
+  let (_, _, pfs, gamma, _), _, _, _ = simplify_symb_state (SS.empty) save_vars (DynArray.create()) (SS.empty) fake_symb_state in
   pfs, gamma

@@ -1214,9 +1214,9 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 
 	(* Everything else *)
 	| _ -> e) in
-	if (not (e = result)) then print_debug (Printf.sprintf "Reduce expression: %s ---> %s"
+	(* if (not (e = result)) then print_debug (Printf.sprintf "Reduce expression: %s ---> %s"
 		(JSIL_Print.string_of_logic_expression e false)
-		(JSIL_Print.string_of_logic_expression result false));
+		(JSIL_Print.string_of_logic_expression result false)); *)
 	result
 
 let reduce_expression_no_store_no_gamma_no_pfs = reduce_expression (Hashtbl.create 1) (Hashtbl.create 1) (DynArray.create ())
@@ -1327,9 +1327,9 @@ let rec reduce_assertion store gamma pfs a =
 		LLess (re1, re2)
 
 	| _ -> a) in
-	if (not (a = result)) then print_debug (Printf.sprintf "Reduce assertion: %s ---> %s"
+	(* if (not (a = result)) then print_debug (Printf.sprintf "Reduce assertion: %s ---> %s"
 		(JSIL_Print.string_of_logic_assertion a false)
-		(JSIL_Print.string_of_logic_assertion result false));
+		(JSIL_Print.string_of_logic_assertion result false)); *)
 	result
 
 let reduce_assertion_no_store_no_gamma_no_pfs = reduce_assertion (Hashtbl.create 1) (Hashtbl.create 1) (DynArray.create ())
