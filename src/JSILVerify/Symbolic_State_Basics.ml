@@ -1060,14 +1060,15 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	let test_for_nonsense pfs =
 
 		let rec test_for_nonsense_var_list var lst =
-		(match var, lst with
-		 | LVar v, LVar w -> v = w
-		 | LVar _, LEList lst ->
-			 List.fold_left (fun ac x -> ac || x = var) false lst
-		 | LVar _, LBinOp (head, LstCons, tail) ->
-			  (var = head) || (test_for_nonsense_var_list var tail)
-		 | _, _ -> false
-		) in
+			print_debug (Printf.sprintf "Nonsense test: %s vs. %s" (print_lexpr var) (print_lexpr lst));
+			(match var, lst with
+			 | LVar v, LVar w -> v = w
+			 | LVar _, LEList lst ->
+				 List.fold_left (fun ac x -> ac || x = var) false lst
+			 | LVar _, LBinOp (head, LstCons, tail) ->
+				  (var = head) || (test_for_nonsense_var_list var tail)
+			 | _, _ -> false
+			) in
 
 		let rec test_for_nonsense_iter pfs =
 		(match pfs with
