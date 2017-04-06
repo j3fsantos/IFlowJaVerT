@@ -5,6 +5,7 @@ let spec_file = ref ""
 let output_folder = ref ""
 let stats = ref false 
 let bi_abduction = ref false
+let interactive = ref false
 
 let arguments () =
   let usage_msg="Usage: -file <path>" in
@@ -31,6 +32,7 @@ let arguments () =
 				Printf.printf "%s\t" (Pure_Entailment.string_of_enc (!Pure_Entailment.encoding));
 				Pure_Entailment.encoding := enc;
 				Printf.printf "%s\n" (Pure_Entailment.string_of_enc (!Pure_Entailment.encoding));), "encoding"; *)
+			"-interactive", Arg.Unit (fun () -> JSIL_Syntax.interactive := true), "interactive predicate folding, enjoy";
 	  ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg

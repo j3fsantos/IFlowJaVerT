@@ -470,6 +470,9 @@ let process_statistics () =
 		print_endline (Printf.sprintf "Tot: %f\tCll: %d\nMin: %f\tMax: %f\nAvg: %f\tStd: %f\n" !tot (int_of_float len) !min !max !avg !std)) statistics
 (**/**)
 
+(* Interactive mode *)
+let interactive = ref false
+
 (********************************************************)
 (** Auxiliar functions for generating new program/logical
     variable names and new abstract locations          **)
