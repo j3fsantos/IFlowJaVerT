@@ -13,27 +13,44 @@ function isSquare(element) {
 	@rec false
 
 	@pre (
-		InitialDOMHeap() * (element == #en) * types(#en : $$object_type) *
+		scope(allocG   : #allocG)   * fun_obj(allocG,   #allocG,   #allocG_proto) *
+		scope(deallocG : #deallocG) * fun_obj(deallocG, #deallocG, #deallocG_proto) *
+		InitialDOMHeap() * (element == #en) * (grove == #d_g) * types(#en : $$object_type) *
 		ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld) *
 		(#e_chld == {{ {{ "hole", #alpha }} }}) *
 		DocumentNode($l_document, #d_l_elem, #d_elem, #d_l_g, #d_g) *
 		(#d_g == {{ {{ "hole", #beta }} }})
 	)
 	@post (
+		scope(allocG   : #allocG)   * fun_obj(allocG,   #allocG,   #allocG_proto) *
+		scope(deallocG : #deallocG) * fun_obj(deallocG, #deallocG, #deallocG_proto) *
 		InitialDOMHeap() * (ret == $$t) * 
-		ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld) *
-		(#e_chld == {{ {{ "hole", #alpha }}, {{ "text", #n, #t1 }} }}) *
+		ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld_post) *
+		(#e_chld_post == {{ {{ "hole", #alpha }}, {{ "elem", #e_n_new, #e_new, #e_attr_new, #e_chld_new }} }}) *
 		DocumentNode($l_document, #d_l_elem, #d_elem, #d_l_g, #d_g) *
-		(#d_g == {{ {{ "hole", #beta }} }})
+		(#d_g == {{ {{ "hole", #beta }} }}) * (ret == $$t)
 	)
 */
-function createNewAttribute(element){
+function createNewAttribute(grove, element){
 	/* @unfold ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld) */
 	/* @fold ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld) */
 	var d = element.ownerDocument();
 	var e = d.createElement("test");
+	var a = allocG(grove, 0, 1);
+	/* @invariant scope(a : #zeta) * scope(e : #e) * Grove(#zeta, #g) * (#g == {{ {{ "elem", #name2, #e, #e_attr2, #e_chld2 }} }}) */
+	/* @fold complete(#e_chld2) */
+	/* @unfold ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld) */
+	/* @fold ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld) */
 	var n = element.appendChild(e);
-	return n === e;
+	deallocG(a);
+	return (n === e);
+}
+/* Still too much expansion from a basic function */
+function createNewAttribute(element){
+	var d = element.ownerDocument();
+	var e = d.createElement("test");
+	var n = element.appendChild(e);
+	return (n === e);
 }
 
 function childToParent(element) {
@@ -122,6 +139,7 @@ function groveParent(s) {
 	/** @callspec #a allocG(#grove, 0, 0) */ /* Make the #grove list correspond to the spec of parentNode, with a context hole before and after the node. This is done here instead of after the fold/unfold just to demonstrate the use of invariant. To simplify things it should go just before parentNode call */
 	/** @unfold Grove(#l_grove, #grove) */   /* Pull out the TextNode(t, ...) predicate that was implied after document.createTextNode(s) */
 	/** @invariant ((#l_grove, "@next") -> #l_g2) */
+	
 	/** @unfold Grove(#l_g2, #g2) */
 	/** @fold Grove(#l_g2, #g2) */
 	/** @fold Grove(#l_grove, #grove) */     /* Undo the folds: we need the grove in list form for the parentNode spec */
