@@ -676,13 +676,14 @@ let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) p_form
 		(match reasonable_options with
 		| [] -> None  
 		| [ op ] -> Some op
-		| _ -> 
+		| _ :: (op :: _) -> Some op
+		(* | _ -> 
 				print_debug "Choose branch (0 = None): ";
 				let n = read_int() in
 				print_debug (Printf.sprintf "The user has chosen the branch: %d" n);
 				if (n = 0) 
 					then Some (subst, DynArray.of_list preds, pat_preds) 
-					else Some (DynArray.get (DynArray.of_list reasonable_options) (n - 1))
+					else Some (DynArray.get (DynArray.of_list reasonable_options) (n - 1)) *)
 		)) in
 		
 		result
