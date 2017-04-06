@@ -558,6 +558,7 @@ let get_unification_candidates
 	
 	print_debug "----------------------------";
 	print_debug (Printf.sprintf "Unification options: %d" (Queue.length ps));
+	print_debug (JSIL_Memory_Print.string_of_substitution subst);
 	Queue.iter (fun (unified, remaining, unmatched) ->
 		print_debug "-------\nOption:\n-------";
 		List.iter2 (fun (pat_name, pat_params) unified ->

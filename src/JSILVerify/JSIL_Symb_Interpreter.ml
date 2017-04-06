@@ -410,7 +410,9 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		let symb_states_and_ret_lexprs =
 			(match spec.n_post with
 			| [] -> print_debug (Printf.sprintf "No postconditions found."); []
-			| [ post ] -> print_debug (Printf.sprintf "One postcondition found."); merge_symb_state_with_single_post symb_state post ret_var ret_flag false
+			| [ post ] -> print_debug (Printf.sprintf "One postcondition found."); 
+				print_debug (JSIL_Memory_Print.string_of_shallow_symb_state post); 
+				merge_symb_state_with_single_post symb_state post ret_var ret_flag false
 			| post :: rest_posts ->
 					print_debug (Printf.sprintf "Multiple postconditions found.");
 					let symb_states_and_ret_lexprs = List.map (fun post -> merge_symb_state_with_single_post symb_state post ret_var ret_flag true) rest_posts in

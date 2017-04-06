@@ -1563,14 +1563,20 @@ let simplify_symb_state
 				
 				(* List unification *)
 				| le1, le2 when (isList le1 && isList le2) ->
+					print_debug (Printf.sprintf "List unification: %s vs. %s" (print_lexpr le1) (print_lexpr le2));
 					let ok, subst = unify_lists le1 le2 in
 					(match ok with
 					(* Error while unifying lists *)
 					| None -> pfs_ok := false; msg := "List error"	
 					(* No error, but no progress *)
 					| Some false -> (match subst with
-					  | [ (le1', le2') ] -> n := !n + 1 
-						| _ -> raise (Failure "Unexpected list obtained from list unification."))
+					  | [ ] 
+						| [ _ ] -> n := !n + 1 
+						| _ -> 
+							print_debug (Printf.sprintf "No changes made, but length = %d" (List.length subst));
+							print_debug (String.concat "\n" (List.map (fun (x, y) ->
+								Printf.sprintf "%s = %s" (print_lexpr x) (print_lexpr y)) subst)); 
+							raise (Failure "Unexpected list obtained from list unification."))
 					(* Progress *)
 					| Some true -> 
 							(* Changes made, stay on n *)
