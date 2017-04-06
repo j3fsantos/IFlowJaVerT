@@ -1002,7 +1002,7 @@
 		scope(deallocG : #deallocG) * fun_obj(deallocG, #deallocG, #deallocG_proto) *
 		InitialDOMHeap() * (ret == $$t) * 
 		ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld_post) *
-		(#e_chld_post == {{ {{ "hole", #alpha }}, {{ "text", #n, #t1 }} }}) *
+		(#e_chld_post == {{ {{ "hole", #alpha }}, {{ "elem", #e_n_new, #e_new, #e_attr_new, #e_chld_new }} }}) *
 		DocumentNode($l_document, #d_l_elem, #d_elem, #d_l_g, #d_g) *
 		(#d_g == {{ {{ "hole", #beta }} }}) * (ret == $$t)
 	)
