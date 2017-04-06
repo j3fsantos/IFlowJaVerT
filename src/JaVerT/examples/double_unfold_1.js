@@ -36,7 +36,6 @@ function f (x, y) {
    /** @invariant dataField(x, "next", #x2)               */
    /** @unfold List(#x2, #dontcare2)                      */
    var a2 = x.value; 
-   /** @fold List(#x2, (#v2 :: #values_a))                */
    /** @fold List(x, (#v1 :: (#v2 :: #values_a)))         */
    return a1 + a2
 }

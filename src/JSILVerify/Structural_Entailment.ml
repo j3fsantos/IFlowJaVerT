@@ -694,6 +694,7 @@ let unify_gamma pat_gamma gamma pat_store subst (ignore_vars : SS.t) =
 	let start_time = Sys.time () in
 	let res = (Hashtbl.fold
 		(fun var v_type ac ->
+			print_debug (Printf.sprintf "pat_var: (%s : %s) " var (JSIL_Print.string_of_type v_type));
 			(* (not (is_lvar_name var)) *)
 			(if ((not ac) || (SS.mem var ignore_vars))
 				then ac
@@ -706,20 +707,16 @@ let unify_gamma pat_gamma gamma pat_store subst (ignore_vars : SS.t) =
 									(match (store_get_safe pat_store var) with
 									| Some le -> JSIL_Logic_Utils.lexpr_substitution le subst true
 									| None -> (PVar var))) in
+						print_debug (Printf.sprintf "found value: %s" (JSIL_Print.string_of_logic_expression le false));
 						let le_type, is_typable, _ = JSIL_Logic_Utils.type_lexpr gamma le in
 						match le_type with
 						| Some le_type ->
-							    print_debug (Printf.sprintf "unify_gamma. pat gamma var: %s. le: %s. v_type: %s. le_type: %s"
-								var
-								(JSIL_Print.string_of_logic_expression le false)
-								(JSIL_Print.string_of_type v_type)
-								(JSIL_Print.string_of_type le_type));
+							  print_debug (Printf.sprintf "unify_gamma. pat gamma var: %s. le: %s. v_type: %s. le_type: %s"
+								var (JSIL_Print.string_of_logic_expression le false) (JSIL_Print.string_of_type v_type) (JSIL_Print.string_of_type le_type));
 							(le_type = v_type)
 						| None ->
-							    print_debug (Printf.sprintf "failed unify_gamma. pat gamma var: %s. le: %s. v_type: %s"
-								var
-								(JSIL_Print.string_of_logic_expression le false)
-								(JSIL_Print.string_of_type v_type));
+								print_debug (Printf.sprintf "failed unify_gamma. pat gamma var: %s. le: %s. v_type: %s"
+								var (JSIL_Print.string_of_logic_expression le false) (JSIL_Print.string_of_type v_type));
 							false
 					with _ ->
 						true))
