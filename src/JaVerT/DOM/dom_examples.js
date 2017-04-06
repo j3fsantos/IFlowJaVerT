@@ -152,6 +152,19 @@ function groveParent(s) {
 	return r;
 }
 
+/** Bootstrap IE10 viewport bug workaround.
+	Simple real life example, slightly modified: Removed an if condition and pulled a nested call out.
+	From: https://github.com/twbs/bootstrap/blob/master/docs/assets/js/ie10-viewport-bug-workaround.js
+*/
+function ie10-viewport-bug-workaround() {
+    var msViewportStyle = document.createElement('style');
+    var t = document.createTextNode(
+        "@-ms-viewport{width:auto!important}"
+      );
+    msViewportStyle.appendChild(t);
+    document.appendChild(msViewportStyle);
+}
+
 /** 
 	@toprequires (DocumentNode($l_document, #l_element, {{ }}, {{ }}) * InitialDOMHeap() * scope(document : $l_document))
 	@topensures  (DocumentNode($l_document, #l_element, {{ }}, {{ {{ "elem", "one", #ret, {{ }}, {{ }} }} }}) * InitialDOMHeap() * scope(document : $l_document))
