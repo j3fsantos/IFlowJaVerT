@@ -71,13 +71,7 @@ with
 
 proc get (l, prop) {
 
-            [* unfold Pi (#l, #prop, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4, #g_aux_5, #g_aux_6) *]
-    ch0:	goto [typeOf(l) = $$object_type] ch1 elab;
-    ch1:	goto [typeOf(prop) = $$string_type] ch2 elab;
-    ch2:    goto [0 < s-len prop] ch3 elab;
-    ch3:	goto [not (s-nth(prop, 0) = "@")] start elab;
-
-	start:	xret := "getProperty" (l, prop) with elab;
+			xret := "getProperty" (l, prop) with elab;
 			goto [xret = $$undefined] rlab def;		(* Does the field exist?    *)
 
 	def:	d := l-nth (xret, 0);					(* Get the descriptor type  *)
