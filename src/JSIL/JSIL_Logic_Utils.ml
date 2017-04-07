@@ -653,6 +653,8 @@ let filter_vars vars ignore_vars : SS.t =
 
 let rec type_lexpr gamma le =
 	
+	(* print_debug (Printf.sprintf "Typing: %s" (JSIL_Print.string_of_logic_expression le false)); *)
+	
 	let f = type_lexpr gamma in
 	let result = (match le with
 	(* Literals are always typable *)
@@ -764,9 +766,13 @@ let rec type_lexpr gamma le =
 			| _ ->
 				Printf.printf "type_lexpr: op: %s, t: %s\n"  (JSIL_Print.string_of_binop op) (JSIL_Print.string_of_type t1);
 				raise (Failure "ERROR")))
-		| _, _ ->
+		| _, ot2 ->
 			match op with
 			| Equal when ite1 && ite2 -> (Some BooleanType, true, constraints)
+			| LstCons when ite2 ->
+				(match ot2 with
+				| None -> (None, false, [])
+				| Some t2 -> check_valid_type t2 [ ListType ] ListType [])
 			| _ -> (None, false, []))
 
 	| LLstNth (lst, index) ->
@@ -792,6 +798,9 @@ let rec type_lexpr gamma le =
 
 	| LNone    -> (Some NoneType, true, [])
   | LUnknown -> (None, false, [])) in
+	
+	(* let (tp, b, _) = result in 
+	print_debug (Printf.sprintf "Result: (%s, %b)" (Option.map_default (fun x -> JSIL_Print.string_of_type x) "None" tp) b); *)
 	
 	result
 
@@ -1214,9 +1223,9 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 
 	(* Everything else *)
 	| _ -> e) in
-	if (not (e = result)) then print_debug (Printf.sprintf "Reduce expression: %s ---> %s"
+	(* if (not (e = result)) then print_debug (Printf.sprintf "Reduce expression: %s ---> %s"
 		(JSIL_Print.string_of_logic_expression e false)
-		(JSIL_Print.string_of_logic_expression result false));
+		(JSIL_Print.string_of_logic_expression result false)); *)
 	result
 
 let reduce_expression_no_store_no_gamma_no_pfs = reduce_expression (Hashtbl.create 1) (Hashtbl.create 1) (DynArray.create ())
@@ -1327,9 +1336,9 @@ let rec reduce_assertion store gamma pfs a =
 		LLess (re1, re2)
 
 	| _ -> a) in
-	if (not (a = result)) then print_debug (Printf.sprintf "Reduce assertion: %s ---> %s"
+	(* if (not (a = result)) then print_debug (Printf.sprintf "Reduce assertion: %s ---> %s"
 		(JSIL_Print.string_of_logic_assertion a false)
-		(JSIL_Print.string_of_logic_assertion result false));
+		(JSIL_Print.string_of_logic_assertion result false)); *)
 	result
 
 let reduce_assertion_no_store_no_gamma_no_pfs = reduce_assertion (Hashtbl.create 1) (Hashtbl.create 1) (DynArray.create ())

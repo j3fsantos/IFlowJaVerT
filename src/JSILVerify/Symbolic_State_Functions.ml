@@ -222,9 +222,12 @@ let get_heap_well_formedness_constraints heap =
 		heap
 		[]
 
+(** 
+(** JSIL logic assertions *)
+let rec string_of_logic_assertion a escape_string =
+**)
 
-
-let assertion_of_abs_heap h = 
+let assertion_of_abs_heap h : jsil_logic_assertion list= 
 	let make_loc_lexpr loc = 
 		if (is_abs_loc_name loc) then ALoc loc else LLit (Loc loc) in 
 	
@@ -250,10 +253,6 @@ let assertion_of_abs_heap h =
 				let ef_assertion = LEmptyFields (loc_lexpr, fields) in 
 				ef_assertion :: new_assertions) h [] 
 
-(* TODO(Beatrix): There is probably more to this but in the case of merging the anti-frame 
-	and the precondition we know that what is in the anti-frame was not in the precondition
-	so technically there should be no clashes.*)
-(* Petar: Dangerous overloading of procedure calls - renamed to sth safe *)
 let bi_merge_symb_states (symb_state_1 : symbolic_state) (symb_state_2 : symbolic_state)  =
 	let heap_1, store_1, pf_1, gamma_1, preds_1  = symb_state_1 in
 	let heap_2, store_2, pf_2, gamma_2, preds_2 = symb_state_2 in
@@ -268,7 +267,7 @@ let bi_merge_symb_states (symb_state_1 : symbolic_state) (symb_state_2 : symboli
 (** Store functions                 **)
 (*************************************)
 
-let assertions_of_abs_store s = 
+let assertions_of_abs_store s : jsil_logic_assertion list= 
 	Hashtbl.fold
 		(fun x le assertions -> 
 			(LEq (PVar x, le)) :: assertions) s []
@@ -278,7 +277,7 @@ let assertions_of_abs_store s =
 (** Gamma functions                 **)
 (*************************************)
 
-let assertions_of_gamma gamma = 
+let assertions_of_gamma gamma : jsil_logic_assertion= 
 	let le_type_pairs = 
 		Hashtbl.fold
 			(fun x t pairs -> 
@@ -347,6 +346,37 @@ let assertions_of_pred_set pred_set =
 		| (pred_name, args) :: rest -> 
 			loop rest ((LPred (pred_name, args)) :: assertions) in 
 	loop preds [] 
+
+let convert_symb_state_to_assertion (symb_state : symbolic_state) : jsil_logic_assertion = 
+	let heap, store, pure, gamma, _ = symb_state in
+	let heap_assert = assertion_of_abs_heap heap in
+	let store_assert = assertions_of_abs_store store in
+	let gamma_assert = assertions_of_gamma gamma in
+	let pure_assert = DynArray.to_list pure in
+	let assertions = heap_assert @ store_assert @ pure_assert @ [gamma_assert] in
+	List.fold_left (fun ac assertion -> 
+						if (ac = LEmp) then assertion else LStar(ac , assertion)) 
+		LEmp 
+		assertions
+
+let string_of_n_spec_table_assertions spec_table =
+	Hashtbl.fold
+		(fun spec_name spec ac ->
+			let spec_str = (List.fold_left
+				(fun ac single_spec ->
+					let pre = convert_symb_state_to_assertion single_spec.n_pre in
+					let post = convert_symb_state_to_assertion (List.hd single_spec.n_post) in
+					let flag = (match single_spec.n_ret_flag with | Normal -> "Normal" | Error -> "Error") in
+					ac ^ (Printf.sprintf "[[ %s ]]\n[[ %s ]]\n%s\n\n"
+						 (JSIL_Print.string_of_logic_assertion pre false)
+						 (JSIL_Print.string_of_logic_assertion post false)
+						 flag
+					))
+				""
+				spec.n_proc_specs) in
+			ac ^ "\n" ^ spec_name ^ "\n----------\n" ^ spec_str)
+		spec_table
+		""
 
 (*************************************)
 (** Normalised Spec functions       **)

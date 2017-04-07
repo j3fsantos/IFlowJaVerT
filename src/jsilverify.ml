@@ -5,6 +5,7 @@ let spec_file = ref ""
 let output_folder = ref ""
 let stats = ref false 
 let bi_abduction = ref false
+let interactive = ref false
 
 let arguments () =
   let usage_msg="Usage: -file <path>" in
@@ -31,6 +32,7 @@ let arguments () =
 				Printf.printf "%s\t" (Pure_Entailment.string_of_enc (!Pure_Entailment.encoding));
 				Pure_Entailment.encoding := enc;
 				Printf.printf "%s\n" (Pure_Entailment.string_of_enc (!Pure_Entailment.encoding));), "encoding"; *)
+			"-interactive", Arg.Unit (fun () -> JSIL_Syntax.interactive := true), "interactive predicate folding, enjoy";
 	  ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
@@ -64,14 +66,14 @@ let symb_interpreter prog procs_to_verify spec_tbl which_pred norm_preds  =
 		(* Perform symbolic interpretation with bi-abduction then use the result to verify using the normal symbolic execution.*)
 		begin
 			print_endline ("\n********************** STARTING BI-ABDUCTION SYMBOLIC EXECUTION ***************************\n") ;
-			let _, _, _, new_spec_tbl = 
+			let results_str_bi, _, _, new_spec_tbl = 
 					JSIL_Bi_Symb_Interpreter.sym_run_procs prog procs_to_verify spec_tbl which_pred norm_preds in
 			print_endline ("\n********************** FINISHED BI-ABDUCTION SYMBOLIC EXECUTION ***************************\n") ;
 			print_endline ("\n**********************    STARTING NORMAL SYMBOLIC EXECUTION    ***************************\n") ;
 			let results_str, dot_graphs, complete_success = 
 					JSIL_Symb_Interpreter.sym_run_procs prog procs_to_verify new_spec_tbl which_pred norm_preds in
 			print_endline ("\n**********************     ENDING NORMAL SYMBOLIC EXECUTION     ***************************\n") ;
-			(results_str, dot_graphs, complete_success)
+			(results_str ^ results_str_bi, dot_graphs, complete_success)
 		end
 	else
 		begin
