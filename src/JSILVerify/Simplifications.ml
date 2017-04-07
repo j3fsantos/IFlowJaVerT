@@ -1,6 +1,30 @@
-(* open JSIL_Syntax
+open JSIL_Syntax
 open JSIL_Logic_Utils
 open Symbolic_State
+
+
+let simplify_equalities_between_booleans (p_assertions : (jsil_logic_assertion DynArray.t)) = 
+ 	let new_as = 
+ 		DynArray.map 
+ 			(fun a -> 
+ 				match a with 
+ 				| LEq (le, LLit (Bool false))
+ 				| LEq (LLit (Bool false), le) -> 
+ 					(* do something *)
+ 					let _, as_le = lift_logic_expr le in
+ 					(match as_le with 
+ 					| Some (_, a_not_le) -> a_not_le 
+ 					| None -> a)   
+ 				| LEq (le, LLit (Bool true))
+ 				| LEq (LLit (Bool true), le) -> 
+ 					let _, as_le = lift_logic_expr le in
+ 					(match as_le with 
+ 					| Some (a_le, _) -> a_le 
+ 					| None -> a)
+ 				| _ -> a) p_assertions in 
+ 	new_as 
+
+(*
 
 (* Shorthand for printing logical expressions *)
 let print_lexpr le = JSIL_Print.string_of_logic_expression le false 

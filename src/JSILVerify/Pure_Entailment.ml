@@ -1121,6 +1121,7 @@ let old_check_entailment existentials left_as right_as gamma =
 
 	let existentials, left_as, right_as, gamma =
 		simplify_implication existentials (DynArray.of_list left_as) (DynArray.of_list right_as) (copy_gamma gamma) in
+	let right_as = Simplifications.simplify_equalities_between_booleans right_as in 
 	filter_gamma_pfs (DynArray.of_list (DynArray.to_list left_as @ DynArray.to_list right_as)) gamma;
 	
 	(* If right is empty, then the left only needs to be satisfiable *)
