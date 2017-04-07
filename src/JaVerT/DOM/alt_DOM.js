@@ -107,12 +107,9 @@
 		DOMObject($l_anp, $l_np) *
 		empty_fields($l_anp :);
 
-	@pred AttributeNode(name, an, l_children, children) :
+	@pred AttributeNode(an) :
 		DOMObject(an, $l_anp) *
-		((an, "@name") -> name) *
-		((an, "@children") -> l_children) *
-		types(name: $$string_type, children: $$list_type) *
-		empty_fields(an : "@name", "@children");
+		empty_fields(an : );
 
 	@pred InitialDOMHeap() :
 		NodePrototype() * DocumentNodePrototype() * ElementNodePrototype() * AttributeNodePrototype() * TextNodePrototype();
@@ -241,10 +238,10 @@
 	@onlyspec setAttribute(s, v)
 		pre:  [[ Cell(#l, {{ {{ "elem", #name, this, #l_attr, #l_children }} }}) * ElementNode(this) * 
 				 AttributeSet(#l_attr, #attr) * (s == #s1) * (v == #s2) * 
-				 (#attr == {{ {{ "attr", #s1, #m, #l_tf }}, {{ "hole", #alpha }} }}) * AttributeNode(#s1, #m, #l_tf) *
+				 (#attr == {{ {{ "attr", #s1, #m, #l_tf }}, {{ "hole", #alpha }} }}) * AttributeNode(#m) *
 				 TextForest(#l_tf, #t) * Grove(#l_g, {{ }}) ]]
 		post: [[ Cell(#l, {{ {{ "elem", #name, this, #l_attr, #l_children }} }}) * ElementNode(this) * AttributeSet(#l_attr, #attr_post) *
-				 (#attr_post == {{ {{ "attr", #s1, #m, #l_tf_post }}, {{ "hole", #alpha }} }}) * AttributeNode(#s1, #m, #l_tf_post) * 
+				 (#attr_post == {{ {{ "attr", #s1, #m, #l_tf_post }}, {{ "hole", #alpha }} }}) * AttributeNode(#m) * 
 				 TextForest(#l_tf_post, #t_post) * (#t_post == {{ {{ "text", #r, #s2 }} }}) * 
 				 TextNode(#r, #s2) * Grove(#l_g, #t) ]]
 		outcome: normal;
@@ -253,6 +250,6 @@
 				 AttributeSet(#l_attr, #attr) * (s == #s1) * (v == #s2) * out(#attr, #s1) ]]
 		post: [[ Cell(#l, {{ {{ "elem", #name, this, #l_attr, #l_children }} }}) * ElementNode(this) * 
 				 AttributeSet(#l_attr, #attr2) * (#attr2 == {{ "attr", #s1, #m, #l_tf }} :: #attr) * 
-				 AttributeNode(#s1, #m, #l_tf) * (#t == {{ {{ "text", #r, #s2 }} }}) ]]
+				 AttributeNode(#m) * (#t == {{ {{ "text", #r, #s2 }} }}) ]]
 		outcome: normal
 */
