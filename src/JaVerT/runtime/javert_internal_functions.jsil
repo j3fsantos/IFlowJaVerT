@@ -1923,6 +1923,17 @@ with
  * 10 - Variable reference, lg, defined
  * 11 - Variable reference, non-lg, directly from the heap
  * 12-13 - Base undefined for both variable and object references, return a reference error 
+ *
+ * Remaining:
+ *
+ * Object conversion:
+ * 
+ * 14-15 - TypeError if undefined or null passed
+ * 16-21 - Conversion to Number, String, Boolean, property exists or doesn't 
+ *
+ * Unsupported:
+ *
+ * 22 - Getters
  *)
 
 spec i__getValue (v)
