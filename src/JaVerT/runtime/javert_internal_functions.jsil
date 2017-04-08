@@ -78,6 +78,44 @@ pred Cell_o (l, prop, d) :
     types(l : $$object_type) * isNamedProperty(prop) * ((l, prop) -> d) * DataDescriptor(d);
 
 (*
+ * Predicate: IsStringIndex - how do we deal with integers?
+ *
+ * Resource: None
+ *
+ *)
+pred IsStringIndex(S, prop, i) :
+    types(S : $$string_type, prop : $$string_type, i : $$number_type) *
+    (prop == num_to_string i) * (0 <=# i) * (i <# s-len S);
+
+(*
+ * Predicate: Cell_s(l, prop, _, X, primitiveValue)
+ *
+ * Resource:
+ *      (l, prop)               via Cell_o
+ *      (l, "@primitiveValue")
+ *
+ * Note: Must be used with String objects,
+ *       otherwise (l, "@primitiveValue") WILL NOT EXIST OR BE STUPID
+ *
+ *)
+pred Cell_s (l, prop, "None", None, pv) :
+     types (l : $$object_type, prop : $$string_type, pv : $$string_type) *
+	 Cell_o (l, prop, None) * ((l, "@primitiveValue") -> pv) *
+     (#i == num_to_int (string_to_num prop)) * (! IsStringIndex(pv, prop, #i));
+
+pred Cell_s (l, prop, "SI", desc, pv) :
+     types(l : $$object_type, prop : $$string_type, desc : $$list_type, pv : $$string_type, #i : $$number_type, #v : $$string_type) *
+	 Cell_o (l, prop, None) * ((l, "@primitiveValue") -> pv) *
+     (desc == {{ "d", #v, $$f, $$t, $$f }}) *  (#v == s-nth(pv, #i)) *
+	 (#i == num_to_int (string_to_num prop)) * IsStringIndex(pv, prop, #i);
+
+pred Cell_s (l, prop, "NSI", desc, pv) :
+	 types (l : $$object_type, prop : $$string_type, desc : $$list_type, pv : $$string_type, #i : $$number_type) *
+	 Cell_o (l, prop, desc) * ((l, "@primitiveValue") -> pv) *
+	 (#i == num_to_int (string_to_num prop)) * (! IsStringIndex(pv, prop, #i)) *
+     (! (desc == None));
+
+(*
  * Predicate: ErrorObject(l, pr)
  *
  * Resource:
@@ -139,22 +177,71 @@ pred Pi (l, prop, lcls, d, ls, ltf, lpv) :
  *		(l, "@class")   via isClass
  *		(l, "@proto")	(l, "prop")
  *)
-pred Pi (l, prop, lcls, $$undefined, ls, ltf, lpv) :
-    types(l : $$object_type, prop : $$string_type, #cls : $$string_type, lcls : $$list_type, ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
-	((l, "@proto") -> $$null) * ((l, "@class") -> #cls) *
-	isClass (#cls, "Non-String") * Cell_o (l, prop, None) *
-    (lcls == {{ #cls }}) * (ls == {{ l }}) * (ltf == {{ $$f }}) * (lpv == {{ "" }});
-
-(*
- * Resource:
- *		(l, "@class")   via isClass
- *		(l, "@proto")	(l, "prop")
- *)
 pred Pi (l, prop, lcls, d, ls, ltf, lpv) :
     types(l : $$object_type, prop : $$string_type, #cls : $$string_type, lcls : $$list_type, d : $$list_type, ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
 	((l, "@class") -> #cls) *
 	isClass (#cls, "Non-String") * Cell_o (l, prop, d) * (! (d == None)) *
     (lcls == {{ #cls }}) * (ls == {{ l }}) * (ltf == {{ $$f }}) * (lpv == {{ "" }});
+    
+(*
+ * Resource:
+ *		(l, "@class")   via isClass
+ *		(l, "@proto")	(l, "prop")
+ *)
+pred Pi (l, prop, lcls, $$undefined, ls, ltf, lpv) :
+    types(l : $$object_type, prop : $$string_type, #cls : $$string_type, lcls : $$list_type, ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
+	((l, "@proto") -> $$null) * ((l, "@class") -> #cls) *
+	isClass (#cls, "Non-String") * Cell_o (l, prop, None) *
+    (lcls == {{ #cls }}) * (ls == {{ l }}) * (ltf == {{ $$f }}) * (lpv == {{ "" }});
+    
+(*
+ * Resource:
+ *		(l, "@class")   via isClass
+ *		(l, "@proto")	(l, "prop")		(l, "@primitiveValue")
+ *)
+pred Pi (l, prop, lcls, $$undefined, ls, ltf, lpv) :
+    types(l : $$object_type, prop : $$string_type, #cls : $$string_type, lcls : $$list_type, ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
+	((l, "@proto") -> $$null) * ((l, "@class") -> #cls) *
+    isClass (#cls, "String") * Cell_s (l, prop, "None", None, #pv) *
+    (lcls == {{ #cls }}) * (ls == {{ l }}) * (ltf == {{ $$t }}) * (lpv == {{ #pv }});
+
+(*
+ * Resource:
+ *		(l, "@class")   via isClass
+ *		(l, "@proto")	(l, "prop")		(l, "@primitiveValue")
+ *)
+pred Pi (l, prop, lcls, d, ls, ltf, lpv) :
+    types(l : $$object_type, prop : $$string_type, #cls : $$string_type, lcls : $$list_type, d : $$list_type, ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
+	((l, "@class") -> #cls) *
+	isClass (#cls, "String") * Cell_s (l, prop, "SI", d, #pv) *
+	(lcls == {{ #cls }}) * (ls == {{ l }}) * (ltf == {{ $$t }}) * (lpv == {{ #pv }});
+
+(*
+ * Resource:
+ *		(l, "@class")   via isClass
+ *		(l, "@proto")	(l, "prop")		(l, "@primitiveValue")
+ *)
+pred Pi (l, prop, lcls, d, ls, ltf, lpv) :
+    types(l : $$object_type, prop : $$string_type, #cls : $$string_type, lcls : $$list_type, d : $$list_type, ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
+	((l, "@class") -> #cls) *
+	isClass (#cls, "String") * Cell_s (l, prop, "NSI", d, #pv) *
+    (lcls == {{ #cls }}) * (ls == {{ l }}) * (ltf == {{ $$t }}) * (lpv == {{ #pv }});
+
+(*
+ * Resource:
+ *		(l, "@class")   via isClass
+ *		(l, "@proto")	(l, "prop")		(l, "@primitiveValue")
+ *
+ *		Those five fields captured throughout the chain
+ *)
+pred Pi (l, prop, lcls, d, ls, ltf, lpv) :
+    types(l : $$object_type, prop : $$string_type, lcls : $$list_type, ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
+	types(#lp : $$object_type, #cls : $$string_type, #pcls : $$list_type, #lsp : $$list_type, #ltfp : $$list_type, #lpvp : $$list_type) *
+	((l, "@class") -> #cls) * ((l, "@proto") -> #lp) * (! (#lp == $$null)) *
+	isClass (#cls, "String") * Cell_s (l, prop, "None", None, #pv) *
+    Pi (#lp, prop, #pcls, d, #lsp, #ltfp, #lpvp) *
+	(lcls == #cls :: #pcls) * (ls == l :: #lsp) * (ltf == $$t :: #ltfp) * (lpv == #pv :: #lpvp) *
+    (0 <# l-len #lsp) * (0 <# l-len #ltfp) * (0 <# l-len #lpvp);
 
 (* *************
  * COPY_OBJECT *
@@ -1545,20 +1632,29 @@ with
    *** O__GETOWNPROPERTY ***
    ************************* *)
 
+(*
+ *    Name: o__getOwnProperty 
+ * Purpose: Get own property of a non-String object
+ *
+ *   Specs:
+ *
+ * 01 - Property not defined, return undefined
+ * 02 - Property defined, return property descriptor
+ *
+ *)
+
 spec o__getOwnProperty (l, prop)
 
     [[ (l == #l) * (prop == #prop) *
 	   types (#l : $$object_type, #prop : $$string_type) *
 	   Cell_o (#l, #prop, None) ]]
-    [[ Cell_o (#l, #prop, None) *
-	   (ret == $$undefined) ]]
+    [[ Cell_o (#l, #prop, None) * (ret == $$undefined) ]]
     normal;
 
     [[ (l == #l) * (prop == #prop) *
 	   types (#l : $$object_type, #prop : $$string_type, #dx : $$list_type) *
 	   Cell_o (#l, #prop, #dx) ]]
-    [[ Cell_o (#l, #prop, #dx) *
-	   (ret == #dx) ]]
+    [[ Cell_o (#l, #prop, #dx) * (ret == #dx) ]]
     normal
 
 proc o__getOwnProperty (l, prop) {
@@ -1577,9 +1673,87 @@ with
     ret: 	xret, rlab;
 };
 
+(* *************************
+   *** S__GETOWNPROPERTY ***
+   ************************* *)
+
+(*
+ *    Name: o__getOwnProperty 
+ * Purpose: Get own property of a String object
+ *
+ *   Specs:
+ *
+ * 01 - Property not defined and not a string index, return undefined
+ * 02 - Property defined as a string index, return property descriptor
+ * 03 - Property defined as a non-string index, return property descriptor
+ *
+ *)
+
+spec s__getOwnProperty (l, prop)
+
+    [[ (l == #l) * (prop == #prop) *
+	   Cell_s (#l, #prop, "None", None, #pv) ]]
+    [[ Cell_s (#l, #prop, "None", None, #pv) *
+	   (ret == $$undefined) ]]
+   	normal;
+
+   	[[ (l == #l) * (prop == #prop) *
+	   Cell_s (#l, #prop, "SI", #u, #pv) ]]
+   	[[ Cell_s (#l, #prop, "SI", #u, #pv) *
+	   (ret == #u) ]]
+   	normal;
+
+   	[[ (l == #l) * (prop == #prop) *
+	   Cell_s (#l, #prop, "NSI", #u, #pv) ]]
+   	[[ Cell_s (#l, #prop, "NSI", #u, #pv) *
+	   (ret == #u) ]]
+   	normal
+
+proc s__getOwnProperty (l, prop) {
+
+   			xret := "o__getOwnProperty" (l, prop);
+   			goto [xret = $$undefined] str rlab;
+
+   	str:	idx := "i__toInteger" (prop) with elab;
+   			goto [0 <= idx] next rlab;
+
+   	next:	sidx := "i__toString" (idx);
+
+   			goto [sidx = prop] index rlab;
+
+   	index:	str := [l, "@primitiveValue"];
+   			len := s-len (str);
+   			goto [len <= idx] rlab return;
+
+   	return: rstr := s-nth (str, idx);
+   			xret := {{ "d", rstr, $$f, $$t, $$f }};
+
+   	rlab: 	skip;
+   	elab:	skip
+}
+with
+{
+    ret: 	xret, rlab;
+   	err: 	xret, elab;
+};
+
 (* **********************
    *** GETOWNPROPERTY ***
    ********************** *)
+
+(*
+ *    Name: getOwnProperty 
+ * Purpose: Get own property of a (general) object
+ *
+ *   Specs:
+ *
+ * 01 - Non-string object, property not defined, return undefined
+ * 02 - Non-string object, property defined, return property descriptor
+ * 03 - String object, property not defined and not a string index, return undefined
+ * 04 - String object, property defined as a string index, return property descriptor
+ * 05 - String object, property defined as a non-string index, return property descriptor
+ *
+ *)
 
 spec getOwnProperty (l, prop)
 
@@ -1595,7 +1769,28 @@ spec getOwnProperty (l, prop)
 	   Cell_o (#l, #prop, #dx) * ((#l, "@class") -> #cls) * isClass(#cls, "Non-String") ]]
     [[ Cell_o (#l, #prop, #dx) * ((#l, "@class") -> #cls) * isClass(#cls, "Non-String") *
 	   (ret == #dx) ]]
-    normal
+    normal;
+    
+    [[ (l == #l) * (prop == #prop) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type) *
+	   Cell_s (#l, #prop, "None", None, #pv) * ((#l, "@class") -> #cls) * isClass(#cls, "String") ]]
+    [[ Cell_s (#l, #prop, "None", None, #pv) * ((#l, "@class") -> #cls) * isClass(#cls, "String") *
+	   (ret == $$undefined) ]]
+   	normal;
+
+   	[[ (l == #l) * (prop == #prop) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #u : $$list_type) *
+	   Cell_s (#l, #prop, "SI", #u, #pv) * ((#l, "@class") -> #cls) * isClass(#cls, "String") ]]
+   	[[ Cell_s (#l, #prop, "SI", #u, #pv) * ((#l, "@class") -> #cls) * isClass(#cls, "String") *
+	   (ret == #u) ]]
+   	normal;
+
+   	[[ (l == #l) * (prop == #prop) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #u : $$list_type) *
+	   Cell_s (#l, #prop, "NSI", #u, #pv) * ((#l, "@class") -> #cls) * isClass(#cls, "String") ]]
+   	[[ Cell_s (#l, #prop, "NSI", #u, #pv) * ((#l, "@class") -> #cls) * isClass(#cls, "String") *
+	   (ret == #u) ]]
+   	normal
 
 proc getOwnProperty (l, prop) {
 
@@ -1621,6 +1816,15 @@ with
    *** GETPROPERTY ***
    ******************* *)
 
+(*
+ *    Name: getProperty 
+ * Purpose: Get property of a (general) object in the entire prototype chain
+ *
+ *   Specs:
+ *
+ * 01 - Get the heap value associated with the appropriate Pi (7 unfoldings)
+ *)
+
 spec getProperty (l, prop)
 
 	[[ (l == #l) * (prop == #prop) *
@@ -1632,11 +1836,6 @@ spec getProperty (l, prop)
 proc getProperty (l, prop) {
 
 			[* unfold Pi (#l, #prop, #gp_aux_0, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4) *]
-    ch0:	goto [typeOf(l) = $$object_type] ch1 elab;
-    ch1:	goto [typeOf(prop) = $$string_type] ch2 elab;
-    ch2:	goto [not (prop = "")] ch3 elab;
-    ch3:	goto [not (s-nth(prop, 0) = "@")] start elab;
-
 	start:	xret := "getOwnProperty" (l, prop) with elab;
 			goto [xret = $$undefined] next rlab;
 
@@ -1659,18 +1858,28 @@ with
 (* GET *)
 (* *** *)
 
-spec get (l, prop)
+(*
+ *    Name: get 
+ * Purpose: Get the value of a property of a (general) object in the entire prototype chain
+ *
+ *   Specs:
+ *
+ * 01 - Property not defined in the prototype chain, return undefined (4 unfoldings)
+ * 02 - Property defined, get value of the descriptor (7 unfoldings)
+ *)
 
-    [[ (l == #l) * (prop == #prop) *
-	   types (#l : $$object_type, #prop : $$string_type) *
-	   Pi (#l, #prop, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (#g_aux_1 == $$undefined) ]]
-    [[ Pi (#l, #prop, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (#g_aux_1 == $$undefined) * (ret == $$undefined) ]]
-    normal;
+spec get (l, prop)
 
     [[ (l == #l) * (prop == #prop) *
 	   types (#l : $$object_type, #prop : $$string_type) *
 	   Pi (#l, #prop, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * DataDescriptor (#g_aux_1) ]]
     [[ Pi (#l, #prop, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * desc_val (#g_aux_1, #desc_val) * (ret == #desc_val) ]]
+    normal;
+
+    [[ (l == #l) * (prop == #prop) *
+	   types (#l : $$object_type, #prop : $$string_type) *
+	   Pi (#l, #prop, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (#g_aux_1 == $$undefined) ]]
+    [[ Pi (#l, #prop, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (#g_aux_1 == $$undefined) * (ret == $$undefined) ]]
     normal
 
 proc get (l, prop) {
@@ -1701,25 +1910,31 @@ with
 (* GETVALUE *)
 (* ******** *)
 
-spec i__getValue (v)
+(*
+ *    Name: getValue
+ * Purpose: Get the value of SOMETHING
+ *
+ *   Specs:
+ *
+ * 01-06 - Something is not a reference, just return something
+ * 07 - Object reference, undefined
+ * 08 - Object reference, defined
+ * 09 - Variable reference, lg, undefined
+ * 10 - Variable reference, lg, defined
+ * 11 - Variable reference, non-lg, directly from the heap
+ * 12-13 - Base undefined for both variable and object references, return a reference error 
+ *)
 
-    [[ (v == {{ "o", #obj, #field }}) * types (#obj : $$object_type, #field : $$string_type) * isNamedProperty(#field) *
-       Pi (#obj, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (#g_aux_1 == $$undefined) ]]
-    [[ Pi (#obj, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (ret == $$undefined) ]]
-    normal;
+spec i__getValue (v)
 
     [[ (v == {{ "o", #obj, #field }}) * types (#obj : $$object_type, #field : $$string_type) * isNamedProperty(#field) *
        Pi (#obj, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * DataDescriptor (#g_aux_1)  ]]
     [[ Pi (#obj, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * desc_val (#g_aux_1, #desc_val) * (ret == #desc_val) ]]
     normal;
 
-    [[ v == $$null ]]
-    [[ ret == $$null ]]
-    normal;
-
-    [[ (v == {{ "v", $lg, #field }}) * types (#field : $$string_type) * isNamedProperty(#field) *
-       Pi ($lg, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (#g_aux_1 == $$undefined) ]]
-    [[ Pi ($lg, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (ret == $$undefined) ]]
+    [[ (v == {{ "v", #obj, #field }}) * (! (#obj == $lg)) * ((#obj, #field) -> #value) * isNamedProperty(#field) *
+       types (#obj : $$object_type, #field : $$string_type) ]]
+    [[ ((#obj, #field) -> #value) * (ret == #value) ]]
     normal;
 
     [[ (v == {{ "v", $lg, #field }}) * types (#field : $$string_type) * isNamedProperty(#field) *
@@ -1727,9 +1942,18 @@ spec i__getValue (v)
     [[ Pi ($lg, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * desc_val (#g_aux_1, #desc_val) * (ret == #desc_val) ]]
     normal;
 
-    [[ (v == {{ "v", #obj, #field }}) * (! (#obj == $lg)) * ((#obj, #field) -> #value) * isNamedProperty(#field) *
-       types (#obj : $$object_type, #field : $$string_type) ]]
-    [[ ((#obj, #field) -> #value) * (ret == #value) ]]
+    [[ (v == {{ "o", #obj, #field }}) * types (#obj : $$object_type, #field : $$string_type) * isNamedProperty(#field) *
+       Pi (#obj, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (#g_aux_1 == $$undefined) ]]
+    [[ Pi (#obj, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (ret == $$undefined) ]]
+    normal;
+
+    [[ (v == {{ "v", $lg, #field }}) * types (#field : $$string_type) * isNamedProperty(#field) *
+       Pi ($lg, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (#g_aux_1 == $$undefined) ]]
+    [[ Pi ($lg, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) * (ret == $$undefined) ]]
+    normal;
+
+    [[ v == $$null ]]
+    [[ ret == $$null ]]
     normal;
 
     [[ (v == #v) * types (#v : $$object_type) ]]
@@ -1750,7 +1974,15 @@ spec i__getValue (v)
 
     [[ v == $$undefined ]]
     [[ ret == $$undefined ]]
-    normal
+    normal;
+    
+	[[ (v == {{ "o", $$undefined, #field }}) * types (#field : $$string_type) * isNamedProperty(#field) ]]
+    [[ isReferenceError(ret) ]]
+    error;
+    
+	[[ (v == {{ "v", $$undefined, #field }}) * types (#field : $$string_type) * isNamedProperty(#field) ]]
+    [[ isReferenceError(ret) ]]
+    error
 
 proc i__getValue (v) {
 
@@ -1769,8 +2001,8 @@ proc i__getValue (v) {
 	is_pr:	xret := "i__toObject" (rbase) with elab;
 			xret := "getProperty" (xret, rfield) with elab;
 			goto [xret = $$undefined] rlab def;
-	def:	d := l-nth (xret, 0);						(* Get the descriptor type *)
-			xret := l-nth (xret, 1);					(* Get the value/getter *)
+	def:	d := l-nth (xret, 0);					(* Get the descriptor type *)
+			xret := l-nth (xret, 1);				(* Get the value/getter *)
 			goto [d = "d"] rlab acc;				(* Is it a data descriptor? *)
 
 	acc:	goto [xret = $$undefined] rlab get;		(* Is the getter defined? *)

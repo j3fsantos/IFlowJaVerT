@@ -671,7 +671,9 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 					if does_this_work 
 						then perform_substitution v le2 n (save_all_lvars || String.get v 0 = '#')
 						else pfs_false "Nasty type mismatch: var -> lit"
-				| LVar v, _ when (isSubstitutable le2) ->
+				| LVar v, le2 when 
+						(isSubstitutable le2 && 
+							not (let le_vars = get_logic_expression_lvars le2 in SS.mem v le_vars)) ->
 					perform_substitution v le2 n (save_all_lvars || String.get v 0 = '#')
 					
 				(* LIST LENGTH *)
@@ -940,7 +942,11 @@ let rec simplify_for_your_legacy exists others (symb_state : symbolic_state) : s
 				(match le1, le2 with
 				(* VARIABLES *)
 				| LVar v, le 
-				| le, LVar v -> perform_substitution v le n
+				| le, LVar v -> 
+					let le_vars = get_logic_expression_lvars le in
+					(match (SS.mem v le_vars) with
+					| true -> go_through_pfs rest (n + 1)
+					| false -> perform_substitution v le n)
 					
 				(* List length *)
 				| LLit (Num len), LUnOp (LstLen, LVar v)
@@ -1503,41 +1509,45 @@ let simplify_symb_state
 				
 				(* Variable and something else *)
 				| LVar v, le 
-				| le, LVar v ->					
-					(* Changes made, stay on n *)
-					changes_made := true;
-					DynArray.delete pfs !n;
-					
-					(* Substitute *)
-					let temp_subst = Hashtbl.create 1 in
-					Hashtbl.add temp_subst v le;
-					symb_state_substitution_in_place_no_gamma !symb_state temp_subst;
-    			pf_substitution_in_place !others temp_subst;
-					
-					(* Add to subst *)
-					if (Hashtbl.mem subst v) then 
-						raise (Failure (Printf.sprintf "Impossible variable in subst: %s\n%s"
-							v (JSIL_Memory_Print.string_of_substitution subst)));
-					Hashtbl.iter (fun v' le' ->
-						let sb = Hashtbl.create 1 in
-							Hashtbl.add sb v le;
-							let sa = lexpr_substitution le' sb true in
-								Hashtbl.replace subst v' sa) subst;
-					Hashtbl.replace subst v le;
-					
-					(* Remove from gamma *)
-					(match (save_all || SS.mem v (SS.union vars_to_save !exists)) with
-      		| true -> ()
-      		| false -> 
-    					while (Hashtbl.mem gamma v) do 
-    						let t = Hashtbl.find gamma v in
-    						let it = type_index t in
-    						types.(it) <- types.(it) - 1;
-    						Hashtbl.remove gamma v 
-    					done);
-					
-					(* Remove from existentials *)
-					exists := SS.remove v !exists
+				| le, LVar v ->			
+					let lvars_le = get_logic_expression_lvars le in
+					(match (SS.mem v lvars_le) with
+					| true -> n := !n + 1
+					| false -> 		
+						(* Changes made, stay on n *)
+						changes_made := true;
+						DynArray.delete pfs !n;
+						
+						(* Substitute *)
+						let temp_subst = Hashtbl.create 1 in
+						Hashtbl.add temp_subst v le;
+						symb_state_substitution_in_place_no_gamma !symb_state temp_subst;
+	    			pf_substitution_in_place !others temp_subst;
+						
+						(* Add to subst *)
+						if (Hashtbl.mem subst v) then 
+							raise (Failure (Printf.sprintf "Impossible variable in subst: %s\n%s"
+								v (JSIL_Memory_Print.string_of_substitution subst)));
+						Hashtbl.iter (fun v' le' ->
+							let sb = Hashtbl.create 1 in
+								Hashtbl.add sb v le;
+								let sa = lexpr_substitution le' sb true in
+									Hashtbl.replace subst v' sa) subst;
+						Hashtbl.replace subst v le;
+						
+						(* Remove from gamma *)
+						(match (save_all || SS.mem v (SS.union vars_to_save !exists)) with
+	      		| true -> ()
+	      		| false -> 
+	    					while (Hashtbl.mem gamma v) do 
+	    						let t = Hashtbl.find gamma v in
+	    						let it = type_index t in
+	    						types.(it) <- types.(it) - 1;
+	    						Hashtbl.remove gamma v 
+	    					done);
+						
+						(* Remove from existentials *)
+						exists := SS.remove v !exists)
 					
 				(* List length *)
 				| LLit (Num len), LUnOp (LstLen, LVar v)

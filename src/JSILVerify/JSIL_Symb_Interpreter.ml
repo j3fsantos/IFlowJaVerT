@@ -580,7 +580,7 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 					(* Filtering existentials that still depend on existentials *)
 					Hashtbl.iter (fun v le -> 
 						let vars_le = get_logic_expression_lvars le in 
-							if (SS.inter existentials (SS.of_list vars_le) <> SS.empty) then
+							if (SS.inter existentials vars_le <> SS.empty) then
 							begin
 								print_debug (Printf.sprintf "Warning: variable %s depends on existentials" v);
 								Hashtbl.remove new_subst v;
