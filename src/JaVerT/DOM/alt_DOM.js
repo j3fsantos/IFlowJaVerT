@@ -339,6 +339,7 @@
 		InitialDOMHeap() * (ret == $$t) * 
 		Cell(#r, {{ #ctx_e, {{ "elem", #name, #en, #e_l_a, #e_l_c }} }}) * ElementNode(#en) *
 		Forest(#e_l_c, #e_c_post) * (#e_chld_post == {{ {{ "hole", #alpha }}, {{ "elem", #e_n_new, #e_new, #e_attr_new, #e_chld_new }} }}) *
+		ElementNode(#e_new) * AttributeSet(#e_attr_new, $$nil) * Forest(#e_chld_new, $$nil) *
 		DocumentNode($l_document, #d_l_elem, #d_elem, #d_l_g, #d_g) *
 		(#d_g == {{ {{ "hole", #beta }} }}) * (ret == $$t)
 	)
@@ -347,7 +348,7 @@ function createNewAttribute(grove, element){
 	var d = element.ownerDocument();
 	var e = d.createElement("test");
 	var a = allocG(grove, 0, 1);
-	/* @invariant scope(a : #zeta) * scope(e : #e2) * Cell(#zeta, #g) * (#g == {{ #ctx_any, {{ "elem", #name2, #e2, #e_l_a2, #e_l_c2 }} }}) * Forest(#e_l_c2, #e_c2) */
+	/* @invariant scope(a : #zeta) * scope(e : #e2) * Cell(#zeta, #g) * (#g == (#ctx_any :: ({{ "elem", #name2, #e2, #e_l_a2, #e_l_c2 }} :: #d_g))) * Forest(#e_l_c2, #e_c2) */
 	/* @fold complete(#e_c2) */
 	var n = element.appendChild(e);
 	deallocG(a);
