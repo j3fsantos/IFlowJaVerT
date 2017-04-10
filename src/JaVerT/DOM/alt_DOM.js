@@ -338,10 +338,10 @@
 		scope(deallocG : #deallocG) * fun_obj(deallocG, #deallocG, #deallocG_proto) *
 		InitialDOMHeap() * (ret == $$t) * 
 		Cell(#r, {{ #ctx_e, {{ "elem", #name, #en, #e_l_a, #e_l_c }} }}) * ElementNode(#en) *
-		Forest(#e_l_c, #e_c_post) * (#e_chld_post == {{ {{ "hole", #alpha }}, {{ "elem", #e_n_new, #e_new, #e_attr_new, #e_chld_new }} }}) *
+		Forest(#e_l_c, #e_c_post) * (#e_c_post == {{ {{ "hole", #alpha }}, {{ "elem", #e_n_new, #e_new, #e_attr_new, #e_chld_new }} }}) *
 		ElementNode(#e_new) * AttributeSet(#e_attr_new, $$nil) * Forest(#e_chld_new, $$nil) *
-		DocumentNode($l_document, #d_l_elem, #d_elem, #d_l_g, #d_g) *
-		(#d_g == {{ {{ "hole", #beta }} }}) * (ret == $$t)
+		DocumentNode($l_document, #d_l_elem, #d_elem, #d_l_g, #d_g_post) *
+		(#d_g_post == {{ {{ "hole", #beta }} }}) * (ret == $$t)
 	)
 */
 function createNewAttribute(grove, element){
