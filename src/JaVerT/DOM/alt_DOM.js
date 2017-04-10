@@ -348,9 +348,9 @@ function createNewAttribute(grove, element){
 	var d = element.ownerDocument();
 	var e = d.createElement("test");
 	var a = allocG(grove, 0, 1);
-	/* @invariant scope(a : #zeta) * scope(e : #e2) * Cell(#zeta, #z_g) * (#z_g == ({{ "empty", #any }} :: {{ {{ "elem", #name2, #e2, #e_l_a2, #e_l_c2 }} }} )) * Forest(#e_l_c2, #e_c2) * types(#g : $$list_type) */
+	/* @invariant scope(a : #zeta) * scope(e : #e2) * Cell(#zeta, #z_g) * (#z_g == ({{ "empty", #any }} :: {{ {{ "elem", #name2, #e2, #e_l_a2, #e_l_c2 }} }} )) * Forest(#e_l_c2, #e_c2) * types(#z_g : $$list_type) */
 	/* @fold complete(#e_c2) */
-	/* @fold GroveOrForestCtx(#g) */
+	/* @fold GroveOrForestCtx(#z_g) */
 	var n = element.appendChild(e);
 	deallocG(a);
 	return (n === e);
