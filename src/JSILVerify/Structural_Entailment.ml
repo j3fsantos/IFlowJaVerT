@@ -802,6 +802,8 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 	let subst = init_substitution [] in
 	SS.iter (fun var -> Hashtbl.replace subst var (LVar var)) lvars;
 
+	print_debug (Printf.sprintf "Current substitution: %s" (JSIL_Memory_Print.string_of_substitution subst));
+
 	(* STEP 0 - Unify stores, heaps, and predicate sets                                                                                                  *)
 	(* subst = empty substitution                                                                                                                        *)
 	(* discharges_0 = unify_stores (store_1, store_0, subst, pi_0, gamma_0)	                                                                             *)
@@ -842,11 +844,14 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 	(* pf_0 + new_pfs |-_{gamma_0'} Exists_{existentials} subst'(pf_1) + pf_list_of_discharges(discharges)                                               *)
 	let step_1 discharges subst new_pfs =
 		let start_time = Sys.time() in
+		
+		print_debug (Printf.sprintf "Current substitution again: %s" (JSIL_Memory_Print.string_of_substitution subst));
+		
 		let existentials = get_subtraction_vars (get_symb_state_vars false pat_symb_state) subst in
 		let lexistentials = SS.elements existentials in
 		let fresh_names_for_existentials = (List.map (fun v -> fresh_lvar ()) lexistentials) in
 		let subst_existentials = init_substitution2 lexistentials (List.map (fun v -> LVar v) fresh_names_for_existentials) in
-		extend_substitution subst lexistentials (List.map (fun v -> LVar v) fresh_names_for_existentials);
+		extend_substitution subst lexistentials (List.map (fun v -> LVar v) fresh_names_for_existentials);		
 		let gamma_0' =
 			if ((List.length lexistentials) > 0)
 				then (
@@ -855,7 +860,6 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 					extend_gamma gamma_0' gamma_1_existentials;
 					gamma_0')
 				else gamma_0 in
-
 		let unify_gamma_check = (unify_gamma gamma_1 gamma_0' store_1 subst existentials) in
 		let result = if (unify_gamma_check) then
 		begin
