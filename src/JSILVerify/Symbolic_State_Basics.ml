@@ -162,10 +162,14 @@ let match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : boo
 		))
 
 (* List unification *)
-let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : bool option * ((jsil_logic_expr * jsil_logic_expr) list) = 
+let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bool option * ((jsil_logic_expr * jsil_logic_expr) list) = 
 	let le1 = reduce_expression_no_store_no_gamma_no_pfs le1 in
 	let le2 = reduce_expression_no_store_no_gamma_no_pfs le2 in
+	let le1_old = le1 in
 	let le1, le2 = arrange_lists le1 le2 in
+	let to_swap_now = (le1_old <> le1) in
+	let to_swap = (to_swap <> to_swap_now) in
+	let swap (le1, le2) = if to_swap then (le2, le1) else (le1, le2) in
 	(* print_debug (Printf.sprintf "unify_lists: \n\t%s\n\t\tand\n\t%s" 
 		(print_lexpr le1) (print_lexpr le2)); *)
 	(match le1, le2 with
@@ -173,7 +177,7 @@ let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : bool optio
 	  | LLit (LList []), LLit (LList [])
 		| LLit (LList []), LEList []
 		| LEList [], LEList [] -> Some false, []
-		| LVar _, _ -> Some false, [ (le1, le2) ]
+		| LVar _, _ -> Some false, [ swap (le1, le2) ]
 		(* Inductive cases *)
 		| LLit (LList _), LLit (LList _)
 		| LLit (LList _), LEList _
@@ -195,13 +199,13 @@ let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : bool optio
 				(* Do we still have lists? *)
 				if (isList taill && isList tailr) then
 					(* Yes, move in recursively *)
-					(let ok, rest = unify_lists taill tailr in
+					(let ok, rest = unify_lists taill tailr to_swap in
 					(match ok with
 					| None -> None, []
-					| _ -> Some true, (headl, headr) :: rest))
+					| _ -> Some true, swap (headl, headr) :: rest))
 				else
 					(* No, we are done *)
-					Some true, [ (headl, headr); (taill, tailr) ]
+					Some true, [ swap (headl, headr); (taill, tailr) ]
 			(* Not enough information to separate head and tail *)
 			| Some _, Some _ -> 
 				(* This means that we have on at least one side a LstCat with a leading variable and we need to dig deeper *)
@@ -209,15 +213,15 @@ let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : bool optio
 				let ok, (ll, lr), (rl, rr) = match_lists_on_element le1 le2 in
 				(match ok with
 					| true -> 
-							let okl, left = unify_lists ll rl in
+							let okl, left = unify_lists ll rl to_swap in
 							(match okl with
 							| None -> None, []
 							| _ -> 
-								let okr, right = unify_lists lr rr in
+								let okr, right = unify_lists lr rr to_swap in
 								(match okr with
 								| None -> None, []
 								| _ -> Some true, left @ right))
-					| false -> Some false, [ (le1, le2) ])
+					| false -> Some false, [ swap (le1, le2) ])
 			(* A proper error occurred while getting head and tail *)
 			| _, _ -> None, [])
 		| _, _ ->
@@ -283,7 +287,7 @@ let unify_strings (se1 : jsil_logic_expr) (se2 : jsil_logic_expr) : bool option 
 	let se1, se2 = arrange_strings se1 se2 in
 	let lse1 = le_string_to_list se1 in
 	let lse2 = le_string_to_list se2 in
-	let ok, subst = unify_lists lse1 lse2 in
+	let ok, subst = unify_lists lse1 lse2 false in
 	let tuplef f (a,b) = (f a, f b) in
 	ok, List.map (tuplef le_list_to_string) subst
 
@@ -671,7 +675,9 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 					if does_this_work 
 						then perform_substitution v le2 n (save_all_lvars || String.get v 0 = '#')
 						else pfs_false "Nasty type mismatch: var -> lit"
-				| LVar v, _ when (isSubstitutable le2) ->
+				| LVar v, le2 when 
+						(isSubstitutable le2 && 
+							not (let le_vars = get_logic_expression_lvars le2 in SS.mem v le_vars)) ->
 					perform_substitution v le2 n (save_all_lvars || String.get v 0 = '#')
 					
 				(* LIST LENGTH *)
@@ -695,7 +701,7 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 				
 				(* LISTS *)
 				| le1, le2 when (isList le1 && isList le2) ->
-					let ok, subst = unify_lists le1 le2 in
+					let ok, subst = unify_lists le1 le2 false in
 					(match ok with
 					(* Error while unifying lists *)
 					| None -> pfs_false "List error"
@@ -940,7 +946,11 @@ let rec simplify_for_your_legacy exists others (symb_state : symbolic_state) : s
 				(match le1, le2 with
 				(* VARIABLES *)
 				| LVar v, le 
-				| le, LVar v -> perform_substitution v le n
+				| le, LVar v -> 
+					let le_vars = get_logic_expression_lvars le in
+					(match (SS.mem v le_vars) with
+					| true -> go_through_pfs rest (n + 1)
+					| false -> perform_substitution v le n)
 					
 				(* List length *)
 				| LLit (Num len), LUnOp (LstLen, LVar v)
@@ -963,7 +973,7 @@ let rec simplify_for_your_legacy exists others (symb_state : symbolic_state) : s
 				
 				(* LISTS *)
 				| le1, le2 when (isList le1 && isList le2) ->
-					let ok, subst = unify_lists le1 le2 in
+					let ok, subst = unify_lists le1 le2 false in
 					(match ok with
 					(* Error while unifying lists *)
 					| None -> pfs_false "List error"
@@ -1503,41 +1513,45 @@ let simplify_symb_state
 				
 				(* Variable and something else *)
 				| LVar v, le 
-				| le, LVar v ->					
-					(* Changes made, stay on n *)
-					changes_made := true;
-					DynArray.delete pfs !n;
-					
-					(* Substitute *)
-					let temp_subst = Hashtbl.create 1 in
-					Hashtbl.add temp_subst v le;
-					symb_state_substitution_in_place_no_gamma !symb_state temp_subst;
-    			pf_substitution_in_place !others temp_subst;
-					
-					(* Add to subst *)
-					if (Hashtbl.mem subst v) then 
-						raise (Failure (Printf.sprintf "Impossible variable in subst: %s\n%s"
-							v (JSIL_Memory_Print.string_of_substitution subst)));
-					Hashtbl.iter (fun v' le' ->
-						let sb = Hashtbl.create 1 in
-							Hashtbl.add sb v le;
-							let sa = lexpr_substitution le' sb true in
-								Hashtbl.replace subst v' sa) subst;
-					Hashtbl.replace subst v le;
-					
-					(* Remove from gamma *)
-					(match (save_all || SS.mem v (SS.union vars_to_save !exists)) with
-      		| true -> ()
-      		| false -> 
-    					while (Hashtbl.mem gamma v) do 
-    						let t = Hashtbl.find gamma v in
-    						let it = type_index t in
-    						types.(it) <- types.(it) - 1;
-    						Hashtbl.remove gamma v 
-    					done);
-					
-					(* Remove from existentials *)
-					exists := SS.remove v !exists
+				| le, LVar v ->			
+					let lvars_le = get_logic_expression_lvars le in
+					(match (SS.mem v lvars_le) with
+					| true -> n := !n + 1
+					| false -> 		
+						(* Changes made, stay on n *)
+						changes_made := true;
+						DynArray.delete pfs !n;
+						
+						(* Substitute *)
+						let temp_subst = Hashtbl.create 1 in
+						Hashtbl.add temp_subst v le;
+						symb_state_substitution_in_place_no_gamma !symb_state temp_subst;
+	    			pf_substitution_in_place !others temp_subst;
+						
+						(* Add to subst *)
+						if (Hashtbl.mem subst v) then 
+							raise (Failure (Printf.sprintf "Impossible variable in subst: %s\n%s"
+								v (JSIL_Memory_Print.string_of_substitution subst)));
+						Hashtbl.iter (fun v' le' ->
+							let sb = Hashtbl.create 1 in
+								Hashtbl.add sb v le;
+								let sa = lexpr_substitution le' sb true in
+									Hashtbl.replace subst v' sa) subst;
+						Hashtbl.replace subst v le;
+						
+						(* Remove from gamma *)
+						(match (save_all || SS.mem v (SS.union vars_to_save !exists)) with
+	      		| true -> ()
+	      		| false -> 
+	    					while (Hashtbl.mem gamma v) do 
+	    						let t = Hashtbl.find gamma v in
+	    						let it = type_index t in
+	    						types.(it) <- types.(it) - 1;
+	    						Hashtbl.remove gamma v 
+	    					done);
+						
+						(* Remove from existentials *)
+						exists := SS.remove v !exists)
 					
 				(* List length *)
 				| LLit (Num len), LUnOp (LstLen, LVar v)
@@ -1565,7 +1579,7 @@ let simplify_symb_state
 				(* List unification *)
 				| le1, le2 when (isList le1 && isList le2) ->
 					print_debug (Printf.sprintf "List unification: %s vs. %s" (print_lexpr le1) (print_lexpr le2));
-					let ok, subst = unify_lists le1 le2 in
+					let ok, subst = unify_lists le1 le2 false in
 					(match ok with
 					(* Error while unifying lists *)
 					| None -> pfs_ok := false; msg := "List error"	

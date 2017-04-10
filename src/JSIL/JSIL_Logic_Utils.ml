@@ -164,20 +164,23 @@ let get_assertion_string_number_literals a =
 		| _ :: rest -> loop rest (strings_so_far, numbers_so_far) in
 	loop lits ([], [])
 
-let rec get_logic_expression_lvars le =
-	let fe = get_logic_expression_lvars in
-	match le with
-	| LLit _ | LNone | ALoc _ | PVar _ | LUnknown -> []
-	| LVar x -> [ x ]
-	| LBinOp (le1, _, le2) | LLstNth (le1, le2) | LStrNth (le1, le2) -> (fe le1) @ (fe le2)
-	| LUnOp (_, le) |	LTypeOf le -> fe le
- 	| LEList les -> List.concat (List.map fe les)
+let rec get_logic_expression_lvars_list le =
+	let fe = get_logic_expression_lvars_list in
+		match le with
+		| LLit _ | LNone | ALoc _ | PVar _ | LUnknown -> []
+		| LVar x -> [ x ]
+		| LBinOp (le1, _, le2) | LLstNth (le1, le2) | LStrNth (le1, le2) -> (fe le1) @ (fe le2)
+		| LUnOp (_, le) |	LTypeOf le -> fe le
+	 	| LEList les -> List.concat (List.map fe les)
+
+let get_logic_expression_lvars le =
+	SS.of_list (get_logic_expression_lvars_list le)
 
 let get_assertion_lvars a : JSIL_Syntax.SS.t = 
 	
 	let rec get_assertion_lvars_list a =
 		let f = get_assertion_lvars_list in
-		let fe = get_logic_expression_lvars in
+		let fe = get_logic_expression_lvars_list in
 		match a with
 		| LTrue | LFalse | LEmp | LTypes _ -> []
 		| LNot a -> f a

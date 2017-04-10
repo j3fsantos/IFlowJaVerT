@@ -885,15 +885,15 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
 
 				(* L-Var Check *)
 				let anti_frame_logical_variables = get_symb_state_vars false anti_frame in
-				let spec_logical_varaibles = spec.n_lvars in 
+				let spec_logical_variables = spec.n_lvars in 
 				let expression_logical_variables = get_logic_expression_lvars le in
 				let lvars_not_in_spec_or_af = List.filter 
 					(fun var ->
  						let in_anti_frame = SS.mem var anti_frame_logical_variables in
- 						let in_spec = SS.mem var spec_logical_varaibles in
+ 						let in_spec = SS.mem var spec_logical_variables in
  						((not in_anti_frame) && (not in_spec))
  					) 
-					expression_logical_variables in
+					(SS.elements expression_logical_variables) in
 				if (List.length lvars_not_in_spec_or_af > 0) then
 					raise (Failure "Logical Variables of expression not contained within the spec or anti_frame");
 
