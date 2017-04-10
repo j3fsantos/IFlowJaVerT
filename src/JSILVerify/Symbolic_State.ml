@@ -456,6 +456,17 @@ let symb_state_replace_pfs symb_state new_pfs =
 	(heap, store, new_pfs, gamma, preds (*, solver *))
 
 
+let remove_concrete_values_from_the_store symb_state = 
+	Hashtbl.filter_map_inplace (fun x le -> 
+		match le with 
+		| LLit lit ->
+			let new_l_var = fresh_lvar () in
+			add_pure_assertion (get_pf symb_state) (LEq (LVar new_l_var, le));
+			Some (LVar new_l_var)
+		| _ -> 
+			Some le) (get_store symb_state)
+
+
 (****************************************)
 (** Normalised Specifications          **)
 (****************************************)

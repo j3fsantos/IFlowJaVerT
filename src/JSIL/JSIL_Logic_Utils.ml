@@ -658,7 +658,7 @@ let rec type_lexpr gamma le =
 	let f = type_lexpr gamma in
 	let result = (match le with
 	(* Literals are always typable *)
-  | LLit lit -> (Some (evaluate_type_of lit), true, [])
+  	| LLit lit -> (Some (evaluate_type_of lit), true, [])
 
 	(* Variables are typable if in gamma, otherwise no no *)
 	| LVar var
@@ -668,14 +668,14 @@ let rec type_lexpr gamma le =
 		| None   -> None,   true, [])
 
 	(* Abstract locations are always typable, by construction *)
-  | ALoc _ -> Some ObjectType, true, []
+	| ALoc _ -> Some ObjectType, true, []
 
-  (* If what we're trying to type is typable, we should get a type back.*)
+  	(* If what we're trying to type is typable, we should get a type back.*)
 	| LTypeOf le ->
 		let tle, itle, constraints = f le in
 		if (itle) then (Some TypeType, true, constraints) else (None, false, [])
 
-  (* LEList *)
+  	(* LEList *)
 	| LEList les ->
 		let all_typable, constraints =
 			(List.fold_left
@@ -686,8 +686,13 @@ let rec type_lexpr gamma le =
 				les) in
 			if (all_typable) then (Some ListType, true, constraints) else (None, false, [])
 
-  | LUnOp (unop, e) ->
+ 	| LUnOp (unop, e) ->
 		let (te, ite, constraints) = f e in
+		Printf.printf "trying to type a not. got the following. te: %s. ite: %s." 
+			(match te with 
+  					| Some te -> JSIL_Print.string_of_type te
+  					| None    -> "")
+			(string_of_bool ite);
 		let tt t1 t2 new_constraints =
 			if_some te 
 				(fun t -> if (t = t1)
@@ -697,24 +702,29 @@ let rec type_lexpr gamma le =
 		if (ite) then
   		(match unop with
 			(* Boolean to Boolean  *)
-  		| Not -> tt BooleanType BooleanType []
+  		| Not -> 
+  			(Printf.printf "typing the jsil not. t: %s." 
+  				(match te with 
+  					| Some te -> JSIL_Print.string_of_type te
+  					| None    -> ""); 
+  			tt BooleanType BooleanType [])
 			(* Number to Number    *)
   		| UnaryMinus	| BitwiseNot	| M_sgn			| M_abs	| M_acos
-      | M_asin			| M_atan			| M_ceil		| M_cos	| M_exp
-      | M_floor			| M_log				| M_round		| M_sin	| M_sqrt
-			| M_tan  -> tt NumberType NumberType []
+ 	    | M_asin			| M_atan			| M_ceil		| M_cos	| M_exp
+      	| M_floor			| M_log				| M_round		| M_sin	| M_sqrt
+		| M_tan  -> tt NumberType NumberType []
 			(* Number to Int       *)
   		| ToIntOp			| ToUint16Op	| ToInt32Op	| ToUint32Op -> tt NumberType NumberType []
   		(* Number to String    *)
-			| ToStringOp -> tt NumberType StringType []
+		| ToStringOp -> tt NumberType StringType []
 			(* String to Number    *)
   		| ToNumberOp -> tt StringType NumberType []
 			(* Anything to Boolean *)
-      | IsPrimitive -> (Some BooleanType, true, constraints)
+      	| IsPrimitive -> (Some BooleanType, true, constraints)
 			(* List to List -> generates constraint *)
-			| Cdr ->
-				let new_constraint = (LNot (LLess (LUnOp (LstLen, e), (LLit (Num 1.))))) in
-				tt ListType ListType [ new_constraint ]
+		| Cdr ->
+			let new_constraint = (LNot (LLess (LUnOp (LstLen, e), (LLit (Num 1.))))) in
+			tt ListType ListType [ new_constraint ]
 			(* List to Anything -> generates constraint *)
       | Car ->
 				let new_constraint = (LNot (LLess (LUnOp (LstLen, e), (LLit (Num 1.))))) in
@@ -733,7 +743,7 @@ let rec type_lexpr gamma le =
 		let (te2, ite2, constraints2) = f e2 in
 		let constraints = constraints1 @ constraints2 in
 
-		let all_types = [ UndefinedType; NullType; EmptyType; BooleanType; NumberType; StringType; ObjectType; ListType; TypeType ] in
+		let all_types = [ UndefinedType; NullType; EmptyType; BooleanType; NumberType; StringType; ObjectType; ListType; TypeType; NoneType ] in
 		let check_valid_type t types ret_type new_constraints =
 			let is_t_in_types = List.mem t types in
 			if (is_t_in_types)
@@ -751,7 +761,12 @@ let rec type_lexpr gamma le =
 				| _     -> Printf.printf "type_lexpr: op: %s, t: none\n"  (JSIL_Print.string_of_binop op); raise (Failure "ERROR"))
 			| true -> 
 			(match op with
-			| Equal -> check_valid_type t1 all_types BooleanType []
+			| Equal -> 
+				(	
+					Printf.printf "typing the jsil equality. t1: %s. t2: %s.\n"
+						(JSIL_Print.string_of_type t1) (JSIL_Print.string_of_type t2); 
+					check_valid_type t1 all_types BooleanType []
+				)
 			| LessThan | LessThanEqual -> check_valid_type t1 [ NumberType ] BooleanType []
 			| LessThanString -> check_valid_type t1 [ StringType ] BooleanType []
 			| Plus	| Minus	| Times	| Mod -> check_valid_type t1 [ NumberType ] t1 []

@@ -275,6 +275,8 @@ let symb_evaluate_bcmd (bcmd : jsil_basic_cmd) (symb_state : symbolic_state) (an
 			(match ne1 with
 			| LLit (Loc l)
 			| ALoc l -> l
+			| LLit _ -> 
+				raise (Failure (Printf.sprintf "Lookup: %s is not a location" (print_le ne1)))
 			| _ -> 
 				let new_loc, anything = create_new_location ne1 symb_state anti_frame in
 				DynArray.add pure_formulae (LNot (LEq (LVar anything, LNone)));
@@ -306,7 +308,9 @@ let symb_evaluate_bcmd (bcmd : jsil_basic_cmd) (symb_state : symbolic_state) (an
 		let l = 
 			(match ne1 with
 				| LLit (Loc l)
-				| ALoc l -> l	
+				| ALoc l -> l
+				| LLit _ -> 
+					raise (Failure (Printf.sprintf "Lookup: %s is not a location" (print_le ne1)))	
 				| _ -> 
 					let new_loc, anything = create_new_location ne1 symb_state anti_frame in
 					new_loc) in
@@ -329,6 +333,8 @@ let symb_evaluate_bcmd (bcmd : jsil_basic_cmd) (symb_state : symbolic_state) (an
 			(match ne1 with
 			| LLit (Loc l)
 			| ALoc l -> l
+			| LLit _ -> 
+				raise (Failure (Printf.sprintf "Lookup: %s is not a location" (print_le ne1)))
 			| _ -> 
 				let new_loc, anything = create_new_location ne1 symb_state anti_frame in
 				(* Symbolic_State_Functions.update_abs_heap anti_heap new_loc ne2 (LVar anything) pure_formulae gamma; *)
@@ -397,6 +403,8 @@ let symb_evaluate_bcmd (bcmd : jsil_basic_cmd) (symb_state : symbolic_state) (an
 					update_gamma gamma l_x (Some BooleanType);
 					LVar l_x 
 				)
+		| LLit _ -> 
+				raise (Failure (Printf.sprintf "Lookup: %s is not a location" (print_le ne1)))
 		| _ -> 
 			let new_loc, z = create_new_location ne1 symb_state anti_frame in
 			Symbolic_State_Functions.update_abs_heap anti_heap new_loc ne2 (LVar z) pure_formulae gamma; 
@@ -887,21 +895,26 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
  					) 
 					expression_logical_variables in
 				if (List.length lvars_not_in_spec_or_af > 0) then
-					raise (Failure "Logical Variables of expression not contained within the spec or anti_frame")
+					raise (Failure "Logical Variables of expression not contained within the spec or anti_frame");
 
-				(* Then Branch *)
+				(* Then Branch  
+				Printf.printf (
+					String.concat ", "
+					(List.map 
+						(fun a -> JSIL_Print.string_of_logic_assertion a false)
+						a_le_then)); *)
 				extend_symb_state_with_pfs then_symb_state (DynArray.of_list a_le_then);
 				extend_symb_state_with_pfs then_anti_frame (DynArray.of_list a_le_then);
+				print_symb_state_and_cmd then_symb_state then_anti_frame;
 				let then_result_states = 
 						symb_evaluate_next_cmd s_prog proc spec then_search_info then_symb_state then_anti_frame i j in
-				print_symb_state_and_cmd then_symb_state then_anti_frame;
 
 				(* Else Branch *)
 				extend_symb_state_with_pfs else_symb_state (DynArray.of_list a_le_else);
 				extend_symb_state_with_pfs else_anti_frame (DynArray.of_list a_le_else);
+				print_symb_state_and_cmd else_symb_state else_anti_frame;
 				let else_result_states = 
 						symb_evaluate_next_cmd s_prog proc spec else_search_info else_symb_state else_anti_frame i k in
-				print_symb_state_and_cmd else_symb_state else_anti_frame;
 
 				then_result_states @ else_result_states
 			)
@@ -1195,15 +1208,19 @@ let add_new_spec spec proc_name pre_post result_states new_spec_tbl =
 					(* The new precondition = old precondition * anti frame *)
 					(* The new postconition is the final state after evaluation *)
 					let new_pre  =  Symbolic_State_Functions.bi_merge_symb_states anti_frame pre_post.n_pre in 
+					remove_concrete_values_from_the_store new_pre; 
 					let new_pre_with_subst = Symbolic_State_Functions.convert_lvars_to_spec_vars new_pre in
 					let new_post_with_subst = Symbolic_State_Functions.convert_lvars_to_spec_vars post_state in
+					Simplifications.naively_infer_type_information_symb_state new_pre_with_subst; 
+					Simplifications.naively_infer_type_information_symb_state new_post_with_subst; 
 					let post_lvars = Symbolic_State_Functions.get_symb_state_lvars new_pre_with_subst in
+					print_endline "Pre Spec Vars";
 					let pre_lvars = Symbolic_State_Functions.get_symb_state_lvars new_post_with_subst in
 					let new_proc_spec = {
 						n_pre        = new_pre_with_subst;
 						n_post       = [new_post_with_subst];
 						n_ret_flag   = ret_flag;
-						n_lvars      = SS.union post_lvars pre_lvars;
+						n_lvars      = pre_lvars;
 						n_post_lvars = [post_lvars];
 						n_subst      = Hashtbl.create small_tbl_size
 					}  in

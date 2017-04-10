@@ -306,6 +306,52 @@ let bi_unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_f
 
 
 
+
+let bi_unify_gamma pat_gamma gamma pat_store subst (ignore_vars : SS.t) =
+	print_debug (Printf.sprintf "I am about to bi-unify two gammas\n");
+ 	print_debug (Printf.sprintf "pat_gamma: %s.\ngamma: %s.\nsubst: %s\n"
+		(JSIL_Memory_Print.string_of_gamma pat_gamma) (JSIL_Memory_Print.string_of_gamma gamma)
+		(JSIL_Memory_Print.string_of_substitution subst));
+	let start_time = Sys.time () in
+
+	let new_gamma = mk_gamma () in 
+	let res = (Hashtbl.fold
+		(fun x x_type ac ->
+			print_debug (Printf.sprintf "pat_var: (%s : %s) " x (JSIL_Print.string_of_type x_type));
+			(* (not (is_lvar_name var)) *)
+			(if ((SS.mem x ignore_vars) && ac)
+				then ac
+				else
+					try
+						let le =
+							(if (is_lvar_name x)
+								then Hashtbl.find subst x
+								else
+									(match (store_get_safe pat_store x) with
+									| Some le -> JSIL_Logic_Utils.lexpr_substitution le subst true
+									| None -> (PVar x))) in
+						print_debug (Printf.sprintf "found value: %s" (JSIL_Print.string_of_logic_expression le false));
+						let le_type, is_typable, _ = JSIL_Logic_Utils.type_lexpr gamma le in
+						match le_type with
+						| Some le_type ->
+							  print_debug (Printf.sprintf "unify_gamma. pat gamma var: %s. le: %s. v_type: %s. le_type: %s"
+								x (JSIL_Print.string_of_logic_expression le false) (JSIL_Print.string_of_type x_type) (JSIL_Print.string_of_type le_type));
+							(le_type = x_type)
+						| None ->
+							print_debug (Printf.sprintf "could not unify_gamma. pat gamma var: %s. le: %s. v_type: %s"
+								x (JSIL_Print.string_of_logic_expression le false) (JSIL_Print.string_of_type x_type));
+							(reverse_type_lexpr_aux gamma new_gamma le x_type)
+					with _ ->
+						false))
+		pat_gamma
+		true) in
+	print_debug (Printf.sprintf "\nEXITING unify_gamma: res: %b\n\n" res);
+	let end_time = Sys.time () in
+	JSIL_Syntax.update_statistics "unify_gamma" (end_time -. start_time);
+	if (res) then Some new_gamma else None
+
+
+
 let bi_unify_symb_states (lvars : SS.t) pat_symb_state (symb_state : symbolic_state) : 
 	(bool * symbolic_heap * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * (jsil_logic_assertion list) * typing_environment) option  =
 
@@ -376,24 +422,30 @@ let bi_unify_symb_states (lvars : SS.t) pat_symb_state (symb_state : symbolic_st
 					gamma_0')
 				else gamma_0 in
 
-		let unify_gamma_check = (unify_gamma gamma_1 gamma_0' store_1 subst existentials) in
-		let result = if (unify_gamma_check) then
-		begin
-			merge_pfs pf_0 (DynArray.of_list new_pfs);
-		  	let pf_1_subst_list = List.map (fun a -> assertion_substitution a subst true) (pfs_to_list pf_1) in
-			let pf_discharges = pf_list_of_discharges discharges subst false in
-			let pfs = pf_1_subst_list @ pf_discharges @ pfs_to_check in
+		let new_gamma = (bi_unify_gamma gamma_1 gamma_0' store_1 subst existentials) in
+		let result = (match new_gamma with 
+			| Some gamma -> 
+				begin
+					extend_gamma gamma_0' gamma;
+					merge_pfs pf_0 (DynArray.of_list new_pfs);
+				  	let pf_1_subst_list = List.map (fun a -> assertion_substitution a subst true) (pfs_to_list pf_1) in
+					let pf_discharges = pf_list_of_discharges discharges subst false in
+					let pfs = pf_1_subst_list @ pf_discharges @ pfs_to_check in
 
-			print_debug (Printf.sprintf "Checking if %s\n entails %s\n with existentials\n%s\nand gamma %s"
-				(JSIL_Memory_Print.string_of_shallow_p_formulae pf_0 false)
-				(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list pfs) false)
-				(List.fold_left (fun ac x -> ac ^ " " ^ x) "" fresh_names_for_existentials)
-				(JSIL_Memory_Print.string_of_gamma gamma_0'));
+					print_debug (Printf.sprintf "Checking if %s\n entails %s\n with existentials\n%s\nand gamma %s"
+						(JSIL_Memory_Print.string_of_shallow_p_formulae pf_0 false)
+						(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list pfs) false)
+						(List.fold_left (fun ac x -> ac ^ " " ^ x) "" fresh_names_for_existentials)
+						(JSIL_Memory_Print.string_of_gamma gamma_0'));
 
-			let entailment_check_ret = Pure_Entailment.old_check_entailment (SS.of_list fresh_names_for_existentials) (pfs_to_list pf_0) pfs gamma_0' in
-			print_debug (Printf.sprintf "unify_gamma_check: %b. entailment_check: %b" unify_gamma_check entailment_check_ret);
-			Some (entailment_check_ret, pf_discharges, pf_1_subst_list, gamma_0')
-		end else (print_debug "Gammas not unifiable."; None) in
+					let entailment_check_ret = Pure_Entailment.old_check_entailment (SS.of_list fresh_names_for_existentials) (pfs_to_list pf_0) pfs gamma_0' in
+					print_debug (Printf.sprintf "entailment_check: %b" entailment_check_ret);
+					Some (entailment_check_ret, pf_discharges, pf_1_subst_list, gamma_0')
+				end
+			| None -> 
+				print_debug "Gammas not unifiable.";
+				None
+		) in
 		let end_time = Sys.time() in
 		JSIL_Syntax.update_statistics "USS: Step 1" (end_time -. start_time);
 		result in

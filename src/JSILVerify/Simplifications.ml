@@ -3,7 +3,7 @@ open JSIL_Logic_Utils
 open Symbolic_State
 
 
-let simplify_equalities_between_booleans (p_assertions : (jsil_logic_assertion DynArray.t)) = 
+let simplify_equalities_between_booleans (p_assertions : pure_formulae) = 
  	let new_as = 
  		DynArray.map 
  			(fun a -> 
@@ -23,6 +23,26 @@ let simplify_equalities_between_booleans (p_assertions : (jsil_logic_assertion D
  					| None -> a)
  				| _ -> a) p_assertions in 
  	new_as 
+
+let naively_infer_type_information (p_assertions : pure_formulae) (gamma : typing_environment) = 
+ 	DynArray.iter 
+ 		(fun a -> 
+ 			match a with 
+ 			| LEq (LVar x, le) 
+ 			| LEq (le, LVar x) -> 
+ 				if (not (Hashtbl.mem gamma x)) 
+ 					then (
+ 						let le_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in
+ 						weak_update_gamma gamma x le_type
+ 					)
+ 			| _ -> () 
+ 		) p_assertions
+
+
+ let naively_infer_type_information_symb_state (symb_state : symbolic_state) = 
+ 	let gamma = get_gamma symb_state in 
+ 	let pfs = get_pf symb_state in 
+ 	naively_infer_type_information pfs gamma
 
 (*
 
