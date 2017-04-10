@@ -1,5 +1,5 @@
 /**
-	@pred isEmpty (l) :
+	@pred isNil (l) :
 		l == {{ }};
 	
 	@pred isHole(l, alpha) :
@@ -13,6 +13,9 @@
 	
 	@pred isAttr(l, name, id, l_tf) :
 		(l == {{ "attr", name, id, l_tf }});
+
+	@pred isEmpty(l, ctx) :
+		(l == {{ "empty", ctx }});
 
 	@pred DOMObject(l, proto) :
 		types (l : $$object_type) *
@@ -125,13 +128,19 @@
 	    isHole(element, #alpha) * DOMObject(l, $$null) * empty_fields(l :);		
 
 	@pred AttributeSet(l, attrs) : 
-	    isEmpty(attrs) * DOMObject(l, $$null) * ((l, "@next") ->  $$null),
+	    isNil(attrs) * DOMObject(l, $$null) * ((l, "@next") ->  $$null),
+
+	    (attrs == (#head :: #attrsNext)) * isEmpty(#head, "attr") * DOMObject(l, $$null) * 
+	    ((l, "@next") -> #next) * AttributeSet(#next, #attrsNext) * empty_fields(l : "@next"),
 	    
 	    (attrs == (#head :: #attrsNext)) * isAttr(#head, #name, #id, #l_tf) * DOMObject(l, $$null) * 
 	    ((l, "@next") -> #next) * AttributeSet(#next, #attrsNext) * empty_fields(l : "@next"); 	
 
 	@pred Forest(l, childList) :
-		isEmpty(childList) * DOMObject(l, $$null) * ((l, "@next") ->  $$null),
+		isNil(childList) * DOMObject(l, $$null) * ((l, "@next") ->  $$null),
+
+	    (childList == (#head :: #childListNext)) * isEmpty(#head, "forest") * DOMObject(l, $$null) * 
+	    ((l, "@next") -> #next) * Forest(#next, #childListNext) * empty_fields(l : "@next"),
 		
 		(childList == (#head :: #childListNext)) * isText(#head, #id, #text) * DOMObject(l, $$null) *
 		((l, "@next") -> #next) * Forest(#next, #childListNext) * empty_fields(l : "@next"),
@@ -144,7 +153,10 @@
 
 	
 	@pred TextForest(l, childList) :
-		isEmpty(childList) * DOMObject(l, $$null) * ((l, "@next") ->  $$null),
+		isNil(childList) * DOMObject(l, $$null) * ((l, "@next") ->  $$null),
+
+	    (childList == (#head :: #childListNext)) * isEmpty(#head, "textforest") * DOMObject(l, $$null) * 
+	    ((l, "@next") -> #next) * TextForest(#next, #childListNext) * empty_fields(l : "@next"),
 		
 		(childList == (#head :: #childListNext)) * isText(#head, #id, #text) * DOMObject(l, $$null) *
 		((l, "@next") -> #next) * TextForest(#next, #childListNext) * empty_fields(l : "@next"),
@@ -153,7 +165,10 @@
 		((l, "@next") -> #next) * TextForest(#next, #childListNext) * empty_fields(l : "@next");
 	
 	@pred Grove(l, content) :
-		isEmpty(content) * DOMObject(l, $$null) * ((l, "@next") ->  $$null),
+		isNil(content) * DOMObject(l, $$null) * ((l, "@next") ->  $$null),
+
+	    (content == (#head :: #contentNext)) * isEmpty(#head, "grove") * DOMObject(l, $$null) * 
+	    ((l, "@next") -> #next) * Grove(#next, #contentNext) * empty_fields(l : "@next"),
 		
 		(content == (#head :: #contentNext)) * isText(#head, #id, #text) * DOMObject(l, $$null) *
 		((l, "@next") -> #next) * Grove(#next, contentNext) * empty_fields(l : "@next"),
@@ -167,59 +182,66 @@
 	    (content == (#head :: #contentNext)) * isHole(#head, #alpha) * DOMObject(l, $$null) *
 	    ((l, "@next") -> #next) * Grove(#next, #contentNext) * empty_fields(l : "@next");
 
+	@pred Cell(l, content) :
+		isNil(content) * DOMObject(l, $$null) * ((l, "@next") ->  $$null),
+
+	    (content == (#head :: #contentNext)) * isEmpty(#head, #ctx) * DOMObject(l, $$null) * 
+	    ((l, "@next") -> #next) * Cell(#next, #contentNext) * empty_fields(l : "@next"),
+		
+		(content == (#head :: #contentNext)) * isText(#head, #id, #text) * DOMObject(l, $$null) *
+		((l, "@next") -> #next) * Cell(#next, contentNext) * empty_fields(l : "@next"),
+		
+		(content == (#head :: #contentNext)) * isElement(#head, #name, #id, #l_a, #l_c) * DOMObject(l, $$null) *
+		((l, "@next") -> #next) * Cell(#next, #contentNext) * empty_fields(l : "@next"),
+		
+		(content == (#head :: #contentNext)) * isAttr(head, #name, #id, #l_tf) * DOMObject(l, $$null) *
+		((l, "@next") -> #next) * Cell(#next, #contentNext) * empty_fields(l : "@next"),
+			
+	    (content == (#head :: #contentNext)) * isHole(#head, #alpha) * DOMObject(l, $$null) *
+	    ((l, "@next") -> #next) * Cell(#next, #contentNext) * empty_fields(l : "@next");
+
 
 	@pred val(t, s) :
-		isEmpty(t) * (s == ""),
+		isNil(t) * (s == ""),
+		(t == (#head :: #childListNext)) * isEmpty(#head, #ctx) * val(#childListNext, #s2) * (s == #s2),
 		(t == (#head :: #childListNext)) * isText(#head, #id, #s1) * val(#childListNext, #s2) * (s == #s1 ++ #s2);
 
 	@pred out(a, s) :
-		isEmpty(a),
+		isNil(a),
+		(a == (#head :: #childListNext)) * isEmpty(#head, #ctx) * out(#childListNext, s) * types(s: $$string_type),
 		(a == (#head :: #childListNext)) * isAttr(#head, #name, #id, #l_tf) * (! (s == #name)) * 
 		out(#childListNext, s) * types(s: $$string_type, #name: $$string_type);
 
 	@pred complete(l) :
-		isEmpty(l),
+		isNil(l),
+		(l == (#head :: #next)) * isEmpty(#head, #ctx) * complete(#next),
 		(l == (#head :: #next)) * isText(#head, #id, #s1) * complete(#next),
 		(l == (#head :: #next)) * isAttr(#head, #n, #id, #l_tf) * complete(#next),
 		(l == (#head :: #next)) * isElement(#head, #n, #id, #l_a, #l_c) * complete(#next);
 
-	@pred GroveOrForest(l, e) :
-		Grove(l, e),
-		Forest(l, e);
+	@pred GroveCtx(lh) :
+		(lh == (#head :: #next)) * isEmpty(#head, "grove"),
+		(lh == (#head :: #next)) * GroveCtx(#next);
 
-	@pred Cell(l, e) :
-		Grove(l, e),
-		Forest(l, e),
-		TextForest(l, e),
-		DocumentElement(l, e),
-		AttributeSet(l, e);
+	@pred GroveOrForestCtx(lh) :
+		(lh == (#head :: #next)) * isEmpty(#head, "grove"),
+		(lh == (#head :: #next)) * isEmpty(#head, "forest"),
+		(lh == (#head :: #next)) * GroveOrForestCtx(#next);
 
-
-	@onlyspec allocAS(l, i, j)
-		pre:  [[ (l == #l) * (i == #i) * (j == #j) * types (#as : $$list_type, #as1 : $$list_type, #as2 : $$list_type, #as3 : $$list_type) *
-		         AttributeSet(#l, #as) * (#as == #as1 @ (#as2 @ #as3)) * (l-len(#as1) == #i) * (l-len(#as2) == #j) ]]
-		post: [[ AttributeSet(#l, (#as1 @ ({{ "hole", #alpha }} :: #as3))) * 
-		         AttributeSet(#alpha, #as2) * (ret == #alpha) * types(#alpha : $$object_type) ]]
-		outcome: normal
-
-	@onlyspec deallocAS(alpha)
-		pre:  [[ (alpha == #alpha) * AttributeSet(#l, #as) * (#as == #as1 @ ({{ "hole", #alpha }} :: #as3)) * AttributeSet(#alpha, #as2) * types(#alpha : $$object_type)]]
-		post: [[ AttributeSet(#l, (#as1 @ (#as2 @ #as3))) * (ret == $$empty) ]]
-		outcome: normal
 
 	@onlyspec allocG(l, i, j)
 		pre:  [[ (l == #l) * (i == #i) * (j == #j) * types(#g : $$list_type, #g1 : $$list_type, #g2 : $$list_type, #g3 : $$list_type) * 
 				 Grove(#l, #g) * (#g == #g1 @ (#g2 @ #g3)) * (l-len(#g1) == #i) * (l-len(#g2) == #j) ]]
-		post: [[ Grove(#l, (#g1 @ ({{ "hole", #alpha }} :: #g3))) * Grove(#alpha, #g2) * (ret == #alpha) * types(#alpha : $$object_type)]]
+		post: [[ Grove(#l, (#g1 @ ({{ "hole", #alpha }} :: #g3))) * Cell(#alpha, ({{ "empty", "grove" }} :: #g2)) * (ret == #alpha) * types(#alpha : $$object_type)]]
 		outcome: normal;
 
-		pre:  [[ (l == #l) * (i == 0) * (j == #j) * types(#g : $$list_type) * Grove(#l, #g) ]]
-		post: [[ Grove(#l, ({{"hole", #alpha}} :: #g)) * Grove(#alpha, {{ }}) * (ret == #alpha) ]]
+		pre:  [[ (l == #l) * (i == 0) * (j == 0) * types(#g : $$list_type) * Grove(#l, #g) ]]
+		post: [[ Grove(#l, ({{ "hole", #alpha }} :: #g)) * Cell(#alpha, {{ {{ "empty", "grove" }} }}) * (ret == #alpha) ]]
 		outcome: normal
 
 	@onlyspec deallocG(alpha)
 		pre:  [[ (alpha == #alpha) * types(#alpha : $$object_type, #g : $$list_type, #g1 : $$list_type, #g2 : $$list_type, #g3 : $$list_type) * 
-				 Grove(#l, #g) * (#g == #g1 @ ({{"hole", #alpha}} :: #g3)) * Grove(#alpha, #g2)]]
+				 Grove(#l, #g) * (#g == #g1 @ ({{ "hole", #alpha }} :: #g3)) * Cell(#alpha, ({{ "empty", "grove" }} :: #g2)) ]]
 		post: [[ Grove(#l, (#g1 @ (#g2 @ #g3))) * (ret == $$empty) ]]
 		outcome: normal
 
@@ -238,19 +260,19 @@
 		outcome: normal
 
 	@onlyspec setAttribute(s, v)
-		pre:  [[ Cell(#l, {{ {{ "elem", #name, this, #l_attr, #l_children }} }}) * ElementNode(this) * 
+		pre:  [[ Cell(#l, {{ #ctx1, {{ "elem", #name, this, #l_attr, #l_children }} }}) * ElementNode(this) * 
 				 AttributeSet(#l_attr, #attr) * (s == #s1) * (v == #s2) * 
 				 (#attr == {{ {{ "attr", #s1, #m, #l_tf }}, {{ "hole", #alpha }} }}) * AttributeNode(#m) *
-				 TextForest(#l_tf, #t) * Grove(#l_g, {{ }}) ]]
-		post: [[ Cell(#l, {{ {{ "elem", #name, this, #l_attr, #l_children }} }}) * ElementNode(this) * AttributeSet(#l_attr, #attr_post) *
+				 TextForest(#l_tf, #t) * Cell(#l_g, #g) * (#g == {{ {{ "empty", #ctx }} }}) * GroveCtx(#g) ]]
+		post: [[ Cell(#l, {{ #ctx1, {{ "elem", #name, this, #l_attr, #l_children }} }}) * ElementNode(this) * AttributeSet(#l_attr, #attr_post) *
 				 (#attr_post == {{ {{ "attr", #s1, #m, #l_tf_post }}, {{ "hole", #alpha }} }}) * AttributeNode(#m) * 
 				 TextForest(#l_tf_post, #t_post) * (#t_post == {{ {{ "text", #r, #s2 }} }}) * 
-				 TextNode(#r) * Grove(#l_g, #t) ]]
+				 TextNode(#r) * Cell(#l_g, ({{ "empty", #ctx }} :: #t)) ]]
 		outcome: normal;
 
-		pre:  [[ Cell(#l, {{ {{ "elem", #name, this, #l_attr, #l_children }} }}) * ElementNode(this) * 
+		pre:  [[ Cell(#l, {{ #ctx1, {{ "elem", #name, this, #l_attr, #l_children }} }}) * ElementNode(this) * 
 				 AttributeSet(#l_attr, #attr) * (s == #s1) * (v == #s2) * out(#attr, #s1) ]]
-		post: [[ Cell(#l, {{ {{ "elem", #name, this, #l_attr, #l_children }} }}) * ElementNode(this) * 
+		post: [[ Cell(#l, {{ #ctx1, {{ "elem", #name, this, #l_attr, #l_children }} }}) * ElementNode(this) * 
 				 AttributeSet(#l_attr, #attr2) * (#attr2 == {{ "attr", #s1, #m, #l_tf }} :: #attr) * 
 				 AttributeNode(#m) * (#t == {{ {{ "text", #r, #s2 }} }}) ]]
 		outcome: normal
@@ -279,20 +301,21 @@
 		outcome: normal
 
 	@onlyspec appendChild(n)
-		pre:  [[ (n == #n) * Forest(#l, {{ {{ "elem", #e_n, this, #l_ea, #l_ec }} }}) * ElementNode(this) * 
+		pre:  [[ (n == #n) * Cell(#l, {{ #ctx1, {{ "elem", #e_n, this, #l_ea, #l_ec }} }}) * ElementNode(this) * 
 				 Forest(#l_ec, #ec) * (#ec == {{ {{ "hole", #gamma }} }}) *
-				 GroveOrForest(#alpha, #g) * (#g == {{ {{ "elem", #e_n1, #en1, #e_l_a1, #e_l_c1 }} }}) * Forest(#e_l_c1, #e_c1) * complete(#e_c1) ]]
-		post: [[ Forest(#l, {{ {{ "elem", #e_n, this, #l_ea, #l_ec }} }}) * ElementNode(this) * 
-				 Forest(#l_ec, #ec_post) * (#ec_post == {{ {{ "hole", #gamma }}, {{ "elem", #e_n1, #en1, #e_l_a1, #e_l_c1 }} }}) *
-				 GroveOrForest(#alpha, $$nil) * Forest(#e_l_c1, #e_c1) * (ret == #n) ]]
+				 Cell(#alpha, #g) * (#g == {{ #ctx2, {{ "elem", #e_n1, #n, #e_l_a1, #e_l_c1 }} }}) * GroveOrForestCtx(#alpha) * 
+				 ElementNode(#n) * Forest(#e_l_c1, #e_c1) * complete(#e_c1) ]]
+		post: [[ Cell(#l, {{ #ctx1, {{ "elem", #e_n, this, #l_ea, #l_ec }} }}) * ElementNode(this) * 
+				 Forest(#l_ec, #ec_post) * (#ec_post == {{ {{ "hole", #gamma }}, {{ "elem", #e_n1, #n, #e_l_a1, #e_l_c1 }} }}) *
+				 Cell(#alpha, {{ #ctx2 }}) * Forest(#e_l_c1, #e_c1) * (ret == #n) ]]
 		outcome: normal;
 
-		pre:  [[ (n == #tn1) * Forest(#l, {{ {{ "elem", #e_n, this, #l_ea, #l_ec }} }}) * ElementNode(this) * 
+		pre:  [[ (n == #n) * Cell(#l, {{ #ctx1, {{ "elem", #e_n, this, #l_ea, #l_ec }} }}) * ElementNode(this) * 
 				 Forest(#l_ec, #ec) * (#ec == {{ {{ "hole", #gamma }} }}) *
-				 GroveOrForest(#alpha, #g) * (#g == {{ {{ "text", #tn1, #t1 }} }}) ]]
-		post: [[ Forest(#l, {{ {{ "elem", #e_n, this, #l_ea, #l_ec }} }}) * ElementNode(this) * 
-				 Forest(#l_ec, #ec_post) * (#ec_post == {{ {{ "hole", #gamma }}, {{ "text", #tn1, #t1 }} }}) *
-				 GroveOrForest(#alpha, $$nil) * Forest(#e_l_c1, #e_c1) * (ret == #tn1) ]]
+				 Cell(#alpha, #g) * GroveOrForestCtx(#alpha) * (#g == {{ #ctx2, {{ "text", #n, #t1 }} }}) * TextNode(#n) ]]
+		post: [[ Cell(#l, {{ #ctx1, {{ "elem", #e_n, this, #l_ea, #l_ec }} }}) * ElementNode(this) * 
+				 Forest(#l_ec, #ec_post) * (#ec_post == {{ {{ "hole", #gamma }}, {{ "text", #n, #t1 }} }}) * TextNode(#n) *
+				 Cell(#alpha, {{ #ctx2 }}) * (ret == #n) ]]
 		outcome: normal
 
 */
@@ -305,7 +328,7 @@
 		scope(allocG   : #allocG)   * fun_obj(allocG,   #allocG,   #allocG_proto) *
 		scope(deallocG : #deallocG) * fun_obj(deallocG, #deallocG, #deallocG_proto) *
 		InitialDOMHeap() * (element == #en) * (grove == #d_g) * types(#en : $$object_type) *
-		Forest(#r, {{ {{ "elem", #name, #en, #e_l_a, #e_l_c }} }}) * ElementNode(#en) *
+		Cell(#r, {{ #ctx_e, {{ "elem", #name, #en, #e_l_a, #e_l_c }} }}) * ElementNode(#en) *
 		Forest(#e_l_c, #e_c) * (#e_c == {{ {{ "hole", #alpha }} }}) *
 		DocumentNode($l_document, #d_l_elem, #d_elem, #d_l_g, #d_g) *
 		(#d_g == {{ {{ "hole", #beta }} }})
@@ -314,7 +337,7 @@
 		scope(allocG   : #allocG)   * fun_obj(allocG,   #allocG,   #allocG_proto) *
 		scope(deallocG : #deallocG) * fun_obj(deallocG, #deallocG, #deallocG_proto) *
 		InitialDOMHeap() * (ret == $$t) * 
-		Forest(#r, {{ {{ "elem", #name, #en, #e_l_a, #e_l_c }} }}) * ElementNode(#en) *
+		Cell(#r, {{ #ctx_e, {{ "elem", #name, #en, #e_l_a, #e_l_c }} }}) * ElementNode(#en) *
 		Forest(#e_l_c, #e_c_post) * (#e_chld_post == {{ {{ "hole", #alpha }}, {{ "elem", #e_n_new, #e_new, #e_attr_new, #e_chld_new }} }}) *
 		DocumentNode($l_document, #d_l_elem, #d_elem, #d_l_g, #d_g) *
 		(#d_g == {{ {{ "hole", #beta }} }}) * (ret == $$t)
@@ -324,7 +347,7 @@ function createNewAttribute(grove, element){
 	var d = element.ownerDocument();
 	var e = d.createElement("test");
 	var a = allocG(grove, 0, 1);
-	/* @invariant scope(a : #zeta) * scope(e : #e2) * Grove(#zeta, #g) * (#g == {{ {{ "elem", #name2, #e2, #e_l_a2, #e_l_c2 }} }}) * Forest(#e_l_c2, #e_c2) */
+	/* @invariant scope(a : #zeta) * scope(e : #e2) * Cell(#zeta, #g) * (#g == {{ #ctx_any, {{ "elem", #name2, #e2, #e_l_a2, #e_l_c2 }} }}) * Forest(#e_l_c2, #e_c2) */
 	/* @fold complete(#e_c2) */
 	var n = element.appendChild(e);
 	deallocG(a);
