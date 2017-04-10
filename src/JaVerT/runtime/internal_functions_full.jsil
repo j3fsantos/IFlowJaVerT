@@ -1188,6 +1188,11 @@ spec i__isAccessorDescriptor (desc)
     [[ DataDescriptor(desc) ]]
     [[ ret == $$f ]]
     normal;
+    
+    (* Data descriptor *)
+    [[ AccessorDescriptor(desc) ]]
+    [[ ret == $$t ]]
+    normal;
 
     (* Generic descriptor, no data descriptor components *)
     [[ GenericDescriptor(desc) * (l-nth (desc, 5) == $$empty) * (l-nth (desc, 6) == $$empty) ]]
@@ -2274,7 +2279,7 @@ with
  *   Specs:
  *
  * 01-04 - Current undefined, object not extensible, reject
- * 
+ * 05-08 - Current undefined, object extensible, success
  * 
  *)
 
@@ -2324,7 +2329,7 @@ spec o__defineOwnProperty (l, prop, desc, throw)
 	   (ret == $$f) ]]
     normal;
 
-	(* Current is undefined, object is extensible, non-string, data descriptor, success *)
+	(* 05 - Current is undefined, object is extensible, non-string, data descriptor, success *)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
 	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #desc : $$list_type, #throw : $$boolean_type) *
 	   ((#l, "@class") -> #cls) *
@@ -2332,11 +2337,11 @@ spec o__defineOwnProperty (l, prop, desc, throw)
 	   DataDescriptor (#desc) *
 	   ((#l, "@extensible") -> $$t) ]]
     [[ ((#l, "@class") -> #cls) *
-	   isClass(#cls, "Non-String") * ((#l, #prop) -> #desc) * ((#l, "@extensible") -> $$t) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #desc) * ((#l, "@extensible") -> $$t) *
 	   (ret == $$t) ]]
     normal;
     
-    (* Current is undefined, object is extensible, non-string, accessor descriptor, success *)
+    (* 06 - Current is undefined, object is extensible, non-string, accessor descriptor, success *)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
 	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #desc : $$list_type, #throw : $$boolean_type) *
 	   ((#l, "@class") -> #cls) *
@@ -2344,7 +2349,31 @@ spec o__defineOwnProperty (l, prop, desc, throw)
 	   AccessorDescriptor (#desc) *
 	   ((#l, "@extensible") -> $$t) ]]
     [[ ((#l, "@class") -> #cls) *
-	   isClass(#cls, "Non-String") * ((#l, #prop) -> #desc) * ((#l, "@extensible") -> $$t) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #desc) * ((#l, "@extensible") -> $$t) *
+	   (ret == $$t) ]]
+    normal;
+    
+	(* 07 - Current is undefined, object is extensible, string, data descriptor, success *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #desc : $$list_type, #throw : $$boolean_type) *
+	   ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) *
+	   DataDescriptor (#desc) *
+	   ((#l, "@extensible") -> $$t) ]]
+    [[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "NSI", #desc, #pv) * ((#l, "@extensible") -> $$t) *
+	   (ret == $$t) ]]
+    normal;
+    
+    (* 08 - Current is undefined, object is extensible, string, accessor descriptor, success *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #desc : $$list_type, #throw : $$boolean_type) *
+	   ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv)  *
+	   AccessorDescriptor (#desc) *
+	   ((#l, "@extensible") -> $$t) ]]
+    [[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "NSI", #desc, #pv) * ((#l, "@extensible") -> $$t) *
 	   (ret == $$t) ]]
     normal;
 
