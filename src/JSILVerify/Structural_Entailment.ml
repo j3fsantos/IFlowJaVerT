@@ -170,9 +170,9 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (* solver *) (gamm
 
   | LUnknown -> (false, None)
 
-	| le_pat when (isList le_pat && isList le) ->
+	| le_pat when (isList le_pat && isList le && (match le with | LVar _ -> false | _ -> true)) ->
 			print_debug (Printf.sprintf "ULEXPRLIST: %s %s" (print_lexpr le_pat) (print_lexpr le));
-			let osubst = unify_lists le_pat le in
+			let osubst = unify_lists le_pat le false in
 			(match osubst with
 			| None, _ -> (false, None)
 			| Some _, sb ->

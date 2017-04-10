@@ -162,12 +162,15 @@ let match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : boo
 		))
 
 (* List unification *)
-let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : bool option * ((jsil_logic_expr * jsil_logic_expr) list) = 
+let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bool option * ((jsil_logic_expr * jsil_logic_expr) list) = 
 	let le1 = reduce_expression_no_store_no_gamma_no_pfs le1 in
 	let le2 = reduce_expression_no_store_no_gamma_no_pfs le2 in
+	print_debug (Printf.sprintf "Unify lists: %s %s" (print_lexpr le1) (print_lexpr le2));
 	let le1_old = le1 in
 	let le1, le2 = arrange_lists le1 le2 in
-	let to_swap = (le1_old <> le1) in
+	let to_swap_now = (le1_old <> le1) in
+	let to_swap = (to_swap <> to_swap_now) in
+	print_debug (Printf.sprintf "To swap: %b" to_swap);
 	let swap (le1, le2) = if to_swap then (le2, le1) else (le1, le2) in
 	(* print_debug (Printf.sprintf "unify_lists: \n\t%s\n\t\tand\n\t%s" 
 		(print_lexpr le1) (print_lexpr le2)); *)
@@ -198,7 +201,7 @@ let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : bool optio
 				(* Do we still have lists? *)
 				if (isList taill && isList tailr) then
 					(* Yes, move in recursively *)
-					(let ok, rest = unify_lists taill tailr in
+					(let ok, rest = unify_lists taill tailr to_swap in
 					(match ok with
 					| None -> None, []
 					| _ -> Some true, swap (headl, headr) :: rest))
@@ -212,11 +215,11 @@ let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : bool optio
 				let ok, (ll, lr), (rl, rr) = match_lists_on_element le1 le2 in
 				(match ok with
 					| true -> 
-							let okl, left = unify_lists ll rl in
+							let okl, left = unify_lists ll rl to_swap in
 							(match okl with
 							| None -> None, []
 							| _ -> 
-								let okr, right = unify_lists lr rr in
+								let okr, right = unify_lists lr rr to_swap in
 								(match okr with
 								| None -> None, []
 								| _ -> Some true, left @ right))
@@ -286,7 +289,7 @@ let unify_strings (se1 : jsil_logic_expr) (se2 : jsil_logic_expr) : bool option 
 	let se1, se2 = arrange_strings se1 se2 in
 	let lse1 = le_string_to_list se1 in
 	let lse2 = le_string_to_list se2 in
-	let ok, subst = unify_lists lse1 lse2 in
+	let ok, subst = unify_lists lse1 lse2 false in
 	let tuplef f (a,b) = (f a, f b) in
 	ok, List.map (tuplef le_list_to_string) subst
 
@@ -700,7 +703,7 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 				
 				(* LISTS *)
 				| le1, le2 when (isList le1 && isList le2) ->
-					let ok, subst = unify_lists le1 le2 in
+					let ok, subst = unify_lists le1 le2 false in
 					(match ok with
 					(* Error while unifying lists *)
 					| None -> pfs_false "List error"
@@ -972,7 +975,7 @@ let rec simplify_for_your_legacy exists others (symb_state : symbolic_state) : s
 				
 				(* LISTS *)
 				| le1, le2 when (isList le1 && isList le2) ->
-					let ok, subst = unify_lists le1 le2 in
+					let ok, subst = unify_lists le1 le2 false in
 					(match ok with
 					(* Error while unifying lists *)
 					| None -> pfs_false "List error"
@@ -1578,7 +1581,7 @@ let simplify_symb_state
 				(* List unification *)
 				| le1, le2 when (isList le1 && isList le2) ->
 					print_debug (Printf.sprintf "List unification: %s vs. %s" (print_lexpr le1) (print_lexpr le2));
-					let ok, subst = unify_lists le1 le2 in
+					let ok, subst = unify_lists le1 le2 false in
 					(match ok with
 					(* Error while unifying lists *)
 					| None -> pfs_ok := false; msg := "List error"	
