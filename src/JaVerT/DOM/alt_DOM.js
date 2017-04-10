@@ -303,18 +303,18 @@
 	@onlyspec appendChild(n)
 		pre:  [[ (n == #n) * Cell(#l, {{ #ctx1, {{ "elem", #e_n, this, #l_ea, #l_ec }} }}) * ElementNode(this) * 
 				 Forest(#l_ec, #ec) * (#ec == {{ {{ "hole", #gamma }} }}) *
-				 Cell(#alpha, #g) * (#g == {{ #ctx2, {{ "elem", #e_n1, #n, #e_l_a1, #e_l_c1 }} }}) * GroveOrForestCtx(#alpha) * 
-				 ElementNode(#n) * Forest(#e_l_c1, #e_c1) * complete(#e_c1) ]]
+				 Cell(#alpha, #g) * (#g == {{ #ctx2, {{ "elem", #e_n2, #n, #e_l_a2, #e_l_c2 }} }}) * GroveOrForestCtx(#g) * 
+				 ElementNode(#n) * Forest(#e_l_c2, #e_c2) * complete(#e_c2) ]]
 		post: [[ Cell(#l, {{ #ctx1, {{ "elem", #e_n, this, #l_ea, #l_ec }} }}) * ElementNode(this) * 
-				 Forest(#l_ec, #ec_post) * (#ec_post == {{ {{ "hole", #gamma }}, {{ "elem", #e_n1, #n, #e_l_a1, #e_l_c1 }} }}) *
-				 Cell(#alpha, {{ #ctx2 }}) * Forest(#e_l_c1, #e_c1) * (ret == #n) ]]
+				 Forest(#l_ec, #ec_post) * (#ec_post == {{ {{ "hole", #gamma }}, {{ "elem", #e_n2, #n, #e_l_a2, #e_l_c2 }} }}) *
+				 Cell(#alpha, {{ #ctx2 }}) * ElementNode(#n) * Forest(#e_l_c2, #e_c2) * (ret == #n) ]]
 		outcome: normal;
 
 		pre:  [[ (n == #n) * Cell(#l, {{ #ctx1, {{ "elem", #e_n, this, #l_ea, #l_ec }} }}) * ElementNode(this) * 
 				 Forest(#l_ec, #ec) * (#ec == {{ {{ "hole", #gamma }} }}) *
-				 Cell(#alpha, #g) * GroveOrForestCtx(#alpha) * (#g == {{ #ctx2, {{ "text", #n, #t1 }} }}) * TextNode(#n) ]]
+				 Cell(#alpha, #g) * GroveOrForestCtx(#g) * (#g == {{ #ctx2, {{ "text", #n, #t2 }} }}) * TextNode(#n) ]]
 		post: [[ Cell(#l, {{ #ctx1, {{ "elem", #e_n, this, #l_ea, #l_ec }} }}) * ElementNode(this) * 
-				 Forest(#l_ec, #ec_post) * (#ec_post == {{ {{ "hole", #gamma }}, {{ "text", #n, #t1 }} }}) * TextNode(#n) *
+				 Forest(#l_ec, #ec_post) * (#ec_post == {{ {{ "hole", #gamma }}, {{ "text", #n, #t2 }} }}) * TextNode(#n) *
 				 Cell(#alpha, {{ #ctx2 }}) * (ret == #n) ]]
 		outcome: normal
 
@@ -348,8 +348,9 @@ function createNewAttribute(grove, element){
 	var d = element.ownerDocument();
 	var e = d.createElement("test");
 	var a = allocG(grove, 0, 1);
-	/* @invariant scope(a : #zeta) * scope(e : #e2) * Cell(#zeta, #g) * (#g == ({{ "empty", #any }} :: {{ {{ "elem", #name2, #e2, #e_l_a2, #e_l_c2 }} }} )) * Forest(#e_l_c2, #e_c2) */
+	/* @invariant scope(a : #zeta) * scope(e : #e2) * Cell(#zeta, #z_g) * (#z_g == ({{ "empty", #any }} :: {{ {{ "elem", #name2, #e2, #e_l_a2, #e_l_c2 }} }} )) * Forest(#e_l_c2, #e_c2) * types(#g : $$list_type) */
 	/* @fold complete(#e_c2) */
+	/* @fold GroveOrForestCtx(#g) */
 	var n = element.appendChild(e);
 	deallocG(a);
 	return (n === e);
