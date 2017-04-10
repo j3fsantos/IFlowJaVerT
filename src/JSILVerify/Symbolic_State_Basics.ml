@@ -165,12 +165,10 @@ let match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : boo
 let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bool option * ((jsil_logic_expr * jsil_logic_expr) list) = 
 	let le1 = reduce_expression_no_store_no_gamma_no_pfs le1 in
 	let le2 = reduce_expression_no_store_no_gamma_no_pfs le2 in
-	print_debug (Printf.sprintf "Unify lists: %s %s" (print_lexpr le1) (print_lexpr le2));
 	let le1_old = le1 in
 	let le1, le2 = arrange_lists le1 le2 in
 	let to_swap_now = (le1_old <> le1) in
 	let to_swap = (to_swap <> to_swap_now) in
-	print_debug (Printf.sprintf "To swap: %b" to_swap);
 	let swap (le1, le2) = if to_swap then (le2, le1) else (le1, le2) in
 	(* print_debug (Printf.sprintf "unify_lists: \n\t%s\n\t\tand\n\t%s" 
 		(print_lexpr le1) (print_lexpr le2)); *)

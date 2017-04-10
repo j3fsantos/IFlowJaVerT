@@ -1237,6 +1237,11 @@ spec i__isGenericDescriptor (desc)
 	[[ DataDescriptor(desc) ]]
 	[[ ret == $$f ]]
 	normal;
+	
+	(* Accessor descriptor *)
+	[[ AccessorDescriptor(desc) ]]
+	[[ ret == $$f ]]
+	normal;
 
 	(* Generic descriptor, no data descriptor components *)
 	[[ GenericDescriptor(desc) *
@@ -1287,7 +1292,7 @@ with
 
 spec i__toDataDescriptor (desc)
 
-    [[ DataDescriptor (#desc) * (desc == #desc) ]]
+    [[ (desc == #desc) * DataDescriptor (#desc) ]]
     [[ (ret == #desc) ]]
     normal
 
@@ -1323,6 +1328,50 @@ proc i__toDataDescriptor (desc) {
 with
 {
 	ret: xret, rlab;
+};
+
+(* *********************** *)
+(* I__TOACCESSORDESCRIPTOR *)
+(* *********************** *)
+
+spec i__toAccessorDescriptor (desc)
+
+    [[ (desc == #desc) * AccessorDescriptor (#desc) ]]
+    [[ (ret == #desc) ]]
+    normal
+    
+proc i__toAccessorDescriptor (desc) {
+			d := l-nth (desc, 0);
+			goto [d = "a"] rd cstr;
+
+	cstr:	goto [d = "d"] ac gen;
+
+	ac:		xret := {{ "a", $$undefined, $$undefined, l-nth (d, 3), l-nth (d, 4) }};
+			goto rlab;
+
+	gen:	e := l-nth (desc, 1);
+			c := l-nth (desc, 2);
+			g := l-nth (desc, 5);
+			s := l-nth (desc, 6);
+
+			goto [e = $$empty] fixe c;
+	fixe:	e := $$f;
+	c:		goto [c = $$empty] fixc v;
+	fixc:	c := $$f;
+	v:		goto [g = $$empty] fixg w;
+	fixg:	g := $$undefined;
+	w:		goto [s = $$empty] fixs fixed;
+	fixs:	s := $$undefined;
+
+	fixed:	xret := {{ "a", g, s, e, c }};
+			goto rlab;
+
+	rd:		xret := desc;
+	rlab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
 };
 
 (* ********* *)
@@ -2057,10 +2106,10 @@ with
  *
  *   Specs:
  *
- * 01-02 - Property not defined in the prototype chain, return false 
- * 03 - Property defined and configurable, delete, return true
- * 04 - Property defined, not configurable, we do not throw, return false
- * 05 - Property defined, not configurable, we throw a TypeError
+ * 01-02 - Property not defined in the object, return true 
+ * 03 - Property defined, configurable, delete, return true
+ * 04 - Property defined, not configurable, do not throw, return false
+ * 05 - Property defined, not configurable, throw a TypeError
  * 
  *)
 
@@ -2096,8 +2145,6 @@ spec deleteProperty (l, prop, throw)
 	[[ Pi (#l, #prop, #clsx, #desc, {{ #l }}, #gp_aux_3, #gp_aux_4) * isTypeError(ret) ]]
 	error
 	
-
-
 proc deleteProperty (l, prop, throw) {
 
 			[* unfold Pi (#l, #prop, #clsx, #desc, #g_aux_2, #g_aux_3, #g_aux_4) *]
@@ -2132,7 +2179,7 @@ with
 
 spec canPut (l, prop)
 
-    (* Property not defined at all, returning "@extensible" *)
+    (* 01 - Property not defined at all, returning "@extensible" *)
     [[ (l == #l) * (prop == #prop) *
 	   types(#ext : $$boolean_type) *
 	   Pi (#l, #prop, #g_aux_0, $$undefined, #g_aux_2, #g_aux_3, #g_aux_4) *
@@ -2142,7 +2189,7 @@ spec canPut (l, prop)
 	   (ret == #ext) ]]
     normal;
 
-	(* Property defined in the object itself, data descriptor, returning writable *)
+	(* 02 - Property defined in the object itself, data descriptor, returning writable *)
 	[[ (l == #l) * (prop == #prop) *
 	   types(#writ : $$boolean_type) *
 	   Pi (#l, #prop, #g_aux_0, #g_aux_1, {{ #l }}, #g_aux_3, #g_aux_4) * DataDescriptor(#g_aux_1) * desc_writ(#g_aux_1, #writ) ]]
@@ -2150,7 +2197,7 @@ spec canPut (l, prop)
 	   (ret == #writ) ]]
 	normal;
 	
-	(* Property defined as a data descriptor outside, but object not extensible, return false *)
+	(* 03 - Property defined as a data descriptor outside, but object not extensible, return false *)
 	[[ (l == #l) * (prop == #prop) *
 	   types (#g_aux_2 : $$list_type, #l : $$object_type, #lp : $$object_type, #other : $$list_type) *
        Pi (#l, #prop, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *
@@ -2159,7 +2206,7 @@ spec canPut (l, prop)
 	   ((#l, "@extensible") -> $$f) * (ret == $$f) ]]
 	normal;
 
-	(* Property defined as a data descriptor outside, object extensible, return writable *)
+	(* 04 - Property defined as a data descriptor outside, object extensible, return writable *)
 	[[ (l == #l) * (prop == #prop) *
 	   types (#g_aux_2 : $$list_type, #l : $$object_type, #lp : $$object_type, #other : $$list_type, #writ : $$boolean_type) *
 	   Pi (#l, #prop, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *
@@ -2169,7 +2216,7 @@ spec canPut (l, prop)
 	   ((#l, "@extensible") -> $$t) * (ret == #writ) ]]
 	normal;
 	
-	(* Property defined as an accessor descriptor, return (setter <> undefined) *)
+	(* 05 - Property defined as an accessor descriptor, return (setter <> undefined) *)
 	[[ (l == #l) * (prop == #prop) *
 	   Pi (#l, #prop, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *
 	   AccessorDescriptor(#g_aux_1) * desc_set(#g_aux_1, #set) ]]
@@ -2220,20 +2267,20 @@ with
 (* O__DEFINEOWNPROPERTY *)
 (* ******************** *)
 
+(*
+ *    Name: defineOwnProperty 
+ * Purpose: Define a property of an object
+ *
+ *   Specs:
+ *
+ * 01-04 - Current undefined, object not extensible, reject
+ * 
+ * 
+ *)
+
 spec o__defineOwnProperty (l, prop, desc, throw)
 
-	(*
-	 *  1. {{ "d", _,   _,   _, $$f }} - {{ "d", _,   _,   _, $$t }} => Reject
-	 *  2. {{ "d", _,   _, $$t, $$f }} - {{ "d", _,   _, $$f, $$f }} => Reject
-	 *  3. {{ "d", _,   _, $$f, $$f }} - {{ "d", _,   _, $$t, $$f }} => Reject
-	 *  4. {{ "d",     _, $$f,   _, $$f }} - {{ "d",     _,    $$t,      _,    $$f }} => Reject
- 	 *  5. {{ "d", #cval, $$f,   _, $$f }} - {{ "d", #nval,    $$f,      _,    $$f }} => if #cval !== nval then Reject
-	 *
-	 *  6. {{ "d",     _,   _,   _, $$t }} - {{ "d", #nval, #nwrit, #nenum, #nconf }} => {{ "d", #nval, #nwrit, #nenum, #nconf }}
-	 *
-	 *)
-
-    (* Current is undefined, object is not extensible, non-string, throw *)
+    (* 01 - Current is undefined, object is not extensible, non-string, throw *)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$t) *
 	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #desc : $$list_type) *
 	   ((#l, "@class") -> #cls) *
@@ -2244,7 +2291,7 @@ spec o__defineOwnProperty (l, prop, desc, throw)
 	   isTypeError(err) ]]
     error;
 
-    (* Current is undefined, object is not extensible, non-string, don't throw *)
+    (* 02 - Current is undefined, object is not extensible, non-string, don't throw *)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$f) *
 	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #desc : $$list_type) *
 	   ((#l, "@class") -> #cls) *
@@ -2252,6 +2299,28 @@ spec o__defineOwnProperty (l, prop, desc, throw)
 	   ((#l, "@extensible") -> $$f) ]]
     [[ ((#l, "@class") -> #cls) *
 	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) * ((#l, "@extensible") -> $$f) *
+	   (ret == $$f) ]]
+    normal;
+
+    (* 03 - Current is undefined, object is not extensible, string, throw *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$t) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #desc : $$list_type) *
+	   ((#l, "@class") -> #cls) * 
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) *
+	   ((#l, "@extensible") -> $$f) ]]
+    [[ ((#l, "@class") -> #cls) * ((l, "@primitiveValue") -> #pv) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) * ((#l, "@extensible") -> $$f) *
+	   isTypeError(err) ]]
+    error;
+
+    (* 04 - Current is undefined, object is not extensible, string, don't throw *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == $$f) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #desc : $$list_type) *
+	   ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) *
+	   ((#l, "@extensible") -> $$f) ]]
+    [[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) * ((#l, "@extensible") -> $$f) *
 	   (ret == $$f) ]]
     normal;
 
@@ -2266,6 +2335,41 @@ spec o__defineOwnProperty (l, prop, desc, throw)
 	   isClass(#cls, "Non-String") * ((#l, #prop) -> #desc) * ((#l, "@extensible") -> $$t) *
 	   (ret == $$t) ]]
     normal;
+    
+    (* Current is undefined, object is extensible, non-string, accessor descriptor, success *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
+	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #desc : $$list_type, #throw : $$boolean_type) *
+	   ((#l, "@class") -> #cls) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) *
+	   AccessorDescriptor (#desc) *
+	   ((#l, "@extensible") -> $$t) ]]
+    [[ ((#l, "@class") -> #cls) *
+	   isClass(#cls, "Non-String") * ((#l, #prop) -> #desc) * ((#l, "@extensible") -> $$t) *
+	   (ret == $$t) ]]
+    normal;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     (* Current is defined, configurable is true, data descriptor, non-string, success *)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
