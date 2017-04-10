@@ -834,7 +834,7 @@ let normalise_predicate_definitions pred_defs : (string, Symbolic_State.n_jsil_l
 											then print_debug (Printf.sprintf "WARNING: One predicate definition does not make sense: %s\n" pred_name));
 										normalised_as)
 							pred.definitions in
-					let n_definitions = List.concat n_definitions in
+					let n_definitions = List.rev (List.concat n_definitions) in
 					let n_pred = {
 						n_pred_name = pred.name;
 						n_pred_num_params = pred.num_params;
