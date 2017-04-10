@@ -57,7 +57,7 @@ spec test4 (x, y)
    [[ emp ]] 
    normal
 proc test4 (x, y) {
-          y := hasField(y, "town");
+          y := hasField(x, "town");
           y := [x, "town"];
           goto [y] then4 else4; 
    then4:   [x, "station"] := "Waterloo";
@@ -106,6 +106,20 @@ spec test6 (x, y, z)
    [[ emp ]] 
    normal
 proc test6 (x, y, z) {
+          i := "proctest1" (x, y, z); 
+          goto [i] then4 else4; 
+   then4:   [z, "station"] := "Waterloo";
+            goto rlab; 
+   else4:   [z, "date"] := "1832"; 
+   rlab:    skip
+} with { ret: x, rlab; };
+
+(** Conditional Goto - Vars Check **)
+spec test7 (x, y, z)
+   [[ emp ]] 
+   [[ emp ]] 
+   normal
+proc test7 (x, y, z) {
           i := "proctest2" (x, y, z); 
           goto [i] then4 else4; 
    then4:   [x, "station"] := "Waterloo";
