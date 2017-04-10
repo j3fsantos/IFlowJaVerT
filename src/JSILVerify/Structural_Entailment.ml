@@ -151,6 +151,7 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (* solver *) (gamm
 	print_debug (Printf.sprintf ": %s versus %s" (JSIL_Print.string_of_logic_expression le_pat false)  (JSIL_Print.string_of_logic_expression le false));
 	try (
 	let result = (match le_pat with
+	
 	| LVar var
 	| ALoc var ->
 		(try
@@ -168,6 +169,29 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (* solver *) (gamm
 			else (false, None)
 
   | LUnknown -> (false, None)
+
+	| le_pat when (isList le_pat && isList le) ->
+			print_debug (Printf.sprintf "ULEXPRLIST: %s %s" (print_lexpr le_pat) (print_lexpr le));
+			let osubst = unify_lists le_pat le in
+			(match osubst with
+			| None, _ -> (false, None)
+			| Some _, sb ->
+				
+				let rec loop sb outcome constraints = 
+					(match sb with 
+					| [] -> (outcome, constraints) 
+					| (le1, le2) :: rest ->
+						let olf, cl = unify_lexprs le1 le2 p_formulae gamma subst in
+						(match olf with
+						| false -> (false, None)
+						| true -> 
+								let org, cr = loop rest true None in
+								(match org with
+								| false -> (false, None) 
+								| true -> (true, Some (Option.default [] cl @ Option.default [] cr))))
+					) in
+				
+				loop sb true None)
 
 	| LEList ple ->
 		(* Printf.printf "Now, are these lists equal?\n"; *)
@@ -222,7 +246,8 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (* solver *) (gamm
 				let (is_eq, whatever) = unify_lexprs le_pat le'' p_formulae (* solver *) gamma subst in
 				(* Printf.printf "And they aaaare: %b\n" is_eq; *)
 				(is_eq, whatever)
-			end)
+			end)			
+	
 	| _ ->
 		let le_pat' = lexpr_substitution le_pat subst false in 
 		 if (must_be_equal le_pat' le p_formulae gamma subst) 

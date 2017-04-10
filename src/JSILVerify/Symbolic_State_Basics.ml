@@ -165,7 +165,10 @@ let match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : boo
 let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : bool option * ((jsil_logic_expr * jsil_logic_expr) list) = 
 	let le1 = reduce_expression_no_store_no_gamma_no_pfs le1 in
 	let le2 = reduce_expression_no_store_no_gamma_no_pfs le2 in
+	let le1_old = le1 in
 	let le1, le2 = arrange_lists le1 le2 in
+	let to_swap = (le1_old <> le1) in
+	let swap (le1, le2) = if to_swap then (le2, le1) else (le1, le2) in
 	(* print_debug (Printf.sprintf "unify_lists: \n\t%s\n\t\tand\n\t%s" 
 		(print_lexpr le1) (print_lexpr le2)); *)
 	(match le1, le2 with
@@ -173,7 +176,7 @@ let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : bool optio
 	  | LLit (LList []), LLit (LList [])
 		| LLit (LList []), LEList []
 		| LEList [], LEList [] -> Some false, []
-		| LVar _, _ -> Some false, [ (le1, le2) ]
+		| LVar _, _ -> Some false, [ swap (le1, le2) ]
 		(* Inductive cases *)
 		| LLit (LList _), LLit (LList _)
 		| LLit (LList _), LEList _
@@ -198,10 +201,10 @@ let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : bool optio
 					(let ok, rest = unify_lists taill tailr in
 					(match ok with
 					| None -> None, []
-					| _ -> Some true, (headl, headr) :: rest))
+					| _ -> Some true, swap (headl, headr) :: rest))
 				else
 					(* No, we are done *)
-					Some true, [ (headl, headr); (taill, tailr) ]
+					Some true, [ swap (headl, headr); (taill, tailr) ]
 			(* Not enough information to separate head and tail *)
 			| Some _, Some _ -> 
 				(* This means that we have on at least one side a LstCat with a leading variable and we need to dig deeper *)
@@ -217,7 +220,7 @@ let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : bool optio
 								(match okr with
 								| None -> None, []
 								| _ -> Some true, left @ right))
-					| false -> Some false, [ (le1, le2) ])
+					| false -> Some false, [ swap (le1, le2) ])
 			(* A proper error occurred while getting head and tail *)
 			| _, _ -> None, [])
 		| _, _ ->
