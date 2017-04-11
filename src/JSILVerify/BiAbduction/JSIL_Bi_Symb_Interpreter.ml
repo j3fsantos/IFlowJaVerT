@@ -390,6 +390,7 @@ let symb_evaluate_bcmd (bcmd : jsil_basic_cmd) (symb_state : symbolic_state) (an
 				update_gamma gamma x (Some BooleanType);
 				(match res with 
 				| _, Some b -> 
+					Printf.printf "SHasField: got a boolean!\n";
 					let res_lit = LLit (Bool b) in
 					store_put store x res_lit;	
 					res_lit 
