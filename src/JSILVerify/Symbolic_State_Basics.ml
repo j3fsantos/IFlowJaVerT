@@ -1604,7 +1604,9 @@ let simplify_symb_state
 							changes_made := true;
 							DynArray.delete pfs !n;
 							List.iter (fun (x, y) -> DynArray.add pfs (LEq (x, y))) subst) *)
-				
+				| se1, se2 when (isString se1 && isString se2) ->
+					print_debug (Printf.sprintf "String unification (passthrough, not implemented): %s vs. %s" (print_lexpr se1) (print_lexpr se2));
+					n := !n + 1
 				| _, _ -> n := !n + 1)
 			
 			(* Special cases *)

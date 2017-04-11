@@ -460,7 +460,11 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 			| _ ->  
 				let pat_loc, rest_locs = pick_pat_loc locs_to_visit subst in  
 				print_debug (Printf.sprintf "Location: %s" pat_loc);
-				print_debug (Printf.sprintf "Substitution: %s" (JSIL_Memory_Print.string_of_substitution subst));
+				if (Hashtbl.mem subst pat_loc) then
+					(
+						let subst_val = Hashtbl.find subst pat_loc in
+						print_debug (Printf.sprintf "Substitution: %s" (print_lexpr subst_val))
+					);
 				(match heap_get pat_heap pat_loc with
 				| Some (pat_fv_list, pat_def) ->
 			  	(if ((pat_def <> LNone) && (pat_def <> LUnknown)) then raise (Failure "Illegal Default Value")  else (
