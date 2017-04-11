@@ -256,6 +256,8 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 			| ALoc l -> l
 			| _ -> raise (Failure (Printf.sprintf "Lookup: I do not know which location %s denotes in the symbolic heap" (print_le ne1)))) in
 		let ne = Symbolic_State_Functions.abs_heap_find heap l ne2 pure_formulae gamma in
+		let ne_type,_,_ = type_lexpr gamma ne in
+		update_gamma gamma x ne_type;
 		store_put store x ne;
 		ne
 

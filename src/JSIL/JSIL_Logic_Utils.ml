@@ -691,11 +691,11 @@ let rec type_lexpr gamma le =
 
  	| LUnOp (unop, e) ->
 		let (te, ite, constraints) = f e in
-		Printf.printf "trying to type a not. got the following. te: %s. ite: %s." 
+		(* Printf.printf "trying to type a not. got the following. te: %s. ite: %s." 
 			(match te with 
   					| Some te -> JSIL_Print.string_of_type te
   					| None    -> "")
-			(string_of_bool ite);
+			(string_of_bool ite); *)
 		let tt t1 t2 new_constraints =
 			if_some te 
 				(fun t -> if (t = t1)
@@ -706,7 +706,7 @@ let rec type_lexpr gamma le =
   		(match unop with
 			(* Boolean to Boolean  *)
   		| Not -> 
-  			(Printf.printf "typing the jsil not. t: %s." 
+  			(
   				(match te with 
   					| Some te -> JSIL_Print.string_of_type te
   					| None    -> ""); 
@@ -1090,7 +1090,7 @@ let rec find_me_Im_a_loc pfs lvar =
 	| LEq ( LLit (Loc loc), lvar') :: rest ->
 		if (lvar = lvar') 
 			then Some loc 
-			else find_me_Im_a_loc rest lvar  
+			else find_me_Im_a_loc rest lvar
 
 (**
 	Reduction of expressions: everything must be IMMUTABLE

@@ -60,11 +60,13 @@ let must_be_different le_pat le pi gamma subst =
 let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subst : substitution) (subst: substitution option) (pfs : jsil_logic_assertion list) (* solver *) (gamma : typing_environment) : ((jsil_logic_expr * jsil_logic_expr) list) option  =
 	let start_time = Sys.time () in
 	try
-	print_debug (Printf.sprintf "Unifying stores:\nStore: %s \nPat_store: %s" (JSIL_Memory_Print.string_of_shallow_symb_store store false) (JSIL_Memory_Print.string_of_shallow_symb_store pat_store false)); 
+	print_debug (Printf.sprintf "Unifying stores:\nStore: %s\nPat_store: %s" 
+		(JSIL_Memory_Print.string_of_shallow_symb_store store false) 
+		(JSIL_Memory_Print.string_of_shallow_symb_store pat_store false)); 
 	let discharges =
 		Hashtbl.fold
 			(fun var pat_lexpr discharges ->
-				let lexpr = try Hashtbl.find store var with _ -> raise (Failure "the stores are not unifiable") in
+				let lexpr = try Hashtbl.find store var with _ -> raise (Failure "The stores are not unifiable") in
 				let rec spin_me_round pat_lexpr lexpr discharges =
 				(*Printf.printf "(%s, %s)\n" (JSIL_Print.string_of_logic_expression pat_lexpr false) (JSIL_Print.string_of_logic_expression lexpr false);*)
 				(match pat_lexpr, lexpr with
@@ -820,18 +822,78 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 		| Some discharges_0 ->
 			print_debug (Printf.sprintf "Discharges: %d\n" (List.length discharges_0));
 			List.iter (fun (x, y) -> print_debug (Printf.sprintf "\t%s : %s\n" (JSIL_Print.string_of_logic_expression x false) (JSIL_Print.string_of_logic_expression y false))) discharges_0;
+			let keep_subst = Hashtbl.copy subst in
+			(* First try to unify heaps, then predicates *)
 			let ret_1 = unify_symb_heaps heap_1 heap_0 pf_0 (* solver *) gamma_0 subst in
 			(match ret_1 with
 			| Some (heap_f, new_pfs, negative_discharges) ->
-				print_debug (Printf.sprintf "Heaps unified successfully.\n");
+				print_debug (Printf.sprintf "Heaps unified successfully. Unifying predicates.\n");
 				let ret_2 = unify_pred_arrays preds_1 preds_0 pf_0 (* solver *) gamma_0 subst in
 				(match ret_2 with
 				| Some (subst, preds_f, []) ->
 					let spec_vars_check = spec_logic_vars_discharge subst lvars pf_0 gamma_0 in
 					Some (discharges_0, subst, heap_f, preds_f, new_pfs)
-				| Some (_, _, _) | None -> ( print_debug (Printf.sprintf "Failed to unify predicates\n"); None))
-			| None -> ( print_debug (Printf.sprintf "Failed to unify heaps\n"); None))
-		| None -> ( print_debug (Printf.sprintf "Failed to unify stores\n"); None)) in
+				| _ -> ( print_debug (Printf.sprintf "Failed to unify predicates\n"); None))
+			| None -> 
+					print_debug (Printf.sprintf "Could not unify heaps before predicates, unifying predicates first instead."); 
+					let ret_2 = unify_pred_arrays preds_1 preds_0 pf_0 gamma_0 subst in
+					(match ret_2 with
+					| Some (subst, preds_f, []) ->
+						let spec_vars_check = spec_logic_vars_discharge subst lvars pf_0 gamma_0 in
+						print_debug "Unified predicates successfully. Extracting additional knowledge";
+						
+						(***** EXPERIMENTAL - PUT INTO SEPARATE FUNCTION *****)
+
+						let pat_pfs = pf_substitution pf_1 subst true in
+						let _, pf_subst = simplify_pfs_with_subst pf_0 gamma_0 in
+						(match pf_subst with
+						| None -> print_debug (Printf.sprintf "Failed to unify heaps definitively. Contradiction in pat_pfs." ); None
+						| Some pf_subst -> 
+							(let pat_pfs = pf_substitution pat_pfs pf_subst true in
+							print_debug (Printf.sprintf "Original pat_pfs:\n%s" (JSIL_Memory_Print.string_of_shallow_p_formulae pf_1 false));
+							print_debug (Printf.sprintf "Substituted pat_pfs:\n%s" (JSIL_Memory_Print.string_of_shallow_p_formulae pat_pfs false));
+							let new_pfs, _ = simplify_pfs pat_pfs gamma_0 true in
+							(match (DynArray.to_list new_pfs) with
+							| [ LFalse ] -> print_debug (Printf.sprintf "Failed to unify heaps definitively. Contradiction in pat_pfs." ); None
+							| _ -> 
+									print_debug (Printf.sprintf "More pfs: %s" (JSIL_Memory_Print.string_of_shallow_p_formulae new_pfs false));
+									
+									(* Now we can extract two things: more subst and more alocs *)
+									let hd = SS.of_list (heap_domain heap_1 subst) in
+									print_debug (Printf.sprintf "Domain of the pat_heap: %s" (String.concat ", " (SS.elements hd)));
+									DynArray.iter (fun pf ->
+										(match pf with
+										| LEq (ALoc al, LLit (Loc l))
+										| LEq (LLit (Loc l), ALoc al) ->
+												(match (SS.mem al hd) with
+												| false -> ()
+												| true -> extend_substitution subst [ al ] [ LLit (Loc l) ])
+										
+										| LEq (ALoc al1, ALoc al2) ->
+											let m1 = SS.mem al1 hd in
+											let m2 = SS.mem al2 hd in
+											(match m1, m2 with
+											| true, false -> extend_substitution subst [ al1 ] [ ALoc al2 ]
+											| false, true -> extend_substitution subst [ al2 ] [ ALoc al1 ]
+											| _, _ -> ()
+											)
+
+										| _ -> ()
+										)
+									) new_pfs;
+							
+							(***** EXPERIMENTAL - PUT INTO SEPARATE FUNCTION *****)
+	
+									print_debug "Now unifying heaps again.";
+									print_debug (Printf.sprintf "%s" (JSIL_Memory_Print.string_of_substitution subst));
+									let ret_1 = unify_symb_heaps heap_1 heap_0 pf_0 gamma_0 subst in
+									(match ret_1 with
+									| Some (heap_f, new_pfs, negative_discharges) ->
+										print_debug (Printf.sprintf "Heaps unified successfully.\n");
+										Some (discharges_0, subst, heap_f, preds_f, new_pfs)
+									| None -> print_debug (Printf.sprintf "Failed to unify heaps and predicates definitively."); None ))))
+					| _ -> print_debug (Printf.sprintf "Failed to unify predicates and heaps definitively.\n"); None ))
+		| None -> print_debug (Printf.sprintf "Failed to unify stores\n" ); None) in
 		let end_time = Sys.time() in
 		JSIL_Syntax.update_statistics "USS: Step 0" (end_time -. start_time);
 		result in

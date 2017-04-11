@@ -288,6 +288,8 @@ let symb_evaluate_bcmd (bcmd : jsil_basic_cmd) (symb_state : symbolic_state) (an
 		if (extended) then 
 			(add_pure_assertion pure_formulae (LNot (LEq (ne, LNone)));
 			add_pure_assertion anti_pure_formulae (LNot (LEq (ne, LNone))));
+		let ne_type, _, _ = type_lexpr gamma ne  in
+		update_gamma gamma x ne_type;
 		store_put store x ne;
 		ne
 
