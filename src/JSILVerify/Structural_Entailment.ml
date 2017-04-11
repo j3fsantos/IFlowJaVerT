@@ -423,15 +423,9 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 	let pat_heap_domain : string list = heap_domain pat_heap subst in
 	print_debug (Printf.sprintf "PatHeapDomain: %s" (String.concat ", " pat_heap_domain));
 	
-	let just_pick_the_first locs = 
-		match locs with 
-		| [] -> print_debug "DEATH. just_pick_the_first\n"; raise (Failure "DEATH: unify_symb_heaps")
-		| loc :: rest -> loc, rest in 
-	
-	
 	let rec pick_loc_that_exists_in_both_heaps locs traversed_locs  = 
 		match locs with 
-		| [] -> just_pick_the_first traversed_locs
+		| [] -> raise (Failure "DEATH: no reasonable way to continue unifying.")
 		| loc :: rest -> 
 			if (LHeap.mem heap loc) 
 				then 
