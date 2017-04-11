@@ -260,10 +260,9 @@
 		outcome: normal
 
 	@onlyspec setAttribute(s, v)
-		pre:  [[ Cell(#l, {{ #ctx1, {{ "elem", #name, this, #l_attr, #l_children }} }}) * ElementNode(this) * 
-				 AttributeSet(#l_attr, #attr) * (s == #s1) * (v == #s2) * 
+		pre:  [[ Cell(#l, {{ #ctx1, {{ "elem", #name, this, #l_attr, #l_children }} }}) * ElementNode(this) * AttributeSet(#l_attr, #attr) * 
 				 (#attr == {{ {{ "attr", #s1, #m, #l_tf }}, {{ "hole", #alpha }} }}) * AttributeNode(#m) *
-				 TextForest(#l_tf, #t) * Cell(#l_g, #g) * (#g == {{ {{ "empty", #ctx }} }}) * GroveCtx(#g) ]]
+				 TextForest(#l_tf, #t) * Cell(#l_g, #g) * (#g == {{ {{ "empty", #ctx }} }}) * GroveCtx(#g) * (s == #s1) * (v == #s2) ]]
 		post: [[ Cell(#l, {{ #ctx1, {{ "elem", #name, this, #l_attr, #l_children }} }}) * ElementNode(this) * AttributeSet(#l_attr, #attr_post) *
 				 (#attr_post == {{ {{ "attr", #s1, #m, #l_tf_post }}, {{ "hole", #alpha }} }}) * AttributeNode(#m) * 
 				 TextForest(#l_tf_post, #t_post) * (#t_post == {{ {{ "text", #r, #s2 }} }}) * 
@@ -341,7 +340,7 @@
 		Forest(#e_l_c, #e_c_post) * (#e_c_post == {{ {{ "hole", #alpha }}, {{ "elem", #e_n_new, #e_new, #e_attr_new, #e_chld_new }} }}) *
 		ElementNode(#e_new) * AttributeSet(#e_attr_new, $$nil) * Forest(#e_chld_new, $$nil) *
 		DocumentNode($l_document, #d_l_elem, #d_elem, #d_l_g, #d_g_post) *
-		(#d_g_post == {{ {{ "hole", #beta }} }}) * (ret == $$t)
+		(#d_g_post == {{ {{ "hole", #beta }} }})
 	)
 */
 function createNewAttribute(grove, element){
