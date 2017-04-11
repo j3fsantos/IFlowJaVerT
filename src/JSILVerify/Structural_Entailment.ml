@@ -434,7 +434,9 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 		| [] -> just_pick_the_first traversed_locs
 		| loc :: rest -> 
 			if (LHeap.mem heap loc) 
-				then loc, (traversed_locs @ rest) 
+				then 
+					(Hashtbl.add subst loc (ALoc loc); 
+					loc, (traversed_locs @ rest)) 
 				else pick_loc_that_exists_in_both_heaps rest (traversed_locs @ [ loc ]) in 
 	
 	let pick_pat_loc (locs_to_visit : string list) subst : string * (string list) = 
@@ -1220,7 +1222,6 @@ let merge_symb_states
 		(symb_state_r : symbolic_state) 
 		(subst : substitution) : symbolic_state =
 	(* Printf.printf "gamma_r: %s\n." (JSIL_Memory_Print.string_of_gamma (get_gamma symb_state_r)); *)
-	(* Printf.printf "substitution: %s\n" (JSIL_Memory_Print.string_of_substitution subst); *)
 	let aux_symb_state = (copy_symb_state symb_state_r) in
 	let symb_state_r = symb_state_substitution aux_symb_state subst false in
 	let heap_l, store_l, pf_l, gamma_l, preds_l = symb_state_l in

@@ -500,6 +500,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		| [ ] -> [ ]
 		| [ (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ] -> 
 			print_debug (Printf.sprintf "This was a TOTAL MATCH!!!!");
+			print_debug (Printf.sprintf "Substitution: %s\n" (JSIL_Memory_Print.string_of_substitution subst)); 
 			transform_symb_state spec symb_state quotient_heap quotient_preds subst pf_discharges new_gamma
 	 	| _ :: _ -> 
 			print_debug (Printf.sprintf "We have a PARTIAL MATCH of length: %d" (List.length quotients));
