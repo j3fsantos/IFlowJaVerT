@@ -1090,7 +1090,7 @@ let rec find_me_Im_a_loc pfs lvar =
 	| LEq ( LLit (Loc loc), lvar') :: rest ->
 		if (lvar = lvar') 
 			then Some loc 
-			else find_me_Im_a_loc rest lvar  
+			else find_me_Im_a_loc rest lvar
 
 (**
 	Reduction of expressions: everything must be IMMUTABLE

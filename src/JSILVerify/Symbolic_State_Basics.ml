@@ -1420,9 +1420,7 @@ let simplify_symb_state
 	Hashtbl.filter_map_inplace (fun v t ->
 		(match (save_all || SS.mem v (SS.union lvars_inter (SS.union vars_to_save existentials))) with
 		| true  -> Some t
-		| false -> 
-				print_debug (Printf.sprintf "SIMPL: removing %s from gamma" v); 
-				None)) gamma;
+		| false -> None)) gamma;
 		
 	(* Setup the type indexes *)
 	let types = Array.make type_length 0 in
@@ -1566,7 +1564,7 @@ let simplify_symb_state
 				
 				(* List unification *)
 				| le1, le2 when (isList le1 && isList le2) ->
-					print_debug (Printf.sprintf "List unification: %s vs. %s" (print_lexpr le1) (print_lexpr le2));
+					(* print_debug (Printf.sprintf "List unification: %s vs. %s" (print_lexpr le1) (print_lexpr le2)); *)
 					let ok, subst = unify_lists le1 le2 false in
 					(match ok with
 					(* Error while unifying lists *)
@@ -1652,6 +1650,11 @@ let simplify_pfs pfs gamma save_vars =
   let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create ()) in
   let (_, _, pfs, gamma, _), _, _, _ = simplify_symb_state (SS.empty) save_vars (DynArray.create()) (SS.empty) fake_symb_state in
   pfs, gamma
+
+let simplify_pfs_with_subst pfs gamma =
+  let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create ()) in
+  let (_, _, pfs, gamma, _), subst, _, _ = simplify_symb_state (SS.empty) false (DynArray.create()) (SS.empty) fake_symb_state in
+  if (DynArray.to_list pfs = [ LFalse ]) then (pfs, None) else (pfs, Some subst)
 
 let simplify_pfs_with_exists_and_others exists lpfs rpfs gamma = 
 	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (copy_gamma gamma), DynArray.create ()) in
