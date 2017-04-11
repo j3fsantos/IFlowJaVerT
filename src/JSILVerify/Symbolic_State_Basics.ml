@@ -1275,20 +1275,7 @@ let clean_up_stuff exists left right =
 		 | true -> DynArray.delete right !i
 		)
 	done
-
-let simplify_implication exists lpfs rpfs gamma =
-	let lpfs, rpfs, gamma = simplify_for_your_legacy_pfs_with_exists_and_others exists lpfs rpfs gamma in
-	(* print_debug (Printf.sprintf "In between:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n" 
-   (String.concat ", " (SS.elements exists))
-   (JSIL_Memory_Print.string_of_shallow_p_formulae lpfs false)
-   (JSIL_Memory_Print.string_of_shallow_p_formulae rpfs false)
-   (JSIL_Memory_Print.string_of_gamma gamma)); *)
-	sanitise_pfs_no_store gamma rpfs;
-	let exists, lpfs, rpfs, gamma = simplify_existentials exists lpfs rpfs gamma in
-	clean_up_stuff exists lpfs rpfs;
-	exists, lpfs, rpfs, gamma (* DO THE SUBST *)
 	
-
 (*************************************************)
 (** Symbolic state simplification  - top level  **)
 (*************************************************)
@@ -1425,8 +1412,9 @@ let simplify_symb_state
 	 * Trim the variables that are in gamma
 	 * but not in the rest of the state, 
 	 * and are also not in vars_to_save
+	 * and are also not in others
 	 *)
-	let lvars = get_symb_state_vars_no_gamma false symb_state in	
+	let lvars = SS.union (get_symb_state_vars_no_gamma false symb_state) (get_pf_vars false other_pfs) in
 	let lvars_gamma = get_gamma_vars false gamma in		
 	let lvars_inter = SS.inter lvars lvars_gamma in
 	Hashtbl.filter_map_inplace (fun v t ->
@@ -1627,7 +1615,17 @@ let simplify_symb_state
 			| LNot (LEq (ALoc _, LLit Null)) 
 			| LNot (LEq (LLit Null, ALoc _)) ->
 					DynArray.delete pfs !n
-			
+					
+			| LNot (LEq (LVar v, LLit Empty)) 
+			| LNot (LEq (LLit Empty, LVar v)) ->
+				(match (Hashtbl.mem gamma v) with
+				| false -> n := !n + 1
+				| true -> 	
+						let t = Hashtbl.find gamma v in
+						(match (t = EmptyType) with
+						| true -> pfs_ok := false; msg := "Negation incorrect."
+						| false -> DynArray.delete pfs !n))
+							
 			| _ -> n := !n + 1);
 		done;
 	done;
@@ -1654,3 +1652,24 @@ let simplify_pfs pfs gamma save_vars =
   let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create ()) in
   let (_, _, pfs, gamma, _), _, _, _ = simplify_symb_state (SS.empty) save_vars (DynArray.create()) (SS.empty) fake_symb_state in
   pfs, gamma
+
+let simplify_pfs_with_exists_and_others exists lpfs rpfs gamma = 
+	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (copy_gamma gamma), DynArray.create ()) in
+  let (_, _, lpfs, gamma, _), _, rpfs, exists = simplify_symb_state (SS.empty) false rpfs exists fake_symb_state in
+  lpfs, rpfs, exists, gamma
+
+(* ************************** *
+ * IMPLICATION SIMPLIFICATION *
+ * ************************** *)
+	
+let simplify_implication exists lpfs rpfs gamma =
+	let lpfs, rpfs, exists, gamma = simplify_pfs_with_exists_and_others exists lpfs rpfs gamma in
+	(* print_debug (Printf.sprintf "In between:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n" 
+   (String.concat ", " (SS.elements exists))
+   (JSIL_Memory_Print.string_of_shallow_p_formulae lpfs false)
+   (JSIL_Memory_Print.string_of_shallow_p_formulae rpfs false)
+   (JSIL_Memory_Print.string_of_gamma gamma)); *)
+	sanitise_pfs_no_store gamma rpfs;
+	let exists, lpfs, rpfs, gamma = simplify_existentials exists lpfs rpfs gamma in
+	clean_up_stuff exists lpfs rpfs;
+	exists, lpfs, rpfs, gamma (* DO THE SUBST *)
