@@ -860,7 +860,7 @@ let simplify_symbolic_state symb_state =
 	let types_ok = understand_types SS.empty (List.map (fun x -> (x, "l")) pfs) gamma in
 	match types_ok with
 		| true -> symb_state
-		| false -> raise (Failure "INCONSISTENT STATE") 	
+		| false -> raise (Failure "INCONSISTENT STATE") 
 
 (* ******************* *
  * MAIN SIMPLIFICATION *
@@ -906,14 +906,19 @@ let type_index t =
 let type_length = 10
 
 let simplify_symb_state 
-	(vars_to_save : SS.t)
-	(save_all     : bool)
+	(vars_to_save : (SS.t option) option)
 	(other_pfs    : jsil_logic_assertion DynArray.t)
 	(existentials : SS.t)
 	(symb_state   : symbolic_state) =
 
 	let start_time = Sys.time () in
 	print_time_debug "simplify_symb_state:";
+
+	let vars_to_save, save_all = 
+		(match vars_to_save with
+		| Some (Some v) -> v, false 
+		| Some None     -> SS.empty, true
+		| None          -> SS.empty, false) in
 
 	(* Pure formulae false *)
 	let pfs_false subst others exists symb_state msg =
@@ -1225,24 +1230,24 @@ let simplify_symb_state
 		else (pfs_false subst !others !exists !symb_state !msg)
 	
 (* Wrapper for only pfs *)
-let simplify_pfs pfs gamma save_vars =
+let simplify_pfs pfs gamma vars_to_save =
   let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create ()) in
-  let (_, _, pfs, gamma, _), _, _, _ = simplify_symb_state (SS.empty) save_vars (DynArray.create()) (SS.empty) fake_symb_state in
+  let (_, _, pfs, gamma, _), _, _, _ = simplify_symb_state vars_to_save (DynArray.create()) (SS.empty) fake_symb_state in
   pfs, gamma
 
 let simplify_pfs_with_subst pfs gamma =
   let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create ()) in
-  let (_, _, pfs, gamma, _), subst, _, _ = simplify_symb_state (SS.empty) false (DynArray.create()) (SS.empty) fake_symb_state in
+  let (_, _, pfs, gamma, _), subst, _, _ = simplify_symb_state None (DynArray.create()) (SS.empty) fake_symb_state in
   if (DynArray.to_list pfs = [ LFalse ]) then (pfs, None) else (pfs, Some subst)
 
-let simplify_pfs_with_exists exists lpfs gamma save_lvars = 
+let simplify_pfs_with_exists exists lpfs gamma vars_to_save = 
 	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (copy_gamma gamma), DynArray.create ()) in
-  let (_, _, lpfs, gamma, _), _, _, exists = simplify_symb_state (SS.empty) save_lvars (DynArray.create()) exists fake_symb_state in
+  let (_, _, lpfs, gamma, _), _, _, exists = simplify_symb_state vars_to_save (DynArray.create()) exists fake_symb_state in
   lpfs, exists, gamma
 
 let simplify_pfs_with_exists_and_others exists lpfs rpfs gamma = 
 	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (copy_gamma gamma), DynArray.create ()) in
-  let (_, _, lpfs, gamma, _), _, rpfs, exists = simplify_symb_state (SS.empty) false rpfs exists fake_symb_state in
+  let (_, _, lpfs, gamma, _), _, rpfs, exists = simplify_symb_state None rpfs exists fake_symb_state in
   lpfs, rpfs, exists, gamma
 
 (* ************************** *
@@ -1256,7 +1261,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	let rhs_gamma = copy_gamma gamma in
 	filter_gamma_pfs p_formulae rhs_gamma;
 	
-	let p_formulae, exists, _ = simplify_pfs_with_exists exists p_formulae rhs_gamma true in
+	let p_formulae, exists, _ = simplify_pfs_with_exists exists p_formulae rhs_gamma (Some None) in
 	
 	(* print_debug (Printf.sprintf "PFS: %s" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false)); *)
 

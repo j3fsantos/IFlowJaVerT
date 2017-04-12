@@ -228,7 +228,7 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (* solver *) (gamm
 			let le''' = (match le'' with
 			| LVar v ->
 					let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy p_formulae), (copy_gamma gamma), DynArray.create ()) in
-					let simpl_pfs, _ = simplify_pfs p_formulae gamma true in
+					let simpl_pfs, _ = simplify_pfs p_formulae gamma (Some None) in
 					let subst = List.filter (fun pf -> (match pf with
 					| LEq (LVar w, _) -> v = w
 					| _ -> false)) (DynArray.to_list simpl_pfs) in
@@ -852,7 +852,7 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 							(let pat_pfs = pf_substitution pat_pfs pf_subst true in
 							print_debug (Printf.sprintf "Original pat_pfs:\n%s" (JSIL_Memory_Print.string_of_shallow_p_formulae pf_1 false));
 							print_debug (Printf.sprintf "Substituted pat_pfs:\n%s" (JSIL_Memory_Print.string_of_shallow_p_formulae pat_pfs false));
-							let new_pfs, _ = simplify_pfs pat_pfs gamma_0 true in
+							let new_pfs, _ = simplify_pfs pat_pfs gamma_0 (Some None) in
 							(match (DynArray.to_list new_pfs) with
 							| [ LFalse ] -> print_debug (Printf.sprintf "Failed to unify heaps definitively. Contradiction in pat_pfs." ); None
 							| _ -> 

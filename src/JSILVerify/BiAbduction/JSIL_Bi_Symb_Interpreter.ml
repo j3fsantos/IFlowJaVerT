@@ -1097,7 +1097,7 @@ and symb_evaluate_next_cmd_cont
 					(* check if the current symbolic state entails the invariant *)
 					Printf.printf "LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
 					let new_symb_state, _ = JSIL_Logic_Normalise.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
-					let new_symb_state, _, _, _ = simplify_symb_state (SS.empty) false (DynArray.create()) (SS.empty) new_symb_state in
+					let new_symb_state, _, _, _ = simplify_symb_state None (DynArray.create()) (SS.empty) new_symb_state in
 					(match (Structural_Entailment.fully_unify_symb_state new_symb_state symb_state spec.n_lvars !js) with
 					| Some _, _ -> (true, None, [])
 					| None, msg -> (false, Some msg, []))
@@ -1113,7 +1113,7 @@ and symb_evaluate_next_cmd_cont
 					| Some a ->
 						Printf.printf "NO LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
 						let new_symb_state, _ = JSIL_Logic_Normalise.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
-						let new_symb_state, _, _, _ = simplify_symb_state (SS.empty) false (DynArray.create()) (SS.empty) new_symb_state in
+						let new_symb_state, _, _, _ = simplify_symb_state (Some None) (DynArray.create()) (SS.empty) new_symb_state in
 						(match (Structural_Entailment.unify_symb_state_against_invariant symb_state new_symb_state spec.n_lvars) with
 						(* If it does, replace current symbolic state with the invariant *)
 						| Some new_symb_state -> new_symb_state
