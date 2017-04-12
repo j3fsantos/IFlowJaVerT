@@ -3,6 +3,7 @@ mkdir -p environment
 mkdir -p environment/lists
 mkdir -p environment/PQ
 cp remake.sh environment
+cp test.sh environment
 cp *.native environment
 cp src/JaVerT/runtime/* environment
 cp src/JaVerT/DOM/*.js environment
