@@ -219,15 +219,15 @@
 	
 
 	@pred ECell(alpha, name, id, l_attr, aList, l_children, cList) : 
-		DOMObject(alpha, $$null) * ((alpha, "@chain") ->  #l) * ((alpha, "@node") -> id) * empty_fields(alpha : "@chain") * ChainCell(#l, $$null) *
+		DOMObject(alpha, $$null) * ((alpha, "@chain") ->  #l) * ((alpha, "@node") -> id) * empty_fields(alpha : "@chain", "@node") * ChainCell(#l, $$null) *
 		ENode(name, id, l_attr, aList, l_children, cList);
 
 	@pred TCell(alpha, id, text) : 
-		DOMObject(alpha, $$null) * ((alpha, "@chain") ->  #l) * ((alpha, "@node") -> id) * empty_fields(alpha : "@chain") * ChainCell(#l, $$null) *
+		DOMObject(alpha, $$null) * ((alpha, "@chain") ->  #l) * ((alpha, "@node") -> id) * empty_fields(alpha : "@chain", "@node") * ChainCell(#l, $$null) *
 		TextNode(id, text);
 
 	@pred ACell(alpha, name, id, l_children, cList) : 
-		DOMObject(alpha, $$null) * ((alpha, "@chain") ->  #l) * ((alpha, "@node") -> id) * empty_fields(alpha : "@chain") * ChainCell(#l, $$null) *
+		DOMObject(alpha, $$null) * ((alpha, "@chain") ->  #l) * ((alpha, "@node") -> id) * empty_fields(alpha : "@chain", "@node") * ChainCell(#l, $$null) *
 		ANode(name, id, l_children, cList);	
 
 	@pred EmptyCell(alpha) :
