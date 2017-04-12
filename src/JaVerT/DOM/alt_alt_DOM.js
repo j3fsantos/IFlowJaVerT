@@ -391,7 +391,7 @@
 
 	@onlyspec createElement(s)
 		pre:  [[ (s == #name) *  DocumentNode(this, #l_element, #element, #l_g, #g) ]]
-		post: [[ (ret == #en) * DocumentNode(this, #l_element, #element, #l_g, ({{ "elem", #name, #en, #aList, #ecList }} :: #g)) ]]
+		post: [[ (ret == #en) * DocumentNode(this, #l_element, #element, #l_g, ({{ "elem", #name, #en, $$nil, $$nil }} :: #g)) * types(#en : $$onject_type) ]]
 		outcome: normal
 
 	@onlyspec appendChild(n)
@@ -426,14 +426,30 @@
 	@rec false
 
 	@pre (
-		InitialDOMHeap() * (element == #id) * types(#id : $$object_type) *
+		scope(allocG   : #allocG)   * fun_obj(allocG,   #allocG,   #allocG_proto) *
+		scope(deallocG : #deallocG) * fun_obj(deallocG, #deallocG, #deallocG_proto) *
+		InitialDOMHeap() * (element == #id) * (grove == #gList) * types(#en : $$object_type) *
+		DocumentNode($l_document, #l_elem, #elem, #l_gList, #gList) *
 		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList1)
 	)
 	@post (
-		InitialDOMHeap() *
-		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList1)
+		scope(allocG   : #allocG)   * fun_obj(allocG,   #allocG,   #allocG_proto) *
+		scope(deallocG : #deallocG) * fun_obj(deallocG, #deallocG, #deallocG_proto) *
+		InitialDOMHeap() * (ret == $$t) * 
+		DocumentNode($l_document, #d_l_elem, #d_elem, #d_l_g, #d_g_post) *
+		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList_post) *
+		(#cList_post == (#cList1 @ {{ {{ "elem", "test", #n_id, #n_l_aList, $$nil, #n_l_cList, $$nil }} }}))
 	)
 */
-function createNewAttribute(element){
+function createNewAttribute(grove, element){
 	var d = element.ownerDocument();
+	var e = d.createElement("test");
+	var a = allocG(grove, 0, 1);
+	/* @invariant 
+		scope(a : #zeta) * scope(e : #e2) * 
+		ECell(#zeta, #name2, #e2, #l_aList2, #aList2, #l_cList2, #cList2) */
+	/* @fold complete(#cList2) */
+	var n = element.appendChild(e);
+	deallocG(a);
+	return (n === e);
 }
