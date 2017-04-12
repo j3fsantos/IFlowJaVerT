@@ -300,46 +300,46 @@
 	@onlyspec allocG(l, i)
 		pre:  [[ (l == #l) * (i == #i) * types(#g : $$list_type, #g1 : $$list_type, #g2 : $$list_type) * 
 				 Grove(#l, #g) * (#g == #g1 @ ( {{"elem", #name, #id, #aList, #cList}} :: #g2)) * (l-len(#g1) == #i) ]]
-		post: [[ Grove(#l, (#g1 @ ({{ "hole", #alpha }} :: #g2))) * 
+		post: [[ Grove(#l, #g_post) * (#g_post == (#g1 @ ({{ "hole", #alpha }} :: #g2))) *
 		    	 ECell(#alpha, #name, #id, #l_attr, #aList, #l_children, #cList) * (ret == #alpha) * types(#alpha : $$object_type)]]
 		outcome: normal;
 
 		pre:  [[ (l == #l) * (i == #i) * types(#g : $$list_type, #g1 : $$list_type, #g2 : $$list_type) * 
 				 Grove(#l, #g) * (#g == #g1 @ ( {{"text", #id, #text}} :: #g2)) * (l-len(#g1) == #i) ]]
-		post: [[ Grove(#l, (#g1 @ ({{ "hole", #alpha }} :: #g2))) * 
+		post: [[ Grove(#l, #g_post) * (#g_post == (#g1 @ ({{ "hole", #alpha }} :: #g2))) *
 		    	 TCell(#alpha, #id, #text) * (ret == #alpha) * types(#alpha : $$object_type)]]
 		outcome: normal;
 
 		pre:  [[ (l == #l) * (i == #i) * types(#g : $$list_type, #g1 : $$list_type, #g2 : $$list_type) * 
 				 Grove(#l, #g) * (#g == #g1 @ ( {{"attr", #name, #id, #cList}} :: #g2)) * (l-len(#g1) == #i) ]]
-		post: [[ Grove(#l, (#g1 @ ({{ "hole", #alpha }} :: #g2))) * 
+		post: [[ Grove(#l, #g_post) * (#g_post == (#g1 @ ({{ "hole", #alpha }} :: #g2))) *
 		    	 ACell(#alpha, #name, #id, #l_children, #cList) * (ret == #alpha) * types(#alpha : $$object_type)]]
 		outcome: normal
 
 	@onlyspec deallocG(alpha)
 		pre:  [[ (alpha == #alpha) * types(#alpha : $$object_type, #g : $$list_type, #g1 : $$list_type, #g2 : $$list_type, #g3 : $$list_type) * 
 				 Grove(#l, #g) * (#g == #g1 @ ({{ "hole", #alpha }} :: #g3)) * Grove(#alpha, #g2) ]]
-		post: [[ Grove(#l, (#g1 @ (#g2 @ #g3))) * (ret == $$empty) ]]
+		post: [[ Grove(#l, #g_post) * (#g_post == (#g1 @ (#g2 @ #g3))) * (ret == $$empty) ]]
 		outcome: normal; 
 
 		pre:  [[ (alpha == #alpha) * types(#alpha : $$object_type, #g : $$list_type, #g1 : $$list_type, #g3 : $$list_type) * 
 				 Grove(#l, #g) * (#g == #g1 @ ({{ "hole", #alpha }} :: #g3)) * EmptyCell(#alpha) ]]
-		post: [[ Grove(#l, (#g1 @ #g3)) * (ret == $$empty) ]]
+		post: [[ Grove(#l, #g_post) * (#g_post == (#g1 @ #g3)) * (ret == $$empty) ]]
 		outcome: normal; 
 
 		pre:  [[ (alpha == #alpha) * types(#alpha : $$object_type, #g : $$list_type, #g1 : $$list_type, #g2 : $$list_type) * 
 				 Grove(#l, #g) * (#g == #g1 @ ({{ "hole", #alpha }} :: #g2)) * ECell(#alpha, #name, #id, #l_attr, #aList, #l_children, #cList) ]]
-		post: [[ Grove(#l, (#g1 @ ({{"elem", #name, #id, #aList, #cList}} :: #g2))) * (ret == $$empty) ]]
+		post: [[ Grove(#l, #g_post) * (#g_post == (#g1 @ ({{"elem", #name, #id, #aList, #cList}} :: #g2))) * (ret == $$empty) ]]
 		outcome: normal;
 
 		pre:  [[ (alpha == #alpha) * types(#alpha : $$object_type, #g : $$list_type, #g1 : $$list_type, #g2 : $$list_type) * 
 				 Grove(#l, #g) * (#g == #g1 @ ({{ "hole", #alpha }} :: #g2)) * TCell(#alpha, #id, #text) ]]
-		post: [[ Grove(#l, (#g1 @ ({{"text", #id, #text}} :: #g2))) * (ret == $$empty) ]]
+		post: [[ Grove(#l, #g_post) * (#g_post == (#g1 @ ({{"text", #id, #text}} :: #g2))) * (ret == $$empty) ]]
 		outcome: normal;
 
 		pre:  [[ (alpha == #alpha) * types(#alpha : $$object_type, #g : $$list_type, #g1 : $$list_type, #g2 : $$list_type) * 
 				 Grove(#l, #g) * (#g == #g1 @ ({{ "hole", #alpha }} :: #g2)) * ACell(#alpha, #name, #id, #l_children, #cList) ]]
-		post: [[ Grove(#l, (#g1 @ ({{"attr", #name, #id, #cList}} :: #g2))) * (ret == $$empty) ]]
+		post: [[ Grove(#l, #g_post) * (#g_post == (#g1 @ ({{"attr", #name, #id, #cList}} :: #g2))) * (ret == $$empty) ]]
 		outcome: normal
 
 */ /*
@@ -404,8 +404,8 @@
 
 		pre:  [[ (n == #n) * ACell(#alpha, #name, this, #l_children, #cList) *
 				 TCell(#beta, #n, #text) ]]
-		post: [[ ACell(#alpha, #name, this, #l_children, #cList) * 
-				 (#cList == #cList @ {{ {{ "text", #n, #text }} }}) * EmptyCell(#beta) * (ret == #n) ]]
+		post: [[ ACell(#alpha, #name, this, #l_children, #cList_post) * 
+				 (#cList_post == #cList @ {{ {{ "text", #n, #text }} }}) * EmptyCell(#beta) * (ret == #n) ]]
 		outcome: normal;
 
 		pre:  [[ (n == #n) * DocumentNode($l_document, #l_elem, {{ }}, #l_grove, #gList) * (this == $l_document) * 
