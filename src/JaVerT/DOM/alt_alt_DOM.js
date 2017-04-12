@@ -364,7 +364,7 @@
 		outcome: normal;
 
 		pre:  [[ ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList) * (s == #s1) * (v == #s2) * out(#aList, #s1) ]]
-		post: [[ ECell(#alpha, #name, this, #l_attr, ({{ "attr", #s1, #m, {{ {{ "text", #r, #s2 }} }}   }} :: #aList), #l_children, #cList) ]]
+		post: [[ ECell(#alpha, #name, this, #l_attr, #aList_post, #l_children, #cList) * (#aList_post == {{ "attr", #s1, #m, {{ {{ "text", #r, #s2 }} }}   }} :: #aList) ]]
 		outcome: normal
 
 	@onlyspec ownerDocument()
@@ -392,20 +392,20 @@
 	@onlyspec appendChild(n)
 		pre:  [[ (n == #n) * ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList) *
 				 ECell(#beta, #name2, #n, #l_attr2, #aList2, #l_children2, #cList2) * complete(#cList2) ]]
-		post: [[ ECell(#alpha, #name, this, #l_attr, #aList, #l_children, (#cList @ {{ {{ "elem", #name2, #n, #aList2, #cList2 }} }} ) ) * 
-				 EmptyCell(#beta) * (ret == #n) ]]
+		post: [[ ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList2_post ) * 
+				 (#cList2_post == #cList @ {{ {{ "elem", #name2, #n, #aList2, #cList2 }} }}) * EmptyCell(#beta) * (ret == #n) ]]
 		outcome: normal;
 
 		pre:  [[ (n == #n) * ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList) *
 				 TCell(#beta, #n, #text) ]]
-		post: [[ ECell(#alpha, #name, this, #l_attr, #aList, #l_children, (#cList @ {{ {{ "text", #n, #text }} }} ) ) * 
-				 EmptyCell(#beta) * (ret == #n) ]]
+		post: [[ ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList_post) * 
+				 (#cList_post == #cList @ {{ {{ "text", #n, #text }} }}) * EmptyCell(#beta) * (ret == #n) ]]
 		outcome: normal;
 
 		pre:  [[ (n == #n) * ACell(#alpha, #name, this, #l_children, #cList) *
 				 TCell(#beta, #n, #text) ]]
-		post: [[ ACell(#alpha, #name, this, #l_children, (#cList @ {{ {{ "text", #n, #text }} }} ) ) * 
-				 EmptyCell(#beta) * (ret == #n) ]]
+		post: [[ ACell(#alpha, #name, this, #l_children, #cList) * 
+				 (#cList == #cList @ {{ {{ "text", #n, #text }} }}) * EmptyCell(#beta) * (ret == #n) ]]
 		outcome: normal;
 
 		pre:  [[ (n == #n) * DocumentNode($l_document, #l_elem, {{ }}, #l_grove, #gList) * (this == $l_document) * 
