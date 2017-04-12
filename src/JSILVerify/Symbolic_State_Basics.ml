@@ -914,6 +914,8 @@ let simplify_symb_state
 	let start_time = Sys.time () in
 	print_time_debug "simplify_symb_state:";
 
+	let initial_existentials = ref existentials in
+
 	let vars_to_save, save_all = 
 		(match vars_to_save with
 		| Some (Some v) -> v, false 
@@ -950,7 +952,7 @@ let simplify_symb_state
 			let exists = Hashtbl.fold (fun v _ ac -> SS.remove v ac) subst exists in
 			(* and remove from gamma, if allowed *)
     	Hashtbl.iter (fun v _ ->
-    		match (save_all || SS.mem v (SS.union vars_to_save existentials)) with
+    		match (save_all || SS.mem v (SS.union vars_to_save !initial_existentials)) with
     		| true -> ()
     		| false -> 
   					while (Hashtbl.mem gamma v) do 
@@ -997,7 +999,7 @@ let simplify_symb_state
 	let lvars_gamma = get_gamma_vars false gamma in		
 	let lvars_inter = SS.inter lvars lvars_gamma in
 	Hashtbl.filter_map_inplace (fun v t ->
-		(match (save_all || SS.mem v (SS.union lvars_inter (SS.union vars_to_save existentials))) with
+		(match (save_all || SS.mem v (SS.union lvars_inter (SS.union vars_to_save !initial_existentials))) with
 		| true  -> Some t
 		| false -> None)) gamma;
 		
@@ -1009,7 +1011,7 @@ let simplify_symb_state
 		
 	(* Instantiate uniquely determined variables *)
 	let subst = Hashtbl.create 57 in
-	let symb_state, subst, others, exists = simplify_singleton_types other_pfs existentials symb_state subst types in
+	let symb_state, subst, others, exists = simplify_singleton_types other_pfs !initial_existentials symb_state subst types in
 
 	let pfs = get_pf symb_state in
 
@@ -1130,7 +1132,9 @@ let simplify_symb_state
 							| true -> 
 									let subst_list = Array.to_list (Array.init len (fun _ -> fresh_lvar())) in
 									let new_exists = !exists in
-									let new_exists = List.fold_left (fun ac v -> SS.add v ac) new_exists subst_list in
+									let new_exists = List.fold_left (fun ac v -> 
+										initial_existentials := SS.add v !initial_existentials;
+										SS.add v ac) new_exists subst_list in
 									exists := new_exists;
 									let subst_list = List.map (fun x -> LVar x) subst_list in
 									
@@ -1213,12 +1217,9 @@ let simplify_symb_state
 	print_debug (Printf.sprintf "The subst is:\n%s" (JSIL_Memory_Print.string_of_substitution subst));
 	
 	Hashtbl.iter (fun var lexpr -> 
-		(match (not (SS.mem var existentials) && (save_all || SS.mem var vars_to_save)) with
+		(match (not (SS.mem var !initial_existentials) && (save_all || SS.mem var vars_to_save)) with
 		| false -> ()
-		| true -> 
-				(match (SS.mem var existentials) with
-				| false -> DynArray.add pfs (LEq (LVar var, lexpr))
-				| true -> ()))
+		| true -> DynArray.add pfs (LEq (LVar var, lexpr)))
 		) subst;
 	
 	let end_time = Sys.time() in

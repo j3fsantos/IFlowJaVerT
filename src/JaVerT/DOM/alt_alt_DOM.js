@@ -194,7 +194,7 @@
 
 
 	@pred Grove(alpha, childList) : 
-		DOMObject(alpha, $$null) * ((alpha, "@chain") ->  #l) * empty_fields(alpha : "@chain") * GroveRec(l, childList);	
+		DOMObject(alpha, $$null) * ((alpha, "@chain") ->  #l) * empty_fields(alpha : "@chain") * GroveRec(#l, childList) * types(childList : $$list_type);	
 	
 	@pred GroveRec(l, content) :
 		isNil(content) * (l == $$null),
@@ -316,11 +316,6 @@
 		    	 ACell(#alpha, #name, #id, #l_children, #cList) * (ret == #alpha) * types(#alpha : $$object_type)]]
 		outcome: normal
 
-	@onlyspec allocG(l)
-		pre:  [[ (l == #l) * types(#g : $$list_type) * Grove(#l, #g) ]]
-		post: [[ Grove(#l, ({{ "hole", #alpha }} :: #g)) * Grove(#alpha, {{ }}) * (ret == #alpha) ]]
-		outcome: normal
-
 	@onlyspec deallocG(alpha)
 		pre:  [[ (alpha == #alpha) * types(#alpha : $$object_type, #g : $$list_type, #g1 : $$list_type, #g2 : $$list_type, #g3 : $$list_type) * 
 				 Grove(#l, #g) * (#g == #g1 @ ({{ "hole", #alpha }} :: #g3)) * Grove(#alpha, #g2) ]]
@@ -390,8 +385,8 @@
 		outcome: normal
 
 	@onlyspec createElement(s)
-		pre:  [[ (s == #name) *  DocumentNode(this, #l_element, #element, #l_g, #g) ]]
-		post: [[ (ret == #en) * DocumentNode(this, #l_element, #element, #l_g, ({{ "elem", #name, #en, {{ }}, {{ }} }} :: #g)) * types(#en : $$object_type) ]]
+		pre:  [[ (s == #name) * DocumentNode(this, #l_element, #element, #l_g, #g) * types(#name : $$string_type, #g : $$list_type) ]]
+		post: [[ (ret == #en) * DocumentNode(this, #l_element, #element, #l_g, #g_post) * (#g_post == {{ "elem", #name, #en, {{ }}, {{ }} }} :: #g) * types(#en : $$object_type) ]]
 		outcome: normal
 
 	@onlyspec appendChild(n)
@@ -428,7 +423,7 @@
 	@pre (
 		scope(allocG   : #allocG)   * fun_obj(allocG,   #allocG,   #allocG_proto) *
 		scope(deallocG : #deallocG) * fun_obj(deallocG, #deallocG, #deallocG_proto) *
-		InitialDOMHeap() * (element == #id) * (grove == #gList) * types(#en : $$object_type) *
+		InitialDOMHeap() * (element == #id) * (grove == #l_gList) * types(#en : $$object_type) *
 		DocumentNode($l_document, #l_elem, #elem, #l_gList, #gList) *
 		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList1)
 	)
@@ -444,7 +439,7 @@
 function createNewAttribute(grove, element){
 	var d = element.ownerDocument();
 	var e = d.createElement("test");
-	var a = allocG(grove, 0, 1);
+	var a = allocG(grove, 0);
 	/* @invariant 
 		scope(a : #zeta) * scope(e : #e2) * 
 		ECell(#zeta, #name2, #e2, #l_aList2, #aList2, #l_cList2, #cList2) */

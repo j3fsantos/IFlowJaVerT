@@ -94,17 +94,20 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 								discharges)
 
 				| ALoc pat_aloc, LVar lvar ->
-					print_debug (Printf.sprintf "So, in unify_stores: Aloc %s, Lvar %s\n" pat_aloc lvar); 
+					print_debug (Printf.sprintf "So, in unify_stores: Aloc %s, Lvar %s" pat_aloc lvar); 
 					let loc = resolve_location lvar pfs in
+					print_debug (Printf.sprintf "Location resolution finished.");
 					(match loc with
 					| Some loc ->
-						(* Printf.printf "I managed to resolve location and I know that %s = %s\n" lvar (JSIL_Print.string_of_logic_expression loc false);  *)
+						print_debug (Printf.sprintf "I managed to resolve location and I know that %s = %s\n" lvar (JSIL_Print.string_of_logic_expression loc false)); 
 						extend_subst pat_subst pat_aloc loc; discharges
 					| None     ->
 						(match subst with
-						| None -> raise (Failure "Variable store against abstract location")
+						| None ->
+								print_debug (Printf.sprintf "No substitution, cannot unify stores.");  
+								raise (Failure "Variable store against abstract location")
 						| Some subst ->
-							(* Printf.printf "I could not resolve the location and I am creating a new location\n"; *)
+							print_debug (Printf.sprintf "I could not resolve the location and I am creating a new location."); 
 							let new_aloc = fresh_aloc () in
 							extend_subst subst lvar (ALoc new_aloc);
 							extend_subst pat_subst pat_aloc (ALoc new_aloc);

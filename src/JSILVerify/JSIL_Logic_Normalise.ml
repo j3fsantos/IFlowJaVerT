@@ -633,6 +633,9 @@ let process_empty_fields heap store p_formulae gamma subst a =
 
 
 let normalise_assertion a : symbolic_state * substitution =
+	
+	print_debug (Printf.sprintf "Normalising assertion:\n\t%s" (JSIL_Print.string_of_logic_assertion a false));
+	
 	let heap = LHeap.create 101 in
 	let store = Hashtbl.create 101 in
 	let gamma = Hashtbl.create 101 in
@@ -654,7 +657,7 @@ let normalise_assertion a : symbolic_state * substitution =
 		merge_pfs p_formulae (DynArray.of_list new_assertions);
 		process_empty_fields heap store (pfs_to_list p_formulae) gamma subst a;
 
-		(heap, store, p_formulae, gamma, preds (*, (ref None) *)), subst)
+		(heap, store, p_formulae, gamma, preds), subst)
 
 let normalise_precondition a =
 	let lvars = get_assertion_vars false a in
@@ -670,8 +673,8 @@ let normalise_postcondition a subst (lvars : SS.t) pre_gamma : symbolic_state * 
 	let extra_gamma = filter_gamma pre_gamma lvars in
 	let a_vars_str = List.fold_left (fun ac var -> (ac ^ var ^ ", ")) "" (SS.elements a_vars) in
 	let lvars_str = String.concat ", " (SS.elements lvars) in
-	print_debug (Printf.sprintf "Post Existentially Quantified Vars: %s\n\n\n" a_vars_str);
-	print_debug (Printf.sprintf "Post spec vars: %s\n\n\n" lvars_str);
+	print_debug (Printf.sprintf "Post Existentially Quantified Vars: %s" a_vars_str);
+	print_debug (Printf.sprintf "Post spec vars: %s" lvars_str);
 	let symb_state, _ = normalise_assertion a in
 	let gamma_post = (get_gamma symb_state) in
 	merge_gammas gamma_post extra_gamma;
@@ -731,13 +734,15 @@ let normalise_single_spec preds spec =
 						let is_valid_precond = Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list pre_symb_state)) (get_gamma pre_symb_state) in
 						if (is_valid_precond)
 						then begin
-							print_debug (Printf.sprintf "The precondition makes sense.\n");
+							print_debug (Printf.sprintf "The precondition makes sense.");
 							(let posts, posts_lvars =
 									List.fold_left
 										(fun (ac_posts, ac_posts_lvars) post ->
 											print_debug ("POST: Checking a postcondition.\n");
 											print_debug (Printf.sprintf "%s" (JSIL_Print.string_of_logic_assertion post false));
+											print_debug (Printf.sprintf "POST: Gamma from the pre: %s" (JSIL_Memory_Print.string_of_gamma (get_gamma pre_symb_state)));
 											let post_symb_state, post_lvars = normalise_postcondition post subst lvars (get_gamma pre_symb_state) in
+											print_debug (Printf.sprintf "POST: Gamma from the post: %s" (JSIL_Memory_Print.string_of_gamma (get_gamma post_symb_state)));
 											let heap_constraints = Symbolic_State_Functions.get_heap_well_formedness_constraints (get_heap post_symb_state) in
 											print_debug (Printf.sprintf "For the postcondition to make sense the following must be satisfiable:\n%s\n"
 												(JSIL_Print.str_of_assertion_list (heap_constraints @ (get_pf_list post_symb_state))));
@@ -746,7 +751,7 @@ let normalise_single_spec preds spec =
 											else ac_posts, ac_posts_lvars)
 										([], [])
 										unfolded_posts in
-								(if (posts = []) then print_debug (Printf.sprintf "WARNING: No valid postconditions found.\n"));
+								(if (posts = []) then print_debug (Printf.sprintf "WARNING: No valid postconditions found."));
 								Some {
 									n_pre = pre_symb_state;
 									n_post = posts;
@@ -756,7 +761,7 @@ let normalise_single_spec preds spec =
 									n_subst = subst
 								})
 						end else begin
-							print_debug (Printf.sprintf "WARNING: The precondition does not make sense.\n");
+							print_debug (Printf.sprintf "WARNING: The precondition does not make sense.");
 							None
 						end)
 			unfolded_pres in
