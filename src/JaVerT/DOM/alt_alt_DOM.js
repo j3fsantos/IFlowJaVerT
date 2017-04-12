@@ -391,7 +391,7 @@
 
 	@onlyspec createElement(s)
 		pre:  [[ (s == #name) *  DocumentNode(this, #l_element, #element, #l_g, #g) ]]
-		post: [[ (ret == #en) * DocumentNode(this, #l_element, #element, #l_g, ({{ "elem", #name, #en, $$nil, $$nil }} :: #g)) * types(#en : $$onject_type) ]]
+		post: [[ (ret == #en) * DocumentNode(this, #l_element, #element, #l_g, ({{ "elem", #name, #en, {{ }}, {{ }} }} :: #g)) * types(#en : $$object_type) ]]
 		outcome: normal
 
 	@onlyspec appendChild(n)
@@ -438,7 +438,7 @@
 		InitialDOMHeap() * (ret == $$t) * 
 		DocumentNode($l_document, #d_l_elem, #d_elem, #d_l_g, #d_g_post) *
 		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList_post) *
-		(#cList_post == (#cList1 @ {{ {{ "elem", "test", #n_id, #n_l_aList, $$nil, #n_l_cList, $$nil }} }}))
+		(#cList_post == (#cList1 @ {{ {{ "elem", "test", #n_id, #n_l_aList, {{ }}, #n_l_cList, {{ }} }} }}))
 	)
 */
 function createNewAttribute(grove, element){
