@@ -20,6 +20,7 @@ type jsil_type =
 	| BooleanType   (** Type of booleans  *)
 	| NumberType    (** Type of floats    *)
 	| StringType    (** Type of strings   *)
+	| CharType      (** Type of chars     *)
 	| ObjectType    (** Type of objects   *)
 	| ListType      (** Type of lists     *)
 	| TypeType      (** Type of types     *)
@@ -54,9 +55,11 @@ type jsil_lit =
 	| Bool      of bool          (** JSIL booleans: [true] and [false] *)
 	| Num       of float         (** JSIL floats - double-precision 64-bit IEEE 754 *)
 	| String    of string        (** JSIL strings *)
+	| Char      of char          (** JSIL char *)
 	| Loc       of string        (** JSIL object locations *)
 	| Type      of jsil_type     (** JSIL types ({!type:jsil_type}) *)
 	| LList     of jsil_lit list (** Lists of JSIL literals *)
+	| CList     of jsil_lit list (** Lists of JSIL literals converted from String *)
 
 (** {b JSIL unary operators}. JSIL features standard unary operators on numbers, booleans,
     lists, and strings, plus a variety of mathematical operators as well as a number of
@@ -131,6 +134,9 @@ type jsil_binop =
 	| LstCat             (** List concatenation *)
 	(* Strings *)
 	| StrCat             (** String concatenation *)
+	(* Character *)
+	| CharCons           (** Char construction *)
+	| CharCat            (** Char concatenation *)
 
 (** {b JSIL expressions}. Literals, variables, unary and binary operators, lists. *)
 	type jsil_expr =
@@ -142,6 +148,7 @@ type jsil_binop =
 	| LstNth   of jsil_expr	* jsil_expr	             (** Nth element of a list *)  
 	| StrNth   of jsil_expr	* jsil_expr	             (** Nth element of a string *)               
 	| EList    of jsil_expr list                     (** Lists of expressions *)
+	| CList    of jsil_expr list                     (** Lists of characters *)
 	| RAssume  of jsil_expr                          
 	| RAssert  of jsil_expr
 	| RNumSymb
@@ -203,6 +210,7 @@ type jsil_logic_expr =
 	| LLstNth  of jsil_logic_expr * jsil_logic_expr              (** Nth element of a list *)
 	| LStrNth  of jsil_logic_expr * jsil_logic_expr              (** Nth element of a string *)              
 	| LEList   of jsil_logic_expr list                           (** Lists of logical expressions *)
+	| LCList   of jsil_logic_expr list                           (** Lists of logical chars *)
 	| LNone                                                      (** Empty field value *)  
 	| LUnknown                                                   (** Unknown field value *)
 

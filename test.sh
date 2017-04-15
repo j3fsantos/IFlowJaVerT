@@ -2,9 +2,9 @@
 
 # Bash array format: ("one" "two" "three")
 # JS Files to test
-declare -a jsfiles=("function_test0")
+declare -a jsfiles=("paper_queue" "function_test0" "function_test1" "function_test2" "function_test3")
 # JSIL Files to test
-declare -a jsilfiles=("paper_queue")
+declare -a jsilfiles=("javert_internal_functions")
 
 echo "Testing js files"
 for f in "${jsfiles[@]}"

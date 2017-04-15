@@ -26,6 +26,7 @@ let string_of_type t =
   	| BooleanType   -> "$$boolean_type"
   	| NumberType    -> "$$number_type"
 	| StringType    -> "$$string_type"
+	| CharType      -> "$$char_type"
   	| ObjectType    -> "$$object_type"
 	| ListType      -> "$$list_type"
 	| TypeType      -> "$$type_type"
@@ -66,12 +67,21 @@ let rec string_of_literal lit escape_string =
 		(if escape_string
 			then Printf.sprintf "\\\"%s\\\"" x
 			else Printf.sprintf "\"%s\"" x)
+	| Char x ->
+		(if escape_string
+			then Printf.sprintf "\\\'%c\\\'" x
+			else Printf.sprintf "\'%c\'" x)
 	| Loc loc -> loc
   	| Type t -> string_of_type t
 	| LList ll ->
 		(match ll with
 		| [] -> "$$nil"
 		| ll -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map sl ll)))
+	| CList cl ->
+		(match cl with
+		| [] -> "''"
+		| cl -> Printf.sprintf "[[%s]]" (String.concat ", " (List.map sl cl)))
+
 
 (** JSIL binary operators *)
 let string_of_binop bop =
@@ -98,6 +108,8 @@ let string_of_binop bop =
 	| LstCons -> "::"
 	| LstCat -> "@"
 	| StrCat -> "++"
+	| CharCons -> ":c:"
+	| CharCat -> "+c+"
 
 (** JSIL unary operators *)
 let string_of_unop uop =
@@ -156,6 +168,11 @@ let rec string_of_expression e escape_string =
 			(match ll with
 			| [] -> "$$nil"
 			| ll -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map se ll)))
+		(* [['c1', 'c2',...]]*)
+		| CList ll ->
+			(match ll with
+			| [] -> "''"
+			| ll -> Printf.sprintf "[[%s]]" (String.concat ", " (List.map se ll)))
 		(* l-nth(e1, e2) *)
 		| LstNth (e1, e2) -> Printf.sprintf "l-nth(%s, %s)" (se e1) (se e2)
 		(* s-nth(e1, e2) *)
@@ -207,6 +224,10 @@ let rec string_of_logic_expression e escape_string =
 			(match list with
 			| [] -> "$$nil"
 			| ll -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map sle ll)))
+	| LCList list ->
+			(match list with
+			| [] -> "''"
+			| ll -> Printf.sprintf "[[%s]]" (String.concat ", " (List.map sle ll)))
 		(* l-nth(e1, e2) *)
 		| LLstNth (e1, e2) -> Printf.sprintf "l-nth(%s, %s)" (sle e1) (sle e2)
 		(* s-nth(e1, e2) *)
