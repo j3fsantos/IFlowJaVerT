@@ -647,7 +647,7 @@ let normalise_assertion a : symbolic_state * substitution =
 	let p_formulae = init_pure_assignments a store gamma subst in
 
 	 (match (DynArray.to_list p_formulae) with
-	 | [ LFalse ] -> (LHeap.create 1, Hashtbl.create 1, DynArray.of_list [ LFalse ], Hashtbl.create 1, DynArray.create () (*, (ref None) *)), Hashtbl.create 1
+	 | [ LFalse ] -> (LHeap.create 1, Hashtbl.create 1, DynArray.of_list [ LFalse ], Hashtbl.create 1, DynArray.create()), Hashtbl.create 1
 	 | _ ->
 		fill_store_with_gamma store gamma subst;
 		extend_typing_env_using_assertion_info ((pfs_to_list p_formulae) @ (pf_of_store2 store)) gamma;
@@ -656,8 +656,17 @@ let normalise_assertion a : symbolic_state * substitution =
 		extend_typing_env_using_assertion_info new_assertions gamma;
 		merge_pfs p_formulae (DynArray.of_list new_assertions);
 		process_empty_fields heap store (pfs_to_list p_formulae) gamma subst a;
-
 		(heap, store, p_formulae, gamma, preds), subst)
+
+
+let connecting_logical_vars_with_abstract_locations_in_post pre_vars subst new_subst = 
+	SS.fold (fun  x ac ->
+		if ((is_lvar_name x) && (Hashtbl.mem new_subst x) && (not (Hashtbl.mem subst x)))
+			then (LEq (LVar x, Hashtbl.find new_subst x)) :: ac 
+			else ac)
+			pre_vars 
+			[]
+
 
 let normalise_precondition a =
 	let lvars = get_assertion_vars false a in
@@ -668,17 +677,24 @@ let normalise_precondition a =
 let normalise_postcondition a subst (lvars : SS.t) pre_gamma : symbolic_state * SS.t =
 	let a = assertion_substitution a subst true in
 	let a_vars : SS.t = get_assertion_vars false a in
-	let a_vars : SS.t = filter_vars a_vars lvars in
+	let post_existentials : SS.t = filter_vars a_vars lvars in
 
 	let extra_gamma = filter_gamma pre_gamma lvars in
-	let a_vars_str = List.fold_left (fun ac var -> (ac ^ var ^ ", ")) "" (SS.elements a_vars) in
+	let a_vars_str = List.fold_left (fun ac var -> (ac ^ var ^ ", ")) "" (SS.elements post_existentials) in
 	let lvars_str = String.concat ", " (SS.elements lvars) in
 	print_debug (Printf.sprintf "Post Existentially Quantified Vars: %s" a_vars_str);
 	print_debug (Printf.sprintf "Post spec vars: %s" lvars_str);
-	let symb_state, _ = normalise_assertion a in
+	let symb_state, new_subst = normalise_assertion a in
+	print_debug (Printf.sprintf "Subst: %s" (JSIL_Memory_Print.string_of_substitution subst));
+	print_debug (Printf.sprintf "New subst: %s" (JSIL_Memory_Print.string_of_substitution new_subst));
+	let more_pfs = connecting_logical_vars_with_abstract_locations_in_post lvars subst new_subst in 
+	if (List.length more_pfs > 0) then (
+		print_debug "Connecting:\n";
+		List.iter (fun a -> print_debug (Printf.sprintf "\t%s" (JSIL_Print.string_of_logic_assertion a false))) more_pfs);
+	extend_symb_state_with_pfs symb_state (DynArray.of_list more_pfs); 
 	let gamma_post = (get_gamma symb_state) in
 	merge_gammas gamma_post extra_gamma;
-	symb_state, a_vars
+	symb_state, post_existentials
 
 
 let pre_normalise_invariants_proc preds body = 
