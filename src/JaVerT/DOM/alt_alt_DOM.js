@@ -146,7 +146,7 @@
 
 
 	@pred AttributeSet(alpha, attrs) : 
-		DOMObject(alpha, $$null) * ((alpha, "@chain") ->  #l) * empty_fields(l : "@chain") * AttributeSetRec(l, childList);
+		DOMObject(alpha, $$null) * ((alpha, "@chain") ->  #l) * empty_fields(alpha : "@chain") * AttributeSetRec(#l, childList);
 
 	@pred AttributeSetRec(l, attrs) : 
 	    isNil(attrs) * (l == $$null),
@@ -161,7 +161,7 @@
 
 
 	@pred Forest(alpha, childList) : 
-		DOMObject(alpha, $$null) * ((alpha, "@chain") ->  #l) * empty_fields(l : "@chain") * ForestRec(l, childList);
+		DOMObject(alpha, $$null) * ((alpha, "@chain") ->  #l) * empty_fields(alpha : "@chain") * ForestRec(#l, childList);
 
 	@pred ForestRec(l, childList) :
 		isNil(childList) * (l == $$null),
@@ -180,7 +180,7 @@
 
 
 	@pred TextForest(alpha, childList) : 
-		DOMObject(alpha, $$null) * ((alpha, "@chain") ->  #l) * empty_fields(alpha : "@chain") * TextForestRec(l, childList);
+		DOMObject(alpha, $$null) * ((alpha, "@chain") ->  #l) * empty_fields(alpha : "@chain") * TextForestRec(#l, childList);
 	
 	@pred TextForestRec(l, childList) :
 		isNil(childList) * (l == $$null),
