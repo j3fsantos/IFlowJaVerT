@@ -108,7 +108,7 @@ let heap_substitution (heap : symbolic_heap) (subst : substitution) (partial : b
 					| LLit (Loc loc) -> loc
 					| ALoc loc -> loc
 					| _ ->
-						raise (Failure "Heap substitution failed miserably!!!")) in
+						raise (Failure (Printf.sprintf "Heap substitution failed miserably: %s" (JSIL_Print.string_of_logic_expression s_loc false)))) in
 			let s_fv_list = fv_list_substitution fv_list subst partial in
 			let s_def = JSIL_Logic_Utils.lexpr_substitution def subst partial in
 			LHeap.add new_heap s_loc (s_fv_list, s_def))

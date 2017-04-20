@@ -466,6 +466,17 @@ let unify_symb_heaps_experimental ph sh pf g s =
 			print_debug "*************************";
 			0
 
+let aux_find_me_Im_a_loc pfs gamma v = 
+	let _, subst = simplify_pfs_with_subst pfs gamma in
+	(match subst with
+	| None -> None
+	| Some subst -> 
+			let w = Hashtbl.find subst v in
+				(match w with
+				| ALoc w 
+				| LLit (Loc w) -> Some w
+				| _ -> None))
+
 let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_formulae (* solver *) gamma (subst : substitution) : (symbolic_heap * (jsil_logic_assertion list) * symbolic_discharge_list) option =
 	print_debug (Printf.sprintf "Unify heaps %s \nand %s \nwith substitution: %s\nwith pure formulae: %s\nwith gamma: %s"
 		(JSIL_Memory_Print.string_of_shallow_symb_heap pat_heap false)
@@ -529,10 +540,11 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 							| ALoc loc -> loc
 							| LVar v -> 
 								print_debug (Printf.sprintf "matched a pattern loc with the logical variable %s!\n" v);
-								let loc = try find_me_Im_a_loc (pfs_to_list pure_formulae) le with _ -> None in 
+								let loc = try aux_find_me_Im_a_loc pure_formulae gamma v with _ -> None in 
 								(match loc with 
 								| Some loc -> 
 									(print_debug (Printf.sprintf "find_me_Im_a_loc returned: %s!\n" loc);
+									Hashtbl.replace subst pat_loc (ALoc loc);
 									loc)
 								| None -> 
 									(print_debug "find_me_Im_a_loc failed!\n";
