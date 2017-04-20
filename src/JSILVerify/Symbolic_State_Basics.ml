@@ -247,7 +247,7 @@ match se with
 	| LLit (CList _)
 	| LBinOp (_, CharCons, _)         (* Non recursive: assume that CharCat/Cons *)
 	| LBinOp (_, CharCat,  _) -> true (* only obtained from conversion anyway    *)
-	| LCList _ -> print_debug (Printf.sprintf "Wasn't expecting anything to encode to LCList... Got: %s" (print_lexpr se));
+	| LCList _ -> print_debug_petar (Printf.sprintf "Wasn't expecting anything to encode to LCList... Got: %s" (print_lexpr se));
 		true
 	| _ -> false
 
@@ -275,7 +275,7 @@ let rec le_string_to_list (se : jsil_logic_expr) : jsil_logic_expr * bool =
 	(match se with
 		| LLit (String s) -> (LLit (CList (explode s)), false)
 		| LBinOp (sel, StrCat, ser) ->
-			print_debug (Printf.sprintf "BinOp case StrCat"); 
+			print_debug_petar (Printf.sprintf "BinOp case StrCat"); 
 			(LBinOp ((f sel), CharCat, (f ser)), false)
 		| LVar _ -> (se, false)
 		| _ -> (se, true))
@@ -289,7 +289,7 @@ let rec le_list_to_string (se : jsil_logic_expr) : jsil_logic_expr * bool =
 		| LVar _ -> (se, false)
 		| LLit (CList l) ->
 			let s = (String.concat "" (List.map (fun (Char x) -> String.make 1 x) l)) in
-			print_debug (Printf.sprintf "Reconverting: %s" s);
+			print_debug_petar (Printf.sprintf "Reconverting: %s" s);
 			(LLit (String s), false)
 		| LBinOp (sel, CharCat, ser) -> (LBinOp ((f sel), StrCat, (f ser)), false)
 		| _ -> (se, true))
@@ -377,7 +377,7 @@ let rec get_head_and_tail_string (se : jsil_logic_expr) : bool option * jsil_log
 		| [] -> None, LLit (Bool false), LLit (Bool false)
 		| e :: l -> Some true, LLit e, LLit (CList l))
 	| LCList l ->
-		print_debug (Printf.sprintf "get_head_and_tail_string on a LCList, how did that get there? %s" (print_lexpr se));
+		print_debug_petar (Printf.sprintf "get_head_and_tail_string on a LCList, how did that get there? %s" (print_lexpr se));
 		(match l with
 		| [] -> None, LLit (Bool false), LLit (Bool false)
 		| e :: l -> Some true, e, LCList l)
@@ -758,7 +758,7 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 
 	(* When we know the formulae are false, set the implication to false -> true *)
 	let pfs_false msg =
-		print_debug (msg ^ " Pure formulae false.\n");
+		print_debug_petar (msg ^ " Pure formulae false.\n");
 		DynArray.clear p_formulae;
 		DynArray.add p_formulae LFalse;
 		DynArray.clear other_pfs;
@@ -774,7 +774,7 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 			   while (Hashtbl.mem gamma var) do Hashtbl.remove gamma var done;
 			   to_add
 		   | true -> ((var, lexpr) :: to_add)) in
-		print_debug (Printf.sprintf "Just added %s to subst." var);
+		print_debug_petar (Printf.sprintf "Just added %s to subst." var);
 		let symb_state = symb_state_substitution symb_state subst true in
 		let other_pfs = pf_substitution other_pfs subst true in
 		aggressively_simplify new_to_add other_pfs save_all_lvars exists symb_state in
@@ -1090,7 +1090,7 @@ let simplify_symb_state
 	(* Pure formulae false *)
 	let pfs_false subst others exists symb_state msg =
 		let _, _, pfs, _, _ = symb_state in
-		print_debug (msg ^ " Pure formulae false.");
+		print_debug_petar (msg ^ " Pure formulae false.");
 		DynArray.clear pfs;
 		DynArray.add pfs LFalse;
 		symb_state, subst, others, exists in
@@ -1327,8 +1327,8 @@ let simplify_symb_state
 					  | [ ] 
 						| [ _ ] -> n := !n + 1 
 						| _ -> 
-							print_debug (Printf.sprintf "No changes made, but length = %d" (List.length subst));
-							print_debug (String.concat "\n" (List.map (fun (x, y) ->
+							print_debug_petar (Printf.sprintf "No changes made, but length = %d" (List.length subst));
+							print_debug_petar (String.concat "\n" (List.map (fun (x, y) ->
 								Printf.sprintf "%s = %s" (print_lexpr x) (print_lexpr y)) subst)); 
 							raise (Failure "Unexpected list obtained from list unification."))
 					(* Progress *)
@@ -1350,8 +1350,8 @@ let simplify_symb_state
 					  | [ ] 
 						| [ _ ] -> n := !n + 1 
 						| _ -> 
-							print_debug (Printf.sprintf "No changes made, but length = %d" (List.length subst));
-							print_debug (String.concat "\n" (List.map (fun (x, y) ->
+							print_debug_petar (Printf.sprintf "No changes made, but length = %d" (List.length subst));
+							print_debug_petar (String.concat "\n" (List.map (fun (x, y) ->
 								Printf.sprintf "%s = %s" (print_lexpr x) (print_lexpr y)) subst)); 
 							raise (Failure "Unexpected list obtained from string unification."))
 					(* Progress *)
@@ -1384,7 +1384,7 @@ let simplify_symb_state
 	done;
 	
 	(* Bring back from the subst *)
-	print_debug (Printf.sprintf "The subst is:\n%s" (JSIL_Memory_Print.string_of_substitution subst));
+	print_debug_petar (Printf.sprintf "The subst is:\n%s" (JSIL_Memory_Print.string_of_substitution subst));
 	
 	Hashtbl.iter (fun var lexpr -> 
 		(match (not (SS.mem var !initial_existentials) && (save_all || SS.mem var vars_to_save)) with
@@ -1400,7 +1400,7 @@ let simplify_symb_state
 	let end_time = Sys.time() in
 	JSIL_Syntax.update_statistics "simplify_symb_state" (end_time -. start_time);
 	
-	print_debug (Printf.sprintf "Exiting with pfs_ok: %b" !pfs_ok);
+	print_debug_petar (Printf.sprintf "Exiting with pfs_ok: %b" !pfs_ok);
 	if (!pfs_ok) 
 		then (!symb_state, subst, !others, !exists)
 		else (pfs_false subst !others !exists !symb_state !msg)
@@ -1499,7 +1499,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 				(match types_ok with
 				| false -> pfs_false "Nasty type mismatch."
 				| true -> 
-					print_debug (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\n\nPure formulae:\n%s\n\nGamma:\n%s\n\n"
+					print_debug_petar (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\n\nPure formulae:\n%s\n\nGamma:\n%s\n\n"
 			 		(String.concat ", " (SS.elements exists))
 			 		(print_pfs p_formulae)
 			 		(JSIL_Memory_Print.string_of_gamma gamma)); 

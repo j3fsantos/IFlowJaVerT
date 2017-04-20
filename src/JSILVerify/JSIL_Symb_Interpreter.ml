@@ -368,40 +368,40 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 	let symb_state_aux = symb_state_replace_store symb_state new_store in
 
 	let compatible_pfs symb_state pat_symb_state subst =
-		print_debug (Printf.sprintf "Entering compatible_pfs.");
+		print_debug_petar (Printf.sprintf "Entering compatible_pfs.");
 		let pfs = get_pf symb_state in
 		let gamma = get_gamma symb_state in
 		let pat_pfs = get_pf pat_symb_state in
 		let pat_gamma = get_gamma pat_symb_state in
-		print_debug (Printf.sprintf "pfs: \n%s" (JSIL_Memory_Print.string_of_shallow_p_formulae pfs false));
-		print_debug (Printf.sprintf "pat_pfs: \n%s" (JSIL_Memory_Print.string_of_shallow_p_formulae pat_pfs false));
-		print_debug (Printf.sprintf "gamma: \n%s" (JSIL_Memory_Print.string_of_gamma gamma));
-		print_debug (Printf.sprintf "%s" (JSIL_Memory_Print.string_of_substitution subst));
+		print_debug_petar (Printf.sprintf "pfs: \n%s" (JSIL_Memory_Print.string_of_shallow_p_formulae pfs false));
+		print_debug_petar (Printf.sprintf "pat_pfs: \n%s" (JSIL_Memory_Print.string_of_shallow_p_formulae pat_pfs false));
+		print_debug_petar (Printf.sprintf "gamma: \n%s" (JSIL_Memory_Print.string_of_gamma gamma));
+		print_debug_petar (Printf.sprintf "%s" (JSIL_Memory_Print.string_of_substitution subst));
 		let pat_pfs = pf_substitution pat_pfs subst false in
 		let pat_gamma = gamma_substitution pat_gamma subst false in
 		let gamma = copy_gamma gamma in
 		merge_gammas gamma pat_gamma;
 		let pf_list = (pfs_to_list pat_pfs) @ (pfs_to_list pfs) in
-		print_debug (Printf.sprintf "About to check sat of:\n%s\ngiven\n%s" (JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list pf_list) false) (JSIL_Memory_Print.string_of_gamma gamma));
+		print_debug_petar (Printf.sprintf "About to check sat of:\n%s\ngiven\n%s" (JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list pf_list) false) (JSIL_Memory_Print.string_of_gamma gamma));
 		let is_sat = Pure_Entailment.check_satisfiability pf_list gamma in
-		print_debug (Printf.sprintf "Satisfiable: %b" is_sat);
+		print_debug_petar (Printf.sprintf "Satisfiable: %b" is_sat);
 		is_sat in
 
 	let transform_symb_state (spec : jsil_n_single_spec) (symb_state : symbolic_state) (quotient_heap : symbolic_heap) (quotient_preds : predicate_set) (subst : substitution) (pf_discharges : jsil_logic_assertion list) (new_gamma : typing_environment) : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
 
-		print_debug (Printf.sprintf "Entering transform_symb_state.\n");
+		print_debug_petar (Printf.sprintf "Entering transform_symb_state.\n");
 
 		let merge_symb_state_with_single_post (symb_state : symbolic_state) (post : symbolic_state) ret_var ret_flag copy_flag : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
-			print_debug (Printf.sprintf "Entering merge_symb_state_with_single_post.");
+			print_debug_petar (Printf.sprintf "Entering merge_symb_state_with_single_post.");
 			let post_makes_sense = compatible_pfs symb_state post subst in
 			if (post_makes_sense) then (
-				print_debug (Printf.sprintf "The post makes sense.");
+				print_debug_petar (Printf.sprintf "The post makes sense.");
 				let new_symb_state = if (copy_flag) then (copy_symb_state symb_state) else symb_state in
 				let new_symb_state = Structural_Entailment.merge_symb_states new_symb_state post subst in
 				let ret_lexpr = store_get (get_store post) ret_var in
 				let ret_lexpr = JSIL_Logic_Utils.lexpr_substitution ret_lexpr subst false in
 				[ new_symb_state, ret_flag, ret_lexpr ])
-				else begin print_debug (Printf.sprintf "The post does not make sense."); [] end in
+				else begin print_debug_petar (Printf.sprintf "The post does not make sense."); [] end in
    
 		extend_symb_state_with_pfs symb_state (DynArray.of_list pf_discharges);
 		let symb_state = symb_state_replace_heap symb_state quotient_heap in
@@ -412,11 +412,11 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		let symb_states_and_ret_lexprs =
 			(match spec.n_post with
 			| [] -> print_debug (Printf.sprintf "No postconditions found."); []
-			| [ post ] -> print_debug (Printf.sprintf "One postcondition found."); 
+			| [ post ] -> print_debug_petar (Printf.sprintf "One postcondition found."); 
 				print_debug (JSIL_Memory_Print.string_of_shallow_symb_state post); 
 				merge_symb_state_with_single_post symb_state post ret_var ret_flag false
 			| post :: rest_posts ->
-					print_debug (Printf.sprintf "Multiple postconditions found.");
+					print_debug_petar (Printf.sprintf "Multiple postconditions found.");
 					let symb_states_and_ret_lexprs = List.map (fun post -> merge_symb_state_with_single_post symb_state post ret_var ret_flag true) rest_posts in
 					let symb_states_and_ret_lexprs =
 						(merge_symb_state_with_single_post symb_state post ret_var ret_flag false) :: symb_states_and_ret_lexprs in
@@ -495,7 +495,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 
 
 	let rec apply_correct_specs (quotients : (jsil_n_single_spec * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment) list) =
-		print_debug (Printf.sprintf "Entering apply_correct_specs.");
+		print_debug_petar (Printf.sprintf "Entering apply_correct_specs.");
 		match quotients with
 		| [ ] -> [ ]
 		| [ (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ] -> 
@@ -585,15 +585,15 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 						let vars_le = get_logic_expression_lvars le in 
 							if (SS.inter existentials vars_le <> SS.empty) then
 							begin
-								print_debug (Printf.sprintf "Warning: variable %s depends on existentials" v);
+								print_debug_petar (Printf.sprintf "Warning: variable %s depends on existentials" v);
 								Hashtbl.remove new_subst v;
 							end) new_subst;
 								
 					(** WARNING WARNING WARNING - EXPERIMENTAL END   *)
 	
 					let existentials_to_remove = (Hashtbl.fold (fun v _ ac -> v :: ac) new_subst []) in 
-					print_debug (Printf.sprintf "Exists to remove: %s" (String.concat "," existentials_to_remove));
-					print_debug (Printf.sprintf "Old exists: %s" (String.concat "," (SS.elements existentials)));				
+					print_debug_petar (Printf.sprintf "Exists to remove: %s" (String.concat "," existentials_to_remove));
+					print_debug_petar (Printf.sprintf "Old exists: %s" (String.concat "," (SS.elements existentials)));				
 					
 					let new_existentials = SS.filter (fun v -> (not (List.mem v existentials_to_remove))) existentials in 
 					print_debug (Printf.sprintf "New exists: %s" (String.concat "," (SS.elements new_existentials)));
@@ -630,7 +630,7 @@ let unfold_predicates
 				(args       : jsil_logic_expr list)
 				(spec_vars  : SS.t) =
 
-	print_debug (Printf.sprintf "Current symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state));
+	print_debug (Printf.sprintf "UNFOLD_PREDICATES: Current symbolic state:\n%s" (JSIL_Memory_Print.string_of_shallow_symb_state symb_state));
 
 	let symb_state_vars : SS.t = get_symb_state_vars false symb_state  in
 	let args_vars : SS.t = JSIL_Logic_Utils.get_vars_le_list false args in
@@ -639,7 +639,7 @@ let unfold_predicates
 
 	let subst0 = Symbolic_State_Functions.subtract_pred pred_name args (get_preds symb_state) (get_pf symb_state) (get_gamma symb_state) spec_vars existentials in
 	
-	Printf.printf "I survived the subtract pred!!!\n";
+	(* Printf.printf "I survived the subtract pred!!!\n"; *)
 
 	let args = List.map (fun le -> lexpr_substitution le subst0 true) args in
 	let calling_store = store_init params args in
@@ -668,17 +668,18 @@ let recursive_unfold
 				(params     : jsil_var list) 
 				(spec_vars  : SS.t) =
 
+	print_debug (Printf.sprintf "Recursive Unfold: %s" pred_name); 
 	let rec loop symb_state =
 		let rec aux symb_state args =
-			print_debug (Printf.sprintf "pred_args: %s\n"
+			print_debug_petar (Printf.sprintf "pred_args: %s\n"
 				(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) args)));
 			let unfolded_symb_states = unfold_predicates pred_name pred_defs symb_state params args spec_vars in
 			print_debug (Printf.sprintf "number of unfolded_symb_states: %i\n" (List.length unfolded_symb_states));
 			if ((List.length unfolded_symb_states > 1) || (List.length unfolded_symb_states = 0))
-				then (print_debug (Printf.sprintf "More than one unfolding or nothing at all, oops.\n"); symb_state)
+				then (print_debug (Printf.sprintf "End of recursive_unfold: More than one unfolding or nothing at all, oops.\n"); symb_state)
 				else (
 					let new_symb_state = simplify false (List.hd unfolded_symb_states) in
-					print_debug (Printf.sprintf "Inside recursive unfolding:\n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_state new_symb_state));
+					print_debug (Printf.sprintf "Inside recursive_unfolding. continuing with:\n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_state new_symb_state));
 					loop new_symb_state) in
 
 		let rec inner_loop pred_args symb_state =
@@ -689,7 +690,7 @@ let recursive_unfold
 
 		let pred_args = find_predicate_assertion (get_preds symb_state) pred_name in
 		let len_pred_args = List.length pred_args in
-		print_debug (Printf.sprintf "len_pred_args: %i\n" len_pred_args);
+		print_debug_petar (Printf.sprintf "len_pred_args: %i\n" len_pred_args);
 		inner_loop pred_args symb_state in
 
 	loop symb_state
@@ -815,12 +816,12 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 	(* symbolically evaluate a guarded goto *)
 	let symb_evaluate_guarded_goto symb_state e j k =
 		let le = symb_evaluate_expr (get_store symb_state) (get_gamma symb_state) (get_pf symb_state) e in
-		print_debug (Printf.sprintf "Evaluated expression: %s --> %s\n" (JSIL_Print.string_of_expression e false) (JSIL_Print.string_of_logic_expression le false));
+		print_debug (Printf.sprintf "Guarded Goto: Evaluated expression: %s --> %s\n" (JSIL_Print.string_of_expression e false) (JSIL_Print.string_of_logic_expression le false));
 		let e_le, a_le = lift_logic_expr le in
 		let a_le_then, a_le_else =
 			match e_le, a_le with
 			| _, Some (a_le, a_not_le) ->
-				print_debug (Printf.sprintf "Lifted assertion: %s\n" (JSIL_Print.string_of_logic_assertion a_le false));
+				print_debug_petar (Printf.sprintf "Lifted assertion: %s\n" (JSIL_Print.string_of_logic_assertion a_le false));
 				([ a_le ], [ a_not_le ])
 			| Some e_le, None ->
 				([LEq (e_le, LLit (Bool true))], [LEq (e_le, LLit (Bool false))])
@@ -834,7 +835,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 					(print_endline "in the ELSE branch";
 					symb_evaluate_next_cmd s_prog proc spec search_info symb_state i k)
 				else
-					(print_endline "I could not determine the branch.";
+					(print_endline "Could NOT determine the branch.";
 
 					let then_symb_state = symb_state in
 					let then_search_info = search_info in

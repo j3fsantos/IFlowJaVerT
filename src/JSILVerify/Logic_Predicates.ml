@@ -74,9 +74,9 @@ let replace_head_literals (pred : jsil_logic_predicate) =
 *)
 let unify_list_pvars l1 l2 =
 	print_time_debug "unify_list_pvars.";
-	print_debug (Printf.sprintf "Lists: \n\t%s\n\t%s"
+	(* print_debug (Printf.sprintf "Lists: \n\t%s\n\t%s"
 		(String.concat ", " (List.map (fun x -> JSIL_Print.string_of_logic_expression x false) l1))
-		(String.concat ", " l2));
+		(String.concat ", " l2)); *)
 	let subst = Hashtbl.create 10 in
 	(* Compute and return the substitution of logic variables *)
 	List.iter2

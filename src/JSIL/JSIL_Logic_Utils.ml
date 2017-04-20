@@ -998,7 +998,7 @@ let make_all_different_pure_assertion fv_list_1 fv_list_2 : jsil_logic_assertion
 			(match f, f' with
 			| LLit _, LLit _ -> all_different_field_against_fv_list f v rest pfs
 			| _, _ -> 
-				print_debug (Printf.sprintf "all_different: (%s, %s) (%s, %s)\n" (sle f) (sle v) (sle f') (sle v'));
+				print_debug_petar (Printf.sprintf "all_different: (%s, %s) (%s, %s)\n" (sle f) (sle v) (sle f') (sle v'));
 				all_different_field_against_fv_list f v rest ((LNot (LEq (f, f'))) :: pfs)) in
 
 	let rec all_different_fv_list_against_fv_list fv_list_1 fv_list_2 pfs : jsil_logic_assertion list =

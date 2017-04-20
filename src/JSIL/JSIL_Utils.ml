@@ -90,7 +90,7 @@ let desugar_labs lproc =
 			error_var = lev;
 			spec = lspec;
 		} in
-	print_debug (Printf.sprintf "%s" (JSIL_Print.string_of_procedure proc false));
+	print_debug_petar (Printf.sprintf "%s" (JSIL_Print.string_of_procedure proc false));
 	proc
 
 let rec desugar_labs_list lproc_list =
@@ -167,27 +167,27 @@ let js_only_spec_from_string str : unit =
 (** Add the declarations in 'program_from' to 'program_to'. *)
 let extend_declarations program_to program_from =
 	(* Extend the predicates *)
-	print_debug (Printf.sprintf "Predicates To:\n");
-	Hashtbl.iter (fun k v -> print_debug (Printf.sprintf "\t%s\n" k)) program_to.predicates;
-	print_debug (Printf.sprintf "Procedures To:\n");
-	Hashtbl.iter (fun k v -> print_debug (Printf.sprintf "\t%s\n" k)) program_to.procedures;
-	print_debug (Printf.sprintf "Predicates From:\n");
-	Hashtbl.iter (fun k v -> print_debug (Printf.sprintf "\t%s\n" k)) program_from.predicates;
-	print_debug (Printf.sprintf "Procedures From:\n");
-	Hashtbl.iter (fun k v -> print_debug (Printf.sprintf "\t%s\n" k)) program_from.procedures;
+	print_debug_petar (Printf.sprintf "Predicates To:\n");
+	Hashtbl.iter (fun k v -> print_debug_petar (Printf.sprintf "\t%s\n" k)) program_to.predicates;
+	print_debug_petar (Printf.sprintf "Procedures To:\n");
+	Hashtbl.iter (fun k v -> print_debug_petar (Printf.sprintf "\t%s\n" k)) program_to.procedures;
+	print_debug_petar (Printf.sprintf "Predicates From:\n");
+	Hashtbl.iter (fun k v -> print_debug_petar (Printf.sprintf "\t%s\n" k)) program_from.predicates;
+	print_debug_petar (Printf.sprintf "Procedures From:\n");
+	Hashtbl.iter (fun k v -> print_debug_petar (Printf.sprintf "\t%s\n" k)) program_from.procedures;
 	Hashtbl.iter
 	  (fun pred_name pred ->
 		  (if (Hashtbl.mem program_to.predicates pred_name)
-		   then print_debug (Printf.sprintf "*** WARNING: Predicate %s already exists.\n" pred_name)
-		   else print_debug (Printf.sprintf "*** MESSAGE: Adding predicate %s.\n" pred_name));
+		   then print_debug_petar (Printf.sprintf "*** WARNING: Predicate %s already exists.\n" pred_name)
+		   else print_debug_petar (Printf.sprintf "*** MESSAGE: Adding predicate %s.\n" pred_name));
 		  Hashtbl.add program_to.predicates pred_name pred)
 		program_from.predicates;
 	(* Extend the procedures, except where a procedure with the same name already exists *)
 	Hashtbl.iter
 		(fun proc_name proc ->
 			if (not (Hashtbl.mem program_to.procedures proc_name))
-				then (print_debug (Printf.sprintf "*** MESSAGE: Adding procedure: %s.\n" proc_name); Hashtbl.add program_to.procedures proc_name proc)
-				else (print_debug (Printf.sprintf "*** WARNING: Procedure %s already exists.\n" proc_name)))
+				then (print_debug_petar (Printf.sprintf "*** MESSAGE: Adding procedure: %s.\n" proc_name); Hashtbl.add program_to.procedures proc_name proc)
+				else (print_debug_petar (Printf.sprintf "*** WARNING: Procedure %s already exists.\n" proc_name)))
 		program_from.procedures
 
 (** Load the programs imported in 'program' and add its declarations to 'program' itself. *)
@@ -199,17 +199,17 @@ let resolve_imports filename program =
 		(match imports with
 		| [] -> ()
 		| file :: rest_imports ->
-			print_debug (Printf.sprintf "File: %s\n" file);
+			print_debug_petar (Printf.sprintf "File: %s\n" file);
 			if (not (Hashtbl.mem added_imports file))
 				then
 					(Hashtbl.replace added_imports file true;
 					let imported_program = ext_program_of_path (file ^ ".jsil") in
 					extend_declarations program imported_program;
 					resolve_imports_iter (rest_imports @ imported_program.imports))) in
-	print_debug (Printf.sprintf "Predicates Program:\n");
-	Hashtbl.iter (fun k v -> print_debug (Printf.sprintf "\t%s\n" k)) program.predicates;
-	print_debug (Printf.sprintf "Procedures Program:\n");
-	Hashtbl.iter (fun k v -> print_debug (Printf.sprintf "\t%s\n" k)) program.procedures;
+	print_debug_petar (Printf.sprintf "Predicates Program:\n");
+	Hashtbl.iter (fun k v -> print_debug_petar (Printf.sprintf "\t%s\n" k)) program.predicates;
+	print_debug_petar (Printf.sprintf "Procedures Program:\n");
+	Hashtbl.iter (fun k v -> print_debug_petar (Printf.sprintf "\t%s\n" k)) program.procedures;
 	resolve_imports_iter program.imports
 
 (** Converts an extended JSIL program into a set of basic procedures.
@@ -220,15 +220,15 @@ let prog_of_ext_prog filename ext_program =
 	let epreds = ext_program.predicates in
 	let eprocs = ext_program.procedures in
 	(* Add the declarations from the imported files *)
-	print_debug (Printf.sprintf "Entering resolve_imports.\n");
+	print_debug_petar (Printf.sprintf "Entering resolve_imports.\n");
 	resolve_imports filename ext_program;
-	print_debug (Printf.sprintf "Exiting resolve_imports.\n");
+	print_debug_petar (Printf.sprintf "Exiting resolve_imports.\n");
 	(* Desugar the labels in the procedures, etc. *)
 	let prog = Hashtbl.create 101 in
 	let global_which_pred = Hashtbl.create 101 in
 	Hashtbl.iter
 		(fun proc_name ext_proc ->
-			print_debug (Printf.sprintf "Going to desugar procedure %s baby!!!\n" proc_name);
+			print_debug_petar (Printf.sprintf "Going to desugar procedure %s baby!!!\n" proc_name);
 			let proc = desugar_labs ext_proc in
 			(* Removing dead code and recalculating everything
 			let proc = JSIL_Utils_Graphs.remove_unreachable_code proc false in
@@ -236,11 +236,11 @@ let prog_of_ext_prog filename ext_program =
 
 			let succ_table, pred_table = JSIL_Utils_Graphs.get_succ_pred proc.proc_body proc.ret_label proc.error_label in
 			
-			print_debug "after succ and pred tables!!!\n";
+			print_debug_petar "after succ and pred tables!!!\n";
 			
 			let which_pred = JSIL_Utils_Graphs.compute_which_preds pred_table in
 			
-			print_debug "after which pred computation!!!\n";
+			print_debug_petar "after which pred computation!!!\n";
 			
 			Hashtbl.iter
 				(fun (prev_cmd, cur_cmd) i ->

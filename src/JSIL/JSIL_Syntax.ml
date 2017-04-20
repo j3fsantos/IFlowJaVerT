@@ -403,17 +403,21 @@ let macro_table     : (string, jsil_logic_macro) Hashtbl.t = Hashtbl.create 511
 
 (* STATISTICS *)
 
+let im_petar = ref true
 let debug = ref false
 
 let print_debug msg =
 	if (!debug) then (print_endline msg)
+
+let print_debug_petar msg =
+	if (!im_petar && !debug) then (print_endline msg)
 
 let print_time msg =
 	let time = Sys.time () in
 	print_endline (msg ^ (Printf.sprintf " Time: %f" time))
 
 let print_time_debug msg =
-    if (!debug) then
+    if (!debug && !im_petar) then
 	(let time = Sys.time () in
 	print_endline (msg ^ (Printf.sprintf " Time: %f" time)))
 	

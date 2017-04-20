@@ -1070,13 +1070,13 @@ let string_of_solver solver =
 let check_satisfiability assertions gamma =
 	let start_time_fun = Sys.time () in
 	
-	print_debug (Printf.sprintf "Non-simplified:\nPure formulae:\n%s\nGamma:\n%s\n\n"
+	print_debug_petar (Printf.sprintf "Non-simplified:\nPure formulae:\n%s\nGamma:\n%s\n\n"
 	(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list assertions) false)
 	(JSIL_Memory_Print.string_of_gamma gamma));
 	
 	let new_assertions, new_gamma = simplify_pfs (DynArray.of_list assertions) gamma None in
 	
-	print_debug (Printf.sprintf "Simplified:\nPure formulae:\n%s\nGamma:\n%s\n\n"
+	print_debug_petar (Printf.sprintf "Simplified:\nPure formulae:\n%s\nGamma:\n%s\n\n"
 			(JSIL_Memory_Print.string_of_shallow_p_formulae new_assertions false)
 			(JSIL_Memory_Print.string_of_gamma new_gamma));
 			
@@ -1093,7 +1093,7 @@ let check_satisfiability assertions gamma =
 	end
 	else
 	begin
-		print_debug (Printf.sprintf "Firing sat check:\nPFS:\n%s\nGamma:\n%s\n"
+		print_debug_petar (Printf.sprintf "Firing sat check:\nPFS:\n%s\nGamma:\n%s\n"
 			(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list new_assertions) false)
 			(JSIL_Memory_Print.string_of_gamma new_gamma));
 	
@@ -1113,7 +1113,7 @@ let old_check_entailment existentials left_as right_as gamma =
 
 	print_time_debug "check_entailment:";	
 
-	print_debug (Printf.sprintf "Preparing entailment check:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n"
+	print_debug_petar (Printf.sprintf "Preparing entailment check:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n"
 	   (String.concat ", " (SS.elements existentials))
 	   (JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list left_as) false)
 	   (JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list right_as) false)
@@ -1134,7 +1134,7 @@ let old_check_entailment existentials left_as right_as gamma =
 		- left side is not empty and is satisfiable
 		- right side is not empty and is not immediately false *)
 
-	(print_debug (Printf.sprintf "Firing entailment check:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n"
+	(print_debug_petar (Printf.sprintf "Firing entailment check:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n"
 	   (String.concat ", " (SS.elements existentials))
 	   (JSIL_Memory_Print.string_of_shallow_p_formulae left_as false)
 	   (JSIL_Memory_Print.string_of_shallow_p_formulae right_as false)
@@ -1181,7 +1181,7 @@ let old_check_entailment existentials left_as right_as gamma =
 				let right_as_or = Expr.simplify right_as_or None in
 					
 				Solver.add solver [ right_as_or ];
-				print_debug (Printf.sprintf "ENT: About to check the following:\n%s" (string_of_solver solver));
+				print_debug_petar (Printf.sprintf "ENT: About to check the following:\n%s" (string_of_solver solver));
 				let start_time = Sys.time () in
 				let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in
 				let end_time = Sys.time () in

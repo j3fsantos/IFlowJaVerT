@@ -45,13 +45,13 @@ let update_subst2 subst (unifier1 : (string * jsil_logic_expr) list option)
 	| Some _, None -> update_subst1 subst unifier1
 	| None, Some _ -> update_subst1 subst unifier2
 	| Some unifier1, Some unifier2 ->
-	  print_debug (Printf.sprintf "Unifier lengths: %d, %d" (List.length unifier1) (List.length unifier2));
-	  print_debug (Printf.sprintf "U1 : %s\nU2 : %s"
+	  print_debug_petar (Printf.sprintf "Unifier lengths: %d, %d" (List.length unifier1) (List.length unifier2));
+	  print_debug_petar (Printf.sprintf "U1 : %s\nU2 : %s"
 	  	(List.fold_left (fun ac (s, x) -> ac ^ (Printf.sprintf "(%s: %s) " s (JSIL_Print.string_of_logic_expression x false))) "" unifier1)
 		(List.fold_left (fun ac (s, x) -> ac ^ (Printf.sprintf "(%s: %s) " s (JSIL_Print.string_of_logic_expression x false))) "" unifier2));
 	  let u2vs, u2les = List.split unifier2 in
 	  let inter, diff = List.partition (fun (v, _) -> List.mem v u2vs) unifier1 in
-	  print_debug (Printf.sprintf "Intersection: %d\tDifference: %d" (List.length inter) (List.length diff));
+	  print_debug_petar (Printf.sprintf "Intersection: %d\tDifference: %d" (List.length inter) (List.length diff));
 	  if (List.length inter = 0)
 	  	then update_subst1 subst (Some (unifier1 @ unifier2))
 		else
@@ -138,18 +138,18 @@ let abs_heap_delete heap l e p_formulae (* solver *) gamma =
 	| None -> raise (Failure "Trying to delete an inexistent field")
 
 let merge_heaps heap new_heap p_formulae (* solver *) gamma =
-	print_debug (Printf.sprintf "-------------------------------------------------------------------\n");
-	print_debug (Printf.sprintf "-------------INSIDE MERGE HEAPS------------------------------------\n");
-	print_debug (Printf.sprintf "-------------------------------------------------------------------\n");
+	print_debug_petar (Printf.sprintf "-------------------------------------------------------------------\n");
+	print_debug_petar (Printf.sprintf "-------------INSIDE MERGE HEAPS------------------------------------\n");
+	print_debug_petar (Printf.sprintf "-------------------------------------------------------------------\n");
 
-	print_debug (Printf.sprintf "heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false));
-	print_debug (Printf.sprintf "pat_heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap new_heap false));
-	print_debug (Printf.sprintf "p_formulae: %s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false));
-	print_debug (Printf.sprintf "gamma: %s\n" (JSIL_Memory_Print.string_of_gamma gamma));
+	print_debug_petar (Printf.sprintf "heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false));
+	print_debug_petar (Printf.sprintf "pat_heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap new_heap false));
+	print_debug_petar (Printf.sprintf "p_formulae: %s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false));
+	print_debug_petar (Printf.sprintf "gamma: %s\n" (JSIL_Memory_Print.string_of_gamma gamma));
 
 	LHeap.iter
 		(fun loc (n_fv_list, n_def) ->
-			print_debug (Printf.sprintf "Object: %s" loc);
+			print_debug_petar (Printf.sprintf "Object: %s" loc);
 			match n_def with
 			| LUnknown
 			| LNone ->
@@ -159,7 +159,7 @@ let merge_heaps heap new_heap p_formulae (* solver *) gamma =
 						(match n_fv_list with
 						| [] -> q_fv_list
 						| (le_field, le_val) :: rest_n_fv_list ->
-							print_debug (Printf.sprintf "  Field: (%s, %s)" (JSIL_Print.string_of_logic_expression le_field false) (JSIL_Print.string_of_logic_expression le_val false));
+							print_debug_petar (Printf.sprintf "  Field: (%s, %s)" (JSIL_Print.string_of_logic_expression le_field false) (JSIL_Print.string_of_logic_expression le_val false));
 							let _, fv_pair, i_am_sure_the_field_does_exist = find_field loc fv_list le_field p_formulae (* solver *) gamma in
 							(match fv_pair, i_am_sure_the_field_does_exist with
 							| None, true -> loop ((le_field, le_val) :: q_fv_list) rest_n_fv_list
@@ -183,7 +183,7 @@ let make_all_different_assertion_from_fvlist (f_list : jsil_logic_expr list) : j
 			| f_name :: rest -> 
 				(match List.mem f_name rest with
 				| true -> 
-						print_debug "Horror: Overlapping resources";
+						print_debug_petar "Horror: Overlapping resources";
 						[ LFalse ]
 				| false -> loop rest ((LNot (LEq (field, f_name))) :: constraints)) in
 		loop flist [] in
@@ -199,7 +199,7 @@ let make_all_different_assertion_from_fvlist (f_list : jsil_logic_expr list) : j
 
 	let result = loop f_list [] [] in
 	
-	print_debug 
+	print_debug_petar
 		(Printf.sprintf "Make all different: %s\n" 
 			(String.concat " " (List.map (fun x -> JSIL_Print.string_of_logic_expression x false) f_list)));
 	
@@ -211,9 +211,9 @@ let get_heap_well_formedness_constraints heap =
 			(match constraints with
 			| [ LFalse ] -> [ LFalse ]
 			| _ -> 
-  			print_debug (Printf.sprintf "Object: %s" field);
-				print_debug "Field-value list:";
-				print_debug (String.concat "\n" 
+  			print_debug_petar (Printf.sprintf "Object: %s" field);
+				print_debug_petar "Field-value list:";
+				print_debug_petar (String.concat "\n" 
 					(List.map (fun (field, value) -> Printf.sprintf "(%s, %s)" 
 						(JSIL_Print.string_of_logic_expression field false)
 						(JSIL_Print.string_of_logic_expression value false)) fv_list));
@@ -293,7 +293,7 @@ let assertions_of_gamma gamma : jsil_logic_assertion=
 (*************************************)
 
 let predicate_assertion_equality pred pat_pred pfs gamma (spec_vars : SS.t) (existentials : string list) =
-	print_debug (Printf.sprintf "Entering predicate_assertion_equality.\n");
+	print_debug_petar (Printf.sprintf "Entering predicate_assertion_equality.\n");
 
 	let subst = JSIL_Logic_Utils.init_substitution [] in
 
@@ -301,7 +301,7 @@ let predicate_assertion_equality pred pat_pred pfs gamma (spec_vars : SS.t) (exi
 		(match les, pat_les with
 		| [], [] -> Some subst
 		| le :: rest_les, pat_le :: rest_pat_les ->
-			print_debug (Printf.sprintf "I am going to test if %s CAN BE equal to %s\n" (JSIL_Print.string_of_logic_expression le false) (JSIL_Print.string_of_logic_expression pat_le false));
+			print_debug_petar (Printf.sprintf "I am going to test if %s CAN BE equal to %s\n" (JSIL_Print.string_of_logic_expression le false) (JSIL_Print.string_of_logic_expression pat_le false));
 			(match pat_le with
 			| LVar l2 when (List.mem l2 existentials) ->
 				JSIL_Logic_Utils.extend_subst subst l2 le;
