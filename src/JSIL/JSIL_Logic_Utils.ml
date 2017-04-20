@@ -659,8 +659,6 @@ let filter_vars vars ignore_vars : SS.t =
 
 let rec type_lexpr gamma le =
 	
-	(* print_debug (Printf.sprintf "Typing: %s" (JSIL_Print.string_of_logic_expression le false));*)
-	
 	let f = type_lexpr gamma in
 	let result = (match le with
 	(* Literals are always typable *)
@@ -821,7 +819,6 @@ let rec type_lexpr gamma le =
 	| LUnknown -> (None, false, [])) in
 	
 	let (tp, b, _) = result in 
-	(*print_debug (Printf.sprintf "Result: (%s, %b)" (Option.map_default (fun x -> JSIL_Print.string_of_type x) "None" tp) b);*)
 	
 	result
 

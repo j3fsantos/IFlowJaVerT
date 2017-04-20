@@ -4,7 +4,7 @@
         dataField(n, "data", data) *
         dataField(n, "next", next) *
         dataField(n, "prev", prev) *
-        empty_fields (n : "data", "next", "prev" ) * 
+        empty_fields (n : "data", "next", "prev") * 
         types(data : $$number_type);
 
     @pred NodePrototype(np) :
@@ -16,7 +16,6 @@
         empty_fields (np : "hasNext", "hasPrev", "getData", "toString" ) ;
 
 */
-
 
 (function () {
     'use strict';
