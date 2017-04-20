@@ -52,9 +52,12 @@ let evaluate_type_of lit =
 	| Bool _       -> BooleanType
 	| Num n        -> NumberType
 	| String _     -> StringType
+	| Char _       -> CharType
 	| Loc _        -> ObjectType
 	| Type _       -> TypeType
 	| LList _      -> ListType
+	(* TODO: Could this benefit from being something else? *)
+	| CList _      -> ListType
 
 
 let small_tbl_size = 31
@@ -656,8 +659,6 @@ let filter_vars vars ignore_vars : SS.t =
 
 let rec type_lexpr gamma le =
 	
-	(* print_debug (Printf.sprintf "Typing: %s" (JSIL_Print.string_of_logic_expression le false)); *)
-	
 	let f = type_lexpr gamma in
 	let result = (match le with
 	(* Literals are always typable *)
@@ -721,21 +722,21 @@ let rec type_lexpr gamma le =
   		(* Number to String    *)
 		| ToStringOp -> tt NumberType StringType []
 			(* String to Number    *)
-  		| ToNumberOp -> tt StringType NumberType []
+		| ToNumberOp -> tt StringType NumberType []
 			(* Anything to Boolean *)
-      	| IsPrimitive -> (Some BooleanType, true, constraints)
+		| IsPrimitive -> (Some BooleanType, true, constraints)
 			(* List to List -> generates constraint *)
 		| Cdr ->
 			let new_constraint = (LNot (LLess (LUnOp (LstLen, e), (LLit (Num 1.))))) in
 			tt ListType ListType [ new_constraint ]
 			(* List to Anything -> generates constraint *)
-      | Car ->
+		| Car ->
 				let new_constraint = (LNot (LLess (LUnOp (LstLen, e), (LLit (Num 1.))))) in
 				(match te with
 				| Some ListType -> (None, true, [ new_constraint ])
 				| None          -> (None, false, [] ))
 			(* List to Int         *)
-  		| LstLen -> tt ListType NumberType []
+		| LstLen -> tt ListType NumberType []
 			(* String to Int       *)
 			| StrLen -> tt StringType NumberType [])
 		else
@@ -815,10 +816,15 @@ let rec type_lexpr gamma le =
 		| _, _ -> (None, false, []))
 
 	| LNone    -> (Some NoneType, true, [])
-  | LUnknown -> (None, false, [])) in
+	| LUnknown -> (None, false, [])) in
 	
+<<<<<<< HEAD
 	(* let (tp, b, _) = result in 
 	print_debug (Printf.sprintf "Result: (%s, %b)" (Option.map_default (fun x -> JSIL_Print.string_of_type x) "None" tp) b); *)
+=======
+	let (tp, b, _) = result in 
+	(*print_debug (Printf.sprintf "Result: (%s, %b)" (Option.map_default (fun x -> JSIL_Print.string_of_type x) "None" tp) b);*)
+>>>>>>> 173418bdfa6965d39a04ac55c3cae6be917e5129
 	
 	result
 
@@ -828,7 +834,7 @@ let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
 	(* Printf.printf "le: %s\n\n\n" (JSIL_Print.string_of_logic_expression le false); *)
 	(match le with
 	(* Literals are always typable *)
-  | LLit lit -> (evaluate_type_of lit = le_type)
+	| LLit lit -> (evaluate_type_of lit = le_type)
 
 	(* Variables are reverse-typable if they are already typable *)
 	(* with the target type or if they are not typable           *)
@@ -846,14 +852,14 @@ let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
   (* LEList is not reverse typable because we lose type information *)
 	| LEList _ -> false
 
-  | LUnOp (unop, le) ->
+	| LUnOp (unop, le) ->
 		(* Printf.printf "UNOP\n\n\n"; *)
 		(match unop with
-  	| Not        -> if (le_type = BooleanType) then f le BooleanType else false
+		| Not        -> if (le_type = BooleanType) then f le BooleanType else false
 		| UnaryMinus -> if (le_type = NumberType)  then f le le_type     else false
-  	| BitwiseNot	| M_sgn	| M_abs		| M_acos	| M_asin	| M_atan	| M_ceil
-    | M_cos				| M_exp	| M_floor	| M_log		| M_round	| M_sin		| M_sqrt
-  	| M_tan      -> if (le_type = NumberType) then f le le_type else false
+		| BitwiseNot	| M_sgn	| M_abs		| M_acos	| M_asin	| M_atan	| M_ceil
+		| M_cos				| M_exp	| M_floor	| M_log		| M_round	| M_sin		| M_sqrt
+		| M_tan      -> if (le_type = NumberType) then f le le_type else false
 		| ToIntOp			| ToUint16Op			| ToInt32Op					| ToUint32Op
 								 ->	if (le_type = NumberType) then f le NumberType else false
 
@@ -861,7 +867,7 @@ let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
 
 		| ToNumberOp ->	if (le_type = NumberType)	then f le StringType else false
 
-	  | IsPrimitive -> false
+		| IsPrimitive -> false
 
 		| Cdr	| Car	| LstLen -> f le ListType
 
@@ -908,7 +914,7 @@ let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
 		| LStrNth (le1, le2) -> (f le1 StringType) && (f le2 NumberType)
 
 		| LNone    -> (NoneType = le_type)
- 	 	| LUnknown -> false)
+		| LUnknown -> false)
 
 
 let reverse_type_lexpr gamma le le_type : typing_environment option =
