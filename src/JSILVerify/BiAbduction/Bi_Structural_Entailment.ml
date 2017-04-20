@@ -222,7 +222,7 @@ let bi_unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_f
 								| LLit (Loc loc) -> loc
 								| ALoc loc -> loc
 								| LVar v -> 
-									let loc = find_me_Im_a_loc (pfs_to_list pure_formulae) le in 
+									let loc = Simplifications.find_me_Im_a_loc (pfs_to_list pure_formulae) le in 
 									(match loc with 
 									| Some loc -> loc
 									| None -> raise (Failure "I cannot unify this"))
@@ -564,8 +564,8 @@ let bi_unify_symb_state_against_post
 	let processed_posts = 
 		List.map 
 			(fun (symb_state, anti_frame) -> 
-				let new_symb_state = simplify false symb_state in
-				let new_anti_frame = simplify false anti_frame in 
+				let new_symb_state = Simplifications.simplify false symb_state in
+				let new_anti_frame = Simplifications.simplify false anti_frame in 
 				(new_symb_state, new_anti_frame))
 			processed_posts in 
 	match processed_posts with 

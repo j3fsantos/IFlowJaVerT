@@ -99,17 +99,6 @@ let string_of_preds preds escape_string =
 		preds
 
 
-let string_of_normalised_predicate (pred : Logic_Predicates.normalised_predicate) =
-    let params = List.fold_left (fun ac param -> ac ^ param ^ " ") "" pred.params in
-    "*** Normalised predicate ***\n" ^
-    "Name : " ^ pred.name ^ "\n" ^
-    "Parameters : " ^ params ^ "\n" ^
-    (Printf.sprintf "Recursive : %b\n" pred.is_recursive)
-
-let string_of_normalised_predicates (preds : (string, Logic_Predicates.normalised_predicate) Hashtbl.t) =
-    Hashtbl.fold (fun pname pred ac -> ac ^ string_of_normalised_predicate pred) preds ""
-
-
 let string_of_shallow_symb_state (symb_state : symbolic_state) =
 	(* let heap, store, p_formulae, gamma, preds = symb_state in *)
 	let str_heap       = "Heap: " ^ (string_of_shallow_symb_heap (get_heap symb_state) true) ^ "\n" in
@@ -301,3 +290,12 @@ let dot_of_search_info search_info proof_name =
 	let end_time = Sys.time () in
 	JSIL_Syntax.update_statistics "unify_stores" (end_time -. start_time);
 	str
+
+
+(***************)
+(** Shorthand **)
+(***************)
+
+let print_pfs pfs = string_of_shallow_p_formulae pfs false
+
+

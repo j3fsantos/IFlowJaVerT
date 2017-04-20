@@ -5,6 +5,9 @@ open Set
 (**/**)
 (* Exceptions *)
 exception Syntax_error of string
+
+let small_tbl_size = 31
+let big_tbl_size = 1021
 (**/**)
 
 (** {2 Syntax of the JSIL language} *)
@@ -239,6 +242,13 @@ type jsil_logic_predicate = {
 	params      : jsil_logic_expr list;      (** Actual parameters *)
 	definitions : jsil_logic_assertion list; (** Predicate definitions *)
 }
+	
+let pred_def_tbl_from_list pred_defs = 
+	let pred_def_tbl = Hashtbl.create small_tbl_size in
+	List.iter 
+		(fun pred_def -> Hashtbl.add pred_def_tbl pred_def.name pred_def)
+		pred_defs; 
+	pred_def_tbl
 
 (** {b Return flags for JSIL specifications}. *)
 type jsil_return_flag =
@@ -361,9 +371,6 @@ type jsil_ext_program = {
 (** JSIL Heaps                      **)
 (*************************************)
 
-let small_tbl_size = 31
-let big_tbl_size = 1021
-
 module SHeap = Hashtbl.Make(
 	struct
 		type t = string
@@ -403,7 +410,7 @@ let macro_table     : (string, jsil_logic_macro) Hashtbl.t = Hashtbl.create 511
 
 (* STATISTICS *)
 
-let im_petar = ref true
+let im_petar = ref false
 let debug = ref false
 
 let print_debug msg =

@@ -28,3 +28,8 @@ val to_string : normalised_predicate -> string
 (** Useful for debugging. *)
 
 val string_of_normalised_predicates : (string, normalised_predicate) Hashtbl.t -> string
+
+
+val string_of_normalised_predicate :  (normalised_predicate) -> string
+
+val string_of_normalised_predicates : ((string, normalised_predicate) Hashtbl.t) -> string

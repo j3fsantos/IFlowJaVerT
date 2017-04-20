@@ -212,6 +212,7 @@ let rec init_symb_store_alocs store gamma subst ass : unit =
 	| _ -> ()
 
 
+
 let init_pure_assignments a store gamma subst =
 
 	let pure_assignments = Hashtbl.create 31 in
@@ -234,7 +235,7 @@ let init_pure_assignments a store gamma subst =
 			cur_index := (!cur_index) + 1
 		done;
 
-		let non_store_pure_assertions_array = Symbolic_State_Basics.aggressively_simplify_pfs non_store_pure_assertions_array gamma false in
+		let non_store_pure_assertions_array = Simplifications.aggressively_simplify_pfs non_store_pure_assertions_array gamma false in
 		non_store_pure_assertions_array in
 
 	(**
@@ -511,7 +512,7 @@ let init_preds a store gamma subst =
 			| _ -> []) in
 	let new_assertions = init_preds_aux preds a in
 	let dna = DynArray.of_list new_assertions in
-	Symbolic_State_Basics.sanitise_pfs store gamma dna;
+	Simplifications.sanitise_pfs store gamma dna;
 	preds, (DynArray.to_list dna)
 
 let fill_store_with_gamma store gamma subst =
@@ -805,8 +806,8 @@ let normalise_spec preds spec =
 	let normalised_pre_post_list = List.concat (List.map (normalise_single_spec preds) spec.proc_specs) in
 	let normalised_pre_post_list =
 		List.map (fun (x : jsil_n_single_spec) ->
-			let pre = Symbolic_State_Basics.simplify false x.n_pre in
-			let post = List.map (fun y -> Symbolic_State_Basics.simplify false y) x.n_post in
+			let pre = Simplifications.simplify false x.n_pre in
+			let post = List.map (fun y -> Simplifications.simplify false y) x.n_post in
 			{ x with n_pre = pre; n_post = post }
 		) normalised_pre_post_list in
 	{

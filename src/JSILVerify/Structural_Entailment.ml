@@ -177,7 +177,7 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (* solver *) (gamm
 
 	| le_pat when (isList le_pat && isList le && (match le with | LVar _ -> false | _ -> true)) ->
 			print_debug_petar (Printf.sprintf "ULEXPRLIST: %s %s" (print_lexpr le_pat) (print_lexpr le));
-			let osubst = unify_lists le_pat le false in
+			let osubst = Simplifications.unify_lists le_pat le false in
 			(match osubst with
 			| None, _ -> (false, None)
 			| Some _, sb ->
@@ -227,11 +227,11 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (* solver *) (gamm
 				else (false, None)
 		| le' ->
 			print_debug_petar "Second thingy not a list.";
-			let le'' = find_me_Im_a_list (Hashtbl.create 1) p_formulae le' in
+			let le'' = Simplifications.find_me_Im_a_list (Hashtbl.create 1) p_formulae le' in
 			let le''' = (match le'' with
 			| LVar v ->
 					let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy p_formulae), (copy_gamma gamma), DynArray.create ()) in
-					let simpl_pfs, _ = simplify_pfs p_formulae gamma (Some None) in
+					let simpl_pfs, _ = Simplifications.simplify_pfs p_formulae gamma (Some None) in
 					let subst = List.filter (fun pf -> (match pf with
 					| LEq (LVar w, _) -> v = w
 					| _ -> false)) (DynArray.to_list simpl_pfs) in
@@ -474,7 +474,7 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 							| ALoc loc -> loc
 							| LVar v -> 
 								print_debug (Printf.sprintf "matched a pattern loc with the logical variable %s!\n" v);
-								let loc = try find_me_Im_a_loc (pfs_to_list pure_formulae) le with _ -> None in 
+								let loc = try Simplifications.find_me_Im_a_loc (pfs_to_list pure_formulae) le with _ -> None in 
 								(match loc with 
 								| Some loc -> 
 									(print_debug (Printf.sprintf "find_me_Im_a_loc returned: %s!\n" loc);
@@ -853,14 +853,14 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 						(***** EXPERIMENTAL - PUT INTO SEPARATE FUNCTION *****)
 
 						let pat_pfs = pf_substitution pf_1 subst true in
-						let _, pf_subst = simplify_pfs_with_subst pf_0 gamma_0 in
+						let _, pf_subst = Simplifications.simplify_pfs_with_subst pf_0 gamma_0 in
 						(match pf_subst with
 						| None -> print_debug (Printf.sprintf "Failed to unify heaps definitively. Contradiction in pat_pfs." ); None
 						| Some pf_subst -> 
 							(let pat_pfs = pf_substitution pat_pfs pf_subst true in
 							print_debug_petar (Printf.sprintf "Original pat_pfs:\n%s" (JSIL_Memory_Print.string_of_shallow_p_formulae pf_1 false));
 							print_debug_petar (Printf.sprintf "Substituted pat_pfs:\n%s" (JSIL_Memory_Print.string_of_shallow_p_formulae pat_pfs false));
-							let new_pfs, _ = simplify_pfs pat_pfs gamma_0 (Some None) in
+							let new_pfs, _ = Simplifications.simplify_pfs pat_pfs gamma_0 (Some None) in
 							(match (DynArray.to_list new_pfs) with
 							| [ LFalse ] -> print_debug (Printf.sprintf "Failed to unify heaps definitively. Contradiction in pat_pfs." ); None
 							| _ -> 
@@ -1092,7 +1092,7 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 			let pf_1_subst_list = List.map (fun a -> assertion_substitution a subst true) (pfs_to_list pf_1) in
 			let pf_discharges = pf_list_of_discharges discharges subst false in
 			let pfs = DynArray.of_list (pf_1_subst_list @ pf_discharges) in
-			sanitise_pfs_no_store gamma_0' pfs;
+			Simplifications.sanitise_pfs_no_store gamma_0' pfs;
 			(* Moving formulae on the left which contain existentials to the right *)
 			let pf0 = DynArray.copy pf_0 in
 			let to_delete = SI.empty in
@@ -1446,7 +1446,7 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 
 
 let unify_symb_state_against_invariant symb_state inv_symb_state lvars = 
-	print_debug (Printf.sprintf "unify_symb_state_against_invariant.\nSymb_state:\n%s.\INVARIANT symb_state:\n%s" 
+	print_debug (Printf.sprintf "unify_symb_state_against_invariant.\nSymb_state:\n%s.\nINVARIANT symb_state:\n%s" 
 		(JSIL_Memory_Print.string_of_shallow_symb_state symb_state) 
 		(JSIL_Memory_Print.string_of_shallow_symb_state inv_symb_state)); 	
 	let unifier = unify_symb_states lvars inv_symb_state symb_state in
@@ -1458,7 +1458,7 @@ let unify_symb_state_against_invariant symb_state inv_symb_state lvars =
 		let new_symb_state = merge_symb_states symb_state inv_symb_state subst in
 		let subst_pfs = assertions_of_substitution subst in 
 		extend_symb_state_with_pfs symb_state (DynArray.of_list subst_pfs); 
-		let new_symb_state = Symbolic_State_Basics.simplify_symbolic_state symb_state in 
+		let new_symb_state = Simplifications.simplify_symbolic_state symb_state in 
 		Some new_symb_state 
 	| _ -> None  
 

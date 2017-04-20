@@ -115,6 +115,26 @@ let heap_substitution (heap : symbolic_heap) (subst : substitution) (partial : b
 		heap;
 	new_heap
 
+let heap_substitution_in_place (heap : symbolic_heap) (subst : substitution) =
+  LHeap.iter
+  	(fun loc (fv_list, def) ->
+  		let s_loc =
+  			(try Hashtbl.find subst loc
+  				with _ ->
+  					if (is_abs_loc_name loc)
+  						then ALoc loc
+  						else (LLit (Loc loc))) in
+  		let s_loc =
+  			(match s_loc with
+  				| LLit (Loc loc) -> loc
+  				| ALoc loc -> loc
+  				| _ ->
+  					raise (Failure "Heap substitution failed miserably!!!")) in
+  		let s_fv_list = fv_list_substitution fv_list subst true in
+  		let s_def = JSIL_Logic_Utils.lexpr_substitution def subst true in
+  		LHeap.replace heap s_loc (s_fv_list, s_def))
+  	heap
+
 let heap_vars catch_pvars heap : SS.t =
 	LHeap.fold
 		(fun _ (fv_list, e_def) ac ->
@@ -143,6 +163,8 @@ let is_heap_empty (heap : symbolic_heap) (js : bool) : bool =
 		(fun loc (fv_list, def) ac -> if (not ac) then ac else is_empty_fv_list fv_list js)
 		heap
 		true
+
+
 
 	
 (*************************************)
@@ -207,6 +229,18 @@ let store_substitution store gamma subst partial =
 	let store = store_init vars les in
 	store
 
+let store_substitution_in_place store gamma subst =
+	Hashtbl.iter
+		(fun pvar le ->
+			let s_le = JSIL_Logic_Utils.lexpr_substitution le subst true in
+			Hashtbl.replace store pvar s_le;
+			
+			let s_le_type, is_typable, _ = JSIL_Logic_Utils.type_lexpr gamma s_le in
+			(match s_le_type with
+				| Some s_le_type -> Hashtbl.replace gamma pvar s_le_type
+				| None -> ()))
+		store
+
 let store_vars catch_pvars store =
 	Hashtbl.fold (fun _ e ac -> 
 		let v_e = JSIL_Logic_Utils.get_expr_vars catch_pvars e in
@@ -238,8 +272,6 @@ let store_projection store vars =
 			([], []) 
 			vars in
 	store_init vars les
-
-
 
 
 (*************************************)
@@ -294,6 +326,26 @@ let pf_of_substitution subst =
 let merge_pfs pfs_l pfs_r =
 	DynArray.append pfs_r pfs_l
 
+let pf_substitution pf_r subst partial =
+	let new_pf = DynArray.create () in
+	let len = (DynArray.length pf_r) - 1 in
+	for i=0 to len do
+		let a = DynArray.get pf_r i in
+		let s_a = JSIL_Logic_Utils.assertion_substitution a subst partial in
+		DynArray.add new_pf s_a
+	done;
+	new_pf
+
+let pf_substitution_in_place pfs subst =
+	DynArray.iteri (fun i a ->
+		let s_a = JSIL_Logic_Utils.assertion_substitution a subst true in
+		DynArray.set pfs i s_a) pfs
+
+let get_pf_vars catch_pvars pfs =
+	DynArray.fold_left (fun ac a ->
+		let v_a = JSIL_Logic_Utils.get_assertion_vars catch_pvars a in
+		SS.union ac v_a) SS.empty pfs
+
 
 (*************************************)
 (** Predicate Set functions         **)
@@ -301,6 +353,26 @@ let merge_pfs pfs_l pfs_r =
 let copy_pred_set preds =
 	let new_preds = DynArray.copy preds in
 	new_preds
+
+let pred_substitution pred subst partial =
+	let pred_name, les = pred in
+	let s_les = List.map (fun le -> JSIL_Logic_Utils.lexpr_substitution le subst partial)  les in
+	(pred_name, s_les)
+
+let preds_substitution preds subst partial =
+	let len = DynArray.length preds in
+	let new_preds = DynArray.create () in
+	for i=0 to len - 1 do
+		let pred = DynArray.get preds i in
+		let s_pred = pred_substitution pred subst partial in
+		DynArray.add new_preds s_pred
+	done;
+	new_preds
+
+let preds_substitution_in_place preds subst =
+	DynArray.iteri (fun i pred ->
+		let s_pred = pred_substitution pred subst true in
+		DynArray.set preds i s_pred) preds
 
 let extend_pred_set preds pred_assertion =
 	match pred_assertion with
@@ -359,6 +431,13 @@ let simple_subtract_pred preds pred_name =
 	| None -> None
 	| Some (cur, les) -> (DynArray.delete preds cur); Some (pred_name, les)
 		
+let get_preds_vars catch_pvars preds : SS.t =
+	DynArray.fold_left (fun ac (_, les) ->
+		let v_les = List.fold_left (fun ac e ->
+			let v_e = JSIL_Logic_Utils.get_expr_vars catch_pvars e in
+			SS.union ac v_e) SS.empty les in
+		SS.union ac v_les) SS.empty preds
+
 
 (*************************************)
 (** Symbolic State functions        **)
@@ -466,6 +545,38 @@ let remove_concrete_values_from_the_store symb_state =
 		| _ -> 
 			Some le) (get_store symb_state)
 
+let symb_state_substitution (symb_state : symbolic_state) subst partial =
+	let heap, store, pf, gamma, preds (*, _ *) = symb_state in
+	let s_heap = heap_substitution heap subst partial in
+	let s_store = store_substitution store gamma subst partial in
+	let s_pf = pf_substitution pf subst partial  in
+	let s_gamma = gamma_substitution gamma subst partial in
+	let s_preds = preds_substitution preds subst partial in
+	(s_heap, s_store, s_pf, s_gamma, s_preds (* ref None *))
+
+let symb_state_substitution_in_place_no_gamma (symb_state : symbolic_state) subst =
+	let heap, store, pf, gamma, preds = symb_state in
+	heap_substitution_in_place heap subst;
+	store_substitution store gamma subst; 
+	pf_substitution_in_place pf subst;
+	preds_substitution_in_place preds subst
+
+let get_symb_state_vars catch_pvars symb_state =
+	let heap, store, pfs, gamma, preds = symb_state in
+	let v_h  : SS.t = heap_vars catch_pvars heap in
+	let v_s  : SS.t = store_vars catch_pvars store in
+	let v_pf : SS.t = get_pf_vars catch_pvars pfs in
+	let v_g  : SS.t = get_gamma_vars catch_pvars gamma in
+	let v_pr : SS.t = get_preds_vars catch_pvars preds in
+		SS.union v_h (SS.union v_s (SS.union v_pf (SS.union v_g v_pr)))
+
+let get_symb_state_vars_no_gamma catch_pvars symb_state =
+	let heap, store, pfs, gamma, preds = symb_state in
+	let v_h  : SS.t = heap_vars catch_pvars heap in
+	let v_s  : SS.t = store_vars catch_pvars store in
+	let v_pf : SS.t = get_pf_vars catch_pvars pfs in
+	let v_pr : SS.t = get_preds_vars catch_pvars preds in
+		SS.union v_h (SS.union v_s (SS.union v_pf v_pr))
 
 (****************************************)
 (** Normalised Specifications          **)

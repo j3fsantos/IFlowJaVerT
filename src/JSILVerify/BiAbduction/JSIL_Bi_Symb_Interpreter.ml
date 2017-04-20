@@ -77,7 +77,7 @@ let f = symb_evaluate_expr symb_state anti_frame in
 		| _ ->
 			(match op with
 			| Cdr ->
-			let nle = find_me_Im_a_list store pure_formulae nle in
+			let nle = Simplifications.find_me_Im_a_list store pure_formulae nle in
 				(match nle with
 				| LLit (LList list) ->
 				 	(match list with
@@ -90,7 +90,7 @@ let f = symb_evaluate_expr symb_state anti_frame in
 				 | LBinOp (el, LstCons, llist) -> llist
 				 | _ -> LUnOp (op, nle))
 			| LstLen ->
-			 	let nle = find_me_Im_a_list store pure_formulae nle in
+			 	let nle = Simplifications.find_me_Im_a_list store pure_formulae nle in
 				let len = get_list_length nle in
 					if_some len (fun len -> LLit (Num (float_of_int len))) (LUnOp (op, nle))
 			| _ -> LUnOp (op, nle)))
@@ -130,7 +130,7 @@ let f = symb_evaluate_expr symb_state anti_frame in
 	| LstNth (e1, e2) ->
 		let list = f e1 in
 		let index = f e2 in
-		let list = find_me_Im_a_list store pure_formulae list in
+		let list = Simplifications.find_me_Im_a_list store pure_formulae list in
 		(match index with
 		 | LLit (Num n) when (Utils.is_int n) ->
 			let n = int_of_float n in
@@ -566,10 +566,10 @@ let find_and_apply_spec
 			List.map (fun (symb_state, new_anti_frame, ret_flag, ret_lexpr) ->
 			let new_symb_state =
 				let pfs = get_pf symb_state in
-				let rpfs = DynArray.map (fun x -> reduce_assertion_no_store new_gamma pfs x) pfs in
-				sanitise_pfs_no_store new_gamma rpfs;
+				let rpfs = DynArray.map (fun x -> Simplifications.reduce_assertion_no_store new_gamma pfs x) pfs in
+				Simplifications.sanitise_pfs_no_store new_gamma rpfs;
 				symb_state_replace_pfs symb_state rpfs in
-			(new_symb_state, new_anti_frame, ret_flag, reduce_expression_no_store_no_gamma_no_pfs ret_lexpr)) symb_states_and_ret_lexprs in
+			(new_symb_state, new_anti_frame, ret_flag, Simplifications.reduce_expression_no_store_no_gamma_no_pfs ret_lexpr)) symb_states_and_ret_lexprs in
 		symb_states_and_ret_lexprs in
 	
 	let transform_symb_state_partial_match_list 
@@ -670,7 +670,7 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 						missing_pred_name
 						(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) missing_pred_args)));
 					let new_symb_state = update_symb_state_after_folding false symb_state quotient_heap quotient_preds pf_discharges new_gamma pred_name args in
-					let new_symb_state, new_subst = simplify_with_subst true new_symb_state in
+					let new_symb_state, new_subst = Simplifications.simplify_with_subst true new_symb_state in
 					print_debug (Printf.sprintf "New subst: %d \n%s" (List.length new_subst) (String.concat "\n" (List.map (fun (x, le) -> Printf.sprintf "   (%s, %s)" x (JSIL_Print.string_of_logic_expression le false)) new_subst)));
 					let existentials_to_remove = (List.map (fun (v, _) -> v) new_subst) in 
 					print_debug (Printf.sprintf "Exists to remove: %s" (String.concat "," existentials_to_remove));
@@ -729,7 +729,7 @@ let recursive_unfold pred_name pred_defs symb_state params spec_vars =
 			if ((List.length unfolded_symb_states > 1) || (List.length unfolded_symb_states = 0))
 				then (print_debug (Printf.sprintf "More than one unfolding or nothing at all, oops.\n"); symb_state)
 				else (
-					let new_symb_state = simplify false (List.hd unfolded_symb_states) in
+					let new_symb_state = Simplifications.simplify false (List.hd unfolded_symb_states) in
 					print_debug (Printf.sprintf "Inside recursive unfolding:\n%s\n" (JSIL_Memory_Print.string_of_shallow_symb_state new_symb_state));
 					loop new_symb_state) in
 
@@ -745,6 +745,57 @@ let recursive_unfold pred_name pred_defs symb_state params spec_vars =
 		inner_loop pred_args symb_state in
 
 	loop symb_state
+
+
+(* Unfolding of macros *)
+let rec unfold_macro (macro_name : string) (params_vals : jsil_logic_expr list) : jsil_logic_command =
+	if (Hashtbl.mem macro_table macro_name) then
+		(let macro = Hashtbl.find macro_table macro_name in
+		(* print_debug (Printf.sprintf ("Macro: %s(%s) : %s") 
+				macro.mname
+				(String.concat ", " macro.mparams)
+				(JSIL_Print.string_of_lcmd macro.mdefinition)); *)
+		let params = macro.mparams in
+		let lparo = List.length params in
+		let lparv = List.length params_vals in
+		if (lparo <> lparv) then
+			raise (Failure (Printf.sprintf "Macro %s called with incorrect number of parameters: %d instead of %d." macro.mname lparv lparo))
+		else
+			let subst = Hashtbl.create 17 in
+			List.iter2 (fun x y -> Hashtbl.add subst x y) params params_vals;
+			macro_subst macro.mdefinition subst)
+		else
+			raise (Failure (Printf.sprintf "Macro %s not found in macro table." macro_name))
+and
+(** Apply function f to the logic expressions in a logic command, recursively when it makes sense. *)
+lcmd_map f unfold_macros lcmd =
+	(* Map recursively to commands, assertions, and expressions *)
+	let map_l = lcmd_map f unfold_macros in
+	let map_a = assertion_map f in
+	let map_e = logic_expression_map f in
+	match lcmd with
+	| Fold      a                   -> Fold      (map_a a)
+	| Unfold    a                   -> Unfold    (map_a a)
+	| RecUnfold s                   -> RecUnfold s
+	| LogicIf   (e, lcmds1, lcmds2) -> LogicIf   (map_e e, List.map (fun x -> map_l x) lcmds1, List.map (fun x -> map_l x) lcmds2)
+	| Macro     (name, params_vals) -> 
+		let fparams_vals = List.map (fun x -> map_e x) params_vals in
+		(match unfold_macros with
+		| true  -> unfold_macro name fparams_vals
+		| false -> Macro (name, fparams_vals))
+and
+macro_subst (lcmd : jsil_logic_command) (subst : (string, jsil_logic_expr) Hashtbl.t) : jsil_logic_command = 
+	let substitute = 
+		(fun e ->
+			((match e with
+			| PVar v ->
+				(match Hashtbl.mem subst v with
+				| true  -> Hashtbl.find subst v
+				| false -> e)
+			| _ -> e), true)) in
+	lcmd_map substitute true lcmd
+
+
 
 let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 
@@ -822,7 +873,7 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 	)
 and
 symb_evaluate_logic_cmds s_prog (l_cmds : jsil_logic_command list) (symb_states : symbolic_state list) subst spec_vars =
-	let symb_states = List.map (fun s -> simplify false s) symb_states in
+	let symb_states = List.map (fun s -> Simplifications.simplify false s) symb_states in
 	match l_cmds with
 	| [] -> symb_states
 	| l_cmd :: rest_l_cmds ->
@@ -983,7 +1034,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
 		symb_evaluate_next_cmd s_prog proc spec search_info symb_state anti_frame i (i+1)
 		in 
 
-	let symb_state = simplify false symb_state in
+	let symb_state = Simplifications.simplify false symb_state in
 	print_symb_state_and_cmd symb_state anti_frame;
 	let metadata, cmd = get_proc_cmd proc i in
 	mark_as_visited search_info i;
@@ -1097,7 +1148,7 @@ and symb_evaluate_next_cmd_cont
 					(* check if the current symbolic state entails the invariant *)
 					Printf.printf "LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
 					let new_symb_state, _ = JSIL_Logic_Normalise.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
-					let new_symb_state, _, _, _ = simplify_symb_state None (DynArray.create()) (SS.empty) new_symb_state in
+					let new_symb_state, _, _, _ = Simplifications.simplify_symb_state None (DynArray.create()) (SS.empty) new_symb_state in
 					(match (Structural_Entailment.fully_unify_symb_state new_symb_state symb_state spec.n_lvars !js) with
 					| Some _, _ -> (true, None, [])
 					| None, msg -> (false, Some msg, []))
@@ -1113,7 +1164,7 @@ and symb_evaluate_next_cmd_cont
 					| Some a ->
 						Printf.printf "NO LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
 						let new_symb_state, _ = JSIL_Logic_Normalise.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
-						let new_symb_state, _, _, _ = simplify_symb_state (Some None) (DynArray.create()) (SS.empty) new_symb_state in
+						let new_symb_state, _, _, _ = Simplifications.simplify_symb_state (Some None) (DynArray.create()) (SS.empty) new_symb_state in
 						(match (Structural_Entailment.unify_symb_state_against_invariant symb_state new_symb_state spec.n_lvars) with
 						(* If it does, replace current symbolic state with the invariant *)
 						| Some new_symb_state -> new_symb_state

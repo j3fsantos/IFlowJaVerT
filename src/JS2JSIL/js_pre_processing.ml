@@ -1057,7 +1057,7 @@ let closure_clarification_top_level cc_tbl (fun_tbl : Js2jsil_constants.fun_tbl_
 		let specs, _ = process_js_logic_annotations cc_tbl vis_tbl old_fun_tbl proc_id [] annots TopRequires TopEnsures TopEnsuresErr in
 		Hashtbl.replace fun_tbl proc_id (proc_id, args, Some e, false, specs);
 	| None -> ()); 
-	let jsil_pred_def_tbl = JSIL_Logic_Utils.pred_def_tbl_from_list jsil_predicate_definitions in 
+	let jsil_pred_def_tbl = JSIL_Syntax.pred_def_tbl_from_list jsil_predicate_definitions in 
 	jsil_pred_def_tbl
 	
 
