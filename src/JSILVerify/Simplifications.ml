@@ -738,34 +738,45 @@ let arrange_strings (se1 : jsil_logic_expr) (se2 : jsil_logic_expr) : (jsil_logi
 		| LBinOp (_, CharCat, _), LBinOp (_, CharCat, _) -> se1, se2
 		| _, _ -> se2, se1
 
-(* Used in assertion_map, requires the extra bool return to indicate whether to recurse *)
-let rec le_string_to_list (se : jsil_logic_expr) : jsil_logic_expr * bool =
-	let explode s =
-		let rec exp i l =
+let internal_string_explode s =
+	let rec exp i l =
 		if i < 0 then l else exp (i - 1) ((Char s.[i]) :: l) in
-		exp (String.length s - 1) [] in
+	exp (String.length s - 1) []
+
+let rec lit_string_to_list (sl : jsil_lit) : jsil_lit =
+	match sl with
+		| LList l ->
+			LList (List.map lit_string_to_list l)
+		| String s -> CList (internal_string_explode s)
+		| _ -> sl
+
+(* To go from String to an internal representation, requires the extra bool return to indicate whether to recurse *)
+let rec le_string_to_list (se : jsil_logic_expr) : jsil_logic_expr * bool =
 	let f s = 
 		let res, _ = le_string_to_list s in 
 		res in 
 	(match se with
-		| LLit (String s) -> (LLit (CList (explode s)), false)
+		| LLit l -> (LLit (lit_string_to_list l), false)
 		| LBinOp (sel, StrCat, ser) ->
 			print_debug_petar (Printf.sprintf "BinOp case StrCat"); 
 			(LBinOp ((f sel), CharCat, (f ser)), false)
 		| LVar _ -> (se, false)
 		| _ -> (se, true))
 
-(* TODO: Double check this was completed? *)
+let rec lit_list_to_string (sl : jsil_lit) : jsil_lit =
+	match sl with
+		| CList l -> String (String.concat "" (List.map (fun (Char x) -> String.make 1 x) l))
+		| LList l -> LList (List.map lit_list_to_string l)
+		| _ -> sl
+
+(* Reverse of the above, to return to String representation from internal representation *)
 let rec le_list_to_string (se : jsil_logic_expr) : jsil_logic_expr * bool =
 	let f s = 
 		let res, _ = le_list_to_string s in 
 		res in 
 	(match se with
 		| LVar _ -> (se, false)
-		| LLit (CList l) ->
-			let s = (String.concat "" (List.map (fun (Char x) -> String.make 1 x) l)) in
-			print_debug_petar (Printf.sprintf "Reconverting: %s" s);
-			(LLit (String s), false)
+		| LLit l -> (LLit (lit_list_to_string l), false)
 		| LBinOp (sel, CharCat, ser) -> (LBinOp ((f sel), StrCat, (f ser)), false)
 		| _ -> (se, true))
 
@@ -1365,9 +1376,9 @@ let simplify_symb_state
 	let pfs = get_pf symb_state in
 
 	(* String translation: Use internal representation as Chars *)
-	(* let pfs = DynArray.map (assertion_map le_string_to_list) pfs in
-	print_debug (Printf.sprintf "Pfs before simplification (with internal rep):%s" (print_pfs pfs));
-	let symb_state = symb_state_replace_pfs symb_state pfs in  *)
+	(* let pfs = DynArray.map (assertion_map le_string_to_list) pfs in *)
+	(* print_debug (Printf.sprintf "Pfs before simplification (with internal rep):%s" (print_pfs pfs)); *)
+	(* let symb_state = symb_state_replace_pfs symb_state pfs in  *)
 
 	(* print_debug (Printf.sprintf "Entering main loop:\n%s %s" 
 		(Symbolic_State_Print.string_of_shallow_symb_state symb_state) (Symbolic_State_Print.string_of_substitution subst)); *)
@@ -1577,9 +1588,9 @@ let simplify_symb_state
 		) subst;
 	
 	(* String translation: Move back from internal representation to Strings *)
-	(* let pfs = DynArray.map (assertion_map le_list_to_string) (get_pf !symb_state) in
-	print_debug (Printf.sprintf "Pfs after (no internal Strings should be present):%s" (print_pfs pfs));
-	let symb_state = symb_state_replace_pfs !symb_state pfs in *)
+	(* let pfs = DynArray.map (assertion_map le_list_to_string) (get_pf !symb_state) in *)
+	(* print_debug (Printf.sprintf "Pfs after (no internal Strings should be present):%s" (print_pfs pfs)); *)
+	(* let symb_state = ref (symb_state_replace_pfs !symb_state pfs) in *)
 
 	let end_time = Sys.time() in
 	JSIL_Syntax.update_statistics "simplify_symb_state" (end_time -. start_time);
