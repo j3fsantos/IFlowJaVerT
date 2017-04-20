@@ -443,9 +443,17 @@ module MyAssertion =
     let compare = Pervasives.compare
   end
 
+module MyFieldValueList = 
+	struct
+		type t = jsil_logic_expr * jsil_logic_expr
+		let compare = Pervasives.compare
+	end
+
 module SI = Set.Make(MyInt)
 module SN = Set.Make(MyNumber)
 module SA = Set.Make(MyAssertion)
+
+module SFV = Set.Make(MyFieldValueList)
 
 (* Satisfiability cache *)
 let check_sat_cache = Hashtbl.create 513 
