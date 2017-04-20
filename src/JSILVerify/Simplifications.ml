@@ -80,6 +80,7 @@ let rec find_me_Im_a_loc pfs lvar =
 			then Some loc 
 			else find_me_Im_a_loc rest lvar
 
+
 (**
 	Reduction of expressions: everything must be IMMUTABLE
 
@@ -1815,6 +1816,19 @@ let simplify_implication exists lpfs rpfs gamma =
 	let exists, lpfs, rpfs, gamma = simplify_existentials exists lpfs rpfs gamma in
 	clean_up_stuff exists lpfs rpfs;
 	exists, lpfs, rpfs, gamma (* DO THE SUBST *)
+
+
+
+let aux_find_me_Im_a_loc pfs gamma v = 
+	let _, subst = simplify_pfs_with_subst pfs gamma in
+	(match subst with
+	| None -> None
+	| Some subst -> 
+			let w = Hashtbl.find subst v in
+				(match w with
+				| ALoc w 
+				| LLit (Loc w) -> Some w
+				| _ -> None))
 
 
 (*

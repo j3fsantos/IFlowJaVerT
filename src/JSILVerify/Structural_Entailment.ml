@@ -411,7 +411,60 @@ let unify_symb_fv_lists (pat_fv_list : symbolic_field_value_list)
 	loop fv_list order_pat_list [] []
 
 
+(* ************************* *)
+(* EXPERIMENTAL EXPERIMENTAL *)
+(* ************************* *)
 
+let get_heap_locs (h : symbolic_heap) (subst : substitution option) : SS.t = 
+	(match subst with
+	| None -> LHeap.fold (fun k _ ac -> SS.add k ac) h SS.empty
+	| Some subst -> 
+			LHeap.fold (fun k _ ac -> 
+				let k = (try 
+					(let k = Hashtbl.find subst k in
+						(match k with
+						| ALoc k -> k
+						| _ -> print_debug (Printf.sprintf "Something strange: %s" (print_lexpr k)); raise (Failure "OOPS!"))
+						) with _ -> k) in 
+					SS.add k ac) h SS.empty)
+
+let unify_symb_heaps_experimental ph sh pf g s =
+	
+	(* Understand same locations *)
+	(* Understand same fields in locations *)
+	(* Rip them out of the pat heap, leaving the quotient heap *)
+	(* Then, check equality on those *)
+	
+	print_debug "********************";
+	print_debug "* EXPERIMENTAL USH *";
+	print_debug "********************";
+	print_debug (JSIL_Memory_Print.string_of_substitution s);
+	
+	(* Quotient heap is initially the symbolic heap *)
+	let qh = LHeap.copy sh in
+		
+	(* This is one iteration probably *)
+	
+	(* Substitute into the pattern heap completely *)
+	let ph = heap_substitution ph s true in
+	let pk = get_heap_locs ph None in
+	let sk = get_heap_locs sh None in
+		print_debug (Printf.sprintf "ph locs:\n\t%s" (String.concat ", " (SS.elements pk)));
+		print_debug (Printf.sprintf "oh locs:\n\t%s" (String.concat ", " (SS.elements sk)));
+		let inter = SS.inter pk sk in
+			print_debug (Printf.sprintf "loc intersection:\n\t%s" (String.concat ", " (SS.elements inter)));
+			
+			SS.iter (fun loc -> 
+				print_debug (Printf.sprintf "Location: %s" loc);
+				let pfv = LHeap.find ph loc in
+				let sfv = LHeap.find qh loc in
+					()
+			) inter;			
+			
+			print_debug "*************************";
+			print_debug "* DONE EXPERIMENTAL USH *";
+			print_debug "*************************";
+			0
 
 
 let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_formulae (* solver *) gamma (subst : substitution) : (symbolic_heap * (jsil_logic_assertion list) * symbolic_discharge_list) option =
@@ -421,6 +474,9 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 		(JSIL_Memory_Print.string_of_substitution subst)
 		(JSIL_Memory_Print.string_of_shallow_p_formulae pure_formulae false)
 		(JSIL_Memory_Print.string_of_gamma gamma));
+		
+	(* let _ = unify_symb_heaps_experimental pat_heap heap pure_formulae gamma subst in *)
+		
 	let start_time = Sys.time () in
 	let quotient_heap = LHeap.create 1021 in
 	let pat_heap_domain : string list = heap_domain pat_heap subst in
@@ -449,9 +505,6 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 		loop locs_to_visit [] in 	
 		
 	try
-		(* let pfs : jsil_logic_assertion list =
-			List.fold_left
-				(fun pfs pat_loc -> *)
 					
 		let rec loop locs_to_visit pfs discharges = 
 			(match locs_to_visit with 
@@ -474,10 +527,12 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 							| ALoc loc -> loc
 							| LVar v -> 
 								print_debug (Printf.sprintf "matched a pattern loc with the logical variable %s!\n" v);
-								let loc = try Simplifications.find_me_Im_a_loc (pfs_to_list pure_formulae) le with _ -> None in 
+
+								let loc = try Simplifications.aux_find_me_Im_a_loc pure_formulae gamma v with _ -> None in 
 								(match loc with 
 								| Some loc -> 
 									(print_debug (Printf.sprintf "find_me_Im_a_loc returned: %s!\n" loc);
+									Hashtbl.replace subst pat_loc (ALoc loc);
 									loc)
 								| None -> 
 									(print_debug "find_me_Im_a_loc failed!\n";
