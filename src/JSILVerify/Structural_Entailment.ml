@@ -515,9 +515,6 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 		loop locs_to_visit [] in 	
 		
 	try
-		(* let pfs : jsil_logic_assertion list =
-			List.fold_left
-				(fun pfs pat_loc -> *)
 					
 		let rec loop locs_to_visit pfs discharges = 
 			(match locs_to_visit with 
