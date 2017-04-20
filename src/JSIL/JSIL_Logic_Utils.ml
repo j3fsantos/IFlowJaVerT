@@ -818,13 +818,7 @@ let rec type_lexpr gamma le =
 	| LNone    -> (Some NoneType, true, [])
 	| LUnknown -> (None, false, [])) in
 	
-<<<<<<< HEAD
-	(* let (tp, b, _) = result in 
-	print_debug (Printf.sprintf "Result: (%s, %b)" (Option.map_default (fun x -> JSIL_Print.string_of_type x) "None" tp) b); *)
-=======
 	let (tp, b, _) = result in 
-	(*print_debug (Printf.sprintf "Result: (%s, %b)" (Option.map_default (fun x -> JSIL_Print.string_of_type x) "None" tp) b);*)
->>>>>>> 173418bdfa6965d39a04ac55c3cae6be917e5129
 	
 	result
 
