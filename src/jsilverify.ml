@@ -17,7 +17,7 @@ let arguments () =
             "-debug", Arg.Unit (fun () -> debug := true), "debug";
 			"-specs", Arg.String (fun f -> spec_file := f), "specification file";
 			(* *)
-			"-js", Arg.Unit (fun () -> JSIL_Symb_Interpreter.js := true), "js2jsil output"; 
+			"-js", Arg.Unit (fun () -> Symb_Interpreter.js := true), "js2jsil output"; 
 			(* *)
 			"-stats", Arg.Unit (fun () -> stats := true), "stats";
 			(* Flag to use symbolic execution file with bi-abduction *)
@@ -71,14 +71,14 @@ let symb_interpreter prog procs_to_verify spec_tbl which_pred norm_preds  =
 			print_endline ("\n********************** FINISHED BI-ABDUCTION SYMBOLIC EXECUTION ***************************\n") ;
 			print_endline ("\n**********************    STARTING NORMAL SYMBOLIC EXECUTION    ***************************\n") ;
 			let results_str, dot_graphs, complete_success = 
-					JSIL_Symb_Interpreter.sym_run_procs prog procs_to_verify new_spec_tbl which_pred norm_preds in
+					Symb_Interpreter.sym_run_procs prog procs_to_verify new_spec_tbl which_pred norm_preds in
 			print_endline ("\n**********************     ENDING NORMAL SYMBOLIC EXECUTION     ***************************\n") ;
 			(results_str ^ results_str_bi, dot_graphs, complete_success)
 		end
 	else
 		begin
 			let results_str, dot_graphs, complete_success =  
-					JSIL_Symb_Interpreter.sym_run_procs prog procs_to_verify spec_tbl which_pred norm_preds in
+					Symb_Interpreter.sym_run_procs prog procs_to_verify spec_tbl which_pred norm_preds in
 			(results_str, dot_graphs, complete_success)
 		end
 		
@@ -99,8 +99,8 @@ let process_file path =
 		let str_of_norm_pred = Logic_Predicates.string_of_normalised_predicates norm_preds in
 		print_debug (Printf.sprintf "\n%s\n" str_of_norm_pred);
 		print_debug "*** Prelude: Stage 4: Building the spec table.\n";
-		JSIL_Logic_Normalise.pre_normalise_invariants_prog norm_preds prog;
-		let spec_tbl = JSIL_Logic_Normalise.build_spec_tbl norm_preds prog ext_prog.onlyspecs in
+		Normaliser.pre_normalise_invariants_prog norm_preds prog;
+		let spec_tbl = Normaliser.build_spec_tbl norm_preds prog ext_prog.onlyspecs in
 		print_debug "*** Prelude: Stage 4: Finished building the spec table\n";
 		print_debug "*** Prelude: Stage 5: Add phantom procedures for only-specs.\n";
 		Hashtbl.iter

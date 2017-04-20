@@ -64,6 +64,23 @@ type jsil_lit =
 	| LList     of jsil_lit list (** Lists of JSIL literals *)
 	| CList     of jsil_lit list (** Lists of JSIL literals converted from String *)
 
+
+let evaluate_type_of lit =
+	match lit with
+	| Undefined    -> UndefinedType
+	| Null         -> NullType
+	| Empty        -> EmptyType
+	| Constant _   -> NumberType
+	| Bool _       -> BooleanType
+	| Num n        -> NumberType
+	| String _     -> StringType
+	| Char _       -> CharType
+	| Loc _        -> ObjectType
+	| Type _       -> TypeType
+	| LList _      -> ListType
+	(* TODO: Could this benefit from being something else? *)
+	| CList _      -> ListType
+
 (** {b JSIL unary operators}. JSIL features standard unary operators on numbers, booleans,
     lists, and strings, plus a variety of mathematical operators as well as a number of
     conversion operators between strings/numbers/integers. *)

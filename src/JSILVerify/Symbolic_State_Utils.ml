@@ -1,7 +1,6 @@
 open JSIL_Syntax
 open Symbolic_State
 open JSIL_Logic_Utils
-open Symbolic_State_Basics
 
 (*************************************)
 (** Substitution Functions          **)
@@ -142,10 +141,10 @@ let merge_heaps heap new_heap p_formulae (* solver *) gamma =
 	print_debug_petar (Printf.sprintf "-------------INSIDE MERGE HEAPS------------------------------------\n");
 	print_debug_petar (Printf.sprintf "-------------------------------------------------------------------\n");
 
-	print_debug_petar (Printf.sprintf "heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false));
-	print_debug_petar (Printf.sprintf "pat_heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap new_heap false));
-	print_debug_petar (Printf.sprintf "p_formulae: %s\n" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false));
-	print_debug_petar (Printf.sprintf "gamma: %s\n" (JSIL_Memory_Print.string_of_gamma gamma));
+	print_debug_petar (Printf.sprintf "heap: %s\n" (Symbolic_State_Print.string_of_shallow_symb_heap heap false));
+	print_debug_petar (Printf.sprintf "pat_heap: %s\n" (Symbolic_State_Print.string_of_shallow_symb_heap new_heap false));
+	print_debug_petar (Printf.sprintf "p_formulae: %s\n" (Symbolic_State_Print.string_of_shallow_p_formulae p_formulae false));
+	print_debug_petar (Printf.sprintf "gamma: %s\n" (Symbolic_State_Print.string_of_gamma gamma));
 
 	LHeap.iter
 		(fun loc (n_fv_list, n_def) ->

@@ -29,7 +29,7 @@ let rec normalise_lexpr store gamma subst le =
 	| PVar pvar ->
 		(try Hashtbl.find store pvar with
 		| _ ->
-			let new_lvar = Symbolic_State_Basics.extend_abs_store pvar store gamma in
+			let new_lvar = extend_abs_store pvar store gamma in
 			Hashtbl.add subst pvar new_lvar;
 			new_lvar)
 
@@ -54,7 +54,7 @@ let rec normalise_lexpr store gamma subst le =
 		let nle1 = f le1 in
 		(match nle1 with
 			| LUnknown -> raise (Failure "Illegal Logic Expression: TypeOf of Unknown")
-			| LLit llit -> LLit (Type (JSIL_Interpreter.evaluate_type_of llit))
+			| LLit llit -> LLit (Type (evaluate_type_of llit))
 			| LNone -> raise (Failure "Illegal Logic Expression: TypeOf of None")
 			| LVar lvar ->
 				(try LLit (Type (Hashtbl.find gamma lvar)) with _ -> LTypeOf (LVar lvar))
@@ -70,7 +70,7 @@ let rec normalise_lexpr store gamma subst le =
 					| LLit (LList list), LLit (Num n) when (Utils.is_int n) ->
 						let lit_n = (try List.nth list (int_of_float n) with _ ->
 							raise (Failure "List index out of bounds")) in
-						LLit (Type (JSIL_Interpreter.evaluate_type_of lit_n))
+						LLit (Type (evaluate_type_of lit_n))
 					| LLit (LList list), LLit (Num n) -> raise (Failure "Non-integer list index")
 					| LEList list, LLit (Num n) when (Utils.is_int n) ->
 						let le_n = (try List.nth list (int_of_float n) with _ ->
@@ -430,7 +430,7 @@ let rec init_gamma gamma a =
 				(fun (v, t) ->
 							match v with
 							| LLit lit ->
-									if ((JSIL_Interpreter.evaluate_type_of lit) = t)
+									if ((evaluate_type_of lit) = t)
 									then ()
 									else
 										(let msg = Printf.sprintf "Only vars or lvars in the typing environment, for the love of God. PUTTING: %s with type %s"
@@ -484,8 +484,8 @@ let init_preds a store gamma subst =
 					| LNone	| LVar _ | LLit _ | ALoc _ -> ((le :: new_les), new_equalities)
 					| PVar x ->
 						print_debug_petar (Printf.sprintf "Inside init_preds (%s)\n" (JSIL_Print.string_of_logic_assertion a false));
-						print_debug_petar (Printf.sprintf "Currrent Store: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_store store false));
-						print_debug_petar (Printf.sprintf "Current Substitution: %s\n" (JSIL_Memory_Print.string_of_substitution subst));
+						print_debug_petar (Printf.sprintf "Currrent Store: %s\n" (Symbolic_State_Print.string_of_shallow_symb_store store false));
+						print_debug_petar (Printf.sprintf "Current Substitution: %s\n" (Symbolic_State_Print.string_of_substitution subst));
 						print_debug_petar (Printf.sprintf "Program Variable %s in logical expression that was supposed to be normalised!!!\n" x);
 						raise (Failure "")
 					| _ ->
@@ -612,7 +612,7 @@ let process_empty_fields heap store p_formulae gamma subst a =
 		let ret =
 		    print_debug_petar (Printf.sprintf "le_loc: %s\nNasty fields:\n" (JSIL_Print.string_of_logic_expression le_loc false));
 			List.iter (fun s -> print_debug_petar (Printf.sprintf "\t%s\n" (JSIL_Print.string_of_logic_expression s false))) non_none_fields;
-			print_debug_petar (Printf.sprintf "Heap: %s\n" (JSIL_Memory_Print.string_of_shallow_symb_heap heap false));
+			print_debug_petar (Printf.sprintf "Heap: %s\n" (Symbolic_State_Print.string_of_shallow_symb_heap heap false));
 			LHeap.fold (fun cur_loc (cur_fv_list, cur_def) ac ->
 				match ac with
 				| Some _ -> ac
@@ -693,8 +693,8 @@ let normalise_postcondition a subst (lvars : SS.t) pre_gamma : symbolic_state * 
 	print_debug (Printf.sprintf "Post Existentially Quantified Vars: %s" a_vars_str);
 	print_debug (Printf.sprintf "Post spec vars: %s" lvars_str);
 	let symb_state, new_subst = normalise_assertion a in
-	print_debug (Printf.sprintf "Subst: %s" (JSIL_Memory_Print.string_of_substitution subst));
-	print_debug (Printf.sprintf "New subst: %s" (JSIL_Memory_Print.string_of_substitution new_subst));
+	print_debug (Printf.sprintf "Subst: %s" (Symbolic_State_Print.string_of_substitution subst));
+	print_debug (Printf.sprintf "New subst: %s" (Symbolic_State_Print.string_of_substitution new_subst));
 	let more_pfs = connecting_logical_vars_with_abstract_locations_in_post lvars subst new_subst in 
 	if (List.length more_pfs > 0) then (
 		print_debug "Connecting:\n";
@@ -753,8 +753,8 @@ let normalise_single_spec preds spec =
 			(fun pre ->
 						let pre_symb_state, (lvars, subst) = normalise_precondition pre in
 						print_debug (Printf.sprintf "I am going to check whether the following precondition makes sense:\n%s\n"
-							(JSIL_Memory_Print.string_of_shallow_symb_state pre_symb_state));
-						let heap_constraints = Symbolic_State_Functions.get_heap_well_formedness_constraints (get_heap pre_symb_state) in
+							(Symbolic_State_Print.string_of_shallow_symb_state pre_symb_state));
+						let heap_constraints = Symbolic_State_Utils.get_heap_well_formedness_constraints (get_heap pre_symb_state) in
 						print_debug_petar (Printf.sprintf "heap constraints:\n%s" (List.fold_left (fun ac x -> ac ^ "\t" ^ JSIL_Print.string_of_logic_assertion x false ^ "\n") "" heap_constraints));
 						let is_valid_precond = Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list pre_symb_state)) (get_gamma pre_symb_state) in
 						if (is_valid_precond)
@@ -765,10 +765,10 @@ let normalise_single_spec preds spec =
 										(fun (ac_posts, ac_posts_lvars) post ->
 											print_debug ("POST: Checking a postcondition.\n");
 											print_debug_petar (Printf.sprintf "%s" (JSIL_Print.string_of_logic_assertion post false));
-											print_debug_petar (Printf.sprintf "POST: Gamma from the pre: %s" (JSIL_Memory_Print.string_of_gamma (get_gamma pre_symb_state)));
+											print_debug_petar (Printf.sprintf "POST: Gamma from the pre: %s" (Symbolic_State_Print.string_of_gamma (get_gamma pre_symb_state)));
 											let post_symb_state, post_lvars = normalise_postcondition post subst lvars (get_gamma pre_symb_state) in
-											print_debug_petar (Printf.sprintf "POST: Gamma from the post: %s" (JSIL_Memory_Print.string_of_gamma (get_gamma post_symb_state)));
-											let heap_constraints = Symbolic_State_Functions.get_heap_well_formedness_constraints (get_heap post_symb_state) in
+											print_debug_petar (Printf.sprintf "POST: Gamma from the post: %s" (Symbolic_State_Print.string_of_gamma (get_gamma post_symb_state)));
+											let heap_constraints = Symbolic_State_Utils.get_heap_well_formedness_constraints (get_heap post_symb_state) in
 											print_debug_petar (Printf.sprintf "For the postcondition to make sense the following must be satisfiable:\n%s\n"
 												(JSIL_Print.str_of_assertion_list (heap_constraints @ (get_pf_list post_symb_state))));
 											if (Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list post_symb_state)) (get_gamma post_symb_state))
@@ -823,19 +823,19 @@ let build_spec_tbl preds prog onlyspecs =
 					match proc.spec with
 					| None -> ()
 					| Some spec ->
-							let msg = Printf.sprintf "\n*************************\n* Normalising the spec: *\n*************************\n\n%s" (JSIL_Memory_Print.string_of_jsil_spec spec) in
+							let msg = Printf.sprintf "\n*************************\n* Normalising the spec: *\n*************************\n\n%s" (Symbolic_State_Print.string_of_jsil_spec spec) in
 							print_debug (msg);
 							let n_spec = normalise_spec preds spec in
 							Hashtbl.replace spec_tbl n_spec.n_spec_name n_spec)
 		prog;
 	Hashtbl.iter
 		(fun spec_name spec ->
-			let msg = Printf.sprintf "\n*************************\n* Normalising the spec: *\n*************************\n\n%s" (JSIL_Memory_Print.string_of_jsil_spec spec) in
+			let msg = Printf.sprintf "\n*************************\n* Normalising the spec: *\n*************************\n\n%s" (Symbolic_State_Print.string_of_jsil_spec spec) in
 			print_debug (msg);
 			let n_spec = normalise_spec preds spec in
 			Hashtbl.replace spec_tbl n_spec.n_spec_name n_spec)
 		onlyspecs;
-	print_debug (Printf.sprintf "-----------------------------\n-----------------------------\nSpec Table:\n%s" (JSIL_Memory_Print.string_of_n_spec_table spec_tbl));
+	print_debug (Printf.sprintf "-----------------------------\n-----------------------------\nSpec Table:\n%s" (Symbolic_State_Print.string_of_n_spec_table spec_tbl));
 	spec_tbl
 
 
@@ -856,9 +856,9 @@ let normalise_predicate_definitions pred_defs : (string, Symbolic_State.n_jsil_l
 											pre_normalised_as in
 										let normalised_as = List.filter
 											(fun symb_state ->
-												let heap_constraints = Symbolic_State_Functions.get_heap_well_formedness_constraints (get_heap symb_state) in
-												print_debug_petar (Printf.sprintf "Symbolic state to check: %s\n%s\n" pred_name (JSIL_Memory_Print.string_of_shallow_symb_state symb_state));
-												((Symbolic_State_Basics.check_store (get_store symb_state) (get_gamma symb_state)) && (Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list symb_state)) (get_gamma symb_state))))
+												let heap_constraints = Symbolic_State_Utils.get_heap_well_formedness_constraints (get_heap symb_state) in
+												print_debug_petar (Printf.sprintf "Symbolic state to check: %s\n%s\n" pred_name (Symbolic_State_Print.string_of_shallow_symb_state symb_state));
+												((check_store (get_store symb_state) (get_gamma symb_state)) && (Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list symb_state)) (get_gamma symb_state))))
 											normalised_as in
 										(if ((List.length normalised_as) = 0)
 											then print_debug (Printf.sprintf "WARNING: One predicate definition does not make sense: %s\n" pred_name));

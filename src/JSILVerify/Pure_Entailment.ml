@@ -1,7 +1,6 @@
 open JSIL_Syntax
 open Symbolic_State
 open JSIL_Logic_Utils
-open Symbolic_State_Basics
 open Z3
 
 (* **********
@@ -937,7 +936,7 @@ let rec encode_assertion tr_ctx is_premise a : Expr.expr * (Expr.expr list) =
 			(Printf.printf "LLess Error: %s %s. gamma: %s\n"
 				(JSIL_Print.string_of_logic_expression le1 false)
 				(JSIL_Print.string_of_logic_expression le2 false)
-				(JSIL_Memory_Print.string_of_gamma gamma);
+				(Symbolic_State_Print.string_of_gamma gamma);
 			raise (Failure "Death.")))
 
 
@@ -961,7 +960,7 @@ let rec encode_assertion tr_ctx is_premise a : Expr.expr * (Expr.expr list) =
 			(Printf.printf "LLess Error: %s %s. gamma: %s\n"
 				(JSIL_Print.string_of_logic_expression le1 false)
 				(JSIL_Print.string_of_logic_expression le2 false)
-				(JSIL_Memory_Print.string_of_gamma gamma);
+				(Symbolic_State_Print.string_of_gamma gamma);
 			raise (Failure "Death.")))
 
 	| LStrLess (_, _)    ->
@@ -1071,14 +1070,14 @@ let check_satisfiability assertions gamma =
 	let start_time_fun = Sys.time () in
 	
 	print_debug_petar (Printf.sprintf "Non-simplified:\nPure formulae:\n%s\nGamma:\n%s\n\n"
-	(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list assertions) false)
-	(JSIL_Memory_Print.string_of_gamma gamma));
+	(Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list assertions) false)
+	(Symbolic_State_Print.string_of_gamma gamma));
 	
 	let new_assertions, new_gamma = Simplifications.simplify_pfs (DynArray.of_list assertions) gamma None in
 	
 	print_debug_petar (Printf.sprintf "Simplified:\nPure formulae:\n%s\nGamma:\n%s\n\n"
-			(JSIL_Memory_Print.string_of_shallow_p_formulae new_assertions false)
-			(JSIL_Memory_Print.string_of_gamma new_gamma));
+			(Symbolic_State_Print.string_of_shallow_p_formulae new_assertions false)
+			(Symbolic_State_Print.string_of_gamma new_gamma));
 			
 	let new_assertions = DynArray.to_list new_assertions in
 	let new_assertions_set = SA.of_list new_assertions in
@@ -1094,8 +1093,8 @@ let check_satisfiability assertions gamma =
 	else
 	begin
 		print_debug_petar (Printf.sprintf "Firing sat check:\nPFS:\n%s\nGamma:\n%s\n"
-			(JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list new_assertions) false)
-			(JSIL_Memory_Print.string_of_gamma new_gamma));
+			(Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list new_assertions) false)
+			(Symbolic_State_Print.string_of_gamma new_gamma));
 	
 		let solver = get_new_solver new_assertions new_gamma in
 		let start_time = Sys.time () in
@@ -1115,9 +1114,9 @@ let old_check_entailment existentials left_as right_as gamma =
 
 	print_debug_petar (Printf.sprintf "Preparing entailment check:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n"
 	   (String.concat ", " (SS.elements existentials))
-	   (JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list left_as) false)
-	   (JSIL_Memory_Print.string_of_shallow_p_formulae (DynArray.of_list right_as) false)
-	   (JSIL_Memory_Print.string_of_gamma gamma));
+	   (Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list left_as) false)
+	   (Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list right_as) false)
+	   (Symbolic_State_Print.string_of_gamma gamma));
 
 	let existentials, left_as, right_as, gamma =
 		Simplifications.simplify_implication existentials (DynArray.of_list left_as) (DynArray.of_list right_as) (copy_gamma gamma) in
@@ -1136,9 +1135,9 @@ let old_check_entailment existentials left_as right_as gamma =
 
 	(print_debug_petar (Printf.sprintf "Firing entailment check:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n"
 	   (String.concat ", " (SS.elements existentials))
-	   (JSIL_Memory_Print.string_of_shallow_p_formulae left_as false)
-	   (JSIL_Memory_Print.string_of_shallow_p_formulae right_as false)
-	   (JSIL_Memory_Print.string_of_gamma gamma));
+	   (Symbolic_State_Print.string_of_shallow_p_formulae left_as false)
+	   (Symbolic_State_Print.string_of_shallow_p_formulae right_as false)
+	   (Symbolic_State_Print.string_of_gamma gamma));
 
 	let left_as = DynArray.to_list left_as in
 	let right_as = DynArray.to_list right_as in

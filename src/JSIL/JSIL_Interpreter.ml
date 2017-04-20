@@ -52,19 +52,6 @@ let evaluate_constant c =
 			let (_, tl) = Float.modf (lctime *. 1e+3) in
 				Num (float_of_int (int_of_float tl))
 
-let evaluate_type_of lit =
-	match lit with
-	| Undefined -> UndefinedType
-	| Null -> NullType
-	| Empty -> EmptyType
-	| Constant _ -> NumberType
-	| Bool _ -> BooleanType
-	| Num n -> NumberType
-	| String _ -> StringType
-	| Loc _ -> ObjectType
-	| Type _ -> TypeType
-	| LList _ -> ListType
-
 (* Taken from jscert *)
 let to_int = fun n ->
 match classify_float n with
@@ -400,7 +387,7 @@ evaluate_expr (e : jsil_expr) store =
 		(match Utils.try_find store x with
 		| None ->
 			let err_msg = Printf.sprintf "Variable %s not found in the store" x in
-			let store_str = JSIL_Memory_Print.string_of_store store in
+			let store_str = Symbolic_State_Print.string_of_store store in
 			if (!verbose) then Printf.printf "The current store is: \n%s" store_str;
 			raise (Failure err_msg)
 		| Some v -> v)
@@ -628,7 +615,7 @@ let init_store params args =
 				loop rest_params []) in
 	loop params args;
 
-	let str_store = JSIL_Memory_Print.string_of_store new_store in
+	let str_store = Symbolic_State_Print.string_of_store new_store in
 	if (!verbose) then Printf.printf "I have just initialized the following store\n %s \n" str_store;
 	new_store
 

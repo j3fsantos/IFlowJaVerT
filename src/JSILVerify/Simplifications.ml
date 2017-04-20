@@ -2,7 +2,7 @@ open JSIL_Syntax
 open JSIL_Logic_Utils
 open Symbolic_State
 open JSIL_Print 
-open JSIL_Memory_Print
+open Symbolic_State_Print
 
 exception FoundIt of jsil_logic_expr
 
@@ -1015,7 +1015,7 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 						else pfs_false "Nasty type mismatch"
 				| LVar v, LLit lit -> 
 					let does_this_work = 
-						let tl = JSIL_Interpreter.evaluate_type_of lit in
+						let tl = evaluate_type_of lit in
 						(match Hashtbl.mem gamma v with
 						| true -> 
 							let t1 = Hashtbl.find gamma v in
@@ -1370,7 +1370,7 @@ let simplify_symb_state
 	let symb_state = symb_state_replace_pfs symb_state pfs in  *)
 
 	(* print_debug (Printf.sprintf "Entering main loop:\n%s %s" 
-		(JSIL_Memory_Print.string_of_shallow_symb_state symb_state) (JSIL_Memory_Print.string_of_substitution subst)); *)
+		(Symbolic_State_Print.string_of_shallow_symb_state symb_state) (Symbolic_State_Print.string_of_substitution subst)); *)
 	
 	let changes_made = ref true in
 	let symb_state   = ref symb_state in
@@ -1452,7 +1452,7 @@ let simplify_symb_state
 						(* Add to subst *)
 						if (Hashtbl.mem subst v) then 
 							raise (Failure (Printf.sprintf "Impossible variable in subst: %s\n%s"
-								v (JSIL_Memory_Print.string_of_substitution subst)));
+								v (Symbolic_State_Print.string_of_substitution subst)));
 						Hashtbl.iter (fun v' le' ->
 							let sb = Hashtbl.create 1 in
 								Hashtbl.add sb v le;
@@ -1568,7 +1568,7 @@ let simplify_symb_state
 	done;
 	
 	(* Bring back from the subst *)
-	print_debug_petar (Printf.sprintf "The subst is:\n%s" (JSIL_Memory_Print.string_of_substitution subst));
+	print_debug_petar (Printf.sprintf "The subst is:\n%s" (Symbolic_State_Print.string_of_substitution subst));
 	
 	Hashtbl.iter (fun var lexpr -> 
 		(match (not (SS.mem var !initial_existentials) && (save_all || SS.mem var vars_to_save)) with
@@ -1623,7 +1623,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	
 	let p_formulae, exists, _ = simplify_pfs_with_exists exists p_formulae rhs_gamma (Some None) in
 	
-	(* print_debug (Printf.sprintf "PFS: %s" (JSIL_Memory_Print.string_of_shallow_p_formulae p_formulae false)); *)
+	(* print_debug (Printf.sprintf "PFS: %s" (Symbolic_State_Print.string_of_shallow_p_formulae p_formulae false)); *)
 
 	let pfs_false msg =
 		print_debug (msg ^ " Pure formulae false.\n");
@@ -1686,7 +1686,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 					print_debug_petar (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\n\nPure formulae:\n%s\n\nGamma:\n%s\n\n"
 			 		(String.concat ", " (SS.elements exists))
 			 		(print_pfs p_formulae)
-			 		(JSIL_Memory_Print.string_of_gamma gamma)); 
+			 		(Symbolic_State_Print.string_of_gamma gamma)); 
 		 		 	exists, lpfs, p_formulae, gamma))
 	 | pf :: rest ->
 	   (match pf with
@@ -1711,7 +1711,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 			    | false -> 
 					(match le with
 						 | LLit lit ->
-							 let ltype = JSIL_Interpreter.evaluate_type_of lit in
+							 let ltype = evaluate_type_of lit in
 							 Hashtbl.replace gamma v ltype;
 							 delete_substitute_proceed exists p_formulae gamma v n le
 						 | ALoc _ ->
@@ -1737,7 +1737,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 					let vtype = Hashtbl.find gamma v in
 					(match le with
 					 | LLit lit ->
-					     let ltype = JSIL_Interpreter.evaluate_type_of lit in
+					     let ltype = evaluate_type_of lit in
 						 (match (vtype = ltype) with
 						  | false -> pfs_false "Mistypes."
 						  | true -> delete_substitute_proceed exists p_formulae gamma v n le
@@ -1809,9 +1809,9 @@ let simplify_implication exists lpfs rpfs gamma =
 	let lpfs, rpfs, exists, gamma = simplify_pfs_with_exists_and_others exists lpfs rpfs gamma in
 	(* print_debug (Printf.sprintf "In between:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n" 
    (String.concat ", " (SS.elements exists))
-   (JSIL_Memory_Print.string_of_shallow_p_formulae lpfs false)
-   (JSIL_Memory_Print.string_of_shallow_p_formulae rpfs false)
-   (JSIL_Memory_Print.string_of_gamma gamma)); *)
+   (Symbolic_State_Print.string_of_shallow_p_formulae lpfs false)
+   (Symbolic_State_Print.string_of_shallow_p_formulae rpfs false)
+   (Symbolic_State_Print.string_of_gamma gamma)); *)
 	sanitise_pfs_no_store gamma rpfs;
 	let exists, lpfs, rpfs, gamma = simplify_existentials exists lpfs rpfs gamma in
 	clean_up_stuff exists lpfs rpfs;
@@ -1829,6 +1829,23 @@ let aux_find_me_Im_a_loc pfs gamma v =
 				| ALoc w 
 				| LLit (Loc w) -> Some w
 				| _ -> None))
+
+
+
+(** This function is dramatically incomplete **)
+let resolve_location lvar pfs =
+	let rec loop pfs =
+		match pfs with
+		| [] -> None
+		| LEq (LVar cur_lvar, ALoc loc) :: rest
+		| LEq (ALoc loc, LVar cur_lvar) :: rest  ->
+			if (cur_lvar = lvar) then Some (ALoc loc) else loop rest
+		| LEq (LVar cur_lvar, LLit (Loc loc)) :: rest
+		| LEq (LLit (Loc loc), LVar cur_lvar) :: rest ->
+			if (cur_lvar = lvar) then Some (LLit (Loc loc)) else loop rest
+		| _ :: rest -> loop rest in
+	loop pfs
+
 
 
 (*

@@ -1,8 +1,7 @@
 open JSIL_Syntax
 open Symbolic_State
 open JSIL_Logic_Utils
-open Symbolic_State_Basics
-open Symbolic_State_Functions
+open Symbolic_State_Utils
 
 let update_abs_heap (heap : symbolic_heap) (anti_heap: symbolic_heap) loc e_field e_val p_formulae gamma =
 	let fv_list, default_val = try LHeap.find heap loc with _ -> [], LUnknown in

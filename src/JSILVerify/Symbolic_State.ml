@@ -578,6 +578,41 @@ let get_symb_state_vars_no_gamma catch_pvars symb_state =
 	let v_pr : SS.t = get_preds_vars catch_pvars preds in
 		SS.union v_h (SS.union v_s (SS.union v_pf v_pr))
 
+let extend_abs_store x store gamma =
+	let new_l_var_name = fresh_lvar () in
+	let new_l_var = LVar new_l_var_name in
+	(try
+		let x_type = Hashtbl.find gamma x in
+		Hashtbl.add gamma new_l_var_name x_type
+	with _ -> ());
+	Hashtbl.add store x new_l_var;
+	new_l_var
+
+let check_store store gamma =
+
+	let placeholder pvar le target_type =
+		if (Hashtbl.mem gamma pvar) then
+		begin
+		  let _type = Hashtbl.find gamma pvar in
+		  	(target_type = _type)
+		end
+		else
+		begin
+		   Hashtbl.add gamma pvar target_type;
+		   true
+		end in
+
+	Hashtbl.fold
+		(fun pvar le ac -> ac &&
+			(match le with
+			 | LNone -> placeholder pvar le NoneType
+			 | ALoc _ -> placeholder pvar le ObjectType
+			 | LLit lit -> placeholder pvar le (evaluate_type_of lit)
+			 | _ -> true
+			)
+		) store true
+
+
 (****************************************)
 (** Normalised Specifications          **)
 (****************************************)

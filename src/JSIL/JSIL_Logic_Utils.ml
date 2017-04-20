@@ -43,22 +43,6 @@ let tbl_intersection_false_true tbl_left tbl_right =
 		[]
 
 
-let evaluate_type_of lit =
-	match lit with
-	| Undefined    -> UndefinedType
-	| Null         -> NullType
-	| Empty        -> EmptyType
-	| Constant _   -> NumberType
-	| Bool _       -> BooleanType
-	| Num n        -> NumberType
-	| String _     -> StringType
-	| Char _       -> CharType
-	| Loc _        -> ObjectType
-	| Type _       -> TypeType
-	| LList _      -> ListType
-	(* TODO: Could this benefit from being something else? *)
-	| CList _      -> ListType
-
 
 let small_tbl_size = 31
 
@@ -643,6 +627,7 @@ let compose_partial_substitutions subst1 subst2 =
 		subst2;
 	subst
 
+
 let copy_substitution subst = Hashtbl.copy subst
 
 let extend_subst subst var v =
@@ -917,6 +902,22 @@ let reverse_type_lexpr gamma le le_type : typing_environment option =
 	if (ret)
 		then Some new_gamma
 		else None
+
+
+let is_sensible_subst subst gamma_source gamma_target =
+  try
+	Hashtbl.iter
+		(fun var lexpr ->
+			let lexpr_type, _, _ = type_lexpr gamma_target lexpr in
+			let var_type = gamma_get_type gamma_source var in
+			(match lexpr_type, var_type with
+			| Some le_type, Some v_type ->
+			  if (le_type = v_type) then () else raise (Failure (Printf.sprintf "Type mismatch: %s %s"
+			  	(JSIL_Print.string_of_type le_type) (JSIL_Print.string_of_type v_type)))
+			| _, _ -> ()))
+		subst;
+	true
+	with (Failure msg) -> print_endline (Printf.sprintf "%s" msg); false
 
 
 (** Turns a logical expression into an assertions.
