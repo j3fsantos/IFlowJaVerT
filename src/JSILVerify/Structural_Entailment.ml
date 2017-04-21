@@ -1514,8 +1514,4 @@ let unify_symb_state_against_invariant symb_state inv_symb_state lvars =
 		extend_symb_state_with_pfs symb_state (DynArray.of_list subst_pfs); 
 		let new_symb_state = Simplifications.simplify_symbolic_state symb_state in 
 		Some new_symb_state 
-	| _ -> None  
-
-
-
-
+	| _ -> None 

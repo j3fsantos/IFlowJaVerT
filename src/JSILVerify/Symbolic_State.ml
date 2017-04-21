@@ -47,6 +47,13 @@ let fv_list_substitution fv_list subst partial =
 			(s_le_field, s_le_val))
 		fv_list
 
+let selective_fv_list_substitution fv_list subst partial =
+	List.map
+		(fun (le_field, le_val) ->
+			let s_le_val = JSIL_Logic_Utils.lexpr_substitution le_val subst partial in
+			(le_field, s_le_val))
+		fv_list
+
 (*************************************)
 (** Heap functions                  **)
 (*************************************)
@@ -131,6 +138,26 @@ let heap_substitution_in_place (heap : symbolic_heap) (subst : substitution) =
   				| _ ->
   					raise (Failure "Heap substitution failed miserably!!!")) in
   		let s_fv_list = fv_list_substitution fv_list subst true in
+  		let s_def = JSIL_Logic_Utils.lexpr_substitution def subst true in
+  		LHeap.replace heap s_loc (s_fv_list, s_def))
+  	heap
+		
+let selective_heap_substitution_in_place (heap : symbolic_heap) (subst : substitution) =
+  LHeap.iter
+  	(fun loc (fv_list, def) ->
+  		let s_loc =
+  			(try Hashtbl.find subst loc
+  				with _ ->
+  					if (is_abs_loc_name loc)
+  						then ALoc loc
+  						else (LLit (Loc loc))) in
+  		let s_loc =
+  			(match s_loc with
+  				| LLit (Loc loc) -> loc
+  				| ALoc loc -> loc
+  				| _ ->
+  					raise (Failure "Heap substitution failed miserably!!!")) in
+  		let s_fv_list = selective_fv_list_substitution fv_list subst true in
   		let s_def = JSIL_Logic_Utils.lexpr_substitution def subst true in
   		LHeap.replace heap s_loc (s_fv_list, s_def))
   	heap
@@ -534,7 +561,6 @@ let symb_state_replace_pfs symb_state new_pfs =
 	let heap, store, _, gamma, preds (*, solver *) = symb_state in
 	(heap, store, new_pfs, gamma, preds (*, solver *))
 
-
 let remove_concrete_values_from_the_store symb_state = 
 	Hashtbl.filter_map_inplace (fun x le -> 
 		match le with 
@@ -556,10 +582,17 @@ let symb_state_substitution (symb_state : symbolic_state) subst partial =
 
 let symb_state_substitution_in_place_no_gamma (symb_state : symbolic_state) subst =
 	let heap, store, pf, gamma, preds = symb_state in
-	heap_substitution_in_place heap subst;
-	store_substitution store gamma subst; 
-	pf_substitution_in_place pf subst;
-	preds_substitution_in_place preds subst
+		heap_substitution_in_place heap subst;
+		store_substitution store gamma subst; 
+		pf_substitution_in_place pf subst;
+		preds_substitution_in_place preds subst
+
+let selective_symb_state_substitution_in_place_no_gamma (symb_state : symbolic_state) subst =
+	let heap, store, pf, gamma, preds = symb_state in
+		pf_substitution_in_place pf subst;
+		store_substitution store gamma subst; 
+		preds_substitution_in_place preds subst;
+		selective_heap_substitution_in_place heap subst
 
 let get_symb_state_vars catch_pvars symb_state =
 	let heap, store, pfs, gamma, preds = symb_state in

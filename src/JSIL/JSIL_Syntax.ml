@@ -427,7 +427,7 @@ let macro_table     : (string, jsil_logic_macro) Hashtbl.t = Hashtbl.create 511
 
 (* STATISTICS *)
 
-let im_petar = ref false
+let im_petar = ref true
 let debug = ref false
 
 let print_debug msg =

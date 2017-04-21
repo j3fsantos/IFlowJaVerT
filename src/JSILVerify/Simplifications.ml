@@ -1149,23 +1149,11 @@ let simplify how x =
 let simplify_with_subst how x = 
 	let result, _, subst, _ = aggressively_simplify [] (DynArray.create ()) how (SS.empty) x in result, subst
 
-let simplify_with_pfs how pfs = aggressively_simplify [] pfs how
-
 let aggressively_simplify_pfs pfs gamma how =
 	(* let solver = ref None in *)
 		let _, _, pfs, _, _ = simplify how (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create () (*, solver*)) in
 			pfs
-
-let aggressively_simplify_pfs_with_exists (exists : SS.t) (pfs : jsil_logic_assertion DynArray.t) gamma (how : bool) =
-	let ss = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create ()) in
-	let (_, _, pfs, _, _), _, _, exists = aggressively_simplify [] (DynArray.create ()) how exists ss in
-		pfs, exists
-
-let aggressively_simplify_pfs_with_others pfs opfs gamma how =
-	(* let solver = ref None in *)
-		let (_, _, pfs, gamma, _), opfs, _, _ = aggressively_simplify [] opfs how (SS.empty) (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create () (*, solver*)) in
-			pfs, opfs, gamma
-	
+				
 (* *********************** *
  * ULTIMATE SIMPLIFICATION *
  * *********************** *)
@@ -1378,7 +1366,7 @@ let simplify_symb_state
 	Hashtbl.filter_map_inplace (fun v t ->
 		(match (save_all || SS.mem v (SS.union lvars_inter (SS.union vars_to_save !initial_existentials))) with
 		| true  -> Some t
-		| false -> None)) gamma;
+		| false -> print_debug (Printf.sprintf "Cutting %s : %s from gamma" v (JSIL_Print.string_of_type t)); None)) gamma;
 		
 	(* Setup the type indexes *)
 	let types = Array.make type_length 0 in
@@ -1474,8 +1462,18 @@ let simplify_symb_state
 						(* Substitute *)
 						let temp_subst = Hashtbl.create 1 in
 						Hashtbl.add temp_subst v le;
-						symb_state_substitution_in_place_no_gamma !symb_state temp_subst;
+						
+						let simpl_fun = (match (not (SS.mem v !initial_existentials) && (save_all || SS.mem v vars_to_save)) with
+							| false -> symb_state_substitution_in_place_no_gamma
+							| true -> selective_symb_state_substitution_in_place_no_gamma
+							) in
+						
+						simpl_fun !symb_state temp_subst;
 						pf_substitution_in_place !others temp_subst;
+						
+						(*
+						symb_state_substitution_in_place_no_gamma !symb_state temp_subst;
+						pf_substitution_in_place !others temp_subst; *)
 						
 						(* Add to subst *)
 						if (Hashtbl.mem subst v) then 
@@ -1488,6 +1486,27 @@ let simplify_symb_state
 									Hashtbl.replace subst v' sa) subst;
 						Hashtbl.replace subst v le;
 						
+						(* Understand gamma if subst is another LVar *)
+						(match le with
+						| LVar v' ->
+							(match (Hashtbl.mem gamma v) with
+							| false -> ()
+							| true -> 
+								let t = Hashtbl.find gamma v in
+									(match (Hashtbl.mem gamma v') with
+									| false -> 
+											let it = type_index t in
+											types.(it) <- types.(it) + 1;
+											Hashtbl.add gamma v' t
+									| true -> 
+										let t' = Hashtbl.find gamma v' in
+										(match (t = t') with
+										| false -> pfs_ok := false; msg := "Horrific type mismatch."
+										| true -> ()))
+							)
+						| _ -> ());
+								
+							
 						(* Remove from gamma *)
 						(match (save_all || SS.mem v (SS.union vars_to_save !exists)) with
 	      		| true -> ()
@@ -1620,7 +1639,15 @@ let simplify_symb_state
 		then (!symb_state, subst, !others, !exists)
 		else (pfs_false subst !others !exists !symb_state !msg)
 	
-(* Wrapper for only pfs *)
+
+let simplify_ss symb_state vars_to_save = 
+	let symb_state, _, _, _ = simplify_symb_state vars_to_save (DynArray.create()) (SS.empty) symb_state in
+	symb_state
+	
+let simplify_ss_with_subst symb_state vars_to_save = 
+	let symb_state, subst, _, _ = simplify_symb_state vars_to_save (DynArray.create()) (SS.empty) symb_state in
+	symb_state, subst
+	
 let simplify_pfs pfs gamma vars_to_save =
 	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create ()) in
 	let (_, _, pfs, gamma, _), _, _, _ = simplify_symb_state vars_to_save (DynArray.create()) (SS.empty) fake_symb_state in
