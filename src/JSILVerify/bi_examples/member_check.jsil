@@ -18,6 +18,16 @@ proc test1 (x) {
    rlab:   skip
 } with { ret: z, rlab; };
 
+(** Member Check - Field Unknown **)
+spec test6 (x)
+   [[ ((y,"foo") -> "bar") * ((x,"date") -> #x)]]
+   [[ emp ]]
+   normal
+proc test6 (x) {
+           z := hasField(x, "date");
+   rlab:   skip
+} with { ret: z, rlab; };
+
 (** Member Check - Field Missing **)
 spec test2 (x)
    [[ ((y,"foo") -> "bar") * ((x,"town") -> "Montreuil")]]
