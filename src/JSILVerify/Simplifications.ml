@@ -323,7 +323,19 @@ let rec reduce_assertion store gamma pfs a =
 						then LFalse 
 						else default e1 e2 re1 re2
 					else default e1 e2 re1 re2
-					
+
+			| LLit (CList cl), LVar x
+			| LVar x, LLit (CList cl) ->
+				(* Same String hack as above, except over the internal String representation *)
+				if (List.length cl <> 0 && List.hd cl = Char '@')
+					then
+						let pfs = DynArray.to_list pfs in
+						if ((List.mem (LNot (LEq (LStrNth (LVar x, LLit (Num 0.)), LLit (CList ([Char '@']))))) pfs)  ||
+							 (List.mem (LNot (LEq (LLit (CList ([Char '@'])), LStrNth (LVar x, LLit (Num 0.))))) pfs))
+						then LFalse 
+						else default e1 e2 re1 re2
+					else default e1 e2 re1 re2
+
 			| LLit (Bool true), LBinOp (e1, LessThan, e2) -> LLess (e1, e2)
 			| LLit (Bool false), LBinOp (e1, LessThan, e2) -> LNot (LLess (e1, e2))
 
@@ -1377,7 +1389,7 @@ let simplify_symb_state
 
 	(* String translation: Use internal representation as Chars *)
 	(* let pfs = DynArray.map (assertion_map le_string_to_list) pfs in *)
-	(* print_debug (Printf.sprintf "Pfs before simplification (with internal rep):%s" (print_pfs pfs)); *)
+	print_debug (Printf.sprintf "Pfs before simplification (with internal rep):%s" (print_pfs pfs));
 	(* let symb_state = symb_state_replace_pfs symb_state pfs in  *)
 
 	(* print_debug (Printf.sprintf "Entering main loop:\n%s %s" 
@@ -1403,7 +1415,8 @@ let simplify_symb_state
 		sanitise_pfs store gamma pfs;
 		
 		let n = ref 0 in
-		while (!pfs_ok && !n < DynArray.length pfs) do 
+		while (!pfs_ok && !n < DynArray.length pfs) do
+			print_debug_petar (Printf.sprintf "Loop-dee-loop iteration %d with pfs: %s" !n (print_pfs pfs));
 			let pf = DynArray.get pfs !n in
 			(match pf with
 
@@ -1519,7 +1532,7 @@ let simplify_symb_state
 					| None -> pfs_ok := false; msg := "List error"	
 					(* No error, but no progress *)
 					| Some false -> (match subst with
-					  | [ ] 
+						| [ ] 
 						| [ _ ] -> n := !n + 1 
 						| _ -> 
 							print_debug_petar (Printf.sprintf "No changes made, but length = %d" (List.length subst));
@@ -1542,7 +1555,7 @@ let simplify_symb_state
 					| None -> pfs_ok := false; msg := "String error"
 					(* No error, but no progress *)
 					| Some false -> (match subst with
-					  | [ ] 
+						| [ ] 
 						| [ _ ] -> n := !n + 1 
 						| _ -> 
 							print_debug_petar (Printf.sprintf "No changes made, but length = %d" (List.length subst));
@@ -1589,7 +1602,7 @@ let simplify_symb_state
 	
 	(* String translation: Move back from internal representation to Strings *)
 	(* let pfs = DynArray.map (assertion_map le_list_to_string) (get_pf !symb_state) in *)
-	(* print_debug (Printf.sprintf "Pfs after (no internal Strings should be present):%s" (print_pfs pfs)); *)
+	print_debug (Printf.sprintf "Pfs after (no internal Strings should be present):%s" (print_pfs pfs));
 	(* let symb_state = ref (symb_state_replace_pfs !symb_state pfs) in *)
 
 	let end_time = Sys.time() in
