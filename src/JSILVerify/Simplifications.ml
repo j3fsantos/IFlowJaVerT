@@ -1416,7 +1416,7 @@ let simplify_symb_state
 		
 		let n = ref 0 in
 		while (!pfs_ok && !n < DynArray.length pfs) do
-			print_debug_petar (Printf.sprintf "Loop-dee-loop iteration %d with pfs: %s" !n (print_pfs pfs));
+			(* print_debug_petar (Printf.sprintf "Loop-dee-loop iteration %d with pfs: %s" !n (print_pfs pfs)); *)
 			let pf = DynArray.get pfs !n in
 			(match pf with
 
