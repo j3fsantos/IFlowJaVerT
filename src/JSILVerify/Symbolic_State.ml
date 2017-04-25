@@ -272,6 +272,9 @@ let store_vars catch_pvars store =
 	Hashtbl.fold (fun _ e ac -> 
 		let v_e = JSIL_Logic_Utils.get_expr_vars catch_pvars e in
 		SS.union ac v_e) store SS.empty
+		
+let store_pvars store : SS.t = 
+	Hashtbl.fold (fun v _ ac -> SS.add v ac) store SS.empty
 
 let store_merge_left (store_l : symbolic_store) (store_r : symbolic_store) =
 	Hashtbl.iter
@@ -583,14 +586,14 @@ let symb_state_substitution (symb_state : symbolic_state) subst partial =
 let symb_state_substitution_in_place_no_gamma (symb_state : symbolic_state) subst =
 	let heap, store, pf, gamma, preds = symb_state in
 		heap_substitution_in_place heap subst;
-		store_substitution store gamma subst; 
+		store_substitution_in_place store gamma subst; 
 		pf_substitution_in_place pf subst;
 		preds_substitution_in_place preds subst
 
 let selective_symb_state_substitution_in_place_no_gamma (symb_state : symbolic_state) subst =
 	let heap, store, pf, gamma, preds = symb_state in
 		pf_substitution_in_place pf subst;
-		store_substitution store gamma subst; 
+		store_substitution_in_place store gamma subst; 
 		preds_substitution_in_place preds subst;
 		selective_heap_substitution_in_place heap subst
 
@@ -603,13 +606,14 @@ let get_symb_state_vars catch_pvars symb_state =
 	let v_pr : SS.t = get_preds_vars catch_pvars preds in
 		SS.union v_h (SS.union v_s (SS.union v_pf (SS.union v_g v_pr)))
 
-let get_symb_state_vars_no_gamma catch_pvars symb_state =
+let get_symb_state_vars_no_gamma catch_pvars symb_state : SS.t =
 	let heap, store, pfs, gamma, preds = symb_state in
 	let v_h  : SS.t = heap_vars catch_pvars heap in
 	let v_s  : SS.t = store_vars catch_pvars store in
+	let v_sp : SS.t = store_pvars store in
 	let v_pf : SS.t = get_pf_vars catch_pvars pfs in
 	let v_pr : SS.t = get_preds_vars catch_pvars preds in
-		SS.union v_h (SS.union v_s (SS.union v_pf v_pr))
+		SS.union v_h (SS.union v_s (SS.union v_sp (SS.union v_pf v_pr)))
 
 let extend_abs_store x store gamma =
 	let new_l_var_name = fresh_lvar () in

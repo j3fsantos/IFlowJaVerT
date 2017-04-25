@@ -641,6 +641,9 @@ let get_gamma_vars catch_pvars gamma : SS.t =
 			| false -> ac))
 		gamma SS.empty
 
+let get_gamma_all_vars gamma : SS.t = 
+	Hashtbl.fold (fun var _ ac -> SS.add var ac) gamma SS.empty
+
 let get_gamma_var_type_pairs gamma =
 	Hashtbl.fold
 		(fun var t ac_vars -> ((var, t) :: ac_vars))

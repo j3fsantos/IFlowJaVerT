@@ -236,8 +236,8 @@ let init_pure_assignments a store gamma subst =
 		done;
 
 		(* Prints *)
-		print_debug_petar (Printf.sprintf "NPA: Pure formulae: %s" (JSIL_Memory_Print.string_of_shallow_p_formulae non_store_pure_assertions_array false));
-		print_debug_petar (JSIL_Memory_Print.string_of_substitution subst);
+		print_debug_petar (Printf.sprintf "NPA: Pure formulae: %s" (Symbolic_State_Print.string_of_shallow_p_formulae non_store_pure_assertions_array false));
+		print_debug_petar (Symbolic_State_Print.string_of_substitution subst);
 
 		(* let non_store_pure_assertions_array = Simplifications.aggressively_simplify_pfs non_store_pure_assertions_array gamma false in *)
 		let non_store_pure_assertions_array, _ = Simplifications.simplify_pfs non_store_pure_assertions_array gamma (Some None) in

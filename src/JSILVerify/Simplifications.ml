@@ -1278,7 +1278,7 @@ let simplify_symb_state
 
 	let start_time = Sys.time () in
 	print_time_debug "simplify_symb_state:";
-
+	
 	let initial_existentials = ref existentials in
 
 	let vars_to_save, save_all = 
@@ -1286,6 +1286,11 @@ let simplify_symb_state
 		| Some (Some v) -> v, false 
 		| Some None     -> SS.empty, true
 		| None          -> SS.empty, false) in
+
+	print_debug_petar (Printf.sprintf "Vars_to_save: %s" (String.concat ", " (SS.elements vars_to_save)));
+	print_debug_petar (Printf.sprintf "Save_all: %b" save_all);
+	print_debug_petar (Printf.sprintf "Existentials: %s" (String.concat ", " (SS.elements existentials)));
+	
 
 	(* Pure formulae false *)
 	let pfs_false subst others exists symb_state msg =
@@ -1360,8 +1365,9 @@ let simplify_symb_state
 	 * and are also not in vars_to_save
 	 * and are also not in others
 	 *)
+	print_debug (Printf.sprintf "SS: %s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state));
 	let lvars = SS.union (get_symb_state_vars_no_gamma false symb_state) (get_pf_vars false other_pfs) in
-	let lvars_gamma = get_gamma_vars false gamma in		
+	let lvars_gamma = get_gamma_all_vars gamma in		
 	let lvars_inter = SS.inter lvars lvars_gamma in
 	Hashtbl.filter_map_inplace (fun v t ->
 		(match (save_all || SS.mem v (SS.union lvars_inter (SS.union vars_to_save !initial_existentials))) with
@@ -1515,6 +1521,7 @@ let simplify_symb_state
 	    						let t = Hashtbl.find gamma v in
 	    						let it = type_index t in
 	    						types.(it) <- types.(it) - 1;
+									print_debug_petar (Printf.sprintf "Removing from gamma: %s" v);
 	    						Hashtbl.remove gamma v 
 	    					done);
 						
