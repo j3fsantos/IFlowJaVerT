@@ -80,6 +80,51 @@ let rec find_me_Im_a_loc pfs lvar =
 			then Some loc 
 			else find_me_Im_a_loc rest lvar
 
+(**
+	Internal String representation conversions
+*)
+let internal_string_explode s =
+	let rec exp i l =
+		if i < 0 then l else exp (i - 1) ((Char s.[i]) :: l) in
+	exp (String.length s - 1) []
+
+let rec lit_string_to_list (sl : jsil_lit) : jsil_lit =
+	match sl with
+		| LList l ->
+			LList (List.map lit_string_to_list l)
+		| String s -> CList (internal_string_explode s)
+		| _ -> sl
+
+(* To go from String to an internal representation, requires the extra bool return to indicate whether to recurse *)
+let rec le_string_to_list (se : jsil_logic_expr) : jsil_logic_expr * bool =
+	let f s = 
+		let res, _ = le_string_to_list s in 
+		res in 
+	(match se with
+		| LLit l -> (LLit (lit_string_to_list l), false)
+		| LBinOp (sel, StrCat, ser) ->
+			print_debug_petar (Printf.sprintf "BinOp case StrCat"); 
+			(LBinOp ((f sel), CharCat, (f ser)), false)
+		| LVar _ -> (se, false)
+		| _ -> (se, true))
+
+let rec lit_list_to_string (sl : jsil_lit) : jsil_lit =
+	match sl with
+		| CList l -> String (String.concat "" (List.map (fun (Char x) -> String.make 1 x) l))
+		| LList l -> LList (List.map lit_list_to_string l)
+		| _ -> sl
+
+(* Reverse of the above, to return to String representation from internal representation *)
+let rec le_list_to_string (se : jsil_logic_expr) : jsil_logic_expr * bool =
+	let f s = 
+		let res, _ = le_list_to_string s in 
+		res in 
+	(match se with
+		| LVar _ -> (se, false)
+		| LLit l -> (LLit (lit_list_to_string l), false)
+		| LBinOp (sel, CharCat, ser) -> (LBinOp ((f sel), StrCat, (f ser)), false)
+		| _ -> (se, true))
+
 
 (**
 	Reduction of expressions: everything must be IMMUTABLE
@@ -286,6 +331,8 @@ let rec reduce_assertion store gamma pfs a =
 			then a' else f a'
 
 	| LEq (e1, e2) ->
+		let e1 = logic_expression_map le_list_to_string e1 in
+		let e2 = logic_expression_map le_list_to_string e2 in
 		let re1 = fe e1 in
 		let re2 = fe e2 in
 		(* Warning - NaNs, infinities, this and that *)
@@ -435,8 +482,8 @@ let reduce_pfs_in_place store gamma pfs =
 		DynArray.set pfs i rpf) pfs
 	
 let sanitise_pfs store gamma pfs =
-    reduce_pfs_in_place store gamma pfs;
-
+	reduce_pfs_in_place store gamma pfs;
+	
 	let length = DynArray.length pfs in
 	let dindex = DynArray.init length (fun x -> false) in
 	let clc = ref 0 in
@@ -749,48 +796,6 @@ let arrange_strings (se1 : jsil_logic_expr) (se2 : jsil_logic_expr) : (jsil_logi
 		| LBinOp (_, CharCons, _), LBinOp (_, CharCat, _)
 		| LBinOp (_, CharCat, _), LBinOp (_, CharCat, _) -> se1, se2
 		| _, _ -> se2, se1
-
-let internal_string_explode s =
-	let rec exp i l =
-		if i < 0 then l else exp (i - 1) ((Char s.[i]) :: l) in
-	exp (String.length s - 1) []
-
-let rec lit_string_to_list (sl : jsil_lit) : jsil_lit =
-	match sl with
-		| LList l ->
-			LList (List.map lit_string_to_list l)
-		| String s -> CList (internal_string_explode s)
-		| _ -> sl
-
-(* To go from String to an internal representation, requires the extra bool return to indicate whether to recurse *)
-let rec le_string_to_list (se : jsil_logic_expr) : jsil_logic_expr * bool =
-	let f s = 
-		let res, _ = le_string_to_list s in 
-		res in 
-	(match se with
-		| LLit l -> (LLit (lit_string_to_list l), false)
-		| LBinOp (sel, StrCat, ser) ->
-			print_debug_petar (Printf.sprintf "BinOp case StrCat"); 
-			(LBinOp ((f sel), CharCat, (f ser)), false)
-		| LVar _ -> (se, false)
-		| _ -> (se, true))
-
-let rec lit_list_to_string (sl : jsil_lit) : jsil_lit =
-	match sl with
-		| CList l -> String (String.concat "" (List.map (fun (Char x) -> String.make 1 x) l))
-		| LList l -> LList (List.map lit_list_to_string l)
-		| _ -> sl
-
-(* Reverse of the above, to return to String representation from internal representation *)
-let rec le_list_to_string (se : jsil_logic_expr) : jsil_logic_expr * bool =
-	let f s = 
-		let res, _ = le_list_to_string s in 
-		res in 
-	(match se with
-		| LVar _ -> (se, false)
-		| LLit l -> (LLit (lit_list_to_string l), false)
-		| LBinOp (sel, CharCat, ser) -> (LBinOp ((f sel), StrCat, (f ser)), false)
-		| _ -> (se, true))
 
 (* Extracting elements from an internal string *)
 let rec get_elements_from_string (se : jsil_logic_expr) : jsil_logic_expr list =
@@ -1305,35 +1310,35 @@ let simplify_symb_state
 	(* Are there any singleton types in gamma? *)
 	let simplify_singleton_types others exists symb_state subst types =		 
 		let gamma = get_gamma symb_state in
-  	if (types.(0) + types.(1) + types.(2) + types.(3) > 0) then
-    	(Hashtbl.iter (fun v t -> 
-    		let lexpr = (match t with
-    			| UndefinedType -> Some (LLit Undefined)
-    			| NullType -> Some (LLit Null)
-    			| EmptyType -> Some (LLit Empty)
-    			| NoneType -> Some LNone
-    			| _ -> None) in
-    		(match lexpr with
-    		| Some lexpr -> 
+		if (types.(0) + types.(1) + types.(2) + types.(3) > 0) then
+			(Hashtbl.iter (fun v t -> 
+				let lexpr = (match t with
+					| UndefinedType -> Some (LLit Undefined)
+					| NullType -> Some (LLit Null)
+					| EmptyType -> Some (LLit Empty)
+					| NoneType -> Some LNone
+					| _ -> None) in
+				(match lexpr with
+				| Some lexpr -> 
 						(* print_debug (Printf.sprintf "Singleton: (%s, %s)" v (JSIL_Print.string_of_type t)); *)
 						Hashtbl.add subst v lexpr;
-    		| None -> ())) gamma;
-    	(* Substitute *)
-    	let symb_state = symb_state_substitution symb_state subst true in
-    	let others = pf_substitution others subst true in
+				| None -> ())) gamma;
+			(* Substitute *)
+			let symb_state = symb_state_substitution symb_state subst true in
+			let others = pf_substitution others subst true in
 			let exists = Hashtbl.fold (fun v _ ac -> SS.remove v ac) subst exists in
 			(* and remove from gamma, if allowed *)
-    	Hashtbl.iter (fun v _ ->
-    		match (save_all || SS.mem v (SS.union vars_to_save !initial_existentials)) with
-    		| true -> ()
-    		| false -> 
-  					while (Hashtbl.mem gamma v) do 
-  						let t = Hashtbl.find gamma v in
-  						let it = type_index t in
-  						types.(it) <- types.(it) - 1;
-  						Hashtbl.remove gamma v 
-  					done
-    		) subst;
+			Hashtbl.iter (fun v _ ->
+				match (save_all || SS.mem v (SS.union vars_to_save !initial_existentials)) with
+				| true -> ()
+				| false -> 
+						while (Hashtbl.mem gamma v) do 
+							let t = Hashtbl.find gamma v in
+							let it = type_index t in
+							types.(it) <- types.(it) - 1;
+							Hashtbl.remove gamma v 
+						done
+				) subst;
 				symb_state, subst, others, exists) 
 			else
 				symb_state, subst, others, exists in
@@ -1388,9 +1393,9 @@ let simplify_symb_state
 	let pfs = get_pf symb_state in
 
 	(* String translation: Use internal representation as Chars *)
-	(* let pfs = DynArray.map (assertion_map le_string_to_list) pfs in *)
+	let pfs = DynArray.map (assertion_map le_string_to_list) pfs in
 	print_debug (Printf.sprintf "Pfs before simplification (with internal rep):%s" (print_pfs pfs));
-	(* let symb_state = symb_state_replace_pfs symb_state pfs in  *)
+	let symb_state = symb_state_replace_pfs symb_state pfs in 
 
 	(* print_debug (Printf.sprintf "Entering main loop:\n%s %s" 
 		(Symbolic_State_Print.string_of_shallow_symb_state symb_state) (Symbolic_State_Print.string_of_substitution subst)); *)
@@ -1416,7 +1421,6 @@ let simplify_symb_state
 		
 		let n = ref 0 in
 		while (!pfs_ok && !n < DynArray.length pfs) do
-			(* print_debug_petar (Printf.sprintf "Loop-dee-loop iteration %d with pfs: %s" !n (print_pfs pfs)); *)
 			let pf = DynArray.get pfs !n in
 			(match pf with
 
@@ -1591,9 +1595,12 @@ let simplify_symb_state
 		done;
 	done;
 	
+	(* Convert substitutions back to string format *)
+	Hashtbl.filter_map_inplace (fun var lexpr -> Some (logic_expression_map le_list_to_string lexpr)) subst;
+
 	(* Bring back from the subst *)
 	print_debug_petar (Printf.sprintf "The subst is:\n%s" (Symbolic_State_Print.string_of_substitution subst));
-	
+
 	Hashtbl.iter (fun var lexpr -> 
 		(match (not (SS.mem var !initial_existentials) && (save_all || SS.mem var vars_to_save)) with
 		| false -> ()
@@ -1601,9 +1608,9 @@ let simplify_symb_state
 		) subst;
 	
 	(* String translation: Move back from internal representation to Strings *)
-	(* let pfs = DynArray.map (assertion_map le_list_to_string) (get_pf !symb_state) in *)
+	let pfs = DynArray.map (assertion_map le_list_to_string) (get_pf !symb_state) in
 	print_debug (Printf.sprintf "Pfs after (no internal Strings should be present):%s" (print_pfs pfs));
-	(* let symb_state = ref (symb_state_replace_pfs !symb_state pfs) in *)
+	let symb_state = ref (symb_state_replace_pfs !symb_state pfs) in
 
 	let end_time = Sys.time() in
 	JSIL_Syntax.update_statistics "simplify_symb_state" (end_time -. start_time);
@@ -1615,24 +1622,24 @@ let simplify_symb_state
 	
 (* Wrapper for only pfs *)
 let simplify_pfs pfs gamma vars_to_save =
-  let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create ()) in
-  let (_, _, pfs, gamma, _), _, _, _ = simplify_symb_state vars_to_save (DynArray.create()) (SS.empty) fake_symb_state in
-  pfs, gamma
+	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create ()) in
+	let (_, _, pfs, gamma, _), _, _, _ = simplify_symb_state vars_to_save (DynArray.create()) (SS.empty) fake_symb_state in
+	pfs, gamma
 
 let simplify_pfs_with_subst pfs gamma =
-  let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create ()) in
-  let (_, _, pfs, gamma, _), subst, _, _ = simplify_symb_state None (DynArray.create()) (SS.empty) fake_symb_state in
-  if (DynArray.to_list pfs = [ LFalse ]) then (pfs, None) else (pfs, Some subst)
+	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create ()) in
+	let (_, _, pfs, gamma, _), subst, _, _ = simplify_symb_state None (DynArray.create()) (SS.empty) fake_symb_state in
+	if (DynArray.to_list pfs = [ LFalse ]) then (pfs, None) else (pfs, Some subst)
 
 let simplify_pfs_with_exists exists lpfs gamma vars_to_save = 
 	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (copy_gamma gamma), DynArray.create ()) in
-  let (_, _, lpfs, gamma, _), _, _, exists = simplify_symb_state vars_to_save (DynArray.create()) exists fake_symb_state in
-  lpfs, exists, gamma
+	let (_, _, lpfs, gamma, _), _, _, exists = simplify_symb_state vars_to_save (DynArray.create()) exists fake_symb_state in
+	lpfs, exists, gamma
 
 let simplify_pfs_with_exists_and_others exists lpfs rpfs gamma = 
 	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (copy_gamma gamma), DynArray.create ()) in
-  let (_, _, lpfs, gamma, _), _, rpfs, exists = simplify_symb_state None rpfs exists fake_symb_state in
-  lpfs, rpfs, exists, gamma
+	let (_, _, lpfs, gamma, _), _, rpfs, exists = simplify_symb_state None rpfs exists fake_symb_state in
+	lpfs, rpfs, exists, gamma
 
 (* ************************** *
  * IMPLICATION SIMPLIFICATION *
@@ -1832,10 +1839,10 @@ let clean_up_stuff exists left right =
 let simplify_implication exists lpfs rpfs gamma =
 	let lpfs, rpfs, exists, gamma = simplify_pfs_with_exists_and_others exists lpfs rpfs gamma in
 	(* print_debug (Printf.sprintf "In between:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n" 
-   (String.concat ", " (SS.elements exists))
-   (Symbolic_State_Print.string_of_shallow_p_formulae lpfs false)
-   (Symbolic_State_Print.string_of_shallow_p_formulae rpfs false)
-   (Symbolic_State_Print.string_of_gamma gamma)); *)
+	(String.concat ", " (SS.elements exists))
+	(Symbolic_State_Print.string_of_shallow_p_formulae lpfs false)
+	(Symbolic_State_Print.string_of_shallow_p_formulae rpfs false)
+	(Symbolic_State_Print.string_of_gamma gamma)); *)
 	sanitise_pfs_no_store gamma rpfs;
 	let exists, lpfs, rpfs, gamma = simplify_existentials exists lpfs rpfs gamma in
 	clean_up_stuff exists lpfs rpfs;
@@ -2343,39 +2350,3 @@ let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : bool optio
 	)
 
 *)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-	
-	
-	
-	
-	
