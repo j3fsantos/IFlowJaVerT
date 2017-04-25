@@ -577,11 +577,10 @@ let rec fold_predicate pred_name pred_defs symb_state params args spec_vars exis
 						missing_pred_name
 						(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) missing_pred_args)));
 					let new_symb_state = update_symb_state_after_folding false symb_state quotient_heap quotient_preds pf_discharges new_gamma pred_name args in
-					let new_symb_state, new_subst = Simplifications.simplify_with_subst true new_symb_state in 
+					let new_symb_state, new_subst = Simplifications.simplify_ss_with_subst new_symb_state (Some None) in 
 					
-					print_debug (Printf.sprintf "New subst: %d \n%s" (List.length new_subst) (String.concat "\n" (List.map (fun (x, le) -> Printf.sprintf "   (%s, %s)" x (JSIL_Print.string_of_logic_expression le false)) new_subst)));
+					print_debug (Printf.sprintf "New subst: %s" (Symbolic_State_Print.string_of_substitution new_subst)); 
 					
-					let new_subst = JSIL_Logic_Utils.init_substitution3 new_subst in 
 					(** WARNING WARNING WARNING - EXPERIMENTAL START *)
 					(* Filtering existentials that still depend on existentials *)
 					Hashtbl.iter (fun v le -> 
@@ -846,7 +845,7 @@ and
 symb_evaluate_logic_cmds s_prog (l_cmds : jsil_logic_command list) (symb_states_with_spec_vars : (symbolic_state * SS.t) list) subst : (symbolic_state * SS.t) list =
 	let symb_states_with_spec_vars = 
 		let symb_states, spec_vars = List.split symb_states_with_spec_vars in
-		let symb_states = List.map (fun s -> Simplifications.simplify false s) symb_states in
+		let symb_states = List.map2 (fun s sv -> Simplifications.simplify_ss s (Some (Some sv))) symb_states spec_vars in
 			List.combine symb_states spec_vars in
 	(match l_cmds with
 	| [] -> symb_states_with_spec_vars
@@ -946,7 +945,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 				let ret_type, _, _ =	type_lexpr (get_gamma symb_state) ret_le in
 				store_put (get_store symb_state) x ret_le;
 				update_gamma (get_gamma symb_state) x ret_type;
-				let symb_state = Simplifications.simplify_symbolic_state symb_state in 
+				let symb_state = Simplifications.simplify_ss symb_state (Some (Some spec.n_lvars)) in 
 				let new_search_info = update_vis_tbl search_info (copy_vis_tbl search_info.vis_tbl) in
 				(match ret_flag, j with
 				| Normal, _ ->
@@ -969,7 +968,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 		update_gamma (get_gamma symb_state) x te;
 		symb_evaluate_next_cmd s_prog proc spec search_info symb_state i (i+1) in
 
-	let symb_state = Simplifications.simplify false symb_state in
+	let symb_state = Simplifications.simplify_ss symb_state (Some (Some spec.n_lvars)) in
 	print_symb_state_and_cmd symb_state;
 	let metadata, cmd = get_proc_cmd proc i in
 	mark_as_visited search_info i;

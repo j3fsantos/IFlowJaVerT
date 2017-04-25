@@ -1215,17 +1215,16 @@ let rec understand_types exists pf_list gamma : bool =
 					| _, _ -> f rest gamma))
 		| _ -> f rest gamma))
 	
-(*************************************************)
-(** Symbolic state simplification  - top level  **)
-(*************************************************)
 
-let simplify_symbolic_state symb_state = 
+(* 
+let check_types symb_state = 
 	let pfs = get_pf_list symb_state in 
 	let gamma = get_gamma symb_state in 
 	let types_ok = understand_types SS.empty (List.map (fun x -> (x, "l")) pfs) gamma in
 	match types_ok with
 		| true -> symb_state
 		| false -> raise (Failure "INCONSISTENT STATE") 
+*)
 
 (* ******************* *
  * MAIN SIMPLIFICATION *
@@ -1457,6 +1456,24 @@ let simplify_symb_state
 				(* Variable and something else *)
 				| LVar v, le 
 				| le, LVar v ->			
+					
+					(* Understand, if there are two lvars, which should be substituted *)
+					let v, le = (match le with
+					| LVar w -> 
+							let sv = SS.mem v vars_to_save in
+							let sw = SS.mem w vars_to_save in
+							(match sv, sw with
+							| true, false -> w, LVar v
+							| true, true 
+							| false, true -> v, le
+							| false, false -> 
+								let fv = String.get v 0 in
+								let fw = String.get w 0 in
+								(match (fv = '#'), (fw = '#') with
+								| true, false -> w, LVar v
+								| _, _ -> v, le))
+					| _ -> v, le) in
+					
 					let lvars_le = get_logic_expression_lvars le in
 					(match (SS.mem v lvars_le) with
 					| true -> n := !n + 1

@@ -133,9 +133,7 @@ Node.prototype.insert = function (n) {
 		/** @fold Queue(#n, #np, #npri, #length + 1) */
 		return n
 	} else {
-
-		/**
-			@unfold Queue(#this_next, #np, #max_pri_next, #length - 1) */
+		/** @unfold Queue(#this_next, #np, #max_pri_next, #length - 1) */
 		var next = this.next;
 		if (next == null) {
 				this.next = n
