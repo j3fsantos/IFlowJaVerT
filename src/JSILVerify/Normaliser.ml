@@ -239,7 +239,6 @@ let init_pure_assignments a store gamma subst =
 		print_debug_petar (Printf.sprintf "NPA: Pure formulae: %s" (Symbolic_State_Print.string_of_shallow_p_formulae non_store_pure_assertions_array false));
 		print_debug_petar (Symbolic_State_Print.string_of_substitution subst);
 
-		(* let non_store_pure_assertions_array = Simplifications.aggressively_simplify_pfs non_store_pure_assertions_array gamma false in *)
 		let non_store_pure_assertions_array, _ = Simplifications.simplify_pfs non_store_pure_assertions_array gamma (Some None) in
 		non_store_pure_assertions_array in
 
@@ -812,8 +811,7 @@ let normalise_spec preds spec =
 	let normalised_pre_post_list =
 		List.map (fun (x : jsil_n_single_spec) ->
 			let pre = Simplifications.simplify_ss x.n_pre (Some (Some x.n_lvars)) in
-			(* let post = List.map2 (fun y lvars -> Simplifications.simplify_ss y (Some (Some (SS.union x.n_lvars lvars)))) x.n_post x.n_post_lvars in *)
-			let post = List.map (fun y -> Simplifications.simplify false y) x.n_post in 
+			let post = List.map2 (fun y lvars -> Simplifications.simplify_ss y (Some (Some (SS.union x.n_lvars lvars)))) x.n_post x.n_post_lvars in
 			{ x with n_pre = pre; n_post = post }
 		) normalised_pre_post_list in
 	{

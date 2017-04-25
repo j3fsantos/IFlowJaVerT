@@ -30,11 +30,9 @@ let must_be_equal le_pat le pi gamma subst =
 	| false -> 
 		(match le_pat, le with
 		| LLit pat_lit, LLit lit -> pat_lit = lit
-		| LLit pat_lit, _ ->
-			Pure_Entailment.is_equal le_pat le pi (* solver *) gamma
 		| LNone, LEList _
 		| LEList _, LNone -> false
-		| _, _ -> false)) in
+		| _, _ -> Pure_Entailment.is_equal le_pat le pi (* solver *) gamma)) in
 	result
 
 

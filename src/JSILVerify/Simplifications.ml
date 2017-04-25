@@ -1142,17 +1142,11 @@ let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_p
 	let pf_list = DynArray.to_list p_formulae in
 		go_through_pfs pf_list 0
 		
-
 let simplify how x =
 	let (result : symbolic_state), _, _, _ = aggressively_simplify [] (DynArray.create ()) how (SS.empty) x in result
 
 let simplify_with_subst how x = 
 	let result, _, subst, _ = aggressively_simplify [] (DynArray.create ()) how (SS.empty) x in result, subst
-
-let aggressively_simplify_pfs pfs gamma how =
-	(* let solver = ref None in *)
-		let _, _, pfs, _, _ = simplify how (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create () (*, solver*)) in
-			pfs
 				
 (* *********************** *
  * ULTIMATE SIMPLIFICATION *
@@ -1408,6 +1402,8 @@ let simplify_symb_state
 		
 		let (heap, store, pfs, gamma, preds) = !symb_state in
 		
+		Hashtbl.filter_map_inplace (fun pvar le -> Some (reduce_expression_no_store gamma pfs le)) store;
+		
 		arrange_pfs vars_to_save save_all !exists pfs;
 		
 		sanitise_pfs store gamma pfs;
@@ -1460,9 +1456,7 @@ let simplify_symb_state
 					(* Understand, if there are two lvars, which should be substituted *)
 					let v, le = (match le with
 					| LVar w -> 
-							let sv = SS.mem v vars_to_save in
-							let sw = SS.mem w vars_to_save in
-							(match sv, sw with
+							(match (SS.mem v vars_to_save), (SS.mem w vars_to_save) with
 							| true, false -> w, LVar v
 							| true, true 
 							| false, true -> v, le
