@@ -414,15 +414,11 @@
 	@rec false
 
 	@pre (
-		scope(allocG   : #allocG)   * fun_obj(allocG,   #allocG,   #allocG_proto) *
-		scope(deallocG : #deallocG) * fun_obj(deallocG, #deallocG, #deallocG_proto) *
-		InitialDOMHeap() * (element == #id) * (grove == #l_gList) * types(#en : $$object_type) *
+		InitialDOMHeap() * (element == #id) * types(#en : $$object_type) *
 		DocumentNode($l_document, #l_elem, #elem, #l_gList, #gList) *
 		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList1)
 	)
 	@post (
-		scope(allocG   : #allocG)   * fun_obj(allocG,   #allocG,   #allocG_proto) *
-		scope(deallocG : #deallocG) * fun_obj(deallocG, #deallocG, #deallocG_proto) *
 		InitialDOMHeap() * (ret == $$t) * 
 		DocumentNode($l_document, #d_l_elem, #d_elem, #d_l_g, #d_g_post) *
 		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList_post) *
@@ -432,10 +428,9 @@
 function createNewAttribute(grove, element){
 	var d = element.ownerDocument();
 	var e = d.createElement("test");
-	var a = allocG(grove, 0);
+	/* @callspec allocG(#zeta, #l_gList, 0) */
 	/* @invariant 
-		scope(a : #zeta) * scope(e : #e2) * 
-		ECell(#zeta, #name2, #e2, #l_aList2, #aList2, #l_cList2, #cList2) */
+		scope(e : #e2) * ECell(#zeta, #name2, #e2, #l_aList2, #aList2, #l_cList2, #cList2) */
 	/* @fold complete(#cList2) */
 	var n = element.appendChild(e);
 	deallocG(a);

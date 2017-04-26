@@ -281,7 +281,10 @@ let rec string_of_lcmd lcmd =
 	match lcmd with
 	| Fold a -> "fold " ^ (string_of_logic_assertion a false)
 	| Unfold a -> "unfold " ^ (string_of_logic_assertion a false)
-	| CallSpec a -> "callspec " ^ (string_of_logic_assertion a false)
+	| CallSpec (spec_name, ret_var, lparams) -> 
+		let lparams_str = String.concat ", " (List.map (fun e -> string_of_logic_expression e false) lparams) in
+		let lparams_str = if (not (lparams_str = "")) then (", " ^ lparams_str) else "" in 
+		"callspec " ^  spec_name ^ "(" ^ ret_var ^ lparams_str ^ ")"
 	| RecUnfold pred_name -> "unfold* " ^ pred_name
 	| LogicIf (le, then_lcmds, else_lcmds) ->
 		let le_str = string_of_logic_expression le false in

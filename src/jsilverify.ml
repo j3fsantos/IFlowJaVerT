@@ -1,4 +1,5 @@
 open JSIL_Syntax
+open Pure_Entailment_alt
 
 let file = ref ""
 let spec_file = ref ""
@@ -15,6 +16,9 @@ let arguments () =
 			"-file", Arg.String(fun f -> file := f), "file to run";
 			"-o", Arg.String(fun f -> output_folder := f), "output folder";
             "-debug", Arg.Unit (fun () -> debug := true), "debug";
+            (**)
+            "-newencoding", Arg.Unit (fun () -> newencoding := true), "new encoding";
+            
 			"-specs", Arg.String (fun f -> spec_file := f), "specification file";
 			(* *)
 			"-js", Arg.Unit (fun () -> Symb_Interpreter.js := true), "js2jsil output"; 

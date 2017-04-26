@@ -175,7 +175,14 @@ let rec js2jsil_logic_cmds logic_cmds =
 	| [] -> []
 	| (Parser_syntax.Fold, (JSLPred (s, les))) :: rest -> (Fold (LPred (s, List.map fe les))) :: (js2jsil_logic_cmds rest)
 	| (Parser_syntax.Unfold, (JSLPred (s, les))) :: rest -> (Unfold (LPred (s, List.map fe les))) :: (js2jsil_logic_cmds rest) 
-	| (Parser_syntax.CallSpec, (JSLPred (s, les))) :: rest -> (CallSpec (LPred (s, List.map fe les))) :: (js2jsil_logic_cmds rest) 
+	| (Parser_syntax.CallSpec, (JSLPred (s, les))) :: rest -> 
+		match les with 
+		| (JSLVar ret_var) :: rest_les -> 
+			(*Printf.printf "I am translating a callspec for function %s with retvar %s" s ret_var;*)
+			if (is_lvar_name ret_var)
+			 	then (CallSpec (s, ret_var, List.map fe rest_les)) :: (js2jsil_logic_cmds rest)
+			 	else raise (Failure "DEATH: js2jsil_logic_cmds")
+		| _ ->  raise (Failure "DEATH: js2jsil_logic_cmds")
 	| _ -> raise (Failure "DEATH: No such logic command")
 
 

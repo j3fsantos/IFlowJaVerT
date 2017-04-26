@@ -22,7 +22,8 @@ let update_prev_annot prev_annot cur_annot =
 		(annot.annot_type == Parser_syntax.Fold) || 
 		(annot.annot_type == Parser_syntax.Unfold) ||
 		(annot.annot_type == Parser_syntax.RecUnfold) ||
-		(annot.annot_type == Parser_syntax.CallSpec) in
+		(annot.annot_type == Parser_syntax.CallSpec) ||
+    (annot.annot_type == Parser_syntax.Assert) in
 
 	let rec annot_has_specs annots =
 		match annots with
@@ -124,7 +125,7 @@ let get_fold_unfold_invariant_annots annots =
 		match annots with 
 		| [] -> fold_unfold_cmds, invariant 
 		| annot :: rest -> 
-			if ((annot.annot_type == Parser_syntax.Fold) || (annot.annot_type == Parser_syntax.Unfold)) then (
+			if ((annot.annot_type == Parser_syntax.Fold) || (annot.annot_type == Parser_syntax.Unfold) || (annot.annot_type == Parser_syntax.Assert)) then (
 				let logic_cmd_str = annot.annot_formula in 
 				let logic_cmd_pred = JSIL_Utils.js_assertion_of_string logic_cmd_str in
 				loop rest ((annot.annot_type, logic_cmd_pred) :: fold_unfold_cmds) invariant

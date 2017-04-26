@@ -483,7 +483,11 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 	
 	let rec pick_loc_that_exists_in_both_heaps locs traversed_locs  = 
 		match locs with 
-		| [] -> raise (Failure "DEATH: no reasonable way to continue unifying.")
+		| [] -> 
+			let msg = Printf.sprintf "DEATH. pit_pat_loc failed to pit next. Remaining locs: %s."
+				(String.concat ", " traversed_locs) in 
+			print_debug (msg);
+			raise (Failure msg)
 		| loc :: rest -> 
 			if (LHeap.mem heap loc) 
 				then 

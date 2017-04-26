@@ -141,6 +141,33 @@ let rec get_assertion_literals a =
 	| LPred (_, les) -> List.concat (List.map fe les)
 	| LEmptyFields (e, les) -> (fe e) @ List.concat (List.map fe les)
 
+
+let rec get_logic_expression_lists le =
+	let fe = get_logic_expression_lists in
+	match le with
+	| LLit (LList ls) -> [ (LEList (List.map (fun x -> LLit x) ls)) ]
+	| LLit _ | LNone | LVar _ | ALoc _ | PVar _ | LUnknown -> []
+	| LBinOp (le1, LstCons, le2) -> le :: ((fe le1) @ (fe le2))
+	| LBinOp (le1, LstCat, le2)  -> le :: ((fe le1) @ (fe le2))
+	| LBinOp (le1, _, le2) | LLstNth (le1, le2) | LStrNth (le1, le2)  -> (fe le1) @ (fe le2)
+	| LUnOp (_, le) | LTypeOf le -> fe le
+ 	| LEList les -> (LEList les) :: (List.concat (List.map fe les))
+
+let rec get_assertion_lists a =
+	let f = get_assertion_lists in
+	let fe = get_logic_expression_lists in
+	match a with
+	| LTrue | LFalse | LEmp | LTypes _ -> []
+	| LNot a -> f a
+	| LAnd (a1, a2) | LOr (a1, a2) | LStar (a1, a2) -> (f a1) @ (f a2)
+	| LPointsTo (le1, le2, le3) -> (fe le1) @ (fe le2) @ (fe le3)
+	| LEq (le1, le2) | LLess (le1, le2) | LLessEq (le1, le2) | LStrLess (le1, le2) -> (fe le1) @ (fe le2)
+	| LPred (_, les) -> List.concat (List.map fe les)
+	| LEmptyFields (e, les) -> (fe e) @ List.concat (List.map fe les)
+
+
+
+
 let get_assertion_string_number_literals a =
 	let lits = get_assertion_literals a in
 	let rec loop lits_to_go (strings_so_far, numbers_so_far) =

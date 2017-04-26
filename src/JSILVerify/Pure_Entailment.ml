@@ -1066,7 +1066,8 @@ let string_of_solver solver =
 	let exprs = Solver.get_assertions solver in
 	string_of_z3_expr_list exprs
 
-let check_satisfiability assertions gamma =
+
+let check_satisfiability_aux_aux assertions gamma =
 	let start_time_fun = Sys.time () in
 	
 	print_debug_petar (Printf.sprintf "Non-simplified:\nPure formulae:\n%s\nGamma:\n%s\n\n"
@@ -1107,8 +1108,16 @@ let check_satisfiability assertions gamma =
 		ret
 	end
 
+
+let check_satisfiability assertions gamma =
+	if (!newencoding)
+		then Pure_Entailment_alt.check_satisfiability assertions gamma
+		else check_satisfiability_aux_aux assertions gamma
+
+
 (* right_as must be satisfiable *)
-let old_check_entailment existentials left_as right_as gamma =
+
+let old_check_entailment_aux_aux existentials left_as right_as gamma =
 
 	print_time_debug "check_entailment:";	
 
@@ -1193,6 +1202,13 @@ let old_check_entailment existentials left_as right_as gamma =
 			ret in
 
 	try check_entailment_aux () with Failure msg -> Printf.printf "Horrible failure\n"; false) (*, None *)
+
+let old_check_entailment existentials left_as right_as gamma =
+	if (!newencoding)
+		then Pure_Entailment_alt.check_entailment existentials left_as right_as gamma 
+		else old_check_entailment_aux_aux existentials left_as right_as gamma 
+
+
 
 let is_equal_on_lexprs e1 e2 pfs : bool option = 
 (match (e1 = e2) with

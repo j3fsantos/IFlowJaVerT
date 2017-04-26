@@ -583,8 +583,13 @@ logic_cmd_target:
 (* unfold* x *)
 	| RECUNFOLD; v = VAR
 	  { RecUnfold v }
-	| CALLSPEC; assertion = assertion_target
-	  { CallSpec assertion }
+(* callspec spec_name(ret_var, args) *)
+	| CALLSPEC; spec_name = VAR; LBRACE; params = separated_list(COMMA, lexpr_target); RBRACE; 
+	  { 
+	  	match params with 
+	  	| (LVar ret_var) :: rest_params ->  CallSpec (spec_name, ret_var, rest_params) 
+	  	| _ -> raise (Failure "DEATH: Parser: CALLSPEC ")
+	 }
 (* if(le) { lcmd* } else { lcmd* } *)
 	| LIF; LBRACE; le=lexpr_target; RBRACE; LTHEN; CLBRACKET;
 			then_lcmds = separated_list(SCOLON, logic_cmd_target);

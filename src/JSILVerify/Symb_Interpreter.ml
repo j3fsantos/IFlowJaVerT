@@ -802,9 +802,34 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 		let params, pred_defs, args = get_pred_data pred_name les in
 		[ recursive_unfold pred_name pred_defs symb_state params spec_vars ]
 
-  | CallSpec a ->
+  	| CallSpec (spec_name, ret_var, l_args) ->
 		print_debug "CALLSPEC CALLSPEC CALLSPEC";
-		[ symb_state ]
+		let proc_specs =
+			(try
+				Hashtbl.find s_prog.spec_tbl spec_name
+			with _ ->
+				let msg = Printf.sprintf "No spec found for proc %s" spec_name in
+				raise (Failure msg)) in
+
+		List.iter (fun spec -> if (spec.n_post = []) then print_debug "Exists spec with no post.") proc_specs.n_proc_specs;
+
+		(* symbolically evaluate the args *)
+		let le_args = List.map (fun le -> Normaliser.normalise_lexpr (get_store symb_state) (get_gamma symb_state) subst le) l_args in
+		let new_symb_states = find_and_apply_spec s_prog.program spec_name proc_specs symb_state le_args in
+
+		(if ((List.length new_symb_states) = 0)
+			then raise (Failure (Printf.sprintf "No precondition found for procedure %s." spec_name)));
+
+		let new_symb_states = 
+			List.map
+				(fun (symb_state, ret_flag, ret_le) ->
+					let ret_type, _, _ = type_lexpr (get_gamma symb_state) ret_le in
+					update_gamma (get_gamma symb_state) ret_var ret_type;
+					let symb_state = Simplifications.simplify_symbolic_state symb_state in 
+					add_pure_assertion (get_pf symb_state) (LEq (LVar ret_var, ret_le));
+					symb_state)
+				new_symb_states in  
+		new_symb_states
 
 	| LogicIf (le, then_lcmds, else_lcmds) ->
 		print_time "LIf.";
