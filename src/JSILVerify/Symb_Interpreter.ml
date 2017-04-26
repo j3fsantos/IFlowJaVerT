@@ -758,8 +758,6 @@ macro_subst (lcmd : jsil_logic_command) (subst : (string, jsil_logic_expr) Hasht
 
 let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars : (symbolic_state * SS.t) list =
 	
-	print_debug (Printf.sprintf "Spec vars (symb_evaluate_logic_cmd): %s" (String.concat ", " (SS.elements spec_vars)));
-
 	let get_pred_data pred_name les =
 		let pred = get_pred s_prog.pred_defs pred_name in
 		let args =
@@ -1004,7 +1002,6 @@ and symb_evaluate_next_cmd s_prog proc spec search_info symb_state cur next =
 	(* Get the current command and the associated metadata *)
 	let metadata, cmd = get_proc_cmd proc cur in
 	(* Evaluate logic commands, if any *)
-	print_debug (Printf.sprintf "Spec vars (symb_evaluate_next_cmd): %s" (String.concat ", " (SS.elements spec.n_lvars)));
 	let symb_states_with_spec_vars = symb_evaluate_logic_cmds s_prog metadata.post_logic_cmds [ symb_state, spec.n_lvars ] spec.n_subst in
 	(* The number of symbolic states resulting from the evaluation of the logic commands *)
 	let len = List.length symb_states_with_spec_vars in
@@ -1017,7 +1014,6 @@ and symb_evaluate_next_cmd s_prog proc spec search_info symb_state cur next =
 					then { search_info with vis_tbl = (copy_vis_tbl search_info.vis_tbl) }
 					else search_info in
 				(* Go bravely into the continuation *)
-				print_debug (Printf.sprintf "Spec vars (symb_evaluate_next_cmd, loop): %s" (String.concat ", " (SS.elements spec_vars)));
 				let spec = { spec with n_lvars = spec_vars } in
 				symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state cur next)
 		symb_states_with_spec_vars

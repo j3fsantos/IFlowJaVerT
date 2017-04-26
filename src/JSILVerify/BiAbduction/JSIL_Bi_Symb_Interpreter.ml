@@ -613,7 +613,7 @@ let find_and_apply_spec
 
 
 
-let rec fold_predicate pred_name pred_defs symb_state params args existentials =
+let rec fold_predicate pred_name pred_defs symb_state params args spec_vars existentials : (symbolic_state * SS.t) option =
 
 	print_time_debug ("fold_predicate:");
 
@@ -631,6 +631,9 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 			existentials
 		| Some existentials -> existentials) in
 
+	let new_spec_vars = SS.union spec_vars existentials in
+	print_debug (Printf.sprintf "New spec vars (fold): %s" (String.concat ", " (SS.elements existentials)));
+
 	let existentials_str = print_var_list (SS.elements existentials) in
 	print_debug (Printf.sprintf ("\nFOLDING %s(%s) with the existentials %s in the symbolic state: \n%s\n")
 	  pred_name 
@@ -647,7 +650,7 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 		(* if complete_fold then symb_state_add_predicate_assertion symb_state (pred_name, args); *)
 		symb_state in
 
-	let rec find_correct_pred_def cur_pred_defs =
+	let rec find_correct_pred_def cur_pred_defs : (symbolic_state * SS.t) option =
 		print_time_debug ("find_correct_pred_def:");
 		(match cur_pred_defs with
 		| [] -> None
@@ -660,7 +663,7 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 			  print_debug (Printf.sprintf "I can fold this!!!");
 				let new_symb_state = update_symb_state_after_folding true symb_state quotient_heap quotient_preds pf_discharges new_gamma pred_name args in
 				print_debug (Printf.sprintf "Symbolic state after FOLDING:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state new_symb_state));
-				Some new_symb_state
+				Some (new_symb_state, new_spec_vars)
 
 			| Some (true, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma, existentials, [ (missing_pred_name, missing_pred_args) ]) ->
 				let missing_pred_args = List.map (fun le -> JSIL_Logic_Utils.lexpr_substitution le subst false) missing_pred_args in
@@ -669,23 +672,43 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 						missing_pred_name
 						(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) missing_pred_args)));
 					let new_symb_state = update_symb_state_after_folding false symb_state quotient_heap quotient_preds pf_discharges new_gamma pred_name args in
-					let new_symb_state, new_subst = Simplifications.simplify_with_subst true new_symb_state in
-					print_debug (Printf.sprintf "New subst: %d \n%s" (List.length new_subst) (String.concat "\n" (List.map (fun (x, le) -> Printf.sprintf "   (%s, %s)" x (JSIL_Print.string_of_logic_expression le false)) new_subst)));
-					let existentials_to_remove = (List.map (fun (v, _) -> v) new_subst) in 
-					print_debug (Printf.sprintf "Exists to remove: %s" (String.concat "," existentials_to_remove));
-					print_debug (Printf.sprintf "Old exists: %s" (String.concat "," (SS.elements existentials)));
+					let new_symb_state, new_subst = Simplifications.simplify_ss_with_subst new_symb_state (Some None) in 
+					
+					print_debug (Printf.sprintf "New subst: %s" (Symbolic_State_Print.string_of_substitution new_subst)); 
+					
+					(** WARNING WARNING WARNING - EXPERIMENTAL START *)
+					(* Filtering existentials that still depend on existentials *)
+					Hashtbl.iter (fun v le -> 
+						let vars_le = get_logic_expression_lvars le in 
+							if (SS.inter existentials vars_le <> SS.empty) then
+							begin
+								print_debug_petar (Printf.sprintf "Warning: variable %s depends on existentials" v);
+								Hashtbl.remove new_subst v;
+							end) new_subst;
+								
+					(** WARNING WARNING WARNING - EXPERIMENTAL END   *)
+	
+					let existentials_to_remove = (Hashtbl.fold (fun v _ ac -> v :: ac) new_subst []) in 
+					print_debug_petar (Printf.sprintf "Exists to remove: %s" (String.concat "," existentials_to_remove));
+					print_debug_petar (Printf.sprintf "Old exists: %s" (String.concat "," (SS.elements existentials)));				
+					
 					let new_existentials = SS.filter (fun v -> (not (List.mem v existentials_to_remove))) existentials in 
 					print_debug (Printf.sprintf "New exists: %s" (String.concat "," (SS.elements new_existentials)));
-					let new_subst = JSIL_Logic_Utils.init_substitution3 new_subst in 
+					
+					let new_subst = JSIL_Logic_Utils.filter_substitution new_subst existentials in
 					print_debug (Printf.sprintf "New substitution: \n%s" (Symbolic_State_Print.string_of_substitution new_subst));
 					let missing_pred_args = List.map (fun le -> JSIL_Logic_Utils.lexpr_substitution le new_subst true) missing_pred_args in
 					print_debug (Printf.sprintf "And now I am missing %s(%s)!!!"
 						missing_pred_name
 						(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) missing_pred_args)));
-					(* let subst = resolve_existentials (get_pf new_symb_state) existentials in 
-					let new_symb_state = Symbolic_State_Basics.symb_state_substitution new_symb_state subst true in *)
+					let new_symb_state = symb_state_substitution new_symb_state new_subst true in
+					(** WARNING WARNING WARNING - EXPERIMENTAL START *)
+					(* Adding equalities we know hold *)
+					let new_pfs = get_pf new_symb_state in
+					Hashtbl.iter (fun var le -> DynArray.add new_pfs (LEq (LVar var, le))) new_subst;
+					(** WARNING WARNING WARNING - EXPERIMENTAL END   *)
 					print_debug (Printf.sprintf "Symbolic state after partial FOLDING:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state new_symb_state));
-					let new_symb_state = fold_predicate pred_name pred_defs new_symb_state params missing_pred_args (Some new_existentials) in
+					let new_symb_state = fold_predicate pred_name pred_defs new_symb_state params missing_pred_args new_spec_vars (Some new_existentials) in
 					(match new_symb_state with
 					| Some new_symb_state ->
 						(* remove_predicate_assertion (get_preds new_symb_state) (missing_pred_name, missing_pred_args); *) 
@@ -695,55 +718,87 @@ let rec fold_predicate pred_name pred_defs symb_state params args existentials =
 			| Some (_, _, _, _, _, _, _, _) | None -> find_correct_pred_def rest_pred_defs)) in
 	find_correct_pred_def pred_defs
 
-let unfold_predicates pred_name pred_defs symb_state params args (spec_vars : SS.t) =
-	print_debug (Printf.sprintf "Current symbolic state:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state));
+(* 
+	UNFOLD: Returns ->  a list of pairs containing:
+		- an unfolded symbolic state
+		- the set of spec vars to be added
+*)
+let unfold_predicates 
+				(pred_name  : string) 
+				(pred_defs  : symbolic_state list) 
+				(symb_state : symbolic_state)
+				(params     : string list) 
+				(args       : jsil_logic_expr list)
+				(spec_vars  : SS.t) : (symbolic_state * SS.t) list =
 
-	let subst0 = Symbolic_State_Utils.subtract_pred pred_name args (get_preds symb_state) (get_pf symb_state) (* (get_solver symb_state) *) (get_gamma symb_state) spec_vars [] in
+	print_debug (Printf.sprintf "UNFOLD_PREDICATES: Current symbolic state:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state));
+
+	let symb_state_vars : SS.t = get_symb_state_vars false symb_state  in
+	let args_vars : SS.t = JSIL_Logic_Utils.get_vars_le_list false args in
+	let existentials : SS.t = SS.diff args_vars symb_state_vars in
+	
+	print_debug (Printf.sprintf "New spec vars (unfold): %s" (String.concat ", " (SS.elements existentials)));
+	
+	let new_spec_vars = SS.union spec_vars existentials in
+	let existentials = SS.elements existentials in 
+
+	let subst0 = Symbolic_State_Utils.subtract_pred pred_name args (get_preds symb_state) (get_pf symb_state) (get_gamma symb_state) spec_vars existentials in
+	
+	(* Printf.printf "I survived the subtract pred!!!\n"; *)
+
 	let args = List.map (fun le -> lexpr_substitution le subst0 true) args in
 	let calling_store = store_init params args in
 
-	let rec loop pred_defs (symb_states : symbolic_state list) =
+	let rec loop pred_defs results : (symbolic_state * SS.t) list =
 		(match pred_defs with
-		| [] -> symb_states
+		| [] -> results
 		| pred_symb_state :: rest_pred_defs ->
 			print_debug (Printf.sprintf "Current Pred DEF:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state pred_symb_state));
 			print_debug (Printf.sprintf "Current symbolic state:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state));
 			let unfolded_symb_state = Structural_Entailment.unfold_predicate_definition symb_state pred_symb_state calling_store subst0 spec_vars in
 			(match unfolded_symb_state with
-			| None -> loop rest_pred_defs symb_states
+			| None -> loop rest_pred_defs results
 			| Some unfolded_symb_state ->
-				loop rest_pred_defs (unfolded_symb_state :: symb_states))) in
+				loop rest_pred_defs ((unfolded_symb_state, new_spec_vars) :: results))) in
 
-	loop pred_defs []
+	loop pred_defs [] 
 
+let recursive_unfold 
+				(pred_name  : string) 
+				(pred_defs  : symbolic_state list) 
+				(symb_state : symbolic_state)
+				(params     : jsil_var list) 
+				(spec_vars  : SS.t) : (symbolic_state * SS.t) list =
 
-let recursive_unfold pred_name pred_defs symb_state params spec_vars =
-
-	let rec loop symb_state =
-		let rec aux symb_state args =
-			print_debug (Printf.sprintf "pred_args: %s\n"
+	print_debug (Printf.sprintf "Recursive Unfold: %s" pred_name); 
+	print_debug (Printf.sprintf "Spec vars (recunfold): %s" (String.concat ", " (SS.elements spec_vars)));
+	let rec loop cur_spec_vars symb_state : symbolic_state * SS.t =
+		let rec aux cur_spec_vars symb_state args : symbolic_state * SS.t =
+			print_debug_petar (Printf.sprintf "pred_args: %s\n"
 				(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) args)));
-			let unfolded_symb_states = unfold_predicates pred_name pred_defs symb_state params args spec_vars in
-			print_debug (Printf.sprintf "number of unfolded_symb_states: %i\n" (List.length unfolded_symb_states));
-			if ((List.length unfolded_symb_states > 1) || (List.length unfolded_symb_states = 0))
-				then (print_debug (Printf.sprintf "More than one unfolding or nothing at all, oops.\n"); symb_state)
+			let unfolded_symb_states_with_spec_vars = unfold_predicates pred_name pred_defs symb_state params args cur_spec_vars in
+			let len = List.length unfolded_symb_states_with_spec_vars in
+			print_debug (Printf.sprintf "number of unfolded_symb_states: %i\n" len);
+			if (len <> 1)
+				then (print_debug (Printf.sprintf "End of recursive_unfold: More than one unfolding or nothing at all, oops.\n"); symb_state, spec_vars)
 				else (
-					let new_symb_state = Simplifications.simplify false (List.hd unfolded_symb_states) in
-					print_debug (Printf.sprintf "Inside recursive unfolding:\n%s\n" (Symbolic_State_Print.string_of_shallow_symb_state new_symb_state));
-					loop new_symb_state) in
+					let new_symb_state, new_spec_vars = List.hd unfolded_symb_states_with_spec_vars in
+					let new_symb_state = Simplifications.simplify_ss new_symb_state (Some (Some new_spec_vars)) in
+					print_debug (Printf.sprintf "Inside recursive_unfolding. continuing with:\n%s\n" (Symbolic_State_Print.string_of_shallow_symb_state new_symb_state));
+					loop new_spec_vars new_symb_state) in
 
-		let rec inner_loop pred_args symb_state =
+		let rec inner_loop cur_spec_vars pred_args symb_state =
 			match pred_args with
-			| [] -> symb_state
+			| [] -> symb_state, cur_spec_vars
 			| args :: more_args ->
-				aux symb_state args in
+				aux cur_spec_vars symb_state args in
 
 		let pred_args = find_predicate_assertion (get_preds symb_state) pred_name in
 		let len_pred_args = List.length pred_args in
-		print_debug (Printf.sprintf "len_pred_args: %i\n" len_pred_args);
-		inner_loop pred_args symb_state in
+		print_debug_petar (Printf.sprintf "len_pred_args: %i\n" len_pred_args);
+		inner_loop cur_spec_vars pred_args symb_state in
 
-	loop symb_state
+	[ loop spec_vars symb_state ]
 
 
 (* Unfolding of macros *)
@@ -796,7 +851,7 @@ macro_subst (lcmd : jsil_logic_command) (subst : (string, jsil_logic_expr) Hasht
 
 
 
-let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
+let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars : (symbolic_state * SS.t) list =
 
 	let get_pred_data pred_name les =
 		let pred = get_pred s_prog.pred_defs pred_name in
@@ -814,11 +869,11 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 		(match a with
 		| LPred	(pred_name, les) ->
 			let params, pred_defs, args = get_pred_data pred_name les in
-			let new_symb_state = fold_predicate pred_name pred_defs symb_state params args None in
+			let new_symb_state = fold_predicate pred_name pred_defs symb_state params args spec_vars None in
 			(match new_symb_state with
-			| Some symb_state ->
+			| Some (symb_state, new_spec_vars) ->
 				symb_state_add_predicate_assertion symb_state (pred_name, args);
-				[ symb_state ]
+				[ symb_state, (* UNDERSTAND *) new_spec_vars ]
 			| None ->
 				print_endline (Printf.sprintf "\nSTATE ON ERROR: %s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state));
 				let msg = Printf.sprintf "Could not fold: %s " (JSIL_Print.string_of_logic_assertion a false) in
@@ -832,12 +887,12 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 		(match a with
 		| LPred (pred_name, les) ->
 			let params, pred_defs, args = get_pred_data pred_name les in
-			let symb_states = unfold_predicates pred_name pred_defs symb_state params args spec_vars in
-			if ((List.length symb_states) = 0) then (
+			let symb_states_with_new_spec_vars = unfold_predicates pred_name pred_defs symb_state params args spec_vars in
+			if ((List.length symb_states_with_new_spec_vars) = 0) then (
 				print_endline (Printf.sprintf "\nCould not unfold: %s" pred_name);
 				let msg = Printf.sprintf "Could not unfold: %s " (JSIL_Print.string_of_logic_assertion a false) in
 				raise (Failure msg))
-			else symb_states
+			else symb_states_with_new_spec_vars
 		| _ ->
 			let msg = Printf.sprintf "Illegal unfold command %s" (JSIL_Print.string_of_logic_assertion a false) in
 			raise (Failure msg))
@@ -847,7 +902,7 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 		let pred = get_pred s_prog.pred_defs pred_name in
 		let pred_defs = pred.n_pred_definitions in
 		let params = pred.n_pred_params in
-		[ recursive_unfold pred_name pred_defs symb_state params spec_vars ]
+			recursive_unfold pred_name pred_defs symb_state params spec_vars
 
 	| LogicIf (le, then_lcmds, else_lcmds) ->
 		print_time "LIf.";
@@ -859,8 +914,8 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 			| Some e_le, None -> LEq (e_le, LLit (Bool true))
 			| None, None -> LFalse in
 		if (Pure_Entailment.old_check_entailment SS.empty (get_pf_list symb_state) [ a_le_then ] (get_gamma symb_state))
-			then symb_evaluate_logic_cmds s_prog then_lcmds [ symb_state ] subst spec_vars
-			else symb_evaluate_logic_cmds s_prog else_lcmds [ symb_state ] subst spec_vars 
+			then symb_evaluate_logic_cmds s_prog then_lcmds [ symb_state, spec_vars ] subst 
+			else symb_evaluate_logic_cmds s_prog else_lcmds [ symb_state, spec_vars ] subst  
 		
 	| Macro (name, param_vals) ->
 			let actual_command = unfold_macro name param_vals in 
@@ -871,19 +926,22 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars =
 					symb_evaluate_logic_cmd s_prog actual_command symb_state subst spec_vars
 	)
 and
-symb_evaluate_logic_cmds s_prog (l_cmds : jsil_logic_command list) (symb_states : symbolic_state list) subst spec_vars =
-	let symb_states = List.map (fun s -> Simplifications.simplify false s) symb_states in
-	match l_cmds with
-	| [] -> symb_states
+symb_evaluate_logic_cmds s_prog (l_cmds : jsil_logic_command list) (symb_states_with_spec_vars : (symbolic_state * SS.t) list) subst : (symbolic_state * SS.t) list =
+	let symb_states_with_spec_vars = 
+		let symb_states, spec_vars = List.split symb_states_with_spec_vars in
+		let symb_states = List.map2 (fun s sv -> Simplifications.simplify_ss s (Some (Some sv))) symb_states spec_vars in
+			List.combine symb_states spec_vars in
+	(match l_cmds with
+	| [] -> symb_states_with_spec_vars
 	| l_cmd :: rest_l_cmds ->
-		let new_symb_states =
+		let new_symb_states_with_spec_vars =
 			List.fold_left
-				(fun ac_new_symb_states symb_state ->
-					let new_symb_states = symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars in
-					new_symb_states @ ac_new_symb_states)
+				(fun ac_new_symb_states_with_spec_vars (symb_state, spec_vars) ->
+					let new_symb_states_with_spec_vars = symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars in
+					new_symb_states_with_spec_vars @ ac_new_symb_states_with_spec_vars)
 				[]
-				symb_states in
-		symb_evaluate_logic_cmds s_prog rest_l_cmds new_symb_states subst spec_vars
+				symb_states_with_spec_vars in
+			symb_evaluate_logic_cmds s_prog rest_l_cmds new_symb_states_with_spec_vars subst)
 
 
 let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i prev : ((symbolic_state * symbolic_state * jsil_return_flag) list) =
@@ -1033,7 +1091,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
 		symb_evaluate_next_cmd s_prog proc spec search_info symb_state anti_frame i (i+1)
 		in 
 
-	let symb_state = Simplifications.simplify false symb_state in
+	let symb_state = Simplifications.simplify_ss symb_state (Some (Some spec.n_lvars)) in
 	print_symb_state_and_cmd symb_state anti_frame;
 	let metadata, cmd = get_proc_cmd proc i in
 	mark_as_visited search_info i;
@@ -1066,21 +1124,22 @@ and symb_evaluate_next_cmd s_prog proc spec search_info symb_state anti_frame cu
 	(* Get the current command and the associated metadata *)
 	let metadata, cmd = get_proc_cmd proc cur in
 	(* Evaluate logic commands, if any *)
-	let symb_states = symb_evaluate_logic_cmds s_prog metadata.post_logic_cmds [ symb_state ] spec.n_subst spec.n_lvars in
+	let symb_states_with_spec_vars = symb_evaluate_logic_cmds s_prog metadata.post_logic_cmds [ symb_state, spec.n_lvars ] spec.n_subst in
 	(* The number of symbolic states resulting from the evaluation of the logic commands *)
-	let len = List.length symb_states in
+	let len = List.length symb_states_with_spec_vars in
 	(* For each obtained symbolic state *) 
 	let list_result_states = List.map
 		(* Get the symbolic state *)
-		(fun symb_state ->
+		(fun (symb_state, spec_vars) ->
 			let search_info =
 				if (len > 1) then 
 					{ search_info with vis_tbl = (copy_vis_tbl search_info.vis_tbl) }
 				else search_info in
 			(* Go bravely into the continuation *)
+			let spec = { spec with n_lvars = spec_vars } in
 			let (_,_,result_states) = symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state anti_frame cur next in
 			result_states)
-		symb_states in
+		symb_states_with_spec_vars in
 	List.concat list_result_states
 
 (**
@@ -1170,13 +1229,13 @@ and symb_evaluate_next_cmd_cont
 						| None -> raise (Failure "unification with invariant failed")) in
 
 				(* Evaluate logic commands, if any *)
-				let symb_states = symb_evaluate_logic_cmds s_prog metadata.pre_logic_cmds [ symb_state ] spec.n_subst spec.n_lvars in
+				let symb_states_with_spec_vars = symb_evaluate_logic_cmds s_prog metadata.pre_logic_cmds [ symb_state, spec.n_lvars ] spec.n_subst in
 				(* The number of symbolic states resulting from the evaluation of the logic commands *)
-				let len = List.length symb_states in
+				let len = List.length symb_states_with_spec_vars in
 				(* For each obtained symbolic state *) 
 				let list_result_states = (List.map
 					(* Get the symbolic state *)
-					(fun symb_state ->
+					(fun (symb_state, spec_vars) ->
 						(* Construct the search info for the next command *)
 						let vis_tbl = if (len > 1) then (copy_vis_tbl search_info.vis_tbl) else search_info.vis_tbl in
 						let info_node = Symbolic_Traces.create_info_node_from_cmd search_info symb_state cmd next in
@@ -1185,8 +1244,9 @@ and symb_evaluate_next_cmd_cont
 						print_debug 
 							(Printf.sprintf  "AF in symb_evaluate_next_cmd_cont:\n%s\n" 
 								(Symbolic_State_Print.string_of_shallow_symb_state anti_frame));
+						let spec = { spec with n_lvars = spec_vars } in
 						symb_evaluate_cmd s_prog proc spec new_search_info symb_state anti_frame next cur)
-					symb_states) in
+					symb_states_with_spec_vars) in
 				let result_states = List.concat list_result_states in
 				(true, None, result_states)
 		end

@@ -561,8 +561,8 @@ let bi_unify_symb_state_against_post
 	let processed_posts = 
 		List.map 
 			(fun (symb_state, anti_frame) -> 
-				let new_symb_state = Simplifications.simplify false symb_state in
-				let new_anti_frame = Simplifications.simplify false anti_frame in 
+				let new_symb_state = Simplifications.simplify_ss symb_state (Some None) in
+				let new_anti_frame = Simplifications.simplify_ss anti_frame (Some None) in 
 				(new_symb_state, new_anti_frame))
 			processed_posts in 
 	match processed_posts with 
