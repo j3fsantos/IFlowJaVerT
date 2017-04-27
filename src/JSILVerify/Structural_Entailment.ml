@@ -30,11 +30,9 @@ let must_be_equal le_pat le pi gamma subst =
 	| false -> 
 		(match le_pat, le with
 		| LLit pat_lit, LLit lit -> pat_lit = lit
-		| LLit pat_lit, _ ->
-			Pure_Entailment.is_equal le_pat le pi (* solver *) gamma
 		| LNone, LEList _
 		| LEList _, LNone -> false
-		| _, _ -> false)) in
+		| _, _ -> Pure_Entailment.is_equal le_pat le pi (* solver *) gamma)) in
 	result
 
 
@@ -1516,10 +1514,5 @@ let unify_symb_state_against_invariant symb_state inv_symb_state lvars =
 		let new_symb_state = merge_symb_states symb_state inv_symb_state subst in
 		let subst_pfs = assertions_of_substitution subst in 
 		extend_symb_state_with_pfs symb_state (DynArray.of_list subst_pfs); 
-		let new_symb_state = Simplifications.simplify_symbolic_state symb_state in 
-		Some new_symb_state 
-	| _ -> None  
-
-
-
-
+		Some symb_state
+	| _ -> None 

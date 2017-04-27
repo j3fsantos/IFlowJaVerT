@@ -124,11 +124,11 @@
 	@pred AttributeNode(name, id, l_children, cList) :
 		((id, "@name") -> name) *
 		((id, "@children") -> l_children) * TextForest(l_children, cList);
-	
-	
 
 
-	
+
+
+
 
 	@pred InitialDOMHeap() :
 		NodePrototype() * DocumentNodePrototype() * ElementNodePrototype() * AttributeNodePrototype() * TextNodePrototype();
@@ -138,8 +138,8 @@
 		
 		(element == (#head :: {{}})) * isElement(#head, #id, #name, #l_a, #l_c) * 
 		DOMObject(l, $$null) * empty_fields(l :),
-	    
-	    (element == (#head :: {{}})) * isHole(#head, #alpha) * DOMObject(l, $$null) * empty_fields(l :);		
+		
+		(element == (#head :: {{}})) * isHole(#head, #alpha) * DOMObject(l, $$null) * empty_fields(l :);		
 
 
 	@pred ChainCell(l, next, content) : 
@@ -151,15 +151,15 @@
 
 
 	@pred AttributeSetRec(l, attrs) : 
-	    isNil(attrs) * (l == $$null),
-	    
-	    (attrs == (#head :: #attrsNext)) * isAttr(#head, #name, #id, #tfList) * 
-	    DOMObject(#id, $l_anp) * empty_fields(#id : "@name", "@children") *
-	    AttributeNode(#name, #id, #l_tf, #tfList) * 
-	    ChainCell(l, #next, #id) * AttributeSetRec(#next, #attrsNext), 
+		isNil(attrs) * (l == $$null),
+		
+		(attrs == (#head :: #attrsNext)) * isAttr(#head, #name, #id, #tfList) * 
+		DOMObject(#id, $l_anp) * empty_fields(#id : "@name", "@children") *
+		AttributeNode(#name, #id, #l_tf, #tfList) * 
+		ChainCell(l, #next, #id) * AttributeSetRec(#next, #attrsNext), 
 
-	    (childList == (#head :: #childListNext)) * isHole(#head, #alpha) *
-	    ChainCell(l, #next, #alpha) * AttributeSetRec(#next, #childListNext); 	
+		(childList == (#head :: #childListNext)) * isHole(#head, #alpha) *
+		ChainCell(l, #next, #alpha) * AttributeSetRec(#next, #childListNext); 	
 
 
 	@pred Forest(alpha, childList) : 
@@ -177,8 +177,8 @@
 		ElementNode(#name, #id, #l_addr, #aList, #l_children, #cList) *
 		ChainCell(l, #next, #id) * ForestRec(#next, #childListNext),
 		
-	    (childList == (#head :: #childListNext)) * isHole(#head, #alpha) *
-	    ChainCell(l, #next, #alpha) * ForestRec(#next, #childListNext);
+		(childList == (#head :: #childListNext)) * isHole(#head, #alpha) *
+		ChainCell(l, #next, #alpha) * ForestRec(#next, #childListNext);
 
 
 	@pred TextForest(alpha, childList) : 
@@ -195,42 +195,45 @@
 		ChainCell(l, #next, #alpha) * TextForestRec(#next, #childListNext);
 
 
-	@pred Grove(alpha, childList) : 
-		((alpha, "@chain") ->  #l) * empty_fields(alpha : "@chain") * GroveRec(#l, childList) * types(childList : $$list_type);	
+	@pred Grove(alpha, content) : 
+		((alpha, "@chain") ->  #l) * empty_fields(alpha : "@chain") * GroveRec(#l, content) * types(content : $$list_type);	
 	
 	@pred GroveRec(l, content) :
 		isNil(content) * (l == $$null),
 
-		(childList == (#head :: #childListNext)) * isText(#head, #id, #text) * 
+		(content == (#head :: #contentNext)) * isText(#head, #id, #text) * 
 		TextNode(#id, #text) *
-		ChainCell(l, #next, #id) * GroveRec(#next, #childListNext),
+		ChainCell(l, #next, #id) * GroveRec(#next, #contentNext),
 		
-		(childList == (#head :: #childListNext)) * isElement(#head, #name, #id, #aList, #cList) * 
+		(content == (#head :: #contentNext)) * isElement(#head, #name, #id, #aList, #cList) * 
 		DOMObject(#id, $l_enp) * empty_fields(#id : "@name", "@attributes", "@children") *
 		ElementNode(#name, #id, #l_addr, #aList, #l_children, #cList) *
-		ChainCell(l, #next, #id) * GroveRec(#next, #childListNext),
+		ChainCell(l, #next, #id) * GroveRec(#next, #contentNext),
 
-		(content == (#head :: #contentNext)) * isAttr(head, #name, #id, #tfList) * 
+		(content == (#head :: #contentNext)) * isAttr(#head, #name, #id, #tfList) * 
 		DOMObject(#id, $l_anp) * empty_fields(#id : "@name", "@children") *
 		AttributeNode(#name, #id, #l_tf, #tfList) * 
 		ChainCell(l, #next, #id) * GroveRec(#next, #contentNext),
 		
-	    (childList == (#head :: #childListNext)) * isHole(#head, #alpha) *
-	    ChainCell(l, #next, #alpha) * GroveRec(#next, #childListNext);
-		
-	
+		(content == (#head :: #contentNext)) * isHole(#head, #alpha) *
+		ChainCell(l, #next, #alpha) * GroveRec(#next, #contentNext);
+
+
 
 	@pred ECell(alpha, name, id, l_attr, aList, l_children, cList) : 
-		((alpha, "@node") -> id) * empty_fields(alpha : "@node") * ENode(name, id, l_attr, aList, l_children, cList);
+		 ((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, id) * empty_fields(alpha : "@chain") * 
+			ENode(name, id, l_attr, aList, l_children, cList);
 
 	@pred TCell(alpha, id, text) : 
-		((alpha, "@node") -> id) * empty_fields(alpha : "@node") * TextNode(id, text);
+		((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, id) * empty_fields(alpha : "@chain") * 
+			TextNode(id, text);
 
 	@pred ACell(alpha, name, id, l_children, cList) : 
-		((alpha, "@node") -> id) * empty_fields(alpha : "@node") * ANode(name, id, l_children, cList);	
+		((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, id) * empty_fields(alpha : "@chain") * 
+			ANode(name, id, l_children, cList);	
 
 	@pred EmptyCell(alpha) :
-		((alpha, "@node") -> $$null) * empty_fields(alpha : "@node");
+		((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, $$null) * empty_fields(alpha : "@chain");
 
 
 
@@ -293,20 +296,20 @@
 		pre:  [[ (l == #l) * (i == #i) * types(#g : $$list_type, #g1 : $$list_type, #g2 : $$list_type) * 
 				 Grove(#l, #g) * (#g == #g1 @ ( {{"elem", #name, #id, #aList, #cList}} :: #g2)) * (l-len(#g1) == #i) * types(#id : $$object_type) ]]
 		post: [[ Grove(#l, #g_post) * (#g_post == (#g1 @ ({{ "hole", #alpha }} :: #g2))) *
-		    	 ECell(#alpha, #name, #new_id, #l_attr, #aList, #l_children, #cList) * (ret == #alpha) * 
-		    	 (#new_id == #id) * types(#alpha : $$object_type)]]
+				 ECell(#alpha, #name, #new_id, #l_attr, #aList, #l_children, #cList) * (ret == #alpha) * 
+				 (#new_id == #id) * types(#alpha : $$object_type)]]
 		outcome: normal;
 
 		pre:  [[ (l == #l) * (i == #i) * types(#g : $$list_type, #g1 : $$list_type, #g2 : $$list_type) * 
 				 Grove(#l, #g) * (#g == #g1 @ ( {{"text", #id, #text}} :: #g2)) * (l-len(#g1) == #i) ]]
 		post: [[ Grove(#l, #g_post) * (#g_post == (#g1 @ ({{ "hole", #alpha }} :: #g2))) *
-		    	 TCell(#alpha, #id, #text) * (ret == #alpha) * types(#alpha : $$object_type)]]
+				 TCell(#alpha, #id, #text) * (ret == #alpha) * types(#alpha : $$object_type)]]
 		outcome: normal;
 
 		pre:  [[ (l == #l) * (i == #i) * types(#g : $$list_type, #g1 : $$list_type, #g2 : $$list_type) * 
 				 Grove(#l, #g) * (#g == #g1 @ ( {{"attr", #name, #id, #cList}} :: #g2)) * (l-len(#g1) == #i) ]]
 		post: [[ Grove(#l, #g_post) * (#g_post == (#g1 @ ({{ "hole", #alpha }} :: #g2))) *
-		    	 ACell(#alpha, #name, #id, #l_children, #cList) * (ret == #alpha) * types(#alpha : $$object_type)]]
+				 ACell(#alpha, #name, #id, #l_children, #cList) * (ret == #alpha) * types(#alpha : $$object_type)]]
 		outcome: normal
 
 	@onlyspec deallocG(alpha)

@@ -1,11 +1,9 @@
 /**
-
 @pred Object (l, proto) :
 	types (l : $$object_type) *
 	((l, "@proto") -> proto) *
 	((l, "@class") -> "Object") *
 	((l, "@extensible") -> $$t);
-
 @pred NodePrototype(np, push_loc, insert_loc) :
 	standardObject(np) *
 	dataField(np, "push", push_loc) *
@@ -15,7 +13,6 @@
 	((np, "pri") -> None) *
 	((np, "val") -> None) *
 	((np, "next") -> None);
-
 @pred Node(n, pri, val, next, np) :
 	Object(n, np) *
 	dataField(n, "pri",  pri) *
@@ -25,10 +22,8 @@
 	((n, "insert") -> None) *
 	(0 <# pri) *
 	types(pri : $$number_type, val : $$string_type, np : $$object_type);
-
 @pred Queue(q, np, max_pri, length) :
 	(q == $$null) * (max_pri == 0) * (length == 0) * types(max_pri : $$number_type, length : $$number_type),
-
 	Node(q, max_pri, #val, #next, np) * (0 <# max_pri) *
 	Queue(#next, np, #pri, #len_q) * (#pri <=# max_pri) * (length == #len_q + 1) *
 	types(q : $$object_type, np : $$object_type, #pri : $$number_type, max_pri : $$number_type, length : $$number_type, #len_q : $$number_type);
@@ -38,7 +33,6 @@ var counter = 0;
 
 /**
 	@id  Node
-
 	@pre (
 		scope(counter: #c) * types(#c : $$number_type) *
 	   	(pri == #pri) * (val == #val) * types(#pri: $$number_type, #val: $$string_type) *
@@ -47,7 +41,6 @@ var counter = 0;
 	   	((this, "push") -> None) * ((this, "insert") -> None) *
 	   	Object(this, #np) * NodePrototype(#np, #push_loc, #insert_loc)
 	)
-
 	@post (
 	   		scope(counter: #c + 1) *
 	   		Node(this, #pri, #val, $$null, #np) *
@@ -60,7 +53,6 @@ var Node = function (pri, val) {
 
 /**
 	@id  push
-
 	@pre (
 		(q == #q) *
 		Node(this, #npri, #nval, $$null, #np) *
@@ -72,7 +64,6 @@ var Node = function (pri, val) {
 		Queue(#q, #np, #pri_q, #length + 1) * (ret == #q) * types (#q : $$object_type) *
 		NodePrototype(#np, #push_loc, #insert_loc)
 	)
-
 	@pre (
 		(q == #q) *
 		Node(this, #npri, #val, $$null, #np) *
@@ -109,7 +100,6 @@ Node.prototype.push = function (q) {
 
 /**
 	@id  insert
-
 	@pre (
 		(! (this == $$null)) *
 		Queue(this, #np, #pri_q, #length) *
@@ -123,7 +113,6 @@ Node.prototype.push = function (q) {
 		(ret == this) *
 		NodePrototype(#np, #push_loc, #insert_loc)
 	)
-
 	@pre (
 		(! (this == $$null)) * (n == #n) *
 		Queue(this, #np, #pri_q, #length) *
@@ -136,7 +125,6 @@ Node.prototype.push = function (q) {
 		Queue(#n, #np, #npri, #length + 1) * (ret == #n) *
 		NodePrototype(#np, #push_loc, #insert_loc)
 	)
-
 */
 Node.prototype.insert = function (n) {
 	/** @unfold Queue(this, #np, #pri_q, #length) */
@@ -145,9 +133,7 @@ Node.prototype.insert = function (n) {
 		/** @fold Queue(#n, #np, #npri, #length + 1) */
 		return n
 	} else {
-
-		/**
-			@unfold Queue(#this_next, #np, #max_pri_next, #length - 1) */
+		/** @unfold Queue(#this_next, #np, #max_pri_next, #length - 1) */
 		var next = this.next;
 		if (next == null) {
 				this.next = n
@@ -164,7 +150,6 @@ Node.prototype.insert = function (n) {
 
 /**
    @id  getCounter
-
    @pre  (scope(counter: #c) * types(#c : $$number_type))
    @post (scope(counter: #c) * (ret == #c))
 */
@@ -173,7 +158,6 @@ var getCounter = function () { return counter; };
 
 /**
    @id  incCounter
-
    @pre  (scope(counter: #c) * types(#c : $$number_type))
    @post (scope(counter: #c+1) * (ret == #c+1))
 */

@@ -10,7 +10,7 @@ let small_tbl_size = 31
 
 let update_subst1 subst unifier =
 	(match unifier with
-	 | Some unifier -> List.iter (fun (var, le) -> Hashtbl.add subst var le) unifier;
+	 | Some unifier -> List.iter (fun (var, le) -> Hashtbl.replace subst var le) unifier;
 	 | None -> ());
 	true
 
