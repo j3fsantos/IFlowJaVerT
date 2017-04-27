@@ -103,7 +103,6 @@ let rec le_string_to_list (se : jsil_logic_expr) : jsil_logic_expr * bool =
 	(match se with
 		| LLit l -> (LLit (lit_string_to_list l), false)
 		| LBinOp (sel, StrCat, ser) ->
-			print_debug_petar (Printf.sprintf "BinOp case StrCat"); 
 			(LBinOp ((f sel), CharCat, (f ser)), false)
 		| LVar _ -> (se, false)
 		| _ -> (se, true))
@@ -147,7 +146,10 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 
 	| LBinOp (le1, LstCons, LEList []) -> LEList [ f le1 ]
 	| LBinOp (le1, LstCons, LLit (LList [])) -> LEList [ f le1 ] 
-	| LBinOp (LEList le1, LstCat, LEList le2) -> f (LEList (le1 @ le2))
+	| LBinOp (le1, CharCons, LCList []) -> LCList [ f le1 ]
+	| LBinOp (le1, CharCons, LLit (CList [])) -> LCList [ f le1 ]
+	| LBinOp (LEList le1, LstCat,  LEList le2) -> f (LEList (le1 @ le2))
+	| LBinOp (LCList le1, CharCat, LCList le2) -> f (LCList (le1 @ le2))
 	(* TODO: combinations of LLit (LList _) and LEList *)
 
 	(* List append *)
@@ -174,6 +176,20 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 		| _ -> (match fe2 with
 			| LLit (String "") -> fe1
 			| _ -> LBinOp (fe1, StrCat, fe2))) in
+		result
+
+	(* Internal String concat *)
+	| LBinOp (le1, CharCat, le2) ->
+		let fe1 = f le1 in 
+		let fe2 = f le2 in
+		let result = 
+		(match fe1 with
+		| LCList []
+		| LLit (CList []) -> fe2
+		| _ -> (match fe2 with
+			| LCList []
+			| LLit (CList []) -> fe1
+			| _ -> LBinOp (fe1, CharCat, fe2))) in
 		result
 
 		
@@ -602,7 +618,7 @@ let rec get_head_and_tail_list (le : jsil_logic_expr) : bool option * jsil_logic
 		| [] -> None, LLit (Bool false), LLit (Bool false)
 		| e :: l -> Some true, e, LEList l)
 	| LBinOp (e, LstCons, l) -> Some true, e, l
-	| LBinOp (l1, LstCat, l2) -> 
+	| LBinOp (l1, LstCat, l2) ->
 		let ok, head, tail = get_head_and_tail_list l1 in
 		(match ok with
 		| None -> None, LLit (Bool false), LLit (Bool false)
@@ -777,19 +793,24 @@ let isInternalString (se : jsil_logic_expr) : bool =
 match se with
 	| LVar _ 
 	| LLit (CList _)
-	| LBinOp (_, CharCons, _)         (* Non recursive: assume that CharCat/Cons *)
-	| LBinOp (_, CharCat,  _) -> true (* only obtained from conversion anyway    *)
-	| LCList _ -> print_debug_petar (Printf.sprintf "Wasn't expecting anything to encode to LCList... Got: %s" (print_lexpr se));
-		true
-	| _ -> false
+	| LBinOp (_, CharCons, _) (* Non recursive: assume that CharCat/Cons *)
+	| LBinOp (_, CharCat,  _) (* only obtained from conversion anyway    *)
+	| LCList _ -> true
+	| _ -> 
+		print_debug_petar (Printf.sprintf "Not internal String %s" (print_lexpr se));
+		false
 
 (* Arranging strings in a specific order *)
 let arrange_strings (se1 : jsil_logic_expr) (se2 : jsil_logic_expr) : (jsil_logic_expr * jsil_logic_expr) =
 	match se1, se2 with
 		| LVar _, _
-		| LLit (CList _), LLit (CList _) 
+		| LLit (CList _), LLit (CList _)
+		| LLit (CList _), LCList _
 		| LLit (CList _), LBinOp (_, CharCons, _)
 		| LLit (CList _), LBinOp (_, CharCat, _)
+		| LCList _, LCList _
+		| LCList _, LBinOp (_, CharCons, _)
+		| LCList _, LBinOp (_, CharCat, _)
 		| LBinOp (_, CharCons, _), LBinOp (_, CharCons, _)
 		| LBinOp (_, CharCons, _), LBinOp (_, CharCat, _)
 		| LBinOp (_, CharCat, _), LBinOp (_, CharCat, _) -> se1, se2
@@ -800,6 +821,7 @@ let rec get_elements_from_string (se : jsil_logic_expr) : jsil_logic_expr list =
 (match se with
 	| LVar _ -> []
 	| LLit (CList l) -> List.map (fun e -> LLit e) l
+	| LCList l -> l
 	| LBinOp (e, CharCons, se) -> e :: get_elements_from_string se
 	| LBinOp (sel, CharCat, ser) -> get_elements_from_string sel @ get_elements_from_string ser
 	| _ -> let msg = Printf.sprintf "Non-list expressions passed to get_elements_from_list : %s" (print_lexpr se) in
@@ -808,39 +830,46 @@ let rec get_elements_from_string (se : jsil_logic_expr) : jsil_logic_expr list =
 (* Splitting an internal string based on an element *)
 let rec split_string_on_element (se : jsil_logic_expr) (e : jsil_logic_expr) : bool * (jsil_logic_expr * jsil_logic_expr) =
 (match se with
-	| LVar _ -> false, (se, LLit (CList []))
+	| LVar _ -> false, (se, LCList [])
 	| LLit (CList l) -> 
 		(match e with
 		| LLit lit ->
 			let ok, (ll, lr) = list_split l lit in
 			(match ok with
 			| true -> true, (LLit (CList ll), LLit (CList lr))
-			| false -> false, (se, LLit (CList []))
-		| _ -> false, (se, LLit (CList []))))
+			| false -> false, (se, LCList [])
+		| _ -> false, (se, LCList [])))
+	| LCList l ->
+		let ok, (ll, lr) = list_split l e in
+			(match ok with
+			| true -> true, (LCList ll, LCList lr)
+			| false -> false, (se, LCList []))
 	| LBinOp (e', CharCons, se') -> 
 		(match (e = e') with
-		| true -> true, (LLit (CList []), se')
+		| true -> true, (LCList [], se')
 		| false -> let ok, (ll, lr) = split_string_on_element se' e in
 			(match ok with
-			| false -> false, (se, LLit (CList []))
-			| true -> true, (LBinOp (e', LstCons, ll), lr)))
+			| false -> false, (se, LCList [])
+			| true -> true, (LBinOp (e', CharCons, ll), lr)))
 	| LBinOp (sel, CharCat, ser) -> 
 		let ok, (sll, slr) = split_string_on_element sel e in
 		(match ok with
 		| true -> 
 			let right = 
 			(match ser with 
-			| LLit (CList []) -> slr
+			| LLit (CList [])
+			| LCList [] -> slr
 			| _ -> LBinOp (slr, CharCat, ser)) in
 				true, (sll, right)
 		| false -> let ok, (srl, srr) = split_string_on_element ser e in
 			(match ok with
 			| true -> 
 				let left = (match srl with 
-				| LLit (CList []) -> sel
+				| LLit (CList [])
+				| LCList [] -> sel
 				| _ -> LBinOp (sel, CharCat, srl)) in
 					true, (left, srr)
-			| false -> false, (se, LLit (CList []))))
+			| false -> false, (se, LCList [])))
 	| _ -> let msg = Printf.sprintf "Non-string expressions passed to split_string_on_element : %s" (print_lexpr se) in
 		raise (Failure msg))
 
@@ -878,7 +907,6 @@ let rec get_head_and_tail_string (se : jsil_logic_expr) : bool option * jsil_log
 		| [] -> None, LLit (Bool false), LLit (Bool false)
 		| e :: l -> Some true, LLit e, LLit (CList l))
 	| LCList l ->
-		print_debug_petar (Printf.sprintf "get_head_and_tail_string on a LCList, how did that get there? %s" (print_lexpr se));
 		(match l with
 		| [] -> None, LLit (Bool false), LLit (Bool false)
 		| e :: l -> Some true, e, LCList l)
@@ -888,7 +916,7 @@ let rec get_head_and_tail_string (se : jsil_logic_expr) : bool option * jsil_log
 		(match ok with
 		| None -> None, LLit (Bool false), LLit (Bool false)
 		| Some false -> Some false, LLit (Bool false), LLit (Bool false)
-		| Some true -> Some true, head, LBinOp (tail, LstCat, s2))
+		| Some true -> Some true, head, LBinOp (tail, CharCat, s2))
 	| LVar _ -> Some false, LLit (Bool false), LLit (Bool false)
 	| _ -> 
 		let msg = Printf.sprintf "Non-list expressions passed to get_head_and_tail_list : %s" (print_lexpr se) in
@@ -897,8 +925,8 @@ let rec get_head_and_tail_string (se : jsil_logic_expr) : bool option * jsil_log
 (* String unification *)
 let rec unify_strings (se1 : jsil_logic_expr) (se2 : jsil_logic_expr) to_swap : bool option * ((jsil_logic_expr * jsil_logic_expr) list) = 
 	(* Figure out reductions for these internal string representations... *)
-	(* let se1 = reduce_expression_no_store_no_gamma_no_pfs se1 in *)
-	(* let se2 = reduce_expression_no_store_no_gamma_no_pfs se2 in *)
+	let se1 = reduce_expression_no_store_no_gamma_no_pfs se1 in
+	let se2 = reduce_expression_no_store_no_gamma_no_pfs se2 in
 	let se1_old = se1 in
 	let se1, se2 = arrange_strings se1 se2 in
 	let to_swap_now = (se1_old <> se1) in
@@ -908,12 +936,18 @@ let rec unify_strings (se1 : jsil_logic_expr) (se2 : jsil_logic_expr) to_swap : 
 		(print_lexpr se1) (print_lexpr se2)); *)
 	(match se1, se2 with
 	  (* Base cases *)
-		| LLit (CList []), LLit (CList []) -> Some false, []
+		| LLit (CList []), LLit (CList []) 
+		| LLit (CList []), LCList []
+		| LCList [], LCList [] -> Some false, []
 		| LVar _, _ -> Some false, [ swap (se1, se2) ]
 		(* Inductive cases *)
 		| LLit (CList _), LLit (CList _)
+		| LLit (CList _), LCList _
+		| LCList _, LCList _
 		| LLit (CList _), LBinOp (_, CharCons, _) 
 		| LLit (CList _), LBinOp (_, CharCat, _)
+		| LCList _, LBinOp (_, CharCons, _) 
+		| LCList _, LBinOp (_, CharCat, _)
 		| LBinOp (_, CharCons, _), LBinOp (_, CharCons, _)
 		| LBinOp (_, CharCons, _), LBinOp (_, CharCat,  _)
 		| LBinOp (_, CharCat,  _), LBinOp (_, CharCat,  _) -> 
@@ -956,195 +990,6 @@ let rec unify_strings (se1 : jsil_logic_expr) (se2 : jsil_logic_expr) to_swap : 
 			let msg = Printf.sprintf "Non-arranged lists passed to unify_lists : %s, %s" (print_lexpr se1) (print_lexpr se2) in
 			raise (Failure msg)
 	)
-
-
-
-let rec aggressively_simplify (to_add : (string * jsil_logic_expr) list) other_pfs save_all_lvars exists (symb_state : symbolic_state) =
-
-	let f = aggressively_simplify to_add other_pfs save_all_lvars exists in
-
-	(* Break down the state into components *)
-	let heap, store, p_formulae, gamma, preds (*, _ *) = symb_state in
-
-	(* When we know the formulae are false, set the implication to false -> true *)
-	let pfs_false msg =
-		print_debug_petar (msg ^ " Pure formulae false.\n");
-		DynArray.clear p_formulae;
-		DynArray.add p_formulae LFalse;
-		DynArray.clear other_pfs;
-		symb_state, other_pfs, [], exists in
-	
-	let perform_substitution var lexpr n chantay = 
-	let subst = Hashtbl.create 1 in
-		Hashtbl.add subst var lexpr;
-		DynArray.delete p_formulae n;
-		let new_to_add =
-		  (match chantay with
-		   | false ->
-			   while (Hashtbl.mem gamma var) do Hashtbl.remove gamma var done;
-			   to_add
-		   | true -> ((var, lexpr) :: to_add)) in
-		print_debug_petar (Printf.sprintf "Just added %s to subst." var);
-		let symb_state = symb_state_substitution symb_state subst true in
-		let other_pfs = pf_substitution other_pfs subst true in
-		aggressively_simplify new_to_add other_pfs save_all_lvars exists symb_state in
-
-	(* Main recursive function *)
-	let rec go_through_pfs (pfs : jsil_logic_assertion list) n =
-		(match pfs with
-		| [] ->
-			List.iter (fun (x, y) -> DynArray.add p_formulae (LEq (LVar x, y))) to_add;
-			symb_state, other_pfs, to_add, exists
-		| pf :: rest ->
-			(match pf with
-			(* If we have true in the pfs, we delete it and restart *)
-			| LTrue -> DynArray.delete p_formulae n; go_through_pfs rest n
-			(* If we have false in the pfs, everything is false and we stop *)
-			| LFalse -> pfs_false ""
-			(* Getting rid of disequalities that we know hold due to typing *)
-			| LNot (LEq (le1, le2)) ->
-				let te1, _, _ = type_lexpr gamma le1 in
-				let te2, _, _ = type_lexpr gamma le2 in
-				(match te1, te2 with
-				| Some t1, Some t2 ->
-					(match (t1 = t2) with
-					| false -> DynArray.delete p_formulae n; go_through_pfs rest n
-					| true -> go_through_pfs rest (n + 1))
-				| _, _ -> go_through_pfs rest (n + 1))
-			| LEq (le1, le2) ->
-				(match le1, le2 with
-				(* Obvious falsity *)
-				| ALoc loc, LLit l
-				| LLit l, ALoc loc ->
-					(match l with
-					 | Loc _ -> go_through_pfs rest (n + 1)
-					 | _ -> pfs_false (Printf.sprintf "ALoc and not-a-loc: %s, %s" loc (JSIL_Print.string_of_literal l false)))
-				(* VARIABLES *)
-				| LVar v1, LVar v2 ->
-					let does_this_work = 
-						(match (Hashtbl.mem gamma v1, Hashtbl.mem gamma v2) with
-						| true, true -> 
-							let t1 = Hashtbl.find gamma v1 in
-							let t2 = Hashtbl.find gamma v2 in
-								(t1 = t2)
-						| true, false ->
-							let t1 = Hashtbl.find gamma v1 in
-								Hashtbl.add gamma v2 t1;
-								true
-						| false, true ->
-							let t2 = Hashtbl.find gamma v2 in
-								Hashtbl.add gamma v1 t2;
-								true
-						| _, _ -> true) in
-					if does_this_work 
-						then go_through_pfs rest (n + 1)
-						else pfs_false "Nasty type mismatch"
-				| LVar v, LLit lit -> 
-					let does_this_work = 
-						let tl = evaluate_type_of lit in
-						(match Hashtbl.mem gamma v with
-						| true -> 
-							let t1 = Hashtbl.find gamma v in
-								(t1 = tl)
-						| false -> Hashtbl.add gamma v tl; true) in
-					if does_this_work 
-						then perform_substitution v le2 n (save_all_lvars || String.get v 0 = '#')
-						else pfs_false "Nasty type mismatch: var -> lit"
-				| LVar v, le2 when 
-						(isSubstitutable le2 && 
-							not (let le_vars = get_logic_expression_lvars le2 in SS.mem v le_vars)) ->
-					perform_substitution v le2 n (save_all_lvars || String.get v 0 = '#')
-					
-				(* LIST LENGTH *)
-				| LLit (Num len), LUnOp (LstLen, LVar v)
-				| LUnOp (LstLen, LVar v), LLit (Num len) ->
-						(match (Utils.is_int len) with
-						| false -> pfs_false "Non-integer list-length. Good luck."
-						| true -> 
-							let len = int_of_float len in
-							(match (0 <= len) with
-							| false -> pfs_false "Sub-zero length. Good luck."
-							| true -> 
-									let subst_list = Array.to_list (Array.init len (fun _ -> fresh_lvar())) in
-									let new_exists = SS.union (SS.of_list subst_list) exists in
-									let subst_list = List.map (fun x -> LVar x) subst_list in
-									DynArray.delete p_formulae n;
-									DynArray.add p_formulae (LEq (LVar v, LEList subst_list));
-									aggressively_simplify to_add other_pfs save_all_lvars new_exists symb_state
-							)
-						)
-				
-				(* LISTS *)
-				| le1, le2 when (isList le1 && isList le2) ->
-					let ok, subst = unify_lists le1 le2 false in
-					(match ok with
-					(* Error while unifying lists *)
-					| None -> pfs_false "List error"
-					(* No error, but no progress *)
-					| Some false -> (match subst with
-					  | [ (le1', le2') ] -> go_through_pfs rest (n + 1)
-						| _ -> raise (Failure "Unexpected list obtained from list unification."))
-					(* Progress *)
-					| Some true -> 
-							DynArray.delete p_formulae n;
-							List.iter (fun (x, y) -> DynArray.add p_formulae (LEq (x, y))) subst;
-							f symb_state
-					)
-					 
-				(* More falsity *)
-				| LEList _, LLit _
-				| LLit _, LEList _ 
-				| LBinOp (_, LstCons, _), LLit _
-				| LLit _ , LBinOp (_, LstCons, _) -> pfs_false "List and not-a-list"
-				
-				(* Otherwise, continue *)
-				| _, _ -> go_through_pfs rest (n + 1))
-			
-			(* I don't know how these could get here, but let's assume they can... *)
-			| LAnd  (a1, a2)
-			| LStar	(a1, a2) -> DynArray.set p_formulae n a1; DynArray.add p_formulae a2; f symb_state
-			
-			(* Otherwise, continue *)
-			| _ -> go_through_pfs rest (n + 1)
-			)
-		) in
-
-	(* *******************
-	 *  ACTUAL PROCESSING
-	 * ******************* *) 
-
-	(* Bring lvars to the left side of the equality or not-equality *)
-	DynArray.iteri
-	(fun i pf ->
-	  (match pf with
-	   (* Move lvars with # to the left *)
-	   | LEq (LVar v1, LVar v2) when (String.get v1 0 = '_' && String.get v2 0 = '#') -> DynArray.set p_formulae i (LEq (LVar v2, LVar v1))
-	   (* Don't do anything if the left lvar is with _ or with # *)
-	   | LEq (LVar v1, _)       when (String.get v1 0 = '_' || String.get v1 0 = '#') -> ()
-	   (* Otherwise, swap *)
-	   | LEq (le1, LVar var) -> DynArray.set p_formulae i (LEq (LVar var, le1))
-	   (* Move lvars with # to the left *)
-	   | LNot (LEq (LVar v1, LVar v2)) when (String.get v1 0 = '_' && String.get v2 0 = '#') -> DynArray.set p_formulae i (LNot (LEq (LVar v2, LVar v1)))
-	   (* Don't do anything if the left lvar is with _ or with # *)
-	   | LNot (LEq (LVar v1, _))       when (String.get v1 0 = '_' || String.get v1 0 = '#') -> ()
-	   (* Otherwise, swap *)
-	   | LNot (LEq (le1, LVar var)) -> DynArray.set p_formulae i (LNot (LEq (LVar var, le1)))
-	   | _ -> ()
-	  )
-	) p_formulae;
-
-	(* Sanitise *)
-	sanitise_pfs store gamma p_formulae;
-
-	(* Process *)
-	let pf_list = DynArray.to_list p_formulae in
-		go_through_pfs pf_list 0
-		
-let simplify how x =
-	let (result : symbolic_state), _, _, _ = aggressively_simplify [] (DynArray.create ()) how (SS.empty) x in result
-
-let simplify_with_subst how x = 
-	let result, _, subst, _ = aggressively_simplify [] (DynArray.create ()) how (SS.empty) x in result, subst
 				
 (* *********************** *
  * ULTIMATE SIMPLIFICATION *
@@ -1560,7 +1405,7 @@ let simplify_symb_state
 				
 				(* List unification *)
 				| le1, le2 when (isList le1 && isList le2) ->
-					(* print_debug (Printf.sprintf "List unification: %s vs. %s" (print_lexpr le1) (print_lexpr le2)); *)
+					print_debug (Printf.sprintf "List unification: %s vs. %s" (print_lexpr le1) (print_lexpr le2));
 					let ok, subst = unify_lists le1 le2 false in
 					(match ok with
 					(* Error while unifying lists *)
@@ -1580,7 +1425,31 @@ let simplify_symb_state
 							changes_made := true;
 							DynArray.delete pfs !n;
 							List.iter (fun (x, y) -> DynArray.add pfs (LEq (x, y))) subst)
-
+				
+				(* String length *)
+				| LLit (Num len), LUnOp (StrLen, LVar v)
+				| LUnOp (StrLen, LVar v), LLit (Num len) ->
+						(match (Utils.is_int len) with
+						| false -> pfs_ok := false; msg := "Non-integer string-length. Good luck."
+						| true -> 
+							let len = int_of_float len in
+							(match (0 <= len) with
+							| false -> pfs_ok := false; msg := "Sub-zero length. Good luck."
+							| true -> 
+									let subst_list = Array.to_list (Array.init len (fun _ -> fresh_lvar())) in
+									let new_exists = !exists in
+									let new_exists = List.fold_left (fun ac v -> 
+										initial_existentials := SS.add v !initial_existentials;
+										SS.add v ac) new_exists subst_list in
+									exists := new_exists;
+									let subst_list = List.map (fun x -> LVar x) subst_list in
+									
+									(* Changes made, stay on n *)
+									changes_made := true;
+									DynArray.delete pfs !n;
+									DynArray.add pfs (LEq (LVar v, LCList subst_list))
+							)
+						)
 				(* String unification *)
 				| se1, se2 when (isInternalString se1 && isInternalString se2) ->
 					print_debug (Printf.sprintf "String unification: %s vs. %s" (print_lexpr se1) (print_lexpr se2));
@@ -1625,12 +1494,10 @@ let simplify_symb_state
 			| _ -> n := !n + 1);
 		done;
 	done;
-	
+
+	(* String translation: Move back from internal representation to Strings - EVERYWHERE *)	
 	(* Convert substitutions back to string format *)
 	Hashtbl.filter_map_inplace (fun var lexpr -> Some (logic_expression_map le_list_to_string lexpr)) subst;
-
-	(* Bring back from the subst *)
-	print_debug_petar (Printf.sprintf "The subst is:\n%s" (Symbolic_State_Print.string_of_substitution subst));
 
 	Hashtbl.iter (fun var lexpr -> 
 		(match (not (SS.mem var !initial_existentials) && (save_all || SS.mem var vars_to_save)) with
@@ -1638,12 +1505,14 @@ let simplify_symb_state
 		| true -> DynArray.add pfs (LEq (LVar var, lexpr)))
 		) subst;
 	
-	(* String translation: Move back from internal representation to Strings - EVERYWHERE *)
+	(* Convert Pure Formulas back *)
 	let pfs = DynArray.map (assertion_map le_list_to_string) (get_pf !symb_state) in
 	let symb_state = ref (symb_state_replace_pfs !symb_state pfs) in
+	print_debug (Printf.sprintf "Pfs after simplification (with internal rep): %s" (print_pfs pfs));
 
 	let heap, store, _, _, preds = !symb_state in
 
+	(* Convert Store, Heap and Preds back, which should only change new additions *)
 	Hashtbl.filter_map_inplace (fun var lexpr -> Some (logic_expression_map le_list_to_string lexpr)) store;
 	LHeap.filter_map_inplace (fun loc (fv_list, default) -> 
 		let fn, fv = List.split fv_list in
@@ -1657,12 +1526,12 @@ let simplify_symb_state
 		
 	let others = ref (DynArray.map (assertion_map le_list_to_string) !others) in
 
-	print_debug_petar (Printf.sprintf "Symbolic state after (no internal Strings should be present):%s" (Symbolic_State_Print.string_of_shallow_symb_state !symb_state));
+	(* print_debug_petar (Printf.sprintf "Symbolic state after (no internal Strings should be present):\n%s" (Symbolic_State_Print.string_of_shallow_symb_state !symb_state)); *)
 
 	let end_time = Sys.time() in
 	JSIL_Syntax.update_statistics "simplify_symb_state" (end_time -. start_time);
 	
-	print_debug_petar (Printf.sprintf "Exiting with pfs_ok: %b" !pfs_ok);
+	print_debug_petar (Printf.sprintf "Exiting with pfs_ok: %b\n" !pfs_ok);
 	if (!pfs_ok) 
 		then (!symb_state, subst, !others, !exists)
 		else (pfs_false subst !others !exists !symb_state !msg)
