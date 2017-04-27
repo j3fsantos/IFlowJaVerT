@@ -67,6 +67,7 @@ let rec logic_expression_map f lexpr =
   	| LUnOp (op, e)       -> LUnOp (op, map_e e)
   	| LTypeOf e           -> LTypeOf (map_e e)
   	| LEList le           -> LEList (List.map map_e le)
+  	| LCList le           -> LCList (List.map map_e le)
   	| LLstNth (e1, e2)    -> LLstNth (map_e e1, map_e e2)
   	| LStrNth (e1, e2)    -> LStrNth (map_e e1, map_e e2)
   	| LUnknown            -> LUnknown
@@ -127,6 +128,7 @@ let rec get_logic_expression_literals le =
 	| LNone | LVar _ | ALoc _ | PVar _ | LUnknown -> []
 	| LBinOp (le1, _, le2) | LLstNth (le1, le2) | LStrNth (le1, le2)  -> (fe le1) @ (fe le2)
 	| LUnOp (_, le) |	LTypeOf le -> fe le
+	| LCList les
  	| LEList les -> List.concat (List.map fe les)
 
 let rec get_assertion_literals a =
@@ -158,7 +160,8 @@ let rec get_logic_expression_lvars_list le =
 		| LVar x -> [ x ]
 		| LBinOp (le1, _, le2) | LLstNth (le1, le2) | LStrNth (le1, le2) -> (fe le1) @ (fe le2)
 		| LUnOp (_, le) |	LTypeOf le -> fe le
-	 	| LEList les -> List.concat (List.map fe les)
+	 	| LEList les 
+	 	| LCList les -> List.concat (List.map fe les)
 
 let get_logic_expression_lvars le =
 	SS.of_list (get_logic_expression_lvars_list le)
@@ -264,10 +267,11 @@ let rec get_expr_vars catch_pvars e : SS.t =
 				else SS.empty
 	| LUnOp (_, e1) -> f e1
 	| LTypeOf e1 -> f e1
-	| LEList le_list -> 
+	| LEList le_list
+	| LCList le_list -> 
 			List.fold_left (fun ac e -> 
 				let v_e = f e in
-					SS.union ac v_e) SS.empty le_list
+					SS.union ac v_e) SS.empty le_list	
 	| LBinOp (e1, _, e2) 
 	| LLstNth (e1, e2)
 	| LStrNth (e1, e2) -> 
@@ -538,6 +542,10 @@ let rec lexpr_substitution lexpr subst partial =
 		let s_les = List.map (fun le -> (f le)) les in
 		LEList s_les
 
+	| LCList les ->
+		let s_les = List.map (fun le -> (f le)) les in
+		LCList s_les		
+
 	| LLstNth (le1, le2) -> LLstNth ((f le1), (f le2))
 
 	| LStrNth (le1, le2) -> LStrNth ((f le1), (f le2))
@@ -674,6 +682,16 @@ let rec type_lexpr gamma le =
 				(true, [])
 				les) in
 			if (all_typable) then (Some ListType, true, constraints) else (None, false, [])
+	(* LCList *)
+	| LCList les ->
+		let all_typable, constraints =
+			(List.fold_left
+				(fun (ac, ac_constraints) elem ->
+					let (_, ite, constraints) = f elem in
+						((ac && ite), (constraints @ ac_constraints)))
+				(true, [])
+				les) in
+			if (all_typable) then (Some StringType, true, constraints) else (None, false, [])
 
  	| LUnOp (unop, e) ->
 		let (te, ite, constraints) = f e in
