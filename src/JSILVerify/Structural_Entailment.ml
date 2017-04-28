@@ -177,7 +177,8 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (* solver *) (gamm
 			let osubst = Simplifications.unify_lists le_pat le false in
 			(match osubst with
 			| None, _ -> (false, None)
-			| Some _, sb ->
+			| Some false, _ -> (false, None)
+			| Some true, sb ->
 				
 				let rec loop sb outcome constraints = 
 					(match sb with 
