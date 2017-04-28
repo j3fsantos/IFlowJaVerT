@@ -486,7 +486,7 @@ let encode_unop op le =
 	| ToStringOp -> 
 		let le_n      = Expr.mk_app ctx lit_operations.number_accessor  [ le ] in 
 		let op_le_n   = Expr.mk_app ctx axiomatised_operations.num2str_fun [ le_n ] in
-		Expr.mk_app ctx lit_operations.number_constructor [ op_le_n ]
+		Expr.mk_app ctx lit_operations.string_constructor [ op_le_n ]
 
 	| ToNumberOp -> 
 		let le_s      = Expr.mk_app ctx lit_operations.string_accessor  [ le ] in 
