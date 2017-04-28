@@ -125,6 +125,8 @@ type js_logic_assertion =
 	| JSLPred				of string  * (js_logic_expr list)
 	| JSLTypes  		    of (string * jsil_type) list
 	| JSLScope      		of string  * js_logic_expr
+	| JSLVarSChain          of string * string * js_logic_expr * js_logic_expr
+	| JSOSChains            of string * js_logic_expr * string * js_logic_expr
 	| JSFunObj      		of string  * js_logic_expr * js_logic_expr * (js_logic_expr option) 
 	| JSClosure     		of ((string * js_logic_expr) list) * ((string * js_logic_expr) list)
 	| JSEmptyFields			of js_logic_expr * (js_logic_expr list)
@@ -338,6 +340,29 @@ let rec js2jsil_logic cur_fid cc_tbl vis_tbl fun_tbl (a : js_logic_assertion) : 
 				var_les in 	
 		JSIL_Logic_Utils.star_asses (scope_chain_assertions @ scope_var_assertions) 
 
+	| _ -> raise (Failure "js2jsil_logic: new assertions not implemented")
+(*
+	| JSLVarSChain (pid, x, le_x, le_sc) -> 
+		et var_to_fid_tbl = 
+			(match cc_tbl with 
+			| Some cc_tbl -> Hashtbl.find cc_tbl cur_fid  
+			| None -> raise (Failure "DEATH: js2jsil_logic")) in 
+		if (Hashtbl.mem var_to_fid_tbl x) then (
+			let fid = Hashtbl.find var_to_fid_tbl x in
+			if (fid = main_fid) 
+				then LPointsTo (
+							LLit (Loc Js2jsil_constants.locGlobName), 
+							LLit (String x), 
+							LEList [ LLit (String "d"); (fe le); LLit (Bool true); LLit (Bool true); LLit (Bool false) ])
+			 	else (if (fid = cur_fid) 
+					then LPointsTo (PVar Js2jsil_constants.var_er, LLit (String x), fe le) 
+					else LPointsTo (LVar (fid_to_lvar fid), LLit (String x), fe le)))
+			else (
+				LPointsTo (
+							LLit (Loc Js2jsil_constants.locGlobName), 
+							LLit (String x), 
+							LEList [ LLit (String "d"); (fe le); LLit (Bool true); LLit (Bool true); LLit (Bool false) ])
+			)	*)  
 
 let translate_predicate_def pred_def cc_tbl vis_tbl fun_tbl = 
 	let jsil_params = List.map js2jsil_lexpr pred_def.js_params in 
