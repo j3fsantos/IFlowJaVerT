@@ -473,7 +473,6 @@ let encode_unop op le =
 	
 	| LstLen     -> 
 		let le_lst      = Expr.mk_app ctx lit_operations.list_accessor  [ le ] in 
-		Printf.printf "I am going to die here! with: %s\n" (Expr.to_string le_lst);
 		let op_le_lst   = Expr.mk_app ctx axiomatised_operations.llen_fun [ le_lst ] in
 		
 		Expr.mk_app ctx lit_operations.number_constructor [ op_le_lst ]
@@ -783,16 +782,46 @@ let make_relevant_axioms a =
 	s_axioms @ l_axioms 
 
 
-
 let check_satisfiability assertions gamma =
-	print_debug_petar (Printf.sprintf "Non-simplified:\nPure formulae:\n%s\nGamma:\n%s\n\n"
-		(Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list assertions) false)
-		(Symbolic_State_Print.string_of_gamma gamma));
-	let solver = get_new_solver assertions gamma in
-	print_debug_petar (Printf.sprintf "ENT: About to check the following:\n%s" (string_of_solver solver));
-	let ret_solver = (Solver.check solver []) in
-	let ret = (ret_solver = Solver.SATISFIABLE) in
-	ret
+	let start_time = Sys.time () in
+	
+	(* print_debug_petar (Printf.sprintf "Non-simplified:\nPure formulae:\n%s\nGamma:\n%s\n\n"
+	(Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list assertions) false)
+	(Symbolic_State_Print.string_of_gamma gamma)); *)
+	
+	let new_assertions, new_gamma = Simplifications.simplify_pfs (DynArray.of_list assertions) gamma None in
+	
+	(* print_debug_petar (Printf.sprintf "Simplified:\nPure formulae:\n%s\nGamma:\n%s\n\n"
+			(Symbolic_State_Print.string_of_shallow_p_formulae new_assertions false)
+			(Symbolic_State_Print.string_of_gamma new_gamma)); *)
+			
+	let new_assertions = DynArray.to_list new_assertions in
+	let new_assertions_set = SA.of_list new_assertions in
+
+	if (Hashtbl.mem JSIL_Syntax.check_sat_cache new_assertions_set) then
+	begin
+		let ret = Hashtbl.find JSIL_Syntax.check_sat_cache new_assertions_set in
+		let end_time = Sys.time() in
+		JSIL_Syntax.update_statistics "check_sat_alt" (end_time -. start_time);
+		JSIL_Syntax.update_statistics "sat_cache" 0.;
+		ret
+	end
+	else
+	begin
+		(* print_debug_petar (Printf.sprintf "Firing sat check:\nPFS:\n%s\nGamma:\n%s\n"
+			(Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list new_assertions) false)
+			(Symbolic_State_Print.string_of_gamma new_gamma)); *)
+	
+		let solver = get_new_solver new_assertions new_gamma in
+		print_debug_petar (Printf.sprintf "ENT: About to check the following:\n%s" (string_of_solver solver));
+		let ret_solver = (Solver.check solver []) in
+		let ret = (ret_solver = Solver.SATISFIABLE) in
+		Hashtbl.add JSIL_Syntax.check_sat_cache new_assertions_set ret;
+		let end_time = Sys.time () in 
+		JSIL_Syntax.update_statistics "solver_call" 0.;
+		JSIL_Syntax.update_statistics "check_sat_alt" (end_time -. start_time);
+		ret
+	end
 
 
 let check_entailment (existentials : SS.t) 
@@ -807,9 +836,19 @@ let check_entailment (existentials : SS.t)
 	   (Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list left_as) false)
 	   (Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list right_as) false)
 	   (Symbolic_State_Print.string_of_gamma gamma));
-
+	
+	let existentials, left_as, right_as, gamma =
+		Simplifications.simplify_implication existentials (DynArray.of_list left_as) (DynArray.of_list right_as) (copy_gamma gamma) in
+	let right_as = Simplifications.simplify_equalities_between_booleans right_as in 
+	Simplifications.filter_gamma_pfs (DynArray.of_list (DynArray.to_list left_as @ DynArray.to_list right_as)) gamma;
+	
 	(* If right is empty, then the left only needs to be satisfiable *)
-	if ((List.length right_as) = 0) then check_satisfiability left_as gamma else
+	if (DynArray.empty right_as) then check_satisfiability (DynArray.to_list left_as) gamma else
+	(* If left or right are directly false, everything is false *)
+	if (DynArray.get right_as 0 = LFalse || (DynArray.length left_as <> 0 && DynArray.get left_as 0 = LFalse)) then false else
+	
+	let left_as = DynArray.to_list left_as in
+	let right_as = DynArray.to_list right_as in
 	
 	let left_as_axioms = List.concat (List.map make_relevant_axioms left_as) in 
 	let left_as = List.map encode_assertion_top_level (left_as_axioms @ left_as) in
@@ -838,9 +877,14 @@ let check_entailment (existentials : SS.t)
 					
 		Solver.add solver (right_as_or :: right_as_axioms);
 		print_debug_petar (Printf.sprintf "ENT: About to check the following:\n%s" (string_of_solver solver));
+		
+		let start_time = Sys.time () in
 		let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in
-		print_time_debug (Printf.sprintf "check_entailment done: %b. INNER" ret);
-		if (not ret) then print_model solver; 
+		let end_time = Sys.time () in
+		JSIL_Syntax.update_statistics "solver_call" 0.;
+		JSIL_Syntax.update_statistics "check_entailment_alt" (end_time -. start_time);
+		
+		(* if (not ret) then print_model solver; *) 
 		ret) 
 	else (
 		print_time_debug "check_entailment done: false. OUTER";
