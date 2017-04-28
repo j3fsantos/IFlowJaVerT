@@ -687,24 +687,42 @@ let rec split_list_on_element (le : jsil_logic_expr) (e : jsil_logic_expr) : boo
 		raise (Failure msg))
 
 (* Unifying lists based on a common literal *)
-let match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : bool * (jsil_logic_expr * jsil_logic_expr) * (jsil_logic_expr * jsil_logic_expr) =
+let match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : 
+	bool * (jsil_logic_expr * jsil_logic_expr) * (jsil_logic_expr * jsil_logic_expr) * (jsil_logic_expr * jsil_logic_expr) option =
 	let elems1 = get_elements_from_list le1 in
 	(match elems1 with
-	| [] -> false, (LLit (Bool false), LLit (Bool false)), (LLit (Bool false), LLit (Bool false))
+	| [] -> false, (LLit (Bool false), LLit (Bool false)), (LLit (Bool false), LLit (Bool false)), None
 	| _ ->
 		let elems2 = get_elements_from_list le2 in
 		(match elems2 with
-		| [] -> false, (LLit (Bool false), LLit (Bool false)), (LLit (Bool false), LLit (Bool false))
+		| [] -> false, (LLit (Bool false), LLit (Bool false)), (LLit (Bool false), LLit (Bool false)), None
 		| _ -> 
+			print_debug_petar (Printf.sprintf "LEL: %s\nREL: %s"
+				(String.concat ", " (List.map (fun x -> print_lexpr x) elems1))	
+				(String.concat ", " (List.map (fun x -> print_lexpr x) elems2))	
+			);
 			let intersection = List.fold_left (fun ac x -> 
 				if (List.mem x elems1) then ac @ [x] else ac) [] elems2 in
+			let intersection, list_unification = (match intersection with
+			| [] -> 
+					let len1 = List.length elems1 in
+					let len2 = List.length elems2 in
+					(match len1, len2 with
+					| 1, 1 -> (match elems1, elems2 with
+						| [ le1 ], [ le2 ] -> if (isList le1) && (isList le2) 
+							then Some (le1, le2), Some (le1, le2)
+							else None, None
+						| _, _ -> raise (Failure "Should not happen."))
+					| _, _ -> None, None)
+			| i :: _ -> Some (i, i), None) in
 			(match intersection with
-			| [] -> false, (LLit (Bool false), LLit (Bool false)), (LLit (Bool false), LLit (Bool false))
-			| i :: _ ->
+			| None -> false, (LLit (Bool false), LLit (Bool false)), (LLit (Bool false), LLit (Bool false)), None
+			| Some (i, j) ->
+				print_debug_petar (Printf.sprintf "(Potential) Intersection: %s, %s" (print_lexpr i) (print_lexpr j));
 				let ok1, (l1, r1) = split_list_on_element le1 i in
-				let ok2, (l2, r2) = split_list_on_element le2 i in
+				let ok2, (l2, r2) = split_list_on_element le2 j in
 				(match ok1, ok2 with
-				| true, true -> true, (l1, r1), (l2, r2) 
+				| true, true -> true, (l1, r1), (l2, r2) , list_unification
 				| _, _ -> let msg = Printf.sprintf "Element %s that was supposed to be in both lists: %s, %s is not." (print_lexpr i) (print_lexpr le1) (print_lexpr le2) in
 						raise (Failure msg)))
 		))
@@ -758,7 +776,7 @@ let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bo
 			| Some _, Some _ -> 
 				(* This means that we have on at least one side a LstCat with a leading variable and we need to dig deeper *)
 				(* Get all literals on both sides, find first match, then split and call again *)
-				let ok, (ll, lr), (rl, rr) = match_lists_on_element le1 le2 in
+				let ok, (ll, lr), (rl, rr), more_to_unify = match_lists_on_element le1 le2 in
 				(match ok with
 					| true -> 
 							let okl, left = unify_lists ll rl to_swap in
@@ -768,7 +786,13 @@ let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bo
 								let okr, right = unify_lists lr rr to_swap in
 								(match okr with
 								| None -> None, []
-								| _ -> Some true, left @ right))
+								| _ -> (match more_to_unify with
+									| None -> Some true, left @ right
+									| Some (lm, rm) -> let okm, more = unify_lists lm rm to_swap in
+										(match okm with
+										| None -> None, []
+										| _ -> Some true, left @ right @ more))
+									))
 					| false -> Some false, [ swap (le1, le2) ])
 			(* A proper error occurred while getting head and tail *)
 			| _, _ -> None, [])
@@ -777,11 +801,11 @@ let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bo
 			raise (Failure msg)
 	)
 
-(* ******* *
- *         *
+(* *********** *
+ *             *
  * STRINGS WIP *
- *         *
- * ******* *)
+ *             *
+ * *********** *)
 
 let isString (se : jsil_logic_expr) : bool =
 match se with
@@ -1207,7 +1231,7 @@ let simplify_symb_state
 	Hashtbl.filter_map_inplace (fun v t ->
 		(match (save_all || SS.mem v (SS.union lvars_inter (SS.union vars_to_save !initial_existentials))) with
 		| true  -> Some t
-		| false -> print_debug (Printf.sprintf "Cutting %s : %s from gamma" v (JSIL_Print.string_of_type t)); None)) gamma;
+		| false -> (* print_debug (Printf.sprintf "Cutting %s : %s from gamma" v (JSIL_Print.string_of_type t)); *) None)) gamma;
 		
 	(* Setup the type indexes *)
 	let types = Array.make type_length 0 in
@@ -1371,7 +1395,7 @@ let simplify_symb_state
 	    						let t = Hashtbl.find gamma v in
 	    						let it = type_index t in
 	    						types.(it) <- types.(it) - 1;
-									print_debug_petar (Printf.sprintf "Removing from gamma: %s" v);
+									(* print_debug_petar (Printf.sprintf "Removing from gamma: %s" v); *)
 	    						Hashtbl.remove gamma v 
 	    					done);
 						
