@@ -182,7 +182,11 @@ let rec js2jsil_logic_cmds logic_cmds =
 		| (JSLVar ret_var) :: rest_les -> 
 			(*Printf.printf "I am translating a callspec for function %s with retvar %s" s ret_var;*)
 			if (is_lvar_name ret_var)
-			 	then (CallSpec (s, ret_var, List.map fe rest_les)) :: (js2jsil_logic_cmds rest)
+			 	then ( 
+			 		let args' = List.map fe rest_les in 
+			 		let args' = (PVar Js2jsil_constants.var_scope) :: ((PVar Js2jsil_constants.var_this) :: args') in 
+			 		CallSpec (s, ret_var, args') :: (js2jsil_logic_cmds rest)
+			 	)
 			 	else raise (Failure "DEATH: js2jsil_logic_cmds")
 		| _ ->  raise (Failure "DEATH: js2jsil_logic_cmds")
 	| _ -> raise (Failure "DEATH: No such logic command")

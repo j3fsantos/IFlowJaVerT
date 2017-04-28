@@ -826,6 +826,8 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars : (symbo
 		List.iter (fun spec -> if (spec.n_post = []) then print_debug "Exists spec with no post.") proc_specs.n_proc_specs;
 
 		(* symbolically evaluate the args *)
+		Printf.printf "The arguments to the callspec are the following:\n%s\n"
+			(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) l_args)); 
 		let le_args = List.map (fun le -> Normaliser.normalise_lexpr (get_store symb_state) (get_gamma symb_state) subst le) l_args in
 		let new_symb_states = find_and_apply_spec s_prog.program spec_name proc_specs symb_state le_args in
 
