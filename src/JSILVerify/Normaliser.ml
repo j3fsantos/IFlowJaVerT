@@ -126,9 +126,9 @@ let rec normalise_lexpr store gamma subst le =
 			| _, _ -> LStrNth (nle1, nle2)) in
 		let end_time = Sys.time () in
 		JSIL_Syntax.update_statistics "normalise_lexpr" (end_time -. start_time);
-		print_debug_petar (Printf.sprintf "normalise_lexpr: %f : %s -> %s" 
+		(* print_debug_petar (Printf.sprintf "normalise_lexpr: %f : %s -> %s" 
 			(end_time -. start_time) (JSIL_Print.string_of_logic_expression le false) 
-			(JSIL_Print.string_of_logic_expression result false));
+			(JSIL_Print.string_of_logic_expression result false)); *)
 		result)
 	with
 	| Failure msg -> let end_time = Sys.time () in
@@ -158,9 +158,9 @@ let rec normalise_pure_assertion store gamma subst assertion =
 			raise (Failure msg)) in
 	let end_time = Sys.time () in
 	JSIL_Syntax.update_statistics "normalise_pure_assertion" (end_time -. start_time);
-	print_debug (Printf.sprintf "normalise_pure_assertion: %f : %s -> %s" 
+	(* print_debug (Printf.sprintf "normalise_pure_assertion: %f : %s -> %s" 
 			(end_time -. start_time) (JSIL_Print.string_of_logic_assertion assertion false) 
-			(JSIL_Print.string_of_logic_assertion result false));
+			(JSIL_Print.string_of_logic_assertion result false)); *)
 		result)
 	with
 	| Failure msg -> let end_time = Sys.time () in

@@ -776,7 +776,7 @@ let make_relevant_axioms a =
 	let a_lists      = JSIL_Logic_Utils.get_assertion_lists a in
 	let l_axioms     = List.concat (List.map make_list_axioms a_lists) in 	
 
-	print_debug_petar (Printf.sprintf "Generated List Axioms:\n%s\n"
+	if (List.length l_axioms > 0) then print_debug_petar (Printf.sprintf "Generated List Axioms:\n%s\n"
 	   (Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list l_axioms) false));
 
 	s_axioms @ l_axioms 

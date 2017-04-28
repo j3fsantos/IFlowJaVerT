@@ -1515,5 +1515,6 @@ let unify_symb_state_against_invariant symb_state inv_symb_state lvars =
 		let new_symb_state = merge_symb_states symb_state inv_symb_state subst in
 		let subst_pfs = assertions_of_substitution subst in 
 		extend_symb_state_with_pfs symb_state (DynArray.of_list subst_pfs); 
+		let symb_state = Simplifications.simplify_ss symb_state (Some (Some lvars)) in
 		Some symb_state
 	| _ -> None 
