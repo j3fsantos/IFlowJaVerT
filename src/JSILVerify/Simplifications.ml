@@ -1123,9 +1123,9 @@ let simplify_symb_state
 		| Some None     -> SS.empty, true
 		| None          -> SS.empty, false) in
 
-	print_debug_petar (Printf.sprintf "Vars_to_save: %s" (String.concat ", " (SS.elements vars_to_save)));
-	print_debug_petar (Printf.sprintf "Save_all: %b" save_all);
-	print_debug_petar (Printf.sprintf "Existentials: %s" (String.concat ", " (SS.elements existentials)));
+	(* print_debug_petar (Printf.sprintf "Vars_to_save: %s" (String.concat ", " (SS.elements vars_to_save))); *)
+	(* print_debug_petar (Printf.sprintf "Save_all: %b" save_all); *)
+	(* print_debug_petar (Printf.sprintf "Existentials: %s" (String.concat ", " (SS.elements existentials))); *)
 
 	(* Pure formulae false *)
 	let pfs_false subst others exists symb_state msg =
@@ -1200,7 +1200,7 @@ let simplify_symb_state
 	 * and are also not in vars_to_save
 	 * and are also not in others
 	 *)
-	print_debug (Printf.sprintf "SS: %s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state));
+	(* print_debug (Printf.sprintf "SS: %s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state)); *)
 	let lvars = SS.union (get_symb_state_vars_no_gamma false symb_state) (get_pf_vars false other_pfs) in
 	let lvars_gamma = get_gamma_all_vars gamma in		
 	let lvars_inter = SS.inter lvars lvars_gamma in
@@ -1223,7 +1223,7 @@ let simplify_symb_state
 
 	(* String translation: Use internal representation as Chars *)
 	let pfs = DynArray.map (assertion_map le_string_to_list) pfs in
-	print_debug (Printf.sprintf "Pfs before simplification (with internal rep): %s" (print_pfs pfs));
+	(* print_debug_petar (Printf.sprintf "Pfs before simplification (with internal rep): %s" (print_pfs pfs)); *)
 	let symb_state = symb_state_replace_pfs symb_state pfs in 
 	
 	let changes_made = ref true in
@@ -1508,7 +1508,7 @@ let simplify_symb_state
 	(* Convert Pure Formulas back *)
 	let pfs = DynArray.map (assertion_map le_list_to_string) (get_pf !symb_state) in
 	let symb_state = ref (symb_state_replace_pfs !symb_state pfs) in
-	print_debug (Printf.sprintf "Pfs after simplification (with internal rep): %s" (print_pfs pfs));
+	(* print_debug (Printf.sprintf "Pfs after simplification (with internal rep): %s" (print_pfs pfs)); *)
 
 	let heap, store, _, _, preds = !symb_state in
 
