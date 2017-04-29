@@ -1322,16 +1322,15 @@ let add_new_spec spec proc_name pre_post result_states new_spec_tbl =
 					(* The new postconition is the final state after evaluation *)
 					let new_pre  =  Symbolic_State_Utils.bi_merge_symb_states anti_frame pre_post.n_pre in 
 					remove_concrete_values_from_the_store new_pre; 
-					let new_pre_with_subst = Symbolic_State_Utils.convert_lvars_to_spec_vars new_pre in
-					let new_post_with_subst = Symbolic_State_Utils.convert_lvars_to_spec_vars post_state in
-					Simplifications.naively_infer_type_information_symb_state new_pre_with_subst; 
-					Simplifications.naively_infer_type_information_symb_state new_post_with_subst; 
-					let post_lvars = Symbolic_State_Utils.get_symb_state_lvars new_pre_with_subst in
+					let (pre_subst,post_subst) = Symbolic_State_Utils.symb_state_lvars_to_svars new_pre post_state in
+					Simplifications.naively_infer_type_information_symb_state pre_subst; 
+					Simplifications.naively_infer_type_information_symb_state post_subst; 
+					let post_lvars = Symbolic_State_Utils.get_symb_state_lvars pre_subst in
 					print_endline "Pre Spec Vars";
-					let pre_lvars = Symbolic_State_Utils.get_symb_state_lvars new_post_with_subst in
+					let pre_lvars = Symbolic_State_Utils.get_symb_state_lvars post_subst in
 					let new_proc_spec = {
-						n_pre        = new_pre_with_subst;
-						n_post       = [new_post_with_subst];
+						n_pre        = pre_subst;
+						n_post       = [post_subst];
 						n_ret_flag   = ret_flag;
 						n_lvars      = pre_lvars;
 						n_post_lvars = [post_lvars];

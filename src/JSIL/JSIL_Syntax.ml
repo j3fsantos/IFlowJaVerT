@@ -543,10 +543,12 @@ let fresh_sth (name : string) : (unit -> string) =
 let abs_loc_prefix = "_$l_"
 let lvar_prefix = "_lvar_"
 let pvar_prefix = "_pvar_"
+let svar_prefix = "s_"
 
 let fresh_aloc = fresh_sth abs_loc_prefix
 let fresh_lvar = fresh_sth lvar_prefix
 let fresh_pvar = fresh_sth pvar_prefix
+let fresh_svar = fresh_sth svar_prefix
 
 let fresh_lvar_from_lvar_name =
 	let lvar_tbl = Hashtbl.create small_tbl_size in
@@ -577,8 +579,8 @@ let is_pvar_name (name : string) : bool =
 let is_spec_var_name (name : string) : bool =
 	((String.sub name 0 1) = "#")
 
-let fresh_spec_var (name : string) : string =
-	( "##" ^ name)
+let fresh_spec_var () : string =
+	( "##" ^ fresh_svar ())
 
 (* A substitution type                                 *)
 type substitution = ((string, jsil_logic_expr) Hashtbl.t)
