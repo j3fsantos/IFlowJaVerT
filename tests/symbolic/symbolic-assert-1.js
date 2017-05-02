@@ -7,7 +7,7 @@ function top(n) {
 }
 
 var n_number = jsil_make_symbolic_number (n1); 
-jsil_assume ((n_number > 0) && (n_number < 2) && (typeof(n_number) == "number")); 
+jsil_assume ((n_number > 0) && (n_number < 4)); 
 
 var t = top(n_number);
 jsil_assert((t != 1) && (t != 0)); 
