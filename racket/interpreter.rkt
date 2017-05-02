@@ -6,6 +6,7 @@
 (require (file "assertions.rkt"))
 
 (define depth 0)
+(define success #f)
 
 ;;
 ;; SSkip      ()                  'skip       DONE
@@ -129,7 +130,12 @@
               (loc-val (run-expr loc-expr store)))
          ;; (println (format "deleting the object: ~v" loc-val))
          (heap-delete-object heap loc-val)
-         #t)] 
+         #t)]
+      ;;
+      ;; ('success)
+      [(eq? cmd-type 'success)
+        ;; (println (format "terminating success"))
+        (set! success #t) #t] 
       ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))
 
@@ -466,7 +472,7 @@
   (jsil-discharge)
   (run-proc prog "main" heap '()))
   
-(provide run-program run-proc program procedure heap cell store args body ret-ctx err-ctx jempty jnull jundefined protop get-assertions get-assumptions) ;; jtrue jfalse protop)
+(provide run-program run-proc program procedure heap cell store args body ret-ctx err-ctx jempty jnull jundefined protop get-assertions get-assumptions success) ;; jtrue jfalse protop)
 
 
 

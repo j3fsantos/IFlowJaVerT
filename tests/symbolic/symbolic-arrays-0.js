@@ -1,4 +1,4 @@
-var f1 = jsil_make_symbolic_number (n1); 
+var f1 = jsil_make_symbolic_string (s1); 
 
 var a = [ 1 ];
 var v1 = a[f1];

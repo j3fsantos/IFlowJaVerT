@@ -4440,6 +4440,7 @@ let generate_main offset_converter e main cc_table spec =
 	
 	let cmd_del_te = annotate_cmd (SLBasic (SDeleteObj (Var var_te))) None in
 	let cmd_del_se = annotate_cmd (SLBasic (SDeleteObj (Var var_se))) None in
+	let cmd_terminate_successfully = annotate_cmd (SLBasic STerminate) None in 
 
 	let main_cmds =
 		[ init_scope_chain_ass; lg_ass; this_ass] @
@@ -4447,16 +4448,16 @@ let generate_main offset_converter e main cc_table spec =
 		[ cmd_ass_te; cmd_ass_se ] @
 		cmds_hoist_fdecls @
 		cmds_e @
-		[ret_ass; cmd_del_te; cmd_del_se; lab_ret_skip; cmd_err_phi_node ] in
+		[ret_ass; cmd_del_te; cmd_del_se; cmd_terminate_successfully; lab_ret_skip; cmd_err_phi_node ] in
 	{
-		lproc_name = main;
-    lproc_body = (Array.of_list main_cmds);
-    lproc_params = [];
-		lret_label = Some ctx.tr_ret_lab;
-		lret_var = Some ctx.tr_ret_var;
+		lproc_name   = main;
+    	lproc_body   = (Array.of_list main_cmds);
+    	lproc_params = [];
+		lret_label   = Some ctx.tr_ret_lab;
+		lret_var     = Some ctx.tr_ret_var;
 		lerror_label = Some ctx.tr_error_lab;
-		lerror_var = Some ctx.tr_error_var;
-		lspec = spec
+		lerror_var   = Some ctx.tr_error_var;
+		lspec        = spec
 	}
 
 let generate_proc_eval new_fid e cc_table vis_fid =

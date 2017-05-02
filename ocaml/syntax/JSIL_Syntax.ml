@@ -191,16 +191,17 @@ let field r = LstNth (r, lit_int 2)
 (** {b JSIL Basic Commands}. JSIL basic commands include the standard set of commands one 
     might expect of a language with extensible objects. *)
 type jsil_basic_cmd =
-	| SSkip                                            (** Empty command *)                         
-	| SAssignment of jsil_var * jsil_expr              (** Assignment *)
-	| SNew        of jsil_var                          (** Object creation *)
-	| SLookup     of jsil_var * jsil_expr * jsil_expr  (** Field lookup *)
-	| SMutation   of jsil_expr * jsil_expr * jsil_expr (** Field mutation *)
-	| SDelete     of jsil_expr * jsil_expr             (** Field deletion *)
-	| SDeleteObj  of jsil_expr                         (** Object deletion *)
-	| SHasField   of jsil_var * jsil_expr * jsil_expr  (** Field check *)
-	| SGetFields  of jsil_var * jsil_expr              (** All* fields of an object *)
+	| SSkip                                            (** Empty command                     *)                         
+	| SAssignment of jsil_var * jsil_expr              (** Assignment                        *)
+	| SNew        of jsil_var                          (** Object creation                   *)
+	| SLookup     of jsil_var * jsil_expr * jsil_expr  (** Field lookup                      *)
+	| SMutation   of jsil_expr * jsil_expr * jsil_expr (** Field mutation                    *)
+	| SDelete     of jsil_expr * jsil_expr             (** Field deletion                    *) 
+	| SDeleteObj  of jsil_expr                         (** Object deletion                   *)
+	| SHasField   of jsil_var * jsil_expr * jsil_expr  (** Field check                       *)
+	| SGetFields  of jsil_var * jsil_expr              (** All* fields of an object          *)
 	| SArguments  of jsil_var                          (** Arguments of the current function *)
+	| STerminate                                       (** indicate successful termination   *)
 
 (** {b JSIL Commands}. JSIL commands incorporate basic commands as well as commands that
     affect control flow, which are goto statements, function calls, and PHI-nodes, which

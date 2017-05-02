@@ -199,6 +199,8 @@ let rec string_of_bcmd bcmd i line_numbers_on escape_string =
 	| SGetFields (var, e) -> Printf.sprintf "%s%s := getFields (%s)" str_i var (se e)
 	(* x := args *)
 	| SArguments var -> Printf.sprintf "%s%s := args" str_i var
+	(* terminate_successfully *)
+	| STerminate -> Printf.sprintf "%ssuccess" str_i 
 
 (** JSIL logical expressions *)
 let rec string_of_logic_expression e escape_string =

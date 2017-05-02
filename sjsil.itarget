@@ -1,2 +1,3 @@
 ocaml/js2jsil.native
 ocaml/jsil2rkt.native
+ocaml/specs2code.native

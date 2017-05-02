@@ -9,5 +9,6 @@ cp ocaml/js2jsil/runtime/*.jsil environment
 cp ocaml/js2jsil/runtime/harness.js environment
 cp js2jsil.native environment
 cp jsil2rkt.native environment
+cp specs2code.native environment
 cp remake.sh environment
 cp run.sh environment

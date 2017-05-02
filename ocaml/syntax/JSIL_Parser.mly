@@ -127,6 +127,7 @@ open JS_Logic_Syntax
 %token APPLY
 %token PHI
 %token PSI
+%token SUCCESS
 (* Logic variables *)
 %token <string> LVAR
 (* Logical expressions *)
@@ -373,6 +374,9 @@ cmd_target:
 (* delete(e1, e2) *)
 	| DELETE; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
 		{ SLBasic (SDelete (e1, e2)) }
+(* success *)
+	| SUCCESS
+		{ SLBasic (STerminate) }
 (* deleteObject(e1) *)
 	| DELETEOBJ; LBRACE; e1=expr_target; RBRACE
 		{ SLBasic (SDeleteObj (e1)) }

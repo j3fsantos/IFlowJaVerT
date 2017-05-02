@@ -100,24 +100,26 @@ let rec sexpr_of_bcmd bcmd i line_numbers_on =
 	match bcmd with
 	(* ('skip) *)
   | SSkip -> Printf.sprintf "'(%sskip)" str_i
-	(* ('var_assign var e) *)
+	(* ('var_assign var e)       *)
 	| SAssignment (var, e) -> Printf.sprintf "'(%sv-assign %s %s)" str_i var (se e)
-	(* ('new var) *)
+	(* ('new var)                *)
 	| SNew var -> Printf.sprintf "'(%snew %s)" str_i var
- 	(* ('h-read var e1 e2)	*)
+ 	(* ('h-read var e1 e2)	     *)
 	| SLookup (var, e1, e2) -> Printf.sprintf "'(%sh-read %s %s %s)" str_i var (se e1) (se e2)
-	(* ('h-assign var e e) *)
+	(* ('h-assign var e e)       *)
 	| SMutation (e1, e2, e3) -> Printf.sprintf "'(%sh-assign %s %s %s)" str_i (se e1) (se e2) (se e3)
-	(* ('delete var e1 e2) *)
+	(* ('delete var e1 e2)       *)
 	| SDelete (e1, e2) ->  Printf.sprintf "'(%sh-delete %s %s)" str_i (se e1) (se e2)
-	(* ('delete-object e1)*)
+	(* ('delete-object e1)       *)
 	| SDeleteObj (e1) ->  Printf.sprintf "'(%sdelete-object %s)" str_i (se e1)
-	(* ('has-field var e1 e2) *)
-  | SHasField (var, e1, e2) -> Printf.sprintf "'(%shas-field %s %s %s)" str_i var (se e1) (se e2)
-  (* ('get-fields var e) *)
+	(* ('has-field var e1 e2)    *)
+    | SHasField (var, e1, e2) -> Printf.sprintf "'(%shas-field %s %s %s)" str_i var (se e1) (se e2)
+    (* ('get-fields var e)       *)
 	| SGetFields (var, e) -> Printf.sprintf "'(%sget-fields %s %s)" str_i var (se e)
-	(* ('arguments var) *)
+	(* ('arguments var)          *)
 	| SArguments (var) -> Printf.sprintf "'(%sarguments %s)" str_i var
+	(* ('terminate-successfully) *)
+    | STerminate -> Printf.sprintf "'(%ssuccess)" str_i
 
 
 let rec sexpr_of_cmd sjsil_cmd tabs i line_numbers_on =
