@@ -1111,14 +1111,13 @@ and symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state cur next
 						(* Invariant present, check if the current symbolic state entails the invariant *)
 						| Some a ->
 							let inv_lvars = get_assertion_lvars a in
-							let new_spec_vars = SS.union inv_lvars spec.n_lvars in
-							let spec = { spec with n_lvars = new_spec_vars } in
+							let new_spec_vars_for_later = SS.union inv_lvars spec.n_lvars in
 							Printf.printf "LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
 							let new_symb_state, _ = Normaliser.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
 							let new_symb_state = Simplifications.simplify_ss new_symb_state (Some (Some spec.n_lvars)) in			
-							(match (Structural_Entailment.unify_symb_state_against_invariant symb_state new_symb_state spec.n_lvars) with
+							(match (Structural_Entailment.unify_symb_state_against_invariant symb_state new_symb_state spec.n_lvars inv_lvars) with
 							(* If it does, replace current symbolic state with the invariant *)
-							| Some new_symb_state -> new_symb_state, spec
+							| Some new_symb_state -> new_symb_state, { spec with n_lvars = new_spec_vars_for_later }
 							| None -> raise (Failure "unification with invariant failed")) in
 
 					(* Evaluate logic commands, if any *)

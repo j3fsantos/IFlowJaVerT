@@ -1351,10 +1351,6 @@ let simplify_symb_state
 						simpl_fun !symb_state temp_subst;
 						pf_substitution_in_place !others temp_subst;
 						
-						(*
-						symb_state_substitution_in_place_no_gamma !symb_state temp_subst;
-						pf_substitution_in_place !others temp_subst; *)
-						
 						(* Add to subst *)
 						if (Hashtbl.mem subst v) then 
 							raise (Failure (Printf.sprintf "Impossible variable in subst: %s\n%s"
@@ -1387,9 +1383,27 @@ let simplify_symb_state
 						| _ -> ());
 								
 							
-						(* Remove from gamma *)
+						(* Remove (or add) from (or to) gamma *)
 						(match (save_all || SS.mem v (SS.union vars_to_save !exists)) with
-	      		| true -> ()
+	      		| true -> 
+								let le_type = if ((not (match le with | LVar _ -> true | _ -> false)) && (isString le || isInternalString le)) then Some StringType else
+									let result, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in result in
+								(match le_type with
+								| None -> ()
+								| Some t -> 
+									(match Hashtbl.mem gamma v with
+									| false -> 
+											let it = type_index t in
+											types.(it) <- types.(it) + 1;
+											print_debug_petar (Printf.sprintf "GAT: %s : %s" v (JSIL_Print.string_of_type t));
+											Hashtbl.add gamma v t
+									| true -> 
+											let tv = Hashtbl.find gamma v in
+											(match (tv = t) with
+											| true -> ()
+											| false ->
+													print_debug_petar (Printf.sprintf "Type mismatch: %s -> %s, but %s." v (JSIL_Print.string_of_type tv) (JSIL_Print.string_of_type t)); 
+													pfs_ok := false; msg := "Horrific type mismatch.")))
 	      		| false -> 
 	    					while (Hashtbl.mem gamma v) do 
 	    						let t = Hashtbl.find gamma v in

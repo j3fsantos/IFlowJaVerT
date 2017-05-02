@@ -710,6 +710,18 @@ let unify_preds subst unifier p_formulae gamma =
 		if (not !ok) 
 			then None
 			else Some subst
+			
+			(* (try (
+				Hashtbl.iter (fun v le ->
+					let tv = (match Hashtbl.mem gamma v with
+					| true -> Some (Hashtbl.find gamma v)
+					| false -> None) in
+					let tle, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in
+					(match tv, tle with
+					| Some t1, Some t2 -> if (t1 <> t2) then raise (Failure "!!!")
+					| _, _ -> ())) subst;
+					Some subst) with
+					| Failure _ -> None) *)
 
 (*******************************************************************)
 
@@ -763,7 +775,6 @@ let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) p_form
 					name (String.concat ", " (List.map (fun x -> JSIL_Print.string_of_logic_expression x false) params)))) unmatched_pat_preds;
 			) reasonable_options;
 		print_debug_petar "-------------------------";
-		
 		
 		(match reasonable_options with
 		| [] -> None  
@@ -880,6 +891,7 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 	(* if exists i \in {0, 1, 2} . discharges_i = None => return None                                                                                    *)
 	(* If Step 0 returns a list of discharges and a substitution then the following implication holds:                                                   *)
 	(*    pi_0 |- discharges  => store_0 =_{pi_0} subst(store_1)  /\ heap_0 =_{pi_0} subst(heap_1) + heap_f /\ preds_0 =_{pi_0} subst(preds_1) + preds_f *)
+	
 	let step_0 subst =
 		let start_time = Sys.time() in
 		let discharges_0 = unify_stores store_1 store_0 subst None (pfs_to_list pf_0) (* solver *) gamma_0 in
@@ -946,7 +958,7 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 										| _ -> ()
 										)
 									) new_pfs;
-							
+										
 							(***** EXPERIMENTAL - PUT INTO SEPARATE FUNCTION *****)
 	
 									print_debug_petar "Now unifying heaps again.";
@@ -1502,7 +1514,7 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 
 
 
-let unify_symb_state_against_invariant symb_state inv_symb_state lvars = 
+let unify_symb_state_against_invariant symb_state inv_symb_state lvars existentials = 
 	print_debug (Printf.sprintf "unify_symb_state_against_invariant.\nSymb_state:\n%s.\nINVARIANT symb_state:\n%s" 
 		(Symbolic_State_Print.string_of_shallow_symb_state symb_state) 
 		(Symbolic_State_Print.string_of_shallow_symb_state inv_symb_state)); 	
@@ -1515,6 +1527,6 @@ let unify_symb_state_against_invariant symb_state inv_symb_state lvars =
 		let new_symb_state = merge_symb_states symb_state inv_symb_state subst in
 		let subst_pfs = assertions_of_substitution subst in 
 		extend_symb_state_with_pfs symb_state (DynArray.of_list subst_pfs); 
-		let symb_state = Simplifications.simplify_ss symb_state (Some (Some lvars)) in
+		let symb_state = Simplifications.simplify_ss symb_state (Some (Some (SS.union lvars existentials))) in
 		Some symb_state
 	| _ -> None 

@@ -426,6 +426,8 @@ let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_form
 
 	| _ -> ()
 
+exception InvalidTypeOfLiteral
+
 let rec init_gamma gamma a =
 	let f = init_gamma gamma in
 	match a with
@@ -434,13 +436,7 @@ let rec init_gamma gamma a =
 				(fun (v, t) ->
 							match v with
 							| LLit lit ->
-									if ((evaluate_type_of lit) = t)
-									then ()
-									else
-										(let msg = Printf.sprintf "Only vars or lvars in the typing environment, for the love of God. PUTTING: %s with type %s"
-													(JSIL_Print.string_of_logic_expression v false)
-													(JSIL_Print.string_of_type t) in
-											raise (Failure msg))
+									if (evaluate_type_of lit <> t) then raise InvalidTypeOfLiteral
 
 							| LVar v -> Hashtbl.replace gamma v t
 							| PVar v -> Hashtbl.replace gamma v t
@@ -646,22 +642,25 @@ let normalise_assertion a : symbolic_state * substitution =
 	let gamma = Hashtbl.create 101 in
 	let subst = Hashtbl.create 101 in
 
-	init_gamma gamma a;
-	init_symb_store_alocs store gamma subst a;
-
-	let p_formulae = init_pure_assignments a store gamma subst in
-
-	 (match (DynArray.to_list p_formulae) with
-	 | [ LFalse ] -> (LHeap.create 1, Hashtbl.create 1, DynArray.of_list [ LFalse ], Hashtbl.create 1, DynArray.create()), Hashtbl.create 1
-	 | _ ->
-		fill_store_with_gamma store gamma subst;
-		extend_typing_env_using_assertion_info ((pfs_to_list p_formulae) @ (pf_of_store2 store)) gamma;
-		compute_symb_heap heap store p_formulae gamma subst a;
-		let preds, new_assertions = init_preds a store gamma subst in
-		extend_typing_env_using_assertion_info new_assertions gamma;
-		merge_pfs p_formulae (DynArray.of_list new_assertions);
-		process_empty_fields heap store (pfs_to_list p_formulae) gamma subst a;
-		(heap, store, p_formulae, gamma, preds), subst)
+	try (
+		init_gamma gamma a;
+		init_symb_store_alocs store gamma subst a;
+	
+		let p_formulae = init_pure_assignments a store gamma subst in
+	
+		 (match (DynArray.to_list p_formulae) with
+		 | [ LFalse ] -> (LHeap.create 1, Hashtbl.create 1, DynArray.of_list [ LFalse ], Hashtbl.create 1, DynArray.create()), Hashtbl.create 1
+		 | _ ->
+			fill_store_with_gamma store gamma subst;
+			extend_typing_env_using_assertion_info ((pfs_to_list p_formulae) @ (pf_of_store2 store)) gamma;
+			compute_symb_heap heap store p_formulae gamma subst a;
+			let preds, new_assertions = init_preds a store gamma subst in
+			extend_typing_env_using_assertion_info new_assertions gamma;
+			merge_pfs p_formulae (DynArray.of_list new_assertions);
+			process_empty_fields heap store (pfs_to_list p_formulae) gamma subst a;
+			(heap, store, p_formulae, gamma, preds), subst))
+	with
+	| InvalidTypeOfLiteral -> (LHeap.create 1, Hashtbl.create 1, DynArray.of_list [ LFalse ], Hashtbl.create 1, DynArray.create()), Hashtbl.create 1
 
 
 let connecting_logical_vars_with_abstract_locations_in_post pre_vars subst new_subst = 

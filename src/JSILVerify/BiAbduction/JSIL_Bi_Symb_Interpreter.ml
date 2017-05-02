@@ -1223,7 +1223,7 @@ and symb_evaluate_next_cmd_cont
 						Printf.printf "NO LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
 						let new_symb_state, _ = Normaliser.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
 						let new_symb_state, _, _, _ = Simplifications.simplify_symb_state (Some None) (DynArray.create()) (SS.empty) new_symb_state in
-						(match (Structural_Entailment.unify_symb_state_against_invariant symb_state new_symb_state spec.n_lvars) with
+						(match (Structural_Entailment.unify_symb_state_against_invariant symb_state new_symb_state spec.n_lvars SS.empty) with
 						(* If it does, replace current symbolic state with the invariant *)
 						| Some new_symb_state -> new_symb_state
 						| None -> raise (Failure "unification with invariant failed")) in
