@@ -468,6 +468,12 @@ module MyAssertion =
     let compare = Pervasives.compare
   end
 
+module MySubstitution = 
+	struct
+		type t = (string, jsil_logic_expr) Hashtbl.t
+		let compare = Pervasives.compare
+	end
+
 module MyFieldValueList = 
 	struct
 		type t = jsil_logic_expr * jsil_logic_expr
@@ -477,6 +483,8 @@ module MyFieldValueList =
 module SI = Set.Make(MyInt)
 module SN = Set.Make(MyNumber)
 module SA = Set.Make(MyAssertion)
+
+module SSS = Set.Make(MySubstitution)
 
 module SFV = Set.Make(MyFieldValueList)
 

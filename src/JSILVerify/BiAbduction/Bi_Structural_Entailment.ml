@@ -383,7 +383,7 @@ let bi_unify_symb_states (lvars : SS.t) pat_symb_state (symb_state : symbolic_st
 			(match ret_1 with
 			| Some (heap_f, anti_frame, new_pfs, negative_discharges) ->
 				print_debug (Printf.sprintf "Heaps unified successfully.\n");
-				let ret_2 = unify_pred_arrays preds_1 preds_0 pf_0 gamma_0 subst in
+				let ret_2 = unify_pred_arrays preds_1 preds_0 pf_0 gamma_1 gamma_0 subst in
 				(match ret_2 with
 				| Some (subst, preds_f, []) ->
 					let spec_vars_check = spec_logic_vars_discharge subst lvars pf_0 gamma_0 in
