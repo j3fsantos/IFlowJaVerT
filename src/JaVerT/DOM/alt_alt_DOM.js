@@ -423,9 +423,9 @@
 	)
 	@post (
 		InitialDOMHeap() * (ret == $$t) * 
-		DocumentNode($l_document, #d_l_elem, #d_elem, #d_l_g, #d_g_post) *
+		DocumentNode($l_document, #l_elem, #d_elem, #d_l_g, #d_g_post) *
 		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList_post) *
-		(#cList_post == (#cList1 @ {{ {{ "elem", "test", #n_id, #n_l_aList, {{ }}, #n_l_cList, {{ }} }} }}))
+		(#cList_post == (#cList1 @ {{ {{ "elem", "test", #n_id, #n_l_aList, #n_l_cList }} }}))
 	)
 */
 function createNewAttribute(element){
