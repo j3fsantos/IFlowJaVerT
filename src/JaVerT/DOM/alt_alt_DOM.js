@@ -102,8 +102,8 @@
 		((dn, "@grove") -> l_grove) * Grove(l_grove, grove) *
 		empty_fields(dn : "@element", "@grove");
 
-	@pred ENode(name, id, l_attr, aList, l_children, cList) :
-		DOMObject(id, $l_enp) * empty_fields(id : "@name", "@attributes", "@children") * 
+	@pred ENode(alpha, name, id, l_attr, aList, l_children, cList) :
+		DOMObject(id, $l_enp) * ((id, "@address") -> alpha) * empty_fields(id : "@name", "@attributes", "@children", "@address") * 
 		ElementNode(name, id, l_attr, aList, l_children, cList);
 
 	@pred ElementNode(name, id, l_attr, aList, l_children, cList) :
@@ -222,7 +222,7 @@
 
 	@pred ECell(alpha, name, id, l_attr, aList, l_children, cList) : 
 		 ((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, id) * empty_fields(alpha : "@chain") * 
-			ENode(name, id, l_attr, aList, l_children, cList);
+			ENode(alpha, name, id, l_attr, aList, l_children, cList);
 
 	@pred TCell(alpha, id, text) : 
 		((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, id) * empty_fields(alpha : "@chain") * 
@@ -386,9 +386,9 @@
 		outcome: normal
 
 	@onlyspec appendChild(n)
-		pre:  [[ (n == #n) * ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList) *
+		pre:  [[ (n == #n) * ECell(#xeta, #name, this, #l_attr, #aList, #l_children, #cList) *
 				 ECell(#beta, #name2, #n, #l_attr2, #aList2, #l_children2, #cList2) * complete(#cList2) ]]
-		post: [[ ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList2_post ) * 
+		post: [[ ECell(#xeta, #name, this, #l_attr, #aList, #l_children, #cList2_post ) * 
 				 (#cList2_post == #cList @ {{ {{ "elem", #name2, #n, #aList2, #cList2 }} }}) * EmptyCell(#beta) * (ret == #n) ]]
 		outcome: normal;
 
@@ -437,6 +437,6 @@ function createNewAttribute(grove, element){
 	/* @invariant scope(e : #e2) * ECell(#zeta, #name2, #e2, #l_aList2, #aList2, #l_cList2, #cList2) */
 	/* @fold complete(#cList2) */
 	var n = element.appendChild(e);
-	deallocG(a);
+	/* @callspec deallocG(#whatever, #zeta) */
 	return (n === e);
 }
