@@ -432,9 +432,9 @@ function createNewAttribute(grove, element){
 	var d = element.ownerDocument();
 	var e = d.createElement("test");
 	/* @callspec allocG(#zeta, #l_gList, 0) */
-	0; 
-	/* @invariant 
-		scope(e : #e2) * ECell(#zeta, #name2, #e2, #l_aList2, #aList2, #l_cList2, #cList2) */
+	0;
+	
+	/* @invariant scope(e : #e2) * ECell(#zeta, #name2, #e2, #l_aList2, #aList2, #l_cList2, #cList2) */
 	/* @fold complete(#cList2) */
 	var n = element.appendChild(e);
 	deallocG(a);

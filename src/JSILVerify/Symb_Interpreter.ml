@@ -839,8 +839,10 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars : (symbo
 				(fun (symb_state, ret_flag, ret_le) ->
 					let ret_type, _, _ = type_lexpr (get_gamma symb_state) ret_le in
 					update_gamma (get_gamma symb_state) ret_var ret_type;
-					let symb_state : symbolic_state = Simplifications.simplify_ss symb_state (Some (Some spec_vars)) in 
 					add_pure_assertion (get_pf symb_state) (LEq (LVar ret_var, ret_le));
+					let spec_vars = SS.add ret_var spec_vars in
+					let symb_state : symbolic_state = Simplifications.simplify_ss symb_state (Some (Some spec_vars)) in 
+					print_debug_petar "FINISHED CALLSPEC";
 					(symb_state, spec_vars))
 				new_symb_states in  
 		new_symb_states
