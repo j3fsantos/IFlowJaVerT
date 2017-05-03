@@ -1126,9 +1126,10 @@ let type_index t =
 	| StringType    -> 6
 	| ObjectType    -> 7
 	| ListType      -> 8
-	| TypeType      -> 9)
+	| TypeType      -> 9
+	| CharType      -> 10)
 
-let type_length = 10
+let type_length = 11
 
 let simplify_symb_state 
 	(vars_to_save : (SS.t option) option)
