@@ -64,28 +64,33 @@ let write_spec_file (file : string ref) =
 	let result = "" in
 	burn_to_disk (!file ^ ".spec") result
 
-
 let symb_interpreter prog procs_to_verify spec_tbl which_pred norm_preds  = 
-	if (!bi_abduction) then
-		(* Perform symbolic interpretation with bi-abduction then use the result to verify using the normal symbolic execution.*)
-		begin
-			print_endline ("\n********************** STARTING BI-ABDUCTION SYMBOLIC EXECUTION ***************************\n") ;
-			let results_str_bi, _, _, new_spec_tbl = 
-					JSIL_Bi_Symb_Interpreter.sym_run_procs prog procs_to_verify spec_tbl which_pred norm_preds in
-			print_endline ("\n********************** FINISHED BI-ABDUCTION SYMBOLIC EXECUTION ***************************\n") ;
-			print_endline ("\n**********************    STARTING NORMAL SYMBOLIC EXECUTION    ***************************\n") ;
-			let results_str, dot_graphs, complete_success = 
-					Symb_Interpreter.sym_run_procs prog procs_to_verify new_spec_tbl which_pred norm_preds in
-			print_endline ("\n**********************     ENDING NORMAL SYMBOLIC EXECUTION     ***************************\n") ;
-			(results_str ^ results_str_bi, dot_graphs, complete_success)
-		end
-	else
-		begin
-			let results_str, dot_graphs, complete_success =  
+	let results_str, dot_graphs, complete_success =  
 					Symb_Interpreter.sym_run_procs prog procs_to_verify spec_tbl which_pred norm_preds in
-			(results_str, dot_graphs, complete_success)
+	Printf.printf "RESULTS\n%s" results_str;
+
+	(if (complete_success) then
+		begin
+			Printf.printf "ALL Succeeded in %f\n" (Sys.time());
+			if (not (!spec_file = "")) then write_spec_file spec_file
 		end
-		
+		else (Printf.printf "There were Failures in %f\n" (Sys.time())));
+	
+	register_dot_graphs dot_graphs;
+	if (!stats) 
+		then JSIL_Syntax.process_statistics ()
+
+let bi_symb_interpreter prog procs_to_verify spec_tbl which_pred norm_preds  = 
+	(* Perform symbolic interpretation with bi-abduction then use the result to verify using the normal symbolic execution.*)
+	print_endline ("\n*********** Starting bi-abduction symbolic execution. ***********\n") ;
+	let results_str_bi, new_spec_tbl = 
+			JSIL_Bi_Symb_Interpreter.sym_run_procs prog procs_to_verify spec_tbl which_pred norm_preds in
+	print_endline ("\n********** Finished bi-abduction symbolic execution. **********\n") ;
+	print_endline ("\n**********    Starting normal symbolic execution.    **********\n") ;
+	symb_interpreter prog procs_to_verify new_spec_tbl which_pred norm_preds;
+	print_endline ("\n**********     Ending normal symbolic execution.     **********\n") ;
+	Printf.printf "RESULT SPECS \n%s" results_str_bi
+	
 let process_file path =
 		print_debug "\n*** Prelude: Stage 1: Parsing program. ***\n";
 		let ext_prog = JSIL_Utils.ext_program_of_path path in
@@ -120,21 +125,10 @@ let process_file path =
 			)
 			ext_prog.onlyspecs;
 		print_debug "*** Prelude: Stage 5: Finished adding phantom procedures for only-specs\n";
-		let (results_str, dot_graphs, complete_success) =   
-			symb_interpreter prog ext_prog.procedure_names spec_tbl which_pred norm_preds in
-		Printf.printf "RESULTS\n%s" results_str;
-		
-		(if (complete_success) then
-			begin
-				Printf.printf "ALL Succeeded in %f\n" (Sys.time());
-				if (not (!spec_file = "")) then write_spec_file spec_file
-			end
-			else (Printf.printf "There were Failures in %f\n" (Sys.time())));
-		
-		register_dot_graphs dot_graphs;
-		if (!stats) 
-			then JSIL_Syntax.process_statistics ();
-			
+		(if (!bi_abduction) then
+			bi_symb_interpreter prog ext_prog.procedure_names spec_tbl which_pred norm_preds
+		else 
+			symb_interpreter prog ext_prog.procedure_names spec_tbl which_pred norm_preds);
 		exit 0
 
 let main () =

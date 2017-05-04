@@ -51,11 +51,11 @@ proc test4 (x) {
    rlab:   skip
 } with { ret: x, rlab; };
 
-spec test5 (x)
+spec test5 (x,y)
   [[ emp ]]
   [[ emp ]]
   normal
-proc test5 (x) {
+proc test5 (x,y) {
           [x, "foo"] := l-nth(y,3); 
   rlab:   skip
 } with { ret: x, rlab; };

@@ -375,7 +375,7 @@ let string_of_n_spec_table_assertions spec_table =
 					let pre = convert_symb_state_to_assertion single_spec.n_pre in
 					let post = convert_symb_state_to_assertion (List.hd single_spec.n_post) in
 					let flag = (match single_spec.n_ret_flag with | Normal -> "Normal" | Error -> "Error") in
-					ac ^ (Printf.sprintf "[[ %s ]]\n[[ %s ]]\n%s\n\n"
+					ac ^ (Printf.sprintf "[[ %s ]]\n[[ %s ]]\n%s\n"
 						 (JSIL_Print.string_of_logic_assertion pre false)
 						 (JSIL_Print.string_of_logic_assertion post false)
 						 flag

@@ -842,7 +842,6 @@ let rec type_lexpr gamma le =
 	
 	result
 
-
 let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
 	let f = reverse_type_lexpr_aux gamma new_gamma in
 	(* Printf.printf "le: %s\n\n\n" (JSIL_Print.string_of_logic_expression le false); *)

@@ -229,6 +229,23 @@ let string_of_symb_exe_results results =
 		results in
  	str_console, dot_graphs
 
+let string_of_bi_symb_exe_results results =
+	let failed_specs_str = List.fold_left
+		(fun ac_console result ->
+			let proc_name, i, pre_post, success, msg, dot_graph = result in
+			if (not success) then
+				let failed_msg_str = (match msg with
+				| None ->  "\n" ^ proc_name ^ "\n----------\n Failed without a message. \n\n"
+				| Some msg -> "\n" ^ proc_name ^ "\n----------\n " ^ msg ^ "\n\n") in
+				ac_console ^ failed_msg_str
+			else 
+				ac_console)
+		""
+		results in
+	if (String.length failed_specs_str == 0) then 
+		""
+	else
+		"FAILED to generate specifications for: \n"  ^ failed_specs_str
 
 let dot_of_search_info search_info proof_name =
 	let start_time = Sys.time () in

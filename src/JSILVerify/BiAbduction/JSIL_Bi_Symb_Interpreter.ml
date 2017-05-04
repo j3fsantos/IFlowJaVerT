@@ -199,29 +199,49 @@ let create_new_location (expr: jsil_logic_expr) (symb_state : symbolic_state) (a
 	b) Otherwise, variables are allowed to stay untyped
 	c) Otherwise, an error is thrown 
 *)
-let safe_symb_evaluate_expr (symb_state: symbolic_state) (anti_frame : symbolic_state) (expr : jsil_expr) =
+let rec safe_symb_evaluate_expr spec_lvars (symb_state: symbolic_state) (anti_frame : symbolic_state) (expr : jsil_expr) =
 	let _, _, pure_formulae, gamma, _ = symb_state in
+	let fail nle =
+		let gamma_str = Symbolic_State_Print.string_of_gamma gamma in
+		let pure_str = Symbolic_State_Print.string_of_shallow_p_formulae pure_formulae false in
+		let msg = Printf.sprintf "The logical expression %s is not typable in the typing enviroment: %s \n with the pure formulae %s" (print_le nle) gamma_str pure_str in
+		raise (Failure msg) in
 	let nle = symb_evaluate_expr symb_state anti_frame expr in
 	let nle_type, is_typable, constraints = type_lexpr gamma nle in
-	let is_typable = is_typable && ((List.length constraints = 0) || (Pure_Entailment.old_check_entailment SS.empty (pfs_to_list pure_formulae) constraints gamma)) in
 	if (is_typable) then
-		nle, nle_type, true
+		(if ((List.length constraints = 0) || (Pure_Entailment.old_check_entailment SS.empty (pfs_to_list pure_formulae) constraints gamma)) then 
+			nle, nle_type, true
+		else 
+			let no_spec_vars_in_cons = List.fold_left (fun ac cons -> 
+						 				ac && (not (Bi_Symbolic_State_Functions.l_vars_in_spec_check anti_frame spec_lvars nle)))
+										true constraints in
+			if (no_spec_vars_in_cons) then 
+			 	let _ = Symbolic_State.extend_symb_state_with_pfs symb_state (Symbolic_State.pfs_of_list constraints) in
+			 	let _ = Symbolic_State.extend_symb_state_with_pfs anti_frame (Symbolic_State.pfs_of_list constraints) in
+				nle, nle_type, true
+			else 
+				fail nle
+		)
 	else
 		(match nle with
 		| LVar _ ->  nle, None, false
 		| _ ->
-				let gamma_str = Symbolic_State_Print.string_of_gamma gamma in
-				let pure_str = Symbolic_State_Print.string_of_shallow_p_formulae pure_formulae false in
-				let msg = Printf.sprintf "The logical expression %s is not typable in the typing enviroment: %s \n with the pure formulae %s" (print_le nle) gamma_str pure_str in
-				raise (Failure msg))
+			let new_gamma = Bi_Symbolic_State_Functions.bi_reverse_type_lexpr gamma nle nle_type in
+			match new_gamma with 
+				| Some new_gamma -> 
+					extend_gamma gamma new_gamma;
+					extend_gamma (get_gamma anti_frame) new_gamma; 
+					safe_symb_evaluate_expr spec_lvars symb_state anti_frame expr
+				| None -> fail nle
+		)
 
 (**********************************************)
 (* Symbolic evaluation of JSIL basic commands *)
 (**********************************************)
-let symb_evaluate_bcmd (bcmd : jsil_basic_cmd) (symb_state : symbolic_state) (anti_frame : symbolic_state) =
+let symb_evaluate_bcmd (bcmd : jsil_basic_cmd) (symb_state : symbolic_state) (anti_frame : symbolic_state) spec_lvars =
 	let heap, store, pure_formulae, gamma, _ = symb_state in
 	let anti_heap, anti_store, anti_pure_formulae, anti_gamma, _ = anti_frame in
-	let ssee = safe_symb_evaluate_expr symb_state anti_frame in
+	let ssee = safe_symb_evaluate_expr spec_lvars symb_state anti_frame in
 	match bcmd with
 	(* Skip: skip;
 			Always return $$empty *)
@@ -994,18 +1014,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
 				let else_anti_frame = copy_symb_state anti_frame in
 				let else_search_info = update_vis_tbl search_info (copy_vis_tbl search_info.vis_tbl) in
 
-				(* L-Var Check *)
-				let anti_frame_logical_variables = get_symb_state_vars false anti_frame in
-				let spec_logical_variables = spec.n_lvars in 
-				let expression_logical_variables = get_logic_expression_lvars le in
-				let lvars_not_in_spec_or_af = List.filter 
-					(fun var ->
- 						let in_anti_frame = SS.mem var anti_frame_logical_variables in
- 						let in_spec = SS.mem var spec_logical_variables in
- 						((not in_anti_frame) && (not in_spec))
- 					) 
-					(SS.elements expression_logical_variables) in
-				if (List.length lvars_not_in_spec_or_af > 0) then
+				if (Bi_Symbolic_State_Functions.l_vars_in_spec_check anti_frame spec.n_lvars le) then
 					raise (Failure "Logical Variables of expression not contained within the spec or anti_frame");
 
 				(* Then Branch  
@@ -1097,7 +1106,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
 	mark_as_visited search_info i;
 	match cmd with
 	| SBasic bcmd ->
-		let _ = symb_evaluate_bcmd bcmd symb_state anti_frame in
+		let _ = symb_evaluate_bcmd bcmd symb_state anti_frame spec.n_lvars in
 		symb_evaluate_next_cmd s_prog proc spec search_info symb_state anti_frame i (i+1)
 	| SGoto j -> 
 		symb_evaluate_next_cmd s_prog proc spec search_info symb_state anti_frame i j
@@ -1406,8 +1415,9 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 				(ac && partial_success))
 			true
 			results in
-	(* Get the string and dot graphs of the symbolic execution *)
-	let results_str, dot_graphs = Symbolic_State_Print.string_of_symb_exe_results results in
-	let results_str = Symbolic_State_Utils.string_of_n_spec_table_assertions new_spec_tbl in 
+	(* Get the result string of the symbolic execution *)
+	let specs_str = Symbolic_State_Utils.string_of_n_spec_table_assertions new_spec_tbl in 
+	let results_str = Symbolic_State_Print.string_of_bi_symb_exe_results results in
+	let results_str = "Generated specifications: \n " ^ specs_str ^ "\n" ^ results_str in
 	(* Return *)
-	"Generated specifications: \n " ^ results_str, dot_graphs, complete_success, new_spec_tbl
+	results_str, new_spec_tbl
