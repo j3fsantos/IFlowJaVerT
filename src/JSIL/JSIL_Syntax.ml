@@ -158,6 +158,12 @@ type jsil_binop =
 	(* Character *)
 	| CharCons           (** Char construction *)
 	| CharCat            (** Char concatenation *)
+	(* Sets *)
+	| SetUnion           (** Set union *)
+	| SetInter           (** Set intersection *)
+	| SetDiff            (** Set difference *)
+	| SetMem             (** Set membership *)
+	| SetSub             (** Subset *)
 
 (** {b JSIL expressions}. Literals, variables, unary and binary operators, lists. *)
 	type jsil_expr =
@@ -169,6 +175,7 @@ type jsil_binop =
 	| LstNth   of jsil_expr	* jsil_expr	             (** Nth element of a list *)  
 	| StrNth   of jsil_expr	* jsil_expr	             (** Nth element of a string *)               
 	| EList    of jsil_expr list                     (** Lists of expressions *)
+	| ESet     of jsil_expr list                     (** Sets of expressions *)
 	| CList    of jsil_expr list                     (** Lists of characters *)
 	| RAssume  of jsil_expr                          
 	| RAssert  of jsil_expr
@@ -227,11 +234,12 @@ type jsil_logic_expr =
 	| PVar     of jsil_var                                       (** JSIL program variables *)
 	| LBinOp   of jsil_logic_expr * jsil_binop * jsil_logic_expr (** Binary operators ({!type:jsil_binop}) *)
 	| LUnOp    of jsil_unop * jsil_logic_expr                    (** Unary operators ({!type:jsil_unop}) *)
-	| LTypeOf  of jsil_logic_expr	                             (** Typing operator *) 
+	| LTypeOf  of jsil_logic_expr	                               (** Typing operator *) 
 	| LLstNth  of jsil_logic_expr * jsil_logic_expr              (** Nth element of a list *)
 	| LStrNth  of jsil_logic_expr * jsil_logic_expr              (** Nth element of a string *)              
 	| LEList   of jsil_logic_expr list                           (** Lists of logical expressions *)
 	| LCList   of jsil_logic_expr list                           (** Lists of logical chars *)
+	| LESet    of jsil_logic_expr list                           (** Sets of logical expressions *)
 	| LNone                                                      (** Empty field value *)  
 	| LUnknown                                                   (** Unknown field value *)
 
@@ -475,6 +483,18 @@ module MySubstitution =
 		let compare = Pervasives.compare
 	end
 
+module MyExpr = 
+	struct
+		type t = jsil_expr
+		let compare = Pervasives.compare
+	end
+
+module MyLExpr = 
+	struct
+		type t = jsil_logic_expr
+		let compare = Pervasives.compare
+	end
+
 module MyFieldValueList = 
 	struct
 		type t = jsil_logic_expr * jsil_logic_expr
@@ -486,6 +506,9 @@ module SN = Set.Make(MyNumber)
 module SA = Set.Make(MyAssertion)
 
 module SSS = Set.Make(MySubstitution)
+
+module SExpr = Set.Make(MyExpr)
+module SLExpr = Set.Make(MyLExpr) 
 
 module SFV = Set.Make(MyFieldValueList)
 

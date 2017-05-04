@@ -152,6 +152,10 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 	| LBinOp (LCList le1, CharCat, LCList le2) -> f (LCList (le1 @ le2))
 	(* TODO: combinations of LLit (LList _) and LEList *)
 
+	| LESet s -> 
+			let s' = List.map f s in
+			LESet (SLExpr.elements (SLExpr.of_list s'))
+
 	(* List append *)
 	| LBinOp (le1, LstCat, le2) ->
 		let fe1 = f le1 in 
@@ -1125,9 +1129,10 @@ let type_index t =
 	| ObjectType    -> 7
 	| ListType      -> 8
 	| TypeType      -> 9
-	| CharType      -> 10)
+	| CharType      -> 10
+	| SetType       -> 11)
 
-let type_length = 11
+let type_length = 12
 
 let simplify_symb_state 
 	(vars_to_save : (SS.t option) option)
@@ -1674,12 +1679,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 				let types_ok = understand_types exists (List.map (fun x -> (x, "r")) pf_list) gamma in
 				(match types_ok with
 				| false -> pfs_false "Nasty type mismatch."
-				| true -> 
-					print_debug_petar (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\n\nPure formulae:\n%s\n\nGamma:\n%s\n\n"
-			 		(String.concat ", " (SS.elements exists))
-			 		(print_pfs p_formulae)
-			 		(Symbolic_State_Print.string_of_gamma gamma)); 
-		 		 	exists, lpfs, p_formulae, gamma))
+				| true -> exists, lpfs, p_formulae, gamma))
 	 | pf :: rest ->
 	   (match pf with
 	    | LEq (LLit l1, LLit l2) ->
@@ -1799,14 +1799,14 @@ let clean_up_stuff exists left right =
 	
 let simplify_implication exists lpfs rpfs gamma =
 	let lpfs, rpfs, exists, gamma = simplify_pfs_with_exists_and_others exists lpfs rpfs gamma in
-	(* print_debug (Printf.sprintf "In between:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n" 
-	(String.concat ", " (SS.elements exists))
-	(Symbolic_State_Print.string_of_shallow_p_formulae lpfs false)
-	(Symbolic_State_Print.string_of_shallow_p_formulae rpfs false)
-	(Symbolic_State_Print.string_of_gamma gamma)); *)
 	sanitise_pfs_no_store gamma rpfs;
 	let exists, lpfs, rpfs, gamma = simplify_existentials exists lpfs rpfs gamma in
 	clean_up_stuff exists lpfs rpfs;
+	print_debug_petar (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\n\nGamma:\n%s\n\n"
+		(String.concat ", " (SS.elements exists))
+		(print_pfs lpfs)
+		(print_pfs rpfs)
+		(Symbolic_State_Print.string_of_gamma gamma)); 
 	exists, lpfs, rpfs, gamma (* DO THE SUBST *)
 
 

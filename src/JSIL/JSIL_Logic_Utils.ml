@@ -68,6 +68,7 @@ let rec logic_expression_map f lexpr =
   	| LTypeOf e           -> LTypeOf (map_e e)
   	| LEList le           -> LEList (List.map map_e le)
   	| LCList le           -> LCList (List.map map_e le)
+		| LESet le            -> LESet  (List.map map_e le)
   	| LLstNth (e1, e2)    -> LLstNth (map_e e1, map_e e2)
   	| LStrNth (e1, e2)    -> LStrNth (map_e e1, map_e e2)
   	| LUnknown            -> LUnknown
@@ -129,7 +130,8 @@ let rec get_logic_expression_literals le =
 	| LBinOp (le1, _, le2) | LLstNth (le1, le2) | LStrNth (le1, le2)  -> (fe le1) @ (fe le2)
 	| LUnOp (_, le) |	LTypeOf le -> fe le
 	| LCList les
- 	| LEList les -> List.concat (List.map fe les)
+ 	| LEList les 
+	| LESet  les -> List.concat (List.map fe les)
 
 let rec get_assertion_literals a =
 	let f = get_assertion_literals in
@@ -295,6 +297,7 @@ let rec get_expr_vars catch_pvars e : SS.t =
 	| LUnOp (_, e1) -> f e1
 	| LTypeOf e1 -> f e1
 	| LEList le_list
+	| LESet le_list
 	| LCList le_list -> 
 			List.fold_left (fun ac e -> 
 				let v_e = f e in
@@ -558,6 +561,10 @@ let rec lexpr_substitution lexpr subst partial =
 	| LEList les ->
 		let s_les = List.map (fun le -> (f le)) les in
 		LEList s_les
+		
+	| LESet les ->
+		let s_les = List.map (fun le -> (f le)) les in
+		LESet s_les
 
 	| LCList les ->
 		let s_les = List.map (fun le -> (f le)) les in
@@ -699,6 +706,15 @@ let rec type_lexpr gamma le =
 				(true, [])
 				les) in
 			if (all_typable) then (Some ListType, true, constraints) else (None, false, [])
+	| LESet les ->
+	let all_typable, constraints =
+		(List.fold_left
+			(fun (ac, ac_constraints) elem ->
+				let (_, ite, constraints) = f elem in
+					((ac && ite), (constraints @ ac_constraints)))
+			(true, [])
+			les) in
+		if (all_typable) then (Some SetType, true, constraints) else (None, false, [])
 	(* LCList *)
 	| LCList les ->
 		let all_typable, constraints =

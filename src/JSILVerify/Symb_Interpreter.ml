@@ -123,6 +123,10 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 				let lits = List.rev lits in
 					LLit (LList lits)
 			else LEList les
+			
+	| ESet es ->
+		let les = List.map (fun e -> f e) es in
+			LESet les
 
   (* List n-th: Evaluate the list and the index
 	     a) Attempt to reduce fully, if possible, return the result

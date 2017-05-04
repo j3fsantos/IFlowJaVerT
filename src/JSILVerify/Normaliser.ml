@@ -100,6 +100,10 @@ let rec normalise_lexpr store gamma subst le =
 		if (all_literals)
 		then LLit (LList lit_list)
 		else LEList n_le_list
+		
+	| LESet le_list ->
+		let n_le_list = List.map (fun le -> f le) le_list in
+		LESet n_le_list
 
 	| LLstNth (le1, le2) ->
 		let nle1 = f le1 in
