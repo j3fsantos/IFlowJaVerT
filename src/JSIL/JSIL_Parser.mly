@@ -205,15 +205,6 @@ let copy_and_clear_globals () =
 %token RBRACKET
 %token CLBRACKET
 %token CRBRACKET
-(* SETS *)
-%token EMPTYSET
-%token SETUNION
-%token SETINTER
-%token SETDIFF
-%token SETELEM
-%token SETSUB
-%token SETOPEN
-%token SETCLOSE
 (* EOF *)
 %token EOF
 (***** Precedence of operators *****)
