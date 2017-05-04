@@ -205,6 +205,15 @@ let copy_and_clear_globals () =
 %token RBRACKET
 %token CLBRACKET
 %token CRBRACKET
+(* SETS *)
+%token EMPTYSET
+%token SETUNION
+%token SETINTER
+%token SETDIFF
+%token SETMEM
+%token SETSUB
+%token SETOPEN
+%token SETCLOSE
 (* EOF *)
 %token EOF
 (***** Precedence of operators *****)
@@ -853,6 +862,11 @@ lit_target:
 	| LSTCONS            { LstCons }
 	| LSTCAT             { LstCat }
 	| STRCAT             { StrCat }
+	| SETUNION           { SetUnion }
+	| SETINTER           { SetInter }
+	| SETDIFF            { SetDiff }
+	| SETMEM             { SetMem }
+	| SETSUB             { SetSub }
 ;
 
 %inline unop_target:
