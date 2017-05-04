@@ -27,6 +27,7 @@ type jsil_type =
 	| ObjectType    (** Type of objects   *)
 	| ListType      (** Type of lists     *)
 	| TypeType      (** Type of types     *)
+	| SetType       (** Type of sets      *)
 
 (** {b JSIL constants}. They are mostly inspired by those present in JavaScript's Math 
     and Date libraries. *)

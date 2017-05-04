@@ -385,7 +385,7 @@ let get_vars_tbl vars =
   List.iteri (fun i var -> Hashtbl.add vars_tbl var i) (SS.elements vars);
   vars_tbl
 
-let rec push_in_negations_off a =
+let rec push_in_negations_off a : jsil_logic_assertion =
 	let err_msg = "push_in_negations_off: internal error" in
 	let f_off = push_in_negations_off in
 	let f_on = push_in_negations_on in
@@ -515,20 +515,10 @@ let old_pre_normalize_assertion a =
 			end
 
 
-let pre_normalize_assertion a =
-	(* Printf.printf "I am inside the pre_normalize being HAPPY. Looking at the assertion: %s!!!!\n"
-		(JSIL_Print.string_of_logic_assertion a false); *)
-	if (only_pure_atoms_negated a)
-		then [ a ]
-		else
-			begin
-				(* Printf.printf "there are non-pure atoms negated!!!!\n"; *)
-				let new_a = push_in_negations_off a in
-				(* Printf.printf "Original a: %s.\nAfter prenormalisation:\n%s\n"
-					(JSIL_Print.string_of_logic_assertion a false)
-					(JSIL_Print.string_of_logic_assertion new_a false); *)
-				[ new_a ]
-			end
+let pre_normalise_assertion a : jsil_logic_assertion =
+	(match (only_pure_atoms_negated a) with
+	| true -> a
+	| false -> push_in_negations_off a)
 
 
 let rec lexpr_substitution lexpr subst partial =

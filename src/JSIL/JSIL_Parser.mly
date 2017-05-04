@@ -36,6 +36,7 @@ let copy_and_clear_globals () =
 %token OBJTYPELIT
 %token LISTTYPELIT
 %token TYPETYPELIT
+%token SETTYPELIT
 (* Constants *)
 %token MIN_FLOAT
 %token MAX_FLOAT
@@ -204,6 +205,15 @@ let copy_and_clear_globals () =
 %token RBRACKET
 %token CLBRACKET
 %token CRBRACKET
+(* SETS *)
+%token EMPTYSET
+%token SETUNION
+%token SETINTER
+%token SETDIFF
+%token SETELEM
+%token SETSUB
+%token SETOPEN
+%token SETCLOSE
 (* EOF *)
 %token EOF
 (***** Precedence of operators *****)
@@ -912,6 +922,7 @@ lit_target:
 	| OBJTYPELIT   { ObjectType }
 	| LISTTYPELIT  { ListType }
 	| TYPETYPELIT  { TypeType }
+	| SETTYPELIT   { SetType }
 ;
 
 

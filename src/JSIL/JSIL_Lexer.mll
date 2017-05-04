@@ -30,6 +30,7 @@ rule read = parse
 	| "$$object_type"      { JSIL_Parser.OBJTYPELIT    }
 	| "$$list_type"        { JSIL_Parser.LISTTYPELIT   }
 	| "$$type_type"        { JSIL_Parser.TYPETYPELIT   }
+	| "$$set_type"         { JSIL_Parser.SETTYPELIT    }
 (* Constants *)
 	| "$$min_float"        { JSIL_Parser.MIN_FLOAT     }
 	| "$$max_float"        { JSIL_Parser.MAX_FLOAT     }
@@ -55,6 +56,7 @@ rule read = parse
 	| "$$nil"              { JSIL_Parser.LSTNIL        }
 	| "{{"                 { JSIL_Parser.LSTOPEN       }
 	| "}}"                 { JSIL_Parser.LSTCLOSE      }
+	| "-0-"                { JSIL_Parser.EMPTYSET      }
 (* Binary operators *)
 	| "="                  { JSIL_Parser.EQUAL         }
 	| "<"                  { JSIL_Parser.LESSTHAN      }
@@ -78,6 +80,13 @@ rule read = parse
 	| "::"                 { JSIL_Parser.LSTCONS       }
 	| "@"                  { JSIL_Parser.LSTCAT        }
 	| "++"                 { JSIL_Parser.STRCAT        }
+	| "-u-"                { JSIL_Parser.SETUNION      }
+	| "-i-"                { JSIL_Parser.SETINTER      }
+	| "-d-"                { JSIL_Parser.SETDIFF       }
+	| "-e-"                { JSIL_Parser.SETELEM       }
+	| "-s-"                { JSIL_Parser.SETSUB        }
+	| "-{-"                { JSIL_Parser.SETOPEN       }
+	| "-}-"                { JSIL_Parser.SETCLOSE      }
 (* Unary operators *)
 	(* Unary minus uses the same symbol as binary minus, token MINUS *)
 	| "not"                { JSIL_Parser.NOT           }

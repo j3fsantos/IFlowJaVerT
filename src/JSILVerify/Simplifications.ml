@@ -820,9 +820,7 @@ match se with
 	| LBinOp (_, CharCons, _) (* Non recursive: assume that CharCat/Cons *)
 	| LBinOp (_, CharCat,  _) (* only obtained from conversion anyway    *)
 	| LCList _ -> true
-	| _ -> 
-		print_debug_petar (Printf.sprintf "Not internal String %s" (print_lexpr se));
-		false
+	| _ -> false
 
 (* Arranging strings in a specific order *)
 let arrange_strings (se1 : jsil_logic_expr) (se2 : jsil_logic_expr) : (jsil_logic_expr * jsil_logic_expr) =
@@ -1396,14 +1394,14 @@ let simplify_symb_state
 									| false -> 
 											let it = type_index t in
 											types.(it) <- types.(it) + 1;
-											print_debug_petar (Printf.sprintf "GAT: %s : %s" v (JSIL_Print.string_of_type t));
+											(* print_debug_petar (Printf.sprintf "GAT: %s : %s" v (JSIL_Print.string_of_type t)); *)
 											Hashtbl.add gamma v t
 									| true -> 
 											let tv = Hashtbl.find gamma v in
 											(match (tv = t) with
 											| true -> ()
 											| false ->
-													print_debug_petar (Printf.sprintf "Type mismatch: %s -> %s, but %s." v (JSIL_Print.string_of_type tv) (JSIL_Print.string_of_type t)); 
+													(* print_debug_petar (Printf.sprintf "Type mismatch: %s -> %s, but %s." v (JSIL_Print.string_of_type tv) (JSIL_Print.string_of_type t)); *) 
 													pfs_ok := false; msg := "Horrific type mismatch.")))
 	      		| false -> 
 	    					while (Hashtbl.mem gamma v) do 
@@ -1444,7 +1442,7 @@ let simplify_symb_state
 				
 				(* List unification *)
 				| le1, le2 when (isList le1 && isList le2) ->
-					print_debug (Printf.sprintf "List unification: %s vs. %s" (print_lexpr le1) (print_lexpr le2));
+					(* print_debug (Printf.sprintf "List unification: %s vs. %s" (print_lexpr le1) (print_lexpr le2)); *)
 					let ok, subst = unify_lists le1 le2 false in
 					(match ok with
 					(* Error while unifying lists *)
@@ -1454,9 +1452,9 @@ let simplify_symb_state
 						| [ ] 
 						| [ _ ] -> n := !n + 1 
 						| _ -> 
-							print_debug_petar (Printf.sprintf "No changes made, but length = %d" (List.length subst));
+							(* print_debug_petar (Printf.sprintf "No changes made, but length = %d" (List.length subst));
 							print_debug_petar (String.concat "\n" (List.map (fun (x, y) ->
-								Printf.sprintf "%s = %s" (print_lexpr x) (print_lexpr y)) subst)); 
+								Printf.sprintf "%s = %s" (print_lexpr x) (print_lexpr y)) subst)); *)
 							raise (Failure "Unexpected list obtained from list unification."))
 					(* Progress *)
 					| Some true -> 
@@ -1491,7 +1489,7 @@ let simplify_symb_state
 						)
 				(* String unification *)
 				| se1, se2 when (isInternalString se1 && isInternalString se2) ->
-					print_debug (Printf.sprintf "String unification: %s vs. %s" (print_lexpr se1) (print_lexpr se2));
+					(* print_debug (Printf.sprintf "String unification: %s vs. %s" (print_lexpr se1) (print_lexpr se2)); *)
 					let ok, subst = unify_strings se1 se2 false in
 					(match ok with
 					(* Error while unifying strings *)
@@ -1501,9 +1499,9 @@ let simplify_symb_state
 						| [ ] 
 						| [ _ ] -> n := !n + 1 
 						| _ -> 
-							print_debug_petar (Printf.sprintf "No changes made, but length = %d" (List.length subst));
+							(* print_debug_petar (Printf.sprintf "No changes made, but length = %d" (List.length subst));
 							print_debug_petar (String.concat "\n" (List.map (fun (x, y) ->
-								Printf.sprintf "%s = %s" (print_lexpr x) (print_lexpr y)) subst)); 
+								Printf.sprintf "%s = %s" (print_lexpr x) (print_lexpr y)) subst)); *)
 							raise (Failure "Unexpected list obtained from string unification."))
 					(* Progress *)
 					| Some true -> 
@@ -1570,7 +1568,7 @@ let simplify_symb_state
 	let end_time = Sys.time() in
 	JSIL_Syntax.update_statistics "simplify_symb_state" (end_time -. start_time);
 	
-	print_debug_petar (Printf.sprintf "Exiting with pfs_ok: %b\n" !pfs_ok);
+	(* print_debug_petar (Printf.sprintf "Exiting with pfs_ok: %b\n" !pfs_ok); *)
 	if (!pfs_ok) 
 		then (!symb_state, subst, !others, !exists)
 		else (pfs_false subst !others !exists !symb_state !msg)
