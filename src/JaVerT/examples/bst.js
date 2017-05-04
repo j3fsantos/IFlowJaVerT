@@ -41,11 +41,11 @@ function make_node(v)
 	@pre
 		(t == #t) * BST(#t) * (#t == $$null) *
 		(v == #v) * types (#v : $$number_type) *
-		scope(make_node : #makeNode) * fun_obj(makeNode, #makeNode, #whatever)
+		scope(make_node : #makeNode) * fun_obj(makeNode, #makeNode, #mkn_proto)
 		
 	@post 
 		BST(#r) * types (#r : $$object_type) * (ret == #r) *
-		scope(make_node : #makeNode) * fun_obj(makeNode, #makeNode, #whatever)
+		scope(make_node : #makeNode) * fun_obj(makeNode, #makeNode, #mkn_proto)
 		
 		
 	@pre
@@ -56,7 +56,7 @@ function make_node(v)
 		
 	@post 
 		BST(#t) * (ret == #t) *
-		scope(make_node : #makeNode) * fun_obj(makeNode, #makeNode, #whatever_alpha) *
+		scope(make_node : #makeNode) * fun_obj(makeNode, #makeNode, #mkn_proto) *
 		scope(insert: #insert) * fun_obj(insert, #insert, #ins_proto)
 */
 function insert(v, t)
@@ -84,16 +84,37 @@ function insert(v, t)
   return t;
 }
 
+/**
+	@id find
+	
+	@pre
+		(t == #t) * BST(#t) * (v == #v) * types (#v : $$number_type) * 
+		scope(find : #find) * fun_obj(find, #find, #whatever)
+
+	@post 
+		BST(#t) * (ret == #r) * types(#r : $$boolean_type) *
+		scope(find : #find) * fun_obj(find, #find, #whatever)
+*/
 function find (v, t)
 {
-  if (t === null)
-    return false;
-  else if (v === t.value)
-    return true;
-  else if (v < t.value)
-    return find(v, t.left);
-  else
-    return find(v, t.right);
+	var result;
+
+	/** @unfold BST(#t) */
+	if (t === null)
+		/** @fold BST(#t) */
+		return false;
+	else if (v === t.value)
+		/** @fold BST(#t) */
+		return true;
+	else {
+		if (v < t.value)
+		  result = find(v, t.left) 
+		else
+		  result = find(v, t.right);
+
+		/** @fold BST(#t) */
+		return result;
+	}
 }
 
 function find_min(t)

@@ -702,7 +702,7 @@ let rec unify_expr_lists pat_list list p_formulae gamma subst =
 
 (*******************************************************************)
 
-let unify_preds subst unifier p_formulae gamma =
+let unify_preds subst unifier p_formulae pat_gamma gamma =
 	let i = ref 0 in
 	let n = Array.length unifier in
 	let ok = ref true in
@@ -717,16 +717,18 @@ let unify_preds subst unifier p_formulae gamma =
 		done;
 		if (not !ok) 
 			then None
-			else (try (
+			else (
+				print_debug (Symbolic_State_Print.string_of_substitution subst); 
+				try (
 				Hashtbl.iter (fun v le ->
-					let tv = (match Hashtbl.mem gamma v with
-					| true -> Some (Hashtbl.find gamma v)
+					let tv = (match Hashtbl.mem pat_gamma v with
+					| true -> Some (Hashtbl.find pat_gamma v)
 					| false -> None) in
 					let tle, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in
 					(match tv, tle with
 					| Some t1, Some t2 -> if (t1 <> t2) then (
 							print_debug (Printf.sprintf "Subst %s with %s of %s, but in gamma it's %s." 
-								v (JSIL_Print.string_of_logic_expression le false) (JSIL_Print.string_of_type t2) (JSIL_Print.string_of_type t1));
+								v (JSIL_Print.string_of_logic_expression le false) (JSIL_Print.string_of_type t1) (JSIL_Print.string_of_type t2));
 							raise (Failure "!!!"))
 					| _, _ -> ())) subst;
 					Some subst) with
@@ -757,7 +759,7 @@ let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) p_form
 		let options = DynArray.create() in
 		while (!i < n) do
 			let (subst, unifier, unmatched_preds, unmatched_pat_preds) = Array.get ps !i in
-			let result = unify_preds subst unifier p_formulae gamma in
+			let result = unify_preds subst unifier p_formulae pat_gamma gamma in
 			print_debug (Printf.sprintf "Candidate is %s" (Option.map_default (fun x -> "viable.") "not viable." result));
 			(match result with
 			| None -> ()
