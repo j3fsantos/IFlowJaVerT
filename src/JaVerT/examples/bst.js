@@ -12,8 +12,8 @@
 
 	@pred BST(n) :
 		(n == $$null) * types (n : $$null_type),
-		Node(n, #val, #left, #right) * BST(#left) * BST(#right);
-		
+		Node(n, #val, #left, #right) * BST(#left) * BST(#right) * 
+		types(#val : $$number_type);
 */
 
 /**
@@ -41,23 +41,25 @@ function make_node(v)
 	@pre
 		(t == #t) * BST(#t) * (#t == $$null) *
 		(v == #v) * types (#v : $$number_type) *
-		scope(make_node : #makeNode) * fun_obj(makeNode, #makeNode, #mkn_proto)
+		scope(make_node : #makeNode) * fun_obj(makeNode, #makeNode, #mknProto) *
+		scope(insert : #insert) * fun_obj(insert, #insert, #insertProto)
 		
 	@post 
 		BST(#r) * types (#r : $$object_type) * (ret == #r) *
-		scope(make_node : #makeNode) * fun_obj(makeNode, #makeNode, #mkn_proto)
-		
-		
+		scope(make_node : #makeNode) * fun_obj(makeNode, #makeNode, #mknProto) *
+		scope(insert : #insert) * fun_obj(insert, #insert, #insertProto)
+
+
 	@pre
-		(t == #t) * BST(#t) * types (#t : $$object_type) *
+		(t == #t) * BST(#t) * types(#t : $$object_type) *
 		(v == #v) * types (#v : $$number_type) *
-		scope(make_node : #makeNode) * fun_obj(makeNode, #makeNode, #mkn_proto) *
-		scope(insert: #insert) * fun_obj(insert, #insert, #ins_proto)
+		scope(make_node : #makeNode) * fun_obj(makeNode, #makeNode, #mknProto) *
+		scope(insert : #insert) * fun_obj(insert, #insert, #insertProto)
 		
 	@post 
 		BST(#t) * (ret == #t) *
-		scope(make_node : #makeNode) * fun_obj(makeNode, #makeNode, #mkn_proto) *
-		scope(insert: #insert) * fun_obj(insert, #insert, #ins_proto)
+		scope(make_node : #makeNode) * fun_obj(makeNode, #makeNode, #mknProto) *
+		scope(insert : #insert) * fun_obj(insert, #insert, #insertProto)
 */
 function insert(v, t)
 {
@@ -89,11 +91,11 @@ function insert(v, t)
 	
 	@pre
 		(t == #t) * BST(#t) * (v == #v) * types (#v : $$number_type) * 
-		scope(find : #find) * fun_obj(find, #find, #whatever)
+		scope(find : #find) * fun_obj(find, #find, #findProto)
 
 	@post 
 		BST(#t) * (ret == #r) * types(#r : $$boolean_type) *
-		scope(find : #find) * fun_obj(find, #find, #whatever)
+		scope(find : #find) * fun_obj(find, #find, #findProto)
 */
 function find (v, t)
 {
@@ -117,36 +119,69 @@ function find (v, t)
 	}
 }
 
+/**
+	@id findMin
+	
+	@pre
+		(t == #t) * BST(#t) * types (#t : $$object_type) * 
+		scope(find_min : #findMin) * fun_obj(findMin, #findMin, #findMinProto)
+
+	@post 
+		BST(#t) * (ret == #r) * types(#r : $$number_type) *
+		scope(find_min : #findMin) * fun_obj(findMin, #findMin, #findMinProto)
+*/
 function find_min(t)
 {
-  if (t.left === null)
-    return t.value;
-  else
-    return find_min(t.left);
+	var result;
+	
+	/** @unfold BST(#t) */
+	if (t.left === null)
+		result = t.value;
+	else
+		result = find_min(t.left);
+		
+	/** @fold BST(#t) */
+	return result;
 }
 
+/**
+	@id remove
+	
+	@pre
+		(t == #t) * BST(#t) * (v == #v) * types (#v : $$number_type) * nullableObject(#t) *
+		scope(remove : #remove) * fun_obj(remove, #remove, #removeProto) *
+		scope(find_min : #findMin) * fun_obj(findMin, #findMin, #findMinProto)
+
+	@post 
+		(ret == #r) * BST(#r) * nullableObject(#r) *
+		scope(remove : #remove) * fun_obj(remove, #remove, #removeProto) *
+		scope(find_min : #findMin) * fun_obj(findMin, #findMin, #findMinProto)
+*/
 function remove(v, t)
 {
-  if (t === null)
-    return null;
+	/** @unfold BST(#t) */
+	if (t === null)
+		/** @fold BST(#t) */
+		return null;
 
-  if (v === t.value) {
-    if (t.left === null) {
-      return t.right;
-    }
-    else if (t.right === null) {
-      return t.left;
-    }
-    else {
-      var min = find_min(t.right);
-      t.right = remove(min, t.right);
-      t.value = min;
-    }
-  }
-  else if (v < t.value)
-    t.left = remove(v, t.left);
-  else
-    t.right = remove(v, t.right);
+	if (v === t.value) {
+		if (t.left === null) {
+				return t.right;
+			}
+		else if (t.right === null) {
+	  		return t.left;
+			}
+		else {
+			var min = find_min(t.right);
+			t.right = remove(min, t.right);
+			t.value = min;
+		}
+	}
+	else if (v < t.value)
+	t.left = remove(v, t.left);
+	else
+	t.right = remove(v, t.right); 
 
-  return t;
+	/** @fold BST(#t) */
+  	return t;
 }
