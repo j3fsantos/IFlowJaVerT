@@ -94,6 +94,7 @@ let fresh_lvar () =
    v
 
 
+
 type js_logic_expr =
 	| JSLLit				of jsil_lit
 	| JSLNone
@@ -104,10 +105,20 @@ type js_logic_expr =
 	| JSLUnOp				of jsil_unop * js_logic_expr
 	| JSLTypeOf			    of js_logic_expr
 	| JSLEList      		of js_logic_expr list
+	| JSLESet           of js_logic_expr list
 	| JSLLstNth     		of js_logic_expr * js_logic_expr
 	| JSLStrNth     		of js_logic_expr * js_logic_expr
 	| JSLUnknown
 	| JSLThis
+
+module MyJSLExpr = 
+	struct
+		type t = js_logic_expr
+		let compare = Pervasives.compare
+	end
+
+module JSSExpr = Set.Make(MyJSLExpr)
+
 
 type js_logic_assertion =
 	| JSLAnd				of js_logic_assertion * js_logic_assertion
@@ -165,6 +176,7 @@ let rec js2jsil_lexpr le =
 	| JSLUnOp (op, le)        -> LUnOp (op, fe le)
 	| JSLTypeOf le            -> LTypeOf (fe le)
 	| JSLEList les            -> LEList (List.map fe les)
+	| JSLESet les             -> LESet (List.map fe les)
 	| JSLLstNth (le1, le2)    -> LLstNth (fe le1, fe le2)
 	| JSLStrNth (le1, le2)    -> LStrNth (fe le1, fe le2)
 	| JSLUnknown              -> LUnknown

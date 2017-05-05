@@ -489,7 +489,7 @@ expr_target:
 		{ EList exprlist }
 (* -{- e, ..., e -}- *)
 	| SETOPEN; exprlist = separated_list(COMMA, expr_target); SETCLOSE
-		{ print_debug_petar "SETS!"; ESet (SExpr.elements (SExpr.of_list exprlist)) }
+		{ ESet (SExpr.elements (SExpr.of_list exprlist)) }
 (* l-nth (list, n) *)
 	| LSTNTH; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
 		{ LstNth (e1, e2) }
@@ -1052,6 +1052,9 @@ js_lexpr_target:
 (* {{ e, ..., e }} *)
 	| LSTOPEN; exprlist = separated_nonempty_list(COMMA, js_lexpr_target); LSTCLOSE
 		{ JSLEList exprlist }
+(* -{- e, ..., e -}- *)
+	| SETOPEN; exprlist = separated_list(COMMA, js_lexpr_target); SETCLOSE
+		{ JSLESet (JSSExpr.elements (JSSExpr.of_list exprlist)) }
 (* l-nth(e1, e2) *)
 	| LSTNTH; LBRACE; e1=js_lexpr_target; COMMA; e2=js_lexpr_target; RBRACE
 		{ JSLLstNth (e1, e2) }

@@ -117,8 +117,6 @@ let rec assertion_fold f_atom f_fold asrt =
 	| LStar (a1, a2)        -> f_fold asrt [ (fold_a a1); (fold_a a2) ]
 	| LNot a                -> f_fold asrt [ (fold_a a) ]
 
-
-
 let rec get_logic_expression_literals le =
 	let fe = get_logic_expression_literals in
 	match le with
@@ -141,10 +139,11 @@ let rec get_assertion_literals a =
 	| LNot a -> f a
 	| LAnd (a1, a2) | LOr (a1, a2) | LStar (a1, a2) -> (f a1) @ (f a2)
 	| LPointsTo (le1, le2, le3) -> (fe le1) @ (fe le2) @ (fe le3)
-	| LEq (le1, le2) | LLess (le1, le2) | LLessEq (le1, le2) | LStrLess (le1, le2) -> (fe le1) @ (fe le2)
+	| LEq (le1, le2) | LLess (le1, le2) | LLessEq (le1, le2) | LStrLess (le1, le2) 
+	| LSetMem (le1, le2) | LSetSub (le1, le2) -> (fe le1) @ (fe le2)
 	| LPred (_, les) -> List.concat (List.map fe les)
 	| LEmptyFields (e, les) -> (fe e) @ List.concat (List.map fe les)
-
+	
 
 let rec get_logic_expression_lists le =
 	let fe = get_logic_expression_lists in
@@ -156,6 +155,7 @@ let rec get_logic_expression_lists le =
 	| LBinOp (le1, _, le2) | LLstNth (le1, le2) | LStrNth (le1, le2)  -> (fe le1) @ (fe le2)
 	| LUnOp (_, le) | LTypeOf le -> fe le
  	| LEList les -> (LEList les) :: (List.concat (List.map fe les))
+	| LESet les -> (List.concat (List.map fe les))
 
 let rec get_assertion_lists a =
 	let f = get_assertion_lists in
@@ -165,7 +165,8 @@ let rec get_assertion_lists a =
 	| LNot a -> f a
 	| LAnd (a1, a2) | LOr (a1, a2) | LStar (a1, a2) -> (f a1) @ (f a2)
 	| LPointsTo (le1, le2, le3) -> (fe le1) @ (fe le2) @ (fe le3)
-	| LEq (le1, le2) | LLess (le1, le2) | LLessEq (le1, le2) | LStrLess (le1, le2) -> (fe le1) @ (fe le2)
+	| LEq (le1, le2) | LLess (le1, le2) | LLessEq (le1, le2) 
+	| LStrLess (le1, le2) | LSetMem (le1, le2) | LSetSub (le1, le2) -> (fe le1) @ (fe le2)
 	| LPred (_, les) -> List.concat (List.map fe les)
 	| LEmptyFields (e, les) -> (fe e) @ List.concat (List.map fe les)
 
@@ -256,7 +257,7 @@ let only_pure_atoms_negated a =
 let rec purify_stars a =
 	let f = purify_stars in
 	match a with
-	| LTrue | LFalse | LEq (_,_) | LLess (_,_) | LLessEq (_, _) | LStrLess (_, _) | LPred (_, _) -> a, []
+	| LTrue | LFalse | LEq (_,_) | LLess (_,_) | LLessEq (_, _) | LStrLess (_, _) | LPred (_, _) | LSetMem (_, _) | LSetSub (_, _) -> a, []
 	| LTypes types -> LTrue, types
 	| LAnd (a1, a2)  ->
 		let new_a1, types_a1 = f a1 in
@@ -354,7 +355,9 @@ let rec get_assertion_vars catch_pvars a : SS.t =
 			let v_les = List.fold_left (fun ac e -> 
 				let v_e = fe e in
 					SS.union ac v_e) SS.empty les in
-			SS.union v_o v_les) in
+			SS.union v_o v_les
+	| LSetMem (elem, s) -> SS.union (fe elem) (fe s)
+	| LSetSub (s1, s2)  -> SS.union (fe s1) (fe s2)) in
 	result
 
 let get_assertion_list_vars assertions catch_pvars =
@@ -401,7 +404,7 @@ let rec push_in_negations_off a : jsil_logic_assertion =
 			then LStar (f_on (new_a1), LTypes types_a1)
 			else f_on new_a1
 	| LStar (a1, a2) -> LStar ((f_off a1), (f_off a2))
-	| LTrue        | LFalse | LEq (_, _)          | LLess (_, _) | LLessEq (_, _) | LStrLess (_, _)
+	| LTrue        | LFalse | LEq (_, _)          | LLess (_, _) | LLessEq (_, _) | LStrLess (_, _) | LSetMem (_, _) | LSetSub (_, _) 
 	| LPred (_, _) | LEmp   | LPointsTo (_, _, _) | LTypes _ | LEmptyFields _ -> a)
 and push_in_negations_on a =
 	let err_msg = "push_in_negations_on: internal error" in
@@ -413,7 +416,7 @@ and push_in_negations_on a =
 	| LTrue               -> LFalse
 	| LFalse              -> LTrue
 	| LNot a              -> (f_off a)
-	| LEq (_, _)   | LLess (_, _) | LLessEq (_, _) | LStrLess (_, _) | LPred (_, _) -> LNot a
+	| LEq (_, _)   | LLess (_, _) | LLessEq (_, _) | LStrLess (_, _) | LPred (_, _) |  LSetMem (_, _) | LSetSub (_, _)  -> LNot a
 	| LStar (_, _) | LEmp         | LPointsTo (_, _, _) | LEmptyFields _ -> raise (Failure err_msg)
 	| LTypes _            -> LTrue)
 
@@ -783,7 +786,7 @@ let rec type_lexpr gamma le =
 		let (te2, ite2, constraints2) = f e2 in
 		let constraints = constraints1 @ constraints2 in
 
-		let all_types = [ UndefinedType; NullType; EmptyType; BooleanType; NumberType; StringType; ObjectType; ListType; TypeType; NoneType ] in
+		let all_types = [ UndefinedType; NullType; EmptyType; BooleanType; NumberType; StringType; ObjectType; ListType; TypeType; NoneType; SetType ] in
 		let check_valid_type t types ret_type new_constraints =
 			let is_t_in_types = List.mem t types in
 			if (is_t_in_types)
@@ -798,6 +801,7 @@ let rec type_lexpr gamma le =
 				(match op with
 				| Equal -> (Some BooleanType, true, constraints)
 				| LstCons -> check_valid_type t2 [ ListType ] ListType []
+				| SetMem -> check_valid_type t2 [ SetType ] BooleanType []
 				| _     -> Printf.printf "type_lexpr: op: %s, t: none\n"  (JSIL_Print.string_of_binop op); raise (Failure "ERROR"))
 			| true -> 
 			(match op with
@@ -818,9 +822,13 @@ let rec type_lexpr gamma le =
 			| LstCons -> check_valid_type t2 [ ListType ] ListType []
 			| LstCat -> check_valid_type t1 [ ListType ] ListType []
 			| StrCat -> check_valid_type t1 [ StringType ] StringType []
+			| SetUnion 
+			| SetDiff
+			| SetInter -> check_valid_type t1 [ SetType ] SetType     []
+			| SetSub   -> check_valid_type t1 [ SetType ] BooleanType []
 			| _ ->
 				Printf.printf "type_lexpr: op: %s, t: %s\n"  (JSIL_Print.string_of_binop op) (JSIL_Print.string_of_type t1);
-				raise (Failure "ERROR")))
+				raise (Failure "ERROR in type_lexpr")))
 		| _, ot2 ->
 			match op with
 			| Equal when ite1 && ite2 -> (Some BooleanType, true, constraints)
@@ -982,20 +990,24 @@ let rec lift_logic_expr lexpr =
 	| LLit (Bool false) -> Some (LLit (Bool false)), Some (LFalse, LTrue)
 	| _ -> Some lexpr, Some (LEq (lexpr, LLit (Bool true)), (LEq (lexpr, LLit (Bool false)))))
 and lift_binop_logic_expr op le1 le2 =
-	let err_msg = (Printf.sprintf "logical expression: binop %s : cannot be lifted to assertion" (JSIL_Print.string_of_binop op)) in
+	let err_msg = (Printf.sprintf "logical expression: binop %s cannot be lifted to assertion" (JSIL_Print.string_of_binop op)) in
 	let f = lift_logic_expr in
 	let lexpr_to_ass_binop binop =
 		(match binop with
-		| Equal -> (fun le1 le2 -> LEq (le1, le2))
-		| LessThan -> (fun le1 le2 -> LLess (le1, le2))
+		| Equal          -> (fun le1 le2 -> LEq (le1, le2))
+		| LessThan       -> (fun le1 le2 -> LLess (le1, le2))
 		| LessThanString -> (fun le1 le2 -> LStrLess (le1, le2))
-		| LessThanEqual -> (fun le1 le2 -> LLessEq (le1, le2))
+		| LessThanEqual  -> (fun le1 le2 -> LLessEq (le1, le2))
+		| SetMem         -> (fun le1 le2 -> LSetMem (le1, le2))
+		| SetSub         -> (fun le1 le2 -> LSetSub (le1, le2))
 		| _ -> raise (Failure "Error: lift_binop_expr")) in
 	(match op with
 	| Equal
 	| LessThan
 	| LessThanString
-	| LessThanEqual ->
+	| LessThanEqual 
+	| SetMem 
+	| SetSub ->
 		let l_op_fun = lexpr_to_ass_binop op in
 		(match ((f le1), (f le2)) with
 		| ((Some le1, _), (Some le2, _)) -> None, Some ((l_op_fun le1 le2), LNot (l_op_fun le1 le2))

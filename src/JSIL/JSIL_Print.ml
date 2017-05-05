@@ -111,6 +111,11 @@ let string_of_binop bop =
 	| StrCat -> "++"
 	| CharCons -> ":c:"
 	| CharCat -> "+c+"
+	| SetUnion -> "-u-"
+	| SetMem -> "-e-"
+	| SetInter -> "-i-"
+	| SetDiff -> "-d-"
+	| SetSub -> "-s-"
 
 (** JSIL unary operators *)
 let string_of_unop uop =
@@ -228,7 +233,7 @@ let rec string_of_logic_expression e escape_string =
 			| [] -> "$$nil"
 			| ll -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map sle ll)))
 		(* -{- e1, ..., en -}- *)
-    | LESet list -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map sle list))
+    | LESet list -> Printf.sprintf "-{- %s -}-" (String.concat ", " (List.map sle list))
 	
 	| LCList list ->
 			(match list with

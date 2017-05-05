@@ -2,6 +2,7 @@ open JSIL_Syntax
 open Symbolic_State
 open JSIL_Logic_Utils
 open Z3
+open Z3.Set
 
 type encoding =
  | WithReals
@@ -309,7 +310,7 @@ let z3_jsil_literal_sort, z3_jsil_list_sort, lit_operations =
 	with _ -> raise (Failure ("DEATH: construction of z3_jsil_value_sort")) 
 
 
-let extended_literal_sort, extended_literal_operations = 
+let extended_literal_sort, extended_literal_operations, z3_jsil_set_sort = 
 	let z3_jsil_set_sort = Set.mk_sort ctx z3_jsil_literal_sort in 
 	
 	let jsil_sing_elem_constructor = 
@@ -331,7 +332,7 @@ let extended_literal_sort, extended_literal_operations =
 	
 		let jsil_extended_literal_accessors    = Datatype.get_accessors extended_literal_sort in 
 		let singular_elem_accessor             = List.nth (List.nth jsil_extended_literal_accessors 0) 0 in 
-		let set_accessor                       = List.nth (List.nth jsil_extended_literal_accessors 0) 0 in 
+		let set_accessor                       = List.nth (List.nth jsil_extended_literal_accessors 1) 0 in 
 	
 		let jsil_extended_literal_recognizers  = Datatype.get_recognizers extended_literal_sort in 
 		let singular_elem_recognizer           = List.nth jsil_extended_literal_recognizers 0 in 
@@ -345,7 +346,7 @@ let extended_literal_sort, extended_literal_operations =
 			singular_elem_recognizer   = singular_elem_recognizer; 
 			set_recognizer             = set_recognizer
 		} in 
-		extended_literal_sort, extended_literal_operations
+		extended_literal_sort, extended_literal_operations, z3_jsil_set_sort
 	with _ -> raise (Failure ("DEATH: construction of z3_jsil_value_sort")) 
 	
 		 
@@ -381,8 +382,6 @@ let axiomatised_operations =
 		lnth_fun     = lnth_fun
 	}		
 
-
-
 let mk_z3_list_core les list_nil list_cons =
 	let empty_list = Expr.mk_app ctx list_nil [ ] in
 	let rec loop les cur_list =
@@ -394,12 +393,22 @@ let mk_z3_list_core les list_nil list_cons =
 	let result = loop les empty_list in
 	result
 
+let mk_z3_set les =
+	let empty_set = Set.mk_empty ctx z3_jsil_literal_sort in
+	let rec loop les cur_set =
+		match les with
+		| [] -> cur_set
+		| le :: rest_les ->
+			let new_cur_set = Set.mk_set_add ctx cur_set le in
+			loop rest_les new_cur_set in
+	let result = loop les empty_set in
+	result
+
 let mk_z3_list les nil_constructor cons_constructor =
 	try 
-		
 		mk_z3_list_core (List.rev les) nil_constructor cons_constructor
 	with _ -> raise (Failure "DEATH: mk_z3_list")
-
+	
 let str_codes = Hashtbl.create 1000
 let str_counter = ref 0
 let encode_string str =
@@ -413,7 +422,6 @@ let encode_string str =
 		Hashtbl.add str_codes str (!str_counter);
 		str_counter := !str_counter + 1;
 		z3_code
-
 
 let encode_type t =
 	try 
@@ -432,7 +440,6 @@ let encode_type t =
 		| SetType       -> Expr.mk_app ctx type_operations.set_type_constructor       []
 	with _ -> 
 		raise (Failure (Printf.sprintf "DEATH: encode_type with arg: %s" (JSIL_Print.string_of_type t)))
-
 
 let rec encode_lit lit =
 	let mk_singleton_elem ele = Expr.mk_app ctx extended_literal_operations.singular_constructor [ ele ] in 
@@ -472,9 +479,10 @@ let rec encode_lit lit =
 			mk_singleton_elem (Expr.mk_app ctx lit_operations.type_constructor [ t_arg ])
 		
 		| LList lits -> 
-			let args = List.map encode_lit lits in 
+			let args = List.map (fun lit -> mk_singleton_access (encode_lit lit)) lits in
 			let arg_list = mk_z3_list args lit_operations.nil_constructor lit_operations.cons_constructor in		
 			mk_singleton_elem (Expr.mk_app ctx lit_operations.list_constructor [ arg_list ])
+		
 	with (Failure msg) -> 
 		raise (Failure (Printf.sprintf "DEATH: encode_lit %s. %s" (JSIL_Print.string_of_literal lit false) msg)) 
 
@@ -510,7 +518,37 @@ let encode_binop op le1 le2 =
 		let le2_list = Expr.mk_app ctx lit_operations.list_accessor [ mk_singleton_access le2 ] in  
 		let new_list = Expr.mk_app ctx lit_operations.cons_constructor [ mk_singleton_access le1; le2_list ] in 
 		mk_singleton_elem (Expr.mk_app ctx lit_operations.list_constructor [ new_list ])
+		
+	| SetUnion ->
+		let le1_set = Expr.mk_app ctx extended_literal_operations.set_accessor [ le1 ] in  
+		let le2_set = Expr.mk_app ctx extended_literal_operations.set_accessor [ le2 ] in    
+		let le      = Set.mk_union ctx [ le1_set; le2_set ] in
+		Expr.mk_app ctx extended_literal_operations.set_constructor [ le ] 
 
+	| SetMem ->
+		let le1_mem = mk_singleton_access le1 in  
+		let le2_set = Expr.mk_app ctx extended_literal_operations.set_accessor [ le2 ] in    
+		let le      = Set.mk_membership ctx le1_mem le2_set in
+		mk_singleton_elem (Expr.mk_app ctx lit_operations.boolean_constructor [ le ])
+
+	| SetInter ->
+		let le1_set = Expr.mk_app ctx extended_literal_operations.set_accessor [ le1 ] in  
+		let le2_set = Expr.mk_app ctx extended_literal_operations.set_accessor [ le2 ] in    
+		let le      = Set.mk_intersection ctx [ le1_set; le2_set ] in
+		Expr.mk_app ctx extended_literal_operations.set_constructor [ le ] 
+		
+	| SetDiff ->
+		let le1_set = Expr.mk_app ctx extended_literal_operations.set_accessor [ le1 ] in  
+		let le2_set = Expr.mk_app ctx extended_literal_operations.set_accessor [ le2 ] in    
+		let le      = Set.mk_difference ctx le1_set le2_set in
+		Expr.mk_app ctx extended_literal_operations.set_constructor [ le ] 
+	
+	| SetSub ->
+		let le1_set = Expr.mk_app ctx extended_literal_operations.set_accessor [ le1 ] in  
+		let le2_set = Expr.mk_app ctx extended_literal_operations.set_accessor [ le2 ] in    
+		let le      = Set.mk_subset ctx le1_set le2_set in
+		mk_singleton_elem (Expr.mk_app ctx lit_operations.boolean_constructor [ le ])
+		
 	| _ -> raise (Failure "SMT encoding: Construct not supported yet - binop!")
 
 
@@ -599,6 +637,11 @@ let rec encode_logical_expression le =
 		let res = Expr.mk_app ctx axiomatised_operations.typeof_fun [ f le ] in 
 		mk_singleton_elem (Expr.mk_app ctx lit_operations.type_constructor [ res ])
 
+	| LESet les -> 
+		let args = List.map (fun le -> mk_singleton_access (f le)) les in
+		let arg_list = mk_z3_set args in		
+		Expr.mk_app ctx extended_literal_operations.set_constructor [ arg_list ]
+
 	| _                     ->
 		let msg = Printf.sprintf "Failure - z3 encoding: Unsupported logical expression: %s"
 			(JSIL_Print.string_of_logic_expression le false) in
@@ -628,6 +671,15 @@ let rec encode_assertion a : Expr.expr =
 	| LFalse             -> Boolean.mk_false ctx
 	| LOr (a1, a2)       -> Boolean.mk_or ctx [ (f a1); (f a2) ]
 	| LAnd (a1, a2)      -> Boolean.mk_and ctx [ (f a1); (f a2) ] 
+	| LSetMem (le1, le2) -> 
+		let le1' = mk_singleton_access (fe le1) in
+		let le2' = Expr.mk_app ctx extended_literal_operations.set_accessor  [ fe le2 ] in
+		Set.mk_membership ctx le1' le2' 
+	| LSetSub (le1, le2) -> 
+		let le1' = Expr.mk_app ctx extended_literal_operations.set_accessor  [ fe le1 ] in
+		let le2' = Expr.mk_app ctx extended_literal_operations.set_accessor  [ fe le2 ] in
+		Set.mk_subset ctx le1' le2' 
+		
 	| _ ->
 		let msg = Printf.sprintf "Unsupported assertion to encode for Z3: %s" (JSIL_Print.string_of_logic_assertion a false) in
 		raise (Failure msg)
