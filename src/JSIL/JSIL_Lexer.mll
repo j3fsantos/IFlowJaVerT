@@ -85,8 +85,8 @@ rule read = parse
 	| "-d-"                { JSIL_Parser.SETDIFF       }
 	| "-e-"                { JSIL_Parser.SETMEM        }
 	| "-s-"                { JSIL_Parser.SETSUB        }
-	| "-{-"                { JSIL_Parser.SETOPEN       }
-	| "-}-"                { JSIL_Parser.SETCLOSE      }
+	| "-{"                 { JSIL_Parser.SETOPEN       }
+	| "}-"                 { JSIL_Parser.SETCLOSE      }
 (* Unary operators *)
 	(* Unary minus uses the same symbol as binary minus, token MINUS *)
 	| "not"                { JSIL_Parser.NOT           }

@@ -174,8 +174,8 @@ let rec string_of_expression e escape_string =
 			(match ll with
 			| [] -> "$$nil"
 			| ll -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map se ll)))
-		(* -{- e1, e2, ... -}- *)
-		| ESet ll -> Printf.sprintf "-{- %s -}-" (String.concat ", " (List.map se ll))
+		(* -{ e1, e2, ... }- *)
+		| ESet ll -> Printf.sprintf "-{ %s }-" (String.concat ", " (List.map se ll))
 		(* [['c1', 'c2',...]]*)
 		| CList ll ->
 			(match ll with
@@ -232,8 +232,8 @@ let rec string_of_logic_expression e escape_string =
 			(match list with
 			| [] -> "$$nil"
 			| ll -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map sle ll)))
-		(* -{- e1, ..., en -}- *)
-    | LESet list -> Printf.sprintf "-{- %s -}-" (String.concat ", " (List.map sle list))
+		(* -{ e1, ..., en }- *)
+    | LESet list -> Printf.sprintf "-{ %s }-" (String.concat ", " (List.map sle list))
 	
 	| LCList list ->
 			(match list with

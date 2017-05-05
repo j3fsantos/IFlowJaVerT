@@ -191,6 +191,7 @@ let rec get_logic_expression_lvars_list le =
 		| LBinOp (le1, _, le2) | LLstNth (le1, le2) | LStrNth (le1, le2) -> (fe le1) @ (fe le2)
 		| LUnOp (_, le) |	LTypeOf le -> fe le
 	 	| LEList les 
+		| LESet  les
 	 	| LCList les -> List.concat (List.map fe les)
 
 let get_logic_expression_lvars le =

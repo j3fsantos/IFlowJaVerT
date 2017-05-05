@@ -182,7 +182,6 @@ let rec js2jsil_lexpr le =
 	| JSLUnknown              -> LUnknown
 	| JSLThis                 -> LVar this_logic_var_name
 
-
 let rec js2jsil_logic_cmds logic_cmds = 
 	let fe = js2jsil_lexpr in
 	match logic_cmds with 
