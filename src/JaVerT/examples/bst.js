@@ -1,37 +1,18 @@
 /**
-
-	@pred nullableObject(o) : 
-		types(o : $$object_type),
-		(o == $$null) * types (o : $$null_type);
-
 	@pred Node(n, val, left, right) :
-		standardObject(n)            *
-		dataField(n, "value", val)   * types(val : $$number_type) *
-		dataField(n, "left",  left)  * nullableObject(left)       *
-		dataField(n, "right", right) * nullableObject(right);
+		standardObject(n) *
+		dataField(n, "value", val) * dataField(n, "left",  left) * dataField(n, "right", right) *
+		types(val : $$number_type);
 
 	@pred BST(n, K) :
 		(n == $$null) * (K == -{ }-) * types (n : $$null_type, K : $$set_type),
+		
 		Node(n, #val, #left, #right) * BST(#left, #KL) * BST(#right, #KR) * 
 		(K == (#KL -u- -{ #val }- -u- #KR)) *
+		(forall #x : $$number_type. ((! (#x --e-- #KL)) \/ (#x <# #val))) *
+		(forall #x : $$number_type. ((! (#x --e-- #KR)) \/ (#val <# #x))) *
 		types(#val : $$number_type, K : $$set_type, #KL : $$set_type, #KR : $$set_type);
-		
-	@lemma
-		BST($$null, #x) ==> (#x == -{ }-) * types (#x : $$set_type)
 */
-
-/**
-	@pre
-		BST($$null, #x)
-
-	@post
-		(#x == -{ }-) * types (#x : $$set_type)
-*/
-function lemma ()
-{
-	/** @unfold BST($$null, #x) */
-	return true
-}
 
 /**
 	@id makeNode
@@ -67,14 +48,15 @@ function make_node(v)
 		scope(insert : #insert) * fun_obj(insert, #insert, #insertProto)
 
 
+
 	@pre
-		(t == #t) * BST(#t, #K) * types(#t : $$object_type) *
+		(t == #t) * BST(#t, #K) * (! (#t == $$null)) *
 		(v == #v) * types (#v : $$number_type) *
 		scope(make_node : #makeNode) * fun_obj(makeNode, #makeNode, #mknProto) *
 		scope(insert : #insert) * fun_obj(insert, #insert, #insertProto)
 		
 	@post 
-		BST(#t, #K -u- -{ #v }-) * (ret == #t) *
+		BST(#t, #K -u- -{ #v }-) * (ret == #t) * types (#t : $$object_type) *
 		scope(make_node : #makeNode) * fun_obj(makeNode, #makeNode, #mknProto) *
 		scope(insert : #insert) * fun_obj(insert, #insert, #insertProto)
 */
@@ -94,6 +76,18 @@ function insert(v, t)
     return result
   }
 
+  /** @invariant dataField(#t, "value", #iv) * dataField(#t, "left", #il) * dataField(#t, "right", #ir) */
+
+  /** @if (#il == $$null) {
+           unfold BST(#il, #il_set); 
+           fold BST(#il, #il_set)
+       } 
+  **/
+  /** @if (#ir == $$null) {
+           unfold BST(#ir, #ir_set); 
+           fold BST(#ir, #ir_set)
+       } 
+  **/
   if (v < t.value)
     t.left = insert(v, t.left);
   else if (v > t.value) 

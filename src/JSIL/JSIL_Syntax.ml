@@ -254,6 +254,7 @@ type jsil_logic_assertion =
 	| LStar			    of jsil_logic_assertion * jsil_logic_assertion             (** Separating conjunction *)
 	| LPointsTo	    of jsil_logic_expr * jsil_logic_expr * jsil_logic_expr     (** Heap cell assertion *)
 	| LPred			    of string * (jsil_logic_expr list)                         (** Predicates *)
+	| LForAll       of (jsil_var * jsil_type) list * jsil_logic_assertion                    (** Forall *)
 	| LTypes		    of (jsil_logic_expr * jsil_type) list                      (** Typing assertion *)
 	| LEmptyFields	of jsil_logic_expr * (jsil_logic_expr list)                (** emptyFields assertion *)
 	| LEq			      of jsil_logic_expr * jsil_logic_expr                       (** Expression equality *)

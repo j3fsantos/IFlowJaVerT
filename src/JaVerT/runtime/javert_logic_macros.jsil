@@ -13,4 +13,9 @@ macro
 				unfold* Pi 
 			} 
 		};
-		
+
+macro
+	BSTNull (left, right) : 
+		if ((left = $$null) and (right = $$null)) then {
+			unfold* BST; fold BST($$null, -{ }-); fold BST($$null, -{ }-)
+		};

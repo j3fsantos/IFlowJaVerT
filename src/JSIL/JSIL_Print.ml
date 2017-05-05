@@ -277,8 +277,9 @@ let rec string_of_logic_assertion a escape_string =
 		| LEmp -> "emp"
 		(* exists vars . a
 		| LExists (lvars, a) -> Printf.sprintf "exists %s . %s" (String.concat ", " lvars) (sla a) *)
-		(* forall vars . a
-		| LForAll (lvars, a) -> Printf.sprintf "forall %s . %s" (String.concat ", " lvars) (sla a) *)
+		(* forall vars . a *)
+		| LForAll (lvars, a) -> Printf.sprintf "(forall %s . %s)" (String.concat ", " 
+				(List.map (fun (x, t) -> Printf.sprintf "%s : %s" x (string_of_type t)) lvars)) (sla a) 
 		(* x(y1, ..., yn) *)
 		| LPred (name, params) -> Printf.sprintf "%s(%s)" name (String.concat ", " (List.map sle params))
 		(* types(e1:t1, ..., en:tn) *)
@@ -286,7 +287,10 @@ let rec string_of_logic_assertion a escape_string =
 			(String.concat ", " (List.map (fun (e, t) -> Printf.sprintf "%s : %s" (sle e) (string_of_type t)) type_list))
 		| LEmptyFields (obj, les) -> 
 			Printf.sprintf "empty_fields(%s : %s)" (sle obj) (String.concat ", " (List.map sle les))
-
+		(* e1 --e-- e2 *)
+		| LSetMem (e1, e2) -> Printf.sprintf "(%s --e-- %s)" (sle e1) (sle e2)
+		(* e1 --s-- e2 *)
+		| LSetSub (e1, e2) -> Printf.sprintf "(%s --s-- %s)" (sle e1) (sle e2)
 
 let rec string_of_lcmd lcmd =
 	match lcmd with
