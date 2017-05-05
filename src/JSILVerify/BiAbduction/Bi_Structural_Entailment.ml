@@ -67,7 +67,7 @@ let bi_unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_s
 							extend_subst subst lvar (LLit lit);
 							discharges, new_pfs
 						| None ->
-							if (Pure_Entailment.old_check_entailment SS.empty pfs [ (LEq (LVar lvar, LLit lit)) ] gamma)
+							if (Pure_Entailment.check_entailment SS.empty pfs [ (LEq (LVar lvar, LLit lit)) ] gamma)
 								then discharges, new_pfs
 								else raise (Failure (Printf.sprintf "LLit %s, LVar %s : the pattern store is not normalized." (JSIL_Print.string_of_literal lit false) lvar)))
 
@@ -435,7 +435,7 @@ let bi_unify_symb_states (lvars : SS.t) pat_symb_state (symb_state : symbolic_st
 						(List.fold_left (fun ac x -> ac ^ " " ^ x) "" fresh_names_for_existentials)
 						(Symbolic_State_Print.string_of_gamma gamma_0'));
 
-					let entailment_check_ret = Pure_Entailment.old_check_entailment (SS.of_list fresh_names_for_existentials) (pfs_to_list pf_0) pfs gamma_0' in
+					let entailment_check_ret = Pure_Entailment.check_entailment (SS.of_list fresh_names_for_existentials) (pfs_to_list pf_0) pfs gamma_0' in
 					print_debug (Printf.sprintf "entailment_check: %b" entailment_check_ret);
 					Some (entailment_check_ret, pf_discharges, pf_1_subst_list, gamma_0')
 				end

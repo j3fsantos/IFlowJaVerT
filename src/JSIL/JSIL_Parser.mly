@@ -810,7 +810,7 @@ lexpr_target:
 		{ LEList exprlist }
 (* -{- e, ..., e -}- *)
 	| SETOPEN; exprlist = separated_list(COMMA, lexpr_target); SETCLOSE
-		{ print_debug_petar "LSETS!"; LESet (SLExpr.elements (SLExpr.of_list exprlist)) }
+		{ LESet (SLExpr.elements (SLExpr.of_list exprlist)) }
 (* l-nth(e1, e2) *)
 	| LSTNTH; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE
 		{ LLstNth (e1, e2) }

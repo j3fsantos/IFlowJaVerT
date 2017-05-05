@@ -273,6 +273,16 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 				raise (Failure "List index out of bounds"))
 			else
 				raise (Failure (Printf.sprintf "Non-integer string index: %f" n))
+		| LLit (CList str), LLit (Num n) ->
+			if (Utils.is_int n) then
+			(try 
+				let char = (List.nth str (int_of_float n)) in 
+				(match char with
+				| Char c -> LLit (String (String.make 1 c))
+				| _ -> raise (Failure ("Unexpected construct in internal string representation"))) with _ ->
+				raise (Failure "List index out of bounds"))
+			else
+				raise (Failure (Printf.sprintf "Non-integer string index: %f" n))
 		| _, _ -> LStrNth (str, index))
 
     (* List and String length *)
@@ -333,6 +343,10 @@ let rec reduce_assertion store gamma pfs a =
 
 	| LNot LTrue -> LFalse
 	| LNot LFalse -> LTrue
+	| LNot (LOr (al, ar)) ->
+			f (LAnd (LNot al, LNot ar))
+	| LNot (LAnd (al, ar)) -> 
+			f (LOr (LNot al, LNot ar))
 	| LNot a1 ->
 		let ra1 = f a1 in
 		let a' = LNot ra1 in
@@ -418,6 +432,28 @@ let rec reduce_assertion store gamma pfs a =
 		let re1 = fe e1 in
 		let re2 = fe e2 in
 		LLess (re1, re2)
+
+	| LSetMem (leb, LBinOp(lel, SetUnion, ler)) -> 
+		let rleb = fe leb in
+		let rlel = fe lel in
+		let rler = fe ler in
+			print_debug (Printf.sprintf "SIMPL_SETMEM_UNION: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) 
+				(JSIL_Print.string_of_logic_assertion (LOr (LSetMem (rleb, rlel), LSetMem (rleb, rler))) false)); 
+			f (LOr (LSetMem (rleb, rlel), LSetMem (rleb, rler)))
+
+	| LSetMem (leb, LESet [ le ]) -> 
+		let rleb = fe leb in
+		let rle = fe le in
+			print_debug (Printf.sprintf "SIMPL_SETMEM_SINGLETON: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) 
+				(JSIL_Print.string_of_logic_assertion (LEq (rleb, rle)) false)); 
+			f (LEq (rleb, rle))
+
+	| LForAll (bt, a) -> 
+			let ra = f a in
+			if (a <> ra) then
+		  print_debug (Printf.sprintf "SIMPL_FORALL: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) 
+				(JSIL_Print.string_of_logic_assertion (LForAll (bt, ra)) false)); 
+			LForAll (bt, ra)
 
 	| _ -> a) in
 	(* if (not (a = result)) then print_debug (Printf.sprintf "Reduce assertion: %s ---> %s"
@@ -1802,11 +1838,11 @@ let simplify_implication exists lpfs rpfs gamma =
 	sanitise_pfs_no_store gamma rpfs;
 	let exists, lpfs, rpfs, gamma = simplify_existentials exists lpfs rpfs gamma in
 	clean_up_stuff exists lpfs rpfs;
-	print_debug_petar (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\n\nGamma:\n%s\n\n"
+	(* print_debug_petar (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\n\nGamma:\n%s\n\n"
 		(String.concat ", " (SS.elements exists))
 		(print_pfs lpfs)
 		(print_pfs rpfs)
-		(Symbolic_State_Print.string_of_gamma gamma)); 
+		(Symbolic_State_Print.string_of_gamma gamma)); *)
 	exists, lpfs, rpfs, gamma (* DO THE SUBST *)
 
 

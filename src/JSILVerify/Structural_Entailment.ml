@@ -122,7 +122,7 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 						extend_subst subst lvar (LLit lit);
 						discharges
 					| None ->
-						if (Pure_Entailment.old_check_entailment SS.empty pfs [ (LEq (LVar lvar, LLit lit)) ] gamma)
+						if (Pure_Entailment.check_entailment SS.empty pfs [ (LEq (LVar lvar, LLit lit)) ] gamma)
 							then discharges
 							else raise (Failure (Printf.sprintf "LLit %s, LVar %s : the pattern store is not normalized." (JSIL_Print.string_of_literal lit false) lvar)))
 
@@ -879,8 +879,10 @@ let spec_logic_vars_discharge subst (lvars : SS.t) pfs gamma =
 				with _ ->
 					Hashtbl.add subst var (LVar var);   
 					ac) lvars [] in
-	let ret = Pure_Entailment.old_check_entailment SS.empty pf_list pfs_to_prove gamma in
-	(* Printf.printf "Check if \n (%s) \n entails \n (%s) \n with gamma \n (%s) \nret: %b\n" (JSIL_Print.str_of_assertion_list pf_list) (JSIL_Print.str_of_assertion_list pfs_to_prove) (Symbolic_State_Print.string_of_gamma gamma) ret; *)
+	
+	print_debug_petar (Printf.sprintf "Check if \n (%s) \n entails \n (%s) \n with gamma \n (%s)" (JSIL_Print.str_of_assertion_list pf_list) (JSIL_Print.str_of_assertion_list pfs_to_prove) (Symbolic_State_Print.string_of_gamma gamma));
+	let ret = Pure_Entailment.check_entailment SS.empty pf_list pfs_to_prove gamma in
+	print_debug_petar (Printf.sprintf "Return value: %b\n" ret);
 	ret
 
 
@@ -1043,7 +1045,7 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 				(List.fold_left (fun ac x -> ac ^ " " ^ x) "" fresh_names_for_existentials)
 				(Symbolic_State_Print.string_of_gamma gamma_0'));
 
-			let entailment_check_ret = Pure_Entailment.old_check_entailment (SS.of_list fresh_names_for_existentials) (pfs_to_list pf_0) pfs gamma_0' in
+			let entailment_check_ret = Pure_Entailment.check_entailment (SS.of_list fresh_names_for_existentials) (pfs_to_list pf_0) pfs gamma_0' in
 			print_debug (Printf.sprintf "unify_gamma_check: %b. entailment_check: %b" unify_gamma_check entailment_check_ret);
 			Some (entailment_check_ret, pf_discharges, pf_1_subst_list, gamma_0')
 		end else (print_debug "Gammas not unifiable."; None) in
@@ -1214,7 +1216,7 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 				(List.fold_left (fun ac x -> ac ^ " " ^ x) "" (SS.elements new_existentials))
 				(Symbolic_State_Print.string_of_gamma gamma_0'));
 
-			let entailment_check = Pure_Entailment.old_check_entailment new_existentials (pfs_to_list pf0) (pfs_to_list pfs) gamma_0' in
+			let entailment_check = Pure_Entailment.check_entailment new_existentials (pfs_to_list pf0) (pfs_to_list pfs) gamma_0' in
 			(* (if (not entailment_check) then Pure_Entailment.understand_error new_existentials (pfs_to_list pf0) (pfs_to_list pfs) gamma_0'); *)
 			(entailment_check, pf_discharges, pf_1_subst_list, gamma_0', new_existentials)
 		end
