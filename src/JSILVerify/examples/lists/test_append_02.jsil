@@ -12,7 +12,7 @@ spec test_01 ()
 
 proc test_01 ()
 {
-			string := "abcdefgh";
+			string := "abcd" ++ "efgh";
 			xret := "subString" (string, 4, 2);
 	rlab:	skip
 }

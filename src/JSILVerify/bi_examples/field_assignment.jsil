@@ -50,3 +50,22 @@ proc test4 (x) {
            [x, "exists"] := z;
    rlab:   skip
 } with { ret: x, rlab; };
+
+spec test5 (x,y)
+  [[ emp ]]
+  [[ emp ]]
+  normal
+proc test5 (x,y) {
+          [x, "foo"] := l-nth(y,3); 
+  rlab:   skip
+} with { ret: x, rlab; };
+
+spec test6 (x,y)
+  [[ emp ]]
+  [[ emp ]]
+  normal
+proc test6 (x,y) {
+          x := [y, "foo"];
+          [y, "bar"] := not x;
+  rlab:   skip
+} with { ret: x, rlab; };

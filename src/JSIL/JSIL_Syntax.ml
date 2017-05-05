@@ -27,6 +27,7 @@ type jsil_type =
 	| ObjectType    (** Type of objects   *)
 	| ListType      (** Type of lists     *)
 	| TypeType      (** Type of types     *)
+	| SetType       (** Type of sets      *)
 
 (** {b JSIL constants}. They are mostly inspired by those present in JavaScript's Math 
     and Date libraries. *)
@@ -157,6 +158,12 @@ type jsil_binop =
 	(* Character *)
 	| CharCons           (** Char construction *)
 	| CharCat            (** Char concatenation *)
+	(* Sets *)
+	| SetUnion           (** Set union *)
+	| SetInter           (** Set intersection *)
+	| SetDiff            (** Set difference *)
+	| SetMem             (** Set membership *)
+	| SetSub             (** Subset *)
 
 (** {b JSIL expressions}. Literals, variables, unary and binary operators, lists. *)
 	type jsil_expr =
@@ -168,6 +175,7 @@ type jsil_binop =
 	| LstNth   of jsil_expr	* jsil_expr	             (** Nth element of a list *)  
 	| StrNth   of jsil_expr	* jsil_expr	             (** Nth element of a string *)               
 	| EList    of jsil_expr list                     (** Lists of expressions *)
+	| ESet     of jsil_expr list                     (** Sets of expressions *)
 	| CList    of jsil_expr list                     (** Lists of characters *)
 	| RAssume  of jsil_expr                          
 	| RAssert  of jsil_expr
@@ -226,11 +234,12 @@ type jsil_logic_expr =
 	| PVar     of jsil_var                                       (** JSIL program variables *)
 	| LBinOp   of jsil_logic_expr * jsil_binop * jsil_logic_expr (** Binary operators ({!type:jsil_binop}) *)
 	| LUnOp    of jsil_unop * jsil_logic_expr                    (** Unary operators ({!type:jsil_unop}) *)
-	| LTypeOf  of jsil_logic_expr	                             (** Typing operator *) 
+	| LTypeOf  of jsil_logic_expr	                               (** Typing operator *) 
 	| LLstNth  of jsil_logic_expr * jsil_logic_expr              (** Nth element of a list *)
 	| LStrNth  of jsil_logic_expr * jsil_logic_expr              (** Nth element of a string *)              
 	| LEList   of jsil_logic_expr list                           (** Lists of logical expressions *)
 	| LCList   of jsil_logic_expr list                           (** Lists of logical chars *)
+	| LESet    of jsil_logic_expr list                           (** Sets of logical expressions *)
 	| LNone                                                      (** Empty field value *)  
 	| LUnknown                                                   (** Unknown field value *)
 
@@ -238,19 +247,22 @@ type jsil_logic_expr =
 type jsil_logic_assertion =
 	| LTrue                                                                    (** Logical true *)
 	| LFalse                                                                   (** Logical false *)
-	| LNot			    of jsil_logic_assertion                                (** Logical negation *)
-	| LAnd			    of jsil_logic_assertion * jsil_logic_assertion         (** Logical conjunction *)
-	| LOr		  	    of jsil_logic_assertion * jsil_logic_assertion         (** Logical disjunction *)
+	| LNot			    of jsil_logic_assertion                                    (** Logical negation *)
+	| LAnd			    of jsil_logic_assertion * jsil_logic_assertion             (** Logical conjunction *)
+	| LOr		  	    of jsil_logic_assertion * jsil_logic_assertion             (** Logical disjunction *)
 	| LEmp                                                                     (** Empty heap *)
-	| LStar			    of jsil_logic_assertion * jsil_logic_assertion         (** Separating conjunction *)
-	| LPointsTo	        of jsil_logic_expr * jsil_logic_expr * jsil_logic_expr (** Heap cell assertion *)
-	| LPred			    of string * (jsil_logic_expr list)                     (** Predicates *)
-	| LTypes		    of (jsil_logic_expr * jsil_type) list                  (** Typing assertion *)
-	| LEmptyFields	    of jsil_logic_expr * (jsil_logic_expr list)            (** emptyFields assertion *)
-	| LEq			    of jsil_logic_expr * jsil_logic_expr                   (** Expression equality *)
-	| LLess			    of jsil_logic_expr * jsil_logic_expr                   (** Expression less-than for numbers *)
-	| LLessEq		    of jsil_logic_expr * jsil_logic_expr                   (** Expression less-than-or-equal for numbers *)   
-	| LStrLess	        of jsil_logic_expr * jsil_logic_expr                   (** Expression less-than for strings *)               
+	| LStar			    of jsil_logic_assertion * jsil_logic_assertion             (** Separating conjunction *)
+	| LPointsTo	    of jsil_logic_expr * jsil_logic_expr * jsil_logic_expr     (** Heap cell assertion *)
+	| LPred			    of string * (jsil_logic_expr list)                         (** Predicates *)
+	| LTypes		    of (jsil_logic_expr * jsil_type) list                      (** Typing assertion *)
+	| LEmptyFields	of jsil_logic_expr * (jsil_logic_expr list)                (** emptyFields assertion *)
+	| LEq			      of jsil_logic_expr * jsil_logic_expr                       (** Expression equality *)
+	| LLess			    of jsil_logic_expr * jsil_logic_expr                       (** Expression less-than for numbers *)
+	| LLessEq		    of jsil_logic_expr * jsil_logic_expr                       (** Expression less-than-or-equal for numbers *)   
+	| LStrLess	    of jsil_logic_expr * jsil_logic_expr                       (** Expression less-than for strings *)               
+	| LSetMem  	    of jsil_logic_expr * jsil_logic_expr                       (** Set membership *)  
+	| LSetSub  	    of jsil_logic_expr * jsil_logic_expr                       (** Set subsetness *) 
+
 
 (** {b JSIL logic predicate}. *)
 type jsil_logic_predicate = {
@@ -468,6 +480,24 @@ module MyAssertion =
     let compare = Pervasives.compare
   end
 
+module MySubstitution = 
+	struct
+		type t = (string, jsil_logic_expr) Hashtbl.t
+		let compare = Pervasives.compare
+	end
+
+module MyExpr = 
+	struct
+		type t = jsil_expr
+		let compare = Pervasives.compare
+	end
+
+module MyLExpr = 
+	struct
+		type t = jsil_logic_expr
+		let compare = Pervasives.compare
+	end
+
 module MyFieldValueList = 
 	struct
 		type t = jsil_logic_expr * jsil_logic_expr
@@ -477,6 +507,11 @@ module MyFieldValueList =
 module SI = Set.Make(MyInt)
 module SN = Set.Make(MyNumber)
 module SA = Set.Make(MyAssertion)
+
+module SSS = Set.Make(MySubstitution)
+
+module SExpr = Set.Make(MyExpr)
+module SLExpr = Set.Make(MyLExpr) 
 
 module SFV = Set.Make(MyFieldValueList)
 
@@ -534,10 +569,12 @@ let fresh_sth (name : string) : (unit -> string) =
 let abs_loc_prefix = "_$l_"
 let lvar_prefix = "_lvar_"
 let pvar_prefix = "_pvar_"
+let svar_prefix = "s_"
 
 let fresh_aloc = fresh_sth abs_loc_prefix
 let fresh_lvar = fresh_sth lvar_prefix
 let fresh_pvar = fresh_sth pvar_prefix
+let fresh_svar = fresh_sth svar_prefix
 
 let fresh_lvar_from_lvar_name =
 	let lvar_tbl = Hashtbl.create small_tbl_size in
@@ -568,8 +605,8 @@ let is_pvar_name (name : string) : bool =
 let is_spec_var_name (name : string) : bool =
 	((String.sub name 0 1) = "#")
 
-let fresh_spec_var (name : string) : string =
-	( "##" ^ name)
+let fresh_spec_var () : string =
+	( "##" ^ fresh_svar ())
 
 (* A substitution type                                 *)
 type substitution = ((string, jsil_logic_expr) Hashtbl.t)

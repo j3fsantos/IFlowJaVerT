@@ -38,6 +38,7 @@ let copy_and_clear_globals () =
 %token OBJTYPELIT
 %token LISTTYPELIT
 %token TYPETYPELIT
+%token SETTYPELIT
 (* Constants *)
 %token MIN_FLOAT
 %token MAX_FLOAT
@@ -206,6 +207,15 @@ let copy_and_clear_globals () =
 %token RBRACKET
 %token CLBRACKET
 %token CRBRACKET
+(* SETS *)
+%token EMPTYSET
+%token SETUNION
+%token SETINTER
+%token SETDIFF
+%token SETMEM
+%token SETSUB
+%token SETOPEN
+%token SETCLOSE
 (* EOF *)
 %token EOF
 (***** Precedence of operators *****)
@@ -479,6 +489,9 @@ expr_target:
 (* {{ e, ..., e }} *)
 	| LSTOPEN; exprlist = separated_nonempty_list(COMMA, expr_target); LSTCLOSE
 		{ EList exprlist }
+(* -{- e, ..., e -}- *)
+	| SETOPEN; exprlist = separated_list(COMMA, expr_target); SETCLOSE
+		{ ESet (SExpr.elements (SExpr.of_list exprlist)) }
 (* l-nth (list, n) *)
 	| LSTNTH; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
 		{ LstNth (e1, e2) }
@@ -782,6 +795,9 @@ lexpr_target:
 (* {{ e, ..., e }} *)
 	| LSTOPEN; exprlist = separated_nonempty_list(COMMA, lexpr_target); LSTCLOSE
 		{ LEList exprlist }
+(* -{- e, ..., e -}- *)
+	| SETOPEN; exprlist = separated_list(COMMA, lexpr_target); SETCLOSE
+		{ print_debug_petar "LSETS!"; LESet (SLExpr.elements (SLExpr.of_list exprlist)) }
 (* l-nth(e1, e2) *)
 	| LSTNTH; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE
 		{ LLstNth (e1, e2) }
@@ -854,6 +870,11 @@ lit_target:
 	| LSTCONS            { LstCons }
 	| LSTCAT             { LstCat }
 	| STRCAT             { StrCat }
+	| SETUNION           { SetUnion }
+	| SETINTER           { SetInter }
+	| SETDIFF            { SetDiff }
+	| SETMEM             { SetMem }
+	| SETSUB             { SetSub }
 ;
 
 %inline unop_target:
@@ -914,6 +935,7 @@ lit_target:
 	| OBJTYPELIT   { ObjectType }
 	| LISTTYPELIT  { ListType }
 	| TYPETYPELIT  { TypeType }
+	| SETTYPELIT   { SetType }
 ;
 
 
@@ -1038,6 +1060,9 @@ js_lexpr_target:
 (* {{ e, ..., e }} *)
 	| LSTOPEN; exprlist = separated_nonempty_list(COMMA, js_lexpr_target); LSTCLOSE
 		{ JSLEList exprlist }
+(* -{- e, ..., e -}- *)
+	| SETOPEN; exprlist = separated_list(COMMA, js_lexpr_target); SETCLOSE
+		{ JSLESet (JSSExpr.elements (JSSExpr.of_list exprlist)) }
 (* l-nth(e1, e2) *)
 	| LSTNTH; LBRACE; e1=js_lexpr_target; COMMA; e2=js_lexpr_target; RBRACE
 		{ JSLLstNth (e1, e2) }

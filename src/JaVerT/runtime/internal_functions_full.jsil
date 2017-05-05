@@ -124,11 +124,11 @@ pred Cell_s (l, prop, "None", None, pv) :
 	 Cell_o (l, prop, None) * ((l, "@primitiveValue") -> pv) *
      (#i == num_to_int (string_to_num prop)) * (! IsStringIndex(pv, prop, #i));
 
-pred Cell_s (l, prop, "SI", desc, pv) :
-     types(l : $$object_type, prop : $$string_type, desc : $$list_type, pv : $$string_type, #i : $$number_type, #v : $$string_type) *
-	 Cell_o (l, prop, None) * ((l, "@primitiveValue") -> pv) *
+pred Cell_s (l, prop, "SI", desc, pv) : 
+     types(l : $$object_type, #prop : $$string_type, desc : $$list_type, pv : $$string_type, #i : $$number_type, #v : $$string_type) *
+	 (prop == #prop) * Cell_o (l, #prop, None) * ((l, "@primitiveValue") -> pv) *
      (desc == {{ "d", #v, $$f, $$t, $$f }}) *  (#v == s-nth(pv, #i)) *
-	 (#i == num_to_int (string_to_num prop)) * IsStringIndex(pv, prop, #i);
+	 (#i == num_to_int (string_to_num #prop)) * IsStringIndex(pv, #prop, #i);
 
 pred Cell_s (l, prop, "NSI", desc, pv) :
 	 types (l : $$object_type, prop : $$string_type, desc : $$list_type, pv : $$string_type, #i : $$number_type) *
@@ -258,13 +258,17 @@ pred Pi (l, prop, lcls, d, ls, ltf, lpv) :
  *)
 pred Pi (l, prop, lcls, d, ls, ltf, lpv) :
     types(l : $$object_type, prop : $$string_type, lcls : $$list_type, ls : $$list_type, ltf : $$list_type, lpv : $$list_type) *
-	types(#lp : $$object_type, #cls : $$string_type, #pcls : $$list_type, #lsp : $$list_type, #ltfp : $$list_type, #lpvp : $$list_type) *
-	((l, "@class") -> #cls) * ((l, "@proto") -> #lp) * (! (#lp == $$null)) *
+	((l, "@class") -> #cls) * ((l, "@proto") -> #lp) *
 	isClass (#cls, "String") * Cell_s (l, prop, "None", None, #pv) *
-    Pi (#lp, prop, #pcls, d, #lsp, #ltfp, #lpvp) *
-	(lcls == #cls :: #pcls) * (ls == l :: #lsp) * (ltf == $$t :: #ltfp) * (lpv == #pv :: #lpvp) *
-    (0 <# l-len #lsp) * (0 <# l-len #ltfp) * (0 <# l-len #lpvp);
-
+	types(#lcls : $$list_type, #lls : $$list_type, #ltf  : $$list_type, #lpv : $$list_type) *
+    Pi (#lp, prop, #lcls, d, #lls, #ltf, #lpv) *
+	types(#pcls : $$string_type,  #ocls : $$list_type,
+	        #lp : $$object_type,  #ols  : $$list_type,
+		   #ptf : $$boolean_type, #otf  : $$list_type,
+		   #ppv : $$string_type,  #otv  : $$list_type) *
+	(#lcls == #pcls :: #ocls) * (#lls == #lp :: #ols) * (#ltf == #ptf :: #otf) * (#lpv == #ppv :: #otv) *
+	(lcls == #cls :: #lcls) * (ls == l :: #lls) * (ltf == $$t :: #ltf) * (lpv == #pv :: #lpv);
+    
 (* ***********************
  * CREATE_DEFAULT_OBJECT *
  *************************)

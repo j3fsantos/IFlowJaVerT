@@ -100,6 +100,10 @@ let rec normalise_lexpr store gamma subst le =
 		if (all_literals)
 		then LLit (LList lit_list)
 		else LEList n_le_list
+		
+	| LESet le_list ->
+		let n_le_list = List.map (fun le -> f le) le_list in
+		LESet n_le_list
 
 	| LLstNth (le1, le2) ->
 		let nle1 = f le1 in
@@ -126,9 +130,9 @@ let rec normalise_lexpr store gamma subst le =
 			| _, _ -> LStrNth (nle1, nle2)) in
 		let end_time = Sys.time () in
 		JSIL_Syntax.update_statistics "normalise_lexpr" (end_time -. start_time);
-		print_debug_petar (Printf.sprintf "normalise_lexpr: %f : %s -> %s" 
+		(* print_debug_petar (Printf.sprintf "normalise_lexpr: %f : %s -> %s" 
 			(end_time -. start_time) (JSIL_Print.string_of_logic_expression le false) 
-			(JSIL_Print.string_of_logic_expression result false));
+			(JSIL_Print.string_of_logic_expression result false)); *)
 		result)
 	with
 	| Failure msg -> let end_time = Sys.time () in
@@ -158,9 +162,9 @@ let rec normalise_pure_assertion store gamma subst assertion =
 			raise (Failure msg)) in
 	let end_time = Sys.time () in
 	JSIL_Syntax.update_statistics "normalise_pure_assertion" (end_time -. start_time);
-	print_debug (Printf.sprintf "normalise_pure_assertion: %f : %s -> %s" 
+	(* print_debug (Printf.sprintf "normalise_pure_assertion: %f : %s -> %s" 
 			(end_time -. start_time) (JSIL_Print.string_of_logic_assertion assertion false) 
-			(JSIL_Print.string_of_logic_assertion result false));
+			(JSIL_Print.string_of_logic_assertion result false)); *)
 		result)
 	with
 	| Failure msg -> let end_time = Sys.time () in
@@ -426,6 +430,8 @@ let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_form
 
 	| _ -> ()
 
+exception InvalidTypeOfLiteral
+
 let rec init_gamma gamma a =
 	let f = init_gamma gamma in
 	match a with
@@ -434,13 +440,7 @@ let rec init_gamma gamma a =
 				(fun (v, t) ->
 							match v with
 							| LLit lit ->
-									if ((evaluate_type_of lit) = t)
-									then ()
-									else
-										(let msg = Printf.sprintf "Only vars or lvars in the typing environment, for the love of God. PUTTING: %s with type %s"
-													(JSIL_Print.string_of_logic_expression v false)
-													(JSIL_Print.string_of_type t) in
-											raise (Failure msg))
+									if (evaluate_type_of lit <> t) then raise InvalidTypeOfLiteral
 
 							| LVar v -> Hashtbl.replace gamma v t
 							| PVar v -> Hashtbl.replace gamma v t
@@ -646,22 +646,25 @@ let normalise_assertion a : symbolic_state * substitution =
 	let gamma = Hashtbl.create 101 in
 	let subst = Hashtbl.create 101 in
 
-	init_gamma gamma a;
-	init_symb_store_alocs store gamma subst a;
-
-	let p_formulae = init_pure_assignments a store gamma subst in
-
-	 (match (DynArray.to_list p_formulae) with
-	 | [ LFalse ] -> (LHeap.create 1, Hashtbl.create 1, DynArray.of_list [ LFalse ], Hashtbl.create 1, DynArray.create()), Hashtbl.create 1
-	 | _ ->
-		fill_store_with_gamma store gamma subst;
-		extend_typing_env_using_assertion_info ((pfs_to_list p_formulae) @ (pf_of_store2 store)) gamma;
-		compute_symb_heap heap store p_formulae gamma subst a;
-		let preds, new_assertions = init_preds a store gamma subst in
-		extend_typing_env_using_assertion_info new_assertions gamma;
-		merge_pfs p_formulae (DynArray.of_list new_assertions);
-		process_empty_fields heap store (pfs_to_list p_formulae) gamma subst a;
-		(heap, store, p_formulae, gamma, preds), subst)
+	try (
+		init_gamma gamma a;
+		init_symb_store_alocs store gamma subst a;
+	
+		let p_formulae = init_pure_assignments a store gamma subst in
+	
+		 (match (DynArray.to_list p_formulae) with
+		 | [ LFalse ] -> (LHeap.create 1, Hashtbl.create 1, DynArray.of_list [ LFalse ], Hashtbl.create 1, DynArray.create()), Hashtbl.create 1
+		 | _ ->
+			fill_store_with_gamma store gamma subst;
+			extend_typing_env_using_assertion_info ((pfs_to_list p_formulae) @ (pf_of_store2 store)) gamma;
+			compute_symb_heap heap store p_formulae gamma subst a;
+			let preds, new_assertions = init_preds a store gamma subst in
+			extend_typing_env_using_assertion_info new_assertions gamma;
+			merge_pfs p_formulae (DynArray.of_list new_assertions);
+			process_empty_fields heap store (pfs_to_list p_formulae) gamma subst a;
+			(heap, store, p_formulae, gamma, preds), subst))
+	with
+	| InvalidTypeOfLiteral -> (LHeap.create 1, Hashtbl.create 1, DynArray.of_list [ LFalse ], Hashtbl.create 1, DynArray.create()), Hashtbl.create 1
 
 
 let connecting_logical_vars_with_abstract_locations_in_post pre_vars subst new_subst = 
@@ -714,14 +717,14 @@ let normalise_postcondition a subst (lvars : SS.t) pre_gamma : symbolic_state * 
 
 
 let pre_normalise_invariants_proc preds body = 
-	let f_pre_normalize a_list = List.concat (List.map pre_normalize_assertion a_list) in
+	let f_pre_normalise a_list = List.map (fun a -> pre_normalise_assertion a) a_list in
 	let len = Array.length body in
 	for i = 0 to (len - 1) do 
 		let metadata, cmd = body.(i) in 
 		match metadata.invariant with 
 		| None -> () 
 		| Some a -> (
-				let unfolded_a = f_pre_normalize (Logic_Predicates.auto_unfold preds a) in
+				let unfolded_a = f_pre_normalise (Logic_Predicates.auto_unfold preds a) in
 				match unfolded_a with 
 				| [] -> raise (Failure "invariant unfolds to ZERO assertions")
 				| [ a ] -> body.(i) <- { metadata with invariant = Some a }, cmd 
@@ -742,13 +745,13 @@ let normalise_single_spec preds spec =
 
 	print_debug (Printf.sprintf "NSS: Entry");
 
-	let f_pre_normalize a_list = List.concat (List.map pre_normalize_assertion a_list) in
+	let f_pre_normalise a_list = List.map pre_normalise_assertion a_list in
 	let f_print assertions =
 		List.fold_left (fun ac s -> if (ac = "\n") then ac ^ s else (ac ^ ";\n\n" ^ s)) "\n"
 			(List.map (fun a -> JSIL_Print.string_of_logic_assertion a false) assertions) in
 
-	let unfolded_pres = f_pre_normalize (Logic_Predicates.auto_unfold preds spec.pre) in
-	let unfolded_posts = f_pre_normalize (Logic_Predicates.auto_unfold preds spec.post) in
+	let unfolded_pres = f_pre_normalise (Logic_Predicates.auto_unfold preds spec.pre) in
+	let unfolded_posts = f_pre_normalise (Logic_Predicates.auto_unfold preds spec.post) in
 
 	print_debug (Printf.sprintf "NSS: Pre-normalise\n");
 
@@ -855,21 +858,23 @@ let normalise_predicate_definitions pred_defs : (string, Symbolic_State.n_jsil_l
 					let n_definitions =
 						List.map
 							(fun a ->
-										let pre_normalised_as = pre_normalize_assertion a in
-										let normalised_as = List.map
-											(fun a ->
-														let symb_state, _ = normalise_assertion a in
-														symb_state)
-											pre_normalised_as in
-										let normalised_as = List.filter
-											(fun symb_state ->
-												let heap_constraints = Symbolic_State_Utils.get_heap_well_formedness_constraints (get_heap symb_state) in
-												print_debug_petar (Printf.sprintf "Symbolic state to check: %s\n%s\n" pred_name (Symbolic_State_Print.string_of_shallow_symb_state symb_state));
-												((check_store (get_store symb_state) (get_gamma symb_state)) && (Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list symb_state)) (get_gamma symb_state))))
-											normalised_as in
-										(if ((List.length normalised_as) = 0)
-											then print_debug (Printf.sprintf "WARNING: One predicate definition does not make sense: %s\n" pred_name));
-										normalised_as)
+										let vars = get_assertion_vars false a in
+										let pre_normalised_as = pre_normalise_assertion a in
+										let symb_state, _ = normalise_assertion pre_normalised_as in
+										let heap, store, pfs, gamma, preds = symb_state in
+										let symb_state_check = 
+											let heap_constraints = Symbolic_State_Utils.get_heap_well_formedness_constraints heap in
+											((check_store store gamma) && 
+											 (Pure_Entailment.check_satisfiability (heap_constraints @ (get_pf_list symb_state)) gamma)) in
+										(match symb_state_check with
+										| true -> 
+												print_debug_petar (Printf.sprintf "Pre-Simpl Symbolic state: %s\n%s" pred_name (Symbolic_State_Print.string_of_shallow_symb_state symb_state));
+												print_debug_petar (Printf.sprintf "Spec vars: %s" (String.concat ", " (SS.elements vars)));
+												let symb_state = Simplifications.simplify_ss symb_state (Some (Some vars)) in
+												print_debug_petar (Printf.sprintf "Post-Simpl Symbolic state: %s\n%s" pred_name (Symbolic_State_Print.string_of_shallow_symb_state symb_state));
+												[ symb_state ]
+										| false -> 
+												print_debug (Printf.sprintf "WARNING: One predicate definition does not make sense: %s\n" pred_name); [ ]))
 							pred.definitions in
 					let n_definitions = List.rev (List.concat n_definitions) in
 					let n_pred = {

@@ -123,6 +123,10 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 				let lits = List.rev lits in
 					LLit (LList lits)
 			else LEList les
+			
+	| ESet es ->
+		let les = List.map (fun e -> f e) es in
+			LESet les
 
   (* List n-th: Evaluate the list and the index
 	     a) Attempt to reduce fully, if possible, return the result
@@ -839,8 +843,10 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars : (symbo
 				(fun (symb_state, ret_flag, ret_le) ->
 					let ret_type, _, _ = type_lexpr (get_gamma symb_state) ret_le in
 					update_gamma (get_gamma symb_state) ret_var ret_type;
-					let symb_state : symbolic_state = Simplifications.simplify_ss symb_state (Some (Some spec_vars)) in 
 					add_pure_assertion (get_pf symb_state) (LEq (LVar ret_var, ret_le));
+					let spec_vars = SS.add ret_var spec_vars in
+					let symb_state : symbolic_state = Simplifications.simplify_ss symb_state (Some (Some spec_vars)) in 
+					print_debug_petar "FINISHED CALLSPEC";
 					(symb_state, spec_vars))
 				new_symb_states in  
 		new_symb_states
@@ -1103,19 +1109,21 @@ and symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state cur next
 				(* i1: NO: We have not visited the current command *)
 				begin
 					(* Understand the symbolic state *)
-					let symb_state =
+					let symb_state, spec =
 						(* Get the invariant *)
 						match (metadata.invariant) with
 						(* No invariant, proceed *)
-						| None -> symb_state
+						| None -> symb_state, spec
 						(* Invariant present, check if the current symbolic state entails the invariant *)
 						| Some a ->
+							let inv_lvars = get_assertion_lvars a in
+							let new_spec_vars_for_later = SS.union inv_lvars spec.n_lvars in
 							Printf.printf "LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
 							let new_symb_state, _ = Normaliser.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
-							let new_symb_state, _, _, _ = Simplifications.simplify_symb_state (Some None) (DynArray.create()) (SS.empty) new_symb_state in			
-							(match (Structural_Entailment.unify_symb_state_against_invariant symb_state new_symb_state spec.n_lvars) with
+							let new_symb_state = Simplifications.simplify_ss new_symb_state (Some (Some spec.n_lvars)) in			
+							(match (Structural_Entailment.unify_symb_state_against_invariant symb_state new_symb_state spec.n_lvars inv_lvars) with
 							(* If it does, replace current symbolic state with the invariant *)
-							| Some new_symb_state -> new_symb_state
+							| Some new_symb_state -> new_symb_state, { spec with n_lvars = new_spec_vars_for_later }
 							| None -> raise (Failure "unification with invariant failed")) in
 
 					(* Evaluate logic commands, if any *)

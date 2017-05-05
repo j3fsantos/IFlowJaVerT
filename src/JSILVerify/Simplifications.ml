@@ -152,6 +152,10 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 	| LBinOp (LCList le1, CharCat, LCList le2) -> f (LCList (le1 @ le2))
 	(* TODO: combinations of LLit (LList _) and LEList *)
 
+	| LESet s -> 
+			let s' = List.map f s in
+			LESet (SLExpr.elements (SLExpr.of_list s'))
+
 	(* List append *)
 	| LBinOp (le1, LstCat, le2) ->
 		let fe1 = f le1 in 
@@ -820,9 +824,7 @@ match se with
 	| LBinOp (_, CharCons, _) (* Non recursive: assume that CharCat/Cons *)
 	| LBinOp (_, CharCat,  _) (* only obtained from conversion anyway    *)
 	| LCList _ -> true
-	| _ -> 
-		print_debug_petar (Printf.sprintf "Not internal String %s" (print_lexpr se));
-		false
+	| _ -> false
 
 (* Arranging strings in a specific order *)
 let arrange_strings (se1 : jsil_logic_expr) (se2 : jsil_logic_expr) : (jsil_logic_expr * jsil_logic_expr) =
@@ -1126,9 +1128,11 @@ let type_index t =
 	| StringType    -> 6
 	| ObjectType    -> 7
 	| ListType      -> 8
-	| TypeType      -> 9)
+	| TypeType      -> 9
+	| CharType      -> 10
+	| SetType       -> 11)
 
-let type_length = 10
+let type_length = 12
 
 let simplify_symb_state 
 	(vars_to_save : (SS.t option) option)
@@ -1351,10 +1355,6 @@ let simplify_symb_state
 						simpl_fun !symb_state temp_subst;
 						pf_substitution_in_place !others temp_subst;
 						
-						(*
-						symb_state_substitution_in_place_no_gamma !symb_state temp_subst;
-						pf_substitution_in_place !others temp_subst; *)
-						
 						(* Add to subst *)
 						if (Hashtbl.mem subst v) then 
 							raise (Failure (Printf.sprintf "Impossible variable in subst: %s\n%s"
@@ -1387,9 +1387,27 @@ let simplify_symb_state
 						| _ -> ());
 								
 							
-						(* Remove from gamma *)
+						(* Remove (or add) from (or to) gamma *)
 						(match (save_all || SS.mem v (SS.union vars_to_save !exists)) with
-	      		| true -> ()
+	      		| true -> 
+								let le_type = if ((not (match le with | LVar _ -> true | _ -> false)) && (isString le || isInternalString le)) then Some StringType else
+									let result, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in result in
+								(match le_type with
+								| None -> ()
+								| Some t -> 
+									(match Hashtbl.mem gamma v with
+									| false -> 
+											let it = type_index t in
+											types.(it) <- types.(it) + 1;
+											(* print_debug_petar (Printf.sprintf "GAT: %s : %s" v (JSIL_Print.string_of_type t)); *)
+											Hashtbl.add gamma v t
+									| true -> 
+											let tv = Hashtbl.find gamma v in
+											(match (tv = t) with
+											| true -> ()
+											| false ->
+													(* print_debug_petar (Printf.sprintf "Type mismatch: %s -> %s, but %s." v (JSIL_Print.string_of_type tv) (JSIL_Print.string_of_type t)); *) 
+													pfs_ok := false; msg := "Horrific type mismatch.")))
 	      		| false -> 
 	    					while (Hashtbl.mem gamma v) do 
 	    						let t = Hashtbl.find gamma v in
@@ -1429,7 +1447,7 @@ let simplify_symb_state
 				
 				(* List unification *)
 				| le1, le2 when (isList le1 && isList le2) ->
-					print_debug (Printf.sprintf "List unification: %s vs. %s" (print_lexpr le1) (print_lexpr le2));
+					(* print_debug (Printf.sprintf "List unification: %s vs. %s" (print_lexpr le1) (print_lexpr le2)); *)
 					let ok, subst = unify_lists le1 le2 false in
 					(match ok with
 					(* Error while unifying lists *)
@@ -1439,9 +1457,9 @@ let simplify_symb_state
 						| [ ] 
 						| [ _ ] -> n := !n + 1 
 						| _ -> 
-							print_debug_petar (Printf.sprintf "No changes made, but length = %d" (List.length subst));
+							(* print_debug_petar (Printf.sprintf "No changes made, but length = %d" (List.length subst));
 							print_debug_petar (String.concat "\n" (List.map (fun (x, y) ->
-								Printf.sprintf "%s = %s" (print_lexpr x) (print_lexpr y)) subst)); 
+								Printf.sprintf "%s = %s" (print_lexpr x) (print_lexpr y)) subst)); *)
 							raise (Failure "Unexpected list obtained from list unification."))
 					(* Progress *)
 					| Some true -> 
@@ -1476,7 +1494,7 @@ let simplify_symb_state
 						)
 				(* String unification *)
 				| se1, se2 when (isInternalString se1 && isInternalString se2) ->
-					print_debug (Printf.sprintf "String unification: %s vs. %s" (print_lexpr se1) (print_lexpr se2));
+					(* print_debug (Printf.sprintf "String unification: %s vs. %s" (print_lexpr se1) (print_lexpr se2)); *)
 					let ok, subst = unify_strings se1 se2 false in
 					(match ok with
 					(* Error while unifying strings *)
@@ -1486,9 +1504,9 @@ let simplify_symb_state
 						| [ ] 
 						| [ _ ] -> n := !n + 1 
 						| _ -> 
-							print_debug_petar (Printf.sprintf "No changes made, but length = %d" (List.length subst));
+							(* print_debug_petar (Printf.sprintf "No changes made, but length = %d" (List.length subst));
 							print_debug_petar (String.concat "\n" (List.map (fun (x, y) ->
-								Printf.sprintf "%s = %s" (print_lexpr x) (print_lexpr y)) subst)); 
+								Printf.sprintf "%s = %s" (print_lexpr x) (print_lexpr y)) subst)); *)
 							raise (Failure "Unexpected list obtained from string unification."))
 					(* Progress *)
 					| Some true -> 
@@ -1555,7 +1573,7 @@ let simplify_symb_state
 	let end_time = Sys.time() in
 	JSIL_Syntax.update_statistics "simplify_symb_state" (end_time -. start_time);
 	
-	print_debug_petar (Printf.sprintf "Exiting with pfs_ok: %b\n" !pfs_ok);
+	(* print_debug_petar (Printf.sprintf "Exiting with pfs_ok: %b\n" !pfs_ok); *)
 	if (!pfs_ok) 
 		then (!symb_state, subst, !others, !exists)
 		else (pfs_false subst !others !exists !symb_state !msg)
@@ -1661,12 +1679,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 				let types_ok = understand_types exists (List.map (fun x -> (x, "r")) pf_list) gamma in
 				(match types_ok with
 				| false -> pfs_false "Nasty type mismatch."
-				| true -> 
-					print_debug_petar (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\n\nPure formulae:\n%s\n\nGamma:\n%s\n\n"
-			 		(String.concat ", " (SS.elements exists))
-			 		(print_pfs p_formulae)
-			 		(Symbolic_State_Print.string_of_gamma gamma)); 
-		 		 	exists, lpfs, p_formulae, gamma))
+				| true -> exists, lpfs, p_formulae, gamma))
 	 | pf :: rest ->
 	   (match pf with
 	    | LEq (LLit l1, LLit l2) ->
@@ -1786,14 +1799,14 @@ let clean_up_stuff exists left right =
 	
 let simplify_implication exists lpfs rpfs gamma =
 	let lpfs, rpfs, exists, gamma = simplify_pfs_with_exists_and_others exists lpfs rpfs gamma in
-	(* print_debug (Printf.sprintf "In between:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n" 
-	(String.concat ", " (SS.elements exists))
-	(Symbolic_State_Print.string_of_shallow_p_formulae lpfs false)
-	(Symbolic_State_Print.string_of_shallow_p_formulae rpfs false)
-	(Symbolic_State_Print.string_of_gamma gamma)); *)
 	sanitise_pfs_no_store gamma rpfs;
 	let exists, lpfs, rpfs, gamma = simplify_existentials exists lpfs rpfs gamma in
 	clean_up_stuff exists lpfs rpfs;
+	print_debug_petar (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\n\nGamma:\n%s\n\n"
+		(String.concat ", " (SS.elements exists))
+		(print_pfs lpfs)
+		(print_pfs rpfs)
+		(Symbolic_State_Print.string_of_gamma gamma)); 
 	exists, lpfs, rpfs, gamma (* DO THE SUBST *)
 
 

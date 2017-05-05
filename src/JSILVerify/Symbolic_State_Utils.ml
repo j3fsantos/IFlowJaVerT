@@ -14,19 +14,27 @@ let update_subst1 subst unifier =
 	 | None -> ());
 	true
 
-let convert_lvars_to_spec_vars (symb_state : symbolic_state) : symbolic_state =
-	let symb_vars = get_symb_state_vars false symb_state in 
+let convert_lvars_to_spec_vars symb_vars =
 	let subst = Hashtbl.create big_tbl_size in 
 	SS.iter (fun var ->
 			if (not (is_spec_var_name var) && (is_lvar_name var))
 				then (
-					let new_var = fresh_spec_var var in
+					let new_var = fresh_spec_var () in
 					Hashtbl.add subst var (LVar new_var)
 				);
 				if (is_abs_loc_name var) then (
 					Hashtbl.add subst var (ALoc var)
 				)) symb_vars;
-	symb_state_substitution symb_state subst true
+	subst
+	
+
+let symb_state_lvars_to_svars symb_state_pre symb_state_post =
+	let symb_vars_pre = get_symb_state_vars false symb_state_pre in 
+	let symb_vars_post = get_symb_state_vars false symb_state_post in 
+	let subst = convert_lvars_to_spec_vars (SS.union symb_vars_pre symb_vars_post) in
+	let pre = symb_state_substitution symb_state_pre subst true in
+	let post = symb_state_substitution symb_state_post subst true in
+	(pre, post)
 
 let get_symb_state_lvars symb_state =
 	let symb_vars = get_symb_state_vars false symb_state in 
@@ -367,7 +375,7 @@ let string_of_n_spec_table_assertions spec_table =
 					let pre = convert_symb_state_to_assertion single_spec.n_pre in
 					let post = convert_symb_state_to_assertion (List.hd single_spec.n_post) in
 					let flag = (match single_spec.n_ret_flag with | Normal -> "Normal" | Error -> "Error") in
-					ac ^ (Printf.sprintf "[[ %s ]]\n[[ %s ]]\n%s\n\n"
+					ac ^ (Printf.sprintf "[[ %s ]]\n[[ %s ]]\n%s\n"
 						 (JSIL_Print.string_of_logic_assertion pre false)
 						 (JSIL_Print.string_of_logic_assertion post false)
 						 flag

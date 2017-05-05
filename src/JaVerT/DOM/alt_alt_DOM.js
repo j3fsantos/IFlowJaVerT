@@ -102,8 +102,8 @@
 		((dn, "@grove") -> l_grove) * Grove(l_grove, grove) *
 		empty_fields(dn : "@element", "@grove");
 
-	@pred ENode(name, id, l_attr, aList, l_children, cList) :
-		DOMObject(id, $l_enp) * empty_fields(id : "@name", "@attributes", "@children") * 
+	@pred ENode(alpha, name, id, l_attr, aList, l_children, cList) :
+		DOMObject(id, $l_enp) * ((id, "@address") -> alpha) * empty_fields(id : "@name", "@attributes", "@children", "@address") * 
 		ElementNode(name, id, l_attr, aList, l_children, cList);
 
 	@pred ElementNode(name, id, l_attr, aList, l_children, cList) :
@@ -143,7 +143,7 @@
 
 
 	@pred ChainCell(l, next, content) : 
-		((l, "@next") -> next) * ((l, "@content") -> content) * empty_fields(l: "@next", "@content");
+		((l, "@next") -> next) * ((l, "@content") -> content);
 
 
 	@pred AttributeSet(alpha, attrs) : 
@@ -163,7 +163,7 @@
 
 
 	@pred Forest(alpha, childList) : 
-		DOMObject(alpha, $$null) * ((alpha, "@chain") ->  #l) * empty_fields(alpha : "@chain") * ForestRec(#l, childList);
+		((alpha, "@chain") ->  #l) * ForestRec(#l, childList);
 
 	@pred ForestRec(l, childList) :
 		isNil(childList) * (l == $$null),
@@ -182,7 +182,7 @@
 
 
 	@pred TextForest(alpha, childList) : 
-		((alpha, "@chain") ->  #l) * empty_fields(alpha : "@chain") * TextForestRec(#l, childList);
+		((alpha, "@chain") ->  #l) * TextForestRec(#l, childList);
 	
 	@pred TextForestRec(l, childList) :
 		isNil(childList) * (l == $$null),
@@ -196,7 +196,7 @@
 
 
 	@pred Grove(alpha, content) : 
-		((alpha, "@chain") ->  #l) * empty_fields(alpha : "@chain") * GroveRec(#l, content) * types(content : $$list_type);	
+		((alpha, "@chain") ->  #l) * GroveRec(#l, content) * types(content : $$list_type);	
 	
 	@pred GroveRec(l, content) :
 		isNil(content) * (l == $$null),
@@ -221,19 +221,21 @@
 
 
 	@pred ECell(alpha, name, id, l_attr, aList, l_children, cList) : 
-		 ((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, id) * empty_fields(alpha : "@chain") * 
-			ENode(name, id, l_attr, aList, l_children, cList);
+		((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, id) * 
+		DOMObject(id, $l_enp) * ((id, "@address") -> alpha) * empty_fields(id : "@name", "@attributes", "@children", "@address") * 
+		ElementNode(name, id, l_attr, aList, l_children, cList);
 
 	@pred TCell(alpha, id, text) : 
-		((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, id) * empty_fields(alpha : "@chain") * 
+		((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, id) *
 			TextNode(id, text);
 
 	@pred ACell(alpha, name, id, l_children, cList) : 
-		((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, id) * empty_fields(alpha : "@chain") * 
-			ANode(name, id, l_children, cList);	
+		((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, id) * 
+		DOMObject(id, $l_anp) * ((id, "@address") -> alpha) * empty_fields(id : "@name", "@children", "@address") *
+		AttributeNode(name, id, l_children, cList);	
 
 	@pred EmptyCell(alpha) :
-		((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, $$null) * empty_fields(alpha : "@chain");
+		((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, $$null);
 
 
 
@@ -269,25 +271,25 @@
 		outcome: normal
 
 
-	@onlyspec deallocF(alpha)
+	@onlyspec deallocF(l, alpha)
 		pre:  [[ (alpha == #alpha) * types(#alpha : $$object_type, #f : $$list_type, #f1 : $$list_type, #f2 : $$list_type, #f3 : $$list_type) * 
-				 Forest(#l, #f) * (#f == #f1 @ ({{ "hole", #alpha }} :: #f3)) * Forest(#alpha, #f2) ]]
-		post: [[ Forest(#l, (#f1 @ (#f2 @ #f3))) * (ret == $$empty) ]]
+				 Forest(l, #f) * (#f == #f1 @ ({{ "hole", #alpha }} :: #f3)) * Forest(#alpha, #f2) ]]
+		post: [[ Forest(l, (#f1 @ (#f2 @ #f3))) * (ret == $$empty) ]]
 		outcome: normal;
 
 		pre:  [[ (alpha == #alpha) * types(#alpha : $$object_type, #f : $$list_type, #f1 : $$list_type, #f3 : $$list_type) * 
-				 Forest(#l, #f) * (#f == #f1 @ ({{ "hole", #alpha }} :: #f3)) * EmptyCell(#alpha) ]]
-		post: [[ Forest(#l, (#f1 @ #f3)) * (ret == $$empty) ]]
+				 Forest(l, #f) * (#f == #f1 @ ({{ "hole", #alpha }} :: #f3)) * EmptyCell(#alpha) ]]
+		post: [[ Forest(l, (#f1 @ #f3)) * (ret == $$empty) ]]
 		outcome: normal;
 
 		pre:  [[ (alpha == #alpha) * types(#alpha : $$object_type, #f : $$list_type, #f1 : $$list_type, #f2 : $$list_type) * 
-				 Forest(#l, #f) * (#f == #f1 @ ({{ "hole", #alpha }} :: #f2)) * ECell(#alpha, #name, #id, #l_attr, #aList, #l_children, #cList) ]]
-		post: [[ Forest(#l, (#f1 @ ({{"elem", #name, #id, #aList, #cList}} :: #f2))) * (ret == $$empty) ]]
+				 Forest(l, #f) * (#f == #f1 @ ({{ "hole", #alpha }} :: #f2)) * ECell(#alpha, #name, #id, #l_attr, #aList, #l_children, #cList) ]]
+		post: [[ Forest(l, (#f1 @ ({{"elem", #name, #id, #aList, #cList}} :: #f2))) * (ret == $$empty) ]]
 		outcome: normal;
 
 		pre:  [[ (alpha == #alpha) * types(#alpha : $$object_type, #f : $$list_type, #f1 : $$list_type, #f2 : $$list_type) * 
-				 Forest(#l, #f) * (#f == #f1 @ ({{ "hole", #alpha }} :: #f2)) * TCell(#alpha, #id, #text) ]]
-		post: [[ Forest(#l, (#f1 @ ({{"text", #id, #text}} :: #f2))) * (ret == $$empty) ]]
+				 Forest(l, #f) * (#f == #f1 @ ({{ "hole", #alpha }} :: #f2)) * TCell(#alpha, #id, #text) ]]
+		post: [[ Forest(l, (#f1 @ ({{"text", #id, #text}} :: #f2))) * (ret == $$empty) ]]
 		outcome: normal
 
 
@@ -312,30 +314,30 @@
 				 ACell(#alpha, #name, #id, #l_children, #cList) * (ret == #alpha) * types(#alpha : $$object_type)]]
 		outcome: normal
 
-	@onlyspec deallocG(alpha)
+	@onlyspec deallocG(l, alpha)
 		pre:  [[ (alpha == #alpha) * types(#alpha : $$object_type, #g : $$list_type, #g1 : $$list_type, #g2 : $$list_type, #g3 : $$list_type) * 
-				 Grove(#l, #g) * (#g == #g1 @ ({{ "hole", #alpha }} :: #g3)) * Grove(#alpha, #g2) ]]
-		post: [[ Grove(#l, #g_post) * (#g_post == (#g1 @ (#g2 @ #g3))) * (ret == $$empty) ]]
+				 Grove(l, #g) * (#g == #g1 @ ({{ "hole", #alpha }} :: #g3)) * Grove(#alpha, #g2) ]]
+		post: [[ Grove(l, #g_post) * (#g_post == (#g1 @ (#g2 @ #g3))) * (ret == $$empty) ]]
 		outcome: normal; 
 
 		pre:  [[ (alpha == #alpha) * types(#alpha : $$object_type, #g : $$list_type, #g1 : $$list_type, #g3 : $$list_type) * 
-				 Grove(#l, #g) * (#g == #g1 @ ({{ "hole", #alpha }} :: #g3)) * EmptyCell(#alpha) ]]
-		post: [[ Grove(#l, #g_post) * (#g_post == (#g1 @ #g3)) * (ret == $$empty) ]]
+				 Grove(l, #g) * (#g == #g1 @ ({{ "hole", #alpha }} :: #g3)) * EmptyCell(#alpha) ]]
+		post: [[ Grove(l, #g_post) * (#g_post == (#g1 @ #g3)) * (ret == $$empty) ]]
 		outcome: normal; 
 
 		pre:  [[ (alpha == #alpha) * types(#alpha : $$object_type, #g : $$list_type, #g1 : $$list_type, #g2 : $$list_type) * 
-				 Grove(#l, #g) * (#g == #g1 @ ({{ "hole", #alpha }} :: #g2)) * ECell(#alpha, #name, #id, #l_attr, #aList, #l_children, #cList) ]]
-		post: [[ Grove(#l, #g_post) * (#g_post == (#g1 @ ({{"elem", #name, #id, #aList, #cList}} :: #g2))) * (ret == $$empty) ]]
+				 Grove(l, #g) * (#g == #g1 @ ({{ "hole", #alpha }} :: #g2)) * ECell(#alpha, #name, #id, #l_attr, #aList, #l_children, #cList) ]]
+		post: [[ Grove(l, #g_post) * (#g_post == (#g1 @ ({{"elem", #name, #id, #aList, #cList}} :: #g2))) * (ret == $$empty) ]]
 		outcome: normal;
 
 		pre:  [[ (alpha == #alpha) * types(#alpha : $$object_type, #g : $$list_type, #g1 : $$list_type, #g2 : $$list_type) * 
-				 Grove(#l, #g) * (#g == #g1 @ ({{ "hole", #alpha }} :: #g2)) * TCell(#alpha, #id, #text) ]]
-		post: [[ Grove(#l, #g_post) * (#g_post == (#g1 @ ({{"text", #id, #text}} :: #g2))) * (ret == $$empty) ]]
+				 Grove(l, #g) * (#g == #g1 @ ({{ "hole", #alpha }} :: #g2)) * TCell(#alpha, #id, #text) ]]
+		post: [[ Grove(l, #g_post) * (#g_post == (#g1 @ ({{"text", #id, #text}} :: #g2))) * (ret == $$empty) ]]
 		outcome: normal;
 
 		pre:  [[ (alpha == #alpha) * types(#alpha : $$object_type, #g : $$list_type, #g1 : $$list_type, #g2 : $$list_type) * 
-				 Grove(#l, #g) * (#g == #g1 @ ({{ "hole", #alpha }} :: #g2)) * ACell(#alpha, #name, #id, #l_children, #cList) ]]
-		post: [[ Grove(#l, #g_post) * (#g_post == (#g1 @ ({{"attr", #name, #id, #cList}} :: #g2))) * (ret == $$empty) ]]
+				 Grove(l, #g) * (#g == #g1 @ ({{ "hole", #alpha }} :: #g2)) * ACell(#alpha, #name, #id, #l_children, #cList) ]]
+		post: [[ Grove(l, #g_post) * (#g_post == (#g1 @ ({{"attr", #name, #id, #cList}} :: #g2))) * (ret == $$empty) ]]
 		outcome: normal
 
 */ /*
@@ -386,9 +388,9 @@
 		outcome: normal
 
 	@onlyspec appendChild(n)
-		pre:  [[ (n == #n) * ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList) *
+		pre:  [[ (n == #n) * ECell(#xeta, #name, this, #l_attr, #aList, #l_children, #cList) *
 				 ECell(#beta, #name2, #n, #l_attr2, #aList2, #l_children2, #cList2) * complete(#cList2) ]]
-		post: [[ ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList2_post ) * 
+		post: [[ ECell(#xeta, #name, this, #l_attr, #aList, #l_children, #cList2_post ) * 
 				 (#cList2_post == #cList @ {{ {{ "elem", #name2, #n, #aList2, #cList2 }} }}) * EmptyCell(#beta) * (ret == #n) ]]
 		outcome: normal;
 
@@ -423,20 +425,20 @@
 	)
 	@post (
 		InitialDOMHeap() * (ret == $$t) * 
-		DocumentNode($l_document, #d_l_elem, #d_elem, #d_l_g, #d_g_post) *
+		DocumentNode($l_document, #l_elem, #d_elem, #d_l_g, #d_g_post) *
 		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList_post) *
-		(#cList_post == (#cList1 @ {{ {{ "elem", "test", #n_id, #n_l_aList, {{ }}, #n_l_cList, {{ }} }} }}))
+		(#cList_post == (#cList1 @ {{ {{ "elem", "test", #n_id, #n_l_aList, #n_l_cList }} }}))
 	)
 */
-function createNewAttribute(grove, element){
+function createNewAttribute(element){
 	var d = element.ownerDocument();
 	var e = d.createElement("test");
 	/* @callspec allocG(#zeta, #l_gList, 0) */
-	0; 
-	/* @invariant 
-		scope(e : #e2) * ECell(#zeta, #name2, #e2, #l_aList2, #aList2, #l_cList2, #cList2) */
+	0;
+	
+	/* @invariant scope(e : #e2) * ECell(#zeta, #name2, #e2, #l_aList2, #aList2, #l_cList2, #cList2) */
 	/* @fold complete(#cList2) */
 	var n = element.appendChild(e);
-	deallocG(a);
+	/* @callspec deallocG(#whatever, #l_gList, #zeta) */
 	return (n === e);
 }

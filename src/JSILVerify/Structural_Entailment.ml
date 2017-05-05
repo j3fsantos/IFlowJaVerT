@@ -2,24 +2,11 @@ open JSIL_Syntax
 open Symbolic_State
 open JSIL_Logic_Utils
 
+exception DisallowedGamma
+
 (***************************)
 (** Unification Algorithm **)
 (***************************)
-
-(*
-	| LLit				of jsil_lit
-	| LNone
-	| LVar				of jsil_logic_var
-	| ALoc				of string
-	| PVar				of jsil_var
-	| LBinOp			of jsil_logic_expr * bin_op * jsil_logic_expr
-	| LUnOp				of unary_op * jsil_logic_expr
-	| LTypeOf			of jsil_logic_expr
-	| LEList      of jsil_logic_expr list
-	| LLstNth     of jsil_logic_expr * jsil_logic_expr
-	| LStrNth     of jsil_logic_expr * jsil_logic_expr
-	| LUnknown
-*)
 
 let must_be_equal le_pat le pi gamma subst =
 	let le_pat = lexpr_substitution le_pat subst true in
@@ -51,10 +38,25 @@ let must_be_different le_pat le pi gamma subst =
 		| _, _ -> false)) in
 	result
 
+(* 
+ * Substitution must maintain types 
+ *)
+let gamma_subst_test lvar lexpr pat_gamma gamma source = 
+	try (
+		(* Get the type of lvar in pat_gamma *)
+		let t = Hashtbl.find pat_gamma lvar in
+		(* Get the corresponding type in gamma *)
+		let t', _, _ = JSIL_Logic_Utils.type_lexpr gamma lexpr in
+			print_debug_petar (Printf.sprintf "GST: %s\n\tVariable %s is in pat_gamma with type %s" source lvar (JSIL_Print.string_of_type t)); 
+			print_debug_petar (Printf.sprintf "\tIts substitute is of type %s" (Option.map_default (fun x -> JSIL_Print.string_of_type x) "Not yet typable" t')); 
+			(match t' with
+			(* Both are typable and types are not equal *)
+			| Some t' when (t' <> t) -> print_debug_petar "\tType mismatch. Cannot unify"; false
+			(* Both are typable and types are equal, or the expression cannot be typed for the moment *)
+			| _ -> print_debug_petar "\tCan proceed."; true)
+	) with | _ -> true
 
-
-
-let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subst : substitution) (subst: substitution option) (pfs : jsil_logic_assertion list) (* solver *) (gamma : typing_environment) : ((jsil_logic_expr * jsil_logic_expr) list) option  =
+let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subst : substitution) (subst: substitution option) (pfs : jsil_logic_assertion list) (pat_gamma : typing_environment) (gamma : typing_environment) : ((jsil_logic_expr * jsil_logic_expr) list) option  =
 	let start_time = Sys.time () in
 	try
 	print_debug (Printf.sprintf "Unifying stores:\nStore: %s\nPat_store: %s" 
@@ -65,8 +67,7 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 			(fun var pat_lexpr discharges ->
 				let lexpr = try Hashtbl.find store var with _ -> raise (Failure "The stores are not unifiable") in
 				let rec spin_me_round pat_lexpr lexpr discharges =
-				(*Printf.printf "(%s, %s)\n" (JSIL_Print.string_of_logic_expression pat_lexpr false) (JSIL_Print.string_of_logic_expression lexpr false);*)
-				(match pat_lexpr, lexpr with
+				(match pat_lexpr, lexpr with		
 
 				| LLit pat_lit, LLit lit ->
 					if (lit = pat_lit)
@@ -83,12 +84,17 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 
 				| LVar lvar, _ ->
 					if (Hashtbl.mem pat_subst lvar)
-						then (let current = Hashtbl.find pat_subst lvar in
-							if Pure_Entailment.is_equal current lexpr (DynArray.of_list pfs) (* solver *) gamma
+						then (
+							let current = Hashtbl.find pat_subst lvar in
+							if Pure_Entailment.is_equal current lexpr (DynArray.of_list pfs) gamma
 								then discharges
 								else raise (Failure "No no no no NO."))
-						else (extend_subst pat_subst lvar lexpr;
-								discharges)
+						else (
+								extend_subst pat_subst lvar lexpr;
+								let subst_ok = gamma_subst_test lvar lexpr pat_gamma gamma "unify_stores" in
+								(match subst_ok with
+								| true -> discharges
+								| false -> raise DisallowedGamma))
 
 				| ALoc pat_aloc, LVar lvar ->
 					print_debug_petar (Printf.sprintf "So, in unify_stores: Aloc %s, Lvar %s" pat_aloc lvar); 
@@ -121,7 +127,6 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 							else raise (Failure (Printf.sprintf "LLit %s, LVar %s : the pattern store is not normalized." (JSIL_Print.string_of_literal lit false) lvar)))
 
 				| LEList el1, LEList el2 ->
-					(* Printf.printf ("Two lists of lengths: %d %d") (List.length el1) (List.length el2); *)
 					if (List.length el1 = List.length el2) then
 					begin
 						(List.fold_left2
@@ -131,9 +136,7 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 						[] el1 el2) @ discharges
 					end
 					else
-					begin
-						[ (LLit (Bool true), LLit (Bool false)) ]
-					end
+						raise (Failure "Lists of different lengths.")
 
 				| le_pat, le -> if (le_pat = le) then discharges
 				                                 else ((le_pat, le) :: discharges)) in
@@ -143,14 +146,16 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 	let end_time = Sys.time () in
 	JSIL_Syntax.update_statistics "unify_stores" (end_time -. start_time);
 	Some discharges
-	with (Failure msg) -> 
+	with 
+	| Failure _
+	| DisallowedGamma ->  
 		let end_time = Sys.time () in
 		JSIL_Syntax.update_statistics "unify_stores" (end_time -. start_time); None
 
 
 let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (* solver *) (gamma: typing_environment) (subst : (string, jsil_logic_expr) Hashtbl.t) : (bool * ((string * jsil_logic_expr) list option)) =
 	let start_time = Sys.time () in
-	print_debug_petar (Printf.sprintf ": %s versus %s" (JSIL_Print.string_of_logic_expression le_pat false)  (JSIL_Print.string_of_logic_expression le false));
+	(* print_debug_petar (Printf.sprintf ": %s versus %s" (JSIL_Print.string_of_logic_expression le_pat false)  (JSIL_Print.string_of_logic_expression le false)); *)
 	try (
 	let result = (match le_pat with
 	
@@ -161,7 +166,7 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (* solver *) (gamm
 			if (Pure_Entailment.is_equal le_pat_subst le p_formulae (* solver *) gamma)
 				then (true,  None)
 				else (false, None)
-		with _ -> print_debug_petar (Printf.sprintf "Abstract location or variable not in subst: %s %s" var (JSIL_Print.string_of_logic_expression le false));
+		with _ -> (* print_debug_petar (Printf.sprintf "Abstract location or variable not in subst: %s %s" var (JSIL_Print.string_of_logic_expression le false)); *)
 				 	(true, Some [ (var, le) ]))
 
 	| LLit _
@@ -173,7 +178,7 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (* solver *) (gamm
   | LUnknown -> (false, None)
 
 	| le_pat when (isList le_pat && isList le && (match le with | LVar _ -> false | _ -> true)) ->
-			print_debug_petar (Printf.sprintf "ULEXPRLIST: %s %s" (JSIL_Print.print_lexpr le_pat) (JSIL_Print.print_lexpr le));
+			(* print_debug_petar (Printf.sprintf "ULEXPRLIST: %s %s" (JSIL_Print.print_lexpr le_pat) (JSIL_Print.print_lexpr le)); *)
 			let osubst = Simplifications.unify_lists le_pat le false in
 			(match osubst with
 			| None, _ -> (false, None)
@@ -224,7 +229,7 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (* solver *) (gamm
 				then list_eq ple le'
 				else (false, None)
 		| le' ->
-			print_debug_petar "Second thingy not a list.";
+			(* print_debug_petar "Second thingy not a list."; *)
 			let le'' = Simplifications.find_me_Im_a_list (Hashtbl.create 1) p_formulae le' in
 			let le''' = (match le'' with
 			| LVar v ->
@@ -242,7 +247,7 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (* solver *) (gamm
 				if (le'' == le') 
 					then (if (le''' == None) then le' else (Option.get le'''))
 					else le'' in
-			print_debug_petar (Printf.sprintf "Search says: %s\n" (JSIL_Print.string_of_logic_expression le'' false));
+			(* print_debug_petar (Printf.sprintf "Search says: %s\n" (JSIL_Print.string_of_logic_expression le'' false)); *)
 			if (le'' == le') then (false, None)
 			else
 			begin
@@ -262,7 +267,7 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (* solver *) (gamm
 		) in
 	let end_time = Sys.time () in
 	JSIL_Syntax.update_statistics "unify_lexprs" (end_time -. start_time);
-	let b, _ = result in print_debug (Printf.sprintf "Result: %b" b);
+	let b, _ = result in (* print_debug (Printf.sprintf "Result: %b" b); *)
 	result) 
 	with
 		| Failure msg -> 
@@ -465,7 +470,7 @@ let unify_symb_heaps_experimental ph sh pf g s =
 			0
 
 
-let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_formulae (* solver *) gamma (subst : substitution) : (symbolic_heap * (jsil_logic_assertion list) * symbolic_discharge_list) option =
+let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_formulae pat_gamma gamma (subst : substitution) : (symbolic_heap * (jsil_logic_assertion list) * symbolic_discharge_list) option =
 	print_debug (Printf.sprintf "Unify heaps %s \nand %s \nwith substitution: %s\nwith pure formulae: %s\nwith gamma: %s"
 		(Symbolic_State_Print.string_of_shallow_symb_heap pat_heap false)
 		(Symbolic_State_Print.string_of_shallow_symb_heap heap false)
@@ -679,7 +684,8 @@ let get_unification_candidates
 				let x = List.combine (DynArray.to_list pat_preds) (DynArray.to_list x) in
 				let x = List.filter (fun (_, x) -> x <> None) x in
 				let x = Array.of_list (List.map (fun (x, y) -> (x, Option.get y)) x) in
-				(Hashtbl.copy subst, x, y, z) :: ac) [] ps)) in result
+				(Hashtbl.copy subst, x, y, z) :: ac) [] ps)) in 
+		result
 	
 (*******************************************************************)
 
@@ -688,6 +694,7 @@ let rec unify_expr_lists pat_list list p_formulae gamma subst =
 	| [], [] -> true
 	| (pat_le :: rest_pat_list), (le :: rest_list) ->
 		let (bv, unifier) = unify_lexprs pat_le le p_formulae gamma subst in
+		print_debug (Printf.sprintf "Unification: %s vs. %s --> %b" (JSIL_Print.string_of_logic_expression pat_le false) (JSIL_Print.string_of_logic_expression le false) bv);
 		if (bv && Symbolic_State_Utils.update_subst1 subst unifier)
 			then unify_expr_lists rest_pat_list rest_list p_formulae gamma subst
 			else false
@@ -695,7 +702,7 @@ let rec unify_expr_lists pat_list list p_formulae gamma subst =
 
 (*******************************************************************)
 
-let unify_preds subst unifier p_formulae gamma =
+let unify_preds subst unifier p_formulae pat_gamma gamma =
 	let i = ref 0 in
 	let n = Array.length unifier in
 	let ok = ref true in
@@ -704,19 +711,35 @@ let unify_preds subst unifier p_formulae gamma =
 			assert (pat_pred_name = cand_pred_name);
 			assert (List.length pat_pred_params = List.length cand_pred_params);
 			let result = unify_expr_lists pat_pred_params cand_pred_params p_formulae gamma subst in
+			print_debug (Printf.sprintf "Predicate unification: %b" result);
 			ok := result;
 			i := !i + 1;
 		done;
 		if (not !ok) 
 			then None
-			else Some subst
+			else (
+				print_debug (Symbolic_State_Print.string_of_substitution subst); 
+				try (
+				Hashtbl.iter (fun v le ->
+					let tv = (match Hashtbl.mem pat_gamma v with
+					| true -> Some (Hashtbl.find pat_gamma v)
+					| false -> None) in
+					let tle, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in
+					(match tv, tle with
+					| Some t1, Some t2 -> if (t1 <> t2) then (
+							print_debug (Printf.sprintf "Subst %s with %s of %s, but in gamma it's %s." 
+								v (JSIL_Print.string_of_logic_expression le false) (JSIL_Print.string_of_type t1) (JSIL_Print.string_of_type t2));
+							raise (Failure "!!!"))
+					| _, _ -> ())) subst;
+					Some subst) with
+					| Failure _ -> None) 
 
 (*******************************************************************)
 
 (**
  * Returns a list of triples of the form (substitution, preds that haven't been unified, pat_preds that haven't been unified)
  *)
-let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) p_formulae gamma (subst : substitution) =
+let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) p_formulae pat_gamma gamma (subst : substitution) =
 	print_debug "Entering unify_pred_arrays.";
 	
 	let result = (match (DynArray.length pat_preds) with
@@ -732,27 +755,42 @@ let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) p_form
 		
 		let i = ref 0 in
 		let n = Array.length ps in
+		let substs = ref SSS.empty in
 		let options = DynArray.create() in
-		let unified = ref false in
-		while ((not !unified) && (!i < n)) do
+		while (!i < n) do
 			let (subst, unifier, unmatched_preds, unmatched_pat_preds) = Array.get ps !i in
-			let result = unify_preds subst unifier p_formulae gamma in
-			let result = (match result with
-			| None -> None
-			| Some subst -> Some (subst, unmatched_preds, unmatched_pat_preds)) in
-			DynArray.add options result;
+			let result = unify_preds subst unifier p_formulae pat_gamma gamma in
+			print_debug (Printf.sprintf "Candidate is %s" (Option.map_default (fun x -> "viable.") "not viable." result));
+			(match result with
+			| None -> ()
+			| Some subst ->
+				(match (SSS.mem subst !substs) with
+				| true -> ()
+				| false -> 
+						let continue = try (
+							Hashtbl.iter (fun v le -> 
+								let (ok : bool) = gamma_subst_test v le pat_gamma gamma "unify_pred_arrays" in
+								(match ok with
+								| true -> ()
+								| false -> raise DisallowedGamma)) subst;
+							true
+						) with | DisallowedGamma -> false in
+						(match continue with
+						| false -> ()
+						| true -> 
+								substs := SSS.add subst !substs;
+								DynArray.add options (subst, unmatched_preds, unmatched_pat_preds))));
 			i := !i + 1;
 		done;
 			
-		let reasonable_options = List.map (fun x -> Option.get x) (List.filter (fun x -> x <> None) (DynArray.to_list options)) in
-		let reasonable_options = List.sort 
+		let options = List.sort 
 			(fun (_, _, upp1) (_, _, upp2) -> 
 				let len1 = List.length upp1 in
 				let len2 = List.length upp2 in
 					compare len1 len2) 
-					reasonable_options in
-					
-		print_debug_petar (Printf.sprintf "--------\nOutcomes: %d\n--------" (List.length reasonable_options));
+					(DynArray.to_list options) in
+
+		print_debug_petar (Printf.sprintf "--------\nActual Outcomes: %d\n--------" (List.length options));
 		List.iter (fun (subst, unmatched_preds, unmatched_pat_preds) -> 
 				print_debug_petar (Printf.sprintf "Substitution: %s" (Symbolic_State_Print.string_of_substitution subst));
 				print_debug_petar "Unmatched predicates:";
@@ -761,23 +799,22 @@ let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) p_form
 				print_debug_petar "Unmatched pat predicates:";
 				List.iter (fun (name, params) -> print_debug_petar (Printf.sprintf "\t%s(%s)" 
 					name (String.concat ", " (List.map (fun x -> JSIL_Print.string_of_logic_expression x false) params)))) unmatched_pat_preds;
-			) reasonable_options;
+			) options;
 		print_debug_petar "-------------------------";
-		
-		
-		(match reasonable_options with
-		| [] -> None  
+
+		(match options with
+		| [] -> Some (subst, DynArray.of_list preds, pat_preds)  
 		| [ op ] -> Some op
 		| _ :: (op :: _) -> 
 			(match !interactive with
-			| false -> Some op
+			| false -> (* THIS IS CRAZY AD-HOC *) Some op
 		  | true -> 
 				print_debug "Choose branch (0 = None): ";
 				let n = read_int() in
 				print_debug (Printf.sprintf "The user has chosen the branch: %d" n);
 				if (n = 0) 
 					then Some (subst, DynArray.of_list preds, pat_preds) 
-					else Some (DynArray.get (DynArray.of_list reasonable_options) (n - 1)))
+					else Some (DynArray.get (DynArray.of_list options) (n - 1)))
 		)) in
 		
 		result
@@ -880,31 +917,33 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 	(* if exists i \in {0, 1, 2} . discharges_i = None => return None                                                                                    *)
 	(* If Step 0 returns a list of discharges and a substitution then the following implication holds:                                                   *)
 	(*    pi_0 |- discharges  => store_0 =_{pi_0} subst(store_1)  /\ heap_0 =_{pi_0} subst(heap_1) + heap_f /\ preds_0 =_{pi_0} subst(preds_1) + preds_f *)
+	
 	let step_0 subst =
 		let start_time = Sys.time() in
-		let discharges_0 = unify_stores store_1 store_0 subst None (pfs_to_list pf_0) (* solver *) gamma_0 in
+		let discharges_0 = unify_stores store_1 store_0 subst None (pfs_to_list pf_0) gamma_1 gamma_0 in
 		let result = (match discharges_0 with
 		| Some discharges_0 ->
 			print_debug_petar (Printf.sprintf "Discharges: %d\n" (List.length discharges_0));
 			List.iter (fun (x, y) -> print_debug_petar (Printf.sprintf "\t%s : %s\n" (JSIL_Print.string_of_logic_expression x false) (JSIL_Print.string_of_logic_expression y false))) discharges_0;
 			let keep_subst = Hashtbl.copy subst in
 			(* First try to unify heaps, then predicates *)
-			let ret_1 = unify_symb_heaps heap_1 heap_0 pf_0 (* solver *) gamma_0 subst in
+			let ret_1 = unify_symb_heaps heap_1 heap_0 pf_0 gamma_1 gamma_0 subst in
 			(match ret_1 with
 			| Some (heap_f, new_pfs, negative_discharges) ->
 				print_debug_petar (Printf.sprintf "Heaps unified successfully. Unifying predicates.\n");
-				let ret_2 = unify_pred_arrays preds_1 preds_0 pf_0 (* solver *) gamma_0 subst in
+				let ret_2 = unify_pred_arrays preds_1 preds_0 pf_0 gamma_1 gamma_0 subst in
 				(match ret_2 with
 				| Some (subst, preds_f, []) ->
 					let spec_vars_check = spec_logic_vars_discharge subst lvars pf_0 gamma_0 in
-					Some (discharges_0, subst, heap_f, preds_f, new_pfs)
-				| _ -> ( print_debug_petar (Printf.sprintf "Failed to unify predicates\n"); None))
+					(match spec_vars_check with
+					| true -> Some (discharges_0, subst, heap_f, preds_f, new_pfs)
+					| false -> print_debug_petar "Unable to discharge spec vars"; None)
+				| _ -> print_debug_petar (Printf.sprintf "Failed to unify predicates"); None)
 			| None -> 
 					print_debug_petar (Printf.sprintf "Could not unify heaps before predicates, unifying predicates first instead."); 
-					let ret_2 = unify_pred_arrays preds_1 preds_0 pf_0 gamma_0 subst in
+					let ret_2 = unify_pred_arrays preds_1 preds_0 pf_0 gamma_1 gamma_0 subst in
 					(match ret_2 with
 					| Some (subst, preds_f, []) ->
-						let spec_vars_check = spec_logic_vars_discharge subst lvars pf_0 gamma_0 in
 						print_debug_petar "Unified predicates successfully. Extracting additional knowledge";
 						
 						(***** EXPERIMENTAL - PUT INTO SEPARATE FUNCTION *****)
@@ -946,16 +985,19 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 										| _ -> ()
 										)
 									) new_pfs;
-							
+										
 							(***** EXPERIMENTAL - PUT INTO SEPARATE FUNCTION *****)
 	
 									print_debug_petar "Now unifying heaps again.";
 									print_debug_petar (Printf.sprintf "%s" (Symbolic_State_Print.string_of_substitution subst));
-									let ret_1 = unify_symb_heaps heap_1 heap_0 pf_0 gamma_0 subst in
+									let ret_1 = unify_symb_heaps heap_1 heap_0 pf_0 gamma_1 gamma_0 subst in
 									(match ret_1 with
 									| Some (heap_f, new_pfs, negative_discharges) ->
-										print_debug (Printf.sprintf "Heaps unified successfully.\n");
-										Some (discharges_0, subst, heap_f, preds_f, new_pfs)
+										print_debug_petar (Printf.sprintf "Heaps unified successfully.\n");
+										let spec_vars_check = spec_logic_vars_discharge subst lvars pf_0 gamma_0 in
+										(match spec_vars_check with
+										| true -> Some (discharges_0, subst, heap_f, preds_f, new_pfs)
+										| false -> print_debug_petar "Unable to discharge spec vars"; None)
 									| None -> print_debug (Printf.sprintf "Failed to unify heaps and predicates definitively."); None ))))
 					| _ -> print_debug (Printf.sprintf "Failed to unify predicates and heaps definitively.\n"); None ))
 		| None -> print_debug (Printf.sprintf "Failed to unify stores\n" ); None) in
@@ -1100,7 +1142,7 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 			(Symbolic_State_Print.string_of_shallow_symb_store store_0' false)
 			(Symbolic_State_Print.string_of_shallow_symb_store store_1' false)); 
 		
-		let discharges_1 = unify_stores store_1' store_0' subst None (pfs_to_list pf_0) (* solver_0 *) gamma_0 in
+		let discharges_1 = unify_stores store_1' store_0' subst None (pfs_to_list pf_0) gamma_1 gamma_0 in
 		match discharges_0, discharges_1 with
 		| Some discharges_0, Some discharges_1 ->
 			Some (subst, filtered_vars, unfiltered_vars, gamma_existentials, (discharges_0 @ discharges_1))
@@ -1110,10 +1152,10 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 	(* STEP 1 *)
 	let step_1 subst =
 		print_debug "\tEntering step 1.";
-		let ret_1 = unify_symb_heaps heap_1 heap_0 pf_0 (* solver_0 *) gamma_0 subst in
+		let ret_1 = unify_symb_heaps heap_1 heap_0 pf_0 (* solver_0 *) gamma_1 gamma_0 subst in
 		(match ret_1 with
 		| Some (heap_f, new_pfs, negative_discharges) ->
-			let ret_2 = unify_pred_arrays preds_1 preds_0 pf_0 (* solver_0 *) gamma_0 subst in
+			let ret_2 = unify_pred_arrays preds_1 preds_0 pf_0 gamma_1 gamma_0 subst in
 			(match ret_2 with
 			| Some (new_subst, preds_f, unmatched_pat_preds) -> 
 				print_debug 
@@ -1194,7 +1236,7 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 			print_debug 
 				(Printf.sprintf "In the middle of the recovery!!! the pat_preds as they are now:\n%s\n" 
 					(Symbolic_State_Print.string_of_preds copied_preds_1 false)); 
-			let ret = unify_pred_arrays copied_preds_1 preds_0 pf_0 (* solver_0 *) gamma_0 subst in
+			let ret = unify_pred_arrays copied_preds_1 preds_0 pf_0 gamma_1 gamma_0 subst in
 			(match ret with
 			| Some (subst, preds_f, []) -> 
 				print_debug (Printf.sprintf "subst in recovery after re-unify_preds: %s" (Symbolic_State_Print.string_of_substitution subst));
@@ -1366,7 +1408,7 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 	let step_1 () =
 		let pat_subst = init_substitution [] in
 		let subst = init_substitution [] in
-		let discharges = unify_stores store_1 store_0 pat_subst (Some subst) (pfs_to_list (get_pf symb_state)) (* (get_solver symb_state) *) gamma_0 in
+		let discharges = unify_stores store_1 store_0 pat_subst (Some subst) (pfs_to_list (get_pf symb_state)) gamma_1 gamma_0 in
 		(* Printf.printf "substitutions after store unification.\nSubst:\n%s\nPat_Subst:\n%s\n"
 			(Symbolic_State_Print.string_of_substitution subst)
 			(Symbolic_State_Print.string_of_substitution pat_subst);
@@ -1502,7 +1544,7 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 
 
 
-let unify_symb_state_against_invariant symb_state inv_symb_state lvars = 
+let unify_symb_state_against_invariant symb_state inv_symb_state lvars existentials = 
 	print_debug (Printf.sprintf "unify_symb_state_against_invariant.\nSymb_state:\n%s.\nINVARIANT symb_state:\n%s" 
 		(Symbolic_State_Print.string_of_shallow_symb_state symb_state) 
 		(Symbolic_State_Print.string_of_shallow_symb_state inv_symb_state)); 	
@@ -1515,5 +1557,6 @@ let unify_symb_state_against_invariant symb_state inv_symb_state lvars =
 		let new_symb_state = merge_symb_states symb_state inv_symb_state subst in
 		let subst_pfs = assertions_of_substitution subst in 
 		extend_symb_state_with_pfs symb_state (DynArray.of_list subst_pfs); 
+		let symb_state = Simplifications.simplify_ss symb_state (Some (Some (SS.union lvars existentials))) in
 		Some symb_state
 	| _ -> None 

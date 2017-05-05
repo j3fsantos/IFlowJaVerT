@@ -19,7 +19,7 @@ let string_of_normalised_predicate (pred : normalised_predicate) =
     "Name : " ^ pred.name ^ "\n" ^
     "Parameters : " ^ params ^ "\n" ^
     (Printf.sprintf "Recursive : %b\n" pred.is_recursive) ^
-	List.fold_left (fun ac x -> ac ^ "\nDefinition:\n" ^ (JSIL_Print.string_of_logic_assertion x false) ^ "\n") "" pred.definitions
+		List.fold_left (fun ac x -> ac ^ "\nDefinition:\n" ^ (JSIL_Print.string_of_logic_assertion x false) ^ "\n") "" pred.definitions
 
 let string_of_normalised_predicates (preds : (string, normalised_predicate) Hashtbl.t) =
     Hashtbl.fold (fun pname pred ac -> ac ^ string_of_normalised_predicate pred) preds ""
@@ -272,15 +272,3 @@ let to_string { name; num_params; params; definitions; is_recursive; } =
 		  (" :\n\t" ^ (JSIL_Print.string_of_logic_assertion head false))
 		  tail)
 	 ^ ";\n"
-
-
-let string_of_normalised_predicate (pred : normalised_predicate) =
-    let params = List.fold_left (fun ac param -> ac ^ param ^ " ") "" pred.params in
-    "*** Normalised predicate ***\n" ^
-    "Name : " ^ pred.name ^ "\n" ^
-    "Parameters : " ^ params ^ "\n" ^
-    (Printf.sprintf "Recursive : %b\n" pred.is_recursive)
-
-let string_of_normalised_predicates (preds : (string, normalised_predicate) Hashtbl.t) =
-    Hashtbl.fold (fun pname pred ac -> ac ^ string_of_normalised_predicate pred) preds ""
-
