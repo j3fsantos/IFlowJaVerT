@@ -25,6 +25,8 @@ let copy_and_clear_globals () =
 %token THIS
 %token FUNOBJ
 %token CLOSURE
+%token SCSCOPE 
+%token OCHAINS
 (* Type literals *)
 %token UNDEFTYPELIT
 %token NULLTYPELIT
@@ -976,6 +978,12 @@ js_assertion_target:
 (* closure(x_0: le_0, ..., x_n: le_n; fid_0: le_0', ..., fid_n: le_n') *)
 	| CLOSURE; LBRACE; var_les=separated_list(COMMA, var_js_le_pair_target); SCOLON; fid_scs=separated_list(COMMA, var_js_le_pair_target); RBRACE
 		{	JSClosure (var_les, fid_scs)	}
+(* sc_scope(pid, x: le1, le2) *)
+	| SCSCOPE; LBRACE; pid=VAR; COMMA; x=VAR; COLON; le1=js_lexpr_target; COMMA; le2=js_lexpr_target; RBRACE
+		{ JSLVarSChain (pid, x, le1, le2) }
+(* o_chains(pid1: le1, pid2: le2) *)
+	| OCHAINS; LBRACE; pid1=VAR; COLON; le1=js_lexpr_target; COMMA; pid2=VAR; COLON; le2=js_lexpr_target; RBRACE
+		{ JSOSChains (pid1, le1, pid2, le2) }
 (* empty_fields (le : lit1, lit2, lit3, ...) *)
 	| EMPTYFIELDS; LBRACE; le=js_lexpr_target; COLON; fields=separated_list(COMMA, js_lexpr_target); RBRACE
 		{ JSEmptyFields (le, fields) }

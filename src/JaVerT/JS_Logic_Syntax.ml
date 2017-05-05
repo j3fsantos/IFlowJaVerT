@@ -215,9 +215,37 @@ let make_simple_scope_chain_logic_expression cur_fid vis_list =
 	LEList le_vis_list, LTypes types_list
 
 
+
 let rec js2jsil_logic cur_fid cc_tbl vis_tbl fun_tbl (a : js_logic_assertion) : JSIL_Syntax.jsil_logic_assertion =
 	let f = js2jsil_logic cur_fid cc_tbl vis_tbl fun_tbl in
 	let fe = js2jsil_lexpr in
+
+	let make_overlapping_scope_ass fid x_scope_chain fid_vars_tbl =  
+		let fid_vars_tbl = 
+			match fid_vars_tbl with 
+			| None -> Hashtbl.create 1
+			| Some fid_vars_tbl -> fid_vars_tbl in 
+
+		let fid_vis_list = 
+			try Hashtbl.find vis_tbl fid with Not_found ->
+				raise (Failure (Printf.sprintf "Function %s not found in the visibility table." fid)) in 
+			
+		let fid_vis_list = 
+			match fid_vis_list with 
+			| [] -> raise (Failure "DEATH! fid_vis_list")
+			| _ :: rest -> rest in  
+		
+		let fid_vis_list_les_pairs = 
+			List.map 
+				(fun fid -> 
+					if (fid = main_fid) 
+						then fid, LLit (Loc Js2jsil_constants.locGlobName) 
+						else fid, (try Hashtbl.find fid_vars_tbl fid with Not_found -> LVar (fid_to_lvar_fresh fid)))
+				fid_vis_list in 
+		let _, fid_vis_list_les = List.split fid_vis_list_les_pairs in 
+		let x_scope_chain' = fe x_scope_chain in 
+		LEq (x_scope_chain', LEList fid_vis_list_les), fid_vis_list_les_pairs in 
+
 	match a with
 	| JSLAnd (a1, a2)                     -> LAnd ((f a1), (f a2))
 	| JSLOr (a1, a2)                      -> LOr ((f a1), (f a2))
@@ -295,27 +323,7 @@ let rec js2jsil_logic cur_fid cc_tbl vis_tbl fun_tbl (a : js_logic_assertion) : 
 			(fun fid -> Hashtbl.replace shared_vis_list_les_tbl fid (LVar (fid_to_lvar_fresh fid))) 
 			shared_vis_list; 
 		let scope_chain_assertions = 
-			List.map 
-				(fun (fid, x_scope_chain) -> 
-					let fid_vis_list = 
-						try Hashtbl.find vis_tbl fid with Not_found ->
-							raise (Failure (Printf.sprintf "Function %s not found in the visibility table." fid)) in 
-					let fid_vis_list = 
-						match fid_vis_list with 
-						| [] -> raise (Failure "DEATH! fid_vis_list")
-						| _ :: rest -> rest in  
-					let fid_vis_list_les = 
-						List.map 
-							(fun fid -> 
-								if (fid = main_fid) 
-									then LLit (Loc Js2jsil_constants.locGlobName) 
-									else 
-										 try Hashtbl.find shared_vis_list_les_tbl fid 
-											with Not_found -> LVar (fid_to_lvar_fresh fid))
-							fid_vis_list in 
-					let x_scope_chain' = fe x_scope_chain in 
-					LEq (x_scope_chain', LEList fid_vis_list_les))
-			fid_sc_les in 
+			List.map (fun (fid, x_scope_chain) -> let a, _ = make_overlapping_scope_ass fid x_scope_chain (Some shared_vis_list_les_tbl) in a) fid_sc_les in 
 		
 		let just_one_arbitrary_fid =
 			match fid_sc_les with 
@@ -344,29 +352,52 @@ let rec js2jsil_logic cur_fid cc_tbl vis_tbl fun_tbl (a : js_logic_assertion) : 
 				var_les in 	
 		JSIL_Logic_Utils.star_asses (scope_chain_assertions @ scope_var_assertions) 
 
-	| _ -> raise (Failure "js2jsil_logic: new assertions not implemented")
-(*
-	| JSLVarSChain (pid, x, le_x, le_sc) -> 
-		et var_to_fid_tbl = 
+	| JSLVarSChain (fid, x, le_x, le_sc) -> 
+		let var_to_fid_tbl = 
 			(match cc_tbl with 
-			| Some cc_tbl -> Hashtbl.find cc_tbl cur_fid  
+			| Some cc_tbl -> Hashtbl.find cc_tbl fid  
 			| None -> raise (Failure "DEATH: js2jsil_logic")) in 
+		let vis_list = try Hashtbl.find vis_tbl fid with _ 
+			-> raise (Failure (Printf.sprintf "Function %s not found in the visibility table." fid)) in 
+				
 		if (Hashtbl.mem var_to_fid_tbl x) then (
-			let fid = Hashtbl.find var_to_fid_tbl x in
-			if (fid = main_fid) 
+			let fid_x = Hashtbl.find var_to_fid_tbl x in
+			if (fid_x = main_fid) 
 				then LPointsTo (
 							LLit (Loc Js2jsil_constants.locGlobName), 
 							LLit (String x), 
-							LEList [ LLit (String "d"); (fe le); LLit (Bool true); LLit (Bool true); LLit (Bool false) ])
-			 	else (if (fid = cur_fid) 
-					then LPointsTo (PVar Js2jsil_constants.var_er, LLit (String x), fe le) 
-					else LPointsTo (LVar (fid_to_lvar fid), LLit (String x), fe le)))
-			else (
+							LEList [ LLit (String "d"); (fe le_x); LLit (Bool true); LLit (Bool true); LLit (Bool false) ])
+			 	else (
+			 		let scope_chain_a, les_pairs_vis_list = make_overlapping_scope_ass fid le_sc None in 
+					let fid_x_var = List.assoc fid_x les_pairs_vis_list in 
+			 		LStar (LPointsTo (fid_x_var, LLit (String x), fe le_x), scope_chain_a)
+			 	)
+			) else (
 				LPointsTo (
-							LLit (Loc Js2jsil_constants.locGlobName), 
-							LLit (String x), 
-							LEList [ LLit (String "d"); (fe le); LLit (Bool true); LLit (Bool true); LLit (Bool false) ])
-			)	*)  
+					LLit (Loc Js2jsil_constants.locGlobName), 
+					LLit (String x), 
+					LEList [ LLit (String "d"); (fe le_x); LLit (Bool true); LLit (Bool true); LLit (Bool false) ])
+			)
+
+	| JSOSChains (fid1, sc1, fid2, sc2) -> 
+		let vis_list_1 = try Hashtbl.find vis_tbl fid1 with _ 
+			-> raise (Failure (Printf.sprintf "Function %s not found in the visibility table." fid1)) in 
+		let vis_list_2 = try Hashtbl.find vis_tbl fid2 with _ 
+			-> raise (Failure (Printf.sprintf "Function %s not found in the visibility table." fid2)) in 
+
+		let shared_vis_list = compute_common_suffix [ vis_list_1; vis_list_2 ] in 
+		let shared_vis_list_les_tbl = Hashtbl.create 31 in 
+		List.iter	
+			(fun fid -> Hashtbl.replace shared_vis_list_les_tbl fid (LVar (fid_to_lvar_fresh fid))) 
+			shared_vis_list; 
+		
+		let a_sc1, _ = make_overlapping_scope_ass fid1 sc1 (Some shared_vis_list_les_tbl) in 
+		let a_sc2, _ = make_overlapping_scope_ass fid2 sc2 (Some shared_vis_list_les_tbl) in 
+
+		LStar (a_sc1, a_sc2)
+				
+
+	| _ -> raise (Failure "js2jsil_logic: new assertions not implemented")
 
 let translate_predicate_def pred_def cc_tbl vis_tbl fun_tbl = 
 	let jsil_params = List.map js2jsil_lexpr pred_def.js_params in 

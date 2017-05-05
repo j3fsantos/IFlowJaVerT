@@ -19,6 +19,8 @@ rule read = parse
 	| "this"               { JSIL_Parser.THIS      }
 	| "fun_obj"            { JSIL_Parser.FUNOBJ    }
 	| "closure"            { JSIL_Parser.CLOSURE   }
+	| "sc_scope"           { JSIL_Parser.SCSCOPE   }
+	| "o_chains"           { JSIL_Parser.OCHAINS   }
 (* Type literals *)
 	| "$$undefined_type"   { JSIL_Parser.UNDEFTYPELIT  }
 	| "$$null_type"        { JSIL_Parser.NULLTYPELIT   }

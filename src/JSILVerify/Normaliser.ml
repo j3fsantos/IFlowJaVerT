@@ -710,6 +710,9 @@ let normalise_postcondition a subst (lvars : SS.t) pre_gamma : symbolic_state * 
 	symb_state, post_existentials
 
 
+
+
+
 let pre_normalise_invariants_proc preds body = 
 	let f_pre_normalize a_list = List.concat (List.map pre_normalize_assertion a_list) in
 	let len = Array.length body in
@@ -727,9 +730,9 @@ let pre_normalise_invariants_proc preds body =
 	done
 	
 
+
 let pre_normalise_invariants_prog preds prog = 
-	Hashtbl.iter (fun proc_name proc -> pre_normalise_invariants_proc preds proc.proc_body) prog
-			
+	Hashtbl.iter (fun proc_name proc -> pre_normalise_invariants_proc preds proc.proc_body) prog		
 
 let normalise_single_spec preds spec =
 	print_time_debug"  normalise_single_spec:";
