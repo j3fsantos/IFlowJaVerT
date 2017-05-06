@@ -4,6 +4,8 @@ open JSIL_Logic_Utils
 open Z3
 open Z3.Set
 
+let collect_garbage solver = Gc.full_major(); Solver.reset solver
+
 type encoding =
  | WithReals
  | WithFPA
@@ -820,11 +822,6 @@ let get_new_solver assertions gamma =
 	Solver.add solver assertions;
 	solver
 
-let dispose_solver solver =
-	Gc.full_major ();
-	Solver.reset solver
-
-
 let print_model solver =
 	let model = Solver.get_model solver in
 	match model with
@@ -898,14 +895,13 @@ let understand_satisfiability assertions gamma =
 	
 	let array_asses = Array.to_list (Array.make (List.length assertions) (Array.of_list assertions)) in
 	let list_asses = List.mapi (fun i x -> Array.to_list (Array.sub x 0 (i + 1))) array_asses in
-	
+
 	let solvers = List.map (fun x -> get_new_solver x gamma) list_asses in
+	
 	let results = List.map (fun x -> Solver.check x [] == Solver.SATISFIABLE) solvers in
 
 	print_debug (String.concat ", " (List.map (fun b -> Printf.sprintf "%b" b) results))
 		
-		
-
 let check_satisfiability assertions gamma =
 	let start_time = Sys.time () in
 	
@@ -918,22 +914,22 @@ let check_satisfiability assertions gamma =
 	(* print_debug_petar (Printf.sprintf "Simplified:\nPure formulae:\n%s\nGamma:\n%s\n\n"
 			(Symbolic_State_Print.string_of_shallow_p_formulae new_assertions false)
 			(Symbolic_State_Print.string_of_gamma new_gamma)); *)
-			
-	let new_assertions = DynArray.to_list new_assertions in
-	let new_assertions_set = SA.of_list new_assertions in
+	
+	let new_assertions_set = SA.of_list (DynArray.to_list new_assertions) in
+	let new_assertions = SA.elements new_assertions_set in
+	let cache_assertion = star_asses new_assertions in
 
 	print_debug_petar (Printf.sprintf "About to check sat of:\nPure formulae:\n%s\nGamma:\n%s\n\n"
-			(Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list (SA.elements new_assertions_set)) false)
+			(Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list new_assertions) false)
 			(Symbolic_State_Print.string_of_gamma new_gamma));
 	
-
-	if (Hashtbl.mem JSIL_Syntax.check_sat_cache new_assertions_set) then
+	if (Hashtbl.mem JSIL_Syntax.check_sat_cache cache_assertion) then
 	begin
-		let ret = Hashtbl.find JSIL_Syntax.check_sat_cache new_assertions_set in
+		let ret = Hashtbl.find JSIL_Syntax.check_sat_cache cache_assertion in
 		let end_time = Sys.time() in
 		JSIL_Syntax.update_statistics "check_sat_alt" (end_time -. start_time);
 		JSIL_Syntax.update_statistics "sat_cache" 0.;
-		print_debug_petar (Printf.sprintf "Found in cache.");
+		print_debug_petar (Printf.sprintf "Found in cache. Cache length %d." (Hashtbl.length JSIL_Syntax.check_sat_cache));
 		ret
 	end
 	else
@@ -942,15 +938,18 @@ let check_satisfiability assertions gamma =
 			(Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list new_assertions) false)
 			(Symbolic_State_Print.string_of_gamma new_gamma)); *)
 	
-		let solver = get_new_solver (SA.elements new_assertions_set) new_gamma in
-		print_debug_petar (Printf.sprintf "ENT: About to check the following:\n%s" (string_of_solver solver));
-		let ret_solver = (Solver.check solver []) in
-		let ret = (ret_solver = Solver.SATISFIABLE) in
-		Hashtbl.add JSIL_Syntax.check_sat_cache new_assertions_set ret;
+		print_debug_petar (Printf.sprintf "Not found in cache. Cache length %d." (Hashtbl.length JSIL_Syntax.check_sat_cache));
+		let solver = get_new_solver new_assertions new_gamma in
+		print_debug_petar (Printf.sprintf "SAT: About to check the following:\n%s" (string_of_solver solver));
+		let ret = (Solver.check solver [] = Solver.SATISFIABLE) in
+		Hashtbl.add JSIL_Syntax.check_sat_cache cache_assertion ret;
+		print_debug_petar (Printf.sprintf "Adding %s to cache. Cache length %d." 
+			(JSIL_Print.string_of_logic_assertion cache_assertion false) (Hashtbl.length JSIL_Syntax.check_sat_cache));
 		let end_time = Sys.time () in 
 		JSIL_Syntax.update_statistics "solver_call" 0.;
 		JSIL_Syntax.update_statistics "check_sat_alt" (end_time -. start_time);
 		print_debug_petar (Printf.sprintf "Check_sat returned: %b" ret);
+		Gc.full_major();
 		ret
 	end
 
@@ -971,7 +970,7 @@ let check_entailment (existentials : SS.t)
 	let existentials, left_as, right_as, gamma =
 		Simplifications.simplify_implication existentials (DynArray.of_list left_as) (DynArray.of_list right_as) (copy_gamma gamma) in
 	let right_as = Simplifications.simplify_equalities_between_booleans right_as in 
-	Simplifications.filter_gamma_pfs (DynArray.of_list (DynArray.to_list left_as @ DynArray.to_list right_as)) gamma;
+		Simplifications.filter_gamma_pfs (DynArray.of_list (DynArray.to_list left_as @ DynArray.to_list right_as)) gamma;
 	
 	(* If right is empty, then the left only needs to be satisfiable *)
 	if (DynArray.empty right_as) then check_satisfiability (DynArray.to_list left_as) gamma else
@@ -1017,6 +1016,7 @@ let check_entailment (existentials : SS.t)
 		JSIL_Syntax.update_statistics "check_entailment_alt" (end_time -. start_time);
 		
 		if (not ret) then print_model solver;
+		Gc.full_major();
 		ret) 
 	else (
 		print_time_debug "check_entailment done: false. OUTER";

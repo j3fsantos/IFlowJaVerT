@@ -1,4 +1,8 @@
 /**
+	@pred nullableObject(o) : 
+		types(o : $$object_type),
+		(o == $$null) * types (o : $$null_type);
+
 	@pred Node(n, val, left, right) :
 		standardObject(n) *
 		dataField(n, "value", val) * dataField(n, "left",  left) * dataField(n, "right", right) *
@@ -8,7 +12,7 @@
 		(n == $$null) * (K == -{ }-) * types (n : $$null_type, K : $$set_type),
 		
 		Node(n, #val, #left, #right) * BST(#left, #KL) * BST(#right, #KR) * 
-		(K == (#KL -u- -{ #val }- -u- #KR)) *
+		(K == (#KL -u- -{ #val }- -u- #KR)) * 
 		(forall #x : $$number_type. ((! (#x --e-- #KL)) \/ (#x <# #val))) *
 		(forall #x : $$number_type. ((! (#x --e-- #KR)) \/ (#val <# #x))) *
 		types(#val : $$number_type, K : $$set_type, #KL : $$set_type, #KR : $$set_type);
@@ -76,18 +80,6 @@ function insert(v, t)
     return result
   }
 
-  /** @invariant dataField(#t, "value", #iv) * dataField(#t, "left", #il) * dataField(#t, "right", #ir) */
-
-  /** @if (#il == $$null) {
-           unfold BST(#il, #il_set); 
-           fold BST(#il, #il_set)
-       } 
-  **/
-  /** @if (#ir == $$null) {
-           unfold BST(#ir, #ir_set); 
-           fold BST(#ir, #ir_set)
-       } 
-  **/
   if (v < t.value)
     t.left = insert(v, t.left);
   else if (v > t.value) 
@@ -95,4 +87,71 @@ function insert(v, t)
 
   /** @fold BST(#t, #K -u- -{ #v }-) */
   return t;
+}
+
+/**
+	@id find
+	
+	@pre
+		(t == #t) * BST(#t, #K) * (v == #v) * (#v --e-- #K) * types (#v : $$number_type) * 
+		scope(find : #find) * fun_obj(find, #find, #findProto)
+
+	@post 
+		BST(#t, #K) * (ret == $$t) * types(#r : $$boolean_type) *
+		scope(find : #find) * fun_obj(find, #find, #findProto)
+
+	@pre
+		(t == #t) * BST(#t, #K) * (v == #v) * (! (#v --e-- #K)) * types (#v : $$number_type) * 
+		scope(find : #find) * fun_obj(find, #find, #findProto)
+
+	@post 
+		BST(#t, #K) * (ret == $$f) * types(#r : $$boolean_type) *
+		scope(find : #find) * fun_obj(find, #find, #findProto)
+*/
+function find (v, t)
+{
+	var result;
+
+	/** @unfold BST(#t, #K) */
+	if (t === null)
+		/** @fold BST(#t, #K) */
+		return false;
+	else if (v === t.value)
+		/** @fold BST(#t, #K) */
+		return true;
+	else {
+		if (v < t.value)
+		  result = find(v, t.left) 
+		else
+		  result = find(v, t.right);
+
+		/** @fold BST(#t, #K) */
+		return result;
+	}
+}
+
+/**
+	@id findMin
+	
+	@pre
+		(t == #t) * BST(#t, #K) * (! (#t == $$null)) * 
+		scope(find_min : #findMin) * fun_obj(findMin, #findMin, #findMinProto)
+
+	@post 
+		BST(#t, #K) * (ret == #r) * types(#r : $$number_type) * (#r --e-- #K) *
+		(forall #x : $$number_type. ((! (#x --e-- #K)) \/ (#r <=# #x))) *
+		scope(find_min : #findMin) * fun_obj(findMin, #findMin, #findMinProto)
+*/
+function find_min(t)
+{
+	var result;
+	
+	/** @unfold BST(#t, #K) */
+	if (t.left === null)
+		result = t.value;
+	else
+		result = find_min(t.left);
+		
+	/** @fold BST(#t, #K) */
+	return result;
 }

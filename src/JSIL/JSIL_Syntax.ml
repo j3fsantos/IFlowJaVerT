@@ -517,11 +517,11 @@ module SLExpr = Set.Make(MyLExpr)
 module SFV = Set.Make(MyFieldValueList)
 
 (* Satisfiability cache *)
-let check_sat_cache = Hashtbl.create 513 
+let check_sat_cache : (jsil_logic_assertion, bool) Hashtbl.t = Hashtbl.create 513 
 
 let initialise = 
-	Hashtbl.add check_sat_cache SA.empty true;
-	Hashtbl.add check_sat_cache (SA.of_list [ LFalse ]) false
+	Hashtbl.add check_sat_cache LTrue true;
+	Hashtbl.add check_sat_cache LFalse false
 
 let statistics = Hashtbl.create 511
 

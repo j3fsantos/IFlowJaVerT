@@ -437,9 +437,25 @@ let rec reduce_assertion store gamma pfs a =
 		let rleb = fe leb in
 		let rlel = fe lel in
 		let rler = fe ler in
-			print_debug (Printf.sprintf "SIMPL_SETMEM_UNION: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) 
-				(JSIL_Print.string_of_logic_assertion (LOr (LSetMem (rleb, rlel), LSetMem (rleb, rler))) false)); 
-			f (LOr (LSetMem (rleb, rlel), LSetMem (rleb, rler)))
+		let result = f (LOr (LSetMem (rleb, rlel), LSetMem (rleb, rler))) in
+			print_debug (Printf.sprintf "SIMPL_SETMEM_UNION: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) (JSIL_Print.string_of_logic_assertion result false)); 
+			result
+
+	| LSetMem (leb, LBinOp(lel, SetInter, ler)) -> 
+		let rleb = fe leb in
+		let rlel = fe lel in
+		let rler = fe ler in
+		let result = f (LAnd (LSetMem (rleb, rlel), LSetMem (rleb, rler))) in
+			print_debug (Printf.sprintf "SIMPL_SETMEM_INTER: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) (JSIL_Print.string_of_logic_assertion result false)); 
+			result
+
+	| LSetMem (leb, LBinOp(lel, SetDiff, ler)) -> 
+		let rleb = fe leb in
+		let rlel = fe lel in
+		let rler = fe ler in
+		let result = f (LAnd (LSetMem (rleb, rlel), LNot (LSetMem (rleb, rler)))) in
+			print_debug (Printf.sprintf "SIMPL_SETMEM_DIFF: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) (JSIL_Print.string_of_logic_assertion result false)); 
+			result
 
 	| LSetMem (leb, LESet [ le ]) -> 
 		let rleb = fe leb in
