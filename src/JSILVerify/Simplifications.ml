@@ -1854,11 +1854,11 @@ let simplify_implication exists lpfs rpfs gamma =
 	sanitise_pfs_no_store gamma rpfs;
 	let exists, lpfs, rpfs, gamma = simplify_existentials exists lpfs rpfs gamma in
 	clean_up_stuff exists lpfs rpfs;
-	(* print_debug_petar (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\n\nGamma:\n%s\n\n"
+	print_debug_petar (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\n\nGamma:\n%s\n\n"
 		(String.concat ", " (SS.elements exists))
 		(print_pfs lpfs)
 		(print_pfs rpfs)
-		(Symbolic_State_Print.string_of_gamma gamma)); *)
+		(Symbolic_State_Print.string_of_gamma gamma)); 
 	exists, lpfs, rpfs, gamma (* DO THE SUBST *)
 
 

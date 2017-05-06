@@ -805,7 +805,7 @@ let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) p_form
 		(match options with
 		| [] -> Some (subst, DynArray.of_list preds, pat_preds)  
 		| [ op ] -> Some op
-		| _ :: (op :: _) -> 
+		| op :: (_ :: _) -> 
 			(match !interactive with
 			| false -> (* THIS IS CRAZY AD-HOC *) Some op
 		  | true -> 

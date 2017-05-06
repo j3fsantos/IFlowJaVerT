@@ -1218,14 +1218,14 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 	} in
 	let pruning_info = init_post_pruning_info () in
 	(* Iterate over the specification table *)
-	let results = Hashtbl.fold
+	let results = List.fold_left
 	  (* For each specification: *)
-		(fun proc_name spec ac_results ->
-			(* i1: Should the procedure be verified? *)
-			let should_we_verify = (List.mem proc_name procs_to_verify) in
+		(fun ac_results proc_name ->
+			(* i1: Have we got a spec? *)
+			let spec = try (Some (Hashtbl.find spec_table proc_name)) with | _ -> None in 
 			(* i1: YES *)
-			if (should_we_verify) then
-			begin
+			(match spec with
+			| Some spec ->
 				update_post_pruning_info_with_spec pruning_info spec;
 				(* Get list of pre-post pairs *)
 				let pre_post_list = spec.n_proc_specs in
@@ -1242,14 +1242,13 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 				(* Filter specs that could not be verified *)
 				let new_spec = { spec with n_proc_specs = (filter_useless_posts_in_multiple_specs proc_name pre_post_list pruning_info) } in
 				(* Update the specification table *)
-				Hashtbl.replace spec_table proc_name new_spec; 
+				Hashtbl.replace spec_table proc_name new_spec;
 				(* Concatenate symbolic trace *)
 				ac_results @ results
-			end
 			(* i1: NO *)
-			else ac_results)
-		spec_table
-		[] in
+		  | None -> ac_results))
+		[] 
+		procs_to_verify in
 	(* Understand complete success *)
 	let complete_success =
 		List.fold_left

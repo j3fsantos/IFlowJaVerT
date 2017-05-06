@@ -155,3 +155,47 @@ function find_min(t)
 	/** @fold BST(#t, #K) */
 	return result;
 }
+
+/**
+	@id remove
+		
+	@pre
+		(t == #t) * BST(#t, #K) * 
+		(v == #v) * types (#v : $$number_type) *
+		scope(remove : #remove) * fun_obj(remove, #remove, #removeProto) *
+		scope(find_min : #findMin) * fun_obj(findMin, #findMin, #findMinProto)
+
+	@post 
+		(ret == #t_new) * BST(#t_new, #K_new) * nullableObject(#t_new) * (#K_new == #K -d- -{ #v }-) *
+		scope(remove : #remove) * fun_obj(remove, #remove, #removeProto) *
+		scope(find_min : #findMin) * fun_obj(findMin, #findMin, #findMinProto)
+*/
+function remove(v, t)
+{
+	/** @unfold BST(#t, #K) */
+	if (t === null)
+		/** @fold BST(#t, #K) */
+		return null;
+
+	if (v === t.value) {
+		if (t.left === null) {	
+				return t.right;
+			}
+		else 
+		if (t.right === null) {
+	  		return t.left;
+			}
+		else {
+			var min = find_min(t.right);
+			t.right = remove(min, t.right);
+			t.value = min;
+		}
+	}
+	else if (v < t.value)
+		t.left = remove(v, t.left);
+	else
+		t.right = remove(v, t.right);	
+
+	/** @fold BST(#t, #K -d- -{ #v }-) */
+  	return t;
+}

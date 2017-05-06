@@ -975,7 +975,7 @@ let check_entailment (existentials : SS.t)
 	if (DynArray.empty right_as) then check_satisfiability (DynArray.to_list left_as) gamma else
 	(* If left or right are directly false, everything is false *)
 	if (DynArray.get right_as 0 = LFalse || (DynArray.length left_as <> 0 && DynArray.get left_as 0 = LFalse)) then false else
-	
+			
 	let left_as = DynArray.to_list left_as in
 	let right_as = DynArray.to_list right_as in
 	
@@ -984,7 +984,7 @@ let check_entailment (existentials : SS.t)
 	let left_as = global_axioms @ (encode_gamma gamma) @ left_as in	
 	let solver = (Solver.mk_solver ctx None) in
 	Solver.add solver left_as;
-	print_debug_petar (Printf.sprintf "ENT: About to check the following:\n%s" (string_of_solver solver));
+	print_debug_petar (Printf.sprintf "ENT ENCODED: About to check the following:\n%s" (string_of_solver solver));
 	let ret_left = (Solver.check solver [ ]) = Solver.SATISFIABLE in
 	if (ret_left) then (
 		let right_as_axioms = List.concat (List.map make_relevant_axioms right_as) in 
