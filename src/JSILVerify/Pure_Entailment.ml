@@ -949,7 +949,6 @@ let check_satisfiability assertions gamma =
 		JSIL_Syntax.update_statistics "solver_call" 0.;
 		JSIL_Syntax.update_statistics "check_sat_alt" (end_time -. start_time);
 		print_debug_petar (Printf.sprintf "Check_sat returned: %b" ret);
-		Gc.full_major();
 		ret
 	end
 
@@ -1016,7 +1015,6 @@ let check_entailment (existentials : SS.t)
 		JSIL_Syntax.update_statistics "check_entailment_alt" (end_time -. start_time);
 		
 		if (not ret) then print_model solver;
-		Gc.full_major();
 		ret) 
 	else (
 		print_time_debug "check_entailment done: false. OUTER";

@@ -1243,7 +1243,6 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 				let new_spec = { spec with n_proc_specs = (filter_useless_posts_in_multiple_specs proc_name pre_post_list pruning_info) } in
 				(* Update the specification table *)
 				Hashtbl.replace spec_table proc_name new_spec; 
-				Gc.full_major();
 				(* Concatenate symbolic trace *)
 				ac_results @ results
 			end
