@@ -521,23 +521,11 @@ let encode_binop op le1 le2 =
 		let new_list = Expr.mk_app ctx lit_operations.cons_constructor [ mk_singleton_access le1; le2_list ] in 
 		mk_singleton_elem (Expr.mk_app ctx lit_operations.list_constructor [ new_list ])
 		
-	| SetUnion ->
-		let le1_set = Expr.mk_app ctx extended_literal_operations.set_accessor [ le1 ] in  
-		let le2_set = Expr.mk_app ctx extended_literal_operations.set_accessor [ le2 ] in    
-		let le      = Set.mk_union ctx [ le1_set; le2_set ] in
-		Expr.mk_app ctx extended_literal_operations.set_constructor [ le ] 
-
 	| SetMem ->
 		let le1_mem = mk_singleton_access le1 in  
 		let le2_set = Expr.mk_app ctx extended_literal_operations.set_accessor [ le2 ] in    
 		let le      = Set.mk_membership ctx le1_mem le2_set in
 		mk_singleton_elem (Expr.mk_app ctx lit_operations.boolean_constructor [ le ])
-
-	| SetInter ->
-		let le1_set = Expr.mk_app ctx extended_literal_operations.set_accessor [ le1 ] in  
-		let le2_set = Expr.mk_app ctx extended_literal_operations.set_accessor [ le2 ] in    
-		let le      = Set.mk_intersection ctx [ le1_set; le2_set ] in
-		Expr.mk_app ctx extended_literal_operations.set_constructor [ le ] 
 		
 	| SetDiff ->
 		let le1_set = Expr.mk_app ctx extended_literal_operations.set_accessor [ le1 ] in  
@@ -643,6 +631,16 @@ let rec encode_logical_expression le =
 		let args = List.map (fun le -> mk_singleton_access (f le)) les in
 		let arg_list = mk_z3_set args in		
 		Expr.mk_app ctx extended_literal_operations.set_constructor [ arg_list ]
+
+	| LSetUnion les ->
+		let le_set = List.map (fun le -> Expr.mk_app ctx extended_literal_operations.set_accessor [ f le ]) les in  
+		let le      = Set.mk_union ctx le_set in
+		Expr.mk_app ctx extended_literal_operations.set_constructor [ le ] 
+
+	| LSetInter les ->
+		let le_set = List.map (fun le -> Expr.mk_app ctx extended_literal_operations.set_accessor [ f le ]) les in  
+		let le      = Set.mk_intersection ctx le_set in
+		Expr.mk_app ctx extended_literal_operations.set_constructor [ le ] 
 
 	| _                     ->
 		let msg = Printf.sprintf "Failure - z3 encoding: Unsupported logical expression: %s"
@@ -892,14 +890,10 @@ let make_relevant_axioms a =
 	s_axioms @ l_axioms 
 
 let understand_satisfiability assertions gamma = 
-	
 	let array_asses = Array.to_list (Array.make (List.length assertions) (Array.of_list assertions)) in
 	let list_asses = List.mapi (fun i x -> Array.to_list (Array.sub x 0 (i + 1))) array_asses in
-
 	let solvers = List.map (fun x -> get_new_solver x gamma) list_asses in
-	
 	let results = List.map (fun x -> Solver.check x [] == Solver.SATISFIABLE) solvers in
-
 	print_debug (String.concat ", " (List.map (fun b -> Printf.sprintf "%b" b) results))
 		
 let check_satisfiability assertions gamma =
@@ -946,12 +940,79 @@ let check_satisfiability assertions gamma =
 		print_debug_petar (Printf.sprintf "Adding %s to cache. Cache length %d." 
 			(JSIL_Print.string_of_logic_assertion cache_assertion false) (Hashtbl.length JSIL_Syntax.check_sat_cache));
 		let end_time = Sys.time () in 
+		understand_satisfiability new_assertions new_gamma;
 		JSIL_Syntax.update_statistics "solver_call" 0.;
 		JSIL_Syntax.update_statistics "check_sat_alt" (end_time -. start_time);
 		print_debug_petar (Printf.sprintf "Check_sat returned: %b" ret);
 		ret
 	end
 
+(*
+ 	(forall #x : $$number_type . ((! (#x --e-- _lvar_214)) \/ (_lvar_213 <# #x)))
+	(forall #x : $$number_type . ((! (#x --e-- _lvar_215)) \/ (#x <# _lvar_213)))
+*)
+
+(* FIX THIS PROPERLY, FFS *)
+let sort_out_ordered_trees left_as (lvars : (string, string) Hashtbl.t) (rvars : (string, string) Hashtbl.t) =
+	let left_as = ref left_as in
+	List.iter
+		(fun pf -> 
+			(match pf with
+			| LForAll ([ (x, NumberType) ], LOr (LNot (LSetMem (LVar y, LVar set)), LLess (LVar elem, LVar z))) when (x = y && x = z) -> 
+					print_debug (Printf.sprintf "Got left: %s, %s" elem set);
+					Hashtbl.add lvars elem set;
+			| LForAll ([ (x, NumberType) ], LOr (LNot (LSetMem (LVar y, LVar set)), LLess (LVar z, LVar elem))) when (x = y && x = z) -> 
+					print_debug (Printf.sprintf "Got right: %s, %s" elem set);
+					Hashtbl.add rvars elem set;
+			| _ -> ())
+		) !left_as;
+	List.iter
+		(fun pf ->
+			(match pf with
+			| LLess (LVar x, LVar y) ->
+				print_debug (Printf.sprintf "In LLess: %s %s" x y);
+				(match (Hashtbl.mem lvars y) with
+				| false -> ()
+				| true -> 
+						print_debug "Got LT wrt left";
+						let intersection = List.map (fun x -> LVar x) (Hashtbl.find_all lvars y) in
+						left_as := (LEq (LSetInter (LESet [ LVar x ] :: intersection), LESet [])) :: !left_as);
+				(match (Hashtbl.mem rvars x) with
+					| false -> ()
+					| true -> 
+							print_debug "Got LT wrt right";
+							let intersection = List.map (fun x -> LVar x) (Hashtbl.find_all rvars x) in
+							left_as := (LEq (LSetInter (LESet [ LVar y ] :: intersection), LESet [])) :: !left_as)
+			| _ -> ())
+		) !left_as;
+	let keys = Hashtbl.fold (fun k _ ac -> SS.add k ac) lvars (SS.empty) in
+	left_as := SS.fold (fun k ac -> 
+		let lsets = List.map (fun x -> LVar x) (Hashtbl.find_all lvars k) in
+		let new_formulas = 
+			let intersection =
+				LEq (LSetInter (SLExpr.elements (SLExpr.of_list (LESet [ LVar k ] :: lsets))), LESet []) in
+			let more_intersection = 
+				(match (Hashtbl.mem rvars k) with
+				| false -> []
+				| true -> 
+						let more = Hashtbl.find_all rvars k in
+						List.map (fun x -> LEq (LSetInter (LVar x :: LESet [ LVar k ] :: lsets), LESet [])) more) in
+			intersection :: more_intersection in
+		SA.elements (SA.of_list (new_formulas @ ac))
+		) keys !left_as;
+	left_as := SS.fold (fun k ac -> 
+		let new_formula = 
+			let intersection =
+				LESet [ LVar k ] :: (List.map (fun x -> LVar x) (Hashtbl.find_all rvars k)) in
+				LEq (LSetInter intersection, LESet []) in
+		new_formula :: ac
+		) keys !left_as;
+	!left_as
+
+
+let help_the_poor_Z3_solver left_as =
+	let left_as = sort_out_ordered_trees left_as in 
+	left_as
 
 let check_entailment (existentials : SS.t) 
 					 (left_as      : jsil_logic_assertion list) 
@@ -975,9 +1036,21 @@ let check_entailment (existentials : SS.t)
 	if (DynArray.empty right_as) then check_satisfiability (DynArray.to_list left_as) gamma else
 	(* If left or right are directly false, everything is false *)
 	if (DynArray.get right_as 0 = LFalse || (DynArray.length left_as <> 0 && DynArray.get left_as 0 = LFalse)) then false else
-			
+	
 	let left_as = DynArray.to_list left_as in
-	let right_as = DynArray.to_list right_as in
+	let right_as = DynArray.to_list right_as in	
+	
+	(* let lvars = Hashtbl.create 23 in
+	let rvars = Hashtbl.create 23 in
+	
+	let left_as = help_the_poor_Z3_solver (DynArray.to_list left_as) lvars rvars in
+	let right_as = List.filter (fun x -> not (List.mem x left_as)) (help_the_poor_Z3_solver (DynArray.to_list right_as) lvars rvars) in
+	
+	print_debug_petar (Printf.sprintf "Actual entailment check:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n"
+	   (String.concat ", " (SS.elements existentials))
+	   (Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list left_as) false)
+	   (Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list right_as) false)
+	   (Symbolic_State_Print.string_of_gamma gamma)); *)
 	
 	let left_as_axioms = List.concat (List.map make_relevant_axioms left_as) in 
 	let left_as = List.map encode_assertion_top_level (left_as_axioms @ left_as) in
@@ -1015,10 +1088,10 @@ let check_entailment (existentials : SS.t)
 		JSIL_Syntax.update_statistics "check_entailment_alt" (end_time -. start_time);
 		
 		if (not ret) then print_model solver;
-		ret) 
+		ret)
 	else (
 		print_time_debug "check_entailment done: false. OUTER";
-		false) 
+		false)
 	
 
 let is_equal_on_lexprs e1 e2 pfs : bool option = 

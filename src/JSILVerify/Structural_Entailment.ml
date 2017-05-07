@@ -85,10 +85,13 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 				| LVar lvar, _ ->
 					if (Hashtbl.mem pat_subst lvar)
 						then (
-							let current = Hashtbl.find pat_subst lvar in
-							if Pure_Entailment.is_equal current lexpr (DynArray.of_list pfs) gamma
-								then discharges
-								else raise (Failure "No no no no NO."))
+							let current = Hashtbl.find pat_subst lvar in 
+							(match current with
+							| LVar _ -> ((current, lexpr) :: discharges)
+							| _ -> 
+								if Pure_Entailment.is_equal current lexpr (DynArray.of_list pfs) gamma 
+									then discharges
+									else raise (Failure "No no no no NO.")))
 						else (
 								extend_subst pat_subst lvar lexpr;
 								let subst_ok = gamma_subst_test lvar lexpr pat_gamma gamma "unify_stores" in

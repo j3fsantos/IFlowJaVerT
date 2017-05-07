@@ -501,6 +501,11 @@ expr_target:
 (* s-nth (string, n) *)
 	| STRNTH; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
 		{ StrNth (e1, e2) }
+(* Set union and intersection *)
+	| SETUNION LBRACE; le = separated_list(COMMA, expr_target); RBRACE
+	  { SetUnion (SExpr.elements (SExpr.of_list le)) }
+	| SETINTER LBRACE; le = separated_list(COMMA, expr_target); RBRACE
+	  { SetInter (SExpr.elements (SExpr.of_list le)) }
 (* (e) *)
   | LBRACE; e=expr_target; RBRACE
 		{ e }
@@ -817,6 +822,10 @@ lexpr_target:
 (* s-nth(e1, e2) *)
 	| STRNTH; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE
 		{ LStrNth (e1, e2) }
+	| SETUNION LBRACE; le = separated_list(COMMA, lexpr_target); RBRACE
+	  { LSetUnion (SLExpr.elements (SLExpr.of_list le)) }
+	| SETINTER LBRACE; le = separated_list(COMMA, lexpr_target); RBRACE
+	  { LSetInter (SLExpr.elements (SLExpr.of_list le)) }
 (* (e) *)
   | LBRACE; e=lexpr_target; RBRACE
 	  { e }
@@ -887,8 +896,6 @@ lit_target:
 	| LSTCONS            { LstCons }
 	| LSTCAT             { LstCat }
 	| STRCAT             { StrCat }
-	| SETUNION           { SetUnion }
-	| SETINTER           { SetInter }
 	| SETDIFF            { SetDiff }
 	| SETMEM             { SetMem }
 	| SETSUB             { SetSub }
@@ -1097,6 +1104,11 @@ js_lexpr_target:
 		{ JSLStrNth (e1, e2) }
 (* this *)
 	| THIS { JSLThis }
+(* Set union and intersection *)
+	| SETUNION LBRACE; le = separated_list(COMMA, js_lexpr_target); RBRACE
+	  { JSLSetUnion (JSSExpr.elements (JSSExpr.of_list le)) }
+	| SETINTER LBRACE; le = separated_list(COMMA, js_lexpr_target); RBRACE
+	  { JSLSetInter (JSSExpr.elements (JSSExpr.of_list le)) }
 (* (e) *)
   | LBRACE; e=js_lexpr_target; RBRACE
 	  { e }

@@ -155,6 +155,28 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 	| LESet s -> 
 			let s' = List.map f s in
 			LESet (SLExpr.elements (SLExpr.of_list s'))
+	
+	| LSetUnion s ->
+			let s' = List.map f s in
+			let s' = SLExpr.of_list s' in
+			let s' = SLExpr.fold (fun s ac ->
+				(match s with
+				| LESet [] -> ac 
+				| LSetUnion s'' -> SLExpr.union ac (SLExpr.of_list s'')
+				| _ -> SLExpr.add s ac)) s' (SLExpr.empty) in
+			let potential_result = SLExpr.elements s' in
+			(match potential_result with
+			| [] -> LESet []
+			| [ only_one ] -> only_one
+			| _ -> LSetUnion potential_result)
+				
+	| LSetInter s ->
+			let s' = List.map f s in
+			let s' = SLExpr.of_list s' in
+			let is_empty_there = SLExpr.mem (LESet []) s' in
+			(match is_empty_there with
+			| true -> LESet []
+			| false -> LSetInter (SLExpr.elements s'))
 
 	(* List append *)
 	| LBinOp (le1, LstCat, le2) ->
@@ -433,19 +455,31 @@ let rec reduce_assertion store gamma pfs a =
 		let re2 = fe e2 in
 		LLess (re1, re2)
 
-	| LSetMem (leb, LBinOp(lel, SetUnion, ler)) -> 
+	| LSetMem (leb, LSetUnion lle) -> 
 		let rleb = fe leb in
-		let rlel = fe lel in
-		let rler = fe ler in
-		let result = f (LOr (LSetMem (rleb, rlel), LSetMem (rleb, rler))) in
+		let formula = (match lle with
+		| [] -> LFalse
+		| le :: lle -> 
+				let rle = fe le in
+					List.fold_left (fun ac le -> 
+						let rle = fe le in 
+							LOr (ac, LSetMem (rleb, rle))
+					) (LSetMem (rleb, rle)) lle) in
+		let result = f formula in
 			print_debug (Printf.sprintf "SIMPL_SETMEM_UNION: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) (JSIL_Print.string_of_logic_assertion result false)); 
 			result
 
-	| LSetMem (leb, LBinOp(lel, SetInter, ler)) -> 
+	| LSetMem (leb, LSetInter lle) -> 
 		let rleb = fe leb in
-		let rlel = fe lel in
-		let rler = fe ler in
-		let result = f (LAnd (LSetMem (rleb, rlel), LSetMem (rleb, rler))) in
+		let formula = (match lle with
+		| [] -> LFalse
+		| le :: lle -> 
+				let rle = fe le in
+					List.fold_left (fun ac le -> 
+						let rle = fe le in 
+							LOr (ac, LSetMem (rleb, rle))
+					) (LSetMem (rleb, rle)) lle) in
+		let result = f formula in
 			print_debug (Printf.sprintf "SIMPL_SETMEM_INTER: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) (JSIL_Print.string_of_logic_assertion result false)); 
 			result
 
@@ -1270,7 +1304,7 @@ let simplify_symb_state
 							| _, _ -> ()))
 			| LEq (e, LVar v) -> DynArray.set pfs i (LEq (LVar v, e))
 			| _ -> ())) pfs in
-		 
+		
 	(* Let's start *)
 	let heap, store, p_formulae, gamma, preds = symb_state in	
 

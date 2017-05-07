@@ -69,6 +69,8 @@ let rec logic_expression_map f lexpr =
   	| LEList le           -> LEList (List.map map_e le)
   	| LCList le           -> LCList (List.map map_e le)
 		| LESet le            -> LESet  (List.map map_e le)
+		| LSetUnion le        -> LSetUnion  (List.map map_e le)
+		| LSetInter le        -> LSetInter  (List.map map_e le)
   	| LLstNth (e1, e2)    -> LLstNth (map_e e1, map_e e2)
   	| LStrNth (e1, e2)    -> LStrNth (map_e e1, map_e e2)
   	| LUnknown            -> LUnknown
@@ -132,9 +134,11 @@ let rec get_logic_expression_literals le =
 	| LNone | LVar _ | ALoc _ | PVar _ | LUnknown -> []
 	| LBinOp (le1, _, le2) | LLstNth (le1, le2) | LStrNth (le1, le2)  -> (fe le1) @ (fe le2)
 	| LUnOp (_, le) |	LTypeOf le -> fe le
-	| LCList les
- 	| LEList les 
-	| LESet  les -> List.concat (List.map fe les)
+	| LCList    les
+ 	| LEList    les 
+	| LESet     les 
+	| LSetUnion les
+	| LSetInter les -> List.concat (List.map fe les)
 
 let rec get_assertion_literals a =
 	let f = get_assertion_literals in
@@ -160,7 +164,9 @@ let rec get_logic_expression_lists le =
 	| LBinOp (le1, _, le2) | LLstNth (le1, le2) | LStrNth (le1, le2)  -> (fe le1) @ (fe le2)
 	| LUnOp (_, le) | LTypeOf le -> fe le
  	| LEList les -> (LEList les) :: (List.concat (List.map fe les))
-	| LESet les -> (List.concat (List.map fe les))
+	| LESet les 
+	| LSetUnion les
+	| LSetInter les -> (List.concat (List.map fe les))
 
 let rec get_assertion_lists a =
 	let f = get_assertion_lists in
@@ -195,8 +201,10 @@ let rec get_logic_expression_lvars_list le =
 		| LVar x -> [ x ]
 		| LBinOp (le1, _, le2) | LLstNth (le1, le2) | LStrNth (le1, le2) -> (fe le1) @ (fe le2)
 		| LUnOp (_, le) |	LTypeOf le -> fe le
-	 	| LEList les 
-		| LESet  les
+	 	| LEList    les 
+		| LESet     les
+		| LSetUnion les
+		| LSetInter les
 	 	| LCList les -> List.concat (List.map fe les)
 
 let get_logic_expression_lvars le =
@@ -305,6 +313,8 @@ let rec get_expr_vars catch_pvars e : SS.t =
 	| LTypeOf e1 -> f e1
 	| LEList le_list
 	| LESet le_list
+	| LSetUnion le_list
+	| LSetInter le_list
 	| LCList le_list -> 
 			List.fold_left (fun ac e -> 
 				let v_e = f e in
@@ -581,6 +591,14 @@ let rec lexpr_substitution lexpr subst partial =
 		let s_les = List.map (fun le -> (f le)) les in
 		LESet s_les
 
+	| LSetUnion les ->
+		let s_les = List.map (fun le -> (f le)) les in
+		LSetUnion s_les
+		
+	| LSetInter les ->
+		let s_les = List.map (fun le -> (f le)) les in
+		LSetInter s_les
+
 	| LCList les ->
 		let s_les = List.map (fun le -> (f le)) les in
 		LCList s_les		
@@ -853,9 +871,7 @@ let rec type_lexpr gamma le =
 			| LstCons -> check_valid_type t2 [ ListType ] ListType []
 			| LstCat -> check_valid_type t1 [ ListType ] ListType []
 			| StrCat -> check_valid_type t1 [ StringType ] StringType []
-			| SetUnion 
-			| SetDiff
-			| SetInter -> check_valid_type t1 [ SetType ] SetType     []
+			| SetDiff -> check_valid_type t1 [ SetType ] SetType     []
 			| SetSub   -> check_valid_type t1 [ SetType ] BooleanType []
 			| _ ->
 				Printf.printf "type_lexpr: op: %s, t: %s\n"  (JSIL_Print.string_of_binop op) (JSIL_Print.string_of_type t1);
@@ -889,6 +905,19 @@ let rec type_lexpr gamma le =
 			(* Printf.printf "Entailment: %b\n" entail; *)
 			(Some StringType, true, (new_constraint1 :: (new_constraint2 :: constraints1 @ constraints2)))
 		| _, _ -> (None, false, []))
+
+  | LSetUnion le 
+	| LSetInter le -> 
+			let result = try (
+				let constraints = List.fold_left 
+				(fun ac e -> 
+					let (te, ite, constraints_e) = f e in
+					(match te with
+					| Some SetType -> SA.union ac (SA.of_list constraints_e)
+					| _ -> raise (Failure "Oopsie!"))
+				) SA.empty le in
+				(Some SetType, true, (SA.elements constraints))) with | _ -> (None, false, []) in
+			result
 
 	| LNone    -> (Some NoneType, true, [])
 	| LUnknown -> (None, false, [])) in

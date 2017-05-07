@@ -159,8 +159,6 @@ type jsil_binop =
 	| CharCons           (** Char construction *)
 	| CharCat            (** Char concatenation *)
 	(* Sets *)
-	| SetUnion           (** Set union *)
-	| SetInter           (** Set intersection *)
 	| SetDiff            (** Set difference *)
 	| SetMem             (** Set membership *)
 	| SetSub             (** Subset *)
@@ -177,6 +175,8 @@ type jsil_binop =
 	| EList    of jsil_expr list                     (** Lists of expressions *)
 	| ESet     of jsil_expr list                     (** Sets of expressions *)
 	| CList    of jsil_expr list                     (** Lists of characters *)
+	| SetUnion of jsil_expr list
+	| SetInter of jsil_expr list
 	| RAssume  of jsil_expr                          
 	| RAssert  of jsil_expr
 	| RNumSymb
@@ -240,6 +240,8 @@ type jsil_logic_expr =
 	| LEList   of jsil_logic_expr list                           (** Lists of logical expressions *)
 	| LCList   of jsil_logic_expr list                           (** Lists of logical chars *)
 	| LESet    of jsil_logic_expr list                           (** Sets of logical expressions *)
+	| LSetUnion of jsil_logic_expr list                          (** Unions *)
+	| LSetInter of jsil_logic_expr list                          (** Intersections *)
 	| LNone                                                      (** Empty field value *)  
 	| LUnknown                                                   (** Unknown field value *)
 

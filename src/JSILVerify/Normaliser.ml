@@ -104,6 +104,14 @@ let rec normalise_lexpr store gamma subst le =
 	| LESet le_list ->
 		let n_le_list = List.map (fun le -> f le) le_list in
 		LESet n_le_list
+		
+	| LSetUnion le_list ->
+		let n_le_list = List.map (fun le -> f le) le_list in
+		LSetUnion n_le_list
+		
+	| LSetInter le_list ->
+		let n_le_list = List.map (fun le -> f le) le_list in
+		LSetInter n_le_list
 
 	| LLstNth (le1, le2) ->
 		let nle1 = f le1 in

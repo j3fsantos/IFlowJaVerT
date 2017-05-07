@@ -18,7 +18,7 @@ type symbolic_field_value_list = ((jsil_logic_expr * jsil_logic_expr) list)
 type symbolic_discharge_list   = ((jsil_logic_expr * jsil_logic_expr) list)
 type symbolic_heap             = (symbolic_field_value_list * jsil_logic_expr) LHeap.t
 type symbolic_store            = (string, jsil_logic_expr) Hashtbl.t
-type pure_formulae             = (jsil_logic_assertion DynArray.t)
+type pure_formulae             = jsil_logic_assertion DynArray.t
 type predicate_set             = ((string * (jsil_logic_expr list)) DynArray.t)
 type predicate_assertion       = (string * (jsil_logic_expr list))
 
@@ -593,7 +593,7 @@ let symb_state_substitution_in_place_no_gamma (symb_state : symbolic_state) subs
 let selective_symb_state_substitution_in_place_no_gamma (symb_state : symbolic_state) subst =
 	let heap, store, pf, gamma, preds = symb_state in
 		pf_substitution_in_place pf subst;
-		store_substitution_in_place store gamma subst; 
+		(* store_substitution_in_place store gamma subst; *)
 		preds_substitution_in_place preds subst;
 		selective_heap_substitution_in_place heap subst
 

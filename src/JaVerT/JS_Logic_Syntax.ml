@@ -108,6 +108,8 @@ type js_logic_expr =
 	| JSLESet           of js_logic_expr list
 	| JSLLstNth     		of js_logic_expr * js_logic_expr
 	| JSLStrNth     		of js_logic_expr * js_logic_expr
+	| JSLSetUnion       of js_logic_expr list
+	| JSLSetInter       of js_logic_expr list
 	| JSLUnknown
 	| JSLThis
 
@@ -180,6 +182,8 @@ let rec js2jsil_lexpr le =
 	| JSLTypeOf le            -> LTypeOf (fe le)
 	| JSLEList les            -> LEList (List.map fe les)
 	| JSLESet les             -> LESet (List.map fe les)
+	| JSLSetUnion les         -> LSetUnion (List.map fe les)
+	| JSLSetInter les         -> LSetInter (List.map fe les)
 	| JSLLstNth (le1, le2)    -> LLstNth (fe le1, fe le2)
 	| JSLStrNth (le1, le2)    -> LStrNth (fe le1, fe le2)
 	| JSLUnknown              -> LUnknown

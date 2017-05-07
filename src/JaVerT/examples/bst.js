@@ -12,7 +12,7 @@
 		(n == $$null) * (K == -{ }-) * types (n : $$null_type, K : $$set_type),
 		
 		Node(n, #val, #left, #right) * BST(#left, #KL) * BST(#right, #KR) * 
-		(K == (#KL -u- -{ #val }- -u- #KR)) * 
+		(K == -u- (#KL, -{ #val }-, #KR)) * 
 		(forall #x : $$number_type. ((! (#x --e-- #KL)) \/ (#x <# #val))) *
 		(forall #x : $$number_type. ((! (#x --e-- #KR)) \/ (#val <# #x))) *
 		types(#val : $$number_type, K : $$set_type, #KL : $$set_type, #KR : $$set_type);
@@ -60,7 +60,7 @@ function make_node(v)
 		scope(insert : #insert) * fun_obj(insert, #insert, #insertProto)
 		
 	@post 
-		BST(#t, #K -u- -{ #v }-) * (ret == #t) * types (#t : $$object_type) *
+		BST(#t, -u- (#K, -{ #v }-)) * (ret == #t) * types (#t : $$object_type) *
 		scope(make_node : #makeNode) * fun_obj(makeNode, #makeNode, #mknProto) *
 		scope(insert : #insert) * fun_obj(insert, #insert, #insertProto)
 */
@@ -85,7 +85,7 @@ function insert(v, t)
   else if (v > t.value) 
     t.right = insert(v, t.right);
 
-  /** @fold BST(#t, #K -u- -{ #v }-) */
+  /** @fold BST(#t, -u- (#K, -{ #v }-)) */
   return t;
 }
 
@@ -112,22 +112,20 @@ function find (v, t)
 {
 	var result;
 
-	/** @unfold BST(#t, #K) */
+	/** @unfold BST(#t, #K) */	
 	if (t === null)
-		/** @fold BST(#t, #K) */
-		return false;
+		result = false;
 	else if (v === t.value)
-		/** @fold BST(#t, #K) */
-		return true;
+		result = true;
 	else {
 		if (v < t.value)
 		  result = find(v, t.left) 
 		else
 		  result = find(v, t.right);
-
-		/** @fold BST(#t, #K) */
-		return result;
 	}
+	
+	/** @fold BST(#t, #K) */
+	return result;
 }
 
 /**
@@ -148,6 +146,10 @@ function find_min(t)
 	
 	/** @unfold BST(#t, #K) */
 	if (t.left === null)
+		/** @invariant dataField(#t, "left", #il) * BST(#il, #KL)
+			@unfold BST(#il, #KL)
+			@fold BST(#il, #KL)
+		*/
 		result = t.value;
 	else
 		result = find_min(t.left);
@@ -177,13 +179,17 @@ function remove(v, t)
 		/** @fold BST(#t, #K) */
 		return null;
 
+	/** @invariant dataField(#t, "left", #il) * dataField(#t, "right", #ir) *  BST(#il, #KL) * BST(#ir, #KR) */
+	
 	if (v === t.value) {
 		if (t.left === null) {	
+				/** @unfold BST($$null, #KL) */
 				return t.right;
 			}
 		else 
 		if (t.right === null) {
-	  		return t.left;
+				/** @unfold BST($$null, #KR) */
+	  			return t.left;
 			}
 		else {
 			var min = find_min(t.right);
