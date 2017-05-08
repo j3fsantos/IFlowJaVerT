@@ -442,3 +442,27 @@ function createNewAttribute(element){
 	/* @callspec deallocG(#whatever, #l_gList, #zeta) */
 	return (n === e);
 }
+
+/**
+	@id sanitise
+
+	@pre (
+		InitialDOMHeap() *
+		(img == #n) * (cat == #s2) *
+		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children) *
+		(#attr == {{ {{ "attr", "src", #a, #tf1 }} }}) *
+		val(#tf1, #s1) * types(#s1: $$string_type) * 
+		Grove(#grove, {{}})
+	)
+	@post (
+		InitialDOMHeap() *
+		ECell(#alpha, #name, #n, #l_attr, #new_attr, #l_children, #children) *
+		(#new_attr == {{ {{ "attr", "src", #a, #tf2 }} }}) *
+		(#tf2 == {{ {{ "text", #r, #s2 }} }}) *
+		Grove(#grove, #tf1)
+	)
+**/
+function sanitiseImg(img, cat){
+	var url = img.getAttribute("src");
+	img.setAttribute("src", cat);
+}

@@ -159,8 +159,6 @@ type jsil_binop =
 	| CharCons           (** Char construction *)
 	| CharCat            (** Char concatenation *)
 	(* Sets *)
-	| SetUnion           (** Set union *)
-	| SetInter           (** Set intersection *)
 	| SetDiff            (** Set difference *)
 	| SetMem             (** Set membership *)
 	| SetSub             (** Subset *)
@@ -177,6 +175,8 @@ type jsil_binop =
 	| EList    of jsil_expr list                     (** Lists of expressions *)
 	| ESet     of jsil_expr list                     (** Sets of expressions *)
 	| CList    of jsil_expr list                     (** Lists of characters *)
+	| SetUnion of jsil_expr list
+	| SetInter of jsil_expr list
 	| RAssume  of jsil_expr                          
 	| RAssert  of jsil_expr
 	| RNumSymb
@@ -240,6 +240,8 @@ type jsil_logic_expr =
 	| LEList   of jsil_logic_expr list                           (** Lists of logical expressions *)
 	| LCList   of jsil_logic_expr list                           (** Lists of logical chars *)
 	| LESet    of jsil_logic_expr list                           (** Sets of logical expressions *)
+	| LSetUnion of jsil_logic_expr list                          (** Unions *)
+	| LSetInter of jsil_logic_expr list                          (** Intersections *)
 	| LNone                                                      (** Empty field value *)  
 	| LUnknown                                                   (** Unknown field value *)
 
@@ -254,6 +256,7 @@ type jsil_logic_assertion =
 	| LStar			    of jsil_logic_assertion * jsil_logic_assertion             (** Separating conjunction *)
 	| LPointsTo	    of jsil_logic_expr * jsil_logic_expr * jsil_logic_expr     (** Heap cell assertion *)
 	| LPred			    of string * (jsil_logic_expr list)                         (** Predicates *)
+	| LForAll       of (jsil_var * jsil_type) list * jsil_logic_assertion                    (** Forall *)
 	| LTypes		    of (jsil_logic_expr * jsil_type) list                      (** Typing assertion *)
 	| LEmptyFields	of jsil_logic_expr * (jsil_logic_expr list)                (** emptyFields assertion *)
 	| LEq			      of jsil_logic_expr * jsil_logic_expr                       (** Expression equality *)
@@ -516,11 +519,11 @@ module SLExpr = Set.Make(MyLExpr)
 module SFV = Set.Make(MyFieldValueList)
 
 (* Satisfiability cache *)
-let check_sat_cache = Hashtbl.create 513 
+let check_sat_cache : (jsil_logic_assertion, bool) Hashtbl.t = Hashtbl.create 513 
 
 let initialise = 
-	Hashtbl.add check_sat_cache SA.empty true;
-	Hashtbl.add check_sat_cache (SA.of_list [ LFalse ]) false
+	Hashtbl.add check_sat_cache LTrue true;
+	Hashtbl.add check_sat_cache LFalse false
 
 let statistics = Hashtbl.create 511
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-mkdir -p environment
+mkdir -p environment/DOM
 mkdir -p environment/lists
 mkdir -p environment/sets
 mkdir -p environment/PQ
@@ -9,7 +9,7 @@ cp test.sh environment
 cp bi_test.sh environment
 cp *.native environment
 cp src/JaVerT/runtime/* environment
-cp src/JaVerT/DOM/*.js environment
+cp src/JaVerT/DOM/*.js environment/DOM
 cp src/JS2JSIL/runtime/*.jsil environment
 cp src/JS2JSIL/runtime/harness.js environment
 cp src/JSILVerify/examples/lists/*.jsil environment/lists

@@ -209,7 +209,7 @@ let rec safe_symb_evaluate_expr spec_lvars (symb_state: symbolic_state) (anti_fr
 	let nle = symb_evaluate_expr symb_state anti_frame expr in
 	let nle_type, is_typable, constraints = type_lexpr gamma nle in
 	if (is_typable) then
-		(if ((List.length constraints = 0) || (Pure_Entailment.old_check_entailment SS.empty (pfs_to_list pure_formulae) constraints gamma)) then 
+		(if ((List.length constraints = 0) || (Pure_Entailment.check_entailment SS.empty (pfs_to_list pure_formulae) constraints gamma)) then 
 			nle, nle_type, true
 		else 
 			let no_spec_vars_in_cons = List.fold_left (fun ac cons -> 
@@ -933,7 +933,7 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars : (symbo
 			| _, Some (a_le, _) -> a_le
 			| Some e_le, None -> LEq (e_le, LLit (Bool true))
 			| None, None -> LFalse in
-		if (Pure_Entailment.old_check_entailment SS.empty (get_pf_list symb_state) [ a_le_then ] (get_gamma symb_state))
+		if (Pure_Entailment.check_entailment SS.empty (get_pf_list symb_state) [ a_le_then ] (get_gamma symb_state))
 			then symb_evaluate_logic_cmds s_prog then_lcmds [ symb_state, spec_vars ] subst 
 			else symb_evaluate_logic_cmds s_prog else_lcmds [ symb_state, spec_vars ] subst  
 		
@@ -998,11 +998,11 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
 			| None, None -> ([ LFalse ], [ LFalse ]) in
 
 		print_debug (Printf.sprintf "Checking if:\n%s\n\tentails\n%s\n" (JSIL_Print.str_of_assertion_list (get_pf_list symb_state)) (JSIL_Print.str_of_assertion_list a_le_then));
-		if (Pure_Entailment.old_check_entailment SS.empty (get_pf_list symb_state) a_le_then (get_gamma symb_state)) then
+		if (Pure_Entailment.check_entailment SS.empty (get_pf_list symb_state) a_le_then (get_gamma symb_state)) then
 			(print_endline "in the THEN branch";
 			symb_evaluate_next_cmd s_prog proc spec search_info symb_state anti_frame i j)
 		else (
-			if (Pure_Entailment.old_check_entailment SS.empty (get_pf_list symb_state) a_le_else (get_gamma symb_state)) then
+			if (Pure_Entailment.check_entailment SS.empty (get_pf_list symb_state) a_le_else (get_gamma symb_state)) then
 				(print_endline "in the ELSE branch";
 				symb_evaluate_next_cmd s_prog proc spec search_info symb_state anti_frame i k)
 			else (

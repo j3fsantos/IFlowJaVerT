@@ -866,19 +866,19 @@ spec i__abstractComparison (v1, v2, leftFirst)
     [[ (v1 == #v1) * (v2 == #v2) * (leftFirst == #leftFirst) * 
        types(#v1 : $$number_type, #v2 : $$number_type, #leftFirst : $$boolean_type) *
        (#v1 <# #v2) ]]
-    [[ (ret == $$t) ]]
+    [[ (ret == $$t) * (#v1 <# #v2) ]]
     normal;
     
     [[ (v1 == #v1) * (v2 == #v2) * (leftFirst == #leftFirst) * 
        types(#v1 : $$number_type, #v2 : $$number_type, #leftFirst : $$boolean_type) *
        (#v1 == #v2) ]]
-    [[ (ret == $$f) ]]
+    [[ (ret == $$f) * (#v1 == #v2)]]
     normal;
 
     [[ (v1 == #v1) * (v2 == #v2) * (leftFirst == #leftFirst) * 
        types(#v1 : $$number_type, #v2 : $$number_type, #leftFirst : $$boolean_type) *
        (#v2 <# #v1) ]]
-    [[ (ret == $$f) ]]
+    [[ (ret == $$f) * (#v2 <# #v1)]]
     normal
 
 proc i__abstractComparison (v1, v2, leftFirst) {

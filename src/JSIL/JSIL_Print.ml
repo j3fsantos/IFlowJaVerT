@@ -111,10 +111,8 @@ let string_of_binop bop =
 	| StrCat -> "++"
 	| CharCons -> ":c:"
 	| CharCat -> "+c+"
-	| SetUnion -> "-u-"
-	| SetMem -> "-e-"
-	| SetInter -> "-i-"
 	| SetDiff -> "-d-"
+	| SetMem -> "-e-"
 	| SetSub -> "-s-"
 
 (** JSIL unary operators *)
@@ -185,6 +183,8 @@ let rec string_of_expression e escape_string =
 		| LstNth (e1, e2) -> Printf.sprintf "l-nth(%s, %s)" (se e1) (se e2)
 		(* s-nth(e1, e2) *)
 		| StrNth (e1, e2) -> Printf.sprintf "s-nth(%s, %s)" (se e1) (se e2)
+		| SetUnion le -> Printf.sprintf "-u- (%s)" (String.concat ", " (List.map se le))
+		| SetInter le -> Printf.sprintf "-i- (%s)" (String.concat ", " (List.map se le))
 
 (** JSIL Basic statements *)
 let rec string_of_bcmd bcmd i line_numbers_on escape_string =
@@ -234,7 +234,8 @@ let rec string_of_logic_expression e escape_string =
 			| ll -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map sle ll)))
 		(* -{ e1, ..., en }- *)
     | LESet list -> Printf.sprintf "-{ %s }-" (String.concat ", " (List.map sle list))
-	
+    | LSetUnion list -> Printf.sprintf "-u- (%s)" (String.concat ", " (List.map sle list))
+    | LSetInter list -> Printf.sprintf "-i- (%s)" (String.concat ", " (List.map sle list))	
 	| LCList list ->
 			(match list with
 			| [] -> "''"
@@ -277,8 +278,9 @@ let rec string_of_logic_assertion a escape_string =
 		| LEmp -> "emp"
 		(* exists vars . a
 		| LExists (lvars, a) -> Printf.sprintf "exists %s . %s" (String.concat ", " lvars) (sla a) *)
-		(* forall vars . a
-		| LForAll (lvars, a) -> Printf.sprintf "forall %s . %s" (String.concat ", " lvars) (sla a) *)
+		(* forall vars . a *)
+		| LForAll (lvars, a) -> Printf.sprintf "(forall %s . %s)" (String.concat ", " 
+				(List.map (fun (x, t) -> Printf.sprintf "%s : %s" x (string_of_type t)) lvars)) (sla a) 
 		(* x(y1, ..., yn) *)
 		| LPred (name, params) -> Printf.sprintf "%s(%s)" name (String.concat ", " (List.map sle params))
 		(* types(e1:t1, ..., en:tn) *)
@@ -286,7 +288,10 @@ let rec string_of_logic_assertion a escape_string =
 			(String.concat ", " (List.map (fun (e, t) -> Printf.sprintf "%s : %s" (sle e) (string_of_type t)) type_list))
 		| LEmptyFields (obj, les) -> 
 			Printf.sprintf "empty_fields(%s : %s)" (sle obj) (String.concat ", " (List.map sle les))
-
+		(* e1 --e-- e2 *)
+		| LSetMem (e1, e2) -> Printf.sprintf "(%s --e-- %s)" (sle e1) (sle e2)
+		(* e1 --s-- e2 *)
+		| LSetSub (e1, e2) -> Printf.sprintf "(%s --s-- %s)" (sle e1) (sle e2)
 
 let rec string_of_lcmd lcmd =
 	match lcmd with

@@ -69,6 +69,8 @@ let rec logic_expression_map f lexpr =
   	| LEList le           -> LEList (List.map map_e le)
   	| LCList le           -> LCList (List.map map_e le)
 		| LESet le            -> LESet  (List.map map_e le)
+		| LSetUnion le        -> LSetUnion  (List.map map_e le)
+		| LSetInter le        -> LSetInter  (List.map map_e le)
   	| LLstNth (e1, e2)    -> LLstNth (map_e e1, map_e e2)
   	| LStrNth (e1, e2)    -> LStrNth (map_e e1, map_e e2)
   	| LUnknown            -> LUnknown
@@ -95,6 +97,9 @@ let rec assertion_map f asrt =
 	| LPred (s, le)          -> LPred (s, List.map map_e le)
 	| LTypes lt              -> LTypes (List.map (fun (exp, typ) -> (map_e exp, typ)) lt)
 	| LEmptyFields (o, ls)   -> LEmptyFields (map_e o, ls)
+	| LSetMem (e1, e2)       -> LSetMem (map_e e1, map_e e2)
+	| LSetSub (e1, e2)       -> LSetSub (map_e e1, map_e e2)
+	| LForAll (bt, a)        -> LForAll (bt, map_a a)
 
 let rec logic_expression_fold f_atom f_fold lexpr =
 	let fold_e = logic_expression_fold f_atom f_fold in
@@ -107,15 +112,17 @@ let rec logic_expression_fold f_atom f_fold lexpr =
   | LLstNth (e1, e2)      -> f_fold lexpr [ (fold_e e1); (fold_e e2) ]
   | LStrNth (e1, e2)      -> f_fold lexpr [ (fold_e e1); (fold_e e2) ]
 
-
 let rec assertion_fold f_atom f_fold asrt =
 	let fold_a = assertion_fold f_atom f_fold in
 	match asrt with
-	| LTrue | LFalse | LEq (_, _) | LLess (_, _) | LLessEq (_, _) | LStrLess (_, _) | LPointsTo (_, _, _) | LEmp | LPred (_, _) | LTypes _ | LEmptyFields _ -> f_atom asrt
+	| LTrue | LFalse | LEq (_, _) | LLess (_, _) | LLessEq (_, _) | LStrLess (_, _) 
+	| LPointsTo (_, _, _) | LEmp | LPred (_, _) | LTypes _ | LEmptyFields _ | LSetMem (_, _) | LSetSub (_, _) -> f_atom asrt
 	| LAnd (a1, a2)         -> f_fold asrt [ (fold_a a1); (fold_a a2) ]
 	| LOr (a1, a2)          -> f_fold asrt [ (fold_a a1); (fold_a a2) ]
 	| LStar (a1, a2)        -> f_fold asrt [ (fold_a a1); (fold_a a2) ]
 	| LNot a                -> f_fold asrt [ (fold_a a) ]
+	| LForAll (_, a)        -> f_fold asrt [ (fold_a a) ]
+  
 
 let rec get_logic_expression_literals le =
 	let fe = get_logic_expression_literals in
@@ -127,16 +134,18 @@ let rec get_logic_expression_literals le =
 	| LNone | LVar _ | ALoc _ | PVar _ | LUnknown -> []
 	| LBinOp (le1, _, le2) | LLstNth (le1, le2) | LStrNth (le1, le2)  -> (fe le1) @ (fe le2)
 	| LUnOp (_, le) |	LTypeOf le -> fe le
-	| LCList les
- 	| LEList les 
-	| LESet  les -> List.concat (List.map fe les)
+	| LCList    les
+ 	| LEList    les 
+	| LESet     les 
+	| LSetUnion les
+	| LSetInter les -> List.concat (List.map fe les)
 
 let rec get_assertion_literals a =
 	let f = get_assertion_literals in
 	let fe = get_logic_expression_literals in
 	match a with
 	| LTrue | LFalse | LEmp | LTypes _ -> []
-	| LNot a -> f a
+	| LNot a | LForAll (_, a) -> f a
 	| LAnd (a1, a2) | LOr (a1, a2) | LStar (a1, a2) -> (f a1) @ (f a2)
 	| LPointsTo (le1, le2, le3) -> (fe le1) @ (fe le2) @ (fe le3)
 	| LEq (le1, le2) | LLess (le1, le2) | LLessEq (le1, le2) | LStrLess (le1, le2) 
@@ -155,14 +164,16 @@ let rec get_logic_expression_lists le =
 	| LBinOp (le1, _, le2) | LLstNth (le1, le2) | LStrNth (le1, le2)  -> (fe le1) @ (fe le2)
 	| LUnOp (_, le) | LTypeOf le -> fe le
  	| LEList les -> (LEList les) :: (List.concat (List.map fe les))
-	| LESet les -> (List.concat (List.map fe les))
+	| LESet les 
+	| LSetUnion les
+	| LSetInter les -> (List.concat (List.map fe les))
 
 let rec get_assertion_lists a =
 	let f = get_assertion_lists in
 	let fe = get_logic_expression_lists in
 	match a with
 	| LTrue | LFalse | LEmp | LTypes _ -> []
-	| LNot a -> f a
+	| LNot a | LForAll (_, a) -> f a
 	| LAnd (a1, a2) | LOr (a1, a2) | LStar (a1, a2) -> (f a1) @ (f a2)
 	| LPointsTo (le1, le2, le3) -> (fe le1) @ (fe le2) @ (fe le3)
 	| LEq (le1, le2) | LLess (le1, le2) | LLessEq (le1, le2) 
@@ -190,8 +201,10 @@ let rec get_logic_expression_lvars_list le =
 		| LVar x -> [ x ]
 		| LBinOp (le1, _, le2) | LLstNth (le1, le2) | LStrNth (le1, le2) -> (fe le1) @ (fe le2)
 		| LUnOp (_, le) |	LTypeOf le -> fe le
-	 	| LEList les 
-		| LESet  les
+	 	| LEList    les 
+		| LESet     les
+		| LSetUnion les
+		| LSetInter les
 	 	| LCList les -> List.concat (List.map fe les)
 
 let get_logic_expression_lvars le =
@@ -234,14 +247,14 @@ let is_pure_assertion a =
 	let f_fold a ret_list =
 		let ret = List.fold_left (fun ac v -> (ac && v)) true ret_list in
 		(match a with
-		| LAnd (_, _) | LOr (_, _) | LStar (_, _) | LNot _ -> ret
+		| LAnd (_, _) | LOr (_, _) | LStar (_, _) | LNot _ | LForAll (_, _) -> ret
 		| _  -> raise (Failure "Internal Error: is_pure_assertion")) in
 	assertion_fold f_atom f_fold a
 
 
 let is_pure_atom a =
 	match a with
-	| LTrue | LFalse | LEq (_, _) | LLess (_, _) | LLessEq (_, _) | LStrLess (_, _) -> true
+	| LTrue | LFalse | LEq (_, _) | LLess (_, _) | LLessEq (_, _) | LStrLess (_, _) | LSetMem (_, _) | LSetSub (_, _) | LForAll (_, _) -> true
 	| _ -> false
 
 let only_pure_atoms_negated a =
@@ -249,16 +262,16 @@ let only_pure_atoms_negated a =
 	let f_fold a ret_list =
 		let ret = List.fold_left (fun ac v -> (ac && v)) true ret_list in
 		(match a with
-		| LAnd (_, _) | LOr (_, _) | LStar (_, _) -> ret
+		| LAnd (_, _) | LOr (_, _) | LStar (_, _) | LForAll (_, _) -> ret
 		| LNot a -> is_pure_atom a
-		| _      -> raise (Failure "Internal Error: only_pure_atoms_negated")) in
+		| _      -> raise (Failure (Printf.sprintf "Internal Error: only_pure_atoms_negated: %s" (JSIL_Print.string_of_logic_assertion a false)))) in
 	assertion_fold f_atom f_fold a
 
 
 let rec purify_stars a =
 	let f = purify_stars in
 	match a with
-	| LTrue | LFalse | LEq (_,_) | LLess (_,_) | LLessEq (_, _) | LStrLess (_, _) | LPred (_, _) | LSetMem (_, _) | LSetSub (_, _) -> a, []
+	| LTrue | LFalse | LEq (_,_) | LLess (_,_) | LLessEq (_, _) | LStrLess (_, _) | LPred (_, _) | LSetMem (_, _) | LSetSub (_, _) | LForAll (_, _) -> a, []
 	| LTypes types -> LTrue, types
 	| LAnd (a1, a2)  ->
 		let new_a1, types_a1 = f a1 in
@@ -300,6 +313,8 @@ let rec get_expr_vars catch_pvars e : SS.t =
 	| LTypeOf e1 -> f e1
 	| LEList le_list
 	| LESet le_list
+	| LSetUnion le_list
+	| LSetInter le_list
 	| LCList le_list -> 
 			List.fold_left (fun ac e -> 
 				let v_e = f e in
@@ -358,8 +373,13 @@ let rec get_assertion_vars catch_pvars a : SS.t =
 					SS.union ac v_e) SS.empty les in
 			SS.union v_o v_les
 	| LSetMem (elem, s) -> SS.union (fe elem) (fe s)
-	| LSetSub (s1, s2)  -> SS.union (fe s1) (fe s2)) in
-	result
+	| LSetSub (s1, s2)  -> SS.union (fe s1) (fe s2) 
+	(* CAREFUL, BINDERS *)
+	| LForAll (bt, a1) -> 
+			let v_a1 = f a1 in
+			let binders, _ = List.split bt in
+			SS.diff v_a1 (SS.of_list binders))
+	in result
 
 let get_assertion_list_vars assertions catch_pvars =
 	List.fold_left (fun ac a ->
@@ -405,6 +425,7 @@ let rec push_in_negations_off a : jsil_logic_assertion =
 			then LStar (f_on (new_a1), LTypes types_a1)
 			else f_on new_a1
 	| LStar (a1, a2) -> LStar ((f_off a1), (f_off a2))
+	| LForAll (bt, a) -> LForAll (bt, f_off a)
 	| LTrue        | LFalse | LEq (_, _)          | LLess (_, _) | LLessEq (_, _) | LStrLess (_, _) | LSetMem (_, _) | LSetSub (_, _) 
 	| LPred (_, _) | LEmp   | LPointsTo (_, _, _) | LTypes _ | LEmptyFields _ -> a)
 and push_in_negations_on a =
@@ -417,8 +438,8 @@ and push_in_negations_on a =
 	| LTrue               -> LFalse
 	| LFalse              -> LTrue
 	| LNot a              -> (f_off a)
-	| LEq (_, _)   | LLess (_, _) | LLessEq (_, _) | LStrLess (_, _) | LPred (_, _) |  LSetMem (_, _) | LSetSub (_, _)  -> LNot a
-	| LStar (_, _) | LEmp         | LPointsTo (_, _, _) | LEmptyFields _ -> raise (Failure err_msg)
+	| LEq (_, _)   | LLess (_, _) | LLessEq (_, _) | LStrLess (_, _) | LPred (_, _) |  LSetMem (_, _) | LSetSub (_, _) | LForAll (_, _) -> LNot a
+	| LStar (_, _) | LEmp         | LPointsTo (_, _, _) | LEmptyFields _ | LSetMem (_, _) | LSetSub (_, _) -> raise (Failure err_msg)
 	| LTypes _            -> LTrue)
 
 
@@ -570,6 +591,14 @@ let rec lexpr_substitution lexpr subst partial =
 		let s_les = List.map (fun le -> (f le)) les in
 		LESet s_les
 
+	| LSetUnion les ->
+		let s_les = List.map (fun le -> (f le)) les in
+		LSetUnion s_les
+		
+	| LSetInter les ->
+		let s_les = List.map (fun le -> (f le)) les in
+		LSetInter s_les
+
 	| LCList les ->
 		let s_les = List.map (fun le -> (f le)) les in
 		LCList s_les		
@@ -604,7 +633,26 @@ let rec assertion_substitution a subst partial =
 		let s_types = List.map (fun (le, te) -> ((fe le), te)) types in
 		LTypes s_types
 	| LEmptyFields (obj, lstr) -> LEmptyFields (fe obj, lstr)
+	| LStrLess (e1, e2) -> LStrLess ((fe e1), (fe e2))
+	| LStar (a1, a2) -> LStar ((fa a1), (fa a2))
+	| LSetMem (e1, e2) -> LSetMem ((fe e1), (fe e2))
+	| LSetSub (e1, e2) -> LSetSub ((fe e1), (fe e2))
+	| LForAll (bt, a) -> 
+			let binders, _ = List.split bt in
+			let old_binders_substs = 
+				List.fold_left 
+					(fun ac v -> 
+						if (Hashtbl.mem subst v) 
+							then ((v, Hashtbl.find subst v) :: ac)
+							else ac )
+					[]
+					binders in 
+			List.iter (fun v -> Hashtbl.add subst v (LVar v)) binders;
+			let new_a = assertion_substitution a subst partial in 
+			List.iter (fun (v, old_le_v) -> Hashtbl.replace subst v old_le_v) old_binders_substs;
+			LForAll (bt, new_a)
 
+	(* DO CAPTURE AVOIDING *)
 
 let filter_substitution subst vars =
 	let new_subst = Hashtbl.copy subst in
@@ -823,9 +871,7 @@ let rec type_lexpr gamma le =
 			| LstCons -> check_valid_type t2 [ ListType ] ListType []
 			| LstCat -> check_valid_type t1 [ ListType ] ListType []
 			| StrCat -> check_valid_type t1 [ StringType ] StringType []
-			| SetUnion 
-			| SetDiff
-			| SetInter -> check_valid_type t1 [ SetType ] SetType     []
+			| SetDiff -> check_valid_type t1 [ SetType ] SetType     []
 			| SetSub   -> check_valid_type t1 [ SetType ] BooleanType []
 			| _ ->
 				Printf.printf "type_lexpr: op: %s, t: %s\n"  (JSIL_Print.string_of_binop op) (JSIL_Print.string_of_type t1);
@@ -859,6 +905,19 @@ let rec type_lexpr gamma le =
 			(* Printf.printf "Entailment: %b\n" entail; *)
 			(Some StringType, true, (new_constraint1 :: (new_constraint2 :: constraints1 @ constraints2)))
 		| _, _ -> (None, false, []))
+
+  | LSetUnion le 
+	| LSetInter le -> 
+			let result = try (
+				let constraints = List.fold_left 
+				(fun ac e -> 
+					let (te, ite, constraints_e) = f e in
+					(match te with
+					| Some SetType -> SA.union ac (SA.of_list constraints_e)
+					| _ -> raise (Failure "Oopsie!"))
+				) SA.empty le in
+				(Some SetType, true, (SA.elements constraints))) with | _ -> (None, false, []) in
+			result
 
 	| LNone    -> (Some NoneType, true, [])
 	| LUnknown -> (None, false, [])) in

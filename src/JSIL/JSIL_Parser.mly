@@ -162,8 +162,8 @@ let copy_and_clear_globals () =
 %token LARROW
 %token LEMP
 %token EMPTYFIELDS
-(*%token LEXISTS
-%token LFORALL *)
+(*%token LEXISTS *)
+%token LFORALL 
 %token LTYPES
 (* Logic predicates *)
 %token PRED
@@ -197,6 +197,7 @@ let copy_and_clear_globals () =
 %token IMPORT
 %token MACRO
 (* Separators *)
+%token DOT
 %token COMMA
 %token COLON
 %token SCOLON
@@ -214,6 +215,8 @@ let copy_and_clear_globals () =
 %token SETDIFF
 %token SETMEM
 %token SETSUB
+%token LSETMEM
+%token LSETSUB
 %token SETOPEN
 %token SETCLOSE
 (* EOF *)
@@ -498,6 +501,11 @@ expr_target:
 (* s-nth (string, n) *)
 	| STRNTH; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
 		{ StrNth (e1, e2) }
+(* Set union and intersection *)
+	| SETUNION LBRACE; le = separated_list(COMMA, expr_target); RBRACE
+	  { SetUnion (SExpr.elements (SExpr.of_list le)) }
+	| SETINTER LBRACE; le = separated_list(COMMA, expr_target); RBRACE
+	  { SetInter (SExpr.elements (SExpr.of_list le)) }
 (* (e) *)
   | LBRACE; e=expr_target; RBRACE
 		{ e }
@@ -739,9 +747,9 @@ assertion_target:
 (* exists X, Y, Z . P
 	| LEXISTS; vars = separated_nonempty_list(COMMA, LVAR); DOT; ass = assertion_target
 		{ LExists (vars, ass) } *)
-(* forall X, Y, Z . P
-	| LFORALL; vars = separated_nonempty_list(COMMA, LVAR); DOT; ass = assertion_target
-		{ LForAll (vars, ass) } *)
+(* forall X, Y, Z . P *)
+	| LFORALL; vars = separated_nonempty_list(COMMA, lvar_type_target); DOT; ass = assertion_target
+		{ LForAll (vars, ass) }
 (* x(e1, ..., en) *)
 	| name = VAR; LBRACE; params = separated_list(COMMA, lexpr_target); RBRACE
 	  { (* validate_pred_assertion (name, params); *)
@@ -753,10 +761,20 @@ assertion_target:
 (* empty_fields (le : lit1, lit2, lit3, ...) *)
 	| EMPTYFIELDS; LBRACE; le=lexpr_target; COLON; fields=separated_list(COMMA, lexpr_target); RBRACE
 		{ LEmptyFields (le, fields) }
+(* E --e-- E *)
+	| left_expr=lexpr_target; LSETMEM; right_expr=lexpr_target
+		{ LSetMem (left_expr, right_expr) }
+(* E --s-- E *)
+	| left_expr=lexpr_target; LSETSUB; right_expr=lexpr_target
+		{ LSetSub (left_expr, right_expr) }
 (* (P) *)
   | LBRACE; ass=assertion_target; RBRACE
 	  { ass }
 ;
+
+lvar_type_target:
+	| lvar = just_logic_variable_target; COLON; the_type = type_target
+	  { (lvar, the_type) }
 
 type_env_pair_target:
   | lvar = logic_variable_target; COLON; the_type=type_target
@@ -797,13 +815,17 @@ lexpr_target:
 		{ LEList exprlist }
 (* -{- e, ..., e -}- *)
 	| SETOPEN; exprlist = separated_list(COMMA, lexpr_target); SETCLOSE
-		{ print_debug_petar "LSETS!"; LESet (SLExpr.elements (SLExpr.of_list exprlist)) }
+		{ LESet (SLExpr.elements (SLExpr.of_list exprlist)) }
 (* l-nth(e1, e2) *)
 	| LSTNTH; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE
 		{ LLstNth (e1, e2) }
 (* s-nth(e1, e2) *)
 	| STRNTH; LBRACE; e1=lexpr_target; COMMA; e2=lexpr_target; RBRACE
 		{ LStrNth (e1, e2) }
+	| SETUNION LBRACE; le = separated_list(COMMA, lexpr_target); RBRACE
+	  { LSetUnion (SLExpr.elements (SLExpr.of_list le)) }
+	| SETINTER LBRACE; le = separated_list(COMMA, lexpr_target); RBRACE
+	  { LSetInter (SLExpr.elements (SLExpr.of_list le)) }
 (* (e) *)
   | LBRACE; e=lexpr_target; RBRACE
 	  { e }
@@ -813,6 +835,10 @@ logic_variable_target:
   v = LVAR
 	{ validate_lvar v; LVar v }
 ;
+
+just_logic_variable_target:
+  v = LVAR
+	{ validate_lvar v; v }
 
 program_variable_target:
   | v = VAR
@@ -870,8 +896,6 @@ lit_target:
 	| LSTCONS            { LstCons }
 	| LSTCAT             { LstCat }
 	| STRCAT             { StrCat }
-	| SETUNION           { SetUnion }
-	| SETINTER           { SetInter }
 	| SETDIFF            { SetDiff }
 	| SETMEM             { SetMem }
 	| SETSUB             { SetSub }
@@ -988,12 +1012,21 @@ js_assertion_target:
 			(* validate_pred_assertion (name, params); *)
 			JSLPred (name, params)
 		}
+(* forall X, Y, Z . P *)
+	| LFORALL; vars = separated_nonempty_list(COMMA, lvar_type_target); DOT; ass = js_assertion_target
+		{ JSLForAll (vars, ass) }
 (* types (type_pairs) *)
   | LTYPES; LBRACE; type_pairs = separated_list(COMMA, js_type_env_pair_target); RBRACE
     { JSLTypes type_pairs }
 (* scope(x: le) *)
 	| SCOPE; LBRACE; v=VAR; COLON; le=js_lexpr_target; RBRACE
 		{ JSLScope (v, le) }
+(* E --e-- E *)
+	| left_expr=js_lexpr_target; LSETMEM; right_expr=js_lexpr_target
+		{ JSLSetMem (left_expr, right_expr) }
+(* E --s-- E *)
+	| left_expr=js_lexpr_target; LSETSUB; right_expr=js_lexpr_target
+		{ JSLSetSub (left_expr, right_expr) }
 (* fun_obj (x, le, le) *)
 	| FUNOBJ; LBRACE; f_id=VAR; COMMA; f_loc=js_lexpr_target; COMMA; f_prototype=js_lexpr_target; f_scope_chain=option(js_lexpr_preceded_by_comma_target); RBRACE
 		{ JSFunObj(f_id, f_loc, f_prototype, f_scope_chain) }
@@ -1071,6 +1104,11 @@ js_lexpr_target:
 		{ JSLStrNth (e1, e2) }
 (* this *)
 	| THIS { JSLThis }
+(* Set union and intersection *)
+	| SETUNION LBRACE; le = separated_list(COMMA, js_lexpr_target); RBRACE
+	  { JSLSetUnion (JSSExpr.elements (JSSExpr.of_list le)) }
+	| SETINTER LBRACE; le = separated_list(COMMA, js_lexpr_target); RBRACE
+	  { JSLSetInter (JSSExpr.elements (JSSExpr.of_list le)) }
 (* (e) *)
   | LBRACE; e=js_lexpr_target; RBRACE
 	  { e }

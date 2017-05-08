@@ -104,6 +104,14 @@ let rec normalise_lexpr store gamma subst le =
 	| LESet le_list ->
 		let n_le_list = List.map (fun le -> f le) le_list in
 		LESet n_le_list
+		
+	| LSetUnion le_list ->
+		let n_le_list = List.map (fun le -> f le) le_list in
+		LSetUnion n_le_list
+		
+	| LSetInter le_list ->
+		let n_le_list = List.map (fun le -> f le) le_list in
+		LSetInter n_le_list
 
 	| LLstNth (le1, le2) ->
 		let nle1 = f le1 in
@@ -148,14 +156,19 @@ let rec normalise_pure_assertion store gamma subst assertion =
 	try (let result = (match assertion with
 	| LEq (le1, le2) -> LEq((fe le1), (fe le2))
 	| LLess (le1, le2) -> LLess((fe le1), (fe le2))
-	| LLessEq (le1, le2) -> LLessEq((fe le1), (fe le2))
+	| LLessEq (le1, le2) -> LLessEq ((fe le1), (fe le2))
 	| LNot (LEq (le1, le2)) -> LNot (LEq((fe le1), (fe le2)))
 	| LNot (LLessEq (le1, le2)) -> LNot (LLessEq((fe le1), (fe le2)))
 	| LNot (LLess (le1, le2)) -> LNot (LLess((fe le1), (fe le2)))
+	| LNot (LSetSub (le1, le2)) -> LNot (LSetSub ((fe le1), (fe le2)))
+	| LNot (LSetMem (le1, le2)) -> LNot (LSetMem ((fe le1), (fe le2)))
 	| LAnd (a1, a2) -> LAnd ((fa a1), (fa a2))
 	| LOr (a1, a2) -> LOr ((fa a1), (fa a2))
 	| LFalse -> LFalse
 	| LTrue -> LTrue
+	| LSetSub (le1, le2) -> LSetSub ((fe le1), (fe le2))
+	| LSetMem (le1, le2) -> LSetMem ((fe le1), (fe le2))
+	| LForAll (bt, a) -> LForAll (bt, fa a)
 
 	| _ ->
 			let msg = Printf.sprintf "normalise_pure_assertion can only process pure assertions: %s" (JSIL_Print.string_of_logic_assertion assertion false) in
@@ -262,14 +275,8 @@ let init_pure_assignments a store gamma subst =
 					then Hashtbl.add pure_assignments x le
 					else Stack.push (LEq (PVar x, le)) non_store_pure_assertions
 
-			| LEq (_, _) -> Stack.push a non_store_pure_assertions
-
-			| LNot _ -> Stack.push a non_store_pure_assertions
-			| LLessEq (_, _) -> Stack.push a non_store_pure_assertions
-			| LLess (_, _) -> Stack.push a non_store_pure_assertions
-
-			| LOr (_, _) -> Stack.push a non_store_pure_assertions
-			| LAnd (_, _) -> Stack.push a non_store_pure_assertions
+			| LEq (_, _) | LNot _ | LLessEq (_, _) | LLess (_, _) | LOr (_, _) 
+			| LAnd (_, _) | LSetSub (_, _) | LSetMem (_, _) | LForAll (_, _) -> Stack.push a non_store_pure_assertions
 
 			| _ -> ()) in
 
@@ -555,7 +562,8 @@ let process_empty_fields heap store p_formulae gamma subst a =
 		match a with
 		| LAnd (_, _) | LOr (_, _) | LNot _ | LTrue | LFalse | LEq (_, _)
 			| LLess (_, _) | LLessEq (_, _) | LStrLess (_, _) | LEmp
-			| LTypes (_) | LPred (_, _) | LPointsTo (_, _, _) -> []
+			| LTypes (_) | LPred (_, _) | LPointsTo (_, _, _) | LForAll (_, _) 
+			| LSetMem (_, _) | LSetSub (_, _) -> []
 		| LStar (a1, a2) -> (f a1) @ (f a2)
 		| LEmptyFields (le, fields) ->
 				let le' = normalise_lexpr store gamma subst le in
@@ -566,10 +574,10 @@ let process_empty_fields heap store p_formulae gamma subst a =
 		| [] -> None
 		| field :: rest_fields ->
 			let a = LEq (le_field, field) in
-			if (Pure_Entailment.old_check_entailment SS.empty p_formulae [ a ] gamma)
+			if (Pure_Entailment.check_entailment SS.empty p_formulae [ a ] gamma)
 				then Some (field, traversed_fields @ rest_fields)
 				else 
-					(if (Pure_Entailment.old_check_entailment SS.empty p_formulae [ LNot a ] gamma)
+					(if (Pure_Entailment.check_entailment SS.empty p_formulae [ LNot a ] gamma)
 						then check_in_fields le_field rest_fields (field :: traversed_fields) 
 						else raise (Failure "empty fields assertion cannot be normalised")) in 
 

@@ -155,6 +155,28 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 	| LESet s -> 
 			let s' = List.map f s in
 			LESet (SLExpr.elements (SLExpr.of_list s'))
+	
+	| LSetUnion s ->
+			let s' = List.map f s in
+			let s' = SLExpr.of_list s' in
+			let s' = SLExpr.fold (fun s ac ->
+				(match s with
+				| LESet [] -> ac 
+				| LSetUnion s'' -> SLExpr.union ac (SLExpr.of_list s'')
+				| _ -> SLExpr.add s ac)) s' (SLExpr.empty) in
+			let potential_result = SLExpr.elements s' in
+			(match potential_result with
+			| [] -> LESet []
+			| [ only_one ] -> only_one
+			| _ -> LSetUnion potential_result)
+				
+	| LSetInter s ->
+			let s' = List.map f s in
+			let s' = SLExpr.of_list s' in
+			let is_empty_there = SLExpr.mem (LESet []) s' in
+			(match is_empty_there with
+			| true -> LESet []
+			| false -> LSetInter (SLExpr.elements s'))
 
 	(* List append *)
 	| LBinOp (le1, LstCat, le2) ->
@@ -210,7 +232,7 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 			| LBinOp (re1, Plus, LLit (Num n1)), LLit (Num n2) -> f (LBinOp (re1, Plus, LLit (Num (n1 +. n2))))
 			(* (n1 +J _) +J n2 ---> _ +J (n1 + n2) *)
 			| LBinOp (LLit (Num n1), Plus, re2), LLit (Num n2) -> f (LBinOp (re2, Plus, LLit (Num (n1 +. n2))))
-			| _, _ -> LBinOp (re1, bop, re2))
+			| _, _ -> LBinOp (re1, bop, re2)) 
 		| _ -> LBinOp (re1, bop, re2))
 
 	(* TypeOf *)
@@ -270,6 +292,16 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 		| LLit (String str), LLit (Num n) ->
 			if (Utils.is_int n) then
 			(try (LLit (String (String.sub str (int_of_float n) 1))) with _ ->
+				raise (Failure "List index out of bounds"))
+			else
+				raise (Failure (Printf.sprintf "Non-integer string index: %f" n))
+		| LLit (CList str), LLit (Num n) ->
+			if (Utils.is_int n) then
+			(try 
+				let char = (List.nth str (int_of_float n)) in 
+				(match char with
+				| Char c -> LLit (String (String.make 1 c))
+				| _ -> raise (Failure ("Unexpected construct in internal string representation"))) with _ ->
 				raise (Failure "List index out of bounds"))
 			else
 				raise (Failure (Printf.sprintf "Non-integer string index: %f" n))
@@ -333,6 +365,10 @@ let rec reduce_assertion store gamma pfs a =
 
 	| LNot LTrue -> LFalse
 	| LNot LFalse -> LTrue
+	| LNot (LOr (al, ar)) ->
+			f (LAnd (LNot al, LNot ar))
+	| LNot (LAnd (al, ar)) -> 
+			f (LOr (LNot al, LNot ar))
 	| LNot a1 ->
 		let ra1 = f a1 in
 		let a' = LNot ra1 in
@@ -405,11 +441,12 @@ let rec reduce_assertion store gamma pfs a =
 			| LLit (Bool false), LBinOp (e1, LessThan, e2) -> LNot (LLess (e1, e2))
 
 			(* Plus theory *)
-			| LBinOp (re1, Plus, LLit (Num n1)), LBinOp (re2, Plus, LLit (Num n2))
-			| LBinOp (re1, Plus, LLit (Num n1)), LBinOp (LLit (Num n2), Plus, re2)
-			| LBinOp (LLit (Num n1), Plus, re1), LBinOp (re2, Plus, LLit (Num n2))
-			| LBinOp (LLit (Num n1), Plus, re1), LBinOp (LLit (Num n2), Plus, re2) ->
-					if (Utils.is_normal n1 && (n1 = n2)) then f (LEq (re1, re2)) else default e1 e2 re1 re2
+			| LBinOp (re1', Plus, LLit (Num n1)), LBinOp (re2', Plus, LLit (Num n2))
+			| LBinOp (re1', Plus, LLit (Num n1)), LBinOp (LLit (Num n2), Plus, re2')
+			| LBinOp (LLit (Num n1), Plus, re1'), LBinOp (re2', Plus, LLit (Num n2))
+			| LBinOp (LLit (Num n1), Plus, re1'), LBinOp (LLit (Num n2), Plus, re2') ->
+					if (Utils.is_normal n1 && (n1 = n2)) 
+						then f (LEq (re1', re2')) else default e1 e2 re1 re2
 						
 			| _, _ -> default e1 e2 re1 re2
 		)
@@ -418,6 +455,56 @@ let rec reduce_assertion store gamma pfs a =
 		let re1 = fe e1 in
 		let re2 = fe e2 in
 		LLess (re1, re2)
+
+	| LSetMem (leb, LSetUnion lle) -> 
+		let rleb = fe leb in
+		let formula = (match lle with
+		| [] -> LFalse
+		| le :: lle -> 
+				let rle = fe le in
+					List.fold_left (fun ac le -> 
+						let rle = fe le in 
+							LOr (ac, LSetMem (rleb, rle))
+					) (LSetMem (rleb, rle)) lle) in
+		let result = f formula in
+			print_debug (Printf.sprintf "SIMPL_SETMEM_UNION: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) (JSIL_Print.string_of_logic_assertion result false)); 
+			result
+
+	| LSetMem (leb, LSetInter lle) -> 
+		let rleb = fe leb in
+		let formula = (match lle with
+		| [] -> LFalse
+		| le :: lle -> 
+				let rle = fe le in
+					List.fold_left (fun ac le -> 
+						let rle = fe le in 
+							LOr (ac, LSetMem (rleb, rle))
+					) (LSetMem (rleb, rle)) lle) in
+		let result = f formula in
+			print_debug (Printf.sprintf "SIMPL_SETMEM_INTER: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) (JSIL_Print.string_of_logic_assertion result false)); 
+			result
+
+	| LSetMem (leb, LBinOp(lel, SetDiff, ler)) -> 
+		let rleb = fe leb in
+		let rlel = fe lel in
+		let rler = fe ler in
+		let result = f (LAnd (LSetMem (rleb, rlel), LNot (LSetMem (rleb, rler)))) in
+			print_debug (Printf.sprintf "SIMPL_SETMEM_DIFF: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) (JSIL_Print.string_of_logic_assertion result false)); 
+			result
+
+	| LSetMem (leb, LESet [ le ]) -> 
+		let rleb = fe leb in
+		let rle = fe le in
+			print_debug (Printf.sprintf "SIMPL_SETMEM_SINGLETON: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) 
+				(JSIL_Print.string_of_logic_assertion (LEq (rleb, rle)) false)); 
+			f (LEq (rleb, rle))
+
+	| LForAll (bt, a) -> 
+			let ra = f a in
+			if (a <> ra) then
+		  print_debug (Printf.sprintf "SIMPL_FORALL: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) 
+				(JSIL_Print.string_of_logic_assertion (LForAll (bt, ra)) false)); 
+			LForAll (bt, ra)
 
 	| _ -> a) in
 	(* if (not (a = result)) then print_debug (Printf.sprintf "Reduce assertion: %s ---> %s"
@@ -1089,6 +1176,32 @@ let check_types symb_state =
 		| false -> raise (Failure "INCONSISTENT STATE") 
 *)
 
+(* MAGIC *)
+
+(* Extra information - BST *)
+let aek_BST symb_state =
+	let heap, store, pfs, gamma, preds = symb_state in
+	DynArray.iter (fun (pred_name, pred_params) ->
+		if (pred_name = "BST") then (
+			(match pred_params with
+			| [ tree; set ] -> 
+					print_debug "Found BST";
+					(match tree with
+					| LLit Null -> 
+							DynArray.add pfs (LEq (set, LESet []));
+					| _ -> 
+							DynArray.add pfs (LNot (LEq (tree, LLit Empty)))
+					)
+			| _ -> print_debug "OOPS!"))
+		) preds;
+	symb_state
+
+(* Extra information - general *)
+let add_extra_knowledge symb_state =
+	let symb_state = aek_BST symb_state in
+	symb_state
+
+
 (* ******************* *
  * MAIN SIMPLIFICATION *
  * ******************* *)
@@ -1218,7 +1331,7 @@ let simplify_symb_state
 							| _, _ -> ()))
 			| LEq (e, LVar v) -> DynArray.set pfs i (LEq (LVar v, e))
 			| _ -> ())) pfs in
-		 
+		
 	(* Let's start *)
 	let heap, store, p_formulae, gamma, preds = symb_state in	
 
@@ -1568,6 +1681,8 @@ let simplify_symb_state
 		
 	let others = ref (DynArray.map (assertion_map le_list_to_string) !others) in
 
+	symb_state := add_extra_knowledge !symb_state;
+
 	(* print_debug_petar (Printf.sprintf "Symbolic state after (no internal Strings should be present):\n%s" (Symbolic_State_Print.string_of_shallow_symb_state !symb_state)); *)
 
 	let end_time = Sys.time() in
@@ -1799,7 +1914,17 @@ let clean_up_stuff exists left right =
 	
 let simplify_implication exists lpfs rpfs gamma =
 	let lpfs, rpfs, exists, gamma = simplify_pfs_with_exists_and_others exists lpfs rpfs gamma in
+print_debug_petar (Printf.sprintf "Starting existential simplification:\n\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\n\nGamma:\n%s\n\n"
+		(String.concat ", " (SS.elements exists))
+		(print_pfs lpfs)
+		(print_pfs rpfs)
+		(Symbolic_State_Print.string_of_gamma gamma)); 
 	sanitise_pfs_no_store gamma rpfs;
+print_debug_petar (Printf.sprintf "Continuing existential simplification:\n\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\n\nGamma:\n%s\n\n"
+		(String.concat ", " (SS.elements exists))
+		(print_pfs lpfs)
+		(print_pfs rpfs)
+		(Symbolic_State_Print.string_of_gamma gamma)); 
 	let exists, lpfs, rpfs, gamma = simplify_existentials exists lpfs rpfs gamma in
 	clean_up_stuff exists lpfs rpfs;
 	print_debug_petar (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\n\nGamma:\n%s\n\n"

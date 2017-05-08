@@ -108,6 +108,8 @@ type js_logic_expr =
 	| JSLESet           of js_logic_expr list
 	| JSLLstNth     		of js_logic_expr * js_logic_expr
 	| JSLStrNth     		of js_logic_expr * js_logic_expr
+	| JSLSetUnion       of js_logic_expr list
+	| JSLSetInter       of js_logic_expr list
 	| JSLUnknown
 	| JSLThis
 
@@ -134,6 +136,7 @@ type js_logic_assertion =
 	| JSLPointsTo			of js_logic_expr * js_logic_expr * js_logic_expr
 	| JSLEmp
 	| JSLPred				of string  * (js_logic_expr list)
+	| JSLForAll       of (jsil_var * jsil_type) list * js_logic_assertion
 	| JSLTypes  		    of (string * jsil_type) list
 	| JSLScope      		of string  * js_logic_expr
 	| JSLVarSChain          of string * string * js_logic_expr * js_logic_expr
@@ -141,6 +144,8 @@ type js_logic_assertion =
 	| JSFunObj      		of string  * js_logic_expr * js_logic_expr * (js_logic_expr option) 
 	| JSClosure     		of ((string * js_logic_expr) list) * ((string * js_logic_expr) list)
 	| JSEmptyFields			of js_logic_expr * (js_logic_expr list)
+	| JSLSetMem  	    of js_logic_expr * js_logic_expr              
+	| JSLSetSub  	    of js_logic_expr * js_logic_expr       
 
 
 type js_logic_predicate = {
@@ -177,6 +182,8 @@ let rec js2jsil_lexpr le =
 	| JSLTypeOf le            -> LTypeOf (fe le)
 	| JSLEList les            -> LEList (List.map fe les)
 	| JSLESet les             -> LESet (List.map fe les)
+	| JSLSetUnion les         -> LSetUnion (List.map fe les)
+	| JSLSetInter les         -> LSetInter (List.map fe les)
 	| JSLLstNth (le1, le2)    -> LLstNth (fe le1, fe le2)
 	| JSLStrNth (le1, le2)    -> LStrNth (fe le1, fe le2)
 	| JSLUnknown              -> LUnknown
@@ -271,7 +278,10 @@ let rec js2jsil_logic cur_fid cc_tbl vis_tbl fun_tbl (a : js_logic_assertion) : 
 	| JSLPointsTo	(le1, le2, le3)         -> LPointsTo ((fe le1), (fe le2), (fe le3))
 	| JSLEmp                              -> LEmp
 	| JSLPred (s, les)                    -> LPred (s, (List.map fe les))
+	| JSLForAll (s, a)                    -> LForAll (s, f a)
 	| JSLTypes (vts)                      -> LTypes (List.map (fun (v, t) -> (LVar v, t)) vts)
+	| JSLSetMem (le1, le2) 	              -> LSetMem (fe le1, fe le2)
+	| JSLSetSub (le1, le2)                -> LSetSub (fe le1, fe le2)
 	
 	| JSLScope (x, le)                    ->
 		let var_to_fid_tbl = 

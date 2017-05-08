@@ -87,6 +87,8 @@ rule read = parse
 	| "-d-"                { JSIL_Parser.SETDIFF       }
 	| "-e-"                { JSIL_Parser.SETMEM        }
 	| "-s-"                { JSIL_Parser.SETSUB        }
+	| "--e--"              { JSIL_Parser.LSETMEM       }
+	| "--s--"              { JSIL_Parser.LSETSUB       }
 	| "-{"                 { JSIL_Parser.SETOPEN       }
 	| "}-"                 { JSIL_Parser.SETCLOSE      }
 (* Unary operators *)
@@ -158,6 +160,7 @@ rule read = parse
 	| "->"                 { JSIL_Parser.LARROW      }
 	| "emp"                { JSIL_Parser.LEMP        }
 	| "types"              { JSIL_Parser.LTYPES      }
+	| "forall"             { JSIL_Parser.LFORALL     }
 	| "empty_fields"       { JSIL_Parser.EMPTYFIELDS }
 (* Logic predicates *)
 	| "pred"               { JSIL_Parser.PRED }
@@ -174,7 +177,7 @@ rule read = parse
 	| "then"               { JSIL_Parser.LTHEN     }
 	| "else"               { JSIL_Parser.LELSE     }
 (* Procedure specification keywords *)
-    | "only"               { JSIL_Parser.ONLY      }
+  | "only"               { JSIL_Parser.ONLY      }
 	| "spec"               { JSIL_Parser.SPEC      }
 	| "normal"             { JSIL_Parser.NORMAL    }
 	| "error"              { JSIL_Parser.ERROR     }
@@ -192,6 +195,7 @@ rule read = parse
 	| "macro"              { JSIL_Parser.MACRO     }
 (* Separators *)
 	| "(*"                 { read_comment lexbuf   }
+	| '.'                  { JSIL_Parser.DOT       }
 	| ','                  { JSIL_Parser.COMMA     }
 	| ':'                  { JSIL_Parser.COLON     }
 	| ';'                  { JSIL_Parser.SCOLON    }
