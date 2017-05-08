@@ -255,11 +255,11 @@ let assertion_of_abs_heap h : jsil_logic_assertion list=
 			let loc_lexpr = make_loc_lexpr loc in 
 			let new_assertions = assertions_of_fv_list loc_lexpr fv_list [] in 
 			match def with 
-			| LUnknown -> new_assertions 
+			| LUnknown -> List.append new_assertions assertions
 			| LNone -> 
 				let fields = get_fields fv_list [] in 
 				let ef_assertion = LEmptyFields (loc_lexpr, fields) in 
-				ef_assertion :: new_assertions) h [] 
+				List.append (ef_assertion :: new_assertions) assertions) h [] 
 
 let bi_merge_symb_states (symb_state_1 : symbolic_state) (symb_state_2 : symbolic_state)  =
 	let heap_1, store_1, pf_1, gamma_1, preds_1  = symb_state_1 in

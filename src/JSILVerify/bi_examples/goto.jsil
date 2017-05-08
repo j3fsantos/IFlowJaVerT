@@ -127,3 +127,39 @@ proc test7 (x, y, z) {
    else4:   [x, "date"] := "1832"; 
    rlab:    skip
 } with { ret: x, rlab; };
+
+spec getTimeoutInterval (timeout, defVal)
+   [[ emp ]] 
+   [[ emp ]] 
+   normal
+proc getTimeoutInterval (timeout, defVal) {
+          hasInterval := hasField(timeout, "interval");
+          goto [hasInterval] then1 else1; 
+  then1:  y := [timeout, "interval"];
+          goto rlab; 
+  else1:  y :=  defVal;
+  rlab:   skip
+} with { ret: y, rlab; };
+
+spec test8 (x,y)
+  [[ emp ]]
+  [[ emp ]]
+  normal
+proc test8 (x,y) {
+          [x, "foo"] := l-nth(y,3); 
+  rlab:   skip
+} with { ret: x, rlab; };
+
+spec test9 (x,y)
+   [[ emp ]] 
+   [[ emp ]] 
+   normal
+proc test9 (x,y) {
+          x := "test8" (x, y); 
+          z := [x, "foo"];
+          goto [z] then9 else9; 
+   then9: [x, "station"] := "Waterloo";
+          goto rlab; 
+   else9: [x, "station"] := "Temple"; 
+   rlab:    skip
+} with { ret: x, rlab; };

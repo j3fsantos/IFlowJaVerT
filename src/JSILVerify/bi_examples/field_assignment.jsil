@@ -69,3 +69,16 @@ proc test6 (x,y) {
           [y, "bar"] := not x;
   rlab:   skip
 } with { ret: x, rlab; };
+
+spec test7 (x)
+   [[ emp ]] 
+   [[ emp ]] 
+   normal
+proc test7 (x) {
+            y := [x, "bar"];
+            z := [x, "buc"];
+            r := y :: z;
+            y := l-nth(r,3);
+            [x, "foo"] := y + 2;
+            rlab:    skip
+} with { ret: x, rlab; };
