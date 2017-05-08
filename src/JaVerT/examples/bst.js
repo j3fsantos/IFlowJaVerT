@@ -144,7 +144,7 @@ function find_min(t)
 		scope(find_min : #findMin) * fun_obj(findMin, #findMin, #findMinProto)
 
 	@post 
-		(ret == #t_new) * BST(#t_new, #K_new) * (#K_new == #K -d- -{ #v }-) *
+		(ret == #t_new) * BST(#t_new, #K_new) * (#K_new == #K -d- -{ #v }-) * nullableObject(#t_new) *
 		scope(remove : #remove) * fun_obj(remove, #remove, #removeProto) *
 		scope(find_min : #findMin) * fun_obj(findMin, #findMin, #findMinProto)
 */
@@ -160,6 +160,8 @@ function remove(v, t)
 	if (v === t.value) {
 		if (t.left === null) {	
 				/** @unfold BST($$null, #KL) */
+				/** @unfold BST(#ir, #KR)
+				    @fold   BST(#ir, #KR) */
 				return t.right;
 			}
 		else 
