@@ -581,16 +581,16 @@ let fresh_svar = fresh_sth svar_prefix
 
 let fresh_lvar_from_lvar_name =
 	let lvar_tbl = Hashtbl.create small_tbl_size in
-	(fun (pred_name : string) (var : string) ->
-		if (Hashtbl.mem lvar_tbl (pred_name, var))
+	(fun (var : string) ->
+		if (Hashtbl.mem lvar_tbl var)
 			then (
-				let i = Hashtbl.find lvar_tbl (pred_name, var) in
-				Hashtbl.replace lvar_tbl (pred_name, var) (i + 1);
+				let i = Hashtbl.find lvar_tbl var in
+				Hashtbl.replace lvar_tbl var (i + 1);
 				var ^ "_" ^ (string_of_int i)
 			) else
 			(
 				(* Printf.printf  "Could not find the pair (%s, %s) in the pred_lvar_tbl\n" pred_name var; *)
-				Hashtbl.replace lvar_tbl (pred_name, var) 1;
+				Hashtbl.replace lvar_tbl var 1;
 				var ^ "_" ^ (string_of_int 0)
 			))
 
