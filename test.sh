@@ -2,7 +2,7 @@
 
 # Bash array format: ("one" "two" "three")
 # JS Files to test
-declare -a jsfiles=("paper_queue" "thesis_queue" "function_test0" "function_test1_pass" "function_test1_fail" "function_test2" "function_test3")
+declare -a jsfiles=("function_test0" "function_test1_pass" "function_test1_fail" "function_test2" "function_test3" "paper_queue" "thesis_queue" "bst")
 # JSIL Files to test
 declare -a jsilfiles=("javert_internal_functions" "internal_functions_full")
 
