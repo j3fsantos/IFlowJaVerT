@@ -23,7 +23,8 @@ let update_prev_annot prev_annot cur_annot =
 		(annot.annot_type == Parser_syntax.Unfold) ||
 		(annot.annot_type == Parser_syntax.RecUnfold) ||
 		(annot.annot_type == Parser_syntax.CallSpec) ||
-    (annot.annot_type == Parser_syntax.Assert) in
+    (annot.annot_type == Parser_syntax.Assert) ||
+		(annot.annot_type == Parser_syntax.Flash) in
 
 	let rec annot_has_specs annots =
 		match annots with
@@ -87,6 +88,8 @@ let pop_relevant_logic_annots_stmt e =
 	let unfolds, others = List.partition (fun annot -> annot.annot_type == Parser_syntax.Unfold) others in  
 	let invariant, others = List.partition (fun annot -> annot.annot_type == Parser_syntax.Invariant) others in
 	let callspecs, others = List.partition (fun annot -> annot.annot_type = Parser_syntax.CallSpec) others in 
+	let asserts, others = List.partition (fun annot -> annot.annot_type = Parser_syntax.Assert) others in 
+	let flashes, others = List.partition (fun annot -> annot.annot_type = Parser_syntax.Flash) others in 
 	
 	let invariant = 
 		(match invariant with 
@@ -103,7 +106,7 @@ let pop_relevant_logic_annots_stmt e =
 			let new_e = { e with exp_annot = folds @ others } in 
 			relevant_logic_annots, new_e 
 		| _ -> 
-			let relevant_logic_annots = parse_logic_annots (unfolds @ folds @callspecs) in 
+			let relevant_logic_annots = parse_logic_annots (asserts @ unfolds @ folds @ flashes @ callspecs) in 
 			let new_e = { e with exp_annot = others } in
 			relevant_logic_annots, e) in 
 	
@@ -678,7 +681,61 @@ let rec get_predicate_definitions pred_defs e =
 	(* Non-supported constructs *)
 	| RegExp _ | With (_, _)                    -> raise (Failure "JS Construct Not Supported")     		 
 
-
+let rec expand_flashes e =
+	let f = expand_flashes in
+	let fo = Option.map f in
+	let new_annots = List.map (fun annot -> [ annot ]) e.exp_annot in
+	let new_annots = List.map (fun lannot ->
+		(match lannot with
+		| [ annot ] -> 
+			(match annot.annot_type with
+			| Flash -> 
+					let formula = annot.annot_formula in 
+					[ { annot_type = Unfold; annot_formula = formula }; { annot_type = Fold; annot_formula = formula } ]
+			| _ -> lannot)
+		| _ -> lannot)) new_annots in
+	let new_annots = List.concat new_annots in
+	
+	let new_exp_stx = let stx = e.exp_stx in 
+	(match stx with
+  | Num _ | String _ | Null | Bool _ | Var _ | This | Skip | Debugger | Break _ | Continue _ | RegExp (_, _) -> stx
+  | Delete e -> Delete (f e)
+  | Throw e -> Throw (f e)
+	| Label (s, e) -> Label (s, f e) 
+  | Access (e, s) -> Access (f e , s)
+  | Unary_op (u, e) -> Unary_op (u, f e)
+  | While (e1, e2) -> While (f e1, f e2)
+  | DoWhile (e1, e2) -> DoWhile (f e1, f e2)
+  | CAccess (e1, e2) -> CAccess (f e1, f e2)
+  | With (e1, e2) -> With (f e1, f e2)
+	| Assign (e1, e2) -> Assign (f e1, f e2)
+  | Comma (e1, e2) -> Comma (f e1, f e2)
+  | BinOp (e1, b, e2) -> BinOp (f e1, b, f e2)
+  | AssignOp (e1, a, e2) -> AssignOp (f e1, a, f e2)
+  | ForIn (e1, e2, e3) -> ForIn (f e1, f e2, f e3) 
+  | ConditionalOp (e1, e2, e3) -> ConditionalOp (f e1, f e2, f e3) 
+  | FunctionExp (b, os, lv, e) -> FunctionExp (b, os, lv, f e)
+  | Function (b, os, lv, e) -> Function (b, os, lv, f e)
+  | Block le -> Block (List.map f le)
+  | Script (b, le) -> Script (b, List.map f le) 
+	| Call (e, le) -> Call (f e, List.map f le) 
+  | New (e, le) -> New (f e, List.map f le) 
+  | Obj lppe -> Obj (List.map (fun (pp, pt, e) -> (pp, pt, f e)) lppe)
+  | Switch (e, le) -> Switch (f e, 
+			List.map (fun (sc, e2) -> 
+			(match sc with
+			| Case e1 -> Case (f e1)
+			| DefaultCase -> DefaultCase), f e2) le)
+	| Return eo -> Return (fo eo) 
+  | If (e1, e2, eo) -> If (f e1, f e2, fo eo)
+  | For (eo1, eo2, eo3, e) -> For (fo eo1, fo eo2, fo eo3, f e) 
+  | Try (e, seo1, eo2) -> Try (f e, Option.map (fun (s, e) -> (s, f e)) seo1, fo eo2) 
+  | Array leo -> Array (List.map fo leo) 
+  | VarDec lveo -> VarDec (List.map (fun (v, eo) -> (v, fo eo)) lveo)
+	) in
+	
+	let new_e = { exp_offset = e.exp_offset; exp_stx = new_exp_stx; exp_annot = new_annots } in 
+	new_e
 
 let rec ground_fold_annotations folds e = 
 	
