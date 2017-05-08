@@ -1185,12 +1185,25 @@ let aek_BST symb_state =
 		if (pred_name = "BST") then (
 			(match pred_params with
 			| [ tree; set ] -> 
-					print_debug "Found BST";
 					(match tree with
 					| LLit Null -> 
 							DynArray.add pfs (LEq (set, LESet []));
 					| _ -> 
-							DynArray.add pfs (LNot (LEq (tree, LLit Empty)))
+							let pfs_list = DynArray.to_list pfs in
+							if (not (List.mem (LNot (LEq (tree, LLit Empty))) pfs_list)) then
+								DynArray.add pfs (LNot (LEq (tree, LLit Empty)));
+							if (List.mem (LNot (LEq (tree, LLit Null))) (DynArray.to_list pfs)) then
+							(match tree with
+							| LVar v ->
+									print_debug "AEK_BST: gamma";
+									(match (Hashtbl.mem gamma v) with
+									| true ->
+											let tv = Hashtbl.find gamma v in
+											(match tv with
+											| ObjectType -> ()
+											| _ -> raise (Failure "BST gamma error"))
+									| false -> Hashtbl.add gamma v ObjectType) 
+							| _ -> ())
 					)
 			| _ -> print_debug "OOPS!"))
 		) preds;

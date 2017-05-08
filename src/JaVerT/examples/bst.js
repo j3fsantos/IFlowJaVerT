@@ -125,10 +125,7 @@ function find_min(t)
 	
 	/** @unfold BST(#t, #K) */
 	if (t.left === null)
-		/** @invariant dataField(#t, "left", #il) * BST(#il, #KL)
-			@unfold BST(#il, #KL)
-			@fold BST(#il, #KL)
-		*/
+		/** @invariant dataField(#t, "left", #il) * BST(#il, #KL) */
 		result = t.value;
 	else
 		result = find_min(t.left);
