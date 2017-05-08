@@ -111,21 +111,24 @@ function find (v, t)
 	@id findMin
 	
 	@pre
-		(t == #t) * BST(#t, #K) * (! (#t == $$null)) * 
+		(t == #t) * BST(#t, #K) * types(#t : $$object_type) * 
 		scope(find_min : #findMin) * fun_obj(findMin, #findMin, #findMinProto)
 
 	@post 
-		BST(#t, #K) * (ret == #r) * types(#r : $$number_type) * (#r --e-- #K) *
+		BST(#t, #K) * (ret == #r) * types(#r : $$number_type) * (#r --e-- #K) * 
 		(forall #x : $$number_type. ((! (#x --e-- #K)) \/ (#r <=# #x))) *
 		scope(find_min : #findMin) * fun_obj(findMin, #findMin, #findMinProto)
 */
 function find_min(t)
 {
+	/** @unfold BST(#t, #K) */
 	var result;
 	
-	/** @unfold BST(#t, #K) */
+	/** @invariant dataField(#t, "left", #il) * BST(#il, #KL) 
+	 	@unfold BST(#il, #KL)
+		@fold   BST(#il, #KL) 
+	*/
 	if (t.left === null)
-		/** @invariant dataField(#t, "left", #il) * BST(#il, #KL) */
 		result = t.value;
 	else
 		result = find_min(t.left);
@@ -166,10 +169,14 @@ function remove(v, t)
 			}
 		else 
 		if (t.right === null) {
-				/** @unfold BST($$null, #KR) */
+				/** @unfold BST($$null, #KR) 
+					@unfold BST(#il, #KL)
+				    @fold   BST(#il, #KL) */
 	  			return t.left;
 			}
 		else {
+			/** @unfold BST(#ir, #KR)
+				@fold   BST(#ir, #KR) */
 			var min = find_min(t.right);
 			t.right = remove(min, t.right);
 			t.value = min;
