@@ -45,6 +45,7 @@ var make_counter = function () {
    */
    var incCounter = function () {
       count++;
+      count++; 
       return count;
    };
 

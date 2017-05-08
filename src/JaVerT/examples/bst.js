@@ -41,26 +41,13 @@ function make_node(v)
 	@id insert
 
 	@pre
-		(t == #t) * BST(#t, #K) * (#t == $$null) * (#K == -{ }-) *
+		(t == #t) * BST(#t, #K) * 
 		(v == #v) * types (#v : $$number_type) *
 		scope(make_node : #makeNode) * fun_obj(makeNode, #makeNode, #mknProto) *
 		scope(insert : #insert) * fun_obj(insert, #insert, #insertProto)
 		
 	@post 
-		BST(#r, -{ #v }-) * types (#r : $$object_type) * (ret == #r) *
-		scope(make_node : #makeNode) * fun_obj(makeNode, #makeNode, #mknProto) *
-		scope(insert : #insert) * fun_obj(insert, #insert, #insertProto)
-
-
-
-	@pre
-		(t == #t) * BST(#t, #K) * (! (#t == $$null)) *
-		(v == #v) * types (#v : $$number_type) *
-		scope(make_node : #makeNode) * fun_obj(makeNode, #makeNode, #mknProto) *
-		scope(insert : #insert) * fun_obj(insert, #insert, #insertProto)
-		
-	@post 
-		BST(#t, -u- (#K, -{ #v }-)) * (ret == #t) * types (#t : $$object_type) *
+		BST(#t_new, -u- (#K, -{ #v }-)) * (ret == #t_new) * types (#t_new : $$object_type) *
 		scope(make_node : #makeNode) * fun_obj(makeNode, #makeNode, #mknProto) *
 		scope(insert : #insert) * fun_obj(insert, #insert, #insertProto)
 */
@@ -93,19 +80,11 @@ function insert(v, t)
 	@id find
 	
 	@pre
-		(t == #t) * BST(#t, #K) * (v == #v) * (#v --e-- #K) * types (#v : $$number_type) * 
+		(t == #t) * BST(#t, #K) * (v == #v) * types (#v : $$number_type) * 
 		scope(find : #find) * fun_obj(find, #find, #findProto)
 
 	@post 
-		BST(#t, #K) * (ret == $$t) * types(#r : $$boolean_type) *
-		scope(find : #find) * fun_obj(find, #find, #findProto)
-
-	@pre
-		(t == #t) * BST(#t, #K) * (v == #v) * (! (#v --e-- #K)) * types (#v : $$number_type) * 
-		scope(find : #find) * fun_obj(find, #find, #findProto)
-
-	@post 
-		BST(#t, #K) * (ret == $$f) * types(#r : $$boolean_type) *
+		BST(#t, #K) * (ret == (#v -e- #K)) * types(#r : $$boolean_type) *
 		scope(find : #find) * fun_obj(find, #find, #findProto)
 */
 function find (v, t)
@@ -168,7 +147,7 @@ function find_min(t)
 		scope(find_min : #findMin) * fun_obj(findMin, #findMin, #findMinProto)
 
 	@post 
-		(ret == #t_new) * BST(#t_new, #K_new) * nullableObject(#t_new) * (#K_new == #K -d- -{ #v }-) *
+		(ret == #t_new) * BST(#t_new, #K_new) * (#K_new == #K -d- -{ #v }-) *
 		scope(remove : #remove) * fun_obj(remove, #remove, #removeProto) *
 		scope(find_min : #findMin) * fun_obj(findMin, #findMin, #findMinProto)
 */
