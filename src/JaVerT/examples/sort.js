@@ -1,4 +1,9 @@
 /**
+
+  @pred nullableObject(o) : 
+    types(o : $$object_type),
+    (o == $$null) * types (o : $$null_type);
+
  @pred Node(n, v, t):
    standardObject(n) *
    dataField(n, "value", v) *
@@ -25,7 +30,7 @@
  @id insert
 
  @pre (node == #n) * (value == #v) * SOList(#n, #E)
- @post SOList(ret, -u- (-{ #v }-, #E))
+ @post ( (ret == #ret) * SOList(#ret, -u- (-{ #v }-, #E)) * types(#ret: $$object_type) )
  */
 function insert(node, value) {
     var result;
@@ -59,8 +64,12 @@ function insert(node, value) {
 /**
  @id sort
 
- @pre (head == #h) * NDList(#h, #E) * scope(sort: #sort_fun) * fun_obj(sort, #sort_fun, #sort_proto)
- @post SOList(res, #E)
+ @pre ((head == #h) * NDList(#h, #E) * 
+          scope(sort: #sort_fun) * fun_obj(sort, #sort_fun, #sort_proto) * 
+          scope(insert: #insert_fun) * fun_obj(insert, #insert_fun, #insert_proto))
+ @post (SOList(ret, #E) * nullableObject(ret) * 
+          scope(sort: #sort_fun) * fun_obj(sort, #sort_fun, #sort_proto) * 
+          scope(insert: #insert_fun) * fun_obj(insert, #insert_fun, #insert_proto))
  */
 function sort(head) {
     var result;
@@ -70,9 +79,6 @@ function sort(head) {
         /** @fold SOList($$null, -{ }-) */
     } else {
         var rec = sort(head.next);
-        /** @invariant scope(rec: #rec)
-            @unfold SOList(#rec, #rE)
-            @fold SOList(#rec, #rE) */
         result = insert(rec, head.value)
     }
     return result;
