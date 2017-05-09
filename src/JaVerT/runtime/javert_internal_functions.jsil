@@ -943,6 +943,10 @@ spec i__abstractEquality (v1, v2)
     
 	[[ types(v1 : $$object_type, v2 : $$null_type) ]]
     [[ (ret == $$f) ]]
+    normal; 
+
+    [[ types(v1 : $$number_type, v2 : $$number_type) * (! (v1 == v2)) ]]
+    [[ (ret == $$f) ]]
     normal
 
 proc i__abstractEquality (v1, v2) {
