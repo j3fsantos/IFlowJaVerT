@@ -89,7 +89,6 @@ let pop_relevant_logic_annots_stmt e =
 	let invariant, others = List.partition (fun annot -> annot.annot_type == Parser_syntax.Invariant) others in
 	let callspecs, others = List.partition (fun annot -> annot.annot_type = Parser_syntax.CallSpec) others in 
 	let asserts, others = List.partition (fun annot -> annot.annot_type = Parser_syntax.Assert) others in 
-	let flashes, others = List.partition (fun annot -> annot.annot_type = Parser_syntax.Flash) others in 
 	
 	let invariant = 
 		(match invariant with 
@@ -106,7 +105,7 @@ let pop_relevant_logic_annots_stmt e =
 			let new_e = { e with exp_annot = folds @ others } in 
 			relevant_logic_annots, new_e 
 		| _ -> 
-			let relevant_logic_annots = parse_logic_annots (asserts @ unfolds @ folds @ flashes @ callspecs) in 
+			let relevant_logic_annots = parse_logic_annots (asserts @ unfolds @ folds @ callspecs) in 
 			let new_e = { e with exp_annot = others } in
 			relevant_logic_annots, e) in 
 	
