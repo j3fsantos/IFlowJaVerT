@@ -196,32 +196,32 @@
 
 
 	@pred Grove(alpha, content) : 
-		((alpha, "@chain") ->  #l) * GroveRec(#l, content) * types(content : $$list_type);	
+		((alpha, "@chain") ->  #l) * GroveRec(alpha, #l, content) * types(content : $$list_type, #l: $$object_type);	
 	
-	@pred GroveRec(l, content) :
-		isNil(content) * (l == $$null),
+	@pred GroveRec(root, l, content) :
+		isNil(content) * ((l, "@address") -> root),
 
 		(content == (#head :: #contentNext)) * isText(#head, #id, #text) * 
-		TextNode(#id, #text) *
+		TextNode(#id, #text) * ((l, "@address") -> root) *
 		ChainCell(l, #next, #id) * GroveRec(#next, #contentNext),
 		
 		(content == (#head :: #contentNext)) * isElement(#head, #name, #id, #aList, #cList) * 
 		DOMObject(#id, $l_enp) * empty_fields(#id : "@name", "@attributes", "@children") *
 		ElementNode(#name, #id, #l_addr, #aList, #l_children, #cList) *
-		ChainCell(l, #next, #id) * GroveRec(#next, #contentNext),
+		((l, "@address") -> root) * ChainCell(l, #next, #id) * GroveRec(#next, #contentNext),
 
 		(content == (#head :: #contentNext)) * isAttr(#head, #name, #id, #tfList) * 
 		DOMObject(#id, $l_anp) * empty_fields(#id : "@name", "@children") *
 		AttributeNode(#name, #id, #l_tf, #tfList) * 
-		ChainCell(l, #next, #id) * GroveRec(#next, #contentNext),
+		((l, "@address") -> root) * ChainCell(l, #next, #id) * GroveRec(#next, #contentNext),
 		
 		(content == (#head :: #contentNext)) * isHole(#head, #alpha) *
-		ChainCell(l, #next, #alpha) * GroveRec(#next, #contentNext);
+		((l, "@address") -> root) * ChainCell(l, #next, #alpha) * GroveRec(#next, #contentNext);
 
 
 
 	@pred ECell(alpha, name, id, l_attr, aList, l_children, cList) : 
-		((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, id) * 
+		((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, id) * types(#l: $$object_type) *
 		DOMObject(id, $l_enp) * ((id, "@address") -> alpha) * empty_fields(id : "@name", "@attributes", "@children", "@address") * 
 		ElementNode(name, id, l_attr, aList, l_children, cList);
 
@@ -358,11 +358,13 @@
 				 Grove(#beta, {{}}) ]]
 		post: [[ ECell(#alpha, #name, this, #l_attr, #aList_post, #l_children, #cList) *
 				 (#aList_post == #a1 @ ({{ "attr", #s, #m, {{ {{ "text", #r, #s2 }} }} }} :: #a2)) *
-				 Grove(#beta, #t) ]]
+				 Grove(#beta, #t) * (ret == $$null) ]]
 		outcome: normal;
 
-		pre:  [[ ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList) * (s == #s1) * (v == #s2) * out(#aList, #s1) ]]
-		post: [[ ECell(#alpha, #name, this, #l_attr, #aList_post, #l_children, #cList) * (#aList_post == {{ "attr", #s1, #m, {{ {{ "text", #r, #s2 }} }}   }} :: #aList) ]]
+		pre:  [[ ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList) * 
+				 (s == #s1) * (v == #s2) * out(#aList, #s1) ]]
+		post: [[ ECell(#alpha, #name, this, #l_attr, #aList_post, #l_children, #cList) * 
+				 (#aList_post == {{ "attr", #s1, #m, {{ {{ "text", #r, #s2 }} }}   }} :: #aList) * (ret == $$null) ]]
 		outcome: normal
 
 	@onlyspec ownerDocument()

@@ -232,7 +232,7 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 			| LBinOp (re1, Plus, LLit (Num n1)), LLit (Num n2) -> f (LBinOp (re1, Plus, LLit (Num (n1 +. n2))))
 			(* (n1 +J _) +J n2 ---> _ +J (n1 + n2) *)
 			| LBinOp (LLit (Num n1), Plus, re2), LLit (Num n2) -> f (LBinOp (re2, Plus, LLit (Num (n1 +. n2))))
-			| _, _ -> LBinOp (re1, bop, re2))
+			| _, _ -> LBinOp (re1, bop, re2)) 
 		| _ -> LBinOp (re1, bop, re2))
 
 	(* TypeOf *)
@@ -441,11 +441,12 @@ let rec reduce_assertion store gamma pfs a =
 			| LLit (Bool false), LBinOp (e1, LessThan, e2) -> LNot (LLess (e1, e2))
 
 			(* Plus theory *)
-			| LBinOp (re1, Plus, LLit (Num n1)), LBinOp (re2, Plus, LLit (Num n2))
-			| LBinOp (re1, Plus, LLit (Num n1)), LBinOp (LLit (Num n2), Plus, re2)
-			| LBinOp (LLit (Num n1), Plus, re1), LBinOp (re2, Plus, LLit (Num n2))
-			| LBinOp (LLit (Num n1), Plus, re1), LBinOp (LLit (Num n2), Plus, re2) ->
-					if (Utils.is_normal n1 && (n1 = n2)) then f (LEq (re1, re2)) else default e1 e2 re1 re2
+			| LBinOp (re1', Plus, LLit (Num n1)), LBinOp (re2', Plus, LLit (Num n2))
+			| LBinOp (re1', Plus, LLit (Num n1)), LBinOp (LLit (Num n2), Plus, re2')
+			| LBinOp (LLit (Num n1), Plus, re1'), LBinOp (re2', Plus, LLit (Num n2))
+			| LBinOp (LLit (Num n1), Plus, re1'), LBinOp (LLit (Num n2), Plus, re2') ->
+					if (Utils.is_normal n1 && (n1 = n2)) 
+						then f (LEq (re1', re2')) else default e1 e2 re1 re2
 						
 			| _, _ -> default e1 e2 re1 re2
 		)
@@ -1885,7 +1886,17 @@ let clean_up_stuff exists left right =
 	
 let simplify_implication exists lpfs rpfs gamma =
 	let lpfs, rpfs, exists, gamma = simplify_pfs_with_exists_and_others exists lpfs rpfs gamma in
+print_debug_petar (Printf.sprintf "Starting existential simplification:\n\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\n\nGamma:\n%s\n\n"
+		(String.concat ", " (SS.elements exists))
+		(print_pfs lpfs)
+		(print_pfs rpfs)
+		(Symbolic_State_Print.string_of_gamma gamma)); 
 	sanitise_pfs_no_store gamma rpfs;
+print_debug_petar (Printf.sprintf "Continuing existential simplification:\n\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\n\nGamma:\n%s\n\n"
+		(String.concat ", " (SS.elements exists))
+		(print_pfs lpfs)
+		(print_pfs rpfs)
+		(Symbolic_State_Print.string_of_gamma gamma)); 
 	let exists, lpfs, rpfs, gamma = simplify_existentials exists lpfs rpfs gamma in
 	clean_up_stuff exists lpfs rpfs;
 	print_debug_petar (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\n\nGamma:\n%s\n\n"

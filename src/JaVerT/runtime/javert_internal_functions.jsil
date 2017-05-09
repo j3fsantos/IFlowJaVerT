@@ -2661,11 +2661,11 @@ spec put (l, prop, value, throw)
 		   Must reform the prototype chain manually in the post-condition, extra tricky *)
 	[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == #throw) *
 	   types (#l : $$object_type, #prop : $$string_type, #throw : $$boolean_type) *
-	   types (#lcls : $$list_type, #lp : $$object_type, #lllp : $$list_type, #tf : $$boolean_type, #lltf : $$list_type, #pv : $$string_type, #llpv : $$list_type) *
-	   Pi (#l, #prop, (#cls :: #lcls), $$undefined, (#l :: (#lp :: #lllp)), ($$f :: (#tf :: #lltf)), ("" :: (#pv :: #llpv))) * 
+	   types (#pcls : $$string_type, #ocls : $$list_type, #lp : $$object_type, #lllp : $$list_type, #tf : $$boolean_type, #lltf : $$list_type, #pv : $$string_type, #llpv : $$list_type) *
+	   Pi (#l, #prop, (#cls :: (#pcls :: #ocls)), $$undefined, (#l :: (#lp :: #lllp)), ($$f :: (#tf :: #lltf)), ("" :: (#pv :: #llpv))) * 
 	   ((#l, "@extensible") -> $$t) * isClass(#cls, "Non-String") * isClass(#cls, "Non-Array") ]]
 	[[ Pi (#l, #prop, {{ #cls }}, {{ "d", #value, $$t, $$t, $$t }}, {{ #l }}, {{ $$f }}, {{ "" }}) * ((#l, "@proto") -> #lp) *
-	   Pi (#lp, #prop, #lcls, $$undefined, (#lp :: #lllp), (#tf :: #lltf), (#pv :: #llpv)) *
+	   Pi (#lp, #prop, (#pcls :: #ocls), $$undefined, (#lp :: #lllp), (#tf :: #lltf), (#pv :: #llpv)) *
 	   ((#l, "@extensible") -> $$t) *
 	   (ret == $$empty) ]]
 	normal;
@@ -2686,12 +2686,12 @@ spec put (l, prop, value, throw)
 	(* 8. Property is defined in the prototype chain, not in the object (DD), object is extensible, data descriptor is writable *)
     [[ (l == #l) * (prop == #prop) * (value == #value) * (throw == #throw) *
 	   types (#l : $$object_type, #prop : $$string_type, #throw : $$boolean_type) *
-	   types (#lcls : $$list_type, #lp : $$object_type, #lllp : $$list_type, #tf : $$boolean_type, #lltf : $$list_type, #pv : $$string_type, #llpv : $$list_type) *
+	   types (#pcls : $$string_type, #ocls : $$list_type, #lp : $$object_type, #lllp : $$list_type, #tf : $$boolean_type, #lltf : $$list_type, #pv : $$string_type, #llpv : $$list_type) *
 	   types (#dcenum : $$boolean_type, #dcconf : $$boolean_type) *
-	   Pi (#l, #prop, (#cls :: #lcls), {{ "d", #dcval, $$t, #dcenum, #dcconf }}, (#l :: (#lp :: #lllp)), ($$f :: (#tf :: #lltf)), ("" :: (#pv :: #llpv))) * 
+	   Pi (#l, #prop, (#cls :: (#pcls :: #ocls)), {{ "d", #dcval, $$t, #dcenum, #dcconf }}, (#l :: (#lp :: #lllp)), ($$f :: (#tf :: #lltf)), ("" :: (#pv :: #llpv))) * 
        ((#l, "@extensible") -> $$t) * isClass(#cls, "Non-String") * isClass(#cls, "Non-Array") ]]
 	[[ Pi (#l, #prop, {{ #cls }}, {{ "d", #value, $$t, $$t, $$t }}, {{ #l }}, {{ $$f }}, {{ "" }}) * ((#l, "@proto") -> #lp) *
-	   Pi (#lp, #prop, #lcls, {{ "d", #dcval, $$t, #dcenum, #dcconf }}, (#lp :: #lllp), (#tf :: #lltf), (#pv :: #llpv)) *
+	   Pi (#lp, #prop, (#pcls :: #ocls), {{ "d", #dcval, $$t, #dcenum, #dcconf }}, (#lp :: #lllp), (#tf :: #lltf), (#pv :: #llpv)) *
        ((#l, "@extensible") -> $$t) *
 	   (ret == $$empty) ]]
     normal
@@ -2893,22 +2893,22 @@ spec i__putValue (v, w)
 	(* Object reference, non-string object, property not defined, prototype chain of length > 1 *)
     [[ (v == {{ "o", #l, #prop }}) * (w == #w) * isNamedProperty(#prop) *
 	   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type) *
-	   types (#lcls : $$list_type, #lp : $$object_type, #lllp : $$list_type, #tf : $$boolean_type, #lltf : $$list_type, #pv : $$string_type, #llpv : $$list_type) *
-	   Pi (#l, #prop, (#cls :: #lcls), $$undefined, (#l :: (#lp :: #lllp)), ($$f :: (#tf :: #lltf)), ("" :: (#pv :: #llpv))) * 
+	   types (#pcls : $$string_type, #ocls : $$list_type, #lp : $$object_type, #lllp : $$list_type, #tf : $$boolean_type, #lltf : $$list_type, #pv : $$string_type, #llpv : $$list_type) *
+	   Pi (#l, #prop, (#cls :: (#pcls :: #ocls)), $$undefined, (#l :: (#lp :: #lllp)), ($$f :: (#tf :: #lltf)), ("" :: (#pv :: #llpv))) * 
 	   ((#l, "@extensible") -> $$t) * isClass(#cls, "Non-String") * isClass(#cls, "Non-Array") ]]
 	[[ Pi (#l, #prop, {{ #cls }}, {{ "d", #w, $$t, $$t, $$t }}, {{ #l }}, {{ $$f }}, {{ "" }}) * ((#l, "@proto") -> #lp) *
-	   Pi (#lp, #prop, #lcls, $$undefined, (#lp :: #lllp), (#tf :: #lltf), (#pv :: #llpv)) *
+	   Pi (#lp, #prop, (#pcls :: #ocls), $$undefined, (#lp :: #lllp), (#tf :: #lltf), (#pv :: #llpv)) *
        ((#l, "@extensible") -> $$t) *
 	   (ret == $$empty) ]]
     normal;
 
 	(* Variable reference, $lg, property not defined, prototype chain of length > 1 *)
     [[ (v == {{ "v", $lg, #prop }}) * (w == #w) * isNamedProperty(#prop) * types (#prop : $$string_type) *
-	   types (#lcls : $$list_type, #lp : $$object_type, #lllp : $$list_type, #tf : $$boolean_type, #lltf : $$list_type, #pv : $$string_type, #llpv : $$list_type) *
-	   Pi ($lg, #prop, ("Object" :: #lcls), $$undefined, ($lg :: (#lp :: #lllp)), ($$f :: (#tf :: #lltf)), ("" :: (#pv :: #llpv))) * 
+	   types (#pcls : $$string_type, #ocls : $$list_type, #lp : $$object_type, #lllp : $$list_type, #tf : $$boolean_type, #lltf : $$list_type, #pv : $$string_type, #llpv : $$list_type) *
+	   Pi ($lg, #prop, ("Object" :: (#pcls :: #ocls)), $$undefined, ($lg :: (#lp :: #lllp)), ($$f :: (#tf :: #lltf)), ("" :: (#pv :: #llpv))) * 
 	   (($lg, "@extensible") -> $$t) ]]
 	[[ Pi ($lg, #prop, {{ "Object" }}, {{ "d", #w, $$t, $$t, $$t }}, {{ $lg }}, {{ $$f }}, {{ "" }}) * (($lg, "@proto") -> #lp) *
-	   Pi (#lp, #prop, #lcls, $$undefined, (#lp :: #lllp), (#tf :: #lltf), (#pv :: #llpv)) *
+	   Pi (#lp, #prop, (#pcls :: #ocls), $$undefined, (#lp :: #lllp), (#tf :: #lltf), (#pv :: #llpv)) *
        (($lg, "@extensible") -> $$t) *
 	   (ret == $$empty) ]]
     normal;
@@ -2941,12 +2941,12 @@ spec i__putValue (v, w)
 	(* Object reference, property is defined in the prototype chain, not in the object (DD), object is extensible, data descriptor is writable *)
     [[ (v == {{ "o", #l, #prop }}) * (w == #w) * isNamedProperty(#prop) *
 	   types (#l : $$object_type, #prop : $$string_type, #throw : $$boolean_type, #cls : $$string_type) *
-	   types (#lcls : $$list_type, #lp : $$object_type, #lllp : $$list_type, #tf : $$boolean_type, #lltf : $$list_type, #pv : $$string_type, #llpv : $$list_type) *
+	   types (#pcls : $$string_type, #ocls : $$list_type, #lp : $$object_type, #lllp : $$list_type, #tf : $$boolean_type, #lltf : $$list_type, #pv : $$string_type, #llpv : $$list_type) *
 	   types (#dcenum : $$boolean_type, #dcconf : $$boolean_type) *
-	   Pi (#l, #prop, (#cls :: #lcls), {{ "d", #dcval, $$t, #dcenum, #dcconf }}, (#l :: (#lp :: #lllp)), ($$f :: (#tf :: #lltf)), ("" :: (#pv :: #llpv))) * 
+	   Pi (#l, #prop, (#cls :: (#pcls :: #ocls)), {{ "d", #dcval, $$t, #dcenum, #dcconf }}, (#l :: (#lp :: #lllp)), ($$f :: (#tf :: #lltf)), ("" :: (#pv :: #llpv))) * 
        ((#l, "@extensible") -> $$t) * isClass(#cls, "Non-String") * isClass(#cls, "Non-Array") ]]
 	[[ Pi (#l, #prop, {{ #cls }}, {{ "d", #w, $$t, $$t, $$t }}, {{ #l }}, {{ $$f }}, {{ "" }}) * ((#l, "@proto") -> #lp) *
-	   Pi (#lp, #prop, #lcls, {{ "d", #dcval, $$t, #dcenum, #dcconf }}, (#lp :: #lllp), (#tf :: #lltf), (#pv :: #llpv)) *
+	   Pi (#lp, #prop, (#pcls :: #ocls), {{ "d", #dcval, $$t, #dcenum, #dcconf }}, (#lp :: #lllp), (#tf :: #lltf), (#pv :: #llpv)) *
        ((#l, "@extensible") -> $$t) *
 	   (ret == $$empty) ]]
     normal;
@@ -2954,12 +2954,12 @@ spec i__putValue (v, w)
 	(* Variable reference, $lg, property is defined in the prototype chain, not in the object (DD), object is extensible, data descriptor is writable *)
     [[ (v == {{ "v", $lg, #prop }}) * (w == #w) * isNamedProperty(#prop) *
 	   types (#prop : $$string_type, #throw : $$boolean_type) *
-	   types (#lcls : $$list_type, #lp : $$object_type, #lllp : $$list_type, #tf : $$boolean_type, #lltf : $$list_type, #pv : $$string_type, #llpv : $$list_type) *
+	   types (#pcls : $$string_type, #ocls : $$list_type, #lp : $$object_type, #lllp : $$list_type, #tf : $$boolean_type, #lltf : $$list_type, #pv : $$string_type, #llpv : $$list_type) *
 	   types (#dcenum : $$boolean_type, #dcconf : $$boolean_type) *
-	   Pi ($lg, #prop, ("Object" :: #lcls), {{ "d", #dcval, $$t, #dcenum, #dcconf }}, ($lg :: (#lp :: #lllp)), ($$f :: (#tf :: #lltf)), ("" :: (#pv :: #llpv))) * 
+	   Pi ($lg, #prop, ("Object" :: (#pcls :: #ocls)), {{ "d", #dcval, $$t, #dcenum, #dcconf }}, ($lg :: (#lp :: #lllp)), ($$f :: (#tf :: #lltf)), ("" :: (#pv :: #llpv))) * 
        (($lg, "@extensible") -> $$t) ]]
 	[[ Pi ($lg, #prop, {{ "Object" }}, {{ "d", #w, $$t, $$t, $$t }}, {{ $lg }}, {{ $$f }}, {{ "" }}) * (($lg, "@proto") -> #lp) *
-	   Pi (#lp, #prop, #lcls, {{ "d", #dcval, $$t, #dcenum, #dcconf }}, (#lp :: #lllp), (#tf :: #lltf), (#pv :: #llpv)) *
+	   Pi (#lp, #prop, (#pcls :: #ocls), {{ "d", #dcval, $$t, #dcenum, #dcconf }}, (#lp :: #lllp), (#tf :: #lltf), (#pv :: #llpv)) *
        (($lg, "@extensible") -> $$t) *
 	   (ret == $$empty) ]]
     normal
