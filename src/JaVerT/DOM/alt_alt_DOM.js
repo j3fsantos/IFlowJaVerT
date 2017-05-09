@@ -415,6 +415,19 @@
 		outcome: normal
 
 */
+/** sanitiseImg specifics */
+/**
+	@pred isB(s) : (s == #s) * isB(s);
+	@pred nisB(s) : (s == #s) * nisB(s);
+
+	@onlyspec isBlackListed(s)
+		pre:  [[ (s == #s) * isB(#s) ]]
+		post: [[ isB(#s) * (ret == 1) ]]
+		outcome: normal;
+		pre:  [[ (s == #s) * (nisB(#s)) ]]
+		post: [[ (ret == 0) * (nisB(#s)) ]]
+		outcome: normal
+*/
 
 /**
 	@id createNewAttribute
@@ -449,22 +462,38 @@ function createNewAttribute(element){
 	@id sanitise
 
 	@pre (
+		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
+		scope(cache: #c) * dataField(#c, #s1, 0) * standardObject(#c) * 
 		InitialDOMHeap() *
-		(img == #n) * (cat == #s2) *
+		(img == #n) * (cat == #s2) * 
 		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children) *
-		(#attr == {{ {{ "attr", "src", #a, #tf1 }} }}) *
-		val(#tf1, #s1) * types(#s1: $$string_type) * 
+		(#attr == {{ {{ "hole", #alpha1 }}, {{ "attr", "src", #a, #tf1 }}, {{ "hole", #alpha2 }} }}) *
+		val(#tf1, #s1) * isB(#s1) * isNamedProperty(#s1) * 
 		Grove(#grove, {{}})
 	)
 	@post (
+		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
+		scope(cache: #c) * dataField(#c, #s1, 1) * standardObject(#c) * 
 		InitialDOMHeap() *
 		ECell(#alpha, #name, #n, #l_attr, #new_attr, #l_children, #children) *
-		(#new_attr == {{ {{ "attr", "src", #a, #tf2 }} }}) *
+		(#new_attr == {{ {{ "hole", #alpha1 }}, {{ "attr", "src", #a, #tf2 }}, {{ "hole", #alpha2 }} }}) *
 		(#tf2 == {{ {{ "text", #r, #s2 }} }}) *
+		isB(#s1) *
 		Grove(#grove, #tf1)
 	)
 **/
 function sanitiseImg(img, cat){
 	var url = img.getAttribute("src");
-	img.setAttribute("src", cat);
+	if(url !== ""){
+		var isB = cache[url];
+		if(isB) {
+			img.setAttribute("src", cat)
+		} else {
+			isB = isBlackListed(url);
+			if(isB){
+				img.setAttribute("src", cat);
+				cache[url] = 1;
+			}
+		}
+	}
 }
