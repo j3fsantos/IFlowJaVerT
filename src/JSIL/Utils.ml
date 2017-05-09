@@ -12,7 +12,7 @@ open List
 open BatResult
 open Option.Monad
 
-let flat_map f l = flatten (map f l)
+let flat_map f l = flatten (BatList.map f l)
 
 (* This exception is raised when Gareth thinks something is impossible,
    but it happens anyway. *)
