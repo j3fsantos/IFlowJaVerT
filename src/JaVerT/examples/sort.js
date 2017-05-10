@@ -36,16 +36,14 @@
 		 scope(insert: #insert_fun) * fun_obj(insert, #insert_fun, #insert_proto) )
 */
 function insert(node, value) {
+    
     var result;
-	
-	/** invariant scope(result : #res) */
 
     /** @unfold SOList(#n, #E) */
     if (node === null) {
     	/** @fold SOList(#n, #E) */
         result = { next: null, value: value }
     } else if (node.value === value) {
-        /** @fold SOList(#n, #E) */
         result = node;
     } else if (node.value < value) {
         var rec = insert(node.next, value);
@@ -55,7 +53,8 @@ function insert(node, value) {
         result = { next: node, value: value }
     }
     
-    /** @fold SOList(#res, -u- (-{ #v }-, #E)) */
+    /** @invariant scope(result : #res) 
+        @fold SOList(#res, -u- (-{ #v }-, #E)) */
     return result;
 }
 
