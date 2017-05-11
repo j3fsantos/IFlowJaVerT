@@ -19,12 +19,12 @@
   (forall ((x Real))
     (=> (select tail x) (> x head))))
 
-(assert (< value head))
+(assert (> head value))
 
 (assert
 (forall ((result Set))
   (let ((phi1 
-          (forall ((x Real)) (=> (select result x) (not (<= x value)))))
+          (forall ((x Real)) (=> (select result x) (> x value))))
         (phi2
           (= result (union (singleton head) tail))))
     (not (and phi1 phi2)))))

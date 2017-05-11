@@ -19,9 +19,9 @@
   (forall ((x Real))
     (=> (select tail x) (> x head))))
 
-(assert (< value head))
+(assert (> head value))
 
 (assert
-  (not (forall ((x Real)) (=> (select (union (singleton head) tail) x) (not (<= x value))))))
+  (not (forall ((x Real)) (=> (select (union (singleton head) tail) x) (> x value)))))
 
 (check-sat)

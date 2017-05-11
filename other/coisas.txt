@@ -1,0 +1,39 @@
+I am currently trying to use Z3 to encode a simple program logic for an untyped language with sets.
+
+My symbolic execution engine needs to prove the validity of the following formula:  
+
+which we then encode as the following SMT-LIB formula:   
+
+    (define-sort Set () (Array Real Bool))
+
+    (define-fun singleton ((x Real)) Set
+        (store 
+           ((as const (Array Real Bool)) false)
+           x
+           true))
+
+    (define-fun set-union ((x Set) (y Set)) Set
+        ((_ map (or (Bool Bool) Bool)) x y)) 
+
+
+    (declare-const head Real)
+    (declare-const tail Set)
+    (declare-const result Set)
+    (declare-const value Real)
+
+    (assert (forall ((x Real)) (=> (select tail x) (> x head))))
+    (assert (< value head))
+    (assert
+       (forall ((result Set))
+           (let ((phi1 
+                    (forall ((x Real)) (=> (select result x) (> x value))))
+                 (phi2
+                    (= result (union (singleton head) tail))))
+              (not (and phi1 phi2)))))
+    (check-sat)
+
+When given this formula, the solver immediately outputs **unknown**.
+My guess is that the problem lies on quantifying over a variable that is bound to a set. 
+To check this, we simplified the formula above, obtaining:  
+
+which we then encode as the following SMT-LIB formula:   

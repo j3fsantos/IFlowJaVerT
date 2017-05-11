@@ -230,7 +230,7 @@ let z3_jsil_literal_sort, z3_jsil_list_sort, lit_operations =
 				]
 			] in 
 
-	try 
+	(* try *)
 		let z3_jsil_literal_sort = List.nth literal_and_literal_list_sorts 0 in 
 		let z3_jsil_list_sort    = List.nth literal_and_literal_list_sorts 1 in 
 
@@ -309,7 +309,7 @@ let z3_jsil_literal_sort, z3_jsil_list_sort, lit_operations =
 			none_recognizer       = none_recognizer
 		}  in 
 		z3_jsil_literal_sort, z3_jsil_list_sort, jsil_literal_operations
-	with _ -> raise (Failure ("DEATH: construction of z3_jsil_value_sort")) 
+	(* with _ -> raise (Failure ("DEATH: construction of z3_jsil_value_sort")) *)
 
 
 let extended_literal_sort, extended_literal_operations, z3_jsil_set_sort = 
