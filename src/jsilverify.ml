@@ -18,7 +18,8 @@ let arguments () =
             
 			"-specs", Arg.String (fun f -> spec_file := f), "specification file";
 			(* *)
-			"-js", Arg.Unit (fun () -> Symb_Interpreter.js := true), "js2jsil output"; 
+			"-js", Arg.Unit (fun () -> Symb_Interpreter.js := true; 
+										JSIL_Bi_Symb_Interpreter.js := true), "js2jsil output"; 
 			(* *)
 			"-stats", Arg.Unit (fun () -> stats := true), "stats";
 			(* Flag to use symbolic execution file with bi-abduction *)

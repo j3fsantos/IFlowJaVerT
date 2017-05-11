@@ -495,12 +495,14 @@ let find_and_apply_spec
 				[ new_symb_state, ret_flag, ret_lexpr ])
 				else begin print_debug (Printf.sprintf "The post does not make sense."); [] end in
 
-		extend_symb_state_with_pfs symb_state (DynArray.of_list pf_discharges);
+		let pfs_subst = pf_substitution (DynArray.of_list pf_discharges) subst true in
+		extend_symb_state_with_pfs symb_state pfs_subst;
 		let symb_state = symb_state_replace_heap symb_state quotient_heap in
 		let symb_state = symb_state_replace_preds symb_state quotient_preds in
 		let symb_state = symb_state_replace_gamma symb_state new_gamma in
 		let ret_var = proc_get_ret_var proc spec.n_ret_flag in
 		let ret_flag = spec.n_ret_flag in
+
 		let symb_states_and_ret_lexprs =
 			(match spec.n_post with
 			| [] -> print_debug (Printf.sprintf "No postconditions found."); []
@@ -630,8 +632,6 @@ let find_and_apply_spec
 
 	let quotients = find_correct_specs proc_specs.n_proc_specs ([], [], []) in
 	apply_correct_specs quotients
-
-
 
 let rec fold_predicate pred_name pred_defs symb_state params args spec_vars existentials : (symbolic_state * SS.t) option =
 
@@ -1323,7 +1323,7 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info
 	(* Return *)
 	search_dot_graph, success, failure_msg, result_states
 
-let add_new_spec spec proc_name pre_post result_states new_spec_tbl = 
+let add_new_spec proc_name proc_params pre_post result_states new_spec_tbl = 
 	(* Create new sepcification is there is an anti frame *)
 	let suc_result_states = Option.get result_states in
 	(List.iter (fun (post_state, anti_frame, ret_flag) ->
@@ -1346,8 +1346,8 @@ let add_new_spec spec proc_name pre_post result_states new_spec_tbl =
 						n_subst      = Hashtbl.create small_tbl_size
 					}  in
 					Hashtbl.add new_spec_tbl proc_name {
-						n_spec_name = spec.n_spec_name;
-						n_spec_params = spec.n_spec_params;
+						n_spec_name = proc_name;
+						n_spec_params = proc_params;
 						n_proc_specs = [new_proc_spec];
 					};
 			  )
@@ -1369,10 +1369,14 @@ let add_new_spec spec proc_name pre_post result_states new_spec_tbl =
 	TODO: Construct call graph, do dfs, do in that order
 *)
 let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
-	(* Normalise predicate definitions *)
-	let n_pred_defs = Normaliser.normalise_predicate_definitions pred_defs in
 	(* Going to add the initial heap * anti-frame as the post and resulting heap as the anti-frame *)
 	let new_spec_tbl = Hashtbl.create small_tbl_size in
+	if (!js) then
+		Hashtbl.iter (fun spec_name spec ->	if (not (List.mem spec_name procs_to_verify)) then 
+												Hashtbl.add new_spec_tbl spec_name spec
+					 ) spec_table; 	
+	(* Normalise predicate definitions *)
+	let n_pred_defs = Normaliser.normalise_predicate_definitions pred_defs in
 	(* Construct corresponding extended JSIL program *)
 	let s_prog = {
 		program = prog;
@@ -1384,6 +1388,7 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 	(* Iterate over the specification table *)
 	let results = List.fold_left
 		(fun ac_results proc_name -> 
+		let proc = get_proc s_prog.program proc_name in
 	  	let spec = try Some (Hashtbl.find spec_table proc_name) with Not_found -> None in 
 			match spec with 
 			| Some spec -> 
@@ -1399,13 +1404,18 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 						(* Symbolically execute the procedure given the pre and post *)
 						let dot_graph, success, failure_msg, result_states = symb_evaluate_proc s_prog proc_name new_pre_post i pruning_info in
 						if (Option.is_some(result_states)) then  
-							add_new_spec spec proc_name pre_post result_states new_spec_tbl;
+							add_new_spec proc_name proc.proc_params  pre_post result_states new_spec_tbl;
 						(proc_name, i, pre_post, success, failure_msg, dot_graph))
 					pre_post_list in
 				let results_str, dot_graphs =  Symbolic_State_Print.string_of_symb_exe_results results in
 				(* Concatenate symbolic trace *)
 				ac_results @ results
-			| None -> ac_results)
+			| None -> 
+				let new_pre_post = Bi_Symbolic_State_Functions.create_new_spec () in
+				let dot_graph, success, failure_msg, result_states = symb_evaluate_proc s_prog proc_name new_pre_post 0 pruning_info in
+				if (Option.is_some(result_states)) then  
+					add_new_spec proc_name proc.proc_params  new_pre_post result_states new_spec_tbl;
+				(proc_name, 0, new_pre_post, success, failure_msg, dot_graph) :: ac_results)
 		[]
 		procs_to_verify in 
 	(* Understand complete success *)
@@ -1416,7 +1426,7 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 			true
 			results in
 	(* Get the result string of the symbolic execution *)
-	let specs_str = Symbolic_State_Utils.string_of_n_spec_table_assertions new_spec_tbl in 
+	let specs_str = Symbolic_State_Utils.string_of_n_spec_table_assertions new_spec_tbl procs_to_verify in 
 	let results_str = Symbolic_State_Print.string_of_bi_symb_exe_results results in
 	let results_str = "Generated specifications: \n " ^ specs_str ^ "\n" ^ results_str in
 	(* Return *)

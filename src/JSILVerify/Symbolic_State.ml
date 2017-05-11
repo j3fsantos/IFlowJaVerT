@@ -510,7 +510,7 @@ let symb_state_replace_store symb_state new_store =
 
 let init_symb_state () : symbolic_state =
 	(* Heap, Store, Pure Formula, Gamma, Preds *)
-	(LHeap.create 1, Hashtbl.create 1, DynArray.create (), Hashtbl.create 1, DynArray.create ())
+	(LHeap.create small_tbl_size, Hashtbl.create small_tbl_size, DynArray.create (), Hashtbl.create small_tbl_size, DynArray.create ())
 
 let copy_symb_state symb_state =
 	let heap, store, p_formulae, gamma, preds (*, solver*) = symb_state in

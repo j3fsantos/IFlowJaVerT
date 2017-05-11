@@ -90,3 +90,24 @@ proc getTimeoutIntervalinSeconds (func) {
       y := x / 1000;
       rlab:   skip
 } with { ret: y, rlab; };
+
+spec testProc (obj)
+   [[ emp ]] 
+   [[ emp ]] 
+   normal
+proc testProc (obj) {
+      [obj, "@class"] := "Object";
+      [obj, "@proto"] := "Object";
+      [obj, "@extensible"] := "Object";
+      rlab:   skip
+} with { ret: obj, rlab; };
+
+spec testProcCall (obj)
+   [[ emp ]] 
+   [[ emp ]] 
+   normal
+proc testProcCall (obj) {
+      obj := "testProc" (obj); 
+      [obj, "y"] := "test";
+      rlab:   skip
+} with { ret: obj, rlab; };

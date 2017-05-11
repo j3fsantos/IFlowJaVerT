@@ -84,7 +84,7 @@ let rec bi_reverse_type_lexpr_aux gamma new_gamma le le_type =
 
 	let needs_to_be_none () = 
 		match le_type with 
-			| Some _ -> raise (Non_reversable_type ()) 
+			| Some _ -> raise (Non_reversable_type ())
 			| None -> () in
  
 	(match le with
@@ -190,3 +190,14 @@ let l_vars_in_spec_check anti_frame spec_lvars le =
 			) 
 		(SS.elements le_l_vars) in
 	List.length lvars_not_in_spec_or_af > 0
+
+let create_new_spec () : jsil_n_single_spec =
+	let empty_post = init_symb_state () in
+	{
+		n_pre        = init_symb_state ();
+		n_post       = [empty_post];
+		n_ret_flag   = Normal;
+		n_lvars      = SS.empty;
+		n_post_lvars = [];
+		n_subst      = Hashtbl.create small_tbl_size
+	}
