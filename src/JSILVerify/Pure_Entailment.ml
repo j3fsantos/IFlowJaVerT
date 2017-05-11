@@ -23,7 +23,6 @@ let match_enc msg x y =
 	| WithFPA   -> y
 
 type jsil_axiomatized_operations = {
-	typeof_fun          : FuncDecl.func_decl;
 	llen_fun            : FuncDecl.func_decl;
 	slen_fun            : FuncDecl.func_decl;
 	num2str_fun         : FuncDecl.func_decl;
@@ -43,7 +42,7 @@ type jsil_type_constructors = {
 	char_type_constructor      : FuncDecl.func_decl; 
 	string_type_constructor    : FuncDecl.func_decl;
 	object_type_constructor    : FuncDecl.func_decl;
-  list_type_constructor      : FuncDecl.func_decl;
+    list_type_constructor      : FuncDecl.func_decl;
 	type_type_constructor      : FuncDecl.func_decl;
 	set_type_constructor       : FuncDecl.func_decl
 }
@@ -60,19 +59,19 @@ type jsil_value_constructors = {
 	number_constructor    : FuncDecl.func_decl;
 	char_constructor      : FuncDecl.func_decl; 
 	string_constructor    : FuncDecl.func_decl;
-  loc_constructor       : FuncDecl.func_decl;
-  type_constructor      : FuncDecl.func_decl;
-  list_constructor      : FuncDecl.func_decl;
-  none_constructor      : FuncDecl.func_decl;
-  (* accessors *)
-  (*************)
-  boolean_accessor      : FuncDecl.func_decl;
+    loc_constructor       : FuncDecl.func_decl;
+    type_constructor      : FuncDecl.func_decl;
+    list_constructor      : FuncDecl.func_decl;
+    none_constructor      : FuncDecl.func_decl;
+    (* accessors *)
+    (*************)
+    boolean_accessor      : FuncDecl.func_decl;
 	number_accessor       : FuncDecl.func_decl;
 	char_accessor         : FuncDecl.func_decl;
-  string_accessor       : FuncDecl.func_decl;
-  loc_accessor          : FuncDecl.func_decl;
-  type_accessor         : FuncDecl.func_decl;
-  list_accessor         : FuncDecl.func_decl; 
+    string_accessor       : FuncDecl.func_decl;
+    loc_accessor          : FuncDecl.func_decl;
+    type_accessor         : FuncDecl.func_decl;
+    list_accessor         : FuncDecl.func_decl; 
 	(* recognizers *)
 	(***************)
 	undefined_recognizer  : FuncDecl.func_decl; 
@@ -230,7 +229,7 @@ let z3_jsil_literal_sort, z3_jsil_list_sort, lit_operations =
 				]
 			] in 
 
-	(* try *)
+	try 
 		let z3_jsil_literal_sort = List.nth literal_and_literal_list_sorts 0 in 
 		let z3_jsil_list_sort    = List.nth literal_and_literal_list_sorts 1 in 
 
@@ -309,7 +308,7 @@ let z3_jsil_literal_sort, z3_jsil_list_sort, lit_operations =
 			none_recognizer       = none_recognizer
 		}  in 
 		z3_jsil_literal_sort, z3_jsil_list_sort, jsil_literal_operations
-	(* with _ -> raise (Failure ("DEATH: construction of z3_jsil_value_sort")) *)
+	with _ -> raise (Failure ("DEATH: construction of z3_jsil_value_sort")) 
 
 
 let extended_literal_sort, extended_literal_operations, z3_jsil_set_sort = 
@@ -350,15 +349,13 @@ let extended_literal_sort, extended_literal_operations, z3_jsil_set_sort =
 		} in 
 		extended_literal_sort, extended_literal_operations, z3_jsil_set_sort
 	with _ -> raise (Failure ("DEATH: construction of z3_jsil_value_sort")) 
-	
+
 		 
 let mk_singleton_elem ele = Expr.mk_app ctx extended_literal_operations.singular_constructor [ ele ] 
 let mk_singleton_access ele =  Expr.mk_app ctx extended_literal_operations.singular_elem_accessor [ ele ] 
 
 let axiomatised_operations = 
 	
-	let typeof_fun      = FuncDecl.mk_func_decl ctx (mk_string_symb "typeof")        
-							[ extended_literal_sort ] z3_jsil_type_sort in
 	let slen_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "s-len")         
 							[ numbers_sort ] numbers_sort in
 	let llen_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "l-len")         
@@ -374,7 +371,6 @@ let axiomatised_operations =
 	let lnth_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "l-nth")   
 							[ z3_jsil_list_sort; numbers_sort ] z3_jsil_literal_sort in
 	{
-		typeof_fun   = typeof_fun; 
 		slen_fun     = slen_fun; 
 		llen_fun     = llen_fun; 
 		num2str_fun  = num2str_fun; 
@@ -442,6 +438,50 @@ let encode_type t =
 		| SetType       -> Expr.mk_app ctx type_operations.set_type_constructor       []
 	with _ -> 
 		raise (Failure (Printf.sprintf "DEATH: encode_type with arg: %s" (JSIL_Print.string_of_type t)))
+
+
+let typeof_expression x = 
+	let set_guard       = Expr.mk_app ctx extended_literal_operations.set_recognizer [ x ] in 
+	let sing_elem_guard = Expr.mk_app ctx extended_literal_operations.singular_elem_recognizer [ x ] in  
+	
+	let elem_x = mk_singleton_access x in 
+	let undefined_guard = Expr.mk_app ctx lit_operations.undefined_recognizer [ elem_x ] in
+	let null_guard      = Expr.mk_app ctx lit_operations.null_recognizer      [ elem_x ] in
+	let empty_guard     = Expr.mk_app ctx lit_operations.empty_recognizer     [ elem_x ] in
+	let boolean_guard   = Expr.mk_app ctx lit_operations.boolean_recognizer   [ elem_x ] in
+	let number_guard    = Expr.mk_app ctx lit_operations.number_recognizer    [ elem_x ] in
+	let char_guard      = Expr.mk_app ctx lit_operations.char_recognizer      [ elem_x ] in
+	let string_guard    = Expr.mk_app ctx lit_operations.string_recognizer    [ elem_x ] in
+	let loc_guard       = Expr.mk_app ctx lit_operations.loc_recognizer       [ elem_x ] in
+	let type_guard      = Expr.mk_app ctx lit_operations.type_recognizer      [ elem_x ] in
+	let list_guard      = Expr.mk_app ctx lit_operations.list_recognizer      [ elem_x ] in
+	let none_guard      = Expr.mk_app ctx lit_operations.none_recognizer      [ elem_x ] in
+
+	let sing_elem_types_guards = [
+		undefined_guard; null_guard; empty_guard; boolean_guard; 
+		number_guard; char_guard; string_guard; loc_guard; 
+		type_guard; list_guard; none_guard
+	] in 
+	
+	let sing_elem_types_guards = 
+		List.map (fun a -> Boolean.mk_and ctx [sing_elem_guard; a]) sing_elem_types_guards in 
+  	
+  	let guards = set_guard :: sing_elem_types_guards in 
+  	let results = 
+  		List.map encode_type 
+  			[ SetType; UndefinedType; NullType; EmptyType; BooleanType; 
+ 				NumberType; CharType; StringType; ObjectType; TypeType; ListType; NoneType ] in 
+
+ 	let rec loop guards results = 
+ 		match guards, results with 
+ 		| [], _ 
+ 		| _, [] -> raise (Failure "DEATH: typeof_expression")
+ 		| [ _ ], res :: _ -> res
+ 		| guard :: rest_guards, res :: rest_results -> 
+ 			Boolean.mk_ite ctx guard res (loop rest_guards rest_results) in 
+
+ 	loop guards results
+
 
 let rec encode_lit lit =
 	let mk_singleton_elem ele = Expr.mk_app ctx extended_literal_operations.singular_constructor [ ele ] in 
@@ -624,8 +664,8 @@ let rec encode_logical_expression le =
 	  mk_singleton_elem (Expr.mk_app ctx lit_operations.string_constructor [ res ])
 
 	| LTypeOf le ->
-		let res = Expr.mk_app ctx axiomatised_operations.typeof_fun [ f le ] in 
-		mk_singleton_elem (Expr.mk_app ctx lit_operations.type_constructor [ res ])
+		let res = typeof_expression (f le) in 
+		mk_singleton_elem (Expr.mk_app ctx lit_operations.type_constructor [ res ]) 
 
 	| LESet les -> 
 		let args = List.map (fun le -> mk_singleton_access (f le)) les in
@@ -669,17 +709,6 @@ let encode_quantifier quantifier_type ctx quantified_vars var_sorts assertion =
 	else assertion
 
 
-let make_typeof_axioms lits types = 
-
-	let make_typeof_single_axiom lit l_type = 
-		let lit        = encode_lit lit in 
-		let l_type     = (encode_type l_type)  in 
-		let typeof_lit = Expr.mk_app ctx axiomatised_operations.typeof_fun [ lit ] in 
-		Boolean.mk_eq ctx l_type typeof_lit in 
-
-	try List.map2 make_typeof_single_axiom lits types
-		with _ -> raise (Failure "DEATH: make_typeof_axioms")
-
 
 let global_axioms = 
 	
@@ -708,11 +737,7 @@ let global_axioms =
 	let a         = Boolean.mk_or ctx [a1; a2] in
 	let llen_axiom2 = encode_quantifier true ctx [ x ] [ z3_jsil_list_sort ] a in
 
-	let typeof_axioms = 
-		make_typeof_axioms 
-			[ Undefined; Null; Empty; (Bool true); (Bool false)]
-			[ UndefinedType; NullType; EmptyType; BooleanType; BooleanType ] in 
-	[ slen_axiom; llen_axiom1; (* llen_axiom2 *) ] @ typeof_axioms
+	[ slen_axiom; llen_axiom1; (* llen_axiom2 *) ] 
 
 let make_recognizer_assertion x t_x = 
 	let le_x = Expr.mk_const ctx (mk_string_symb x) extended_literal_sort in 
@@ -784,7 +809,6 @@ let rec encode_assertion a : Expr.expr =
 
 let encode_assertion_top_level a = encode_assertion (JSIL_Logic_Utils.push_in_negations_off a) 
 
-
 let encode_gamma gamma = 
 	let gamma_var_type_pairs = get_gamma_var_type_pairs gamma in
 	let encoded_gamma = 
@@ -793,13 +817,7 @@ let encode_gamma gamma =
 			(List.map
 				(fun (x, t_x) ->
 					if ((is_lvar_name x) || (is_abs_loc_name x))
-						then (
-							let le_x           = Expr.mk_const ctx (mk_string_symb x) extended_literal_sort in
-							let le_typeof_le_x = Expr.mk_app ctx axiomatised_operations.typeof_fun [ le_x ] in
-							let assertion_1    = Boolean.mk_eq ctx le_typeof_le_x (encode_type t_x) in
-							let assertion_2    = make_recognizer_assertion x t_x in 
-							let assertion      = Boolean.mk_and ctx [ assertion_1; assertion_2 ] in 
-							assertion)
+						then make_recognizer_assertion x t_x 
 						else Boolean.mk_true ctx)
 			gamma_var_type_pairs) in
 	encoded_gamma
@@ -987,9 +1005,12 @@ let check_entailment (existentials : SS.t)
 	let left_as = DynArray.to_list left_as in
 	let right_as = DynArray.to_list right_as in	
 	
+	let gamma_left  = filter_gamma_f gamma (fun v -> not (SS.mem v existentials)) in
+	let gamma_right = filter_gamma_f gamma (fun v -> SS.mem v existentials) in 
+
 	let left_as_axioms = List.concat (List.map make_relevant_axioms left_as) in 
 	let left_as = List.map encode_assertion_top_level (left_as_axioms @ left_as) in
-	let left_as = global_axioms @ (encode_gamma gamma) @ left_as in	
+	let left_as = global_axioms @ (encode_gamma gamma_left) @ left_as in	
 	let solver = (Solver.mk_solver ctx None) in
 	Solver.add solver left_as;
 	print_debug_petar (Printf.sprintf "ENT ENCODED: About to check the following:\n%s" (string_of_solver solver));
@@ -1010,8 +1031,11 @@ let check_entailment (existentials : SS.t)
 		let right_as_or =
 			print_debug_petar (Printf.sprintf "Length of existentials: %d" (List.length existentials));
 			if ((List.length existentials) > 0)
-				then encode_quantifier true ctx existentials existentials_sorts right_as_or
-				else right_as_or in
+				then (
+					let a_gamma_right   = encode_gamma gamma_right in
+					let a_right         = Boolean.mk_and ctx ( right_as_or :: a_gamma_right ) in 
+					encode_quantifier true ctx existentials existentials_sorts a_right 
+				) else right_as_or in
 					
 		Solver.add solver (right_as_or :: right_as_axioms);
 		print_debug_petar (Printf.sprintf "ENT: About to check the following:\n%s" (string_of_solver solver));

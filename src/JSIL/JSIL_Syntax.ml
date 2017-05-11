@@ -667,6 +667,15 @@ let filter_gamma gamma vars =
 		gamma;
 	new_gamma
 
+let filter_gamma_f gamma f = 
+	let new_gamma = Hashtbl.create small_tbl_size in
+	Hashtbl.iter
+		(fun v v_type ->
+			(if (f v) then
+				Hashtbl.replace new_gamma v v_type))
+		gamma;
+	new_gamma
+
 let filter_gamma_with_subst gamma vars subst =
 	let new_gamma = Hashtbl.create small_tbl_size in
 	Hashtbl.iter
