@@ -943,7 +943,7 @@ let check_satisfiability assertions gamma =
 			(match ret with
 			| Solver.SATISFIABLE -> "SAT"
 			| Solver.UNSATISFIABLE -> "UNSAT"
-			| Solver.UNKNOWN -> "WTF"));
+			| Solver.UNKNOWN -> "UNKNOWN"));
 		let ret = (ret = Solver.SATISFIABLE) in
 		Hashtbl.add JSIL_Syntax.check_sat_cache cache_assertion ret;
 		print_debug_petar (Printf.sprintf "Adding %s to cache. Cache length %d." 
@@ -993,7 +993,7 @@ let check_entailment (existentials : SS.t)
 	let solver = (Solver.mk_solver ctx None) in
 	Solver.add solver left_as;
 	print_debug_petar (Printf.sprintf "ENT ENCODED: About to check the following:\n%s" (string_of_solver solver));
-	let ret_left = (Solver.check solver [ ]) = Solver.SATISFIABLE in
+	let ret_left = (Solver.check solver [ ] = Solver.SATISFIABLE) in
 	if (ret_left) then (
 		let right_as_axioms = List.concat (List.map make_relevant_axioms right_as) in 
 		let right_as_axioms = List.map encode_assertion_top_level right_as_axioms in
@@ -1017,12 +1017,18 @@ let check_entailment (existentials : SS.t)
 		print_debug_petar (Printf.sprintf "ENT: About to check the following:\n%s" (string_of_solver solver));
 		
 		let start_time = Sys.time () in
-		let ret = (Solver.check solver [ ]) != Solver.SATISFIABLE in
+		let ret = Solver.check solver [ ] in
+		print_debug_petar (Printf.sprintf "The solver returned: %s" 
+					(match ret with
+					| Solver.SATISFIABLE -> "SAT"
+					| Solver.UNSATISFIABLE -> "UNSAT"
+					| Solver.UNKNOWN -> "UNKNOWN"));
 		let end_time = Sys.time () in
 		JSIL_Syntax.update_statistics "solver_call" 0.;
 		JSIL_Syntax.update_statistics "check_entailment_alt" (end_time -. start_time);
 		
-		if (not ret) then print_model solver;
+		if (ret = Solver.SATISFIABLE) then print_model solver;
+		let ret = (ret = Solver.UNSATISFIABLE) in
 		ret)
 	else (
 		print_time_debug "check_entailment done: false. OUTER";

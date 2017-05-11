@@ -61,7 +61,7 @@ let is_int (f : float) : bool =
 
 let is_normal (f : float) =
 	let fc = Float.classify f in
-		(fc = FP_infinite) || (fc = FP_nan)
+		not ((fc = FP_infinite) || (fc = FP_nan))
 
 let precision = 1e-6
 

@@ -327,9 +327,9 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 
 	(* Everything else *)
 	| _ -> e) in
-	if (not (e = result)) then print_debug (Printf.sprintf "Reduce expression: %s ---> %s"
+	(* if (not (e = result)) then print_debug (Printf.sprintf "Reduce expression: %s ---> %s"
 		(JSIL_Print.string_of_logic_expression e false)
-		(JSIL_Print.string_of_logic_expression result false));
+		(JSIL_Print.string_of_logic_expression result false)); *)
 	result
 
 let reduce_expression_no_store_no_gamma_no_pfs = reduce_expression (Hashtbl.create 1) (Hashtbl.create 1) (DynArray.create ())
@@ -445,8 +445,27 @@ let rec reduce_assertion store gamma pfs a =
 			| LBinOp (re1', Plus, LLit (Num n1)), LBinOp (LLit (Num n2), Plus, re2')
 			| LBinOp (LLit (Num n1), Plus, re1'), LBinOp (re2', Plus, LLit (Num n2))
 			| LBinOp (LLit (Num n1), Plus, re1'), LBinOp (LLit (Num n2), Plus, re2') ->
-					if (Utils.is_normal n1 && (n1 = n2)) 
-						then f (LEq (re1', re2')) else default e1 e2 re1 re2
+					print_debug "PLUS_ON_BOTH_SIDES";
+					let isn1 = Utils.is_normal n1 in
+					let isn2 = Utils.is_normal n2 in
+					if (isn1 && isn2)
+						then (
+							if (n1 < n2) then f (LEq (re1', LBinOp (re2', Plus, LLit (Num (n2 -. n1))))) else
+								if (n1 = n2) then f (LEq (re1', re2')) else
+									f (LEq (LBinOp (re1', Plus, LLit (Num (n1 -. n2))), re2'))
+						)
+						else default e1 e2 re1 re2
+						
+			(* More Plus theory *)
+			| LBinOp (re1', Plus, LLit (Num n1)), LLit (Num n2)
+			| LLit (Num n2), LBinOp (re1', Plus, LLit (Num n1)) ->
+					print_debug "PLUS_ON_ONE, LIT_ON_OTHER";
+					let isn1 = Utils.is_normal n1 in
+					let isn2 = Utils.is_normal n2 in
+					if (isn1 && isn2)
+						then 
+							f (LEq (re1', LLit (Num (n2 -. n1))))
+						else default e1 e2 re1 re2
 						
 			| _, _ -> default e1 e2 re1 re2
 		)
@@ -507,9 +526,9 @@ let rec reduce_assertion store gamma pfs a =
 			LForAll (bt, ra)
 
 	| _ -> a) in
-	if (not (a = result)) then print_debug (Printf.sprintf "Reduce assertion: %s ---> %s"
+	(* print_debug (Printf.sprintf "Reduce assertion: %s ---> %s"
 		(JSIL_Print.string_of_logic_assertion a false)
-		(JSIL_Print.string_of_logic_assertion result false));
+		(JSIL_Print.string_of_logic_assertion result false)); *)
 	result
 
 let reduce_assertion_no_store_no_gamma_no_pfs = reduce_assertion (Hashtbl.create 1) (Hashtbl.create 1) (DynArray.create ())
@@ -1430,82 +1449,88 @@ let simplify_symb_state
 						changes_made := true;
 						DynArray.delete pfs !n;
 						
-						(* Substitute *)
-						let temp_subst = Hashtbl.create 1 in
-						Hashtbl.add temp_subst v le;
-						
-						let simpl_fun = (match (not (SS.mem v !initial_existentials) && (save_all || SS.mem v vars_to_save)) with
-							| false -> symb_state_substitution_in_place_no_gamma
-							| true -> selective_symb_state_substitution_in_place_no_gamma
-							) in
-						
-						simpl_fun !symb_state temp_subst;
-						pf_substitution_in_place !others temp_subst;
-						
-						(* Add to subst *)
-						if (Hashtbl.mem subst v) then 
-							raise (Failure (Printf.sprintf "Impossible variable in subst: %s\n%s"
-								v (Symbolic_State_Print.string_of_substitution subst)));
-						Hashtbl.iter (fun v' le' ->
-							let sb = Hashtbl.create 1 in
-								Hashtbl.add sb v le;
-								let sa = lexpr_substitution le' sb true in
-									Hashtbl.replace subst v' sa) subst;
-						Hashtbl.replace subst v le;
-						
-						(* Understand gamma if subst is another LVar *)
-						(match le with
-						| LVar v' ->
-							(match (Hashtbl.mem gamma v) with
-							| false -> ()
-							| true -> 
-								let t = Hashtbl.find gamma v in
-									(match (Hashtbl.mem gamma v') with
-									| false -> 
-											let it = type_index t in
-											types.(it) <- types.(it) + 1;
-											Hashtbl.add gamma v' t
-									| true -> 
-										let t' = Hashtbl.find gamma v' in
-										(match (t = t') with
-										| false -> pfs_ok := false; msg := "Horrific type mismatch."
-										| true -> ()))
-							)
-						| _ -> ());
-								
+						let tv, _, _ = JSIL_Logic_Utils.type_lexpr gamma (LVar v) in
+						let tle = if ((not (match le with | LVar _ -> true | _ -> false)) && (isString le || isInternalString le)) then Some StringType else
+							let result, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in result in
+						(match tv, tle with
+						| Some tv, Some tle when (tv <> tle) -> pfs_ok := false; msg := "Nasty type mismatch."
+						| _ -> 
+							(* Substitute *)
+							let temp_subst = Hashtbl.create 1 in
+							Hashtbl.add temp_subst v le;
 							
-						(* Remove (or add) from (or to) gamma *)
-						(match (save_all || SS.mem v (SS.union vars_to_save !exists)) with
-	      		| true -> 
-								let le_type = if ((not (match le with | LVar _ -> true | _ -> false)) && (isString le || isInternalString le)) then Some StringType else
-									let result, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in result in
-								(match le_type with
-								| None -> ()
-								| Some t -> 
-									(match Hashtbl.mem gamma v with
-									| false -> 
-											let it = type_index t in
-											types.(it) <- types.(it) + 1;
-											(* print_debug_petar (Printf.sprintf "GAT: %s : %s" v (JSIL_Print.string_of_type t)); *)
-											Hashtbl.add gamma v t
-									| true -> 
-											let tv = Hashtbl.find gamma v in
-											(match (tv = t) with
-											| true -> ()
-											| false ->
-													(* print_debug_petar (Printf.sprintf "Type mismatch: %s -> %s, but %s." v (JSIL_Print.string_of_type tv) (JSIL_Print.string_of_type t)); *) 
-													pfs_ok := false; msg := "Horrific type mismatch.")))
-	      		| false -> 
-	    					while (Hashtbl.mem gamma v) do 
-	    						let t = Hashtbl.find gamma v in
-	    						let it = type_index t in
-	    						types.(it) <- types.(it) - 1;
-									(* print_debug_petar (Printf.sprintf "Removing from gamma: %s" v); *)
-	    						Hashtbl.remove gamma v 
-	    					done);
-						
-						(* Remove from existentials *)
-						exists := SS.remove v !exists)
+							let simpl_fun = (match (not (SS.mem v !initial_existentials) && (save_all || SS.mem v vars_to_save)) with
+								| false -> symb_state_substitution_in_place_no_gamma
+								| true -> selective_symb_state_substitution_in_place_no_gamma
+								) in
+							
+							simpl_fun !symb_state temp_subst;
+							pf_substitution_in_place !others temp_subst;
+							
+							(* Add to subst *)
+							if (Hashtbl.mem subst v) then 
+								raise (Failure (Printf.sprintf "Impossible variable in subst: %s\n%s"
+									v (Symbolic_State_Print.string_of_substitution subst)));
+							Hashtbl.iter (fun v' le' ->
+								let sb = Hashtbl.create 1 in
+									Hashtbl.add sb v le;
+									let sa = lexpr_substitution le' sb true in
+										Hashtbl.replace subst v' sa) subst;
+							Hashtbl.replace subst v le;
+							
+							(* Understand gamma if subst is another LVar *)
+							(match le with
+							| LVar v' ->
+								(match (Hashtbl.mem gamma v) with
+								| false -> ()
+								| true -> 
+									let t = Hashtbl.find gamma v in
+										(match (Hashtbl.mem gamma v') with
+										| false -> 
+												let it = type_index t in
+												types.(it) <- types.(it) + 1;
+												Hashtbl.add gamma v' t
+										| true -> 
+											let t' = Hashtbl.find gamma v' in
+											(match (t = t') with
+											| false -> pfs_ok := false; msg := "Horrific type mismatch."
+											| true -> ()))
+								)
+							| _ -> ());
+									
+								
+							(* Remove (or add) from (or to) gamma *)
+							(match (save_all || SS.mem v (SS.union vars_to_save !exists)) with
+		      		| true -> 
+									let le_type = if ((not (match le with | LVar _ -> true | _ -> false)) && (isString le || isInternalString le)) then Some StringType else
+										let result, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in result in
+									(match le_type with
+									| None -> ()
+									| Some t -> 
+										(match Hashtbl.mem gamma v with
+										| false -> 
+												let it = type_index t in
+												types.(it) <- types.(it) + 1;
+												(* print_debug_petar (Printf.sprintf "GAT: %s : %s" v (JSIL_Print.string_of_type t)); *)
+												Hashtbl.add gamma v t
+										| true -> 
+												let tv = Hashtbl.find gamma v in
+												(match (tv = t) with
+												| true -> ()
+												| false ->
+														(* print_debug_petar (Printf.sprintf "Type mismatch: %s -> %s, but %s." v (JSIL_Print.string_of_type tv) (JSIL_Print.string_of_type t)); *) 
+														pfs_ok := false; msg := "Horrific type mismatch.")))
+		      		| false -> 
+		    					while (Hashtbl.mem gamma v) do 
+		    						let t = Hashtbl.find gamma v in
+		    						let it = type_index t in
+		    						types.(it) <- types.(it) - 1;
+										(* print_debug_petar (Printf.sprintf "Removing from gamma: %s" v); *)
+		    						Hashtbl.remove gamma v 
+		    					done);
+							
+							(* Remove from existentials *)
+							exists := SS.remove v !exists))
 					
 				(* List length *)
 				| LLit (Num len), LUnOp (LstLen, LVar v)
@@ -1884,27 +1909,189 @@ let clean_up_stuff exists left right =
 		)
 	done
 	
+
+
+
+(* Set intersections *)
+let get_set_intersections pfs =
+	let lvars = Hashtbl.create 23 in
+	let rvars = Hashtbl.create 23 in
+	
+	List.iter
+		(fun pf -> 
+			(match pf with
+			| LForAll ([ (x, NumberType) ], LOr (LNot (LSetMem (LVar y, LVar set)), LLess (LVar elem, LVar z))) when (x = y && x = z) -> 
+					print_debug_petar (Printf.sprintf "Got left: %s, %s" elem set);
+					Hashtbl.add lvars elem set;
+			| LForAll ([ (x, NumberType) ], LOr (LNot (LSetMem (LVar y, LVar set)), LLess (LVar z, LVar elem))) when (x = y && x = z) -> 
+					print_debug_petar (Printf.sprintf "Got right: %s, %s" elem set);
+					Hashtbl.add rvars elem set;
+			| _ -> ())
+		) pfs;
+		
+	print_debug_petar "v <# set :";  Hashtbl.iter (fun v s -> print_debug_petar (Printf.sprintf "\t%s, %s" v s)) lvars;
+	print_debug_petar "set <# v :"; Hashtbl.iter (fun v s -> print_debug_petar (Printf.sprintf "\t%s, %s" v s)) rvars;
+	
+	(* 
+	 *   1. forall (v, s) in lvars -> inter { v }, s = 0
+	 *   2. forall (v, s) in rvars -> inter { v }, s = 0
+	 *   3. if (v, s1) in lvars and (v, s2) in rvars, then inter s1 s2 = 0
+	 *   4. if v1 < v2 and (v1, s1) in lvars and (v2, s2) in lvars, then inter { v1 } { v2 } = 0 and inter { v1 } s2 = 0
+	 * 
+	 *   THERE ARE MORE
+ 	 *)
+	let intersections = ref [] in
+	
+	(* 1. *)
+	Hashtbl.iter (fun v s -> intersections := (SLExpr.of_list [ LESet [ LVar v ]; LVar s ] ) :: !intersections) lvars;
+	(* 2. *)
+	Hashtbl.iter (fun v s -> intersections := (SLExpr.of_list [ LESet [ LVar v ]; LVar s ] ) :: !intersections) rvars;
+	(* 3. *)
+	Hashtbl.iter (fun v s1 -> if (Hashtbl.mem rvars v) then
+		let rsets = Hashtbl.find_all rvars v in
+		List.iter (fun s2 -> intersections := (SLExpr.of_list [ LVar s1; LVar s2 ] ) :: !intersections) rsets) lvars;
+	(* 4. *)
+	List.iter (fun a -> 
+		(match a with
+		| LLess (LVar v1, LVar v2) -> 
+			(match (Hashtbl.mem lvars v1), (Hashtbl.mem lvars v2) with
+			| true, true -> 
+					intersections := (SLExpr.of_list [ LESet [ LVar v1 ]; LESet [ LVar v2 ] ] ) :: !intersections;
+					let rsets = Hashtbl.find_all lvars v2 in
+					List.iter (fun s2 -> intersections := (SLExpr.of_list [ LESet [ LVar v1 ]; LVar s2 ] ) :: !intersections) rsets;
+			| true, false 
+			| false, true ->
+					intersections := (SLExpr.of_list [ LESet [ LVar v1 ]; LESet [ LVar v2 ] ] ) :: !intersections;
+			| _, _ -> ()
+			);
+		| _ -> ())) pfs;
+	let intersections = List.map (fun s -> SLExpr.elements s) !intersections in
+	List.sort compare intersections
+	
+let resolve_set_existentials lpfs rpfs exists gamma =
+
+	print_debug "RESOLVE_SET_EXISTENTIALS";
+
+	let exists = ref exists in
+
+	let set_exists = SS.filter (fun x -> Hashtbl.mem gamma x && (Hashtbl.find gamma x = SetType)) !exists in
+	if (SS.cardinal set_exists > 0) then (
+	let intersections = get_set_intersections ((DynArray.to_list lpfs) @ (DynArray.to_list rpfs)) in
+	print_debug_petar (Printf.sprintf "Intersections we have:\n%s"
+		(String.concat "\n" (List.map (fun s -> String.concat ", " (List.map (fun e -> print_lexpr e) s)) intersections)));
+					
+	let i = ref 0 in
+	while (!i < DynArray.length rpfs) do
+		let a = DynArray.get rpfs !i in
+		(match a with
+		| LEq (LSetUnion ul, LSetUnion ur) -> 
+				let sul = SLExpr.of_list ul in
+				let sur = SLExpr.of_list ur in
+				print_debug_petar "I have found a union equality.";
+				
+				(* Trying to cut the union *)
+				let same_parts = SLExpr.inter sul sur in
+				print_debug_petar (Printf.sprintf "Same parts: %s" (String.concat ", " (List.map (fun x -> print_lexpr x) (SLExpr.elements same_parts))));
+				if (SLExpr.cardinal same_parts = 1) then (
+					let must_not_intersect = SLExpr.diff (SLExpr.union sul sur) same_parts in
+					print_debug_petar (Printf.sprintf "%s must not intersect any of %s" 
+						(String.concat ", " (List.map (fun x -> print_lexpr x) (SLExpr.elements same_parts)))
+						(String.concat ", " (List.map (fun x -> print_lexpr x) (SLExpr.elements must_not_intersect))));
+					let element : jsil_logic_expr = List.hd (SLExpr.elements same_parts) in 
+					let must_not_intersect = List.map (fun s -> List.sort compare [ s; element ]) (SLExpr.elements must_not_intersect) in
+					print_debug_petar (Printf.sprintf "Intersections we need:\n%s"
+							(String.concat "\n" (List.map (fun s -> String.concat ", " (List.map (fun e -> print_lexpr e) s)) must_not_intersect)));
+					let must_not_intersect = List.map (fun s -> List.mem s intersections) must_not_intersect in
+					print_debug_petar (Printf.sprintf "And we have: %s" (String.concat ", " (List.map (fun (x : bool) -> if (x = true) then "true" else "false") must_not_intersect)));
+					let must_not_intersect = SB.elements (SB.of_list must_not_intersect) in
+					if (must_not_intersect = [ true ]) then (
+						let success = ref true in
+						let cl = SLExpr.diff sul same_parts in
+						let cr = SLExpr.diff sur same_parts in
+						let lhs = if (SLExpr.cardinal cl = 1) then (List.hd (SLExpr.elements cl)) else LSetUnion (SLExpr.elements cl) in
+						let rhs = if (SLExpr.cardinal cr = 1) then (List.hd (SLExpr.elements cr)) else LSetUnion (SLExpr.elements cr) in
+						(* CAREFULLY substitute *)
+						(match lhs with
+						| LVar v when (SS.mem v set_exists) ->
+								print_debug (Printf.sprintf "Managed to instantiate a set existential: %s" v);
+								let temp_subst = Hashtbl.create 1 in
+								Hashtbl.add temp_subst v rhs;
+								pf_substitution_in_place rpfs temp_subst;
+								exists := SS.remove v !exists;
+								while (Hashtbl.mem gamma v) do Hashtbl.remove gamma v done;
+								DynArray.delete rpfs !i
+						| _ -> DynArray.set rpfs !i (LEq (lhs, rhs)); i := !i + 1;)
+						) else i := !i + 1
+				) else i := !i + 1;
+				
+		| _ -> i := !i + 1;);
+	done;
+
+	rpfs, !exists, gamma) else rpfs, !exists, gamma
+	
+	
+	
+let find_impossible_unions lpfs rpfs exists gamma =
+
+	print_debug "FIND_IMPOSSIBLE_UNIONS";
+	let exists = ref exists in
+
+	let set_exists = SS.filter (fun x -> Hashtbl.mem gamma x && (Hashtbl.find gamma x = SetType)) !exists in
+	if (SS.cardinal set_exists > 0) then (
+	let intersections = get_set_intersections ((DynArray.to_list lpfs) @ (DynArray.to_list rpfs)) in
+	print_debug_petar (Printf.sprintf "Intersections we have:\n%s"
+		(String.concat "\n" (List.map (fun s -> String.concat ", " (List.map (fun e -> print_lexpr e) s)) intersections)));
+	
+	try (
+	let i = ref 0 in
+	while (!i < DynArray.length rpfs) do
+		let a = DynArray.get rpfs !i in
+		(match a with
+		| LEq (LSetUnion ul, LSetUnion ur) -> 
+				let sul = SLExpr.of_list ul in
+				let sur = SLExpr.of_list ur in
+				print_debug_petar "I have found a union equality.";
+				
+				(* Just for the left *)
+				SLExpr.iter (fun s1 ->
+					let must_not_intersect = List.map (fun s -> List.sort compare [ s; s1 ]) (SLExpr.elements sur) in
+					print_debug_petar (Printf.sprintf "Intersections we need:\n%s"
+							(String.concat "\n" (List.map (fun s -> String.concat ", " (List.map (fun e -> print_lexpr e) s)) must_not_intersect)));
+					let must_not_intersect = List.map (fun s -> List.mem s intersections) must_not_intersect in
+					print_debug_petar (Printf.sprintf "And we have: %s" (String.concat ", " (List.map (fun (x : bool) -> if (x = true) then "true" else "false") must_not_intersect)));
+					let must_not_intersect = SB.elements (SB.of_list must_not_intersect) in
+					if (must_not_intersect = [ true ]) then raise (Failure "Oopsie!");
+				) sul;
+		
+		| _ -> i := !i + 1;);
+		done;	
+	
+		rpfs, !exists, gamma) with
+		| Failure _ -> DynArray.of_list [ LFalse ], SS.empty, Hashtbl.create 1) else rpfs, !exists, gamma
+
+
+
 let simplify_implication exists lpfs rpfs gamma =
-	let lpfs, rpfs, exists, gamma = simplify_pfs_with_exists_and_others exists lpfs rpfs gamma in
-print_debug_petar (Printf.sprintf "Starting existential simplification:\n\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\n\nGamma:\n%s\n\n"
-		(String.concat ", " (SS.elements exists))
-		(print_pfs lpfs)
-		(print_pfs rpfs)
-		(Symbolic_State_Print.string_of_gamma gamma)); 
 	sanitise_pfs_no_store gamma rpfs;
-print_debug_petar (Printf.sprintf "Continuing existential simplification:\n\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\n\nGamma:\n%s\n\n"
-		(String.concat ", " (SS.elements exists))
-		(print_pfs lpfs)
-		(print_pfs rpfs)
-		(Symbolic_State_Print.string_of_gamma gamma)); 
+	let lpfs, rpfs, exists, gamma = simplify_pfs_with_exists_and_others exists lpfs rpfs gamma in
+	sanitise_pfs_no_store gamma rpfs;
 	let exists, lpfs, rpfs, gamma = simplify_existentials exists lpfs rpfs gamma in
 	clean_up_stuff exists lpfs rpfs;
+	let rpfs, exists, gamma = resolve_set_existentials lpfs rpfs exists gamma in
+	let rpfs, exists, gamma = find_impossible_unions   lpfs rpfs exists gamma in
 	print_debug_petar (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\n\nGamma:\n%s\n\n"
 		(String.concat ", " (SS.elements exists))
 		(print_pfs lpfs)
 		(print_pfs rpfs)
 		(Symbolic_State_Print.string_of_gamma gamma)); 
 	exists, lpfs, rpfs, gamma (* DO THE SUBST *)
+
+
+
+
+
+
+
 
 
 
@@ -1918,8 +2105,6 @@ let aux_find_me_Im_a_loc pfs gamma v =
 				| ALoc w 
 				| LLit (Loc w) -> Some w
 				| _ -> None))
-
-
 
 (** This function is dramatically incomplete **)
 let resolve_location lvar pfs =

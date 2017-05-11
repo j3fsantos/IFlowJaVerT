@@ -507,7 +507,14 @@ module MyFieldValueList =
 		let compare = Pervasives.compare
 	end
 
+module MyBool = 
+	struct
+		type t = bool
+		let compare = Pervasives.compare
+	end
+	
 module SI = Set.Make(MyInt)
+module SB = Set.Make(MyBool)
 module SN = Set.Make(MyNumber)
 module SA = Set.Make(MyAssertion)
 

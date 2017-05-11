@@ -26,56 +26,48 @@
    (forall #x: $$number_type. ((! (#x --e-- #tE)) \/ (#v <# #x))) *
    types(#v: $$number_type, E: $$set_type, #tE: $$set_type);
  */
+ 
 /**
- @id insert
+	@id insert
 
- @pre ((node == #n) * (value == #v) * SOList(#n, #E) * types(#v: $$number_type) * 
-         scope(insert: #insert_fun) * fun_obj(insert, #insert_fun, #insert_proto))
- @post ( (ret == #ret) * SOList(#ret, -u- (-{ #v }-, #E)) * types(#ret: $$object_type) *
-         scope(insert: #insert_fun) * fun_obj(insert, #insert_fun, #insert_proto) )
- */
+	@pre ((node == #n) * (value == #v) * SOList(#n, #E) * types(#v: $$number_type) * 
+		 scope(insert: #insert_fun) * fun_obj(insert, #insert_fun, #insert_proto))
+	@post ( (ret == #ret) * SOList(#ret, -u- (-{ #v }-, #E)) * types(#ret: $$object_type) *
+		 scope(insert: #insert_fun) * fun_obj(insert, #insert_fun, #insert_proto) )
+*/
 function insert(node, value) {
+    
     var result;
+
     /** @unfold SOList(#n, #E) */
     if (node === null) {
+    	/** @fold SOList(#n, #E) */
         result = { next: null, value: value }
-        /** @invariant scope(result: #res)
-            @fold SOList($$null, -{ }-)
-            @fold SOList(#res, -{ #v }-) */
-        0; 
     } else if (node.value === value) {
-        // Let's be defensive
-        /** @fold SOList(#n, #E) */
         result = node;
-
     } else if (node.value < value) {
         var rec = insert(node.next, value);
-        /** @invariant scope(rec: #rec)
-            @unfold SOList(#rec, #rE)
-            @fold SOList(#rec, #rE) */
+        /** @flash SOList(#rec, #rE) */
         result = { next: rec, value: node.value }
-        /** @invariant scope(result: #res)
-            @fold SOList(#res, -u- (-{ #v }-, #rE)) */
-        0; 
     } else {
         result = { next: node, value: value }
-        /** @invariant scope(result: #res)
-            @fold SOList(#res, -u- (-{ #v }-, #E)) */
-        0; 
     }
+    
+    /** @invariant scope(result : #res) 
+        @fold SOList(#res, -u- (-{ #v }-, #E)) */
     return result;
 }
 
 /**
- @id sort
+	@id sort
 
- @pre ((head == #h) * NDList(#h, #E) * 
-          scope(sort: #sort_fun) * fun_obj(sort, #sort_fun, #sort_proto) * 
-          scope(insert: #insert_fun) * fun_obj(insert, #insert_fun, #insert_proto))
- @post (SOList(ret, #E) * nullableObject(ret) * 
-          scope(sort: #sort_fun) * fun_obj(sort, #sort_fun, #sort_proto) * 
-          scope(insert: #insert_fun) * fun_obj(insert, #insert_fun, #insert_proto))
- */
+	@pre ((head == #h) * NDList(#h, #E) * 
+		  scope(sort: #sort_fun) * fun_obj(sort, #sort_fun, #sort_proto) * 
+		  scope(insert: #insert_fun) * fun_obj(insert, #insert_fun, #insert_proto))
+	@post (SOList(ret, #E) * nullableObject(ret) * 
+		  scope(sort: #sort_fun) * fun_obj(sort, #sort_fun, #sort_proto) * 
+		  scope(insert: #insert_fun) * fun_obj(insert, #insert_fun, #insert_proto))
+*/
 function sort(head) {
     var result;
     /** @unfold NDList(#h, #E) */
