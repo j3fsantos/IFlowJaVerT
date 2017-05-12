@@ -1326,7 +1326,7 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info
 let add_new_spec proc_name proc_params pre_post result_states new_spec_tbl = 
 	(* Create new sepcification is there is an anti frame *)
 	let suc_result_states = Option.get result_states in
-	(List.iter (fun (post_state, anti_frame, ret_flag) ->
+	let specs = (List.map (fun (post_state, anti_frame, ret_flag) ->
 					(* The new precondition = old precondition * anti frame *)
 					(* The new postconition is the final state after evaluation *)
 					let new_pre  =  Symbolic_State_Utils.bi_merge_symb_states anti_frame pre_post.n_pre in 
@@ -1335,23 +1335,32 @@ let add_new_spec proc_name proc_params pre_post result_states new_spec_tbl =
 					Simplifications.naively_infer_type_information_symb_state pre_subst; 
 					Simplifications.naively_infer_type_information_symb_state post_subst; 
 					let post_lvars = Symbolic_State_Utils.get_symb_state_lvars pre_subst in
-					print_endline "Pre Spec Vars";
 					let pre_lvars = Symbolic_State_Utils.get_symb_state_lvars post_subst in
-					let new_proc_spec = {
+					{
 						n_pre        = pre_subst;
 						n_post       = [post_subst];
 						n_ret_flag   = ret_flag;
 						n_lvars      = pre_lvars;
 						n_post_lvars = [post_lvars];
 						n_subst      = Hashtbl.create small_tbl_size
-					}  in
-					Hashtbl.add new_spec_tbl proc_name {
-						n_spec_name = proc_name;
-						n_spec_params = proc_params;
-						n_proc_specs = [new_proc_spec];
-					};
-			  )
-			  suc_result_states)
+					}
+			  	) suc_result_states) in
+	let spec = try Some (Hashtbl.find new_spec_tbl proc_name) with Not_found -> None in 
+	(match spec with 
+	| Some spec -> 
+		let specs = List.append specs spec.n_proc_specs in
+		Hashtbl.replace new_spec_tbl proc_name {
+			n_spec_name = proc_name;
+			n_spec_params = proc_params;
+			n_proc_specs = specs;
+		};
+	| None -> 
+		Hashtbl.add new_spec_tbl proc_name {
+			n_spec_name = proc_name;
+			n_spec_params = proc_params;
+			n_proc_specs = specs;
+		};);
+	()
 
 (** 
 	Symbolic execution of a given set of JSIL procedures
