@@ -796,8 +796,10 @@ let rec split_list_on_element (le : jsil_logic_expr) (e : jsil_logic_expr) : boo
 	| _ -> let msg = Printf.sprintf "Non-list expressions passed to split_list_on_element : %s" (print_lexpr le) in
 		raise (Failure msg))
 
+let crossProduct l l' = List.concat (List.map (fun e -> List.map (fun e' -> (e,e')) l') l)
+
 (* Unifying lists based on a common literal *)
-let match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : 
+let rec match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : 
 	bool * (jsil_logic_expr * jsil_logic_expr) * (jsil_logic_expr * jsil_logic_expr) * (jsil_logic_expr * jsil_logic_expr) option =
 	let elems1 = get_elements_from_list le1 in
 	(match elems1 with
@@ -807,38 +809,40 @@ let match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) :
 		(match elems2 with
 		| [] -> false, (LLit (Bool false), LLit (Bool false)), (LLit (Bool false), LLit (Bool false)), None
 		| _ -> 
-			print_debug_petar (Printf.sprintf "LEL: %s\nREL: %s"
+			(* print_debug_petar (Printf.sprintf "LEL: %s\nREL: %s"
 				(String.concat ", " (List.map (fun x -> print_lexpr x) elems1))	
 				(String.concat ", " (List.map (fun x -> print_lexpr x) elems2))	
-			);
+			); *)
 			let intersection = List.fold_left (fun ac x -> 
 				if (List.mem x elems1) then ac @ [x] else ac) [] elems2 in
 			let intersection, list_unification = (match intersection with
 			| [] -> 
-					let len1 = List.length elems1 in
-					let len2 = List.length elems2 in
-					(match len1, len2 with
-					| 1, 1 -> (match elems1, elems2 with
-						| [ le1 ], [ le2 ] -> if (isList le1) && (isList le2) 
-							then Some (le1, le2), Some (le1, le2)
-							else None, None
-						| _, _ -> raise (Failure "Should not happen."))
-					| _, _ -> None, None)
+					let candidates = crossProduct elems1 elems2 in
+					let candidates = List.map (fun (le1, le2) ->
+						let result = 
+						(match isList le1, isList le2 with
+						| true, true -> 
+								let unifiable, _ = unify_lists le1 le2 false in
+								(unifiable <> None)
+						| _, _ -> false) in (le1, le2, result)) candidates in
+					let candidates = List.filter (fun (_, _, b) -> b) candidates in
+					(match candidates with 
+					| [] -> None, None
+					| (le1, le2, _) :: _ -> Some (le1, le2), Some (le1, le2))
 			| i :: _ -> Some (i, i), None) in
 			(match intersection with
 			| None -> false, (LLit (Bool false), LLit (Bool false)), (LLit (Bool false), LLit (Bool false)), None
 			| Some (i, j) ->
-				print_debug_petar (Printf.sprintf "(Potential) Intersection: %s, %s" (print_lexpr i) (print_lexpr j));
+				(* print_debug_petar (Printf.sprintf "(Potential) Intersection: %s, %s" (print_lexpr i) (print_lexpr j)); *)
 				let ok1, (l1, r1) = split_list_on_element le1 i in
 				let ok2, (l2, r2) = split_list_on_element le2 j in
 				(match ok1, ok2 with
-				| true, true -> true, (l1, r1), (l2, r2) , list_unification
+				| true, true -> true, (l1, r1), (l2, r2), list_unification
 				| _, _ -> let msg = Printf.sprintf "Element %s that was supposed to be in both lists: %s, %s is not." (print_lexpr i) (print_lexpr le1) (print_lexpr le2) in
 						raise (Failure msg)))
 		))
-
-(* List unification *)
-let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bool option * ((jsil_logic_expr * jsil_logic_expr) list) = 
+and
+unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bool option * ((jsil_logic_expr * jsil_logic_expr) list) = 
 	let le1 = reduce_expression_no_store_no_gamma_no_pfs le1 in
 	let le2 = reduce_expression_no_store_no_gamma_no_pfs le2 in
 	let le1_old = le1 in
@@ -846,8 +850,8 @@ let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bo
 	let to_swap_now = (le1_old <> le1) in
 	let to_swap = (to_swap <> to_swap_now) in
 	let swap (le1, le2) = if to_swap then (le2, le1) else (le1, le2) in
-	(* print_debug (Printf.sprintf "unify_lists: \n\t%s\n\t\tand\n\t%s" 
-		(print_lexpr le1) (print_lexpr le2)); *)
+	(* print_debug_petar (Printf.sprintf "unify_lists: \n\t%s\n\t\tand\n\t%s" 
+		(print_lexpr le1) (print_lexpr le2)); *) 
 	(match le1, le2 with
 	  (* Base cases *)
 	  | LLit (LList []), LLit (LList [])
@@ -867,7 +871,7 @@ let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bo
 		| LBinOp (_, LstCat, _), LBinOp (_, LstCat, _) -> 
 			let (okl, headl, taill) = get_head_and_tail_list le1 in
 			let (okr, headr, tailr) = get_head_and_tail_list le2 in
-			(* print_debug (Printf.sprintf "Got head and tail: left: %b, right: %b" 
+			(* print_debug_petar (Printf.sprintf "Got head and tail: left: %b, right: %b" 
 				(Option.map_default (fun v -> v) false okl) (Option.map_default (fun v -> v) false okr)); *)
 			(match okl, okr with
 			(* We can separate both lists *)
