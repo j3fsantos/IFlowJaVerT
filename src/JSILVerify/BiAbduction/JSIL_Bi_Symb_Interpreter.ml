@@ -207,6 +207,7 @@ let rec safe_symb_evaluate_expr spec_lvars (symb_state: symbolic_state) (anti_fr
 		let msg = Printf.sprintf "The logical expression %s is not typable in the typing enviroment: %s \n with the pure formulae %s" (print_le nle) gamma_str pure_str in
 		raise (Failure msg) in
 	let nle = symb_evaluate_expr symb_state anti_frame expr in
+	let nle = Simplifications.replace_nle_with_lvars pure_formulae nle in 
 	let nle_type, is_typable, constraints = type_lexpr gamma nle in
 	if (is_typable) then
 		(if ((List.length constraints = 0) || (Pure_Entailment.check_entailment SS.empty (pfs_to_list pure_formulae) constraints gamma)) then 
@@ -226,7 +227,7 @@ let rec safe_symb_evaluate_expr spec_lvars (symb_state: symbolic_state) (anti_fr
 		(match nle with
 		| LVar _ ->  nle, None, false
 		| _ ->
-			let new_gamma = Bi_Symbolic_State_Functions.bi_reverse_type_lexpr gamma nle nle_type in
+			let new_gamma = Bi_Symbolic_State_Functions.bi_reverse_type_lexpr (get_pf anti_frame) pure_formulae gamma nle nle_type in
 			match new_gamma with 
 				| Some new_gamma -> 
 					extend_gamma gamma new_gamma;
@@ -1334,8 +1335,8 @@ let add_new_spec proc_name proc_params pre_post result_states new_spec_tbl =
 					let (pre_subst,post_subst) = Symbolic_State_Utils.symb_state_lvars_to_svars new_pre post_state in
 					Simplifications.naively_infer_type_information_symb_state pre_subst; 
 					Simplifications.naively_infer_type_information_symb_state post_subst; 
-					let post_lvars = Symbolic_State_Utils.get_symb_state_lvars pre_subst in
-					let pre_lvars = Symbolic_State_Utils.get_symb_state_lvars post_subst in
+					let pre_lvars = Symbolic_State_Utils.get_symb_state_lvars pre_subst in
+					let post_lvars = Symbolic_State_Utils.get_symb_state_lvars post_subst in
 					{
 						n_pre        = pre_subst;
 						n_post       = [post_subst];

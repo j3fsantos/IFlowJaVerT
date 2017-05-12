@@ -75,16 +75,21 @@ let abs_heap_check_field_existence  (symb_state : symbolic_state) (anti_frame : 
 
 exception Non_reversable_type of unit
 
-let rec bi_reverse_type_lexpr_aux gamma new_gamma le le_type =
-	let f = bi_reverse_type_lexpr_aux gamma new_gamma in
+let rec bi_reverse_type_lexpr_aux pfs_af pfs gamma new_gamma le le_type =
+	let f = bi_reverse_type_lexpr_aux pfs_af pfs gamma new_gamma in
 	let check_type t = 
 		match le_type with 
 		| None -> ()
 		| Some t' -> if( t = t') then () else raise (Non_reversable_type ()) in 
 
-	let needs_to_be_none () = 
+	let check_and_update_type () = 
 		match le_type with 
-			| Some _ -> raise (Non_reversable_type ())
+			| Some t -> 
+					let new_lvar = fresh_lvar () in
+					weak_update_gamma new_gamma new_lvar le_type;
+					add_pure_assertion pfs (LEq ((LVar new_lvar), le));
+					add_pure_assertion pfs_af (LEq ((LVar new_lvar), le));
+					()
 			| None -> () in
  
 	(match le with
@@ -127,7 +132,7 @@ let rec bi_reverse_type_lexpr_aux gamma new_gamma le le_type =
 		| IsPrimitive -> raise (Failure "DEATH bi_reverse_type_lexpr_aux IsPrimitive")
 
 		| Cdr -> f le (Some ListType); check_type ListType 
-		| Car -> f le (Some ListType); needs_to_be_none ()
+		| Car -> f le (Some ListType); check_and_update_type ()
 		| LstLen -> f le (Some ListType); check_type NumberType
 
 		| StrLen -> f le (Some StringType); check_type NumberType)
@@ -163,18 +168,18 @@ let rec bi_reverse_type_lexpr_aux gamma new_gamma le le_type =
 			raise (Failure "ERROR bi_reverse_type_lexpr_aux unsupported binop"))
 
 	| LLstNth (le1, le2) -> 
-		f le1 (Some ListType); f le2 (Some NumberType); needs_to_be_none ()
+		f le1 (Some ListType); f le2 (Some NumberType); check_and_update_type ()
 
 	| LStrNth (le1, le2) -> 
-		f le1 (Some StringType); f le2 (Some NumberType); needs_to_be_none ()
+		f le1 (Some StringType); f le2 (Some NumberType); check_and_update_type ()
 
 	| LNone    -> check_type NoneType
 	| LUnknown -> raise (Non_reversable_type ()) )
 
-let bi_reverse_type_lexpr gamma le le_type : typing_environment option =
+let bi_reverse_type_lexpr pfs_af pfs gamma le le_type : typing_environment option =
 	let new_gamma : typing_environment = mk_gamma () in
 	try
-		bi_reverse_type_lexpr_aux gamma new_gamma le le_type;
+		bi_reverse_type_lexpr_aux pfs_af pfs gamma new_gamma le le_type;
 		Some new_gamma
 	with Non_reversable_type () -> None
 

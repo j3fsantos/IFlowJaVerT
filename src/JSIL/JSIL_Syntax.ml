@@ -616,7 +616,7 @@ let is_spec_var_name (name : string) : bool =
 	((String.sub name 0 1) = "#")
 
 let fresh_spec_var () : string =
-	( "##" ^ fresh_svar ())
+	( "#" ^ fresh_svar ())
 
 (* A substitution type                                 *)
 type substitution = ((string, jsil_logic_expr) Hashtbl.t)

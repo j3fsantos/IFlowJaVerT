@@ -79,6 +79,83 @@ let rec find_me_Im_a_loc pfs lvar =
 		if (lvar = lvar') 
 			then Some loc 
 			else find_me_Im_a_loc rest lvar
+	| _ :: rest -> find_me_Im_a_loc rest lvar
+
+let find_me_in_the_pi pfs nle =
+	DynArray.fold_left (fun ac a -> 
+			(match a with 
+			| LEq (LVar lvar, le)
+			| LEq (le, LVar lvar) -> 
+				if (le = nle) 
+					then Some lvar
+					else ac
+			| _ -> ac)
+			) None pfs
+
+let rec replace_nle_with_lvars pfs nle = 
+	(match nle with 
+	| LBinOp (le, op, le') -> 
+		(match find_me_in_the_pi pfs nle with 
+		| Some lvar -> (LVar lvar)
+		| None -> 
+			let lhs = replace_nle_with_lvars pfs le in
+			let rhs = replace_nle_with_lvars pfs le' in
+			let lhs_string = string_of_logic_expression lhs false in
+			print_endline (Printf.sprintf "LVAR LHS: %s " lhs_string);
+			(LBinOp (lhs, op, rhs)))
+	| LUnOp (op, le) -> 
+		(match find_me_in_the_pi pfs nle with 
+		| Some lvar -> (LVar lvar)
+		| None -> (LUnOp (op, (replace_nle_with_lvars pfs le))))
+	| LTypeOf le -> 
+		(match find_me_in_the_pi pfs nle with 
+		| Some lvar -> (LVar lvar)
+		| None -> (LTypeOf (replace_nle_with_lvars pfs le)))
+	| LLstNth (le, le') -> 
+		(match find_me_in_the_pi pfs nle with 
+		| Some lvar -> (LVar lvar)
+		| None -> 
+			let lst = replace_nle_with_lvars pfs le in
+			let num = replace_nle_with_lvars pfs le' in
+			LLstNth (lst, num))
+	| LStrNth (le, le') -> 
+		(match find_me_in_the_pi pfs nle with 
+		| Some lvar -> (LVar lvar)
+		| None -> 
+			let lst = replace_nle_with_lvars pfs le in
+			let num = replace_nle_with_lvars pfs le' in
+			LStrNth (lst, num))
+	| LEList le ->
+		(match find_me_in_the_pi pfs nle with 
+		| Some lvar -> (LVar lvar)
+		| None -> 
+			let le_list = List.map (fun le' -> replace_nle_with_lvars pfs le') le in
+			(LEList le_list))
+	| LCList le -> 
+		(match find_me_in_the_pi pfs nle with 
+		| Some lvar -> (LVar lvar)
+		| None -> 
+			let le_list = List.map (fun le' -> replace_nle_with_lvars pfs le') le in
+			(LCList le_list))
+	| LESet le -> 
+		(match find_me_in_the_pi pfs nle with 
+		| Some lvar -> (LVar lvar)
+		| None -> 
+			let le_list = List.map (fun le' -> replace_nle_with_lvars pfs le') le in
+			(LESet le_list))
+	| LSetUnion le -> 
+		(match find_me_in_the_pi pfs nle with 
+		| Some lvar -> (LVar lvar)
+		| None -> 
+			let le_list = List.map (fun le' -> replace_nle_with_lvars pfs le') le in
+			(LSetUnion le_list))
+	| LSetInter le -> 
+		(match find_me_in_the_pi pfs nle with 
+			| Some lvar -> (LVar lvar)
+			| None -> 
+				let le_list = List.map (fun le' -> replace_nle_with_lvars pfs le') le in
+				(LSetInter le_list))
+	| _ -> nle)
 
 (**
 	Internal String representation conversions

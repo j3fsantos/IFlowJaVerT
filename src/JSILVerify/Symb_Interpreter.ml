@@ -189,6 +189,7 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 *)
 let safe_symb_evaluate_expr store gamma pure_formulae (expr : jsil_expr) =
 	let nle = symb_evaluate_expr store gamma pure_formulae expr in
+	let nle = Simplifications.replace_nle_with_lvars pure_formulae nle in 
 	let nle_type, is_typable, constraints = type_lexpr gamma nle in
 	let is_typable = is_typable && ((List.length constraints = 0) || (Pure_Entailment.check_entailment SS.empty (pfs_to_list pure_formulae) constraints gamma)) in
 	if (is_typable) then
@@ -201,6 +202,26 @@ let safe_symb_evaluate_expr store gamma pure_formulae (expr : jsil_expr) =
 				let pure_str = Symbolic_State_Print.string_of_shallow_p_formulae pure_formulae false in
 				let msg = Printf.sprintf "The logical expression %s is not typable in the typing enviroment: %s \n with the pure formulae %s" (print_le nle) gamma_str pure_str in
 				raise (Failure msg))
+
+let member_check heap loc ne2 pure_formulae gamma x store = 
+	let res = Symbolic_State_Utils.abs_heap_check_field_existence heap loc ne2 pure_formulae gamma in
+	update_gamma gamma x (Some BooleanType);
+	(match res with 
+	| _, Some b -> 
+		let res_lit = LLit (Bool b) in
+		store_put store x res_lit;	
+		res_lit 
+	
+	| Some f_val, None -> 
+		let ret_lexpr = LUnOp (Not, LBinOp (f_val, Equal, LNone)) in 
+		store_put store x ret_lexpr; 
+		ret_lexpr
+
+	| None, _ -> 
+		let l_x = fresh_lvar () in
+		store_put store x (LVar l_x); 
+		update_gamma gamma l_x (Some BooleanType);
+		LVar l_x)
 
 (**********************************************)
 (* Symbolic evaluation of JSIL basic commands *)
@@ -257,6 +278,12 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 			(match ne1 with
 			| LLit (Loc l)
 			| ALoc l -> l
+			| LVar lvar -> 
+			 (match Simplifications.find_me_Im_a_loc (pfs_to_list pure_formulae) ne1 with 
+		 		| Some loc -> 
+		 			loc
+		 		| None -> 
+					raise (Failure (Printf.sprintf "Lookup: I do not know which location %s denotes in the symbolic heap" (print_le ne1))));
 			| _ -> raise (Failure (Printf.sprintf "Lookup: I do not know which location %s denotes in the symbolic heap" (print_le ne1)))) in
 		let ne = Symbolic_State_Utils.abs_heap_find heap l ne2 pure_formulae gamma in
 		let ne_type,_,_ = type_lexpr gamma ne in
@@ -280,7 +307,14 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 		| LLit (Loc l)
 		| ALoc l ->
 			Symbolic_State_Utils.update_abs_heap heap l ne2 ne3 pure_formulae gamma
-		| _ -> raise (Failure (Printf.sprintf "Mutation: I do not know which location %s denotes in the symbolic heap" (print_le ne1))));
+		| LVar lvar -> 
+			 (match Simplifications.find_me_Im_a_loc (pfs_to_list pure_formulae) ne1 with 
+		 		| Some loc -> 
+		 			Symbolic_State_Utils.update_abs_heap heap loc ne2 ne3 pure_formulae gamma
+		 		| None -> 
+					raise (Failure (Printf.sprintf "Mutation: I do not know which location %s denotes in the symbolic heap" (print_le ne1))));
+		| _ -> 
+			raise (Failure (Printf.sprintf "Mutation: I do not know which location %s denotes in the symbolic heap" (print_le ne1))));
 		ne3
 
   (* Property deletion: delete(e1, e2)
@@ -297,6 +331,12 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 			(match ne1 with
 			| LLit (Loc l)
 			| ALoc l -> l
+			| LVar lvar -> 
+			 (match Simplifications.find_me_Im_a_loc (pfs_to_list pure_formulae) ne1 with 
+		 		| Some loc -> 
+		 			loc
+		 		| None -> 
+					raise (Failure (Printf.sprintf "Delete: I do not know which location %s denotes in the symbolic heap" (print_le ne1))));
 			| _ -> raise (Failure (Printf.sprintf "Delete: I do not know which location %s denotes in the symbolic heap" (print_le ne1)))) in
 		Symbolic_State_Utils.update_abs_heap heap l ne2 LNone pure_formulae gamma;
 		LLit (Bool true)
@@ -314,6 +354,12 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 			(match ne1 with
 			| LLit (Loc l)
 			| ALoc l -> l
+			| LVar lvar -> 
+			 (match Simplifications.find_me_Im_a_loc (pfs_to_list pure_formulae) ne1 with 
+		 		| Some loc -> 
+		 			loc
+		 		| None -> 
+					raise (Failure (Printf.sprintf "DeleteObject: I do not know which location %s denotes in the symbolic heap" (print_le ne1))));
 			| _ -> raise (Failure (Printf.sprintf "DeleteObject: I do not know which location %s denotes in the symbolic heap" (print_le ne1)))) in
 		(match (LHeap.mem heap l) with
 		 | false -> raise (Failure (Printf.sprintf "Attempting to delete an inexistent object: %s" (print_le ne1)))
@@ -335,25 +381,13 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 		match ne1 with
 		| LLit (Loc l)
 		| ALoc l ->
-				let res = Symbolic_State_Utils.abs_heap_check_field_existence heap l ne2 pure_formulae gamma in
-				update_gamma gamma x (Some BooleanType);
-				(match res with 
-				| _, Some b -> 
-					let res_lit = LLit (Bool b) in
-					store_put store x res_lit;	
-					res_lit 
-				
-				| Some f_val, None -> 
-					let ret_lexpr = LUnOp (Not, LBinOp (f_val, Equal, LNone)) in 
-					store_put store x ret_lexpr; 
-					ret_lexpr
-
-				| None, _ -> 
-					let l_x = fresh_lvar () in
-					store_put store x (LVar l_x); 
-					update_gamma gamma l_x (Some BooleanType);
-					LVar l_x)
-
+				member_check heap l ne2 pure_formulae gamma x store
+		| LVar lvar -> 
+			 (match Simplifications.find_me_Im_a_loc (pfs_to_list pure_formulae) ne1 with 
+		 		| Some loc -> 
+		 			member_check heap loc ne2 pure_formulae gamma x store
+		 		| None -> 
+					raise (Failure (Printf.sprintf "HasField: I do not know which location %s denotes in the symbolic heap" (print_le ne1))));
 		| _ -> raise (Failure (Printf.sprintf "HasField: I do not know which location %s denotes in the symbolic heap" (print_le ne1)))
 
 	| _ -> raise (Failure (Printf.sprintf "Unsupported basic command"))
