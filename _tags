@@ -1,4 +1,5 @@
-true: package(z3), package(batteries), package(extlib), package(oUnit), use_menhir, package(JS_Parser)
+true: package(z3), package(batteries), package(extlib), package(oUnit), package(JS_Parser), package(menhirLib)
+true: use_menhir, table
 <src/**>: include
 <tests/*>: package(oUnit), include
 <lib/runtests>: not_hygienic

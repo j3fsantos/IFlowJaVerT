@@ -58,7 +58,6 @@ rule read = parse
 	| "$$nil"              { JSIL_Parser.LSTNIL        }
 	| "{{"                 { JSIL_Parser.LSTOPEN       }
 	| "}}"                 { JSIL_Parser.LSTCLOSE      }
-	| "-0-"                { JSIL_Parser.EMPTYSET      }
 (* Binary operators *)
 	| "="                  { JSIL_Parser.EQUAL         }
 	| "<"                  { JSIL_Parser.LESSTHAN      }

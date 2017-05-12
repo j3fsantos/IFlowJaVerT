@@ -2093,12 +2093,6 @@ let simplify_implication exists lpfs rpfs gamma =
 
 
 
-
-
-
-
-
-
 let aux_find_me_Im_a_loc pfs gamma v = 
 	let _, subst = simplify_pfs_with_subst pfs gamma in
 	(match subst with

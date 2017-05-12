@@ -209,7 +209,6 @@ let copy_and_clear_globals () =
 %token CLBRACKET
 %token CRBRACKET
 (* SETS *)
-%token EMPTYSET
 %token SETUNION
 %token SETINTER
 %token SETDIFF
@@ -224,16 +223,17 @@ let copy_and_clear_globals () =
 (***** Precedence of operators *****)
 (* The later an operator is listed, the higher precedence it is given. *)
 (* Logic operators have lower precedence *)
-(*%nonassoc DOT*)
+%nonassoc DOT
 %left LOR
 %left LAND
 %left separating_conjunction
 %right LNOT
 %nonassoc LEQUAL LLESSTHAN LLESSTHANEQUAL LLESSTHANSTRING LARROW
+%nonassoc SETMEM SETSUB LSETMEM LSETSUB
 (* Program operators have higher precedence.*)
 (* Based on JavaScript:
    https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Operators/Operator_Precedence *)
-%left OR
+%left OR 
 %left AND
 %left BITWISEOR
 %left BITWISEXOR
@@ -244,7 +244,7 @@ let copy_and_clear_globals () =
 %left PLUS MINUS
 %left TIMES DIV MOD M_POW
 %right NOT BITWISENOT unary_minus
-%left M_ATAN2 LSTCAT STRCAT
+%left M_ATAN2 LSTCAT STRCAT SETUNION SETINTER SETDIFF
 %right M_ABS M_ACOS M_ASIN M_ATAN M_CEIL M_COS M_EXP M_FLOOR M_LOG M_ROUND M_SGN M_SIN M_SQRT M_TAN
   ISPRIMITIVE TOSTRING TOINT TOUINT16 TOINT32 TOUINT32 TONUMBER CAR CDR LSTLEN STRLEN LSTCONS
 
@@ -258,6 +258,9 @@ let copy_and_clear_globals () =
 %type <JSIL_Syntax.jsil_logic_assertion> top_level_assertion_target
 %type <JS_Logic_Syntax.js_logic_assertion> top_level_js_assertion_target
 %type <unit> js_only_spec_target
+
+%type<jsil_constant> constant_target
+
 %start main_target
 %start param_list_FC_target
 %start pred_spec_target
@@ -932,7 +935,7 @@ lit_target:
 	| STRLEN      { StrLen }
 ;
 
-%inline constant_target:
+constant_target:
 	| MIN_FLOAT { Min_float }
 	| MAX_FLOAT { Max_float }
 	| RANDOM    { Random }
