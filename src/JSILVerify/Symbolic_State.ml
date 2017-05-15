@@ -793,3 +793,18 @@ let activate_post_in_post_pruning_info symb_exe_info proc_name post_number =
 		let post_pruning_info_array = List.nth post_pruning_info_array_list (symb_exe_info.spec_number) in
 		post_pruning_info_array.(post_number) <- true
 	with Not_found -> ()
+
+type symb_exec_fail =
+	| UnifyHeapsCannotResolvePatLocation of string
+	| UnifyHeapsCannotResolveLocation of string
+	| UnifyHeapsCannotResolveField of string * jsil_logic_expr
+	| UnifyHeapsFieldValueMismatch of string * jsil_logic_expr * jsil_logic_expr * string * jsil_logic_expr * jsil_logic_expr
+	| UnifyHeapsValuesNotNone of string * (jsil_logic_expr * jsil_logic_expr) list
+	| UnifyHeapsFloatingLocations of string list
+	| UnifyHeapsIllegalDefaultValue of jsil_logic_expr
+	| UnifyHeapsPatternHeapWithDefaultValue
+	| UnifyGammaMissingType of string
+	| Impossible of string
+	| CannotRecover
+
+exception SymbExecFailure of symb_exec_fail

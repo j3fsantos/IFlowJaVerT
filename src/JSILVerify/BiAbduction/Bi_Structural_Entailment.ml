@@ -113,7 +113,9 @@ let bi_unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_s
 		
 	
 *)
-let unify_symb_fv_lists (pat_fv_list : symbolic_field_value_list)
+let unify_symb_fv_lists (pat_loc : string)
+                        (loc : string) 
+												(pat_fv_list : symbolic_field_value_list)
 												(fv_list     : symbolic_field_value_list)
 												(def_val     : jsil_logic_expr) 
 												(p_formulae  : pure_formulae)
@@ -127,7 +129,7 @@ let unify_symb_fv_lists (pat_fv_list : symbolic_field_value_list)
 		match pat_list with
 		| [] -> Some (fv_list, matched_fv_list, anti_frame, discharges)
 		| (pat_field, pat_val) :: rest_pat_list ->
-			let pf_equal, pf_different, res = unify_fv_pair (pat_field, pat_val) fv_list p_formulae gamma subst in
+			let pf_equal, pf_different, res = unify_fv_pair pat_loc loc (pat_field, pat_val) fv_list p_formulae gamma subst in
 			
 			(match pf_equal, pf_different, res with
 			| true,  true,  _    -> raise (Failure "Death: bi_unify_symb_fv_lists")
@@ -234,7 +236,7 @@ let bi_unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_f
 									let msg = Printf.sprintf "Location %s in pattern has not been matched" loc in
 									print_debug msg; 
 									[], LUnknown) in
-							let fv_lists = unify_symb_fv_lists pat_fv_list fv_list def pure_formulae gamma subst in
+							let fv_lists = unify_symb_fv_lists pat_loc loc pat_fv_list fv_list def pure_formulae gamma subst in
 							(match fv_lists with
 							| Some (frame_fv_list, matched_fv_list, antiframe_fv_list, new_discharges) when ((pat_def = LNone) && ((List.length frame_fv_list) > 0)) ->
 								print_debug (Printf.sprintf "fv_lists unified successfully");

@@ -47,7 +47,6 @@ function insert(node, value) {
         result = node;
     } else if (node.value < value) {
         var rec = insert(node.next, value);
-        /** @flash SOList(#rec, #rE) */
         result = { next: rec, value: node.value }
     } else {
         result = { next: node, value: value }

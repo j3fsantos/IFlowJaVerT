@@ -576,6 +576,7 @@ let fresh_sth (name : string) : (unit -> string) =
     v
   in f
 
+let lit_loc_prefix = "$"
 let abs_loc_prefix = "_$l_"
 let lvar_prefix = "_lvar_"
 let pvar_prefix = "_pvar_"
@@ -605,6 +606,11 @@ let is_abs_loc_name (name : string) : bool =
 	if ((String.length name) < 4)
 		then false
 		else ((String.sub name 0 4) = abs_loc_prefix)
+		
+let is_lit_loc_name (name : string) : bool = 
+	if ((String.length name) < 2)
+	then false
+	else ((String.sub name 0 1) = lit_loc_prefix)
 
 let is_lvar_name (name : string) : bool =
 	((String.sub name 0 1) = "#") || (((String.length name) > 6) && ((String.sub name 0 6) = lvar_prefix))

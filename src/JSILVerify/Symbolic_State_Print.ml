@@ -308,6 +308,21 @@ let dot_of_search_info search_info proof_name =
 	JSIL_Syntax.update_statistics "unify_stores" (end_time -. start_time);
 	str
 
+let string_of_error error = 
+	let error_message =
+	(match error with 
+		| UnifyHeapsCannotResolvePatLocation s ->                       Printf.sprintf "Unify heaps: cannot find location %s in pattern heap" s
+		| UnifyHeapsCannotResolveLocation s ->                          Printf.sprintf "Unify heaps: cannot find location %s in symbolic heap" s
+		| UnifyHeapsCannotResolveField (s, le) ->                       Printf.sprintf "Unify heaps: cannot resolve field (%s, %s)" s (print_lexpr le)
+		| UnifyHeapsFieldValueMismatch (s, lef, lev, s', lef', lev') -> Printf.sprintf "Unify heaps: field value mismatch (%s, %s, %s) vs. (%s, %s, %s)" s (print_lexpr lef) (print_lexpr lev) s' (print_lexpr lef') (print_lexpr lev')
+		| UnifyHeapsValuesNotNone (s, lfv) ->                           Printf.sprintf "Unify heaps: non-none values in location %s: %s" s (String.concat ", " (List.map (fun (f, v) -> Printf.sprintf "(%s, %s)" (print_lexpr f) (print_lexpr v)) lfv))
+		| UnifyHeapsFloatingLocations ls ->                             Printf.sprintf "Unify heaps: floating locations %s" (String.concat ", " ls)
+		| UnifyHeapsIllegalDefaultValue le ->                           Printf.sprintf "Unify heaps: illegal default value %s" (print_lexpr le)
+		| UnifyHeapsPatternHeapWithDefaultValue ->                      Printf.sprintf "Unify heaps: pattern heap has default values"
+		| UnifyGammaMissingType s ->                                    Printf.sprintf "Unify gamma: no type for variable %s in symbolic heap" s (* MORE INFO *)
+		| Impossible s ->                                               Printf.sprintf "Impossible: %s" s (* MORE INFO *)
+		| CannotRecover ->                                              Printf.sprintf "Cannot recover" 
+	) in "SYMB_EXEC_ERROR: " ^ error_message
 
 (***************)
 (** Shorthand **)

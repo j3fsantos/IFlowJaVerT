@@ -161,8 +161,8 @@ function remove(v, t)
 	
 	if (v === t.value) {
 		if (t.left === null) {	
-				/** @unfold BST($$null, #KL) */
-				/** @flash BST(#ir, #KR) */
+				/** @unfold BST($$null, #KL)
+				    @flash BST(#ir, #KR) */
 				return t.right;
 			}
 		else 
