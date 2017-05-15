@@ -794,6 +794,8 @@ let activate_post_in_post_pruning_info symb_exe_info proc_name post_number =
 		post_pruning_info_array.(post_number) <- true
 	with Not_found -> ()
 
+(* Hierarchy of failures *)
+
 type unify_stores_fail = 
 	| VariableNotInStore of string
 	| ValueMismatch of string * jsil_logic_expr * jsil_logic_expr
@@ -814,10 +816,16 @@ type unify_gamma_fail =
 	| VariableNotInSubstitution of string
 	| TypeMismatch of string * jsil_type * jsil_logic_expr * jsil_type
 
+type unify_symb_states_fail = 
+	| CannotDischargeSpecVars
+	| CannotUnifyPredicates
+	| ContradictionInPFS
+
 type symb_exec_fail =
-	| US of unify_stores_fail
-	| UH of unify_heaps_fail
-	| UG of unify_gamma_fail
+	| US  of unify_stores_fail
+	| UH  of unify_heaps_fail
+	| UG  of unify_gamma_fail
+	| USS of unify_symb_states_fail
 	| Impossible of string
 
 exception SymbExecFailure of symb_exec_fail

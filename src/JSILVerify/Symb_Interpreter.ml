@@ -488,23 +488,23 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 			print_debug (Printf.sprintf "Pre:\n%sPosts:\n%s"
 				(Symbolic_State_Print.string_of_shallow_symb_state spec.n_pre)
 				(Symbolic_State_Print.string_of_symb_state_list spec.n_post));
-			(* PROPAGATE FAILURE *)
-			let unifier = Structural_Entailment.unify_symb_states SS.empty spec.n_pre symb_state_aux in
-			(match unifier with
-			|	Some (true, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
-				print_debug (Printf.sprintf "I found a COMPLETE match");
-				print_debug (Printf.sprintf "The pre of the spec that completely matches me is:\n%s"
-					(Symbolic_State_Print.string_of_shallow_symb_state spec.n_pre));
-				print_debug (Printf.sprintf "The number of posts is: %d"
-					(List.length spec.n_post));
-				[ (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ]
-			| Some (false, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
-				print_debug (Printf.sprintf "I found a PARTIAL match");
-				find_correct_specs rest_spec_list ((spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) :: ac_quotients)
-
-			| None -> (
-				print_debug (Printf.sprintf "I found a NON-match");
-				find_correct_specs rest_spec_list ac_quotients)) in
+			
+			try (
+			let outcome, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma = Structural_Entailment.unify_symb_states SS.empty spec.n_pre symb_state_aux in
+			(match outcome with
+			|	true ->
+					print_debug (Printf.sprintf "I found a COMPLETE match");
+					print_debug (Printf.sprintf "The pre of the spec that completely matches me is:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state spec.n_pre));
+					print_debug (Printf.sprintf "The number of posts is: %d" (List.length spec.n_post));
+					[ (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ]
+			| false ->
+					print_debug (Printf.sprintf "I found a PARTIAL match");
+					find_correct_specs rest_spec_list ((spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) :: ac_quotients)))
+			with | e -> (match e with 
+				| SymbExecFailure failure -> 
+						print_debug (Symbolic_State_Print.print_failure failure);
+						print_debug (Printf.sprintf "I found a NON-match");
+						find_correct_specs rest_spec_list ac_quotients) in
 
 
 	let transform_symb_state_partial_match (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =

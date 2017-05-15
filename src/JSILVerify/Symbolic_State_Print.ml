@@ -334,13 +334,20 @@ let string_of_UG_error ug_error =
 	| NoTypeForVariable s         -> Printf.sprintf "No type found for variable %s" s
 	| VariableNotInSubstitution s -> Printf.sprintf "Variable %s not in substitution" s
 	| TypeMismatch (pv, pt, v, t) -> Printf.sprintf "Type mismatch: (%s, %s) vs (%s, %s)" pv (print_type pt) (print_lexpr v) (print_type t)
-	
+
+let string_of_USS_error uss_error = 
+	match uss_error with
+	| CannotDischargeSpecVars -> Printf.sprintf "Cannot discharge spec vars"
+	| CannotUnifyPredicates   -> Printf.sprintf "Cannot unify predicates"
+	| ContradictionInPFS      -> Printf.sprintf "Contradiction in pure formulae"
+
 let print_failure error = 
 	let error_message =
 	(match error with 
-		| US us_error ->   let us_error_str = string_of_US_error us_error in "Unify stores: " ^ us_error_str
-		| UH uh_error ->   let uh_error_str = string_of_UH_error uh_error in "Unify heaps: "  ^ uh_error_str
-		| UG ug_error ->   let ug_error_str = string_of_UG_error ug_error in "Unify gamma: "  ^ ug_error_str
+		| US  us_error  -> let us_error_str  = string_of_US_error  us_error  in "Unify stores: "           ^ us_error_str
+		| UH  uh_error  -> let uh_error_str  = string_of_UH_error  uh_error  in "Unify heaps: "            ^ uh_error_str
+		| UG  ug_error  -> let ug_error_str  = string_of_UG_error  ug_error  in "Unify gamma: "            ^ ug_error_str
+		| USS uss_error -> let uss_error_str = string_of_USS_error uss_error in "Unify symbolic states: "  ^ uss_error_str
 		| Impossible s ->  Printf.sprintf "Impossible: %s" s (* MORE INFO *)
 	) in "SYMB_EXEC_FAIL: " ^ error_message
 
