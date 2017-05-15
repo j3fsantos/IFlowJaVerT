@@ -1,4 +1,5 @@
 open JSIL_Syntax
+open JSIL_Print
 open Symbolic_State
 open JSIL_Logic_Utils
 
@@ -451,7 +452,7 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 				if (Hashtbl.mem subst pat_loc) then
 					(
 						let subst_val = Hashtbl.find subst pat_loc in
-						print_debug (Printf.sprintf "Substitution: %s" (JSIL_Print.print_lexpr subst_val))
+						print_debug (Printf.sprintf "Substitution: %s" (print_lexpr subst_val))
 					);
 				(match heap_get pat_heap pat_loc with
 				| Some (pat_fv_list, pat_def) ->
@@ -1197,8 +1198,70 @@ let fully_unify_symb_state pat_symb_state symb_state lvars (js : bool) =
 			| SymbExecFailure failure -> 
 				raise e)
 
+(* RECOVERY (TODO - MOVE FROM HERE) *)
+
+let get_index x lst = 
+	let rec get_index_rec x lst c = match lst with
+    | [] -> raise (Failure "Not Found")
+    | hd :: tl -> if (hd = x) then c else get_index_rec x tl (c+1) in
+	get_index_rec x lst 0
+
+let understand_single_recovery s_prog symb_state recovery_option : recovery = 
+	let heap, store, pfs, gamma, preds = symb_state in
+	try (
+		(match recovery_option with
+
+		(* Untyped variable that needs to be typed *)
+		| UG (NoTypeForVariable var) ->
+			let var = (match (real_is_pvar_name var) with
+			| true -> let var = store_get_safe store var in
+				(match var with 
+				| None -> raise (Failure "")
+				| Some var -> 
+					(match var with 
+					| LVar var -> var 
+					| _ -> raise (Failure ""))) 
+			| false -> var) in
+			print_debug_petar (Printf.sprintf "Understood that target var is: %s" var);
+			let preds = DynArray.to_list preds in
+			let preds = List.filter (fun (_, params) -> List.mem (LVar var) params) preds in
+			print_debug_petar (Printf.sprintf "Candidate predicates:\n\t%s" 
+				(String.concat "\n\t" 
+					(List.map (fun (pn, pp) -> Printf.sprintf "%s(%s)" pn (String.concat ", " (List.map (fun x -> print_lexpr x) pp))) preds)));
+			let idxs = List.map (fun (_, params) -> get_index (LVar var) params) preds in
+			let ovars = List.map2 
+				(fun (pn, _) idx -> 
+					let pred = get_pred s_prog.pred_defs pn in
+					let params = pred.n_pred_params in 
+					List.nth params idx) preds idxs in 
+			print_debug_petar (Printf.sprintf "Original variables:\n\t%s" (String.concat "\n\t" ovars));
+			let do_we_have_types = List.map2 
+				(fun (pn, _) ovar ->
+					let pred = get_pred s_prog.pred_defs pn in
+					let defs = pred.n_pred_definitions in
+					List.fold_left (fun ac ss -> let gamma = get_gamma ss in (Hashtbl.mem gamma ovar) && ac) true defs 
+				) preds ovars in
+			print_debug_petar (Printf.sprintf "Are they typed?\n\t%s" (String.concat "\n\t" (List.map (fun x -> Printf.sprintf "%b" x) do_we_have_types)));
+			let flash_candidates = List.combine preds do_we_have_types in
+			let flash_candidates = List.filter (fun (_, x) -> x) flash_candidates in
+			let flash_candidates, _ = List.split flash_candidates in
+			(match flash_candidates with
+			| [] -> NoRecovery
+			| (pn, pp) :: _ -> GR (Flash (pn, pp)))
+			
+		| _ -> NoRecovery)
+	) with Failure _ -> NoRecovery
+
+
+let understand_recovery s_prog symb_state recovery_options : recovery list =
+	print_debug_petar "Attempting to recover.";
+	let result = List.map (fun x -> understand_single_recovery s_prog symb_state x) recovery_options in
+	let result = List.filter (fun x -> x <> NoRecovery) result in
+	print_debug_petar "----------------------";
+	result
+
 (* This is one place to try and do recovery *)
-let unify_symb_state_against_post proc_name spec symb_state flag symb_exe_info js =
+let unify_symb_state_against_post s_prog proc_name spec symb_state flag symb_exe_info js =
 	let print_error_to_console msg =
 		(if (msg = "")
 			then Printf.printf "Failed to verify a spec of proc %s\n" proc_name
@@ -1208,9 +1271,20 @@ let unify_symb_state_against_post proc_name spec symb_state flag symb_exe_info j
 		Printf.printf "Final symbolic state: %s\n" final_symb_state_str;
 		Printf.printf "Post condition: %s\n" post_symb_state_str in
 
-	let rec loop posts i =
+	let rec loop posts i recovery_options : unit =
 		(match posts with
-		| [] -> print_error_to_console "Non_unifiable symbolic states"; raise (Failure "post condition is not unifiable")
+		| [] -> 
+				print_debug "----------------------";
+				let can_we_recover : recovery list = understand_recovery s_prog symb_state recovery_options in
+				(match can_we_recover with
+				| [] -> print_error_to_console "Non_unifiable symbolic states"; raise (Failure "Post condition is not unifiable")
+				| rop :: _ -> 
+					(match rop with
+					| GR (Flash (pred_name, pred_params)) -> 
+						print_debug_petar (Printf.sprintf "I can try to flash the predicate %s(%s)" pred_name (String.concat ", " (List.map (fun x -> print_lexpr x) pred_params)));
+						print_debug "----------------------";
+						raise (SymbExecRecovery rop))
+				)
 		| post :: rest_posts ->
 			let unification_function p ss lv = (match js with
 				| true ->  let (success, _, _, _, _, _) = unify_symb_states p ss lv in success
@@ -1221,11 +1295,12 @@ let unify_symb_state_against_post proc_name spec symb_state flag symb_exe_info j
 					| true -> 
 							activate_post_in_post_pruning_info symb_exe_info proc_name i;
 							print_endline (Printf.sprintf "Verified one spec of proc %s" proc_name)
-					| false -> loop rest_posts (i + 1))) with
+					| false -> loop rest_posts (i + 1) recovery_options)) with
 				| SymbExecFailure failure -> 
+						print_debug "Failure in unify_symb_state_against_post";
 						print_debug (Symbolic_State_Print.print_failure failure);
-						loop rest_posts (i + 1)) in
-			loop spec.n_post 0
+						loop rest_posts (i + 1) (recovery_options @ [ failure ])) in
+			loop spec.n_post 0 []
 
 
 let merge_symb_states 

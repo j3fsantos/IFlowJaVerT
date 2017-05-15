@@ -839,3 +839,14 @@ type symb_exec_fail =
 	| Impossible of string
 
 exception SymbExecFailure of symb_exec_fail
+
+(* Hierarchy of recoveries *)
+
+type unify_gamma_recovery = 
+	| Flash of string * (jsil_logic_expr list)
+
+type recovery = 
+	| GR of unify_gamma_recovery
+	| NoRecovery
+
+exception SymbExecRecovery of recovery

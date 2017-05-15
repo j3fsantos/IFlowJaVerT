@@ -1109,7 +1109,19 @@ and symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state cur next
 
 	(* Conclusion *)
 	let finish how = 
-		Structural_Entailment.unify_symb_state_against_post proc.proc_name spec symb_state how search_info !js;
+		try 
+		(Structural_Entailment.unify_symb_state_against_post s_prog proc.proc_name spec symb_state how search_info !js)
+		with | SymbExecRecovery recovery -> 
+			(match recovery with
+			| GR (Flash (pn, pp)) -> 
+				let flash = [ Unfold (LPred (pn, pp)); Fold (LPred (pn, pp)) ] in
+				let sss = symb_evaluate_logic_cmds s_prog flash [ symb_state, spec.n_lvars ] spec.n_subst in
+				print_debug (Printf.sprintf "Flash completed: %d resulting states" (List.length sss));
+				List.iter (fun (ss, sv) ->
+					let spec = { spec with n_lvars = sv } in
+					Structural_Entailment.unify_symb_state_against_post s_prog proc.proc_name spec ss how search_info !js
+				) sss
+			);
 		Symbolic_Traces.create_info_node_from_post search_info spec.n_post how true; () in
 	
 	(* i2: Have we reached the return label? *)

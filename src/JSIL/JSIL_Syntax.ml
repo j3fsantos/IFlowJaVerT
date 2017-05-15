@@ -438,7 +438,7 @@ let get_proc_cmd proc i =
 	proc.proc_body.(i)
 
 
-let macro_table     : (string, jsil_logic_macro) Hashtbl.t = Hashtbl.create 511
+let macro_table : (string, jsil_logic_macro) Hashtbl.t = Hashtbl.create 511
 
 (* STATISTICS *)
 
@@ -617,9 +617,13 @@ let is_lvar_name (name : string) : bool =
 
 let is_pvar_name (name : string) : bool =
 	(not ((is_abs_loc_name name) || (is_lvar_name name)))
+	
+let real_is_pvar_name (name : string) : bool = 
+	(String.length name > 0) && 
+	(let first = String.sub name 0 1 in (first <> "@" && first <> "_")) 
 
 let is_spec_var_name (name : string) : bool =
-	((String.sub name 0 1) = "#")
+	(String.length name > 1) && (String.sub name 0 1 = "#")
 
 let fresh_spec_var () : string =
 	( "#" ^ fresh_svar ())

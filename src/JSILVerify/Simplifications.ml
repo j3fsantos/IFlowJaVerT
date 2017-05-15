@@ -2051,8 +2051,6 @@ let get_set_intersections pfs =
 	
 let resolve_set_existentials lpfs rpfs exists gamma =
 
-	print_debug "RESOLVE_SET_EXISTENTIALS";
-
 	let exists = ref exists in
 
 	let set_exists = SS.filter (fun x -> Hashtbl.mem gamma x && (Hashtbl.find gamma x = SetType)) !exists in
@@ -2113,8 +2111,7 @@ let resolve_set_existentials lpfs rpfs exists gamma =
 	
 	
 let find_impossible_unions lpfs rpfs exists gamma =
-
-	print_debug "FIND_IMPOSSIBLE_UNIONS";
+	
 	let exists = ref exists in
 
 	let set_exists = SS.filter (fun x -> Hashtbl.mem gamma x && (Hashtbl.find gamma x = SetType)) !exists in
