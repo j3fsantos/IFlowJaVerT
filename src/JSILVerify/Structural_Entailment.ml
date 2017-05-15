@@ -828,7 +828,7 @@ let pf_list_of_discharges discharges subst partial =
 
 
 
-let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : bool * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment =
+let unify_symb_states pat_symb_state (symb_state : symbolic_state) lvars : bool * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment =
 
 	print_debug (Printf.sprintf "unify_symb_stfates with the following specvars: %s" (String.concat ", " (SS.elements lvars)));
 
@@ -991,7 +991,7 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : bool 
 				raise e)
 
 
-let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_state : symbolic_state) (symb_state : symbolic_state) : (bool * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment * SS.t * ((string * (jsil_logic_expr list)) list)) option  =
+let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_state : symbolic_state) (symb_state : symbolic_state) : bool * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment * SS.t * ((string * (jsil_logic_expr list)) list)  =
 	let heap_0, store_0, pf_0, gamma_0, preds_0 (*, solver_0 *) = symb_state in
 	let heap_1, store_1, pf_1, gamma_1, preds_1 (*, _ *) = pat_symb_state in
 	(** Auxiliary Functions **)
@@ -1045,20 +1045,17 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 					(SS.cardinal existentials_in_le > 0)) in
 		let gamma_existentials = find_existentials_types existentials filtered_vars store_0 gamma_0 gamma_1 in
 	 	let discharges_0 =
-			try
-				Some
-					(List.fold_left
-						(fun ac x ->
-							let le_0 = store_get_safe store_0 x in
-							let le_1 = store_get_safe store_1 x in
-							match le_0, le_1 with
-							| Some le_0, Some le_1 -> (le_1, le_0) :: ac
-							| _, None -> ac
-							| _ -> raise (Failure ""))
-						[]
-						filtered_vars)
-			with _ -> None in
-		print_debug_petar (Printf.sprintf "\t\tGot the discharges: %d" (if_some discharges_0 (fun x -> List.length x) (-1)));
+			(List.fold_left
+				(fun ac x ->
+					let le_0 = store_get_safe store_0 x in
+					let le_1 = store_get_safe store_1 x in
+					match le_0, le_1 with
+					| Some le_0, Some le_1 -> (le_1, le_0) :: ac
+					| _, None -> ac
+					| _ -> raise (SymbExecFailure (Impossible "unify_symb_states_fold, step 0: variable not found in store")))
+				[]
+				filtered_vars) in
+		print_debug_petar (Printf.sprintf "\t\tGot the discharges of length: %d" (List.length discharges_0));
 		let store_0' = store_projection store_0 unfiltered_vars in
 		let store_1' = store_projection store_1 unfiltered_vars in
 		
@@ -1071,11 +1068,7 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 			(Symbolic_State_Print.string_of_shallow_symb_store store_1' false)); 
 		
 		let discharges_1 = unify_stores store_1' store_0' subst None (pfs_to_list pf_0) gamma_1 gamma_0 in
-		match discharges_0, discharges_1 with
-		| Some discharges_0, discharges_1 ->
-			Some (subst, filtered_vars, unfiltered_vars, gamma_existentials, (discharges_0 @ discharges_1))
-		| _, _ -> None in
-
+		subst, filtered_vars, unfiltered_vars, gamma_existentials, (discharges_0 @ discharges_1) in
 
 	(* STEP 1 *)
 	let step_1 subst =
@@ -1084,7 +1077,7 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 		let new_subst, preds_f, unmatched_pat_preds = unify_pred_arrays preds_1 preds_0 pf_0 gamma_1 gamma_0 subst in
 			print_debug (Printf.sprintf "subst after unify_heaps: %s" (Symbolic_State_Print.string_of_substitution subst));
 			print_debug (Printf.sprintf "subst after unify_preds: %s" (Symbolic_State_Print.string_of_substitution new_subst));
-			Some (heap_f, preds_f, subst, new_subst, new_pfs, unmatched_pat_preds) in
+			heap_f, preds_f, subst, new_subst, new_pfs, unmatched_pat_preds in
 
 
 	(* STEP 2 *)
@@ -1105,7 +1098,6 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 				else gamma_0 in
 		let new_existentials = SS.union existentials (SS.of_list new_pat_existentials) in
 		merge_pfs pf_0 (DynArray.of_list new_pfs);
-		(* PROPAGATE FAILURE *)
 		let unify_gamma_check = 
 			try (unify_gamma gamma_1 gamma_0' store_0 subst pat_existentials; true) with | SymbExecFailure _ -> false in
 		if (unify_gamma_check) then
@@ -1153,7 +1145,7 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 		let copied_preds_1 = copy_pred_set preds_1 in 
 		let subtracted_pred_ass = simple_subtract_pred copied_preds_1 pred_name in 
 		match subtracted_pred_ass with 
-		| None -> None 
+		| None -> raise (SymbExecFailure (USF (CannotSubtractPredicate pred_name))) 
 		| Some subtracted_pred_ass -> 
 			print_debug 
 				(Printf.sprintf "In the middle of the recovery!!! the pat_preds as they are now:\n%s\n" 
@@ -1163,53 +1155,49 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 			| [] -> 
 				print_debug (Printf.sprintf "subst in recovery after re-unify_preds: %s" (Symbolic_State_Print.string_of_substitution subst));
 				let entailment_check_ret, pf_discharges, pf_1_subst_list, gamma_0', new_existentials = step_2 subst filtered_vars gamma_existentials new_pfs discharges in
-				Some (entailment_check_ret, heap_f, preds_f, subst, (pf_1_subst_list @ pf_discharges), gamma_0', new_existentials, [ subtracted_pred_ass ])
-			| _ -> None) in 
+				entailment_check_ret, heap_f, preds_f, subst, (pf_1_subst_list @ pf_discharges), gamma_0', new_existentials, [ subtracted_pred_ass ]
+			| _ -> raise (SymbExecFailure (USF CannotUnifyPredicates)) ) in 
 	
 	(* Actually doing it!!! *)
-	match step_0 () with
-	| Some (subst, filtered_vars, _, gamma_existentials, discharges) ->
+	let subst, filtered_vars, _, gamma_existentials, discharges = step_0 () in
 		print_debug "Passed step 0.";
-		(match step_1 subst with
-		| Some (heap_f, preds_f, old_subst, subst, new_pfs, unmatched_pat_preds) ->
+		let heap_f, preds_f, old_subst, subst, new_pfs, unmatched_pat_preds = step_1 subst in
 		  print_debug "Passed step 1.";
 		  let entailment_check_ret, pf_discharges, pf_1_subst_list, gamma_0', new_existentials = step_2 subst filtered_vars gamma_existentials new_pfs discharges in
 			(match entailment_check_ret with 
-			| true  -> Some (entailment_check_ret, heap_f, preds_f, subst, (pf_1_subst_list @ pf_discharges), gamma_0', new_existentials, unmatched_pat_preds)
+			| true  -> entailment_check_ret, heap_f, preds_f, subst, (pf_1_subst_list @ pf_discharges), gamma_0', new_existentials, unmatched_pat_preds
 			| false -> recovery_step heap_f old_subst filtered_vars gamma_existentials new_pfs discharges)
-		| None -> print_debug "Failed in step 1!"; None)
-	| None -> print_debug "Failed in step 0!"; None)
+	)
 	with
 		| e -> (match e with 
 			| SymbExecFailure failure -> 
-				print_debug (Symbolic_State_Print.print_failure failure);
-				None)
+				raise e)
 
 (* get rid of the js flag here ASAP *) 
 let fully_unify_symb_state pat_symb_state symb_state lvars (js : bool) =
 	print_debug (Printf.sprintf "Fully_unify_symb_state.\nSymb_state:\n%s.\nPAT symb_state:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state) (Symbolic_State_Print.string_of_shallow_symb_state pat_symb_state)); 
 	
 	try (
-		let outcome, quotient_heap, quotient_preds, subst, pf_discharges, _ = unify_symb_states lvars pat_symb_state symb_state in
+		let outcome, quotient_heap, quotient_preds, subst, pf_discharges, _ = unify_symb_states pat_symb_state symb_state lvars in
 		(match outcome with
 		| true ->
 			let emp_heap = (is_heap_empty quotient_heap js) in
 			let emp_preds = (is_preds_empty quotient_preds) in
 			if (emp_heap && emp_preds) then
-				(Some subst, "")
+				subst
 			else
 				let _ = if (emp_heap) then begin Printf.printf "Quotient heap empty.\n" end
 						else begin Printf.printf "Quotient heap left: \n%s\n" (Symbolic_State_Print.string_of_shallow_symb_heap quotient_heap false) end in
 				let _ = if (emp_preds) then begin Printf.printf "Quotient predicates empty.\n" end
 						else begin Printf.printf "Quotient predicates left: \n%s\n" (Symbolic_State_Print.string_of_preds quotient_preds false) end in
-				(None, "Oops, incomplete match")
-		| false -> None, "Non-unifiable heaps"))
+				raise (SymbExecFailure (FSS ResourcesRemain))
+		| false -> raise (SymbExecFailure (FSS CannotUnifySymbStates))))
 	with
 		| e -> (match e with 
 			| SymbExecFailure failure -> 
-				print_debug (Symbolic_State_Print.print_failure failure);
-				None, "Error while unifying symbolic states")
+				raise e)
 
+(* This is one place to try and do recovery *)
 let unify_symb_state_against_post proc_name spec symb_state flag symb_exe_info js =
 	let print_error_to_console msg =
 		(if (msg = "")
@@ -1224,29 +1212,20 @@ let unify_symb_state_against_post proc_name spec symb_state flag symb_exe_info j
 		(match posts with
 		| [] -> print_error_to_console "Non_unifiable symbolic states"; raise (Failure "post condition is not unifiable")
 		| post :: rest_posts ->
-			let is_unifiable, msg = 
-				if (js) then (
-					try (
-						let subst = unify_symb_states spec.n_lvars post symb_state in
-						match subst with
-						| true, _, _, _, _, _ -> true, ""
-						| _                   -> false, "") with
-							| SymbExecFailure _ -> false, ""
-				) else (
-					let subst = fully_unify_symb_state post symb_state spec.n_lvars false in 
-					match subst with 
-					| Some _, _ -> true, ""
-					| None, msg -> false, msg) in 
-			if (is_unifiable) 	
-				then (
-					activate_post_in_post_pruning_info symb_exe_info proc_name i;
-					print_endline (Printf.sprintf "Verified one spec of proc %s" proc_name)
-				) else (
-					print_debug (Printf.sprintf "No go: %s" msg); 
-					loop rest_posts (i + 1)
-				)) in 
-					
-	loop spec.n_post 0
+			let unification_function p ss lv = (match js with
+				| true ->  let (success, _, _, _, _, _) = unify_symb_states p ss lv in success
+				| false -> let _ = fully_unify_symb_state p ss lv false in true) in
+				try (
+				let is_unifiable = unification_function post symb_state spec.n_lvars in
+					(match is_unifiable with
+					| true -> 
+							activate_post_in_post_pruning_info symb_exe_info proc_name i;
+							print_endline (Printf.sprintf "Verified one spec of proc %s" proc_name)
+					| false -> loop rest_posts (i + 1))) with
+				| SymbExecFailure failure -> 
+						print_debug (Symbolic_State_Print.print_failure failure);
+						loop rest_posts (i + 1)) in
+			loop spec.n_post 0
 
 
 let merge_symb_states 
@@ -1477,7 +1456,7 @@ let unify_symb_state_against_invariant symb_state inv_symb_state lvars existenti
 		(Symbolic_State_Print.string_of_shallow_symb_state symb_state) 
 		(Symbolic_State_Print.string_of_shallow_symb_state inv_symb_state)); 	
 	try (
-		let outcome, quotient_heap, quotient_preds, subst, pf_discharges, _ = unify_symb_states lvars inv_symb_state symb_state in
+		let outcome, quotient_heap, quotient_preds, subst, pf_discharges, _ = unify_symb_states inv_symb_state symb_state lvars in
 		match outcome with
 		| true ->
 				extend_symb_state_with_pfs symb_state (DynArray.of_list pf_discharges);

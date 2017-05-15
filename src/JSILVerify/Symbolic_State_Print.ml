@@ -341,13 +341,25 @@ let string_of_USS_error uss_error =
 	| CannotUnifyPredicates   -> Printf.sprintf "Cannot unify predicates"
 	| ContradictionInPFS      -> Printf.sprintf "Contradiction in pure formulae"
 
+let string_of_USF_error usf_error = 
+	match usf_error with
+	| CannotSubtractPredicate s -> Printf.sprintf "Cannot subtract predicate %s" s
+	| CannotUnifyPredicates     -> Printf.sprintf "Cannot unify predicates"
+
+let string_of_FSS_error fss_error = 
+	match fss_error with
+	| ResourcesRemain       -> Printf.sprintf "Symbolic states unified, but additional resources remain"
+	| CannotUnifySymbStates -> Printf.sprintf "Cannot unify symbolic states, entailment false"
+
 let print_failure error = 
 	let error_message =
 	(match error with 
-		| US  us_error  -> let us_error_str  = string_of_US_error  us_error  in "Unify stores: "           ^ us_error_str
-		| UH  uh_error  -> let uh_error_str  = string_of_UH_error  uh_error  in "Unify heaps: "            ^ uh_error_str
-		| UG  ug_error  -> let ug_error_str  = string_of_UG_error  ug_error  in "Unify gamma: "            ^ ug_error_str
-		| USS uss_error -> let uss_error_str = string_of_USS_error uss_error in "Unify symbolic states: "  ^ uss_error_str
+		| US  us_error  -> let us_error_str  = string_of_US_error  us_error  in "Unify stores: "                 ^ us_error_str
+		| UH  uh_error  -> let uh_error_str  = string_of_UH_error  uh_error  in "Unify heaps: "                  ^ uh_error_str
+		| UG  ug_error  -> let ug_error_str  = string_of_UG_error  ug_error  in "Unify gamma: "                  ^ ug_error_str
+		| USS uss_error -> let uss_error_str = string_of_USS_error uss_error in "Unify symbolic states: "        ^ uss_error_str
+		| USF usf_error -> let usf_error_str = string_of_USF_error usf_error in "Unify symbolic states fold: "   ^ usf_error_str
+		| FSS fss_error -> let fss_error_str = string_of_FSS_error fss_error in "Fully unify symbolic states: "  ^ fss_error_str
 		| Impossible s ->  Printf.sprintf "Impossible: %s" s (* MORE INFO *)
 	) in "SYMB_EXEC_FAIL: " ^ error_message
 

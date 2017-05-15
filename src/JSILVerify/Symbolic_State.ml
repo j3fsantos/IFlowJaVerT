@@ -821,11 +821,21 @@ type unify_symb_states_fail =
 	| CannotUnifyPredicates
 	| ContradictionInPFS
 
+type fully_unify_symb_states_fail = 
+	| ResourcesRemain
+	| CannotUnifySymbStates
+
+type unify_symb_states_fold_fail = 
+	| CannotSubtractPredicate of string
+	| CannotUnifyPredicates
+
 type symb_exec_fail =
 	| US  of unify_stores_fail
 	| UH  of unify_heaps_fail
 	| UG  of unify_gamma_fail
 	| USS of unify_symb_states_fail
+	| FSS of fully_unify_symb_states_fail
+	| USF of unify_symb_states_fold_fail
 	| Impossible of string
 
 exception SymbExecFailure of symb_exec_fail

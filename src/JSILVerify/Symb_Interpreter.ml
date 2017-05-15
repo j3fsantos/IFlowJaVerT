@@ -490,7 +490,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 				(Symbolic_State_Print.string_of_symb_state_list spec.n_post));
 			
 			try (
-			let outcome, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma = Structural_Entailment.unify_symb_states SS.empty spec.n_pre symb_state_aux in
+			let outcome, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma = Structural_Entailment.unify_symb_states spec.n_pre symb_state_aux SS.empty in
 			(match outcome with
 			|	true ->
 					print_debug (Printf.sprintf "I found a COMPLETE match");
@@ -602,7 +602,8 @@ let rec fold_predicate pred_name pred_defs symb_state params args spec_vars exis
 		| pred_def :: rest_pred_defs ->
 			print_debug (Printf.sprintf "----------------------------");
 			print_debug (Printf.sprintf "Current pred symbolic state: %s" (Symbolic_State_Print.string_of_shallow_symb_state pred_def));
-			let unifier = Structural_Entailment.unify_symb_states_fold pred_name existentials pred_def symb_state_aux in
+			let unifier = try (Some (Structural_Entailment.unify_symb_states_fold pred_name existentials pred_def symb_state_aux))
+				with | SymbExecFailure failure -> print_debug (Symbolic_State_Print.print_failure failure); None in
 			(match unifier with
 			| Some (true, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma, _, []) ->
 			  print_debug (Printf.sprintf "I can fold this!!!");
@@ -1137,9 +1138,7 @@ and symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state cur next
 						Printf.printf "LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
 						let new_symb_state, _ = Normaliser.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
 						let new_symb_state, _, _, _ = Simplifications.simplify_symb_state None (DynArray.create()) (SS.empty) new_symb_state in
-						(match (Structural_Entailment.fully_unify_symb_state new_symb_state symb_state spec.n_lvars !js) with
-						| Some _, _ -> ()
-						| None, msg -> raise (Failure msg))
+						let _ = Structural_Entailment.fully_unify_symb_state new_symb_state symb_state spec.n_lvars !js in ()
 				end
 			else
 				(* i1: NO: We have not visited the current command *)
@@ -1214,7 +1213,10 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info =
 			(* Symbolic execution was successful *)
 			true, None
 		(* An error occurred during the symbolic execution *)
-		with Failure msg ->
+		with 
+		| e -> let msg = (match e with
+			| SymbExecFailure failure -> Symbolic_State_Print.print_failure failure
+			| Failure msg -> msg) in
 			(print_endline (Printf.sprintf "The EVALUATION OF THIS PROC GAVE AN ERROR: %d %s!!!!" i msg);
 			Symbolic_Traces.create_info_node_from_error search_info msg;
 			Symbolic_Traces.create_info_node_from_post search_info spec.n_post spec.n_ret_flag false;

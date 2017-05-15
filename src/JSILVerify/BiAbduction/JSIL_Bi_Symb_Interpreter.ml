@@ -678,7 +678,8 @@ let rec fold_predicate pred_name pred_defs symb_state params args spec_vars exis
 		| pred_def :: rest_pred_defs ->
 			print_debug (Printf.sprintf "----------------------------");
 			print_debug (Printf.sprintf "Current pred symbolic state: %s" (Symbolic_State_Print.string_of_shallow_symb_state pred_def));
-			let unifier = Structural_Entailment.unify_symb_states_fold pred_name existentials pred_def symb_state_aux in
+			let unifier = try (Some (Structural_Entailment.unify_symb_states_fold pred_name existentials pred_def symb_state_aux))
+				with | SymbExecFailure failure -> print_debug (Symbolic_State_Print.print_failure failure); None in
 			(match unifier with
 			| Some (true, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma, _, []) ->
 			  print_debug (Printf.sprintf "I can fold this!!!");
@@ -1217,9 +1218,11 @@ and symb_evaluate_next_cmd_cont
 					Printf.printf "LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
 					let new_symb_state, _ = Normaliser.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
 					let new_symb_state, _, _, _ = Simplifications.simplify_symb_state None (DynArray.create()) (SS.empty) new_symb_state in
-					(match (Structural_Entailment.fully_unify_symb_state new_symb_state symb_state spec.n_lvars !js) with
-					| Some _, _ -> (true, None, [])
-					| None, msg -> (false, Some msg, []))
+					try (let _ = Structural_Entailment.fully_unify_symb_state new_symb_state symb_state spec.n_lvars !js in (true, None, [])) with
+						| SymbExecFailure failure -> 
+								let str_of_fail = Symbolic_State_Print.print_failure failure in
+								print_debug str_of_fail;
+								(false, Some str_of_fail, [])
 			else
 				(* i1: NO: We have not visited the current command *)
 				(* Understand the symbolic state *)
