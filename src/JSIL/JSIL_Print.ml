@@ -736,5 +736,6 @@ let string_of_heap (h : jsil_lit SHeap.t SHeap.t) =
 		""
 
 
-(* Shorthand for printing logical expressions *)
+(* Shorthand *)
+let print_type  t  = string_of_type t
 let print_lexpr le = string_of_logic_expression le false 

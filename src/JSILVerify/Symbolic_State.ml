@@ -794,17 +794,30 @@ let activate_post_in_post_pruning_info symb_exe_info proc_name post_number =
 		post_pruning_info_array.(post_number) <- true
 	with Not_found -> ()
 
+type unify_stores_fail = 
+	| VariableNotInStore of string
+	| ValueMismatch of string * jsil_logic_expr * jsil_logic_expr
+	| NoSubstitution
+
+type unify_heaps_fail =
+	| CannotResolvePatLocation of string
+	| CannotResolveLocation of string
+	| CannotResolveField of string * jsil_logic_expr
+	| FieldValueMismatch of string * jsil_logic_expr * jsil_logic_expr * string * jsil_logic_expr * jsil_logic_expr
+	| ValuesNotNone of string * (jsil_logic_expr * jsil_logic_expr) list
+	| FloatingLocations of string list
+	| IllegalDefaultValue of jsil_logic_expr
+	| PatternHeapWithDefaultValue
+
+type unify_gamma_fail = 
+	| NoTypeForVariable of string
+	| VariableNotInSubstitution of string
+	| TypeMismatch of string * jsil_type * jsil_logic_expr * jsil_type
+
 type symb_exec_fail =
-	| UnifyHeapsCannotResolvePatLocation of string
-	| UnifyHeapsCannotResolveLocation of string
-	| UnifyHeapsCannotResolveField of string * jsil_logic_expr
-	| UnifyHeapsFieldValueMismatch of string * jsil_logic_expr * jsil_logic_expr * string * jsil_logic_expr * jsil_logic_expr
-	| UnifyHeapsValuesNotNone of string * (jsil_logic_expr * jsil_logic_expr) list
-	| UnifyHeapsFloatingLocations of string list
-	| UnifyHeapsIllegalDefaultValue of jsil_logic_expr
-	| UnifyHeapsPatternHeapWithDefaultValue
-	| UnifyGammaMissingType of string
+	| US of unify_stores_fail
+	| UH of unify_heaps_fail
+	| UG of unify_gamma_fail
 	| Impossible of string
-	| CannotRecover
 
 exception SymbExecFailure of symb_exec_fail

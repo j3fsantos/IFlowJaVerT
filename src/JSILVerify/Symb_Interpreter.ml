@@ -489,7 +489,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 				(Symbolic_State_Print.string_of_shallow_symb_state spec.n_pre)
 				(Symbolic_State_Print.string_of_symb_state_list spec.n_post));
 			(* PROPAGATE FAILURE *)
-			let unifier, _ = Structural_Entailment.unify_symb_states SS.empty spec.n_pre symb_state_aux in
+			let unifier = Structural_Entailment.unify_symb_states SS.empty spec.n_pre symb_state_aux in
 			(match unifier with
 			|	Some (true, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
 				print_debug (Printf.sprintf "I found a COMPLETE match");
