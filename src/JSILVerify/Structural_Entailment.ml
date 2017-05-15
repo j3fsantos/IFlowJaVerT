@@ -146,17 +146,16 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 	discharges)
 	with 
 	| e -> (match e with 
-		| SymbExecFailure (US e) -> print_debug (Symbolic_State_Print.string_of_error (US e))
+		| SymbExecFailure (US e) -> print_debug (Symbolic_State_Print.print_failure (US e))
 		| Failure msg -> print_debug (Printf.sprintf "Exception: Failure: %s" msg));
 		let end_time = Sys.time () in
-		JSIL_Syntax.update_statistics "unify_symb_states" (end_time -. start_time);
+		JSIL_Syntax.update_statistics "unify_stores" (end_time -. start_time);
 		raise e
 
 
 let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (* solver *) (gamma: typing_environment) (subst : (string, jsil_logic_expr) Hashtbl.t) : (bool * ((string * jsil_logic_expr) list option)) =
 	let start_time = Sys.time () in
 	(* print_debug_petar (Printf.sprintf ": %s versus %s" (JSIL_Print.string_of_logic_expression le_pat false)  (JSIL_Print.string_of_logic_expression le false)); *)
-	try (
 	let result = (match le_pat with
 	
 	| LVar var
@@ -262,13 +261,8 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (* solver *) (gamm
 		) in
 	let end_time = Sys.time () in
 	JSIL_Syntax.update_statistics "unify_lexprs" (end_time -. start_time);
-	let b, _ = result in (* print_debug (Printf.sprintf "Result: %b" b); *)
-	result) 
-	with
-		| Failure msg -> 
-			let end_time = Sys.time () in
-			JSIL_Syntax.update_statistics "unify_lexprs" (end_time -. start_time);
-			raise (Failure msg)
+	result
+
 
 
 
@@ -409,7 +403,7 @@ let unify_symb_fv_lists (pat_loc     : string)
 	loop fv_list order_pat_list [] []
 
 
-let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_formulae pat_gamma gamma (subst : substitution) : (symbolic_heap * (jsil_logic_assertion list) * symbolic_discharge_list) option =
+let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_formulae pat_gamma gamma (subst : substitution) : symbolic_heap * (jsil_logic_assertion list) * symbolic_discharge_list =
 	print_debug (Printf.sprintf "Unify heaps %s \nand %s \nwith substitution: %s\nwith pure formulae: %s\nwith gamma: %s"
 		(Symbolic_State_Print.string_of_shallow_symb_heap pat_heap false)
 		(Symbolic_State_Print.string_of_shallow_symb_heap heap false)
@@ -528,14 +522,14 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 		let end_time = Sys.time () in
 		JSIL_Syntax.update_statistics "unify_symb_heaps" (end_time -. start_time);
 		print_debug_petar (Printf.sprintf "End of unify_symb_heaps: do enjoy the quotient_heap: %s" (Symbolic_State_Print.string_of_shallow_symb_heap quotient_heap false));
-		Some (quotient_heap, pfs, discharges)
+		quotient_heap, pfs, discharges
 	with 
-	| exc -> 
-		(match exc with
-		| SymbExecFailure e -> print_debug (Symbolic_State_Print.string_of_error e));
+	| e -> 
+		(match e with
+		| SymbExecFailure sef -> print_debug (Symbolic_State_Print.print_failure sef));
 		let end_time = Sys.time () in
 		JSIL_Syntax.update_statistics "unify_symb_heaps" (end_time -. start_time);
-		None
+		raise e
 
 
 
@@ -679,7 +673,7 @@ let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) p_form
 	print_debug "Entering unify_pred_arrays.";
 	
 	let result = (match (DynArray.length pat_preds) with
-	| 0 -> Some (subst, preds, [])
+	| 0 -> subst, preds, []
 	| _ -> 
 		let pat_preds = DynArray.to_list pat_preds in
 		let preds = DynArray.to_list preds in
@@ -739,18 +733,18 @@ let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) p_form
 		print_debug_petar "-------------------------";
 
 		(match options with
-		| [] -> Some (subst, DynArray.of_list preds, pat_preds)  
-		| [ op ] -> Some op
+		| [] -> subst, DynArray.of_list preds, pat_preds
+		| [ op ] -> op
 		| op :: (_ :: _) -> 
 			(match !interactive with
-			| false -> (* THIS IS CRAZY AD-HOC *) Some op
+			| false -> (* THIS IS CRAZY AD-HOC *) op
 		  | true -> 
 				print_debug "Choose branch (0 = None): ";
 				let n = read_int() in
 				print_debug (Printf.sprintf "The user has chosen the branch: %d" n);
 				if (n = 0) 
-					then Some (subst, DynArray.of_list preds, pat_preds) 
-					else Some (DynArray.get (DynArray.of_list options) (n - 1)))
+					then (subst, DynArray.of_list preds, pat_preds) 
+					else (DynArray.get (DynArray.of_list options) (n - 1)))
 		)) in
 		
 		result
@@ -759,7 +753,7 @@ let unify_pred_arrays (pat_preds : predicate_set) (preds : predicate_set) p_form
 (*******************************************************************)
 (*******************************************************************)
 
-let unify_gamma pat_gamma gamma pat_store subst (ignore_vars : SS.t) : bool =
+let unify_gamma pat_gamma gamma pat_store subst (ignore_vars : SS.t) : unit =
 	
 	print_debug (Printf.sprintf "I am about to unify two gammas\n");
  	print_debug (Printf.sprintf "pat_gamma: %s.\ngamma: %s.\nsubst: %s\n"
@@ -795,14 +789,17 @@ let unify_gamma pat_gamma gamma pat_store subst (ignore_vars : SS.t) : bool =
 				)
 			)
 			pat_gamma;
+		print_debug "Successfuly completed unify_gamma.";
 		let end_time = Sys.time () in
 			JSIL_Syntax.update_statistics "unify_gamma" (end_time -. start_time);
-			true
 	) with
-	| SymbExecFailure (UG _) -> 
+	| e -> 
+		print_debug "Failed unify_gamma.";
+		(match e with 
+		| SymbExecFailure (UG g) -> print_debug (Symbolic_State_Print.print_failure (UG g))); 
 		let end_time = Sys.time () in
-			JSIL_Syntax.update_statistics "unify_gamma" (end_time -. start_time);
-			false
+		JSIL_Syntax.update_statistics "unify_gamma" (end_time -. start_time);
+		raise e
 
 (*******************************************************************)
 (*******************************************************************)
@@ -869,13 +866,13 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 			List.iter (fun (x, y) -> print_debug_petar (Printf.sprintf "\t%s : %s\n" (JSIL_Print.string_of_logic_expression x false) (JSIL_Print.string_of_logic_expression y false))) discharges_0;
 			let keep_subst = Hashtbl.copy subst in
 			(* First try to unify heaps, then predicates *)
-			let ret_1 = unify_symb_heaps heap_1 heap_0 pf_0 gamma_1 gamma_0 subst in
+			let ret_1 = try (Some (unify_symb_heaps heap_1 heap_0 pf_0 gamma_1 gamma_0 subst)) with | SymbExecFailure _ -> None in
 			(match ret_1 with
 			| Some (heap_f, new_pfs, negative_discharges) ->
 				print_debug_petar (Printf.sprintf "Heaps unified successfully. Unifying predicates.\n");
-				let ret_2 = unify_pred_arrays preds_1 preds_0 pf_0 gamma_1 gamma_0 subst in
-				(match ret_2 with
-				| Some (subst, preds_f, []) ->
+				let subst, preds_f, remaining_preds = unify_pred_arrays preds_1 preds_0 pf_0 gamma_1 gamma_0 subst in
+				(match remaining_preds with
+				| [] ->
 					let spec_vars_check = spec_logic_vars_discharge subst lvars pf_0 gamma_0 in
 					(match spec_vars_check with
 					| true -> Some (discharges_0, subst, heap_f, preds_f, new_pfs)
@@ -883,7 +880,7 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 				| _ -> print_debug_petar (Printf.sprintf "Failed to unify predicates"); None)
 			| None -> 
 					print_debug_petar (Printf.sprintf "Could not unify heaps before predicates, unifying predicates first instead."); 
-					let ret_2 = if (DynArray.length preds_0 > 0) then unify_pred_arrays preds_1 preds_0 pf_0 gamma_1 gamma_0 subst else None in
+					let ret_2 = if (DynArray.length preds_0 > 0) then (Some (unify_pred_arrays preds_1 preds_0 pf_0 gamma_1 gamma_0 subst)) else None in
 					(match ret_2 with
 					| Some (subst, preds_f, []) ->
 						print_debug_petar "Unified predicates successfully. Extracting additional knowledge";
@@ -932,15 +929,13 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 	
 									print_debug_petar "Now unifying heaps again.";
 									print_debug_petar (Printf.sprintf "%s" (Symbolic_State_Print.string_of_substitution subst));
-									let ret_1 = unify_symb_heaps heap_1 heap_0 pf_0 gamma_1 gamma_0 subst in
-									(match ret_1 with
-									| Some (heap_f, new_pfs, negative_discharges) ->
+									let heap_f, new_pfs, negative_discharges = unify_symb_heaps heap_1 heap_0 pf_0 gamma_1 gamma_0 subst in
 										print_debug_petar (Printf.sprintf "Heaps unified successfully.\n");
 										let spec_vars_check = spec_logic_vars_discharge subst lvars pf_0 gamma_0 in
 										(match spec_vars_check with
 										| true -> Some (discharges_0, subst, heap_f, preds_f, new_pfs)
 										| false -> print_debug_petar "Unable to discharge spec vars"; None)
-									| None -> print_debug (Printf.sprintf "Failed to unify heaps and predicates definitively."); None ))))
+									)))
 					| _ -> print_debug (Printf.sprintf "Failed to unify predicates and heaps definitively.\n"); None ))) in
 		let end_time = Sys.time() in
 		JSIL_Syntax.update_statistics "USS: Step 0" (end_time -. start_time);
@@ -953,7 +948,6 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 	(* unify_gamma(gamma_1, gamma_0', store_1, subst, existentials) = true                                                                               *)
 	(* pf_0 + new_pfs |-_{gamma_0'} Exists_{existentials} subst'(pf_1) + pf_list_of_discharges(discharges)                                               *)
 	let step_1 discharges subst new_pfs =
-		let start_time = Sys.time() in
 		
 		print_debug (Printf.sprintf "Current substitution again: %s" (Symbolic_State_Print.string_of_substitution subst));
 		
@@ -970,9 +964,8 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 					extend_gamma gamma_0' gamma_1_existentials;
 					gamma_0')
 				else gamma_0 in
-		let unify_gamma_check = (unify_gamma gamma_1 gamma_0' store_1 subst existentials) in
-		let result = if (unify_gamma_check) then
-		begin
+		unify_gamma gamma_1 gamma_0' store_1 subst existentials;
+		let result =
 			merge_pfs pf_0 (DynArray.of_list new_pfs);
 		  let pf_1_subst_list = List.map (fun a -> assertion_substitution a subst true) (pfs_to_list pf_1) in
 			let pf_discharges = pf_list_of_discharges discharges subst false in
@@ -985,28 +978,23 @@ let unify_symb_states lvars pat_symb_state (symb_state : symbolic_state) : (bool
 				(Symbolic_State_Print.string_of_gamma gamma_0'));
 
 			let entailment_check_ret = Pure_Entailment.check_entailment (SS.of_list fresh_names_for_existentials) (pfs_to_list pf_0) pfs gamma_0' in
-			print_debug (Printf.sprintf "unify_gamma_check: %b. entailment_check: %b" unify_gamma_check entailment_check_ret);
-			Some (entailment_check_ret, pf_discharges, pf_1_subst_list, gamma_0')
-		end else (print_debug "Gammas not unifiable."; None) in
-		let end_time = Sys.time() in
-		JSIL_Syntax.update_statistics "USS: Step 1" (end_time -. start_time);
+			print_debug (Printf.sprintf "entailment_check: %b" entailment_check_ret);
+			entailment_check_ret, pf_discharges, pf_1_subst_list, gamma_0' in
 		result in
 
 	(* Actually doing it!!! *)
 	let result = (match step_0 subst with
 	| Some (discharges, subst, heap_f, preds_f, new_pfs) ->
-		let outcome = step_1 discharges subst new_pfs in
-		let outcome = (match outcome with
-		| Some (entailment_check_ret, pf_discharges, pf_1_subst_list, gamma_0') -> Some (entailment_check_ret, heap_f, preds_f, subst, (pf_1_subst_list @ pf_discharges), gamma_0')
-		| None -> None) in
-		outcome
+		let entailment_check_ret, pf_discharges, pf_1_subst_list, gamma_0' = step_1 discharges subst new_pfs in
+		let outcome = (entailment_check_ret, heap_f, preds_f, subst, (pf_1_subst_list @ pf_discharges), gamma_0') in
+		Some outcome
 	| None -> None) in
 	let end_time = Sys.time () in
 		JSIL_Syntax.update_statistics "unify_symb_states" (end_time -. start_time);
 		result)
 	with
 		| e -> (match e with 
-			| SymbExecFailure failure -> print_debug (Symbolic_State_Print.string_of_error failure)
+			| SymbExecFailure failure -> print_debug (Symbolic_State_Print.print_failure failure)
 			| Failure msg -> print_debug (Printf.sprintf "Exception: Failure: %s" msg));
 			let end_time = Sys.time () in
 			JSIL_Syntax.update_statistics "unify_symb_states" (end_time -. start_time);
@@ -1104,19 +1092,11 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 	(* STEP 1 *)
 	let step_1 subst =
 		print_debug "\tEntering step 1.";
-		let ret_1 = unify_symb_heaps heap_1 heap_0 pf_0 (* solver_0 *) gamma_1 gamma_0 subst in
-		(match ret_1 with
-		| Some (heap_f, new_pfs, negative_discharges) ->
-			let ret_2 = unify_pred_arrays preds_1 preds_0 pf_0 gamma_1 gamma_0 subst in
-			(match ret_2 with
-			| Some (new_subst, preds_f, unmatched_pat_preds) -> 
-				print_debug 
-					(Printf.sprintf "subst after unify_heaps: %s" (Symbolic_State_Print.string_of_substitution subst));
-				print_debug 
-					(Printf.sprintf "subst after unify_preds: %s" (Symbolic_State_Print.string_of_substitution new_subst));
-				Some (heap_f, preds_f, subst, new_subst, new_pfs, unmatched_pat_preds)
-			| None -> None)
-		| None -> None) in
+		let heap_f, new_pfs, negative_discharges = unify_symb_heaps heap_1 heap_0 pf_0 gamma_1 gamma_0 subst in
+		let new_subst, preds_f, unmatched_pat_preds = unify_pred_arrays preds_1 preds_0 pf_0 gamma_1 gamma_0 subst in
+			print_debug (Printf.sprintf "subst after unify_heaps: %s" (Symbolic_State_Print.string_of_substitution subst));
+			print_debug (Printf.sprintf "subst after unify_preds: %s" (Symbolic_State_Print.string_of_substitution new_subst));
+			Some (heap_f, preds_f, subst, new_subst, new_pfs, unmatched_pat_preds) in
 
 
 	(* STEP 2 *)
@@ -1138,7 +1118,8 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 		let new_existentials = SS.union existentials (SS.of_list new_pat_existentials) in
 		merge_pfs pf_0 (DynArray.of_list new_pfs);
 		(* PROPAGATE FAILURE *)
-		let unify_gamma_check = (unify_gamma gamma_1 gamma_0' store_0 subst pat_existentials) in
+		let unify_gamma_check = 
+			try (unify_gamma gamma_1 gamma_0' store_0 subst pat_existentials; true) with | SymbExecFailure _ -> false in
 		if (unify_gamma_check) then
 		begin
 			let pf_1_subst_list = List.map (fun a -> assertion_substitution a subst true) (pfs_to_list pf_1) in
@@ -1189,9 +1170,9 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 			print_debug 
 				(Printf.sprintf "In the middle of the recovery!!! the pat_preds as they are now:\n%s\n" 
 					(Symbolic_State_Print.string_of_preds copied_preds_1 false)); 
-			let ret = unify_pred_arrays copied_preds_1 preds_0 pf_0 gamma_1 gamma_0 subst in
-			(match ret with
-			| Some (subst, preds_f, []) -> 
+			let subst, preds_f, remaining_preds = unify_pred_arrays copied_preds_1 preds_0 pf_0 gamma_1 gamma_0 subst in
+			(match remaining_preds with
+			| [] -> 
 				print_debug (Printf.sprintf "subst in recovery after re-unify_preds: %s" (Symbolic_State_Print.string_of_substitution subst));
 				let entailment_check_ret, pf_discharges, pf_1_subst_list, gamma_0', new_existentials = step_2 subst filtered_vars gamma_existentials new_pfs discharges in
 				Some (entailment_check_ret, heap_f, preds_f, subst, (pf_1_subst_list @ pf_discharges), gamma_0', new_existentials, [ subtracted_pred_ass ])
@@ -1212,7 +1193,7 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 	| None -> print_debug "Failed in step 0!"; None)
 	with
 		| e -> (match e with 
-			| SymbExecFailure failure -> print_debug (Symbolic_State_Print.string_of_error failure)
+			| SymbExecFailure failure -> print_debug (Symbolic_State_Print.print_failure failure)
 			| Failure msg -> print_debug (Printf.sprintf "Exception: Failure: %s" msg));
 			None
 
@@ -1295,37 +1276,30 @@ let merge_symb_states
 	(heap_l, store_l, pf_l, gamma_l, preds_l)
 
 let safe_merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbolic_state) (subst : substitution) : symbolic_state option =
-	(* *)
 
-	(* Printf.printf "gamma_r: %s\n." (Symbolic_State_Print.string_of_gamma (get_gamma symb_state_r)); *)
-	(* Printf.printf "substitution: %s\n" (Symbolic_State_Print.string_of_substitution subst); *)
-
-	let pf_r_existentials = get_subtraction_vars (get_symb_state_vars false symb_state_r) subst in
-	(* PROPAGATE FAILURE *)
-	let gammas_unifiable = unify_gamma (get_gamma symb_state_r) (get_gamma symb_state_l) (get_store symb_state_r) subst pf_r_existentials in
-
-	let symb_state_r = symb_state_substitution symb_state_r subst false in
-	let heap_l, store_l, pf_l, gamma_l, preds_l (*, solver_l *) = symb_state_l in
-	let heap_r, store_r, pf_r, gamma_r, preds_r (*, _ *) = symb_state_r in
-	merge_pfs pf_l pf_r;
-	merge_gammas gamma_l gamma_r;
-
-
-	let satisfiability_check = gammas_unifiable && (Pure_Entailment.check_satisfiability (pfs_to_list pf_l) gamma_l) in
-
-	if (satisfiability_check)
-		then (
-			(* Printf.printf "BEFORE MERGING HEAPS. pfs_l: %s\n. pfs_r: %s\n." (Symbolic_State_Print.string_of_shallow_p_formulae pf_l false)
-				(Symbolic_State_Print.string_of_shallow_p_formulae pf_r false); *)
-			Symbolic_State_Utils.merge_heaps heap_l heap_r pf_l (* solver_l *) gamma_l;
-			(* Printf.printf "AFTER MERGING HEAPS\n\n"; *)
-			DynArray.append preds_r preds_l;
-			(* *)
-			(* Printf.printf "s_heap_l after merge: %s.\ns_preds_l: %s.\ns_store_l: %s.\n" (Symbolic_State_Print.string_of_shallow_symb_heap heap_l)
-					(Symbolic_State_Print.string_of_preds preds_l) (Symbolic_State_Print.string_of_shallow_symb_store store_l); *)
-			(* *)
-			Some (heap_l, store_l, pf_l, gamma_l, preds_l (*, (ref None) *)))
-		else None
+	try (
+		let pf_r_existentials = get_subtraction_vars (get_symb_state_vars false symb_state_r) subst in
+		unify_gamma (get_gamma symb_state_r) (get_gamma symb_state_l) (get_store symb_state_r) subst pf_r_existentials;
+	
+		let symb_state_r = symb_state_substitution symb_state_r subst false in
+		let heap_l, store_l, pf_l, gamma_l, preds_l (*, solver_l *) = symb_state_l in
+		let heap_r, store_r, pf_r, gamma_r, preds_r (*, _ *) = symb_state_r in
+		merge_pfs pf_l pf_r;
+		merge_gammas gamma_l gamma_r;
+	
+		let satisfiability_check = Pure_Entailment.check_satisfiability (pfs_to_list pf_l) gamma_l in
+	
+		if (satisfiability_check)
+			then (
+				Symbolic_State_Utils.merge_heaps heap_l heap_r pf_l gamma_l;
+				DynArray.append preds_r preds_l;
+				Some (heap_l, store_l, pf_l, gamma_l, preds_l))
+			else None)
+	with
+		| e -> (match e with 
+			| SymbExecFailure failure -> print_debug (Symbolic_State_Print.print_failure failure)
+			| Failure msg -> print_debug (Printf.sprintf "Exception: Failure: %s" msg));
+			None
 
 
 (**
@@ -1503,7 +1477,7 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 			) else ( print_debug (Printf.sprintf "Failed unfolding in step 2");  None))
 	with
 		| e -> (match e with 
-			| SymbExecFailure failure -> print_debug (Symbolic_State_Print.string_of_error failure)
+			| SymbExecFailure failure -> print_debug (Symbolic_State_Print.print_failure failure)
 			| Failure msg -> print_debug (Printf.sprintf "Exception: Failure: %s" msg));
 			None
 

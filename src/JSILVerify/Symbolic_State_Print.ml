@@ -335,14 +335,14 @@ let string_of_UG_error ug_error =
 	| VariableNotInSubstitution s -> Printf.sprintf "Variable %s not in substitution" s
 	| TypeMismatch (pv, pt, v, t) -> Printf.sprintf "Type mismatch: (%s, %s) vs (%s, %s)" pv (print_type pt) (print_lexpr v) (print_type t)
 	
-let string_of_error error = 
+let print_failure error = 
 	let error_message =
 	(match error with 
 		| US us_error ->   let us_error_str = string_of_US_error us_error in "Unify stores: " ^ us_error_str
 		| UH uh_error ->   let uh_error_str = string_of_UH_error uh_error in "Unify heaps: "  ^ uh_error_str
-		| UH ug_error ->   let ug_error_str = string_of_UH_error ug_error in "Unify gamma: "  ^ ug_error_str
+		| UG ug_error ->   let ug_error_str = string_of_UG_error ug_error in "Unify gamma: "  ^ ug_error_str
 		| Impossible s ->  Printf.sprintf "Impossible: %s" s (* MORE INFO *)
-	) in "SYMB_EXEC_ERROR: " ^ error_message
+	) in "SYMB_EXEC_FAIL: " ^ error_message
 
 (***************)
 (** Shorthand **)

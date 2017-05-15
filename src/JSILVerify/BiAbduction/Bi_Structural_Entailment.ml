@@ -385,14 +385,14 @@ let bi_unify_symb_states (lvars : SS.t) pat_symb_state (symb_state : symbolic_st
 			(match ret_1 with
 			| Some (heap_f, anti_frame, new_pfs, negative_discharges) ->
 				print_debug (Printf.sprintf "Heaps unified successfully.\n");
-				let ret_2 = unify_pred_arrays preds_1 preds_0 pf_0 gamma_1 gamma_0 subst in
-				(match ret_2 with
-				| Some (subst, preds_f, []) ->
+				let subst, preds_f, remaining_preds = unify_pred_arrays preds_1 preds_0 pf_0 gamma_1 gamma_0 subst in
+				(match remaining_preds with
+				| [] ->
 					let spec_vars_check = spec_logic_vars_discharge subst lvars pf_0 gamma_0 in
 	  				if (spec_vars_check)
 							then Some (discharges_0, subst, heap_f, anti_frame, preds_f, new_pfs, af_pfs_0)
 							else (Printf.printf "Failed spec vars check\n"; None) 
-				| Some (_, _, _) | None -> ( print_debug (Printf.sprintf "Failed to unify predicates\n"); None))
+				| _ -> ( print_debug (Printf.sprintf "Failed to unify predicates\n"); None))
 			| None -> ( print_debug (Printf.sprintf "Failed to unify heaps\n"); None))
 		| None -> ( print_debug (Printf.sprintf "Failed to unify stores\n"); None)) in
 		let end_time = Sys.time() in
