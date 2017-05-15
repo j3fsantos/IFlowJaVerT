@@ -65,40 +65,8 @@ function holePunch(element) {
 	return s;
 }
 
-/**
-	@id singleGet
-	@rec false
-
-	@pre (
-		InitialDOMHeap() * (element == #en) * types (#en : $$object_type) *
-		ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) *
-		(#attr == {{ 
-			{{ "attr", "src", #a0, #atf0 }}, 
-			{{ "attr", "width", #a1, #atf1 }}, 
-			{{ "attr", "height", #a2, #atf2 }}, 
-			{{ "hole", #a_alpha2 }} 
-		}}) *
-		(#atf0 == {{
-			{{ "text", #t0, #s0 }},
-			{{ "text", #t1, #s1 }}	
-		}}
-		)
-	)
-	
-	@post (
-		InitialDOMHeap() * (ret == #s0 ++ #s1) *
-		ElementNode(#name, #en, #l_attr, #attr, #l_children, #children)
-	)
-*/
 function singleGet(element) {
-	/* @unfold ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) */
-	/* @callspec #a allocAS(#l_attr, 1, 3) */
-	/* @fold ElementNode(#name, #en, #l_attr, #attr_1, #l_children, #children) */ 
-	/* @fold val(#atf0, #s) */
 	var w = element.getAttribute("src");
-	/* @unfold ElementNode(#name, #en, #l_attr, #attr_1, #l_children, #children) */
-	/* @callspec deallocAS(#a) */
-	/* @fold ElementNode(#name, #en, #l_attr, #attr, #l_children, #children) */
 	return w
 }
 
