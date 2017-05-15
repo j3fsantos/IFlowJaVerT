@@ -1382,7 +1382,6 @@ let add_new_spec proc_name proc_params pre_post result_states new_spec_tbl =
 	TODO: Construct call graph, do dfs, do in that order
 *)
 let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
-	(* Going to add the initial heap * anti-frame as the post and resulting heap as the anti-frame *)
 	let new_spec_tbl = Hashtbl.create small_tbl_size in
 	if (!js) then
 		Hashtbl.iter (fun spec_name spec ->	if (not (List.mem spec_name procs_to_verify)) then 
@@ -1431,16 +1430,5 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 				(proc_name, 0, new_pre_post, success, failure_msg, dot_graph) :: ac_results)
 		[]
 		procs_to_verify in 
-	(* Understand complete success *)
-	let complete_success =
-		List.fold_left
-			(fun ac (_, _, _, partial_success, _, _) -> 
-				(ac && partial_success))
-			true
-			results in
-	(* Get the result string of the symbolic execution *)
-	let specs_str = Symbolic_State_Utils.string_of_n_spec_table_assertions new_spec_tbl procs_to_verify in 
-	let results_str = Symbolic_State_Print.string_of_bi_symb_exe_results results in
-	let results_str = "Generated specifications: \n " ^ specs_str ^ "\n" ^ results_str in
 	(* Return *)
-	results_str, new_spec_tbl
+	new_spec_tbl, procs_to_verify, results

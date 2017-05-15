@@ -1322,4 +1322,4 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 		spec_table;
 	print_endline (Printf.sprintf "\nVerified: %d.\t\tPrunings: %d.\n" !count_verified !count_prunings);
 	(* Return *)
-	results_str, dot_graphs, complete_success
+	results_str, dot_graphs, complete_success, results

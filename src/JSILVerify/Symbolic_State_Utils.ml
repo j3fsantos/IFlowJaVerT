@@ -367,22 +367,27 @@ let convert_symb_state_to_assertion (symb_state : symbolic_state) : jsil_logic_a
 		LEmp 
 		assertions
 
+let string_of_single_spec_table_assertion single_spec =
+	let pre = convert_symb_state_to_assertion single_spec.n_pre in
+	let post = convert_symb_state_to_assertion (List.hd single_spec.n_post) in
+	let flag = (match single_spec.n_ret_flag with | Normal -> "Normal" | Error -> "Error") in
+	(Printf.sprintf "[[ %s ]]\n[[ %s ]]\n%s\n"
+	 (JSIL_Print.string_of_logic_assertion pre false)
+	 (JSIL_Print.string_of_logic_assertion post false)
+	 flag)
+
+let string_of_n_single_spec_assertion spec = 
+	List.fold_left(
+		fun ac single_spec ->
+			let single_spec_str = string_of_single_spec_table_assertion single_spec in
+			ac ^ single_spec_str
+	) "" spec.n_proc_specs
+
 let string_of_n_spec_table_assertions spec_table procs_to_verify =
 	Hashtbl.fold
 		(fun spec_name spec ac ->
 			if (List.mem spec_name procs_to_verify) then  
-				let spec_str = (List.fold_left
-					(fun ac single_spec ->
-						let pre = convert_symb_state_to_assertion single_spec.n_pre in
-						let post = convert_symb_state_to_assertion (List.hd single_spec.n_post) in
-						let flag = (match single_spec.n_ret_flag with | Normal -> "Normal" | Error -> "Error") in
-						ac ^ (Printf.sprintf "[[ %s ]]\n[[ %s ]]\n%s\n"
-							 (JSIL_Print.string_of_logic_assertion pre false)
-							 (JSIL_Print.string_of_logic_assertion post false)
-							 flag
-						))
-					""
-					spec.n_proc_specs) in
+				let spec_str =  string_of_n_single_spec_assertion spec in
 				ac ^ "\n" ^ spec_name ^ "\n----------\n" ^ spec_str
 			else 
 				ac )
