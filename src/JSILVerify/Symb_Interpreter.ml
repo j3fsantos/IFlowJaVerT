@@ -496,10 +496,10 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 					print_debug (Printf.sprintf "I found a COMPLETE match");
 					print_debug (Printf.sprintf "The pre of the spec that completely matches me is:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state spec.n_pre));
 					print_debug (Printf.sprintf "The number of posts is: %d" (List.length spec.n_post));
-					[ (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ]
+					[ (true, spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ]
 			| false ->
 					print_debug (Printf.sprintf "I found a PARTIAL match");
-					find_correct_specs rest_spec_list ((spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) :: ac_quotients)))
+					find_correct_specs rest_spec_list ((false, spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) :: ac_quotients)))
 			with | e -> (match e with 
 				| SymbExecFailure failure -> 
 						print_debug (Symbolic_State_Print.print_failure failure);
@@ -532,19 +532,19 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		symb_states_and_ret_lexprs in
 
 
-	let rec apply_correct_specs (quotients : (jsil_n_single_spec * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment) list) =
+	let rec apply_correct_specs (quotients : (bool * jsil_n_single_spec * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment) list) =
 		print_debug_petar (Printf.sprintf "Entering apply_correct_specs.");
 		match quotients with
 		| [ ] -> [ ]
-		| [ (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ] -> 
+		| [ (total, spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ] when (total = true) -> 
 			print_debug (Printf.sprintf "This was a TOTAL MATCH!!!!");
 			print_debug (Printf.sprintf "Substitution: %s\n" (Symbolic_State_Print.string_of_substitution subst)); 
 			transform_symb_state spec symb_state quotient_heap quotient_preds subst pf_discharges new_gamma
-	 	| _ :: _ -> 
+	 	| _ -> 
 			print_debug (Printf.sprintf "We have a PARTIAL MATCH of length: %d" (List.length quotients));
 			let new_symb_states =
 				List.map
-					(fun (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
+					(fun (_, spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
 						if (compatible_pfs symb_state spec.n_pre subst)
 							then transform_symb_state_partial_match (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma)
 							else [])
