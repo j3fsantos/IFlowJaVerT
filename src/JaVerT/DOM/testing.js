@@ -243,18 +243,22 @@
 
 	@pred val(t, s) :
 		isNil(t) * (s == ""),
-		(t == (#head :: #childListNext)) * isText(#head, #id, #s1) * val(#childListNext, #s2) * (s == #s1 ++ #s2);
+		(t == (#head :: #childListNext)) * isText(#head, #id, #s1) * val(#childListNext, #s2) * (s == #s1 ++ #s2),
+		(t == (#head :: #childListNext)) * isHole(#head, #alpha) * TCell(#alpha, #id, #s1) * val(#childListNext, #s2) * (s == #s1 ++ #s2);
 
 	@pred out(a, s) :
 		isNil(a),
 		(a == (#head :: #childListNext)) * isAttr(#head, #name, #id, #l_tf) * (! (s == #name)) * 
+		out(#childListNext, s) * types(s: $$string_type, #name: $$string_type),
+		(a == (#head :: #childListNext)) * isHole(#head, #alpha) * ACell(#alpha, #name, #id, #l_tf, #tf) * (! (s == #name)) * 
 		out(#childListNext, s) * types(s: $$string_type, #name: $$string_type);
 
 	@pred complete(l) :
 		isNil(l),
 		(l == (#head :: #next)) * isText(#head, #id, #s1) * complete(#next),
-		(l == (#head :: #next)) * isAttr(#head, #n, #id, #l_tf) * complete(#next),
-		(l == (#head :: #next)) * isElement(#head, #n, #id, #l_a, #l_c) * complete(#next);
+		(l == (#head :: #next)) * isElement(#head, #n, #id, #l_a, #l_c) * complete(#next) * complete(#l_c),
+		(l == (#head :: #next)) * isHole(#head, #alpha) * TCell(#alpha, #id, #s1) * complete(#next),
+		(l == (#head :: #next)) * isHole(#head, #alpha) * ECell(#alpha, #n, #id, #l_a, #l_c) * complete(#next) * complete(#l_c);
 
 
 	@onlyspec allocF(l, i)
@@ -312,6 +316,10 @@
 				 Grove(#l, #g) * (#g == #g1 @ ( {{"attr", #name, #id, #cList}} :: #g2)) * (l-len(#g1) == #i) ]]
 		post: [[ Grove(#l, #g_post) * (#g_post == (#g1 @ ({{ "hole", #alpha }} :: #g2))) *
 				 ACell(#alpha, #name, #id, #l_children, #cList) * (ret == #alpha) * types(#alpha : $$object_type)]]
+		outcome: normal;
+
+		pre:  [[ (l == #l) * (i == -1) * Grove(#l, #g) ]]
+		post: [[ Grove(#l, #g_post) * (#g_post == ({{ "hole", #alpha }} :: #g)) * Grove(#alpha, {{ }}) * (ret == #alpha)]]
 		outcome: normal
 
 	@onlyspec deallocG(l, alpha)
@@ -393,7 +401,7 @@
 	@onlyspec getAttribute(s)
 		pre:  [[ (s == #s) * ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList) *
 				 (#aList == #a1 @ ({{ "hole", #gamma }} :: #a2)) * ACell(#gamma, #s, #m, #l_t, #t) * val(#t, #s1) * types(#s1 : $$string_type) ]]
-		post: [[ (s == #s) * ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList) * (ret == #s1) ]]
+		post: [[ (s == #s) * ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList) * ACell(#gamma, #s, #m, #l_t, #t) * (ret == #s1) ]]
 		outcome: normal;
 		
 		pre:  [[ (s == #s) * ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList) * out(#aList, #s) ]]
@@ -510,4 +518,47 @@ function groveParent(s) {
 	var t = document.createTextNode(s);
 	var r = t.parentNode();
 	return r;
+}
+
+/**
+	@id sanitise
+
+	@pre (
+		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
+		scope(cache: #c) * dataField(#c, #s1, 0) * standardObject(#c) * 
+		InitialDOMHeap() *
+		(img == #n) * (cat == #s2) * 
+		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children) *
+		(#attr == {{ {{ "hole", #alpha1 }}, {{ "hole", #gamma }}, {{ "hole", #alpha2 }} }}) *
+		ACell(#gamma, "src", #a, #l_tf, #tf1) *
+		val(#tf1, #s1) * isB(#s1) * isNamedProperty(#s1) * 
+		Grove(#grove, {{}})
+	)
+	@post (
+		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
+		scope(cache: #c) * dataField(#c, #s1, 1) * standardObject(#c) * 
+		InitialDOMHeap() *
+		ECell(#alpha, #name, #n, #l_attr, #new_attr, #l_children, #children) *
+		(#new_attr == {{ {{ "hole", #alpha1 }}, {{ "hole", #gamma }}, {{ "hole", #alpha2 }} }}) *
+		ACell(#gamma, "src", #a, #l_tf, #tf2) *
+		(#tf2 == {{ {{ "hole", #gamma2 }} }}) *
+		TCell(#gamma2, #r, #s2) *
+		isB(#s1) *
+		Grove(#grove, #tf1)
+	)
+**/
+function sanitiseImg(img, cat){
+	var url = img.getAttribute("src");
+	if(url !== ""){
+		var isB = cache[url];
+		if(isB) {
+			img.setAttribute("src", cat)
+		} else {
+			isB = isBlackListed(url);
+			if(isB){
+				img.setAttribute("src", cat);
+				cache[url] = 1;
+			}
+		}
+	}
 }

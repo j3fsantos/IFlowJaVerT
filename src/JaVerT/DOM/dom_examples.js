@@ -81,63 +81,6 @@ function builtSingleGet(element) {
 	return src;
 }
 
-/**
-	@id groveParent
-	@rec false
-
-	@pre (
-		InitialDOMHeap() * (s == #s) * scope(document : $l_document) *
-		types(#s : $$string_type, #grove: $$list_type) *
-		DocumentNode($l_document, #l_element, #element, #l_grove, #grove) *
-		(#grove == {{ {{ "hole", #alpha }} }})
-	)
-	@post (
-		InitialDOMHeap() * scope(document : $l_document) * (ret == $$null) *
-		types(#t : $$object_type) *
-		DocumentNode($l_document, #l_element, #element, #l_grove, #grove) *
-		(#grove == {{ {{ "text", #t, #s }}, {{ "hole", #alpha }} }})
-	)
-*/
-/* 	Currently what we should end up with on our current direction. 
-	Folds/unfolds of the grove are required to show that location #t is an object that has function ParentNode, 
-		i.e. get to TextNode(#t, ...) which has TextNodePrototype which defines a function field parentNode.
-	The amount of fold/unfold increases if we have to dig deeper into the structure.*/
-function groveParent(s) {
-	var t = document.createTextNode(s);
-	/** @callspec #a allocG(#grove, 0, 0) */ /* Make the #grove list correspond to the spec of parentNode, with a context hole before and after the node. This is done here instead of after the fold/unfold just to demonstrate the use of invariant. To simplify things it should go just before parentNode call */
-	/** @unfold Grove(#l_grove, #grove) */   /* Pull out the TextNode(t, ...) predicate that was implied after document.createTextNode(s) */
-	/** @invariant ((#l_grove, "@next") -> #l_g2) */
-	
-	/** @unfold Grove(#l_g2, #g2) */
-	/** @fold Grove(#l_g2, #g2) */
-	/** @fold Grove(#l_grove, #grove) */     /* Undo the folds: we need the grove in list form for the parentNode spec */
-	var r = t.parentNode();
-	/** @callspec deallocG(#a) */            /* Undo internally required alloc */
-	return r;
-}
-
-/* If we can create a macro that causes the fold/unfold cascade, the above simplifies and becomes more systematic */
-function groveParent(s) {
-	var t = document.createTextNode(s);
-	/** @invariant (t == #t) */                      /* Register what has just been created. Maybe the variable and it's logical variable already exist and I missed that fact. */
-	/** @callspec #a allocG(#grove, 0, 0) */         /* Make the #grove list correspond to the spec of parentNode, with a context hole before and after the node */
-	/** @macro findNodePredicate(#t, #grove) */      /* Find the Node predicate associated to an address inside a 
-	var r = t.parentNode();
-	/** @callspec deallocG(#a) */
-	return r;
-}
-
-/* If createTextNode introduces a "side effect" TextNode to whatever the tool has as state, we avoid fold/unfold of the grove. 
-   What I mean here is maybe we can introduce a way to say, in the only specs, that TextNode(#t, ...) should be known to hold.
-   We can't just add it to the post as it is a spatial predicate. */
-function groveParent(s) {
-	var t = document.createTextNode(s);
-	/** @callspec #a allocG(#grove, 0, 0) */
-	var r = t.parentNode();
-	/** @callspec deallocG(#a) */
-	return r;
-}
-
 /** Bootstrap IE10 viewport bug workaround.
 	Simple real life example, slightly modified: Removed an if condition and pulled a nested call out.
 	From: https://github.com/twbs/bootstrap/blob/master/docs/assets/js/ie10-viewport-bug-workaround.js
@@ -156,6 +99,85 @@ function ie10-viewport-bug-workaround() {
 	@topensures  (DocumentNode($l_document, #l_element, {{ }}, {{ {{ "elem", "one", #ret, {{ }}, {{ }} }} }}) * InitialDOMHeap() * scope(document : $l_document))
 */
 document.createElement("one");
+
+/**
+	@id groveParent
+
+	@pre (
+		InitialDOMHeap() * scope(document : $l_document) *
+		(s == #text) * types(#text: $$string_type) *
+		DocumentNode($l_document, #l_elem, #d_elem, #d_l_g, #d_g)
+	)
+	@post (
+		InitialDOMHeap() * scope(document : $l_document) *
+		DocumentNode($l_document, #l_elem, #d_elem, #d_l_g, #d_g_post) *
+		(#d_g_post == {{ "hole", #someAddress }} :: #d_g) *
+		TCell(#someAddress, #tid, #text) *
+		(ret == $$null)
+	)
+*/
+function groveParent(s) {
+	var t = document.createTextNode(s);
+	var r = t.parentNode();
+	return r;
+}
+
+/** sanitiseImg specifics */
+/**
+	@pred isB(s) : (s == #s) * isB(s);
+	@pred nisB(s) : (s == #s) * nisB(s);
+
+	@onlyspec isBlackListed(s)
+		pre:  [[ (s == #s) * isB(#s) ]]
+		post: [[ isB(#s) * (ret == 1) ]]
+		outcome: normal;
+		pre:  [[ (s == #s) * (nisB(#s)) ]]
+		post: [[ (ret == 0) * (nisB(#s)) ]]
+		outcome: normal
+*/
+
+/**
+	@id sanitise
+
+	@pre (
+		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
+		scope(cache: #c) * dataField(#c, #s1, 0) * standardObject(#c) * 
+		InitialDOMHeap() *
+		(img == #n) * (cat == #s2) * 
+		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children) *
+		(#attr == {{ {{ "hole", #alpha1 }}, {{ "hole", #gamma }}, {{ "hole", #alpha2 }} }}) *
+		ACell(#gamma, "src", #a, #l_tf, #tf1) *
+		val(#tf1, #s1) * isB(#s1) * isNamedProperty(#s1) * 
+		Grove(#grove, {{}})
+	)
+	@post (
+		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
+		scope(cache: #c) * dataField(#c, #s1, 1) * standardObject(#c) * 
+		InitialDOMHeap() *
+		ECell(#alpha, #name, #n, #l_attr, #new_attr, #l_children, #children) *
+		(#new_attr == {{ {{ "hole", #alpha1 }}, {{ "hole", #gamma }}, {{ "hole", #alpha2 }} }}) *
+		ACell(#gamma, "src", #a, #l_tf, #tf2) *
+		(#tf2 == {{ {{ "hole", #gamma2 }} }}) *
+		TCell(#gamma2, #r, #s2) *
+		isB(#s1) *
+		Grove(#grove, #tf1)
+	)
+**/
+function sanitiseImg(img, cat){
+	var url = img.getAttribute("src");
+	if(url !== ""){
+		var isB = cache[url];
+		if(isB) {
+			img.setAttribute("src", cat)
+		} else {
+			isB = isBlackListed(url);
+			if(isB){
+				img.setAttribute("src", cat);
+				cache[url] = 1;
+			}
+		}
+	}
+}
 
 /*
 	Currently unsupported
@@ -177,7 +199,7 @@ document.createElement("one");
 		outcome: normal
 
 	@onlyspec substringData(o, c)
-		pre:  [[ (o == #l1) * (c == #l2) * TextNode(this, #text) * (#text == #s1 ++ #s2 ++ #s3) * (#l1 == s-len(#s1)) * (#l2 == s-len(#s2)) * types(#text : $$string_type, #s1 : $$string_type, #s2 : $$string_type) ]]
+		pre:  [[ (o == #l1) * (c == #l2) * TextNode(this, #text) * (#text == #s1 ++ #s2 ++ #s3) * (#l1 == s-len(#s1)) * (#l2 == s-len(#s2)) ]]
 		post: [[ TextNode(this, #text) * (ret == #s2) ]]
 		outcome: normal;
 
