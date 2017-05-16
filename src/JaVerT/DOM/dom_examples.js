@@ -100,6 +100,102 @@ function ie10-viewport-bug-workaround() {
 */
 document.createElement("one");
 
+
+/** 
+-------------------------------------------------------------------------------
+		cell encoding
+-------------------------------------------------------------------------------
+**/
+
+/**
+	@id createNewAttribute
+	@rec false
+
+	@pre (
+		InitialDOMHeap() * (element == #id) * types(#en : $$object_type) *
+		DocumentNode($l_document, #l_elem, #elem, #l_gList, #gList) *
+		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList1)
+	)
+	@post (
+		InitialDOMHeap() * (ret == $$t) * 
+		DocumentNode($l_document, #l_elem, #d_elem, #d_l_g, #d_g_post) *
+		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList_post) *
+		(#cList_post == (#cList1 @ {{ {{ "elem", "test", #n_id, #n_l_aList, #n_l_cList }} }}))
+	)
+*/
+function createNewAttribute(element){
+	var d = element.ownerDocument();
+	var e = d.createElement("test");
+	/* @callspec allocG(#zeta, #l_gList, 0) */
+	0;
+	
+	/* @invariant scope(e : #e2) * ECell(#zeta, #name2, #e2, #l_aList2, #aList2, #l_cList2, #cList2) */
+	/* @fold complete(#cList2) */
+	var n = element.appendChild(e);
+	/* @callspec deallocG(#whatever, #l_gList, #zeta) */
+	return (n === e);
+}
+
+/** sanitiseImg specifics */
+/**
+	@pred isB(s) : (s == #s) * isB(s);
+	@pred nisB(s) : (s == #s) * nisB(s);
+
+	@onlyspec isBlackListed(s)
+		pre:  [[ (s == #s) * isB(#s) ]]
+		post: [[ isB(#s) * (ret == 1) ]]
+		outcome: normal;
+		pre:  [[ (s == #s) * (nisB(#s)) ]]
+		post: [[ (ret == 0) * (nisB(#s)) ]]
+		outcome: normal
+*/
+/**
+	@id sanitise
+
+	@pre (
+		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
+		scope(cache: #c) * dataField(#c, #s1, 0) * standardObject(#c) * 
+		InitialDOMHeap() *
+		(img == #n) * (cat == #s2) * 
+		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children) *
+		(#attr == {{ {{ "hole", #alpha1 }}, {{ "attr", "src", #a, #tf1 }}, {{ "hole", #alpha2 }} }}) *
+		val(#tf1, #s1) * isB(#s1) * isNamedProperty(#s1) * 
+		Grove(#grove, {{}})
+	)
+	@post (
+		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
+		scope(cache: #c) * dataField(#c, #s1, 1) * standardObject(#c) * 
+		InitialDOMHeap() *
+		ECell(#alpha, #name, #n, #l_attr, #new_attr, #l_children, #children) *
+		(#new_attr == {{ {{ "hole", #alpha1 }}, {{ "attr", "src", #a, #tf2 }}, {{ "hole", #alpha2 }} }}) *
+		(#tf2 == {{ {{ "text", #r, #s2 }} }}) *
+		isB(#s1) *
+		Grove(#grove, #tf1)
+	)
+**/
+function sanitiseImg(img, cat){
+	var url = img.getAttribute("src");
+	if(url !== ""){
+		var isB = cache[url];
+		if(isB) {
+			img.setAttribute("src", cat)
+		} else {
+			isB = isBlackListed(url);
+			if(isB){
+				img.setAttribute("src", cat);
+				cache[url] = 1;
+			}
+		}
+	}
+}
+
+
+/** 
+-------------------------------------------------------------------------------
+		preallocated cell encoding
+-------------------------------------------------------------------------------
+**/
+
 /**
 	@id groveParent
 
@@ -120,6 +216,33 @@ function groveParent(s) {
 	var t = document.createTextNode(s);
 	var r = t.parentNode();
 	return r;
+}
+
+/**
+	@id createNewAttribute
+	@rec false
+
+	@pre (
+		InitialDOMHeap() * (element == #id) * types(#en : $$object_type) *
+		DocumentNode($l_document, #l_elem, #elem, #l_gList, #gList) *
+		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList1)
+	)
+	@post (
+		InitialDOMHeap() * (ret == $$t) * 
+		DocumentNode($l_document, #l_elem, #elem, #l_gList, #gList) *
+		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList_post) *
+		(#cList_post == (#cList1 @ {{ {{ "hole", #beta }} }})) *
+		ECell(#beta, "test", #n_id, #n_l_aList, #n_aList, #n_l_cList, #n_cList)
+	)
+*/
+function createNewAttribute(element){
+	var d = element.ownerDocument();
+	var e = d.createElement("test");
+	/* @invariant scope(e : #e2) * ECell(#zeta, #name2, #e2, #l_aList2, #aList2, #l_cList2, #cList2) */
+	/* @fold complete(#cList2) */
+	var n = element.appendChild(e);
+	/* @callspec deallocG(#nvm, #l_gList, #zeta) */
+	return (n === e);
 }
 
 /** sanitiseImg specifics */
@@ -178,6 +301,10 @@ function sanitiseImg(img, cat){
 		}
 	}
 }
+
+/*
+-------------------------------------------------------------------------------
+*/
 
 /*
 	Currently unsupported

@@ -258,7 +258,7 @@
 		(l == (#head :: #next)) * isText(#head, #id, #s1) * complete(#next),
 		(l == (#head :: #next)) * isElement(#head, #n, #id, #l_a, #l_c) * complete(#next) * complete(#l_c),
 		(l == (#head :: #next)) * isHole(#head, #alpha) * TCell(#alpha, #id, #s1) * complete(#next),
-		(l == (#head :: #next)) * isHole(#head, #alpha) * ECell(#alpha, #n, #id, #l_a, #l_c) * complete(#next) * complete(#l_c);
+		(l == (#head :: #next)) * isHole(#head, #alpha) * ECell(#alpha, #n, #id, #l_a, #a, #l_c, #c) * complete(#next) * complete(#c);
 
 
 	@onlyspec allocF(l, i)
@@ -484,81 +484,29 @@
 		outcome: normal
 */
 
-/** sanitiseImg specifics */
 /**
-	@pred isB(s) : (s == #s) * isB(s);
-	@pred nisB(s) : (s == #s) * nisB(s);
-
-	@onlyspec isBlackListed(s)
-		pre:  [[ (s == #s) * isB(#s) ]]
-		post: [[ isB(#s) * (ret == 1) ]]
-		outcome: normal;
-		pre:  [[ (s == #s) * (nisB(#s)) ]]
-		post: [[ (ret == 0) * (nisB(#s)) ]]
-		outcome: normal
-*/
-
-/**
-	@id groveParent
+	@id createNewAttribute
+	@rec false
 
 	@pre (
-		InitialDOMHeap() * scope(document : $l_document) *
-		(s == #text) * types(#text: $$string_type) *
-		DocumentNode($l_document, #l_elem, #d_elem, #d_l_g, #d_g)
+		InitialDOMHeap() * (element == #id) * types(#en : $$object_type) *
+		DocumentNode($l_document, #l_elem, #elem, #l_gList, #gList) *
+		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList1)
 	)
 	@post (
-		InitialDOMHeap() * scope(document : $l_document) *
-		DocumentNode($l_document, #l_elem, #d_elem, #d_l_g, #d_g_post) *
-		(#d_g_post == {{ "hole", #someAddress }} :: #d_g) *
-		TCell(#someAddress, #tid, #text) *
-		(ret == $$null)
+		InitialDOMHeap() * (ret == $$t) * 
+		DocumentNode($l_document, #l_elem, #elem, #l_gList, #gList) *
+		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList_post) *
+		(#cList_post == (#cList1 @ {{ {{ "hole", #beta }} }})) *
+		ECell(#beta, "test", #n_id, #n_l_aList, #n_aList, #n_l_cList, #n_cList)
 	)
 */
-function groveParent(s) {
-	var t = document.createTextNode(s);
-	var r = t.parentNode();
-	return r;
-}
-
-/**
-	@id sanitise
-
-	@pre (
-		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
-		scope(cache: #c) * dataField(#c, #s1, 0) * standardObject(#c) * 
-		InitialDOMHeap() *
-		(img == #n) * (cat == #s2) * 
-		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children) *
-		(#attr == {{ {{ "hole", #alpha1 }}, {{ "hole", #gamma }}, {{ "hole", #alpha2 }} }}) *
-		ACell(#gamma, "src", #a, #l_tf, #tf1) *
-		val(#tf1, #s1) * isB(#s1) * isNamedProperty(#s1) * 
-		Grove(#grove, {{}})
-	)
-	@post (
-		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
-		scope(cache: #c) * dataField(#c, #s1, 1) * standardObject(#c) * 
-		InitialDOMHeap() *
-		ECell(#alpha, #name, #n, #l_attr, #new_attr, #l_children, #children) *
-		(#new_attr == {{ {{ "hole", #alpha1 }}, {{ "hole", #gamma }}, {{ "hole", #alpha2 }} }}) *
-		ACell(#gamma, "src", #a, #l_tf, #tf2) *
-		(#tf2 == {{ {{ "hole", #gamma2 }} }}) *
-		TCell(#gamma2, #r, #s2) *
-		isB(#s1) *
-		Grove(#grove, #tf1)
-	)
-**/
-function sanitiseImg(img, cat){
-	var url = img.getAttribute("src");
-	if(url !== ""){
-		var isB = cache[url];
-		if(isB) {
-			img.setAttribute("src", cat)
-		} else {
-			isB = isBlackListed(url);
-			if(isB){
-				img.setAttribute("src", cat);
-				cache[url] = 1;
-			}
-		}
-	}
+function createNewAttribute(element){
+	var d = element.ownerDocument();
+	var e = d.createElement("test");
+	/* @invariant scope(e : #e2) * ECell(#zeta, #name2, #e2, #l_aList2, #aList2, #l_cList2, #cList2) */
+	/* @fold complete(#cList2) */
+	var n = element.appendChild(e);
+	/* @callspec deallocG(#nvm, #l_gList, #zeta) */
+	return (n === e);
 }
