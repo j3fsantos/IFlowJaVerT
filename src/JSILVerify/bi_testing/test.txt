@@ -1,0 +1,4805 @@
+
+*** Prelude: Stage 1: Parsing program. ***
+
+The procedures that we will be verifying are: create_default_object, create_object_with_call_construct
+
+
+*** Prelude: Stage 1: Parsing successfully completed. ***
+
+*** Prelude: Stage 2: Transforming the program.
+
+
+*** Prelude: Stage 2: Done transforming the program.
+
+
+*** Prelude: Stage 3: Normalising predicates.
+
+
+*** Prelude: Stage 3: Normalisation of predicates completed successfully.
+
+
+
+*** Prelude: Stage 4: Building the spec table.
+
+
+*************************
+* Normalising the spec: *
+*************************
+
+create_default_object ( l pr cl ext )
+
+[[ emp ]]
+[[ emp ]]
+Normal
+
+
+Going to process the SPECS of create_default_object. The time now is: 0.010225
+
+Precondition  : emp
+Postcondition : emp
+NSS: Entry
+NSS: Pre-normalise
+
+Pres: 
+emp
+Posts: 
+emp
+I am going to check whether the following precondition makes sense:
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+
+The precondition makes sense.
+POST: Checking a postcondition.
+
+Post Existentially Quantified Vars: 
+Post spec vars: 
+Subst: Substitution: 
+	
+
+New subst: Substitution: 
+	
+
+
+*************************
+* Normalising the spec: *
+*************************
+
+create_object_with_call_construct ( l call construct len )
+
+[[ emp ]]
+[[ emp ]]
+Normal
+
+
+Going to process the SPECS of create_object_with_call_construct. The time now is: 0.010346
+
+Precondition  : emp
+Postcondition : emp
+NSS: Entry
+NSS: Pre-normalise
+
+Pres: 
+emp
+Posts: 
+emp
+I am going to check whether the following precondition makes sense:
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+
+The precondition makes sense.
+POST: Checking a postcondition.
+
+Post Existentially Quantified Vars: 
+Post spec vars: 
+Subst: Substitution: 
+	
+
+New subst: Substitution: 
+	
+
+-----------------------------
+-----------------------------
+Spec Table:
+Specs for create_default_object (l, pr, cl, ext): 
+Single Spec - normal
+
+Precondition
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+;
+----------
+Specs for create_object_with_call_construct (l, call, construct, len): 
+Single Spec - normal
+
+Precondition
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+;
+
+*** Prelude: Stage 4: Finished building the spec table
+
+*** Prelude: Stage 5: Add phantom procedures for only-specs.
+
+*** Prelude: Stage 5: Finished adding phantom procedures for only-specs
+
+
+********************** STARTING BI-ABDUCTION SYMBOLIC EXECUTION ***************************
+
+Normalising predicate definitions.
+
+----------------------------------
+----------------------------------
+Symbolic execution of create_default_object
+Initial symbolic state:
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+AF in symb_evaluate_proc :
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--0--
+TIME: 0.010474
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: goto [(cl = $$undefined)] 1 2
+----------------------------------
+Evaluated expression: (cl = $$undefined) --> (_lvar_0 = $$undefined)
+
+Lifted assertion: (_lvar_0 == $$undefined)
+
+Checking if:
+	
+	entails
+	(_lvar_0 == $$undefined)
+
+I could not determine the branch.
+----------------------------------
+--0--
+TIME: 0.046577
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: goto [(cl = $$undefined)] 1 2
+----------------------------------
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	
+Store: 	
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--1--
+TIME: 0.046627
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(cl: $$undefined)
+Pure Formulae: 	
+Gamma: 	
+	(cl: $$undefined_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: cl := "Object"
+----------------------------------
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	
+Store: 	
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--2--
+TIME: 0.046677
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(cl: \"Object\")
+Pure Formulae: 	
+Gamma: 	
+	(cl: $$string_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: goto [(ext = $$undefined)] 3 4
+----------------------------------
+Evaluated expression: (ext = $$undefined) --> (_lvar_1 = $$undefined)
+
+Lifted assertion: (_lvar_1 == $$undefined)
+
+Checking if:
+	
+	entails
+	(_lvar_1 == $$undefined)
+
+I could not determine the branch.
+----------------------------------
+--2--
+TIME: 0.076996
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(ext: _lvar_1)
+	(cl: \"Object\")
+Pure Formulae: 	
+	(_lvar_1 == $$undefined)
+Gamma: 	
+	(cl: $$string_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: goto [(ext = $$undefined)] 3 4
+----------------------------------
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	
+Store: 	
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--3--
+TIME: 0.077050
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(ext: $$undefined)
+	(cl: \"Object\")
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$undefined_type)
+	(cl: $$string_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: ext := $$t
+----------------------------------
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	
+Store: 	
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--4--
+TIME: 0.077083
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(ext: $$t)
+	(cl: \"Object\")
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$boolean_type)
+	(cl: $$string_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [l, "@proto"] := pr
+----------------------------------
+Updtate-abs-heap. loc: _$l_0. field:"@proto". v:_lvar_3AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_0 |-> [(\"@proto\": _lvar_5), (default: $$unknown)]
+Store: 	
+	(l: _lvar_2)
+	(pr: _lvar_3)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+	(_$l_0 == _lvar_2)
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--5--
+TIME: 0.077145
+ ---- STATE: ---- 
+Heap: 
+	_$l_0 |-> [(\"@proto\": _lvar_3), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_3)
+	(ext: $$t)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$boolean_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_0 |-> [(\"@proto\": _lvar_5), (default: $$unknown)]
+Store: 	
+	(l: _lvar_2)
+	(pr: _lvar_3)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+	(_$l_0 == _lvar_2)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [l, "@class"] := cl
+----------------------------------
+Updtate-abs-heap. loc: _$l_0. field:"@class". v:"Object"AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_0 |-> [(\"@class\": _lvar_6), (\"@proto\": _lvar_5), (default: $$unknown)]
+Store: 	
+	(l: _lvar_2)
+	(pr: _lvar_3)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+	(_$l_0 == _lvar_2)
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--6--
+TIME: 0.077192
+ ---- STATE: ---- 
+Heap: 
+	_$l_0 |-> [(\"@class\": \"Object\"), (\"@proto\": _lvar_3), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_3)
+	(ext: $$t)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$boolean_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_0 |-> [(\"@class\": _lvar_6), (\"@proto\": _lvar_5), (default: $$unknown)]
+Store: 	
+	(l: _lvar_2)
+	(pr: _lvar_3)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+	(_$l_0 == _lvar_2)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [l, "@extensible"] := ext
+----------------------------------
+Updtate-abs-heap. loc: _$l_0. field:"@extensible". v:$$tAF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_0 |-> [(\"@extensible\": _lvar_7), (\"@class\": _lvar_6), (\"@proto\": _lvar_5), (default: $$unknown)]
+Store: 	
+	(l: _lvar_2)
+	(pr: _lvar_3)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+	(_$l_0 == _lvar_2)
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--7--
+TIME: 0.077256
+ ---- STATE: ---- 
+Heap: 
+	_$l_0 |-> [(\"@extensible\": $$t), (\"@class\": \"Object\"), (\"@proto\": _lvar_3), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_3)
+	(ext: $$t)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$boolean_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_0 |-> [(\"@extensible\": _lvar_7), (\"@class\": _lvar_6), (\"@proto\": _lvar_5), (default: $$unknown)]
+Store: 	
+	(l: _lvar_2)
+	(pr: _lvar_3)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+	(_$l_0 == _lvar_2)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: xret := l
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_0 |-> [(\"@extensible\": $$t), (\"@class\": \"Object\"), (\"@proto\": _lvar_3), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_3)
+	(ext: $$t)
+	(xret: _$l_0)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+
+LVARS: 
+Unifying stores:
+Store: 	
+	(pr: _lvar_3)
+	(ext: $$t)
+	(xret: _$l_0)
+	(cl: "Object")
+	(l: _$l_0) 
+Pat_store: 	
+Discharges: 0
+
+Pfs to add to the antiframe after unify stores: 
+Unify heaps 
+	 
+and 
+	_$l_0 |-> [("@extensible": $$t), ("@class": "Object"), ("@proto": _lvar_3), (default: $$unknown)] 
+with substitution: Substitution: 
+	
+
+with pure formulae: 	
+with gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+PatHeapDomain: 
+Heap again 
+	_$l_0 |-> [("@extensible": $$t), ("@class": "Object"), ("@proto": _lvar_3), (default: $$unknown)]
+End of unify_symb_heaps: do enjoy the quotient_heap: 
+	_$l_0 |-> [("@extensible": $$t), ("@class": "Object"), ("@proto": _lvar_3), (default: $$unknown)]
+Heaps unified successfully.
+
+Entering unify_pred_arrays.
+Pfs to add to the antiframe after step 0: 
+I am about to bi-unify two gammas
+
+pat_gamma: 	.
+gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type).
+subst: Substitution: 
+	
+
+
+
+EXITING unify_gamma: res: true
+
+
+Checking if 	
+ entails 	
+ with existentials
+
+and gamma 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+entailment_check: true
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_0 |-> [(\"@extensible\": $$t), (\"@class\": \"Object\"), (\"@proto\": _lvar_3), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_3)
+	(ext: $$t)
+	(xret: _$l_0)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_0 |-> [(\"@extensible\": _lvar_7), (\"@class\": _lvar_6), (\"@proto\": _lvar_5), (default: $$unknown)]
+Store: 	
+	(l: _lvar_2)
+	(pr: _lvar_3)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+	(_$l_0 == _lvar_2)
+Gamma: 	
+Preds: 
+
+Finished merging heaps.
+Finished merging heaps.
+Symb_state: Heap: 
+	_$l_0 |-> [(\"@extensible\": $$t), (\"@class\": \"Object\"), (\"@proto\": _lvar_3), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_3)
+	(ext: $$t)
+	(xret: _$l_0)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_0 |-> [(\"@extensible\": _lvar_7), (\"@class\": _lvar_6), (\"@proto\": _lvar_5), (default: $$unknown)]
+Store: 	
+	(l: _lvar_2)
+	(pr: _lvar_3)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+	(_$l_0 == _lvar_2)
+Gamma: 	
+Preds: 
+
+----------------------------------
+--2--
+TIME: 0.077568
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(ext: _lvar_1)
+	(cl: \"Object\")
+Pure Formulae: 	
+	(! (_lvar_1 == $$undefined))
+Gamma: 	
+	(cl: $$string_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(! (_lvar_1 == $$undefined))
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: goto [(ext = $$undefined)] 3 4
+----------------------------------
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	
+Store: 	
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(! (_lvar_1 == $$undefined))
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--4--
+TIME: 0.077607
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(ext: _lvar_1)
+	(cl: \"Object\")
+Pure Formulae: 	
+	(! (_lvar_1 == $$undefined))
+Gamma: 	
+	(cl: $$string_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(! (_lvar_1 == $$undefined))
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [l, "@proto"] := pr
+----------------------------------
+Updtate-abs-heap. loc: _$l_1. field:"@proto". v:_lvar_9AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_1 |-> [(\"@proto\": _lvar_11), (default: $$unknown)]
+Store: 	
+	(l: _lvar_8)
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(! (_lvar_1 == $$undefined))
+	(_$l_1 == _lvar_8)
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--5--
+TIME: 0.077663
+ ---- STATE: ---- 
+Heap: 
+	_$l_1 |-> [(\"@proto\": _lvar_9), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (_lvar_1 == $$undefined))
+Gamma: 	
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_1 |-> [(\"@proto\": _lvar_11), (default: $$unknown)]
+Store: 	
+	(l: _lvar_8)
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(! (_lvar_1 == $$undefined))
+	(_$l_1 == _lvar_8)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [l, "@class"] := cl
+----------------------------------
+Updtate-abs-heap. loc: _$l_1. field:"@class". v:"Object"AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_1 |-> [(\"@class\": _lvar_12), (\"@proto\": _lvar_11), (default: $$unknown)]
+Store: 	
+	(l: _lvar_8)
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(! (_lvar_1 == $$undefined))
+	(_$l_1 == _lvar_8)
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--6--
+TIME: 0.077753
+ ---- STATE: ---- 
+Heap: 
+	_$l_1 |-> [(\"@class\": \"Object\"), (\"@proto\": _lvar_9), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (_lvar_1 == $$undefined))
+Gamma: 	
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_1 |-> [(\"@class\": _lvar_12), (\"@proto\": _lvar_11), (default: $$unknown)]
+Store: 	
+	(l: _lvar_8)
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(! (_lvar_1 == $$undefined))
+	(_$l_1 == _lvar_8)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [l, "@extensible"] := ext
+----------------------------------
+Updtate-abs-heap. loc: _$l_1. field:"@extensible". v:_lvar_1AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_1 |-> [(\"@extensible\": _lvar_13), (\"@class\": _lvar_12), (\"@proto\": _lvar_11), (default: $$unknown)]
+Store: 	
+	(l: _lvar_8)
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(! (_lvar_1 == $$undefined))
+	(_$l_1 == _lvar_8)
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--7--
+TIME: 0.077808
+ ---- STATE: ---- 
+Heap: 
+	_$l_1 |-> [(\"@extensible\": _lvar_1), (\"@class\": \"Object\"), (\"@proto\": _lvar_9), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (_lvar_1 == $$undefined))
+Gamma: 	
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_1 |-> [(\"@extensible\": _lvar_13), (\"@class\": _lvar_12), (\"@proto\": _lvar_11), (default: $$unknown)]
+Store: 	
+	(l: _lvar_8)
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(! (_lvar_1 == $$undefined))
+	(_$l_1 == _lvar_8)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: xret := l
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_1 |-> [(\"@extensible\": _lvar_1), (\"@class\": \"Object\"), (\"@proto\": _lvar_9), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(xret: _$l_1)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (_lvar_1 == $$undefined))
+Gamma: 	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+
+LVARS: 
+Unifying stores:
+Store: 	
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(xret: _$l_1)
+	(cl: "Object")
+	(l: _$l_1) 
+Pat_store: 	
+Discharges: 0
+
+Pfs to add to the antiframe after unify stores: 
+Unify heaps 
+	 
+and 
+	_$l_1 |-> [("@extensible": _lvar_1), ("@class": "Object"), ("@proto": _lvar_9), (default: $$unknown)] 
+with substitution: Substitution: 
+	
+
+with pure formulae: 	
+	(! (_lvar_1 == $$undefined))
+with gamma: 	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+PatHeapDomain: 
+Heap again 
+	_$l_1 |-> [("@extensible": _lvar_1), ("@class": "Object"), ("@proto": _lvar_9), (default: $$unknown)]
+End of unify_symb_heaps: do enjoy the quotient_heap: 
+	_$l_1 |-> [("@extensible": _lvar_1), ("@class": "Object"), ("@proto": _lvar_9), (default: $$unknown)]
+Heaps unified successfully.
+
+Entering unify_pred_arrays.
+Pfs to add to the antiframe after step 0: 
+I am about to bi-unify two gammas
+
+pat_gamma: 	.
+gamma: 	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type).
+subst: Substitution: 
+	
+
+
+
+EXITING unify_gamma: res: true
+
+
+Checking if 	
+	(! (_lvar_1 == $$undefined))
+ entails 	
+ with existentials
+
+and gamma 	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+entailment_check: true
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_1 |-> [(\"@extensible\": _lvar_1), (\"@class\": \"Object\"), (\"@proto\": _lvar_9), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(xret: _$l_1)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (_lvar_1 == $$undefined))
+Gamma: 	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_1 |-> [(\"@extensible\": _lvar_13), (\"@class\": _lvar_12), (\"@proto\": _lvar_11), (default: $$unknown)]
+Store: 	
+	(l: _lvar_8)
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(! (_lvar_1 == $$undefined))
+	(_$l_1 == _lvar_8)
+Gamma: 	
+Preds: 
+
+Finished merging heaps.
+Finished merging heaps.
+Symb_state: Heap: 
+	_$l_1 |-> [(\"@extensible\": _lvar_1), (\"@class\": \"Object\"), (\"@proto\": _lvar_9), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(xret: _$l_1)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (_lvar_1 == $$undefined))
+Gamma: 	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_1 |-> [(\"@extensible\": _lvar_13), (\"@class\": _lvar_12), (\"@proto\": _lvar_11), (default: $$unknown)]
+Store: 	
+	(l: _lvar_8)
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(! (_lvar_1 == $$undefined))
+	(_$l_1 == _lvar_8)
+Gamma: 	
+Preds: 
+
+----------------------------------
+--0--
+TIME: 0.094665
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: goto [(cl = $$undefined)] 1 2
+----------------------------------
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	
+Store: 	
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--2--
+TIME: 0.094715
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: goto [(ext = $$undefined)] 3 4
+----------------------------------
+Evaluated expression: (ext = $$undefined) --> (_lvar_14 = $$undefined)
+
+Lifted assertion: (_lvar_14 == $$undefined)
+
+Checking if:
+	(! (_lvar_0 == $$undefined))
+	entails
+	(_lvar_14 == $$undefined)
+
+I could not determine the branch.
+----------------------------------
+--2--
+TIME: 0.131708
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: goto [(ext = $$undefined)] 3 4
+----------------------------------
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	
+Store: 	
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--3--
+TIME: 0.131764
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(ext: $$undefined)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+Gamma: 	
+	(ext: $$undefined_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: ext := $$t
+----------------------------------
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	
+Store: 	
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--4--
+TIME: 0.131795
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(ext: $$t)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+Gamma: 	
+	(ext: $$boolean_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [l, "@proto"] := pr
+----------------------------------
+Updtate-abs-heap. loc: _$l_2. field:"@proto". v:_lvar_16AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_2 |-> [(\"@proto\": _lvar_18), (default: $$unknown)]
+Store: 	
+	(l: _lvar_15)
+	(pr: _lvar_16)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+	(_$l_2 == _lvar_15)
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--5--
+TIME: 0.131857
+ ---- STATE: ---- 
+Heap: 
+	_$l_2 |-> [(\"@proto\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_16)
+	(ext: $$t)
+	(cl: _lvar_0)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+Gamma: 	
+	(ext: $$boolean_type)
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_2 |-> [(\"@proto\": _lvar_18), (default: $$unknown)]
+Store: 	
+	(l: _lvar_15)
+	(pr: _lvar_16)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+	(_$l_2 == _lvar_15)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [l, "@class"] := cl
+----------------------------------
+Updtate-abs-heap. loc: _$l_2. field:"@class". v:_lvar_0AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_2 |-> [(\"@class\": _lvar_19), (\"@proto\": _lvar_18), (default: $$unknown)]
+Store: 	
+	(l: _lvar_15)
+	(pr: _lvar_16)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+	(_$l_2 == _lvar_15)
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--6--
+TIME: 0.131918
+ ---- STATE: ---- 
+Heap: 
+	_$l_2 |-> [(\"@class\": _lvar_0), (\"@proto\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_16)
+	(ext: $$t)
+	(cl: _lvar_0)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+Gamma: 	
+	(ext: $$boolean_type)
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_2 |-> [(\"@class\": _lvar_19), (\"@proto\": _lvar_18), (default: $$unknown)]
+Store: 	
+	(l: _lvar_15)
+	(pr: _lvar_16)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+	(_$l_2 == _lvar_15)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [l, "@extensible"] := ext
+----------------------------------
+Updtate-abs-heap. loc: _$l_2. field:"@extensible". v:$$tAF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_2 |-> [(\"@extensible\": _lvar_20), (\"@class\": _lvar_19), (\"@proto\": _lvar_18), (default: $$unknown)]
+Store: 	
+	(l: _lvar_15)
+	(pr: _lvar_16)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+	(_$l_2 == _lvar_15)
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--7--
+TIME: 0.131970
+ ---- STATE: ---- 
+Heap: 
+	_$l_2 |-> [(\"@extensible\": $$t), (\"@class\": _lvar_0), (\"@proto\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_16)
+	(ext: $$t)
+	(cl: _lvar_0)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+Gamma: 	
+	(ext: $$boolean_type)
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_2 |-> [(\"@extensible\": _lvar_20), (\"@class\": _lvar_19), (\"@proto\": _lvar_18), (default: $$unknown)]
+Store: 	
+	(l: _lvar_15)
+	(pr: _lvar_16)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+	(_$l_2 == _lvar_15)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: xret := l
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_2 |-> [(\"@extensible\": $$t), (\"@class\": _lvar_0), (\"@proto\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_16)
+	(ext: $$t)
+	(xret: _$l_2)
+	(cl: _lvar_0)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+Gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+
+LVARS: 
+Unifying stores:
+Store: 	
+	(pr: _lvar_16)
+	(ext: $$t)
+	(xret: _$l_2)
+	(cl: _lvar_0)
+	(l: _$l_2) 
+Pat_store: 	
+Discharges: 0
+
+Pfs to add to the antiframe after unify stores: 
+Unify heaps 
+	 
+and 
+	_$l_2 |-> [("@extensible": $$t), ("@class": _lvar_0), ("@proto": _lvar_16), (default: $$unknown)] 
+with substitution: Substitution: 
+	
+
+with pure formulae: 	
+	(! (_lvar_0 == $$undefined))
+with gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type)
+PatHeapDomain: 
+Heap again 
+	_$l_2 |-> [("@extensible": $$t), ("@class": _lvar_0), ("@proto": _lvar_16), (default: $$unknown)]
+End of unify_symb_heaps: do enjoy the quotient_heap: 
+	_$l_2 |-> [("@extensible": $$t), ("@class": _lvar_0), ("@proto": _lvar_16), (default: $$unknown)]
+Heaps unified successfully.
+
+Entering unify_pred_arrays.
+Pfs to add to the antiframe after step 0: 
+I am about to bi-unify two gammas
+
+pat_gamma: 	.
+gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type).
+subst: Substitution: 
+	
+
+
+
+EXITING unify_gamma: res: true
+
+
+Checking if 	
+	(! (_lvar_0 == $$undefined))
+ entails 	
+ with existentials
+
+and gamma 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type)
+entailment_check: true
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_2 |-> [(\"@extensible\": $$t), (\"@class\": _lvar_0), (\"@proto\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_16)
+	(ext: $$t)
+	(xret: _$l_2)
+	(cl: _lvar_0)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+Gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_2 |-> [(\"@extensible\": _lvar_20), (\"@class\": _lvar_19), (\"@proto\": _lvar_18), (default: $$unknown)]
+Store: 	
+	(l: _lvar_15)
+	(pr: _lvar_16)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+	(_$l_2 == _lvar_15)
+Gamma: 	
+Preds: 
+
+Finished merging heaps.
+Finished merging heaps.
+Symb_state: Heap: 
+	_$l_2 |-> [(\"@extensible\": $$t), (\"@class\": _lvar_0), (\"@proto\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_16)
+	(ext: $$t)
+	(xret: _$l_2)
+	(cl: _lvar_0)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+Gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_2 |-> [(\"@extensible\": _lvar_20), (\"@class\": _lvar_19), (\"@proto\": _lvar_18), (default: $$unknown)]
+Store: 	
+	(l: _lvar_15)
+	(pr: _lvar_16)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+	(_$l_2 == _lvar_15)
+Gamma: 	
+Preds: 
+
+----------------------------------
+--2--
+TIME: 0.145048
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: goto [(ext = $$undefined)] 3 4
+----------------------------------
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	
+Store: 	
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--4--
+TIME: 0.145085
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [l, "@proto"] := pr
+----------------------------------
+Updtate-abs-heap. loc: _$l_3. field:"@proto". v:_lvar_22AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_3 |-> [(\"@proto\": _lvar_24), (default: $$unknown)]
+Store: 	
+	(l: _lvar_21)
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+	(_$l_3 == _lvar_21)
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--5--
+TIME: 0.145147
+ ---- STATE: ---- 
+Heap: 
+	_$l_3 |-> [(\"@proto\": _lvar_22), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Gamma: 	
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_3 |-> [(\"@proto\": _lvar_24), (default: $$unknown)]
+Store: 	
+	(l: _lvar_21)
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+	(_$l_3 == _lvar_21)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [l, "@class"] := cl
+----------------------------------
+Updtate-abs-heap. loc: _$l_3. field:"@class". v:_lvar_0AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_3 |-> [(\"@class\": _lvar_25), (\"@proto\": _lvar_24), (default: $$unknown)]
+Store: 	
+	(l: _lvar_21)
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+	(_$l_3 == _lvar_21)
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--6--
+TIME: 0.145198
+ ---- STATE: ---- 
+Heap: 
+	_$l_3 |-> [(\"@class\": _lvar_0), (\"@proto\": _lvar_22), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Gamma: 	
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_3 |-> [(\"@class\": _lvar_25), (\"@proto\": _lvar_24), (default: $$unknown)]
+Store: 	
+	(l: _lvar_21)
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+	(_$l_3 == _lvar_21)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [l, "@extensible"] := ext
+----------------------------------
+Updtate-abs-heap. loc: _$l_3. field:"@extensible". v:_lvar_14AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_3 |-> [(\"@extensible\": _lvar_26), (\"@class\": _lvar_25), (\"@proto\": _lvar_24), (default: $$unknown)]
+Store: 	
+	(l: _lvar_21)
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+	(_$l_3 == _lvar_21)
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--7--
+TIME: 0.145296
+ ---- STATE: ---- 
+Heap: 
+	_$l_3 |-> [(\"@extensible\": _lvar_14), (\"@class\": _lvar_0), (\"@proto\": _lvar_22), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Gamma: 	
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_3 |-> [(\"@extensible\": _lvar_26), (\"@class\": _lvar_25), (\"@proto\": _lvar_24), (default: $$unknown)]
+Store: 	
+	(l: _lvar_21)
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+	(_$l_3 == _lvar_21)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: xret := l
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_3 |-> [(\"@extensible\": _lvar_14), (\"@class\": _lvar_0), (\"@proto\": _lvar_22), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(xret: _$l_3)
+	(cl: _lvar_0)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+
+LVARS: 
+Unifying stores:
+Store: 	
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(xret: _$l_3)
+	(cl: _lvar_0)
+	(l: _$l_3) 
+Pat_store: 	
+Discharges: 0
+
+Pfs to add to the antiframe after unify stores: 
+Unify heaps 
+	 
+and 
+	_$l_3 |-> [("@extensible": _lvar_14), ("@class": _lvar_0), ("@proto": _lvar_22), (default: $$unknown)] 
+with substitution: Substitution: 
+	
+
+with pure formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+with gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+PatHeapDomain: 
+Heap again 
+	_$l_3 |-> [("@extensible": _lvar_14), ("@class": _lvar_0), ("@proto": _lvar_22), (default: $$unknown)]
+End of unify_symb_heaps: do enjoy the quotient_heap: 
+	_$l_3 |-> [("@extensible": _lvar_14), ("@class": _lvar_0), ("@proto": _lvar_22), (default: $$unknown)]
+Heaps unified successfully.
+
+Entering unify_pred_arrays.
+Pfs to add to the antiframe after step 0: 
+I am about to bi-unify two gammas
+
+pat_gamma: 	.
+gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type).
+subst: Substitution: 
+	
+
+
+
+EXITING unify_gamma: res: true
+
+
+Checking if 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+ entails 	
+ with existentials
+
+and gamma 	
+	(xret: $$object_type)
+	(l: $$object_type)
+entailment_check: true
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_3 |-> [(\"@extensible\": _lvar_14), (\"@class\": _lvar_0), (\"@proto\": _lvar_22), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(xret: _$l_3)
+	(cl: _lvar_0)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_3 |-> [(\"@extensible\": _lvar_26), (\"@class\": _lvar_25), (\"@proto\": _lvar_24), (default: $$unknown)]
+Store: 	
+	(l: _lvar_21)
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+	(_$l_3 == _lvar_21)
+Gamma: 	
+Preds: 
+
+Finished merging heaps.
+Finished merging heaps.
+Symb_state: Heap: 
+	_$l_3 |-> [(\"@extensible\": _lvar_14), (\"@class\": _lvar_0), (\"@proto\": _lvar_22), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(xret: _$l_3)
+	(cl: _lvar_0)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_3 |-> [(\"@extensible\": _lvar_26), (\"@class\": _lvar_25), (\"@proto\": _lvar_24), (default: $$unknown)]
+Store: 	
+	(l: _lvar_21)
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+	(_$l_3 == _lvar_21)
+Gamma: 	
+Preds: 
+
+----------------------------------
+----------------------------------
+----------------------------------
+
+Finished merging heaps.
+Spec Var: ##s_0
+Spec Var: ##s_1
+Spec Var: ##s_2
+Spec Var: ##s_3
+Spec Var: ##s_4
+Spec Var: ##s_5
+Pre Spec Vars
+Spec Var: ##s_2
+Finished merging heaps.
+Spec Var: ##s_10
+Spec Var: ##s_11
+Spec Var: ##s_6
+Spec Var: ##s_7
+Spec Var: ##s_8
+Spec Var: ##s_9
+Pre Spec Vars
+Spec Var: ##s_11
+Spec Var: ##s_6
+Finished merging heaps.
+Spec Var: ##s_12
+Spec Var: ##s_13
+Spec Var: ##s_14
+Spec Var: ##s_15
+Spec Var: ##s_16
+Spec Var: ##s_17
+Pre Spec Vars
+Spec Var: ##s_12
+Spec Var: ##s_13
+Finished merging heaps.
+Spec Var: ##s_18
+Spec Var: ##s_19
+Spec Var: ##s_20
+Spec Var: ##s_21
+Spec Var: ##s_22
+Spec Var: ##s_23
+Pre Spec Vars
+Spec Var: ##s_18
+Spec Var: ##s_19
+Spec Var: ##s_20
+----------------------------------
+----------------------------------
+Symbolic execution of create_object_with_call_construct
+Initial symbolic state:
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+AF in symb_evaluate_proc :
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--0--
+TIME: 0.176832
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: xret := "create_default_object"(l, $lfun_proto, "Function", $$t) 
+----------------------------------
+Entering BI_find_and_apply_spec: create_default_object.
+------------------------------------------
+Entering BI-find_correct_specs with the spec:
+------------------------------------------
+Pre:
+Heap: 
+	_$l_3 |-> [(\"@extensible\": ##s_23), (\"@class\": ##s_22), (\"@proto\": ##s_21), (default: $$unknown)]
+Store: 	
+	(pr: ##s_20)
+	(ext: ##s_19)
+	(cl: ##s_18)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (##s_18 == $$undefined))
+	(! (##s_19 == $$undefined))
+Gamma: 	
+	(l: $$object_type)
+Preds: 
+Posts:
+Post 0: 
+Heap: 
+	_$l_3 |-> [(\"@extensible\": ##s_19), (\"@class\": ##s_18), (\"@proto\": ##s_20), (default: $$unknown)]
+Store: 	
+	(pr: ##s_20)
+	(ext: ##s_19)
+	(xret: _$l_3)
+	(cl: ##s_18)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (##s_18 == $$undefined))
+	(! (##s_19 == $$undefined))
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+;
+
+LVARS: 
+Unifying stores:
+Store: 	
+	(ext: $$t)
+	(pr: $lfun_proto)
+	(cl: "Function")
+	(l: _lvar_31) 
+Pat_store: 	
+	(pr: ##s_20)
+	(ext: ##s_19)
+	(cl: ##s_18)
+	(l: _$l_3)
+So, in unify_stores: Aloc _$l_3, Lvar _lvar_31
+
+Discharges: 0
+
+Pfs to add to the antiframe after unify stores: (_lvar_31 == _$l_4)
+Unify heaps 
+	_$l_3 |-> [("@extensible": ##s_23), ("@class": ##s_22), ("@proto": ##s_21), (default: $$unknown)] 
+and 
+	 
+with substitution: Substitution: 
+	_$l_3: _$l_4;
+	 ##s_18: "Function";
+	 ##s_19: $$t;
+	 ##s_20: $lfun_proto
+
+with pure formulae: 	
+with gamma: 	
+PatHeapDomain: _$l_3
+pick_pat_loc
+
+Location: _$l_3
+Substitution: Substitution: 
+	_$l_3: _$l_4;
+	 ##s_18: "Function";
+	 ##s_19: $$t;
+	 ##s_20: $lfun_proto
+
+Location _$l_4 in pattern has not been matched
+I could NOT unify an fv-pair. pat_val: ##s_21. def_val: $$unknown
+I could NOT unify an fv-pair. pat_val: ##s_22. def_val: $$unknown
+I could NOT unify an fv-pair. pat_val: ##s_23. def_val: $$unknown
+Adding sth to QH and AF.
+QH:
+	_$l_4 |-> [(default: $$unknown)]
+AFH:
+	_$l_3 |-> [("@extensible": ##s_23), ("@class": ##s_22), ("@proto": ##s_21), (default: $$unknown)]
+Heap again 
+	
+End of unify_symb_heaps: do enjoy the quotient_heap: 
+	
+Heaps unified successfully.
+
+Entering unify_pred_arrays.
+Pfs to add to the antiframe after step 0: (_lvar_31 == _$l_4)
+I am about to bi-unify two gammas
+
+pat_gamma: 	
+	(l: $$object_type).
+gamma: 	.
+subst: Substitution: 
+	_$l_3: _$l_4;
+	 ##s_22: _lvar_33;
+	 ##s_21: _lvar_32;
+	 ##s_18: "Function";
+	 ##s_19: $$t;
+	 ##s_23: _lvar_34;
+	 ##s_20: $lfun_proto
+
+
+pat_var: (l : $$object_type) 
+found value: _$l_4
+unify_gamma. pat gamma var: l. le: _$l_4. v_type: $$object_type. le_type: $$object_type
+
+EXITING unify_gamma: res: true
+
+
+Checking if 	
+ entails 	
+	(! ("Function" == $$undefined))
+	(! ($$t == $$undefined))
+	(_lvar_31 == _$l_4)
+ with existentials
+ _lvar_32 _lvar_33 _lvar_34
+and gamma 	
+entailment_check: false
+I found a match requering an AF
+anti_frame heap: 
+	_$l_3 |-> [("@extensible": ##s_23), ("@class": ##s_22), ("@proto": ##s_21), (default: $$unknown)]
+Entering apply_correct_specs.
+This was a PARTIAL MATCH with AF!!!!
+Entering compatible_pfs.
+pfs: 
+	
+pat_pfs: 
+	
+	(! (##s_18 == $$undefined))
+	(! (##s_19 == $$undefined))
+gamma: 
+	
+Substitution: 
+	_$l_3: _$l_4;
+	 ##s_22: _lvar_33;
+	 ##s_21: _lvar_32;
+	 ##s_18: "Function";
+	 ##s_19: $$t;
+	 ##s_23: _lvar_34;
+	 ##s_20: $lfun_proto
+
+About to check sat of:
+	
+	(! ("Function" == $$undefined))
+	(! ($$t == $$undefined))
+given
+	
+Satisfiable: true
+Entering transform_symb_state.
+
+One postcondition found.
+Entering merge_symb_state_with_single_post.
+Entering compatible_pfs.
+pfs: 
+	
+	(! ("Function" == $$undefined))
+	(! ($$t == $$undefined))
+	(_lvar_31 == _$l_4)
+pat_pfs: 
+	
+	(! (##s_18 == $$undefined))
+	(! (##s_19 == $$undefined))
+gamma: 
+	
+Substitution: 
+	_$l_3: _$l_4;
+	 ##s_22: _lvar_33;
+	 ##s_21: _lvar_32;
+	 ##s_18: "Function";
+	 ##s_19: $$t;
+	 ##s_23: _lvar_34;
+	 ##s_20: $lfun_proto
+
+About to check sat of:
+	
+	(! ("Function" == $$undefined))
+	(! ($$t == $$undefined))
+	(! ("Function" == $$undefined))
+	(! ($$t == $$undefined))
+	(_lvar_31 == _$l_4)
+given
+	
+Satisfiable: true
+The post makes sense.
+Finished merging heaps.
+Finished merge_symb_states
+Finished merging heaps.
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_4 |-> [(\"@extensible\": _lvar_34), (\"@class\": _lvar_33), (\"@proto\": _lvar_32), (default: $$unknown)]
+Store: 	
+	(l: _lvar_31)
+Pure Formulae: 	
+	(! (\"Function\" == $$undefined))
+	(! ($$t == $$undefined))
+	(_lvar_31 == _$l_4)
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--1--
+TIME: 0.191235
+ ---- STATE: ---- 
+Heap: 
+	_$l_4 |-> [(\"@extensible\": $$t), (\"@class\": \"Function\"), (\"@proto\": $lfun_proto), (default: $$unknown)]
+Store: 	
+	(xret: _$l_4)
+	(l: _$l_4)
+Pure Formulae: 	
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_4 |-> [(\"@extensible\": _lvar_34), (\"@class\": _lvar_33), (\"@proto\": _lvar_32), (default: $$unknown)]
+Store: 	
+	(l: _lvar_31)
+Pure Formulae: 	
+	(! (\"Function\" == $$undefined))
+	(! ($$t == $$undefined))
+	(_lvar_31 == _$l_4)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [xret, "@scope"] := $$empty
+----------------------------------
+Updtate-abs-heap. loc: _$l_4. field:"@scope". v:$$emptyAF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_4 |-> [(\"@scope\": _lvar_35), (\"@extensible\": _lvar_34), (\"@class\": _lvar_33), (\"@proto\": _lvar_32), (default: $$unknown)]
+Store: 	
+	(l: _lvar_31)
+Pure Formulae: 	
+	(! (\"Function\" == $$undefined))
+	(! ($$t == $$undefined))
+	(_lvar_31 == _$l_4)
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--2--
+TIME: 0.191278
+ ---- STATE: ---- 
+Heap: 
+	_$l_4 |-> [(\"@scope\": $$empty), (\"@extensible\": $$t), (\"@class\": \"Function\"), (\"@proto\": $lfun_proto), (default: $$unknown)]
+Store: 	
+	(xret: _$l_4)
+	(l: _$l_4)
+Pure Formulae: 	
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_4 |-> [(\"@scope\": _lvar_35), (\"@extensible\": _lvar_34), (\"@class\": _lvar_33), (\"@proto\": _lvar_32), (default: $$unknown)]
+Store: 	
+	(l: _lvar_31)
+Pure Formulae: 	
+	(! (\"Function\" == $$undefined))
+	(! ($$t == $$undefined))
+	(_lvar_31 == _$l_4)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [xret, "length"] := {{ "d", len, $$f, $$f, $$f }}
+----------------------------------
+Updtate-abs-heap. loc: _$l_4. field:"length". v:{{ "d", _lvar_36, $$f, $$f, $$f }}AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_4 |-> [(\"length\": _lvar_37), (\"@scope\": _lvar_35), (\"@extensible\": _lvar_34), (\"@class\": _lvar_33), (\"@proto\": _lvar_32), (default: $$unknown)]
+Store: 	
+	(l: _lvar_31)
+	(len: _lvar_36)
+Pure Formulae: 	
+	(! (\"Function\" == $$undefined))
+	(! ($$t == $$undefined))
+	(_lvar_31 == _$l_4)
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--3--
+TIME: 0.191333
+ ---- STATE: ---- 
+Heap: 
+	_$l_4 |-> [(\"length\": {{ \"d\", _lvar_36, $$f, $$f, $$f }}), (\"@scope\": $$empty), (\"@extensible\": $$t), (\"@class\": \"Function\"), (\"@proto\": $lfun_proto), (default: $$unknown)]
+Store: 	
+	(xret: _$l_4)
+	(len: _lvar_36)
+	(l: _$l_4)
+Pure Formulae: 	
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_4 |-> [(\"length\": _lvar_37), (\"@scope\": _lvar_35), (\"@extensible\": _lvar_34), (\"@class\": _lvar_33), (\"@proto\": _lvar_32), (default: $$unknown)]
+Store: 	
+	(l: _lvar_31)
+	(len: _lvar_36)
+Pure Formulae: 	
+	(! (\"Function\" == $$undefined))
+	(! ($$t == $$undefined))
+	(_lvar_31 == _$l_4)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [xret, "@call"] := call
+----------------------------------
+Updtate-abs-heap. loc: _$l_4. field:"@call". v:_lvar_38AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_4 |-> [(\"@call\": _lvar_39), (\"length\": _lvar_37), (\"@scope\": _lvar_35), (\"@extensible\": _lvar_34), (\"@class\": _lvar_33), (\"@proto\": _lvar_32), (default: $$unknown)]
+Store: 	
+	(l: _lvar_31)
+	(len: _lvar_36)
+	(call: _lvar_38)
+Pure Formulae: 	
+	(! (\"Function\" == $$undefined))
+	(! ($$t == $$undefined))
+	(_lvar_31 == _$l_4)
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--4--
+TIME: 0.191378
+ ---- STATE: ---- 
+Heap: 
+	_$l_4 |-> [(\"@call\": _lvar_38), (\"length\": {{ \"d\", _lvar_36, $$f, $$f, $$f }}), (\"@scope\": $$empty), (\"@extensible\": $$t), (\"@class\": \"Function\"), (\"@proto\": $lfun_proto), (default: $$unknown)]
+Store: 	
+	(xret: _$l_4)
+	(len: _lvar_36)
+	(call: _lvar_38)
+	(l: _$l_4)
+Pure Formulae: 	
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_4 |-> [(\"@call\": _lvar_39), (\"length\": _lvar_37), (\"@scope\": _lvar_35), (\"@extensible\": _lvar_34), (\"@class\": _lvar_33), (\"@proto\": _lvar_32), (default: $$unknown)]
+Store: 	
+	(l: _lvar_31)
+	(len: _lvar_36)
+	(call: _lvar_38)
+Pure Formulae: 	
+	(! (\"Function\" == $$undefined))
+	(! ($$t == $$undefined))
+	(_lvar_31 == _$l_4)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: goto [(construct = $$empty)] 6 5
+----------------------------------
+Evaluated expression: (construct = $$empty) --> (_lvar_40 = $$empty)
+
+Lifted assertion: (_lvar_40 == $$empty)
+
+Checking if:
+	
+	entails
+	(_lvar_40 == $$empty)
+
+I could not determine the branch.
+----------------------------------
+--4--
+TIME: 0.222000
+ ---- STATE: ---- 
+Heap: 
+	_$l_4 |-> [(\"@call\": _lvar_38), (\"length\": {{ \"d\", _lvar_36, $$f, $$f, $$f }}), (\"@scope\": $$empty), (\"@extensible\": $$t), (\"@class\": \"Function\"), (\"@proto\": $lfun_proto), (default: $$unknown)]
+Store: 	
+	(xret: _$l_4)
+	(len: _lvar_36)
+	(call: _lvar_38)
+	(l: _$l_4)
+	(construct: _lvar_40)
+Pure Formulae: 	
+	(_lvar_40 == $$empty)
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_4 |-> [(\"@call\": _lvar_39), (\"length\": _lvar_37), (\"@scope\": _lvar_35), (\"@extensible\": _lvar_34), (\"@class\": _lvar_33), (\"@proto\": _lvar_32), (default: $$unknown)]
+Store: 	
+	(l: _lvar_31)
+	(construct: _lvar_40)
+	(len: _lvar_36)
+	(call: _lvar_38)
+Pure Formulae: 	
+	(! (\"Function\" == $$undefined))
+	(! ($$t == $$undefined))
+	(_lvar_31 == _$l_4)
+	(_lvar_40 == $$empty)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: goto [(construct = $$empty)] 6 5
+----------------------------------
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_4 |-> [(\"@call\": _lvar_39), (\"length\": _lvar_37), (\"@scope\": _lvar_35), (\"@extensible\": _lvar_34), (\"@class\": _lvar_33), (\"@proto\": _lvar_32), (default: $$unknown)]
+Store: 	
+	(l: _lvar_31)
+	(construct: _lvar_40)
+	(len: _lvar_36)
+	(call: _lvar_38)
+Pure Formulae: 	
+	(! (\"Function\" == $$undefined))
+	(! ($$t == $$undefined))
+	(_lvar_31 == _$l_4)
+	(_lvar_40 == $$empty)
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--6--
+TIME: 0.222059
+ ---- STATE: ---- 
+Heap: 
+	_$l_4 |-> [(\"@call\": _lvar_38), (\"length\": {{ \"d\", _lvar_36, $$f, $$f, $$f }}), (\"@scope\": $$empty), (\"@extensible\": $$t), (\"@class\": \"Function\"), (\"@proto\": $lfun_proto), (default: $$unknown)]
+Store: 	
+	(xret: _$l_4)
+	(len: _lvar_36)
+	(call: _lvar_38)
+	(l: _$l_4)
+	(construct: $$empty)
+Pure Formulae: 	
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+	(construct: $$empty_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_4 |-> [(\"@call\": _lvar_39), (\"length\": _lvar_37), (\"@scope\": _lvar_35), (\"@extensible\": _lvar_34), (\"@class\": _lvar_33), (\"@proto\": _lvar_32), (default: $$unknown)]
+Store: 	
+	(l: _lvar_31)
+	(construct: _lvar_40)
+	(len: _lvar_36)
+	(call: _lvar_38)
+Pure Formulae: 	
+	(! (\"Function\" == $$undefined))
+	(! ($$t == $$undefined))
+	(_lvar_31 == _$l_4)
+	(_lvar_40 == $$empty)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: xret := l
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_4 |-> [(\"@call\": _lvar_38), (\"length\": {{ \"d\", _lvar_36, $$f, $$f, $$f }}), (\"@scope\": $$empty), (\"@extensible\": $$t), (\"@class\": \"Function\"), (\"@proto\": $lfun_proto), (default: $$unknown)]
+Store: 	
+	(xret: _$l_4)
+	(len: _lvar_36)
+	(call: _lvar_38)
+	(l: _$l_4)
+	(construct: $$empty)
+Pure Formulae: 	
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+	(construct: $$empty_type)
+Preds: 
+
+LVARS: 
+Unifying stores:
+Store: 	
+	(xret: _$l_4)
+	(len: _lvar_36)
+	(call: _lvar_38)
+	(l: _$l_4)
+	(construct: $$empty) 
+Pat_store: 	
+Discharges: 0
+
+Pfs to add to the antiframe after unify stores: 
+Unify heaps 
+	 
+and 
+	_$l_4 |-> [("@call": _lvar_38), ("length": {{ "d", _lvar_36, $$f, $$f, $$f }}), ("@scope": $$empty), ("@extensible": $$t), ("@class": "Function"), ("@proto": $lfun_proto), (default: $$unknown)] 
+with substitution: Substitution: 
+	
+
+with pure formulae: 	
+with gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+	(construct: $$empty_type)
+PatHeapDomain: 
+Heap again 
+	_$l_4 |-> [("@call": _lvar_38), ("length": {{ "d", _lvar_36, $$f, $$f, $$f }}), ("@scope": $$empty), ("@extensible": $$t), ("@class": "Function"), ("@proto": $lfun_proto), (default: $$unknown)]
+End of unify_symb_heaps: do enjoy the quotient_heap: 
+	_$l_4 |-> [("@call": _lvar_38), ("length": {{ "d", _lvar_36, $$f, $$f, $$f }}), ("@scope": $$empty), ("@extensible": $$t), ("@class": "Function"), ("@proto": $lfun_proto), (default: $$unknown)]
+Heaps unified successfully.
+
+Entering unify_pred_arrays.
+Pfs to add to the antiframe after step 0: 
+I am about to bi-unify two gammas
+
+pat_gamma: 	.
+gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+	(construct: $$empty_type).
+subst: Substitution: 
+	
+
+
+
+EXITING unify_gamma: res: true
+
+
+Checking if 	
+ entails 	
+ with existentials
+
+and gamma 	
+	(xret: $$object_type)
+	(l: $$object_type)
+	(construct: $$empty_type)
+entailment_check: true
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_4 |-> [(\"@call\": _lvar_38), (\"length\": {{ \"d\", _lvar_36, $$f, $$f, $$f }}), (\"@scope\": $$empty), (\"@extensible\": $$t), (\"@class\": \"Function\"), (\"@proto\": $lfun_proto), (default: $$unknown)]
+Store: 	
+	(xret: _$l_4)
+	(len: _lvar_36)
+	(call: _lvar_38)
+	(l: _$l_4)
+	(construct: $$empty)
+Pure Formulae: 	
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+	(construct: $$empty_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_4 |-> [(\"@call\": _lvar_39), (\"length\": _lvar_37), (\"@scope\": _lvar_35), (\"@extensible\": _lvar_34), (\"@class\": _lvar_33), (\"@proto\": _lvar_32), (default: $$unknown)]
+Store: 	
+	(l: _lvar_31)
+	(construct: _lvar_40)
+	(len: _lvar_36)
+	(call: _lvar_38)
+Pure Formulae: 	
+	(! (\"Function\" == $$undefined))
+	(! ($$t == $$undefined))
+	(_lvar_31 == _$l_4)
+	(_lvar_40 == $$empty)
+Gamma: 	
+Preds: 
+
+Finished merging heaps.
+Finished merging heaps.
+Symb_state: Heap: 
+	_$l_4 |-> [(\"@call\": _lvar_38), (\"length\": {{ \"d\", _lvar_36, $$f, $$f, $$f }}), (\"@scope\": $$empty), (\"@extensible\": $$t), (\"@class\": \"Function\"), (\"@proto\": $lfun_proto), (default: $$unknown)]
+Store: 	
+	(xret: _$l_4)
+	(len: _lvar_36)
+	(call: _lvar_38)
+	(l: _$l_4)
+	(construct: $$empty)
+Pure Formulae: 	
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+	(construct: $$empty_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_4 |-> [(\"@call\": _lvar_39), (\"length\": _lvar_37), (\"@scope\": _lvar_35), (\"@extensible\": _lvar_34), (\"@class\": _lvar_33), (\"@proto\": _lvar_32), (default: $$unknown)]
+Store: 	
+	(l: _lvar_31)
+	(construct: _lvar_40)
+	(len: _lvar_36)
+	(call: _lvar_38)
+Pure Formulae: 	
+	(! (\"Function\" == $$undefined))
+	(! ($$t == $$undefined))
+	(_lvar_31 == _$l_4)
+	(_lvar_40 == $$empty)
+Gamma: 	
+Preds: 
+
+----------------------------------
+--4--
+TIME: 0.222718
+ ---- STATE: ---- 
+Heap: 
+	_$l_4 |-> [(\"@call\": _lvar_38), (\"length\": {{ \"d\", _lvar_36, $$f, $$f, $$f }}), (\"@scope\": $$empty), (\"@extensible\": $$t), (\"@class\": \"Function\"), (\"@proto\": $lfun_proto), (default: $$unknown)]
+Store: 	
+	(xret: _$l_4)
+	(len: _lvar_36)
+	(call: _lvar_38)
+	(l: _$l_4)
+	(construct: _lvar_40)
+Pure Formulae: 	
+	(! (_lvar_40 == $$empty))
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_4 |-> [(\"@call\": _lvar_39), (\"length\": _lvar_37), (\"@scope\": _lvar_35), (\"@extensible\": _lvar_34), (\"@class\": _lvar_33), (\"@proto\": _lvar_32), (default: $$unknown)]
+Store: 	
+	(l: _lvar_31)
+	(construct: _lvar_40)
+	(len: _lvar_36)
+	(call: _lvar_38)
+Pure Formulae: 	
+	(! (\"Function\" == $$undefined))
+	(! ($$t == $$undefined))
+	(_lvar_31 == _$l_4)
+	(! (_lvar_40 == $$empty))
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: goto [(construct = $$empty)] 6 5
+----------------------------------
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_4 |-> [(\"@call\": _lvar_39), (\"length\": _lvar_37), (\"@scope\": _lvar_35), (\"@extensible\": _lvar_34), (\"@class\": _lvar_33), (\"@proto\": _lvar_32), (default: $$unknown)]
+Store: 	
+	(l: _lvar_31)
+	(construct: _lvar_40)
+	(len: _lvar_36)
+	(call: _lvar_38)
+Pure Formulae: 	
+	(! (\"Function\" == $$undefined))
+	(! ($$t == $$undefined))
+	(_lvar_31 == _$l_4)
+	(! (_lvar_40 == $$empty))
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--5--
+TIME: 0.222759
+ ---- STATE: ---- 
+Heap: 
+	_$l_4 |-> [(\"@call\": _lvar_38), (\"length\": {{ \"d\", _lvar_36, $$f, $$f, $$f }}), (\"@scope\": $$empty), (\"@extensible\": $$t), (\"@class\": \"Function\"), (\"@proto\": $lfun_proto), (default: $$unknown)]
+Store: 	
+	(xret: _$l_4)
+	(len: _lvar_36)
+	(call: _lvar_38)
+	(l: _$l_4)
+	(construct: _lvar_40)
+Pure Formulae: 	
+	(! (_lvar_40 == $$empty))
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_4 |-> [(\"@call\": _lvar_39), (\"length\": _lvar_37), (\"@scope\": _lvar_35), (\"@extensible\": _lvar_34), (\"@class\": _lvar_33), (\"@proto\": _lvar_32), (default: $$unknown)]
+Store: 	
+	(l: _lvar_31)
+	(construct: _lvar_40)
+	(len: _lvar_36)
+	(call: _lvar_38)
+Pure Formulae: 	
+	(! (\"Function\" == $$undefined))
+	(! ($$t == $$undefined))
+	(_lvar_31 == _$l_4)
+	(! (_lvar_40 == $$empty))
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [xret, "@construct"] := construct
+----------------------------------
+Updtate-abs-heap. loc: _$l_4. field:"@construct". v:_lvar_40AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_4 |-> [(\"@construct\": _lvar_41), (\"@call\": _lvar_39), (\"length\": _lvar_37), (\"@scope\": _lvar_35), (\"@extensible\": _lvar_34), (\"@class\": _lvar_33), (\"@proto\": _lvar_32), (default: $$unknown)]
+Store: 	
+	(l: _lvar_31)
+	(construct: _lvar_40)
+	(len: _lvar_36)
+	(call: _lvar_38)
+Pure Formulae: 	
+	(! (\"Function\" == $$undefined))
+	(! ($$t == $$undefined))
+	(_lvar_31 == _$l_4)
+	(! (_lvar_40 == $$empty))
+Gamma: 	
+Preds: 
+
+
+----------------------------------
+--6--
+TIME: 0.222807
+ ---- STATE: ---- 
+Heap: 
+	_$l_4 |-> [(\"@construct\": _lvar_40), (\"@call\": _lvar_38), (\"length\": {{ \"d\", _lvar_36, $$f, $$f, $$f }}), (\"@scope\": $$empty), (\"@extensible\": $$t), (\"@class\": \"Function\"), (\"@proto\": $lfun_proto), (default: $$unknown)]
+Store: 	
+	(xret: _$l_4)
+	(len: _lvar_36)
+	(call: _lvar_38)
+	(l: _$l_4)
+	(construct: _lvar_40)
+Pure Formulae: 	
+	(! (_lvar_40 == $$empty))
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_4 |-> [(\"@construct\": _lvar_41), (\"@call\": _lvar_39), (\"length\": _lvar_37), (\"@scope\": _lvar_35), (\"@extensible\": _lvar_34), (\"@class\": _lvar_33), (\"@proto\": _lvar_32), (default: $$unknown)]
+Store: 	
+	(l: _lvar_31)
+	(construct: _lvar_40)
+	(len: _lvar_36)
+	(call: _lvar_38)
+Pure Formulae: 	
+	(! (\"Function\" == $$undefined))
+	(! ($$t == $$undefined))
+	(_lvar_31 == _$l_4)
+	(! (_lvar_40 == $$empty))
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: xret := l
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_4 |-> [(\"@construct\": _lvar_40), (\"@call\": _lvar_38), (\"length\": {{ \"d\", _lvar_36, $$f, $$f, $$f }}), (\"@scope\": $$empty), (\"@extensible\": $$t), (\"@class\": \"Function\"), (\"@proto\": $lfun_proto), (default: $$unknown)]
+Store: 	
+	(xret: _$l_4)
+	(len: _lvar_36)
+	(call: _lvar_38)
+	(l: _$l_4)
+	(construct: _lvar_40)
+Pure Formulae: 	
+	(! (_lvar_40 == $$empty))
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+
+LVARS: 
+Unifying stores:
+Store: 	
+	(xret: _$l_4)
+	(len: _lvar_36)
+	(call: _lvar_38)
+	(l: _$l_4)
+	(construct: _lvar_40) 
+Pat_store: 	
+Discharges: 0
+
+Pfs to add to the antiframe after unify stores: 
+Unify heaps 
+	 
+and 
+	_$l_4 |-> [("@construct": _lvar_40), ("@call": _lvar_38), ("length": {{ "d", _lvar_36, $$f, $$f, $$f }}), ("@scope": $$empty), ("@extensible": $$t), ("@class": "Function"), ("@proto": $lfun_proto), (default: $$unknown)] 
+with substitution: Substitution: 
+	
+
+with pure formulae: 	
+	(! (_lvar_40 == $$empty))
+with gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+PatHeapDomain: 
+Heap again 
+	_$l_4 |-> [("@construct": _lvar_40), ("@call": _lvar_38), ("length": {{ "d", _lvar_36, $$f, $$f, $$f }}), ("@scope": $$empty), ("@extensible": $$t), ("@class": "Function"), ("@proto": $lfun_proto), (default: $$unknown)]
+End of unify_symb_heaps: do enjoy the quotient_heap: 
+	_$l_4 |-> [("@construct": _lvar_40), ("@call": _lvar_38), ("length": {{ "d", _lvar_36, $$f, $$f, $$f }}), ("@scope": $$empty), ("@extensible": $$t), ("@class": "Function"), ("@proto": $lfun_proto), (default: $$unknown)]
+Heaps unified successfully.
+
+Entering unify_pred_arrays.
+Pfs to add to the antiframe after step 0: 
+I am about to bi-unify two gammas
+
+pat_gamma: 	.
+gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type).
+subst: Substitution: 
+	
+
+
+
+EXITING unify_gamma: res: true
+
+
+Checking if 	
+	(! (_lvar_40 == $$empty))
+ entails 	
+ with existentials
+
+and gamma 	
+	(xret: $$object_type)
+	(l: $$object_type)
+entailment_check: true
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_4 |-> [(\"@construct\": _lvar_40), (\"@call\": _lvar_38), (\"length\": {{ \"d\", _lvar_36, $$f, $$f, $$f }}), (\"@scope\": $$empty), (\"@extensible\": $$t), (\"@class\": \"Function\"), (\"@proto\": $lfun_proto), (default: $$unknown)]
+Store: 	
+	(xret: _$l_4)
+	(len: _lvar_36)
+	(call: _lvar_38)
+	(l: _$l_4)
+	(construct: _lvar_40)
+Pure Formulae: 	
+	(! (_lvar_40 == $$empty))
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_4 |-> [(\"@construct\": _lvar_41), (\"@call\": _lvar_39), (\"length\": _lvar_37), (\"@scope\": _lvar_35), (\"@extensible\": _lvar_34), (\"@class\": _lvar_33), (\"@proto\": _lvar_32), (default: $$unknown)]
+Store: 	
+	(l: _lvar_31)
+	(construct: _lvar_40)
+	(len: _lvar_36)
+	(call: _lvar_38)
+Pure Formulae: 	
+	(! (\"Function\" == $$undefined))
+	(! ($$t == $$undefined))
+	(_lvar_31 == _$l_4)
+	(! (_lvar_40 == $$empty))
+Gamma: 	
+Preds: 
+
+Finished merging heaps.
+Finished merging heaps.
+Symb_state: Heap: 
+	_$l_4 |-> [(\"@construct\": _lvar_40), (\"@call\": _lvar_38), (\"length\": {{ \"d\", _lvar_36, $$f, $$f, $$f }}), (\"@scope\": $$empty), (\"@extensible\": $$t), (\"@class\": \"Function\"), (\"@proto\": $lfun_proto), (default: $$unknown)]
+Store: 	
+	(xret: _$l_4)
+	(len: _lvar_36)
+	(call: _lvar_38)
+	(l: _$l_4)
+	(construct: _lvar_40)
+Pure Formulae: 	
+	(! (_lvar_40 == $$empty))
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_4 |-> [(\"@construct\": _lvar_41), (\"@call\": _lvar_39), (\"length\": _lvar_37), (\"@scope\": _lvar_35), (\"@extensible\": _lvar_34), (\"@class\": _lvar_33), (\"@proto\": _lvar_32), (default: $$unknown)]
+Store: 	
+	(l: _lvar_31)
+	(construct: _lvar_40)
+	(len: _lvar_36)
+	(call: _lvar_38)
+Pure Formulae: 	
+	(! (\"Function\" == $$undefined))
+	(! ($$t == $$undefined))
+	(_lvar_31 == _$l_4)
+	(! (_lvar_40 == $$empty))
+Gamma: 	
+Preds: 
+
+----------------------------------
+----------------------------------
+----------------------------------
+
+Finished merging heaps.
+Spec Var: ##s_24
+Spec Var: ##s_25
+Spec Var: ##s_26
+Spec Var: ##s_27
+Spec Var: ##s_28
+Spec Var: ##s_29
+Spec Var: ##s_30
+Spec Var: ##s_31
+Spec Var: ##s_32
+Pre Spec Vars
+Spec Var: ##s_28
+Spec Var: ##s_30
+Finished merging heaps.
+Spec Var: ##s_33
+Spec Var: ##s_34
+Spec Var: ##s_35
+Spec Var: ##s_36
+Spec Var: ##s_37
+Spec Var: ##s_38
+Spec Var: ##s_39
+Spec Var: ##s_40
+Spec Var: ##s_41
+Spec Var: ##s_42
+Pre Spec Vars
+Spec Var: ##s_37
+Spec Var: ##s_39
+Spec Var: ##s_41
+
+********************** FINISHED BI-ABDUCTION SYMBOLIC EXECUTION ***************************
+
+
+**********************    STARTING NORMAL SYMBOLIC EXECUTION    ***************************
+
+Normalising predicate definitions.
+
+----------------------------------
+----------------------------------
+Symbolic execution of create_default_object
+Initial symbolic state:
+Heap: 
+	_$l_3 |-> [(\"@extensible\": ##s_23), (\"@class\": ##s_22), (\"@proto\": ##s_21), (default: $$unknown)]
+Store: 	
+	(pr: ##s_20)
+	(ext: ##s_19)
+	(cl: ##s_18)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (##s_18 == $$undefined))
+	(! (##s_19 == $$undefined))
+Gamma: 	
+	(l: $$object_type)
+Preds: 
+
+----------------------------------
+--0--
+TIME: 0.235509
+STATE:
+Heap: 
+	_$l_3 |-> [(\"@extensible\": ##s_23), (\"@class\": ##s_22), (\"@proto\": ##s_21), (default: $$unknown)]
+Store: 	
+	(pr: ##s_20)
+	(ext: ##s_19)
+	(cl: ##s_18)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (##s_18 == $$undefined))
+	(! (##s_19 == $$undefined))
+Gamma: 	
+	(l: $$object_type)
+Preds: 
+CMD: goto [(cl = $$undefined)] 1 2
+----------------------------------
+Guarded Goto: Evaluated expression: (cl = $$undefined) --> (##s_18 = $$undefined)
+
+Checking if:
+	(! (##s_18 == $$undefined))
+	(! (##s_19 == $$undefined))
+	entails
+	(##s_18 == $$undefined)
+
+in the ELSE branch
+----------------------------------
+--2--
+TIME: 0.253551
+STATE:
+Heap: 
+	_$l_3 |-> [(\"@extensible\": ##s_23), (\"@class\": ##s_22), (\"@proto\": ##s_21), (default: $$unknown)]
+Store: 	
+	(pr: ##s_20)
+	(ext: ##s_19)
+	(cl: ##s_18)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (##s_18 == $$undefined))
+	(! (##s_19 == $$undefined))
+Gamma: 	
+	(l: $$object_type)
+Preds: 
+CMD: goto [(ext = $$undefined)] 3 4
+----------------------------------
+Guarded Goto: Evaluated expression: (ext = $$undefined) --> (##s_19 = $$undefined)
+
+Checking if:
+	(! (##s_18 == $$undefined))
+	(! (##s_19 == $$undefined))
+	entails
+	(##s_19 == $$undefined)
+
+in the ELSE branch
+----------------------------------
+--4--
+TIME: 0.253632
+STATE:
+Heap: 
+	_$l_3 |-> [(\"@extensible\": ##s_23), (\"@class\": ##s_22), (\"@proto\": ##s_21), (default: $$unknown)]
+Store: 	
+	(pr: ##s_20)
+	(ext: ##s_19)
+	(cl: ##s_18)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (##s_18 == $$undefined))
+	(! (##s_19 == $$undefined))
+Gamma: 	
+	(l: $$object_type)
+Preds: 
+CMD: [l, "@proto"] := pr
+----------------------------------
+----------------------------------
+--5--
+TIME: 0.253667
+STATE:
+Heap: 
+	_$l_3 |-> [(\"@proto\": ##s_20), (\"@class\": ##s_22), (\"@extensible\": ##s_23), (default: $$unknown)]
+Store: 	
+	(pr: ##s_20)
+	(ext: ##s_19)
+	(cl: ##s_18)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (##s_18 == $$undefined))
+	(! (##s_19 == $$undefined))
+Gamma: 	
+	(l: $$object_type)
+Preds: 
+CMD: [l, "@class"] := cl
+----------------------------------
+----------------------------------
+--6--
+TIME: 0.253689
+STATE:
+Heap: 
+	_$l_3 |-> [(\"@class\": ##s_18), (\"@proto\": ##s_20), (\"@extensible\": ##s_23), (default: $$unknown)]
+Store: 	
+	(pr: ##s_20)
+	(ext: ##s_19)
+	(cl: ##s_18)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (##s_18 == $$undefined))
+	(! (##s_19 == $$undefined))
+Gamma: 	
+	(l: $$object_type)
+Preds: 
+CMD: [l, "@extensible"] := ext
+----------------------------------
+----------------------------------
+--7--
+TIME: 0.253728
+STATE:
+Heap: 
+	_$l_3 |-> [(\"@extensible\": ##s_19), (\"@proto\": ##s_20), (\"@class\": ##s_18), (default: $$unknown)]
+Store: 	
+	(pr: ##s_20)
+	(ext: ##s_19)
+	(cl: ##s_18)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (##s_18 == $$undefined))
+	(! (##s_19 == $$undefined))
+Gamma: 	
+	(l: $$object_type)
+Preds: 
+CMD: xret := l
+----------------------------------
+Fully_unify_symb_state.
+Symb_state:
+Heap: 
+	_$l_3 |-> [(\"@extensible\": ##s_19), (\"@proto\": ##s_20), (\"@class\": ##s_18), (default: $$unknown)]
+Store: 	
+	(pr: ##s_20)
+	(ext: ##s_19)
+	(xret: _$l_3)
+	(cl: ##s_18)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (##s_18 == $$undefined))
+	(! (##s_19 == $$undefined))
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+.
+PAT symb_state:
+Heap: 
+	_$l_3 |-> [(\"@extensible\": ##s_19), (\"@class\": ##s_18), (\"@proto\": ##s_20), (default: $$unknown)]
+Store: 	
+	(pr: ##s_20)
+	(ext: ##s_19)
+	(xret: _$l_3)
+	(cl: ##s_18)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (##s_18 == $$undefined))
+	(! (##s_19 == $$undefined))
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+
+unify_symb_states with the following specvars: ##s_18, ##s_19, ##s_20
+Current substitution: Substitution: 
+	##s_18: ##s_18;
+	 ##s_19: ##s_19;
+	 ##s_20: ##s_20
+
+Unifying stores:
+Store: 	
+	(pr: ##s_20)
+	(ext: ##s_19)
+	(xret: _$l_3)
+	(cl: ##s_18)
+	(l: _$l_3)
+Pat_store: 	
+	(pr: ##s_20)
+	(ext: ##s_19)
+	(xret: _$l_3)
+	(cl: ##s_18)
+	(l: _$l_3)
+Unify heaps 
+	_$l_3 |-> [("@extensible": ##s_19), ("@class": ##s_18), ("@proto": ##s_20), (default: $$unknown)] 
+and 
+	_$l_3 |-> [("@extensible": ##s_19), ("@proto": ##s_20), ("@class": ##s_18), (default: $$unknown)] 
+with substitution: Substitution: 
+	_$l_3: _$l_3;
+	 ##s_18: ##s_18;
+	 ##s_19: ##s_19;
+	 ##s_20: ##s_20
+
+with pure formulae: 	
+	(! (##s_18 == $$undefined))
+	(! (##s_19 == $$undefined))
+with gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+Location: _$l_3
+Substitution: _$l_3
+Result: false
+Result: true
+Result: true
+Result: false
+Result: true
+Result: true
+Result: true
+Result: true
+Entering unify_pred_arrays.
+Current substitution again: Substitution: 
+	_$l_3: _$l_3;
+	 ##s_18: ##s_18;
+	 ##s_19: ##s_19;
+	 ##s_20: ##s_20
+
+I am about to unify two gammas
+
+pat_gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type).
+gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type).
+subst: Substitution: 
+	_$l_3: _$l_3;
+	 ##s_18: ##s_18;
+	 ##s_19: ##s_19;
+	 ##s_20: ##s_20
+
+
+Checking if 	
+	(! (##s_18 == $$undefined))
+	(! (##s_19 == $$undefined))
+ entails 	
+	(! (##s_18 == $$undefined))
+	(! (##s_19 == $$undefined))
+ with existentials
+
+and gamma 	
+	(xret: $$object_type)
+	(l: $$object_type)
+unify_gamma_check: true. entailment_check: true
+Verified one spec of proc create_default_object
+----------------------------------
+----------------------------------
+----------------------------------
+
+----------------------------------
+----------------------------------
+Symbolic execution of create_default_object
+Initial symbolic state:
+Heap: 
+	_$l_2 |-> [(\"@extensible\": ##s_16), (\"@class\": ##s_15), (\"@proto\": ##s_14), (default: $$unknown)]
+Store: 	
+	(pr: ##s_13)
+	(ext: ##s_17)
+	(cl: ##s_12)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (##s_12 == $$undefined))
+	(##s_17 == $$undefined)
+Gamma: 	
+	(ext: $$undefined_type)
+	(##s_17: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+
+----------------------------------
+--0--
+TIME: 0.254057
+STATE:
+Heap: 
+	_$l_2 |-> [(\"@extensible\": ##s_16), (\"@class\": ##s_15), (\"@proto\": ##s_14), (default: $$unknown)]
+Store: 	
+	(pr: ##s_13)
+	(ext: $$undefined)
+	(cl: ##s_12)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (##s_12 == $$undefined))
+	(##s_17 == $$undefined)
+Gamma: 	
+	(ext: $$undefined_type)
+	(##s_17: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+CMD: goto [(cl = $$undefined)] 1 2
+----------------------------------
+Guarded Goto: Evaluated expression: (cl = $$undefined) --> (##s_12 = $$undefined)
+
+Checking if:
+	(! (##s_12 == $$undefined))
+	(##s_17 == $$undefined)
+	entails
+	(##s_12 == $$undefined)
+
+in the ELSE branch
+----------------------------------
+--2--
+TIME: 0.265068
+STATE:
+Heap: 
+	_$l_2 |-> [(\"@extensible\": ##s_16), (\"@class\": ##s_15), (\"@proto\": ##s_14), (default: $$unknown)]
+Store: 	
+	(pr: ##s_13)
+	(ext: $$undefined)
+	(cl: ##s_12)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (##s_12 == $$undefined))
+	(##s_17 == $$undefined)
+Gamma: 	
+	(ext: $$undefined_type)
+	(##s_17: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+CMD: goto [(ext = $$undefined)] 3 4
+----------------------------------
+Guarded Goto: Evaluated expression: (ext = $$undefined) --> $$t
+
+Checking if:
+	(! (##s_12 == $$undefined))
+	(##s_17 == $$undefined)
+	entails
+	true
+
+in the THEN branch
+----------------------------------
+--3--
+TIME: 0.265430
+STATE:
+Heap: 
+	_$l_2 |-> [(\"@extensible\": ##s_16), (\"@class\": ##s_15), (\"@proto\": ##s_14), (default: $$unknown)]
+Store: 	
+	(pr: ##s_13)
+	(ext: $$undefined)
+	(cl: ##s_12)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (##s_12 == $$undefined))
+	(##s_17 == $$undefined)
+Gamma: 	
+	(ext: $$undefined_type)
+	(##s_17: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+CMD: ext := $$t
+----------------------------------
+----------------------------------
+--4--
+TIME: 0.265561
+STATE:
+Heap: 
+	_$l_2 |-> [(\"@extensible\": ##s_16), (\"@class\": ##s_15), (\"@proto\": ##s_14), (default: $$unknown)]
+Store: 	
+	(pr: ##s_13)
+	(ext: $$t)
+	(cl: ##s_12)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (##s_12 == $$undefined))
+	(##s_17 == $$undefined)
+Gamma: 	
+	(ext: $$boolean_type)
+	(##s_17: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+CMD: [l, "@proto"] := pr
+----------------------------------
+----------------------------------
+--5--
+TIME: 0.265694
+STATE:
+Heap: 
+	_$l_2 |-> [(\"@proto\": ##s_13), (\"@class\": ##s_15), (\"@extensible\": ##s_16), (default: $$unknown)]
+Store: 	
+	(pr: ##s_13)
+	(ext: $$t)
+	(cl: ##s_12)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (##s_12 == $$undefined))
+	(##s_17 == $$undefined)
+Gamma: 	
+	(ext: $$boolean_type)
+	(##s_17: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+CMD: [l, "@class"] := cl
+----------------------------------
+----------------------------------
+--6--
+TIME: 0.265827
+STATE:
+Heap: 
+	_$l_2 |-> [(\"@class\": ##s_12), (\"@proto\": ##s_13), (\"@extensible\": ##s_16), (default: $$unknown)]
+Store: 	
+	(pr: ##s_13)
+	(ext: $$t)
+	(cl: ##s_12)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (##s_12 == $$undefined))
+	(##s_17 == $$undefined)
+Gamma: 	
+	(ext: $$boolean_type)
+	(##s_17: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+CMD: [l, "@extensible"] := ext
+----------------------------------
+----------------------------------
+--7--
+TIME: 0.265932
+STATE:
+Heap: 
+	_$l_2 |-> [(\"@extensible\": $$t), (\"@proto\": ##s_13), (\"@class\": ##s_12), (default: $$unknown)]
+Store: 	
+	(pr: ##s_13)
+	(ext: $$t)
+	(cl: ##s_12)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (##s_12 == $$undefined))
+	(##s_17 == $$undefined)
+Gamma: 	
+	(ext: $$boolean_type)
+	(##s_17: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+CMD: xret := l
+----------------------------------
+Fully_unify_symb_state.
+Symb_state:
+Heap: 
+	_$l_2 |-> [(\"@extensible\": $$t), (\"@proto\": ##s_13), (\"@class\": ##s_12), (default: $$unknown)]
+Store: 	
+	(pr: ##s_13)
+	(ext: $$t)
+	(xret: _$l_2)
+	(cl: ##s_12)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (##s_12 == $$undefined))
+	(##s_17 == $$undefined)
+Gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(##s_17: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+.
+PAT symb_state:
+Heap: 
+	_$l_2 |-> [(\"@extensible\": $$t), (\"@class\": ##s_12), (\"@proto\": ##s_13), (default: $$unknown)]
+Store: 	
+	(pr: ##s_13)
+	(ext: $$t)
+	(xret: _$l_2)
+	(cl: ##s_12)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (##s_12 == $$undefined))
+Gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+
+unify_symb_states with the following specvars: ##s_12, ##s_13
+Current substitution: Substitution: 
+	##s_12: ##s_12;
+	 ##s_13: ##s_13
+
+Unifying stores:
+Store: 	
+	(pr: ##s_13)
+	(ext: $$t)
+	(xret: _$l_2)
+	(cl: ##s_12)
+	(l: _$l_2)
+Pat_store: 	
+	(pr: ##s_13)
+	(ext: $$t)
+	(xret: _$l_2)
+	(cl: ##s_12)
+	(l: _$l_2)
+Unify heaps 
+	_$l_2 |-> [("@extensible": $$t), ("@class": ##s_12), ("@proto": ##s_13), (default: $$unknown)] 
+and 
+	_$l_2 |-> [("@extensible": $$t), ("@proto": ##s_13), ("@class": ##s_12), (default: $$unknown)] 
+with substitution: Substitution: 
+	##s_12: ##s_12;
+	 _$l_2: _$l_2;
+	 ##s_13: ##s_13
+
+with pure formulae: 	
+	(! (##s_12 == $$undefined))
+	(##s_17 == $$undefined)
+with gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(##s_17: $$undefined_type)
+	(l: $$object_type)
+Location: _$l_2
+Substitution: _$l_2
+Result: true
+Result: true
+Result: true
+Result: true
+Result: true
+Result: true
+Entering unify_pred_arrays.
+Current substitution again: Substitution: 
+	##s_12: ##s_12;
+	 _$l_2: _$l_2;
+	 ##s_13: ##s_13
+
+I am about to unify two gammas
+
+pat_gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type).
+gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(##s_17: $$undefined_type)
+	(l: $$object_type).
+subst: Substitution: 
+	##s_12: ##s_12;
+	 _$l_2: _$l_2;
+	 ##s_13: ##s_13
+
+
+Checking if 	
+	(! (##s_12 == $$undefined))
+	(##s_17 == $$undefined)
+ entails 	
+	(! (##s_12 == $$undefined))
+ with existentials
+
+and gamma 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(##s_17: $$undefined_type)
+	(l: $$object_type)
+unify_gamma_check: true. entailment_check: true
+Verified one spec of proc create_default_object
+----------------------------------
+----------------------------------
+----------------------------------
+
+----------------------------------
+----------------------------------
+Symbolic execution of create_default_object
+Initial symbolic state:
+Heap: 
+	_$l_1 |-> [(\"@extensible\": ##s_9), (\"@class\": ##s_8), (\"@proto\": ##s_7), (default: $$unknown)]
+Store: 	
+	(pr: ##s_11)
+	(ext: ##s_6)
+	(cl: ##s_10)
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (##s_6 == $$undefined))
+	(##s_10 == $$undefined)
+Gamma: 	
+	(##s_10: $$undefined_type)
+	(cl: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+
+----------------------------------
+--0--
+TIME: 0.266576
+STATE:
+Heap: 
+	_$l_1 |-> [(\"@extensible\": ##s_9), (\"@class\": ##s_8), (\"@proto\": ##s_7), (default: $$unknown)]
+Store: 	
+	(pr: ##s_11)
+	(ext: ##s_6)
+	(cl: $$undefined)
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (##s_6 == $$undefined))
+	(##s_10 == $$undefined)
+Gamma: 	
+	(##s_10: $$undefined_type)
+	(cl: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+CMD: goto [(cl = $$undefined)] 1 2
+----------------------------------
+Guarded Goto: Evaluated expression: (cl = $$undefined) --> $$t
+
+Checking if:
+	(! (##s_6 == $$undefined))
+	(##s_10 == $$undefined)
+	entails
+	true
+
+in the THEN branch
+----------------------------------
+--1--
+TIME: 0.279693
+STATE:
+Heap: 
+	_$l_1 |-> [(\"@extensible\": ##s_9), (\"@class\": ##s_8), (\"@proto\": ##s_7), (default: $$unknown)]
+Store: 	
+	(pr: ##s_11)
+	(ext: ##s_6)
+	(cl: $$undefined)
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (##s_6 == $$undefined))
+	(##s_10 == $$undefined)
+Gamma: 	
+	(##s_10: $$undefined_type)
+	(cl: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+CMD: cl := "Object"
+----------------------------------
+----------------------------------
+--2--
+TIME: 0.279760
+STATE:
+Heap: 
+	_$l_1 |-> [(\"@extensible\": ##s_9), (\"@class\": ##s_8), (\"@proto\": ##s_7), (default: $$unknown)]
+Store: 	
+	(pr: ##s_11)
+	(ext: ##s_6)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (##s_6 == $$undefined))
+	(##s_10 == $$undefined)
+Gamma: 	
+	(##s_10: $$undefined_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+CMD: goto [(ext = $$undefined)] 3 4
+----------------------------------
+Guarded Goto: Evaluated expression: (ext = $$undefined) --> (##s_6 = $$undefined)
+
+Checking if:
+	(! (##s_6 == $$undefined))
+	(##s_10 == $$undefined)
+	entails
+	(##s_6 == $$undefined)
+
+in the ELSE branch
+----------------------------------
+--4--
+TIME: 0.279895
+STATE:
+Heap: 
+	_$l_1 |-> [(\"@extensible\": ##s_9), (\"@class\": ##s_8), (\"@proto\": ##s_7), (default: $$unknown)]
+Store: 	
+	(pr: ##s_11)
+	(ext: ##s_6)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (##s_6 == $$undefined))
+	(##s_10 == $$undefined)
+Gamma: 	
+	(##s_10: $$undefined_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+CMD: [l, "@proto"] := pr
+----------------------------------
+----------------------------------
+--5--
+TIME: 0.280002
+STATE:
+Heap: 
+	_$l_1 |-> [(\"@proto\": ##s_11), (\"@class\": ##s_8), (\"@extensible\": ##s_9), (default: $$unknown)]
+Store: 	
+	(pr: ##s_11)
+	(ext: ##s_6)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (##s_6 == $$undefined))
+	(##s_10 == $$undefined)
+Gamma: 	
+	(##s_10: $$undefined_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+CMD: [l, "@class"] := cl
+----------------------------------
+----------------------------------
+--6--
+TIME: 0.280113
+STATE:
+Heap: 
+	_$l_1 |-> [(\"@class\": \"Object\"), (\"@proto\": ##s_11), (\"@extensible\": ##s_9), (default: $$unknown)]
+Store: 	
+	(pr: ##s_11)
+	(ext: ##s_6)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (##s_6 == $$undefined))
+	(##s_10 == $$undefined)
+Gamma: 	
+	(##s_10: $$undefined_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+CMD: [l, "@extensible"] := ext
+----------------------------------
+----------------------------------
+--7--
+TIME: 0.280185
+STATE:
+Heap: 
+	_$l_1 |-> [(\"@extensible\": ##s_6), (\"@proto\": ##s_11), (\"@class\": \"Object\"), (default: $$unknown)]
+Store: 	
+	(pr: ##s_11)
+	(ext: ##s_6)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (##s_6 == $$undefined))
+	(##s_10 == $$undefined)
+Gamma: 	
+	(##s_10: $$undefined_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+CMD: xret := l
+----------------------------------
+Fully_unify_symb_state.
+Symb_state:
+Heap: 
+	_$l_1 |-> [(\"@extensible\": ##s_6), (\"@proto\": ##s_11), (\"@class\": \"Object\"), (default: $$unknown)]
+Store: 	
+	(pr: ##s_11)
+	(ext: ##s_6)
+	(xret: _$l_1)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (##s_6 == $$undefined))
+	(##s_10 == $$undefined)
+Gamma: 	
+	(xret: $$object_type)
+	(##s_10: $$undefined_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+.
+PAT symb_state:
+Heap: 
+	_$l_1 |-> [(\"@extensible\": ##s_6), (\"@class\": \"Object\"), (\"@proto\": ##s_11), (default: $$unknown)]
+Store: 	
+	(pr: ##s_11)
+	(ext: ##s_6)
+	(xret: _$l_1)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (##s_6 == $$undefined))
+Gamma: 	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+
+unify_symb_states with the following specvars: ##s_11, ##s_6
+Current substitution: Substitution: 
+	##s_11: ##s_11;
+	 ##s_6: ##s_6
+
+Unifying stores:
+Store: 	
+	(pr: ##s_11)
+	(ext: ##s_6)
+	(xret: _$l_1)
+	(cl: "Object")
+	(l: _$l_1)
+Pat_store: 	
+	(pr: ##s_11)
+	(ext: ##s_6)
+	(xret: _$l_1)
+	(cl: "Object")
+	(l: _$l_1)
+Unify heaps 
+	_$l_1 |-> [("@extensible": ##s_6), ("@class": "Object"), ("@proto": ##s_11), (default: $$unknown)] 
+and 
+	_$l_1 |-> [("@extensible": ##s_6), ("@proto": ##s_11), ("@class": "Object"), (default: $$unknown)] 
+with substitution: Substitution: 
+	_$l_1: _$l_1;
+	 ##s_11: ##s_11;
+	 ##s_6: ##s_6
+
+with pure formulae: 	
+	(! (##s_6 == $$undefined))
+	(##s_10 == $$undefined)
+with gamma: 	
+	(xret: $$object_type)
+	(##s_10: $$undefined_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Location: _$l_1
+Substitution: _$l_1
+Result: false
+Result: false
+Result: true
+Result: true
+Result: true
+Result: true
+Result: true
+Result: true
+Entering unify_pred_arrays.
+Current substitution again: Substitution: 
+	_$l_1: _$l_1;
+	 ##s_11: ##s_11;
+	 ##s_6: ##s_6
+
+I am about to unify two gammas
+
+pat_gamma: 	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type).
+gamma: 	
+	(xret: $$object_type)
+	(##s_10: $$undefined_type)
+	(cl: $$string_type)
+	(l: $$object_type).
+subst: Substitution: 
+	_$l_1: _$l_1;
+	 ##s_11: ##s_11;
+	 ##s_6: ##s_6
+
+
+Checking if 	
+	(! (##s_6 == $$undefined))
+	(##s_10 == $$undefined)
+ entails 	
+	(! (##s_6 == $$undefined))
+ with existentials
+
+and gamma 	
+	(xret: $$object_type)
+	(##s_10: $$undefined_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+unify_gamma_check: true. entailment_check: true
+Verified one spec of proc create_default_object
+----------------------------------
+----------------------------------
+----------------------------------
+
+----------------------------------
+----------------------------------
+Symbolic execution of create_default_object
+Initial symbolic state:
+Heap: 
+	_$l_0 |-> [(\"@extensible\": ##s_5), (\"@class\": ##s_4), (\"@proto\": ##s_3), (default: $$unknown)]
+Store: 	
+	(pr: ##s_2)
+	(ext: ##s_0)
+	(cl: ##s_1)
+	(l: _$l_0)
+Pure Formulae: 	
+	(##s_0 == $$undefined)
+	(##s_1 == $$undefined)
+Gamma: 	
+	(##s_1: $$undefined_type)
+	(ext: $$undefined_type)
+	(cl: $$undefined_type)
+	(##s_0: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+
+----------------------------------
+--0--
+TIME: 0.280644
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@extensible\": ##s_5), (\"@class\": ##s_4), (\"@proto\": ##s_3), (default: $$unknown)]
+Store: 	
+	(pr: ##s_2)
+	(ext: $$undefined)
+	(cl: $$undefined)
+	(l: _$l_0)
+Pure Formulae: 	
+	(##s_0 == $$undefined)
+	(##s_1 == $$undefined)
+Gamma: 	
+	(##s_1: $$undefined_type)
+	(ext: $$undefined_type)
+	(cl: $$undefined_type)
+	(##s_0: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+CMD: goto [(cl = $$undefined)] 1 2
+----------------------------------
+Guarded Goto: Evaluated expression: (cl = $$undefined) --> $$t
+
+Checking if:
+	(##s_0 == $$undefined)
+	(##s_1 == $$undefined)
+	entails
+	true
+
+in the THEN branch
+----------------------------------
+--1--
+TIME: 0.280768
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@extensible\": ##s_5), (\"@class\": ##s_4), (\"@proto\": ##s_3), (default: $$unknown)]
+Store: 	
+	(pr: ##s_2)
+	(ext: $$undefined)
+	(cl: $$undefined)
+	(l: _$l_0)
+Pure Formulae: 	
+	(##s_1 == $$undefined)
+	(##s_0 == $$undefined)
+Gamma: 	
+	(##s_1: $$undefined_type)
+	(ext: $$undefined_type)
+	(cl: $$undefined_type)
+	(##s_0: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+CMD: cl := "Object"
+----------------------------------
+----------------------------------
+--2--
+TIME: 0.280856
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@extensible\": ##s_5), (\"@class\": ##s_4), (\"@proto\": ##s_3), (default: $$unknown)]
+Store: 	
+	(pr: ##s_2)
+	(ext: $$undefined)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+	(##s_0 == $$undefined)
+	(##s_1 == $$undefined)
+Gamma: 	
+	(##s_1: $$undefined_type)
+	(ext: $$undefined_type)
+	(cl: $$string_type)
+	(##s_0: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+CMD: goto [(ext = $$undefined)] 3 4
+----------------------------------
+Guarded Goto: Evaluated expression: (ext = $$undefined) --> $$t
+
+Checking if:
+	(##s_0 == $$undefined)
+	(##s_1 == $$undefined)
+	entails
+	true
+
+in the THEN branch
+----------------------------------
+--3--
+TIME: 0.285561
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@extensible\": ##s_5), (\"@class\": ##s_4), (\"@proto\": ##s_3), (default: $$unknown)]
+Store: 	
+	(pr: ##s_2)
+	(ext: $$undefined)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+	(##s_1 == $$undefined)
+	(##s_0 == $$undefined)
+Gamma: 	
+	(##s_1: $$undefined_type)
+	(ext: $$undefined_type)
+	(cl: $$string_type)
+	(##s_0: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+CMD: ext := $$t
+----------------------------------
+----------------------------------
+--4--
+TIME: 0.285698
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@extensible\": ##s_5), (\"@class\": ##s_4), (\"@proto\": ##s_3), (default: $$unknown)]
+Store: 	
+	(pr: ##s_2)
+	(ext: $$t)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+	(##s_0 == $$undefined)
+	(##s_1 == $$undefined)
+Gamma: 	
+	(##s_1: $$undefined_type)
+	(ext: $$boolean_type)
+	(cl: $$string_type)
+	(##s_0: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+CMD: [l, "@proto"] := pr
+----------------------------------
+----------------------------------
+--5--
+TIME: 0.285792
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@proto\": ##s_2), (\"@class\": ##s_4), (\"@extensible\": ##s_5), (default: $$unknown)]
+Store: 	
+	(pr: ##s_2)
+	(ext: $$t)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+	(##s_1 == $$undefined)
+	(##s_0 == $$undefined)
+Gamma: 	
+	(##s_1: $$undefined_type)
+	(ext: $$boolean_type)
+	(cl: $$string_type)
+	(##s_0: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+CMD: [l, "@class"] := cl
+----------------------------------
+----------------------------------
+--6--
+TIME: 0.285881
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@class\": \"Object\"), (\"@proto\": ##s_2), (\"@extensible\": ##s_5), (default: $$unknown)]
+Store: 	
+	(pr: ##s_2)
+	(ext: $$t)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+	(##s_0 == $$undefined)
+	(##s_1 == $$undefined)
+Gamma: 	
+	(##s_1: $$undefined_type)
+	(ext: $$boolean_type)
+	(cl: $$string_type)
+	(##s_0: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+CMD: [l, "@extensible"] := ext
+----------------------------------
+----------------------------------
+--7--
+TIME: 0.285985
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@extensible\": $$t), (\"@proto\": ##s_2), (\"@class\": \"Object\"), (default: $$unknown)]
+Store: 	
+	(pr: ##s_2)
+	(ext: $$t)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+	(##s_1 == $$undefined)
+	(##s_0 == $$undefined)
+Gamma: 	
+	(##s_1: $$undefined_type)
+	(ext: $$boolean_type)
+	(cl: $$string_type)
+	(##s_0: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+CMD: xret := l
+----------------------------------
+Fully_unify_symb_state.
+Symb_state:
+Heap: 
+	_$l_0 |-> [(\"@extensible\": $$t), (\"@proto\": ##s_2), (\"@class\": \"Object\"), (default: $$unknown)]
+Store: 	
+	(pr: ##s_2)
+	(ext: $$t)
+	(xret: _$l_0)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+	(##s_0 == $$undefined)
+	(##s_1 == $$undefined)
+Gamma: 	
+	(##s_1: $$undefined_type)
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(##s_0: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+.
+PAT symb_state:
+Heap: 
+	_$l_0 |-> [(\"@extensible\": $$t), (\"@class\": \"Object\"), (\"@proto\": ##s_2), (default: $$unknown)]
+Store: 	
+	(pr: ##s_2)
+	(ext: $$t)
+	(xret: _$l_0)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+
+unify_symb_states with the following specvars: ##s_2
+Current substitution: Substitution: 
+	##s_2: ##s_2
+
+Unifying stores:
+Store: 	
+	(pr: ##s_2)
+	(ext: $$t)
+	(xret: _$l_0)
+	(cl: "Object")
+	(l: _$l_0)
+Pat_store: 	
+	(pr: ##s_2)
+	(ext: $$t)
+	(xret: _$l_0)
+	(cl: "Object")
+	(l: _$l_0)
+Unify heaps 
+	_$l_0 |-> [("@extensible": $$t), ("@class": "Object"), ("@proto": ##s_2), (default: $$unknown)] 
+and 
+	_$l_0 |-> [("@extensible": $$t), ("@proto": ##s_2), ("@class": "Object"), (default: $$unknown)] 
+with substitution: Substitution: 
+	_$l_0: _$l_0;
+	 ##s_2: ##s_2
+
+with pure formulae: 	
+	(##s_0 == $$undefined)
+	(##s_1 == $$undefined)
+with gamma: 	
+	(##s_1: $$undefined_type)
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(##s_0: $$undefined_type)
+	(l: $$object_type)
+Location: _$l_0
+Substitution: _$l_0
+Result: false
+Result: false
+Result: true
+Result: true
+Result: false
+Result: true
+Result: true
+Result: true
+Result: true
+Entering unify_pred_arrays.
+Current substitution again: Substitution: 
+	_$l_0: _$l_0;
+	 ##s_2: ##s_2
+
+I am about to unify two gammas
+
+pat_gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type).
+gamma: 	
+	(##s_1: $$undefined_type)
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(##s_0: $$undefined_type)
+	(l: $$object_type).
+subst: Substitution: 
+	_$l_0: _$l_0;
+	 ##s_2: ##s_2
+
+
+Checking if 	
+	(##s_0 == $$undefined)
+	(##s_1 == $$undefined)
+ entails 	
+ with existentials
+
+and gamma 	
+	(##s_1: $$undefined_type)
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(##s_0: $$undefined_type)
+	(l: $$object_type)
+unify_gamma_check: true. entailment_check: true
+Verified one spec of proc create_default_object
+----------------------------------
+----------------------------------
+----------------------------------
+
+----------------------------------
+----------------------------------
+Symbolic execution of create_object_with_call_construct
+Initial symbolic state:
+Heap: 
+	_$l_4 |-> [(\"@construct\": ##s_42), (\"@call\": ##s_40), (\"length\": ##s_38), (\"@scope\": ##s_36), (\"@extensible\": ##s_35), (\"@class\": ##s_34), (\"@proto\": ##s_33), (default: $$unknown)]
+Store: 	
+	(len: ##s_37)
+	(call: ##s_39)
+	(l: _$l_4)
+	(construct: ##s_41)
+Pure Formulae: 	
+	(! (##s_41 == $$empty))
+Gamma: 	
+	(l: $$object_type)
+Preds: 
+
+----------------------------------
+--0--
+TIME: 0.286339
+STATE:
+Heap: 
+	_$l_4 |-> [(\"@construct\": ##s_42), (\"@call\": ##s_40), (\"length\": ##s_38), (\"@scope\": ##s_36), (\"@extensible\": ##s_35), (\"@class\": ##s_34), (\"@proto\": ##s_33), (default: $$unknown)]
+Store: 	
+	(len: ##s_37)
+	(call: ##s_39)
+	(l: _$l_4)
+	(construct: ##s_41)
+Pure Formulae: 	
+	(! (##s_41 == $$empty))
+Gamma: 	
+	(l: $$object_type)
+Preds: 
+CMD: xret := "create_default_object"(l, $lfun_proto, "Function", $$t) 
+----------------------------------
+Entering find_and_apply_spec: create_default_object.
+------------------------------------------
+Entering find_correct_specs with the spec:
+------------------------------------------
+Pre:
+Heap: 
+	_$l_0 |-> [(\"@extensible\": ##s_5), (\"@class\": ##s_4), (\"@proto\": ##s_3), (default: $$unknown)]
+Store: 	
+	(pr: ##s_2)
+	(ext: ##s_0)
+	(cl: ##s_1)
+	(l: _$l_0)
+Pure Formulae: 	
+	(##s_0 == $$undefined)
+	(##s_1 == $$undefined)
+Gamma: 	
+	(##s_1: $$undefined_type)
+	(ext: $$undefined_type)
+	(cl: $$undefined_type)
+	(##s_0: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+Posts:
+Post 0: 
+Heap: 
+	_$l_0 |-> [(\"@extensible\": $$t), (\"@class\": \"Object\"), (\"@proto\": ##s_2), (default: $$unknown)]
+Store: 	
+	(pr: ##s_2)
+	(ext: $$t)
+	(xret: _$l_0)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+;
+
+unify_symb_states with the following specvars: 
+Current substitution: Substitution: 
+	
+
+Unifying stores:
+Store: 	
+	(ext: $$t)
+	(pr: $lfun_proto)
+	(cl: "Function")
+	(l: _$l_4)
+Pat_store: 	
+	(pr: ##s_2)
+	(ext: ##s_0)
+	(cl: ##s_1)
+	(l: _$l_0)
+Unify heaps 
+	_$l_0 |-> [("@extensible": ##s_5), ("@class": ##s_4), ("@proto": ##s_3), (default: $$unknown)] 
+and 
+	_$l_4 |-> [("@construct": ##s_42), ("@call": ##s_40), ("length": ##s_38), ("@scope": ##s_36), ("@extensible": ##s_35), ("@class": ##s_34), ("@proto": ##s_33), (default: $$unknown)] 
+with substitution: Substitution: 
+	##s_1: "Function";
+	 _$l_0: _$l_4;
+	 ##s_0: $$t;
+	 ##s_2: $lfun_proto
+
+with pure formulae: 	
+	(! (##s_41 == $$empty))
+with gamma: 	
+	(l: $$object_type)
+Location: _$l_0
+Substitution: _$l_4
+Result: false
+Result: false
+Result: false
+Result: false
+Result: false
+Result: false
+Result: true
+Result: true
+Result: true
+Result: true
+Result: true
+Result: true
+Entering unify_pred_arrays.
+Current substitution again: Substitution: 
+	##s_1: "Function";
+	 ##s_3: ##s_33;
+	 _$l_0: _$l_4;
+	 ##s_5: ##s_35;
+	 ##s_0: $$t;
+	 ##s_2: $lfun_proto;
+	 ##s_4: ##s_34
+
+I am about to unify two gammas
+
+pat_gamma: 	
+	(##s_1: $$undefined_type)
+	(ext: $$undefined_type)
+	(cl: $$undefined_type)
+	(##s_0: $$undefined_type)
+	(l: $$object_type).
+gamma: 	
+	(l: $$object_type).
+subst: Substitution: 
+	##s_1: "Function";
+	 ##s_3: ##s_33;
+	 _$l_0: _$l_4;
+	 ##s_5: ##s_35;
+	 ##s_0: $$t;
+	 ##s_2: $lfun_proto;
+	 ##s_4: ##s_34
+
+
+Gammas not unifiable.
+I found a NON-match
+The EVALUATION OF THIS PROC GAVE AN ERROR: 0 No precondition found for procedure create_default_object.!!!!
+----------------------------------
+----------------------------------
+----------------------------------
+
+----------------------------------
+----------------------------------
+Symbolic execution of create_object_with_call_construct
+Initial symbolic state:
+Heap: 
+	_$l_4 |-> [(\"@call\": ##s_31), (\"length\": ##s_29), (\"@scope\": ##s_27), (\"@extensible\": ##s_26), (\"@class\": ##s_25), (\"@proto\": ##s_24), (default: $$unknown)]
+Store: 	
+	(len: ##s_28)
+	(call: ##s_30)
+	(l: _$l_4)
+	(construct: ##s_32)
+Pure Formulae: 	
+	(##s_32 == $$empty)
+Gamma: 	
+	(##s_32: $$empty_type)
+	(l: $$object_type)
+	(construct: $$empty_type)
+Preds: 
+
+----------------------------------
+--0--
+TIME: 0.297609
+STATE:
+Heap: 
+	_$l_4 |-> [(\"@call\": ##s_31), (\"length\": ##s_29), (\"@scope\": ##s_27), (\"@extensible\": ##s_26), (\"@class\": ##s_25), (\"@proto\": ##s_24), (default: $$unknown)]
+Store: 	
+	(len: ##s_28)
+	(call: ##s_30)
+	(l: _$l_4)
+	(construct: $$empty)
+Pure Formulae: 	
+	(##s_32 == $$empty)
+Gamma: 	
+	(##s_32: $$empty_type)
+	(l: $$object_type)
+	(construct: $$empty_type)
+Preds: 
+CMD: xret := "create_default_object"(l, $lfun_proto, "Function", $$t) 
+----------------------------------
+Entering find_and_apply_spec: create_default_object.
+------------------------------------------
+Entering find_correct_specs with the spec:
+------------------------------------------
+Pre:
+Heap: 
+	_$l_0 |-> [(\"@extensible\": ##s_5), (\"@class\": ##s_4), (\"@proto\": ##s_3), (default: $$unknown)]
+Store: 	
+	(pr: ##s_2)
+	(ext: ##s_0)
+	(cl: ##s_1)
+	(l: _$l_0)
+Pure Formulae: 	
+	(##s_0 == $$undefined)
+	(##s_1 == $$undefined)
+Gamma: 	
+	(##s_1: $$undefined_type)
+	(ext: $$undefined_type)
+	(cl: $$undefined_type)
+	(##s_0: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+Posts:
+Post 0: 
+Heap: 
+	_$l_0 |-> [(\"@extensible\": $$t), (\"@class\": \"Object\"), (\"@proto\": ##s_2), (default: $$unknown)]
+Store: 	
+	(pr: ##s_2)
+	(ext: $$t)
+	(xret: _$l_0)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+;
+
+unify_symb_states with the following specvars: 
+Current substitution: Substitution: 
+	
+
+Unifying stores:
+Store: 	
+	(ext: $$t)
+	(pr: $lfun_proto)
+	(cl: "Function")
+	(l: _$l_4)
+Pat_store: 	
+	(pr: ##s_2)
+	(ext: ##s_0)
+	(cl: ##s_1)
+	(l: _$l_0)
+Unify heaps 
+	_$l_0 |-> [("@extensible": ##s_5), ("@class": ##s_4), ("@proto": ##s_3), (default: $$unknown)] 
+and 
+	_$l_4 |-> [("@call": ##s_31), ("length": ##s_29), ("@scope": ##s_27), ("@extensible": ##s_26), ("@class": ##s_25), ("@proto": ##s_24), (default: $$unknown)] 
+with substitution: Substitution: 
+	##s_1: "Function";
+	 _$l_0: _$l_4;
+	 ##s_0: $$t;
+	 ##s_2: $lfun_proto
+
+with pure formulae: 	
+	(##s_32 == $$empty)
+with gamma: 	
+	(##s_32: $$empty_type)
+	(l: $$object_type)
+	(construct: $$empty_type)
+Location: _$l_0
+Substitution: _$l_4
+Result: false
+Result: false
+Result: false
+Result: false
+Result: false
+Result: true
+Result: true
+Result: true
+Result: true
+Result: true
+Result: true
+Entering unify_pred_arrays.
+Current substitution again: Substitution: 
+	##s_1: "Function";
+	 ##s_3: ##s_24;
+	 _$l_0: _$l_4;
+	 ##s_5: ##s_26;
+	 ##s_0: $$t;
+	 ##s_2: $lfun_proto;
+	 ##s_4: ##s_25
+
+I am about to unify two gammas
+
+pat_gamma: 	
+	(##s_1: $$undefined_type)
+	(ext: $$undefined_type)
+	(cl: $$undefined_type)
+	(##s_0: $$undefined_type)
+	(l: $$object_type).
+gamma: 	
+	(##s_32: $$empty_type)
+	(l: $$object_type)
+	(construct: $$empty_type).
+subst: Substitution: 
+	##s_1: "Function";
+	 ##s_3: ##s_24;
+	 _$l_0: _$l_4;
+	 ##s_5: ##s_26;
+	 ##s_0: $$t;
+	 ##s_2: $lfun_proto;
+	 ##s_4: ##s_25
+
+
+Gammas not unifiable.
+I found a NON-match
+The EVALUATION OF THIS PROC GAVE AN ERROR: 0 No precondition found for procedure create_default_object.!!!!
+----------------------------------
+----------------------------------
+----------------------------------
+
+
+Verified: 4.		Prunings: 2.
+
+
+**********************     ENDING NORMAL SYMBOLIC EXECUTION     ***************************
+
+RESULTS
+Proc create_default_object  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_3 |-> [(\"@extensible\": ##s_23), (\"@class\": ##s_22), (\"@proto\": ##s_21), (default: $$unknown)]
+Store: 	
+	(pr: ##s_20)
+	(ext: ##s_19)
+	(cl: ##s_18)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (##s_18 == $$undefined))
+	(! (##s_19 == $$undefined))
+Gamma: 	
+	(l: $$object_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_3 |-> [(\"@extensible\": ##s_19), (\"@class\": ##s_18), (\"@proto\": ##s_20), (default: $$unknown)]
+Store: 	
+	(pr: ##s_20)
+	(ext: ##s_19)
+	(xret: _$l_3)
+	(cl: ##s_18)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (##s_18 == $$undefined))
+	(! (##s_19 == $$undefined))
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc create_default_object  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_2 |-> [(\"@extensible\": ##s_16), (\"@class\": ##s_15), (\"@proto\": ##s_14), (default: $$unknown)]
+Store: 	
+	(pr: ##s_13)
+	(ext: ##s_17)
+	(cl: ##s_12)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (##s_12 == $$undefined))
+	(##s_17 == $$undefined)
+Gamma: 	
+	(ext: $$undefined_type)
+	(##s_17: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_2 |-> [(\"@extensible\": $$t), (\"@class\": ##s_12), (\"@proto\": ##s_13), (default: $$unknown)]
+Store: 	
+	(pr: ##s_13)
+	(ext: $$t)
+	(xret: _$l_2)
+	(cl: ##s_12)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (##s_12 == $$undefined))
+Gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc create_default_object  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_1 |-> [(\"@extensible\": ##s_9), (\"@class\": ##s_8), (\"@proto\": ##s_7), (default: $$unknown)]
+Store: 	
+	(pr: ##s_11)
+	(ext: ##s_6)
+	(cl: ##s_10)
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (##s_6 == $$undefined))
+	(##s_10 == $$undefined)
+Gamma: 	
+	(##s_10: $$undefined_type)
+	(cl: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_1 |-> [(\"@extensible\": ##s_6), (\"@class\": \"Object\"), (\"@proto\": ##s_11), (default: $$unknown)]
+Store: 	
+	(pr: ##s_11)
+	(ext: ##s_6)
+	(xret: _$l_1)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (##s_6 == $$undefined))
+Gamma: 	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc create_default_object  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_0 |-> [(\"@extensible\": ##s_5), (\"@class\": ##s_4), (\"@proto\": ##s_3), (default: $$unknown)]
+Store: 	
+	(pr: ##s_2)
+	(ext: ##s_0)
+	(cl: ##s_1)
+	(l: _$l_0)
+Pure Formulae: 	
+	(##s_0 == $$undefined)
+	(##s_1 == $$undefined)
+Gamma: 	
+	(##s_1: $$undefined_type)
+	(ext: $$undefined_type)
+	(cl: $$undefined_type)
+	(##s_0: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_0 |-> [(\"@extensible\": $$t), (\"@class\": \"Object\"), (\"@proto\": ##s_2), (default: $$unknown)]
+Store: 	
+	(pr: ##s_2)
+	(ext: $$t)
+	(xret: _$l_0)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc create_object_with_call_construct  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_4 |-> [(\"@construct\": ##s_42), (\"@call\": ##s_40), (\"length\": ##s_38), (\"@scope\": ##s_36), (\"@extensible\": ##s_35), (\"@class\": ##s_34), (\"@proto\": ##s_33), (default: $$unknown)]
+Store: 	
+	(len: ##s_37)
+	(call: ##s_39)
+	(l: _$l_4)
+	(construct: ##s_41)
+Pure Formulae: 	
+	(! (##s_41 == $$empty))
+Gamma: 	
+	(l: $$object_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_4 |-> [(\"@construct\": ##s_41), (\"@call\": ##s_39), (\"length\": {{ \"d\", ##s_37, $$f, $$f, $$f }}), (\"@scope\": $$empty), (\"@extensible\": $$t), (\"@class\": \"Function\"), (\"@proto\": $lfun_proto), (default: $$unknown)]
+Store: 	
+	(xret: _$l_4)
+	(len: ##s_37)
+	(call: ##s_39)
+	(l: _$l_4)
+	(construct: ##s_41)
+Pure Formulae: 	
+	(! (##s_41 == $$empty))
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+;
+ -- FAILED with msg: No precondition found for procedure create_default_object.
+
+Proc create_object_with_call_construct  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_4 |-> [(\"@call\": ##s_31), (\"length\": ##s_29), (\"@scope\": ##s_27), (\"@extensible\": ##s_26), (\"@class\": ##s_25), (\"@proto\": ##s_24), (default: $$unknown)]
+Store: 	
+	(len: ##s_28)
+	(call: ##s_30)
+	(l: _$l_4)
+	(construct: ##s_32)
+Pure Formulae: 	
+	(##s_32 == $$empty)
+Gamma: 	
+	(##s_32: $$empty_type)
+	(l: $$object_type)
+	(construct: $$empty_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_4 |-> [(\"@call\": ##s_30), (\"length\": {{ \"d\", ##s_28, $$f, $$f, $$f }}), (\"@scope\": $$empty), (\"@extensible\": $$t), (\"@class\": \"Function\"), (\"@proto\": $lfun_proto), (default: $$unknown)]
+Store: 	
+	(xret: _$l_4)
+	(len: ##s_28)
+	(call: ##s_30)
+	(l: _$l_4)
+	(construct: $$empty)
+Pure Formulae: 	
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+	(construct: $$empty_type)
+Preds: 
+;
+ -- FAILED with msg: No precondition found for procedure create_default_object.
+
+Generated specifications: 
+ 
+create_default_object
+----------
+[[ ((_$l_3, "@proto") -> ##s_21) * ((_$l_3, "@class") -> ##s_22) * ((_$l_3, "@extensible") -> ##s_23) * (l == _$l_3) * (cl == ##s_18) * (ext == ##s_19) * (pr == ##s_20) * (! (##s_18 == $$undefined)) * (! (##s_19 == $$undefined)) * types(l : $$object_type) ]]
+[[ ((_$l_3, "@proto") -> ##s_20) * ((_$l_3, "@class") -> ##s_18) * ((_$l_3, "@extensible") -> ##s_19) * (l == _$l_3) * (cl == ##s_18) * (xret == _$l_3) * (ext == ##s_19) * (pr == ##s_20) * (! (##s_18 == $$undefined)) * (! (##s_19 == $$undefined)) * types(l : $$object_type, xret : $$object_type) ]]
+Normal
+
+
+create_default_object
+----------
+[[ ((_$l_2, "@proto") -> ##s_14) * ((_$l_2, "@class") -> ##s_15) * ((_$l_2, "@extensible") -> ##s_16) * (l == _$l_2) * (cl == ##s_12) * (ext == ##s_17) * (pr == ##s_13) * (! (##s_12 == $$undefined)) * (##s_17 == $$undefined) * types(l : $$object_type, ##s_17 : $$undefined_type, ext : $$undefined_type) ]]
+[[ ((_$l_2, "@proto") -> ##s_13) * ((_$l_2, "@class") -> ##s_12) * ((_$l_2, "@extensible") -> $$t) * (l == _$l_2) * (cl == ##s_12) * (xret == _$l_2) * (ext == $$t) * (pr == ##s_13) * (! (##s_12 == $$undefined)) * types(l : $$object_type, xret : $$object_type, ext : $$boolean_type) ]]
+Normal
+
+
+create_default_object
+----------
+[[ ((_$l_1, "@proto") -> ##s_7) * ((_$l_1, "@class") -> ##s_8) * ((_$l_1, "@extensible") -> ##s_9) * (l == _$l_1) * (cl == ##s_10) * (ext == ##s_6) * (pr == ##s_11) * (! (##s_6 == $$undefined)) * (##s_10 == $$undefined) * types(l : $$object_type, cl : $$undefined_type, ##s_10 : $$undefined_type) ]]
+[[ ((_$l_1, "@proto") -> ##s_11) * ((_$l_1, "@class") -> "Object") * ((_$l_1, "@extensible") -> ##s_6) * (l == _$l_1) * (cl == "Object") * (xret == _$l_1) * (ext == ##s_6) * (pr == ##s_11) * (! (##s_6 == $$undefined)) * types(l : $$object_type, cl : $$string_type, xret : $$object_type) ]]
+Normal
+
+
+create_default_object
+----------
+[[ ((_$l_0, "@proto") -> ##s_3) * ((_$l_0, "@class") -> ##s_4) * ((_$l_0, "@extensible") -> ##s_5) * (l == _$l_0) * (cl == ##s_1) * (ext == ##s_0) * (pr == ##s_2) * (##s_0 == $$undefined) * (##s_1 == $$undefined) * types(l : $$object_type, ##s_0 : $$undefined_type, cl : $$undefined_type, ext : $$undefined_type, ##s_1 : $$undefined_type) ]]
+[[ ((_$l_0, "@proto") -> ##s_2) * ((_$l_0, "@class") -> "Object") * ((_$l_0, "@extensible") -> $$t) * (l == _$l_0) * (cl == "Object") * (xret == _$l_0) * (ext == $$t) * (pr == ##s_2) * types(l : $$object_type, cl : $$string_type, xret : $$object_type, ext : $$boolean_type) ]]
+Normal
+
+
+create_object_with_call_construct
+----------
+[[ ((_$l_4, "@proto") -> ##s_33) * ((_$l_4, "@class") -> ##s_34) * ((_$l_4, "@extensible") -> ##s_35) * ((_$l_4, "@scope") -> ##s_36) * ((_$l_4, "length") -> ##s_38) * ((_$l_4, "@call") -> ##s_40) * ((_$l_4, "@construct") -> ##s_42) * (construct == ##s_41) * (l == _$l_4) * (call == ##s_39) * (len == ##s_37) * (! (##s_41 == $$empty)) * types(l : $$object_type) ]]
+[[ ((_$l_4, "@proto") -> $lfun_proto) * ((_$l_4, "@class") -> "Function") * ((_$l_4, "@extensible") -> $$t) * ((_$l_4, "@scope") -> $$empty) * ((_$l_4, "length") -> {{ "d", ##s_37, $$f, $$f, $$f }}) * ((_$l_4, "@call") -> ##s_39) * ((_$l_4, "@construct") -> ##s_41) * (construct == ##s_41) * (l == _$l_4) * (call == ##s_39) * (len == ##s_37) * (xret == _$l_4) * (! (##s_41 == $$empty)) * types(l : $$object_type, xret : $$object_type) ]]
+Normal
+
+
+create_object_with_call_construct
+----------
+[[ ((_$l_4, "@proto") -> ##s_24) * ((_$l_4, "@class") -> ##s_25) * ((_$l_4, "@extensible") -> ##s_26) * ((_$l_4, "@scope") -> ##s_27) * ((_$l_4, "length") -> ##s_29) * ((_$l_4, "@call") -> ##s_31) * (construct == ##s_32) * (l == _$l_4) * (call == ##s_30) * (len == ##s_28) * (##s_32 == $$empty) * types(construct : $$empty_type, l : $$object_type, ##s_32 : $$empty_type) ]]
+[[ ((_$l_4, "@proto") -> $lfun_proto) * ((_$l_4, "@class") -> "Function") * ((_$l_4, "@extensible") -> $$t) * ((_$l_4, "@scope") -> $$empty) * ((_$l_4, "length") -> {{ "d", ##s_28, $$f, $$f, $$f }}) * ((_$l_4, "@call") -> ##s_30) * (construct == $$empty) * (l == _$l_4) * (call == ##s_30) * (len == ##s_28) * (xret == _$l_4) * types(construct : $$empty_type, l : $$object_type, xret : $$object_type) ]]
+Normal
+
+There were Failures in 0.297979

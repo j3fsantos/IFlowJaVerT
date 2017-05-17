@@ -1,0 +1,476 @@
+
+*********** Starting bi-abduction symbolic execution. ***********
+
+----------------------------------
+----------------------------------
+Symbolic execution of test0
+----------------------------------
+--0--
+TIME: 0.012267
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: skip
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.012306
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: skip
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+anti_frame: Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Symb_state: Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+anti_frame: Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Pre Spec Vars
+----------------------------------
+----------------------------------
+Symbolic execution of test1
+----------------------------------
+--0--
+TIME: 0.012588
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: y := new()
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.012649
+ ---- STATE: ---- 
+Heap: 
+	_$l_0 |-> [(\"@proto\": $$null), (default: None)]
+Store: 	
+	(y: _$l_0)
+Pure Formulae: 	
+	(! (_$l_0 == $lg))
+Gamma: 	
+	(y: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: skip
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_0 |-> [(\"@proto\": $$null), (default: None)]
+Store: 	
+	(y: _$l_0)
+Pure Formulae: 	
+	(! (_$l_0 == $lg))
+Gamma: 	
+	(y: $$object_type)
+Preds: 
+
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_0 |-> [(\"@proto\": $$null), (default: None)]
+Store: 	
+	(y: _$l_0)
+Pure Formulae: 	
+	(! (_$l_0 == $lg))
+Gamma: 	
+	(y: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Symb_state: Heap: 
+	_$l_0 |-> [(\"@proto\": $$null), (default: None)]
+Store: 	
+	(y: _$l_0)
+Pure Formulae: 	
+	(! (_$l_0 == $lg))
+Gamma: 	
+	(y: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Pre Spec Vars
+----------------------------------
+----------------------------------
+Symbolic execution of test2
+----------------------------------
+--0--
+TIME: 0.030344
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: x := "town"
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.030390
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(x: \"town\")
+Pure Formulae: 	
+Gamma: 	
+	(x: $$string_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: skip
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	
+Store: 	
+	(x: \"town\")
+Pure Formulae: 	
+Gamma: 	
+	(x: $$string_type)
+Preds: 
+
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	
+Store: 	
+	(x: \"town\")
+Pure Formulae: 	
+Gamma: 	
+	(x: $$string_type)
+Preds: 
+
+anti_frame: Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Symb_state: Heap: 
+	
+Store: 	
+	(x: \"town\")
+Pure Formulae: 	
+Gamma: 	
+	(x: $$string_type)
+Preds: 
+
+anti_frame: Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Pre Spec Vars
+
+********** Finished bi-abduction symbolic execution. **********
+
+
+**********    Starting normal symbolic execution.    **********
+
+----------------------------------
+----------------------------------
+Symbolic execution of test2
+----------------------------------
+--0--
+TIME: 0.030800
+STATE:
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+CMD: x := "town"
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.030860
+STATE:
+Heap: 
+	
+Store: 	
+	(x: \"town\")
+Pure Formulae: 	
+Gamma: 	
+	(x: $$string_type)
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc test2
+----------------------------------
+----------------------------------
+Symbolic execution of test0
+----------------------------------
+--0--
+TIME: 0.031099
+STATE:
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+CMD: skip
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.031154
+STATE:
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc test0
+----------------------------------
+----------------------------------
+Symbolic execution of test1
+----------------------------------
+--0--
+TIME: 0.031363
+STATE:
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+CMD: y := new()
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.031432
+STATE:
+Heap: 
+	_$l_1 |-> [(\"@proto\": $$null), (default: None)]
+Store: 	
+	(y: _$l_1)
+Pure Formulae: 	
+	(! (_$l_1 == $lg))
+Gamma: 	
+	(y: $$object_type)
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc test1
+
+Verified: 3.		Prunings: 0.
+
+RESULTS
+Proc test2  - Single Spec - normal
+
+Precondition
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	
+Store: 	
+	(x: \"town\")
+Pure Formulae: 	
+Gamma: 	
+	(x: $$string_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc test0  - Single Spec - normal
+
+Precondition
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+;
+ -- VERIFIED
+
+Proc test1  - Single Spec - normal
+
+Precondition
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_0 |-> [(\"@proto\": $$null), (default: None)]
+Store: 	
+	(y: _$l_0)
+Pure Formulae: 	
+	(! (_$l_0 == $lg))
+Gamma: 	
+	(y: $$object_type)
+Preds: 
+;
+ -- VERIFIED
+
+ALL Succeeded in 0.043272
+
+**********     Ending normal symbolic execution.     **********
+
+RESULT SPECS 
+Generated specifications: 
+ 
+test2
+----------
+[[ types() ]]
+[[ (x == "town") * types(x : $$string_type) ]]
+Normal
+
+test0
+----------
+[[ types() ]]
+[[ types() ]]
+Normal
+
+test1
+----------
+[[ types() ]]
+[[ empty_fields(_$l_0 : "@proto") * ((_$l_0, "@proto") -> $$null) * (y == _$l_0) * (! (_$l_0 == $lg)) * types(y : $$object_type) ]]
+Normal
+

@@ -1,0 +1,58 @@
+(** Totals: 0 fails and 0 passes **)
+
+pred tree (x) : 
+	(x == $$null) , 
+	((x, "value") -> #v) * ((x, "right") -> #r) * ((x, "left") -> #l) * ((x, "@proto") -> $$null) * tree(#r) * tree(#l) * types(#v: $$int_type);
+ 
+(** Expected result: YES                             **)          
+spec tree_add (x, v)
+   [[ tree(x) * types(v: $$int_type) ]]
+   [[ tree(x) ]]
+   normal
+proc tree_add (x, v) {
+		   [* unfold(tree(x)) *] 
+		   goto [ x = $$null ] then1 else1;
+   then1:  goto rlab;
+   else1:  [x, "value"] := v; 
+		   [* fold(tree(x)) *]
+   rlab:   skip
+} with { ret: x, rlab; }; 
+
+(** Expected result: YES                             **)          
+spec tree_count_values (x)
+   [[ tree(x)  ]]
+   [[ tree(x) * types(ret: $$int_type) ]]
+   normal
+proc tree_count_values (x) {
+		   [* unfold(tree(x)) *] 
+		   goto [ x = $$null ] then1 else1;
+   then1:  count := 0;
+   		   goto rlab;
+   else1:  right := [x,"right"];
+   		   right_count := "tree_count_values"(right);
+   		   left := [x,"left"];
+   		   left_count := "tree_count_values"(left);
+   		   value := [x,"value"];
+   		   count := right_count + left_count + value;
+		   [* fold(tree(x)) *]
+   rlab:   skip
+} with { ret: count, rlab; };
+
+(** Expected result: YES                             **)          
+spec tree_count (x)
+   [[ tree(x)  ]]
+   [[ tree(x) * types(ret: $$int_type) ]]
+   normal
+proc tree_count (x) {
+         [* unfold(tree(x)) *] 
+         goto [ x = $$null ] then1 else1;
+   then1:  count := 0;
+            goto rlab;
+   else1:  right := [x,"right"];
+            right_count := "tree_count"(right);
+            left := [x,"left"];
+            left_count := "tree_count"(left);
+            count := right_count + left_count + 1;
+         [* fold(tree(x)) *]
+   rlab:   skip
+} with { ret: count, rlab; };

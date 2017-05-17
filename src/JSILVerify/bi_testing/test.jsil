@@ -1,0 +1,36 @@
+
+(*
+ * Predicate: GenericDescriptor
+ *
+ * Resource: None
+ *
+ *)
+pred GenericDescriptor (d) :
+    types (d : $$list_type) * (d == {{ "g", #genum, #gconf, #gval, #gwrit, #gget, #gset }});
+
+spec i__isDataDescriptor (desc)
+
+
+    (* Generic descriptor, with value *)
+    [[ GenericDescriptor(desc) * (! l-nth (desc, 3) == $$empty) ]]
+    [[ ret == $$t ]]
+    normal
+
+   
+proc i__isDataDescriptor (desc) {
+			goto [desc = $$undefined] rf cont;
+	cont:	d := l-nth (desc, 0);
+			goto [d = "d"] rt gen;
+	gen:	goto [d = "g"] test rf;
+	test:	v := l-nth (desc, 3);
+			w := l-nth (desc, 4);
+			goto [(v = $$empty) and (w = $$empty)] rf rt;
+	rt:		xret := $$t;
+			goto rlab;
+	rf:		xret := $$f;
+	rlab:	skip
+}
+with
+{
+	ret : xret, rlab;
+};

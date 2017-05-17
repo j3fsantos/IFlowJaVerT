@@ -355,12 +355,30 @@ let assertions_of_pred_set pred_set =
 			loop rest ((LPred (pred_name, args)) :: assertions) in 
 	loop preds [] 
 
+(*let remove_abs_locs_from_heap heap store pfs =
+	let subst = Hashtbl.create big_tbl_size in 
+	LHeap.iter
+		(fun loc (fv_list, def) ->  
+			try 
+				let e = Hashtbl.find subst loc in
+				LHeap.replace heap e (fv_list, def)
+			with Not_found -> 
+				(if (is_abs_loc_name loc) then 
+					try 
+						let e = store_get store loc in
+						Hashtbl.add subst loc e;
+						store_remove store loc;
+						LHeap.replace heap e (fv_list, def)
+					with _ -> ())
+		) heap; 
+	pf_substitution pfs subst false;*)
+
 let convert_symb_state_to_assertion (symb_state : symbolic_state) : jsil_logic_assertion = 
-	let heap, store, pure, gamma, _ = symb_state in
+	let heap, store, pfs, gamma, _ = symb_state in
 	let heap_assert = assertion_of_abs_heap heap in
 	let store_assert = assertions_of_abs_store store in
 	let gamma_assert = assertions_of_gamma gamma in
-	let pure_assert = DynArray.to_list pure in
+	let pure_assert = DynArray.to_list pfs in
 	let assertions = heap_assert @ store_assert @ pure_assert @ [gamma_assert] in
 	List.fold_left (fun ac assertion -> 
 						if (ac = LEmp) then assertion else LStar(ac , assertion)) 
@@ -370,7 +388,7 @@ let convert_symb_state_to_assertion (symb_state : symbolic_state) : jsil_logic_a
 let string_of_single_spec_table_assertion single_spec =
 	let pre = convert_symb_state_to_assertion single_spec.n_pre in
 	let post = convert_symb_state_to_assertion (List.hd single_spec.n_post) in
-	let flag = (match single_spec.n_ret_flag with | Normal -> "Normal" | Error -> "Error") in
+	let flag = (match single_spec.n_ret_flag with | Normal -> "normal" | Error -> "error") in
 	(Printf.sprintf "[[ %s ]]\n[[ %s ]]\n%s\n"
 	 (JSIL_Print.string_of_logic_assertion pre false)
 	 (JSIL_Print.string_of_logic_assertion post false)

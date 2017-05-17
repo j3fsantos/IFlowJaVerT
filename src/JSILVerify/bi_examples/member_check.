@@ -1,0 +1,1555 @@
+
+*********** Starting bi-abduction symbolic execution. ***********
+
+----------------------------------
+----------------------------------
+Symbolic execution of test0
+----------------------------------
+--0--
+TIME: 0.022335
+ ---- STATE: ---- 
+Heap: 
+	_$l_x |-> [(\"date\": None), (\"town\": \"Montreuil\"), (default: $$unknown)]
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+Store: 	
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: z := hasField(x,"date")
+----------------------------------
+SHasField: got a boolean!
+----------------------------------
+--1--
+TIME: 0.022400
+ ---- STATE: ---- 
+Heap: 
+	_$l_x |-> [(\"date\": None), (\"town\": \"Montreuil\"), (default: $$unknown)]
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+Store: 	
+	(z: $$f)
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: skip
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_x |-> [(\"date\": None), (\"town\": \"Montreuil\"), (default: $$unknown)]
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+Store: 	
+	(z: $$f)
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_x |-> [(\"date\": None), (\"town\": \"Montreuil\"), (default: $$unknown)]
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+Store: 	
+	(z: $$f)
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Symb_state: Heap: 
+	_$l_x |-> [(\"date\": None), (\"town\": \"Montreuil\"), (default: $$unknown)]
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+Store: 	
+	(z: $$f)
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Pre Spec Vars
+----------------------------------
+----------------------------------
+Symbolic execution of test1
+----------------------------------
+--0--
+TIME: 0.022784
+ ---- STATE: ---- 
+Heap: 
+	_$l_x |-> [(\"date\": \"1815\"), (default: $$unknown)]
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+Store: 	
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: z := hasField(x,"date")
+----------------------------------
+SHasField: got a boolean!
+----------------------------------
+--1--
+TIME: 0.022841
+ ---- STATE: ---- 
+Heap: 
+	_$l_x |-> [(\"date\": \"1815\"), (default: $$unknown)]
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+Store: 	
+	(z: $$t)
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: skip
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_x |-> [(\"date\": \"1815\"), (default: $$unknown)]
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+Store: 	
+	(z: $$t)
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_x |-> [(\"date\": \"1815\"), (default: $$unknown)]
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+Store: 	
+	(z: $$t)
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Symb_state: Heap: 
+	_$l_x |-> [(\"date\": \"1815\"), (default: $$unknown)]
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+Store: 	
+	(z: $$t)
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Pre Spec Vars
+----------------------------------
+----------------------------------
+Symbolic execution of test6
+----------------------------------
+--0--
+TIME: 0.023219
+ ---- STATE: ---- 
+Heap: 
+	_$l_x |-> [(\"date\": #x), (default: $$unknown)]
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+Store: 	
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: z := hasField(x,"date")
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.063319
+ ---- STATE: ---- 
+Heap: 
+	_$l_x |-> [(\"date\": #x), (default: $$unknown)]
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+Store: 	
+	(z: (not (#x = None)))
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: skip
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_x |-> [(\"date\": #x), (default: $$unknown)]
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+Store: 	
+	(z: (not (#x = None)))
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	#x: #x
+
+Symb_state: Heap: 
+	_$l_x |-> [(\"date\": #x), (default: $$unknown)]
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+Store: 	
+	(z: (not (#x = None)))
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Symb_state: Heap: 
+	_$l_x |-> [(\"date\": #x), (default: $$unknown)]
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+Store: 	
+	(z: (not (#x = None)))
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Spec Var: #x
+Pre Spec Vars
+Spec Var: #x
+----------------------------------
+----------------------------------
+Symbolic execution of test2
+----------------------------------
+--0--
+TIME: 0.063749
+ ---- STATE: ---- 
+Heap: 
+	_$l_x |-> [(\"town\": \"Montreuil\"), (default: $$unknown)]
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+Store: 	
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: z := hasField(x,"date")
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.063813
+ ---- STATE: ---- 
+Heap: 
+	_$l_x |-> [(\"date\": _lvar_0), (\"town\": \"Montreuil\"), (default: $$unknown)]
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+Store: 	
+	(z: (not (_lvar_0 = None)))
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_x |-> [(\"date\": _lvar_0), (default: $$unknown)]
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: skip
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_x |-> [(\"date\": _lvar_0), (\"town\": \"Montreuil\"), (default: $$unknown)]
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+Store: 	
+	(z: (not (_lvar_0 = None)))
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_x |-> [(\"date\": _lvar_0), (\"town\": \"Montreuil\"), (default: $$unknown)]
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+Store: 	
+	(z: (not (_lvar_0 = None)))
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_x |-> [(\"date\": _lvar_0), (default: $$unknown)]
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Symb_state: Heap: 
+	_$l_x |-> [(\"date\": _lvar_0), (\"town\": \"Montreuil\"), (default: $$unknown)]
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+Store: 	
+	(z: (not (_lvar_0 = None)))
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_x |-> [(\"date\": _lvar_0), (default: $$unknown)]
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Spec Var: ##s_0
+Pre Spec Vars
+Spec Var: ##s_0
+----------------------------------
+----------------------------------
+Symbolic execution of test3
+----------------------------------
+--0--
+TIME: 0.073198
+ ---- STATE: ---- 
+Heap: 
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+Store: 	
+	(y: _$l_y)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: z := hasField(x,"date")
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.073260
+ ---- STATE: ---- 
+Heap: 
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+	_$l_0 |-> [(\"date\": _lvar_2), (default: $$unknown)]
+Store: 	
+	(z: (not (_lvar_2 = None)))
+	(y: _$l_y)
+	(x: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_0 |-> [(\"date\": _lvar_2), (default: $$unknown)]
+Store: 	
+	(x: _lvar_1)
+Pure Formulae: 	
+	(_$l_0 == _lvar_1)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: skip
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+	_$l_0 |-> [(\"date\": _lvar_2), (default: $$unknown)]
+Store: 	
+	(z: (not (_lvar_2 = None)))
+	(y: _$l_y)
+	(x: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+	_$l_0 |-> [(\"date\": _lvar_2), (default: $$unknown)]
+Store: 	
+	(z: (not (_lvar_2 = None)))
+	(y: _$l_y)
+	(x: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_0 |-> [(\"date\": _lvar_2), (default: $$unknown)]
+Store: 	
+	(x: _lvar_1)
+Pure Formulae: 	
+	(_$l_0 == _lvar_1)
+Gamma: 	
+Preds: 
+
+Symb_state: Heap: 
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+	_$l_0 |-> [(\"date\": _lvar_2), (default: $$unknown)]
+Store: 	
+	(z: (not (_lvar_2 = None)))
+	(y: _$l_y)
+	(x: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_0 |-> [(\"date\": _lvar_2), (default: $$unknown)]
+Store: 	
+	(x: _lvar_1)
+Pure Formulae: 	
+	(_$l_0 == _lvar_1)
+Gamma: 	
+Preds: 
+
+Spec Var: ##s_1
+Spec Var: ##s_2
+Pre Spec Vars
+Spec Var: ##s_2
+----------------------------------
+----------------------------------
+Symbolic execution of test4
+----------------------------------
+--0--
+TIME: 0.073530
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: y := new()
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.073578
+ ---- STATE: ---- 
+Heap: 
+	_$l_1 |-> [(\"@proto\": $$null), (default: None)]
+Store: 	
+	(y: _$l_1)
+Pure Formulae: 	
+	(! (_$l_1 == $lg))
+Gamma: 	
+	(y: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: z := hasField(y,"date")
+----------------------------------
+SHasField: got a boolean!
+----------------------------------
+--2--
+TIME: 0.073619
+ ---- STATE: ---- 
+Heap: 
+	_$l_1 |-> [(\"@proto\": $$null), (default: None)]
+Store: 	
+	(z: $$f)
+	(y: _$l_1)
+Pure Formulae: 	
+	(! (_$l_1 == $lg))
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: i := hasField(x,"date")
+----------------------------------
+----------------------------------
+--3--
+TIME: 0.073671
+ ---- STATE: ---- 
+Heap: 
+	_$l_2 |-> [(\"date\": _lvar_4), (default: $$unknown)]
+	_$l_1 |-> [(\"@proto\": $$null), (default: None)]
+Store: 	
+	(z: $$f)
+	(y: _$l_1)
+	(i: (not (_lvar_4 = None)))
+	(x: _$l_2)
+Pure Formulae: 	
+	(! (_$l_1 == $lg))
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(i: $$boolean_type)
+	(x: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_2 |-> [(\"date\": _lvar_4), (default: $$unknown)]
+Store: 	
+	(x: _lvar_3)
+Pure Formulae: 	
+	(_$l_2 == _lvar_3)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: skip
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_2 |-> [(\"date\": _lvar_4), (default: $$unknown)]
+	_$l_1 |-> [(\"@proto\": $$null), (default: None)]
+Store: 	
+	(z: $$f)
+	(y: _$l_1)
+	(i: (not (_lvar_4 = None)))
+	(x: _$l_2)
+Pure Formulae: 	
+	(! (_$l_1 == $lg))
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(i: $$boolean_type)
+	(x: $$object_type)
+Preds: 
+
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_2 |-> [(\"date\": _lvar_4), (default: $$unknown)]
+	_$l_1 |-> [(\"@proto\": $$null), (default: None)]
+Store: 	
+	(z: $$f)
+	(y: _$l_1)
+	(i: (not (_lvar_4 = None)))
+	(x: _$l_2)
+Pure Formulae: 	
+	(! (_$l_1 == $lg))
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(i: $$boolean_type)
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_2 |-> [(\"date\": _lvar_4), (default: $$unknown)]
+Store: 	
+	(x: _lvar_3)
+Pure Formulae: 	
+	(_$l_2 == _lvar_3)
+Gamma: 	
+Preds: 
+
+Symb_state: Heap: 
+	_$l_2 |-> [(\"date\": _lvar_4), (default: $$unknown)]
+	_$l_1 |-> [(\"@proto\": $$null), (default: None)]
+Store: 	
+	(z: $$f)
+	(y: _$l_1)
+	(i: (not (_lvar_4 = None)))
+	(x: _$l_2)
+Pure Formulae: 	
+	(! (_$l_1 == $lg))
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(i: $$boolean_type)
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_2 |-> [(\"date\": _lvar_4), (default: $$unknown)]
+Store: 	
+	(x: _lvar_3)
+Pure Formulae: 	
+	(_$l_2 == _lvar_3)
+Gamma: 	
+Preds: 
+
+Spec Var: ##s_3
+Spec Var: ##s_4
+Pre Spec Vars
+Spec Var: ##s_4
+----------------------------------
+----------------------------------
+Symbolic execution of test5
+----------------------------------
+--0--
+TIME: 0.087005
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: delete(x,"date")
+----------------------------------
+Updtate-abs-heap. loc: _$l_3. field:"date". v:None----------------------------------
+--1--
+TIME: 0.087056
+ ---- STATE: ---- 
+Heap: 
+	_$l_3 |-> [(\"date\": None), (default: $$unknown)]
+Store: 	
+	(x: _$l_3)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_3 |-> [(\"date\": _lvar_7), (default: $$unknown)]
+Store: 	
+	(x: _lvar_5)
+Pure Formulae: 	
+	(_$l_3 == _lvar_5)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: i := hasField(x,"date")
+----------------------------------
+SHasField: got a boolean!
+----------------------------------
+--2--
+TIME: 0.087116
+ ---- STATE: ---- 
+Heap: 
+	_$l_3 |-> [(\"date\": None), (default: $$unknown)]
+Store: 	
+	(i: $$f)
+	(x: _$l_3)
+Pure Formulae: 	
+Gamma: 	
+	(i: $$boolean_type)
+	(x: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_3 |-> [(\"date\": _lvar_7), (default: $$unknown)]
+Store: 	
+	(x: _lvar_5)
+Pure Formulae: 	
+	(_$l_3 == _lvar_5)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: skip
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_3 |-> [(\"date\": None), (default: $$unknown)]
+Store: 	
+	(i: $$f)
+	(x: _$l_3)
+Pure Formulae: 	
+Gamma: 	
+	(i: $$boolean_type)
+	(x: $$object_type)
+Preds: 
+
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_3 |-> [(\"date\": None), (default: $$unknown)]
+Store: 	
+	(i: $$f)
+	(x: _$l_3)
+Pure Formulae: 	
+Gamma: 	
+	(i: $$boolean_type)
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_3 |-> [(\"date\": _lvar_7), (default: $$unknown)]
+Store: 	
+	(x: _lvar_5)
+Pure Formulae: 	
+	(_$l_3 == _lvar_5)
+Gamma: 	
+Preds: 
+
+Symb_state: Heap: 
+	_$l_3 |-> [(\"date\": None), (default: $$unknown)]
+Store: 	
+	(i: $$f)
+	(x: _$l_3)
+Pure Formulae: 	
+Gamma: 	
+	(i: $$boolean_type)
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_3 |-> [(\"date\": _lvar_7), (default: $$unknown)]
+Store: 	
+	(x: _lvar_5)
+Pure Formulae: 	
+	(_$l_3 == _lvar_5)
+Gamma: 	
+Preds: 
+
+Spec Var: ##s_5
+Spec Var: ##s_6
+Pre Spec Vars
+
+********** Finished bi-abduction symbolic execution. **********
+
+
+**********    Starting normal symbolic execution.    **********
+
+----------------------------------
+----------------------------------
+Symbolic execution of test6
+----------------------------------
+--0--
+TIME: 0.088028
+STATE:
+Heap: 
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+	_$l_x |-> [(\"date\": #x), (default: $$unknown)]
+Store: 	
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+CMD: z := hasField(x,"date")
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.119818
+STATE:
+Heap: 
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+	_$l_x |-> [(\"date\": #x), (default: $$unknown)]
+Store: 	
+	(z: (not (#x = None)))
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc test6
+----------------------------------
+----------------------------------
+Symbolic execution of test2
+----------------------------------
+--0--
+TIME: 0.120138
+STATE:
+Heap: 
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+	_$l_x |-> [(\"town\": \"Montreuil\"), (\"date\": ##s_0), (default: $$unknown)]
+Store: 	
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+CMD: z := hasField(x,"date")
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.154662
+STATE:
+Heap: 
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+	_$l_x |-> [(\"town\": \"Montreuil\"), (\"date\": ##s_0), (default: $$unknown)]
+Store: 	
+	(z: (not (##s_0 = None)))
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc test2
+----------------------------------
+----------------------------------
+Symbolic execution of test0
+----------------------------------
+--0--
+TIME: 0.155149
+STATE:
+Heap: 
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+	_$l_x |-> [(\"date\": None), (\"town\": \"Montreuil\"), (default: $$unknown)]
+Store: 	
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+CMD: z := hasField(x,"date")
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.155237
+STATE:
+Heap: 
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+	_$l_x |-> [(\"date\": None), (\"town\": \"Montreuil\"), (default: $$unknown)]
+Store: 	
+	(z: $$f)
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc test0
+----------------------------------
+----------------------------------
+Symbolic execution of test1
+----------------------------------
+--0--
+TIME: 0.166016
+STATE:
+Heap: 
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+	_$l_x |-> [(\"date\": \"1815\"), (default: $$unknown)]
+Store: 	
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+CMD: z := hasField(x,"date")
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.166085
+STATE:
+Heap: 
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+	_$l_x |-> [(\"date\": \"1815\"), (default: $$unknown)]
+Store: 	
+	(z: $$t)
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc test1
+----------------------------------
+----------------------------------
+Symbolic execution of test3
+----------------------------------
+--0--
+TIME: 0.166352
+STATE:
+Heap: 
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+	_$l_0 |-> [(\"date\": ##s_2), (default: $$unknown)]
+Store: 	
+	(y: _$l_y)
+	(x: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+CMD: z := hasField(x,"date")
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.194737
+STATE:
+Heap: 
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+	_$l_0 |-> [(\"date\": ##s_2), (default: $$unknown)]
+Store: 	
+	(z: (not (##s_2 = None)))
+	(y: _$l_y)
+	(x: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc test3
+----------------------------------
+----------------------------------
+Symbolic execution of test4
+----------------------------------
+--0--
+TIME: 0.195027
+STATE:
+Heap: 
+	_$l_2 |-> [(\"date\": ##s_4), (default: $$unknown)]
+Store: 	
+	(x: _$l_2)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+CMD: y := new()
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.195087
+STATE:
+Heap: 
+	_$l_2 |-> [(\"date\": ##s_4), (default: $$unknown)]
+	_$l_4 |-> [(\"@proto\": $$null), (default: None)]
+Store: 	
+	(y: _$l_4)
+	(x: _$l_2)
+Pure Formulae: 	
+	(! (_$l_4 == $lg))
+Gamma: 	
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+CMD: z := hasField(y,"date")
+----------------------------------
+----------------------------------
+--2--
+TIME: 0.195148
+STATE:
+Heap: 
+	_$l_2 |-> [(\"date\": ##s_4), (default: $$unknown)]
+	_$l_4 |-> [(\"@proto\": $$null), (default: None)]
+Store: 	
+	(z: $$f)
+	(y: _$l_4)
+	(x: _$l_2)
+Pure Formulae: 	
+	(! (_$l_4 == $lg))
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+CMD: i := hasField(x,"date")
+----------------------------------
+----------------------------------
+--3--
+TIME: 0.223493
+STATE:
+Heap: 
+	_$l_2 |-> [(\"date\": ##s_4), (default: $$unknown)]
+	_$l_4 |-> [(\"@proto\": $$null), (default: None)]
+Store: 	
+	(z: $$f)
+	(y: _$l_4)
+	(x: _$l_2)
+	(i: (not (##s_4 = None)))
+Pure Formulae: 	
+	(! (_$l_4 == $lg))
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+	(i: $$boolean_type)
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc test4
+----------------------------------
+----------------------------------
+Symbolic execution of test5
+----------------------------------
+--0--
+TIME: 0.234645
+STATE:
+Heap: 
+	_$l_3 |-> [(\"date\": ##s_6), (default: $$unknown)]
+Store: 	
+	(x: _$l_3)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+CMD: delete(x,"date")
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.234702
+STATE:
+Heap: 
+	_$l_3 |-> [(\"date\": None), (default: $$unknown)]
+Store: 	
+	(x: _$l_3)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+CMD: i := hasField(x,"date")
+----------------------------------
+----------------------------------
+--2--
+TIME: 0.234771
+STATE:
+Heap: 
+	_$l_3 |-> [(\"date\": None), (default: $$unknown)]
+Store: 	
+	(x: _$l_3)
+	(i: $$f)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+	(i: $$boolean_type)
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc test5
+
+Verified: 7.		Prunings: 0.
+
+RESULTS
+Proc test6  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+	_$l_x |-> [(\"date\": #x), (default: $$unknown)]
+Store: 	
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+	_$l_x |-> [(\"date\": #x), (default: $$unknown)]
+Store: 	
+	(z: (not (#x = None)))
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc test2  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+	_$l_x |-> [(\"town\": \"Montreuil\"), (\"date\": ##s_0), (default: $$unknown)]
+Store: 	
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+	_$l_x |-> [(\"date\": ##s_0), (\"town\": \"Montreuil\"), (default: $$unknown)]
+Store: 	
+	(z: (not (##s_0 = None)))
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc test0  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+	_$l_x |-> [(\"date\": None), (\"town\": \"Montreuil\"), (default: $$unknown)]
+Store: 	
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+	_$l_x |-> [(\"date\": None), (\"town\": \"Montreuil\"), (default: $$unknown)]
+Store: 	
+	(z: $$f)
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc test1  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+	_$l_x |-> [(\"date\": \"1815\"), (default: $$unknown)]
+Store: 	
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+	_$l_x |-> [(\"date\": \"1815\"), (default: $$unknown)]
+Store: 	
+	(z: $$t)
+	(y: _$l_y)
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc test3  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+	_$l_0 |-> [(\"date\": ##s_2), (default: $$unknown)]
+Store: 	
+	(y: _$l_y)
+	(x: _$l_0)
+Pure Formulae: 	
+	(##s_1 == _$l_0)
+Gamma: 	
+	(##s_1: $$object_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_y |-> [(\"foo\": \"bar\"), (default: $$unknown)]
+	_$l_0 |-> [(\"date\": ##s_2), (default: $$unknown)]
+Store: 	
+	(z: (not (##s_2 = None)))
+	(y: _$l_y)
+	(x: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc test4  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_2 |-> [(\"date\": ##s_4), (default: $$unknown)]
+Store: 	
+	(x: _$l_2)
+Pure Formulae: 	
+	(##s_3 == _$l_2)
+Gamma: 	
+	(##s_3: $$object_type)
+	(x: $$object_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_2 |-> [(\"date\": ##s_4), (default: $$unknown)]
+	_$l_1 |-> [(\"@proto\": $$null), (default: None)]
+Store: 	
+	(z: $$f)
+	(y: _$l_1)
+	(x: _$l_2)
+	(i: (not (##s_4 = None)))
+Pure Formulae: 	
+	(! (_$l_1 == $lg))
+Gamma: 	
+	(z: $$boolean_type)
+	(y: $$object_type)
+	(x: $$object_type)
+	(i: $$boolean_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc test5  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_3 |-> [(\"date\": ##s_6), (default: $$unknown)]
+Store: 	
+	(x: _$l_3)
+Pure Formulae: 	
+	(##s_5 == _$l_3)
+Gamma: 	
+	(##s_5: $$object_type)
+	(x: $$object_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_3 |-> [(\"date\": None), (default: $$unknown)]
+Store: 	
+	(x: _$l_3)
+	(i: $$f)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+	(i: $$boolean_type)
+Preds: 
+;
+ -- VERIFIED
+
+ALL Succeeded in 0.235028
+
+**********     Ending normal symbolic execution.     **********
+
+RESULT SPECS 
+Generated specifications: 
+ 
+test6
+----------
+[[ ((_$l_x, "date") -> #x) * (x == _$l_x) * (y == _$l_y) * types(x : $$object_type, y : $$object_type) ]]
+[[ ((_$l_x, "date") -> #x) * (x == _$l_x) * (y == _$l_y) * (z == (not (#x = None))) * types(x : $$object_type, y : $$object_type, z : $$boolean_type) ]]
+Normal
+
+test2
+----------
+[[ ((_$l_x, "date") -> ##s_0) * ((_$l_x, "town") -> "Montreuil") * (x == _$l_x) * (y == _$l_y) * types(x : $$object_type, y : $$object_type) ]]
+[[ ((_$l_x, "town") -> "Montreuil") * ((_$l_x, "date") -> ##s_0) * (x == _$l_x) * (y == _$l_y) * (z == (not (##s_0 = None))) * types(x : $$object_type, y : $$object_type, z : $$boolean_type) ]]
+Normal
+
+test0
+----------
+[[ ((_$l_x, "town") -> "Montreuil") * ((_$l_x, "date") -> None) * (x == _$l_x) * (y == _$l_y) * types(x : $$object_type, y : $$object_type) ]]
+[[ ((_$l_x, "town") -> "Montreuil") * ((_$l_x, "date") -> None) * (x == _$l_x) * (y == _$l_y) * (z == $$f) * types(x : $$object_type, y : $$object_type, z : $$boolean_type) ]]
+Normal
+
+test1
+----------
+[[ ((_$l_x, "date") -> "1815") * (x == _$l_x) * (y == _$l_y) * types(x : $$object_type, y : $$object_type) ]]
+[[ ((_$l_x, "date") -> "1815") * (x == _$l_x) * (y == _$l_y) * (z == $$t) * types(x : $$object_type, y : $$object_type, z : $$boolean_type) ]]
+Normal
+
+test3
+----------
+[[ ((_$l_0, "date") -> ##s_2) * (x == _$l_0) * (y == _$l_y) * (##s_1 == _$l_0) * types(x : $$object_type, y : $$object_type, ##s_1 : $$object_type) ]]
+[[ ((_$l_0, "date") -> ##s_2) * (x == _$l_0) * (y == _$l_y) * (z == (not (##s_2 = None))) * types(x : $$object_type, y : $$object_type, z : $$boolean_type) ]]
+Normal
+
+test4
+----------
+[[ ((_$l_2, "date") -> ##s_4) * (x == _$l_2) * (##s_3 == _$l_2) * types(x : $$object_type, ##s_3 : $$object_type) ]]
+[[ empty_fields(_$l_1 : "@proto") * ((_$l_1, "@proto") -> $$null) * (i == (not (##s_4 = None))) * (x == _$l_2) * (y == _$l_1) * (z == $$f) * (! (_$l_1 == $lg)) * types(i : $$boolean_type, x : $$object_type, y : $$object_type, z : $$boolean_type) ]]
+Normal
+
+test5
+----------
+[[ ((_$l_3, "date") -> ##s_6) * (x == _$l_3) * (##s_5 == _$l_3) * types(x : $$object_type, ##s_5 : $$object_type) ]]
+[[ ((_$l_3, "date") -> None) * (i == $$f) * (x == _$l_3) * types(i : $$boolean_type, x : $$object_type) ]]
+Normal
+

@@ -1,0 +1,7184 @@
+
+*** Prelude: Stage 1: Parsing program. ***
+
+The procedures that we will be verifying are: create_default_object, setupInitialHeap
+
+
+*** Prelude: Stage 1: Parsing successfully completed. ***
+
+*** Prelude: Stage 2: Transforming the program.
+
+Entering resolve_imports.
+
+Predicates Program:
+
+Procedures Program:
+
+	setupInitialHeap
+
+	create_default_object
+
+Exiting resolve_imports.
+
+Going to desugar procedure setupInitialHeap baby!!!
+
+proc setupInitialHeap () {
+		xret := "create_default_object"($lg, $lobj_proto, "Object", $$t) 
+		xret := $$empty
+} with {
+	ret: xret, 1;
+};
+
+after succ and pred tables!!!
+
+after which pred computation!!!
+
+Going to desugar procedure create_default_object baby!!!
+
+proc create_default_object (l, pr, cl, ext) {
+		goto [(cl = $$undefined)] 1 2
+		cl := "Object"
+		goto [(ext = $$undefined)] 3 4
+		ext := $$t
+		[l, "@proto"] := pr
+		[l, "@class"] := cl
+		[l, "@extensible"] := ext
+		xret := l
+} with {
+	ret: xret, 7;
+};
+
+after succ and pred tables!!!
+
+after which pred computation!!!
+
+
+*** Prelude: Stage 2: Done transforming the program.
+
+
+*** Prelude: Stage 3: Normalising predicates.
+
+
+*** Prelude: Stage 3: Normalisation of predicates completed successfully.
+
+
+
+*** Prelude: Stage 4: Building the spec table.
+
+-----------------------------
+-----------------------------
+Spec Table:
+
+*** Prelude: Stage 4: Finished building the spec table
+
+*** Prelude: Stage 5: Add phantom procedures for only-specs.
+
+*** Prelude: Stage 5: Finished adding phantom procedures for only-specs
+
+
+*********** Starting bi-abduction symbolic execution. ***********
+
+Normalising predicate definitions.
+
+----------------------------------
+----------------------------------
+Symbolic execution of create_default_object
+Initial symbolic state:
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+AF in symb_evaluate_proc :
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.012608
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.012657
+----------------------------------
+--0--
+TIME: 0.012669
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: goto [(cl = $$undefined)] 1 2
+----------------------------------
+Evaluated expression: (cl = $$undefined) --> (_lvar_0 = $$undefined)
+
+Lifted assertion: (_lvar_0 == $$undefined)
+
+Checking if:
+	
+	entails
+	(_lvar_0 == $$undefined)
+
+check_entailment: Time: 0.012695
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+Right:
+	
+	(_lvar_0 == $$undefined)
+Gamma:
+	
+
+simplify_symb_state: Time: 0.012711
+simplify_symb_state: Time: 0.012729
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+Right:
+	
+	(_lvar_0 == $$undefined)
+
+Gamma:
+	
+
+
+ENT ENCODED: About to check the following:
+(forall ((x Real)) (>= (s-len x) 0.0)),
+(forall ((x JSIL_Literal_List)) (>= (l-len x) 0.0))
+Length of existentials: 0
+ENT: About to check the following:
+(forall ((x Real)) (>= (s-len x) 0.0)),
+(forall ((x JSIL_Literal_List)) (>= (l-len x) 0.0)),
+(not (= _lvar_0 (Elem Undefined)))
+The solver returned: SAT
+I found the model: 
+
+(define-fun _lvar_0 () Extended_JSIL_Literal
+  (Set (_ as-array k!2)))
+(define-fun k!2 ((x!0 JSIL_Literal)) Bool
+  false)
+(define-fun l-len ((x!0 JSIL_Literal_List)) Real
+  0.0)
+(define-fun s-len ((x!0 Real)) Real
+  0.0)
+check_entailment: Time: 0.027480
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+Right:
+	
+	(! (_lvar_0 == $$undefined))
+Gamma:
+	
+
+simplify_symb_state: Time: 0.027501
+simplify_symb_state: Time: 0.027513
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+Right:
+	
+	(! (_lvar_0 == $$undefined))
+
+Gamma:
+	
+
+
+ENT ENCODED: About to check the following:
+(forall ((x Real)) (>= (s-len x) 0.0)),
+(forall ((x JSIL_Literal_List)) (>= (l-len x) 0.0))
+Length of existentials: 0
+ENT: About to check the following:
+(forall ((x Real)) (>= (s-len x) 0.0)),
+(forall ((x JSIL_Literal_List)) (>= (l-len x) 0.0)),
+(= _lvar_0 (Elem Undefined))
+The solver returned: SAT
+I found the model: 
+
+(define-fun _lvar_0 () Extended_JSIL_Literal
+  (Elem Undefined))
+(define-fun l-len ((x!0 JSIL_Literal_List)) Real
+  0.0)
+(define-fun s-len ((x!0 Real)) Real
+  0.0)
+I could not determine the branch.
+----------------------------------
+--0--
+TIME: 0.044017
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: goto [(cl = $$undefined)] 1 2
+----------------------------------
+simplify_symb_state: Time: 0.044029
+simplify_symb_state: Time: 0.044052
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	
+Store: 	
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.044093
+----------------------------------
+--1--
+TIME: 0.044128
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(cl: $$undefined)
+Pure Formulae: 	
+Gamma: 	
+	(cl: $$undefined_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: cl := "Object"
+----------------------------------
+simplify_symb_state: Time: 0.044136
+simplify_symb_state: Time: 0.044153
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	
+Store: 	
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.044181
+----------------------------------
+--2--
+TIME: 0.044204
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(cl: \"Object\")
+Pure Formulae: 	
+Gamma: 	
+	(cl: $$string_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: goto [(ext = $$undefined)] 3 4
+----------------------------------
+Evaluated expression: (ext = $$undefined) --> (_lvar_1 = $$undefined)
+
+Lifted assertion: (_lvar_1 == $$undefined)
+
+Checking if:
+	
+	entails
+	(_lvar_1 == $$undefined)
+
+check_entailment: Time: 0.044220
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+Right:
+	
+	(_lvar_1 == $$undefined)
+Gamma:
+	
+	(cl: $$string_type)
+
+simplify_symb_state: Time: 0.044229
+simplify_symb_state: Time: 0.044240
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+Right:
+	
+	(_lvar_1 == $$undefined)
+
+Gamma:
+	
+
+
+ENT ENCODED: About to check the following:
+(forall ((x Real)) (>= (s-len x) 0.0)),
+(forall ((x JSIL_Literal_List)) (>= (l-len x) 0.0))
+Length of existentials: 0
+ENT: About to check the following:
+(forall ((x Real)) (>= (s-len x) 0.0)),
+(forall ((x JSIL_Literal_List)) (>= (l-len x) 0.0)),
+(not (= _lvar_1 (Elem Undefined)))
+The solver returned: SAT
+I found the model: 
+
+(define-fun _lvar_1 () Extended_JSIL_Literal
+  (Set (_ as-array k!11)))
+(define-fun k!11 ((x!0 JSIL_Literal)) Bool
+  false)
+(define-fun l-len ((x!0 JSIL_Literal_List)) Real
+  0.0)
+(define-fun s-len ((x!0 Real)) Real
+  0.0)
+check_entailment: Time: 0.056219
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+Right:
+	
+	(! (_lvar_1 == $$undefined))
+Gamma:
+	
+	(cl: $$string_type)
+
+simplify_symb_state: Time: 0.056245
+simplify_symb_state: Time: 0.056258
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+Right:
+	
+	(! (_lvar_1 == $$undefined))
+
+Gamma:
+	
+
+
+ENT ENCODED: About to check the following:
+(forall ((x Real)) (>= (s-len x) 0.0)),
+(forall ((x JSIL_Literal_List)) (>= (l-len x) 0.0))
+Length of existentials: 0
+ENT: About to check the following:
+(forall ((x Real)) (>= (s-len x) 0.0)),
+(forall ((x JSIL_Literal_List)) (>= (l-len x) 0.0)),
+(= _lvar_1 (Elem Undefined))
+The solver returned: SAT
+I found the model: 
+
+(define-fun _lvar_1 () Extended_JSIL_Literal
+  (Elem Undefined))
+(define-fun l-len ((x!0 JSIL_Literal_List)) Real
+  0.0)
+(define-fun s-len ((x!0 Real)) Real
+  0.0)
+I could not determine the branch.
+----------------------------------
+--2--
+TIME: 0.067330
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(ext: _lvar_1)
+	(cl: \"Object\")
+Pure Formulae: 	
+	(_lvar_1 == $$undefined)
+Gamma: 	
+	(cl: $$string_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: goto [(ext = $$undefined)] 3 4
+----------------------------------
+simplify_symb_state: Time: 0.067354
+simplify_symb_state: Time: 0.067387
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	
+Store: 	
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.067432
+----------------------------------
+--3--
+TIME: 0.067469
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(ext: $$undefined)
+	(cl: \"Object\")
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$undefined_type)
+	(cl: $$string_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: ext := $$t
+----------------------------------
+simplify_symb_state: Time: 0.067476
+simplify_symb_state: Time: 0.067493
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	
+Store: 	
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.067522
+----------------------------------
+--4--
+TIME: 0.067548
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(ext: $$t)
+	(cl: \"Object\")
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$boolean_type)
+	(cl: $$string_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [l, "@proto"] := pr
+----------------------------------
+Updtate-abs-heap. loc: _$l_0. field:"@proto". v:_lvar_3simplify_symb_state: Time: 0.067570
+simplify_symb_state: Time: 0.067598
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_0 |-> [(\"@proto\": _lvar_5), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_3)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+	(l: _lvar_2)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+	(_$l_0 == _lvar_2)
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.067634
+----------------------------------
+--5--
+TIME: 0.067666
+ ---- STATE: ---- 
+Heap: 
+	_$l_0 |-> [(\"@proto\": _lvar_3), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_3)
+	(ext: $$t)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$boolean_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_0 |-> [(\"@proto\": _lvar_5), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_3)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+	(l: _lvar_2)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+	(_$l_0 == _lvar_2)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [l, "@class"] := cl
+----------------------------------
+Updtate-abs-heap. loc: _$l_0. field:"@class". v:"Object"simplify_symb_state: Time: 0.067676
+simplify_symb_state: Time: 0.067695
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_0 |-> [(\"@class\": _lvar_6), (\"@proto\": _lvar_5), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_3)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+	(l: _lvar_2)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+	(_$l_0 == _lvar_2)
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.067730
+----------------------------------
+--6--
+TIME: 0.067761
+ ---- STATE: ---- 
+Heap: 
+	_$l_0 |-> [(\"@class\": \"Object\"), (\"@proto\": _lvar_3), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_3)
+	(ext: $$t)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$boolean_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_0 |-> [(\"@class\": _lvar_6), (\"@proto\": _lvar_5), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_3)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+	(l: _lvar_2)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+	(_$l_0 == _lvar_2)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [l, "@extensible"] := ext
+----------------------------------
+Updtate-abs-heap. loc: _$l_0. field:"@extensible". v:$$tsimplify_symb_state: Time: 0.067772
+simplify_symb_state: Time: 0.067795
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_0 |-> [(\"@extensible\": _lvar_7), (\"@class\": _lvar_6), (\"@proto\": _lvar_5), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_3)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+	(l: _lvar_2)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+	(_$l_0 == _lvar_2)
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.067831
+----------------------------------
+--7--
+TIME: 0.067864
+ ---- STATE: ---- 
+Heap: 
+	_$l_0 |-> [(\"@extensible\": $$t), (\"@class\": \"Object\"), (\"@proto\": _lvar_3), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_3)
+	(ext: $$t)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$boolean_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_0 |-> [(\"@extensible\": _lvar_7), (\"@class\": _lvar_6), (\"@proto\": _lvar_5), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_3)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+	(l: _lvar_2)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+	(_$l_0 == _lvar_2)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: xret := l
+----------------------------------
+simplify_symb_state: Time: 0.067871
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_0 |-> [(\"@extensible\": $$t), (\"@class\": \"Object\"), (\"@proto\": _lvar_3), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_3)
+	(ext: $$t)
+	(xret: _$l_0)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+
+LVARS: 
+Unifying stores:
+Store: 	
+	(pr: _lvar_3)
+	(ext: $$t)
+	(xret: _$l_0)
+	(cl: "Object")
+	(l: _$l_0) 
+Pat_store: 	
+Discharges: 0
+
+Pfs to add to the antiframe after unify stores: 
+Unify heaps 
+	 
+and 
+	_$l_0 |-> [("@extensible": $$t), ("@class": "Object"), ("@proto": _lvar_3), (default: $$unknown)] 
+with substitution: Substitution: 
+	
+
+with pure formulae: 	
+with gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+PatHeapDomain: 
+Heap again 
+	_$l_0 |-> [("@extensible": $$t), ("@class": "Object"), ("@proto": _lvar_3), (default: $$unknown)]
+End of unify_symb_heaps: do enjoy the quotient_heap: 
+	_$l_0 |-> [("@extensible": $$t), ("@class": "Object"), ("@proto": _lvar_3), (default: $$unknown)]
+Heaps unified successfully.
+
+Entering unify_pred_arrays.
+Check if 
+ (	) 
+ entails 
+ (	) 
+ with gamma 
+ (	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type))
+check_entailment: Time: 0.067978
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+Right:
+	
+Gamma:
+	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.067989
+simplify_symb_state: Time: 0.067997
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.068036
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Not found in cache. Cache length 2.
+SAT: About to check the following:
+(forall ((x Real)) (>= (s-len x) 0.0)),
+(forall ((x JSIL_Literal_List)) (>= (l-len x) 0.0))
+The solver returned: SAT
+Adding emp to cache. Cache length 3.
+Return value: true
+
+Pfs to add to the antiframe after step 0: 
+I am about to bi-unify two gammas
+
+pat_gamma: 	.
+gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type).
+subst: Substitution: 
+	
+
+
+
+EXITING unify_gamma: res: true
+
+
+Checking if 	
+ entails 	
+ with existentials
+
+and gamma 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+check_entailment: Time: 0.077875
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+Right:
+	
+Gamma:
+	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.077890
+simplify_symb_state: Time: 0.077900
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.077916
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 3.
+entailment_check: true
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_0 |-> [(\"@extensible\": $$t), (\"@class\": \"Object\"), (\"@proto\": _lvar_3), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_3)
+	(ext: $$t)
+	(xret: _$l_0)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_0 |-> [(\"@extensible\": _lvar_7), (\"@class\": _lvar_6), (\"@proto\": _lvar_5), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_3)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+	(l: _lvar_2)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+	(_$l_0 == _lvar_2)
+Gamma: 	
+Preds: 
+
+-------------------------------------------------------------------
+
+-------------INSIDE MERGE HEAPS------------------------------------
+
+-------------------------------------------------------------------
+
+heap: 
+	_$l_0 |-> [("@extensible": $$t), ("@class": "Object"), ("@proto": _lvar_3), (default: $$unknown)]
+
+pat_heap: 
+	
+
+p_formulae: 	
+
+gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+
+Finished merging heaps.
+-------------------------------------------------------------------
+
+-------------INSIDE MERGE HEAPS------------------------------------
+
+-------------------------------------------------------------------
+
+heap: 
+	_$l_0 |-> [("@extensible": _lvar_7), ("@class": _lvar_6), ("@proto": _lvar_5), (default: $$unknown)]
+
+pat_heap: 
+	
+
+p_formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+	(_$l_0 == _lvar_2)
+
+gamma: 	
+
+Finished merging heaps.
+Symb_state: Heap: 
+	_$l_0 |-> [(\"@extensible\": $$t), (\"@class\": \"Object\"), (\"@proto\": _lvar_3), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_3)
+	(ext: $$t)
+	(xret: _$l_0)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_0 |-> [(\"@extensible\": _lvar_7), (\"@class\": _lvar_6), (\"@proto\": _lvar_5), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_3)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+	(l: _lvar_2)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(_lvar_1 == $$undefined)
+	(_$l_0 == _lvar_2)
+Gamma: 	
+Preds: 
+
+simplify_symb_state: Time: 0.078065
+simplify_symb_state: Time: 0.078089
+----------------------------------
+--2--
+TIME: 0.078137
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(ext: _lvar_1)
+	(cl: \"Object\")
+Pure Formulae: 	
+	(! (_lvar_1 == $$undefined))
+Gamma: 	
+	(cl: $$string_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(! (_lvar_1 == $$undefined))
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: goto [(ext = $$undefined)] 3 4
+----------------------------------
+simplify_symb_state: Time: 0.078145
+simplify_symb_state: Time: 0.078164
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	
+Store: 	
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(! (_lvar_1 == $$undefined))
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.078197
+----------------------------------
+--4--
+TIME: 0.078244
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(ext: _lvar_1)
+	(cl: \"Object\")
+Pure Formulae: 	
+	(! (_lvar_1 == $$undefined))
+Gamma: 	
+	(cl: $$string_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(! (_lvar_1 == $$undefined))
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [l, "@proto"] := pr
+----------------------------------
+Updtate-abs-heap. loc: _$l_1. field:"@proto". v:_lvar_9simplify_symb_state: Time: 0.078259
+simplify_symb_state: Time: 0.078289
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_1 |-> [(\"@proto\": _lvar_11), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+	(l: _lvar_8)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(! (_lvar_1 == $$undefined))
+	(_$l_1 == _lvar_8)
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.078326
+----------------------------------
+--5--
+TIME: 0.078362
+ ---- STATE: ---- 
+Heap: 
+	_$l_1 |-> [(\"@proto\": _lvar_9), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (_lvar_1 == $$undefined))
+Gamma: 	
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_1 |-> [(\"@proto\": _lvar_11), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+	(l: _lvar_8)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(! (_lvar_1 == $$undefined))
+	(_$l_1 == _lvar_8)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [l, "@class"] := cl
+----------------------------------
+Updtate-abs-heap. loc: _$l_1. field:"@class". v:"Object"simplify_symb_state: Time: 0.078377
+simplify_symb_state: Time: 0.078398
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_1 |-> [(\"@class\": _lvar_12), (\"@proto\": _lvar_11), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+	(l: _lvar_8)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(! (_lvar_1 == $$undefined))
+	(_$l_1 == _lvar_8)
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.078436
+----------------------------------
+--6--
+TIME: 0.078469
+ ---- STATE: ---- 
+Heap: 
+	_$l_1 |-> [(\"@class\": \"Object\"), (\"@proto\": _lvar_9), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (_lvar_1 == $$undefined))
+Gamma: 	
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_1 |-> [(\"@class\": _lvar_12), (\"@proto\": _lvar_11), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+	(l: _lvar_8)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(! (_lvar_1 == $$undefined))
+	(_$l_1 == _lvar_8)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [l, "@extensible"] := ext
+----------------------------------
+Updtate-abs-heap. loc: _$l_1. field:"@extensible". v:_lvar_1simplify_symb_state: Time: 0.078479
+simplify_symb_state: Time: 0.078501
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_1 |-> [(\"@extensible\": _lvar_13), (\"@class\": _lvar_12), (\"@proto\": _lvar_11), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+	(l: _lvar_8)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(! (_lvar_1 == $$undefined))
+	(_$l_1 == _lvar_8)
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.078537
+----------------------------------
+--7--
+TIME: 0.078573
+ ---- STATE: ---- 
+Heap: 
+	_$l_1 |-> [(\"@extensible\": _lvar_1), (\"@class\": \"Object\"), (\"@proto\": _lvar_9), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (_lvar_1 == $$undefined))
+Gamma: 	
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_1 |-> [(\"@extensible\": _lvar_13), (\"@class\": _lvar_12), (\"@proto\": _lvar_11), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+	(l: _lvar_8)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(! (_lvar_1 == $$undefined))
+	(_$l_1 == _lvar_8)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: xret := l
+----------------------------------
+simplify_symb_state: Time: 0.078580
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_1 |-> [(\"@extensible\": _lvar_1), (\"@class\": \"Object\"), (\"@proto\": _lvar_9), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(xret: _$l_1)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (_lvar_1 == $$undefined))
+Gamma: 	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+
+LVARS: 
+Unifying stores:
+Store: 	
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(xret: _$l_1)
+	(cl: "Object")
+	(l: _$l_1) 
+Pat_store: 	
+Discharges: 0
+
+Pfs to add to the antiframe after unify stores: 
+Unify heaps 
+	 
+and 
+	_$l_1 |-> [("@extensible": _lvar_1), ("@class": "Object"), ("@proto": _lvar_9), (default: $$unknown)] 
+with substitution: Substitution: 
+	
+
+with pure formulae: 	
+	(! (_lvar_1 == $$undefined))
+with gamma: 	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+PatHeapDomain: 
+Heap again 
+	_$l_1 |-> [("@extensible": _lvar_1), ("@class": "Object"), ("@proto": _lvar_9), (default: $$unknown)]
+End of unify_symb_heaps: do enjoy the quotient_heap: 
+	_$l_1 |-> [("@extensible": _lvar_1), ("@class": "Object"), ("@proto": _lvar_9), (default: $$unknown)]
+Heaps unified successfully.
+
+Entering unify_pred_arrays.
+Check if 
+ (	(! (_lvar_1 == $$undefined))) 
+ entails 
+ (	) 
+ with gamma 
+ (	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type))
+check_entailment: Time: 0.078683
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(! (_lvar_1 == $$undefined))
+Right:
+	
+Gamma:
+	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.078691
+simplify_symb_state: Time: 0.078702
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+	(! (_lvar_1 == $$undefined))
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.078718
+About to check sat of:
+Pure formulae:
+	
+	(! (_lvar_1 == $$undefined))
+Gamma:
+	
+
+
+Not found in cache. Cache length 3.
+SAT: About to check the following:
+(forall ((x Real)) (>= (s-len x) 0.0)),
+(forall ((x JSIL_Literal_List)) (>= (l-len x) 0.0)),
+(not (= _lvar_1 (Elem Undefined)))
+The solver returned: SAT
+Adding (! (_lvar_1 == $$undefined)) to cache. Cache length 4.
+Return value: true
+
+Pfs to add to the antiframe after step 0: 
+I am about to bi-unify two gammas
+
+pat_gamma: 	.
+gamma: 	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type).
+subst: Substitution: 
+	
+
+
+
+EXITING unify_gamma: res: true
+
+
+Checking if 	
+	(! (_lvar_1 == $$undefined))
+ entails 	
+ with existentials
+
+and gamma 	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+check_entailment: Time: 0.088383
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(! (_lvar_1 == $$undefined))
+Right:
+	
+Gamma:
+	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.088398
+simplify_symb_state: Time: 0.088413
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+	(! (_lvar_1 == $$undefined))
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.088430
+About to check sat of:
+Pure formulae:
+	
+	(! (_lvar_1 == $$undefined))
+Gamma:
+	
+
+
+Found in cache. Cache length 4.
+entailment_check: true
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_1 |-> [(\"@extensible\": _lvar_1), (\"@class\": \"Object\"), (\"@proto\": _lvar_9), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(xret: _$l_1)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (_lvar_1 == $$undefined))
+Gamma: 	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_1 |-> [(\"@extensible\": _lvar_13), (\"@class\": _lvar_12), (\"@proto\": _lvar_11), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+	(l: _lvar_8)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(! (_lvar_1 == $$undefined))
+	(_$l_1 == _lvar_8)
+Gamma: 	
+Preds: 
+
+-------------------------------------------------------------------
+
+-------------INSIDE MERGE HEAPS------------------------------------
+
+-------------------------------------------------------------------
+
+heap: 
+	_$l_1 |-> [("@extensible": _lvar_1), ("@class": "Object"), ("@proto": _lvar_9), (default: $$unknown)]
+
+pat_heap: 
+	
+
+p_formulae: 	
+	(! (_lvar_1 == $$undefined))
+
+gamma: 	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+
+Finished merging heaps.
+-------------------------------------------------------------------
+
+-------------INSIDE MERGE HEAPS------------------------------------
+
+-------------------------------------------------------------------
+
+heap: 
+	_$l_1 |-> [("@extensible": _lvar_13), ("@class": _lvar_12), ("@proto": _lvar_11), (default: $$unknown)]
+
+pat_heap: 
+	
+
+p_formulae: 	
+	(_lvar_0 == $$undefined)
+	(! (_lvar_1 == $$undefined))
+	(_$l_1 == _lvar_8)
+
+gamma: 	
+
+Finished merging heaps.
+Symb_state: Heap: 
+	_$l_1 |-> [(\"@extensible\": _lvar_1), (\"@class\": \"Object\"), (\"@proto\": _lvar_9), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(xret: _$l_1)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (_lvar_1 == $$undefined))
+Gamma: 	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_1 |-> [(\"@extensible\": _lvar_13), (\"@class\": _lvar_12), (\"@proto\": _lvar_11), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_9)
+	(ext: _lvar_1)
+	(cl: _lvar_0)
+	(l: _lvar_8)
+Pure Formulae: 	
+	(_lvar_0 == $$undefined)
+	(! (_lvar_1 == $$undefined))
+	(_$l_1 == _lvar_8)
+Gamma: 	
+Preds: 
+
+simplify_symb_state: Time: 0.088562
+simplify_symb_state: Time: 0.088605
+----------------------------------
+--0--
+TIME: 0.088645
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: goto [(cl = $$undefined)] 1 2
+----------------------------------
+simplify_symb_state: Time: 0.088651
+simplify_symb_state: Time: 0.088663
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	
+Store: 	
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.088680
+----------------------------------
+--2--
+TIME: 0.088693
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: goto [(ext = $$undefined)] 3 4
+----------------------------------
+Evaluated expression: (ext = $$undefined) --> (_lvar_14 = $$undefined)
+
+Lifted assertion: (_lvar_14 == $$undefined)
+
+Checking if:
+	(! (_lvar_0 == $$undefined))
+	entails
+	(_lvar_14 == $$undefined)
+
+check_entailment: Time: 0.088711
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(! (_lvar_0 == $$undefined))
+Right:
+	
+	(_lvar_14 == $$undefined)
+Gamma:
+	
+
+simplify_symb_state: Time: 0.088720
+simplify_symb_state: Time: 0.088730
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+	(! (_lvar_0 == $$undefined))
+Right:
+	
+	(_lvar_14 == $$undefined)
+
+Gamma:
+	
+
+
+ENT ENCODED: About to check the following:
+(forall ((x Real)) (>= (s-len x) 0.0)),
+(forall ((x JSIL_Literal_List)) (>= (l-len x) 0.0)),
+(not (= _lvar_0 (Elem Undefined)))
+Length of existentials: 0
+ENT: About to check the following:
+(forall ((x Real)) (>= (s-len x) 0.0)),
+(forall ((x JSIL_Literal_List)) (>= (l-len x) 0.0)),
+(not (= _lvar_0 (Elem Undefined))),
+(not (= _lvar_14 (Elem Undefined)))
+The solver returned: SAT
+I found the model: 
+
+(define-fun _lvar_0 () Extended_JSIL_Literal
+  (Set (_ as-array k!26)))
+(define-fun _lvar_14 () Extended_JSIL_Literal
+  (Set (_ as-array k!27)))
+(define-fun k!26 ((x!0 JSIL_Literal)) Bool
+  true)
+(define-fun k!27 ((x!0 JSIL_Literal)) Bool
+  false)
+(define-fun l-len ((x!0 JSIL_Literal_List)) Real
+  0.0)
+(define-fun s-len ((x!0 Real)) Real
+  0.0)
+check_entailment: Time: 0.102361
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(! (_lvar_0 == $$undefined))
+Right:
+	
+	(! (_lvar_14 == $$undefined))
+Gamma:
+	
+
+simplify_symb_state: Time: 0.102382
+simplify_symb_state: Time: 0.102403
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+	(! (_lvar_0 == $$undefined))
+Right:
+	
+	(! (_lvar_14 == $$undefined))
+
+Gamma:
+	
+
+
+ENT ENCODED: About to check the following:
+(forall ((x Real)) (>= (s-len x) 0.0)),
+(forall ((x JSIL_Literal_List)) (>= (l-len x) 0.0)),
+(not (= _lvar_0 (Elem Undefined)))
+Length of existentials: 0
+ENT: About to check the following:
+(forall ((x Real)) (>= (s-len x) 0.0)),
+(forall ((x JSIL_Literal_List)) (>= (l-len x) 0.0)),
+(not (= _lvar_0 (Elem Undefined))),
+(= _lvar_14 (Elem Undefined))
+The solver returned: SAT
+I found the model: 
+
+(define-fun _lvar_0 () Extended_JSIL_Literal
+  (Set (_ as-array k!33)))
+(define-fun _lvar_14 () Extended_JSIL_Literal
+  (Elem Undefined))
+(define-fun k!33 ((x!0 JSIL_Literal)) Bool
+  false)
+(define-fun l-len ((x!0 JSIL_Literal_List)) Real
+  0.0)
+(define-fun s-len ((x!0 Real)) Real
+  0.0)
+I could not determine the branch.
+----------------------------------
+--2--
+TIME: 0.118500
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: goto [(ext = $$undefined)] 3 4
+----------------------------------
+simplify_symb_state: Time: 0.118520
+simplify_symb_state: Time: 0.118581
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	
+Store: 	
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.118640
+----------------------------------
+--3--
+TIME: 0.118722
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(ext: $$undefined)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+Gamma: 	
+	(ext: $$undefined_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: ext := $$t
+----------------------------------
+simplify_symb_state: Time: 0.118759
+simplify_symb_state: Time: 0.118791
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	
+Store: 	
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.118848
+----------------------------------
+--4--
+TIME: 0.118893
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(ext: $$t)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+Gamma: 	
+	(ext: $$boolean_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [l, "@proto"] := pr
+----------------------------------
+Updtate-abs-heap. loc: _$l_2. field:"@proto". v:_lvar_16simplify_symb_state: Time: 0.118934
+simplify_symb_state: Time: 0.118981
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_2 |-> [(\"@proto\": _lvar_18), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_16)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+	(l: _lvar_15)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+	(_$l_2 == _lvar_15)
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.119024
+----------------------------------
+--5--
+TIME: 0.119115
+ ---- STATE: ---- 
+Heap: 
+	_$l_2 |-> [(\"@proto\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_16)
+	(ext: $$t)
+	(cl: _lvar_0)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+Gamma: 	
+	(ext: $$boolean_type)
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_2 |-> [(\"@proto\": _lvar_18), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_16)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+	(l: _lvar_15)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+	(_$l_2 == _lvar_15)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [l, "@class"] := cl
+----------------------------------
+Updtate-abs-heap. loc: _$l_2. field:"@class". v:_lvar_0simplify_symb_state: Time: 0.119133
+simplify_symb_state: Time: 0.119182
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_2 |-> [(\"@class\": _lvar_19), (\"@proto\": _lvar_18), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_16)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+	(l: _lvar_15)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+	(_$l_2 == _lvar_15)
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.119315
+----------------------------------
+--6--
+TIME: 0.119381
+ ---- STATE: ---- 
+Heap: 
+	_$l_2 |-> [(\"@class\": _lvar_0), (\"@proto\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_16)
+	(ext: $$t)
+	(cl: _lvar_0)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+Gamma: 	
+	(ext: $$boolean_type)
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_2 |-> [(\"@class\": _lvar_19), (\"@proto\": _lvar_18), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_16)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+	(l: _lvar_15)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+	(_$l_2 == _lvar_15)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [l, "@extensible"] := ext
+----------------------------------
+Updtate-abs-heap. loc: _$l_2. field:"@extensible". v:$$tsimplify_symb_state: Time: 0.119413
+simplify_symb_state: Time: 0.119505
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_2 |-> [(\"@extensible\": _lvar_20), (\"@class\": _lvar_19), (\"@proto\": _lvar_18), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_16)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+	(l: _lvar_15)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+	(_$l_2 == _lvar_15)
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.119579
+----------------------------------
+--7--
+TIME: 0.119619
+ ---- STATE: ---- 
+Heap: 
+	_$l_2 |-> [(\"@extensible\": $$t), (\"@class\": _lvar_0), (\"@proto\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_16)
+	(ext: $$t)
+	(cl: _lvar_0)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+Gamma: 	
+	(ext: $$boolean_type)
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_2 |-> [(\"@extensible\": _lvar_20), (\"@class\": _lvar_19), (\"@proto\": _lvar_18), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_16)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+	(l: _lvar_15)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+	(_$l_2 == _lvar_15)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: xret := l
+----------------------------------
+simplify_symb_state: Time: 0.119628
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_2 |-> [(\"@extensible\": $$t), (\"@class\": _lvar_0), (\"@proto\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_16)
+	(ext: $$t)
+	(xret: _$l_2)
+	(cl: _lvar_0)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+Gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+
+LVARS: 
+Unifying stores:
+Store: 	
+	(pr: _lvar_16)
+	(ext: $$t)
+	(xret: _$l_2)
+	(cl: _lvar_0)
+	(l: _$l_2) 
+Pat_store: 	
+Discharges: 0
+
+Pfs to add to the antiframe after unify stores: 
+Unify heaps 
+	 
+and 
+	_$l_2 |-> [("@extensible": $$t), ("@class": _lvar_0), ("@proto": _lvar_16), (default: $$unknown)] 
+with substitution: Substitution: 
+	
+
+with pure formulae: 	
+	(! (_lvar_0 == $$undefined))
+with gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type)
+PatHeapDomain: 
+Heap again 
+	_$l_2 |-> [("@extensible": $$t), ("@class": _lvar_0), ("@proto": _lvar_16), (default: $$unknown)]
+End of unify_symb_heaps: do enjoy the quotient_heap: 
+	_$l_2 |-> [("@extensible": $$t), ("@class": _lvar_0), ("@proto": _lvar_16), (default: $$unknown)]
+Heaps unified successfully.
+
+Entering unify_pred_arrays.
+Check if 
+ (	(! (_lvar_0 == $$undefined))) 
+ entails 
+ (	) 
+ with gamma 
+ (	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type))
+check_entailment: Time: 0.119730
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(! (_lvar_0 == $$undefined))
+Right:
+	
+Gamma:
+	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.119742
+simplify_symb_state: Time: 0.119752
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+	(! (_lvar_0 == $$undefined))
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.119768
+About to check sat of:
+Pure formulae:
+	
+	(! (_lvar_0 == $$undefined))
+Gamma:
+	
+
+
+Not found in cache. Cache length 4.
+SAT: About to check the following:
+(forall ((x Real)) (>= (s-len x) 0.0)),
+(forall ((x JSIL_Literal_List)) (>= (l-len x) 0.0)),
+(not (= _lvar_0 (Elem Undefined)))
+The solver returned: SAT
+Adding (! (_lvar_0 == $$undefined)) to cache. Cache length 5.
+Return value: true
+
+Pfs to add to the antiframe after step 0: 
+I am about to bi-unify two gammas
+
+pat_gamma: 	.
+gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type).
+subst: Substitution: 
+	
+
+
+
+EXITING unify_gamma: res: true
+
+
+Checking if 	
+	(! (_lvar_0 == $$undefined))
+ entails 	
+ with existentials
+
+and gamma 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type)
+check_entailment: Time: 0.130212
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(! (_lvar_0 == $$undefined))
+Right:
+	
+Gamma:
+	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.130229
+simplify_symb_state: Time: 0.130246
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+	(! (_lvar_0 == $$undefined))
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.130264
+About to check sat of:
+Pure formulae:
+	
+	(! (_lvar_0 == $$undefined))
+Gamma:
+	
+
+
+Found in cache. Cache length 5.
+entailment_check: true
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_2 |-> [(\"@extensible\": $$t), (\"@class\": _lvar_0), (\"@proto\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_16)
+	(ext: $$t)
+	(xret: _$l_2)
+	(cl: _lvar_0)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+Gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_2 |-> [(\"@extensible\": _lvar_20), (\"@class\": _lvar_19), (\"@proto\": _lvar_18), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_16)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+	(l: _lvar_15)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+	(_$l_2 == _lvar_15)
+Gamma: 	
+Preds: 
+
+-------------------------------------------------------------------
+
+-------------INSIDE MERGE HEAPS------------------------------------
+
+-------------------------------------------------------------------
+
+heap: 
+	_$l_2 |-> [("@extensible": $$t), ("@class": _lvar_0), ("@proto": _lvar_16), (default: $$unknown)]
+
+pat_heap: 
+	
+
+p_formulae: 	
+	(! (_lvar_0 == $$undefined))
+
+gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type)
+
+Finished merging heaps.
+-------------------------------------------------------------------
+
+-------------INSIDE MERGE HEAPS------------------------------------
+
+-------------------------------------------------------------------
+
+heap: 
+	_$l_2 |-> [("@extensible": _lvar_20), ("@class": _lvar_19), ("@proto": _lvar_18), (default: $$unknown)]
+
+pat_heap: 
+	
+
+p_formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+	(_$l_2 == _lvar_15)
+
+gamma: 	
+
+Finished merging heaps.
+Symb_state: Heap: 
+	_$l_2 |-> [(\"@extensible\": $$t), (\"@class\": _lvar_0), (\"@proto\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_16)
+	(ext: $$t)
+	(xret: _$l_2)
+	(cl: _lvar_0)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+Gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_2 |-> [(\"@extensible\": _lvar_20), (\"@class\": _lvar_19), (\"@proto\": _lvar_18), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_16)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+	(l: _lvar_15)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_14 == $$undefined)
+	(_$l_2 == _lvar_15)
+Gamma: 	
+Preds: 
+
+simplify_symb_state: Time: 0.130404
+simplify_symb_state: Time: 0.130430
+----------------------------------
+--2--
+TIME: 0.130474
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: goto [(ext = $$undefined)] 3 4
+----------------------------------
+simplify_symb_state: Time: 0.130482
+simplify_symb_state: Time: 0.130495
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	
+Store: 	
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.130517
+----------------------------------
+--4--
+TIME: 0.130535
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [l, "@proto"] := pr
+----------------------------------
+Updtate-abs-heap. loc: _$l_3. field:"@proto". v:_lvar_22simplify_symb_state: Time: 0.130554
+simplify_symb_state: Time: 0.149200
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_3 |-> [(\"@proto\": _lvar_24), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+	(l: _lvar_21)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+	(_$l_3 == _lvar_21)
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.149251
+----------------------------------
+--5--
+TIME: 0.149268
+ ---- STATE: ---- 
+Heap: 
+	_$l_3 |-> [(\"@proto\": _lvar_22), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Gamma: 	
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_3 |-> [(\"@proto\": _lvar_24), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+	(l: _lvar_21)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+	(_$l_3 == _lvar_21)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [l, "@class"] := cl
+----------------------------------
+Updtate-abs-heap. loc: _$l_3. field:"@class". v:_lvar_0simplify_symb_state: Time: 0.149280
+simplify_symb_state: Time: 0.149289
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_3 |-> [(\"@class\": _lvar_25), (\"@proto\": _lvar_24), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+	(l: _lvar_21)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+	(_$l_3 == _lvar_21)
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.149308
+----------------------------------
+--6--
+TIME: 0.149322
+ ---- STATE: ---- 
+Heap: 
+	_$l_3 |-> [(\"@class\": _lvar_0), (\"@proto\": _lvar_22), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Gamma: 	
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_3 |-> [(\"@class\": _lvar_25), (\"@proto\": _lvar_24), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+	(l: _lvar_21)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+	(_$l_3 == _lvar_21)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [l, "@extensible"] := ext
+----------------------------------
+Updtate-abs-heap. loc: _$l_3. field:"@extensible". v:_lvar_14simplify_symb_state: Time: 0.149331
+simplify_symb_state: Time: 0.149340
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_3 |-> [(\"@extensible\": _lvar_26), (\"@class\": _lvar_25), (\"@proto\": _lvar_24), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+	(l: _lvar_21)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+	(_$l_3 == _lvar_21)
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.149358
+----------------------------------
+--7--
+TIME: 0.149373
+ ---- STATE: ---- 
+Heap: 
+	_$l_3 |-> [(\"@extensible\": _lvar_14), (\"@class\": _lvar_0), (\"@proto\": _lvar_22), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Gamma: 	
+	(l: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_3 |-> [(\"@extensible\": _lvar_26), (\"@class\": _lvar_25), (\"@proto\": _lvar_24), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+	(l: _lvar_21)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+	(_$l_3 == _lvar_21)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: xret := l
+----------------------------------
+simplify_symb_state: Time: 0.149379
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_3 |-> [(\"@extensible\": _lvar_14), (\"@class\": _lvar_0), (\"@proto\": _lvar_22), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(xret: _$l_3)
+	(cl: _lvar_0)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+
+LVARS: 
+Unifying stores:
+Store: 	
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(xret: _$l_3)
+	(cl: _lvar_0)
+	(l: _$l_3) 
+Pat_store: 	
+Discharges: 0
+
+Pfs to add to the antiframe after unify stores: 
+Unify heaps 
+	 
+and 
+	_$l_3 |-> [("@extensible": _lvar_14), ("@class": _lvar_0), ("@proto": _lvar_22), (default: $$unknown)] 
+with substitution: Substitution: 
+	
+
+with pure formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+with gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+PatHeapDomain: 
+Heap again 
+	_$l_3 |-> [("@extensible": _lvar_14), ("@class": _lvar_0), ("@proto": _lvar_22), (default: $$unknown)]
+End of unify_symb_heaps: do enjoy the quotient_heap: 
+	_$l_3 |-> [("@extensible": _lvar_14), ("@class": _lvar_0), ("@proto": _lvar_22), (default: $$unknown)]
+Heaps unified successfully.
+
+Entering unify_pred_arrays.
+Check if 
+ (	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))) 
+ entails 
+ (	) 
+ with gamma 
+ (	
+	(xret: $$object_type)
+	(l: $$object_type))
+check_entailment: Time: 0.149467
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Right:
+	
+Gamma:
+	
+	(xret: $$object_type)
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.149476
+simplify_symb_state: Time: 0.149484
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.149498
+About to check sat of:
+Pure formulae:
+	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Gamma:
+	
+
+
+Not found in cache. Cache length 5.
+SAT: About to check the following:
+(forall ((x Real)) (>= (s-len x) 0.0)),
+(forall ((x JSIL_Literal_List)) (>= (l-len x) 0.0)),
+(not (= _lvar_0 (Elem Undefined))),
+(not (= _lvar_14 (Elem Undefined)))
+The solver returned: SAT
+Adding (! (_lvar_14 == $$undefined)) * (! (_lvar_0 == $$undefined)) to cache. Cache length 6.
+Return value: true
+
+Pfs to add to the antiframe after step 0: 
+I am about to bi-unify two gammas
+
+pat_gamma: 	.
+gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type).
+subst: Substitution: 
+	
+
+
+
+EXITING unify_gamma: res: true
+
+
+Checking if 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+ entails 	
+ with existentials
+
+and gamma 	
+	(xret: $$object_type)
+	(l: $$object_type)
+check_entailment: Time: 0.159601
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Right:
+	
+Gamma:
+	
+	(xret: $$object_type)
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.159613
+simplify_symb_state: Time: 0.159627
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.159642
+About to check sat of:
+Pure formulae:
+	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Gamma:
+	
+
+
+Found in cache. Cache length 6.
+entailment_check: true
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_3 |-> [(\"@extensible\": _lvar_14), (\"@class\": _lvar_0), (\"@proto\": _lvar_22), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(xret: _$l_3)
+	(cl: _lvar_0)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_3 |-> [(\"@extensible\": _lvar_26), (\"@class\": _lvar_25), (\"@proto\": _lvar_24), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+	(l: _lvar_21)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+	(_$l_3 == _lvar_21)
+Gamma: 	
+Preds: 
+
+-------------------------------------------------------------------
+
+-------------INSIDE MERGE HEAPS------------------------------------
+
+-------------------------------------------------------------------
+
+heap: 
+	_$l_3 |-> [("@extensible": _lvar_14), ("@class": _lvar_0), ("@proto": _lvar_22), (default: $$unknown)]
+
+pat_heap: 
+	
+
+p_formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+
+gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+
+Finished merging heaps.
+-------------------------------------------------------------------
+
+-------------INSIDE MERGE HEAPS------------------------------------
+
+-------------------------------------------------------------------
+
+heap: 
+	_$l_3 |-> [("@extensible": _lvar_26), ("@class": _lvar_25), ("@proto": _lvar_24), (default: $$unknown)]
+
+pat_heap: 
+	
+
+p_formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+	(_$l_3 == _lvar_21)
+
+gamma: 	
+
+Finished merging heaps.
+Symb_state: Heap: 
+	_$l_3 |-> [(\"@extensible\": _lvar_14), (\"@class\": _lvar_0), (\"@proto\": _lvar_22), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(xret: _$l_3)
+	(cl: _lvar_0)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_3 |-> [(\"@extensible\": _lvar_26), (\"@class\": _lvar_25), (\"@proto\": _lvar_24), (default: $$unknown)]
+Store: 	
+	(pr: _lvar_22)
+	(ext: _lvar_14)
+	(cl: _lvar_0)
+	(l: _lvar_21)
+Pure Formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+	(_$l_3 == _lvar_21)
+Gamma: 	
+Preds: 
+
+simplify_symb_state: Time: 0.159753
+simplify_symb_state: Time: 0.159765
+----------------------------------
+----------------------------------
+----------------------------------
+
+-------------------------------------------------------------------
+
+-------------INSIDE MERGE HEAPS------------------------------------
+
+-------------------------------------------------------------------
+
+heap: 
+	_$l_0 |-> [("@extensible": _lvar_7), ("@class": _lvar_6), ("@proto": _lvar_5), (default: $$unknown)]
+
+pat_heap: 
+	
+
+p_formulae: 	
+	(_lvar_1 == $$undefined)
+	(_lvar_0 == $$undefined)
+	(_lvar_2 == _$l_0)
+
+gamma: 	
+	(_lvar_2: $$object_type)
+	(_lvar_1: $$undefined_type)
+	(_lvar_0: $$undefined_type)
+
+Finished merging heaps.
+Spec Var: ##s_0
+Spec Var: ##s_1
+Spec Var: ##s_2
+Spec Var: ##s_3
+Spec Var: ##s_4
+Spec Var: ##s_5
+Spec Var: ##s_6
+Spec Var: ##s_3
+-------------------------------------------------------------------
+
+-------------INSIDE MERGE HEAPS------------------------------------
+
+-------------------------------------------------------------------
+
+heap: 
+	_$l_1 |-> [("@extensible": _lvar_13), ("@class": _lvar_12), ("@proto": _lvar_11), (default: $$unknown)]
+
+pat_heap: 
+	
+
+p_formulae: 	
+	(! (_lvar_1 == $$undefined))
+	(_lvar_8 == _$l_1)
+	(_lvar_0 == $$undefined)
+
+gamma: 	
+	(_lvar_8: $$object_type)
+	(_lvar_0: $$undefined_type)
+
+Finished merging heaps.
+Spec Var: ##s_10
+Spec Var: ##s_11
+Spec Var: ##s_12
+Spec Var: ##s_13
+Spec Var: ##s_7
+Spec Var: ##s_8
+Spec Var: ##s_9
+Spec Var: ##s_13
+Spec Var: ##s_8
+-------------------------------------------------------------------
+
+-------------INSIDE MERGE HEAPS------------------------------------
+
+-------------------------------------------------------------------
+
+heap: 
+	_$l_2 |-> [("@extensible": _lvar_20), ("@class": _lvar_19), ("@proto": _lvar_18), (default: $$unknown)]
+
+pat_heap: 
+	
+
+p_formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(_lvar_15 == _$l_2)
+	(_lvar_14 == $$undefined)
+
+gamma: 	
+	(_lvar_15: $$object_type)
+	(_lvar_14: $$undefined_type)
+
+Finished merging heaps.
+Spec Var: ##s_14
+Spec Var: ##s_15
+Spec Var: ##s_16
+Spec Var: ##s_17
+Spec Var: ##s_18
+Spec Var: ##s_19
+Spec Var: ##s_20
+Spec Var: ##s_14
+Spec Var: ##s_17
+-------------------------------------------------------------------
+
+-------------INSIDE MERGE HEAPS------------------------------------
+
+-------------------------------------------------------------------
+
+heap: 
+	_$l_3 |-> [("@extensible": _lvar_26), ("@class": _lvar_25), ("@proto": _lvar_24), (default: $$unknown)]
+
+pat_heap: 
+	
+
+p_formulae: 	
+	(! (_lvar_0 == $$undefined))
+	(! (_lvar_14 == $$undefined))
+	(_lvar_21 == _$l_3)
+
+gamma: 	
+	(_lvar_21: $$object_type)
+
+Finished merging heaps.
+Spec Var: ##s_21
+Spec Var: ##s_22
+Spec Var: ##s_23
+Spec Var: ##s_24
+Spec Var: ##s_25
+Spec Var: ##s_26
+Spec Var: ##s_27
+Spec Var: ##s_21
+Spec Var: ##s_22
+Spec Var: ##s_24
+----------------------------------
+----------------------------------
+Symbolic execution of setupInitialHeap
+Initial symbolic state:
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+AF in symb_evaluate_proc :
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.160181
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.160193
+----------------------------------
+--0--
+TIME: 0.160201
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: xret := "create_default_object"($lg, $lobj_proto, "Object", $$t) 
+----------------------------------
+Entering BI_find_and_apply_spec: create_default_object.
+------------------------------------------
+Entering BI-find_correct_specs with the spec:
+------------------------------------------
+Pre:
+Heap: 
+	_$l_0 |-> [(\"@extensible\": ##s_6), (\"@class\": ##s_5), (\"@proto\": ##s_4), (default: $$unknown)]
+Store: 	
+	(pr: ##s_3)
+	(ext: ##s_1)
+	(cl: ##s_0)
+	(l: ##s_2)
+Pure Formulae: 	
+	(##s_1 == $$undefined)
+	(##s_0 == $$undefined)
+	(##s_2 == _$l_0)
+Gamma: 	
+	(##s_1: $$undefined_type)
+	(##s_0: $$undefined_type)
+	(##s_2: $$object_type)
+Preds: 
+Posts:
+Post 0: 
+Heap: 
+	_$l_0 |-> [(\"@extensible\": $$t), (\"@class\": \"Object\"), (\"@proto\": ##s_3), (default: $$unknown)]
+Store: 	
+	(pr: ##s_3)
+	(ext: $$t)
+	(xret: _$l_0)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+;
+
+LVARS: 
+Unifying stores:
+Store: 	
+	(ext: $$t)
+	(pr: $lobj_proto)
+	(cl: "Object")
+	(l: $lg) 
+Pat_store: 	
+	(pr: ##s_3)
+	(ext: ##s_1)
+	(cl: ##s_0)
+	(l: ##s_2)
+Discharges: 0
+
+Pfs to add to the antiframe after unify stores: 
+Unify heaps 
+	_$l_0 |-> [("@extensible": ##s_6), ("@class": ##s_5), ("@proto": ##s_4), (default: $$unknown)] 
+and 
+	 
+with substitution: Substitution: 
+	##s_1: $$t;
+	 ##s_3: $lobj_proto;
+	 ##s_0: "Object";
+	 ##s_2: $lg
+
+with pure formulae: 	
+with gamma: 	
+PatHeapDomain: _$l_0
+pick_pat_loc
+
+Location: _$l_0
+Substitution: Substitution: 
+	##s_1: $$t;
+	 ##s_3: $lobj_proto;
+	 ##s_0: "Object";
+	 ##s_2: $lg
+
+Location _$l_0 in pattern has not been matched
+I could NOT unify an fv-pair. pat_val: ##s_4. def_val: $$unknown
+I could NOT unify an fv-pair. pat_val: ##s_5. def_val: $$unknown
+I could NOT unify an fv-pair. pat_val: ##s_6. def_val: $$unknown
+Adding sth to QH and AF.
+QH:
+	_$l_0 |-> [(default: $$unknown)]
+AFH:
+	_$l_0 |-> [("@extensible": ##s_6), ("@class": ##s_5), ("@proto": ##s_4), (default: $$unknown)]
+Heap again 
+	
+End of unify_symb_heaps: do enjoy the quotient_heap: 
+	
+Heaps unified successfully.
+
+Entering unify_pred_arrays.
+Check if 
+ (	) 
+ entails 
+ (	) 
+ with gamma 
+ (	)
+check_entailment: Time: 0.160317
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+Right:
+	
+Gamma:
+	
+
+simplify_symb_state: Time: 0.160323
+simplify_symb_state: Time: 0.160329
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.160339
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 6.
+Return value: true
+
+Pfs to add to the antiframe after step 0: 
+I am about to bi-unify two gammas
+
+pat_gamma: 	
+	(##s_1: $$undefined_type)
+	(##s_0: $$undefined_type)
+	(##s_2: $$object_type).
+gamma: 	.
+subst: Substitution: 
+	##s_1: $$t;
+	 ##s_3: $lobj_proto;
+	 ##s_5: _lvar_28;
+	 ##s_0: "Object";
+	 ##s_2: $lg;
+	 ##s_4: _lvar_27;
+	 ##s_6: _lvar_29
+
+
+pat_var: (##s_1 : $$undefined_type) 
+found value: $$t
+unify_gamma. pat gamma var: ##s_1. le: $$t. v_type: $$undefined_type. le_type: $$boolean_type
+pat_var: (##s_0 : $$undefined_type) 
+found value: "Object"
+unify_gamma. pat gamma var: ##s_0. le: "Object". v_type: $$undefined_type. le_type: $$string_type
+pat_var: (##s_2 : $$object_type) 
+found value: $lg
+unify_gamma. pat gamma var: ##s_2. le: $lg. v_type: $$object_type. le_type: $$object_type
+
+EXITING unify_gamma: res: true
+
+
+Checking if 	
+ entails 	
+	($$t == $$undefined)
+	("Object" == $$undefined)
+	($lg == _$l_0)
+ with existentials
+ _lvar_27 _lvar_28 _lvar_29
+and gamma 	
+check_entailment: Time: 0.160399
+Preparing entailment check:
+Existentials:
+_lvar_27, _lvar_28, _lvar_29
+Left:
+	
+Right:
+	
+	($$t == $$undefined)
+	("Object" == $$undefined)
+	($lg == _$l_0)
+Gamma:
+	
+
+simplify_symb_state: Time: 0.160408
+simplify_symb_state: Time: 0.160414
+Pure formulae flat-out false. Pure formulae false.
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+_lvar_27, _lvar_28, _lvar_29
+Left:
+	
+Right:
+	
+	false
+
+Gamma:
+	
+
+
+entailment_check: false
+I found a match requering an AF
+anti_frame heap: 
+	_$l_0 |-> [("@extensible": ##s_6), ("@class": ##s_5), ("@proto": ##s_4), (default: $$unknown)]
+------------------------------------------
+Entering BI-find_correct_specs with the spec:
+------------------------------------------
+Pre:
+Heap: 
+	_$l_1 |-> [(\"@extensible\": ##s_11), (\"@class\": ##s_10), (\"@proto\": ##s_9), (default: $$unknown)]
+Store: 	
+	(pr: ##s_13)
+	(ext: ##s_8)
+	(cl: ##s_7)
+	(l: ##s_12)
+Pure Formulae: 	
+	(! (##s_8 == $$undefined))
+	(##s_12 == _$l_1)
+	(##s_7 == $$undefined)
+Gamma: 	
+	(##s_7: $$undefined_type)
+	(##s_12: $$object_type)
+Preds: 
+Posts:
+Post 0: 
+Heap: 
+	_$l_1 |-> [(\"@extensible\": ##s_8), (\"@class\": \"Object\"), (\"@proto\": ##s_13), (default: $$unknown)]
+Store: 	
+	(pr: ##s_13)
+	(ext: ##s_8)
+	(xret: _$l_1)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (##s_8 == $$undefined))
+Gamma: 	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+;
+
+LVARS: 
+Unifying stores:
+Store: 	
+	(ext: $$t)
+	(pr: $lobj_proto)
+	(cl: "Object")
+	(l: $lg) 
+Pat_store: 	
+	(pr: ##s_13)
+	(ext: ##s_8)
+	(cl: ##s_7)
+	(l: ##s_12)
+Discharges: 0
+
+Pfs to add to the antiframe after unify stores: 
+Unify heaps 
+	_$l_1 |-> [("@extensible": ##s_11), ("@class": ##s_10), ("@proto": ##s_9), (default: $$unknown)] 
+and 
+	 
+with substitution: Substitution: 
+	##s_7: "Object";
+	 ##s_12: $lg;
+	 ##s_8: $$t;
+	 ##s_13: $lobj_proto
+
+with pure formulae: 	
+with gamma: 	
+PatHeapDomain: _$l_1
+pick_pat_loc
+
+Location: _$l_1
+Substitution: Substitution: 
+	##s_7: "Object";
+	 ##s_12: $lg;
+	 ##s_8: $$t;
+	 ##s_13: $lobj_proto
+
+Location _$l_1 in pattern has not been matched
+I could NOT unify an fv-pair. pat_val: ##s_9. def_val: $$unknown
+I could NOT unify an fv-pair. pat_val: ##s_10. def_val: $$unknown
+I could NOT unify an fv-pair. pat_val: ##s_11. def_val: $$unknown
+Adding sth to QH and AF.
+QH:
+	_$l_1 |-> [(default: $$unknown)]
+AFH:
+	_$l_1 |-> [("@extensible": ##s_11), ("@class": ##s_10), ("@proto": ##s_9), (default: $$unknown)]
+Heap again 
+	
+End of unify_symb_heaps: do enjoy the quotient_heap: 
+	
+Heaps unified successfully.
+
+Entering unify_pred_arrays.
+Check if 
+ (	) 
+ entails 
+ (	) 
+ with gamma 
+ (	)
+check_entailment: Time: 0.160572
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+Right:
+	
+Gamma:
+	
+
+simplify_symb_state: Time: 0.160577
+simplify_symb_state: Time: 0.160583
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.160594
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 6.
+Return value: true
+
+Pfs to add to the antiframe after step 0: 
+I am about to bi-unify two gammas
+
+pat_gamma: 	
+	(##s_7: $$undefined_type)
+	(##s_12: $$object_type).
+gamma: 	.
+subst: Substitution: 
+	##s_10: _lvar_30;
+	 ##s_7: "Object";
+	 ##s_11: _lvar_31;
+	 ##s_12: $lg;
+	 ##s_9: _lvar_32;
+	 ##s_8: $$t;
+	 ##s_13: $lobj_proto
+
+
+pat_var: (##s_7 : $$undefined_type) 
+found value: "Object"
+unify_gamma. pat gamma var: ##s_7. le: "Object". v_type: $$undefined_type. le_type: $$string_type
+pat_var: (##s_12 : $$object_type) 
+found value: $lg
+unify_gamma. pat gamma var: ##s_12. le: $lg. v_type: $$object_type. le_type: $$object_type
+
+EXITING unify_gamma: res: true
+
+
+Checking if 	
+ entails 	
+	(! ($$t == $$undefined))
+	($lg == _$l_1)
+	("Object" == $$undefined)
+ with existentials
+ _lvar_30 _lvar_31 _lvar_32
+and gamma 	
+check_entailment: Time: 0.160647
+Preparing entailment check:
+Existentials:
+_lvar_30, _lvar_31, _lvar_32
+Left:
+	
+Right:
+	
+	(! ($$t == $$undefined))
+	($lg == _$l_1)
+	("Object" == $$undefined)
+Gamma:
+	
+
+simplify_symb_state: Time: 0.160655
+simplify_symb_state: Time: 0.160662
+Pure formulae flat-out false. Pure formulae false.
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+_lvar_30, _lvar_31, _lvar_32
+Left:
+	
+Right:
+	
+	false
+
+Gamma:
+	
+
+
+entailment_check: false
+I found a match requering an AF
+anti_frame heap: 
+	_$l_1 |-> [("@extensible": ##s_11), ("@class": ##s_10), ("@proto": ##s_9), (default: $$unknown)]
+------------------------------------------
+Entering BI-find_correct_specs with the spec:
+------------------------------------------
+Pre:
+Heap: 
+	_$l_2 |-> [(\"@extensible\": ##s_20), (\"@class\": ##s_19), (\"@proto\": ##s_18), (default: $$unknown)]
+Store: 	
+	(pr: ##s_17)
+	(ext: ##s_15)
+	(cl: ##s_14)
+	(l: ##s_16)
+Pure Formulae: 	
+	(! (##s_14 == $$undefined))
+	(##s_16 == _$l_2)
+	(##s_15 == $$undefined)
+Gamma: 	
+	(##s_15: $$undefined_type)
+	(##s_16: $$object_type)
+Preds: 
+Posts:
+Post 0: 
+Heap: 
+	_$l_2 |-> [(\"@extensible\": $$t), (\"@class\": ##s_14), (\"@proto\": ##s_17), (default: $$unknown)]
+Store: 	
+	(pr: ##s_17)
+	(ext: $$t)
+	(xret: _$l_2)
+	(cl: ##s_14)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (##s_14 == $$undefined))
+Gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+;
+
+LVARS: 
+Unifying stores:
+Store: 	
+	(ext: $$t)
+	(pr: $lobj_proto)
+	(cl: "Object")
+	(l: $lg) 
+Pat_store: 	
+	(pr: ##s_17)
+	(ext: ##s_15)
+	(cl: ##s_14)
+	(l: ##s_16)
+Discharges: 0
+
+Pfs to add to the antiframe after unify stores: 
+Unify heaps 
+	_$l_2 |-> [("@extensible": ##s_20), ("@class": ##s_19), ("@proto": ##s_18), (default: $$unknown)] 
+and 
+	 
+with substitution: Substitution: 
+	##s_15: $$t;
+	 ##s_17: $lobj_proto;
+	 ##s_16: $lg;
+	 ##s_14: "Object"
+
+with pure formulae: 	
+with gamma: 	
+PatHeapDomain: _$l_2
+pick_pat_loc
+
+Location: _$l_2
+Substitution: Substitution: 
+	##s_15: $$t;
+	 ##s_17: $lobj_proto;
+	 ##s_16: $lg;
+	 ##s_14: "Object"
+
+Location _$l_2 in pattern has not been matched
+I could NOT unify an fv-pair. pat_val: ##s_18. def_val: $$unknown
+I could NOT unify an fv-pair. pat_val: ##s_19. def_val: $$unknown
+I could NOT unify an fv-pair. pat_val: ##s_20. def_val: $$unknown
+Adding sth to QH and AF.
+QH:
+	_$l_2 |-> [(default: $$unknown)]
+AFH:
+	_$l_2 |-> [("@extensible": ##s_20), ("@class": ##s_19), ("@proto": ##s_18), (default: $$unknown)]
+Heap again 
+	
+End of unify_symb_heaps: do enjoy the quotient_heap: 
+	
+Heaps unified successfully.
+
+Entering unify_pred_arrays.
+Check if 
+ (	) 
+ entails 
+ (	) 
+ with gamma 
+ (	)
+check_entailment: Time: 0.160782
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+Right:
+	
+Gamma:
+	
+
+simplify_symb_state: Time: 0.160788
+simplify_symb_state: Time: 0.160794
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.160805
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 6.
+Return value: true
+
+Pfs to add to the antiframe after step 0: 
+I am about to bi-unify two gammas
+
+pat_gamma: 	
+	(##s_15: $$undefined_type)
+	(##s_16: $$object_type).
+gamma: 	.
+subst: Substitution: 
+	##s_15: $$t;
+	 ##s_17: $lobj_proto;
+	 ##s_18: _lvar_33;
+	 ##s_19: _lvar_34;
+	 ##s_16: $lg;
+	 ##s_14: "Object";
+	 ##s_20: _lvar_35
+
+
+pat_var: (##s_15 : $$undefined_type) 
+found value: $$t
+unify_gamma. pat gamma var: ##s_15. le: $$t. v_type: $$undefined_type. le_type: $$boolean_type
+pat_var: (##s_16 : $$object_type) 
+found value: $lg
+unify_gamma. pat gamma var: ##s_16. le: $lg. v_type: $$object_type. le_type: $$object_type
+
+EXITING unify_gamma: res: true
+
+
+Checking if 	
+ entails 	
+	(! ("Object" == $$undefined))
+	($lg == _$l_2)
+	($$t == $$undefined)
+ with existentials
+ _lvar_33 _lvar_34 _lvar_35
+and gamma 	
+check_entailment: Time: 0.160857
+Preparing entailment check:
+Existentials:
+_lvar_33, _lvar_34, _lvar_35
+Left:
+	
+Right:
+	
+	(! ("Object" == $$undefined))
+	($lg == _$l_2)
+	($$t == $$undefined)
+Gamma:
+	
+
+simplify_symb_state: Time: 0.160865
+simplify_symb_state: Time: 0.160872
+Pure formulae flat-out false. Pure formulae false.
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+_lvar_33, _lvar_34, _lvar_35
+Left:
+	
+Right:
+	
+	false
+
+Gamma:
+	
+
+
+entailment_check: false
+I found a match requering an AF
+anti_frame heap: 
+	_$l_2 |-> [("@extensible": ##s_20), ("@class": ##s_19), ("@proto": ##s_18), (default: $$unknown)]
+------------------------------------------
+Entering BI-find_correct_specs with the spec:
+------------------------------------------
+Pre:
+Heap: 
+	_$l_3 |-> [(\"@extensible\": ##s_27), (\"@class\": ##s_26), (\"@proto\": ##s_25), (default: $$unknown)]
+Store: 	
+	(pr: ##s_24)
+	(ext: ##s_22)
+	(cl: ##s_21)
+	(l: ##s_23)
+Pure Formulae: 	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+	(##s_23 == _$l_3)
+Gamma: 	
+	(##s_23: $$object_type)
+Preds: 
+Posts:
+Post 0: 
+Heap: 
+	_$l_3 |-> [(\"@extensible\": ##s_22), (\"@class\": ##s_21), (\"@proto\": ##s_24), (default: $$unknown)]
+Store: 	
+	(pr: ##s_24)
+	(ext: ##s_22)
+	(xret: _$l_3)
+	(cl: ##s_21)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+;
+
+LVARS: 
+Unifying stores:
+Store: 	
+	(ext: $$t)
+	(pr: $lobj_proto)
+	(cl: "Object")
+	(l: $lg) 
+Pat_store: 	
+	(pr: ##s_24)
+	(ext: ##s_22)
+	(cl: ##s_21)
+	(l: ##s_23)
+Discharges: 0
+
+Pfs to add to the antiframe after unify stores: 
+Unify heaps 
+	_$l_3 |-> [("@extensible": ##s_27), ("@class": ##s_26), ("@proto": ##s_25), (default: $$unknown)] 
+and 
+	 
+with substitution: Substitution: 
+	##s_24: $lobj_proto;
+	 ##s_22: $$t;
+	 ##s_21: "Object";
+	 ##s_23: $lg
+
+with pure formulae: 	
+with gamma: 	
+PatHeapDomain: _$l_3
+pick_pat_loc
+
+Location: _$l_3
+Substitution: Substitution: 
+	##s_24: $lobj_proto;
+	 ##s_22: $$t;
+	 ##s_21: "Object";
+	 ##s_23: $lg
+
+Location _$l_3 in pattern has not been matched
+I could NOT unify an fv-pair. pat_val: ##s_25. def_val: $$unknown
+I could NOT unify an fv-pair. pat_val: ##s_26. def_val: $$unknown
+I could NOT unify an fv-pair. pat_val: ##s_27. def_val: $$unknown
+Adding sth to QH and AF.
+QH:
+	_$l_3 |-> [(default: $$unknown)]
+AFH:
+	_$l_3 |-> [("@extensible": ##s_27), ("@class": ##s_26), ("@proto": ##s_25), (default: $$unknown)]
+Heap again 
+	
+End of unify_symb_heaps: do enjoy the quotient_heap: 
+	
+Heaps unified successfully.
+
+Entering unify_pred_arrays.
+Check if 
+ (	) 
+ entails 
+ (	) 
+ with gamma 
+ (	)
+check_entailment: Time: 0.161359
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+Right:
+	
+Gamma:
+	
+
+simplify_symb_state: Time: 0.161365
+simplify_symb_state: Time: 0.161371
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.161381
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 6.
+Return value: true
+
+Pfs to add to the antiframe after step 0: 
+I am about to bi-unify two gammas
+
+pat_gamma: 	
+	(##s_23: $$object_type).
+gamma: 	.
+subst: Substitution: 
+	##s_24: $lobj_proto;
+	 ##s_26: _lvar_37;
+	 ##s_27: _lvar_38;
+	 ##s_25: _lvar_36;
+	 ##s_22: $$t;
+	 ##s_21: "Object";
+	 ##s_23: $lg
+
+
+pat_var: (##s_23 : $$object_type) 
+found value: $lg
+unify_gamma. pat gamma var: ##s_23. le: $lg. v_type: $$object_type. le_type: $$object_type
+
+EXITING unify_gamma: res: true
+
+
+Checking if 	
+ entails 	
+	(! ("Object" == $$undefined))
+	(! ($$t == $$undefined))
+	($lg == _$l_3)
+ with existentials
+ _lvar_36 _lvar_37 _lvar_38
+and gamma 	
+check_entailment: Time: 0.161425
+Preparing entailment check:
+Existentials:
+_lvar_36, _lvar_37, _lvar_38
+Left:
+	
+Right:
+	
+	(! ("Object" == $$undefined))
+	(! ($$t == $$undefined))
+	($lg == _$l_3)
+Gamma:
+	
+
+simplify_symb_state: Time: 0.161432
+simplify_symb_state: Time: 0.161440
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+_lvar_36, _lvar_37, _lvar_38
+Left:
+	
+Right:
+	
+	($lg == _$l_3)
+
+Gamma:
+	
+
+
+ENT ENCODED: About to check the following:
+(forall ((x Real)) (>= (s-len x) 0.0)),
+(forall ((x JSIL_Literal_List)) (>= (l-len x) 0.0))
+Length of existentials: 3
+ENT: About to check the following:
+(forall ((x Real)) (>= (s-len x) 0.0)),
+(forall ((x JSIL_Literal_List)) (>= (l-len x) 0.0)),
+(not (= (Elem (Loc 0)) _$l_3))
+The solver returned: SAT
+I found the model: 
+
+(define-fun _$l_3 () Extended_JSIL_Literal
+  (Set (_ as-array k!45)))
+(define-fun k!45 ((x!0 JSIL_Literal)) Bool
+  false)
+(define-fun l-len ((x!0 JSIL_Literal_List)) Real
+  0.0)
+(define-fun s-len ((x!0 Real)) Real
+  0.0)
+entailment_check: false
+I found a match requering an AF
+anti_frame heap: 
+	_$l_3 |-> [("@extensible": ##s_27), ("@class": ##s_26), ("@proto": ##s_25), (default: $$unknown)]
+Entering apply_correct_specs.
+This was a PARTIAL MATCH with AF!!!!
+Entering compatible_pfs.
+pfs: 
+	
+pat_pfs: 
+	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+	(##s_23 == _$l_3)
+gamma: 
+	
+Substitution: 
+	##s_24: $lobj_proto;
+	 ##s_26: _lvar_37;
+	 ##s_27: _lvar_38;
+	 ##s_25: _lvar_36;
+	 ##s_22: $$t;
+	 ##s_21: "Object";
+	 ##s_23: $lg
+
+About to check sat of:
+	
+	(! ("Object" == $$undefined))
+	(! ($$t == $$undefined))
+	($lg == _$l_4)
+given
+	
+simplify_symb_state: Time: 0.173093
+About to check sat of:
+Pure formulae:
+	
+	($lg == _$l_4)
+Gamma:
+	
+
+
+Not found in cache. Cache length 6.
+SAT: About to check the following:
+(forall ((x Real)) (>= (s-len x) 0.0)),
+(forall ((x JSIL_Literal_List)) (>= (l-len x) 0.0)),
+(= (Elem (Loc 0)) _$l_4)
+The solver returned: SAT
+Adding ($lg == _$l_4) to cache. Cache length 7.
+Satisfiable: true
+Entering transform_symb_state.
+
+One postcondition found.
+Entering merge_symb_state_with_single_post.
+Entering compatible_pfs.
+pfs: 
+	
+	(! ("Object" == $$undefined))
+	(! ($$t == $$undefined))
+	($lg == _$l_4)
+pat_pfs: 
+	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+gamma: 
+	
+Substitution: 
+	##s_24: $lobj_proto;
+	 ##s_26: _lvar_37;
+	 _$l_3: _$l_4;
+	 ##s_27: _lvar_38;
+	 ##s_25: _lvar_36;
+	 ##s_22: $$t;
+	 ##s_21: "Object";
+	 ##s_23: $lg
+
+About to check sat of:
+	
+	(! ("Object" == $$undefined))
+	(! ($$t == $$undefined))
+	(! ("Object" == $$undefined))
+	(! ($$t == $$undefined))
+	($lg == _$l_4)
+given
+	
+simplify_symb_state: Time: 0.182958
+About to check sat of:
+Pure formulae:
+	
+	($lg == _$l_4)
+Gamma:
+	
+
+
+Found in cache. Cache length 7.
+Satisfiable: true
+The post makes sense.
+-------------------------------------------------------------------
+
+-------------INSIDE MERGE HEAPS------------------------------------
+
+-------------------------------------------------------------------
+
+heap: 
+	
+
+pat_heap: 
+	_$l_4 |-> [("@extensible": $$t), ("@class": "Object"), ("@proto": $lobj_proto), (default: $$unknown)]
+
+p_formulae: 	
+	(! ("Object" == $$undefined))
+	(! ($$t == $$undefined))
+	($lg == _$l_4)
+	(! ("Object" == $$undefined))
+	(! ($$t == $$undefined))
+
+gamma: 	
+
+Object: _$l_4
+Finished merging heaps.
+Finished merge_symb_states
+-------------------------------------------------------------------
+
+-------------INSIDE MERGE HEAPS------------------------------------
+
+-------------------------------------------------------------------
+
+heap: 
+	
+
+pat_heap: 
+	_$l_4 |-> [("@extensible": _lvar_38), ("@class": _lvar_37), ("@proto": _lvar_36), (default: $$unknown)]
+
+p_formulae: 	
+	(! ("Object" == $$undefined))
+	(! ($$t == $$undefined))
+	($lg == _$l_4)
+
+gamma: 	
+
+Object: _$l_4
+Finished merging heaps.
+simplify_symb_state: Time: 0.183071
+About to check sat of:
+Pure formulae:
+	
+	($lg == _$l_4)
+Gamma:
+	
+
+
+Found in cache. Cache length 7.
+Entering compatible_pfs.
+pfs: 
+	
+pat_pfs: 
+	
+	(! (##s_14 == $$undefined))
+	(##s_16 == _$l_2)
+	(##s_15 == $$undefined)
+gamma: 
+	
+Substitution: 
+	##s_15: $$t;
+	 ##s_17: $lobj_proto;
+	 ##s_18: _lvar_33;
+	 ##s_19: _lvar_34;
+	 ##s_16: $lg;
+	 ##s_14: "Object";
+	 ##s_20: _lvar_35
+
+About to check sat of:
+	
+	(! ("Object" == $$undefined))
+	($lg == _$l_5)
+	($$t == $$undefined)
+given
+	
+simplify_symb_state: Time: 0.183109
+Pure formulae flat-out false. Pure formulae false.
+About to check sat of:
+Pure formulae:
+	
+	false
+Gamma:
+	
+
+
+Found in cache. Cache length 7.
+Satisfiable: false
+Entering compatible_pfs.
+pfs: 
+	
+pat_pfs: 
+	
+	(! (##s_8 == $$undefined))
+	(##s_12 == _$l_1)
+	(##s_7 == $$undefined)
+gamma: 
+	
+Substitution: 
+	##s_10: _lvar_30;
+	 ##s_7: "Object";
+	 ##s_11: _lvar_31;
+	 ##s_12: $lg;
+	 ##s_9: _lvar_32;
+	 ##s_8: $$t;
+	 ##s_13: $lobj_proto
+
+About to check sat of:
+	
+	(! ($$t == $$undefined))
+	($lg == _$l_6)
+	("Object" == $$undefined)
+given
+	
+simplify_symb_state: Time: 0.183156
+Pure formulae flat-out false. Pure formulae false.
+About to check sat of:
+Pure formulae:
+	
+	false
+Gamma:
+	
+
+
+Found in cache. Cache length 7.
+Satisfiable: false
+Entering compatible_pfs.
+pfs: 
+	
+pat_pfs: 
+	
+	(##s_1 == $$undefined)
+	(##s_0 == $$undefined)
+	(##s_2 == _$l_0)
+gamma: 
+	
+Substitution: 
+	##s_1: $$t;
+	 ##s_3: $lobj_proto;
+	 ##s_5: _lvar_28;
+	 ##s_0: "Object";
+	 ##s_2: $lg;
+	 ##s_4: _lvar_27;
+	 ##s_6: _lvar_29
+
+About to check sat of:
+	
+	($$t == $$undefined)
+	("Object" == $$undefined)
+	($lg == _$l_7)
+given
+	
+simplify_symb_state: Time: 0.183187
+Pure formulae flat-out false. Pure formulae false.
+About to check sat of:
+Pure formulae:
+	
+	false
+Gamma:
+	
+
+
+Found in cache. Cache length 7.
+Satisfiable: false
+simplify_symb_state: Time: 0.183202
+simplify_symb_state: Time: 0.183220
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_4 |-> [(\"@extensible\": _lvar_38), (\"@class\": _lvar_37), (\"@proto\": _lvar_36), (default: $$unknown)]
+Store: 	
+Pure Formulae: 	
+	(! (\"Object\" == $$undefined))
+	(! ($$t == $$undefined))
+	($lg == _$l_4)
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.183248
+----------------------------------
+--1--
+TIME: 0.183272
+ ---- STATE: ---- 
+Heap: 
+	_$l_4 |-> [(\"@extensible\": $$t), (\"@class\": \"Object\"), (\"@proto\": $lobj_proto), (default: $$unknown)]
+Store: 	
+	(xret: _$l_4)
+Pure Formulae: 	
+	($lg == _$l_4)
+Gamma: 	
+	(xret: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_4 |-> [(\"@extensible\": _lvar_38), (\"@class\": _lvar_37), (\"@proto\": _lvar_36), (default: $$unknown)]
+Store: 	
+Pure Formulae: 	
+	(! (\"Object\" == $$undefined))
+	(! ($$t == $$undefined))
+	($lg == _$l_4)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: xret := $$empty
+----------------------------------
+simplify_symb_state: Time: 0.183278
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_4 |-> [(\"@extensible\": $$t), (\"@class\": \"Object\"), (\"@proto\": $lobj_proto), (default: $$unknown)]
+Store: 	
+	(xret: $$empty)
+Pure Formulae: 	
+	($lg == _$l_4)
+Gamma: 	
+	(xret: $$empty_type)
+Preds: 
+
+LVARS: 
+Unifying stores:
+Store: 	
+	(xret: $$empty) 
+Pat_store: 	
+Discharges: 0
+
+Pfs to add to the antiframe after unify stores: 
+Unify heaps 
+	 
+and 
+	_$l_4 |-> [("@extensible": $$t), ("@class": "Object"), ("@proto": $lobj_proto), (default: $$unknown)] 
+with substitution: Substitution: 
+	
+
+with pure formulae: 	
+	($lg == _$l_4)
+with gamma: 	
+	(xret: $$empty_type)
+PatHeapDomain: 
+Heap again 
+	_$l_4 |-> [("@extensible": $$t), ("@class": "Object"), ("@proto": $lobj_proto), (default: $$unknown)]
+End of unify_symb_heaps: do enjoy the quotient_heap: 
+	_$l_4 |-> [("@extensible": $$t), ("@class": "Object"), ("@proto": $lobj_proto), (default: $$unknown)]
+Heaps unified successfully.
+
+Entering unify_pred_arrays.
+Check if 
+ (	($lg == _$l_4)) 
+ entails 
+ (	) 
+ with gamma 
+ (	
+	(xret: $$empty_type))
+check_entailment: Time: 0.183369
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	($lg == _$l_4)
+Right:
+	
+Gamma:
+	
+	(xret: $$empty_type)
+
+simplify_symb_state: Time: 0.183376
+simplify_symb_state: Time: 0.183383
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+	($lg == _$l_4)
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.183395
+About to check sat of:
+Pure formulae:
+	
+	($lg == _$l_4)
+Gamma:
+	
+
+
+Found in cache. Cache length 7.
+Return value: true
+
+Pfs to add to the antiframe after step 0: 
+I am about to bi-unify two gammas
+
+pat_gamma: 	.
+gamma: 	
+	(xret: $$empty_type).
+subst: Substitution: 
+	
+
+
+
+EXITING unify_gamma: res: true
+
+
+Checking if 	
+	($lg == _$l_4)
+ entails 	
+ with existentials
+
+and gamma 	
+	(xret: $$empty_type)
+check_entailment: Time: 0.183432
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	($lg == _$l_4)
+Right:
+	
+Gamma:
+	
+	(xret: $$empty_type)
+
+simplify_symb_state: Time: 0.183438
+simplify_symb_state: Time: 0.183445
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+	($lg == _$l_4)
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.183456
+About to check sat of:
+Pure formulae:
+	
+	($lg == _$l_4)
+Gamma:
+	
+
+
+Found in cache. Cache length 7.
+entailment_check: true
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_4 |-> [(\"@extensible\": $$t), (\"@class\": \"Object\"), (\"@proto\": $lobj_proto), (default: $$unknown)]
+Store: 	
+	(xret: $$empty)
+Pure Formulae: 	
+	($lg == _$l_4)
+Gamma: 	
+	(xret: $$empty_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_4 |-> [(\"@extensible\": _lvar_38), (\"@class\": _lvar_37), (\"@proto\": _lvar_36), (default: $$unknown)]
+Store: 	
+Pure Formulae: 	
+	(! (\"Object\" == $$undefined))
+	(! ($$t == $$undefined))
+	($lg == _$l_4)
+Gamma: 	
+Preds: 
+
+-------------------------------------------------------------------
+
+-------------INSIDE MERGE HEAPS------------------------------------
+
+-------------------------------------------------------------------
+
+heap: 
+	_$l_4 |-> [("@extensible": $$t), ("@class": "Object"), ("@proto": $lobj_proto), (default: $$unknown)]
+
+pat_heap: 
+	
+
+p_formulae: 	
+	($lg == _$l_4)
+
+gamma: 	
+	(xret: $$empty_type)
+
+Finished merging heaps.
+-------------------------------------------------------------------
+
+-------------INSIDE MERGE HEAPS------------------------------------
+
+-------------------------------------------------------------------
+
+heap: 
+	_$l_4 |-> [("@extensible": _lvar_38), ("@class": _lvar_37), ("@proto": _lvar_36), (default: $$unknown)]
+
+pat_heap: 
+	
+
+p_formulae: 	
+	(! ("Object" == $$undefined))
+	(! ($$t == $$undefined))
+	($lg == _$l_4)
+
+gamma: 	
+
+Finished merging heaps.
+Symb_state: Heap: 
+	_$l_4 |-> [(\"@extensible\": $$t), (\"@class\": \"Object\"), (\"@proto\": $lobj_proto), (default: $$unknown)]
+Store: 	
+	(xret: $$empty)
+Pure Formulae: 	
+	($lg == _$l_4)
+Gamma: 	
+	(xret: $$empty_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_4 |-> [(\"@extensible\": _lvar_38), (\"@class\": _lvar_37), (\"@proto\": _lvar_36), (default: $$unknown)]
+Store: 	
+Pure Formulae: 	
+	(! (\"Object\" == $$undefined))
+	(! ($$t == $$undefined))
+	($lg == _$l_4)
+Gamma: 	
+Preds: 
+
+simplify_symb_state: Time: 0.183549
+simplify_symb_state: Time: 0.183577
+----------------------------------
+----------------------------------
+----------------------------------
+
+-------------------------------------------------------------------
+
+-------------INSIDE MERGE HEAPS------------------------------------
+
+-------------------------------------------------------------------
+
+heap: 
+	_$l_4 |-> [("@extensible": _lvar_38), ("@class": _lvar_37), ("@proto": _lvar_36), (default: $$unknown)]
+
+pat_heap: 
+	
+
+p_formulae: 	
+	($lg == _$l_4)
+
+gamma: 	
+
+Finished merging heaps.
+Spec Var: ##s_28
+Spec Var: ##s_29
+Spec Var: ##s_30
+Spec Var: xret
+
+********** Finished bi-abduction symbolic execution. **********
+
+
+**********    Starting normal symbolic execution.    **********
+
+Normalising predicate definitions.
+
+----------------------------------
+----------------------------------
+Symbolic execution of create_default_object
+Initial symbolic state:
+Heap: 
+	_$l_0 |-> [(\"@extensible\": ##s_6), (\"@class\": ##s_5), (\"@proto\": ##s_4), (default: $$unknown)]
+Store: 	
+	(pr: ##s_3)
+	(ext: ##s_1)
+	(cl: ##s_0)
+	(l: ##s_2)
+Pure Formulae: 	
+	(##s_1 == $$undefined)
+	(##s_0 == $$undefined)
+	(##s_2 == _$l_0)
+Gamma: 	
+	(##s_1: $$undefined_type)
+	(##s_0: $$undefined_type)
+	(##s_2: $$object_type)
+Preds: 
+
+Spec vars (symb_evaluate_next_cmd_cont): ##s_3
+simplify_symb_state: Time: 0.183803
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_3
+simplify_symb_state: Time: 0.183857
+----------------------------------
+--0--
+TIME: 0.183894
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@extensible\": ##s_6), (\"@class\": ##s_5), (\"@proto\": ##s_4), (default: $$unknown)]
+Store: 	
+	(pr: ##s_3)
+	(ext: $$undefined)
+	(cl: $$undefined)
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$undefined_type)
+	(cl: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+CMD: goto [(cl = $$undefined)] 1 2
+----------------------------------
+Guarded Goto: Evaluated expression: (cl = $$undefined) --> $$t
+
+Lifted assertion: true
+
+Checking if:
+	
+	entails
+	true
+
+check_entailment: Time: 0.183914
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+Right:
+	
+	true
+Gamma:
+	
+	(ext: $$undefined_type)
+	(cl: $$undefined_type)
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.183921
+simplify_symb_state: Time: 0.183928
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.183938
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 7.
+in the THEN branch
+simplify_symb_state: Time: 0.183950
+Spec vars (symb_evaluate_next_cmd_cont): ##s_3
+simplify_symb_state: Time: 0.183981
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_3
+simplify_symb_state: Time: 0.184017
+----------------------------------
+--1--
+TIME: 0.184050
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@extensible\": ##s_6), (\"@class\": ##s_5), (\"@proto\": ##s_4), (default: $$unknown)]
+Store: 	
+	(pr: ##s_3)
+	(ext: $$undefined)
+	(cl: $$undefined)
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$undefined_type)
+	(cl: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+CMD: cl := "Object"
+----------------------------------
+simplify_symb_state: Time: 0.184059
+Spec vars (symb_evaluate_next_cmd_cont): ##s_3
+simplify_symb_state: Time: 0.184089
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_3
+simplify_symb_state: Time: 0.184124
+----------------------------------
+--2--
+TIME: 0.184157
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@extensible\": ##s_6), (\"@class\": ##s_5), (\"@proto\": ##s_4), (default: $$unknown)]
+Store: 	
+	(pr: ##s_3)
+	(ext: $$undefined)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$undefined_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+CMD: goto [(ext = $$undefined)] 3 4
+----------------------------------
+Guarded Goto: Evaluated expression: (ext = $$undefined) --> $$t
+
+Lifted assertion: true
+
+Checking if:
+	
+	entails
+	true
+
+check_entailment: Time: 0.184166
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+Right:
+	
+	true
+Gamma:
+	
+	(ext: $$undefined_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.184173
+simplify_symb_state: Time: 0.184179
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.184190
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 7.
+in the THEN branch
+simplify_symb_state: Time: 0.184200
+Spec vars (symb_evaluate_next_cmd_cont): ##s_3
+simplify_symb_state: Time: 0.184230
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_3
+simplify_symb_state: Time: 0.184265
+----------------------------------
+--3--
+TIME: 0.184297
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@extensible\": ##s_6), (\"@class\": ##s_5), (\"@proto\": ##s_4), (default: $$unknown)]
+Store: 	
+	(pr: ##s_3)
+	(ext: $$undefined)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$undefined_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+CMD: ext := $$t
+----------------------------------
+simplify_symb_state: Time: 0.184302
+Spec vars (symb_evaluate_next_cmd_cont): ##s_3
+simplify_symb_state: Time: 0.184319
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_3
+simplify_symb_state: Time: 0.184344
+----------------------------------
+--4--
+TIME: 0.188394
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@extensible\": ##s_6), (\"@class\": ##s_5), (\"@proto\": ##s_4), (default: $$unknown)]
+Store: 	
+	(pr: ##s_3)
+	(ext: $$t)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$boolean_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+CMD: [l, "@proto"] := pr
+----------------------------------
+simplify_symb_state: Time: 0.188427
+Spec vars (symb_evaluate_next_cmd_cont): ##s_3
+simplify_symb_state: Time: 0.188469
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_3
+simplify_symb_state: Time: 0.188497
+----------------------------------
+--5--
+TIME: 0.188519
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@proto\": ##s_3), (\"@class\": ##s_5), (\"@extensible\": ##s_6), (default: $$unknown)]
+Store: 	
+	(pr: ##s_3)
+	(ext: $$t)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$boolean_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+CMD: [l, "@class"] := cl
+----------------------------------
+simplify_symb_state: Time: 0.188525
+Spec vars (symb_evaluate_next_cmd_cont): ##s_3
+simplify_symb_state: Time: 0.188543
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_3
+simplify_symb_state: Time: 0.188566
+----------------------------------
+--6--
+TIME: 0.188587
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@class\": \"Object\"), (\"@proto\": ##s_3), (\"@extensible\": ##s_6), (default: $$unknown)]
+Store: 	
+	(pr: ##s_3)
+	(ext: $$t)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$boolean_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+CMD: [l, "@extensible"] := ext
+----------------------------------
+simplify_symb_state: Time: 0.188593
+Spec vars (symb_evaluate_next_cmd_cont): ##s_3
+simplify_symb_state: Time: 0.188611
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_3
+simplify_symb_state: Time: 0.188633
+----------------------------------
+--7--
+TIME: 0.188654
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@extensible\": $$t), (\"@proto\": ##s_3), (\"@class\": \"Object\"), (default: $$unknown)]
+Store: 	
+	(pr: ##s_3)
+	(ext: $$t)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$boolean_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+CMD: xret := l
+----------------------------------
+simplify_symb_state: Time: 0.188658
+unify_symb_states with the following specvars: ##s_3
+Current substitution: Substitution: 
+	##s_3: ##s_3
+
+Unifying stores:
+Store: 	
+	(pr: ##s_3)
+	(ext: $$t)
+	(xret: _$l_0)
+	(cl: "Object")
+	(l: _$l_0)
+Pat_store: 	
+	(pr: ##s_3)
+	(ext: $$t)
+	(xret: _$l_0)
+	(cl: "Object")
+	(l: _$l_0)
+Discharges: 1
+
+	##s_3 : ##s_3
+
+Unify heaps 
+	_$l_0 |-> [("@extensible": $$t), ("@class": "Object"), ("@proto": ##s_3), (default: $$unknown)] 
+and 
+	_$l_0 |-> [("@extensible": $$t), ("@proto": ##s_3), ("@class": "Object"), (default: $$unknown)] 
+with substitution: Substitution: 
+	##s_3: ##s_3;
+	 _$l_0: _$l_0
+
+with pure formulae: 	
+with gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+PatHeapDomain: _$l_0
+pick_pat_loc
+
+Location: _$l_0
+Substitution: _$l_0
+Adding sth to QH.
+QH: 
+	_$l_0 |-> [(default: $$unknown)]
+Heap again 
+	_$l_0 |-> [("@extensible": $$t), ("@proto": ##s_3), ("@class": "Object"), (default: $$unknown)]
+End of unify_symb_heaps: do enjoy the quotient_heap: 
+	
+Heaps unified successfully. Unifying predicates.
+
+Entering unify_pred_arrays.
+Check if 
+ (	) 
+ entails 
+ (	(##s_3 == ##s_3)) 
+ with gamma 
+ (	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type))
+check_entailment: Time: 0.188781
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+Right:
+	
+	(##s_3 == ##s_3)
+Gamma:
+	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.188796
+simplify_symb_state: Time: 0.188804
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.188816
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 7.
+Return value: true
+
+Current substitution again: Substitution: 
+	##s_3: ##s_3;
+	 _$l_0: _$l_0
+
+I am about to unify two gammas
+
+pat_gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type).
+gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type).
+subst: Substitution: 
+	##s_3: ##s_3;
+	 _$l_0: _$l_0
+
+
+pat_var: (ext : $$boolean_type) 
+found value: $$t
+unify_gamma. pat gamma var: ext. le: $$t. v_type: $$boolean_type. le_type: $$boolean_type
+pat_var: (xret : $$object_type) 
+found value: _$l_0
+unify_gamma. pat gamma var: xret. le: _$l_0. v_type: $$object_type. le_type: $$object_type
+pat_var: (cl : $$string_type) 
+found value: "Object"
+unify_gamma. pat gamma var: cl. le: "Object". v_type: $$string_type. le_type: $$string_type
+pat_var: (l : $$object_type) 
+found value: _$l_0
+unify_gamma. pat gamma var: l. le: _$l_0. v_type: $$object_type. le_type: $$object_type
+
+EXITING unify_gamma: res: true
+
+
+Checking if 	
+ entails 	
+	(##s_3 == ##s_3)
+ with existentials
+
+and gamma 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+check_entailment: Time: 0.188885
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+Right:
+	
+	(##s_3 == ##s_3)
+Gamma:
+	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.188892
+simplify_symb_state: Time: 0.188899
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.188910
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 7.
+unify_gamma_check: true. entailment_check: true
+Verified one spec of proc create_default_object
+----------------------------------
+----------------------------------
+----------------------------------
+
+----------------------------------
+----------------------------------
+Symbolic execution of create_default_object
+Initial symbolic state:
+Heap: 
+	_$l_1 |-> [(\"@extensible\": ##s_11), (\"@class\": ##s_10), (\"@proto\": ##s_9), (default: $$unknown)]
+Store: 	
+	(pr: ##s_13)
+	(ext: ##s_8)
+	(cl: ##s_7)
+	(l: ##s_12)
+Pure Formulae: 	
+	(! (##s_8 == $$undefined))
+	(##s_12 == _$l_1)
+	(##s_7 == $$undefined)
+Gamma: 	
+	(##s_7: $$undefined_type)
+	(##s_12: $$object_type)
+Preds: 
+
+Spec vars (symb_evaluate_next_cmd_cont): ##s_13, ##s_8
+simplify_symb_state: Time: 0.189009
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_13, ##s_8
+simplify_symb_state: Time: 0.189063
+----------------------------------
+--0--
+TIME: 0.189100
+STATE:
+Heap: 
+	_$l_1 |-> [(\"@extensible\": ##s_11), (\"@class\": ##s_10), (\"@proto\": ##s_9), (default: $$unknown)]
+Store: 	
+	(pr: ##s_13)
+	(ext: ##s_8)
+	(cl: $$undefined)
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (##s_8 == $$undefined))
+Gamma: 	
+	(cl: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+CMD: goto [(cl = $$undefined)] 1 2
+----------------------------------
+Guarded Goto: Evaluated expression: (cl = $$undefined) --> $$t
+
+Lifted assertion: true
+
+Checking if:
+	(! (##s_8 == $$undefined))
+	entails
+	true
+
+check_entailment: Time: 0.189111
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(! (##s_8 == $$undefined))
+Right:
+	
+	true
+Gamma:
+	
+	(cl: $$undefined_type)
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.189118
+simplify_symb_state: Time: 0.189125
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+	(! (##s_8 == $$undefined))
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.189137
+About to check sat of:
+Pure formulae:
+	
+	(! (##s_8 == $$undefined))
+Gamma:
+	
+
+
+Not found in cache. Cache length 7.
+SAT: About to check the following:
+(forall ((x Real)) (>= (s-len x) 0.0)),
+(forall ((x JSIL_Literal_List)) (>= (l-len x) 0.0)),
+(not (= |##s_8| (Elem Undefined)))
+The solver returned: SAT
+Adding (! (##s_8 == $$undefined)) to cache. Cache length 8.
+in the THEN branch
+simplify_symb_state: Time: 0.197842
+Spec vars (symb_evaluate_next_cmd_cont): ##s_13, ##s_8
+simplify_symb_state: Time: 0.197898
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_13, ##s_8
+simplify_symb_state: Time: 0.197941
+----------------------------------
+--1--
+TIME: 0.198022
+STATE:
+Heap: 
+	_$l_1 |-> [(\"@extensible\": ##s_11), (\"@class\": ##s_10), (\"@proto\": ##s_9), (default: $$unknown)]
+Store: 	
+	(pr: ##s_13)
+	(ext: ##s_8)
+	(cl: $$undefined)
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (##s_8 == $$undefined))
+Gamma: 	
+	(cl: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+CMD: cl := "Object"
+----------------------------------
+simplify_symb_state: Time: 0.198029
+Spec vars (symb_evaluate_next_cmd_cont): ##s_13, ##s_8
+simplify_symb_state: Time: 0.198066
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_13, ##s_8
+simplify_symb_state: Time: 0.198095
+----------------------------------
+--2--
+TIME: 0.198118
+STATE:
+Heap: 
+	_$l_1 |-> [(\"@extensible\": ##s_11), (\"@class\": ##s_10), (\"@proto\": ##s_9), (default: $$unknown)]
+Store: 	
+	(pr: ##s_13)
+	(ext: ##s_8)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (##s_8 == $$undefined))
+Gamma: 	
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+CMD: goto [(ext = $$undefined)] 3 4
+----------------------------------
+Guarded Goto: Evaluated expression: (ext = $$undefined) --> (##s_8 = $$undefined)
+
+Lifted assertion: (##s_8 == $$undefined)
+
+Checking if:
+	(! (##s_8 == $$undefined))
+	entails
+	(##s_8 == $$undefined)
+
+check_entailment: Time: 0.198131
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(! (##s_8 == $$undefined))
+Right:
+	
+	(##s_8 == $$undefined)
+Gamma:
+	
+	(cl: $$string_type)
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.198140
+simplify_symb_state: Time: 0.198148
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+	false
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.198165
+Pure formulae flat-out false. Pure formulae false.
+About to check sat of:
+Pure formulae:
+	
+	false
+Gamma:
+	
+
+
+Found in cache. Cache length 8.
+check_entailment: Time: 0.198178
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(! (##s_8 == $$undefined))
+Right:
+	
+	(! (##s_8 == $$undefined))
+Gamma:
+	
+	(cl: $$string_type)
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.198185
+simplify_symb_state: Time: 0.198192
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+	(! (##s_8 == $$undefined))
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.198205
+About to check sat of:
+Pure formulae:
+	
+	(! (##s_8 == $$undefined))
+Gamma:
+	
+
+
+Found in cache. Cache length 8.
+in the ELSE branch
+simplify_symb_state: Time: 0.198216
+Spec vars (symb_evaluate_next_cmd_cont): ##s_13, ##s_8
+simplify_symb_state: Time: 0.198236
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_13, ##s_8
+simplify_symb_state: Time: 0.198260
+----------------------------------
+--4--
+TIME: 0.198282
+STATE:
+Heap: 
+	_$l_1 |-> [(\"@extensible\": ##s_11), (\"@class\": ##s_10), (\"@proto\": ##s_9), (default: $$unknown)]
+Store: 	
+	(pr: ##s_13)
+	(ext: ##s_8)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (##s_8 == $$undefined))
+Gamma: 	
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+CMD: [l, "@proto"] := pr
+----------------------------------
+simplify_symb_state: Time: 0.198288
+Spec vars (symb_evaluate_next_cmd_cont): ##s_13, ##s_8
+simplify_symb_state: Time: 0.198308
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_13, ##s_8
+simplify_symb_state: Time: 0.198333
+----------------------------------
+--5--
+TIME: 0.198354
+STATE:
+Heap: 
+	_$l_1 |-> [(\"@proto\": ##s_13), (\"@class\": ##s_10), (\"@extensible\": ##s_11), (default: $$unknown)]
+Store: 	
+	(pr: ##s_13)
+	(ext: ##s_8)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (##s_8 == $$undefined))
+Gamma: 	
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+CMD: [l, "@class"] := cl
+----------------------------------
+simplify_symb_state: Time: 0.198360
+Spec vars (symb_evaluate_next_cmd_cont): ##s_13, ##s_8
+simplify_symb_state: Time: 0.198378
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_13, ##s_8
+simplify_symb_state: Time: 0.198402
+----------------------------------
+--6--
+TIME: 0.198424
+STATE:
+Heap: 
+	_$l_1 |-> [(\"@class\": \"Object\"), (\"@proto\": ##s_13), (\"@extensible\": ##s_11), (default: $$unknown)]
+Store: 	
+	(pr: ##s_13)
+	(ext: ##s_8)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (##s_8 == $$undefined))
+Gamma: 	
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+CMD: [l, "@extensible"] := ext
+----------------------------------
+simplify_symb_state: Time: 0.198429
+Spec vars (symb_evaluate_next_cmd_cont): ##s_13, ##s_8
+simplify_symb_state: Time: 0.198448
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_13, ##s_8
+simplify_symb_state: Time: 0.198471
+----------------------------------
+--7--
+TIME: 0.198493
+STATE:
+Heap: 
+	_$l_1 |-> [(\"@extensible\": ##s_8), (\"@proto\": ##s_13), (\"@class\": \"Object\"), (default: $$unknown)]
+Store: 	
+	(pr: ##s_13)
+	(ext: ##s_8)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (##s_8 == $$undefined))
+Gamma: 	
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+CMD: xret := l
+----------------------------------
+simplify_symb_state: Time: 0.198502
+unify_symb_states with the following specvars: ##s_13, ##s_8
+Current substitution: Substitution: 
+	##s_8: ##s_8;
+	 ##s_13: ##s_13
+
+Unifying stores:
+Store: 	
+	(pr: ##s_13)
+	(ext: ##s_8)
+	(xret: _$l_1)
+	(cl: "Object")
+	(l: _$l_1)
+Pat_store: 	
+	(pr: ##s_13)
+	(ext: ##s_8)
+	(xret: _$l_1)
+	(cl: "Object")
+	(l: _$l_1)
+Discharges: 2
+
+	##s_8 : ##s_8
+
+	##s_13 : ##s_13
+
+Unify heaps 
+	_$l_1 |-> [("@extensible": ##s_8), ("@class": "Object"), ("@proto": ##s_13), (default: $$unknown)] 
+and 
+	_$l_1 |-> [("@extensible": ##s_8), ("@proto": ##s_13), ("@class": "Object"), (default: $$unknown)] 
+with substitution: Substitution: 
+	_$l_1: _$l_1;
+	 ##s_8: ##s_8;
+	 ##s_13: ##s_13
+
+with pure formulae: 	
+	(! (##s_8 == $$undefined))
+with gamma: 	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+PatHeapDomain: _$l_1
+pick_pat_loc
+
+Location: _$l_1
+Substitution: _$l_1
+Adding sth to QH.
+QH: 
+	_$l_1 |-> [(default: $$unknown)]
+Heap again 
+	_$l_1 |-> [("@extensible": ##s_8), ("@proto": ##s_13), ("@class": "Object"), (default: $$unknown)]
+End of unify_symb_heaps: do enjoy the quotient_heap: 
+	
+Heaps unified successfully. Unifying predicates.
+
+Entering unify_pred_arrays.
+Check if 
+ (	(! (##s_8 == $$undefined))) 
+ entails 
+ (	(##s_8 == ##s_8)
+	(##s_13 == ##s_13)) 
+ with gamma 
+ (	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type))
+check_entailment: Time: 0.198615
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(! (##s_8 == $$undefined))
+Right:
+	
+	(##s_8 == ##s_8)
+	(##s_13 == ##s_13)
+Gamma:
+	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.198623
+simplify_symb_state: Time: 0.198631
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+	(! (##s_8 == $$undefined))
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.198642
+About to check sat of:
+Pure formulae:
+	
+	(! (##s_8 == $$undefined))
+Gamma:
+	
+
+
+Found in cache. Cache length 8.
+Return value: true
+
+Current substitution again: Substitution: 
+	_$l_1: _$l_1;
+	 ##s_8: ##s_8;
+	 ##s_13: ##s_13
+
+I am about to unify two gammas
+
+pat_gamma: 	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type).
+gamma: 	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type).
+subst: Substitution: 
+	_$l_1: _$l_1;
+	 ##s_8: ##s_8;
+	 ##s_13: ##s_13
+
+
+pat_var: (xret : $$object_type) 
+found value: _$l_1
+unify_gamma. pat gamma var: xret. le: _$l_1. v_type: $$object_type. le_type: $$object_type
+pat_var: (cl : $$string_type) 
+found value: "Object"
+unify_gamma. pat gamma var: cl. le: "Object". v_type: $$string_type. le_type: $$string_type
+pat_var: (l : $$object_type) 
+found value: _$l_1
+unify_gamma. pat gamma var: l. le: _$l_1. v_type: $$object_type. le_type: $$object_type
+
+EXITING unify_gamma: res: true
+
+
+Checking if 	
+	(! (##s_8 == $$undefined))
+ entails 	
+	(! (##s_8 == $$undefined))
+	(##s_13 == ##s_13)
+	(##s_8 == ##s_8)
+ with existentials
+
+and gamma 	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+check_entailment: Time: 0.198698
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(! (##s_8 == $$undefined))
+Right:
+	
+	(! (##s_8 == $$undefined))
+	(##s_13 == ##s_13)
+	(##s_8 == ##s_8)
+Gamma:
+	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.198706
+simplify_symb_state: Time: 0.198714
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+	(! (##s_8 == $$undefined))
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.198726
+About to check sat of:
+Pure formulae:
+	
+	(! (##s_8 == $$undefined))
+Gamma:
+	
+
+
+Found in cache. Cache length 8.
+unify_gamma_check: true. entailment_check: true
+Verified one spec of proc create_default_object
+----------------------------------
+----------------------------------
+----------------------------------
+
+----------------------------------
+----------------------------------
+Symbolic execution of create_default_object
+Initial symbolic state:
+Heap: 
+	_$l_2 |-> [(\"@extensible\": ##s_20), (\"@class\": ##s_19), (\"@proto\": ##s_18), (default: $$unknown)]
+Store: 	
+	(pr: ##s_17)
+	(ext: ##s_15)
+	(cl: ##s_14)
+	(l: ##s_16)
+Pure Formulae: 	
+	(! (##s_14 == $$undefined))
+	(##s_16 == _$l_2)
+	(##s_15 == $$undefined)
+Gamma: 	
+	(##s_15: $$undefined_type)
+	(##s_16: $$object_type)
+Preds: 
+
+Spec vars (symb_evaluate_next_cmd_cont): ##s_14, ##s_17
+simplify_symb_state: Time: 0.198828
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_14, ##s_17
+simplify_symb_state: Time: 0.198880
+----------------------------------
+--0--
+TIME: 0.198917
+STATE:
+Heap: 
+	_$l_2 |-> [(\"@extensible\": ##s_20), (\"@class\": ##s_19), (\"@proto\": ##s_18), (default: $$unknown)]
+Store: 	
+	(pr: ##s_17)
+	(ext: $$undefined)
+	(cl: ##s_14)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (##s_14 == $$undefined))
+Gamma: 	
+	(ext: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+CMD: goto [(cl = $$undefined)] 1 2
+----------------------------------
+Guarded Goto: Evaluated expression: (cl = $$undefined) --> (##s_14 = $$undefined)
+
+Lifted assertion: (##s_14 == $$undefined)
+
+Checking if:
+	(! (##s_14 == $$undefined))
+	entails
+	(##s_14 == $$undefined)
+
+check_entailment: Time: 0.198929
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(! (##s_14 == $$undefined))
+Right:
+	
+	(##s_14 == $$undefined)
+Gamma:
+	
+	(ext: $$undefined_type)
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.198937
+simplify_symb_state: Time: 0.198944
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+	false
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.198958
+Pure formulae flat-out false. Pure formulae false.
+About to check sat of:
+Pure formulae:
+	
+	false
+Gamma:
+	
+
+
+Found in cache. Cache length 8.
+check_entailment: Time: 0.198969
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(! (##s_14 == $$undefined))
+Right:
+	
+	(! (##s_14 == $$undefined))
+Gamma:
+	
+	(ext: $$undefined_type)
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.198976
+simplify_symb_state: Time: 0.198983
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+	(! (##s_14 == $$undefined))
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.198995
+About to check sat of:
+Pure formulae:
+	
+	(! (##s_14 == $$undefined))
+Gamma:
+	
+
+
+Not found in cache. Cache length 8.
+SAT: About to check the following:
+(forall ((x Real)) (>= (s-len x) 0.0)),
+(forall ((x JSIL_Literal_List)) (>= (l-len x) 0.0)),
+(not (= |##s_14| (Elem Undefined)))
+The solver returned: SAT
+Adding (! (##s_14 == $$undefined)) to cache. Cache length 9.
+in the ELSE branch
+simplify_symb_state: Time: 0.207992
+Spec vars (symb_evaluate_next_cmd_cont): ##s_14, ##s_17
+simplify_symb_state: Time: 0.208048
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_14, ##s_17
+simplify_symb_state: Time: 0.208092
+----------------------------------
+--2--
+TIME: 0.208128
+STATE:
+Heap: 
+	_$l_2 |-> [(\"@extensible\": ##s_20), (\"@class\": ##s_19), (\"@proto\": ##s_18), (default: $$unknown)]
+Store: 	
+	(pr: ##s_17)
+	(ext: $$undefined)
+	(cl: ##s_14)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (##s_14 == $$undefined))
+Gamma: 	
+	(ext: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+CMD: goto [(ext = $$undefined)] 3 4
+----------------------------------
+Guarded Goto: Evaluated expression: (ext = $$undefined) --> $$t
+
+Lifted assertion: true
+
+Checking if:
+	(! (##s_14 == $$undefined))
+	entails
+	true
+
+check_entailment: Time: 0.208141
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(! (##s_14 == $$undefined))
+Right:
+	
+	true
+Gamma:
+	
+	(ext: $$undefined_type)
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.208149
+simplify_symb_state: Time: 0.208157
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+	(! (##s_14 == $$undefined))
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.208170
+About to check sat of:
+Pure formulae:
+	
+	(! (##s_14 == $$undefined))
+Gamma:
+	
+
+
+Found in cache. Cache length 9.
+in the THEN branch
+simplify_symb_state: Time: 0.208199
+Spec vars (symb_evaluate_next_cmd_cont): ##s_14, ##s_17
+simplify_symb_state: Time: 0.208230
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_14, ##s_17
+simplify_symb_state: Time: 0.208268
+----------------------------------
+--3--
+TIME: 0.208302
+STATE:
+Heap: 
+	_$l_2 |-> [(\"@extensible\": ##s_20), (\"@class\": ##s_19), (\"@proto\": ##s_18), (default: $$unknown)]
+Store: 	
+	(pr: ##s_17)
+	(ext: $$undefined)
+	(cl: ##s_14)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (##s_14 == $$undefined))
+Gamma: 	
+	(ext: $$undefined_type)
+	(l: $$object_type)
+Preds: 
+CMD: ext := $$t
+----------------------------------
+simplify_symb_state: Time: 0.208308
+Spec vars (symb_evaluate_next_cmd_cont): ##s_14, ##s_17
+simplify_symb_state: Time: 0.208328
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_14, ##s_17
+simplify_symb_state: Time: 0.208352
+----------------------------------
+--4--
+TIME: 0.208375
+STATE:
+Heap: 
+	_$l_2 |-> [(\"@extensible\": ##s_20), (\"@class\": ##s_19), (\"@proto\": ##s_18), (default: $$unknown)]
+Store: 	
+	(pr: ##s_17)
+	(ext: $$t)
+	(cl: ##s_14)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (##s_14 == $$undefined))
+Gamma: 	
+	(ext: $$boolean_type)
+	(l: $$object_type)
+Preds: 
+CMD: [l, "@proto"] := pr
+----------------------------------
+simplify_symb_state: Time: 0.208381
+Spec vars (symb_evaluate_next_cmd_cont): ##s_14, ##s_17
+simplify_symb_state: Time: 0.208400
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_14, ##s_17
+simplify_symb_state: Time: 0.208425
+----------------------------------
+--5--
+TIME: 0.208447
+STATE:
+Heap: 
+	_$l_2 |-> [(\"@proto\": ##s_17), (\"@class\": ##s_19), (\"@extensible\": ##s_20), (default: $$unknown)]
+Store: 	
+	(pr: ##s_17)
+	(ext: $$t)
+	(cl: ##s_14)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (##s_14 == $$undefined))
+Gamma: 	
+	(ext: $$boolean_type)
+	(l: $$object_type)
+Preds: 
+CMD: [l, "@class"] := cl
+----------------------------------
+simplify_symb_state: Time: 0.208452
+Spec vars (symb_evaluate_next_cmd_cont): ##s_14, ##s_17
+simplify_symb_state: Time: 0.208470
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_14, ##s_17
+simplify_symb_state: Time: 0.208495
+----------------------------------
+--6--
+TIME: 0.208516
+STATE:
+Heap: 
+	_$l_2 |-> [(\"@class\": ##s_14), (\"@proto\": ##s_17), (\"@extensible\": ##s_20), (default: $$unknown)]
+Store: 	
+	(pr: ##s_17)
+	(ext: $$t)
+	(cl: ##s_14)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (##s_14 == $$undefined))
+Gamma: 	
+	(ext: $$boolean_type)
+	(l: $$object_type)
+Preds: 
+CMD: [l, "@extensible"] := ext
+----------------------------------
+simplify_symb_state: Time: 0.208521
+Spec vars (symb_evaluate_next_cmd_cont): ##s_14, ##s_17
+simplify_symb_state: Time: 0.208541
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_14, ##s_17
+simplify_symb_state: Time: 0.208565
+----------------------------------
+--7--
+TIME: 0.208586
+STATE:
+Heap: 
+	_$l_2 |-> [(\"@extensible\": $$t), (\"@proto\": ##s_17), (\"@class\": ##s_14), (default: $$unknown)]
+Store: 	
+	(pr: ##s_17)
+	(ext: $$t)
+	(cl: ##s_14)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (##s_14 == $$undefined))
+Gamma: 	
+	(ext: $$boolean_type)
+	(l: $$object_type)
+Preds: 
+CMD: xret := l
+----------------------------------
+simplify_symb_state: Time: 0.208590
+unify_symb_states with the following specvars: ##s_14, ##s_17
+Current substitution: Substitution: 
+	##s_17: ##s_17;
+	 ##s_14: ##s_14
+
+Unifying stores:
+Store: 	
+	(pr: ##s_17)
+	(ext: $$t)
+	(xret: _$l_2)
+	(cl: ##s_14)
+	(l: _$l_2)
+Pat_store: 	
+	(pr: ##s_17)
+	(ext: $$t)
+	(xret: _$l_2)
+	(cl: ##s_14)
+	(l: _$l_2)
+Discharges: 2
+
+	##s_14 : ##s_14
+
+	##s_17 : ##s_17
+
+Unify heaps 
+	_$l_2 |-> [("@extensible": $$t), ("@class": ##s_14), ("@proto": ##s_17), (default: $$unknown)] 
+and 
+	_$l_2 |-> [("@extensible": $$t), ("@proto": ##s_17), ("@class": ##s_14), (default: $$unknown)] 
+with substitution: Substitution: 
+	##s_17: ##s_17;
+	 _$l_2: _$l_2;
+	 ##s_14: ##s_14
+
+with pure formulae: 	
+	(! (##s_14 == $$undefined))
+with gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type)
+PatHeapDomain: _$l_2
+pick_pat_loc
+
+Location: _$l_2
+Substitution: _$l_2
+Adding sth to QH.
+QH: 
+	_$l_2 |-> [(default: $$unknown)]
+Heap again 
+	_$l_2 |-> [("@extensible": $$t), ("@proto": ##s_17), ("@class": ##s_14), (default: $$unknown)]
+End of unify_symb_heaps: do enjoy the quotient_heap: 
+	
+Heaps unified successfully. Unifying predicates.
+
+Entering unify_pred_arrays.
+Check if 
+ (	(! (##s_14 == $$undefined))) 
+ entails 
+ (	(##s_17 == ##s_17)
+	(##s_14 == ##s_14)) 
+ with gamma 
+ (	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type))
+check_entailment: Time: 0.208703
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(! (##s_14 == $$undefined))
+Right:
+	
+	(##s_17 == ##s_17)
+	(##s_14 == ##s_14)
+Gamma:
+	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.208712
+simplify_symb_state: Time: 0.208719
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+	(! (##s_14 == $$undefined))
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.208731
+About to check sat of:
+Pure formulae:
+	
+	(! (##s_14 == $$undefined))
+Gamma:
+	
+
+
+Found in cache. Cache length 9.
+Return value: true
+
+Current substitution again: Substitution: 
+	##s_17: ##s_17;
+	 _$l_2: _$l_2;
+	 ##s_14: ##s_14
+
+I am about to unify two gammas
+
+pat_gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type).
+gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type).
+subst: Substitution: 
+	##s_17: ##s_17;
+	 _$l_2: _$l_2;
+	 ##s_14: ##s_14
+
+
+pat_var: (ext : $$boolean_type) 
+found value: $$t
+unify_gamma. pat gamma var: ext. le: $$t. v_type: $$boolean_type. le_type: $$boolean_type
+pat_var: (xret : $$object_type) 
+found value: _$l_2
+unify_gamma. pat gamma var: xret. le: _$l_2. v_type: $$object_type. le_type: $$object_type
+pat_var: (l : $$object_type) 
+found value: _$l_2
+unify_gamma. pat gamma var: l. le: _$l_2. v_type: $$object_type. le_type: $$object_type
+
+EXITING unify_gamma: res: true
+
+
+Checking if 	
+	(! (##s_14 == $$undefined))
+ entails 	
+	(! (##s_14 == $$undefined))
+	(##s_17 == ##s_17)
+	(##s_14 == ##s_14)
+ with existentials
+
+and gamma 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type)
+check_entailment: Time: 0.208787
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(! (##s_14 == $$undefined))
+Right:
+	
+	(! (##s_14 == $$undefined))
+	(##s_17 == ##s_17)
+	(##s_14 == ##s_14)
+Gamma:
+	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.208795
+simplify_symb_state: Time: 0.208803
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+	(! (##s_14 == $$undefined))
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.208814
+About to check sat of:
+Pure formulae:
+	
+	(! (##s_14 == $$undefined))
+Gamma:
+	
+
+
+Found in cache. Cache length 9.
+unify_gamma_check: true. entailment_check: true
+Verified one spec of proc create_default_object
+----------------------------------
+----------------------------------
+----------------------------------
+
+----------------------------------
+----------------------------------
+Symbolic execution of create_default_object
+Initial symbolic state:
+Heap: 
+	_$l_3 |-> [(\"@extensible\": ##s_27), (\"@class\": ##s_26), (\"@proto\": ##s_25), (default: $$unknown)]
+Store: 	
+	(pr: ##s_24)
+	(ext: ##s_22)
+	(cl: ##s_21)
+	(l: ##s_23)
+Pure Formulae: 	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+	(##s_23 == _$l_3)
+Gamma: 	
+	(##s_23: $$object_type)
+Preds: 
+
+Spec vars (symb_evaluate_next_cmd_cont): ##s_21, ##s_22, ##s_24
+simplify_symb_state: Time: 0.208911
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_21, ##s_22, ##s_24
+simplify_symb_state: Time: 0.208948
+----------------------------------
+--0--
+TIME: 0.208972
+STATE:
+Heap: 
+	_$l_3 |-> [(\"@extensible\": ##s_27), (\"@class\": ##s_26), (\"@proto\": ##s_25), (default: $$unknown)]
+Store: 	
+	(pr: ##s_24)
+	(ext: ##s_22)
+	(cl: ##s_21)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+Gamma: 	
+	(l: $$object_type)
+Preds: 
+CMD: goto [(cl = $$undefined)] 1 2
+----------------------------------
+Guarded Goto: Evaluated expression: (cl = $$undefined) --> (##s_21 = $$undefined)
+
+Lifted assertion: (##s_21 == $$undefined)
+
+Checking if:
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+	entails
+	(##s_21 == $$undefined)
+
+check_entailment: Time: 0.208989
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+Right:
+	
+	(##s_21 == $$undefined)
+Gamma:
+	
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.208997
+simplify_symb_state: Time: 0.209005
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+	false
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.209020
+Pure formulae flat-out false. Pure formulae false.
+About to check sat of:
+Pure formulae:
+	
+	false
+Gamma:
+	
+
+
+Found in cache. Cache length 9.
+check_entailment: Time: 0.209033
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+Right:
+	
+	(! (##s_21 == $$undefined))
+Gamma:
+	
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.209039
+simplify_symb_state: Time: 0.209047
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.209059
+About to check sat of:
+Pure formulae:
+	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+Gamma:
+	
+
+
+Not found in cache. Cache length 9.
+SAT: About to check the following:
+(forall ((x Real)) (>= (s-len x) 0.0)),
+(forall ((x JSIL_Literal_List)) (>= (l-len x) 0.0)),
+(not (= |##s_21| (Elem Undefined))),
+(not (= |##s_22| (Elem Undefined)))
+The solver returned: SAT
+Adding (! (##s_22 == $$undefined)) * (! (##s_21 == $$undefined)) to cache. Cache length 10.
+in the ELSE branch
+simplify_symb_state: Time: 0.218168
+Spec vars (symb_evaluate_next_cmd_cont): ##s_21, ##s_22, ##s_24
+simplify_symb_state: Time: 0.218208
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_21, ##s_22, ##s_24
+simplify_symb_state: Time: 0.218241
+----------------------------------
+--2--
+TIME: 0.218266
+STATE:
+Heap: 
+	_$l_3 |-> [(\"@extensible\": ##s_27), (\"@class\": ##s_26), (\"@proto\": ##s_25), (default: $$unknown)]
+Store: 	
+	(pr: ##s_24)
+	(ext: ##s_22)
+	(cl: ##s_21)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+Gamma: 	
+	(l: $$object_type)
+Preds: 
+CMD: goto [(ext = $$undefined)] 3 4
+----------------------------------
+Guarded Goto: Evaluated expression: (ext = $$undefined) --> (##s_22 = $$undefined)
+
+Lifted assertion: (##s_22 == $$undefined)
+
+Checking if:
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+	entails
+	(##s_22 == $$undefined)
+
+check_entailment: Time: 0.218280
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+Right:
+	
+	(##s_22 == $$undefined)
+Gamma:
+	
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.218290
+simplify_symb_state: Time: 0.218298
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+	false
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.218318
+Pure formulae flat-out false. Pure formulae false.
+About to check sat of:
+Pure formulae:
+	
+	false
+Gamma:
+	
+
+
+Found in cache. Cache length 10.
+check_entailment: Time: 0.218331
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+Right:
+	
+	(! (##s_22 == $$undefined))
+Gamma:
+	
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.218338
+simplify_symb_state: Time: 0.218346
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.218358
+About to check sat of:
+Pure formulae:
+	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+Gamma:
+	
+
+
+Found in cache. Cache length 10.
+in the ELSE branch
+simplify_symb_state: Time: 0.218373
+Spec vars (symb_evaluate_next_cmd_cont): ##s_21, ##s_22, ##s_24
+simplify_symb_state: Time: 0.218411
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_21, ##s_22, ##s_24
+simplify_symb_state: Time: 0.218439
+----------------------------------
+--4--
+TIME: 0.218462
+STATE:
+Heap: 
+	_$l_3 |-> [(\"@extensible\": ##s_27), (\"@class\": ##s_26), (\"@proto\": ##s_25), (default: $$unknown)]
+Store: 	
+	(pr: ##s_24)
+	(ext: ##s_22)
+	(cl: ##s_21)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+Gamma: 	
+	(l: $$object_type)
+Preds: 
+CMD: [l, "@proto"] := pr
+----------------------------------
+simplify_symb_state: Time: 0.218471
+Spec vars (symb_evaluate_next_cmd_cont): ##s_21, ##s_22, ##s_24
+simplify_symb_state: Time: 0.218490
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_21, ##s_22, ##s_24
+simplify_symb_state: Time: 0.218515
+----------------------------------
+--5--
+TIME: 0.222791
+STATE:
+Heap: 
+	_$l_3 |-> [(\"@proto\": ##s_24), (\"@class\": ##s_26), (\"@extensible\": ##s_27), (default: $$unknown)]
+Store: 	
+	(pr: ##s_24)
+	(ext: ##s_22)
+	(cl: ##s_21)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+Gamma: 	
+	(l: $$object_type)
+Preds: 
+CMD: [l, "@class"] := cl
+----------------------------------
+simplify_symb_state: Time: 0.222828
+Spec vars (symb_evaluate_next_cmd_cont): ##s_21, ##s_22, ##s_24
+simplify_symb_state: Time: 0.222862
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_21, ##s_22, ##s_24
+simplify_symb_state: Time: 0.222894
+----------------------------------
+--6--
+TIME: 0.222918
+STATE:
+Heap: 
+	_$l_3 |-> [(\"@class\": ##s_21), (\"@proto\": ##s_24), (\"@extensible\": ##s_27), (default: $$unknown)]
+Store: 	
+	(pr: ##s_24)
+	(ext: ##s_22)
+	(cl: ##s_21)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+Gamma: 	
+	(l: $$object_type)
+Preds: 
+CMD: [l, "@extensible"] := ext
+----------------------------------
+simplify_symb_state: Time: 0.222924
+Spec vars (symb_evaluate_next_cmd_cont): ##s_21, ##s_22, ##s_24
+simplify_symb_state: Time: 0.222943
+Spec vars (symb_evaluate_next_cmd_cont, loop): ##s_21, ##s_22, ##s_24
+simplify_symb_state: Time: 0.222968
+----------------------------------
+--7--
+TIME: 0.222990
+STATE:
+Heap: 
+	_$l_3 |-> [(\"@extensible\": ##s_22), (\"@proto\": ##s_24), (\"@class\": ##s_21), (default: $$unknown)]
+Store: 	
+	(pr: ##s_24)
+	(ext: ##s_22)
+	(cl: ##s_21)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+Gamma: 	
+	(l: $$object_type)
+Preds: 
+CMD: xret := l
+----------------------------------
+simplify_symb_state: Time: 0.222995
+unify_symb_states with the following specvars: ##s_21, ##s_22, ##s_24
+Current substitution: Substitution: 
+	##s_24: ##s_24;
+	 ##s_22: ##s_22;
+	 ##s_21: ##s_21
+
+Unifying stores:
+Store: 	
+	(pr: ##s_24)
+	(ext: ##s_22)
+	(xret: _$l_3)
+	(cl: ##s_21)
+	(l: _$l_3)
+Pat_store: 	
+	(pr: ##s_24)
+	(ext: ##s_22)
+	(xret: _$l_3)
+	(cl: ##s_21)
+	(l: _$l_3)
+Discharges: 3
+
+	##s_21 : ##s_21
+
+	##s_22 : ##s_22
+
+	##s_24 : ##s_24
+
+Unify heaps 
+	_$l_3 |-> [("@extensible": ##s_22), ("@class": ##s_21), ("@proto": ##s_24), (default: $$unknown)] 
+and 
+	_$l_3 |-> [("@extensible": ##s_22), ("@proto": ##s_24), ("@class": ##s_21), (default: $$unknown)] 
+with substitution: Substitution: 
+	##s_24: ##s_24;
+	 _$l_3: _$l_3;
+	 ##s_22: ##s_22;
+	 ##s_21: ##s_21
+
+with pure formulae: 	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+with gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+PatHeapDomain: _$l_3
+pick_pat_loc
+
+Location: _$l_3
+Substitution: _$l_3
+Adding sth to QH.
+QH: 
+	_$l_3 |-> [(default: $$unknown)]
+Heap again 
+	_$l_3 |-> [("@extensible": ##s_22), ("@proto": ##s_24), ("@class": ##s_21), (default: $$unknown)]
+End of unify_symb_heaps: do enjoy the quotient_heap: 
+	
+Heaps unified successfully. Unifying predicates.
+
+Entering unify_pred_arrays.
+Check if 
+ (	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))) 
+ entails 
+ (	(##s_24 == ##s_24)
+	(##s_22 == ##s_22)
+	(##s_21 == ##s_21)) 
+ with gamma 
+ (	
+	(xret: $$object_type)
+	(l: $$object_type))
+check_entailment: Time: 0.223117
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+Right:
+	
+	(##s_24 == ##s_24)
+	(##s_22 == ##s_22)
+	(##s_21 == ##s_21)
+Gamma:
+	
+	(xret: $$object_type)
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.223142
+simplify_symb_state: Time: 0.223151
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.223166
+About to check sat of:
+Pure formulae:
+	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+Gamma:
+	
+
+
+Found in cache. Cache length 10.
+Return value: true
+
+Current substitution again: Substitution: 
+	##s_24: ##s_24;
+	 _$l_3: _$l_3;
+	 ##s_22: ##s_22;
+	 ##s_21: ##s_21
+
+I am about to unify two gammas
+
+pat_gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type).
+gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type).
+subst: Substitution: 
+	##s_24: ##s_24;
+	 _$l_3: _$l_3;
+	 ##s_22: ##s_22;
+	 ##s_21: ##s_21
+
+
+pat_var: (xret : $$object_type) 
+found value: _$l_3
+unify_gamma. pat gamma var: xret. le: _$l_3. v_type: $$object_type. le_type: $$object_type
+pat_var: (l : $$object_type) 
+found value: _$l_3
+unify_gamma. pat gamma var: l. le: _$l_3. v_type: $$object_type. le_type: $$object_type
+
+EXITING unify_gamma: res: true
+
+
+Checking if 	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+ entails 	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+	(##s_24 == ##s_24)
+	(##s_22 == ##s_22)
+	(##s_21 == ##s_21)
+ with existentials
+
+and gamma 	
+	(xret: $$object_type)
+	(l: $$object_type)
+check_entailment: Time: 0.223221
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+Right:
+	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+	(##s_24 == ##s_24)
+	(##s_22 == ##s_22)
+	(##s_21 == ##s_21)
+Gamma:
+	
+	(xret: $$object_type)
+	(l: $$object_type)
+
+simplify_symb_state: Time: 0.223231
+simplify_symb_state: Time: 0.223240
+RESOLVE_SET_EXISTENTIALS
+FIND_IMPOSSIBLE_UNIONS
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.223254
+About to check sat of:
+Pure formulae:
+	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+Gamma:
+	
+
+
+Found in cache. Cache length 10.
+unify_gamma_check: true. entailment_check: true
+Verified one spec of proc create_default_object
+----------------------------------
+----------------------------------
+----------------------------------
+
+----------------------------------
+----------------------------------
+Symbolic execution of setupInitialHeap
+Initial symbolic state:
+Heap: 
+	_$l_4 |-> [(\"@extensible\": ##s_30), (\"@class\": ##s_29), (\"@proto\": ##s_28), (default: $$unknown)]
+Store: 	
+Pure Formulae: 	
+	($lg == _$l_4)
+Gamma: 	
+Preds: 
+
+Spec vars (symb_evaluate_next_cmd_cont): 
+simplify_symb_state: Time: 0.223346
+Spec vars (symb_evaluate_next_cmd_cont, loop): 
+simplify_symb_state: Time: 0.223372
+----------------------------------
+--0--
+TIME: 0.223392
+STATE:
+Heap: 
+	_$l_4 |-> [(\"@extensible\": ##s_30), (\"@class\": ##s_29), (\"@proto\": ##s_28), (default: $$unknown)]
+Store: 	
+Pure Formulae: 	
+	($lg == _$l_4)
+Gamma: 	
+Preds: 
+CMD: xret := "create_default_object"($lg, $lobj_proto, "Object", $$t) 
+----------------------------------
+Entering find_and_apply_spec: create_default_object.
+------------------------------------------
+Entering find_correct_specs with the spec:
+------------------------------------------
+Pre:
+Heap: 
+	_$l_0 |-> [(\"@extensible\": ##s_6), (\"@class\": ##s_5), (\"@proto\": ##s_4), (default: $$unknown)]
+Store: 	
+	(pr: ##s_3)
+	(ext: ##s_1)
+	(cl: ##s_0)
+	(l: ##s_2)
+Pure Formulae: 	
+	(##s_1 == $$undefined)
+	(##s_0 == $$undefined)
+	(##s_2 == _$l_0)
+Gamma: 	
+	(##s_1: $$undefined_type)
+	(##s_0: $$undefined_type)
+	(##s_2: $$object_type)
+Preds: 
+Posts:
+Post 0: 
+Heap: 
+	_$l_0 |-> [(\"@extensible\": $$t), (\"@class\": \"Object\"), (\"@proto\": ##s_3), (default: $$unknown)]
+Store: 	
+	(pr: ##s_3)
+	(ext: $$t)
+	(xret: _$l_0)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+;
+
+unify_symb_states with the following specvars: 
+Current substitution: Substitution: 
+	
+
+Unifying stores:
+Store: 	
+	(ext: $$t)
+	(pr: $lobj_proto)
+	(cl: "Object")
+	(l: $lg)
+Pat_store: 	
+	(pr: ##s_3)
+	(ext: ##s_1)
+	(cl: ##s_0)
+	(l: ##s_2)
+GST: unify_stores
+	Variable ##s_1 is in pat_gamma with type $$undefined_type
+	Its substitute is of type $$boolean_type
+	Type mismatch. Cannot unify
+Failed to unify stores
+
+I found a NON-match
+------------------------------------------
+Entering find_correct_specs with the spec:
+------------------------------------------
+Pre:
+Heap: 
+	_$l_1 |-> [(\"@extensible\": ##s_11), (\"@class\": ##s_10), (\"@proto\": ##s_9), (default: $$unknown)]
+Store: 	
+	(pr: ##s_13)
+	(ext: ##s_8)
+	(cl: ##s_7)
+	(l: ##s_12)
+Pure Formulae: 	
+	(! (##s_8 == $$undefined))
+	(##s_12 == _$l_1)
+	(##s_7 == $$undefined)
+Gamma: 	
+	(##s_7: $$undefined_type)
+	(##s_12: $$object_type)
+Preds: 
+Posts:
+Post 0: 
+Heap: 
+	_$l_1 |-> [(\"@extensible\": ##s_8), (\"@class\": \"Object\"), (\"@proto\": ##s_13), (default: $$unknown)]
+Store: 	
+	(pr: ##s_13)
+	(ext: ##s_8)
+	(xret: _$l_1)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (##s_8 == $$undefined))
+Gamma: 	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+;
+
+unify_symb_states with the following specvars: 
+Current substitution: Substitution: 
+	
+
+Unifying stores:
+Store: 	
+	(ext: $$t)
+	(pr: $lobj_proto)
+	(cl: "Object")
+	(l: $lg)
+Pat_store: 	
+	(pr: ##s_13)
+	(ext: ##s_8)
+	(cl: ##s_7)
+	(l: ##s_12)
+GST: unify_stores
+	Variable ##s_7 is in pat_gamma with type $$undefined_type
+	Its substitute is of type $$string_type
+	Type mismatch. Cannot unify
+Failed to unify stores
+
+I found a NON-match
+------------------------------------------
+Entering find_correct_specs with the spec:
+------------------------------------------
+Pre:
+Heap: 
+	_$l_2 |-> [(\"@extensible\": ##s_20), (\"@class\": ##s_19), (\"@proto\": ##s_18), (default: $$unknown)]
+Store: 	
+	(pr: ##s_17)
+	(ext: ##s_15)
+	(cl: ##s_14)
+	(l: ##s_16)
+Pure Formulae: 	
+	(! (##s_14 == $$undefined))
+	(##s_16 == _$l_2)
+	(##s_15 == $$undefined)
+Gamma: 	
+	(##s_15: $$undefined_type)
+	(##s_16: $$object_type)
+Preds: 
+Posts:
+Post 0: 
+Heap: 
+	_$l_2 |-> [(\"@extensible\": $$t), (\"@class\": ##s_14), (\"@proto\": ##s_17), (default: $$unknown)]
+Store: 	
+	(pr: ##s_17)
+	(ext: $$t)
+	(xret: _$l_2)
+	(cl: ##s_14)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (##s_14 == $$undefined))
+Gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+;
+
+unify_symb_states with the following specvars: 
+Current substitution: Substitution: 
+	
+
+Unifying stores:
+Store: 	
+	(ext: $$t)
+	(pr: $lobj_proto)
+	(cl: "Object")
+	(l: $lg)
+Pat_store: 	
+	(pr: ##s_17)
+	(ext: ##s_15)
+	(cl: ##s_14)
+	(l: ##s_16)
+GST: unify_stores
+	Variable ##s_15 is in pat_gamma with type $$undefined_type
+	Its substitute is of type $$boolean_type
+	Type mismatch. Cannot unify
+Failed to unify stores
+
+I found a NON-match
+------------------------------------------
+Entering find_correct_specs with the spec:
+------------------------------------------
+Pre:
+Heap: 
+	_$l_3 |-> [(\"@extensible\": ##s_27), (\"@class\": ##s_26), (\"@proto\": ##s_25), (default: $$unknown)]
+Store: 	
+	(pr: ##s_24)
+	(ext: ##s_22)
+	(cl: ##s_21)
+	(l: ##s_23)
+Pure Formulae: 	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+	(##s_23 == _$l_3)
+Gamma: 	
+	(##s_23: $$object_type)
+Preds: 
+Posts:
+Post 0: 
+Heap: 
+	_$l_3 |-> [(\"@extensible\": ##s_22), (\"@class\": ##s_21), (\"@proto\": ##s_24), (default: $$unknown)]
+Store: 	
+	(pr: ##s_24)
+	(ext: ##s_22)
+	(xret: _$l_3)
+	(cl: ##s_21)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+;
+
+unify_symb_states with the following specvars: 
+Current substitution: Substitution: 
+	
+
+Unifying stores:
+Store: 	
+	(ext: $$t)
+	(pr: $lobj_proto)
+	(cl: "Object")
+	(l: $lg)
+Pat_store: 	
+	(pr: ##s_24)
+	(ext: ##s_22)
+	(cl: ##s_21)
+	(l: ##s_23)
+GST: unify_stores
+	Variable ##s_23 is in pat_gamma with type $$object_type
+	Its substitute is of type $$object_type
+	Can proceed.
+Discharges: 0
+
+Unify heaps 
+	_$l_3 |-> [("@extensible": ##s_27), ("@class": ##s_26), ("@proto": ##s_25), (default: $$unknown)] 
+and 
+	_$l_4 |-> [("@extensible": ##s_30), ("@class": ##s_29), ("@proto": ##s_28), (default: $$unknown)] 
+with substitution: Substitution: 
+	##s_24: $lobj_proto;
+	 ##s_22: $$t;
+	 ##s_21: "Object";
+	 ##s_23: $lg
+
+with pure formulae: 	
+	($lg == _$l_4)
+with gamma: 	
+PatHeapDomain: _$l_3
+pick_pat_loc
+
+DEATH. pit_pat_loc failed to pit next. Remaining locs: _$l_3.
+Could not unify heaps before predicates, unifying predicates first instead.
+Entering unify_pred_arrays.
+Unified predicates successfully. Extracting additional knowledge
+simplify_symb_state: Time: 0.223627
+Original pat_pfs:
+	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+	(##s_23 == _$l_3)
+Substituted pat_pfs:
+	
+	(! ("Object" == $$undefined))
+	(! ($$t == $$undefined))
+	($lg == _$l_3)
+simplify_symb_state: Time: 0.223640
+More pfs: 	
+	($lg == _$l_3)
+Domain of the pat_heap: _$l_3
+Now unifying heaps again.
+Substitution: 
+	##s_24: $lobj_proto;
+	 _$l_3: $lg;
+	 ##s_22: $$t;
+	 ##s_21: "Object";
+	 ##s_23: $lg
+
+Unify heaps 
+	_$l_3 |-> [("@extensible": ##s_27), ("@class": ##s_26), ("@proto": ##s_25), (default: $$unknown)] 
+and 
+	_$l_4 |-> [("@extensible": ##s_30), ("@class": ##s_29), ("@proto": ##s_28), (default: $$unknown)] 
+with substitution: Substitution: 
+	##s_24: $lobj_proto;
+	 _$l_3: $lg;
+	 ##s_22: $$t;
+	 ##s_21: "Object";
+	 ##s_23: $lg
+
+with pure formulae: 	
+	($lg == _$l_4)
+with gamma: 	
+PatHeapDomain: _$l_3
+pick_pat_loc
+
+Location: _$l_3
+Substitution: $lg
+Location $lg in pattern has not been matched
+Failed to unify heaps and predicates definitively.
+I found a NON-match
+Entering apply_correct_specs.
+The EVALUATION OF THIS PROC GAVE AN ERROR: 0 No precondition found for procedure create_default_object.!!!!
+----------------------------------
+----------------------------------
+----------------------------------
+
+
+Verified: 4.		Prunings: 1.
+
+RESULTS
+Proc create_default_object  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_0 |-> [(\"@extensible\": ##s_6), (\"@class\": ##s_5), (\"@proto\": ##s_4), (default: $$unknown)]
+Store: 	
+	(pr: ##s_3)
+	(ext: ##s_1)
+	(cl: ##s_0)
+	(l: ##s_2)
+Pure Formulae: 	
+	(##s_1 == $$undefined)
+	(##s_0 == $$undefined)
+	(##s_2 == _$l_0)
+Gamma: 	
+	(##s_1: $$undefined_type)
+	(##s_0: $$undefined_type)
+	(##s_2: $$object_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_0 |-> [(\"@extensible\": $$t), (\"@class\": \"Object\"), (\"@proto\": ##s_3), (default: $$unknown)]
+Store: 	
+	(pr: ##s_3)
+	(ext: $$t)
+	(xret: _$l_0)
+	(cl: \"Object\")
+	(l: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc create_default_object  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_1 |-> [(\"@extensible\": ##s_11), (\"@class\": ##s_10), (\"@proto\": ##s_9), (default: $$unknown)]
+Store: 	
+	(pr: ##s_13)
+	(ext: ##s_8)
+	(cl: ##s_7)
+	(l: ##s_12)
+Pure Formulae: 	
+	(! (##s_8 == $$undefined))
+	(##s_12 == _$l_1)
+	(##s_7 == $$undefined)
+Gamma: 	
+	(##s_7: $$undefined_type)
+	(##s_12: $$object_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_1 |-> [(\"@extensible\": ##s_8), (\"@class\": \"Object\"), (\"@proto\": ##s_13), (default: $$unknown)]
+Store: 	
+	(pr: ##s_13)
+	(ext: ##s_8)
+	(xret: _$l_1)
+	(cl: \"Object\")
+	(l: _$l_1)
+Pure Formulae: 	
+	(! (##s_8 == $$undefined))
+Gamma: 	
+	(xret: $$object_type)
+	(cl: $$string_type)
+	(l: $$object_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc create_default_object  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_2 |-> [(\"@extensible\": ##s_20), (\"@class\": ##s_19), (\"@proto\": ##s_18), (default: $$unknown)]
+Store: 	
+	(pr: ##s_17)
+	(ext: ##s_15)
+	(cl: ##s_14)
+	(l: ##s_16)
+Pure Formulae: 	
+	(! (##s_14 == $$undefined))
+	(##s_16 == _$l_2)
+	(##s_15 == $$undefined)
+Gamma: 	
+	(##s_15: $$undefined_type)
+	(##s_16: $$object_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_2 |-> [(\"@extensible\": $$t), (\"@class\": ##s_14), (\"@proto\": ##s_17), (default: $$unknown)]
+Store: 	
+	(pr: ##s_17)
+	(ext: $$t)
+	(xret: _$l_2)
+	(cl: ##s_14)
+	(l: _$l_2)
+Pure Formulae: 	
+	(! (##s_14 == $$undefined))
+Gamma: 	
+	(ext: $$boolean_type)
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc create_default_object  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_3 |-> [(\"@extensible\": ##s_27), (\"@class\": ##s_26), (\"@proto\": ##s_25), (default: $$unknown)]
+Store: 	
+	(pr: ##s_24)
+	(ext: ##s_22)
+	(cl: ##s_21)
+	(l: ##s_23)
+Pure Formulae: 	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+	(##s_23 == _$l_3)
+Gamma: 	
+	(##s_23: $$object_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_3 |-> [(\"@extensible\": ##s_22), (\"@class\": ##s_21), (\"@proto\": ##s_24), (default: $$unknown)]
+Store: 	
+	(pr: ##s_24)
+	(ext: ##s_22)
+	(xret: _$l_3)
+	(cl: ##s_21)
+	(l: _$l_3)
+Pure Formulae: 	
+	(! (##s_21 == $$undefined))
+	(! (##s_22 == $$undefined))
+Gamma: 	
+	(xret: $$object_type)
+	(l: $$object_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc setupInitialHeap  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_4 |-> [(\"@extensible\": ##s_30), (\"@class\": ##s_29), (\"@proto\": ##s_28), (default: $$unknown)]
+Store: 	
+Pure Formulae: 	
+	($lg == _$l_4)
+Gamma: 	
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_4 |-> [(\"@extensible\": $$t), (\"@class\": \"Object\"), (\"@proto\": $lobj_proto), (default: $$unknown)]
+Store: 	
+	(xret: $$empty)
+Pure Formulae: 	
+	($lg == _$l_4)
+	(xret == $$empty)
+Gamma: 	
+	(xret: $$empty_type)
+Preds: 
+;
+ -- FAILED with msg: No precondition found for procedure create_default_object.
+
+There were Failures in 0.223793
+
+**********     Ending normal symbolic execution.     **********
+
+RESULT SPECS 
+Generated specifications: 
+ 
+setupInitialHeap
+----------
+[[ ((_$l_4, "@proto") -> ##s_28) * ((_$l_4, "@class") -> ##s_29) * ((_$l_4, "@extensible") -> ##s_30) * ($lg == _$l_4) * types() ]]
+[[ ((_$l_4, "@proto") -> $lobj_proto) * ((_$l_4, "@class") -> "Object") * ((_$l_4, "@extensible") -> $$t) * (xret == $$empty) * ($lg == _$l_4) * (xret == $$empty) * types(xret : $$empty_type) ]]
+Normal
+
+create_default_object
+----------
+[[ ((_$l_0, "@proto") -> ##s_4) * ((_$l_0, "@class") -> ##s_5) * ((_$l_0, "@extensible") -> ##s_6) * (l == ##s_2) * (cl == ##s_0) * (ext == ##s_1) * (pr == ##s_3) * (##s_1 == $$undefined) * (##s_0 == $$undefined) * (##s_2 == _$l_0) * types(##s_2 : $$object_type, ##s_0 : $$undefined_type, ##s_1 : $$undefined_type) ]]
+[[ ((_$l_0, "@proto") -> ##s_3) * ((_$l_0, "@class") -> "Object") * ((_$l_0, "@extensible") -> $$t) * (l == _$l_0) * (cl == "Object") * (xret == _$l_0) * (ext == $$t) * (pr == ##s_3) * types(l : $$object_type, cl : $$string_type, xret : $$object_type, ext : $$boolean_type) ]]
+Normal
+[[ ((_$l_1, "@proto") -> ##s_9) * ((_$l_1, "@class") -> ##s_10) * ((_$l_1, "@extensible") -> ##s_11) * (l == ##s_12) * (cl == ##s_7) * (ext == ##s_8) * (pr == ##s_13) * (! (##s_8 == $$undefined)) * (##s_12 == _$l_1) * (##s_7 == $$undefined) * types(##s_12 : $$object_type, ##s_7 : $$undefined_type) ]]
+[[ ((_$l_1, "@proto") -> ##s_13) * ((_$l_1, "@class") -> "Object") * ((_$l_1, "@extensible") -> ##s_8) * (l == _$l_1) * (cl == "Object") * (xret == _$l_1) * (ext == ##s_8) * (pr == ##s_13) * (! (##s_8 == $$undefined)) * types(l : $$object_type, cl : $$string_type, xret : $$object_type) ]]
+Normal
+[[ ((_$l_2, "@proto") -> ##s_18) * ((_$l_2, "@class") -> ##s_19) * ((_$l_2, "@extensible") -> ##s_20) * (l == ##s_16) * (cl == ##s_14) * (ext == ##s_15) * (pr == ##s_17) * (! (##s_14 == $$undefined)) * (##s_16 == _$l_2) * (##s_15 == $$undefined) * types(##s_16 : $$object_type, ##s_15 : $$undefined_type) ]]
+[[ ((_$l_2, "@proto") -> ##s_17) * ((_$l_2, "@class") -> ##s_14) * ((_$l_2, "@extensible") -> $$t) * (l == _$l_2) * (cl == ##s_14) * (xret == _$l_2) * (ext == $$t) * (pr == ##s_17) * (! (##s_14 == $$undefined)) * types(l : $$object_type, xret : $$object_type, ext : $$boolean_type) ]]
+Normal
+[[ ((_$l_3, "@proto") -> ##s_25) * ((_$l_3, "@class") -> ##s_26) * ((_$l_3, "@extensible") -> ##s_27) * (l == ##s_23) * (cl == ##s_21) * (ext == ##s_22) * (pr == ##s_24) * (! (##s_21 == $$undefined)) * (! (##s_22 == $$undefined)) * (##s_23 == _$l_3) * types(##s_23 : $$object_type) ]]
+[[ ((_$l_3, "@proto") -> ##s_24) * ((_$l_3, "@class") -> ##s_21) * ((_$l_3, "@extensible") -> ##s_22) * (l == _$l_3) * (cl == ##s_21) * (xret == _$l_3) * (ext == ##s_22) * (pr == ##s_24) * (! (##s_21 == $$undefined)) * (! (##s_22 == $$undefined)) * types(l : $$object_type, xret : $$object_type) ]]
+Normal
+

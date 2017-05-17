@@ -1,0 +1,756 @@
+----------------------------------
+----------------------------------
+Symbolic execution of list_append
+----------------------------------
+--0--
+TIME: 0.040482
+STATE:
+Heap: 
+	
+Store: 	
+	(y: #y)
+	(x: #x)
+Pure Formulae: 	
+	(! (#x == $$null))
+Gamma: 	
+Preds: my_list(#x), my_list(#y)
+CMD: goto [(x = $$null)] 1 3
+----------------------------------
+in the ELSE branch
+Unfold. Time: 0.040546
+----------------------------------
+--3--
+TIME: 0.057100
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@proto\": $$null), (\"next\": _lvar_1), (\"value\": _lvar_0), (default: $$unknown)]
+Store: 	
+	(y: #y)
+	(x: _$l_0)
+Pure Formulae: 	
+	(! (_$l_0 == $$null))
+	(#x == _$l_0)
+Gamma: 	
+	(#x: $$object_type)
+	(x: $$object_type)
+	(_lvar_0: $$int_type)
+Preds: my_list(#y), my_list(_lvar_1)
+CMD: z := [x, "next"]
+----------------------------------
+----------------------------------
+--4--
+TIME: 0.057215
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@proto\": $$null), (\"next\": _lvar_1), (\"value\": _lvar_0), (default: $$unknown)]
+Store: 	
+	(z: _lvar_1)
+	(y: #y)
+	(x: _$l_0)
+Pure Formulae: 	
+	(! (_$l_0 == $$null))
+	(#x == _$l_0)
+Gamma: 	
+	(#x: $$object_type)
+	(x: $$object_type)
+	(_lvar_0: $$int_type)
+Preds: my_list(#y), my_list(_lvar_1)
+CMD: goto [(z = $$null)] 5 8
+----------------------------------
+I could not determine the branch.
+Unfold. Time: 0.087792
+----------------------------------
+--5--
+TIME: 0.102598
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@proto\": $$null), (\"next\": $$null), (\"value\": _lvar_0), (default: $$unknown)]
+Store: 	
+	(z: $$null)
+	(y: #y)
+	(x: _$l_0)
+Pure Formulae: 	
+	(! (_$l_0 == $$null))
+	(#x == _$l_0)
+Gamma: 	
+	(z: $$null_type)
+	(#x: $$object_type)
+	(x: $$object_type)
+	(_lvar_0: $$int_type)
+Preds: my_list(#y)
+CMD: [x, "next"] := y
+----------------------------------
+Fold. Time: 0.102666
+----------------------------------
+--6--
+TIME: 0.102984
+STATE:
+Heap: 
+	
+Store: 	
+	(z: $$null)
+	(y: #y)
+	(x: _$l_0)
+Pure Formulae: 	
+	(! (_$l_0 == $$null))
+	(#x == _$l_0)
+Gamma: 	
+	(z: $$null_type)
+	(#x: $$object_type)
+	(x: $$object_type)
+	(_lvar_0: $$int_type)
+Preds: my_list(_$l_0)
+CMD: skip
+----------------------------------
+----------------------------------
+--7--
+TIME: 0.103058
+STATE:
+Heap: 
+	
+Store: 	
+	(z: $$null)
+	(y: #y)
+	(x: _$l_0)
+Pure Formulae: 	
+	(! (_$l_0 == $$null))
+	(#x == _$l_0)
+Gamma: 	
+	(z: $$null_type)
+	(#x: $$object_type)
+	(x: $$object_type)
+	(_lvar_0: $$int_type)
+Preds: my_list(_$l_0)
+CMD: goto 10
+----------------------------------
+----------------------------------
+--10--
+TIME: 0.103126
+STATE:
+Heap: 
+	
+Store: 	
+	(z: $$null)
+	(y: #y)
+	(x: _$l_0)
+Pure Formulae: 	
+	(! (_$l_0 == $$null))
+	(#x == _$l_0)
+Gamma: 	
+	(z: $$null_type)
+	(#x: $$object_type)
+	(x: $$object_type)
+	(_lvar_0: $$int_type)
+Preds: my_list(_$l_0)
+CMD: skip
+----------------------------------
+Verified one spec of proc list_append
+----------------------------------
+--8--
+TIME: 0.103344
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@proto\": $$null), (\"next\": _lvar_1), (\"value\": _lvar_0), (default: $$unknown)]
+Store: 	
+	(z: _lvar_1)
+	(y: #y)
+	(x: _$l_0)
+Pure Formulae: 	
+	(! (_$l_0 == $$null))
+	(! (_lvar_1 == $$null))
+	(#x == _$l_0)
+Gamma: 	
+	(#x: $$object_type)
+	(x: $$object_type)
+	(_lvar_0: $$int_type)
+Preds: my_list(#y), my_list(_lvar_1)
+CMD: z := "list_append"(z, y) 
+----------------------------------
+Fold. Time: 0.130006
+----------------------------------
+--9--
+TIME: 0.130641
+STATE:
+Heap: 
+	
+Store: 	
+	(z: _lvar_1)
+	(y: #y)
+	(x: _$l_0)
+Pure Formulae: 	
+	(! (_$l_0 == $$null))
+	(! (_lvar_1 == $$null))
+	(#x == _$l_0)
+Gamma: 	
+	(#x: $$object_type)
+	(x: $$object_type)
+	(_lvar_0: $$int_type)
+Preds: my_list(_$l_0)
+CMD: skip
+----------------------------------
+----------------------------------
+--10--
+TIME: 0.130702
+STATE:
+Heap: 
+	
+Store: 	
+	(z: _lvar_1)
+	(y: #y)
+	(x: _$l_0)
+Pure Formulae: 	
+	(! (_$l_0 == $$null))
+	(! (_lvar_1 == $$null))
+	(#x == _$l_0)
+Gamma: 	
+	(#x: $$object_type)
+	(x: $$object_type)
+	(_lvar_0: $$int_type)
+Preds: my_list(_$l_0)
+CMD: skip
+----------------------------------
+Verified one spec of proc list_append
+----------------------------------
+----------------------------------
+Symbolic execution of list_append
+----------------------------------
+--0--
+TIME: 0.130928
+STATE:
+Heap: 
+	
+Store: 	
+	(y: #y)
+	(x: $$null)
+Pure Formulae: 	
+	(#x == $$null)
+Gamma: 	
+	(#x: $$null_type)
+	(x: $$null_type)
+Preds: my_list(#y)
+CMD: goto [(x = $$null)] 1 3
+----------------------------------
+in the THEN branch
+----------------------------------
+--1--
+TIME: 0.131026
+STATE:
+Heap: 
+	
+Store: 	
+	(y: #y)
+	(x: $$null)
+Pure Formulae: 	
+	(#x == $$null)
+Gamma: 	
+	(#x: $$null_type)
+	(x: $$null_type)
+Preds: my_list(#y)
+CMD: x := y
+----------------------------------
+----------------------------------
+--2--
+TIME: 0.131077
+STATE:
+Heap: 
+	
+Store: 	
+	(y: #y)
+	(x: #y)
+Pure Formulae: 	
+	(#x == $$null)
+Gamma: 	
+	(#x: $$null_type)
+Preds: my_list(#y)
+CMD: goto 10
+----------------------------------
+----------------------------------
+--10--
+TIME: 0.131125
+STATE:
+Heap: 
+	
+Store: 	
+	(y: #y)
+	(x: #y)
+Pure Formulae: 	
+	(#x == $$null)
+Gamma: 	
+	(#x: $$null_type)
+Preds: my_list(#y)
+CMD: skip
+----------------------------------
+Verified one spec of proc list_append
+----------------------------------
+----------------------------------
+Symbolic execution of list_cons
+----------------------------------
+--0--
+TIME: 0.131251
+STATE:
+Heap: 
+	
+Store: 	
+	(y: _lvar_y)
+	(x: _lvar_x)
+Pure Formulae: 	
+Gamma: 	
+	(_lvar_y: $$int_type)
+	(y: $$int_type)
+Preds: my_list(_lvar_x)
+CMD: z := new()
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.131268
+STATE:
+Heap: 
+	_$l_1 |-> [(\"@proto\": $$null), (default: None)]
+Store: 	
+	(z: _$l_1)
+	(y: _lvar_y)
+	(x: _lvar_x)
+Pure Formulae: 	
+	(! (_$l_1 == $lg))
+Gamma: 	
+	(z: $$object_type)
+	(_lvar_y: $$int_type)
+	(y: $$int_type)
+Preds: my_list(_lvar_x)
+CMD: [z, "value"] := y
+----------------------------------
+----------------------------------
+--2--
+TIME: 0.131285
+STATE:
+Heap: 
+	_$l_1 |-> [(\"value\": _lvar_y), (\"@proto\": $$null), (default: None)]
+Store: 	
+	(z: _$l_1)
+	(y: _lvar_y)
+	(x: _lvar_x)
+Pure Formulae: 	
+	(! (_$l_1 == $lg))
+Gamma: 	
+	(z: $$object_type)
+	(_lvar_y: $$int_type)
+	(y: $$int_type)
+Preds: my_list(_lvar_x)
+CMD: [z, "next"] := x
+----------------------------------
+----------------------------------
+--3--
+TIME: 0.131303
+STATE:
+Heap: 
+	_$l_1 |-> [(\"next\": _lvar_x), (\"@proto\": $$null), (\"value\": _lvar_y), (default: None)]
+Store: 	
+	(z: _$l_1)
+	(y: _lvar_y)
+	(x: _lvar_x)
+Pure Formulae: 	
+	(! (_$l_1 == $lg))
+Gamma: 	
+	(z: $$object_type)
+	(_lvar_y: $$int_type)
+	(y: $$int_type)
+Preds: my_list(_lvar_x)
+CMD: x := z
+----------------------------------
+Fold. Time: 0.131309
+----------------------------------
+--4--
+TIME: 0.143794
+STATE:
+Heap: 
+	_$l_1 |-> [(default: None)]
+Store: 	
+	(z: _$l_1)
+	(y: _lvar_y)
+	(x: _$l_1)
+Pure Formulae: 	
+	(! (_$l_1 == $lg))
+Gamma: 	
+	(z: $$object_type)
+	(_lvar_y: $$int_type)
+	(y: $$int_type)
+	(x: $$object_type)
+Preds: my_list(_$l_1)
+CMD: skip
+----------------------------------
+Verified one spec of proc list_cons
+----------------------------------
+----------------------------------
+Symbolic execution of list_count
+Unfold. Time: 0.143934
+----------------------------------
+--0--
+TIME: 0.156539
+STATE:
+Heap: 
+	_$l_2 |-> [(\"@proto\": $$null), (\"next\": _lvar_4), (\"value\": _lvar_3), (default: $$unknown)]
+Store: 	
+	(x: _$l_2)
+Pure Formulae: 	
+	(#x == _$l_2)
+Gamma: 	
+	(_lvar_3: $$int_type)
+	(#x: $$object_type)
+	(x: $$object_type)
+Preds: my_list(_lvar_4)
+CMD: goto [(x = $$null)] 1 3
+----------------------------------
+in the ELSE branch
+----------------------------------
+--3--
+TIME: 0.156640
+STATE:
+Heap: 
+	_$l_2 |-> [(\"@proto\": $$null), (\"next\": _lvar_4), (\"value\": _lvar_3), (default: $$unknown)]
+Store: 	
+	(x: _$l_2)
+Pure Formulae: 	
+	(#x == _$l_2)
+Gamma: 	
+	(_lvar_3: $$int_type)
+	(#x: $$object_type)
+	(x: $$object_type)
+Preds: my_list(_lvar_4)
+CMD: z := [x, "next"]
+----------------------------------
+----------------------------------
+--4--
+TIME: 0.156701
+STATE:
+Heap: 
+	_$l_2 |-> [(\"@proto\": $$null), (\"next\": _lvar_4), (\"value\": _lvar_3), (default: $$unknown)]
+Store: 	
+	(z: _lvar_4)
+	(x: _$l_2)
+Pure Formulae: 	
+	(#x == _$l_2)
+Gamma: 	
+	(_lvar_3: $$int_type)
+	(#x: $$object_type)
+	(x: $$object_type)
+Preds: my_list(_lvar_4)
+CMD: count := "list_count"(z) 
+----------------------------------
+----------------------------------
+--5--
+TIME: 0.156900
+STATE:
+Heap: 
+	_$l_2 |-> [(\"@proto\": $$null), (\"next\": _lvar_4), (\"value\": _lvar_3), (default: $$unknown)]
+Store: 	
+	(z: _lvar_4)
+	(x: _$l_2)
+	(count: _lvar_5)
+Pure Formulae: 	
+	(#x == _$l_2)
+Gamma: 	
+	(_lvar_3: $$int_type)
+	(#x: $$object_type)
+	(_lvar_5: $$int_type)
+	(x: $$object_type)
+	(count: $$int_type)
+Preds: my_list(_lvar_4)
+CMD: count := (count + 1)
+----------------------------------
+Fold. Time: 0.156933
+----------------------------------
+--6--
+TIME: 0.157148
+STATE:
+Heap: 
+	
+Store: 	
+	(z: _lvar_4)
+	(x: _$l_2)
+	(count: (_lvar_5 + 1))
+Pure Formulae: 	
+	(#x == _$l_2)
+Gamma: 	
+	(_lvar_3: $$int_type)
+	(#x: $$object_type)
+	(_lvar_5: $$int_type)
+	(x: $$object_type)
+	(count: $$int_type)
+Preds: my_list(_$l_2)
+CMD: skip
+----------------------------------
+Verified one spec of proc list_count
+----------------------------------
+--0--
+TIME: 0.157267
+STATE:
+Heap: 
+	
+Store: 	
+	(x: $$null)
+Pure Formulae: 	
+	(#x == $$null)
+Gamma: 	
+	(#x: $$null_type)
+	(x: $$null_type)
+Preds: 
+CMD: goto [(x = $$null)] 1 3
+----------------------------------
+in the THEN branch
+----------------------------------
+--1--
+TIME: 0.157359
+STATE:
+Heap: 
+	
+Store: 	
+	(x: $$null)
+Pure Formulae: 	
+	(#x == $$null)
+Gamma: 	
+	(#x: $$null_type)
+	(x: $$null_type)
+Preds: 
+CMD: count := 0
+----------------------------------
+----------------------------------
+--2--
+TIME: 0.157407
+STATE:
+Heap: 
+	
+Store: 	
+	(x: $$null)
+	(count: 0)
+Pure Formulae: 	
+	(#x == $$null)
+Gamma: 	
+	(#x: $$null_type)
+	(x: $$null_type)
+	(count: $$int_type)
+Preds: 
+CMD: goto 6
+----------------------------------
+Fold. Time: 0.157432
+----------------------------------
+--6--
+TIME: 0.157555
+STATE:
+Heap: 
+	
+Store: 	
+	(x: $$null)
+	(count: 0)
+Pure Formulae: 	
+	(#x == $$null)
+Gamma: 	
+	(#x: $$null_type)
+	(x: $$null_type)
+	(count: $$int_type)
+Preds: my_list($$null)
+CMD: skip
+----------------------------------
+Verified one spec of proc list_count
+
+Verified: 4.		Prunings: 0.
+
+RESULTS
+Proc list_append  - Single Spec - normal
+Pre Heap: 
+	
+Store: 	
+	(y: #y)
+	(x: #x)
+Pure Formulae: 	
+	(! (#x == $$null))
+Gamma: 	
+Preds: my_list(#x), my_list(#y)
+Post Post 0: Heap: 
+	
+Store: 	
+	(x: #x)
+Pure Formulae: 	
+Gamma: 	
+Preds: my_list(#x)
+;
+ -- VERIFIED
+
+Proc list_append  - Single Spec - normal
+Pre Heap: 
+	
+Store: 	
+	(y: #y)
+	(x: $$null)
+Pure Formulae: 	
+	(#x == $$null)
+Gamma: 	
+	(#x: $$null_type)
+	(x: $$null_type)
+Preds: my_list(#y)
+Post Post 0: Heap: 
+	
+Store: 	
+	(x: #y)
+Pure Formulae: 	
+Gamma: 	
+	(#x: $$null_type)
+Preds: my_list(#y)
+;
+ -- VERIFIED
+
+Proc list_cons  - Single Spec - normal
+Pre Heap: 
+	
+Store: 	
+	(y: _lvar_y)
+	(x: _lvar_x)
+Pure Formulae: 	
+Gamma: 	
+	(_lvar_y: $$int_type)
+	(y: $$int_type)
+Preds: my_list(_lvar_x)
+Post Post 0: Heap: 
+	
+Store: 	
+	(x: _lvar_x)
+Pure Formulae: 	
+Gamma: 	
+Preds: my_list(_lvar_x)
+;
+ -- VERIFIED
+
+Proc list_count  - Single Spec - normal
+Pre Heap: 
+	
+Store: 	
+	(x: #x)
+Pure Formulae: 	
+Gamma: 	
+Preds: my_list(#x)
+Post Post 0: Heap: 
+	
+Store: 	
+	(count: _lvar_count)
+Pure Formulae: 	
+Gamma: 	
+	(_lvar_count: $$int_type)
+	(count: $$int_type)
+Preds: my_list(#x)
+;
+ -- VERIFIED
+
+ALL Succeeded in 0.157720
+
+ STATISTICS 
+ ========== 
+
+Check sat cache: 7
+
+	normalise_pure_assertion
+
+Tot: 0.000013	Cll: 2
+Min: 0.000006	Max: 0.000007
+Avg: 0.000006	Std: 0.000000
+
+	solver_call
+
+Tot: 0.000000	Cll: 9
+Min: 0.000000	Max: 0.000000
+Avg: 0.000000	Std: 0.000000
+
+	is_different
+
+Tot: 0.000006	Cll: 6
+Min: 0.000000	Max: 0.000002
+Avg: 0.000001	Std: 0.000001
+
+	unify_symb_heaps
+
+Tot: 0.000749	Cll: 17
+Min: 0.000013	Max: 0.000385
+Avg: 0.000044	Std: 0.000086
+
+	unify_stores
+
+Tot: 0.000073	Cll: 23
+Min: 0.000001	Max: 0.000006
+Avg: 0.000003	Std: 0.000001
+
+	encode_lexpr
+
+Tot: 0.000079	Cll: 42
+Min: 0.000001	Max: 0.000005
+Avg: 0.000002	Std: 0.000001
+
+	sat_cache
+
+Tot: 0.000000	Cll: 29
+Min: 0.000000	Max: 0.000000
+Avg: 0.000000	Std: 0.000000
+
+	check_sat
+
+Tot: 0.078749	Cll: 34
+Min: 0.000001	Max: 0.024613
+Avg: 0.002316	Std: 0.005828
+
+	USS: Step 0
+
+Tot: 0.013940	Cll: 8
+Min: 0.000032	Max: 0.013689
+Avg: 0.001742	Std: 0.004515
+
+	unify_lexprs
+
+Tot: 0.014059	Cll: 44
+Min: 0.000000	Max: 0.013630
+Avg: 0.000320	Std: 0.002030
+
+	is_equal_entailment
+
+Tot: 0.000000	Cll: 2
+Min: 0.000000	Max: 0.000000
+Avg: 0.000000	Std: 0.000000
+
+	unify_symb_states
+
+Tot: 0.027055	Cll: 8
+Min: 0.000068	Max: 0.026492
+Avg: 0.003382	Std: 0.008735
+
+	encode_assertion_top_level
+
+Tot: 0.000167	Cll: 21
+Min: 0.000005	Max: 0.000023
+Avg: 0.000008	Std: 0.000004
+
+	USS: Step 1
+
+Tot: 0.013094	Cll: 8
+Min: 0.000031	Max: 0.012797
+Avg: 0.001637	Std: 0.004218
+
+	check_entailment
+
+Tot: 0.038881	Cll: 4
+Min: 0.008457	Max: 0.012278
+Avg: 0.009720	Std: 0.001530
+
+	is_equal
+
+Tot: 0.028147	Cll: 47
+Min: 0.000000	Max: 0.014502
+Avg: 0.000599	Std: 0.002840
+
+	normalise_lexpr
+
+Tot: 0.000025	Cll: 36
+Min: 0.000000	Max: 0.000003
+Avg: 0.000001	Std: 0.000001
+
+	unify_gamma
+
+Tot: 0.000034	Cll: 17
+Min: 0.000000	Max: 0.000004
+Avg: 0.000002	Std: 0.000001
+
