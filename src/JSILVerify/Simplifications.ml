@@ -221,6 +221,8 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 	let f = reduce_expression store gamma pfs in
 	let result = (match e with
 
+	| LUnOp (M_sgn, LLit (Num n)) -> LLit (Num (copysign 1.0 n))
+
 	| LBinOp (le1, LstCons, LEList []) -> LEList [ f le1 ]
 	| LBinOp (le1, LstCons, LLit (LList [])) -> LEList [ f le1 ] 
 	| LBinOp (le1, CharCons, LCList []) -> LCList [ f le1 ]
