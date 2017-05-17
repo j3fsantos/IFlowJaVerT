@@ -1261,7 +1261,7 @@ proc i__toDataDescriptor (desc) {
 
 	cstr:	goto [d = "a"] ra gen;
 
-	ra:		xret := {{ "d", $$undefined, $$f, l-nth (d, 3), l-nth (d, 4) }};
+	ra:		xret := {{ "d", $$undefined, $$f, l-nth (desc, 3), l-nth (desc, 4) }};
 			goto rlab;
 
 	gen:	e := l-nth (desc, 1);

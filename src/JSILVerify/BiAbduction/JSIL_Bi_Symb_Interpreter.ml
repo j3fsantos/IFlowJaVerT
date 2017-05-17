@@ -1334,11 +1334,11 @@ let add_new_spec proc_name proc_params pre_post result_states new_spec_tbl =
 					(* The new precondition = old precondition * anti frame *)
 					(* The new postconition is the final state after evaluation *)
 					let new_pre = Symbolic_State_Utils.bi_merge_symb_states anti_frame pre_post.n_pre in 
-					let new_pre, simplification_subst = Simplifications.simplify_ss_with_subst new_pre None in
-					Printf.printf "The obtained simplification_subst was: %s\n"
+					let new_pre, simplification_subst = Simplifications.simplify_ss_with_subst new_pre (Some None) in
+					(* Printf.printf "The obtained simplification_subst was: %s\n"
 						(Symbolic_State_Print.string_of_substitution simplification_subst); 
 					let more_pfs = pf_of_substitution simplification_subst in 
-					extend_symb_state_with_pfs new_pre (pfs_of_list more_pfs); 
+					extend_symb_state_with_pfs new_pre (pfs_of_list more_pfs); *) 
 					let post_subst = symb_state_substitution post_state simplification_subst true in 
 					remove_concrete_values_from_the_store new_pre;
 					let (pre_subst,post_subst) = Symbolic_State_Utils.symb_state_lvars_to_svars new_pre post_subst in
