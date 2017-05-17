@@ -113,7 +113,9 @@ let bi_unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_s
 		
 	
 *)
-let unify_symb_fv_lists (pat_fv_list : symbolic_field_value_list)
+let unify_symb_fv_lists (pat_loc : string)
+                        (loc : string) 
+												(pat_fv_list : symbolic_field_value_list)
 												(fv_list     : symbolic_field_value_list)
 												(def_val     : jsil_logic_expr) 
 												(p_formulae  : pure_formulae)
@@ -127,7 +129,7 @@ let unify_symb_fv_lists (pat_fv_list : symbolic_field_value_list)
 		match pat_list with
 		| [] -> Some (fv_list, matched_fv_list, anti_frame, discharges)
 		| (pat_field, pat_val) :: rest_pat_list ->
-			let pf_equal, pf_different, res = unify_fv_pair (pat_field, pat_val) fv_list p_formulae gamma subst in
+			let pf_equal, pf_different, res = unify_fv_pair pat_loc loc (pat_field, pat_val) fv_list p_formulae gamma subst in
 			
 			(match pf_equal, pf_different, res with
 			| true,  true,  _    -> raise (Failure "Death: bi_unify_symb_fv_lists")
@@ -234,7 +236,7 @@ let bi_unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_f
 									let msg = Printf.sprintf "Location %s in pattern has not been matched" loc in
 									print_debug msg; 
 									[], LUnknown) in
-							let fv_lists = unify_symb_fv_lists pat_fv_list fv_list def pure_formulae gamma subst in
+							let fv_lists = unify_symb_fv_lists pat_loc loc pat_fv_list fv_list def pure_formulae gamma subst in
 							(match fv_lists with
 							| Some (frame_fv_list, matched_fv_list, antiframe_fv_list, new_discharges) when ((pat_def = LNone) && ((List.length frame_fv_list) > 0)) ->
 								print_debug (Printf.sprintf "fv_lists unified successfully");
@@ -383,14 +385,14 @@ let bi_unify_symb_states (lvars : SS.t) pat_symb_state (symb_state : symbolic_st
 			(match ret_1 with
 			| Some (heap_f, anti_frame, new_pfs, negative_discharges) ->
 				print_debug (Printf.sprintf "Heaps unified successfully.\n");
-				let ret_2 = unify_pred_arrays preds_1 preds_0 pf_0 gamma_1 gamma_0 subst in
-				(match ret_2 with
-				| Some (subst, preds_f, []) ->
+				let subst, preds_f, remaining_preds = unify_pred_arrays preds_1 preds_0 pf_0 gamma_1 gamma_0 subst in
+				(match remaining_preds with
+				| [] ->
 					let spec_vars_check = spec_logic_vars_discharge subst lvars pf_0 gamma_0 in
 	  				if (spec_vars_check)
 							then Some (discharges_0, subst, heap_f, anti_frame, preds_f, new_pfs, af_pfs_0)
 							else (Printf.printf "Failed spec vars check\n"; None) 
-				| Some (_, _, _) | None -> ( print_debug (Printf.sprintf "Failed to unify predicates\n"); None))
+				| _ -> ( print_debug (Printf.sprintf "Failed to unify predicates\n"); None))
 			| None -> ( print_debug (Printf.sprintf "Failed to unify heaps\n"); None))
 		| None -> ( print_debug (Printf.sprintf "Failed to unify stores\n"); None)) in
 		let end_time = Sys.time() in

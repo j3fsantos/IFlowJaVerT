@@ -308,6 +308,60 @@ let dot_of_search_info search_info proof_name =
 	JSIL_Syntax.update_statistics "unify_stores" (end_time -. start_time);
 	str
 
+(**
+ * ERROR MESSAGES
+ **)
+
+let string_of_US_error us_error = 
+	match us_error with
+	| VariableNotInStore s ->          Printf.sprintf "Variable %s not found in store" s
+	| ValueMismatch (s, pat_le, le) -> Printf.sprintf "Value mismatch on variable %s: expected %s, got %s" s (print_lexpr pat_le) (print_lexpr le)
+	| NoSubstitution ->                Printf.sprintf "There is no substitution"
+	
+let string_of_UH_error uh_error = 
+	match uh_error with
+	| CannotResolvePatLocation s ->                       Printf.sprintf "Cannot find location %s in pattern heap" s
+	| CannotResolveLocation s ->                          Printf.sprintf "Cannot find location %s in symbolic heap" s
+	| CannotResolveField (s, le) ->                       Printf.sprintf "Cannot resolve field (%s, %s)" s (print_lexpr le)
+	| FieldValueMismatch (s, lef, lev, s', lef', lev') -> Printf.sprintf "Field value mismatch (%s, %s, %s) vs. (%s, %s, %s)" s (print_lexpr lef) (print_lexpr lev) s' (print_lexpr lef') (print_lexpr lev')
+	| ValuesNotNone (s, lfv) ->                           Printf.sprintf "Non-none values in location %s: %s" s (String.concat ", " (List.map (fun (f, v) -> Printf.sprintf "(%s, %s)" (print_lexpr f) (print_lexpr v)) lfv))
+	| FloatingLocations ls ->                             Printf.sprintf "Floating locations %s" (String.concat ", " ls)
+	| IllegalDefaultValue le ->                           Printf.sprintf "Illegal default value %s" (print_lexpr le)
+	| PatternHeapWithDefaultValue ->                      Printf.sprintf "Pattern heap has default values"
+	
+let string_of_UG_error ug_error = 
+	match ug_error with
+	| NoTypeForVariable s         -> Printf.sprintf "No type found for variable %s" s
+	| VariableNotInSubstitution s -> Printf.sprintf "Variable %s not in substitution" s
+	| TypeMismatch (pv, pt, v, t) -> Printf.sprintf "Type mismatch: (%s, %s) vs (%s, %s)" pv (print_type pt) (print_lexpr v) (print_type t)
+
+let string_of_USS_error uss_error = 
+	match uss_error with
+	| CannotDischargeSpecVars -> Printf.sprintf "Cannot discharge spec vars"
+	| CannotUnifyPredicates   -> Printf.sprintf "Cannot unify predicates"
+	| ContradictionInPFS      -> Printf.sprintf "Contradiction in pure formulae"
+
+let string_of_USF_error usf_error = 
+	match usf_error with
+	| CannotSubtractPredicate s -> Printf.sprintf "Cannot subtract predicate %s" s
+	| CannotUnifyPredicates     -> Printf.sprintf "Cannot unify predicates"
+
+let string_of_FSS_error fss_error = 
+	match fss_error with
+	| ResourcesRemain       -> Printf.sprintf "Symbolic states unified, but additional resources remain"
+	| CannotUnifySymbStates -> Printf.sprintf "Cannot unify symbolic states, entailment false"
+
+let print_failure error = 
+	let error_message =
+	(match error with 
+		| US  us_error  -> let us_error_str  = string_of_US_error  us_error  in "Unify stores: "                 ^ us_error_str
+		| UH  uh_error  -> let uh_error_str  = string_of_UH_error  uh_error  in "Unify heaps: "                  ^ uh_error_str
+		| UG  ug_error  -> let ug_error_str  = string_of_UG_error  ug_error  in "Unify gamma: "                  ^ ug_error_str
+		| USS uss_error -> let uss_error_str = string_of_USS_error uss_error in "Unify symbolic states: "        ^ uss_error_str
+		| USF usf_error -> let usf_error_str = string_of_USF_error usf_error in "Unify symbolic states fold: "   ^ usf_error_str
+		| FSS fss_error -> let fss_error_str = string_of_FSS_error fss_error in "Fully unify symbolic states: "  ^ fss_error_str
+		| Impossible s ->  Printf.sprintf "Impossible: %s" s (* MORE INFO *)
+	) in "SYMB_EXEC_FAIL: " ^ error_message
 
 (***************)
 (** Shorthand **)

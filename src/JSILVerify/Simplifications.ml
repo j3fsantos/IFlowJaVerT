@@ -79,6 +79,83 @@ let rec find_me_Im_a_loc pfs lvar =
 		if (lvar = lvar') 
 			then Some loc 
 			else find_me_Im_a_loc rest lvar
+	| _ :: rest -> find_me_Im_a_loc rest lvar
+
+let find_me_in_the_pi pfs nle =
+	DynArray.fold_left (fun ac a -> 
+			(match a with 
+			| LEq (LVar lvar, le)
+			| LEq (le, LVar lvar) -> 
+				if (le = nle) 
+					then Some lvar
+					else ac
+			| _ -> ac)
+			) None pfs
+
+let rec replace_nle_with_lvars pfs nle = 
+	(match nle with 
+	| LBinOp (le, op, le') -> 
+		(match find_me_in_the_pi pfs nle with 
+		| Some lvar -> (LVar lvar)
+		| None -> 
+			let lhs = replace_nle_with_lvars pfs le in
+			let rhs = replace_nle_with_lvars pfs le' in
+			let lhs_string = string_of_logic_expression lhs false in
+			print_endline (Printf.sprintf "LVAR LHS: %s " lhs_string);
+			(LBinOp (lhs, op, rhs)))
+	| LUnOp (op, le) -> 
+		(match find_me_in_the_pi pfs nle with 
+		| Some lvar -> (LVar lvar)
+		| None -> (LUnOp (op, (replace_nle_with_lvars pfs le))))
+	| LTypeOf le -> 
+		(match find_me_in_the_pi pfs nle with 
+		| Some lvar -> (LVar lvar)
+		| None -> (LTypeOf (replace_nle_with_lvars pfs le)))
+	| LLstNth (le, le') -> 
+		(match find_me_in_the_pi pfs nle with 
+		| Some lvar -> (LVar lvar)
+		| None -> 
+			let lst = replace_nle_with_lvars pfs le in
+			let num = replace_nle_with_lvars pfs le' in
+			LLstNth (lst, num))
+	| LStrNth (le, le') -> 
+		(match find_me_in_the_pi pfs nle with 
+		| Some lvar -> (LVar lvar)
+		| None -> 
+			let lst = replace_nle_with_lvars pfs le in
+			let num = replace_nle_with_lvars pfs le' in
+			LStrNth (lst, num))
+	| LEList le ->
+		(match find_me_in_the_pi pfs nle with 
+		| Some lvar -> (LVar lvar)
+		| None -> 
+			let le_list = List.map (fun le' -> replace_nle_with_lvars pfs le') le in
+			(LEList le_list))
+	| LCList le -> 
+		(match find_me_in_the_pi pfs nle with 
+		| Some lvar -> (LVar lvar)
+		| None -> 
+			let le_list = List.map (fun le' -> replace_nle_with_lvars pfs le') le in
+			(LCList le_list))
+	| LESet le -> 
+		(match find_me_in_the_pi pfs nle with 
+		| Some lvar -> (LVar lvar)
+		| None -> 
+			let le_list = List.map (fun le' -> replace_nle_with_lvars pfs le') le in
+			(LESet le_list))
+	| LSetUnion le -> 
+		(match find_me_in_the_pi pfs nle with 
+		| Some lvar -> (LVar lvar)
+		| None -> 
+			let le_list = List.map (fun le' -> replace_nle_with_lvars pfs le') le in
+			(LSetUnion le_list))
+	| LSetInter le -> 
+		(match find_me_in_the_pi pfs nle with 
+			| Some lvar -> (LVar lvar)
+			| None -> 
+				let le_list = List.map (fun le' -> replace_nle_with_lvars pfs le') le in
+				(LSetInter le_list))
+	| _ -> nle)
 
 (**
 	Internal String representation conversions
@@ -796,8 +873,10 @@ let rec split_list_on_element (le : jsil_logic_expr) (e : jsil_logic_expr) : boo
 	| _ -> let msg = Printf.sprintf "Non-list expressions passed to split_list_on_element : %s" (print_lexpr le) in
 		raise (Failure msg))
 
+let crossProduct l l' = List.concat (List.map (fun e -> List.map (fun e' -> (e,e')) l') l)
+
 (* Unifying lists based on a common literal *)
-let match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : 
+let rec match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : 
 	bool * (jsil_logic_expr * jsil_logic_expr) * (jsil_logic_expr * jsil_logic_expr) * (jsil_logic_expr * jsil_logic_expr) option =
 	let elems1 = get_elements_from_list le1 in
 	(match elems1 with
@@ -807,38 +886,40 @@ let match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) :
 		(match elems2 with
 		| [] -> false, (LLit (Bool false), LLit (Bool false)), (LLit (Bool false), LLit (Bool false)), None
 		| _ -> 
-			print_debug_petar (Printf.sprintf "LEL: %s\nREL: %s"
+			(* print_debug_petar (Printf.sprintf "LEL: %s\nREL: %s"
 				(String.concat ", " (List.map (fun x -> print_lexpr x) elems1))	
 				(String.concat ", " (List.map (fun x -> print_lexpr x) elems2))	
-			);
+			); *)
 			let intersection = List.fold_left (fun ac x -> 
 				if (List.mem x elems1) then ac @ [x] else ac) [] elems2 in
 			let intersection, list_unification = (match intersection with
 			| [] -> 
-					let len1 = List.length elems1 in
-					let len2 = List.length elems2 in
-					(match len1, len2 with
-					| 1, 1 -> (match elems1, elems2 with
-						| [ le1 ], [ le2 ] -> if (isList le1) && (isList le2) 
-							then Some (le1, le2), Some (le1, le2)
-							else None, None
-						| _, _ -> raise (Failure "Should not happen."))
-					| _, _ -> None, None)
+					let candidates = crossProduct elems1 elems2 in
+					let candidates = List.map (fun (le1, le2) ->
+						let result = 
+						(match isList le1, isList le2 with
+						| true, true -> 
+								let unifiable, _ = unify_lists le1 le2 false in
+								(unifiable <> None)
+						| _, _ -> false) in (le1, le2, result)) candidates in
+					let candidates = List.filter (fun (_, _, b) -> b) candidates in
+					(match candidates with 
+					| [] -> None, None
+					| (le1, le2, _) :: _ -> Some (le1, le2), Some (le1, le2))
 			| i :: _ -> Some (i, i), None) in
 			(match intersection with
 			| None -> false, (LLit (Bool false), LLit (Bool false)), (LLit (Bool false), LLit (Bool false)), None
 			| Some (i, j) ->
-				print_debug_petar (Printf.sprintf "(Potential) Intersection: %s, %s" (print_lexpr i) (print_lexpr j));
+				(* print_debug_petar (Printf.sprintf "(Potential) Intersection: %s, %s" (print_lexpr i) (print_lexpr j)); *)
 				let ok1, (l1, r1) = split_list_on_element le1 i in
 				let ok2, (l2, r2) = split_list_on_element le2 j in
 				(match ok1, ok2 with
-				| true, true -> true, (l1, r1), (l2, r2) , list_unification
+				| true, true -> true, (l1, r1), (l2, r2), list_unification
 				| _, _ -> let msg = Printf.sprintf "Element %s that was supposed to be in both lists: %s, %s is not." (print_lexpr i) (print_lexpr le1) (print_lexpr le2) in
 						raise (Failure msg)))
 		))
-
-(* List unification *)
-let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bool option * ((jsil_logic_expr * jsil_logic_expr) list) = 
+and
+unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bool option * ((jsil_logic_expr * jsil_logic_expr) list) = 
 	let le1 = reduce_expression_no_store_no_gamma_no_pfs le1 in
 	let le2 = reduce_expression_no_store_no_gamma_no_pfs le2 in
 	let le1_old = le1 in
@@ -846,8 +927,8 @@ let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bo
 	let to_swap_now = (le1_old <> le1) in
 	let to_swap = (to_swap <> to_swap_now) in
 	let swap (le1, le2) = if to_swap then (le2, le1) else (le1, le2) in
-	(* print_debug (Printf.sprintf "unify_lists: \n\t%s\n\t\tand\n\t%s" 
-		(print_lexpr le1) (print_lexpr le2)); *)
+	(* print_debug_petar (Printf.sprintf "unify_lists: \n\t%s\n\t\tand\n\t%s" 
+		(print_lexpr le1) (print_lexpr le2)); *) 
 	(match le1, le2 with
 	  (* Base cases *)
 	  | LLit (LList []), LLit (LList [])
@@ -867,7 +948,7 @@ let rec unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bo
 		| LBinOp (_, LstCat, _), LBinOp (_, LstCat, _) -> 
 			let (okl, headl, taill) = get_head_and_tail_list le1 in
 			let (okr, headr, tailr) = get_head_and_tail_list le2 in
-			(* print_debug (Printf.sprintf "Got head and tail: left: %b, right: %b" 
+			(* print_debug_petar (Printf.sprintf "Got head and tail: left: %b, right: %b" 
 				(Option.map_default (fun v -> v) false okl) (Option.map_default (fun v -> v) false okr)); *)
 			(match okl, okr with
 			(* We can separate both lists *)
@@ -1970,8 +2051,6 @@ let get_set_intersections pfs =
 	
 let resolve_set_existentials lpfs rpfs exists gamma =
 
-	print_debug "RESOLVE_SET_EXISTENTIALS";
-
 	let exists = ref exists in
 
 	let set_exists = SS.filter (fun x -> Hashtbl.mem gamma x && (Hashtbl.find gamma x = SetType)) !exists in
@@ -2032,8 +2111,7 @@ let resolve_set_existentials lpfs rpfs exists gamma =
 	
 	
 let find_impossible_unions lpfs rpfs exists gamma =
-
-	print_debug "FIND_IMPOSSIBLE_UNIONS";
+	
 	let exists = ref exists in
 
 	let set_exists = SS.filter (fun x -> Hashtbl.mem gamma x && (Hashtbl.find gamma x = SetType)) !exists in
@@ -2085,12 +2163,6 @@ let simplify_implication exists lpfs rpfs gamma =
 		(print_pfs rpfs)
 		(Symbolic_State_Print.string_of_gamma gamma)); 
 	exists, lpfs, rpfs, gamma (* DO THE SUBST *)
-
-
-
-
-
-
 
 
 

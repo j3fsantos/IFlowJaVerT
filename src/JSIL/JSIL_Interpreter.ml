@@ -728,7 +728,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
   			(* Parsing the parameters as a FormalParametersList *)
   			let lexbuf = Lexing.from_string !params in
   			let parsed_params =
-  				(try (Some (JSIL_Utils.parse_without_error JSIL_Parser.param_list_FC_target lexbuf)) with
+  				(try (Some (JSIL_Utils.parse JSIL_Parser.Incremental.param_list_FC_target lexbuf)) with
   				 | _ -> None) in
   			(match parsed_params with
   			| None -> throw_syntax_error "Parameters not parseable."

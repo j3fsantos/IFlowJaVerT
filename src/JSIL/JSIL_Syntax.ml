@@ -438,7 +438,7 @@ let get_proc_cmd proc i =
 	proc.proc_body.(i)
 
 
-let macro_table     : (string, jsil_logic_macro) Hashtbl.t = Hashtbl.create 511
+let macro_table : (string, jsil_logic_macro) Hashtbl.t = Hashtbl.create 511
 
 (* STATISTICS *)
 
@@ -576,6 +576,7 @@ let fresh_sth (name : string) : (unit -> string) =
     v
   in f
 
+let lit_loc_prefix = "$"
 let abs_loc_prefix = "_$l_"
 let lvar_prefix = "_lvar_"
 let pvar_prefix = "_pvar_"
@@ -605,18 +606,27 @@ let is_abs_loc_name (name : string) : bool =
 	if ((String.length name) < 4)
 		then false
 		else ((String.sub name 0 4) = abs_loc_prefix)
+		
+let is_lit_loc_name (name : string) : bool = 
+	if ((String.length name) < 2)
+	then false
+	else ((String.sub name 0 1) = lit_loc_prefix)
 
 let is_lvar_name (name : string) : bool =
 	((String.sub name 0 1) = "#") || (((String.length name) > 6) && ((String.sub name 0 6) = lvar_prefix))
 
 let is_pvar_name (name : string) : bool =
 	(not ((is_abs_loc_name name) || (is_lvar_name name)))
+	
+let real_is_pvar_name (name : string) : bool = 
+	(String.length name > 0) && 
+	(let first = String.sub name 0 1 in (first <> "@" && first <> "_")) 
 
 let is_spec_var_name (name : string) : bool =
-	((String.sub name 0 1) = "#")
+	(String.length name > 1) && (String.sub name 0 1 = "#")
 
 let fresh_spec_var () : string =
-	( "##" ^ fresh_svar ())
+	( "#" ^ fresh_svar ())
 
 (* A substitution type                                 *)
 type substitution = ((string, jsil_logic_expr) Hashtbl.t)

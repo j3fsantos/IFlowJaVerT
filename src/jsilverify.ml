@@ -18,7 +18,8 @@ let arguments () =
             
 			"-specs", Arg.String (fun f -> spec_file := f), "specification file";
 			(* *)
-			"-js", Arg.Unit (fun () -> Symb_Interpreter.js := true), "js2jsil output"; 
+			"-js", Arg.Unit (fun () -> Symb_Interpreter.js := true; 
+										JSIL_Bi_Symb_Interpreter.js := true), "js2jsil output"; 
 			(* *)
 			"-stats", Arg.Unit (fun () -> stats := true), "stats";
 			(* Flag to use symbolic execution file with bi-abduction *)
@@ -62,7 +63,7 @@ let write_spec_file (file : string ref) =
 	burn_to_disk (!file ^ ".spec") result
 
 let symb_interpreter prog procs_to_verify spec_tbl which_pred norm_preds  = 
-	let results_str, dot_graphs, complete_success =  
+	let results_str, dot_graphs, complete_success, results =  
 					Symb_Interpreter.sym_run_procs prog procs_to_verify spec_tbl which_pred norm_preds in
 	Printf.printf "RESULTS\n%s" results_str;
 
@@ -75,18 +76,21 @@ let symb_interpreter prog procs_to_verify spec_tbl which_pred norm_preds  =
 	
 	register_dot_graphs dot_graphs;
 	if (!stats) 
-		then JSIL_Syntax.process_statistics ()
+		then JSIL_Syntax.process_statistics ();
+	results
 
 let bi_symb_interpreter prog procs_to_verify spec_tbl which_pred norm_preds  = 
 	(* Perform symbolic interpretation with bi-abduction then use the result to verify using the normal symbolic execution.*)
+	(* if (!js) then *)
+	let procs_to_verify, spec_tbl, rec_funcs = Bi_Symbolic_State_Functions.internal_functions_preprocessing prog spec_tbl in
 	print_endline ("\n*********** Starting bi-abduction symbolic execution. ***********\n") ;
-	let results_str_bi, new_spec_tbl = 
+	let new_spec_tbl, procs_to_verify, bi_results = 
 			JSIL_Bi_Symb_Interpreter.sym_run_procs prog procs_to_verify spec_tbl which_pred norm_preds in
 	print_endline ("\n********** Finished bi-abduction symbolic execution. **********\n") ;
 	print_endline ("\n**********    Starting normal symbolic execution.    **********\n") ;
-	symb_interpreter prog procs_to_verify new_spec_tbl which_pred norm_preds;
+	let normal_results = symb_interpreter prog procs_to_verify new_spec_tbl which_pred norm_preds in
 	print_endline ("\n**********     Ending normal symbolic execution.     **********\n") ;
-	Printf.printf "RESULT SPECS \n%s" results_str_bi
+	Bi_Symbolic_State_Functions.process_bi_results new_spec_tbl bi_results normal_results rec_funcs true
 	
 let process_file path =
 		print_debug "\n*** Prelude: Stage 1: Parsing program. ***\n";
@@ -125,7 +129,7 @@ let process_file path =
 		(if (!bi_abduction) then
 			bi_symb_interpreter prog ext_prog.procedure_names spec_tbl which_pred norm_preds
 		else 
-			symb_interpreter prog ext_prog.procedure_names spec_tbl which_pred norm_preds);
+			let _ = symb_interpreter prog ext_prog.procedure_names spec_tbl which_pred norm_preds in ());
 		exit 0
 
 let main () =

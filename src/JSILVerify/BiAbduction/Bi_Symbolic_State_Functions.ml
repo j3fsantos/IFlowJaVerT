@@ -75,16 +75,21 @@ let abs_heap_check_field_existence  (symb_state : symbolic_state) (anti_frame : 
 
 exception Non_reversable_type of unit
 
-let rec bi_reverse_type_lexpr_aux gamma new_gamma le le_type =
-	let f = bi_reverse_type_lexpr_aux gamma new_gamma in
+let rec bi_reverse_type_lexpr_aux pfs_af pfs gamma new_gamma le le_type =
+	let f = bi_reverse_type_lexpr_aux pfs_af pfs gamma new_gamma in
 	let check_type t = 
 		match le_type with 
 		| None -> ()
 		| Some t' -> if( t = t') then () else raise (Non_reversable_type ()) in 
 
-	let needs_to_be_none () = 
+	let check_and_update_type () = 
 		match le_type with 
-			| Some _ -> raise (Non_reversable_type ()) 
+			| Some t -> 
+					let new_lvar = fresh_lvar () in
+					weak_update_gamma new_gamma new_lvar le_type;
+					add_pure_assertion pfs (LEq ((LVar new_lvar), le));
+					add_pure_assertion pfs_af (LEq ((LVar new_lvar), le));
+					()
 			| None -> () in
  
 	(match le with
@@ -127,7 +132,7 @@ let rec bi_reverse_type_lexpr_aux gamma new_gamma le le_type =
 		| IsPrimitive -> raise (Failure "DEATH bi_reverse_type_lexpr_aux IsPrimitive")
 
 		| Cdr -> f le (Some ListType); check_type ListType 
-		| Car -> f le (Some ListType); needs_to_be_none ()
+		| Car -> f le (Some ListType); check_and_update_type ()
 		| LstLen -> f le (Some ListType); check_type NumberType
 
 		| StrLen -> f le (Some StringType); check_type NumberType)
@@ -163,18 +168,18 @@ let rec bi_reverse_type_lexpr_aux gamma new_gamma le le_type =
 			raise (Failure "ERROR bi_reverse_type_lexpr_aux unsupported binop"))
 
 	| LLstNth (le1, le2) -> 
-		f le1 (Some ListType); f le2 (Some NumberType); needs_to_be_none ()
+		f le1 (Some ListType); f le2 (Some NumberType); check_and_update_type ()
 
 	| LStrNth (le1, le2) -> 
-		f le1 (Some StringType); f le2 (Some NumberType); needs_to_be_none ()
+		f le1 (Some StringType); f le2 (Some NumberType); check_and_update_type ()
 
 	| LNone    -> check_type NoneType
 	| LUnknown -> raise (Non_reversable_type ()) )
 
-let bi_reverse_type_lexpr gamma le le_type : typing_environment option =
+let bi_reverse_type_lexpr pfs_af pfs gamma le le_type : typing_environment option =
 	let new_gamma : typing_environment = mk_gamma () in
 	try
-		bi_reverse_type_lexpr_aux gamma new_gamma le le_type;
+		bi_reverse_type_lexpr_aux pfs_af pfs gamma new_gamma le le_type;
 		Some new_gamma
 	with Non_reversable_type () -> None
 
@@ -190,3 +195,197 @@ let l_vars_in_spec_check anti_frame spec_lvars le =
 			) 
 		(SS.elements le_l_vars) in
 	List.length lvars_not_in_spec_or_af > 0
+
+let create_new_spec () : jsil_n_single_spec =
+	let empty_post = init_symb_state () in
+	{
+		n_pre        = init_symb_state ();
+		n_post       = [empty_post];
+		n_ret_flag   = Normal;
+		n_lvars      = SS.empty;
+		n_post_lvars = [];
+		n_subst      = Hashtbl.create small_tbl_size
+	}
+
+
+let get_call_hash_tbl program =
+	let procs_tbl = Hashtbl.create small_tbl_size in
+	Hashtbl.iter (fun proc_name proc -> 
+						let procs_called = (Array.fold_left (fun ac (_, cmd) -> 
+												(match cmd with 
+												| SCall (x, e, e_args, j) -> 
+													(match e with 
+													| (Literal (String name)) -> 
+														name :: ac
+													| _ -> print_debug "Call Graph: While creating the call graph found a non-string procedure expression"; 
+														   ac)
+												| _ -> ac)
+											) [] proc.proc_body) in
+						Hashtbl.add procs_tbl proc_name procs_called
+				 ) program;
+	procs_tbl
+
+exception Recursive_call_graph of unit
+exception Procedure_does_not_exist of unit
+
+let create_call_graph procs_tbl =
+	(* Could check for main *)
+
+	(* Contains the procedures not called from any other procedures *)
+	let roots = Hashtbl.create small_tbl_size in
+	let partial = Hashtbl.create small_tbl_size in
+	(* Spec which we should include and not infer as they 
+	   include functions that don't have a given spec for example defaultValue *)
+	let include_specs =  DynArray.create () in
+	(* List of all the functions that include recursion *)
+	let recursive_functions =  DynArray.create () in
+
+	let rec detect_cycles (proc_name : string) (visited : SS.t ) : (string list) =
+		if SS.mem proc_name visited then raise (Recursive_call_graph ());
+
+		Hashtbl.remove roots proc_name;
+
+		try Hashtbl.find partial proc_name
+		with Not_found ->
+			(let visited = SS.add proc_name visited in
+			try 
+				let procs_called = Hashtbl.find procs_tbl proc_name in
+				
+				let ordered_procs = List.fold_left (fun ac cproc_name -> 
+														try 
+															let cproc_list = detect_cycles cproc_name visited in
+															cproc_list @ ac
+														with Procedure_does_not_exist () ->
+															DynArray.add include_specs proc_name; 
+															ac
+													) [proc_name] procs_called in
+				Hashtbl.add partial proc_name ordered_procs;
+				ordered_procs
+			with Not_found -> 
+				raise (Procedure_does_not_exist ());
+			) in
+
+	Hashtbl.iter (fun proc_name _ -> 
+						try Hashtbl.find partial proc_name; () 
+						with Not_found ->
+							(try 
+								let ordered_procs = detect_cycles proc_name SS.empty in
+								Hashtbl.add partial proc_name ordered_procs;
+								Hashtbl.add roots proc_name ordered_procs;
+							with Recursive_call_graph () -> 
+								DynArray.add recursive_functions proc_name)
+				 ) procs_tbl;
+	(roots, include_specs, recursive_functions)
+
+let construct_call_graph program =
+	let proc_tbl = get_call_hash_tbl program in
+	let roots, include_specs, recursive_functions = create_call_graph proc_tbl in
+	let include_specs = DynArray.to_list include_specs in
+	let reverse_order = Hashtbl.fold (fun proc_name procs ac -> 
+								List.fold_left (fun ac proc -> 
+										if (List.mem proc ac or List.mem proc include_specs) then
+											ac 
+										else 
+											proc :: ac
+					 			) ac procs
+				 ) roots [] in
+	((List.rev reverse_order), recursive_functions)
+
+let internal_functions_preprocessing program spec_tbl =
+	let (procs_to_verify,recursive_functions) = construct_call_graph program in
+	let new_spec_tbl = Hashtbl.create small_tbl_size in
+	(* Simply removes specs so I don't have to, shouldn't happen 
+	   with non-internal functions as it will remove partial specs *)
+	Hashtbl.iter (fun spec_name spec ->	
+						if (not (List.mem spec_name procs_to_verify)) then 
+							Hashtbl.add new_spec_tbl spec_name spec
+				 ) spec_tbl; 	
+	(procs_to_verify, new_spec_tbl, recursive_functions)
+
+
+let process_bi_results new_spec_tbl bi_res norm_res rec_funcs verbose = 
+	(*let specs_str = Symbolic_State_Utils.string_of_n_spec_table_assertions new_spec_tbl procs_to_verify in 
+	let results_str = Symbolic_State_Print.string_of_bi_symb_exe_results bi_res in
+	let results_str = "Generated specifications: \n " ^ specs_str ^ "\n" ^ results_str in *)
+	let generated_spec_set = SS.empty in
+
+	let results_str = "BI-ABDUCTIVE RESULTS: \n\n" in
+
+	(* Recursive Functions *)
+	let rec_funcs_str =	DynArray.fold_left (
+							fun rec_func ac -> 
+								rec_func ^ "\n" ^ ac
+						) "" rec_funcs in
+
+	let rec_funcs_str = 
+		(if (not ((String.length rec_funcs_str) = 0)) then 
+			"\n--------------\nRECURSIVE PROCEDURES:  \n--------------\n" ^ rec_funcs_str
+		else 
+			"") in
+
+	(* Failed to generate specification string *)
+	let bi_fail_str, generated_spec_set = 	
+		List.fold_left (
+	 		fun (ac,generated_spec_set) (proc_name, _, _, success, msg, _) -> 
+	 			if (not success) then
+	 				(if (verbose) then
+						let failed_msg_str = (match msg with
+						| None ->  "\n" ^ proc_name ^ "\n----------\n Failed without a message. \n\n"
+						| Some msg -> "\n" ^ proc_name ^ "\n----------\n " ^ msg ^ "\n\n") in 
+						(failed_msg_str ^ ac, generated_spec_set)
+					else 
+						(proc_name ^ "\n" ^ ac, generated_spec_set))
+				else 
+					let generated_spec_set = SS.add proc_name generated_spec_set in
+					(ac,generated_spec_set)
+	 	) ("",generated_spec_set) bi_res in
+
+	let bi_fail_str = 
+		(if (not ((String.length bi_fail_str) = 0)) then 
+			"\n--------------\nFAILED TO GENERATE SPEC:  \n--------------\n" ^ bi_fail_str
+		else 
+			"") in
+
+	(* Failed to verify specifiaction string *)
+	let norm_fail_str, generated_spec_set = 
+		List.fold_left (
+	 		fun (ac,generated_spec_set) (proc_name, _, _, success, msg, _) -> 
+	 			(if (not success) then
+	 				(let generated_spec_set = SS.remove proc_name generated_spec_set in
+	 				if (verbose) then
+						(let failed_msg_str = (match msg with
+						| None ->  "\n" ^ proc_name ^ "\n----------\n Failed without a message. \n\n"
+						| Some msg -> "\n" ^ proc_name ^ "\n----------\n" ^ msg ^ "\n\n") in 
+						(failed_msg_str ^ ac,generated_spec_set))
+					else 
+						(proc_name ^ "\n" ^ ac, generated_spec_set))
+				else 
+					(ac,generated_spec_set))
+	 	) ("",generated_spec_set) norm_res in
+
+	let norm_fail_str = 
+		(if (not ((String.length norm_fail_str) = 0)) then 
+			"\n--------------\nFAILED TO VERIFY SPEC:  \n--------------\n" ^ norm_fail_str
+		else 
+			"") in
+
+ 	let succ_str = 	SS.fold (
+ 						fun proc_name ac -> 
+ 							if (verbose) then 
+ 								(try 
+ 									let spec = Hashtbl.find new_spec_tbl proc_name in
+ 									let spec_str = string_of_n_single_spec_assertion spec in
+ 									"\n" ^ proc_name ^ "\n----------\n" ^ spec_str ^ ac
+ 								with Not_found -> 
+ 									"\n" ^ proc_name ^ "\n----------\n Could not find the specification. Very odd." ^ ac)	
+ 							else
+ 								proc_name ^ "\n" ^ ac
+ 					) generated_spec_set "" in 
+
+ 	let succ_str = 
+		(if (not ((String.length succ_str) = 0)) then 
+			"\n--------------\nSUCCESSFUL SPEC GENERATION AND VERIFICATION \n--------------\n" ^ succ_str
+		else 
+			"") in
+
+	print_endline (results_str ^ rec_funcs_str ^ bi_fail_str ^ norm_fail_str ^ succ_str)

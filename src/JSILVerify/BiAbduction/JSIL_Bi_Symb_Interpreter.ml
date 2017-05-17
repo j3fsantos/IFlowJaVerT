@@ -207,6 +207,7 @@ let rec safe_symb_evaluate_expr spec_lvars (symb_state: symbolic_state) (anti_fr
 		let msg = Printf.sprintf "The logical expression %s is not typable in the typing enviroment: %s \n with the pure formulae %s" (print_le nle) gamma_str pure_str in
 		raise (Failure msg) in
 	let nle = symb_evaluate_expr symb_state anti_frame expr in
+	let nle = Simplifications.replace_nle_with_lvars pure_formulae nle in 
 	let nle_type, is_typable, constraints = type_lexpr gamma nle in
 	if (is_typable) then
 		(if ((List.length constraints = 0) || (Pure_Entailment.check_entailment SS.empty (pfs_to_list pure_formulae) constraints gamma)) then 
@@ -226,7 +227,7 @@ let rec safe_symb_evaluate_expr spec_lvars (symb_state: symbolic_state) (anti_fr
 		(match nle with
 		| LVar _ ->  nle, None, false
 		| _ ->
-			let new_gamma = Bi_Symbolic_State_Functions.bi_reverse_type_lexpr gamma nle nle_type in
+			let new_gamma = Bi_Symbolic_State_Functions.bi_reverse_type_lexpr (get_pf anti_frame) pure_formulae gamma nle nle_type in
 			match new_gamma with 
 				| Some new_gamma -> 
 					extend_gamma gamma new_gamma;
@@ -495,12 +496,14 @@ let find_and_apply_spec
 				[ new_symb_state, ret_flag, ret_lexpr ])
 				else begin print_debug (Printf.sprintf "The post does not make sense."); [] end in
 
-		extend_symb_state_with_pfs symb_state (DynArray.of_list pf_discharges);
+		let pfs_subst = pf_substitution (DynArray.of_list pf_discharges) subst true in
+		extend_symb_state_with_pfs symb_state pfs_subst;
 		let symb_state = symb_state_replace_heap symb_state quotient_heap in
 		let symb_state = symb_state_replace_preds symb_state quotient_preds in
 		let symb_state = symb_state_replace_gamma symb_state new_gamma in
 		let ret_var = proc_get_ret_var proc spec.n_ret_flag in
 		let ret_flag = spec.n_ret_flag in
+
 		let symb_states_and_ret_lexprs =
 			(match spec.n_post with
 			| [] -> print_debug (Printf.sprintf "No postconditions found."); []
@@ -631,8 +634,6 @@ let find_and_apply_spec
 	let quotients = find_correct_specs proc_specs.n_proc_specs ([], [], []) in
 	apply_correct_specs quotients
 
-
-
 let rec fold_predicate pred_name pred_defs symb_state params args spec_vars existentials : (symbolic_state * SS.t) option =
 
 	print_time_debug ("fold_predicate:");
@@ -677,7 +678,8 @@ let rec fold_predicate pred_name pred_defs symb_state params args spec_vars exis
 		| pred_def :: rest_pred_defs ->
 			print_debug (Printf.sprintf "----------------------------");
 			print_debug (Printf.sprintf "Current pred symbolic state: %s" (Symbolic_State_Print.string_of_shallow_symb_state pred_def));
-			let unifier = Structural_Entailment.unify_symb_states_fold pred_name existentials pred_def symb_state_aux in
+			let unifier = try (Some (Structural_Entailment.unify_symb_states_fold pred_name existentials pred_def symb_state_aux))
+				with | SymbExecFailure failure -> print_debug (Symbolic_State_Print.print_failure failure); None in
 			(match unifier with
 			| Some (true, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma, _, []) ->
 			  print_debug (Printf.sprintf "I can fold this!!!");
@@ -1216,9 +1218,11 @@ and symb_evaluate_next_cmd_cont
 					Printf.printf "LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
 					let new_symb_state, _ = Normaliser.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
 					let new_symb_state, _, _, _ = Simplifications.simplify_symb_state None (DynArray.create()) (SS.empty) new_symb_state in
-					(match (Structural_Entailment.fully_unify_symb_state new_symb_state symb_state spec.n_lvars !js) with
-					| Some _, _ -> (true, None, [])
-					| None, msg -> (false, Some msg, []))
+					try (let _ = Structural_Entailment.fully_unify_symb_state new_symb_state symb_state spec.n_lvars !js in (true, None, [])) with
+						| SymbExecFailure failure -> 
+								let str_of_fail = Symbolic_State_Print.print_failure failure in
+								print_debug str_of_fail;
+								(false, Some str_of_fail, [])
 			else
 				(* i1: NO: We have not visited the current command *)
 				(* Understand the symbolic state *)
@@ -1323,35 +1327,45 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info
 	(* Return *)
 	search_dot_graph, success, failure_msg, result_states
 
-let add_new_spec spec proc_name pre_post result_states new_spec_tbl = 
-	(* Create new sepcification is there is an anti frame *)
+let add_new_spec proc_name proc_params pre_post result_states new_spec_tbl = 
+	(* Create new specification is there is an anti frame *)
 	let suc_result_states = Option.get result_states in
-	(List.iter (fun (post_state, anti_frame, ret_flag) ->
+	let specs = (List.map (fun (post_state, anti_frame, ret_flag) ->
 					(* The new precondition = old precondition * anti frame *)
 					(* The new postconition is the final state after evaluation *)
-					let new_pre  =  Symbolic_State_Utils.bi_merge_symb_states anti_frame pre_post.n_pre in 
-					remove_concrete_values_from_the_store new_pre; 
+					let new_pre = Symbolic_State_Utils.bi_merge_symb_states anti_frame pre_post.n_pre in 
+					let new_pre = Simplifications.simplify_ss new_pre None in
+					remove_concrete_values_from_the_store new_pre;
 					let (pre_subst,post_subst) = Symbolic_State_Utils.symb_state_lvars_to_svars new_pre post_state in
 					Simplifications.naively_infer_type_information_symb_state pre_subst; 
 					Simplifications.naively_infer_type_information_symb_state post_subst; 
-					let post_lvars = Symbolic_State_Utils.get_symb_state_lvars pre_subst in
-					print_endline "Pre Spec Vars";
-					let pre_lvars = Symbolic_State_Utils.get_symb_state_lvars post_subst in
-					let new_proc_spec = {
+					let pre_lvars = Symbolic_State_Utils.get_symb_state_lvars pre_subst in
+					let post_lvars = Symbolic_State_Utils.get_symb_state_lvars post_subst in
+					{
 						n_pre        = pre_subst;
 						n_post       = [post_subst];
 						n_ret_flag   = ret_flag;
 						n_lvars      = pre_lvars;
 						n_post_lvars = [post_lvars];
 						n_subst      = Hashtbl.create small_tbl_size
-					}  in
-					Hashtbl.add new_spec_tbl proc_name {
-						n_spec_name = spec.n_spec_name;
-						n_spec_params = spec.n_spec_params;
-						n_proc_specs = [new_proc_spec];
-					};
-			  )
-			  suc_result_states)
+					}
+			  	) suc_result_states) in
+	let spec = try Some (Hashtbl.find new_spec_tbl proc_name) with Not_found -> None in 
+	(match spec with 
+	| Some spec -> 
+		let specs = List.append specs spec.n_proc_specs in
+		Hashtbl.replace new_spec_tbl proc_name {
+			n_spec_name = proc_name;
+			n_spec_params = proc_params;
+			n_proc_specs = specs;
+		};
+	| None -> 
+		Hashtbl.add new_spec_tbl proc_name {
+			n_spec_name = proc_name;
+			n_spec_params = proc_params;
+			n_proc_specs = specs;
+		};);
+	()
 
 (** 
 	Symbolic execution of a given set of JSIL procedures
@@ -1369,10 +1383,13 @@ let add_new_spec spec proc_name pre_post result_states new_spec_tbl =
 	TODO: Construct call graph, do dfs, do in that order
 *)
 let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
+	let new_spec_tbl = Hashtbl.create small_tbl_size in
+	if (!js) then
+		Hashtbl.iter (fun spec_name spec ->	if (not (List.mem spec_name procs_to_verify)) then 
+												Hashtbl.add new_spec_tbl spec_name spec
+					 ) spec_table; 	
 	(* Normalise predicate definitions *)
 	let n_pred_defs = Normaliser.normalise_predicate_definitions pred_defs in
-	(* Going to add the initial heap * anti-frame as the post and resulting heap as the anti-frame *)
-	let new_spec_tbl = Hashtbl.create small_tbl_size in
 	(* Construct corresponding extended JSIL program *)
 	let s_prog = {
 		program = prog;
@@ -1384,6 +1401,7 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 	(* Iterate over the specification table *)
 	let results = List.fold_left
 		(fun ac_results proc_name -> 
+		let proc = get_proc s_prog.program proc_name in
 	  	let spec = try Some (Hashtbl.find spec_table proc_name) with Not_found -> None in 
 			match spec with 
 			| Some spec -> 
@@ -1399,25 +1417,19 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 						(* Symbolically execute the procedure given the pre and post *)
 						let dot_graph, success, failure_msg, result_states = symb_evaluate_proc s_prog proc_name new_pre_post i pruning_info in
 						if (Option.is_some(result_states)) then  
-							add_new_spec spec proc_name pre_post result_states new_spec_tbl;
+							add_new_spec proc_name proc.proc_params  pre_post result_states new_spec_tbl;
 						(proc_name, i, pre_post, success, failure_msg, dot_graph))
 					pre_post_list in
 				let results_str, dot_graphs =  Symbolic_State_Print.string_of_symb_exe_results results in
 				(* Concatenate symbolic trace *)
 				ac_results @ results
-			| None -> ac_results)
+			| None -> 
+				let new_pre_post = Bi_Symbolic_State_Functions.create_new_spec () in
+				let dot_graph, success, failure_msg, result_states = symb_evaluate_proc s_prog proc_name new_pre_post 0 pruning_info in
+				if (Option.is_some(result_states)) then  
+					add_new_spec proc_name proc.proc_params  new_pre_post result_states new_spec_tbl;
+				(proc_name, 0, new_pre_post, success, failure_msg, dot_graph) :: ac_results)
 		[]
 		procs_to_verify in 
-	(* Understand complete success *)
-	let complete_success =
-		List.fold_left
-			(fun ac (_, _, _, partial_success, _, _) -> 
-				(ac && partial_success))
-			true
-			results in
-	(* Get the result string of the symbolic execution *)
-	let specs_str = Symbolic_State_Utils.string_of_n_spec_table_assertions new_spec_tbl in 
-	let results_str = Symbolic_State_Print.string_of_bi_symb_exe_results results in
-	let results_str = "Generated specifications: \n " ^ specs_str ^ "\n" ^ results_str in
 	(* Return *)
-	results_str, new_spec_tbl
+	new_spec_tbl, procs_to_verify, results

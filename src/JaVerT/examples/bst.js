@@ -19,6 +19,10 @@
 */
 
 /**
+	@lemma BST($$null, #x) --> (#x == -{ }-)
+*/
+
+/**
 	@id makeNode
 	
 	@pre 
@@ -125,8 +129,7 @@ function find_min(t)
 	var result;
 	
 	/** @invariant dataField(#t, "left", #il) * BST(#il, #KL) 
-	 	@flash BST(#il, #KL)
-	*/
+	 	@flash BST(#il, #KL) */
 	if (t.left === null)
 		result = t.value;
 	else
@@ -162,13 +165,11 @@ function remove(v, t)
 	if (v === t.value) {
 		if (t.left === null) {	
 				/** @unfold BST($$null, #KL) */
-				/** @flash BST(#ir, #KR) */
 				return t.right;
 			}
 		else 
 		if (t.right === null) {
-				/** @unfold BST($$null, #KR) 
-					@flash BST(#il, #KL) */
+				/** @unfold BST($$null, #KR) */
 	  			return t.left;
 			}
 		else {

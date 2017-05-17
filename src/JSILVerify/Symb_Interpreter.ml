@@ -189,6 +189,7 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 *)
 let safe_symb_evaluate_expr store gamma pure_formulae (expr : jsil_expr) =
 	let nle = symb_evaluate_expr store gamma pure_formulae expr in
+	let nle = Simplifications.replace_nle_with_lvars pure_formulae nle in 
 	let nle_type, is_typable, constraints = type_lexpr gamma nle in
 	let is_typable = is_typable && ((List.length constraints = 0) || (Pure_Entailment.check_entailment SS.empty (pfs_to_list pure_formulae) constraints gamma)) in
 	if (is_typable) then
@@ -201,6 +202,26 @@ let safe_symb_evaluate_expr store gamma pure_formulae (expr : jsil_expr) =
 				let pure_str = Symbolic_State_Print.string_of_shallow_p_formulae pure_formulae false in
 				let msg = Printf.sprintf "The logical expression %s is not typable in the typing enviroment: %s \n with the pure formulae %s" (print_le nle) gamma_str pure_str in
 				raise (Failure msg))
+
+let member_check heap loc ne2 pure_formulae gamma x store = 
+	let res = Symbolic_State_Utils.abs_heap_check_field_existence heap loc ne2 pure_formulae gamma in
+	update_gamma gamma x (Some BooleanType);
+	(match res with 
+	| _, Some b -> 
+		let res_lit = LLit (Bool b) in
+		store_put store x res_lit;	
+		res_lit 
+	
+	| Some f_val, None -> 
+		let ret_lexpr = LUnOp (Not, LBinOp (f_val, Equal, LNone)) in 
+		store_put store x ret_lexpr; 
+		ret_lexpr
+
+	| None, _ -> 
+		let l_x = fresh_lvar () in
+		store_put store x (LVar l_x); 
+		update_gamma gamma l_x (Some BooleanType);
+		LVar l_x)
 
 (**********************************************)
 (* Symbolic evaluation of JSIL basic commands *)
@@ -257,6 +278,12 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 			(match ne1 with
 			| LLit (Loc l)
 			| ALoc l -> l
+			| LVar lvar -> 
+			 (match Simplifications.find_me_Im_a_loc (pfs_to_list pure_formulae) ne1 with 
+		 		| Some loc -> 
+		 			loc
+		 		| None -> 
+					raise (Failure (Printf.sprintf "Lookup: I do not know which location %s denotes in the symbolic heap" (print_le ne1))));
 			| _ -> raise (Failure (Printf.sprintf "Lookup: I do not know which location %s denotes in the symbolic heap" (print_le ne1)))) in
 		let ne = Symbolic_State_Utils.abs_heap_find heap l ne2 pure_formulae gamma in
 		let ne_type,_,_ = type_lexpr gamma ne in
@@ -280,7 +307,14 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 		| LLit (Loc l)
 		| ALoc l ->
 			Symbolic_State_Utils.update_abs_heap heap l ne2 ne3 pure_formulae gamma
-		| _ -> raise (Failure (Printf.sprintf "Mutation: I do not know which location %s denotes in the symbolic heap" (print_le ne1))));
+		| LVar lvar -> 
+			 (match Simplifications.find_me_Im_a_loc (pfs_to_list pure_formulae) ne1 with 
+		 		| Some loc -> 
+		 			Symbolic_State_Utils.update_abs_heap heap loc ne2 ne3 pure_formulae gamma
+		 		| None -> 
+					raise (Failure (Printf.sprintf "Mutation: I do not know which location %s denotes in the symbolic heap" (print_le ne1))));
+		| _ -> 
+			raise (Failure (Printf.sprintf "Mutation: I do not know which location %s denotes in the symbolic heap" (print_le ne1))));
 		ne3
 
   (* Property deletion: delete(e1, e2)
@@ -297,6 +331,12 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 			(match ne1 with
 			| LLit (Loc l)
 			| ALoc l -> l
+			| LVar lvar -> 
+			 (match Simplifications.find_me_Im_a_loc (pfs_to_list pure_formulae) ne1 with 
+		 		| Some loc -> 
+		 			loc
+		 		| None -> 
+					raise (Failure (Printf.sprintf "Delete: I do not know which location %s denotes in the symbolic heap" (print_le ne1))));
 			| _ -> raise (Failure (Printf.sprintf "Delete: I do not know which location %s denotes in the symbolic heap" (print_le ne1)))) in
 		Symbolic_State_Utils.update_abs_heap heap l ne2 LNone pure_formulae gamma;
 		LLit (Bool true)
@@ -314,6 +354,12 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 			(match ne1 with
 			| LLit (Loc l)
 			| ALoc l -> l
+			| LVar lvar -> 
+			 (match Simplifications.find_me_Im_a_loc (pfs_to_list pure_formulae) ne1 with 
+		 		| Some loc -> 
+		 			loc
+		 		| None -> 
+					raise (Failure (Printf.sprintf "DeleteObject: I do not know which location %s denotes in the symbolic heap" (print_le ne1))));
 			| _ -> raise (Failure (Printf.sprintf "DeleteObject: I do not know which location %s denotes in the symbolic heap" (print_le ne1)))) in
 		(match (LHeap.mem heap l) with
 		 | false -> raise (Failure (Printf.sprintf "Attempting to delete an inexistent object: %s" (print_le ne1)))
@@ -335,25 +381,13 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 		match ne1 with
 		| LLit (Loc l)
 		| ALoc l ->
-				let res = Symbolic_State_Utils.abs_heap_check_field_existence heap l ne2 pure_formulae gamma in
-				update_gamma gamma x (Some BooleanType);
-				(match res with 
-				| _, Some b -> 
-					let res_lit = LLit (Bool b) in
-					store_put store x res_lit;	
-					res_lit 
-				
-				| Some f_val, None -> 
-					let ret_lexpr = LUnOp (Not, LBinOp (f_val, Equal, LNone)) in 
-					store_put store x ret_lexpr; 
-					ret_lexpr
-
-				| None, _ -> 
-					let l_x = fresh_lvar () in
-					store_put store x (LVar l_x); 
-					update_gamma gamma l_x (Some BooleanType);
-					LVar l_x)
-
+				member_check heap l ne2 pure_formulae gamma x store
+		| LVar lvar -> 
+			 (match Simplifications.find_me_Im_a_loc (pfs_to_list pure_formulae) ne1 with 
+		 		| Some loc -> 
+		 			member_check heap loc ne2 pure_formulae gamma x store
+		 		| None -> 
+					raise (Failure (Printf.sprintf "HasField: I do not know which location %s denotes in the symbolic heap" (print_le ne1))));
 		| _ -> raise (Failure (Printf.sprintf "HasField: I do not know which location %s denotes in the symbolic heap" (print_le ne1)))
 
 	| _ -> raise (Failure (Printf.sprintf "Unsupported basic command"))
@@ -454,22 +488,23 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 			print_debug (Printf.sprintf "Pre:\n%sPosts:\n%s"
 				(Symbolic_State_Print.string_of_shallow_symb_state spec.n_pre)
 				(Symbolic_State_Print.string_of_symb_state_list spec.n_post));
-			let unifier = Structural_Entailment.unify_symb_states SS.empty spec.n_pre symb_state_aux in
-			(match unifier with
-			|	Some (true, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
-				print_debug (Printf.sprintf "I found a COMPLETE match");
-				print_debug (Printf.sprintf "The pre of the spec that completely matches me is:\n%s"
-					(Symbolic_State_Print.string_of_shallow_symb_state spec.n_pre));
-				print_debug (Printf.sprintf "The number of posts is: %d"
-					(List.length spec.n_post));
-				[ (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ]
-			| Some (false, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
-				print_debug (Printf.sprintf "I found a PARTIAL match");
-				find_correct_specs rest_spec_list ((spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) :: ac_quotients)
-
-			| None -> (
-				print_debug (Printf.sprintf "I found a NON-match");
-				find_correct_specs rest_spec_list ac_quotients)) in
+			
+			try (
+			let outcome, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma = Structural_Entailment.unify_symb_states spec.n_pre symb_state_aux SS.empty in
+			(match outcome with
+			|	true ->
+					print_debug (Printf.sprintf "I found a COMPLETE match");
+					print_debug (Printf.sprintf "The pre of the spec that completely matches me is:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state spec.n_pre));
+					print_debug (Printf.sprintf "The number of posts is: %d" (List.length spec.n_post));
+					[ (true, spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ]
+			| false ->
+					print_debug (Printf.sprintf "I found a PARTIAL match");
+					find_correct_specs rest_spec_list ((false, spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) :: ac_quotients)))
+			with | e -> (match e with 
+				| SymbExecFailure failure -> 
+						print_debug (Symbolic_State_Print.print_failure failure);
+						print_debug (Printf.sprintf "I found a NON-match");
+						find_correct_specs rest_spec_list ac_quotients) in
 
 
 	let transform_symb_state_partial_match (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
@@ -497,25 +532,25 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 		symb_states_and_ret_lexprs in
 
 
-	let rec apply_correct_specs (quotients : (jsil_n_single_spec * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment) list) =
+	let rec apply_correct_specs (quotients : (bool * jsil_n_single_spec * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment) list) =
 		print_debug_petar (Printf.sprintf "Entering apply_correct_specs.");
 		match quotients with
-		| [ ] -> [ ]
-		| [ (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ] -> 
+		| [ ] -> true, [ ]
+		| [ (total, spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ] when (total = true) -> 
 			print_debug (Printf.sprintf "This was a TOTAL MATCH!!!!");
 			print_debug (Printf.sprintf "Substitution: %s\n" (Symbolic_State_Print.string_of_substitution subst)); 
-			transform_symb_state spec symb_state quotient_heap quotient_preds subst pf_discharges new_gamma
-	 	| _ :: _ -> 
+			true, transform_symb_state spec symb_state quotient_heap quotient_preds subst pf_discharges new_gamma
+	 	| _ -> 
 			print_debug (Printf.sprintf "We have a PARTIAL MATCH of length: %d" (List.length quotients));
 			let new_symb_states =
 				List.map
-					(fun (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
+					(fun (_, spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
 						if (compatible_pfs symb_state spec.n_pre subst)
 							then transform_symb_state_partial_match (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma)
 							else [])
 					quotients in
 			let new_symb_states = List.concat new_symb_states in
-			new_symb_states in
+			false, new_symb_states in
 
 	let quotients = find_correct_specs proc_specs.n_proc_specs [] in
 	apply_correct_specs quotients
@@ -567,7 +602,8 @@ let rec fold_predicate pred_name pred_defs symb_state params args spec_vars exis
 		| pred_def :: rest_pred_defs ->
 			print_debug (Printf.sprintf "----------------------------");
 			print_debug (Printf.sprintf "Current pred symbolic state: %s" (Symbolic_State_Print.string_of_shallow_symb_state pred_def));
-			let unifier = Structural_Entailment.unify_symb_states_fold pred_name existentials pred_def symb_state_aux in
+			let unifier = try (Some (Structural_Entailment.unify_symb_states_fold pred_name existentials pred_def symb_state_aux))
+				with | SymbExecFailure failure -> print_debug (Symbolic_State_Print.print_failure failure); None in
 			(match unifier with
 			| Some (true, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma, _, []) ->
 			  print_debug (Printf.sprintf "I can fold this!!!");
@@ -834,7 +870,7 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars : (symbo
 		Printf.printf "The arguments to the callspec are the following:\n%s\n"
 			(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) l_args)); 
 		let le_args = List.map (fun le -> Normaliser.normalise_lexpr (get_store symb_state) (get_gamma symb_state) subst le) l_args in
-		let new_symb_states = find_and_apply_spec s_prog.program spec_name proc_specs symb_state le_args in
+		let _, new_symb_states = find_and_apply_spec s_prog.program spec_name proc_specs symb_state le_args in
 
 		(if ((List.length new_symb_states) = 0)
 			then raise (Failure (Printf.sprintf "No precondition found for procedure %s." spec_name)));
@@ -968,7 +1004,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 
 		(* symbolically evaluate the args *)
 		let le_args = List.map (fun e -> symb_evaluate_expr (get_store symb_state) (get_gamma symb_state) (get_pf symb_state) e) e_args in
-		let new_symb_states = find_and_apply_spec s_prog.program proc_name proc_specs symb_state le_args in
+		let _, new_symb_states = find_and_apply_spec s_prog.program proc_name proc_specs symb_state le_args in
 
 		(if ((List.length new_symb_states) = 0)
 			then raise (Failure (Printf.sprintf "No precondition found for procedure %s." proc_name)));
@@ -1073,7 +1109,19 @@ and symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state cur next
 
 	(* Conclusion *)
 	let finish how = 
-		Structural_Entailment.unify_symb_state_against_post proc.proc_name spec symb_state how search_info !js;
+		try 
+		(Structural_Entailment.unify_symb_state_against_post s_prog proc.proc_name spec symb_state how search_info !js)
+		with | SymbExecRecovery recovery -> 
+			(match recovery with
+			| GR (Flash (pn, pp)) -> 
+				let flash = [ Unfold (LPred (pn, pp)); Fold (LPred (pn, pp)) ] in
+				let sss = symb_evaluate_logic_cmds s_prog flash [ symb_state, spec.n_lvars ] spec.n_subst in
+				print_debug (Printf.sprintf "Flash completed: %d resulting states" (List.length sss));
+				List.iter (fun (ss, sv) ->
+					let spec = { spec with n_lvars = sv } in
+					Structural_Entailment.unify_symb_state_against_post s_prog proc.proc_name spec ss how search_info !js
+				) sss
+			);
 		Symbolic_Traces.create_info_node_from_post search_info spec.n_post how true; () in
 	
 	(* i2: Have we reached the return label? *)
@@ -1102,9 +1150,7 @@ and symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state cur next
 						Printf.printf "LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
 						let new_symb_state, _ = Normaliser.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
 						let new_symb_state, _, _, _ = Simplifications.simplify_symb_state None (DynArray.create()) (SS.empty) new_symb_state in
-						(match (Structural_Entailment.fully_unify_symb_state new_symb_state symb_state spec.n_lvars !js) with
-						| Some _, _ -> ()
-						| None, msg -> raise (Failure msg))
+						let _ = Structural_Entailment.fully_unify_symb_state new_symb_state symb_state spec.n_lvars !js in ()
 				end
 			else
 				(* i1: NO: We have not visited the current command *)
@@ -1179,7 +1225,10 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info =
 			(* Symbolic execution was successful *)
 			true, None
 		(* An error occurred during the symbolic execution *)
-		with Failure msg ->
+		with 
+		| e -> let msg = (match e with
+			| SymbExecFailure failure -> Symbolic_State_Print.print_failure failure
+			| Failure msg -> msg) in
 			(print_endline (Printf.sprintf "The EVALUATION OF THIS PROC GAVE AN ERROR: %d %s!!!!" i msg);
 			Symbolic_Traces.create_info_node_from_error search_info msg;
 			Symbolic_Traces.create_info_node_from_post search_info spec.n_post spec.n_ret_flag false;
@@ -1273,4 +1322,4 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 		spec_table;
 	print_endline (Printf.sprintf "\nVerified: %d.\t\tPrunings: %d.\n" !count_verified !count_prunings);
 	(* Return *)
-	results_str, dot_graphs, complete_success
+	results_str, dot_graphs, complete_success, results

@@ -101,12 +101,34 @@ let rec desugar_labs_list lproc_list =
 
 let print_position outx lexbuf =
   let pos = lexbuf.lex_curr_p in
-  Printf.fprintf outx "%s:%d:%d" pos.pos_fname
+  Format.fprintf outx "%s:%d:%d" pos.pos_fname
     pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
 
 (** Parse contents in 'lexbuf' from the starting symbol 'start'. Terminates if an error occurs. *)
-let parse_with_error start lexbuf =
-  try
+let parse start lexbuf =
+	let module JPMI = JSIL_Parser.MenhirInterpreter in
+
+  let last_token = ref JSIL_Parser.EOF
+  in let lexer lexbuf =
+    let token = JSIL_Lexer.read lexbuf in
+      last_token := token; token
+  in
+    JPMI.loop_handle (fun result -> result)
+      (function JPMI.Rejected -> failwith "Parser rejected input"
+         | JPMI.HandlingError e ->
+             let csn = JPMI.current_state_number e in
+               Format.eprintf "%a, last token: [WHATEVER]: %s.@."
+                 print_position lexbuf
+                 (* TokenPrinter.pp_token !last_token *)
+                 "Error message found"
+                 ;
+               raise JSIL_Parser.Error
+         | _ -> failwith "Unexpected state in failure handler!"
+      )
+      (JPMI.lexer_lexbuf_to_supplier lexer lexbuf)
+      (start lexbuf.Lexing.lex_curr_p)
+	
+  (* try
   	start JSIL_Lexer.read lexbuf
   with
   | Syntax_error msg ->
@@ -114,18 +136,14 @@ let parse_with_error start lexbuf =
 		exit (-1)
   | JSIL_Parser.Error ->
     Printf.fprintf stderr "%a: syntax error\n" print_position lexbuf;
-    exit (-1)
-
-let parse_without_error start lexbuf =
-  try start JSIL_Lexer.read lexbuf with
-  | _ -> raise (Failure "Oops!")
+    exit (-1) *)
 
 (** Open the file given by 'path' and run the parser on its contents. *)
 let ext_program_of_path path =
   let inx = open_in path in
   let lexbuf = Lexing.from_channel inx in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = path };
-  let prog = parse_with_error JSIL_Parser.main_target lexbuf in
+  let prog = parse JSIL_Parser.Incremental.main_target lexbuf in
   close_in inx;
   prog
 
@@ -133,7 +151,7 @@ let specs_of_path path =
 		let inx = open_in path in
 	  let lexbuf = Lexing.from_channel inx in
 	  lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = path };
-	  let preds, specs = parse_with_error JSIL_Parser.pred_spec_target lexbuf in
+	  let preds, specs = parse JSIL_Parser.Incremental.pred_spec_target lexbuf in
 		close_in inx;
 		preds, specs
 
@@ -141,28 +159,28 @@ let specs_of_path path =
 let ext_program_of_string str =
   let lexbuf = Lexing.from_string str in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
-	let prog = parse_with_error JSIL_Parser.main_target lexbuf in
+	let prog = parse JSIL_Parser.Incremental.main_target lexbuf in
 	prog
 
 let jsil_assertion_of_string str =
   let lexbuf = Lexing.from_string str in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
-	parse_with_error JSIL_Parser.top_level_assertion_target lexbuf
+	parse JSIL_Parser.Incremental.top_level_assertion_target lexbuf
 
 let js_assertion_of_string str =
   let lexbuf = Lexing.from_string str in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
-	parse_with_error JSIL_Parser.top_level_js_assertion_target lexbuf
+	parse JSIL_Parser.Incremental.top_level_js_assertion_target lexbuf
 
 let js_logic_pred_def_of_string str : JS_Logic_Syntax.js_logic_predicate =
   let lexbuf = Lexing.from_string str in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
-	parse_with_error JSIL_Parser.js_pred_target lexbuf
+	parse JSIL_Parser.Incremental.js_pred_target lexbuf
 
 let js_only_spec_from_string str : unit =
   let lexbuf = Lexing.from_string str in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
-	parse_with_error JSIL_Parser.js_only_spec_target lexbuf
+	parse JSIL_Parser.Incremental.js_only_spec_target lexbuf
 
 (** Add the declarations in 'program_from' to 'program_to'. *)
 let extend_declarations program_to program_from =

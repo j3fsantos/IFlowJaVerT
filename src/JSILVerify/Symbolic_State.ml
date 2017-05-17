@@ -510,7 +510,7 @@ let symb_state_replace_store symb_state new_store =
 
 let init_symb_state () : symbolic_state =
 	(* Heap, Store, Pure Formula, Gamma, Preds *)
-	(LHeap.create 1, Hashtbl.create 1, DynArray.create (), Hashtbl.create 1, DynArray.create ())
+	(LHeap.create small_tbl_size, Hashtbl.create small_tbl_size, DynArray.create (), Hashtbl.create small_tbl_size, DynArray.create ())
 
 let copy_symb_state symb_state =
 	let heap, store, p_formulae, gamma, preds (*, solver*) = symb_state in
@@ -793,3 +793,60 @@ let activate_post_in_post_pruning_info symb_exe_info proc_name post_number =
 		let post_pruning_info_array = List.nth post_pruning_info_array_list (symb_exe_info.spec_number) in
 		post_pruning_info_array.(post_number) <- true
 	with Not_found -> ()
+
+(* Hierarchy of failures *)
+
+type unify_stores_fail = 
+	| VariableNotInStore of string
+	| ValueMismatch of string * jsil_logic_expr * jsil_logic_expr
+	| NoSubstitution
+
+type unify_heaps_fail =
+	| CannotResolvePatLocation of string
+	| CannotResolveLocation of string
+	| CannotResolveField of string * jsil_logic_expr
+	| FieldValueMismatch of string * jsil_logic_expr * jsil_logic_expr * string * jsil_logic_expr * jsil_logic_expr
+	| ValuesNotNone of string * (jsil_logic_expr * jsil_logic_expr) list
+	| FloatingLocations of string list
+	| IllegalDefaultValue of jsil_logic_expr
+	| PatternHeapWithDefaultValue
+
+type unify_gamma_fail = 
+	| NoTypeForVariable of string
+	| VariableNotInSubstitution of string
+	| TypeMismatch of string * jsil_type * jsil_logic_expr * jsil_type
+
+type unify_symb_states_fail = 
+	| CannotDischargeSpecVars
+	| CannotUnifyPredicates
+	| ContradictionInPFS
+
+type fully_unify_symb_states_fail = 
+	| ResourcesRemain
+	| CannotUnifySymbStates
+
+type unify_symb_states_fold_fail = 
+	| CannotSubtractPredicate of string
+	| CannotUnifyPredicates
+
+type symb_exec_fail =
+	| US  of unify_stores_fail
+	| UH  of unify_heaps_fail
+	| UG  of unify_gamma_fail
+	| USS of unify_symb_states_fail
+	| FSS of fully_unify_symb_states_fail
+	| USF of unify_symb_states_fold_fail
+	| Impossible of string
+
+exception SymbExecFailure of symb_exec_fail
+
+(* Hierarchy of recoveries *)
+
+type unify_gamma_recovery = 
+	| Flash of string * (jsil_logic_expr list)
+
+type recovery = 
+	| GR of unify_gamma_recovery
+	| NoRecovery
+
+exception SymbExecRecovery of recovery
