@@ -1335,7 +1335,7 @@ let add_new_spec proc_name proc_params pre_post result_states new_spec_tbl =
 					(* The new postconition is the final state after evaluation *)
 					let new_pre = Symbolic_State_Utils.bi_merge_symb_states anti_frame pre_post.n_pre in 
 					let new_pre = Simplifications.simplify_ss new_pre None in
-					(* remove_concrete_values_from_the_store new_pre; *)
+					remove_concrete_values_from_the_store new_pre;
 					let (pre_subst,post_subst) = Symbolic_State_Utils.symb_state_lvars_to_svars new_pre post_state in
 					Simplifications.naively_infer_type_information_symb_state pre_subst; 
 					Simplifications.naively_infer_type_information_symb_state post_subst; 
