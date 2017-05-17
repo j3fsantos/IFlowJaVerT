@@ -1183,8 +1183,8 @@ let rec ground_fun_annotations fun_annots e =
       { exp_offset = e.exp_offset; exp_stx = new_exp_stx; exp_annot = rest_annots @ specs @ prev_specs } 
 
     | _ -> 
-     Printf.printf "I am in the case in which I am deleting annotations from the node. I am deleting %d annotations and %d will remain\n"
-      (List.length (folds @ prev_folds @ specs @ prev_specs)) (List.length rest_annots); 
+     (* Printf.printf "I am in the case in which I am deleting annotations from the node. I am deleting %d annotations and %d will remain\n"
+      (List.length (folds @ prev_folds @ specs @ prev_specs)) (List.length rest_annots); *)
       
     { exp_offset = e.exp_offset; exp_stx = new_exp_stx; exp_annot = rest_annots @ fun_annots_to_reinclude } 
     (* Printf.printf "Here is the new exp withouth the folds that were deleted:\n%s\n" (Pretty_print.string_of_exp true new_e); *) in 
